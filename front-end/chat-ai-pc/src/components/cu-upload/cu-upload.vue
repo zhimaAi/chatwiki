@@ -1,6 +1,6 @@
 <style lang="less" scoped>
 .cu-upload {
-  .file-input {
+  .file-input.file-input {
     display: none;
   }
   .upload-btn {

@@ -8,6 +8,8 @@
   background: #f0f2f5;
 
   .chat-page-body {
+    margin: 0 auto;
+    width: 100%;
     flex: 1;
     overflow: hidden;
     display: flex;
@@ -20,7 +22,7 @@
   }
   .technical-support-text{
     line-height: 20px;
-    padding-bottom: 4px;
+    padding-bottom: 10px;
     font-size: 12px;
     color: #bfbfbf;
     text-align: center
@@ -29,7 +31,7 @@
 </style>
 
 <template>
-  <div class="chat-page">
+  <div class="chat-page" id="chatPage">
     <div class="chat-page-header">
       <CuNavbar :title="externalConfigH5.pageTitle" :background-color="externalConfigH5.pageStyle.navbarBackgroundColor" v-if="externalConfigH5.navbarShow == 1" />
     </div>
@@ -48,8 +50,8 @@
       </div>
     </div>
     <div class="chat-page-footer">
-      <MessageInput v-model:value="message" @send="onSendMesage" :loading="sendLock" />
-      <div class="technical-support-text">由chatwiki提供软件支持</div>
+      <MessageInput @send="onSendMesage" :loading="sendLock" />
+      <div class="technical-support-text">由 ChatWiki 提供软件支持</div>
     </div>
   </div>
 </template>
@@ -120,9 +122,6 @@ const init = async () => {
   }
 }
 
-// 发送消息
-const message = ref('')
-
 const sendTextMessage = (val: string) => {
   if (!val) {
     return showToast('请输入消息内容')
@@ -133,16 +132,14 @@ const sendTextMessage = (val: string) => {
   })
 }
 
-const onSendMesage = async () => {
-  if (!message.value) {
+const onSendMesage = async (message) => {
+  if (!message) {
     return showToast('请输入消息内容')
   }
 
   isAllowedScrollToBottom = true
 
-  sendTextMessage(message.value)
-
-  message.value = ''
+  sendTextMessage(message)
 }
 
 // 监听 updateAiMessage 触发消息列表滚动
@@ -150,6 +147,13 @@ const onUpdateAiMessage = () => {
   if (messageListRef.value) {
     handleMessageListScrollToBottom()
   }
+}
+
+function setChatPageHeight(){
+  // 适配移动端 高度为浏览器可视区域高度
+  setTimeout(() => {
+    document.getElementById("chatPage")!.style.height = (document.documentElement.clientHeight - 1) + 'px';
+  }, 20)
 }
 
 onMounted(() => {
@@ -160,10 +164,15 @@ onMounted(() => {
 
   // 监听 updateAiMessage 触发消息列表滚动
   emitter.on('updateAiMessage', onUpdateAiMessage)
+
+  setChatPageHeight()
+
+  window.addEventListener('resize', setChatPageHeight)
 })
 
 onUnmounted(() => {
   $reset()
   emitter.off('updateAiMessage', onUpdateAiMessage)
+  window.removeEventListener('resize', setChatPageHeight)
 })
 </script>

@@ -7,6 +7,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_redis"
 	"fmt"
+	"github.com/syyongx/php2go"
 	"sync"
 	"time"
 
@@ -43,7 +44,7 @@ func ConvertPdf(msg string, _ ...string) error {
 		logs.Error(`no data:%s`, msg)
 		return nil
 	}
-	if cast.ToInt(info[`status`]) != define.FileStatusInitial {
+	if !php2go.InArray(cast.ToInt(info[`status`]), []int{define.FileStatusInitial, define.FileStatusWaitSplit}) {
 		logs.Error(`abnormal state:%s/%v`, msg, info[`status`])
 		return nil
 	}
@@ -172,4 +173,82 @@ func CheckFileLearned(fileId int) {
 	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: fileId})
+}
+
+func CrawlArticle(msg string, _ ...string) error {
+	logs.Debug(`nsq:%s`, msg)
+	data := make(map[string]any)
+	if err := tool.JsonDecode(msg, &data); err != nil {
+		logs.Error(`parsing failure:%s/%s`, msg, err.Error())
+		return nil
+	}
+	fileId := cast.ToInt(cast.ToInt(data[`file_id`]))
+	adminUserId := cast.ToInt(cast.ToInt(data[`admin_user_id`]))
+	if fileId <= 0 || adminUserId <= 0 {
+		logs.Error(`data exception:%s`, msg)
+		return nil
+	}
+
+	// check file id
+	m := msql.Model(`chat_ai_library_file`, define.Postgres)
+	file, err := common.GetLibFileInfo(fileId, cast.ToInt(data[`admin_user_id`]))
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+	if len(file) == 0 {
+		logs.Error(`library not found:%s`, msg)
+		return nil
+	}
+
+	// check file status
+	//if file[`status`] != cast.ToString(define.FileStatusWaitCrawl) {
+	//	logs.Error(`abnormal state:%s`, file[`status`])
+	//	return nil
+	//}
+
+	// update file status
+	_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
+		`status`: define.FileStatusCrawling,
+	})
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+
+	//start crawl
+	uploadInfo, err := common.SaveUrlPage(cast.ToInt(file[`admin_user_id`]), file[`doc_url`], "library_file")
+	if err != nil {
+		_, err := m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
+			`status`: define.FileStatusCrawlException,
+			`errmsg`: err.Error(),
+		})
+		if err != nil {
+			logs.Error(err.Error())
+		}
+		return nil
+	}
+
+	// update file status
+	_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
+		`status`:              define.FileStatusWaitSplit,
+		`file_name`:           uploadInfo.Name,
+		`file_size`:           uploadInfo.Size,
+		`file_url`:            uploadInfo.Link,
+		`update_time`:         tool.Time2Int(),
+		`doc_last_renew_time`: tool.Time2Int(),
+	})
+	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: int(fileId)})
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+
+	// convert pdf
+	if message, err := tool.JsonEncode(map[string]any{`file_id`: fileId, `file_url`: uploadInfo.Link}); err != nil {
+		logs.Error(err.Error())
+	} else if err := common.AddJobs(define.ConvertPdfTopic, message); err != nil {
+		logs.Error(err.Error())
+	}
+	return nil
 }

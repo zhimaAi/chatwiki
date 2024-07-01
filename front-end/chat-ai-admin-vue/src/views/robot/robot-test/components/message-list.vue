@@ -124,6 +124,23 @@
       }
     }
   }
+  .guess-you-want{
+    border-radius: 4px 16px 16px 16px;
+    margin-top: 8px;
+    padding: 16px 12px;
+    background: #fff;
+    .message-content{
+      color: #1a1a1a;
+      font-size: 14px;
+      line-height: 20px;
+    }
+    .message-menus{
+      .menu-item{
+        background: #E6EFFF;
+        padding: 6px 12px;
+      }
+    }
+  }
 }
 </style>
 
@@ -131,7 +148,7 @@
   <div class="message-list-wrapper">
     <div class="scroll-box" ref="scrollBoxRef" @scroll="onScroll">
       <div class="message-list">
-        <template v-for="item in props.messages" :key="item.uid">
+        <template v-for="(item,messageIndex) in props.messages" :key="item.uid">
           <!-- 用户的消息 -->
           <div
             class="message-item user-message"
@@ -216,6 +233,17 @@
                     >
                       <a class="file-name">{{ file.file_name }}</a>
                     </div>
+                  </div>
+                </div>
+              </div>
+              <div class="guess-you-want" v-if="item.guess_you_want && item.guess_you_want.length">
+                <div class="message-content">猜你想问：</div>
+                <div class="message-menus">
+                  <div @click="onClickMeun(guess)" 
+                      class="menu-item" 
+                      v-for="(guess, guessIndex) in item.guess_you_want" 
+                      :key="guessIndex">
+                      {{guess}}
                   </div>
                 </div>
               </div>

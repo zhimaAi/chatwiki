@@ -65,6 +65,7 @@ func (c *ChatCompletionStream) Recv() (ChatCompletionStreamResponse, error) {
 
 	var emptyMessagesCount uint
 	var headerData = []byte("data: ")
+	var errorPrefix = []byte(`{"error`)
 
 	for {
 		rawLine, readErr := c.StreamReader.Reader.ReadBytes('\n')
@@ -80,6 +81,16 @@ func (c *ChatCompletionStream) Recv() (ChatCompletionStreamResponse, error) {
 
 		noSpaceLine := bytes.TrimSpace(rawLine)
 		if !bytes.HasPrefix(noSpaceLine, headerData) {
+			if bytes.HasPrefix(noSpaceLine, errorPrefix) {
+				var errResp ErrorResponse
+				err := json.Unmarshal(noSpaceLine, &errResp)
+				if err != nil {
+					return *new(ChatCompletionStreamResponse), fmt.Errorf("unmarshal error, %w", c.StreamReader.ErrorResponse.Error())
+				} else {
+					return *new(ChatCompletionStreamResponse), errResp.Error()
+				}
+			}
+
 			writeErr := c.StreamReader.ErrAccumulator.Write(noSpaceLine)
 			if writeErr != nil {
 				return *new(ChatCompletionStreamResponse), writeErr

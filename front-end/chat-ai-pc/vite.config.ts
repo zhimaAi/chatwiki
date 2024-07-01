@@ -44,6 +44,7 @@ export default defineConfig((opt: ConfigEnv): UserConfig => {
     },
     build: {
       outDir: fileURLToPath(new URL('../../static/chat-ai-pc/web', import.meta.url)),
+      emptyOutDir: true,
       assetsDir: 'assets',
       sourcemap: env.VITE_SOURCEMAP === 'true',
       rollupOptions: {
@@ -53,7 +54,7 @@ export default defineConfig((opt: ConfigEnv): UserConfig => {
         output: {
           // 自定义chunkFileName生成规则
           chunkFileNames: 'assets/js/[name]-[hash].js',
-          entryFileNames: 'assets/js/[name].js',
+          entryFileNames: 'assets/js/[name]-[hash].js',
           assetFileNames(assetInfo: any) {
             const fiel_name = assetInfo.name.toLowerCase()
 

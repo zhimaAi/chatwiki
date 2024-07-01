@@ -40,6 +40,7 @@ export default defineConfig(function (opt) {
         },
         build: {
             outDir: fileURLToPath(new URL('../../static/chat-ai-mobile', import.meta.url)),
+            emptyOutDir: true,
             assetsDir: 'assets',
             sourcemap: env.VITE_SOURCEMAP === 'true',
             rollupOptions: {
@@ -49,7 +50,7 @@ export default defineConfig(function (opt) {
                 output: {
                     // 自定义chunkFileName生成规则
                     chunkFileNames: 'assets/js/[name]-[hash].js',
-                    entryFileNames: '[name].js',
+                    entryFileNames: '[name]-[hash].js',
                     assetFileNames: function (assetInfo) {
                         var fiel_name = assetInfo.name.toLowerCase();
                         if (fiel_name.endsWith('.css')) {

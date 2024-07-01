@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "dev:test": "vite --host 0.0.0.0 --mode test",
+    "dev1": "vite --host 0.0.0.0 --mode dev1",
     "dev2": "vite --mode dev2",
-    "dev:dev3": "vite --host 0.0.0.0 --mode dev3",
-    "dev:dev4": "vite --host 0.0.0.0 --mode dev4",
-    "dev:dev1": "vite --host 0.0.0.0 --mode dev1",
+    "dev3": "vite --host 0.0.0.0 --mode dev3",
+    "dev4": "vite --host 0.0.0.0 --mode dev4",
     "build": "vite build",
     "build:test": "vite build --mode test",
     "preview": "vite preview",

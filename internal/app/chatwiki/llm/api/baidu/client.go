@@ -18,12 +18,25 @@ type Client struct {
 }
 
 var modelToUri = map[string]string{
-	"ERNIE-4.0-8K":             "completions_pro",
-	"ERNIE-4.0-8K-Preemptible": "completions_pro_preemptible",
-	"ERNIE-4.0-8K-Preview":     "ernie-4.0-8k-preview",
-	"ERNIE-4.0-8K-0329":        "ernie-4.0-8k-0329",
-	"ERNIE-4.0-8K-0104":        "ernie-4.0-8k-0104",
-	"ERNIE-3.5-8K":             "completions",
+	"ERNIE-4.0-Turbo-8K":        "ernie-4.0-turbo-8k",
+	"ERNIE-4.0-8K":              "completions_pro",
+	"ERNIE-4.0-8K-Preemptible":  "completions_pro_preemptible",
+	"ERNIE-4.0-8K-Preview":      "ernie-4.0-8k-preview",
+	"ERNIE-4.0-8K-Preview-0518": "completions_adv_pro",
+	"ERNIE-4.0-8K-Latest":       "ernie-4.0-8k-latest",
+	"ERNIE-4.0-8K-0329":         "ernie-4.0-8k-0329",
+	"ERNIE-4.0-8K-0104":         "ernie-4.0-8k-0104",
+	"ERNIE-4.0-8K-0613":         "ernie-4.0-8k-0613",
+	"ERNIE-3.5-8K":              "completions",
+	"ERNIE-3.5-8K-0205":         "ernie-3.5-8k-0205",
+	"ERNIE-3.5-8K-Preview":      "ernie-3.5-8k-preview",
+	"ERNIE-3.5-8K-0329":         "ernie-3.5-8k-0329",
+	"ERNIE-3.5-128K":            "ernie-3.5-128k",
+	"ERNIE-3.5-8K-0613":         "ernie-3.5-8k-0613",
+	"ERNIE-Speed-8K":            "ernie_speed",
+	"ERNIE-Speed-128K":          "ernie-speed-128k",
+	"ERNIE-Lite-8K-0922":        "eb-instant",
+	"ERNIE-Lite-8K-0308":        "ernie-lite-8k",
 }
 
 func NewClient(APIKey, SecretKey, Model string) *Client {
@@ -127,6 +140,11 @@ func (c *Client) CreateChatCompletionStream(req ChatCompletionRequest) (*ChatCom
 
 	req.Stream = true
 	responseRaw, err := common.HttpStreamPost(url, nil, params, req)
+	if err != nil {
+		return nil, err
+	}
+
+	err = common.HttpCheckError(responseRaw, &ErrorResponse{})
 	if err != nil {
 		return nil, err
 	}

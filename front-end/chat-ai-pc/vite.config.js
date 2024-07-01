@@ -40,6 +40,7 @@ export default defineConfig(function (opt) {
         },
         build: {
             outDir: fileURLToPath(new URL('../../static/chat-ai-pc/web', import.meta.url)),
+            emptyOutDir: true,
             assetsDir: 'assets',
             sourcemap: env.VITE_SOURCEMAP === 'true',
             rollupOptions: {

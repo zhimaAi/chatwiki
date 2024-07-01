@@ -71,72 +71,100 @@ func GetParagraphList(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
 
-func EditParagraph(c *gin.Context) {
+func getParagraphAddNumber(c *gin.Context, fileId int64) int {
+	if number := cast.ToInt(c.PostForm(`number`)); number > 0 {
+		return number
+	}
+	maxNumber, _ := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`file_id`, cast.ToString(fileId)).Max(`number`)
+	return cast.ToInt(maxNumber) + 1
+}
+
+func SaveParagraph(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
 		return
 	}
 	id := cast.ToInt64(c.PostForm(`id`))
+	fileId := cast.ToInt64(c.PostForm(`file_id`))
 	title := strings.TrimSpace(c.PostForm(`title`))
 	content := strings.TrimSpace(c.PostForm(`content`))
 	question := strings.TrimSpace(c.PostForm(`question`))
 	answer := strings.TrimSpace(c.PostForm(`answer`))
-	if id <= 0 {
+	if id < 0 || fileId < 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	wordTotal := utf8.RuneCountInString(content)
-	if wordTotal > define.MaxContent {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `length_error`))))
-	}
-
 	m := msql.Model(`chat_ai_library_file_data`, define.Postgres)
-	info, err := m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Field(`file_id,type`).Find()
+	if id > 0 {
+		fileIdStr, err := m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Value(`file_id`)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		fileId = cast.ToInt64(fileIdStr)
+	}
+	if fileId == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	fileInfo, err := msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(fileId)).Find()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	if cast.ToInt(info[`file_id`]) == 0 {
+	if len(fileInfo) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
-	fileInfo, err := msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(info[`file_id`])).Find()
-	if err != nil || fileInfo == nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-		return
+	if cast.ToInt(fileInfo[`is_qa_doc`]) == define.DocTypeQa {
+		if len(question) < 1 || len(question) > define.MaxContent {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `length_error`))))
+			return
+		}
+		if len(answer) < 1 || len(answer) > define.MaxContent {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `length_error`))))
+			return
+		}
+	} else {
+		if len(content) < 1 || len(content) > define.MaxContent {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `length_error`))))
+			return
+		}
 	}
 
 	_ = m.Begin()
-
 	data := msql.Datas{
-		`title`:       title,
-		`word_total`:  wordTotal,
-		`update_time`: tool.Time2Int(),
+		`admin_user_id`: userId,
+		`library_id`:    fileInfo[`library_id`],
+		`file_id`:       fileId,
+		`title`:         title,
+		`update_time`:   tool.Time2Int(),
 	}
 	var vectorIds []int64
-	if cast.ToInt(info[`type`]) == define.ParagraphTypeExcelQA {
-		if len(question) == 0 || len(answer) == 0 {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
-			return
-		}
+	if cast.ToInt(fileInfo[`is_qa_doc`]) == define.DocTypeQa {
+		data[`word_total`] = utf8.RuneCountInString(question + answer)
+		data[`content`] = ``
 		data[`question`] = question
 		data[`answer`] = answer
-		_, err = m.Where(`id`, cast.ToString(id)).Update(data)
+		if id > 0 {
+			_, err = m.Where(`id`, cast.ToString(id)).Update(data)
+		} else {
+			data[`type`] = define.ParagraphTypeDocQA
+			data[`create_time`] = data[`update_time`]
+			data[`number`] = getParagraphAddNumber(c, fileId)
+			id, err = m.Insert(data, `id`)
+		}
 		if err != nil {
 			logs.Error(err.Error())
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			_ = m.Rollback()
 			return
 		}
-		vectorID, err := common.SaveVector(
-			cast.ToInt64(info[`admin_user_id`]),
-			cast.ToInt64(info[`library_id`]),
-			cast.ToInt64(info[`file_id`]),
-			id,
-			cast.ToString(define.VectorTypeQuestion),
-			question,
-		)
+		vectorID, err := common.SaveVector(int64(userId), cast.ToInt64(fileInfo[`library_id`]),
+			fileId, id, cast.ToString(define.VectorTypeQuestion), question)
 		if err != nil {
 			logs.Error(err.Error())
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -146,14 +174,8 @@ func EditParagraph(c *gin.Context) {
 		vectorIds = append(vectorIds, vectorID)
 
 		if fileInfo[`type`] == cast.ToString(define.QAIndexTypeQuestionAndAnswer) {
-			vectorID, err = common.SaveVector(
-				cast.ToInt64(info[`admin_user_id`]),
-				cast.ToInt64(info[`library_id`]),
-				cast.ToInt64(info[`file_id`]),
-				id,
-				cast.ToString(define.VectorTypeAnswer),
-				question,
-			)
+			vectorID, err = common.SaveVector(int64(userId), cast.ToInt64(fileInfo[`library_id`]),
+				fileId, id, cast.ToString(define.VectorTypeAnswer), question)
 			if err != nil {
 				logs.Error(err.Error())
 				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -163,26 +185,26 @@ func EditParagraph(c *gin.Context) {
 			vectorIds = append(vectorIds, vectorID)
 		}
 	} else {
-		if len(content) == 0 {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
-			return
-		}
+		data[`word_total`] = utf8.RuneCountInString(content)
 		data[`content`] = content
-		_, err = m.Where(`id`, cast.ToString(id)).Update(data)
+		data[`question`] = ``
+		data[`answer`] = ``
+		if id > 0 {
+			_, err = m.Where(`id`, cast.ToString(id)).Update(data)
+		} else {
+			data[`type`] = define.ParagraphTypeNormal
+			data[`create_time`] = data[`update_time`]
+			data[`number`] = getParagraphAddNumber(c, fileId)
+			id, err = m.Insert(data, `id`)
+		}
 		if err != nil {
 			logs.Error(err.Error())
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			_ = m.Rollback()
 			return
 		}
-		vectorID, err := common.SaveVector(
-			cast.ToInt64(info[`admin_user_id`]),
-			cast.ToInt64(info[`library_id`]),
-			cast.ToInt64(info[`file_id`]),
-			id,
-			cast.ToString(define.VectorTypeParagraph),
-			content,
-		)
+		vectorID, err := common.SaveVector(int64(userId), cast.ToInt64(fileInfo[`library_id`]),
+			fileId, id, cast.ToString(define.VectorTypeParagraph), content)
 		if err != nil {
 			logs.Error(err.Error())
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -200,7 +222,7 @@ func EditParagraph(c *gin.Context) {
 
 	//async task:convert vector
 	for _, id := range vectorIds {
-		if message, err := tool.JsonEncode(map[string]any{`id`: id, `file_id`: info[`file_id`]}); err != nil {
+		if message, err := tool.JsonEncode(map[string]any{`id`: id, `file_id`: fileId}); err != nil {
 			logs.Error(err.Error())
 		} else if err := common.AddJobs(define.ConvertVectorTopic, message); err != nil {
 			logs.Error(err.Error())

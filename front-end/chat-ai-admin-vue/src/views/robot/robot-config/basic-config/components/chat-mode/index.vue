@@ -47,7 +47,7 @@
         robotInfo.chat_type == '1' ? '仅知识库' : robotInfo.chat_type == '2' ? '直连模式' : '混合模式'
         }}</span>
         <a-divider type="vertical" />
-        <span class="action-btn" @click="handleEdit(true)">修改</span>
+        <a-button size="small" @click="handleEdit(true)">修改</a-button>
       </div>
     </template>
     <div class="form-box">

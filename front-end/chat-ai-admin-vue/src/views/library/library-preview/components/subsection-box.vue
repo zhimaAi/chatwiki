@@ -27,18 +27,16 @@
       <div class="content-box" v-if="item.answer">A：{{ item.answer }}</div>
       <div class="content-box" v-html="item.content"></div>
     </div>
-    <EditSubscription @handleEdit="handleEdit" ref="editSubscription"></EditSubscription>
   </div>
 </template>
 <script setup>
 import { reactive, ref, computed, createVNode } from 'vue'
-import EditSubscription from './edit-subsection.vue'
 import { message } from 'ant-design-vue'
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import { Modal } from 'ant-design-vue'
 import { deleteParagraph } from '@/api/library'
 
-const emit = defineEmits(['handleEditParagraph', 'handleDelParagraph', 'handleScrollTargetPage'])
+const emit = defineEmits(['handleDelParagraph', 'handleScrollTargetPage','openEditSubscription'])
 const props = defineProps({
   paragraphLists: {
     type: Array,
@@ -47,15 +45,11 @@ const props = defineProps({
   total: {
     type: [Number, String],
     default: 0
-  }
+  },
 })
-const editSubscription = ref(null)
 
 const handleOpenEditModal = (item) => {
-  editSubscription.value.showModal(item)
-}
-const handleEdit = (data) => {
-  emit('handleEditParagraph', data)
+  emit('openEditSubscription', item)
 }
 const hanldleDelete = (id) => {
   Modal.confirm({
@@ -82,6 +76,7 @@ const hanldleDelete = (id) => {
 const handleToTargetPage = (page_num) => {
   emit('handleScrollTargetPage', page_num)
 }
+defineExpose({ handleOpenEditModal })
 </script>
 <style lang="less" scoped>
 .subsection-box {

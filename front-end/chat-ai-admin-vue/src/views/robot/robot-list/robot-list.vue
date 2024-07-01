@@ -115,7 +115,6 @@
       margin-top: 16px;
       font-size: 14px;
       color: #2475fc;
-      text-align: right;
 
       .action-icon {
         font-size: 16px;
@@ -302,13 +301,14 @@ const onDelete = ({ id }) => {
 }
 
 const toTestPage = (item) => {
-  router.push({
-    path: '/robot/test',
-    query: {
-      robot_key: item.robot_key,
-      id: item.id
-    }
-  })
+  window.open(`#/robot/test?robot_key=${item.robot_key}&id=${item.id}`)
+  // router.push({
+  //   path: '/robot/test',
+  //   query: {
+  //     robot_key: item.robot_key,
+  //     id: item.id
+  //   }
+  // })
 }
 
 onMounted(() => {

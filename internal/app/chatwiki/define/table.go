@@ -5,11 +5,14 @@ package define
 const VectorDimension = 2000
 
 const (
-	FileStatusInitial   = 0
-	FileStatusWaitSplit = 4
-	FileStatusLearning  = 1
-	FileStatusLearned   = 2
-	FileStatusException = 3
+	FileStatusInitial        = 0
+	FileStatusWaitSplit      = 4
+	FileStatusWaitCrawl      = 5
+	FileStatusCrawling       = 6
+	FileStatusCrawlException = 7
+	FileStatusLearning       = 1
+	FileStatusLearned        = 2
+	FileStatusException      = 3
 )
 
 const (
@@ -84,4 +87,15 @@ const (
 	ChatTypeLibrary = 1
 	ChatTypeDirect  = 2
 	ChatTypeMixture = 3
+)
+
+const (
+	DocTypeLocal  = 1
+	DocTypeOnline = 2
+	DocTypeCustom = 3
+)
+
+const (
+	SwitchOff = 0
+	SwitchOn  = 1
 )

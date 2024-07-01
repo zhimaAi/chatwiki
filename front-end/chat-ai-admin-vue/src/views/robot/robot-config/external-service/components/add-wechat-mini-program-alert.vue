@@ -102,7 +102,7 @@
     <div class="add-wechat-app-alert" v-if="step === 1">
       <a-alert
         class="tip-alert"
-        message="进入微信小程序后台（mp.weixin.qq.com），在【开关-开发管理-开发设置】中获取开发者信息"
+        message="进入微信小程序后台（mp.weixin.qq.com），在【开发-开发管理-开发设置】中获取开发者信息"
         type="info"
         show-icon
       />
@@ -148,7 +148,7 @@
     <div class="add-wechat-app-alert" v-if="step === 2">
       <a-alert
         class="tip-alert"
-        message="进入微信小程序后台（mp.weixin.qq.com），在【开关-开发管理-开发设置】中配置并启用消息推送。请按照下图配置。"
+        message="进入微信小程序后台（mp.weixin.qq.com），在【开发-开发管理-开发设置】中配置并启用消息推送。请按照下图配置。"
         type="info"
         show-icon
       />

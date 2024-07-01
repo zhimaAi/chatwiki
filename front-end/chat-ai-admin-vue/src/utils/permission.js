@@ -60,15 +60,20 @@ export function checkRouterPermisission(value) {
   }
   if (value.includes('/robot/')) {
     // 机器人管理页面
-    return role_permission.includes('RobotManage');
+    return role_permission.includes('RobotManage')
   }
   if (value.includes('/library/')) {
     // 知识库管理
-    return role_permission.includes('LibraryManage');
+    return role_permission.includes('LibraryManage')
+  }
+  if (value.includes('/user/clientDownload')) {
+    // 客户端管理
+    return role_permission.includes('ClientSideManage')
   }
   if (value.includes('/user/') && value != '/user/account') {
     // 知识库管理
-    return role_permission.includes('SystemManage');
+    return role_permission.includes('SystemManage')
   }
+
   return true
 }

@@ -8,10 +8,12 @@ import (
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/app/chatwiki/llm/adaptor"
 	"chatwiki/internal/pkg/lib_web"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/gin-contrib/sse"
@@ -153,6 +155,89 @@ func ChatRequest(c *gin.Context) {
 	for range chanStream {
 		//discard unpushed data flows
 	}
+}
+
+type QuestionGuideMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+func ChatQuestionGuide(c *gin.Context) {
+	chatBaseParam, err := commonCheck(c)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	dialogId := cast.ToInt(c.PostForm(`dialogue_id`))
+	if dialogId == 0 {
+		logs.Error(`dialogue_id is empty`)
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_empty`, `dialogue_id`))))
+		return
+	}
+
+	recentMessages, err := msql.Model(`chat_ai_message`, define.Postgres).
+		Where(`openid`, chatBaseParam.Openid).
+		Where(`robot_id`, chatBaseParam.Robot[`id`]).
+		Where(`dialogue_id`, cast.ToString(dialogId)).
+		Where(`msg_type`, cast.ToString(define.MsgTypeText)).
+		Limit(8).
+		Order(`id desc`).
+		Select()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(recentMessages) == 0 {
+		logs.Error(`recentMessages is empty`)
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	sort.Slice(recentMessages, func(i, j int) bool {
+		return cast.ToInt(recentMessages[i][`id`]) < cast.ToInt(recentMessages[j][`id`])
+	})
+
+	var questionGuideMessages []QuestionGuideMessage
+	for _, one := range recentMessages {
+		if len(one[`content`]) == 0 {
+			continue
+		}
+		if cast.ToInt(one[`is_customer`]) == define.MsgFromCustomer {
+			questionGuideMessages = append(questionGuideMessages, QuestionGuideMessage{Role: `user`, Content: one[`content`]})
+		} else {
+			questionGuideMessages = append(questionGuideMessages, QuestionGuideMessage{Role: `assistant`, Content: one[`content`]})
+		}
+	}
+
+	if cast.ToBool(chatBaseParam.Robot[`enable_question_guide`]) == false {
+		logs.Error(`enable_question_guide is closed`)
+		c.String(http.StatusOK, lib_web.FmtJson([]string{}, nil))
+		return
+	}
+
+	var messages []adaptor.ZhimaChatCompletionMessage
+	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: define.PromptDefaultQuestionGuide})
+	for _, msg := range questionGuideMessages {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: msg.Role, Content: msg.Content})
+	}
+
+	content, err := common.RequestChat(cast.ToInt(chatBaseParam.Robot[`model_config_id`]), chatBaseParam.Robot[`use_model`],
+		messages, cast.ToFloat32(chatBaseParam.Robot[`temperature`]), 200)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson([]string{}, nil))
+		return
+	}
+
+	var guides []string
+	err = json.Unmarshal([]byte(content), &guides)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson([]string{}, nil))
+		return
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(guides, nil))
 }
 
 func getChatRequestParam(c *gin.Context) *define.ChatRequestParam {
@@ -444,15 +529,38 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 	if len(params.LibraryIds) == 0 || !common.CheckIds(params.LibraryIds) { //no custom is used
 		params.LibraryIds = params.Robot[`library_ids`]
 	}
+
+	contextList := buildChatContextPair(params.Openid, cast.ToInt(params.Robot[`id`]),
+		dialogueId, int(curMsgId), cast.ToInt(params.Robot[`context_pair`]))
+
+	//question optimize
+	var optimizedQuestions []string
+	if cast.ToBool(params.Robot[`enable_question_optimize`]) && len(params.LibraryIds) > 0 {
+		var err error
+		optimizedQuestions, err = common.GetOptimizedQuestions(params.Robot, params.Question, contextList)
+		if err != nil {
+			logs.Error(err.Error())
+		}
+	}
+
 	//convert match
-	list, err := common.GetMatchLibraryParagraphList(params.Question, params.LibraryIds, cast.ToInt(params.Robot[`top_k`]),
-		cast.ToFloat64(params.Robot[`similarity`]), cast.ToInt(params.Robot[`search_type`]), params.Robot)
+	list, err := common.GetMatchLibraryParagraphList(
+		params.Question,
+		optimizedQuestions,
+		params.LibraryIds,
+		cast.ToInt(params.Robot[`top_k`]),
+		cast.ToFloat64(params.Robot[`similarity`]),
+		cast.ToInt(params.Robot[`search_type`]),
+		params.Robot,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	//part1:prompt
 	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: params.Prompt}}
 	*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: params.Prompt})
+
 	//part2:library
 	for _, one := range list {
 		if cast.ToInt(one[`type`]) == define.ParagraphTypeNormal {
@@ -463,17 +571,18 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 			*debugLog = append(*debugLog, map[string]string{`type`: `library`, `content`: "question: " + one[`question`] + "\nanswer: " + one[`answer`]})
 		}
 	}
+
 	//part3:context_qa
-	contextList := buildChatContextPair(params.Openid, cast.ToInt(params.Robot[`id`]),
-		dialogueId, int(curMsgId), cast.ToInt(params.Robot[`context_pair`]))
 	for i := range contextList {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})
 		*debugLog = append(*debugLog, map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]})
 	}
+
 	//part4:cur_question
 	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: params.Question})
 	*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
+
 	return messages, list, nil
 }
 

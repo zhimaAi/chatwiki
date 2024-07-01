@@ -141,12 +141,6 @@ func CreateLibrary(c *gin.Context) {
 	if err == nil && uploadInfo != nil {
 		avatar = uploadInfo.Link
 	}
-	//document uploaded
-	libraryFiles, errs := common.SaveUploadedFileMulti(c, `library_files`, define.LibFileLimitSize, userId, `library_file`, define.LibFileAllowExt)
-	if len(libraryFiles) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(errs, errors.New(i18n.Show(common.GetLang(c), `upload_empty`))))
-		return
-	}
 	//database dispose
 	data := msql.Datas{
 		`admin_user_id`:   userId,
@@ -168,41 +162,11 @@ func CreateLibrary(c *gin.Context) {
 	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.LibraryCacheBuildHandler{LibraryId: int(libraryId)})
-	//database dispose
-	fileIds := make([]int64, 0)
-	m := msql.Model(`chat_ai_library_file`, define.Postgres)
-	for _, uploadInfo := range libraryFiles {
-		status := define.FileStatusInitial
-		isTableFile := define.IsTableFile(uploadInfo.Ext)
-		if isTableFile {
-			status = define.FileStatusWaitSplit
-		}
-		fileId, err := m.Insert(msql.Datas{
-			`admin_user_id`: userId,
-			`library_id`:    libraryId,
-			`file_url`:      uploadInfo.Link,
-			`file_name`:     uploadInfo.Name,
-			`status`:        status,
-			`file_ext`:      uploadInfo.Ext,
-			`file_size`:     uploadInfo.Size,
-			`create_time`:   tool.Time2Int(),
-			`update_time`:   tool.Time2Int(),
-			`is_table_file`: cast.ToInt(isTableFile),
-		}, `id`)
-		//clear cached data
-		lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: int(fileId)})
-		if err != nil {
-			logs.Error(err.Error())
-		} else {
-			fileIds = append(fileIds, fileId)
-			if !isTableFile { //async task:convert pdf
-				if message, err := tool.JsonEncode(map[string]any{`file_id`: fileId, `file_url`: uploadInfo.Link}); err != nil {
-					logs.Error(err.Error())
-				} else if err := common.AddJobs(define.ConvertPdfTopic, message); err != nil {
-					logs.Error(err.Error())
-				}
-			}
-		}
+	//common save
+	fileIds, err := addLibFile(c, userId, int(libraryId))
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`file_ids`: fileIds}, nil))
 }
@@ -337,6 +301,6 @@ func LibraryRecallTest(c *gin.Context) {
 		robot[`robot_name`] = robotName
 	}
 
-	list, err := common.GetMatchLibraryParagraphList(question, cast.ToString(libraryId), size, similarity, searchType, robot)
+	list, err := common.GetMatchLibraryParagraphList(question, []string{}, cast.ToString(libraryId), size, similarity, searchType, robot)
 	c.String(http.StatusOK, lib_web.FmtJson(list, err))
 }

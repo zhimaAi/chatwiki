@@ -5,7 +5,9 @@ package common
 import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/llm/adaptor"
+	"chatwiki/internal/pkg/casbin"
 	"chatwiki/internal/pkg/lib_redis"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -213,14 +215,19 @@ func GetMatchLibraryParagraphByVectorSimilarity(question, libraryIds string, siz
 	return result, nil
 }
 
-func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size int, searchType int) ([]msql.Params, error) {
+func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size int, similarity float64, searchType int) ([]msql.Params, error) {
 	list := make([]msql.Params, 0)
 	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeFullText}) {
 		return list, nil
 	}
 	question = strings.ReplaceAll(question, `'`, ` `)
+	queryTokens, err := msql.Model(fmt.Sprintf(`ts_parse('zhparser', '%s')`, question), define.Postgres).ColumnArr(`token`)
+	if err != nil {
+		return nil, err
+	}
+
 	ids, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`library_id`, `in`, libraryIds).
-		Where(fmt.Sprintf(`to_tsvector('zhima_zh_parser',upper(content))@@plainto_tsquery('zhima_zh_parser',upper('%s'))`, question)).
+		Where(fmt.Sprintf(`to_tsvector('zhima_zh_parser',upper(content))@@to_tsquery('zhima_zh_parser',upper('%s'))`, strings.Join(queryTokens, " | "))).
 		Limit(500).ColumnArr(`id`)
 	if err != nil {
 		return list, err
@@ -229,14 +236,68 @@ func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size 
 		return list, nil
 	}
 
-	return msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
+	list, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
 		Alias("a").
 		Join("chat_ai_library_file_data b", "a.data_id=b.id", "left").
 		Where(`a.id`, `in`, strings.Join(ids, `,`)).
 		Where(`b.id is not null`).
-		Field(`b.*`).
-		Field(fmt.Sprintf(`ts_rank(to_tsvector('zhima_zh_parser',upper(a.content)),plainto_tsquery('zhima_zh_parser',upper('%s'))) as rank`, question)).
+		Field(`b.*,a.id as index_id`).
+		Field(fmt.Sprintf(`ts_rank(to_tsvector('zhima_zh_parser',upper(a.content)),to_tsquery('zhima_zh_parser',upper('%s'))) as rank`, strings.Join(queryTokens, " | "))).
 		Order(`rank DESC`).Limit(size).Select()
+	if err != nil {
+		return nil, err
+	}
+
+	listIds := make([]string, 0)
+	for _, one := range list {
+		listIds = append(listIds, cast.ToString(one[`index_id`]))
+	}
+
+	answerTokensResult, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
+		Alias(`a`).
+		Join(`LATERAL ts_parse('zhparser', a.content) as b`, `true`, `LEFT`).
+		Where(`id`, `in`, strings.Join(listIds, `,`)).
+		Field(`a.id, string_agg(b.token, ',') AS tokens`).
+		Group(`a.id`).Select()
+	if err != nil {
+		return nil, err
+	}
+
+	similarities := make(map[int]float64)
+	for _, one := range answerTokensResult {
+		answerTokens := strings.Split(one[`tokens`], ",")
+		score := overlapCoefficient(queryTokens, answerTokens)
+		similarities[cast.ToInt(one[`id`])] = score
+	}
+
+	// add similarity field
+	var result []msql.Params
+	bestScores := make(map[interface{}]msql.Params) // unique
+	for _, one := range list {
+		score := similarities[cast.ToInt(one[`index_id`])]
+		if score < similarity {
+			continue
+		}
+		id := one[`id`]
+		if existing, exists := bestScores[id]; !exists || cast.ToFloat64(existing[`similarity`]) < score {
+			one[`similarity`] = cast.ToString(score)
+			bestScores[id] = one
+		}
+	}
+
+	// convert map to slice
+	for _, one := range bestScores {
+		result = append(result, one)
+	}
+
+	// sort
+	sort.Slice(result, func(i, j int) bool {
+		similarityI := cast.ToFloat64(result[i]["similarity"])
+		similarityJ := cast.ToFloat64(result[j]["similarity"])
+		return similarityI > similarityJ
+	})
+
+	return result, err
 }
 
 func GetMatchLibraryParagraphByMergeRerank(question string, size int, vectorList, searchList []msql.Params, robot msql.Params) ([]msql.Params, error) {
@@ -274,7 +335,7 @@ func GetMatchLibraryParagraphByMergeRerank(question string, size int, vectorList
 	return RerankData(cast.ToInt(robot[`rerank_model_config_id`]), robot[`rerank_use_model`], rerankReq)
 }
 
-func GetMatchLibraryParagraphList(question, libraryIds string, size int, similarity float64, searchType int, robot msql.Params) ([]msql.Params, error) {
+func GetMatchLibraryParagraphList(question string, optimizedQuestions []string, libraryIds string, size int, similarity float64, searchType int, robot msql.Params) ([]msql.Params, error) {
 	result := make([]msql.Params, 0)
 	if len(libraryIds) == 0 {
 		return result, nil
@@ -282,15 +343,23 @@ func GetMatchLibraryParagraphList(question, libraryIds string, size int, similar
 	if len(question) == 0 {
 		return nil, errors.New(`question cannot be empty`)
 	}
+
 	fetchSize := 4 * size
-	vectorList, err := GetMatchLibraryParagraphByVectorSimilarity(question, libraryIds, fetchSize, similarity, searchType)
-	if err != nil {
-		logs.Error(err.Error())
+	var vectorList, searchList []msql.Params
+
+	for _, q := range append(optimizedQuestions, question) {
+		list, err := GetMatchLibraryParagraphByVectorSimilarity(q, libraryIds, fetchSize, similarity, searchType)
+		if err != nil {
+			logs.Error(err.Error())
+		}
+		vectorList = append(vectorList, list...)
+		list, err = GetMatchLibraryParagraphByFullTextSearch(q, libraryIds, fetchSize, similarity, searchType)
+		if err != nil {
+			logs.Error(err.Error())
+		}
+		searchList = append(searchList, list...)
 	}
-	searchList, err := GetMatchLibraryParagraphByFullTextSearch(question, libraryIds, fetchSize, searchType)
-	if err != nil {
-		logs.Error(err.Error())
-	}
+
 	rerankList, err := GetMatchLibraryParagraphByMergeRerank(question, fetchSize, vectorList, searchList, robot)
 	if err != nil {
 		logs.Error(err.Error())
@@ -300,6 +369,7 @@ func GetMatchLibraryParagraphList(question, libraryIds string, size int, similar
 		Add(DataSource{List: vectorList, Key: `id`, Fixed: 60}).
 		Add(DataSource{List: searchList, Key: `id`, Fixed: 60}).
 		Add(DataSource{List: rerankList, Key: `id`, Fixed: 58}).Sort()
+
 	//return
 	for i, one := range list {
 		if i >= size {
@@ -455,4 +525,98 @@ func GetLastDialogueId(adminUserId, robotId int, openid string) int {
 		logs.Error(err.Error())
 	}
 	return cast.ToInt(dialogueId)
+}
+
+func GetOptimizedQuestions(Robot msql.Params, question string, contextList []map[string]string) ([]string, error) {
+	histories := ""
+	for _, context := range contextList {
+		histories += "Q: " + context[`question`] + "\n"
+		histories += "A: " + context[`answer`] + "\n"
+	}
+	prompt := strings.ReplaceAll(define.PromptDefaultQuestionOptimize, `{{query}}`, question)
+	prompt = strings.ReplaceAll(prompt, `{{histories}}`, histories)
+
+	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
+
+	var result []string
+	content, err := RequestChat(cast.ToInt(Robot[`model_config_id`]), Robot[`use_model`], messages, cast.ToFloat32(Robot[`temperature`]), 200)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal([]byte(content), &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// overlap coefficient
+func overlapCoefficient(setA, setB []string) float64 {
+	setAMap := make(map[string]bool)
+	setBMap := make(map[string]bool)
+
+	for _, item := range setA {
+		setAMap[item] = true
+	}
+	for _, item := range setB {
+		setBMap[item] = true
+	}
+
+	intersectionSize := 0
+	for item := range setAMap {
+		if setBMap[item] {
+			intersectionSize++
+		}
+	}
+
+	minSize := min(len(setAMap), len(setBMap))
+
+	if minSize == 0 {
+		return 0
+	}
+
+	return float64(intersectionSize) / float64(minSize)
+}
+
+func ClientSideNeedLogin(adminUserId int) bool {
+	info, err := msql.Model(define.TableUser, define.Postgres).Where(`id`, cast.ToString(adminUserId)).
+		Where(`is_deleted`, define.Normal).Field(`client_side_login_switch`).Find()
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	if len(info) == 0 {
+		return true
+	}
+	return cast.ToInt(info[`client_side_login_switch`]) == define.SwitchOn
+}
+
+func CheckPermission(userId int, permission string) bool {
+	userRoles, err := msql.Model(define.TableUser, define.Postgres).Where(`id`, cast.ToString(userId)).
+		Where(`is_deleted`, define.Normal).Value(`user_roles`)
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	if len(userRoles) == 0 {
+		return false
+	}
+	if cast.ToInt(userRoles) == define.DefaultRoleIdRoot { //role:root
+		return true
+	}
+	rules, err := casbin.Handler.GetPolicyForUser(userRoles)
+	if err != nil {
+		logs.Error(err.Error())
+		return false
+	}
+	rolePermission := make([]string, 0)
+	for _, rule := range rules {
+		if len(rule) > 1 {
+			if strings.ContainsAny(rule[1], `/`) {
+				continue
+			}
+			rolePermission = append(rolePermission, rule[1])
+		}
+	}
+	return tool.InArrayString(permission, rolePermission)
 }

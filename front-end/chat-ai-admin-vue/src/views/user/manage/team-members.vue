@@ -27,7 +27,7 @@
         }"
         @change="onTableChange"
       >
-        <a-table-column title="姓名" data-index="user_name" width="340px">
+        <a-table-column title="姓名" data-index="user_name" width="300px">
           <template #default="{ record }">
             <div class="user-box">
               <img :src="record.avatar || defaultAvatar" alt="" />
@@ -47,7 +47,7 @@
         <a-table-column title="最近登录IP" data-index="IP" width="190px">
           <template #default="{ record }">{{ record.login_ip }}</template>
         </a-table-column>
-        <a-table-column title="操作" data-index="action" width="178px">
+        <a-table-column title="操作" data-index="action" width="208px">
           <template #default="{ record }">
             <a-flex :gap="16" v-if="record.user_roles != 1">
               <a @click="handleEdit(record)">编辑</a>

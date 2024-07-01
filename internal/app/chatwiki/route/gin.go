@@ -52,7 +52,6 @@ func init() {
 	Route[http.MethodPost][`/manage/upload`] = manage.Upload
 	Route[http.MethodGet][`/manage/getRobotList`] = manage.GetRobotList
 	Route[http.MethodPost][`/manage/saveRobot`] = manage.SaveRobot
-	//Route[http.MethodPost][`/manage/editPrompt`] = manage.EditPrompt
 	Route[http.MethodPost][`/manage/editExternalConfig`] = manage.EditExternalConfig
 	Route[http.MethodGet][`/manage/getRobotInfo`] = manage.GetRobotInfo
 	Route[http.MethodPost][`/manage/deleteRobot`] = manage.DeleteRobot
@@ -68,12 +67,15 @@ func init() {
 	Route[http.MethodPost][`/manage/delLibraryFile`] = manage.DelLibraryFile
 	Route[http.MethodGet][`/manage/getLibFileInfo`] = manage.GetLibFileInfo
 	Route[http.MethodGet][`/manage/getLibFileExcelTitle`] = manage.GetLibFileExcelTitle
+	Route[http.MethodPost][`/manage/renewLibraryFile`] = manage.RenewLibraryFile
+	Route[http.MethodPost][`/manage/editLibFile`] = manage.EditLibFile
 	/*paragraph API*/
 	Route[http.MethodGet][`/manage/getSeparatorsList`] = manage.GetSeparatorsList
 	Route[http.MethodGet][`/manage/getLibFileSplit`] = manage.GetLibFileSplit
 	Route[http.MethodPost][`/manage/saveLibFileSplit`] = manage.SaveLibFileSplit
 	Route[http.MethodGet][`/manage/getParagraphList`] = manage.GetParagraphList
-	Route[http.MethodPost][`/manage/editParagraph`] = manage.EditParagraph
+	Route[http.MethodPost][`/manage/addParagraph`] = manage.SaveParagraph
+	Route[http.MethodPost][`/manage/editParagraph`] = manage.SaveParagraph
 	Route[http.MethodPost][`/manage/deleteParagraph`] = manage.DeleteParagraph
 	/*debug API*/
 	Route[http.MethodPost][`/manage/getDialogueList`] = manage.GetDialogueList
@@ -83,6 +85,7 @@ func init() {
 	noAuthFuns(Route[http.MethodPost], `/chat/message`, business.ChatMessage)
 	noAuthFuns(Route[http.MethodPost], `/chat/welcome`, business.ChatWelcome)
 	noAuthFuns(Route[http.MethodPost], `/chat/request`, business.ChatRequest)
+	noAuthFuns(Route[http.MethodPost], `/chat/questionGuide`, business.ChatQuestionGuide)
 	/*model API*/
 	Route[http.MethodGet][`/manage/getModelConfigList`] = manage.GetModelConfigList
 	Route[http.MethodPost][`/manage/addModelConfig`] = manage.AddModelConfig
@@ -94,7 +97,10 @@ func init() {
 	Route[http.MethodPost][`/manage/saveWechatApp`] = manage.SaveWechatApp
 	Route[http.MethodGet][`/manage/getWechatAppInfo`] = manage.GetWechatAppInfo
 	Route[http.MethodPost][`/manage/deleteWechatApp`] = manage.DeleteWechatApp
+	//register client side route
+	RegClientSideRoute()
 }
+
 func noAuthFuns(route map[string]lib_web.Action, path string, handlerFunc lib_web.Action) map[string]lib_web.Action {
 	lib_web.NoAuthRouteMap[path] = true
 	route[path] = handlerFunc

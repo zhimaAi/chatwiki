@@ -26,3 +26,8 @@ export const getChatMessage = (data) => {
 export const getAnswerSource = (params) => {
   return request.get({ url: '/manage/getAnswerSource', params })
 }
+
+// 猜你想问
+export const questionGuide = (data) => {
+  return request.post({ url: '/chat/questionGuide', data })
+}

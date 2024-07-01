@@ -7,6 +7,8 @@
     >
       <router-link
         class="default-color"
+        tag="a"
+        :target="item.target || '_self'"
         :to="{ path: item.path, query: item.query || query }"
         v-for="item in items"
         :key="item.key"
@@ -77,7 +79,8 @@ const items = ref([
     query: {
       robot_key: props.robotInfo.robot_key,
       id: props.robotInfo.id
-    }
+    },
+    target: '_blank',
   }
 ])
 
@@ -85,7 +88,7 @@ const handleChangeMenu = ({ item }) => {
   if (selectedKeys.value.includes(item.id)) {
     return
   }
-
+  return
   emit('changeMenu', item)
 }
 </script>
