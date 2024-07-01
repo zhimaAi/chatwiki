@@ -4,12 +4,45 @@
       <div class="list-tools">
         <div>
           <div class="tool-item">
-            <a-button type="primary" @click="handleOpenFileUploadModal">
-              <template #icon>
-                <PlusOutlined />
+            <a-dropdown :trigger="['click']" overlayClassName="add-dropdown-btn">
+              <template #overlay>
+                <a-menu @click="handleMenuClick">
+                  <a-menu-item :key="1">
+                    <div class="dropdown-btn-menu">
+                      <a-flex class="title-block" :gap="4">
+                        <svg-icon name="doc-icon"></svg-icon>
+                        <div class="title">本地文档</div>
+                      </a-flex>
+                      <div class="desc">上传本地 text/pdf/doc 等格式文件</div>
+                    </div>
+                  </a-menu-item>
+                  <a-menu-item :key="2">
+                    <div class="dropdown-btn-menu">
+                      <a-flex class="title-block" :gap="4">
+                        <svg-icon name="link-icon"></svg-icon>
+                        <div class="title">在线数据</div>
+                      </a-flex>
+                      <div class="desc">获取在线网页内容</div>
+                    </div>
+                  </a-menu-item>
+                  <a-menu-item :key="3">
+                    <div class="dropdown-btn-menu">
+                      <a-flex class="title-block" :gap="4">
+                        <svg-icon name="cu-doc-icon"></svg-icon>
+                        <div class="title">自定义文档</div>
+                      </a-flex>
+                      <div class="desc">自定义一个空文档，手动添加内容</div>
+                    </div>
+                  </a-menu-item>
+                </a-menu>
               </template>
-              <span>上传文档</span>
-            </a-button>
+              <a-button type="primary">
+                <template #icon>
+                  <PlusOutlined />
+                </template>
+                <span>添加内容</span>
+              </a-button>
+            </a-dropdown>
           </div>
         </div>
         <div>
@@ -21,7 +54,7 @@
               @change="onSearch"
             >
               <template #suffix>
-                <SearchOutlined style="color: rgba(0, 0, 0, 0.25)" />
+                <SearchOutlined @click="onSearch" style="color: rgba(0, 0, 0, 0.25)" />
               </template>
             </a-input>
           </div>
@@ -43,7 +76,15 @@
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'file_name'">
-              <a @click="handlePreview(record)">{{ record.file_name }}</a>
+              <div class="doc-name-td">
+                <a @click="handlePreview(record)">
+                  <span v-if="['5', '6', '7'].includes(record.status)">{{ record.doc_url }}</span>
+                  <span v-else>{{ record.file_name }}</span>
+                </a>
+                <div v-if="record.doc_type == 2 && record.remark" class="url-remark">
+                  备注：{{ record.remark }}
+                </div>
+              </div>
             </template>
             <template v-if="column.key === 'status'">
               <span class="status-tag status-queuing" v-if="record.status == 0"
@@ -66,14 +107,46 @@
                 <span class="status-tag status-complete"><ClockCircleFilled /> 待学习</span>
                 <a class="ml8" @click="handlePreview(record)">学习</a>
               </template>
+              <template v-if="record.status == 5">
+                <span class="status-tag status-complete"><ClockCircleFilled /> 待获取</span>
+              </template>
+              <span class="status-tag status-learning" v-if="record.status == 6"
+                ><a-spin size="small" /> 获取中</span
+              >
+              <a-tooltip placement="top" v-if="record.status == 7">
+                <template #title>
+                  <span>{{ record.errmsg }}</span>
+                </template>
+                <span class="status-tag status-error"><CloseCircleFilled /> 获取失败</span>
+              </a-tooltip>
             </template>
-
+            <template v-if="column.key === 'doc_auto_renew_frequency'">
+              <a-select
+                v-if="record.doc_type == 2"
+                @change="handleSetRenewFrequency(record)"
+                v-model:value="record.doc_auto_renew_frequency"
+                style="width: 100%"
+              >
+                <a-select-option value="1">不自动更新</a-select-option>
+                <a-select-option value="2">每天</a-select-option>
+                <a-select-option value="3">每3天</a-select-option>
+                <a-select-option value="4">每7天</a-select-option>
+                <a-select-option value="5">每30天</a-select-option>
+              </a-select>
+              <div v-else>--</div>
+            </template>
             <template v-if="column.key === 'action'">
               <span>
-                <a @click="handlePreview(record)">预览</a>
+                <a-button
+                  :disabled="record.status == 6 || record.status == 7"
+                  @click="handlePreview(record)"
+                  class="padding-0"
+                  type="link"
+                  >预览</a-button
+                >
                 <a-divider type="vertical" />
                 <a-popconfirm title="确定要删除吗?" @confirm="onDelete(record)">
-                  <a>删除</a>
+                  <a-button class="padding-0" type="link">删除</a-button>
                 </a-popconfirm>
               </span>
             </template>
@@ -93,11 +166,46 @@
         <UploadFilesInput v-model:value="addFileState.fileList" @change="onFilesChange" />
       </div>
     </a-modal>
+    <a-modal
+      v-model:open="addUrlState.open"
+      :confirm-loading="addUrlState.confirmLoading"
+      :maskClosable="false"
+      title="添加在线数据"
+      width="746px"
+      @ok="handleSaveUrl"
+      @cancel="handleCloseUrlModal"
+    >
+      <a-form
+        class="url-add-form"
+        layout="vertical"
+        ref="urlFormRef"
+        :model="addUrlState"
+        :rules="addUrlState.rules"
+      >
+        <a-form-item name="urls" label="网页链接">
+          <a-textarea
+            style="height: 120px"
+            v-model:value="addUrlState.urls"
+            placeholder="请输入网页链接,形式：一行标题一行网页链接"
+          />
+        </a-form-item>
+        <a-form-item name="doc_auto_renew_frequency" label="更新频率" required>
+          <a-select v-model:value="addUrlState.doc_auto_renew_frequency" style="width: 100%">
+            <a-select-option :value="1">不自动更新</a-select-option>
+            <a-select-option :value="2">每天</a-select-option>
+            <a-select-option :value="3">每3天</a-select-option>
+            <a-select-option :value="4">每7天</a-select-option>
+            <a-select-option :value="5">每30天</a-select-option>
+          </a-select>
+        </a-form-item>
+      </a-form>
+    </a-modal>
+    <AddCustomDocument ref="addCustomDocumentRef"></AddCustomDocument>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, toRaw } from 'vue'
+import { reactive, ref, toRaw, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -106,15 +214,24 @@ import {
   CheckCircleFilled,
   CloseCircleFilled,
   EditOutlined,
-  ClockCircleFilled
+  ClockCircleFilled,
+  DownOutlined
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
-import { getLibraryFileList, delLibraryFile, addLibraryFile, getLibraryInfo } from '@/api/library'
+import {
+  getLibraryFileList,
+  delLibraryFile,
+  addLibraryFile,
+  getLibraryInfo,
+  editLibFile
+} from '@/api/library'
 import { formatFileSize } from '@/utils/index'
 import UploadFilesInput from '../add-library/components/upload-input.vue'
 import RecallTesting from './recall-testing.vue'
 import KnowledgeConfig from './knowledge-config.vue'
 import EditLibrary from './components/edit-library.vue'
+import { transformUrlData } from '@/utils/validate.js'
+import AddCustomDocument from './components/add-custom-document.vue'
 
 const rotue = useRoute()
 const router = useRouter()
@@ -153,7 +270,8 @@ const columns = [
   {
     title: '文档名称',
     dataIndex: 'file_name',
-    key: 'file_name'
+    key: 'file_name',
+    width: 260
   },
   {
     title: '状态',
@@ -169,6 +287,11 @@ const columns = [
     title: '文档大小',
     dataIndex: 'file_size_str',
     key: 'file_size'
+  },
+  {
+    title: '更新频率',
+    dataIndex: 'doc_auto_renew_frequency',
+    key: 'doc_auto_renew_frequency'
   },
   {
     title: '上传时间',
@@ -224,6 +347,12 @@ const handlePreview = (record) => {
   if (record.status == '0') {
     return message.error('排队中,稍候可预览')
   }
+  if (record.status == '6') {
+    return message.error('获取中,不可预览')
+  }
+  if (record.status == '7') {
+    return message.error('获取失败,不可预览')
+  }
 
   router.push({ name: 'libraryPreview', query: { id: record.id } })
 }
@@ -235,14 +364,31 @@ const getData = () => {
     let list = res.data.list || []
 
     queryParams.total = res.data.total
-
+    let needRefresh = false
     fileList.value = list.map((item) => {
+      if (['1', '6'].includes(item.status)) {
+        needRefresh = true
+      }
       item.file_size_str = formatFileSize(item.file_size)
       item.create_time = dayjs(item.create_time * 1000).format('YYYY-MM-DD HH:mm')
       return item
     })
+    needRefresh && timingRefreshStatus()
+    !needRefresh && clearInterval(timingRefreshStatusTimer.value)
   })
 }
+
+const timingRefreshStatusTimer = ref(null)
+const timingRefreshStatus = () => {
+  clearInterval(timingRefreshStatusTimer.value)
+  timingRefreshStatusTimer.value = setInterval(() => {
+    getData()
+  }, 1000 * 5)
+}
+
+onUnmounted(() => {
+  timingRefreshStatusTimer.value && clearInterval(timingRefreshStatusTimer.value)
+})
 
 const getInfo = (id) => {
   getLibraryInfo({ id }).then((res) => {
@@ -251,6 +397,77 @@ const getInfo = (id) => {
 }
 
 getData()
+
+const addCustomDocumentRef = ref(null)
+
+const handleMenuClick = (e) => {
+  let { key } = e
+  if (key == 1) {
+    handleOpenFileUploadModal()
+  }
+  if (key == 2) {
+    handleOpenUrlModal()
+  }
+  if (key == 3) {
+    addCustomDocumentRef.value.add()
+  }
+}
+const addUrlState = reactive({
+  open: false,
+  urls: '',
+  library_id: query.id,
+  doc_auto_renew_frequency: 1,
+  confirmLoading: false,
+  rules: {
+    urls: [
+      {
+        message: '请输入网页地址',
+        required: true
+      },
+      {
+        validator: (_rule, value) => {
+          if (transformUrlData(value) === false) {
+            return Promise.reject(new Error('网页地址不合法'))
+          }
+          return Promise.resolve()
+        }
+      }
+    ]
+  }
+})
+
+const handleOpenUrlModal = () => {
+  addUrlState.open = true
+  addUrlState.confirmLoading = false
+  addUrlState.urls = ''
+  addUrlState.doc_auto_renew_frequency = 1
+}
+const urlFormRef = ref(null)
+const handleSaveUrl = () => {
+  // 保存本地内容
+  urlFormRef.value
+    .validate()
+    .then(() => {
+      addUrlState.confirmLoading = true
+      addLibraryFile({
+        library_id: addUrlState.library_id,
+        urls: JSON.stringify(transformUrlData(addUrlState.urls)),
+        doc_auto_renew_frequency: addUrlState.doc_auto_renew_frequency,
+        doc_type: 2
+      }).then((res) => {
+        addUrlState.open = false
+        addUrlState.confirmLoading = false
+        onSearch()
+      })
+    })
+    .catch(() => {
+      addUrlState.confirmLoading = false
+    })
+}
+
+const handleCloseUrlModal = () => {
+  addUrlState.open = false
+}
 
 const addFileState = reactive({
   open: false,
@@ -309,6 +526,16 @@ const handleOpenEditLibraryModal = () => {
 const handleEditLibrary = (data) => {
   getData()
 }
+
+const handleSetRenewFrequency = (record) => {
+  editLibFile({
+    id: record.id,
+    doc_auto_renew_frequency: record.doc_auto_renew_frequency
+  }).then((res) => {
+    getData()
+    message.success('设置成功')
+  })
+}
 </script>
 
 <style lang="less" scoped>
@@ -316,6 +543,21 @@ const handleEditLibrary = (data) => {
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+.doc-name-td {
+  word-break: break-all;
+}
+.url-remark {
+  color: #8c8c8c;
+  margin-top: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.padding-0 {
+  padding: 0;
 }
 .test-menu-icon {
   color: #fff;
@@ -427,5 +669,32 @@ const handleEditLibrary = (data) => {
 }
 .ml8 {
   margin-left: 8px;
+}
+.url-add-form {
+  margin-top: 24px;
+}
+
+.add-dropdown-btn.ant-dropdown {
+  .ant-dropdown-menu {
+    padding: 0;
+    border-radius: 0;
+    ::v-deep(.ant-dropdown-menu-item) {
+      padding: 12px 16px;
+    }
+  }
+}
+
+.dropdown-btn-menu {
+  .title-block {
+    color: #262626;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+  }
+  .desc {
+    color: #8c8c8c;
+    font-size: 14px;
+    line-height: 22px;
+  }
 }
 </style>

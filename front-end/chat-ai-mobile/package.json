@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:dev1": "vite --host 0.0.0.0 --mode dev1",
+    "dev1": "vite --mode dev1",
     "dev2": "vite --mode dev2",
+    "dev5": "vite --mode dev5",
+    "dev3": "vite --mode dev3",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "test:unit": "vitest",

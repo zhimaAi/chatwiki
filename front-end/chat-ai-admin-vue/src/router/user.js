@@ -57,6 +57,15 @@ export default {
             activeMenu: '/user'
           }
         },
+        {
+          path: '/user/clientDownload',
+          name: 'clientDownload',
+          component: () => import('../views/user/client-download/index.vue'),
+          meta: {
+            title: '客户端下载',
+            activeMenu: '/user'
+          }
+        }
       ]
     }
   ]

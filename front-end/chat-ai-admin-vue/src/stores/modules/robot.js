@@ -65,7 +65,9 @@ export const useRobotStore = defineStore('robot', () => {
     wechat_ip: '',
     push_aeskey: '',
     push_token: '',
-    push_wechat_kefu: ''
+    push_wechat_kefu: '',
+    enable_question_optimize: 'false',
+    enable_question_guide: 'false'
   })
 
   // WebApp配置
@@ -128,6 +130,8 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.mixture_qa_direct_reply_switch = data.mixture_qa_direct_reply_switch
     robotInfo.h5_domain = data.h5_domain
     robotInfo.h5_website = data.h5_domain + '/#/chat?robot_key=' + data.robot_key
+    robotInfo.enable_question_optimize = data.enable_question_optimize;
+    robotInfo.enable_question_guide = data.enable_question_guide;
 
     // h5配置
     if (data.external_config_h5 !== '') {

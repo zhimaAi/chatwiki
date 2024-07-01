@@ -3,14 +3,15 @@
     <template #extra>
       <div class="actions-box">
         <template v-if="isEdit">
-          <span class="action-btn save-btn" @click="handleSave">保存</span>
-          <a-divider type="vertical" />
-          <span class="action-btn" @click="handleEdit(false)">取消</span>
+          <a-flex :gap="8">
+            <a-button @click="handleSave" size="small" type="primary">保存</a-button>
+            <a-button @click="handleEdit(false)" size="small">取消</a-button>
+          </a-flex>
         </template>
         <template v-else>
           <span class="model-name">{{ robotInfo.use_model }}</span>
           <a-divider type="vertical" />
-          <span class="action-btn" @click="handleEdit(true)">修改</span>
+          <a-button @click="handleEdit(true)" size="small">修改</a-button>
         </template>
       </div>
     </template>

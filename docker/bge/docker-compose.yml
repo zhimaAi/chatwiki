@@ -1,5 +1,5 @@
 services:
-  zhima_ai_bge_service:
+  chatwiki_baai_service:
     env_file: ./.env
     # build from ...
     image: registry.cn-hangzhou.aliyuncs.com/bge/zhima_ai_bge_service:v1.0.0
@@ -7,7 +7,7 @@ services:
     # build:
     #   context: .
     #   dockerfile: Dockerfile
-    container_name: zhima_ai_bge_service
+    container_name: chatwiki_baai_service
     # GPU env，hide the deploy config if machine has no ,
     # deploy:
     #   resources:

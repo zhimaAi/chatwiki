@@ -76,4 +76,10 @@ func initConfig() {
 		logs.Error(err.Error())
 		panic(`read config nsqd error`)
 	}
+
+	define.Config.Crawler, err = config.GetSection(`crawler`)
+	if err != nil {
+		logs.Error(err.Error())
+		panic(`read config crawler error`)
+	}
 }

@@ -13,7 +13,7 @@
 
 <template>
   <a-modal class="add-model-alert" width="650px" v-model:open="show" :title="title" :confirmLoading="confirmLoading"
-    @ok="handleOk" @cancel="handleCancel">
+    @ok="handleOk" @cancel="handleCancel" :maskClosable="false">
     <div class="form-wrapper">
       <div class="model-logo-box">
         <img class="model-logo" :src="modelConfig.model_icon_url" alt="" />

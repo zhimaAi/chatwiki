@@ -58,7 +58,9 @@
             <svg-icon name="circularNeedle" style="font-size: 16px; color: #262626"></svg-icon>
           </template>
           <div class="web-app-info">
-            <div class="web-app-link">{{ h5_website }}</div>
+            <div class="web-app-link">
+              <a :href="h5_website" target="_blank">{{ h5_website }}</a>
+            </div>
             <div class="link-action">
               <a-button class="action-btn" type="primary" ghost @click="copyH5WebSite"
                 >复 制</a-button
@@ -97,7 +99,7 @@
             <svg-icon name="phone" style="font-size: 16px; color: #262626"></svg-icon>
           </template>
           <template #action>
-            <a @click="saveForm">保存</a>
+            <a-button @click="saveForm" size="small" type="primary">保存</a-button>
           </template>
           <div class="web-app-style form-box">
             <a-form ref="formRef" layout="vertical" :model="formState" :rules="formRules">

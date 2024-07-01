@@ -59,7 +59,7 @@ func SaveRobot(c *gin.Context) {
 	topK := cast.ToInt(c.DefaultPostForm(`top_k`, `5`))
 	similarity := cast.ToFloat32(c.DefaultPostForm(`similarity`, `0.9`))
 	searchType := cast.ToInt(c.DefaultPostForm(`search_type`, `1`))
-	chatType := cast.ToInt(c.DefaultPostForm(`chat_type`, `3`))
+	chatType := cast.ToInt(c.DefaultPostForm(`chat_type`, `1`))
 	unknownQuestionPrompt := strings.TrimSpace(c.PostForm(`unknown_question_prompt`))
 
 	libraryQaDirectReplySwitch := cast.ToBool(c.PostForm(`library_qa_direct_reply_switch`))
@@ -67,6 +67,9 @@ func SaveRobot(c *gin.Context) {
 
 	mixtureQaDirectReplySwitch := cast.ToBool(c.PostForm(`mixture_qa_direct_reply_switch`))
 	mixtureQaDirectReplyScore := cast.ToFloat32(c.PostForm(`mixture_qa_direct_reply_score`))
+
+	enableQuestionOptimize := cast.ToBool(c.DefaultPostForm(`enable_question_optimize`, `false`))
+	enableQuestionGuide := cast.ToBool(c.DefaultPostForm(`enable_question_guide`, `true`))
 
 	//set default value
 	if id == 0 {
@@ -212,24 +215,26 @@ func SaveRobot(c *gin.Context) {
 
 	//database dispose
 	data := msql.Datas{
-		`robot_name`:             robotName,
-		`robot_intro`:            robotIntro,
-		`prompt`:                 prompt,
-		`library_ids`:            libraryIds,
-		`welcomes`:               welcomes,
-		`model_config_id`:        modelConfigId,
-		`use_model`:              useModel,
-		`rerank_status`:          rerankStatus,
-		`rerank_model_config_id`: rerankModelConfigId,
-		`rerank_use_model`:       rerankUseModel,
-		`temperature`:            temperature,
-		`max_token`:              maxToken,
-		`context_pair`:           contextPair,
-		`top_k`:                  topK,
-		`similarity`:             similarity,
-		`search_type`:            searchType,
-		`chat_type`:              chatType,
-		`update_time`:            tool.Time2Int(),
+		`robot_name`:               robotName,
+		`robot_intro`:              robotIntro,
+		`prompt`:                   prompt,
+		`library_ids`:              libraryIds,
+		`welcomes`:                 welcomes,
+		`model_config_id`:          modelConfigId,
+		`use_model`:                useModel,
+		`rerank_status`:            rerankStatus,
+		`rerank_model_config_id`:   rerankModelConfigId,
+		`rerank_use_model`:         rerankUseModel,
+		`temperature`:              temperature,
+		`max_token`:                maxToken,
+		`context_pair`:             contextPair,
+		`top_k`:                    topK,
+		`similarity`:               similarity,
+		`search_type`:              searchType,
+		`chat_type`:                chatType,
+		`enable_question_optimize`: enableQuestionOptimize,
+		`enable_question_guide`:    enableQuestionGuide,
+		`update_time`:              tool.Time2Int(),
 	}
 	if len(robotAvatar) > 0 {
 		data[`robot_avatar`] = robotAvatar

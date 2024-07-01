@@ -47,3 +47,21 @@ export const getCompany = () => {
 export const saveCompany = (data) => {
   return request.post({ url: '/manage/saveCompany', data })
 }
+
+export const getClientSideLoginSwitch = () => {
+  return request.get({ url: '/manage/getClientSideLoginSwitch' })
+}
+
+export const setClientSideLoginSwitch = ({ client_side_login_switch }) => {
+  return request.post({
+    url: '/manage/setClientSideLoginSwitch',
+    data: { client_side_login_switch }
+  })
+}
+
+export const clientSideDownload = ({ domain }) => {
+  return request.post({
+    url: '/manage/clientSideDownload',
+    data: { domain }
+  })
+}

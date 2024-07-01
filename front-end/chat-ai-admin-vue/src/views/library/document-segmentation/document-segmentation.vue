@@ -78,16 +78,16 @@
 
 .loading-wrap {
   position: absolute;
-  top: 0;
+  z-index: 99;
+  top: 100px;
   left: 0;
   right: 0;
   bottom: 0;
   width: 100%;
-  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(255, 255, 255, 0.3);
 }
 </style>
 
@@ -97,7 +97,7 @@
     <a-spin></a-spin>
   </div>
 
-  <div class="document-segmentation" v-else>
+  <div class="document-segmentation">
     <page-mini-title>文档分段与清洗</page-mini-title>
 
     <div class="page-container">

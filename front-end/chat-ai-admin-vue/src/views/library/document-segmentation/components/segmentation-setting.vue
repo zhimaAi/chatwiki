@@ -322,7 +322,7 @@
           <span class="setting-item-icon custom-icon" :class="{ active: formState.is_diy_split == 1 }"></span>
           <div class="setting-item-info">
             <div class="setting-item-name">自定义分段</div>
-            <div class="setting-item-desc">根据文档贵发自行设置分段标识符、分段长度等</div>
+            <div class="setting-item-desc">根据文档自行设置分段标识符、分段长度等</div>
           </div>
         </div>
         <div class="setting-item-body" v-if="formState.is_diy_split == 1">

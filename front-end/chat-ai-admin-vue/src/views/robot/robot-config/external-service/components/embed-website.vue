@@ -56,7 +56,7 @@
             <svg-icon name="pc" style="font-size: 16px; color: #262626"></svg-icon>
           </template>
           <template #action>
-            <a @click="saveForm">保存</a>
+            <a-button @click="saveForm" size="small" type="primary">保存</a-button>
           </template>
           <div class="web-app-style form-box">
             <a-form ref="formRef" layout="vertical" :model="formState" :rules="formRules">
@@ -100,7 +100,7 @@
             <svg-icon name="sdk" style="font-size: 16px; color: #262626"></svg-icon>
           </template>
           <template #action>
-            <a @click="copySDKCode">复制</a>
+            <a-button @click="copySDKCode" size="small">复制</a-button>
           </template>
           <div class="sdk-code">
             <pre><code>{{ sdkCode }}</code></pre>

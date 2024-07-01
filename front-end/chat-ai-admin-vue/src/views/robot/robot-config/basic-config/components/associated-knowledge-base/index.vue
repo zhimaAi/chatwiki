@@ -69,9 +69,10 @@
     :bodyStyle="{ padding: 0 }">
     <template #extra>
       <div class="actions-box">
-        <span class="action-btn" @click="handleOpenRecallSettingsAlert">召回设置</span>
-        <a-divider type="vertical" />
-        <span class="action-btn" @click="handleOpenSelectLibraryAlert">关联知识库</span>
+        <a-flex :gap="8">
+          <a-button size="small" @click="handleOpenRecallSettingsAlert">召回设置</a-button>
+          <a-button size="small" @click="handleOpenSelectLibraryAlert">关联知识库</a-button>
+        </a-flex>
       </div>
     </template>
     <div class="library-list" v-if="selectedLibraryRows.length > 0">

@@ -4,6 +4,12 @@
       <LeftOutlined @click="goBack" />
       <span class="title">{{ detailsInfo.file_name }}</span>
       <SegmentationMode :detailsInfo="detailsInfo"></SegmentationMode>
+      <a-button @click="openEditSubscription({})" style="margin-left: auto" type="primary">
+        <template #icon>
+          <PlusOutlined />
+        </template>
+        <span>添加分段</span>
+      </a-button>
     </div>
     <template v-if="pageLoading">
       <div class="page-loading-box">
@@ -11,15 +17,17 @@
       </div>
     </template>
     <template v-else>
-      <template v-if="isTableType">
+      <template v-if="isTableType || doc_type == 3">
         <!-- 表格类型 不支持预览 -->
-        <Empty v-if="isEmpty"></Empty>
+        <Empty @openEditSubscription="openEditSubscription" v-if="isEmpty"></Empty>
         <cu-scroll v-else @onScrollEnd="onScrollEnd">
           <div class="content-block">
             <SubsectionBox
+              ref="subsectionBoxRef"
               :total="total"
               :paragraphLists="paragraphLists"
-              @handleEditParagraph="handleEditParagraph"
+              :detailsInfo="detailsInfo"
+              @openEditSubscription="openEditSubscription"
               @handleDelParagraph="handleDelParagraph"
             ></SubsectionBox>
           </div>
@@ -37,13 +45,15 @@
           </div>
         </div>
         <div class="right-contnt-box">
-          <Empty v-if="isEmpty"></Empty>
+          <Empty @openEditSubscription="openEditSubscription" v-if="isEmpty"></Empty>
           <cu-scroll v-else @onScrollEnd="onScrollEnd">
             <div class="content-block">
               <SubsectionBox
+                ref="subsectionBoxRef"
                 :total="total"
+                :detailsInfo="detailsInfo"
                 :paragraphLists="paragraphLists"
-                @handleEditParagraph="handleEditParagraph"
+                @openEditSubscription="openEditSubscription"
                 @handleDelParagraph="handleDelParagraph"
                 @handleScrollTargetPage="handleScrollTargetPage"
               ></SubsectionBox>
@@ -52,17 +62,23 @@
         </div>
       </div>
     </template>
+    <EditSubscription
+      :detailsInfo="detailsInfo"
+      @handleEdit="handleEditParagraph"
+      ref="editSubscriptionRef"
+    ></EditSubscription>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, defineAsyncComponent, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { LeftOutlined } from '@ant-design/icons-vue'
+import { LeftOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import Empty from './components/empty.vue'
 import SubsectionBox from './components/subsection-box.vue'
 import { getLibFileInfo, getParagraphList } from '@/api/library'
 import CuScroll from '@/components/cu-scroll/cu-scroll.vue'
+import EditSubscription from './components/edit-subsection.vue'
 import SegmentationMode from './components/segmentation-mode.vue'
 // import VuePdfEmbed from 'vue-pdf-embed'
 
@@ -72,6 +88,9 @@ const route = useRoute()
 const router = useRouter()
 const isTableType = computed(() => {
   return detailsInfo.value.is_qa_doc == '1'
+})
+const doc_type = computed(() => {
+  return detailsInfo.value.doc_type
 })
 const isEmpty = computed(() => {
   // 1学习中,2学习完成,3文件异常 4待用户切分 待学习
@@ -132,10 +151,13 @@ const getParagraphLists = () => {
     let isExcelQa = data.info?.is_qa_doc == '1' && data.info?.is_table_file == '1'
     list.forEach((item) => {
       item.status_text = listStatusMap[item.status]
-      item.isExcelQa = isExcelQa;
+      item.isExcelQa = isExcelQa
     })
 
     paragraphInfo.value = data.info
+    if(paginations.value.page == 1){
+      paragraphLists.value = [];
+    }
     paragraphLists.value = [...paragraphLists.value, ...list]
     total.value = data.total
   })
@@ -151,6 +173,11 @@ const onScrollEnd = () => {
   getParagraphLists()
 }
 const handleEditParagraph = (data) => {
+  if (!data.id) {
+    paginations.value.page = 1
+    getParagraphLists()
+    return
+  }
   // 更新分段内容 无刷更新
   let lists = paragraphLists.value
   let index = lists.findIndex((item) => item.id == data.id)
@@ -191,6 +218,11 @@ const handleScrollTargetPage = async (page_num) => {
   let onePageDis = offsetHeight / pageCount // 一页的高度
   let needSrollDis = (page_num - 1) * onePageDis
   scollDivRef.value.scrollTop = needSrollDis
+}
+
+const editSubscriptionRef = ref(null)
+const openEditSubscription = (data) => {
+  editSubscriptionRef.value.showModal(data)
 }
 </script>
 

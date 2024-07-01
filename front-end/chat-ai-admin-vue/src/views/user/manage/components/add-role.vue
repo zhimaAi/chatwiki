@@ -60,6 +60,21 @@
                 </a-row>
               </a-checkbox-group>
             </div>
+            <div class="role-check-box">
+              <a-flex class="title-boock" justify="space-between">
+                <div class="title-row">客户端管理</div>
+                <div class="check-num">
+                  {{ formState.clientChecked.length }}/{{ clientOptions.length }}
+                </div>
+              </a-flex>
+              <a-checkbox-group v-model:value="formState.clientChecked" style="width: 100%">
+                <a-row :gutter="[0, 12]">
+                  <a-col :span="6" v-for="item in clientOptions" :key="item.value">
+                    <a-checkbox :value="item.value">{{ item.label }}</a-checkbox>
+                  </a-col>
+                </a-row>
+              </a-checkbox-group>
+            </div>
           </a-form-item>
         </a-form>
       </div>
@@ -77,6 +92,7 @@ const useForm = Form.useForm
 let robotOptions = []
 let libraryOptions = []
 let systemOptions = []
+let clientOptions = []
 
 getMenu().then((res) => {
   robotOptions = [
@@ -97,6 +113,12 @@ getMenu().then((res) => {
       value: res.data[3].uni_key
     }
   ]
+  clientOptions = [
+    {
+      label: res.data[4].name,
+      value: res.data[4].uni_key
+    }
+  ]
 })
 
 const show = ref(false)
@@ -108,6 +130,7 @@ const formState = reactive({
   robotChecked: [],
   libraryChecked: [],
   systemChecked: [],
+  clientChecked: [],
   role_type: ''
 })
 
@@ -124,7 +147,7 @@ const { resetFields, validate, validateInfos } = useForm(formState, formRules)
 
 const add = () => {
   modalTitle.value = '添加角色'
-  id.value = '';
+  id.value = ''
   show.value = true
   formState.name = ''
   formState.mark = ''
@@ -143,6 +166,7 @@ const edit = (record) => {
     formState.robotChecked = formatCheckList(robotOptions, role_permission)
     formState.libraryChecked = formatCheckList(libraryOptions, role_permission)
     formState.systemChecked = formatCheckList(systemOptions, role_permission)
+    formState.clientChecked = formatCheckList(clientOptions, role_permission)
     show.value = true
   })
 }
@@ -162,7 +186,8 @@ const handleOk = () => {
     let uni_keys = [
       ...formState.robotChecked,
       ...formState.libraryChecked,
-      ...formState.systemChecked
+      ...formState.systemChecked,
+      ...formState.clientChecked
     ]
     let parmas = {
       id: id.value,

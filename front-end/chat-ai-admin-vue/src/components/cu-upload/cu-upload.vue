@@ -1,7 +1,7 @@
 <style lang="less" scoped>
 .cu-upload {
   font-size: 0;
-  .file-input {
+  .file-input.file-input {
     display: none;
   }
   .upload-btn {

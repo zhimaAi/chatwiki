@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { sendAiMessage, chatWelcome, getDialogueList, getChatMessage } from '@/api/chat'
+import { sendAiMessage, chatWelcome, getDialogueList, getChatMessage, questionGuide } from '@/api/chat'
 import { editPrompt } from '@/api/robot/index'
 import { getUuid, getOpenid } from '@/utils/index'
 import { useEventBus } from '@/hooks/event/useEventBus'
@@ -18,7 +18,8 @@ export interface Message {
   uid: string
   avatar: string
   content: string
-  debug: 0 | 1
+  debug: 0 | 1,
+  guess_you_want: string[],
 }
 
 export interface Chat {
@@ -44,7 +45,8 @@ export interface Robot {
   robot_intro: string
   robot_name: string
   id: number | null
-  welcomes: Welcome
+  welcomes: Welcome,
+  enable_question_guide: boolean,
 }
 
 export interface PageStyle {
@@ -88,7 +90,8 @@ export const useChatStore = defineStore('chat', () => {
     robot_key: '',
     robot_name: '',
     openid: '',
-    welcomes: { content: '', question: [] }
+    welcomes: { content: '', question: [] },
+    enable_question_guide: false,
   })
 
   // 样式配置
@@ -160,6 +163,7 @@ export const useChatStore = defineStore('chat', () => {
       robot.robot_name = robotInfo.robot_name
       robot.library_ids = robotInfo.library_ids
       robot.id = robotInfo.id
+      robot.enable_question_guide = robotInfo.enable_question_guide == 'true';
       if (robotInfo.welcomes) {
         robot.welcomes = JSON.parse(robotInfo.welcomes)
       }
@@ -249,6 +253,17 @@ export const useChatStore = defineStore('chat', () => {
 
     if (type == 'debug') {
       messageList.value[msgIndex].debug = content.length > 0 ? content : []
+    }
+    if (type == 'guess_you_want') {
+      // 猜你想问 插入
+      messageList.value = messageList.value.map((item) => {
+        return {
+          ...item,
+          guess_you_want: [],
+        }
+      })
+      messageList.value[msgIndex].guess_you_want = content;
+      console.log(messageList.value)
     }
 
     emitter.emit('updateAiMessage', messageList.value[msgIndex])
@@ -345,6 +360,18 @@ export const useChatStore = defineStore('chat', () => {
         const data = JSON.parse(res.data)
 
         updateAiMessage('debug', data, aiMsg.uid)
+      }
+      if (res.event == 'finish') {
+        if (robot.enable_question_guide) {
+          // 相关问题开关开启了
+          questionGuide({
+            robot_key: robot.robot_key,
+            openid: robot.openid,
+            dialogue_id: dialogue_id.value,
+          }).then(res => {
+            updateAiMessage('guess_you_want', res.data || [], aiMsg.uid)
+          })
+        }
       }
     }
 

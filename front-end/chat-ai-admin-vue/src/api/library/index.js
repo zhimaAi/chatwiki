@@ -134,3 +134,10 @@ export const getLibFileExcelTitle = (params) => {
     params: params
   })
 }
+
+export const editLibFile = (data) => {
+  return request.post({
+    url: '/manage/editLibFile',
+    data: data
+  })
+}

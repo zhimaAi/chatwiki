@@ -41,6 +41,12 @@
       <div class="setting-box">
         <UnknownProblemPrompt />
       </div>
+      <div class="setting-box">
+        <ProblemOptimization />
+      </div>
+      <div class="setting-box">
+        <SuggestedIssues />
+      </div>
     </div>
   </div>
 </template>
@@ -55,6 +61,8 @@ import ModelSettings from './components/model-settings.vue'
 import AssociatedKnowledgeBase from './components/associated-knowledge-base/index.vue'
 import WelcomeWords from './components/welcome-words.vue'
 import UnknownProblemPrompt from './components/unknown-problem-prompt.vue'
+import ProblemOptimization from "./components/problem-optimization.vue"
+import SuggestedIssues from './components/suggested-issues.vue'
 import ChatMode from './components/chat-mode/index.vue'
 import { saveRobot } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
@@ -109,7 +117,7 @@ const saveForm = () => {
   delete formData.robot_avatar_url
 
   saveLoading.value = true
-
+  console.log(formData)
   saveRobot(formData)
     .then((res) => {
       if (res.res != 0) {

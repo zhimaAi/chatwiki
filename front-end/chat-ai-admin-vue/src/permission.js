@@ -1,7 +1,7 @@
 import router from './router'
 import { useUserStoreWithOut } from '@/stores/modules/user'
 import { usePermissionStoreWithOut } from '@/stores/modules/permission'
-import { useCompanyStore } from "@/stores/modules/company"
+import { useCompanyStore } from '@/stores/modules/company'
 import { NO_REDIRECT_WHITE_LIST } from '@/constants'
 import { checkRouterPermisission } from '@/utils/permission.js'
 // import { checkPermi } from '@/utils/permission'
@@ -16,6 +16,9 @@ function toLogin(to, from, next) {
 }
 
 function toAuthorityPage(to, from, next) {
+  if (to.path.includes('/user') && to.path != '/user/account') {
+    next(`/user/account`)
+  }
   next(`/authority/index`)
 }
 
@@ -32,7 +35,7 @@ router.beforeEach(async (to, from, next) => {
   const companyStore = useCompanyStore()
   const { companyInfo, getCompanyInfo } = companyStore
   if (!companyInfo) {
-    await getCompanyInfo();
+    await getCompanyInfo()
   }
   setTitle(to, companyInfo)
 
@@ -44,14 +47,19 @@ router.beforeEach(async (to, from, next) => {
   let { userInfo, getUserInfo } = userStore
   let { permissionList, getPermissionList, checkPermission } = permissionStore
 
-  let needGetPermissionRoutes = ['/robot/list', '/library/list', '/user/model']
+  let needGetPermissionRoutes = [
+    '/robot/list',
+    '/library/list',
+    '/user/model',
+    '/user/clientDownload'
+  ]
 
   if (userInfo) {
     if (to.path === '/login') {
       next({ path: '/', query: to.query })
     } else {
       if (needGetPermissionRoutes.includes(to.path)) {
-        await checkPermission();
+        await checkPermission()
       }
       if (!checkRouterPermisission(to.path)) {
         toAuthorityPage(to, from, next)

@@ -87,6 +87,7 @@ export default defineConfig((opt) => {
     build: {
       outDir: fileURLToPath(new URL('../../static/chat-ai-admin', import.meta.url)),
       assetsDir: 'assets',
+      emptyOutDir: true,
       sourcemap: env.VITE_SOURCEMAP === 'true',
       rollupOptions: {
         // external: ['moment', 'video.js', 'jspdf', 'xlsx'],
@@ -95,7 +96,7 @@ export default defineConfig((opt) => {
         output: {
           // 自定义chunkFileName生成规则
           chunkFileNames: 'assets/js/[name]-[hash].js',
-          entryFileNames: '[name].js',
+          entryFileNames: '[name]-[hash].js',
           assetFileNames(assetInfo) {
             let fiel_name = assetInfo.name.toLowerCase()
 

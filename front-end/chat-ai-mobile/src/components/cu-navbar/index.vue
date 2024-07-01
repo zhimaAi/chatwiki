@@ -43,7 +43,7 @@
 </style>
 
 <template>
-    <div class="cu-navbar" :style="{background: props.backgroundColor}">
+    <div class="cu-navbar" v-if="isMobile" :style="{background: props.backgroundColor}">
         <!-- <div class="navbar-left"><van-icon class="navbar-arrow" name="arrow-left" /></div> -->
         <div class="navbar-body">
             <div class="navbar-title van-ellipsis">{{ title }}</div>
@@ -53,6 +53,16 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
+
+const isMobile = ref(false);
+
+const checkMobile = () => {
+    const userAgent = navigator.userAgent
+    // 正则表达式来检测常见的手机设备标识
+    isMobile.value = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+};
+
 const props = defineProps({
     backgroundColor: {
         type: String,
@@ -62,5 +72,9 @@ const props = defineProps({
         type: String,
         default: ''
     }
+})
+
+onMounted(() => {
+    checkMobile();
 })
 </script>

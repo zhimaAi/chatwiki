@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { sendAiMessage, chatWelcome, getDialogueList, getChatMessage } from '@/api/chat'
+import { sendAiMessage, chatWelcome, getDialogueList, getChatMessage, questionGuide } from '@/api/chat'
 import { editPrompt } from '@/api/robot/index'
 import { getUuid, getOpenid } from '@/utils/index'
 import { useEventBus } from '@/hooks/event/useEventBus'
@@ -34,7 +34,8 @@ export const useChatStore = defineStore('chat', () => {
     robot_key: '',
     robot_name: '',
     openid: '',
-    welcomes: { content: '', question: [] }
+    welcomes: { content: '', question: [] },
+    enable_question_guide: false,
   })
   // 创建对话
   const isNewChat = ref(false)
@@ -44,7 +45,6 @@ export const useChatStore = defineStore('chat', () => {
       mySSE.abort()
       mySSE = null
     }
-
     messageList.value = []
     // 重置聊天记录是否加载完成的状态
     chatMessageLoadCompleted.value = false
@@ -93,7 +93,7 @@ export const useChatStore = defineStore('chat', () => {
       robot.robot_name = robotInfo.robot_name
       robot.library_ids = robotInfo.library_ids
       robot.id = robotInfo.id
-
+      robot.enable_question_guide = robotInfo.enable_question_guide == 'true';
       if (robotInfo.welcomes) {
         robot.welcomes = JSON.parse(robotInfo.welcomes)
       }
@@ -176,6 +176,17 @@ export const useChatStore = defineStore('chat', () => {
       messageList.value[msgIndex].error = content.length > 0 ? content : []
     }
 
+    if (type == 'guess_you_want') {
+      // 猜你想问 插入
+      messageList.value = messageList.value.map((item) => {
+        return {
+          ...item,
+          guess_you_want: [],
+        }
+      })
+      messageList.value[msgIndex].guess_you_want = content;
+
+    }
     emitter.emit('updateAiMessage', messageList.value[msgIndex])
   }
 
@@ -205,7 +216,6 @@ export const useChatStore = defineStore('chat', () => {
       debug: [],
       error: ''
     }
-
     let params = {
       robot_key: robot.robot_key,
       openid: robot.openid,
@@ -279,11 +289,24 @@ export const useChatStore = defineStore('chat', () => {
         updateAiMessage('debug', data, aiMsg.uid)
       }
 
-       // 更新prompt错误日志
-       if (res.event == 'error') {
-        let data = res.data
+      // 更新prompt错误日志
+      if (res.event == 'error') {
+      let data = res.data
 
-        updateAiMessage('error', data, aiMsg.uid)
+      updateAiMessage('error', data, aiMsg.uid)
+      }
+        // 猜你想问
+      if (res.event == 'finish') {
+        if (robot.enable_question_guide) {
+          // 相关问题开关开启了
+          questionGuide({
+            robot_key: robot.robot_key,
+            openid: robot.openid,
+            dialogue_id: dialogue_id.value,
+          }).then(res => {
+            updateAiMessage('guess_you_want', res.data || [], aiMsg.uid)
+          })
+        }
       }
     }
 

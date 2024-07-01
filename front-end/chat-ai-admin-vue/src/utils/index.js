@@ -93,7 +93,6 @@ export function getOpenid() {
 }
 
 export function getBase64(file) {
-  console.log("file", file)
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.readAsDataURL(file)
@@ -114,4 +113,17 @@ export const copyText = (text) => {
   copyInput.select()
   document.execCommand('copy')
   copyInput.remove()
+}
+// 下载文件
+export function downloadFile(filename, link) {
+  const element = document.createElement('a')
+  element.setAttribute('href', link)
+  element.setAttribute('download', filename)
+
+  element.style.display = 'none'
+  document.body.appendChild(element)
+
+  element.click()
+
+  document.body.removeChild(element)
 }

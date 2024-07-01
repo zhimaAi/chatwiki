@@ -13,10 +13,23 @@ type MenuJsonStruct struct {
 }
 
 type UploadInfo struct {
-	Name string `json:"name"`
-	Size int64  `json:"size"`
-	Ext  string `json:"ext"`
-	Link string `json:"link"`
+	Name   string `json:"name"`
+	Size   int64  `json:"size"`
+	Ext    string `json:"ext"`
+	Link   string `json:"link"`
+	Online bool   `json:"-"`
+	DocUrl string `json:"-"`
+	Custom bool   `json:"-"`
+}
+
+func (u *UploadInfo) GetDocType() int {
+	if u.Custom {
+		return DocTypeCustom
+	}
+	if u.Online {
+		return DocTypeOnline
+	}
+	return DocTypeLocal
 }
 
 type ChatBaseParam struct {

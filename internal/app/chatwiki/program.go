@@ -12,6 +12,7 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"github.com/robfig/cron/v3"
 	"net/http"
 	_ "net/http/pprof"
 	"strings"
@@ -46,6 +47,9 @@ func Run() {
 	}()
 	//consumer start
 	StartConsumer()
+
+	//cron tasks
+	StartCronTasks()
 }
 
 func Stop() {
@@ -57,8 +61,17 @@ func Stop() {
 func StartConsumer() {
 	common.RunTask(define.ConvertPdfTopic, define.ConvertPdfChannel, 1, business.ConvertPdf)
 	common.RunTask(define.ConvertVectorTopic, define.ConvertVectorChannel, 2, business.ConvertVector)
+	common.RunTask(define.CrawlArticleTopic, define.CrawlArticleChannel, 2, business.CrawlArticle)
 	common.RunTask(lib_define.PushMessage, lib_define.PushChannel, 10, business.AppPush)
 	common.RunTask(lib_define.PushEvent, lib_define.PushChannel, 5, business.AppPush)
+}
+
+func StartCronTasks() {
+	c := cron.New()
+	_, _ = c.AddFunc("@every 1m", func() { logs.Debug("cron test") })
+	_, _ = c.AddFunc("@every 1m", func() { business.RenewCrawl() })
+	c.Start()
+	logs.Debug("cron start")
 }
 
 //go:embed data/migrations/*.sql

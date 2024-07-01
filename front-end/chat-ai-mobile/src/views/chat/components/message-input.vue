@@ -1,30 +1,49 @@
 <style lang="less" scoped>
 .message-input-box {
-  display: flex;
-  padding: 12px 28px 8px 28px;
+  width: 100%;
+  margin-top: 12px;
+  margin-bottom: 10px;
 
   .message-input-body {
-    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   .message-input {
     position: relative;
-    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 1;
+    min-height: 60px;
+    max-width: 738px;
+    min-width: 350px;
+    overflow: auto;    
     border-radius: 16px;
-    border: 1px solid #f8f9fa;
+    border: 1px solid #ddd;
     background: #fff;
     box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.08);
     transition: all 0.2s;
+    padding: 10px 0;
+    margin: 0 12px;
 
     .text-input {
+      max-height: 10em;
+      line-height: 1.2em;
+      height: 1.5em;
+      overflow: auto;
+      white-space: pre-wrap; /* 保持内容的换行，并允许自动换行 */
+      resize: none;
       border: none;
-      height: 100%;
       width: 100%;
-      padding: 0 32px 0 12px;
+      margin: 0 38px 0 12px;
       color: rgb(26, 26, 26);
       font-size: 16px;
       font-weight: 400;
       background: none;
+
+      transition: height 0.1s ease-in-out;;
 
       &::placeholder {
         font-size: 16px;
@@ -33,21 +52,46 @@
       }
     }
 
+    /* 滚动条样式 */
+    .text-input::-webkit-scrollbar {
+        width: 0px; /*  设置纵轴（y轴）轴滚动条 */
+        height: 0px; /*  设置横轴（x轴）轴滚动条 */
+    }
+    /* 滚动条滑块（里面小方块） */
+    .text-input::-webkit-scrollbar-thumb {
+        border-radius: 5px;
+        background: transparent;
+    }
+    /* 滚动条轨道 */
+    .text-input::-webkit-scrollbar-track {
+        border-radius: 5px;
+        background: transparent;
+    }
+
+    /* hover时显色 */
+    .text-input:hover::-webkit-scrollbar-thumb {
+        background: rgba(0,0,0,0.2);
+    }
+    .text-input:hover::-webkit-scrollbar-track {
+        background: rgba(0,0,0,0.1);
+    }
+
     .send-btn {
       position: absolute;
-      right: 12px;
-      top: 10px;
-      font-size: 20px;
+      bottom: 10px;
+      right: 10px;
+      font-size: 40px;
       color: #b3b3b3;
       transition: all 0.2s;
     }
 
+    .send-btn-active {
+      color: #2475fc;
+      cursor: pointer;
+    }
+
     &.is-set {
       border: 1px solid #2475fc;
-
-      .send-btn {
-        color: #2475fc;
-      }
     }
   }
 }
@@ -56,48 +100,73 @@
 <template>
   <div class="message-input-box">
     <div class="message-input-body">
-      <div class="message-input" :class="{ 'is-set': props.value.length > 0 }">
-        <input
+      <div class="message-input" :class="{ 'is-set': valueText }">
+        <textarea
+          :style="{height: inputHeight}"
           class="text-input"
-          type="text"
-          :value="value"
+          v-model="valueText"
           placeholder="在此输入您想了解的内容"
           @change="onChange"
+          @input="onInput"
           @keyup.enter="handleEnter" 
-        />
-        <svg-icon name="paper-airplane" class="send-btn" @click="sendMessage" />
+          @focus="onFocus"
+          @blur="onBlur"
+        ></textarea>
+        <svg-icon :name="isSendBtn ? 'paper-airplane-new-active' : 'paper-airplane-new'" :class="{'send-btn-active': isSendBtn}" class="send-btn" @click="sendMessage" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 const emit = defineEmits(['update:value', 'send' ])
 
-const props = defineProps({
-  value: {
-    type: String,
-    default: ''
-  }
-})
+const isSendBtn = ref(false)
+const valueText = ref("")
+const inputHeight = ref("1.5em")
 
 const onChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
   emit('update:value', target.value)
 }
 
+const onInput = (event) => {
+  // 会有延迟
+  if (valueText.value.trim()) {
+    isSendBtn.value = true
+  } else {
+    isSendBtn.value = false
+  }
+}
+
 const sendMessage = () => {
-  if (props.value.trim()) {
-    emit('send', props.value)
+  if (valueText.value.trim()) {
+    isSendBtn.value = false
+    emit('send', valueText.value)
+    valueText.value = ""
+    inputHeight.value = '1.5em'
   }
 }
 
 const handleEnter = (e: KeyboardEvent) => {
-  if (!props.value.trim()) {
+  e.preventDefault()
+  const target = e.target as HTMLInputElement;
+  if(e.shiftKey){
+    inputHeight.value = target.scrollHeight + 'px';
+    return 
+  }
+  if (!valueText.value.trim()) {
     return
   }
-
-  e.preventDefault()
   sendMessage()
+}
+
+const onFocus = (event) => {
+  event.target.parentNode.style.borderColor = "#2475FC"
+}
+
+const onBlur = (event) => {
+  event.target.parentNode.style.borderColor = "#DDD"
 }
 </script>

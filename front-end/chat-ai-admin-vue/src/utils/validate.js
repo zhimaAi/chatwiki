@@ -16,4 +16,47 @@ export function validatePassword(password) {
   );
 
   return hasTwoTypes;
+}
+
+
+export function isValidURL(url) {
+  try {
+    new URL(url);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+export function transformUrlData(str) {
+  const isValidUrl = (string) => {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+  str = str.trim()
+  var lines = str.split(/\r?\n|\r/).map(line => line.trim()).filter(line => line.length > 0)
+  // console.log(lines)
+  let result = []
+  let item = {}
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i]
+    if (isValidUrl(line)) {
+      item.url = line
+      result.push(item)
+      item = {}
+    } else {
+      if (!item.remark) {
+        item.remark = line
+      } else {
+        if (!item.url) {
+          return false
+        }
+      }
+    }
+  }
+  return result
 }  

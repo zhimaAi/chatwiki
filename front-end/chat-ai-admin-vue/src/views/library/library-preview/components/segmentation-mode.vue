@@ -4,7 +4,7 @@
       <template #title>
         <div class="tooltip-text-box" v-html="tooltipStr"></div>
       </template>
-      <a-tag color="#2db7f5">{{ name }}</a-tag>
+      <div class="tag-item">{{ name }}</div>
     </a-tooltip>
   </div>
 </template>
@@ -28,13 +28,22 @@ const name = computed(() => {
     chunk_overlap,
     question_column,
     answer_column,
-    qa_index_type
+    qa_index_type,
+    doc_type
   } = props.detailsInfo
   if (is_table_file != 1 && is_qa_doc != 1 && is_diy_split != 1) {
+    if (doc_type == 3) {
+      tooltipStr.value = `分段模式：手动分段\n文档类型：普通文档`
+      return '自定义：普通文档'
+    }
     tooltipStr.value = `分段模式：智能分段\n文档类型：普通文档`
     return '智能分段：普通文档'
   }
   if (is_table_file != 1 && is_qa_doc == 1) {
+    if (doc_type == 3) {
+      tooltipStr.value = `分段模式：手动分段\n文档类型：QA文档`
+      return '自定义：QA文档'
+    }
     tooltipStr.value = `分段模式：智能分段\n文档类型：QA文档\n问题开始标识符："${question_lable}"\n答案开始标识符："${answer_lable}"`
     return '智能分段：QA文档'
   }
@@ -56,10 +65,20 @@ const name = computed(() => {
 
 <style lang="less" scoped>
 .mode-box {
-  margin-left: 20px;
+  margin-left: 8px;
   cursor: context-menu;
 }
-.tooltip-text-box{
+.tooltip-text-box {
   white-space: pre-wrap;
+}
+.tag-item {
+  border-radius: 2px;
+  border: 1px solid #99bffd;
+  background: #e9f1fe;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #2475fc;
 }
 </style>
