@@ -1,0 +1,12 @@
+FROM ubuntu:24.10
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN sed -i s/archive.ubuntu.com/mirrors.aliyun.com/g /etc/apt/sources.list.d/ubuntu.sources  \
+    && sed -i s/security.ubuntu.com/mirrors.aliyun.com/g /etc/apt/sources.list.d/ubuntu.sources  \
+    && apt update \
+    && apt install supervisor -y \
+    && apt install nginx -y
+
+COPY go_core/chatwiki.conf /etc/supervisor/conf.d/
+COPY nginx/*.conf /etc/nginx/conf.d/

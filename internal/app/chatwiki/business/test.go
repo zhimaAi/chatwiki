@@ -1,0 +1,28 @@
+// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+
+package business
+
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
+
+func Ping(c *gin.Context) {
+	c.String(http.StatusOK, `pong`)
+}
+
+func NoMethod(c *gin.Context) {
+	c.String(http.StatusOK, `NoMethod`)
+}
+
+func NoRoute(c *gin.Context) {
+	c.String(http.StatusOK, `NoRoute`)
+}
+
+func Test(c *gin.Context) {
+	c.String(http.StatusOK, `test`)
+}
+
+func Test1(c *gin.Context) {
+	c.String(http.StatusOK, `test111`)
+}

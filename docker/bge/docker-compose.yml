@@ -1,0 +1,32 @@
+services:
+  chatwiki_baai_service:
+    env_file: ./.env
+    # build from ...
+    image: registry.cn-hangzhou.aliyuncs.com/bge/zhima_ai_bge_service:v1.0.0
+    # if you build at local docker image use the following command
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    container_name: chatwiki_baai_service
+    # GPU env，hide the deploy config if machine has no ,
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [ gpu ]
+    ports:
+      - ${BGE_SERVICE_PORT}:${BGE_SERVICE_PORT}
+    networks:
+      - chatwiki_network
+    restart: always
+    stdin_open: true
+    tty: true
+    command:
+       - /bin/bash
+       - -c
+
+networks:
+  chatwiki_network:
+    driver: bridge

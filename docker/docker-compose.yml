@@ -1,0 +1,155 @@
+services:
+  chatwiki_pdf_service:
+    env_file: ./.env
+    image: gotenberg/gotenberg:8
+    container_name: chatwiki_pdf_service
+    ports:
+      - ${CONVERT_PDF_PORT}:3000
+    networks:
+      - chatwiki_network
+    restart: always
+    environment:
+      TZ: ${TIMEZONE}
+
+  chatwiki_redis_service:
+    env_file: ./.env
+    image: redis:5.0
+    container_name: chatwiki_redis_service
+    ports:
+      - ${REDIS_PORT}:6379
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    networks:
+      - chatwiki_network
+    restart: always
+    environment:
+      TZ: ${TIMEZONE}
+
+  chatwiki_crawler:
+    image: mcr.microsoft.com/playwright:v1.44.1-jammy
+    container_name: chatwiki_crawler
+    restart: always
+    environment:
+      TZ: ${TIMEZONE}
+      PRODUCTION: "true"
+      CONCURRENT: 2
+    volumes:
+      - ../:/var/www/crawler/
+    working_dir: /var/www/crawler
+    command: ./build/crawler
+    networks:
+      - chatwiki_network
+    ports:
+      - ${CRAWLER_PORT}:3800
+
+  chatwiki_postgres_service:
+    env_file: ./.env
+    build:
+      context: .
+      dockerfile: DockerfilePostgres
+    container_name: chatwiki_postgres_service
+    environment:
+      TZ: ${TIMEZONE}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    command:
+      - "postgres"
+      - "-c"
+      - "zhparser.multi_short=t"
+      - "-c"
+      - "zhparser.punctuation_ignore=t"
+      - "-c"
+      - "zhparser.dict_in_memory=t"
+    volumes:
+      - ../volumes/postgres_data:/var/lib/postgresql/data
+    ports:
+      - ${POSTGRES_PORT}:5432
+    networks:
+      - chatwiki_network
+    restart: always
+
+  chatwiki_go_nsq_service:
+    env_file: ./.env
+    build:
+      context: .
+      dockerfile: DockerfileGoNsq
+    container_name: chatwiki_go_nsq_service
+    working_dir: /var/www/go-nsq
+    ports:
+      - ${NSQADMIN_PORT}:4171
+    networks:
+      - chatwiki_network
+    restart: always
+    environment:
+      TZ: ${TIMEZONE}
+    stdin_open: true
+    tty: true
+    command:
+      - /bin/bash
+      - -c
+      - |
+        supervisord
+        /bin/bash
+
+  chatwiki_go_core_service:
+    env_file: ./.env
+    build:
+      context: .
+      dockerfile: DockerfileGoCore
+    container_name: chatwiki_go_core_service
+    volumes:
+      - ../:/var/www/chatwiki/
+      - ../volumes/nginx_logs:/var/log/nginx/
+    working_dir: /var/www/chatwiki
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - ${CHAT_SERVICE_PORT}:8080
+      - ${H5_SERVICE_PORT}:8081
+      - ${PC_SERVICE_PORT}:8082
+    networks:
+      - chatwiki_network
+    restart: always
+    environment:
+      TZ: ${TIMEZONE}
+    stdin_open: true
+    tty: true
+    command:
+      - /bin/bash
+      - -c
+      - |
+        supervisord
+        nginx
+        /bin/bash
+
+  chatwiki_client_side_build_win:
+    image: electronuserland/builder:wine
+    container_name: chatwiki_client_side_build_win
+    networks:
+      - chatwiki_network
+    volumes:
+      - ../:/var/www/chatwiki/
+    working_dir: /var/www/chatwiki
+    command: ./build/client_side_build --IsDev=false
+    restart: always
+    environment:
+      TZ: ${TIMEZONE}
+
+  chatwiki_websocket:
+    image: ubuntu:24.10
+    container_name: chatwiki_websocket
+    ports:
+      - ${WS_SERVICE_PORT}:24628
+    networks:
+      - chatwiki_network
+    volumes:
+      - ../:/var/www/chatwiki/
+    working_dir: /var/www/chatwiki
+    command: ./build/websocket --IsDev=false
+    restart: always
+    environment:
+      TZ: ${TIMEZONE}
+
+networks:
+  chatwiki_network:
+    driver: bridge

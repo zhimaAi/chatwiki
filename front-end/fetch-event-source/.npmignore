@@ -1,0 +1,14 @@
+.github/
+.nyc_output/
+coverage/
+lib/*.map
+lib/*.spec.*
+src/
+.nycrc
+jasmine.json
+tsconfig.json
+*.md
+
+## IntellIJ files
+.idea
+*.iml

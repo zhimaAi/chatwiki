@@ -1,0 +1,11 @@
+{
+  "accountPassword": "Account Password",
+  "accountSettings": "Account Settings",
+  "loginAccount": "Login Account",
+  "view": {
+    "user": {
+      "model": {
+      }
+    }
+  }
+}

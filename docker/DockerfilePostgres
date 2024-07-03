@@ -1,0 +1,12 @@
+FROM zhparser/zhparser:bookworm-16 as zhparser
+
+FROM pgvector/pgvector:pg16
+
+RUN localedef -i zh_CN -c -f UTF-8 -A /usr/share/locale/locale.alias zh_CN.UTF-8
+ENV LANG zh_CN.UTF-8
+
+COPY --from=zhparser /usr/lib/postgresql/16/lib/zhparser.so /usr/lib/postgresql/16/lib/
+COPY --from=zhparser /usr/local/lib/libscws.* /usr/local/lib/
+COPY --from=zhparser /usr/share/postgresql/16/extension/zhparser* /usr/share/postgresql/16/extension/
+COPY --from=zhparser /usr/lib/postgresql/16/lib/bitcode/zhparser* /usr/lib/postgresql/16/lib/bitcode/
+COPY --from=zhparser /usr/share/postgresql/16/tsearch_data/*.utf8.* /usr/share/postgresql/16/tsearch_data/

@@ -1,0 +1,54 @@
+@import './base.css';
+
+#app {
+  font-weight: normal;
+}
+
+a {
+  cursor: pointer;
+  color: #2475fc;
+  text-decoration: none;
+}
+a:hover {
+  color: #2475fc;
+  outline: none;
+}
+.window-hidden {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* margin */
+.mb-16 {
+  margin-bottom: 16px !important;
+}
+
+/* padding */
+
+/* text */
+.default-text-color {
+  color: #595959 !important;
+}
+.text_color_2475fc {
+  color: #2475fc !important;
+}
+.text_color_ed744a {
+  color: #ed744a !important;
+}
+.delete-text-color {
+  color: #fb363f !important;
+}
+
+.custom-slider .ant-slider-track {
+  background-color: #2475fc !important;
+}
+
+.custom-slider:hover .ant-slider-handle::after,
+.custom-slider .ant-slider-handle::after {
+  box-shadow: 0 0 0 2px #2475fc;
+}
+
+.custom-slider .ant-slider-handle:hover::after {
+  box-shadow: 0 0 0 4px #2475fc;
+}
