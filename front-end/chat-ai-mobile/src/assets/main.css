@@ -1,4 +1,5 @@
 @import './base.css';
+@import 'cherry-markdown/dist/cherry-markdown.css';
 
 html, body{
     height: 100%;

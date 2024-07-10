@@ -137,6 +137,9 @@ export const getLibFileExcelTitle = (params) => {
 
 export const editLibFile = (data) => {
   return request.post({
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    },
     url: '/manage/editLibFile',
     data: data
   })

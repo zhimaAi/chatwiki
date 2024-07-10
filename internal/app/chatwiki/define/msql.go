@@ -11,12 +11,15 @@ const (
 )
 
 const (
-	TableRole          = "role"
-	TableUser          = "public.user"
-	TableMenu          = "menu"
-	TableCompany       = "company"
-	TableFastCommand   = "fast_command"
-	TableRule          = "casbin_rule"
+	TableRole        = "role"
+	TableUser        = "public.user"
+	TableMenu        = "menu"
+	TableCompany     = "company"
+	TableFastCommand = "fast_command"
+	TableRule        = "casbin_rule"
+)
+
+const (
 	DefaultRoleIdRoot  = 1
 	DefaultRoleIdAdmin = 2
 	DefaultRoleIdUser  = 3

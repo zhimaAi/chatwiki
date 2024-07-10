@@ -102,7 +102,7 @@
 
     <div class="page-container">
       <div class="page-left">
-        <SegmentationSetting :excellQaLists="excellQaLists" :mode="settingMode" @change="onChangeSetting" @validate="onValidate" />
+        <SegmentationSetting :excellQaLists="excellQaLists" :libFileInfo="libFileInfo" :mode="settingMode" @change="onChangeSetting" @validate="onValidate" />
       </div>
       <div class="page-right">
         <div class="document-fragment-preview">
@@ -123,6 +123,7 @@
                 :total="item.word_total"
                 :question="item.question"
                 :answer="item.answer"
+                :images="item.images"
                 @delete="handleDeleteFragment(index)"
                 @edit="handleEditFragment(item, index)"
               />
@@ -169,7 +170,8 @@ let formData = {
   chunk_overlap: 50, // 自定义分段-分段重叠长度 默认为50，最小不得低于10，最大不得超过最大分段长度的50%
   is_qa_doc: 0, // 0 普通文档 1 QA文档
   question_lable: '', // QA文档-问题开始标识符
-  answer_lable: '' // QA文档-答案开始标识符
+  answer_lable: '', // QA文档-答案开始标识符
+  enable_extract_image: true,
 }
 
 const onChangeSetting = (data) => {
@@ -209,6 +211,7 @@ const onChangeSetting = (data) => {
 let maxLoopNumber = 60 * 10
 let loopNumber = 0
 let library_id = null
+const libFileInfo = ref({})
 const getDocumentStatus = () => {
   if (!spinning.value) {
     spinning.value = true
@@ -216,7 +219,7 @@ const getDocumentStatus = () => {
 
   getLibFileInfo({ id: document_id }).then((res) => {
     const { status } = res.data
-
+    libFileInfo.value = res.data
     if (status == 0) {
       loopNumber++
       if (loopNumber > maxLoopNumber) {
@@ -276,12 +279,12 @@ const getDocumentFragment = () => {
 const editFragmentAlertRef = ref(null)
 let editFragmentIndex = null
 
-const handleEditFragment = ({ title, content, question, answer  }, index) => {
+const handleEditFragment = ({ title, content, question, answer, images }, index) => {
   editFragmentIndex = index
-  editFragmentAlertRef.value.open({ title, content, question, answer })
+  editFragmentAlertRef.value.open({ title, content, question, answer, images })
 }
 
-const saveFragment = ({ title, content, question, answer }) => {
+const saveFragment = ({ title, content, question, answer, images }) => {
   if (
     documentFragmentList.value[editFragmentIndex].title != title ||
     documentFragmentList.value[editFragmentIndex].content != content ||
@@ -295,6 +298,7 @@ const saveFragment = ({ title, content, question, answer }) => {
   documentFragmentList.value[editFragmentIndex].content = content
   documentFragmentList.value[editFragmentIndex].question = question
   documentFragmentList.value[editFragmentIndex].answer = answer
+  documentFragmentList.value[editFragmentIndex].images = images
 
   documentFragmentList.value[editFragmentIndex].word_total = answer.length + question.length + content.length
 }

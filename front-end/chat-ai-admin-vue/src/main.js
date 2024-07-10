@@ -13,6 +13,8 @@ import { setupStore } from '@/stores'
 import router from './router'
 
 import App from './App.vue'
+import Viewer from 'v-viewer';
+import 'viewerjs/dist/viewer.css';
 
 import './permission'
 
@@ -30,7 +32,7 @@ const setupAll = async () => {
 
   setupStore(app)
 
-  app.use(router)
+  app.use(router).use(Viewer)
 
   registGlobaDirective(app)
   registGlobalComponent(app)

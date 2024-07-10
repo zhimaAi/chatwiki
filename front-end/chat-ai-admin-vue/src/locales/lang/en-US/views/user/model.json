@@ -20,5 +20,6 @@
   "secret_key": "Secret Key",
   "viewModelButton": "View Model",
   "teamMembers": "Team members",
-  "rolePermissions": "Role permissions"
+  "rolePermissions": "Role permissions",
+  "app_id": "appid"
 }

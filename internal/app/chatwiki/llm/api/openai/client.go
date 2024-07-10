@@ -73,7 +73,7 @@ func (c *Client) CreateChatCompletion(req ChatCompletionRequest) (ChatCompletion
 		_ = Body.Close()
 	}(responseRaw.Body)
 	err = common.HttpCheckError(responseRaw, c.ErrResp)
-	logs.Info("openAi_embedding:url:%v,%+v,%s", url, req, err)
+	logs.Info("CreateChatCompletion:url:%v,%+v,%+v,%s", url, req, headers, err)
 	if err != nil {
 		return ChatCompletionResponse{}, err
 	}

@@ -141,7 +141,7 @@
           </div>
         </div>
         <template #reference>
-          <div class="fast-item more">
+          <div class="fast-item more" v-if="visibleButtons.length">
             更多
             <van-icon v-if="!showPopover" name="arrow-down" />
             <van-icon v-else name="arrow-up" />

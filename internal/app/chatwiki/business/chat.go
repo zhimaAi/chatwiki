@@ -34,7 +34,12 @@ func GetWsUrl(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `openid`))))
 		return
 	}
-	wsUrl := fmt.Sprintf(`ws://%s/ws?openid=%s`, define.Config.WebService[`ws_domain`], openid)
+	var wsUrl string
+	if cast.ToBool(define.Config.WebService[`ws_use_ssl`]) {
+		wsUrl = fmt.Sprintf(`wss://%s/ws?openid=%s`, define.Config.WebService[`ws_domain`], openid)
+	} else {
+		wsUrl = fmt.Sprintf(`ws://%s/ws?openid=%s`, define.Config.WebService[`ws_domain`], openid)
+	}
 	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`ws_url`: wsUrl}, nil))
 	//sending debug message
 	if cast.ToInt(c.Query(`debug`)) > 0 {
@@ -80,7 +85,13 @@ func IsOnLine(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `openid`))))
 		return
 	}
-	response, err := curl.Get(fmt.Sprintf(`http://%s/isOnLine`, define.Config.WebService[`ws_domain`])).Param(`openid`, openid).String()
+	var link string
+	if cast.ToBool(define.Config.WebService[`ws_use_ssl`]) {
+		link = fmt.Sprintf(`https://%s/isOnLine`, define.Config.WebService[`ws_domain`])
+	} else {
+		link = fmt.Sprintf(`http://%s/isOnLine`, define.Config.WebService[`ws_domain`])
+	}
+	response, err := curl.Get(link).Param(`openid`, openid).String()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -581,6 +592,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 				`content`:       one[`content`],
 				`question`:      one[`question`],
 				`answer`:        one[`answer`],
+				`images`:        one[`images`],
 				`create_time`:   tool.Time2Int(),
 				`update_time`:   tool.Time2Int(),
 			})
@@ -639,25 +651,30 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 	}
 
 	//part1:prompt
-	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: params.Prompt}}
-	*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: params.Prompt})
+	prompt := params.Prompt
+	prompt = prompt + "\n\n" + define.PromptDefaultAnswerImage
+	prompt = prompt + "\n\n" + buildChatResponseType(cast.ToInt(params.Robot["show_type"]), params.Lang)
+	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
+	*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: prompt})
 
 	//part2:library
 	for _, one := range list {
+		var images []string
+		err = tool.JsonDecode(one[`images`], &images)
+		if err != nil {
+			logs.Error(err.Error())
+		}
 		if cast.ToInt(one[`type`]) == define.ParagraphTypeNormal {
-			messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: one[`content`]})
-			*debugLog = append(*debugLog, map[string]string{`type`: `library`, `content`: one[`content`]})
+			messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: common.EmbTextImages(one[`content`], images)})
+			*debugLog = append(*debugLog, map[string]string{`type`: `library`, `content`: common.EmbTextImages(one[`content`], images)})
 		} else {
-			messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: "question: " + one[`question`] + "\nanswer: " + one[`answer`]})
-			*debugLog = append(*debugLog, map[string]string{`type`: `library`, `content`: "question: " + one[`question`] + "\nanswer: " + one[`answer`]})
+			messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: "question: " + one[`question`] + "\nanswer: " + common.EmbTextImages(one[`answer`], images)})
+			*debugLog = append(*debugLog, map[string]string{`type`: `library`, `content`: "question: " + one[`question`] + "\nanswer: " + common.EmbTextImages(one[`answer`], images)})
 		}
 	}
 
 	//part3:context_qa
 	// Add a parameter if you need to clarify the distinction
-	responseTypeMsg := buildChatResponseType(cast.ToInt(params.Robot["show_type"]), params.Lang)
-	messages = append(messages, responseTypeMsg)
-	*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: responseTypeMsg.Content})
 	for i := range contextList {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})
@@ -674,8 +691,8 @@ func buildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 	var messages []adaptor.ZhimaChatCompletionMessage
 	// Add a parameter if you need to clarify the distinction
 	responseTypeMsg := buildChatResponseType(cast.ToInt(params.Robot["show_type"]), params.Lang)
-	messages = append(messages, responseTypeMsg)
-	*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: responseTypeMsg.Content})
+	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: responseTypeMsg})
+	*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: responseTypeMsg})
 	contextList := buildChatContextPair(params.Openid, cast.ToInt(params.Robot[`id`]),
 		dialogueId, int(curMsgId), cast.ToInt(params.Robot[`context_pair`]))
 	for i := range contextList {
@@ -721,19 +738,17 @@ func buildChatContextPair(openid string, robotId, dialogueId, curMsgId, contextP
 	}
 	return contextList
 }
-func buildChatResponseType(showType int, lang string) adaptor.ZhimaChatCompletionMessage {
+func buildChatResponseType(showType int, lang string) string {
+	var result string
 	var (
-		msg = adaptor.ZhimaChatCompletionMessage{
-			Role: "system",
-		}
 		defaultType = "markdown格式"
 		textType    = "纯文本"
 	)
 	switch showType {
 	case define.RobotTextResponse:
-		msg.Content = fmt.Sprintf("%s", i18n.Show(lang, `chat_show_type`, textType))
+		result = fmt.Sprintf("%s", i18n.Show(lang, `chat_show_type`, textType))
 	default:
-		msg.Content = fmt.Sprintf("%s", i18n.Show(lang, `chat_show_type`, defaultType))
+		result = fmt.Sprintf("%s", i18n.Show(lang, `chat_show_type`, defaultType))
 	}
-	return msg
+	return result
 }

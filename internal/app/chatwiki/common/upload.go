@@ -3,6 +3,7 @@
 package common
 
 import (
+	"bytes"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/llm/common"
 	"encoding/json"
@@ -14,15 +15,13 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	netURL "net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
-type CrawlerResult struct {
-	Page    CrawlerPage         `json:"page"`
-	Article readability.Article `json:"article"`
-}
 type CrawlerPage struct {
 	RawHtml    string `json:"html"`
 	MainHtml   string `json:"main_html"`
@@ -80,9 +79,14 @@ func SaveUploadedFileMulti(c *gin.Context, name string, limitSize, userId int, s
 
 func SaveUrlPage(userId int, url, saveDir string) (*define.UploadInfo, error) {
 
+	// check url
+	parsedURL, err := netURL.Parse(url)
+	if err != nil || parsedURL == nil {
+		return nil, errors.New("Invalid URL")
+	}
+
 	// request crawler
-	endPoint := "http://" + define.Config.Crawler[`host`] + ":" + define.Config.Crawler[`port`] + "/content"
-	resp, err := common.HttpPost(endPoint, nil, nil, map[string]interface{}{"url": url})
+	resp, err := common.HttpPost(define.Config.WebService[`crawler`]+"/content", nil, nil, map[string]interface{}{"url": url})
 	if err != nil {
 		return nil, err
 	}
@@ -102,28 +106,40 @@ func SaveUrlPage(userId int, url, saveDir string) (*define.UploadInfo, error) {
 	}
 
 	// parse response
-	var crawlerResult CrawlerResult
-	err = common.HttpDecodeResponse(resp, &crawlerResult)
+	var crawlerPage CrawlerPage
+	err = common.HttpDecodeResponse(resp, &crawlerPage)
 	if err != nil {
 		return nil, err
 	}
-	if len(crawlerResult.Article.TextContent) == 0 || len(crawlerResult.Article.Title) == 0 {
-		return nil, errors.New("parse url " + url + " article failed")
+	if len(crawlerPage.MainHtml) == 0 {
+		return nil, errors.New("fetch url " + url + " failed")
+	}
+
+	// parse readability article
+	blockTags := "</(div|p|h[1-6]|article|section|header|footer|blockquote|ul|ol|li|nav|aside)>"
+	brTag := "<br[^>]*>"
+	reBlock := regexp.MustCompile(blockTags)
+	reBr := regexp.MustCompile(brTag)
+	html := reBlock.ReplaceAllString(crawlerPage.MainHtml, "$0\n")
+	html = reBr.ReplaceAllString(html, "$0\n")
+	article, err := readability.FromReader(bytes.NewReader([]byte(html)), parsedURL)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("failed to parse readability article: %v\n", err.Error()))
 	}
 
 	// save to file
-	md5Hash := tool.MD5(crawlerResult.Article.TextContent)
+	md5Hash := tool.MD5(article.Content)
 	objectKey := fmt.Sprintf(`chat_ai/%d/%s/%s/%s.%s`, userId, saveDir, tool.Date(`Ym`), md5Hash, "html")
-
-	link, err := WriteFileByString(objectKey, crawlerResult.Article.TextContent)
+	link, err := WriteFileByString(objectKey, article.Content)
 	if err != nil {
 		return nil, err
 	}
 
+	// get file size
 	fileInfo, err := os.Stat(define.AppRoot + link)
 	if err != nil {
 		return nil, err
 	}
 
-	return &define.UploadInfo{Name: crawlerResult.Article.Title, Size: fileInfo.Size(), Ext: "html", Link: link, Online: true, DocUrl: url}, nil
+	return &define.UploadInfo{Name: MbSubstr(article.Title, 0, 100), Size: fileInfo.Size(), Ext: "html", Link: link, Online: true, DocUrl: url}, nil
 }

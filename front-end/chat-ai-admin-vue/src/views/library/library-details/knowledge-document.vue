@@ -277,7 +277,7 @@ const columns = [
     title: '状态',
     dataIndex: 'status',
     key: 'status',
-    width: '150px'
+    width: '160px'
   },
   {
     title: '文档格式',

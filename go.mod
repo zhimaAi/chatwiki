@@ -3,7 +3,7 @@ module chatwiki
 go 1.22.4
 
 require (
-	baliance.com/gooxml v1.0.1
+	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/Unknwon/goconfig v1.0.0
 	github.com/beego/i18n v0.0.0-20161101132742-e9308947f407
 	github.com/caarlos0/env/v11 v11.1.0
@@ -27,11 +27,10 @@ require (
 	github.com/syyongx/php2go v0.9.8
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.933
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/hunyuan v1.0.933
-	github.com/tmc/langchaingo v0.1.10
+	github.com/tmc/langchaingo v0.1.12
 	github.com/volcengine/volc-sdk-golang v1.0.160
 	github.com/xuri/excelize/v2 v2.8.1
 	github.com/zhimaAi/go_tools v0.0.0-20240612094107-dd5aa8aec261
-	github.com/zhimaAi/pdf v0.0.0-20240423033113-08880067bc13
 	go.uber.org/zap v1.27.0
 	gorm.io/driver/postgres v1.5.7
 	gorm.io/gorm v1.25.8
@@ -53,7 +52,7 @@ require (
 	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/deckarep/golang-set/v2 v2.6.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/dlclark/regexp2 v1.11.0 // indirect
+	github.com/dlclark/regexp2 v1.10.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.4 // indirect
 	github.com/glebarez/go-sqlite v1.20.3 // indirect
@@ -103,7 +102,7 @@ require (
 	github.com/xuri/efp v0.0.0-20240408161823-9ad904a10d6d // indirect
 	github.com/xuri/nfp v0.0.0-20240318013403-ab9948c2c4a7 // indirect
 	gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 // indirect
-	gitlab.com/golang-commonmark/linkify v0.0.0-20200225224916-64bca66f6ad3 // indirect
+	gitlab.com/golang-commonmark/linkify v0.0.0-20191026162114-a0c2df6c8f82 // indirect
 	gitlab.com/golang-commonmark/markdown v0.0.0-20211110145824-bf3e522c626a // indirect
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20191124015652-932350d1cb84 // indirect
 	gitlab.com/golang-commonmark/puny v0.0.0-20191124015043-9f83538fa04f // indirect

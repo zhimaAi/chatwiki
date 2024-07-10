@@ -34,6 +34,18 @@
     font-size: 14px;
     color: #595959;
   }
+  .fragment-img{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    img{
+      width: 80px;
+      height: 80px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  }
 }
 </style>
 
@@ -55,6 +67,9 @@
     <div class="fragment-content">{{ props.content }}</div>
     <div class="fragment-content" v-if="props.question">Q：{{ props.question }}</div>
     <div class="fragment-content" v-if="props.answer">A：{{ props.answer }}</div>
+    <div class="fragment-img" v-viewer>
+      <img v-for="(item, index) in props.images" :key="index" :src="item" alt="">
+    </div>
   </div>
 </template>
 
@@ -78,6 +93,9 @@ const props = defineProps({
   },
   answer: {
     type: [Number, String]
+  },
+  images: {
+    type: [Array, String]
   }
 })
 

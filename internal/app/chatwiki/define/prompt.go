@@ -51,3 +51,5 @@ const PromptDefaultQuestionGuide = `
 {{histories}}
 """
 问题的长度应小于20个字符，按如下格式返回: ["问题1", "问题2", "问题3"]`
+
+const PromptDefaultAnswerImage = `注意：每段参考文案都可能附加有<img>标签，在生成答案之后请以同样的格式返回你认为最符合问题的参考文案的<img>标签。回答示例如下： your answer <img src="http://cloud.chatwiki.com/assets/img/en_logo-BXimVcL1.svg">`

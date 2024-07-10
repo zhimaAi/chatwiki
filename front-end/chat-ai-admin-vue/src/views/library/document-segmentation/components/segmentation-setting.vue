@@ -127,6 +127,9 @@
   }
 
   .custom-setting-form {
+    .form-item{
+      margin-bottom: 16px;
+    }
     .form-item-label {
       line-height: 22px;
       margin-bottom: 4px;
@@ -147,10 +150,16 @@
       font-size: 14px;
       color: #595959;
     }
+    .form-tip{
+      color: #8c8c8c;
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 22px;
+      margin-top: 2px;
+    }
   }
   .excel-qa-form {
     .form-item{
-      margin-bottom: 16px;
       .form-item-label {
         padding-top: 5px;
       }
@@ -208,10 +217,6 @@
   }
 
 }
-
-.problem-identifier-form-box {
-  margin-bottom: 16px;
-}
 </style>
 
 <template>
@@ -236,6 +241,15 @@
               QA文档
             </div>
           </div>
+          <a-space class="custom-setting-form" v-if="isHtmlOrDocx">
+            <div class="form-item">
+              <div class="form-item-label">提取图片</div>
+              <div class="form-item-body">
+                  <a-switch @change="onChange" v-model:checked="formState.enable_extract_image"></a-switch>
+                  <div class="form-tip">开启提取图片功能，将自动从文档中提取图片，作为图片上方文本分段的附件。仅支持.docx文件和网页</div>
+              </div>
+            </div>
+          </a-space>
           <template v-if="formState.is_qa_doc == 1">
             <div class="sub-setting-item-name">文件切分</div>
               <!-- 表格类型的QA文档 -->
@@ -276,8 +290,8 @@
                 </div>
               </div>
             </div>
-            <div class="custom-setting-form problem-identifier-form" v-else>
-              <a-space class="problem-identifier-form-box" :size="16">
+            <div class="custom-setting-form" v-else>
+              <a-space :size="16">
                 <div class="form-item">
                   <div class="form-item-label">问题开始标识符：</div>
                   <div class="form-item-body">
@@ -370,7 +384,7 @@
 
 <script setup>
 import { getSeparatorsList } from '@/api/library/index'
-import { reactive, ref, toRaw } from 'vue'
+import { reactive, ref, toRaw, computed } from 'vue'
 import { Form } from 'ant-design-vue'
 import { message } from 'ant-design-vue'
 
@@ -385,9 +399,15 @@ const props = defineProps({
   excellQaLists:{
     type: Array,
     default: () => []
+  },
+  libFileInfo:{
+    type: Object,
+    default: () => {}
   }
 })
-
+const isHtmlOrDocx = computed(()=>{
+  return props.libFileInfo.doc_type == '1' && (props.libFileInfo.file_ext == 'docx' || props.libFileInfo.file_ext == 'html' )
+})
 const formState = reactive({
   is_diy_split: 0, // 0 智能分段 1 自定义分段
   separators_no: [], // 自定义分段-分隔符序号集
@@ -399,6 +419,7 @@ const formState = reactive({
   question_column: void 0, // excel QA文档 问题所在列
   answer_column: void 0, // excel QA文档 答案所在列
   qa_index_type: 1, // excel QA文档 索引方式
+  enable_extract_image: true,
 })
 
 const formRules = reactive({

@@ -1,4 +1,5 @@
 @import './base.css';
+@import 'cherry-markdown/dist/cherry-markdown.css';
 
 #app {
   font-weight: normal;
@@ -51,4 +52,8 @@ a:hover {
 
 .custom-slider .ant-slider-handle:hover::after {
   box-shadow: 0 0 0 4px #2475fc;
+}
+
+strong {
+  font-weight: bold;
 }
