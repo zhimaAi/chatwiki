@@ -130,7 +130,19 @@ const modelFieldConfig = {
         trigger: 'change'
       }
     ]
-  }
+  },
+  app_id: {
+    ...inputDefaultConfig,
+    label: 'appid',
+    placeholder: '请输入appid',
+    rules: [
+      {
+        required: true,
+        message: '请输入appid',
+        trigger: 'change'
+      }
+    ]
+  },
 }
 // 获取模型表单字段配置
 export function getModelFieldConfig(fieldName) {

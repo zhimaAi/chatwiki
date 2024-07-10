@@ -19,18 +19,30 @@ import (
 )
 
 type Client struct {
-	EndPoint  string
 	APIKey    string
 	APPID     string
 	APISecret string
+	Model     string
+}
+type endpoint struct {
+	URL    string
+	Domain string
 }
 
-func NewClient(EndPoint, apiKey, appID, appSecret string) *Client {
+var modelToEndpoint = map[string]endpoint{
+	"Spark4.0 Ultra": {URL: "wss://spark-api.xf-yun.com/v4.0/chat", Domain: "4.0Ultra"},
+	"Spark Max":      {URL: "wss://spark-api.xf-yun.com/v3.5/chat", Domain: "generalv3.5"},
+	"Spark Pro":      {URL: "wss://spark-api.xf-yun.com/v3.1/chat", Domain: "generalv3"},
+	"Spark V2.0":     {URL: "wss://spark-api.xf-yun.com/v2.1/chat", Domain: "generalv2"},
+	"Spark Lite":     {URL: "wss://spark-api.xf-yun.com/v1.1/chat", Domain: "general"},
+}
+
+func NewClient(apiKey, appID, appSecret, model string) *Client {
 	return &Client{
-		EndPoint:  EndPoint,
 		APIKey:    apiKey,
 		APPID:     appID,
 		APISecret: appSecret,
+		Model:     model,
 	}
 }
 
@@ -39,7 +51,12 @@ func (c *Client) CreateChatCompletion(req ChatCompletionRequest) (ChatCompletion
 	d := websocket.Dialer{
 		HandshakeTimeout: 5 * time.Second,
 	}
-	conn, resp, err := d.Dial(assembleAuthUrl1(c.EndPoint, c.APIKey, c.APISecret), nil)
+	endpoint, ok := modelToEndpoint[c.Model]
+	if !ok {
+		return ChatCompletionResponse{}, errors.New("unsupported model")
+	}
+
+	conn, resp, err := d.Dial(assembleAuthUrl1(endpoint.URL, c.APIKey, c.APISecret), nil)
 	if err != nil {
 		return ChatCompletionResponse{}, errors.New(readResp(resp) + err.Error())
 	} else if resp.StatusCode != 101 {
@@ -48,15 +65,19 @@ func (c *Client) CreateChatCompletion(req ChatCompletionRequest) (ChatCompletion
 
 	// send message
 	req.Header.APPID = c.APPID
-	req.Parameter.Chat.Domain = "general"
+	req.Parameter.Chat.Domain = endpoint.Domain
 	req.Parameter.Chat.Auditing = "default"
 	req.Parameter.Chat.Stream = false
 	req.Parameter.Chat.TopK = 5
-	conn.WriteJSON(req)
+	err = conn.WriteJSON(req)
+	if err != nil {
+		return ChatCompletionResponse{}, err
+	}
 
-	// read message
 	_, msg, err := conn.ReadMessage()
-	defer conn.Close()
+	defer func(conn *websocket.Conn) {
+		_ = conn.Close()
+	}(conn)
 	if err != nil {
 		return ChatCompletionResponse{}, err
 	}
@@ -77,7 +98,11 @@ func (c *Client) CreateChatCompletionStream(req ChatCompletionRequest) (*ChatCom
 	d := websocket.Dialer{
 		HandshakeTimeout: 5 * time.Second,
 	}
-	conn, resp, err := d.Dial(assembleAuthUrl1(c.EndPoint, c.APIKey, c.APISecret), nil)
+	endpoint, ok := modelToEndpoint[c.Model]
+	if !ok {
+		return nil, errors.New("unsupported model")
+	}
+	conn, resp, err := d.Dial(assembleAuthUrl1(endpoint.URL, c.APIKey, c.APISecret), nil)
 	if err != nil {
 		return nil, errors.New(readResp(resp) + err.Error())
 	} else if resp.StatusCode != 101 {
@@ -86,7 +111,7 @@ func (c *Client) CreateChatCompletionStream(req ChatCompletionRequest) (*ChatCom
 
 	// send message
 	req.Header.APPID = c.APPID
-	req.Parameter.Chat.Domain = "general"
+	req.Parameter.Chat.Domain = endpoint.Domain
 	req.Parameter.Chat.Auditing = "default"
 	req.Parameter.Chat.Stream = true
 	req.Parameter.Chat.TopK = 5

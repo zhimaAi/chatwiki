@@ -18,7 +18,6 @@
       <div class="model-logo-box">
         <img class="model-logo" :src="modelConfig.model_icon_url" alt="" />
       </div>
-
       <div class="form-box">
         <a-form layout="horizontal" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
           <template v-for="item in formItems" :key="item.key">

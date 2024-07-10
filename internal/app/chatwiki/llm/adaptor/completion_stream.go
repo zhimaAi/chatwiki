@@ -21,8 +21,6 @@ import (
 	"chatwiki/internal/app/chatwiki/llm/api/volcenginev3"
 	"chatwiki/internal/app/chatwiki/llm/api/xinference"
 	"errors"
-	"fmt"
-
 	"github.com/zhimaAi/go_tools/logs"
 
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
@@ -221,17 +219,7 @@ func (a *Adaptor) CreateChatCompletionStream(req ZhimaChatCompletionRequest) (*Z
 			&CohereStreamResult{stream},
 		}
 	case "spark":
-		var modelToUrl = map[string]string{
-			"generalv3.5": "wss://spark-api.xf-yun.com/v3.5/chat",
-			"generalv3":   "wss://spark-api.xf-yun.com/v3.1/chat",
-			"generalv2":   "wss://spark-api.xf-yun.com/v2.1/chat",
-			"general":     "wss://spark-api.xf-yun.com/v1.1/chat",
-		}
-		url, ok := modelToUrl[a.meta.Model]
-		if !ok {
-			return nil, fmt.Errorf("model %s not found in url", a.meta.Model)
-		}
-		client := spark.NewClient(url, a.meta.APIKey, a.meta.APPID, a.meta.SecretKey)
+		client := spark.NewClient(a.meta.APIKey, a.meta.APPID, a.meta.SecretKey, a.meta.Model)
 		var messages []spark.ChatCompletionMessage
 		for _, v := range req.Messages {
 			messages = append(messages, spark.ChatCompletionMessage{Role: v.Role, Content: v.Content})

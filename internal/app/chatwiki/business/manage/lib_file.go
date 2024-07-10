@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/syyongx/php2go"
+	"github.com/tmc/langchaingo/textsplitter"
 	"net/http"
 	"net/url"
 	"strings"
@@ -19,7 +20,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
-	"github.com/tmc/langchaingo/textsplitter"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
@@ -353,16 +353,12 @@ func GetLibFileSplit(c *gin.Context) {
 	} else if cast.ToInt(info[`is_table_file`]) == define.FileIsTable && splitParams.IsQaDoc != define.DocTypeQa {
 		list, wordTotal, err = common.ReadTab(info[`file_url`], info[`file_ext`])
 	} else {
-		switch strings.ToLower(info[`file_ext`]) {
-		case `docx`:
-			list, wordTotal, err = common.ReadDocx(info[`file_url`])
-		case `txt`, `md`:
-			list, wordTotal, err = common.ReadTxt(info[`file_url`], false)
-		case `html`:
-			list, wordTotal, err = common.ReadTxt(info[`file_url`], true)
-		default:
-			list, wordTotal, err = common.ReadPdf(info[`pdf_url`])
+		embedHtmlContent, err := common.GetEmbedHtmlContent(info[`file_url`], info[`file_ext`])
+		if err != nil {
+			logs.Error(err.Error())
+			return
 		}
+		list, wordTotal, err = common.ReadEmbedHtmlContent(embedHtmlContent, userId)
 	}
 
 	if err != nil {
@@ -374,8 +370,10 @@ func GetLibFileSplit(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `doc_empty`))))
 		return
 	}
+
 	//initialize RecursiveCharacter
 	split := textsplitter.NewRecursiveCharacter()
+
 	if splitParams.IsDiySplit == define.SplitTypeDiy {
 		split.Separators = append(splitParams.Separators, split.Separators...)
 		split.ChunkSize = splitParams.ChunkSize
@@ -484,20 +482,21 @@ func SaveLibFileSplit(c *gin.Context) {
 	}
 
 	data := msql.Datas{
-		`status`:          define.FileStatusLearning,
-		`errmsg`:          `success`,
-		`word_total`:      wordTotal,
-		`split_total`:     len(list),
-		`is_qa_doc`:       splitParams.IsQaDoc,
-		`is_diy_split`:    splitParams.IsDiySplit,
-		`separators_no`:   splitParams.SeparatorsNo,
-		`chunk_size`:      splitParams.ChunkSize,
-		`chunk_overlap`:   splitParams.ChunkOverlap,
-		`question_lable`:  splitParams.QuestionLable,
-		`answer_lable`:    splitParams.AnswerLable,
-		`question_column`: splitParams.QuestionColumn,
-		`answer_column`:   splitParams.AnswerColumn,
-		`update_time`:     tool.Time2Int(),
+		`status`:               define.FileStatusLearning,
+		`errmsg`:               `success`,
+		`word_total`:           wordTotal,
+		`split_total`:          len(list),
+		`is_qa_doc`:            splitParams.IsQaDoc,
+		`is_diy_split`:         splitParams.IsDiySplit,
+		`separators_no`:        splitParams.SeparatorsNo,
+		`chunk_size`:           splitParams.ChunkSize,
+		`chunk_overlap`:        splitParams.ChunkOverlap,
+		`question_lable`:       splitParams.QuestionLable,
+		`answer_lable`:         splitParams.AnswerLable,
+		`question_column`:      splitParams.QuestionColumn,
+		`answer_column`:        splitParams.AnswerColumn,
+		`enable_extract_image`: splitParams.EnableExtractImage,
+		`update_time`:          tool.Time2Int(),
 	}
 	if qaIndexType != 0 {
 		data[`qa_index_type`] = qaIndexType
@@ -540,6 +539,16 @@ func SaveLibFileSplit(c *gin.Context) {
 			}
 			data[`question`] = strings.TrimSpace(item.Question)
 			data[`answer`] = strings.TrimSpace(item.Answer)
+			if len(item.Images) > 0 {
+				jsonImages, err := common.CheckLibraryImage(item.Images)
+				if err != nil {
+					_ = m.Rollback()
+					c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `images`))))
+					lib_redis.UnLock(define.Redis, define.LockPreKey+`SaveLibFileSplit`+cast.ToString(fileId))
+					return
+				}
+				data[`images`] = jsonImages
+			}
 			id, err := vm.Insert(data, `id`)
 			if err != nil {
 				logs.Error(err.Error())
@@ -585,6 +594,16 @@ func SaveLibFileSplit(c *gin.Context) {
 		} else {
 			data[`type`] = define.ParagraphTypeNormal
 			data[`content`] = strings.TrimSpace(item.Content)
+			if len(item.Images) > 0 {
+				jsonImages, err := common.CheckLibraryImage(item.Images)
+				if err != nil {
+					_ = m.Rollback()
+					c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `images`))))
+					lib_redis.UnLock(define.Redis, define.LockPreKey+`SaveLibFileSplit`+cast.ToString(fileId))
+					return
+				}
+				data[`images`] = jsonImages
+			}
 			id, err := vm.Insert(data, `id`)
 			if err != nil {
 				logs.Error(err.Error())

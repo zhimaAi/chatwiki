@@ -11,10 +11,4 @@ type ConfigParam struct {
 	Postgres   map[string]string
 	NsqLookup  map[string]string
 	Nsqd       map[string]string
-	Crawler    map[string]string
-}
-type Model struct {
-	Name string `json:"name" toml:"name"`
-	Url  string `json:"url"`
-	Key  string `json:"key" toml:"key"`
 }

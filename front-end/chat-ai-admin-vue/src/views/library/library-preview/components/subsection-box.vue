@@ -26,6 +26,9 @@
       <div class="content-box" v-if="item.question">Q：{{ item.question }}</div>
       <div class="content-box" v-if="item.answer">A：{{ item.answer }}</div>
       <div class="content-box" v-html="item.content"></div>
+      <div class="fragment-img" v-viewer>
+        <img v-for="(item, index) in item.images" :key="index" :src="item" alt="" />
+      </div>
     </div>
   </div>
 </template>
@@ -36,7 +39,7 @@ import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import { Modal } from 'ant-design-vue'
 import { deleteParagraph } from '@/api/library'
 
-const emit = defineEmits(['handleDelParagraph', 'handleScrollTargetPage','openEditSubscription'])
+const emit = defineEmits(['handleDelParagraph', 'handleScrollTargetPage', 'openEditSubscription'])
 const props = defineProps({
   paragraphLists: {
     type: Array,
@@ -45,7 +48,7 @@ const props = defineProps({
   total: {
     type: [Number, String],
     default: 0
-  },
+  }
 })
 
 const handleOpenEditModal = (item) => {
@@ -140,6 +143,18 @@ defineExpose({ handleOpenEditModal })
       margin-top: 8px;
       white-space: pre-wrap;
       word-wrap: break-word;
+    }
+    .fragment-img {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+      img {
+        width: 80px;
+        height: 80px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
     }
   }
 }

@@ -154,6 +154,7 @@ import EditBox from './edit-box.vue'
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
 
 const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
+const oldModelDefineList = ['azure']
 
 const grid = reactive({ sm: 24, md: 24, lg: 12, xl: 8, xxl: 8 })
 // 获取LLM模型
@@ -181,7 +182,7 @@ const handleSave = () => {
   // 初始化条件
   currentUseModel.value = formState.use_model
 
-  if (modelDefine.indexOf(currentModelDefine.value) > -1) {
+  if (oldModelDefineList.indexOf(currentModelDefine.value) > -1) {
     // 传给后端的是默认，渲染的是真实名称
     formState.use_model = '默认'
   }

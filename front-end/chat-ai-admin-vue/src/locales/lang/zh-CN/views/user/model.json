@@ -20,5 +20,6 @@
   "secret_key": "Secret Key",
   "viewModelButton": "查看模型",
   "teamMembers": "团队成员",
-  "rolePermissions": "角色权限"
+  "rolePermissions": "角色权限",
+  "app_id": "appid"
 }

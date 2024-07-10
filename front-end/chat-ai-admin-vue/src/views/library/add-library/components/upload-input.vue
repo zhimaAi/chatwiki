@@ -7,7 +7,7 @@
       </div>
       <div class="ant-upload-text">点击或将文件拖拽到这里上传</div>
       <div class="ant-upload-hint">
-        <p>一次只能上传一个文档，单个文件不超过10M</p>
+        <p>一次只能上传一个文档，单个文件不超过100M</p>
         <p>
           <span>支持文件类型：</span><span class="ant-upload-hint-ext" v-for="ext in fileTypes" :key="ext">.{{ ext }}</span>
         </p>
@@ -97,10 +97,10 @@ const beforeUpload = (file) => {
     return false
   }
 
-  const isLt100M = file.size / 1024 / 1024 < 10
+  const isLt100M = file.size / 1024 / 1024 < 100
 
   if (!isLt100M) {
-    message.error('文件大小不能超过10M')
+    message.error('文件大小不能超过100M')
     return false
   }
 

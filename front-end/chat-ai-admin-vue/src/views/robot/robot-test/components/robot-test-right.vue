@@ -195,6 +195,7 @@ import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
 
 const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
+const oldModelDefineList = ['azure']
 
 const props = defineProps({
     robotInfo: {
@@ -295,7 +296,7 @@ const handlePromptChange = (e) => {
 
 const handleSaveRobotPrompt = () => {
     let isDefault = false
-    if (modelDefine.indexOf(currentModelDefine.value) > -1) {
+    if (oldModelDefineList.indexOf(currentModelDefine.value) > -1) {
         // 传给后端的是默认，渲染的是真实名称
         isDefault = true
     }

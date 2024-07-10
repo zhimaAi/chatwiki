@@ -187,6 +187,8 @@ const handleEditParagraph = (data) => {
     lastItem.content = data.content
     lastItem.question = data.question
     lastItem.answer = data.answer
+    lastItem.answer = data.answer
+    lastItem.images = data.images
     lastItem.word_total = data.question.length + data.answer.length + data.content.length
     lists.splice(index, 1, lastItem)
     paragraphLists.value = lists
@@ -222,7 +224,7 @@ const handleScrollTargetPage = async (page_num) => {
 
 const editSubscriptionRef = ref(null)
 const openEditSubscription = (data) => {
-  editSubscriptionRef.value.showModal(data)
+  editSubscriptionRef.value.showModal(JSON.parse(JSON.stringify(data)))
 }
 </script>
 

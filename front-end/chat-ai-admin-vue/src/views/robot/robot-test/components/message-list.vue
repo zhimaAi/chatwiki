@@ -169,7 +169,7 @@
             <div class="itme-right">
               <div class="item-body">
                 <template v-if="item.msg_type == 1">
-                  <div class="message-content">
+                  <div class="message-content" v-viewer>
                     <cherry-markdown :content="item.content"></cherry-markdown>
                   </div>
                   <div class="message-menus">
@@ -200,7 +200,7 @@
 
                 <template v-if="item.msg_type == 3">
                   <div class="message-content">
-                    <img class="msg-img" :src="item.content" alt="" />
+                    <img v-viewer class="msg-img" :src="item.content" alt="" />
                   </div>
                 </template>
 

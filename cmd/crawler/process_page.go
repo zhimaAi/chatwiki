@@ -24,6 +24,23 @@ type PageInfo struct {
 type NeedWaitPageFunc func(page *playwright.Page) error
 type SpecialPageProcessingFunc func(page *playwright.Page) error
 
+const scroll = `
+async (args) => {
+    const {direction, speed} = args;
+    const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+    const scrollHeight = () => document.body.scrollHeight;
+    const start = direction === "down" ? 0 : scrollHeight();
+    const shouldStop = (position) => direction === "down" ? position > scrollHeight() : position < 0;
+    const increment = direction === "down" ? 100 : -100;
+    const delayTime = speed === "slow" ? 50 : 10;
+    console.error(start, shouldStop(start), increment)
+    for (let i = start; !shouldStop(i); i += increment) {
+        window.scrollTo(0, i);
+        await delay(delayTime);
+    }
+};
+`
+
 func fetchURLContent(parsedURL *netURL.URL) (*PageInfo, error) {
 	// check if semaphore is full
 	select {
@@ -36,14 +53,10 @@ func fetchURLContent(parsedURL *netURL.URL) (*PageInfo, error) {
 	// Create an isolated context
 	acceptDownloads := false
 	permissions := []string{"clipboard-read", "clipboard-write"}
-	screen := playwright.Size{Width: 1980, Height: 1080}
-	viewport := playwright.Size{Width: 1920, Height: 1080}
 	userAgent := "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
 	context, err := browser.NewContext(playwright.BrowserNewContextOptions{
 		Permissions:     permissions,
 		AcceptDownloads: &acceptDownloads,
-		Screen:          &screen,
-		Viewport:        &viewport,
 		UserAgent:       &userAgent,
 	})
 	if err != nil {
@@ -51,7 +64,6 @@ func fetchURLContent(parsedURL *netURL.URL) (*PageInfo, error) {
 	}
 	// create a new page
 	page, err := context.NewPage()
-	//page, err := browser.NewPage()
 	if err != nil {
 		return nil, fmt.Errorf("could not create page: %v", err)
 	}
@@ -60,19 +72,16 @@ func fetchURLContent(parsedURL *netURL.URL) (*PageInfo, error) {
 		_ = (*page).Close()
 	}(&page)
 
-	// abort requests
-	_ = page.Route("**/*", func(route playwright.Route) {
-		if php2go.InArray(route.Request().ResourceType(), []string{"image", "media", "font", "websocket", "texttrack", "eventsource"}) {
-			_ = route.Abort()
-		} else {
-			_ = route.Continue()
-		}
-	})
-
 	// navigate to url, with timeout 15s
 	timeout := float64(15000)
-	if _, err = page.Goto(parsedURL.String(), playwright.PageGotoOptions{Timeout: &timeout}); err != nil {
+	if _, err = page.Goto(parsedURL.String(), playwright.PageGotoOptions{Timeout: &timeout, WaitUntil: playwright.WaitUntilStateNetworkidle}); err != nil {
 		return nil, fmt.Errorf("could not navigate to url: %v", err)
+	}
+
+	// scroll to bottom to wait all images loaded
+	_, err = page.Evaluate(scroll, map[string]interface{}{"direction": "down", "speed": "fast"})
+	if err != nil {
+		return nil, fmt.Errorf("could not scroll to bottom: %v", err)
 	}
 
 	// wait for element
@@ -126,6 +135,7 @@ func takeScreenshot(page *playwright.Page, pageInfo *PageInfo) {
 	})
 	if err != nil {
 		logs.Error("could not take screenshot: %v", err)
+		return
 	}
 
 	pageInfo.Screenshot = base64.StdEncoding.EncodeToString(screenshotBytes)

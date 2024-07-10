@@ -52,27 +52,29 @@ type ChatRequestParam struct {
 }
 
 type DocSplitItem struct {
-	Number    int    `json:"number"`
-	PageNum   int    `json:"page_num"`
-	Title     string `json:"title"`
-	Content   string `json:"content"`
-	Question  string `json:"question"`
-	Answer    string `json:"answer"`
-	WordTotal int    `json:"word_total"`
+	Number    int      `json:"number"`
+	PageNum   int      `json:"page_num"`
+	Title     string   `json:"title"`
+	Content   string   `json:"content"`
+	Question  string   `json:"question"`
+	Answer    string   `json:"answer"`
+	WordTotal int      `json:"word_total"`
+	Images    []string `json:"images"`
 }
 
 type SplitParams struct {
-	IsTableFile    int      `json:"is_table_file"`
-	IsDiySplit     int      `json:"is_diy_split"`
-	SeparatorsNo   string   `json:"separators_no"`
-	Separators     []string `json:"-"`
-	ChunkSize      int      `json:"chunk_size"`
-	ChunkOverlap   int      `json:"chunk_overlap"`
-	IsQaDoc        int      `json:"is_qa_doc"`
-	QuestionLable  string   `json:"question_lable"`
-	AnswerLable    string   `json:"answer_lable"`
-	QuestionColumn string   `json:"question_column"`
-	AnswerColumn   string   `json:"answer_column"`
+	IsTableFile        int      `json:"is_table_file"`
+	IsDiySplit         int      `json:"is_diy_split"`
+	SeparatorsNo       string   `json:"separators_no"`
+	Separators         []string `json:"-"`
+	ChunkSize          int      `json:"chunk_size"`
+	ChunkOverlap       int      `json:"chunk_overlap"`
+	IsQaDoc            int      `json:"is_qa_doc"`
+	QuestionLable      string   `json:"question_lable"`
+	AnswerLable        string   `json:"answer_lable"`
+	QuestionColumn     string   `json:"question_column"`
+	AnswerColumn       string   `json:"answer_column"`
+	EnableExtractImage bool     `json:"enable_extract_image"`
 }
 
 type SimilarityResult []msql.Params

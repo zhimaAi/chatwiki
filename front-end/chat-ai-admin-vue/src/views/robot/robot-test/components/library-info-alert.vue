@@ -79,6 +79,18 @@
         color: #595959;
         white-space: pre-wrap;
       }
+      .fragment-img {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+        img {
+          width: 80px;
+          height: 80px;
+          border-radius: 6px;
+          cursor: pointer;
+        }
+      }
     }
   }
 }
@@ -131,6 +143,9 @@
             <div class="document-content" v-if="item.answer">A：{{ item.answer }}</div>
             <div class="document-content">
               {{ item.content }}
+            </div>
+            <div class="fragment-img" v-viewer>
+              <img v-for="(item, index) in item.images" :key="index" :src="item" alt="" />
             </div>
           </div>
         </div>

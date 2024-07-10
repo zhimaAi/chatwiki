@@ -17,7 +17,9 @@ services:
     container_name: chatwiki_redis_service
     ports:
       - ${REDIS_PORT}:6379
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - ../volumes/redis_data:/data
     networks:
       - chatwiki_network
     restart: always
@@ -40,6 +42,15 @@ services:
       - chatwiki_network
     ports:
       - ${CRAWLER_PORT}:3800
+
+  chatwiki_converter:
+    image: shellphy/chatwiki_converter:1.0
+    container_name: chatwiki_converter
+    restart: always
+    environment:
+      TZ: ${TIMEZONE}
+    networks:
+      - chatwiki_network
 
   chatwiki_postgres_service:
     env_file: ./.env

@@ -107,8 +107,9 @@
     <div class="message-item-body">
       <div class="message-content">
         <template v-if="props.msg.msg_type == 1">
-          <div class="text-message">
-            <cherry-markdown :content="props.msg.content" />
+          <div class="text-message" v-viewer>
+            <div v-if="props.msg.is_customer == 1" v-html="props.msg.content"></div>
+            <cherry-markdown :content="props.msg.content" v-else />
           </div>
           <div class="question-list" v-if="props.msg.menu_json && props.msg.menu_json.question.length">
             <div class="question-item" @click="sendTextMessage(item)" v-for="(item, index) in props.msg.menu_json.question"
@@ -137,7 +138,7 @@
         </template>
 
         <template v-else-if="props.msg.msg_type == 3">
-          <img class="msg-img" :src="props.msg.content" />
+          <img v-viewer class="msg-img" :src="props.msg.content" />
         </template>
       </div>
     </div>

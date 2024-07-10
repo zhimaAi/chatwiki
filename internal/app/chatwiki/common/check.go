@@ -5,6 +5,7 @@ package common
 import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"encoding/json"
 	"errors"
 	"regexp"
 	"strings"
@@ -13,6 +14,8 @@ import (
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/tool"
 )
+
+var InvalidLibraryImageError = errors.New("invalid library image")
 
 func CheckMenuJson(menuJson string) (string, error) {
 	info := define.MenuJsonStruct{}
@@ -71,17 +74,18 @@ func IsChatOpenid(openid string) bool {
 
 func CheckSplitParams(c *gin.Context, isTableFile int) (define.SplitParams, error) {
 	splitParams := define.SplitParams{
-		IsTableFile:    isTableFile,
-		IsDiySplit:     cast.ToInt(c.Query(`is_diy_split`)),
-		SeparatorsNo:   strings.TrimSpace(c.Query(`separators_no`)),
-		Separators:     make([]string, 0),
-		ChunkSize:      cast.ToInt(c.Query(`chunk_size`)),
-		ChunkOverlap:   cast.ToInt(c.Query(`chunk_overlap`)),
-		IsQaDoc:        cast.ToInt(c.Query(`is_qa_doc`)),
-		QuestionLable:  strings.TrimSpace(c.Query(`question_lable`)),
-		AnswerLable:    strings.TrimSpace(c.Query(`answer_lable`)),
-		QuestionColumn: strings.TrimSpace(c.Query(`question_column`)),
-		AnswerColumn:   strings.TrimSpace(c.Query(`answer_column`)),
+		IsTableFile:        isTableFile,
+		IsDiySplit:         cast.ToInt(c.Query(`is_diy_split`)),
+		SeparatorsNo:       strings.TrimSpace(c.Query(`separators_no`)),
+		Separators:         make([]string, 0),
+		ChunkSize:          cast.ToInt(c.Query(`chunk_size`)),
+		ChunkOverlap:       cast.ToInt(c.Query(`chunk_overlap`)),
+		IsQaDoc:            cast.ToInt(c.Query(`is_qa_doc`)),
+		QuestionLable:      strings.TrimSpace(c.Query(`question_lable`)),
+		AnswerLable:        strings.TrimSpace(c.Query(`answer_lable`)),
+		QuestionColumn:     strings.TrimSpace(c.Query(`question_column`)),
+		AnswerColumn:       strings.TrimSpace(c.Query(`answer_column`)),
+		EnableExtractImage: cast.ToBool(c.Query(`enable_extract_image`)),
 	}
 	if splitParams.IsTableFile == define.FileIsTable {
 		if splitParams.IsDiySplit == define.SplitTypeDiy {
@@ -159,4 +163,22 @@ func CheckSplitParams(c *gin.Context, isTableFile int) (define.SplitParams, erro
 		splitParams.AnswerLable = ``
 	}
 	return splitParams, nil
+}
+
+func CheckLibraryImage(images []string) (string, error) {
+	pattern := `^\/upload\/chat_ai\/1\/library_image\/\d+\/[a-f0-9]{32}\.png$`
+	re := regexp.MustCompile(pattern)
+	for _, image := range images {
+		if !re.MatchString(image) {
+			return "", InvalidLibraryImageError
+		}
+	}
+	jsonImages, err := json.Marshal(images)
+	if err != nil {
+		return "[]", err
+	}
+	if string(jsonImages) == "null" {
+		return "[]", nil
+	}
+	return string(jsonImages), nil
 }

@@ -7,6 +7,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_web"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -67,7 +68,24 @@ func GetParagraphList(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	data := map[string]any{`info`: info, `list`: list, `total`: total, `page`: page, `size`: size}
+
+	var formatedList []map[string]any
+	for _, item := range list {
+		tempItem := make(map[string]any)
+		for k, v := range item {
+			tempItem[k] = v
+		}
+
+		var images []string
+		err = json.Unmarshal([]byte(item[`images`]), &images)
+		if err != nil {
+			continue
+		}
+		tempItem[`images`] = images
+		formatedList = append(formatedList, tempItem)
+	}
+
+	data := map[string]any{`info`: info, `list`: formatedList, `total`: total, `page`: page, `size`: size}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
 
@@ -91,6 +109,7 @@ func SaveParagraph(c *gin.Context) {
 	content := strings.TrimSpace(c.PostForm(`content`))
 	question := strings.TrimSpace(c.PostForm(`question`))
 	answer := strings.TrimSpace(c.PostForm(`answer`))
+	images := c.PostFormArray(`images`)
 	if id < 0 || fileId < 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
@@ -134,6 +153,11 @@ func SaveParagraph(c *gin.Context) {
 			return
 		}
 	}
+	jsonImages, err := common.CheckLibraryImage(images)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `images`))))
+		return
+	}
 
 	_ = m.Begin()
 	data := msql.Datas{
@@ -141,6 +165,7 @@ func SaveParagraph(c *gin.Context) {
 		`library_id`:    fileInfo[`library_id`],
 		`file_id`:       fileId,
 		`title`:         title,
+		`images`:        jsonImages,
 		`update_time`:   tool.Time2Int(),
 	}
 	var vectorIds []int64

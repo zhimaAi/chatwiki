@@ -4,20 +4,26 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
-	"os"
+	"github.com/PuerkitoBio/goquery"
+	"github.com/syyongx/php2go"
+	"github.com/tmc/langchaingo/textsplitter"
+	"github.com/zhimaAi/go_tools/curl"
+	"net/http"
+	"regexp"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
-	"baliance.com/gooxml/document"
+	"github.com/go-redis/redis/v8"
 	strip "github.com/grokify/html-strip-tags-go"
-	"github.com/tmc/langchaingo/textsplitter"
 	"github.com/xuri/excelize/v2"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/tool"
-	"github.com/zhimaAi/pdf"
 )
 
 func MultDocSplit(split textsplitter.TextSplitter, items []define.DocSplitItem) []define.DocSplitItem {
@@ -25,82 +31,98 @@ func MultDocSplit(split textsplitter.TextSplitter, items []define.DocSplitItem) 
 	for _, item := range items {
 		contents, _ := split.SplitText(item.Content)
 		for _, content := range contents {
-			if len(content) > 0 {
-				list = append(list, define.DocSplitItem{PageNum: item.PageNum, Content: content})
+			if len(content) == 0 {
+				continue
 			}
+			content, images := ExtractTextImages(content)
+			if len(content) == 0 {
+				continue
+			}
+			list = append(list, define.DocSplitItem{PageNum: item.PageNum, Content: content, Images: images})
 		}
 	}
 	return list
 }
 
-func ReadDocx(fileUrl string) ([]define.DocSplitItem, int, error) {
-	if len(fileUrl) == 0 {
-		return nil, 0, errors.New(`file_url cannot be empty`)
+func GetEmbedHtmlContent(fileUrl string, fileExt string) (string, error) {
+	cacheKey := "embed_html_url:" + fileUrl + fileExt
+	content, err := define.Redis.Get(context.Background(), cacheKey).Result()
+	if err == nil && len(content) > 0 {
+		return content, nil
 	}
-	doc, err := document.Open(GetFileByLink(fileUrl))
+
+	request := curl.Post(define.Config.WebService[`converter`]+`/convert`).
+		PostFile(`file`, GetFileByLink(fileUrl)).
+		Param(`from_format`, fileExt).
+		Param(`to_format`, `html`)
+	content, err = request.String()
 	if err != nil {
-		return nil, 0, err
+		return ``, err
 	}
-	var content string
-	for _, para := range doc.Paragraphs() {
-		for _, run := range para.Runs() {
-			content += run.Text()
-		}
-		content += "\r\n"
+	resp, err := request.Response()
+	if err != nil {
+		return ``, err
 	}
-	list := []define.DocSplitItem{{Content: content}}
-	return list, utf8.RuneCountInString(content), nil
+	if resp.StatusCode != http.StatusOK {
+		return ``, errors.New(content)
+	}
+
+	_, err = define.Redis.Set(context.Background(), cacheKey, content, 10*time.Minute).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		logs.Error(err.Error())
+	}
+
+	return content, nil
 }
 
-func ReadTxt(fileUrl string, stripTags bool) ([]define.DocSplitItem, int, error) {
-	if len(fileUrl) == 0 {
-		return nil, 0, errors.New(`file_url cannot be empty`)
-	}
-	content, err := tool.ReadFile(GetFileByLink(fileUrl))
+func ReadEmbedHtmlContent(content string, userId int) ([]define.DocSplitItem, int, error) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(content))
 	if err != nil {
 		return nil, 0, err
 	}
+
+	doc.Find("img").Each(func(index int, item *goquery.Selection) {
+		src, exists := item.Attr("src")
+		if exists && strings.HasPrefix(src, "data:image") {
+			// parse base64 image
+			dataPos := php2go.Strpos(src, `base64,`, 0)
+			if dataPos < 0 {
+				logs.Debug(fmt.Sprintf("could not find base64 data"))
+				return
+			}
+			base64Data := php2go.Substr(src, uint(dataPos)+7, -1)
+			imgData, err := base64.StdEncoding.DecodeString(base64Data)
+			if err != nil {
+				logs.Error(err.Error())
+				return
+			}
+
+			// save to png file
+			objectKey := fmt.Sprintf(`chat_ai/%d/%s/%s/%s.png`, userId, `library_image`, tool.Date(`Ym`), tool.MD5(string(imgData)))
+			imgUrl, err := WriteFileByString(objectKey, string(imgData))
+			if err != nil {
+				logs.Error(err.Error())
+				return
+			}
+
+			// Replace img tag with a span tag
+			newTag := fmt.Sprintf("<b>{{!!%s!!}}</b>", imgUrl)
+			item.ReplaceWithHtml(newTag)
+		}
+	})
+
+	content, err = doc.Html()
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, 0, err
+	}
+
 	if !utf8.ValidString(content) {
 		content = tool.Convert(content, `gbk`, `utf-8`)
 	}
-	if stripTags { //clean up html tags
-		content = strip.StripTags(content)
-	}
+	content = strip.StripTags(content)
 	list := []define.DocSplitItem{{Content: content}}
 	return list, utf8.RuneCountInString(content), nil
-}
-
-func ReadPdf(pdfUrl string) ([]define.DocSplitItem, int, error) {
-	if len(pdfUrl) == 0 {
-		return nil, 0, errors.New(`file link cannot be empty`)
-	}
-	//read pdf
-	file, reader, err := pdf.Open(GetFileByLink(pdfUrl))
-	if err != nil {
-		return nil, 0, err
-	}
-	defer func(file *os.File) {
-		_ = file.Close()
-	}(file)
-	//paging collection
-	list := make([]define.DocSplitItem, 0)
-	wordTotal := 0
-	for num := 1; num <= reader.NumPage(); num++ {
-		p := reader.Page(num)
-		if p.V.IsNull() {
-			continue
-		}
-		content, err := p.GetPlainText(nil)
-		if err != nil {
-			logs.Error(err.Error())
-			continue
-		}
-		if len(content) > 0 {
-			wordTotal += utf8.RuneCountInString(content)
-			list = append(list, define.DocSplitItem{PageNum: num, Content: content})
-		}
-	}
-	return list, wordTotal, nil
 }
 
 func ParseTabFile(fileUrl, fileExt string) ([][]string, error) {
@@ -220,21 +242,20 @@ func ReadQaTab(fileUrl, fileExt string, splitParams define.SplitParams) ([]defin
 	list := make([]define.DocSplitItem, 0)
 	wordTotal := 0
 	for i, row := range rows[1:] {
-		var q, a string
+		var question, answer string
 		if len(row) > answerIndex {
-			a = row[answerIndex]
+			answer = row[answerIndex]
 		}
 		if len(row) > questionIndex {
-			q = row[questionIndex]
+			question = row[questionIndex]
 		}
-		if len(a) == 0 || len(q) == 0 {
+		answer, images := ExtractTextImages(answer)
+		if len(answer) == 0 || len(question) == 0 {
 			continue
 		}
 
-		wordTotal += utf8.RuneCountInString(q + a)
-		//question := fmt.Sprintf("%s:%s", rows[0][questionIndex], rows[i+1][questionIndex])
-		//answer := fmt.Sprintf("%s:%s", rows[0][answerIndex], rows[i+1][answerIndex])
-		list = append(list, define.DocSplitItem{PageNum: i + 1, Question: q, Answer: a})
+		wordTotal += utf8.RuneCountInString(question + answer)
+		list = append(list, define.DocSplitItem{PageNum: i + 1, Question: question, Answer: answer, Images: images})
 	}
 
 	return list, wordTotal, nil
@@ -248,19 +269,57 @@ func QaDocSplit(splitParams define.SplitParams, items []define.DocSplitItem) []d
 				continue
 			}
 			qa := strings.SplitN(section, splitParams.AnswerLable, 2)
-			var q, a string
+			var question, answer string
 			if len(qa) == 0 {
 				continue
+			} else if len(qa) == 1 {
+				question = qa[0]
+				continue
+			} else if len(qa) == 2 {
+				question = qa[0]
+				answer = qa[1]
+			} else {
+				continue
 			}
-			if len(qa) == 1 {
-				q = qa[0]
+			answer, images := ExtractTextImages(answer)
+			if len(question) == 0 || len(answer) == 0 {
+				continue
 			}
-			if len(qa) == 2 {
-				q = qa[0]
-				a = qa[1]
-			}
-			list = append(list, define.DocSplitItem{PageNum: i + 1, Question: q, Answer: a})
+			list = append(list, define.DocSplitItem{PageNum: i + 1, Question: question, Answer: answer, Images: images})
 		}
 	}
 	return list
+}
+
+func ExtractTextImages(content string) (string, []string) {
+	re := regexp.MustCompile(`\{\{\!\!(.+?)\!\!\}\}`)
+	matches := re.FindAllStringSubmatch(content, -1)
+	images := make([]string, 0)
+	for _, match := range matches {
+		if len(match) > 1 {
+			images = append(images, match[1])
+		}
+	}
+	content = re.ReplaceAllString(content, "")
+	return content, images
+}
+
+func EmbTextImages(content string, images []string) string {
+	var imgTags []string
+	for _, image := range images {
+		imgTags = append(imgTags, fmt.Sprintf(`<img src="%s">`, image))
+	}
+
+	return content + "\n" + strings.Join(imgTags, " ")
+}
+
+func MbSubstr(s string, start, length int) string {
+	runes := []rune(s)
+	if start >= len(runes) {
+		return ""
+	}
+	if start+length > len(runes) {
+		length = len(runes) - start
+	}
+	return string(runes[start : start+length])
 }

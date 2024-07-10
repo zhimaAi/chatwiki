@@ -198,12 +198,6 @@ func CrawlArticle(msg string, _ ...string) error {
 		return nil
 	}
 
-	// check file status
-	//if file[`status`] != cast.ToString(define.FileStatusWaitCrawl) {
-	//	logs.Error(`abnormal state:%s`, file[`status`])
-	//	return nil
-	//}
-
 	// update file status
 	_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
 		`status`: define.FileStatusCrawling,
@@ -225,6 +219,11 @@ func CrawlArticle(msg string, _ ...string) error {
 		}
 		return nil
 	}
+
+	//cache embed html
+	go (func() {
+		_, _ = common.GetEmbedHtmlContent(uploadInfo.Link, file[`file_ext`])
+	})()
 
 	// update file status
 	_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{

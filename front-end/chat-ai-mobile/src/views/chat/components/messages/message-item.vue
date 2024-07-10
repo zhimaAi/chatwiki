@@ -141,8 +141,9 @@
       <div class="message-content">
         <!-- <span class="triangle"></span> -->
         <template v-if="props.msg.msg_type == 1">
-          <div v-if="props.msg.content !== ''" class="text-message">
-            <cherry-markdown :content="props.msg.content" />
+          <div class="text-message"  v-if="props.msg.content !== ''" v-viewer>
+            <div v-if="props.msg.is_customer == 1" v-html="props.msg.content"></div>
+            <cherry-markdown :content="props.msg.content" v-else />
           </div>
           <div v-else class="text-message">{{ textMessage }}</div>
           <div
@@ -178,7 +179,7 @@
         </template>
 
         <template v-else-if="props.msg.msg_type == 3">
-          <img class="msg-img" :src="props.msg.content" />
+          <img v-viewer class="msg-img" :src="props.msg.content" />
         </template>
       </div>
 

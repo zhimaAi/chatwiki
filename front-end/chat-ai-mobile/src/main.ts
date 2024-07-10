@@ -10,6 +10,8 @@ import { setupI18n } from '@/locales'
 import { setupStore } from '@/stores'
 
 import App from './App.vue'
+import Viewer from 'v-viewer';
+import 'viewerjs/dist/viewer.css';
 import { setupRouter } from './router/index'
 
 import registGlobaDirective from './directives'
@@ -31,6 +33,7 @@ const setupAll = async () => {
 
   registGlobaDirective(app)
   registGlobalComponent(app)
+  app.use(Viewer);
 
   app.mount('#app')
 }

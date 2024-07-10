@@ -7,6 +7,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_web"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -69,11 +70,22 @@ func GetAnswerSource(c *gin.Context) {
 	}
 	list, err := msql.Model(`chat_ai_answer_source`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).
 		Where(`message_id`, cast.ToString(messageId)).Where(`file_id`, cast.ToString(fileId)).
-		Order(`id`).Field(`paragraph_id as id,word_total,similarity,title,type,content,question,answer`).Select()
+		Order(`id`).Field(`paragraph_id as id,word_total,similarity,title,type,content,question,answer,images`).Select()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
+	var formatedList []map[string]any
+	for _, item := range list {
+		formatedItem := make(map[string]any)
+		for k, v := range item {
+			formatedItem[k] = v
+		}
+		var images []string
+		_ = json.Unmarshal([]byte(item[`images`]), &images)
+		formatedItem[`images`] = images
+		formatedList = append(formatedList, formatedItem)
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(formatedList, nil))
 }

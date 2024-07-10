@@ -3,17 +3,14 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"github.com/caarlos0/env/v11"
 	"github.com/gin-gonic/gin"
-	"github.com/go-shiori/go-readability"
 	"github.com/playwright-community/playwright-go"
 	"log"
 	"net/http"
 	netURL "net/url"
-	"regexp"
 	"sync"
 	"time"
 )
@@ -26,7 +23,7 @@ var (
 	browserMu             sync.Mutex
 	concurrent            chan struct{}
 	browserLastActiveTime time.Time
-	idleTimeout           = 3 * time.Minute // close browser after 30 second of inactivity to release memory
+	idleTimeout           = 3 * time.Minute // close browser after 3 minutes of inactivity to release memory
 )
 
 var TooManyRequestsError = errors.New("too many requests, please try again later")
@@ -63,7 +60,7 @@ func main() {
 	defer ticker.Stop()
 	go func() {
 		for range ticker.C {
-			checkAndRestartBrowser()
+			delayCloseBrowser()
 		}
 	}()
 
@@ -126,47 +123,17 @@ func handleContentRequest(c *gin.Context) {
 		return
 	}
 
-	// parse readability article
-	blockTags := "</(div|p|h[1-6]|article|section|header|footer|blockquote|ul|ol|li|nav|aside)>"
-	brTag := "<br[^>]*>"
-	reBlock := regexp.MustCompile(blockTags)
-	reBr := regexp.MustCompile(brTag)
-	html := reBlock.ReplaceAllString(pageInfo.MainHtml, "$0\n")
-	html = reBr.ReplaceAllString(html, "$0\n")
-	article, err := readability.FromReader(bytes.NewReader([]byte(html)), parsedURL)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to parse readability article: %v\n", err.Error())})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"page": pageInfo,
-		"article": map[string]any{
-			"title":       article.Title,
-			"byline":      article.Byline,
-			"content":     article.Content,
-			"textContent": article.TextContent,
-			"length":      article.Length,
-			"excerpt":     article.Excerpt,
-			"siteName":    article.SiteName,
-			"image":       article.Image,
-			"favicon":     article.Favicon,
-			"language":    article.Language,
-		},
-	})
+	//c.String(http.StatusOK, pageInfo.RawHtml)
+	c.JSON(http.StatusOK, pageInfo)
 	return
 }
 
 // delayCloseBrowser closes the browser after idleTimeout
-func checkAndRestartBrowser() {
+func delayCloseBrowser() {
 	if time.Since(browserLastActiveTime) > idleTimeout {
 		if err := closeBrowser(); err != nil {
 			panic(err)
 		}
-		if err := openBrowser(); err != nil {
-			panic(err)
-		}
-		browserLastActiveTime = time.Now()
 	}
 }
 

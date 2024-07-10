@@ -337,6 +337,7 @@ message.config({
 const router = useRouter()
 
 const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
+const oldModelDefineList = ['azure']
 
 const libraryModeList = ref([
   {
@@ -514,7 +515,7 @@ const saveForm = () => {
 
   let newFormState = JSON.parse(JSON.stringify(formState)); // 深拷贝，不能改变原对象
 
-  if (modelDefine.indexOf(currentModelDefine.value) > -1) {
+  if (oldModelDefineList.indexOf(currentModelDefine.value) > -1) {
     // 传给后端的是默认，渲染的是真实名称
     newFormState.use_model = '默认'
   }

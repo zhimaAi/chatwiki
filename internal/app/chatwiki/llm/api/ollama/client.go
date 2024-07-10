@@ -62,7 +62,6 @@ func (c *Client) CreateChatCompletion(req ChatCompletionRequest) (ChatCompletion
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
 	}(responseRaw.Body)
-
 	err = common.HttpCheckError(responseRaw, &ErrorResponse{})
 	if err != nil {
 		return ChatCompletionResponse{}, err
