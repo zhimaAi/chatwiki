@@ -6,6 +6,8 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/middlewares"
+	"chatwiki/internal/pkg/lib_redis"
+	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -146,6 +148,46 @@ func DeleteFastCommand(c *gin.Context) {
 		common.FmtError(c, `sys_err`)
 		return
 	}
+	common.FmtOk(c, data)
+}
+
+type UpdateFastCommandReq struct {
+	RobotKey string `form:"robot_key" json:"robot_key" binding:"required"`
+}
+
+func UpdateFastCommandSwitch(c *gin.Context) {
+	var (
+		req UpdateFastCommandReq
+		err error
+	)
+	if err := c.ShouldBind(&req); err != nil {
+		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
+		return
+	}
+	//format check
+	robotKey := req.RobotKey
+	if !common.CheckRobotKey(robotKey) {
+		common.FmtError(c, `param_invalid`, `robot_key`)
+		return
+	}
+	//data check
+	robot, err := common.GetRobotInfo(robotKey)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+	}
+	if len(robot) == 0 {
+		common.FmtError(c, `no_data`)
+	}
+	m := msql.Model("chat_ai_robot", define.Postgres)
+	sqlRaw := fmt.Sprintf("fast_command_switch = 1-fast_command_switch")
+	data, err := m.Where("id", cast.ToString(robot["id"])).Update2(sqlRaw)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
 	common.FmtOk(c, data)
 }
 

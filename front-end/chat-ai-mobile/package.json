@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:dev1": "vite --host 0.0.0.0 --mode dev1",
+    "dev:dev3": "vite --host 0.0.0.0 --mode dev3",
     "dev1": "vite --mode dev1",
     "dev2": "vite --mode dev2",
     "dev5": "vite --mode dev5",

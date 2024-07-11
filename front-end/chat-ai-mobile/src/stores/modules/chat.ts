@@ -48,6 +48,7 @@ export interface Robot {
   robot_avatar: string
   robot_intro: string
   robot_name: string
+  fast_command_switch: string
   id: number | null
   welcomes: Welcome,
   enable_question_guide: boolean,
@@ -96,6 +97,7 @@ export const useChatStore = defineStore('chat', () => {
     robot_intro: '',
     robot_key: '',
     robot_name: '',
+    fast_command_switch: '',
     openid: '',
     welcomes: { content: '', question: [] },
     enable_question_guide: false,
@@ -164,13 +166,13 @@ export const useChatStore = defineStore('chat', () => {
       user.id = userInfo.id
       user.name = userInfo.name
       user.nickname = userInfo.nickname
-      robot.library_ids = robotInfo.library_ids
       robot.prompt = robotInfo.prompt
       robot.robot_avatar = robotInfo.robot_avatar
       robot.robot_intro = robotInfo.robot_intro
       robot.robot_key = robotInfo.robot_key
       robot.robot_name = robotInfo.robot_name
       robot.library_ids = robotInfo.library_ids
+      robot.fast_command_switch = robotInfo.fast_command_switch
       robot.id = robotInfo.id
       robot.enable_question_guide = robotInfo.enable_question_guide == 'true';
       robot.enable_common_question = robotInfo.enable_common_question == 'true';
@@ -595,6 +597,7 @@ export const useChatStore = defineStore('chat', () => {
     robot.robot_key = ''
     robot.robot_key = ''
     robot.robot_name = ''
+    robot.fast_command_switch = ''
     robot.openid = ''
     robot.welcomes = { content: '', question: [] }
     // 是否是新的对话

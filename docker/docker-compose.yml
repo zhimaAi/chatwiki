@@ -44,7 +44,7 @@ services:
       - ${CRAWLER_PORT}:3800
 
   chatwiki_converter:
-    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/converter:1.0
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/converter:1.1
     container_name: chatwiki_converter
     restart: always
     environment:

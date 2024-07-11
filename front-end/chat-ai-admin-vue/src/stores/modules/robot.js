@@ -29,6 +29,7 @@ export const useRobotStore = defineStore('robot', () => {
   const robotInfo = reactive({
     id: undefined,
     robot_key: '',
+    fast_command_switch: '',
     robot_name: '',
     robot_intro: '',
     robot_avatar: undefined,
@@ -98,6 +99,7 @@ export const useRobotStore = defineStore('robot', () => {
     })
     robotInfo.id = data.id
     robotInfo.robot_key = data.robot_key
+    robotInfo.fast_command_switch = data.fast_command_switch
     robotInfo.robot_name = data.robot_name
     robotInfo.robot_intro = data.robot_intro
     robotInfo.robot_avatar_url = data.robot_avatar

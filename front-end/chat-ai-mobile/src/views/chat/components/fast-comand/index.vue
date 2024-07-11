@@ -3,26 +3,57 @@
   max-width: 738px;
   min-width: 350px;
   margin: 0 auto;
+  overflow-x: auto;
+  height: 40px;
+  margin-bottom: 4px;;
 }
 .fast-comand-box {
   margin-left: 12px;
   height: 32px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   flex-wrap: nowrap;
 }
+
+/* 滚动条样式 */
+.fast-comand-container::-webkit-scrollbar {
+    width: 4px; /*  设置纵轴（y轴）轴滚动条 */
+    height: 4px; /*  设置横轴（x轴）轴滚动条 */
+}
+/* 滚动条滑块（里面小方块） */
+.fast-comand-container::-webkit-scrollbar-thumb {
+    cursor: pointer;
+    border-radius: 4px;
+    background: transparent;
+}
+/* 滚动条轨道 */
+.fast-comand-container::-webkit-scrollbar-track {
+    border-radius: 4px;
+    background: transparent;
+}
+
+/* hover时显色 */
+.fast-comand-container:hover::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.2);
+}
+.fast-comand-container:hover::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.1);
+}
+
 .fast-item {
   white-space: nowrap;
   cursor: pointer;
-  padding: 5px 16px;
+  padding: 5px 12px;
   border-radius: 8px;
   border: 1px solid #d9d9d9;
   background: #fff;
   color: #595959;
   font-size: 14px;
+  line-height: normal;
+
   &:hover {
-    // border: 1px solid #D9D9D9
+    background: #f0f0f0;
   }
 }
 
@@ -101,10 +132,11 @@
 </style>
 
 <template>
-  <div class="fast-comand-container">
+  <div class="fast-comand-container" v-if="isShowContainer">
     <div class="fast-comand-box" ref="buttonsContainer">
-      <div v-for="(item, index) in visibleButtons" :key="index">
-        <van-popover
+      <div class="fast-comand-item" v-for="(item, index) in visibleButtons" :key="index">
+        <div class="fast-item" type="default" @click="handleClickItem(item)">{{ item.elipsis_title }}</div>
+        <!-- <van-popover
           v-model:show="item.showPopover"
           :placement="index < 2 ? 'top-start' : 'top'"
           trigger="click"
@@ -123,10 +155,10 @@
               {{ item.elipsis_title }}
             </div>
           </template>
-        </van-popover>
+        </van-popover> -->
       </div>
 
-      <van-popover v-model:show="showPopover" :offset="[xOffset,8]" placement="top-end" trigger="click">
+      <!-- <van-popover v-model:show="showPopover" :offset="[xOffset,8]" placement="top-end" trigger="click">
         <div class="all-list-wrapper">
           <div class="title-block">快捷指令</div>
           <div
@@ -147,7 +179,7 @@
             <van-icon v-else name="arrow-up" />
           </div>
         </template>
-      </van-popover>
+      </van-popover> -->
     </div>
   </div>
 </template>
@@ -165,32 +197,19 @@ const buttonsContainer = ref(null)
 const buttons = ref([])
 const visibleButtons = ref([])
 const showMoreButton = ref(false)
+const isShowContainer = ref(false)
 const xOffset = ref(0);
 const updateButtons = () => {
   nextTick(() => {
-    const containerWidth = buttonsContainer.value.clientWidth
-    let totalWidth = 80
     visibleButtons.value = []
     for (let i = 0; i < buttons.value.length; i++) {
       const buttonElement = document.createElement('div')
       buttonElement.classList.add('fast-item')
       buttonElement.textContent = buttons.value[i].elipsis_title
       buttonsContainer.value.appendChild(buttonElement)
-      const buttonWidth = buttonElement.offsetWidth + 38 // 10px 是gap
-      // console.log(buttonElement, buttonWidth)
       buttonsContainer.value.removeChild(buttonElement)
-      if (totalWidth + buttonWidth > containerWidth) {
-        if(window.innerWidth < 600){
-          xOffset.value = window.innerWidth - totalWidth - 50;
-        }
-        console.log(totalWidth,buttonWidth,xOffset.value)
-        showMoreButton.value = true
-        break
-      } else {
-        totalWidth += buttonWidth
-        visibleButtons.value.push(buttons.value[i])
-        showMoreButton.value = false
-      }
+      visibleButtons.value.push(buttons.value[i])
+      showMoreButton.value = false
     }
   })
 }
@@ -202,14 +221,11 @@ const getFastCommand = async () => {
   let lists = res.data || []
   lists.map((item) => {
     item.showPopover = false
-    if (item.title.length > 8) {
-      item.elipsis_title = item.title.slice(0, 8) + '...'
-    } else {
-      item.elipsis_title = item.title
-    }
+    item.elipsis_title = item.title
     return item
   })
   buttons.value = lists
+  isShowContainer.value = lists.length > 0
   return res
 }
 
@@ -221,7 +237,6 @@ onMounted(async () => {
 })
 
 const handleMouseEnter = (item) => {
-  console.log(item)
   item.showPopover = true
 }
 

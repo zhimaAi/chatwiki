@@ -24,6 +24,13 @@ export const getRobotInfo = ({ id }) => {
   })
 }
 
+export const updateFastCommandSwitch = (data = {}) => {
+  return request.post({
+    url: '/manage/updateFastCommandSwitch',
+    data: data
+  })
+}
+
 export const deleteRobot = ({ id }) => {
   return request.post({
     url: '/manage/deleteRobot',

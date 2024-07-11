@@ -5,8 +5,18 @@
 .quick-instructions-box {
   // word-break: break-all;
 }
+
+.quick-action-right {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  .switch-item {
+    margin-right: 10px;
+  }
+}
+
 .quick-list-box {
-  margin-top: 16px;
   .list-box-wrap {
     position: relative;
   }
@@ -110,7 +120,18 @@
         <svg-icon name="quick-Instruction" style="font-size: 16px; color: #262626"></svg-icon>
       </template>
       <template #action>
-        <a-button @click="openAddModal" size="small" type="primary">添加</a-button>
+        <div class="quick-action-right">
+          <a-switch
+            @change="handleChangeShortcutSwitch"
+            class="switch-item"
+            :checkedValue="1"
+            :unCheckedValue="0"
+            v-model:checked="fastCommandSwitch"
+            checked-children="开"
+            un-checked-children="关"
+          />
+          <a-button @click="openAddModal" size="small" type="primary">添加</a-button>
+        </div>
       </template>
       <div class="quick-list-box">
         <draggable
@@ -191,6 +212,7 @@ import {
   QuestionCircleOutlined
 } from '@ant-design/icons-vue'
 import {
+  updateFastCommandSwitch,
   getFastCommandList,
   saveFastCommand,
   deleteFastCommand,
@@ -201,6 +223,7 @@ const route = useRoute()
 const robotStore = useRobotStore()
 const { robotInfo } = storeToRefs(robotStore)
 const quickLists = ref([])
+const fastCommandSwitch = ref(parseInt(robotInfo.value.fast_command_switch) || 0)
 const getLists = () => {
   getFastCommandList({
     robot_key: robotInfo.value.robot_key
@@ -220,6 +243,19 @@ const formState = reactive({
   content: '',
   id: ''
 })
+
+const handleChangeShortcutSwitch = (val) => {
+  // 发送请求
+  updateFastCommandSwitch({
+    robot_key: robotInfo.value.robot_key
+  }).then((res) => {
+    fastCommandSwitch.value = val
+    message.success(`修改成功`)
+  }).catch((err) => {
+    // 失败后回到原状态
+    fastCommandSwitch.value = !fastCommandSwitch.value
+  })
+}
 
 const handleChange = () => {
   formState.content = ''
