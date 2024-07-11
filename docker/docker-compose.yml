@@ -1,7 +1,7 @@
 services:
   chatwiki_pdf_service:
     env_file: ./.env
-    image: gotenberg/gotenberg:8
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/gotenberg:8
     container_name: chatwiki_pdf_service
     ports:
       - ${CONVERT_PDF_PORT}:3000
@@ -13,7 +13,7 @@ services:
 
   chatwiki_redis_service:
     env_file: ./.env
-    image: redis:5.0
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/redis:5.0
     container_name: chatwiki_redis_service
     ports:
       - ${REDIS_PORT}:6379
@@ -44,7 +44,7 @@ services:
       - ${CRAWLER_PORT}:3800
 
   chatwiki_converter:
-    image: shellphy/chatwiki_converter:1.0
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/converter:1.0
     container_name: chatwiki_converter
     restart: always
     environment:
@@ -134,7 +134,7 @@ services:
         /bin/bash
 
   chatwiki_client_side_build_win:
-    image: electronuserland/builder:wine
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/electron_builder:wine
     container_name: chatwiki_client_side_build_win
     networks:
       - chatwiki_network
@@ -147,7 +147,7 @@ services:
       TZ: ${TIMEZONE}
 
   chatwiki_websocket:
-    image: ubuntu:24.10
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/ubuntu:24.10
     container_name: chatwiki_websocket
     ports:
       - ${WS_SERVICE_PORT}:24628
