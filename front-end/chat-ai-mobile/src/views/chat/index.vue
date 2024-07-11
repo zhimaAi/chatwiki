@@ -8,6 +8,7 @@
   background: #f0f2f5;
 
   .chat-page-body {
+    position: relative;
     margin: 0 auto;
     width: 100%;
     flex: 1;
@@ -19,6 +20,13 @@
       flex: 1;
       overflow: hidden;
     }
+  }
+
+  .fast-command-wrap {
+    position: relative;
+    padding-top: 5px;
+    z-index: 2;
+    background-color: #f0f2f5;
   }
   .technical-support-text {
     line-height: 20px;
@@ -40,8 +48,8 @@
     background: #FFF;
     box-shadow: 0 4px 16px 0 #0000001f;
     cursor: pointer;
-    position: fixed;
-    bottom: 108px;
+    position: absolute;
+    bottom: 20px;
     left: 50%;
     margin-left: -20px;
     .bottom-btn {
@@ -63,7 +71,7 @@
   
   /* 定义进入完成后的状态 */
   .slide-down-enter-from {
-    transform: translateY(100%);
+    transform: translateY(150%);
   }
   
   /* 定义退出动画 */
@@ -75,12 +83,12 @@
   
   /* 定义退出完成后的状态 */
   .slide-down-leave-to {
-    transform: translateY(100%);
+    transform: translateY(150%);
   }
   
   @keyframes slide-down-in {
     from {
-      transform: translateY(100%);
+      transform: translateY(150%);
     }
     to {
       transform: translateY(0);
@@ -92,7 +100,7 @@
       transform: translateY(0);
     }
     to {
-      transform: translateY(100%);
+      transform: translateY(150%);
     }
   }
   
@@ -122,19 +130,19 @@
           </template>
         </MessageList>
       </div>
+      <transition name="slide-down">
+          <div class="bottom-btn-box" @click="onScrollBottom" v-if="isShowBottomBtn">
+            <svg-icon name="down-arrow" class="bottom-btn" />
+          </div>
+      </transition>
     </div>
     <div class="fast-command-wrap">
-      <FastComand @send="handleSetMessageInputValue"></FastComand>
+      <FastComand v-if="isShortcut" @send="handleSetMessageInputValue"></FastComand>
     </div>
     <div class="chat-page-footer">
       <MessageInput ref="messageInputRef" @send="onSendMesage" :loading="sendLock" />
       <div class="technical-support-text">由 ChatWiki 提供软件支持</div>
     </div>
-    <transition name="slide-down">
-      <div class="bottom-btn-box" @click="onScrollBottom" v-if="isShowBottomBtn">
-        <svg-icon name="down-arrow" class="bottom-btn" />
-      </div>
-  </transition>
   </div>
 </template>
 
@@ -162,9 +170,11 @@ const emitter = useEventBus()
 const { on } = useIM()
 const chatStore = useChatStore()
 
-const { sendMessage, onGetChatMessage, $reset } = chatStore
+const { sendMessage, onGetChatMessage, $reset, robot } = chatStore
 
 const { messageList, sendLock, externalConfigH5 } = storeToRefs(chatStore)
+
+const isShortcut = ref(robot.fast_command_switch == '1' ? true : false)
 
 // 允许滚动到底部
 let isAllowedScrollToBottom = true
@@ -262,11 +272,13 @@ function setChatPageHeight() {
   }, 20)
 }
 
-const messageInputRef = ref<InstanceType<typeof MessageInput> | null>(null);  
+// const messageInputRef = ref<InstanceType<typeof MessageInput> | null>(null);  
 const handleSetMessageInputValue = (data: any) => {
-  if(messageInputRef.value){
-    messageInputRef.value.handleSetValue(data)
-  }
+  // if(messageInputRef.value){
+    // 直接发出内容
+    onSendMesage(data)
+    // messageInputRef.value.handleSetValue(data)
+  // }
  
 }
 

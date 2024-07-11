@@ -166,7 +166,7 @@ func CheckSplitParams(c *gin.Context, isTableFile int) (define.SplitParams, erro
 }
 
 func CheckLibraryImage(images []string) (string, error) {
-	pattern := `^\/upload\/chat_ai\/1\/library_image\/\d+\/[a-f0-9]{32}\.png$`
+	pattern := `^\/upload\/chat_ai\/\d+\/library_image\/\d+\/[a-f0-9]{32}\.png$`
 	re := regexp.MustCompile(pattern)
 	for _, image := range images {
 		if !re.MatchString(image) {

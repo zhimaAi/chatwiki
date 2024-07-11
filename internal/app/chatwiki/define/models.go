@@ -381,7 +381,7 @@ var ModelList = []ModelInfo{
 	},
 	{
 		ModelDefine:   ModelBaai,
-		ModelName:     `BAAI 智源研究院`,
+		ModelName:     `BGE`,
 		ModelIconUrl:  LocalUploadPrefix + `model_icon/` + ModelBaai + `.png`,
 		Introduce:     `由北京智源人工智能研究院研发的本地模型，包含bge-rerank-base、bge-m3模型，支持嵌入和rerank。使用bge系列模型，无需消耗token，但是本地模型运行需要硬件支持，请确保服务器有足够的内存（至少8G内存）和用于计算的GPU`,
 		IsOffline:     true,

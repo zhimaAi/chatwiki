@@ -12,6 +12,7 @@
 }
 /* 滚动条滑块（里面小方块） */
 .message-list::-webkit-scrollbar-thumb {
+    cursor: pointer;
     border-radius: 0px;
     background: transparent;
 }

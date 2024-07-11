@@ -18,6 +18,11 @@
     padding-inline-start: 40px;
     unicode-bidi: isolate;
   }
+
+  div:last-child {
+    margin-bottom: 0 !important;
+  }
+  
   img{
     width: auto;
     height: auto;

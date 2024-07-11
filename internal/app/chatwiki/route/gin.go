@@ -100,6 +100,7 @@ func init() {
 	Route[http.MethodPost][`/manage/sortFastCommand`] = manage.SortFastCommand
 	Route[http.MethodGet][`/manage/GetFastCommandInfo`] = manage.GetFastCommandInfo
 	Route[http.MethodPost][`/manage/deleteFastCommand`] = manage.DeleteFastCommand
+	Route[http.MethodPost][`/manage/updateFastCommandSwitch`] = manage.UpdateFastCommandSwitch
 	noAuthFuns(Route[http.MethodGet], `/chat/getFastCommandList`, business.GetFastCommandList)
 	//register client side route
 	RegClientSideRoute()

@@ -1,7 +1,6 @@
 <style lang="less" scoped>
 .message-input-box {
   width: 100%;
-  margin-top: 5px;
   margin-bottom: 0px;
 
   .message-input-body {
@@ -20,7 +19,6 @@
     min-height: 60px;
     max-width: 738px;
     min-width: 350px;
-    overflow: auto;    
     border-radius: 16px;
     border: 1px solid #ddd;
     background: #fff;
@@ -32,8 +30,8 @@
     .text-input {
       max-height: 10em;
       line-height: 1.2em;
-      height: 1.4em;
-      overflow: auto;
+      height: 1.5em;
+      overflow: hidden;
       white-space: pre-wrap; /* 保持内容的换行，并允许自动换行 */
       resize: none;
       border: none;
@@ -55,11 +53,12 @@
 
     /* 滚动条样式 */
     .text-input::-webkit-scrollbar {
-        width: 0px; /*  设置纵轴（y轴）轴滚动条 */
-        height: 0px; /*  设置横轴（x轴）轴滚动条 */
+        width: 4px; /*  设置纵轴（y轴）轴滚动条 */
+        height: 4px; /*  设置横轴（x轴）轴滚动条 */
     }
     /* 滚动条滑块（里面小方块） */
     .text-input::-webkit-scrollbar-thumb {
+        cursor: pointer;
         border-radius: 5px;
         background: transparent;
     }
@@ -79,9 +78,9 @@
 
     .send-btn {
       position: absolute;
-      bottom: 10px;
+      bottom: 13px;
       right: 10px;
-      font-size: 40px;
+      font-size: 32px;
       color: #b3b3b3;
       transition: all 0.2s;
     }
@@ -103,6 +102,7 @@
     <div class="message-input-body">
       <div class="message-input" :class="{ 'is-set': valueText }">
         <textarea
+          ref="messageTextarea"
           :style="{height: inputHeight}"
           class="text-input"
           v-model="valueText"
@@ -121,11 +121,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import calcTextareaHeight from '@/utils/calcTextareaHeight'
+
 const emit = defineEmits(['update:value', 'send' ])
 
 const isSendBtn = ref(false)
 const valueText = ref("")
-const inputHeight = ref("1.4em")
+const inputHeight = ref("1.5em")
+const messageTextarea = ref(null)
 
 const onChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
@@ -139,6 +142,12 @@ const onInput = (event) => {
   } else {
     isSendBtn.value = false
   }
+  inputHeight.value = calcTextareaHeight(messageTextarea.value).height // 调整高度
+  if (parseInt(inputHeight.value) >= 160) {
+    event.target.style.overflow = 'auto'
+  } else {
+    event.target.style.overflow = 'hidden'
+  }
 }
 
 const sendMessage = () => {
@@ -146,7 +155,7 @@ const sendMessage = () => {
     isSendBtn.value = false
     emit('send', valueText.value)
     valueText.value = ""
-    inputHeight.value = '1.4em'
+    inputHeight.value = '1.5em'
   }
 }
 

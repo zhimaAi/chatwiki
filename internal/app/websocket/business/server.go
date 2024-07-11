@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"sync"
 
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cast"
@@ -18,14 +17,20 @@ type WsMessage struct {
 	message []byte
 }
 
+type QueryClient struct {
+	openid string
+	count  int
+	over   chan struct{}
+}
+
 var (
 	AllOpenidMap   = make(map[string]map[*Client]struct{})
 	EventOpenChan  = make(chan *Client)
 	EventCloseChan = make(chan *Client)
 	EventPullChan  = make(chan *WsMessage, 1000)
 	EventPushChan  = make(chan *WsMessage, 1000)
+	EventQueryChan = make(chan *QueryClient)
 	wsUpgrader     = websocket.Upgrader{CheckOrigin: func(_ *http.Request) bool { return true }}
-	QueryMapLock   = sync.Mutex{}
 )
 
 func Running() {
@@ -55,12 +60,20 @@ func Running() {
 				default:
 				}
 			}
+		case query := <-EventQueryChan:
+			query.count = len(AllOpenidMap[query.openid])
+			query.over <- struct{}{}
+			close(query.over)
 		}
 	}
 }
 
 func InitWs() {
 	go Running()
+	http.HandleFunc(`/ping`, func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`pong`))
+		return
+	})
 	http.HandleFunc(`/ws`, func(w http.ResponseWriter, r *http.Request) {
 		conn, err := wsUpgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -83,9 +96,10 @@ func InitWs() {
 			_, _ = w.Write([]byte(lib_web.FmtJson(nil, errors.New(`openid empty`))))
 			return
 		}
-		QueryMapLock.Lock()
-		defer QueryMapLock.Unlock()
-		_, _ = w.Write([]byte(lib_web.FmtJson(len(AllOpenidMap[openid]), nil)))
+		query := QueryClient{openid: openid, over: make(chan struct{})}
+		EventQueryChan <- &query //wait query
+		<-query.over             //wait over
+		_, _ = w.Write([]byte(lib_web.FmtJson(query.count, nil)))
 		return
 	})
 	addr := fmt.Sprintf(`:%d`, cast.ToUint(define.Config.WebService[`port`]))
