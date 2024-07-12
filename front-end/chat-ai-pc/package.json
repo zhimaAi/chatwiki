@@ -8,6 +8,7 @@
     "dev1": "vite --mode dev1",
     "dev2": "vite --mode dev2",
     "dev3": "vite --mode dev3",
+    "dev4": "vite --mode dev4",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "test:unit": "vitest",

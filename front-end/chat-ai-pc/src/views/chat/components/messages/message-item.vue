@@ -89,11 +89,16 @@
       font-size: 14px;
       font-weight: 400;
       border-bottom: 1px solid #edeff2;
-      color: #164799;
+      color: #2475fc;
+      cursor: pointer;
 
       &:last-child{
         border-bottom: 0;
       }
+    }
+
+    .question-item:hover {
+      color: #4D94FF;
     }
   }
 }
@@ -107,10 +112,11 @@
     <div class="message-item-body">
       <div class="message-content">
         <template v-if="props.msg.msg_type == 1">
-          <div class="text-message" v-viewer>
+          <div class="text-message" v-if="props.msg.content !== ''" v-viewer>
             <div v-if="props.msg.is_customer == 1" v-html="props.msg.content"></div>
             <cherry-markdown :content="props.msg.content" v-else />
           </div>
+          <div v-else class="text-message">{{ textMessage }}</div>
           <div class="question-list" v-if="props.msg.menu_json && props.msg.menu_json.question.length">
             <div class="question-item" @click="sendTextMessage(item)" v-for="(item, index) in props.msg.menu_json.question"
               :key="index">
@@ -146,12 +152,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import type { Message } from '@/stores/modules/chat'
 import { escapeHTML } from '@/utils/index'
 
 const emit = defineEmits(['sendTextMessage'])
+
+const textMessage = ref('.')
+let interval: number
 
 const props = defineProps({
   msg: {
@@ -170,7 +179,27 @@ const messageItemClasses = computed(() => ({
   'welcome-message-item': props.msg.menu_json && props.msg.menu_json.question
 }))
 
+// 等待机器人回复增加动态...
+const startLoadingAnimation = () => {
+  const dots = ['.', '..', '...']
+  let dotIndex = 0
+  interval = window.setInterval(() => {
+    dotIndex = (dotIndex + 1) % dots.length
+    textMessage.value = dots[dotIndex]
+  }, 500)
+}
+
 const sendTextMessage = (text: string) => {
   emit('sendTextMessage', text)
 }
+
+
+onMounted(() => {
+  startLoadingAnimation()
+})
+
+
+onUnmounted(() => {
+  clearInterval(interval)
+})
 </script>

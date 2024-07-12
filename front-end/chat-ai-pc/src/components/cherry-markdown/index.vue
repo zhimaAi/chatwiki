@@ -26,6 +26,12 @@
     display: block;
     margin-top: 8px;
   }
+  p:last-child {
+    margin-bottom: 0 !important;
+  }
+  div:last-child {
+    margin-bottom: 0 !important;
+  }
 }
 </style>
 

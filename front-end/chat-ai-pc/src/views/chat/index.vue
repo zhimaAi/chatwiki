@@ -8,6 +8,9 @@
   background: #fff;
 
   .chat-page-body {
+    position: relative;
+    margin: 0 auto;
+    width: 100%;
     flex: 1;
     overflow: hidden;
     display: flex;
@@ -21,10 +24,79 @@
 
   .technical-support-text{
     line-height: 20px;
-    padding-bottom: 4px;
+    padding: 4px 0;
     font-size: 12px;
     color: #bfbfbf;
     text-align: center
+  }
+
+  .bottom-btn-box {
+    display: flex;
+    width: 40px;
+    height: 40px;
+    padding: 12px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 40px;
+    border: 1px solid #FFF;
+    background: #FFF;
+    box-shadow: 0 4px 16px 0 #0000001f;
+    cursor: pointer;
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    margin-left: -20px;
+    .bottom-btn {
+      font-size: 16px;
+      color: #659EFC;
+    }
+  }
+
+  .bottom-btn-box:hover {
+    border: 1px solid #659DFC;
+  }
+
+    /* 定义进入动画 */
+  .slide-down-enter-active {
+    animation: slide-down-in 0.3s ease-in;
+    position: absolute;
+    z-index: 1;
+  }
+  
+  /* 定义进入完成后的状态 */
+  .slide-down-enter-from {
+    transform: translateY(150%);
+  }
+  
+  /* 定义退出动画 */
+  .slide-down-leave-active {
+    animation: slide-down-out 0.3s ease-out;
+    position: absolute;
+    z-index: 1;
+  }
+  
+  /* 定义退出完成后的状态 */
+  .slide-down-leave-to {
+    transform: translateY(150%);
+  }
+  
+  @keyframes slide-down-in {
+    from {
+      transform: translateY(150%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slide-down-out {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(150%);
+    }
   }
 }
 </style>
@@ -41,16 +113,22 @@
           :messages="messageList"
           @scrollStart="onScrollStart"
           @scrollEnd="onScrollEnd"
+          @scroll="onScroll"
         >
           <template v-for="item in messageList" :key="item.uid">
             <MessageItem :msg="item" @sendTextMessage="sendTextMessage" />
           </template>
         </MessageList>
       </div>
+      <transition name="slide-down">
+          <div class="bottom-btn-box" @click="onScrollBottom" v-if="isShowBottomBtn">
+            <svg-icon name="down-arrow" class="bottom-btn" />
+          </div>
+      </transition>
     </div>
     <div class="chat-page-footer">
       <MessageInput v-model:value="message" @send="onSendMesage" :loading="sendLock" />
-      <div class="technical-support-text">由chatwiki提供软件支持</div>
+      <div class="technical-support-text">由 ChatWiki 提供软件支持</div>
     </div>
   </div>
 </template>
@@ -75,6 +153,8 @@ type MessageListComponent = {
   scrollToBottom: () => void;   
 };  
 
+const isShowBottomBtn = ref(false)
+
 const emitter = useEventBus()
 const { on } = useIM()
 const chatStore = useChatStore()
@@ -96,12 +176,21 @@ const scrollToMessageById = (id: number | string) => {
 const handleMessageListScrollToBottom = () => {
   if (messageListRef.value && isAllowedScrollToBottom) {
     messageListRef.value.scrollToBottom()
+    isShowBottomBtn.value = false
+  }
+}
+
+// 滚动
+const onScroll = (event) => {
+  if (event.scrollHeight - event.clientHeight > event.scrollTop) {
+    // 不是在底部了，显示回到底部按钮
+    isShowBottomBtn.value = true
   }
 }
 
 // 滚动到顶部
 const onScrollStart = async () => {
-  isAllowedScrollToBottom = false
+  isAllowedScrollToBottom = true // 允许滚动到底部
   let msgId = messageList.value[0].uid
 
   let res = await onGetChatMessage()
@@ -113,7 +202,16 @@ const onScrollStart = async () => {
 
 // 监听滚动到底部
 const onScrollEnd = () => {
+  isShowBottomBtn.value = false
   // console.log('滚动到底部')
+}
+
+// 回到底部
+const onScrollBottom = () => {
+  if (messageListRef.value && isAllowedScrollToBottom) {
+    messageListRef.value.scrollToBottom()
+    isShowBottomBtn.value = false
+  }
 }
 
 // 通知sdk 初始化完毕

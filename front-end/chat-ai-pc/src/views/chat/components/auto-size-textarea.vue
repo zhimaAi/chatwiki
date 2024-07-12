@@ -1,24 +1,58 @@
 <style scoped>
-.auto-size-textarea {
-  display: block;
-  padding: 0;
-  height: 22px;
-  max-height: 66px;
-  line-height: 22px;
+.text-input {
+  max-height: 10em;
+  line-height: 1.2em;
+  height: 1.5em;
+  overflow: hidden;
+  white-space: pre-wrap; /* 保持内容的换行，并允许自动换行 */
   resize: none;
-  overflow-y: auto; /* 允许内容滚动 */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* Internet Explorer and Edge */
+  border: none;
+  width: 100%;
+  margin: 0 45px 0 12px;
+  color: rgb(26, 26, 26);
+  font-size: 16px;
+  font-weight: 400;
+  background: none;
 
-  &::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, and Opera */
+  transition: height 0.1s ease-in-out;
+
+  &::placeholder {
+    font-size: 16px;
+    font-weight: 400;
+    color: rgb(191, 191, 191);
   }
+}
+
+/* 滚动条样式 */
+.text-input::-webkit-scrollbar {
+    width: 4px; /*  设置纵轴（y轴）轴滚动条 */
+    height: 4px; /*  设置横轴（x轴）轴滚动条 */
+}
+/* 滚动条滑块（里面小方块） */
+.text-input::-webkit-scrollbar-thumb {
+    cursor: pointer;
+    border-radius: 5px;
+    background: transparent;
+}
+/* 滚动条轨道 */
+.text-input::-webkit-scrollbar-track {
+    border-radius: 5px;
+    background: transparent;
+}
+
+/* hover时显色 */
+.text-input:hover::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.2);
+}
+.text-input:hover::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.1);
 }
 </style>
 
 <template>
   <textarea
-    class="auto-size-textarea"
+    :style="{height: inputHeight}"
+    class="text-input"
     rows="1"
     ref="textareaRef"
     :value="props.value"
@@ -26,13 +60,16 @@
     @focus="onFocus"
     @blur="onBlur"
     @keydown.enter.prevent.exact="onEnter"
-    @keydown.shift.enter.prevent="onShiftEnter"
-    placeholder="在此输入，Shift+Enter换行"
+    @keydown.shift.enter.prevent="onTextEnter"
+    @keydown.ctrl.enter.prevent="onTextEnter"
+    @keydown.alt.enter.prevent="onTextEnter"
+    placeholder="在此输入您想了解的内容"
   ></textarea>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import calcTextareaHeight from '@/utils/calcTextareaHeight'
 
 const props = defineProps({
   value: {
@@ -43,31 +80,23 @@ const props = defineProps({
 
 const emit = defineEmits(['update:value', 'change', 'focus', 'blur', 'enter', 'shiftEnter'])
 
-const inputLineHeight = 22
-const inputMaxRow = 3
-const inputMaxHeight = inputLineHeight * inputMaxRow
+const inputHeight = ref("1.5em")
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 
-function onFocus() {
-  emit('focus')
+function onFocus(event) {
+  emit('focus', event)
 }
 
-function onBlur() {
-  emit('blur')
+function onBlur(event) {
+  emit('blur', event)
 }
 
-function onEnter(event: KeyboardEvent) {
-  if (!event.shiftKey) {
-    emit('enter')
-  }
-}
-
-function isCursorAtEnd(inputElement) {  
-    var val = inputElement.value;  
-    var pos = inputElement.selectionStart;  
-    return pos === val.length; 
-}
+// function isCursorAtEnd(inputElement) {  
+//     var val = inputElement.value;  
+//     var pos = inputElement.selectionStart;  
+//     return pos === val.length; 
+// }
 
 function insertNewLine() {
   if (textareaRef.value) {
@@ -75,22 +104,23 @@ function insertNewLine() {
     const newValue =
     textareaRef.value.value.slice(0, cursorPosition) + '\n' + textareaRef.value.value.slice(cursorPosition)
     textareaRef.value.value = newValue
-
-    if(isCursorAtEnd(textareaRef.value)) {
-      textareaRef.value.scrollTop = textareaRef.value.scrollHeight
-    }
     
     // 将光标移至新行开头
     textareaRef.value.setSelectionRange(cursorPosition + 1, cursorPosition + 1)
 
-    updateHeight()
+    textareaRef.value.style.height = textareaRef.value.scrollHeight + 'px';  // 调整高度
   }
 }
 
-function onShiftEnter(event: KeyboardEvent) {
+function onEnter(event: KeyboardEvent) {
+  // 上面阻止了按键，进这里的都是直接按enter
+  emit('enter')
+}
+
+function onTextEnter(event: KeyboardEvent) {
   event.preventDefault()
   insertNewLine()
-  emit('shiftEnter')
+  // emit('shiftEnter')
 }
 
 // 监听 textarea 的输入事件，并更新其高度和 value
@@ -99,20 +129,13 @@ function updateValue(event: Event) {
 
   emit('update:value', target.value)
   emit('change', target.value)
-  updateHeight()
-}
-
-// 更新 textarea 的高度以匹配内容
-function updateHeight() {
-  if (textareaRef.value) {
-    textareaRef.value.style.height = `auto`
-
-    if (textareaRef.value.scrollHeight > inputMaxHeight) {
-      textareaRef.value.style.height = `${inputMaxHeight}px`
-    } else if(textareaRef.value.value.length == 0) {
-      textareaRef.value.style.height = `${inputLineHeight}px`
+  
+  inputHeight.value = calcTextareaHeight(textareaRef.value).height // 调整高度
+  if (target) {
+    if (parseInt(inputHeight.value) >= 160) {
+      target.style.overflow = 'auto'
     } else {
-      textareaRef.value.style.height = `${textareaRef.value.scrollHeight}px`
+      target.style.overflow = 'hidden'
     }
   }
 }
@@ -121,15 +144,16 @@ watch(
   () => props.value,
   () => {
     if (!props.value && textareaRef.value) {
-      textareaRef.value.style.height = `${inputLineHeight}px`
+      // 消息清空后输入框回到最初的高度
+      inputHeight.value = '1.5em'
+      // 回车后输入框失去焦点
+      textareaRef.value.blur()
     }
   }
 )
 
 // 组件挂载后，确保 textarea 初始高度正确
 onMounted(() => {
-  if (textareaRef.value) {
-    updateHeight()
-  }
+ 
 })
 </script>
