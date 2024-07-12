@@ -8,7 +8,7 @@ const LocalUploadPrefix = `/upload/`
 
 const ImageLimitSize = 100 * 1024          //100KB
 const ImageAvatarLimitSize = 1024 * 1024   //1m
-const LibFileLimitSize = 100 * 1024 * 1024 //10MB
+const LibFileLimitSize = 100 * 1024 * 1024 //100MB
 const LibImageLimitSize = 2 * 1024 * 1024  // 2M
 
 var ImageAllowExt = []string{`heic`, `gif`, `jpg`, `jpeg`, `png`, `swf`, `bmp`, `webp`}
