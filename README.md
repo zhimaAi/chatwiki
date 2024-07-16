@@ -5,7 +5,7 @@
 <p align="center">
   <a href="./README_en.md">English</a> |
   <a href="./README.md">简体中文</a> |
-   <a href="./UpdateLog.md">Update Log</a>
+   <a href="./UpdateLog.md">更新日志</a>
 </p>
 
 ChatWiki是一款开源的知识库 AI 问答系统。系统基于大语言模型（LLM ）和检索增强生成（RAG）技术构建，提供开箱即用的数据处理、模型调用等能力，可以帮助企业快速搭建自己的知识库
