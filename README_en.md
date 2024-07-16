@@ -4,8 +4,10 @@
 
 <p align="center">
   <a href="./README_en.md">English</a> |
-  <a href="./README.md">简体中文</a> 
+  <a href="./README.md">简体中文</a>  |
+   <a href="./UpdateLog.md">Update Log</a>
 </p>
+
 
 
 ChatWiki is an open-source knowledge base AI question-and-answer system. The system is built upon Large Language
