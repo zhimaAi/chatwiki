@@ -4,6 +4,7 @@ package middlewares
 
 import (
 	"chatwiki/internal/app/chatwiki/common"
+	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -20,7 +21,7 @@ func CasbinAuth() gin.HandlerFunc {
 		// get user info
 		data, err := common.ParseToken(request.GetHeader(`token`))
 		if err != nil || data == nil {
-			common.FmtError(request, "user_no_login")
+			common.FmtErrorWithCode(request, http.StatusUnauthorized, "user_no_login")
 			return
 		}
 	}

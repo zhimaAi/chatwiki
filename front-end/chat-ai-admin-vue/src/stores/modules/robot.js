@@ -29,7 +29,10 @@ export const useRobotStore = defineStore('robot', () => {
   const robotInfo = reactive({
     id: undefined,
     robot_key: '',
-    fast_command_switch: '',
+    fast_command_switch: '', // webapp存储的开关
+    yunpc_fast_command_switch: '', // 嵌入网站存储的开关
+    app_id: -1, // webapp:-1
+    app_id_embed: -2, // 嵌入网站:-2
     robot_name: '',
     robot_intro: '',
     robot_avatar: undefined,
@@ -100,6 +103,7 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.id = data.id
     robotInfo.robot_key = data.robot_key
     robotInfo.fast_command_switch = data.fast_command_switch
+    robotInfo.yunpc_fast_command_switch = data.yunpc_fast_command_switch
     robotInfo.robot_name = data.robot_name
     robotInfo.robot_intro = data.robot_intro
     robotInfo.robot_avatar_url = data.robot_avatar

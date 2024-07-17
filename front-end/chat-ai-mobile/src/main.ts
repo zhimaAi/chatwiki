@@ -16,9 +16,11 @@ import { setupRouter } from './router/index'
 
 import registGlobaDirective from './directives'
 import { registGlobalComponent } from './components'
-
+import FloatingVue from 'floating-vue'
+import 'floating-vue/dist/style.css'
 import '@vant/touch-emulator';
 
+import './message'
 // 创建实例
 const setupAll = async () => {
   const app = createApp(App)
@@ -34,7 +36,7 @@ const setupAll = async () => {
   registGlobaDirective(app)
   registGlobalComponent(app)
   app.use(Viewer);
-
+  app.use(FloatingVue);
   app.mount('#app')
 }
 

@@ -44,6 +44,12 @@
     border-radius: 9px;
     box-shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.16);
   }
+  iframe{
+    width: 375px;
+    height: 720px;
+    border-radius: 4px;
+    box-shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.16);
+  }
 }
 </style>
 
@@ -107,10 +113,15 @@
           </div>
         </card-box>
       </div>
+
+      <div class="box-wrapper">
+        <QuickInstruction :type="robotInfo.app_id_embed" @updata="updataQuickComand"></QuickInstruction>
+      </div>
     </div>
     <div class="box-right">
       <div class="demo-box">
-        <img class="preview-img" src="../../../../../../public/img/embed_website.png" alt="" />
+        <iframe id="web-preview" :src="previewIframeSrc" frameborder="0"></iframe>
+        <!-- <iframe id="web-preview" src="http://114.55.112.51:20182/web/#/chat?robot_key=IZy35yzOSJ&language=zh-CN" frameborder="0"></iframe> -->
       </div>
     </div>
   </div>
@@ -118,7 +129,7 @@
 
 <script setup>
 import { getSdkCode } from './sdk-code'
-import { ref, reactive, toRaw } from 'vue'
+import { ref, reactive, toRaw, watch, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { message } from 'ant-design-vue'
 import { copyText } from '@/utils/index'
@@ -127,6 +138,7 @@ import CardBox from './card-box.vue'
 import PageTitleInput from './page-title-input.vue'
 import GradientColorPicker from './gradient-color-picker.vue'
 import { useRobotStore } from '@/stores/modules/robot'
+import QuickInstruction from './quick-instruction.vue'
 
 const robotStore = useRobotStore()
 const { robotInfo, external_config_pc } = storeToRefs(robotStore)
@@ -147,6 +159,31 @@ const formState = reactive({
   lang: external_config_pc.value.lang,
   pageStyle: external_config_pc.value.pageStyle
 })
+
+const previewIframeSrc = computed(()=>{
+let { pc_domain, robot_key } = robotInfo.value
+  return `${pc_domain}/web/#/chat?robot_key=${robot_key}&language=zh-CN`
+})
+
+watch(formState,(val)=>{
+  updatePreview(val)
+})
+
+const updataQuickComand = (data) =>{
+  updatePreview(data, 'updataQuickComand')
+}
+
+const updatePreview = (data, type) =>{
+  let iframe = document.getElementById('web-preview');
+  iframe.contentWindow.postMessage(
+    {
+      type: type || 'onPreview',
+      data: JSON.parse(JSON.stringify(data)),
+    },
+    '*'
+  );
+}
+
 
 const formRules = {
   lang: [

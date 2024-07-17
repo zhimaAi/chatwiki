@@ -197,3 +197,18 @@ func SaveProfile(c *gin.Context) {
 	}
 	common.FmtOk(c, insertId)
 }
+
+func RefreshUserToken(c *gin.Context) {
+	user := GetLoginUserInfo(c)
+	if len(user) <= 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+	data, err := common.GetToken(user[`user_id`], user[`user_name`], user["parent_id"])
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	common.FmtOk(c, data)
+}

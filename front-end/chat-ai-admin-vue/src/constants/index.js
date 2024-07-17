@@ -14,6 +14,11 @@ export const CONTENT_TYPE = 'application/x-www-form-urlencoded;charset=UTF-8'
 export const REQUEST_TIMEOUT = 10 * 60 * 1000
 
 /**
+ * 刷新Token时间
+ */
+export const REFRESHTOKEN_TIMEOUT = 1 * 60 * 60 * 1000
+
+/**
  * 不重定向白名单
  */
 export const NO_REDIRECT_WHITE_LIST = ['/login', '/about']

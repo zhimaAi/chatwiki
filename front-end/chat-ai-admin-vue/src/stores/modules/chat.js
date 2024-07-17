@@ -206,14 +206,13 @@ export const useChatStore = defineStore('chat', () => {
       // 在实时聊天的时候，也需要把 ai_message 中的菜单内容显示出来
       if (content.menu_json && content.msg_type == 2) {
         let menu_json_obj = JSON.parse(content.menu_json)
-        messageList.value[msgIndex].content = menu_json_obj.content
+        //messageList.value[msgIndex].content = menu_json_obj.content
         messageList.value[msgIndex].question = menu_json_obj.question
       }
 
       messageList.value[msgIndex].id = content.id
 
       messageList.value[msgIndex].content = content.content
-      console.log(content.content)
     }
 
     if (type == 'debug') {

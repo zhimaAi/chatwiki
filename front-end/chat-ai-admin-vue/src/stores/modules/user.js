@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { store } from '../index'
 import { Modal } from 'ant-design-vue'
-import { loginApi, getUserInfo } from '@/api/user'
+import { loginApi, getUserInfo, refreshUserToken } from '@/api/user'
 // import { getTokenCache, setTokenCache } from '@/storage/user'
 import router from '@/router'
 import { DEFAULT_USER_AVATAR } from '@/constants/index'
@@ -80,6 +80,21 @@ export const useUserStore = defineStore('user', {
         })
         this.isShowResetPassModal = true
         this.setUserInfo(res.data)
+
+        return res.data
+      } catch (error) {
+        return Promise.reject(error)
+      }
+    },
+    async refreshToken() {
+      try {
+        const res = await refreshUserToken()
+
+        this.setToken({
+          token: res.data.token,
+          exp: res.data.exp,
+          ttl: res.data.ttl
+        })
 
         return res.data
       } catch (error) {

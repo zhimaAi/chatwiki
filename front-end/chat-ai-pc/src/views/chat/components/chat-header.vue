@@ -68,10 +68,13 @@ import { useChatStore } from '@/stores/modules/chat'
 
 const chatStore = useChatStore()
 const { externalConfigPC } = storeToRefs(chatStore)
-const { headBackgroundColor } = externalConfigPC.value.pageStyle
+const headBackgroundColor = computed(()=>{
+    return externalConfigPC.value.pageStyle.headBackgroundColor
+})
 
 const backgroundColor = computed(() => {
-    const [type, direction, color1, color2] = headBackgroundColor.split(',')
+
+    const [type, direction, color1, color2] = headBackgroundColor.value.split(',')
 
     if(type === 'color'){
         return color1

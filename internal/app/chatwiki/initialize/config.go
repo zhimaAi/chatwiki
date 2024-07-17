@@ -6,7 +6,9 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_web"
 	"fmt"
+	"os"
 	"runtime"
+	"strings"
 
 	"github.com/Unknwon/goconfig"
 	"github.com/zhimaAi/go_tools/logs"
@@ -17,7 +19,8 @@ func initConfig() {
 	file := `configs/chatwiki/config_pro.ini`
 	define.Env = "production"
 	if define.IsDev {
-		file = `configs/chatwiki/config_dev.ini`
+		dev := strings.Split(os.Getenv(`DEV`), `_`)[0]
+		file = fmt.Sprintf(`configs/chatwiki/config_dev/%s.ini`, dev)
 		define.Env = "development"
 		if tool.InArrayString(runtime.GOOS, []string{`windows`, `darwin`}) {
 			file = `configs/chatwiki/config_loc.ini`

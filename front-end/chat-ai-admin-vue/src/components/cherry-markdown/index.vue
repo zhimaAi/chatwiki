@@ -2,7 +2,7 @@
 .vue-markdown {
   white-space: initial;
   width: 100%;
-  img{
+  img {
     width: auto;
     height: auto;
     max-width: 100%;
@@ -21,6 +21,7 @@
 // cherry-markdow 配置详解 https://github.com/Tencent/cherry-markdown/wiki/%E9%85%8D%E7%BD%AE%E9%A1%B9%E5%85%A8%E8%A7%A3
 import CherryEngine from 'cherry-markdown/dist/cherry-markdown.engine.core'
 import { computed } from 'vue'
+import textParseProcessing from '@/utils/textParseProcessing'
 
 const props = defineProps({
   content: {
@@ -50,11 +51,12 @@ const md = new CherryEngine({
       header: {
         anchorStyle: 'none'
       }
-    },
+    }
   }
 })
 
 const html = computed(() => {
-  return md.makeHtml(props.content)
+  let str = textParseProcessing(props.content)
+  return md.makeHtml(str)
 })
 </script>

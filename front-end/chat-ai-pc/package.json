@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev1": "vite --mode dev1",
+    "dev:dev4": "vite --host 0.0.0.0 --mode dev4",
+    "dev:dev3": "vite --host 0.0.0.0 --mode dev3",
+    "dev1": "vite --host 0.0.0.0 --mode dev1",
     "dev2": "vite --mode dev2",
     "dev3": "vite --mode dev3",
     "dev4": "vite --mode dev4",
@@ -23,6 +25,7 @@
     "cherry-markdown": "^0.8.44",
     "crypto-js": "^4.2.0",
     "dayjs": "^1.11.10",
+    "floating-vue": "^5.2.2",
     "js-cookie": "^3.0.5",
     "lodash-es": "^4.17.21",
     "pinia": "^2.1.7",
@@ -31,6 +34,7 @@
     "v-viewer": "^3.0.13",
     "vant": "^4.9.0",
     "vue": "^3.4.21",
+    "vue-clipboard3": "^2.0.0",
     "vue-i18n": "^9.12.1",
     "vue-router": "^4.3.0"
   },

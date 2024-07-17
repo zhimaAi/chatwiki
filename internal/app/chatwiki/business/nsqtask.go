@@ -7,7 +7,6 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_redis"
 	"github.com/spf13/cast"
-	"github.com/syyongx/php2go"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
@@ -17,7 +16,7 @@ import (
 
 var CheckFileLearnedMutex sync.Map
 
-func ConvertPdf(msg string, _ ...string) error {
+func ConvertHtml(msg string, _ ...string) error {
 	logs.Debug(`nsq:%s`, msg)
 	data := make(map[string]any)
 	if err := tool.JsonDecode(msg, &data); err != nil {
@@ -42,15 +41,15 @@ func ConvertPdf(msg string, _ ...string) error {
 		logs.Error(`no data:%s`, msg)
 		return nil
 	}
-	if !php2go.InArray(cast.ToInt(info[`status`]), []int{define.FileStatusInitial, define.FileStatusWaitSplit}) {
+	if cast.ToInt(info[`status`]) != define.FileStatusInitial {
 		logs.Error(`abnormal state:%s/%v`, msg, info[`status`])
 		return nil
 	}
-	//convert pdf
-	pdfUrl, err := common.ConvertToPdf(link, cast.ToInt(info[`admin_user_id`]))
+	//convert html
+	htmlUrl, err := common.ConvertHtml(link, cast.ToInt(info[`admin_user_id`]))
 	if err != nil && err.Error() == `Service Unavailable` {
 		logs.Error(`service unavailable. try again in one minute:%s`, msg)
-		_ = common.AddJobs(define.ConvertPdfTopic, msg, time.Minute)
+		_ = common.AddJobs(define.ConvertHtmlTopic, msg, time.Minute)
 		return nil
 	}
 	m := msql.Model(`chat_ai_library_file`, define.Postgres)
@@ -68,7 +67,7 @@ func ConvertPdf(msg string, _ ...string) error {
 		return nil
 	}
 	_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
-		`pdf_url`:     pdfUrl,
+		`html_url`:    htmlUrl,
 		`status`:      define.FileStatusWaitSplit,
 		`update_time`: tool.Time2Int(),
 	})
@@ -220,14 +219,9 @@ func CrawlArticle(msg string, _ ...string) error {
 		return nil
 	}
 
-	//cache embed html
-	go (func() {
-		_, _ = common.GetEmbedHtmlContent(uploadInfo.Link, file[`file_ext`])
-	})()
-
 	// update file status
 	_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
-		`status`:              define.FileStatusWaitSplit,
+		`status`:              define.FileStatusInitial,
 		`file_name`:           uploadInfo.Name,
 		`file_size`:           uploadInfo.Size,
 		`file_url`:            uploadInfo.Link,
@@ -240,10 +234,10 @@ func CrawlArticle(msg string, _ ...string) error {
 		return nil
 	}
 
-	// convert pdf
+	// convert html
 	if message, err := tool.JsonEncode(map[string]any{`file_id`: fileId, `file_url`: uploadInfo.Link}); err != nil {
 		logs.Error(err.Error())
-	} else if err := common.AddJobs(define.ConvertPdfTopic, message); err != nil {
+	} else if err := common.AddJobs(define.ConvertHtmlTopic, message); err != nil {
 		logs.Error(err.Error())
 	}
 	return nil

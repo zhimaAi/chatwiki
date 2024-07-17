@@ -35,18 +35,27 @@
       </template>
       <div class="pdf-view-box" v-else>
         <div class="view-content-wrap">
-          <div class="view-gray-bg" ref="scollDivRef">
-            <div class="loading-box" v-if="pdfIsLoading">
-              <a-spin></a-spin>
+          <cu-scroll class="scroll-box" @onScrollEnd="onScrollEnd">
+            <div class="view-content-box">
+              <div
+                class="list-item"
+                @click="handleClickItem(index)"
+                v-for="(item, index) in paragraphLists"
+                :key="index"
+              >
+                <div class="content-box" v-if="item.question">{{ item.question }}</div>
+                <div class="content-box" v-if="item.answer">{{ item.answer }}</div>
+                <div class="content-box" v-html="item.content"></div>
+                <div class="fragment-img" v-viewer>
+                  <img v-for="(item, index) in item.images" :key="index" :src="item" alt="" />
+                </div>
+              </div>
             </div>
-            <div class="view-content">
-              <vue-pdf-embed ref="vuePdfRef" @loaded="handleLoad" :source="detailsInfo.pdf_url" />
-            </div>
-          </div>
+          </cu-scroll>
         </div>
         <div class="right-contnt-box">
           <Empty @openEditSubscription="openEditSubscription" v-if="isEmpty"></Empty>
-          <cu-scroll v-else @onScrollEnd="onScrollEnd">
+          <cu-scroll ref="rightScrollRef" v-else @onScrollEnd="onScrollEnd">
             <div class="content-block">
               <SubsectionBox
                 ref="subsectionBoxRef"
@@ -55,7 +64,6 @@
                 :paragraphLists="paragraphLists"
                 @openEditSubscription="openEditSubscription"
                 @handleDelParagraph="handleDelParagraph"
-                @handleScrollTargetPage="handleScrollTargetPage"
               ></SubsectionBox>
             </div>
           </cu-scroll>
@@ -80,14 +88,11 @@ import { getLibFileInfo, getParagraphList } from '@/api/library'
 import CuScroll from '@/components/cu-scroll/cu-scroll.vue'
 import EditSubscription from './components/edit-subsection.vue'
 import SegmentationMode from './components/segmentation-mode.vue'
-// import VuePdfEmbed from 'vue-pdf-embed'
-
-const VuePdfEmbed = defineAsyncComponent(() => import('vue-pdf-embed'))
 
 const route = useRoute()
 const router = useRouter()
 const isTableType = computed(() => {
-  return detailsInfo.value.is_qa_doc == '1'
+  return detailsInfo.value.is_table_file == '1'
 })
 const doc_type = computed(() => {
   return detailsInfo.value.doc_type
@@ -104,6 +109,27 @@ const detailsInfo = ref({
 
 const goBack = () => {
   router.back()
+}
+
+const rightScrollRef = ref(null)
+let lastIndex = -1
+const handleClickItem = (index) => {
+  let el = document.querySelectorAll('.subsection-box .list-item')[index]
+  el.classList.add('flash-border')
+  if (lastIndex >= 0) {
+    document
+      .querySelectorAll('.subsection-box .list-item')
+      [lastIndex].classList.remove('flash-border')
+  }
+  setTimeout(() => {
+    lastIndex = -1
+    el.classList.remove('flash-border')
+  }, 2500)
+  lastIndex = index
+  rightScrollRef.value.scrollToElement({
+    el,
+    time: 1000,
+  })
 }
 
 const pageLoading = ref(true)
@@ -155,8 +181,8 @@ const getParagraphLists = () => {
     })
 
     paragraphInfo.value = data.info
-    if(paginations.value.page == 1){
-      paragraphLists.value = [];
+    if (paginations.value.page == 1) {
+      paragraphLists.value = []
     }
     paragraphLists.value = [...paragraphLists.value, ...list]
     total.value = data.total
@@ -211,17 +237,6 @@ const handleLoad = (e) => {
   pdfIsLoading.value = false
 }
 
-const vuePdfRef = ref(null)
-const scollDivRef = ref(null)
-const handleScrollTargetPage = async (page_num) => {
-  await nextTick()
-  let pageCount = vuePdfRef.value.pageCount
-  let offsetHeight = vuePdfRef.value.$el.offsetHeight
-  let onePageDis = offsetHeight / pageCount // 一页的高度
-  let needSrollDis = (page_num - 1) * onePageDis
-  scollDivRef.value.scrollTop = needSrollDis
-}
-
 const editSubscriptionRef = ref(null)
 const openEditSubscription = (data) => {
   editSubscriptionRef.value.showModal(JSON.parse(JSON.stringify(data)))
@@ -265,25 +280,46 @@ const openEditSubscription = (data) => {
     display: flex;
     overflow: hidden;
     .view-content-wrap {
-      width: 692px;
-      padding-right: 24px;
-
-      .view-gray-bg {
-        background: #edeeee;
-        padding: 16px;
-        height: 100%;
-        overflow-y: auto;
-        overflow-x: hidden;
-        .view-content {
-          background: #fff;
-          border-radius: 2px;
-          min-height: 100%;
+      flex: 1;
+      overflow: hidden;
+      .scroll-box {
+        margin-right: 24px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      .view-content-box {
+        padding: 12px 32px 24px;
+        .list-item {
+          cursor: pointer;
+          padding: 6px 8px;
+          border-radius: 4px;
+          border: 1px solid #fff;
+          transition: all .3s;
+          &:hover {
+            background: #f7f7f7;
+            border: 1px solid #E0E0E0;
+          }
         }
-        .loading-box {
-          height: 100%;
+        .content-box {
+          color: #333;
+          font-size: 14px;
+          font-weight: 400;
+          line-height: 22px;
+          margin-top: 4px;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+        }
+        .fragment-img {
           display: flex;
-          align-items: center;
-          justify-content: center;
+          gap: 8px;
+          align-items: baseline;
+          flex-wrap: wrap;
+          img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: fit-content;
+          }
         }
       }
     }

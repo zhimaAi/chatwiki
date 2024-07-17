@@ -163,12 +163,12 @@ func CreateLibrary(c *gin.Context) {
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.LibraryCacheBuildHandler{LibraryId: int(libraryId)})
 	//common save
-	fileIds, err := addLibFile(c, userId, int(libraryId))
+	_, err = addLibFile(c, userId, int(libraryId))
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
-	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`file_ids`: fileIds}, nil))
+	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`id`: libraryId}, nil))
 }
 
 func DeleteLibrary(c *gin.Context) {

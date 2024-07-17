@@ -3,13 +3,15 @@
 package manage
 
 import (
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/middlewares"
 	"chatwiki/internal/pkg/casbin"
-	"fmt"
-	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
@@ -21,7 +23,7 @@ import (
 func CheckPermission(c *gin.Context) {
 	user := GetLoginUserId(c)
 	if user <= 0 {
-		common.FmtError(c, `user_no_login`)
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 	var data = make(map[string]interface{})
@@ -252,7 +254,7 @@ func SaveUser(c *gin.Context) {
 	// login user
 	user := GetLoginUserInfo(c)
 	if user == nil {
-		common.FmtError(c, `user_no_login`)
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 	roleId := cast.ToString(req.UserRoles)
@@ -366,7 +368,7 @@ func DeleteUser(c *gin.Context) {
 	// login user
 	user := GetLoginUserInfo(c)
 	if user == nil {
-		common.FmtError(c, `user_no_login`)
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 	// del user
@@ -537,7 +539,7 @@ func SaveRole(c *gin.Context) {
 	// login user
 	user := GetLoginUserInfo(c)
 	if user == nil {
-		common.FmtError(c, `user_no_login`)
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 	data := msql.Datas{
@@ -603,7 +605,7 @@ func DelRole(c *gin.Context) {
 	// login user
 	user := GetLoginUserInfo(c)
 	if user == nil {
-		common.FmtError(c, `user_no_login`)
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 	// del role
