@@ -41,6 +41,9 @@ export default class SSE {
 
     fetchEventSource(this.opt.url, {
       method: 'POST',
+      headers: {
+        'App-Type': 'yun_h5',
+      },
       signal: this.controller.signal,
       // 允许在页面隐藏时继续接收消息(开启后不再触发自动重连的问题)
       openWhenHidden: true,

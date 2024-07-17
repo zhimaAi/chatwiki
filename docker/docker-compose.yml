@@ -1,16 +1,4 @@
 services:
-  chatwiki_pdf_service:
-    env_file: ./.env
-    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/gotenberg:8
-    container_name: chatwiki_pdf_service
-    ports:
-      - ${CONVERT_PDF_PORT}:3000
-    networks:
-      - chatwiki_network
-    restart: always
-    environment:
-      TZ: ${TIMEZONE}
-
   chatwiki_redis_service:
     env_file: ./.env
     image: registry.cn-hangzhou.aliyuncs.com/chatwiki/redis:5.0
@@ -44,7 +32,7 @@ services:
       - ${CRAWLER_PORT}:3800
 
   chatwiki_converter:
-    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/converter:1.1
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/converter:1.2
     container_name: chatwiki_converter
     restart: always
     environment:

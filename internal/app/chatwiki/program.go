@@ -58,7 +58,7 @@ func Stop() {
 }
 
 func StartConsumer() {
-	common.RunTask(define.ConvertPdfTopic, define.ConvertPdfChannel, 1, business.ConvertPdf)
+	common.RunTask(define.ConvertHtmlTopic, define.ConvertHtmlChannel, 1, business.ConvertHtml)
 	common.RunTask(define.ConvertVectorTopic, define.ConvertVectorChannel, 2, business.ConvertVector)
 	common.RunTask(define.CrawlArticleTopic, define.CrawlArticleChannel, 2, business.CrawlArticle)
 }

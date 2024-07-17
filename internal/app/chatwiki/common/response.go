@@ -18,6 +18,13 @@ func FmtError(c *gin.Context, msg string, params ...string) {
 	c.Abort()
 }
 
+func FmtErrorWithCode(c *gin.Context, code int, msg string, params ...string) {
+	data := struct{}{}
+	err := errors.New(i18n.Show(GetLang(c), msg, params))
+	c.String(code, lib_web.FmtJsonWithCode(code, data, err))
+	c.Abort()
+}
+
 func FmtOk(c *gin.Context, data interface{}) {
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }

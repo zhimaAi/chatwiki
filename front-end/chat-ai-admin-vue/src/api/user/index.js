@@ -16,6 +16,11 @@ export const checkLogin = (data) => {
   return request.get({ url: '/manage/checkLogin', data })
 }
 
+// 刷新用户token
+export const refreshUserToken = (data) => {
+  return request.post({ url: '/manage/refreshUserToken', data })
+}
+
 export const getKefuNav = (data) => {
   return request.post({ url: '/manage/getKefuNav', data })
 }

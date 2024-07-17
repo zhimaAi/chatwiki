@@ -27,6 +27,8 @@ func init() {
 
 	/* user API*/
 	noAuthFuns(Route[http.MethodPost], `/manage/saveProfile`, manage.SaveProfile)
+	Route[http.MethodPost]["/manage/refreshUserToken"] = manage.RefreshUserToken
+
 	/*admin API*/
 	noAuthFuns(Route[http.MethodPost], `/manage/login`, manage.AdminLogin)
 	Route[http.MethodGet][`/manage/checkLogin`] = manage.CheckLogin

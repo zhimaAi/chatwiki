@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { sendAiMessage, chatWelcome, getDialogueList, getChatMessage } from '@/api/chat'
+import { sendAiMessage, chatWelcome, getDialogueList, getChatMessage, getFastCommandList } from '@/api/chat'
 import { editPrompt } from '@/api/robot/index'
 import { getUuid, getOpenid } from '@/utils/index'
 import { useEventBus } from '@/hooks/event/useEventBus'
@@ -45,8 +45,12 @@ export interface Robot {
   robot_avatar: string
   robot_intro: string
   robot_name: string
+  yunpc_fast_command_switch: string
   id: number | null
-  welcomes: Welcome
+  welcomes: Welcome,
+  comand_list: any | string[]
+  app_id: number,
+  is_sending: boolean,
 }
 
 export interface PageStyle {
@@ -91,8 +95,12 @@ export const useChatStore = defineStore('chat', () => {
     robot_intro: '',
     robot_key: '',
     robot_name: '',
+    yunpc_fast_command_switch: '',
     openid: '',
     welcomes: { content: '', question: [] },
+    comand_list: [],
+    app_id: -2, // webapp:-1,嵌入网站:-2
+    is_sending: false, // 是否在发送中
   })
   // 样式配置
   const externalConfigPC = reactive<ExternalConfigPc>({
@@ -153,13 +161,13 @@ export const useChatStore = defineStore('chat', () => {
       user.id = userInfo.id
       user.name = userInfo.name
       user.nickname = userInfo.nickname
-      robot.library_ids = robotInfo.library_ids
       robot.prompt = robotInfo.prompt
       robot.robot_avatar = robotInfo.robot_avatar
       robot.robot_intro = robotInfo.robot_intro
       robot.robot_key = robotInfo.robot_key
       robot.robot_name = robotInfo.robot_name
       robot.library_ids = robotInfo.library_ids
+      robot.yunpc_fast_command_switch = robotInfo.yunpc_fast_command_switch
       robot.id = robotInfo.id
 
       if (robotInfo.welcomes) {
@@ -315,6 +323,7 @@ export const useChatStore = defineStore('chat', () => {
       if (import.meta.env.MODE !== 'production') {
         console.log(res)
       }
+      robot.is_sending = true;
       // 更新对话id
       if (res.event == 'dialogue_id') {
         dialogue_id.value = res.data
@@ -362,6 +371,9 @@ export const useChatStore = defineStore('chat', () => {
         const data = JSON.parse(res.data)
 
         updateAiMessage('debug', data, aiMsg.uid)
+      }
+      if (res.event == 'finish') { 
+        robot.is_sending = false;
       }
     }
 
@@ -507,6 +519,27 @@ export const useChatStore = defineStore('chat', () => {
     })
   }
 
+  const getFastCommand = () => {
+    getFastCommandList({
+      robot_key: robot.robot_key,
+      openid: robot.openid,
+      app_id: robot.app_id
+    }).then(res => {
+      robot.comand_list = res.data;
+    })
+  }
+
+  // 更新预览 ui
+  const upDataUiStyle = (data) => {
+    Object.assign(externalConfigPC, data)
+  }
+  
+  const updataQuickComand = (data) => {
+    // 更新快捷指令
+     robot.comand_list = data.comand_list || [];
+     robot.yunpc_fast_command_switch = data.fast_command_switch
+   }
+  
   function $reset() {
     dialogue_id.value = 0
     messageList.value = []
@@ -528,6 +561,7 @@ export const useChatStore = defineStore('chat', () => {
     robot.robot_key = ''
     robot.robot_key = ''
     robot.robot_name = ''
+    robot.yunpc_fast_command_switch = ''
     robot.openid = ''
     robot.welcomes = { content: '', question: [] }
     // 是否是新的对话
@@ -558,6 +592,9 @@ export const useChatStore = defineStore('chat', () => {
     onGetChatMessage,
     changeRobotPrompt,
     saveRobotPrompt,
-    externalConfigPC
+    externalConfigPC,
+    upDataUiStyle,
+    getFastCommand,
+    updataQuickComand,
   }
 })

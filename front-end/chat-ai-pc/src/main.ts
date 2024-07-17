@@ -17,6 +17,8 @@ import { setupRouter } from './router/index'
 import registGlobaDirective from './directives'
 import { registGlobalComponent } from './components'
 
+import FloatingVue from 'floating-vue'
+import 'floating-vue/dist/style.css'
 import './event/index'
 // 创建实例
 const setupAll = async () => {
@@ -34,7 +36,7 @@ const setupAll = async () => {
   registGlobalComponent(app)
 
   app.use(Viewer);
-
+  app.use(FloatingVue)
   app.mount('#app')
 }
 

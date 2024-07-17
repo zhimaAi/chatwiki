@@ -102,7 +102,7 @@ func IsOnLine(c *gin.Context) {
 
 func commonCheck(c *gin.Context) (*define.ChatBaseParam, error) {
 	//source check
-	appType := strings.TrimSpace(c.GetHeader(`app_type`))
+	appType := strings.TrimSpace(c.GetHeader(`App-Type`))
 	if len(appType) == 0 {
 		appType = lib_define.AppYunH5 //default value
 	}
@@ -653,9 +653,10 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 	//part1:prompt
 	prompt := params.Prompt
 	prompt = prompt + "\n\n" + define.PromptDefaultAnswerImage
-	prompt = prompt + "\n\n" + buildChatResponseType(cast.ToInt(params.Robot["show_type"]), params.Lang)
+	//prompt = prompt + "\n\n" + buildChatResponseType(cast.ToInt(params.Robot["show_type"]), params.Lang)
 	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
 	*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: prompt})
+	responseTypeMsg := buildChatResponseType(cast.ToInt(params.Robot["show_type"]), params.Lang)
 
 	//part2:library
 	for _, one := range list {
@@ -665,10 +666,10 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 			logs.Error(err.Error())
 		}
 		if cast.ToInt(one[`type`]) == define.ParagraphTypeNormal {
-			messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: common.EmbTextImages(one[`content`], images)})
+			messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: common.EmbTextImages(one[`content`]+","+responseTypeMsg, images)})
 			*debugLog = append(*debugLog, map[string]string{`type`: `library`, `content`: common.EmbTextImages(one[`content`], images)})
 		} else {
-			messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: "question: " + one[`question`] + "\nanswer: " + common.EmbTextImages(one[`answer`], images)})
+			messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: "question: " + one[`question`] + "," + responseTypeMsg + "\nanswer: " + common.EmbTextImages(one[`answer`]+responseTypeMsg, images)})
 			*debugLog = append(*debugLog, map[string]string{`type`: `library`, `content`: "question: " + one[`question`] + "\nanswer: " + common.EmbTextImages(one[`answer`], images)})
 		}
 	}
@@ -682,7 +683,7 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 	}
 
 	//part4:cur_question
-	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: params.Question})
+	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: params.Question + "," + responseTypeMsg})
 	*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
 
 	return messages, list, nil
@@ -692,7 +693,6 @@ func buildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 	// Add a parameter if you need to clarify the distinction
 	responseTypeMsg := buildChatResponseType(cast.ToInt(params.Robot["show_type"]), params.Lang)
 	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: responseTypeMsg})
-	*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: responseTypeMsg})
 	contextList := buildChatContextPair(params.Openid, cast.ToInt(params.Robot[`id`]),
 		dialogueId, int(curMsgId), cast.ToInt(params.Robot[`context_pair`]))
 	for i := range contextList {
@@ -700,8 +700,7 @@ func buildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})
 		*debugLog = append(*debugLog, map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]})
 	}
-
-	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: params.Question})
+	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: params.Question + "," + responseTypeMsg})
 	*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
 	return messages, []msql.Params{}, nil
 }

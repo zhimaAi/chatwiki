@@ -5,14 +5,14 @@ package define
 const VectorDimension = 2000
 
 const (
-	FileStatusInitial        = 0
-	FileStatusWaitSplit      = 4
 	FileStatusWaitCrawl      = 5
 	FileStatusCrawling       = 6
 	FileStatusCrawlException = 7
+	FileStatusInitial        = 0
+	FileStatusException      = 3
+	FileStatusWaitSplit      = 4
 	FileStatusLearning       = 1
 	FileStatusLearned        = 2
-	FileStatusException      = 3
 )
 
 const (

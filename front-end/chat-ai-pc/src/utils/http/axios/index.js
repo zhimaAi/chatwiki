@@ -13,7 +13,7 @@ const request = (option) => {
   const defaultHeaders = {
     'Content-Type': CONTENT_TYPE,
     'X-Requested-With': 'XMLHttpRequest',
-    'app_type': 'yun_pc',
+    'App-Type': 'yun_pc',
     lang: currentLocale.lang,
     ...headers
   }

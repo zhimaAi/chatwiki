@@ -552,15 +552,9 @@ const saveForm = () => {
   createLibrary(formData)
     .then((res) => {
       message.success('创建成功')
-      let path = '/library/document-segmentation'
+      let path = '/library/details/knowledge-document'
       let query = {
-        document_id: res.data.file_ids[0]
-      }
-      if (formState.doc_type == 3) {
-        path = '/library/preview'
-        query = {
-          id: res.data.file_ids[0]
-        }
+        id: res.data.id
       }
       router.replace({
         path,

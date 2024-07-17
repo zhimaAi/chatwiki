@@ -43,6 +43,12 @@
   .demo-box{
     position: relative;
   }
+  iframe{
+    width: 375px;
+    height: 720px;
+    border-radius: 4px;
+    box-shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.16);
+  }
   .preview-img {
     display: block;
     border-radius: 9px;
@@ -141,13 +147,12 @@
         </card-box>
       </div>
       <div class="box-wrapper">
-        <QuickInstruction></QuickInstruction>
+        <QuickInstruction :type="robotInfo.app_id" @updata="updataQuickComand"></QuickInstruction>
       </div>
     </div>
     <div class="box-right">
       <div class="demo-box">
-        <PreviewCommand></PreviewCommand>
-        <img class="preview-img" src="@/assets/img/web_app_demo.png" alt="" />
+        <iframe id="mobile-preview" :src="previewIframeSrc" frameborder="0"></iframe>
       </div>
     </div>
   </div>
@@ -155,7 +160,7 @@
 
 <script setup>
 import QRCode from 'qrcode'
-import { ref, reactive, toRaw } from 'vue'
+import { ref, reactive, toRaw, watch, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { storeToRefs } from 'pinia'
 import { copyText } from '@/utils/index'
@@ -181,6 +186,26 @@ const formState = reactive({
   lang: external_config_h5.value.lang,
   pageStyle: external_config_h5.value.pageStyle
 })
+
+const previewIframeSrc = computed(()=>{
+  return h5_website
+})
+watch(formState,(val)=>{
+  updatePreview(val)
+})
+const updataQuickComand = (data) =>{
+  updatePreview(data, 'updataQuickComand')
+}
+const updatePreview = (data, type) =>{
+  let iframe = document.getElementById('mobile-preview');
+  iframe.contentWindow.postMessage(
+    {
+      type: type || 'onPreview',
+      data: JSON.parse(JSON.stringify(data)),
+    },
+    '*'
+  );
+}
 
 const formRules = {
   lang: [

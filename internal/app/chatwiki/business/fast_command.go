@@ -15,6 +15,7 @@ import (
 type GetFastCommandListReq struct {
 	RobotKey string `form:"robot_key" json:"robot_key" binding:"required"`
 	OpenId   string `form:"open_id" json:"open_id"`
+	AppId    int    `form:"app_id,default=-1" json:"app_id,default=-1" binding:"oneof=-1 -2"`
 }
 
 func GetFastCommandList(c *gin.Context) {
@@ -41,7 +42,7 @@ func GetFastCommandList(c *gin.Context) {
 		common.FmtError(c, `no_data`)
 		return
 	}
-	data, err := msql.Model(define.TableFastCommand, define.Postgres).Where("robot_id", cast.ToString(robot["id"])).Order("sort asc,id desc").Select()
+	data, err := msql.Model(define.TableFastCommand, define.Postgres).Where("robot_id", cast.ToString(robot["id"])).Where("app_id", cast.ToString(req.AppId)).Order("sort asc,id desc").Select()
 	if err != nil {
 		logs.Error(err.Error())
 		common.FmtError(c, `sys_err`)

@@ -4,22 +4,22 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
-	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/spf13/cast"
 	"github.com/syyongx/php2go"
 	"github.com/tmc/langchaingo/textsplitter"
 	"github.com/zhimaAi/go_tools/curl"
+	"github.com/zhimaAi/go_tools/msql"
 	"net/http"
+	"path/filepath"
 	"regexp"
 	"strings"
-	"time"
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/go-redis/redis/v8"
 	strip "github.com/grokify/html-strip-tags-go"
 	"github.com/xuri/excelize/v2"
 	"github.com/zhimaAi/go_tools/logs"
@@ -44,18 +44,31 @@ func MultDocSplit(split textsplitter.TextSplitter, items []define.DocSplitItem) 
 	return list
 }
 
-func GetEmbedHtmlContent(fileUrl string, fileExt string) (string, error) {
-	cacheKey := "embed_html_url:" + fileUrl + fileExt
-	content, err := define.Redis.Get(context.Background(), cacheKey).Result()
-	if err == nil && len(content) > 0 {
-		return content, nil
+func ConvertAndReadHtmlContent(fileId int, fileUrl string, userId int) ([]define.DocSplitItem, int, error) {
+	htmlUrl, err := ConvertHtml(fileUrl, userId)
+	if err != nil {
+		return nil, 0, err
 	}
 
+	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
+		`html_url`:    htmlUrl,
+		`status`:      define.FileStatusWaitSplit,
+		`update_time`: tool.Time2Int(),
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return ReadHtmlContent(htmlUrl, userId)
+}
+
+func ConvertHtml(link string, userId int) (string, error) {
+	ext := strings.ToLower(strings.TrimLeft(filepath.Ext(link), `.`))
 	request := curl.Post(define.Config.WebService[`converter`]+`/convert`).
-		PostFile(`file`, GetFileByLink(fileUrl)).
-		Param(`from_format`, fileExt).
+		PostFile(`file`, GetFileByLink(link)).
+		Param(`from_format`, ext).
 		Param(`to_format`, `html`)
-	content, err = request.String()
+	content, err := request.String()
 	if err != nil {
 		return ``, err
 	}
@@ -66,16 +79,21 @@ func GetEmbedHtmlContent(fileUrl string, fileExt string) (string, error) {
 	if resp.StatusCode != http.StatusOK {
 		return ``, errors.New(content)
 	}
-
-	_, err = define.Redis.Set(context.Background(), cacheKey, content, 10*time.Minute).Result()
-	if err != nil && !errors.Is(err, redis.Nil) {
-		logs.Error(err.Error())
+	objectKey := fmt.Sprintf(`chat_ai/%d/%s/%s/%s.html`, userId,
+		`convert`, tool.Date(`Ym`), tool.MD5(content))
+	url, err := WriteFileByString(objectKey, content)
+	if err != nil {
+		return ``, err
 	}
-
-	return content, nil
+	return url, nil
 }
 
-func ReadEmbedHtmlContent(content string, userId int) ([]define.DocSplitItem, int, error) {
+func ReadHtmlContent(htmlUrl string, userId int) ([]define.DocSplitItem, int, error) {
+	content, err := tool.ReadFile(GetFileByLink(htmlUrl))
+	if err != nil {
+		return nil, 0, err
+	}
+
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(content))
 	if err != nil {
 		return nil, 0, err

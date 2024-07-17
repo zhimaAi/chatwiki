@@ -22,12 +22,19 @@
     }
   }
 
-  .technical-support-text{
+  .fast-command-wrap {
+    position: relative;
+    padding-top: 5px;
+    z-index: 2;
+    background-color: #FFF;
+  }
+
+  .technical-support-text {
     line-height: 20px;
     padding: 4px 0;
     font-size: 12px;
     color: #bfbfbf;
-    text-align: center
+    text-align: center;
   }
 
   .bottom-btn-box {
@@ -115,8 +122,13 @@
           @scrollEnd="onScrollEnd"
           @scroll="onScroll"
         >
-          <template v-for="item in messageList" :key="item.uid">
-            <MessageItem :msg="item" @sendTextMessage="sendTextMessage" />
+          <template v-for="(item, index) in messageList" :key="item.uid">
+            <MessageItem
+              :index="index"
+              :messageLength="messageList.length"
+              :msg="item"
+              @sendTextMessage="sendTextMessage"
+            />
           </template>
         </MessageList>
       </div>
@@ -125,6 +137,9 @@
             <svg-icon name="down-arrow" class="bottom-btn" />
           </div>
       </transition>
+    </div>
+    <div class="fast-command-wrap">
+      <FastComand v-if="isShortcut" @send="handleSetMessageInputValue"></FastComand>
     </div>
     <div class="chat-page-footer">
       <MessageInput v-model:value="message" @send="onSendMesage" :loading="sendLock" />
@@ -136,7 +151,7 @@
 <script setup lang="ts">
 import { DEFAULT_SDK_FLOAT_AVATAR } from '@/constants/index'
 import { postInit } from '@/event/postMessage'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, toRaw, computed } from 'vue'
 import { showToast } from 'vant'
 import { storeToRefs } from 'pinia'
 import { useEventBus } from '@/hooks/event/useEventBus'
@@ -146,7 +161,7 @@ import ChatHeader from './components/chat-header.vue'
 import MessageInput from './components/message-input.vue'
 import MessageList from './components/messages/message-list.vue'
 import MessageItem from './components/messages/message-item.vue'
-import { toRaw } from 'vue'
+import FastComand from './components/fast-comand/index.vue'
 
 type MessageListComponent = {  
   scrollToMessage: (id: number | string) => void;
@@ -159,9 +174,15 @@ const emitter = useEventBus()
 const { on } = useIM()
 const chatStore = useChatStore()
 
-const { sendMessage, onGetChatMessage, $reset } = chatStore
+const { sendMessage, onGetChatMessage, $reset, robot } = chatStore
 
-const { messageList, sendLock, robot} = storeToRefs(chatStore)
+const { messageList, sendLock} = storeToRefs(chatStore)
+
+// const isShortcut = ref(robot.yunpc_fast_command_switch == '1' ? true : false)
+
+const isShortcut = computed(()=>{
+  return robot.yunpc_fast_command_switch == '1' ? true : false
+})
 
 // 允许滚动到底部
 let isAllowedScrollToBottom = true
@@ -230,7 +251,7 @@ const init = async () => {
     handleMessageListScrollToBottom()
   }
   // 通知sdk 初始化完毕
-  SDKInit(toRaw(robot.value))
+  SDKInit(toRaw(robot))
 }
 
 // 发送消息
@@ -246,14 +267,14 @@ const sendTextMessage = (val: string) => {
   })
 }
 
-const onSendMesage = async () => {
-  if (!message.value) {
+const onSendMesage = async (content) => {
+  if (!content) {
     return showToast('请输入消息内容')
   }
 
   isAllowedScrollToBottom = true
 
-  sendTextMessage(message.value)
+  sendTextMessage(content)
 
   message.value = ''
 }
@@ -269,6 +290,16 @@ const onUpdateAiMessage = () => {
 const onOpenWindow = () => {
   handleMessageListScrollToBottom()
 } 
+
+// const messageInputRef = ref<InstanceType<typeof MessageInput> | null>(null);  
+const handleSetMessageInputValue = (data: any) => {
+  // if(messageInputRef.value){
+    // 直接发出内容
+    onSendMesage(data)
+    // messageInputRef.value.handleSetValue(data)
+  // }
+ 
+}
 
 onMounted(() => {
   init()

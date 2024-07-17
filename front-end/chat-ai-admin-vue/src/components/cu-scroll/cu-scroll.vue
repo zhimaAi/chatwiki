@@ -4,7 +4,8 @@
   height: 100%;
   overflow: hidden;
 
-  .scroll-content {}
+  .scroll-content {
+  }
 }
 </style>
 <template>
@@ -57,6 +58,19 @@ const refresh = () => {
   scrollController.refresh()
 }
 
+const scrollToElement = (option) => {
+  let { el, time, offsetX, offsetY, easing } = option
+  /**
+   * scrollToElement(el, time, offsetX, offsetY, easing)
+   * {DOM | string} el 滚动到的目标元素, 如果是字符串，则内部会尝试调用 querySelector 转换成 DOM 对象。
+   * {number} time 滚动动画执行的时长（单位 ms）
+   * {number | boolean} offsetX 相对于目标元素的横轴偏移量，如果设置为 true，则滚到目标元素的中心位置
+   * {number | boolean} offsetY 相对于目标元素的纵轴偏移量，如果设置为 true，则滚到目标元素的中心位置
+   * {Object} easing 缓动函数，一般不建议修改，如果想修改，参考源码中的 packages/shared-utils/src/ease.ts 里的写法
+   */
+  scrollController.scrollToElement(el, time, offsetX, offsetY, easing)
+}
+
 onMounted(() => {
   scrollController = new BScroll(scroller.value, {
     scrollX: props.scrollX,
@@ -86,6 +100,7 @@ onMounted(() => {
 })
 
 defineExpose({
-  refresh
+  refresh,
+  scrollToElement
 })
 </script>

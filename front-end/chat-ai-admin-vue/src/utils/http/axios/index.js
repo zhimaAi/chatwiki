@@ -13,7 +13,7 @@ const request = (option) => {
   const defaultHeaders = {
     'Content-Type': CONTENT_TYPE,
     'X-Requested-With': 'XMLHttpRequest',
-    app_type: '',
+    'App-Type': '',
     lang: currentLocale.lang,
     ...headers
   }

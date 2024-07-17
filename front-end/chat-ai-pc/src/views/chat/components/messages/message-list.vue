@@ -4,6 +4,31 @@
     overflow-y: auto;
     overflow-x: hidden;
 }
+
+/* 滚动条样式 */
+.message-list::-webkit-scrollbar {
+    width: 4px; /*  设置纵轴（y轴）轴滚动条 */
+    height: 4px; /*  设置横轴（x轴）轴滚动条 */
+}
+/* 滚动条滑块（里面小方块） */
+.message-list::-webkit-scrollbar-thumb {
+    cursor: pointer;
+    border-radius: 0px;
+    background: transparent;
+}
+/* 滚动条轨道 */
+.message-list::-webkit-scrollbar-track {
+    border-radius: 0;
+    background: transparent;
+}
+
+/* hover时显色 */
+.message-list:hover::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.2);
+}
+.message-list:hover::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.1);
+}
 </style>
 
 <template>

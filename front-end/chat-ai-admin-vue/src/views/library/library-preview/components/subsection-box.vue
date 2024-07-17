@@ -158,4 +158,18 @@ defineExpose({ handleOpenEditModal })
     }
   }
 }
+@keyframes flash-border {
+  0%,
+  100% {
+    background: transparent;
+  }
+  50% {
+    background: #C8D9F4;
+  }
+}
+
+.flash-border {
+  background: #C8D9F4;
+  animation: flash-border 1s infinite; /* 持续时间1秒，无限次重复 */
+}
 </style>

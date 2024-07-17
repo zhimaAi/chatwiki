@@ -36,3 +36,7 @@ export const getChatMessage = (data) => {
 export const getAnswerSource = (params) => {
   return request.get({ url: '/manage/getAnswerSource', params })
 }
+
+export const getFastCommandList = (params) => {
+  return request.get({ url: '/chat/getFastCommandList', params })
+}

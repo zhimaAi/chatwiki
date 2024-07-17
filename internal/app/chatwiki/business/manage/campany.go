@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/middlewares"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -32,7 +33,7 @@ func SaveCompany(c *gin.Context) {
 	// login user
 	user := GetLoginUserInfo(c)
 	if user == nil {
-		common.FmtError(c, `user_no_login`)
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 	data := msql.Datas{

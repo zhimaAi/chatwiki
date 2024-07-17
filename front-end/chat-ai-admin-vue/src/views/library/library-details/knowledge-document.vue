@@ -88,7 +88,7 @@
             </template>
             <template v-if="column.key === 'status'">
               <span class="status-tag status-queuing" v-if="record.status == 0"
-                ><a-spin size="small" /> 排队中</span
+                ><a-spin size="small" /> 转换中</span
               >
               <span class="status-tag status-learning" v-if="record.status == 1"
                 ><a-spin size="small" /> 学习中</span
@@ -138,7 +138,7 @@
             <template v-if="column.key === 'action'">
               <span>
                 <a-button
-                  :disabled="record.status == 6 || record.status == 7"
+                  :disabled="record.status == 6 || record.status == 7 || record.status == 0"
                   @click="handlePreview(record)"
                   class="padding-0"
                   type="link"
@@ -200,7 +200,7 @@
         </a-form-item>
       </a-form>
     </a-modal>
-    <AddCustomDocument ref="addCustomDocumentRef"></AddCustomDocument>
+    <AddCustomDocument @ok="onSearch" ref="addCustomDocumentRef"></AddCustomDocument>
   </div>
 </template>
 
@@ -350,7 +350,7 @@ const handlePreview = (record) => {
     return message.error('学习失败,不可预览')
   }
   if (record.status == '0') {
-    return message.error('排队中,稍候可预览')
+    return message.error('转换中,稍候可预览')
   }
   if (record.status == '6') {
     return message.error('获取中,不可预览')
@@ -371,7 +371,7 @@ const getData = () => {
     queryParams.total = res.data.total
     let needRefresh = false
     fileList.value = list.map((item) => {
-      if (['1', '6'].includes(item.status)) {
+      if (['1', '6', '0', '5'].includes(item.status)) {
         needRefresh = true
       }
       item.file_size_str = formatFileSize(item.file_size)
@@ -516,8 +516,7 @@ const handleSaveFiles = () => {
       addFileState.open = false
       addFileState.fileList = []
       addFileState.confirmLoading = false
-
-      router.push('/library/document-segmentation?document_id=' + res.data.file_ids[0])
+      onSearch()
     })
     .catch(() => {
       addFileState.confirmLoading = false

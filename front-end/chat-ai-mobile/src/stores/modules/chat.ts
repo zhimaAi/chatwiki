@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { sendAiMessage, chatWelcome, getDialogueList, getChatMessage, questionGuide } from '@/api/chat'
+import { sendAiMessage, chatWelcome, getDialogueList, getChatMessage, questionGuide, getFastCommandList } from '@/api/chat'
 import { editPrompt } from '@/api/robot/index'
 import { getUuid, getOpenid } from '@/utils/index'
 import { useEventBus } from '@/hooks/event/useEventBus'
@@ -53,7 +53,10 @@ export interface Robot {
   welcomes: Welcome,
   enable_question_guide: boolean,
   enable_common_question: boolean,
-  common_question_list: any | string[]
+  common_question_list: any | string[],
+  comand_list: any | string[],
+  app_id: number,
+  is_sending: boolean,
 }
 
 export interface PageStyle {
@@ -103,6 +106,9 @@ export const useChatStore = defineStore('chat', () => {
     enable_question_guide: false,
     common_question_list: [],
     enable_common_question: false,
+    comand_list: [],
+    app_id: -1, // webapp:-1,嵌入网站:-2
+    is_sending: false, // 是否在发送中
   })
 
   // 样式配置
@@ -217,7 +223,6 @@ export const useChatStore = defineStore('chat', () => {
     if (import.meta.env.DEV) {
       msg.dialogue_id = dialogue_id.value
     }
-
     if (msg && msg.dialogue_id == dialogue_id.value) {
       msg.uid = getUuid(32)
       msg.loading = false
@@ -319,7 +324,6 @@ export const useChatStore = defineStore('chat', () => {
       // 猜你想问 常见问题的tabkey  1为 猜你想问 2为 常见问题
       messageList.value[msgIndex].question_tabkey = content;
     }
-
     emitter.emit('updateAiMessage', messageList.value[msgIndex])
   }
 
@@ -367,6 +371,7 @@ export const useChatStore = defineStore('chat', () => {
       if (import.meta.env.MODE !== 'production') {
         console.log(res)
       }
+      robot.is_sending = true;
       // 更新对话id
       if (res.event == 'dialogue_id') {
         dialogue_id.value = res.data
@@ -416,6 +421,7 @@ export const useChatStore = defineStore('chat', () => {
         updateAiMessage('debug', data, aiMsg.uid)
       }
       if (res.event == 'finish') {
+        robot.is_sending = false;
         if (robot.enable_question_guide) {
           // 相关问题开关开启了
           questionGuide({
@@ -573,6 +579,28 @@ export const useChatStore = defineStore('chat', () => {
     })
   }
 
+  const getFastCommand = () => {
+    getFastCommandList({
+      robot_key: robot.robot_key,
+      openid: robot.openid,
+      app_id: robot.app_id
+    }).then(res => {
+      robot.comand_list = res.data;
+    })
+  }
+
+  // 更新预览 ui
+  const upDataUiStyle = (data) => {
+    Object.assign(externalConfigH5, data)
+  }
+
+  const updataQuickComand = (data) => {
+   // 更新快捷指令
+    robot.comand_list = data.comand_list || [];
+    robot.fast_command_switch = data.fast_command_switch
+  }
+
+
   function $reset() {
     // 关闭im
     im.close()
@@ -628,6 +656,9 @@ export const useChatStore = defineStore('chat', () => {
     onGetChatMessage,
     changeRobotPrompt,
     saveRobotPrompt,
-    externalConfigH5
+    externalConfigH5,
+    upDataUiStyle,
+    getFastCommand,
+    updataQuickComand,
   }
 })

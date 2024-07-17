@@ -125,8 +125,13 @@
           @scrollEnd="onScrollEnd"
           @scroll="onScroll"
         >
-          <template v-for="item in messageList" :key="item.uid">
-            <MessageItem :msg="item" @sendTextMessage="sendTextMessage" />
+          <template v-for="(item, index) in messageList" :key="item.uid">
+            <MessageItem
+              :index="index"
+              :messageLength="messageList.length"
+              :msg="item"
+              @sendTextMessage="sendTextMessage"
+            />
           </template>
         </MessageList>
       </div>
@@ -147,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { showToast } from 'vant'
 import { storeToRefs } from 'pinia'
 import { useEventBus } from '@/hooks/event/useEventBus'
@@ -174,7 +179,10 @@ const { sendMessage, onGetChatMessage, $reset, robot } = chatStore
 
 const { messageList, sendLock, externalConfigH5 } = storeToRefs(chatStore)
 
-const isShortcut = ref(robot.fast_command_switch == '1' ? true : false)
+
+const isShortcut = computed(()=>{
+  return robot.fast_command_switch == '1' ? true : false
+})
 
 // 允许滚动到底部
 let isAllowedScrollToBottom = true

@@ -198,7 +198,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, toRaw, createVNode } from 'vue'
+import { ref, reactive, toRaw, createVNode, watch } from 'vue'
 import { Form, message, Modal } from 'ant-design-vue'
 import CardBox from './card-box.vue'
 import { isValidURL } from '@/utils/validate.js'
@@ -219,14 +219,30 @@ import {
   sortFastCommand
 } from '@/api/robot/index'
 import { useRoute } from 'vue-router'
+const props = defineProps({
+  type: {
+    type: Number,
+    default: void 0
+  }
+})
+const emit = defineEmits(['updata'])
 const route = useRoute()
 const robotStore = useRobotStore()
 const { robotInfo } = storeToRefs(robotStore)
+const { getRobot } = robotStore
+
 const quickLists = ref([])
-const fastCommandSwitch = ref(parseInt(robotInfo.value.fast_command_switch) || 0)
+const fastCommandSwitch = ref(parseInt(props.type == -1 ? robotInfo.value.fast_command_switch : robotInfo.value.yunpc_fast_command_switch) || 0)
+watch(quickLists, (val) => {
+  emit('updata', {
+    comand_list: val,
+    fast_command_switch: fastCommandSwitch.value,
+  })
+})
 const getLists = () => {
   getFastCommandList({
-    robot_key: robotInfo.value.robot_key
+    robot_key: robotInfo.value.robot_key,
+    app_id: props.type
   }).then((res) => {
     quickLists.value = res.data || []
     robotStore.setQuickCommand(res.data)
@@ -238,6 +254,7 @@ const show = ref(false)
 const modalTitle = ref('添加快捷指令')
 const formState = reactive({
   robot_id: route.query.id,
+  app_id: props.type,
   title: '',
   typ: 1,
   content: '',
@@ -246,10 +263,17 @@ const formState = reactive({
 
 const handleChangeShortcutSwitch = (val) => {
   // 发送请求
+  const { id } = robotInfo.value
   updateFastCommandSwitch({
-    robot_key: robotInfo.value.robot_key
+    robot_key: robotInfo.value.robot_key,
+    app_id: props.type
   }).then((res) => {
     fastCommandSwitch.value = val
+    emit('updata', {
+      comand_list: quickLists.value,
+      fast_command_switch: fastCommandSwitch.value,
+    })
+    getRobot(id)
     message.success(`修改成功`)
   }).catch((err) => {
     // 失败后回到原状态

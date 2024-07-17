@@ -53,7 +53,7 @@ func GetLibFileList(c *gin.Context) {
 	if len(fileName) > 0 {
 		m.Where(`file_name`, `like`, fileName)
 	}
-	list, total, err := m.Field(`id,file_name,status,errmsg,file_ext,file_size,file_url,pdf_url,doc_url,remark,doc_auto_renew_frequency,doc_type,doc_last_renew_time,create_time`).
+	list, total, err := m.Field(`id,file_name,status,errmsg,file_ext,file_size,file_url,html_url,doc_url,remark,doc_auto_renew_frequency,doc_type,doc_last_renew_time,create_time`).
 		Order(`id desc`).Paginate(page, size)
 	if err != nil {
 		logs.Error(err.Error())
@@ -173,7 +173,7 @@ func addLibFile(c *gin.Context, userId, libraryId int) ([]int64, error) {
 		}
 		if uploadInfo.Custom {
 			insData[`status`] = define.FileStatusLearned
-			insData[`pdf_url`] = insData[`file_url`]
+			insData[`html_url`] = insData[`file_url`]
 			insData[`is_qa_doc`] = isQaDoc
 			if qaIndexType != 0 {
 				insData[`qa_index_type`] = qaIndexType
@@ -186,10 +186,10 @@ func addLibFile(c *gin.Context, userId, libraryId int) ([]int64, error) {
 			logs.Error(err.Error())
 		} else {
 			fileIds = append(fileIds, fileId)
-			if !isTableFile && !uploadInfo.Custom { //async task:convert pdf
+			if !isTableFile && !uploadInfo.Custom { //async task:convert html
 				if message, err := tool.JsonEncode(map[string]any{`file_id`: fileId, `file_url`: uploadInfo.Link}); err != nil {
 					logs.Error(err.Error())
-				} else if err := common.AddJobs(define.ConvertPdfTopic, message); err != nil {
+				} else if err := common.AddJobs(define.ConvertHtmlTopic, message); err != nil {
 					logs.Error(err.Error())
 				}
 			}
@@ -353,12 +353,11 @@ func GetLibFileSplit(c *gin.Context) {
 	} else if cast.ToInt(info[`is_table_file`]) == define.FileIsTable && splitParams.IsQaDoc != define.DocTypeQa {
 		list, wordTotal, err = common.ReadTab(info[`file_url`], info[`file_ext`])
 	} else {
-		embedHtmlContent, err := common.GetEmbedHtmlContent(info[`file_url`], info[`file_ext`])
-		if err != nil {
-			logs.Error(err.Error())
-			return
+		if len(info[`html_url`]) == 0 { //compatible with old data
+			list, wordTotal, err = common.ConvertAndReadHtmlContent(cast.ToInt(info[`id`]), info[`file_url`], userId)
+		} else {
+			list, wordTotal, err = common.ReadHtmlContent(info[`html_url`], userId)
 		}
-		list, wordTotal, err = common.ReadEmbedHtmlContent(embedHtmlContent, userId)
 	}
 
 	if err != nil {

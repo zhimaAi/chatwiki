@@ -66,10 +66,23 @@ onMounted(() => {
     }
   })
 
-  pickr.on('save', (color) => {
+  pickr.on('save', (color, instance) => {
     let val = color.toHEXA().toString()
     emit('update:value', val)
     emit('change', val)
+    instance.hide() // 保存后关闭浮窗
+  })
+  pickr.on('show', () => {
+    // 将按钮变成保存
+    const saveButtonLists = document.querySelectorAll('.pcr-save')
+    if (saveButtonLists && saveButtonLists.length) {
+      saveButtonLists.forEach(function (element) {
+        if (element.tagName.toLowerCase() === 'input') {
+          // 都是input标签
+          element.value = '保存' // 将value设置为'保存'
+        }
+      })
+    }
   })
 })
 </script>
