@@ -22,6 +22,16 @@ export const getChatMessage = (data) => {
   return request.post({ url: '/chat/message', data })
 }
 
+// 获取会话记录列表
+export const getSessionRecordList = (params) => {
+  return request.get({ url: '/manage/getSessionRecordList', params })
+}
+
+// 获取会话来源列表
+export const getSessionChannelList = (data) => {
+  return request.get({ url: '/manage/getSessionChannelList', data })
+}
+
 // 获取答案来源
 export const getAnswerSource = (params) => {
   return request.get({ url: '/manage/getAnswerSource', params })

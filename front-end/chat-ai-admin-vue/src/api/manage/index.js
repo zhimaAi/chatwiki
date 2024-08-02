@@ -16,6 +16,46 @@ export const getUserList = (params = {}) => {
   })
 }
 
+export const getTokenStats = (params = {}) => {
+  // 获取模型的Token使用
+  return request.get({
+    url: '/manage/stats/token',
+    params: params
+  })
+}
+
+export const getFeedbackList = (params = {}) => {
+  // 后台反馈列表
+  return request.get({
+    url: '/manage/feedback/list',
+    params: params
+  })
+}
+
+export const getFeedbackDetail = (params = {}) => {
+  // 后台反馈详情
+  return request.get({
+    url: '/manage/feedback/detail',
+    params: params
+  })
+}
+
+export const getFeedbackStats = (params = {}) => {
+  // 后台反馈统计
+  return request.get({
+    url: '/manage/feedback/stats',
+    params: params
+  })
+}
+
+export const getAnalyse = (params = {}) => {
+  // 获取统计分析
+  return request.get({
+    url: '/manage/stats/analyse',
+    params: params
+  })
+}
+
 export const saveUser = (data = {}) => {
   // 添加成员
   return request.post({

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-shiori/go-readability"
+	"github.com/zhimaAi/go_tools/curl"
 	"github.com/zhimaAi/go_tools/tool"
 	"io"
 	"mime/multipart"
@@ -86,13 +87,16 @@ func SaveUrlPage(userId int, url, saveDir string) (*define.UploadInfo, error) {
 	}
 
 	// request crawler
-	resp, err := common.HttpPost(define.Config.WebService[`crawler`]+"/content", nil, nil, map[string]interface{}{"url": url})
+	body, _ := json.Marshal(map[string]interface{}{"url": url})
+	req := curl.Post(define.Config.WebService[`crawler`] + "/content").Body(body)
+	resp, err := req.Response()
 	if err != nil {
 		return nil, err
 	}
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
 	}(resp.Body)
+
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusBadRequest {
 		var errResp map[string]string
 		if err := json.NewDecoder(resp.Body).Decode(&errResp); err != nil {

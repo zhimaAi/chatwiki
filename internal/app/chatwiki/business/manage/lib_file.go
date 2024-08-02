@@ -10,19 +10,15 @@ import (
 	"chatwiki/internal/pkg/lib_web"
 	"encoding/json"
 	"errors"
-	"github.com/syyongx/php2go"
-	"github.com/tmc/langchaingo/textsplitter"
-	"net/http"
-	"net/url"
-	"strings"
-	"time"
-	"unicode/utf8"
-
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
+	"github.com/syyongx/php2go"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+	"net/http"
+	"net/url"
+	"strings"
 )
 
 func GetLibFileList(c *gin.Context) {
@@ -47,14 +43,18 @@ func GetLibFileList(c *gin.Context) {
 	}
 	page := max(1, cast.ToInt(c.Query(`page`)))
 	size := max(1, cast.ToInt(c.Query(`size`)))
-	m := msql.Model(`chat_ai_library_file`, define.Postgres)
-	m.Where(`admin_user_id`, cast.ToString(userId)).Where(`library_id`, cast.ToString(libraryId))
+	m := msql.Model(`chat_ai_library_file`, define.Postgres).
+		Alias(`f`).
+		Join(`chat_ai_library_file_data d`, `f.id=d.file_id`, `left`).
+		Where(`f.admin_user_id`, cast.ToString(userId)).
+		Where(`f.library_id`, cast.ToString(libraryId)).
+		Group(`f.id`).
+		Field(`f.*, count(d.id) as paragraph_count`)
 	fileName := strings.TrimSpace(c.Query(`file_name`))
 	if len(fileName) > 0 {
 		m.Where(`file_name`, `like`, fileName)
 	}
-	list, total, err := m.Field(`id,file_name,status,errmsg,file_ext,file_size,file_url,html_url,doc_url,remark,doc_auto_renew_frequency,doc_type,doc_last_renew_time,create_time`).
-		Order(`id desc`).Paginate(page, size)
+	list, total, err := m.Order(`id desc`).Paginate(page, size)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -158,18 +158,22 @@ func addLibFile(c *gin.Context, userId, libraryId int) ([]int64, error) {
 			status = define.FileStatusWaitSplit
 		}
 		insData := msql.Datas{
-			`admin_user_id`: userId,
-			`library_id`:    libraryId,
-			`file_url`:      uploadInfo.Link,
-			`file_name`:     uploadInfo.Name,
-			`status`:        status,
-			`file_ext`:      uploadInfo.Ext,
-			`file_size`:     uploadInfo.Size,
-			`create_time`:   tool.Time2Int(),
-			`update_time`:   tool.Time2Int(),
-			`is_table_file`: cast.ToInt(isTableFile),
-			`doc_type`:      uploadInfo.GetDocType(),
-			`doc_url`:       uploadInfo.DocUrl,
+			`admin_user_id`:        userId,
+			`library_id`:           libraryId,
+			`file_url`:             uploadInfo.Link,
+			`file_name`:            uploadInfo.Name,
+			`status`:               status,
+			`chunk_size`:           512,
+			`chunk_overlap`:        0,
+			`separators_no`:        `11,12`,
+			`enable_extract_image`: true,
+			`file_ext`:             uploadInfo.Ext,
+			`file_size`:            uploadInfo.Size,
+			`create_time`:          tool.Time2Int(),
+			`update_time`:          tool.Time2Int(),
+			`is_table_file`:        cast.ToInt(isTableFile),
+			`doc_type`:             uploadInfo.GetDocType(),
+			`doc_url`:              uploadInfo.DocUrl,
 		}
 		if uploadInfo.Custom {
 			insData[`status`] = define.FileStatusLearned
@@ -284,9 +288,20 @@ func GetLibFileInfo(c *gin.Context) {
 		return
 	}
 	if len(info) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `file_deleted`))))
+		return
+	}
+	library, err := msql.Model(`chat_ai_library`, define.Postgres).Where(`id`, info[`library_id`]).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(library) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
+	info[`library_name`] = library[`library_name`]
 
 	var separators []string
 	for _, noStr := range strings.Split(info[`separators_no`], `,`) {
@@ -319,81 +334,29 @@ func GetLibFileSplit(c *gin.Context) {
 	if userId = GetAdminUserId(c); userId == 0 {
 		return
 	}
-	id := cast.ToInt(c.Query(`id`))
-	if id <= 0 {
+	fileId := cast.ToInt(c.Query(`id`))
+	if fileId <= 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	info, err := common.GetLibFileInfo(id, userId)
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
+	splitParams := define.SplitParams{
+		IsDiySplit:         cast.ToInt(c.Query(`is_diy_split`)),
+		SeparatorsNo:       strings.TrimSpace(c.Query(`separators_no`)),
+		Separators:         make([]string, 0),
+		ChunkSize:          cast.ToInt(c.Query(`chunk_size`)),
+		ChunkOverlap:       cast.ToInt(c.Query(`chunk_overlap`)),
+		IsQaDoc:            cast.ToInt(c.Query(`is_qa_doc`)),
+		QuestionLable:      strings.TrimSpace(c.Query(`question_lable`)),
+		AnswerLable:        strings.TrimSpace(c.Query(`answer_lable`)),
+		QuestionColumn:     strings.TrimSpace(c.Query(`question_column`)),
+		AnswerColumn:       strings.TrimSpace(c.Query(`answer_column`)),
+		EnableExtractImage: cast.ToBool(c.Query(`enable_extract_image`)),
 	}
-	if len(info) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-		return
-	}
-	if cast.ToInt(info[`status`]) != define.FileStatusWaitSplit {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `status_exception`))))
-		return
-	}
-	//check params
-	splitParams, err := common.CheckSplitParams(c, cast.ToInt(info[`is_table_file`]))
-	if err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
-		return
-	}
-	//read document content
-	var list []define.DocSplitItem
-	var wordTotal = 0
-
-	if cast.ToInt(info[`is_table_file`]) == define.FileIsTable && splitParams.IsQaDoc == define.DocTypeQa {
-		list, wordTotal, err = common.ReadQaTab(info[`file_url`], info[`file_ext`], splitParams)
-	} else if cast.ToInt(info[`is_table_file`]) == define.FileIsTable && splitParams.IsQaDoc != define.DocTypeQa {
-		list, wordTotal, err = common.ReadTab(info[`file_url`], info[`file_ext`])
-	} else {
-		if len(info[`html_url`]) == 0 { //compatible with old data
-			list, wordTotal, err = common.ConvertAndReadHtmlContent(cast.ToInt(info[`id`]), info[`file_url`], userId)
-		} else {
-			list, wordTotal, err = common.ReadHtmlContent(info[`html_url`], userId)
-		}
-	}
-
+	list, wordTotal, err := common.GetLibFileSplit(userId, fileId, splitParams, common.GetLang(c))
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
-	}
-	if len(list) == 0 || wordTotal == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `doc_empty`))))
-		return
-	}
-
-	//initialize RecursiveCharacter
-	split := textsplitter.NewRecursiveCharacter()
-
-	if splitParams.IsDiySplit == define.SplitTypeDiy {
-		split.Separators = append(splitParams.Separators, split.Separators...)
-		split.ChunkSize = splitParams.ChunkSize
-		split.ChunkOverlap = splitParams.ChunkOverlap
-	}
-	// split by document type
-	if splitParams.IsQaDoc == define.DocTypeQa {
-		if cast.ToInt(info[`is_table_file`]) != define.FileIsTable {
-			list = common.QaDocSplit(splitParams, list)
-		}
-	} else {
-		list = common.MultDocSplit(split, list)
-	}
-
-	for i := range list {
-		list[i].Number = i + 1 //serial number
-		if splitParams.IsQaDoc == define.DocTypeQa {
-			list[i].WordTotal = utf8.RuneCountInString(list[i].Question) + utf8.RuneCountInString(list[i].Answer)
-		} else {
-			list[i].WordTotal = utf8.RuneCountInString(list[i].Content)
-		}
 	}
 	data := map[string]any{`split_params`: splitParams, `list`: list, `word_total`: wordTotal}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
@@ -412,6 +375,13 @@ func SaveLibFileSplit(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `split_params`))))
 		return
 	}
+	list, wordTotal, err := common.GetLibFileSplit(userId, fileId, splitParams, common.GetLang(c))
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+
 	if err := tool.JsonDecodeUseNumber(c.PostForm(`list`), &list); err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `list`))))
 		return
@@ -420,234 +390,13 @@ func SaveLibFileSplit(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	info, err := common.GetLibFileInfo(fileId, userId)
+
+	err = common.SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType, splitParams, list, common.GetLang(c))
 	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	if len(info) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-		return
-	}
-	if cast.ToInt(info[`status`]) != define.FileStatusWaitSplit {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `status_exception`))))
-		return
-	}
-	//check params
-	if splitParams.IsQaDoc == define.DocTypeQa { // qa
-		for i := range list {
-			list[i].Number = i + 1 //serial number
-			list[i].WordTotal = utf8.RuneCountInString(list[i].Question + list[i].Answer)
-			if utf8.RuneCountInString(list[i].Question) < 1 || utf8.RuneCountInString(list[i].Question) > define.MaxContent {
-				c.String(http.StatusOK, lib_web.FmtJson(map[string]int{`index`: i + 1}, errors.New(i18n.Show(common.GetLang(c), `length_err`, i+1))))
-				return
-			}
-			if utf8.RuneCountInString(list[i].Answer) < 1 || utf8.RuneCountInString(list[i].Answer) > define.MaxContent {
-				c.String(http.StatusOK, lib_web.FmtJson(map[string]int{`index`: i + 1}, errors.New(i18n.Show(common.GetLang(c), `length_err`, i+1))))
-				return
-			}
-		}
-	} else {
-		for i := range list {
-			list[i].Number = i + 1 //serial number
-			list[i].WordTotal = utf8.RuneCountInString(list[i].Content)
-			if list[i].WordTotal < 1 || list[i].WordTotal > define.MaxContent {
-				c.String(http.StatusOK, lib_web.FmtJson(map[string]int{`index`: i + 1}, errors.New(i18n.Show(common.GetLang(c), `length_err`, i+1))))
-				return
-			}
-		}
-	}
-
-	if splitParams.IsQaDoc == define.DocTypeQa {
-		if qaIndexType != define.QAIndexTypeQuestionAndAnswer && qaIndexType != define.QAIndexTypeQuestion {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `qa_index_type`))))
-			return
-		}
-	}
-
-	//add lock dispose
-	if !lib_redis.AddLock(define.Redis, define.LockPreKey+`SaveLibFileSplit`+cast.ToString(fileId), time.Minute*5) {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `op_lock`))))
-		return
-	}
-	//database dispose
-	m := msql.Model(`chat_ai_library_file`, define.Postgres)
-	err = m.Begin()
-	if err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		lib_redis.UnLock(define.Redis, define.LockPreKey+`SaveLibFileSplit`+cast.ToString(fileId))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 
-	data := msql.Datas{
-		`status`:               define.FileStatusLearning,
-		`errmsg`:               `success`,
-		`word_total`:           wordTotal,
-		`split_total`:          len(list),
-		`is_qa_doc`:            splitParams.IsQaDoc,
-		`is_diy_split`:         splitParams.IsDiySplit,
-		`separators_no`:        splitParams.SeparatorsNo,
-		`chunk_size`:           splitParams.ChunkSize,
-		`chunk_overlap`:        splitParams.ChunkOverlap,
-		`question_lable`:       splitParams.QuestionLable,
-		`answer_lable`:         splitParams.AnswerLable,
-		`question_column`:      splitParams.QuestionColumn,
-		`answer_column`:        splitParams.AnswerColumn,
-		`enable_extract_image`: splitParams.EnableExtractImage,
-		`update_time`:          tool.Time2Int(),
-	}
-	if qaIndexType != 0 {
-		data[`qa_index_type`] = qaIndexType
-	}
-
-	_, err = m.Where(`id`, cast.ToString(fileId)).Update(data)
-	if err != nil {
-		logs.Error(err.Error())
-	}
-	//clear cached data
-	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: fileId})
-
-	//database dispose
-	vm := msql.Model("chat_ai_library_file_data", define.Postgres)
-	var indexIds []int64
-	for i, item := range list {
-		if utf8.RuneCountInString(item.Content) > define.MaxContent || utf8.RuneCountInString(item.Question) > define.MaxContent || utf8.RuneCountInString(item.Answer) > define.MaxContent {
-			_ = m.Rollback()
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `length_err`, i+1))))
-			lib_redis.UnLock(define.Redis, define.LockPreKey+`SaveLibFileSplit`+cast.ToString(fileId))
-			return
-		}
-
-		data := msql.Datas{
-			`admin_user_id`: info[`admin_user_id`],
-			`library_id`:    info[`library_id`],
-			`file_id`:       fileId,
-			`number`:        item.Number,
-			`page_num`:      item.PageNum,
-			`title`:         item.Title,
-			`word_total`:    item.WordTotal,
-			`create_time`:   tool.Time2Int(),
-			`update_time`:   tool.Time2Int(),
-		}
-		if splitParams.IsQaDoc == define.DocTypeQa {
-			if splitParams.IsTableFile == define.FileIsTable {
-				data[`type`] = define.ParagraphTypeExcelQA
-			} else {
-				data[`type`] = define.ParagraphTypeDocQA
-			}
-			data[`question`] = strings.TrimSpace(item.Question)
-			data[`answer`] = strings.TrimSpace(item.Answer)
-			if len(item.Images) > 0 {
-				jsonImages, err := common.CheckLibraryImage(item.Images)
-				if err != nil {
-					_ = m.Rollback()
-					c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `images`))))
-					lib_redis.UnLock(define.Redis, define.LockPreKey+`SaveLibFileSplit`+cast.ToString(fileId))
-					return
-				}
-				data[`images`] = jsonImages
-			}
-			id, err := vm.Insert(data, `id`)
-			if err != nil {
-				logs.Error(err.Error())
-				_ = m.Rollback()
-				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-				lib_redis.UnLock(define.Redis, define.LockPreKey+`SaveLibFileSplit`+cast.ToString(fileId))
-				return
-			}
-			vectorID, err := common.SaveVector(
-				cast.ToInt64(info[`admin_user_id`]),
-				cast.ToInt64(info[`library_id`]),
-				cast.ToInt64(fileId),
-				id,
-				cast.ToString(define.VectorTypeQuestion),
-				strings.TrimSpace(item.Question),
-			)
-			if err != nil {
-				logs.Error(err.Error())
-				_ = m.Rollback()
-				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-				lib_redis.UnLock(define.Redis, define.LockPreKey+`SaveLibFileSplit`+cast.ToString(fileId))
-				return
-			}
-			indexIds = append(indexIds, vectorID)
-			if qaIndexType == define.QAIndexTypeQuestionAndAnswer {
-				vectorID, err = common.SaveVector(
-					cast.ToInt64(info[`admin_user_id`]),
-					cast.ToInt64(info[`library_id`]),
-					cast.ToInt64(fileId),
-					id,
-					cast.ToString(define.VectorTypeAnswer),
-					strings.TrimSpace(item.Answer),
-				)
-				if err != nil {
-					logs.Error(err.Error())
-					_ = m.Rollback()
-					c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-					lib_redis.UnLock(define.Redis, define.LockPreKey+`SaveLibFileSplit`+cast.ToString(fileId))
-					return
-				}
-				indexIds = append(indexIds, vectorID)
-			}
-		} else {
-			data[`type`] = define.ParagraphTypeNormal
-			data[`content`] = strings.TrimSpace(item.Content)
-			if len(item.Images) > 0 {
-				jsonImages, err := common.CheckLibraryImage(item.Images)
-				if err != nil {
-					_ = m.Rollback()
-					c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `images`))))
-					lib_redis.UnLock(define.Redis, define.LockPreKey+`SaveLibFileSplit`+cast.ToString(fileId))
-					return
-				}
-				data[`images`] = jsonImages
-			}
-			id, err := vm.Insert(data, `id`)
-			if err != nil {
-				logs.Error(err.Error())
-				_ = m.Rollback()
-				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-				lib_redis.UnLock(define.Redis, define.LockPreKey+`SaveLibFileSplit`+cast.ToString(fileId))
-				return
-			}
-			vectorID, err := common.SaveVector(
-				cast.ToInt64(info[`admin_user_id`]),
-				cast.ToInt64(info[`library_id`]),
-				cast.ToInt64(fileId),
-				id,
-				cast.ToString(define.VectorTypeParagraph),
-				strings.TrimSpace(item.Content),
-			)
-			if err != nil {
-				logs.Error(err.Error())
-				_ = m.Rollback()
-				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-				lib_redis.UnLock(define.Redis, define.LockPreKey+`SaveLibFileSplit`+cast.ToString(fileId))
-				return
-			}
-			indexIds = append(indexIds, vectorID)
-		}
-	}
-	err = m.Commit()
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		lib_redis.UnLock(define.Redis, define.LockPreKey+`SaveLibFileSplit`+cast.ToString(fileId))
-		return
-	}
-
-	//async task:convert vector
-	for _, id := range indexIds {
-		if message, err := tool.JsonEncode(map[string]any{`id`: id, `file_id`: fileId}); err != nil {
-			logs.Error(err.Error())
-		} else if err := common.AddJobs(define.ConvertVectorTopic, message); err != nil {
-			logs.Error(err.Error())
-		}
-	}
-
-	//unlock dispose
-	lib_redis.UnLock(define.Redis, define.LockPreKey+`SaveLibFileSplit`+cast.ToString(fileId))
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 

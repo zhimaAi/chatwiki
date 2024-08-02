@@ -68,9 +68,10 @@ func fetchURLContent(parsedURL *netURL.URL) (*PageInfo, error) {
 		return nil, fmt.Errorf("could not create page: %v", err)
 	}
 
-	defer func(page *playwright.Page) {
+	defer func(page *playwright.Page, context *playwright.BrowserContext) {
+		_ = (*context).Close()
 		_ = (*page).Close()
-	}(&page)
+	}(&page, &context)
 
 	// navigate to url, with timeout 15s
 	timeout := float64(15000)

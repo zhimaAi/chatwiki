@@ -14,6 +14,8 @@ func (r *TencentStreamResult) Read() (ZhimaChatCompletionResponse, error) {
 		return ZhimaChatCompletionResponse{}, err
 	}
 	return ZhimaChatCompletionResponse{
-		Result: *responseTencent.Choices[0].Delta.Content,
+		Result:          *responseTencent.Choices[0].Delta.Content,
+		PromptToken:     int(*responseTencent.Usage.PromptTokens),
+		CompletionToken: int(*responseTencent.Usage.CompletionTokens),
 	}, nil
 }

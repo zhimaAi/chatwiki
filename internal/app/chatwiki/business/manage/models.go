@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/app/chatwiki/llm/adaptor"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
@@ -95,6 +96,20 @@ func AddModelConfig(c *gin.Context) {
 			data[field] = value
 		}
 	}
+	//configuration test
+	config := msql.Params{}
+	for k, v := range data {
+		if str, ok := v.(string); ok {
+			config[k] = str
+		}
+	}
+	err := configurationTest(config, modelInfo)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `model_configuration_test_err`))))
+		return
+	}
+
 	//database dispose
 	modelId, err := msql.Model(`chat_ai_model_config`, define.Postgres).Insert(data, `id`)
 	if err != nil {
@@ -201,6 +216,7 @@ func EditModelConfig(c *gin.Context) {
 	//database dispose
 	data := msql.Datas{`update_time`: tool.Time2Int()}
 	for _, field := range modelInfo.ConfigParams {
+
 		if field != `model_type` {
 			value := strings.TrimSpace(c.PostForm(field))
 			if len(value) == 0 {
@@ -212,16 +228,27 @@ func EditModelConfig(c *gin.Context) {
 				return
 			}
 			data[field] = value
+			info[field] = value
 		}
 	}
+
+	err = configurationTest(info, modelInfo)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `model_configuration_test_err`))))
+		return
+	}
+
 	_, err = msql.Model(`chat_ai_model_config`, define.Postgres).Where(`id`, cast.ToString(id)).Update(data)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.ModelConfigCacheBuildHandler{ModelConfigId: id})
+
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
@@ -263,4 +290,46 @@ func GetModelConfigOption(c *gin.Context) {
 		}
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
+}
+
+func configurationTest(config msql.Params, modelInfo define.ModelInfo) error {
+	modelInfo, ok := common.GetModelInfoByDefine(config[`model_define`])
+	if !ok {
+		return errors.New(`model define invalid`)
+	}
+
+	if strings.Contains(config[`model_types`], `LLM`) {
+		handler, err := modelInfo.CallHandlerFunc(config, modelInfo.LlmModelList[0])
+		if err != nil {
+			return err
+		}
+		client := &adaptor.Adaptor{}
+		client.Init(handler.Meta)
+
+		var messages []adaptor.ZhimaChatCompletionMessage
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: `configuration test`})
+		req := adaptor.ZhimaChatCompletionRequest{
+			Messages:    messages,
+			MaxToken:    10,
+			Temperature: 0.1,
+		}
+		_, err = client.CreateChatCompletion(req)
+		if err != nil {
+			return err
+		}
+	} else if strings.Contains(config[`model_types`], `TEXT EMBEDDING`) {
+		handler, err := modelInfo.CallHandlerFunc(config, modelInfo.VectorModelList[0])
+		if err != nil {
+			return err
+		}
+		client := &adaptor.Adaptor{}
+		client.Init(handler.Meta)
+
+		req := adaptor.ZhimaEmbeddingRequest{Input: `configuration test`}
+		_, err = client.CreateEmbeddings(req)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

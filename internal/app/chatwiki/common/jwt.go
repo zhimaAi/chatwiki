@@ -5,7 +5,6 @@ package common
 import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_web"
-
 	"github.com/dgrijalva/jwt-go/v4"
 )
 

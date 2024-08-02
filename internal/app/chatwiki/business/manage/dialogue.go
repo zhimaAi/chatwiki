@@ -58,8 +58,9 @@ func GetDialogueList(c *gin.Context) {
 }
 
 func GetAnswerSource(c *gin.Context) {
-	var userId int
-	if userId = GetAdminUserId(c); userId == 0 {
+	chatBaseParam, err := common.CheckChatRequest(c)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	messageId := cast.ToInt(c.Query(`message_id`))
@@ -68,7 +69,7 @@ func GetAnswerSource(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	list, err := msql.Model(`chat_ai_answer_source`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).
+	list, err := msql.Model(`chat_ai_answer_source`, define.Postgres).Where(`admin_user_id`, cast.ToString(chatBaseParam.AdminUserId)).
 		Where(`message_id`, cast.ToString(messageId)).Where(`file_id`, cast.ToString(fileId)).
 		Order(`id`).Field(`paragraph_id as id,word_total,similarity,title,type,content,question,answer,images`).Select()
 	if err != nil {

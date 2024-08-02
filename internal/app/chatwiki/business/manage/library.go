@@ -163,12 +163,12 @@ func CreateLibrary(c *gin.Context) {
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.LibraryCacheBuildHandler{LibraryId: int(libraryId)})
 	//common save
-	_, err = addLibFile(c, userId, int(libraryId))
+	fileIds, err := addLibFile(c, userId, int(libraryId))
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
-	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`id`: libraryId}, nil))
+	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`id`: libraryId, `file_ids`: fileIds}, nil))
 }
 
 func DeleteLibrary(c *gin.Context) {
@@ -301,6 +301,6 @@ func LibraryRecallTest(c *gin.Context) {
 		robot[`robot_name`] = robotName
 	}
 
-	list, err := common.GetMatchLibraryParagraphList(question, []string{}, cast.ToString(libraryId), size, similarity, searchType, robot)
+	list, err := common.GetMatchLibraryParagraphList("", "", question, []string{}, cast.ToString(libraryId), size, similarity, searchType, robot)
 	c.String(http.StatusOK, lib_web.FmtJson(list, err))
 }

@@ -14,6 +14,8 @@ func (c *GeminiStreamResult) Read() (ZhimaChatCompletionResponse, error) {
 		return ZhimaChatCompletionResponse{}, err
 	}
 	return ZhimaChatCompletionResponse{
-		Result: responseGemini.Candidates[0].Content.Parts[0].Text,
+		Result:          responseGemini.Candidates[0].Content.Parts[0].Text,
+		PromptToken:     responseGemini.UsageMetadata.PromptTokenCount,
+		CompletionToken: responseGemini.UsageMetadata.CandidatesTokenCount,
 	}, nil
 }

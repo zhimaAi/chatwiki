@@ -11,11 +11,13 @@ type OllamaStreamResult struct {
 }
 
 func (r *OllamaStreamResult) Read() (ZhimaChatCompletionResponse, error) {
-	responseAzure, err := r.Recv()
+	responseOllama, err := r.Recv()
 	if err != nil {
 		return ZhimaChatCompletionResponse{}, err
 	}
 	return ZhimaChatCompletionResponse{
-		Result: responseAzure.Message.Content,
+		Result:          responseOllama.Message.Content,
+		PromptToken:     responseOllama.Metrics.PromptEvalCount,
+		CompletionToken: responseOllama.Metrics.EvalCount,
 	}, nil
 }

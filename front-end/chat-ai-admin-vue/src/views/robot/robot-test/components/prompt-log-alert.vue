@@ -108,6 +108,32 @@
         </div>
       </div>
 
+      <div class="prompt-log-items" v-if="promptLog.recall_time > 0">
+        <div class="prompt-log-label">
+          <span>Recall time </span>
+          <a-tooltip>
+            <template #title>从知识库中检索到有效分段所需要的时间，包括对分段进行排序时间。</template>
+            <QuestionCircleOutlined class="question-icon" />
+          </a-tooltip>
+        </div>
+        <div class="prompt-log-item">
+          <p>{{ promptLog.recall_time }}s</p>
+        </div>
+      </div>
+
+      <div class="prompt-log-items" v-if="promptLog.request_time > 0">
+        <div class="prompt-log-label">
+          <span>Request time </span>
+          <a-tooltip>
+            <template #title>从发送问题和上下文信息给大模型到大模型开始返回答案的时间。</template>
+            <QuestionCircleOutlined class="question-icon" />
+          </a-tooltip>
+        </div>
+        <div class="prompt-log-item">
+          <p>{{ promptLog.request_time }}s</p>
+        </div>
+      </div>
+
       <div class="prompt-log-items">
         <div class="prompt-log-label">
           <span>Error </span>
@@ -149,11 +175,15 @@ const reset = () => {
   promptLog.cur_question = ''
   promptLog.cur_answer = ''
   promptLog.error = ''
+  promptLog.recall_time = ''
+  promptLog.request_time = ''
 }
 
 const open = (msg) => {
   reset()
   promptLog.error = msg.error
+  promptLog.recall_time = msg.recall_time ?  (msg.recall_time / 1000).toFixed(2) : '';
+  promptLog.request_time = msg.request_time ? (msg.request_time / 1000).toFixed(2) : '';
 
   let items = msg.debug || []
 

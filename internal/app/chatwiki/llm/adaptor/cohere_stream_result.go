@@ -14,6 +14,8 @@ func (r *CohereStreamResult) Read() (ZhimaChatCompletionResponse, error) {
 		return ZhimaChatCompletionResponse{}, err
 	}
 	return ZhimaChatCompletionResponse{
-		Result: responseCohere.Text,
+		Result:          responseCohere.Text,
+		PromptToken:     responseCohere.Response.Meta.Tokens.InputTokens,
+		CompletionToken: responseCohere.Response.Meta.Tokens.OutputTokens,
 	}, nil
 }

@@ -47,6 +47,9 @@ func initConfig() {
 	if len(define.Config.WebService[`pc_domain`]) == 0 {
 		define.Config.WebService[`pc_domain`] = fmt.Sprintf(`http://%s:18082`, ip)
 	}
+	if len(define.Config.WebService[`api_domain`]) == 0 {
+		define.Config.WebService[`api_domain`] = fmt.Sprintf(`http://%s:18080`, ip)
+	}
 	if len(define.Config.WebService[`ws_domain`]) == 0 {
 		define.Config.WebService[`ws_domain`] = fmt.Sprintf(`%s:18083`, ip)
 	}

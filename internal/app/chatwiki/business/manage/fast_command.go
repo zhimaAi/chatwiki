@@ -241,3 +241,12 @@ func SortFastCommand(c *gin.Context) {
 	m.Commit()
 	common.FmtOk(c, count)
 }
+
+func deleteFastCommandByRobotId(robotId int) error {
+	m := msql.Model(define.TableFastCommand, define.Postgres)
+	_, err := m.Where("robot_id", cast.ToString(robotId)).Delete()
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	return err
+}

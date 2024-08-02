@@ -36,7 +36,7 @@
                     </a-flex>
                   </template>
                   <a-select-option
-                    :value="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name ? val.deployment_name : val.name"
+                    :value="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name ? val.deployment_name : val.name + val.id"
                     :model_config_id="item.id"
                     :current_obj="val"
                     v-for="val in item.children"
@@ -174,8 +174,10 @@ const oldModelDefine = ref('')
 const currentUseModel = ref('')
 
 const handleChangeModel = (val, option) => {
-  currentModelDefine.value = option.current_obj.model_define
-  formState.model_config_id = option.current_obj.id || option.model_config_id
+  const self = option.current_obj
+  formState.use_model = modelDefine.indexOf(self.model_define) > -1 && self.deployment_name ? self.deployment_name : self.name
+  currentModelDefine.value = self.model_define
+  formState.model_config_id = self.id || option.model_config_id
 }
 
 const handleSave = () => {

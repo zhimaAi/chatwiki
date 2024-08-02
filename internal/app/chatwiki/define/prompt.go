@@ -52,4 +52,9 @@ const PromptDefaultQuestionGuide = `
 """
 问题的长度应小于20个字符，按如下格式返回: ["问题1", "问题2", "问题3"]`
 
-const PromptDefaultAnswerImage = `注意：每段参考文案都可能附加有<img>标签，在生成答案之后请以同样的格式返回你认为最符合问题的参考文案的<img>标签。回答示例如下： your answer <img src="http://cloud.chatwiki.com/assets/img/en_logo-BXimVcL1.svg">`
+const PromptDefaultAnswerImage = `
+请根据以下几段system prompt进行回答。每段system prompt都可能附加有<img>标签，在生成答案之后请以同样的格式返回你认为最符合问题的system prompt的<img>标签。回答示例如下： 
+your answer 
+<img>
+如果system prompt没有<img>标签或者没有其他的system prompt，则不返回<img>标签。
+`

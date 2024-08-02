@@ -8,6 +8,7 @@ import (
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/app/chatwiki/llm/adaptor"
 	"chatwiki/internal/pkg/lib_define"
+	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
 	"encoding/json"
 	"errors"
@@ -100,44 +101,8 @@ func IsOnLine(c *gin.Context) {
 	c.String(http.StatusOK, response)
 }
 
-func commonCheck(c *gin.Context) (*define.ChatBaseParam, error) {
-	//source check
-	appType := strings.TrimSpace(c.GetHeader(`App-Type`))
-	if len(appType) == 0 {
-		appType = lib_define.AppYunH5 //default value
-	}
-	if !tool.InArrayString(appType, []string{lib_define.AppYunH5, lib_define.AppYunPc}) {
-		return nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `app_type`))
-	}
-	//format check
-	robotKey := strings.TrimSpace(c.PostForm(`robot_key`))
-	if !common.CheckRobotKey(robotKey) {
-		return nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `robot_key`))
-	}
-	openid := strings.TrimSpace(c.PostForm(`openid`))
-	if !common.IsChatOpenid(openid) {
-		return nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `openid`))
-	}
-	//data check
-	robot, err := common.GetRobotInfo(robotKey)
-	if err != nil {
-		logs.Error(err.Error())
-		return nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))
-	}
-	if len(robot) == 0 {
-		return nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))
-	}
-	adminUserId := cast.ToInt(robot[`admin_user_id`])
-	customer, err := common.GetCustomerInfo(openid, adminUserId)
-	if err != nil {
-		logs.Error(err.Error())
-		return nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))
-	}
-	return &define.ChatBaseParam{AppType: appType, Openid: openid, AdminUserId: adminUserId, Robot: robot, Customer: customer}, nil
-}
-
 func ChatMessage(c *gin.Context) {
-	chatBaseParam, err := commonCheck(c)
+	chatBaseParam, err := common.CheckChatRequest(c)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
@@ -147,12 +112,15 @@ func ChatMessage(c *gin.Context) {
 	minId := cast.ToUint(c.PostForm(`min_id`))
 	size := max(1, cast.ToInt(c.PostForm(`size`)))
 	m := msql.Model(`chat_ai_message`, define.Postgres).
-		Where(`openid`, chatBaseParam.Openid).Where(`robot_id`, chatBaseParam.Robot[`id`])
+		Alias(`m`).
+		Join(`message_feedback f`, `m.id=f.ai_message_id`, `left`).
+		Where(`m.openid`, chatBaseParam.Openid).Where(`m.robot_id`, chatBaseParam.Robot[`id`]).
+		Field(`m.*,case when f.type=1 then 1 when f.type=2 then 2 else 0 end as feedback_type`)
 	if dialogueId > 0 {
-		m.Where(`dialogue_id`, cast.ToString(dialogueId))
+		m.Where(`m.dialogue_id`, cast.ToString(dialogueId))
 	}
 	if minId > 0 {
-		m.Where(`id`, `<`, cast.ToString(minId))
+		m.Where(`m.id`, `<`, cast.ToString(minId))
 	}
 	list, err := m.Limit(size).Order(`id desc`).Select()
 	if err != nil {
@@ -162,6 +130,169 @@ func ChatMessage(c *gin.Context) {
 	}
 	data := map[string]any{`robot`: chatBaseParam.Robot, `customer`: chatBaseParam.Customer, `list`: list}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
+}
+
+func AddChatMessageFeedback(c *gin.Context) {
+
+	chatBaseParam, err := common.CheckChatRequest(c)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	aiMessageId := cast.ToInt(c.PostForm(`ai_message_id`))
+	customerMessageId := cast.ToInt(c.PostForm(`customer_message_id`))
+	_type := cast.ToInt(c.PostForm(`type`))
+	content := strings.TrimSpace(c.DefaultPostForm(`content`, ``))
+	if aiMessageId <= 0 || customerMessageId <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	if _type != 1 && _type != 2 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `type`))))
+		return
+	}
+
+	lockKey := define.LockPreKey + `SaveMessageFeedback` + cast.ToString(aiMessageId)
+	if !lib_redis.AddLock(define.Redis, lockKey, time.Second*5) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `op_lock`))))
+		return
+	}
+	defer func(lockKey string) {
+		lib_redis.UnLock(define.Redis, lockKey)
+	}(lockKey)
+
+	aiMessage, err := msql.Model(`chat_ai_message`, define.Postgres).Where(`is_customer`, `0`).Where(`id`, cast.ToString(aiMessageId)).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(aiMessage) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	customerMessage, err := msql.Model(`chat_ai_message`, define.Postgres).Where(`is_customer`, `1`).Where(`id`, cast.ToString(customerMessageId)).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(customerMessage) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	row, err := msql.Model(`message_feedback`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(chatBaseParam.AdminUserId)).
+		Where(`ai_message_id`, cast.ToString(aiMessageId)).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(row) > 0 {
+		if row[`type`] == cast.ToString(_type) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `status_exception`))))
+			return
+		} else {
+			_, err = msql.Model(`message_feedback`, define.Postgres).Where(`id`, row[`id`]).Delete()
+			if err != nil {
+				logs.Error(err.Error())
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+				return
+			}
+		}
+	}
+
+	modelConfig, err := common.GetModelConfigInfo(cast.ToInt(chatBaseParam.Robot[`model_config_id`]), chatBaseParam.AdminUserId)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+
+	// add corp name field to robot info
+	var corpName string
+	for _, modelInfo := range define.ModelList {
+		if len(modelConfig[`model_define`]) == 0 || modelInfo.ModelDefine == modelConfig[`model_define`] {
+			corpName = modelInfo.ModelName
+		}
+	}
+	robotInfo := chatBaseParam.Robot
+	robotInfo[`corp_name`] = corpName
+	if len(modelConfig[`deployment_name`]) > 0 {
+		robotInfo[`use_model`] = modelConfig[`deployment_name`]
+	}
+	robotJson, err := tool.JsonEncode(robotInfo)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+
+	_, err = msql.Model(`message_feedback`, define.Postgres).Insert(msql.Datas{
+		`admin_user_id`:       chatBaseParam.AdminUserId,
+		`robot_id`:            chatBaseParam.Robot[`id`],
+		`ai_message_id`:       aiMessageId,
+		`customer_message_id`: customerMessageId,
+		`type`:                _type,
+		`robot`:               robotJson,
+		`content`:             content,
+		`create_time`:         tool.Time2Int(),
+		`update_time`:         tool.Time2Int(),
+	})
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}
+func DelChatMessageFeedback(c *gin.Context) {
+	chatBaseParam, err := common.CheckChatRequest(c)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	aiMessageId := cast.ToInt(c.PostForm(`ai_message_id`))
+	if aiMessageId <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	message, err := msql.Model(`chat_ai_message`, define.Postgres).Where(`is_customer`, `0`).Where(`id`, cast.ToString(aiMessageId)).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(message) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	exists, err := msql.Model(`message_feedback`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(chatBaseParam.AdminUserId)).
+		Where(`ai_message_id`, cast.ToString(aiMessageId)).
+		Count()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if exists == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `status_exception`))))
+		return
+	}
+	_, err = msql.Model(`message_feedback`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(chatBaseParam.AdminUserId)).
+		Where(`robot_id`, chatBaseParam.Robot[`id`]).
+		Where(`ai_message_id`, cast.ToString(aiMessageId)).
+		Delete()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
 func saveCustomerInfo(c *gin.Context, chatBaseParam *define.ChatBaseParam) {
@@ -185,7 +316,7 @@ func saveCustomerInfo(c *gin.Context, chatBaseParam *define.ChatBaseParam) {
 }
 
 func ChatWelcome(c *gin.Context) {
-	chatBaseParam, err := commonCheck(c)
+	chatBaseParam, err := common.CheckChatRequest(c)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
@@ -247,7 +378,7 @@ type QuestionGuideMessage struct {
 }
 
 func ChatQuestionGuide(c *gin.Context) {
-	chatBaseParam, err := commonCheck(c)
+	chatBaseParam, err := common.CheckChatRequest(c)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
@@ -317,14 +448,23 @@ func ChatQuestionGuide(c *gin.Context) {
 	//}
 	//messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: `请按要求回答`})
 
-	content, err := common.RequestChat(cast.ToInt(chatBaseParam.Robot[`model_config_id`]), chatBaseParam.Robot[`use_model`],
-		messages, cast.ToFloat32(chatBaseParam.Robot[`temperature`]), 200)
+	chatResp, _, err := common.RequestChat(
+		chatBaseParam.AdminUserId,
+		chatBaseParam.Openid,
+		chatBaseParam.Robot,
+		chatBaseParam.AppType,
+		cast.ToInt(chatBaseParam.Robot[`model_config_id`]),
+		chatBaseParam.Robot[`use_model`],
+		messages,
+		cast.ToFloat32(chatBaseParam.Robot[`temperature`]),
+		200,
+	)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson([]string{}, nil))
 		return
 	}
-
+	content := chatResp.Result
 	var guides []string
 	err = json.Unmarshal([]byte(content), &guides)
 	if err != nil {
@@ -337,7 +477,7 @@ func ChatQuestionGuide(c *gin.Context) {
 }
 
 func getChatRequestParam(c *gin.Context) *define.ChatRequestParam {
-	chatBaseParam, err := commonCheck(c)
+	chatBaseParam, err := common.CheckChatRequest(c)
 	isClose := false
 	return &define.ChatRequestParam{
 		ChatBaseParam: chatBaseParam,
@@ -435,10 +575,14 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	debugLog := make([]any, 0) //debug log
 	var messages []adaptor.ZhimaChatCompletionMessage
 	var list []msql.Params
+	var recallTime int64
 	if cast.ToInt(params.Robot[`chat_type`]) == define.ChatTypeDirect {
 		messages, list, err = buildDirectChatRequestMessage(params, id, dialogueId, &debugLog)
 	} else {
+		recallStart := time.Now()
 		messages, list, err = buildLibraryChatRequestMessage(params, id, dialogueId, &debugLog)
+		recallTime = time.Now().Sub(recallStart).Milliseconds()
+		chanStream <- sse.Event{Event: `recall_time`, Data: recallTime}
 	}
 	if err != nil {
 		logs.Error(err.Error())
@@ -446,16 +590,40 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		return nil, err
 	}
 
-	var content, menuJson string
+	var (
+		content, menuJson string
+		requestTime       int64
+		chatResp          = adaptor.ZhimaChatCompletionResponse{}
+	)
 	msgType := define.MsgTypeText
 	if cast.ToInt(params.Robot[`chat_type`]) == define.ChatTypeDirect {
 		if useStream {
-			content, err = common.RequestChatStream(cast.ToInt(params.Robot[`model_config_id`]), params.Robot[`use_model`],
-				messages, chanStream, cast.ToFloat32(params.Robot[`temperature`]), cast.ToInt(params.Robot[`max_token`]))
+			chatResp, requestTime, err = common.RequestChatStream(
+				params.AdminUserId,
+				params.Openid,
+				params.Robot,
+				params.AppType,
+				cast.ToInt(params.Robot[`model_config_id`]),
+				params.Robot[`use_model`],
+				messages,
+				chanStream,
+				cast.ToFloat32(params.Robot[`temperature`]),
+				cast.ToInt(params.Robot[`max_token`]),
+			)
 		} else {
-			content, err = common.RequestChat(cast.ToInt(params.Robot[`model_config_id`]), params.Robot[`use_model`],
-				messages, cast.ToFloat32(params.Robot[`temperature`]), cast.ToInt(params.Robot[`max_token`]))
+			chatResp, requestTime, err = common.RequestChat(
+				params.AdminUserId,
+				params.Openid,
+				params.Robot,
+				params.AppType,
+				cast.ToInt(params.Robot[`model_config_id`]),
+				params.Robot[`use_model`],
+				messages,
+				cast.ToFloat32(params.Robot[`temperature`]),
+				cast.ToInt(params.Robot[`max_token`]),
+			)
 		}
+		content = chatResp.Result
 		if err != nil {
 			logs.Error(err.Error())
 			sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)
@@ -463,12 +631,32 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	} else if cast.ToInt(params.Robot[`chat_type`]) == define.ChatTypeMixture {
 		if len(list) == 0 {
 			if useStream {
-				content, err = common.RequestChatStream(cast.ToInt(params.Robot[`model_config_id`]), params.Robot[`use_model`],
-					messages, chanStream, cast.ToFloat32(params.Robot[`temperature`]), cast.ToInt(params.Robot[`max_token`]))
+				chatResp, requestTime, err = common.RequestChatStream(
+					params.AdminUserId,
+					params.Openid,
+					params.Robot,
+					params.AppType,
+					cast.ToInt(params.Robot[`model_config_id`]),
+					params.Robot[`use_model`],
+					messages,
+					chanStream,
+					cast.ToFloat32(params.Robot[`temperature`]),
+					cast.ToInt(params.Robot[`max_token`]),
+				)
 			} else {
-				content, err = common.RequestChat(cast.ToInt(params.Robot[`model_config_id`]), params.Robot[`use_model`],
-					messages, cast.ToFloat32(params.Robot[`temperature`]), cast.ToInt(params.Robot[`max_token`]))
+				chatResp, requestTime, err = common.RequestChat(
+					params.AdminUserId,
+					params.Openid,
+					params.Robot,
+					params.AppType,
+					cast.ToInt(params.Robot[`model_config_id`]),
+					params.Robot[`use_model`],
+					messages,
+					cast.ToFloat32(params.Robot[`temperature`]),
+					cast.ToInt(params.Robot[`max_token`]),
+				)
 			}
+			content = chatResp.Result
 			if err != nil {
 				logs.Error(err.Error())
 				sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)
@@ -482,12 +670,32 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 				chanStream <- sse.Event{Event: `sending`, Data: content}
 			} else {
 				if useStream {
-					content, err = common.RequestChatStream(cast.ToInt(params.Robot[`model_config_id`]), params.Robot[`use_model`],
-						messages, chanStream, cast.ToFloat32(params.Robot[`temperature`]), cast.ToInt(params.Robot[`max_token`]))
+					chatResp, requestTime, err = common.RequestChatStream(
+						params.AdminUserId,
+						params.Openid,
+						params.Robot,
+						params.AppType,
+						cast.ToInt(params.Robot[`model_config_id`]),
+						params.Robot[`use_model`],
+						messages,
+						chanStream,
+						cast.ToFloat32(params.Robot[`temperature`]),
+						cast.ToInt(params.Robot[`max_token`]),
+					)
 				} else {
-					content, err = common.RequestChat(cast.ToInt(params.Robot[`model_config_id`]), params.Robot[`use_model`],
-						messages, cast.ToFloat32(params.Robot[`temperature`]), cast.ToInt(params.Robot[`max_token`]))
+					chatResp, requestTime, err = common.RequestChat(
+						params.AdminUserId,
+						params.Openid,
+						params.Robot,
+						params.AppType,
+						cast.ToInt(params.Robot[`model_config_id`]),
+						params.Robot[`use_model`],
+						messages,
+						cast.ToFloat32(params.Robot[`temperature`]),
+						cast.ToInt(params.Robot[`max_token`]),
+					)
 				}
+				content = chatResp.Result
 				if err != nil {
 					logs.Error(err.Error())
 					sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)
@@ -515,12 +723,32 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 				chanStream <- sse.Event{Event: `sending`, Data: content}
 			} else { // ask gpt
 				if useStream {
-					content, err = common.RequestChatStream(cast.ToInt(params.Robot[`model_config_id`]), params.Robot[`use_model`],
-						messages, chanStream, cast.ToFloat32(params.Robot[`temperature`]), cast.ToInt(params.Robot[`max_token`]))
+					chatResp, requestTime, err = common.RequestChatStream(
+						params.AdminUserId,
+						params.Openid,
+						params.Robot,
+						params.AppType,
+						cast.ToInt(params.Robot[`model_config_id`]),
+						params.Robot[`use_model`],
+						messages,
+						chanStream,
+						cast.ToFloat32(params.Robot[`temperature`]),
+						cast.ToInt(params.Robot[`max_token`]),
+					)
 				} else {
-					content, err = common.RequestChat(cast.ToInt(params.Robot[`model_config_id`]), params.Robot[`use_model`],
-						messages, cast.ToFloat32(params.Robot[`temperature`]), cast.ToInt(params.Robot[`max_token`]))
+					chatResp, requestTime, err = common.RequestChat(
+						params.AdminUserId,
+						params.Openid,
+						params.Robot,
+						params.AppType,
+						cast.ToInt(params.Robot[`model_config_id`]),
+						params.Robot[`use_model`],
+						messages,
+						cast.ToFloat32(params.Robot[`temperature`]),
+						cast.ToInt(params.Robot[`max_token`]),
+					)
 				}
+				content = chatResp.Result
 				if err != nil {
 					logs.Error(err.Error())
 					sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)
@@ -542,7 +770,10 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 			continue //remove duplication
 		}
 		ms[one[`file_id`]] = struct{}{}
-		quoteFile = append(quoteFile, msql.Params{`id`: one[`file_id`], `file_name`: one[`file_name`]})
+		quoteFile = append(quoteFile, msql.Params{
+			`id`:        one[`file_id`],
+			`file_name`: one[`file_name`],
+		})
 	}
 	quoteFileJson, _ := tool.JsonEncode(quoteFile)
 	//database dispose
@@ -553,6 +784,8 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		`dialogue_id`:   dialogueId,
 		`session_id`:    sessionId,
 		`is_customer`:   define.MsgFromRobot,
+		`request_time`:  requestTime,
+		`recall_time`:   recallTime,
 		`msg_type`:      msgType,
 		`content`:       content,
 		`menu_json`:     menuJson,
@@ -573,11 +806,11 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	common.UpLastChat(dialogueId, sessionId, lastChat)
 	//message push
 	chanStream <- sse.Event{Event: `ai_message`, Data: common.ToStringMap(message, `id`, id)}
-	if len(quoteFile) > 0 {
+	if len(quoteFile) > 0 && cast.ToBool(params.Robot[`answer_source_switch`]) {
 		chanStream <- sse.Event{Event: `quote_file`, Data: quoteFile}
 	}
 	//save answer source
-	if len(list) > 0 && len(customer) > 0 && cast.ToInt(customer[`is_background`]) > 0 {
+	if len(list) > 0 {
 		asm := msql.Model(`chat_ai_answer_source`, define.Postgres)
 		for _, one := range list {
 			_, err := asm.Insert(msql.Datas{
@@ -602,6 +835,8 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		}
 	}
 	chanStream <- sse.Event{Event: `finish`, Data: tool.Time2Int()}
+	message["prompt_tokens"] = chatResp.PromptToken
+	message["completion_tokens"] = chatResp.CompletionToken
 	return common.ToStringMap(message, `id`, id), nil
 }
 
@@ -630,7 +865,7 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 	var optimizedQuestions []string
 	if cast.ToBool(params.Robot[`enable_question_optimize`]) && len(params.LibraryIds) > 0 {
 		var err error
-		optimizedQuestions, err = common.GetOptimizedQuestions(params.Robot, params.Question, contextList)
+		optimizedQuestions, err = common.GetOptimizedQuestions(params, contextList)
 		if err != nil {
 			logs.Error(err.Error())
 		}
@@ -638,6 +873,8 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 
 	//convert match
 	list, err := common.GetMatchLibraryParagraphList(
+		params.Openid,
+		params.AppType,
 		params.Question,
 		optimizedQuestions,
 		params.LibraryIds,
@@ -651,12 +888,12 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 	}
 
 	//part1:prompt
+	responseTypeMsg := buildChatResponseType(cast.ToInt(params.Robot["show_type"]), params.Lang)
 	prompt := params.Prompt
 	prompt = prompt + "\n\n" + define.PromptDefaultAnswerImage
-	//prompt = prompt + "\n\n" + buildChatResponseType(cast.ToInt(params.Robot["show_type"]), params.Lang)
+	prompt = prompt + "\n\n" + responseTypeMsg
 	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
 	*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: prompt})
-	responseTypeMsg := buildChatResponseType(cast.ToInt(params.Robot["show_type"]), params.Lang)
 
 	//part2:library
 	for _, one := range list {
@@ -666,10 +903,10 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 			logs.Error(err.Error())
 		}
 		if cast.ToInt(one[`type`]) == define.ParagraphTypeNormal {
-			messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: common.EmbTextImages(one[`content`]+","+responseTypeMsg, images)})
+			messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: common.EmbTextImages(one[`content`], images)})
 			*debugLog = append(*debugLog, map[string]string{`type`: `library`, `content`: common.EmbTextImages(one[`content`], images)})
 		} else {
-			messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: "question: " + one[`question`] + "," + responseTypeMsg + "\nanswer: " + common.EmbTextImages(one[`answer`]+responseTypeMsg, images)})
+			messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: "question: " + one[`question`] + "\nanswer: " + common.EmbTextImages(one[`answer`], images)})
 			*debugLog = append(*debugLog, map[string]string{`type`: `library`, `content`: "question: " + one[`question`] + "\nanswer: " + common.EmbTextImages(one[`answer`], images)})
 		}
 	}
@@ -683,16 +920,18 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 	}
 
 	//part4:cur_question
-	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: params.Question + "," + responseTypeMsg})
-	*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
+	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: responseTypeMsg + params.Question})
+	*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: responseTypeMsg + params.Question})
 
 	return messages, list, nil
 }
+
 func buildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int64, dialogueId int, debugLog *[]any) ([]adaptor.ZhimaChatCompletionMessage, []msql.Params, error) {
 	var messages []adaptor.ZhimaChatCompletionMessage
 	// Add a parameter if you need to clarify the distinction
 	responseTypeMsg := buildChatResponseType(cast.ToInt(params.Robot["show_type"]), params.Lang)
-	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: responseTypeMsg})
+	//messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: responseTypeMsg})
+	//*debugLog = append(*debugLog, map[string]string{`type`: `system`, `content`: responseTypeMsg})
 	contextList := buildChatContextPair(params.Openid, cast.ToInt(params.Robot[`id`]),
 		dialogueId, int(curMsgId), cast.ToInt(params.Robot[`context_pair`]))
 	for i := range contextList {
@@ -700,8 +939,8 @@ func buildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})
 		*debugLog = append(*debugLog, map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]})
 	}
-	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: params.Question + "," + responseTypeMsg})
-	*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
+	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: responseTypeMsg + params.Question})
+	*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: responseTypeMsg + params.Question})
 	return messages, []msql.Params{}, nil
 }
 
@@ -737,17 +976,11 @@ func buildChatContextPair(openid string, robotId, dialogueId, curMsgId, contextP
 	}
 	return contextList
 }
+
 func buildChatResponseType(showType int, lang string) string {
-	var result string
-	var (
-		defaultType = "markdown格式"
-		textType    = "纯文本"
-	)
-	switch showType {
-	case define.RobotTextResponse:
-		result = fmt.Sprintf("%s", i18n.Show(lang, `chat_show_type`, textType))
-	default:
-		result = fmt.Sprintf("%s", i18n.Show(lang, `chat_show_type`, defaultType))
+	result := ""
+	if showType == define.RobotMarkdownResponse {
+		result = fmt.Sprintf("(%s)", i18n.Show(lang, `chat_show_type`, `markdown格式`))
 	}
 	return result
 }

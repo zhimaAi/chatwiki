@@ -40,3 +40,13 @@ export const getAnswerSource = (params) => {
 export const getFastCommandList = (params) => {
   return request.get({ url: '/chat/getFastCommandList', params })
 }
+
+// 点赞/点踩
+export const addFeedback = (data) => {
+  return request.post({ url: '/chat/message/addFeedback', data })
+}
+
+// 取消点赞/点踩接口
+export const delFeedback = (data) => {
+  return request.post({ url: '/chat/message/delFeedback', data })
+}

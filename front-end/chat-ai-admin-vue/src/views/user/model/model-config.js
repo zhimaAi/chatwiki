@@ -143,6 +143,18 @@ const modelFieldConfig = {
       }
     ]
   },
+  region: {
+    ...inputDefaultConfig,
+    label: 'region',
+    placeholder: '请输入地区',
+    rules: [
+      {
+        required: true,
+        message: '请输入地区',
+        trigger: 'change'
+      }
+    ]
+  },
 }
 // 获取模型表单字段配置
 export function getModelFieldConfig(fieldName) {

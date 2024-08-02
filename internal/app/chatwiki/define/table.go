@@ -100,3 +100,5 @@ const (
 	SwitchOff = 0
 	SwitchOn  = 1
 )
+
+const DefaultCustomerAvatar = `/public/user_avatar_2x.png`

@@ -70,7 +70,8 @@ export const useRobotStore = defineStore('robot', () => {
     enable_question_optimize: 'false',
     enable_question_guide: 'false',
     enable_common_question: 'false',
-    common_question_list: []
+    common_question_list: [],
+    answer_source_switch: 'false',
   })
 
   // WebApp配置
@@ -136,6 +137,7 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.enable_question_guide = data.enable_question_guide
     robotInfo.enable_common_question = data.enable_common_question
     robotInfo.common_question_list = data.common_question_list
+    robotInfo.answer_source_switch = data.answer_source_switch
     // h5配置
     if (data.external_config_h5 !== '') {
       Object.assign(external_config_h5, JSON.parse(data.external_config_h5))

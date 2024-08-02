@@ -30,5 +30,5 @@ type Embedding struct {
 }
 
 type Usage struct {
-	TotalToken int `json:"total_token"`
+	TotalTokens int `json:"total_tokens"`
 }

@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { sendAiMessage, chatWelcome, getDialogueList, getChatMessage, questionGuide, getFastCommandList } from '@/api/chat'
+import { sendAiMessage, chatWelcome, getDialogueList, getChatMessage, questionGuide, getFastCommandList, addFeedback, delFeedback } from '@/api/chat'
 import { editPrompt } from '@/api/robot/index'
 import { getUuid, getOpenid } from '@/utils/index'
 import { useEventBus } from '@/hooks/event/useEventBus'
@@ -24,6 +24,7 @@ export interface Message {
   debug: 0 | 1,
   guess_you_want: string[],
   question_tabkey: number,
+  feedback_type?: string
 }
 
 export interface Chat {
@@ -160,7 +161,7 @@ export const useChatStore = defineStore('chat', () => {
       openid: openid.value,
       nickname: user.nickname,
       name: user.name,
-      avatar: user.avatar || DEFAULT_USER_AVATAR
+      // avatar: user.avatar || DEFAULT_USER_AVATAR
     })
 
     try {
@@ -297,6 +298,7 @@ export const useChatStore = defineStore('chat', () => {
         messageList.value[msgIndex].menu_json = menu_json
       }
       messageList.value[msgIndex].id = content.id
+      messageList.value[msgIndex].msg_type = content.msg_type // 更新真实的msg_type
     }
 
     if (type == 'debug') {
@@ -556,7 +558,7 @@ export const useChatStore = defineStore('chat', () => {
         }
 
         if (item.quote_file) {
-          item.quote_file = JSON.parse(item.quote_file)
+          item.quote_file = [];
         }
       })
 
@@ -565,6 +567,38 @@ export const useChatStore = defineStore('chat', () => {
     } catch (err) {
       Promise.reject(err)
     }
+  }
+
+  // 点赞/点踩
+  const onAddFeedback = async (data) => {
+
+    const params = {
+      robot_key: robot.robot_key,
+      openid: user.openid,
+      ai_message_id: data.ai_message_id,
+      customer_message_id: data.customer_message_id,
+      type: data.type,
+      content: data.content
+    }
+
+    const res = await addFeedback(params)
+
+    return res
+  }
+
+  // 取消点赞/点踩
+  const onDelFeedback = async (data) => {
+
+    const params = {
+      robot_key: robot.robot_key,
+      openid: user.openid,
+      ai_message_id  : data.ai_message_id,
+      customer_message_id: data.customer_message_id
+    }
+
+    const res = await delFeedback(params)
+
+    return res
   }
 
   // 提示词
@@ -655,6 +689,8 @@ export const useChatStore = defineStore('chat', () => {
     openChat,
     onGetChatMessage,
     changeRobotPrompt,
+    onAddFeedback,
+    onDelFeedback,
     saveRobotPrompt,
     externalConfigH5,
     upDataUiStyle,

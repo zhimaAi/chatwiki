@@ -180,7 +180,8 @@ const handleCancel = () => {
 const confirmLoading = ref(false)
 
 const saveAddModel = () => {
-  let data = toRaw(formState.value)
+  let newData = toRaw(formState.value)
+  let data = JSON.parse(JSON.stringify(newData)); // 深拷贝，不能改变原对象
 
   data.model_type = data.model_types
   data.model_define = modelConfig.model_define
@@ -209,7 +210,8 @@ const saveAddModel = () => {
 }
 
 const saveEditModel = () => {
-  let data = toRaw(formState.value)
+  let newData = toRaw(formState.value)
+  let data = JSON.parse(JSON.stringify(newData)); // 深拷贝，不能改变原对象
 
   data.model_type = data.model_types
   data.model_define = modelConfig.model_define

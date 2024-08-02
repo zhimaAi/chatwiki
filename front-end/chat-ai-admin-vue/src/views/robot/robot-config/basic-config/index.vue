@@ -57,6 +57,9 @@
       <div class="setting-box">
         <SuggestedIssues />
       </div>
+      <div class="setting-box">
+        <DisplayAitations />
+      </div>
     </div>
   </div>
   <div class="robot-config-page" v-else>
@@ -79,6 +82,7 @@ import SuggestedIssues from './components/suggested-issues.vue'
 import ChatMode from './components/chat-mode/index.vue'
 import MarkdownSetting from './components/markdown-setting.vue'
 import CommonProblem from './components/common-problem.vue'
+import DisplayAitations from './components/display-aitations.vue'
 import { saveRobot } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
 

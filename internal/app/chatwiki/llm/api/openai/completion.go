@@ -21,6 +21,7 @@ type ChatCompletionRequest struct {
 	Model            string                  `json:"model"`
 	Messages         []ChatCompletionMessage `json:"messages"`
 	Stream           bool                    `json:"stream,omitempty"`
+	StreamOptions    *StreamOptions          `json:"stream_options,omitempty"`
 	FrequencyPenalty int                     `json:"frequency_penalty,omitempty"`
 	MaxTokens        int                     `json:"max_tokens,omitempty"`
 	N                int                     `json:"n,omitempty"`
@@ -31,6 +32,9 @@ type ChatCompletionRequest struct {
 	TopP             int                     `json:"top_p,omitempty"`
 	User             string                  `json:"user,omitempty"`
 }
+type StreamOptions struct {
+	IncludeUsage bool `json:"include_usage,omitempty"`
+}
 
 type ChatCompletionChoice struct {
 	Message ChatCompletionMessage `json:"message"`
@@ -39,6 +43,7 @@ type ChatCompletionStreamChoice struct {
 	Index        int                   `json:"index"`
 	Delta        ChatCompletionMessage `json:"delta"`
 	FinishReason string                `json:"finish_reason"`
+	Usage        ChatCompletionUsage   `json:"usage"`
 }
 
 type ChatCompletionUsage struct {
@@ -120,9 +125,6 @@ func (c *ChatCompletionStream) Recv() (ChatCompletionStreamResponse, error) {
 		unmarshalErr := json.Unmarshal(noPrefixLine, &response)
 		if unmarshalErr != nil {
 			return *new(ChatCompletionStreamResponse), unmarshalErr
-		}
-		if len(response.Choices) <= 0 {
-			return *new(ChatCompletionStreamResponse), errors.New("response no choices result")
 		}
 
 		return response, nil

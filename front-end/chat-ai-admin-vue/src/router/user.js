@@ -40,6 +40,15 @@ export default {
           }
         },
         {
+          path: '/user/usetoken',
+          name: 'userUsetoken',
+          component: () => import('../views/user/usetoken/index.vue'),
+          meta: {
+            title: 'Token使用',
+            activeMenu: '/user'
+          }
+        },
+        {
           path: '/user/manage',
           name: 'userManage',
           component: () => import('../views/user/manage/index.vue'),

@@ -66,6 +66,7 @@ func SaveRobot(c *gin.Context) {
 	mixtureQaDirectReplySwitch := cast.ToBool(c.PostForm(`mixture_qa_direct_reply_switch`))
 	mixtureQaDirectReplyScore := cast.ToFloat32(c.PostForm(`mixture_qa_direct_reply_score`))
 	showType := cast.ToInt(c.DefaultPostForm(`show_type`, `1`))
+	answerSourceSwitch := cast.ToBool(c.DefaultPostForm(`answer_source_switch`, `true`))
 
 	enableQuestionOptimize := cast.ToBool(c.DefaultPostForm(`enable_question_optimize`, `false`))
 	enableQuestionGuide := cast.ToBool(c.DefaultPostForm(`enable_question_guide`, `true`))
@@ -142,6 +143,7 @@ func SaveRobot(c *gin.Context) {
 			return
 		}
 		//data check
+		var validLibraryIds []string
 		for _, libraryId := range strings.Split(libraryIds, `,`) {
 			info, err := common.GetLibraryInfo(cast.ToInt(libraryId), userId)
 			if err != nil {
@@ -149,11 +151,11 @@ func SaveRobot(c *gin.Context) {
 				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 				return
 			}
-			if len(info) == 0 {
-				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-				return
+			if len(info) != 0 {
+				validLibraryIds = append(validLibraryIds, libraryId)
 			}
 		}
+		libraryIds = strings.Join(validLibraryIds, `,`)
 	}
 	//headImg uploaded
 	fileHeader, _ := c.FormFile(`robot_avatar`)
@@ -241,6 +243,7 @@ func SaveRobot(c *gin.Context) {
 		`search_type`:              searchType,
 		`chat_type`:                chatType,
 		`show_type`:                showType,
+		`answer_source_switch`:     answerSourceSwitch,
 		`enable_question_optimize`: enableQuestionOptimize,
 		`enable_question_guide`:    enableQuestionGuide,
 		`enable_common_question`:   enableCommonQuestion,
@@ -285,6 +288,10 @@ func SaveRobot(c *gin.Context) {
 		data[`robot_key`] = robotKey
 		data[`create_time`] = data[`update_time`]
 		_, err = m.Insert(data)
+		// add robot api key
+		if err == nil {
+			addDefaultApiKey(c, robotKey)
+		}
 	}
 	if err != nil {
 		logs.Error(err.Error())
@@ -399,6 +406,13 @@ func DeleteRobot(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+	_, err = msql.Model(`llm_request_daily_stats`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`robot_id`, cast.ToString(id)).
+		Delete()
+	if err != nil {
+		logs.Error(err.Error())
+	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: info[`robot_key`]})
 	//dispose relation data
@@ -406,5 +420,15 @@ func DeleteRobot(c *gin.Context) {
 	if err != nil {
 		logs.Error(err.Error())
 	}
+	go deleteRobotRelationData(id, info[`robot_key`])
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}
+
+func deleteRobotRelationData(robotId int, robotKey string) error {
+	if robotId <= 0 || robotKey == "" {
+		return nil
+	}
+	err := deleteRobotApiKey(robotKey)
+	err = deleteFastCommandByRobotId(robotId)
+	return err
 }

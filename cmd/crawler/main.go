@@ -56,7 +56,7 @@ func init() {
 func main() {
 
 	// start timer to check and restart browser
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	go func() {
 		for range ticker.C {
@@ -110,7 +110,6 @@ func handleContentRequest(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	browserLastActiveTime = time.Now()
 
 	// get page content
 	pageInfo, err := fetchURLContent(parsedURL)
@@ -128,19 +127,12 @@ func handleContentRequest(c *gin.Context) {
 	return
 }
 
-// delayCloseBrowser closes the browser after idleTimeout
-func delayCloseBrowser() {
-	if time.Since(browserLastActiveTime) > idleTimeout {
-		if err := closeBrowser(); err != nil {
-			panic(err)
-		}
-	}
-}
-
 // openBrowser opens a browser instance using Playwright
 func openBrowser() error {
 	browserMu.Lock()
 	defer browserMu.Unlock()
+	browserLastActiveTime = time.Now()
+
 	if !browserActive {
 		var err error
 		pw, err = playwright.Run()
@@ -158,11 +150,20 @@ func openBrowser() error {
 	return nil
 }
 
-// closeBrowser closes the browser and stops Playwright
-func closeBrowser() error {
+// delayCloseBrowser closes the browser after idleTimeout
+func delayCloseBrowser() {
 	browserMu.Lock()
 	defer browserMu.Unlock()
 
+	if time.Since(browserLastActiveTime) > idleTimeout {
+		if err := closeBrowser(); err != nil {
+			panic(err)
+		}
+	}
+}
+
+// closeBrowser closes the browser and stops Playwright
+func closeBrowser() error {
 	if browserActive {
 		if err := browser.Close(); err != nil {
 			return fmt.Errorf("could not close browser: %v", err)

@@ -5,7 +5,9 @@ import {
   chatWelcome,
   getDialogueList,
   getChatMessage,
-  questionGuide
+  questionGuide,
+  getSessionRecordList,
+  getSessionChannelList
 } from '@/api/chat'
 import { editPrompt } from '@/api/robot/index'
 import { getUuid, getOpenid, devLog } from '@/utils/index'
@@ -49,6 +51,30 @@ export const useChatStore = defineStore('chat', () => {
     common_question_list: []
   })
 
+  // 存储聊天记录必备的数据
+  const createMsg = async (data) => {
+    messageList.value = []
+    // 重置聊天记录是否加载完成的状态
+    chatMessageLoadCompleted.value = false
+    sendLock.value = false
+
+    if (!data.dialogue_id) {
+      dialogue_id.value = 0
+    } else {
+      dialogue_id.value = data.dialogue_id
+    }
+
+    openid.value = data.openid || getOpenid(16)
+
+    robot.robot_key = data.robot_key
+    robot.openid = openid.value
+
+    user.openid = openid.value
+    user.avatar = data.avatar || DEFAULT_USER_AVATAR
+    user.name = data.name || ''
+    user.nickname = data.nickname || ''
+  }
+
   // 创建对话
   const isNewChat = ref(false)
   const createChat = async (data) => {
@@ -84,7 +110,7 @@ export const useChatStore = defineStore('chat', () => {
       openid: openid.value,
       nickname: user.nickname,
       name: user.name,
-      avatar: user.avatar || DEFAULT_USER_AVATAR,
+      // avatar: user.avatar || DEFAULT_USER_AVATAR, // lion要求把请求的avatar 干掉
       is_background: data.is_background || undefined
     })
 
@@ -213,6 +239,9 @@ export const useChatStore = defineStore('chat', () => {
       messageList.value[msgIndex].id = content.id
 
       messageList.value[msgIndex].content = content.content
+      if (content.quote_file && typeof content.quote_file === 'string') {
+        messageList.value[msgIndex].quote_file = JSON.parse(content.quote_file)
+      }
     }
 
     if (type == 'debug') {
@@ -221,6 +250,12 @@ export const useChatStore = defineStore('chat', () => {
 
     if (type == 'error') {
       messageList.value[msgIndex].error = content.length > 0 ? content : []
+    }
+    if (type == 'recall_time') {
+      messageList.value[msgIndex].recall_time = content || 0
+    }
+    if (type == 'request_time') {
+      messageList.value[msgIndex].request_time = content || 0
     }
 
     if (type == 'guess_you_want') {
@@ -273,7 +308,9 @@ export const useChatStore = defineStore('chat', () => {
       msg_type: 1,
       quote_file: [],
       debug: [],
-      error: ''
+      error: '',
+      recall_time: '',
+      request_time: '',
     }
     let params = {
       robot_key: robot.robot_key,
@@ -353,6 +390,18 @@ export const useChatStore = defineStore('chat', () => {
         let data = res.data
 
         updateAiMessage('error', data, aiMsg.uid)
+      }
+      // 更新prompt recall_time
+      if (res.event == 'recall_time') {
+        let data = res.data
+
+        updateAiMessage('recall_time', data, aiMsg.uid)
+      }
+      // 更新prompt request_time
+      if (res.event == 'request_time') {
+        let data = res.data
+
+        updateAiMessage('request_time', data, aiMsg.uid)
       }
       // 猜你想问
       if (res.event == 'finish') {
@@ -466,6 +515,7 @@ export const useChatStore = defineStore('chat', () => {
     try {
       const res = await getChatMessage(params)
       const list = res.data.list || []
+      const newRobot = res.data.robot
       // 消息加载完了
       if (list.length === 0) {
         chatMessageLoadCompleted.value = true
@@ -482,7 +532,7 @@ export const useChatStore = defineStore('chat', () => {
         if (item.is_customer == 1) {
           item.avatar = user.avatar
         } else {
-          item.robot_avatar = robot.robot_avatar
+          item.robot_avatar = robot.robot_avatar || newRobot.robot_avatar
         }
 
         if (item.menu_json) {
@@ -496,6 +546,31 @@ export const useChatStore = defineStore('chat', () => {
 
       messageList.value = [...list, ...messageList.value]
 
+      return res
+    } catch (err) {
+      Promise.reject(err)
+    }
+  }
+
+  const getRecordList = async (params) => {
+    try {
+      const res = await getSessionRecordList(params)
+      if (!res) {
+        return Promise.reject(res)
+      }
+      return res
+    } catch (err) {
+      Promise.reject(err)
+    }
+  }
+
+  
+  const getChannelList = async () => {
+    try {
+      const res = await getSessionChannelList()
+      if (!res) {
+        return Promise.reject(res)
+      }
       return res
     } catch (err) {
       Promise.reject(err)
@@ -560,12 +635,15 @@ export const useChatStore = defineStore('chat', () => {
     sendLock,
     messageList,
     createChat,
+    createMsg,
     sendMessage,
     getMyChatList,
     myChatList,
     openChat,
     onGetChatMessage,
     changeRobotPrompt,
-    saveRobotPrompt
+    saveRobotPrompt,
+    getRecordList,
+    getChannelList
   }
 })

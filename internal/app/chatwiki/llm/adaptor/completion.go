@@ -20,6 +20,7 @@ import (
 	"chatwiki/internal/app/chatwiki/llm/api/spark"
 	"chatwiki/internal/app/chatwiki/llm/api/volcenginev3"
 	"chatwiki/internal/app/chatwiki/llm/api/xinference"
+	"chatwiki/internal/app/chatwiki/llm/api/zhipu"
 	"errors"
 	"github.com/zhimaAi/go_tools/logs"
 
@@ -32,11 +33,6 @@ type ZhimaChatCompletionMessage struct {
 	Content string `json:"content"`
 }
 
-type ZhimaCompletionUsage struct {
-	PromptTokens     int `json:"prompt_tokens"`
-	CompletionTokens int `json:"completion_tokens"`
-}
-
 type ZhimaChatCompletionRequest struct {
 	//Model       string                       `json:"model"`
 	Messages    []ZhimaChatCompletionMessage `json:"messages"`
@@ -45,8 +41,9 @@ type ZhimaChatCompletionRequest struct {
 }
 
 type ZhimaChatCompletionResponse struct {
-	Result string `json:"result"`
-	// Usage  ZhimaCompletionUsage       `json:"usage"`
+	Result          string `json:"result"`
+	PromptToken     int    `json:"prompt_token"`
+	CompletionToken int    `json:"completion_token"`
 }
 
 func (a *Adaptor) CreateChatCompletion(req ZhimaChatCompletionRequest) (ZhimaChatCompletionResponse, error) {
@@ -77,7 +74,48 @@ func (a *Adaptor) CreateChatCompletion(req ZhimaChatCompletionRequest) (ZhimaCha
 			return ZhimaChatCompletionResponse{}, err
 		}
 		return ZhimaChatCompletionResponse{
-			Result: res.Choices[0].Message.Content,
+			Result:          res.Choices[0].Message.Content,
+			PromptToken:     res.Usage.PromptTokens,
+			CompletionToken: res.Usage.CompletionTokens,
+		}, nil
+	case "ali", "baichuan", "moonshot", "lingyiwanwu", "deepseek", "zhipu", "openaiAgent":
+		var client *openai.Client
+		if a.meta.Corp == "ali" {
+			client = ali.NewClient(a.meta.APIKey).OpenAIClient
+		} else if a.meta.Corp == "baichuan" {
+			client = baichuan.NewClient(a.meta.APIKey).OpenAIClient
+		} else if a.meta.Corp == "moonshot" {
+			client = moonshot.NewClient(a.meta.APIKey).OpenAIClient
+		} else if a.meta.Corp == "lingyiwanwu" {
+			client = lingyiwanwu.NewClient(a.meta.APIKey).OpenAIClient
+		} else if a.meta.Corp == "deepseek" {
+			client = deepseek.NewClient(a.meta.APIKey).OpenAIClient
+		} else if a.meta.Corp == "zhipu" {
+			client = zhipu.NewClient(a.meta.APIKey).OpenAIClient
+		} else if a.meta.Corp == "openaiAgent" {
+			client = openai_agent.NewClient(a.meta.EndPoint, a.meta.APIKey, a.meta.APIVersion).OpenAIClient
+		}
+		var messages []openai.ChatCompletionMessage
+		for _, v := range req.Messages {
+			messages = append(messages, openai.ChatCompletionMessage{Role: v.Role, Content: v.Content})
+		}
+		req := openai.ChatCompletionRequest{
+			Model:       a.meta.Model,
+			Messages:    messages,
+			Temperature: req.Temperature,
+			MaxTokens:   req.MaxToken,
+		}
+		if client == nil {
+			return ZhimaChatCompletionResponse{}, errors.New(`corp not supported`)
+		}
+		res, err := client.CreateChatCompletion(req)
+		if err != nil {
+			return ZhimaChatCompletionResponse{}, err
+		}
+		return ZhimaChatCompletionResponse{
+			Result:          res.Choices[0].Message.Content,
+			PromptToken:     res.Usage.PromptTokens,
+			CompletionToken: res.Usage.CompletionTokens,
 		}, nil
 	case "azure":
 		client := azure.NewClient(a.meta.EndPoint, a.meta.APIVersion, a.meta.APIKey, a.meta.Model)
@@ -96,7 +134,9 @@ func (a *Adaptor) CreateChatCompletion(req ZhimaChatCompletionRequest) (ZhimaCha
 			return ZhimaChatCompletionResponse{}, err
 		}
 		return ZhimaChatCompletionResponse{
-			Result: res.Choices[0].Message.Content,
+			Result:          res.Choices[0].Message.Content,
+			PromptToken:     res.Usage.PromptTokens,
+			CompletionToken: res.Usage.CompletionTokens,
 		}, nil
 	case "baidu":
 		client := baidu.NewClient(a.meta.APIKey, a.meta.SecretKey, a.meta.Model)
@@ -125,7 +165,9 @@ func (a *Adaptor) CreateChatCompletion(req ZhimaChatCompletionRequest) (ZhimaCha
 			return ZhimaChatCompletionResponse{}, err
 		}
 		return ZhimaChatCompletionResponse{
-			Result: res.Result,
+			Result:          res.Result,
+			PromptToken:     res.Usage.PromptTokens,
+			CompletionToken: res.Usage.CompletionTokens,
 		}, nil
 	case "claude":
 		client := claude.NewClient(a.meta.APIKey, a.meta.APIVersion)
@@ -157,7 +199,9 @@ func (a *Adaptor) CreateChatCompletion(req ZhimaChatCompletionRequest) (ZhimaCha
 			return ZhimaChatCompletionResponse{}, err
 		}
 		return ZhimaChatCompletionResponse{
-			Result: res.Content[0].Text,
+			Result:          res.Content[0].Text,
+			PromptToken:     res.Usage.InputTokens,
+			CompletionToken: res.Usage.OutputTokens,
 		}, nil
 	case "gemini":
 		client := gemini.NewClient(a.meta.APIKey, a.meta.Model)
@@ -179,7 +223,9 @@ func (a *Adaptor) CreateChatCompletion(req ZhimaChatCompletionRequest) (ZhimaCha
 			return ZhimaChatCompletionResponse{}, err
 		}
 		return ZhimaChatCompletionResponse{
-			Result: res.Candidates[0].Content.Parts[0].Text,
+			Result:          res.Candidates[0].Content.Parts[0].Text,
+			PromptToken:     res.UsageMetadata.PromptTokenCount,
+			CompletionToken: res.UsageMetadata.CandidatesTokenCount,
 		}, nil
 	case "doubao":
 		client := volcenginev3.NewClient("https://ark.cn-beijing.volces.com/api/v3", a.meta.Model, a.meta.APIKey, a.meta.SecretKey, a.meta.Region)
@@ -198,7 +244,9 @@ func (a *Adaptor) CreateChatCompletion(req ZhimaChatCompletionRequest) (ZhimaCha
 			return ZhimaChatCompletionResponse{}, err
 		}
 		return ZhimaChatCompletionResponse{
-			Result: res.Choices[0].Message.Content,
+			Result:          res.Choices[0].Message.Content,
+			PromptToken:     res.Usage.PromptTokens,
+			CompletionToken: res.Usage.CompletionTokens,
 		}, nil
 	case "cohere":
 		client := cohere.NewClient(a.meta.APIKey)
@@ -226,7 +274,9 @@ func (a *Adaptor) CreateChatCompletion(req ZhimaChatCompletionRequest) (ZhimaCha
 			return ZhimaChatCompletionResponse{}, err
 		}
 		return ZhimaChatCompletionResponse{
-			Result: res.Text,
+			Result:          res.Text,
+			PromptToken:     res.Meta.Tokens.InputTokens,
+			CompletionToken: res.Meta.Tokens.OutputTokens,
 		}, nil
 	case "spark":
 		client := spark.NewClient(a.meta.APIKey, a.meta.APPID, a.meta.SecretKey, a.meta.Model)
@@ -252,7 +302,9 @@ func (a *Adaptor) CreateChatCompletion(req ZhimaChatCompletionRequest) (ZhimaCha
 			return ZhimaChatCompletionResponse{}, err
 		}
 		return ZhimaChatCompletionResponse{
-			Result: res.Payload.Choices.Text[0].Content,
+			Result:          res.Payload.Choices.Text[0].Content,
+			PromptToken:     res.Payload.Usage.Text.PromptTokens,
+			CompletionToken: res.Payload.Usage.Text.CompletionTokens,
 		}, nil
 	case "hunyuan":
 		client := hunyuan.NewClient(a.meta.APIKey, a.meta.SecretKey, a.meta.Region)
@@ -270,42 +322,9 @@ func (a *Adaptor) CreateChatCompletion(req ZhimaChatCompletionRequest) (ZhimaCha
 			return ZhimaChatCompletionResponse{}, err
 		}
 		return ZhimaChatCompletionResponse{
-			Result: *res.Choices[0].Message.Content,
-		}, nil
-	case "ali", "baichuan", "moonshot", "lingyiwanwu", "deepseek", "openaiAgent":
-		var client *openai.Client
-		if a.meta.Corp == "ali" {
-			client = ali.NewClient(a.meta.APIKey).OpenAIClient
-		} else if a.meta.Corp == "baichuan" {
-			client = baichuan.NewClient(a.meta.APIKey).OpenAIClient
-		} else if a.meta.Corp == "moonshot" {
-			client = moonshot.NewClient(a.meta.APIKey).OpenAIClient
-		} else if a.meta.Corp == "lingyiwanwu" {
-			client = lingyiwanwu.NewClient(a.meta.APIKey).OpenAIClient
-		} else if a.meta.Corp == "deepseek" {
-			client = deepseek.NewClient(a.meta.APIKey).OpenAIClient
-		} else if a.meta.Corp == "openaiAgent" {
-			client = openai_agent.NewClient(a.meta.EndPoint, a.meta.APIKey, a.meta.APIVersion).OpenAIClient
-		}
-		var messages []openai.ChatCompletionMessage
-		for _, v := range req.Messages {
-			messages = append(messages, openai.ChatCompletionMessage{Role: v.Role, Content: v.Content})
-		}
-		req := openai.ChatCompletionRequest{
-			Model:       a.meta.Model,
-			Messages:    messages,
-			Temperature: req.Temperature,
-			MaxTokens:   req.MaxToken,
-		}
-		if client == nil {
-			return ZhimaChatCompletionResponse{}, errors.New(`corp not supported`)
-		}
-		res, err := client.CreateChatCompletion(req)
-		if err != nil {
-			return ZhimaChatCompletionResponse{}, err
-		}
-		return ZhimaChatCompletionResponse{
-			Result: res.Choices[0].Message.Content,
+			Result:          *res.Choices[0].Message.Content,
+			PromptToken:     int(*res.Usage.PromptTokens),
+			CompletionToken: int(*res.Usage.CompletionTokens),
 		}, nil
 	case "ollama":
 		client := ollama.NewClient(a.meta.EndPoint, a.meta.Model)
@@ -327,7 +346,9 @@ func (a *Adaptor) CreateChatCompletion(req ZhimaChatCompletionRequest) (ZhimaCha
 			return ZhimaChatCompletionResponse{}, err
 		}
 		return ZhimaChatCompletionResponse{
-			Result: res.Message.Content,
+			Result:          res.Message.Content,
+			PromptToken:     res.PromptEvalCount,
+			CompletionToken: res.EvalCount,
 		}, nil
 	case "xinference":
 		client := xinference.NewClient(a.meta.EndPoint, a.meta.APIVersion, a.meta.Model)
@@ -346,7 +367,9 @@ func (a *Adaptor) CreateChatCompletion(req ZhimaChatCompletionRequest) (ZhimaCha
 			return ZhimaChatCompletionResponse{}, err
 		}
 		return ZhimaChatCompletionResponse{
-			Result: res.Choices[0].Message.Content,
+			Result:          res.Choices[0].Message.Content,
+			PromptToken:     res.Usage.PromptTokens,
+			CompletionToken: res.Usage.CompletionTokens,
 		}, nil
 	}
 

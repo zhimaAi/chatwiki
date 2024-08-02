@@ -159,7 +159,9 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { CloseOutlined } from '@ant-design/icons-vue'
 import { getAnswerSource } from '@/api/chat/index'
-
+import { useChatStore } from '@/stores/modules/chat'
+const chatStore = useChatStore()
+const { robot } = chatStore
 const router = useRouter()
 
 const show = ref(false)
@@ -197,7 +199,9 @@ const documentList = ref([])
 const getDocumentList = (file) => {
   getAnswerSource({
     message_id: file.message_id,
-    file_id: file.id
+    file_id: file.id,
+    robot_key: robot.robot_key,
+    openid: robot.openid,
   }).then((res) => {
     documentList.value = res.data || []
   })

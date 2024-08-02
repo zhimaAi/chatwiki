@@ -14,6 +14,8 @@ func (r *BaiduStreamResult) Read() (ZhimaChatCompletionResponse, error) {
 		return ZhimaChatCompletionResponse{}, err
 	}
 	return ZhimaChatCompletionResponse{
-		Result: responseBaidu.Result,
+		Result:          responseBaidu.Result,
+		PromptToken:     responseBaidu.Usage.PromptTokens,
+		CompletionToken: responseBaidu.Usage.CompletionTokens,
 	}, nil
 }

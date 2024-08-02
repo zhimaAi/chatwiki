@@ -94,3 +94,31 @@ export const sortFastCommand = (data = {}) => {
     data: data
   })
 }
+
+export const listRobotApikey = (data = {}) => {
+  return request.post({
+    url: '/manage/listRobotApikey',
+    data: data
+  })
+}
+
+export const updateRobotApikey = (data = {}) => {
+  return request.post({
+    url: '/manage/updateRobotApikey',
+    data: data
+  })
+}
+
+export const addRobotApikey = (data = {}) => {
+  return request.post({
+    url: '/manage/addRobotApikey',
+    data: data
+  })
+}
+
+export const deleteRobotApikey = (data = {}) => {
+  return request.post({
+    url: '/manage/deleteRobotApikey',
+    data: data
+  })
+}
