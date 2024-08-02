@@ -44,6 +44,42 @@ export default {
             title: '对外服务',
             isCustomPage: true
           }
+        },
+        {
+          path: '/robot/config/api-key-manage',
+          name: 'apiKeyManage',
+          component: () => import('@/views/robot/api-key-manage/index.vue'),
+          meta: {
+            title: 'API key管理',
+            isCustomPage: true
+          }
+        },
+        {
+          path: '/robot/config/qa-feedbacks',
+          name: 'qaFeedbacks',
+          component: () => import('@/views/robot/robot-config/qa-feedback/index.vue'),
+          meta: {
+            title: '问答反馈',
+            isCustomPage: true
+          }
+        },
+        {
+          path: '/robot/config/session-record',
+          name: 'sessionRecord',
+          component: () => import('@/views/robot/robot-config/session-record/index.vue'),
+          meta: {
+            title: '会话记录',
+            isCustomPage: true
+          }
+        },
+        {
+          path: '/robot/config/statistical_analysis',
+          name: 'statisticalAnalysis',
+          component: () => import('@/views/robot/robot-config/statistical_analysis/index.vue'),
+          meta: {
+            title: '统计分析',
+            isCustomPage: true
+          }
         }
       ]
     },

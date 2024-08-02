@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/llm/adaptor"
 	"errors"
+	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 
 	"github.com/gin-contrib/sse"
@@ -52,36 +53,27 @@ func GetModelCallHandler(modelConfigId int, useModel string) (*define.ModelCallH
 	return modelInfo.CallHandlerFunc(config, useModel)
 }
 
-func GetVector2000(modelConfigId int, useModel, input string) (string, error) {
+func GetVector2000(adminUserId int, openid string, robot msql.Params, library msql.Params, file msql.Params, modelConfigId int, useModel, input string) (string, error) {
 	handler, err := GetModelCallHandler(modelConfigId, useModel)
 	if err != nil {
 		return ``, err
 	}
 
-	return handler.GetVector2000(input)
+	return handler.GetVector2000(adminUserId, openid, robot, library, file, input)
 }
 
-func GetSimilarity(modelConfigId int, useModel string, query []float64, inputs [][]float64) (string, error) {
+func RequestChatStream(adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, chanStream chan sse.Event, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
 	handler, err := GetModelCallHandler(modelConfigId, useModel)
 	if err != nil {
-		return ``, err
+		return adaptor.ZhimaChatCompletionResponse{}, 0, err
 	}
-
-	return handler.GetSimilarity(query, inputs)
+	return handler.RequestChatStream(adminUserId, openid, robot, appType, messages, chanStream, temperature, maxToken)
 }
 
-func RequestChatStream(modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, chanStream chan sse.Event, temperature float32, maxToken int) (string, error) {
+func RequestChat(adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
 	handler, err := GetModelCallHandler(modelConfigId, useModel)
 	if err != nil {
-		return ``, err
+		return adaptor.ZhimaChatCompletionResponse{}, 0, err
 	}
-	return handler.RequestChatStream(messages, chanStream, temperature, maxToken)
-}
-
-func RequestChat(modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, temperature float32, maxToken int) (string, error) {
-	handler, err := GetModelCallHandler(modelConfigId, useModel)
-	if err != nil {
-		return ``, err
-	}
-	return handler.RequestChat(messages, temperature, maxToken)
+	return handler.RequestChat(adminUserId, openid, robot, appType, messages, temperature, maxToken)
 }

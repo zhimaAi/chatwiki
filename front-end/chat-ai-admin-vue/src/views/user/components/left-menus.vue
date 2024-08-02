@@ -91,6 +91,13 @@ const menus = computed(() => {
         icon: AppstoreFilled
       },
       {
+        name: 'Token使用',
+        key: 'usetoken',
+        path: '/user/usetoken',
+        svg: 'use-token',
+        svgActive: 'use-token-active'
+      },
+      {
         name: '团队管理',
         key: 'manage',
         path: '/user/manage',

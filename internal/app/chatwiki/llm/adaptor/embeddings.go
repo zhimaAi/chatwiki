@@ -18,6 +18,7 @@ import (
 	"chatwiki/internal/app/chatwiki/llm/api/volcenginev2"
 	"chatwiki/internal/app/chatwiki/llm/api/voyage"
 	"chatwiki/internal/app/chatwiki/llm/api/xinference"
+	"chatwiki/internal/app/chatwiki/llm/api/zhipu"
 	"errors"
 
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
@@ -29,8 +30,9 @@ type ZhimaEmbeddingRequest struct {
 }
 
 type ZhimaEmbeddingResponse struct {
-	Result []float64 `json:"result"`
-	//Usage  ZhimaEmbeddingUsage `json:"usage"`
+	Result          []float64 `json:"result"`
+	PromptToken     int       `json:"prompt_token"`
+	CompletionToken int       `json:"completion_token"`
 }
 
 func (a *Adaptor) CreateEmbeddings(req ZhimaEmbeddingRequest) (ZhimaEmbeddingResponse, error) {
@@ -39,12 +41,29 @@ func (a *Adaptor) CreateEmbeddings(req ZhimaEmbeddingRequest) (ZhimaEmbeddingRes
 	}
 
 	switch a.meta.Corp {
-	case "openai", "openaiAgent":
+	case "openai":
+		client := openai.NewClient("https://api.openai.com/v1", a.meta.APIKey, &openai.ErrorResponse{})
+		r := openai.EmbeddingRequest{
+			Model: a.meta.Model,
+			Input: []string{req.Input},
+		}
+		res, err := client.CreateEmbeddings(r)
+		if err != nil {
+			return ZhimaEmbeddingResponse{}, err
+		}
+		return ZhimaEmbeddingResponse{
+			Result:          res.Data[0].Embedding,
+			PromptToken:     res.Usage.PromptTokens,
+			CompletionToken: res.Usage.TotalTokens - res.Usage.PromptTokens,
+		}, nil
+	case "baichuan", "zhipu", "openaiAgent":
 		var client *openai.Client
-		if a.meta.Corp == "openaiAgent" {
+		if a.meta.Corp == "baichuan" {
+			client = baichuan.NewClient(a.meta.APIKey).OpenAIClient
+		} else if a.meta.Corp == "zhipu" {
+			client = zhipu.NewClient(a.meta.APIKey).OpenAIClient
+		} else if a.meta.Corp == "openaiAgent" {
 			client = openai_agent.NewClient(a.meta.EndPoint, a.meta.APIKey, a.meta.APIVersion).OpenAIClient
-		} else {
-			client = openai.NewClient("https://api.openai.com/v1", a.meta.APIKey, &openai.ErrorResponse{})
 		}
 		r := openai.EmbeddingRequest{
 			Model: a.meta.Model,
@@ -55,7 +74,9 @@ func (a *Adaptor) CreateEmbeddings(req ZhimaEmbeddingRequest) (ZhimaEmbeddingRes
 			return ZhimaEmbeddingResponse{}, err
 		}
 		return ZhimaEmbeddingResponse{
-			Result: res.Data[0].Embedding,
+			Result:          res.Data[0].Embedding,
+			PromptToken:     res.Usage.PromptTokens,
+			CompletionToken: res.Usage.TotalTokens - res.Usage.PromptTokens,
 		}, nil
 	case "azure":
 		client := azure.NewClient(
@@ -72,7 +93,9 @@ func (a *Adaptor) CreateEmbeddings(req ZhimaEmbeddingRequest) (ZhimaEmbeddingRes
 			return ZhimaEmbeddingResponse{}, err
 		}
 		return ZhimaEmbeddingResponse{
-			Result: res.Data[0].Embedding,
+			Result:          res.Data[0].Embedding,
+			PromptToken:     res.Usage.PromptTokens,
+			CompletionToken: res.Usage.TotalTokens - res.Usage.PromptTokens,
 		}, nil
 	case "baidu":
 		client := baidu.NewClient(
@@ -88,7 +111,9 @@ func (a *Adaptor) CreateEmbeddings(req ZhimaEmbeddingRequest) (ZhimaEmbeddingRes
 			return ZhimaEmbeddingResponse{}, err
 		}
 		return ZhimaEmbeddingResponse{
-			Result: res.Data[0].Embedding,
+			Result:          res.Data[0].Embedding,
+			PromptToken:     res.Usage.PromptTokens,
+			CompletionToken: res.Usage.CompletionTokens,
 		}, nil
 	case "ali":
 		client := ali.NewClient(a.meta.APIKey)
@@ -102,7 +127,9 @@ func (a *Adaptor) CreateEmbeddings(req ZhimaEmbeddingRequest) (ZhimaEmbeddingRes
 			return ZhimaEmbeddingResponse{}, err
 		}
 		return ZhimaEmbeddingResponse{
-			Result: res.Output.Embeddings[0].Embedding,
+			Result:          res.Output.Embeddings[0].Embedding,
+			PromptToken:     0,
+			CompletionToken: res.Usage.TotalTokens,
 		}, nil
 	case "voyage":
 		client := voyage.NewClient(
@@ -117,7 +144,9 @@ func (a *Adaptor) CreateEmbeddings(req ZhimaEmbeddingRequest) (ZhimaEmbeddingRes
 			return ZhimaEmbeddingResponse{}, err
 		}
 		return ZhimaEmbeddingResponse{
-			Result: res.Data[0].Embedding,
+			Result:          res.Data[0].Embedding,
+			PromptToken:     res.Usage.PromptTokens,
+			CompletionToken: res.Usage.TotalTokens - res.Usage.PromptTokens,
 		}, nil
 	case "gemini":
 		client := gemini.NewClient(
@@ -134,19 +163,7 @@ func (a *Adaptor) CreateEmbeddings(req ZhimaEmbeddingRequest) (ZhimaEmbeddingRes
 		return ZhimaEmbeddingResponse{
 			Result: res.Embedding.Values,
 		}, nil
-	case "baichuan":
-		client := baichuan.NewClient(a.meta.APIKey)
-		r := openai.EmbeddingRequest{
-			Model: a.meta.Model,
-			Input: []string{req.Input},
-		}
-		res, err := client.OpenAIClient.CreateEmbeddings(r)
-		if err != nil {
-			return ZhimaEmbeddingResponse{}, err
-		}
-		return ZhimaEmbeddingResponse{
-			Result: res.Data[0].Embedding,
-		}, nil
+
 	case "baai":
 		client := baai.NewClient(a.meta.EndPoint, a.meta.Model, a.meta.APIKey)
 		r := baai.EmbeddingRequest{
@@ -158,10 +175,12 @@ func (a *Adaptor) CreateEmbeddings(req ZhimaEmbeddingRequest) (ZhimaEmbeddingRes
 			return ZhimaEmbeddingResponse{}, err
 		}
 		return ZhimaEmbeddingResponse{
-			Result: res.Data[0].Embedding,
+			Result:          res.Data[0].Embedding,
+			PromptToken:     res.Usage.PromptTokens,
+			CompletionToken: res.Usage.TotalTokens - res.Usage.PromptTokens,
 		}, nil
-	case "volcengine":
-		client := volcenginev2.NewClient(a.meta.EndPoint, a.meta.Model, a.meta.APIKey, a.meta.SecretKey, a.meta.Region)
+	case "doubao":
+		client := volcenginev2.NewClient(`maas-api.ml-platform-cn-beijing.volces.com`, a.meta.Model, a.meta.APIKey, a.meta.SecretKey, a.meta.Region)
 		r := volcenginev2.EmbeddingRequest{
 			Input: []string{req.Input},
 		}
@@ -170,7 +189,9 @@ func (a *Adaptor) CreateEmbeddings(req ZhimaEmbeddingRequest) (ZhimaEmbeddingRes
 			return ZhimaEmbeddingResponse{}, err
 		}
 		return ZhimaEmbeddingResponse{
-			Result: res.Data[0].Embedding,
+			Result:          res.Data[0].Embedding,
+			PromptToken:     res.Usage.PromptTokens,
+			CompletionToken: res.Usage.CompletionTokens,
 		}, nil
 	case "cohere":
 		client := cohere.NewClient(a.meta.APIKey)
@@ -184,9 +205,11 @@ func (a *Adaptor) CreateEmbeddings(req ZhimaEmbeddingRequest) (ZhimaEmbeddingRes
 			return ZhimaEmbeddingResponse{}, err
 		}
 		return ZhimaEmbeddingResponse{
-			Result: res.Embeddings[0],
+			Result:          res.Embeddings[0],
+			PromptToken:     res.Meta.Tokens.InputTokens,
+			CompletionToken: res.Meta.Tokens.OutputTokens,
 		}, nil
-	case "tencent":
+	case "hunyuan":
 		client := hunyuan.NewClient(a.meta.APIKey, a.meta.SecretKey, a.meta.Region)
 		r := tencentHunyuan.NewGetEmbeddingRequest()
 		r.Input = common.StringPtr(req.Input)
@@ -199,7 +222,9 @@ func (a *Adaptor) CreateEmbeddings(req ZhimaEmbeddingRequest) (ZhimaEmbeddingRes
 			result = append(result, *v)
 		}
 		return ZhimaEmbeddingResponse{
-			Result: result,
+			Result:          result,
+			PromptToken:     int(*res.Usage.PromptTokens),
+			CompletionToken: int(*res.Usage.TotalTokens) - int(*res.Usage.PromptTokens),
 		}, nil
 	case "jina":
 		client := jina.NewClient(a.meta.APIKey)
@@ -213,7 +238,9 @@ func (a *Adaptor) CreateEmbeddings(req ZhimaEmbeddingRequest) (ZhimaEmbeddingRes
 			return ZhimaEmbeddingResponse{}, err
 		}
 		return ZhimaEmbeddingResponse{
-			Result: res.Data[0].Embedding,
+			Result:          res.Data[0].Embedding,
+			PromptToken:     res.Usage.PromptTokens,
+			CompletionToken: res.Usage.TotalTokens - res.Usage.PromptTokens,
 		}, nil
 	case "ollama":
 		client := ollama.NewClient(a.meta.EndPoint, a.meta.Model)

@@ -2,7 +2,7 @@ import { loadEnv } from 'vite';
 export var getProxyConfig = function (opt) {
     var mode = opt.mode;
     var env = loadEnv(mode, process.cwd(), '');
-    var proxyApis = ['/static', '/common', '/manage', '/app', '/chat', '/upload'];
+    var proxyApis = ['/static', '/common', '/manage', '/app', '/chat', '/upload', '/public'];
     var proxy = {};
     console.log('PROXY_BASE_API_URL: ' + env.PROXY_BASE_API_URL);
     proxyApis.forEach(function (key) {

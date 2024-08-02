@@ -126,7 +126,8 @@ const handleOk = () => {
       .then((res) => {
         message.success(`${modalTitle.value}成功`)
         show.value = false
-        emit('ok')
+        router.push('/library/preview?id=' + res.data.file_ids[0])
+        // emit('ok')
       })
       .finally(() => {
         saveLoading.value = false

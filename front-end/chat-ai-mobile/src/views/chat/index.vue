@@ -130,6 +130,7 @@
               :index="index"
               :messageLength="messageList.length"
               :msg="item"
+              :prevMsg="messageList[index-1]"
               @sendTextMessage="sendTextMessage"
             />
           </template>

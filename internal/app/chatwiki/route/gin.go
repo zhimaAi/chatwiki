@@ -57,6 +57,13 @@ func init() {
 	Route[http.MethodPost][`/manage/editExternalConfig`] = manage.EditExternalConfig
 	Route[http.MethodGet][`/manage/getRobotInfo`] = manage.GetRobotInfo
 	Route[http.MethodPost][`/manage/deleteRobot`] = manage.DeleteRobot
+
+	/*apiKey API*/
+	Route[http.MethodPost][`/manage/addRobotApikey`] = manage.AddRobotApikey
+	Route[http.MethodPost][`/manage/deleteRobotApikey`] = manage.DeleteRobotApikey
+	Route[http.MethodPost][`/manage/updateRobotApikey`] = manage.UpdateRobotApikey
+	Route[http.MethodPost][`/manage/listRobotApikey`] = manage.ListRobotApikey
+
 	/*library API*/
 	Route[http.MethodGet][`/manage/getLibraryList`] = manage.GetLibraryList
 	Route[http.MethodGet][`/manage/getLibraryInfo`] = manage.GetLibraryInfo
@@ -79,16 +86,23 @@ func init() {
 	Route[http.MethodPost][`/manage/addParagraph`] = manage.SaveParagraph
 	Route[http.MethodPost][`/manage/editParagraph`] = manage.SaveParagraph
 	Route[http.MethodPost][`/manage/deleteParagraph`] = manage.DeleteParagraph
+	/*stats*/
+	Route[http.MethodGet][`/manage/stats/getActiveModels`] = manage.GetActiveModels
+	Route[http.MethodGet][`/manage/stats/token`] = manage.StatToken
+	Route[http.MethodGet][`/manage/stats/analyse`] = manage.StatAnalyse
 	/*debug API*/
 	Route[http.MethodPost][`/manage/getDialogueList`] = manage.GetDialogueList
 	Route[http.MethodPost][`/manage/libraryRecallTest`] = manage.LibraryRecallTest
-	Route[http.MethodGet][`/manage/getAnswerSource`] = manage.GetAnswerSource
+	noAuthFuns(Route[http.MethodGet], `/manage/getAnswerSource`, manage.GetAnswerSource)
 	/*chat API*/
 	noAuthFuns(Route[http.MethodGet], `/chat/getWsUrl`, business.GetWsUrl)
 	noAuthFuns(Route[http.MethodGet], `/chat/isOnLine`, business.IsOnLine)
 	noAuthFuns(Route[http.MethodPost], `/chat/message`, business.ChatMessage)
+	noAuthFuns(Route[http.MethodPost], `/chat/message/addFeedback`, business.AddChatMessageFeedback)
+	noAuthFuns(Route[http.MethodPost], `/chat/message/delFeedback`, business.DelChatMessageFeedback)
 	noAuthFuns(Route[http.MethodPost], `/chat/welcome`, business.ChatWelcome)
 	noAuthFuns(Route[http.MethodPost], `/chat/request`, business.ChatRequest)
+
 	noAuthFuns(Route[http.MethodPost], `/chat/questionGuide`, business.ChatQuestionGuide)
 	/*model API*/
 	Route[http.MethodGet][`/manage/getModelConfigList`] = manage.GetModelConfigList
@@ -104,8 +118,18 @@ func init() {
 	Route[http.MethodPost][`/manage/deleteFastCommand`] = manage.DeleteFastCommand
 	Route[http.MethodPost][`/manage/updateFastCommandSwitch`] = manage.UpdateFastCommandSwitch
 	noAuthFuns(Route[http.MethodGet], `/chat/getFastCommandList`, business.GetFastCommandList)
+	/* Open API*/
+	noAuthFuns(Route[http.MethodPost], `/open/chatMessage`, business.ChatMessages)
+
 	//register client side route
 	RegClientSideRoute()
+	/*session API*/
+	Route[http.MethodGet][`/manage/getSessionChannelList`] = manage.GetSessionChannelList
+	Route[http.MethodGet][`/manage/getSessionRecordList`] = manage.GetSessionRecordList
+	/*feedback API*/
+	Route[http.MethodGet][`/manage/feedback/stats`] = manage.StatMessageFeedback
+	Route[http.MethodGet][`/manage/feedback/list`] = manage.GetMessageFeedbackList
+	Route[http.MethodGet][`/manage/feedback/detail`] = manage.GetMessageFeedbackDetail
 }
 
 func noAuthFuns(route map[string]lib_web.Action, path string, handlerFunc lib_web.Action) map[string]lib_web.Action {

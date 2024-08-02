@@ -48,8 +48,8 @@ type Content struct {
 }
 
 type Usage struct {
-	InputTokens  int `json:"input_token"`
-	OutputTokens int `json:"output_token"`
+	InputTokens  int `json:"input_tokens"`
+	OutputTokens int `json:"output_tokens"`
 }
 
 type ChatCompletionStreamResponse struct {
@@ -58,7 +58,6 @@ type ChatCompletionStreamResponse struct {
 	Index        int                    `json:"index"`
 	ContentBlock Content                `json:"content_block"`
 	Delta        Delta                  `json:"delta"`
-	Usage        Usage                  `json:"usage"`
 }
 type Delta struct {
 	Type         string `json:"type"`

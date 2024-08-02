@@ -1,11 +1,32 @@
 <style lang="less" scoped>
+.breadcrumb-block {
+  height: 48px;
+  display: flex;
+  align-items: center;
+}
+.page-title {
+  height: 38px;
+  border-radius: 2px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: #262626;
+  margin-bottom: 16px;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 22px;
+  .title {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 22px;
+  }
+}
 .document-segmentation {
   position: relative;
   height: 100%;
   overflow: hidden;
   display: flex;
   flex-flow: column nowrap;
-  padding-bottom: 56px;
   .page-container {
     display: flex;
     flex: 1;
@@ -15,7 +36,7 @@
       width: 430px;
       height: 100%;
       overflow-y: auto;
-      &::-webkit-scrollbar{
+      &::-webkit-scrollbar {
         display: none;
       }
     }
@@ -98,11 +119,39 @@
   </div>
 
   <div class="document-segmentation">
-    <page-mini-title>文档分段与清洗</page-mini-title>
-
+    <div class="breadcrumb-block">
+      <a-breadcrumb>
+        <a-breadcrumb-item>
+          <router-link to="/library/list"> 知识库管理 </router-link></a-breadcrumb-item
+        >
+        <a-breadcrumb-item>
+          <router-link
+            :to="{
+              path: '/library/details/knowledge-document',
+              query: {
+                id: libFileInfo.library_id
+              }
+            }"
+          >
+            {{ libFileInfo.library_name }}知识库</router-link
+          >
+        </a-breadcrumb-item>
+        <a-breadcrumb-item>分段设置</a-breadcrumb-item>
+      </a-breadcrumb>
+    </div>
+    <div class="page-title">
+      <LeftOutlined @click="goBack" />
+      <span class="title">文档分段与清洗</span>
+    </div>
     <div class="page-container">
       <div class="page-left">
-        <SegmentationSetting :excellQaLists="excellQaLists" :libFileInfo="libFileInfo" :mode="settingMode" @change="onChangeSetting" @validate="onValidate" />
+        <SegmentationSetting
+          :excellQaLists="excellQaLists"
+          :libFileInfo="libFileInfo"
+          :mode="settingMode"
+          @change="onChangeSetting"
+          @validate="onValidate"
+        />
       </div>
       <div class="page-right">
         <div class="document-fragment-preview">
@@ -134,7 +183,6 @@
     </div>
 
     <div class="footer-btn-box">
-      <a-button @click="handleCancel">取消</a-button>
       <a-button type="primary" :loading="saveLoading" @click="handleSaveLibFileSplit"
         >保存</a-button
       >
@@ -148,11 +196,16 @@
 import { ref, createVNode } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
-import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
+import { ExclamationCircleOutlined, LeftOutlined } from '@ant-design/icons-vue'
 import SegmentationSetting from './components/segmentation-setting.vue'
 import DocumentFragment from './components/document-fragment.vue'
 import EditFragmentAlert from './components/edit-fragment-alert.vue'
-import { getLibFileSplit, getLibFileInfo, saveLibFileSplit, getLibFileExcelTitle } from '@/api/library/index'
+import {
+  getLibFileSplit,
+  getLibFileInfo,
+  saveLibFileSplit,
+  getLibFileExcelTitle
+} from '@/api/library/index'
 
 const route = useRoute()
 const router = useRouter()
@@ -164,25 +217,20 @@ let itWasEdited = false
 
 let formData = {
   id: document_id,
-  is_diy_split: 0, // 0 智能分段 1 自定义分段
   separators_no: '', // 自定义分段-分隔符序号集
   chunk_size: 512, // 自定义分段-分段最大长度 默认512，最大值不得超过2000
   chunk_overlap: 50, // 自定义分段-分段重叠长度 默认为50，最小不得低于10，最大不得超过最大分段长度的50%
   is_qa_doc: 0, // 0 普通文档 1 QA文档
   question_lable: '', // QA文档-问题开始标识符
   answer_lable: '', // QA文档-答案开始标识符
-  enable_extract_image: true,
+  enable_extract_image: true
 }
-
+let isEdit = false
 const onChangeSetting = (data) => {
-  if (data.is_diy_split == 1) {
-    data.is_qa_doc = 0
-  }
-
   if (typeof data.separators_no == 'object') {
     data.separators_no = data.separators_no.join(',')
   }
-
+  isEdit = true
   formData = {
     ...formData,
     ...data
@@ -220,6 +268,19 @@ const getDocumentStatus = () => {
   getLibFileInfo({ id: document_id }).then((res) => {
     const { status } = res.data
     libFileInfo.value = res.data
+    formData = {
+      ...formData,
+      separators_no: res.data.separators_no || '11,12',
+      chunk_size: +res.data.chunk_size || 512,
+      chunk_overlap: +res.data.chunk_overlap || 50,
+      is_qa_doc: +res.data.is_qa_doc,
+      question_lable: res.data.question_lable,
+      answer_lable: res.data.answer_lable,
+      question_column: res.data.question_column,
+      answer_column: res.data.answer_column,
+      enable_extract_image: res.data.enable_extract_image == 'true',
+      qa_index_type: +res.data.qa_index_type
+    }
     if (status == 0) {
       loopNumber++
       if (loopNumber > maxLoopNumber) {
@@ -232,7 +293,7 @@ const getDocumentStatus = () => {
       setTimeout(() => {
         getDocumentStatus()
       }, 1000)
-    } else if (status == 4) {
+    } else if (status == 4 || status == 2) {
       spinning.value = false
       settingMode.value = parseInt(res.data.is_table_file)
       library_id = res.data.library_id
@@ -241,7 +302,7 @@ const getDocumentStatus = () => {
       router.replace('/library/details?id=' + res.data.library_id)
     }
 
-    if(res.data.is_table_file == 1){
+    if (res.data.is_table_file == 1) {
       getExcelQaTitle()
     }
   })
@@ -249,18 +310,18 @@ const getDocumentStatus = () => {
 
 getDocumentStatus()
 
-const excellQaLists = ref([]);
+const excellQaLists = ref([])
 const getExcelQaTitle = () => {
   // 获取excel的QA  问题所在列 下拉列表
-  getLibFileExcelTitle({ id: document_id }).then(res=>{
-    let datas = [];
-    for(let key in res.data){
+  getLibFileExcelTitle({ id: document_id }).then((res) => {
+    let datas = []
+    for (let key in res.data) {
       datas.push({
         lable: res.data[key],
         value: key
       })
     }
-    excellQaLists.value = datas;
+    excellQaLists.value = datas
   })
 }
 
@@ -288,7 +349,7 @@ const saveFragment = ({ title, content, question, answer, images }) => {
   if (
     documentFragmentList.value[editFragmentIndex].title != title ||
     documentFragmentList.value[editFragmentIndex].content != content ||
-    documentFragmentList.value[editFragmentIndex].question != question || 
+    documentFragmentList.value[editFragmentIndex].question != question ||
     documentFragmentList.value[editFragmentIndex].answer != answer
   ) {
     itWasEdited = true
@@ -300,7 +361,8 @@ const saveFragment = ({ title, content, question, answer, images }) => {
   documentFragmentList.value[editFragmentIndex].answer = answer
   documentFragmentList.value[editFragmentIndex].images = images
 
-  documentFragmentList.value[editFragmentIndex].word_total = answer.length + question.length + content.length
+  documentFragmentList.value[editFragmentIndex].word_total =
+    answer.length + question.length + content.length
 }
 
 // 删除文档片段
@@ -319,16 +381,15 @@ const handleDeleteFragment = (index) => {
     onCancel() {}
   })
 }
-const validateMessage = ref('');
-const onValidate = (data)=>{
+const validateMessage = ref('')
+const onValidate = (data) => {
   // 获取错误信息
   validateMessage.value = data
 }
 
 const saveLoading = ref(false)
 const handleSaveLibFileSplit = () => {
-
-  if(validateMessage.value) {
+  if (validateMessage.value) {
     return message.error(validateMessage.value)
   }
 
@@ -339,7 +400,6 @@ const handleSaveLibFileSplit = () => {
 
   delete split_params.id
 
-   
   let parmas = {
     id: document_id,
     word_total: documentFragmentTotal.value,
@@ -348,9 +408,9 @@ const handleSaveLibFileSplit = () => {
   }
 
   // 非表格的也需要存储qa_index_type
-  if(split_params.is_qa_doc == 1){
+  if (split_params.is_qa_doc == 1) {
     // 表格类型 + QA文档
-    parmas.qa_index_type = split_params.qa_index_type;
+    parmas.qa_index_type = split_params.qa_index_type
   }
 
   saveLoading.value = true
@@ -358,13 +418,17 @@ const handleSaveLibFileSplit = () => {
   saveLibFileSplit(parmas)
     .then(() => {
       message.success('保存成功')
-
+      if (route.query.source == 'preview' && !isEdit) {
+        goBack()
+        return
+      }
       router.replace('/library/details?id=' + library_id)
     })
     .finally(() => {
       saveLoading.value = false
-    }).catch(err=>{
-      console.log(err,'==')
+    })
+    .catch((err) => {
+      console.log(err, '==')
       err.data && err.data.index && handleScrollToErrorDom(err.data.index)
     })
 }
@@ -385,13 +449,16 @@ const handleCancel = () => {
   })
 }
 
-const previewBoxRef = ref(null);
+const previewBoxRef = ref(null)
 const handleScrollToErrorDom = (index) => {
   index = index - 1
   let fragmentElements = previewBoxRef.value.querySelectorAll('.fragment-item')
-  if(fragmentElements.length >= index){
-    let scorllElement = fragmentElements[index];
-    scorllElement.scrollIntoView({behavior: "smooth", block: "start", inline: "nearest"});
+  if (fragmentElements.length >= index) {
+    let scorllElement = fragmentElements[index]
+    scorllElement.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' })
   }
+}
+const goBack = () => {
+  router.back()
 }
 </script>

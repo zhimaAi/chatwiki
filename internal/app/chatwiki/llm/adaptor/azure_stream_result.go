@@ -13,7 +13,13 @@ func (r *AzureStreamResult) Read() (ZhimaChatCompletionResponse, error) {
 	if err != nil {
 		return ZhimaChatCompletionResponse{}, err
 	}
+	var result string
+	if len(responseAzure.Choices) > 0 {
+		result = responseAzure.Choices[0].Delta.Content
+	}
 	return ZhimaChatCompletionResponse{
-		Result: responseAzure.Choices[0].Delta.Content,
+		Result:          result,
+		PromptToken:     responseAzure.Usage.PromptTokens,
+		CompletionToken: responseAzure.Usage.CompletionTokens,
 	}, nil
 }

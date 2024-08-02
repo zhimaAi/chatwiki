@@ -43,6 +43,7 @@ func (c *Client) CreateEmbeddings(req EmbeddingRequest) (EmbeddingResponse, erro
 
 	var result EmbeddingResponse
 	err = common.HttpDecodeResponse(responseRaw, &result)
+
 	return result, err
 }
 

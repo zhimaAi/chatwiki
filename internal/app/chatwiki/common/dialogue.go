@@ -53,6 +53,7 @@ func GetSessionId(chatBaseParam *define.ChatBaseParam, dialogueId int) (int, err
 	//create new session
 	id, err := msql.Model(`chat_ai_session`, define.Postgres).Insert(msql.Datas{
 		`admin_user_id`: chatBaseParam.AdminUserId,
+		`app_type`:      chatBaseParam.AppType,
 		`dialogue_id`:   dialogueId,
 		`robot_id`:      chatBaseParam.Robot[`id`],
 		`openid`:        chatBaseParam.Openid,

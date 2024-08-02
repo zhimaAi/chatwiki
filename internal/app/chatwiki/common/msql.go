@@ -51,16 +51,54 @@ func GetRobotInfo(robotKey string) (msql.Params, error) {
 	return result, err
 }
 
+type RobotApiKeyCacheBuildHandler struct{ RobotKey string }
+
+func (h *RobotApiKeyCacheBuildHandler) GetCacheKey() string {
+	return fmt.Sprintf(`chatwiki.robot_apikey.%s`, h.RobotKey)
+}
+func (h *RobotApiKeyCacheBuildHandler) GetCacheData() (any, error) {
+	data, err := msql.Model(`chat_ai_robot_apikey`, define.Postgres).Where(`robot_key`, h.RobotKey).Order("id desc").Select()
+	if err == nil && len(data) > 0 {
+		for _, item := range data {
+			delete(item, "create_time")
+			delete(item, "update_time")
+			delete(item, "admin_user_id")
+		}
+	}
+	return data, err
+}
+
+func GetRobotApikeyInfo(robotKey string) ([]msql.Params, error) {
+	result := make([]msql.Params, 0)
+	err := lib_redis.GetCacheWithBuild(define.Redis, &RobotApiKeyCacheBuildHandler{RobotKey: robotKey}, &result, time.Hour*24*7)
+	return result, err
+}
+
 type CustomerCacheBuildHandler struct {
 	Openid      string
 	AdminUserId int
 }
 
 func (h *CustomerCacheBuildHandler) GetCacheKey() string {
-	return fmt.Sprintf(`chatwiki.customer_info.%d.%s`, h.AdminUserId, h.Openid)
+	return fmt.Sprintf(`chatwiki.customer_info.v2.%d.%s`, h.AdminUserId, h.Openid)
 }
 func (h *CustomerCacheBuildHandler) GetCacheData() (any, error) {
-	return msql.Model(`chat_ai_customer`, define.Postgres).Where(`openid`, h.Openid).Where(`admin_user_id`, cast.ToString(h.AdminUserId)).Find()
+	m := msql.Model(`chat_ai_customer`, define.Postgres)
+	customer, err := m.Where(`openid`, h.Openid).Where(`admin_user_id`, cast.ToString(h.AdminUserId)).Find()
+	if err == nil && len(customer) > 0 {
+		up := msql.Datas{}
+		if len(customer[`name`]) == 0 {
+			up[`name`] = `访客` + tool.Random(4)
+		}
+		if len(customer[`avatar`]) == 0 {
+			up[`avatar`] = define.DefaultCustomerAvatar
+		}
+		if len(up) > 0 {
+			_, _ = m.Where(`id`, customer[`id`]).Update(up)
+			return h.GetCacheData()
+		}
+	}
+	return customer, err
 }
 
 func GetCustomerInfo(openid string, adminUserId int) (msql.Params, error) {
@@ -137,7 +175,7 @@ func GetLibFileInfo(fileId, adminUserId int) (msql.Params, error) {
 	return result, err
 }
 
-func GetMatchLibraryParagraphByVectorSimilarity(question, libraryIds string, size int, similarity float64, searchType int) ([]msql.Params, error) {
+func GetMatchLibraryParagraphByVectorSimilarity(robot msql.Params, openid, appType, question string, libraryIds string, size int, similarity float64, searchType int) ([]msql.Params, error) {
 	result := make([]msql.Params, 0)
 	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector}) {
 		return result, nil
@@ -170,9 +208,9 @@ func GetMatchLibraryParagraphByVectorSimilarity(question, libraryIds string, siz
 	for modelConfigId := range group {
 		for useModel, libraryIds := range group[modelConfigId] {
 			wg.Add(1)
-			go func(wg *sync.WaitGroup, modelConfigId int, useModel, question string, libraryIds string, size int, list *define.SimilarityResult) {
+			go func(wg *sync.WaitGroup, robot msql.Params, openid, appType string, modelConfigId int, useModel, question string, libraryIds string, size int, list *define.SimilarityResult) {
 				defer wg.Done()
-				embedding, err := GetVector2000(modelConfigId, useModel, question)
+				embedding, err := GetVector2000(cast.ToInt(robot[`admin_user_id`]), openid, robot, msql.Params{}, msql.Params{}, modelConfigId, useModel, question)
 				if err != nil {
 					logs.Error(err.Error())
 					return
@@ -195,7 +233,7 @@ func GetMatchLibraryParagraphByVectorSimilarity(question, libraryIds string, siz
 					return
 				}
 				*list = append(*list, subList...)
-			}(wg, modelConfigId, useModel, question, strings.Join(libraryIds, `,`), size, &list)
+			}(wg, robot, openid, appType, modelConfigId, useModel, question, strings.Join(libraryIds, `,`), size, &list)
 		}
 	}
 	wg.Wait()
@@ -334,7 +372,7 @@ func GetMatchLibraryParagraphByMergeRerank(question string, size int, vectorList
 	return RerankData(cast.ToInt(robot[`rerank_model_config_id`]), robot[`rerank_use_model`], rerankReq)
 }
 
-func GetMatchLibraryParagraphList(question string, optimizedQuestions []string, libraryIds string, size int, similarity float64, searchType int, robot msql.Params) ([]msql.Params, error) {
+func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQuestions []string, libraryIds string, size int, similarity float64, searchType int, robot msql.Params) ([]msql.Params, error) {
 	result := make([]msql.Params, 0)
 	if len(libraryIds) == 0 {
 		return result, nil
@@ -347,7 +385,7 @@ func GetMatchLibraryParagraphList(question string, optimizedQuestions []string, 
 	var vectorList, searchList []msql.Params
 
 	for _, q := range append(optimizedQuestions, question) {
-		list, err := GetMatchLibraryParagraphByVectorSimilarity(q, libraryIds, fetchSize, similarity, searchType)
+		list, err := GetMatchLibraryParagraphByVectorSimilarity(robot, openid, appType, q, libraryIds, fetchSize, similarity, searchType)
 		if err != nil {
 			logs.Error(err.Error())
 		}
@@ -485,24 +523,34 @@ func SaveVector(adminUserID, libraryID, fileID, dataID int64, vectorType, conten
 	}
 }
 
-func GetOptimizedQuestions(Robot msql.Params, question string, contextList []map[string]string) ([]string, error) {
+func GetOptimizedQuestions(param *define.ChatRequestParam, contextList []map[string]string) ([]string, error) {
 	histories := ""
 	for _, context := range contextList {
 		histories += "Q: " + context[`question`] + "\n"
 		histories += "A: " + context[`answer`] + "\n"
 	}
-	prompt := strings.ReplaceAll(define.PromptDefaultQuestionOptimize, `{{query}}`, question)
+	prompt := strings.ReplaceAll(define.PromptDefaultQuestionOptimize, `{{query}}`, param.Question)
 	prompt = strings.ReplaceAll(prompt, `{{histories}}`, histories)
 
 	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
 
 	var result []string
-	content, err := RequestChat(cast.ToInt(Robot[`model_config_id`]), Robot[`use_model`], messages, cast.ToFloat32(Robot[`temperature`]), 200)
+	chatResp, _, err := RequestChat(
+		param.AdminUserId,
+		param.Openid,
+		param.Robot,
+		param.AppType,
+		cast.ToInt(param.Robot[`model_config_id`]),
+		param.Robot[`use_model`],
+		messages,
+		cast.ToFloat32(param.Robot[`temperature`]),
+		200,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	err = json.Unmarshal([]byte(content), &result)
+	err = json.Unmarshal([]byte(chatResp.Result), &result)
 	if err != nil {
 		return nil, err
 	}

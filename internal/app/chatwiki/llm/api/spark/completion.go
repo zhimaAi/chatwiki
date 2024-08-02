@@ -5,9 +5,8 @@ package spark
 import (
 	"encoding/json"
 	"errors"
-	"io"
-
 	"github.com/gorilla/websocket"
+	"io"
 )
 
 type ChatCompletionRequest struct {
@@ -91,9 +90,9 @@ func (c *ChatCompletionStream) Recv() (ChatCompletionResponse, error) {
 		if response.Payload.Choices.Status == 2 {
 			return response, io.EOF
 		}
-		if len(response.Payload.Choices.Text) <= 0 {
-			return ChatCompletionResponse{}, errors.New("no text in response")
-		}
+		//if len(response.Payload.Choices.Text) <= 0 {
+		//	return ChatCompletionResponse{}, errors.New("no text in response")
+		//}
 		return response, nil
 	}
 }

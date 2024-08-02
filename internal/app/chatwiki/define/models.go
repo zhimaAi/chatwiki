@@ -4,13 +4,14 @@ package define
 
 import (
 	"chatwiki/internal/app/chatwiki/llm/adaptor"
+	"chatwiki/internal/pkg/lib_define"
 	"errors"
-	"io"
-
 	"github.com/gin-contrib/sse"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+	"io"
+	"time"
 )
 
 const (
@@ -33,6 +34,8 @@ const (
 	ModelHunyuan         = "hunyuan"
 	ModelDoubao          = "doubao"
 	ModelBaichuan        = "baichuan"
+
+	ModelZhipu = "zhipu"
 )
 
 const (
@@ -46,20 +49,21 @@ const (
 
 type ModelCallHandler struct {
 	adaptor.Meta
-	UseModel string
+	config msql.Params
 }
 
-func (h *ModelCallHandler) GetVector2000(input string) (string, error) {
+func (h *ModelCallHandler) GetVector2000(adminUserId int, openid string, robot msql.Params, library msql.Params, fileInfo msql.Params, input string) (string, error) {
 	client := &adaptor.Adaptor{}
 	client.Init(h.Meta)
 	req := adaptor.ZhimaEmbeddingRequest{Input: input}
 	var res adaptor.ZhimaEmbeddingResponse
 	var err error
-	maxTryCount := 2
+	maxTryCount := 3
 	for i := 0; i < maxTryCount; i++ {
 		res, err = client.CreateEmbeddings(req)
 		if err != nil {
 			logs.Error(err.Error())
+			time.Sleep(time.Second * 1)
 		} else {
 			break
 		}
@@ -74,13 +78,19 @@ func (h *ModelCallHandler) GetVector2000(input string) (string, error) {
 	if len(res.Result) < VectorDimension {
 		res.Result = append(res.Result, make([]float64, VectorDimension-len(res.Result))...)
 	}
+	go func() {
+		err := LlmLogRequest("Text Embedding", adminUserId, openid, robot, library, h.config, lib_define.AppYunH5, fileInfo, h.Meta.Model, res.PromptToken, res.CompletionToken, req, res)
+		if err != nil {
+			logs.Error(err.Error())
+		}
+	}()
 	return tool.JsonEncode(res.Result)
 }
 
 func (h *ModelCallHandler) GetSimilarity(query []float64, inputs [][]float64) (string, error) {
 	client := &adaptor.Adaptor{}
 	client.Init(h.Meta)
-	req := adaptor.ZhimaSimilarityRequest{Model: h.UseModel, Query: query, Input: inputs}
+	req := adaptor.ZhimaSimilarityRequest{Model: h.Meta.Model, Query: query, Input: inputs}
 	res, err := client.CreateSimilarity(req)
 	if err != nil {
 		return ``, err
@@ -111,7 +121,16 @@ func (h *ModelCallHandler) RequestRerank(params *adaptor.ZhimaRerankReq) ([]msql
 	return res, nil
 }
 
-func (h *ModelCallHandler) RequestChatStream(messages []adaptor.ZhimaChatCompletionMessage, chanStream chan sse.Event, temperature float32, maxToken int) (string, error) {
+func (h *ModelCallHandler) RequestChatStream(
+	adminUserId int,
+	openid string,
+	robot msql.Params,
+	appType string,
+	messages []adaptor.ZhimaChatCompletionMessage,
+	chanStream chan sse.Event,
+	temperature float32,
+	maxToken int,
+) (adaptor.ZhimaChatCompletionResponse, int64, error) {
 	client := &adaptor.Adaptor{}
 	client.Init(h.Meta)
 	req := adaptor.ZhimaChatCompletionRequest{
@@ -121,30 +140,59 @@ func (h *ModelCallHandler) RequestChatStream(messages []adaptor.ZhimaChatComplet
 	}
 	stream, err := client.CreateChatCompletionStream(req)
 	if err != nil {
-		return ``, err
+		return adaptor.ZhimaChatCompletionResponse{}, 0, err
 	}
 	defer func(stream *adaptor.ZhimaChatCompletionStreamResponse) {
 		_ = stream.Close()
 	}(stream)
+	var totalResponse adaptor.ZhimaChatCompletionResponse
 	var content string
+	requestTime := int64(0)
+	requestStartTime := time.Now()
 	for {
 		response, err := stream.Read()
+		if requestTime == 0 {
+			requestTime = time.Now().Sub(requestStartTime).Milliseconds()
+			chanStream <- sse.Event{Event: `request_time`, Data: requestTime}
+		}
+
+		totalResponse.PromptToken += response.PromptToken
+		totalResponse.CompletionToken += response.CompletionToken
+
 		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
-			return ``, err
+			return adaptor.ZhimaChatCompletionResponse{}, 0, err
 		}
+
 		if len(response.Result) == 0 {
 			continue
 		}
+		totalResponse.Result += response.Result
 		content += response.Result
 		chanStream <- sse.Event{Event: `sending`, Data: response.Result}
 	}
-	return content, nil
+
+	go func() {
+		err := LlmLogRequest("LLM", adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.Meta.Model, totalResponse.PromptToken, totalResponse.CompletionToken, req, totalResponse)
+		if err != nil {
+			logs.Error(err.Error())
+		}
+	}()
+
+	return totalResponse, requestTime, nil
 }
 
-func (h *ModelCallHandler) RequestChat(messages []adaptor.ZhimaChatCompletionMessage, temperature float32, maxToken int) (string, error) {
+func (h *ModelCallHandler) RequestChat(
+	adminUserId int,
+	openid string,
+	robot msql.Params,
+	appType string,
+	messages []adaptor.ZhimaChatCompletionMessage,
+	temperature float32,
+	maxToken int,
+) (adaptor.ZhimaChatCompletionResponse, int64, error) {
 	client := &adaptor.Adaptor{}
 	client.Init(h.Meta)
 	req := adaptor.ZhimaChatCompletionRequest{
@@ -152,11 +200,20 @@ func (h *ModelCallHandler) RequestChat(messages []adaptor.ZhimaChatCompletionMes
 		MaxToken:    maxToken,
 		Temperature: float64(temperature),
 	}
+	requestStartTime := time.Now()
 	resp, err := client.CreateChatCompletion(req)
 	if err != nil {
-		return ``, err
+		return adaptor.ZhimaChatCompletionResponse{}, 0, err
 	}
-	return resp.Result, nil
+	requestTime := time.Now().Sub(requestStartTime).Milliseconds()
+	go func() {
+		err := LlmLogRequest("LLM", adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.Meta.Model, resp.PromptToken, resp.CompletionToken, req, resp)
+		if err != nil {
+			logs.Error(err.Error())
+		}
+	}()
+
+	return resp, requestTime, nil
 }
 
 type HandlerFunc func(config msql.Params, useModel string) (*ModelCallHandler, error)
@@ -321,8 +378,8 @@ var ModelList = []ModelInfo{
 		ConfigList:    nil,
 		ApiVersions:   []string{},
 		LlmModelList: []string{
-			`ERNIE-4.0-Turbo-8K`,
 			`ERNIE-4.0-8K`,
+			`ERNIE-4.0-Turbo-8K`,
 			`ERNIE-4.0-8K-Preemptible`,
 			`ERNIE-4.0-8K-Preview`,
 			`ERNIE-4.0-8K-Preview-0518`,
@@ -342,7 +399,7 @@ var ModelList = []ModelInfo{
 			`ERNIE-Lite-8K-0308`,
 		},
 		VectorModelList: []string{
-			`Embedding-V1`,
+			`embedding-v1`,
 			`bge-large-zh`,
 			`bge-large-en`,
 			`tao-8k`,
@@ -407,9 +464,9 @@ var ModelList = []ModelInfo{
 		ModelIconUrl:  LocalUploadPrefix + `model_icon/` + ModelCohere + `.png`,
 		Introduce:     `cohere提供的模型，包含Command、Command R、Command R+等`,
 		IsOffline:     false,
-		SupportList:   []string{Rerank},
-		SupportedType: []string{Rerank},
-		ConfigParams:  []string{`api_endpoint`},
+		SupportList:   []string{Llm, TextEmbedding, Rerank},
+		SupportedType: []string{Llm, TextEmbedding, Rerank},
+		ConfigParams:  []string{`api_key`},
 		ConfigList:    nil,
 		ApiVersions:   []string{},
 		LlmModelList: []string{
@@ -497,12 +554,13 @@ var ModelList = []ModelInfo{
 		ModelIconUrl:  LocalUploadPrefix + `model_icon/` + ModelJina + `.png`,
 		Introduce:     `有Jina提供的嵌入和Rerank模型，`,
 		IsOffline:     false,
-		SupportList:   []string{Llm, Rerank},
-		SupportedType: []string{Llm, Rerank},
+		SupportList:   []string{TextEmbedding, Rerank},
+		SupportedType: []string{TextEmbedding, Rerank},
 		ConfigParams:  []string{`api_key`},
 		ConfigList:    nil,
 		ApiVersions:   []string{},
-		LlmModelList: []string{
+		LlmModelList:  []string{},
+		VectorModelList: []string{
 			`jina-embeddings-v2-base-en`,
 			`jina-embeddings-v2-base-zh`,
 			`jina-embeddings-v2-base-de`,
@@ -510,7 +568,6 @@ var ModelList = []ModelInfo{
 			`jina-colbert-v1-en`,
 			`jina-embeddings-v2-base-code`,
 		},
-		VectorModelList: []string{},
 		RerankModelList: []string{
 			"jina-reranker-v1-base-en",
 			"jina-reranker-v1-turbo-en",
@@ -606,27 +663,18 @@ var ModelList = []ModelInfo{
 		CallHandlerFunc: GetHunyuanHandle,
 	},
 	{
-		ModelDefine:   ModelDoubao,
-		ModelName:     `火山引擎`,
-		ModelIconUrl:  LocalUploadPrefix + `model_icon/` + ModelDoubao + `.png`,
-		Introduce:     `基于火山引擎提供的豆包大模型API`,
-		IsOffline:     false,
-		SupportList:   []string{Llm, TextEmbedding},
-		SupportedType: []string{Llm, TextEmbedding},
-		ConfigParams:  []string{`deployment_name`, `api_key`, `secret_key`, `region`},
-		ConfigList:    nil,
-		ApiVersions:   []string{},
-		LlmModelList: []string{
-			`Doubao-lite-4k`,
-			`Doubao-lite-32k`,
-			`Doubao-lite-128k`,
-			`Doubao-pro-4k`,
-			`Doubao-pro-32k`,
-			`Doubao-pro-128k`,
-		},
-		VectorModelList: []string{
-			`默认`,
-		},
+		ModelDefine:     ModelDoubao,
+		ModelName:       `火山引擎`,
+		ModelIconUrl:    LocalUploadPrefix + `model_icon/` + ModelDoubao + `.png`,
+		Introduce:       `基于火山引擎提供的豆包大模型API`,
+		IsOffline:       false,
+		SupportList:     []string{Llm, TextEmbedding},
+		SupportedType:   []string{Llm, TextEmbedding},
+		ConfigParams:    []string{`deployment_name`, `api_key`, `secret_key`, `region`},
+		ConfigList:      nil,
+		ApiVersions:     []string{},
+		LlmModelList:    []string{`默认`},
+		VectorModelList: []string{`默认`},
 		RerankModelList: []string{},
 		HelpLinks:       `https://www.volcengine.com/product/doubao`,
 		CallHandlerFunc: GetDoubaoHandle,
@@ -639,7 +687,7 @@ var ModelList = []ModelInfo{
 		IsOffline:     false,
 		SupportList:   []string{Llm, TextEmbedding},
 		SupportedType: []string{Llm, TextEmbedding},
-		ConfigParams:  []string{`deployment_name`, `api_key`, `secret_key`, `region`},
+		ConfigParams:  []string{`api_key`},
 		ConfigList:    nil,
 		ApiVersions:   []string{},
 		LlmModelList: []string{
@@ -654,6 +702,32 @@ var ModelList = []ModelInfo{
 		},
 		RerankModelList: []string{},
 		HelpLinks:       `https://platform.baichuan-ai.com`,
-		CallHandlerFunc: GetDoubaoHandle,
+		CallHandlerFunc: GetBaichuanHandle,
+	},
+	{
+
+		ModelDefine:   ModelZhipu,
+		ModelName:     `智谱`,
+		ModelIconUrl:  LocalUploadPrefix + `model_icon/` + ModelZhipu + `.png`,
+		Introduce:     `领先的认知大模型AI开放平台`,
+		IsOffline:     false,
+		SupportList:   []string{Llm, TextEmbedding},
+		SupportedType: []string{Llm, TextEmbedding},
+		ConfigParams:  []string{`api_key`},
+		ConfigList:    nil,
+		ApiVersions:   []string{},
+		LlmModelList: []string{
+			`glm-4-0520`,
+			`glm-4`,
+			`glm-4-air`,
+			`glm-4-airx`,
+			`glm-4-flash`,
+		},
+		VectorModelList: []string{
+			`embedding-2`,
+		},
+		RerankModelList: []string{},
+		HelpLinks:       `https://open.bigmodel.cn/`,
+		CallHandlerFunc: GetZhipuHandle,
 	},
 }

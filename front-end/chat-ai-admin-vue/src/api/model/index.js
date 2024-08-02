@@ -19,3 +19,7 @@ export const delModelConfig = (data) => {
 export const getModelConfigOption = (params) => {
   return request.get({ url: '/manage/getModelConfigOption', params })
 }
+
+export const getTokenModels = (params) => {
+  return request.get({ url: '/manage/stats/getActiveModels', params })
+}

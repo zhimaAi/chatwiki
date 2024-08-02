@@ -40,16 +40,7 @@ export default {
       meta: {
         title: '新建知识库',
         activeMenu: '/library',
-        breadcrumb: [
-          {
-            title: '知识库管理',
-            path: '/library/list'
-          },
-          {
-            title: '新建知识库',
-            path: '/library/add'
-          }
-        ]
+        hideTitle: true,
       }
     },
     {
@@ -99,16 +90,7 @@ export default {
       meta: {
         title: '知识库管理',
         activeMenu: '/library',
-        breadcrumb: [
-          {
-            title: '知识库管理',
-            path: '/library/list'
-          },
-          {
-            title: '知识库详情',
-            path: '/library/preview'
-          }
-        ]
+        hideTitle: true,
       }
     }
   ]

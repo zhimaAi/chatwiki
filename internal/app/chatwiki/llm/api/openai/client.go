@@ -6,7 +6,6 @@ import (
 	"bufio"
 	"chatwiki/internal/app/chatwiki/llm/common"
 	"errors"
-	"github.com/zhimaAi/go_tools/logs"
 	"io"
 )
 
@@ -73,7 +72,6 @@ func (c *Client) CreateChatCompletion(req ChatCompletionRequest) (ChatCompletion
 		_ = Body.Close()
 	}(responseRaw.Body)
 	err = common.HttpCheckError(responseRaw, c.ErrResp)
-	logs.Info("CreateChatCompletion:url:%v,%+v,%+v,%s", url, req, headers, err)
 	if err != nil {
 		return ChatCompletionResponse{}, err
 	}
@@ -97,6 +95,7 @@ func (c *Client) CreateChatCompletionStream(req ChatCompletionRequest) (*ChatCom
 		{Key: "Authorization", Value: "Bearer " + c.APIKey},
 	}
 	req.Stream = true
+	req.StreamOptions = &StreamOptions{IncludeUsage: true}
 	responseRaw, err := common.HttpStreamPost(url, headers, nil, req)
 	if err != nil {
 		return nil, err

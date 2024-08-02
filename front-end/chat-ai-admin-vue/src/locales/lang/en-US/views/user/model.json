@@ -21,5 +21,6 @@
   "viewModelButton": "View Model",
   "teamMembers": "Team members",
   "rolePermissions": "Role permissions",
-  "app_id": "appid"
+  "app_id": "appid",
+  "region": "region"
 }

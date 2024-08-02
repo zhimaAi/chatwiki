@@ -5,8 +5,10 @@ package common
 import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_define"
 	"encoding/json"
 	"errors"
+	"github.com/zhimaAi/go_tools/logs"
 	"regexp"
 	"strings"
 
@@ -16,6 +18,49 @@ import (
 )
 
 var InvalidLibraryImageError = errors.New("invalid library image")
+
+func CheckChatRequest(c *gin.Context) (*define.ChatBaseParam, error) {
+	//source check
+	appType := strings.TrimSpace(c.GetHeader(`App-Type`))
+	if len(appType) == 0 {
+		appType = lib_define.AppYunH5 //default value
+	}
+	if !tool.InArrayString(appType, []string{lib_define.AppYunH5, lib_define.AppYunPc}) {
+		return nil, errors.New(i18n.Show(GetLang(c), `param_invalid`, `app_type`))
+	}
+	//format check
+	robotKey := strings.TrimSpace(c.PostForm(`robot_key`))
+	if len(robotKey) == 0 {
+		robotKey = strings.TrimSpace(c.Query(`robot_key`))
+	}
+	if !CheckRobotKey(robotKey) {
+		return nil, errors.New(i18n.Show(GetLang(c), `param_invalid`, `robot_key`))
+	}
+	openid := strings.TrimSpace(c.PostForm(`openid`))
+	if len(openid) == 0 {
+		openid = strings.TrimSpace(c.Query(`openid`))
+	}
+	if !IsChatOpenid(openid) {
+		return nil, errors.New(i18n.Show(GetLang(c), `param_invalid`, `openid`))
+	}
+	//data check
+	robot, err := GetRobotInfo(robotKey)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, errors.New(i18n.Show(GetLang(c), `sys_err`))
+	}
+	if len(robot) == 0 {
+		return nil, errors.New(i18n.Show(GetLang(c), `no_data`))
+	}
+	adminUserId := cast.ToInt(robot[`admin_user_id`])
+	customer, err := GetCustomerInfo(openid, adminUserId)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, errors.New(i18n.Show(GetLang(c), `sys_err`))
+	}
+	return &define.ChatBaseParam{AppType: appType, Openid: openid, AdminUserId: adminUserId, Robot: robot, Customer: customer}, nil
+
+}
 
 func CheckMenuJson(menuJson string) (string, error) {
 	info := define.MenuJsonStruct{}
@@ -72,90 +117,59 @@ func IsChatOpenid(openid string) bool {
 	return false
 }
 
-func CheckSplitParams(c *gin.Context, isTableFile int) (define.SplitParams, error) {
-	splitParams := define.SplitParams{
-		IsTableFile:        isTableFile,
-		IsDiySplit:         cast.ToInt(c.Query(`is_diy_split`)),
-		SeparatorsNo:       strings.TrimSpace(c.Query(`separators_no`)),
-		Separators:         make([]string, 0),
-		ChunkSize:          cast.ToInt(c.Query(`chunk_size`)),
-		ChunkOverlap:       cast.ToInt(c.Query(`chunk_overlap`)),
-		IsQaDoc:            cast.ToInt(c.Query(`is_qa_doc`)),
-		QuestionLable:      strings.TrimSpace(c.Query(`question_lable`)),
-		AnswerLable:        strings.TrimSpace(c.Query(`answer_lable`)),
-		QuestionColumn:     strings.TrimSpace(c.Query(`question_column`)),
-		AnswerColumn:       strings.TrimSpace(c.Query(`answer_column`)),
-		EnableExtractImage: cast.ToBool(c.Query(`enable_extract_image`)),
-	}
-	if splitParams.IsTableFile == define.FileIsTable {
-		if splitParams.IsDiySplit == define.SplitTypeDiy {
-			return splitParams, errors.New(i18n.Show(GetLang(c), `not_support`))
-		} else {
-			if splitParams.IsQaDoc == define.DocTypeQa {
-				//return splitParams, errors.New(i18n.Show(GetLang(c), `not_support`))
-			} else {
-				//category1:excel+smart+general
-			}
-		}
-	} else {
-		if splitParams.IsDiySplit == define.SplitTypeDiy {
-			if splitParams.IsQaDoc == define.DocTypeQa {
-				return splitParams, errors.New(i18n.Show(GetLang(c), `not_support`))
-			} else {
-				//category2:general+diy+general
-			}
-		} else {
-			if splitParams.IsQaDoc == define.DocTypeQa {
-				//category3:general+smart+qa_doc
-			} else {
-				//category4:general+smart+general
-			}
+func GetImgInMessage(message string) (string, []string) {
+	imgRE := regexp.MustCompile(`<img[^>]+\bsrc=["']([^"']+)["']>`)
+	imgs := imgRE.FindAllStringSubmatch(message, -1)
+	out := make([]string, len(imgs))
+	for i := range out {
+		out[i] = imgs[i][1]
+		if !strings.Contains(out[i], "http://") && !strings.Contains(out[i], "https://") {
+			out[i] = define.Config.WebService["api_domain"] + out[i]
 		}
 	}
+	message = imgRE.ReplaceAllString(message, "")
+	return message, out
+}
+
+func CheckSplitParams(splitParams define.SplitParams, lang string) (define.SplitParams, error) {
 	//diy split
-	if splitParams.IsDiySplit == define.SplitTypeDiy {
-		if len(splitParams.SeparatorsNo) == 0 {
-			return splitParams, errors.New(i18n.Show(GetLang(c), `param_empty`, `separators_no`))
+	if len(splitParams.SeparatorsNo) == 0 {
+		return splitParams, errors.New(i18n.Show(lang, `param_empty`, `separators_no`))
+	}
+	if splitParams.ChunkSize < 200 || splitParams.ChunkSize > 2000 {
+		return splitParams, errors.New(i18n.Show(lang, `chunk_size_err`, 200, 2000))
+	}
+	maxChunkOverlap := splitParams.ChunkSize / 2
+	if splitParams.ChunkOverlap < 0 || splitParams.ChunkOverlap > maxChunkOverlap {
+		return splitParams, errors.New(i18n.Show(lang, `chunk_overlap_err`, 0, maxChunkOverlap))
+	}
+	for i, noStr := range strings.Split(splitParams.SeparatorsNo, `,`) {
+		no := cast.ToInt(noStr)
+		if no < 1 || no > len(define.SeparatorsList) {
+			return splitParams, errors.New(i18n.Show(lang, `param_invalid`, `separators_no.`+cast.ToString(i)))
 		}
-		if splitParams.ChunkSize < 200 || splitParams.ChunkSize > 2000 {
-			return splitParams, errors.New(i18n.Show(GetLang(c), `chunk_size_err`, 200, 2000))
+		code := define.SeparatorsList[no-1][`code`]
+		if realCode, ok := code.([]string); ok {
+			splitParams.Separators = append(splitParams.Separators, realCode...)
+		} else {
+			splitParams.Separators = append(splitParams.Separators, cast.ToString(code))
 		}
-		maxChunkOverlap := splitParams.ChunkSize / 2
-		if splitParams.ChunkOverlap < 2 || splitParams.ChunkOverlap > maxChunkOverlap {
-			return splitParams, errors.New(i18n.Show(GetLang(c), `chunk_overlap_err`, 2, maxChunkOverlap))
-		}
-		for i, noStr := range strings.Split(splitParams.SeparatorsNo, `,`) {
-			no := cast.ToInt(noStr)
-			if no < 1 || no > len(define.SeparatorsList) {
-				return splitParams, errors.New(i18n.Show(GetLang(c), `param_invalid`, `separators_no.`+cast.ToString(i)))
-			}
-			code := define.SeparatorsList[no-1][`code`]
-			if realCode, ok := code.([]string); ok {
-				splitParams.Separators = append(splitParams.Separators, realCode...)
-			} else {
-				splitParams.Separators = append(splitParams.Separators, cast.ToString(code))
-			}
-		}
-	} else {
-		splitParams.SeparatorsNo = ``
-		splitParams.ChunkSize = 0
-		splitParams.ChunkOverlap = 0
 	}
 	//qa_doc
 	if splitParams.IsQaDoc == define.DocTypeQa {
 		if splitParams.IsTableFile == define.FileIsTable {
 			if len(splitParams.QuestionColumn) == 0 {
-				return splitParams, errors.New(i18n.Show(GetLang(c), `param_empty`, `question_column`))
+				return splitParams, errors.New(i18n.Show(lang, `param_empty`, `question_column`))
 			}
 			if len(splitParams.AnswerColumn) == 0 {
-				return splitParams, errors.New(i18n.Show(GetLang(c), `param_empty`, `answer_column`))
+				return splitParams, errors.New(i18n.Show(lang, `param_empty`, `answer_column`))
 			}
 		} else {
 			if len(splitParams.QuestionLable) == 0 {
-				return splitParams, errors.New(i18n.Show(GetLang(c), `param_empty`, `question_lable`))
+				return splitParams, errors.New(i18n.Show(lang, `param_empty`, `question_lable`))
 			}
 			if len(splitParams.AnswerLable) == 0 {
-				return splitParams, errors.New(i18n.Show(GetLang(c), `param_empty`, `answer_lable`))
+				return splitParams, errors.New(i18n.Show(lang, `param_empty`, `answer_lable`))
 			}
 		}
 	} else {

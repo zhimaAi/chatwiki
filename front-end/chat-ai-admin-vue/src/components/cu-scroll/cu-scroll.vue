@@ -7,9 +7,20 @@
   .scroll-content {
   }
 }
+.cu-scrolbar-box {
+    /deep/ .bscroll-vertical-scrollbar {
+      transition: opacity 0.4s;
+      opacity: 0;
+    }
+    &:hover {
+      /deep/ .bscroll-vertical-scrollbar {
+        opacity: 1;
+      }
+    }
+  }
 </style>
 <template>
-  <div class="scroll-wrapper" ref="scroller">
+  <div class="scroll-wrapper" :class="{'cu-scrolbar-box': props.scrollbar.interactive }" ref="scroller">
     <div class="scroll-content">
       <slot></slot>
     </div>
@@ -42,7 +53,7 @@ const props = defineProps({
   },
   scrollbar: {
     type: [Boolean, Object],
-    default: true
+    default: {},
   },
   pullUpLoad: {
     // 布尔和对象

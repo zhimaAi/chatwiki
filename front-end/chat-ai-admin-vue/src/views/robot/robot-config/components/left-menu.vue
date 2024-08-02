@@ -81,6 +81,58 @@ const items = ref([
       id: props.robotInfo.id
     },
     target: '_blank',
+  },
+  {
+    key: 'qa-feedbacks',
+    id: 'qa-feedbacks',
+    icon: () =>
+      h(SvgIcon, {
+        name: 'qa-feedback',
+        class: 'menu-icon'
+      }),
+    label: '问答反馈',
+    title: '问答反馈',
+    path: '/robot/config/qa-feedbacks'
+  },
+  {
+    key: 'session-record',
+    id: 'session-record',
+    icon: () =>
+      h(SvgIcon, {
+        name: 'session-record',
+        class: 'menu-icon'
+      }),
+    label: '会话记录',
+    title: '会话记录',
+    path: '/robot/config/session-record',
+    query: {
+      robot_key: props.robotInfo.robot_key,
+      id: props.robotInfo.id
+    }
+  },
+  {
+    key: 'api-key-manage',
+    id: 'api-key-manage',
+    icon: () =>
+      h(SvgIcon, {
+        name: 'duiwaifuwu',
+        class: 'menu-icon'
+      }),
+    label: 'API Key管理',
+    title: 'API Key管理',
+    path: '/robot/config/api-key-manage'
+  },
+  {
+    key: 'statistical_analysis',
+    id: 'statistical_analysis',
+    icon: () =>
+      h(SvgIcon, {
+        name: 'statistical-analysis',
+        class: 'menu-icon'
+      }),
+    label: '统计分析',
+    title: '统计分析',
+    path: '/robot/config/statistical_analysis'
   }
 ])
 

@@ -1,15 +1,51 @@
 <template>
   <div class="library-preview-page">
+    <div class="breadcrumb-block">
+      <a-breadcrumb>
+        <a-breadcrumb-item>
+          <router-link to="/library/list"> 知识库管理 </router-link></a-breadcrumb-item
+        >
+        <a-breadcrumb-item>
+          <router-link
+            :to="{
+              path: '/library/details/knowledge-document',
+              query: {
+                id: detailsInfo.library_id
+              }
+            }"
+          >
+            {{ detailsInfo.library_name }}知识库</router-link
+          >
+        </a-breadcrumb-item>
+        <a-breadcrumb-item>知识库详情</a-breadcrumb-item>
+      </a-breadcrumb>
+    </div>
     <div class="document-title-block">
       <LeftOutlined @click="goBack" />
       <span class="title">{{ detailsInfo.file_name }}</span>
       <SegmentationMode :detailsInfo="detailsInfo"></SegmentationMode>
-      <a-button @click="openEditSubscription({})" style="margin-left: auto" type="primary">
-        <template #icon>
-          <PlusOutlined />
-        </template>
-        <span>添加分段</span>
-      </a-button>
+      <a-space style="margin-left: auto">
+        <a-dropdown v-if="(libraryStatus == 2 || doc_type == 2) && doc_type != 3">
+          <template #overlay>
+            <a-menu @click="handleClickMenu">
+              <a-menu-item key="1" v-if="libraryStatus == 2">重新分段</a-menu-item>
+              <a-menu-item v-if="doc_type == 2" key="2">设置更新频率</a-menu-item>
+            </a-menu>
+          </template>
+          <a-button>
+            <template #icon>
+              <SettingOutlined />
+            </template>
+            <DownOutlined />
+          </a-button>
+        </a-dropdown>
+        <a-button @click="openEditSubscription({})" type="primary">
+          <template #icon>
+            <PlusOutlined />
+          </template>
+          <span>添加分段</span>
+        </a-button>
+      </a-space>
     </div>
     <template v-if="pageLoading">
       <div class="page-loading-box">
@@ -20,7 +56,7 @@
       <template v-if="isTableType || doc_type == 3">
         <!-- 表格类型 不支持预览 -->
         <Empty @openEditSubscription="openEditSubscription" v-if="isEmpty"></Empty>
-        <cu-scroll v-else @onScrollEnd="onScrollEnd">
+        <cu-scroll :scrollbar="{minSize: 0}" v-else @onScrollEnd="onScrollEnd">
           <div class="content-block">
             <SubsectionBox
               ref="subsectionBoxRef"
@@ -35,7 +71,7 @@
       </template>
       <div class="pdf-view-box" v-else>
         <div class="view-content-wrap">
-          <cu-scroll class="scroll-box" @onScrollEnd="onScrollEnd">
+          <cu-scroll :scrollbar="scrollbar" class="scroll-box" @onScrollEnd="onScrollEnd">
             <div class="view-content-box">
               <div
                 class="list-item"
@@ -55,7 +91,7 @@
         </div>
         <div class="right-contnt-box">
           <Empty @openEditSubscription="openEditSubscription" v-if="isEmpty"></Empty>
-          <cu-scroll ref="rightScrollRef" v-else @onScrollEnd="onScrollEnd">
+          <cu-scroll :scrollbar="scrollbar" ref="rightScrollRef" v-else @onScrollEnd="onScrollEnd">
             <div class="content-block">
               <SubsectionBox
                 ref="subsectionBoxRef"
@@ -75,20 +111,28 @@
       @handleEdit="handleEditParagraph"
       ref="editSubscriptionRef"
     ></EditSubscription>
+
+    <UpdateFrequency @ok="saveFrequency" ref="updateFrequencyRef"></UpdateFrequency>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, defineAsyncComponent, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { LeftOutlined, PlusOutlined } from '@ant-design/icons-vue'
+import { LeftOutlined, PlusOutlined, DownOutlined, SettingOutlined } from '@ant-design/icons-vue'
 import Empty from './components/empty.vue'
 import SubsectionBox from './components/subsection-box.vue'
 import { getLibFileInfo, getParagraphList } from '@/api/library'
 import CuScroll from '@/components/cu-scroll/cu-scroll.vue'
 import EditSubscription from './components/edit-subsection.vue'
 import SegmentationMode from './components/segmentation-mode.vue'
+import UpdateFrequency from './components/update-frequency.vue'
 
+const scrollbar = ref({
+  fade: false,
+  scrollbarTrackClickable: true,
+  interactive: true,
+})
 const route = useRoute()
 const router = useRouter()
 const isTableType = computed(() => {
@@ -102,10 +146,10 @@ const isEmpty = computed(() => {
   let status = detailsInfo.value.status
   return !(status == '1' || status == '2') || paragraphLists.value.length == 0
 })
-
-const detailsInfo = ref({
-  pdf_url: ''
+const libraryStatus = computed(() => {
+  return detailsInfo.value.status
 })
+const detailsInfo = ref({})
 
 const goBack = () => {
   router.back()
@@ -128,7 +172,7 @@ const handleClickItem = (index) => {
   lastIndex = index
   rightScrollRef.value.scrollToElement({
     el,
-    time: 1000,
+    time: 1000
   })
 }
 
@@ -241,9 +285,32 @@ const editSubscriptionRef = ref(null)
 const openEditSubscription = (data) => {
   editSubscriptionRef.value.showModal(JSON.parse(JSON.stringify(data)))
 }
+
+const updateFrequencyRef = ref(null)
+const handleClickMenu = (e) => {
+  if (e.key == 1) {
+    // 跳转分段
+    router.push('/library/document-segmentation?document_id=' + route.query.id + '&source=preview')
+  }
+  if (e.key == 2) {
+    updateFrequencyRef.value.open({
+      id: route.query.id,
+      doc_auto_renew_frequency: detailsInfo.value.doc_auto_renew_frequency
+    })
+  }
+}
+
+const saveFrequency = (data) => {
+  detailsInfo.value.doc_auto_renew_frequency = data
+}
 </script>
 
 <style lang="less" scoped>
+.breadcrumb-block {
+  height: 48px;
+  display: flex;
+  align-items: center;
+}
 .library-preview-page {
   height: 100%;
   display: flex;
@@ -255,15 +322,14 @@ const openEditSubscription = (data) => {
     justify-content: center;
   }
   .document-title-block {
-    margin-bottom: 24px;
+    margin-bottom: 16px;
     width: 100%;
     height: 38px;
     border-radius: 2px;
-    background: #f2f4f7;
+    // background: #f2f4f7;
     display: flex;
     align-items: center;
     color: #262626;
-    padding: 0 16px;
     .anticon-left {
       cursor: pointer;
     }
@@ -282,6 +348,7 @@ const openEditSubscription = (data) => {
     .view-content-wrap {
       flex: 1;
       overflow: hidden;
+
       .scroll-box {
         margin-right: 24px;
         border: 1px solid #ccc;
@@ -294,10 +361,10 @@ const openEditSubscription = (data) => {
           padding: 6px 8px;
           border-radius: 4px;
           border: 1px solid #fff;
-          transition: all .3s;
+          transition: all 0.3s;
           &:hover {
-            background: #f7f7f7;
-            border: 1px solid #E0E0E0;
+            background: #eee;
+            border: 1px solid #e0e0e0;
           }
         }
         .content-box {

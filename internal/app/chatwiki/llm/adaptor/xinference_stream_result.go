@@ -11,11 +11,13 @@ type XinferenceStreamResult struct {
 }
 
 func (r *XinferenceStreamResult) Read() (ZhimaChatCompletionResponse, error) {
-	responseAzure, err := r.Recv()
+	responseXinference, err := r.Recv()
 	if err != nil {
 		return ZhimaChatCompletionResponse{}, err
 	}
 	return ZhimaChatCompletionResponse{
-		Result: responseAzure.Choices[0].Delta.Content,
+		Result:          responseXinference.Choices[0].Delta.Content,
+		PromptToken:     responseXinference.Usage.PromptTokens,
+		CompletionToken: responseXinference.Usage.CompletionTokens,
 	}, nil
 }

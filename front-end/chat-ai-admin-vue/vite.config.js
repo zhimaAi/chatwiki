@@ -78,7 +78,9 @@ export default defineConfig((opt) => {
       // 进阶基础路径选项
     },
     server: {
-      proxy: getProxyConfig(opt)
+      proxy: getProxyConfig(opt),
+      port: 5520,
+      open: true,
     },
     esbuild: {
       pure: env.VITE_DROP_CONSOLE === 'true' ? ['console.log'] : undefined,

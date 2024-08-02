@@ -120,35 +120,34 @@
                 <span class="status-tag status-error"><CloseCircleFilled /> 获取失败</span>
               </a-tooltip>
             </template>
-            <template v-if="column.key === 'doc_auto_renew_frequency'">
-              <a-select
-                v-if="record.doc_type == 2"
-                @change="handleSetRenewFrequency(record)"
-                v-model:value="record.doc_auto_renew_frequency"
-                style="width: 100%"
-              >
-                <a-select-option value="1">不自动更新</a-select-option>
-                <a-select-option value="2">每天</a-select-option>
-                <a-select-option value="3">每3天</a-select-option>
-                <a-select-option value="4">每7天</a-select-option>
-                <a-select-option value="5">每30天</a-select-option>
-              </a-select>
-              <div v-else>--</div>
+            <template v-if="column.key === 'file_size'">
+              <span v-if="record.doc_type == 3">-</span>
+              <span v-else>{{ record.file_size_str }}</span>
+            </template>
+            <template v-if="column.key === 'paragraph_count'">
+              <span v-if="record.status == 0 || record.status == 1">-</span>
+              <span v-else>{{ record.paragraph_count }}</span>
             </template>
             <template v-if="column.key === 'action'">
-              <span>
-                <a-button
-                  :disabled="record.status == 6 || record.status == 7 || record.status == 0"
-                  @click="handlePreview(record)"
-                  class="padding-0"
-                  type="link"
-                  >预览</a-button
-                >
-                <a-divider type="vertical" />
-                <a-popconfirm title="确定要删除吗?" @confirm="onDelete(record)">
-                  <a-button class="padding-0" type="link">删除</a-button>
-                </a-popconfirm>
-              </span>
+              <a-dropdown>
+                <div class="table-btn" @click.prevent>
+                  <MoreOutlined />
+                </div>
+                <template #overlay>
+                  <a-menu>
+                    <a-menu-item
+                      :disabled="record.status == 6 || record.status == 7 || record.status == 0"
+                    >
+                      <div @click="handlePreview(record)">预览</div>
+                    </a-menu-item>
+                    <a-menu-item>
+                      <a-popconfirm title="确定要删除吗?" @confirm="onDelete(record)">
+                        <span>删除</span>
+                      </a-popconfirm>
+                    </a-menu-item>
+                  </a-menu>
+                </template>
+              </a-dropdown>
             </template>
           </template>
         </a-table>
@@ -215,7 +214,8 @@ import {
   CloseCircleFilled,
   EditOutlined,
   ClockCircleFilled,
-  DownOutlined
+  DownOutlined,
+  MoreOutlined
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import {
@@ -232,7 +232,6 @@ import KnowledgeConfig from './knowledge-config.vue'
 import EditLibrary from './components/edit-library.vue'
 import { transformUrlData } from '@/utils/validate.js'
 import AddCustomDocument from './components/add-custom-document.vue'
-
 const rotue = useRoute()
 const router = useRouter()
 const query = rotue.query
@@ -291,23 +290,29 @@ const columns = [
     key: 'file_size',
     width: '100px'
   },
+  // {
+  //   title: '更新频率',
+  //   dataIndex: 'doc_auto_renew_frequency',
+  //   key: 'doc_auto_renew_frequency',
+  //   width: '150px'
+  // },
   {
-    title: '更新频率',
-    dataIndex: 'doc_auto_renew_frequency',
-    key: 'doc_auto_renew_frequency',
-    width: '150px'
+    title: '分段',
+    dataIndex: 'paragraph_count',
+    key: 'paragraph_count',
+    width: '120px'
   },
   {
-    title: '上传时间',
-    dataIndex: 'create_time',
-    key: 'create_time',
+    title: '更新时间',
+    dataIndex: 'update_time',
+    key: 'update_time',
     width: '150px'
   },
   {
     title: '操作',
     dataIndex: 'action',
     key: 'action',
-    width: '120px'
+    width: '60px'
   }
 ]
 
@@ -371,11 +376,11 @@ const getData = () => {
     queryParams.total = res.data.total
     let needRefresh = false
     fileList.value = list.map((item) => {
-      if (['1', '6', '0', '5'].includes(item.status)) {
+      if (['1', '6', '0', '5', '4'].includes(item.status)) {
         needRefresh = true
       }
       item.file_size_str = formatFileSize(item.file_size)
-      item.create_time = dayjs(item.create_time * 1000).format('YYYY-MM-DD HH:mm')
+      item.update_time = dayjs(item.update_time * 1000).format('YYYY-MM-DD HH:mm')
       return item
     })
     needRefresh && timingRefreshStatus()
@@ -504,19 +509,22 @@ const handleSaveFiles = () => {
   let formData = new FormData()
 
   formData.append('library_id', queryParams.library_id)
-
+  let isTableType = false
   addFileState.fileList.forEach((file) => {
+    if (file.name.includes('.xlsx') || file.name.includes('.csv')) {
+      isTableType = true
+    }
     formData.append('library_files', file)
   })
-
   addLibraryFile(formData)
     .then((res) => {
       getData()
-
       addFileState.open = false
       addFileState.fileList = []
       addFileState.confirmLoading = false
-      onSearch()
+      if (isTableType) {
+        router.push('/library/document-segmentation?document_id=' + res.data.file_ids[0])
+      }
     })
     .catch(() => {
       addFileState.confirmLoading = false
@@ -699,6 +707,12 @@ const handleSetRenewFrequency = (record) => {
     color: #8c8c8c;
     font-size: 14px;
     line-height: 22px;
+  }
+}
+.table-btn {
+  cursor: pointer;
+  &:hover {
+    color: #2475fc;
   }
 }
 </style>

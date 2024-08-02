@@ -14,7 +14,29 @@ func (r *OpenAIStreamResult) Read() (ZhimaChatCompletionResponse, error) {
 		return ZhimaChatCompletionResponse{}, err
 	}
 
+	var promptTokens int
+	var completionTokens int
+	var result string
+	if responseOpenAI.Usage.PromptTokens > 0 {
+		promptTokens = responseOpenAI.Usage.PromptTokens
+	}
+	if responseOpenAI.Usage.CompletionTokens > 0 {
+		completionTokens = responseOpenAI.Usage.CompletionTokens
+	}
+	if len(responseOpenAI.Choices) > 0 {
+		result = responseOpenAI.Choices[0].Delta.Content
+		// Compatible with moonlight
+		if responseOpenAI.Choices[0].Usage.PromptTokens > 0 {
+			promptTokens = responseOpenAI.Choices[0].Usage.PromptTokens
+		}
+		if responseOpenAI.Choices[0].Usage.CompletionTokens > 0 {
+			completionTokens = responseOpenAI.Choices[0].Usage.CompletionTokens
+		}
+	}
+
 	return ZhimaChatCompletionResponse{
-		Result: responseOpenAI.Choices[0].Delta.Content,
+		Result:          result,
+		PromptToken:     promptTokens,
+		CompletionToken: completionTokens,
 	}, nil
 }

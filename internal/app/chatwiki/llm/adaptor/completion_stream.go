@@ -20,6 +20,7 @@ import (
 	"chatwiki/internal/app/chatwiki/llm/api/spark"
 	"chatwiki/internal/app/chatwiki/llm/api/volcenginev3"
 	"chatwiki/internal/app/chatwiki/llm/api/xinference"
+	"chatwiki/internal/app/chatwiki/llm/api/zhipu"
 	"errors"
 	"github.com/zhimaAi/go_tools/logs"
 
@@ -64,6 +65,44 @@ func (a *Adaptor) CreateChatCompletionStream(req ZhimaChatCompletionRequest) (*Z
 		stream, err := client.CreateChatCompletionStream(req)
 		if err != nil {
 			return nil, err
+		}
+		result = &ZhimaChatCompletionStreamResponse{
+			&OpenAIStreamResult{stream},
+		}
+	case "ali", "baichuan", "moonshot", "lingyiwanwu", "deepseek", "zhipu", "openaiAgent":
+		var client *openai.Client
+		if a.meta.Corp == "ali" {
+			client = ali.NewClient(a.meta.APIKey).OpenAIClient
+		} else if a.meta.Corp == "baichuan" {
+			client = baichuan.NewClient(a.meta.APIKey).OpenAIClient
+		} else if a.meta.Corp == "moonshot" {
+			client = moonshot.NewClient(a.meta.APIKey).OpenAIClient
+		} else if a.meta.Corp == "lingyiwanwu" {
+			client = lingyiwanwu.NewClient(a.meta.APIKey).OpenAIClient
+		} else if a.meta.Corp == "deepseek" {
+			client = deepseek.NewClient(a.meta.APIKey).OpenAIClient
+		} else if a.meta.Corp == "zhipu" {
+			client = zhipu.NewClient(a.meta.APIKey).OpenAIClient
+		} else if a.meta.Corp == "openaiAgent" {
+			client = openai_agent.NewClient(a.meta.EndPoint, a.meta.APIKey, a.meta.APIVersion).OpenAIClient
+		}
+
+		var messages []openai.ChatCompletionMessage
+		for _, v := range req.Messages {
+			messages = append(messages, openai.ChatCompletionMessage{Role: v.Role, Content: v.Content})
+		}
+		req := openai.ChatCompletionRequest{
+			Model:       a.meta.Model,
+			Messages:    messages,
+			Temperature: req.Temperature,
+			MaxTokens:   req.MaxToken,
+		}
+		if client == nil {
+			return &ZhimaChatCompletionStreamResponse{}, errors.New(`corp not supported`)
+		}
+		stream, err := client.CreateChatCompletionStream(req)
+		if err != nil {
+			return &ZhimaChatCompletionStreamResponse{}, err
 		}
 		result = &ZhimaChatCompletionStreamResponse{
 			&OpenAIStreamResult{stream},
@@ -171,7 +210,7 @@ func (a *Adaptor) CreateChatCompletionStream(req ZhimaChatCompletionRequest) (*Z
 		result = &ZhimaChatCompletionStreamResponse{
 			&GeminiStreamResult{stream},
 		}
-	case "volcengine":
+	case "doubao":
 		client := volcenginev3.NewClient("https://ark.cn-beijing.volces.com/api/v3", a.meta.Model, a.meta.APIKey, a.meta.SecretKey, a.meta.Region)
 		var messages []openai.ChatCompletionMessage
 		for _, v := range req.Messages {
@@ -244,7 +283,7 @@ func (a *Adaptor) CreateChatCompletionStream(req ZhimaChatCompletionRequest) (*Z
 		result = &ZhimaChatCompletionStreamResponse{
 			&SparkStreamResult{stream},
 		}
-	case "tencent":
+	case "hunyuan":
 		client := hunyuan.NewClient(a.meta.APIKey, a.meta.SecretKey, a.meta.Region)
 		r := tencentHunyuan.NewChatCompletionsRequest()
 		r.Model = common.StringPtr(a.meta.Model)
@@ -262,42 +301,6 @@ func (a *Adaptor) CreateChatCompletionStream(req ZhimaChatCompletionRequest) (*Z
 		return &ZhimaChatCompletionStreamResponse{
 			&TencentStreamResult{stream},
 		}, nil
-	case "ali", "baichuan", "moonshot", "lingyiwanwu", "deepseek", "openaiAgent":
-		var client *openai.Client
-		if a.meta.Corp == "ali" {
-			client = ali.NewClient(a.meta.APIKey).OpenAIClient
-		} else if a.meta.Corp == "baichuan" {
-			client = baichuan.NewClient(a.meta.APIKey).OpenAIClient
-		} else if a.meta.Corp == "moonshot" {
-			client = moonshot.NewClient(a.meta.APIKey).OpenAIClient
-		} else if a.meta.Corp == "lingyiwanwu" {
-			client = lingyiwanwu.NewClient(a.meta.APIKey).OpenAIClient
-		} else if a.meta.Corp == "deepseek" {
-			client = deepseek.NewClient(a.meta.APIKey).OpenAIClient
-		} else if a.meta.Corp == "openaiAgent" {
-			client = openai_agent.NewClient(a.meta.EndPoint, a.meta.APIKey, a.meta.APIVersion).OpenAIClient
-		}
-
-		var messages []openai.ChatCompletionMessage
-		for _, v := range req.Messages {
-			messages = append(messages, openai.ChatCompletionMessage{Role: v.Role, Content: v.Content})
-		}
-		req := openai.ChatCompletionRequest{
-			Model:       a.meta.Model,
-			Messages:    messages,
-			Temperature: req.Temperature,
-			MaxTokens:   req.MaxToken,
-		}
-		if client == nil {
-			return &ZhimaChatCompletionStreamResponse{}, errors.New(`corp not supported`)
-		}
-		stream, err := client.CreateChatCompletionStream(req)
-		if err != nil {
-			return &ZhimaChatCompletionStreamResponse{}, err
-		}
-		result = &ZhimaChatCompletionStreamResponse{
-			&OpenAIStreamResult{stream},
-		}
 	case "ollama":
 		client := ollama.NewClient(a.meta.EndPoint, a.meta.Model)
 		var messages []ollama.ChatCompletionMessage

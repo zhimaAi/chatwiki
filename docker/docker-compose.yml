@@ -32,7 +32,7 @@ services:
       - ${CRAWLER_PORT}:3800
 
   chatwiki_converter:
-    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/converter:1.2
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/converter:1.3
     container_name: chatwiki_converter
     restart: always
     environment:
@@ -111,6 +111,8 @@ services:
     restart: always
     environment:
       TZ: ${TIMEZONE}
+      HTTP_PROXY: ${PROXY:-}
+      HTTPS_PROXY: ${PROXY:-}
     stdin_open: true
     tty: true
     command:

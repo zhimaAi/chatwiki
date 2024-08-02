@@ -17,6 +17,7 @@ func GetAzureHandler(config msql.Params, _ string) (*ModelCallHandler, error) {
 			APIKey:     config[`api_key`],
 			Model:      config[`deployment_name`],
 		},
+		config: config,
 	}
 	return handler, nil
 }
@@ -29,6 +30,7 @@ func GetClaudeHandler(config msql.Params, useModel string) (*ModelCallHandler, e
 			APIVersion: config[`api_version`],
 			Model:      useModel,
 		},
+		config: config,
 	}
 	return handler, nil
 }
@@ -40,6 +42,7 @@ func GetGeminiHandler(config msql.Params, useModel string) (*ModelCallHandler, e
 			APIKey: config[`api_key`],
 			Model:  useModel,
 		},
+		config: config,
 	}
 	return handler, nil
 }
@@ -52,6 +55,7 @@ func GetYiyanHandler(config msql.Params, useModel string) (*ModelCallHandler, er
 			SecretKey: config[`secret_key`],
 			Model:     useModel,
 		},
+		config: config,
 	}
 	return handler, nil
 }
@@ -63,6 +67,7 @@ func GetTongyiHandler(config msql.Params, useModel string) (*ModelCallHandler, e
 			APIKey: config[`api_key`],
 			Model:  useModel,
 		},
+		config: config,
 	}
 	return handler, nil
 }
@@ -75,6 +80,7 @@ func GetBaaiHandle(config msql.Params, useModel string) (*ModelCallHandler, erro
 			APIKey:   config[`api_key`],
 			Model:    useModel,
 		},
+		config: config,
 	}
 	return handler, nil
 }
@@ -87,6 +93,7 @@ func GetCohereHandle(config msql.Params, useModel string) (*ModelCallHandler, er
 			APIKey:   config[`api_key`],
 			Model:    useModel,
 		},
+		config: config,
 	}
 	return handler, nil
 }
@@ -99,6 +106,7 @@ func GetOllamaHandle(config msql.Params, useModel string) (*ModelCallHandler, er
 			APIKey:   config[`api_key`],
 			Model:    useModel,
 		},
+		config: config,
 	}
 	return handler, nil
 }
@@ -112,6 +120,7 @@ func GetXinferenceHandle(config msql.Params, useModel string) (*ModelCallHandler
 			APIVersion: config["api_version"],
 			Model:      useModel,
 		},
+		config: config,
 	}
 	return handler, nil
 }
@@ -123,6 +132,7 @@ func GetDeepseekHandle(config msql.Params, useModel string) (*ModelCallHandler, 
 			APIKey: config[`api_key`],
 			Model:  useModel,
 		},
+		config: config,
 	}
 	return handler, nil
 }
@@ -133,6 +143,7 @@ func GetJinaHandle(config msql.Params, useModel string) (*ModelCallHandler, erro
 			APIKey: config[`api_key`],
 			Model:  useModel,
 		},
+		config: config,
 	}
 	return handler, nil
 }
@@ -144,6 +155,7 @@ func GetLingYiWanWuHandle(config msql.Params, useModel string) (*ModelCallHandle
 			APIKey: config[`api_key`],
 			Model:  useModel,
 		},
+		config: config,
 	}
 	return handler, nil
 }
@@ -155,6 +167,31 @@ func GetMoonShotHandle(config msql.Params, useModel string) (*ModelCallHandler, 
 			APIKey: config[`api_key`],
 			Model:  useModel,
 		},
+		config: config,
+	}
+	return handler, nil
+}
+
+func GetBaichuanHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+	handler := &ModelCallHandler{
+		Meta: adaptor.Meta{
+			Corp:   `baichuan`,
+			APIKey: config[`api_key`],
+			Model:  useModel,
+		},
+		config: config,
+	}
+	return handler, nil
+}
+
+func GetZhipuHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+	handler := &ModelCallHandler{
+		Meta: adaptor.Meta{
+			Corp:   `zhipu`,
+			APIKey: config[`api_key`],
+			Model:  useModel,
+		},
+		config: config,
 	}
 	return handler, nil
 }
@@ -166,19 +203,21 @@ func GetOpenAIHandle(config msql.Params, useModel string) (*ModelCallHandler, er
 			APIKey: config[`api_key`],
 			Model:  useModel,
 		},
+		config: config,
 	}
 	return handler, nil
 }
 
-func GetOpenAIAgentHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetOpenAIAgentHandle(config msql.Params, _ string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:       `openaiAgent`,
 			APIKey:     config[`api_key`],
 			EndPoint:   config[`api_endpoint`],
 			APIVersion: config["api_version"],
-			Model:      useModel,
+			Model:      config[`deployment_name`],
 		},
+		config: config,
 	}
 	return handler, nil
 }
@@ -192,6 +231,7 @@ func GetSparkHandle(config msql.Params, useModel string) (*ModelCallHandler, err
 			APPID:     config[`app_id`],
 			Model:     useModel,
 		},
+		config: config,
 	}
 	return handler, nil
 }
@@ -205,19 +245,21 @@ func GetHunyuanHandle(config msql.Params, useModel string) (*ModelCallHandler, e
 			Region:    config[`region`],
 			Model:     useModel,
 		},
+		config: config,
 	}
 	return handler, nil
 }
 
-func GetDoubaoHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetDoubaoHandle(config msql.Params, _ string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:      `doubao`,
 			APIKey:    config[`api_key`],
 			SecretKey: config[`secret_key`],
 			Region:    config[`region`],
-			Model:     useModel,
+			Model:     config[`deployment_name`],
 		},
+		config: config,
 	}
 	return handler, nil
 }

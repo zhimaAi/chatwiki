@@ -20,6 +20,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.17.1
 	github.com/gorilla/websocket v1.5.1
 	github.com/grokify/html-strip-tags-go v0.1.0
+	github.com/jinzhu/now v1.1.5
 	github.com/playwright-community/playwright-go v0.4401.1
 	github.com/pressly/goose/v3 v3.20.0
 	github.com/robfig/cron/v3 v3.0.0
@@ -76,7 +77,6 @@ require (
 	github.com/jackc/pgx/v5 v5.5.5 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect

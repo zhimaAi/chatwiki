@@ -43,6 +43,7 @@ func HttpPost(url string, headers []Header, params []Param, body any) (response 
 
 	client := &http.Client{
 		Transport: &http.Transport{
+			Proxy:             http.ProxyFromEnvironment,
 			DisableKeepAlives: true,
 		},
 	}

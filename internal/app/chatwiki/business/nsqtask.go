@@ -77,6 +77,26 @@ func ConvertHtml(msg string, _ ...string) error {
 	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: fileId})
+
+	//create default lib file split
+	lang := define.LangEnUs
+
+	splitParams := define.SplitParams{}
+	splitParams.ChunkSize = 512
+	splitParams.ChunkOverlap = 0
+	splitParams.SeparatorsNo = `11,12`
+	splitParams.EnableExtractImage = true
+	list, wordTotal, err := common.GetLibFileSplit(cast.ToInt(info[`admin_user_id`]), fileId, splitParams, lang)
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	err = common.SaveLibFileSplit(cast.ToInt(info[`admin_user_id`]), fileId, wordTotal, define.QAIndexTypeQuestionAndAnswer, splitParams, list, lang)
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+
 	return nil
 }
 
@@ -90,6 +110,11 @@ func ConvertVector(msg string, _ ...string) error {
 	id, fileId := cast.ToInt(data[`id`]), cast.ToInt(data[`file_id`])
 	if id <= 0 || fileId <= 0 {
 		logs.Error(`data exception:%s`, msg)
+		return nil
+	}
+	file, err := msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(fileId)).Find()
+	if err != nil {
+		logs.Error(err.Error())
 		return nil
 	}
 
@@ -108,7 +133,16 @@ func ConvertVector(msg string, _ ...string) error {
 	}
 	//start convert
 	library, _ := common.GetLibraryInfo(cast.ToInt(info[`library_id`]), cast.ToInt(info[`admin_user_id`]))
-	embedding, err := common.GetVector2000(cast.ToInt(library[`model_config_id`]), library[`use_model`], info[`content`])
+	embedding, err := common.GetVector2000(
+		cast.ToInt(info[`admin_user_id`]),
+		info[`admin_user_id`],
+		msql.Params{},
+		info,
+		file,
+		cast.ToInt(library[`model_config_id`]),
+		library[`use_model`],
+		info[`content`],
+	)
 	if err != nil {
 		_, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`id`, cast.ToString(id)).Update(msql.Datas{
 			`status`:      define.VectorStatusException,

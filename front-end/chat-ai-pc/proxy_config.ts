@@ -12,7 +12,7 @@ export const getProxyConfig = (opt: { mode: string }): ProxyConfig => {
   const { mode } = opt;
     const env = loadEnv(mode, process.cwd(), '');
 
-    const proxyApis = ['/static', '/common', '/manage', '/app', '/chat', '/upload'];
+    const proxyApis = ['/static', '/common', '/manage', '/app', '/chat', '/upload', '/public'];
     const proxy: ProxyConfig = {};
 
     console.log('PROXY_BASE_API_URL: ' + env.PROXY_BASE_API_URL);

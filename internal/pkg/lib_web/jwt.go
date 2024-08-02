@@ -21,6 +21,7 @@ func NewTokenClient(ttl int, key string) *JwtToken {
 		Key: key,
 	}
 }
+
 func (t JwtToken) GetToken(userId, userName, parentId any) (jwt.MapClaims, error) {
 	data := jwt.MapClaims{
 		"user_id": userId, "user_name": userName, "parent_id": parentId,

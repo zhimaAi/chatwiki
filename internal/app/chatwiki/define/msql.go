@@ -11,12 +11,13 @@ const (
 )
 
 const (
-	TableRole        = "role"
-	TableUser        = "public.user"
-	TableMenu        = "menu"
-	TableCompany     = "company"
-	TableFastCommand = "fast_command"
-	TableRule        = "casbin_rule"
+	TableRole              = "role"
+	TableUser              = "public.user"
+	TableMenu              = "menu"
+	TableCompany           = "company"
+	TableFastCommand       = "fast_command"
+	TableChatAiRobotApikey = "chat_ai_robot_apikey"
+	TableRule              = "casbin_rule"
 )
 
 const (

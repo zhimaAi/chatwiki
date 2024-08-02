@@ -21,5 +21,6 @@
   "viewModelButton": "查看模型",
   "teamMembers": "团队成员",
   "rolePermissions": "角色权限",
-  "app_id": "appid"
+  "app_id": "appid",
+  "region": "地区"
 }

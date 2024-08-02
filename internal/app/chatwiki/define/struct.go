@@ -7,6 +7,11 @@ import (
 	"github.com/zhimaAi/go_tools/msql"
 )
 
+type RequestContext struct {
+	Lang        string
+	AdminUserID string
+}
+
 type MenuJsonStruct struct {
 	Content  string   `json:"content"`
 	Question []string `json:"question"`
