@@ -50,6 +50,7 @@ export const useRobotStore = defineStore('robot', () => {
     search_type: 1,
     prompt: DERAULT_ROBOT_PROMPT,
     library_ids: '',
+    form_ids: '',
     welcomes: {
       content: '',
       question: []
@@ -115,6 +116,7 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.rerank_model_config_id = data.rerank_model_config_id
     robotInfo.prompt = data.prompt || DERAULT_ROBOT_PROMPT
     robotInfo.library_ids = data.library_ids || ''
+    robotInfo.form_ids = data.form_ids || ''
     robotInfo.welcomes = welcomes
     robotInfo.unknown_question_prompt = unknown_question_prompt
 

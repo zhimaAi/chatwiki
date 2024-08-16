@@ -40,6 +40,9 @@
         <AssociatedKnowledgeBase />
       </div>
       <div class="setting-box">
+        <DataBase />
+      </div>
+      <div class="setting-box">
         <WelcomeWords />
       </div>
       <div class="setting-box">
@@ -75,6 +78,7 @@ import BasicConfig from './components/basic-config.vue'
 import SystemPromptWords from './components/system-prompt-words.vue'
 import ModelSettings from './components/model-settings.vue'
 import AssociatedKnowledgeBase from './components/associated-knowledge-base/index.vue'
+import DataBase from './components/data-base/index.vue'
 import WelcomeWords from './components/welcome-words.vue'
 import UnknownProblemPrompt from './components/unknown-problem-prompt.vue'
 import ProblemOptimization from './components/problem-optimization.vue'

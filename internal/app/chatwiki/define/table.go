@@ -38,9 +38,8 @@ const (
 )
 
 const (
-	FileIsTable  = 1
-	SplitTypeDiy = 1
-	DocTypeQa    = 1
+	FileIsTable = 1
+	DocTypeQa   = 1
 )
 
 const (

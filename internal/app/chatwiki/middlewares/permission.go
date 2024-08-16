@@ -19,7 +19,11 @@ func CasbinAuth() gin.HandlerFunc {
 			obj = before
 		}
 		// get user info
-		data, err := common.ParseToken(request.GetHeader(`token`))
+		token := request.GetHeader(`token`)
+		if len(token) == 0 {
+			token = request.Query(`token`)
+		}
+		data, err := common.ParseToken(token)
 		if err != nil || data == nil {
 			common.FmtErrorWithCode(request, http.StatusUnauthorized, "user_no_login")
 			return

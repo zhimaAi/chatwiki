@@ -48,3 +48,14 @@ func RenewCrawl() {
 		}
 	}
 }
+
+func DeleteFormEntry() {
+	_, err := msql.Model(`form_entry`, define.Postgres).
+		Where(`delete_time`, `>`, `0`).
+		Where(`delete_time`, `<`, cast.ToString(time.Now().Add(-time.Hour*24*7).Unix())).
+		Delete()
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+}

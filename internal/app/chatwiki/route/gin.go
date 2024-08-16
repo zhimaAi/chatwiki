@@ -86,6 +86,33 @@ func init() {
 	Route[http.MethodPost][`/manage/addParagraph`] = manage.SaveParagraph
 	Route[http.MethodPost][`/manage/editParagraph`] = manage.SaveParagraph
 	Route[http.MethodPost][`/manage/deleteParagraph`] = manage.DeleteParagraph
+	/*form API*/
+	Route[http.MethodGet][`/manage/getFormList`] = manage.GetFormList
+	Route[http.MethodGet][`/manage/getFormInfo`] = manage.GetFormInfo
+	Route[http.MethodPost][`/manage/addForm`] = manage.SaveForm
+	Route[http.MethodPost][`/manage/editForm`] = manage.SaveForm
+	Route[http.MethodPost][`/manage/delForm`] = manage.DelForm
+	/*form field API*/
+	Route[http.MethodGet][`/manage/getFormFieldList`] = manage.GetFormFieldList
+	Route[http.MethodPost][`/manage/addFormField`] = manage.SaveFormField
+	Route[http.MethodPost][`/manage/editFormField`] = manage.SaveFormField
+	Route[http.MethodPost][`/manage/updateFormRequired`] = manage.UpdateFormRequired
+	Route[http.MethodPost][`/manage/delFormField`] = manage.DelFormField
+	/*form entry API*/
+	Route[http.MethodGet][`/manage/getFormEntryList`] = manage.GetFormEntryList
+	Route[http.MethodPost][`/manage/addFormEntry`] = manage.SaveFormEntry
+	Route[http.MethodPost][`/manage/editFormEntry`] = manage.SaveFormEntry
+	Route[http.MethodPost][`/manage/delFormEntry`] = manage.DelFormEntry
+	Route[http.MethodPost][`/manage/emptyFormEntry`] = manage.EmptyFormEntry
+	Route[http.MethodGet][`/manage/exportFormEntry`] = manage.ExportFormEntry
+	/*form filter API*/
+	Route[http.MethodGet][`/manage/getFormFilterList`] = manage.GetFormFilterList
+	Route[http.MethodGet][`/manage/getFormFilterInfo`] = manage.GetFormFilterInfo
+	Route[http.MethodPost][`/manage/addFormFilter`] = manage.SaveFormFilter
+	Route[http.MethodPost][`/manage/editFormFilter`] = manage.SaveFormFilter
+	Route[http.MethodPost][`/manage/updateFormFilterEnabled`] = manage.UpdateFormFilterEnabled
+	Route[http.MethodPost][`/manage/updateFormFilterSort`] = manage.UpdateFormFilterSort
+	Route[http.MethodPost][`/manage/delFormFilter`] = manage.DelFormFilter
 	/*stats*/
 	Route[http.MethodGet][`/manage/stats/getActiveModels`] = manage.GetActiveModels
 	Route[http.MethodGet][`/manage/stats/token`] = manage.StatToken

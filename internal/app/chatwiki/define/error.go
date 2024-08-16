@@ -4,4 +4,4 @@ package define
 
 import "errors"
 
-var RobotsForbiddenError = errors.New("Forbidden by robots.txt")
+var RobotsForbiddenError = errors.New("forbidden by robots.txt")

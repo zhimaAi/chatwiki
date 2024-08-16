@@ -96,7 +96,7 @@ func GetLibraryInfo(c *gin.Context) {
 		data[k] = v
 	}
 	data[`is_offline`] = false
-	for _, config := range define.ModelList {
+	for _, config := range common.ModelList {
 		if info[`model_define`] == config.ModelDefine && config.IsOffline {
 			data[`is_offline`] = true
 		}
@@ -126,7 +126,7 @@ func CreateLibrary(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	if len(config) == 0 || !tool.InArrayString(define.TextEmbedding, strings.Split(config[`model_types`], `,`)) {
+	if len(config) == 0 || !tool.InArrayString(common.TextEmbedding, strings.Split(config[`model_types`], `,`)) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_config_id`))))
 		return
 	}

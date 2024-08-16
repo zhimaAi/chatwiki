@@ -3,8 +3,11 @@
 package define
 
 import (
+	"errors"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/msql"
+	"github.com/zhimaAi/go_tools/tool"
+	"strconv"
 )
 
 type RequestContext struct {
@@ -80,6 +83,65 @@ type SplitParams struct {
 	QuestionColumn     string   `json:"question_column"`
 	AnswerColumn       string   `json:"answer_column"`
 	EnableExtractImage bool     `json:"enable_extract_image"`
+}
+
+type FormFilterCondition struct {
+	FormFieldId int    `json:"form_field_id"`
+	Rule        string `json:"rule"`
+	RuleValue1  string `json:"rule_value1"`
+	RuleValue2  string `json:"rule_value2"`
+}
+
+func (f FormFilterCondition) Check(_type string) error {
+	if _type == `string` {
+		if !tool.InArrayString(f.Rule, []string{`string_eq`, `string_neq`, `string_contain`, `string_not_contain`, `string_empty`, `string_not_empty`}) {
+			return errors.New(`rule value must be one of string_eq, string_neq, string_contain, string_not_contain, string_empty, string_not_empty when type is String`)
+		}
+		if len(f.RuleValue2) > 0 {
+			return errors.New(`rule_value1 is empty or rule_value2 not empty when type is String`)
+		}
+	} else if _type == `integer` {
+		if !tool.InArrayString(f.Rule, []string{`integer_gt`, `integer_gte`, `integer_lt`, `integer_lte`, `integer_eq`, `integer_between`}) {
+			return errors.New(`rule value must be on of integer_gt, integer_gte, integer_lt, integer_lte, integer_eq, integer_between when type is integer or number`)
+		}
+		if len(f.RuleValue1) == 0 {
+			return errors.New(`rule_value1 is empty when type is Integer or Number`)
+		}
+		if _, err := strconv.Atoi(f.RuleValue1); err != nil {
+			return errors.New(`rule_value1 is not integer when type is Integer`)
+		}
+		if f.Rule == `number_between` {
+			if len(f.RuleValue2) == 0 {
+				return errors.New(`rule_value2 is empty when rule is between`)
+			}
+			if _, err := strconv.Atoi(f.RuleValue2); err != nil {
+				return errors.New(`rule_value2 is invalid integer when rule is between and type is integer`)
+			}
+		}
+	} else if _type == `number` {
+		if !tool.InArrayString(f.Rule, []string{`number_gt`, `number_gte`, `number_lt`, `number_lte`, `number_eq`, `number_between`}) {
+			return errors.New(`rule value must be on of number_gt, number_gte, number_lt, number_lte, number_eq, number_between when type is integer or number`)
+		}
+		if len(f.RuleValue1) == 0 {
+			return errors.New(`rule_value1 is empty when type is integer or number`)
+		}
+		if _, err := strconv.ParseFloat(f.RuleValue1, 64); err != nil {
+			return errors.New(`rule_value1 is invalid number when rule is number`)
+		}
+		if f.Rule == `number_between` {
+			if len(f.RuleValue2) == 0 {
+				return errors.New(`rule_value2 is empty when rule is between and type is number`)
+			}
+			if _, err := strconv.ParseFloat(f.RuleValue2, 64); err != nil {
+				return errors.New(`rule_value2 is invalid number when rule is between and type is number`)
+			}
+		}
+	} else if _type == `boolean` {
+		if !tool.InArrayString(f.Rule, []string{`boolean_true`, `boolean_false`}) {
+			return errors.New(`rule value must be on of boolean_true, boolean_false when type is boolean`)
+		}
+	}
+	return nil
 }
 
 type SimilarityResult []msql.Params
