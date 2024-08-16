@@ -4,12 +4,12 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/llm/adaptor"
 	"chatwiki/internal/pkg/casbin"
 	"chatwiki/internal/pkg/lib_redis"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 	"sort"
 	"strings"
 	"sync"
@@ -464,7 +464,7 @@ func GetDefaultLlmConfig(adminUserId int) (int, string, bool) {
 		return 0, ``, false
 	}
 	for _, config := range configs {
-		if !tool.InArrayString(define.Llm, strings.Split(config[`model_types`], `,`)) {
+		if !tool.InArrayString(Llm, strings.Split(config[`model_types`], `,`)) {
 			continue
 		}
 		modelInfo, ok := GetModelInfoByDefine(config[`model_define`])
@@ -543,6 +543,7 @@ func GetOptimizedQuestions(param *define.ChatRequestParam, contextList []map[str
 		cast.ToInt(param.Robot[`model_config_id`]),
 		param.Robot[`use_model`],
 		messages,
+		nil,
 		cast.ToFloat32(param.Robot[`temperature`]),
 		200,
 	)

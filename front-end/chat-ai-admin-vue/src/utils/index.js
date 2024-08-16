@@ -168,3 +168,11 @@ export function downloadFile(filename, link) {
 
   document.body.removeChild(element)
 }
+
+export function objectToQueryString(obj) {
+  // 将对象转换为数组，然后map每个键值对到 'key=value' 字符串  
+  // 使用 encodeURIComponent 来确保URL安全  
+  return Object.keys(obj)
+    .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]))
+    .join('&'); // 用 '&' 连接所有的键值对  
+}  

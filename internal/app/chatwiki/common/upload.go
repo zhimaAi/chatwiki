@@ -5,7 +5,6 @@ package common
 import (
 	"bytes"
 	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/llm/common"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +12,7 @@ import (
 	"github.com/go-shiori/go-readability"
 	"github.com/zhimaAi/go_tools/curl"
 	"github.com/zhimaAi/go_tools/tool"
+	"github.com/zhimaAi/llm_adaptor/common"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -83,7 +83,7 @@ func SaveUrlPage(userId int, url, saveDir string) (*define.UploadInfo, error) {
 	// check url
 	parsedURL, err := netURL.Parse(url)
 	if err != nil || parsedURL == nil {
-		return nil, errors.New("Invalid URL")
+		return nil, errors.New("invalid URL")
 	}
 
 	// request crawler

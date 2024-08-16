@@ -262,7 +262,7 @@ func CrawlArticle(msg string, _ ...string) error {
 		`update_time`:         tool.Time2Int(),
 		`doc_last_renew_time`: tool.Time2Int(),
 	})
-	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: int(fileId)})
+	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: fileId})
 	if err != nil {
 		logs.Error(err.Error())
 		return nil

@@ -139,16 +139,16 @@ func SaveParagraph(c *gin.Context) {
 		return
 	}
 	if cast.ToInt(fileInfo[`is_qa_doc`]) == define.DocTypeQa {
-		if len(question) < 1 || len(question) > define.MaxContent {
+		if len(question) < 1 || len(question) > common.MaxContent {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `length_error`))))
 			return
 		}
-		if len(answer) < 1 || len(answer) > define.MaxContent {
+		if len(answer) < 1 || len(answer) > common.MaxContent {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `length_error`))))
 			return
 		}
 	} else {
-		if len(content) < 1 || len(content) > define.MaxContent {
+		if len(content) < 1 || len(content) > common.MaxContent {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `length_error`))))
 			return
 		}

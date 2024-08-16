@@ -6,10 +6,10 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/app/chatwiki/llm/adaptor"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 	"net/http"
 	"strings"
 
@@ -37,8 +37,8 @@ func GetModelConfigList(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	list := make([]define.ModelInfo, 0)
-	for _, info := range define.ModelList {
+	list := make([]common.ModelInfo, 0)
+	for _, info := range common.ModelList {
 		if len(modelDefine) == 0 || info.ModelDefine == modelDefine {
 			info.ConfigList = make([]msql.Params, 0)
 			list = append(list, info)
@@ -292,7 +292,7 @@ func GetModelConfigOption(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 }
 
-func configurationTest(config msql.Params, modelInfo define.ModelInfo) error {
+func configurationTest(config msql.Params, modelInfo common.ModelInfo) error {
 	modelInfo, ok := common.GetModelInfoByDefine(config[`model_define`])
 	if !ok {
 		return errors.New(`model define invalid`)

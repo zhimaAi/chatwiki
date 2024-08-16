@@ -113,10 +113,10 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		for i := range list {
 			list[i].Number = i + 1 //serial number
 			list[i].WordTotal = utf8.RuneCountInString(list[i].Question + list[i].Answer)
-			if utf8.RuneCountInString(list[i].Question) < 1 || utf8.RuneCountInString(list[i].Question) > define.MaxContent {
+			if utf8.RuneCountInString(list[i].Question) < 1 || utf8.RuneCountInString(list[i].Question) > MaxContent {
 				return errors.New(i18n.Show(lang, `length_err`, i+1))
 			}
-			if utf8.RuneCountInString(list[i].Answer) < 1 || utf8.RuneCountInString(list[i].Answer) > define.MaxContent {
+			if utf8.RuneCountInString(list[i].Answer) < 1 || utf8.RuneCountInString(list[i].Answer) > MaxContent {
 				return errors.New(i18n.Show(lang, `length_err`, i+1))
 			}
 		}
@@ -124,7 +124,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		for i := range list {
 			list[i].Number = i + 1 //serial number
 			list[i].WordTotal = utf8.RuneCountInString(list[i].Content)
-			if list[i].WordTotal < 1 || list[i].WordTotal > define.MaxContent {
+			if list[i].WordTotal < 1 || list[i].WordTotal > MaxContent {
 				return errors.New(i18n.Show(lang, `length_err`, i+1))
 			}
 		}
@@ -216,7 +216,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 
 	var indexIds []int64
 	for i, item := range list {
-		if utf8.RuneCountInString(item.Content) > define.MaxContent || utf8.RuneCountInString(item.Question) > define.MaxContent || utf8.RuneCountInString(item.Answer) > define.MaxContent {
+		if utf8.RuneCountInString(item.Content) > MaxContent || utf8.RuneCountInString(item.Question) > MaxContent || utf8.RuneCountInString(item.Answer) > MaxContent {
 			return errors.New(i18n.Show(lang, `length_err`, i+1))
 		}
 

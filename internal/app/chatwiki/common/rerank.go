@@ -3,7 +3,7 @@
 package common
 
 import (
-	"chatwiki/internal/app/chatwiki/llm/adaptor"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 
 	"github.com/zhimaAi/go_tools/msql"
 )

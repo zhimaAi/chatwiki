@@ -73,7 +73,11 @@ func AdminLogin(c *gin.Context) {
 }
 
 func GetAdminUserId(c *gin.Context) int {
-	data, err := common.ParseToken(c.GetHeader(`token`))
+	token := c.GetHeader(`token`)
+	if len(token) == 0 {
+		token = c.Query(`token`)
+	}
+	data, err := common.ParseToken(token)
 	if err != nil {
 		c.String(http.StatusUnauthorized, lib_web.FmtJson(nil, err))
 		return 0

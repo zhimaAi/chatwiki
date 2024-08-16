@@ -86,6 +86,12 @@ const items = ref([
     path: '/library/list'
   },
   {
+    key: 'database',
+    label: 'database',
+    title: '数据库',
+    path: '/database/list'
+  },
+  {
     key: 'user',
     label: 'user',
     title: '系统管理',

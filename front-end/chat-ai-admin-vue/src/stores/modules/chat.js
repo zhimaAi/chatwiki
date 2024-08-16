@@ -39,6 +39,7 @@ export const useChatStore = defineStore('chat', () => {
   const robot = reactive({
     id: '',
     library_ids: '',
+    form_ids: '',
     prompt: '',
     robot_avatar: '',
     robot_intro: '',
@@ -128,7 +129,7 @@ export const useChatStore = defineStore('chat', () => {
       robot.robot_intro = robotInfo.robot_intro
       robot.robot_key = robotInfo.robot_key
       robot.robot_name = robotInfo.robot_name
-      robot.library_ids = robotInfo.library_ids
+      robot.form_ids = robotInfo.form_ids
       robot.id = robotInfo.id
       robot.enable_question_guide = robotInfo.enable_question_guide == 'true'
       robot.enable_common_question = robotInfo.enable_common_question == 'true'
@@ -318,6 +319,7 @@ export const useChatStore = defineStore('chat', () => {
       question: data.message,
       prompt: robot.prompt,
       library_ids: robot.library_ids,
+      form_ids: robot.form_ids,
       dialogue_id: dialogue_id.value
     }
 
@@ -607,6 +609,7 @@ export const useChatStore = defineStore('chat', () => {
     // 机器人的信息
     robot.id = ''
     robot.library_ids = ''
+    robot.form_ids = ''
     robot.prompt = ''
     robot.robot_avatar = ''
     robot.robot_intro = ''

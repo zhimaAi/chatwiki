@@ -67,6 +67,7 @@ func StartCronTasks() {
 	c := cron.New()
 	_, _ = c.AddFunc("@every 1m", func() { logs.Debug("cron test") })
 	_, _ = c.AddFunc("@every 1m", func() { business.RenewCrawl() })
+	_, _ = c.AddFunc("@every 1h", func() { business.DeleteFormEntry() })
 	c.Start()
 	logs.Debug("cron start")
 }
@@ -150,14 +151,14 @@ func CreateDefaultRole(userId int64) {
 	}
 }
 func CreateDefaultBaaiModel(userId int64) {
-	modelInfo, ok := common.GetModelInfoByDefine(define.ModelBaai)
+	modelInfo, ok := common.GetModelInfoByDefine(common.ModelBaai)
 	if !ok {
 		logs.Error(`modelInfo not found`)
 		return
 	}
 	_, err := msql.Model("chat_ai_model_config", define.Postgres).Insert(msql.Datas{
 		`admin_user_id`:   userId,
-		`model_define`:    define.ModelBaai,
+		`model_define`:    common.ModelBaai,
 		`model_types`:     strings.Join(modelInfo.SupportedType, `,`),
 		`api_endpoint`:    "http://host.docker.internal:50001",
 		`deployment_name`: "",

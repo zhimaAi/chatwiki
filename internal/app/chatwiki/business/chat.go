@@ -6,13 +6,13 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/app/chatwiki/llm/adaptor"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 	"io"
 	"net/http"
 	"regexp"
@@ -213,7 +213,7 @@ func AddChatMessageFeedback(c *gin.Context) {
 
 	// add corp name field to robot info
 	var corpName string
-	for _, modelInfo := range define.ModelList {
+	for _, modelInfo := range common.ModelList {
 		if len(modelConfig[`model_define`]) == 0 || modelInfo.ModelDefine == modelConfig[`model_define`] {
 			corpName = modelInfo.ModelName
 		}
@@ -456,6 +456,7 @@ func ChatQuestionGuide(c *gin.Context) {
 		cast.ToInt(chatBaseParam.Robot[`model_config_id`]),
 		chatBaseParam.Robot[`use_model`],
 		messages,
+		nil,
 		cast.ToFloat32(chatBaseParam.Robot[`temperature`]),
 		200,
 	)
@@ -590,6 +591,17 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		return nil, err
 	}
 
+	var functionTools []adaptor.FunctionTool
+	if len(params.Robot[`form_ids`]) > 0 {
+		formIdList := strings.Split(params.Robot[`form_ids`], `,`)
+		functionTools, err = common.BuildFunctionTools(formIdList, params.AdminUserId)
+		if err != nil {
+			logs.Error(err.Error())
+			chanStream <- sse.Event{Event: `error`, Data: i18n.Show(params.Lang, `sys_err`)}
+			return nil, err
+		}
+	}
+
 	var (
 		content, menuJson string
 		requestTime       int64
@@ -606,6 +618,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 				cast.ToInt(params.Robot[`model_config_id`]),
 				params.Robot[`use_model`],
 				messages,
+				functionTools,
 				chanStream,
 				cast.ToFloat32(params.Robot[`temperature`]),
 				cast.ToInt(params.Robot[`max_token`]),
@@ -619,6 +632,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 				cast.ToInt(params.Robot[`model_config_id`]),
 				params.Robot[`use_model`],
 				messages,
+				functionTools,
 				cast.ToFloat32(params.Robot[`temperature`]),
 				cast.ToInt(params.Robot[`max_token`]),
 			)
@@ -639,6 +653,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 					cast.ToInt(params.Robot[`model_config_id`]),
 					params.Robot[`use_model`],
 					messages,
+					functionTools,
 					chanStream,
 					cast.ToFloat32(params.Robot[`temperature`]),
 					cast.ToInt(params.Robot[`max_token`]),
@@ -652,6 +667,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 					cast.ToInt(params.Robot[`model_config_id`]),
 					params.Robot[`use_model`],
 					messages,
+					functionTools,
 					cast.ToFloat32(params.Robot[`temperature`]),
 					cast.ToInt(params.Robot[`max_token`]),
 				)
@@ -678,6 +694,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 						cast.ToInt(params.Robot[`model_config_id`]),
 						params.Robot[`use_model`],
 						messages,
+						functionTools,
 						chanStream,
 						cast.ToFloat32(params.Robot[`temperature`]),
 						cast.ToInt(params.Robot[`max_token`]),
@@ -691,6 +708,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 						cast.ToInt(params.Robot[`model_config_id`]),
 						params.Robot[`use_model`],
 						messages,
+						functionTools,
 						cast.ToFloat32(params.Robot[`temperature`]),
 						cast.ToInt(params.Robot[`max_token`]),
 					)
@@ -731,6 +749,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 						cast.ToInt(params.Robot[`model_config_id`]),
 						params.Robot[`use_model`],
 						messages,
+						functionTools,
 						chanStream,
 						cast.ToFloat32(params.Robot[`temperature`]),
 						cast.ToInt(params.Robot[`max_token`]),
@@ -744,6 +763,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 						cast.ToInt(params.Robot[`model_config_id`]),
 						params.Robot[`use_model`],
 						messages,
+						functionTools,
 						cast.ToFloat32(params.Robot[`temperature`]),
 						cast.ToInt(params.Robot[`max_token`]),
 					)
@@ -778,20 +798,21 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	quoteFileJson, _ := tool.JsonEncode(quoteFile)
 	//database dispose
 	message = msql.Datas{
-		`admin_user_id`: params.AdminUserId,
-		`robot_id`:      params.Robot[`id`],
-		`openid`:        params.Openid,
-		`dialogue_id`:   dialogueId,
-		`session_id`:    sessionId,
-		`is_customer`:   define.MsgFromRobot,
-		`request_time`:  requestTime,
-		`recall_time`:   recallTime,
-		`msg_type`:      msgType,
-		`content`:       content,
-		`menu_json`:     menuJson,
-		`quote_file`:    quoteFileJson,
-		`create_time`:   tool.Time2Int(),
-		`update_time`:   tool.Time2Int(),
+		`admin_user_id`:          params.AdminUserId,
+		`robot_id`:               params.Robot[`id`],
+		`openid`:                 params.Openid,
+		`dialogue_id`:            dialogueId,
+		`session_id`:             sessionId,
+		`is_customer`:            define.MsgFromRobot,
+		`request_time`:           requestTime,
+		`recall_time`:            recallTime,
+		`msg_type`:               msgType,
+		`content`:                content,
+		`is_valid_function_call`: chatResp.IsValidFunctionCall,
+		`menu_json`:              menuJson,
+		`quote_file`:             quoteFileJson,
+		`create_time`:            tool.Time2Int(),
+		`update_time`:            tool.Time2Int(),
 	}
 	lastChat = msql.Datas{
 		`last_chat_time`:    message[`create_time`],
@@ -952,7 +973,7 @@ func buildChatContextPair(openid string, robotId, dialogueId, curMsgId, contextP
 	list, err := msql.Model(`chat_ai_message`, define.Postgres).Where(`openid`, openid).
 		Where(`robot_id`, cast.ToString(robotId)).Where(`dialogue_id`, cast.ToString(dialogueId)).
 		Where(`msg_type`, cast.ToString(define.MsgTypeText)).Where(`id`, `<`, cast.ToString(curMsgId)).
-		Order(`id desc`).Field(`id,content,is_customer`).Limit(contextPair * 4).Select()
+		Order(`id desc`).Field(`id,content,is_customer,is_valid_function_call`).Limit(contextPair * 4).Select()
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -962,6 +983,17 @@ func buildChatContextPair(openid string, robotId, dialogueId, curMsgId, contextP
 	//reverse
 	for i, j := 0, len(list)-1; i < j; i, j = i+1, j-1 {
 		list[i], list[j] = list[j], list[i]
+	}
+	//remove the record before the function call
+	for index := len(list) - 1; index >= 0; index-- {
+		if cast.ToBool(list[index][`is_valid_function_call`]) {
+			if index == len(list)-1 {
+				list = []msql.Params{}
+			} else {
+				list = list[index+1:]
+			}
+			break
+		}
 	}
 	//foreach
 	for i := 0; i < len(list)-1; i++ {
@@ -974,6 +1006,7 @@ func buildChatContextPair(openid string, robotId, dialogueId, curMsgId, contextP
 	if len(contextList) > contextPair {
 		contextList = contextList[len(contextList)-contextPair:]
 	}
+
 	return contextList
 }
 

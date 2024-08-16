@@ -48,6 +48,7 @@ func SaveRobot(c *gin.Context) {
 	robotAvatar := ``
 	prompt := strings.TrimSpace(c.PostForm(`prompt`))
 	libraryIds := strings.TrimSpace(c.PostForm(`library_ids`))
+	formIds := strings.TrimSpace(c.PostForm(`form_ids`))
 	welcomes := strings.TrimSpace(c.PostForm(`welcomes`))
 	modelConfigId := cast.ToInt(c.PostForm(`model_config_id`))
 	useModel := strings.TrimSpace(c.PostForm(`use_model`))
@@ -157,6 +158,7 @@ func SaveRobot(c *gin.Context) {
 		}
 		libraryIds = strings.Join(validLibraryIds, `,`)
 	}
+
 	//headImg uploaded
 	fileHeader, _ := c.FormFile(`robot_avatar`)
 	uploadInfo, err := common.SaveUploadedFile(fileHeader, define.ImageLimitSize, userId, `robot_avatar`, define.ImageAllowExt)
@@ -170,7 +172,7 @@ func SaveRobot(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	if len(config) == 0 || !tool.InArrayString(define.Llm, strings.Split(config[`model_types`], `,`)) {
+	if len(config) == 0 || !tool.InArrayString(common.Llm, strings.Split(config[`model_types`], `,`)) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_config_id`))))
 		return
 	}
@@ -178,6 +180,30 @@ func SaveRobot(c *gin.Context) {
 	if !tool.InArrayString(useModel, modelInfo.LlmModelList) && !common.IsMultiConfModel(config["model_define"]) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `use_model`))))
 		return
+	}
+	//check form
+	if len(formIds) > 0 {
+		if modelInfo.SupportedFunctionCallList == nil || !tool.InArrayString(useModel, modelInfo.SupportedFunctionCallList) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `does_not_support_form`))))
+			return
+		}
+		if !common.CheckIds(formIds) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `form_ids_err`))))
+			return
+		}
+		var validFormIds []string
+		for _, formId := range strings.Split(formIds, `,`) {
+			info, err := common.GetFormInfo(cast.ToInt(formId), userId)
+			if err != nil {
+				logs.Error(err.Error())
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+				return
+			}
+			if len(info) != 0 {
+				validFormIds = append(validFormIds, formId)
+			}
+		}
+		formIds = strings.Join(validFormIds, `,`)
 	}
 	//check rerank config
 	rerankStatus := cast.ToInt(c.PostForm(`rerank_status`))
@@ -194,7 +220,7 @@ func SaveRobot(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			return
 		}
-		if len(config) == 0 || !tool.InArrayString(define.Rerank, strings.Split(config[`model_types`], `,`)) {
+		if len(config) == 0 || !tool.InArrayString(common.Rerank, strings.Split(config[`model_types`], `,`)) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `rerank_model_config_id`))))
 			return
 		}
@@ -229,6 +255,7 @@ func SaveRobot(c *gin.Context) {
 		`robot_intro`:              robotIntro,
 		`prompt`:                   prompt,
 		`library_ids`:              libraryIds,
+		`form_ids`:                 formIds,
 		`welcomes`:                 welcomes,
 		`model_config_id`:          modelConfigId,
 		`use_model`:                useModel,
@@ -420,7 +447,12 @@ func DeleteRobot(c *gin.Context) {
 	if err != nil {
 		logs.Error(err.Error())
 	}
-	go deleteRobotRelationData(id, info[`robot_key`])
+	go func() {
+		err := deleteRobotRelationData(id, info[`robot_key`])
+		if err != nil {
+			logs.Error(err.Error())
+		}
+	}()
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 

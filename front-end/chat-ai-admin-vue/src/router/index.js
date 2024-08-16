@@ -4,6 +4,7 @@ import user from './user'
 import robot from './robot'
 import library from './library'
 import authority from './authority'
+import database from './database'
 
 const routes = [
   {
@@ -25,7 +26,8 @@ const routes = [
   user,
   robot,
   library,
-  authority
+  authority,
+  database,
 ]
 
 if (import.meta.env.DEV) {

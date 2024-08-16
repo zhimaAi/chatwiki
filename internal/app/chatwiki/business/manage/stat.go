@@ -93,7 +93,7 @@ func StatAnalyse(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	if !php2go.InArray(cast.ToInt(_type), []int{define.StatsTypeDailyActiveUser, define.StatsTypeDailyNewUser, define.StatsTypeDailyMsgCount, define.StatsTypeDailyTokenCount}) {
+	if !php2go.InArray(cast.ToInt(_type), []int{common.StatsTypeDailyActiveUser, common.StatsTypeDailyNewUser, common.StatsTypeDailyMsgCount, common.StatsTypeDailyTokenCount}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `type`))))
 		return
 	}
