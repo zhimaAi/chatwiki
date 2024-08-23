@@ -51,18 +51,3 @@ func FmtJsonWithCode(code int, data interface{}, err error) string {
 	}
 	return jsonStr
 }
-
-//
-//func FmtError(c *gin.Context, msg string, params ...string) {
-//	data := struct{}{}
-//	err := errors.New(i18n.Show(common.GetLang(c), msg, params))
-//	c.String(http.StatusOK, FmtJson(data, err))
-//	c.Abort()
-//}
-//
-//func FmtOk(c *gin.Context, data interface{}, params ...string) {
-//	msg := "success"
-//	err := errors.New(i18n.Show(common.GetLang(c), msg, params))
-//	c.String(http.StatusOK, FmtJson(data, err))
-//	c.Abort()
-//}

@@ -1,1 +1,0 @@
-import{R as n,_ as t,a as u}from"./RadioButton-Bv53M9vz.js";n.Group=t;n.Button=u;n.install=function(o){return o.component(n.name,n),o.component(n.Group.name,n.Group),o.component(n.Button.name,n.Button),o};

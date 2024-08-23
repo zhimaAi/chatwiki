@@ -253,3 +253,15 @@ func GetDoubaoHandle(config msql.Params, _ string) (*ModelCallHandler, error) {
 	}
 	return handler, nil
 }
+
+func GetMinimaxHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+	handler := &ModelCallHandler{
+		Meta: adaptor.Meta{
+			Corp:   `minimax`,
+			APIKey: config[`api_key`],
+			Model:  useModel,
+		},
+		config: config,
+	}
+	return handler, nil
+}

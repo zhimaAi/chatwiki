@@ -855,9 +855,11 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 			}
 		}
 	}
-	chanStream <- sse.Event{Event: `finish`, Data: tool.Time2Int()}
 	message["prompt_tokens"] = chatResp.PromptToken
 	message["completion_tokens"] = chatResp.CompletionToken
+	message["use_model"] = params.Robot["use_model"]
+	chanStream <- sse.Event{Event: `data`, Data: message}
+	chanStream <- sse.Event{Event: `finish`, Data: tool.Time2Int()}
 	return common.ToStringMap(message, `id`, id), nil
 }
 

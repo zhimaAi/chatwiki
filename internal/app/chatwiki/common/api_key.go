@@ -3,25 +3,27 @@
 package common
 
 import (
-	"chatwiki/internal/app/chatwiki/define"
 	"fmt"
+	"strings"
+
+	"chatwiki/internal/app/chatwiki/define"
+
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
-	"strings"
 )
 
 func GetAuthorizationToken(robotKey string) string {
-	return BuildMessageId(tool.MD5(tool.Random(2)), robotKey, tool.Time2Int())
+	return BuildMessageId(tool.MD5(tool.Random(20)), robotKey, tool.Time2Int())
 }
 
 func ParseAuthorizationToken(c *gin.Context) (msql.Params, error) {
 	// get user info
 	headers := c.GetHeader(`Authorization`)
 	parts := strings.SplitN(headers, " ", 2)
-	if !(len(parts) == 2 && parts[0] == "Bearer") {
-		return nil, fmt.Errorf("open_apikey_failed")
+	if !(len(parts) == 2 && parts[0] == "Bearer" && len(parts[1]) == 72) {
+		return nil, fmt.Errorf("open_apikey_format_err")
 	}
 	token := strings.TrimSpace(parts[1])
 	robotKey := ParseMessageId(token)
@@ -63,6 +65,11 @@ func BuildMessageId(name, id string, createTime int) string {
 	return tool.Base64Encode(str)
 }
 
+func BuildOpenAiMsgId() string {
+	str := fmt.Sprintf("%v_%d", tool.Random(20), tool.Time2Int())
+	return "chatcmpl-" + tool.MD5(str)
+}
+
 func ParseMessageId(id string) string {
 	data, err := tool.Base64Decode(id)
 	if err != nil {
@@ -73,4 +80,9 @@ func ParseMessageId(id string) string {
 		return cast.ToString(message[1])
 	}
 	return ""
+}
+
+func BuildOpenId(id string) string {
+	str := fmt.Sprintf("%v_%d_%v", id, tool.Time2Int(), tool.MD5(tool.Random(20)))
+	return tool.Base64Encode(str)
 }

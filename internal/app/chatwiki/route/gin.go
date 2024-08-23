@@ -147,6 +147,7 @@ func init() {
 	noAuthFuns(Route[http.MethodGet], `/chat/getFastCommandList`, business.GetFastCommandList)
 	/* Open API*/
 	noAuthFuns(Route[http.MethodPost], `/open/chatMessage`, business.ChatMessages)
+	noAuthFuns(Route[http.MethodPost], `/v1/chat/completions`, business.Completions)
 
 	//register client side route
 	RegClientSideRoute()

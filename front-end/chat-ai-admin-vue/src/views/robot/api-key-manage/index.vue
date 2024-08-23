@@ -18,15 +18,19 @@
     </a-alert>
     <div class="opration-box">
       <a-button type="primary" @click="handleOpenAddModal">新增API Key</a-button>
-      <a-input-group compact>
-        <a-input v-model:value="end_point" style="width: 280px" />
-        <a-tooltip title="复制API Endpoint">
-          <a-button @click="copyText(end_point)">
-            <template #icon><CopyOutlined /></template>
-          </a-button>
-        </a-tooltip>
-      </a-input-group>
-      <a-button style="margin-left: auto">API 文档</a-button>
+      <a-input v-model:value="end_point" style="width: 500px" readonly>
+        <template #addonBefore>
+          <span @click="copyText(end_point)" style="cursor: pointer">复制API Endpoint</span>
+        </template>
+      </a-input>
+
+      <a
+        style="margin-left: auto"
+        href="https://www.yuque.com/zhimaxiaoshiwangluo/pggco1/bg1ol40fo68pgdae"
+        target="_blank"
+      >
+        <a-button>API 文档</a-button>
+      </a>
     </div>
     <div class="list-box">
       <div class="list-item" v-for="item in lists" :key="item.id">
