@@ -3,19 +3,20 @@
 package common
 
 import (
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/pkg/lib_define"
 	"encoding/json"
 	"errors"
-	"github.com/spf13/cast"
-	"github.com/zhimaAi/go_tools/msql"
-	"github.com/zhimaAi/go_tools/tool"
-	"github.com/zhimaAi/llm_adaptor/adaptor"
 	"io"
 	"time"
 
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_define"
+
 	"github.com/gin-contrib/sse"
+	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
+	"github.com/zhimaAi/go_tools/msql"
+	"github.com/zhimaAi/go_tools/tool"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
 type ModelCallHandler struct {
@@ -65,7 +66,8 @@ const (
 	ModelDoubao          = "doubao"
 	ModelBaichuan        = "baichuan"
 
-	ModelZhipu = "zhipu"
+	ModelZhipu   = "zhipu"
+	ModelMinimax = "minimax"
 )
 
 const (
@@ -561,7 +563,6 @@ var ModelList = []ModelInfo{
 		CallHandlerFunc: GetBaichuanHandle,
 	},
 	{
-
 		ModelDefine:               ModelZhipu,
 		ModelName:                 `智谱`,
 		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelZhipu + `.png`,
@@ -587,6 +588,30 @@ var ModelList = []ModelInfo{
 		HelpLinks:       `https://open.bigmodel.cn/`,
 		CallHandlerFunc: GetZhipuHandle,
 	},
+	{
+		ModelDefine:               ModelMinimax,
+		ModelName:                 `minimax`,
+		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelMinimax + `.png`,
+		Introduce:                 `MiniMax 成立于 2021 年 12 月，是领先的通用人工智能科技公司，致力于与用户共创智能。MiniMax 自主研发多模态、万亿参数的 MoE 大模型，并基于大模型推出海螺AI、星野等原生应用。MiniMax API 开放平台提供安全、灵活、可靠的 API 服务，助力企业和开发者快速搭建 AI 应用。`,
+		IsOffline:                 false,
+		SupportList:               []string{Llm},
+		SupportedType:             []string{Llm},
+		SupportedFunctionCallList: []string{},
+		ConfigParams:              []string{`api_key`},
+		ConfigList:                nil,
+		ApiVersions:               []string{},
+		LlmModelList: []string{
+			`abab6.5s-chat`,
+			`abab6.5g-chat`,
+			`abab6.5t-chat`,
+			`abab5.5s-chat`,
+			`abab5.5-chat`,
+		},
+		VectorModelList: []string{},
+		RerankModelList: []string{},
+		HelpLinks:       `https://www.minimaxi.com/`,
+		CallHandlerFunc: GetMinimaxHandle,
+	},
 }
 
 func GetModelInfoByDefine(modelDefine string) (ModelInfo, bool) {
@@ -597,9 +622,11 @@ func GetModelInfoByDefine(modelDefine string) (ModelInfo, bool) {
 	}
 	return ModelInfo{}, false
 }
+
 func IsMultiConfModel(defineName string) bool {
 	return tool.InArrayString(defineName, []string{ModelOllama, ModelXnference, ModelOpenAIAgent})
 }
+
 func GetOfflineTypeModelInfos(isOffline bool) []ModelInfo {
 	var result []ModelInfo
 	for _, info := range ModelList {

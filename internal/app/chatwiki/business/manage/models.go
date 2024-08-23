@@ -313,10 +313,11 @@ func configurationTest(config msql.Params, modelInfo common.ModelInfo) error {
 			MaxToken:    10,
 			Temperature: 0.1,
 		}
-		_, err = client.CreateChatCompletion(req)
+		r, err := client.CreateChatCompletion(req)
 		if err != nil {
 			return err
 		}
+		logs.Info(r.Result)
 	} else if strings.Contains(config[`model_types`], `TEXT EMBEDDING`) {
 		handler, err := modelInfo.CallHandlerFunc(config, modelInfo.VectorModelList[0])
 		if err != nil {
