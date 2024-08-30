@@ -295,6 +295,10 @@ const props = defineProps({
     type: String,
     default: () => null
   },
+  channelItem: {
+    type: Array,
+    default: () => []
+  }
 })
 
 const loading = ref(false)
@@ -313,13 +317,11 @@ let onScrollEventLock = false // 时间触发锁
 
 const formatSource = (val) => {
   let newVal
-  switch (val) {
-    case 'yun_h5':
-      newVal = 'WebAPP'
-      break
-    case 'yun_pc':
-      newVal = '嵌入网站'
-      break
+  for (let i = 0; i < props.channelItem.length; i++) {
+    const item = props.channelItem[i];
+    if (item.app_type === val) {
+      newVal = item.app_name
+    }
   }
   return newVal
 }

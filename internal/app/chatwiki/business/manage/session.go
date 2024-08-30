@@ -32,6 +32,7 @@ func GetSessionChannelList(c *gin.Context) {
 	list := []SessionChannel{
 		{AppType: lib_define.AppYunH5, AppName: `WebAPP`},
 		{AppType: lib_define.AppYunPc, AppName: `嵌入网站`},
+		{AppType: lib_define.AppOpenApi, AppName: `开放接口`},
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 }

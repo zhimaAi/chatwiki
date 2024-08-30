@@ -50,13 +50,14 @@ type ChatBaseParam struct {
 
 type ChatRequestParam struct {
 	*ChatBaseParam
-	Error      error
-	Lang       string
-	Question   string
-	DialogueId int
-	Prompt     string
-	LibraryIds string
-	IsClose    *bool
+	Error          error
+	Lang           string
+	Question       string
+	OpenApiContent string
+	DialogueId     int
+	Prompt         string
+	LibraryIds     string
+	IsClose        *bool
 }
 
 type DocSplitItem struct {

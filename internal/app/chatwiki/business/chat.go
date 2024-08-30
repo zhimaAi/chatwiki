@@ -585,11 +585,14 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		recallTime = time.Now().Sub(recallStart).Milliseconds()
 		chanStream <- sse.Event{Event: `recall_time`, Data: recallTime}
 	}
+
 	if err != nil {
 		logs.Error(err.Error())
 		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(params.Lang, `sys_err`)}
 		return nil, err
 	}
+
+	messages = buildOpenApiContent(params, messages)
 
 	var functionTools []adaptor.FunctionTool
 	if len(params.Robot[`form_ids`]) > 0 {
@@ -1018,4 +1021,23 @@ func buildChatResponseType(showType int, lang string) string {
 		result = fmt.Sprintf("(%s)", i18n.Show(lang, `chat_show_type`, `markdown格式`))
 	}
 	return result
+}
+
+func buildOpenApiContent(params *define.ChatRequestParam, messages []adaptor.ZhimaChatCompletionMessage) []adaptor.ZhimaChatCompletionMessage {
+	if params.AppType != lib_define.AppOpenApi {
+		return messages
+	}
+	var contents = make([]adaptor.ZhimaChatCompletionMessage, 0)
+	err := tool.JsonDecode(params.OpenApiContent, &contents)
+	if err != nil {
+		logs.Error(err.Error())
+		return messages
+	}
+	if len(contents) > 0 {
+		messages = append(contents, messages...)
+	}
+	if define.IsDev {
+		logs.Debug("%+v", messages)
+	}
+	return messages
 }

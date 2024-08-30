@@ -4,6 +4,8 @@ package define
 
 const VectorDimension = 2000
 
+const MaxRobotNum = 6
+
 const (
 	FileStatusWaitCrawl      = 5
 	FileStatusCrawling       = 6

@@ -3,6 +3,7 @@
 package business
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -141,7 +142,7 @@ func (r *ChatMessagesReq) buildChatRequestParam(c *gin.Context) (*define.ChatReq
 		return nil, fmt.Errorf(`sys_err`)
 	}
 	chatBaseParam := &define.ChatBaseParam{
-		AppType:     lib_define.AppYunH5,
+		AppType:     lib_define.AppOpenApi,
 		Openid:      r.OpenID,
 		AdminUserId: adminUserId,
 		Robot:       robot,
@@ -171,12 +172,12 @@ func (r *ChatMessagesReq) buildChatRequestParam(c *gin.Context) (*define.ChatReq
 
 type ChatCompletionMessage struct {
 	Role    string `json:"role,omitempty" binding:"required"`
-	Content string `json:"content,omitempty" binding:"required"`
+	Content string `json:"content,omitempty"`
 }
 
 type ChatCompletionRequest struct {
 	Model       string                  `json:"model"`
-	Messages    []ChatCompletionMessage `json:"messages" binding:"required"`
+	Messages    []ChatCompletionMessage `json:"messages" binding:"required,dive"`
 	Stream      bool                    `json:"stream,omitempty"`
 	MaxTokens   int                     `json:"max_tokens,omitempty"`
 	Temperature float64                 `json:"temperature,omitempty"`
@@ -184,11 +185,11 @@ type ChatCompletionRequest struct {
 }
 
 type ChatCompletionResponse struct {
+	ID      string              `json:"id,omitempty"`
 	Created int                 `json:"created,omitempty" `
 	Usage   ChatCompletionUsage `json:"usage,omitempty" `
 	Model   string              `json:"model,omitempty"`
-	ID      string              `json:"id,omitempty"`
-	Choices []interface{}       `json:"choices,omitempty" `
+	Choices []interface{}       `json:"choices,omitempty"`
 	Object  string              `json:"object,omitempty"`
 }
 
@@ -217,6 +218,12 @@ func Completions(c *gin.Context) {
 		common.FmtOpenAiErr(c, http.StatusBadRequest, `sys_err`)
 		return
 	}
+	msg, _ := tool.JsonEncode(req.Messages)
+	if define.IsDev {
+		logs.Debug("请求数据原始:%+v", msg)
+		logs.Debug("请求数据解析后问题:%+v", params.Question)
+		logs.Debug("请求数据解析后提示词:%+v", params.Prompt)
+	}
 	chanStream := make(chan sse.Event)
 	if req.Stream {
 		c.Header(`Content-Type`, `text/event-stream`)
@@ -228,7 +235,8 @@ func Completions(c *gin.Context) {
 		go func() {
 			_, _ = DoChatRequest(params, req.Stream, chanStream)
 		}()
-		streamResponse(c, chanStream)
+		responseId := common.BuildOpenAiMsgId()
+		streamResponse(c, responseId, chanStream)
 	} else {
 		go func(chanStream chan sse.Event) {
 			for event := range chanStream {
@@ -287,7 +295,7 @@ func (r *ChatCompletionRequest) buildChatRequestParam(c *gin.Context) (*define.C
 		robot["temperature"] = cast.ToString(r.Temperature)
 	}
 	chatBaseParam := &define.ChatBaseParam{
-		AppType:     lib_define.AppYunH5,
+		AppType:     lib_define.AppOpenApi,
 		Openid:      openId,
 		AdminUserId: adminUserId,
 		Robot:       robot,
@@ -304,26 +312,38 @@ func (r *ChatCompletionRequest) buildChatRequestParam(c *gin.Context) (*define.C
 	}
 	isClose := false
 	question := ""
+	openApiContent := ""
+	prompt := ""
 	if len(r.Messages) > 0 {
-		for _, message := range r.Messages {
-			question += message.Content + "\r\n"
+		msgArr := make([]ChatCompletionMessage, 0)
+		for key, item := range r.Messages {
+			if item.Role == "user" {
+				question = item.Content
+			}
+			if key+1 == len(r.Messages) {
+				continue
+			}
+			msgArr = append(msgArr, item)
 		}
+		openApiContent, _ = tool.JsonEncode(msgArr)
 	}
 	return &define.ChatRequestParam{
-		ChatBaseParam: chatBaseParam,
-		Lang:          common.GetLang(c),
-		Question:      strings.TrimSpace(question),
-		DialogueId:    cast.ToInt(dialogueId),
-		Prompt:        strings.TrimSpace(robot["prompt"]),
-		LibraryIds:    strings.TrimSpace(robot["library_ids"]),
-		IsClose:       &isClose,
+		ChatBaseParam:  chatBaseParam,
+		Lang:           common.GetLang(c),
+		Question:       strings.TrimSpace(question),
+		OpenApiContent: strings.TrimSpace(openApiContent),
+		DialogueId:     cast.ToInt(dialogueId),
+		Prompt:         strings.TrimSpace(prompt),
+		LibraryIds:     strings.TrimSpace(robot["library_ids"]),
+		IsClose:        &isClose,
 	}, nil
 }
 
-func streamResponse(c *gin.Context, chanStream chan sse.Event) {
+func streamResponse(c *gin.Context, respnoseId string, chanStream chan sse.Event) {
 	c.Stream(func(w io.Writer) bool {
 		if event, ok := <-chanStream; ok {
 			var resp interface{}
+			flusher, _ := w.(http.Flusher)
 			switch event.Event {
 			case "sending":
 				content, ers := event.Data.(string)
@@ -331,18 +351,24 @@ func streamResponse(c *gin.Context, chanStream chan sse.Event) {
 					return false
 				}
 				streamResp := openAiRes{
-					id:       event.Id,
+					id:       respnoseId,
 					content:  content,
 					isStream: true,
 				}
 				resp = formatStandardOpenAiRes(streamResp)
-				c.SSEvent("", resp)
+				bts, _ := json.Marshal(resp)
+				_, err := fmt.Fprintf(w, "data: %s\n\n", string(bts))
+				if err != nil {
+					logs.Error(err.Error())
+					return false
+				}
 			case "data":
 				content, ers := event.Data.(msql.Datas)
 				if !ers {
 					return false
 				}
 				streamResp := openAiRes{
+					id:               respnoseId,
 					model:            cast.ToString(content["use_model"]),
 					completionTokens: cast.ToInt(content["completion_tokens"]),
 					promptTokens:     cast.ToInt(content["prompt_tokens"]),
@@ -350,11 +376,21 @@ func streamResponse(c *gin.Context, chanStream chan sse.Event) {
 					isFinish:         true,
 				}
 				resp = formatStandardOpenAiRes(streamResp)
-				c.SSEvent("", resp)
+				bts, _ := json.Marshal(resp)
+				_, err := fmt.Fprintf(w, "data: %s\n\n", string(bts))
+				if err != nil {
+					logs.Error(err.Error())
+					return false
+				}
 			case "finish":
 				resp = "[DONE]"
-				c.SSEvent("", resp)
+				_, err := fmt.Fprintf(w, "data: %s\n\n", resp)
+				if err != nil {
+					logs.Error(err.Error())
+					return false
+				}
 			}
+			flusher.Flush()
 			return true
 		}
 		return false
@@ -373,11 +409,10 @@ type openAiRes struct {
 
 func formatStandardOpenAiRes(response openAiRes) interface{} {
 	choices := map[string]interface{}{
-		"finish_reason": "null",
+		"finish_reason": nil,
 		"index":         0,
 	}
 	message := ChatCompletionMessage{
-		Role:    "assistant",
 		Content: response.content,
 	}
 	object := "chat.completion"
@@ -398,6 +433,7 @@ func formatStandardOpenAiRes(response openAiRes) interface{} {
 	}
 
 	resp := ChatCompletionResponse{
+		ID:      response.id,
 		Created: tool.Time2Int(),
 		Usage: ChatCompletionUsage{
 			CompletionTokens: response.completionTokens,
@@ -405,7 +441,6 @@ func formatStandardOpenAiRes(response openAiRes) interface{} {
 			TotalTokens:      response.completionTokens + response.promptTokens,
 		},
 		Model:   response.model,
-		ID:      response.id,
 		Choices: []interface{}{choices},
 		Object:  object,
 	}
