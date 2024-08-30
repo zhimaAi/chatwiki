@@ -110,6 +110,7 @@ func SaveRobot(c *gin.Context) {
 		return
 	}
 	//data check
+	var count int
 	var robotKey string
 	var err error
 	m := msql.Model(`chat_ai_robot`, define.Postgres)
@@ -122,6 +123,17 @@ func SaveRobot(c *gin.Context) {
 		}
 		if len(robotKey) == 0 {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+			return
+		}
+	} else {
+		count, err = m.Where(`admin_user_id`, cast.ToString(userId)).Count()
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		if count >= define.MaxRobotNum {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `max_robot_num`, define.MaxRobotNum))))
 			return
 		}
 	}

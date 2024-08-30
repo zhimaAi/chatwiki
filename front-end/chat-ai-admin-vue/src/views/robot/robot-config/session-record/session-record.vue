@@ -58,6 +58,7 @@
           :isEmpty="isEmpty"
           :messages="messageList"
           :robotInfo="robotInfo"
+          :channelItem="channelItem"
           :sessionSource="sessionSource"
           @scrollStart="onScrollStart"
           @scrollEnd="onScrollEnd"
