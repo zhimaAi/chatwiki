@@ -1,4 +1,4 @@
 -- +goose Up
 
-DELETE FROM "public"."role" WHERE id = 1;
-UPDATE "public"."user" SET user_roles = 2 WHERE id = 1;
+DELETE FROM "public"."role" WHERE role_type = 4;
+UPDATE "public"."user" SET user_roles = (SELECT id FROM "public"."role" WHERE role_type = 1) WHERE user_name = 'admin'
