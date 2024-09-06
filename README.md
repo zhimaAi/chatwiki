@@ -66,7 +66,7 @@ git clone https://github.com/zhimaAi/chatwiki.git
 
 ```shell
 cd chatwiki/docker
-docker compose up -d
+docker-compose up -d
 ```
 
 **部署手册**
