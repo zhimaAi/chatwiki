@@ -107,6 +107,15 @@ export const getRole = (params = {}) => {
     params: params
   })
 }
+
+export const saveUserManagedDataList = (data = {}) => {
+  // 保存用户管理的机器人、知识库、数据库
+  return request.post({
+    url: '/manage/saveUserManagedDataList',
+    data: data
+  })
+}
+
 export const saveRole = (data = {}) => {
   // 保存角色
   return request.post({

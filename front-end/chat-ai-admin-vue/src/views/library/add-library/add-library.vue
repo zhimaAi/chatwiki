@@ -315,7 +315,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, computed } from 'vue'
 import { Form, message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import UploadFile from './components/upload-input.vue'
@@ -327,7 +327,7 @@ import { transformUrlData } from '@/utils/validate.js'
 import { useStorage } from '@/hooks/web/useStorage'
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
 
-const { getStorage, setStorage } = useStorage('localStorage')
+const { getStorage, setStorage, removeStorage } = useStorage('localStorage')
 
 // 设置全局默认的duration为（2秒）
 message.config({
@@ -401,17 +401,17 @@ const qaIndexTypeList = ref([
 const useForm = Form.useForm
 const saveLoading = ref(false)
 
-const lastEmbeddedModel = reactive(getStorage('lastEmbeddedModel') || {})
-const isActive = ref(lastEmbeddedModel.isActive ? lastEmbeddedModel.isActive : 2)
+const lastEmbeddedModel = computed(() => getStorage('lastEmbeddedModel') || {})
+const isActive = ref(lastEmbeddedModel.value.isActive ? lastEmbeddedModel.value.isActive : 2)
 const formState = reactive({
   library_name: '',
   library_intro: '',
-  use_model: lastEmbeddedModel.use_model ? lastEmbeddedModel.use_model : undefined,
-  model_config_id: lastEmbeddedModel.model_config_id ? lastEmbeddedModel.model_config_id : '',
+  use_model: lastEmbeddedModel.value.use_model ? lastEmbeddedModel.value.use_model : undefined,
+  model_config_id: lastEmbeddedModel.value.model_config_id ? lastEmbeddedModel.value.model_config_id : '',
   library_files: undefined,
   avatar: DEFAULT_LIBRARY_AVATAR,
   robot_avatar_url: DEFAULT_LIBRARY_AVATAR,
-  is_offline: Object.prototype.hasOwnProperty.call(lastEmbeddedModel, 'is_offline') ? lastEmbeddedModel.is_offline : false,
+  is_offline: Object.prototype.hasOwnProperty.call(lastEmbeddedModel.value, 'is_offline') ? lastEmbeddedModel.value.is_offline : false,
   urls: '',
   doc_type: 1,
   file_name: '',
@@ -610,6 +610,12 @@ const getModelList = (is_offline) => {
   }).then((res) => {
     let list = res.data || []
     let children = []
+    let isCheckId = false
+    // 没有模型选项则不用缓存中的记录上传模型选择
+    if (!list.length && lastEmbeddedModel.value.model_config_id) {
+      formState.use_model = undefined
+      removeStorage('lastEmbeddedModel')
+    }
 
     modelList.value = list.map((item) => {
       children = []
@@ -622,6 +628,10 @@ const getModelList = (is_offline) => {
           model_define: item.model_info.model_define
         })
       }
+      if (item.model_config.id == lastEmbeddedModel.value.model_config_id) {
+        // 有缓存的id
+        isCheckId = true
+      }
       return {
         id: item.model_config.id,
         name: item.model_info.model_name,
@@ -631,6 +641,12 @@ const getModelList = (is_offline) => {
         deployment_name: item.model_config.deployment_name,
       }
     })
+
+    if (!isCheckId) {
+      // 如果获取的模型列表没有缓存的这个,则清除缓存的模型
+      formState.use_model = undefined
+      removeStorage('lastEmbeddedModel')
+    }
     
     // 如果modelList存在两个相同model_define情况就合并到一个对象的children中去
     modelList.value = uniqueArr(duplicateRemoval(modelList.value, 'model_define'), modelList.value, 'model_define')
@@ -638,8 +654,8 @@ const getModelList = (is_offline) => {
 }
 
 onMounted(() => {
-  if (Object.prototype.hasOwnProperty.call(lastEmbeddedModel, 'is_offline')) {
-    getModelList(lastEmbeddedModel.is_offline)
+  if (Object.prototype.hasOwnProperty.call(lastEmbeddedModel.value, 'is_offline')) {
+    getModelList(lastEmbeddedModel.value.is_offline)
   } else {
     getModelList(true)
   }

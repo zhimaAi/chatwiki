@@ -33,7 +33,7 @@
         <a-table-column title="备注" data-index="mark" width="480px">
           <template #default="{ record }">{{ record.mark }}</template>
         </a-table-column>
-        <a-table-column title="最近修改时间" data-index="update_time" width="130px">
+        <a-table-column title="最近修改时间" data-index="update_time" width="150px">
           <template #default="{ record }">{{ record.update_time }}</template>
         </a-table-column>
         <a-table-column title="最近修改人" data-index="operate_name" width="130px">
@@ -45,10 +45,8 @@
         <a-table-column title="操作" data-index="action" width="178px">
           <template #default="{ record }">
             <a-flex :gap="16" class="action-box">
-              <a-button type="link" @click="handleEdit(record)" :disabled="record.role_type == '1'"
-                >编辑</a-button
-              >
-              <a-button type="link" @click="handleDelete(record)" :disabled="record.id <= 3">删除</a-button>
+              <a-button type="link" @click="handleEdit(record)">编辑</a-button>
+              <a-button type="link" @click="handleDelete(record)" :disabled="record.role_type <= 3 && record.role_type > 0">删除</a-button>
             </a-flex>
           </template>
         </a-table-column>

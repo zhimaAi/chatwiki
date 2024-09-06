@@ -7,70 +7,27 @@
             <a-input
               type="text"
               :maxlength="100"
+              :disabled="formState.role_type > 0"
               placeholder="请输入角色名称"
               v-model:value="formState.name"
             ></a-input>
           </a-form-item>
           <a-form-item label="角色备注">
-            <a-textarea v-model:value="formState.mark" placeholder="请输入知识库介绍" />
+            <a-textarea v-model:value="formState.mark" placeholder="请输入角色备注" />
           </a-form-item>
           <a-form-item label="角色权限">
-            <div class="role-check-box">
+
+            <div class="role-check-box" v-for="item in menuOptions" :key="item.uni_key">
               <a-flex class="title-boock" justify="space-between">
-                <div class="title-row">机器人管理</div>
+                <div class="title-row">{{ item.name }}</div>
                 <div class="check-num">
-                  {{ formState.robotChecked.length }}/{{ robotOptions.length }}
+                  {{ robotChecked[item.uni_key].length }}/{{ item.children.length }}
                 </div>
               </a-flex>
-              <a-checkbox-group v-model:value="formState.robotChecked" style="width: 100%">
+              <a-checkbox-group v-model:value="robotChecked[item.uni_key]" style="width: 100%">
                 <a-row :gutter="[0, 12]">
-                  <a-col :span="6" v-for="item in robotOptions" :key="item.value">
-                    <a-checkbox :value="item.value">{{ item.label }}</a-checkbox>
-                  </a-col>
-                </a-row>
-              </a-checkbox-group>
-            </div>
-            <div class="role-check-box">
-              <a-flex class="title-boock" justify="space-between">
-                <div class="title-row">知识库管理</div>
-                <div class="check-num">
-                  {{ formState.libraryChecked.length }}/{{ libraryOptions.length }}
-                </div>
-              </a-flex>
-              <a-checkbox-group v-model:value="formState.libraryChecked" style="width: 100%">
-                <a-row :gutter="[0, 12]">
-                  <a-col :span="6" v-for="item in libraryOptions" :key="item.value">
-                    <a-checkbox :value="item.value">{{ item.label }}</a-checkbox>
-                  </a-col>
-                </a-row>
-              </a-checkbox-group>
-            </div>
-            <div class="role-check-box">
-              <a-flex class="title-boock" justify="space-between">
-                <div class="title-row">系统设置</div>
-                <div class="check-num">
-                  {{ formState.systemChecked.length }}/{{ systemOptions.length }}
-                </div>
-              </a-flex>
-              <a-checkbox-group v-model:value="formState.systemChecked" style="width: 100%">
-                <a-row :gutter="[0, 12]">
-                  <a-col :span="6" v-for="item in systemOptions" :key="item.value">
-                    <a-checkbox :value="item.value">{{ item.label }}</a-checkbox>
-                  </a-col>
-                </a-row>
-              </a-checkbox-group>
-            </div>
-            <div class="role-check-box">
-              <a-flex class="title-boock" justify="space-between">
-                <div class="title-row">客户端管理</div>
-                <div class="check-num">
-                  {{ formState.clientChecked.length }}/{{ clientOptions.length }}
-                </div>
-              </a-flex>
-              <a-checkbox-group v-model:value="formState.clientChecked" style="width: 100%">
-                <a-row :gutter="[0, 12]">
-                  <a-col :span="6" v-for="item in clientOptions" :key="item.value">
-                    <a-checkbox :value="item.value">{{ item.label }}</a-checkbox>
+                  <a-col :span="6" v-for="sub in item.children" :key="sub.uni_key">
+                    <a-checkbox :disabled="formState.role_type > 0" :value="sub.uni_key">{{ sub.name }}</a-checkbox>
                   </a-col>
                 </a-row>
               </a-checkbox-group>
@@ -83,54 +40,20 @@
 </template>
 
 <script setup>
-import { ref, reactive, toRaw } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { Form, message } from 'ant-design-vue'
 import { getRole, getMenu, saveRole } from '@/api/manage/index.js'
 const emit = defineEmits(['ok'])
 const useForm = Form.useForm
 
-let robotOptions = []
-let libraryOptions = []
-let systemOptions = []
-let clientOptions = []
-
-getMenu().then((res) => {
-  robotOptions = [
-    {
-      label: res.data[1].name,
-      value: res.data[1].uni_key
-    }
-  ]
-  libraryOptions = [
-    {
-      label: res.data[2].name,
-      value: res.data[2].uni_key
-    }
-  ]
-  systemOptions = [
-    {
-      label: res.data[3].name,
-      value: res.data[3].uni_key
-    }
-  ]
-  clientOptions = [
-    {
-      label: res.data[4].name,
-      value: res.data[4].uni_key
-    }
-  ]
-})
-
+const menuOptions = ref([])
+const robotChecked = ref({})
 const show = ref(false)
 const modalTitle = ref('添加角色')
 const id = ref('')
 const formState = reactive({
   name: '',
   mark: '',
-  robotChecked: [],
-  libraryChecked: [],
-  systemChecked: [],
-  clientChecked: [],
   role_type: ''
 })
 
@@ -145,7 +68,19 @@ const formRules = reactive({
 
 const { resetFields, validate, validateInfos } = useForm(formState, formRules)
 
-const add = () => {
+const getMenuData = async() => {
+  await getMenu().then((res) => {
+    menuOptions.value = res.data
+
+    for (let i = 0; i < res.data.length; i++) {
+      const item = res.data[i];
+      robotChecked.value[item.uni_key] = []
+    }
+  })
+}
+
+const add = async() => {
+  await getMenuData()
   modalTitle.value = '添加角色'
   id.value = ''
   show.value = true
@@ -163,38 +98,48 @@ const edit = (record) => {
     formState.name = data.name
     formState.mark = data.mark
     formState.role_type = data.role_type
-    formState.robotChecked = formatCheckList(robotOptions, role_permission)
-    formState.libraryChecked = formatCheckList(libraryOptions, role_permission)
-    formState.systemChecked = formatCheckList(systemOptions, role_permission)
-    formState.clientChecked = formatCheckList(clientOptions, role_permission)
+    robotChecked.value = formatCheckList(menuOptions.value, role_permission)
     show.value = true
   })
 }
 
 const formatCheckList = (data, list) => {
-  let resultList = []
+  let resultList = {}
   data.forEach((item) => {
-    if (list.includes(item.value)) {
-      resultList.push(item.value)
+    resultList[item.uni_key] = []
+    for (let i = 0; i < item.children.length; i++) {
+      const sub = item.children[i];
+      if (list.includes(sub.uni_key)) {
+        resultList[item.uni_key].push(sub.uni_key)
+      }
     }
   })
   return resultList
 }
 
+const deconstruction = (obj) => {
+  let newArr = []
+  for (let key in obj) {
+    const ele = obj[key]
+    ele.map((item) => {
+      newArr.push(item)
+    })
+  }
+  return newArr
+}
+
 const handleOk = () => {
   validate().then(() => {
-    let uni_keys = [
-      ...formState.robotChecked,
-      ...formState.libraryChecked,
-      ...formState.systemChecked,
-      ...formState.clientChecked
-    ]
+    let uni_keys = deconstruction(robotChecked.value)
     let parmas = {
       id: id.value,
-      name: formState.name,
       mark: formState.mark,
-      role_type: formState.role_type,
-      uni_keys: uni_keys.join(',')
+    }
+
+    if (formState.role_type == 0) {
+      parmas.name = formState.name
+      parmas.role_type = formState.role_type
+      parmas.uni_keys = uni_keys.join(',')
     }
 
     saveRole(parmas).then((res) => {
@@ -204,6 +149,10 @@ const handleOk = () => {
     })
   })
 }
+
+onMounted(() => {
+  getMenuData()
+})
 
 defineExpose({
   add,

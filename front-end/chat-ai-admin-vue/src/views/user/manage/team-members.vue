@@ -27,7 +27,7 @@
         }"
         @change="onTableChange"
       >
-        <a-table-column title="姓名" data-index="user_name" width="300px">
+        <a-table-column title="成员名称" data-index="user_name" width="190px">
           <template #default="{ record }">
             <div class="user-box">
               <img :src="record.avatar || defaultAvatar" alt="" />
@@ -38,21 +38,99 @@
             </div>
           </template>
         </a-table-column>
-        <a-table-column title="角色" data-index="user_roles" width="190px">
-          <template #default="{ record }">{{ record.role }}</template>
+        <a-table-column title="角色" data-index="role_name" width="100px">
+          <template #default="{ record }">{{ record.role_name }}</template>
         </a-table-column>
-        <a-table-column title="最近登录时间" data-index="login_time" width="190px">
-          <template #default="{ record }">{{ record.login_time }}</template>
-        </a-table-column>
-        <a-table-column title="最近登录IP" data-index="IP" width="190px">
-          <template #default="{ record }">{{ record.login_ip }}</template>
-        </a-table-column>
-        <a-table-column title="操作" data-index="action" width="208px">
+
+        <a-table-column data-index="managed_robot_list" width="200px">
+          <template #title>
+            管理的机器人
+            <a-tooltip>
+              <template #title>所有者和管理员可以创建和管理全部机器人，成员只能管理分配的机器人。</template>
+              <QuestionCircleOutlined />
+            </a-tooltip>
+          </template>
           <template #default="{ record }">
-            <a-flex :gap="16" v-if="record.user_roles != 1">
+            <div v-if="record.role_type == 1 || record.role_type == 2" class="list-content">
+              <div>全部</div>
+            </div>
+            <div v-else-if="!record.managed_robot_list" class="list-content">
+              <div class="list-highlight" @click="addManage('robot', record)">添加</div>
+            </div>
+            <div v-else class="list-preview list-content">
+              <a-tooltip>
+                <template #title><div style="display: inline;">{{ formatText(record.managed_robot_list) }} </div></template>
+                <div class="list-item-box">
+                  <div class="list-item">{{ formatText(record.managed_robot_list) }} </div>
+                </div>
+              </a-tooltip>
+              <div class="list-highlight edit" @click="editManage('robot', record)"><svg-icon name="edit"></svg-icon></div>
+            </div>
+          </template>
+        </a-table-column>
+        <a-table-column data-index="managed_library_list" width="200px">
+          <template #title>
+            管理的知识库
+            <a-tooltip>
+              <template #title>所有者和管理员可以创建和管理全部知识库，成员只能管理分配的知识库。</template>
+              <QuestionCircleOutlined />
+            </a-tooltip>
+          </template>
+          <template #default="{ record }">
+            <div v-if="record.role_type == 1 || record.role_type == 2" class="list-content">
+              <div>全部</div>
+            </div>
+            <div v-else-if="!record.managed_library_list" class="list-content">
+              <div class="list-highlight" @click="addManage('library', record)">添加</div>
+            </div>
+            <div v-else class="list-preview list-content">
+              <a-tooltip>
+                <template #title><div style="display: inline;">{{ formatText(record.managed_library_list) }} </div></template>
+                <div class="list-item-box">
+                  <div class="list-item">{{ formatText(record.managed_library_list) }} </div>
+                </div>
+              </a-tooltip>
+              <div class="list-highlight edit" @click="editManage('library', record)"><svg-icon name="edit"></svg-icon></div>
+            </div>
+          </template>
+        </a-table-column>
+        <a-table-column data-index="managed_form_list" width="200px">
+          <template #title>
+            管理的数据库
+            <a-tooltip>
+              <template #title>所有者和管理员可以创建和管理全部数据库，成员只能管理分配的数据库。</template>
+              <QuestionCircleOutlined />
+            </a-tooltip>
+          </template>
+          <template #default="{ record }">
+            <div v-if="record.role_type == 1 || record.role_type == 2" class="list-content">
+              <div>全部</div>
+            </div>
+            <div v-else-if="!record.managed_form_list" class="list-content">
+              <div class="list-highlight" @click="addManage('form', record)">添加</div>
+            </div>
+            <div v-else class="list-preview list-content">
+              <a-tooltip>
+                <template #title><div style="display: inline;">{{ formatText(record.managed_form_list) }} </div></template>
+                <div class="list-item-box">
+                  <div class="list-item">{{ formatText(record.managed_form_list) }} </div>
+                </div>
+              </a-tooltip>
+              <div class="list-highlight edit" @click="editManage('form', record)"><svg-icon name="edit"></svg-icon></div>
+            </div>
+          </template>
+        </a-table-column>
+        <a-table-column title="创建时间" data-index="create_time" width="190px">
+          <template #default="{ record }">{{ record.create_time }}</template>
+        </a-table-column>
+
+        <a-table-column title="操作" data-index="action" width="230px">
+          <template #default="{ record }">
+            <a-flex :gap="16">
               <a @click="handleEdit(record)">编辑</a>
               <a @click="handleReSetPassword(record)">重置密码</a>
-              <a @click="handleDelete(record)">移除</a>
+              <span v-if="record.id == '1' || record.id == user_id" class="disabled" >删除</span>
+              <a v-else @click="handleDelete(record)">删除</a>
             </a-flex>
           </template>
         </a-table-column>
@@ -60,28 +138,49 @@
     </div>
     <AddTeamMembers ref="addTeamMembersRef" @ok="getData"></AddTeamMembers>
     <ResetPassword ref="resetPasswordRef" @ok="getData"></ResetPassword>
+
+    <!-- 新增弹出，选择数据 -->
+    <SeeModelAlert
+      ref="seeModelAlertRef"
+      :robotList="robotList"
+      :libraryList="libraryList"
+      :formList="formList"
+      @save="onSave"
+    />
   </div>
 </template>
 <script setup>
-import { ref, reactive, computed, createVNode } from 'vue'
-import { PlusOutlined, ExclamationCircleOutlined } from '@ant-design/icons-vue'
+import { getRobotList } from '@/api/robot/index.js'
+import { getLibraryList } from '@/api/library/index.js'
+import { getFormList } from '@/api/database/index.js'
+import { saveUserManagedDataList } from '@/api/manage/index.js'
+import { ref, reactive, createVNode } from 'vue'
+import { PlusOutlined, ExclamationCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { Modal, message } from 'ant-design-vue'
 import AddTeamMembers from './components/add-team-members.vue'
 import ResetPassword from './components/reset-password.vue'
+import SeeModelAlert from './components/see-model-alert.vue'
 import { getUserList, delUser } from '@/api/manage/index.js'
 import dayjs from 'dayjs'
-import { storeToRefs } from 'pinia'
-import { useUserStore } from '@/stores/modules/user'
 import defaultAvatar from "@/assets/img/role_avatar.png"
+import { useUserStore } from '@/stores/modules/user'
 const userStore = useUserStore()
-const { userInfo } = storeToRefs(userStore)
-const user_roles = computed(() => userInfo.value.user_roles)
+
+const user_id = ref(userStore.userInfo.user_id)
 const requestParams = reactive({
   page: 1,
   size: 10,
   total: 0,
   search: ''
 })
+const robotList = ref([])
+const libraryList = ref([])
+const formList = ref([])
+const activeKey = ref('')
+const currentUserId = ref('')
+// 查看模型
+const seeModelAlertRef = ref(null)
+
 const onTableChange = (pagination) => {
   requestParams.page = pagination.current
   requestParams.size = pagination.pageSize
@@ -93,6 +192,13 @@ const onSearch = () => {
 }
 const tableData = ref([])
 
+const formatText = (arr) => {
+  let newArr = []
+  arr.map((item) => {
+    newArr.push(item.name)
+  })
+  return newArr.join(', ')
+}
 const getData = () => {
   // 获取用户列表
   let parmas = {
@@ -104,7 +210,10 @@ const getData = () => {
   getUserList(parmas).then((res) => {
     let lists = res.data.list
     lists.forEach((item) => {
-      item.login_time = item.login_time > 0 ? dayjs(item.login_time * 1000).format('YYYY-MM-DD HH:mm') : '--'
+      item.create_time = dayjs(item.create_time * 1000).format('YYYY-MM-DD HH:mm')
+      item.managed_robot_list = item.managed_robot_list ? JSON.parse(item.managed_robot_list) : '',
+      item.managed_library_list = item.managed_library_list ? JSON.parse(item.managed_library_list) : '',
+      item.managed_form_list = item.managed_form_list ? JSON.parse(item.managed_form_list) : ''
     })
     tableData.value = lists
     requestParams.total = +res.data.total
@@ -143,6 +252,85 @@ const handleDelete = (record) => {
     onCancel() {}
   })
 }
+
+// 获取机器人列表
+const getList = async () => {
+  await getRobotList()
+    .then((res) => {
+      robotList.value = res.data
+    })
+    .catch(() => {})
+}
+
+// 获取知识库列表
+const getLibrary = async () => {
+  await getLibraryList()
+    .then((res) => {
+      libraryList.value = res.data
+    })
+    .catch(() => {})
+}
+
+// 获取数据库列表
+const getForm = async () => {
+  await getFormList()
+    .then((res) => {
+      formList.value = res.data
+    })
+    .catch(() => {})
+}
+
+
+
+const addManage = async (key, record) => {
+  if (key === 'robot') {
+    await getList()
+    // 打开弹窗
+    activeKey.value = key
+  } else if (key === 'library') {
+    await getLibrary()
+    // 打开弹窗
+    activeKey.value = key
+  } else if (key === 'form') {
+    await getForm()
+    // 打开弹窗
+    activeKey.value = key
+  }
+  currentUserId.value = record.id
+  seeModelAlertRef.value.open(activeKey.value)
+}
+
+const editManage = async(key, record) => {
+  if (key === 'robot') {
+    await getList()
+    // 打开弹窗
+    activeKey.value = key
+  } else if (key === 'library') {
+    await getLibrary()
+    // 打开弹窗
+    activeKey.value = key
+  } else if (key === 'form') {
+    await getForm()
+    // 打开弹窗
+    activeKey.value = key
+  }
+  currentUserId.value = record.id
+  seeModelAlertRef.value.open(activeKey.value, 'edit' , record)
+}
+
+const onSave = (ids) => {
+  let params = {
+    user_id: currentUserId.value,
+    t: activeKey.value,
+    id_list: ids.join(',')
+  }
+
+  saveUserManagedDataList(params).then((res) => {
+    message.success('操作成功')
+    getData()
+  })
+  .catch(() => {})
+}
 </script>
 <style lang="less" scoped>
 .team-members-pages {
@@ -152,6 +340,49 @@ const handleDelete = (record) => {
   .list-box {
     background: #fff;
     margin-top: 8px;
+
+    .list-item-box {
+      max-width: 200px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .list-preview {
+
+      .list-item {
+        display: inline;
+      }
+    }
+
+    .list-content {
+      padding-right: 15px;
+      position: relative;
+
+      .list-highlight {
+        color: #1677ff;
+        cursor: pointer;
+
+        &:hover {
+          opacity: 0.7;
+        }
+      }
+
+      .edit {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 50%;
+        margin-top: -10px;
+      }
+
+      &:hover .edit{
+        display: block;
+      }
+    }
+
     .user-box {
       display: flex;
       img {
@@ -176,5 +407,9 @@ const handleDelete = (record) => {
       }
     }
   }
+}
+
+.disabled {
+  color: rgba(0, 0, 0, 0.25);
 }
 </style>

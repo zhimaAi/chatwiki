@@ -42,6 +42,7 @@ func init() {
 	Route[http.MethodPost]["/manage/resetPass"] = manage.ResetPass
 	Route[http.MethodPost]["/manage/delUser"] = manage.DeleteUser
 	Route[http.MethodGet]["/manage/getUser"] = manage.GetUser
+	Route[http.MethodPost]["/manage/saveUserManagedDataList"] = manage.SaveUserManagedDataList
 	Route[http.MethodGet]["/manage/getRoleList"] = manage.GetRoleList
 	Route[http.MethodPost]["/manage/saveRole"] = manage.SaveRole
 	Route[http.MethodPost]["/manage/delRole"] = manage.DelRole

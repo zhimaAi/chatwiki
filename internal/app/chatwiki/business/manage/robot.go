@@ -21,13 +21,41 @@ import (
 )
 
 func GetRobotList(c *gin.Context) {
-	var userId int
-	if userId = GetAdminUserId(c); userId == 0 {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	list, err := msql.Model(`chat_ai_robot`, define.Postgres).
+
+	m := msql.Model(`chat_ai_robot`, define.Postgres).
 		Field(`id,robot_name,robot_intro,robot_avatar,robot_key`).
-		Where(`admin_user_id`, cast.ToString(userId)).Order(`id desc`).Select()
+		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id desc`)
+
+	userId := GetLoginUserId(c)
+	if userId <= 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+	userInfo, err := msql.Model(define.TableUser, define.Postgres).
+		Alias(`u`).
+		Join(`role r`, `u.user_roles::integer=r.id`, `left`).
+		Where(`u.id`, cast.ToString(userId)).
+		Field(`u.*,r.role_type`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(userInfo) == 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot, define.RoleTypeAdmin}) {
+		managedRobotIdList := GetUserManagedData(userId, `managed_robot_list`)
+		m.Where(`id`, `in`, strings.Join(managedRobotIdList, `,`))
+	}
+
+	list, err := m.Select()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -41,8 +69,24 @@ func SaveRobot(c *gin.Context) {
 	if userId = GetAdminUserId(c); userId == 0 {
 		return
 	}
+	userInfo, err := msql.Model(define.TableUser, define.Postgres).
+		Alias(`u`).
+		Join(`role r`, `u.user_roles::integer=r.id`, `left`).
+		Where(`u.id`, cast.ToString(userId)).
+		Field(`u.*,r.role_type`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(userInfo) == 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+
 	//get params
-	id := cast.ToInt(c.PostForm(`id`))
+	id := cast.ToInt64(c.PostForm(`id`))
 	robotName := strings.TrimSpace(c.PostForm(`robot_name`))
 	robotIntro := strings.TrimSpace(c.PostForm(`robot_intro`))
 	robotAvatar := ``
@@ -112,7 +156,6 @@ func SaveRobot(c *gin.Context) {
 	//data check
 	var count int
 	var robotKey string
-	var err error
 	m := msql.Model(`chat_ai_robot`, define.Postgres)
 	if id > 0 {
 		robotKey, err = m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Value(`robot_key`)
@@ -326,11 +369,13 @@ func SaveRobot(c *gin.Context) {
 		data[`admin_user_id`] = userId
 		data[`robot_key`] = robotKey
 		data[`create_time`] = data[`update_time`]
-		_, err = m.Insert(data)
+		id, err = m.Insert(data, `id`)
 		// add robot api key
 		if err == nil {
 			addDefaultApiKey(c, robotKey)
+			_ = AddUserMangedData(getLoginUserId(c), `managed_robot_list`, id)
 		}
+
 	}
 	if err != nil {
 		logs.Error(err.Error())

@@ -78,7 +78,7 @@
 
 <template>
   <div class="client-download-page">
-    <div class="login-required-switch">
+    <div class="login-required-switch" v-if="role_type != '3'">
       <span>需要登录：</span>
       <a-switch v-model:checked="loginRequired" @change="handleLoginRequiredSwitch" />
     </div>
@@ -102,9 +102,13 @@ import { ref } from 'vue'
 import { downloadFile } from '../../../utils/index.js'
 import { useI18n } from '../../../hooks/web/useI18n.js'
 import { message } from 'ant-design-vue'
+import { usePermissionStore } from '@/stores/modules/permission'
 import { WindowsFilled } from '@ant-design/icons-vue'
 import { getClientSideLoginSwitch, setClientSideLoginSwitch, clientSideDownload } from '@/api/user'
 
+const permissionStore = usePermissionStore()
+
+let { role_type } = permissionStore
 const { t } = useI18n()
 const loginRequired = ref(false)
 

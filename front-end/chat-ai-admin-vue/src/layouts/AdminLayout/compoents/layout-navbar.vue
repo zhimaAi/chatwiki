@@ -57,8 +57,10 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { usePermissionStore } from '@/stores/modules/permission'
+
 // front-end\chat-ai-admin-vue\src\utils\permission.js
 const roure = useRoute()
 
@@ -69,35 +71,64 @@ const activeMenu = computed(() => {
 const rootPath = computed(() => {
   return roure.path.split('/')[1]
 })
-
+const permissionStore = usePermissionStore()
 const getActiveMenu = () => {}
 
-const items = ref([
-  {
-    key: 'robot',
-    label: 'robot',
-    title: '机器人管理',
-    path: '/robot/list'
-  },
-  {
-    key: 'library',
-    label: 'library',
-    title: '知识库管理',
-    path: '/library/list'
-  },
-  {
-    key: 'database',
-    label: 'database',
-    title: '数据库',
-    path: '/database/list'
-  },
-  {
-    key: 'user',
-    label: 'user',
-    title: '系统管理',
-    path: '/user/model'
+const items = computed(() => {
+  const SystemManageChildren = ['ModelManage','TokenManage','TeamManage','AccountManage','CompanyManage','ClientSideManage']
+  let flag = false  // 控制添加 "系统管理" 菜单的，如果添加过就不进行循环和添加。
+  let { role_permission } = permissionStore
+  let possessedAuthority = []
+  
+  for (let i = 0; i < role_permission.length; i++) {
+    const item = role_permission[i];
+    if (item === 'RobotManage') {
+      possessedAuthority.push({
+        id: 1,
+        key: 'robot',
+        label: 'robot',
+        title: '机器人管理',
+        path: '/robot/list'
+      })
+    }
+    if (item === 'LibraryManage') {
+      possessedAuthority.push({
+        id: 2,
+        key: 'library',
+        label: 'library',
+        title: '知识库管理',
+        path: '/library/list'
+      })
+    }
+    if (item === 'FormManage') {
+      possessedAuthority.push({
+        id: 3,
+        key: 'database',
+        label: 'database',
+        title: '数据库',
+        path: '/database/list'
+      })
+    }
+    if (!flag) {
+      for (let j = 0; j < SystemManageChildren.length; j++) {
+        // 作用是看系统管理里面有没有子权限，有一个则显示系统管理，否则不显示系统管理菜单。
+        const child = SystemManageChildren[j];
+        if (child === item) {
+          possessedAuthority.push({
+            id: 4,
+            key: 'user',
+            label: 'user',
+            title: '系统管理',
+            path: '/user/model'
+          })
+          flag = true
+          break;
+        }
+      }
+    }
   }
-])
+  return possessedAuthority.sort((a, b) => a.id - b.id);
+})
 
 watch(
   () => roure.path,

@@ -608,9 +608,6 @@ func CheckPermission(userId int, permission string) bool {
 	if len(userRoles) == 0 {
 		return false
 	}
-	if cast.ToInt(userRoles) == define.DefaultRoleIdRoot { //role:root
-		return true
-	}
 	rules, err := casbin.Handler.GetPolicyForUser(userRoles)
 	if err != nil {
 		logs.Error(err.Error())

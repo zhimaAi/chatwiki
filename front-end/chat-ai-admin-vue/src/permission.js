@@ -3,7 +3,7 @@ import { useUserStoreWithOut } from '@/stores/modules/user'
 import { usePermissionStoreWithOut } from '@/stores/modules/permission'
 import { useCompanyStore } from '@/stores/modules/company'
 import { NO_REDIRECT_WHITE_LIST } from '@/constants'
-import { checkRouterPermisission } from '@/utils/permission.js'
+import { checkSystemPermisission } from '@/utils/permission.js'
 // import { checkPermi } from '@/utils/permission'
 // checkPermi(['yun/yunAdmin/ChannelCreate'])
 
@@ -15,12 +15,12 @@ function toLogin(to, from, next) {
   }
 }
 
-function toAuthorityPage(to, from, next) {
-  if (to.path.includes('/user') && to.path != '/user/account') {
-    next(`/user/account`)
-  }
-  next(`/authority/index`)
-}
+// function toAuthorityPage(to, from, next) {
+//   if (to.path.includes('/user') && to.path != '/user/account') {
+//     next(`/user/account`)
+//   }
+//   next(`/authority/index`)
+// }
 
 function setTitle(to, companyInfo) {
   let str = `Chatwiki ` + `${companyInfo?.name || '开源大模型企业知识库问答系统'}`
@@ -61,9 +61,30 @@ router.beforeEach(async (to, from, next) => {
       if (needGetPermissionRoutes.includes(to.path)) {
         await checkPermission()
       }
-      if (!checkRouterPermisission(to.path)) {
-        toAuthorityPage(to, from, next)
-        return
+      // 权限显示逻辑更换了，不用以前的逻辑了
+      // if (!checkRouterPermisission(to.path)) {
+      //   toAuthorityPage(to, from, next)
+      //   return
+      // }
+      // 系统管理里面，menu根据顺序，如果有权限的，显示第一个menu
+      const name = await checkSystemPermisission(to)
+      if (name) {
+        if (name === 'AccountManage') {
+          next(`/user/account`)
+          return
+        } else if (name === 'TokenManage') {
+          next(`/user/usetoken`)
+          return
+        } else if (name === 'TeamManage') {
+          next(`/user/manage`)
+          return
+        } else if (name === 'CompanyManage') {
+          next(`/user/enterprise`)
+          return
+        } else if (name === 'ClientSideManage') {
+          next(`/user/clientDownload`)
+          return
+        }
       }
       next()
     }

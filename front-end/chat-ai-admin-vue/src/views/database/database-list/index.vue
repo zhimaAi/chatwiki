@@ -2,7 +2,7 @@
   <div class="library-page">
     <div class="library-page-body">
       <div class="list-box">
-        <div class="list-item-wrapper">
+        <div class="list-item-wrapper" v-if="formCreate">
           <div class="list-item add-library" @click="toAdd()">
             <PlusCircleOutlined class="add-library-icon" />
             <span class="add-library-text">新增数据表</span>
@@ -48,12 +48,18 @@
 </template>
 
 <script setup>
-import { ref, createVNode } from 'vue'
+import { ref, createVNode, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import { MoreOutlined, PlusCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import { getFormList, delForm } from '@/api/database'
 import AddDataSheet from './components/add-data-sheet.vue'
+import { usePermissionStore } from '@/stores/modules/permission'
+
+const permissionStore = usePermissionStore()
+let { role_permission } = permissionStore
+const formCreate = computed(() => role_permission.includes('FormCreate'))
+
 const router = useRouter()
 
 const list = ref([])
