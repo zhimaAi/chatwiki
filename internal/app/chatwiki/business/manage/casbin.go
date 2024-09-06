@@ -3,6 +3,7 @@
 package manage
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -28,7 +29,12 @@ func CheckPermission(c *gin.Context) {
 	}
 	var data = make(map[string]interface{})
 
-	info, err := msql.Model(define.TableUser, define.Postgres).Where("id", cast.ToString(user)).Field("user_roles").Find()
+	info, err := msql.Model(define.TableUser, define.Postgres).
+		Alias(`u`).
+		Join(`role r`, `u.user_roles::integer=r.id`, `left`).
+		Where(`u.id`, cast.ToString(user)).
+		Field(`u.*,r.role_type`).
+		Find()
 	if err != nil {
 		common.FmtError(c, `sys_err`)
 		return
@@ -52,45 +58,57 @@ func CheckPermission(c *gin.Context) {
 		}
 	}
 	data["role_permission"] = rolePermission
-	data["menu"] = getMenu()
+	data["menu"] = define.Menus
 	data["user_roles"] = info["user_roles"]
+	data["role_type"] = info["role_type"]
 	common.FmtOk(c, data)
 }
 
-type GetMnuRes struct {
-	Id       string       `json:"id"`
-	Name     string       `json:"name"`
-	UniKey   string       `json:"uni_key"`
-	Path     string       `json:"path"`
-	ParentId int          `json:"parent_id"`
-	Child    []*GetMnuRes `json:"child"`
+func GetUserManagedData(userId int, field string) []string {
+	var result []string
+	typeList := []string{`managed_robot_list`, `managed_library_list`, `managed_form_list`}
+	if !tool.InArrayString(field, typeList) {
+		logs.Error(`field not existed`)
+		return result
+	}
+	r, err := msql.Model(define.TableUser, define.Postgres).Where("id", cast.ToString(userId)).Value(field)
+	if err != nil {
+		logs.Error(err.Error())
+		return result
+	}
+	if len(r) == 0 {
+		r = `-1`
+	}
+	result = strings.Split(r, ",")
+
+	return result
 }
 
-func getMenu() map[string]*GetMnuRes {
-
-	var res = make(map[string]*GetMnuRes)
-	m := msql.Model(define.TableMenu, define.Postgres)
-	data, err := m.Where("is_deleted", define.Normal).Where("parent_id", "0").Select()
+func AddUserMangedData(userId int, field string, id int64) error {
+	typeList := []string{`managed_robot_list`, `managed_library_list`, `managed_form_list`}
+	if !tool.InArrayString(field, typeList) {
+		err := errors.New(`field not existed`)
+		logs.Error(err.Error())
+		return err
+	}
+	listStr, err := msql.Model(define.TableUser, define.Postgres).Where("id", cast.ToString(userId)).Value(field)
 	if err != nil {
-		logs.Error("getMenu err:%s", err)
-		return res
+		logs.Error(err.Error())
+		return err
 	}
-	for _, v := range data {
-		if v["parent_id"] == "0" {
-			res[v["id"]] = &GetMnuRes{
-				Id:     v["id"],
-				Name:   v["name"],
-				UniKey: v["uni_key"],
-				Path:   v["path"],
-				Child:  make([]*GetMnuRes, 0),
-			}
-		}
+	if len(listStr) == 0 {
+		listStr = `-1`
 	}
-	return res
+	listArr := strings.Split(listStr, ",")
+	listArr = append(listArr, cast.ToString(id))
+	_, err = msql.Model(define.TableUser, define.Postgres).Where("id", cast.ToString(userId)).Update(msql.Datas{
+		field: strings.Join(listArr, ","),
+	})
+	return err
 }
 
 func GetMenu(c *gin.Context) {
-	common.FmtOk(c, getMenu())
+	common.FmtOk(c, define.Menus)
 }
 
 type AddMenuReq struct {
@@ -211,17 +229,48 @@ func GetUserList(c *gin.Context) {
 		common.FmtError(c, `sys_err`)
 		return
 	}
+
+	robotList, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`admin_user_id`, cast.ToString(parentId)).Field(`id,robot_name as name,robot_avatar as avatar`).Select()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+
+	libraryList, err := msql.Model(`chat_ai_library`, define.Postgres).Where(`admin_user_id`, cast.ToString(parentId)).Field(`id,library_name as name`).Select()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+
+	formList, err := msql.Model(`form`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(parentId)).
+		Where(`delete_time`, `0`).
+		Field(`id,name`).
+		Select()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+
 	roles, err := msql.Model(define.TableRole, define.Postgres).Select()
 	roleMap := make(map[string]msql.Params)
 	for _, role := range roles {
 		roleMap[role["id"]] = role
 	}
 	for _, user := range data {
-		user["role"] = ""
-		if name, ok := roleMap[user["user_roles"]]["name"]; ok {
-			user["role"] = name
+		user["role_name"] = ""
+		user["role_type"] = ""
+		if role, ok := roleMap[user["user_roles"]]; ok {
+			user["role_name"] = role[`name`]
+			user["role_type"] = role[`role_type`]
 		}
 		user["salt"] = ""
+		user["managed_robot_list"] = formatManagedDataList(user["managed_robot_list"], robotList)
+		user["managed_library_list"] = formatManagedDataList(user["managed_library_list"], libraryList)
+		user["managed_form_list"] = formatManagedDataList(user["managed_form_list"], formList)
 	}
 	result := map[string]interface{}{
 		"total":    total,
@@ -229,6 +278,23 @@ func GetUserList(c *gin.Context) {
 		"has_more": page*req.Size < total,
 	}
 	common.FmtOk(c, result)
+}
+
+func formatManagedDataList(managedDataList string, dataList []msql.Params) string {
+	var result []interface{}
+	if len(managedDataList) > 0 {
+		arrList := strings.Split(managedDataList, ",")
+		for _, id := range arrList {
+			for _, data := range dataList {
+				if data["id"] == id {
+					result = append(result, data)
+					break
+				}
+			}
+		}
+	}
+	r, _ := tool.JsonEncode(result)
+	return r
 }
 
 type SaveUserReq struct {
@@ -291,6 +357,12 @@ func SaveUser(c *gin.Context) {
 	m := msql.Model(define.TableUser, define.Postgres)
 	// save ..
 	if req.Id > 0 {
+		// clear managed data
+		if cast.ToInt(roleId) > 0 {
+			data[`managed_robot_list`] = ""
+			data[`managed_library_list`] = ""
+			data[`managed_form_list`] = ""
+		}
 		_, err = m.Where("id", cast.ToString(req.Id)).Update(data)
 	} else {
 		if req.Password == "" {
@@ -474,6 +546,93 @@ func GetUser(c *gin.Context) {
 	common.FmtOk(c, userRoleInfo)
 }
 
+func SaveUserManagedDataList(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	userId := cast.ToInt(c.PostForm(`user_id`))
+	idList := strings.TrimSpace(c.PostForm(`id_list`))
+	t := strings.TrimSpace(c.PostForm(`t`))
+	if !tool.InArrayString(t, []string{`robot`, `library`, `form`}) {
+		common.FmtError(c, `param_err`)
+		return
+	}
+	if userId == 0 {
+		common.FmtError(c, `param_err`)
+		return
+	}
+	err := checkManagePermission(getLoginUserId(c))
+	if err != nil {
+		common.FmtError(c, err.Error())
+		return
+	}
+
+	var strIdList string
+	if len(idList) == 0 {
+		strIdList = `-1`
+	} else {
+		arrIdList := strings.Split(idList, ",")
+		strIdList = strings.Join(arrIdList, ",")
+	}
+
+	data := make(msql.Datas)
+	if t == `robot` {
+		m := msql.Model(`chat_ai_robot`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where("id", "in", strIdList)
+		robotIdList, err := m.ColumnArr(`id`)
+		if err != nil {
+			common.FmtError(c, `sys_err`)
+			return
+		}
+		data[`managed_robot_list`] = strings.Join(robotIdList, ",")
+	} else if t == `library` {
+		m := msql.Model(`chat_ai_library`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where("id", "in", strIdList)
+		libraryIdList, err := m.Field(`id`).ColumnArr(`id`)
+		if err != nil {
+			common.FmtError(c, `sys_err`)
+			return
+		}
+		data[`managed_library_list`] = strings.Join(libraryIdList, ",")
+	} else if t == `form` {
+		m := msql.Model(`form`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where("id", "in", strIdList)
+		formIdList, err := m.Field(`id`).ColumnArr(`id`)
+		if err != nil {
+			common.FmtError(c, `sys_err`)
+			return
+		}
+		data[`managed_form_list`] = strings.Join(formIdList, ",")
+	}
+
+	if _, err := msql.Model(define.TableUser, define.Postgres).Where(`id`, cast.ToString(userId)).Update(data); err != nil {
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	common.FmtOk(c, `ok`)
+}
+
+func checkManagePermission(userId int) error {
+	user, err := msql.Model(define.TableUser, define.Postgres).Where(`id`, cast.ToString(userId)).Find()
+	if err != nil {
+		return err
+	}
+	if len(user) == 0 {
+		return errors.New(`no_data`)
+	}
+	role, err := msql.Model(define.TableRole, define.Postgres).Where(`id`, user[`user_roles`]).Where(`is_deleted`, `0`).Find()
+	if err != nil {
+		return err
+	}
+	if len(role) == 0 {
+		return errors.New(`no_data`)
+	}
+	fmt.Println(role)
+	// only admin and root can manage
+	if cast.ToInt(role[`role_type`]) != define.RoleTypeRoot && cast.ToInt(role[`role_type`]) != define.RoleTypeAdmin {
+		return errors.New(`no_permission`)
+	}
+	return nil
+}
+
 type (
 	GetRoleListReq struct {
 		Page   int    `form:"page" json:"page"`
@@ -517,11 +676,10 @@ func GetRoleList(c *gin.Context) {
 
 type (
 	SaveRoleReq struct {
-		Id   int    `form:"id" json:"id" binding:"omitempty"`
-		Name string `form:"name" json:"name" binding:"required,max=100"`
-		Mark string `form:"mark" json:"mark" binding:"max=500"`
-		//RoleType       int    `form:"role_type" json:"role_type" binding:"required,oneof=2 3"`
-		RoleType int    `form:"role_type" json:"role_type"`
+		Id       int    `form:"id" json:"id" binding:"omitempty"`
+		Name     string `form:"name" json:"name" binding:"max=100,omitempty"`
+		Mark     string `form:"mark" json:"mark" binding:"max=500,omitempty"`
+		RoleType int    `form:"role_type" json:"role_type,omitempty"`
 		UniKeys  string `form:"uni_keys" json:"uni_keys"`
 	}
 )
@@ -542,32 +700,74 @@ func SaveRole(c *gin.Context) {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
-	data := msql.Datas{
-		"operate_id":   user["user_id"],
-		"operate_name": user["user_name"],
-		"role_type":    req.RoleType,
-		"name":         req.Name,
-		"mark":         req.Mark,
-		"update_time":  time.Now().Unix(),
+
+	// check uni_keys
+	uniKeyMap := make(map[string]bool)
+	for _, uniKey := range strings.Split(req.UniKeys, ",") {
+		uniKeyMap[uniKey] = true
 	}
+	for _, item := range define.MustUniKeyList {
+		if _, exists := uniKeyMap[item]; !exists {
+			uniKeyMap[item] = true
+		}
+	}
+	for _, item := range define.ContainsUniKeyList {
+		for key, value := range item {
+			if _, parentExists := uniKeyMap[key]; parentExists {
+				if _, exists := uniKeyMap[value]; !exists {
+					uniKeyMap[value] = true
+				}
+			}
+		}
+	}
+
 	m := msql.Model(define.TableRole, define.Postgres)
 	// save ..
 	roleId := cast.ToString(req.Id)
 	if req.Id > 0 {
-		if req.Id <= casbin.Root {
-			common.FmtError(c, `root_user`)
+		role, err := msql.Model(define.TableRole, define.Postgres).Where(`id`, cast.ToString(req.Id)).Find()
+		if err != nil {
+			common.FmtError(c, `sys_err`)
 			return
+		}
+		if len(role) == 0 {
+			common.FmtError(c, `no_data`)
+			return
+		}
+		if cast.ToInt(role[`role_type`]) > 0 && (len(req.Name) > 0 || req.RoleType > 0 || len(req.UniKeys) > 0) {
+			common.FmtError(c, `no_permission`)
+			return
+		}
+		data := msql.Datas{
+			"operate_id":   user["user_id"],
+			"operate_name": user["user_name"],
+			"mark":         req.Mark,
+			"update_time":  time.Now().Unix(),
 		}
 		if _, err = m.Where("id", roleId).Update(data); err != nil {
 			logs.Error("SaveRole:%+v,err:%s", data, err)
 			common.FmtError(c, `role_save_err`, err.Error())
 			return
 		}
-		_, err = casbin.Handler.DelRoleRules(roleId)
+		if len(req.UniKeys) > 0 {
+			_, err = casbin.Handler.DelRoleRules(roleId)
+		}
 	} else {
-		data["create_time"] = time.Now().Unix()
-		data["create_name"] = user["user_name"]
-		data["parent_id"] = GetAdminUserId(c)
+		if len(req.Name) == 0 {
+			common.FmtError(c, `param_lack`)
+			return
+		}
+
+		data := msql.Datas{
+			"operate_id":   user["user_id"],
+			"operate_name": user["user_name"],
+			"name":         req.Name,
+			"mark":         req.Mark,
+			"update_time":  time.Now().Unix(),
+			"create_time":  time.Now().Unix(),
+			"create_name":  user["user_name"],
+			"parent_id":    GetAdminUserId(c),
+		}
 		insertId, err = m.Insert(data, "id")
 		roleId = cast.ToString(insertId)
 	}
@@ -577,17 +777,14 @@ func SaveRole(c *gin.Context) {
 	}
 	rolePermissions := make([][]string, 0)
 	rolePermissionsReq := make(map[string]bool)
-	if len(req.UniKeys) > 0 {
-		uniKeys := strings.Split(req.UniKeys, ",")
-		for _, item := range uniKeys {
-			rolePermissionsReq[item] = true
-			rolePermissions = append(rolePermissions, []string{roleId, item, "GET"})
-		}
-		_, err = casbin.Handler.AddPolicies(rolePermissions)
-		if err != nil {
-			common.FmtError(c, `role_save_err`)
-			return
-		}
+	for item, _ := range uniKeyMap {
+		rolePermissionsReq[item] = true
+		rolePermissions = append(rolePermissions, []string{roleId, item, "GET"})
+	}
+	_, err = casbin.Handler.AddPolicies(rolePermissions)
+	if err != nil {
+		common.FmtError(c, `role_save_err`)
+		return
 	}
 	common.FmtOk(c, insertId)
 }
@@ -617,6 +814,10 @@ func DelRole(c *gin.Context) {
 	}
 	if len(roleInfo) <= 0 {
 		common.FmtOk(c, "ok")
+		return
+	}
+	if cast.ToInt(roleInfo[`role_type`]) > 0 {
+		common.FmtError(c, `role_del_err`)
 		return
 	}
 	users, err := casbin.Handler.GetUsersForRole(roleInfo["id"])

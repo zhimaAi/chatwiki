@@ -21,9 +21,9 @@ const (
 )
 
 const (
-	DefaultRoleIdRoot  = 1
-	DefaultRoleIdAdmin = 2
-	DefaultRoleIdUser  = 3
+	RoleTypeRoot  = 1
+	RoleTypeAdmin = 2
+	RoleTypeUser  = 3
 )
 
 const (

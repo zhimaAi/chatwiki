@@ -20,16 +20,42 @@ import (
 )
 
 func GetLibraryList(c *gin.Context) {
-	var userId int
-	if userId = GetAdminUserId(c); userId == 0 {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
 	m := msql.Model(`chat_ai_library`, define.Postgres).
-		Where(`admin_user_id`, cast.ToString(userId))
+		Where(`admin_user_id`, cast.ToString(adminUserId))
 	libraryName := strings.TrimSpace(c.Query(`library_name`))
 	if len(libraryName) > 0 {
 		m.Where(`library_name`, `like`, libraryName)
 	}
+
+	userId := GetLoginUserId(c)
+	if userId <= 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+	userInfo, err := msql.Model(define.TableUser, define.Postgres).
+		Alias(`u`).
+		Join(`role r`, `u.user_roles::integer=r.id`, `left`).
+		Where(`u.id`, cast.ToString(userId)).
+		Field(`u.*,r.role_type`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(userInfo) == 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot, define.RoleTypeAdmin}) {
+		managedRobotIdList := GetUserManagedData(userId, `managed_library_list`)
+		m.Where(`id`, `in`, strings.Join(managedRobotIdList, `,`))
+	}
+
 	list, err := m.Field(`id,library_name,library_intro`).Order(`id desc`).Select()
 	if err != nil {
 		logs.Error(err.Error())
@@ -46,7 +72,7 @@ func GetLibraryList(c *gin.Context) {
 		libraryIds = append(libraryIds, params[`id`])
 		params[`file_total`], params[`file_size`] = `0`, `0`
 	}
-	stats, err := msql.Model(`chat_ai_library_file`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).
+	stats, err := msql.Model(`chat_ai_library_file`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`library_id`, `in`, strings.Join(libraryIds, `,`)).Group(`library_id`).
 		ColumnMap(`COUNT(1) as file_total,SUM(file_size) as file_size`, `library_id`)
 	if err != nil {
@@ -168,6 +194,8 @@ func CreateLibrary(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
+	_ = AddUserMangedData(getLoginUserId(c), `managed_library_list`, libraryId)
+
 	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`id`: libraryId, `file_ids`: fileIds}, nil))
 }
 

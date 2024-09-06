@@ -7,6 +7,7 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/initialize"
+	"chatwiki/internal/pkg/casbin"
 	"chatwiki/internal/pkg/lib_web"
 	"database/sql"
 	"embed"
@@ -104,6 +105,8 @@ func PostgresTable() {
 		CreateDefaultRole(userId)
 		CreateDefaultBaaiModel(userId)
 	}
+	InitRoleRootPermissions()
+	InitRoleUserPermissions()
 }
 
 func CreateDefaultUser() (int64, error) {
@@ -167,5 +170,65 @@ func CreateDefaultBaaiModel(userId int64) {
 	})
 	if err != nil {
 		logs.Error("baai model create err:%s", err.Error())
+	}
+}
+
+func InitRoleRootPermissions() {
+	roles, err := msql.Model(define.TableRole, define.Postgres).
+		Where(`role_type`, `in`, fmt.Sprintf(`%d,%d`, define.RoleTypeRoot, define.RoleTypeAdmin)).
+		Field(`id,name,role_type`).
+		Select()
+	if err != nil {
+		panic(err.Error())
+	}
+
+	for _, role := range roles {
+		// reset role name
+		if cast.ToInt(role[`role_type`]) == define.RoleTypeRoot && role[`name`] != define.DefaultRoleRoot {
+			_, err = msql.Model(define.TableRole, define.Postgres).Where(`id`, role[`id`]).Update(msql.Datas{`name`: define.DefaultRoleRoot})
+			if err != nil {
+				panic(err.Error())
+			}
+		}
+		if cast.ToInt(role[`role_type`]) == define.RoleTypeAdmin && role[`name`] != define.DefaultRoleAdmin {
+			_, err = msql.Model(define.TableRole, define.Postgres).Where(`id`, role[`id`]).Update(msql.Datas{`name`: define.DefaultRoleAdmin})
+			if err != nil {
+				panic(err.Error())
+			}
+		}
+
+		// reset role permissions
+		_, err = casbin.Handler.DelRoleRules(role[`id`])
+		for _, item := range define.AllUniKeyList {
+			_, err := casbin.Handler.AddPolicies([][]string{{role[`id`], item, "GET"}})
+			if err != nil {
+				panic(err.Error())
+			}
+		}
+	}
+}
+
+func InitRoleUserPermissions() {
+	roleInfo, err := msql.Model(define.TableRole, define.Postgres).Where(`role_type`, cast.ToString(define.RoleTypeUser)).Field(`id,name`).Find()
+	if err != nil {
+		panic(err.Error())
+	}
+	if len(roleInfo) == 0 {
+		panic(`no user role`)
+	}
+	if roleInfo[`name`] != define.DefaultRoleUser {
+		_, err = msql.Model(define.TableRole, define.Postgres).Where(`id`, roleInfo[`id`]).Update(msql.Datas{`name`: define.DefaultRoleUser})
+		if err != nil {
+			panic(err.Error())
+		}
+	}
+	rolePermissions := make([][]string, 0)
+	_, err = casbin.Handler.DelRoleRules(roleInfo[`id`])
+	for _, item := range define.UserUniKeyList {
+		rolePermissions = append(rolePermissions, []string{roleInfo[`id`], item, "GET"})
+		_, err := casbin.Handler.AddPolicies([][]string{{roleInfo[`id`], item, "GET"}})
+		if err != nil {
+			panic(err.Error())
+		}
 	}
 }

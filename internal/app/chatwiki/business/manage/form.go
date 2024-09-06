@@ -27,19 +27,45 @@ import (
 )
 
 func GetFormList(c *gin.Context) {
-	var userId int
-	if userId = GetAdminUserId(c); userId == 0 {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	list, err := msql.Model(`form`, define.Postgres).
+	m := msql.Model(`form`, define.Postgres).
 		Alias(`f`).
 		Join(`form_entry e`, `f.id = e.form_id and e.delete_time = 0`, `left`).
-		Where(`f.admin_user_id`, cast.ToString(userId)).
+		Where(`f.admin_user_id`, cast.ToString(adminUserId)).
 		Where(`f.delete_time`, `0`).
 		Order(`id desc`).
 		Field(`f.*,count(e) as entry_count`).
-		Group(`f.id`).
-		Select()
+		Group(`f.id`)
+
+	userId := GetLoginUserId(c)
+	if userId <= 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+	userInfo, err := msql.Model(define.TableUser, define.Postgres).
+		Alias(`u`).
+		Join(`role r`, `u.user_roles::integer=r.id`, `left`).
+		Where(`u.id`, cast.ToString(userId)).
+		Field(`u.*,r.role_type`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(userInfo) == 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot, define.RoleTypeAdmin}) {
+		managedFormIdList := GetUserManagedData(userId, `managed_form_list`)
+		m.Where(`f.id`, `in`, strings.Join(managedFormIdList, `,`))
+	}
+
+	list, err := m.Select()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -49,8 +75,8 @@ func GetFormList(c *gin.Context) {
 }
 
 func GetFormInfo(c *gin.Context) {
-	var userId int
-	if userId = GetAdminUserId(c); userId == 0 {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
 	id := cast.ToInt(c.Query(`id`))
@@ -58,7 +84,36 @@ func GetFormInfo(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	form, err := common.GetFormInfo(id, userId)
+
+	userId := GetLoginUserId(c)
+	if userId <= 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+	userInfo, err := msql.Model(define.TableUser, define.Postgres).
+		Alias(`u`).
+		Join(`role r`, `u.user_roles::integer=r.id`, `left`).
+		Where(`u.id`, cast.ToString(userId)).
+		Field(`u.*,r.role_type`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(userInfo) == 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot, define.RoleTypeAdmin}) {
+		managedFormIdList := GetUserManagedData(userId, `managed_form_list`)
+		if !tool.InArrayString(cast.ToString(id), managedFormIdList) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+			return
+		}
+	}
+
+	form, err := common.GetFormInfo(id, adminUserId)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -123,6 +178,7 @@ func SaveForm(c *gin.Context) {
 		}
 		data[`create_time`] = tool.Time2Int()
 		id, err = m.Insert(data, `id`)
+		_ = AddUserMangedData(getLoginUserId(c), `managed_form_list`, id)
 	}
 	if err != nil {
 		logs.Error(err.Error())

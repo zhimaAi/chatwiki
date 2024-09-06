@@ -35,6 +35,7 @@ export const usePermissionStore = defineStore('permission', {
       menuList: [],
       role_permission: [],
       user_roles: null,
+      role_type: null,
       menus: [],
     }
   },
@@ -59,6 +60,7 @@ export const usePermissionStore = defineStore('permission', {
     setRolePermission(data) {
       this.role_permission = data.role_permission || [];
       this.user_roles = data.user_roles;
+      this.role_type = data.role_type;
       this.menus = data.menu || [];
     },
     async checkPermission() {

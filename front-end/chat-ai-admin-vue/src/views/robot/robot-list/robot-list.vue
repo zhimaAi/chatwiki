@@ -184,7 +184,7 @@
     </div>
 
     <div class="list-box">
-      <div class="list-item-wrapper">
+      <div class="list-item-wrapper" v-if="robotCreate">
         <div class="list-item add-robot" @click="toAddRobot">
           <PlusCircleOutlined class="add-icon" />
           <span class="add-text">新增机器人</span>
@@ -238,11 +238,16 @@
 
 <script setup>
 import { getRobotList, deleteRobot } from '@/api/robot/index.js'
-import { ref, onMounted, createVNode } from 'vue'
+import { ref, onMounted, createVNode, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { PlusCircleOutlined, MoreOutlined, ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import { Modal, message } from 'ant-design-vue'
 import AddRobotAlert from './components/add-robot-alert.vue'
+import { usePermissionStore } from '@/stores/modules/permission'
+
+const permissionStore = usePermissionStore()
+let { role_permission } = permissionStore
+const robotCreate = computed(() => role_permission.includes('RobotCreate'))
 
 const router = useRouter()
 
