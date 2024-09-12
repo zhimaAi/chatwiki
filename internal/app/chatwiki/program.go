@@ -97,12 +97,12 @@ func PostgresTable() {
 		panic(err)
 	}
 
+	InitDefaultRole()
 	userId, err := CreateDefaultUser()
 	if err != nil {
 		logs.Error(err.Error())
 	}
 	if userId != 0 {
-		CreateDefaultRole(userId)
 		CreateDefaultBaaiModel(userId)
 	}
 	InitRoleRootPermissions()
@@ -125,7 +125,7 @@ func CreateDefaultUser() (int64, error) {
 		`salt`:        salt,
 		`password`:    tool.MD5(define.DefaultPasswd + salt),
 		`user_type`:   define.UserTypeAdmin,
-		`user_roles`:  define.UserTypeAdmin,
+		`user_roles`:  define.DefaultUserRoleId,
 		`create_time`: tool.Time2Int(),
 		`update_time`: tool.Time2Int(),
 	}, "id")
@@ -153,6 +153,37 @@ func CreateDefaultRole(userId int64) {
 		}
 	}
 }
+
+func InitDefaultRole() {
+	rolesMap := map[int]string{
+		define.RoleTypeRoot:  define.DefaultRoleRoot,
+		define.RoleTypeAdmin: define.DefaultRoleAdmin,
+		define.RoleTypeUser:  define.DefaultRoleUser,
+	}
+	for roleType, roleName := range rolesMap {
+		row, err := msql.Model(define.TableRole, define.Postgres).Where(`role_type`, cast.ToString(roleType)).Find()
+		if err != nil {
+			panic(err.Error())
+		}
+		if len(row) > 0 {
+			if roleType == define.RoleTypeRoot {
+				define.DefaultUserRoleId = cast.ToInt(row[`id`])
+			}
+			continue
+		}
+		id, err := msql.Model(define.TableRole, define.Postgres).Insert(msql.Datas{
+			`name`:        roleName,
+			`role_type`:   roleType,
+			`create_name`: "系统",
+			`create_time`: tool.Time2Int(),
+			`update_time`: tool.Time2Int(),
+		}, `id`)
+		if roleType == define.RoleTypeRoot {
+			define.DefaultUserRoleId = cast.ToInt(id)
+		}
+	}
+}
+
 func CreateDefaultBaaiModel(userId int64) {
 	modelInfo, ok := common.GetModelInfoByDefine(common.ModelBaai)
 	if !ok {
@@ -183,6 +214,7 @@ func InitRoleRootPermissions() {
 	}
 
 	for _, role := range roles {
+
 		// reset role name
 		if cast.ToInt(role[`role_type`]) == define.RoleTypeRoot && role[`name`] != define.DefaultRoleRoot {
 			_, err = msql.Model(define.TableRole, define.Postgres).Where(`id`, role[`id`]).Update(msql.Datas{`name`: define.DefaultRoleRoot})

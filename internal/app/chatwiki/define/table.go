@@ -79,6 +79,8 @@ var SeparatorsList = []map[string]any{
 	{`no`: 13, `name`: `tab`, `code`: "\t"},
 }
 
+var DefaultUserRoleId int
+
 const (
 	DefaultUser   = `admin`
 	DefaultPasswd = `chatwiki.com@123`

@@ -40,7 +40,7 @@ func GetFormList(c *gin.Context) {
 		Field(`f.*,count(e) as entry_count`).
 		Group(`f.id`)
 
-	userId := GetLoginUserId(c)
+	userId := getLoginUserId(c)
 	if userId <= 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
@@ -85,7 +85,7 @@ func GetFormInfo(c *gin.Context) {
 		return
 	}
 
-	userId := GetLoginUserId(c)
+	userId := getLoginUserId(c)
 	if userId <= 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return

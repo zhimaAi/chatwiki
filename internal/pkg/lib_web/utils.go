@@ -4,6 +4,7 @@ package lib_web
 
 import (
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zhimaAi/go_tools/curl"
@@ -23,7 +24,7 @@ func GetPublicIp() string {
 		IP string `json:"ip"`
 	}
 	url := `https://api.ipify.org/?format=json`
-	err := curl.Get(url).ToJSON(&ipInfo)
+	err := curl.Get(url).SetTimeout(time.Second, time.Second).ToJSON(&ipInfo)
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -32,6 +33,7 @@ func GetPublicIp() string {
 	}
 	return ipInfo.IP
 }
+
 func GetClientIP(c *gin.Context) string {
 	// get from X-Forwarded-For
 	xForwardedFor := c.Request.Header.Get("X-Forwarded-For")
