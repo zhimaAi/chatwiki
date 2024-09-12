@@ -30,7 +30,7 @@ func GetRobotList(c *gin.Context) {
 		Field(`id,robot_name,robot_intro,robot_avatar,robot_key`).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id desc`)
 
-	userId := GetLoginUserId(c)
+	userId := getLoginUserId(c)
 	if userId <= 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return

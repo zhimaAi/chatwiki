@@ -22,7 +22,7 @@ import (
 )
 
 func CheckPermission(c *gin.Context) {
-	user := GetLoginUserId(c)
+	user := getLoginUserId(c)
 	if user <= 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
@@ -129,6 +129,10 @@ func SaveMenu(c *gin.Context) {
 		return
 	}
 	userInfo := GetLoginUserInfo(c)
+	if len(userInfo) == 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
 	m := msql.Model(define.TableMenu, define.Postgres)
 	var insertId = int64(req.Id)
 	if req.Id > 0 {

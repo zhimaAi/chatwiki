@@ -45,6 +45,7 @@ func ClientSideGetRobotList(c *gin.Context) {
 	if common.ClientSideNeedLogin(adminUserId) {
 		user := manage.GetLoginUserInfo(c)
 		if len(user) == 0 {
+			common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 			return
 		}
 		//check the ownership of the login user

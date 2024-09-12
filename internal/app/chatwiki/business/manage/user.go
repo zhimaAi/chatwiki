@@ -93,19 +93,6 @@ func GetAdminUserId(c *gin.Context) int {
 	return cast.ToInt(data["parent_id"])
 }
 
-func GetLoginUserId(c *gin.Context) int {
-	data, err := common.ParseToken(c.GetHeader(`token`))
-	if err != nil {
-		c.String(http.StatusUnauthorized, lib_web.FmtJson(nil, err))
-		return 0
-	}
-	userId := cast.ToInt(data[`user_id`])
-	if userId <= 0 {
-		c.String(http.StatusUnauthorized, lib_web.FmtJson(nil, errors.New(`system error`)))
-		return userId
-	}
-	return userId
-}
 func getLoginUserId(c *gin.Context) int {
 	data, err := common.ParseToken(c.GetHeader(`token`))
 	if err != nil {
@@ -121,7 +108,6 @@ func getLoginUserId(c *gin.Context) int {
 func GetLoginUserInfo(c *gin.Context) jwt.MapClaims {
 	data, err := common.ParseToken(c.GetHeader(`token`))
 	if err != nil {
-		c.String(http.StatusUnauthorized, lib_web.FmtJson(nil, err))
 		return nil
 	}
 	return data
@@ -160,7 +146,7 @@ func SaveProfile(c *gin.Context) {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
-	user := GetLoginUserId(c)
+	user := getLoginUserId(c)
 	if req.Id != user {
 		common.FmtError(c, `user_not_own`)
 		return

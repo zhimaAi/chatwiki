@@ -31,7 +31,7 @@ func GetLibraryList(c *gin.Context) {
 		m.Where(`library_name`, `like`, libraryName)
 	}
 
-	userId := GetLoginUserId(c)
+	userId := getLoginUserId(c)
 	if userId <= 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return

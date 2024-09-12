@@ -109,6 +109,14 @@ services:
     networks:
       - chatwiki_network
     restart: always
+    depends_on:
+      - chatwiki_redis_service
+      - chatwiki_crawler
+      - chatwiki_converter
+      - chatwiki_postgres_service
+      - chatwiki_go_nsq_service
+      - chatwiki_client_side_build_win
+      - chatwiki_websocket
     environment:
       TZ: ${TIMEZONE}
       HTTP_PROXY: ${PROXY:-}
@@ -133,6 +141,8 @@ services:
     working_dir: /var/www/chatwiki
     command: ./build/client_side_build --IsDev=false
     restart: always
+    depends_on:
+      - chatwiki_go_nsq_service
     environment:
       TZ: ${TIMEZONE}
 
@@ -148,6 +158,8 @@ services:
     working_dir: /var/www/chatwiki
     command: ./build/websocket --IsDev=false
     restart: always
+    depends_on:
+      - chatwiki_go_nsq_service
     environment:
       TZ: ${TIMEZONE}
 

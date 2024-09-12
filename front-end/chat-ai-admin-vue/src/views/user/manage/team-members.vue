@@ -126,11 +126,15 @@
 
         <a-table-column title="操作" data-index="action" width="230px">
           <template #default="{ record }">
-            <a-flex :gap="16">
+            <a-flex :gap="16" v-if="record.role_type == '1'">
+              <span class="disabled">编辑</span>
+              <span class="disabled">重置密码</span>
+              <span class="disabled" >删除</span>
+            </a-flex>
+            <a-flex :gap="16" v-else>
               <a @click="handleEdit(record)">编辑</a>
               <a @click="handleReSetPassword(record)">重置密码</a>
-              <span v-if="record.id == '1' || record.id == user_id" class="disabled" >删除</span>
-              <a v-else @click="handleDelete(record)">删除</a>
+              <a @click="handleDelete(record)">删除</a>
             </a-flex>
           </template>
         </a-table-column>
