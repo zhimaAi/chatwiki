@@ -76,7 +76,7 @@ func ParseMessageId(id string) string {
 		return ""
 	}
 	message := strings.SplitN(data, "_", 3)
-	if len(message[1]) >= 3 {
+	if len(message) >= 3 {
 		return cast.ToString(message[1])
 	}
 	return ""
