@@ -108,6 +108,10 @@ const formState = reactive(robotInfo.value)
 
 const updateRobotInfo = (val) => {
   let newState = JSON.parse(JSON.stringify(val))
+  // 对机器人头像特殊处理
+  if (val.robot_avatar) {
+    newState.robot_avatar = new File([val.robot_avatar], val.robot_avatar.name);
+  }
   Object.assign(formState, newState)
 
   saveForm()
@@ -120,7 +124,16 @@ provide('robotInfo', {
 })
 
 const saveForm = () => {
+  // 对机器人头像特殊处理
+  let robot_avatar
+  if (formState.robot_avatar) {
+    robot_avatar = new File([formState.robot_avatar], formState.robot_avatar.name);
+  }
   let formData = JSON.parse(JSON.stringify(toRaw(formState)))
+  // 有机器人头像就赋值
+  if (robot_avatar) {
+    formData.robot_avatar = robot_avatar
+  }
   let welcomes = formData.welcomes
 
   welcomes.question = welcomes.question.map((item) => {

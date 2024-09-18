@@ -30,7 +30,7 @@ require (
 	github.com/tmc/langchaingo v0.1.12
 	github.com/xuri/excelize/v2 v2.8.1
 	github.com/zhimaAi/go_tools v0.0.0-20240813071401-727b766c504f
-	github.com/zhimaAi/llm_adaptor v0.0.0-20240822070951-0a6614eaff3c
+	github.com/zhimaAi/llm_adaptor v0.0.0-20240914100856-ce9cfa61f447
 	go.uber.org/zap v1.27.0
 	gorm.io/driver/postgres v1.5.7
 	gorm.io/gorm v1.25.8
