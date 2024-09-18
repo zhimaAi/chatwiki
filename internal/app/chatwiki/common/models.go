@@ -502,7 +502,7 @@ var ModelList = []ModelInfo{
 		IsOffline:     false,
 		SupportList:   []string{Llm, TextEmbedding},
 		SupportedType: []string{Llm, TextEmbedding},
-		ConfigParams:  []string{`api_key`, `secret_key`, `region`},
+		ConfigParams:  []string{`api_key`, `secret_key`},
 		ConfigList:    nil,
 		ApiVersions:   []string{},
 		LlmModelList: []string{

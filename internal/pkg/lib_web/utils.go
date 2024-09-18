@@ -23,7 +23,7 @@ func GetPublicIp() string {
 	var ipInfo struct {
 		IP string `json:"ip"`
 	}
-	url := `https://api.ipify.org/?format=json`
+	url := `https://api64.ipify.org/?format=json`
 	err := curl.Get(url).SetTimeout(time.Second, time.Second).ToJSON(&ipInfo)
 	if err != nil {
 		logs.Error(err.Error())
