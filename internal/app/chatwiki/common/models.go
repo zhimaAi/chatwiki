@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"strings"
 	"time"
 
 	"chatwiki/internal/app/chatwiki/define"
@@ -814,7 +815,7 @@ func (h *ModelCallHandler) RequestChatStream(
 		}
 		totalResponse.Result += response.Result
 		content += response.Result
-		chanStream <- sse.Event{Event: `sending`, Data: response.Result}
+		chanStream <- sse.Event{Event: `sending`, Data: strings.ReplaceAll(response.Result, "\r", "")}
 	}
 
 	if h.CheckFunctionArguments(functionToolCall, functionTools) && len(totalResponse.Result) == 0 { // only function call response
