@@ -78,6 +78,9 @@ func ChatMessages(c *gin.Context) {
 		}()
 		c.Stream(func(_ io.Writer) bool {
 			if event, ok := <-chanStream; ok {
+				if data, ok := event.Data.(string); ok {
+					event.Data = strings.ReplaceAll(data, "\r", ``)
+				}
 				c.SSEvent(event.Event, event.Data)
 				return true
 			}
