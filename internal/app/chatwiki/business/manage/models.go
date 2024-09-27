@@ -106,7 +106,7 @@ func AddModelConfig(c *gin.Context) {
 	err := configurationTest(config, modelInfo)
 	if err != nil {
 		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `model_configuration_test_err`))))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), err.Error()))))
 		return
 	}
 
@@ -235,7 +235,7 @@ func EditModelConfig(c *gin.Context) {
 	err = configurationTest(info, modelInfo)
 	if err != nil {
 		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `model_configuration_test_err`))))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), err.Error()))))
 		return
 	}
 
