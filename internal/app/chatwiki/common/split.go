@@ -54,7 +54,7 @@ func GetLibFileSplit(userId, fileId int, splitParams define.SplitParams, lang st
 	} else if cast.ToInt(info[`is_table_file`]) == define.FileIsTable && splitParams.IsQaDoc != define.DocTypeQa {
 		list, wordTotal, err = ReadTab(info[`file_url`], info[`file_ext`])
 	} else {
-		if len(info[`html_url`]) == 0 { //compatible with old data
+		if len(info[`html_url`]) == 0 || !LinkExists(info[`html_url`]) { //compatible with old data
 			list, wordTotal, err = ConvertAndReadHtmlContent(cast.ToInt(info[`id`]), info[`file_url`], userId)
 		} else {
 			list, wordTotal, err = ReadHtmlContent(info[`html_url`], userId)
@@ -134,22 +134,6 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		if qaIndexType != define.QAIndexTypeQuestionAndAnswer && qaIndexType != define.QAIndexTypeQuestion {
 			return errors.New(i18n.Show(lang, `param_invalid`, `qa_index_type`))
 		}
-	}
-
-	// no update
-	if cast.ToInt(info[`status`]) == define.FileStatusLearned &&
-		cast.ToInt(info[`word_total`]) == wordTotal &&
-		cast.ToBool(info[`enable_extract_image`]) == splitParams.EnableExtractImage &&
-		cast.ToInt(info[`is_qa_doc`]) == splitParams.IsQaDoc &&
-		cast.ToInt(info[`is_diy_split`]) == splitParams.IsDiySplit &&
-		info[`separators_no`] == splitParams.SeparatorsNo &&
-		cast.ToInt(info[`chunk_size`]) == splitParams.ChunkSize &&
-		cast.ToInt(info[`chunk_overlap`]) == splitParams.ChunkOverlap &&
-		info[`questionLable`] == splitParams.QuestionLable &&
-		info[`answer_lable`] == splitParams.AnswerLable &&
-		info[`question_column`] == splitParams.QuestionColumn &&
-		info[`answer_column`] == splitParams.AnswerColumn {
-		return nil
 	}
 
 	//add lock dispose
@@ -364,6 +348,7 @@ func ConvertAndReadHtmlContent(fileId int, fileUrl string, userId int) ([]define
 	if err != nil {
 		return nil, 0, err
 	}
+	lib_redis.DelCacheData(define.Redis, &LibFileCacheBuildHandler{FileId: fileId})
 
 	return ReadHtmlContent(htmlUrl, userId)
 }

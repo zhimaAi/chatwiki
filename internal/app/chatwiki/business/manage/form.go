@@ -260,7 +260,7 @@ func SaveFormField(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	if !matched || len(name) > 64 {
+	if !matched || len(name) > 64 || name == `id` {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `name`))))
 		return
 	}

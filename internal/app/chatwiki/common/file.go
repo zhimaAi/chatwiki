@@ -4,6 +4,7 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"os"
 
 	"github.com/zhimaAi/go_tools/tool"
 )
@@ -20,4 +21,12 @@ func GetFileByLink(link string) string {
 		return define.UploadDir + link[len(define.LocalUploadPrefix):]
 	}
 	return ``
+}
+
+func LinkExists(link string) bool {
+	_, err := os.Stat(GetFileByLink(link))
+	if os.IsNotExist(err) {
+		return false
+	}
+	return err == nil
 }

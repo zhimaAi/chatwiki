@@ -105,7 +105,6 @@ func AddModelConfig(c *gin.Context) {
 	}
 	err := configurationTest(config, modelInfo)
 	if err != nil {
-		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
@@ -234,7 +233,6 @@ func EditModelConfig(c *gin.Context) {
 
 	err = configurationTest(info, modelInfo)
 	if err != nil {
-		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
