@@ -12,12 +12,34 @@
     overflow-y: auto;
   }
 }
+.alert-content-box{
+  padding: 16px 24px 0 24px;
+  .ant-alert{
+    align-items: baseline;
+  }
+  .title{
+    font-size: 15px;
+    font-weight: 600;
+    color: #333;
+  }
+}
 </style>
 
 <template>
   <div class="user-model-page">
     <PageTabs v-model:value="activeTab" @change="onChangeTab" />
     <div class="list-wrapper">
+      <div class="alert-content-box" v-if="activeTab == 0">
+        <a-alert show-icon>
+          <template #message>
+            <div class="title">使用说明</div>
+            <div>1、模型主要分为嵌入模型（TEXT EMBEDDING）和大模型（LLM），嵌入模型用于将上传知识库的文本内容进行向量化便于后续检索，大模型用于将检索到的相关知识进行理解后返回答案。</div>
+            <div>2、配置模型时尽量选择同时支持LLM和TEXT EMBEDDING的模型，否则要配置多个模型。</div>
+            <div>3、国内模型厂商一般都需要认证后才可使用，所以在配置模型前，确保在模型服务厂商那里已认证，否则配置模型时会提示配置参数错误。</div>
+          </template>
+        </a-alert>
+      </div>
+
       <ModelList
         :list="addedModelList"
         :type="1"

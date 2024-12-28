@@ -16,9 +16,9 @@ const external_config_h5_default = {
 }
 // 嵌入网站配置
 const external_config_pc_default = {
-  headTitle: 'WikiChat.com',
+  headTitle: '',
   headSubTitle: 'Based on LLM, free and open-source.',
-  headImage: DEFAULT_ROBOT_AVATAR,
+  headImage: '',
   lang: 'zh-CN',
   pageStyle: {
     headBackgroundColor: 'linear-gradient,to right,#2435E7,#01A0FB'
@@ -153,6 +153,10 @@ export const useRobotStore = defineStore('robot', () => {
     if (data.external_config_pc !== '') {
       Object.assign(external_config_pc, JSON.parse(data.external_config_pc))
     } else {
+      console.log(robotInfo.robot_avatar,'===')
+      external_config_pc_default.headTitle = robotInfo.robot_name
+      external_config_pc_default.headImage = robotInfo.robot_avatar_url
+
       Object.assign(external_config_pc, JSON.parse(JSON.stringify(external_config_pc_default)))
     }
   }

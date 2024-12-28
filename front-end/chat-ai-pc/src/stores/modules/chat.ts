@@ -5,7 +5,7 @@ import { editPrompt } from '@/api/robot/index'
 import { getUuid, getOpenid } from '@/utils/index'
 import { useEventBus } from '@/hooks/event/useEventBus'
 import { useIM } from '@/hooks/event/useIM'
-import { DEFAULT_USER_AVATAR, DEFAULT_HEAD_IMAGE } from '@/constants/index'
+import { DEFAULT_USER_AVATAR } from '@/constants/index'
 
 export interface Message {
   dialogue_id: number
@@ -105,9 +105,9 @@ export const useChatStore = defineStore('chat', () => {
   })
   // 样式配置
   const externalConfigPC = reactive<ExternalConfigPc>({
-    headTitle: 'WikiChat.com',
+    headTitle: '',
     headSubTitle: 'Based on LLM, free and open-source.',
-    headImage: DEFAULT_HEAD_IMAGE,
+    headImage: '',
     lang: 'zh-CN',
     pageStyle: {
       headBackgroundColor: 'linear-gradient,to right,#2435E7,#01A0FB',
@@ -177,6 +177,9 @@ export const useChatStore = defineStore('chat', () => {
 
       if (robotInfo.external_config_pc) {
         Object.assign(externalConfigPC, JSON.parse(robotInfo.external_config_pc))
+      }else{
+        externalConfigPC.headTitle = robotInfo.robot_name
+        externalConfigPC.headImage = robotInfo.robot_avatar
       }
 
       // 插入欢迎语

@@ -202,7 +202,7 @@
         <div class="form-item-label">
           <span>相似度阈值&nbsp;</span>
           <a-tooltip>
-            <template #title>召回时，只会召回相似度大于阈值的文本分段。</template>
+            <template #title>召回时，只会召回相似度大于阈值的文本分段。取值范围：0~1，阈值越大回答的越准确，建议不超过0.9</template>
             <QuestionCircleOutlined class="question-icon" />
           </a-tooltip>
         </div>
@@ -301,7 +301,7 @@ const formState = reactive({
   rerank_model_config_id: undefined,
   search_type: 1,
   question: '',
-  similarity: 0.5,
+  similarity: 0.6,
   size: 5,
   id: route.query.id
 })

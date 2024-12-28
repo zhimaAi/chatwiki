@@ -8,15 +8,34 @@
     height: 26px;
     margin-bottom: 16px;
   }
+  .model-logo-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
 }
 </style>
 
 <template>
-  <a-modal class="add-model-alert" width="650px" v-model:open="show" :title="title" :confirmLoading="confirmLoading"
-    @ok="handleOk" @cancel="handleCancel" :maskClosable="false">
+  <a-modal
+    class="add-model-alert"
+    width="650px"
+    v-model:open="show"
+    :title="title"
+    :confirmLoading="confirmLoading"
+    @ok="handleOk"
+    @cancel="handleCancel"
+    :maskClosable="false"
+  >
     <div class="form-wrapper">
       <div class="model-logo-box">
         <img class="model-logo" :src="modelConfig.model_icon_url" alt="" />
+        <a
+          v-if="modelConfig.model_define == 'doubao'"
+          href="https://www.yuque.com/zhimaxiaoshiwangluo/pggco1/hmwl4gveq4xwa4uw?singleDoc# "
+          target="_blank"
+          >查看使用说明></a
+        >
       </div>
       <div class="form-box">
         <a-form layout="horizontal" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
@@ -24,13 +43,17 @@
             <a-form-item v-bind="validateInfos[item.key]" v-if="!item.hidden">
               <template #label>
                 <div class="form-item-label">
-                  <span>{{ t('views.user.model.' + item.key) }}</span>
+                  <span v-if="modelConfig.model_define == 'doubao' && item.key == 'deployment_name'"
+                    >接入点ID</span
+                  >
+                  <span v-else>{{ t('views.user.model.' + item.key) }}</span>
                 </div>
               </template>
               <template v-if="item.componentType == 'radio'">
                 <a-radio-group v-model:value="formState[item.key]" :disabled="item.disabled">
-                  <a-radio :value="val" v-for="(val, index) in item.options" :key="index"><span>{{ val
-                      }}</span></a-radio>
+                  <a-radio :value="val" v-for="(val, index) in item.options" :key="index"
+                    ><span>{{ val }}</span></a-radio
+                  >
                 </a-radio-group>
               </template>
 
@@ -144,11 +167,28 @@ const open = (data, record) => {
       formRulesTemp[key] = field.rules
     }
   })
+  if (data.model_define == 'doubao') {
+    // 火山模型特殊处理
+    if (!record) {
+      formStateTemp.region = 'cn-beijing'
+    }
+    formItemsTemp.forEach((item) => {
+      if (item.key == 'deployment_name') {
+        item.placeholder = '请输入接入点ID'
+      }
+    })
+    if (formRulesTemp.deployment_name && formRulesTemp.deployment_name.length) {
+      formRulesTemp.deployment_name[0].message = '请输入接入点ID'
+    }
+  } else {
+    if (formRulesTemp.deployment_name && formRulesTemp.deployment_name.length) {
+      formRulesTemp.deployment_name[0].message = '请输入部署名称'
+    }
+  }
 
   formRules.value = formRulesTemp
   formState.value = formStateTemp
   formItems.value = formItemsTemp
-
   show.value = true
 
   setTimeout(() => {
@@ -181,7 +221,7 @@ const confirmLoading = ref(false)
 
 const saveAddModel = () => {
   let newData = toRaw(formState.value)
-  let data = JSON.parse(JSON.stringify(newData)); // 深拷贝，不能改变原对象
+  let data = JSON.parse(JSON.stringify(newData)) // 深拷贝，不能改变原对象
 
   data.model_type = data.model_types
   data.model_define = modelConfig.model_define
@@ -211,7 +251,7 @@ const saveAddModel = () => {
 
 const saveEditModel = () => {
   let newData = toRaw(formState.value)
-  let data = JSON.parse(JSON.stringify(newData)); // 深拷贝，不能改变原对象
+  let data = JSON.parse(JSON.stringify(newData)) // 深拷贝，不能改变原对象
 
   data.model_type = data.model_types
   data.model_define = modelConfig.model_define
