@@ -3,7 +3,7 @@
   display: flex;
   flex-flow: row wrap;
   gap: 24px;
-  margin: 24px;
+  margin: 16px 24px;
 
   .model-item {
     display: flex;
