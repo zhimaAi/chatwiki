@@ -27,6 +27,21 @@ export const getSessionRecordList = (params) => {
   return request.get({ url: '/manage/getSessionRecordList', params })
 }
 
+// 创建会话记录导出任务
+export const createSessionExport = (params) => {
+  return request.get({ url: '/manage/createSessionExport', params })
+}
+
+// 获取导出任务列表
+export const getExportTaskList = (params) => {
+  return request.get({ url: '/manage/getExportTaskList', params })
+}
+
+// 导出任务下载文件
+export const downloadExportFile = (params) => {
+  return request.get({ url: '/manage/downloadExportFile', params })
+}
+
 // 获取会话来源列表
 export const getSessionChannelList = (data) => {
   return request.get({ url: '/manage/getSessionChannelList', data })

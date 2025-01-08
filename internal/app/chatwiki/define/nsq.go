@@ -13,5 +13,8 @@ const ConvertVectorChannel = `convert_vector_channel`
 const CrawlArticleTopic = `chatwiki_crawl_article_topic`
 const CrawlArticleChannel = `chatwiki_crawl_article_channel`
 
+const ExportTaskTopic = `chatwiki_export_task_topic`
+const ExportTaskChannel = `chatwiki_export_task_channel`
+
 var ConsumerHandle *mq.ConsumerHandle
 var ProducerHandle *mq.ProducerHandle

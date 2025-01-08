@@ -73,6 +73,15 @@ export default {
           }
         },
         {
+          path: '/robot/config/export-record',
+          name: 'exportRecord',
+          component: () => import('@/views/robot/robot-config/export-record/index.vue'),
+          meta: {
+            title: '导出记录',
+            isCustomPage: true
+          }
+        },
+        {
           path: '/robot/config/statistical_analysis',
           name: 'statisticalAnalysis',
           component: () => import('@/views/robot/robot-config/statistical_analysis/index.vue'),

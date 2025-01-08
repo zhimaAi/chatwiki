@@ -39,3 +39,18 @@ const (
 	SystemManage          = `SystemManage`
 	ClientSideManage      = `ClientSideManage`
 )
+
+const (
+	ExportSourceSession uint = 1 //会话记录导出
+)
+
+var ExportSourceList = []map[string]any{
+	{`source`: ExportSourceSession, `source_name`: `会话记录导出`},
+}
+
+const (
+	ExportStatusWaiting = 0
+	ExportStatusRunning = 1
+	ExportStatusSucceed = 2
+	ExportStatusError   = 3
+)

@@ -133,7 +133,19 @@ const items = ref([
     label: '统计分析',
     title: '统计分析',
     path: '/robot/config/statistical_analysis'
-  }
+  },
+  {
+    key: 'export-record',
+    id: 'export-record',
+    icon: () =>
+      h(SvgIcon, {
+        name: 'export-record',
+        class: 'menu-icon'
+      }),
+    label: '导出记录',
+    title: '导出记录',
+    path: '/robot/config/export-record'
+  },
 ])
 
 const handleChangeMenu = ({ item }) => {
