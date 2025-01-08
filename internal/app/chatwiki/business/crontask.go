@@ -5,11 +5,15 @@ package business
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"time"
+
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
-	"time"
 )
 
 func RenewCrawl() {
@@ -57,5 +61,19 @@ func DeleteFormEntry() {
 	if err != nil {
 		logs.Error(err.Error())
 		return
+	}
+}
+
+func DeleteExportFile() {
+	err := filepath.WalkDir(`static/public/export`, func(path string, d fs.DirEntry, err error) error {
+		if info, err := d.Info(); err == nil && !info.IsDir() && info.ModTime().Unix() < time.Now().Unix()-86400*7 {
+			if err = os.Remove(path); err != nil {
+				logs.Error(err.Error())
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		logs.Error(err.Error())
 	}
 }

@@ -6,12 +6,13 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_redis"
+	"sync"
+	"time"
+
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
-	"sync"
-	"time"
 )
 
 var CheckFileLearnedMutex sync.Map
@@ -273,6 +274,59 @@ func CrawlArticle(msg string, _ ...string) error {
 		logs.Error(err.Error())
 	} else if err := common.AddJobs(define.ConvertHtmlTopic, message); err != nil {
 		logs.Error(err.Error())
+	}
+	return nil
+}
+
+func ExportTask(id string, _ ...string) error {
+	logs.Debug(`nsq:%s`, id)
+	m := msql.Model(`chat_ai_export_task`, define.Postgres)
+	task, err := m.Where(`id`, id).Where(`status`, cast.ToString(define.ExportStatusWaiting)).Field(`source,params`).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+	if len(task) == 0 {
+		return nil //任务状态不对
+	}
+	_, err = m.Where(`id`, id).Where(`status`, cast.ToString(define.ExportStatusWaiting)).Update(msql.Datas{
+		`status`:      define.ExportStatusRunning,
+		`update_time`: tool.Time2Int(),
+	})
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+	var status = define.ExportStatusError
+	var fileUrl string
+	var errMsg = `unknown`
+	defer func() {
+		_, err := m.Where(`id`, id).Where(`status`, cast.ToString(define.ExportStatusRunning)).Update(msql.Datas{
+			`status`:      status,
+			`file_url`:    fileUrl,
+			`err_msg`:     errMsg,
+			`update_time`: tool.Time2Int(),
+		})
+		if err != nil {
+			logs.Error(err.Error())
+		}
+	}()
+	params := make(map[string]any)
+	if err = tool.JsonDecodeUseNumber(task[`params`], &params); err != nil {
+		errMsg = `参数解析错误:` + err.Error()
+		return nil
+	}
+	switch cast.ToUint(task[`source`]) {
+	case define.ExportSourceSession: //会话记录导出
+		fileUrl, err = common.RunSessionExport(params)
+	default:
+		errMsg = `来源类型错误:` + task[`source`]
+	}
+	if err != nil { //导出失败
+		errMsg = err.Error()
+	} else { //导出成功
+		status = define.ExportStatusSucceed
+		errMsg = `SUCCEED`
 	}
 	return nil
 }

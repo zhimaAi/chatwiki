@@ -155,10 +155,14 @@ func init() {
 	/*session API*/
 	Route[http.MethodGet][`/manage/getSessionChannelList`] = manage.GetSessionChannelList
 	Route[http.MethodGet][`/manage/getSessionRecordList`] = manage.GetSessionRecordList
+	Route[http.MethodGet][`/manage/createSessionExport`] = manage.CreateSessionExport
 	/*feedback API*/
 	Route[http.MethodGet][`/manage/feedback/stats`] = manage.StatMessageFeedback
 	Route[http.MethodGet][`/manage/feedback/list`] = manage.GetMessageFeedbackList
 	Route[http.MethodGet][`/manage/feedback/detail`] = manage.GetMessageFeedbackDetail
+	/*export API*/
+	Route[http.MethodGet][`/manage/getExportTaskList`] = manage.GetExportTaskList
+	Route[http.MethodGet][`/manage/downloadExportFile`] = manage.DownloadExportFile
 }
 
 func noAuthFuns(route map[string]lib_web.Action, path string, handlerFunc lib_web.Action) map[string]lib_web.Action {

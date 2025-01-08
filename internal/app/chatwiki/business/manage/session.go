@@ -6,7 +6,6 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
 	"fmt"
@@ -17,23 +16,16 @@ import (
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
+	"github.com/zhimaAi/go_tools/tool"
 )
-
-type SessionChannel struct {
-	AppType string `json:"app_type"`
-	AppName string `json:"app_name"`
-}
 
 func GetSessionChannelList(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
 		return
 	}
-	list := []SessionChannel{
-		{AppType: lib_define.AppYunH5, AppName: `WebAPP`},
-		{AppType: lib_define.AppYunPc, AppName: `嵌入网站`},
-		{AppType: lib_define.AppOpenApi, AppName: `开放接口`},
-	}
+	robotId := cast.ToUint(c.Query(`robot_id`))
+	list := common.GetChannelList(userId, robotId)
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 }
 
@@ -99,4 +91,23 @@ func GetSessionRecordList(c *gin.Context) {
 	}
 	data := map[string]any{`list`: list, `page`: page, `size`: size, `has_more`: len(list) == size}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
+}
+
+func CreateSessionExport(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	robotId := cast.ToUint(c.Query(`robot_id`))
+	fileName := fmt.Sprintf(`会话记录%s.xlsx`, tool.Date(`YmdHis`))
+	params := map[string]any{
+		`admin_user_id`: userId,
+		`robot_id`:      robotId,
+		`app_type`:      strings.TrimSpace(c.Query(`app_type`)),
+		`start_time`:    cast.ToInt(c.Query(`start_time`)),
+		`end_time`:      cast.ToInt(c.Query(`end_time`)),
+		`name`:          strings.TrimSpace(c.Query(`name`)),
+	}
+	id, err := common.CreateExportTask(uint(userId), robotId, define.ExportSourceSession, fileName, params)
+	c.String(http.StatusOK, lib_web.FmtJson(id, err))
 }

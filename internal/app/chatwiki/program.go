@@ -62,6 +62,7 @@ func StartConsumer() {
 	common.RunTask(define.ConvertHtmlTopic, define.ConvertHtmlChannel, 1, business.ConvertHtml)
 	common.RunTask(define.ConvertVectorTopic, define.ConvertVectorChannel, 2, business.ConvertVector)
 	common.RunTask(define.CrawlArticleTopic, define.CrawlArticleChannel, 2, business.CrawlArticle)
+	common.RunTask(define.ExportTaskTopic, define.ExportTaskChannel, 5, business.ExportTask)
 }
 
 func StartCronTasks() {
@@ -69,6 +70,7 @@ func StartCronTasks() {
 	_, _ = c.AddFunc("@every 1m", func() { logs.Debug("cron test") })
 	_, _ = c.AddFunc("@every 1m", func() { business.RenewCrawl() })
 	_, _ = c.AddFunc("@every 1h", func() { business.DeleteFormEntry() })
+	_, _ = c.AddFunc("@every 1h", func() { business.DeleteExportFile() })
 	c.Start()
 	logs.Debug("cron start")
 }

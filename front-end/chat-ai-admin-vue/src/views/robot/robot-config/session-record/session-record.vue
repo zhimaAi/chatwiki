@@ -41,6 +41,7 @@
 
       <div class="set-reset">
         <a-button @click="onReset">重置</a-button>
+        <a-button @click="onExport" :loading="btnLoading">导出</a-button>
       </div>
     </a-flex>
     <div class="list-box">
@@ -65,19 +66,33 @@
         />
       </div>
     </div>
+    <a-modal v-model:open="open" :title="null" :footer="null" :width="640">
+      <a-result
+        status="success"
+        title="导出任务创建成功"
+        sub-title="系统会在后台导出。导出数据量越大，耗时越久。您可以稍后点击导出记录查看并下载导出的文件。"
+      >
+        <template #extra>
+          <a-button style="margin-right: 16px;" @click="open = false">知道了</a-button>
+          <a-button @click="toDownloadPage" type="primary">去下载</a-button>
+        </template>
+      </a-result>
+    </a-modal>
   </div>
 </template>
 <script setup>
 import { ref, reactive, onMounted, watch, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import DateSelect from './components/date.vue'
 import { storeToRefs } from 'pinia'
 import User from './components/user.vue'
 import MessageList from './components/message-list.vue'
 import { useRobotStore } from '@/stores/modules/robot'
 import { useChatStore } from '@/stores/modules/chat'
+import { createSessionExport } from '@/api/chat'
 
 const isEmpty = ref(false)
+const router = useRouter()
 const route = useRoute()
 const query = route.query
 const robotStore = useRobotStore()
@@ -122,6 +137,24 @@ const onReset = () => {
 
   // 初始化子组件
   datekey.value = '1' + '-' + Math.random()
+}
+
+
+const open = ref(false)
+const btnLoading = ref(false)
+const onExport = async () => {
+  let params = getPostParmas()
+  btnLoading.value = true;
+  let res = await createSessionExport(params)
+  open.value = true;
+  btnLoading.value = false;
+}
+
+const toDownloadPage = () => {
+  router.push({
+    path: '/robot/config/export-record',
+    query,
+  })
 }
 
 const onSearch = () => {
@@ -235,7 +268,7 @@ const getChannelLists = async () => {
   channelItem.value = [...[{ app_type: 'all', app_name: '全部渠道' }], ...res.data]
 }
 
-const getRecordLists = async () => {
+const getPostParmas = () => {
   let params = {
     robot_id: requestParams.robot_id, // 机器人ID
     // app_id: requestParams.app_id, // 应用类型:从来源接口获取-云版才有此参数
@@ -248,6 +281,11 @@ const getRecordLists = async () => {
   if (requestParams.app_type !== 'all') {
     params.app_type = requestParams.app_type // 应用类型:从来源接口获取
   }
+  return params
+}
+
+const getRecordLists = async () => {
+  let params = getPostParmas()
   let res = await getRecordList(params)
 
   let list = res.data.list || []
@@ -333,5 +371,9 @@ onUnmounted(() => {})
 .set-date {
   display: flex;
   align-items: center;
+}
+.set-reset{
+  display: flex;
+  gap: 12px;
 }
 </style>

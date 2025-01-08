@@ -153,7 +153,6 @@ export const useRobotStore = defineStore('robot', () => {
     if (data.external_config_pc !== '') {
       Object.assign(external_config_pc, JSON.parse(data.external_config_pc))
     } else {
-      console.log(robotInfo.robot_avatar,'===')
       external_config_pc_default.headTitle = robotInfo.robot_name
       external_config_pc_default.headImage = robotInfo.robot_avatar_url
 
