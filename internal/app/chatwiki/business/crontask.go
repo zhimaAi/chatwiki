@@ -66,6 +66,9 @@ func DeleteFormEntry() {
 
 func DeleteExportFile() {
 	err := filepath.WalkDir(`static/public/export`, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d == nil {
+			return err //path not exist
+		}
 		if info, err := d.Info(); err == nil && !info.IsDir() && info.ModTime().Unix() < time.Now().Unix()-86400*7 {
 			if err = os.Remove(path); err != nil {
 				logs.Error(err.Error())
