@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
@@ -74,7 +75,7 @@ func RunSessionExport(params map[string]any) (string, error) {
 		sessionModel.Where(`s.last_chat_time`, `between`, fmt.Sprintf(`%d,%d`, startTime, endTime))
 	}
 	if len(cast.ToString(params[`name`])) > 0 {
-		sessionModel.Join(`chat_ai_customer c`, fmt.Sprintf(`c.admin_user_id=%d AND c.openid=s.openid`, cast.ToString(params[`admin_user_id`])), `left`)
+		sessionModel.Join(`chat_ai_customer c`, fmt.Sprintf(`c.admin_user_id=%d AND c.openid=s.openid`, cast.ToUint(params[`admin_user_id`])), `left`)
 		sessionModel.Where(`c.name`, `like`, cast.ToString(params[`name`]))
 	}
 	sessions, err := sessionModel.Order(`s.id DESC`).Field(`s.id,s.app_type,s.openid`).Select()
@@ -131,10 +132,22 @@ func RunSessionExport(params map[string]any) (string, error) {
 		{Field: "create_time", Header: "消息发送时间"},
 		{Field: "app_name", Header: "消息来源"},
 	}
-	file, _, err := tool.ExcelExportPro(data, fields, `会话记录导出`, `static/public/export/session`)
+	filePath := `static/public/export/session`
+	file, _, err := tool.ExcelExportPro(data, fields, `会话记录导出`, filePath)
 	if err != nil {
 		logs.Error(err.Error())
 		return ``, err
+	}
+	if cast.ToUint(define.Config.OssConfig[`enable`]) > 0 { //put oss
+		objectKey := fmt.Sprintf(`chat_ai/%v/export_session/%s%s`, params[`admin_user_id`], tool.Date(`Ym`), file[len(filePath):])
+		if link, err := PutObjectFromFile(objectKey, file); err == nil {
+			if err = os.Remove(file); err != nil {
+				logs.Error(err.Error()) //remove local file
+			}
+			return link, nil
+		} else {
+			logs.Error(err.Error())
+		}
 	}
 	return file[6:], nil
 }

@@ -9,7 +9,6 @@ import (
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
-	"github.com/zhimaAi/llm_adaptor/adaptor"
 	"net/http"
 	"strings"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
 func GetModelConfigList(c *gin.Context) {
@@ -38,7 +38,7 @@ func GetModelConfigList(c *gin.Context) {
 		return
 	}
 	list := make([]common.ModelInfo, 0)
-	for _, info := range common.ModelList {
+	for _, info := range common.GetModelList() {
 		if len(modelDefine) == 0 || info.ModelDefine == modelDefine {
 			info.ConfigList = make([]msql.Params, 0)
 			list = append(list, info)
@@ -47,6 +47,13 @@ func GetModelConfigList(c *gin.Context) {
 	for _, config := range configs {
 		for i := range list {
 			if list[i].ModelDefine == config[`model_define`] {
+				historyConfigParams := make([]string, 0)
+				for _, item := range list[i].HistoryConfigParams {
+					if data, ok := config[item]; ok && len(data) > 0 {
+						historyConfigParams = append(historyConfigParams, item)
+					}
+				}
+				list[i].HistoryConfigParams = historyConfigParams
 				list[i].ConfigList = append(list[i].ConfigList, config)
 			}
 		}
@@ -78,7 +85,7 @@ func AddModelConfig(c *gin.Context) {
 	}
 	for _, field := range modelInfo.ConfigParams {
 		value := strings.TrimSpace(c.PostForm(field))
-		if len(value) == 0 {
+		if len(value) == 0 && field != `show_model_name` {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, field))))
 			return
 		}
@@ -218,7 +225,7 @@ func EditModelConfig(c *gin.Context) {
 
 		if field != `model_type` {
 			value := strings.TrimSpace(c.PostForm(field))
-			if len(value) == 0 {
+			if len(value) == 0 && field != `show_model_name` {
 				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, field))))
 				return
 			}
@@ -230,7 +237,11 @@ func EditModelConfig(c *gin.Context) {
 			info[field] = value
 		}
 	}
-
+	if tool.InArrayString(c.PostForm(`model_define`), []string{common.ModelBaiduYiyan, common.ModelDoubao}) {
+		secretKey := strings.TrimSpace(c.PostForm(`secret_key`))
+		data[`secret_key`] = secretKey
+		info[`secret_key`] = secretKey
+	}
 	err = configurationTest(info, modelInfo)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
@@ -283,7 +294,10 @@ func GetModelConfigOption(c *gin.Context) {
 	list := make([]map[string]any, 0)
 	for _, config := range configs {
 		if tool.InArrayString(modelType, strings.Split(config[`model_types`], `,`)) {
-			modelInfo, _ := common.GetModelInfoByDefine(config[`model_define`])
+			modelInfo, ok := common.GetModelInfoByDefine(config[`model_define`])
+			if !ok {
+				continue
+			}
 			list = append(list, map[string]any{`model_config`: config, `model_info`: modelInfo})
 		}
 	}

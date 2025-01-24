@@ -16,6 +16,12 @@
           </template>
           添加数据
         </a-button>
+        <a-button @click="handleImportData()">
+          <template #icon>
+            <DownloadOutlined />
+          </template>
+          导入数据
+        </a-button>
         <a-dropdown>
           <template #overlay>
             <a-menu>
@@ -76,6 +82,8 @@
         }"
         @change="onTableChange"
       >
+        <a-table-column key="id" data-index="id" title="id" :width="60">
+        </a-table-column>
         <a-table-column
           v-for="item in column"
           :key="item.name"
@@ -130,6 +138,7 @@
       :column="column"
       ref="filterManageModalRef"
     ></FilterManageModal>
+    <ImportDataModal @ok="onSearch" :column="column" ref="importDataModalRef" />
   </div>
 </template>
 
@@ -139,7 +148,8 @@ import {
   QuestionCircleOutlined,
   DownOutlined,
   SettingOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  DownloadOutlined
 } from '@ant-design/icons-vue'
 import { ref, reactive, createVNode, computed } from 'vue'
 import { message, Modal } from 'ant-design-vue'
@@ -149,6 +159,7 @@ import ExportModal from './components/export-modal.vue'
 import AddFilrerModal from './components/add-filter-modal.vue'
 import FilterManageModal from './components/filter-manage-modal.vue'
 import { useDatabaseStore } from '@/stores/modules/database'
+import ImportDataModal from './components/import-data-modal.vue'
 import {
   getFormFieldList,
   getFormEntryList,
@@ -179,6 +190,10 @@ const loading = ref(false)
 const onTableChange = (pagination) => {
   queryParams.page = pagination.current
   queryParams.size = pagination.pageSize
+  getData()
+}
+const onSearch = () => {
+  queryParams.page = 1
   getData()
 }
 const getData = () => {
@@ -276,6 +291,11 @@ const handleAddData = (data = {}) => {
   addDataModalRef.value.show(JSON.parse(JSON.stringify(data)))
 }
 
+const importDataModalRef = ref(null)
+const handleImportData = (data = {}) => {
+  importDataModalRef.value.show()
+}
+
 const exportModalRef = ref(null)
 const handleOpenExportModal = () => {
   exportModalRef.value.show()
@@ -339,7 +359,7 @@ const handleOpenManageModal = () => {
   ::v-deep(.ant-tabs-extra-content) {
     margin-left: 8px;
   }
-  ::v-deep(.ant-table-sticky-scroll){
+  ::v-deep(.ant-table-sticky-scroll) {
     opacity: 0;
   }
 }

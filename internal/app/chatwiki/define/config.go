@@ -11,4 +11,5 @@ type ConfigParam struct {
 	Postgres   map[string]string
 	NsqLookup  map[string]string
 	Nsqd       map[string]string
+	OssConfig  map[string]string
 }

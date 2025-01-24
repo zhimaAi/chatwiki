@@ -71,6 +71,9 @@ func StartCronTasks() {
 	_, _ = c.AddFunc("@every 1m", func() { business.RenewCrawl() })
 	_, _ = c.AddFunc("@every 1h", func() { business.DeleteFormEntry() })
 	_, _ = c.AddFunc("@every 1h", func() { business.DeleteExportFile() })
+	_, _ = c.AddFunc("@every 1h", func() { business.DeleteConvertHtml() })
+	_, _ = c.AddFunc("@every 1h", func() { business.DeleteClientSide() })
+	_, _ = c.AddFunc("@every 1h", func() { business.DeleteDownloadFile() })
 	c.Start()
 	logs.Debug("cron start")
 }

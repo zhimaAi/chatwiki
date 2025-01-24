@@ -122,7 +122,7 @@ func GetLibraryInfo(c *gin.Context) {
 		data[k] = v
 	}
 	data[`is_offline`] = false
-	for _, config := range common.ModelList {
+	for _, config := range common.GetModelList() {
 		if info[`model_define`] == config.ModelDefine && config.IsOffline {
 			data[`is_offline`] = true
 		}

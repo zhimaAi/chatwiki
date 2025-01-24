@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/casbin"
 	"chatwiki/internal/pkg/lib_redis"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -623,4 +624,26 @@ func CheckPermission(userId int, permission string) bool {
 		}
 	}
 	return tool.InArrayString(permission, rolePermission)
+}
+
+type UploadFormFileHandler struct{ TaskId string }
+
+func (h *UploadFormFileHandler) GetCacheKey() string {
+	return fmt.Sprintf(`chatwiki.upload_form_file_proc.%s`, h.TaskId)
+}
+
+func (h *UploadFormFileHandler) GetCacheData() (any, error) {
+	return `{}`, nil
+}
+
+func GetUploadFormFileProc(taskId string) (*define.UploadFormFile, error) {
+	result := new(define.UploadFormFile)
+	err := lib_redis.GetCacheWithBuild(define.Redis, &UploadFormFileHandler{TaskId: taskId}, &result, time.Hour)
+	return result, err
+}
+func SetUploadFormFileProc(taskId string, uploadForm *define.UploadFormFile, ttl time.Duration) error {
+	handler := UploadFormFileHandler{TaskId: taskId}
+	str, _ := json.Marshal(uploadForm)
+	_, err := define.Redis.Set(context.Background(), handler.GetCacheKey(), string(str), time.Second*ttl).Result()
+	return err
 }

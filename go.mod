@@ -5,6 +5,7 @@ go 1.23.4
 require (
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/Unknwon/goconfig v1.0.0
+	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 	github.com/beego/i18n v0.0.0-20161101132742-e9308947f407
 	github.com/caarlos0/env/v11 v11.1.0
 	github.com/casbin/casbin/v2 v2.89.0
@@ -30,8 +31,9 @@ require (
 	github.com/tmc/langchaingo v0.1.12
 	github.com/xuri/excelize/v2 v2.9.0
 	github.com/zhimaAi/go_tools v0.0.0-20250107073519-cf149802f8e6
-	github.com/zhimaAi/llm_adaptor v0.0.0-20240919092647-f01724a648b1
+	github.com/zhimaAi/llm_adaptor v0.0.0-20250123094023-bf1bc06ea5f9
 	go.uber.org/zap v1.27.0
+	golang.org/x/image v0.18.0
 	gorm.io/driver/postgres v1.5.7
 	gorm.io/gorm v1.25.8
 )
@@ -39,7 +41,6 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/BurntSushi/graphics-go v0.0.0-20160129215708-b43f31a4a966 // indirect
-	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de // indirect
 	github.com/axgle/mahonia v0.0.0-20180208002826-3358181d7394 // indirect

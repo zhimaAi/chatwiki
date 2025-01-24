@@ -53,6 +53,10 @@ router.beforeEach(async (to, from, next) => {
     '/user/model',
     '/user/clientDownload'
   ]
+  if(to.path == '/set_token'){
+    next()
+    return
+  }
 
   if (userInfo) {
     if (to.path === '/login') {

@@ -8,10 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 	"strings"
+	"time"
 )
 
 func GetFormInfo(formId, adminUserId int) (msql.Params, error) {
@@ -192,6 +194,62 @@ func buildFilterConditionSql(_type int, filterConditions []define.FormFilterCond
 	}
 }
 
+func UploadFormFile(adminUserId, formId int, uuid, ext string, fieldsMap map[string]msql.Params, uploadInfoMap []map[string]any) (err error) {
+	title := uploadInfoMap[0]
+	uploadFormErrData := &define.UploadFormFile{
+		Total:   len(uploadInfoMap),
+		ErrData: make([]map[string]any, 0),
+	}
+	errData := make([]map[string]any, 0)
+	for _, item := range uploadInfoMap {
+		uploadFormErrData.Processed++
+		var isErr bool
+		if ext == `json` {
+			title = item
+		}
+		for field, fieldData := range fieldsMap {
+			if _, ok := title[field]; !ok {
+				item[`err_msg`] = `缺少字段:` + field
+				errData = append(errData, item)
+				isErr = true
+				break
+			}
+			if cast.ToBool(fieldData[`required`]) && checkIsNull(cast.ToString(fieldData[`type`]), item[field]) {
+				item[`err_msg`] = `字段不为空:` + field
+				errData = append(errData, item)
+				isErr = true
+				break
+			}
+		}
+		if isErr {
+			continue
+		}
+		formEntryId := cast.ToInt(item[`id`])
+		err = SaveFormEntry(adminUserId, formId, formEntryId, item)
+		if err != nil {
+			logs.Error(err.Error())
+			item[`err_msg`] = err.Error()
+			errData = append(errData, item)
+			continue
+		}
+		_ = SetUploadFormFileProc(uuid, uploadFormErrData, time.Duration(3600))
+	}
+	uploadFormErrData.Finish = true
+	uploadFormErrData.ErrData = errData
+	_ = SetUploadFormFileProc(uuid, uploadFormErrData, time.Duration(3600))
+	return nil
+}
+func checkIsNull(fieldType string, data any) bool {
+	switch fieldType {
+	case `string`, `number`:
+		return cast.ToString(data) == ""
+	case `integer`:
+		return cast.ToInt(data) == 0
+	case `boolean`:
+		return !cast.ToBool(data)
+	}
+	return true
+}
 func SaveFormEntry(adminUserId, formId, formEntryId int, entryValues map[string]any) error {
 	if formEntryId > 0 {
 		formEntry, err := msql.Model(`form_entry`, define.Postgres).

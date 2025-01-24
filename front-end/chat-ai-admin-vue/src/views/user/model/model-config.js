@@ -154,10 +154,19 @@ const modelFieldConfig = {
         trigger: 'change'
       }
     ]
-  },
+  }
 }
 // 获取模型表单字段配置
-export function getModelFieldConfig(fieldName) {
+export function getModelFieldConfig(fieldName, model_define) {
+  if (model_define == 'yiyan' || model_define == 'doubao') {
+    if (fieldName == 'secret_key') {
+      return {
+        ...inputDefaultConfig,
+        label: 'Secret Key',
+        placeholder: '请输入您的Secret Key'
+      }
+    }
+  }
   if (modelFieldConfig[fieldName]) {
     return modelFieldConfig[fieldName]
   }

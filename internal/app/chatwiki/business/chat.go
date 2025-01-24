@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/zhimaAi/llm_adaptor/adaptor"
 	"io"
 	"net/http"
 	"regexp"
@@ -27,6 +26,7 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
 func GetWsUrl(c *gin.Context) {
@@ -213,7 +213,7 @@ func AddChatMessageFeedback(c *gin.Context) {
 
 	// add corp name field to robot info
 	var corpName string
-	for _, modelInfo := range common.ModelList {
+	for _, modelInfo := range common.GetModelList() {
 		if len(modelConfig[`model_define`]) == 0 || modelInfo.ModelDefine == modelConfig[`model_define`] {
 			corpName = modelInfo.ModelName
 		}

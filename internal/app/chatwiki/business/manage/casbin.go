@@ -781,7 +781,7 @@ func SaveRole(c *gin.Context) {
 	}
 	rolePermissions := make([][]string, 0)
 	rolePermissionsReq := make(map[string]bool)
-	for item, _ := range uniKeyMap {
+	for item := range uniKeyMap {
 		rolePermissionsReq[item] = true
 		rolePermissions = append(rolePermissions, []string{roleId, item, "GET"})
 	}

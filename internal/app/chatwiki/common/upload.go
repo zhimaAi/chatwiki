@@ -8,19 +8,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/xuri/excelize/v2"
+	"io"
+	"mime/multipart"
+	"net/http"
+	netURL "net/url"
+	"path/filepath"
+	"regexp"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-shiori/go-readability"
 	"github.com/zhimaAi/go_tools/curl"
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/common"
-	"io"
-	"mime/multipart"
-	"net/http"
-	netURL "net/url"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
 )
 
 type CrawlerPage struct {
@@ -59,6 +60,51 @@ func SaveUploadedFile(fileHeader *multipart.FileHeader, limitSize, userId int, s
 		return nil, err
 	}
 	return &define.UploadInfo{Name: fileHeader.Filename, Size: fileHeader.Size, Ext: ext, Link: link}, nil
+}
+
+func ReadUploadedFile(fileHeader *multipart.FileHeader, limitSize int, allowExt []string) (*define.UploadInfo, error) {
+	if fileHeader == nil {
+		return nil, errors.New(`file header is nil`)
+	}
+	content := ""
+	ext := strings.ToLower(strings.TrimLeft(filepath.Ext(fileHeader.Filename), `.`))
+	if !tool.InArrayString(ext, allowExt) {
+		return nil, errors.New(ext + ` not allow`)
+	}
+	if fileHeader.Size > int64(limitSize) {
+		return nil, errors.New(`file size too big`)
+	}
+	reader, err := fileHeader.Open()
+	if err != nil {
+		return nil, errors.New(`io reader failed`)
+	}
+	defer func(reader multipart.File) {
+		_ = reader.Close()
+	}(reader)
+	if ext == `xlsx` {
+		f, err := excelize.OpenReader(reader)
+		if err != nil {
+			return nil, err
+		}
+		rows, err := f.GetRows(f.GetSheetName(f.GetActiveSheetIndex()))
+		if err != nil {
+			return nil, err
+		}
+		for _, item := range rows {
+			content += strings.Join(item, ",")
+			content += "\r\n"
+		}
+	} else {
+		bs, err := io.ReadAll(reader)
+		if err != nil {
+			return nil, err
+		}
+		if len(bs) == 0 {
+			return nil, errors.New(`file content is empty`)
+		}
+		content = string(bs)
+	}
+	return &define.UploadInfo{Name: fileHeader.Filename, Size: fileHeader.Size, Ext: ext, Columns: content}, nil
 }
 
 func SaveUploadedFileMulti(c *gin.Context, name string, limitSize, userId int, saveDir string, allowExt []string) ([]*define.UploadInfo, []string) {
@@ -139,11 +185,5 @@ func SaveUrlPage(userId int, url, saveDir string) (*define.UploadInfo, error) {
 		return nil, err
 	}
 
-	// get file size
-	fileInfo, err := os.Stat(define.AppRoot + link)
-	if err != nil {
-		return nil, err
-	}
-
-	return &define.UploadInfo{Name: MbSubstr(article.Title, 0, 100), Size: fileInfo.Size(), Ext: "html", Link: link, Online: true, DocUrl: url}, nil
+	return &define.UploadInfo{Name: MbSubstr(article.Title, 0, 100), Size: int64(len(article.Content)), Ext: "html", Link: link, Online: true, DocUrl: url}, nil
 }

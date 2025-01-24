@@ -73,10 +73,14 @@ func initConfig() {
 		logs.Error(err.Error())
 		panic(`read config nsqlookup error`)
 	}
-
 	define.Config.Nsqd, err = config.GetSection(`nsqd`)
 	if err != nil {
 		logs.Error(err.Error())
 		panic(`read config nsqd error`)
+	}
+	define.Config.OssConfig, err = config.GetSection("oss_config")
+	if err != nil {
+		logs.Error(err.Error())
+		panic(`读取配置oss_config出错`)
 	}
 }

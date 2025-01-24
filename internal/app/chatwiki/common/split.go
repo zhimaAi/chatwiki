@@ -3,18 +3,14 @@
 package common
 
 import (
+	"bytes"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_redis"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/spf13/cast"
-	"github.com/syyongx/php2go"
-	"github.com/tmc/langchaingo/textsplitter"
-	"github.com/zhimaAi/go_tools/curl"
-	"github.com/zhimaAi/go_tools/msql"
+	"image/png"
 	"net/http"
 	"path/filepath"
 	"regexp"
@@ -23,10 +19,16 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/PuerkitoBio/goquery"
 	strip "github.com/grokify/html-strip-tags-go"
+	"github.com/spf13/cast"
+	"github.com/tmc/langchaingo/textsplitter"
 	"github.com/xuri/excelize/v2"
+	"github.com/zhimaAi/go_tools/curl"
 	"github.com/zhimaAi/go_tools/logs"
+	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+	"golang.org/x/image/webp"
 )
 
 func GetLibFileSplit(userId, fileId int, splitParams define.SplitParams, lang string) (list []define.DocSplitItem, wordTotal int, err error) {
@@ -354,6 +356,9 @@ func ConvertAndReadHtmlContent(fileId int, fileUrl string, userId int) ([]define
 }
 
 func ConvertHtml(link string, userId int) (string, error) {
+	if !LinkExists(link) {
+		return ``, errors.New(`file not exist:` + link)
+	}
 	ext := strings.ToLower(strings.TrimLeft(filepath.Ext(link), `.`))
 	request := curl.Post(define.Config.WebService[`converter`]+`/convert`).
 		PostFile(`file`, GetFileByLink(link)).
@@ -380,6 +385,10 @@ func ConvertHtml(link string, userId int) (string, error) {
 }
 
 func ReadHtmlContent(htmlUrl string, userId int) ([]define.DocSplitItem, int, error) {
+	if !LinkExists(htmlUrl) {
+		return nil, 0, errors.New(`file not exist:` + htmlUrl)
+	}
+
 	content, err := tool.ReadFile(GetFileByLink(htmlUrl))
 	if err != nil {
 		return nil, 0, err
@@ -393,21 +402,29 @@ func ReadHtmlContent(htmlUrl string, userId int) ([]define.DocSplitItem, int, er
 	doc.Find("img").Each(func(index int, item *goquery.Selection) {
 		src, exists := item.Attr("src")
 		if exists && strings.HasPrefix(src, "data:image") {
-			// parse base64 image
-			dataPos := php2go.Strpos(src, `base64,`, 0)
-			if dataPos < 0 {
+			parts := strings.Split(src, ";")
+			if len(parts) < 2 {
 				logs.Debug(fmt.Sprintf("could not find base64 data"))
 				return
 			}
-			base64Data := php2go.Substr(src, uint(dataPos)+7, -1)
+			format := strings.TrimPrefix(parts[0], "data:image/")
+			base64Data := strings.TrimPrefix(parts[1], "base64,")
 			imgData, err := base64.StdEncoding.DecodeString(base64Data)
 			if err != nil {
 				logs.Error(err.Error())
 				return
 			}
+			if format == `webp` {
+				imgData, err = ConvertWebPToPNG(imgData)
+				if err != nil {
+					logs.Error(err.Error())
+					return
+				}
+				format = `png`
+			}
 
-			// save to png file
-			objectKey := fmt.Sprintf(`chat_ai/%d/%s/%s/%s.png`, userId, `library_image`, tool.Date(`Ym`), tool.MD5(string(imgData)))
+			// save to file
+			objectKey := fmt.Sprintf(`chat_ai/%d/%s/%s/%s.%s`, userId, `library_image`, tool.Date(`Ym`), tool.MD5(string(imgData)), format)
 			imgUrl, err := WriteFileByString(objectKey, string(imgData))
 			if err != nil {
 				logs.Error(err.Error())
@@ -437,6 +454,9 @@ func ReadHtmlContent(htmlUrl string, userId int) ([]define.DocSplitItem, int, er
 func ParseTabFile(fileUrl, fileExt string) ([][]string, error) {
 	if len(fileUrl) == 0 {
 		return nil, errors.New(`file link cannot be empty`)
+	}
+	if !LinkExists(fileUrl) {
+		return nil, errors.New(`file not exist:` + fileUrl)
 	}
 	//read excel
 	var rows = make([][]string, 0)
@@ -631,4 +651,17 @@ func MbSubstr(s string, start, length int) string {
 		length = len(runes) - start
 	}
 	return string(runes[start : start+length])
+}
+
+func ConvertWebPToPNG(webpData []byte) ([]byte, error) {
+	img, err := webp.Decode(bytes.NewReader(webpData))
+	if err != nil {
+		return nil, fmt.Errorf("error decoding WebP image: %w", err)
+	}
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		return nil, fmt.Errorf("error encoding PNG image: %w", err)
+	}
+
+	return buf.Bytes(), nil
 }

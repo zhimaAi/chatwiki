@@ -3,8 +3,11 @@
 package common
 
 import (
+	"errors"
 	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
+	"strings"
 
 	"github.com/zhimaAi/go_tools/msql"
 )
@@ -60,7 +63,15 @@ func GetYiyanHandler(config msql.Params, useModel string) (*ModelCallHandler, er
 	}
 	return handler, nil
 }
-
+func CheckYiyanFancCall(modelInfo ModelInfo, config msql.Params, useModel string) error {
+	if config[`secret_key`] == "" {
+		useModel = strings.ToLower(useModel)
+	}
+	if tool.InArrayString(useModel, modelInfo.SupportedFunctionCallList) {
+		return nil
+	}
+	return errors.New(`model is not support`)
+}
 func GetTongyiHandler(config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{

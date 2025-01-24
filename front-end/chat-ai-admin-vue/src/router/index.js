@@ -23,6 +23,16 @@ const routes = [
       hidden: true
     }
   },
+  {
+    path: '/set_token',
+    name: 'SetToken',
+    component: () => import('../views/set-token/index.vue'),
+    meta: {
+      title: '登录',
+      noCache: true,
+      hidden: true
+    }
+  },
   user,
   robot,
   library,

@@ -22,7 +22,15 @@ func GetDialogueId(chatBaseParam *define.ChatBaseParam, question string) (int, e
 	if len(chatBaseParam.Customer) > 0 && cast.ToInt(chatBaseParam.Customer[`is_background`]) > 0 {
 		isBackground = 1
 	}
-	id, err := msql.Model(`chat_ai_dialogue`, define.Postgres).Insert(msql.Datas{
+	m := msql.Model(`chat_ai_dialogue`, define.Postgres)
+	if isBackground != 1 { //not background create
+		dialogueId, _ := m.Where(`robot_id`, chatBaseParam.Robot[`id`]).Where(`openid`, chatBaseParam.Openid).
+			Where(`admin_user_id`, cast.ToString(chatBaseParam.AdminUserId)).Order(`id DESC`).Value(`id`)
+		if cast.ToUint(dialogueId) > 0 {
+			return cast.ToInt(dialogueId), nil //use the old first
+		}
+	}
+	id, err := m.Insert(msql.Datas{
 		`admin_user_id`: chatBaseParam.AdminUserId,
 		`robot_id`:      chatBaseParam.Robot[`id`],
 		`openid`:        chatBaseParam.Openid,

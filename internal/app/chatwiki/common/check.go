@@ -8,12 +8,13 @@ import (
 	"chatwiki/internal/pkg/lib_define"
 	"encoding/json"
 	"errors"
-	"github.com/zhimaAi/go_tools/logs"
+	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/tool"
 )
 
@@ -184,8 +185,15 @@ func CheckLibraryImage(images []string) (string, error) {
 	pattern := `^\/upload\/chat_ai\/\d+\/library_image\/\d+\/[a-f0-9]{32}\.(` + extensions + `)$`
 	re := regexp.MustCompile(pattern)
 	for _, image := range images {
-		if !re.MatchString(image) {
-			return "", InvalidLibraryImageError
+		if IsUrl(image) { //oss file
+			ext := strings.ToLower(strings.TrimLeft(filepath.Ext(image), `.`))
+			if !tool.InArrayString(ext, define.ImageAllowExt) {
+				return ``, InvalidLibraryImageError
+			}
+		} else { //local file
+			if !re.MatchString(image) {
+				return "", InvalidLibraryImageError
+			}
 		}
 	}
 	jsonImages, err := json.Marshal(images)

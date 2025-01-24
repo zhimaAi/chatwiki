@@ -6,12 +6,13 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"context"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
-	"sync"
-	"time"
 )
 
 const StatsTypeDailyActiveUser = 1
@@ -67,7 +68,7 @@ func LlmLogRequest(
 		return err
 	}
 	var corpName string
-	for _, modelInfo := range ModelList {
+	for _, modelInfo := range GetModelList() {
 		if len(config[`model_define`]) == 0 || modelInfo.ModelDefine == config[`model_define`] {
 			corpName = modelInfo.ModelName
 			break
