@@ -20,11 +20,14 @@ import (
 )
 
 type ModelCallHandler struct {
+	modelInfo *ModelInfo
 	adaptor.Meta
 	config msql.Params
 }
 
 type HandlerFunc func(config msql.Params, useModel string) (*ModelCallHandler, error)
+type BeforeFunc func(info ModelInfo, config msql.Params, useModel string) error
+type AfterFunc func(config msql.Params, useModel string, promptToken, completionToken int)
 
 type ModelInfo struct {
 	ModelDefine               string        `json:"model_define"`
@@ -36,6 +39,7 @@ type ModelInfo struct {
 	SupportedType             []string      `json:"supported_type"`
 	SupportedFunctionCallList []string      `json:"supported_function_call_list"`
 	ConfigParams              []string      `json:"config_params"`
+	HistoryConfigParams       []string      `json:"history_config_params"`
 	ConfigList                []msql.Params `json:"config_list"`
 	ApiVersions               []string      `json:"api_versions"`
 	LlmModelList              []string      `json:"llm_model_list"`
@@ -43,6 +47,9 @@ type ModelInfo struct {
 	RerankModelList           []string      `json:"rerank_model_list"`
 	HelpLinks                 string        `json:"help_links"`
 	CallHandlerFunc           HandlerFunc   `json:"-"`
+	CheckAllowRequest         BeforeFunc    `json:"-"`
+	CheckFancCallRequest      BeforeFunc    `json:"-"`
+	TokenUseReport            AfterFunc     `json:"-"`
 }
 
 const (
@@ -79,7 +86,13 @@ const (
 	MaxContent    = 5000
 )
 
-var ModelList = []ModelInfo{
+func GetModelList() []ModelInfo {
+	list := modelList[:]
+	//list = append(list, ModelInfo{ModelDefine: `DIY MODEL`})
+	return list
+}
+
+var modelList = [...]ModelInfo{
 	{
 		ModelDefine:   ModelOpenAI,
 		ModelName:     `OpenAI`,
@@ -217,37 +230,36 @@ var ModelList = []ModelInfo{
 		CallHandlerFunc: GetGeminiHandler,
 	},
 	{
-		ModelDefine:               ModelBaiduYiyan,
-		ModelName:                 `文心一言`,
-		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelBaiduYiyan + `.png`,
-		Introduce:                 `基于百度千帆大模型平台提供的文心一言API`,
-		IsOffline:                 false,
-		SupportList:               []string{Llm, TextEmbedding},
-		SupportedType:             []string{Llm, TextEmbedding},
-		SupportedFunctionCallList: []string{`ERNIE-4.0-8K`, `ERNIE-4.0-Turbo-8K`, `ERNIE-3.5-8K`},
-		ConfigParams:              []string{`api_key`, `secret_key`},
-		ConfigList:                nil,
-		ApiVersions:               []string{},
+		ModelDefine:   ModelBaiduYiyan,
+		ModelName:     `文心一言`,
+		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelBaiduYiyan + `.png`,
+		Introduce:     `基于百度千帆大模型平台提供的文心一言API`,
+		IsOffline:     false,
+		SupportList:   []string{Llm, TextEmbedding},
+		SupportedType: []string{Llm, TextEmbedding},
+		SupportedFunctionCallList: []string{`ERNIE-4.0-8K`, `ERNIE-4.0-Turbo-8K`, `ERNIE-3.5-8K`,
+			"ernie-4.0-8k-latest", // v2 chat
+			"ernie-4.0-8k-preview",
+			"ernie-4.0-8k",
+			"ernie-4.0-turbo-8k-latest",
+			"ernie-4.0-turbo-8k-preview",
+			"ernie-4.0-turbo-8k",
+			"ernie-4.0-turbo-128k",
+			"ernie-3.5-8k-preview",
+			"ernie-3.5-8k",
+			"ernie-3.5-128k",
+			"ernie-lite-pro-128k"},
+		ConfigParams:        []string{`api_key`},
+		ConfigList:          nil,
+		ApiVersions:         []string{},
+		HistoryConfigParams: []string{`secret_key`},
 		LlmModelList: []string{
 			`ERNIE-4.0-8K`,
 			`ERNIE-4.0-Turbo-8K`,
-			`ERNIE-4.0-8K-Preemptible`,
 			`ERNIE-4.0-8K-Preview`,
-			`ERNIE-4.0-8K-Preview-0518`,
 			`ERNIE-4.0-8K-Latest`,
-			`ERNIE-4.0-8K-0329`,
-			`ERNIE-4.0-8K-0104`,
-			`ERNIE-4.0-8K-0613`,
 			`ERNIE-3.5-8K`,
-			`ERNIE-3.5-8K-0205`,
-			`ERNIE-3.5-8K-Preview`,
-			`ERNIE-3.5-8K-0329`,
 			`ERNIE-3.5-128K`,
-			`ERNIE-3.5-8K-0613`,
-			`ERNIE-Speed-8K`,
-			`ERNIE-Speed-128K`,
-			`ERNIE-Lite-8K-0922`,
-			`ERNIE-Lite-8K-0308`,
 		},
 		VectorModelList: []string{
 			`embedding-v1`,
@@ -255,9 +267,10 @@ var ModelList = []ModelInfo{
 			`bge-large-en`,
 			`tao-8k`,
 		},
-		RerankModelList: []string{},
-		HelpLinks:       `https://cloud.baidu.com/`,
-		CallHandlerFunc: GetYiyanHandler,
+		RerankModelList:      []string{},
+		HelpLinks:            `https://cloud.baidu.com/`,
+		CallHandlerFunc:      GetYiyanHandler,
+		CheckFancCallRequest: CheckYiyanFancCall,
 	},
 	{
 		ModelDefine:               ModelAliyunTongyi,
@@ -520,16 +533,19 @@ var ModelList = []ModelInfo{
 		CallHandlerFunc: GetHunyuanHandle,
 	},
 	{
-		ModelDefine:     ModelDoubao,
-		ModelName:       `火山引擎`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelDoubao + `.png`,
-		Introduce:       `基于火山引擎提供的豆包大模型API`,
-		IsOffline:       false,
-		SupportList:     []string{Llm, TextEmbedding},
-		SupportedType:   []string{Llm, TextEmbedding},
-		ConfigParams:    []string{`deployment_name`, `api_key`, `secret_key`, `region`},
-		ConfigList:      nil,
-		ApiVersions:     []string{},
+		ModelDefine:   ModelDoubao,
+		ModelName:     `火山引擎`,
+		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelDoubao + `.png`,
+		Introduce:     `基于火山引擎提供的豆包大模型API`,
+		IsOffline:     false,
+		SupportList:   []string{Llm, TextEmbedding},
+		SupportedType: []string{Llm, TextEmbedding},
+		ConfigParams:  []string{`model_type`, `deployment_name`, `show_model_name`, `api_key`, `region`},
+		ConfigList:    nil,
+		ApiVersions:   []string{},
+		HistoryConfigParams: []string{
+			`secret_key`,
+		},
 		LlmModelList:    []string{`默认`},
 		VectorModelList: []string{`默认`},
 		RerankModelList: []string{},
@@ -615,7 +631,7 @@ var ModelList = []ModelInfo{
 }
 
 func GetModelInfoByDefine(modelDefine string) (ModelInfo, bool) {
-	for _, info := range ModelList {
+	for _, info := range GetModelList() {
 		if info.ModelDefine == modelDefine {
 			return info, true
 		}
@@ -629,7 +645,7 @@ func IsMultiConfModel(defineName string) bool {
 
 func GetOfflineTypeModelInfos(isOffline bool) []ModelInfo {
 	var result []ModelInfo
-	for _, info := range ModelList {
+	for _, info := range GetModelList() {
 		if isOffline && info.IsOffline || !isOffline && !info.IsOffline {
 			result = append(result, info)
 		}
@@ -653,7 +669,17 @@ func GetModelCallHandler(modelConfigId int, useModel string) (*ModelCallHandler,
 	if !ok {
 		return nil, errors.New(`model define invalid`)
 	}
-	return modelInfo.CallHandlerFunc(config, useModel)
+	if modelInfo.CheckAllowRequest != nil { //check allow request
+		if err = modelInfo.CheckAllowRequest(modelInfo, config, useModel); err != nil {
+			return nil, err
+		}
+	}
+	handler, err := modelInfo.CallHandlerFunc(config, useModel)
+	if err != nil {
+		return nil, err
+	}
+	handler.modelInfo = &modelInfo //save quote
+	return handler, nil
 }
 
 func GetVector2000(adminUserId int, openid string, robot msql.Params, library msql.Params, file msql.Params, modelConfigId int, useModel, input string) (string, error) {
@@ -661,8 +687,14 @@ func GetVector2000(adminUserId int, openid string, robot msql.Params, library ms
 	if err != nil {
 		return ``, err
 	}
-
-	return handler.GetVector2000(adminUserId, openid, robot, library, file, input)
+	res, err := handler.GetVector2000(adminUserId, openid, robot, library, file, input)
+	if err != nil {
+		return ``, err
+	}
+	if handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
+		handler.modelInfo.TokenUseReport(handler.config, useModel, res.PromptToken, res.CompletionToken)
+	}
+	return tool.JsonEncode(res.Result)
 }
 
 func RequestChatStream(adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, chanStream chan sse.Event, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
@@ -670,7 +702,11 @@ func RequestChatStream(adminUserId int, openid string, robot msql.Params, appTyp
 	if err != nil {
 		return adaptor.ZhimaChatCompletionResponse{}, 0, err
 	}
-	return handler.RequestChatStream(adminUserId, openid, robot, appType, messages, functionTools, chanStream, temperature, maxToken)
+	chatResp, requestTime, err := handler.RequestChatStream(adminUserId, openid, robot, appType, messages, functionTools, chanStream, temperature, maxToken)
+	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
+		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken)
+	}
+	return chatResp, requestTime, err
 }
 
 func RequestChat(adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
@@ -678,10 +714,14 @@ func RequestChat(adminUserId int, openid string, robot msql.Params, appType stri
 	if err != nil {
 		return adaptor.ZhimaChatCompletionResponse{}, 0, err
 	}
-	return handler.RequestChat(adminUserId, openid, robot, appType, messages, functionTools, temperature, maxToken)
+	chatResp, requestTime, err := handler.RequestChat(adminUserId, openid, robot, appType, messages, functionTools, temperature, maxToken)
+	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
+		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken)
+	}
+	return chatResp, requestTime, err
 }
 
-func (h *ModelCallHandler) GetVector2000(adminUserId int, openid string, robot msql.Params, library msql.Params, fileInfo msql.Params, input string) (string, error) {
+func (h *ModelCallHandler) GetVector2000(adminUserId int, openid string, robot msql.Params, library msql.Params, fileInfo msql.Params, input string) (adaptor.ZhimaEmbeddingResponse, error) {
 	client := &adaptor.Adaptor{}
 	client.Init(h.Meta)
 	req := adaptor.ZhimaEmbeddingRequest{Input: input}
@@ -698,11 +738,11 @@ func (h *ModelCallHandler) GetVector2000(adminUserId int, openid string, robot m
 		}
 	}
 	if err != nil {
-		return ``, err
+		return res, err
 	}
 
 	if res.Result == nil {
-		return ``, errors.New(`get vector return nil`)
+		return res, errors.New(`get vector return nil`)
 	}
 	if len(res.Result) < define.VectorDimension {
 		res.Result = append(res.Result, make([]float64, define.VectorDimension-len(res.Result))...)
@@ -713,7 +753,7 @@ func (h *ModelCallHandler) GetVector2000(adminUserId int, openid string, robot m
 			logs.Error(err.Error())
 		}
 	}()
-	return tool.JsonEncode(res.Result)
+	return res, nil
 }
 
 func (h *ModelCallHandler) GetSimilarity(query []float64, inputs [][]float64) (string, error) {

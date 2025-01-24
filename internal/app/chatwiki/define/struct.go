@@ -21,13 +21,14 @@ type MenuJsonStruct struct {
 }
 
 type UploadInfo struct {
-	Name   string `json:"name"`
-	Size   int64  `json:"size"`
-	Ext    string `json:"ext"`
-	Link   string `json:"link"`
-	Online bool   `json:"-"`
-	DocUrl string `json:"-"`
-	Custom bool   `json:"-"`
+	Name    string `json:"name"`
+	Size    int64  `json:"size"`
+	Ext     string `json:"ext"`
+	Link    string `json:"link"`
+	Online  bool   `json:"-"`
+	DocUrl  string `json:"-"`
+	Custom  bool   `json:"-"`
+	Columns string `json:"columns"`
 }
 
 func (u *UploadInfo) GetDocType() int {
@@ -162,4 +163,12 @@ func (m SimilarityResult) Swap(i, j int) {
 type CommonQuestion struct {
 	Question string `json:"question"`
 	Answer   string `json:"answer"`
+}
+
+type UploadFormFile struct {
+	Total     int              `json:"total"`
+	Processed int              `json:"processed"`
+	Finish    bool             `json:"finish"`
+	Success   int              `json:"success"`
+	ErrData   []map[string]any `json:"err_data"`
 }

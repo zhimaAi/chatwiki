@@ -99,6 +99,8 @@ func init() {
 	Route[http.MethodPost][`/manage/editFormField`] = manage.SaveFormField
 	Route[http.MethodPost][`/manage/updateFormRequired`] = manage.UpdateFormRequired
 	Route[http.MethodPost][`/manage/delFormField`] = manage.DelFormField
+	Route[http.MethodPost][`/manage/uploadFormFile`] = manage.UploadFormFile
+	Route[http.MethodPost][`/manage/getUploadFormFileProc`] = manage.GetUploadFormFileProc
 	/*form entry API*/
 	Route[http.MethodGet][`/manage/getFormEntryList`] = manage.GetFormEntryList
 	Route[http.MethodPost][`/manage/addFormEntry`] = manage.SaveFormEntry

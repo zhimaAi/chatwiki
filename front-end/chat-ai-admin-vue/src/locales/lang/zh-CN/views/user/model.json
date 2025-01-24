@@ -22,5 +22,6 @@
   "teamMembers": "团队成员",
   "rolePermissions": "角色权限",
   "app_id": "appid",
-  "region": "地区"
+  "region": "地区",
+  "show_model_name": "模型名称"
 }

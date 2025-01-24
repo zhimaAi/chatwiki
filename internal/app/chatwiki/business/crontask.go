@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cast"
@@ -70,6 +71,60 @@ func DeleteExportFile() {
 			return err //path not exist
 		}
 		if info, err := d.Info(); err == nil && !info.IsDir() && info.ModTime().Unix() < time.Now().Unix()-86400*7 {
+			if err = os.Remove(path); err != nil {
+				logs.Error(err.Error())
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		logs.Error(err.Error())
+	}
+}
+
+func DeleteConvertHtml() {
+	err := filepath.WalkDir(define.UploadDir+`chat_ai`, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d == nil {
+			return err //path not exist
+		}
+		if !strings.Contains(path, `convert`) || strings.ToLower(filepath.Ext(path)) != `.html` {
+			return nil //not convert create html file
+		}
+		if info, err := d.Info(); err == nil && !info.IsDir() && info.ModTime().Unix() < time.Now().Unix()-86400 {
+			if err = os.Remove(path); err != nil {
+				logs.Error(err.Error())
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		logs.Error(err.Error())
+	}
+}
+
+func DeleteClientSide() {
+	err := filepath.WalkDir(`static/public/client_side`, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d == nil {
+			return err //path not exist
+		}
+		if info, err := d.Info(); err == nil && !info.IsDir() && info.ModTime().Unix() < time.Now().Unix()-86400 {
+			if err = os.Remove(path); err != nil {
+				logs.Error(err.Error())
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		logs.Error(err.Error())
+	}
+}
+
+func DeleteDownloadFile() {
+	err := filepath.WalkDir(`static/public/download`, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d == nil || d.Name() == `.gitignore` {
+			return err //path not exist
+		}
+		if info, err := d.Info(); err == nil && !info.IsDir() && info.ModTime().Unix() < time.Now().Unix()-3600 {
 			if err = os.Remove(path); err != nil {
 				logs.Error(err.Error())
 			}

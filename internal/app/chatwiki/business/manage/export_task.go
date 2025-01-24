@@ -15,7 +15,6 @@ import (
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
-	"github.com/zhimaAi/go_tools/tool"
 )
 
 func GetExportTaskList(c *gin.Context) {
@@ -59,9 +58,9 @@ func DownloadExportFile(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	if len(info) == 0 || !tool.IsFile(`static`+info[`file_url`]) {
+	if len(info) == 0 || !common.LinkExists(info[`file_url`]) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
-	c.FileAttachment(`static`+info[`file_url`], info[`file_name`])
+	c.FileAttachment(common.GetFileByLink(info[`file_url`]), info[`file_name`])
 }

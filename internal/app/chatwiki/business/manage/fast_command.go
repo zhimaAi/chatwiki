@@ -224,7 +224,7 @@ func SortFastCommand(c *gin.Context) {
 	}
 	adminUserId := GetAdminUserId(c)
 	m := msql.Model(define.TableFastCommand, define.Postgres)
-	m.Begin()
+	_ = m.Begin()
 	count := 0
 	for _, v := range req.Data {
 		_, err = m.Where("id", cast.ToString(v.Id)).Where("admin_user_id", cast.ToString(adminUserId)).Update(msql.Datas{
@@ -233,12 +233,12 @@ func SortFastCommand(c *gin.Context) {
 		})
 		if err != nil {
 			logs.Error(err.Error())
-			m.Rollback()
+			_ = m.Rollback()
 			common.FmtError(c, `sys_err`)
 		}
 		count++
 	}
-	m.Commit()
+	_ = m.Commit()
 	common.FmtOk(c, count)
 }
 

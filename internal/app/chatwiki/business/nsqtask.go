@@ -29,7 +29,7 @@ func ConvertHtml(msg string, _ ...string) error {
 		logs.Error(`data exception:%s`, msg)
 		return nil
 	}
-	if !tool.IsFile(common.GetFileByLink(link)) {
+	if !common.LinkExists(link) {
 		logs.Error(`file does not exist:%s`, msg)
 		return nil
 	}

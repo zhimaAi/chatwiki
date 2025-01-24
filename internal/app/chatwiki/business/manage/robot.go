@@ -238,8 +238,17 @@ func SaveRobot(c *gin.Context) {
 	}
 	//check form
 	if len(formIds) > 0 {
-		if modelInfo.SupportedFunctionCallList == nil || !tool.InArrayString(useModel, modelInfo.SupportedFunctionCallList) {
+		if modelInfo.SupportedFunctionCallList == nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `does_not_support_form`))))
+			return
+		}
+		if modelInfo.CheckFancCallRequest != nil {
+			if err = modelInfo.CheckFancCallRequest(modelInfo, config, useModel); err != nil {
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `form_ids_err`))))
+				return
+			}
+		} else if !tool.InArrayString(useModel, modelInfo.SupportedFunctionCallList) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `form_ids_err`))))
 			return
 		}
 		if !common.CheckIds(formIds) {

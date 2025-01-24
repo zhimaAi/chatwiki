@@ -106,6 +106,10 @@
               </div>
               <div v-if="record.status == 3" class="status-item status-3">
                 <CloseCircleFilled />导出失败
+                <a-tooltip v-if="record.err_msg">
+                  <template #title>{{ record.err_msg }}</template>
+                  <QuestionCircleOutlined />
+                </a-tooltip>
               </div>
             </template>
 
@@ -127,7 +131,8 @@ import {
   ClockCircleFilled,
   CheckCircleFilled,
   LoadingOutlined,
-  CloseCircleFilled
+  CloseCircleFilled,
+  QuestionCircleOutlined
 } from '@ant-design/icons-vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/modules/user'

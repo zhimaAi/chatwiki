@@ -481,6 +481,123 @@ func GetFormEntryList(c *gin.Context) {
 	data := map[string]any{`list`: list, `total`: total, `page`: page, `size`: size}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
+func UploadFormFile(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	//get params
+	formId := cast.ToInt(c.PostForm(`form_id`))
+	if formId <= 0 {
+		common.FmtError(c, `param_invalid`, `form_id`)
+		return
+	}
+
+	fieldsList, err := msql.Model(`form_field`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`form_id`, cast.ToString(formId)).
+		Order(`id asc`).
+		Select()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(fieldsList) <= 0 {
+		common.FmtError(c, `no_fields`)
+		return
+	}
+	fieldsMap := make(map[string]msql.Params, 0)
+	for _, item := range fieldsList {
+		fieldsMap[item[`name`]] = item
+	}
+	// save upload file
+	uploadInfoMap := make([]map[string]any, 0)
+	if c.Request.MultipartForm == nil || len(c.Request.MultipartForm.File) == 0 {
+		common.FmtError(c, `upload_empty`)
+		return
+	}
+	for _, fileHeader := range c.Request.MultipartForm.File[`form_files`] {
+		if fileHeader == nil {
+			common.FmtError(c, `upload_empty`)
+			return
+		}
+		uploadInfo, err := common.ReadUploadedFile(fileHeader, define.LibFileLimitSize, define.FormFileAllowExt)
+		if err != nil {
+			logs.Error(err.Error())
+			common.FmtError(c, `file_err`)
+			return
+		}
+		if uploadInfo == nil || uploadInfo.Columns == "" {
+			common.FmtError(c, `upload_empty`)
+			return
+		}
+		if uploadInfo.Ext == `json` {
+			if err = tool.JsonDecode(uploadInfo.Columns, &uploadInfoMap); err != nil {
+				logs.Error(err.Error())
+				common.FmtError(c, `file_data_err`)
+				return
+			}
+		} else {
+			splitData := strings.Split(uploadInfo.Columns, "\r\n")
+			title := make([]string, 0)
+			for key, item := range splitData {
+				upData := strings.Split(item, ",")
+				if len(upData) < len(title) {
+					continue
+				}
+				if key == 0 {
+					title = upData
+					continue
+				}
+				var data = make(map[string]any)
+				for k, v := range title {
+					data[cast.ToString(v)] = upData[k]
+				}
+				uploadInfoMap = append(uploadInfoMap, data)
+			}
+		}
+
+		if len(uploadInfoMap) <= 0 {
+			common.FmtError(c, `file_data_err`)
+			return
+		}
+		if len(uploadInfoMap) > 10000 {
+			common.FmtError(c, `file_data_limits`)
+			return
+		}
+		guuid := tool.MD5(cast.ToString(adminUserId) + cast.ToString(formId) + cast.ToString(time.Now().UnixMicro()))
+		go func() {
+			err = common.UploadFormFile(adminUserId, formId, guuid, uploadInfo.Ext, fieldsMap, uploadInfoMap)
+		}()
+		common.FmtOk(c, map[string]string{"task_id": guuid})
+		return
+	}
+}
+
+func GetUploadFormFileProc(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	//get params
+	taskId := cast.ToString(c.PostForm(`task_id`))
+	if len(taskId) <= 0 {
+		common.FmtError(c, `param_invalid`, `task_id`)
+		return
+	}
+	procData, err := common.GetUploadFormFileProc(taskId)
+	if err != nil || procData == nil {
+		common.FmtError(c, `param_invalid`, `task_id`)
+		return
+	}
+	// finish
+	if procData.Finish {
+		procData.Success = procData.Total - len(procData.ErrData)
+		common.SetUploadFormFileProc(taskId, nil, time.Duration(3))
+	}
+	common.FmtOk(c, procData)
+}
 
 func SaveFormEntry(c *gin.Context) {
 	var userId int
@@ -639,6 +756,17 @@ func ExportFormEntry(c *gin.Context) {
 			logs.Error(err.Error())
 			c.String(http.StatusOK, i18n.Show(common.GetLang(c), `sys_err`))
 			return
+		}
+	}
+	for _, item := range list {
+		if _, ok := item[`id`]; ok {
+			tmp := []msql.Params{{
+				`name`: `id`,
+				`type`: `integer`,
+			}}
+			tmp = append(tmp, formFields...)
+			formFields = tmp
+			break
 		}
 	}
 	//if len(list) == 0 {

@@ -176,3 +176,44 @@ export function objectToQueryString(obj) {
     .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]))
     .join('&'); // 用 '&' 连接所有的键值对  
 }  
+
+
+export function tableToExcel(str, jsonData, fieds, name) {
+  //jsonData要导出的json数据
+  //str列标题，逗号隔开，每一个逗号就是隔开一个单元格
+  for (let i = 0; i < jsonData.length; i++) {
+    for (let item of fieds) {
+        str += `"${jsonData[i][item] + '\t'}",`;
+    }
+    str += '\n';
+  }
+  //encodeURIComponent解决中文乱码
+  let uri = 'data:text/csv;charset=utf-8,\ufeff' + encodeURIComponent(str);
+  //通过创建a标签实现
+  let link = document.createElement("a");
+  link.href = uri;
+  //对下载的文件命名
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+
+
+export function exportToJsonWithSaver(data, filename = 'data.json') {
+  const jsonString = JSON.stringify(data, null, 2); // 将数据转换为格式化的 JSON 字符串
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+
+  setTimeout(() => {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+  }, 0);
+}

@@ -147,3 +147,18 @@ export const updateFormFilterSort = (data) => {
     data: data
   })
 }
+
+export const uploadFormFile = (data) => {
+  return request.post({
+    url: '/manage/uploadFormFile',
+    data: data
+  })
+}
+
+
+export const getUploadFormFileProc = (data) => {
+  return request.post({
+    url: '/manage/getUploadFormFileProc',
+    data: data
+  })
+}

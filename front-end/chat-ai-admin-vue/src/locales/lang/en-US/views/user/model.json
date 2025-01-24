@@ -22,5 +22,6 @@
   "teamMembers": "Team members",
   "rolePermissions": "Role permissions",
   "app_id": "appid",
-  "region": "region"
+  "region": "region",
+  "show_model_name": "Model name"
 }

@@ -342,7 +342,7 @@ func (r *ChatCompletionRequest) buildChatRequestParam(c *gin.Context) (*define.C
 	}, nil
 }
 
-func streamResponse(c *gin.Context, respnoseId string, chanStream chan sse.Event) {
+func streamResponse(c *gin.Context, responseId string, chanStream chan sse.Event) {
 	c.Stream(func(w io.Writer) bool {
 		if event, ok := <-chanStream; ok {
 			var resp interface{}
@@ -354,7 +354,7 @@ func streamResponse(c *gin.Context, respnoseId string, chanStream chan sse.Event
 					return false
 				}
 				streamResp := openAiRes{
-					id:       respnoseId,
+					id:       responseId,
 					content:  content,
 					isStream: true,
 				}
@@ -371,7 +371,7 @@ func streamResponse(c *gin.Context, respnoseId string, chanStream chan sse.Event
 					return false
 				}
 				streamResp := openAiRes{
-					id:               respnoseId,
+					id:               responseId,
 					model:            cast.ToString(content["use_model"]),
 					completionTokens: cast.ToInt(content["completion_tokens"]),
 					promptTokens:     cast.ToInt(content["prompt_tokens"]),

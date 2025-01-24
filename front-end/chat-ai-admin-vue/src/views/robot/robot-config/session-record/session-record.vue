@@ -242,7 +242,7 @@ const openNewChat = async (item) => {
     nickname: item.name,
     is_background: 1,
     openid: item.openid,
-    dialogue_id: item.dialogue_id
+    // dialogue_id: item.dialogue_id
   }
 
   resetScroll()

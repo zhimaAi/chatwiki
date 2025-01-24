@@ -106,8 +106,8 @@ const open = (data, record) => {
   formRules.value = {}
   formState.value = {}
   formItems.value = []
-
-  const { model_icon_url, model_define, config_params, model_name } = data
+  const { model_icon_url, model_define, model_name, history_config_params } = data
+  let config_params = data.config_params
 
   title.value = record ? t('common.edit') + ' ' + model_name : t('common.add') + ' ' + model_name
 
@@ -121,6 +121,12 @@ const open = (data, record) => {
 
   config_params.unshift('id')
 
+  if (record) {
+    if (history_config_params && history_config_params.length > 0) {
+      config_params = [...config_params, ...history_config_params]
+    }
+  }
+
   config_params.forEach((key) => {
     if (key == 'model_type') {
       key = 'model_types'
@@ -130,8 +136,7 @@ const open = (data, record) => {
       key = 'model_name'
     }
 
-    let field = getModelFieldConfig(key)
-
+    let field = getModelFieldConfig(key, model_define)
     field.key = key
     field.help_links = data.help_links
 

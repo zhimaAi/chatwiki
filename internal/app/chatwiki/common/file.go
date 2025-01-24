@@ -4,12 +4,22 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
-	"os"
+	"path/filepath"
+	"strings"
 
+	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/tool"
 )
 
 func WriteFileByString(objectKey, content string) (string, error) {
+	if cast.ToUint(define.Config.OssConfig[`enable`]) > 0 { //put oss
+		if link, err := PutObjectFromString(objectKey, content); err == nil {
+			return link, nil
+		} else {
+			logs.Error(err.Error())
+		}
+	}
 	if err := tool.WriteFile(define.UploadDir+objectKey, content); err != nil {
 		return ``, err
 	}
@@ -17,16 +27,34 @@ func WriteFileByString(objectKey, content string) (string, error) {
 }
 
 func GetFileByLink(link string) string {
-	if len(link) >= len(define.LocalUploadPrefix) {
-		return define.UploadDir + link[len(define.LocalUploadPrefix):]
+	if IsUrl(link) { //download
+		temFile := `static/public/download/` + tool.MD5(link) + strings.ToLower(filepath.Ext(link))
+		if tool.IsFile(temFile) {
+			return temFile //local exist
+		}
+		if err := DownloadFile(link, temFile); err != nil {
+			logs.Error(err.Error())
+			return ``
+		}
+		return temFile
+	}
+	//upload file
+	if strings.HasPrefix(link, define.LocalUploadPrefix) {
+		locFile := define.UploadDir + link[len(define.LocalUploadPrefix):]
+		if tool.IsFile(locFile) {
+			return locFile //local file
+		}
+	}
+	//export file
+	if strings.HasPrefix(link, `/public/export/`) {
+		locFile := `static` + link
+		if tool.IsFile(locFile) {
+			return locFile //local file
+		}
 	}
 	return ``
 }
 
 func LinkExists(link string) bool {
-	_, err := os.Stat(GetFileByLink(link))
-	if os.IsNotExist(err) {
-		return false
-	}
-	return err == nil
+	return len(GetFileByLink(link)) > 0
 }
