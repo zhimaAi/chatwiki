@@ -408,6 +408,7 @@ var modelList = [...]ModelInfo{
 		ApiVersions:               []string{},
 		LlmModelList: []string{
 			`deepseek-chat`,
+			`deepseek-reasoner`,
 		},
 		VectorModelList: []string{},
 		RerankModelList: []string{},
