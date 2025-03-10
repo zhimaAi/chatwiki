@@ -1,0 +1,36 @@
+# ChatWiki Open Source License
+
+ChatWiki is licensed under the Apache License 2.0, with the following additional conditions:
+
+1. ChatWiki can be used for commercial purposes, including as a backend service for other applications or as an application development platform for enterprises. A commercial license must be obtained from the producer if the following conditions are met: 
+
+a. Multi-tenant SaaS service: Unless explicitly authorized by ChatWiki in writing, you may not use the ChatWiki source code to operate a multi-tenant environment. 
+b. LOGO and copyright information: During the use of ChatWiki's frontend components, you may not remove or modify the LOGO or copyright information in the ChatWiki console or applications. This restriction does not apply to uses of ChatWiki that do not involve its frontend components.
+
+Please contact us by email at fox@2bai.com.cn to inquire about licensing matters.
+
+2.As a contributor, you should agree that: 
+
+a. The producer may adjust the open-source agreement to be more strict or relaxed as necessary. 
+b. Your contributed code may be used for commercial purposes, including but not limited to its cloud business operations (such as ChatWiki cloud services).
+
+Apart from the specific conditions mentioned above, all other rights and restrictions follow the Apache License 2.0. Detailed information about the Apache License 2.0 can be found at http://www.apache.org/licenses/LICENSE-2.0.
+
+The interactive design of this product is protected by appearance patent.
+
+© 2024 Sesame Network Technology, Inc.
+
+
+----------
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

@@ -1,0 +1,20 @@
+{
+  "addModel": "添加模型",
+  "addModelButton": "新增模型",
+  "api_endpoint": "API 域名",
+  "api_key": "API Key",
+  "api_version": "API版本",
+  "canAddAModel": "可添加模型",
+  "deleteModel": "删除模型",
+  "deleteModelContent": "确定要删除这个模型吗",
+  "deployment_name": "部署名称",
+  "editModelButton": "修改配置",
+  "getApikeyText": "如何从获取API Key？",
+  "modelConfigButton": "模型配置",
+  "model_name": "模型名称",
+  "model_type": "模型类型",
+  "model_types": "模型类型",
+  "modelsHaveBeenAdded": "已添加模型",
+  "secret_key": "Secret Key",
+  "viewModelButton": "查看模型"
+}

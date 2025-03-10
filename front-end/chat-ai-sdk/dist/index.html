@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+      (function(z, h, i, m, a, j, s) {
+          z[m] = z[m] || function() {
+              (z[m].a = z[m].a || []).push(arguments)
+          };
+          j = h.createElement(i),
+              s = h.getElementsByTagName(i)[0];
+          j.async = true;
+          j.charset = 'UTF-8';
+          j.setAttribute('data-remote', 'http://h5.zhima_chat_ai.applnk.cn')
+          j.setAttribute("data-json",JSON.stringify({
+              robot_key:'rlM9p0etgY',
+              language:'ZH',
+              preview: true,
+          }));
+          j.id=  "ai_chat_js";
+          j.src = './ai-chat-sdk.umd.cjs';
+          s.parentNode.insertBefore(j, s);
+      })(window, document, 'script', '_ai_chat');
+    </script>
+</body>
+</html>

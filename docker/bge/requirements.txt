@@ -1,0 +1,11 @@
+fastapi
+transformers[sentencepiece]
+pydantic==1.10.13
+uvicorn==0.17.6
+protobuf
+torch
+optimum
+onnxruntime
+onnx
+FlagEmbedding
+numpy

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h3>SDK接入测试</h3>
+    <textarea id="textarea" style="width: 600px;height: 500px;"></textarea>
+    <button onclick="reset()">接入测试</button>
+    <script>
+        function test(){
+            let content = localStorage.getItem('sdk_code');
+            // 去掉开头和结尾的script
+            content = content.replace(/^<script>/, '');
+            content = content.replace(/<\/script>$/, '');
+
+            eval(content);
+        }
+
+        function reset(){
+            let textarea = document.getElementById("textarea");
+            let content = textarea.value;
+
+            localStorage.setItem('sdk_code', textarea.value);
+
+            window.location.reload()
+        }
+
+        if(localStorage.getItem('sdk_code')){
+            document.getElementById("textarea").value = localStorage.getItem('sdk_code');
+            test()
+        }
+    </script>
+</body>
+</html>
