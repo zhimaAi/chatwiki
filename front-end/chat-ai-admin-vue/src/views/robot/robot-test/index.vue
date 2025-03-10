@@ -134,12 +134,15 @@
         </div>
       </div>
       <!-- right -->
-      <RobotTestRight
-        v-if="isRobotInfo"
-        @promptChange="onPromptChange"
-        @saveRobotPrompt="onSaveRobotPrompt"
-        :robotInfo="robotInfo"
-      />
+      <div >
+        <!-- v-if="isRobotInfo && robotInfo.application_type != 1" -->
+        <RobotTestRight
+          v-if="false"
+          @promptChange="onPromptChange"
+          @saveRobotPrompt="onSaveRobotPrompt"
+          :robotInfo="robotInfo"
+        />
+      </div>
     </div>
 
     <PromptLogAlert ref="promptLogAlertRef" />
@@ -171,7 +174,7 @@ const rotue = useRoute()
 const query = rotue.query
 
 const robotStore = useRobotStore()
-
+console.log(robotStore,'===')
 const { getRobot, robotInfo } = robotStore
 
 const emitter = useEventBus()

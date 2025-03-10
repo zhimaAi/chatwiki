@@ -32,7 +32,7 @@ services:
       - ${CRAWLER_PORT}:3800
 
   chatwiki_converter:
-    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/converter:1.4
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/converter:1.5
     container_name: chatwiki_converter
     restart: always
     environment:
@@ -115,7 +115,6 @@ services:
       - chatwiki_converter
       - chatwiki_postgres_service
       - chatwiki_go_nsq_service
-      - chatwiki_client_side_build_win
       - chatwiki_websocket
     environment:
       TZ: ${TIMEZONE}
@@ -130,21 +129,6 @@ services:
         supervisord
         nginx
         /bin/bash
-
-  chatwiki_client_side_build_win:
-    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/electron_builder:wine
-    container_name: chatwiki_client_side_build_win
-    networks:
-      - chatwiki_network
-    volumes:
-      - ../:/var/www/chatwiki/
-    working_dir: /var/www/chatwiki
-    command: ./build/client_side_build --IsDev=false
-    restart: always
-    depends_on:
-      - chatwiki_go_nsq_service
-    environment:
-      TZ: ${TIMEZONE}
 
   chatwiki_websocket:
     image: registry.cn-hangzhou.aliyuncs.com/chatwiki/ubuntu:24.10

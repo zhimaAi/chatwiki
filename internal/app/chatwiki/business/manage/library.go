@@ -56,7 +56,7 @@ func GetLibraryList(c *gin.Context) {
 		m.Where(`id`, `in`, strings.Join(managedRobotIdList, `,`))
 	}
 
-	list, err := m.Field(`id,library_name,library_intro`).Order(`id desc`).Select()
+	list, err := m.Field(`id,library_name,library_intro,avatar`).Order(`id desc`).Select()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -86,6 +86,9 @@ func GetLibraryList(c *gin.Context) {
 		}
 		params[`file_total`] = stats[params[`id`]][`file_total`]
 		params[`file_size`] = stats[params[`id`]][`file_size`]
+		if len(params[`avatar`]) == 0 {
+			params[`avatar`] = define.LocalUploadPrefix + `default/library_avatar.png`
+		}
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 }

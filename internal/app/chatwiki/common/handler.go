@@ -276,3 +276,17 @@ func GetMinimaxHandle(config msql.Params, useModel string) (*ModelCallHandler, e
 	}
 	return handler, nil
 }
+
+func GetSiliconFlow(config msql.Params, useModel string) (*ModelCallHandler, error) {
+	handler := &ModelCallHandler{
+		Meta: adaptor.Meta{
+			EndPoint:   `https://api.siliconflow.cn`,
+			Corp:       ModelSiliconFlow,
+			APIKey:     config[`api_key`],
+			APIVersion: `v1`,
+			Model:      useModel,
+		},
+		config: config,
+	}
+	return handler, nil
+}

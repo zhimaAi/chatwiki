@@ -32,12 +32,10 @@ const (
 )
 
 const (
-	RobotTextResponse     = 0
-	RobotMarkdownResponse = 1
-	RobotManage           = `RobotManage`
-	LibraryManage         = `LibraryManage`
-	SystemManage          = `SystemManage`
-	ClientSideManage      = `ClientSideManage`
+	RobotManage      = `RobotManage`
+	LibraryManage    = `LibraryManage`
+	SystemManage     = `SystemManage`
+	ClientSideManage = `ClientSideManage`
 )
 
 const (
@@ -53,4 +51,19 @@ const (
 	ExportStatusRunning = 1
 	ExportStatusSucceed = 2
 	ExportStatusError   = 3
+)
+
+const (
+	ApplicationTypeChat = 0
+	ApplicationTypeFlow = 1
+)
+
+const (
+	DataTypeDraft   uint = 1
+	DataTypeRelease uint = 2
+)
+
+const (
+	PromptTypeCustom = 0
+	PromptTypeStruct = 1
 )

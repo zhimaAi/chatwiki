@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"image/png"
 	"net/http"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -21,6 +22,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	strip "github.com/grokify/html-strip-tags-go"
+	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/spf13/cast"
 	"github.com/tmc/langchaingo/textsplitter"
 	"github.com/xuri/excelize/v2"
@@ -355,26 +357,67 @@ func ConvertAndReadHtmlContent(fileId int, fileUrl string, userId int) ([]define
 	return ReadHtmlContent(htmlUrl, userId)
 }
 
-func ConvertHtml(link string, userId int) (string, error) {
+func RequestConvertService(file, fromFormat string) (content string, err error) {
+	request := curl.Post(define.Config.WebService[`converter`]+`/convert`).
+		PostFile(`file`, file).
+		Param(`from_format`, fromFormat).
+		Param(`to_format`, `html`)
+	if resp, err := request.Response(); err != nil {
+		return ``, err
+	} else if resp.StatusCode != http.StatusOK {
+		return ``, errors.New(content)
+	}
+	return request.String()
+}
+
+func PdfConvertHtml(file string) (content string, err error) {
+	page, err := api.PageCountFile(file)
+	if err != nil { //获取页码出错
+		return
+	}
+	outDir := define.UploadDir + fmt.Sprintf(`pdf_split/%s`, tool.Random(8)) //随机生成切分后的目录
+	defer func(path string) {
+		_ = os.RemoveAll(path) //结束后删除目录
+	}(outDir)
+	_ = tool.MkDirAll(outDir) //确保输出目录存在
+	if err = api.SplitFile(file, outDir, 1, nil); err != nil {
+		return
+	}
+	//来自spanFileName,千万不要改,大写会出问题!!!
+	filename := strings.TrimSuffix(filepath.Base(file), `.pdf`)
+	for idx := 1; idx <= page; idx++ {
+		item := fmt.Sprintf(`%s/%s_%d.pdf`, outDir, filename, idx)
+		if !tool.IsFile(item) {
+			continue //预防文件不存在的情况
+		}
+		onePage, err := RequestConvertService(item, `pdf`)
+		if err != nil {
+			return ``, fmt.Errorf(`[%d/%d]:%v`, idx, page, err)
+		}
+		content += onePage
+	}
+	return
+}
+
+func ConvertHtml(link string, userId int) (content string, err error) {
 	if !LinkExists(link) {
 		return ``, errors.New(`file not exist:` + link)
 	}
 	ext := strings.ToLower(strings.TrimLeft(filepath.Ext(link), `.`))
-	request := curl.Post(define.Config.WebService[`converter`]+`/convert`).
-		PostFile(`file`, GetFileByLink(link)).
-		Param(`from_format`, ext).
-		Param(`to_format`, `html`)
-	content, err := request.String()
+	if ext == `pdf` { //切分成每一页再转换合并
+		content, err = PdfConvertHtml(GetFileByLink(link))
+	} else { //直接请求转换服务
+		content, err = RequestConvertService(GetFileByLink(link), ext)
+	}
 	if err != nil {
 		return ``, err
 	}
-	resp, err := request.Response()
+	//替换base64编码的图片
+	content, err = ReplaceBase64Img(content, userId)
 	if err != nil {
 		return ``, err
 	}
-	if resp.StatusCode != http.StatusOK {
-		return ``, errors.New(content)
-	}
+	//保存html文件
 	objectKey := fmt.Sprintf(`chat_ai/%d/%s/%s/%s.html`, userId,
 		`convert`, tool.Date(`Ym`), tool.MD5(content))
 	url, err := WriteFileByString(objectKey, content)
@@ -384,21 +427,12 @@ func ConvertHtml(link string, userId int) (string, error) {
 	return url, nil
 }
 
-func ReadHtmlContent(htmlUrl string, userId int) ([]define.DocSplitItem, int, error) {
-	if !LinkExists(htmlUrl) {
-		return nil, 0, errors.New(`file not exist:` + htmlUrl)
-	}
-
-	content, err := tool.ReadFile(GetFileByLink(htmlUrl))
-	if err != nil {
-		return nil, 0, err
-	}
-
+func ReplaceBase64Img(content string, userId int) (string, error) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(content))
 	if err != nil {
-		return nil, 0, err
+		logs.Error(err.Error())
+		return ``, err
 	}
-
 	doc.Find("img").Each(func(index int, item *goquery.Selection) {
 		src, exists := item.Attr("src")
 		if exists && strings.HasPrefix(src, "data:image") {
@@ -422,7 +456,6 @@ func ReadHtmlContent(htmlUrl string, userId int) ([]define.DocSplitItem, int, er
 				}
 				format = `png`
 			}
-
 			// save to file
 			objectKey := fmt.Sprintf(`chat_ai/%d/%s/%s/%s.%s`, userId, `library_image`, tool.Date(`Ym`), tool.MD5(string(imgData)), format)
 			imgUrl, err := WriteFileByString(objectKey, string(imgData))
@@ -430,22 +463,36 @@ func ReadHtmlContent(htmlUrl string, userId int) ([]define.DocSplitItem, int, er
 				logs.Error(err.Error())
 				return
 			}
-
 			// Replace img tag with a span tag
 			newTag := fmt.Sprintf("<b>{{!!%s!!}}</b>", imgUrl)
 			item.ReplaceWithHtml(newTag)
 		}
 	})
-
 	content, err = doc.Html()
 	if err != nil {
 		logs.Error(err.Error())
-		return nil, 0, err
+		return ``, err
 	}
-
 	if !utf8.ValidString(content) {
 		content = tool.Convert(content, `gbk`, `utf-8`)
 	}
+	return content, nil
+}
+
+func ReadHtmlContent(htmlUrl string, userId int) ([]define.DocSplitItem, int, error) {
+	if !LinkExists(htmlUrl) {
+		return nil, 0, errors.New(`file not exist:` + htmlUrl)
+	}
+	content, err := tool.ReadFile(GetFileByLink(htmlUrl))
+	if err != nil {
+		return nil, 0, err
+	}
+	//替换base64编码的图片
+	content, err = ReplaceBase64Img(content, userId)
+	if err != nil {
+		return nil, 0, err
+	}
+	//过滤stripTags并组装返回
 	content = strip.StripTags(content)
 	list := []define.DocSplitItem{{Content: content}}
 	return list, utf8.RuneCountInString(content), nil

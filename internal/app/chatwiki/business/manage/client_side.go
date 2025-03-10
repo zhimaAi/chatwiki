@@ -7,14 +7,12 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_define"
-	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
@@ -61,8 +59,7 @@ func getDomain(c *gin.Context) (string, error) {
 	domain := strings.TrimSpace(c.PostForm(`domain`))
 	referer := c.Request.Referer()
 	if len(domain) == 0 && len(referer) > 0 {
-		urlobj, err := url.Parse(referer)
-		if err == nil && urlobj.Host == c.Request.Host {
+		if urlobj, err := url.Parse(referer); err == nil {
 			domain = urlobj.Scheme + `://` + urlobj.Host
 		}
 	}
@@ -88,21 +85,14 @@ func ClientSideDownload(c *gin.Context) {
 	}
 	version := lib_define.GetElectronVersion()
 	md5 := tool.MD5(cast.ToString(userId) + domain)
-	exeUrl := fmt.Sprintf(`/public/client_side/%s/%s/chatwiki.exe`, version, md5)
 	zipUrl := fmt.Sprintf(`/public/client_side/%s/%s/chatwiki.zip`, version, md5)
-	if !tool.IsFile(`static`+exeUrl) || !tool.IsFile(`static`+zipUrl) {
-		if lib_redis.AddLock(define.Redis, define.LockPreKey+`client_side_build.`+version+md5, time.Minute) {
-			//async task:build
-			if message, err := tool.JsonEncode(map[string]any{`version`: version, `domain`: domain, `admin_user_id`: userId, `exe_url`: exeUrl, `zip_url`: zipUrl}); err != nil {
-				logs.Error(err.Error())
-			} else if err := common.AddJobs(lib_define.ClientSideBuildTopic, message); err != nil {
-				logs.Error(err.Error())
-			}
+	if !tool.IsFile(`static` + zipUrl) {
+		if err = common.GenerateChatwikiZip(userId, domain, `static`+zipUrl); err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
 		}
-		// unpacked front end waiting
-		exeUrl = ``
-		zipUrl = ``
 	}
-	data := map[string]any{`domain`: domain, `admin_user_id`: userId, `exe_url`: exeUrl, `zip_url`: zipUrl, `file_url`: zipUrl}
+	data := map[string]any{`domain`: domain, `admin_user_id`: userId, `zip_url`: zipUrl, `file_url`: zipUrl}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }

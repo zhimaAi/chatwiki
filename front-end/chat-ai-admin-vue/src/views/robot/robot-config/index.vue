@@ -52,7 +52,8 @@
 
 <template>
   <div class="robot-page-layout">
-    <div class="layout-left">
+    
+    <div class="layout-left" v-if="isShowLeft">
       <div class="robot-name-box">
         <img class="robot-avatar" :src="robotInfo.robot_avatar_url" alt="" />
         <span class="robot-name">{{ robotInfo.robot_name }}</span>
@@ -66,9 +67,9 @@
 </template>
 
 <script>
-import { defineComponent } from 'vue'
+import { defineComponent, computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useRobotStore } from '@/stores/modules/robot'
 import leftMenu from './components/left-menu.vue'
 
@@ -80,17 +81,19 @@ export default defineComponent({
   async beforeRouteEnter(to, from, next) {
     const robotStore = useRobotStore()
     const { getRobot } = robotStore
-
     await getRobot(to.query.id)
 
     next()
   },
+  
   setup() {
     const router = useRouter()
     const robotStore = useRobotStore()
     const { robotInfo } = storeToRefs(robotStore)
-
     // 基本配置
+    const isShowLeft = computed(()=>{
+      return useRoute().name != 'robotWorkflow'
+    })
     const changeMenu = (item) => {
       router.push({
         path: item.path,
@@ -103,7 +106,8 @@ export default defineComponent({
 
     return {
       robotInfo,
-      changeMenu
+      changeMenu,
+      isShowLeft
     }
   }
 })

@@ -118,6 +118,22 @@ func IsChatOpenid(openid string) bool {
 	return false
 }
 
+func IsVariableName(key string) bool {
+	ok, err := regexp.MatchString(`^[a-zA-Z_][a-zA-Z0-9_\-]{0,99}$`, key)
+	if err == nil && ok {
+		return true
+	}
+	return false
+}
+
+func IsVariableNames(variable string) bool {
+	ok, err := regexp.MatchString(`^[a-zA-Z_][a-zA-Z0-9_\-.]*$`, variable)
+	if err == nil && ok {
+		return true
+	}
+	return false
+}
+
 func GetImgInMessage(message string) (string, []string) {
 	imgRE := regexp.MustCompile(`<img[^>]+\bsrc=["']([^"']+)["']>`)
 	imgs := imgRE.FindAllStringSubmatch(message, -1)

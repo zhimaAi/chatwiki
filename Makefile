@@ -30,20 +30,6 @@ crawler_mac:
 	GOARCH=amd64 GOOS=linux go build -o build/crawler -ldflags "-s -w" cmd/crawler/*.go
 	cd build&&chmod a+x crawler&&ls -l crawler
 
-.PHONY:client_side_build
-client_side_build:
-	go version
-	cd cmd/client_side_build&&go mod tidy
-	set GOARCH=amd64&&set GOOS=linux&&go build -o build/client_side_build -ldflags "-s -w" cmd/client_side_build/main.go
-	cd build&&git add client_side_build&&git update-index --chmod=+x client_side_build&&git ls-files --stage client_side_build
-
-.PHONY:client_side_build_mac
-client_side_build_mac:
-	go version
-	cd cmd/client_side_build&&go mod tidy
-	GOARCH=amd64 GOOS=linux go build -o build/client_side_build -ldflags "-s -w" cmd/client_side_build/main.go
-	cd build&&chmod a+x client_side_build&&ls -l client_side_build
-
 .PHONY:websocket
 websocket:
 	go version
@@ -62,12 +48,10 @@ websocket_mac:
 make_all:
 	make chatwiki
 	make crawler
-	make client_side_build
 	make websocket
 
 .PHONY:make_all_mac
 make_all_mac:
 	make chatwiki_mac
 	make crawler_mac
-	make client_side_build_mac
 	make websocket_mac

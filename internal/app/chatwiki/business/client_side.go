@@ -72,6 +72,11 @@ func ClientSideGetRobotList(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+	for i, info := range list {
+		if common.IsUrl(info[`robot_avatar`]) {
+			list[i][`robot_avatar`] = common.GetFileByLink(info[`robot_avatar`])[6:]
+		}
+	}
 	//company info
 	company, err := msql.Model(define.TableCompany, define.Postgres).Where(`parent_id`, cast.ToString(adminUserId)).Order(`id asc`).Find()
 	if err != nil {

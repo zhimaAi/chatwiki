@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/zhimaAi/llm_adaptor/adaptor"
 	"sort"
 	"strings"
 	"sync"
@@ -20,6 +19,7 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
 func ToStringMap(data msql.Datas, adds ...any) msql.Params {
@@ -338,7 +338,7 @@ func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size 
 	return result, err
 }
 
-func GetMatchLibraryParagraphByMergeRerank(question string, size int, vectorList, searchList []msql.Params, robot msql.Params) ([]msql.Params, error) {
+func GetMatchLibraryParagraphByMergeRerank(openid, appType, question string, size int, vectorList, searchList []msql.Params, robot msql.Params) ([]msql.Params, error) {
 	if len(robot) == 0 || cast.ToInt(robot[`rerank_status`]) == 0 {
 		return nil, nil //not rerank config
 	}
@@ -370,7 +370,7 @@ func GetMatchLibraryParagraphByMergeRerank(question string, size int, vectorList
 		Data:     list,
 		TopK:     size,
 	}
-	return RerankData(cast.ToInt(robot[`rerank_model_config_id`]), robot[`rerank_use_model`], rerankReq)
+	return RerankData(cast.ToInt(robot[`admin_user_id`]), openid, appType, robot, rerankReq)
 }
 
 func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQuestions []string, libraryIds string, size int, similarity float64, searchType int, robot msql.Params) ([]msql.Params, error) {
@@ -398,7 +398,15 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 		searchList = append(searchList, list...)
 	}
 
-	rerankList, err := GetMatchLibraryParagraphByMergeRerank(question, fetchSize, vectorList, searchList, robot)
+	//问题优化后,召回的内容重新按相似度排序
+	sort.Slice(vectorList, func(i, j int) bool {
+		return cast.ToFloat64(vectorList[i][`similarity`]) > cast.ToFloat64(vectorList[j][`similarity`])
+	})
+	sort.Slice(searchList, func(i, j int) bool {
+		return cast.ToFloat64(searchList[i][`similarity`]) > cast.ToFloat64(searchList[j][`similarity`])
+	})
+
+	rerankList, err := GetMatchLibraryParagraphByMergeRerank(openid, appType, question, fetchSize, vectorList, searchList, robot)
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -526,9 +534,9 @@ func SaveVector(adminUserID, libraryID, fileID, dataID int64, vectorType, conten
 
 func GetOptimizedQuestions(param *define.ChatRequestParam, contextList []map[string]string) ([]string, error) {
 	histories := ""
-	for _, context := range contextList {
-		histories += "Q: " + context[`question`] + "\n"
-		histories += "A: " + context[`answer`] + "\n"
+	for _, item := range contextList {
+		histories += "Q: " + item[`question`] + "\n"
+		histories += "A: " + item[`answer`] + "\n"
 	}
 	prompt := strings.ReplaceAll(define.PromptDefaultQuestionOptimize, `{{query}}`, param.Question)
 	prompt = strings.ReplaceAll(prompt, `{{histories}}`, histories)
@@ -646,4 +654,23 @@ func SetUploadFormFileProc(taskId string, uploadForm *define.UploadFormFile, ttl
 	str, _ := json.Marshal(uploadForm)
 	_, err := define.Redis.Set(context.Background(), handler.GetCacheKey(), string(str), time.Second*ttl).Result()
 	return err
+}
+
+type NodeCacheBuildHandler struct {
+	RobotId  uint
+	DataType uint
+	NodeKey  string
+}
+
+func (h *NodeCacheBuildHandler) GetCacheKey() string {
+	return fmt.Sprintf(`chatwiki.work.flow.node..%d.%d.%s`, h.RobotId, h.DataType, h.NodeKey)
+}
+func (h *NodeCacheBuildHandler) GetCacheData() (any, error) {
+	return msql.Model(`work_flow_node`, define.Postgres).Where(`robot_id`, cast.ToString(h.RobotId)).
+		Where(`data_type`, cast.ToString(h.DataType)).Where(`node_key`, h.NodeKey).Find()
+}
+func GetRobotNode(robotId uint, nodeKey string) (msql.Params, error) {
+	result := make(msql.Params)
+	err := lib_redis.GetCacheWithBuild(define.Redis, &NodeCacheBuildHandler{RobotId: robotId, DataType: define.DataTypeRelease, NodeKey: nodeKey}, &result, time.Hour)
+	return result, err
 }

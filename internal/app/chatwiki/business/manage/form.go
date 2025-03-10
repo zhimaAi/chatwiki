@@ -10,6 +10,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"os"
+	"regexp"
+	"strings"
+	"time"
+	"unicode/utf8"
+
 	"github.com/elliotchance/orderedmap/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/now"
@@ -18,12 +25,6 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
-	"net/http"
-	"os"
-	"regexp"
-	"strings"
-	"time"
-	"unicode/utf8"
 )
 
 func GetFormList(c *gin.Context) {
@@ -507,7 +508,7 @@ func UploadFormFile(c *gin.Context) {
 		common.FmtError(c, `no_fields`)
 		return
 	}
-	fieldsMap := make(map[string]msql.Params, 0)
+	fieldsMap := make(map[string]msql.Params)
 	for _, item := range fieldsList {
 		fieldsMap[item[`name`]] = item
 	}

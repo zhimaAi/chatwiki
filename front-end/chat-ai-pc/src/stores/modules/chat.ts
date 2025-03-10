@@ -315,8 +315,8 @@ export const useChatStore = defineStore('chat', () => {
       robot_key: robot.robot_key,
       openid: robot.openid,
       question: data.message,
-      prompt: robot.prompt,
-      library_ids: robot.library_ids,
+      // prompt: robot.prompt,
+      // library_ids: robot.library_ids,
       dialogue_id: dialogue_id.value
     }
 

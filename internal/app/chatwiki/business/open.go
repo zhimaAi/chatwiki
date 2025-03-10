@@ -95,7 +95,6 @@ func ChatMessages(c *gin.Context) {
 				}
 			}
 		}(chanStream)
-		params.Robot["show_type"] = cast.ToString(define.RobotTextResponse)
 		message, err := DoChatRequest(params, req.Stream, chanStream)
 		if err != nil {
 			logs.Error("%s", err.Error())
@@ -167,8 +166,6 @@ func (r *ChatMessagesReq) buildChatRequestParam(c *gin.Context) (*define.ChatReq
 		Lang:          common.GetLang(c),
 		Question:      strings.TrimSpace(r.Content),
 		DialogueId:    cast.ToInt(dialogueId),
-		Prompt:        strings.TrimSpace(robot["prompt"]),
-		LibraryIds:    strings.TrimSpace(robot["library_ids"]),
 		IsClose:       &isClose,
 	}, nil
 }
@@ -225,7 +222,6 @@ func Completions(c *gin.Context) {
 	if define.IsDev {
 		logs.Debug("请求数据原始:%+v", msg)
 		logs.Debug("请求数据解析后问题:%+v", params.Question)
-		logs.Debug("请求数据解析后提示词:%+v", params.Prompt)
 	}
 	chanStream := make(chan sse.Event)
 	if req.Stream {
@@ -249,7 +245,6 @@ func Completions(c *gin.Context) {
 				}
 			}
 		}(chanStream)
-		params.Robot["show_type"] = cast.ToString(define.RobotTextResponse)
 		message, err := DoChatRequest(params, req.Stream, chanStream)
 		if err != nil {
 			logs.Error("%s", err.Error())
@@ -316,7 +311,6 @@ func (r *ChatCompletionRequest) buildChatRequestParam(c *gin.Context) (*define.C
 	isClose := false
 	question := ""
 	openApiContent := ""
-	prompt := ""
 	if len(r.Messages) > 0 {
 		msgArr := make([]ChatCompletionMessage, 0)
 		for key, item := range r.Messages {
@@ -336,8 +330,6 @@ func (r *ChatCompletionRequest) buildChatRequestParam(c *gin.Context) (*define.C
 		Question:       strings.TrimSpace(question),
 		OpenApiContent: strings.TrimSpace(openApiContent),
 		DialogueId:     cast.ToInt(dialogueId),
-		Prompt:         strings.TrimSpace(prompt),
-		LibraryIds:     strings.TrimSpace(robot["library_ids"]),
 		IsClose:        &isClose,
 	}, nil
 }

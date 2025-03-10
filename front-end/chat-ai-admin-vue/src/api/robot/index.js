@@ -7,12 +7,12 @@ export const getRobotList = (params = {}) => {
   })
 }
 
-export const saveRobot = (data = {}) => {
+export const saveRobot = (data = {}, application_type = 0) => {
   return request.post({
     headers: {
       'Content-Type': 'multipart/form-data'
     },
-    url: '/manage/saveRobot',
+    url: application_type == 0 ? '/manage/saveRobot' : '/manage/addFlowRobot',
     data: data
   })
 }
@@ -120,5 +120,27 @@ export const deleteRobotApikey = (data = {}) => {
   return request.post({
     url: '/manage/deleteRobotApikey',
     data: data
+  })
+}
+
+
+export const getNodeList = (params = {}) => {
+  return request.get({
+    url: '/manage/getNodeList',
+    params: params
+  })
+}
+
+export const saveNodes = (data = {}) => {
+  return request.post({
+    url: '/manage/saveNodes',
+    data: data
+  })
+}
+
+export const createPromptByAi = (params = {}) => {
+  return request.get({
+    url: '/manage/createPromptByAi',
+    params: params
   })
 }

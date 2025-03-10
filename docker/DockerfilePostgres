@@ -1,4 +1,4 @@
-FROM registry.cn-hangzhou.aliyuncs.com/chatwiki/zhparser:bookworm-16 as zhparser
+FROM registry.cn-hangzhou.aliyuncs.com/chatwiki/zhparser:bookworm-16 AS zhparser
 
 FROM registry.cn-hangzhou.aliyuncs.com/chatwiki/pgvector:pg16
 

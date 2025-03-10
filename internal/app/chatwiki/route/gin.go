@@ -55,9 +55,11 @@ func init() {
 	Route[http.MethodPost][`/manage/upload`] = manage.Upload
 	Route[http.MethodGet][`/manage/getRobotList`] = manage.GetRobotList
 	Route[http.MethodPost][`/manage/saveRobot`] = manage.SaveRobot
+	Route[http.MethodPost][`/manage/addFlowRobot`] = manage.AddFlowRobot
 	Route[http.MethodPost][`/manage/editExternalConfig`] = manage.EditExternalConfig
 	Route[http.MethodGet][`/manage/getRobotInfo`] = manage.GetRobotInfo
 	Route[http.MethodPost][`/manage/deleteRobot`] = manage.DeleteRobot
+	Route[http.MethodGet][`/manage/createPromptByAi`] = manage.CreatePromptByAi
 
 	/*apiKey API*/
 	Route[http.MethodPost][`/manage/addRobotApikey`] = manage.AddRobotApikey
@@ -165,6 +167,9 @@ func init() {
 	/*export API*/
 	Route[http.MethodGet][`/manage/getExportTaskList`] = manage.GetExportTaskList
 	Route[http.MethodGet][`/manage/downloadExportFile`] = manage.DownloadExportFile
+	/*work_flow API*/
+	Route[http.MethodGet][`/manage/getNodeList`] = manage.GetNodeList
+	Route[http.MethodPost][`/manage/saveNodes`] = manage.SaveNodes
 }
 
 func noAuthFuns(route map[string]lib_web.Action, path string, handlerFunc lib_web.Action) map[string]lib_web.Action {

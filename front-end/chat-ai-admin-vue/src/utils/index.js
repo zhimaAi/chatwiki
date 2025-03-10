@@ -1,5 +1,73 @@
 import { message } from 'ant-design-vue'
 import { useStorage } from '../hooks/web/useStorage'
+import CryptoJS from 'crypto-js'
+
+export function generateUniqueId(salt = '') {
+  // 获取当前时间戳（毫秒级）
+  const timestamp = Date.now()
+
+  // 生成一个32位的随机数
+  let chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+  let randomPart = ''
+
+  // 循环32次，每次随机选择一个字符
+  for (let i = 0; i < 36; i++) {
+    // 随机选择一个字符并添加到salt中
+    const randomChar = chars[Math.floor(Math.random() * chars.length)]
+    randomPart += randomChar
+  }
+
+  // 将时间戳、随机数和盐值拼接起来
+  const idParts = [timestamp, randomPart, salt]
+
+  // 使用MD5或其他哈希算法对拼接后的字符串进行哈希，以生成固定长度的唯一ID
+
+  // 对拼接后的字符串进行哈希，并截取前16位作为唯一ID的一部分
+  const hashedPart = CryptoJS.MD5(idParts.join('')).toString()
+
+  // 返回32位唯一ID
+  return hashedPart
+}
+
+export function generateRandomId(length) {
+  const possibleCharacters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; // 所有可能的字符
+  let randomString = '';
+
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * possibleCharacters.length); // 生成一个随机索引
+    randomString += possibleCharacters.charAt(randomIndex); // 获取一个随机字符并追加到结果字符串
+  }
+
+  return randomString; // 返回生成的随机字符串
+}
+
+// 防抖函数
+const delayedClickMap = {}
+export function delayedClick(key, time = 3000) {
+  if (Object.prototype.hasOwnProperty.call(delayedClickMap, key)) {
+    return false
+  }
+
+  delayedClickMap[key] = true
+
+  setTimeout(() => {
+    delete delayedClickMap[key]
+  }, time)
+
+  return true
+}
+
+// 分钟转秒
+export function minutesToSeconds(minutes) {
+  return minutes * 60;
+}
+
+// 秒转分钟
+export function secondsToMinutes(seconds) {
+  return seconds / 60;
+}
+
+
 
 export function showErrorMsg(msg) {
   message.destroy()

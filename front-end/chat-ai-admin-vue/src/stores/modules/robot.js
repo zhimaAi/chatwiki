@@ -48,7 +48,10 @@ export const useRobotStore = defineStore('robot', () => {
     top_k: 1,
     similarity: 0,
     search_type: 1,
-    prompt: DERAULT_ROBOT_PROMPT,
+    prompt: '',
+    prompt_struct: {},
+    prompt_struct_default: {},
+    prompt_type: 1,
     library_ids: '',
     form_ids: '',
     welcomes: {
@@ -73,6 +76,7 @@ export const useRobotStore = defineStore('robot', () => {
     enable_common_question: 'false',
     common_question_list: [],
     answer_source_switch: 'false',
+    application_type: 0,
   })
 
   // WebApp配置
@@ -102,6 +106,17 @@ export const useRobotStore = defineStore('robot', () => {
         content: content
       }
     })
+
+    let prompt_struct = {};
+    if(data.prompt_struct){
+      prompt_struct = JSON.parse(data.prompt_struct)
+    }
+
+    let prompt_struct_default = {};
+    if(data.prompt_struct_default){
+      prompt_struct_default = JSON.parse(data.prompt_struct_default)
+    }
+
     robotInfo.id = data.id
     robotInfo.robot_key = data.robot_key
     robotInfo.fast_command_switch = data.fast_command_switch
@@ -114,7 +129,10 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.rerank_status = Number(data.rerank_status)
     robotInfo.rerank_use_model = data.rerank_use_model
     robotInfo.rerank_model_config_id = data.rerank_model_config_id
-    robotInfo.prompt = data.prompt || DERAULT_ROBOT_PROMPT
+    robotInfo.prompt = data.prompt
+    robotInfo.prompt_struct = prompt_struct
+    robotInfo.prompt_struct_default = prompt_struct_default
+    robotInfo.prompt_type = +data.prompt_type
     robotInfo.library_ids = data.library_ids || ''
     robotInfo.form_ids = data.form_ids || ''
     robotInfo.welcomes = welcomes
@@ -140,6 +158,7 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.enable_common_question = data.enable_common_question
     robotInfo.common_question_list = data.common_question_list
     robotInfo.answer_source_switch = data.answer_source_switch
+    robotInfo.application_type = data.application_type
     // h5配置
     if (data.external_config_h5 !== '') {
       Object.assign(external_config_h5, JSON.parse(data.external_config_h5))
@@ -178,12 +197,27 @@ export const useRobotStore = defineStore('robot', () => {
     quickCommandLists.value = data || []
   }
 
+  const draftSaveTime = ref({})
+  const setDrafSaveTime = (data)=>{
+    draftSaveTime.value = data
+  }
+
+  const modelList = ref([])
+
+  const setModelList = (data)=>{
+    modelList.value = data
+  }
+
   return {
     robotInfo,
     getRobot,
     external_config_h5,
     external_config_pc,
     quickCommandLists,
-    setQuickCommand
+    setQuickCommand,
+    draftSaveTime,
+    setDrafSaveTime,
+    modelList,
+    setModelList,
   }
 })

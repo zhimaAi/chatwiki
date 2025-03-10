@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/app/chatwiki/work_flow"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
@@ -444,13 +445,6 @@ func ChatQuestionGuide(c *gin.Context) {
 	prompt := strings.ReplaceAll(define.PromptDefaultQuestionGuide, `{{histories}}`, histories)
 	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `user`, Content: prompt}}
 
-	//var messages []adaptor.ZhimaChatCompletionMessage
-	//messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: define.PromptDefaultQuestionGuide})
-	//for _, msg := range questionGuideMessages {
-	//	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: msg.Role, Content: msg.Content})
-	//}
-	//messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: `请按要求回答`})
-
 	chatResp, _, err := common.RequestChat(
 		chatBaseParam.AdminUserId,
 		chatBaseParam.Openid,
@@ -580,7 +574,9 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	var messages []adaptor.ZhimaChatCompletionMessage
 	var list []msql.Params
 	var recallTime int64
-	if cast.ToInt(params.Robot[`chat_type`]) == define.ChatTypeDirect {
+	if cast.ToInt(params.Robot[`application_type`]) == define.ApplicationTypeFlow {
+		//nothing to do
+	} else if cast.ToInt(params.Robot[`chat_type`]) == define.ChatTypeDirect {
 		messages, list, err = buildDirectChatRequestMessage(params, id, dialogueId, &debugLog)
 	} else {
 		recallStart := time.Now()
@@ -595,7 +591,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		return nil, err
 	}
 
-	messages = buildOpenApiContent(params, messages)
+	messages = common.BuildOpenApiContent(params, messages)
 
 	var functionTools []adaptor.FunctionTool
 	if len(params.Robot[`form_ids`]) > 0 {
@@ -614,7 +610,21 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		chatResp          = adaptor.ZhimaChatCompletionResponse{}
 	)
 	msgType := define.MsgTypeText
-	if cast.ToInt(params.Robot[`chat_type`]) == define.ChatTypeDirect {
+	if cast.ToInt(params.Robot[`application_type`]) == define.ApplicationTypeFlow {
+		workFlowParams := &work_flow.WorkFlowParams{ChatRequestParam: params, CurMsgId: int(id), DialogueId: dialogueId}
+		content, requestTime, recallTime, list, err = work_flow.CallWorkFlow(workFlowParams, &debugLog)
+		if err != nil {
+			sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)
+			debugLog = append(debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
+			chanStream <- sse.Event{Event: `debug`, Data: debugLog} //渲染Prompt日志
+			return nil, err
+		}
+		if recallTime > 0 { //特别注意:毫秒
+			chanStream <- sse.Event{Event: `recall_time`, Data: recallTime}
+		}
+		chanStream <- sse.Event{Event: `request_time`, Data: requestTime}
+		chanStream <- sse.Event{Event: `sending`, Data: content}
+	} else if cast.ToInt(params.Robot[`chat_type`]) == define.ChatTypeDirect {
 		if useStream {
 			chatResp, requestTime, err = common.RequestChatStream(
 				params.AdminUserId,
@@ -786,8 +796,8 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	if *params.IsClose { //client break
 		return nil, errors.New(`client break`)
 	}
-	//push prompt log
 	debugLog = append(debugLog, map[string]string{`type`: `cur_answer`, `content`: content})
+	//push prompt log
 	chanStream <- sse.Event{Event: `debug`, Data: debugLog}
 	//dispose answer source
 	quoteFile, ms := make([]msql.Params, 0), map[string]struct{}{}
@@ -881,13 +891,13 @@ func sendDefaultUnknownQuestionPrompt(params *define.ChatRequestParam, errmsg st
 
 func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId int64, dialogueId int, debugLog *[]any) ([]adaptor.ZhimaChatCompletionMessage, []msql.Params, error) {
 	if len(params.Prompt) == 0 { //no custom is used
-		params.Prompt = params.Robot[`prompt`]
+		params.Prompt = common.BuildPromptStruct(cast.ToInt(params.Robot[`prompt_type`]), params.Robot[`prompt`], params.Robot[`prompt_struct`])
 	}
 	if len(params.LibraryIds) == 0 || !common.CheckIds(params.LibraryIds) { //no custom is used
 		params.LibraryIds = params.Robot[`library_ids`]
 	}
 
-	contextList := buildChatContextPair(params.Openid, cast.ToInt(params.Robot[`id`]),
+	contextList := common.BuildChatContextPair(params.Openid, cast.ToInt(params.Robot[`id`]),
 		dialogueId, int(curMsgId), cast.ToInt(params.Robot[`context_pair`]))
 
 	//question optimize
@@ -916,131 +926,47 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 		return nil, nil, err
 	}
 
-	//part1:prompt
-	responseTypeMsg := buildChatResponseType(cast.ToInt(params.Robot["show_type"]), params.Lang)
-	prompt := params.Prompt
-	prompt = prompt + "\n\n" + define.PromptDefaultAnswerImage
-	prompt = prompt + "\n\n" + responseTypeMsg
+	//part1:prompt+library
+	prompt := common.FormatSystemPrompt(params.Prompt, list)
 	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
 	*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: prompt})
 
-	//part2:library
-	for _, one := range list {
-		var images []string
-		err = tool.JsonDecode(one[`images`], &images)
-		if err != nil {
-			logs.Error(err.Error())
-		}
-		if cast.ToInt(one[`type`]) == define.ParagraphTypeNormal {
-			messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: common.EmbTextImages(one[`content`], images)})
-			*debugLog = append(*debugLog, map[string]string{`type`: `library`, `content`: common.EmbTextImages(one[`content`], images)})
-		} else {
-			messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: "question: " + one[`question`] + "\nanswer: " + common.EmbTextImages(one[`answer`], images)})
-			*debugLog = append(*debugLog, map[string]string{`type`: `library`, `content`: "question: " + one[`question`] + "\nanswer: " + common.EmbTextImages(one[`answer`], images)})
-		}
-	}
-
-	//part3:context_qa
-	// Add a parameter if you need to clarify the distinction
+	//part2:context_qa
 	for i := range contextList {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})
 		*debugLog = append(*debugLog, map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]})
 	}
 
-	//part4:cur_question
-	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: responseTypeMsg + params.Question})
-	*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: responseTypeMsg + params.Question})
+	//part3:cur_question
+	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: params.Question})
+	*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
 
 	return messages, list, nil
 }
 
 func buildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int64, dialogueId int, debugLog *[]any) ([]adaptor.ZhimaChatCompletionMessage, []msql.Params, error) {
-	var messages []adaptor.ZhimaChatCompletionMessage
-	// Add a parameter if you need to clarify the distinction
-	responseTypeMsg := buildChatResponseType(cast.ToInt(params.Robot["show_type"]), params.Lang)
-	//messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: responseTypeMsg})
-	//*debugLog = append(*debugLog, map[string]string{`type`: `system`, `content`: responseTypeMsg})
-	contextList := buildChatContextPair(params.Openid, cast.ToInt(params.Robot[`id`]),
+	if len(params.Prompt) == 0 { //no custom is used
+		params.Prompt = common.BuildPromptStruct(cast.ToInt(params.Robot[`prompt_type`]), params.Robot[`prompt`], params.Robot[`prompt_struct`])
+	}
+
+	//part1:prompt
+	prompt := common.FormatSystemPrompt(params.Prompt, nil)
+	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
+	*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: prompt})
+
+	//part2:context_qa
+	contextList := common.BuildChatContextPair(params.Openid, cast.ToInt(params.Robot[`id`]),
 		dialogueId, int(curMsgId), cast.ToInt(params.Robot[`context_pair`]))
 	for i := range contextList {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})
 		*debugLog = append(*debugLog, map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]})
 	}
-	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: responseTypeMsg + params.Question})
-	*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: responseTypeMsg + params.Question})
+
+	//part3:cur_question
+	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: params.Question})
+	*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
+
 	return messages, []msql.Params{}, nil
-}
-
-func buildChatContextPair(openid string, robotId, dialogueId, curMsgId, contextPair int) []map[string]string {
-	contextList := make([]map[string]string, 0)
-	if contextPair <= 0 {
-		return contextList //no context required
-	}
-	list, err := msql.Model(`chat_ai_message`, define.Postgres).Where(`openid`, openid).
-		Where(`robot_id`, cast.ToString(robotId)).Where(`dialogue_id`, cast.ToString(dialogueId)).
-		Where(`msg_type`, cast.ToString(define.MsgTypeText)).Where(`id`, `<`, cast.ToString(curMsgId)).
-		Order(`id desc`).Field(`id,content,is_customer,is_valid_function_call`).Limit(contextPair * 4).Select()
-	if err != nil {
-		logs.Error(err.Error())
-	}
-	if len(list) == 0 {
-		return contextList
-	}
-	//reverse
-	for i, j := 0, len(list)-1; i < j; i, j = i+1, j-1 {
-		list[i], list[j] = list[j], list[i]
-	}
-	//remove the record before the function call
-	for index := len(list) - 1; index >= 0; index-- {
-		if cast.ToBool(list[index][`is_valid_function_call`]) {
-			if index == len(list)-1 {
-				list = []msql.Params{}
-			} else {
-				list = list[index+1:]
-			}
-			break
-		}
-	}
-	//foreach
-	for i := 0; i < len(list)-1; i++ {
-		if cast.ToInt(list[i][`is_customer`]) == define.MsgFromCustomer && cast.ToInt(list[i+1][`is_customer`]) == define.MsgFromRobot {
-			contextList = append(contextList, map[string]string{`question`: list[i][`content`], `answer`: list[i+1][`content`]})
-			i++ //skip answer
-		}
-	}
-	//cut out
-	if len(contextList) > contextPair {
-		contextList = contextList[len(contextList)-contextPair:]
-	}
-
-	return contextList
-}
-
-func buildChatResponseType(showType int, lang string) string {
-	result := ""
-	if showType == define.RobotMarkdownResponse {
-		result = fmt.Sprintf("(%s)", i18n.Show(lang, `chat_show_type`, `markdown格式`))
-	}
-	return result
-}
-
-func buildOpenApiContent(params *define.ChatRequestParam, messages []adaptor.ZhimaChatCompletionMessage) []adaptor.ZhimaChatCompletionMessage {
-	if params.AppType != lib_define.AppOpenApi {
-		return messages
-	}
-	var contents = make([]adaptor.ZhimaChatCompletionMessage, 0)
-	err := tool.JsonDecode(params.OpenApiContent, &contents)
-	if err != nil {
-		logs.Error(err.Error())
-		return messages
-	}
-	if len(contents) > 0 {
-		messages = append(contents, messages...)
-	}
-	if define.IsDev {
-		logs.Debug("%+v", messages)
-	}
-	return messages
 }

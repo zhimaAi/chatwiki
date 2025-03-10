@@ -4,10 +4,11 @@ package define
 
 import (
 	"errors"
+	"strconv"
+
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
-	"strconv"
 )
 
 type RequestContext struct {

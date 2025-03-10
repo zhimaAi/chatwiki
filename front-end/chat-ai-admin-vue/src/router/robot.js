@@ -10,6 +10,7 @@ export default {
       component: () => import('../views/robot/robot-list/robot-list.vue'),
       meta: {
         title: '机器人管理',
+        hideTitle: true,
         activeMenu: '/robot',
         bgColor: '#F5F9FF',
         pageStyle: {}
@@ -34,6 +35,15 @@ export default {
             title: '编辑机器人',
             isCustomPage: true,
             activeMenu: '/robot'
+          }
+        },
+        {
+          path: '/robot/config/workflow',
+          name: 'robotWorkflow',
+          component: () => import('../views/workflow/index.vue'),
+          meta: {
+            title: '工作流编排',
+            isCustomPage: true,
           }
         },
         {
@@ -104,6 +114,7 @@ export default {
         breadcrumb: false,
         isCustomPage: true
       }
-    }
+    },
+
   ]
 }

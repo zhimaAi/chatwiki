@@ -78,6 +78,7 @@ export default defineConfig((opt) => {
       // 进阶基础路径选项
     },
     server: {
+      host: '0.0.0.0',
       proxy: getProxyConfig(opt),
       port: 5520,
       open: true,

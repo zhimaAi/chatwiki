@@ -5,6 +5,10 @@
     border-bottom: 1px solid #ccc;
   }
 
+  ::v-deep(.ant-tabs-nav::before){
+    border-bottom: 0;
+  }
+
   .top-banner {
     position: relative;
     line-height: 22px;
@@ -41,7 +45,7 @@
   .list-item {
     position: relative;
     width: 100%;
-    height: 130px;
+    height: 198px;
     padding: 14px 16px;
     border: 1px solid #f0f0f0;
     border-radius: 2px;
@@ -73,7 +77,8 @@
 
     .robot-info {
       display: flex;
-      align-items: start;
+      // align-items: start;
+      align-items: center;
     }
 
     .robot-avatar {
@@ -85,7 +90,7 @@
 
     .robot-info-content {
       flex: 1;
-      padding-left: 8px;
+      padding-left: 12px;
     }
 
     .robot-name {
@@ -97,11 +102,12 @@
     }
 
     .robot-desc {
-      height: 40px;
-      line-height: 20px;
-      font-size: 12px;
+      margin-top: 16px;
+      height: 44px;
+      line-height: 22px;
+      font-size: 14px;
       font-weight: 400;
-      color: #8c8c8c;
+      color: #595959;
       // 超出2行显示省略号
       overflow: hidden;
       text-overflow: ellipsis;
@@ -110,29 +116,41 @@
       -webkit-box-orient: vertical;
     }
 
-    .robot-action {
-      line-height: 22px;
-      padding-top: 16px;
+    .robot-type-tag{
+      width: fit-content;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      color: #2475fc;
       font-size: 14px;
+      font-weight: 400;
+      border-radius: 6px;
+      border: 1px solid #99BFFD;
+      height: 24px;
+    }
+
+    .robot-action {
+      margin-top: 16px;
+      font-size: 14px;
+      height: 24px;
       color: #2475fc;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-
+      gap: 8px;
       .robot-action-item {
-        flex: 1;
-        text-align: center;
-        color: #8c8c8c;
+        height: 100%;
+        color: #595959;
+        font-weight: 400;
+        display: flex;
+        width: fit-content;
+        align-items: center;
+        gap: 4px;
+        border-radius: 6px;
+        padding: 0 8px;
+        cursor: pointer;
       }
-
       .robot-action-item:hover {
-        color: #2475fc;
-      }
-
-      .robot-action-line {
-        width: 1px;
-        height: 14px;
-        background-color: #f0f0f0;
+        background: #E4E6EB;
       }
 
       .action-icon {
@@ -158,6 +176,7 @@
       font-size: 14px;
     }
   }
+
 }
 
 // 大于1440px
@@ -174,28 +193,34 @@
 
 <template>
   <div class="robot-page">
-    <div class="top-banner">
+    <!-- <div class="top-banner">
       <div>
         1.可以创建多个不同的机器人，不同机器人应用在不同场景中，不同机器人可以关联不同的知识库
       </div>
       <div>
         2.您可以复制链接将机器人提供给您的用户使用。在对外提供服务之前，建议您进行充分测试，并适当调整知识库
       </div>
-    </div>
+    </div> -->
+
+    <a-tabs v-model:activeKey="activeKey">
+      <a-tab-pane key="2" tab="全部"></a-tab-pane>
+      <a-tab-pane key="0" tab="聊天机器人"></a-tab-pane>
+      <a-tab-pane key="1" tab="工作流"></a-tab-pane>
+    </a-tabs>
 
     <div class="list-box">
       <div class="list-item-wrapper" v-if="robotCreate">
         <div class="list-item add-robot" @click="toAddRobot">
           <PlusCircleOutlined class="add-icon" />
-          <span class="add-text">新增机器人</span>
+          <span class="add-text">新增应用</span>
         </div>
       </div>
 
       <div
         class="list-item-wrapper"
-        v-for="item in robotList"
+        v-for="item in filterRobotList"
         :key="item.id"
-        @click="toEditRobot(item.id)"
+        @click="toEditRobot(item)"
       >
         <div class="list-item">
           <span class="item-action" @click.stop>
@@ -219,14 +244,15 @@
             <img class="robot-avatar" :src="item.robot_avatar" alt="" />
             <div class="robot-info-content">
               <div class="robot-name">{{ item.robot_name }}</div>
-              <div class="robot-desc">{{ item.robot_intro }}</div>
             </div>
           </div>
-
+          <div class="robot-desc">{{ item.robot_intro }}</div>
+          <div class="robot-type-tag">
+            {{ item.application_type == 0 ? '聊天机器人' : '工作流' }}
+          </div>
           <div class="robot-action" @click.stop>
-            <a class="robot-action-item" href="javascript:;" @click="toEditRobot(item.id)"><svg-icon class="action-icon" name="jibenpeizhi" /> 管理</a>
-            <div class="robot-action-line"></div>
-            <a class="robot-action-item" @click="toTestPage(item)"><svg-icon class="action-icon" name="cmd" /> 测试</a>
+            <div class="robot-action-item" @click="toEditRobot(item)"><svg-icon class="action-icon" name="jibenpeizhi" /> 管理</div>
+            <div class="robot-action-item" @click="toTestPage(item)"><svg-icon class="action-icon" name="cmd" /> 测试</div>
           </div>
         </div>
       </div>
@@ -251,7 +277,16 @@ const robotCreate = computed(() => role_permission.includes('RobotCreate'))
 
 const router = useRouter()
 
+const activeKey = ref('2')
+
 const robotList = ref([])
+
+const filterRobotList = computed(()=>{
+  if(activeKey.value == 2){
+    return robotList.value
+  }
+  return robotList.value.filter(item => item.application_type == activeKey.value)
+})
 
 const getList = () => {
   getRobotList()
@@ -267,8 +302,12 @@ const toAddRobot = () => {
   addRobotAlertRef.value.open()
 }
 
-const toEditRobot = (id) => {
-  router.push({ path: '/robot/config/basic-config', query: { id: id } })
+const toEditRobot = ({id, robot_key, application_type}) => {
+  if(application_type == 0){
+    router.push({ path: '/robot/config/basic-config', query: { id: id, robot_key: robot_key  } })
+  }else{
+    router.push({ path: '/robot/config/workflow', query: { id: id, robot_key: robot_key  } })
+  }
 }
 
 const handleDelete = (data) => {

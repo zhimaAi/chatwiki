@@ -40,7 +40,19 @@ const selectedKeys = computed(() => {
   return [route.path.split('/')[3]]
 })
 
-const items = ref([
+const baseItems = [
+{
+    key: 'workflow',
+    id: 'workflow',
+    icon: () =>
+      h(SvgIcon, {
+        name: 'workflow',
+        class: 'menu-icon'
+      }),
+    label: '工作流编排',
+    title: '工作流编排',
+    path: '/robot/config/workflow'
+  },
   {
     key: 'basic-config',
     id: 'basic-config',
@@ -146,7 +158,18 @@ const items = ref([
     title: '导出记录',
     path: '/robot/config/export-record'
   },
-])
+]
+
+const items = computed(()=>{
+  if(props.robotInfo.application_type == 0){
+    return baseItems.filter(item => item.id != 'workflow')
+  }else{
+    return baseItems.filter(item => item.id != 'basic-config')
+  }
+})
+
+
+
 
 const handleChangeMenu = ({ item }) => {
   if (selectedKeys.value.includes(item.id)) {

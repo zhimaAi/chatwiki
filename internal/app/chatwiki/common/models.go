@@ -3,13 +3,12 @@
 package common
 
 import (
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_define"
 	"encoding/json"
 	"errors"
 	"io"
 	"time"
-
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/pkg/lib_define"
 
 	"github.com/gin-contrib/sse"
 	"github.com/spf13/cast"
@@ -73,8 +72,9 @@ const (
 	ModelDoubao          = "doubao"
 	ModelBaichuan        = "baichuan"
 
-	ModelZhipu   = "zhipu"
-	ModelMinimax = "minimax"
+	ModelZhipu       = "zhipu"
+	ModelMinimax     = "minimax"
+	ModelSiliconFlow = "siliconflow"
 )
 
 const (
@@ -248,7 +248,9 @@ var modelList = [...]ModelInfo{
 			"ernie-3.5-8k-preview",
 			"ernie-3.5-8k",
 			"ernie-3.5-128k",
-			"ernie-lite-pro-128k"},
+			"ernie-lite-pro-128k",
+			`deepseek-v3`,
+		},
 		ConfigParams:        []string{`api_key`},
 		ConfigList:          nil,
 		ApiVersions:         []string{},
@@ -260,6 +262,19 @@ var modelList = [...]ModelInfo{
 			`ERNIE-4.0-8K-Latest`,
 			`ERNIE-3.5-8K`,
 			`ERNIE-3.5-128K`,
+			"ernie-4.0-8k-latest", // v2 chat
+			"ernie-4.0-8k-preview",
+			"ernie-4.0-8k",
+			"ernie-4.0-turbo-8k-latest",
+			"ernie-4.0-turbo-8k-preview",
+			"ernie-4.0-turbo-8k",
+			"ernie-4.0-turbo-128k",
+			"ernie-3.5-8k-preview",
+			"ernie-3.5-8k",
+			"ernie-3.5-128k",
+			"ernie-lite-pro-128k",
+			`deepseek-v3`,
+			`deepseek-r1`,
 		},
 		VectorModelList: []string{
 			`embedding-v1`,
@@ -273,17 +288,21 @@ var modelList = [...]ModelInfo{
 		CheckFancCallRequest: CheckYiyanFancCall,
 	},
 	{
-		ModelDefine:               ModelAliyunTongyi,
-		ModelName:                 `通义千问`,
-		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelAliyunTongyi + `.png`,
-		Introduce:                 `基于阿里云提供的通义千问API`,
-		IsOffline:                 false,
-		SupportList:               []string{Llm, TextEmbedding, Tts},
-		SupportedType:             []string{Llm, TextEmbedding},
-		SupportedFunctionCallList: []string{`qwen-plus`, `qwen-max`},
-		ConfigParams:              []string{`api_key`},
-		ConfigList:                nil,
-		ApiVersions:               []string{},
+		ModelDefine:   ModelAliyunTongyi,
+		ModelName:     `通义千问`,
+		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelAliyunTongyi + `.png`,
+		Introduce:     `基于阿里云提供的通义千问API`,
+		IsOffline:     false,
+		SupportList:   []string{Llm, TextEmbedding, Tts},
+		SupportedType: []string{Llm, TextEmbedding},
+		SupportedFunctionCallList: []string{
+			`qwen-plus`,
+			`qwen-max`,
+			`deepseek-v3`,
+		},
+		ConfigParams: []string{`api_key`},
+		ConfigList:   nil,
+		ApiVersions:  []string{},
 		LlmModelList: []string{
 			`qwen-turbo`,
 			`qwen-plus`,
@@ -292,6 +311,8 @@ var modelList = [...]ModelInfo{
 			`qwen-max-0403`,
 			`qwen-max-0107`,
 			`qwen-max-longcontext`,
+			`deepseek-v3`,
+			`deepseek-r1`,
 		},
 		VectorModelList: []string{
 			`text-embedding-v1`,
@@ -629,6 +650,59 @@ var modelList = [...]ModelInfo{
 		HelpLinks:       `https://www.minimaxi.com/`,
 		CallHandlerFunc: GetMinimaxHandle,
 	},
+	{
+		ModelDefine:               ModelSiliconFlow,
+		ModelName:                 `硅基流动`,
+		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelSiliconFlow + `.png`,
+		Introduce:                 `支持通义千问，mata-lama，google-gemma，bge-m3等开源模型，可以免部署、低成本使用`,
+		IsOffline:                 false,
+		SupportList:               []string{Llm, TextEmbedding, Rerank},
+		SupportedType:             []string{Llm, TextEmbedding, Rerank},
+		SupportedFunctionCallList: []string{},
+		ConfigParams:              []string{`api_key`},
+		ConfigList:                nil,
+		ApiVersions:               []string{},
+		LlmModelList: []string{
+			`Qwen/Qwen2.5-72B-Instruct-128K`,
+			`deepseek-ai/DeepSeek-R1`,
+			`deepseek-ai/DeepSeek-V3`,
+			`AIDC-AI/Marco-o1`,
+			`meta-llama/Llama-3.3-70B-Instruct`,
+			`deepseek-ai/DeepSeek-V2.5`,
+			`Qwen/Qwen2.5-72B-Instruct`,
+			`Qwen/Qwen2.5-32B-Instruct`,
+			`Qwen/Qwen2.5-14B-Instruct`,
+			`Qwen/Qwen2.5-7B-Instruct`,
+			`Qwen/Qwen2.5-Coder-32B-Instruct`,
+			`Qwen/Qwen2.5-Coder-7B-Instruct`,
+			`Qwen/Qwen2-7B-Instruct`,
+			`Qwen/Qwen2-1.5B-Instruct`,
+			`Qwen/QwQ-32B-Preview`,
+			`TeleAI/TeleChat2`,
+			`01-ai/Yi-1.5-34B-Chat-16K`,
+			`01-ai/Yi-1.5-9B-Chat-16K`,
+			`01-ai/Yi-1.5-6B-Chat`,
+			`THUDM/glm-4-9b-chat`,
+			`Vendor-A/Qwen/Qwen2.5-72B-Instruct`,
+			`internlm/internlm2_5-7b-chat`,
+			`internlm/internlm2_5-20b-chat`,
+			`meta-llama/Meta-Llama-3.1-405B-Instruct`,
+			`meta-llama/Meta-Llama-3.1-70B-Instruct`,
+			`meta-llama/Meta-Llama-3.1-8B-Instruct`,
+			`google/gemma-2-27b-it`,
+			`google/gemma-2-9b-it`,
+			`Pro/Qwen/Qwen2.5-7B-Instruct`,
+			`Pro/Qwen/Qwen2-7B-Instruct`,
+			`Pro/Qwen/Qwen2-1.5B-Instruct`,
+			`Pro/THUDM/glm-4-9b-chat`,
+			`Pro/meta-llama/Meta-Llama-3.1-8B-Instruct`,
+			`Pro/google/gemma-2-9b-it`,
+		},
+		VectorModelList: []string{`BAAI/bge-m3`, `Pro/BAAI/bge-m3`},
+		RerankModelList: []string{`BAAI/bge-reranker-v2-m3`, `Pro/BAAI/bge-reranker-v2-m3`},
+		HelpLinks:       `https://siliconflow.cn/zh-cn/`,
+		CallHandlerFunc: GetSiliconFlow,
+	},
 }
 
 func GetModelInfoByDefine(modelDefine string) (ModelInfo, bool) {
@@ -771,7 +845,7 @@ func (h *ModelCallHandler) GetSimilarity(query []float64, inputs [][]float64) (s
 	return tool.JsonEncode(res.Result)
 }
 
-func (h *ModelCallHandler) RequestRerank(params *adaptor.ZhimaRerankReq) ([]msql.Params, error) {
+func (h *ModelCallHandler) RequestRerank(adminUserId int, openid, appType string, robot msql.Params, params *adaptor.ZhimaRerankReq) (adaptor.ZhimaRerankResp, error) {
 	client := &adaptor.Adaptor{}
 	client.Init(h.Meta)
 	req := &adaptor.ZhimaRerankReq{
@@ -783,11 +857,23 @@ func (h *ModelCallHandler) RequestRerank(params *adaptor.ZhimaRerankReq) ([]msql
 	}
 	res, err := client.CreateRerank(req)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
-	if res == nil {
-		return nil, errors.New(`get rerank return nil`)
+	if res.Data == nil {
+		return res, errors.New(`get rerank return nil`)
 	}
+	result, _ := tool.JsonEncode(res.Data)
+	totalResponse := adaptor.ZhimaChatCompletionResponse{
+		Result:          result,
+		PromptToken:     res.InputToken,
+		CompletionToken: res.OutputToken,
+	}
+	go func() {
+		err := LlmLogRequest("RERANK", adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.Meta.Model, totalResponse.PromptToken, totalResponse.CompletionToken, req, totalResponse)
+		if err != nil {
+			logs.Error(err.Error())
+		}
+	}()
 	return res, nil
 }
 

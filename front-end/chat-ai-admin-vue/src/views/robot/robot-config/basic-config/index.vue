@@ -51,9 +51,11 @@
       <div class="setting-box">
         <UnknownProblemPrompt />
       </div>
+      <!--  
       <div class="setting-box">
         <MarkdownSetting />
       </div>
+      -->
       <div class="setting-box">
         <ProblemOptimization />
       </div>
@@ -141,6 +143,7 @@ const saveForm = () => {
   })
 
   formData.welcomes = JSON.stringify(welcomes)
+  formData.prompt_struct = JSON.stringify(formData.prompt_struct)
 
   let unknown_question_prompt = formData.unknown_question_prompt
 

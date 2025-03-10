@@ -87,7 +87,7 @@ const items = computed(() => {
         id: 1,
         key: 'robot',
         label: 'robot',
-        title: '机器人管理',
+        title: '应用管理',
         path: '/robot/list'
       })
     }

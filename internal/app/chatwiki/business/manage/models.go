@@ -180,6 +180,16 @@ func DelModelConfig(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `exist_relation_robot`, robot[`robot_name`]))))
 		return
 	}
+	robot, err = msql.Model(`chat_ai_robot`, define.Postgres).Where(cast.ToString(id) + `=ANY(work_flow_model_config_ids)`).Field(`robot_name`).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(robot) > 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `exist_relation_robot`, robot[`robot_name`]))))
+		return
+	}
 	//database dispose
 	_, err = msql.Model(`chat_ai_model_config`, define.Postgres).Where(`id`, cast.ToString(id)).Delete()
 	if err != nil {

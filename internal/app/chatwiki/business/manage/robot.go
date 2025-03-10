@@ -6,9 +6,11 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -18,6 +20,7 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
 func GetRobotList(c *gin.Context) {
@@ -27,7 +30,7 @@ func GetRobotList(c *gin.Context) {
 	}
 
 	m := msql.Model(`chat_ai_robot`, define.Postgres).
-		Field(`id,robot_name,robot_intro,robot_avatar,robot_key`).
+		Field(`id,robot_name,robot_intro,robot_avatar,robot_key,application_type`).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id desc`)
 
 	userId := getLoginUserId(c)
@@ -90,7 +93,9 @@ func SaveRobot(c *gin.Context) {
 	robotName := strings.TrimSpace(c.PostForm(`robot_name`))
 	robotIntro := strings.TrimSpace(c.PostForm(`robot_intro`))
 	robotAvatar := ``
+	promptType := cast.ToInt(c.DefaultPostForm(`prompt_type`, `1`))
 	prompt := strings.TrimSpace(c.PostForm(`prompt`))
+	promptStruct := strings.TrimSpace(c.DefaultPostForm(`prompt_struct`, common.GetDefaultPromptStruct()))
 	libraryIds := strings.TrimSpace(c.PostForm(`library_ids`))
 	formIds := strings.TrimSpace(c.PostForm(`form_ids`))
 	welcomes := strings.TrimSpace(c.PostForm(`welcomes`))
@@ -103,14 +108,13 @@ func SaveRobot(c *gin.Context) {
 	similarity := cast.ToFloat32(c.DefaultPostForm(`similarity`, `0.6`))
 	searchType := cast.ToInt(c.DefaultPostForm(`search_type`, `1`))
 	chatType := cast.ToInt(c.DefaultPostForm(`chat_type`, `1`))
-	unknownQuestionPrompt := strings.TrimSpace(c.PostForm(`unknown_question_prompt`))
+	unknownQuestionPrompt := strings.TrimSpace(c.DefaultPostForm(`unknown_question_prompt`, `{"content":"哎呀，这个问题我暂时还不太清楚呢～（对手指）"}`))
 
 	libraryQaDirectReplySwitch := cast.ToBool(c.PostForm(`library_qa_direct_reply_switch`))
 	libraryQaDirectReplyScore := cast.ToFloat32(c.PostForm(`library_qa_direct_reply_score`))
 
 	mixtureQaDirectReplySwitch := cast.ToBool(c.PostForm(`mixture_qa_direct_reply_switch`))
 	mixtureQaDirectReplyScore := cast.ToFloat32(c.PostForm(`mixture_qa_direct_reply_score`))
-	showType := cast.ToInt(c.DefaultPostForm(`show_type`, `1`))
 	answerSourceSwitch := cast.ToBool(c.DefaultPostForm(`answer_source_switch`, `true`))
 
 	enableQuestionOptimize := cast.ToBool(c.DefaultPostForm(`enable_question_optimize`, `false`))
@@ -129,16 +133,17 @@ func SaveRobot(c *gin.Context) {
 				return
 			}
 		}
-		if len(prompt) == 0 {
-			prompt = i18n.Show(common.GetLang(c), `default_prompt`)
-		}
 		if len(welcomes) == 0 {
 			welcomes = i18n.Show(common.GetLang(c), `default_welcomes`)
 		}
 	}
 	//check required
-	if id < 0 || len(robotName) == 0 || len(prompt) == 0 || len(welcomes) == 0 || modelConfigId <= 0 || len(useModel) == 0 || maxToken < 0 || topK <= 0 {
+	if id < 0 || len(robotName) == 0 || len(welcomes) == 0 || modelConfigId <= 0 || len(useModel) == 0 || maxToken < 0 || topK <= 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	if promptStruct, err = common.CheckPromptConfig(promptType, promptStruct); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	if temperature < 0 || temperature > 2 {
@@ -317,7 +322,9 @@ func SaveRobot(c *gin.Context) {
 	data := msql.Datas{
 		`robot_name`:               robotName,
 		`robot_intro`:              robotIntro,
+		`prompt_type`:              promptType,
 		`prompt`:                   prompt,
+		`prompt_struct`:            promptStruct,
 		`library_ids`:              libraryIds,
 		`form_ids`:                 formIds,
 		`welcomes`:                 welcomes,
@@ -333,7 +340,6 @@ func SaveRobot(c *gin.Context) {
 		`similarity`:               similarity,
 		`search_type`:              searchType,
 		`chat_type`:                chatType,
-		`show_type`:                showType,
 		`answer_source_switch`:     answerSourceSwitch,
 		`enable_question_optimize`: enableQuestionOptimize,
 		`enable_question_guide`:    enableQuestionGuide,
@@ -385,6 +391,95 @@ func SaveRobot(c *gin.Context) {
 			_ = AddUserMangedData(getLoginUserId(c), `managed_robot_list`, id)
 		}
 
+	}
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	//clear cached data
+	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
+	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
+}
+
+func AddFlowRobot(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	userInfo, err := msql.Model(define.TableUser, define.Postgres).Alias(`u`).
+		Join(`role r`, `u.user_roles::integer=r.id`, `left`).
+		Where(`u.id`, cast.ToString(userId)).Field(`u.*,r.role_type`).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(userInfo) == 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+	//get params
+	robotName := strings.TrimSpace(c.PostForm(`robot_name`))
+	robotIntro := strings.TrimSpace(c.PostForm(`robot_intro`))
+	robotAvatar := define.LocalUploadPrefix + `default/robot_avatar.png`
+	//check required
+	if len(robotName) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	//data check
+	var robotKey string
+	m := msql.Model(`chat_ai_robot`, define.Postgres)
+	count, err := m.Where(`admin_user_id`, cast.ToString(userId)).Count()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if count >= define.MaxRobotNum {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `max_robot_num`, define.MaxRobotNum))))
+		return
+	}
+	//headImg uploaded
+	fileHeader, _ := c.FormFile(`robot_avatar`)
+	uploadInfo, err := common.SaveUploadedFile(fileHeader, define.ImageLimitSize, userId, `robot_avatar`, define.ImageAllowExt)
+	if err == nil && uploadInfo != nil {
+		robotAvatar = uploadInfo.Link
+	}
+	//format check
+	welcomes, _ := common.CheckMenuJson(i18n.Show(common.GetLang(c), `default_welcomes`))
+	unknownQuestionPrompt, _ := common.CheckMenuJson(``)
+	//database dispose
+	data := msql.Datas{
+		`admin_user_id`:           userId,
+		`robot_name`:              robotName,
+		`robot_intro`:             robotIntro,
+		`robot_avatar`:            robotAvatar,
+		`application_type`:        define.ApplicationTypeFlow,
+		`create_time`:             tool.Time2Int(),
+		`update_time`:             tool.Time2Int(),
+		`welcomes`:                welcomes,
+		`unknown_question_prompt`: unknownQuestionPrompt,
+	}
+	for i := 0; i < 5; i++ {
+		tempKey := tool.Random(10)
+		if robot, e := common.GetRobotInfo(tempKey); e == nil && len(robot) == 0 {
+			robotKey = tempKey
+			break
+		}
+		time.Sleep(time.Nanosecond) //sleep 1 ns
+	}
+	if len(robotKey) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	data[`robot_key`] = robotKey
+	id, err := m.Insert(data, `id`)
+	// add robot api key
+	if err == nil {
+		addDefaultApiKey(c, robotKey)
+		_ = AddUserMangedData(getLoginUserId(c), `managed_robot_list`, id)
 	}
 	if err != nil {
 		logs.Error(err.Error())
@@ -465,9 +560,13 @@ func GetRobotInfo(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
+	if len(info[`prompt_struct`]) == 0 {
+		info[`prompt_struct`] = tool.JsonEncodeNoError(common.GetEmptyPromptStruct()) //旧数据默认给空值
+	}
 	//configure external service parameters
 	info[`h5_domain`] = define.Config.WebService[`h5_domain`]
 	info[`pc_domain`] = define.Config.WebService[`pc_domain`]
+	info[`prompt_struct_default`] = common.GetDefaultPromptStruct() //提供给前端的默认值
 
 	c.String(http.StatusOK, lib_web.FmtJson(info, nil))
 }
@@ -528,5 +627,49 @@ func deleteRobotRelationData(robotId int, robotKey string) error {
 	}
 	err := deleteRobotApiKey(robotKey)
 	err = deleteFastCommandByRobotId(robotId)
+	err = deleteWorkFlowByRobotId(robotId)
 	return err
+}
+
+func CreatePromptByAi(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	id := cast.ToInt(c.Query(`id`))
+	demand := strings.TrimSpace(c.Query(`demand`))
+	if id <= 0 || len(demand) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	info, err := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(info) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: define.PromptDefaultCreatePrompt}, {Role: `user`, Content: demand}}
+	chatResp, _, err := common.RequestChat(
+		userId, cast.ToString(userId), info, lib_define.AppYunPc, cast.ToInt(info[`model_config_id`]), info[`use_model`],
+		messages, nil, cast.ToFloat32(info[`temperature`]), cast.ToInt(info[`max_token`]),
+	)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	chatResp.Result, _ = strings.CutPrefix(chatResp.Result, "```json")
+	chatResp.Result, _ = strings.CutSuffix(chatResp.Result, "```")
+	promptStruct, err := common.CheckPromptConfig(define.PromptTypeStruct, chatResp.Result)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf(`%s`, chatResp.Result)))
+		return
+	}
+	data := map[string]any{`promptStruct`: promptStruct, `markdown`: common.BuildPromptStruct(define.PromptTypeStruct, ``, promptStruct)}
+	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }

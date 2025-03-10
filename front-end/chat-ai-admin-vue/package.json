@@ -20,6 +20,9 @@
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
+    "@logicflow/core": "^2.0.9",
+    "@logicflow/extension": "^2.0.13",
+    "@logicflow/vue-node-registry": "^1.0.11",
     "@better-scroll/core": "^2.5.1",
     "@better-scroll/mouse-wheel": "^2.5.1",
     "@better-scroll/observe-dom": "^2.5.1",

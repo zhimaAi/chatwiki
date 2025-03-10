@@ -20,6 +20,11 @@
   --vt-c-text-dark-1: var(--vt-c-white);
   --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
   --layout-header-height: 52px;
+
+  --wf-color-text-1: #262626;
+  --wf-color-text-2: #8c8c8c;
+  --wf-color-text-3: #595959;
+
 }
 
 /* semantic color variables for this project */
