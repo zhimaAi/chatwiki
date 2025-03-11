@@ -9,6 +9,14 @@
 </p>
 ChatWiki是一款开源的知识库 AI 问答系统。系统基于大语言模型（LLM ）和检索增强生成（RAG）技术构建，提供开箱即用的数据处理、模型调用等能力，可以帮助企业快速搭建自己的知识库AI 问答系统。
 
+### 快速体验
+
+---
+
+- 使用chatwiki云版本，快速构建专属智能机器人：[chatwiki.com](chatwiki.com)
+- [体验chatwiki WebApp](https://h5.wikichat.com.cn/#/chat?robot_key=MvNEDE583n)
+- [体验chatwiki 客户端](https://chatwiki.oss-cn-hangzhou.aliyuncs.com/demo/chatwiki.zip)
+
 ### 能力
 
 ---
@@ -57,6 +65,9 @@ ChatWiki采用直观的可视化界面设计，通过简洁易懂的操作步骤
 
 ChatWiki为 AI 问答机器人提供了不同的使用渠道，支持H5链接、嵌入网站、桌面客户端等，可以满足企业不同业务场景使用需求。
 
+**6、本地化数据存储与安全保障**
+ChatWiki支持企业使用**本地数据库**进行数据存储，确保数据完全自主掌控。通过多层安全防护机制（包括数据加密传输、访问权限控制、审计日志等），保障企业敏感信息的安全性，严格遵循数据隐私保护法规，为企业提供安全可靠的知识管理环境。
+
 ### 开始使用
 
 ---
@@ -81,7 +92,11 @@ sudo curl -sSL https://get.docker.com/ | CHANNEL=stable sh
 **(1).克隆或下载chatwiki项目代码**
 
 ```shell
+//从github 克隆代码
 git clone https://github.com/zhimaAi/chatwiki.git
+
+//从gitee克隆代码
+git@gitee.com:zhimaAi/chatwiki.git
 ```
 
 **(2).使用Docker Compose构建并启动项目**
