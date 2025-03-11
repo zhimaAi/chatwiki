@@ -24,6 +24,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/grokify/html-strip-tags-go v0.1.0
 	github.com/jinzhu/now v1.1.5
+	github.com/lib/pq v1.10.9
 	github.com/pdfcpu/pdfcpu v0.9.1
 	github.com/playwright-community/playwright-go v0.4401.1
 	github.com/pressly/goose/v3 v3.20.0
@@ -86,7 +87,6 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/lib/pq v1.10.9 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect

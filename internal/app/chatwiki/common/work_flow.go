@@ -1,9 +1,8 @@
 // Copyright © 2016- 2024 Sesame Network Technology all right reserved
 
-package work_flow
+package common
 
 import (
-	"chatwiki/internal/app/chatwiki/common"
 	"errors"
 	"fmt"
 	"strings"
@@ -205,7 +204,7 @@ func (fields RecurveFields) ExtractionData(result map[string]any) RecurveFields 
 
 func (fields RecurveFields) Verify() error {
 	for _, field := range fields {
-		if !common.IsVariableName(field.Key) {
+		if !IsVariableName(field.Key) {
 			return errors.New(fmt.Sprintf(`字段[%s]不能为空或格式错误`, field.Key))
 		}
 		if !tool.InArrayString(field.Typ, TypScalars[:]) && !tool.InArrayString(field.Typ, TypArrays[:]) {

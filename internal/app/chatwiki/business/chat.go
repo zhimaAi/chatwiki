@@ -490,6 +490,13 @@ func getChatRequestParam(c *gin.Context) *define.ChatRequestParam {
 }
 
 func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream chan sse.Event) (msql.Params, error) {
+	monitor := common.NewMonitor(params)
+	message, err := doChatRequest(params, useStream, chanStream, monitor)
+	monitor.Save(err)
+	return message, err
+}
+
+func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream chan sse.Event, monitor *common.Monitor) (msql.Params, error) {
 	defer close(chanStream)
 	chanStream <- sse.Event{Event: `ping`, Data: tool.Time2Int()}
 	//check params
@@ -571,18 +578,18 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	//obtain the data required for gpt
 	chanStream <- sse.Event{Event: `robot`, Data: params.Robot}
 	debugLog := make([]any, 0) //debug log
+	defer func() {
+		monitor.DebugLog = debugLog //记录监控数据
+	}()
 	var messages []adaptor.ZhimaChatCompletionMessage
 	var list []msql.Params
-	var recallTime int64
 	if cast.ToInt(params.Robot[`application_type`]) == define.ApplicationTypeFlow {
 		//nothing to do
 	} else if cast.ToInt(params.Robot[`chat_type`]) == define.ChatTypeDirect {
 		messages, list, err = buildDirectChatRequestMessage(params, id, dialogueId, &debugLog)
 	} else {
-		recallStart := time.Now()
-		messages, list, err = buildLibraryChatRequestMessage(params, id, dialogueId, &debugLog)
-		recallTime = time.Now().Sub(recallStart).Milliseconds()
-		chanStream <- sse.Event{Event: `recall_time`, Data: recallTime}
+		messages, list, monitor.LibUseTime, err = buildLibraryChatRequestMessage(params, id, dialogueId, &debugLog)
+		chanStream <- sse.Event{Event: `recall_time`, Data: monitor.LibUseTime.RecallTime}
 	}
 
 	if err != nil {
@@ -608,20 +615,19 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		content, menuJson string
 		requestTime       int64
 		chatResp          = adaptor.ZhimaChatCompletionResponse{}
+		llmStartTime      = time.Now()
 	)
 	msgType := define.MsgTypeText
 	if cast.ToInt(params.Robot[`application_type`]) == define.ApplicationTypeFlow {
 		workFlowParams := &work_flow.WorkFlowParams{ChatRequestParam: params, CurMsgId: int(id), DialogueId: dialogueId}
-		content, requestTime, recallTime, list, err = work_flow.CallWorkFlow(workFlowParams, &debugLog)
+		content, requestTime, monitor.LibUseTime, list, err = work_flow.CallWorkFlow(workFlowParams, &debugLog, monitor)
 		if err != nil {
 			sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)
 			debugLog = append(debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
 			chanStream <- sse.Event{Event: `debug`, Data: debugLog} //渲染Prompt日志
 			return nil, err
 		}
-		if recallTime > 0 { //特别注意:毫秒
-			chanStream <- sse.Event{Event: `recall_time`, Data: recallTime}
-		}
+		chanStream <- sse.Event{Event: `recall_time`, Data: monitor.LibUseTime.RecallTime}
 		chanStream <- sse.Event{Event: `request_time`, Data: requestTime}
 		chanStream <- sse.Event{Event: `sending`, Data: content}
 	} else if cast.ToInt(params.Robot[`chat_type`]) == define.ChatTypeDirect {
@@ -793,6 +799,10 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		}
 	}
 
+	//记录监控数据
+	monitor.LlmCallTime = time.Now().Sub(llmStartTime).Milliseconds()
+	monitor.RequestTime, monitor.Error = requestTime, err
+
 	if *params.IsClose { //client break
 		return nil, errors.New(`client break`)
 	}
@@ -821,7 +831,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		`session_id`:             sessionId,
 		`is_customer`:            define.MsgFromRobot,
 		`request_time`:           requestTime,
-		`recall_time`:            recallTime,
+		`recall_time`:            monitor.LibUseTime.RecallTime,
 		`msg_type`:               msgType,
 		`content`:                content,
 		`is_valid_function_call`: chatResp.IsValidFunctionCall,
@@ -889,7 +899,7 @@ func sendDefaultUnknownQuestionPrompt(params *define.ChatRequestParam, errmsg st
 	chanStream <- sse.Event{Event: `sending`, Data: *content}
 }
 
-func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId int64, dialogueId int, debugLog *[]any) ([]adaptor.ZhimaChatCompletionMessage, []msql.Params, error) {
+func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId int64, dialogueId int, debugLog *[]any) ([]adaptor.ZhimaChatCompletionMessage, []msql.Params, common.LibUseTime, error) {
 	if len(params.Prompt) == 0 { //no custom is used
 		params.Prompt = common.BuildPromptStruct(cast.ToInt(params.Robot[`prompt_type`]), params.Robot[`prompt`], params.Robot[`prompt_struct`])
 	}
@@ -901,17 +911,20 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 		dialogueId, int(curMsgId), cast.ToInt(params.Robot[`context_pair`]))
 
 	//question optimize
+	var questionopTime int64
 	var optimizedQuestions []string
 	if cast.ToBool(params.Robot[`enable_question_optimize`]) && len(params.LibraryIds) > 0 {
 		var err error
+		temp := time.Now()
 		optimizedQuestions, err = common.GetOptimizedQuestions(params, contextList)
+		questionopTime = time.Now().Sub(temp).Milliseconds()
 		if err != nil {
 			logs.Error(err.Error())
 		}
 	}
 
 	//convert match
-	list, err := common.GetMatchLibraryParagraphList(
+	list, libUseTime, err := common.GetMatchLibraryParagraphList(
 		params.Openid,
 		params.AppType,
 		params.Question,
@@ -922,8 +935,9 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 		cast.ToInt(params.Robot[`search_type`]),
 		params.Robot,
 	)
+	libUseTime.QuestionOp = questionopTime
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, libUseTime, err
 	}
 
 	//part1:prompt+library
@@ -942,7 +956,7 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: params.Question})
 	*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
 
-	return messages, list, nil
+	return messages, list, libUseTime, nil
 }
 
 func buildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int64, dialogueId int, debugLog *[]any) ([]adaptor.ZhimaChatCompletionMessage, []msql.Params, error) {
