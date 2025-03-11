@@ -96,7 +96,7 @@ sudo curl -sSL https://get.docker.com/ | CHANNEL=stable sh
 git clone https://github.com/zhimaAi/chatwiki.git
 
 //从gitee克隆代码
-git@gitee.com:zhimaAi/chatwiki.git
+git clone git@gitee.com:zhimaAi/chatwiki.git
 ```
 
 **(2).使用Docker Compose构建并启动项目**
