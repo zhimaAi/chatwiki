@@ -373,18 +373,19 @@ func GetMatchLibraryParagraphByMergeRerank(openid, appType, question string, siz
 	return RerankData(cast.ToInt(robot[`admin_user_id`]), openid, appType, robot, rerankReq)
 }
 
-func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQuestions []string, libraryIds string, size int, similarity float64, searchType int, robot msql.Params) ([]msql.Params, error) {
+func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQuestions []string, libraryIds string, size int, similarity float64, searchType int, robot msql.Params) (_ []msql.Params, libUseTime LibUseTime, _ error) {
 	result := make([]msql.Params, 0)
 	if len(libraryIds) == 0 {
-		return result, nil
+		return result, libUseTime, nil
 	}
 	if len(question) == 0 {
-		return nil, errors.New(`question cannot be empty`)
+		return nil, libUseTime, errors.New(`question cannot be empty`)
 	}
 
 	fetchSize := 4 * size
 	var vectorList, searchList []msql.Params
 
+	temp := time.Now()
 	for _, q := range append(optimizedQuestions, question) {
 		list, err := GetMatchLibraryParagraphByVectorSimilarity(robot, openid, appType, q, libraryIds, fetchSize, similarity, searchType)
 		if err != nil {
@@ -397,6 +398,7 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 		}
 		searchList = append(searchList, list...)
 	}
+	libUseTime.RecallTime = time.Now().Sub(temp).Milliseconds()
 
 	//问题优化后,召回的内容重新按相似度排序
 	sort.Slice(vectorList, func(i, j int) bool {
@@ -406,7 +408,9 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 		return cast.ToFloat64(searchList[i][`similarity`]) > cast.ToFloat64(searchList[j][`similarity`])
 	})
 
+	temp = time.Now()
 	rerankList, err := GetMatchLibraryParagraphByMergeRerank(openid, appType, question, fetchSize, vectorList, searchList, robot)
+	libUseTime.RerankTime = time.Now().Sub(temp).Milliseconds()
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -426,7 +430,7 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 		one[`file_name`] = fileInfo[`file_name`]
 		result = append(result, one)
 	}
-	return result, nil
+	return result, libUseTime, nil
 }
 
 type DialogueCacheBuildHandler struct{ DialogueId int }

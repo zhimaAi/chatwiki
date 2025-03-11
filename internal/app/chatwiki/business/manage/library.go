@@ -332,6 +332,6 @@ func LibraryRecallTest(c *gin.Context) {
 		robot[`robot_name`] = robotName
 	}
 
-	list, err := common.GetMatchLibraryParagraphList("", "", question, []string{}, cast.ToString(libraryId), size, similarity, searchType, robot)
+	list, _, err := common.GetMatchLibraryParagraphList("", "", question, []string{}, cast.ToString(libraryId), size, similarity, searchType, robot)
 	c.String(http.StatusOK, lib_web.FmtJson(list, err))
 }

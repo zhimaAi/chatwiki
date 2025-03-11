@@ -49,17 +49,17 @@ func CompareEqual(single any, typ string, value string) bool {
 		return false
 	}
 	switch typ {
-	case TypString, TypArrString:
+	case common.TypString, common.TypArrString:
 		return cast.ToString(single) == value
-	case TypNumber, TypArrNumber:
+	case common.TypNumber, common.TypArrNumber:
 		return cast.ToInt(single) == cast.ToInt(value)
-	case TypBoole, TypArrBoole:
+	case common.TypBoole, common.TypArrBoole:
 		return cast.ToBool(single) != tool.InArrayString(value, []string{`false`, `0`})
-	case TypFloat, TypArrFloat:
+	case common.TypFloat, common.TypArrFloat:
 		return cast.ToFloat64(single) == cast.ToFloat64(value)
-	case TypObject, TypArrObject:
+	case common.TypObject, common.TypArrObject:
 		return fmt.Sprintf(`%v`, single) == value || tool.JsonEncodeNoError(single) == value
-	case TypParams, TypArrParams:
+	case common.TypParams, common.TypArrParams:
 		return false //nonsupport
 	}
 	return false
@@ -69,7 +69,7 @@ func (term *TermConfig) Verify(flow *WorkFlow) bool {
 	field, exist := flow.GetVariable(term.Variable)
 	switch term.Type {
 	case TermTypeEqual, TermTypeNotEqual:
-		if term.IsMult || tool.InArrayString(field.Typ, TypArrays[:]) {
+		if term.IsMult || tool.InArrayString(field.Typ, common.TypArrays[:]) {
 			return false //config error
 		}
 		boole := CompareEqual(field.GetVal(), field.Typ, term.Value) //equal bool
@@ -86,7 +86,7 @@ func (term *TermConfig) Verify(flow *WorkFlow) bool {
 			return !boole
 		}
 	case TermTypeContain, TermTypeNotContain:
-		if term.IsMult != tool.InArrayString(field.Typ, TypArrays[:]) {
+		if term.IsMult != tool.InArrayString(field.Typ, common.TypArrays[:]) {
 			return false //config error
 		}
 		var boole bool
@@ -159,38 +159,38 @@ const (
 )
 
 type CurlNodeParams struct {
-	Method  string        `json:"method"`
-	Rawurl  string        `json:"rawurl"`
-	Headers []CurlParam   `json:"headers"`
-	Params  []CurlParam   `json:"params"`
-	Type    uint          `json:"type"` //0:none,1:x-www-form-urlencoded,2:application/json
-	Body    []CurlParam   `json:"body"`
-	BodyRaw string        `json:"body_raw"`
-	Timeout uint          `json:"timeout"`
-	Output  RecurveFields `json:"output"`
+	Method  string               `json:"method"`
+	Rawurl  string               `json:"rawurl"`
+	Headers []CurlParam          `json:"headers"`
+	Params  []CurlParam          `json:"params"`
+	Type    uint                 `json:"type"` //0:none,1:x-www-form-urlencoded,2:application/json
+	Body    []CurlParam          `json:"body"`
+	BodyRaw string               `json:"body_raw"`
+	Timeout uint                 `json:"timeout"`
+	Output  common.RecurveFields `json:"output"`
 }
 
 /************************************/
 
 type LibsNodeParams struct {
-	LibraryIds          string   `json:"library_ids"`
-	SearchType          MixedInt `json:"search_type"`
-	TopK                MixedInt `json:"top_k"`
-	Similarity          float64  `json:"similarity"`
-	RerankStatus        uint     `json:"rerank_status"`
-	RerankModelConfigId MixedInt `json:"rerank_model_config_id"`
-	RerankUseModel      string   `json:"rerank_use_model"`
+	LibraryIds          string          `json:"library_ids"`
+	SearchType          common.MixedInt `json:"search_type"`
+	TopK                common.MixedInt `json:"top_k"`
+	Similarity          float64         `json:"similarity"`
+	RerankStatus        uint            `json:"rerank_status"`
+	RerankModelConfigId common.MixedInt `json:"rerank_model_config_id"`
+	RerankUseModel      string          `json:"rerank_use_model"`
 }
 
 /************************************/
 
 type LlmBaseParams struct {
-	ModelConfigId MixedInt `json:"model_config_id"`
-	UseModel      string   `json:"use_model"`
-	ContextPair   MixedInt `json:"context_pair"`
-	Temperature   float32  `json:"temperature"`
-	MaxToken      MixedInt `json:"max_token"`
-	Prompt        string   `json:"prompt"`
+	ModelConfigId common.MixedInt `json:"model_config_id"`
+	UseModel      string          `json:"use_model"`
+	ContextPair   common.MixedInt `json:"context_pair"`
+	Temperature   float32         `json:"temperature"`
+	MaxToken      common.MixedInt `json:"max_token"`
+	Prompt        string          `json:"prompt"`
 }
 
 func (params *LlmBaseParams) Verify(adminUserId int) error {
@@ -253,12 +253,12 @@ type NodeParams struct {
 }
 
 type WorkFlowNode struct {
-	NodeType     MixedInt       `json:"node_type"`
-	NodeName     string         `json:"node_name"`
-	NodeKey      string         `json:"node_key"`
-	NodeParams   NodeParams     `json:"node_params"`
-	NodeInfoJson map[string]any `json:"node_info_json"`
-	NextNodeKey  string         `json:"next_node_key"`
+	NodeType     common.MixedInt `json:"node_type"`
+	NodeName     string          `json:"node_name"`
+	NodeKey      string          `json:"node_key"`
+	NodeParams   NodeParams      `json:"node_params"`
+	NodeInfoJson map[string]any  `json:"node_info_json"`
+	NextNodeKey  string          `json:"next_node_key"`
 }
 
 type FromNodes map[string][]*WorkFlowNode
@@ -275,7 +275,7 @@ func GetVariableList(nodes []*WorkFlowNode) (variables []string) {
 	for _, node := range nodes {
 		switch node.NodeType {
 		case NodeTypeCurl:
-			for variable := range SimplifyFields(node.NodeParams.Curl.Output) {
+			for variable := range common.SimplifyFields(node.NodeParams.Curl.Output) {
 				variables = append(variables, variable)
 			}
 		}

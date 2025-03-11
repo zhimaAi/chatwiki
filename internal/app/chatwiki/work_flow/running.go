@@ -3,6 +3,7 @@
 package work_flow
 
 import (
+	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"context"
 	"errors"
@@ -27,14 +28,15 @@ type WorkFlowParams struct {
 
 type WorkFlow struct {
 	params      *WorkFlowParams
+	nodeLogs    []common.NodeLog
 	StartTime   int
 	EndTime     int
 	context     context.Context
 	cancel      context.CancelFunc
 	ticker      *time.Ticker //流程超时
 	isTimeout   bool
-	global      SimpleFields
-	output      SimpleFields
+	global      common.SimpleFields
+	output      common.SimpleFields
 	curNodeKey  string
 	runNodeKeys []string
 	curNode     NodeAdapter
@@ -47,7 +49,7 @@ func (flow *WorkFlow) Logs(format string, a ...any) {
 	msg := fmt.Sprintf(`[%s] %s`, tool.Date(), fmt.Sprintf(format, a...))
 	flow.runLogs = append(flow.runLogs, msg)
 	if define.IsDev {
-		logs.Debug(fmt.Sprintf(`【%v】`, flow.global[`openid`].GetVal(TypString))+format, a...) //debug日志
+		logs.Debug(fmt.Sprintf(`【%v】`, flow.global[`openid`].GetVal(common.TypString))+format, a...) //debug日志
 	}
 }
 
@@ -64,7 +66,7 @@ func (flow *WorkFlow) LlmCallLogs(info LlmCallInfo) {
 	flow.runLogs = append(flow.runLogs, msg)
 	if define.IsDev {
 		jsonStr, _ := tool.JsonEncodeIndent(info, ``, "\t")
-		logs.Debug(fmt.Sprintf("【%v】llm调用:\r\n%s", flow.global[`openid`].GetVal(TypString), jsonStr))
+		logs.Debug(fmt.Sprintf("【%v】llm调用:\r\n%s", flow.global[`openid`].GetVal(common.TypString), jsonStr))
 	}
 }
 
@@ -72,8 +74,9 @@ func (flow *WorkFlow) Running() (err error) {
 	flow.running = true
 	flow.Logs(`进行工作流...`)
 	for {
+		var nodeInfo msql.Params
 		flow.Logs(`当前运行节点:%s`, flow.curNodeKey)
-		flow.curNode, err = GetNodeByKey(cast.ToUint(flow.params.Robot[`id`]), flow.curNodeKey)
+		flow.curNode, nodeInfo, err = GetNodeByKey(cast.ToUint(flow.params.Robot[`id`]), flow.curNodeKey)
 		if err != nil {
 			flow.Logs(err.Error())
 		}
@@ -82,7 +85,20 @@ func (flow *WorkFlow) Running() (err error) {
 		}
 		flow.runNodeKeys = append(flow.runNodeKeys, flow.curNodeKey)
 		var nextNodeKey string
+		//节点运行开始
+		nodeLog := common.NodeLog{
+			StartTime: time.Now().UnixMilli(),
+			NodeKey:   flow.curNodeKey,
+			NodeName:  nodeInfo[`node_name`],
+			NodeType:  cast.ToInt(nodeInfo[`node_type`]),
+		}
 		flow.output, nextNodeKey, err = flow.curNode.Running(flow)
+		nodeLog.EndTime = time.Now().UnixMilli()
+		nodeLog.Output = flow.output
+		nodeLog.Error = err
+		nodeLog.UseTime = nodeLog.EndTime - nodeLog.StartTime
+		flow.nodeLogs = append(flow.nodeLogs, nodeLog)
+		//节点运行结束
 		if !flow.isFinish {
 			flow.Logs(`结果nextNodeKey:%s,err:%v`, nextNodeKey, err)
 			if len(flow.output) > 0 {
@@ -113,7 +129,7 @@ func (flow *WorkFlow) Ending() {
 	_, err := msql.Model(`work_flow_logs`, define.Postgres).Insert(msql.Datas{
 		`admin_user_id`: flow.params.AdminUserId,
 		`robot_id`:      flow.params.Robot[`id`],
-		`openid`:        flow.global[`openid`].GetVal(TypString),
+		`openid`:        flow.global[`openid`].GetVal(common.TypString),
 		`run_node_keys`: strings.Join(flow.runNodeKeys, `,`),
 		`run_logs`:      tool.JsonEncodeNoError(flow.runLogs),
 		`create_time`:   flow.StartTime, //这里放开始时间
@@ -135,7 +151,7 @@ func (flow *WorkFlow) VariableReplace(content string) string {
 	return regexp.MustCompile(`【[a-zA-Z_][a-zA-Z0-9_\-.]*】`).ReplaceAllString(content, ``)
 }
 
-func (flow *WorkFlow) GetVariable(key string) (field SimpleField, exist bool) {
+func (flow *WorkFlow) GetVariable(key string) (field common.SimpleField, exist bool) {
 	if field, exist = flow.output[key]; exist {
 		return
 	}
@@ -152,13 +168,14 @@ func RunningWorkFlow(params *WorkFlowParams) (*WorkFlow, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	flow := &WorkFlow{
 		params:    params,
+		nodeLogs:  make([]common.NodeLog, 0),
 		StartTime: tool.Time2Int(),
 		context:   ctx,
 		cancel:    cancel,
 		ticker:    time.NewTicker(time.Minute * 5), //DIY
-		global: SimpleFields{
-			`question`: SimpleField{Key: `question`, Desc: tea.String(`用户消息`), Typ: TypString, Vals: []Val{{String: &params.Question}}},
-			`openid`:   SimpleField{Key: `openid`, Desc: tea.String(`用户openid`), Typ: TypString, Vals: []Val{{String: &params.Openid}}},
+		global: common.SimpleFields{
+			`question`: common.SimpleField{Key: `question`, Desc: tea.String(`用户消息`), Typ: common.TypString, Vals: []common.Val{{String: &params.Question}}},
+			`openid`:   common.SimpleField{Key: `openid`, Desc: tea.String(`用户openid`), Typ: common.TypString, Vals: []common.Val{{String: &params.Openid}}},
 		},
 		curNodeKey:  params.Robot[`start_node_key`], //开始节点
 		runNodeKeys: make([]string, 0),
@@ -185,22 +202,25 @@ func RunningWorkFlow(params *WorkFlowParams) (*WorkFlow, error) {
 	return flow, err //返回数据
 }
 
-func CallWorkFlow(params *WorkFlowParams, debugLog *[]any) (content string, requestTime, recallTime int64, list []msql.Params, err error) {
+func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monitor) (content string, requestTime int64, libUseTime common.LibUseTime, list []msql.Params, err error) {
 	if len(params.Robot[`start_node_key`]) == 0 {
 		err = errors.New(`工作流机器人未发布`)
 		return
 	}
 	flow, err := RunningWorkFlow(params)
-	if err != nil {
+	if flow != nil && len(flow.nodeLogs) > 0 {
+		monitor.NodeLogs = flow.nodeLogs //记录监控数据
+	}
+	if flow == nil || err != nil {
 		return
 	}
-	content = cast.ToString(flow.output[`special.llm_reply_content`].GetVal(TypString))
+	content = cast.ToString(flow.output[`special.llm_reply_content`].GetVal(common.TypString))
 	if len(content) == 0 {
 		err = errors.New(`没有AI对话节点回复返回`)
 		return
 	}
-	requestTime = cast.ToInt64(flow.output[`special.llm_request_time`].GetVal(TypNumber))
-	recallTime = cast.ToInt64(flow.output[`special.lib_recall_time`].GetVal(TypNumber))
+	requestTime = cast.ToInt64(flow.output[`special.llm_request_time`].GetVal(common.TypNumber))
+	libUseTime, _ = flow.output[`special.lib_use_time`].GetVal().(common.LibUseTime)
 	for _, val := range flow.output[`special.lib_paragraph_list`].Vals {
 		list = append(list, val.Params)
 	}
