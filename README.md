@@ -13,7 +13,7 @@ ChatWiki是一款开源的知识库 AI 问答系统。系统基于大语言模�
 
 ---
 
-- 使用chatwiki云版本，快速构建专属智能机器人：[chatwiki.com](chatwiki.com)
+- 使用chatwiki云版本，快速构建专属智能机器人：[chatwiki.com](https://chatwiki.com)
 - [体验chatwiki WebApp](https://h5.wikichat.com.cn/#/chat?robot_key=MvNEDE583n)
 - [体验chatwiki 客户端](https://chatwiki.oss-cn-hangzhou.aliyuncs.com/demo/chatwiki.zip)
 
