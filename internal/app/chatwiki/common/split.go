@@ -57,6 +57,10 @@ func GetLibFileSplit(userId, fileId int, splitParams define.SplitParams, lang st
 		list, wordTotal, err = ReadQaTab(info[`file_url`], info[`file_ext`], splitParams)
 	} else if cast.ToInt(info[`is_table_file`]) == define.FileIsTable && splitParams.IsQaDoc != define.DocTypeQa {
 		list, wordTotal, err = ReadTab(info[`file_url`], info[`file_ext`])
+	} else if define.IsDocxFile(info[`file_ext`]) {
+		list, wordTotal, err = ReadDocx(info[`file_url`], userId)
+	} else if define.IsTxtFile(info[`file_ext`]) || define.IsMdFile(info[`file_ext`]) {
+		list, wordTotal, err = ReadTxt(info[`file_url`])
 	} else {
 		if len(info[`html_url`]) == 0 || !LinkExists(info[`html_url`]) { //compatible with old data
 			list, wordTotal, err = ConvertAndReadHtmlContent(cast.ToInt(info[`id`]), info[`file_url`], userId)
@@ -560,6 +564,21 @@ func ReadTab(fileUrl, fileExt string) ([]define.DocSplitItem, int, error) {
 		list = append(list, define.DocSplitItem{PageNum: i, Content: strings.Join(pairs, `;`)})
 	}
 	return list, wordTotal, nil
+}
+
+func ReadTxt(fileUrl string) ([]define.DocSplitItem, int, error) {
+	if !LinkExists(fileUrl) {
+		return nil, 0, errors.New(`file not exist:` + fileUrl)
+	}
+	content, err := tool.ReadFile(GetFileByLink(fileUrl))
+	if err != nil {
+		return nil, 0, err
+	}
+	if !utf8.ValidString(content) {
+		content = tool.Convert(content, `gbk`, `utf-8`)
+	}
+	list := []define.DocSplitItem{{Content: content}}
+	return list, utf8.RuneCountInString(content), nil
 }
 
 func ColumnIndexFromIdentifier(identifier string) (int, error) {
