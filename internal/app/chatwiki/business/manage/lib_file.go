@@ -10,15 +10,16 @@ import (
 	"chatwiki/internal/pkg/lib_web"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/url"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/syyongx/php2go"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
-	"net/http"
-	"net/url"
-	"strings"
 )
 
 func GetLibFileList(c *gin.Context) {
@@ -154,7 +155,7 @@ func addLibFile(c *gin.Context, userId, libraryId int) ([]int64, error) {
 	for _, uploadInfo := range libraryFiles {
 		status := define.FileStatusInitial
 		isTableFile := define.IsTableFile(uploadInfo.Ext)
-		if isTableFile {
+		if !define.IsPdfFile(uploadInfo.Ext) {
 			status = define.FileStatusWaitSplit
 		}
 		insData := msql.Datas{
@@ -190,7 +191,7 @@ func addLibFile(c *gin.Context, userId, libraryId int) ([]int64, error) {
 			logs.Error(err.Error())
 		} else {
 			fileIds = append(fileIds, fileId)
-			if !isTableFile && !uploadInfo.Custom { //async task:convert html
+			if status == define.FileStatusInitial && !uploadInfo.Custom { //async task:convert html
 				if message, err := tool.JsonEncode(map[string]any{`file_id`: fileId, `file_url`: uploadInfo.Link}); err != nil {
 					logs.Error(err.Error())
 				} else if err := common.AddJobs(define.ConvertHtmlTopic, message); err != nil {

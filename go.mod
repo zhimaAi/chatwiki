@@ -7,6 +7,7 @@ require (
 	github.com/Unknwon/goconfig v1.0.0
 	github.com/alibabacloud-go/tea v1.2.2
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
+	github.com/antchfx/xmlquery v1.4.4
 	github.com/beego/i18n v0.0.0-20161101132742-e9308947f407
 	github.com/caarlos0/env/v11 v11.1.0
 	github.com/casbin/casbin/v2 v2.89.0
@@ -46,6 +47,7 @@ require (
 	github.com/BurntSushi/graphics-go v0.0.0-20160129215708-b43f31a4a966 // indirect
 	github.com/alibabacloud-go/debug v1.0.0 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
+	github.com/antchfx/xpath v1.3.3 // indirect
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de // indirect
 	github.com/axgle/mahonia v0.0.0-20180208002826-3358181d7394 // indirect
 	github.com/bytedance/sonic v1.11.8 // indirect
@@ -70,6 +72,7 @@ require (
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/martian v2.1.0+incompatible // indirect
 	github.com/google/uuid v1.6.0 // indirect

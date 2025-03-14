@@ -21,3 +21,23 @@ func IsTableFile(ext string) bool {
 	ext = strings.ToLower(ext)
 	return ext == `xlsx` || ext == `csv`
 }
+
+func IsDocxFile(ext string) bool {
+	ext = strings.ToLower(ext)
+	return ext == `docx`
+}
+
+func IsTxtFile(ext string) bool {
+	ext = strings.ToLower(ext)
+	return ext == `txt`
+}
+
+func IsMdFile(ext string) bool {
+	ext = strings.ToLower(ext)
+	return ext == `md`
+}
+
+func IsPdfFile(ext string) bool {
+	ext = strings.ToLower(ext)
+	return ext == `pdf`
+}
