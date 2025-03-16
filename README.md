@@ -14,9 +14,9 @@ ChatWiki是一款开源的知识库 AI 问答系统。系统基于大语言模�
 ### 在线体验
 
 ---
-- 🚀推荐先使用chatwiki云版本，快速构建验证思路与模式，之后再考虑独立部署，减少试错成本。👉️👉️[chatwiki.com](https://chatwiki.com)
+- 🚀推荐先使用chatwiki云版本，快速构建验证思路与模式，之后再考虑独立部署，减少试错成本。👉️👉️<a href="https://chatwiki.com" target="_blank" rel="noopener noreferrer">chatwiki.com</a>
 
-- 🚀也可以通过官方demo体验对话效果👉️👉️[体验chatwiki WebApp](https://h5.wikichat.com.cn/#/chat?robot_key=MvNEDE583n)👉️👉️[体验chatwiki 客户端](https://chatwiki.oss-cn-hangzhou.aliyuncs.com/demo/chatwiki.zip)
+- 🚀也可以通过官方demo体验对话效果👉️👉️<a href="http://h5.wikichat.com.cn/#/chat?robot_key=lTo85wvGSj" target="blank" rel="noopener noreferrer">体验ChatWiki WebApp</a>👉️👉️<a href="https://chatwiki.oss-cn-hangzhou.aliyuncs.com/demo/chatwiki.zip" target="blank" rel="noopener noreferrer">体验ChatWiki 客户端</a>
   
 - 🚀点击下方图片，查看chatwiki演示视频
 
