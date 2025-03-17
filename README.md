@@ -22,9 +22,10 @@ ChatWiki是一款开源的知识库 AI 问答系统。系统基于大语言模�
 
 <p align="center">
   <a href="https://xkf-upload-oss.xiaokefu.com.cn/chatwiki/Introductory.mp4" target="_blank">
-    <img src="./imgs/Introductory.jpg" width="60%" alt="点击观看产品演示视频" style="border: 1px solid #eee; border-radius: 8px;">
+    <img src="./imgs/Introductory.png" width="80%" alt="点击观看产品演示视频" style="border: 1px solid #eee; border-radius: 8px;">
   </a>
 </p>
+
 
 
 
