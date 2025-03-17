@@ -173,7 +173,7 @@ docker compose up -d
 
 欢迎联系我们获取帮助，或者提供建议帮助我们改善ChatWiki。您可以通过以下方式联系我们：
 
-- **微信：** 使用微信扫码加入ChatWiki技术交流群
+- **微信：** 使用微信扫码加入ChatWiki技术交流群，添加请备注“chatwiki”
 
   <img src="./imgs/contact-us.png" alt="">
 
