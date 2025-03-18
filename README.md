@@ -9,15 +9,22 @@
 </p>
 ChatWiki是一款开源的知识库 AI 问答系统。系统基于大语言模型（LLM ）和检索增强生成（RAG）技术构建，提供开箱即用的数据处理、模型调用等能力，可以帮助企业快速搭建自己的知识库AI 问答系统。
 
-
-
 ### 在线体验
 
 ---
-- 🚀推荐先使用chatwiki云版本，快速构建验证思路与模式，之后再考虑独立部署，减少试错成本。👉️👉️<a href="https://chatwiki.com" target="_blank" rel="noopener noreferrer">chatwiki.com</a>
 
-- 🚀也可以通过官方demo体验对话效果👉️👉️<a href="http://h5.wikichat.com.cn/#/chat?robot_key=lTo85wvGSj" target="_blank" rel="noopener noreferrer">体验ChatWiki WebApp</a>👉️👉️<a href="https://chatwiki.oss-cn-hangzhou.aliyuncs.com/demo/chatwiki.zip" target="_blank" rel="noopener noreferrer">体验ChatWiki 客户端</a>
-  
+-
+
+🚀推荐先使用chatwiki云版本，快速构建验证思路与模式，之后再考虑独立部署，减少试错成本。👉️👉️<a href="https://chatwiki.com" target="_blank" rel="noopener noreferrer">
+chatwiki.com</a>
+
+-
+
+🚀也可以通过官方demo体验对话效果👉️👉️<a href="http://h5.wikichat.com.cn/#/chat?robot_key=lTo85wvGSj" target="_blank" rel="noopener noreferrer">
+体验ChatWiki WebApp</a>
+👉️👉️<a href="https://chatwiki.oss-cn-hangzhou.aliyuncs.com/demo/chatwiki.zip" target="_blank" rel="noopener noreferrer">
+体验ChatWiki 客户端</a>
+
 - 🚀点击下方图片，查看chatwiki演示视频
 
 <p align="center">
@@ -33,8 +40,8 @@ ChatWiki是一款开源的知识库 AI 问答系统。系统基于大语言模�
 
 **2025/03/18**
 
-1.新建知识库、新建机器人交互优化
-2.火山引擎apikey嵌入,ak+sk嵌入支持
+1.新建知识库、新建机器人交互优化<br/>
+2.火山引擎apikey嵌入,ak+sk嵌入支持<br/>
 
 **2025/03/14**
 
@@ -44,7 +51,6 @@ ChatWiki是一款开源的知识库 AI 问答系统。系统基于大语言模�
 **2025/03/11**
 
 1.增加聊天响应监控日志<br/>
-
 
 ### 能力
 
@@ -75,19 +81,19 @@ pro、qwen max、Openai、Claude 等全球20多种主流模型。
 ---
 
 
-**1、文档图片智能提取与回复**  
+**1、文档图片智能提取与回复**
 
 支持从上传的PDF、Word等知识库文档中**自动提取内嵌图片**，问答过程中当关联到含图片的文档内容时，机器人将同步返回文本与图片信息，实现精准的图文关联回复。
 
-**2、对外知识库门户一键生成**  
+**2、对外知识库门户一键生成**
 
 内置企业级帮助中心构建能力，支持将知识库内容快速发布为**可公开访问的文档站点**，提供SEO优化、多访问统计等功能，轻松打造品牌化客户支持门户。
 
-**3、智能上下文问题优化**  
+**3、智能上下文问题优化**
 
 ChatWiki可实时分析**用户提问上下文**，自动补全模糊或不完整的用户问题。通过意图识别与语义联想，将原始问题转化为精准检索指令，显著提升知识库检索命中率与回答相关性。
 
-**4、智能问题引导与常见问题**  
+**4、智能问题引导与常见问题**
 
 基于语义分析自动生成**「猜你想问」**推荐列表，也支持手动维护高频常见问题，结合用户历史交互动态优化推荐逻辑，有效提升问题命中率与用户体验。
 
@@ -108,7 +114,8 @@ ChatWiki采用直观的可视化界面设计，通过简洁易懂的操作步骤
 
 **9、本地化数据存储与安全保障**
 
-ChatWiki支持企业使用**本地数据库**进行数据存储，确保数据完全自主掌控。通过多层安全防护机制（包括数据加密传输、访问权限控制、审计日志等），保障企业敏感信息的安全性，严格遵循数据隐私保护法规，为企业提供安全可靠的知识管理环境。
+ChatWiki支持企业使用**本地数据库**
+进行数据存储，确保数据完全自主掌控。通过多层安全防护机制（包括数据加密传输、访问权限控制、审计日志等），保障企业敏感信息的安全性，严格遵循数据隐私保护法规，为企业提供安全可靠的知识管理环境。
 
 ### 开始使用
 

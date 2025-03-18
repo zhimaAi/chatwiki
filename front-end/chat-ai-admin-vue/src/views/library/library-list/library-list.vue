@@ -3,7 +3,7 @@
     <div class="library-page-body">
       <div class="list-box">
         <div class="list-item-wrapper" v-if="libraryCreate">
-          <div class="list-item add-library" @click="toAdd">
+          <div class="list-item add-library" @click="handleAdd">
             <PlusCircleOutlined class="add-library-icon" />
             <span class="add-library-text">新增知识库</span>
           </div>
@@ -41,6 +41,7 @@
         </div>
       </div>
     </div>
+    <AddLibraryModel ref="addLibraryModelRef" />
   </div>
 </template>
 
@@ -52,12 +53,18 @@ import { MoreOutlined, PlusCircleOutlined, ExclamationCircleOutlined } from '@an
 import { getLibraryList, deleteLibrary } from '@/api/library'
 import { formatFileSize } from '@/utils/index'
 import { usePermissionStore } from '@/stores/modules/permission'
+import AddLibraryModel from '../add-library/add-library-model.vue'
 
 const permissionStore = usePermissionStore()
 let { role_permission } = permissionStore
 const libraryCreate = computed(() => role_permission.includes('LibraryCreate'))
 
 const router = useRouter()
+
+const addLibraryModelRef = ref(null)
+const handleAdd = () => {
+  addLibraryModelRef.value.show()
+}
 
 const list = ref([])
 
@@ -68,12 +75,6 @@ const getList = () => {
 }
 
 getList()
-
-const toAdd = () => {
-  router.push({
-    name: 'addLibrary'
-  })
-}
 
 const toEdit = (data) => {
   router.push({
