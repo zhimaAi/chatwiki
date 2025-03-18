@@ -2,7 +2,7 @@
   <div class="details-library-page">
     <cu-scroll :scrollbar="false">
       <div class="list-tools">
-        <div>
+        <div class="tools-items">
           <div class="tool-item">
             <a-dropdown :trigger="['click']" overlayClassName="add-dropdown-btn">
               <template #overlay>
@@ -43,6 +43,19 @@
                 <span>添加内容</span>
               </a-button>
             </a-dropdown>
+          </div>
+
+          <div class="tool-item">
+            <span>嵌入模型：</span>
+            <model-select
+              modelType="TEXT EMBEDDING"
+              :isOffline="false"
+              v-model:modeName="modelForm.use_model"
+              v-model:modeId="modelForm.model_config_id"
+              style="width: 300px"
+              @change="onChangeModel"
+              @loaded="onVectorModelLoaded"
+            />
           </div>
         </div>
         <div>
@@ -204,49 +217,28 @@
 </template>
 
 <script setup>
-import { reactive, ref, toRaw, onUnmounted } from 'vue'
-import { message } from 'ant-design-vue'
+import { reactive, ref, toRaw, onUnmounted, onMounted } from 'vue'
+import { message, Modal } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   PlusOutlined,
   SearchOutlined,
   CheckCircleFilled,
   CloseCircleFilled,
-  EditOutlined,
   ClockCircleFilled,
-  DownOutlined,
   MoreOutlined
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
-import {
-  getLibraryFileList,
-  delLibraryFile,
-  addLibraryFile,
-  getLibraryInfo,
-  editLibFile
-} from '@/api/library'
+import { getLibraryFileList, delLibraryFile, addLibraryFile, editLibrary } from '@/api/library'
 import { formatFileSize } from '@/utils/index'
 import UploadFilesInput from '../add-library/components/upload-input.vue'
-import RecallTesting from './recall-testing.vue'
-import KnowledgeConfig from './knowledge-config.vue'
-import EditLibrary from './components/edit-library.vue'
 import { transformUrlData } from '@/utils/validate.js'
 import AddCustomDocument from './components/add-custom-document.vue'
+import ModelSelect from '@/components/model-select/model-select.vue'
+
 const rotue = useRoute()
 const router = useRouter()
 const query = rotue.query
-
-const activeMenuKey = ref(1)
-
-const handleChangeMenu = (key) => {
-  if (key === activeMenuKey.value) {
-    return
-  }
-  activeMenuKey.value = key
-  if (key == 3) {
-    getInfo(query.id)
-  }
-}
 
 const libraryInfo = ref({
   library_intro: '',
@@ -254,6 +246,70 @@ const libraryInfo = ref({
   use_model: '',
   is_offline: null
 })
+
+const modelForm = reactive({
+  use_model: '',
+  model_config_id: ''
+})
+
+const onChangeModel = () => {
+  if (fileList.value.length > 0) {
+    Modal.confirm({
+      title: `确定切换模型为${modelForm.use_model}吗？`,
+      content: '切换后，所有学习文档将自动重新学习。',
+      onOk() {
+        saveLibraryConfig()
+      }
+    })
+  } else {
+    saveLibraryConfig()
+  }
+}
+
+const saveLibraryConfig = (showSuccessTip = true) => {
+  editLibrary({
+    ...toRaw(libraryInfo.value),
+    use_model: modelForm.use_model,
+    model_config_id: modelForm.model_config_id
+  }).then(() => {
+    libraryInfo.value.use_model = modelForm.use_model
+    libraryInfo.value.model_config_id = modelForm.model_config_id
+
+    if (showSuccessTip) {
+      message.success('保存成功')
+    }
+  })
+}
+
+const vectorModelList = ref([])
+
+const onVectorModelLoaded = (list) => {
+  vectorModelList.value = list
+
+  setDefaultModel()
+}
+
+const setDefaultModel = () => {
+  // 防止没有数据时，切换模型报错
+  if (!libraryInfo.value.id) {
+    setTimeout(() => {
+      setDefaultModel()
+    }, 100)
+
+    return
+  }
+
+  if (vectorModelList.value.length > 0 && !libraryInfo.value.use_model) {
+    let modelConfig = vectorModelList.value[0]
+    if (modelConfig) {
+      let model = modelConfig.children[0]
+      modelForm.use_model = model.name
+      modelForm.model_config_id = model.model_config_id
+
+      saveLibraryConfig(false)
+    }
+  }
+}
 
 const fileList = ref([])
 
@@ -369,7 +425,14 @@ const handlePreview = (record) => {
 
 const getData = () => {
   getLibraryFileList(toRaw(queryParams)).then((res) => {
-    libraryInfo.value = res.data.info
+    let info = res.data.info
+
+    if (!modelForm.use_model && modelForm.use_model != info.use_model) {
+      modelForm.use_model = info.use_model
+      modelForm.model_config_id = info.model_config_id
+    }
+
+    libraryInfo.value = { ...info }
 
     let list = res.data.list || []
 
@@ -396,22 +459,24 @@ const timingRefreshStatus = () => {
   }, 1000 * 5)
 }
 
-onUnmounted(() => {
-  timingRefreshStatusTimer.value && clearInterval(timingRefreshStatusTimer.value)
-})
-
-const getInfo = (id) => {
-  getLibraryInfo({ id }).then((res) => {
-    libraryInfo.value = res.data
-  })
-}
-
-getData()
-
 const addCustomDocumentRef = ref(null)
 
 const handleMenuClick = (e) => {
+  if (vectorModelList.value.length == 0) {
+    Modal.confirm({
+      title: `请先到模型管理中添加嵌入模型？`,
+      content:
+        '知识库学习需要使用到嵌入模型，请在系统管理-模型管理中添加。推荐使用通义千问、openai或者火山引擎的嵌入模型。',
+      okText: '去添加',
+      onOk() {
+        router.push({ path: '/user/model' })
+      }
+    })
+    return
+  }
+
   let { key } = e
+
   if (key == 1) {
     handleOpenFileUploadModal()
   }
@@ -464,7 +529,7 @@ const handleSaveUrl = () => {
         urls: JSON.stringify(transformUrlData(addUrlState.urls)),
         doc_auto_renew_frequency: addUrlState.doc_auto_renew_frequency,
         doc_type: 2
-      }).then((res) => {
+      }).then(() => {
         addUrlState.open = false
         addUrlState.confirmLoading = false
         onSearch()
@@ -531,23 +596,13 @@ const handleSaveFiles = () => {
     })
 }
 
-const editLibraryRef = ref(null)
-const handleOpenEditLibraryModal = () => {
-  editLibraryRef.value.showModal(libraryInfo.value)
-}
-const handleEditLibrary = (data) => {
+onMounted(() => {
   getData()
-}
+})
 
-const handleSetRenewFrequency = (record) => {
-  editLibFile({
-    id: record.id,
-    doc_auto_renew_frequency: record.doc_auto_renew_frequency
-  }).then((res) => {
-    getData()
-    message.success('设置成功')
-  })
-}
+onUnmounted(() => {
+  timingRefreshStatusTimer.value && clearInterval(timingRefreshStatusTimer.value)
+})
 </script>
 
 <style lang="less" scoped>
@@ -636,6 +691,13 @@ const handleSetRenewFrequency = (record) => {
 
 .list-tools {
   margin-bottom: 8px;
+  .tools-items {
+    display: flex;
+    align-items: center;
+    .tool-item {
+      margin-right: 16px;
+    }
+  }
 }
 
 .list-content {

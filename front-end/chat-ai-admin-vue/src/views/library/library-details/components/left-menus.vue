@@ -96,11 +96,14 @@ const handleChangeMenu = ({ item }) => {
 
 <style lang="less" scoped>
 .left-menu-box {
+  height: 100%;
+  width: 232px;
   .default-color {
     color: inherit;
   }
   .left-menu {
-    border-right: 0;
+    height: 100%;
+    border-right: 0 !important;
 
     ::v-deep(.menu-icon) {
       color: #a1a7b3;

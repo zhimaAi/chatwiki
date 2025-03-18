@@ -83,7 +83,9 @@
     box-shadow: none;
     transition: box-shadow 1s;
     &:hover {
-      box-shadow: 0px 5px 5px -3px rgba(0, 0, 0, 0.1), 0px 8px 10px 1px rgba(0, 0, 0, 0.06),
+      box-shadow:
+        0px 5px 5px -3px rgba(0, 0, 0, 0.1),
+        0px 8px 10px 1px rgba(0, 0, 0, 0.06),
         0px 3px 14px 2px rgba(0, 0, 0, 0.05);
     }
     &.active {
@@ -286,13 +288,19 @@
                 </a-flex>
               </template>
               <a-select-option
-                :value="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name ? val.deployment_name : val.name + val.id"
+                :value="
+                  modelDefine.indexOf(item.model_define) > -1 && val.deployment_name
+                    ? val.deployment_name
+                    : val.name + val.id
+                "
                 :model_config_id="item.id"
                 :current_obj="val"
                 v-for="val in item.children"
                 :key="val.name + val.id"
               >
-                <span v-if="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name">{{val.deployment_name}}</span>
+                <span v-if="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name">{{
+                  val.deployment_name
+                }}</span>
                 <span v-else>{{ val.name }}</span>
               </a-select-option>
             </a-select-opt-group>
@@ -321,7 +329,7 @@ import { useRouter } from 'vue-router'
 import UploadFile from './components/upload-input.vue'
 import { createLibrary } from '@/api/library/index'
 import { getModelConfigOption } from '@/api/model/index'
-import AvatarInput from './avatar-input.vue'
+import AvatarInput from './components/avatar-input.vue'
 import { DEFAULT_LIBRARY_AVATAR } from '@/constants/index'
 import { transformUrlData } from '@/utils/validate.js'
 import { useStorage } from '@/hooks/web/useStorage'
@@ -331,8 +339,8 @@ const { getStorage, setStorage, removeStorage } = useStorage('localStorage')
 
 // 设置全局默认的duration为（2秒）
 message.config({
-  duration: 2,
-});
+  duration: 2
+})
 
 const router = useRouter()
 
@@ -407,11 +415,15 @@ const formState = reactive({
   library_name: '',
   library_intro: '',
   use_model: lastEmbeddedModel.value.use_model ? lastEmbeddedModel.value.use_model : undefined,
-  model_config_id: lastEmbeddedModel.value.model_config_id ? lastEmbeddedModel.value.model_config_id : '',
+  model_config_id: lastEmbeddedModel.value.model_config_id
+    ? lastEmbeddedModel.value.model_config_id
+    : '',
   library_files: undefined,
   avatar: DEFAULT_LIBRARY_AVATAR,
   robot_avatar_url: DEFAULT_LIBRARY_AVATAR,
-  is_offline: Object.prototype.hasOwnProperty.call(lastEmbeddedModel.value, 'is_offline') ? lastEmbeddedModel.value.is_offline : false,
+  is_offline: Object.prototype.hasOwnProperty.call(lastEmbeddedModel.value, 'is_offline')
+    ? lastEmbeddedModel.value.is_offline
+    : false,
   urls: '',
   doc_type: 1,
   file_name: '',
@@ -433,7 +445,7 @@ const validateUrl = (_rule, value) => {
   if (formState.doc_type != 2) {
     return Promise.resolve()
   }
-  if(transformUrlData(value) === false){
+  if (transformUrlData(value) === false) {
     return Promise.reject(new Error('网页地址不合法'))
   }
   return Promise.resolve()
@@ -474,7 +486,10 @@ const handleFileChange = (fileList) => {
 
 const handleChangeModel = (val, option) => {
   const self = option.current_obj
-  formState.use_model = modelDefine.indexOf(self.model_define) > -1 && self.deployment_name ? self.deployment_name : self.name
+  formState.use_model =
+    modelDefine.indexOf(self.model_define) > -1 && self.deployment_name
+      ? self.deployment_name
+      : self.name
   currentModelDefine.value = self.model_define
   formState.model_config_id = self.id || option.model_config_id
 }
@@ -515,7 +530,7 @@ const onSubmit = () => {
 const saveForm = () => {
   let formData = new FormData()
 
-  let newFormState = JSON.parse(JSON.stringify(formState)); // 深拷贝，不能改变原对象
+  let newFormState = JSON.parse(JSON.stringify(formState)) // 深拷贝，不能改变原对象
 
   if (oldModelDefineList.indexOf(currentModelDefine.value) > -1) {
     // 传给后端的是默认，渲染的是真实名称
@@ -546,7 +561,7 @@ const saveForm = () => {
   if (formState.doc_type == 1) {
     formState.library_files.forEach((file) => {
       if (file.name.includes('.xlsx') || file.name.includes('.csv')) {
-      isTableType = true
+        isTableType = true
       }
       formData.append('library_files', file)
     })
@@ -561,7 +576,7 @@ const saveForm = () => {
       let query = {
         id: res.data.id
       }
-      if(isTableType){
+      if (isTableType) {
         path = '/library/document-segmentation'
         query = {
           document_id: res.data.file_ids[0]
@@ -588,19 +603,19 @@ const saveForm = () => {
 const modelList = ref([])
 
 function uniqueArr(arr, arr1, key) {
-    const keyVals = new Set(arr.map(item => item.model_define));
-    arr1.filter(obj => {
-        let val = obj[key];
-        if (keyVals.has(val)) {
-          arr.filter(obj1 => {
-            if (obj1.model_define == val) {
-              obj1.children = removeRepeat(obj1.children, obj.children)
-              return false
-            }
-          })
+  const keyVals = new Set(arr.map((item) => item.model_define))
+  arr1.filter((obj) => {
+    let val = obj[key]
+    if (keyVals.has(val)) {
+      arr.filter((obj1) => {
+        if (obj1.model_define == val) {
+          obj1.children = removeRepeat(obj1.children, obj.children)
+          return false
         }
-    });
-    return arr
+      })
+    }
+  })
+  return arr
 }
 
 const getModelList = (is_offline) => {
@@ -620,7 +635,7 @@ const getModelList = (is_offline) => {
     modelList.value = list.map((item) => {
       children = []
       for (let i = 0; i < item.model_info.vector_model_list.length; i++) {
-        const ele = item.model_info.vector_model_list[i];
+        const ele = item.model_info.vector_model_list[i]
         children.push({
           name: ele,
           deployment_name: item.model_config.deployment_name,
@@ -638,7 +653,7 @@ const getModelList = (is_offline) => {
         model_define: item.model_info.model_define,
         icon: item.model_info.model_icon_url,
         children: children,
-        deployment_name: item.model_config.deployment_name,
+        deployment_name: item.model_config.deployment_name
       }
     })
 
@@ -647,9 +662,13 @@ const getModelList = (is_offline) => {
       formState.use_model = undefined
       removeStorage('lastEmbeddedModel')
     }
-    
+
     // 如果modelList存在两个相同model_define情况就合并到一个对象的children中去
-    modelList.value = uniqueArr(duplicateRemoval(modelList.value, 'model_define'), modelList.value, 'model_define')
+    modelList.value = uniqueArr(
+      duplicateRemoval(modelList.value, 'model_define'),
+      modelList.value,
+      'model_define'
+    )
   })
 }
 
@@ -660,5 +679,4 @@ onMounted(() => {
     getModelList(true)
   }
 })
-
 </script>

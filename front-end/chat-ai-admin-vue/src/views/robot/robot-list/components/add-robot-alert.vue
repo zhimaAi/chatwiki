@@ -2,7 +2,7 @@
 .form-box {
   margin-top: 24px;
 }
-.form-item-tip{
+.form-item-tip {
   color: #8c8c8c;
 }
 .robot-type-box {
@@ -74,16 +74,32 @@
       <a-form layout="vertical">
         <a-form-item label="应用类型" required>
           <div class="robot-type-box">
-            <div class="robot-item" :class="{ active: formState.application_type == 0 }" @click="formState.application_type = 0">
-              <svg-icon v-if="formState.application_type == 0" class="check-arrow" name="check-arrow-filled"></svg-icon>
+            <div
+              class="robot-item"
+              :class="{ active: formState.application_type == 0 }"
+              @click="formState.application_type = 0"
+            >
+              <svg-icon
+                v-if="formState.application_type == 0"
+                class="check-arrow"
+                name="check-arrow-filled"
+              ></svg-icon>
               <div class="avatar-box">
                 <img src="@/assets/svg/chat-robot-icon.svg" alt="" />
                 <div class="robot-item-title">聊天机器人</div>
               </div>
               <div class="desc">简易的基于LLM和知识库的聊天应用，配置简单，适合新人上手</div>
             </div>
-            <div class="robot-item" :class="{ active: formState.application_type == 1 }" @click="formState.application_type = 1">
-              <svg-icon v-if="formState.application_type == 1" class="check-arrow" name="check-arrow-filled"></svg-icon>
+            <div
+              class="robot-item"
+              :class="{ active: formState.application_type == 1 }"
+              @click="formState.application_type = 1"
+            >
+              <svg-icon
+                v-if="formState.application_type == 1"
+                class="check-arrow"
+                name="check-arrow-filled"
+              ></svg-icon>
               <div class="avatar-box">
                 <img src="@/assets/svg/workflow-robot-icon.svg" alt="" />
                 <div class="robot-item-title">工作流</div>
@@ -114,6 +130,7 @@
 </template>
 
 <script setup>
+import { useStorage } from '@/hooks/web/useStorage'
 import { ref, reactive, h } from 'vue'
 import { Form, message, Modal } from 'ant-design-vue'
 import { CloseCircleFilled } from '@ant-design/icons-vue'
@@ -123,15 +140,10 @@ import { useRouter } from 'vue-router'
 import AvatarInput from './avatar-input.vue'
 import { DEFAULT_ROBOT_AVATAR } from '@/constants/index'
 
+const { setStorage } = useStorage('localStorage')
+
 const router = useRouter()
 const useForm = Form.useForm
-
-const labelCol = {
-  span: 4
-}
-const wrapperCol = {
-  span: 20
-}
 
 const show = ref(false)
 
@@ -185,8 +197,11 @@ const saveForm = () => {
       }
 
       message.success('机器人创建成功')
-      if(formState.application_type == 0) {
-        router.push('/robot/config/basic-config?id=' + res.data.id + '&robot_key=' + res.data.robot_key)
+      if (formState.application_type == 0) {
+        setStorage('showNoLibraryTip', true)
+        router.push(
+          '/robot/config/basic-config?id=' + res.data.id + '&robot_key=' + res.data.robot_key
+        )
       } else {
         router.push('/robot/config/workflow?id=' + res.data.id + '&robot_key=' + res.data.robot_key)
       }

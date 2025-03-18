@@ -65,8 +65,13 @@
 </style>
 
 <template>
-  <edit-box class="setting-box" title="关联知识库" icon-name="guanlianzhishiku" v-model:isEdit="isEdit"
-    :bodyStyle="{ padding: 0 }">
+  <edit-box
+    class="setting-box"
+    title="关联知识库"
+    icon-name="guanlianzhishiku"
+    v-model:isEdit="isEdit"
+    :bodyStyle="{ padding: 0 }"
+  >
     <template #extra>
       <div class="actions-box">
         <a-flex :gap="8">
@@ -90,12 +95,17 @@
 </template>
 
 <script setup>
+import { useStorage } from '@/hooks/web/useStorage'
 import { getLibraryList } from '@/api/library/index'
-import { ref, reactive, inject, watchEffect, computed, toRaw } from 'vue'
+import { ref, reactive, inject, watchEffect, computed, toRaw, onMounted } from 'vue'
 import { CloseCircleOutlined } from '@ant-design/icons-vue'
+import { Modal } from 'ant-design-vue'
 import EditBox from '../edit-box.vue'
 import LibrarySelectAlert from './library-select-alert.vue'
 import RecallSettingsAlert from './recall-settings-alert.vue'
+
+const { getStorage, removeStorage } = useStorage('localStorage')
+
 const isEdit = ref(false)
 
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
@@ -172,7 +182,20 @@ const getList = async () => {
   }
 }
 
-getList()
+// 显示未关联知识库提示
+const handleShowNoLibraryTip = () => {
+  Modal.confirm({
+    title: '还未关联知识库',
+    content: '关联知识库后，机器人会根据知识库作答。',
+    okText: '立即关联',
+    cancelText: '暂不关联',
+    onOk() {
+      handleOpenSelectLibraryAlert()
+    }
+  })
+}
+
+formState.rerank_use_model = robotInfo.rerank_use_model || undefined
 
 watchEffect(() => {
   formState.library_ids = robotInfo.library_ids.split(',')
@@ -182,5 +205,17 @@ watchEffect(() => {
   formState.top_k = robotInfo.top_k
   formState.similarity = robotInfo.similarity
   formState.search_type = robotInfo.search_type
+})
+
+onMounted(() => {
+  getList()
+
+  // 检查本地缓存中的showNoLibraryTip值
+  const showNoLibraryTip = getStorage('showNoLibraryTip')
+  if (showNoLibraryTip) {
+    handleShowNoLibraryTip()
+
+    removeStorage('showNoLibraryTip')
+  }
 })
 </script>

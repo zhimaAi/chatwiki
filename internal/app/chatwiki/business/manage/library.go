@@ -141,29 +141,12 @@ func CreateLibrary(c *gin.Context) {
 	//get params
 	libraryName := strings.TrimSpace(c.PostForm(`library_name`))
 	libraryIntro := strings.TrimSpace(c.PostForm(`library_intro`))
-	modelConfigId := cast.ToInt(c.PostForm(`model_config_id`))
-	useModel := strings.TrimSpace(c.PostForm(`use_model`))
 	avatar := ""
-	if len(libraryName) == 0 || modelConfigId <= 0 || len(useModel) == 0 {
+	if len(libraryName) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	//check model_config_id and use_model
-	config, err := common.GetModelConfigInfo(modelConfigId, userId)
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	if len(config) == 0 || !tool.InArrayString(common.TextEmbedding, strings.Split(config[`model_types`], `,`)) {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_config_id`))))
-		return
-	}
-	modelInfo, _ := common.GetModelInfoByDefine(config[`model_define`])
-	if !tool.InArrayString(useModel, modelInfo.VectorModelList) && !common.IsMultiConfModel(config["model_define"]) {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `use_model`))))
-		return
-	}
+
 	//headImg uploaded
 	fileAvatar, _ := c.FormFile(`avatar`)
 	uploadInfo, err := common.SaveUploadedFile(fileAvatar, define.ImageLimitSize, userId, `library_avatar`, define.ImageAllowExt)
@@ -172,13 +155,11 @@ func CreateLibrary(c *gin.Context) {
 	}
 	//database dispose
 	data := msql.Datas{
-		`admin_user_id`:   userId,
-		`library_name`:    libraryName,
-		`library_intro`:   libraryIntro,
-		`model_config_id`: modelConfigId,
-		`use_model`:       useModel,
-		`create_time`:     tool.Time2Int(),
-		`update_time`:     tool.Time2Int(),
+		`admin_user_id`: userId,
+		`library_name`:  libraryName,
+		`library_intro`: libraryIntro,
+		`create_time`:   tool.Time2Int(),
+		`update_time`:   tool.Time2Int(),
 	}
 	if len(avatar) > 0 {
 		data[`avatar`] = avatar
@@ -192,14 +173,14 @@ func CreateLibrary(c *gin.Context) {
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.LibraryCacheBuildHandler{LibraryId: int(libraryId)})
 	//common save
-	fileIds, err := addLibFile(c, userId, int(libraryId))
-	if err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
-		return
-	}
+	//fileIds, err := addLibFile(c, userId, int(libraryId))
+	//if err != nil {
+	//	c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+	//	return
+	//}
 	_ = AddUserMangedData(getLoginUserId(c), `managed_library_list`, libraryId)
 
-	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`id`: libraryId, `file_ids`: fileIds}, nil))
+	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`id`: libraryId}, nil))
 }
 
 func DeleteLibrary(c *gin.Context) {
@@ -263,10 +244,31 @@ func EditLibrary(c *gin.Context) {
 	id := cast.ToInt(c.PostForm(`id`))
 	libraryName := strings.TrimSpace(c.PostForm(`library_name`))
 	libraryIntro := strings.TrimSpace(c.PostForm(`library_intro`))
+	modelConfigId := cast.ToInt(c.PostForm(`model_config_id`))
+	useModel := strings.TrimSpace(c.PostForm(`use_model`))
 	if id <= 0 || len(libraryName) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
+	if modelConfigId > 0 || len(useModel) > 0 {
+		//check model_config_id and use_model
+		config, err := common.GetModelConfigInfo(modelConfigId, userId)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		if len(config) == 0 || !tool.InArrayString(common.TextEmbedding, strings.Split(config[`model_types`], `,`)) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_config_id`))))
+			return
+		}
+		modelInfo, _ := common.GetModelInfoByDefine(config[`model_define`])
+		if !tool.InArrayString(useModel, modelInfo.VectorModelList) && !common.IsMultiConfModel(config["model_define"]) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `use_model`))))
+			return
+		}
+	}
+
 	info, err := common.GetLibraryInfo(id, userId)
 	if err != nil {
 		logs.Error(err.Error())
@@ -278,14 +280,19 @@ func EditLibrary(c *gin.Context) {
 		return
 	}
 	_, err = msql.Model(`chat_ai_library`, define.Postgres).Where(`id`, cast.ToString(id)).Update(msql.Datas{
-		`library_name`:  libraryName,
-		`library_intro`: libraryIntro,
-		`update_time`:   tool.Time2Int(),
+		`library_name`:    libraryName,
+		`library_intro`:   libraryIntro,
+		`use_model`:       useModel,
+		`model_config_id`: modelConfigId,
+		`update_time`:     tool.Time2Int(),
 	})
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
+	}
+	if info[`use_model`] != useModel || cast.ToInt(info[`model_config_id`]) != modelConfigId {
+		go common.EmbeddingNewVector(id, cast.ToInt(info[`admin_user_id`]))
 	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.LibraryCacheBuildHandler{LibraryId: id})

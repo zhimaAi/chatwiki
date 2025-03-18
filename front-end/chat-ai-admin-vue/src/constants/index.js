@@ -44,7 +44,6 @@ export const TOKEN_KEY = 'TOKEN'
 // 默认的用户头像
 export const DEFAULT_USER_AVATAR = new URL('@/assets/img/user_avatar_2x.png', import.meta.url).href
 
-
 // 英文logo
 export const DEFAULT_EN_LOGO = new URL('@/assets/en_logo.svg', import.meta.url).href
 
@@ -56,6 +55,8 @@ export const DEFAULT_LIBRARY_AVATAR = new URL(
   '@/assets/img/library/preview/default_avatar.png',
   import.meta.url
 ).href
+
+export const DEFAULT_LIBRARY_AVATAR2 = new URL('@/assets/img/library/t.svg', import.meta.url).href
 
 // 默认的机器人头像
 export const DEFAULT_ROBOT_AVATAR = '/upload/default/robot_avatar.png'

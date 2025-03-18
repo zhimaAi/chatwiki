@@ -112,7 +112,7 @@ const updateRobotInfo = (val) => {
   let newState = JSON.parse(JSON.stringify(val))
   // 对机器人头像特殊处理
   if (val.robot_avatar) {
-    newState.robot_avatar = new File([val.robot_avatar], val.robot_avatar.name);
+    newState.robot_avatar = new File([val.robot_avatar], val.robot_avatar.name)
   }
   Object.assign(formState, newState)
 
@@ -129,7 +129,7 @@ const saveForm = () => {
   // 对机器人头像特殊处理
   let robot_avatar
   if (formState.robot_avatar) {
-    robot_avatar = new File([formState.robot_avatar], formState.robot_avatar.name);
+    robot_avatar = new File([formState.robot_avatar], formState.robot_avatar.name)
   }
   let formData = JSON.parse(JSON.stringify(toRaw(formState)))
   // 有机器人头像就赋值

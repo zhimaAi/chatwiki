@@ -75,19 +75,26 @@ const permissionStore = usePermissionStore()
 const getActiveMenu = () => {}
 
 const items = computed(() => {
-  const SystemManageChildren = ['ModelManage','TokenManage','TeamManage','AccountManage','CompanyManage','ClientSideManage']
-  let flag = false  // 控制添加 "系统管理" 菜单的，如果添加过就不进行循环和添加。
+  const SystemManageChildren = [
+    'ModelManage',
+    'TokenManage',
+    'TeamManage',
+    'AccountManage',
+    'CompanyManage',
+    'ClientSideManage'
+  ]
+  let flag = false // 控制添加 "系统管理" 菜单的，如果添加过就不进行循环和添加。
   let { role_permission } = permissionStore
   let possessedAuthority = []
-  
+
   for (let i = 0; i < role_permission.length; i++) {
-    const item = role_permission[i];
+    const item = role_permission[i]
     if (item === 'RobotManage') {
       possessedAuthority.push({
         id: 1,
         key: 'robot',
         label: 'robot',
-        title: '应用管理',
+        title: '应用',
         path: '/robot/list'
       })
     }
@@ -96,7 +103,7 @@ const items = computed(() => {
         id: 2,
         key: 'library',
         label: 'library',
-        title: '知识库管理',
+        title: '知识库',
         path: '/library/list'
       })
     }
@@ -112,7 +119,7 @@ const items = computed(() => {
     if (!flag) {
       for (let j = 0; j < SystemManageChildren.length; j++) {
         // 作用是看系统管理里面有没有子权限，有一个则显示系统管理，否则不显示系统管理菜单。
-        const child = SystemManageChildren[j];
+        const child = SystemManageChildren[j]
         if (child === item) {
           possessedAuthority.push({
             id: 4,
@@ -122,12 +129,12 @@ const items = computed(() => {
             path: '/user/model'
           })
           flag = true
-          break;
+          break
         }
       }
     }
   }
-  return possessedAuthority.sort((a, b) => a.id - b.id);
+  return possessedAuthority.sort((a, b) => a.id - b.id)
 })
 
 watch(
