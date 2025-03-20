@@ -1,3 +1,22 @@
+# ChatWiki开源许可协议
+
+ChatWiki是基于Apache License 2.0开源许可协议。除了Apache Lincese 2.0 规定的条款外，您再使用ChatWiki时还应遵守以下附件条件：
+
+1. ChatWiki可以用于商业用途，包括作为其他应用的后端服务或者作为企业应用开发平台。但是在以下任意一种情况下，您需要联系我们获得书面商业授权许可后才可以使用：
+
+a. 多租户SaaS服务：除非ChatWiki明确书面授权，否则您不得使用ChatWiki源码运营多租户环境。
+b. LOGO和版权信息：在使用ChatWiki的前端组件时，您不得移除或修改ChatWiki控制台或应用中的LOGO或版权信息。该限制不适用于不涉及ChatWiki前端组件的使用情况。
+c. 
+
+
+
+
+
+
+
+
+
+
 # ChatWiki Open Source License
 
 ChatWiki is licensed under the Apache License 2.0, with the following additional conditions:
