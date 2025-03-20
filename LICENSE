@@ -6,14 +6,18 @@ ChatWiki是基于Apache License 2.0开源许可协议。除了Apache Lincese 2.0
 
 a. 多租户SaaS服务：除非ChatWiki明确书面授权，否则您不得使用ChatWiki源码运营多租户环境。
 b. LOGO和版权信息：在使用ChatWiki的前端组件时，您不得移除或修改ChatWiki控制台或应用中的LOGO或版权信息。该限制不适用于不涉及ChatWiki前端组件的使用情况。
-c. 
+c. 企业服务：在您的企业内部，或者为企业客户提供基于ChatWiki的服务，且该服务支持10人及以上累计用户使用时，您需要联系我们获得书面商业授权许可后才可以使用。
+d. 硬件捆绑销售：在您的硬件产品中捆绑销售ChatWiki，您需要联系我们获得书面商业授权许可后才可以使用。
+e. 政府或教育机构大规模采购：您的使用场景属于政府或者教育机构的大规模采购项目，特别是涉及安全、数据隐私等敏感需求时，您需要联系我们获得书面商业授权许可后才可以使用。
 
+2. 作为贡献者，您应当同意：
 
+a. 生产方有权根据需要调整开源协议的严格程度或放宽程度。
+b. 您的贡献代码可能被用于商业用途，包括但不限于其云业务运营（如ChatWiki云服务）。
 
+除了上述特殊条件外，其余所有权利和限制均遵循Apache License 2.0。关于Apache License 2.0的详细信息，请访问http://www.apache.org/licenses/LICENSE-2.0。
 
-
-
-
+---
 
 
 
@@ -25,6 +29,9 @@ ChatWiki is licensed under the Apache License 2.0, with the following additional
 
 a. Multi-tenant SaaS service: Unless explicitly authorized by ChatWiki in writing, you may not use the ChatWiki source code to operate a multi-tenant environment. 
 b. LOGO and copyright information: During the use of ChatWiki's frontend components, you may not remove or modify the LOGO or copyright information in the ChatWiki console or applications. This restriction does not apply to uses of ChatWiki that do not involve its frontend components.
+c. Enterprise services: If you use ChatWiki within your enterprise or provide services based on ChatWiki to enterprise clients, and the service supports a cumulative total of 10 or more users, you must obtain a commercial license from the producer.
+d. Hardware bundling sales: If you bundle ChatWiki with your hardware products, you must obtain a commercial license from the producer.
+e. Large-scale procurement by government or educational institutions: If your use case involves large-scale procurement by government or educational institutions, especially when sensitive requirements such as security and data privacy are involved, you must obtain a commercial license from the producer.
 
 Please contact us by email at fox@2bai.com.cn to inquire about licensing matters.
 
