@@ -1,0 +1,23 @@
+@font-face {
+  font-family: "iconfont";
+  src: url('/open/static/css/font/iconfont.woff2?t=1741162713353') format('woff2'),
+       url('/open/static/css/font/iconfont.woff?t=1741162713353') format('woff'),
+       url('/open/static/css/font/iconfont.ttf?t=1741162713353') format('truetype');
+}
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-jiantou_xiangyou:before {
+  content: "\eb08";
+}
+
+.icon-jiantou_xiangzuo:before {
+  content: "\eb09";
+}
+

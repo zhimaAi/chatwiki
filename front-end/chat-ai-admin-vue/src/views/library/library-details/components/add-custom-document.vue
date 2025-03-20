@@ -16,7 +16,7 @@
               v-model:value="formState.file_name"
             ></a-input>
           </a-form-item>
-          <a-form-item label="文档类型" required>
+          <a-form-item label="文档类型" required v-if="false">
             <a-radio-group v-model:value="formState.is_qa_doc">
               <a-radio :value="0">普通文档</a-radio>
               <a-radio :value="1">QA文档</a-radio>
@@ -69,6 +69,14 @@ const rotue = useRoute()
 const useForm = Form.useForm
 const show = ref(false)
 const modalTitle = ref('添加自定义文档')
+
+const props = defineProps({
+  libraryInfo:{
+    type: Object,
+    default: () => {}
+  }
+})
+
 const formState = reactive({
   library_id: rotue.query.id,
   doc_type: 3,
@@ -112,6 +120,9 @@ const add = () => {
   formState.file_name = ''
   formState.is_qa_doc = 0
   formState.qa_index_type = 1
+  if(props.libraryInfo.type == 2){
+    formState.is_qa_doc = 1
+  }
 }
 
 const saveLoading = ref(false)

@@ -16,7 +16,7 @@
                       <div class="desc">上传本地 text/pdf/doc 等格式文件</div>
                     </div>
                   </a-menu-item>
-                  <a-menu-item :key="2">
+                  <a-menu-item :key="2" v-if="libraryInfo.type != 2">
                     <div class="dropdown-btn-menu">
                       <a-flex class="title-block" :gap="4">
                         <svg-icon name="link-icon"></svg-icon>
@@ -50,8 +50,8 @@
             <model-select
               modelType="TEXT EMBEDDING"
               :isOffline="false"
-              v-model:modeName="modelForm.use_model"
-              v-model:modeId="modelForm.model_config_id"
+              :modeName="modelForm.use_model"
+              :modeId="modelForm.model_config_id"
               style="width: 300px"
               @change="onChangeModel"
               @loaded="onVectorModelLoaded"
@@ -175,7 +175,11 @@
       @cancel="handleCloseFileUploadModal"
     >
       <div class="upload-file-box">
-        <UploadFilesInput v-model:value="addFileState.fileList" @change="onFilesChange" />
+        <UploadFilesInput
+          :type="libraryInfo.type"
+          v-model:value="addFileState.fileList"
+          @change="onFilesChange"
+        />
       </div>
     </a-modal>
     <a-modal
@@ -212,7 +216,11 @@
         </a-form-item>
       </a-form>
     </a-modal>
-    <AddCustomDocument @ok="onSearch" ref="addCustomDocumentRef"></AddCustomDocument>
+    <AddCustomDocument
+      :libraryInfo="libraryInfo"
+      @ok="onSearch"
+      ref="addCustomDocumentRef"
+    ></AddCustomDocument>
   </div>
 </template>
 
@@ -244,7 +252,8 @@ const libraryInfo = ref({
   library_intro: '',
   library_name: '',
   use_model: '',
-  is_offline: null
+  is_offline: null,
+  type: 0
 })
 
 const modelForm = reactive({
@@ -252,16 +261,24 @@ const modelForm = reactive({
   model_config_id: ''
 })
 
-const onChangeModel = () => {
+const onChangeModel = (val, option) => {
+  let new_use_model = option.modelName
+  let new_model_config_id = option.modelId
+
   if (fileList.value.length > 0) {
     Modal.confirm({
-      title: `确定切换模型为${modelForm.use_model}吗？`,
+      title: `确定切换模型为${new_use_model}吗？`,
       content: '切换后，所有学习文档将自动重新学习。',
       onOk() {
+        modelForm.use_model = new_use_model
+        modelForm.model_config_id = new_model_config_id
         saveLibraryConfig()
-      }
+      },
+      onCancel() {}
     })
   } else {
+    modelForm.use_model = new_use_model
+    modelForm.model_config_id = new_model_config_id
     saveLibraryConfig()
   }
 }
@@ -300,9 +317,29 @@ const setDefaultModel = () => {
   }
 
   if (vectorModelList.value.length > 0 && !libraryInfo.value.use_model) {
-    let modelConfig = vectorModelList.value[0]
+    // 遍历查找chatwiki模型
+    let modelConfig = null
+    let model = null
+
+    for (let item of vectorModelList.value) {
+      if (item.model_define === 'chatwiki') {
+        modelConfig = item
+        for (let child of modelConfig.children) {
+          if (child.name === 'text-embedding-v2') {
+            model = child
+            break
+          }
+        }
+        break
+      }
+    }
+
+    if (!modelConfig) {
+      modelConfig = vectorModelList.value[0]
+      model = modelConfig.children[0]
+    }
+
     if (modelConfig) {
-      let model = modelConfig.children[0]
       modelForm.use_model = model.name
       modelForm.model_config_id = model.model_config_id
 

@@ -23,6 +23,7 @@ func init() {
 	Route[lib_web.NoMethod][`/`] = business.NoMethod //NoMethod
 	Route[lib_web.NoRoute][`/`] = business.NoRoute   //NoMethod
 	noAuthFuns(Route[http.MethodGet], `/test/test`, business.Test)
+	noAuthFuns(Route[http.MethodGet], `/test/domain`, business.TestDomain)
 	Route[http.MethodGet][`/test/test1`] = business.Test1
 
 	/* user API*/
@@ -73,6 +74,30 @@ func init() {
 	Route[http.MethodPost][`/manage/createLibrary`] = manage.CreateLibrary
 	Route[http.MethodPost][`/manage/deleteLibrary`] = manage.DeleteLibrary
 	Route[http.MethodPost][`/manage/editLibrary`] = manage.EditLibrary
+	/*open library API*/
+	noAuthFuns(Route[http.MethodGet], `/manage/getCatalog`, manage.GetCatalog)
+	noAuthFuns(Route[http.MethodGet], `/manage/getLibDocInfo`, manage.GetLibDocInfo)
+	noAuthFuns(Route[http.MethodGet], `/manage/libDocSearch`, manage.LibDocSearch)
+	noAuthFuns(Route[http.MethodGet], `/manage/questionGuideList`, manage.QuestionGuideList)
+	Route[http.MethodPost][`/manage/saveLibDoc`] = manage.SaveLibDoc
+	Route[http.MethodPost][`/manage/changeLibDoc`] = manage.ChangeLibDoc
+	Route[http.MethodPost][`/manage/draftLibDoc`] = manage.DraftLibDoc
+	Route[http.MethodPost][`/manage/uploadLibDoc`] = manage.UploadLibDoc
+	Route[http.MethodGet][`/manage/exportLibDoc`] = manage.ExportLibDoc
+	Route[http.MethodPost][`/manage/deleteLibDoc`] = manage.DeleteLibDoc
+	Route[http.MethodPost][`/manage/saveQuestionGuide`] = manage.SaveQuestionGuide
+	Route[http.MethodPost][`/manage/deleteQuestionGuide`] = manage.DeleteQuestionGuide
+	Route[http.MethodPost][`/manage/saveLibDocSeo`] = manage.SaveLibDocSeo
+	Route[http.MethodPost][`/manage/saveLibDocPartner`] = manage.SaveLibDocPartner
+	Route[http.MethodGet][`/manage/getLibDocPartner`] = manage.GetLibDocPartner
+	Route[http.MethodGet][`/manage/libDocPartnerList`] = manage.LibDocPartnerList
+	Route[http.MethodPost][`/manage/deleteLibDocPartner`] = manage.DeleteLibDocPartner
+	Route[http.MethodPost][`/manage/SyncPartnerHistory`] = manage.SyncPartnerHistory
+	noAuthFuns(Route[http.MethodGet], `/manage/libDocHome/:key`, business.OpenHome)
+	noAuthFuns(Route[http.MethodGet], `/open/doc/:key`, business.OpenDoc)
+	noAuthFuns(Route[http.MethodGet], `/open/home/:key`, business.OpenHome)
+	noAuthFuns(Route[http.MethodGet], `/open/search/:type/:lib_key`, business.OpenSearch)
+	noAuthFuns(Route[http.MethodGet], `/open/summary/:lib_key`, business.OpenAiSummary)
 	/*libFile API*/
 	Route[http.MethodGet][`/manage/getLibFileList`] = manage.GetLibFileList
 	Route[http.MethodPost][`/manage/addLibraryFile`] = manage.AddLibraryFile
@@ -167,6 +192,12 @@ func init() {
 	/*export API*/
 	Route[http.MethodGet][`/manage/getExportTaskList`] = manage.GetExportTaskList
 	Route[http.MethodGet][`/manage/downloadExportFile`] = manage.DownloadExportFile
+	/* diy domain API*/
+	Route[http.MethodPost][`/manage/saveDiyDomain`] = manage.SaveDiyDomain
+	Route[http.MethodGet][`/manage/diyDomainList`] = manage.DiyDomainList
+	Route[http.MethodPost][`/manage/deleteDiyDomain`] = manage.DeleteDiyDomain
+	Route[http.MethodPost][`/manage/uploadCertificate`] = manage.UploadCertificate
+	Route[http.MethodPost][`/manage/uploadCheckFile`] = manage.UploadCheckFile
 	/*work_flow API*/
 	Route[http.MethodGet][`/manage/getNodeList`] = manage.GetNodeList
 	Route[http.MethodPost][`/manage/saveNodes`] = manage.SaveNodes

@@ -4,11 +4,12 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"strings"
+
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
-	"strings"
 )
 
 func EmbeddingNewVector(libraryId, adminUserId int) {

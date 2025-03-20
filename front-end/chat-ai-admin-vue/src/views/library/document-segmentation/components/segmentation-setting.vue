@@ -221,9 +221,9 @@
     <div class="setting-items">
       <div class="setting-item intelligent-setting active">
         <div class="setting-item-body">
-          <div class="sub-setting-item-name">文档类型</div>
+          <!-- <div class="sub-setting-item-name">文档类型</div> -->
 
-          <div class="document-types">
+          <div class="document-types" v-if="false">
             <div
               class="document-type"
               :class="{ active: formState.is_qa_doc == 0 }"
@@ -469,7 +469,10 @@ const props = defineProps({
   libFileInfo: {
     type: Object,
     default: () => {}
-  }
+  },
+  library_type:{
+    default: 0,
+  },
 })
 const isHtmlOrDocx = computed(() => {
   return (
@@ -483,13 +486,15 @@ watch(props, (val) => {
   formState.separators_no = separators_no.map(item => +item)
   formState.chunk_size = +libFileInfo.chunk_size || 512
   formState.chunk_overlap = +libFileInfo.chunk_overlap || 50
-  formState.is_qa_doc = +libFileInfo.is_qa_doc
+  // formState.is_qa_doc = +libFileInfo.is_qa_doc
   formState.question_lable = libFileInfo.question_lable
   formState.answer_lable = libFileInfo.answer_lable
   formState.question_column = libFileInfo.question_column || void 0
   formState.answer_column = libFileInfo.answer_column || void 0
   formState.qa_index_type = +libFileInfo.qa_index_type
   formState.enable_extract_image = libFileInfo.enable_extract_image == 'true'
+  formState.is_qa_doc = props.library_type == 2 ? 1 : 0
+
 })
 const formState = reactive({
   separators_no: [], // 自定义分段-分隔符序号集

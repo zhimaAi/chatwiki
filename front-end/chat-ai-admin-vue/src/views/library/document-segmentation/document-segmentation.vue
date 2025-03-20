@@ -148,6 +148,7 @@
         <SegmentationSetting
           :excellQaLists="excellQaLists"
           :libFileInfo="libFileInfo"
+          :library_type="library_type"
           :mode="settingMode"
           @change="onChangeSetting"
           @validate="onValidate"
@@ -204,6 +205,7 @@ import {
   getLibFileSplit,
   getLibFileInfo,
   saveLibFileSplit,
+  getLibraryInfo,
   getLibFileExcelTitle
 } from '@/api/library/index'
 
@@ -260,20 +262,23 @@ let maxLoopNumber = 60 * 10
 let loopNumber = 0
 let library_id = null
 const libFileInfo = ref({})
+
+const library_type = ref(0)
 const getDocumentStatus = () => {
   if (!spinning.value) {
     spinning.value = true
   }
 
-  getLibFileInfo({ id: document_id }).then((res) => {
+  getLibFileInfo({ id: document_id }).then(async (res) => {
     const { status } = res.data
+    library_type.value = res.data.library_type
     libFileInfo.value = res.data
     formData = {
       ...formData,
       separators_no: res.data.separators_no || '11,12',
       chunk_size: +res.data.chunk_size || 512,
       chunk_overlap: +res.data.chunk_overlap || 50,
-      is_qa_doc: +res.data.is_qa_doc,
+      is_qa_doc: library_type.value == 2 ? 1 : 0,
       question_lable: res.data.question_lable,
       answer_lable: res.data.answer_lable,
       question_column: res.data.question_column,
@@ -281,6 +286,8 @@ const getDocumentStatus = () => {
       enable_extract_image: res.data.enable_extract_image == 'true',
       qa_index_type: +res.data.qa_index_type
     }
+
+    // await getInfo(res.data.library_id)
     if (status == 0) {
       loopNumber++
       if (loopNumber > maxLoopNumber) {
@@ -297,7 +304,14 @@ const getDocumentStatus = () => {
       spinning.value = false
       settingMode.value = parseInt(res.data.is_table_file)
       library_id = res.data.library_id
-      getDocumentFragment()
+      if(library_type.value == 2){
+        if(formData.question_lable || formData.question_column){
+          getDocumentFragment();
+        }
+      }else{
+        getDocumentFragment();
+      }
+      // library_type.value  != 2 && getDocumentFragment()
     } else {
       router.replace('/library/details?id=' + res.data.library_id)
     }
@@ -309,6 +323,7 @@ const getDocumentStatus = () => {
 }
 
 getDocumentStatus()
+
 
 const excellQaLists = ref([])
 const getExcelQaTitle = () => {
@@ -330,6 +345,7 @@ const documentFragmentList = ref([])
 const documentFragmentTotal = ref(0)
 
 const getDocumentFragment = () => {
+
   getLibFileSplit(formData).then((res) => {
     documentFragmentList.value = res.data.list || []
     documentFragmentTotal.value = res.data.list.length || 0

@@ -176,7 +176,7 @@ const onSave = () => {
 
 // 获取知识库
 const getList = async () => {
-  const res = await getLibraryList()
+  const res = await getLibraryList({ type: '' })
   if (res) {
     libraryList.value = res.data || []
   }

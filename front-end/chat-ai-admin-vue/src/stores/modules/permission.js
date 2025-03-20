@@ -36,7 +36,7 @@ export const usePermissionStore = defineStore('permission', {
       role_permission: [],
       user_roles: null,
       role_type: null,
-      menus: [],
+      menus: []
     }
   },
   getters: {
@@ -49,8 +49,7 @@ export const usePermissionStore = defineStore('permission', {
 
         return acc
       }, {})
-    },
-
+    }
   },
   actions: {
     async getPermissionList() {
@@ -58,16 +57,17 @@ export const usePermissionStore = defineStore('permission', {
       return Promise.resolve({ res: 0, data: [] })
     },
     setRolePermission(data) {
-      this.role_permission = data.role_permission || [];
-      this.user_roles = data.user_roles;
-      this.role_type = data.role_type;
-      this.menus = data.menu || [];
+      this.role_permission = data.role_permission || []
+      this.role_permission.push('OpenDoc')
+      this.user_roles = data.user_roles
+      this.role_type = data.role_type
+      this.menus = data.menu || []
     },
     async checkPermission() {
       const res = await checkPermission()
       this.setRolePermission(res.data)
-      return res.data;
-    },
+      return res.data
+    }
   },
   persist: true
 })

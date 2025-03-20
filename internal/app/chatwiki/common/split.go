@@ -47,12 +47,25 @@ func GetLibFileSplit(userId, fileId int, splitParams define.SplitParams, lang st
 		err = errors.New(i18n.Show(lang, `status_exception`))
 		return
 	}
+	library, err := GetLibraryInfo(cast.ToInt(info[`library_id`]), userId)
+	if err != nil {
+		err = errors.New(i18n.Show(lang, `sys_err`))
+		return
+	}
+	if len(library) == 0 {
+		err = errors.New(i18n.Show(lang, `no_data`))
+		return
+	}
 	splitParams.IsTableFile = cast.ToInt(info[`is_table_file`])
 	splitParams, err = CheckSplitParams(splitParams, lang)
 	if err != nil {
 		return
 	}
-
+	if (cast.ToInt(library[`type`]) == define.GeneralLibraryType && splitParams.IsQaDoc == define.DocTypeQa) ||
+		(cast.ToInt(library[`type`]) == define.QALibraryType && splitParams.IsQaDoc != define.DocTypeQa) {
+		err = errors.New(i18n.Show(lang, `param_invalid`, `is_qa_doc`))
+		return
+	}
 	if cast.ToInt(info[`is_table_file`]) == define.FileIsTable && splitParams.IsQaDoc == define.DocTypeQa {
 		list, wordTotal, err = ReadQaTab(info[`file_url`], info[`file_ext`], splitParams)
 	} else if cast.ToInt(info[`is_table_file`]) == define.FileIsTable && splitParams.IsQaDoc != define.DocTypeQa {
@@ -206,7 +219,11 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		return errors.New(i18n.Show(lang, `sys_err`))
 	}
 
-	var indexIds []int64
+	var (
+		indexIds     []int64
+		library, _   = GetLibraryData(cast.ToInt(info[`library_id`]))
+		skipUseModel = cast.ToInt(library[`type`]) == define.OpenLibraryType && cast.ToInt(library[`use_model_switch`]) != define.SwitchOn
+	)
 	for i, item := range list {
 		if utf8.RuneCountInString(item.Content) > MaxContent || utf8.RuneCountInString(item.Question) > MaxContent || utf8.RuneCountInString(item.Answer) > MaxContent {
 			return errors.New(i18n.Show(lang, `length_err`, i+1))
@@ -312,6 +329,9 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		return errors.New(i18n.Show(lang, `sys_err`))
 	}
 
+	if skipUseModel {
+		return err
+	}
 	//async task:convert vector
 	for _, id := range indexIds {
 		if message, err := tool.JsonEncode(map[string]any{`id`: id, `file_id`: fileId}); err != nil {
@@ -730,4 +750,23 @@ func ConvertWebPToPNG(webpData []byte) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+func AutoSplitLibFile(adminUserId, fileId int) {
+	lang := define.LangZhCn
+	splitParams := define.SplitParams{}
+	splitParams.ChunkSize = 512
+	splitParams.ChunkOverlap = 0
+	splitParams.SeparatorsNo = `11,12`
+	splitParams.EnableExtractImage = true
+	list, wordTotal, err := GetLibFileSplit(adminUserId, fileId, splitParams, lang)
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	err = SaveLibFileSplit(adminUserId, fileId, wordTotal, define.QAIndexTypeQuestionAndAnswer, splitParams, list, lang)
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
 }

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    />
+    <title>{{.search}}-{{.library_title}}</title>
+    <link rel="stylesheet" href="/open/static/css/base.css?v=2025030301" />
+    <link rel="stylesheet" href="/open/static/css/search.css?v=2025030702" />
+    <script src="/open/static/libs/jquery/jquery-3.7.1.min.js"></script>
+    <!-- 百度统计 -->
+    {{template "baidu_statistics" }}
+    {{.statistics_set}}
+  </head>
+  <body>
+    <input
+      type="hidden"
+      id="library_key"
+      name="library_key"
+      value="{{.library_key}}"
+    />
+    <input type="hidden" id="doc_id" name="doc_id" value="{{.doc_id}}" />
+    <input type="hidden" id="keyword" name="keyword" value="{{.search}}" />
+    <div class="search-page">
+      <div class="home-page-left" id="wikiSidebarWrapper">
+        <div class="wiki-sidebar-mask" onclick="toggleSidebar()"></div>
+        <div class="wiki-sidebar">
+          <div class="wiki-sidebar-header">
+            {{if not .library_avatar}}
+            <img class="wiki-logo" src="/open/static/img/t.svg" alt="" />
+            {{else}}
+            <img class="wiki-logo" src="{{.library_avatar}}" alt="" />
+            {{end}}
+            <h3 class="wiki-name">{{.library_title}}</h3>
+            <div class="action-box">
+              <span
+                class="action-btn sidebar-toggle-btn"
+                id="sidebar-toggle"
+                onclick="toggleSidebar()"
+              >
+                <img src="/open/static/img/sidebar_toggle.svg" alt="" />
+              </span>
+            </div>
+          </div>
+
+          <div class="wiki-search-box">
+            <div class="search-input-box">
+              <input
+                id="sidebar-search-input"
+                class="search-input"
+                type="text"
+                placeholder=""
+                onkeydown="handleEnterSidebarSearch(event)"
+              />
+              <img
+                class="search-icon"
+                src="/open/static/img/search.png"
+                alt=""
+                srcset=""
+                onclick="onSidebarSearch()"
+              />
+            </div>
+          </div>
+
+          <div class="sidebar-menus">
+            <div class="sidebar-menu-item active">
+              <a class="link" id="home-link" href="/open/home/{{.library_key}}">
+                <img
+                  class="menu-icon default-icon"
+                  src="/open/static/img/menu_ai.svg"
+                  alt=""
+                />
+                <img
+                  class="menu-icon active-icon"
+                  src="/open/static/img/menu_ai_active.svg"
+                  alt=""
+                />
+                <span class="menu-name">首页</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="sidebar-directory">
+            <div class="directory-header">
+              <span class="directory-label">文档目录</span>
+              <div class="action-box">
+                <img
+                  class="action-btn"
+                  src="/open/static/img/directory_expanded.svg"
+                  title="收起全部菜单"
+                  onclick="closeAllCatalog()"
+                />
+              </div>
+            </div>
+
+            <div class="directory-body">
+              <div class="directory-list" id="directory-list">
+                {{ template "directory_menu" .catalog}}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="search-page-container">
+        <!-- header -->
+        <div class="search-page-header-wrapper">
+          <div class="search-page-header">
+            <div class="search-box" id="search-box">
+              <input
+                class="search-input"
+                onfocus="handleFocus()"
+                onblur="handleBlur()"
+                oninput="handleInput()"
+                onkeydown="handleEnterSearch(event)"
+                id="search-input"
+                name="search"
+                autocomplete="off"
+                placeholder=""
+                type="text"
+                value="{{.search}}"
+              />
+              <span class="search-clear" onclick="handleClear(event)"></span>
+              <span class="search-btn" onclick="onSearch()">
+                <span class="search-icon"></span>
+              </span>
+            </div>
+            <div class="action-box">
+              <span class="action-btn" onclick="toggleSidebar()">
+                <img
+                  class="action-btn-icon"
+                  src="/open/static/img/open_sidebar.svg"
+                  alt=""
+                />
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- body -->
+        <div class="search-page-body">
+          <div class="search-result-wrapper">
+            <h3 class="search-result-label">为您找到以下结果</h3>
+            <div class="ai-result-box" style="display: none;">
+              <h4 class="ai-result-label">以下结果由AI生成</h4>
+          
+              <div class="ai-result-text" id="ai-result-text"></div>
+          
+              <div class="ai-result-doc-box" style="display: none;">
+                <h4 class="ai-result-doc-label">
+                  <img
+                    class="arrow-icon"
+                    src="/open/static/img/arrow.svg"
+                    alt=""
+                    onclick="toggleAiResultDocs()"
+                  />
+                  <span class="label-text">相关文档 (4)</span>
+                  <span class="line"></span>
+                </h4>
+                <!-- ai result -->
+                <ul class="ai-result-doc-items" id="ai-result-docs">
+  
+                </ul>
+              </div>
+            </div>
+
+            <!-- search result -->
+            <ul class="search-result-items" id="search-result-list">
+        
+            </ul>
+          </div>
+
+          <!-- end -->
+        </div>
+      </div>
+      <!-- end -->
+    </div>
+    <script src="/open/static/libs/fetch-event-source.min.js?v=2025031201"></script>
+    <script src="/open/static/js/base.js?v=2025031101"></script>
+    <script src="/open/static/js/search.js?v=2005030303"></script>
+  </body>
+</html>

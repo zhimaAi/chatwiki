@@ -55,6 +55,7 @@
     class="text-input"
     rows="1"
     ref="textareaRef"
+    :focus="focus"
     :value="props.value"
     @input="updateValue"
     @focus="onFocus"
@@ -75,6 +76,10 @@ const props = defineProps({
   value: {
     type: String,
     default: ''
+  },
+  focus: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -147,7 +152,7 @@ watch(
       // 消息清空后输入框回到最初的高度
       inputHeight.value = '1.5em'
       // 回车后输入框失去焦点
-      textareaRef.value.blur()
+      // textareaRef.value.blur()
     }
   }
 )

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script src="dist/fetch-event-source.min.js"></script>
+    <script>
+      // 使用示例
+      const ctrl = new AbortController();
+      FetchEventSource.fetchEventSource(
+        "http://dev2.zhima_chat_ai.applnk.cn/open/summary/bGliXzI4XzE3NDE3Njc2MTI=?v=33",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            foo: "bar",
+          }),
+          signal: ctrl.signal,
+        }
+      );
+    </script>
+  </body>
+</html>

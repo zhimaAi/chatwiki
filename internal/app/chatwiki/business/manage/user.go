@@ -93,6 +93,25 @@ func GetAdminUserId(c *gin.Context) int {
 	return cast.ToInt(data["parent_id"])
 }
 
+func getAdminUserId(c *gin.Context) int {
+	token := c.GetHeader(`token`)
+	if len(token) == 0 {
+		token = c.Query(`token`)
+	}
+	data, err := common.ParseToken(token)
+	if err != nil {
+		return 0
+	}
+	userId := cast.ToInt(data[`user_id`])
+	if userId <= 0 {
+		return userId
+	}
+	if cast.ToInt(data["parent_id"]) <= 0 {
+		return cast.ToInt(data["user_id"])
+	}
+	return cast.ToInt(data["parent_id"])
+}
+
 func getLoginUserId(c *gin.Context) int {
 	data, err := common.ParseToken(c.GetHeader(`token`))
 	if err != nil {

@@ -322,7 +322,7 @@ const handleEdit = () => {
     // 传给后端的是默认，渲染的是真实名称
     data.use_model = '默认'
   }
-  if (formState.avatar_file) {
+  if(formState.avatar_file){
     data.avatar = formState.avatar_file
   }
   editLibrary(data).then((res) => {

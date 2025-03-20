@@ -70,3 +70,28 @@ export const clientSideDownload = ({ domain }) => {
     data: { domain }
   })
 }
+
+// 获取自定义域名
+export const getDomainList = (data) => {
+    return request.get({ url: '/manage/diyDomainList', data })
+}
+
+// 保存自定义域名
+export const saveDomain = (data) => {
+    return request.post({ url: '/manage/saveDiyDomain', data })
+}
+
+// 删除自定义域名
+export const deleteDomain = (data) => {
+    return request.post({ url: '/manage/deleteDiyDomain', data })
+}
+
+// 上传证书
+export const uploadCertificate = (data) => {
+    return request.post({ url: '/manage/uploadCertificate', data })
+}
+
+// 上传验证文件
+export const uploadCheckFile = (data) => {
+    return request.post({ url: '/manage/uploadCheckFile', data })
+}

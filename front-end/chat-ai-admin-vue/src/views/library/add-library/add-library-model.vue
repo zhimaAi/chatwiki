@@ -24,15 +24,20 @@
           <a-input
             v-model:value="formState.library_name"
             placeholder="请输入知识库名称，最多20个字"
+            :maxlength="20"
           />
         </a-form-item>
 
         <a-form-item label="知识库简介" v-bind="validateInfos.library_intro">
-          <a-textarea v-model:value="formState.library_intro" placeholder="请输入知识库介绍" />
+          <a-textarea
+            :maxlength="1000"
+            v-model:value="formState.library_intro"
+            placeholder="请输入知识库介绍"
+          />
         </a-form-item>
 
-        <a-form-item ref="name" label="知识库封面" v-bind="validateInfos.robot_avatar_url">
-          <AvatarInput v-model:value="formState.robot_avatar_url" @change="onAvatarChange" />
+        <a-form-item ref="name" label="知识库封面" v-bind="validateInfos.avatar">
+          <AvatarInput v-model:value="formState.avatar" @change="onAvatarChange" />
           <div class="form-item-tip">请上传知识库封面，建议尺寸为100*100px.大小不超过100kb</div>
         </a-form-item>
       </a-form>
@@ -46,7 +51,7 @@ import { Form, message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import { createLibrary } from '@/api/library/index'
 import AvatarInput from './components/avatar-input.vue'
-import { DEFAULT_LIBRARY_AVATAR } from '@/constants/index'
+import { DEFAULT_LIBRARY_AVATAR, DEFAULT_LIBRARY_AVATAR3 } from '@/constants/index'
 import { transformUrlData } from '@/utils/validate.js'
 
 // 设置全局默认的duration为（2秒）
@@ -56,17 +61,20 @@ message.config({
 
 const router = useRouter()
 const visible = ref(false)
+
 const useForm = Form.useForm
 const saveLoading = ref(false)
 
 const formState = reactive({
+  type: '0',
+  access_rights: 0,
   library_name: '',
   library_intro: '',
   use_model: '',
   model_config_id: '',
   library_files: undefined,
-  avatar: DEFAULT_LIBRARY_AVATAR,
-  robot_avatar_url: DEFAULT_LIBRARY_AVATAR,
+  avatar: '',
+  avatar_file: undefined,
   is_offline: false,
   urls: '',
   doc_type: 1,
@@ -83,7 +91,8 @@ const rules = reactive({
 const { validate, validateInfos } = useForm(formState, rules)
 
 const onAvatarChange = (data) => {
-  formState.avatar = data.file
+  formState.avatar = data.imageUrl
+  formState.avatar_file = data.file
 }
 
 const handleCancel = () => {
@@ -105,11 +114,13 @@ const saveForm = () => {
 
   let newFormState = JSON.parse(JSON.stringify(formState)) // 深拷贝，不能改变原对象
 
+  formData.append('type', formState.type)
+  formData.append('access_rights', formState.access_rights)
   formData.append('library_name', formState.library_name)
   formData.append('library_intro', formState.library_intro)
   formData.append('use_model', newFormState.use_model)
   formData.append('model_config_id', formState.model_config_id)
-  formData.append('avatar', formState.avatar || DEFAULT_LIBRARY_AVATAR)
+  formData.append('avatar', formState.avatar_file ? formState.avatar_file : '')
   formData.append('is_offline', formState.is_offline)
   formData.append('urls', JSON.stringify(transformUrlData(formState.urls)))
   formData.append('doc_type', formState.doc_type)
@@ -149,7 +160,16 @@ const saveForm = () => {
     })
 }
 
-const show = () => {
+const show = ({ type }) => {
+  formState.type = type
+
+  if (type == 0) {
+    formState.avatar = DEFAULT_LIBRARY_AVATAR
+    formState.avatar_file = DEFAULT_LIBRARY_AVATAR
+  } else {
+    formState.avatar = DEFAULT_LIBRARY_AVATAR3
+    formState.avatar_file = DEFAULT_LIBRARY_AVATAR3
+  }
   visible.value = true
 }
 

@@ -80,72 +80,67 @@ const route = useRoute()
 // createVNode('div', { style: 'color:red;' }, content),
 
 const permissionStore = usePermissionStore()
+
+let baseMenu = [
+  {
+    name: '模型管理',
+    key: 'model',
+    path: '/user/model',
+    icon: AppstoreFilled,
+    permissionKey: 'ModelManage'
+  },
+  {
+    name: 'Token使用',
+    key: 'usetoken',
+    path: '/user/usetoken',
+    svg: 'use-token',
+    svgActive: 'use-token-active',
+    permissionKey: 'TokenManage'
+  },
+  {
+    name: '团队管理',
+    key: 'manage',
+    path: '/user/manage',
+    svg: 'team-manage-active',
+    svgActive: 'team-manage',
+    permissionKey: 'TeamManage'
+  },
+  {
+    name: '账号设置',
+    key: 'account',
+    path: '/user/account',
+    icon: SettingFilled,
+    permissionKey: 'AccountManage'
+  },
+  {
+    name: '企业设置',
+    key: 'enterprise',
+    path: '/user/enterprise',
+    svg: 'enterprise',
+    svgActive: 'enterprise-active',
+    permissionKey: 'CompanyManage'
+  },
+  {
+    name: '自定义域名',
+    key: 'domain',
+    path: '/user/domain',
+    svg: 'network',
+    svgActive: 'network',
+    permissionKey: 'AccountManage'
+  },
+  {
+    name: '客户端下载',
+    key: 'clientDownload',
+    path: '/user/clientDownload',
+    svg: 'client',
+    svgActive: 'client',
+    permissionKey: 'ClientSideManage'
+  }
+]
+
 const menus = computed(() => {
   let { role_permission } = permissionStore
-  let possessedAuthority = []
-  
-  for (let i = 0; i < role_permission.length; i++) {
-    const item = role_permission[i];
-    if (item === 'ModelManage') {
-      possessedAuthority.push({
-        id: 1,
-        name: '模型管理',
-        key: 'model',
-        path: '/user/model',
-        icon: AppstoreFilled
-      })
-    }
-    if (item === 'TokenManage') {
-      possessedAuthority.push({
-        id: 2,
-        name: 'Token使用',
-        key: 'usetoken',
-        path: '/user/usetoken',
-        svg: 'use-token',
-        svgActive: 'use-token-active'
-      })
-    }
-    if (item === 'TeamManage') {
-      possessedAuthority.push({
-        id: 3,
-        name: '团队管理',
-        key: 'manage',
-        path: '/user/manage',
-        svg: 'team-manage-active',
-        svgActive: 'team-manage'
-      })
-    }
-    if (item === 'AccountManage') {
-      possessedAuthority.push({
-        id: 4,
-        name: '账号设置',
-        key: 'account',
-        path: '/user/account',
-        icon: SettingFilled
-      })
-    }
-    if (item === 'CompanyManage') {
-      possessedAuthority.push({
-        id: 5,
-        name: '企业设置',
-        key: 'enterprise',
-        path: '/user/enterprise',
-        svg: 'enterprise',
-        svgActive: 'enterprise-active'
-      })
-    }
-    if (item === 'ClientSideManage') {
-      possessedAuthority.push({
-        id: 6,
-        name: '客户端下载',
-        key: 'clientDownload',
-        path: '/user/clientDownload',
-        svg: 'client',
-        svgActive: 'client'
-      })
-    }
-  }
-  return possessedAuthority.sort((a, b) => a.id - b.id);
+  return baseMenu.filter((item) => item.haspermise || role_permission.includes(item.permissionKey))
 })
 
 const activeMenu = computed(() => {

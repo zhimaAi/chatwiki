@@ -67,6 +67,15 @@ export default {
           }
         },
         {
+          path: '/user/domain',
+          name: 'userDomain',
+          component: () => import('../views/user/domain/index.vue'),
+          meta: {
+            title: '自定义域名',
+            activeMenu: '/user'
+          }
+        },
+        {
           path: '/user/clientDownload',
           name: 'clientDownload',
           component: () => import('../views/user/client-download/index.vue'),

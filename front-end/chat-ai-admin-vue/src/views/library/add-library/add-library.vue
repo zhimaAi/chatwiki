@@ -131,109 +131,34 @@
         <a-form-item ref="name" label="知识库名称" v-bind="validateInfos.library_name">
           <a-input
             v-model:value="formState.library_name"
+            type="text"
             placeholder="请输入知识库名称，最多20个字"
+            :maxlength="20"
           />
         </a-form-item>
 
-        <a-form-item label="知识库简介" v-bind="validateInfos.library_intro">
+        <a-form-item label="知识库简介">
           <a-textarea v-model:value="formState.library_intro" placeholder="请输入知识库介绍" />
         </a-form-item>
 
-        <a-form-item ref="name" label="知识库封面" v-bind="validateInfos.robot_avatar_url">
-          <AvatarInput v-model:value="formState.robot_avatar_url" @change="onAvatarChange" />
+        <a-form-item ref="name" label="知识库封面" v-bind="validateInfos.avatar">
+          <AvatarInput v-model:value="formState.avatar" @change="onAvatarChange" />
           <div class="form-item-tip">请上传知识库封面，建议尺寸为100*100px.大小不超过100kb</div>
         </a-form-item>
-
-        <a-form-item label="导入文档类型" required>
-          <div class="upload-document-type-box">
-            <div
-              class="type-item"
-              :class="{ active: formState.doc_type == item.value }"
-              v-for="item in documentTypeList"
-              :key="item.value"
-              @click="handleChangeUrlType(item.value)"
-            >
-              <div class="right-block">
-                <div class="title-block">
-                  <svg-icon
-                    :name="formState.doc_type == item.value ? item.iconNameActive : item.iconName"
-                  ></svg-icon>
-                  <div class="title-text">{{ item.title }}</div>
-                </div>
-                <div class="desc">{{ item.desc }}</div>
-              </div>
-              <svg-icon
-                class="check-arrow"
-                name="check-arrow-filled"
-                style="font-size: 24px; color: #fff"
-                v-if="formState.doc_type == item.value"
-              ></svg-icon>
-            </div>
-          </div>
-        </a-form-item>
-
-        <a-form-item
-          v-show="formState.doc_type == 1"
-          ref="name"
-          label="知识库文档"
-          v-bind="validateInfos.library_files"
-        >
-          <UploadFile @change="handleFileChange" />
-        </a-form-item>
-
-        <a-form-item
-          v-show="formState.doc_type == 2"
-          ref="urls"
-          label="网页链接"
-          v-bind="validateInfos.urls"
-        >
-          <a-textarea
-            style="height: 120px"
-            v-model:value="formState.urls"
-            placeholder="请输入网页链接,形式：一行标题一行网页链接"
-          />
-        </a-form-item>
-
-        <a-form-item
-          v-show="formState.doc_type == 2"
-          ref="doc_auto_renew_frequency"
-          label="更新频率"
-          required
-        >
-          <a-select v-model:value="formState.doc_auto_renew_frequency" style="width: 100%">
-            <a-select-option :value="1">不自动更新</a-select-option>
-            <a-select-option :value="2">每天</a-select-option>
-            <a-select-option :value="3">每3天</a-select-option>
-            <a-select-option :value="4">每7天</a-select-option>
-            <a-select-option :value="5">每30天</a-select-option>
-          </a-select>
-        </a-form-item>
-
-        <div v-show="formState.doc_type == 3">
-          <a-form-item ref="file_name" label="文档名称" v-bind="validateInfos.file_name">
-            <a-input placeholder="请输入文档名称" v-model:value="formState.file_name"></a-input>
-          </a-form-item>
-          <a-form-item label="文档类型" required>
-            <a-radio-group v-model:value="formState.is_qa_doc">
-              <a-radio :value="0">普通文档</a-radio>
-              <a-radio :value="1">QA文档</a-radio>
-            </a-radio-group>
-          </a-form-item>
-          <a-form-item label="索引方式" required v-if="formState.is_qa_doc == 1">
+        <template v-if="type != 1">
+          <a-form-item label="导入文档类型" required>
             <div class="upload-document-type-box">
               <div
                 class="type-item"
-                :class="{ active: formState.qa_index_type == item.value }"
-                v-for="item in qaIndexTypeList"
+                :class="{ active: formState.doc_type == item.value }"
+                v-for="item in documentTypeList"
                 :key="item.value"
-                @click="handleChangeQaIndexType(item.value)"
+                @click="handleChangeUrlType(item.value)"
               >
                 <div class="right-block">
                   <div class="title-block">
                     <svg-icon
-                      :name="
-                        formState.qa_index_type == item.value ? item.iconNameActive : item.iconName
-                      "
+                      :name="formState.doc_type == item.value ? item.iconNameActive : item.iconName"
                     ></svg-icon>
                     <div class="title-text">{{ item.title }}</div>
                   </div>
@@ -243,15 +168,95 @@
                   class="check-arrow"
                   name="check-arrow-filled"
                   style="font-size: 24px; color: #fff"
-                  v-if="formState.qa_index_type == item.value"
+                  v-if="formState.doc_type == item.value"
                 ></svg-icon>
               </div>
             </div>
           </a-form-item>
-        </div>
+
+          <a-form-item
+            v-show="formState.doc_type == 1"
+            ref="name"
+            label="知识库文档"
+            v-bind="validateInfos.library_files"
+          >
+            <UploadFile :type="type" @change="handleFileChange" />
+          </a-form-item>
+
+          <a-form-item
+            v-show="formState.doc_type == 2"
+            ref="urls"
+            label="网页链接"
+            v-bind="validateInfos.urls"
+          >
+            <a-textarea
+              style="height: 120px"
+              v-model:value="formState.urls"
+              placeholder="请输入网页链接,形式：一行标题一行网页链接"
+            />
+          </a-form-item>
+
+          <a-form-item
+            v-show="formState.doc_type == 2"
+            ref="doc_auto_renew_frequency"
+            label="更新频率"
+            required
+          >
+            <a-select v-model:value="formState.doc_auto_renew_frequency" style="width: 100%">
+              <a-select-option :value="1">不自动更新</a-select-option>
+              <a-select-option :value="2">每天</a-select-option>
+              <a-select-option :value="3">每3天</a-select-option>
+              <a-select-option :value="4">每7天</a-select-option>
+              <a-select-option :value="5">每30天</a-select-option>
+            </a-select>
+          </a-form-item>
+
+          <div v-show="formState.doc_type == 3">
+            <a-form-item ref="file_name" label="文档名称" v-bind="validateInfos.file_name">
+              <a-input placeholder="请输入文档名称" v-model:value="formState.file_name"></a-input>
+            </a-form-item>
+            <a-form-item label="文档类型" required v-if="false">
+              <a-radio-group v-model:value="formState.is_qa_doc">
+                <a-radio :value="0">普通文档</a-radio>
+                <a-radio :value="1">QA文档</a-radio>
+              </a-radio-group>
+            </a-form-item>
+            <a-form-item label="索引方式" required v-if="formState.is_qa_doc == 1">
+              <div class="upload-document-type-box">
+                <div
+                  class="type-item"
+                  :class="{ active: formState.qa_index_type == item.value }"
+                  v-for="item in qaIndexTypeList"
+                  :key="item.value"
+                  @click="handleChangeQaIndexType(item.value)"
+                >
+                  <div class="right-block">
+                    <div class="title-block">
+                      <svg-icon
+                        :name="
+                          formState.qa_index_type == item.value
+                            ? item.iconNameActive
+                            : item.iconName
+                        "
+                      ></svg-icon>
+                      <div class="title-text">{{ item.title }}</div>
+                    </div>
+                    <div class="desc">{{ item.desc }}</div>
+                  </div>
+                  <svg-icon
+                    class="check-arrow"
+                    name="check-arrow-filled"
+                    style="font-size: 24px; color: #fff"
+                    v-if="formState.qa_index_type == item.value"
+                  ></svg-icon>
+                </div>
+              </div>
+            </a-form-item>
+          </div>
+        </template>
 
         <a-form-item label="嵌入模型 " v-bind="validateInfos.use_model">
-          <div class="card-box">
+          <div class="card-box" v-if="false">
             <div
               class="use-model-item"
               :class="{ active: isActive == item.value }"
@@ -325,12 +330,12 @@
 <script setup>
 import { reactive, ref, onMounted, computed } from 'vue'
 import { Form, message } from 'ant-design-vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import UploadFile from './components/upload-input.vue'
 import { createLibrary } from '@/api/library/index'
 import { getModelConfigOption } from '@/api/model/index'
 import AvatarInput from './components/avatar-input.vue'
-import { DEFAULT_LIBRARY_AVATAR } from '@/constants/index'
+import { DEFAULT_LIBRARY_AVATAR, DEFAULT_LIBRARY_AVATAR2 } from '@/constants/index'
 import { transformUrlData } from '@/utils/validate.js'
 import { useStorage } from '@/hooks/web/useStorage'
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
@@ -343,6 +348,11 @@ message.config({
 })
 
 const router = useRouter()
+const route = useRoute()
+
+const type = computed(() => {
+  return route.query.type || 0
+})
 
 const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
 const oldModelDefineList = ['azure']
@@ -355,15 +365,15 @@ const libraryModeList = ref([
     value: 1,
     is_offline: false,
     desc: '使用在线的嵌入模型，在召回时具有更高的准确度，但需要花费token'
-  },
-  {
-    iconName: 'economic',
-    iconNameActive: 'economic-active',
-    title: '经济',
-    value: 2,
-    is_offline: true,
-    desc: '使用离线的向量模型，较在线模型准确度稍低，但是不需要消耗token'
   }
+  // {
+  //   iconName: 'economic',
+  //   iconNameActive: 'economic-active',
+  //   title: '经济',
+  //   value: 2,
+  //   is_offline: true,
+  //   desc: '使用离线的向量模型，较在线模型准确度稍低，但是不需要消耗token'
+  // }
 ])
 
 const documentTypeList = ref([
@@ -372,7 +382,7 @@ const documentTypeList = ref([
     iconNameActive: 'doc-icon-active',
     title: '本地文档',
     value: 1,
-    desc: '上传本地 text/pdf/doc/docx/xlsx 等格式文件'
+    desc: `${type.value == 2 ? '上传本地 docx/csv/xlsx 等格式文件' : '上传本地 text/pdf/doc/docx/xlsx 等格式文件'}`
   },
   {
     iconName: 'link-icon',
@@ -389,6 +399,9 @@ const documentTypeList = ref([
     desc: '自定义一个空文档，手动添加或编辑内容'
   }
 ])
+if (type.value == 2) {
+  documentTypeList.value = documentTypeList.value.filter((item) => item.value != 2)
+}
 const qaIndexTypeList = ref([
   {
     iconName: 'file-search',
@@ -410,30 +423,33 @@ const useForm = Form.useForm
 const saveLoading = ref(false)
 
 const lastEmbeddedModel = computed(() => getStorage('lastEmbeddedModel') || {})
-const isActive = ref(lastEmbeddedModel.value.isActive ? lastEmbeddedModel.value.isActive : 2)
+const isActive = ref(1)
+const defaultAvatar = type.value == 0 ? DEFAULT_LIBRARY_AVATAR : DEFAULT_LIBRARY_AVATAR2
 const formState = reactive({
+  type: type.value,
+  access_rights: 0,
   library_name: '',
   library_intro: '',
-  use_model: lastEmbeddedModel.value.use_model ? lastEmbeddedModel.value.use_model : undefined,
-  model_config_id: lastEmbeddedModel.value.model_config_id
-    ? lastEmbeddedModel.value.model_config_id
-    : '',
+  use_model: 'text-embedding-v2',
+  model_config_id: '',
   library_files: undefined,
-  avatar: DEFAULT_LIBRARY_AVATAR,
-  robot_avatar_url: DEFAULT_LIBRARY_AVATAR,
-  is_offline: Object.prototype.hasOwnProperty.call(lastEmbeddedModel.value, 'is_offline')
-    ? lastEmbeddedModel.value.is_offline
-    : false,
+  avatar: defaultAvatar,
+  avatar_file: undefined,
+  is_offline: false,
   urls: '',
   doc_type: 1,
   file_name: '',
-  is_qa_doc: 0, // 0 普通文档 1QA文档
+  is_qa_doc: type.value == 2 ? 1 : 0, // 0 普通文档 1QA文档
   qa_index_type: 1, // 1问题与答案一起生成索引 2仅对问题生成索引
   doc_auto_renew_frequency: 1
 })
 const currentModelDefine = ref('')
 
 const validateFiles = (_rule, value) => {
+  if (type.value == 1) {
+    return Promise.resolve()
+  }
+
   if ((value && value.length > 0) || formState.doc_type != 1) {
     return Promise.resolve()
   } else {
@@ -442,6 +458,10 @@ const validateFiles = (_rule, value) => {
 }
 
 const validateUrl = (_rule, value) => {
+  if (type.value == 1) {
+    return Promise.resolve()
+  }
+
   if (formState.doc_type != 2) {
     return Promise.resolve()
   }
@@ -453,21 +473,28 @@ const validateUrl = (_rule, value) => {
 
 const rules = reactive({
   library_name: [{ required: true, message: '请输入库名称', trigger: 'change' }],
-  library_intro: [{ required: true, message: '请输入库简介', trigger: 'change' }],
   use_model: [{ required: true, message: '请选择嵌入模型', trigger: 'change' }],
   library_files: [
-    { required: true, message: '请选择文件', trigger: 'change', validator: validateFiles }
+    {
+      required: type.value == 0,
+      message: '请选择文件',
+      trigger: 'change',
+      validator: validateFiles
+    }
   ],
   urls: [
     {
-      required: true,
+      required: type.value == 0,
       validator: validateUrl
     }
   ],
   file_name: [
     {
-      required: true,
+      required: type.value == 0,
       validator: (_rule, value) => {
+        if (type.value == 1) {
+          return Promise.resolve()
+        }
         if (formState.doc_type != 3 || value) {
           return Promise.resolve()
         } else {
@@ -492,10 +519,12 @@ const handleChangeModel = (val, option) => {
       : self.name
   currentModelDefine.value = self.model_define
   formState.model_config_id = self.id || option.model_config_id
+  console.log(formState, '==')
 }
 
 const onAvatarChange = (data) => {
-  formState.avatar = data.file
+  formState.avatar = data.imageUrl
+  formState.avatar_file = data.file
 }
 
 const handleSelectLibrary = (item) => {
@@ -537,11 +566,13 @@ const saveForm = () => {
     newFormState.use_model = '默认'
   }
 
+  formData.append('type', formState.type)
+  formData.append('access_rights', formState.access_rights)
   formData.append('library_name', formState.library_name)
   formData.append('library_intro', formState.library_intro)
   formData.append('use_model', newFormState.use_model)
   formData.append('model_config_id', formState.model_config_id)
-  formData.append('avatar', formState.avatar || DEFAULT_LIBRARY_AVATAR)
+  formData.append('avatar', formState.avatar_file ? formState.avatar_file : '')
   formData.append('is_offline', formState.is_offline)
   formData.append('urls', JSON.stringify(transformUrlData(formState.urls)))
   formData.append('doc_type', formState.doc_type)
@@ -552,19 +583,22 @@ const saveForm = () => {
 
   // “嵌入模型”记住用户上次选择
   setStorage('lastEmbeddedModel', {
-    model_config_id: formState.model_config_id,
-    is_offline: formState.is_offline,
-    use_model: formState.use_model,
-    isActive: isActive.value
+    // model_config_id: formState.model_config_id,
+    // is_offline: formState.is_offline,
+    // use_model: formState.use_model,
+    // isActive: isActive.value
   })
   let isTableType = false
-  if (formState.doc_type == 1) {
-    formState.library_files.forEach((file) => {
-      if (file.name.includes('.xlsx') || file.name.includes('.csv')) {
-        isTableType = true
-      }
-      formData.append('library_files', file)
-    })
+
+  if (type.value == 0 || type.value == 2) {
+    if (formState.doc_type == 1) {
+      formState.library_files.forEach((file) => {
+        if (file.name.includes('.xlsx') || file.name.includes('.csv')) {
+          isTableType = true
+        }
+        formData.append('library_files', file)
+      })
+    }
   }
 
   saveLoading.value = true
@@ -572,10 +606,26 @@ const saveForm = () => {
   createLibrary(formData)
     .then((res) => {
       message.success('创建成功')
+      // 对外知识库
+      if (type.value == 1) {
+        console.log('对外知识库')
+        router.replace({
+          path: '/public-library/config',
+          query: {
+            library_id: res.data.id
+          }
+        })
+
+        saveLoading.value = false
+
+        return
+      }
+
       let path = '/library/details/knowledge-document'
       let query = {
         id: res.data.id
       }
+
       if (isTableType) {
         path = '/library/document-segmentation'
         query = {
@@ -627,10 +677,10 @@ const getModelList = (is_offline) => {
     let children = []
     let isCheckId = false
     // 没有模型选项则不用缓存中的记录上传模型选择
-    if (!list.length && lastEmbeddedModel.value.model_config_id) {
-      formState.use_model = undefined
-      removeStorage('lastEmbeddedModel')
-    }
+    // if (!list.length && lastEmbeddedModel.value.model_config_id) {
+    //   formState.use_model = undefined
+    //   removeStorage('lastEmbeddedModel')
+    // }
 
     modelList.value = list.map((item) => {
       children = []
@@ -657,11 +707,11 @@ const getModelList = (is_offline) => {
       }
     })
 
-    if (!isCheckId) {
-      // 如果获取的模型列表没有缓存的这个,则清除缓存的模型
-      formState.use_model = undefined
-      removeStorage('lastEmbeddedModel')
-    }
+    // if (!isCheckId) {
+    //   // 如果获取的模型列表没有缓存的这个,则清除缓存的模型
+    //   formState.use_model = undefined
+    //   removeStorage('lastEmbeddedModel')
+    // }
 
     // 如果modelList存在两个相同model_define情况就合并到一个对象的children中去
     modelList.value = uniqueArr(
@@ -669,14 +719,15 @@ const getModelList = (is_offline) => {
       modelList.value,
       'model_define'
     )
+    modelList.value.forEach((item) => {
+      if (item.model_define == 'chatwiki') {
+        formState.model_config_id = item.id
+      }
+    })
   })
 }
 
 onMounted(() => {
-  if (Object.prototype.hasOwnProperty.call(lastEmbeddedModel.value, 'is_offline')) {
-    getModelList(lastEmbeddedModel.value.is_offline)
-  } else {
-    getModelList(true)
-  }
+  getModelList(false)
 })
 </script>

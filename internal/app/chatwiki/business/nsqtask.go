@@ -80,23 +80,7 @@ func ConvertHtml(msg string, _ ...string) error {
 	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: fileId})
 
 	//create default lib file split
-	lang := define.LangEnUs
-
-	splitParams := define.SplitParams{}
-	splitParams.ChunkSize = 512
-	splitParams.ChunkOverlap = 0
-	splitParams.SeparatorsNo = `11,12`
-	splitParams.EnableExtractImage = true
-	list, wordTotal, err := common.GetLibFileSplit(cast.ToInt(info[`admin_user_id`]), fileId, splitParams, lang)
-	if err != nil {
-		logs.Error(err.Error())
-		return err
-	}
-	err = common.SaveLibFileSplit(cast.ToInt(info[`admin_user_id`]), fileId, wordTotal, define.QAIndexTypeQuestionAndAnswer, splitParams, list, lang)
-	if err != nil {
-		logs.Error(err.Error())
-		return err
-	}
+	common.AutoSplitLibFile(cast.ToInt(info[`admin_user_id`]), fileId)
 
 	return nil
 }
@@ -118,7 +102,6 @@ func ConvertVector(msg string, _ ...string) error {
 		logs.Error(err.Error())
 		return nil
 	}
-
 	info, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`id`, cast.ToString(id)).Find()
 	if err != nil {
 		logs.Error(err.Error())
@@ -134,6 +117,10 @@ func ConvertVector(msg string, _ ...string) error {
 	}
 	//start convert
 	library, _ := common.GetLibraryInfo(cast.ToInt(info[`library_id`]), cast.ToInt(info[`admin_user_id`]))
+	skipUseModel := cast.ToInt(library[`type`]) == define.OpenLibraryType && cast.ToInt(library[`use_model_switch`]) != define.SwitchOn
+	if skipUseModel {
+		return nil
+	}
 	embedding, err := common.GetVector2000(
 		cast.ToInt(info[`admin_user_id`]),
 		info[`admin_user_id`],

@@ -46,7 +46,9 @@
           <template #title>
             管理的机器人
             <a-tooltip>
-              <template #title>所有者和管理员可以创建和管理全部机器人，成员只能管理分配的机器人。</template>
+              <template #title
+                >所有者和管理员可以创建和管理全部机器人，成员只能管理分配的机器人。</template
+              >
               <QuestionCircleOutlined />
             </a-tooltip>
           </template>
@@ -59,12 +61,18 @@
             </div>
             <div v-else class="list-preview list-content">
               <a-tooltip>
-                <template #title><div style="display: inline;">{{ formatText(record.managed_robot_list) }} </div></template>
+                <template #title
+                  ><div style="display: inline">
+                    {{ formatText(record.managed_robot_list) }}
+                  </div></template
+                >
                 <div class="list-item-box">
-                  <div class="list-item">{{ formatText(record.managed_robot_list) }} </div>
+                  <div class="list-item">{{ formatText(record.managed_robot_list) }}</div>
                 </div>
               </a-tooltip>
-              <div class="list-highlight edit" @click="editManage('robot', record)"><svg-icon name="edit"></svg-icon></div>
+              <div class="list-highlight edit" @click="editManage('robot', record)">
+                <svg-icon name="edit"></svg-icon>
+              </div>
             </div>
           </template>
         </a-table-column>
@@ -72,7 +80,9 @@
           <template #title>
             管理的知识库
             <a-tooltip>
-              <template #title>所有者和管理员可以创建和管理全部知识库，成员只能管理分配的知识库。</template>
+              <template #title
+                >所有者和管理员可以创建和管理全部知识库，成员只能管理分配的知识库。</template
+              >
               <QuestionCircleOutlined />
             </a-tooltip>
           </template>
@@ -85,12 +95,18 @@
             </div>
             <div v-else class="list-preview list-content">
               <a-tooltip>
-                <template #title><div style="display: inline;">{{ formatText(record.managed_library_list) }} </div></template>
+                <template #title
+                  ><div style="display: inline">
+                    {{ formatText(record.managed_library_list) }}
+                  </div></template
+                >
                 <div class="list-item-box">
-                  <div class="list-item">{{ formatText(record.managed_library_list) }} </div>
+                  <div class="list-item">{{ formatText(record.managed_library_list) }}</div>
                 </div>
               </a-tooltip>
-              <div class="list-highlight edit" @click="editManage('library', record)"><svg-icon name="edit"></svg-icon></div>
+              <div class="list-highlight edit" @click="editManage('library', record)">
+                <svg-icon name="edit"></svg-icon>
+              </div>
             </div>
           </template>
         </a-table-column>
@@ -98,7 +114,9 @@
           <template #title>
             管理的数据库
             <a-tooltip>
-              <template #title>所有者和管理员可以创建和管理全部数据库，成员只能管理分配的数据库。</template>
+              <template #title
+                >所有者和管理员可以创建和管理全部数据库，成员只能管理分配的数据库。</template
+              >
               <QuestionCircleOutlined />
             </a-tooltip>
           </template>
@@ -111,12 +129,18 @@
             </div>
             <div v-else class="list-preview list-content">
               <a-tooltip>
-                <template #title><div style="display: inline;">{{ formatText(record.managed_form_list) }} </div></template>
+                <template #title
+                  ><div style="display: inline">
+                    {{ formatText(record.managed_form_list) }}
+                  </div></template
+                >
                 <div class="list-item-box">
-                  <div class="list-item">{{ formatText(record.managed_form_list) }} </div>
+                  <div class="list-item">{{ formatText(record.managed_form_list) }}</div>
                 </div>
               </a-tooltip>
-              <div class="list-highlight edit" @click="editManage('form', record)"><svg-icon name="edit"></svg-icon></div>
+              <div class="list-highlight edit" @click="editManage('form', record)">
+                <svg-icon name="edit"></svg-icon>
+              </div>
             </div>
           </template>
         </a-table-column>
@@ -129,7 +153,7 @@
             <a-flex :gap="16" v-if="record.role_type == '1'">
               <span class="disabled">编辑</span>
               <span class="disabled">重置密码</span>
-              <span class="disabled" >删除</span>
+              <span class="disabled">删除</span>
             </a-flex>
             <a-flex :gap="16" v-else>
               <a @click="handleEdit(record)">编辑</a>
@@ -159,14 +183,18 @@ import { getLibraryList } from '@/api/library/index.js'
 import { getFormList } from '@/api/database/index.js'
 import { saveUserManagedDataList } from '@/api/manage/index.js'
 import { ref, reactive, createVNode } from 'vue'
-import { PlusOutlined, ExclamationCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
+import {
+  PlusOutlined,
+  ExclamationCircleOutlined,
+  QuestionCircleOutlined
+} from '@ant-design/icons-vue'
 import { Modal, message } from 'ant-design-vue'
 import AddTeamMembers from './components/add-team-members.vue'
 import ResetPassword from './components/reset-password.vue'
 import SeeModelAlert from './components/see-model-alert.vue'
 import { getUserList, delUser } from '@/api/manage/index.js'
 import dayjs from 'dayjs'
-import defaultAvatar from "@/assets/img/role_avatar.png"
+import defaultAvatar from '@/assets/img/role_avatar.png'
 import { useUserStore } from '@/stores/modules/user'
 const userStore = useUserStore()
 
@@ -215,9 +243,13 @@ const getData = () => {
     let lists = res.data.list
     lists.forEach((item) => {
       item.create_time = dayjs(item.create_time * 1000).format('YYYY-MM-DD HH:mm')
-      item.managed_robot_list = item.managed_robot_list ? JSON.parse(item.managed_robot_list) : '',
-      item.managed_library_list = item.managed_library_list ? JSON.parse(item.managed_library_list) : '',
-      item.managed_form_list = item.managed_form_list ? JSON.parse(item.managed_form_list) : ''
+      ;(item.managed_robot_list = item.managed_robot_list
+        ? JSON.parse(item.managed_robot_list)
+        : ''),
+        (item.managed_library_list = item.managed_library_list
+          ? JSON.parse(item.managed_library_list)
+          : ''),
+        (item.managed_form_list = item.managed_form_list ? JSON.parse(item.managed_form_list) : '')
     })
     tableData.value = lists
     requestParams.total = +res.data.total
@@ -268,7 +300,7 @@ const getList = async () => {
 
 // 获取知识库列表
 const getLibrary = async () => {
-  await getLibraryList()
+  await getLibraryList({ type: '' })
     .then((res) => {
       libraryList.value = res.data
     })
@@ -283,8 +315,6 @@ const getForm = async () => {
     })
     .catch(() => {})
 }
-
-
 
 const addManage = async (key, record) => {
   if (key === 'robot') {
@@ -304,7 +334,7 @@ const addManage = async (key, record) => {
   seeModelAlertRef.value.open(activeKey.value)
 }
 
-const editManage = async(key, record) => {
+const editManage = async (key, record) => {
   if (key === 'robot') {
     await getList()
     // 打开弹窗
@@ -319,7 +349,7 @@ const editManage = async(key, record) => {
     activeKey.value = key
   }
   currentUserId.value = record.id
-  seeModelAlertRef.value.open(activeKey.value, 'edit' , record)
+  seeModelAlertRef.value.open(activeKey.value, 'edit', record)
 }
 
 const onSave = (ids) => {
@@ -329,11 +359,12 @@ const onSave = (ids) => {
     id_list: ids.join(',')
   }
 
-  saveUserManagedDataList(params).then((res) => {
-    message.success('操作成功')
-    getData()
-  })
-  .catch(() => {})
+  saveUserManagedDataList(params)
+    .then((res) => {
+      message.success('操作成功')
+      getData()
+    })
+    .catch(() => {})
 }
 </script>
 <style lang="less" scoped>
@@ -355,7 +386,6 @@ const onSave = (ids) => {
     }
 
     .list-preview {
-
       .list-item {
         display: inline;
       }
@@ -382,7 +412,7 @@ const onSave = (ids) => {
         margin-top: -10px;
       }
 
-      &:hover .edit{
+      &:hover .edit {
         display: block;
       }
     }

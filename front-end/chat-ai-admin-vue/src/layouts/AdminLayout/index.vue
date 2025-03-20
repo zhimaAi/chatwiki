@@ -89,7 +89,7 @@
     <div class="layout-body">
       <!-- 自定义页面样式 -->
       <template v-if="isCustomPage">
-        <router-view></router-view>
+        <slot><router-view></router-view></slot>
       </template>
       <template v-else>
         <div class="page-wrapper" :style="{ 'background-color': bgColor }">
@@ -123,7 +123,6 @@ import { useUserStore } from '@/stores/modules/user'
 
 const route = useRoute()
 const userStore = useUserStore()
-
 
 const isCustomPage = computed(() => {
   return route.meta.isCustomPage || false
