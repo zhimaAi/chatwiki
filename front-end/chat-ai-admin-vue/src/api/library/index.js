@@ -66,6 +66,9 @@ export const addLibraryFile = (data) => {
 export const editLibrary = (data) => {
   return request.post({
     url: '/manage/editLibrary',
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    },
     data: data
   })
 }

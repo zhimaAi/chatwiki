@@ -784,6 +784,18 @@ func RequestChatStream(adminUserId int, openid string, robot msql.Params, appTyp
 	return chatResp, requestTime, err
 }
 
+func RequestSearchStream(adminUserId int, modelConfigId int, useModel string, library msql.Params, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, chanStream chan sse.Event, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
+	handler, err := GetModelCallHandler(modelConfigId, useModel)
+	if err != nil {
+		return adaptor.ZhimaChatCompletionResponse{}, 0, err
+	}
+	chatResp, requestTime, err := handler.RequestChatStream(adminUserId, "", library, "", messages, functionTools, chanStream, temperature, maxToken)
+	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
+		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken)
+	}
+	return chatResp, requestTime, err
+}
+
 func RequestChat(adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
 	handler, err := GetModelCallHandler(modelConfigId, useModel)
 	if err != nil {
@@ -951,7 +963,11 @@ func (h *ModelCallHandler) RequestChatStream(
 	}
 
 	go func() {
-		err := LlmLogRequest("LLM", adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.Meta.Model, totalResponse.PromptToken, totalResponse.CompletionToken, req, totalResponse)
+		library := msql.Params{}
+		if appType == "" && openid == "" {
+			library, robot = robot, library
+		}
+		err = LlmLogRequest("LLM", adminUserId, openid, robot, library, h.config, appType, msql.Params{}, h.Meta.Model, totalResponse.PromptToken, totalResponse.CompletionToken, req, totalResponse)
 		if err != nil {
 			logs.Error(err.Error())
 		}

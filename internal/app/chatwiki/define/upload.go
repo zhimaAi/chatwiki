@@ -16,6 +16,8 @@ const LibImageLimitSize = 2 * 1024 * 1024  // 2M
 var ImageAllowExt = []string{`heic`, `gif`, `jpg`, `jpeg`, `png`, `swf`, `bmp`, `webp`}
 var LibFileAllowExt = []string{`pdf`, `docx`, `txt`, `md`, `xlsx`, `csv`, `html`}
 var FormFileAllowExt = []string{`json`, `xlsx`, `csv`}
+var LibDocFileAllowExt = []string{`md`}
+var QALibFileAllowExt = []string{`docx`, `xlsx`, `csv`}
 
 func IsTableFile(ext string) bool {
 	ext = strings.ToLower(ext)

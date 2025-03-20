@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    />
+    <meta name="keywords" content="{{.seo_keywords}}">
+    <meta name="description" content="{{.seo_desc}}">
+    <title>{{ .seo_title }}</title>
+    <link rel="stylesheet" href="/open/static/css/base.css?v=2005030301" />
+    <link rel="stylesheet" href="/open/static/css/home.css?v=2025030702" />
+    <script src="/open/static/libs/jquery/jquery-3.7.1.min.js"></script>
+    <!-- 百度统计 -->
+    {{ template "baidu_statistics" }}
+    {{.statistics_set}}
+  </head>
+  <body>
+    <input type="hidden" id="library_key" name="library_key" value="{{.library_key}}"> 
+    <input type="hidden" id="doc_id" name="doc_id" value="{{.doc_id}}"> 
+    <input type="hidden" id="title" name="title" value="{{.title}}">
+    <input type="hidden" id="content" name="content" value="{{.content}}">
+    <div class="home-page">
+      <div class="home-page-header">
+        <div class="library-title">{{ .library_title }}</div>
+        <div class="action-box">
+          <span class="action-btn"  onclick="toggleSidebar()">
+            <img class="action-btn-icon" src="/open/static/img/open_sidebar.svg" alt="" />
+          </span>
+        </div>
+      </div>
+
+      <!-- 左侧开始 -->
+      <div class="home-page-left" id="wikiSidebarWrapper">
+        <div class="wiki-sidebar-mask" onclick="toggleSidebar()"></div>
+        <div class="wiki-sidebar">
+          <div class="wiki-sidebar-header">
+            {{if not .library_avatar}}
+            <img class="wiki-logo" src="/open/static/img/t.svg" alt="" />
+            {{else}}
+            <img class="wiki-logo" src="{{.library_avatar}}" alt="" />
+            {{end}}
+            <h3 class="wiki-name">{{.library_title}}</h3>
+            <div class="action-box">
+              <span
+                class="action-btn sidebar-toggle-btn"
+                id="sidebar-toggle"
+                onclick="toggleSidebar()"
+              >
+                <img src="/open/static/img/sidebar_toggle.svg" alt="" />
+              </span>
+            </div>
+          </div>
+
+          <div class="wiki-search-box">
+            <div class="search-input-box">
+              <input id="sidebar-search-input" class="search-input" type="text" placeholder="" onkeydown="handleEnterSidebarSearch(event)" />
+              <img
+                class="search-icon"
+                src="/open/static/img/search.png"
+                onclick="onSidebarSearch()"
+              />
+            </div>
+          </div>
+
+          <div class="sidebar-menus">
+            <div class="sidebar-menu-item active">
+              <a class="link" id="home-link" href="/open/home/{{.library_key}}">
+                <img
+                  class="menu-icon default-icon"
+                  src="/open/static/img/menu_ai.svg"
+                  alt=""
+                />
+                <img
+                  class="menu-icon active-icon"
+                  src="/open/static/img/menu_ai_active.svg"
+                  alt=""
+                />
+                <span class="menu-name">首页</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="sidebar-directory">
+            <div class="directory-header">
+              <span class="directory-label">文档目录</span>
+              <div class="action-box">
+                <img
+                  class="action-btn"
+                  src="/open/static/img/directory_expanded.svg"
+                  title="收起全部菜单"
+                  onclick="closeAllCatalog()"
+                />
+              </div>
+            </div>
+
+            <div class="directory-body">
+              <div class="directory-list" id="directory-list">
+                {{ template "directory_menu" .catalog}}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-page-body">
+        <div class="home-page-content">
+          <h1 class="library-title" onmouseenter="onShowFloatBtn(event, 'title', ['edit'])" data-content="{{.title}}" onmouseleave="onHideFloatBtn(event)">{{.title}}</h1>
+          <div class="library-desc" id="library-desc" onmouseenter="onShowFloatBtn(event, 'content', ['edit'])" data-content="{{.content}}" onmouseleave="onHideFloatBtn(event)">{{.content}}</div>
+          <div class="search-box" id="search-box">
+            <input
+              class="search-input"
+              onfocus="handleFocus()"
+              onblur="handleBlur()"
+              oninput="handleInput()"
+              onkeydown="handleEnterSearch(event)"
+              id="search-input"
+              name="search"
+              autocomplete="off"
+              placeholder=""
+              type="text"
+              value=""
+            />
+            <span class="search-clear" onclick="handleClear(event)"></span>
+            <span class="search-btn" onclick="onSearch(event)">
+              <span class="search-icon"></span>
+            </span>
+          </div>
+          <ul class="keyword-list" id="keyword-list">
+            {{ range $item := .question_guide}}
+            <li class="keyword-item question-guide-item">
+              <div class="keyword-text" onclick="clickQuestionGuide(event)" onmouseenter="onShowFloatBtn(event, 'question', ['edit', 'delete'])" data-id="{{$item.id}}" data-question="{{$item.question}}" onmouseleave="onHideFloatBtn(event)">{{$item.question}}</div>
+            </li>
+            {{end}}
+            <li class="keyword-item add-btn-item" style="display: none;">
+              <img class="add-btn" onclick="handleAddQuestionBtn()" src="/open/static/img/home_add.svg" alt="">
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="float-action-box" id="floatBtnWarpper" onmouseenter="onFloatBtnHover(event, true)" onmouseleave="onFloatBtnHover(event, false)">
+      <div class="action-btn" data-type="edit" style="display: none;" onclick="handleActionBtn('edit')">
+        <img class="action-icon" title="编辑" src="/open/static/img/edit.svg" alt="">
+      </div>
+
+      <div class="action-btn" data-type="delete"  style="display: none;" onclick="handleActionBtn('delete')">
+        <img class="action-icon" title="删除" src="/open/static/img/delete.svg" alt="">
+      </div>
+    </div>
+    <script src="/open/static/js/base.js?v=2025031101"></script>
+    <script src="/open/static/js/home.js?v=2025030703"></script>
+  </body>
+</html>

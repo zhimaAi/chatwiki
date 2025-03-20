@@ -33,10 +33,17 @@ const props = defineProps({
   maxCount: {
     type: Number,
     default: 1
-  }
+  },
+  type: {
+    type: [String, Number],
+    default: 0
+  },
 })
 
-const fileTypes = ['pdf', 'docx', 'txt', 'md', 'xlsx', 'csv', 'html']
+let fileTypes = ['pdf', 'docx', 'txt', 'md', 'xlsx', 'csv', 'html']
+if(props.type == 2){
+  fileTypes = ['docx', 'csv', 'xlsx']
+}
 const getAccept = computed(() => {
   return fileTypes.map((item) => `.${item}`).join(',')
 })

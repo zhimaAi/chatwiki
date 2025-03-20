@@ -156,7 +156,7 @@ const saveForm = () => {
   delete formData.robot_avatar_url
 
   saveLoading.value = true
-  console.log(formData)
+
   saveRobot(formData)
     .then((res) => {
       if (res.res != 0) {

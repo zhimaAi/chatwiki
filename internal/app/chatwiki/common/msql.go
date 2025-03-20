@@ -146,7 +146,11 @@ func (h *LibraryCacheBuildHandler) GetCacheKey() string {
 	return fmt.Sprintf(`chatwiki.library_info.%d`, h.LibraryId)
 }
 func (h *LibraryCacheBuildHandler) GetCacheData() (any, error) {
-	return msql.Model(`chat_ai_library`, define.Postgres).Where(`id`, cast.ToString(h.LibraryId)).Find()
+	data, err := msql.Model(`chat_ai_library`, define.Postgres).Where(`id`, cast.ToString(h.LibraryId)).Find()
+	if len(data) > 0 {
+		data[`library_key`] = BuildLibraryKey(cast.ToInt(data[`id`]), cast.ToInt(data[`create_time`]))
+	}
+	return data, err
 }
 
 func GetLibraryInfo(libraryId, adminUserId int) (msql.Params, error) {
@@ -155,6 +159,12 @@ func GetLibraryInfo(libraryId, adminUserId int) (msql.Params, error) {
 	if err == nil && adminUserId != 0 && cast.ToInt(result[`admin_user_id`]) != adminUserId {
 		result = make(msql.Params) //attribution error. null data returned
 	}
+	return result, err
+}
+
+func GetLibraryData(libraryId int) (msql.Params, error) {
+	result := make(msql.Params)
+	err := lib_redis.GetCacheWithBuild(define.Redis, &LibraryCacheBuildHandler{LibraryId: libraryId}, &result, time.Hour)
 	return result, err
 }
 
@@ -176,7 +186,7 @@ func GetLibFileInfo(fileId, adminUserId int) (msql.Params, error) {
 	return result, err
 }
 
-func GetMatchLibraryParagraphByVectorSimilarity(robot msql.Params, openid, appType, question string, libraryIds string, size int, similarity float64, searchType int) ([]msql.Params, error) {
+func GetMatchLibraryParagraphByVectorSimilarity(adminUserId int, robot msql.Params, openid, appType, question string, libraryIds string, size int, similarity float64, searchType int) ([]msql.Params, error) {
 	result := make([]msql.Params, 0)
 	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector}) {
 		return result, nil
@@ -209,9 +219,9 @@ func GetMatchLibraryParagraphByVectorSimilarity(robot msql.Params, openid, appTy
 	for modelConfigId := range group {
 		for useModel, libraryIds := range group[modelConfigId] {
 			wg.Add(1)
-			go func(wg *sync.WaitGroup, robot msql.Params, openid, appType string, modelConfigId int, useModel, question string, libraryIds string, size int, list *define.SimilarityResult) {
+			go func(wg *sync.WaitGroup, adminUserId int, robot msql.Params, openid, appType string, modelConfigId int, useModel, question string, libraryIds string, size int, list *define.SimilarityResult) {
 				defer wg.Done()
-				embedding, err := GetVector2000(cast.ToInt(robot[`admin_user_id`]), openid, robot, msql.Params{}, msql.Params{}, modelConfigId, useModel, question)
+				embedding, err := GetVector2000(adminUserId, openid, robot, msql.Params{}, msql.Params{}, modelConfigId, useModel, question)
 				if err != nil {
 					logs.Error(err.Error())
 					return
@@ -234,7 +244,7 @@ func GetMatchLibraryParagraphByVectorSimilarity(robot msql.Params, openid, appTy
 					return
 				}
 				*list = append(*list, subList...)
-			}(wg, robot, openid, appType, modelConfigId, useModel, question, strings.Join(libraryIds, `,`), size, &list)
+			}(wg, adminUserId, robot, openid, appType, modelConfigId, useModel, question, strings.Join(libraryIds, `,`), size, &list)
 		}
 	}
 	wg.Wait()
@@ -384,10 +394,11 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 
 	fetchSize := 4 * size
 	var vectorList, searchList []msql.Params
+	adminUserId := cast.ToInt(robot[`admin_user_id`])
 
 	temp := time.Now()
 	for _, q := range append(optimizedQuestions, question) {
-		list, err := GetMatchLibraryParagraphByVectorSimilarity(robot, openid, appType, q, libraryIds, fetchSize, similarity, searchType)
+		list, err := GetMatchLibraryParagraphByVectorSimilarity(adminUserId, robot, openid, appType, q, libraryIds, fetchSize, similarity, searchType)
 		if err != nil {
 			logs.Error(err.Error())
 		}

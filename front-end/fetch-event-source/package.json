@@ -18,14 +18,19 @@
     "prebuild": "npm run clean",
     "build": "tsc && tsc -p tsconfig.esm.json",
     "test": "nyc jasmine --config=jasmine.json",
-    "prepublishOnly": "npm run build && npm run test"
+    "prepublishOnly": "npm run build && npm run test",
+    "build:browser": "webpack"
   },
   "devDependencies": {
     "@types/jasmine": "^3.6.9",
+    "@types/node": "^16.18.126",
     "jasmine": "^3.7.0",
     "nyc": "^15.1.0",
     "rimraf": "^3.0.2",
     "source-map-support": "^0.5.19",
-    "typescript": "^4.2.4"
+    "ts-loader": "^9.5.2",
+    "typescript": "^4.9.5",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^5.1.4"
   }
 }

@@ -51,7 +51,11 @@
         </div>
       </div>
     </a-form>
-    <LibrarySelectAlert ref="librarySelectAlertRef" @close="getList" @change="onChangeLibrarySelected" />
+    <LibrarySelectAlert
+      ref="librarySelectAlertRef"
+      @close="getList"
+      @change="onChangeLibrarySelected"
+    />
     <RecallSettingsAlert ref="recallSettingsAlertRef" @change="onChangeRecallSettings" />
   </div>
 </template>
@@ -127,7 +131,9 @@ watch(
       node_params: JSON.stringify({
         libs: {
           ...formState,
-          rerank_model_config_id: formState.rerank_model_config_id ? +formState.rerank_model_config_id : void 0,
+          rerank_model_config_id: formState.rerank_model_config_id
+            ? +formState.rerank_model_config_id
+            : void 0,
           library_ids: formState.library_ids.join(',')
         }
       }),
@@ -162,7 +168,7 @@ const checkedHeader = (rule, value) => {
 }
 
 const onChangeLibrarySelected = (checkedList) => {
-  getList();
+  getList()
   formState.library_ids = [...checkedList]
 }
 
@@ -188,7 +194,7 @@ const onChangeRecallSettings = (data) => {
 
 // 获取知识库
 const getList = async () => {
-  const res = await getLibraryList()
+  const res = await getLibraryList({ type: '' })
   if (res) {
     libraryList.value = res.data || []
   }

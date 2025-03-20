@@ -10,6 +10,7 @@ import (
 	"chatwiki/internal/pkg/lib_web"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -65,23 +66,41 @@ func GetLibFileList(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
 
-func addLibFile(c *gin.Context, userId, libraryId int) ([]int64, error) {
+func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, error) {
 	m := msql.Model(`chat_ai_library_file`, define.Postgres)
 
 	//get params
 	docType := cast.ToInt(c.DefaultPostForm(`doc_type`, cast.ToString(define.DocTypeLocal)))
 	docUrls := strings.TrimSpace(c.PostForm(`urls`))
 	fileName := strings.TrimSpace(c.PostForm(`file_name`))
+	content := strings.TrimSpace(c.PostForm(`content`))
+	title := strings.TrimSpace(c.PostForm(`title`))
 	isQaDoc := cast.ToInt(c.PostForm(`is_qa_doc`))
 	qaIndexType := cast.ToInt(c.PostForm(`qa_index_type`))
 	docAutoRenewFrequency := cast.ToInt(c.PostForm(`doc_auto_renew_frequency`))
-
 	//document uploaded
 	var libraryFiles []*define.UploadInfo
 	switch docType {
+	case define.DocTypeDiy: // diy library
+		if libraryType != define.OpenLibraryType {
+			return nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `doc_type`))
+		}
+		md5Hash := tool.MD5(content)
+		ext := define.LibDocFileAllowExt[0]
+		objectKey := fmt.Sprintf(`chat_ai/%d/%s/%s/%s.%s`, userId, `library_file`, tool.Date(`Ym`), md5Hash, ext)
+		link, err := common.WriteFileByString(objectKey, content)
+		if err != nil {
+			return nil, err
+		}
+		libraryFiles = append(libraryFiles, &define.UploadInfo{Name: title,
+			Size: int64(len(content)), Ext: ext, Link: link})
 	case define.DocTypeCustom: // custom library
 		if len(fileName) == 0 || (isQaDoc == define.DocTypeQa && !tool.InArrayInt(qaIndexType, []int{define.QAIndexTypeQuestionAndAnswer, define.QAIndexTypeQuestion})) {
 			return nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))
+		}
+		if (libraryType == define.GeneralLibraryType && isQaDoc == define.DocTypeQa) ||
+			(libraryType == define.QALibraryType && isQaDoc != define.DocTypeQa) {
+			return nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `is_qa_doc`))
 		}
 		libraryFiles = append(libraryFiles, &define.UploadInfo{
 			Name: fileName, Size: 0, Ext: `-`, Custom: true,
@@ -90,6 +109,9 @@ func addLibFile(c *gin.Context, userId, libraryId int) ([]int64, error) {
 	case define.DocTypeOnline: // online library
 		if len(docUrls) == 0 {
 			return nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))
+		}
+		if libraryType == define.QALibraryType {
+			return nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `doc_type`))
 		}
 
 		type UrlItem struct {
@@ -142,7 +164,14 @@ func addLibFile(c *gin.Context, userId, libraryId int) ([]int64, error) {
 		}
 		return fileIds, nil
 	case define.DocTypeLocal: // document uploaded
-		libraryFiles, _ = common.SaveUploadedFileMulti(c, `library_files`, define.LibFileLimitSize, userId, `library_file`, define.LibFileAllowExt)
+		libFileAloowExts := define.LibFileAllowExt
+		switch libraryType {
+		case define.OpenLibraryType:
+			libFileAloowExts = define.LibDocFileAllowExt
+		case define.QALibraryType:
+			libFileAloowExts = define.QALibFileAllowExt
+		}
+		libraryFiles, _ = common.SaveUploadedFileMulti(c, `library_files`, define.LibFileLimitSize, userId, `library_file`, libFileAloowExts)
 		if len(libraryFiles) == 0 {
 			return nil, errors.New(i18n.Show(common.GetLang(c), `upload_empty`))
 		}
@@ -198,6 +227,9 @@ func addLibFile(c *gin.Context, userId, libraryId int) ([]int64, error) {
 					logs.Error(err.Error())
 				}
 			}
+			if define.IsMdFile(uploadInfo.Ext) { //markdown文档自动切分
+				go common.AutoSplitLibFile(userId, int(fileId))
+			}
 		}
 	}
 	return fileIds, nil
@@ -224,11 +256,12 @@ func AddLibraryFile(c *gin.Context) {
 		return
 	}
 	//common save
-	fileIds, err := addLibFile(c, userId, libraryId)
+	fileIds, err := addLibFile(c, userId, libraryId, cast.ToInt(info[`type`]))
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
+
 	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`file_ids`: fileIds}, nil))
 }
 
@@ -303,6 +336,7 @@ func GetLibFileInfo(c *gin.Context) {
 		return
 	}
 	info[`library_name`] = library[`library_name`]
+	info[`library_type`] = library[`type`]
 
 	var separators []string
 	for _, noStr := range strings.Split(info[`separators_no`], `,`) {

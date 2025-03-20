@@ -1,0 +1,25 @@
+{{ define "directory_menu" }}
+
+{{ range . }}
+<div class="directory-item is-expanded"  data-id="{{ .Id }}" data-doc-key="{{ .DocKey }}" data-pid="{{ .Pid }}" data-level="{{ .Level }}">
+  <div class="directory-item-body">
+    <!-- 子菜单缩进 -->
+    <div class="directory-item-indent" style="padding-left: calc(24px * {{ .Level }});"></div>
+    <span class="directory-expanded-btn {{ if not .Children }}directory-expanded-noop{{ end }}">
+      <img class="expanded-icon" src="/open/static/img/directory_action.svg" alt="" />
+    </span>
+    <a href="/open/doc/{{ .DocKey }}" class="doc-body">
+      <img class="doc-icon default-icon" src="/open/static/img/doc_icon.svg" alt="" />
+      <img class="doc-icon active-icon" src="/open/static/img/doc_active_icon.svg" alt="" />
+      <span class="doc-name">{{ .Title }}</span>
+    </a>
+  </div>
+  {{ if .Children }}
+  <div class="directory-item-children">
+    {{ template "directory_menu" .Children  }}
+  </div>
+  {{ end }} 
+</div>
+{{ end }}
+{{ end }}
+

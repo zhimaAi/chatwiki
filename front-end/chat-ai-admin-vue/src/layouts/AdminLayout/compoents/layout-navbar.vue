@@ -107,9 +107,21 @@ const items = computed(() => {
         path: '/library/list'
       })
     }
-    if (item === 'FormManage') {
+
+    if (item === 'OpenDoc') {
+      // 插入对外文档
       possessedAuthority.push({
         id: 3,
+        key: 'PublicLibrary',
+        label: 'PublicLibrary',
+        title: '对外文档',
+        path: '/public-library/list'
+      })
+    }
+
+    if (item === 'FormManage') {
+      possessedAuthority.push({
+        id: 4,
         key: 'database',
         label: 'database',
         title: '数据库',
@@ -122,7 +134,7 @@ const items = computed(() => {
         const child = SystemManageChildren[j]
         if (child === item) {
           possessedAuthority.push({
-            id: 4,
+            id: 5,
             key: 'user',
             label: 'user',
             title: '系统管理',

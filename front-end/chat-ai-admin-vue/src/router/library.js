@@ -11,7 +11,8 @@ export default {
       meta: {
         title: '知识库管理',
         activeMenu: '/library',
-        bgColor: '#F5F9FF'
+        bgColor: '#F5F9FF',
+        hideTitle: true
       }
     },
     {
@@ -40,7 +41,7 @@ export default {
       meta: {
         title: '新建知识库',
         activeMenu: '/library',
-        hideTitle: true,
+        hideTitle: true
       }
     },
     {
@@ -50,7 +51,7 @@ export default {
       meta: {
         title: '编辑知识库',
         activeMenu: '/library',
-        isCustomPage: true,
+        isCustomPage: true
       },
       redirect: '/library/details/knowledge-document',
       children: [
@@ -80,8 +81,8 @@ export default {
             title: '知识库配置',
             activeMenu: '/library'
           }
-        },
-      ],
+        }
+      ]
     },
     {
       path: '/library/preview',
@@ -90,7 +91,7 @@ export default {
       meta: {
         title: '知识库管理',
         activeMenu: '/library',
-        hideTitle: true,
+        hideTitle: true
       }
     }
   ]

@@ -97,6 +97,7 @@ const (
 	DocTypeLocal  = 1
 	DocTypeOnline = 2
 	DocTypeCustom = 3
+	DocTypeDiy    = 4
 )
 
 const (
@@ -105,3 +106,19 @@ const (
 )
 
 const DefaultCustomerAvatar = `/public/user_avatar_2x.png`
+
+const (
+	DefaultCustomDomain   = `http://cloud.chatwiki.com`
+	DefaultCustomH5Domain = `http://h5.wikichat.com.cn`
+)
+
+const (
+	LibDocIndex = 1
+	IsDraft     = 1
+	IsPub       = 1
+)
+
+const (
+	PartnerRightsManage = 4
+	PartnerRightsEdit   = 2
+)

@@ -83,4 +83,9 @@ func initConfig() {
 		logs.Error(err.Error())
 		panic(`读取配置oss_config出错`)
 	}
+	define.Config.UserDomainService, err = config.GetSection("user_domain_service")
+	if err != nil {
+		logs.Error(err.Error())
+		panic(`读取配置user_domain_service出错`)
+	}
 }

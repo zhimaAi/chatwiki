@@ -9,6 +9,7 @@ import (
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -30,7 +31,14 @@ func GetLibraryList(c *gin.Context) {
 	if len(libraryName) > 0 {
 		m.Where(`library_name`, `like`, libraryName)
 	}
-
+	typ := cast.ToString(c.Query(`type`))
+	if typ == "" {
+		typ = fmt.Sprintf(`%v,%v`, define.GeneralLibraryType, define.QALibraryType)
+	} else if !tool.InArrayInt(cast.ToInt(typ), define.LibraryTypes[:]) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `type`))))
+		return
+	}
+	m.Where(`type`, `in`, cast.ToString(typ))
 	userId := getLoginUserId(c)
 	if userId <= 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
@@ -51,12 +59,12 @@ func GetLibraryList(c *gin.Context) {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
-	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot, define.RoleTypeAdmin}) {
+	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot, define.RoleTypeAdmin}) && cast.ToInt(typ) != define.OpenLibraryType {
 		managedRobotIdList := GetUserManagedData(userId, `managed_library_list`)
 		m.Where(`id`, `in`, strings.Join(managedRobotIdList, `,`))
 	}
 
-	list, err := m.Field(`id,library_name,library_intro,avatar`).Order(`id desc`).Select()
+	list, err := m.Field(`id,type,access_rights,avatar,library_name,library_intro,create_time`).Order(`id desc`).Select()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -68,29 +76,39 @@ func GetLibraryList(c *gin.Context) {
 	}
 	//stats data
 	libraryIds := make([]string, 0)
+	newList := make([]msql.Params, 0)
 	for _, params := range list {
+		if cast.ToInt(params[`type`]) == define.OpenLibraryType {
+			if !checkIsPartner(c, cast.ToInt(params[`id`]), define.PartnerRightsEdit) {
+				continue
+			}
+		}
 		libraryIds = append(libraryIds, params[`id`])
 		params[`file_total`], params[`file_size`] = `0`, `0`
+		newList = append(newList, params)
 	}
-	stats, err := msql.Model(`chat_ai_library_file`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
-		Where(`library_id`, `in`, strings.Join(libraryIds, `,`)).Group(`library_id`).
-		ColumnMap(`COUNT(1) as file_total,SUM(file_size) as file_size`, `library_id`)
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	for _, params := range list {
-		if len(stats[params[`id`]]) == 0 {
-			continue
+	if len(libraryIds) > 0 {
+		stats, err := msql.Model(`chat_ai_library_file`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Where(`library_id`, `in`, strings.Join(libraryIds, `,`)).Group(`library_id`).
+			ColumnMap(`COUNT(1) as file_total,SUM(file_size) as file_size`, `library_id`)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
 		}
-		params[`file_total`] = stats[params[`id`]][`file_total`]
-		params[`file_size`] = stats[params[`id`]][`file_size`]
-		if len(params[`avatar`]) == 0 {
-			params[`avatar`] = define.LocalUploadPrefix + `default/library_avatar.png`
+		for _, params := range newList {
+			params[`library_key`] = common.BuildLibraryKey(cast.ToInt(params[`id`]), cast.ToInt(params[`create_time`]))
+			if len(stats[params[`id`]]) == 0 {
+				continue
+			}
+			params[`file_total`] = stats[params[`id`]][`file_total`]
+			params[`file_size`] = stats[params[`id`]][`file_size`]
+			if len(params[`avatar`]) == 0 {
+				params[`avatar`] = define.LocalUploadPrefix + `default/library_avatar.png`
+			}
 		}
 	}
-	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
+	c.String(http.StatusOK, lib_web.FmtJson(newList, nil))
 }
 
 func GetLibraryInfo(c *gin.Context) {
@@ -130,6 +148,7 @@ func GetLibraryInfo(c *gin.Context) {
 			data[`is_offline`] = true
 		}
 	}
+	data[`library_key`] = common.BuildLibraryKey(cast.ToInt(data[`id`]), cast.ToInt(data[`create_time`]))
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
 
@@ -141,25 +160,49 @@ func CreateLibrary(c *gin.Context) {
 	//get params
 	libraryName := strings.TrimSpace(c.PostForm(`library_name`))
 	libraryIntro := strings.TrimSpace(c.PostForm(`library_intro`))
+	aiSummary := cast.ToInt(c.PostForm(`ai_summary`))
+	summaryModelConfigId := cast.ToInt(c.PostForm(`summary_model_config_id`))
+	aiSummaryModel := strings.TrimSpace(c.PostForm(`ai_summary_model`))
+	typ := cast.ToInt(c.PostForm(`type`))
+	accessRights := cast.ToInt(c.PostForm(`access_rights`))
 	avatar := ""
-	if len(libraryName) == 0 {
+	if len(libraryName) == 0 || !tool.InArrayInt(typ, define.LibraryTypes[:]) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-
+	if summaryModelConfigId > 0 {
+		summaryConfig, err := common.GetModelConfigInfo(summaryModelConfigId, userId)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		modelInfo, _ := common.GetModelInfoByDefine(summaryConfig[`model_define`])
+		if !tool.InArrayString(aiSummaryModel, modelInfo.LlmModelList) && !common.IsMultiConfModel(summaryConfig["model_define"]) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `ai_summary_model`))))
+			return
+		}
+	}
 	//headImg uploaded
 	fileAvatar, _ := c.FormFile(`avatar`)
 	uploadInfo, err := common.SaveUploadedFile(fileAvatar, define.ImageLimitSize, userId, `library_avatar`, define.ImageAllowExt)
 	if err == nil && uploadInfo != nil {
 		avatar = uploadInfo.Link
 	}
+	loginUserId := getLoginUserId(c)
 	//database dispose
 	data := msql.Datas{
-		`admin_user_id`: userId,
-		`library_name`:  libraryName,
-		`library_intro`: libraryIntro,
-		`create_time`:   tool.Time2Int(),
-		`update_time`:   tool.Time2Int(),
+		`admin_user_id`:           userId,
+		`creator`:                 loginUserId,
+		`library_name`:            libraryName,
+		`library_intro`:           libraryIntro,
+		`ai_summary`:              aiSummary,
+		`ai_summary_model`:        aiSummaryModel,
+		`summary_model_config_id`: summaryModelConfigId,
+		`type`:                    typ,
+		`access_rights`:           accessRights,
+		`create_time`:             tool.Time2Int(),
+		`update_time`:             tool.Time2Int(),
 	}
 	if len(avatar) > 0 {
 		data[`avatar`] = avatar
@@ -172,15 +215,23 @@ func CreateLibrary(c *gin.Context) {
 	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.LibraryCacheBuildHandler{LibraryId: int(libraryId)})
+	if cast.ToInt(typ) == define.OpenLibraryType {
+		partner := []string{cast.ToString(userId)}
+		if userId != loginUserId {
+			partner = append(partner, cast.ToString(loginUserId))
+		}
+		_ = common.SaveLibDocPartner(loginUserId, int(libraryId), define.PartnerRightsManage, 1, partner)
+	}
 	//common save
-	//fileIds, err := addLibFile(c, userId, int(libraryId))
+	//fileIds, err = addLibFile(c, userId, int(libraryId), cast.ToInt(typ))
 	//if err != nil {
 	//	c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 	//	return
 	//}
-	_ = AddUserMangedData(getLoginUserId(c), `managed_library_list`, libraryId)
+	_ = AddUserMangedData(loginUserId, `managed_library_list`, libraryId)
 
-	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`id`: libraryId}, nil))
+	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`id`: libraryId,
+		`library_key`: common.BuildLibraryKey(cast.ToInt(libraryId), cast.ToInt(data[`create_time`]))}, nil))
 }
 
 func DeleteLibrary(c *gin.Context) {
@@ -233,6 +284,10 @@ func DeleteLibrary(c *gin.Context) {
 	if err != nil {
 		logs.Error(err.Error())
 	}
+	_, err = msql.Model(`chat_ai_library_file_doc`, define.Postgres).Where(`library_id`, cast.ToString(id)).Delete()
+	if err != nil {
+		logs.Error(err.Error())
+	}
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
@@ -246,11 +301,19 @@ func EditLibrary(c *gin.Context) {
 	libraryIntro := strings.TrimSpace(c.PostForm(`library_intro`))
 	modelConfigId := cast.ToInt(c.PostForm(`model_config_id`))
 	useModel := strings.TrimSpace(c.PostForm(`use_model`))
+	useModelSwitch := cast.ToInt(c.PostForm(`use_model_switch`))
+	aiSummary := cast.ToInt(c.PostForm(`ai_summary`))
+	aiSummaryModel := cast.ToString(c.PostForm(`ai_summary_model`))
+	summaryModelConfigId := cast.ToInt(c.PostForm(`summary_model_config_id`))
+	shareUrl := strings.TrimSpace(c.PostForm(`share_url`))
+	accessRights := cast.ToInt(c.PostForm(`access_rights`))
+	statisticsSet := strings.TrimSpace(c.PostForm(`statistics_set`))
+	typ := strings.TrimSpace(c.PostForm(`type`))
 	if id <= 0 || len(libraryName) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	if modelConfigId > 0 || len(useModel) > 0 {
+	if cast.ToInt(typ) != define.OpenLibraryType {
 		//check model_config_id and use_model
 		config, err := common.GetModelConfigInfo(modelConfigId, userId)
 		if err != nil {
@@ -258,17 +321,33 @@ func EditLibrary(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			return
 		}
-		if len(config) == 0 || !tool.InArrayString(common.TextEmbedding, strings.Split(config[`model_types`], `,`)) {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_config_id`))))
-			return
-		}
 		modelInfo, _ := common.GetModelInfoByDefine(config[`model_define`])
 		if !tool.InArrayString(useModel, modelInfo.VectorModelList) && !common.IsMultiConfModel(config["model_define"]) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `use_model`))))
 			return
 		}
+		if len(config) == 0 || !tool.InArrayString(common.TextEmbedding, strings.Split(config[`model_types`], `,`)) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_config_id`))))
+			return
+		}
 	}
-
+	if useModelSwitch == define.SwitchOn && (modelConfigId == 0 || useModel == "") {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `use_model`))))
+		return
+	}
+	if summaryModelConfigId > 0 {
+		summaryConfig, err := common.GetModelConfigInfo(summaryModelConfigId, userId)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		modelInfo, _ := common.GetModelInfoByDefine(summaryConfig[`model_define`])
+		if !tool.InArrayString(aiSummaryModel, modelInfo.LlmModelList) && !common.IsMultiConfModel(summaryConfig["model_define"]) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `ai_summary_model`))))
+			return
+		}
+	}
 	info, err := common.GetLibraryInfo(id, userId)
 	if err != nil {
 		logs.Error(err.Error())
@@ -279,19 +358,44 @@ func EditLibrary(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
-	_, err = msql.Model(`chat_ai_library`, define.Postgres).Where(`id`, cast.ToString(id)).Update(msql.Datas{
-		`library_name`:    libraryName,
-		`library_intro`:   libraryIntro,
-		`use_model`:       useModel,
-		`model_config_id`: modelConfigId,
-		`update_time`:     tool.Time2Int(),
-	})
+	//headImg uploaded
+	avatar := ""
+	fileAvatar, _ := c.FormFile(`avatar`)
+	uploadInfo, err := common.SaveUploadedFile(fileAvatar, define.ImageLimitSize, userId, `library_avatar`, define.ImageAllowExt)
+	if err == nil && uploadInfo != nil {
+		avatar = uploadInfo.Link
+	}
+	data := msql.Datas{
+		`library_name`:            libraryName,
+		`library_intro`:           libraryIntro,
+		`model_config_id`:         modelConfigId,
+		`use_model`:               useModel,
+		`use_model_switch`:        useModelSwitch,
+		`ai_summary`:              aiSummary,
+		`share_url`:               shareUrl,
+		`ai_summary_model`:        aiSummaryModel,
+		`summary_model_config_id`: summaryModelConfigId,
+		`access_rights`:           accessRights,
+		`statistics_set`:          statisticsSet,
+		`update_time`:             tool.Time2Int(),
+	}
+	if len(avatar) > 0 {
+		data[`avatar`] = avatar
+	}
+	_, err = msql.Model(`chat_ai_library`, define.Postgres).Where(`id`, cast.ToString(id)).Update(data)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	if info[`use_model`] != useModel || cast.ToInt(info[`model_config_id`]) != modelConfigId {
+	// embedding new vector
+	if cast.ToInt(info[`type`]) == define.OpenLibraryType && useModelSwitch == define.SwitchOn {
+		if cast.ToInt(info[`use_model_switch`]) != useModelSwitch || (info[`use_model`] != useModel || cast.ToInt(info[`model_config_id`]) != modelConfigId) {
+			if err = common.AddFileDataIndex(id, cast.ToInt(info[`admin_user_id`])); err == nil {
+				go common.EmbeddingNewVector(id, cast.ToInt(info[`admin_user_id`]))
+			}
+		}
+	} else if info[`use_model`] != useModel || cast.ToInt(info[`model_config_id`]) != modelConfigId {
 		go common.EmbeddingNewVector(id, cast.ToInt(info[`admin_user_id`]))
 	}
 	//clear cached data

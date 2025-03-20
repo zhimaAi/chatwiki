@@ -1,0 +1,114 @@
+.document-page {
+  display: flex;
+}
+
+.document-page > .document-page-left {
+  width: 256px;
+  height: 100vh;
+  border-right: 1px solid #d9d9d9;
+}
+
+.document-page > .document-page-body {
+  flex: 1;
+  height: 100vh;
+  padding: 80px 53px 24px 53px;
+  overflow: hidden;
+  overflow-y: auto;
+}
+
+.document-page > .document-page-right {
+  width: 320px;
+  min-height: 100vh;
+  padding-top: 80px;
+  border-left: 1px solid #d9d9d9;
+}
+
+.document-page-body .markdown-content{
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.vditor-reset {
+  overflow: hidden;
+  line-height: 1.5;
+  font-size: 16px;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.document-page-header {
+  display: none;
+}
+.document-footer{
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+.document-footer .page-turning{
+  display: flex;
+  justify-content: space-between;
+}
+.document-footer .page-turning .prev-page,
+.document-footer .page-turning .next-page{
+  font-size: 14px;
+  color: #181818;
+}
+.document-footer .page-turning .prev-page:hover,
+.document-footer .page-turning .next-page:hover{
+  color: #1366ec !important;
+}
+@media (max-width: 992px) {
+  .document-page {
+    flex-direction: column;
+  }
+  .document-page > .document-page-left {
+    width: auto;
+    height: auto;
+    border-right: 0;
+  }
+  .document-page-header {
+    position: fixed;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    padding: 2px 16px;
+    z-index: 100;
+    background-color: #fff;
+  }
+  .document-page-header .library-title {
+    flex: 1;
+    line-height: 22px;
+    font-size: 16px;
+    font-weight: 400;
+    color: #666666;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .document-page-header .action-box {
+    padding-left: 16px;
+  }
+
+  .document-page-header .action-box {
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+  }
+  .document-page-header .action-box .action-btn {
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    margin-left: 8px;
+    border-radius: 8px;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .document-page-header .action-box .action-btn:hover {
+    cursor: pointer;
+    background-color: #f0f2f5;
+  }
+  .document-page > .document-page-body {
+    padding: 60px 16px 16px 16px;
+  }
+}

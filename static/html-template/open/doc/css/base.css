@@ -1,0 +1,479 @@
+/* 移动端优先的CSS重置模板 */
+/* 核心功能：消除浏览器默认样式差异，适配REM布局 */
+
+/***** 全局样式重置 *****/
+html {
+  /* font-size: 50px; /* 1rem=50px，便于移动端REM计算 [1]() */
+  font-size: 14px;
+  /* -webkit-text-size-adjust: 100%; 禁止字体缩放 */
+  -webkit-tap-highlight-color: transparent; /* 禁用点击高亮 */
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+dl,
+dd,
+ol,
+ul,
+form,
+fieldset,
+legend,
+figure,
+figcaption,
+menu,
+th,
+td {
+  margin: 0;
+  padding: 0;
+}
+
+/***** 列表元素重置 *****/
+ul,
+ol {
+  list-style: none; /* 移除默认列表样式 [6]() */
+}
+
+/***** 链接与交互元素 *****/
+a {
+  text-decoration: none;
+  color: inherit;
+  -webkit-touch-callout: none; /* 禁止长按链接弹出菜单 [10]() */
+}
+
+img {
+  border: 0;
+  vertical-align: middle;
+  -webkit-touch-callout: none; /* 禁止图片长按菜单 */
+}
+
+button,
+input,
+select,
+textarea {
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: none;
+  -webkit-appearance: none; /* 去除原生控件样式 */
+}
+
+/***** 表格重置 *****/
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/***** 现代盒模型设置 *****/
+*,
+*::before,
+*::after {
+  box-sizing: border-box; /* 更直观的盒模型计算 [10]() */
+}
+
+/***** 字体统一设置 *****/
+body {
+  font-family: -apple-system, "Helvetica Neue", "PingFang SC", "Microsoft YaHei",sans-serif;
+  line-height: 1.5;
+  color: #333;
+}
+
+/***** 响应式媒体元素 *****/
+audio,
+video {
+  display: inline-block;
+}
+
+:focus {
+  outline: none; /* 移除默认焦点样式 */
+}
+
+.w-icon {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  fill: currentColor;
+  overflow: hidden;
+}
+
+/* 侧边栏样式 */
+.wiki-sidebar {
+  height: 100%;
+  overflow-y: auto;
+}
+.wiki-sidebar .wiki-sidebar-header {
+  display: flex;
+  align-items: center;
+  padding: 24px 8px;
+}
+
+.wiki-sidebar .wiki-sidebar-header .wiki-logo {
+  width: 32px;
+  height: 32px;
+  margin-right: 8px;
+  border-radius: 4px;
+}
+.wiki-sidebar .wiki-sidebar-header .wiki-name {
+  flex: 1;
+  line-height: 24px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #262626;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.wiki-sidebar .wiki-sidebar-header .action-box {
+  display: none;
+}
+
+.wiki-sidebar .wiki-search-box {
+  position: relative;
+  padding: 8px;
+  background-color: #fff;
+}
+.wiki-sidebar .wiki-search-box .search-input-box {
+  position: relative;
+}
+.wiki-sidebar .wiki-search-box .search-input {
+  width: 100%;
+  height: 40px;
+  line-height: 40px;
+  padding: 0 28px 0 8px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+  background-color: #f2f4f7;
+}
+.wiki-sidebar .wiki-search-box .search-icon {
+  position: absolute;
+  right: 12px;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+.wiki-sidebar .sidebar-menus {
+  padding: 0 8px 8px;
+}
+.wiki-sidebar .sidebar-menus .sidebar-menu-item {
+  height: 40px;
+  border-radius: 6px;
+}
+.wiki-sidebar .sidebar-menus .sidebar-menu-item:hover {
+  background-color: #f2f4f7;
+}
+.wiki-sidebar .sidebar-menus .sidebar-menu-item .link {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0 16px;
+}
+.wiki-sidebar .sidebar-menus .sidebar-menu-item .menu-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+}
+.wiki-sidebar .sidebar-menus .sidebar-menu-item .default-icon {
+  display: block;
+}
+.wiki-sidebar .sidebar-menus .sidebar-menu-item .active-icon {
+  display: none;
+}
+.wiki-sidebar .sidebar-menus .sidebar-menu-item .menu-name {
+  flex: 1;
+  font-size: 14px;
+  color: #595959;
+}
+.wiki-sidebar .sidebar-menus .sidebar-menu-item.active {
+  background-color: #e6efff;
+}
+.wiki-sidebar .sidebar-menus .sidebar-menu-item.active .default-icon {
+  display: none;
+}
+.wiki-sidebar .sidebar-menus .sidebar-menu-item.active .active-icon {
+  display: block;
+}
+.wiki-sidebar .sidebar-menus .sidebar-menu-item.active .menu-name {
+  color: #2475fc;
+}
+
+.wiki-sidebar .sidebar-directory .directory-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  padding: 0 8px 0 24px;
+}
+.wiki-sidebar .sidebar-directory .directory-header .directory-label {
+  font-size: 14px;
+  color: #262626;
+}
+.wiki-sidebar .sidebar-directory .directory-header .action-btn {
+  cursor: pointer;
+}
+.wiki-sidebar .sidebar-directory .directory-body {
+  padding: 0 8px;
+}
+.wiki-sidebar .sidebar-directory .directory-item .directory-item-body {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 8px;
+  margin-bottom: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.wiki-sidebar .sidebar-directory .directory-item .directory-item-body:hover {
+  background-color: #f2f4f7;
+  cursor: pointer;
+}
+.wiki-sidebar .sidebar-directory .directory-expanded-btn {
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  margin-right: 4px;
+  border-radius: 6px;
+  text-align: center;
+  transition: all 0.2s;
+}
+.wiki-sidebar .sidebar-directory .directory-expanded-btn:hover {
+  background-color: #e4e6eb;
+}
+.wiki-sidebar .sidebar-directory .doc-body {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  overflow: hidden;
+}
+.wiki-sidebar .sidebar-directory .doc-icon {
+  margin-right: 4px;
+}
+.wiki-sidebar .sidebar-directory .doc-icon.active-icon {
+  display: none;
+}
+.wiki-sidebar .sidebar-directory .doc-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  color: #595959;
+}
+.wiki-sidebar
+  .sidebar-directory
+  .directory-item.is-expanded
+  > .directory-item-body
+  .directory-expanded-btn
+  .expanded-icon {
+  transform: rotate(90deg);
+}
+.wiki-sidebar .sidebar-directory .directory-item .directory-item-indent {
+  align-self: stretch;
+  white-space: nowrap;
+  user-select: none;
+}
+.wiki-sidebar
+  .sidebar-directory
+  .directory-item
+  .directory-item-indent
+  .directory-item-indent-unit {
+  display: inline-block;
+  width: 24px;
+}
+.wiki-sidebar .sidebar-directory .directory-expanded-btn .expanded-icon {
+  transition: all 0.2s;
+}
+.wiki-sidebar
+  .sidebar-directory
+  .directory-expanded-btn.directory-expanded-noop:hover {
+  background: none;
+}
+.wiki-sidebar
+  .sidebar-directory
+  .directory-expanded-btn.directory-expanded-noop
+  .expanded-icon {
+  display: none;
+}
+.wiki-sidebar .sidebar-directory .directory-item.active > .directory-item-body {
+  background-color: #e6efff;
+}
+.wiki-sidebar
+  .sidebar-directory
+  .directory-item.active
+  > .directory-item-body
+  .doc-name {
+  color: #2475fc;
+}
+.wiki-sidebar
+  .sidebar-directory
+  .directory-item.active
+  > .directory-item-body
+  .doc-icon.default-icon {
+  display: none;
+}
+.wiki-sidebar
+  .sidebar-directory
+  .directory-item.active
+  > .directory-item-body
+  .doc-icon.active-icon {
+  display: block;
+}
+
+/* 大纲 */
+.doc-outline {
+}
+.doc-outline .doc-outline-list {
+  padding: 0 16px;
+}
+.doc-outline .outline-item {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  transition: all 0.2s;
+}
+.doc-outline .outline-item:hover {
+  cursor: pointer;
+}
+.doc-outline .outline-expanded-btn {
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  margin-right: 4px;
+  border-radius: 6px;
+  text-align: center;
+  transition: all 0.2s;
+}
+.doc-outline .outline-expanded-btn:hover {
+  background-color: #e4e6eb;
+}
+.doc-outline .doc-body {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  overflow: hidden;
+}
+.doc-outline .doc-icon {
+  margin-right: 4px;
+}
+.doc-outline .doc-icon.active-icon {
+  display: none;
+}
+.doc-outline .doc-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  color: #595959;
+}
+.doc-outline .outline-item.is-expanded .outline-expanded-btn .expanded-icon {
+  transform: rotate(90deg);
+}
+.doc-outline .outline-item .outline-item-indent {
+  align-self: stretch;
+  white-space: nowrap;
+  user-select: none;
+}
+.doc-outline .outline-item .outline-item-indent .outline-item-indent-unit {
+  display: inline-block;
+  width: 24px;
+}
+.doc-outline .outline-expanded-btn.outline-expanded-noop:hover {
+  background: none;
+}
+.doc-outline .outline-expanded-btn.outline-expanded-noop .expanded-icon {
+  display: none;
+}
+.doc-outline .outline-item.active {
+}
+.doc-outline .outline-item.active .doc-name {
+  color: #2475fc;
+}
+.doc-outline .outline-item.active .doc-icon.default-icon {
+  display: none;
+}
+.doc-outline .outline-item.active .doc-icon.active-icon {
+  display: block;
+}
+
+@media (max-width: 992px) {
+  .wiki-sidebar-mask {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 999;
+    background-color: rgba(0, 0, 0, 0.65);
+  }
+
+  .wiki-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: -320px;
+    width: 320px;
+    height: 100%;
+    z-index: 1000;
+    background-color: #fff;
+    overflow-y: auto;
+    transition: left 0.3s ease;
+  }
+  .wiki-sidebar .wiki-sidebar-header {
+    padding: 2px 8px;
+  }
+  .wiki-sidebar .wiki-sidebar-header .wiki-logo {
+    display: none;
+  }
+  .wiki-sidebar .wiki-sidebar-header .wiki-name {
+    line-height: 22px;
+    font-size: 16px;
+    font-weight: 400;
+    color: #666666;
+  }
+  .wiki-sidebar .wiki-sidebar-header .action-box {
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+  }
+  .wiki-sidebar .wiki-sidebar-header .action-box .action-btn {
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    margin-left: 8px;
+    border-radius: 8px;
+    text-align: center;
+    transition: all 0.2s;
+  }
+
+  .wiki-sidebar .wiki-sidebar-header .action-box .action-btn:hover {
+    cursor: pointer;
+    background-color: #f0f2f5;
+  }
+
+  .wiki-sidebar .sidebar-directory .directory-item .directory-item-body {
+    height: 44px;
+  }
+
+  .wiki-sidebar-open .wiki-sidebar {
+    left: 0;
+  }
+  .wiki-sidebar-open .wiki-sidebar-mask {
+    display: block;
+  }
+}

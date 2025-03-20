@@ -1,0 +1,109 @@
+{{ define "test_menu" }}
+{{ range . }}
+
+<ul>
+    <!-- 缩进逻辑 -->
+    <li>
+        <a href="/open/doc/{{ .DocKey }}" class="doc-body">
+            <img class="doc-icon" src="./img/doc_icon.svg"  alt="">
+            <span class="doc-name">{{ .Title }}</span>
+        </a>
+        <!-- level +1 -->
+        {{ if .Children }}
+        {{ template "directory_menu" .Children }}
+        {{ end }}
+    </li>
+    {{ end }}
+</ul>
+{{ end }}
+
+<div class="ai-result-box" style="display: none">
+    <h4 class="ai-result-label">以下结果由AI生成</h4>
+
+    <div class="ai-result-text">
+      ChatWiki是什么？ChatWiki是一款开源的知识库 AI
+      问答系统。系统基于大语言模型（LLM
+      ）和检索增强生成（RAG）技术构建，提供开箱即用的数据处理、模型调用等能力，可以帮助企业快速搭建自己的知识库
+      AI 问答系统。
+    </div>
+
+    <h4 class="ai-result-doc-label">
+      <img
+        class="arrow-icon"
+        src="/open/static/img/arrow.svg"
+        alt=""
+      />
+      <span class="label-text">相关文档 (4)</span>
+      <span class="line"></span>
+    </h4>
+    <!-- ai result -->
+    <ul class="ai-result-doc-items">
+      <li class="ai-result-doc-item-wrap">
+        <a class="ai-result-doc-item">
+          <div class="doc-title-box">
+            <img
+              class="doc-icon"
+              src="/open/static/img/doc_icon2.svg?v=1"
+              alt=""
+            />
+            <h3 class="doc-title">快速了解ChatWiki</h3>
+          </div>
+          <p class="doc-content">
+            ChatWiki是什么？ChatWiki是一款开源的知识库 AI
+            问答系统。系统基于大语言言模言模言模言模言模ChatWiki是什么？ChatWiki是一款开源的知识库
+            AI 问答系统。系统基于大语言言模言模言模言模言模
+          </p>
+        </a>
+      </li>
+
+      <li class="ai-result-doc-item-wrap">
+        <a class="ai-result-doc-item">
+          <div class="doc-title-box">
+            <img
+              class="doc-icon"
+              src="/open/static/img/doc_icon2.svg?v=1"
+              alt=""
+            />
+            <h3 class="doc-title">为什么使用ai客服</h3>
+          </div>
+          <p class="doc-content">
+            当然可以。请您在收到商品后的7天内，保持商品原样、包装完好，并提供订单编号和换货原因。我们将为您安排换货服务。
+          </p>
+        </a>
+      </li>
+
+      <li class="ai-result-doc-item-wrap">
+        <a class="ai-result-doc-item">
+          <div class="doc-title-box">
+            <img
+              class="doc-icon"
+              src="/open/static/img/doc_icon2.svg?v=1"
+              alt=""
+            />
+            <h3 class="doc-title">快速了解ChatWiki</h3>
+          </div>
+          <p class="doc-content">
+            ChatWiki是什么？ChatWiki是一款开源的知识库 AI
+            问答系统。系统基于大语言言模言模言模言模言模ChatWiki是什么？ChatWiki是一款开源的知识库
+            AI 问答系统。系统基于大语言言模言模言模言模言模
+          </p>
+        </a>
+      </li>
+
+      <li class="ai-result-doc-item-wrap">
+        <a class="ai-result-doc-item">
+          <div class="doc-title-box">
+            <img
+              class="doc-icon"
+              src="/open/static/img/doc_icon2.svg?v=1"
+              alt=""
+            />
+            <h3 class="doc-title">为什么使用ai客服</h3>
+          </div>
+          <p class="doc-content">
+            当然可以。请您在收到商品后的7天内，保持商品原样、包装完好，并提供订单编号和换货原因。我们将为您安排换货服务。
+          </p>
+        </a>
+      </li>
+    </ul>
+  </div>

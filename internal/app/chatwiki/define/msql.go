@@ -39,6 +39,23 @@ const (
 )
 
 const (
+	GeneralLibraryType = 0
+	QALibraryType      = 2
+	OpenLibraryType    = 1
+)
+
+var LibraryTypes = [...]int{
+	GeneralLibraryType, //0普通知识库
+	QALibraryType,      //2问答知识库
+	OpenLibraryType,    //1对外知识库
+}
+
+const (
+	OpenLibraryAccessRights = 1
+	AiSummary               = 1
+)
+
+const (
 	ExportSourceSession uint = 1 //会话记录导出
 )
 

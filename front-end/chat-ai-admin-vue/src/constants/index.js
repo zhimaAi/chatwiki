@@ -50,14 +50,14 @@ export const DEFAULT_EN_LOGO = new URL('@/assets/en_logo.svg', import.meta.url).
 // 中文logo
 export const DEFAULT_ZH_LOGO = new URL('@/assets/zh_cn_logo.svg', import.meta.url).href
 
-// 默认的用户头像
+// 默认知识库头像
 export const DEFAULT_LIBRARY_AVATAR = new URL(
-  '@/assets/img/library/preview/default_avatar.png',
+  '@/assets/img/library/preview/default_avatar.svg',
   import.meta.url
 ).href
 
 export const DEFAULT_LIBRARY_AVATAR2 = new URL('@/assets/img/library/t.svg', import.meta.url).href
-
+export const DEFAULT_LIBRARY_AVATAR3 = new URL('@/assets/img/library/q.svg', import.meta.url).href
 // 默认的机器人头像
 export const DEFAULT_ROBOT_AVATAR = '/upload/default/robot_avatar.png'
 

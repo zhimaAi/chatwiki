@@ -7,10 +7,14 @@ import (
 	"chatwiki/internal/app/chatwiki/middlewares"
 	"chatwiki/internal/app/chatwiki/route"
 	"chatwiki/internal/pkg/lib_web"
+	"embed"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
+
+// go:embed static/*
+var staticFiles embed.FS
 
 func initGin() {
 	if !define.IsDev {
@@ -21,5 +25,7 @@ func initGin() {
 	//set the upload directory
 	if handler, ok := define.WebService.Handler.(*gin.Engine); ok {
 		handler.StaticFS(`/upload`, http.Dir(define.UploadDir))
+		handler.LoadHTMLGlob(define.GetTemplatesPath() + `*.html`)
+		handler.StaticFS(`/open/static`, http.Dir(define.GetTemplatesStaticPath()))
 	}
 }

@@ -13,8 +13,10 @@
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "lib": [
-            "DOM",
-            "ES2018"
+            "ES2018",
+            "dom",
+            "dom.iterable",
+            "esnext.asynciterable"
         ]
     }
 }

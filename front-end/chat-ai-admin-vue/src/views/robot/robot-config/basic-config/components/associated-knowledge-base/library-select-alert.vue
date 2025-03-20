@@ -68,19 +68,25 @@
 <template>
   <a-modal width="746px" v-model:open="show" title="关联知识库" @ok="saveCheckedList">
     <div class="library-checkbox-box">
-      <a-alert message="请选择关联知识库，机器人会根据知识库内上传的文档回复用户的提问。每个机器人最多关联5个知识库" type="info" />
+      <a-alert
+        message="请选择关联知识库，机器人会根据知识库内上传的文档回复用户的提问。每个机器人最多关联5个知识库"
+        type="info"
+      />
       <div class="list-tools">
         <div>
-          <a-input style="width: 282px" v-model:value="searchKeyword" placeholder="请输入知识库名称搜索" @change="onSearch">
+          <a-input
+            style="width: 282px"
+            v-model:value="searchKeyword"
+            placeholder="请输入知识库名称搜索"
+            @change="onSearch"
+          >
             <template #suffix>
               <SearchOutlined style="color: rgba(0, 0, 0, 0.25)" />
             </template>
           </a-input>
         </div>
         <div>
-          <a-button style="margin-right: 8px" @click="onRefresh">
-            <SyncOutlined /> 刷新
-          </a-button>
+          <a-button style="margin-right: 8px" @click="onRefresh"> <SyncOutlined /> 刷新 </a-button>
           <a-button type="primary" ghost @click="openAddLibrary">新建知识库</a-button>
         </div>
       </div>
@@ -141,7 +147,7 @@ const triggerChange = () => {
 }
 
 const getList = async () => {
-  const res = await getLibraryList({ library_name: searchKeyword.value })
+  const res = await getLibraryList({ library_name: searchKeyword.value, type: '' })
   if (res) {
     let list = res.data || []
     options.value = list
@@ -160,7 +166,7 @@ const onRefresh = async () => {
 }
 
 const openAddLibrary = () => {
-  window.open('/#/library/add')
+  window.open('/#/library/list')
 }
 
 defineExpose({
