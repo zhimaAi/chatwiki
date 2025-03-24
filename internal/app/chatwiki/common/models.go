@@ -98,7 +98,6 @@ var modelList = [...]ModelInfo{
 		ModelName:     `OpenAI`,
 		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelOpenAI + `.png`,
 		Introduce:     `基于OpenAI官方提供的API`,
-		IsOffline:     false,
 		SupportList:   []string{Llm, TextEmbedding},
 		SupportedType: []string{Llm, TextEmbedding},
 		SupportedFunctionCallList: []string{
@@ -143,7 +142,6 @@ var modelList = [...]ModelInfo{
 		ModelName:       `其他兼容OpenAI API的模型服务商`,
 		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelOpenAI + `.png`,
 		Introduce:       `支持添加其他兼容OpenAi API的模型服务商，比如api2d、oneapi等`,
-		IsOffline:       false,
 		SupportList:     []string{Llm, TextEmbedding},
 		SupportedType:   []string{Llm, TextEmbedding},
 		ConfigParams:    []string{`model_type`, `deployment_name`, `api_endpoint`, `api_key`, `api_version`},
@@ -160,7 +158,6 @@ var modelList = [...]ModelInfo{
 		ModelName:     `Azure OpenAI Service`,
 		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelAzureOpenAI + `.png`,
 		Introduce:     `Microsoft Azure提供的OpenAI API服务`,
-		IsOffline:     false,
 		SupportList:   []string{Llm, TextEmbedding, Speech2Text, Tts},
 		SupportedType: []string{Llm, TextEmbedding},
 		ConfigParams:  []string{`model_type`, `deployment_name`, `api_endpoint`, `api_key`, `api_version`},
@@ -186,7 +183,6 @@ var modelList = [...]ModelInfo{
 		ModelName:     `Anthropic Claude`,
 		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelAnthropicClaude + `.png`,
 		Introduce:     `Anthropic出品的Claude模型`,
-		IsOffline:     false,
 		SupportList:   []string{Llm},
 		SupportedType: []string{Llm},
 		ConfigParams:  []string{`api_key`, `api_version`},
@@ -208,7 +204,6 @@ var modelList = [...]ModelInfo{
 		ModelName:     `Google Gemini`,
 		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelGoogleGemini + `.png`,
 		Introduce:     `基于Google提供的Gemini API`,
-		IsOffline:     false,
 		SupportList:   []string{Llm, TextEmbedding},
 		SupportedType: []string{Llm, TextEmbedding},
 		ConfigParams:  []string{`api_key`},
@@ -234,7 +229,6 @@ var modelList = [...]ModelInfo{
 		ModelName:     `文心一言`,
 		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelBaiduYiyan + `.png`,
 		Introduce:     `基于百度千帆大模型平台提供的文心一言API`,
-		IsOffline:     false,
 		SupportList:   []string{Llm, TextEmbedding},
 		SupportedType: []string{Llm, TextEmbedding},
 		SupportedFunctionCallList: []string{`ERNIE-4.0-8K`, `ERNIE-4.0-Turbo-8K`, `ERNIE-3.5-8K`,
@@ -292,7 +286,6 @@ var modelList = [...]ModelInfo{
 		ModelName:     `通义千问`,
 		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelAliyunTongyi + `.png`,
 		Introduce:     `基于阿里云提供的通义千问API`,
-		IsOffline:     false,
 		SupportList:   []string{Llm, TextEmbedding, Tts},
 		SupportedType: []string{Llm, TextEmbedding},
 		SupportedFunctionCallList: []string{
@@ -327,7 +320,6 @@ var modelList = [...]ModelInfo{
 		ModelName:     `BGE`,
 		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelBaai + `.png`,
 		Introduce:     `由北京智源人工智能研究院研发的本地模型，包含bge-rerank-base、bge-m3模型，支持嵌入和rerank。使用bge系列模型，无需消耗token，但是本地模型运行需要硬件支持，请确保服务器有足够的内存（至少8G内存）和用于计算的GPU`,
-		IsOffline:     true,
 		SupportList:   []string{TextEmbedding, Rerank},
 		SupportedType: []string{TextEmbedding, Rerank},
 		ConfigParams:  []string{`api_endpoint`},
@@ -349,7 +341,6 @@ var modelList = [...]ModelInfo{
 		ModelName:     `Cohere`,
 		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelCohere + `.png`,
 		Introduce:     `cohere提供的模型，包含Command、Command R、Command R+等`,
-		IsOffline:     false,
 		SupportList:   []string{Llm, TextEmbedding, Rerank},
 		SupportedType: []string{Llm, TextEmbedding, Rerank},
 		ConfigParams:  []string{`api_key`},
@@ -386,7 +377,6 @@ var modelList = [...]ModelInfo{
 		ModelName:       `Ollama`,
 		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelOllama + `.png`,
 		Introduce:       `Ollama是一个轻量级的简单易用的本地大模型运行框架,通过Ollama可以在本地服务器构建和运营大语言模型(比如Llama3等).ChatWiki支持使用Ollama部署LLM的型和Text Embedding模型`,
-		IsOffline:       true,
 		SupportList:     []string{Llm, TextEmbedding},
 		SupportedType:   []string{Llm, TextEmbedding},
 		ConfigParams:    []string{`model_type`, `deployment_name`, `api_endpoint`},
@@ -420,7 +410,6 @@ var modelList = [...]ModelInfo{
 		ModelName:                 `DeepSeek`,
 		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelDeepseek + `.png`,
 		Introduce:                 `由DeepSeek提供的大模型API`,
-		IsOffline:                 false,
 		SupportList:               []string{Llm},
 		SupportedType:             []string{Llm},
 		SupportedFunctionCallList: []string{`deepseek-chat`},
@@ -441,7 +430,6 @@ var modelList = [...]ModelInfo{
 		ModelName:     `Jina`,
 		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelJina + `.png`,
 		Introduce:     `有Jina提供的嵌入和Rerank模型，`,
-		IsOffline:     false,
 		SupportList:   []string{TextEmbedding, Rerank},
 		SupportedType: []string{TextEmbedding, Rerank},
 		ConfigParams:  []string{`api_key`},
@@ -470,7 +458,6 @@ var modelList = [...]ModelInfo{
 		ModelName:                 `零一万物`,
 		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelLingYiWanWu + `.png`,
 		Introduce:                 `基于零一万物提供的零一大模型API`,
-		IsOffline:                 false,
 		SupportList:               []string{Llm},
 		SupportedType:             []string{Llm},
 		SupportedFunctionCallList: []string{`yi-large-fc`},
@@ -491,7 +478,6 @@ var modelList = [...]ModelInfo{
 		ModelName:                 `月之暗面`,
 		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelMoonShot + `.png`,
 		Introduce:                 `基于月之暗面提供的Kimi API`,
-		IsOffline:                 false,
 		SupportList:               []string{Llm},
 		SupportedType:             []string{Llm},
 		SupportedFunctionCallList: []string{`moonshot-v1-8k`},
@@ -511,7 +497,6 @@ var modelList = [...]ModelInfo{
 		ModelName:     `讯飞星火`,
 		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelSpark + `.png`,
 		Introduce:     `基于科大讯飞提供的讯飞星火大模型API`,
-		IsOffline:     false,
 		SupportList:   []string{Llm},
 		SupportedType: []string{Llm},
 		ConfigParams:  []string{`app_id`, `api_key`, `secret_key`},
@@ -534,7 +519,6 @@ var modelList = [...]ModelInfo{
 		ModelName:     `腾讯混元`,
 		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelHunyuan + `.png`,
 		Introduce:     `hunyuan`,
-		IsOffline:     false,
 		SupportList:   []string{Llm, TextEmbedding},
 		SupportedType: []string{Llm, TextEmbedding},
 		ConfigParams:  []string{`api_key`, `secret_key`},
@@ -559,7 +543,6 @@ var modelList = [...]ModelInfo{
 		ModelName:     `火山引擎`,
 		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelDoubao + `.png`,
 		Introduce:     `基于火山引擎提供的豆包大模型API`,
-		IsOffline:     false,
 		SupportList:   []string{Llm, TextEmbedding},
 		SupportedType: []string{Llm, TextEmbedding},
 		ConfigParams:  []string{`model_type`, `deployment_name`, `show_model_name`, `api_key`, `region`},
@@ -579,7 +562,6 @@ var modelList = [...]ModelInfo{
 		ModelName:                 `百川智能`,
 		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelBaichuan + `.png`,
 		Introduce:                 `基于百川智能提供的百川大模型API`,
-		IsOffline:                 false,
 		SupportList:               []string{Llm, TextEmbedding},
 		SupportedType:             []string{Llm, TextEmbedding},
 		SupportedFunctionCallList: []string{`Baichuan4`, `Baichuan3-Turbo`, `Baichuan3-Turbo-128k`, `Baichuan2-Turbo`, `Baichuan2-Turbo-192k`},
@@ -605,7 +587,6 @@ var modelList = [...]ModelInfo{
 		ModelName:                 `智谱`,
 		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelZhipu + `.png`,
 		Introduce:                 `领先的认知大模型AI开放平台`,
-		IsOffline:                 false,
 		SupportList:               []string{Llm, TextEmbedding},
 		SupportedType:             []string{Llm, TextEmbedding},
 		SupportedFunctionCallList: []string{`glm-4-0520`, `glm-4`, `glm-4-air`, `glm-4-airx`, `glm-4-flash`},
@@ -631,7 +612,6 @@ var modelList = [...]ModelInfo{
 		ModelName:                 `minimax`,
 		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelMinimax + `.png`,
 		Introduce:                 `MiniMax 成立于 2021 年 12 月，是领先的通用人工智能科技公司，致力于与用户共创智能。MiniMax 自主研发多模态、万亿参数的 MoE 大模型，并基于大模型推出海螺AI、星野等原生应用。MiniMax API 开放平台提供安全、灵活、可靠的 API 服务，助力企业和开发者快速搭建 AI 应用。`,
-		IsOffline:                 false,
 		SupportList:               []string{Llm},
 		SupportedType:             []string{Llm},
 		SupportedFunctionCallList: []string{},
@@ -655,7 +635,6 @@ var modelList = [...]ModelInfo{
 		ModelName:                 `硅基流动`,
 		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelSiliconFlow + `.png`,
 		Introduce:                 `支持通义千问，mata-lama，google-gemma，bge-m3等开源模型，可以免部署、低成本使用`,
-		IsOffline:                 false,
 		SupportList:               []string{Llm, TextEmbedding, Rerank},
 		SupportedType:             []string{Llm, TextEmbedding, Rerank},
 		SupportedFunctionCallList: []string{},
@@ -716,16 +695,6 @@ func GetModelInfoByDefine(modelDefine string) (ModelInfo, bool) {
 
 func IsMultiConfModel(defineName string) bool {
 	return tool.InArrayString(defineName, []string{ModelOllama, ModelXnference, ModelOpenAIAgent})
-}
-
-func GetOfflineTypeModelInfos(isOffline bool) []ModelInfo {
-	var result []ModelInfo
-	for _, info := range GetModelList() {
-		if isOffline && info.IsOffline || !isOffline && !info.IsOffline {
-			result = append(result, info)
-		}
-	}
-	return result
 }
 
 func GetModelCallHandler(modelConfigId int, useModel string) (*ModelCallHandler, error) {

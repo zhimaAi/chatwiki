@@ -277,25 +277,12 @@ func GetModelConfigOption(c *gin.Context) {
 		return
 	}
 	modelType := strings.TrimSpace(c.Query(`model_type`))
-	isOffline := strings.TrimSpace(c.Query(`is_offline`))
 	if len(modelType) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	var modelDefines []string
-	if len(isOffline) > 0 {
-		models := common.GetOfflineTypeModelInfos(cast.ToBool(isOffline))
-		for _, model := range models {
-			modelDefines = append(modelDefines, model.ModelDefine)
-		}
-	}
-
-	t := msql.Model(`chat_ai_model_config`, define.Postgres).
-		Where(`admin_user_id`, cast.ToString(userId))
-	if len(modelDefines) > 0 {
-		t.Where(`model_define`, `in`, strings.Join(modelDefines, `,`))
-	}
-	configs, err := t.Order(`id desc`).Select()
+	configs, err := msql.Model(`chat_ai_model_config`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(userId)).Order(`id desc`).Select()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
