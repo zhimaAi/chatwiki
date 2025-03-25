@@ -351,6 +351,77 @@
   border: 1px solid var(--Neutral-5, #D9D9D9);
   background: var(--Neutral-1, #FFF);
 }
+.thinking-label-wrapper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+
+  .thinking-label {
+    display: flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 16px;
+    border-radius: 8px;
+    background: #e4e6eb;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #d8dde6;
+    }
+    .think-icon,
+    .loading {
+      margin-right: 8px;
+      font-size: 16px;
+      color: #262626;
+    }
+    .label-text {
+      font-size: 14px;
+      font-weight: 400;
+      color: #262626;
+    }
+    .arrow-down {
+      margin-left: 8px;
+      font-size: 16px;
+      color: #262626;
+      cursor: pointer;
+    }
+  }
+  .tip {
+    margin-left: 8px;
+    font-size: 16px;
+    color: #8c8c8c;
+    cursor: pointer;
+  }
+
+  &.reasoning_open {
+    .down-arrow {
+      transform: rotate(180deg);
+    }
+  }
+}
+.thinking-content {
+  position: relative;
+  line-height: 22px;
+  padding-bottom: 0;
+  padding-left: 16px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #8c8c8c;
+  border-bottom: 1px solid #edeff2;
+  // 4px竖线
+  &::before {
+    display: block;
+    position: absolute;
+    content: '';
+    left: 0;
+    top: 4px;
+    bottom: 20px;
+    width: 4px;
+    background-color: #d9d9d9;
+  }
+}
 </style>
 
 <template>
@@ -359,8 +430,31 @@
       <img class="avatar" :src="props.msg.avatar" />
     </div>
     <div class="message-item-body">
+      <!-- 思考过程label -->
+      <div
+        class="thinking-label-wrapper"
+        :class="{ reasoning_open: props.msg.show_reasoning }"
+        v-if="props.msg.reasoning_content && props.msg.reasoning_content.length > 0"
+      >
+        <div class="thinking-label" @click="toggleReasonProcess()">
+          <van-loading class="loading" color="#262626" size="16px" type="spinner" v-if="props.msg.reasoning_status" />
+          <svg-icon class="think-icon" name="think" v-else></svg-icon>
+          <span class="label-text">{{
+            props.msg.reasoning_status ? '深度思考中...' : '已完成深度思考'
+          }}</span>
+
+          <svg-icon
+            name="down-arrow"
+            class="down-arrow"
+            v-if="!props.msg.reasoning_status"
+          ></svg-icon>
+        </div>
+      </div>
       <div class="message-content">
         <!-- <span class="triangle"></span> -->
+        <div class="thinking-content" v-if="props.msg.show_reasoning">
+            <cherry-markdown :content="props.msg.reasoning_content" />
+        </div>
         <template v-if="props.msg.msg_type == 1">
           <div class="text-message" v-if="props.msg.content !== ''" v-viewer>
             <div v-if="props.msg.is_customer == 1" v-html="props.msg.content"></div>
@@ -549,6 +643,7 @@ const props = defineProps({
     type: Object as () => Message
   }
 })
+
 const isTrampleClick = ref(false)
 const isPraiseActive = ref(props.msg.feedback_type == '1' ? true : false);
 const isTrampleActive = ref(props.msg.feedback_type == '2' ? true : false);
@@ -680,6 +775,10 @@ const handleToLink = (item) => {
     openid: robot.openid,
     file_name: item.file_name,
   })
+}
+
+const toggleReasonProcess = () => {
+  props.msg.show_reasoning = ! props.msg.show_reasoning
 }
 
 onMounted(() => {

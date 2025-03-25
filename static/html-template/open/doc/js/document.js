@@ -8,6 +8,7 @@ function loadHighlightScript(language) {
     const languageMap = {
       "js": "javascript",
       "ts": "typescript",
+      "md": "markdown",
     }
     const script = document.createElement("script");
 

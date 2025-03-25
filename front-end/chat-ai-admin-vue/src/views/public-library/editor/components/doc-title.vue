@@ -51,7 +51,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 
 const emit = defineEmits(['update:title', 'input', 'blur'])
 
@@ -61,10 +61,10 @@ const props = defineProps({
     default: ''
   }
 })
-const defaultHeight = 24
+// const defaultHeight = 24
 const text = ref(props.title)
 
-const textareaHeight = ref(24)
+// const textareaHeight = ref(24)
 const autoHeightInput = ref(null)
 
 const endEdit = () => {

@@ -63,6 +63,7 @@
       padding: 12px 16px;
       border-radius: 8px;
       width: auto;
+      min-height: 32px;
       max-width: 100%;
       overflow: hidden;
       background-color: #fff;
@@ -135,6 +136,79 @@
       }
     }
   }
+
+  .thinking-label-wrapper {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+
+    .thinking-label {
+      display: flex;
+      align-items: center;
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 8px;
+      background: #e4e6eb;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: #d8dde6;
+      }
+      .think-icon,
+      .loading {
+        margin-right: 8px;
+        font-size: 16px;
+        color: #262626;
+      }
+      .label-text {
+        font-size: 14px;
+        font-weight: 400;
+        color: #262626;
+      }
+      .arrow-down {
+        margin-left: 8px;
+        font-size: 16px;
+        color: #262626;
+        cursor: pointer;
+      }
+    }
+    .tip {
+      margin-left: 8px;
+      font-size: 16px;
+      color: #8c8c8c;
+      cursor: pointer;
+    }
+
+    &.reasoning_open {
+      .arrow-down {
+        transform: rotate(180deg);
+      }
+    }
+  }
+
+  .thinking-content {
+    position: relative;
+    line-height: 22px;
+    padding-bottom: 0;
+    padding-left: 16px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 400;
+    color: #8c8c8c;
+    border-bottom: 1px solid #edeff2;
+    // 4px竖线
+    &::before {
+      display: block;
+      position: absolute;
+      content: '';
+      left: 0;
+      top: 4px;
+      bottom: 20px;
+      width: 4px;
+      background-color: #d9d9d9;
+    }
+  }
 }
 </style>
 
@@ -167,7 +241,35 @@
             </div>
 
             <div class="itme-right">
+              <!-- 思考过程label -->
+              <div
+                class="thinking-label-wrapper"
+                :class="{ reasoning_open: item.show_reasoning }"
+                v-if="item.reasoning_content"
+              >
+                <div class="thinking-label" @click="toggleReasonProcess(item)">
+                  <LoadingOutlined class="loading" v-if="item.reasoning_status" />
+                  <svg-icon class="think-icon" name="think" v-else></svg-icon>
+                  <span class="label-text">{{
+                    item.reasoning_status ? '深度思考中...' : '已完成深度思考'
+                  }}</span>
+
+                  <svg-icon
+                    name="arrow-down"
+                    class="arrow-down"
+                    v-if="!item.reasoning_status"
+                  ></svg-icon>
+                </div>
+                <a-tooltip>
+                  <template #title>在应用设置中关闭推理过程开关，将不再显示推理过程</template>
+                  <InfoCircleOutlined class="tip" />
+                </a-tooltip>
+              </div>
+
               <div class="item-body">
+                <div class="thinking-content" v-if="item.show_reasoning">
+                  <cherry-markdown :content="item.reasoning_content"></cherry-markdown>
+                </div>
                 <template v-if="item.msg_type == 1">
                   <div class="message-content" v-viewer>
                     <cherry-markdown :content="item.content"></cherry-markdown>
@@ -260,7 +362,7 @@
 
 <script setup>
 import { ref, nextTick, toRaw, computed } from 'vue'
-import { QuestionCircleOutlined } from '@ant-design/icons-vue'
+import { QuestionCircleOutlined, LoadingOutlined, InfoCircleOutlined } from '@ant-design/icons-vue'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import GuessYouWant from './guess-you-want.vue'
 
@@ -283,6 +385,10 @@ const props = defineProps({
     default: () => {}
   }
 })
+
+const toggleReasonProcess = (item) => {
+  item.show_reasoning = !item.show_reasoning
+}
 
 const common_question_list = computed(() => {
   if (props.robotInfo.common_question_list.length) {

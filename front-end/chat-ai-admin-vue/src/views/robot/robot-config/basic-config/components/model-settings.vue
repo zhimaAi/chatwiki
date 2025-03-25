@@ -32,19 +32,24 @@
                 <a-select-opt-group v-for="item in modelList" :key="item.id">
                   <template #label>
                     <a-flex align="center" :gap="6">
-                      <img class="model-icon" :src="item.icon" alt="" />{{item.name}}
+                      <img class="model-icon" :src="item.icon" alt="" />{{ item.name }}
                     </a-flex>
                   </template>
                   <a-select-option
-                    :value="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name ? val.deployment_name : val.name + val.id"
+                    :value="
+                      modelDefine.indexOf(item.model_define) > -1 && val.deployment_name
+                        ? val.deployment_name
+                        : val.name + val.id
+                    "
                     :model_config_id="item.id"
                     :current_obj="val"
                     v-for="val in item.children"
                     :key="val.name + val.id"
                   >
-                    <span v-if="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name">{{
-                      val.deployment_name
-                    }}</span>
+                    <span
+                      v-if="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name"
+                      >{{ val.deployment_name }}</span
+                    >
                     <span v-else>{{ val.name }}</span>
                   </a-select-option>
                 </a-select-opt-group>
@@ -141,6 +146,27 @@
             </div>
           </div>
         </a-col>
+
+        <a-col v-bind="grid">
+          <div class="form-item">
+            <div class="form-item-label">
+              <span>显示推理过程&nbsp;</span>
+              <a-tooltip>
+                <template #title>
+                  <span>开启后，API接口、聊天测试页、 webAPP页会显示或返回推理模型的推理过程</span>
+                </template>
+                <QuestionCircleOutlined class="question-icon" />
+              </a-tooltip>
+            </div>
+            <div class="form-item-body" style="padding-top: 5px">
+              <a-switch
+                v-model:checked="formState.think_switch"
+                :checkedValue="1"
+                :unCheckedValue="0"
+              />
+            </div>
+          </div>
+        </a-col>
       </a-row>
     </div>
   </edit-box>
@@ -167,7 +193,8 @@ const formState = reactive({
   model_config_id: '',
   temperature: 0,
   max_token: 0,
-  context_pair: 0
+  context_pair: 0,
+  think_switch: 1
 })
 const currentModelDefine = ref('')
 const oldModelDefine = ref('')
@@ -175,7 +202,10 @@ const currentUseModel = ref('')
 
 const handleChangeModel = (val, option) => {
   const self = option.current_obj
-  formState.use_model = modelDefine.indexOf(self.model_define) > -1 && self.deployment_name ? self.deployment_name : self.name
+  formState.use_model =
+    modelDefine.indexOf(self.model_define) > -1 && self.deployment_name
+      ? self.deployment_name
+      : self.name
   currentModelDefine.value = self.model_define
   formState.model_config_id = self.id || option.model_config_id
 }
@@ -189,7 +219,7 @@ const handleSave = () => {
     formState.use_model = '默认'
   }
   updateRobotInfo({ ...toRaw(formState) })
-  isEdit.value = false;
+  isEdit.value = false
 }
 
 const handleEdit = (val) => {
@@ -206,23 +236,24 @@ const handleEdit = (val) => {
   formState.temperature = robotInfo.temperature
   formState.max_token = robotInfo.max_token
   formState.context_pair = robotInfo.context_pair
+  formState.think_switch = Number(robotInfo.think_switch)
   isEdit.value = val
 }
 
 function uniqueArr(arr, arr1, key) {
-    const keyVals = new Set(arr.map(item => item.model_define));
-    arr1.filter(obj => {
-        let val = obj[key];
-        if (keyVals.has(val)) {
-          arr.filter(obj1 => {
-            if (obj1.model_define == val) {
-              obj1.children = removeRepeat(obj1.children, obj.children)
-              return false
-            }
-          })
+  const keyVals = new Set(arr.map((item) => item.model_define))
+  arr1.filter((obj) => {
+    let val = obj[key]
+    if (keyVals.has(val)) {
+      arr.filter((obj1) => {
+        if (obj1.model_define == val) {
+          obj1.children = removeRepeat(obj1.children, obj.children)
+          return false
         }
-    });
-    return arr
+      })
+    }
+  })
+  return arr
 }
 
 const getModelList = () => {
@@ -236,8 +267,11 @@ const getModelList = () => {
     modelList.value = list.map((item) => {
       children = []
       for (let i = 0; i < item.model_info.llm_model_list.length; i++) {
-        const ele = item.model_info.llm_model_list[i];
-        if (modelDefine.indexOf(item.model_info.model_define) > -1 && robotInfo.model_config_id == item.model_config.id) {
+        const ele = item.model_info.llm_model_list[i]
+        if (
+          modelDefine.indexOf(item.model_info.model_define) > -1 &&
+          robotInfo.model_config_id == item.model_config.id
+        ) {
           currentUseModel.value = item.model_config.deployment_name
           currentModelDefine.value = item.model_info.model_define
           oldModelDefine.value = item.model_info.model_define
@@ -260,7 +294,11 @@ const getModelList = () => {
     })
 
     // 如果modelList存在两个相同model_define情况就合并到一个对象的children中去
-    modelList.value = uniqueArr(duplicateRemoval(modelList.value, 'model_define'), modelList.value, 'model_define')
+    modelList.value = uniqueArr(
+      duplicateRemoval(modelList.value, 'model_define'),
+      modelList.value,
+      'model_define'
+    )
   })
 }
 

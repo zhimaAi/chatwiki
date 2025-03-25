@@ -45,12 +45,12 @@ module.exports = {
       'error',
       {
         html: {
-          void: 'always',
-          normal: 'never',
-          component: 'always'
+          void: 'any',
+          normal: 'any',
+          component: 'any'
         },
-        svg: 'always',
-        math: 'always'
+        svg: 'any',
+        math: 'any'
       }
     ],
     'vue/multi-word-component-names': 'off',

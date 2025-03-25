@@ -46,7 +46,7 @@ export const useChatStore = defineStore('chat', () => {
     robot_key: '',
     robot_name: '',
     openid: '',
-    welcomes: { content: '', question: [] },
+    welcomes: { reasoning_content: '', content: '', question: [] },
     enable_question_guide: false,
     enable_common_question: false,
     common_question_list: []
@@ -218,8 +218,20 @@ export const useChatStore = defineStore('chat', () => {
   const updateAiMessage = (type, content, uid) => {
     let msgIndex = messageList.value.findIndex((item) => item.uid == uid)
 
+    if (type == 'reasoning_content') {
+      let oldText = messageList.value[msgIndex].reasoning_content || ''
+      messageList.value[msgIndex].reasoning_content = oldText + content
+
+      // 推理开始
+      messageList.value[msgIndex].reasoning_status = true
+      messageList.value[msgIndex].show_reasoning = true
+    }
+
     if (type == 'sending') {
-      let oldText = messageList.value[msgIndex].content
+      // 推理结束
+      messageList.value[msgIndex].reasoning_status = false
+
+      let oldText = messageList.value[msgIndex].content || ''
       // console.log('sending', content.length, content)
       messageList.value[msgIndex].content = oldText + content
     }
@@ -304,6 +316,7 @@ export const useChatStore = defineStore('chat', () => {
       loading: true,
       id: '',
       content: '',
+      reasoning_content: '',
       uid: getUuid(32),
       robot_avatar: robot.robot_avatar,
       msg_type: 1,
@@ -312,6 +325,8 @@ export const useChatStore = defineStore('chat', () => {
       error: '',
       recall_time: '',
       request_time: '',
+      show_reasoning: false,
+      reasoning_status: false
     }
     let params = {
       robot_key: robot.robot_key,
@@ -359,6 +374,11 @@ export const useChatStore = defineStore('chat', () => {
 
           isNewChat.value = false
         }
+      }
+
+      // 更新机器人深度思考的内容
+      if (res.event == 'reasoning_content') {
+        updateAiMessage('reasoning_content', res.data, aiMsg.uid)
       }
 
       // 更新机器人的消息
@@ -566,7 +586,6 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  
   const getChannelList = async () => {
     try {
       const res = await getSessionChannelList()

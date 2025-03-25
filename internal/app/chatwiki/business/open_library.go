@@ -5,17 +5,22 @@ package business
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"fmt"
+	"html/template"
+	"io"
+	"net/http"
+	"net/url"
+	"regexp"
+	"strings"
+	"sync"
+
+	"github.com/88250/lute/ast"
+
 	"github.com/88250/lute"
 	"github.com/gin-contrib/sse"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
-	"html/template"
-	"io"
-	"net/http"
-	"net/url"
-	"strings"
-	"sync"
 )
 
 func OpenDoc(c *gin.Context) {
@@ -73,12 +78,103 @@ func OpenDoc(c *gin.Context) {
 }
 
 func luteMdToHTML(markdownText string) string {
-	// 创建 Lute 实例
 	l := lute.New()
 	l.SetFootnotes(true)
-	// 将 Markdown 转换为 HTML
-	str := l.MarkdownStr("", markdownText)
-	return str
+	l.SetAutoSpace(false)
+	l.SetIndentCodeBlock(false)
+	l.SetLinkBase("")
+	l.SetGFMTaskListItem(true)
+
+	// handle font color styles
+	l.Md2HTMLRendererFuncs[ast.NodeText] = func(node *ast.Node, entering bool) (string, ast.WalkStatus) {
+		if !entering {
+			return "", ast.WalkContinue
+		}
+		text := node.TokensStr()
+
+		// 匹配颜色和字体大小的正则表达式
+		colorReg := `!!#([0-9a-fA-F]{6})`
+		sizeReg := `!(\d+)`
+
+		var style []string
+
+		// 提取颜色
+		if strings.Contains(text, "!!#") {
+			if matches := regexp.MustCompile(colorReg).FindStringSubmatch(text); len(matches) > 1 {
+				style = append(style, fmt.Sprintf("color: #%s", matches[1]))
+				text = regexp.MustCompile(colorReg+` `).ReplaceAllString(text, "")
+			}
+		}
+
+		// 提取字体大小
+		if strings.Contains(text, "!") {
+			if matches := regexp.MustCompile(sizeReg).FindStringSubmatch(text); len(matches) > 1 {
+				size := cast.ToInt(matches[1])
+				if size > 0 {
+					style = append(style, fmt.Sprintf("font-size: %dpx", size))
+					style = append(style, "line-height: 1em")
+					text = regexp.MustCompile(sizeReg+` `).ReplaceAllString(text, "")
+				}
+			}
+		}
+
+		// 清理结尾的标记
+		content := text
+		if strings.HasSuffix(content, "!!") {
+			content = content[:len(content)-2]
+		}
+		if strings.HasSuffix(content, "!") {
+			content = content[:len(content)-1]
+		}
+		content = strings.TrimSpace(content)
+
+		if len(style) > 0 && content != "" {
+			return fmt.Sprintf(`<span style="%s">%s</span>`, strings.Join(style, "; "), content), ast.WalkContinue
+		}
+
+		return text, ast.WalkContinue
+	}
+
+	markdownText = processVideoSyntax(markdownText)
+	return l.MarkdownStr("", markdownText)
+}
+
+func processVideoSyntax(content string) string {
+	lines := strings.Split(content, "\n")
+	result := make([]string, 0, len(lines))
+
+	for _, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmedLine, "!video[") {
+			content := trimmedLine[7:]
+			nameEnd := strings.Index(content, "]")
+			if nameEnd != -1 && len(content) > nameEnd+1 {
+				name := content[:nameEnd]
+				url := strings.Trim(content[nameEnd+1:], "()")
+				if url != "" {
+					videoTag := fmt.Sprintf(`<video controls=“controls" src="%s">%s</video>`, url, name)
+					result = append(result, videoTag)
+					continue
+				}
+			}
+		}
+		if strings.HasPrefix(trimmedLine, "!audio[") {
+			content := trimmedLine[7:]
+			nameEnd := strings.Index(content, "]")
+			if nameEnd != -1 && len(content) > nameEnd+1 {
+				name := content[:nameEnd]
+				url := strings.Trim(content[nameEnd+1:], "()")
+				if url != "" {
+					audioTag := fmt.Sprintf(`<audio controls=“controls" src="%s">%s</audio>`, url, name)
+					result = append(result, audioTag)
+					continue
+				}
+			}
+		}
+		result = append(result, line)
+	}
+
+	return strings.Join(result, "\n")
 }
 
 func OpenHome(c *gin.Context) {
