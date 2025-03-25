@@ -121,6 +121,7 @@ func SaveRobot(c *gin.Context) {
 	enableQuestionGuide := cast.ToBool(c.DefaultPostForm(`enable_question_guide`, `true`))
 	enableCommonQuestion := cast.ToBool(c.DefaultPostForm(`enable_common_question`, `true`))
 	commonQuestionList := strings.TrimSpace(c.DefaultPostForm(`common_question_list`, `[]`))
+	thinkSwitch := strings.TrimSpace(c.DefaultPostForm(`think_switch`, `1`))
 
 	//set default value
 	if id == 0 {
@@ -345,6 +346,7 @@ func SaveRobot(c *gin.Context) {
 		`enable_question_guide`:    enableQuestionGuide,
 		`enable_common_question`:   enableCommonQuestion,
 		`common_question_list`:     commonQuestionList,
+		`think_switch`:             thinkSwitch,
 		`update_time`:              tool.Time2Int(),
 	}
 	if len(robotAvatar) > 0 {

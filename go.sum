@@ -734,8 +734,8 @@ github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 github.com/zhimaAi/go_tools v0.0.0-20250107073519-cf149802f8e6 h1:a8TNhJsoEVd+5/SHlbW8eYwkww5lv2q9yWAHuiczAiY=
 github.com/zhimaAi/go_tools v0.0.0-20250107073519-cf149802f8e6/go.mod h1:Iv3pLGkWHmE7CQswn9u7QEw1rpfAN9kkx8WFpiaY3po=
-github.com/zhimaAi/llm_adaptor v0.0.0-20250318083218-4b4902ef0b16 h1:TwQezmlfbXVsjBCAPcc3ATZGietBd0t5OxfYLinWtro=
-github.com/zhimaAi/llm_adaptor v0.0.0-20250318083218-4b4902ef0b16/go.mod h1:YvyLU6laRHdR7iart0h6SC3Rm0IzauKJhq7cJcmSRV0=
+github.com/zhimaAi/llm_adaptor v0.0.0-20250325094256-d528b6847fd4 h1:H0Da0VCxSgU/9mfMy5USyaUCvv6wgPkD0Ptd4iPpsv0=
+github.com/zhimaAi/llm_adaptor v0.0.0-20250325094256-d528b6847fd4/go.mod h1:YvyLU6laRHdR7iart0h6SC3Rm0IzauKJhq7cJcmSRV0=
 gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 h1:K+bMSIx9A7mLES1rtG+qKduLIXq40DAzYHtb0XuCukA=
 gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181/go.mod h1:dzYhVIwWCtzPAa4QP98wfB9+mzt33MSmM8wsKiMi2ow=
 gitlab.com/golang-commonmark/linkify v0.0.0-20191026162114-a0c2df6c8f82 h1:oYrL81N608MLZhma3ruL8qTM4xcpYECGut8KSxRY59g=

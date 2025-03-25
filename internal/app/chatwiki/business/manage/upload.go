@@ -9,6 +9,7 @@ import (
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -26,12 +27,27 @@ func Upload(c *gin.Context) {
 		return
 	}
 	fileHeader, _ := c.FormFile(`file`)
-
+	allowExts := define.ImageAllowExt
 	filesize := define.ImageLimitSize
-	if tool.InArray(category, []string{`library_image`, `library_doc_image`}) {
+	if tool.InArray(category, []string{`library_image`}) {
 		filesize = define.LibImageLimitSize
 	}
+	if tool.InArray(category, []string{`library_doc_image`}) {
+		ext := ""
+		filesize = define.LibImageLimitSize
+		if fileHeader != nil {
+			ext = strings.ToLower(strings.TrimLeft(filepath.Ext(fileHeader.Filename), `.`))
+		}
+		if tool.InArray(ext, define.VideoAllowExt) {
+			filesize = define.LibFileLimitSize
+		}
+		if tool.InArray(ext, define.AudioAllowExt) {
+			filesize = define.LibFileLimitSize
+		}
+		allowExts = append(allowExts, define.VideoAllowExt...)
+		allowExts = append(allowExts, define.AudioAllowExt...)
+	}
 
-	uploadInfo, err := common.SaveUploadedFile(fileHeader, filesize, userId, category, define.ImageAllowExt)
+	uploadInfo, err := common.SaveUploadedFile(fileHeader, filesize, userId, category, allowExts)
 	c.String(http.StatusOK, lib_web.FmtJson(uploadInfo, err))
 }

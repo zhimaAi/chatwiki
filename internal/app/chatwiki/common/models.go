@@ -916,10 +916,16 @@ func (h *ModelCallHandler) RequestChatStream(
 				functionToolCall.Arguments += chunkFunc.Arguments
 			}
 		}
-
+		if len(response.ReasoningContent) > 0 {
+			if cast.ToInt(robot[`think_switch`]) == define.SwitchOn {
+				chanStream <- sse.Event{Event: `reasoning_content`, Data: response.ReasoningContent}
+			}
+			totalResponse.ReasoningContent += response.ReasoningContent
+		}
 		if len(response.Result) == 0 && len(functionToolCall.Arguments) == 0 {
 			continue
 		}
+
 		totalResponse.Result += response.Result
 		content += response.Result
 		chanStream <- sse.Event{Event: `sending`, Data: response.Result}

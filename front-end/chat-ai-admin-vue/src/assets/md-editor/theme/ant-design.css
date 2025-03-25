@@ -1,0 +1,365 @@
+/** 色值可以参考：https://yeun.github.io/open-color/ */
+/** 工具栏样式 */
+/** 编辑区域样式 */
+/** 预览区域样式 */
+/** markdown样式 */
+/** 编辑器样式 */
+.cherry.theme__ant-design {
+  /** 顶部按钮, 选中文字时弹出的按钮, 光标focus到空行时联想出的按钮, 侧边栏按钮 */
+  /** 二级菜单 */
+  /** 选中文字时弹出的按钮 */
+}
+.cherry.theme__ant-design .cherry-toolbar,
+.cherry.theme__ant-design .cherry-floatmenu,
+.cherry.theme__ant-design .cherry-bubble,
+.cherry.theme__ant-design .cherry-sidebar {
+  background: white;
+  border-color: white;
+}
+.cherry.theme__ant-design .cherry-toolbar .cherry-toolbar-button,
+.cherry.theme__ant-design .cherry-floatmenu .cherry-toolbar-button,
+.cherry.theme__ant-design .cherry-bubble .cherry-toolbar-button,
+.cherry.theme__ant-design .cherry-sidebar .cherry-toolbar-button {
+  color: #3f4a56;
+}
+.cherry.theme__ant-design .cherry-toolbar .cherry-toolbar-button:hover,
+.cherry.theme__ant-design .cherry-floatmenu .cherry-toolbar-button:hover,
+.cherry.theme__ant-design .cherry-bubble .cherry-toolbar-button:hover,
+.cherry.theme__ant-design .cherry-sidebar .cherry-toolbar-button:hover {
+  background-color: #ebf3ff;
+  color: #5d9bfc !important;
+  border-color: white;
+}
+.cherry.theme__ant-design .cherry-toolbar .cherry-toolbar-button:hover i,
+.cherry.theme__ant-design .cherry-floatmenu .cherry-toolbar-button:hover i,
+.cherry.theme__ant-design .cherry-bubble .cherry-toolbar-button:hover i,
+.cherry.theme__ant-design .cherry-sidebar .cherry-toolbar-button:hover i {
+  color: #5d9bfc !important;
+}
+.cherry.theme__ant-design .cherry-dropdown {
+  background: white;
+  /** 选择颜色的按钮 */
+  /** 选择表格的按钮 */
+}
+.cherry.theme__ant-design .cherry-dropdown .cherry-dropdown-item {
+  color: #3f4a56;
+}
+.cherry.theme__ant-design .cherry-dropdown .cherry-dropdown-item__selected {
+  background-color: #ebf3ff;
+  color: #5d9bfc;
+}
+.cherry.theme__ant-design .cherry-dropdown .cherry-dropdown-item:hover {
+  background-color: #ebf3ff;
+  color: #5d9bfc;
+}
+.cherry.theme__ant-design .cherry-dropdown.cherry-color-wrap {
+  /** 色盘的标题 */
+  /** 色盘里的每一个色块 */
+}
+.cherry.theme__ant-design .cherry-dropdown.cherry-color-wrap h3 {
+  color: #3f4a56;
+}
+.cherry.theme__ant-design .cherry-dropdown.cherry-color-wrap .cherry-color-item {
+  border-color: #ebf3ff;
+}
+.cherry.theme__ant-design .cherry-dropdown.cherry-color-wrap .cherry-color-item:hover {
+  border-color: #f78553;
+}
+.cherry.theme__ant-design .cherry-dropdown .cherry-insert-table-menu-item {
+  border-color: #ebf3ff;
+}
+.cherry.theme__ant-design .cherry-bubble {
+  /** 粘贴HTML内容时弹出的选择按钮 */
+}
+.cherry.theme__ant-design .cherry-bubble .cherry-bubble-bottom {
+  border-top-color: white;
+}
+.cherry.theme__ant-design .cherry-bubble .cherry-bubble-top {
+  border-bottom-color: white;
+}
+.cherry.theme__ant-design .cherry-editor {
+  background-color: #ffffff;
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 14px;
+  line-height: 2;
+}
+.cherry.theme__ant-design .cherry-editor .CodeMirror {
+  background-color: #ffffff;
+}
+.cherry.theme__ant-design .cherry-editor .CodeMirror .CodeMirror-cursor {
+  border-left: 1px solid #000000;
+}
+.cherry.theme__ant-design .cherry-editor .CodeMirror .CodeMirror-scroll span,
+.cherry.theme__ant-design .cherry-editor .CodeMirror .CodeMirror-scroll .cm-variable-2,
+.cherry.theme__ant-design .cherry-editor .CodeMirror .CodeMirror-scroll .cm-string,
+.cherry.theme__ant-design .cherry-editor .CodeMirror .CodeMirror-scroll .cm-strong,
+.cherry.theme__ant-design .cherry-editor .CodeMirror .CodeMirror-scroll .cm-em,
+.cherry.theme__ant-design .cherry-editor .CodeMirror .CodeMirror-scroll .cm-meta {
+  color: #3f4a56;
+}
+.cherry.theme__ant-design .cherry-editor .CodeMirror .CodeMirror-scroll .cm-image-marker,
+.cherry.theme__ant-design .cherry-editor .CodeMirror .CodeMirror-scroll .cm-quote,
+.cherry.theme__ant-design .cherry-editor .CodeMirror .CodeMirror-scroll .cm-header,
+.cherry.theme__ant-design .cherry-editor .CodeMirror .CodeMirror-scroll .cm-atom {
+  color: #228be6;
+}
+.cherry.theme__ant-design .cherry-editor .CodeMirror .CodeMirror-scroll .cm-url {
+  background-color: #d7e6fe;
+}
+.cherry.theme__ant-design .cherry-editor .CodeMirror .CodeMirror-scroll .cm-comment,
+.cherry.theme__ant-design .cherry-editor .CodeMirror .CodeMirror-scroll .cm-url {
+  color: #1890ff;
+}
+.cherry.theme__ant-design .cherry-editor .CodeMirror .CodeMirror-selected {
+  background-color: #ebf3ff;
+}
+.cherry.theme__ant-design .cherry-sidebar {
+  box-shadow: 0 0 10px rgba(128, 145, 165, 0.2);
+}
+.cherry.theme__ant-design .cherry-previewer {
+  background-color: #ffffff;
+}
+.cherry.theme__ant-design .cherry-previewer .cherry-mobile-previewer-content {
+  background-color: #ffffff;
+}
+.cherry.theme__ant-design .cherry-previewer-table-content-handler .cherry-previewer-table-content-handler__input textarea {
+  background-color: #ffffff;
+  color: #3f4a56;
+  outline-color: #228be6;
+}
+.cherry.theme__ant-design .cherry-previewer-codeBlock-hover-handler .cherry-code-preview-lang-select {
+  border-color: #333;
+  border-radius: 4px;
+}
+/** 预览区域样式 */
+.cherry-markdown.theme__ant-design {
+  color: #3f4a56;
+  background-color: #ffffff;
+  /** 
+  * 代码块
+  */
+  /** 行内代码 */
+  /** 
+  * 表格
+  */
+  /** 可以理解为上下结构的音标，下部是文字，上部是对应的拼音 */
+  /** 脚注 */
+  /** 行间公式 */
+  /** 段落公式 */
+  /** 目录 */
+}
+.cherry-markdown.theme__ant-design p,
+.cherry-markdown.theme__ant-design pre {
+  margin: 1em 0;
+}
+.cherry-markdown.theme__ant-design anchor {
+  margin-left: 8px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.cherry-markdown.theme__ant-design h1 {
+  margin-bottom: 20px;
+  color: rgba(0, 0, 0, 0.85);
+  font-weight: 500;
+  font-size: 30px;
+  font-family: Avenir, -apple-system, BlinkMacSystemFont, segoe ui, Roboto, helvetica neue, Arial, noto sans, sans-serif, apple color emoji, segoe ui emoji, segoe ui symbol, noto color emoji, sans-serif;
+  line-height: 38px;
+}
+.cherry-markdown.theme__ant-design h2 {
+  font-size: 24px;
+  line-height: 32px;
+}
+.cherry-markdown.theme__ant-design h2,
+.cherry-markdown.theme__ant-design h3,
+.cherry-markdown.theme__ant-design h4,
+.cherry-markdown.theme__ant-design h5,
+.cherry-markdown.theme__ant-design h6 {
+  clear: both;
+  margin: 1.6em 0 0.6em;
+  color: rgba(0, 0, 0, 0.85);
+  font-weight: 500;
+  font-family: Avenir, -apple-system, BlinkMacSystemFont, segoe ui, Roboto, helvetica neue, Arial, noto sans, sans-serif, apple color emoji, segoe ui emoji, segoe ui symbol, noto color emoji, sans-serif;
+}
+.cherry-markdown.theme__ant-design h3 {
+  font-size: 18px;
+}
+.cherry-markdown.theme__ant-design h4 {
+  font-size: 16px;
+}
+.cherry-markdown.theme__ant-design h5 {
+  font-size: 14px;
+}
+.cherry-markdown.theme__ant-design h6 {
+  font-size: 12px;
+}
+.cherry-markdown.theme__ant-design h1,
+.cherry-markdown.theme__ant-design h2,
+.cherry-markdown.theme__ant-design h3,
+.cherry-markdown.theme__ant-design h4,
+.cherry-markdown.theme__ant-design h5,
+.cherry-markdown.theme__ant-design h6 {
+  /** 标题前面的锚点或序号 */
+}
+.cherry-markdown.theme__ant-design h1 .anchor,
+.cherry-markdown.theme__ant-design h2 .anchor,
+.cherry-markdown.theme__ant-design h3 .anchor,
+.cherry-markdown.theme__ant-design h4 .anchor,
+.cherry-markdown.theme__ant-design h5 .anchor,
+.cherry-markdown.theme__ant-design h6 .anchor {
+  display: inline-block;
+  opacity: 1;
+}
+.cherry-markdown.theme__ant-design br,
+.cherry-markdown.theme__ant-design p > br {
+  clear: both;
+}
+.cherry-markdown.theme__ant-design ul {
+  /** checklist 模式，未勾选时 */
+  /** checklist 模式，勾选时 */
+}
+.cherry-markdown.theme__ant-design ul.cherry-list__upper-roman {
+  list-style: upper-roman;
+}
+.cherry-markdown.theme__ant-design ul.cherry-list__lower-greek {
+  list-style: lower-greek;
+}
+.cherry-markdown.theme__ant-design ul.cherry-list__cjk-ideographic {
+  list-style: cjk-ideographic;
+}
+.cherry-markdown.theme__ant-design ul.cherry-list__circle {
+  list-style: circle;
+}
+.cherry-markdown.theme__ant-design ul.cherry-list__square {
+  list-style: square;
+}
+.cherry-markdown.theme__ant-design ol li {
+  margin-left: 20px;
+  padding-left: 4px;
+  list-style-type: decimal;
+}
+.cherry-markdown.theme__ant-design ul li {
+  margin-left: 20px;
+  padding-left: 4px;
+  list-style-type: circle;
+}
+.cherry-markdown.theme__ant-design ul > li > p,
+.cherry-markdown.theme__ant-design ol > li > p {
+  margin: 0.2em 0;
+}
+.cherry-markdown.theme__ant-design blockquote {
+  margin: 1em 0;
+  padding-left: 0.8em;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 90%;
+  border-left: 4px solid #f0f0f0;
+  background: none;
+}
+.cherry-markdown.theme__ant-design blockquote p {
+  margin: 0;
+}
+.cherry-markdown.theme__ant-design a {
+  text-decoration: none;
+  color: #1890ff;
+}
+.cherry-markdown.theme__ant-design a:hover {
+  text-decoration: underline;
+  color: #228be6;
+}
+.cherry-markdown.theme__ant-design a[target='_blank']::after {
+  display: none;
+}
+.cherry-markdown.theme__ant-design strong,
+.cherry-markdown.theme__ant-design b {
+  font-weight: 500;
+}
+.cherry-markdown.theme__ant-design hr {
+  clear: both;
+  height: 1px;
+  margin: 56px 0;
+  background: #f0f0f0;
+  border: 0;
+}
+.cherry-markdown.theme__ant-design img {
+  max-width: calc(100% - 32px);
+}
+.cherry-markdown.theme__ant-design p > img {
+  margin: 34px 0;
+  box-shadow: 0 8px 20px rgba(143, 168, 191, 0.35);
+}
+.cherry-markdown.theme__ant-design video {
+  width: auto;
+  max-width: 900px;
+}
+.cherry-markdown.theme__ant-design pre code {
+  display: block;
+}
+.cherry-markdown.theme__ant-design code {
+  margin: 0 1px;
+  padding: 0.2em 0.4em;
+  font-size: 0.9em;
+  border-radius: 3px;
+  border: 1px solid #f0f0f0;
+  font-family: sfmono-regular, Consolas, liberation mono, Menlo, Courier, monospace;
+}
+.cherry-markdown.theme__ant-design code:not(.hljs):not(.highlight-chroma) {
+  background: #f2f4f5;
+  color: rgba(0, 0, 0, 0.65);
+}
+.cherry-markdown.theme__ant-design pre {
+  font-family: sfmono-regular, Consolas, liberation mono, Menlo, Courier, monospace;
+  border-radius: 2px;
+  background: none;
+}
+.cherry-markdown.theme__ant-design div pre {
+  display: block;
+  background: none;
+}
+.cherry-markdown.theme__ant-design svg,
+.cherry-markdown.theme__ant-design .language-abc path {
+  fill: currentColor;
+  color: rgba(0, 0, 0, 0.85);
+}
+.cherry-markdown.theme__ant-design .language-graphviz polygon {
+  fill: transparent;
+}
+.cherry-markdown.theme__ant-design table,
+.cherry-markdown.theme__ant-design .cherry-table {
+  width: 100%;
+  margin: 8px 0 16px;
+  direction: ltr;
+  empty-cells: show;
+  border: 1px solid #f0f0f0;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+.cherry-markdown.theme__ant-design table tr,
+.cherry-markdown.theme__ant-design .cherry-table tr {
+  color: #5c6b77;
+  font-weight: 500;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.02);
+}
+.cherry-markdown.theme__ant-design table th,
+.cherry-markdown.theme__ant-design .cherry-table th,
+.cherry-markdown.theme__ant-design table td,
+.cherry-markdown.theme__ant-design .cherry-table td {
+  padding: 16px 24px;
+  text-align: left;
+  border: 1px solid #f0f0f0;
+}
+.cherry-markdown.theme__ant-design ruby {
+  /** 上部的拼音 */
+}
+.cherry-markdown.theme__ant-design .footnote {
+  border-color: #1971c2;
+}
+.cherry-markdown.theme__ant-design .footnote .footnote-title {
+  background-color: #d7e6fe;
+}
+.cherry-markdown.theme__ant-design .footnote .one-footnote {
+  color: #3f4a56;
+  border-color: #1971c2;
+}
+.cherry-markdown.theme__ant-design .footnote .one-footnote a.footnote-ref {
+  padding: 5px;
+}

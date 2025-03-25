@@ -612,10 +612,10 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	}
 
 	var (
-		content, menuJson string
-		requestTime       int64
-		chatResp          = adaptor.ZhimaChatCompletionResponse{}
-		llmStartTime      = time.Now()
+		content, menuJson, reasoningContent string
+		requestTime                         int64
+		chatResp                            = adaptor.ZhimaChatCompletionResponse{}
+		llmStartTime                        = time.Now()
 	)
 	msgType := define.MsgTypeText
 	if cast.ToInt(params.Robot[`application_type`]) == define.ApplicationTypeFlow {
@@ -660,6 +660,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 			)
 		}
 		content = chatResp.Result
+		reasoningContent = chatResp.ReasoningContent
 		if err != nil {
 			logs.Error(err.Error())
 			sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)
@@ -695,6 +696,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 				)
 			}
 			content = chatResp.Result
+			reasoningContent = chatResp.ReasoningContent
 			if err != nil {
 				logs.Error(err.Error())
 				sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)
@@ -736,6 +738,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 					)
 				}
 				content = chatResp.Result
+				reasoningContent = chatResp.ReasoningContent
 				if err != nil {
 					logs.Error(err.Error())
 					sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)
@@ -791,6 +794,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 					)
 				}
 				content = chatResp.Result
+				reasoningContent = chatResp.ReasoningContent
 				if err != nil {
 					logs.Error(err.Error())
 					sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)
@@ -834,6 +838,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		`recall_time`:            monitor.LibUseTime.RecallTime,
 		`msg_type`:               msgType,
 		`content`:                content,
+		`reasoning_content`:      reasoningContent,
 		`is_valid_function_call`: chatResp.IsValidFunctionCall,
 		`menu_json`:              menuJson,
 		`quote_file`:             quoteFileJson,

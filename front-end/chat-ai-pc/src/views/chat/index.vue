@@ -281,7 +281,11 @@ const onSendMesage = async (content) => {
 }
 
 // 监听 updateAiMessage 触发消息列表滚动
-const onUpdateAiMessage = () => {
+const onUpdateAiMessage = (msg) => {
+  if(msg.event === 'reasoning_content'){
+    return
+  }
+  
   if (messageListRef.value) {
     handleMessageListScrollToBottom()
   }

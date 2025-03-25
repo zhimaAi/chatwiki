@@ -134,7 +134,7 @@
         </div>
       </div>
       <!-- right -->
-      <div >
+      <div>
         <!-- v-if="isRobotInfo && robotInfo.application_type != 1" -->
         <RobotTestRight
           v-if="false"
@@ -152,7 +152,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, onUnmounted, createVNode, toRaw, nextTick } from 'vue'
+import { ref, onMounted, watch, onUnmounted, createVNode, toRaw } from 'vue'
 import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useEventBus } from '@/hooks/event/useEventBus'
@@ -174,7 +174,7 @@ const rotue = useRoute()
 const query = rotue.query
 
 const robotStore = useRobotStore()
-console.log(robotStore,'===')
+
 const { getRobot, robotInfo } = robotStore
 
 const emitter = useEventBus()
@@ -319,7 +319,7 @@ const onPromptChange = (e) => {
 }
 
 const onSaveRobotPrompt = async (formState, isDefault) => {
-  let newFormState = JSON.parse(JSON.stringify(formState)); // 深拷贝，不能改变原对象
+  let newFormState = JSON.parse(JSON.stringify(formState)) // 深拷贝，不能改变原对象
   let content =
     '如果您已对外提供本机器人，保存后修改的提示问也会立刻生效。如果您只是想要测试优化提示词的效果，直接修改后测试即可，无需保存。'
   Modal.confirm({

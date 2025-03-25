@@ -24,7 +24,10 @@ export interface Message {
   debug: 0 | 1,
   guess_you_want: string[],
   question_tabkey: number,
-  feedback_type?: string
+  feedback_type?: string,
+  reasoning_content: string,
+  reasoning_status: boolean,
+  show_reasoning: boolean,
 }
 
 export interface Chat {
@@ -282,7 +285,19 @@ export const useChatStore = defineStore('chat', () => {
   const updateAiMessage = (type: string, content: any, uid: string) => {
     const msgIndex = messageList.value.findIndex((item) => item.uid == uid)
 
+    if (type == 'reasoning_content') {
+      const oldText = messageList.value[msgIndex].reasoning_content
+      messageList.value[msgIndex].reasoning_content = oldText + content
+
+      // 推理开始
+      messageList.value[msgIndex].reasoning_status = true
+      messageList.value[msgIndex].show_reasoning = true
+    }
+    
     if (type == 'sending') {
+      // 推理结束
+      messageList.value[msgIndex].reasoning_status = false
+
       const oldText = messageList.value[msgIndex].content
       messageList.value[msgIndex].content = oldText + content
     }
@@ -348,12 +363,16 @@ export const useChatStore = defineStore('chat', () => {
       loading: true,
       id: '',
       content: '',
+      reasoning_content: '',
       uid: getUuid(32),
       avatar: robot.robot_avatar,
       msg_type: 1,
       quote_file: [],
       is_customer: 0,
-      debug: []
+      debug: [],
+      reasoning_status: false,
+      show_reasoning: false,
+      event: 'robot',
     }
 
     const params = {
@@ -373,6 +392,8 @@ export const useChatStore = defineStore('chat', () => {
       if (import.meta.env.MODE !== 'production') {
         console.log(res)
       }
+      
+      aiMsg.event = res.event;
       robot.is_sending = true;
       // 更新对话id
       if (res.event == 'dialogue_id') {
@@ -395,6 +416,11 @@ export const useChatStore = defineStore('chat', () => {
         if (isNewChat.value) {
           isNewChat.value = false
         }
+      }
+
+      // 更新机器人深度思考的内容
+      if (res.event == 'reasoning_content') {
+        updateAiMessage('reasoning_content', res.data, aiMsg.uid)
       }
 
       // 更新机器人的消息
@@ -546,6 +572,8 @@ export const useChatStore = defineStore('chat', () => {
       list.forEach((item) => {
         item.loading = false
         item.uid = getUuid(32)
+        item.show_reasoning = false;
+        item.reasoning_status = false;
 
         if (item.is_customer == 1) {
           item.avatar = user.avatar

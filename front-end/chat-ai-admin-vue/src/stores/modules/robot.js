@@ -1,7 +1,6 @@
 import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { getRobotInfo } from '@/api/robot/index'
-import { DERAULT_ROBOT_PROMPT, DEFAULT_ROBOT_AVATAR } from '@/constants/index'
 
 // WebApp配置
 const external_config_h5_default = {
@@ -76,7 +75,7 @@ export const useRobotStore = defineStore('robot', () => {
     enable_common_question: 'false',
     common_question_list: [],
     answer_source_switch: 'false',
-    application_type: 0,
+    application_type: 0
   })
 
   // WebApp配置
@@ -107,13 +106,13 @@ export const useRobotStore = defineStore('robot', () => {
       }
     })
 
-    let prompt_struct = {};
-    if(data.prompt_struct){
+    let prompt_struct = {}
+    if (data.prompt_struct) {
       prompt_struct = JSON.parse(data.prompt_struct)
     }
 
-    let prompt_struct_default = {};
-    if(data.prompt_struct_default){
+    let prompt_struct_default = {}
+    if (data.prompt_struct_default) {
       prompt_struct_default = JSON.parse(data.prompt_struct_default)
     }
 
@@ -145,6 +144,7 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.top_k = Number(data.top_k)
     robotInfo.similarity = Number(data.similarity)
     robotInfo.search_type = Number(data.search_type)
+    robotInfo.think_switch = Number(data.think_switch)
     robotInfo.pc_domain = data.pc_domain
     robotInfo.chat_type = data.chat_type
     robotInfo.library_qa_direct_reply_score = data.library_qa_direct_reply_score
@@ -198,13 +198,13 @@ export const useRobotStore = defineStore('robot', () => {
   }
 
   const draftSaveTime = ref({})
-  const setDrafSaveTime = (data)=>{
+  const setDrafSaveTime = (data) => {
     draftSaveTime.value = data
   }
 
   const modelList = ref([])
 
-  const setModelList = (data)=>{
+  const setModelList = (data) => {
     modelList.value = data
   }
 
@@ -218,6 +218,6 @@ export const useRobotStore = defineStore('robot', () => {
     draftSaveTime,
     setDrafSaveTime,
     modelList,
-    setModelList,
+    setModelList
   }
 })

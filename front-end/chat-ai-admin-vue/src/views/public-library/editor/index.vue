@@ -147,7 +147,12 @@
         </div>
 
         <div class="action-box" v-if="isEdit">
-          <a-button class="action-btn" type="primary" @click="handlePublish">
+          <a-button
+            class="action-btn"
+            type="primary"
+            @click="handlePublish"
+            :loading="publishLoading"
+          >
             <svg-icon class="action-icon" name="gou" style="font-size: 16px"></svg-icon>
             <span>发布</span>
           </a-button>
@@ -187,6 +192,7 @@ import ShareModal from '../components/share-modal.vue'
 import SeoSetting from '../components/seo-setting.vue'
 import SharePopup from '../components/share-popup.vue'
 
+const autoSaveTime = 1000 * 15
 const emit = defineEmits(['changeDoc'])
 
 const route = useRoute()
@@ -248,7 +254,7 @@ const autoSaveDraft = () => {
     if (isDocChange.value) {
       onSaveDoc()
     }
-  }, 1000 * 60)
+  }, autoSaveTime)
 }
 
 const clearAutoSaveTimer = () => {
@@ -275,8 +281,7 @@ const onTitleBlur = () => {
   }
 }
 
-const onContentInput = (val) => {
-  state.content = val
+const onContentInput = () => {
   isDocChange.value = true
 
   autoSaveDraft()
@@ -341,10 +346,14 @@ const initDoc = () => {
     })
 }
 
+const saveDraftLoading = ref(false)
+
 const handleSaveDraft = (showTips) => {
   clearAutoSaveTimer()
 
   let doc = MdDitorRef.value.getDoc()
+
+  state.content = doc.content
 
   doc.title = state.title
 
@@ -356,10 +365,14 @@ const handleSaveDraft = (showTips) => {
     content: doc.content,
     doc_type: 4
   }
+  if (showTips) {
+    saveDraftLoading.value = true
+  }
 
   saveDraftLibDoc(data)
     .then(() => {
       if (showTips) {
+        saveDraftLoading.value = false
         message.success('保存成功')
       }
 
@@ -372,6 +385,7 @@ const handleSaveDraft = (showTips) => {
       emit('changeDoc', { ...data, id: data.doc_id, is_draft: 1 })
     })
     .catch(() => {
+      saveDraftLoading.value = false
       autoSaveDraft()
     })
 }
@@ -426,8 +440,11 @@ const handleEdit = async () => {
   }
 }
 
+const publishLoading = ref(false)
 const handlePublish = () => {
   let doc = MdDitorRef.value.getDoc()
+
+  state.content = doc.content
 
   doc.title = state.title
 
@@ -439,16 +456,21 @@ const handlePublish = () => {
     doc_type: 4,
     content: doc.content
   }
+  publishLoading.value = true
+  saveLibDoc(data)
+    .then(() => {
+      publishLoading.value = false
+      message.success('发布成功')
 
-  saveLibDoc(data).then(() => {
-    message.success('发布成功')
+      setLastSaveTimeDate()
 
-    setLastSaveTimeDate()
-
-    state.is_draft = 0
-    setMDEditor(false)
-    emit('changeDoc', { ...data, id: data.doc_id, is_draft: 0 })
-  })
+      state.is_draft = 0
+      setMDEditor(false)
+      emit('changeDoc', { ...data, id: data.doc_id, is_draft: 0 })
+    })
+    .catch(() => {
+      publishLoading.value = false
+    })
 }
 
 const onSaveDoc = (data, status) => {
