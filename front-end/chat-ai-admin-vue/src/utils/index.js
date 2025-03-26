@@ -127,15 +127,26 @@ export function strEncryption(str, start = 0, end = str.length - 1) {
 
 // 把基于字节的文件大小抓换成KB,MB,GB,TB
 export function formatFileSize(size) {
-  size = size ? Number(size) : 0
-
+  size = size ? Number(size) : 0;
+ 
   if (size === 0) {
-    return '0 B'
+    return '0 B';
   }
-  let k = 1024
-  let sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  let i = Math.floor(Math.log(size) / Math.log(k))
-  return (size / Math.pow(k, i)).toPrecision(3) + ' ' + sizes[i]
+ 
+  let k = 1024;
+  let sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let i = Math.floor(Math.log(size) / Math.log(k));
+ 
+  // 使用 toFixed 来确保固定的小数位数，这里选择2位小数
+  // 你可以根据需要调整小数位数
+  let formattedSize = (size / Math.pow(k, i)).toFixed(2);
+ 
+  // 如果格式化后的结果末尾是.00，则去掉这两个0
+  if (formattedSize.endsWith('.00')) {
+    formattedSize = formattedSize.slice(0, -3);
+  }
+ 
+  return formattedSize + ' ' + sizes[i];
 }
 
 export function getUuid(len, radix) {

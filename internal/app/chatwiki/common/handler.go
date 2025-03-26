@@ -63,6 +63,7 @@ func GetYiyanHandler(config msql.Params, useModel string) (*ModelCallHandler, er
 	}
 	return handler, nil
 }
+
 func CheckYiyanFancCall(modelInfo ModelInfo, config msql.Params, useModel string) error {
 	if config[`secret_key`] == "" {
 		useModel = strings.ToLower(useModel)
@@ -72,6 +73,7 @@ func CheckYiyanFancCall(modelInfo ModelInfo, config msql.Params, useModel string
 	}
 	return errors.New(`model is not support`)
 }
+
 func GetTongyiHandler(config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{

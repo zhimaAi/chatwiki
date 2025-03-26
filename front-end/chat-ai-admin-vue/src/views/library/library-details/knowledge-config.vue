@@ -150,8 +150,27 @@
             </a-select-opt-group>
           </a-select>
         </a-form-item>
+        <a-form-item label="生成知识图谱">
+          <a-switch
+            @change="handleGraphSwitch"
+            :checked="formState.graph_switch"
+            checked-children="开"
+            un-checked-children="关"
+          />
+        </a-form-item>
+        <a-form-item label="知识图谱模型" v-show="formState.graph_switch">
+          <ModelSelect
+            modelType="LLM"
+            v-model:modeName="formState.graph_use_model"
+            v-model:modeId="formState.graph_model_config_id"
+            style="width: 300px"
+            @change="onChangeModel"
+            @loaded="onVectorModelLoaded"
+          />
+        </a-form-item>
       </a-form>
     </div>
+    <OpenGrapgModal @ok="handleOpenGrapgOk" ref="openGrapgModalRef" />
   </div>
 </template>
 
@@ -165,6 +184,8 @@ import { getModelConfigOption } from '@/api/model/index'
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
 import { DEFAULT_LIBRARY_AVATAR2 } from '@/constants/index'
 import AvatarInput from '@/views/library/add-library/components/avatar-input.vue'
+import ModelSelect from '@/components/model-select/model-select.vue'
+import OpenGrapgModal from './components/open-grapg-modal.vue'
 
 const rotue = useRoute()
 const query = rotue.query
@@ -176,7 +197,10 @@ const formState = reactive({
   is_offline: '',
   model_config_id: '',
   avatar: defaultAvatar,
-  avatar_file: ''
+  avatar_file: '',
+  graph_switch: false,
+  graph_model_config_id: void 0,
+  graph_use_model: ''
 })
 const currentModelDefine = ref('')
 const isActive = ref(0)
@@ -194,6 +218,11 @@ const getInfo = () => {
     formState.model_config_id = res.data.model_config_id
     formState.avatar = res.data.avatar ? res.data.avatar : defaultAvatar
     formState.avatar_file = res.data.avatar_file ? res.data.avatar_file : ''
+
+    formState.graph_switch = res.data.graph_switch != '0'
+    formState.graph_model_config_id =
+      res.data.graph_model_config_id > 0 ? res.data.graph_model_config_id : void 0
+    formState.graph_use_model = res.data.graph_use_model
   })
 }
 getInfo()
@@ -306,6 +335,48 @@ const getModelList = () => {
 
 getModelList()
 
+const onChangeModel = () => {
+  handleEdit()
+}
+const vectorModelList = ref([])
+const onVectorModelLoaded = (list) => {
+  vectorModelList.value = list
+}
+
+const openGrapgModalRef = ref(null)
+const handleGraphSwitch = (val) => {
+  if (val) {
+    let data = {
+      graph_model_config_id: formState.graph_model_config_id,
+      graph_use_model: formState.graph_use_model
+    }
+    if (!formState.graph_model_config_id || !formState.graph_use_model) {
+      console.log(vectorModelList.value, '==')
+      if (vectorModelList.value.length > 0) {
+        let modelConfig = vectorModelList.value[0]
+        if (modelConfig) {
+          let model = modelConfig.children[0]
+          data.graph_use_model = model.name
+          data.graph_model_config_id = model.model_config_id
+        }
+      }
+    }
+    openGrapgModalRef.value.show(data)
+  }else{
+    formState.graph_switch = false;
+    handleEdit();
+  }
+}
+
+const handleOpenGrapgOk = (data) => {
+  if(data.graph_model_config_id){
+    formState.graph_switch = true;
+    formState.graph_model_config_id = data.graph_model_config_id
+    formState.graph_use_model = data.graph_use_model
+    handleEdit();
+  }
+}
+
 const handleEdit = () => {
   if (!formState.library_name) {
     return message.error('请输入知识库名称')
@@ -316,6 +387,9 @@ const handleEdit = () => {
     use_model: formState.use_model,
     model_config_id: formState.model_config_id,
     is_offline: formState.is_offline,
+    graph_switch: formState.graph_switch ? 1 : 0,
+    graph_model_config_id: formState.graph_model_config_id,
+    graph_use_model: formState.graph_use_model,
     id: rotue.query.id
   }
   if (oldModelDefineList.indexOf(currentModelDefine.value) > -1) {

@@ -119,6 +119,14 @@
       border: 1px solid #99bffd;
       color: #2475fc;
     }
+    .graph-tag {
+      margin-left: 4px;
+      &.gray-tag {
+        border: 1px solid #00000026;
+        background: #0000000a;
+        color: #bfbfbf;
+      }
+    }
   }
 }
 .add-library {
@@ -185,6 +193,12 @@
             <span class="type-tag" v-if="item.type == 0">普通知识库</span>
             <span class="type-tag" v-if="item.type == 1">对外知识库</span>
             <span class="type-tag" v-if="item.type == 2">问答知识库</span>
+            <a-tooltip>
+              <template #title>{{ item.graph_switch == 0 ? '未' : '已' }}开启知识图谱生成</template>
+              <span class="type-tag graph-tag" :class="{ 'gray-tag': item.graph_switch == 0 }"
+                >Graph</span
+              >
+            </a-tooltip>
           </div>
           <div class="library-desc">{{ item.library_intro }}</div>
         </div>

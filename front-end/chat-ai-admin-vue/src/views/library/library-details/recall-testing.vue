@@ -75,7 +75,6 @@ const handlePreview = (record) => {
     width: 368px;
     height: 100%;
     border-radius: 2px;
-    box-shadow: 0 2px 16px 0 #0e1b3a29;
     background: #fff;
     padding: 16px 0;
   }

@@ -31,13 +31,13 @@
         <BasicConfig />
       </div>
       <div class="setting-box">
+        <AssociatedKnowledgeBase />
+      </div>
+      <div class="setting-box">
         <SystemPromptWords />
       </div>
       <div class="setting-box">
         <ModelSettings />
-      </div>
-      <div class="setting-box">
-        <AssociatedKnowledgeBase />
       </div>
       <div class="setting-box">
         <DataBase />

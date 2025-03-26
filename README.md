@@ -38,6 +38,14 @@ chatwiki.com</a>
 ---
 查看完整更新日志请点击👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2025/03/26**
+
+1.文心一言、ollama支持dp-r1推理过程<br/>
+2.知识库支持ofd格式文档<br/>
+3.支持从机器人中配置的知识库跳转到知识库详情查看<br/>
+4.应用选择召回设置优化<br/>
+5.支持知识图谱和全文检索改用BM25<br/>
+
 **2025/03/25**
 
 1.对外文档的markdown编辑器替换为cherry-markdown<br/>
@@ -46,12 +54,6 @@ chatwiki.com</a>
 **2025/03/24**
 
 1.移除离线模型参数<br/>
-
-**2025/03/20**
-
-1.新功能:对外文档<br/>
-2.QA文档独立成问答知识库<br/>
-3.PC插件失去焦点交互优化<br/>
 
 ### 能力
 
@@ -155,6 +157,12 @@ git clone git@gitee.com:zhimaAi/chatwiki.git
 cd chatwiki/docker
 docker compose up -d
 ```
+
+**(3).开始使用，通过IP+端口访问(需要开放指定的端口${CHAT_SERVICE_PORT},默认18080)**
+
+> 默认账号：admin <br/>
+> 默认密码：chatwiki.com@123
+
 
 **部署手册**
 

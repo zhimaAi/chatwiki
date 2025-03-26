@@ -59,7 +59,7 @@ func GetDocxRels(reader *zip.ReadCloser) (rels map[string]string) {
 	return
 }
 
-func GetDocxImage(reader *zip.ReadCloser, name string, userId int) (imgStr string, err error) {
+func GetImgByZip(reader *zip.ReadCloser, name string, userId int) (imgStr string, err error) {
 	rc, err := GetFileByReader(reader, name)
 	if err != nil {
 		return
@@ -105,7 +105,7 @@ func DocxInfoExtract(name string, userId int) (result []string, err error) {
 			}
 			if node.Prefix == `a` && node.Data == `blip` && len(node.Attr) > 0 {
 				if id, ok := GetNodeAttr(node.Attr, `r`, `embed`); ok && len(rels[id]) > 0 {
-					if imgStr, err := GetDocxImage(reader, `word/`+rels[id], userId); err == nil {
+					if imgStr, err := GetImgByZip(reader, `word/`+rels[id], userId); err == nil {
 						temp += imgStr //图片信息
 					} else {
 						logs.Error(err.Error())

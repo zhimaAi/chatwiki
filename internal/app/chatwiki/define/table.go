@@ -29,6 +29,13 @@ const (
 )
 
 const (
+	GraphStatusNotStart  = 0
+	GraphStatusInitial   = 1
+	GraphStatusConverted = 2
+	GraphStatusException = 3
+)
+
+const (
 	MsgFromCustomer = 1
 	MsgFromRobot    = 0
 )
@@ -61,6 +68,7 @@ const (
 	SearchTypeMixed    = 1
 	SearchTypeVector   = 2
 	SearchTypeFullText = 3
+	SearchTypeGraph    = 4
 )
 
 var SeparatorsList = []map[string]any{
