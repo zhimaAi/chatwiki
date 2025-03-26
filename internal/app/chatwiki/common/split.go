@@ -72,6 +72,8 @@ func GetLibFileSplit(userId, fileId int, splitParams define.SplitParams, lang st
 		list, wordTotal, err = ReadTab(info[`file_url`], info[`file_ext`])
 	} else if define.IsDocxFile(info[`file_ext`]) {
 		list, wordTotal, err = ReadDocx(info[`file_url`], userId)
+	} else if define.IsOfdFile(info[`file_ext`]) {
+		list, wordTotal, err = ReadOfd(info[`file_url`], userId)
 	} else if define.IsTxtFile(info[`file_ext`]) || define.IsMdFile(info[`file_ext`]) {
 		list, wordTotal, err = ReadTxt(info[`file_url`])
 	} else {
@@ -221,6 +223,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 
 	var (
 		indexIds     []int64
+		dataIds      []int64
 		library, _   = GetLibraryData(cast.ToInt(info[`library_id`]))
 		skipUseModel = cast.ToInt(library[`type`]) == define.OpenLibraryType && cast.ToInt(library[`use_model_switch`]) != define.SwitchOn
 	)
@@ -263,6 +266,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 				logs.Error(err.Error())
 				return errors.New(i18n.Show(lang, `sys_err`))
 			}
+			dataIds = append(dataIds, id)
 			vectorID, err := SaveVector(
 				cast.ToInt64(info[`admin_user_id`]),
 				cast.ToInt64(info[`library_id`]),
@@ -308,6 +312,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 				logs.Error(err.Error())
 				return errors.New(i18n.Show(lang, `sys_err`))
 			}
+			dataIds = append(dataIds, id)
 			vectorID, err := SaveVector(
 				cast.ToInt64(info[`admin_user_id`]),
 				cast.ToInt64(info[`library_id`]),
@@ -334,9 +339,23 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 	}
 	//async task:convert vector
 	for _, id := range indexIds {
-		if message, err := tool.JsonEncode(map[string]any{`id`: id, `file_id`: fileId}); err != nil {
+		message, err := tool.JsonEncode(map[string]any{`id`: id, `file_id`: fileId})
+		if err != nil {
 			logs.Error(err.Error())
-		} else if err := AddJobs(define.ConvertVectorTopic, message); err != nil {
+			continue
+		}
+		if err = AddJobs(define.ConvertVectorTopic, message); err != nil {
+			logs.Error(err.Error())
+		}
+	}
+	// async task:convert graph
+	for _, id := range dataIds {
+		message, err := tool.JsonEncode(map[string]any{`id`: id, `file_id`: fileId})
+		if err != nil {
+			logs.Error(err.Error())
+			continue
+		}
+		if err = AddJobs(define.ConvertGraphTopic, message); err != nil {
 			logs.Error(err.Error())
 		}
 	}

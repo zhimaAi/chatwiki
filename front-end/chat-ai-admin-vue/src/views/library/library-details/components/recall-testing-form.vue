@@ -27,6 +27,18 @@
         color: #8c8c8c;
       }
     }
+    .hover-label{
+      padding: 0 8px;
+      width: fit-content;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      &:hover{
+        background: var(--07, #E4E6EB);
+      }
+    }
 
     .is-required {
       .form-item-label::before {
@@ -139,16 +151,20 @@
       <div class="form-item">
         <a-button :loading="loading" @click="handleRecallTest" type="primary" block>测试</a-button>
       </div>
-      <div class="form-item is-required">
+      <div class="form-item">
         <div class="form-item-label">
-          <span>检索模式</span>
+          <div class="hover-label" @click="isHide = !isHide">
+            检索模式
+            <DownOutlined v-if="isHide" />
+            <UpOutlined v-else />
+          </div>
         </div>
         <div class="form-item-body">
           <div class="retrieval-mode-items">
             <div
               class="retrieval-mode-item"
               :class="{ active: formState.search_type == item.value }"
-              v-for="item in retrievalModeList"
+              v-for="item in showRetrievalModeList"
               :key="item.value"
               @click="handleSelectRetrievalMode(item.value)"
             >
@@ -161,11 +177,7 @@
               <div class="retrieval-mode-title">
                 <svg-icon :name="item.iconName" class="title-icon"></svg-icon>
                 <span class="title-text">{{ item.title }}</span>
-                <svg-icon
-                  class="recommendation-icon"
-                  name="recommendation"
-                  v-if="item.isRecommendation"
-                ></svg-icon>
+                <img v-if="item.isRecommendation" style="width: 32px;" src="@/assets/svg/recommendation.svg" alt="">
               </div>
 
               <div class="retrieval-mode-desc">
@@ -198,7 +210,7 @@
         </div>
       </div>
 
-      <div class="form-item">
+      <div class="form-item" v-if="formState.search_type <= 2">
         <div class="form-item-label">
           <span>相似度阈值&nbsp;</span>
           <a-tooltip>
@@ -263,9 +275,9 @@
 
 <script setup>
 import { getModelConfigOption } from '@/api/model/index'
-import { reactive, ref, toRaw } from 'vue'
+import { reactive, ref, toRaw, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { QuestionCircleOutlined } from '@ant-design/icons-vue'
+import { QuestionCircleOutlined, DownOutlined, UpOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { libraryRecallTest } from '@/api/library'
 const route = useRoute()
@@ -273,27 +285,37 @@ const loading = ref(false)
 
 const emit = defineEmits(['save', 'load'])
 
+const isHide = ref(true)
+
 const retrievalModeList = ref([
-  {
-    iconName: 'search',
+{
+    iconName: 'mix-icon',
     title: '混合检索',
     value: 1,
     isRecommendation: true,
-    desc: '同时执行全文检索和向量检索，使用RRF算法进行排序，从两中查询结果中选择更匹配用户问题的结果'
+    desc: '同时执行三中检索模式，使用RRF算法进行排序，从三种查询结果中选择更匹配用户问题的结果。混合检索兼顾语义相似性与逻辑关联性，通过互补优势提升检索的准确性和生成结果的可信度'
   },
   {
-    iconName: 'file-search',
+    iconName: 'vector-icon',
     title: '向量检索',
     value: 2,
-    desc: '将用户提问转成向量之后与知识库分段匹配相似度，返回相似度高的结果'
+    desc: '将用户提问转成向量之后与知识库分段匹配相似度，返回相似度高的结果。向量检索擅长语义相似性匹配和大规模非结构化数据处理，但缺乏可解释性和精准关系验证'
   },
   {
-    iconName: 'comment-search',
+    iconName: 'graph-icon',
+    title: '知识图谱检索',
+    value: 4,
+    desc: '通过关系推理，检索出与用户问题相关联的知识。知识图谱检索擅长精准的实体关系推理和逻辑验证，但对非结构化文本和语义模糊查询支持较弱'
+  },
+  {
+    iconName: 'search-check-icon',
     title: '全文检索',
     value: 3,
     desc: '通过分词匹配文档中的词汇，返回包含这些词汇的文本片段'
-  }
+  },
 ])
+
+
 
 const formState = reactive({
   rerank_status: 0,
@@ -304,6 +326,14 @@ const formState = reactive({
   similarity: 0.6,
   size: 5,
   id: route.query.id
+})
+
+const showRetrievalModeList = computed(()=>{
+  if(isHide.value){
+    return retrievalModeList.value.filter(item => item.value == formState.search_type )
+  }else{
+    return retrievalModeList.value
+  }
 })
 
 const handleChangeRerankModel = (val, option) => {

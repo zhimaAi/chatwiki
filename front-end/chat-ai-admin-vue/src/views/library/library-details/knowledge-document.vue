@@ -13,7 +13,8 @@
                         <svg-icon name="doc-icon"></svg-icon>
                         <div class="title">本地文档</div>
                       </a-flex>
-                      <div class="desc">上传本地 text/pdf/doc 等格式文件</div>
+                      <div class="desc" v-if="libraryInfo.type == 2">上传本地 docx/csv/xlsx 等格式文件</div>
+                      <div class="desc" v-else>上传本地 pdf/docx/ofd/txt/md/xlsx/csv/html 等格式文件</div>
                     </div>
                   </a-menu-item>
                   <a-menu-item :key="2" v-if="libraryInfo.type != 2">
@@ -132,6 +133,20 @@
                 </template>
                 <span class="status-tag status-error"><CloseCircleFilled /> 获取失败</span>
               </a-tooltip>
+            </template>
+            <template v-if="column.key === 'graph_status'">
+              <span class="status-tag status-queuing" v-if="record.graph_status == 0"
+                ><a-spin size="small" /> 未开始</span
+              >
+              <span class="status-tag status-learning" v-if="record.graph_status == 1"
+                ><a-spin size="small" /> 排队中</span
+              >
+              <span class="status-tag status-complete" v-if="record.graph_status == 2"
+                ><CheckCircleFilled /> 学习完成</span
+              >
+              <span class="status-tag status-error" v-if="record.graph_status == 3"
+                ><CloseCircleFilled /> 学习失败</span
+              >
             </template>
             <template v-if="column.key === 'file_size'">
               <span v-if="record.doc_type == 3">-</span>
@@ -358,7 +373,7 @@ const queryParams = reactive({
   total: 0
 })
 
-const columns = [
+const columns = ref([
   {
     title: '文档名称',
     dataIndex: 'file_name',
@@ -369,19 +384,25 @@ const columns = [
     title: '状态',
     dataIndex: 'status',
     key: 'status',
-    width: '160px'
+    width: 160
+  },
+  {
+    title: '知识图谱',
+    dataIndex: 'graph_status',
+    key: 'graph_status',
+    width: 160
   },
   {
     title: '文档格式',
     dataIndex: 'file_ext',
     key: 'file_ext',
-    width: '100px'
+    width: 100
   },
   {
     title: '文档大小',
     dataIndex: 'file_size_str',
     key: 'file_size',
-    width: '100px'
+    width: 100
   },
   // {
   //   title: '更新频率',
@@ -393,21 +414,21 @@ const columns = [
     title: '分段',
     dataIndex: 'paragraph_count',
     key: 'paragraph_count',
-    width: '120px'
+    width: 120
   },
   {
     title: '更新时间',
     dataIndex: 'update_time',
     key: 'update_time',
-    width: '150px'
+    width: 150
   },
   {
     title: '操作',
     dataIndex: 'action',
     key: 'action',
-    width: '60px'
+    width: 100
   }
-]
+])
 
 const onTableChange = (pagination) => {
   queryParams.page = pagination.current
@@ -470,6 +491,9 @@ const getData = () => {
     }
 
     libraryInfo.value = { ...info }
+    if (info.graph_switch == '0') {
+      columns.value = columns.value.filter((item) => item.key != 'graph_status')
+    }
 
     let list = res.data.list || []
 

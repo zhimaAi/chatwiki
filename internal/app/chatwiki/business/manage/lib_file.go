@@ -302,6 +302,10 @@ func DelLibraryFile(c *gin.Context) {
 	if err != nil {
 		logs.Error(err.Error())
 	}
+	err = common.DeleteGraphFile(id)
+	if err != nil {
+		logs.Error(err.Error())
+	}
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 

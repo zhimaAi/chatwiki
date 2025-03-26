@@ -263,92 +263,233 @@ func GetMatchLibraryParagraphByVectorSimilarity(adminUserId int, robot msql.Para
 	return result, nil
 }
 
-func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size int, similarity float64, searchType int) ([]msql.Params, error) {
+func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appType, question string, libraryIds string, size int, searchType int) ([]msql.Params, error) {
+	result := make([]msql.Params, 0)
+	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeGraph}) {
+		return result, nil
+	}
+
+	// Input validation
+	if len(question) == 0 {
+		logs.Error("Question is empty")
+		return result, errors.New("Question cannot be empty")
+	}
+
+	if len(libraryIds) == 0 {
+		logs.Error("Library IDs are empty")
+		return result, errors.New("Library IDs cannot be empty")
+	}
+
+	if size <= 0 {
+		size = 10 // Set default value
+	}
+
+	// 1. Extract multiple sets of entity-relation triples from the question
+	extractEntitiesPrompt := strings.ReplaceAll(define.PromptDefaultEntityExtract, `{{question}}`, question)
+	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: extractEntitiesPrompt}}
+	chatResp, _, err := RequestChat(
+		cast.ToInt(robot[`admin_user_id`]),
+		openid,
+		robot,
+		appType,
+		cast.ToInt(robot[`model_config_id`]),
+		robot[`use_model`],
+		messages,
+		nil,
+		0.1,
+		500,
+	)
+	if err != nil {
+		logs.Error("Failed to extract entities: %s", err.Error())
+		return result, err
+	}
+
+	// Clean and parse LLM response
+	chatResp.Result = strings.TrimSpace(chatResp.Result)
+	chatResp.Result = strings.TrimPrefix(chatResp.Result, "```json")
+	chatResp.Result = strings.TrimPrefix(chatResp.Result, "```")
+	chatResp.Result = strings.TrimSuffix(chatResp.Result, "```")
+	chatResp.Result = strings.TrimSpace(chatResp.Result)
+
+	// Parse multiple sets of entity-relation triples from LLM response
+	var entityTriples [][]string
+	err = json.Unmarshal([]byte(chatResp.Result), &entityTriples)
+	if err != nil {
+		logs.Error("Failed to parse entity triples: %s, raw data: %s", err.Error(), chatResp.Result)
+		return result, err
+	}
+
+	if len(entityTriples) == 0 {
+		logs.Info("No valid entity triples extracted")
+		return result, nil
+	}
+
+	// Log the number of extracted triples
+	logs.Info("Extracted %d entity triples from question[%s]", len(entityTriples), question)
+
+	// 2. Use optimized graph database queries to reduce query count
+	graphDB := NewGraphDB("graphrag")
+	libraryIdsArr := strings.Split(libraryIds, ",")
+
+	// 3. Store all query results
+	allResults := make([]msql.Params, 0)
+	dataIds := make(map[int]float64) // For deduplication and storing highest confidence
+
+	// Set query size, allocate reasonable query limit for each triple
+	perTripleLimit := size * 3
+	if len(entityTriples) > 0 {
+		perTripleLimit = perTripleLimit / len(entityTriples)
+		if perTripleLimit < 10 {
+			perTripleLimit = 10 // Ensure minimum query limit
+		}
+	}
+
+	// Perform optimized queries for each triple's entities
+	validTripleCount := 0
+	for i, triple := range entityTriples {
+		// Validate triple format
+		if len(triple) != 3 {
+			logs.Error("Invalid triple format: %v", triple)
+			continue
+		}
+
+		// Validate triple content
+		if len(triple[0]) == 0 || len(triple[2]) == 0 {
+			logs.Error("Empty entity in triple: %v", triple)
+			continue
+		}
+
+		logs.Info("Processing triple[%d]: %v", i+1, triple)
+		validTripleCount++
+
+		// Query both subject and object entities
+		for j, entity := range []string{triple[0], triple[2]} {
+			entityType := "Subject"
+			if j == 1 {
+				entityType = "Object"
+			}
+
+			logs.Info("Querying %s entity of triple[%d]: %s", entityType, i+1, entity)
+
+			// Use optimized query that combines subject and object searches
+			relatedTriples, err := graphDB.FindRelatedEntities(entity, libraryIdsArr, perTripleLimit, 2)
+			if err != nil {
+				logs.Error("Failed to recursively query entity %s: %s", entity, err.Error())
+				continue
+			}
+
+			logs.Info("Found %d related triples for %s entity of triple[%d]", len(relatedTriples), entityType, i+1)
+			allResults = append(allResults, relatedTriples...)
+		}
+	}
+
+	// Return if no valid triples
+	if validTripleCount == 0 {
+		logs.Info("No valid triples for querying")
+		return result, nil
+	}
+
+	// 4. Collect related data IDs and confidence, adjust confidence based on recursion depth
+	for _, triple := range allResults {
+		dataId := cast.ToInt(triple["data_id"])
+		if dataId <= 0 {
+			continue // Skip invalid data IDs
+		}
+
+		// Base confidence
+		confidence := cast.ToFloat64(triple["confidence"])
+		if confidence <= 0 {
+			confidence = 0.5 // Set default confidence
+		}
+
+		// Adjust confidence based on depth
+		depth := cast.ToInt(triple["depth"])
+		if depth > 0 {
+			// Reduce confidence by 30% for each additional depth level
+			depthFactor := 1.0 - float64(depth-1)*0.3
+			if depthFactor < 0.5 {
+				depthFactor = 0.5 // Minimum 50% of original confidence
+			}
+			confidence = confidence * depthFactor
+		}
+
+		// Save highest confidence
+		if existingConf, exists := dataIds[dataId]; exists {
+			if confidence > existingConf {
+				dataIds[dataId] = confidence
+			}
+		} else {
+			dataIds[dataId] = confidence
+		}
+	}
+
+	// 5. Query corresponding paragraph data
+	if len(dataIds) > 0 {
+		logs.Info("Found %d related data IDs", len(dataIds))
+
+		dataIdList := make([]string, 0)
+		for id := range dataIds {
+			dataIdList = append(dataIdList, cast.ToString(id))
+		}
+
+		paragraphs, err := msql.Model("chat_ai_library_file_data", define.Postgres).
+			Where("id", "in", strings.Join(dataIdList, ",")).
+			Select()
+		if err != nil {
+			logs.Error("Failed to query paragraph data: %s", err.Error())
+			return result, err
+		}
+
+		// 6. Add confidence as similarity score
+		for _, paragraph := range paragraphs {
+			id := cast.ToInt(paragraph["id"])
+			if conf, exists := dataIds[id]; exists {
+				paragraph["similarity"] = cast.ToString(conf)
+				result = append(result, paragraph)
+			}
+		}
+
+		// Sort by similarity in descending order
+		sort.Slice(result, func(i, j int) bool {
+			return cast.ToFloat64(result[i]["similarity"]) > cast.ToFloat64(result[j]["similarity"])
+		})
+
+		// Limit return size
+		if len(result) > size {
+			result = result[:size]
+		}
+
+		logs.Info("Final query results: %d items", len(result))
+	} else {
+		logs.Info("No related data IDs found")
+	}
+
+	return result, nil
+}
+
+func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size int, searchType int) ([]msql.Params, error) {
 	list := make([]msql.Params, 0)
 	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeFullText}) {
 		return list, nil
 	}
+	libIdArr := strings.Split(libraryIds, ",")
+	libIdList := strings.Join(libIdArr, " ")
 	question = strings.ReplaceAll(question, `'`, ` `)
-	queryTokens, err := msql.Model(fmt.Sprintf(`ts_parse('zhparser', '%s')`, question), define.Postgres).ColumnArr(`token`)
-	if err != nil {
-		return nil, err
-	}
-
-	ids, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`library_id`, `in`, libraryIds).
-		Where(fmt.Sprintf(`to_tsvector('zhima_zh_parser',upper(content))@@to_tsquery('zhima_zh_parser',upper('%s'))`, strings.Join(queryTokens, " | "))).
-		Limit(500).ColumnArr(`id`)
-	if err != nil {
-		return list, err
-	}
-	if len(ids) == 0 {
-		return list, nil
-	}
-
-	list, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
-		Alias("a").
-		Join("chat_ai_library_file_data b", "a.data_id=b.id", "left").
-		Where(`a.id`, `in`, strings.Join(ids, `,`)).
-		Where(`b.id is not null`).
-		Field(`b.*,a.id as index_id`).
-		Field(fmt.Sprintf(`ts_rank(to_tsvector('zhima_zh_parser',upper(a.content)),to_tsquery('zhima_zh_parser',upper('%s'))) as rank`, strings.Join(queryTokens, " | "))).
-		Order(`rank DESC`).Limit(size).Select()
-	if err != nil {
-		return nil, err
-	}
-
-	listIds := make([]string, 0)
-	for _, one := range list {
-		listIds = append(listIds, cast.ToString(one[`index_id`]))
-	}
-
-	answerTokensResult, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
-		Alias(`a`).
-		Join(`LATERAL ts_parse('zhparser', a.content) as b`, `true`, `LEFT`).
-		Where(`id`, `in`, strings.Join(listIds, `,`)).
-		Field(`a.id, string_agg(b.token, ',') AS tokens`).
-		Group(`a.id`).Select()
-	if err != nil {
-		return nil, err
-	}
-
-	similarities := make(map[int]float64)
-	for _, one := range answerTokensResult {
-		answerTokens := strings.Split(one[`tokens`], ",")
-		score := overlapCoefficient(queryTokens, answerTokens)
-		similarities[cast.ToInt(one[`id`])] = score
-	}
-
-	// add similarity field
-	var result []msql.Params
-	bestScores := make(map[interface{}]msql.Params) // unique
-	for _, one := range list {
-		score := similarities[cast.ToInt(one[`index_id`])]
-		if score < similarity {
-			continue
-		}
-		id := one[`id`]
-		if existing, exists := bestScores[id]; !exists || cast.ToFloat64(existing[`similarity`]) < score {
-			one[`similarity`] = cast.ToString(score)
-			bestScores[id] = one
-		}
-	}
-
-	// convert map to slice
-	for _, one := range bestScores {
-		result = append(result, one)
-	}
-
-	// sort
-	sort.Slice(result, func(i, j int) bool {
-		similarityI := cast.ToFloat64(result[i]["similarity"])
-		similarityJ := cast.ToFloat64(result[j]["similarity"])
-		return similarityI > similarityJ
-	})
-
-	return result, err
+	where := fmt.Sprintf(`(
+		(id @@@ paradedb.match('content', '%s', tokenizer => paradedb.tokenizer('chinese_lindera'))) or 
+		(id @@@ paradedb.match('question', '%s', tokenizer => paradedb.tokenizer('chinese_lindera'))) or 
+		(id @@@ paradedb.match('answer', '%s', tokenizer => paradedb.tokenizer('chinese_lindera')))
+	)`, question, question, question)
+	return msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(where).
+		Where(fmt.Sprintf(`library_id @@@ '%s'`, libIdList)).
+		Field(`*,paradedb.score(id) as similarity`).
+		Order(`similarity DESC`).
+		Limit(size).
+		Select()
 }
 
-func GetMatchLibraryParagraphByMergeRerank(openid, appType, question string, size int, vectorList, searchList []msql.Params, robot msql.Params) ([]msql.Params, error) {
+func GetMatchLibraryParagraphByMergeRerank(openid, appType, question string, size int, vectorList, searchList, graphList []msql.Params, robot msql.Params) ([]msql.Params, error) {
 	if len(robot) == 0 || cast.ToInt(robot[`rerank_status`]) == 0 {
 		return nil, nil //not rerank config
 	}
@@ -364,6 +505,13 @@ func GetMatchLibraryParagraphByMergeRerank(openid, appType, question string, siz
 		}
 		ms[searchList[i][`id`]] = struct{}{}
 		list = append(list, searchList[i])
+	}
+	for i := range graphList {
+		if _, ok := ms[graphList[i][`id`]]; ok {
+			continue //duplication skip
+		}
+		ms[graphList[i][`id`]] = struct{}{}
+		list = append(list, graphList[i])
 	}
 	if len(list) == 0 {
 		return nil, nil
@@ -393,7 +541,7 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 	}
 
 	fetchSize := 4 * size
-	var vectorList, searchList []msql.Params
+	var vectorList, searchList, graphList []msql.Params
 	adminUserId := cast.ToInt(robot[`admin_user_id`])
 
 	temp := time.Now()
@@ -403,7 +551,12 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 			logs.Error(err.Error())
 		}
 		vectorList = append(vectorList, list...)
-		list, err = GetMatchLibraryParagraphByFullTextSearch(q, libraryIds, fetchSize, similarity, searchType)
+		list, err = GetMatchLibraryParagraphByGraphSimilarity(robot, openid, appType, q, libraryIds, fetchSize, searchType)
+		if err != nil {
+			logs.Error(err.Error())
+		}
+		graphList = append(graphList, list...)
+		list, err = GetMatchLibraryParagraphByFullTextSearch(q, libraryIds, fetchSize, searchType)
 		if err != nil {
 			logs.Error(err.Error())
 		}
@@ -411,24 +564,30 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 	}
 	libUseTime.RecallTime = time.Now().Sub(temp).Milliseconds()
 
-	//问题优化后,召回的内容重新按相似度排序
+	// Sort retrieved content by similarity score after question optimization
 	sort.Slice(vectorList, func(i, j int) bool {
 		return cast.ToFloat64(vectorList[i][`similarity`]) > cast.ToFloat64(vectorList[j][`similarity`])
 	})
 	sort.Slice(searchList, func(i, j int) bool {
 		return cast.ToFloat64(searchList[i][`similarity`]) > cast.ToFloat64(searchList[j][`similarity`])
 	})
+	sort.Slice(graphList, func(i, j int) bool {
+		return cast.ToFloat64(graphList[i][`similarity`]) > cast.ToFloat64(graphList[j][`similarity`])
+	})
+	fmt.Println(graphList)
 
 	temp = time.Now()
-	rerankList, err := GetMatchLibraryParagraphByMergeRerank(openid, appType, question, fetchSize, vectorList, searchList, robot)
+	rerankList, err := GetMatchLibraryParagraphByMergeRerank(openid, appType, question, fetchSize, vectorList, searchList, graphList, robot)
 	libUseTime.RerankTime = time.Now().Sub(temp).Milliseconds()
 	if err != nil {
 		logs.Error(err.Error())
 	}
+
 	//RRF sort
 	list := (&RRF{}).
 		Add(DataSource{List: vectorList, Key: `id`, Fixed: 60}).
 		Add(DataSource{List: searchList, Key: `id`, Fixed: 60}).
+		Add(DataSource{List: graphList, Key: `id`, Fixed: 60}).
 		Add(DataSource{List: rerankList, Key: `id`, Fixed: 58}).Sort()
 
 	//return
@@ -436,7 +595,7 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 		if i >= size {
 			break
 		}
-		//replenish file info
+		// Supplement file info
 		fileInfo, _ := GetLibFileInfo(cast.ToInt(one[`file_id`]), 0)
 		one[`file_name`] = fileInfo[`file_name`]
 		result = append(result, one)
@@ -688,4 +847,59 @@ func GetRobotNode(robotId uint, nodeKey string) (msql.Params, error) {
 	result := make(msql.Params)
 	err := lib_redis.GetCacheWithBuild(define.Redis, &NodeCacheBuildHandler{RobotId: robotId, DataType: define.DataTypeRelease, NodeKey: nodeKey}, &result, time.Hour)
 	return result, err
+}
+
+// DeleteGraphLibrary delete graph library
+func DeleteGraphLibrary(libraryId int) error {
+	graphDB := NewGraphDB("graphrag")
+	return graphDB.DeleteByLibrary(libraryId)
+}
+
+// DeleteGraphFile delete graph
+func DeleteGraphFile(fileId int) error {
+	graphDB := NewGraphDB("graphrag")
+	return graphDB.DeleteByFile(fileId)
+}
+
+// DeleteGraphData delete graph
+func DeleteGraphData(dataId int) error {
+	graphDB := NewGraphDB("graphrag")
+	return graphDB.DeleteByData(dataId)
+}
+
+// GraphQuery Encapsulates graph queries, ensuring the AGE extension is loaded only once
+func GraphQuery(query string) ([]msql.Params, error) {
+	// Create a transaction to ensure all operations execute in the same session
+	db := msql.Model("", define.Postgres)
+	err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		_ = db.Rollback() // Always rollback the transaction to avoid hanging transactions
+	}()
+
+	// Load AGE extension - only needs to be loaded once in this transaction
+	_, err = msql.RawExec(define.Postgres, "load 'age';", nil)
+	if err != nil {
+		logs.Error("Failed to load AGE extension: %s", err.Error())
+		return nil, err
+	}
+
+	// Execute the query
+	result, err := msql.Model(query, define.Postgres).Field("*").Select()
+	if err != nil {
+		logs.Error("Failed to execute graph query: %s", err.Error())
+		return nil, err
+	}
+
+	// Commit the transaction
+	err = db.Commit()
+	if err != nil {
+		logs.Error("Failed to commit transaction: %s", err.Error())
+		return nil, err
+	}
+
+	return result, nil
 }

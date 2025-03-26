@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -64,7 +65,10 @@ func GetLibraryList(c *gin.Context) {
 		m.Where(`id`, `in`, strings.Join(managedRobotIdList, `,`))
 	}
 
-	list, err := m.Field(`id,type,access_rights,avatar,library_name,library_intro,create_time`).Order(`id desc`).Select()
+	list, err := m.
+		Field(`id,type,access_rights,avatar,library_name,library_intro,avatar,graph_switch,graph_model_config_id,graph_use_model,create_time`).
+		Order(`id desc`).
+		Select()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -271,6 +275,10 @@ func DeleteLibrary(c *gin.Context) {
 		//clear cached data
 		lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: cast.ToInt(fileId)})
 	}
+	err = common.DeleteGraphLibrary(id)
+	if err != nil {
+		logs.Error(err.Error())
+	}
 	_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`library_id`, cast.ToString(id)).Delete()
 	if err != nil {
 		logs.Error(err.Error())
@@ -296,6 +304,9 @@ func EditLibrary(c *gin.Context) {
 	libraryIntro := strings.TrimSpace(c.PostForm(`library_intro`))
 	modelConfigId := cast.ToInt(c.PostForm(`model_config_id`))
 	useModel := strings.TrimSpace(c.PostForm(`use_model`))
+	graphSwitch := cast.ToInt(c.PostForm(`graph_switch`))
+	graphModelConfigId := cast.ToInt(c.PostForm(`graph_model_config_id`))
+	graphUseModel := strings.TrimSpace(c.PostForm(`graph_use_model`))
 	useModelSwitch := cast.ToInt(c.PostForm(`use_model_switch`))
 	aiSummary := cast.ToInt(c.PostForm(`ai_summary`))
 	aiSummaryModel := cast.ToString(c.PostForm(`ai_summary_model`))
@@ -343,6 +354,15 @@ func EditLibrary(c *gin.Context) {
 			return
 		}
 	}
+	if graphSwitch == 1 && graphModelConfigId == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `graph_model_config_id`))))
+		return
+	}
+	if graphSwitch == 1 && len(graphUseModel) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `graph_use_model`))))
+		return
+	}
+
 	info, err := common.GetLibraryInfo(id, userId)
 	if err != nil {
 		logs.Error(err.Error())
@@ -370,6 +390,9 @@ func EditLibrary(c *gin.Context) {
 		`share_url`:               shareUrl,
 		`ai_summary_model`:        aiSummaryModel,
 		`summary_model_config_id`: summaryModelConfigId,
+		`graph_switch`:            graphSwitch,
+		`graph_model_config_id`:   graphModelConfigId,
+		`graph_use_model`:         graphUseModel,
 		`access_rights`:           accessRights,
 		`statistics_set`:          statisticsSet,
 		`update_time`:             tool.Time2Int(),
@@ -393,6 +416,32 @@ func EditLibrary(c *gin.Context) {
 	} else if info[`use_model`] != useModel || cast.ToInt(info[`model_config_id`]) != modelConfigId {
 		go common.EmbeddingNewVector(id, cast.ToInt(info[`admin_user_id`]))
 	}
+
+	// construct new graph
+	if cast.ToInt(info[`graph_switch`]) == define.SwitchOff && graphSwitch == define.SwitchOn {
+		go func() {
+			dataList, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+				Where(`library_id`, cast.ToString(id)).
+				Where(`graph_status`, cast.ToString(define.GraphStatusNotStart)).
+				Field(`id,file_id`).
+				Select()
+			if err != nil {
+				logs.Error(err.Error())
+				return
+			}
+			for _, data := range dataList {
+				message, err := tool.JsonEncode(map[string]any{`id`: data[`id`], `file_id`: data[`file_id`]})
+				if err != nil {
+					logs.Error(err.Error())
+					continue
+				}
+				if err = common.AddJobs(define.ConvertGraphTopic, message); err != nil {
+					logs.Error(err.Error())
+				}
+			}
+		}()
+	}
+
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.LibraryCacheBuildHandler{LibraryId: id})
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
@@ -413,7 +462,7 @@ func LibraryRecallTest(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	if searchType != define.SearchTypeMixed && searchType != define.SearchTypeVector && searchType != define.SearchTypeFullText {
+	if searchType != define.SearchTypeMixed && searchType != define.SearchTypeVector && searchType != define.SearchTypeFullText && searchType != define.SearchTypeGraph {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
 		return
 	}
@@ -436,6 +485,16 @@ func LibraryRecallTest(c *gin.Context) {
 		robot[`rerank_status`] = cast.ToString(1)
 		robot[`rerank_model_config_id`] = cast.ToString(rerankModelConfigID)
 		robot[`robot_name`] = robotName
+	}
+	if searchType == define.SearchTypeGraph {
+		if !cast.ToBool(info[`graph_switch`]) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `graph is not enabled`))))
+			return
+		}
+		robot[`admin_user_id`] = info[`admin_user_id`]
+		robot[`model_config_id`] = info[`graph_model_config_id`]
+		robot[`use_model`] = info[`graph_use_model`]
+		robot[`id`] = strconv.Itoa(0)
 	}
 
 	list, _, err := common.GetMatchLibraryParagraphList("", "", question, []string{}, cast.ToString(libraryId), size, similarity, searchType, robot)

@@ -29,6 +29,7 @@
       border-radius: 2px;
       border: 1px solid #d8dde5;
       background-color: #fff;
+      cursor: pointer;
 
       .library-name {
         width: 100%;
@@ -36,9 +37,33 @@
         font-size: 14px;
         font-weight: 600;
         color: #262626;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .library-name-text{
+        max-width: 240px;
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
+      }
+      .graph-tag{
+        width: 42px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #00000026;
+        background: #0000000a;
+        border-radius: 6px;
+        font-size: 12px;
+        line-height: 16px;
+        color: #bfbfbf;
+        &.active{
+          border: 1px solid #99BFFD;
+          color: #2475fc;
+          background: #fff;
+        }
       }
 
       .library-intro {
@@ -81,16 +106,23 @@
       </div>
     </template>
     <div class="library-list" v-if="selectedLibraryRows.length > 0">
-      <div class="library-item" v-for="item in selectedLibraryRows" :key="item.id">
-        <span class="close-btn" @click="handleRemoveCheckedLibrary(item)">
+      <div class="library-item" v-for="item in selectedLibraryRows" :key="item.id" @click="toLibraryDetail(item)">
+        <span class="close-btn" @click.stop="handleRemoveCheckedLibrary(item)">
           <CloseCircleOutlined />
         </span>
-        <div class="library-name">{{ item.library_name }}</div>
+        <div class="library-name">
+          <a-tooltip>
+            <template #title>{{ item.graph_switch == 0 ? '未' : '已' }}开启知识图谱生成</template>
+            <div class="graph-tag" :class="{active: item.graph_switch == 1}">Graph</div>
+          </a-tooltip>
+          <div class="library-name-text">{{ item.library_name }}</div>
+        </div>
         <div class="library-intro">{{ item.library_intro }}</div>
       </div>
     </div>
     <LibrarySelectAlert ref="librarySelectAlertRef" @change="onChangeLibrarySelected" />
     <RecallSettingsAlert ref="recallSettingsAlertRef" @change="onChangeRecallSettings" />
+    <NoOpenGraphModal :list="noOpenLibraryList" @refreshList="getList" ref="noOpenGraphModalRef" />
   </edit-box>
 </template>
 
@@ -103,6 +135,7 @@ import { Modal } from 'ant-design-vue'
 import EditBox from '../edit-box.vue'
 import LibrarySelectAlert from './library-select-alert.vue'
 import RecallSettingsAlert from './recall-settings-alert.vue'
+import NoOpenGraphModal from './no-open-graph-modal.vue'
 
 const { getStorage, removeStorage } = useStorage('localStorage')
 
@@ -127,6 +160,10 @@ const selectedLibraryRows = computed(() => {
   return libraryList.value.filter((item) => {
     return formState.library_ids.includes(item.id)
   })
+})
+
+const noOpenLibraryList = computed(()=>{
+  return selectedLibraryRows.value.filter(item => item.graph_switch == 0)
 })
 
 // 移除知识库
@@ -154,6 +191,7 @@ const recallSettingsAlertRef = ref(null)
 const handleOpenRecallSettingsAlert = () => {
   recallSettingsAlertRef.value.open(toRaw(formState))
 }
+const noOpenGraphModalRef = ref(null)
 
 const onChangeRecallSettings = (data) => {
   formState.rerank_status = data.rerank_status
@@ -162,9 +200,14 @@ const onChangeRecallSettings = (data) => {
   formState.top_k = data.top_k
   formState.similarity = data.similarity
   formState.search_type = data.search_type
-
+  if(data.search_type == 1 || data.search_type == 4){
+    if(noOpenLibraryList.value.length > 0){
+      noOpenGraphModalRef.value.show()
+    }
+  }
   onSave()
 }
+
 
 const onSave = () => {
   let formData = { ...toRaw(formState) }
@@ -206,6 +249,10 @@ watchEffect(() => {
   formState.similarity = robotInfo.similarity
   formState.search_type = robotInfo.search_type
 })
+
+const toLibraryDetail = (item)=>{
+  window.open(`#/library/details/knowledge-document?id=${item.id}`)
+}
 
 onMounted(() => {
   getList()

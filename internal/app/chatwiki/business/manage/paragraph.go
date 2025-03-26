@@ -44,7 +44,7 @@ func GetParagraphList(c *gin.Context) {
 	size := max(1, cast.ToInt(c.Query(`size`)))
 	list, total, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
 		Alias("a").
-		Join("chat_ai_library_file_data_index b", "a.id=b.data_id", "left").
+		Join("chat_ai_library_file_data_index b", "a.id=b.data_id", "inner").
 		Where(`a.admin_user_id`, cast.ToString(userId)).Where(`a.file_id`, cast.ToString(fileId)).
 		Field(`a.*`).
 		Field(`
@@ -249,7 +249,18 @@ func SaveParagraph(c *gin.Context) {
 	for _, id := range vectorIds {
 		if message, err := tool.JsonEncode(map[string]any{`id`: id, `file_id`: fileId}); err != nil {
 			logs.Error(err.Error())
-		} else if err := common.AddJobs(define.ConvertVectorTopic, message); err != nil {
+			continue
+		} else {
+			if err = common.AddJobs(define.ConvertVectorTopic, message); err != nil {
+				logs.Error(err.Error())
+			}
+		}
+	}
+	message, err := tool.JsonEncode(map[string]any{`id`: id, `file_id`: fileId})
+	if err != nil {
+		logs.Error(err.Error())
+	} else {
+		if err = common.AddJobs(define.ConvertGraphTopic, message); err != nil {
 			logs.Error(err.Error())
 		}
 	}
@@ -275,6 +286,12 @@ func DeleteParagraph(c *gin.Context) {
 	}
 
 	_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`data_id`, cast.ToString(id)).Delete()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	err = common.DeleteGraphData(id)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))

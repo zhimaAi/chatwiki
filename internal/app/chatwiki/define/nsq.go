@@ -10,6 +10,9 @@ const ConvertHtmlChannel = `convert_html_channel`
 const ConvertVectorTopic = `chatwiki_convert_vector_topic`
 const ConvertVectorChannel = `convert_vector_channel`
 
+const ConvertGraphTopic = `chatwiki_convert_graph_topic`
+const ConvertGraphChannel = `convert_graph_channel`
+
 const CrawlArticleTopic = `chatwiki_crawl_article_topic`
 const CrawlArticleChannel = `chatwiki_crawl_article_channel`
 

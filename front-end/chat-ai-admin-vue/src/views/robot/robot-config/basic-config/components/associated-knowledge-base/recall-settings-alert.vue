@@ -30,7 +30,7 @@
     .number-box {
       display: flex;
       align-items: center;
-
+      width: 60%;
       .number-slider-box {
         flex: 1;
       }
@@ -41,11 +41,14 @@
     }
 
     .retrieval-mode-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
       .retrieval-mode-item {
+        width: calc(50% - 8px);
         position: relative;
         padding: 16px;
-        margin-top: 8px;
-        border-radius: 2px;
+        border-radius: 6px;
         border: 1px solid #d9d9d9;
         cursor: pointer;
       }
@@ -65,11 +68,7 @@
         .title-text {
           font-size: 14px;
           font-weight: 600;
-        }
-
-        .recommendation-icon {
-          margin-left: 4px;
-          font-size: 36px;
+          margin-right: 4px;
         }
       }
 
@@ -112,7 +111,7 @@
 </style>
 
 <template>
-  <a-modal width="472px" v-model:open="show" title="召回设置" @ok="handleSave">
+  <a-modal width="746px" v-model:open="show" title="召回设置" @ok="handleSave">
     <div class="recall-settings-box">
       <div class="form-box">
         <div class="form-item is-required">
@@ -137,11 +136,7 @@
                 <div class="retrieval-mode-title">
                   <svg-icon :name="item.iconName" class="title-icon"></svg-icon>
                   <span class="title-text">{{ item.title }}</span>
-                  <svg-icon
-                    class="recommendation-icon"
-                    name="recommendation"
-                    v-if="item.isRecommendation"
-                  ></svg-icon>
+                  <img v-if="item.isRecommendation" style="width: 32px;" src="@/assets/svg/recommendation.svg" alt="">
                 </div>
 
                 <div class="retrieval-mode-desc">
@@ -179,7 +174,7 @@
           </div>
         </div>
 
-        <div class="form-item">
+        <div class="form-item" v-if="formState.search_type <= 2">
           <div class="form-item-label">
             <span>相似度阈值&nbsp;</span>
             <a-tooltip>
@@ -218,14 +213,16 @@
               :checkedValue="1"
               :unCheckedValue="0"
               v-model:checked="formState.rerank_status"
+              @change="handleRerankStatusChange"
             />
           </div>
-          <div class="form-item-body">
+          <div class="form-item-body" v-if="formState.rerank_status == 1">
             <a-select
+              allowClear
               v-model:value="formState.rerank_use_model"
               placeholder="请选择Rerank模型"
               @change="handleChangeRerankModel"
-              style="width: 320px"
+              style="width: 60%"
             >
               <a-select-opt-group v-for="item in rerankModelList" :key="item.id">
                 <template #label>
@@ -258,24 +255,30 @@ const emit = defineEmits(['change'])
 
 const retrievalModeList = ref([
   {
-    iconName: 'search',
+    iconName: 'mix-icon',
     title: '混合检索',
     value: 1,
     isRecommendation: true,
-    desc: '同时执行全文检索和向量检索，使用RRF算法进行排序，从两中查询结果中选择更匹配用户问题的结果'
+    desc: '同时执行三中检索模式，使用RRF算法进行排序，从三种查询结果中选择更匹配用户问题的结果。混合检索兼顾语义相似性与逻辑关联性，通过互补优势提升检索的准确性和生成结果的可信度'
   },
   {
-    iconName: 'file-search',
+    iconName: 'vector-icon',
     title: '向量检索',
     value: 2,
-    desc: '将用户提问转成向量之后与知识库分段匹配相似度，返回相似度高的结果'
+    desc: '将用户提问转成向量之后与知识库分段匹配相似度，返回相似度高的结果。向量检索擅长语义相似性匹配和大规模非结构化数据处理，但缺乏可解释性和精准关系验证'
   },
   {
-    iconName: 'comment-search',
+    iconName: 'graph-icon',
+    title: '知识图谱检索',
+    value: 4,
+    desc: '通过关系推理，检索出与用户问题相关联的知识。知识图谱检索擅长精准的实体关系推理和逻辑验证，但对非结构化文本和语义模糊查询支持较弱'
+  },
+  {
+    iconName: 'search-check-icon',
     title: '全文检索',
     value: 3,
     desc: '通过分词匹配文档中的词汇，返回包含这些词汇的文本片段'
-  }
+  },
 ])
 
 const formState = reactive({
@@ -292,7 +295,7 @@ const open = (data) => {
 
   formState.rerank_status = data.rerank_status || 0
   formState.rerank_use_model = data.rerank_use_model || undefined
-  formState.rerank_model_config_id = data.rerank_model_config_id || ''
+  formState.rerank_model_config_id = data.rerank_model_config_id > 0 ? data.rerank_model_config_id : ''
   formState.top_k = data.top_k
   formState.similarity = data.similarity
   formState.search_type = data.search_type
@@ -300,7 +303,18 @@ const open = (data) => {
 }
 
 const handleChangeRerankModel = (val, option) => {
+  if(!val || !option){
+    formState.rerank_model_config_id = ''
+    return
+  }
   formState.rerank_model_config_id = option.rerank_model_config_id
+}
+
+const handleRerankStatusChange = (val) => {
+  if(val == 0){
+    formState.rerank_model_config_id = ''
+    formState.rerank_use_model = '';
+  }
 }
 
 const handleSelectRetrievalMode = (val) => {

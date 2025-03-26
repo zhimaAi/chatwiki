@@ -6,6 +6,8 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_redis"
+	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,9 +15,11 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
 var CheckFileLearnedMutex sync.Map
+var CheckFileGraphLearnedMutex sync.Map
 
 func ConvertHtml(msg string, _ ...string) error {
 	logs.Debug(`nsq:%s`, msg)
@@ -163,6 +167,187 @@ func ConvertVector(msg string, _ ...string) error {
 	return nil
 }
 
+// ConvertGraph Convert Knowledge Graph
+func ConvertGraph(msg string, _ ...string) error {
+	logs.Debug(`nsq:graph:%s`, msg)
+	data := make(map[string]any)
+	if err := tool.JsonDecode(msg, &data); err != nil {
+		logs.Error(`parsing failure:%s/%s`, msg, err.Error())
+		return nil
+	}
+	id, fileId := cast.ToInt(data[`id`]), cast.ToInt(data[`file_id`])
+	if id <= 0 || fileId <= 0 {
+		logs.Error(`data exception:%s`, msg)
+		return nil
+	}
+	m := msql.Model(`chat_ai_library_file_data`, define.Postgres)
+	// get file data
+	info, err := m.Where(`id`, cast.ToString(id)).Where(`file_id`, cast.ToString(fileId)).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+	if len(info) == 0 {
+		logs.Error(`no data:%s`, msg)
+		return nil
+	}
+	fileInfo, err := common.GetLibFileInfo(fileId, cast.ToInt(info[`admin_user_id`]))
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+	if cast.ToInt(fileInfo[`graph_status`]) == define.GraphStatusException {
+		logs.Error(`abnormal state:%s/%v`, msg, fileInfo)
+		return nil
+	}
+	library, err := common.GetLibraryInfo(cast.ToInt(info[`library_id`]), cast.ToInt(info[`admin_user_id`]))
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+	if !cast.ToBool(library[`graph_switch`]) {
+		logs.Error("graph not switch")
+		return nil
+	}
+
+	if cast.ToInt(info[`graph_status`]) != define.GraphStatusNotStart {
+		logs.Error(`abnormal state:%s/%v`, msg, info[`graph_status`])
+		return nil
+	}
+	constructGraphInit(fileId, id)
+
+	// construct graph
+	content := info[`content`]
+	if cast.ToInt(info[`type`]) != define.ParagraphTypeNormal {
+		content = "question: " + info[`question`] + "\n\nanswer: " + info[`answer`]
+	}
+	prompt := strings.ReplaceAll(define.PromptDefaultGraphConstruct, `{{content}}`, content)
+	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `user`, Content: prompt}}
+	chatResp, _, err := common.RequestChat(
+		cast.ToInt(info[`admin_user_id`]),
+		info[`admin_user_id`],
+		msql.Params{},
+		"",
+		cast.ToInt(library[`graph_model_config_id`]),
+		library[`graph_use_model`],
+		messages,
+		nil,
+		0.1,
+		3000,
+	)
+	if err != nil {
+		logs.Error(err.Error())
+		constructGraphFailed(fileId, id, err.Error())
+		return nil
+	}
+	logs.Debug(chatResp.Result)
+	chatResp.Result = strings.TrimPrefix(chatResp.Result, "```json")
+	chatResp.Result = strings.TrimSuffix(chatResp.Result, "```")
+
+	var graphData []map[string]interface{}
+	if err := tool.JsonDecode(chatResp.Result, &graphData); err != nil {
+		logs.Error(`graph data parsing failure:%s/%s`, chatResp.Result, err.Error())
+		return nil
+	}
+
+	hasError := false
+	for _, triple := range graphData {
+		subject := cast.ToString(triple["subject"])
+		predicate := cast.ToString(triple["predicate"])
+		object := cast.ToString(triple["object"])
+		confidence := cast.ToFloat64(triple["confidence"])
+
+		if len(subject) > 0 && len(predicate) > 0 && len(object) > 0 {
+			graphDB := common.NewGraphDB("graphrag")
+			// 替换关系名称中的特殊字符
+			sanitizedPredicate := strings.ReplaceAll(predicate, ".", "_")
+			sanitizedPredicate = strings.ReplaceAll(sanitizedPredicate, "...", "_")
+			sanitizedPredicate = strings.ReplaceAll(sanitizedPredicate, " ", "_")
+			sanitizedPredicate = strings.ReplaceAll(sanitizedPredicate, "-", "_")
+
+			createGraphSQL := fmt.Sprintf(`
+				cypher('graphrag', $$ 
+					MERGE (s:Entity {name: '%s', library_id: %d, file_id: %d, data_id: %d})
+					MERGE (o:Entity {name: '%s', library_id: %d, file_id: %d, data_id: %d})
+					CREATE (s)-[r:%s {confidence: %f, library_id: %d, file_id: %d, data_id: %d}]->(o)
+					RETURN r
+				$$) as (r agtype)`,
+				subject, cast.ToInt(info[`library_id`]), fileId, id,
+				object, cast.ToInt(info[`library_id`]), fileId, id,
+				sanitizedPredicate, confidence, cast.ToInt(info[`library_id`]), fileId, id)
+			_, err = graphDB.ExecuteCypher(createGraphSQL)
+			if err != nil {
+				logs.Error(`create graph error: %s`, err.Error())
+				hasError = true
+				constructGraphFailed(fileId, id, err.Error())
+				break
+			}
+		}
+	}
+	if !hasError {
+		constructGraphSucceed(id)
+		CheckFileGraphLearned(fileId)
+	}
+
+	return nil
+}
+
+func constructGraphInit(fileId, dataId int) {
+	_, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`id`, cast.ToString(dataId)).
+		Update(msql.Datas{
+			`graph_status`: define.GraphStatusInitial,
+			`update_time`:  tool.Time2Int(),
+		})
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
+		Where(`id`, cast.ToString(fileId)).
+		Where(`graph_status`, cast.ToString(define.GraphStatusNotStart)).
+		Update(msql.Datas{
+			`graph_status`: define.GraphStatusInitial,
+			`update_time`:  tool.Time2Int(),
+		})
+	if err != nil {
+		logs.Error(err.Error())
+	}
+}
+
+func constructGraphFailed(fileId, dataId int, errMsg string) {
+	_, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`id`, cast.ToString(dataId)).
+		Update(msql.Datas{
+			`graph_status`:  define.GraphStatusException,
+			`graph_err_msg`: errMsg,
+			`update_time`:   tool.Time2Int(),
+		})
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
+		Where(`id`, cast.ToString(fileId)).
+		Update(msql.Datas{
+			`graph_status`: define.GraphStatusException,
+			`update_time`:  tool.Time2Int(),
+		})
+	if err != nil {
+		logs.Error(err.Error())
+	}
+}
+
+func constructGraphSucceed(dataId int) {
+	_, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`id`, cast.ToString(dataId)).
+		Update(msql.Datas{
+			`graph_status`: define.GraphStatusConverted,
+			`update_time`:  tool.Time2Int(),
+		})
+	if err != nil {
+		logs.Error(err.Error())
+	}
+}
+
 func CheckFileLearned(fileId int) {
 	mtx, _ := CheckFileLearnedMutex.LoadOrStore(fileId, &sync.Mutex{})
 	mutex := mtx.(*sync.Mutex)
@@ -184,6 +369,36 @@ func CheckFileLearned(fileId int) {
 	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
 		`status`:      define.FileStatusLearned,
 		`update_time`: tool.Time2Int(),
+	})
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	//clear cached data
+	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: fileId})
+}
+
+func CheckFileGraphLearned(fileId int) {
+	mtx, _ := CheckFileGraphLearnedMutex.LoadOrStore(fileId, &sync.Mutex{})
+	mutex := mtx.(*sync.Mutex)
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	m := msql.Model(`chat_ai_library_file_data`, define.Postgres)
+
+	total, err := m.Where(`file_id`, cast.ToString(fileId)).Where(`graph_status`, cast.ToString(define.GraphStatusInitial)).Count(`1`)
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	if total > 0 {
+		return //not finish
+	}
+
+	// finished
+	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
+		`graph_status`: define.GraphStatusConverted,
+		`update_time`:  tool.Time2Int(),
 	})
 	if err != nil {
 		logs.Error(err.Error())
