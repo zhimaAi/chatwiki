@@ -7,20 +7,16 @@
   <a href="./README.md">简体中文</a> |
    <a href="./UpdateLog.md">更新日志</a>
 </p>
-ChatWiki是一款开源的知识库 AI 问答系统。系统基于大语言模型（LLM ）和检索增强生成（RAG）技术构建，提供开箱即用的数据处理、模型调用等能力，可以帮助企业快速搭建自己的知识库AI 问答系统。
+ChatWiki是一款开源的知识库 AI 问答系统。系统基于大语言模型（LLM ）和检索增强生成（RAG）技术构建，提供开箱即用的数据处理、模型调用等能力，支持docx、excel、pdf、ofd等多种文档格式，可以帮助企业政务系统快速搭建自己的知识库AI问答系统。
 
 ### 在线体验
 
 ---
 
--
-
-🚀推荐先使用chatwiki云版本，快速构建验证思路与模式，之后再考虑独立部署，减少试错成本。👉️👉️<a href="https://chatwiki.com" target="_blank" rel="noopener noreferrer">
+- 🚀推荐先使用chatwiki云版本，快速构建验证思路与模式，之后再考虑独立部署，减少试错成本。👉️👉️<a href="https://chatwiki.com" target="_blank" rel="noopener noreferrer">
 chatwiki.com</a>
 
--
-
-🚀也可以通过官方demo体验对话效果👉️👉️<a href="http://h5.wikichat.com.cn/#/chat?robot_key=lTo85wvGSj" target="_blank" rel="noopener noreferrer">
+- 🚀也可以通过官方demo体验对话效果👉️👉️<a href="http://h5.wikichat.com.cn/#/chat?robot_key=lTo85wvGSj" target="_blank" rel="noopener noreferrer">
 体验ChatWiki WebApp</a>
 👉️👉️<a href="https://chatwiki.oss-cn-hangzhou.aliyuncs.com/demo/chatwiki.zip" target="_blank" rel="noopener noreferrer">
 体验ChatWiki 客户端</a>
@@ -38,6 +34,10 @@ chatwiki.com</a>
 ---
 查看完整更新日志请点击👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2025/03/27**
+
+1.修复了一些已知问题<br/>
+
 **2025/03/26**
 
 1.文心一言、ollama支持dp-r1推理过程<br/>
@@ -50,10 +50,6 @@ chatwiki.com</a>
 
 1.对外文档的markdown编辑器替换为cherry-markdown<br/>
 2.聊天界面支持显示大模型的推理过程<br/>
-
-**2025/03/24**
-
-1.移除离线模型参数<br/>
 
 ### 能力
 
@@ -107,9 +103,9 @@ ChatWiki可实时分析**用户提问上下文**，自动补全模糊或不完�
 
 ChatWiki已支持全球20多种主流模型，只需要简单配置模型API key等信息即可成功接入模型。
 
-**7、数据自动预处理**
+**7、数据自动预处理，支持多种格式文档**
 
-提供自动分段、QA分段、手动输入和 CSV 等多种方式导入数据，ChatWiki自动对导入的文本数据进行预处理、向量化或 QA 分割。
+提供自动分段、QA分段、手动输入和 CSV 等多种方式导入数据，ChatWiki自动对导入的文本数据进行预处理、向量化或 QA 分割。**支持word文档、Excel文档、PPT、PDF、OFD、markdown文档等多种格式文档自动解析、智能分段。**
 
 **8、简单易用的使用方式**
 

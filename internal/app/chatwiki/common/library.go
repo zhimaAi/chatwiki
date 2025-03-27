@@ -77,7 +77,7 @@ func AddFileDataIndex(libraryId, adminUserId int) error {
 	}
 	indexIds, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`library_id`, cast.ToString(libraryId)).
-		Field(`data_id`).GetFields()
+		ColumnArr(`data_id`)
 	if err != nil {
 		logs.Error(err.Error())
 		return err
