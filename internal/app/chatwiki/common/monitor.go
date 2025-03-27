@@ -107,7 +107,7 @@ func (m *Monitor) Save(err error) {
 		`end_time`:         m.EndTime,
 		`all_use_time`:     m.AllUseTime,
 		`is_error`:         cast.ToInt(m.Error != nil),
-		`error_msg`:        fmt.Sprintf(`%v`, m.Error),
+		`error_msg`:        MbSubstr(fmt.Sprintf(`%v`, m.Error), 0, 1000),
 		`question_op`:      m.LibUseTime.QuestionOp,
 		`recall_time`:      m.LibUseTime.RecallTime,
 		`rerank_time`:      m.LibUseTime.RerankTime,

@@ -35,7 +35,7 @@ func GetDialogueId(chatBaseParam *define.ChatBaseParam, question string) (int, e
 		`robot_id`:      chatBaseParam.Robot[`id`],
 		`openid`:        chatBaseParam.Openid,
 		`is_background`: isBackground,
-		`subject`:       question,
+		`subject`:       MbSubstr(question, 0, 1000),
 		`create_time`:   tool.Time2Int(),
 		`update_time`:   tool.Time2Int(),
 	}, `id`)

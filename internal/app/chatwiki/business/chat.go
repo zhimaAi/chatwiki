@@ -557,7 +557,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	}
 	lastChat := msql.Datas{
 		`last_chat_time`:    message[`create_time`],
-		`last_chat_message`: message[`content`],
+		`last_chat_message`: common.MbSubstr(cast.ToString(message[`content`]), 0, 1000),
 	}
 	id, err := msql.Model(`chat_ai_message`, define.Postgres).Insert(message, `id`)
 	if err != nil {
@@ -847,7 +847,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	}
 	lastChat = msql.Datas{
 		`last_chat_time`:    message[`create_time`],
-		`last_chat_message`: message[`content`],
+		`last_chat_message`: common.MbSubstr(cast.ToString(message[`content`]), 0, 1000),
 	}
 	id, err = msql.Model(`chat_ai_message`, define.Postgres).Insert(message, `id`)
 	if err != nil {
