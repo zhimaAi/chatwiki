@@ -122,18 +122,18 @@ const baseItems = [
       id: props.robotInfo.id
     }
   },
-  {
-    key: 'api-key-manage',
-    id: 'api-key-manage',
-    icon: () =>
-      h(SvgIcon, {
-        name: 'duiwaifuwu',
-        class: 'menu-icon'
-      }),
-    label: 'API Key管理',
-    title: 'API Key管理',
-    path: '/robot/config/api-key-manage'
-  },
+  // {
+  //   key: 'api-key-manage',
+  //   id: 'api-key-manage',
+  //   icon: () =>
+  //     h(SvgIcon, {
+  //       name: 'duiwaifuwu',
+  //       class: 'menu-icon'
+  //     }),
+  //   label: 'API Key管理',
+  //   title: 'API Key管理',
+  //   path: '/robot/config/api-key-manage'
+  // },
   {
     key: 'statistical_analysis',
     id: 'statistical_analysis',
