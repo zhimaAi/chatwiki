@@ -55,15 +55,15 @@ export default {
             isCustomPage: true
           }
         },
-        {
-          path: '/robot/config/api-key-manage',
-          name: 'apiKeyManage',
-          component: () => import('@/views/robot/api-key-manage/index.vue'),
-          meta: {
-            title: 'API key管理',
-            isCustomPage: true
-          }
-        },
+        // {
+        //   path: '/robot/config/api-key-manage',
+        //   name: 'apiKeyManage',
+        //   component: () => import('@/views/robot/api-key-manage/index.vue'),
+        //   meta: {
+        //     title: 'API key管理',
+        //     isCustomPage: true
+        //   }
+        // },
         {
           path: '/robot/config/qa-feedbacks',
           name: 'qaFeedbacks',

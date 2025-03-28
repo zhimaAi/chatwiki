@@ -275,9 +275,16 @@ func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appTyp
 		return result, errors.New("Question cannot be empty")
 	}
 
+	libraryIdList, err := msql.Model(`chat_ai_library`, define.Postgres).
+		Where(`admin_user_id`, robot[`admin_user_id`]).
+		Where(`id`, `in`, libraryIds).
+		Where(`graph_switch`, cast.ToString(define.SwitchOn)).
+		ColumnArr("id")
+	libraryIds = strings.Join(libraryIdList, ",")
+
 	if len(libraryIds) == 0 {
-		logs.Error("Library IDs are empty")
-		return result, errors.New("Library IDs cannot be empty")
+		logs.Error("no enabled graph library")
+		return result, errors.New("no enabled graph library")
 	}
 
 	if size <= 0 {

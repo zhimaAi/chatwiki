@@ -225,8 +225,8 @@ func (g *GraphDB) FindRelatedEntities(entity string, libraryIds []string, limit 
 		}
 
 		// Limit second level entity count to avoid query explosion
-		if len(secondLevelEntities) > 12 {
-			secondLevelEntities = secondLevelEntities[:12]
+		if len(secondLevelEntities) > 8 {
+			secondLevelEntities = secondLevelEntities[:8]
 		}
 
 		// Execute batched queries for second level entities
@@ -249,8 +249,8 @@ func (g *GraphDB) FindRelatedEntities(entity string, libraryIds []string, limit 
 				safeEntity := strings.ReplaceAll(e, "'", "''")
 				// Use fuzzy match at second level
 				entityConditions = append(entityConditions,
-					fmt.Sprintf("n1.name =~ '(?i).*%s.*'", safeEntity),
-					fmt.Sprintf("n2.name =~ '(?i).*%s.*'", safeEntity))
+					fmt.Sprintf("n1.name = '%s'", safeEntity),
+					fmt.Sprintf("n2.name = '%s'", safeEntity))
 			}
 			entityWhere := strings.Join(entityConditions, " OR ")
 

@@ -389,7 +389,6 @@ func SaveRobot(c *gin.Context) {
 		id, err = m.Insert(data, `id`)
 		// add robot api key
 		if err == nil {
-			addDefaultApiKey(c, robotKey)
 			_ = AddUserMangedData(getLoginUserId(c), `managed_robot_list`, id)
 		}
 
@@ -480,7 +479,6 @@ func AddFlowRobot(c *gin.Context) {
 	id, err := m.Insert(data, `id`)
 	// add robot api key
 	if err == nil {
-		addDefaultApiKey(c, robotKey)
 		_ = AddUserMangedData(getLoginUserId(c), `managed_robot_list`, id)
 	}
 	if err != nil {
@@ -627,8 +625,7 @@ func deleteRobotRelationData(robotId int, robotKey string) error {
 	if robotId <= 0 || robotKey == "" {
 		return nil
 	}
-	err := deleteRobotApiKey(robotKey)
-	err = deleteFastCommandByRobotId(robotId)
+	err := deleteFastCommandByRobotId(robotId)
 	err = deleteWorkFlowByRobotId(robotId)
 	return err
 }

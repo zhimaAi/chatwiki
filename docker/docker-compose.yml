@@ -43,7 +43,7 @@ services:
   chatwiki_postgres_service:
     env_file: ./.env
     container_name: chatwiki_postgres_service
-    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/postgres:latest
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/postgres:20250328
     environment:
       TZ: ${TIMEZONE}
       POSTGRES_USER: ${POSTGRES_USER}

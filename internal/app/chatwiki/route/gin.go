@@ -62,12 +62,6 @@ func init() {
 	Route[http.MethodPost][`/manage/deleteRobot`] = manage.DeleteRobot
 	Route[http.MethodGet][`/manage/createPromptByAi`] = manage.CreatePromptByAi
 
-	/*apiKey API*/
-	Route[http.MethodPost][`/manage/addRobotApikey`] = manage.AddRobotApikey
-	Route[http.MethodPost][`/manage/deleteRobotApikey`] = manage.DeleteRobotApikey
-	Route[http.MethodPost][`/manage/updateRobotApikey`] = manage.UpdateRobotApikey
-	Route[http.MethodPost][`/manage/listRobotApikey`] = manage.ListRobotApikey
-
 	/*library API*/
 	Route[http.MethodGet][`/manage/getLibraryList`] = manage.GetLibraryList
 	Route[http.MethodGet][`/manage/getLibraryInfo`] = manage.GetLibraryInfo
@@ -175,9 +169,6 @@ func init() {
 	Route[http.MethodPost][`/manage/deleteFastCommand`] = manage.DeleteFastCommand
 	Route[http.MethodPost][`/manage/updateFastCommandSwitch`] = manage.UpdateFastCommandSwitch
 	noAuthFuns(Route[http.MethodGet], `/chat/getFastCommandList`, business.GetFastCommandList)
-	/* Open API*/
-	noAuthFuns(Route[http.MethodPost], `/open/chatMessage`, business.ChatMessages)
-	noAuthFuns(Route[http.MethodPost], `/v1/chat/completions`, business.Completions)
 
 	//register client side route
 	RegClientSideRoute()
