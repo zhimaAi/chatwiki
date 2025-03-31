@@ -191,7 +191,10 @@ func ConvertGraph(msg string, _ ...string) error {
 		logs.Error(`no data:%s`, msg)
 		return nil
 	}
-	fileInfo, err := common.GetLibFileInfo(fileId, cast.ToInt(info[`admin_user_id`]))
+	fileInfo, err := msql.Model(`chat_ai_library_file`, define.Postgres).
+		Where(`id`, cast.ToString(fileId)).
+		Where(`admin_user_id`, info[`admin_user_id`]).
+		Find()
 	if err != nil {
 		logs.Error(err.Error())
 		return nil
@@ -302,6 +305,7 @@ func constructGraphInit(fileId, dataId int) {
 	if err != nil {
 		logs.Error(err.Error())
 	}
+	_ = common.DeleteGraphFile(fileId)
 	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
 		Where(`id`, cast.ToString(fileId)).
 		Where(`graph_status`, cast.ToString(define.GraphStatusNotStart)).
@@ -325,6 +329,7 @@ func constructGraphFailed(fileId, dataId int, errMsg string) {
 	if err != nil {
 		logs.Error(err.Error())
 	}
+	_ = common.DeleteGraphFile(fileId)
 	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
 		Where(`id`, cast.ToString(fileId)).
 		Update(msql.Datas{

@@ -62,7 +62,7 @@ func Stop() {
 func StartConsumer() {
 	common.RunTask(define.ConvertHtmlTopic, define.ConvertHtmlChannel, 1, business.ConvertHtml)
 	common.RunTask(define.ConvertVectorTopic, define.ConvertVectorChannel, 2, business.ConvertVector)
-	common.RunTask(define.ConvertGraphTopic, define.ConvertGraphChannel, 2, business.ConvertGraph)
+	common.RunTask(define.ConvertGraphTopic, define.ConvertGraphChannel, 10, business.ConvertGraph)
 	common.RunTask(define.CrawlArticleTopic, define.CrawlArticleChannel, 2, business.CrawlArticle)
 	common.RunTask(define.ExportTaskTopic, define.ExportTaskChannel, 5, business.ExportTask)
 }

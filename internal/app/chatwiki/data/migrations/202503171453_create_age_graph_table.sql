@@ -2,4 +2,4 @@
 
 CREATE EXTENSION if not exists age;
 
-SELECT create_graph('graphrag');
+SELECT ag_catalog.create_graph('graphrag');

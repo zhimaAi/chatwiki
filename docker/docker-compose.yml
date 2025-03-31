@@ -43,7 +43,7 @@ services:
   chatwiki_postgres_service:
     env_file: ./.env
     container_name: chatwiki_postgres_service
-    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/postgres:20250328
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/postgres:20250331
     environment:
       TZ: ${TIMEZONE}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -101,8 +101,6 @@ services:
     restart: always
     depends_on:
       - chatwiki_redis_service
-      - chatwiki_crawler
-      - chatwiki_converter
       - chatwiki_postgres_service
       - chatwiki_go_nsq_service
       - chatwiki_websocket
