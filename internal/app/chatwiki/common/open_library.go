@@ -398,7 +398,7 @@ func LibDocSearch(lang string, libraryId int, search string, library msql.Params
 		}
 		vectorList = append(vectorList, list...)
 	}
-	list, err := GetMatchLibraryParagraphByFullTextSearch(search, cast.ToString(libraryId), fetchSize, searchType)
+	list, err := GetMatchLibraryParagraphByFullTextSearch(search, cast.ToString(libraryId), fetchSize, similarity, searchType)
 	if err != nil {
 		logs.Error(err.Error())
 		return result, summary, quoteFile, nil

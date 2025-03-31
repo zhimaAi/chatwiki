@@ -474,26 +474,89 @@ func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appTyp
 	return result, nil
 }
 
-func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size int, searchType int) ([]msql.Params, error) {
+func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size int, similarity float64, searchType int) ([]msql.Params, error) {
 	list := make([]msql.Params, 0)
 	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeFullText}) {
 		return list, nil
 	}
-	libIdArr := strings.Split(libraryIds, ",")
-	libIdList := strings.Join(libIdArr, " ")
 	question = strings.ReplaceAll(question, `'`, ` `)
-	where := fmt.Sprintf(`(
-		(id @@@ paradedb.match('content', '%s', tokenizer => paradedb.tokenizer('chinese_lindera'))) or 
-		(id @@@ paradedb.match('question', '%s', tokenizer => paradedb.tokenizer('chinese_lindera'))) or 
-		(id @@@ paradedb.match('answer', '%s', tokenizer => paradedb.tokenizer('chinese_lindera')))
-	)`, question, question, question)
-	return msql.Model(`chat_ai_library_file_data`, define.Postgres).
-		Where(where).
-		Where(fmt.Sprintf(`library_id @@@ '%s'`, libIdList)).
-		Field(`*,paradedb.score(id) as similarity`).
-		Order(`similarity DESC`).
-		Limit(size).
-		Select()
+	queryTokens, err := msql.Model(fmt.Sprintf(`ts_parse('zhparser', '%s')`, question), define.Postgres).ColumnArr(`token`)
+	if err != nil {
+		return nil, err
+	}
+
+	ids, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`library_id`, `in`, libraryIds).
+		Where(fmt.Sprintf(`to_tsvector('zhima_zh_parser',upper(content))@@to_tsquery('zhima_zh_parser',upper('%s'))`, strings.Join(queryTokens, " | "))).
+		Limit(500).ColumnArr(`id`)
+	if err != nil {
+		return list, err
+	}
+	if len(ids) == 0 {
+		return list, nil
+	}
+
+	list, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
+		Alias("a").
+		Join("chat_ai_library_file_data b", "a.data_id=b.id", "left").
+		Where(`a.id`, `in`, strings.Join(ids, `,`)).
+		Where(`b.id is not null`).
+		Field(`b.*,a.id as index_id`).
+		Field(fmt.Sprintf(`ts_rank(to_tsvector('zhima_zh_parser',upper(a.content)),to_tsquery('zhima_zh_parser',upper('%s'))) as rank`, strings.Join(queryTokens, " | "))).
+		Order(`rank DESC`).Limit(size).Select()
+	if err != nil {
+		return nil, err
+	}
+
+	listIds := make([]string, 0)
+	for _, one := range list {
+		listIds = append(listIds, cast.ToString(one[`index_id`]))
+	}
+
+	answerTokensResult, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
+		Alias(`a`).
+		Join(`LATERAL ts_parse('zhparser', a.content) as b`, `true`, `LEFT`).
+		Where(`id`, `in`, strings.Join(listIds, `,`)).
+		Field(`a.id, string_agg(b.token, ',') AS tokens`).
+		Group(`a.id`).Select()
+	if err != nil {
+		return nil, err
+	}
+
+	similarities := make(map[int]float64)
+	for _, one := range answerTokensResult {
+		answerTokens := strings.Split(one[`tokens`], ",")
+		score := overlapCoefficient(queryTokens, answerTokens)
+		similarities[cast.ToInt(one[`id`])] = score
+	}
+
+	// add similarity field
+	var result []msql.Params
+	bestScores := make(map[interface{}]msql.Params) // unique
+	for _, one := range list {
+		score := similarities[cast.ToInt(one[`index_id`])]
+		if score < similarity {
+			continue
+		}
+		id := one[`id`]
+		if existing, exists := bestScores[id]; !exists || cast.ToFloat64(existing[`similarity`]) < score {
+			one[`similarity`] = cast.ToString(score)
+			bestScores[id] = one
+		}
+	}
+
+	// convert map to slice
+	for _, one := range bestScores {
+		result = append(result, one)
+	}
+
+	// sort
+	sort.Slice(result, func(i, j int) bool {
+		similarityI := cast.ToFloat64(result[i]["similarity"])
+		similarityJ := cast.ToFloat64(result[j]["similarity"])
+		return similarityI > similarityJ
+	})
+
+	return result, err
 }
 
 func GetMatchLibraryParagraphByMergeRerank(openid, appType, question string, size int, vectorList, searchList, graphList []msql.Params, robot msql.Params) ([]msql.Params, error) {
@@ -563,7 +626,7 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 			logs.Error(err.Error())
 		}
 		graphList = append(graphList, list...)
-		list, err = GetMatchLibraryParagraphByFullTextSearch(q, libraryIds, fetchSize, searchType)
+		list, err = GetMatchLibraryParagraphByFullTextSearch(q, libraryIds, fetchSize, similarity, searchType)
 		if err != nil {
 			logs.Error(err.Error())
 		}
@@ -888,7 +951,7 @@ func GraphQuery(query string) ([]msql.Params, error) {
 	}()
 
 	// Load AGE extension - only needs to be loaded once in this transaction
-	_, err = msql.RawExec(define.Postgres, "load 'age';", nil)
+	_, err = msql.RawExec(define.Postgres, `load 'age'; SET search_path = ag_catalog, "$user", public;`, nil)
 	if err != nil {
 		logs.Error("Failed to load AGE extension: %s", err.Error())
 		return nil, err

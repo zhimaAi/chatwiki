@@ -31,7 +31,7 @@ func (g *GraphDB) ExecuteCypher(query string, args ...interface{}) ([]msql.Param
 	// 构建完整的查询
 	cypherQuery := fmt.Sprintf(query, args...)
 
-	sql := "LOAD 'age';" + msql.Model(cypherQuery, define.Postgres).Field("*").BuildSql()
+	sql := `LOAD 'age'; SET search_path = ag_catalog, "$user", public;` + msql.Model(cypherQuery, define.Postgres).Field("*").BuildSql()
 
 	return msql.RawValues(define.Postgres, sql, nil)
 }
