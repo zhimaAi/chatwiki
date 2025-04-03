@@ -480,6 +480,7 @@ func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size 
 		return list, nil
 	}
 	question = strings.ReplaceAll(question, `'`, ` `)
+	question = strings.ReplaceAll(strings.ReplaceAll(question, "\r\n", ""), "\n", "")
 	queryTokens, err := msql.Model(fmt.Sprintf(`ts_parse('zhparser', '%s')`, question), define.Postgres).ColumnArr(`token`)
 	if err != nil {
 		return nil, err

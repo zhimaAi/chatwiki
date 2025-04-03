@@ -142,6 +142,11 @@
     <div class="page-title">
       <LeftOutlined @click="goBack" />
       <span class="title">文档分段与清洗</span>
+      <div class="page-title-right" v-if="library_type == 0" style="margin-left: auto">
+        <a-button type="primary" :loading="saveLoading" @click="handleSaveLibFileSplit"
+          >保存</a-button
+        >
+      </div>
     </div>
     <div class="page-container">
       <div class="page-left">
@@ -150,6 +155,7 @@
           :libFileInfo="libFileInfo"
           :library_type="library_type"
           :mode="settingMode"
+          ref="segmentationSettingRef"
           @change="onChangeSetting"
           @validate="onValidate"
         />
@@ -183,7 +189,7 @@
       </div>
     </div>
 
-    <div class="footer-btn-box">
+    <div class="footer-btn-box" v-if="library_type == 1">
       <a-button type="primary" :loading="saveLoading" @click="handleSaveLibFileSplit"
         >保存</a-button
       >
@@ -228,6 +234,9 @@ let formData = {
   enable_extract_image: true
 }
 let isEdit = false
+
+const segmentationSettingRef = ref(null)
+
 const onChangeSetting = (data) => {
   if (typeof data.separators_no == 'object') {
     data.separators_no = data.separators_no.join(',')
@@ -284,7 +293,31 @@ const getDocumentStatus = () => {
       question_column: res.data.question_column,
       answer_column: res.data.answer_column,
       enable_extract_image: res.data.enable_extract_image == 'true',
-      qa_index_type: +res.data.qa_index_type
+      qa_index_type: +res.data.qa_index_type,
+
+      chunk_type: +res.data.chunk_type,
+      semantic_chunk_size: +res.data.semantic_chunk_size || 512,
+      semantic_chunk_overlap: +res.data.semantic_chunk_overlap || 50,
+      semantic_chunk_threshold: +res.data.semantic_chunk_threshold || 90,
+      semantic_chunk_use_model: res.data.semantic_chunk_use_model || '',
+      semantic_chunk_model_config_id:
+        res.data.semantic_chunk_model_config_id > 0 ? res.data.semantic_chunk_model_config_id : ''
+    }
+
+    if (res.data.chunk_type == 0) {
+      formData = {
+        ...formData,
+        separators_no: res.data.normal_chunk_default_separators_no,
+        chunk_size: res.data.normal_chunk_default_chunk_size,
+        chunk_overlap: res.data.normal_chunk_default_chunk_overlap,
+        chunk_type: +res.data.default_chunk_type,
+        semantic_chunk_size: +res.data.semantic_chunk_default_chunk_size,
+        semantic_chunk_overlap: +res.data.semantic_chunk_default_chunk_overlap,
+        semantic_chunk_threshold: +res.data.semantic_chunk_default_threshold,
+        semantic_chunk_use_model: res.data.default_use_model || '',
+        semantic_chunk_model_config_id:
+          res.data.default_model_config_id > 0 ? res.data.default_model_config_id : ''
+      }
     }
 
     // await getInfo(res.data.library_id)
@@ -304,12 +337,12 @@ const getDocumentStatus = () => {
       spinning.value = false
       settingMode.value = parseInt(res.data.is_table_file)
       library_id = res.data.library_id
-      if(library_type.value == 2){
-        if(formData.question_lable || formData.question_column){
-          getDocumentFragment();
+      if (library_type.value == 2) {
+        if (formData.question_lable || formData.question_column) {
+          getDocumentFragment()
         }
-      }else{
-        getDocumentFragment();
+      } else {
+        getDocumentFragment()
       }
       // library_type.value  != 2 && getDocumentFragment()
     } else {
@@ -323,7 +356,6 @@ const getDocumentStatus = () => {
 }
 
 getDocumentStatus()
-
 
 const excellQaLists = ref([])
 const getExcelQaTitle = () => {
@@ -345,11 +377,19 @@ const documentFragmentList = ref([])
 const documentFragmentTotal = ref(0)
 
 const getDocumentFragment = () => {
-
-  getLibFileSplit(formData).then((res) => {
-    documentFragmentList.value = res.data.list || []
-    documentFragmentTotal.value = res.data.list.length || 0
+  return getLibFileSplit({
+    ...formData,
+    semantic_chunk_model_config_id: formData.semantic_chunk_model_config_id
+      ? +formData.semantic_chunk_model_config_id
+      : 0
   })
+    .then((res) => {
+      documentFragmentList.value = res.data.list || []
+      documentFragmentTotal.value = res.data.list.length || 0
+    })
+    .finally(() => {
+      segmentationSettingRef.value.reLoading = false
+    })
 }
 
 // 编辑文档片段
@@ -404,13 +444,30 @@ const onValidate = (data) => {
 }
 
 const saveLoading = ref(false)
-const handleSaveLibFileSplit = () => {
+
+const updataFormData = () => {
+  let data = segmentationSettingRef.value.formState
+  data = JSON.parse(JSON.stringify(data))
+  if (typeof data.separators_no == 'object') {
+    data.separators_no = data.separators_no.join(',')
+  }
+  formData = {
+    ...formData,
+    ...data
+  }
+}
+const handleSaveLibFileSplit = async () => {
+  updataFormData()
+  await getDocumentFragment()
   if (validateMessage.value) {
     return message.error(validateMessage.value)
   }
 
   let split_params = {
     ...formData,
+    semantic_chunk_model_config_id: formData.semantic_chunk_model_config_id
+      ? +formData.semantic_chunk_model_config_id
+      : 0,
     is_table_file: settingMode.value
   }
 

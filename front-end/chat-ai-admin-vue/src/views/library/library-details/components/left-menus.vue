@@ -23,11 +23,21 @@ import SvgIcon from '@/components/svg-icon/index.vue'
 const emit = defineEmits(['changeMenu'])
 const route = useRoute()
 const query = route.query
+
+const props = defineProps({
+  libraryInfo: {
+    type: Object,
+    default: () => {
+      return {}
+    }
+  }
+})
+
 const selectedKeys = computed(() => {
   return [route.path.split('/')[3]]
 })
 
-const items = ref([
+const baseMenus = [
   {
     key: 'knowledge-document',
     id: 'knowledge-document',
@@ -83,7 +93,31 @@ const items = ref([
     title: '知识库配置',
     path: '/library/details/knowledge-config'
   }
-])
+]
+
+const items = computed(() => {
+  let robot_nums = props.libraryInfo.robot_nums
+  return [
+    ...baseMenus,
+    {
+      key: 'related-robots',
+      id: 'related-robots',
+      icon: () =>
+        h('span', {}, [
+          h(SvgIcon, {
+            name: 'knowledge-config-icon',
+            class: 'menu-icon'
+          }),
+          h(SvgIcon, {
+            name: 'knowledge-config-active-icon',
+            class: 'menu-icon-active'
+          })
+        ]),
+      label: `关联机器人${robot_nums > 0 ? `（${robot_nums}）` : ''}`,
+      path: '/library/details/related-robots'
+    }
+  ]
+})
 
 const handleChangeMenu = ({ item }) => {
   if (selectedKeys.value.includes(item.id)) {
