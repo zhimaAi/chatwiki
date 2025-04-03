@@ -130,7 +130,7 @@
       font-size: 14px;
       font-weight: 400;
       color: #262626;
-      &.not-required{
+      &.not-required {
         &::before {
           content: '';
         }
@@ -213,6 +213,68 @@
       }
     }
   }
+  .btn-box-block {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .select-card-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    .select-card-item {
+      width: calc(50% - 4px);
+      position: relative;
+      padding: 16px;
+      border-radius: 6px;
+      border: 1px solid #d9d9d9;
+      cursor: pointer;
+      .check-arrow {
+        position: absolute;
+        display: block;
+        right: -1px;
+        bottom: -1px;
+        width: 24px;
+        height: 24px;
+        font-size: 24px;
+        color: #fff;
+        opacity: 0;
+        transition: all 0.2s cubic-bezier(0.8, 0, 1, 1);
+      }
+      .card-title {
+        display: flex;
+        align-items: center;
+        line-height: 22px;
+        margin-bottom: 4px;
+        color: #262626;
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .title-icon {
+        margin-right: 4px;
+        font-size: 16px;
+      }
+      .card-desc {
+        min-height: 44px;
+        line-height: 22px;
+        font-size: 14px;
+        color: #595959;
+      }
+
+      &.active {
+        background: var(--01-, #e5efff);
+        border: 2px solid #2475fc;
+        .check-arrow {
+          opacity: 1;
+        }
+        .card-title {
+          color: #2475fc;
+        }
+      }
+    }
+  }
 }
 </style>
 
@@ -253,6 +315,7 @@
               </div>
             </div>
           </a-space> -->
+
           <template v-if="formState.is_qa_doc == 1">
             <div class="sub-setting-item-name">文件切分</div>
             <!-- 表格类型的QA文档 -->
@@ -384,62 +447,184 @@
           </template>
           <template v-else>
             <div class="custom-setting-form subsection-form" v-if="props.mode != 1">
-              <div class="form-item" style="margin-bottom: 18px">
-                <div class="form-item-label">分段标识符：</div>
+              <div class="form-item">
+                <div class="form-item-label">分段方式：</div>
                 <div class="form-item-body">
-                  <a-select
-                    placeholder="请选择"
-                    style="width: 100%"
-                    mode="multiple"
-                    v-model:value="formState.separators_no"
-                    @change="onChagneFormInput"
-                  >
-                    <a-select-option
-                      :value="item.no"
-                      v-for="item in separatorsOptions"
-                      :key="item.no"
-                      >{{ item.name }}</a-select-option
+                  <div class="select-card-box">
+                    <div
+                      class="select-card-item"
+                      @click="formState.chunk_type = 1"
+                      :class="{ active: formState.chunk_type == 1 }"
                     >
-                  </a-select>
+                      <svg-icon class="check-arrow" name="check-arrow-filled"></svg-icon>
+                      <div class="card-title">
+                        <svg-icon name="ordinary-segmentation" class="title-icon"></svg-icon>
+                        普通分段
+                      </div>
+                      <div class="card-desc">
+                        基于文章中句号、空行，或者自定义符号进行分段，不会消耗模型token
+                      </div>
+                    </div>
+                    <div
+                      class="select-card-item"
+                      @click="formState.chunk_type = 2"
+                      :class="{ active: formState.chunk_type == 2 }"
+                    >
+                      <svg-icon class="check-arrow" name="check-arrow-filled"></svg-icon>
+                      <div class="card-title">
+                        <svg-icon name="semantic-segmentation" class="title-icon"></svg-icon>
+                        语义分段
+                      </div>
+                      <div class="card-desc">
+                        将文章拆分成句子后，通过语句向量相似度进行分段，会消耗模型token
+                      </div>
+                    </div>
+                  </div>
+                  <a-alert
+                    v-if="formState.chunk_type == 2"
+                    style="margin-top: 12px"
+                    message="提示：语义分段更适合没有排版过的文章，即没有明显换行符号的文本，否则更推荐使用普通分段"
+                  ></a-alert>
                 </div>
               </div>
-              <a-flex :gap="16">
-                <div class="form-item">
-                  <div class="form-item-label">分段最大长度：</div>
+              <template v-if="formState.chunk_type == 1">
+                <div class="form-item" style="margin-bottom: 18px">
+                  <div class="form-item-label">分段标识符：</div>
                   <div class="form-item-body">
-                    <a-flex align="center" :gap="8">
-                      <a-input-number
-                        style="flex: 1;"
-                        v-model:value="formState.chunk_size"
-                        placeholder="分段最大长度"
-                        :min="200"
-                        :max="2000"
-                        :precision="0"
-                        :formatter="(value) => parseInt(value)"
-                        :parser="(value) => parseInt(value)"
-                        @change="onChagneFormInput"
-                      /><span class="unit-text">字符</span>
-                    </a-flex>
+                    <a-select
+                      placeholder="请选择"
+                      style="width: 100%"
+                      mode="multiple"
+                      v-model:value="formState.separators_no"
+                    >
+                      <a-select-option
+                        :value="item.no"
+                        v-for="item in separatorsOptions"
+                        :key="item.no"
+                        >{{ item.name }}</a-select-option
+                      >
+                    </a-select>
                   </div>
                 </div>
+                <a-flex :gap="16">
+                  <div class="form-item">
+                    <div class="form-item-label">分段最大长度：</div>
+                    <div class="form-item-body">
+                      <a-flex align="center" :gap="8">
+                        <a-input-number
+                          style="flex: 1"
+                          v-model:value="formState.chunk_size"
+                          placeholder="分段最大长度"
+                          :min="200"
+                          :max="2000"
+                          :precision="0"
+                          :formatter="(value) => parseInt(value)"
+                          :parser="(value) => parseInt(value)"
+                        /><span class="unit-text">字符</span>
+                      </a-flex>
+                    </div>
+                  </div>
 
-                <div class="form-item">
-                  <div class="form-item-label not-required">分段重叠长度：</div>
+                  <div class="form-item">
+                    <div class="form-item-label not-required">分段重叠长度：</div>
+                    <div class="form-item-body">
+                      <a-flex align="center" :gap="8">
+                        <a-input-number
+                          style="flex: 1"
+                          v-model:value="formState.chunk_overlap"
+                          placeholder="分段重叠长度"
+                          :min="0"
+                          :formatter="(value) => parseInt(value)"
+                          :parser="(value) => parseInt(value)"
+                        /><span class="unit-text">字符</span>
+                      </a-flex>
+                    </div>
+                  </div>
+                </a-flex>
+              </template>
+              <div v-show="formState.chunk_type == 2">
+                <div class="form-item" style="margin-bottom: 16px">
+                  <div class="form-item-label">嵌入模型：</div>
                   <div class="form-item-body">
-                    <a-flex align="center" :gap="8">
-                      <a-input-number
-                        style="flex: 1;"
-                        v-model:value="formState.chunk_overlap"
-                        placeholder="分段重叠长度"
-                        :min="0"
-                        :formatter="(value) => parseInt(value)"
-                        :parser="(value) => parseInt(value)"
-                        @change="onChagneFormInput"
-                      /><span class="unit-text">字符</span>
-                    </a-flex>
+                    <ModelSelect
+                      modelType="TEXT EMBEDDING"
+                      v-model:modeName="formState.semantic_chunk_use_model"
+                      v-model:modeId="formState.semantic_chunk_model_config_id"
+                      style="width: 100%"
+                      @loaded="onVectorModelLoaded"
+                    />
                   </div>
                 </div>
-              </a-flex>
+                <div class="form-item" style="margin-bottom: 16px">
+                  <div class="form-item-label">
+                    分段阈值
+                    <a-tooltip>
+                      <template #title
+                        >用于控制分段拆分的标准，数值0~100,数值越大，分段越少，数值越小，分段越多。</template
+                      >
+                      <QuestionCircleOutlined
+                        style="cursor: pointer; margin-left: 2px"
+                      /> </a-tooltip
+                    >：
+                  </div>
+                  <div class="form-item-body">
+                    <a-input-number
+                      style="width: 100%"
+                      v-model:value="formState.semantic_chunk_threshold"
+                      placeholder="请输入分段阈值"
+                      :precision="0"
+                      :min="0"
+                      :max="100"
+                    />
+                  </div>
+                </div>
+                <a-flex :gap="16">
+                  <div class="form-item">
+                    <div class="form-item-label">分段最大长度：</div>
+                    <div class="form-item-body">
+                      <a-flex align="center" :gap="8">
+                        <a-input-number
+                          style="flex: 1"
+                          v-model:value="formState.semantic_chunk_size"
+                          placeholder="分段最大长度"
+                          :min="200"
+                          :max="2000"
+                          :precision="0"
+                          :formatter="(value) => parseInt(value)"
+                          :parser="(value) => parseInt(value)"
+                        /><span class="unit-text">字符</span>
+                      </a-flex>
+                    </div>
+                  </div>
+
+                  <div class="form-item">
+                    <div class="form-item-label not-required">分段重叠长度：</div>
+                    <div class="form-item-body">
+                      <a-flex align="center" :gap="8">
+                        <a-input-number
+                          style="flex: 1"
+                          v-model:value="formState.semantic_chunk_overlap"
+                          placeholder="分段重叠长度"
+                          :min="0"
+                          :formatter="(value) => parseInt(value)"
+                          :parser="(value) => parseInt(value)"
+                        /><span class="unit-text">字符</span>
+                      </a-flex>
+                    </div>
+                  </div>
+                </a-flex>
+              </div>
+              <div class="btn-box-block">
+                <a-button @click="handleReset" style="flex: 1">重置</a-button>
+                <a-button
+                  @click="reChange"
+                  :loading="reLoading"
+                  style="flex: 1"
+                  type="primary"
+                  ghost
+                  >重新分段</a-button
+                >
+              </div>
             </div>
           </template>
         </div>
@@ -450,7 +635,9 @@
 
 <script setup>
 import { getSeparatorsList } from '@/api/library/index'
+import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { reactive, ref, toRaw, computed, watch } from 'vue'
+import ModelSelect from '@/components/model-select/model-select.vue'
 import { Form } from 'ant-design-vue'
 import { message } from 'ant-design-vue'
 
@@ -470,9 +657,9 @@ const props = defineProps({
     type: Object,
     default: () => {}
   },
-  library_type:{
-    default: 0,
-  },
+  library_type: {
+    default: 0
+  }
 })
 const isHtmlOrDocx = computed(() => {
   return (
@@ -483,7 +670,7 @@ const isHtmlOrDocx = computed(() => {
 watch(props, (val) => {
   let libFileInfo = val.libFileInfo
   let separators_no = libFileInfo.separators_no ? libFileInfo.separators_no.split(',') : [11, 12]
-  formState.separators_no = separators_no.map(item => +item)
+  formState.separators_no = separators_no.map((item) => +item)
   formState.chunk_size = +libFileInfo.chunk_size || 512
   formState.chunk_overlap = +libFileInfo.chunk_overlap || 50
   // formState.is_qa_doc = +libFileInfo.is_qa_doc
@@ -493,8 +680,34 @@ watch(props, (val) => {
   formState.answer_column = libFileInfo.answer_column || void 0
   formState.qa_index_type = +libFileInfo.qa_index_type
   formState.enable_extract_image = libFileInfo.enable_extract_image == 'true'
-  formState.is_qa_doc = props.library_type == 2 ? 1 : 0
 
+  formState.chunk_type = +libFileInfo.chunk_type
+  formState.semantic_chunk_size = +libFileInfo.semantic_chunk_size || 512
+  formState.semantic_chunk_overlap = +libFileInfo.semantic_chunk_overlap || 50
+  formState.semantic_chunk_threshold = +libFileInfo.semantic_chunk_threshold || 90
+  formState.semantic_chunk_use_model = libFileInfo.semantic_chunk_use_model || ''
+  formState.semantic_chunk_model_config_id =
+    libFileInfo.semantic_chunk_model_config_id > 0 ? libFileInfo.semantic_chunk_model_config_id : ''
+
+  if (libFileInfo.chunk_type == 0) {
+    separators_no = libFileInfo.normal_chunk_default_separators_no
+      ? libFileInfo.normal_chunk_default_separators_no.split(',')
+      : [11, 12]
+    formState.separators_no = separators_no.map((item) => +item)
+    formState.chunk_size = +libFileInfo.normal_chunk_default_chunk_size || 512
+    formState.chunk_overlap = +libFileInfo.normal_chunk_default_chunk_overlap || 50
+    formState.chunk_type = +libFileInfo.default_chunk_type
+    formState.semantic_chunk_size = +libFileInfo.semantic_chunk_default_chunk_size || 512
+    formState.semantic_chunk_overlap = +libFileInfo.semantic_chunk_default_chunk_overlap || 50
+    formState.semantic_chunk_threshold = +libFileInfo.semantic_chunk_default_threshold || 90
+    setTimeout(() => {
+      formState.semantic_chunk_use_model = libFileInfo.default_use_model
+      formState.semantic_chunk_model_config_id =
+        libFileInfo.default_model_config_id > 0 ? libFileInfo.default_model_config_id : ''
+    }, 100)
+  }
+
+  formState.is_qa_doc = props.library_type == 2 ? 1 : 0
 })
 const formState = reactive({
   separators_no: [], // 自定义分段-分隔符序号集
@@ -506,8 +719,28 @@ const formState = reactive({
   question_column: void 0, // excel QA文档 问题所在列
   answer_column: void 0, // excel QA文档 答案所在列
   qa_index_type: 1, // excel QA文档 索引方式
-  enable_extract_image: true
+  enable_extract_image: true,
+  chunk_type: 1,
+  semantic_chunk_size: 512, // 语义分段最大长度
+  semantic_chunk_overlap: 50, // 语义分段重叠长度
+  semantic_chunk_threshold: 90, // 语义分段阈值
+  semantic_chunk_use_model: '',
+  semantic_chunk_model_config_id: ''
 })
+
+let baseFormState = {}
+setTimeout(() => {
+  baseFormState = JSON.parse(JSON.stringify(formState))
+}, 500)
+
+const vectorModelList = ref([])
+const onVectorModelLoaded = (list) => {
+  vectorModelList.value = list
+}
+
+const handleReset = () => {
+  Object.assign(formState, baseFormState)
+}
 
 const formRules = reactive({
   question_lable: [
@@ -517,6 +750,23 @@ const formRules = reactive({
         if (formState.is_qa_doc == 1 && props.mode == 0) {
           if (!value) {
             return Promise.reject('请输入问题开始标识符')
+          }
+
+          return Promise.resolve()
+        }
+
+        return Promise.resolve()
+      }
+    }
+  ],
+  semantic_chunk_model_config_id: [
+    {
+      message: '请选择嵌入模型',
+      validator: async (rule, value) => {
+        if (formState.is_qa_doc == 0 && formState.chunk_type == 2) {
+          console.log(value, '==')
+          if (!value) {
+            return Promise.reject('请选择嵌入模型')
           }
 
           return Promise.resolve()
@@ -546,7 +796,12 @@ const formRules = reactive({
     {
       message: '请选择分段标识符',
       validator: async (rule, value) => {
-        if (props.mode != 1 && formState.is_qa_doc == 0 && value.length == 0) {
+        if (
+          props.mode != 1 &&
+          formState.is_qa_doc == 0 &&
+          value.length == 0 &&
+          formState.chunk_type == 1
+        ) {
           return Promise.reject('请选择分段标识符')
         }
 
@@ -557,7 +812,7 @@ const formRules = reactive({
   chunk_size: [
     {
       validator: async (rule, value) => {
-        if (props.mode != 1) {
+        if (props.mode != 1 && formState.chunk_type == 1) {
           if (!value) {
             return Promise.reject('请输入分段最大长度')
           } else if (value > 2000) {
@@ -572,7 +827,7 @@ const formRules = reactive({
   chunk_overlap: [
     {
       validator: async (rule, value) => {
-        if (props.mode != 1) {
+        if (props.mode != 1 && formState.chunk_type == 1) {
           if (value > parseInt(formState.chunk_size / 2)) {
             return Promise.reject('分段重叠长度最大不得超过最大分段长度的50%')
           }
@@ -623,6 +878,12 @@ const changeDocumentType = (val) => {
   onChange()
 }
 
+const reLoading = ref(false)
+const reChange = () => {
+  reLoading.value = true
+  onChange()
+}
+
 const onChange = (showErrorAlert = true) => {
   let form = toRaw(formState)
   validate()
@@ -636,11 +897,13 @@ const onChange = (showErrorAlert = true) => {
         // console.log('error', err)
         if (showErrorAlert) {
           let errorName = errorFields[0].name
-          if(errorName == 'chunk_overlap'){
-            message.error(errorFields[0]['errors'][0])
-          }
+          // if (errorName == 'chunk_overlap') {
+          //   message.error(errorFields[0]['errors'][0])
+          // }
         }
+        message.error(errorFields[0]['errors'][0])
         emit('validate', errorFields[0]['errors'][0])
+        reLoading.value = false
         return
       }
       emit('validate', '')
@@ -678,4 +941,9 @@ const handleChangeQaIndexType = (type) => {
   formState.qa_index_type = type
   onChange()
 }
+
+defineExpose({
+  formState,
+  reLoading
+})
 </script>

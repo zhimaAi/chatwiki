@@ -8,6 +8,7 @@ import (
 	"chatwiki/internal/pkg/lib_define"
 	"encoding/json"
 	"errors"
+	"github.com/zhimaAi/go_tools/msql"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -148,18 +149,48 @@ func GetImgInMessage(message string) (string, []string) {
 	return message, out
 }
 
-func CheckSplitParams(splitParams define.SplitParams, lang string) (define.SplitParams, error) {
-	//diy split
-	if len(splitParams.SeparatorsNo) == 0 {
-		return splitParams, errors.New(i18n.Show(lang, `param_empty`, `separators_no`))
+func CheckSplitParams(libraryInfo msql.Params, splitParams define.SplitParams, lang string) (define.SplitParams, error) {
+	if cast.ToInt(splitParams.ChunkType) == 0 {
+		splitParams.ChunkType = cast.ToInt(libraryInfo[`chunk_type`])
+		if splitParams.ChunkType == define.ChunkTypeNormal {
+			splitParams.SeparatorsNo = libraryInfo[`normal_chunk_default_separators_no`]
+			splitParams.ChunkSize = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_size`])
+			splitParams.ChunkOverlap = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_overlap`])
+		} else {
+			splitParams.SemanticChunkSize = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_size`])
+			splitParams.SemanticChunkOverlap = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_overlap`])
+			splitParams.SemanticChunkThreshold = cast.ToInt(libraryInfo[`semantic_chunk_default_threshold`])
+		}
 	}
-	if splitParams.ChunkSize < 200 || splitParams.ChunkSize > 2000 {
-		return splitParams, errors.New(i18n.Show(lang, `chunk_size_err`, 200, 2000))
+
+	// normal split
+	if splitParams.ChunkType == define.ChunkTypeNormal {
+		if len(splitParams.SeparatorsNo) == 0 {
+			return splitParams, errors.New(i18n.Show(lang, `param_empty`, `separators_no`))
+		}
+		if splitParams.ChunkSize < define.SplitChunkMinSize || splitParams.ChunkSize > define.SplitChunkMaxSize {
+			return splitParams, errors.New(i18n.Show(lang, `chunk_size_err`, define.SplitChunkMinSize, define.SplitChunkMaxSize))
+		}
+		maxChunkOverlap := splitParams.ChunkSize / 2
+		if splitParams.ChunkOverlap < 0 || splitParams.ChunkOverlap > maxChunkOverlap {
+			return splitParams, errors.New(i18n.Show(lang, `chunk_overlap_err`, 0, maxChunkOverlap))
+		}
 	}
-	maxChunkOverlap := splitParams.ChunkSize / 2
-	if splitParams.ChunkOverlap < 0 || splitParams.ChunkOverlap > maxChunkOverlap {
-		return splitParams, errors.New(i18n.Show(lang, `chunk_overlap_err`, 0, maxChunkOverlap))
+
+	// semantic split
+	if splitParams.ChunkType == define.ChunkTypeSemantic {
+		if splitParams.SemanticChunkSize < define.SplitChunkMinSize || splitParams.SemanticChunkSize > define.SplitChunkMaxSize {
+			return splitParams, errors.New(i18n.Show(lang, `semantic_chunk_size_err`, define.SplitChunkMinSize, define.SplitChunkMaxSize))
+		}
+		maxSemanticChunkOverlap := splitParams.SemanticChunkSize / 2
+		if splitParams.SemanticChunkOverlap > maxSemanticChunkOverlap {
+			return splitParams, errors.New(i18n.Show(lang, `semantic_chunk_overlap_err`, 0, maxSemanticChunkOverlap))
+		}
+		if splitParams.SemanticChunkThreshold < 1 || splitParams.SemanticChunkThreshold > 100 {
+			return splitParams, errors.New(i18n.Show(lang, `semantic_chunk_threshold_err`, 1, 100))
+		}
 	}
+
 	for i, noStr := range strings.Split(splitParams.SeparatorsNo, `,`) {
 		no := cast.ToInt(noStr)
 		if no < 1 || no > len(define.SeparatorsList) {

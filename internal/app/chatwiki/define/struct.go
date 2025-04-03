@@ -74,18 +74,24 @@ type DocSplitItem struct {
 }
 
 type SplitParams struct {
-	IsTableFile        int      `json:"is_table_file"`
-	IsDiySplit         int      `json:"is_diy_split"`
-	SeparatorsNo       string   `json:"separators_no"`
-	Separators         []string `json:"-"`
-	ChunkSize          int      `json:"chunk_size"`
-	ChunkOverlap       int      `json:"chunk_overlap"`
-	IsQaDoc            int      `json:"is_qa_doc"`
-	QuestionLable      string   `json:"question_lable"`
-	AnswerLable        string   `json:"answer_lable"`
-	QuestionColumn     string   `json:"question_column"`
-	AnswerColumn       string   `json:"answer_column"`
-	EnableExtractImage bool     `json:"enable_extract_image"`
+	IsTableFile                int      `json:"is_table_file"`
+	IsDiySplit                 int      `json:"is_diy_split"`
+	SeparatorsNo               string   `json:"separators_no"`
+	Separators                 []string `json:"-"`
+	ChunkSize                  int      `json:"chunk_size"`
+	ChunkOverlap               int      `json:"chunk_overlap"`
+	IsQaDoc                    int      `json:"is_qa_doc"`
+	QuestionLable              string   `json:"question_lable"`
+	AnswerLable                string   `json:"answer_lable"`
+	QuestionColumn             string   `json:"question_column"`
+	AnswerColumn               string   `json:"answer_column"`
+	EnableExtractImage         bool     `json:"enable_extract_image"`
+	ChunkType                  int      `json:"chunk_type"`
+	SemanticChunkUseModel      string   `json:"semantic_chunk_use_model"`
+	SemanticChunkModelConfigId int      `json:"semantic_chunk_model_config_id"`
+	SemanticChunkSize          int      `json:"semantic_chunk_size"`
+	SemanticChunkOverlap       int      `json:"semantic_chunk_overlap"`
+	SemanticChunkThreshold     int      `json:"semantic_chunk_threshold"`
 }
 
 type FormFilterCondition struct {

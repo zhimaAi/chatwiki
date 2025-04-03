@@ -125,11 +125,11 @@ func SaveNodes(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `op_lock`))))
 		return
 	}
-	var startNodeKey, modelConfigIds string
+	var startNodeKey, modelConfigIds, libraryIds string
 	clearNodeKeys := make([]string, 0)
 	m := msql.Model(`work_flow_node`, define.Postgres)
 	if dataType == define.DataTypeRelease {
-		if startNodeKey, modelConfigIds, err = work_flow.VerifyWorkFlowNodes(nodeList, userId); err != nil {
+		if startNodeKey, modelConfigIds, libraryIds, err = work_flow.VerifyWorkFlowNodes(nodeList, userId); err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			lib_redis.UnLock(define.Redis, lockKey) //unlock
 			return
@@ -181,6 +181,7 @@ func SaveNodes(c *gin.Context) {
 	if dataType == define.DataTypeRelease {
 		_, err = msql.Model(`chat_ai_robot`, define.Postgres).Where(`robot_key`, robotKey).Update(msql.Datas{
 			`start_node_key`:             startNodeKey,
+			`library_ids`:                libraryIds,
 			`work_flow_model_config_ids`: fmt.Sprintf(`{%s}`, modelConfigIds),
 			`update_time`:                tool.Time2Int(),
 		})

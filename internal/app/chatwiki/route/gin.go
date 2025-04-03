@@ -68,6 +68,7 @@ func init() {
 	Route[http.MethodPost][`/manage/createLibrary`] = manage.CreateLibrary
 	Route[http.MethodPost][`/manage/deleteLibrary`] = manage.DeleteLibrary
 	Route[http.MethodPost][`/manage/editLibrary`] = manage.EditLibrary
+	Route[http.MethodGet][`/manage/getLibraryRobotInfo`] = manage.GetLibraryRobotInfo
 	/*open library API*/
 	noAuthFuns(Route[http.MethodGet], `/manage/getCatalog`, manage.GetCatalog)
 	noAuthFuns(Route[http.MethodGet], `/manage/getLibDocInfo`, manage.GetLibDocInfo)

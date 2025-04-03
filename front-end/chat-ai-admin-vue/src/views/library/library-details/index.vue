@@ -9,7 +9,7 @@
           </div>
         </div>
         <div class="left-menu-wrapper">
-          <LeftMenus></LeftMenus>
+          <LeftMenus :libraryInfo="libraryInfo"></LeftMenus>
         </div>
       </div>
 
@@ -33,7 +33,8 @@ const query = rotue.query
 const libraryInfo = ref({
   library_name: '',
   avatar: '',
-  library_intro: ''
+  library_intro: '',
+  robot_nums: 0
 })
 const getInfo = () => {
   getLibraryInfo({ id: query.id }).then((res) => {

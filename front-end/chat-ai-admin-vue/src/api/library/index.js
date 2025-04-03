@@ -147,3 +147,11 @@ export const editLibFile = (data) => {
     data: data
   })
 }
+
+
+export const getLibraryRobotInfo = (params = {}) => {
+  return request.get({
+    url: '/manage/getLibraryRobotInfo',
+    params: params
+  })
+}

@@ -341,6 +341,15 @@ func GetLibFileInfo(c *gin.Context) {
 	}
 	info[`library_name`] = library[`library_name`]
 	info[`library_type`] = library[`type`]
+	info[`default_chunk_type`] = library[`chunk_type`]
+	info[`normal_chunk_default_separators_no`] = library[`normal_chunk_default_separators_no`]
+	info[`normal_chunk_default_chunk_size`] = library[`normal_chunk_default_chunk_size`]
+	info[`normal_chunk_default_chunk_overlap`] = library[`normal_chunk_default_chunk_overlap`]
+	info[`semantic_chunk_default_chunk_size`] = library[`semantic_chunk_default_chunk_size`]
+	info[`semantic_chunk_default_chunk_overlap`] = library[`semantic_chunk_default_chunk_overlap`]
+	info[`semantic_chunk_default_threshold`] = library[`semantic_chunk_default_threshold`]
+	info[`default_model_config_id`] = library[`model_config_id`]
+	info[`default_use_model`] = library[`use_model`]
 
 	var separators []string
 	for _, noStr := range strings.Split(info[`separators_no`], `,`) {
@@ -379,17 +388,33 @@ func GetLibFileSplit(c *gin.Context) {
 		return
 	}
 	splitParams := define.SplitParams{
-		IsDiySplit:         cast.ToInt(c.Query(`is_diy_split`)),
-		SeparatorsNo:       strings.TrimSpace(c.Query(`separators_no`)),
-		Separators:         make([]string, 0),
-		ChunkSize:          cast.ToInt(c.Query(`chunk_size`)),
-		ChunkOverlap:       cast.ToInt(c.Query(`chunk_overlap`)),
-		IsQaDoc:            cast.ToInt(c.Query(`is_qa_doc`)),
-		QuestionLable:      strings.TrimSpace(c.Query(`question_lable`)),
-		AnswerLable:        strings.TrimSpace(c.Query(`answer_lable`)),
-		QuestionColumn:     strings.TrimSpace(c.Query(`question_column`)),
-		AnswerColumn:       strings.TrimSpace(c.Query(`answer_column`)),
-		EnableExtractImage: cast.ToBool(c.Query(`enable_extract_image`)),
+		IsDiySplit:                 cast.ToInt(c.Query(`is_diy_split`)),
+		SeparatorsNo:               strings.TrimSpace(c.Query(`separators_no`)),
+		Separators:                 make([]string, 0),
+		ChunkSize:                  cast.ToInt(c.Query(`chunk_size`)),
+		ChunkOverlap:               cast.ToInt(c.Query(`chunk_overlap`)),
+		IsQaDoc:                    cast.ToInt(c.Query(`is_qa_doc`)),
+		QuestionLable:              strings.TrimSpace(c.Query(`question_lable`)),
+		AnswerLable:                strings.TrimSpace(c.Query(`answer_lable`)),
+		QuestionColumn:             strings.TrimSpace(c.Query(`question_column`)),
+		AnswerColumn:               strings.TrimSpace(c.Query(`answer_column`)),
+		EnableExtractImage:         cast.ToBool(c.Query(`enable_extract_image`)),
+		ChunkType:                  cast.ToInt(c.Query(`chunk_type`)),
+		SemanticChunkSize:          cast.ToInt(c.Query(`semantic_chunk_size`)),
+		SemanticChunkOverlap:       cast.ToInt(c.Query(`semantic_chunk_overlap`)),
+		SemanticChunkThreshold:     cast.ToInt(c.Query(`semantic_chunk_threshold`)),
+		SemanticChunkModelConfigId: cast.ToInt(c.Query(`semantic_chunk_model_config_id`)),
+		SemanticChunkUseModel:      strings.TrimSpace(c.Query(`semantic_chunk_use_model`)),
+	}
+	if splitParams.ChunkType == define.ChunkTypeSemantic {
+		if splitParams.SemanticChunkModelConfigId <= 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `semantic_chunk_model_config_id`))))
+			return
+		}
+		if len(splitParams.SemanticChunkUseModel) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `semantic_chunk_use_model`))))
+			return
+		}
 	}
 	list, wordTotal, err := common.GetLibFileSplit(userId, fileId, splitParams, common.GetLang(c))
 	if err != nil {

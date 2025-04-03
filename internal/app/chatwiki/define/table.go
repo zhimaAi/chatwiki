@@ -52,9 +52,19 @@ const (
 )
 
 const (
+	ChunkTypeNormal   = 1
+	ChunkTypeSemantic = 2
+)
+
+const (
 	ParagraphTypeNormal  = 1
 	ParagraphTypeDocQA   = 2
 	ParagraphTypeExcelQA = 3
+)
+
+const (
+	SplitChunkMaxSize = 2000
+	SplitChunkMinSize = 200
 )
 
 const (

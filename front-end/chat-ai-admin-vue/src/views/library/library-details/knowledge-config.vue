@@ -3,7 +3,7 @@
   padding: 24px;
 
   .form-box {
-    width: 554px;
+    width: 630px;
     margin: 0 auto;
   }
 }
@@ -67,119 +67,303 @@
     color: #bfbfbf;
   }
 }
+
+.select-card-box {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 550px;
+  .select-card-item {
+    width: calc(50% - 8px);
+    position: relative;
+    padding: 16px;
+    border-radius: 6px;
+    border: 1px solid #d9d9d9;
+    cursor: pointer;
+    .check-arrow {
+      position: absolute;
+      display: block;
+      right: -1px;
+      bottom: -1px;
+      width: 24px;
+      height: 24px;
+      font-size: 24px;
+      color: #fff;
+      opacity: 0;
+      transition: all 0.2s cubic-bezier(0.8, 0, 1, 1);
+    }
+    .card-title {
+      display: flex;
+      align-items: center;
+      line-height: 22px;
+      margin-bottom: 4px;
+      color: #262626;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .title-icon {
+      margin-right: 4px;
+      font-size: 16px;
+    }
+    .card-desc {
+      min-height: 44px;
+      line-height: 22px;
+      font-size: 14px;
+      color: #595959;
+    }
+
+    &.active {
+      background: var(--01-, #e5efff);
+      border: 2px solid #2475fc;
+      .check-arrow {
+        opacity: 1;
+      }
+      .card-title {
+        color: #2475fc;
+      }
+    }
+  }
+}
 </style>
 
 <template>
-  <div class="add-library-page">
-    <div class="form-box">
-      <a-form :label-col="{ span: 4 }">
-        <a-form-item ref="name" label="知识库名称" v-bind="validateInfos.library_name">
-          <a-input
-            @blur="handleEdit"
-            v-model:value="formState.library_name"
-            placeholder="请输入知识库名称，最多20个字"
-          />
-        </a-form-item>
+  <cu-scroll>
+    <div class="add-library-page">
+      <div class="form-box">
+        <a-form :label-col="{ span: 5 }">
+          <a-form-item ref="name" label="知识库名称" v-bind="validateInfos.library_name">
+            <a-input
+              @blur="handleEdit"
+              v-model:value="formState.library_name"
+              placeholder="请输入知识库名称，最多20个字"
+            />
+          </a-form-item>
 
-        <a-form-item label="知识库简介">
-          <a-textarea
-            @blur="handleEdit"
-            v-model:value="formState.library_intro"
-            placeholder="请输入知识库介绍"
-          />
-        </a-form-item>
+          <a-form-item label="知识库简介">
+            <a-textarea
+              @blur="handleEdit"
+              v-model:value="formState.library_intro"
+              placeholder="请输入知识库介绍"
+            />
+          </a-form-item>
 
-        <a-form-item ref="name" label="知识库封面" v-bind="validateInfos.avatar">
-          <AvatarInput v-model:value="formState.avatar" @change="onAvatarChange" />
-          <div class="form-item-tip">请上传知识库封面，建议尺寸为100*100px.大小不超过100kb</div>
-        </a-form-item>
+          <a-form-item ref="name" label="知识库封面" v-bind="validateInfos.avatar">
+            <AvatarInput v-model:value="formState.avatar" @change="onAvatarChange" />
+            <div class="form-item-tip">请上传知识库封面，建议尺寸为100*100px.大小不超过100kb</div>
+          </a-form-item>
 
-        <a-form-item label="嵌入模型" v-bind="validateInfos.use_model">
-          <div class="card-box" v-if="false">
-            <div
-              class="use-model-item"
-              :class="{ active: isActive == item.value }"
-              v-for="item in libraryModeList"
-              :key="item.value"
-              @click="handleSelectLibrary(item)"
-            >
-              <div class="use-model-item-top" :class="{ active: isActive == item.value }">
-                <svg-icon
-                  class="use-model-item-top-icon"
-                  style="color: #2475fc"
-                  :name="item.iconName"
-                ></svg-icon>
-                <p>{{ item.title }}</p>
-              </div>
-              <p>{{ item.desc }}</p>
-              <svg-icon
-                class="check-arrow"
-                name="check-arrow-filled"
-                style="font-size: 24px; color: #fff"
-                v-if="isActive == item.value"
-              ></svg-icon>
-            </div>
-          </div>
-          <a-select
-            @change="handleChangeModel"
-            v-model:value="formState.use_model"
-            placeholder="请选择嵌入模型"
-          >
-            <a-select-opt-group v-for="item in modelList" :key="item.id">
-              <template #label>
-                <a-flex align="center" :gap="6">
-                  <img class="model-icon" :src="item.icon" alt="" />{{ item.name }}
-                </a-flex>
-              </template>
-              <a-select-option
-                :value="
-                  modelDefine.indexOf(item.model_define) > -1 && val.deployment_name
-                    ? val.deployment_name
-                    : val.name + val.id
-                "
-                :model_config_id="item.id"
-                :current_obj="val"
-                v-for="val in item.children"
-                :key="val.name + val.id"
+          <a-form-item label="嵌入模型" v-bind="validateInfos.use_model">
+            <div class="card-box" v-if="false">
+              <div
+                class="use-model-item"
+                :class="{ active: isActive == item.value }"
+                v-for="item in libraryModeList"
+                :key="item.value"
+                @click="handleSelectLibrary(item)"
               >
-                <span v-if="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name">{{
-                  val.deployment_name
-                }}</span>
-                <span v-else>{{ val.name }}</span>
-              </a-select-option>
-            </a-select-opt-group>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="生成知识图谱">
-          <a-switch
-            @change="handleGraphSwitch"
-            :checked="formState.graph_switch"
-            checked-children="开"
-            un-checked-children="关"
-          />
-        </a-form-item>
-        <a-form-item label="知识图谱模型" v-show="formState.graph_switch">
-          <ModelSelect
-            modelType="LLM"
-            v-model:modeName="formState.graph_use_model"
-            v-model:modeId="formState.graph_model_config_id"
-            style="width: 300px"
-            @change="onChangeModel"
-            @loaded="onVectorModelLoaded"
-          />
-        </a-form-item>
-      </a-form>
+                <div class="use-model-item-top" :class="{ active: isActive == item.value }">
+                  <svg-icon
+                    class="use-model-item-top-icon"
+                    style="color: #2475fc"
+                    :name="item.iconName"
+                  ></svg-icon>
+                  <p>{{ item.title }}</p>
+                </div>
+                <p>{{ item.desc }}</p>
+                <svg-icon
+                  class="check-arrow"
+                  name="check-arrow-filled"
+                  style="font-size: 24px; color: #fff"
+                  v-if="isActive == item.value"
+                ></svg-icon>
+              </div>
+            </div>
+            <a-select
+              @change="handleChangeModel"
+              v-model:value="formState.use_model"
+              placeholder="请选择嵌入模型"
+            >
+              <a-select-opt-group v-for="item in modelList" :key="item.id">
+                <template #label>
+                  <a-flex align="center" :gap="6">
+                    <img class="model-icon" :src="item.icon" alt="" />{{ item.name }}
+                  </a-flex>
+                </template>
+                <a-select-option
+                  :value="
+                    modelDefine.indexOf(item.model_define) > -1 && val.deployment_name
+                      ? val.deployment_name
+                      : val.name + val.id
+                  "
+                  :model_config_id="item.id"
+                  :current_obj="val"
+                  v-for="val in item.children"
+                  :key="val.name + val.id"
+                >
+                  <span v-if="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name">{{
+                    val.deployment_name
+                  }}</span>
+                  <span v-else>{{ val.name }}</span>
+                </a-select-option>
+              </a-select-opt-group>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="生成知识图谱">
+            <a-switch
+              @change="handleGraphSwitch"
+              :checked="formState.graph_switch"
+              checked-children="开"
+              un-checked-children="关"
+            />
+          </a-form-item>
+          <a-form-item label="知识图谱模型" v-show="formState.graph_switch">
+            <ModelSelect
+              modelType="LLM"
+              v-model:modeName="formState.graph_use_model"
+              v-model:modeId="formState.graph_model_config_id"
+              style="width: 300px"
+              @change="onChangeModel"
+              @loaded="onVectorModelLoaded"
+            />
+          </a-form-item>
+          <template v-if="!isQaLibrary">
+            <a-form-item label="分段方式" required>
+              <div class="select-card-box">
+                <div
+                  class="select-card-item"
+                  @click="handleChangeSegmentationType(1)"
+                  :class="{ active: formState.chunk_type == 1 }"
+                >
+                  <svg-icon class="check-arrow" name="check-arrow-filled"></svg-icon>
+                  <div class="card-title">
+                    <svg-icon name="ordinary-segmentation" class="title-icon"></svg-icon>
+                    普通分段
+                  </div>
+                  <div class="card-desc">
+                    基于文章中句号、空行，或者自定义符号进行分段，不会消耗模型token
+                  </div>
+                </div>
+                <div
+                  class="select-card-item"
+                  @click="handleChangeSegmentationType(2)"
+                  :class="{ active: formState.chunk_type == 2 }"
+                >
+                  <svg-icon class="check-arrow" name="check-arrow-filled"></svg-icon>
+                  <div class="card-title">
+                    <svg-icon name="semantic-segmentation" class="title-icon"></svg-icon>
+                    语义分段
+                  </div>
+                  <div class="card-desc">
+                    将文章拆分成句子后，通过语句向量相似度进行分段，会消耗模型token
+                  </div>
+                </div>
+              </div>
+              <a-alert
+                v-if="formState.chunk_type == 2"
+                style="margin-top: 12px; width: 650px"
+                message="提示：语义分段更适合没有排版过的文章，即没有明显换行符号的文本，否则更推荐使用普通分段"
+              ></a-alert>
+            </a-form-item>
+            <template v-if="formState.chunk_type == 1">
+              <a-form-item label="分段标识符" required>
+                <a-select
+                  @change="handleEdit"
+                  v-model:value="formState.normal_chunk_default_separators_no"
+                  mode="multiple"
+                  style="width: 100%"
+                  placeholder="请选择分段标识符"
+                  :options="segmentationTags"
+                ></a-select>
+              </a-form-item>
+              <a-form-item label="分段最大长度" required>
+                <a-flex :gap="8" align="center">
+                  <a-input-number
+                    @blur="handleEdit"
+                    v-model:value="formState.normal_chunk_default_chunk_size"
+                    style="width: 220px"
+                    :precision="0"
+                    :min="1"
+                    :max="100000"
+                  />
+                  字符
+                </a-flex>
+              </a-form-item>
+              <a-form-item label="分段重叠长度">
+                <a-flex :gap="8" align="center">
+                  <a-input-number
+                    @blur="handleEdit"
+                    v-model:value="formState.normal_chunk_default_chunk_overlap"
+                    style="width: 220px"
+                    :precision="0"
+                    :min="1"
+                    :max="100000"
+                  />
+                  字符
+                </a-flex>
+              </a-form-item>
+            </template>
+            <template v-if="formState.chunk_type == 2">
+              <a-form-item required v-if="formState.chunk_type == 2">
+                <template #label>
+                  分段阈值
+                  <a-tooltip>
+                    <template #title
+                      >用于控制分段拆分的标准，数值0~100,数值越大，分段越少，数值越小，分段越多。</template
+                    >
+                    <QuestionCircleOutlined style="cursor: pointer; margin-left: 2px" />
+                  </a-tooltip>
+                </template>
+                <a-input-number
+                  @blur="handleEdit"
+                  v-model:value="formState.semantic_chunk_default_threshold"
+                  style="width: 100%"
+                  placeholder="请输入分段阈值"
+                  :precision="0"
+                  :min="0"
+                  :max="100"
+                />
+              </a-form-item>
+              <a-form-item label="分段最大长度" required>
+                <a-flex :gap="8" align="center">
+                  <a-input-number
+                    @blur="handleEdit"
+                    v-model:value="formState.semantic_chunk_default_chunk_size"
+                    style="width: 220px"
+                    :precision="0"
+                    :min="1"
+                    :max="100000"
+                  />
+                  字符
+                </a-flex>
+              </a-form-item>
+              <a-form-item label="分段重叠长度">
+                <a-flex :gap="8" align="center">
+                  <a-input-number
+                    @blur="handleEdit"
+                    v-model:value="formState.semantic_chunk_default_chunk_overlap"
+                    style="width: 220px"
+                    :precision="0"
+                    :min="1"
+                    :max="100000"
+                  />
+                  字符
+                </a-flex>
+              </a-form-item>
+            </template>
+          </template>
+        </a-form>
+      </div>
+      <OpenGrapgModal @ok="handleOpenGrapgOk" ref="openGrapgModalRef" />
     </div>
-    <OpenGrapgModal @ok="handleOpenGrapgOk" ref="openGrapgModalRef" />
-  </div>
+  </cu-scroll>
 </template>
 
 <script setup>
 import { reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { Form, message } from 'ant-design-vue'
-
-import { getLibraryInfo, editLibrary } from '@/api/library'
+import { QuestionCircleOutlined } from '@ant-design/icons-vue'
+import { getLibraryInfo, editLibrary, getSeparatorsList } from '@/api/library'
 import { getModelConfigOption } from '@/api/model/index'
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
 import { DEFAULT_LIBRARY_AVATAR2 } from '@/constants/index'
@@ -200,12 +384,31 @@ const formState = reactive({
   avatar_file: '',
   graph_switch: false,
   graph_model_config_id: void 0,
-  graph_use_model: ''
+  graph_use_model: '',
+  chunk_type: 1,
+  normal_chunk_default_separators_no: [10, 12],
+  normal_chunk_default_chunk_size: 512,
+  normal_chunk_default_chunk_overlap: 50,
+  semantic_chunk_default_chunk_size: 512,
+  semantic_chunk_default_chunk_overlap: 50,
+  semantic_chunk_default_threshold: 90
 })
 const currentModelDefine = ref('')
 const isActive = ref(0)
 
 const libraryInfo = ref({})
+
+const segmentationTags = ref([])
+getSeparatorsList().then((res) => {
+  segmentationTags.value = res.data.map((item) => {
+    return {
+      label: item.name,
+      value: item.no
+    }
+  })
+})
+
+const isQaLibrary = ref(true)
 const getInfo = () => {
   getLibraryInfo({ id: query.id }).then((res) => {
     libraryInfo.value = res.data
@@ -223,6 +426,17 @@ const getInfo = () => {
     formState.graph_model_config_id =
       res.data.graph_model_config_id > 0 ? res.data.graph_model_config_id : void 0
     formState.graph_use_model = res.data.graph_use_model
+
+    formState.chunk_type = +res.data.chunk_type
+    formState.normal_chunk_default_separators_no = res.data.normal_chunk_default_separators_no
+      ? res.data.normal_chunk_default_separators_no.split(',').map((item) => +item)
+      : []
+    formState.normal_chunk_default_chunk_size = res.data.normal_chunk_default_chunk_size
+    formState.normal_chunk_default_chunk_overlap = res.data.normal_chunk_default_chunk_overlap
+    formState.semantic_chunk_default_chunk_size = res.data.semantic_chunk_default_chunk_size
+    formState.semantic_chunk_default_chunk_overlap = res.data.semantic_chunk_default_chunk_overlap
+    formState.semantic_chunk_default_threshold = res.data.semantic_chunk_default_threshold
+    isQaLibrary.value = res.data.type == 2
   })
 }
 getInfo()
@@ -351,7 +565,6 @@ const handleGraphSwitch = (val) => {
       graph_use_model: formState.graph_use_model
     }
     if (!formState.graph_model_config_id || !formState.graph_use_model) {
-      console.log(vectorModelList.value, '==')
       if (vectorModelList.value.length > 0) {
         let modelConfig = vectorModelList.value[0]
         if (modelConfig) {
@@ -362,18 +575,23 @@ const handleGraphSwitch = (val) => {
       }
     }
     openGrapgModalRef.value.show(data)
-  }else{
-    formState.graph_switch = false;
-    handleEdit();
+  } else {
+    formState.graph_switch = false
+    handleEdit()
   }
 }
 
+const handleChangeSegmentationType = (type) => {
+  formState.chunk_type = type
+  handleEdit()
+}
+
 const handleOpenGrapgOk = (data) => {
-  if(data.graph_model_config_id){
-    formState.graph_switch = true;
+  if (data.graph_model_config_id) {
+    formState.graph_switch = true
     formState.graph_model_config_id = data.graph_model_config_id
     formState.graph_use_model = data.graph_use_model
-    handleEdit();
+    handleEdit()
   }
 }
 
@@ -390,13 +608,20 @@ const handleEdit = () => {
     graph_switch: formState.graph_switch ? 1 : 0,
     graph_model_config_id: formState.graph_model_config_id,
     graph_use_model: formState.graph_use_model,
+    chunk_type: formState.chunk_type,
+    normal_chunk_default_separators_no: formState.normal_chunk_default_separators_no.join(','),
+    normal_chunk_default_chunk_size: formState.normal_chunk_default_chunk_size,
+    normal_chunk_default_chunk_overlap: formState.normal_chunk_default_chunk_overlap,
+    semantic_chunk_default_chunk_size: formState.semantic_chunk_default_chunk_size,
+    semantic_chunk_default_chunk_overlap: formState.semantic_chunk_default_chunk_overlap,
+    semantic_chunk_default_threshold: formState.semantic_chunk_default_threshold,
     id: rotue.query.id
   }
   if (oldModelDefineList.indexOf(currentModelDefine.value) > -1) {
     // 传给后端的是默认，渲染的是真实名称
     data.use_model = '默认'
   }
-  if(formState.avatar_file){
+  if (formState.avatar_file) {
     data.avatar = formState.avatar_file
   }
   editLibrary(data).then((res) => {

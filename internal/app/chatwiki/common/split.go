@@ -57,7 +57,7 @@ func GetLibFileSplit(userId, fileId int, splitParams define.SplitParams, lang st
 		return
 	}
 	splitParams.IsTableFile = cast.ToInt(info[`is_table_file`])
-	splitParams, err = CheckSplitParams(splitParams, lang)
+	splitParams, err = CheckSplitParams(info, splitParams, lang)
 	if err != nil {
 		return
 	}
@@ -92,18 +92,13 @@ func GetLibFileSplit(userId, fileId int, splitParams define.SplitParams, lang st
 		return
 	}
 
-	//initialize RecursiveCharacter
-	split := textsplitter.NewRecursiveCharacter()
-	split.Separators = append(splitParams.Separators)
-	split.ChunkSize = splitParams.ChunkSize
-	split.ChunkOverlap = splitParams.ChunkOverlap
 	// split by document type
 	if splitParams.IsQaDoc == define.DocTypeQa {
 		if cast.ToInt(info[`is_table_file`]) != define.FileIsTable {
 			list = QaDocSplit(splitParams, list)
 		}
 	} else {
-		list = MultDocSplit(split, list)
+		list = MultDocSplit(cast.ToInt(info[`admin_user_id`]), splitParams, list)
 	}
 
 	for i := range list {
@@ -363,22 +358,52 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 	return nil
 }
 
-func MultDocSplit(split textsplitter.TextSplitter, items []define.DocSplitItem) []define.DocSplitItem {
-	list := make([]define.DocSplitItem, 0)
-	for _, item := range items {
-		contents, _ := split.SplitText(item.Content)
-		for _, content := range contents {
-			if len(content) == 0 {
-				continue
+func MultDocSplit(adminUserId int, splitParams define.SplitParams, items []define.DocSplitItem) []define.DocSplitItem {
+	if splitParams.ChunkType == define.ChunkTypeNormal {
+		split := textsplitter.NewRecursiveCharacter()
+		split.Separators = append(splitParams.Separators)
+		split.ChunkSize = splitParams.ChunkSize
+		split.ChunkOverlap = splitParams.ChunkOverlap
+		list := make([]define.DocSplitItem, 0)
+		for _, item := range items {
+			contents, _ := split.SplitText(item.Content)
+			for _, content := range contents {
+				if len(content) == 0 {
+					continue
+				}
+				content, images := ExtractTextImages(content)
+				if len(content) == 0 {
+					continue
+				}
+				list = append(list, define.DocSplitItem{PageNum: item.PageNum, Content: content, Images: images})
 			}
-			content, images := ExtractTextImages(content)
-			if len(content) == 0 {
-				continue
-			}
-			list = append(list, define.DocSplitItem{PageNum: item.PageNum, Content: content, Images: images})
 		}
+		return list
+	} else {
+		split := NewSemanticSplitterClient()
+		split.GoRoutineNum = 5
+		split.SemanticChunkSize = splitParams.SemanticChunkSize
+		split.SemanticChunkOverlap = splitParams.SemanticChunkOverlap
+		split.SemanticChunkThreshold = splitParams.SemanticChunkThreshold
+		split.AdminUserId = adminUserId
+		split.ModelConfigId = splitParams.SemanticChunkModelConfigId
+		split.UseModel = splitParams.SemanticChunkUseModel
+		list := make([]define.DocSplitItem, 0)
+		for _, item := range items {
+			contents, _ := split.SplitText(item.Content)
+			for _, content := range contents {
+				if len(content) == 0 {
+					continue
+				}
+				content, images := ExtractTextImages(content)
+				if len(content) == 0 {
+					continue
+				}
+				list = append(list, define.DocSplitItem{PageNum: item.PageNum, Content: content, Images: images})
+			}
+		}
+		return list
 	}
-	return list
 }
 
 func ConvertAndReadHtmlContent(fileId int, fileUrl string, userId int) ([]define.DocSplitItem, int, error) {
@@ -774,9 +799,9 @@ func ConvertWebPToPNG(webpData []byte) ([]byte, error) {
 func AutoSplitLibFile(adminUserId, fileId int) {
 	lang := define.LangZhCn
 	splitParams := define.SplitParams{}
-	splitParams.ChunkSize = 512
-	splitParams.ChunkOverlap = 0
-	splitParams.SeparatorsNo = `11,12`
+	//splitParams.ChunkSize = 512
+	//splitParams.ChunkOverlap = 0
+	//splitParams.SeparatorsNo = `11,12`
 	splitParams.EnableExtractImage = true
 	list, wordTotal, err := GetLibFileSplit(adminUserId, fileId, splitParams, lang)
 	if err != nil {

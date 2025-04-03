@@ -292,7 +292,7 @@ func CheckVariablePlaceholder(content string, variables []string) (string, bool)
 	return ``, true
 }
 
-func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey, modelConfigIds string, err error) {
+func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey, modelConfigIds, libraryIds string, err error) {
 	startNodeCount, finishNodeCount := 0, 0
 	fromNodes := make(FromNodes)
 	for i, node := range nodeList {
@@ -390,6 +390,7 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 			}
 		}
 	}
+	var libraryArr []string
 	//采集使用的模型id集合
 	for _, node := range nodeList {
 		var modelConfigId int
@@ -398,6 +399,9 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 			modelConfigId = node.NodeParams.Cate.ModelConfigId.Int()
 		case NodeTypeLibs:
 			modelConfigId = node.NodeParams.Libs.RerankModelConfigId.Int()
+			if node.NodeParams.Libs.LibraryIds != "" {
+				libraryArr = append(libraryArr, strings.Split(node.NodeParams.Libs.LibraryIds, `,`)...)
+			}
 		case NodeTypeLlm:
 			modelConfigId = node.NodeParams.Llm.ModelConfigId.Int()
 		}
@@ -408,6 +412,7 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 			modelConfigIds += cast.ToString(modelConfigId)
 		}
 	}
+	libraryIds = strings.Join(libraryArr, `,`)
 	return
 }
 

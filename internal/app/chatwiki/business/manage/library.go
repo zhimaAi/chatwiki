@@ -148,6 +148,32 @@ func GetLibraryInfo(c *gin.Context) {
 	}
 	data[`is_offline`] = false
 	data[`library_key`] = common.BuildLibraryKey(cast.ToInt(data[`id`]), cast.ToInt(data[`create_time`]))
+	robotInfo, err := common.GetLibraryRobotInfo(userId, id)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	data[`robot_nums`] = len(robotInfo)
+	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
+}
+
+func GetLibraryRobotInfo(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	id := cast.ToInt(c.Query(`id`))
+	if id <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	data, err := common.GetLibraryRobotInfo(userId, id)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
 
@@ -315,6 +341,13 @@ func EditLibrary(c *gin.Context) {
 	accessRights := cast.ToInt(c.PostForm(`access_rights`))
 	statisticsSet := strings.TrimSpace(c.PostForm(`statistics_set`))
 	typ := strings.TrimSpace(c.PostForm(`type`))
+	chunkType := cast.ToInt(c.PostForm(`chunk_type`))
+	normalChunkDefaultSeparatorsNo := cast.ToString(c.PostForm(`normal_chunk_default_separators_no`))
+	normalChunkDefaultChunkSize := cast.ToInt(c.PostForm(`normal_chunk_default_chunk_size`))
+	normalChunkDefaultChunkOverlap := cast.ToInt(c.PostForm(`normal_chunk_default_chunk_overlap`))
+	semanticChunkDefaultChunkSize := cast.ToInt(c.PostForm(`semantic_chunk_default_chunk_size`))
+	semanticChunkDefaultChunkOverlap := cast.ToInt(c.PostForm(`semantic_chunk_default_chunk_overlap`))
+	semanticChunkDefaultThreshold := cast.ToInt(c.PostForm(`semantic_chunk_default_threshold`))
 	if id <= 0 || len(libraryName) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
@@ -381,21 +414,28 @@ func EditLibrary(c *gin.Context) {
 		avatar = uploadInfo.Link
 	}
 	data := msql.Datas{
-		`library_name`:            libraryName,
-		`library_intro`:           libraryIntro,
-		`model_config_id`:         modelConfigId,
-		`use_model`:               useModel,
-		`use_model_switch`:        useModelSwitch,
-		`ai_summary`:              aiSummary,
-		`share_url`:               shareUrl,
-		`ai_summary_model`:        aiSummaryModel,
-		`summary_model_config_id`: summaryModelConfigId,
-		`graph_switch`:            graphSwitch,
-		`graph_model_config_id`:   graphModelConfigId,
-		`graph_use_model`:         graphUseModel,
-		`access_rights`:           accessRights,
-		`statistics_set`:          statisticsSet,
-		`update_time`:             tool.Time2Int(),
+		`library_name`:                         libraryName,
+		`library_intro`:                        libraryIntro,
+		`model_config_id`:                      modelConfigId,
+		`use_model`:                            useModel,
+		`use_model_switch`:                     useModelSwitch,
+		`ai_summary`:                           aiSummary,
+		`share_url`:                            shareUrl,
+		`ai_summary_model`:                     aiSummaryModel,
+		`summary_model_config_id`:              summaryModelConfigId,
+		`graph_switch`:                         graphSwitch,
+		`graph_model_config_id`:                graphModelConfigId,
+		`graph_use_model`:                      graphUseModel,
+		`access_rights`:                        accessRights,
+		`statistics_set`:                       statisticsSet,
+		`update_time`:                          tool.Time2Int(),
+		`chunk_type`:                           chunkType,
+		`normal_chunk_default_separators_no`:   normalChunkDefaultSeparatorsNo,
+		`normal_chunk_default_chunk_size`:      normalChunkDefaultChunkSize,
+		`normal_chunk_default_chunk_overlap`:   normalChunkDefaultChunkOverlap,
+		`semantic_chunk_default_chunk_size`:    semanticChunkDefaultChunkSize,
+		`semantic_chunk_default_chunk_overlap`: semanticChunkDefaultChunkOverlap,
+		`semantic_chunk_default_threshold`:     semanticChunkDefaultThreshold,
 	}
 	if len(avatar) > 0 {
 		data[`avatar`] = avatar

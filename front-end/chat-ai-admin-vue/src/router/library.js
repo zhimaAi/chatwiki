@@ -81,6 +81,15 @@ export default {
             title: '知识库配置',
             activeMenu: '/library'
           }
+        },
+        {
+          path: '/library/details/related-robots',
+          name: 'knowledgeRelatedRobots',
+          component: () => import('@/views/library/library-details/related-robots.vue'),
+          meta: {
+            title: '关联机器人',
+            activeMenu: '/library'
+          }
         }
       ]
     },

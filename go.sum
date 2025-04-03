@@ -704,8 +704,8 @@ github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.1005 h1:/7Y
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.1005/go.mod h1:r5r4xbfxSaeR04b166HGsBa/R4U3SueirEUpXGuw+Q0=
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/hunyuan v1.0.1005 h1:Zi1SsXehcyz3lHgJHRXwingpCjMCrcgwZWgnD2NBCAY=
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/hunyuan v1.0.1005/go.mod h1:A/+878U5RPkYcRysLn/YBXbllxWA0c/SnQCiBQOXZf4=
-github.com/tmc/langchaingo v0.1.12 h1:yXwSu54f3b1IKw0jJ5/DWu+qFVH1NBblwC0xddBzGJE=
-github.com/tmc/langchaingo v0.1.12/go.mod h1:cd62xD6h+ouk8k/QQFhOsjRYBSA1JJ5UVKXSIgm7Ni4=
+github.com/tmc/langchaingo v0.1.13 h1:rcpMWBIi2y3B90XxfE4Ao8dhCQPVDMaNPnN5cGB1CaA=
+github.com/tmc/langchaingo v0.1.13/go.mod h1:vpQ5NOIhpzxDfTZK9B6tf2GM/MoaHewPWM5KXXGh7hg=
 github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926/go.mod h1:9ESjWnEqriFuLhtthL60Sar/7RFoluCcXsuvEwTV5KM=
 github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS4MhqMhdFk5YI=
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
