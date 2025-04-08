@@ -1,4 +1,4 @@
-<p align="center"><a href="https://Chatwiki.com/"><img src="./imgs/logo.svg" width="120" height="120" alt="logo"></a></p>
+<p align="center"><a href="https://Chatwiki.com/"><img src="./imgs/logo.svg" height="120" alt="logo"></a></p>
 
 <h1 align="center">ChatWiki</h1>
 
