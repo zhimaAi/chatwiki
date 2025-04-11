@@ -1,7 +1,7 @@
 <template>
   <div class="guess-you-want">
     <div class="message-content">
-      <div class="question-list guess-you-want">
+      <div class="question-list">
         <div class="message-tabs">
           <div
             v-if="props.msg.guess_you_want && props.msg.guess_you_want.length"
@@ -86,7 +86,7 @@ const sendTextMessage = (text) => {
 
 <style lang="less" scoped>
 .guess-you-want {
-  margin-top: 8px;
+  margin-top: 24px;
   .message-content {
     position: relative;
     // display: inline-block;

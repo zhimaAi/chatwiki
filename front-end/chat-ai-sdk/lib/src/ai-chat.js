@@ -1,29 +1,76 @@
 import { objectToQueryString } from './util'
+import AiAvatar from './ai-avatar'
+import AiDot from './ai-dot'
+import NewMessage from './new-message'
 
 class AiChatWidget {
   iframe = null;
   iframeSrc = null
-  onClose = null;
-  onInit = null;
-  
   config = {}
   
-  constructor(config) {
-    if (config) {
-      this.config = config;
-      this.iframeSrc = this.config.iframeSrc
-
-      this.init();
-    }
+  constructor() {
+    
   }
 
-  init() {
-    if (this.iframeSrc) {
-      this.insertAiChat();
-    }
+  init(config) {
+    this.config = config;
+    this.iframeSrc = this.config.iframeSrc;
+
+    this.insertAiChat();
     
     this.getExpectedOrigin()
     window.addEventListener("message", this.handleMessage.bind(this), false);
+
+    return {
+      open: this.open.bind(this),
+      close: this.close.bind(this),
+    };
+  }
+
+  removeAiChat() {
+    const iframe = document.getElementById("zm_chat-wiki-iframe");
+    if (iframe) {
+      document.body.removeChild(iframe);
+      this.iframe = null;
+    }
+  }
+
+  onInit(data) {
+    AiAvatar.init(data)
+  }
+
+  open() {
+    this.iframe.style.display = "block";
+    this.postMessage('openWindow', {});
+  }
+
+  close() {
+    AiAvatar.show();
+    this.iframe.style.display = "none";
+    this.postMessage('closeWindow', {});
+  }
+
+  onClose() {
+    AiAvatar.show()
+    this.iframe.style.display = "none";
+  }
+
+  createDot(data) {
+    AiDot.create({value: data})
+  }
+
+  createNewMessage(data) {
+    let list = data || [];
+    
+    if(list.length === 0){
+      NewMessage.remove()
+      return
+    }
+
+    // 截取数组的最后一个元素
+    list = list.slice(-1);
+
+    NewMessage.create(list)
   }
 
   getExpectedOrigin(){
@@ -55,11 +102,19 @@ class AiChatWidget {
     }
 
     if (res.action === "closeChat") {
-      this.close();
+      this.onClose();
     }
 
     if (res.action === "init") {
-      this.onInit(res.data);
+      this.onInit(res.data)
+    }
+    // 更新未读消息数
+    if (res.action === "dot") {
+      this.createDot(res.data);
+    }
+    // 更新未读消息
+    if (res.action === "newMessage") {
+      this.createNewMessage(res.data);
     }
   }
 
@@ -100,25 +155,7 @@ class AiChatWidget {
     document.body.appendChild(this.iframe);
   }
 
-  removeAiChat() {
-    const iframe = document.getElementById("zm_chat-wiki-iframe");
-    if (iframe) {
-      document.body.removeChild(iframe);
-      this.iframe = null;
-    }
-  }
-
-  open() {
-    this.iframe.style.display = "block";
-    this.postMessage('openWindow', {});
-  }
-
-  close() {
-    if (this.onClose) {
-      this.iframe.style.display = "none";
-      this.onClose();
-    }
-  }
+  
 }
 
-export default AiChatWidget;
+export default new AiChatWidget();

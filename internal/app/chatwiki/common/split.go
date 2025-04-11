@@ -4,9 +4,6 @@ package common
 
 import (
 	"bytes"
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/pkg/lib_redis"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -31,6 +28,10 @@ import (
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 	"golang.org/x/image/webp"
+
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_redis"
 )
 
 func GetLibFileSplit(userId, fileId int, splitParams define.SplitParams, lang string) (list []define.DocSplitItem, wordTotal int, err error) {
@@ -76,6 +77,8 @@ func GetLibFileSplit(userId, fileId int, splitParams define.SplitParams, lang st
 		list, wordTotal, err = ReadOfd(info[`file_url`], userId)
 	} else if define.IsTxtFile(info[`file_ext`]) || define.IsMdFile(info[`file_ext`]) {
 		list, wordTotal, err = ReadTxt(info[`file_url`])
+	} else if define.IsPdfFile(info[`file_ext`]) && cast.ToInt(info[`pdf_parse_type`]) == define.PdfParseTypeText {
+		list, wordTotal, err = ReadPdf(info[`file_url`], lang)
 	} else {
 		if len(info[`html_url`]) == 0 || !LinkExists(info[`html_url`]) { //compatible with old data
 			list, wordTotal, err = ConvertAndReadHtmlContent(cast.ToInt(info[`id`]), info[`file_url`], userId)
@@ -173,23 +176,35 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		logs.Error(err.Error())
 		return errors.New(i18n.Show(lang, `sys_err`))
 	}
-
+	status := define.FileStatusLearning
+	errmsg := `success`
+	if len(list) <= 0 {
+		status = define.FileStatusException
+		errmsg = i18n.Show(lang, `doc_empty`)
+	}
 	data := msql.Datas{
-		`status`:               define.FileStatusLearning,
-		`errmsg`:               `success`,
-		`word_total`:           wordTotal,
-		`split_total`:          len(list),
-		`is_qa_doc`:            splitParams.IsQaDoc,
-		`is_diy_split`:         splitParams.IsDiySplit,
-		`separators_no`:        splitParams.SeparatorsNo,
-		`chunk_size`:           splitParams.ChunkSize,
-		`chunk_overlap`:        splitParams.ChunkOverlap,
-		`question_lable`:       splitParams.QuestionLable,
-		`answer_lable`:         splitParams.AnswerLable,
-		`question_column`:      splitParams.QuestionColumn,
-		`answer_column`:        splitParams.AnswerColumn,
-		`enable_extract_image`: splitParams.EnableExtractImage,
-		`update_time`:          tool.Time2Int(),
+		`status`:                         status,
+		`errmsg`:                         errmsg,
+		`word_total`:                     wordTotal,
+		`split_total`:                    len(list),
+		`is_qa_doc`:                      splitParams.IsQaDoc,
+		`is_diy_split`:                   splitParams.IsDiySplit,
+		`separators_no`:                  splitParams.SeparatorsNo,
+		`chunk_size`:                     splitParams.ChunkSize,
+		`chunk_overlap`:                  splitParams.ChunkOverlap,
+		`question_lable`:                 splitParams.QuestionLable,
+		`answer_lable`:                   splitParams.AnswerLable,
+		`question_column`:                splitParams.QuestionColumn,
+		`answer_column`:                  splitParams.AnswerColumn,
+		`enable_extract_image`:           splitParams.EnableExtractImage,
+		`chunk_type`:                     splitParams.ChunkType,
+		`semantic_chunk_size`:            splitParams.SemanticChunkSize,
+		`semantic_chunk_overlap`:         splitParams.SemanticChunkOverlap,
+		`semantic_chunk_threshold`:       splitParams.SemanticChunkThreshold,
+		`semantic_chunk_use_model`:       splitParams.SemanticChunkUseModel,
+		`semantic_chunk_model_config_id`: splitParams.SemanticChunkModelConfigId,
+		`pdf_parse_type`:                 splitParams.PdfParseType,
+		`update_time`:                    tool.Time2Int(),
 	}
 	if qaIndexType != 0 {
 		data[`qa_index_type`] = qaIndexType
@@ -199,6 +214,10 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 	if err != nil {
 		logs.Error(err.Error())
 		return errors.New(i18n.Show(lang, `sys_err`))
+	}
+	if len(list) <= 0 {
+		err = m.Commit()
+		return errors.New(i18n.Show(lang, `doc_empty`))
 	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &LibFileCacheBuildHandler{FileId: fileId})
@@ -343,17 +362,6 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 			logs.Error(err.Error())
 		}
 	}
-	// async task:convert graph
-	for _, id := range dataIds {
-		message, err := tool.JsonEncode(map[string]any{`id`: id, `file_id`: fileId})
-		if err != nil {
-			logs.Error(err.Error())
-			continue
-		}
-		if err = AddJobs(define.ConvertGraphTopic, message); err != nil {
-			logs.Error(err.Error())
-		}
-	}
 
 	return nil
 }
@@ -426,10 +434,15 @@ func ConvertAndReadHtmlContent(fileId int, fileUrl string, userId int) ([]define
 }
 
 func RequestConvertService(file, fromFormat string) (content string, err error) {
+	useOcr := false
+	if fromFormat == "pdf" {
+		useOcr = true
+	}
 	request := curl.Post(define.Config.WebService[`converter`]+`/convert`).
 		PostFile(`file`, file).
 		Param(`from_format`, fromFormat).
-		Param(`to_format`, `html`)
+		Param(`to_format`, `html`).
+		Param(`use_ocr`, cast.ToString(useOcr))
 	if resp, err := request.Response(); err != nil {
 		return ``, err
 	} else if resp.StatusCode != http.StatusOK {
@@ -462,6 +475,7 @@ func PdfConvertHtml(file string) (content string, err error) {
 		if err != nil {
 			return ``, fmt.Errorf(`[%d/%d]:%v`, idx, page, err)
 		}
+
 		content += onePage
 	}
 	return
@@ -560,6 +574,8 @@ func ReadHtmlContent(htmlUrl string, userId int) ([]define.DocSplitItem, int, er
 	if err != nil {
 		return nil, 0, err
 	}
+	//过滤掉doctype
+	content = strings.ReplaceAll(content, `<!DOCTYPE html>`, ``)
 	//过滤stripTags并组装返回
 	content = strip.StripTags(content)
 	list := []define.DocSplitItem{{Content: content}}
@@ -605,7 +621,7 @@ func ReadTab(fileUrl, fileExt string) ([]define.DocSplitItem, int, error) {
 		return nil, 0, err
 	}
 	if len(rows) < 2 {
-		return nil, 0, errors.New(`excel no less than 2 lines`)
+		return nil, 0, errors.New(`excel_less_row`)
 	}
 	//line collection
 	list := make([]define.DocSplitItem, 0)
@@ -683,7 +699,7 @@ func ReadQaTab(fileUrl, fileExt string, splitParams define.SplitParams) ([]defin
 		return nil, 0, err
 	}
 	if len(rows) < 2 {
-		return nil, 0, errors.New(`excel no less than 2 lines`)
+		return nil, 0, errors.New(`excel_less_row`)
 	}
 	questionIndex, err := ColumnIndexFromIdentifier(splitParams.QuestionColumn)
 	if err != nil {
@@ -796,15 +812,20 @@ func ConvertWebPToPNG(webpData []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func AutoSplitLibFile(adminUserId, fileId int) {
+func DefaultSplitParams() define.SplitParams {
+	return define.SplitParams{
+		// ChunkSize:          512,
+		// ChunkOverlap:       0,
+		SeparatorsNo:       `11,12`,
+		EnableExtractImage: true,
+	}
+}
+
+func AutoSplitLibFile(adminUserId, fileId int, splitParams define.SplitParams) {
 	lang := define.LangZhCn
-	splitParams := define.SplitParams{}
-	//splitParams.ChunkSize = 512
-	//splitParams.ChunkOverlap = 0
-	//splitParams.SeparatorsNo = `11,12`
-	splitParams.EnableExtractImage = true
 	list, wordTotal, err := GetLibFileSplit(adminUserId, fileId, splitParams, lang)
 	if err != nil {
+		updateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusException, `errmsg`: err.Error()})
 		logs.Error(err.Error())
 		return
 	}
@@ -813,4 +834,9 @@ func AutoSplitLibFile(adminUserId, fileId int) {
 		logs.Error(err.Error())
 		return
 	}
+}
+
+func updateLibFileData(adminUserId, fileId int, data msql.Datas) error {
+	_, err := msql.Model(`chat_ai_library_file`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`id`, cast.ToString(fileId)).Update(data)
+	return err
 }

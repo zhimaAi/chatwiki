@@ -3,11 +3,6 @@
 package manage
 
 import (
-	"chatwiki/internal/app/chatwiki/common"
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/pkg/lib_redis"
-	"chatwiki/internal/pkg/lib_web"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +16,12 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+
+	"chatwiki/internal/app/chatwiki/common"
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_redis"
+	"chatwiki/internal/pkg/lib_web"
 )
 
 func GetLibFileList(c *gin.Context) {
@@ -48,10 +49,27 @@ func GetLibFileList(c *gin.Context) {
 	m := msql.Model(`chat_ai_library_file`, define.Postgres).
 		Alias(`f`).
 		Join(`chat_ai_library_file_data d`, `f.id=d.file_id`, `left`).
+		Join(`
+			(SELECT (file_id::text)::integer AS file_id, (count::text)::integer AS entity_count
+    		FROM ag_catalog.cypher('graphrag', $$
+        		MATCH (n:Entity)
+        		RETURN n.file_id AS file_id, count(n) AS count
+    		$$) AS (file_id ag_catalog.agtype, count ag_catalog.agtype)
+    		GROUP BY file_id, count
+			) AS entity_counts
+		`, `entity_counts.file_id = f.id`, `left`).
 		Where(`f.admin_user_id`, cast.ToString(userId)).
 		Where(`f.library_id`, cast.ToString(libraryId)).
-		Group(`f.id`).
-		Field(`f.*, count(d.id) as paragraph_count`)
+		Group(`f.id, entity_counts.entity_count`).
+		Field(`f.*, count(d.id) as paragraph_count`).
+		Field(`count(case when d.graph_status = 3 then 1 else null end) as graph_err_count`).
+		Field(`
+			COALESCE(
+    			(SELECT graph_err_msg FROM chat_ai_library_file_data WHERE file_id = f.id AND graph_err_msg <> '' LIMIT 1),
+    			'no error'
+  			) AS graph_err_msg
+		`).
+		Field(`COALESCE(entity_counts.entity_count, 0) AS graph_entity_count`)
 	fileName := strings.TrimSpace(c.Query(`file_name`))
 	if len(fileName) > 0 {
 		m.Where(`file_name`, `like`, fileName)
@@ -78,6 +96,11 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 	isQaDoc := cast.ToInt(c.PostForm(`is_qa_doc`))
 	qaIndexType := cast.ToInt(c.PostForm(`qa_index_type`))
 	docAutoRenewFrequency := cast.ToInt(c.PostForm(`doc_auto_renew_frequency`))
+	answerLable := strings.TrimSpace(c.PostForm(`answer_lable`))
+	answerColumn := strings.TrimSpace(c.PostForm(`answer_column`))
+	questionLable := strings.TrimSpace(c.PostForm(`question_lable`))
+	questionColumn := strings.TrimSpace(c.PostForm(`question_column`))
+	pdfParseType := cast.ToInt(c.PostForm(`pdf_parse_type`))
 	//document uploaded
 	var libraryFiles []*define.UploadInfo
 	switch docType {
@@ -180,11 +203,23 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 	}
 	//database dispose
 	fileIds := make([]int64, 0)
-
+	var autoSplit bool
+	splitParams := common.DefaultSplitParams()
+	// question and answer to auto learning
+	if (answerLable != "" || answerColumn != "") && len(libraryFiles) == 1 {
+		autoSplit = true
+		splitParams.QuestionColumn = questionColumn
+		splitParams.AnswerColumn = answerColumn
+		splitParams.QuestionLable = questionLable
+		splitParams.AnswerLable = answerLable
+		splitParams.IsQaDoc = isQaDoc
+		splitParams.ChunkSize = 512
+		splitParams.IsTableFile = cast.ToInt(c.PostForm(`is_table_file`))
+	}
 	for _, uploadInfo := range libraryFiles {
 		status := define.FileStatusInitial
 		isTableFile := define.IsTableFile(uploadInfo.Ext)
-		if !define.IsPdfFile(uploadInfo.Ext) {
+		if !(define.IsPdfFile(uploadInfo.Ext) && pdfParseType == define.PdfParseTypeOcr) {
 			status = define.FileStatusWaitSplit
 		}
 		insData := msql.Datas{
@@ -197,6 +232,12 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 			`chunk_overlap`:        0,
 			`separators_no`:        `11,12`,
 			`enable_extract_image`: true,
+			`pdf_parse_type`:       pdfParseType,
+			`is_qa_doc`:            isQaDoc,
+			`answer_lable`:         answerLable,
+			`answer_column`:        answerColumn,
+			`question_lable`:       questionLable,
+			`question_column`:      questionColumn,
 			`file_ext`:             uploadInfo.Ext,
 			`file_size`:            uploadInfo.Size,
 			`create_time`:          tool.Time2Int(),
@@ -227,8 +268,8 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 					logs.Error(err.Error())
 				}
 			}
-			if define.IsMdFile(uploadInfo.Ext) { //markdown文档自动切分
-				go common.AutoSplitLibFile(userId, int(fileId))
+			if define.IsMdFile(uploadInfo.Ext) || autoSplit { //markdown文档自动切分
+				go common.AutoSplitLibFile(userId, int(fileId), splitParams)
 			}
 		}
 	}
@@ -405,6 +446,7 @@ func GetLibFileSplit(c *gin.Context) {
 		SemanticChunkThreshold:     cast.ToInt(c.Query(`semantic_chunk_threshold`)),
 		SemanticChunkModelConfigId: cast.ToInt(c.Query(`semantic_chunk_model_config_id`)),
 		SemanticChunkUseModel:      strings.TrimSpace(c.Query(`semantic_chunk_use_model`)),
+		PdfParseType:               cast.ToInt(c.Query(`pdf_parse_type`)),
 	}
 	if splitParams.ChunkType == define.ChunkTypeSemantic {
 		if splitParams.SemanticChunkModelConfigId <= 0 {
@@ -419,7 +461,7 @@ func GetLibFileSplit(c *gin.Context) {
 	list, wordTotal, err := common.GetLibFileSplit(userId, fileId, splitParams, common.GetLang(c))
 	if err != nil {
 		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), err.Error()))))
 		return
 	}
 	data := map[string]any{`split_params`: splitParams, `list`: list, `word_total`: wordTotal}
@@ -550,6 +592,66 @@ func EditLibFile(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
+func ConstructGraph(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	id := cast.ToInt(c.PostForm(`id`))
+	if id <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	info, err := common.GetLibFileInfo(id, userId)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(info) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	if cast.ToInt(info[`graph_status`]) != define.GraphStatusNotStart {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+
+	dataList, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`file_id`, cast.ToString(id)).
+		Field(`id,file_id`).
+		Select()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(dataList) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `status_exception`))))
+		return
+	}
+	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
+		Where(`id`, cast.ToString(id)).
+		Update(msql.Datas{`graph_status`: define.GraphStatusInitial})
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: id})
+	for _, data := range dataList {
+		message, err := tool.JsonEncode(map[string]any{`id`: data[`id`], `file_id`: data[`file_id`]})
+		if err != nil {
+			logs.Error(err.Error())
+			continue
+		}
+		if err = common.AddJobs(define.ConvertGraphTopic, message); err != nil {
+			logs.Error(err.Error())
+		}
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}
+
 func RenewLibraryFile(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
@@ -596,4 +698,153 @@ func RenewLibraryFile(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}
+
+func ReconstructVector(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	id := cast.ToInt(c.PostForm(`id`))
+	if id <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	info, err := common.GetLibFileInfo(id, userId)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(info) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	dataList, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
+		Where(`file_id`, cast.ToString(id)).
+		Where(`status`, cast.ToString(define.VectorStatusException)).
+		Field(`id,file_id`).
+		Select()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `status_exception`))))
+		return
+	}
+	for _, data := range dataList {
+		message, err := tool.JsonEncode(map[string]any{`id`: data[`id`], `file_id`: data[`file_id`]})
+		if err != nil {
+			logs.Error(err.Error())
+			continue
+		}
+		if err = common.AddJobs(define.ConvertVectorTopic, message); err != nil {
+			logs.Error(err.Error())
+		}
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}
+
+func ReconstructGraph(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	id := cast.ToInt(c.PostForm(`id`))
+	if id <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	info, err := common.GetLibFileInfo(id, userId)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(info) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	if !tool.InArrayInt(cast.ToInt(info[`graph_status`]), []int{define.GraphStatusPartlyConverted, define.GraphStatusException}) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `status_exception`))))
+		return
+	}
+
+	dataList, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`file_id`, cast.ToString(id)).
+		Where(`graph_status`, cast.ToString(define.GraphStatusException)).
+		Field(`id,file_id`).
+		Select()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	for _, data := range dataList {
+		message, err := tool.JsonEncode(map[string]any{`id`: data[`id`], `file_id`: data[`file_id`]})
+		if err != nil {
+			logs.Error(err.Error())
+			continue
+		}
+		if err = common.AddJobs(define.ConvertGraphTopic, message); err != nil {
+			logs.Error(err.Error())
+		}
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}
+
+func ReadLibFileExcelTitle(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	if err := c.Request.ParseMultipartForm(32 << 20); err != nil { // 32MB 最大内存
+		logs.Error(err.Error())
+		common.FmtError(c, `file_err`)
+		return
+	}
+
+	// save upload file
+	if c.Request.MultipartForm == nil || len(c.Request.MultipartForm.File) == 0 {
+		common.FmtError(c, `upload_empty`)
+		return
+	}
+	for _, fileHeader := range c.Request.MultipartForm.File[`library_files`] {
+		if fileHeader == nil {
+			common.FmtError(c, `upload_empty`)
+			return
+		}
+		uploadInfo, err := common.ReadUploadedFile(fileHeader, define.LibFileLimitSize, define.FormFileAllowExt)
+		if err != nil {
+			logs.Error(err.Error())
+			common.FmtError(c, `file_err`)
+			return
+		}
+		if uploadInfo == nil || uploadInfo.Columns == "" {
+			common.FmtError(c, `upload_empty`)
+			return
+		}
+
+		splitData := strings.Split(uploadInfo.Columns, "\r\n")
+		title := make([]string, 0)
+		var data = make(map[string]string)
+		for key, item := range splitData {
+			upData := strings.Split(item, ",")
+			if len(upData) < len(title) {
+				continue
+			}
+			if key == 0 {
+				title = upData
+				for i, v := range title {
+					column, err := common.IdentifierFromColumnIndex(i)
+					if err != nil {
+						c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+						return
+					}
+					data[column] = v
+				}
+				break
+			}
+		}
+		common.FmtOk(c, data)
+		return
+	}
 }

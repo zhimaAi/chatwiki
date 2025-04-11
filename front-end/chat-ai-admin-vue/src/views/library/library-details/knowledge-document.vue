@@ -46,18 +46,27 @@
             </a-dropdown>
           </div>
 
-          <div class="tool-item">
+          <a-flex align="center" class="tool-item custom-select-box">
             <span>嵌入模型：</span>
             <model-select
               modelType="TEXT EMBEDDING"
               :isOffline="false"
               :modeName="modelForm.use_model"
               :modeId="modelForm.model_config_id"
-              style="width: 300px"
+              style="width: 240px"
               @change="onChangeModel"
               @loaded="onVectorModelLoaded"
             />
-          </div>
+          </a-flex>
+          <a-flex align="center" class="tool-item custom-select-box pd-5-8">
+            <span>生成知识图谱：</span>
+            <a-switch
+              v-model:checked="createGraphSwitch"
+              @change="createGraphSwitchChange"
+              checked-children="开"
+              un-checked-children="关"
+            />
+          </a-flex>
         </div>
         <div>
           <div class="tool-item">
@@ -101,52 +110,57 @@
               </div>
             </template>
             <template v-if="column.key === 'status'">
-              <span class="status-tag status-queuing" v-if="record.status == 0"
-                ><a-spin size="small" /> 转换中</span
-              >
-              <span class="status-tag status-learning" v-if="record.status == 1"
-                ><a-spin size="small" /> 学习中</span
-              >
-              <span class="status-tag status-complete" v-if="record.status == 2"
-                ><CheckCircleFilled /> 学习完成</span
-              >
+              <span class="status-tag running" v-if="record.status == 0"><a-spin size="small" /> 转换中</span>
+              <span class="status-tag running" v-if="record.status == 1"><a-spin size="small" /> 学习中</span>
+              <span class="status-tag complete" v-if="record.status == 2"><CheckCircleFilled /> 学习完成</span>
 
               <a-tooltip placement="top" v-if="record.status == 3">
                 <template #title>
                   <span>{{ record.errmsg }}</span>
                 </template>
-                <span class="status-tag status-error"><CloseCircleFilled /> 学习失败</span>
+                <span>
+                  <span class="status-tag status-error"><CloseCircleFilled /> 学习失败</span>
+                  <a class="ml8" v-if="libraryInfo.type == 2" @click="handlePreview(record)">学习</a>
+                </span>
               </a-tooltip>
               <template v-if="record.status == 4">
-                <span class="status-tag status-complete"><ClockCircleFilled /> 待学习</span>
+                <span class="status-tag"><ClockCircleFilled /> 待学习</span>
                 <a class="ml8" @click="handlePreview(record)">学习</a>
               </template>
               <template v-if="record.status == 5">
-                <span class="status-tag status-complete"><ClockCircleFilled /> 待获取</span>
+                <span class="status-tag"><ClockCircleFilled /> 待获取</span>
               </template>
-              <span class="status-tag status-learning" v-if="record.status == 6"
-                ><a-spin size="small" /> 获取中</span
-              >
+              <span class="status-tag running" v-if="record.status == 6"><a-spin size="small" /> 获取中</span>
               <a-tooltip placement="top" v-if="record.status == 7">
                 <template #title>
                   <span>{{ record.errmsg }}</span>
                 </template>
-                <span class="status-tag status-error"><CloseCircleFilled /> 获取失败</span>
+                <span class="status-tag error"><CloseCircleFilled /> 获取失败</span>
               </a-tooltip>
             </template>
             <template v-if="column.key === 'graph_status'">
-              <span class="status-tag status-queuing" v-if="record.graph_status == 0"
-                ><a-spin size="small" /> 未开始</span
-              >
-              <span class="status-tag status-learning" v-if="record.graph_status == 1"
-                ><a-spin size="small" /> 排队中</span
-              >
-              <span class="status-tag status-complete" v-if="record.graph_status == 2"
-                ><CheckCircleFilled /> 学习完成</span
-              >
-              <span class="status-tag status-error" v-if="record.graph_status == 3"
-                ><CloseCircleFilled /> 学习失败</span
-              >
+              <!--0待生成 1排队中 2生成完成 3生成失败 4生成中 5部分成功-->
+              <template v-if="record.graph_status == 0">
+                <span class="status-tag"><ClockCircleFilled /> 待生成</span>
+                <a class="ml8" @click="createGraphTask(record)">生成</a>
+              </template>
+              <span v-else-if="record.graph_status == 1" class="status-tag running"><HourglassFilled /> 排队中</span>
+              <span v-else-if="record.graph_status == 2" class="status-tag complete"><CheckCircleFilled /> 生成完成</span>
+              <template v-else-if="record.graph_status == 3">
+                <span class="status-tag error"><CloseCircleFilled /> 生成失败</span>
+                <a class="ml8" @click="createGraphTask(record)">生成</a>
+                <a-tooltip v-if="record.graph_err_msg" :title="record.graph_err_msg">
+                  <div class="zm-line1 reason-text">原因：{{record.graph_err_msg}}</div>
+                </a-tooltip>
+              </template>
+              <span v-else-if="record.graph_status == 4" class="status-tag running"><a-spin size="small" /> 生成中</span>
+              <template v-else-if="record.graph_status == 5">
+                <span  class="status-tag warning"><CheckCircleFilled /> 部分成功</span>
+                <div class="reason-text">
+                  失败数：{{ record.graph_err_count || 0 }}
+                  <a class="ml8" @click="handlePreview(record, {graph_status: 3})">详情</a>
+                </div>
+              </template>
             </template>
             <template v-if="column.key === 'file_size'">
               <span v-if="record.doc_type == 3">-</span>
@@ -188,15 +202,35 @@
       title="上传文档"
       @ok="handleSaveFiles"
       @cancel="handleCloseFileUploadModal"
+      width="740px"
     >
-      <div class="upload-file-box">
-        <UploadFilesInput
-          :type="libraryInfo.type"
-          v-model:value="addFileState.fileList"
-          @change="onFilesChange"
-        />
-      </div>
+      <a-form class="mt24" :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }">
+        <a-form-item required label="上传文档">
+          <div class="upload-file-box">
+            <UploadFilesInput
+              :type="libraryInfo.type"
+              v-model:value="addFileState.fileList"
+              @change="onFilesChange"
+            />
+          </div>
+        </a-form-item>
+        <a-form-item v-if="existPdfFile" required label="PDF解析模式">
+          <div class="select-card-box">
+            <div
+              v-for="item in PDF_PARSE_MODE"
+              :key="item.key"
+              :class="['select-card-item', {active: addFileState.pdf_parse_type == item.key}]"
+              @click="pdfParseTypeChange(item)"
+            >
+              <svg-icon class="check-arrow" name="check-arrow-filled"></svg-icon>
+              <div class="card-title">{{ item.title }}</div>
+              <div class="card-desc">{{ item.desc }}</div>
+            </div>
+          </div>
+        </a-form-item>
+      </a-form>
     </a-modal>
+    <QaUploadModal @ok="getData" ref="qaUploadModalRef" />
     <a-modal
       v-model:open="addUrlState.open"
       :confirm-loading="addUrlState.confirmLoading"
@@ -236,11 +270,12 @@
       @ok="onSearch"
       ref="addCustomDocumentRef"
     ></AddCustomDocument>
+    <OpenGrapgModal @ok="handleOpenGrapgOk" ref="openGrapgModalRef" />
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, toRaw, onUnmounted, onMounted } from 'vue'
+import { reactive, ref, toRaw, onUnmounted, onMounted, computed} from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -249,20 +284,30 @@ import {
   CheckCircleFilled,
   CloseCircleFilled,
   ClockCircleFilled,
-  MoreOutlined
+  MoreOutlined,
+  HourglassFilled,
+  ExclamationCircleFilled
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
-import { getLibraryFileList, delLibraryFile, addLibraryFile, editLibrary } from '@/api/library'
+import { getLibraryFileList, delLibraryFile, addLibraryFile, editLibrary, createGraph } from '@/api/library'
 import { formatFileSize } from '@/utils/index'
 import UploadFilesInput from '../add-library/components/upload-input.vue'
 import { transformUrlData } from '@/utils/validate.js'
 import AddCustomDocument from './components/add-custom-document.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
+import OpenGrapgModal from "@/views/library/library-details/components/open-grapg-modal.vue";
+import QaUploadModal from './components/qa-upload-modal.vue'
 
+const PDF_PARSE_MODE = [
+  {key: 2, title: '图文OCR解析', desc: '通过OCR文字识别提取pdf文件内容，可以兼容扫描件，但是解析速度较慢。'},
+  {key: 1, title: '纯文本解析', desc: '只提取pdf中的文字内容，如果文档为扫描件可能提取不到内容。'},
+]
 const rotue = useRoute()
 const router = useRouter()
 const query = rotue.query
 
+const openGrapgModalRef = ref(null)
+const createGraphSwitch = ref(false)
 const libraryInfo = ref({
   library_intro: '',
   library_name: '',
@@ -298,7 +343,7 @@ const onChangeModel = (val, option) => {
   }
 }
 
-const saveLibraryConfig = (showSuccessTip = true) => {
+const saveLibraryConfig = (showSuccessTip = true, callback=null) => {
   editLibrary({
     ...toRaw(libraryInfo.value),
     use_model: modelForm.use_model,
@@ -307,6 +352,7 @@ const saveLibraryConfig = (showSuccessTip = true) => {
     libraryInfo.value.use_model = modelForm.use_model
     libraryInfo.value.model_config_id = modelForm.model_config_id
 
+    typeof callback === 'function' && callback()
     if (showSuccessTip) {
       message.success('保存成功')
     }
@@ -373,7 +419,8 @@ const queryParams = reactive({
   total: 0
 })
 
-const columns = ref([
+const columns = ref([])
+const columnsDefault = [
   {
     title: '文档名称',
     dataIndex: 'file_name',
@@ -384,13 +431,13 @@ const columns = ref([
     title: '状态',
     dataIndex: 'status',
     key: 'status',
-    width: 160
+    width: 180
   },
   {
     title: '知识图谱',
     dataIndex: 'graph_status',
     key: 'graph_status',
-    width: 160
+    width: 200
   },
   {
     title: '文档格式',
@@ -417,6 +464,12 @@ const columns = ref([
     width: 120
   },
   {
+    title: '知识图谱实体数',
+    dataIndex: 'graph_entity_count',
+    key: 'graph_entity_count',
+    width: 160
+  },
+  {
     title: '更新时间',
     dataIndex: 'update_time',
     key: 'update_time',
@@ -428,7 +481,7 @@ const columns = ref([
     key: 'action',
     width: 100
   }
-])
+]
 
 const onTableChange = (pagination) => {
   queryParams.page = pagination.current
@@ -458,14 +511,14 @@ const onDelete = ({ id }) => {
   })
 }
 
-const handlePreview = (record) => {
+const handlePreview = (record, params={}) => {
   if (record.status == '4') {
     return router.push({
       path: '/library/document-segmentation',
       query: { document_id: record.id }
     })
   }
-  if (record.status == '3') {
+  if (record.status == '3' && libraryInfo.value.type != 2) {
     return message.error('学习失败,不可预览')
   }
   if (record.status == '0') {
@@ -478,7 +531,7 @@ const handlePreview = (record) => {
     return message.error('获取失败,不可预览')
   }
 
-  router.push({ name: 'libraryPreview', query: { id: record.id } })
+  router.push({ name: 'libraryPreview', query: { id: record.id, ...params} })
 }
 
 const getData = () => {
@@ -491,8 +544,11 @@ const getData = () => {
     }
 
     libraryInfo.value = { ...info }
+    createGraphSwitch.value = (info.graph_switch == 1)
     if (info.graph_switch == '0') {
-      columns.value = columns.value.filter((item) => item.key != 'graph_status')
+      columns.value = columnsDefault.filter((item) => !['graph_status','graph_entity_count'].includes(item.key))
+    } else {
+      columns.value = columnsDefault
     }
 
     let list = res.data.list || []
@@ -608,10 +664,18 @@ const handleCloseUrlModal = () => {
 const addFileState = reactive({
   open: false,
   fileList: [],
-  confirmLoading: false
+  confirmLoading: false,
+  pdf_parse_type: 1, //1纯文本解析，2ocr解析
 })
 
+const existPdfFile = computed(() => addFileState.fileList.filter(i => i.type === 'application/pdf').length > 0)
+
+const qaUploadModalRef = ref(null)
 const handleOpenFileUploadModal = () => {
+  if(libraryInfo.value.type == 2){
+    qaUploadModalRef.value.show()
+    return
+  }
   addFileState.fileList = []
   addFileState.open = true
 }
@@ -642,6 +706,9 @@ const handleSaveFiles = () => {
     }
     formData.append('library_files', file)
   })
+  if (existPdfFile.value) {
+    formData.append('pdf_parse_type', addFileState.pdf_parse_type)
+  }
   addLibraryFile(formData)
     .then((res) => {
       getData()
@@ -655,6 +722,48 @@ const handleSaveFiles = () => {
     .catch(() => {
       addFileState.confirmLoading = false
     })
+}
+
+const createGraphTask = record => {
+  createGraph({id: record.id}).then(() => {
+    getData()
+  })
+}
+
+const createGraphSwitchChange = () => {
+  if (createGraphSwitch.value) {
+    createGraphSwitch.value = false
+    let data = {
+      graph_model_config_id: libraryInfo.value.graph_model_config_id,
+      graph_use_model: libraryInfo.value.graph_use_model
+    }
+    if ((!data.graph_model_config_id || !data.graph_use_model) && vectorModelList.value.length > 0) {
+      let modelConfig = vectorModelList.value[0]
+      let model = modelConfig.children[0]
+      data.graph_use_model = model.name
+      data.graph_model_config_id = model.model_config_id
+    }
+    openGrapgModalRef.value.show(data)
+  } else {
+    libraryInfo.value.graph_switch = 0
+    saveLibraryConfig(false, () => {
+      getData()
+    })
+  }
+}
+
+const handleOpenGrapgOk = data => {
+  createGraphSwitch.value = true
+  libraryInfo.value.graph_switch = 1
+  libraryInfo.value.graph_model_config_id = data.graph_model_config_id
+  libraryInfo.value.graph_use_model = data.graph_use_model
+  saveLibraryConfig(false, () => {
+    getData()
+  })
+}
+
+const pdfParseTypeChange = item => {
+  addFileState.pdf_parse_type = item.key
 }
 
 onMounted(() => {
@@ -771,37 +880,33 @@ onUnmounted(() => {
     font-size: 14px;
     font-weight: 500;
     text-align: center;
+    color: #3a4559;
+    background-color: #edeff2;
 
-    &.status-queuing {
+    &.running {
       color: #2475fc;
       background-color: #e8effc;
     }
-
-    &.status-learning {
-      color: #2475fc;
-      background-color: #e8effc;
+    &.complete {
+      color: #21A665;
+      background: #E8FCF3;
     }
 
-    &.status-complete {
-      color: #3a4559;
-      background-color: #edeff2;
-    }
-
-    &.status-error {
+    &.error {
       cursor: pointer;
       color: #fb363f;
       background-color: #f5c6c8;
     }
-    &.status-split {
+    &.warning {
       cursor: pointer;
       background: #faebe6;
       color: #ed744a;
     }
   }
 }
-.upload-file-box {
-  padding: 30px 0;
-}
+//.upload-file-box {
+//  padding: 30px 0;
+//}
 .ml8 {
   margin-left: 8px;
 }
@@ -837,5 +942,85 @@ onUnmounted(() => {
   &:hover {
     color: #2475fc;
   }
+}
+.custom-select-box {
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  > span {
+    white-space: nowrap;
+  }
+  :deep(.ant-select-selector) {
+    border: none !important;
+    padding-left: 0 !important;
+    height: unset !important;
+  }
+  padding-left: 8px;
+}
+.pd-5-8 {
+  padding: 5px 8px;
+}
+.reason-text {
+  color: #8C8C8C;
+  font-size: 12px;
+  line-height: 24px;
+}
+
+.select-card-box {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  .select-card-item {
+    width: calc(50% - 8px);
+    position: relative;
+    padding: 16px;
+    border-radius: 6px;
+    border: 1px solid #d9d9d9;
+    cursor: pointer;
+    .check-arrow {
+      position: absolute;
+      display: block;
+      right: -1px;
+      bottom: -1px;
+      width: 24px;
+      height: 24px;
+      font-size: 24px;
+      color: #fff;
+      opacity: 0;
+      transition: all 0.2s cubic-bezier(0.8, 0, 1, 1);
+    }
+    .card-title {
+      display: flex;
+      align-items: center;
+      line-height: 22px;
+      margin-bottom: 4px;
+      color: #262626;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .title-icon {
+      margin-right: 4px;
+      font-size: 16px;
+    }
+    .card-desc {
+      min-height: 44px;
+      line-height: 22px;
+      font-size: 14px;
+      color: #595959;
+    }
+
+    &.active {
+      background: var(--01-, #e5efff);
+      border: 2px solid #2475fc;
+      .check-arrow {
+        opacity: 1;
+      }
+      .card-title {
+        color: #2475fc;
+      }
+    }
+  }
+}
+.mt24 {
+  margin-top: 24px;
 }
 </style>

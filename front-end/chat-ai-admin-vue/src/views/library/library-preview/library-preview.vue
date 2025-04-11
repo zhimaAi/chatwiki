@@ -25,20 +25,41 @@
       <span class="title">{{ detailsInfo.file_name }}</span>
       <SegmentationMode :detailsInfo="detailsInfo"></SegmentationMode>
       <a-space style="margin-left: auto">
-        <a-dropdown v-if="(libraryStatus == 2 || doc_type == 2) && doc_type != 3">
+        <a-flex align="center" class="custom-select-box">
+          <span>嵌入状态：</span>
+          <a-select
+            v-model:value="filterData.status"
+            placeholder="请选择"
+            style="width: 120px"
+            @change="search"
+          >
+            <a-select-option :value="-1">全部</a-select-option>
+            <a-select-option v-for="(i,key) in listStatusMap" :value="key">{{ i }}</a-select-option>
+          </a-select>
+        </a-flex>
+        <a-flex align="center" class="custom-select-box">
+          <span>知识图谱状态：</span>
+          <a-select
+            v-model:value="filterData.graph_status"
+            placeholder="请选择"
+            @change="search"
+            style="width: 120px"
+          >
+            <a-select-option :value="-1">全部</a-select-option>
+            <a-select-option v-for="(i,key) in graphStatusMap" :value="key">{{ i }}</a-select-option>
+          </a-select>
+        </a-flex>
+        <a-dropdown>
           <template #overlay>
-            <a-menu @click="handleClickMenu">
-              <a-menu-item key="1" v-if="libraryStatus == 2">重新分段</a-menu-item>
-              <a-menu-item v-if="doc_type == 2" key="2">设置更新频率</a-menu-item>
+            <a-menu>
+              <a-menu-item @click="reEmbeddingVectors">重新嵌入向量</a-menu-item>
+              <a-menu-item @click="reExtractingGraph">重新抽取知识图谱</a-menu-item>
+              <a-menu-item v-if="doc_type == 2" @click="showUpdateFrequen">设置更新频率</a-menu-item>
             </a-menu>
           </template>
-          <a-button>
-            <template #icon>
-              <SettingOutlined />
-            </template>
-            <DownOutlined />
-          </a-button>
+          <a-button>其他操作 <DownOutlined/></a-button>
         </a-dropdown>
+        <a-button v-if="doc_type != 3" @click="reSegment">重新分段</a-button>
         <a-button @click="openEditSubscription({})" type="primary">
           <template #icon>
             <PlusOutlined />
@@ -117,17 +138,24 @@
 </template>
 
 <script setup>
-import { ref, computed, defineAsyncComponent, nextTick } from 'vue'
+import { ref, reactive, computed, defineAsyncComponent, nextTick, h, onMounted} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
 import { LeftOutlined, PlusOutlined, DownOutlined, SettingOutlined } from '@ant-design/icons-vue'
 import Empty from './components/empty.vue'
 import SubsectionBox from './components/subsection-box.vue'
-import { getLibFileInfo, getParagraphList } from '@/api/library'
+import {getLibFileInfo, getParagraphList, reconstructGraph, reconstructVector} from '@/api/library'
 import CuScroll from '@/components/cu-scroll/cu-scroll.vue'
 import EditSubscription from './components/edit-subsection.vue'
 import SegmentationMode from './components/segmentation-mode.vue'
 import UpdateFrequency from './components/update-frequency.vue'
 
+const graphStatusMap = {
+  0: '待生成',
+  4: '生成中',
+  2: '生成成功',
+  3: '生成失败'
+}
 const scrollbar = ref({
   fade: false,
   scrollbarTrackClickable: true,
@@ -150,6 +178,17 @@ const libraryStatus = computed(() => {
   return detailsInfo.value.status
 })
 const detailsInfo = ref({})
+const filterData = reactive({
+  status: -1,
+  graph_status: -1
+})
+
+onMounted(() => {
+  if (route.query.graph_status) {
+    filterData.graph_status = route.query.graph_status
+    search()
+  }
+})
 
 const goBack = () => {
   router.back()
@@ -208,11 +247,19 @@ const listStatusMap = {
 
 let isLoading = true
 
+const search = () => {
+  paginations.value.page = 1
+  total.value = 0
+  paragraphLists.value = []
+  getParagraphLists()
+}
+
 const getParagraphLists = () => {
   isLoading = true
   getParagraphList({
     file_id: route.query.id,
-    ...paginations.value
+    ...paginations.value,
+    ...filterData
   }).then((res) => {
     pageLoading.value = false
     isLoading = false
@@ -221,6 +268,7 @@ const getParagraphLists = () => {
     let isExcelQa = data.info?.is_qa_doc == '1' && data.info?.is_table_file == '1'
     list.forEach((item) => {
       item.status_text = listStatusMap[item.status]
+      item.graph_status_text = graphStatusMap[item.graph_status]
       item.isExcelQa = isExcelQa
     })
 
@@ -287,17 +335,24 @@ const openEditSubscription = (data) => {
 }
 
 const updateFrequencyRef = ref(null)
-const handleClickMenu = (e) => {
-  if (e.key == 1) {
-    // 跳转分段
-    router.push('/library/document-segmentation?document_id=' + route.query.id + '&source=preview')
-  }
-  if (e.key == 2) {
-    updateFrequencyRef.value.open({
-      id: route.query.id,
-      doc_auto_renew_frequency: detailsInfo.value.doc_auto_renew_frequency
-    })
-  }
+
+const reEmbeddingVectors = () => {
+  reconstructVector({id:route.query.id}).then(() =>  message.success('操作完成'))
+}
+
+const reExtractingGraph = () => {
+  reconstructGraph({id:route.query.id}).then(() =>  message.success('操作完成'))
+}
+
+const reSegment = () => {
+  router.push('/library/document-segmentation?document_id=' + route.query.id + '&source=preview')
+}
+
+const showUpdateFrequen = () => {
+  updateFrequencyRef.value.open({
+    id: route.query.id,
+    doc_auto_renew_frequency: detailsInfo.value.doc_auto_renew_frequency
+  })
 }
 
 const saveFrequency = (data) => {
@@ -395,5 +450,18 @@ const saveFrequency = (data) => {
       overflow: hidden;
     }
   }
+}
+.custom-select-box {
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  > span {
+    white-space: nowrap;
+  }
+  :deep(.ant-select-selector) {
+    border: none !important;
+    padding-left: 0 !important;
+    height: unset !important;
+  }
+  padding-left: 8px;
 }
 </style>

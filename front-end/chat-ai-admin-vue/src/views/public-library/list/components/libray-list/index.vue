@@ -32,7 +32,7 @@
     width: 80px;
     height: 80px;
     opacity: 0.5;
-    background: url('../../../assets/img/library/library_item_bg.svg') 0 0 no-repeat;
+    background: url('@/assets/img/library/library_item_bg.svg') 0 0 no-repeat;
     background-size: cover;
   }
 

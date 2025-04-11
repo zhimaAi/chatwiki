@@ -70,9 +70,22 @@ export function getUuid(len: number = 16, radix: number = 0) {
   return uuid.join('')
 }
 
+export function unicodeToBase64(str: string) {
+  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
+    function (match, p1) {
+      return String.fromCharCode(parseInt(p1, 16))
+    }))
+}
+
+export function base64ToUnicode(base64: string) {
+  return decodeURIComponent(Array.prototype.map.call(atob(base64), function(c) {
+    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+  }).join(''))
+}
+
 export function getOpenid() {
   let openid = Storage.get('openid')
-
+  
   if (!openid) {
     openid = 'P' + getUuid(16)
 

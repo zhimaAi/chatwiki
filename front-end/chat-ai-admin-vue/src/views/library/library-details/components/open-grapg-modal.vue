@@ -20,6 +20,8 @@ import { ref, reactive, nextTick, createVNode } from 'vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { Modal } from 'ant-design-vue'
 const open = ref(false)
+const running = ref(false)
+const params = ref({})
 const formState = reactive({
   graph_use_model: '',
   graph_model_config_id: ''
@@ -27,18 +29,17 @@ const formState = reactive({
 
 const emit = defineEmits(['ok'])
 const show = (data) => {
-  open.value = true
-  data = JSON.parse(JSON.stringify(data))
-  nextTick(() => {
-    formState.graph_use_model = data.graph_use_model
-    formState.graph_model_config_id = data.graph_model_config_id
-  })
+  if (running.value) {
+    return
+  }
+  running.value = true
+  openConfirm()
+  params.value = JSON.parse(JSON.stringify(data))
 }
 
 const onChangeModel = () => {}
 
-const handleOk = () => {
-  open.value = false
+const openConfirm = () => {
   Modal.confirm({
     title: '确定开启生成知识图谱吗?',
     icon: null,
@@ -54,14 +55,20 @@ const handleOk = () => {
     okText: '确定开启',
     cancelText: '暂不开启',
     onOk() {
-      emit('ok', {
-        ...formState
+      open.value = true
+      running.value = false
+      nextTick(() => {
+        formState.graph_use_model = params.value.graph_use_model
+        formState.graph_model_config_id = params.value.graph_model_config_id
       })
     },
-    onCancel() {
-      emit('ok', {})
-    }
+    onCancel: () => running.value = false
   })
+}
+
+const handleOk = () => {
+  open.value = false
+  emit('ok', {...formState})
 }
 
 defineExpose({

@@ -249,6 +249,7 @@ func AddChatMessageFeedback(c *gin.Context) {
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
+
 func DelChatMessageFeedback(c *gin.Context) {
 	chatBaseParam, err := common.CheckChatRequest(c)
 	if err != nil {
@@ -356,6 +357,7 @@ func ChatRequest(c *gin.Context) {
 		c.Header(`Access-Control-Allow-Origin`, `*`)
 	}
 	params := getChatRequestParam(c)
+
 	chanStream := make(chan sse.Event)
 	go func() {
 		_, _ = DoChatRequest(params, true, chanStream)
@@ -532,7 +534,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 			return nil, err
 		}
 	}
-	sessionId, err := common.GetSessionId(params.ChatBaseParam, dialogueId)
+	sessionId, err := common.GetSessionId(params, dialogueId)
 	if err != nil {
 		logs.Error(err.Error())
 		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(params.Lang, `sys_err`)}
@@ -540,6 +542,14 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	}
 	chanStream <- sse.Event{Event: `dialogue_id`, Data: dialogueId}
 	chanStream <- sse.Event{Event: `session_id`, Data: sessionId}
+	//customer push
+	customer, err := common.GetCustomerInfo(params.Openid, params.AdminUserId)
+	if err != nil {
+		logs.Error(err.Error())
+		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(params.Lang, `sys_err`)}
+		return nil, err
+	}
+	chanStream <- sse.Event{Event: `customer`, Data: customer}
 	//database dispose
 	message := msql.Datas{
 		`admin_user_id`: params.AdminUserId,
@@ -555,6 +565,11 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		`create_time`:   tool.Time2Int(),
 		`update_time`:   tool.Time2Int(),
 	}
+	if len(customer) > 0 {
+		message[`nickname`] = customer[`nickname`]
+		message[`name`] = customer[`name`]
+		message[`avatar`] = customer[`avatar`]
+	}
 	lastChat := msql.Datas{
 		`last_chat_time`:    message[`create_time`],
 		`last_chat_message`: common.MbSubstr(cast.ToString(message[`content`]), 0, 1000),
@@ -565,16 +580,11 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(params.Lang, `sys_err`)}
 		return nil, err
 	}
-	common.UpLastChat(dialogueId, sessionId, lastChat)
+	common.UpLastChat(dialogueId, sessionId, lastChat, define.MsgFromCustomer)
 	//message push
-	customer, err := common.GetCustomerInfo(params.Openid, params.AdminUserId)
-	if err != nil {
-		logs.Error(err.Error())
-		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(params.Lang, `sys_err`)}
-		return nil, err
-	}
-	chanStream <- sse.Event{Event: `customer`, Data: customer}
 	chanStream <- sse.Event{Event: `c_message`, Data: common.ToStringMap(message, `id`, id)}
+	//websocket notify
+	common.ReceiverChangeNotify(params.AdminUserId, `c_message`, common.ToStringMap(message, `id`, id))
 	//obtain the data required for gpt
 	chanStream <- sse.Event{Event: `robot`, Data: params.Robot}
 	debugLog := make([]any, 0) //debug log
@@ -845,6 +855,11 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		`create_time`:            tool.Time2Int(),
 		`update_time`:            tool.Time2Int(),
 	}
+	if len(params.Robot) > 0 {
+		message[`nickname`] = `` //none
+		message[`name`] = params.Robot[`robot_name`]
+		message[`avatar`] = params.Robot[`robot_avatar`]
+	}
 	lastChat = msql.Datas{
 		`last_chat_time`:    message[`create_time`],
 		`last_chat_message`: common.MbSubstr(cast.ToString(message[`content`]), 0, 1000),
@@ -855,12 +870,14 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(params.Lang, `sys_err`)}
 		return nil, err
 	}
-	common.UpLastChat(dialogueId, sessionId, lastChat)
+	common.UpLastChat(dialogueId, sessionId, lastChat, define.MsgFromRobot)
 	//message push
 	chanStream <- sse.Event{Event: `ai_message`, Data: common.ToStringMap(message, `id`, id)}
 	if len(quoteFile) > 0 && cast.ToBool(params.Robot[`answer_source_switch`]) {
 		chanStream <- sse.Event{Event: `quote_file`, Data: quoteFile}
 	}
+	//websocket notify
+	common.ReceiverChangeNotify(params.AdminUserId, `ai_message`, common.ToStringMap(message, `id`, id))
 	//save answer source
 	if len(list) > 0 {
 		asm := msql.Model(`chat_ai_answer_source`, define.Postgres)

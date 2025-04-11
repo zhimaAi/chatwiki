@@ -159,7 +159,7 @@ import { useEventBus } from '@/hooks/event/useEventBus'
 import { useChatStore } from '@/stores/modules/chat'
 import { useUserStore } from '@/stores/modules/user'
 import { ExclamationCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
-import { Modal } from 'ant-design-vue'
+import { Modal, message as antMessage } from 'ant-design-vue'
 import { showErrorMsg, showSuccessMsg } from '@/utils/index'
 import MessageList from './components/message-list.vue'
 import ChatList from './components/chat-list.vue'
@@ -167,8 +167,9 @@ import RobotTestRight from './components/robot-test-right.vue'
 import MessageInput from './components/message-input.vue'
 import PromptLogAlert from './components/prompt-log-alert.vue'
 import libraryInfoAlert from './components/library-info-alert.vue'
-import { saveRobot } from '@/api/robot/index'
+import { saveRobot, checkSensitiveWords } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
+
 
 const rotue = useRoute()
 const query = rotue.query
@@ -176,11 +177,9 @@ const query = rotue.query
 const robotStore = useRobotStore()
 
 const { getRobot, robotInfo } = robotStore
-
 const emitter = useEventBus()
 const chatStore = useChatStore()
 const userStore = useUserStore()
-
 // 是否允许自动滚动到底部
 let isAllowedScrollToBottom = true
 const message = ref('')
@@ -196,7 +195,7 @@ const {
   $reset
 } = chatStore
 const { messageList, sendLock, myChatList, robot, dialogue_id } = storeToRefs(chatStore)
-
+console.log(robot.value,'==')
 const route = useRoute()
 const isRobotInfo = ref(false)
 
@@ -205,6 +204,17 @@ const onSendMesage = async () => {
     return showErrorMsg('请输入消息内容')
   }
 
+  //检查是否含有敏感词
+  let result = await checkSensitiveWords({
+    robot_key: robot.value.robot_key,
+    openid: robot.value.openid,
+    question: message.value,
+    form_ids: robot.value.form_ids,
+    dialogue_id: dialogue_id.value,
+  })
+  if(result.data && result.data.words){
+    return antMessage.error(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)
+  }
   isAllowedScrollToBottom = true
 
   sendMessage({

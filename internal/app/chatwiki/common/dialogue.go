@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/spf13/cast"
@@ -49,7 +48,7 @@ func sessionCacheKey(dialogueId int) string {
 	return fmt.Sprintf(`chatwiki.get_session.by_dialogue.%d`, dialogueId)
 }
 
-func GetSessionId(chatBaseParam *define.ChatBaseParam, dialogueId int) (int, error) {
+func GetSessionId(params *define.ChatRequestParam, dialogueId int) (int, error) {
 	cacheKey := sessionCacheKey(dialogueId)
 	sessionId, err := define.Redis.Get(context.Background(), cacheKey).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
@@ -60,26 +59,30 @@ func GetSessionId(chatBaseParam *define.ChatBaseParam, dialogueId int) (int, err
 	}
 	//create new session
 	id, err := msql.Model(`chat_ai_session`, define.Postgres).Insert(msql.Datas{
-		`admin_user_id`: chatBaseParam.AdminUserId,
-		`app_type`:      chatBaseParam.AppType,
-		`dialogue_id`:   dialogueId,
-		`robot_id`:      chatBaseParam.Robot[`id`],
-		`openid`:        chatBaseParam.Openid,
-		`create_time`:   tool.Time2Int(),
-		`update_time`:   tool.Time2Int(),
+		`admin_user_id`:     params.ChatBaseParam.AdminUserId,
+		`app_type`:          params.ChatBaseParam.AppType,
+		`dialogue_id`:       dialogueId,
+		`robot_id`:          params.ChatBaseParam.Robot[`id`],
+		`openid`:            params.ChatBaseParam.Openid,
+		`last_chat_time`:    tool.Time2Int(),
+		`last_chat_message`: MbSubstr(params.Question, 0, 1000),
+		`create_time`:       tool.Time2Int(),
+		`update_time`:       tool.Time2Int(),
 	}, `id`)
 	if err != nil {
 		return 0, err
 	}
+	//create new receiver
+	go createNewReceiver(params, id)
 	//write cache
-	_, err = define.Redis.Set(context.Background(), cacheKey, id, 30*time.Minute).Result()
+	_, err = define.Redis.Set(context.Background(), cacheKey, id, GetSessionTtl()).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		logs.Error(err.Error())
 	}
 	return int(id), nil
 }
 
-func UpLastChat(dialogueId, sessionId int, lastChat msql.Datas) {
+func UpLastChat(dialogueId, sessionId int, lastChat msql.Datas, isCustomer int) {
 	if len(lastChat) == 0 {
 		return
 	}
@@ -90,8 +93,10 @@ func UpLastChat(dialogueId, sessionId int, lastChat msql.Datas) {
 		logs.Error(err.Error())
 		return
 	}
+	//update receiver
+	go updateReceiver(sessionId, lastChat, isCustomer)
 	//update session_id ttl
-	_, err = define.Redis.Expire(context.Background(), sessionCacheKey(dialogueId), 30*time.Minute).Result()
+	_, err = define.Redis.Expire(context.Background(), sessionCacheKey(dialogueId), GetSessionTtl()).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		logs.Error(err.Error())
 	}

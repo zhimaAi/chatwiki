@@ -5,12 +5,14 @@ import { editPrompt } from '@/api/robot/index'
 import { getUuid, getOpenid } from '@/utils/index'
 import { useEventBus } from '@/hooks/event/useEventBus'
 import { useIM } from '@/hooks/event/useIM'
-import { DEFAULT_USER_AVATAR } from '@/constants/index'
+import { postDot, postNewMessage } from '@/event/postMessage'
+import { DEFAULT_SDK_FLOAT_AVATAR, DEFAULT_SDK_FLOAT_AVATAR2 } from '@/constants/index'
 
 export interface Message {
+  robot_name: any
   dialogue_id: number
   openid: string
-  msg_type: number
+  msg_type: number | string
   is_customer: number
   loading: boolean
   isWelcome: boolean
@@ -20,14 +22,16 @@ export interface Message {
   uid: string
   avatar: string
   content: string
-  debug: 0 | 1,
-  feedback_type?: string,
-  reasoning_content: string,
-  reasoning_status: boolean,
-  show_reasoning: boolean,
+  debug: 0 | 1
+  feedback_type?: string
+  reasoning_content: string
+  reasoning_status: boolean
+  show_reasoning: boolean
 }
 
 export interface Chat {
+  isOpen: boolean
+  unreadNumber: number
   openid: string
   robot_key: string
   avatar: string
@@ -51,14 +55,24 @@ export interface Robot {
   robot_name: string
   yunpc_fast_command_switch: string
   id: number | null
-  welcomes: Welcome,
+  welcomes: Welcome
   comand_list: any | string[]
   app_id: number,
   is_sending: boolean,
+  feedback_switch: boolean,
 }
 
 export interface PageStyle {
   headBackgroundColor: string
+}
+export interface FloatBtn {
+  displayType: number
+  buttonText: string
+  buttonIcon: string
+  bottomMargin: number
+  rightMargin: number
+  showUnreadCount: number
+  showNewMessageTip: number
 }
 
 export interface ExternalConfigPc {
@@ -67,11 +81,33 @@ export interface ExternalConfigPc {
   headImage: string
   lang: string
   pageStyle: PageStyle
+  floatBtn: FloatBtn
 }
+
+const SDK_STATIC_HOST = window.location.origin
 
 export const useChatStore = defineStore('chat', () => {
   const emitter = useEventBus()
+
+  const isOpen = ref(false)
+
+  const openChatWindow = () => {
+    isOpen.value = true
+    unreadNumber.value = 0;
+    newMessageList.value = []
+    postDot(unreadNumber.value)
+    postNewMessage(newMessageList.value)
+  }
+
+  const closeChatWindow = () => {
+    isOpen.value = false
+  }
+
+  const unreadNumber = ref(0)
+
   const im = useIM()
+
+  const newMessageList = ref<Message[]>([])
   const messageList = ref<Message[]>([])
   let mySSE: any = null
 
@@ -105,6 +141,7 @@ export const useChatStore = defineStore('chat', () => {
     comand_list: [],
     app_id: -2, // webapp:-1,嵌入网站:-2
     is_sending: false, // 是否在发送中
+    feedback_switch: false,
   })
   // 样式配置
   const externalConfigPC = reactive<ExternalConfigPc>({
@@ -114,6 +151,15 @@ export const useChatStore = defineStore('chat', () => {
     lang: 'zh-CN',
     pageStyle: {
       headBackgroundColor: 'linear-gradient,to right,#2435E7,#01A0FB',
+    },
+    floatBtn: {
+      displayType: 1,
+      buttonText: '快来聊聊吧~',
+      buttonIcon: DEFAULT_SDK_FLOAT_AVATAR,
+      bottomMargin: 32,
+      rightMargin: 32,
+      showUnreadCount: 1,
+      showNewMessageTip: 1
     }
   }) 
 
@@ -124,7 +170,7 @@ export const useChatStore = defineStore('chat', () => {
       mySSE.abort()
       mySSE = null
     }
-
+    newMessageList.value = []
     messageList.value = []
     // 重置聊天记录是否加载完成的状态
     chatMessageLoadCompleted.value = false
@@ -144,7 +190,7 @@ export const useChatStore = defineStore('chat', () => {
     robot.openid = openid.value
 
     user.openid = openid.value
-    user.avatar = data.avatar || DEFAULT_USER_AVATAR
+    user.avatar = data.avatar || ''
     user.name = data.name || ''
     user.nickname = data.nickname || ''
 
@@ -153,7 +199,7 @@ export const useChatStore = defineStore('chat', () => {
       openid: openid.value,
       nickname: user.nickname,
       name: user.name,
-      // avatar: user.avatar || DEFAULT_USER_AVATAR
+      avatar: user.avatar
     })
 
     try {
@@ -172,6 +218,7 @@ export const useChatStore = defineStore('chat', () => {
       robot.robot_name = robotInfo.robot_name
       robot.library_ids = robotInfo.library_ids
       robot.yunpc_fast_command_switch = robotInfo.yunpc_fast_command_switch
+      robot.feedback_switch = robotInfo.feedback_switch == '1';
       robot.id = robotInfo.id
 
       if (robotInfo.welcomes) {
@@ -180,6 +227,14 @@ export const useChatStore = defineStore('chat', () => {
 
       if (robotInfo.external_config_pc) {
         Object.assign(externalConfigPC, JSON.parse(robotInfo.external_config_pc))
+
+        if(externalConfigPC.floatBtn.displayType == 1) {
+          externalConfigPC.floatBtn.buttonIcon = DEFAULT_SDK_FLOAT_AVATAR
+        }else if(externalConfigPC.floatBtn.displayType == 2) {
+          externalConfigPC.floatBtn.buttonIcon = DEFAULT_SDK_FLOAT_AVATAR2
+        }else if(externalConfigPC.floatBtn.displayType == 3) {
+          externalConfigPC.floatBtn.buttonIcon = SDK_STATIC_HOST + externalConfigPC.floatBtn.buttonIcon
+        }
       }else{
         externalConfigPC.headTitle = robotInfo.robot_name
         externalConfigPC.headImage = robotInfo.robot_avatar
@@ -204,6 +259,10 @@ export const useChatStore = defineStore('chat', () => {
       msg.dialogue_id = dialogue_id.value
     }
 
+    if (msg.msg_type == 'receiver_notify') {
+      return
+    }
+
     if (msg && msg.dialogue_id == dialogue_id.value) {
       msg.uid = getUuid(32)
       msg.loading = false
@@ -219,6 +278,25 @@ export const useChatStore = defineStore('chat', () => {
       }
 
       messageList.value.push(msg)
+
+      if(!isOpen.value){
+        const { showUnreadCount, showNewMessageTip } = externalConfigPC.floatBtn;
+
+        if(!msg.robot_name){
+          msg.avatar = SDK_STATIC_HOST + msg.avatar
+          msg.robot_name = robot.robot_name
+        }
+
+        if(showUnreadCount == 1){
+          unreadNumber.value ++;
+         postDot(unreadNumber.value)
+        }
+
+        if(showNewMessageTip == 1){
+          newMessageList.value.push(msg)
+          postNewMessage(newMessageList.value)
+        }
+      }
     }
   }
   //  插入欢迎语
@@ -641,6 +719,9 @@ export const useChatStore = defineStore('chat', () => {
 
   return {
     $reset,
+    isOpen,
+    openChatWindow,
+    closeChatWindow,
     user,
     robot,
     dialogue_id,

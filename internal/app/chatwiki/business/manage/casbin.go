@@ -3,16 +3,16 @@
 package manage
 
 import (
+	"chatwiki/internal/app/chatwiki/common"
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/middlewares"
+	"chatwiki/internal/pkg/casbin"
+	"chatwiki/internal/pkg/lib_redis"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
-
-	"chatwiki/internal/app/chatwiki/common"
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/middlewares"
-	"chatwiki/internal/pkg/casbin"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
@@ -377,6 +377,8 @@ func SaveUser(c *gin.Context) {
 		data["user_name"] = req.UserName
 		data["create_time"] = time.Now().Unix()
 		insertId, err = m.Insert(data, "id")
+		//clear cached data
+		lib_redis.DelCacheData(define.Redis, &common.UsersCacheBuildHandler{ParentId: cast.ToInt(data[`parent_id`])})
 	}
 	if err != nil {
 		common.FmtError(c, `user_save_err`, catchErr(err))

@@ -96,7 +96,7 @@ export const useChatStore = defineStore('chat', () => {
       dialogue_id.value = data.dialogue_id
     }
 
-    openid.value = data.openid || getOpenid(16)
+    openid.value = data.openid || getOpenid(data.robot_key)
 
     robot.robot_key = data.robot_key
     robot.openid = openid.value
@@ -153,6 +153,10 @@ export const useChatStore = defineStore('chat', () => {
   // 插入来自im的聊天记录
   const onImMessage = (msg) => {
     if (!msg) {
+      return
+    }
+
+    if (msg.msg_type == 'receiver_notify') {
       return
     }
 

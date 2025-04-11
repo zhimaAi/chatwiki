@@ -150,7 +150,6 @@
 </template>
 
 <script setup lang="ts">
-import { DEFAULT_SDK_FLOAT_AVATAR } from '@/constants/index'
 import { postInit } from '@/event/postMessage'
 import { ref, onMounted, onUnmounted, toRaw, computed } from 'vue'
 import { showToast } from 'vant'
@@ -164,6 +163,8 @@ import MessageList from './components/messages/message-list.vue'
 import MessageItem from './components/messages/message-item.vue'
 import FastComand from './components/fast-comand/index.vue'
 
+import { checkSensitiveWords } from '@/api/robot/index'
+
 type MessageListComponent = {  
   scrollToMessage: (id: number | string) => void;
   scrollToBottom: () => void;   
@@ -175,7 +176,7 @@ const emitter = useEventBus()
 const { on } = useIM()
 const chatStore = useChatStore()
 
-const { sendMessage, onGetChatMessage, $reset, robot } = chatStore
+const { sendMessage, onGetChatMessage, $reset, robot, externalConfigPC, openChatWindow, closeChatWindow } = chatStore
 
 const { messageList, sendLock} = storeToRefs(chatStore)
 
@@ -238,8 +239,6 @@ const onScrollBottom = () => {
 
 // 通知sdk 初始化完毕
 const SDKInit = (data: any) => {
-  data.sdkFloatAvatar = DEFAULT_SDK_FLOAT_AVATAR
-
   postInit(data)
 }
 
@@ -252,7 +251,7 @@ const init = async () => {
     handleMessageListScrollToBottom()
   }
   // 通知sdk 初始化完毕
-  SDKInit(toRaw(robot))
+  SDKInit({robot: toRaw(robot), config: toRaw(externalConfigPC)})
 }
 
 // 发送消息
@@ -271,6 +270,16 @@ const sendTextMessage = (val: string) => {
 const onSendMesage = async (content) => {
   if (!content) {
     return showToast('请输入消息内容')
+  }
+
+  //检查是否含有敏感词
+  let result = await checkSensitiveWords({
+    robot_key: robot.robot_key,
+    openid: robot.openid,
+    question: content,
+  })
+  if(result.data && result.data.words){
+    return showToast(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)
   }
 
   isAllowedScrollToBottom = true
@@ -293,8 +302,13 @@ const onUpdateAiMessage = (msg) => {
 
 // 监听 打开窗口 触发消息列表滚动
 const onOpenWindow = () => {
+  openChatWindow()
   handleMessageListScrollToBottom()
 } 
+
+const onCloseWindow = () => {
+  closeChatWindow()
+}
 
 // const messageInputRef = ref<InstanceType<typeof MessageInput> | null>(null);  
 const handleSetMessageInputValue = (data: any) => {
@@ -319,6 +333,8 @@ onMounted(() => {
   on('message', onUpdateAiMessage)
 
   emitter.on('openWindow', onOpenWindow)
+
+  emitter.on('closeWindow', onCloseWindow)
 })
 
 onUnmounted(() => {

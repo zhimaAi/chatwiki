@@ -85,6 +85,7 @@ const backgroundColor = computed(() => {
 
 const handleClose = () => {
   postCloseChat()
+  chatStore.closeChatWindow()
 }
 </script>
 

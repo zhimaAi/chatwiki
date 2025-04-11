@@ -15,7 +15,18 @@
           id：{{ item.id }}
           {{ item.title }}
           <span>共{{ item.word_total }}个字符</span>
-          <span>状态：{{ item.status_text }}</span>
+          <span>
+            嵌入状态：{{ item.status_text }}
+            <a-tooltip v-if="item.status == 2 && item.errmsg" :title="item.errmsg">
+              <strong class="cfb363f">原因<ExclamationCircleOutlined class="err-icon cfb363f"/></strong>
+            </a-tooltip>
+          </span>
+          <span>
+            知识图谱状态：{{ item.graph_status_text }}
+            <a-tooltip v-if="item.graph_status == 3 && item.graph_err_msg" :title="item.graph_err_msg">
+              <strong class="cfb363f">原因<ExclamationCircleOutlined class="err-icon cfb363f"/></strong>
+            </a-tooltip>
+          </span>
         </div>
         <div class="right-opration">
           <a @click.stop="handleOpenEditModal(item)">编辑</a>
@@ -171,5 +182,11 @@ defineExpose({ handleOpenEditModal })
 .flash-border {
   background: #C8D9F4;
   animation: flash-border 1s infinite; /* 持续时间1秒，无限次重复 */
+}
+.cfb363f {
+  color: #fb363f !important;
+}
+.err-icon {
+  margin-left: 4px !important;
 }
 </style>

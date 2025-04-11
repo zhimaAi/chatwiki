@@ -30,15 +30,15 @@ export function generateUniqueId(salt = '') {
 }
 
 export function generateRandomId(length) {
-  const possibleCharacters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; // 所有可能的字符
-  let randomString = '';
+  const possibleCharacters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789' // 所有可能的字符
+  let randomString = ''
 
   for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * possibleCharacters.length); // 生成一个随机索引
-    randomString += possibleCharacters.charAt(randomIndex); // 获取一个随机字符并追加到结果字符串
+    const randomIndex = Math.floor(Math.random() * possibleCharacters.length) // 生成一个随机索引
+    randomString += possibleCharacters.charAt(randomIndex) // 获取一个随机字符并追加到结果字符串
   }
 
-  return randomString; // 返回生成的随机字符串
+  return randomString // 返回生成的随机字符串
 }
 
 // 防抖函数
@@ -59,15 +59,13 @@ export function delayedClick(key, time = 3000) {
 
 // 分钟转秒
 export function minutesToSeconds(minutes) {
-  return minutes * 60;
+  return minutes * 60
 }
 
 // 秒转分钟
 export function secondsToMinutes(seconds) {
-  return seconds / 60;
+  return seconds / 60
 }
-
-
 
 export function showErrorMsg(msg) {
   message.destroy()
@@ -95,13 +93,13 @@ export function objToFormData(obj) {
  * 数组对象传入关键字去重
  */
 export function duplicateRemoval(arr, key) {
-  const keyVals = new Set();
-  return arr.filter(obj => {
-      const val = obj[key];
-      if (keyVals.has(val)) return false;
-      keyVals.add(val);
-      return true;
-  });
+  const keyVals = new Set()
+  return arr.filter((obj) => {
+    const val = obj[key]
+    if (keyVals.has(val)) return false
+    keyVals.add(val)
+    return true
+  })
 }
 
 /**
@@ -127,26 +125,26 @@ export function strEncryption(str, start = 0, end = str.length - 1) {
 
 // 把基于字节的文件大小抓换成KB,MB,GB,TB
 export function formatFileSize(size) {
-  size = size ? Number(size) : 0;
- 
+  size = size ? Number(size) : 0
+
   if (size === 0) {
-    return '0 B';
+    return '0 B'
   }
- 
-  let k = 1024;
-  let sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let i = Math.floor(Math.log(size) / Math.log(k));
- 
+
+  let k = 1024
+  let sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  let i = Math.floor(Math.log(size) / Math.log(k))
+
   // 使用 toFixed 来确保固定的小数位数，这里选择2位小数
   // 你可以根据需要调整小数位数
-  let formattedSize = (size / Math.pow(k, i)).toFixed(2);
- 
+  let formattedSize = (size / Math.pow(k, i)).toFixed(2)
+
   // 如果格式化后的结果末尾是.00，则去掉这两个0
   if (formattedSize.endsWith('.00')) {
-    formattedSize = formattedSize.slice(0, -3);
+    formattedSize = formattedSize.slice(0, -3)
   }
- 
-  return formattedSize + ' ' + sizes[i];
+
+  return formattedSize + ' ' + sizes[i]
 }
 
 export function getUuid(len, radix) {
@@ -177,6 +175,19 @@ export function getUuid(len, radix) {
   }
 
   return uuid.join('')
+}
+
+export function unicodeToBase64(str) {
+  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
+    function (match, p1) {
+      return String.fromCharCode(parseInt(p1, 16))
+    }))
+}
+
+export function base64ToUnicode(base64) {
+  return decodeURIComponent(Array.prototype.map.call(atob(base64), function(c) {
+    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+  }).join(''))
 }
 
 export function getOpenid() {
@@ -249,50 +260,77 @@ export function downloadFile(filename, link) {
 }
 
 export function objectToQueryString(obj) {
-  // 将对象转换为数组，然后map每个键值对到 'key=value' 字符串  
-  // 使用 encodeURIComponent 来确保URL安全  
+  // 将对象转换为数组，然后map每个键值对到 'key=value' 字符串
+  // 使用 encodeURIComponent 来确保URL安全
   return Object.keys(obj)
-    .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]))
-    .join('&'); // 用 '&' 连接所有的键值对  
-}  
-
+    .map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]))
+    .join('&') // 用 '&' 连接所有的键值对
+}
 
 export function tableToExcel(str, jsonData, fieds, name) {
   //jsonData要导出的json数据
   //str列标题，逗号隔开，每一个逗号就是隔开一个单元格
   for (let i = 0; i < jsonData.length; i++) {
     for (let item of fieds) {
-        str += `"${jsonData[i][item] + '\t'}",`;
+      str += `"${jsonData[i][item] + '\t'}",`
     }
-    str += '\n';
+    str += '\n'
   }
   //encodeURIComponent解决中文乱码
-  let uri = 'data:text/csv;charset=utf-8,\ufeff' + encodeURIComponent(str);
+  let uri = 'data:text/csv;charset=utf-8,\ufeff' + encodeURIComponent(str)
   //通过创建a标签实现
-  let link = document.createElement("a");
-  link.href = uri;
+  let link = document.createElement('a')
+  link.href = uri
   //对下载的文件命名
-  link.download = name;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  link.download = name
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+export function exportToJsonWithSaver(data, filename = 'data.json') {
+  const jsonString = JSON.stringify(data, null, 2) // 将数据转换为格式化的 JSON 字符串
+  const blob = new Blob([jsonString], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+
+  setTimeout(() => {
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  }, 0)
 }
 
 
+// 格式化显示时间
+export function formatDisplayChatTime(time) {
+  time = time * 1000
 
-export function exportToJsonWithSaver(data, filename = 'data.json') {
-  const jsonString = JSON.stringify(data, null, 2); // 将数据转换为格式化的 JSON 字符串
-  const blob = new Blob([jsonString], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
+  const date = new Date(time)
+  const now = new Date()
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
 
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
+  const isToday = date.toDateString() === now.toDateString()
+  const isYesterday = date.toDateString() === yesterday.toDateString()
 
-  setTimeout(() => {
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-  }, 0);
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+  const seconds = date.getSeconds().toString().padStart(2, '0')
+  const timeStr = `${hours}:${minutes}:${seconds}`
+
+  if (isToday) {
+    return `今天 ${timeStr}`
+  } else if (isYesterday) {
+    return `昨天 ${timeStr}`
+  } else {
+    const year = date.getFullYear()
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const day = date.getDate().toString().padStart(2, '0')
+    return `${year}-${month}-${day} ${timeStr}`
+  }
 }

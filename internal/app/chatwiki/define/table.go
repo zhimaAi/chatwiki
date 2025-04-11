@@ -29,10 +29,12 @@ const (
 )
 
 const (
-	GraphStatusNotStart  = 0
-	GraphStatusInitial   = 1
-	GraphStatusConverted = 2
-	GraphStatusException = 3
+	GraphStatusNotStart        = 0
+	GraphStatusInitial         = 1
+	GraphStatusWorking         = 4
+	GraphStatusPartlyConverted = 5
+	GraphStatusConverted       = 2
+	GraphStatusException       = 3
 )
 
 const (

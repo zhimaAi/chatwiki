@@ -457,31 +457,6 @@ func EditLibrary(c *gin.Context) {
 		go common.EmbeddingNewVector(id, cast.ToInt(info[`admin_user_id`]))
 	}
 
-	// construct new graph
-	if cast.ToInt(info[`graph_switch`]) == define.SwitchOff && graphSwitch == define.SwitchOn {
-		go func() {
-			dataList, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
-				Where(`library_id`, cast.ToString(id)).
-				Where(`graph_status`, cast.ToString(define.GraphStatusNotStart)).
-				Field(`id,file_id`).
-				Select()
-			if err != nil {
-				logs.Error(err.Error())
-				return
-			}
-			for _, data := range dataList {
-				message, err := tool.JsonEncode(map[string]any{`id`: data[`id`], `file_id`: data[`file_id`]})
-				if err != nil {
-					logs.Error(err.Error())
-					continue
-				}
-				if err = common.AddJobs(define.ConvertGraphTopic, message); err != nil {
-					logs.Error(err.Error())
-				}
-			}
-		}()
-	}
-
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.LibraryCacheBuildHandler{LibraryId: id})
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))

@@ -4,20 +4,22 @@ package business
 
 import (
 	"bytes"
-	"chatwiki/internal/app/chatwiki/common"
-	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/app/user_domain_service/define"
-	"chatwiki/internal/pkg/lib_web"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/zhimaAi/go_tools/logs"
-	"github.com/zhimaAi/go_tools/tool"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/zhimaAi/go_tools/logs"
+	"github.com/zhimaAi/go_tools/tool"
+
+	"chatwiki/internal/app/chatwiki/common"
+	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/app/user_domain_service/define"
+	"chatwiki/internal/pkg/lib_web"
 )
 
 type SaveCertReq struct {
@@ -87,7 +89,7 @@ server {
 	#access_log /var/log/nginx/%s.access.log;
 
 	location / {
-		proxy_pass https://%s; 
+		proxy_pass http://%s; 
 	  %s  proxy_set_header Host $http_host;
 		proxy_set_header X-Real-IP $remote_addr;
 		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -97,7 +99,7 @@ server {
 `
 	// replace
 	note := "#"
-	conf = fmt.Sprintf(conf, upstream, domain, domain, domain, domain, domain, note)
+	conf = fmt.Sprintf(conf, domain, domain, domain, domain, domain, upstream, note)
 
 	// conf path
 	confFilePath := path + `/` + fmt.Sprintf("%s.conf", domain)

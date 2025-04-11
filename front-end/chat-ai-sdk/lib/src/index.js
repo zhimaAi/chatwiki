@@ -1,7 +1,6 @@
 
 import './style.css'
 import AiChatWidget from './ai-chat'
-import AiAvatar from './ai-avatar'
 
 export function init() {
   let config = {
@@ -31,21 +30,6 @@ export function init() {
     }
   }
 
-  const aiChatWidget =  new AiChatWidget(config)
-  const aiAvatar = new AiAvatar(config)
-
-  aiChatWidget.onInit = (data) => {
-    aiAvatar.init(data)
-  }
-
-  aiChatWidget.onClose = () => {
-    aiAvatar.show()
-  }
-  
-  aiAvatar.clickHandler = () => {
-    aiChatWidget.open()
-
-    aiAvatar.hide()
-  }
+  return AiChatWidget.init(config)
 }
 

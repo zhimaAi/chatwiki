@@ -27,3 +27,11 @@ export function postInit(data: any){
 export function postCloseChat(){
     postMessage('closeChat')
 } 
+
+export function postDot(data: Number){
+    postMessage('dot', data)
+}
+
+export function postNewMessage(data: Array<any>){
+    postMessage('newMessage', data)
+}

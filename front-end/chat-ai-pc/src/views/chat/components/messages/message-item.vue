@@ -1,7 +1,7 @@
 <style lang="less" scoped>
 .message-item {
   display: flex;
-  margin: 24px 12px;
+  margin: 45px 12px;
 
   .message-item-body {
     flex: 1;
@@ -28,16 +28,7 @@
     margin-right: 40px;
     &:hover {
       .hover-copy-tool-block {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-
-        .copy-block{
-          width: 26px;
-          height: 26px;
-          padding: 0 4px;
-        }
+        opacity: 1;
       }
     }
   }
@@ -63,7 +54,8 @@
       border-radius: 4px 16px 16px 16px;
     }
     .hover-copy-tool-block {
-      right: -12px;
+      bottom: -35px;
+      left: 8px;
     }
   }
 
@@ -87,7 +79,11 @@
       background-color: #2475fc;
     }
     .hover-copy-tool-block {
-      left: -12px;
+      left: -30px;
+      width: 36px;
+      bottom: 0px;
+      height: 46px;
+      display: flex;
     }
   }
 
@@ -158,7 +154,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-
+    margin-top: 12px;
     .operation-right {
       display: flex;
       gap: 5px;
@@ -219,25 +215,20 @@
 
   .hover-copy-tool-block {
     padding: 0;
-    display: none;
+    opacity: 0;
     position: absolute;
-    bottom: -12px;
-    height: 28px;
-    max-width: 89px;
+    max-width: 90px;
     align-items: center;
     justify-content: center;
-    background: #fff;
-    border: 1px solid #d8dde6;
-    border-radius: 4.5px;
     transition: all 0.5s ease;
 
     .copy-block{
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 26px;
-      height: 26px;
       padding: 0;
+    width: 26px;
+
     }
 
     .operation-right {
@@ -436,8 +427,8 @@
                 <div class="copy-icon"></div>
                 <span>复制</span>
               </div>
-              <div ref="operationRef" class="operation-right" v-if="!isCustomerMessage && !isWelcomeMessage">
-                <div @click="handlePraise(props.msg)" class="praise-block" :class="{'praise-active': !isTrampleClick && isPraiseActive}">
+              <div ref="operationRef" class="operation-right" v-if="!isCustomerMessage && !isWelcomeMessage && robot.feedback_switch">
+                <div v-tooltip="'点赞'" @click="handlePraise(props.msg)" class="praise-block" :class="{'praise-active': !isTrampleClick && isPraiseActive}">
                   <div class="praise-icon"></div>
                 </div>
                 <van-popover placement="top-end" v-if="!isTrampleActive" @close="onCancel">
@@ -456,18 +447,20 @@
                     </div>
                   </div>
                   <template #reference>
-                      <div @click="handleTrample(props.msg, 4)" class="trample-block" :class="{'trample-active': isTrampleClick}">
+                      <div v-tooltip="'点踩'" @click="handleTrample(props.msg, 4)" class="trample-block" :class="{'trample-active': isTrampleClick}">
                         <div class="trample-icon"></div>
                       </div>
                   </template>
                 </van-popover>
-                <div v-else @click="handleTrample(props.msg, 3)" class="trample-block" :class="{'trample-active': isTrampleActive}">
+                <div v-tooltip="'点踩'" v-else @click="handleTrample(props.msg, 3)" class="trample-block" :class="{'trample-active': isTrampleActive}">
                   <div class="trample-icon"></div>
                 </div>
               </div>
             </div>
             <div class="answer-reference-box" v-if="props.msg.is_customer != 1 && props.msg.quote_file && props.msg.quote_file.length">
-              <div class="title-block">回答参考</div>
+              <div class="title-block">回答参考
+                <van-icon v-tooltip="'如果不想显示“回答参考”，可以在机器人配置界面“基础配置 - 显示引文”，关闭开关。'" name="question-o" />
+              </div>
               <div
                 class="list-item"
                 v-for="(item, index) in props.msg.quote_file"
@@ -482,7 +475,7 @@
                 <div v-tooltip="'复制'" @click="handleCopy" class="copy-block">
                   <div class="copy-icon"></div>
                 </div>
-                <template v-if="!isCustomerMessage && !isWelcomeMessage">
+                <template v-if="!isCustomerMessage && !isWelcomeMessage && robot.feedback_switch">
                   <div v-tooltip="'点赞'" @click="handlePraise(props.msg)" class="praise-block" :class="{'praise-active': !isTrampleClick && isPraiseActive}">
                     <div class="praise-icon"></div>
                   </div>
@@ -616,7 +609,7 @@ const isShowCopy = computed(() => {
 })
 
 const isShowHoverCopy = computed(() => {
-  return !isShowCopy.value && props.index !== props.messageLength - 1
+  return !isShowCopy.value && props.index !== props.messageLength - 1 
 })
 
 const handleCopy = async () => {

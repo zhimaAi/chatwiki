@@ -40,5 +40,6 @@ export const TOKEN_KEY = 'TOKEN'
 export const DEFAULT_USER_AVATAR = new URL('@/assets/img/user_avatar_2x.png', import.meta.url).href
 // SDK AVAVATAR
 export const DEFAULT_SDK_FLOAT_AVATAR = new URL('@/assets/img/sdk_float_avatar.svg', import.meta.url).href
+export const DEFAULT_SDK_FLOAT_AVATAR2 = new URL('@/assets/img/sdk_float_avata2.svg', import.meta.url).href
 // 默认的头部图像 
 export const DEFAULT_HEAD_IMAGE = new URL('@/assets/img/web_app_default_avatar.png', import.meta.url).href

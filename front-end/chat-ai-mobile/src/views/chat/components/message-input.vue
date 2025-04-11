@@ -122,6 +122,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import calcTextareaHeight from '@/utils/calcTextareaHeight'
+import { useChatStore } from '@/stores/modules/chat'
+import { showToast } from 'vant'
+const chatStore = useChatStore()
+const { robot } = chatStore
+import { checkSensitiveWords } from '@/api/robot/index'
 
 const emit = defineEmits(['update:value', 'send' ])
 
@@ -150,7 +155,16 @@ const onInput = (event) => {
   }
 }
 
-const sendMessage = () => {
+const sendMessage = async () => {
+  //检查是否含有敏感词
+  let result = await checkSensitiveWords({
+    robot_key: robot.robot_key,
+    openid: robot.openid,
+    question: valueText.value,
+  })
+  if(result.data && result.data.words){
+    return showToast(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)
+  }
   if (valueText.value.trim()) {
     isSendBtn.value = false
     emit('send', valueText.value)

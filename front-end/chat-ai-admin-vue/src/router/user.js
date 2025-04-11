@@ -83,6 +83,15 @@ export default {
             title: '客户端下载',
             activeMenu: '/user'
           }
+        },
+        {
+          path: '/user/sensitive-words',
+          name: 'SensitiveWords',
+          component: () => import('../views/user/sensitive-words/index.vue'),
+          meta: {
+            title: '敏感词管理',
+            activeMenu: '/user'
+          }
         }
       ]
     }
