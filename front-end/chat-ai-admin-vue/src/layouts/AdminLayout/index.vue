@@ -14,18 +14,10 @@
     padding: 0 16px;
 
     .header-left {
-      position: absolute;
-      left: 16px;
-      top: 0;
-      bottom: 0;
       display: flex;
       align-items: center;
     }
     .header-right {
-      position: absolute;
-      right: 16px;
-      top: 0;
-      bottom: 0;
       display: flex;
       align-items: center;
       gap: 22px;

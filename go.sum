@@ -736,6 +736,8 @@ github.com/zhimaAi/go_tools v0.0.0-20250107073519-cf149802f8e6 h1:a8TNhJsoEVd+5/
 github.com/zhimaAi/go_tools v0.0.0-20250107073519-cf149802f8e6/go.mod h1:Iv3pLGkWHmE7CQswn9u7QEw1rpfAN9kkx8WFpiaY3po=
 github.com/zhimaAi/llm_adaptor v0.0.0-20250326035857-99164d48e9ad h1:SbUsxy726NcajQFDaoWTw4peF/3Eg13XHdP/yEsy5XU=
 github.com/zhimaAi/llm_adaptor v0.0.0-20250326035857-99164d48e9ad/go.mod h1:YvyLU6laRHdR7iart0h6SC3Rm0IzauKJhq7cJcmSRV0=
+github.com/zhimaAi/pdf v0.0.0-20240423033113-08880067bc13 h1:kcKmKktJVQ3jORjMQ+c9k8YLEXquKV93IE1Py6IINb4=
+github.com/zhimaAi/pdf v0.0.0-20240423033113-08880067bc13/go.mod h1:zULDifjL+NqvjoryV4hzQpU5kPF0B1e1/qIBoIJtGWg=
 gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 h1:K+bMSIx9A7mLES1rtG+qKduLIXq40DAzYHtb0XuCukA=
 gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181/go.mod h1:dzYhVIwWCtzPAa4QP98wfB9+mzt33MSmM8wsKiMi2ow=
 gitlab.com/golang-commonmark/linkify v0.0.0-20191026162114-a0c2df6c8f82 h1:oYrL81N608MLZhma3ruL8qTM4xcpYECGut8KSxRY59g=

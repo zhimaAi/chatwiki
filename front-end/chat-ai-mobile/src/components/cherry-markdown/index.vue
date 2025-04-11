@@ -22,7 +22,9 @@
   div:last-child {
     margin-bottom: 0 !important;
   }
-  
+  p:last-child {
+    margin-bottom: 0 !important;
+  }
   img{
     width: auto;
     height: auto;

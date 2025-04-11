@@ -144,3 +144,39 @@ export const createPromptByAi = (params = {}) => {
     params: params
   })
 }
+
+export const getSensitiveWordsList = (params = {}) => {
+  return request.get({
+    url: '/manage/getSensitiveWordsList',
+    params: params
+  })
+}
+
+export const switchSensitiveWords = (data = {}) => {
+  return request.post({
+    url: '/manage/switchSensitiveWords',
+    data: data
+  })
+}
+
+export const deleteSensitiveWords = (data = {}) => {
+  return request.post({
+    url: '/manage/deleteSensitiveWords',
+    data: data
+  })
+}
+
+
+export const saveSensitiveWords = (data = {}) => {
+  return request.post({
+    url: '/manage/saveSensitiveWords',
+    data: data
+  })
+}
+
+export const checkSensitiveWords = (data = {}) => {
+  return request.post({
+    url: '/manage/checkSensitiveWords',
+    data: data
+  })
+}

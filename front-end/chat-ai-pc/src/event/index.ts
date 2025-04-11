@@ -8,9 +8,15 @@ window.addEventListener('message', function(event) {
     if(res.action === 'openWindow'){
         emitter.emit('openWindow', event.data)
     }
+
+    if(res.action === 'clostWindow'){
+      emitter.emit('clostWindow', event.data)
+  }
+
     const chatStore = useChatStore()
     const { upDataUiStyle, updataQuickComand } = chatStore
     const type = res.type;
+
     switch (type) {
       case "onPreview": {
         upDataUiStyle(res.data)

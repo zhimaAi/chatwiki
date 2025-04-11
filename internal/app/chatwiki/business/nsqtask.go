@@ -84,7 +84,8 @@ func ConvertHtml(msg string, _ ...string) error {
 	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: fileId})
 
 	//create default lib file split
-	common.AutoSplitLibFile(cast.ToInt(info[`admin_user_id`]), fileId)
+	splitParams := common.DefaultSplitParams()
+	common.AutoSplitLibFile(cast.ToInt(info[`admin_user_id`]), fileId, splitParams)
 
 	return nil
 }
@@ -113,10 +114,6 @@ func ConvertVector(msg string, _ ...string) error {
 	}
 	if len(info) == 0 {
 		logs.Error(`no data:%s`, msg)
-		return nil
-	}
-	if cast.ToInt(info[`status`]) != define.VectorStatusInitial {
-		logs.Error(`abnormal state:%s/%v`, msg, info[`status`])
 		return nil
 	}
 	//start convert
@@ -191,18 +188,7 @@ func ConvertGraph(msg string, _ ...string) error {
 		logs.Error(`no data:%s`, msg)
 		return nil
 	}
-	fileInfo, err := msql.Model(`chat_ai_library_file`, define.Postgres).
-		Where(`id`, cast.ToString(fileId)).
-		Where(`admin_user_id`, info[`admin_user_id`]).
-		Find()
-	if err != nil {
-		logs.Error(err.Error())
-		return nil
-	}
-	if cast.ToInt(fileInfo[`graph_status`]) == define.GraphStatusException {
-		logs.Error(`abnormal state:%s/%v`, msg, fileInfo)
-		return nil
-	}
+
 	library, err := common.GetLibraryInfo(cast.ToInt(info[`library_id`]), cast.ToInt(info[`admin_user_id`]))
 	if err != nil {
 		logs.Error(err.Error())
@@ -213,10 +199,6 @@ func ConvertGraph(msg string, _ ...string) error {
 		return nil
 	}
 
-	if cast.ToInt(info[`graph_status`]) != define.GraphStatusNotStart {
-		logs.Error(`abnormal state:%s/%v`, msg, info[`graph_status`])
-		return nil
-	}
 	constructGraphInit(fileId, id)
 
 	// construct graph
@@ -289,9 +271,9 @@ func ConvertGraph(msg string, _ ...string) error {
 	}
 	if !hasError {
 		constructGraphSucceed(id)
-		CheckFileGraphLearned(fileId)
 	}
 
+	CheckFileGraphLearned(fileId)
 	return nil
 }
 
@@ -299,18 +281,17 @@ func constructGraphInit(fileId, dataId int) {
 	_, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
 		Where(`id`, cast.ToString(dataId)).
 		Update(msql.Datas{
-			`graph_status`: define.GraphStatusInitial,
+			`graph_status`: define.GraphStatusWorking,
 			`update_time`:  tool.Time2Int(),
 		})
 	if err != nil {
 		logs.Error(err.Error())
 	}
-	_ = common.DeleteGraphFile(fileId)
 	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
 		Where(`id`, cast.ToString(fileId)).
-		Where(`graph_status`, cast.ToString(define.GraphStatusNotStart)).
+		Where(`graph_status`, cast.ToString(define.GraphStatusInitial)).
 		Update(msql.Datas{
-			`graph_status`: define.GraphStatusInitial,
+			`graph_status`: define.GraphStatusWorking,
 			`update_time`:  tool.Time2Int(),
 		})
 	if err != nil {
@@ -325,16 +306,6 @@ func constructGraphFailed(fileId, dataId int, errMsg string) {
 			`graph_status`:  define.GraphStatusException,
 			`graph_err_msg`: errMsg,
 			`update_time`:   tool.Time2Int(),
-		})
-	if err != nil {
-		logs.Error(err.Error())
-	}
-	_ = common.DeleteGraphFile(fileId)
-	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
-		Where(`id`, cast.ToString(fileId)).
-		Update(msql.Datas{
-			`graph_status`: define.GraphStatusException,
-			`update_time`:  tool.Time2Int(),
 		})
 	if err != nil {
 		logs.Error(err.Error())
@@ -391,24 +362,40 @@ func CheckFileGraphLearned(fileId int) {
 
 	m := msql.Model(`chat_ai_library_file_data`, define.Postgres)
 
-	total, err := m.Where(`file_id`, cast.ToString(fileId)).Where(`graph_status`, cast.ToString(define.GraphStatusInitial)).Count(`1`)
+	res, err := m.Where(`file_id`, cast.ToString(fileId)).
+		Field(fmt.Sprintf(`count(case when graph_status = %d then 1 else null end) as notstart_count`, define.GraphStatusNotStart)).
+		Field(fmt.Sprintf(`count(case when graph_status = %d then 1 else null end) as working_count`, define.GraphStatusWorking)).
+		Field(fmt.Sprintf(`count(case when graph_status = %d then 1 else null end) as converted_count`, define.GraphStatusConverted)).
+		Field(fmt.Sprintf(`count(case when graph_status = %d then 1 else null end) as exception_count`, define.GraphStatusException)).
+		Field(fmt.Sprintf(`count(1) as total_count`)).
+		Find()
 	if err != nil {
 		logs.Error(err.Error())
 		return
 	}
-	if total > 0 {
-		return //not finish
+
+	if cast.ToInt(res[`notstart_count`]) > 0 || cast.ToInt(res[`working_count`]) > 0 {
+		return // not finish
 	}
 
-	// finished
+	finalStatus := define.GraphStatusConverted
+	if cast.ToInt(res[`exception_count`]) > 0 {
+		finalStatus = define.GraphStatusPartlyConverted
+		if cast.ToInt(res[`exception_count`]) == cast.ToInt(res[`total_count`]) {
+			finalStatus = define.GraphStatusException
+		}
+	} else {
+		finalStatus = define.GraphStatusConverted
+	}
 	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
-		`graph_status`: define.GraphStatusConverted,
+		`graph_status`: finalStatus,
 		`update_time`:  tool.Time2Int(),
 	})
 	if err != nil {
 		logs.Error(err.Error())
 		return
 	}
+
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: fileId})
 }

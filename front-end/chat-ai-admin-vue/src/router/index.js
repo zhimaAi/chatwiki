@@ -6,6 +6,7 @@ import library from './library'
 import authority from './authority'
 import database from './database'
 import publicLibrary from './public-library'
+import chatMonitor from './chat-monitor'
 
 const routes = [
   {
@@ -39,7 +40,8 @@ const routes = [
   library,
   publicLibrary,
   authority,
-  database
+  database,
+  chatMonitor
 ]
 
 if (import.meta.env.DEV) {

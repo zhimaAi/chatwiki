@@ -215,6 +215,7 @@
               checked-children="开"
               un-checked-children="关"
             />
+            <div class="form-item-tip">开启后，可以文档列表手动点击知识图谱学习生成知识图谱</div>
           </a-form-item>
           <a-form-item label="知识图谱模型" v-show="formState.graph_switch">
             <ModelSelect
@@ -359,10 +360,10 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
-import { useRoute } from 'vue-router'
-import { Form, message } from 'ant-design-vue'
-import { QuestionCircleOutlined } from '@ant-design/icons-vue'
+import { reactive, ref, h} from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Form, message, Modal } from 'ant-design-vue'
+import { QuestionCircleOutlined, CheckCircleFilled } from '@ant-design/icons-vue'
 import { getLibraryInfo, editLibrary, getSeparatorsList } from '@/api/library'
 import { getModelConfigOption } from '@/api/model/index'
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
@@ -372,6 +373,7 @@ import ModelSelect from '@/components/model-select/model-select.vue'
 import OpenGrapgModal from './components/open-grapg-modal.vue'
 
 const rotue = useRoute()
+const router = useRouter()
 const query = rotue.query
 const defaultAvatar = DEFAULT_LIBRARY_AVATAR2
 const formState = reactive({
@@ -560,6 +562,7 @@ const onVectorModelLoaded = (list) => {
 const openGrapgModalRef = ref(null)
 const handleGraphSwitch = (val) => {
   if (val) {
+    formState.graph_switch = false
     let data = {
       graph_model_config_id: formState.graph_model_config_id,
       graph_use_model: formState.graph_use_model
@@ -591,11 +594,23 @@ const handleOpenGrapgOk = (data) => {
     formState.graph_switch = true
     formState.graph_model_config_id = data.graph_model_config_id
     formState.graph_use_model = data.graph_use_model
-    handleEdit()
+    handleEdit(() => {
+      Modal.confirm({
+        title: '已开启知识图谱',
+        content: '您可以在文档列表中点击知识图谱学习，系統将在您手动操作后开始抽取知识图谱',
+        cancelText: '知道了',
+        okText: '去学习',
+        icon: h(CheckCircleFilled, {style: {color: '#52c41a'}}),
+        onOk: () => router.push({
+          path: '/library/details/knowledge-document',
+          query: {id: query.id}
+        })
+      })
+    })
   }
 }
 
-const handleEdit = () => {
+const handleEdit = (callback = null) => {
   if (!formState.library_name) {
     return message.error('请输入知识库名称')
   }
@@ -625,7 +640,7 @@ const handleEdit = () => {
     data.avatar = formState.avatar_file
   }
   editLibrary(data).then((res) => {
-    message.success('修改成功')
+    typeof callback === 'function' ? callback() : message.success('修改成功')
   })
 }
 </script>

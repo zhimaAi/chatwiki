@@ -1,9 +1,15 @@
+import createAvatar from "./create-avater";
+import AiChatWidget from './ai-chat'
 class AiAvatar {
-  clickHandler = null;
+  avatarElWrapper = null;
+  avatarContentEl = null;
   avatarEl = null;
-  avatarSrc = "";
+  click = null;
+  
   left = 0;
   top = 0;
+  right = 0;
+  bottom = 0;
   width = 50;
   height = 50;
 
@@ -15,39 +21,73 @@ class AiAvatar {
   // 拖拽状态标志位
   dragging = false;
 
+  config = {
+    displayType: 1,
+    buttonText: "快来聊聊吧~",
+    buttonIcon: "",
+    bottomMargin: 32,
+    rightMargin: 32,
+    showUnreadCount: 1,
+    showNewMessageTip: 1,
+  };
+
   constructor(config) {
-    if (config) {
-      this.avatarSrc = config.avatarSrc;
-    }
+   
   }
 
-  init(config) {
-    this.avatarSrc = config.sdkFloatAvatar;
+  init(data) {
+    const { config } = data;
+  
+    this.config = config.floatBtn;
 
-    this.getInitialPosition();
     this.insertAvatar();
   }
 
-  // 获取初始位置
-  getInitialPosition() {
+  // 设置初始位置
+  setInitialPosition() {
     const winWidth = window.innerWidth;
     const winHeight = window.innerHeight;
 
-    this.left = winWidth - this.width - 50;
-    this.top = winHeight - this.height - 50;
+    this.top = winHeight - this.height - this.config.bottomMargin * 1;
+    this.left = winWidth - this.width - this.config.rightMargin * 1;
+    this.bottom = this.config.bottomMargin * 1;
+    this.right = this.config.rightMargin * 1;
+
+    this.updataPosition();
   }
 
+  updataPosition() {
+    this.avatarElWrapper.style.left = this.left + "px";
+    this.avatarElWrapper.style.top = this.top + "px";
+  }
+
+  onWindowResize(){
+    const winWidth = window.innerWidth;
+    const winHeight = window.innerHeight;
+
+    let top = winHeight - this.height - this.bottom;
+    let left = winWidth - this.width - this.right;
+
+    this.top = Math.max(0, top);
+    this.left = Math.max(0, left);
+   
+
+    this.updataPosition();
+  }
   // 启用拖拽
   enableDrag() {
+    // 监听窗口大小事件并更新位置
+    window.addEventListener("resize", this.onWindowResize.bind(this));
+    // 监听mousedown事件
     this.avatarEl.addEventListener("mousedown", (e) => {
       this.initialX = this.left;
       this.initialY = this.top;
 
       // 获取鼠标相对于元素的初始位置
       this.initialMouseX =
-        e.clientX - this.avatarEl.getBoundingClientRect().left;
+        e.clientX - this.avatarElWrapper.getBoundingClientRect().left;
       this.initialMouseY =
-        e.clientY - this.avatarEl.getBoundingClientRect().top;
+        e.clientY - this.avatarElWrapper.getBoundingClientRect().top;
 
       // 添加对全局的mousemove和mouseup监听
       document.addEventListener("mousemove", this.handleDrag);
@@ -74,9 +114,11 @@ class AiAvatar {
     this.left = Math.max(0, Math.min(newX, winWidth - this.width));
     this.top = Math.max(0, Math.min(newY, winHeight - this.height));
 
+    this.right = winWidth - this.left - this.width;
+    this.bottom = winHeight - this.top - this.height;
+ 
     // 更新图片位置
-    this.avatarEl.style.left = this.left + "px";
-    this.avatarEl.style.top = this.top + "px";
+    this.updataPosition();
   };
 
   // 拖拽结束
@@ -87,7 +129,7 @@ class AiAvatar {
     if (deltaX <= 3 && deltaY <= 3) {
       this.handleClick();
     }
-    
+
     // 标记拖拽结束
     this.dragging = false;
 
@@ -99,45 +141,63 @@ class AiAvatar {
     if (document.getElementById("zm_chat-wiki-avatar")) {
       return;
     }
+    this.avatarElWrapper = document.createElement("div");
+    this.avatarElWrapper.className = "zm_chat-wiki-avatar-wrapper";
+    this.avatarElWrapper.style.display = "block";
+    this.avatarElWrapper.style.left = "-99999px";
+    this.avatarElWrapper.style.top = "-99999px";
 
-    this.avatarEl = document.createElement("img");
+    this.avatarContentEl = document.createElement("div");
+    this.avatarContentEl.className = "zm_chat-wiki-avatar-content";
 
-    this.avatarEl.style.display = "block";
-    this.avatarEl.style.top = this.top + "px";
-    this.avatarEl.style.left = this.left + "px";
-    this.avatarEl.style.width = this.width + "px";
-    this.avatarEl.style.height = this.height + "px";
-    this.avatarEl.src = this.avatarSrc;
+    this.avatarEl = document.createElement("div");
     this.avatarEl.id = "zm_chat-wiki-avatar";
 
+    this.avatarContentEl.appendChild(this.avatarEl);
+    
+    this.avatarElWrapper.appendChild(this.avatarContentEl);
+    
+    
+
+    document.body.appendChild(this.avatarElWrapper);
+    
     // this.avatarEl.addEventListener("click", this.handleClick.bind(this));
 
-    this.enableDrag();
+    createAvatar(this.config).then((dom) => {
+      this.avatarEl.appendChild(dom);
+      
+      this.width = this.avatarEl.offsetWidth;
+      this.height = this.avatarEl.offsetHeight;
 
-    document.body.appendChild(this.avatarEl);
+      this.setInitialPosition();
+
+      this.enableDrag();
+      
+    }).catch(e => {
+      console.error('图片加载失败');
+    })
   }
 
   handleClick(e) {
-    if (this.clickHandler) {
-      this.clickHandler();
-    }
+    this.hide();
+    AiChatWidget.open();
   }
 
   removeAvatar() {
-    if (this.avatarEl) {
+    if (this.avatarElWrapper) {
       // this.avatarEl.removeEventListener("click", this.handleClick.bind(this));
 
-      document.body.removeChild(this.avatarEl);
+      document.body.removeChild(this.avatarElWrapper);
     }
   }
 
   show() {
-    this.avatarEl.style.display = "block";
+    this.avatarElWrapper.style.display = "block";
   }
 
   hide() {
-    this.avatarEl.style.display = "none";
+    this.avatarElWrapper.style.display = "none";
   }
 }
 
-export default AiAvatar;
+export default new AiAvatar();

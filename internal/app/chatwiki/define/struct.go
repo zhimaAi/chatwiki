@@ -44,6 +44,7 @@ func (u *UploadInfo) GetDocType() int {
 
 type ChatBaseParam struct {
 	AppType     string
+	AppInfo     msql.Params
 	Openid      string
 	AdminUserId int
 	Robot       msql.Params
@@ -92,6 +93,7 @@ type SplitParams struct {
 	SemanticChunkSize          int      `json:"semantic_chunk_size"`
 	SemanticChunkOverlap       int      `json:"semantic_chunk_overlap"`
 	SemanticChunkThreshold     int      `json:"semantic_chunk_threshold"`
+	PdfParseType               int      `json:"pdf_parse_type"`
 }
 
 type FormFilterCondition struct {

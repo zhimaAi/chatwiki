@@ -37,6 +37,7 @@ require (
 	github.com/xuri/excelize/v2 v2.9.0
 	github.com/zhimaAi/go_tools v0.0.0-20250107073519-cf149802f8e6
 	github.com/zhimaAi/llm_adaptor v0.0.0-20250326035857-99164d48e9ad
+	github.com/zhimaAi/pdf v0.0.0-20240423033113-08880067bc13
 	go.uber.org/zap v1.27.0
 	golang.org/x/image v0.21.0
 	gorm.io/driver/postgres v1.5.7

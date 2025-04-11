@@ -63,6 +63,13 @@ export const addLibraryFile = (data) => {
   })
 }
 
+export const readLibFileExcelTitle = (data) => {
+  return request.post({
+    url: '/manage/readLibFileExcelTitle',
+    data: data
+  })
+}
+
 export const editLibrary = (data) => {
   return request.post({
     url: '/manage/editLibrary',
@@ -153,5 +160,26 @@ export const getLibraryRobotInfo = (params = {}) => {
   return request.get({
     url: '/manage/getLibraryRobotInfo',
     params: params
+  })
+}
+
+export const createGraph = (data) => {
+  return request.post({
+    url: '/manage/constructGraph',
+    data: data
+  })
+}
+
+export const reconstructVector = (data) => {
+  return request.post({
+    url: '/manage/reconstructVector',
+    data: data
+  })
+}
+
+export const reconstructGraph = (data) => {
+  return request.post({
+    url: '/manage/reconstructGraph',
+    data: data
   })
 }

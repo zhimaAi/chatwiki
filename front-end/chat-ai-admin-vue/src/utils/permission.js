@@ -1,5 +1,4 @@
 import { usePermissionStore } from '@/stores/modules/permission'
-import { useUserStore } from '@/stores/modules/user'
 
 /**
  * 字符权限校验
@@ -35,12 +34,15 @@ export function checkPermi(value) {
  */
 export function checkRole(value) {
   if (value && value instanceof Array && value.length > 0) {
-    const roles = store.getters && store.getters.roles
+    const permissionStore = usePermissionStore()
+    const { role_permission } = permissionStore
+
     const permissionRoles = value
     const super_admin = 'admin'
+    const all_permission = '*:*:*'
 
-    const hasRole = roles.some((role) => {
-      return super_admin === role || permissionRoles.includes(role)
+    const hasRole = permissionRoles.some((role) => {
+      return super_admin === role || role_permission.includes(role) || role == all_permission
     })
 
     if (!hasRole) {
@@ -64,12 +66,12 @@ export function checkSystemPermisission(to) {
   let flag = false
   if (!role_permission.includes(to.name)) {
     for (let i = 0; i < menus.length; i++) {
-      const item = menus[i];
+      const item = menus[i]
       if (flag) return
       if (item.uni_key === 'System' && item.children.length > 0) {
         for (let j = 0; j < item.children.length; j++) {
-          const element = item.children[j];
-          if (role_permission.includes(element.uni_key)){
+          const element = item.children[j]
+          if (role_permission.includes(element.uni_key)) {
             flag = true
             return element.uni_key
           }

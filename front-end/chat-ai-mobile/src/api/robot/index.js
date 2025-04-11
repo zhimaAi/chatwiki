@@ -42,3 +42,10 @@ export const editPrompt = ({ id, prompt }) => {
     }
   })
 }
+
+export const checkSensitiveWords = (data = {}) => {
+  return request.post({
+    url: '/manage/checkSensitiveWords',
+    data: data
+  })
+}

@@ -1,25 +1,3 @@
-<style lang="less" scoped>
-.robot-config-page {
-  height: 100%;
-  width: 100%;
-  padding: 8px 10px 24px 24px;
-  overflow: hidden;
-  background-color: #fff;
-
-  .scroll-box {
-    height: calc(100% - 62px);
-    overflow-y: auto;
-  }
-
-  .setting-box {
-    margin-bottom: 16px;
-  }
-}
-::v-deep(.ant-tabs-nav-wrap) {
-  padding-left: 24px;
-}
-</style>
-
 <template>
   <a-tabs v-model:activeKey="activeKey">
     <a-tab-pane :key="1" tab="基础配置"></a-tab-pane>
@@ -51,6 +29,9 @@
       <div class="setting-box">
         <UnknownProblemPrompt />
       </div>
+      <div class="setting-box">
+        <SensitiveWords />
+      </div>
       <!--  
       <div class="setting-box">
         <MarkdownSetting />
@@ -64,6 +45,9 @@
       </div>
       <div class="setting-box">
         <DisplayAitations />
+      </div>
+      <div class="setting-box">
+        <ShowLike />
       </div>
     </div>
   </div>
@@ -85,12 +69,14 @@ import WelcomeWords from './components/welcome-words.vue'
 import UnknownProblemPrompt from './components/unknown-problem-prompt.vue'
 import ProblemOptimization from './components/problem-optimization.vue'
 import SuggestedIssues from './components/suggested-issues.vue'
+import SensitiveWords from './components/sensitive-words.vue'
 import ChatMode from './components/chat-mode/index.vue'
 import MarkdownSetting from './components/markdown-setting.vue'
 import CommonProblem from './components/common-problem.vue'
 import DisplayAitations from './components/display-aitations.vue'
 import { saveRobot } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
+import ShowLike from './components/show-like.vue'
 
 const robotStore = useRobotStore()
 
@@ -174,3 +160,25 @@ const saveForm = () => {
     })
 }
 </script>
+
+<style lang="less" scoped>
+.robot-config-page {
+  height: 100%;
+  width: 100%;
+  padding: 8px 10px 24px 24px;
+  overflow: hidden;
+  background-color: #fff;
+
+  .scroll-box {
+    height: calc(100% - 62px);
+    overflow-y: auto;
+  }
+
+  .setting-box {
+    margin-bottom: 16px;
+  }
+}
+::v-deep(.ant-tabs-nav-wrap) {
+  padding-left: 24px;
+}
+</style>

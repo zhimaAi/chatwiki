@@ -11,6 +11,7 @@
       font-size: 0;
       width: 100%;
       overflow: hidden;
+      overflow-x: auto;
       white-space: nowrap;
 
       .file-item {

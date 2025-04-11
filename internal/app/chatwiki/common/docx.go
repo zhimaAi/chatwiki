@@ -5,10 +5,13 @@ package common
 import (
 	"archive/zip"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_redis"
 	"errors"
 	"fmt"
+	"github.com/zhimaAi/pdf"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -146,4 +149,38 @@ func ReadDocx(fileUrl string, userId int) ([]define.DocSplitItem, int, error) {
 	}
 	list := []define.DocSplitItem{{Content: content}}
 	return list, utf8.RuneCountInString(content), nil
+}
+
+func ReadPdf(pdfUrl, lang string) ([]define.DocSplitItem, int, error) {
+	if len(pdfUrl) == 0 {
+		return nil, 0, errors.New(`file link cannot be empty`)
+	}
+	//read pdf
+	file, reader, err := pdf.Open(GetFileByLink(pdfUrl))
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, 0, errors.New(i18n.Show(lang, `can_not_parse_pdf`))
+	}
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
+	//paging collection
+	list := make([]define.DocSplitItem, 0)
+	wordTotal := 0
+	for num := 1; num <= reader.NumPage(); num++ {
+		p := reader.Page(num)
+		if p.V.IsNull() {
+			continue
+		}
+		content, err := p.GetPlainText(nil)
+		if err != nil {
+			logs.Error(err.Error())
+			continue
+		}
+		if len(content) > 0 {
+			wordTotal += utf8.RuneCountInString(content)
+			list = append(list, define.DocSplitItem{PageNum: num, Content: content})
+		}
+	}
+	return list, wordTotal, nil
 }

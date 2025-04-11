@@ -84,3 +84,8 @@ const (
 	PromptTypeCustom = 0
 	PromptTypeStruct = 1
 )
+
+const (
+	PdfParseTypeText = 1
+	PdfParseTypeOcr  = 2
+)

@@ -21,6 +21,15 @@ const external_config_pc_default = {
   lang: 'zh-CN',
   pageStyle: {
     headBackgroundColor: 'linear-gradient,to right,#2435E7,#01A0FB'
+  },
+  floatBtn: {
+    displayType: 1,
+    buttonText: '快来聊聊吧~',
+    buttonIcon: '',
+    bottomMargin: 32,
+    rightMargin: 32,
+    showUnreadCount: 1,
+    showNewMessageTip: 1
   }
 }
 
@@ -75,7 +84,9 @@ export const useRobotStore = defineStore('robot', () => {
     enable_common_question: 'false',
     common_question_list: [],
     answer_source_switch: 'false',
-    application_type: 0
+    feedback_switch: 1,
+    application_type: 0,
+    sensitive_words_switch: 0,
   })
 
   // WebApp配置
@@ -158,24 +169,24 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.enable_common_question = data.enable_common_question
     robotInfo.common_question_list = data.common_question_list
     robotInfo.answer_source_switch = data.answer_source_switch
+    robotInfo.feedback_switch = +data.feedback_switch 
     robotInfo.application_type = data.application_type
+    robotInfo.sensitive_words_switch = +data.sensitive_words_switch
     // h5配置
     if (data.external_config_h5 !== '') {
       Object.assign(external_config_h5, JSON.parse(data.external_config_h5))
     } else {
       Object.assign(external_config_h5, JSON.parse(JSON.stringify(external_config_h5_default)))
-      external_config_h5.logo = robotInfo.robot_avatar_url
       external_config_h5.pageTitle = robotInfo.robot_name
+      external_config_h5.logo = robotInfo.robot_avatar_url
     }
 
     // 嵌入网站配置
     if (data.external_config_pc !== '') {
       Object.assign(external_config_pc, JSON.parse(data.external_config_pc))
     } else {
-      external_config_pc_default.headTitle = robotInfo.robot_name
-      external_config_pc_default.headImage = robotInfo.robot_avatar_url
-
-      Object.assign(external_config_pc, JSON.parse(JSON.stringify(external_config_pc_default)))
+      external_config_pc.headTitle = robotInfo.robot_name
+      external_config_pc.headImage = robotInfo.robot_avatar_url
     }
   }
 

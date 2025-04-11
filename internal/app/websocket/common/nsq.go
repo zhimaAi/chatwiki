@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/websocket/define"
 
 	"github.com/zhimaAi/go_tools/logs"
+	"github.com/zhimaAi/go_tools/tool"
 )
 
 func RunTask(topic, channel string, workNum uint, callback func(msg string, args ...string) error) {
@@ -18,4 +19,12 @@ func RunTask(topic, channel string, workNum uint, callback func(msg string, args
 	if err != nil {
 		logs.Error(`Consumer Run Error:%s`, err.Error())
 	}
+}
+
+func OpenPush(openid, ip string, stime int) {
+	logs.Debug(`ClosePush:%s`, tool.JsonEncodeNoError(map[string]any{`openid`: openid, `ip`: ip, `stime`: stime}))
+}
+
+func ClosePush(openid, ip string, stime, etime int) {
+	logs.Debug(`ClosePush:%s`, tool.JsonEncodeNoError(map[string]any{`openid`: openid, `ip`: ip, `stime`: stime, `etime`: etime}))
 }

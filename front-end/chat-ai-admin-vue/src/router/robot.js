@@ -99,7 +99,7 @@ export default {
             title: '统计分析',
             isCustomPage: true
           }
-        }
+        },
       ]
     },
     {

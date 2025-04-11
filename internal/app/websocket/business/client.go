@@ -9,8 +9,11 @@ import (
 
 type Client struct {
 	openid string
+	ip     string
 	conn   *websocket.Conn
 	send   chan []byte
+	stime  int
+	etime  int
 }
 
 func (c *Client) PullMessage() {

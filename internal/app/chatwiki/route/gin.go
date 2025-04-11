@@ -99,8 +99,12 @@ func init() {
 	Route[http.MethodPost][`/manage/delLibraryFile`] = manage.DelLibraryFile
 	Route[http.MethodGet][`/manage/getLibFileInfo`] = manage.GetLibFileInfo
 	Route[http.MethodGet][`/manage/getLibFileExcelTitle`] = manage.GetLibFileExcelTitle
+	Route[http.MethodPost][`/manage/readLibFileExcelTitle`] = manage.ReadLibFileExcelTitle
 	Route[http.MethodPost][`/manage/renewLibraryFile`] = manage.RenewLibraryFile
 	Route[http.MethodPost][`/manage/editLibFile`] = manage.EditLibFile
+	Route[http.MethodPost][`/manage/constructGraph`] = manage.ConstructGraph
+	Route[http.MethodPost][`/manage/reconstructVector`] = manage.ReconstructVector
+	Route[http.MethodPost][`/manage/reconstructGraph`] = manage.ReconstructGraph
 	/*paragraph API*/
 	Route[http.MethodGet][`/manage/getSeparatorsList`] = manage.GetSeparatorsList
 	Route[http.MethodGet][`/manage/getLibFileSplit`] = manage.GetLibFileSplit
@@ -109,6 +113,7 @@ func init() {
 	Route[http.MethodPost][`/manage/addParagraph`] = manage.SaveParagraph
 	Route[http.MethodPost][`/manage/editParagraph`] = manage.SaveParagraph
 	Route[http.MethodPost][`/manage/deleteParagraph`] = manage.DeleteParagraph
+
 	/*form API*/
 	Route[http.MethodGet][`/manage/getFormList`] = manage.GetFormList
 	Route[http.MethodGet][`/manage/getFormInfo`] = manage.GetFormInfo
@@ -193,6 +198,15 @@ func init() {
 	/*work_flow API*/
 	Route[http.MethodGet][`/manage/getNodeList`] = manage.GetNodeList
 	Route[http.MethodPost][`/manage/saveNodes`] = manage.SaveNodes
+	/* sensitive words API*/
+	Route[http.MethodGet][`/manage/getSensitiveWordsList`] = manage.GetSensitiveWordsList
+	Route[http.MethodPost][`/manage/saveSensitiveWords`] = manage.SaveSensitiveWords
+	Route[http.MethodPost][`/manage/switchSensitiveWords`] = manage.SwitchSensitiveWords
+	Route[http.MethodPost][`/manage/deleteSensitiveWords`] = manage.DeleteSensitiveWords
+	noAuthFuns(Route[http.MethodPost], `/manage/checkSensitiveWords`, business.CheckSensitiveWords)
+	/*receiver API*/
+	Route[http.MethodGet][`/manage/getReceiverList`] = manage.GetReceiverList
+	Route[http.MethodPost][`/manage/setReceiverRead`] = manage.SetReceiverRead
 }
 
 func noAuthFuns(route map[string]lib_web.Action, path string, handlerFunc lib_web.Action) map[string]lib_web.Action {

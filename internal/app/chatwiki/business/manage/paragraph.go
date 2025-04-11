@@ -42,7 +42,9 @@ func GetParagraphList(c *gin.Context) {
 	}
 	page := max(1, cast.ToInt(c.Query(`page`)))
 	size := max(1, cast.ToInt(c.Query(`size`)))
-	list, total, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+	status := cast.ToInt(c.Query(`status`))
+	graphStatus := cast.ToInt(c.Query(`graph_status`))
+	query := msql.Model(`chat_ai_library_file_data`, define.Postgres).
 		Alias("a").
 		Join("chat_ai_library_file_data_index b", "a.id=b.data_id", "inner").
 		Where(`a.admin_user_id`, cast.ToString(userId)).Where(`a.file_id`, cast.ToString(fileId)).
@@ -61,8 +63,14 @@ func GetParagraphList(c *gin.Context) {
   			) AS errmsg
 		`).
 		Group(`a.id`).
-		Order(`number asc,id desc`).
-		Paginate(page, size)
+		Order(`number asc,id desc`)
+	if status >= 0 {
+		query.Where(`b.status`, cast.ToString(status))
+	}
+	if graphStatus >= 0 {
+		query.Where(`a.graph_status`, cast.ToString(graphStatus))
+	}
+	list, total, err := query.Paginate(page, size)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))

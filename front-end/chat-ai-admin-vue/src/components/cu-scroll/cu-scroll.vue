@@ -8,19 +8,23 @@
   }
 }
 .cu-scrolbar-box {
+  /deep/ .bscroll-vertical-scrollbar {
+    transition: opacity 0.4s;
+    opacity: 0;
+  }
+  &:hover {
     /deep/ .bscroll-vertical-scrollbar {
-      transition: opacity 0.4s;
-      opacity: 0;
-    }
-    &:hover {
-      /deep/ .bscroll-vertical-scrollbar {
-        opacity: 1;
-      }
+      opacity: 1;
     }
   }
+}
 </style>
 <template>
-  <div class="scroll-wrapper" :class="{'cu-scrolbar-box': props.scrollbar.interactive }" ref="scroller">
+  <div
+    class="scroll-wrapper"
+    :class="{ 'cu-scrolbar-box': props.scrollbar.interactive }"
+    ref="scroller"
+  >
     <div class="scroll-content">
       <slot></slot>
     </div>
@@ -53,7 +57,7 @@ const props = defineProps({
   },
   scrollbar: {
     type: [Boolean, Object],
-    default: {},
+    default: {}
   },
   pullUpLoad: {
     // 布尔和对象
@@ -103,7 +107,7 @@ onMounted(() => {
 
   scrollController.on('pullingUp', () => {
     emit('onScrollEnd')
-
+    console.log('pullingUp')
     nextTick(() => {
       scrollController.finishPullUp()
     })

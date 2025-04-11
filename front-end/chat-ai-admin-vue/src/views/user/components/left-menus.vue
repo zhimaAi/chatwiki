@@ -135,7 +135,15 @@ let baseMenu = [
     svg: 'client',
     svgActive: 'client',
     permissionKey: 'ClientSideManage'
-  }
+  },
+  {
+    name: '敏感词管理',
+    key: 'sensitiveWords',
+    path: '/user/sensitive-words',
+    svg: 'sensitive-icon',
+    svgActive: 'sensitive-icon',
+    haspermise: true
+  },
 ]
 
 const menus = computed(() => {

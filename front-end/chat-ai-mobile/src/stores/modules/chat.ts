@@ -5,13 +5,12 @@ import { editPrompt } from '@/api/robot/index'
 import { getUuid, getOpenid } from '@/utils/index'
 import { useEventBus } from '@/hooks/event/useEventBus'
 import { useIM } from '@/hooks/event/useIM'
-import { DEFAULT_USER_AVATAR } from '@/constants/index'
 
 export interface Message {
   robot_avatar: string
   dialogue_id: number
   openid: string
-  msg_type: number
+  msg_type: number | string
   is_customer: number
   loading: boolean
   isWelcome: boolean
@@ -22,12 +21,12 @@ export interface Message {
   avatar: string
   content: string
   debug: 0 | 1,
-  guess_you_want: string[],
-  question_tabkey: number,
+  guess_you_want: string[]
+  question_tabkey: number
   feedback_type?: string,
-  reasoning_content: string,
-  reasoning_status: boolean,
-  show_reasoning: boolean,
+  reasoning_content: string
+  reasoning_status: boolean
+  show_reasoning: boolean
 }
 
 export interface Chat {
@@ -61,6 +60,7 @@ export interface Robot {
   comand_list: any | string[],
   app_id: number,
   is_sending: boolean,
+  feedback_switch: boolean,
 }
 
 export interface PageStyle {
@@ -72,7 +72,7 @@ export interface ExternalConfigH5 {
   logo: string
   lang: string
   navbarShow: number
-  accessRestrictionsType: number,
+  accessRestrictionsType: number
   pageStyle: PageStyle
 }
 
@@ -113,6 +113,7 @@ export const useChatStore = defineStore('chat', () => {
     comand_list: [],
     app_id: -1, // webapp:-1,嵌入网站:-2
     is_sending: false, // 是否在发送中
+    feedback_switch: false,
   })
 
   // 样式配置
@@ -155,7 +156,7 @@ export const useChatStore = defineStore('chat', () => {
     robot.openid = openid.value
 
     user.openid = openid.value
-    user.avatar = data.avatar || DEFAULT_USER_AVATAR
+    user.avatar = data.avatar || ''
     user.name = data.name || ''
     user.nickname = data.nickname || ''
 
@@ -164,7 +165,7 @@ export const useChatStore = defineStore('chat', () => {
       openid: openid.value,
       nickname: user.nickname,
       name: user.name,
-      // avatar: user.avatar || DEFAULT_USER_AVATAR
+      avatar: user.avatar
     })
 
     try {
@@ -186,6 +187,7 @@ export const useChatStore = defineStore('chat', () => {
       robot.id = robotInfo.id
       robot.enable_question_guide = robotInfo.enable_question_guide == 'true';
       robot.enable_common_question = robotInfo.enable_common_question == 'true';
+      robot.feedback_switch = robotInfo.feedback_switch == '1';
       if (robotInfo.common_question_list) {
         robot.common_question_list = JSON.parse(robotInfo.common_question_list)
       }
@@ -227,6 +229,11 @@ export const useChatStore = defineStore('chat', () => {
     if (import.meta.env.DEV) {
       msg.dialogue_id = dialogue_id.value
     }
+
+    if (msg.msg_type == 'receiver_notify') {
+      return
+    }
+
     if (msg && msg.dialogue_id == dialogue_id.value) {
       msg.uid = getUuid(32)
       msg.loading = false

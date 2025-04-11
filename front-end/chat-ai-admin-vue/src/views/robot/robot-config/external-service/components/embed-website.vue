@@ -44,7 +44,7 @@
     border-radius: 9px;
     box-shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.16);
   }
-  iframe{
+  iframe {
     width: 375px;
     height: 720px;
     border-radius: 4px;
@@ -115,7 +115,14 @@
       </div>
 
       <div class="box-wrapper">
-        <QuickInstruction :type="robotInfo.app_id_embed" @updata="updataQuickComand"></QuickInstruction>
+        <QuickInstruction
+          :type="robotInfo.app_id_embed"
+          @updata="updataQuickComand"
+        ></QuickInstruction>
+      </div>
+
+      <div class="box-wrapper">
+        <FloatIconSetting :form="formState" @save="handleFloatBtnCongiSave"></FloatIconSetting>
       </div>
     </div>
     <div class="box-right">
@@ -131,14 +138,15 @@
 import { getSdkCode } from './sdk-code'
 import { ref, reactive, toRaw, watch, computed } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRobotStore } from '@/stores/modules/robot'
 import { message } from 'ant-design-vue'
 import { copyText } from '@/utils/index'
 import { editExternalConfig } from '@/api/robot/index'
 import CardBox from './card-box.vue'
 import PageTitleInput from './page-title-input.vue'
 import GradientColorPicker from './gradient-color-picker.vue'
-import { useRobotStore } from '@/stores/modules/robot'
 import QuickInstruction from './quick-instruction.vue'
+import FloatIconSetting from './float-icon-setting.vue'
 
 const robotStore = useRobotStore()
 const { robotInfo, external_config_pc } = storeToRefs(robotStore)
@@ -157,33 +165,33 @@ const formState = reactive({
   headSubTitle: external_config_pc.value.headSubTitle,
   headImage: external_config_pc.value.headImage,
   lang: external_config_pc.value.lang,
-  pageStyle: external_config_pc.value.pageStyle
+  pageStyle: external_config_pc.value.pageStyle,
+  floatBtn: external_config_pc.value.floatBtn
 })
 
-const previewIframeSrc = computed(()=>{
-let { pc_domain, robot_key } = robotInfo.value
+const previewIframeSrc = computed(() => {
+  let { pc_domain, robot_key } = robotInfo.value
   return `${pc_domain}/web/#/chat?robot_key=${robot_key}&language=zh-CN`
 })
 
-watch(formState,(val)=>{
+watch(formState, (val) => {
   updatePreview(val)
 })
 
-const updataQuickComand = (data) =>{
+const updataQuickComand = (data) => {
   updatePreview(data, 'updataQuickComand')
 }
 
-const updatePreview = (data, type) =>{
-  let iframe = document.getElementById('web-preview');
+const updatePreview = (data, type) => {
+  let iframe = document.getElementById('web-preview')
   iframe.contentWindow.postMessage(
     {
       type: type || 'onPreview',
-      data: JSON.parse(JSON.stringify(data)),
+      data: JSON.parse(JSON.stringify(data))
     },
     '*'
-  );
+  )
 }
-
 
 const formRules = {
   lang: [
@@ -244,5 +252,12 @@ const saveForm = () => {
     .catch((error) => {
       console.log('error', error)
     })
+}
+
+// 保存浮标设置
+const handleFloatBtnCongiSave = (data) => {
+  console.log(data, 'handleFloatBtnCongiSave')
+  formState.floatBtn = { ...data }
+  saveForm()
 }
 </script>

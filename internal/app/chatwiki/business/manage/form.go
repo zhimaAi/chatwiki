@@ -482,6 +482,7 @@ func GetFormEntryList(c *gin.Context) {
 	data := map[string]any{`list`: list, `total`: total, `page`: page, `size`: size}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
+
 func UploadFormFile(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {

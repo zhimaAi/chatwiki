@@ -4,8 +4,6 @@ import { usePermissionStoreWithOut } from '@/stores/modules/permission'
 import { useCompanyStore } from '@/stores/modules/company'
 import { NO_REDIRECT_WHITE_LIST } from '@/constants'
 import { checkSystemPermisission } from '@/utils/permission.js'
-// import { checkPermi } from '@/utils/permission'
-// checkPermi(['yun/yunAdmin/ChannelCreate'])
 
 function toLogin(to, from, next) {
   if (to.path === '/login') {
@@ -45,7 +43,7 @@ router.beforeEach(async (to, from, next) => {
   const notWhitePath = NO_REDIRECT_WHITE_LIST.indexOf(to.path) !== -1
 
   let { userInfo, getUserInfo } = userStore
-  let { permissionList, getPermissionList, checkPermission } = permissionStore
+  let { getPermissionList, checkPermission } = permissionStore
 
   let needGetPermissionRoutes = [
     '/robot/list',
@@ -53,7 +51,7 @@ router.beforeEach(async (to, from, next) => {
     '/user/model',
     '/user/clientDownload'
   ]
-  if(to.path == '/set_token'){
+  if (to.path == '/set_token') {
     next()
     return
   }
@@ -65,11 +63,7 @@ router.beforeEach(async (to, from, next) => {
       if (needGetPermissionRoutes.includes(to.path)) {
         await checkPermission()
       }
-      // 权限显示逻辑更换了，不用以前的逻辑了
-      // if (!checkRouterPermisission(to.path)) {
-      //   toAuthorityPage(to, from, next)
-      //   return
-      // }
+
       // 系统管理里面，menu根据顺序，如果有权限的，显示第一个menu
       const name = await checkSystemPermisission(to)
       if (name) {

@@ -89,7 +89,11 @@ func (h *CustomerCacheBuildHandler) GetCacheData() (any, error) {
 	if err == nil && len(customer) > 0 {
 		up := msql.Datas{}
 		if len(customer[`name`]) == 0 {
-			up[`name`] = `访客` + tool.Random(4)
+			if len(customer[`nickname`]) > 0 {
+				up[`name`] = customer[`nickname`]
+			} else {
+				up[`name`] = `访客` + tool.Random(4)
+			}
 		}
 		if len(customer[`avatar`]) == 0 {
 			up[`avatar`] = define.DefaultCustomerAvatar
@@ -291,7 +295,7 @@ func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appTyp
 		size = 10 // Set default value
 	}
 
-	// 1. Extract multiple sets of entity-relation triples from the question
+	// 1. 从问题中提取实体
 	extractEntitiesPrompt := strings.ReplaceAll(define.PromptDefaultEntityExtract, `{{question}}`, question)
 	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: extractEntitiesPrompt}}
 	chatResp, _, err := RequestChat(
@@ -318,109 +322,111 @@ func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appTyp
 	chatResp.Result = strings.TrimSuffix(chatResp.Result, "```")
 	chatResp.Result = strings.TrimSpace(chatResp.Result)
 
-	// Parse multiple sets of entity-relation triples from LLM response
-	var entityTriples [][]string
-	err = json.Unmarshal([]byte(chatResp.Result), &entityTriples)
+	// 2. 解析LLM提取的实体列表
+	var entities []string
+	err = json.Unmarshal([]byte(chatResp.Result), &entities)
 	if err != nil {
-		logs.Error("Failed to parse entity triples: %s, raw data: %s", err.Error(), chatResp.Result)
+		logs.Error("Failed to parse entities: %s, raw data: %s", err.Error(), chatResp.Result)
 		return result, err
 	}
 
-	if len(entityTriples) == 0 {
-		logs.Info("No valid entity triples extracted")
+	if len(entities) == 0 {
+		logs.Info("No valid entities extracted")
 		return result, nil
 	}
 
-	// Log the number of extracted triples
-	logs.Info("Extracted %d entity triples from question[%s]", len(entityTriples), question)
+	// 记录提取的实体数量
+	logs.Info("Extracted %d entities from question[%s]", len(entities), question)
 
-	// 2. Use optimized graph database queries to reduce query count
+	// 3. 使用图数据库查询相关实体
 	graphDB := NewGraphDB("graphrag")
 	libraryIdsArr := strings.Split(libraryIds, ",")
 
-	// 3. Store all query results
+	// 存储所有查询结果
 	allResults := make([]msql.Params, 0)
-	dataIds := make(map[int]float64) // For deduplication and storing highest confidence
+	dataIds := make(map[int]float64) // 用于去重和存储最高置信度
 
-	// Set query size, allocate reasonable query limit for each triple
-	perTripleLimit := size * 3
-	if len(entityTriples) > 0 {
-		perTripleLimit = perTripleLimit / len(entityTriples)
-		if perTripleLimit < 10 {
-			perTripleLimit = 10 // Ensure minimum query limit
+	// 为每个实体分配合理的查询限制
+	perEntityLimit := size * 4
+	if len(entities) > 0 {
+		perEntityLimit = perEntityLimit / len(entities)
+		if perEntityLimit < 10 {
+			perEntityLimit = 10 // 确保最小查询限制
 		}
 	}
 
-	// Perform optimized queries for each triple's entities
-	validTripleCount := 0
-	for i, triple := range entityTriples {
-		// Validate triple format
-		if len(triple) != 3 {
-			logs.Error("Invalid triple format: %v", triple)
+	// 4. 对每个实体执行优化后的深度查询（使用协程并行执行）
+	queryStartTime := time.Now() // 查询开始时间
+	var wg sync.WaitGroup
+	var mu sync.Mutex // 用于保护 allResults 的并发访问
+
+	// 为每个实体启动一个协程
+	for i, entityName := range entities {
+		if len(entityName) == 0 {
+			logs.Error("Empty entity at index %d", i)
 			continue
 		}
 
-		// Validate triple content
-		if len(triple[0]) == 0 || len(triple[2]) == 0 {
-			logs.Error("Empty entity in triple: %v", triple)
-			continue
-		}
+		wg.Add(1)
+		go func(index int, entity string) {
+			defer wg.Done()
 
-		logs.Info("Processing triple[%d]: %v", i+1, triple)
-		validTripleCount++
+			logs.Info("Querying entity[%d]: %s", index+1, entity)
 
-		// Query both subject and object entities
-		for j, entity := range []string{triple[0], triple[2]} {
-			entityType := "Subject"
-			if j == 1 {
-				entityType = "Object"
-			}
-
-			logs.Info("Querying %s entity of triple[%d]: %s", entityType, i+1, entity)
-
-			// Use optimized query that combines subject and object searches
-			relatedTriples, err := graphDB.FindRelatedEntities(entity, libraryIdsArr, perTripleLimit, 2)
+			// 执行最多3级的深度查询
+			relatedTriples, err := graphDB.FindRelatedEntities(entity, libraryIdsArr, perEntityLimit, 3)
 			if err != nil {
-				logs.Error("Failed to recursively query entity %s: %s", entity, err.Error())
-				continue
+				logs.Error("Failed to query entity %s: %s", entity, err.Error())
+				return
 			}
 
-			logs.Info("Found %d related triples for %s entity of triple[%d]", len(relatedTriples), entityType, i+1)
+			logs.Info("Found %d related triples for entity[%d]", len(relatedTriples), index+1)
+
+			// 安全地追加结果
+			mu.Lock()
 			allResults = append(allResults, relatedTriples...)
-		}
+			mu.Unlock()
+		}(i, entityName)
 	}
 
-	// Return if no valid triples
-	if validTripleCount == 0 {
-		logs.Info("No valid triples for querying")
+	// 等待所有查询完成
+	wg.Wait()
+
+	// 计算并记录查询时间
+	queryDuration := time.Since(queryStartTime)
+	logs.Info("Parallel entity query completed in %v for %d entities", queryDuration, len(entities))
+
+	// 如果没有找到相关实体，直接返回
+	if len(allResults) == 0 {
+		logs.Info("No related entities found")
 		return result, nil
 	}
 
-	// 4. Collect related data IDs and confidence, adjust confidence based on recursion depth
+	// 5. 收集相关的数据ID和置信度，根据深度调整置信度
 	for _, triple := range allResults {
 		dataId := cast.ToInt(triple["data_id"])
 		if dataId <= 0 {
-			continue // Skip invalid data IDs
+			continue // 跳过无效的数据ID
 		}
 
-		// Base confidence
+		// 基础置信度
 		confidence := cast.ToFloat64(triple["confidence"])
 		if confidence <= 0 {
-			confidence = 0.5 // Set default confidence
+			confidence = 0.5 // 设置默认置信度
 		}
 
-		// Adjust confidence based on depth
+		// 根据深度调整置信度
 		depth := cast.ToInt(triple["depth"])
 		if depth > 0 {
-			// Reduce confidence by 30% for each additional depth level
-			depthFactor := 1.0 - float64(depth-1)*0.3
-			if depthFactor < 0.5 {
-				depthFactor = 0.5 // Minimum 50% of original confidence
+			// 每增加一级深度，降低20%的置信度
+			depthFactor := 1.0 - float64(depth-1)*0.2
+			if depthFactor < 0.4 {
+				depthFactor = 0.4 // 最低保留40%的原始置信度
 			}
 			confidence = confidence * depthFactor
 		}
 
-		// Save highest confidence
+		// 保存最高置信度
 		if existingConf, exists := dataIds[dataId]; exists {
 			if confidence > existingConf {
 				dataIds[dataId] = confidence
@@ -430,7 +436,7 @@ func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appTyp
 		}
 	}
 
-	// 5. Query corresponding paragraph data
+	// 6. 查询对应的段落数据
 	if len(dataIds) > 0 {
 		logs.Info("Found %d related data IDs", len(dataIds))
 
@@ -447,7 +453,7 @@ func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appTyp
 			return result, err
 		}
 
-		// 6. Add confidence as similarity score
+		// 7. 添加置信度作为相似度得分
 		for _, paragraph := range paragraphs {
 			id := cast.ToInt(paragraph["id"])
 			if conf, exists := dataIds[id]; exists {
@@ -456,12 +462,12 @@ func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appTyp
 			}
 		}
 
-		// Sort by similarity in descending order
+		// 按相似度降序排序
 		sort.Slice(result, func(i, j int) bool {
 			return cast.ToFloat64(result[i]["similarity"]) > cast.ToFloat64(result[j]["similarity"])
 		})
 
-		// Limit return size
+		// 限制返回大小
 		if len(result) > size {
 			result = result[:size]
 		}
@@ -936,41 +942,4 @@ func DeleteGraphFile(fileId int) error {
 func DeleteGraphData(dataId int) error {
 	graphDB := NewGraphDB("graphrag")
 	return graphDB.DeleteByData(dataId)
-}
-
-// GraphQuery Encapsulates graph queries, ensuring the AGE extension is loaded only once
-func GraphQuery(query string) ([]msql.Params, error) {
-	// Create a transaction to ensure all operations execute in the same session
-	db := msql.Model("", define.Postgres)
-	err := db.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		_ = db.Rollback() // Always rollback the transaction to avoid hanging transactions
-	}()
-
-	// Load AGE extension - only needs to be loaded once in this transaction
-	_, err = msql.RawExec(define.Postgres, `load 'age'; SET search_path = ag_catalog, "$user", public;`, nil)
-	if err != nil {
-		logs.Error("Failed to load AGE extension: %s", err.Error())
-		return nil, err
-	}
-
-	// Execute the query
-	result, err := msql.Model(query, define.Postgres).Field("*").Select()
-	if err != nil {
-		logs.Error("Failed to execute graph query: %s", err.Error())
-		return nil, err
-	}
-
-	// Commit the transaction
-	err = db.Commit()
-	if err != nil {
-		logs.Error("Failed to commit transaction: %s", err.Error())
-		return nil, err
-	}
-
-	return result, nil
 }
