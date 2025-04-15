@@ -83,7 +83,7 @@ const (
 	Speech2Text   = `SPEECH2TEXT`
 	Tts           = `TTS`
 	Rerank        = "RERANK"
-	MaxContent    = 5000
+	MaxContent    = 10000
 )
 
 func GetModelList() []ModelInfo {
@@ -310,6 +310,7 @@ var modelList = [...]ModelInfo{
 		VectorModelList: []string{
 			`text-embedding-v1`,
 			`text-embedding-v2`,
+			`text-embedding-v3`,
 		},
 		RerankModelList: []string{},
 		HelpLinks:       `https://dashscope.aliyun.com/?spm=a2c4g.11186623.nav-dropdown-menu-0.142.6d1b46c1EeV28g&scm=20140722.X_data-37f0c4e3bf04683d35bc._.V_1`,

@@ -66,13 +66,13 @@
     width="746px"
     v-model:open="show"
     :confirmLoading="saveLoading"
-    title="新建机器人"
+    :title="title"
     @ok="handleSave"
     @cancel="onCancel"
   >
     <div class="form-box">
       <a-form layout="vertical">
-        <a-form-item label="应用类型" required>
+        <!-- <a-form-item label="应用类型" required>
           <div class="robot-type-box">
             <div
               class="robot-item"
@@ -107,7 +107,7 @@
               <div class="desc">可编排的任务工作流，将任务拆解成多个步骤逐步执行</div>
             </div>
           </div>
-        </a-form-item>
+        </a-form-item> -->
         <a-form-item ref="name" label="应用名称" v-bind="validateInfos.robot_name">
           <a-input v-model:value="formState.robot_name" placeholder="请输入应用名称" />
         </a-form-item>
@@ -138,9 +138,12 @@ import { getModelConfigOption } from '@/api/model/index'
 import { saveRobot } from '@/api/robot/index'
 import { useRouter } from 'vue-router'
 import AvatarInput from './avatar-input.vue'
-import { DEFAULT_ROBOT_AVATAR } from '@/constants/index'
+import { DEFAULT_ROBOT_AVATAR, DEFAULT_WORKFLOW_AVATAR } from '@/constants/index'
+import { computed } from 'vue'
 
 const { setStorage } = useStorage('localStorage')
+
+let default_avatar = ''
 
 const router = useRouter()
 const useForm = Form.useForm
@@ -155,6 +158,10 @@ const formState = reactive({
   robot_avatar: undefined,
   robot_avatar_url: '',
   application_type: 0
+})
+
+const title = computed(() => {
+  return formState.application_type == 0 ? '新建聊天机器人' : '新建工作流' 
 })
 
 const rules = reactive({
@@ -183,7 +190,7 @@ const saveForm = () => {
   let formData = {
     robot_name: formState.robot_name,
     robot_intro: formState.robot_intro,
-    robot_avatar: formState.robot_avatar || DEFAULT_ROBOT_AVATAR
+    robot_avatar: formState.robot_avatar || default_avatar
   }
 
   saveLoading.value = true
@@ -238,15 +245,22 @@ const checkLLM = async () => {
   return true
 }
 
-const open = async () => {
+const open = async (type) => {
+  if(type == 0){
+    default_avatar = DEFAULT_ROBOT_AVATAR
+  }else{
+    default_avatar = DEFAULT_WORKFLOW_AVATAR
+  }
+  
   // 验证是否有LLM
   let state = await checkLLM()
-
+  
   if (state) {
     formState.robot_avatar = ''
-    formState.robot_avatar_url = DEFAULT_ROBOT_AVATAR
+    formState.robot_avatar_url = default_avatar
     formState.robot_name = ''
     formState.robot_intro = ''
+    formState.application_type = type
     show.value = true
   }
 }

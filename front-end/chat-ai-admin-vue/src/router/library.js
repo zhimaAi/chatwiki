@@ -11,7 +11,6 @@ export default {
       meta: {
         title: '知识库管理',
         activeMenu: '/library',
-        bgColor: '#F5F9FF',
         hideTitle: true
       }
     },

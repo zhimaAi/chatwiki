@@ -167,7 +167,7 @@ import { Form, message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import { createLibrary } from '@/api/library/index'
 import AvatarInput from './components/avatar-input.vue'
-import { DEFAULT_LIBRARY_AVATAR, DEFAULT_LIBRARY_AVATAR2 } from '@/constants/index'
+import { LIBRARY_NORMAL_AVATAR, LIBRARY_OPEN_AVATAR } from '@/constants/index'
 import { transformUrlData } from '@/utils/validate.js'
 import { getLibraryInfo } from '@/api/library'
 
@@ -185,7 +185,7 @@ const type = computed(() => {
 const useForm = Form.useForm
 const saveLoading = ref(false)
 
-const defaultAvatar = type.value == 0 ? DEFAULT_LIBRARY_AVATAR : DEFAULT_LIBRARY_AVATAR2
+const defaultAvatar = type.value == 0 ? LIBRARY_NORMAL_AVATAR : LIBRARY_OPEN_AVATAR
 const formState = reactive({
   type: type.value,
   access_rights: 0,

@@ -49,18 +49,9 @@ func GetLibFileList(c *gin.Context) {
 	m := msql.Model(`chat_ai_library_file`, define.Postgres).
 		Alias(`f`).
 		Join(`chat_ai_library_file_data d`, `f.id=d.file_id`, `left`).
-		Join(`
-			(SELECT (file_id::text)::integer AS file_id, (count::text)::integer AS entity_count
-    		FROM ag_catalog.cypher('graphrag', $$
-        		MATCH (n:Entity)
-        		RETURN n.file_id AS file_id, count(n) AS count
-    		$$) AS (file_id ag_catalog.agtype, count ag_catalog.agtype)
-    		GROUP BY file_id, count
-			) AS entity_counts
-		`, `entity_counts.file_id = f.id`, `left`).
 		Where(`f.admin_user_id`, cast.ToString(userId)).
 		Where(`f.library_id`, cast.ToString(libraryId)).
-		Group(`f.id, entity_counts.entity_count`).
+		Group(`f.id`).
 		Field(`f.*, count(d.id) as paragraph_count`).
 		Field(`count(case when d.graph_status = 3 then 1 else null end) as graph_err_count`).
 		Field(`
@@ -68,8 +59,7 @@ func GetLibFileList(c *gin.Context) {
     			(SELECT graph_err_msg FROM chat_ai_library_file_data WHERE file_id = f.id AND graph_err_msg <> '' LIMIT 1),
     			'no error'
   			) AS graph_err_msg
-		`).
-		Field(`COALESCE(entity_counts.entity_count, 0) AS graph_entity_count`)
+		`)
 	fileName := strings.TrimSpace(c.Query(`file_name`))
 	if len(fileName) > 0 {
 		m.Where(`file_name`, `like`, fileName)
@@ -80,6 +70,36 @@ func GetLibFileList(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+
+	var graphEntityCountRes []msql.Params
+	var idList []string
+	for _, item := range list {
+		idList = append(idList, cast.ToString(item[`id`]))
+	}
+	if len(idList) > 0 {
+		query := fmt.Sprintf(`
+			cypher('graphrag', $$
+    			MATCH (s:Entity)
+    			WHERE s.file_id in [%s]
+    			RETURN s.file_id as file_id, count(s) as count
+			$$) as (file_id agtype, count agtype)
+		`, strings.Join(idList, `,`))
+		graphEntityCountRes, err = common.NewGraphDB("graphrag").ExecuteCypher(query)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+	}
+	for _, item := range list {
+		item[`graph_entity_count`] = `0`
+		for _, v := range graphEntityCountRes {
+			if cast.ToInt(v[`file_id`]) == cast.ToInt(item[`id`]) {
+				item[`graph_entity_count`] = cast.ToString(v[`count`])
+			}
+		}
+	}
+
 	data := map[string]any{`info`: info, `list`: list, `total`: total, `page`: page, `size`: size}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }

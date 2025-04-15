@@ -142,11 +142,11 @@
     <div class="page-title">
       <LeftOutlined @click="goBack" />
       <span class="title">文档分段与清洗</span>
-      <div class="page-title-right" v-if="library_type == 0" style="margin-left: auto">
+      <!-- <div class="page-title-right" v-if="library_type == 0" style="margin-left: auto">
         <a-button type="primary" :loading="saveLoading" @click="handleSaveLibFileSplit"
           >保存</a-button
         >
-      </div>
+      </div> -->
     </div>
     <div class="page-container">
       <div class="page-left">
@@ -157,6 +157,7 @@
           :mode="settingMode"
           ref="segmentationSettingRef"
           @change="onChangeSetting"
+          @save="handleSaveLibFileSplit"
           @validate="onValidate"
         />
       </div>
@@ -166,6 +167,7 @@
             <span class="label-text">分段预览</span>
             <span class="fragment-number">共{{ documentFragmentTotal }}个分段</span>
           </div>
+          <Empty v-if="isEmpty"></Empty>
           <div class="preview-box" ref="previewBoxRef">
             <div
               class="fragment-item"
@@ -188,22 +190,22 @@
         </div>
       </div>
     </div>
-
-    <div class="footer-btn-box" v-if="library_type == 1">
+    <!-- <div class="footer-btn-box" v-if="library_type == 2">
       <a-button type="primary" :loading="saveLoading" @click="handleSaveLibFileSplit"
         >保存</a-button
       >
-    </div>
+    </div> -->
     <!-- 设置 -->
     <EditFragmentAlert ref="editFragmentAlertRef" @ok="saveFragment" />
   </div>
 </template>
 
 <script setup>
-import { ref, createVNode } from 'vue'
+import { ref, createVNode, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import { ExclamationCircleOutlined, LeftOutlined } from '@ant-design/icons-vue'
+import Empty from './components/empty.vue'
 import SegmentationSetting from './components/segmentation-setting.vue'
 import DocumentFragment from './components/document-fragment.vue'
 import EditFragmentAlert from './components/edit-fragment-alert.vue'
@@ -375,6 +377,7 @@ const getExcelQaTitle = () => {
 // 获取文档切片
 const documentFragmentList = ref([])
 const documentFragmentTotal = ref(0)
+const isEmpty = computed(() => documentFragmentTotal.value <= 0)
 
 const getDocumentFragment = () => {
   return getLibFileSplit({

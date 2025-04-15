@@ -110,6 +110,11 @@ func GetLibraryList(c *gin.Context) {
 			if len(params[`avatar`]) == 0 {
 				params[`avatar`] = define.LocalUploadPrefix + `default/library_avatar.png`
 			}
+			robotInfo, err := common.GetLibraryRobotInfo(userId, cast.ToInt(params[`id`]))
+			if err != nil {
+				logs.Error(err.Error())
+			}
+			params[`robot_nums`] = cast.ToString(len(robotInfo))
 		}
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(newList, nil))

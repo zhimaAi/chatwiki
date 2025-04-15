@@ -72,7 +72,7 @@ func GetWsUrl(c *gin.Context) {
 		_ = common.AddJobs(lib_define.WsMessagePushTopic, messageStr, time.Second*10)
 		//debug image push
 		message[`msg_type`] = define.MsgTypeImage
-		message[`content`] = define.LocalUploadPrefix + `default/robot_avatar.png`
+		message[`content`] = define.LocalUploadPrefix + `default/robot_avatar.svg`
 		message[`menu_json`] = ``
 		message[`create_time`] = tool.Time2Int() + 15
 		message[`update_time`] = tool.Time2Int() + 15

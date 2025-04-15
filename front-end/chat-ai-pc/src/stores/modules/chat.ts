@@ -21,6 +21,8 @@ export interface Message {
   id: number
   uid: string
   avatar: string
+  name: string
+  nickname: string
   content: string
   debug: 0 | 1
   feedback_type?: string
@@ -161,7 +163,7 @@ export const useChatStore = defineStore('chat', () => {
       showUnreadCount: 1,
       showNewMessageTip: 1
     }
-  }) 
+  })
 
   // 创建对话
   const isNewChat = ref(false)
@@ -267,7 +269,14 @@ export const useChatStore = defineStore('chat', () => {
       msg.uid = getUuid(32)
       msg.loading = false
       msg.isWelcome = true
-      msg.avatar = robot.robot_avatar
+      msg.name = msg.name || msg.nickname
+      if (msg.is_customer == 1) {
+        msg.name = msg.name || user.name
+        msg.avatar = msg.avatar || user.avatar
+      } else {
+        msg.name = msg.name || robot.robot_name
+        msg.avatar = msg.avatar || robot.robot_avatar
+      }
 
       if (msg.menu_json && typeof msg.menu_json === 'string') {
         msg.menu_json = JSON.parse(msg.menu_json)
@@ -283,7 +292,9 @@ export const useChatStore = defineStore('chat', () => {
         const { showUnreadCount, showNewMessageTip } = externalConfigPC.floatBtn;
 
         if(!msg.robot_name){
-          msg.avatar = SDK_STATIC_HOST + msg.avatar
+          if (msg.avatar.indexOf('http') < 0) {
+            msg.avatar = SDK_STATIC_HOST + msg.avatar
+          }
           msg.robot_name = robot.robot_name
         }
 
@@ -479,7 +490,7 @@ export const useChatStore = defineStore('chat', () => {
 
         updateAiMessage('debug', data, aiMsg.uid)
       }
-      if (res.event == 'finish') { 
+      if (res.event == 'finish') {
         robot.is_sending = false;
       }
     }
@@ -579,6 +590,8 @@ export const useChatStore = defineStore('chat', () => {
     try {
       const res = await getChatMessage(params)
       const list = res.data.list || []
+      const _customer = res?.data?.customer || {}
+      const _robot = res?.data?.robot || {}
       // 消息加载完了
       if (list.length === 0) {
         chatMessageLoadCompleted.value = true
@@ -594,10 +607,13 @@ export const useChatStore = defineStore('chat', () => {
         item.show_reasoning = false;
         item.reasoning_status = false;
 
+        item.name = item.name || item.nickname
         if (item.is_customer == 1) {
-          item.avatar = user.avatar
+          item.name = item.name || _customer.name
+          item.avatar = item.avatar || user.avatar || _customer.avatar
         } else {
-          item.avatar = robot.robot_avatar
+          item.name = item.name || robot.robot_name || _robot.robot_name
+          item.avatar = item.avatar || robot.robot_avatar || _robot.robot_avatar
         }
 
         if (item.menu_json) {
@@ -674,13 +690,13 @@ export const useChatStore = defineStore('chat', () => {
   const upDataUiStyle = (data) => {
     Object.assign(externalConfigPC, data)
   }
-  
+
   const updataQuickComand = (data) => {
     // 更新快捷指令
      robot.comand_list = data.comand_list || [];
      robot.yunpc_fast_command_switch = data.fast_command_switch
    }
-  
+
   function $reset() {
     dialogue_id.value = 0
     messageList.value = []

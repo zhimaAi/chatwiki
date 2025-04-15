@@ -1,25 +1,39 @@
 <style lang="less" scoped>
-  .actions-box {
+.actions-box {
+  display: flex;
+  align-items: center;
+  line-height: 22px;
+  font-size: 14px;
+  color: #595959;
+
+  .action-btn {
+    cursor: pointer;
+  }
+
+  .save-btn {
+    color: #2475fc;
+  }
+
+  .model-name {
+    font-size: 14px;
+    line-height: 22px;
+    color: #8c8c8c;
+  }
+}
+
+.setting-info-block {
+  padding: 16px;
+  padding-top: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  color: #595959;
+  line-height: 22px;
+  .set-item {
     display: flex;
     align-items: center;
-    line-height: 22px;
-    font-size: 14px;
-    color: #595959;
-
-    .action-btn {
-      cursor: pointer;
-    }
-
-    .save-btn {
-      color: #2475fc;
-    }
-
-    .model-name {
-      font-size: 14px;
-      line-height: 22px;
-      color: #8c8c8c;
-    }
   }
+}
 </style>
 
 <template>
@@ -43,15 +57,39 @@
     </template>
     <template #extra>
       <div class="actions-box">
-        <span class="model-name">{{
-        robotInfo.chat_type == '1' ? '仅知识库' : robotInfo.chat_type == '2' ? '直连模式' : '混合模式'
-        }}</span>
-        <a-divider type="vertical" />
         <a-button size="small" @click="handleEdit(true)">修改</a-button>
       </div>
     </template>
+    <div class="setting-info-block">
+      <div class="set-item">
+        聊天模式：
+        <span v-if="robotInfo.chat_type == '1'">仅知识库</span>
+        <span v-if="robotInfo.chat_type == '2'">直连模式</span>
+        <span v-if="robotInfo.chat_type == '3'">混合模式</span>
+      </div>
+      <template v-if="robotInfo.chat_type == '1'">
+        <div class="set-item">
+          QA文档直接回复答案：
+          <span>{{ robotInfo.library_qa_direct_reply_switch == 'true' ? '开' : '关' }}</span>
+        </div>
+        <div class="set-item" v-if="robotInfo.library_qa_direct_reply_switch == 'true'">
+          相似度值：
+          <span>{{ robotInfo.library_qa_direct_reply_score }}</span>
+        </div>
+      </template>
+      <template v-if="robotInfo.chat_type == '3'">
+        <div class="set-item">
+          QA文档直接回复答案：
+          <span>{{ robotInfo.mixture_qa_direct_reply_switch == 'true' ? '开' : '关' }}</span>
+        </div>
+        <div class="set-item" v-if="robotInfo.mixture_qa_direct_reply_switch == 'true'">
+          相似度值：
+          <span>{{ robotInfo.mixture_qa_direct_reply_score }}</span>
+        </div>
+      </template>
+    </div>
     <div class="form-box">
-        <ChatEditAlert ref="ChatEditAlertRef" @save="onSave"></ChatEditAlert>
+      <ChatEditAlert ref="ChatEditAlertRef" @save="onSave"></ChatEditAlert>
     </div>
   </edit-box>
 </template>
@@ -75,24 +113,22 @@ const formState = reactive({
 })
 
 const onSave = (data) => {
-    formState.chat_type = data.chat_type
-    formState.library_qa_direct_reply_score = data.library_qa_direct_reply_score
-    formState.library_qa_direct_reply_switch = data.library_qa_direct_reply_switch
-    formState.mixture_qa_direct_reply_score = data.mixture_qa_direct_reply_score
-    formState.mixture_qa_direct_reply_switch = data.mixture_qa_direct_reply_switch
+  formState.chat_type = data.chat_type
+  formState.library_qa_direct_reply_score = data.library_qa_direct_reply_score
+  formState.library_qa_direct_reply_switch = data.library_qa_direct_reply_switch
+  formState.mixture_qa_direct_reply_score = data.mixture_qa_direct_reply_score
+  formState.mixture_qa_direct_reply_switch = data.mixture_qa_direct_reply_switch
 
-    handleSave()
+  handleSave()
 }
 
 const handleSave = () => {
-
-    updateRobotInfo({ ...toRaw(formState) })
-    isEdit.value = false
-
+  updateRobotInfo({ ...toRaw(formState) })
+  isEdit.value = false
 }
 
 const handleEdit = () => {
-    ChatEditAlertRef.value.open(toRaw(formState))
-    isEdit.value = true
+  ChatEditAlertRef.value.open(toRaw(formState))
+  isEdit.value = true
 }
 </script>

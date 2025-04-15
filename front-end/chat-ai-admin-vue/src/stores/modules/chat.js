@@ -167,7 +167,14 @@ export const useChatStore = defineStore('chat', () => {
     msg.uid = getUuid(32)
     msg.loading = false
     msg.isWelcome = true
-    msg.robot_avatar = robot.robot_avatar
+    msg.name = msg.name || msg.nickname
+    if (msg.is_customer == 1) {
+      msg.name = msg.name || user.name
+      msg.avatar = msg.avatar || user.avatar
+    } else {
+      msg.name = msg.name || robot.name
+      msg.robot_avatar = msg.avatar || robot.robot_avatar
+    }
 
     if (msg.menu_json && typeof msg.menu_json === 'string') {
       msg.menu_json = JSON.parse(msg.menu_json)
@@ -541,6 +548,7 @@ export const useChatStore = defineStore('chat', () => {
     try {
       const res = await getChatMessage(params)
       const list = res.data.list || []
+      const _customer = res?.data?.customer || {}
       const newRobot = res.data.robot
       // 消息加载完了
       if (list.length === 0) {
@@ -555,10 +563,14 @@ export const useChatStore = defineStore('chat', () => {
         item.loading = false
         item.uid = getUuid(32)
 
+        item.name = item.name || item.nickname
         if (item.is_customer == 1) {
-          item.avatar = user.avatar
+          item.name = item.name || user.name || _customer.name
+          item.avatar = item.avatar || user.avatar || _customer.avatar
         } else {
-          item.robot_avatar = robot.robot_avatar || newRobot.robot_avatar
+          item.name = item.name || robot.robot_name || newRobot.robot_name
+          item.robot_avatar = item.avatar || robot.robot_avatar || newRobot.robot_avatar
+          item.avatar = item.robot_avatar
         }
 
         if (item.menu_json) {

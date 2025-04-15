@@ -17,6 +17,9 @@
         </a-flex>
       </div>
       <div class="opt-block" v-else>
+        <span class="tip-text"
+          >当前类型：{{ prompt_type == 1 ? '结构化提示词' : '自定义提示词' }}</span
+        >
         <a-button size="small" @click="handleEdit">修改</a-button>
       </div>
     </div>
@@ -57,113 +60,121 @@
           />
         </div>
       </div>
-      <!-- 要求 -->
-      <div class="prompt-list">
-        <div class="prompt-header">
-          <div class="prompt-title">{{ formState.prompt_struct.constraints.subject }}</div>
-          <div class="btn-wrapper-box" v-if="isEdit">
-            <a @click="handleReset('constraints')">恢复默认</a>
-          </div>
-        </div>
-        <div class="prompt-content">
-          <a-textarea
-            :bordered="false"
-            :disabled="!isEdit"
-            v-model:value="formState.prompt_struct.constraints.describe"
-            :placeholder="placeholderMap.constraints"
-            :auto-size="{ minRows: 1, maxRows: 5 }"
-          />
-        </div>
-      </div>
-      <!-- 输出格式 -->
-      <div class="prompt-list">
-        <div class="prompt-header">
-          <div class="prompt-title">{{ formState.prompt_struct.output.subject }}</div>
-          <div class="btn-wrapper-box" v-if="isEdit">
-            <div class="swich-item">
-              输出markdown：
-              <a-switch
-                @change="(val) => handleChangeSwitch(val, 'outSwitch')"
-                v-model:checked="outSwitch"
-                checked-children="开"
-                un-checked-children="关"
-              />
+      <template v-if="isHide">
+        <!-- 要求 -->
+        <div class="prompt-list">
+          <div class="prompt-header">
+            <div class="prompt-title">{{ formState.prompt_struct.constraints.subject }}</div>
+            <div class="btn-wrapper-box" v-if="isEdit">
+              <a @click="handleReset('constraints')">恢复默认</a>
             </div>
-            <div class="swich-item">
-              回复图片：
-              <a-switch
-                @change="(val) => handleChangeSwitch(val, 'imgSwitch')"
-                v-model:checked="imgSwitch"
-                checked-children="开"
-                un-checked-children="关"
-              />
-            </div>
-            <a @click="handleReset('output')">恢复默认</a>
           </div>
-        </div>
-        <div class="prompt-content">
-          <a-textarea
-            :bordered="false"
-            :disabled="!isEdit"
-            v-model:value="formState.prompt_struct.output.describe"
-            :placeholder="placeholderMap.output"
-            :auto-size="{ minRows: 1, maxRows: 5 }"
-          />
-        </div>
-      </div>
-      <!-- 风格 -->
-      <div class="prompt-list">
-        <div class="prompt-header">
-          <div class="prompt-title">{{ formState.prompt_struct.tone.subject }}</div>
-          <div class="btn-wrapper-box" v-if="isEdit">
-            <a @click="handleReset('tone')">恢复默认</a>
-          </div>
-        </div>
-        <div class="prompt-content">
-          <a-textarea
-            :bordered="false"
-            :disabled="!isEdit"
-            v-model:value="formState.prompt_struct.tone.describe"
-            :placeholder="placeholderMap.tone"
-            :auto-size="{ minRows: 1, maxRows: 5 }"
-          />
-        </div>
-      </div>
-
-      <!-- 自定义 -->
-      <div
-        class="prompt-list"
-        v-for="(item, index) in formState.prompt_struct.custom"
-        :key="index + item.key ? item.key : ''"
-      >
-        <div class="prompt-header">
-          <div class="prompt-title" style="flex: 1">
-            <a-input
+          <div class="prompt-content">
+            <a-textarea
               :bordered="false"
               :disabled="!isEdit"
-              style="width: 100%"
-              v-model:value="item.subject"
-              placeholder="请输入主题"
-            ></a-input>
+              v-model:value="formState.prompt_struct.constraints.describe"
+              :placeholder="placeholderMap.constraints"
+              :auto-size="{ minRows: 1, maxRows: 5 }"
+            />
           </div>
-          <div class="btn-wrapper-box" v-if="isEdit">
-            <div class="hover-btn-box" @click="handleDeleteTheme(index)">
-              <CloseCircleOutlined />
+        </div>
+        <!-- 输出格式 -->
+        <div class="prompt-list">
+          <div class="prompt-header">
+            <div class="prompt-title">{{ formState.prompt_struct.output.subject }}</div>
+            <div class="btn-wrapper-box" v-if="isEdit">
+              <div class="swich-item">
+                输出markdown：
+                <a-switch
+                  @change="(val) => handleChangeSwitch(val, 'outSwitch')"
+                  v-model:checked="outSwitch"
+                  checked-children="开"
+                  un-checked-children="关"
+                />
+              </div>
+              <div class="swich-item">
+                回复图片：
+                <a-switch
+                  @change="(val) => handleChangeSwitch(val, 'imgSwitch')"
+                  v-model:checked="imgSwitch"
+                  checked-children="开"
+                  un-checked-children="关"
+                />
+              </div>
+              <a @click="handleReset('output')">恢复默认</a>
             </div>
           </div>
+          <div class="prompt-content">
+            <a-textarea
+              :bordered="false"
+              :disabled="!isEdit"
+              v-model:value="formState.prompt_struct.output.describe"
+              :placeholder="placeholderMap.output"
+              :auto-size="{ minRows: 1, maxRows: 5 }"
+            />
+          </div>
         </div>
-        <div class="prompt-content">
-          <a-textarea
-            :bordered="false"
-            :disabled="!isEdit"
-            v-model:value="item.describe"
-            placeholder="请输入"
-            :auto-size="{ minRows: 1, maxRows: 5 }"
-          />
+        <!-- 风格 -->
+        <div class="prompt-list">
+          <div class="prompt-header">
+            <div class="prompt-title">{{ formState.prompt_struct.tone.subject }}</div>
+            <div class="btn-wrapper-box" v-if="isEdit">
+              <a @click="handleReset('tone')">恢复默认</a>
+            </div>
+          </div>
+          <div class="prompt-content">
+            <a-textarea
+              :bordered="false"
+              :disabled="!isEdit"
+              v-model:value="formState.prompt_struct.tone.describe"
+              :placeholder="placeholderMap.tone"
+              :auto-size="{ minRows: 1, maxRows: 5 }"
+            />
+          </div>
         </div>
-      </div>
-      <div class="add-theme-block" v-if="isEdit">
-        <a-button @click="handleAddTheme" block :icon="h(PlusOutlined)">添加主题</a-button>
+
+        <!-- 自定义 -->
+        <div
+          class="prompt-list"
+          v-for="(item, index) in formState.prompt_struct.custom"
+          :key="index + item.key ? item.key : ''"
+        >
+          <div class="prompt-header">
+            <div class="prompt-title" style="flex: 1">
+              <a-input
+                :bordered="false"
+                :disabled="!isEdit"
+                style="width: 100%"
+                v-model:value="item.subject"
+                placeholder="请输入主题"
+              ></a-input>
+            </div>
+            <div class="btn-wrapper-box" v-if="isEdit">
+              <div class="hover-btn-box" @click="handleDeleteTheme(index)">
+                <CloseCircleOutlined />
+              </div>
+            </div>
+          </div>
+          <div class="prompt-content">
+            <a-textarea
+              :bordered="false"
+              :disabled="!isEdit"
+              v-model:value="item.describe"
+              placeholder="请输入"
+              :auto-size="{ minRows: 1, maxRows: 5 }"
+            />
+          </div>
+        </div>
+        <div class="add-theme-block" v-if="isEdit">
+          <a-button @click="handleAddTheme" block :icon="h(PlusOutlined)">添加主题</a-button>
+        </div>
+      </template>
+      <div class="show-more-block">
+        <div class="btn-item" @click="handleShowMore">
+          <template v-if="!isHide">展开<DownOutlined /></template>
+          <template v-else>收起<UpOutlined /></template>
+        </div>
       </div>
     </div>
     <div class="diy-prompt-box" v-else>
@@ -181,7 +192,7 @@
         <div class="swich-item">
           回复图片：
           <a-switch
-          size="small"
+            size="small"
             @change="(val) => handleDiyChangeSwitch(val, 'imgDiySwitch')"
             v-model:checked="imgDiySwitch"
             checked-children="开"
@@ -203,7 +214,7 @@
 </template>
 <script setup>
 import { ref, reactive, inject, toRaw, watch, h } from 'vue'
-import { PlusOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
+import { PlusOutlined, CloseCircleOutlined, DownOutlined, UpOutlined } from '@ant-design/icons-vue'
 import AiCreatePrompt from './ai-create-prompt.vue'
 
 const isEdit = ref(false)
@@ -255,6 +266,13 @@ const formState = reactive({
     custom: []
   }
 })
+
+const isHide = ref(localStorage.getItem('system_prompt_words_ishide') == '1')
+
+const handleShowMore = () => {
+  isHide.value = !isHide.value
+  localStorage.setItem('system_prompt_words_ishide', isHide.value ? 1 : 0)
+}
 
 const checkStringContains = (str, searchStr) => {
   // 使用 includes 方法判断
@@ -415,6 +433,11 @@ const onShowAiCreateModal = () => {
   .opt-block {
     display: flex;
     gap: 16px;
+    .tip-text {
+      color: #8c8c8c;
+      line-height: 22px;
+      font-size: 12px;
+    }
   }
   .ai-mark-box {
     cursor: pointer;
@@ -435,6 +458,27 @@ const onShowAiCreateModal = () => {
     }
     &::before {
       border: none;
+    }
+  }
+}
+
+.show-more-block {
+  padding-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #595959;
+  .btn-item {
+    width: fit-content;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    &:hover {
+      background: #e4e6eb;
     }
   }
 }
@@ -516,7 +560,7 @@ const onShowAiCreateModal = () => {
     display: flex;
     align-items: center;
     gap: 12px;
-    .swich-item{
+    .swich-item {
       display: flex;
       align-items: center;
     }

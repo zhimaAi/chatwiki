@@ -13,10 +13,21 @@
 
     .user-name {
       line-height: 22px;
-      padding: 0 16px 0 8px;
+      padding: 0 4px;
       font-size: 14px;
       color: #3a4559;
     }
+  }
+}
+
+.menu-item{
+  display: flex;
+  align-items: center;
+  padding: 2px 8px;
+  color: #262626;
+  .menu-icon{
+    margin-right: 8px;
+    font-size: 16px;
   }
 }
 </style>
@@ -32,7 +43,16 @@
       <template #overlay>
         <a-menu>
           <a-menu-item>
-            <a href="javascript:;" @click="onLogout">退出登录</a>
+            <a class="menu-item" href="javascript:;" @click="toSystem">
+              <svg-icon class="menu-icon" name="system-setting"></svg-icon>
+              <span class="menu-name">系统管理</span>
+            </a>
+          </a-menu-item>
+          <a-menu-item>
+            <a class="menu-item" href="javascript:;" @click="onLogout">
+              <svg-icon class="menu-icon" name="logout"></svg-icon>
+              <span class="menu-name">退出登录</span>
+            </a>
           </a-menu-item>
         </a-menu>
       </template>
@@ -41,13 +61,22 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/modules/user'
+
+const router = useRouter()
 const userStore = useUserStore()
 
 const { userInfo, avatar, user_name } = storeToRefs(userStore)
 
 const onLogout = () => {
   userStore.logoutConfirm(true)
+}
+
+const toSystem = () => {
+  router.push({
+    path: '/user/model',
+  })
 }
 </script>

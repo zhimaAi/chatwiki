@@ -50,16 +50,17 @@ export const DEFAULT_EN_LOGO = new URL('@/assets/en_logo.svg', import.meta.url).
 // 中文logo
 export const DEFAULT_ZH_LOGO = new URL('@/assets/zh_cn_logo.svg', import.meta.url).href
 
-// 默认知识库头像
-export const DEFAULT_LIBRARY_AVATAR = new URL(
-  '@/assets/img/library/preview/default_avatar.svg',
-  import.meta.url
-).href
+// 知识库-普通知识库头像
+export const LIBRARY_NORMAL_AVATAR = '/upload/default/library_normal_avatar.svg'
+// 知识库-问答知识库头像
+export const LIBRARY_QA_AVATAR = '/upload/default/library_qa_avatar.svg'
+// 对外文档头像
+export const LIBRARY_OPEN_AVATAR = '/upload/default/library_open_avatar.svg'
 
-export const DEFAULT_LIBRARY_AVATAR2 = new URL('@/assets/img/library/t.svg', import.meta.url).href
-export const DEFAULT_LIBRARY_AVATAR3 = new URL('@/assets/img/library/q.svg', import.meta.url).href
 // 默认的机器人头像
-export const DEFAULT_ROBOT_AVATAR = '/upload/default/robot_avatar.png'
+export const DEFAULT_ROBOT_AVATAR = '/upload/default/robot_avatar.svg'
+// 默认的工作流头像
+export const DEFAULT_WORKFLOW_AVATAR = '/upload/default/workflow_avatar.svg'
 
 // 默认的webApp浮动图标
 export const DEFAULT_WEBAPP_ICON = new URL('@/assets/img/sdk_float_avatar.svg', import.meta.url)

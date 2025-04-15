@@ -70,6 +70,12 @@ func updateReceiver(sessionId int, lastChat msql.Datas, isCustomer int) {
 	if isCustomer == define.MsgFromCustomer {
 		lastChat[`unread`] = cast.ToInt(info[`unread`]) + 1
 	}
+	//同步更新一下CustomerInfo
+	if customer, _ := GetCustomerInfo(info[`openid`], cast.ToInt(info[`admin_user_id`])); len(customer) > 0 {
+		lastChat[`nickname`] = customer[`nickname`]
+		lastChat[`name`] = customer[`name`]
+		lastChat[`avatar`] = customer[`avatar`]
+	}
 	if _, err = m.Where(`id`, info[`id`]).Update(lastChat); err != nil {
 		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 	}

@@ -65,7 +65,7 @@ const (
 )
 
 const (
-	SplitChunkMaxSize = 2000
+	SplitChunkMaxSize = 10000
 	SplitChunkMinSize = 200
 )
 

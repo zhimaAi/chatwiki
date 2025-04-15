@@ -127,7 +127,7 @@ func SaveRobot(c *gin.Context) {
 
 	//set default value
 	if id == 0 {
-		robotAvatar = define.LocalUploadPrefix + `default/robot_avatar.png`
+		robotAvatar = define.LocalUploadPrefix + `default/robot_avatar.svg`
 		if modelConfigId == 0 && len(useModel) == 0 {
 			var existLlm bool
 			modelConfigId, useModel, existLlm = common.GetDefaultLlmConfig(userId)
@@ -309,9 +309,11 @@ func SaveRobot(c *gin.Context) {
 	//check qa_direct_reply
 	if libraryQaDirectReplyScore < 0.0 || libraryQaDirectReplyScore > 1.0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, "library_qa_direct_reply_score"))))
+		return
 	}
 	if mixtureQaDirectReplyScore < 0.0 || mixtureQaDirectReplyScore > 1.0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, "mixture_qa_direct_reply_score"))))
+		return
 	}
 
 	//check common_questions
@@ -427,7 +429,7 @@ func AddFlowRobot(c *gin.Context) {
 	//get params
 	robotName := strings.TrimSpace(c.PostForm(`robot_name`))
 	robotIntro := strings.TrimSpace(c.PostForm(`robot_intro`))
-	robotAvatar := define.LocalUploadPrefix + `default/robot_avatar.png`
+	robotAvatar := define.LocalUploadPrefix + `default/workflow_avatar.svg`
 	//check required
 	if len(robotName) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))

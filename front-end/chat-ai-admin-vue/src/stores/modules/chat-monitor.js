@@ -89,7 +89,7 @@ export const useChatMonitorStore = defineStore('chatMonitor', {
       }
 
       const emitter = useEventBus()
-      
+
       let msg = res.data
 
       if (this.activeChat.session_id != msg.session_id) {
@@ -212,6 +212,8 @@ export const useChatMonitorStore = defineStore('chatMonitor', {
           this.messageListLoading = false
 
           let list = res.data.list || []
+          const _customer = res?.data?.customer || {}
+          const _robot = res?.data?.robot || {}
 
           list.sort((a, b) => {
             return a.id - b.id
@@ -219,12 +221,19 @@ export const useChatMonitorStore = defineStore('chatMonitor', {
 
           for (let i = 0; i < list.length; i++) {
             list[i].displayName = list[i].name || list[i].nickname
+            if (list[i].is_customer == 1) {
+              list[i].displayName = list[i].displayName || _customer.name
+              list[i].avatar = list[i].avatar || _customer.avatar
+            } else {
+              list[i].displayName = list[i].displayName || _robot.robot_name
+              list[i].avatar = list[i].avatar || _robot.robot_avatar
+            }
             list[i].uid = getUuid(32)
 
             if (list[i].menu_json && typeof list[i].menu_json === 'string') {
               list[i].menu_json = JSON.parse(list[i].menu_json)
             }
-            
+
 
             if (list[i].quote_file && typeof list[i].menu_json === 'string') {
               list[i].quote_file = JSON.parse(list[i].quote_file)

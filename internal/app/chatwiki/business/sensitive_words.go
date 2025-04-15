@@ -1,11 +1,13 @@
+// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+
 package business
 
 import (
-	"chatwiki/internal/app/chatwiki/common"
-	"chatwiki/internal/app/chatwiki/define"
-
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
+
+	"chatwiki/internal/app/chatwiki/common"
+	"chatwiki/internal/app/chatwiki/define"
 )
 
 func CheckSensitiveWords(c *gin.Context) {

@@ -642,7 +642,7 @@ const handlePraise = async (item) => {
 }
 
 const handleTrample = async (item, type) => {
-  console.log(type)
+
   isTrampleClick.value = true
   if (props.prevMsg && props.prevMsg.is_customer == 1) {
     customer_message_id.value = props.prevMsg.id

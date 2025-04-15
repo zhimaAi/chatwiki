@@ -335,12 +335,12 @@ import UploadFile from './components/upload-input.vue'
 import { createLibrary } from '@/api/library/index'
 import { getModelConfigOption } from '@/api/model/index'
 import AvatarInput from './components/avatar-input.vue'
-import { DEFAULT_LIBRARY_AVATAR, DEFAULT_LIBRARY_AVATAR2 } from '@/constants/index'
+import { LIBRARY_NORMAL_AVATAR, LIBRARY_OPEN_AVATAR } from '@/constants/index'
 import { transformUrlData } from '@/utils/validate.js'
 import { useStorage } from '@/hooks/web/useStorage'
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
 
-const { getStorage, setStorage, removeStorage } = useStorage('localStorage')
+const { getStorage, setStorage } = useStorage('localStorage')
 
 // 设置全局默认的duration为（2秒）
 message.config({
@@ -424,7 +424,7 @@ const saveLoading = ref(false)
 
 const lastEmbeddedModel = computed(() => getStorage('lastEmbeddedModel') || {})
 const isActive = ref(1)
-const defaultAvatar = type.value == 0 ? DEFAULT_LIBRARY_AVATAR : DEFAULT_LIBRARY_AVATAR2
+const defaultAvatar = type.value == 0 ? LIBRARY_NORMAL_AVATAR : LIBRARY_OPEN_AVATAR
 const formState = reactive({
   type: type.value,
   access_rights: 0,
@@ -675,7 +675,7 @@ const getModelList = (is_offline) => {
   }).then((res) => {
     let list = res.data || []
     let children = []
-    let isCheckId = false
+    // let isCheckId = false
     // 没有模型选项则不用缓存中的记录上传模型选择
     // if (!list.length && lastEmbeddedModel.value.model_config_id) {
     //   formState.use_model = undefined
@@ -695,7 +695,7 @@ const getModelList = (is_offline) => {
       }
       if (item.model_config.id == lastEmbeddedModel.value.model_config_id) {
         // 有缓存的id
-        isCheckId = true
+        // isCheckId = true
       }
       return {
         id: item.model_config.id,

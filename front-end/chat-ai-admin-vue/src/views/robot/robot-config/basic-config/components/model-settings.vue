@@ -2,179 +2,197 @@
   <edit-box class="setting-box" title="模型设置" icon-name="moxingshezhi" v-model:isEdit="isEdit">
     <template #extra>
       <div class="actions-box">
-        <template v-if="isEdit">
-          <a-flex :gap="8">
-            <a-button @click="handleSave" size="small" type="primary">保存</a-button>
-            <a-button @click="handleEdit(false)" size="small">取消</a-button>
-          </a-flex>
-        </template>
-        <template v-else>
-          <span class="model-name">{{ currentUseModel }}</span>
-          <a-divider type="vertical" />
-          <a-button @click="handleEdit(true)" size="small">修改</a-button>
-        </template>
+        <a-button @click="handleEdit(true)" size="small">修改</a-button>
       </div>
     </template>
-    <div class="form-box" v-if="isEdit">
-      <a-row :gutter="[32, 16]">
-        <a-col v-bind="grid">
-          <div class="form-item">
-            <div class="form-item-label">
-              <span>LLM模型&nbsp;</span>
-            </div>
-            <div class="form-item-body">
-              <a-select
-                v-model:value="formState.use_model"
-                placeholder="请选择LLM模型"
-                @change="handleChangeModel"
-                style="width: 100%"
-              >
-                <a-select-opt-group v-for="item in modelList" :key="item.id">
-                  <template #label>
-                    <a-flex align="center" :gap="6">
-                      <img class="model-icon" :src="item.icon" alt="" />{{ item.name }}
-                    </a-flex>
-                  </template>
-                  <a-select-option
-                    :value="
-                      modelDefine.indexOf(item.model_define) > -1 && val.deployment_name
-                        ? val.deployment_name
-                        : val.name + val.id
-                    "
-                    :model_config_id="item.id"
-                    :current_obj="val"
-                    v-for="val in item.children"
-                    :key="val.name + val.id"
-                  >
-                    <span
-                      v-if="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name"
-                      >{{ val.deployment_name }}</span
-                    >
-                    <span v-else>{{ val.name }}</span>
-                  </a-select-option>
-                </a-select-opt-group>
-              </a-select>
-            </div>
-          </div>
-        </a-col>
-
-        <a-col v-bind="grid">
-          <div class="form-item">
-            <div class="form-item-label">
-              <span>温度&nbsp;</span>
-              <a-tooltip>
-                <template #title>温度越低，回答越严谨。温度越高，回答越发散。</template>
-                <QuestionCircleOutlined class="question-icon" />
-              </a-tooltip>
-            </div>
-            <div class="form-item-body">
-              <div class="number-box">
-                <div class="number-slider-box">
-                  <a-slider
-                    class="custom-slider"
-                    v-model:value="formState.temperature"
-                    :min="0"
-                    :max="2"
-                    :step="0.1"
-                  />
-                </div>
-                <div class="number-input-box">
-                  <a-input-number
-                    v-model:value="formState.temperature"
-                    :min="0"
-                    :max="2"
-                    :step="0.1"
-                  />
-                </div>
+    <div class="setting-info-block">
+      <div class="set-item w-100">
+        LLM模型：
+        <span>{{ formState.use_model }}</span>
+      </div>
+      <div class="set-item">
+        温度：
+        <span>{{ formState.temperature }}</span>
+      </div>
+      <div class="set-item">
+        最大token：
+        <span>{{ formState.max_token }}</span>
+      </div>
+      <div class="set-item">
+        上下文数量：
+        <span>{{ formState.context_pair }}</span>
+      </div>
+      <div class="set-item">
+        显示推理过程：
+        <span>{{ formState.think_switch == 1 ? '开' : '关' }}</span>
+      </div>
+    </div>
+    <a-modal v-model:open="isEdit" :width="672" title="模型设置" @ok="handleSave">
+      <div class="form-box">
+        <a-row :gutter="[32, 24]">
+          <a-col v-bind="grid">
+            <div class="form-item">
+              <div class="form-item-label mb12">
+                <span>LLM模型&nbsp;</span>
               </div>
-            </div>
-          </div>
-        </a-col>
-
-        <a-col v-bind="grid">
-          <div class="form-item">
-            <div class="form-item-label">
-              <span>最大token&nbsp;</span>
-              <a-tooltip>
-                <template #title>问题+答案的最大token数，如果出现回答被截断，可调高此值</template>
-                <QuestionCircleOutlined class="question-icon" />
-              </a-tooltip>
-            </div>
-            <div class="form-item-body">
-              <div class="number-box">
-                <div class="number-slider-box">
-                  <a-slider
-                    class="custom-slider"
-                    v-model:value="formState.max_token"
-                    :min="0"
-                    :max="100 * 1024"
-                  />
-                </div>
-                <div class="number-input-box">
-                  <a-input-number v-model:value="formState.max_token" :min="0" :max="100 * 1024" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </a-col>
-
-        <a-col v-bind="grid">
-          <div class="form-item">
-            <div class="form-item-label">
-              <span>上下文数量&nbsp;</span>
-              <a-tooltip>
-                <template #title
-                  >提示词中携带的历史聊天记录轮次。设置为0则不携带聊天记录。最多设置10轮。注意，携带的历史聊天记录越多，消耗的token相应也就越多。</template
+              <div class="form-item-body">
+                <a-select
+                  v-model:value="formState.use_model"
+                  placeholder="请选择LLM模型"
+                  @change="handleChangeModel"
+                  style="width: 100%"
                 >
-                <QuestionCircleOutlined class="question-icon" />
-              </a-tooltip>
+                  <a-select-opt-group v-for="item in modelList" :key="item.id">
+                    <template #label>
+                      <a-flex align="center" :gap="6">
+                        <img class="model-icon" :src="item.icon" alt="" />{{ item.name }}
+                      </a-flex>
+                    </template>
+                    <a-select-option
+                      :value="
+                        modelDefine.indexOf(item.model_define) > -1 && val.deployment_name
+                          ? val.deployment_name
+                          : val.name + val.id
+                      "
+                      :model_config_id="item.id"
+                      :current_obj="val"
+                      v-for="val in item.children"
+                      :key="val.name + val.id"
+                    >
+                      <span
+                        v-if="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name"
+                        >{{ val.deployment_name }}</span
+                      >
+                      <span v-else>{{ val.name }}</span>
+                    </a-select-option>
+                  </a-select-opt-group>
+                </a-select>
+              </div>
             </div>
-            <div class="form-item-body">
-              <div class="number-box">
-                <div class="number-slider-box">
-                  <a-slider
-                    class="custom-slider"
-                    v-model:value="formState.context_pair"
-                    :min="0"
-                    :max="10"
-                  />
-                </div>
-                <div class="number-input-box">
-                  <a-input-number v-model:value="formState.context_pair" :min="0" :max="10" />
+          </a-col>
+
+          <a-col v-bind="grid">
+            <div class="form-item">
+              <div class="form-item-label">
+                <span>温度&nbsp;</span>
+                <a-tooltip>
+                  <template #title>温度越低，回答越严谨。温度越高，回答越发散。</template>
+                  <QuestionCircleOutlined class="question-icon" />
+                </a-tooltip>
+              </div>
+              <div class="form-item-body">
+                <div class="number-box">
+                  <div class="number-slider-box">
+                    <a-slider
+                      class="custom-slider"
+                      v-model:value="formState.temperature"
+                      :min="0"
+                      :max="2"
+                      :step="0.1"
+                    />
+                  </div>
+                  <div class="number-input-box">
+                    <a-input-number
+                      v-model:value="formState.temperature"
+                      :min="0"
+                      :max="2"
+                      :step="0.1"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </a-col>
+          </a-col>
 
-        <a-col v-bind="grid">
-          <div class="form-item">
-            <div class="form-item-label">
-              <span>显示推理过程&nbsp;</span>
-              <a-tooltip>
-                <template #title>
-                  <span>开启后，API接口、聊天测试页、 webAPP页会显示或返回推理模型的推理过程</span>
-                </template>
-                <QuestionCircleOutlined class="question-icon" />
-              </a-tooltip>
+          <a-col v-bind="grid">
+            <div class="form-item">
+              <div class="form-item-label">
+                <span>最大token&nbsp;</span>
+                <a-tooltip>
+                  <template #title>问题+答案的最大token数，如果出现回答被截断，可调高此值</template>
+                  <QuestionCircleOutlined class="question-icon" />
+                </a-tooltip>
+              </div>
+              <div class="form-item-body">
+                <div class="number-box">
+                  <div class="number-slider-box">
+                    <a-slider
+                      class="custom-slider"
+                      v-model:value="formState.max_token"
+                      :min="0"
+                      :max="100 * 1024"
+                    />
+                  </div>
+                  <div class="number-input-box">
+                    <a-input-number
+                      v-model:value="formState.max_token"
+                      :min="0"
+                      :max="100 * 1024"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="form-item-body" style="padding-top: 5px">
+          </a-col>
+
+          <a-col v-bind="grid">
+            <div class="form-item">
+              <div class="form-item-label">
+                <span>上下文数量&nbsp;</span>
+                <a-tooltip>
+                  <template #title
+                    >提示词中携带的历史聊天记录轮次。设置为0则不携带聊天记录。最多设置10轮。注意，携带的历史聊天记录越多，消耗的token相应也就越多。</template
+                  >
+                  <QuestionCircleOutlined class="question-icon" />
+                </a-tooltip>
+              </div>
+              <div class="form-item-body">
+                <div class="number-box">
+                  <div class="number-slider-box">
+                    <a-slider
+                      class="custom-slider"
+                      v-model:value="formState.context_pair"
+                      :min="0"
+                      :max="10"
+                    />
+                  </div>
+                  <div class="number-input-box">
+                    <a-input-number v-model:value="formState.context_pair" :min="0" :max="10" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </a-col>
+
+          <a-col v-bind="grid">
+            <div class="form-item justify-between">
+              <div class="form-item-label">
+                <span>显示推理过程&nbsp;</span>
+                <a-tooltip>
+                  <template #title>
+                    <span
+                      >开启后，API接口、聊天测试页、 webAPP页会显示或返回推理模型的推理过程</span
+                    >
+                  </template>
+                  <QuestionCircleOutlined class="question-icon" />
+                </a-tooltip>
+              </div>
               <a-switch
                 v-model:checked="formState.think_switch"
                 :checkedValue="1"
                 :unCheckedValue="0"
               />
             </div>
-          </div>
-        </a-col>
-      </a-row>
-    </div>
+          </a-col>
+        </a-row>
+      </div>
+    </a-modal>
   </edit-box>
 </template>
 
 <script setup>
 import { getModelConfigOption } from '@/api/model/index'
-import { ref, reactive, inject, toRaw } from 'vue'
+import { ref, reactive, inject, toRaw, watchEffect } from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import EditBox from './edit-box.vue'
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
@@ -182,7 +200,7 @@ import { duplicateRemoval, removeRepeat } from '@/utils/index'
 const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
 const oldModelDefineList = ['azure']
 
-const grid = reactive({ sm: 24, md: 24, lg: 12, xl: 8, xxl: 8 })
+const grid = reactive({ sm: 24, md: 24, lg: 12, xl: 24, xxl: 24 })
 // 获取LLM模型
 const modelList = ref([])
 
@@ -239,6 +257,19 @@ const handleEdit = (val) => {
   formState.think_switch = Number(robotInfo.think_switch)
   isEdit.value = val
 }
+
+watchEffect(() => {
+  if (modelDefine.indexOf(currentModelDefine.value) > -1) {
+    formState.use_model = currentUseModel.value
+  } else {
+    formState.use_model = robotInfo.use_model
+  }
+  formState.model_config_id = robotInfo.model_config_id
+  formState.temperature = robotInfo.temperature
+  formState.max_token = robotInfo.max_token
+  formState.context_pair = robotInfo.context_pair
+  formState.think_switch = Number(robotInfo.think_switch)
+})
 
 function uniqueArr(arr, arr1, key) {
   const keyVals = new Set(arr.map((item) => item.model_define))
@@ -332,37 +363,59 @@ getModelList()
       color: #8c8c8c;
     }
   }
-
-  .form-box {
-    padding: 0 16px 16px 16px;
-
-    .form-item-label {
-      line-height: 22px;
-      margin-bottom: 4px;
-      font-size: 14px;
-      color: #262626;
-
-      .question-icon {
-        color: #8c8c8c;
-      }
-    }
-
-    .number-box {
-      display: flex;
-      align-items: center;
-
-      .number-slider-box {
-        flex: 1;
-      }
-
-      .number-input-box {
-        margin-left: 20px;
-      }
-    }
-  }
 }
 
 .model-icon {
   height: 18px;
+}
+.setting-info-block {
+  padding: 16px;
+  padding-top: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  color: #595959;
+  line-height: 22px;
+  .set-item {
+    display: flex;
+    align-items: center;
+  }
+  .w-100 {
+    width: 100%;
+  }
+}
+
+.form-box {
+  padding: 16px 0 16px 0;
+
+  .justify-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .form-item-label {
+    line-height: 22px;
+    margin-bottom: 4px;
+    font-size: 14px;
+    color: #262626;
+
+    .question-icon {
+      color: #8c8c8c;
+    }
+  }
+
+  .number-box {
+    display: flex;
+    align-items: center;
+
+    .number-slider-box {
+      flex: 1;
+    }
+
+    .number-input-box {
+      margin-left: 20px;
+    }
+  }
 }
 </style>

@@ -2,7 +2,6 @@
 function clearMarkdownTag(str: string): string {
   // 过滤点开头的```markdown 和结束的```并保留中间的内容
   str = str.replace(/```markdown([\s\S]*)```/g, (_, content) => {
-    console.log(content)
     return content.trim()
   })
   // 过滤掉没有```结束符的```markdown

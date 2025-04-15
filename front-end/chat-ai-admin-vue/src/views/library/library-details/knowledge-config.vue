@@ -367,7 +367,7 @@ import { QuestionCircleOutlined, CheckCircleFilled } from '@ant-design/icons-vue
 import { getLibraryInfo, editLibrary, getSeparatorsList } from '@/api/library'
 import { getModelConfigOption } from '@/api/model/index'
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
-import { DEFAULT_LIBRARY_AVATAR2 } from '@/constants/index'
+import { LIBRARY_OPEN_AVATAR } from '@/constants/index'
 import AvatarInput from '@/views/library/add-library/components/avatar-input.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import OpenGrapgModal from './components/open-grapg-modal.vue'
@@ -375,7 +375,7 @@ import OpenGrapgModal from './components/open-grapg-modal.vue'
 const rotue = useRoute()
 const router = useRouter()
 const query = rotue.query
-const defaultAvatar = DEFAULT_LIBRARY_AVATAR2
+const defaultAvatar = LIBRARY_OPEN_AVATAR
 const formState = reactive({
   library_name: '',
   library_intro: '',

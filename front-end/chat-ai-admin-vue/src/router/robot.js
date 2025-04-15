@@ -12,7 +12,7 @@ export default {
         title: '机器人管理',
         hideTitle: true,
         activeMenu: '/robot',
-        bgColor: '#F5F9FF',
+        bgColor: '#ffffff',
         pageStyle: {}
       }
     },

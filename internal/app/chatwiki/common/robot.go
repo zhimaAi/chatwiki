@@ -31,3 +31,25 @@ func GetLibraryRobotInfo(adminUserId, libraryId int) ([]msql.Params, error) {
 	}
 	return robotData, nil
 }
+
+func GetFormRobotInfo(adminUserId, formId int) ([]msql.Params, error) {
+	robotInfo, err := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Field(`id,robot_key,robot_name,robot_intro,robot_avatar,application_type,form_ids`).
+		Order(`id desc`).
+		Select()
+	if err != nil {
+		return nil, err
+	}
+	robotData := []msql.Params{}
+	if len(robotInfo) == 0 {
+		return []msql.Params{}, nil
+	}
+	for _, item := range robotInfo {
+		formIds := strings.Split(cast.ToString(item[`form_ids`]), ",")
+		if tool.InArrayString(cast.ToString(formId), formIds) {
+			robotData = append(robotData, item)
+		}
+	}
+	return robotData, nil
+}

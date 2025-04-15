@@ -144,7 +144,7 @@ export function formatFileSize(size) {
     formattedSize = formattedSize.slice(0, -3)
   }
 
-  return formattedSize + ' ' + sizes[i]
+  return formattedSize + '' + sizes[i]
 }
 
 export function getUuid(len, radix) {

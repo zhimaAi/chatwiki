@@ -124,7 +124,7 @@
 </template>
 
 <script setup>
-import { DEFAULT_LIBRARY_AVATAR2 } from '@/constants/index'
+import { LIBRARY_OPEN_AVATAR } from '@/constants/index'
 import { saveAs } from 'file-saver'
 import { ref, reactive, computed, watch, onMounted, createVNode, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -728,7 +728,7 @@ const getInfo = async () => {
   try {
     const res = await getLibraryInfo({ id: libraryId.value })
     if (!res.data.avatar) {
-      res.data.avatar = DEFAULT_LIBRARY_AVATAR2
+      res.data.avatar = LIBRARY_OPEN_AVATAR
     }
     Object.assign(state, res.data)
   } catch (error) {

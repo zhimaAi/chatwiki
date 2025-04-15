@@ -1,1 +1,0 @@
-import{L as f,W as l,j as o}from"./index-Cm_NtOSH.js";import{au as c,ao as m}from"../../index-CWYf_R7c.js";function k(a,n,s){for(var r=-1,u=n.length,t={};++r<u;){var e=n[r],i=f(a,e);s(i,e)&&c(t,m(e,a),i)}return t}function v(a,n){return k(a,n,function(s,r){return l(a,r)})}var g=o(function(a,n){return a==null?{}:v(a,n)});export{k as b,g as p};
