@@ -5,7 +5,6 @@
   width: 100%;
   height: 100%;
   border-radius: 6px;
-  border: 1px solid #fff;
 }
 .page-left {
   display: flex;
@@ -52,7 +51,7 @@
     </div>
     <div class="page-body">
       <ChatBox v-if="activeChat" ref="chatBoxRef" />
-      <list-empty size="250" v-else>
+      <list-empty style="background: #F2F4F7;" size="250" v-else>
         <div>
           <p>请在左侧列表先选择会话</p>
           <p>通过本功能，可以实时查看机器人接待中的会话消息，监控机器人回复效果</p>

@@ -3,7 +3,7 @@
     <div class="between-content-box">
       <div class="layout-left">
         <div class="library-name-box">
-          <img class="avatar" :src="libraryInfo.avatar || DEFAULT_LIBRARY_AVATAR" alt="" />
+          <img class="avatar" :src="libraryInfo.avatar || LIBRARY_NORMAL_AVATAR" alt="" />
           <div class="name">
             {{ libraryInfo.library_name }}
           </div>
@@ -25,7 +25,7 @@ import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import LeftMenus from './components/left-menus.vue'
 import { getLibraryInfo } from '@/api/library'
-import { DEFAULT_LIBRARY_AVATAR } from '@/constants/index'
+import { LIBRARY_NORMAL_AVATAR } from '@/constants/index'
 
 const rotue = useRoute()
 const query = rotue.query

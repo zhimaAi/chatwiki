@@ -1,6 +1,31 @@
 <template>
   <div bg-color="#f5f9ff" class="library-page">
+    <div class="page-title">对外文档</div>
+
+    <page-alert style="margin-bottom: 16px;" title="使用说明">
+      <div>
+        <p>
+          1、对外文档作为在线文档创作管理工具，创作的文档既可作为知识库关联到机器人使用，也可分享给好友查看。
+        </p>
+        <p>2、支持设置每篇文档的title、description、keyword，提高SEO搜索权重。</p>
+      </div>
+    </page-alert>
+    
     <div class="library-page-body">
+      <div class="list-toolbar">
+        <div class="toolbar-box">
+          <h3 class="list-total">全部 ({{ list.length }})</h3>
+        </div>
+
+        <div class="toolbar-box">
+          <a-button type="primary" @click="handleAdd()">
+            <template #icon>
+              <PlusOutlined />
+            </template>
+            新建对外文档
+          </a-button>
+        </div>
+      </div>
       <div>
         <LibraryList :list="list" @add="handleAdd" @edit="toEdit" @delete="handleDelete" />
       </div>
@@ -12,13 +37,14 @@
 <script setup>
 import { ref, createVNode } from 'vue'
 import { useRouter } from 'vue-router'
-import { Modal, message } from 'ant-design-vue'
-import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
-import LibraryList from './components/libray-list/index.vue'
 import { getLibraryList, deleteLibrary } from '@/api/library'
 import { formatFileSize } from '@/utils/index'
-import { DEFAULT_LIBRARY_AVATAR, DEFAULT_LIBRARY_AVATAR2 } from '@/constants/index'
+import { LIBRARY_NORMAL_AVATAR, LIBRARY_OPEN_AVATAR } from '@/constants/index'
+import { Modal, message } from 'ant-design-vue'
+import { ExclamationCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
+import LibraryList from './components/libray-list/index.vue'
 import AddLibraryModel from '../add/add-library-model.vue'
+import PageAlert from '@/components/page-alert/page-alert.vue'
 
 const router = useRouter()
 
@@ -34,7 +60,7 @@ const getList = () => {
       item.file_size_str = formatFileSize(item.file_size)
 
       if (!item.avatar) {
-        item.avatar = item.type == 0 ? DEFAULT_LIBRARY_AVATAR : DEFAULT_LIBRARY_AVATAR2
+        item.avatar = item.type == 0 ? LIBRARY_NORMAL_AVATAR : LIBRARY_OPEN_AVATAR
       }
     })
 
@@ -113,12 +139,30 @@ const onDelete = ({ id }) => {
 
 <style lang="less" scoped>
 .library-page {
-  :deep(.ant-tabs-nav) {
+  .page-title{
+    margin: 16px 0;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 28px;
+    color: #000000;
+  }
+
+  .list-toolbar{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 8px;
+
+    .list-total{
+      line-height: 24px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #262626;
+    }
   }
 }
-// 大于1440px
-@media screen and (min-width: 1440px) {
+// 大于1920px
+@media screen and (min-width: 1920px) {
   .library-page {
   }
 }

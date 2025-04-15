@@ -2,42 +2,37 @@
 .navbar {
   display: flex;
   align-items: center;
-  margin-left: 8px;
+  justify-content: center;
+  background: #FAFAFA;
+  border-radius: 6px;
 
   .nav-menu {
+    display: flex;
     position: relative;
-    margin: 0 24px;
+    padding: 9px 16px;
+    margin-right: 4px;
+    line-height: 22px;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 6px;
+    color: #262626;
     cursor: pointer;
+    transition: all .2s;
+    &:hover{
+      background: #E4E6EB; 
+    }
+    &.active {
+      color: #fff;
+      background: #2475FC;
+    }
 
-    .nav-menu-name {
-      display: inline-block;
-      line-height: 22px;
-      padding: 4px 0 6px 0;
-      font-size: 14px;
-      font-weight: 400;
-      color: #595959;
+    .nav-icon {
+      margin-right: 8px;
+      font-size: 14px; 
     }
   }
 
-  .nav-menu.active {
-    &::after {
-      content: '';
-      display: block;
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      margin-left: -20px;
-      width: 40px;
-      height: 2px;
-      background-color: #2475fc;
-    }
-
-    .nav-menu-name {
-      font-size: 14px;
-      font-weight: 600;
-      color: #2475fc;
-    }
-  }
+  
 }
 </style>
 
@@ -49,9 +44,11 @@
           class="nav-menu"
           :class="{ active: item.key === rootPath || item.key === activeMenu }"
           :key="item.key"
+          @click="handleClickNav(item)"
           v-if="checkRole(item.permission)"
         >
-          <router-link :to="item.path" class="nav-menu-name">{{ item.title }}</router-link>
+          <svg-icon class="nav-icon" :name="item.icon"></svg-icon>
+          <span class="nav-name">{{ item.title }}</span>
         </div>
       </template>
     </div>
@@ -60,9 +57,10 @@
 
 <script setup>
 import { computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { checkRole } from '@/utils/permission'
 
+const router = useRouter()
 const roure = useRoute()
 
 const activeMenu = computed(() => {
@@ -81,6 +79,7 @@ const navs = [
     key: 'robot',
     label: 'robot',
     title: '应用',
+    icon: 'nav-robot',
     path: '/robot/list',
     permission: ['RobotManage']
   },
@@ -89,6 +88,7 @@ const navs = [
     key: 'library',
     label: 'library',
     title: '知识库',
+    icon: 'nav-library',
     path: '/library/list',
     permission: ['LibraryManage']
   },
@@ -96,42 +96,40 @@ const navs = [
     id: 3,
     key: 'PublicLibrary',
     label: 'PublicLibrary',
-    title: '对外文档',
+    title: '文档',
+    icon: 'nav-doc',
     path: '/public-library/list',
     permission: ['*:*:*']
-  },
-  {
-    id: 4,
-    key: 'database',
-    label: 'database',
-    title: '数据库',
-    path: '/database/list',
-    permission: ['FormManage']
   },
   {
     id: 5,
     key: 'chat-monitor',
     label: 'chat-monitor',
-    title: '实时会话',
+    title: '会话',
+    icon: 'nav-chat',
     path: '/chat-monitor/index',
     permission: ['*:*:*']
   },
-  {
-    id: 6,
-    key: 'user',
-    label: 'user',
-    title: '系统管理',
-    path: '/user/model',
-    permission: [
-      'ModelManage',
-      'TokenManage',
-      'TeamManage',
-      'AccountManage',
-      'CompanyManage',
-      'ClientSideManage'
-    ]
-  }
+  // {
+  //   id: 6,
+  //   key: 'user',
+  //   label: 'user',
+  //   title: '系统管理',
+  //   path: '/user/model',
+  //   permission: [
+  //     'ModelManage',
+  //     'TokenManage',
+  //     'TeamManage',
+  //     'AccountManage',
+  //     'CompanyManage',
+  //     'ClientSideManage'
+  //   ]
+  // }
 ]
+
+const handleClickNav = item => {
+  router.push(item.path)
+}
 
 watch(
   () => roure.path,

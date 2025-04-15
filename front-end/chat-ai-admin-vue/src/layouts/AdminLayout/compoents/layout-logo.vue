@@ -33,7 +33,7 @@ const name = computed(() => {
 }
 .system-name{
   margin-top: -2px;
-  margin-left: 8px;
+  margin-left: 4px;
   font-size: 15px;
   font-weight: 600;
   overflow: hidden;

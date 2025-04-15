@@ -3,7 +3,7 @@
     <div class="between-content-box">
       <div class="layout-left">
         <div class="library-name-box">
-          <img class="avatar" src="@/assets/img/database/base-icon.png" alt="" />
+          <img class="avatar" src="@/assets/img/database/base-icon.svg" alt="" />
           <div class="name">
             {{ dataBaseInfo.name }}
           </div>

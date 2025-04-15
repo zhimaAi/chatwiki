@@ -19,7 +19,7 @@
   --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
   --vt-c-text-dark-1: var(--vt-c-white);
   --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
-  --layout-header-height: 52px;
+  --layout-header-height: 72px;
 
   --wf-color-text-1: #262626;
   --wf-color-text-2: #8c8c8c;
@@ -61,7 +61,6 @@
 *::after {
   box-sizing: border-box;
   margin: 0;
-  font-weight: normal;
 }
 
 body {

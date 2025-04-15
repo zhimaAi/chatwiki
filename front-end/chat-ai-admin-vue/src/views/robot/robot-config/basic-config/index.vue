@@ -1,5 +1,5 @@
 <template>
-  <a-tabs v-model:activeKey="activeKey">
+  <a-tabs class="tab-wrapper" v-model:activeKey="activeKey">
     <a-tab-pane :key="1" tab="基础配置"></a-tab-pane>
     <a-tab-pane :key="2" tab="常见问题"></a-tab-pane>
   </a-tabs>
@@ -12,10 +12,13 @@
         <AssociatedKnowledgeBase />
       </div>
       <div class="setting-box">
-        <SystemPromptWords />
+        <ModelSettings />
       </div>
       <div class="setting-box">
-        <ModelSettings />
+        <ChatMode />
+      </div>
+      <div class="setting-box">
+        <SystemPromptWords />
       </div>
       <div class="setting-box">
         <DataBase />
@@ -23,9 +26,7 @@
       <div class="setting-box">
         <WelcomeWords />
       </div>
-      <div class="setting-box">
-        <ChatMode />
-      </div>
+
       <div class="setting-box">
         <UnknownProblemPrompt />
       </div>
@@ -163,14 +164,15 @@ const saveForm = () => {
 
 <style lang="less" scoped>
 .robot-config-page {
-  height: 100%;
+  height: calc(100% - 46px);
   width: 100%;
   padding: 8px 10px 24px 24px;
+  padding-bottom: 0;
   overflow: hidden;
   background-color: #fff;
 
   .scroll-box {
-    height: calc(100% - 62px);
+    height: 100%;
     overflow-y: auto;
   }
 
@@ -180,5 +182,8 @@ const saveForm = () => {
 }
 ::v-deep(.ant-tabs-nav-wrap) {
   padding-left: 24px;
+}
+.tab-wrapper ::v-deep(.ant-tabs-nav){
+  margin-bottom: 0;
 }
 </style>

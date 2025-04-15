@@ -215,7 +215,7 @@ const toEditRobot = ({ id, robot_key, application_type }) => {
   }
 }
 
-@media screen and (min-width: 1440px) {
+@media screen and (min-width: 1920px) {
   .robot-page {
     .list-box {
       .list-item-wrapper {

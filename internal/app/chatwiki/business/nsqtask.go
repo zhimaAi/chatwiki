@@ -223,15 +223,17 @@ func ConvertGraph(msg string, _ ...string) error {
 	if err != nil {
 		logs.Error(err.Error())
 		constructGraphFailed(fileId, id, err.Error())
+		CheckFileGraphLearned(fileId)
 		return nil
 	}
-	logs.Debug(chatResp.Result)
 	chatResp.Result = strings.TrimPrefix(chatResp.Result, "```json")
 	chatResp.Result = strings.TrimSuffix(chatResp.Result, "```")
 
 	var graphData []map[string]interface{}
 	if err := tool.JsonDecode(chatResp.Result, &graphData); err != nil {
 		logs.Error(`graph data parsing failure:%s/%s`, chatResp.Result, err.Error())
+		constructGraphFailed(fileId, id, err.Error())
+		CheckFileGraphLearned(fileId)
 		return nil
 	}
 
@@ -262,7 +264,7 @@ func ConvertGraph(msg string, _ ...string) error {
 				sanitizedPredicate, confidence, cast.ToInt(info[`library_id`]), fileId, id)
 			_, err = graphDB.ExecuteCypher(createGraphSQL)
 			if err != nil {
-				logs.Error(`create graph error: %s`, err.Error())
+				logs.Error(`create graph error: %s, sql is: `, err.Error(), createGraphSQL)
 				hasError = true
 				constructGraphFailed(fileId, id, err.Error())
 				break

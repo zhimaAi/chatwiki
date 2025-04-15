@@ -67,6 +67,13 @@ func GetFormList(c *gin.Context) {
 	}
 
 	list, err := m.Select()
+	for _, item := range list {
+		robotInfo, err := common.GetFormRobotInfo(adminUserId, cast.ToInt(item[`id`]))
+		if err != nil {
+			logs.Error(err.Error())
+		}
+		item[`robot_nums`] = cast.ToString(len(robotInfo))
+	}
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))

@@ -30,7 +30,8 @@ export default {
       component: () => import('@/views/public-library/list/index.vue'),
       meta: {
         title: '对外文档',
-        bgColor: '#F5F9FF'
+        bgColor: '#fff',
+        hideTitle: true
       }
     },
     {

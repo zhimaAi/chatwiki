@@ -4,7 +4,7 @@
   position: relative;
   display: flex;
   flex-flow: column nowrap;
-  background: linear-gradient(180deg, #e5efff 0%, #f0f2f5 34.43%);
+  background: #fff;
 
   .layout-header {
     position: relative;
@@ -12,6 +12,7 @@
     align-items: center;
     height: var(--layout-header-height);
     padding: 0 16px;
+    border-bottom: 1px solid #D9D9D9;
 
     .header-left {
       display: flex;
@@ -20,11 +21,14 @@
     .header-right {
       display: flex;
       align-items: center;
-      gap: 22px;
+      gap: 16px;
     }
 
     .header-body {
       flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
   }
 
@@ -34,7 +38,7 @@
 
   .layout-body {
     flex: 1;
-    padding: 0 16px 0 16px;
+    padding: 0;
     display: flex;
     flex-flow: column nowrap;
     overflow: hidden;
@@ -49,7 +53,7 @@
 
     .page-container {
       flex: 1;
-      padding: 0 22px 0 22px;
+      padding: 0 48px;
       overflow-x: hidden;
       overflow-y: auto;
     }
@@ -68,9 +72,9 @@
           <Layoutnavbar />
         </div>
         <div class="header-right">
-          <div class="item-box">
+          <!-- <div class="item-box">
             <LocaleDropdown />
-          </div>
+          </div> -->
           <div class="item-box">
             <UserDropdown />
           </div>
@@ -104,14 +108,15 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useUserStore } from '@/stores/modules/user'
 import LayoutLogo from './compoents/layout-logo.vue'
 import Layoutnavbar from './compoents/layout-navbar.vue'
 import LayoutBreadcrumb from './compoents/layout-breadcrumb.vue'
 import LayoutFooter from './compoents/layout-footer.vue'
 import UserDropdown from './compoents/user-dropdown.vue'
-import LocaleDropdown from './compoents/locale-dropdown.vue'
+// import LocaleDropdown from './compoents/locale-dropdown.vue'
 import ResetPassword from './compoents/reset-password.vue'
-import { useUserStore } from '@/stores/modules/user'
+
 
 const route = useRoute()
 const userStore = useUserStore()

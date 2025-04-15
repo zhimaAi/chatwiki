@@ -7,6 +7,8 @@ import { useEventBus } from '@/hooks/event/useEventBus'
 import { useIM } from '@/hooks/event/useIM'
 
 export interface Message {
+  name: string
+  nickname: string
   robot_avatar: string
   dialogue_id: number
   openid: string
@@ -211,7 +213,7 @@ export const useChatStore = defineStore('chat', () => {
       }
 
       document.title = externalConfigH5.pageTitle
-      
+
       const faviconLink = document.querySelector('link[rel="icon"]');
 
       if(faviconLink && externalConfigH5.logo){
@@ -238,7 +240,14 @@ export const useChatStore = defineStore('chat', () => {
       msg.uid = getUuid(32)
       msg.loading = false
       msg.isWelcome = true
-      msg.avatar = robot.robot_avatar
+      msg.name = msg.name || msg.nickname
+      if (msg.is_customer == 1) {
+        msg.name = msg.name || user.name
+        msg.avatar = msg.avatar || user.avatar
+      } else {
+        msg.name = msg.name || robot.robot_name
+        msg.avatar = msg.avatar || robot.robot_avatar
+      }
 
       if (msg.menu_json && typeof msg.menu_json === 'string') {
         msg.menu_json = JSON.parse(msg.menu_json)
@@ -300,7 +309,7 @@ export const useChatStore = defineStore('chat', () => {
       messageList.value[msgIndex].reasoning_status = true
       messageList.value[msgIndex].show_reasoning = true
     }
-    
+
     if (type == 'sending') {
       // 推理结束
       messageList.value[msgIndex].reasoning_status = false
@@ -399,7 +408,7 @@ export const useChatStore = defineStore('chat', () => {
       if (import.meta.env.MODE !== 'production') {
         console.log(res)
       }
-      
+
       aiMsg.event = res.event;
       robot.is_sending = true;
       // 更新对话id
@@ -567,6 +576,8 @@ export const useChatStore = defineStore('chat', () => {
     try {
       const res = await getChatMessage(params)
       const list = res.data.list || []
+      const _customer = res?.data?.customer || {}
+      const _robot = res?.data?.robot || {}
       // 消息加载完了
       if (list.length === 0) {
         chatMessageLoadCompleted.value = true
@@ -582,10 +593,13 @@ export const useChatStore = defineStore('chat', () => {
         item.show_reasoning = false;
         item.reasoning_status = false;
 
+        item.name = item.name || item.nickname
         if (item.is_customer == 1) {
-          item.avatar = user.avatar
+          item.name = item.name || _customer.name
+          item.avatar = item.avatar || user.avatar || _customer.avatar
         } else {
-          item.avatar = robot.robot_avatar
+          item.name = item.name || robot.robot_name || _robot.robot_name
+          item.avatar = item.avatar || robot.robot_avatar || _robot.robot_avatar
         }
 
         if (item.menu_json) {

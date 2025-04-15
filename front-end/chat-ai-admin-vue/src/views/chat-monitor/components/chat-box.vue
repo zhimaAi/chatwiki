@@ -5,6 +5,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: #F2F4F7;
 }
 .chat-box-header {
   padding: 12px 16px;

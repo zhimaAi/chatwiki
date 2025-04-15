@@ -124,6 +124,14 @@
       margin-bottom: 16px;
       flex: 1;
     }
+    .flex {
+      display: flex;
+      gap: 16px;
+
+      .form-item-box {
+        flex: 1;
+      }
+    }
     .form-item-label {
       line-height: 22px;
       margin-bottom: 4px;
@@ -154,6 +162,14 @@
       font-weight: 400;
       line-height: 22px;
       margin-top: 2px;
+    }
+
+    .form-item-tip {
+      color: #8c8c8c;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 14px;
+      margin: 2px 0 6px;
     }
   }
   .excel-qa-form {
@@ -320,40 +336,42 @@
             <div class="sub-setting-item-name">文件切分</div>
             <!-- 表格类型的QA文档 -->
             <div class="custom-setting-form excel-qa-form" v-if="props.mode == 1">
-              <div class="form-item">
-                <div class="form-item-label">问题所在列：</div>
-                <div class="form-item-body">
-                  <a-select
-                    v-model:value="formState.question_column"
-                    @change="onChagneFormInput"
-                    placeholder="请选择列名"
-                    style="width: 100%"
-                  >
-                    <a-select-option
-                      v-for="item in props.excellQaLists"
-                      :value="item.value"
-                      :key="item.value"
-                      >{{ item.lable }}</a-select-option
+              <div class="form-item flex">
+                <div class="form-item-box">
+                  <div class="form-item-label">问题所在列：</div>
+                  <div class="form-item-body">
+                    <a-select
+                      v-model:value="formState.question_column"
+                      @change="onChagneFormInput"
+                      placeholder="请选择列名"
+                      style="width: 100%"
                     >
-                  </a-select>
+                      <a-select-option
+                        v-for="item in props.excellQaLists"
+                        :value="item.value"
+                        :key="item.value"
+                        >{{ item.lable }}</a-select-option
+                      >
+                    </a-select>
+                  </div>
                 </div>
-              </div>
-              <div class="form-item">
-                <div class="form-item-label">答案所在列：</div>
-                <div class="form-item-body">
-                  <a-select
-                    v-model:value="formState.answer_column"
-                    @change="onChagneFormInput"
-                    placeholder="请选择答案所在列"
-                    style="width: 100%"
-                  >
-                    <a-select-option
-                      v-for="item in props.excellQaLists"
-                      :value="item.value"
-                      :key="item.value"
-                      >{{ item.lable }}</a-select-option
+                <div class="form-item-box">
+                  <div class="form-item-label">答案所在列：</div>
+                  <div class="form-item-body">
+                    <a-select
+                      v-model:value="formState.answer_column"
+                      @change="onChagneFormInput"
+                      placeholder="请选择答案所在列"
+                      style="width: 100%"
                     >
-                  </a-select>
+                      <a-select-option
+                        v-for="item in props.excellQaLists"
+                        :value="item.value"
+                        :key="item.value"
+                        >{{ item.lable }}</a-select-option
+                      >
+                    </a-select>
+                  </div>
                 </div>
               </div>
               <div class="sub-setting-item-name">索引方式</div>
@@ -385,6 +403,20 @@
                   <div class="list-content">
                     回答用户提问时，将用户提问与导入的问题一起对比相似度，再根据相似度高的问题和对应的答案来回复
                   </div>
+                </div>
+                <!-- 新增的操作按钮 -->
+                <div class="btn-box-block">
+                  <!-- <a-button
+                    @click="reChange"
+                    :loading="reLoading"
+                    style="flex: 1"
+                    type="primary"
+                    ghost
+                    >生成分段预览</a-button
+                  > -->
+                </div>
+                <div class="btn-box-block">
+                  <a-button type="primary" block @click="onSave">保存</a-button>
                 </div>
               </div>
             </div>
@@ -442,6 +474,20 @@
                     回答用户提问时，将用户提问与导入的问题一起对比相似度，再根据相似度高的问题和对应的答案来回复
                   </div>
                 </div>
+                <!-- 新增的操作按钮 -->
+                <div class="btn-box-block">
+                  <!-- <a-button
+                    @click="reChange"
+                    :loading="reLoading"
+                    style="flex: 1"
+                    type="primary"
+                    ghost
+                    >生成分段预览</a-button
+                  > -->
+                </div>
+                <div class="btn-box-block">
+                  <a-button type="primary" block @click="onSave">保存</a-button>
+                </div>
               </div>
             </div>
           </template>
@@ -450,6 +496,7 @@
               <div class="form-item">
                 <div class="form-item-label">分段方式：</div>
                 <div class="form-item-body">
+                  <div class="form-item-tip">提示：语义分段更适合没有排版过的文章，即没有明显换行符号的文本，否则更推荐使用普通分段</div>
                   <div class="select-card-box">
                     <div
                       class="select-card-item"
@@ -480,11 +527,6 @@
                       </div>
                     </div>
                   </div>
-                  <a-alert
-                    v-if="formState.chunk_type == 2"
-                    style="margin-top: 12px"
-                    message="提示：语义分段更适合没有排版过的文章，即没有明显换行符号的文本，否则更推荐使用普通分段"
-                  ></a-alert>
                 </div>
               </div>
               <template v-if="formState.chunk_type == 1">
@@ -516,7 +558,7 @@
                           v-model:value="formState.chunk_size"
                           placeholder="分段最大长度"
                           :min="200"
-                          :max="2000"
+                          :max="10000"
                           :precision="0"
                           :formatter="(value) => parseInt(value)"
                           :parser="(value) => parseInt(value)"
@@ -588,7 +630,7 @@
                           v-model:value="formState.semantic_chunk_size"
                           placeholder="分段最大长度"
                           :min="200"
-                          :max="2000"
+                          :max="10000"
                           :precision="0"
                           :formatter="(value) => parseInt(value)"
                           :parser="(value) => parseInt(value)"
@@ -622,8 +664,11 @@
                   style="flex: 1"
                   type="primary"
                   ghost
-                  >重新分段</a-button
+                  >生成分段预览</a-button
                 >
+              </div>
+              <div class="btn-box-block">
+                <a-button type="primary" block @click="onSave">保存</a-button>
               </div>
             </div>
           </template>
@@ -642,7 +687,7 @@ import { Form } from 'ant-design-vue'
 import { message } from 'ant-design-vue'
 
 const useForm = Form.useForm
-const emit = defineEmits(['change', 'validate'])
+const emit = defineEmits(['change', 'validate', 'save'])
 
 const props = defineProps({
   mode: {
@@ -742,6 +787,10 @@ const handleReset = () => {
   Object.assign(formState, baseFormState)
 }
 
+const onSave = () => {
+  emit('save')
+}
+
 const formRules = reactive({
   question_lable: [
     {
@@ -815,8 +864,8 @@ const formRules = reactive({
         if (props.mode != 1 && formState.chunk_type == 1) {
           if (!value) {
             return Promise.reject('请输入分段最大长度')
-          } else if (value > 2000) {
-            return Promise.reject('最大分段长最大值不得超过2000')
+          } else if (value > 10000) {
+            return Promise.reject('最大分段长最大值不得超过10000')
           }
         }
 

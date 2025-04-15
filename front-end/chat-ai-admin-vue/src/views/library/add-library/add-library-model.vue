@@ -51,7 +51,7 @@ import { Form, message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import { createLibrary } from '@/api/library/index'
 import AvatarInput from './components/avatar-input.vue'
-import { DEFAULT_LIBRARY_AVATAR, DEFAULT_LIBRARY_AVATAR3 } from '@/constants/index'
+import { LIBRARY_NORMAL_AVATAR, LIBRARY_QA_AVATAR } from '@/constants/index'
 import { transformUrlData } from '@/utils/validate.js'
 
 // 设置全局默认的duration为（2秒）
@@ -164,11 +164,11 @@ const show = ({ type }) => {
   formState.type = type
 
   if (type == 0) {
-    formState.avatar = DEFAULT_LIBRARY_AVATAR
-    formState.avatar_file = DEFAULT_LIBRARY_AVATAR
+    formState.avatar = LIBRARY_NORMAL_AVATAR
+    formState.avatar_file = LIBRARY_NORMAL_AVATAR
   } else {
-    formState.avatar = DEFAULT_LIBRARY_AVATAR3
-    formState.avatar_file = DEFAULT_LIBRARY_AVATAR3
+    formState.avatar = LIBRARY_QA_AVATAR
+    formState.avatar_file = LIBRARY_QA_AVATAR
   }
   visible.value = true
 }

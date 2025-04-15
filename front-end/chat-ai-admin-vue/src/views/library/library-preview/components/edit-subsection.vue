@@ -27,6 +27,7 @@
                 v-model:value="answer"
                 style="height: 150px"
               ></a-textarea>
+              <div v-if="answer.length > 10000" class="error-tip">分段答案最多支持10000个字符</div>
             </div>
           </div>
         </template>
@@ -38,6 +39,7 @@
               v-model:value="content"
               placeholder="请输入分段内容"
             />
+            <div v-if="content.length > 10000" class="error-tip">分段内容最多支持10000个字符</div>
           </div>
         </div>
         <div class="form-item">
@@ -89,7 +91,8 @@ const isQaDocment = ref(false)
 const showModal = (data) => {
   title.value = data.title || ''
   content.value = data.content || ''
-  ;(id.value = data.id || ''), (answer.value = data.answer || '')
+  id.value = data.id || ''
+  answer.value = data.answer || ''
   images.value = data.images || []
   question.value = data.question || ''
   isQaDocment.value = props.detailsInfo.is_qa_doc == '1'
@@ -106,6 +109,12 @@ const handleOk = () => {
   }
   if (!answer.value && isQaDocment.value) {
     return message.error('请输入分段答案')
+  }
+  if (isQaDocment.value && answer.value.length > 10000) {
+    return
+  }
+  if (!isQaDocment.value && content.value.length > 10000) {
+    return
   }
   let data = {
     title: title.value,
@@ -170,5 +179,9 @@ defineExpose({ showModal })
       margin-left: 16px;
     }
   }
+}
+.error-tip {
+  margin-top: 4px;
+  color: #fb363f;
 }
 </style>

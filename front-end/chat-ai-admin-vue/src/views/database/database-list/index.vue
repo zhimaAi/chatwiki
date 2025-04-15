@@ -1,28 +1,55 @@
 <template>
   <div class="library-page">
+    <PageTabs class="mb-16" :tabs="pageTabs" active="/database/list"></PageTabs>
+    <page-alert style="margin-bottom: 16px;" title="使用说明">
+      <div>
+        <p>
+          1、数据库可以关联到问答机器人，从对话中提取信息存储到指定数据表中，也可以利用数据表中已有数据回复用户咨询。创建机器人之前请先创建知识库，然后去机器人设置中关联。
+        </p>
+        <p>2、支持Excel模版和Json模版导入已有数据，也支持将存储的数据导出Excel表。</p>
+      </div>
+    </page-alert>
+    
     <div class="library-page-body">
-      <div class="list-box">
-        <div class="list-item-wrapper" v-if="formCreate">
-          <div class="list-item add-library" @click="toAdd()">
-            <PlusCircleOutlined class="add-library-icon" />
-            <span class="add-library-text">新增数据表</span>
-          </div>
+      <div class="list-toolbar">
+        <div class="toolbar-box">
+          <h3 class="list-total">全部 ({{ list.length }})</h3>
         </div>
+
+        <div class="toolbar-box">
+          <a-button type="primary" @click="toAdd()" v-if="formCreate">
+            <template #icon>
+              <PlusOutlined />
+            </template>
+            新建数据库
+          </a-button>
+        </div>
+      </div>
+
+      <div class="list-box">
         <div class="list-item-wrapper" v-for="item in list" :key="item.id">
           <div class="list-item" @click.stop="toEdit(item)">
-            <div class="item-header">
-              <img class="library-icon" src="@/assets/img/database/base-icon.png" alt="" />
-              <div class="library-info">
+            <div class="library-info">
+              <img class="library-icon" src="@/assets/img/database/base-icon.svg" alt="" />
+              <div class="library-info-content">
                 <div class="library-title">{{ item.name }}</div>
-                <div class="library-num">
-                  <span>数据：{{ item.entry_count }}条</span>
-                </div>
               </div>
-              <span class="item-action" @click.stop>
+            </div>
+            <div class="item-body">
+              <div class="library-desc">{{ item.description }}</div>
+            </div>
+
+            <div class="item-footer">
+              <div class="library-size">
+                <span class="text-item">数据数：{{ item.entry_count }}条</span>
+                <span class="text-item">关联应用：{{ item.robot_nums || 0 }}</span>
+              </div>
+
+              <div class="action-box" @click.stop>
                 <a-dropdown>
-                  <span class="menu-btn" @click.prevent>
-                    <MoreOutlined />
-                  </span>
+                  <div class="action-item" @click.stop>
+                    <svg-icon class="action-icon" name="point-h"></svg-icon>
+                  </div>
                   <template #overlay>
                     <a-menu>
                       <a-menu-item>
@@ -36,9 +63,9 @@
                     </a-menu>
                   </template>
                 </a-dropdown>
-              </span>
+              </div>
+
             </div>
-            <div class="library-desc">{{ item.description }}</div>
           </div>
         </div>
       </div>
@@ -48,19 +75,29 @@
 </template>
 
 <script setup>
+import { usePermissionStore } from '@/stores/modules/permission'
 import { ref, createVNode, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
-import { MoreOutlined, PlusCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons-vue'
+import { PlusOutlined, ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import { getFormList, delForm } from '@/api/database'
 import AddDataSheet from './components/add-data-sheet.vue'
-import { usePermissionStore } from '@/stores/modules/permission'
+import PageTabs from '@/components/cu-tabs/page-tabs.vue'
+import PageAlert from '@/components/page-alert/page-alert.vue'
+
+const router = useRouter()
+
+const pageTabs = ref([{
+  title: '知识库',
+  path: '/library/list'
+}, {
+  title: '数据库',
+  path: '/database/list'
+}])
 
 const permissionStore = usePermissionStore()
 let { role_permission } = permissionStore
 const formCreate = computed(() => role_permission.includes('FormCreate'))
-
-const router = useRouter()
 
 const list = ref([])
 
@@ -140,6 +177,19 @@ const onDelete = ({ id }) => {
 
 <style lang="less" scoped>
 .library-page {
+  .list-toolbar{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .list-total{
+    line-height: 24px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #262626;
+  }
   .list-box {
     display: flex;
     flex-flow: row wrap;
@@ -152,21 +202,21 @@ const onDelete = ({ id }) => {
   .list-item {
     position: relative;
     width: 100%;
-    height: 158px;
-    padding: 16px;
-    border-radius: 2px;
-    border: 1px solid #f0f0f0;
+    padding: 24px;
+    border: 1px solid #E4E6EB;
+    border-radius: 12px;
     background-color: #fff;
     transition: all 0.25s;
     cursor: pointer;
 
     &:hover {
-      box-shadow: 0 4px 16px 0 #1b3a6929;
+      box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.12);
     }
 
-    .item-header {
+    .library-info {
       position: relative;
       display: flex;
+      align-items: center;
       .item-action {
         .menu-btn {
           position: absolute;
@@ -184,77 +234,96 @@ const onDelete = ({ id }) => {
         }
       }
       .library-icon{
-        width: 40px;
-        height: 40px;
-        margin-right: 8px;
-
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        overflow: hidden;
       }
-      .library-info{
-        width: calc(100% - 68px);
+      .library-info-content{
+        margin-left: 12px;
+        flex: 1;
+        overflow: hidden;
       }
       .library-title {
-        height: 22px;
-        line-height: 22px;
-        font-size: 14px;
+        height: 24px;
+        line-height: 24px;
+        font-size: 16px;
         font-weight: 600;
         color: #262626;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .library-num{
-        color: #8c8c8c;
-        font-size: 14px;
-        line-height: 22px;
-        font-weight: 400;
-      }
     }
-
-    .library-desc {
-      height: 66px;
-      line-height: 22px;
+    .item-body{
       margin-top: 12px;
+    }
+    .library-desc {
+      height: 44px;
+      line-height: 22px;
       font-size: 14px;
       font-weight: 400;
-      color: #595959;
+      color: rgb(89, 89, 89);
       // 超出2行显示省略号
       overflow: hidden;
       text-overflow: ellipsis;
       display: -webkit-box;
-      -webkit-line-clamp: 3;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
       -webkit-box-orient: vertical;
+    }
+    
+    .item-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+      color: #7a8699;
     }
     .library-size {
       display: flex;
-      margin-top: 12px;
-      line-height: 22px;
-      font-size: 14px;
-      color: #595959;
+      line-height: 20px;
+      font-size: 12px;
+      font-weight: 400;
+      color: #7a8699;
 
-      .file-size {
-        padding-left: 20px;
+      .text-item {
+        margin-right: 12px;
+        &:last-child{
+          margin-right: 0;
+        }
+      }
+    }
+
+    .action-box {
+      font-size: 14px;
+      height: 24px;
+      color: #2475fc;
+      display: flex;
+      align-items: center;
+
+      .action-item {
+        display: flex;
+        align-items: center;
+        height: 100%;
+        padding: 4px;
+        border-radius: 6px;
+        cursor: pointer;
+        color: #595959;
+        transition: all 0.2s;
+      }
+      .action-item:hover {
+        background: #E4E6EB;
+      }
+
+      .action-icon {
+        font-size: 16px;
       }
     }
   }
-  .add-library {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 22px;
-    color: #3a4559;
-    cursor: pointer;
-
-    .add-library-icon {
-      font-size: 16px;
-    }
-    .add-library-text {
-      padding-left: 4px;
-      font-size: 14px;
-    }
-  }
 }
-// 大于1440px
-@media screen and (min-width: 1440px) {
+// 大于1920px
+@media screen and (min-width: 1920px) {
   .library-page {
     .list-box {
       .list-item-wrapper {

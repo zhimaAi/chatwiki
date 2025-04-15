@@ -139,7 +139,7 @@
 import { reactive, ref, onMounted, toRaw, watch } from 'vue'
 import { Form, message } from 'ant-design-vue'
 import AvatarInput from '@/views/library/add-library/components/avatar-input.vue'
-import { DEFAULT_LIBRARY_AVATAR2 } from '@/constants/index'
+import { LIBRARY_OPEN_AVATAR } from '@/constants/index'
 
 // 设置全局默认的duration为（2秒）
 message.config({
@@ -165,7 +165,7 @@ const type = ref(1)
 const useForm = Form.useForm
 
 const isActive = ref(false)
-const defaultAvatar = DEFAULT_LIBRARY_AVATAR2
+const defaultAvatar = LIBRARY_OPEN_AVATAR
 
 const formState = reactive({
   type: type.value,
