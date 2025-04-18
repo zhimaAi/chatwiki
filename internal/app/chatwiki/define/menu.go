@@ -51,6 +51,16 @@ var Menus = []Menu{
 		},
 	},
 	{
+		Name:   "搜索",
+		UniKey: "Search",
+		Children: []*Menu{
+			{
+				Name:   "知识库搜索",
+				UniKey: "LibrarySearch",
+			},
+		},
+	},
+	{
 		Name:   "系统管理",
 		UniKey: "System",
 		Children: []*Menu{
@@ -95,6 +105,7 @@ var AllUniKeyList = []string{
 	"AccountManage",
 	"CompanyManage",
 	"ClientSideManage",
+	"LibrarySearch",
 }
 
 var UserUniKeyList = []string{

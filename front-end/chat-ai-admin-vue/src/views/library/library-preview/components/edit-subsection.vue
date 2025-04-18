@@ -5,7 +5,7 @@
         <div class="form-item">
           <div class="form-label">分段标题：</div>
           <div class="form-content">
-            <a-input v-model:value="title" placeholder="请输入分段标题" />
+            <a-input :maxLength="25" v-model:value="title" placeholder="请输入分段标题" />
           </div>
         </div>
         <template v-if="isQaDocment">

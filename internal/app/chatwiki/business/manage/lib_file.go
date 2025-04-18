@@ -221,12 +221,16 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 	default:
 		return nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `doc_type`))
 	}
+	libraryInfo, _ := common.GetLibraryInfo(libraryId, userId)
 	//database dispose
 	fileIds := make([]int64, 0)
 	var autoSplit bool
 	splitParams := common.DefaultSplitParams()
 	// question and answer to auto learning
-	if (answerLable != "" || answerColumn != "") && len(libraryFiles) == 1 {
+	if len(libraryFiles) == 1 {
+		autoSplit = true
+	}
+	if answerLable != "" || answerColumn != "" {
 		autoSplit = true
 		splitParams.QuestionColumn = questionColumn
 		splitParams.AnswerColumn = answerColumn
@@ -287,9 +291,26 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 				} else if err := common.AddJobs(define.ConvertHtmlTopic, message); err != nil {
 					logs.Error(err.Error())
 				}
-			}
-			if define.IsMdFile(uploadInfo.Ext) || autoSplit { //markdown文档自动切分
-				go common.AutoSplitLibFile(userId, int(fileId), splitParams)
+			} else {
+				if define.IsMdFile(uploadInfo.Ext) || autoSplit { //markdown文档自动切分
+					if cast.ToInt(libraryInfo[`type`]) == define.GeneralLibraryType {
+						if (define.IsPdfFile(uploadInfo.Ext) && pdfParseType == define.PdfParseTypeText) || define.IsDocxFile(uploadInfo.Ext) || define.IsTxtFile(uploadInfo.Ext) || define.IsOfdFile(uploadInfo.Ext) || define.IsHtmlFile(uploadInfo.Ext) {
+							splitParams.ChunkType = cast.ToInt(libraryInfo[`chunk_type`])
+							if splitParams.ChunkType == define.ChunkTypeNormal {
+								splitParams.SeparatorsNo = cast.ToString(libraryInfo[`normal_chunk_default_separators_no`])
+								splitParams.ChunkSize = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_size`])
+								splitParams.ChunkOverlap = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_overlap`])
+							} else if splitParams.ChunkType == define.ChunkTypeSemantic {
+								splitParams.SemanticChunkSize = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_size`])
+								splitParams.SemanticChunkOverlap = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_overlap`])
+								splitParams.SemanticChunkThreshold = cast.ToInt(libraryInfo[`semantic_chunk_default_threshold`])
+							}
+							splitParams.SemanticChunkModelConfigId = cast.ToInt(libraryInfo[`model_config_id`])
+							splitParams.SemanticChunkUseModel = libraryInfo[`use_model`]
+						}
+						go common.AutoSplitLibFile(userId, int(fileId), splitParams)
+					}
+				}
 			}
 		}
 	}
@@ -331,41 +352,44 @@ func DelLibraryFile(c *gin.Context) {
 	if userId = GetAdminUserId(c); userId == 0 {
 		return
 	}
-	id := cast.ToInt(c.PostForm(`id`))
-	if id <= 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
-		return
-	}
-	info, err := common.GetLibFileInfo(id, userId)
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	if len(info) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-		return
-	}
-	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(id)).Delete()
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	//clear cached data
-	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: id})
-	//dispose relation data
-	_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`file_id`, cast.ToString(id)).Delete()
-	if err != nil {
-		logs.Error(err.Error())
-	}
-	_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`file_id`, cast.ToString(id)).Delete()
-	if err != nil {
-		logs.Error(err.Error())
-	}
-	err = common.DeleteGraphFile(id)
-	if err != nil {
-		logs.Error(err.Error())
+	ids := cast.ToString(c.PostForm(`id`))
+	for _, id := range strings.Split(ids, `,`) {
+		id := cast.ToInt(id)
+		if id <= 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+			return
+		}
+		info, err := common.GetLibFileInfo(id, userId)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		if len(info) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+			return
+		}
+		_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(id)).Delete()
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		//clear cached data
+		lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: id})
+		//dispose relation data
+		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`file_id`, cast.ToString(id)).Delete()
+		if err != nil {
+			logs.Error(err.Error())
+		}
+		_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`file_id`, cast.ToString(id)).Delete()
+		if err != nil {
+			logs.Error(err.Error())
+		}
+		err = common.DeleteGraphFile(id)
+		if err != nil {
+			logs.Error(err.Error())
+		}
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
@@ -423,6 +447,34 @@ func GetLibFileInfo(c *gin.Context) {
 	info[`separators`] = strings.Join(separators, ", ")
 
 	c.String(http.StatusOK, lib_web.FmtJson(info, nil))
+}
+
+func GetLibRawFile(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	id := cast.ToInt(c.Query(`id`))
+	if id <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	info, err := common.GetLibFileInfo(id, userId)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(info) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `file_deleted`))))
+		return
+	}
+	if !common.LinkExists(info[`file_url`]) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	c.File(common.GetFileByLink(info[`file_url`]))
+	return
 }
 
 func GetSeparatorsList(c *gin.Context) {
@@ -581,11 +633,12 @@ func EditLibFile(c *gin.Context) {
 	}
 	id := cast.ToInt(c.PostForm(`id`))
 	docAutoRenewFrequency := cast.ToInt(c.PostForm(`doc_auto_renew_frequency`))
+	fileName := cast.ToString(c.PostForm(`file_name`))
 	if id <= 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	if docAutoRenewFrequency < 0 || docAutoRenewFrequency > 5 {
+	if (docAutoRenewFrequency < 0 || docAutoRenewFrequency > 5) && len(fileName) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `doc_auto_renew_frequency`))))
 		return
 	}
@@ -599,10 +652,13 @@ func EditLibFile(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-
-	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(id)).Update(msql.Datas{
+	updateData := msql.Datas{
 		`doc_auto_renew_frequency`: docAutoRenewFrequency,
-	})
+	}
+	if len(fileName) > 0 {
+		updateData[`file_name`] = fileName
+	}
+	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(id)).Update(updateData)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 	}

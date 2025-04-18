@@ -3,9 +3,6 @@
 package common
 
 import (
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/pkg/casbin"
-	"chatwiki/internal/pkg/lib_redis"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,11 +12,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gin-contrib/sse"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
+
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/casbin"
+	"chatwiki/internal/pkg/lib_redis"
 )
 
 func ToStringMap(data msql.Datas, adds ...any) msql.Params {
@@ -623,12 +626,14 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 
 	temp := time.Now()
 	for _, q := range append(optimizedQuestions, question) {
-		list, err := GetMatchLibraryParagraphByVectorSimilarity(adminUserId, robot, openid, appType, q, libraryIds, fetchSize, similarity, searchType)
-		if err != nil {
-			logs.Error(err.Error())
+		if robot != nil && cast.ToInt(robot[`recall_type`]) == define.SwitchOn {
+			list, err := GetMatchLibraryParagraphByVectorSimilarity(adminUserId, robot, openid, appType, q, libraryIds, fetchSize, similarity, searchType)
+			if err != nil {
+				logs.Error(err.Error())
+			}
+			vectorList = append(vectorList, changeListContent(list)...)
 		}
-		vectorList = append(vectorList, list...)
-		list, err = GetMatchLibraryParagraphByGraphSimilarity(robot, openid, appType, q, libraryIds, fetchSize, searchType)
+		list, err := GetMatchLibraryParagraphByGraphSimilarity(robot, openid, appType, q, libraryIds, fetchSize, searchType)
 		if err != nil {
 			logs.Error(err.Error())
 		}
@@ -637,7 +642,7 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 		if err != nil {
 			logs.Error(err.Error())
 		}
-		searchList = append(searchList, list...)
+		searchList = append(searchList, changeListContent(list)...)
 	}
 	libUseTime.RecallTime = time.Now().Sub(temp).Milliseconds()
 
@@ -666,7 +671,11 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 		Add(DataSource{List: searchList, Key: `id`, Fixed: 60}).
 		Add(DataSource{List: graphList, Key: `id`, Fixed: 60}).
 		Add(DataSource{List: rerankList, Key: `id`, Fixed: 58}).Sort()
-
+	if cast.ToInt(robot[`recall_type`]) == 1 {
+		sort.Slice(list, func(i, j int) bool {
+			return cast.ToFloat64(list[i][`similarity`]) > cast.ToFloat64(list[j][`similarity`])
+		})
+	}
 	//return
 	for i, one := range list {
 		if i >= size {
@@ -678,6 +687,15 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 		result = append(result, one)
 	}
 	return result, libUseTime, nil
+}
+
+func changeListContent(list []msql.Params) []msql.Params {
+	for _, one := range list {
+		if one[`content`] == "" && one[`answer`] != "" {
+			one[`content`] = one[`answer`]
+		}
+	}
+	return list
 }
 
 type DialogueCacheBuildHandler struct{ DialogueId int }
@@ -764,22 +782,18 @@ func SaveVector(adminUserID, libraryID, fileID, dataID int64, vectorType, conten
 		}
 		return id, nil
 	} else {
-		if info[`content`] == content {
-			return 0, nil
-		} else {
-			_, err = m.
-				Where(`id`, info[`id`]).
-				Update(msql.Datas{
-					`status`:  define.VectorStatusInitial,
-					`errmsg`:  ``,
-					`content`: content,
-				})
-			if err != nil {
-				logs.Error(err.Error())
-				return 0, err
-			}
-			return cast.ToInt64(info[`id`]), nil
+		_, err = m.
+			Where(`id`, info[`id`]).
+			Update(msql.Datas{
+				`status`:  define.VectorStatusInitial,
+				`errmsg`:  ``,
+				`content`: content,
+			})
+		if err != nil {
+			logs.Error(err.Error())
+			return 0, err
 		}
+		return cast.ToInt64(info[`id`]), nil
 	}
 }
 
@@ -942,4 +956,68 @@ func DeleteGraphFile(fileId int) error {
 func DeleteGraphData(dataId int) error {
 	graphDB := NewGraphDB("graphrag")
 	return graphDB.DeleteByData(dataId)
+}
+
+func LibraryAiSummary(lang, openid, appType, question string, optimizedQuestions []string, libraryIds string, size, maxToken int, similarity, temperature float64, searchType int, robot msql.Params, chanStream chan sse.Event) error {
+	defer close(chanStream)
+	chanStream <- sse.Event{Event: `ping`, Data: tool.Time2Int()}
+	list, _, err := GetMatchLibraryParagraphList("", "", question, []string{}, libraryIds, size, similarity, searchType, robot)
+	if err != nil {
+		logs.Error(err.Error())
+		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(lang, `sys_err`)}
+		return err
+	}
+	quoteFile := []msql.Params{}
+	quoteFileMap := make(map[int]bool)
+	summary := []adaptor.ZhimaChatCompletionMessage{
+		{
+			Role:    `user`,
+			Content: question,
+		},
+	}
+	if len(list) >= 0 {
+		for _, item := range list {
+			summary = append(summary, adaptor.ZhimaChatCompletionMessage{
+				Role:    `system`,
+				Content: item[`content`],
+			})
+			file, err := GetLibFileInfo(cast.ToInt(item[`file_id`]), cast.ToInt(item[`admin_user_id`]))
+			if err != nil {
+				logs.Error(err.Error())
+				continue
+			}
+			if _, ok := quoteFileMap[cast.ToInt(file[`id`])]; ok {
+				continue
+			}
+			quoteFile = append(quoteFile, msql.Params{
+				`id`:        file[`id`],
+				`file_name`: file[`file_name`],
+			})
+		}
+	}
+	// to ai summary
+	chatResp, requestTime, err := RequestSearchStream(
+		cast.ToInt(robot[`admin_user_id`]),
+		cast.ToInt(robot[`model_config_id`]),
+		strings.TrimSpace(robot[`use_model`]),
+		robot,
+		summary,
+		[]adaptor.FunctionTool{},
+		chanStream,
+		float32(temperature),
+		maxToken,
+	)
+	logs.Info(`%v`, chatResp)
+	logs.Info(`%v`, requestTime)
+	if err != nil {
+		logs.Error(err.Error())
+		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(lang, `sys_err`)}
+	}
+	//message push
+	if len(quoteFile) > 0 {
+		chanStream <- sse.Event{Event: `quote_file`, Data: quoteFile}
+	}
+	chanStream <- sse.Event{Event: `finish`, Data: tool.Time2Int()}
+
+	return nil
 }

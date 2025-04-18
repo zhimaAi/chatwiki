@@ -3,10 +3,6 @@
 package manage
 
 import (
-	"chatwiki/internal/app/chatwiki/common"
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/pkg/lib_web"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -18,6 +14,11 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+
+	"chatwiki/internal/app/chatwiki/common"
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_web"
 )
 
 func GetParagraphList(c *gin.Context) {
@@ -53,8 +54,9 @@ func GetParagraphList(c *gin.Context) {
 			CASE 
     			WHEN bool_and(b.status = 0) THEN 0
     			WHEN bool_and(b.status = 1) THEN 1
+    			WHEN bool_and(b.status = 3) THEN 3
     			ELSE 2
-			END AS status
+			END AS status		
 		`).
 		Field(`
 			COALESCE(

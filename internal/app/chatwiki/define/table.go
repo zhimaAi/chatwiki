@@ -12,6 +12,7 @@ const (
 	FileStatusCrawlException = 7
 	FileStatusInitial        = 0
 	FileStatusException      = 3
+	FileStatusPartException  = 8
 	FileStatusWaitSplit      = 4
 	FileStatusLearning       = 1
 	FileStatusLearned        = 2
@@ -23,9 +24,10 @@ const (
 )
 
 const (
-	VectorStatusInitial   = 0
-	VectorStatusConverted = 1
-	VectorStatusException = 2
+	VectorStatusInitial    = 0
+	VectorStatusConverted  = 1
+	VectorStatusException  = 2
+	VectorStatusConverting = 3
 )
 
 const (

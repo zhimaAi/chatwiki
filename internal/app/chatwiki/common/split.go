@@ -58,7 +58,7 @@ func GetLibFileSplit(userId, fileId int, splitParams define.SplitParams, lang st
 		return
 	}
 	splitParams.IsTableFile = cast.ToInt(info[`is_table_file`])
-	splitParams, err = CheckSplitParams(info, splitParams, lang)
+	splitParams, err = CheckSplitParams(library, splitParams, lang)
 	if err != nil {
 		return
 	}
@@ -74,7 +74,7 @@ func GetLibFileSplit(userId, fileId int, splitParams define.SplitParams, lang st
 	} else if define.IsDocxFile(info[`file_ext`]) {
 		list, wordTotal, err = ReadDocx(info[`file_url`], userId)
 	} else if define.IsOfdFile(info[`file_ext`]) {
-		list, wordTotal, err = ReadOfd(info[`file_url`], userId)
+		err = errors.New(`开源版不支持ofd文档`)
 	} else if define.IsTxtFile(info[`file_ext`]) || define.IsMdFile(info[`file_ext`]) {
 		list, wordTotal, err = ReadTxt(info[`file_url`])
 	} else if define.IsPdfFile(info[`file_ext`]) && cast.ToInt(info[`pdf_parse_type`]) == define.PdfParseTypeText {
@@ -101,9 +101,11 @@ func GetLibFileSplit(userId, fileId int, splitParams define.SplitParams, lang st
 			list = QaDocSplit(splitParams, list)
 		}
 	} else {
-		list = MultDocSplit(cast.ToInt(info[`admin_user_id`]), splitParams, list)
+		list, err = MultDocSplit(cast.ToInt(info[`admin_user_id`]), splitParams, list)
 	}
-
+	if err != nil {
+		return
+	}
 	for i := range list {
 		list[i].Number = i + 1 //serial number
 		if splitParams.IsQaDoc == define.DocTypeQa {
@@ -203,8 +205,8 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		`semantic_chunk_threshold`:       splitParams.SemanticChunkThreshold,
 		`semantic_chunk_use_model`:       splitParams.SemanticChunkUseModel,
 		`semantic_chunk_model_config_id`: splitParams.SemanticChunkModelConfigId,
-		`pdf_parse_type`:                 splitParams.PdfParseType,
-		`update_time`:                    tool.Time2Int(),
+		//`pdf_parse_type`:                 splitParams.PdfParseType,
+		`update_time`: tool.Time2Int(),
 	}
 	if qaIndexType != 0 {
 		data[`qa_index_type`] = qaIndexType
@@ -366,15 +368,20 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 	return nil
 }
 
-func MultDocSplit(adminUserId int, splitParams define.SplitParams, items []define.DocSplitItem) []define.DocSplitItem {
+func MultDocSplit(adminUserId int, splitParams define.SplitParams, items []define.DocSplitItem) ([]define.DocSplitItem, error) {
+	var err error
 	if splitParams.ChunkType == define.ChunkTypeNormal {
 		split := textsplitter.NewRecursiveCharacter()
-		split.Separators = append(splitParams.Separators)
+		split.Separators = append(splitParams.Separators, split.Separators...)
 		split.ChunkSize = splitParams.ChunkSize
 		split.ChunkOverlap = splitParams.ChunkOverlap
 		list := make([]define.DocSplitItem, 0)
 		for _, item := range items {
-			contents, _ := split.SplitText(item.Content)
+			contents, err := split.SplitText(item.Content)
+			if err != nil {
+				logs.Error(err.Error())
+				continue
+			}
 			for _, content := range contents {
 				if len(content) == 0 {
 					continue
@@ -386,7 +393,7 @@ func MultDocSplit(adminUserId int, splitParams define.SplitParams, items []defin
 				list = append(list, define.DocSplitItem{PageNum: item.PageNum, Content: content, Images: images})
 			}
 		}
-		return list
+		return list, err
 	} else {
 		split := NewSemanticSplitterClient()
 		split.GoRoutineNum = 5
@@ -398,7 +405,11 @@ func MultDocSplit(adminUserId int, splitParams define.SplitParams, items []defin
 		split.UseModel = splitParams.SemanticChunkUseModel
 		list := make([]define.DocSplitItem, 0)
 		for _, item := range items {
-			contents, _ := split.SplitText(item.Content)
+			contents, err := split.SplitText(item.Content)
+			if err != nil {
+				logs.Error(err.Error())
+				continue
+			}
 			for _, content := range contents {
 				if len(content) == 0 {
 					continue
@@ -410,7 +421,7 @@ func MultDocSplit(adminUserId int, splitParams define.SplitParams, items []defin
 				list = append(list, define.DocSplitItem{PageNum: item.PageNum, Content: content, Images: images})
 			}
 		}
-		return list
+		return list, err
 	}
 }
 
@@ -569,17 +580,31 @@ func ReadHtmlContent(htmlUrl string, userId int) ([]define.DocSplitItem, int, er
 	if err != nil {
 		return nil, 0, err
 	}
-	//替换base64编码的图片
-	content, err = ReplaceBase64Img(content, userId)
-	if err != nil {
-		return nil, 0, err
-	}
-	//过滤掉doctype
 	content = strings.ReplaceAll(content, `<!DOCTYPE html>`, ``)
-	//过滤stripTags并组装返回
-	content = strip.StripTags(content)
-	list := []define.DocSplitItem{{Content: content}}
-	return list, utf8.RuneCountInString(content), nil
+	pages := strings.Split(content, `<meta charset="UTF-8"/>`)
+
+	//替换base64编码的图片
+	list := make([]define.DocSplitItem, 0)
+	wordTotal := 0
+
+	pageNum := 0
+	for _, page := range pages {
+		pageContent, err := ReplaceBase64Img(page, userId)
+		if err != nil {
+			logs.Error(err.Error())
+			continue
+		}
+		pageContent = strip.StripTags(pageContent)
+		pageContent = strings.TrimSpace(pageContent)
+		if len(pageContent) == 0 {
+			continue
+		}
+		pageNum += 1
+		list = append(list, define.DocSplitItem{Content: pageContent, PageNum: pageNum, WordTotal: utf8.RuneCountInString(pageContent)})
+		wordTotal += utf8.RuneCountInString(pageContent)
+	}
+
+	return list, wordTotal, nil
 }
 
 func ParseTabFile(fileUrl, fileExt string) ([][]string, error) {

@@ -30,11 +30,20 @@ export default class SSE {
       formdata.append(key, that.opt.data[key])
     }
 
+    let headersData = {
+      'App-Type': ''
+    }
+
+    if (this.opt.token) {
+      headersData = {
+        'App-Type': '',
+        'token': this.opt.token
+      }
+    }
+
     fetchEventSource(this.opt.url, {
       method: 'POST',
-      headers: {
-        'App-Type': ''
-      },
+      headers: headersData,
       signal: that.controller.signal,
       // 允许在页面隐藏时继续接收消息(开启后不再触发自动重连的问题)
       openWhenHidden: true,
@@ -52,7 +61,7 @@ export default class SSE {
           throw new Error('连接出错')
         }
       },
-      onmessage(res) {
+      onmessage (res) {
         if (typeof that.onMessage === 'function') {
           that.onMessage(res)
         }

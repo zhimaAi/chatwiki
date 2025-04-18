@@ -143,10 +143,8 @@ func (g *GraphDB) DeleteByLibrary(libraryId int) error {
 	query := fmt.Sprintf(`
 		cypher('%s', $$
        		MATCH (n {library_id: %d})
-       		OPTIONAL MATCH (n)-[r]-()
-       		DELETE r, n
-			RETURN count(distinct n) as nodes, count(r) as relations
-   		$$) as (nodes agtype, relations agtype)
+       		DETACH DELETE n
+   		$$) as (nodes agtype)
 	`, g.schema, libraryId)
 
 	_, err := g.ExecuteCypher(query)
@@ -158,10 +156,8 @@ func (g *GraphDB) DeleteByFile(fileId int) error {
 	query := fmt.Sprintf(`
 		cypher('%s', $$
        		MATCH (n {file_id: %d})
-       		OPTIONAL MATCH (n)-[r]-()
-       		DELETE r, n
-       		RETURN count(distinct n) as nodes, count(r) as relations
-   		$$) as (nodes agtype, relations agtype)
+       		DETACH DELETE n
+   		$$) as (nodes agtype)
 	`, g.schema, fileId)
 
 	_, err := g.ExecuteCypher(query)
@@ -173,10 +169,8 @@ func (g *GraphDB) DeleteByData(dataId int) error {
 	query := fmt.Sprintf(`
 		cypher('%s', $$
        		MATCH (n {data_id: %d})
-       		OPTIONAL MATCH (n)-[r]-()
-       		DELETE r, n
-       		RETURN count(distinct n) as nodes, count(r) as relations
-   		$$) as (nodes agtype, relations agtype)
+       		DETACH DELETE n
+   		$$) as (nodes agtype)
 	`, g.schema, dataId)
 
 	_, err := g.ExecuteCypher(query)
@@ -205,13 +199,12 @@ func (g *GraphDB) FindRelatedEntities(entity string, libraryIds []string, limit 
 			cypher('%s', $$
 				// 查找具有指定深度的路径
 				MATCH path = (start:Entity)-[*1..%d]-(connected:Entity)
-				WHERE start.name = '%s'
+				WHERE start.name =~ '(?i).*%s.*' and start.library_id IN [%s]
 				
 				// 解开路径中的关系并直接过滤
 				WITH path, length(path) AS depth
 				UNWIND relationships(path) AS rel
 				WITH rel, startNode(rel) AS start_node, endNode(rel) AS end_node, depth
-				WHERE rel.library_id IN [%s]
 				
 				// 返回结果
 				RETURN start_node.name AS subject, 

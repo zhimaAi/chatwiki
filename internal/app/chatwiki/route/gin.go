@@ -3,10 +3,11 @@
 package route
 
 import (
+	"net/http"
+
 	"chatwiki/internal/app/chatwiki/business"
 	"chatwiki/internal/app/chatwiki/business/manage"
 	"chatwiki/internal/pkg/lib_web"
-	"net/http"
 )
 
 var Route lib_web.Route
@@ -69,6 +70,12 @@ func init() {
 	Route[http.MethodPost][`/manage/deleteLibrary`] = manage.DeleteLibrary
 	Route[http.MethodPost][`/manage/editLibrary`] = manage.EditLibrary
 	Route[http.MethodGet][`/manage/getLibraryRobotInfo`] = manage.GetLibraryRobotInfo
+
+	/** library search API*/
+	Route[http.MethodPost][`/manage/liraryAiSummary`] = manage.LibraryAiSummary
+	Route[http.MethodGet][`/manage/getLibrarySearch`] = manage.GetLibrarySearch
+	Route[http.MethodPost][`/manage/saveLibrarySearch`] = manage.SaveLibrarySearch
+
 	/*open library API*/
 	noAuthFuns(Route[http.MethodGet], `/manage/getCatalog`, manage.GetCatalog)
 	noAuthFuns(Route[http.MethodGet], `/manage/getLibDocInfo`, manage.GetLibDocInfo)
@@ -98,6 +105,7 @@ func init() {
 	Route[http.MethodPost][`/manage/addLibraryFile`] = manage.AddLibraryFile
 	Route[http.MethodPost][`/manage/delLibraryFile`] = manage.DelLibraryFile
 	Route[http.MethodGet][`/manage/getLibFileInfo`] = manage.GetLibFileInfo
+	Route[http.MethodGet][`/manage/getLibRawFile`] = manage.GetLibRawFile
 	Route[http.MethodGet][`/manage/getLibFileExcelTitle`] = manage.GetLibFileExcelTitle
 	Route[http.MethodPost][`/manage/readLibFileExcelTitle`] = manage.ReadLibFileExcelTitle
 	Route[http.MethodPost][`/manage/renewLibraryFile`] = manage.RenewLibraryFile

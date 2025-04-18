@@ -160,6 +160,8 @@ func CheckSplitParams(libraryInfo msql.Params, splitParams define.SplitParams, l
 			splitParams.SemanticChunkSize = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_size`])
 			splitParams.SemanticChunkOverlap = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_overlap`])
 			splitParams.SemanticChunkThreshold = cast.ToInt(libraryInfo[`semantic_chunk_default_threshold`])
+			splitParams.SemanticChunkModelConfigId = cast.ToInt(libraryInfo[`model_config_id`])
+			splitParams.SemanticChunkUseModel = cast.ToString(libraryInfo[`use_model`])
 		}
 	}
 

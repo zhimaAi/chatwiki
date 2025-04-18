@@ -5,6 +5,7 @@ import robot from './robot'
 import library from './library'
 import authority from './authority'
 import database from './database'
+import librarySearch from './library-search'
 import publicLibrary from './public-library'
 import chatMonitor from './chat-monitor'
 
@@ -38,6 +39,7 @@ const routes = [
   user,
   robot,
   library,
+  librarySearch,
   publicLibrary,
   authority,
   database,
