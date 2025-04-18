@@ -3,9 +3,6 @@
 package business
 
 import (
-	"chatwiki/internal/app/chatwiki/common"
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/pkg/lib_redis"
 	"fmt"
 	"strings"
 	"sync"
@@ -16,6 +13,10 @@ import (
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
+
+	"chatwiki/internal/app/chatwiki/common"
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_redis"
 )
 
 var CheckFileLearnedMutex sync.Map
@@ -122,6 +123,14 @@ func ConvertVector(msg string, _ ...string) error {
 	if skipUseModel {
 		return nil
 	}
+	_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`id`, cast.ToString(id)).Update(msql.Datas{
+		`status`:      define.VectorStatusConverting,
+		`update_time`: tool.Time2Int(),
+	})
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
 	embedding, err := common.GetVector2000(
 		cast.ToInt(info[`admin_user_id`]),
 		info[`admin_user_id`],
@@ -144,7 +153,7 @@ func ConvertVector(msg string, _ ...string) error {
 		}
 
 		//check finish
-		CheckFileLearned(fileId)
+		CheckFileLearned(fileId, define.FileStatusPartException)
 		return nil
 	}
 
@@ -160,7 +169,7 @@ func ConvertVector(msg string, _ ...string) error {
 	}
 
 	//check finish
-	CheckFileLearned(fileId)
+	CheckFileLearned(fileId, define.FileStatusLearned)
 	return nil
 }
 
@@ -326,7 +335,7 @@ func constructGraphSucceed(dataId int) {
 	}
 }
 
-func CheckFileLearned(fileId int) {
+func CheckFileLearned(fileId, status int) {
 	mtx, _ := CheckFileLearnedMutex.LoadOrStore(fileId, &sync.Mutex{})
 	mutex := mtx.(*sync.Mutex)
 	mutex.Lock()
@@ -345,7 +354,7 @@ func CheckFileLearned(fileId int) {
 
 	// finished
 	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
-		`status`:      define.FileStatusLearned,
+		`status`:      status,
 		`update_time`: tool.Time2Int(),
 	})
 	if err != nil {

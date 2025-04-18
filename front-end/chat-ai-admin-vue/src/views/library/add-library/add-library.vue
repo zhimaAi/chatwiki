@@ -382,7 +382,7 @@ const documentTypeList = ref([
     iconNameActive: 'doc-icon-active',
     title: '本地文档',
     value: 1,
-    desc: `${type.value == 2 ? '上传本地 docx/csv/xlsx 等格式文件' : '上传本地 pdf/docx/ofd/txt/md/xlsx/csv/html 等格式文件'}`
+    desc: `${type.value == 2 ? '上传本地 docx/csv/xlsx 等格式文件' : '上传本地 pdf/docx/txt/md/xlsx/csv/html 等格式文件'}`
   },
   {
     iconName: 'link-icon',

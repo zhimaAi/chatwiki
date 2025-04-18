@@ -102,6 +102,15 @@ const navs = [
     permission: ['*:*:*']
   },
   {
+    id: 4,
+    key: 'library-search',
+    label: 'library-search',
+    title: '搜索',
+    icon: 'search',
+    path: '/library-search/index',
+    permission: ['LibrarySearch']
+  },
+  {
     id: 5,
     key: 'chat-monitor',
     label: 'chat-monitor',

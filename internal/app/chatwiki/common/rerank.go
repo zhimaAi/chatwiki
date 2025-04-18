@@ -22,5 +22,8 @@ func RerankData(adminUserId int, openid, appType string, robot msql.Params, req 
 	if handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
 		handler.modelInfo.TokenUseReport(handler.config, useModel, res.InputToken, res.OutputToken)
 	}
-	return nil, nil
+	for key, item := range req.Data {
+		item[`similarity`] = cast.ToString(res.Data[key].RelevanceScore)
+	}
+	return req.Data, nil
 }

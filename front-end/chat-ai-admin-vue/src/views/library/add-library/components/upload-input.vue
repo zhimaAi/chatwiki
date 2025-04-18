@@ -7,7 +7,7 @@
       </div>
       <div class="ant-upload-text">点击或将文件拖拽到这里上传</div>
       <div class="ant-upload-hint">
-        <p>一次只能上传一个文档，单个文件不超过100M</p>
+        <p>一次只能上传{{ props.maxCount }}个文档，单个文件不超过100M</p>
         <p>
           <span>支持文件类型：</span><span class="ant-upload-hint-ext" v-for="ext in fileTypes" :key="ext">.{{ ext }}</span>
         </p>
@@ -40,7 +40,7 @@ const props = defineProps({
   },
 })
 
-let fileTypes = ['pdf', 'docx', 'ofd', 'txt', 'md', 'xlsx', 'csv', 'html']
+let fileTypes = ['pdf', 'docx', 'txt', 'md', 'xlsx', 'csv', 'html']
 if(props.type == 2){
   fileTypes = ['docx', 'csv', 'xlsx']
 }

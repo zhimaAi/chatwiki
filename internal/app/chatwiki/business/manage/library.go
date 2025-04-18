@@ -3,11 +3,6 @@
 package manage
 
 import (
-	"chatwiki/internal/app/chatwiki/common"
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/pkg/lib_redis"
-	"chatwiki/internal/pkg/lib_web"
 	"errors"
 	"fmt"
 	"net/http"
@@ -19,6 +14,12 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+
+	"chatwiki/internal/app/chatwiki/common"
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_redis"
+	"chatwiki/internal/pkg/lib_web"
 )
 
 func GetLibraryList(c *gin.Context) {
@@ -195,6 +196,18 @@ func CreateLibrary(c *gin.Context) {
 	aiSummaryModel := strings.TrimSpace(c.PostForm(`ai_summary_model`))
 	typ := cast.ToInt(c.PostForm(`type`))
 	accessRights := cast.ToInt(c.PostForm(`access_rights`))
+	chunkType := cast.ToInt(c.PostForm(`chunk_type`))
+	modelConfigId := cast.ToInt(c.PostForm(`model_config_id`))
+	useModel := strings.TrimSpace(c.PostForm(`use_model`))
+	graphSwitch := cast.ToInt(c.PostForm(`graph_switch`))
+	graphModelConfigId := cast.ToInt(c.PostForm(`graph_model_config_id`))
+	graphUseModel := strings.TrimSpace(c.PostForm(`graph_use_model`))
+	normalChunkDefaultSeparatorsNo := cast.ToString(c.PostForm(`normal_chunk_default_separators_no`))
+	normalChunkDefaultChunkSize := cast.ToInt(c.PostForm(`normal_chunk_default_chunk_size`))
+	normalChunkDefaultChunkOverlap := cast.ToInt(c.PostForm(`normal_chunk_default_chunk_overlap`))
+	semanticChunkDefaultChunkSize := cast.ToInt(c.PostForm(`semantic_chunk_default_chunk_size`))
+	semanticChunkDefaultChunkOverlap := cast.ToInt(c.PostForm(`semantic_chunk_default_chunk_overlap`))
+	semanticChunkDefaultThreshold := cast.ToInt(c.PostForm(`semantic_chunk_default_threshold`))
 	avatar := ""
 	if len(libraryName) == 0 || !tool.InArrayInt(typ, define.LibraryTypes[:]) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
@@ -219,20 +232,43 @@ func CreateLibrary(c *gin.Context) {
 	if err == nil && uploadInfo != nil {
 		avatar = uploadInfo.Link
 	}
+	useModelSwitch := define.SwitchOff
+	if useModel != "" && modelConfigId > 0 {
+		_, err := common.GetModelConfigInfo(modelConfigId, userId)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		useModelSwitch = define.SwitchOn
+	}
 	loginUserId := getLoginUserId(c)
 	//database dispose
 	data := msql.Datas{
-		`admin_user_id`:           userId,
-		`creator`:                 loginUserId,
-		`library_name`:            libraryName,
-		`library_intro`:           libraryIntro,
-		`ai_summary`:              aiSummary,
-		`ai_summary_model`:        aiSummaryModel,
-		`summary_model_config_id`: summaryModelConfigId,
-		`type`:                    typ,
-		`access_rights`:           accessRights,
-		`create_time`:             tool.Time2Int(),
-		`update_time`:             tool.Time2Int(),
+		`admin_user_id`:                        userId,
+		`creator`:                              loginUserId,
+		`library_name`:                         libraryName,
+		`library_intro`:                        libraryIntro,
+		`ai_summary`:                           aiSummary,
+		`ai_summary_model`:                     aiSummaryModel,
+		`summary_model_config_id`:              summaryModelConfigId,
+		`type`:                                 typ,
+		`access_rights`:                        accessRights,
+		`create_time`:                          tool.Time2Int(),
+		`update_time`:                          tool.Time2Int(),
+		`chunk_type`:                           chunkType,
+		`model_config_id`:                      modelConfigId,
+		`use_model`:                            useModel,
+		`use_model_switch`:                     cast.ToString(useModelSwitch),
+		`graph_switch`:                         graphSwitch,
+		`graph_model_config_id`:                graphModelConfigId,
+		`graph_use_model`:                      graphUseModel,
+		`normal_chunk_default_separators_no`:   normalChunkDefaultSeparatorsNo,
+		`normal_chunk_default_chunk_size`:      normalChunkDefaultChunkSize,
+		`normal_chunk_default_chunk_overlap`:   normalChunkDefaultChunkOverlap,
+		`semantic_chunk_default_chunk_size`:    semanticChunkDefaultChunkSize,
+		`semantic_chunk_default_chunk_overlap`: semanticChunkDefaultChunkOverlap,
+		`semantic_chunk_default_threshold`:     semanticChunkDefaultThreshold,
 	}
 	if len(avatar) > 0 {
 		data[`avatar`] = avatar
@@ -401,6 +437,41 @@ func EditLibrary(c *gin.Context) {
 		return
 	}
 
+	if !tool.InArrayInt(chunkType, []int{define.ChunkTypeNormal, define.ChunkTypeSemantic}) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `chunk_type`))))
+		return
+	}
+	if chunkType == define.ChunkTypeNormal {
+		if len(normalChunkDefaultSeparatorsNo) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `separators_no`))))
+			return
+		}
+		if normalChunkDefaultChunkSize < define.SplitChunkMinSize || normalChunkDefaultChunkSize > define.SplitChunkMaxSize {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `chunk_size_err`, define.SplitChunkMinSize, define.SplitChunkMaxSize))))
+			return
+		}
+		maxChunkOverlap := normalChunkDefaultChunkSize / 2
+		if normalChunkDefaultChunkOverlap < 0 || normalChunkDefaultChunkOverlap > maxChunkOverlap {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `chunk_overlap_err`, 0, maxChunkOverlap))))
+			return
+		}
+	}
+	if chunkType == define.ChunkTypeSemantic {
+		if semanticChunkDefaultChunkSize < define.SplitChunkMinSize || semanticChunkDefaultChunkSize > define.SplitChunkMaxSize {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `semantic_chunk_size_err`, define.SplitChunkMinSize, define.SplitChunkMaxSize))))
+			return
+		}
+		maxSemanticChunkOverlap := semanticChunkDefaultChunkSize / 2
+		if semanticChunkDefaultChunkOverlap > maxSemanticChunkOverlap {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `semantic_chunk_overlap_err`, 0, maxSemanticChunkOverlap))))
+			return
+		}
+		if semanticChunkDefaultThreshold < 1 || semanticChunkDefaultThreshold > 100 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `semantic_chunk_threshold_err`, 1, 100))))
+			return
+		}
+	}
+
 	info, err := common.GetLibraryInfo(id, userId)
 	if err != nil {
 		logs.Error(err.Error())
@@ -472,13 +543,19 @@ func LibraryRecallTest(c *gin.Context) {
 	if userId = GetAdminUserId(c); userId == 0 {
 		return
 	}
-	libraryId := cast.ToInt(c.PostForm(`id`))
+
+	modelConfigId := cast.ToInt(c.PostForm(`model_config_id`))
+	useModel := strings.TrimSpace(c.PostForm(`use_model`))
+	libraryIds := cast.ToString(c.PostForm(`id`))
 	question := strings.TrimSpace(c.PostForm(`question`))
 	size := cast.ToInt(c.PostForm(`size`))
 	similarity := cast.ToFloat64(c.PostForm(`similarity`))
 	searchType := cast.ToInt(c.PostForm(`search_type`))
 	rerankModelConfigID := cast.ToInt(c.PostForm(`rerank_model_config_id`))
-	if libraryId <= 0 || len(question) == 0 || size <= 0 || similarity <= 0 || similarity > 1 || searchType == 0 {
+	rerankUseModel := strings.TrimSpace(c.PostForm(`rerank_use_model`))
+	rerankStatus := strings.TrimSpace(c.DefaultPostForm(`rerank_status`, `1`))
+	recallType := cast.ToString(c.PostForm(`recall_type`))
+	if len(libraryIds) <= 0 || len(question) == 0 || size <= 0 || similarity <= 0 || similarity > 1 || searchType == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
@@ -486,37 +563,64 @@ func LibraryRecallTest(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
 		return
 	}
-	info, err := common.GetLibraryInfo(libraryId, userId)
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	if len(info) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-		return
-	}
-	robotName, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`rerank_status`, `1`).Where(`rerank_model_config_id`, cast.ToString(rerankModelConfigID)).Value(`robot_name`)
-	if err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-	}
-	robot := msql.Params{}
-	if rerankModelConfigID > 0 {
-		robot[`rerank_status`] = cast.ToString(1)
-		robot[`rerank_model_config_id`] = cast.ToString(rerankModelConfigID)
-		robot[`robot_name`] = robotName
-	}
-	if searchType == define.SearchTypeGraph {
-		if !cast.ToBool(info[`graph_switch`]) {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `graph is not enabled`))))
+	if modelConfigId > 0 || useModel != "" {
+		//check model_config_id and use_model
+		config, err := common.GetModelConfigInfo(modelConfigId, userId)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			return
 		}
-		robot[`admin_user_id`] = info[`admin_user_id`]
-		robot[`model_config_id`] = info[`graph_model_config_id`]
-		robot[`use_model`] = info[`graph_use_model`]
-		robot[`id`] = strconv.Itoa(0)
+		modelInfo, _ := common.GetModelInfoByDefine(config[`model_define`])
+		if !tool.InArrayString(useModel, modelInfo.LlmModelList) && !common.IsMultiConfModel(config["model_define"]) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `use_model`))))
+			return
+		}
+		if len(config) == 0 || !tool.InArrayString(common.Llm, strings.Split(config[`model_types`], `,`)) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_config_id`))))
+			return
+		}
+	}
+	robot := msql.Params{
+		`recall_type`: recallType,
+	}
+	for _, libraryId := range strings.Split(libraryIds, `,`) {
+		info, err := common.GetLibraryInfo(cast.ToInt(libraryId), userId)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		if len(info) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+			return
+		}
+		robotName, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`rerank_status`, `1`).Where(`rerank_model_config_id`, cast.ToString(rerankModelConfigID)).Value(`robot_name`)
+		if err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		}
+		if rerankModelConfigID > 0 && cast.ToInt(rerankStatus) == define.SwitchOn {
+			robot[`rerank_status`] = cast.ToString(rerankStatus)
+			robot[`rerank_model_config_id`] = cast.ToString(rerankModelConfigID)
+			robot[`rerank_use_model`] = cast.ToString(rerankUseModel)
+			robot[`robot_name`] = robotName
+		}
+		if searchType == define.SearchTypeGraph {
+			if !cast.ToBool(info[`graph_switch`]) {
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `graph is not enabled`))))
+				return
+			}
+			robot[`admin_user_id`] = info[`admin_user_id`]
+			robot[`model_config_id`] = info[`graph_model_config_id`]
+			robot[`use_model`] = info[`graph_use_model`]
+			robot[`id`] = strconv.Itoa(0)
+		}
+		if modelConfigId > 0 && useModel != "" {
+			robot[`model_config_id`] = cast.ToString(modelConfigId)
+			robot[`use_model`] = useModel
+		}
 	}
 
-	list, _, err := common.GetMatchLibraryParagraphList("", "", question, []string{}, cast.ToString(libraryId), size, similarity, searchType, robot)
+	list, _, err := common.GetMatchLibraryParagraphList("", "", question, []string{}, libraryIds, size, similarity, searchType, robot)
 	c.String(http.StatusOK, lib_web.FmtJson(list, err))
 }

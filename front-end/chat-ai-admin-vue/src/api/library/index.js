@@ -1,4 +1,31 @@
+import SSE from '@/utils/http/sse'
 import request from '@/utils/http/axios'
+import { useUserStore } from '@/stores/modules/user'
+
+const baseURL = import.meta.env.VITE_BASE_API_URL
+const userStore = useUserStore()
+
+export const saveLibrarySearch = (data) => {
+  return request.post({
+    url: '/manage/saveLibrarySearch',
+    data: data
+  })
+}
+
+export const getLibrarySearch = (params = {}) => {
+  return request.get({
+    url: '/manage/getLibrarySearch',
+    params: params
+  })
+}
+
+export const searchLirary = (data) => {
+  return new SSE({
+    token: userStore.getToken ?? '',
+    url: baseURL + '/manage/liraryAiSummary',
+    data: data
+  })
+}
 
 export const getLibraryList = (params = {}) => {
   return request.get({
@@ -183,3 +210,4 @@ export const reconstructGraph = (data) => {
     data: data
   })
 }
+

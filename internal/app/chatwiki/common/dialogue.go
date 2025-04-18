@@ -72,13 +72,13 @@ func GetSessionId(params *define.ChatRequestParam, dialogueId int) (int, error) 
 	if err != nil {
 		return 0, err
 	}
-	//create new receiver
-	go createNewReceiver(params, id)
 	//write cache
 	_, err = define.Redis.Set(context.Background(), cacheKey, id, GetSessionTtl()).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		logs.Error(err.Error())
 	}
+	//create new receiver
+	createNewReceiver(params, id)
 	return int(id), nil
 }
 
@@ -93,11 +93,11 @@ func UpLastChat(dialogueId, sessionId int, lastChat msql.Datas, isCustomer int) 
 		logs.Error(err.Error())
 		return
 	}
-	//update receiver
-	go updateReceiver(sessionId, lastChat, isCustomer)
 	//update session_id ttl
 	_, err = define.Redis.Expire(context.Background(), sessionCacheKey(dialogueId), GetSessionTtl()).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		logs.Error(err.Error())
 	}
+	//update receiver
+	updateReceiver(sessionId, lastChat, isCustomer)
 }

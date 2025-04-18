@@ -4,7 +4,7 @@
       <div class="list-tools">
         <div class="tools-items">
           <div class="tool-item">
-            <a-dropdown :trigger="['click']" overlayClassName="add-dropdown-btn">
+            <a-dropdown :trigger="['click', 'hover']" overlayClassName="add-dropdown-btn">
               <template #overlay>
                 <a-menu @click="handleMenuClick">
                   <a-menu-item :key="1">
@@ -13,8 +13,12 @@
                         <svg-icon name="doc-icon"></svg-icon>
                         <div class="title">本地文档</div>
                       </a-flex>
-                      <div class="desc" v-if="libraryInfo.type == 2">上传本地 docx/csv/xlsx 等格式文件</div>
-                      <div class="desc" v-else>上传本地 pdf/docx/ofd/txt/md/xlsx/csv/html 等格式文件</div>
+                      <div class="desc" v-if="libraryInfo.type == 2">
+                        上传本地 docx/csv/xlsx 等格式文件
+                      </div>
+                      <div class="desc" v-else>
+                        上传本地 pdf/docx/txt/md/xlsx/csv/html 等格式文件
+                      </div>
                     </div>
                   </a-menu-item>
                   <a-menu-item :key="2" v-if="libraryInfo.type != 2">
@@ -45,8 +49,11 @@
               </a-button>
             </a-dropdown>
           </div>
+          <!-- <div class="tool-item">
+            <a-button @click="handleBatchDelete" danger>批量删除</a-button>
+          </div> -->
 
-          <a-flex align="center" class="tool-item custom-select-box">
+          <a-flex align="center" class="tool-item custom-select-box" v-show="false">
             <span>嵌入模型：</span>
             <model-select
               modelType="TEXT EMBEDDING"
@@ -83,10 +90,12 @@
           </div>
         </div>
       </div>
+      <!-- :row-selection="{ selectedRowKeys: state.selectedRowKeys, onChange: onSelectChange }" -->
       <div class="list-content">
         <a-table
           :columns="columns"
           :data-source="fileList"
+          row-key="id"
           :pagination="{
             current: queryParams.page,
             total: queryParams.total,
@@ -110,17 +119,33 @@
               </div>
             </template>
             <template v-if="column.key === 'status'">
-              <span class="status-tag running" v-if="record.status == 0"><a-spin size="small" /> 转换中</span>
-              <span class="status-tag running" v-if="record.status == 1"><a-spin size="small" /> 学习中</span>
-              <span class="status-tag complete" v-if="record.status == 2"><CheckCircleFilled /> 学习完成</span>
+              <span class="status-tag running" v-if="record.status == 0"
+                ><a-spin size="small" /> 转换中</span
+              >
+              <span class="status-tag running" v-if="record.status == 1"
+                ><a-spin size="small" /> 学习中</span
+              >
+              <span class="status-tag complete" v-if="record.status == 2"
+                ><CheckCircleFilled /> 学习完成</span
+              >
 
               <a-tooltip placement="top" v-if="record.status == 3">
                 <template #title>
                   <span>{{ record.errmsg }}</span>
                 </template>
                 <span>
-                  <span class="status-tag status-error"><CloseCircleFilled /> 学习失败</span>
-                  <a class="ml8" v-if="libraryInfo.type == 2" @click="handlePreview(record)">学习</a>
+                  <span class="status-tag status-error"><CloseCircleFilled /> 转换失败</span>
+                  <a class="ml8" v-if="libraryInfo.type == 2" @click="handlePreview(record)"
+                    >学习</a
+                  >
+                </span>
+              </a-tooltip>
+              <a-tooltip placement="top" v-if="record.status == 8">
+                <template #title>
+                  <span>{{ record.errmsg }}</span>
+                </template>
+                <span>
+                  <span class="status-tag status-error"><CloseCircleFilled /> 转化异常</span>
                 </span>
               </a-tooltip>
               <template v-if="record.status == 4">
@@ -130,7 +155,9 @@
               <template v-if="record.status == 5">
                 <span class="status-tag"><ClockCircleFilled /> 待获取</span>
               </template>
-              <span class="status-tag running" v-if="record.status == 6"><a-spin size="small" /> 获取中</span>
+              <span class="status-tag running" v-if="record.status == 6"
+                ><a-spin size="small" /> 获取中</span
+              >
               <a-tooltip placement="top" v-if="record.status == 7">
                 <template #title>
                   <span>{{ record.errmsg }}</span>
@@ -144,21 +171,27 @@
                 <span class="status-tag"><ClockCircleFilled /> 待生成</span>
                 <a class="ml8" @click="createGraphTask(record)">生成</a>
               </template>
-              <span v-else-if="record.graph_status == 1" class="status-tag running"><HourglassFilled /> 排队中</span>
-              <span v-else-if="record.graph_status == 2" class="status-tag complete"><CheckCircleFilled /> 生成完成</span>
+              <span v-else-if="record.graph_status == 1" class="status-tag running"
+                ><HourglassFilled /> 排队中</span
+              >
+              <span v-else-if="record.graph_status == 2" class="status-tag complete"
+                ><CheckCircleFilled /> 生成完成</span
+              >
               <template v-else-if="record.graph_status == 3">
                 <span class="status-tag error"><CloseCircleFilled /> 生成失败</span>
                 <a class="ml8" @click="createGraphTask(record)">生成</a>
                 <a-tooltip v-if="record.graph_err_msg" :title="record.graph_err_msg">
-                  <div class="zm-line1 reason-text">原因：{{record.graph_err_msg}}</div>
+                  <div class="zm-line1 reason-text">原因：{{ record.graph_err_msg }}</div>
                 </a-tooltip>
               </template>
-              <span v-else-if="record.graph_status == 4" class="status-tag running"><a-spin size="small" /> 生成中</span>
+              <span v-else-if="record.graph_status == 4" class="status-tag running"
+                ><a-spin size="small" /> 生成中</span
+              >
               <template v-else-if="record.graph_status == 5">
-                <span  class="status-tag warning"><CheckCircleFilled /> 部分成功</span>
+                <span class="status-tag warning"><CheckCircleFilled /> 部分成功</span>
                 <div class="reason-text">
                   失败数：{{ record.graph_err_count || 0 }}
-                  <a class="ml8" @click="handlePreview(record, {graph_status: 3})">详情</a>
+                  <a class="ml8" @click="handlePreview(record, { graph_status: 3 })">详情</a>
                 </div>
               </template>
             </template>
@@ -171,25 +204,34 @@
               <span v-else>{{ record.paragraph_count }}</span>
             </template>
             <template v-if="column.key === 'action'">
-              <a-dropdown>
-                <div class="table-btn" @click.prevent>
-                  <MoreOutlined />
-                </div>
-                <template #overlay>
-                  <a-menu>
-                    <a-menu-item
-                      :disabled="record.status == 6 || record.status == 7 || record.status == 0"
-                    >
-                      <div @click="handlePreview(record)">预览</div>
-                    </a-menu-item>
-                    <a-menu-item>
-                      <a-popconfirm title="确定要删除吗?" @confirm="onDelete(record)">
-                        <span>删除</span>
-                      </a-popconfirm>
-                    </a-menu-item>
-                  </a-menu>
-                </template>
-              </a-dropdown>
+              <a-flex :gap="8">
+                <a-tooltip>
+                  <template #title>重新分段</template>
+                  <SyncOutlined @click="toReSegmentationPage(record)" />
+                </a-tooltip>
+                <a-dropdown>
+                  <div class="table-btn" @click.prevent>
+                    <MoreOutlined />
+                  </div>
+                  <template #overlay>
+                    <a-menu>
+                      <a-menu-item
+                        :disabled="record.status == 6 || record.status == 7 || record.status == 0"
+                      >
+                        <div @click="handlePreview(record)">预览</div>
+                      </a-menu-item>
+                      <a-menu-item>
+                        <div @click="handleOpenRenameModal(record)">重命名</div>
+                      </a-menu-item>
+                      <a-menu-item>
+                        <a-popconfirm title="确定要删除吗?" @confirm="onDelete(record)">
+                          <span>删除</span>
+                        </a-popconfirm>
+                      </a-menu-item>
+                    </a-menu>
+                  </template>
+                </a-dropdown>
+              </a-flex>
             </template>
           </template>
         </a-table>
@@ -209,6 +251,7 @@
           <div class="upload-file-box">
             <UploadFilesInput
               :type="libraryInfo.type"
+              :maxCount="20"
               v-model:value="addFileState.fileList"
               @change="onFilesChange"
             />
@@ -219,7 +262,7 @@
             <div
               v-for="item in PDF_PARSE_MODE"
               :key="item.key"
-              :class="['select-card-item', {active: addFileState.pdf_parse_type == item.key}]"
+              :class="['select-card-item', { active: addFileState.pdf_parse_type == item.key }]"
               @click="pdfParseTypeChange(item)"
             >
               <svg-icon class="check-arrow" name="check-arrow-filled"></svg-icon>
@@ -270,12 +313,13 @@
       @ok="onSearch"
       ref="addCustomDocumentRef"
     ></AddCustomDocument>
+    <RenameModal @ok="onSearch" ref="renameModalRef" />
     <OpenGrapgModal @ok="handleOpenGrapgOk" ref="openGrapgModalRef" />
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, toRaw, onUnmounted, onMounted, computed} from 'vue'
+import { reactive, ref, toRaw, onUnmounted, onMounted, computed, createVNode } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -286,21 +330,34 @@ import {
   ClockCircleFilled,
   MoreOutlined,
   HourglassFilled,
+  ExclamationCircleOutlined,
+  SyncOutlined,
   ExclamationCircleFilled
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
-import { getLibraryFileList, delLibraryFile, addLibraryFile, editLibrary, createGraph } from '@/api/library'
+import {
+  getLibraryFileList,
+  delLibraryFile,
+  addLibraryFile,
+  editLibrary,
+  createGraph
+} from '@/api/library'
 import { formatFileSize } from '@/utils/index'
 import UploadFilesInput from '../add-library/components/upload-input.vue'
 import { transformUrlData } from '@/utils/validate.js'
 import AddCustomDocument from './components/add-custom-document.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
-import OpenGrapgModal from "@/views/library/library-details/components/open-grapg-modal.vue";
+import OpenGrapgModal from '@/views/library/library-details/components/open-grapg-modal.vue'
 import QaUploadModal from './components/qa-upload-modal.vue'
+import RenameModal from './components/rename-modal.vue'
 
 const PDF_PARSE_MODE = [
-  {key: 2, title: '图文OCR解析', desc: '通过OCR文字识别提取pdf文件内容，可以兼容扫描件，但是解析速度较慢。'},
-  {key: 1, title: '纯文本解析', desc: '只提取pdf中的文字内容，如果文档为扫描件可能提取不到内容。'},
+  {
+    key: 2,
+    title: '图文OCR解析',
+    desc: '通过OCR文字识别提取pdf文件内容，可以兼容扫描件，但是解析速度较慢。'
+  },
+  { key: 1, title: '纯文本解析', desc: '只提取pdf中的文字内容，如果文档为扫描件可能提取不到内容。' }
 ]
 const rotue = useRoute()
 const router = useRouter()
@@ -315,11 +372,18 @@ const libraryInfo = ref({
   is_offline: null,
   type: 0
 })
+const state = reactive({
+  selectedRowKeys: []
+})
 
 const modelForm = reactive({
   use_model: '',
   model_config_id: ''
 })
+
+const onSelectChange = (selectedRowKeys) => {
+  state.selectedRowKeys = selectedRowKeys
+}
 
 const onChangeModel = (val, option) => {
   let new_use_model = option.modelName
@@ -343,7 +407,7 @@ const onChangeModel = (val, option) => {
   }
 }
 
-const saveLibraryConfig = (showSuccessTip = true, callback=null) => {
+const saveLibraryConfig = (showSuccessTip = true, callback = null) => {
   editLibrary({
     ...toRaw(libraryInfo.value),
     use_model: modelForm.use_model,
@@ -427,12 +491,7 @@ const columnsDefault = [
     key: 'file_name',
     width: 450
   },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    key: 'status',
-    width: 180
-  },
+
   {
     title: '知识图谱',
     dataIndex: 'graph_status',
@@ -468,6 +527,12 @@ const columnsDefault = [
     dataIndex: 'graph_entity_count',
     key: 'graph_entity_count',
     width: 160
+  },
+  {
+    title: '文档状态',
+    dataIndex: 'status',
+    key: 'status',
+    width: 180
   },
   {
     title: '更新时间',
@@ -511,7 +576,31 @@ const onDelete = ({ id }) => {
   })
 }
 
-const handlePreview = (record, params={}) => {
+const handleBatchDelete = () => {
+  if (state.selectedRowKeys.length == 0) {
+    return message.error('请选择要删除的文档')
+  }
+  Modal.confirm({
+    title: '删除确认',
+    icon: createVNode(ExclamationCircleOutlined),
+    content: createVNode(
+      'div',
+      {
+        style: 'color: #8c8c8c;'
+      },
+      '确定要删除选择的文档吗?'
+    ),
+    onOk() {
+      delLibraryFile({ id: state.selectedRowKeys.join(',') }).then(() => {
+        getData()
+        message.success('批量删除成功')
+      })
+    },
+    onCancel() {}
+  })
+}
+
+const handlePreview = (record, params = {}) => {
   if (record.status == '4') {
     return router.push({
       path: '/library/document-segmentation',
@@ -531,7 +620,7 @@ const handlePreview = (record, params={}) => {
     return message.error('获取失败,不可预览')
   }
 
-  router.push({ name: 'libraryPreview', query: { id: record.id, ...params} })
+  router.push({ name: 'libraryPreview', query: { id: record.id, ...params } })
 }
 
 const getData = () => {
@@ -544,9 +633,11 @@ const getData = () => {
     }
 
     libraryInfo.value = { ...info }
-    createGraphSwitch.value = (info.graph_switch == 1)
+    createGraphSwitch.value = info.graph_switch == 1
     if (info.graph_switch == '0') {
-      columns.value = columnsDefault.filter((item) => !['graph_status','graph_entity_count'].includes(item.key))
+      columns.value = columnsDefault.filter(
+        (item) => !['graph_status', 'graph_entity_count'].includes(item.key)
+      )
     } else {
       columns.value = columnsDefault
     }
@@ -665,14 +756,16 @@ const addFileState = reactive({
   open: false,
   fileList: [],
   confirmLoading: false,
-  pdf_parse_type: 1, //1纯文本解析，2ocr解析
+  pdf_parse_type: 1 //1纯文本解析，2ocr解析
 })
 
-const existPdfFile = computed(() => addFileState.fileList.filter(i => i.type === 'application/pdf').length > 0)
+const existPdfFile = computed(
+  () => addFileState.fileList.filter((i) => i.type === 'application/pdf').length > 0
+)
 
 const qaUploadModalRef = ref(null)
 const handleOpenFileUploadModal = () => {
-  if(libraryInfo.value.type == 2){
+  if (libraryInfo.value.type == 2) {
     qaUploadModalRef.value.show()
     return
   }
@@ -715,7 +808,7 @@ const handleSaveFiles = () => {
       addFileState.open = false
       addFileState.fileList = []
       addFileState.confirmLoading = false
-      if (isTableType) {
+      if (isTableType && res.data.file_ids.length == 1) {
         router.push('/library/document-segmentation?document_id=' + res.data.file_ids[0])
       }
     })
@@ -724,8 +817,22 @@ const handleSaveFiles = () => {
     })
 }
 
-const createGraphTask = record => {
-  createGraph({id: record.id}).then(() => {
+const renameModalRef = ref(null)
+const handleOpenRenameModal = (record) => {
+  renameModalRef.value.show(record)
+}
+
+const toReSegmentationPage = (record) => {
+  router.push({
+    path: '/library/document-segmentation',
+    query: {
+      document_id: record.id
+    }
+  })
+}
+
+const createGraphTask = (record) => {
+  createGraph({ id: record.id }).then(() => {
     getData()
   })
 }
@@ -737,7 +844,10 @@ const createGraphSwitchChange = () => {
       graph_model_config_id: libraryInfo.value.graph_model_config_id,
       graph_use_model: libraryInfo.value.graph_use_model
     }
-    if ((!data.graph_model_config_id || !data.graph_use_model) && vectorModelList.value.length > 0) {
+    if (
+      (!data.graph_model_config_id || !data.graph_use_model) &&
+      vectorModelList.value.length > 0
+    ) {
       let modelConfig = vectorModelList.value[0]
       let model = modelConfig.children[0]
       data.graph_use_model = model.name
@@ -752,7 +862,7 @@ const createGraphSwitchChange = () => {
   }
 }
 
-const handleOpenGrapgOk = data => {
+const handleOpenGrapgOk = (data) => {
   createGraphSwitch.value = true
   libraryInfo.value.graph_switch = 1
   libraryInfo.value.graph_model_config_id = data.graph_model_config_id
@@ -762,7 +872,7 @@ const handleOpenGrapgOk = data => {
   })
 }
 
-const pdfParseTypeChange = item => {
+const pdfParseTypeChange = (item) => {
   addFileState.pdf_parse_type = item.key
 }
 
@@ -887,6 +997,7 @@ onUnmounted(() => {
       color: #2475fc;
       background-color: #e8effc;
     }
+
     &.complete {
       color: #21A665;
       background: #E8FCF3;
@@ -897,9 +1008,32 @@ onUnmounted(() => {
       color: #fb363f;
       background-color: #f5c6c8;
     }
+
+    
     &.warning {
       cursor: pointer;
       background: #faebe6;
+      color: #ed744a;
+    }
+
+    &.status-learning {
+      color: #2475fc;
+      // background-color: #e8effc;
+    }
+
+    &.status-complete {
+      color: #3a4559;
+      background-color: #edeff2;
+    }
+
+    &.status-error {
+      cursor: pointer;
+      color: #fb363f;
+      // background-color: #f5c6c8;
+    }
+    &.warning {
+      cursor: pointer;
+      // background: #faebe6;
       color: #ed744a;
     }
   }
@@ -960,7 +1094,7 @@ onUnmounted(() => {
   padding: 5px 8px;
 }
 .reason-text {
-  color: #8C8C8C;
+  color: #8c8c8c;
   font-size: 12px;
   line-height: 24px;
 }

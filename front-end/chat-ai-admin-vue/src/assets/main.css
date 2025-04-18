@@ -82,6 +82,14 @@ strong {
   background: rgba(0, 0, 0, 0.1);
 }
 
+
+.no-padding-modal .ant-modal .ant-modal-content{
+  padding-right: 0;
+}
+
+.no-padding-modal .ant-modal .ant-modal-footer{
+  padding-right: 24px;
+}
 .zm-line1 {
   overflow: hidden;
   text-overflow: ellipsis;
