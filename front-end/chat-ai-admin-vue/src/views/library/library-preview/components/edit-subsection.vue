@@ -20,12 +20,22 @@
             </div>
           </div>
           <div class="form-item">
+            <div class="form-label">相似问法（一行一个，最多可添加100个相似问法）</div>
+            <div class="form-content">
+              <a-textarea
+                placeholder="请输入相似问法"
+                v-model:value="similar_questions"
+                style="height: 100px"
+              ></a-textarea>
+            </div>
+          </div>
+          <div class="form-item">
             <div class="form-label required">分段答案：</div>
             <div class="form-content">
               <a-textarea
                 placeholder="请输入分段答案"
                 v-model:value="answer"
-                style="height: 150px"
+                style="height: 100px"
               ></a-textarea>
               <div v-if="answer.length > 10000" class="error-tip">分段答案最多支持10000个字符</div>
             </div>
@@ -85,16 +95,19 @@ const title = ref('')
 const content = ref('')
 const answer = ref('')
 const question = ref('')
+const similar_questions = ref('')
 const images = ref([])
 const id = ref('')
 const isQaDocment = ref(false)
 const showModal = (data) => {
+  console.log(data,'==')
   title.value = data.title || ''
   content.value = data.content || ''
   id.value = data.id || ''
   answer.value = data.answer || ''
   images.value = data.images || []
   question.value = data.question || ''
+  similar_questions.value = data.similar_questions? data.similar_questions.join('\n') : ''
   isQaDocment.value = props.detailsInfo.is_qa_doc == '1'
 
   open.value = true
@@ -122,6 +135,13 @@ const handleOk = () => {
     question: question.value,
     answer: answer.value,
     images: images.value
+  }
+  let similarQuestions = similar_questions.value.trim()
+  if (similarQuestions) {
+    similarQuestions = similarQuestions.split('\n')
+    data.similar_questions = JSON.stringify(similarQuestions)
+  } else {
+    data.similar_questions = '[]'
   }
   if (id.value) {
     data.id = id.value

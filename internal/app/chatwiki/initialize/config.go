@@ -68,6 +68,11 @@ func initConfig() {
 		logs.Error(err.Error())
 		panic(`read config postgres error`)
 	}
+	define.Config.Neo4j, err = config.GetSection("neo4j")
+	if err != nil {
+		logs.Error(err.Error())
+		panic(`read config neo4j error`)
+	}
 	define.Config.NsqLookup, err = config.GetSection(`nsqlookup`)
 	if err != nil {
 		logs.Error(err.Error())

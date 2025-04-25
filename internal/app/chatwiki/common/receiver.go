@@ -13,6 +13,9 @@ import (
 )
 
 func createNewReceiver(params *define.ChatRequestParam, sessionId int64) {
+	if len(params.Customer) > 0 && cast.ToInt(params.Customer[`is_background`]) > 0 {
+		return //实时会话里面不展示聊天测试的会话
+	}
 	var appId string
 	if len(params.ChatBaseParam.AppInfo) > 0 {
 		appId = params.ChatBaseParam.AppInfo[`app_id`]

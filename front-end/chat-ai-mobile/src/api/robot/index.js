@@ -49,3 +49,11 @@ export const checkSensitiveWords = (data = {}) => {
     data: data
   })
 }
+
+// 发起GPT提问前置判断
+export const checkChatRequestPermission = (data = {}) => {
+  return request.post({
+    url: '/chat/checkChatRequestPermission',
+    data: data
+  })
+}

@@ -123,12 +123,15 @@
 import { ref } from 'vue'
 import calcTextareaHeight from '@/utils/calcTextareaHeight'
 import { useChatStore } from '@/stores/modules/chat'
+import { useUserStore } from '@/stores/modules/user'
 import { showToast } from 'vant'
-const chatStore = useChatStore()
-const { robot } = chatStore
-import { checkSensitiveWords } from '@/api/robot/index'
 
-const emit = defineEmits(['update:value', 'send' ])
+const chatStore = useChatStore()
+const userStore = useUserStore()
+const { robot } = chatStore
+import { checkChatRequestPermission } from '@/api/robot/index'
+
+const emit = defineEmits(['update:value', 'send', 'showLogin' ])
 
 const isSendBtn = ref(false)
 const valueText = ref("")
@@ -157,11 +160,20 @@ const onInput = (event) => {
 
 const sendMessage = async () => {
   //检查是否含有敏感词
-  let result = await checkSensitiveWords({
+  let result = await checkChatRequestPermission({
     robot_key: robot.robot_key,
     openid: robot.openid,
     question: valueText.value,
   })
+  // 未登录
+  if (result.data?.code == 10002) {
+    // 弹出登录
+    showToast('请登录账号')
+    emit('showLogin')
+    userStore.setLoginStatus(false)
+    return false
+  }
+  userStore.setLoginStatus(true)
   if(result.data && result.data.words){
     return showToast(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)
   }
@@ -197,6 +209,7 @@ const handleSetValue = (data: string) => {
   valueText.value = data;
 }
 defineExpose({
-  handleSetValue
+  handleSetValue,
+  sendMessage
 })
 </script>

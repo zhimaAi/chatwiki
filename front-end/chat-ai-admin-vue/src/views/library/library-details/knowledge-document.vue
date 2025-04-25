@@ -65,7 +65,7 @@
               @loaded="onVectorModelLoaded"
             />
           </a-flex>
-          <a-flex align="center" class="tool-item custom-select-box pd-5-8">
+          <a-flex align="center" v-if="neo4j_status" class="tool-item custom-select-box pd-5-8">
             <span>生成知识图谱：</span>
             <a-switch
               v-model:checked="createGraphSwitch"
@@ -315,6 +315,7 @@
     ></AddCustomDocument>
     <RenameModal @ok="onSearch" ref="renameModalRef" />
     <OpenGrapgModal @ok="handleOpenGrapgOk" ref="openGrapgModalRef" />
+    <GuideLearningTips ref="guideLearningTipsRef" />
   </div>
 </template>
 
@@ -350,7 +351,16 @@ import ModelSelect from '@/components/model-select/model-select.vue'
 import OpenGrapgModal from '@/views/library/library-details/components/open-grapg-modal.vue'
 import QaUploadModal from './components/qa-upload-modal.vue'
 import RenameModal from './components/rename-modal.vue'
+import GuideLearningTips from './components/guide-learning-tips.vue'
+import { useUserStore } from '@/stores/modules/user'
 
+import { useCompanyStore } from '@/stores/modules/company'
+const companyStore = useCompanyStore()
+const neo4j_status = computed(()=>{
+  return companyStore.companyInfo?.neo4j_status == 'true'
+})
+
+const userStore = useUserStore()
 const PDF_PARSE_MODE = [
   {
     key: 2,
@@ -363,6 +373,7 @@ const rotue = useRoute()
 const router = useRouter()
 const query = rotue.query
 
+const guideLearningTipsRef = ref(null)
 const openGrapgModalRef = ref(null)
 const createGraphSwitch = ref(false)
 const libraryInfo = ref({
@@ -634,7 +645,7 @@ const getData = () => {
 
     libraryInfo.value = { ...info }
     createGraphSwitch.value = info.graph_switch == 1
-    if (info.graph_switch == '0') {
+    if (info.graph_switch == '0' || !neo4j_status.value) {
       columns.value = columnsDefault.filter(
         (item) => !['graph_status', 'graph_entity_count'].includes(item.key)
       )
@@ -782,6 +793,11 @@ const onFilesChange = (files) => {
 }
 
 const handleSaveFiles = () => {
+  // 提交后，需要显示引导学习的弹窗提示。如果勾选了“不再显示”，以后批量上传后不再显示弹窗提示。
+  if (guideLearningTipsRef.value && !userStore.getGuideLearningTips) {
+    guideLearningTipsRef.value.show()
+  }
+
   if (addFileState.fileList.length == 0) {
     message.error('请选择文件')
     return

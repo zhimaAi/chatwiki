@@ -4,188 +4,97 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"context"
 	"fmt"
-	"strings"
-	"time"
-
+	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/zhimaAi/go_tools/logs"
-	"github.com/zhimaAi/go_tools/msql"
-	"github.com/zhimaAi/go_tools/tool"
+	"strings"
 )
 
 // GraphDB 图数据库操作封装
 type GraphDB struct {
-	schema string // 图数据库schema名称
+	adminUserId int
 }
 
 // NewGraphDB 创建图数据库操作实例
-func NewGraphDB(schema string) *GraphDB {
+func NewGraphDB(adminUserId int) *GraphDB {
 	return &GraphDB{
-		schema: schema,
+		adminUserId: adminUserId,
 	}
 }
 
-// ExecuteCypher 执行Cypher查询
-func (g *GraphDB) ExecuteCypher(query string, args ...interface{}) ([]msql.Params, error) {
-	if len(args) > 0 {
-		query = fmt.Sprintf("select * from "+query, args...)
-	} else {
-		query = "select * from " + query
-	}
-	queries := []string{
-		`SELECT * FROM ag_catalog.get_cypher_keywords() limit 0`,
-		`SET search_path = ag_catalog, "$user", public`,
+// Execute 执行Cypher查询
+func (g *GraphDB) Execute(query string) (*neo4j.EagerResult, error) {
+	logs.Debug("execute neo4j query: %s", query)
+	ctx := context.Background()
+	result, err := neo4j.ExecuteQuery(
+		ctx,
+		define.Neo4jDriver,
 		query,
-	}
-	return g.ExecuteLastQuery(queries)
-}
-
-// ExecuteLastQuery 执行最后一条查询
-func (g *GraphDB) ExecuteLastQuery(queries []string) ([]msql.Params, error) {
-	tx, err := msql.Begin(define.Postgres)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]msql.Params, 0)
-	for _, query := range queries {
-		result, err = msql.RawValues(define.Postgres, query, tx)
-		if err != nil {
-			return nil, err
-		}
-	}
-	err = tx.Commit()
-	if err != nil {
-		err = tx.Rollback()
-		if err != nil {
-			return nil, err
-		}
-	}
-
+		nil,
+		neo4j.EagerResultTransformer,
+		neo4j.ExecuteQueryWithDatabase(define.Config.Neo4j["database"]),
+	)
 	return result, err
 }
 
-// CreateTriple 创建三元组
-func (g *GraphDB) CreateTriple(subject, predicate, object string, attributes map[string]interface{}) error {
-	// 构建属性字符串
-	attrStr := ""
-	if len(attributes) > 0 {
-		attrs := make([]string, 0, len(attributes))
-		for k, v := range attributes {
-			switch v := v.(type) {
-			case string:
-				attrs = append(attrs, fmt.Sprintf("%s: '%s'", k, strings.ReplaceAll(v, "'", "''")))
-			case time.Time:
-				attrs = append(attrs, fmt.Sprintf("%s: %d", k, tool.Time2Int()))
-			default:
-				attrs = append(attrs, fmt.Sprintf("%s: %v", k, v))
-			}
-		}
-		attrStr = ", " + strings.Join(attrs, ", ")
+func (g *GraphDB) ConstructEntity(subject, object, sanitizedPredicate string, libraryId, fileId, dataId int, confidence float64) (*neo4j.EagerResult, error) {
+	createGraphSQL := fmt.Sprintf(`
+		MERGE (s:Entity_%d {name: '%s', library_id: %d, file_id: %d, data_id: %d})
+		MERGE (o:Entity_%d {name: '%s', library_id: %d, file_id: %d, data_id: %d})
+		CREATE (s)-[r:%s {confidence: %f, library_id: %d, file_id: %d, data_id: %d}]->(o)
+	`, g.adminUserId, subject, libraryId, fileId, dataId,
+		g.adminUserId, object, libraryId, fileId, dataId,
+		sanitizedPredicate, confidence, libraryId, fileId, dataId)
+	r, err := g.Execute(createGraphSQL)
+	if err != nil {
+		logs.Error(`create graph error: %s, cypher is %s`, err.Error(), createGraphSQL)
 	}
-
-	query := fmt.Sprintf(`
-		cypher('%s', $$
-			MERGE (s:Entity {name: '%s'})
-			MERGE (o:Entity {name: '%s'})
-			CREATE (s)-[r:%s {%s}]->(o)
-			RETURN r
-		$$) as (r agtype)
-	`, g.schema,
-		strings.ReplaceAll(subject, "'", "''"),
-		strings.ReplaceAll(object, "'", "''"),
-		predicate,
-		strings.TrimPrefix(attrStr, ", "))
-
-	_, err := g.ExecuteCypher(query)
-	return err
+	return r, err
 }
 
-// FindByEntity 根据实体查找关联三元组
-func (g *GraphDB) FindByEntity(subject, relation, object string, libraryIds []string, limit int) ([]msql.Params, error) {
-	// 构建库ID条件
-	libraryCondition := ""
-	if len(libraryIds) > 0 {
-		libraryConditions := make([]string, 0)
-		for _, id := range libraryIds {
-			libraryConditions = append(libraryConditions, fmt.Sprintf("r.library_id = %s", id))
-		}
-		if len(libraryConditions) > 0 {
-			libraryCondition = "AND (" + strings.Join(libraryConditions, " OR ") + ")"
-		}
-	}
-
+func (g *GraphDB) GetEntityCount(idList []string) (*neo4j.EagerResult, error) {
 	query := fmt.Sprintf(`
-		cypher('%s', $$
-			MATCH (s:Entity)-[r]->(o:Entity)
-			WHERE (s.name =~ '(?i).*%s.*') %s
-			WITH s, r, o,
-         		CASE
-					WHEN type(r) =~ '(?i).*%s.*' THEN 3
-             		WHEN o.name =~ '(?i).*%s.*' THEN 2
-             		ELSE 1
-         		END * r.confidence as relevance
-			RETURN s.name as subject, type(r) as relation, o.name as object, 
-				   r.confidence as confidence, r.library_id as library_id, 
-				   r.file_id as file_id, r.data_id as data_id, relevance, 
-				   1 as depth
-			ORDER BY relevance DESC
-			LIMIT %d
-		$$) as (subject agtype, relation agtype, object agtype, confidence agtype, 
-			   library_id agtype, file_id agtype, data_id agtype, relevance agtype,
-			   depth agtype)
-	`, g.schema, subject, libraryCondition, relation, object, limit)
-
-	return g.ExecuteCypher(query)
+			MATCH (s:Entity_%d)
+			WHERE s.file_id in [%s]
+			RETURN s.file_id as file_id, count(s) as count
+		`, g.adminUserId, strings.Join(idList, `,`))
+	return g.Execute(query)
 }
 
 // DeleteByLibrary 删除库相关的所有图数据
 func (g *GraphDB) DeleteByLibrary(libraryId int) error {
 	query := fmt.Sprintf(`
-		cypher('%s', $$
-       		MATCH (n {library_id: %d})
-       		DETACH DELETE n
-   		$$) as (nodes agtype)
-	`, g.schema, libraryId)
-
-	_, err := g.ExecuteCypher(query)
+		MATCH (n:Entity_%d {library_id: %d})
+		DETACH DELETE n
+	`, g.adminUserId, libraryId)
+	_, err := g.Execute(query)
 	return err
 }
 
 // DeleteByFile 删除文件相关的所有图数据
 func (g *GraphDB) DeleteByFile(fileId int) error {
 	query := fmt.Sprintf(`
-		cypher('%s', $$
-       		MATCH (n {file_id: %d})
-       		DETACH DELETE n
-   		$$) as (nodes agtype)
-	`, g.schema, fileId)
-
-	_, err := g.ExecuteCypher(query)
+		MATCH (n:Entity_%d {file_id: %d})
+		DETACH DELETE n
+	`, g.adminUserId, fileId)
+	_, err := g.Execute(query)
 	return err
 }
 
 // DeleteByData 删除数据相关的所有图数据
 func (g *GraphDB) DeleteByData(dataId int) error {
 	query := fmt.Sprintf(`
-		cypher('%s', $$
-       		MATCH (n {data_id: %d})
-       		DETACH DELETE n
-   		$$) as (nodes agtype)
-	`, g.schema, dataId)
-
-	_, err := g.ExecuteCypher(query)
+		MATCH (n:Entity_%d {data_id: %d})
+		DETACH DELETE n
+	`, g.adminUserId, dataId)
+	_, err := g.Execute(query)
 	return err
 }
 
 // FindRelatedEntities Find related entities in the graph database, up to 3 levels deep
-func (g *GraphDB) FindRelatedEntities(entity string, libraryIds []string, limit int, maxDepth int) ([]msql.Params, error) {
-	// Process entity name, remove special characters
+func (g *GraphDB) FindRelatedEntities(entity string, libraryIds []string, limit int, maxDepth int) (*neo4j.EagerResult, error) {
 	entity = strings.ReplaceAll(entity, "'", "''")
-
-	// Store all results
-	allResults := make([]msql.Params, 0)
-
-	// 构建IN条件
 	inCondition := ""
 	for i, id := range libraryIds {
 		if i > 0 {
@@ -193,37 +102,27 @@ func (g *GraphDB) FindRelatedEntities(entity string, libraryIds []string, limit 
 		}
 		inCondition += id
 	}
-
-	// 带库ID过滤条件的查询，将过滤移到WITH子句中
 	query := fmt.Sprintf(`
-			cypher('%s', $$
-				// 查找具有指定深度的路径
-				MATCH path = (start:Entity)-[*1..%d]-(connected:Entity)
-				WHERE start.name =~ '(?i).*%s.*' and start.library_id IN [%s]
-				
-				// 解开路径中的关系并直接过滤
-				WITH path, length(path) AS depth
-				UNWIND relationships(path) AS rel
-				WITH rel, startNode(rel) AS start_node, endNode(rel) AS end_node, depth
-				
-				// 返回结果
-				RETURN start_node.name AS subject, 
-					   type(rel) AS relation, 
-					   end_node.name AS object,
-					   rel.confidence AS confidence, 
-					   rel.library_id AS library_id,
-					   rel.file_id AS file_id, 
-					   rel.data_id AS data_id,
-					   depth AS depth
-				LIMIT %d
-			$$) as (subject agtype, relation agtype, object agtype, confidence agtype, 
-				   library_id agtype, file_id agtype, data_id agtype, depth agtype)
-		`, g.schema, maxDepth, entity, inCondition, limit)
+		MATCH path = (start:Entity_%d)-[*1..%d]-(connected:Entity_%d)
+		WHERE start.name contains '%s' and start.library_id IN [%s]
+			WITH path, length(path) AS depth
+			UNWIND relationships(path) AS rel
+			WITH rel, startNode(rel) AS start_node, endNode(rel) AS end_node, depth
+		RETURN start_node.name AS subject, 
+			type(rel) AS relation, 
+			end_node.name AS object,
+			rel.confidence AS confidence, 
+			rel.library_id AS library_id,
+			rel.file_id AS file_id, 
+			rel.data_id AS data_id,
+		depth AS depth
+		LIMIT %d
+	`, g.adminUserId, maxDepth, g.adminUserId, entity, inCondition, limit)
 
-	results, err := g.ExecuteCypher(query)
+	results, err := g.Execute(query)
 	if err != nil {
 		logs.Error("Graph query failed: %s", err.Error())
-		return allResults, err
+		return nil, err
 	}
 	return results, nil
 }

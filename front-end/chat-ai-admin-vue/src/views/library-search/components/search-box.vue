@@ -47,7 +47,7 @@
             <span class="tip complete" v-else>智能回答生成完毕</span>
           </div>
 
-          <div class="container" v-if="!messageObj.content">
+          <div class="container" v-if="!messageObj.content && !messageObj.finish && !isError">
             <div class="rect-container rect1">
               <div class="rect"></div>
             </div>
@@ -61,7 +61,8 @@
 
           <!-- 智能回答 -->
           <div class="intelligent-answer" v-else>
-            <div v-html="renderedMarkdown"></div>
+            <div v-html="renderedMarkdown" v-if="renderedMarkdown"></div>
+            <div v-else>暂无任何内容</div>
           </div>
 
           <!-- 相关分段 (3) -->
@@ -116,6 +117,10 @@ const props = defineProps({
   library_ids: {
     type: Array,
     default: () => []
+  },
+  isError: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -134,10 +139,17 @@ watch(() => props.messageObj.content, () => {
   renderedMarkdown.value = md.render(props.messageObj.content);
 })
 
+
+watch(() => props.messageObj.error, (val) => {
+  if (val) {
+    showErrorMsg(val)
+  }
+})
+
 const onSearch = async () => {
 
   if (!props.library_ids.length) {
-    return showErrorMsg('请至少选择一个左侧的知识库')
+    return showErrorMsg('请在左侧的知识库选择项内至少选择一个知识库')
   }
 
   if (!message.value) {
@@ -282,6 +294,11 @@ onMounted(async () => {
         formState.model_config_id = model.model_config_id
       }
     }
+  } else {
+    formState.use_model = props.librarySearchData?.use_model + '$$'
+    formState.model_config_id = props.librarySearchData?.model_config_id + '$$'
+    formState.use_model = formState.use_model.split('$$')[0]
+    formState.model_config_id = props.librarySearchData?.model_config_id.split('$$')[0]
   }
 })
 

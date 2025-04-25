@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/sse"
@@ -1032,4 +1033,10 @@ func (h *ModelCallHandler) RequestChat(
 	}
 
 	return resp, requestTime, nil
+}
+
+func CheckModelIsDeepSeek(model string) bool {
+	modelLower := strings.ToLower(model)
+	return strings.Contains(modelLower, `deepseek-r1`) ||
+		strings.Contains(modelLower, `deepseek-reasoner`)
 }

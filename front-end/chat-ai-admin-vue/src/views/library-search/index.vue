@@ -147,7 +147,7 @@
       </div>
     </div>
     <div class="page-body">
-      <SearchBox ref="searchBoxRef" @defaultParmas="onDefaultParmas" @search="onSearch" :messageObj="messageObj"
+      <SearchBox ref="searchBoxRef" @defaultParmas="onDefaultParmas" @search="onSearch" :isError="isError" :messageObj="messageObj"
         :librarySearchData="librarySearchData" :library_ids="state.checkedList" />
     </div>
   </div>
@@ -163,6 +163,7 @@ import { getLibraryList } from '@/api/library'
 import { formatFileSize } from '@/utils/index'
 import { LIBRARY_NORMAL_AVATAR, LIBRARY_QA_AVATAR } from '@/constants/index'
 import { useSearchStore } from '@/stores/modules/search-lirary'
+import { showErrorMsg } from '@/utils/index'
 
 const searchStore = useSearchStore()
 
@@ -180,21 +181,6 @@ const {
 } = searchLiraryStore
 
 const { messageObj } = storeToRefs(searchLiraryStore)
-
-const formState = reactive({
-  use_model: '',
-  model_config_id: '',
-  temperature: 0.5,
-  max_token: 2000,
-  context_pair: 0,
-  search_type: 1,
-  top_k: 5,
-  size: 0,
-  similarity: 0.4,
-  rerank_status: 0,
-  rerank_use_model: undefined,
-  rerank_model_config_id: undefined,
-})
 
 const searchBoxRef = ref(null)
 const librarySearchData = ref(null)
@@ -226,14 +212,22 @@ const onDefaultParmas = (obj) => {
   defaultParmas.value = obj
 }
 
+const isError = ref(false)
 const onSearch = async (keyword) => {
   // 搜索之前获取最新的配置数据
+  isError.value = false
   let res = await getLibrarySearchFn()
   librarySearchData.value = res.data
 
   if (!librarySearchData.value.id) {
     librarySearchData.value = Object.assign(defaultParmas.value)
   }
+
+  if (!librarySearchData.value.model_config_id || !librarySearchData.value.use_model) {
+    isError.value = true
+    return showErrorMsg('请在搜索设置中配置好相应配置后再使用')
+  }
+
   searchMessage(keyword, state.checkedList, librarySearchData.value)
 }
 

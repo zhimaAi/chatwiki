@@ -19,7 +19,9 @@
 import { ref, h, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import SvgIcon from '@/components/svg-icon/index.vue'
+import { useUserStore } from '@/stores/modules/user'
 
+const userStore = useUserStore()
 const emit = defineEmits(['changeMenu'])
 const route = useRoute()
 const query = route.query
@@ -96,7 +98,7 @@ const baseMenus = [
 ]
 
 const items = computed(() => {
-  let robot_nums = props.libraryInfo.robot_nums
+  let robot_nums = userStore.getRobotNums
   return [
     ...baseMenus,
     {
@@ -113,7 +115,7 @@ const items = computed(() => {
             class: 'menu-icon-active'
           })
         ]),
-      label: `关联机器人${robot_nums > 0 ? `（${robot_nums}）` : ''}`,
+      label: `关联机器人${robot_nums > 0 ? ` (${robot_nums})` : ''}`,
       path: '/library/details/related-robots'
     }
   ]

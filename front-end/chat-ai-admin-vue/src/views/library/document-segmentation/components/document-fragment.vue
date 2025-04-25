@@ -34,12 +34,12 @@
     font-size: 14px;
     color: #595959;
   }
-  .fragment-img{
+  .fragment-img {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     margin-top: 8px;
-    img{
+    img {
       width: 80px;
       height: 80px;
       border-radius: 6px;
@@ -53,8 +53,9 @@
   <div class="document-fragment">
     <div class="fragment-header">
       <div class="fragment-info">
-        <span class="fragment-number">#{{ props.number }}</span><span class="fragment-title" v-if="props.title">{{
-          props.title }}</span><span class="fragment-content-lenght">共{{ props.total }}个字符</span>
+        <span class="fragment-number">#{{ props.number }}</span
+        ><span class="fragment-title" v-if="props.title">{{ props.title }}</span
+        ><span class="fragment-content-lenght">共{{ props.total }}个字符</span>
       </div>
 
       <div class="fragment-action">
@@ -66,9 +67,15 @@
 
     <div class="fragment-content">{{ props.content }}</div>
     <div class="fragment-content" v-if="props.question">Q：{{ props.question }}</div>
+    <div
+      class="fragment-content"
+      v-if="props.similar_question_list && props.similar_question_list.join('')"
+    >
+      相似问法：{{ props.similar_question_list.join('/') }}
+    </div>
     <div class="fragment-content" v-if="props.answer">A：{{ props.answer }}</div>
     <div class="fragment-img" v-viewer>
-      <img v-for="(item, index) in props.images" :key="index" :src="item" alt="">
+      <img v-for="(item, index) in props.images" :key="index" :src="item" alt="" />
     </div>
   </div>
 </template>
@@ -95,6 +102,9 @@ const props = defineProps({
     type: [Number, String]
   },
   images: {
+    type: [Array, String]
+  },
+  similar_question_list: {
     type: [Array, String]
   }
 })

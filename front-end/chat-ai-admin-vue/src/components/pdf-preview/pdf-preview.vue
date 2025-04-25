@@ -1,5 +1,5 @@
 <template>
-  <CuScroll :scrollbar="scrollbar" ref="scrollRef" @onScrollEnd="onScrollEnd">
+  <CuScroll :scrollbar="scrollbar" ref="scrollRef" @scroll="handleScroll" @onScrollEnd="onScrollEnd">
     <VuePdfEmbed
       v-for="page in visiblePages"
       @click="clickPage(page)"
@@ -29,7 +29,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['onScrollEnd', 'select', 'rendered'])
+const emit = defineEmits(['onScrollEnd', 'select', 'rendered', 'scroll', 'getTotalPage'])
 const scrollRef = ref(null)
 const visiblePages = ref([])
 const totalPages = ref(0)
@@ -53,6 +53,7 @@ onMounted(async () => {
   const pdf = await VuePdfEmbed.getDocument(props.source).promise
   // 获取文件总页数
   totalPages.value = pdf.numPages
+  emit('getTotalPage', totalPages.value)
   loadMore()
 })
 
@@ -90,6 +91,10 @@ const clickPage = page => {
 
 const getScrollInstance = () => {
   return scrollRef.value
+}
+
+const handleScroll = (event)=>{
+  emit('scroll', event)
 }
 
 defineExpose({

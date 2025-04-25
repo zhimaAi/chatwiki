@@ -34,7 +34,7 @@ import (
 	"chatwiki/internal/pkg/lib_redis"
 )
 
-func GetLibFileSplit(userId, fileId int, splitParams define.SplitParams, lang string) (list []define.DocSplitItem, wordTotal int, err error) {
+func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitParams, lang string) (list []define.DocSplitItem, wordTotal int, err error) {
 	info, err := GetLibFileInfo(fileId, userId)
 	if err != nil {
 		err = errors.New(i18n.Show(lang, `sys_err`))
@@ -62,6 +62,10 @@ func GetLibFileSplit(userId, fileId int, splitParams define.SplitParams, lang st
 	if err != nil {
 		return
 	}
+	pdfParseType := splitParams.PdfParseType
+	if pdfParseType == 0 {
+		pdfParseType = cast.ToInt(info[`pdf_parse_type`])
+	}
 	if (cast.ToInt(library[`type`]) == define.GeneralLibraryType && splitParams.IsQaDoc == define.DocTypeQa) ||
 		(cast.ToInt(library[`type`]) == define.QALibraryType && splitParams.IsQaDoc != define.DocTypeQa) {
 		err = errors.New(i18n.Show(lang, `param_invalid`, `is_qa_doc`))
@@ -77,8 +81,10 @@ func GetLibFileSplit(userId, fileId int, splitParams define.SplitParams, lang st
 		err = errors.New(`开源版不支持ofd文档`)
 	} else if define.IsTxtFile(info[`file_ext`]) || define.IsMdFile(info[`file_ext`]) {
 		list, wordTotal, err = ReadTxt(info[`file_url`])
-	} else if define.IsPdfFile(info[`file_ext`]) && cast.ToInt(info[`pdf_parse_type`]) == define.PdfParseTypeText {
-		list, wordTotal, err = ReadPdf(info[`file_url`], lang)
+	} else if define.IsPdfFile(info[`file_ext`]) && pdfParseType == define.PdfParseTypeText {
+		list, wordTotal, err = ReadPdf(info[`file_url`], pdfPageNum, lang)
+	} else if define.IsPdfFile(info[`file_ext`]) && pdfParseType == define.PdfParseTypeOcr && pdfPageNum > 0 {
+		list, wordTotal, err = OcrReadOnePagePdf(info[`file_url`], pdfPageNum, lang)
 	} else {
 		if len(info[`html_url`]) == 0 || !LinkExists(info[`html_url`]) { //compatible with old data
 			list, wordTotal, err = ConvertAndReadHtmlContent(cast.ToInt(info[`id`]), info[`file_url`], userId)
@@ -118,7 +124,7 @@ func GetLibFileSplit(userId, fileId int, splitParams define.SplitParams, lang st
 	return
 }
 
-func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams define.SplitParams, list []define.DocSplitItem, lang string) error {
+func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams define.SplitParams, list []define.DocSplitItem, pdfPageNum int, lang string) error {
 	info, err := GetLibFileInfo(fileId, userId)
 	if err != nil {
 		logs.Error(err.Error())
@@ -195,8 +201,10 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		`chunk_size`:                     splitParams.ChunkSize,
 		`chunk_overlap`:                  splitParams.ChunkOverlap,
 		`question_lable`:                 splitParams.QuestionLable,
+		`similar_label`:                  splitParams.SimilarLabel,
 		`answer_lable`:                   splitParams.AnswerLable,
 		`question_column`:                splitParams.QuestionColumn,
+		`similar_column`:                 splitParams.SimilarColumn,
 		`answer_column`:                  splitParams.AnswerColumn,
 		`enable_extract_image`:           splitParams.EnableExtractImage,
 		`chunk_type`:                     splitParams.ChunkType,
@@ -205,8 +213,8 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		`semantic_chunk_threshold`:       splitParams.SemanticChunkThreshold,
 		`semantic_chunk_use_model`:       splitParams.SemanticChunkUseModel,
 		`semantic_chunk_model_config_id`: splitParams.SemanticChunkModelConfigId,
-		//`pdf_parse_type`:                 splitParams.PdfParseType,
-		`update_time`: tool.Time2Int(),
+		`pdf_parse_type`:                 splitParams.PdfParseType,
+		`update_time`:                    tool.Time2Int(),
 	}
 	if qaIndexType != 0 {
 		data[`qa_index_type`] = qaIndexType
@@ -226,15 +234,30 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 
 	//database dispose
 	vm := msql.Model("chat_ai_library_file_data", define.Postgres)
-	_, err = vm.Where(`admin_user_id`, cast.ToString(userId)).Where(`file_id`, cast.ToString(fileId)).Delete()
+	q := vm.Where(`admin_user_id`, cast.ToString(userId)).Where(`file_id`, cast.ToString(fileId))
+	if pdfPageNum > 0 {
+		q.Where(`page_num`, cast.ToString(pdfPageNum))
+	}
+	shouldDeleteIds, err := q.ColumnArr(`id`)
 	if err != nil {
 		logs.Error(err.Error())
 		return errors.New(i18n.Show(lang, `sys_err`))
 	}
-	_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).Where(`file_id`, cast.ToString(fileId)).Delete()
-	if err != nil {
-		logs.Error(err.Error())
-		return errors.New(i18n.Show(lang, `sys_err`))
+	if len(shouldDeleteIds) > 0 {
+		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
+			Where(`id`, `in`, strings.Join(shouldDeleteIds, `,`)).
+			Delete()
+		if err != nil {
+			logs.Error(err.Error())
+			return errors.New(i18n.Show(lang, `sys_err`))
+		}
+		_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
+			Where(`data_id`, `in`, strings.Join(shouldDeleteIds, `,`)).
+			Delete()
+		if err != nil {
+			logs.Error(err.Error())
+			return errors.New(i18n.Show(lang, `sys_err`))
+		}
 	}
 
 	var (
@@ -267,6 +290,12 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 			}
 			data[`question`] = strings.TrimSpace(item.Question)
 			data[`answer`] = strings.TrimSpace(item.Answer)
+			similarQuestions, err := tool.JsonEncode(item.SimilarQuestionList)
+			if err != nil {
+				logs.Error(err.Error())
+			} else {
+				data[`similar_questions`] = similarQuestions
+			}
 			if len(item.Images) > 0 {
 				jsonImages, err := CheckLibraryImage(item.Images)
 				if err != nil {
@@ -296,6 +325,23 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 				return errors.New(i18n.Show(lang, `sys_err`))
 			}
 			indexIds = append(indexIds, vectorID)
+
+			for _, similarQuestion := range item.SimilarQuestionList {
+				vectorID, err := SaveVector(
+					cast.ToInt64(info[`admin_user_id`]),
+					cast.ToInt64(info[`library_id`]),
+					cast.ToInt64(fileId),
+					id,
+					cast.ToString(define.VectorTypeSimilarQuestion),
+					strings.TrimSpace(similarQuestion),
+				)
+				if err != nil {
+					logs.Error(err.Error())
+					return errors.New(i18n.Show(lang, `sys_err`))
+				}
+				indexIds = append(indexIds, vectorID)
+			}
+
 			if qaIndexType == define.QAIndexTypeQuestionAndAnswer {
 				vectorID, err = SaveVector(
 					cast.ToInt64(info[`admin_user_id`]),
@@ -580,20 +626,21 @@ func ReadHtmlContent(htmlUrl string, userId int) ([]define.DocSplitItem, int, er
 	if err != nil {
 		return nil, 0, err
 	}
+	return ParseHtmlContent(content)
+}
+
+func ParseHtmlContent(content string) ([]define.DocSplitItem, int, error) {
 	content = strings.ReplaceAll(content, `<!DOCTYPE html>`, ``)
 	pages := strings.Split(content, `<meta charset="UTF-8"/>`)
-
-	//替换base64编码的图片
 	list := make([]define.DocSplitItem, 0)
 	wordTotal := 0
-
 	pageNum := 0
-	for _, page := range pages {
-		pageContent, err := ReplaceBase64Img(page, userId)
-		if err != nil {
-			logs.Error(err.Error())
-			continue
-		}
+	for _, pageContent := range pages {
+		//pageContent, err := ReplaceBase64Img(pageContent, userId)
+		//if err != nil {
+		//	logs.Error(err.Error())
+		//	continue
+		//}
 		pageContent = strip.StripTags(pageContent)
 		pageContent = strings.TrimSpace(pageContent)
 		if len(pageContent) == 0 {
@@ -734,7 +781,14 @@ func ReadQaTab(fileUrl, fileExt string, splitParams define.SplitParams) ([]defin
 	if err != nil {
 		return nil, 0, err
 	}
-	if questionIndex == answerIndex {
+	similarIndex := -1
+	if len(splitParams.SimilarColumn) > 0 {
+		similarIndex, err = ColumnIndexFromIdentifier(splitParams.SimilarColumn)
+		if err != nil {
+			return nil, 0, err
+		}
+	}
+	if questionIndex == answerIndex || questionIndex == similarIndex || answerIndex == similarIndex {
 		return nil, 0, errors.New(`excel question index cannot be equal to answer`)
 	}
 
@@ -743,11 +797,15 @@ func ReadQaTab(fileUrl, fileExt string, splitParams define.SplitParams) ([]defin
 	wordTotal := 0
 	for i, row := range rows[1:] {
 		var question, answer string
+		var similarQuestionList []string
 		if len(row) > answerIndex {
 			answer = row[answerIndex]
 		}
 		if len(row) > questionIndex {
 			question = row[questionIndex]
+		}
+		if similarIndex > 0 && len(row) > similarIndex {
+			similarQuestionList = append(similarQuestionList, row[similarIndex])
 		}
 		answer, images := ExtractTextImages(answer)
 		if len(answer) == 0 || len(question) == 0 {
@@ -755,7 +813,7 @@ func ReadQaTab(fileUrl, fileExt string, splitParams define.SplitParams) ([]defin
 		}
 
 		wordTotal += utf8.RuneCountInString(question + answer)
-		list = append(list, define.DocSplitItem{PageNum: i + 1, Question: question, Answer: answer, Images: images})
+		list = append(list, define.DocSplitItem{PageNum: i + 1, Question: question, SimilarQuestionList: similarQuestionList, Answer: answer, Images: images})
 	}
 
 	return list, wordTotal, nil
@@ -768,24 +826,73 @@ func QaDocSplit(splitParams define.SplitParams, items []define.DocSplitItem) []d
 			if len(strings.TrimSpace(section)) == 0 {
 				continue
 			}
-			qa := strings.SplitN(section, splitParams.AnswerLable, 2)
-			var question, answer string
-			if len(qa) == 0 {
-				continue
-			} else if len(qa) == 1 {
-				question = qa[0]
-				continue
-			} else if len(qa) == 2 {
-				question = qa[0]
-				answer = qa[1]
+
+			var question string
+			var similarList []string
+			var answer string
+			var images []string
+
+			if splitParams.SimilarLabel == "" {
+				qa := strings.SplitN(section, splitParams.AnswerLable, 2)
+				if len(qa) == 0 {
+					continue
+				} else if len(qa) == 1 {
+					question = qa[0]
+					continue
+				} else if len(qa) == 2 {
+					question = qa[0]
+					answer = qa[1]
+				} else {
+					continue
+				}
 			} else {
-				continue
+				similarIndex := strings.Index(section, splitParams.SimilarLabel)
+				answerIndex := strings.Index(section, splitParams.AnswerLable)
+
+				if similarIndex != -1 && answerIndex != -1 && similarIndex < answerIndex {
+					// 情况 1: 找到了 Similar 标签并在 Answer 标签之前（预期的 Q/S/A 结构）
+					question = section[:similarIndex]
+
+					// 相似问题文本块在 Similar 标签和 Answer 标签之间
+					similarBlock := section[similarIndex+len(splitParams.SimilarLabel) : answerIndex]
+					similarList = append(similarList, similarBlock)
+
+					// 答案部分从 Answer 标签之后开始
+					answer = section[answerIndex+len(splitParams.AnswerLable):]
+				} else if answerIndex != -1 {
+					// 情况 2: 找到了 Answer 标签，但 Similar 标签缺失或在 Answer 之后
+					// 将从块的开始到 Answer 标签之前的所有内容视为问题。
+					// 相似问题列表将为空。
+					question = section[:answerIndex]
+					similarList = []string{} // 没有找到相似问题
+
+					// 答案部分从 Answer 标签之后开始
+					answer = section[answerIndex+len(splitParams.AnswerLable):]
+				} else {
+					// 情况 3: Answer 和 Similar 都没有按预期方式找到（或者只找到了 Similar 但没有 Answer）。
+					// 这个块不符合预期的 Q&A 格式，跳过。
+					continue
+				}
 			}
-			answer, images := ExtractTextImages(answer)
+
+			question = strings.TrimSpace(question)
+			answer = strings.TrimSpace(answer)
+			answer, images = ExtractTextImages(answer) // 对去除空白后的答案文本进行处理
+
+			// 检查处理后是否得到了有效的问题和答案
 			if len(question) == 0 || len(answer) == 0 {
-				continue
+				// fmt.Printf("警告: 跳过处理后问题或答案为空的块 (页码 %d, 块索引 %d)。\n", i+1, sectionIndex) // 可选的日志记录
+				continue // 如果问题或答案为空则跳过
 			}
-			list = append(list, define.DocSplitItem{PageNum: i + 1, Question: question, Answer: answer, Images: images})
+
+			// 将成功提取的项添加到列表中
+			list = append(list, define.DocSplitItem{
+				PageNum:             i + 1, // 假设 i 是原始项/页的索引，从 0 开始
+				Question:            question,
+				SimilarQuestionList: similarList, // 存储相似问题列表
+				Answer:              answer,
+				Images:              images,
+			})
 		}
 	}
 	return list
@@ -848,13 +955,13 @@ func DefaultSplitParams() define.SplitParams {
 
 func AutoSplitLibFile(adminUserId, fileId int, splitParams define.SplitParams) {
 	lang := define.LangZhCn
-	list, wordTotal, err := GetLibFileSplit(adminUserId, fileId, splitParams, lang)
+	list, wordTotal, err := GetLibFileSplit(adminUserId, fileId, 0, splitParams, lang)
 	if err != nil {
 		updateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusException, `errmsg`: err.Error()})
 		logs.Error(err.Error())
 		return
 	}
-	err = SaveLibFileSplit(adminUserId, fileId, wordTotal, define.QAIndexTypeQuestionAndAnswer, splitParams, list, lang)
+	err = SaveLibFileSplit(adminUserId, fileId, wordTotal, define.QAIndexTypeQuestionAndAnswer, splitParams, list, 0, lang)
 	if err != nil {
 		logs.Error(err.Error())
 		return

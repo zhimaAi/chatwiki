@@ -17,7 +17,9 @@ export const useUserStore = defineStore('user', {
       loginInfo: undefined,
       unReadMessageTotal: 0,
       isLayoutScroll: true,
-      isShowResetPassModal: false
+      isShowResetPassModal: false,
+      robot_nums: 0,
+      guideLearningTips: false  // 是否显示引导弹窗
     }
   },
   getters: {
@@ -51,6 +53,12 @@ export const useUserStore = defineStore('user', {
     },
     getLoginInfo() {
       return this.loginInfo
+    },
+    getRobotNums () {
+      return this.robot_nums
+    },
+    getGuideLearningTips() {
+      return this.guideLearningTips
     }
   },
   actions: {
@@ -159,6 +167,12 @@ export const useUserStore = defineStore('user', {
     },
     setLoginInfo(loginInfo) {
       this.loginInfo = loginInfo
+    },
+    setRobotNums (robot_nums) {
+      this.robot_nums = robot_nums
+    },
+    setGuideLearningTips(guideLearningTips) {
+      this.guideLearningTips = guideLearningTips
     }
   },
   persist: true

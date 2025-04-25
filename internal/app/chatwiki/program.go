@@ -106,25 +106,26 @@ func PostgresTable() {
 	}
 
 	InitDefaultRole()
-	userId, err := CreateDefaultUser()
+	userId, insert, err := CreateDefaultUser()
 	if err != nil {
 		logs.Error(err.Error())
 	}
-	if userId != 0 {
+	if insert {
 		CreateDefaultBaaiModel(userId)
 	}
+	common.SetNeo4jStatus(cast.ToInt(userId), cast.ToBool(define.Config.Neo4j["enabled"]))
 	InitRoleRootPermissions()
 	InitRoleUserPermissions()
 }
 
-func CreateDefaultUser() (int64, error) {
+func CreateDefaultUser() (int64, bool, error) {
 	m := msql.Model(define.TableUser, define.Postgres)
 	user, err := m.Where(`"user_name"`, define.DefaultUser).Find()
 	if err != nil {
-		return 0, err
+		panic(err)
 	}
 	if len(user) > 0 {
-		return 0, nil
+		return cast.ToInt64(user["id"]), false, nil
 	}
 
 	salt := tool.Random(20)
@@ -138,10 +139,9 @@ func CreateDefaultUser() (int64, error) {
 		`update_time`: tool.Time2Int(),
 	}, "id")
 	if err != nil {
-		logs.Error(`user create err:%s`, err.Error())
-		return 0, err
+		panic(err)
 	}
-	return id, nil
+	return id, true, nil
 }
 func CreateDefaultRole(userId int64) {
 	var defaultRole = []string{define.DefaultRoleRoot, define.DefaultRoleAdmin, define.DefaultRoleUser}

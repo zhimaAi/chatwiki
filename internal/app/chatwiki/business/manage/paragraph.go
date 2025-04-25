@@ -45,6 +45,7 @@ func GetParagraphList(c *gin.Context) {
 	size := max(1, cast.ToInt(c.Query(`size`)))
 	status := cast.ToInt(c.Query(`status`))
 	graphStatus := cast.ToInt(c.Query(`graph_status`))
+	categoryId := cast.ToInt(c.Query(`category_id`))
 	query := msql.Model(`chat_ai_library_file_data`, define.Postgres).
 		Alias("a").
 		Join("chat_ai_library_file_data_index b", "a.id=b.data_id", "inner").
@@ -65,12 +66,15 @@ func GetParagraphList(c *gin.Context) {
   			) AS errmsg
 		`).
 		Group(`a.id`).
-		Order(`number asc,id desc`)
+		Order(`a.page_num asc, a.number asc, a.id desc`)
 	if status >= 0 {
 		query.Where(`b.status`, cast.ToString(status))
 	}
 	if graphStatus >= 0 {
 		query.Where(`a.graph_status`, cast.ToString(graphStatus))
+	}
+	if categoryId >= 0 {
+		query.Where(`a.category_id`, cast.ToString(categoryId))
 	}
 	list, total, err := query.Paginate(page, size)
 	if err != nil {
@@ -119,6 +123,7 @@ func SaveParagraph(c *gin.Context) {
 	content := strings.TrimSpace(c.PostForm(`content`))
 	question := strings.TrimSpace(c.PostForm(`question`))
 	answer := strings.TrimSpace(c.PostForm(`answer`))
+	similarQuestion := strings.TrimSpace(c.PostForm(`similar_questions`))
 	images := c.PostFormArray(`images`)
 	if id < 0 || fileId < 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
@@ -184,6 +189,7 @@ func SaveParagraph(c *gin.Context) {
 		data[`content`] = ``
 		data[`question`] = question
 		data[`answer`] = answer
+		data[`similar_questions`] = similarQuestion
 		if id > 0 {
 			_, err = m.Where(`id`, cast.ToString(id)).Update(data)
 		} else {
@@ -266,12 +272,15 @@ func SaveParagraph(c *gin.Context) {
 			}
 		}
 	}
-	message, err := tool.JsonEncode(map[string]any{`id`: id, `file_id`: fileId})
-	if err != nil {
-		logs.Error(err.Error())
-	} else {
-		if err = common.AddJobs(define.ConvertGraphTopic, message); err != nil {
+
+	if common.GetNeo4jStatus(userId) {
+		message, err := tool.JsonEncode(map[string]any{`id`: id, `file_id`: fileId})
+		if err != nil {
 			logs.Error(err.Error())
+		} else {
+			if err = common.AddJobs(define.ConvertGraphTopic, message); err != nil {
+				logs.Error(err.Error())
+			}
 		}
 	}
 
@@ -301,7 +310,46 @@ func DeleteParagraph(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	err = common.DeleteGraphData(id)
+	if common.GetNeo4jStatus(userId) {
+		err = common.NewGraphDB(userId).DeleteByData(id)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}
+
+func UpdateParagraphCategory(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	id := cast.ToInt(c.PostForm(`id`))
+	categoryId := cast.ToInt(c.PostForm(`category_id`))
+	if id <= 0 || categoryId < 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	data, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`id`, cast.ToString(id)).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(data) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+
+	_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`id`, cast.ToString(id)).
+		Update(msql.Datas{`category_id`: categoryId})
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))

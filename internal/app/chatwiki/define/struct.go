@@ -64,14 +64,15 @@ type ChatRequestParam struct {
 }
 
 type DocSplitItem struct {
-	Number    int      `json:"number"`
-	PageNum   int      `json:"page_num"`
-	Title     string   `json:"title"`
-	Content   string   `json:"content"`
-	Question  string   `json:"question"`
-	Answer    string   `json:"answer"`
-	WordTotal int      `json:"word_total"`
-	Images    []string `json:"images"`
+	Number              int      `json:"number"`
+	PageNum             int      `json:"page_num"`
+	Title               string   `json:"title"`
+	Content             string   `json:"content"`
+	Question            string   `json:"question"`
+	SimilarQuestionList []string `json:"similar_question_list"`
+	Answer              string   `json:"answer"`
+	WordTotal           int      `json:"word_total"`
+	Images              []string `json:"images"`
 }
 
 type SplitParams struct {
@@ -83,8 +84,10 @@ type SplitParams struct {
 	ChunkOverlap               int      `json:"chunk_overlap"`
 	IsQaDoc                    int      `json:"is_qa_doc"`
 	QuestionLable              string   `json:"question_lable"`
+	SimilarLabel               string   `json:"similar_label"`
 	AnswerLable                string   `json:"answer_lable"`
 	QuestionColumn             string   `json:"question_column"`
+	SimilarColumn              string   `json:"similar_column"`
 	AnswerColumn               string   `json:"answer_column"`
 	EnableExtractImage         bool     `json:"enable_extract_image"`
 	ChunkType                  int      `json:"chunk_type"`

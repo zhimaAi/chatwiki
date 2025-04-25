@@ -14,10 +14,10 @@
           <template #message>
             <div>
               通过word或者EXce形式导入问答对，建议您参考<a
-                href="https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/FAQ导入模板.docx"
+                href="https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/template/FAQ导入模板.docx"
                 >word导入模板</a
               >&nbsp;
-              <a href="https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/FAQ 导入模板.xlsx"
+              <a href="https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/template/FAQ 导入模板.xlsx"
                 >Excel导入模板</a
               >创建导入文档
             </div>
@@ -55,6 +55,24 @@
               </div>
             </div>
             <div class="form-item">
+              <div class="form-item-label">相似问法所在列：</div>
+              <div class="form-item-body">
+                <a-select
+                  v-model:value="formState.similar_column"
+                  placeholder="请选择相似问题所在列"
+                  style="width: 100%"
+                >
+                  <a-select-option
+                    v-for="item in excellQaLists"
+                    :value="item.value"
+                    :key="item.value"
+                    >{{ item.lable }}</a-select-option
+                  >
+                </a-select>
+              </div>
+            </div>
+
+            <div class="form-item">
               <div class="form-item-label">答案所在列：</div>
               <div class="form-item-body">
                 <a-select
@@ -77,6 +95,12 @@
               <div class="form-item-label">问题开始标识符：</div>
               <div class="form-item-body">
                 <a-input placeholder="请输入标识符" v-model:value="formState.question_lable" />
+              </div>
+            </div>
+            <div class="form-item">
+              <div class="form-item-label">相似问法开始标识符：</div>
+              <div class="form-item-body">
+                <a-input placeholder="请输入标识符" v-model:value="formState.similar_label" />
               </div>
             </div>
             <div class="form-item">
@@ -112,8 +136,10 @@ const excellQaLists = ref([])
 const formState = reactive({
   question_column: void 0,
   answer_column: void 0,
+  similar_column: void 0,
   question_lable: '问题：',
-  answer_lable: '答案：'
+  answer_lable: '答案：',
+  similar_label: '相似问题：'
 })
 
 const isHide = ref(true)
@@ -160,9 +186,11 @@ const handleSaveFiles = () => {
   if (isTableType) {
     formData.append('question_column', formState.question_column)
     formData.append('answer_column', formState.answer_column)
+    formData.append('similar_column', formState.similar_column)
   } else {
     formData.append('question_lable', formState.question_lable)
     formData.append('answer_lable', formState.answer_lable)
+    formData.append('similar_label', formState.similar_label)
   }
   formData.append('is_qa_doc', 1)
   addLibraryFile(formData)
@@ -188,8 +216,10 @@ const fileType = ref(1) // 1表格  2doc
 const onFilesChange = (files) => {
   formState.question_column = void 0
   formState.answer_column = void 0
+  formState.similar_column = void 0
   formState.question_lable = '问题：'
   formState.answer_lable = '答案：'
+  formState.similar_label = '相似问题：'
   fileList.value = files
   if (files && files.length > 0) {
     if (files[0].type.includes('.document')) {
@@ -228,8 +258,9 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
   .form-item {
-    flex: 1;
+    width: calc(50% - 6px);
     display: flex;
     align-items: center;
     .form-item-body {

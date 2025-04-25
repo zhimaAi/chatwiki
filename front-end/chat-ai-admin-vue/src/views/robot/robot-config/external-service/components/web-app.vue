@@ -171,7 +171,9 @@ import PageTitleInput from './page-title-input.vue'
 import ColorPicker from '@/components/color-picker/index.vue'
 import QuickInstruction from './quick-instruction.vue'
 import PreviewCommand from './preview-command.vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const robotStore = useRobotStore()
 const { robotInfo, external_config_h5 } = storeToRefs(robotStore)
 const { h5_website } = robotInfo.value
@@ -250,7 +252,7 @@ const formRules = {
   }
 }
 // 保存访问限制
-const accessRestrictionsType = ref(1)
+const accessRestrictionsType = ref(external_config_h5.value.accessRestrictionsType || 1)
 const saveAccessRestrictionsType = () => {
   let formData = { ...toRaw(external_config_h5.value) }
 
@@ -268,6 +270,8 @@ const saveWebAppInfo = (formData) => {
   }).then(() => {
     getRobot(id)
     message.success('保存成功')
+    // 刷新一下
+    router.go(0)
   })
 }
 

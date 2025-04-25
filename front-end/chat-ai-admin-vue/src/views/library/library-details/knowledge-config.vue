@@ -208,7 +208,7 @@
               </a-select-opt-group>
             </a-select>
           </a-form-item>
-          <a-form-item label="生成知识图谱">
+          <a-form-item label="生成知识图谱" v-show="neo4j_status">
             <a-switch
               @change="handleGraphSwitch"
               :checked="formState.graph_switch"
@@ -217,7 +217,7 @@
             />
             <div class="form-item-tip">开启后，可以文档列表手动点击知识图谱学习生成知识图谱</div>
           </a-form-item>
-          <a-form-item label="知识图谱模型" v-show="formState.graph_switch">
+          <a-form-item label="知识图谱模型" v-show="formState.graph_switch && neo4j_status" >
             <ModelSelect
               modelType="LLM"
               v-model:modeName="formState.graph_use_model"
@@ -360,7 +360,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, h} from 'vue'
+import { reactive, ref, h, computed} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Form, message, Modal } from 'ant-design-vue'
 import { QuestionCircleOutlined, CheckCircleFilled } from '@ant-design/icons-vue'
@@ -371,6 +371,12 @@ import { LIBRARY_OPEN_AVATAR } from '@/constants/index'
 import AvatarInput from '@/views/library/add-library/components/avatar-input.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import OpenGrapgModal from './components/open-grapg-modal.vue'
+
+import { useCompanyStore } from '@/stores/modules/company'
+const companyStore = useCompanyStore()
+const neo4j_status = computed(()=>{
+  return companyStore.companyInfo?.neo4j_status == 'true'
+})
 
 const rotue = useRoute()
 const router = useRouter()

@@ -44,7 +44,7 @@ BScroll.use(ScrollBar)
 BScroll.use(ObserveDOM)
 BScroll.use(Pullup)
 
-const emit = defineEmits(['onScrollEnd'])
+const emit = defineEmits(['onScrollEnd', 'scroll'])
 
 const props = defineProps({
   scrollX: {
@@ -86,6 +86,14 @@ const scrollToElement = (option) => {
   scrollController.scrollToElement(el, time, offsetX, offsetY, easing)
 }
 
+const enable = () => {
+  scrollController.enable()
+}
+
+const disable = () => {
+  scrollController.disable()
+}
+
 onMounted(() => {
   scrollController = new BScroll(scroller.value, {
     scrollX: props.scrollX,
@@ -112,10 +120,16 @@ onMounted(() => {
       scrollController.finishPullUp()
     })
   })
+
+  scrollController.on('scroll', (position)=>{
+    emit('scroll', position)
+  })
 })
 
 defineExpose({
   refresh,
-  scrollToElement
+  scrollToElement,
+  enable,
+  disable,
 })
 </script>

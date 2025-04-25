@@ -219,7 +219,7 @@ func PageProcessForTencentDoc(page *playwright.Page) error {
 }
 
 func PageProcessForKDoc(page *playwright.Page) error {
-	err := (*page).Locator("#mainpages").Focus()
+	err := (*page).Locator("#otl-main-editor").Focus()
 	if err != nil {
 		return err
 	}

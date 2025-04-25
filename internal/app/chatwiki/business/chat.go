@@ -3,13 +3,6 @@
 package business
 
 import (
-	"chatwiki/internal/app/chatwiki/common"
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/app/chatwiki/work_flow"
-	"chatwiki/internal/pkg/lib_define"
-	"chatwiki/internal/pkg/lib_redis"
-	"chatwiki/internal/pkg/lib_web"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,6 +12,14 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"chatwiki/internal/app/chatwiki/common"
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/app/chatwiki/work_flow"
+	"chatwiki/internal/pkg/lib_define"
+	"chatwiki/internal/pkg/lib_redis"
+	"chatwiki/internal/pkg/lib_web"
 
 	"github.com/gin-contrib/sse"
 	"github.com/gin-gonic/gin"
@@ -357,7 +358,6 @@ func ChatRequest(c *gin.Context) {
 		c.Header(`Access-Control-Allow-Origin`, `*`)
 	}
 	params := getChatRequestParam(c)
-
 	chanStream := make(chan sse.Event)
 	go func() {
 		_, _ = DoChatRequest(params, true, chanStream)
@@ -961,23 +961,34 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 	if err != nil {
 		return nil, nil, libUseTime, err
 	}
+	// check is deep-seek-r1
+	isDeepSeek := common.CheckModelIsDeepSeek(params.Robot[`use_model`])
 
-	//part1:prompt+library
-	prompt := common.FormatSystemPrompt(params.Prompt, list)
-	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
-	*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: prompt})
-
-	//part2:context_qa
+	//part0:init messages
+	messages := make([]adaptor.ZhimaChatCompletionMessage, 0)
+	prompt, libraryContent := common.FormatSystemPrompt(params.Prompt, list)
+	if isDeepSeek {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: libraryContent})
+		*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: libraryContent})
+	} else {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: prompt})
+		*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: prompt})
+	}
+	//part1:context_qa
 	for i := range contextList {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})
 		*debugLog = append(*debugLog, map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]})
 	}
-
-	//part3:cur_question
-	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: params.Question})
-	*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
-
+	//part2:question,prompt+library
+	if isDeepSeek {
+		content := strings.Join([]string{params.Prompt, params.Question}, "\n\n")
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: content})
+		*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: content})
+	} else {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: params.Question})
+		*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
+	}
 	return messages, list, libUseTime, nil
 }
 
@@ -985,13 +996,18 @@ func buildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 	if len(params.Prompt) == 0 { //no custom is used
 		params.Prompt = common.BuildPromptStruct(cast.ToInt(params.Robot[`prompt_type`]), params.Robot[`prompt`], params.Robot[`prompt_struct`])
 	}
+	// check is deep-seek-r1
+	isDeepSeek := common.CheckModelIsDeepSeek(params.Robot[`use_model`])
 
+	//part0:init messages
+	messages := make([]adaptor.ZhimaChatCompletionMessage, 0)
 	//part1:prompt
-	prompt := common.FormatSystemPrompt(params.Prompt, nil)
-	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
-	*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: prompt})
-
-	//part2:context_qa
+	prompt, _ := common.FormatSystemPrompt(params.Prompt, nil)
+	if !isDeepSeek {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: prompt})
+		*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: prompt})
+	}
+	//part1:context_qa
 	contextList := common.BuildChatContextPair(params.Openid, cast.ToInt(params.Robot[`id`]),
 		dialogueId, int(curMsgId), cast.ToInt(params.Robot[`context_pair`]))
 	for i := range contextList {
@@ -1000,9 +1016,14 @@ func buildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 		*debugLog = append(*debugLog, map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]})
 	}
 
-	//part3:cur_question
+	//part2:cur_question
 	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: params.Question})
 	*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
-
+	//part3:cur_question
+	if isDeepSeek {
+		content := strings.Join([]string{prompt, params.Question}, "\n\n")
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: content})
+		*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: content})
+	}
 	return messages, []msql.Params{}, nil
 }

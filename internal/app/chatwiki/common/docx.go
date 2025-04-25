@@ -9,13 +9,15 @@ import (
 	"chatwiki/internal/pkg/lib_redis"
 	"errors"
 	"fmt"
-	"github.com/zhimaAi/pdf"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/pdfcpu/pdfcpu/pkg/api"
+	"github.com/zhimaAi/pdf"
 
 	"github.com/antchfx/xmlquery"
 	"github.com/zhimaAi/go_tools/logs"
@@ -151,7 +153,7 @@ func ReadDocx(fileUrl string, userId int) ([]define.DocSplitItem, int, error) {
 	return list, utf8.RuneCountInString(content), nil
 }
 
-func ReadPdf(pdfUrl, lang string) ([]define.DocSplitItem, int, error) {
+func ReadPdf(pdfUrl string, pageNum int, lang string) ([]define.DocSplitItem, int, error) {
 	if len(pdfUrl) == 0 {
 		return nil, 0, errors.New(`file link cannot be empty`)
 	}
@@ -167,20 +169,107 @@ func ReadPdf(pdfUrl, lang string) ([]define.DocSplitItem, int, error) {
 	//paging collection
 	list := make([]define.DocSplitItem, 0)
 	wordTotal := 0
-	for num := 1; num <= reader.NumPage(); num++ {
-		p := reader.Page(num)
+	if pageNum <= 0 {
+		for num := 1; num <= reader.NumPage(); num++ {
+			p := reader.Page(num)
+			if p.V.IsNull() {
+				continue
+			}
+			content, err := p.GetPlainText(nil)
+			if err != nil {
+				logs.Error(err.Error())
+				continue
+			}
+			if len(content) > 0 {
+				wordTotal += utf8.RuneCountInString(content)
+				list = append(list, define.DocSplitItem{PageNum: num, Content: content})
+			}
+		}
+	} else {
+		p := reader.Page(pageNum)
 		if p.V.IsNull() {
-			continue
+			return nil, 0, errors.New(i18n.Show(lang, `page_not_found`))
 		}
 		content, err := p.GetPlainText(nil)
 		if err != nil {
-			logs.Error(err.Error())
-			continue
+			return nil, 0, err
 		}
 		if len(content) > 0 {
 			wordTotal += utf8.RuneCountInString(content)
-			list = append(list, define.DocSplitItem{PageNum: num, Content: content})
+			list = append(list, define.DocSplitItem{PageNum: pageNum, Content: content})
 		}
 	}
+
 	return list, wordTotal, nil
+}
+
+type PdfOcrCacheItem struct {
+	Result    []define.DocSplitItem
+	WordCount int
+	Timestamp time.Time
+}
+
+var (
+	pdfOcrCacheTTL = 15 * time.Minute // 缓存有效期
+)
+
+type PdfOcrCacheBuildHandler struct {
+	pdfUrl  string
+	pageNum int
+	lang    string
+}
+
+func (h *PdfOcrCacheBuildHandler) GetCacheKey() string {
+	return fmt.Sprintf(`chatwiki.pdf.ocr.%s.%d`, tool.MD5(h.pdfUrl), h.pageNum)
+}
+
+func (h *PdfOcrCacheBuildHandler) GetCacheData() (any, error) {
+	result, wordCount, err := ocrReadOnePagePdfImpl(h.pdfUrl, h.pageNum, h.lang)
+	if err != nil {
+		return nil, err
+	}
+	return &PdfOcrCacheItem{
+		Result:    result,
+		WordCount: wordCount,
+		Timestamp: time.Now(),
+	}, nil
+}
+
+func ocrReadOnePagePdfImpl(pdfUrl string, pageNum int, lang string) ([]define.DocSplitItem, int, error) {
+	file := GetFileByLink(pdfUrl)
+	outDir := define.UploadDir + fmt.Sprintf(`pdf_split/%s`, tool.Random(8)) //随机生成切分后的目录
+	defer func(path string) {
+		_ = os.RemoveAll(path)
+	}(outDir)
+	_ = tool.MkDirAll(outDir)
+	if err := api.SplitFile(file, outDir, 1, nil); err != nil {
+		return nil, 0, err
+	}
+	filename := strings.TrimSuffix(filepath.Base(file), `.pdf`)
+	item := fmt.Sprintf(`%s/%s_%d.pdf`, outDir, filename, pageNum)
+	if !tool.IsFile(item) {
+		return nil, 0, errors.New(`page not found`)
+	}
+	content, err := RequestConvertService(item, `pdf`)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return ParseHtmlContent(content)
+}
+
+func OcrReadOnePagePdf(pdfUrl string, pageNum int, lang string) ([]define.DocSplitItem, int, error) {
+	cacheHandler := &PdfOcrCacheBuildHandler{
+		pdfUrl:  pdfUrl,
+		pageNum: pageNum,
+		lang:    lang,
+	}
+
+	var cacheItem PdfOcrCacheItem
+	err := lib_redis.GetCacheWithBuild(define.Redis, cacheHandler, &cacheItem, pdfOcrCacheTTL)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return cacheItem.Result, cacheItem.WordCount, nil
 }

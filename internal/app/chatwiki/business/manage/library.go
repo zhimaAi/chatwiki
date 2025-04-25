@@ -342,9 +342,11 @@ func DeleteLibrary(c *gin.Context) {
 		//clear cached data
 		lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: cast.ToInt(fileId)})
 	}
-	err = common.DeleteGraphLibrary(id)
-	if err != nil {
-		logs.Error(err.Error())
+	if common.GetNeo4jStatus(userId) {
+		err = common.NewGraphDB(userId).DeleteByLibrary(id)
+		if err != nil {
+			logs.Error(err.Error())
+		}
 	}
 	_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`library_id`, cast.ToString(id)).Delete()
 	if err != nil {
@@ -623,4 +625,39 @@ func LibraryRecallTest(c *gin.Context) {
 
 	list, _, err := common.GetMatchLibraryParagraphList("", "", question, []string{}, libraryIds, size, similarity, searchType, robot)
 	c.String(http.StatusOK, lib_web.FmtJson(list, err))
+}
+
+func RelationRobot(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	robotIds := strings.TrimSpace(c.PostForm(`robot_ids`))
+	libraryId := cast.ToInt(c.PostForm(`library_id`))
+	if len(robotIds) == 0 || libraryId <= 0 {
+		common.FmtError(c, `param_lack`)
+		return
+	}
+	data, err := msql.Model(`chat_ai_robot`, define.Postgres).
+		Field(`id,robot_key,library_ids`).
+		Where(`admin_user_id`, cast.ToString(userId)).Where(`id`, `in`, robotIds).Select()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	for _, item := range data {
+		ids := strings.Split(item[`library_ids`], ",")
+		if !tool.InArrayString(cast.ToString(libraryId), ids) {
+			ids = append(ids, cast.ToString(libraryId))
+		}
+		_, err = msql.Model(`chat_ai_robot`, define.Postgres).Where(`id`, cast.ToString(item[`id`])).Update(msql.Datas{`library_ids`: strings.Join(ids, ",")})
+		if err != nil {
+			logs.Error(err.Error())
+			common.FmtError(c, `sys_err`)
+			return
+		}
+		lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: item[`robot_key`]})
+	}
+	common.FmtOk(c, nil)
 }

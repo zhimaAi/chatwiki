@@ -77,6 +77,8 @@ import PageTabs from '@/components/cu-tabs/page-tabs.vue'
 import PageAlert from '@/components/page-alert/page-alert.vue'
 import ListTabs from '@/components/cu-tabs/list-tabs.vue'
 
+
+
 const router = useRouter()
 
 const pageTabs = ref([{

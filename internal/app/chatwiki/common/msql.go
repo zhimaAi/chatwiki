@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+
 	"github.com/gin-contrib/sse"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
@@ -272,14 +274,14 @@ func GetMatchLibraryParagraphByVectorSimilarity(adminUserId int, robot msql.Para
 
 func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appType, question string, libraryIds string, size int, searchType int) ([]msql.Params, error) {
 	result := make([]msql.Params, 0)
-	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeGraph}) {
+	if GetNeo4jStatus(cast.ToInt(robot[`admin_user_id`])) || !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeGraph}) {
 		return result, nil
 	}
 
 	// Input validation
 	if len(question) == 0 {
 		logs.Error("Question is empty")
-		return result, errors.New("Question cannot be empty")
+		return result, errors.New("question cannot be empty")
 	}
 
 	libraryIdList, err := msql.Model(`chat_ai_library`, define.Postgres).
@@ -342,11 +344,11 @@ func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appTyp
 	logs.Info("Extracted %d entities from question[%s]", len(entities), question)
 
 	// 3. 使用图数据库查询相关实体
-	graphDB := NewGraphDB("graphrag")
+	graphDB := NewGraphDB(cast.ToInt(robot[`admin_user_id`]))
 	libraryIdsArr := strings.Split(libraryIds, ",")
 
 	// 存储所有查询结果
-	allResults := make([]msql.Params, 0)
+	allResults := make([]*neo4j.Record, 0)
 	dataIds := make(map[int]float64) // 用于去重和存储最高置信度
 
 	// 为每个实体分配合理的查询限制
@@ -373,21 +375,18 @@ func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appTyp
 		wg.Add(1)
 		go func(index int, entity string) {
 			defer wg.Done()
-
 			logs.Info("Querying entity[%d]: %s", index+1, entity)
-
-			// 执行最多3级的深度查询
-			relatedTriples, err := graphDB.FindRelatedEntities(entity, libraryIdsArr, perEntityLimit, 3)
+			res, err := graphDB.FindRelatedEntities(entity, libraryIdsArr, perEntityLimit, 3)
 			if err != nil {
 				logs.Error("Failed to query entity %s: %s", entity, err.Error())
 				return
 			}
 
-			logs.Info("Found %d related triples for entity[%d]", len(relatedTriples), index+1)
+			logs.Info("Found %d related triples for entity[%d]", len(res.Records), index+1)
 
 			// 安全地追加结果
 			mu.Lock()
-			allResults = append(allResults, relatedTriples...)
+			allResults = append(allResults, res.Records...)
 			mu.Unlock()
 		}(i, entityName)
 	}
@@ -406,20 +405,22 @@ func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appTyp
 	}
 
 	// 5. 收集相关的数据ID和置信度，根据深度调整置信度
-	for _, triple := range allResults {
-		dataId := cast.ToInt(triple["data_id"])
+	for _, record := range allResults {
+		dataIdValue, dataIdExists := record.Get("data_id")
+		confidenceValue, confidenceExists := record.Get("confidence")
+		depthValue, depthExists := record.Get("depth")
+		if !dataIdExists || !confidenceExists || !depthExists {
+			continue
+		}
+		dataId := cast.ToInt(dataIdValue)
+		confidence := cast.ToFloat64(confidenceValue)
+		depth := cast.ToInt(depthValue)
 		if dataId <= 0 {
-			continue // 跳过无效的数据ID
+			continue
 		}
-
-		// 基础置信度
-		confidence := cast.ToFloat64(triple["confidence"])
 		if confidence <= 0 {
-			confidence = 0.5 // 设置默认置信度
+			confidence = 0.5
 		}
-
-		// 根据深度调整置信度
-		depth := cast.ToInt(triple["depth"])
 		if depth > 0 {
 			// 每增加一级深度，降低20%的置信度
 			depthFactor := 1.0 - float64(depth-1)*0.2
@@ -428,7 +429,6 @@ func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appTyp
 			}
 			confidence = confidence * depthFactor
 		}
-
 		// 保存最高置信度
 		if existingConf, exists := dataIds[dataId]; exists {
 			if confidence > existingConf {
@@ -626,14 +626,12 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 
 	temp := time.Now()
 	for _, q := range append(optimizedQuestions, question) {
-		if robot != nil && cast.ToInt(robot[`recall_type`]) == define.SwitchOn {
-			list, err := GetMatchLibraryParagraphByVectorSimilarity(adminUserId, robot, openid, appType, q, libraryIds, fetchSize, similarity, searchType)
-			if err != nil {
-				logs.Error(err.Error())
-			}
-			vectorList = append(vectorList, changeListContent(list)...)
+		list, err := GetMatchLibraryParagraphByVectorSimilarity(adminUserId, robot, openid, appType, q, libraryIds, fetchSize, similarity, searchType)
+		if err != nil {
+			logs.Error(err.Error())
 		}
-		list, err := GetMatchLibraryParagraphByGraphSimilarity(robot, openid, appType, q, libraryIds, fetchSize, searchType)
+		vectorList = append(vectorList, changeListContent(list)...)
+		list, err = GetMatchLibraryParagraphByGraphSimilarity(robot, openid, appType, q, libraryIds, fetchSize, searchType)
 		if err != nil {
 			logs.Error(err.Error())
 		}
@@ -671,7 +669,7 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 		Add(DataSource{List: searchList, Key: `id`, Fixed: 60}).
 		Add(DataSource{List: graphList, Key: `id`, Fixed: 60}).
 		Add(DataSource{List: rerankList, Key: `id`, Fixed: 58}).Sort()
-	if cast.ToInt(robot[`recall_type`]) == 1 {
+	if cast.ToInt(robot[`recall_type`]) == define.SwitchOn {
 		sort.Slice(list, func(i, j int) bool {
 			return cast.ToFloat64(list[i][`similarity`]) > cast.ToFloat64(list[j][`similarity`])
 		})
@@ -940,24 +938,6 @@ func GetRobotNode(robotId uint, nodeKey string) (msql.Params, error) {
 	return result, err
 }
 
-// DeleteGraphLibrary delete graph library
-func DeleteGraphLibrary(libraryId int) error {
-	graphDB := NewGraphDB("graphrag")
-	return graphDB.DeleteByLibrary(libraryId)
-}
-
-// DeleteGraphFile delete graph
-func DeleteGraphFile(fileId int) error {
-	graphDB := NewGraphDB("graphrag")
-	return graphDB.DeleteByFile(fileId)
-}
-
-// DeleteGraphData delete graph
-func DeleteGraphData(dataId int) error {
-	graphDB := NewGraphDB("graphrag")
-	return graphDB.DeleteByData(dataId)
-}
-
 func LibraryAiSummary(lang, openid, appType, question string, optimizedQuestions []string, libraryIds string, size, maxToken int, similarity, temperature float64, searchType int, robot msql.Params, chanStream chan sse.Event) error {
 	defer close(chanStream)
 	chanStream <- sse.Event{Event: `ping`, Data: tool.Time2Int()}
@@ -1020,4 +1000,19 @@ func LibraryAiSummary(lang, openid, appType, question string, optimizedQuestions
 	chanStream <- sse.Event{Event: `finish`, Data: tool.Time2Int()}
 
 	return nil
+}
+
+func GetNeo4jStatus(adminUserId int) bool {
+	if status, exists := define.Neo4jStatus[adminUserId]; exists {
+		return status
+	} else {
+		return false
+	}
+}
+
+func SetNeo4jStatus(adminUserId int, status bool) {
+	if define.Neo4jStatus == nil {
+		define.Neo4jStatus = make(map[int]bool)
+	}
+	define.Neo4jStatus[adminUserId] = status
 }

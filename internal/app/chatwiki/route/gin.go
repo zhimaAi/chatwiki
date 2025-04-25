@@ -70,6 +70,7 @@ func init() {
 	Route[http.MethodPost][`/manage/deleteLibrary`] = manage.DeleteLibrary
 	Route[http.MethodPost][`/manage/editLibrary`] = manage.EditLibrary
 	Route[http.MethodGet][`/manage/getLibraryRobotInfo`] = manage.GetLibraryRobotInfo
+	Route[http.MethodPost][`/manage/relationRobot`] = manage.RelationRobot
 
 	/** library search API*/
 	Route[http.MethodPost][`/manage/liraryAiSummary`] = manage.LibraryAiSummary
@@ -108,6 +109,7 @@ func init() {
 	Route[http.MethodGet][`/manage/getLibRawFile`] = manage.GetLibRawFile
 	Route[http.MethodGet][`/manage/getLibFileExcelTitle`] = manage.GetLibFileExcelTitle
 	Route[http.MethodPost][`/manage/readLibFileExcelTitle`] = manage.ReadLibFileExcelTitle
+	Route[http.MethodPost][`/manage/restudyLibraryFile`] = manage.RestudyLibraryFile
 	Route[http.MethodPost][`/manage/renewLibraryFile`] = manage.RenewLibraryFile
 	Route[http.MethodPost][`/manage/editLibFile`] = manage.EditLibFile
 	Route[http.MethodPost][`/manage/constructGraph`] = manage.ConstructGraph
@@ -121,7 +123,10 @@ func init() {
 	Route[http.MethodPost][`/manage/addParagraph`] = manage.SaveParagraph
 	Route[http.MethodPost][`/manage/editParagraph`] = manage.SaveParagraph
 	Route[http.MethodPost][`/manage/deleteParagraph`] = manage.DeleteParagraph
-
+	Route[http.MethodPost][`/manage/updateParagraphCategory`] = manage.UpdateParagraphCategory
+	/*category API*/
+	Route[http.MethodGet][`/manage/getCategoryList`] = manage.GetCategoryList
+	Route[http.MethodPost][`/manage/saveCategory`] = manage.SaveCategory
 	/*form API*/
 	Route[http.MethodGet][`/manage/getFormList`] = manage.GetFormList
 	Route[http.MethodGet][`/manage/getFormInfo`] = manage.GetFormInfo
@@ -167,6 +172,7 @@ func init() {
 	noAuthFuns(Route[http.MethodPost], `/chat/message/delFeedback`, business.DelChatMessageFeedback)
 	noAuthFuns(Route[http.MethodPost], `/chat/welcome`, business.ChatWelcome)
 	noAuthFuns(Route[http.MethodPost], `/chat/request`, business.ChatRequest)
+	noAuthFuns(Route[http.MethodPost], `/chat/checkChatRequestPermission`, business.CheckChatRequestPermission)
 
 	noAuthFuns(Route[http.MethodPost], `/chat/questionGuide`, business.ChatQuestionGuide)
 	/*model API*/
@@ -211,7 +217,6 @@ func init() {
 	Route[http.MethodPost][`/manage/saveSensitiveWords`] = manage.SaveSensitiveWords
 	Route[http.MethodPost][`/manage/switchSensitiveWords`] = manage.SwitchSensitiveWords
 	Route[http.MethodPost][`/manage/deleteSensitiveWords`] = manage.DeleteSensitiveWords
-	noAuthFuns(Route[http.MethodPost], `/manage/checkSensitiveWords`, business.CheckSensitiveWords)
 	/*receiver API*/
 	Route[http.MethodGet][`/manage/getReceiverList`] = manage.GetReceiverList
 	Route[http.MethodPost][`/manage/setReceiverRead`] = manage.SetReceiverRead

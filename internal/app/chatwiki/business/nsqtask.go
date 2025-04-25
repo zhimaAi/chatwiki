@@ -47,10 +47,8 @@ func ConvertHtml(msg string, _ ...string) error {
 		logs.Error(`no data:%s`, msg)
 		return nil
 	}
-	if cast.ToInt(info[`status`]) != define.FileStatusInitial {
-		logs.Error(`abnormal state:%s/%v`, msg, info[`status`])
-		return nil
-	}
+	m := msql.Model(`chat_ai_library_file`, define.Postgres)
+
 	//convert html
 	htmlUrl, err := common.ConvertHtml(link, cast.ToInt(info[`admin_user_id`]))
 	if err != nil && err.Error() == `Service Unavailable` {
@@ -58,7 +56,6 @@ func ConvertHtml(msg string, _ ...string) error {
 		_ = common.AddJobs(define.ConvertHtmlTopic, msg, time.Minute)
 		return nil
 	}
-	m := msql.Model(`chat_ai_library_file`, define.Postgres)
 	if err != nil {
 		_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
 			`status`:      define.FileStatusException,
@@ -204,7 +201,7 @@ func ConvertGraph(msg string, _ ...string) error {
 		return nil
 	}
 	if !cast.ToBool(library[`graph_switch`]) {
-		logs.Error("graph not switch")
+		logs.Debug("graph not switch")
 		return nil
 	}
 
@@ -227,7 +224,7 @@ func ConvertGraph(msg string, _ ...string) error {
 		messages,
 		nil,
 		0.1,
-		3000,
+		4096,
 	)
 	if err != nil {
 		logs.Error(err.Error())
@@ -254,26 +251,22 @@ func ConvertGraph(msg string, _ ...string) error {
 		confidence := cast.ToFloat64(triple["confidence"])
 
 		if len(subject) > 0 && len(predicate) > 0 && len(object) > 0 {
-			graphDB := common.NewGraphDB("graphrag")
 			// 替换关系名称中的特殊字符
 			sanitizedPredicate := strings.ReplaceAll(predicate, ".", "_")
 			sanitizedPredicate = strings.ReplaceAll(sanitizedPredicate, "...", "_")
 			sanitizedPredicate = strings.ReplaceAll(sanitizedPredicate, " ", "_")
 			sanitizedPredicate = strings.ReplaceAll(sanitizedPredicate, "-", "_")
 
-			createGraphSQL := fmt.Sprintf(`
-				cypher('graphrag', $$ 
-					MERGE (s:Entity {name: '%s', library_id: %d, file_id: %d, data_id: %d})
-					MERGE (o:Entity {name: '%s', library_id: %d, file_id: %d, data_id: %d})
-					CREATE (s)-[r:%s {confidence: %f, library_id: %d, file_id: %d, data_id: %d}]->(o)
-					RETURN r
-				$$) as (r agtype)`,
-				subject, cast.ToInt(info[`library_id`]), fileId, id,
-				object, cast.ToInt(info[`library_id`]), fileId, id,
-				sanitizedPredicate, confidence, cast.ToInt(info[`library_id`]), fileId, id)
-			_, err = graphDB.ExecuteCypher(createGraphSQL)
+			_, err = common.NewGraphDB(cast.ToInt(info[`admin_user_id`])).ConstructEntity(
+				subject,
+				object,
+				sanitizedPredicate,
+				cast.ToInt(info[`library_id`]),
+				fileId,
+				id,
+				confidence,
+			)
 			if err != nil {
-				logs.Error(`create graph error: %s, sql is: `, err.Error(), createGraphSQL)
 				hasError = true
 				constructGraphFailed(fileId, id, err.Error())
 				break

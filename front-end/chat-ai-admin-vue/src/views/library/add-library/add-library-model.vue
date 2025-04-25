@@ -264,7 +264,7 @@
               </a-form-item>
             </a-flex>
           </template>
-          <div class="graph-switch-box">
+          <div class="graph-switch-box" v-show="neo4j_status">
             <div class="lable-text">
               生成知识图谱
               <a-tooltip>
@@ -281,7 +281,7 @@
               un-checked-children="关"
             />
           </div>
-          <a-form-item label="知识图谱模型" v-show="formState.graph_switch">
+          <a-form-item label="知识图谱模型" v-show="formState.graph_switch && neo4j_status">
             <ModelSelect
               modelType="LLM"
               v-model:modeName="formState.graph_use_model"
@@ -298,7 +298,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, computed } from 'vue'
 import { Form, message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import { createLibrary, getSeparatorsList } from '@/api/library/index'
@@ -312,6 +312,13 @@ import {
 } from '@ant-design/icons-vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import OpenGrapgModal from '@/views/library/library-details/components/open-grapg-modal.vue'
+
+import { useCompanyStore } from '@/stores/modules/company'
+const companyStore = useCompanyStore()
+const neo4j_status = computed(()=>{
+  return companyStore.companyInfo?.neo4j_status == 'true'
+})
+
 
 // 设置全局默认的duration为（2秒）
 message.config({

@@ -182,6 +182,7 @@
                 :question="item.question"
                 :answer="item.answer"
                 :images="item.images"
+                :similar_question_list="item.similar_question_list"
                 @delete="handleDeleteFragment(index)"
                 @edit="handleEditFragment(item, index)"
               />
@@ -232,6 +233,7 @@ let formData = {
   chunk_overlap: 50, // 自定义分段-分段重叠长度 默认为50，最小不得低于10，最大不得超过最大分段长度的50%
   is_qa_doc: 0, // 0 普通文档 1 QA文档
   question_lable: '', // QA文档-问题开始标识符
+  similar_label: '', // QA文档-相似度标识符
   answer_lable: '', // QA文档-答案开始标识符
   enable_extract_image: true
 }
@@ -291,8 +293,10 @@ const getDocumentStatus = () => {
       chunk_overlap: +res.data.chunk_overlap || 50,
       is_qa_doc: library_type.value == 2 ? 1 : 0,
       question_lable: res.data.question_lable,
+      similar_label: res.data.similar_label,
       answer_lable: res.data.answer_lable,
       question_column: res.data.question_column,
+      similar_column: res.data.similar_column,
       answer_column: res.data.answer_column,
       enable_extract_image: res.data.enable_extract_image == 'true',
       qa_index_type: +res.data.qa_index_type,
@@ -399,12 +403,13 @@ const getDocumentFragment = () => {
 const editFragmentAlertRef = ref(null)
 let editFragmentIndex = null
 
-const handleEditFragment = ({ title, content, question, answer, images }, index) => {
+const handleEditFragment = (item, index) => {
+  let { title, content, question, answer, images, similar_question_list } = item
   editFragmentIndex = index
-  editFragmentAlertRef.value.open({ title, content, question, answer, images })
+  editFragmentAlertRef.value.open({ title, content, question, answer, images, similar_question_list })
 }
 
-const saveFragment = ({ title, content, question, answer, images }) => {
+const saveFragment = ({ title, content, question, answer, images,similar_question_list }) => {
   if (
     documentFragmentList.value[editFragmentIndex].title != title ||
     documentFragmentList.value[editFragmentIndex].content != content ||
@@ -413,12 +418,12 @@ const saveFragment = ({ title, content, question, answer, images }) => {
   ) {
     itWasEdited = true
   }
-
   documentFragmentList.value[editFragmentIndex].title = title
   documentFragmentList.value[editFragmentIndex].content = content
   documentFragmentList.value[editFragmentIndex].question = question
   documentFragmentList.value[editFragmentIndex].answer = answer
   documentFragmentList.value[editFragmentIndex].images = images
+  documentFragmentList.value[editFragmentIndex].similar_question_list = similar_question_list ? similar_question_list.split('\n') : []
 
   documentFragmentList.value[editFragmentIndex].word_total =
     answer.length + question.length + content.length
@@ -461,7 +466,6 @@ const updataFormData = () => {
 }
 const handleSaveLibFileSplit = async () => {
   updataFormData()
-  await getDocumentFragment()
   if (validateMessage.value) {
     return message.error(validateMessage.value)
   }

@@ -17,7 +17,7 @@ func GetSessionSecond() int {
 			return sessionSecond
 		}
 	}
-	return 1800 //30minute
+	return 86400 //24hour
 }
 
 func GetSessionTtl() time.Duration {
