@@ -105,6 +105,21 @@
   }
   
 }
+
+.log-out {
+  position: fixed;
+  top: 68px;
+  right: 0;
+  transform: translateY(-50%);
+  width: 104px;
+  height: 40px;
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.log-out.scrolled {
+  transform: translateY(-50%) translateX(84px); /* 露出20px (104px - 20px) */
+}
 </style>
 
 <template>
@@ -146,9 +161,12 @@
       <FastComand v-if="isShortcut" @send="handleSetMessageInputValue"></FastComand>
     </div>
     <div class="chat-page-footer">
-      <MessageInput ref="messageInputRef" @send="onSendMesage" :loading="sendLock" />
+      <MessageInput ref="messageInputRef" @showLogin="onShowLogin" @send="onSendMesage" :loading="sendLock" />
       <div class="technical-support-text">由 ChatWiki 提供软件支持</div>
     </div>
+
+    <LogOut v-if="isShowLogOut && externalConfigH5.accessRestrictionsType == 2" class="log-out" :class="{ 'scrolled': isScrolled }" @click="onTrigger" />
+    <LoginModal ref="loginModalRef" />
   </div>
 </template>
 
@@ -164,12 +182,24 @@ import MessageInput from './components/message-input.vue'
 import MessageList from './components/messages/message-list.vue'
 import MessageItem from './components/messages/message-item.vue'
 import FastComand from './components/fast-comand/index.vue'
+import LogOut from './components/log-out.vue'
+import LoginModal from './components/login-modal.vue'
+import { useUserStore } from '@/stores/modules/user'
+import { showConfirmDialog } from 'vant';
 
 type MessageListComponent = {
   scrollToMessage: (id: number | string) => void
   scrollToBottom: () => void
 }
 
+interface LoginModalRefState {
+  show: any
+}
+
+const userStore = useUserStore()
+const isShowLogOut = computed(() => userStore.getLoginStatus)
+const loginModalRef = ref<null | LoginModalRefState>(null)
+const isScrolled = ref(false) // 退出登录按钮是否收起
 const isShowBottomBtn = ref(false)
 
 const emitter = useEventBus()
@@ -215,6 +245,29 @@ const onScroll = (event) => {
   if (event.scrollHeight - event.clientHeight > event.scrollTop) {
     // 不是在底部了，显示回到底部按钮
     isShowBottomBtn.value = true
+  }
+
+  // 滚动页面就收起
+  isScrolled.value = true
+}
+
+// 点击了退出按钮
+const onTrigger = () => {
+  if (isScrolled.value) {
+    // 显示出退出按钮
+    isScrolled.value = false
+  } else {
+    // 触发退出操作
+    console.log('退出登录')
+    showConfirmDialog({
+      title: '温馨提示',
+      message: '是否退出本系统？',
+    }).then(() => {
+      // on close
+      userStore.reset()
+    }) .catch(() => {
+    // on cancel
+    });
   }
 }
 
@@ -285,7 +338,7 @@ function setChatPageHeight() {
   }, 20)
 }
 
-// const messageInputRef = ref<InstanceType<typeof MessageInput> | null>(null);  
+const messageInputRef = ref<InstanceType<typeof MessageInput> | null>(null);  
 const handleSetMessageInputValue = (data: any) => {
   // if(messageInputRef.value){
     // 直接发出内容
@@ -295,7 +348,19 @@ const handleSetMessageInputValue = (data: any) => {
  
 }
 
-onMounted(() => {
+const onShowLogin = () => {
+  if (loginModalRef.value) {
+    loginModalRef.value.show()
+  }
+}
+
+onMounted(async() => {
+  // 获取登录信息，如果没有登录则立即弹出登录
+  // 后端说这个地方不用/manage/checkLogin接口获取用户信息来判断是否登录，直接调下面的接口，关键词传空字符串就行
+  if (messageInputRef.value) {
+    messageInputRef.value.sendMessage()
+  }
+
   init()
   // 获取对话记录
   // getMyChatList()

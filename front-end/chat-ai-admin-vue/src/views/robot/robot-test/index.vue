@@ -167,7 +167,7 @@ import RobotTestRight from './components/robot-test-right.vue'
 import MessageInput from './components/message-input.vue'
 import PromptLogAlert from './components/prompt-log-alert.vue'
 import libraryInfoAlert from './components/library-info-alert.vue'
-import { saveRobot, checkSensitiveWords } from '@/api/robot/index'
+import { saveRobot, checkChatRequestPermission } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
 
 
@@ -205,7 +205,7 @@ const onSendMesage = async () => {
   }
 
   //检查是否含有敏感词
-  let result = await checkSensitiveWords({
+  let result = await checkChatRequestPermission({
     robot_key: robot.value.robot_key,
     openid: robot.value.openid,
     question: message.value,

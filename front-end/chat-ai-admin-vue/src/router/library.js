@@ -99,6 +99,9 @@ export default {
       meta: {
         title: '知识库管理',
         activeMenu: '/library',
+        pageStyle:{
+          'padding': '0 24px'
+        },
         hideTitle: true
       }
     }

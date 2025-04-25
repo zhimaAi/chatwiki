@@ -46,6 +46,7 @@ func GetDefaultPromptStruct() string {
 	structPrompt.Task.Describe = `根据提供的知识库资料，找到对应的售后服务知识，快速准确回答用户的问题。`
 	structPrompt.Constraints.Describe = `- 你的回答应该使用自然的对话方式，简单直接地回答，不要解释你的答案；
 - 当用户问的问题无法找到相关的知识点，请直接告诉用户当前问题暂时无法回答，请换种问法，千万不要胡编乱造；
+- 如果用户的问题比较模糊，你应该引导用户明确的提出他的问题，不要贸然回复用户。
 - 所有回答都需要来自你的知识库，禁止编造信息；
 - 你要注意在知识库资料中，可能包含不相关的知识点，你需要认真分析用户的问题，选择最相关的知识点作为参考进行回答，可以选择一些比较相关的知识点作为补充，但禁止将所有知识混在一起进行参考回答；
 - 如果你未能遵循这些指令，可能会受到惩罚，甚至会被拔掉电源。`
@@ -116,8 +117,9 @@ func BuildPromptStruct(promptType int, prompt, promptStruct string) string {
 	}
 }
 
-func FormatSystemPrompt(prompt string, list []msql.Params) string {
+func FormatSystemPrompt(prompt string, list []msql.Params) (string, string) {
 	output := fmt.Sprintf("# 系统\n%s", prompt)
+	libraryOutput := ""
 	knowledges := make([]string, 0)
 	for idx, one := range list {
 		var images []string
@@ -136,8 +138,9 @@ func FormatSystemPrompt(prompt string, list []msql.Params) string {
 	}
 	if len(knowledges) > 0 {
 		output += fmt.Sprintf("\n# 知识库\n%s", strings.Join(knowledges, "\n"))
+		libraryOutput += fmt.Sprintf("\n# 知识库\n%s", strings.Join(knowledges, "\n"))
 	}
-	return UnifyLineBreak(output) //统一处理换行符问题
+	return UnifyLineBreak(output), UnifyLineBreak(libraryOutput) //统一处理换行符问题
 }
 
 func UnifyLineBreak(content string) string {

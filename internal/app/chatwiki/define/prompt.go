@@ -56,7 +56,7 @@ const PromptDefaultGraphConstruct = `你是一个知识图谱构建专家。请�
 {{content}}
 """
 
-请确保输出的JSON格式正确，只返回JSON数组，注意，不要有其他文字说明，关系中不要有任何特殊字符，不要有括号。
+请确保输出的JSON格式正确，只返回JSON数组，注意，不要有其他文字说明，关系和实体中都不要有括号、引号、逗号等任何特殊字符或标点符号。
 `
 
 const PromptDefaultQuestionGuide = `

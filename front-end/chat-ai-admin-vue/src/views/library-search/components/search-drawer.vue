@@ -218,12 +218,12 @@ const retrievalModeList = ref([
     isRecommendation: true,
     desc: '同时执行三种检索模式，使用RRF算法进行排序，从三种查询结果中选择更匹配用户问题的结果。混合检索兼顾语义相似性与逻辑关联性，通过互补优势提升检索的准确性和生成结果的可信度'
   },
-  // {
-  //   iconName: 'vector-icon',
-  //   title: '向量检索',
-  //   value: 2,
-  //   desc: '将用户提问转成向量之后与知识库分段匹配相似度，返回相似度高的结果。向量检索擅长语义相似性匹配和大规模非结构化数据处理，但缺乏可解释性和精准关系验证'
-  // },
+  {
+    iconName: 'vector-icon',
+    title: '向量检索',
+    value: 2,
+    desc: '将用户提问转成向量之后与知识库分段匹配相似度，返回相似度高的结果。向量检索擅长语义相似性匹配和大规模非结构化数据处理，但缺乏可解释性和精准关系验证'
+  },
   {
     iconName: 'graph-icon',
     title: '知识图谱检索',
@@ -251,8 +251,8 @@ const formState = reactive({
   size: 0,
   similarity: 0.4,
   rerank_status: 0,
-  rerank_use_model: undefined,
-  rerank_model_config_id: undefined,
+  rerank_use_model: void 0,
+  rerank_model_config_id: void 0,
 })
 
 // 获取rerank模型列表
@@ -294,10 +294,10 @@ const onVectorModelLoaded = (list) => {
       }
     }
   } else {
-    formState.use_model = props.librarySearchData?.use_model + '-'
-    formState.model_config_id = props.librarySearchData?.model_config_id + '-'
-    formState.use_model = formState.use_model.split('-')[0]
-    formState.model_config_id = props.librarySearchData?.model_config_id.split('-')[0]
+    formState.use_model = props.librarySearchData?.use_model + '$$'
+    formState.model_config_id = props.librarySearchData?.model_config_id + '$$'
+    formState.use_model = formState.use_model.split('$$')[0]
+    formState.model_config_id = props.librarySearchData?.model_config_id.split('$$')[0]
   }
 }
 
@@ -319,7 +319,12 @@ const updateLibraryInfo = (val) => {
   newState.search_type = parseFloat(newState.search_type)
   newState.rerank_status = parseFloat(newState.rerank_status)
   newState.similarity = parseFloat(newState.similarity)
-  newState.top_k = newState.size
+  newState.top_k = parseFloat(newState.size)
+  
+  if (newState.rerank_use_model === '') {
+    // 这里是因为服务端可能会返回个空字符串，我这里改成undefined才有placeholder
+    newState.rerank_use_model = void 0
+  }
 
   Object.keys(newState).forEach((key) => {
     formState[key] = newState[key]

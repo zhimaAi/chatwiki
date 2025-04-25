@@ -211,3 +211,38 @@ export const reconstructGraph = (data) => {
   })
 }
 
+export const getCategoryList = (params = {}) => {
+  return request.get({
+    url: '/manage/getCategoryList',
+    params: params
+  })
+}
+
+export const saveCategory = (data) => {
+  return request.post({
+    url: '/manage/saveCategory',
+    data: data
+  })
+}
+
+export const updateParagraphCategory = (data) => {
+  return request.post({
+    url: '/manage/updateParagraphCategory',
+    data: data
+  })
+}
+
+export const restudyLibraryFile = (data) => {
+  return request.post({
+    url: '/manage/restudyLibraryFile',
+    data: data
+  })
+}
+
+// 知识库关联机器人
+export const relationRobot = (data) => {
+  return request.post({
+    url: '/manage/relationRobot',
+    data: data
+  })
+}

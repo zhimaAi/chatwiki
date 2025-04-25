@@ -11,4 +11,5 @@ const DefaultMultipartMemory = 32 << 20 // 32 MB
 const (
 	StatusOK                        = 0
 	ErrorCodeContainsSensitiveWords = 10001
+	ErrorCodeNeedLogin              = 10002
 )

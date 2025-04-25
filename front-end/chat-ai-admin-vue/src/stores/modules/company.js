@@ -31,5 +31,4 @@ export const useCompanyStore = defineStore('company', {
       this.id = data ? data.id : '';
     },
   },
-  persist: true
 })

@@ -56,6 +56,34 @@ services:
     networks:
       - chatwiki_network
     restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h localhost || exit 1" ]
+      interval: 1s
+      timeout: 10s
+      retries: 20
+      start_period: 15s
+
+  chatwiki_neo4j:
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/neo4j:20250417
+    container_name: chatwiki_neo4j
+    volumes:
+      - ../volumes/neo4j_data:/data
+      - ../volumes/neo4j_conf:/conf
+    environment:
+      - NEO4J_AUTH=${NEO4J_AUTH}
+      - TZ=${TIMEZONE}
+    networks:
+      - chatwiki_network
+    ports:
+      - "${NEO4J_DB_PORT}:7687"
+      - "${NEO4J_WEB_PORT}:7474"
+    healthcheck:
+      test: wget http://localhost:7474 || exit 1
+      interval: 1s
+      timeout: 10s
+      retries: 20
+      start_period: 70s
+    restart: always
 
   chatwiki_go_nsq_service:
     env_file: ./.env
@@ -100,10 +128,16 @@ services:
       - chatwiki_network
     restart: always
     depends_on:
-      - chatwiki_redis_service
-      - chatwiki_postgres_service
-      - chatwiki_go_nsq_service
-      - chatwiki_websocket
+      chatwiki_redis_service:
+        condition: service_started
+      chatwiki_postgres_service:
+        condition: service_started
+      chatwiki_go_nsq_service:
+        condition: service_started
+      chatwiki_websocket:
+        condition: service_started
+      chatwiki_neo4j:
+        condition: service_healthy
     environment:
       TZ: ${TIMEZONE}
       HTTP_PROXY: ${PROXY:-}

@@ -72,10 +72,11 @@ const (
 )
 
 const (
-	VectorTypeParagraph = 1
-	VectorTypeQuestion  = 2
-	VectorTypeAnswer    = 3
-	VectorTypeCustom    = 4
+	VectorTypeParagraph       = 1
+	VectorTypeQuestion        = 2
+	VectorTypeAnswer          = 3
+	VectorTypeCustom          = 4
+	VectorTypeSimilarQuestion = 5
 )
 
 const (
@@ -143,4 +144,8 @@ const (
 const (
 	PartnerRightsManage = 4
 	PartnerRightsEdit   = 2
+)
+
+const (
+	AccessRestrictionsTypeLogin = 2
 )

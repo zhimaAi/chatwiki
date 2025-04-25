@@ -20,44 +20,54 @@
         <a-breadcrumb-item>知识库详情</a-breadcrumb-item>
       </a-breadcrumb>
     </div>
-    <div class="document-title-block">
+    <div class="document-title-block" style="height: 22px;">
       <LeftOutlined @click="goBack" />
       <span class="title">{{ detailsInfo.file_name }}</span>
       <SegmentationMode :detailsInfo="detailsInfo"></SegmentationMode>
-      <a-space style="margin-left: auto">
-        <a-flex align="center" class="custom-select-box">
-          <span>嵌入状态：</span>
+    </div>
+    <div class="search-content-block">
+      <div class="selct-star-box">
+        <SelectStarBox :startLists="startLists" @change="handleCategoryChange" />
+      </div>
+      <a-space>
+        <!-- <a-flex align="center" class="custom-select-box">
+          <span>分类：</span>
           <a-select
-            v-model:value="filterData.status"
+            v-model:value="filterData.category_id"
             placeholder="请选择"
             style="width: 120px"
             @change="search"
           >
             <a-select-option :value="-1">全部</a-select-option>
-            <a-select-option v-for="(i, key) in listStatusMap" :value="key">{{
-              i
-            }}</a-select-option>
+            <a-select-option v-for="item in startLists" :key="item.id" :value="item.id">
+              <StarFilled :style="{ color: colorLists[item.type] }" /> {{ item.name || '-' }}
+            </a-select-option>
           </a-select>
-        </a-flex>
-        <a-flex align="center" class="custom-select-box">
-          <span>知识图谱状态：</span>
-          <a-select
-            v-model:value="filterData.graph_status"
-            placeholder="请选择"
-            @change="search"
-            style="width: 120px"
-          >
-            <a-select-option :value="-1">全部</a-select-option>
-            <a-select-option v-for="(i, key) in graphStatusMap" :value="key">{{
-              i
-            }}</a-select-option>
-          </a-select>
-        </a-flex>
+        </a-flex> -->
+        <a-select
+          v-model:value="filterData.status"
+          placeholder="请选择"
+          style="width: 160px"
+          @change="search"
+        >
+          <a-select-option :value="-1">全部嵌入状态</a-select-option>
+          <a-select-option v-for="(i, key) in listStatusMap" :value="key">{{ i }}</a-select-option>
+        </a-select>
+        <a-select
+          v-if="detailsInfo.graph_switch"
+          v-model:value="filterData.graph_status"
+          placeholder="请选择"
+          @change="search"
+          style="width: 160px"
+        >
+          <a-select-option :value="-1">全部知识图谱状态</a-select-option>
+          <a-select-option v-for="(i, key) in graphStatusMap" :value="key">{{ i }}</a-select-option>
+        </a-select>
         <a-dropdown>
           <template #overlay>
             <a-menu>
               <a-menu-item @click="reEmbeddingVectors">重新嵌入向量</a-menu-item>
-              <a-menu-item @click="reExtractingGraph">重新抽取知识图谱</a-menu-item>
+              <a-menu-item v-if="detailsInfo.graph_switch" @click="reExtractingGraph">重新抽取知识图谱</a-menu-item>
               <a-menu-item @click="handleRenameModal">重命名</a-menu-item>
               <a-menu-item v-if="doc_type == 2" @click="showUpdateFrequen"
                 >设置更新频率</a-menu-item
@@ -81,12 +91,12 @@
       </div>
     </template>
     <template v-else>
-      <template v-if="isTableType || doc_type == 3">
-        <!-- 表格类型 不支持预览 -->
+      <template v-if="is_qa_doc">
+        <!-- qa 类型文档  -->
         <Empty @openEditSubscription="openEditSubscription" v-if="isEmpty"></Empty>
         <cu-scroll :scrollbar="{ minSize: 0 }" v-else @onScrollEnd="onScrollEnd">
           <div class="content-block">
-            <SubsectionBox
+            <QaSubsectionBox
               ref="subsectionBoxRef"
               :total="total"
               :paragraphLists="paragraphLists"
@@ -94,67 +104,141 @@
               @openEditSubscription="openEditSubscription"
               @handleDelParagraph="handleDelParagraph"
               @handleConvert="handleConvert"
-            ></SubsectionBox>
+              @getStatrList="getStatrList"
+            ></QaSubsectionBox>
           </div>
         </cu-scroll>
       </template>
       <template v-else>
-        <div class="pdf-view-box">
-          <div class="view-content-wrap">
-            <div v-if="detailsInfo?.file_ext == 'pdf'" class="pdf-mode-switch">
-              <a-radio-group v-model:value="pdfPreviewMode">
-                <a-radio-button :value="1">
-                  <a-tooltip placement="right" title="原文预览模式下，会展示pdf原始文件内容，手动编辑分段的不会展示。您可以通过原文预览模式，校验分段准确性，然后手动编辑分段。">
-                    原文预览
-                  </a-tooltip>
-                </a-radio-button>
-                <a-radio-button :value="2">纯文本预览</a-radio-button>
-              </a-radio-group>
+        <template v-if="isTableType || doc_type == 3">
+          <!-- 表格类型 不支持预览 -->
+          <Empty @openEditSubscription="openEditSubscription" v-if="isEmpty"></Empty>
+          <cu-scroll :scrollbar="{ minSize: 0 }" v-else @onScrollEnd="onScrollEnd">
+            <div class="content-block">
+              <SubsectionBox
+                ref="subsectionBoxRef"
+                :total="total"
+                :paragraphLists="paragraphLists"
+                :detailsInfo="detailsInfo"
+                @openEditSubscription="openEditSubscription"
+                @handleDelParagraph="handleDelParagraph"
+                @handleConvert="handleConvert"
+                @getStatrList="getStatrList"
+              ></SubsectionBox>
             </div>
-            <PdfPreview
-              v-if="detailsInfo?.file_ext == 'pdf' && pdfPreviewMode == 1"
-              ref="pdfRef"
-              class="scroll-box pdf-render-box"
-              :source="getFileUrl"
-              @select="pdfPageSelect"
-              @rendered="pdfPageRendered"
-            />
-            <cu-scroll v-else :scrollbar="scrollbar" ref="leftScrollRef" class="scroll-box" @onScrollEnd="onScrollEnd">
-              <div class="view-content-box" style="padding-top: 60px;">
-                <div
-                  class="list-item"
-                  @click="handleClickItem(index)"
-                  v-for="(item, index) in paragraphLists"
-                  :key="index"
-                >
-                  <div class="content-box" v-if="item.question">{{ item.question }}</div>
-                  <div class="content-box" v-if="item.answer">{{ item.answer }}</div>
-                  <div class="content-box" v-html="item.content"></div>
-                  <div class="fragment-img" v-viewer>
-                    <img v-for="(item, index) in item.images" :key="index" :src="item" alt="" />
+          </cu-scroll>
+        </template>
+        <template v-else>
+          <div class="pdf-view-box">
+            <div class="view-content-wrap">
+              <div v-if="detailsInfo?.file_ext == 'pdf'" class="pdf-mode-switch">
+                <a-radio-group v-model:value="pdfPreviewMode">
+                  <a-radio-button :value="1">
+                    <a-tooltip
+                      placement="right"
+                      title="原文预览模式下，会展示pdf原始文件内容，手动编辑分段的不会展示。您可以通过原文预览模式，校验分段准确性，然后手动编辑分段。"
+                    >
+                      原文预览
+                      <span v-if="pdfPreviewMode == 1 && totalPages > 0"
+                        >({{ currentPdfPage }} / {{ totalPages }})</span
+                      >
+                    </a-tooltip>
+                  </a-radio-button>
+                  <a-radio-button :value="2">纯文本预览</a-radio-button>
+                </a-radio-group>
+              </div>
+              <div class="segmentation-btn" v-if="detailsInfo?.file_ext == 'pdf'">
+                <a-dropdown>
+                  <template #overlay>
+                    <a-menu @click="handleSegmentationMenuClick">
+                      <a-menu-item :key="1" v-if="pdfPreviewMode == 1 && totalPages > 0">
+                        <a-tooltip placement="right" title="将当前页重新解析并分段">
+                          <div>将当页重新分段</div>
+                        </a-tooltip>
+                      </a-menu-item>
+                      <a-menu-item :key="2">
+                        <a-tooltip
+                          placement="right"
+                          title="将整个文档重新分段，注意，重新分段并不会重新提取文档的内容，只是将内容重新分段。"
+                        >
+                          <div>将文档重新分段</div>
+                        </a-tooltip>
+                      </a-menu-item>
+                      <a-menu-item :key="3">
+                        <a-tooltip
+                          placement="right"
+                          title="将整个文档重新学习，包含重新解析并提取文档内容，重新分段。"
+                        >
+                          <div>重新学习文档</div>
+                        </a-tooltip>
+                      </a-menu-item>
+                    </a-menu>
+                  </template>
+                  <a-button>
+                    重新分段
+                    <DownOutlined />
+                  </a-button>
+                </a-dropdown>
+              </div>
+              <PdfPreview
+                v-if="detailsInfo?.file_ext == 'pdf' && pdfPreviewMode == 1"
+                ref="pdfRef"
+                class="scroll-box pdf-render-box"
+                :source="getFileUrl"
+                @select="pdfPageSelect"
+                @scroll="pdfPageOnScroll"
+                @rendered="pdfPageRendered"
+                @getTotalPage="getTotalPage"
+              />
+              <cu-scroll
+                v-else
+                :scrollbar="scrollbar"
+                ref="leftScrollRef"
+                class="scroll-box"
+                @onScrollEnd="onScrollEnd"
+              >
+                <div class="view-content-box" style="padding-top: 60px">
+                  <div
+                    class="list-item"
+                    @click="handleClickItem(index)"
+                    v-for="(item, index) in paragraphLists"
+                    :key="index"
+                  >
+                    <div class="content-box" v-if="item.question">{{ item.question }}</div>
+                    <div class="content-box" v-if="item.answer">{{ item.answer }}</div>
+                    <div class="content-box" v-html="item.content"></div>
+                    <div class="fragment-img" v-viewer>
+                      <img v-for="(item, index) in item.images" :key="index" :src="item" alt="" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </cu-scroll>
+              </cu-scroll>
+            </div>
+            <div class="right-contnt-box">
+              <Empty @openEditSubscription="openEditSubscription" v-if="isEmpty"></Empty>
+              <cu-scroll
+                :scrollbar="scrollbar"
+                ref="rightScrollRef"
+                v-else
+                @onScrollEnd="onScrollEnd"
+              >
+                <div class="content-block">
+                  <SubsectionBox
+                    ref="subsectionBoxRef"
+                    :total="total"
+                    :detailsInfo="detailsInfo"
+                    :paragraphLists="paragraphLists"
+                    @openEditSubscription="openEditSubscription"
+                    @handleDelParagraph="handleDelParagraph"
+                    @handleConvert="handleConvert"
+                    @handleScrollTargetPage="paragraphPosition"
+                    @getStatrList="getStatrList"
+                  ></SubsectionBox>
+                </div>
+              </cu-scroll>
+            </div>
           </div>
-          <div class="right-contnt-box">
-            <Empty @openEditSubscription="openEditSubscription" v-if="isEmpty"></Empty>
-            <cu-scroll :scrollbar="scrollbar" ref="rightScrollRef" v-else @onScrollEnd="onScrollEnd">
-              <div class="content-block">
-                <SubsectionBox
-                  ref="subsectionBoxRef"
-                  :total="total"
-                  :detailsInfo="detailsInfo"
-                  :paragraphLists="paragraphLists"
-                  @openEditSubscription="openEditSubscription"
-                  @handleDelParagraph="handleDelParagraph"
-                  @handleConvert="handleConvert"
-                  @handleScrollTargetPage="paragraphPosition"
-                ></SubsectionBox>
-              </div>
-            </cu-scroll>
-          </div>
-        </div>
+        </template>
       </template>
     </template>
     <EditSubscription
@@ -165,6 +249,12 @@
 
     <UpdateFrequency @ok="saveFrequency" ref="updateFrequencyRef"></UpdateFrequency>
     <RenameModal @ok="handleSaveNameOk" ref="renameModalRef" />
+    <ReSegmentationPage
+      @ok="handleReSegmentationPageOk"
+      @enable="handleeEableScroll"
+      :detailsInfo="detailsInfo"
+      ref="reSegmentationPageRef"
+    />
   </div>
 </template>
 
@@ -173,7 +263,7 @@ import { ref, reactive, computed, defineAsyncComponent, nextTick, h, onMounted }
 import { useRoute, useRouter } from 'vue-router'
 import PdfEmbed from 'vue-pdf-embed'
 import { message } from 'ant-design-vue'
-import { LeftOutlined, PlusOutlined, DownOutlined, SettingOutlined } from '@ant-design/icons-vue'
+import { LeftOutlined, PlusOutlined, DownOutlined, StarFilled } from '@ant-design/icons-vue'
 import Empty from './components/empty.vue'
 import SubsectionBox from './components/subsection-box.vue'
 import {
@@ -187,8 +277,18 @@ import EditSubscription from './components/edit-subsection.vue'
 import SegmentationMode from './components/segmentation-mode.vue'
 import UpdateFrequency from './components/update-frequency.vue'
 import RenameModal from '../library-details/components/rename-modal.vue'
-import PdfPreview from "@/components/pdf-preview/pdf-preview.vue";
-import {useUserStore} from "@/stores/modules/user.js";
+import PdfPreview from '@/components/pdf-preview/pdf-preview.vue'
+import { useUserStore } from '@/stores/modules/user.js'
+import colorLists from '@/utils/starColors.js'
+import ReSegmentationPage from './components/re-segmentation-page.vue'
+import QaSubsectionBox from './components/qa-subsection-box.vue'
+import SelectStarBox from './components/selct-star-box.vue'
+
+import { useCompanyStore } from '@/stores/modules/company'
+const companyStore = useCompanyStore()
+const neo4j_status = computed(()=>{
+  return companyStore.companyInfo?.neo4j_status == 'true'
+})
 
 const pdfRef = ref(null)
 const pdfLoadedPage = ref(0)
@@ -199,11 +299,17 @@ const graphStatusMap = {
   2: '生成成功',
   3: '生成失败'
 }
+
+const startLists = ref([])
+const getStatrList = (data) => {
+  startLists.value = data
+}
+
 const scrollbar = ref({
   fade: false,
   scrollbarTrackClickable: true,
   interactive: true,
-  minSize: 40,
+  minSize: 40
 })
 const route = useRoute()
 const router = useRouter()
@@ -219,18 +325,19 @@ const isEmpty = computed(() => {
   let status = detailsInfo.value.status
   return !(status == '1' || status == '2') || paragraphLists.value.length == 0
 })
-const libraryStatus = computed(() => {
-  return detailsInfo.value.status
+const is_qa_doc = computed(() => {
+  return detailsInfo.value.is_qa_doc == '1'
 })
 const detailsInfo = ref({})
 const filterData = reactive({
   status: -1,
-  graph_status: -1
+  graph_status: -1,
+  category_id: -1
 })
 const pdfPreviewMode = ref(1)
 
 const getFileUrl = computed(() => {
-  return '/manage/getLibRawFile?id='+route.query.id+'&token='+userStore.getToken
+  return '/manage/getLibRawFile?id=' + route.query.id + '&token=' + userStore.getToken
 })
 
 onMounted(() => {
@@ -247,8 +354,8 @@ const goBack = () => {
 const leftScrollRef = ref(null)
 const rightScrollRef = ref(null)
 let lastIndex = -1
-const handleClickItem = (index, type=1) => {
-  let elClass,scrollRef
+const handleClickItem = (index, type = 1) => {
+  let elClass, scrollRef
   if (type == 1) {
     elClass = '.subsection-box .list-item'
     scrollRef = rightScrollRef.value
@@ -278,7 +385,10 @@ const getFileInfo = async () => {
   getLibFileInfo({
     id: route.query.id
   }).then((res) => {
-    detailsInfo.value = res.data
+    detailsInfo.value = {
+      ...res.data,
+      graph_switch: res.data.graph_switch == '1' && neo4j_status.value
+    }
     let status = res.data.status
     if (status == 1 || status == 2) {
       getParagraphLists()
@@ -312,12 +422,17 @@ const search = () => {
   getParagraphLists()
 }
 
-const loadMore = (callback=null) => {
+const handleCategoryChange = (id)=>{
+  filterData.category_id = id
+  search()
+}
+
+const loadMore = (callback = null) => {
   paginations.value.page++
   getParagraphLists(callback)
 }
 
-const getParagraphLists = (callback=null) => {
+const getParagraphLists = (callback = null) => {
   isLoading = true
   getParagraphList({
     file_id: route.query.id,
@@ -333,6 +448,9 @@ const getParagraphLists = (callback=null) => {
       item.status_text = listStatusMap[item.status]
       item.graph_status_text = graphStatusMap[item.graph_status]
       item.isExcelQa = isExcelQa
+      if(item.similar_questions){
+        item.similar_questions = JSON.parse(item.similar_questions)
+      }
     })
 
     paragraphInfo.value = data.info
@@ -358,7 +476,6 @@ const onScrollEnd = () => {
 
 const handleConvert = () => {
   updataList()
-
 }
 
 let timer = null
@@ -413,6 +530,7 @@ const handleEditParagraph = (data) => {
     lastItem.answer = data.answer
     lastItem.images = data.images
     lastItem.word_total = data.question.length + data.answer.length + data.content.length
+    lastItem.similar_questions = JSON.parse(data.similar_questions)
     lists.splice(index, 1, lastItem)
     paragraphLists.value = lists
   }
@@ -472,7 +590,7 @@ const handleSaveNameOk = (file_name) => {
   detailsInfo.value.file_name = file_name
 }
 
-const pdfPageSelect = page => {
+const pdfPageSelect = (page) => {
   const link = () => {
     for (let i in paragraphLists.value) {
       // 查询该页的第一个分段
@@ -490,7 +608,7 @@ const pdfPageSelect = page => {
         nextTick(() => {
           link()
         })
-      } else  {
+      } else {
         loadMore(checkLoadFinished)
       }
     }
@@ -510,15 +628,16 @@ const pdfPageRendered = (page, total) => {
   }
 }
 
-const paragraphPosition = data => {
+const paragraphPosition = (data) => {
   if (detailsInfo.value?.file_ext == 'pdf' && pdfPreviewMode.value == 1) {
     const index = data.page_num - 1
-    const getPageEl = () => document.querySelectorAll('.pdf-render-box > .scroll-content .vue-pdf-embed')[index]
+    const getPageEl = () =>
+      document.querySelectorAll('.pdf-render-box > .scroll-content .vue-pdf-embed')[index]
     const link = () => {
       const el = getPageEl()
       el.classList.add('flash-border')
       setTimeout(() => el.classList.remove('flash-border'), 2500)
-      pdfRef.value.getScrollInstance().scrollToElement({el, time: 1000})
+      pdfRef.value.getScrollInstance().scrollToElement({ el, time: 1000 })
     }
     const el = getPageEl()
     if (!el) {
@@ -540,11 +659,58 @@ const paragraphPosition = data => {
     handleClickItem(data.index, 2)
   }
 }
+const currentPdfPage = ref(1)
+let pdfHeight = null
+
+const totalPages = ref(0)
+const getTotalPage = (data) => {
+  totalPages.value = data
+}
+const pdfPageOnScroll = ({ y }) => {
+  if (!pdfHeight) {
+    // 一页pdf的高度
+    const el = document.querySelectorAll('.pdf-render-box > .scroll-content .vue-pdf-embed')[0]
+    pdfHeight = el && el.clientHeight
+  }
+  // 计算一下 现在滚到pdf页码
+  let page = Math.floor(Math.abs(y) / pdfHeight) + 1
+  currentPdfPage.value = Math.max(page, 1)
+}
+
+const reSegmentationPageRef = ref(null)
+
+const handleSegmentationMenuClick = (e) => {
+  let { key } = e
+  // console.log(pdfRef.value.getScrollInstance(),'==')
+  pdfRef.value && pdfRef.value.getScrollInstance().disable()
+  if (key == 1) {
+    reSegmentationPageRef.value.show({
+      type: key,
+      pdf_page_num: currentPdfPage.value
+    })
+  }
+  if (key == 2) {
+    reSegment()
+  }
+  if (key == 3) {
+    reSegmentationPageRef.value.show({
+      type: key,
+      pdf_page_num: 0
+    })
+  }
+}
+const handleeEableScroll = () => {
+  pdfRef.value && pdfRef.value.getScrollInstance().enable()
+}
+const handleReSegmentationPageOk = () => {
+  handleeEableScroll()
+  search()
+}
 </script>
 
 <style lang="less" scoped>
 .breadcrumb-block {
-  height: 48px;
+  height: 56px;
   display: flex;
   align-items: center;
 }
@@ -560,10 +726,10 @@ const paragraphPosition = data => {
   }
   .document-title-block {
     margin-bottom: 16px;
+    margin-top: 12px;
     width: 100%;
     height: 38px;
     border-radius: 2px;
-    // background: #f2f4f7;
     display: flex;
     align-items: center;
     color: #262626;
@@ -576,6 +742,13 @@ const paragraphPosition = data => {
       line-height: 22px;
       margin-left: 8px;
     }
+  }
+
+  .search-content-block{
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+    justify-content: space-between;
   }
 
   .pdf-view-box {
@@ -593,6 +766,12 @@ const paragraphPosition = data => {
         position: absolute;
         top: 12px;
         left: 12px;
+        z-index: 999;
+      }
+      .segmentation-btn {
+        position: absolute;
+        right: 36px;
+        top: 12px;
         z-index: 999;
       }
 
@@ -663,12 +842,12 @@ const paragraphPosition = data => {
     background: transparent;
   }
   50% {
-    background: #C8D9F4;
+    background: #c8d9f4;
   }
 }
 
 .flash-border {
-  background: #C8D9F4;
+  background: #c8d9f4;
   animation: flash-border 1s infinite; /* 持续时间1秒，无限次重复 */
 }
 .mb8 {

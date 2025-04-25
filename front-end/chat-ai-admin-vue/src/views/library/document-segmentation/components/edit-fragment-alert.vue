@@ -1,17 +1,3 @@
-<style lang="less" scoped>
-.upload-box-wrapper {
-  background: #f2f4f7;
-  border-radius: 6px;
-  &::v-deep(.ant-tabs-nav::before) {
-    border-color: #f2f4f7;
-  }
-  &::v-deep(.ant-tabs-nav) {
-    margin: 0;
-    margin-left: 16px;
-  }
-}
-</style>
-
 <template>
   <div>
     <a-modal v-model:open="show" title="编辑分段" @ok="handleOk" width="746px">
@@ -28,6 +14,13 @@
             <a-textarea
               placeholder="请输入分段问题"
               v-model:value="formState.question"
+              style="height: 100px"
+            ></a-textarea>
+          </a-form-item>
+          <a-form-item label="相似问法（一行一个，最多可添加100个相似问法）">
+            <a-textarea
+              placeholder="请输入相似问法"
+              v-model:value="formState.similar_question_list"
               style="height: 100px"
             ></a-textarea>
           </a-form-item>
@@ -54,7 +47,7 @@
                   <span>
                     <svg-icon name="img-icon" style="font-size: 14px; color: #2475fc"></svg-icon>
                     图片
-                    <span v-if="formState.images.length">({{formState.images.length}})</span>
+                    <span v-if="formState.images.length">({{ formState.images.length }})</span>
                   </span>
                 </template>
               </a-tab-pane>
@@ -82,6 +75,7 @@ const formState = reactive({
   content: '',
   question: '',
   answer: '',
+  similar_question_list: '',
   images: []
 })
 
@@ -133,12 +127,13 @@ const formRules = reactive({
 const { resetFields, validate, validateInfos } = useForm(formState, formRules)
 const isExcelQa = ref(false)
 
-const open = ({ title, content, question, answer, images }) => {
+const open = ({ title, content, question, answer, images, similar_question_list }) => {
   formState.title = title
   formState.content = content
   formState.question = question
   formState.answer = answer
   formState.images = images || []
+  formState.similar_question_list = similar_question_list? similar_question_list.join('\n') : ''
   isExcelQa.value = question != ''
 
   show.value = true
@@ -155,3 +150,17 @@ defineExpose({
   open
 })
 </script>
+
+<style lang="less" scoped>
+.upload-box-wrapper {
+  background: #f2f4f7;
+  border-radius: 6px;
+  &::v-deep(.ant-tabs-nav::before) {
+    border-color: #f2f4f7;
+  }
+  &::v-deep(.ant-tabs-nav) {
+    margin: 0;
+    margin-left: 16px;
+  }
+}
+</style>

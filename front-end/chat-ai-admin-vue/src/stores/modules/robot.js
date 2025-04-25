@@ -197,6 +197,11 @@ export const useRobotStore = defineStore('robot', () => {
       return false
     }
 
+    // 特殊处理，后端返回了library_ids: ",357,358,359,244" 处理成 正常的字符串数据
+    if (res.data.library_ids) {
+      res.data.library_ids = res.data.library_ids.split(',').filter(Boolean).join(',');
+    }
+
     let data = res.data
 
     setRobotInfo(data)

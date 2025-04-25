@@ -163,7 +163,7 @@ import MessageList from './components/messages/message-list.vue'
 import MessageItem from './components/messages/message-item.vue'
 import FastComand from './components/fast-comand/index.vue'
 
-import { checkSensitiveWords } from '@/api/robot/index'
+import { checkChatRequestPermission } from '@/api/robot/index'
 
 type MessageListComponent = {  
   scrollToMessage: (id: number | string) => void;
@@ -273,10 +273,11 @@ const onSendMesage = async (content) => {
   }
 
   //检查是否含有敏感词
-  let result = await checkSensitiveWords({
+  let result = await checkChatRequestPermission({
+    from: 'yun_pc',
     robot_key: robot.robot_key,
     openid: robot.openid,
-    question: content,
+    question: content
   })
   if(result.data && result.data.words){
     return showToast(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)

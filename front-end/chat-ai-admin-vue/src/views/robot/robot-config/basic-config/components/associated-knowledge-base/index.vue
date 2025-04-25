@@ -128,7 +128,7 @@
           <CloseCircleOutlined />
         </span>
         <div class="library-name">
-          <a-tooltip>
+          <a-tooltip v-if="neo4j_status">
             <template #title>{{ item.graph_switch == 0 ? '未' : '已' }}开启知识图谱生成</template>
             <div class="graph-tag" :class="{ active: item.graph_switch == 1 }">Graph</div>
           </a-tooltip>
@@ -177,6 +177,12 @@ import RecallSettingsAlert from './recall-settings-alert.vue'
 import NoOpenGraphModal from './no-open-graph-modal.vue'
 
 const { getStorage, removeStorage } = useStorage('localStorage')
+
+import { useCompanyStore } from '@/stores/modules/company'
+const companyStore = useCompanyStore()
+const neo4j_status = computed(()=>{
+  return companyStore.companyInfo?.neo4j_status == 'true'
+})
 
 const isEdit = ref(false)
 

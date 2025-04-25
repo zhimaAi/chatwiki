@@ -55,7 +55,7 @@ export default {
     },
     {
       path: '/public-library/layout',
-      name: 'PublicLibrary',
+      name: 'PublicLibraryLayout',
       component: () => import('@/views/public-library/index.vue'),
       meta: {
         title: '知识库配置',

@@ -162,7 +162,7 @@
               <span class="type-tag" v-if="item.type == 0">普通知识库</span>
               <span class="type-tag" v-if="item.type == 1">对外知识库</span>
               <span class="type-tag" v-if="item.type == 2">问答知识库</span>
-              <a-tooltip>
+              <a-tooltip v-if="neo4j_status">
                 <template #title>{{ item.graph_switch == 0 ? '未' : '已' }}开启知识图谱生成</template>
                 <span class="type-tag graph-tag" :class="{ 'gray-tag': item.graph_switch == 0 }"
                   >Graph</span
@@ -208,7 +208,14 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 const emit = defineEmits(['add', 'edit', 'delete'])
+
+import { useCompanyStore } from '@/stores/modules/company'
+const companyStore = useCompanyStore()
+const neo4j_status = computed(()=>{
+  return companyStore.companyInfo?.neo4j_status == 'true'
+})
 
 const props = defineProps({
   list: {

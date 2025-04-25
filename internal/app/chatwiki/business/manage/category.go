@@ -1,0 +1,128 @@
+// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+
+package manage
+
+import (
+	"chatwiki/internal/app/chatwiki/common"
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_web"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/logs"
+	"github.com/zhimaAi/go_tools/msql"
+	"github.com/zhimaAi/go_tools/tool"
+)
+
+var categoryList = []string{"a", "b", "c", "d", "e"}
+
+func initCategory(adminUserId int) {
+	for _, t := range categoryList {
+		res, err := msql.Model(`category`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`type`, t).Select()
+		if err != nil {
+			logs.Error(err.Error())
+		}
+		if len(res) == 0 {
+			if _, err := msql.Model(`category`, define.Postgres).Insert(msql.Datas{
+				`admin_user_id`: adminUserId,
+				`type`:          t,
+				`create_time`:   tool.Time2Int(),
+				`update_time`:   tool.Time2Int(),
+			}); err != nil {
+				logs.Error(err.Error())
+			}
+		}
+	}
+}
+
+func GetCategoryList(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	initCategory(userId)
+	res, err := msql.Model(`category`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).Select()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(res, nil))
+}
+
+func SaveCategory(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	type CategoryItem struct {
+		Name string `json:"name"`
+		ID   int    `json:"id"`
+	}
+
+	var categoryItems []CategoryItem
+	jsonData := c.PostForm("data")
+	if jsonData == "" {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+
+	if err := json.Unmarshal([]byte(jsonData), &categoryItems); err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `data`))))
+		return
+	}
+	if len(categoryItems) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+
+	m := msql.Model(`category`, define.Postgres)
+	err := m.Begin()
+	defer func() {
+		_ = m.Rollback()
+	}()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+
+	for _, item := range categoryItems {
+		name := strings.TrimSpace(item.Name)
+		_, err := msql.Model(`category`, define.Postgres).
+			Where(`id`, cast.ToString(item.ID)).
+			Where(`admin_user_id`, cast.ToString(userId)).
+			Select()
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		_, err = msql.Model(`category`, define.Postgres).
+			Where(`id`, cast.ToString(item.ID)).
+			Where(`admin_user_id`, cast.ToString(userId)).
+			Update(msql.Datas{
+				`name`:        name,
+				`update_time`: tool.Time2Int(),
+			})
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+	}
+	if err = m.Commit(); err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}

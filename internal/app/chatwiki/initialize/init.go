@@ -5,7 +5,6 @@ package initialize
 import (
 	"chatwiki/internal/app/chatwiki/define"
 	"flag"
-
 	"github.com/zhimaAi/go_tools/logs"
 )
 
@@ -34,6 +33,8 @@ func Initialize() {
 	//initialize postgres
 	initPostgres()
 	logs.Info(`initialize postgres finish`)
+	initNeo4j()
+	logs.Info(`initialize neo4j finish`)
 	//initialize gin
 	initGin()
 	logs.Info(`initialize gin finish`)

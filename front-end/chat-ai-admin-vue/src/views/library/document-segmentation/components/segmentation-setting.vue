@@ -174,6 +174,13 @@
   }
   .excel-qa-form {
     .form-item {
+      flex-wrap: wrap;
+      display: flex;
+      align-items: center;
+      gap: 8px 16px;
+      .form-item-box {
+        width: calc(50% - 8px);
+      }
       .form-item-label {
         padding-top: 5px;
       }
@@ -336,7 +343,7 @@
             <div class="sub-setting-item-name">文件切分</div>
             <!-- 表格类型的QA文档 -->
             <div class="custom-setting-form excel-qa-form" v-if="props.mode == 1">
-              <div class="form-item flex">
+              <div class="form-item">
                 <div class="form-item-box">
                   <div class="form-item-label">问题所在列：</div>
                   <div class="form-item-body">
@@ -344,6 +351,25 @@
                       v-model:value="formState.question_column"
                       @change="onChagneFormInput"
                       placeholder="请选择列名"
+                      style="width: 100%"
+                    >
+                      <a-select-option
+                        v-for="item in props.excellQaLists"
+                        :value="item.value"
+                        :key="item.value"
+                        >{{ item.lable }}</a-select-option
+                      >
+                    </a-select>
+                  </div>
+                </div>
+                <div class="form-item-box">
+                  <div class="form-item-label not-required">相似问法所在列：</div>
+                  <div class="form-item-body">
+                    <a-select
+                      allowClear
+                      v-model:value="formState.similar_column"
+                      @change="onChagneFormInput"
+                      placeholder="请选择相似问法列名"
                       style="width: 100%"
                     >
                       <a-select-option
@@ -420,9 +446,9 @@
                 </div>
               </div>
             </div>
-            <div class="custom-setting-form" v-else>
-              <a-flex :gap="16">
-                <div class="form-item">
+            <div class="custom-setting-form excel-qa-form" v-else>
+              <div class="form-item">
+                <div class="form-item-box">
                   <div class="form-item-label">问题开始标识符：</div>
                   <div class="form-item-body">
                     <a-input
@@ -432,8 +458,18 @@
                     />
                   </div>
                 </div>
+                <div class="form-item-box">
+                  <div class="form-item-label not-required">相似问法开始标识符：</div>
+                  <div class="form-item-body">
+                    <a-input
+                      placeholder="请输入标识符"
+                      v-model:value="formState.similar_label"
+                      @change="onChagneFormInput"
+                    />
+                  </div>
+                </div>
 
-                <div class="form-item">
+                <div class="form-item-box">
                   <div class="form-item-label">答案开始标识符：</div>
                   <div class="form-item-body">
                     <a-input
@@ -443,7 +479,8 @@
                     />
                   </div>
                 </div>
-              </a-flex>
+              </div>
+
               <div class="sub-setting-item-name">索引方式</div>
               <div class="indexing-methods-box">
                 <div
@@ -496,7 +533,9 @@
               <div class="form-item">
                 <div class="form-item-label">分段方式：</div>
                 <div class="form-item-body">
-                  <div class="form-item-tip">提示：语义分段更适合没有排版过的文章，即没有明显换行符号的文本，否则更推荐使用普通分段</div>
+                  <div class="form-item-tip">
+                    提示：语义分段更适合没有排版过的文章，即没有明显换行符号的文本，否则更推荐使用普通分段
+                  </div>
                   <div class="select-card-box">
                     <div
                       class="select-card-item"
@@ -668,7 +707,9 @@
                 >
               </div>
               <div class="btn-box-block">
-                <a-button type="primary" block @click="onSave">保存</a-button>
+                <a-button type="primary" v-if="!props.hideSave" block @click="onSave"
+                  >保存</a-button
+                >
               </div>
             </div>
           </template>
@@ -704,6 +745,10 @@ const props = defineProps({
   },
   library_type: {
     default: 0
+  },
+  hideSave: {
+    type: Boolean,
+    default: false
   }
 })
 const isHtmlOrDocx = computed(() => {
@@ -720,9 +765,11 @@ watch(props, (val) => {
   formState.chunk_overlap = +libFileInfo.chunk_overlap || 50
   // formState.is_qa_doc = +libFileInfo.is_qa_doc
   formState.question_lable = libFileInfo.question_lable
+  formState.similar_label = libFileInfo.similar_label
   formState.answer_lable = libFileInfo.answer_lable
   formState.question_column = libFileInfo.question_column || void 0
   formState.answer_column = libFileInfo.answer_column || void 0
+  formState.similar_column = libFileInfo.similar_column || void 0
   formState.qa_index_type = +libFileInfo.qa_index_type
   formState.enable_extract_image = libFileInfo.enable_extract_image == 'true'
 
@@ -730,10 +777,14 @@ watch(props, (val) => {
   formState.semantic_chunk_size = +libFileInfo.semantic_chunk_size || 512
   formState.semantic_chunk_overlap = +libFileInfo.semantic_chunk_overlap || 50
   formState.semantic_chunk_threshold = +libFileInfo.semantic_chunk_threshold || 90
-  formState.semantic_chunk_use_model = libFileInfo.semantic_chunk_use_model || ''
-  formState.semantic_chunk_model_config_id =
-    libFileInfo.semantic_chunk_model_config_id > 0 ? libFileInfo.semantic_chunk_model_config_id : ''
 
+  setTimeout(() => {
+    formState.semantic_chunk_use_model = libFileInfo.semantic_chunk_use_model || ''
+    formState.semantic_chunk_model_config_id =
+      libFileInfo.semantic_chunk_model_config_id > 0
+        ? libFileInfo.semantic_chunk_model_config_id
+        : ''
+  }, 200)
   if (libFileInfo.chunk_type == 0) {
     separators_no = libFileInfo.normal_chunk_default_separators_no
       ? libFileInfo.normal_chunk_default_separators_no.split(',')
@@ -760,9 +811,11 @@ const formState = reactive({
   chunk_overlap: 50, // 自定义分段-分段重叠长度 默认为50，最小不得低于10，最大不得超过最大分段长度的50%
   is_qa_doc: 0, // 0 普通文档 1 QA文档
   question_lable: '', // QA文档-问题开始标识符
+  similar_label: '', // QA文档-相似度标识符
   answer_lable: '', // QA文档-答案开始标识符
   question_column: void 0, // excel QA文档 问题所在列
   answer_column: void 0, // excel QA文档 答案所在列
+  similar_column: void 0, // excel QA文档 相似度所在列
   qa_index_type: 1, // excel QA文档 索引方式
   enable_extract_image: true,
   chunk_type: 1,
@@ -993,6 +1046,7 @@ const handleChangeQaIndexType = (type) => {
 
 defineExpose({
   formState,
-  reLoading
+  reLoading,
+  reChange
 })
 </script>

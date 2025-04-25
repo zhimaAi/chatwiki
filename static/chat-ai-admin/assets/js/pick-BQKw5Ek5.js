@@ -1,0 +1,1 @@
+import{L as f,W as l,j as o}from"./index-BearFCS_.js";import{av as c,ap as m}from"../../index-DJqZYlN8.js";function v(a,n,s){for(var r=-1,u=n.length,t={};++r<u;){var e=n[r],i=f(a,e);s(i,e)&&c(t,m(e,a),i)}return t}function k(a,n){return v(a,n,function(s,r){return l(a,r)})}var b=o(function(a,n){return a==null?{}:k(a,n)});export{v as b,b as p};
