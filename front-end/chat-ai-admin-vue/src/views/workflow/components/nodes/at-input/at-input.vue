@@ -1,0 +1,679 @@
+<template>
+  <div style="width: 100%;position: relative;">
+    <Teleport to="body">
+      <div v-show="showDropdown" class="dropdown-list" :style="positionStyle" ref="dropdownList" @scroll.stop="">
+        <div class="dropdown-list-item" :ref="'listItem' + optIndex" :class="{ 'active': chooseIndex === optIndex }"
+          v-for="(opt, optIndex) in showOptions" :key="opt.id + opt.value" @click="selectOption(opt)">
+          <slot name="option" :payload="opt" :label="opt.label" :value="opt.value">
+            {{ opt.label }}
+          </slot>
+        </div>
+        <div class="dropdown-list-nodata" v-show="showOptions.length === 0">
+          暂无数据
+        </div>
+      </div>
+    </Teleport>
+    <div class="mention-input-warpper" ref="JMentionContainer" >
+      <div 
+      ref="JMention" 
+      :style="[inputStyle]" 
+      class="j-mention" 
+      :class="[{'show-placeholder': localValue.length == 0, }, 'type-'+type]" 
+      contenteditable="plaintext-only" 
+      :placeholder="placeholder" 
+      @wheel.stop=""
+      @focus="onFocus" 
+      @input="divInput" 
+      @keydown="dropDownKeydown"
+      @click="clickJMention"></div>
+        <div class="placeholder" v-if="localValue.length == 0">{{ placeholder }}</div>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: "JMention",
+  emits: ["input", 'change', "update:selectedList", "focus", 'open'],
+  props: {
+    type: {
+      type: String,
+      default: "input", // input, textarea
+      validator(value) {
+        return ["input", "textarea"].includes(value);
+      },
+    },
+    placeholder: {
+      type: String,
+      default: "请输入",
+    },
+    defaultValue: {
+      type: String,
+      default: "",
+    },
+    options: {
+      type: Array,
+      default: () => [],
+    },
+    defaultSelectedList: {
+      type: Array,
+      default: () => [],
+    },
+    canRepeat: {
+      type: Boolean,
+      default: true,
+    },
+    isContain: {
+      type: Boolean,
+      default: false,
+    },
+    inputStyle: {
+      type: String,
+      default: "",
+    }
+  },
+  data() {
+    return {
+      timer: null,
+      showDropdown: false,
+      showAtList: false,
+      positionStyle: "",
+      chooseIndex: 0,
+      selectedList: [],
+      selectedIdSet: new Set(),
+      showOptions: [],
+      atText: "",
+      localValue: "",
+    };
+  },
+  watch: {
+    chooseIndex(newVal) {
+      this.scrollToSelectedItem(newVal);
+    },
+    showAtList(val){
+      this.onOpen(val);
+    },
+    options(){
+      this.initShowOptionList();
+    },
+  },
+  mounted() {
+    this.initShowOptionList();
+
+    document.addEventListener("dragstart", (e) => {
+      const target = e.target.closest(".dropdown-list");
+      if (target) {
+        e.preventDefault();
+      }
+    });
+    document.addEventListener("click", (e) => {
+      const target = e.target.closest(".dropdown-list");
+      if (!target) {
+        this.showDropdown = false;
+        this.showAtList = false;
+      }
+    });
+    document.addEventListener("scroll", () => {
+      this.showDropdown = false;
+      this.showAtList = false;
+    });
+
+    this.initData();
+  },
+  beforeUnmount() {
+    document.removeEventListener("dragstart", () => { });
+    document.removeEventListener("click", () => { });
+  },
+  methods: {
+    onFocus(){
+      this.$emit("focus");
+    },
+    onOpen(val){
+      this.$emit("open", val);
+    },
+    getText(htmlStr){
+      const div = document.createElement('div');
+      div.innerHTML = htmlStr;
+      let text = '';
+        // 遍历子节点
+        Array.from(div.childNodes).forEach(node => {
+        let textContent = '';
+        if(this.type === 'textarea'){
+          // textarea
+          if(node.nodeName === 'BR'){ // 如果是BR节点,直接添加换行
+            textContent = '\n'; 
+          }else{
+            if (node.classList && node.classList.contains('j-mention-at')) {
+              textContent = node.dataset.value;
+            } else{
+              textContent = node.textContent
+            }
+          }
+        }else{
+          // input
+          if (node.classList && node.classList.contains('j-mention-at')) {
+            textContent = node.dataset.value;
+          }else if(node.nodeName === 'BR'){
+              textContent = '';
+          }else{
+            textContent = node.textContent.replace(/\n/g, '');
+          }
+        }
+
+        // 去除只有&nbsp;字符的节点
+        if (textContent === '&nbsp;' || textContent === ' ') {
+          textContent = '';
+        }
+
+        // 拼接文本内容
+        text += textContent;
+      });
+
+      return text;
+    },
+    onChange(){
+      const jMention = this.$refs.JMention;
+      let htmlStr = jMention.innerHTML;
+      let text = this.getText(htmlStr);
+
+      this.localValue = text;
+
+      this.$emit("change", text, this.selectedList);
+    },
+    refresh(){
+      this.selectedList = [];
+      this.selectedIdSet = new Set();
+
+      this.initShowOptionList();
+      this.initData();
+    },
+    initData() {
+      const JMention = this.$refs.JMention;
+
+      let html = this.defaultValue;
+      let defaultSelectedList = this.defaultSelectedList || [];
+      let selectedList = [...defaultSelectedList, ...this.options].filter(item => item && item.value && item.value != '');
+
+      // 记录已经替换过的的value
+      const replacedValues = new Set();
+      
+      selectedList.forEach((opt) => {
+        // 使用正则匹配完整的value,避免部分匹配
+        const regex = new RegExp(`(${opt.value})`, 'g');
+        if(regex.test(this.defaultValue) && !replacedValues.has(opt.value)){
+          html = html.replace(regex, 
+            `<span class="at-space" contentEditable="true">&nbsp;</span><span class="j-mention-at" data-id="${opt.node_id}" contentEditable="false" data-value="${opt.value}">${opt.label}</span>`
+          );
+
+          replacedValues.add(opt.value);
+          
+          this.selectOption(opt, true);
+        }
+      });
+
+      JMention.innerHTML = html;
+      this.localValue = this.defaultValue;
+    },
+    initShowOptionList() {
+      this.showOptions = this.options.filter((opt) => {
+        if (this.atText) {
+          return opt.label.startsWith(this.atText);
+        }
+        if (this.canRepeat) return true;
+        return !this.selectedIdSet.has(opt.id + "");
+      });
+    },
+    scrollToSelectedItem(index) {
+      // 获取当前选中的列表项元素
+      const selectedItem = this.$refs[`listItem${index}`][0];
+      // 获取下拉列表容器
+      const dropdownList = this.$refs.dropdownList;
+      if (!selectedItem || !dropdownList) return;
+
+      // 获取元素位置和容器尺寸
+      const itemTop = selectedItem.offsetTop;
+      const containerHeight = dropdownList.offsetHeight;
+      const itemHeight = selectedItem.offsetHeight;
+      const scrollTop = dropdownList.scrollTop;
+      if (itemTop < scrollTop) {
+        dropdownList.scrollTop = itemTop;
+        return;
+      }
+      if (itemTop + itemHeight > scrollTop + containerHeight) {
+        dropdownList.scrollTop = itemTop - containerHeight + itemHeight;
+      }
+    },
+    dropDownKeydown(event) {
+      const { keyCode } = event;
+      if (!this.showDropdown) {
+        // 阻止enter键的默认行为
+        if (keyCode === 13 && this.type === 'input') {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+        return
+      };
+      
+      const keyCodeList = [13, 38, 40];
+      if (!keyCodeList.includes(keyCode)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (keyCode === 13) {
+        this.selectOption(this.showOptions[this.chooseIndex]);
+        return;
+      }
+      const map = {
+        38: -1,
+        40: 1,
+      };
+      this.chooseIndex += map[keyCode] || 0;
+      this.chooseIndex = Math.max(
+        0,
+        Math.min(this.chooseIndex, this.showOptions.length - 1)
+      );
+    },
+    getLastChar(len = 1) {
+      const selection = window.getSelection();
+      if (selection.rangeCount <= 0) return;
+      const range = selection.getRangeAt(0);
+      const startOffset = range.startOffset;
+      const startContainer = range.startContainer;
+      let textBeforeCursor = "";
+      if (startContainer.nodeType === Node.TEXT_NODE) {
+        textBeforeCursor = startContainer.textContent.slice(
+          0,
+          startOffset
+        );
+      } else if (startContainer.nodeType === Node.ELEMENT_NODE) {
+        // 若光标在元素节点内，获取其内部文本
+        const childNodes = startContainer.childNodes;
+        for (let i = 0; i < childNodes.length; i++) {
+          const node = childNodes[i];
+          if (node.nodeType === Node.TEXT_NODE) {
+            if (i === childNodes.length - 1) {
+              textBeforeCursor += node.textContent.slice(
+                0,
+                startOffset
+              );
+            } else {
+              textBeforeCursor += node.textContent;
+            }
+          }
+        }
+      }
+      return textBeforeCursor.slice(-len);
+    },
+    getLastAtText() {
+      const selection = window.getSelection();
+      if (selection.rangeCount <= 0) return;
+      const range = selection.getRangeAt(0);
+      const startOffset = range.startOffset;
+      const startContainer = range.startContainer;
+      let textBeforeCursor = "";
+      if (startContainer.nodeType === Node.TEXT_NODE) {
+        textBeforeCursor = startContainer.textContent.slice(
+          0,
+          startOffset
+        );
+      } else if (startContainer.nodeType === Node.ELEMENT_NODE) {
+        // 若光标在元素节点内，获取其内部文本
+        const childNodes = startContainer.childNodes;
+        for (let i = 0; i < childNodes.length; i++) {
+          const node = childNodes[i];
+          if (node.nodeType === Node.TEXT_NODE) {
+            if (i === childNodes.length - 1) {
+              textBeforeCursor += node.textContent.slice(
+                0,
+                startOffset
+              );
+            } else {
+              textBeforeCursor += node.textContent;
+            }
+          }
+        }
+      }
+      const lastAtIndex = textBeforeCursor.lastIndexOf("/");
+      if (lastAtIndex === -1) return "";
+      return textBeforeCursor.slice(lastAtIndex + 1);
+    },
+    async getCaretPosition() {
+      // const JMention = this.$refs.JMention;
+      const selection = window.getSelection();
+      if (selection.rangeCount <= 0) return { top: 0, left: 0 };
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      const dropdownListRect = await this.getDropdownListSize();
+
+      // 获取视口位置
+      let top = rect.bottom;
+      let left = rect.left;
+
+      // 确保下拉列表不会超出视口
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      // 检查右边界
+      if (left + dropdownListRect.width > viewportWidth) {
+        left = viewportWidth - dropdownListRect.width;
+      }
+
+      // 检查底部边界
+      if (top + dropdownListRect.height > viewportHeight) {
+        // 如果下方空间不足，将下拉列表显示在输入框上方
+        top = rect.top - dropdownListRect.height;
+      }
+
+      return {
+        top,
+        left,
+        x: left,
+        y: top
+      };
+    },
+    async getDropdownListSize() {
+      this.showDropdown = true; // 临时显示元素
+      await this.$nextTick(); // 等待 DOM 更新
+      const width = this.$refs.dropdownList.offsetWidth;
+      const height = this.$refs.dropdownList.offsetHeight;
+      this.showDropdown = false; // 恢复隐藏
+      return { width, height };
+    },
+    updateSelectedList() {
+      const JMention = this.$refs.JMention;
+      const nodeList = JMention.querySelectorAll(".j-mention-at");
+      this.selectedList = [];
+      this.selectedIdSet = new Set();
+
+      for (const node of nodeList) {
+        // const { value } = node.dataset;
+        let value = node.dataset.value;
+        const item = this.options.find((opt) => {
+          return opt.value == value;
+        });
+
+        this.selectedList.push(item);
+        this.selectedIdSet.add(value);
+      }
+      this.$emit("update:selectedList", this.selectedList);
+      if (
+        nodeList.length === this.selectedList.length &&
+        !this.atText &&
+        !this.showDropdown
+      ){
+        return;
+      }
+        
+      this.initShowOptionList();
+    },
+    checkStartWith(text) {
+      const list = this.options.filter((opt) => {
+        return opt.label.startsWith(text);
+      });
+      return list.length > 0;
+    },
+    updateValue() {
+      if(this.timer){
+        clearTimeout(this.timer);
+        this.timer = null;
+      }
+
+      this.timer = setTimeout(() => {
+        this.onChange();
+      }, 100);
+    },
+    clickJMention() {
+      this.showDropdown = false;
+      this.showAtList = false;
+    },
+    async divInput(e) {
+      this.updateValue();
+      const lastChar = this.getLastChar();
+      if (e.inputType === "deleteContentBackward" && !this.atText) {
+        this.showDropdown = false;
+        this.showAtList = false;
+      }
+      if (lastChar === "/") {
+        this.showDropdown = true;
+        this.atText = "";
+      } else {
+        const text = this.getLastAtText();
+        this.atText = text;
+        const isExistStartWith = this.checkStartWith(text);
+        if (text) {
+          this.showDropdown = isExistStartWith;
+        }
+      }
+      // this.updateSelectedList();
+      if (!this.showDropdown) {
+        return;
+      }
+      const { x, y } = await this.getCaretPosition();
+      this.showDropdown = true;
+      this.positionStyle = "";
+      this.positionStyle += `left:${x}px;`;
+      this.positionStyle += `top:${y}px;`;
+      this.chooseIndex = 0;
+      this.showAtList = true;
+    },
+    insertAtCaret(text, dataSet) {
+      let len = this.atText.length + 1;
+      const lastChar = this.getLastChar(len);
+      if (lastChar !== "/" + this.atText) len = 0;
+      const selection = window.getSelection();
+      if (selection.rangeCount <= 0) return;
+      const range = selection.getRangeAt(0);
+      const startOffset = range.startOffset;
+      const startContainer = range.startContainer;
+
+      let prevCharOffset = startOffset - len;
+      let prevCharNode = startContainer;
+      if (prevCharOffset < 0) {
+        // 如果当前节点没有前一个字符，查找前一个兄弟节点
+        let prevSibling = startContainer.previousSibling;
+        while (prevSibling) {
+          if (prevSibling.nodeType === Node.TEXT_NODE) {
+            prevCharOffset = prevSibling.textContent.length - len;
+            prevCharNode = prevSibling;
+            break;
+          }
+          prevSibling = prevSibling.previousSibling;
+        }
+      }
+
+      if (prevCharNode.nodeType === Node.TEXT_NODE) {
+        prevCharNode.replaceData(prevCharOffset, len, " ");
+
+        // 创建 span 标签
+        const span = document.createElement("span");
+        span.contentEditable = "false";
+        span.classList.add("j-mention-at");
+        span.style = this.atTextStyle;
+        span.textContent = `${text}`;
+
+        const tmp = document.createElement("span");
+        tmp.contentEditable = true;
+        tmp.innerHTML += "&nbsp;";
+        span.classList.add("at-space");
+
+        for (const key in dataSet) {
+          span.dataset[key] = dataSet[key];
+        }
+
+        // 在原字符位置插入 span 标签
+        const newRange = document.createRange();
+        newRange.setStart(prevCharNode, prevCharOffset);
+        newRange.insertNode(span);
+        newRange.insertNode(tmp);
+
+        // 将光标移动到 span 元素外部
+        let nextNode = span.nextSibling;
+        if (!nextNode) {
+          // 如果 span 元素后面没有兄弟节点，创建一个新的文本节点
+          nextNode = document.createTextNode("");
+          tmp.parentNode.appendChild(nextNode);
+        }
+        range.setStart(nextNode, 1);
+        range.setEnd(nextNode, 1);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    },
+    selectOption(opt, isInit = false) {
+      if (!opt) return;
+      // 处理用户选择逻辑
+      this.showDropdown = false;
+      this.showAtList = false;
+      const text = opt.label;
+    
+      const dataSet = {
+        id: opt.id ,
+        label: opt.label,
+        value: opt.value,
+        text: opt.text,
+        index: this.selectedList.length,
+      };
+ 
+      if (!isInit) this.insertAtCaret(text, dataSet);
+      this.selectedList.push(opt);
+      this.selectedIdSet.add(opt.value);
+      if (!isInit) this.initShowOptionList();
+      if (!isInit) this.updateValue();
+    },
+  },
+};
+</script>
+<style lang="less">
+.j-mention-at {
+  border-radius: 4px;
+  padding: 1px 4px;
+  background: #f2f4f5;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+</style>
+<style lang="less" scoped>
+.mention-input-warpper {
+  position: relative; 
+  overflow-x: hidden; 
+  overflow-y: hidden
+}
+.j-mention {
+  position: relative;
+  overflow: scroll;
+  width: 100%;
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 4px 11px;
+  border: 1px solid #d9d9d9;
+  outline: none;
+  background: #fff;
+
+  &.type-input{
+    overflow-y: hidden;
+    overflow-x: scroll;
+    white-space: nowrap;
+  }
+
+  &.type-textarea{
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    min-height: 64px;
+  }
+
+  &:hover {
+    border: 1px solid #409eff;
+  }
+
+  &:focus {
+    border-color: #4d94ff;
+    box-shadow: 0 0 0 2px rgba(5, 138, 255, 0.06);
+    border-inline-end-width: 1px;
+    outline: 0;
+  }
+
+  &::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+  }
+
+  /*定义滚动条轨道 内阴影+圆角*/
+  &::-webkit-scrollbar-track {
+    border-radius: 0px;
+    background-color: #fafafa;
+  }
+
+  /*定义滑块 内阴影+圆角*/
+  &::-webkit-scrollbar-thumb {
+    border-radius: 0px;
+    background: rgb(191, 191, 191);
+  }
+}
+.placeholder{
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 4px 11px;
+    color: #bfbfbf;
+    pointer-events: none;
+    user-select: none;
+  }
+.dropdown-list {
+  position: absolute;
+  padding: 0;
+  margin: 0;
+  background-color: #fff;
+  z-index: 999;
+  min-width: 180px;
+  max-height: 200px;
+  max-width: 40%;
+  overflow: auto;
+  user-select: none;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+
+  .dropdown-list-nodata {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-size: 13px;
+    padding: 8px;
+  }
+
+  .dropdown-list-item {
+    padding: 8px;
+    cursor: pointer;
+    background: #fff;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.04) !important;
+    }
+
+    &.active {
+      background-color: rgba(0, 0, 0, 0.09) !important;
+    }
+  }
+
+  
+
+  &::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+  }
+
+  /*定义滚动条轨道 内阴影+圆角*/
+  &::-webkit-scrollbar-track {
+    border-radius: 0px;
+    background-color: #fafafa;
+  }
+
+  /*定义滑块 内阴影+圆角*/
+  &::-webkit-scrollbar-thumb {
+    border-radius: 0px;
+    background: rgb(191, 191, 191);
+  }
+}
+</style>

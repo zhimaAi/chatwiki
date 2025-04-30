@@ -47,6 +47,7 @@ var TypArrays = [...]string{
 
 type SimpleFields map[string]SimpleField
 type SimpleField struct {
+	Sys  bool    `json:"sys"`
 	Key  string  `json:"key"`
 	Desc *string `json:"desc,omitempty"`
 	Typ  string  `json:"typ"`
@@ -202,23 +203,29 @@ func (fields RecurveFields) ExtractionData(result map[string]any) RecurveFields 
 	return fields
 }
 
-func (fields RecurveFields) Verify() error {
+func (fields RecurveFields) Verify(parent ...string) error {
+	maps := map[string]struct{}{}
 	for _, field := range fields {
+		fullKey := strings.Join(append(parent, field.Key), `.`)
 		if !IsVariableName(field.Key) {
-			return errors.New(fmt.Sprintf(`字段[%s]不能为空或格式错误`, field.Key))
+			return errors.New(fmt.Sprintf(`字段[%s]不能为空或格式错误`, fullKey))
 		}
 		if !tool.InArrayString(field.Typ, TypScalars[:]) && !tool.InArrayString(field.Typ, TypArrays[:]) {
 			return errors.New(fmt.Sprintf(`字段类型[%s]不在指定列表范围内`, field.Typ))
 		}
+		if _, ok := maps[field.Key]; ok {
+			return errors.New(fmt.Sprintf(`字段[%s]重复定义`, fullKey))
+		}
+		maps[field.Key] = struct{}{}
 		if field.Typ == TypObject {
 			if len(field.Subs) == 0 {
-				return errors.New(fmt.Sprintf(`字段[%s]没有添加子项`, field.Key))
+				return errors.New(fmt.Sprintf(`字段[%s]没有添加子项`, fullKey))
 			}
-			if err := field.Subs.Verify(); err != nil {
+			if err := field.Subs.Verify(append(parent, field.Key)...); err != nil {
 				return err
 			}
 		} else if len(field.Subs) > 0 {
-			return errors.New(fmt.Sprintf(`字段[%s]不允许添加子项`, field.Key))
+			return errors.New(fmt.Sprintf(`字段[%s]不允许添加子项`, fullKey))
 		}
 	}
 	return nil

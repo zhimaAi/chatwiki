@@ -186,7 +186,7 @@ const handleSaveFiles = () => {
   if (isTableType) {
     formData.append('question_column', formState.question_column)
     formData.append('answer_column', formState.answer_column)
-    formData.append('similar_column', formState.similar_column)
+    formState.similar_column && formData.append('similar_column', formState.similar_column)
   } else {
     formData.append('question_lable', formState.question_lable)
     formData.append('answer_lable', formState.answer_lable)

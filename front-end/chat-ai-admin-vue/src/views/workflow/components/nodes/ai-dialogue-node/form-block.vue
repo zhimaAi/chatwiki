@@ -119,24 +119,23 @@
           </div>
         </a-form-item>
         <a-form-item label="提示词" name="prompt">
-          <a-mentions
-            @wheel.stop=""
-            v-model:value="formState.prompt"
-            prefix="/"
-            placeholder="输入 / 插入变量"
-            :options="variableOptions"
-            @select="onTextChange"
-            @blur="() => (isFocus = false)"
-            @focus="() => (isFocus = true)"
-            rows="4"
-          >
-            <template #option="{ value, label, payload }">
-              <div class="field-list-item">
-                <div class="field-label">{{ label }}</div>
-                <div class="field-type">{{ payload.typ }}</div>
-              </div>
-            </template>
-          </a-mentions>
+          <at-input 
+            type="textarea"
+            inputStyle="height: 100px;" 
+            :options="variableOptions" 
+            :defaultSelectedList="formState.prompt_tags" 
+            :defaultValue="formState.prompt" 
+            ref="atInputRef"
+            @open="getVlaueVariableList"
+            @change="(text, selectedList) => changeValue(text, selectedList)" 
+            placeholder="请输入消息内容，键入“/”可以插入变量">
+              <template #option="{ label, payload }">
+                <div class="field-list-item">
+                  <div class="field-label">{{ label }}</div>
+                  <div class="field-type">{{ payload.typ }}</div>
+                </div>
+              </template>
+            </at-input>
           <div class="form-tip">输入 / 插入变量</div>
         </a-form-item>
         <div class="diy-form-item">
@@ -160,20 +159,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, h, inject, computed } from 'vue'
-import { message, Modal } from 'ant-design-vue'
+import { ref, reactive, watch, inject, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import {
-  CloseCircleFilled,
-  CloseCircleOutlined,
   QuestionCircleOutlined,
   UpOutlined,
   DownOutlined,
-  LoadingOutlined,
-  PlusOutlined,
-  EditOutlined,
-  SyncOutlined,
-  ExclamationCircleOutlined
 } from '@ant-design/icons-vue'
+import AtInput from '../at-input/at-input.vue'
 
 import { useRobotStore } from '@/stores/modules/robot'
 const robotStore = useRobotStore()
@@ -187,6 +179,8 @@ const props = defineProps({
     default: () => ({})
   }
 })
+
+const atInputRef = ref(null)
 
 const modelList = computed(() => {
   return robotStore.modelList
@@ -204,6 +198,17 @@ const hanldeShowMore = () => {
   })
 }
 
+const changeValue = (text, selectedList) => {
+  formState.prompt = text
+  formState.prompt_tags = selectedList
+}
+
+const getVlaueVariableList = () => {
+  let list = getNode().getAllParentVariable()
+
+  variableOptions.value = list
+}
+
 const emit = defineEmits(['setData'])
 const formRef = ref()
 
@@ -212,29 +217,35 @@ const formState = reactive({
   use_model: void 0,
   temperature: 0,
   max_token: 0,
-  context_pair: 0,
-  prompt: ''
+  context_pair: 6,
+  prompt: '',
+  prompt_tags: [],
 })
 let lock = false
 watch(
   () => props.properties,
   (val) => {
     try {
-      if (!isFocus.value) {
-        getVariableOptions()
-      }
       if (lock) {
         return
       }
-      let llm = JSON.parse(val.node_params).llm || {}
+
+      let dataRaw = val.dataRaw || val.node_params || '{}'
+      let llm = JSON.parse(dataRaw).llm || {}
+
       llm = JSON.parse(JSON.stringify(llm))
-      let { model_config_id, use_model, context_pair, temperature, max_token, prompt } = llm
+      
+      let { model_config_id, use_model, context_pair, temperature, max_token, prompt, prompt_tags } = llm
+
+      getVlaueVariableList()
+      
       formState.model_config_id = model_config_id
       formState.use_model = use_model
-      formState.context_pair = context_pair
+      formState.context_pair = context_pair || 6
       formState.temperature = temperature
       formState.max_token = max_token
       formState.prompt = prompt
+      formState.prompt_tags = prompt_tags || []
       if (!formState.model_config_id && modelList.value.length > 0) {
         formState.model_config_id = modelList.value[0].id
         formState.use_model = modelList.value[0].children[0].name
@@ -289,7 +300,6 @@ const checkedHeader = (rule, value) => {
 }
 
 const onTextChange = () => {
-  console.log('===')
   let regex = / +【/g
   formState.prompt = formState.prompt.replace(/\//g, '').replace(regex, '【')
 }
@@ -315,43 +325,6 @@ function transformArray(arr, parentLabel = '') {
   return result
 }
 
-function getVariableOptions() {
-  let node = getNode()
-  let preNodes = graphModel().getNodeIncomingNode(node.id)
-  let outOptions = []
-
-  if (preNodes && preNodes.length) {
-    preNodes.forEach((item) => {
-      let node_type = item.properties.node_type
-      let output = item.properties.output
-      if (node_type == 4 && output && output.length) {
-        outOptions = transformArray(output)
-        outOptions = outOptions.filter((it) => !it.hasSub)
-        outOptions = outOptions.map((it) => {
-          return {
-            ...it,
-            value: `【${it.value}】`
-          }
-        })
-      }
-    })
-  }
-  let lists = [
-    {
-      label: '用户消息',
-      value: '【global.question】',
-      payload: { typ: 'string' }
-    },
-    {
-      label: 'open_id',
-      value: '【global.openid】',
-      payload: { typ: 'string' }
-    },
-    ...outOptions
-  ]
-  variableOptions.value = lists
-}
-
 const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
 
 const handleChangeModel = (val, option) => {
@@ -362,6 +335,41 @@ const handleChangeModel = (val, option) => {
       : self.name
   formState.model_config_id = self.id || option.model_config_id
 }
+
+const onUpatateNodeName = (data) => {
+  if(data.node_type !== 'http-node'){
+    return;
+  }
+
+  getVlaueVariableList()
+
+  nextTick(() => {
+    if(formState.prompt_tags && formState.prompt_tags.length > 0){
+      formState.prompt_tags.forEach(tag => {
+        if(tag.node_id == data.node_id){
+          let arr = tag.label.split('/')
+          arr[0] = data.node_name
+          tag.label = arr.join('/')
+          tag.node_name = data.node_name
+        }
+      })
+
+      atInputRef.value.refresh()
+    }
+  })
+}
+
+onMounted(() => {
+  const mode = graphModel()
+
+  mode.eventCenter.on('custom:setNodeName', onUpatateNodeName)
+})
+
+onBeforeUnmount(() => {
+  const mode = graphModel()
+
+  mode.eventCenter.off('custom:setNodeName', onUpatateNodeName)
+})
 
 defineExpose({})
 </script>

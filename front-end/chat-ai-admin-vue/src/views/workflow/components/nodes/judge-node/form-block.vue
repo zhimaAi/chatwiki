@@ -48,7 +48,7 @@
                   <a-cascader
                     v-model:value="term.variable"
                     @change="handleVariableChange(term)"
-                    style="width: 100px"
+                    style="width: 180px"
                     :options="variableOptions"
                     :allowClear="false"
                     :displayRender="({ labels }) => labels.join('.')"
@@ -64,7 +64,7 @@
                     v-if="term.type != 5 && term.type != 6"
                     placeholder="请输入"
                     v-model:value="term.value"
-                    style="width: 150px"
+                    style="width: 170px"
                   ></a-input>
                   <div class="btn-hover-wrap" @click="handleDelCondition(index, i)">
                     <CloseCircleOutlined />
@@ -100,19 +100,11 @@
 
 <script setup>
 import { ref, reactive, watch, h, inject } from 'vue'
-import { message, Modal } from 'ant-design-vue'
 import draggable from 'vuedraggable'
 import {
-  CloseCircleFilled,
   CloseCircleOutlined,
-  QuestionCircleOutlined,
-  UpOutlined,
-  DownOutlined,
-  LoadingOutlined,
   PlusOutlined,
-  EditOutlined,
   HolderOutlined,
-  ExclamationCircleOutlined
 } from '@ant-design/icons-vue'
 
 const props = defineProps({
@@ -134,17 +126,27 @@ const formState = reactive({
 
 const variableOptions = ref([])
 
+function getOptions(){
+  let list = getNode().getAllParentVariable()
+  
+  list.forEach((item) => {
+    item.value = item.value.replace('【', '').replace('】', '')
+  })
+
+  variableOptions.value = list
+}
+
 let lock = false
 watch(
   () => props.properties,
   (val) => {
-    getVariableOptions()
     try {
       if (lock) {
         return
       }
+
+      getOptions()
       let term = JSON.parse(val.node_params).term || []
-      console.log(term,'====')
 
       term = term.map((item) => {
         let terms = item.terms.map((it) => {
@@ -271,38 +273,6 @@ function recursionData(data) {
     }
   })
   return data
-}
-
-function getVariableOptions() {
-  let node = getNode()
-  let preNodes = graphModel().getNodeIncomingNode(node.id)
-  let outOptions = []
-
-  if (preNodes && preNodes.length) {
-    preNodes.forEach((item) => {
-      let node_type = item.properties.node_type
-      let output = item.properties.output
-      if (node_type == 4 && output && output.length) {
-        outOptions = recursionData(output)
-      }
-    })
-  }
-  let lists = [
-    {
-      key: 'global.question',
-      label: '用户消息',
-      value: 'global.question',
-      typ: 'string'
-    },
-    {
-      key: 'global.openid',
-      label: 'open_id',
-      value: 'global.openid',
-      typ: 'string'
-    },
-    ...outOptions
-  ]
-  variableOptions.value = lists
 }
 
 let baseTypeOptions = [

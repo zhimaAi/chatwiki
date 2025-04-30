@@ -270,12 +270,12 @@ const menus = [
     path: '/robot/config/session-record',
     iconName: 'session-record'
   },
-  {
-    label: 'API Key管理',
-    value: 'api-key-manage',
-    path: '/robot/config/api-key-manage',
-    iconName: 'duiwaifuwu'
-  },
+  // {
+  //   label: 'API Key管理',
+  //   value: 'api-key-manage',
+  //   path: '/robot/config/api-key-manage',
+  //   iconName: 'duiwaifuwu'
+  // },
   {
     label: '统计分析',
     value: 'statistical_analysis',

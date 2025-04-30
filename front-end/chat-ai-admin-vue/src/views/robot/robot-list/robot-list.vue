@@ -55,9 +55,9 @@
     }
 
     .robot-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 2px;
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
       overflow: hidden;
     }
 

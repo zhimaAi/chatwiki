@@ -113,7 +113,11 @@ func getAdminUserId(c *gin.Context) int {
 }
 
 func getLoginUserId(c *gin.Context) int {
-	data, err := common.ParseToken(c.GetHeader(`token`))
+	token := c.GetHeader(`token`)
+	if len(token) == 0 {
+		token = c.Query(`token`)
+	}
+	data, err := common.ParseToken(token)
 	if err != nil {
 		return 0
 	}
@@ -125,7 +129,11 @@ func getLoginUserId(c *gin.Context) int {
 }
 
 func GetLoginUserInfo(c *gin.Context) jwt.MapClaims {
-	data, err := common.ParseToken(c.GetHeader(`token`))
+	token := c.GetHeader(`token`)
+	if len(token) == 0 {
+		token = c.Query(`token`)
+	}
+	data, err := common.ParseToken(token)
 	if err != nil {
 		return nil
 	}
@@ -133,7 +141,11 @@ func GetLoginUserInfo(c *gin.Context) jwt.MapClaims {
 }
 
 func CheckLogin(c *gin.Context) {
-	data, err := common.ParseToken(c.GetHeader(`token`))
+	token := c.GetHeader(`token`)
+	if len(token) == 0 {
+		token = c.Query(`token`)
+	}
+	data, err := common.ParseToken(token)
 	if err != nil {
 		c.String(http.StatusUnauthorized, lib_web.FmtJson(nil, err))
 		return

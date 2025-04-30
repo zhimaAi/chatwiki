@@ -50,13 +50,27 @@ func ConvertHtml(msg string, _ ...string) error {
 	m := msql.Model(`chat_ai_library_file`, define.Postgres)
 
 	//convert html
-	htmlUrl, err := common.ConvertHtml(link, cast.ToInt(info[`admin_user_id`]))
+	htmlUrl, err := common.ConvertHtml(fileId, link, cast.ToInt(info[`admin_user_id`]), cast.ToInt(info[`pdf_parse_type`]))
 	if err != nil && err.Error() == `Service Unavailable` {
 		logs.Error(`service unavailable. try again in one minute:%s`, msg)
 		_ = common.AddJobs(define.ConvertHtmlTopic, msg, time.Minute)
 		return nil
 	}
+	if err != nil && strings.Contains(err.Error(), `pdf parse cancelled`) {
+		logs.Error(err.Error())
+		_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
+			`status`:      define.FileStatusCancelled,
+			`update_time`: tool.Time2Int(),
+		})
+		if err != nil {
+			logs.Error(err.Error())
+		}
+		//clear cached data
+		lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: fileId})
+		return nil
+	}
 	if err != nil {
+		logs.Error(err.Error())
 		_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
 			`status`:      define.FileStatusException,
 			`errmsg`:      err.Error(),
@@ -96,15 +110,18 @@ func ConvertVector(msg string, _ ...string) error {
 		return nil
 	}
 	id, fileId := cast.ToInt(data[`id`]), cast.ToInt(data[`file_id`])
-	if id <= 0 || fileId <= 0 {
+	if id <= 0 || fileId < 0 {
 		logs.Error(`data exception:%s`, msg)
 		return nil
 	}
-	file, err := msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(fileId)).Find()
-	if err != nil {
-		logs.Error(err.Error())
-		return nil
+	var file msql.Params
+	var err error
+	if fileId > 0 {
+		if file, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(fileId)).Find(); err != nil {
+			logs.Error(err.Error())
+		}
 	}
+
 	info, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`id`, cast.ToString(id)).Find()
 	if err != nil {
 		logs.Error(err.Error())

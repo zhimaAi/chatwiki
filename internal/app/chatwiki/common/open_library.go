@@ -236,11 +236,9 @@ func (h *LibraryCatalogCacheBuildHandle) GetCacheData() (any, error) {
 		size = 500
 		tree = make([]*LibraryCatalog, 0)
 	)
-	logs.Info(`GetLibDocCateLogByCache:%d`, h.LibraryId)
-	m := msql.Model(`chat_ai_library_file_doc`, define.Postgres).Where(`library_id`, cast.ToString(h.LibraryId))
+	m := msql.Model(`chat_ai_library_file_doc`, define.Postgres)
 	for {
-		info, _, err := m.Where(`is_pub`, `1`).Where(`delete_time`, `0`).Field(`id,doc_key,pid,is_index,file_id,sort,title,create_time,update_time`).Order(`sort desc`).Paginate(page, size)
-		logs.Info(`GetLibDocCateLogByCache:%+v`, info)
+		info, _, err := m.Where(`library_id`, cast.ToString(h.LibraryId)).Where(`is_pub`, `1`).Where(`delete_time`, `0`).Field(`id,doc_key,pid,is_index,file_id,sort,title,create_time,update_time`).Order(`sort desc`).Paginate(page, size)
 		if len(info) == 0 || err != nil {
 			break
 		}

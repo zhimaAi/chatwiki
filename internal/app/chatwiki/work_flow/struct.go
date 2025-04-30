@@ -19,6 +19,20 @@ import (
 
 /************************************/
 
+type StartNodeParams struct {
+	SysGlobal []StartNodeParam `json:"sys_global"`
+	DiyGlobal []StartNodeParam `json:"diy_global"`
+}
+
+type StartNodeParam struct {
+	Key      string `json:"key"`
+	Typ      string `json:"typ"`
+	Required bool   `json:"required"`
+	Desc     string `json:"desc"`
+}
+
+/************************************/
+
 const (
 	TermTypeEqual      = 1
 	TermTypeNotEqual   = 2
@@ -244,12 +258,73 @@ type LlmNodeParams struct {
 
 /************************************/
 
+type AssignNodeParams []AssignNodeParam
+type AssignNodeParam struct {
+	Variable string `json:"variable"`
+	Value    string `json:"value"`
+}
+
+/************************************/
+
+type ReplyNodeParams struct {
+	Content string `json:"content"`
+}
+
+/************************************/
+
+type ManualNodeParams struct {
+}
+
+/************************************/
+
 type NodeParams struct {
-	Term TermNodeParams `json:"term"`
-	Cate CateNodeParams `json:"cate"`
-	Curl CurlNodeParams `json:"curl"`
-	Libs LibsNodeParams `json:"libs"`
-	Llm  LlmNodeParams  `json:"llm"`
+	Start  StartNodeParams  `json:"start"`
+	Term   TermNodeParams   `json:"term"`
+	Cate   CateNodeParams   `json:"cate"`
+	Curl   CurlNodeParams   `json:"curl"`
+	Libs   LibsNodeParams   `json:"libs"`
+	Llm    LlmNodeParams    `json:"llm"`
+	Assign AssignNodeParams `json:"assign"`
+	Reply  ReplyNodeParams  `json:"reply"`
+	Manual ManualNodeParams `json:"manual"`
+}
+
+func DisposeNodeParams(nodeType int, nodeParams string) NodeParams {
+	params := NodeParams{}
+	_ = tool.JsonDecodeUseNumber(nodeParams, &params)
+	if nodeType == NodeTypeStart {
+		params.Start.SysGlobal = []StartNodeParam{
+			{Key: `question`, Typ: common.TypString, Required: true, Desc: `用户消息`},
+			{Key: `openid`, Typ: common.TypString, Required: true, Desc: `用户openid`},
+		}
+	} else {
+		params.Start.SysGlobal = make([]StartNodeParam, 0)
+	}
+	if params.Start.DiyGlobal == nil {
+		params.Start.DiyGlobal = make([]StartNodeParam, 0)
+	}
+	if params.Term == nil {
+		params.Term = make(TermNodeParams, 0)
+	}
+	if params.Cate.Categorys == nil {
+		params.Cate.Categorys = make([]Category, 0)
+	}
+	if params.Curl.Headers == nil {
+		params.Curl.Headers = make([]CurlParam, 0)
+	}
+	if params.Curl.Params == nil {
+		params.Curl.Params = make([]CurlParam, 0)
+	}
+	if params.Curl.Body == nil {
+		params.Curl.Body = make([]CurlParam, 0)
+	}
+	if params.Curl.Output == nil {
+		params.Curl.Output = make(common.RecurveFields, 0)
+	}
+	if params.Assign == nil {
+		params.Assign = make([]AssignNodeParam, 0)
+	}
+	return params
 }
 
 type WorkFlowNode struct {
@@ -261,6 +336,24 @@ type WorkFlowNode struct {
 	NextNodeKey  string          `json:"next_node_key"`
 }
 
+func (node *WorkFlowNode) GetVariables(last ...bool) []string {
+	variables := make([]string, 0)
+	switch node.NodeType {
+	case NodeTypeStart:
+		for _, param := range node.NodeParams.Start.DiyGlobal {
+			variables = append(variables, fmt.Sprintf(`global.%s`, param.Key))
+		}
+	case NodeTypeCurl:
+		for variable := range common.SimplifyFields(node.NodeParams.Curl.Output) {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+				variables = append(variables, variable)
+			}
+		}
+	}
+	return variables
+}
+
 type FromNodes map[string][]*WorkFlowNode
 
 func (fn *FromNodes) AddRelation(node *WorkFlowNode, nextNodeKey string) {
@@ -270,21 +363,51 @@ func (fn *FromNodes) AddRelation(node *WorkFlowNode, nextNodeKey string) {
 	(*fn)[nextNodeKey] = append((*fn)[nextNodeKey], node)
 }
 
-func GetVariableList(nodes []*WorkFlowNode) (variables []string) {
-	variables = append(variables, `global.question`, `global.openid`)
-	for _, node := range nodes {
-		switch node.NodeType {
-		case NodeTypeCurl:
-			for variable := range common.SimplifyFields(node.NodeParams.Curl.Output) {
-				variables = append(variables, variable)
+func (fn *FromNodes) recurveSetFrom(nodeKey string, nodes *[]*WorkFlowNode) {
+	for _, node := range (*fn)[nodeKey] {
+		var exist bool
+		for i := range *nodes {
+			if node.NodeKey == (*nodes)[i].NodeKey {
+				exist = true
+				break
 			}
 		}
+		if exist {
+			continue
+		}
+		*nodes = append(*nodes, node)
+		fn.recurveSetFrom(node.NodeKey, nodes)
 	}
-	return
+}
+
+func (fn *FromNodes) GetVariableList(nodeKey string) []string {
+	//系统全局变量
+	variables := SysGlobalVariables()
+	//上一级节点变量
+	for _, node := range (*fn)[nodeKey] {
+		variables = append(variables, node.GetVariables(true)...)
+	}
+	//递归上上级变量
+	nodes := make([]*WorkFlowNode, 0)
+	fn.recurveSetFrom(nodeKey, &nodes)
+	for _, node := range nodes {
+		variables = append(variables, node.GetVariables()...)
+	}
+	//去重
+	newVs := make([]string, 0)
+	maps := map[string]struct{}{}
+	for _, variable := range variables {
+		if _, ok := maps[variable]; ok {
+			continue
+		}
+		maps[variable] = struct{}{}
+		newVs = append(newVs, variable)
+	}
+	return newVs
 }
 
 func CheckVariablePlaceholder(content string, variables []string) (string, bool) {
-	for _, item := range regexp.MustCompile(`【([a-zA-Z_][a-zA-Z0-9_\-.]*)】`).FindAllStringSubmatch(content, -1) {
+	for _, item := range regexp.MustCompile(`【(([a-f0-9]{32}\.)?[a-zA-Z_][a-zA-Z0-9_\-.]*)】`).FindAllStringSubmatch(content, -1) {
 		if len(item) > 1 && !tool.InArrayString(item[1], variables) {
 			return item[1], false
 		}
@@ -306,7 +429,7 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 			startNodeKey = node.NodeKey
 			startNodeCount++
 		}
-		if !tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeCate, NodeTypeFinish}) {
+		if !tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeFinish, NodeTypeManual}) {
 			fromNodes.AddRelation(&nodeList[i], node.NextNodeKey)
 		}
 		if node.NodeType == NodeTypeTerm {
@@ -319,7 +442,7 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 				fromNodes.AddRelation(&nodeList[i], category.NextNodeKey)
 			}
 		}
-		if node.NodeType == NodeTypeFinish {
+		if tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeFinish, NodeTypeManual}) {
 			finishNodeCount++
 		}
 	}
@@ -340,7 +463,7 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 			return
 		}
 		//校验选择的变量必须存在
-		variables := GetVariableList(fromNodes[node.NodeKey])
+		variables := fromNodes.GetVariableList(node.NodeKey)
 		switch node.NodeType {
 		case NodeTypeTerm:
 			for _, param := range node.NodeParams.Term {
@@ -388,6 +511,22 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 				err = errors.New(node.NodeName + `节点提示词变量不存在:` + variable)
 				return
 			}
+		case NodeTypeAssign:
+			for i, param := range node.NodeParams.Assign {
+				if !tool.InArrayString(param.Variable, variables) { //自定义变量不存在
+					err = errors.New(node.NodeName + `自定义全局变量不存在:` + param.Variable)
+					return
+				}
+				if variable, ok := CheckVariablePlaceholder(param.Value, variables); !ok {
+					err = errors.New(node.NodeName + fmt.Sprintf(`第%d行:变量不存在:`, i+1) + variable)
+					return
+				}
+			}
+		case NodeTypeReply:
+			if variable, ok := CheckVariablePlaceholder(node.NodeParams.Reply.Content, variables); !ok {
+				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				return
+			}
 		}
 	}
 	var libraryArr []string
@@ -423,17 +562,19 @@ func (node *WorkFlowNode) Verify(adminUserId int) error {
 	if len(node.NodeName) == 0 {
 		return errors.New(`节点名称不能为空:` + node.NodeKey)
 	}
-	if len(node.NodeKey) == 0 || len(node.NodeKey) > 32 {
-		return errors.New(`节点NodeKey参数为空或超长:` + node.NodeName)
+	if len(node.NodeKey) == 0 || !common.IsMd5Str(node.NodeKey) {
+		return errors.New(`节点NodeKey参数为空或格式错误:` + node.NodeName)
 	}
-	if len(node.NextNodeKey) > 32 {
-		return errors.New(`节点NextNodeKey参数为空或超长:` + node.NodeName)
+	if len(node.NextNodeKey) > 0 && !common.IsMd5Str(node.NextNodeKey) {
+		return errors.New(`节点NextNodeKey参数格式错误:` + node.NodeName)
 	}
-	if len(node.NextNodeKey) == 0 && !tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeEdges, NodeTypeCate, NodeTypeFinish}) {
+	if len(node.NextNodeKey) == 0 && !tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeEdges, NodeTypeFinish, NodeTypeManual}) {
 		return errors.New(`节点没有指定下一个节点:` + node.NodeName)
 	}
 	var err error
 	switch node.NodeType {
+	case NodeTypeStart:
+		err = node.NodeParams.Start.Verify()
 	case NodeTypeTerm:
 		err = node.NodeParams.Term.Verify()
 	case NodeTypeCate:
@@ -444,9 +585,35 @@ func (node *WorkFlowNode) Verify(adminUserId int) error {
 		err = node.NodeParams.Libs.Verify(adminUserId)
 	case NodeTypeLlm:
 		err = node.NodeParams.Llm.Verify(adminUserId)
+	case NodeTypeAssign:
+		err = node.NodeParams.Assign.Verify()
+	case NodeTypeReply:
+		err = node.NodeParams.Reply.Verify()
+	case NodeTypeManual:
+		err = node.NodeParams.Manual.Verify(adminUserId)
 	}
 	if err != nil {
 		return errors.New(node.NodeName + `节点:` + err.Error())
+	}
+	return nil
+}
+
+func (params *StartNodeParams) Verify() error {
+	maps := map[string]struct{}{}
+	for _, item := range params.DiyGlobal {
+		if !common.IsVariableName(item.Key) {
+			return errors.New(fmt.Sprintf(`自定义全局变量名格式错误:%s`, item.Key))
+		}
+		if tool.InArrayString(fmt.Sprintf(`global.%s`, item.Key), SysGlobalVariables()) {
+			return errors.New(fmt.Sprintf(`自定义全局变量与系统变量同名:%s`, item.Key))
+		}
+		if !tool.InArrayString(item.Typ, []string{common.TypString, common.TypNumber, common.TypArrString}) {
+			return errors.New(fmt.Sprintf(`自定义全局变量类型不支持:%s`, item.Key))
+		}
+		if _, ok := maps[item.Key]; ok {
+			return errors.New(fmt.Sprintf(`自定义全局变量名重复定义:%s`, item.Key))
+		}
+		maps[item.Key] = struct{}{}
 	}
 	return nil
 }
@@ -479,8 +646,8 @@ func (params *TermNodeParams) Verify() error {
 				return errors.New(fmt.Sprintf(`第%d分支的第%d条件:请输入匹配值`, i+1, j+1))
 			}
 		}
-		if len(item.NextNodeKey) == 0 {
-			return errors.New(fmt.Sprintf(`第%d分支:没有指定下一个节点`, i+1))
+		if len(item.NextNodeKey) == 0 || !common.IsMd5Str(item.NextNodeKey) {
+			return errors.New(fmt.Sprintf(`第%d分支:下一个节点未指定或格式错误`, i+1))
 		}
 	}
 	return nil
@@ -497,8 +664,8 @@ func (params *CateNodeParams) Verify(adminUserId int) error {
 		if len(category.Category) == 0 {
 			return errors.New(fmt.Sprintf(`第%d个分类:分类名称为空`, i+1))
 		}
-		if len(category.NextNodeKey) == 0 {
-			return errors.New(fmt.Sprintf(`第%d个分类:没有指定下一个节点`, i+1))
+		if len(category.NextNodeKey) == 0 || !common.IsMd5Str(category.NextNodeKey) {
+			return errors.New(fmt.Sprintf(`第%d个分类:下一个节点未指定或格式错误`, i+1))
 		}
 	}
 	return nil
@@ -603,4 +770,33 @@ func (params *LlmNodeParams) Verify(adminUserId int) error {
 		return errors.New(`提示词内容不能为空`)
 	}
 	return nil
+}
+
+func (params *AssignNodeParams) Verify() error {
+	if params == nil || len(*params) == 0 {
+		return errors.New(`配置参数不能为空`)
+	}
+	for i, param := range *params {
+		if len(param.Variable) == 0 {
+			return errors.New(fmt.Sprintf(`第%d行:请选择变量`, i+1))
+		}
+		if !strings.HasPrefix(param.Variable, `global.`) || !common.IsVariableNames(param.Variable) {
+			return errors.New(fmt.Sprintf(`第%d行:变量格式错误`, i+1))
+		}
+		if tool.InArrayString(param.Variable, SysGlobalVariables()) {
+			return errors.New(fmt.Sprintf(`第%d行:系统全局变量禁止被赋值`, i+1))
+		}
+	}
+	return nil
+}
+
+func (params *ReplyNodeParams) Verify() error {
+	if len(params.Content) == 0 {
+		return errors.New(`消息内容不能为空`)
+	}
+	return nil
+}
+
+func (params *ManualNodeParams) Verify(adminUserId int) error {
+	return errors.New(`仅云版支持转人工节点`)
 }

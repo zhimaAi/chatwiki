@@ -89,6 +89,15 @@ export default {
             title: '关联机器人',
             activeMenu: '/library'
           }
+        },
+        {
+          path: '/library/details/categary-manage',
+          name: 'categaryManages',
+          component: () => import('@/views/library/library-details/categary-manage/index.vue'),
+          meta: {
+            title: '精选',
+            activeMenu: '/library'
+          }
         }
       ]
     },

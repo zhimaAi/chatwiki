@@ -161,7 +161,9 @@
       <FastComand v-if="isShortcut" @send="handleSetMessageInputValue"></FastComand>
     </div>
     <div class="chat-page-footer">
-      <MessageInput ref="messageInputRef" @showLogin="onShowLogin" @send="onSendMesage" :loading="sendLock" />
+      <MessageInput v-if="isMobileDevice" ref="messageInputRef" @showLogin="onShowLogin" @send="onSendMesage" :loading="sendLock" />
+      <MessageInputPc v-else  ref="messageInputRef" @showLogin="onShowLogin" @send="onSendMesage" :loading="sendLock"></MessageInputPc>
+
       <div class="technical-support-text">由 ChatWiki 提供软件支持</div>
     </div>
 
@@ -186,6 +188,12 @@ import LogOut from './components/log-out.vue'
 import LoginModal from './components/login-modal.vue'
 import { useUserStore } from '@/stores/modules/user'
 import { showConfirmDialog } from 'vant';
+import MessageInputPc from './components/message-input-pc.vue'
+import { useRoute } from 'vue-router'
+import { useWindowWidth } from './useWindowWidth';
+
+const { windowWidth } = useWindowWidth();
+const route = useRoute()
 
 type MessageListComponent = {
   scrollToMessage: (id: number | string) => void
@@ -195,6 +203,10 @@ type MessageListComponent = {
 interface LoginModalRefState {
   show: any
 }
+
+const isMobileDevice = computed(()=>{
+  return windowWidth.value <= 500
+})
 
 const userStore = useUserStore()
 const isShowLogOut = computed(() => userStore.getLoginStatus)
@@ -304,8 +316,11 @@ const sendTextMessage = (val: string) => {
     return showToast('请输入消息内容')
   }
 
+  let query = route.query || {}
+
   sendMessage({
-    message: val
+    message: val,
+    global: JSON.stringify(query)
   })
 }
 

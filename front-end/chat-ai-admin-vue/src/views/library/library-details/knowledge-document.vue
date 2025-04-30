@@ -4,7 +4,7 @@
       <div class="list-tools">
         <div class="tools-items">
           <div class="tool-item">
-            <a-dropdown :trigger="['click', 'hover']" overlayClassName="add-dropdown-btn">
+            <a-dropdown :trigger="['hover']" overlayClassName="add-dropdown-btn">
               <template #overlay>
                 <a-menu @click="handleMenuClick">
                   <a-menu-item :key="1">
@@ -75,7 +75,36 @@
             />
           </a-flex>
         </div>
-        <div>
+        <div class="right-box">
+          <div class="status-box" v-if="libraryInfo.type == 0">
+            <div class="status-item">
+              <div class="status-label">已学习：</div>
+              <div class="status-content">{{count_data.learned_count}}</div>
+            </div>
+            <div class="status-item">
+              <div class="status-label">，未学习：</div>
+              <div class="status-content content-tip">{{count_data.learned_wait_count}}</div>
+            </div>
+            <div class="status-item">
+              <div class="status-label">，学习失败：</div>
+              <div class="status-content content-tip">{{count_data.learned_err_count}}</div>
+            </div>
+          </div>
+          <div class="status-select-box" v-if="libraryInfo.type == 0">
+            <a-select
+              v-model:value="queryParams.status"
+              style="width: 150px"
+              placeholder="请选择"
+              @change="handleChangeStatus"
+            >
+              <a-select-option
+                v-for="item in statusList"
+                :key="item.id"
+                :value="item.id"
+                >{{ item.name }}</a-select-option
+              >
+            </a-select>
+          </div>
           <div class="tool-item">
             <a-input
               style="width: 282px"
@@ -90,11 +119,20 @@
           </div>
         </div>
       </div>
+      <page-alert style="margin-bottom: 16px;" title="使用说明" v-if="libraryInfo.type == 0">
+        <div>
+          <p>
+            1、如果单次上传一个文档，上传成功后，系统会自动学习；如果单次上传多个文档，上传成功后，需要手动点击文档后面"学习"进行学习；如果解析失败，支持重新学习。
+          </p>
+          <p>2、未学习的文档数据不会被检索到。</p>
+        </div>
+      </page-alert>
       <!-- :row-selection="{ selectedRowKeys: state.selectedRowKeys, onChange: onSelectChange }" -->
       <div class="list-content">
         <a-table
           :columns="columns"
           :data-source="fileList"
+          :scroll="{x: 1000}"
           row-key="id"
           :pagination="{
             current: queryParams.page,
@@ -109,7 +147,20 @@
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'file_name'">
               <div class="doc-name-td">
-                <a @click="handlePreview(record)">
+                <a-popover :title="null" v-if="record.doc_type == 2">
+                  <template #content>
+                    原链接：<a :href="record.doc_url" target="_blank">{{ record.doc_url }} </a>
+                    <CopyOutlined
+                      v-copy="`${record.doc_url}`"
+                      style="margin-left: 4px; cursor: pointer"
+                    />
+                  </template>
+                  <a @click="handlePreview(record)">
+                    <span v-if="['5', '6', '7'].includes(record.status)">{{ record.doc_url }}</span>
+                    <span v-else>{{ record.file_name }}</span>
+                  </a>
+                </a-popover>
+                <a @click="handlePreview(record)" v-else>
                   <span v-if="['5', '6', '7'].includes(record.status)">{{ record.doc_url }}</span>
                   <span v-else>{{ record.file_name }}</span>
                 </a>
@@ -119,12 +170,35 @@
               </div>
             </template>
             <template v-if="column.key === 'status'">
-              <span class="status-tag running" v-if="record.status == 0"
-                ><a-spin size="small" /> 转换中</span
-              >
+              <template v-if="record.file_ext == 'pdf' && record.pdf_parse_type >= 2">
+                <div class="pdf-progress-box" v-if="record.status == 0">
+                  <div class="progress-title">
+                    <span class="status-box"><LoadingOutlined />文档解析中</span>
+                    <a @click="handleCancelOcrPdf(record)">取消</a>
+                  </div>
+                  <div class="progress-bar">
+                    <a-progress
+                      size="small"
+                      class="progress-bar-box"
+                      :percent="parseInt((record.ocr_pdf_index / record.ocr_pdf_total) * 100)"
+                      :show-info="false"
+                    />
+                    <div class="num-box">
+                      {{ record.ocr_pdf_index }} / {{ record.ocr_pdf_total }}
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <template v-else>
+                <span class="status-tag running" v-if="record.status == 0"
+                  ><a-spin size="small" /> 转换中</span
+                >
+              </template>
+
               <span class="status-tag running" v-if="record.status == 1"
                 ><a-spin size="small" /> 学习中</span
               >
+
               <span class="status-tag complete" v-if="record.status == 2"
                 ><CheckCircleFilled /> 学习完成</span
               >
@@ -164,6 +238,9 @@
                 </template>
                 <span class="status-tag error"><CloseCircleFilled /> 获取失败</span>
               </a-tooltip>
+              <template v-if="record.status == 9">
+                <span class="status-tag cancel"><ExclamationCircleOutlined /> 取消解析</span>
+              </template>
             </template>
             <template v-if="column.key === 'graph_status'">
               <!--0待生成 1排队中 2生成完成 3生成失败 4生成中 5部分成功-->
@@ -199,6 +276,33 @@
               <span v-if="record.doc_type == 3">-</span>
               <span v-else>{{ record.file_size_str }}</span>
             </template>
+            <template v-if="column.key === 'doc_auto_renew_frequency'">
+              <div class="text-block" v-if="record.doc_type == 2">
+                <div class="time-content-box">
+                  <span v-if="record.doc_auto_renew_frequency == 1">不自动更新</span>
+                  <span v-if="record.doc_auto_renew_frequency == 2">每天</span>
+                  <span v-if="record.doc_auto_renew_frequency == 3">每3天</span>
+                  <span v-if="record.doc_auto_renew_frequency == 4">每7天</span>
+                  <span v-if="record.doc_auto_renew_frequency == 5">每30天</span>
+                  <span
+                    class="ml4"
+                    v-if="record.doc_auto_renew_frequency > 1 && record.doc_auto_renew_minute > 0"
+                  >
+                    {{ convertTime(record.doc_auto_renew_minute) }}
+                  </span>
+                  <span v-if="record.doc_auto_renew_frequency > 1">更新</span>
+                  <a class="ml4 btn-hover-block" @click="handleEditOnlineDoc(record)">修改</a>
+                </div>
+                <a-flex align="center">
+                  最近更新: 
+                  {{ record.doc_last_renew_time_desc }}
+                  <a-popconfirm title="确认更新?" @confirm="handleUpdataDoc(record)">
+                    <a class="ml4 btn-hover-block">更新</a>
+                  </a-popconfirm>
+                </a-flex>
+              </div>
+              <div v-else>--</div>
+            </template>
             <template v-if="column.key === 'paragraph_count'">
               <span v-if="record.status == 0 || record.status == 1">-</span>
               <span v-else>{{ record.paragraph_count }}</span>
@@ -207,14 +311,17 @@
               <a-flex :gap="8">
                 <a-tooltip>
                   <template #title>重新分段</template>
-                  <SyncOutlined @click="toReSegmentationPage(record)" />
+                  <SyncOutlined class="btn-hover-block" @click="toReSegmentationPage(record)" />
                 </a-tooltip>
                 <a-dropdown>
                   <div class="table-btn" @click.prevent>
-                    <MoreOutlined />
+                    <MoreOutlined class="btn-hover-block" />
                   </div>
                   <template #overlay>
                     <a-menu>
+                      <a-menu-item v-if="record.doc_type == 2">
+                        <div @click="handleEditOnlineDoc(record)">编辑</div>
+                      </a-menu-item>
                       <a-menu-item
                         :disabled="record.status == 6 || record.status == 7 || record.status == 0"
                       >
@@ -266,7 +373,10 @@
               @click="pdfParseTypeChange(item)"
             >
               <svg-icon class="check-arrow" name="check-arrow-filled"></svg-icon>
-              <div class="card-title">{{ item.title }}</div>
+              <div class="card-title">
+                <svg-icon :name="item.icon" style="font-size: 16px"></svg-icon>
+                {{ item.title }}
+              </div>
               <div class="card-desc">{{ item.desc }}</div>
             </div>
           </div>
@@ -306,6 +416,17 @@
             <a-select-option :value="5">每30天</a-select-option>
           </a-select>
         </a-form-item>
+        <a-form-item
+          v-if="addUrlState.doc_auto_renew_frequency > 1"
+          name="doc_auto_renew_minute"
+          label="更新时间"
+        >
+          <a-time-picker
+            valueFormat="HH:mm"
+            v-model:value="addUrlState.doc_auto_renew_minute"
+            format="HH:mm"
+          />
+        </a-form-item>
       </a-form>
     </a-modal>
     <AddCustomDocument
@@ -316,6 +437,7 @@
     <RenameModal @ok="onSearch" ref="renameModalRef" />
     <OpenGrapgModal @ok="handleOpenGrapgOk" ref="openGrapgModalRef" />
     <GuideLearningTips ref="guideLearningTipsRef" />
+    <EditOnlineDoc @ok="getData" ref="editOnlineDocRef" />
   </div>
 </template>
 
@@ -333,7 +455,8 @@ import {
   HourglassFilled,
   ExclamationCircleOutlined,
   SyncOutlined,
-  ExclamationCircleFilled
+  CopyOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import {
@@ -341,7 +464,9 @@ import {
   delLibraryFile,
   addLibraryFile,
   editLibrary,
-  createGraph
+  createGraph,
+  manualCrawl,
+  cancelOcrPdf
 } from '@/api/library'
 import { formatFileSize } from '@/utils/index'
 import UploadFilesInput from '../add-library/components/upload-input.vue'
@@ -351,12 +476,15 @@ import ModelSelect from '@/components/model-select/model-select.vue'
 import OpenGrapgModal from '@/views/library/library-details/components/open-grapg-modal.vue'
 import QaUploadModal from './components/qa-upload-modal.vue'
 import RenameModal from './components/rename-modal.vue'
+import PageAlert from '@/components/page-alert/page-alert.vue'
 import GuideLearningTips from './components/guide-learning-tips.vue'
+import EditOnlineDoc from './components/edit-online-doc.vue'
 import { useUserStore } from '@/stores/modules/user'
 
+import { convertTime } from '@/utils/index'
 import { useCompanyStore } from '@/stores/modules/company'
 const companyStore = useCompanyStore()
-const neo4j_status = computed(()=>{
+const neo4j_status = computed(() => {
   return companyStore.companyInfo?.neo4j_status == 'true'
 })
 
@@ -365,14 +493,22 @@ const PDF_PARSE_MODE = [
   {
     key: 2,
     title: '图文OCR解析',
+    icon: 'pdf-ocr',
     desc: '通过OCR文字识别提取pdf文件内容，可以兼容扫描件，但是解析速度较慢。'
   },
-  { key: 1, title: '纯文本解析', desc: '只提取pdf中的文字内容，如果文档为扫描件可能提取不到内容。' }
+  {
+    key: 1,
+    title: '纯文本解析',
+    icon: 'pdf-text',
+    desc: '只提取pdf中的文字内容，如果文档为扫描件可能提取不到内容。'
+  },
+  { key: 3, title: '图文解析', icon: 'pdf-img', desc: '提取PDF文档中的图片和文字' }
 ]
 const rotue = useRoute()
 const router = useRouter()
 const query = rotue.query
 
+const isLoading = ref(false)
 const guideLearningTipsRef = ref(null)
 const openGrapgModalRef = ref(null)
 const createGraphSwitch = ref(false)
@@ -486,13 +622,43 @@ const setDefaultModel = () => {
 
 const fileList = ref([])
 
+const count_data = reactive({
+  "learned_err_count": 0, // 失败数
+  "learned_count": 0, // 成功数
+  "learned_wait_count": 0 // 待学习
+})
+
 const queryParams = reactive({
   library_id: query.id,
   file_name: undefined,
+  status: '', // 2:成功 3:全部失败 8:部分失败 4:待学习
   page: 1,
   size: 10,
   total: 0
 })
+
+const statusList = [
+  {
+    id: '',
+    name: '全部'
+  },
+  {
+    id: '4',
+    name: '待学习'
+  },
+  {
+    id: '8',
+    name: '部分失败'
+  },
+  {
+    id: '3',
+    name: '全部失败'
+  },
+  {
+    id: '2',
+    name: '成功'
+  }
+]
 
 const columns = ref([])
 const columnsDefault = [
@@ -500,7 +666,7 @@ const columnsDefault = [
     title: '文档名称',
     dataIndex: 'file_name',
     key: 'file_name',
-    width: 450
+    width: 300
   },
 
   {
@@ -521,17 +687,17 @@ const columnsDefault = [
     key: 'file_size',
     width: 100
   },
-  // {
-  //   title: '更新频率',
-  //   dataIndex: 'doc_auto_renew_frequency',
-  //   key: 'doc_auto_renew_frequency',
-  //   width: '150px'
-  // },
   {
     title: '分段',
     dataIndex: 'paragraph_count',
     key: 'paragraph_count',
     width: 120
+  },
+  {
+    title: '更新频率/时间',
+    dataIndex: 'doc_auto_renew_frequency',
+    key: 'doc_auto_renew_frequency',
+    width: 260
   },
   {
     title: '知识图谱实体数',
@@ -543,7 +709,7 @@ const columnsDefault = [
     title: '文档状态',
     dataIndex: 'status',
     key: 'status',
-    width: 180
+    width: 200
   },
   {
     title: '更新时间',
@@ -555,9 +721,14 @@ const columnsDefault = [
     title: '操作',
     dataIndex: 'action',
     key: 'action',
+    fixed: 'right',
     width: 100
   }
 ]
+
+const handleChangeStatus = (item) => {
+  onSearch()
+}
 
 const onTableChange = (pagination) => {
   queryParams.page = pagination.current
@@ -635,7 +806,12 @@ const handlePreview = (record, params = {}) => {
 }
 
 const getData = () => {
-  getLibraryFileList(toRaw(queryParams)).then((res) => {
+  let params = toRaw(queryParams)
+  if (params.status == 0) {
+    params.status = ''
+  }
+  isLoading.value = true
+  getLibraryFileList(params).then((res) => {
     let info = res.data.info
 
     if (!modelForm.use_model && modelForm.use_model != info.use_model) {
@@ -654,8 +830,14 @@ const getData = () => {
     }
 
     let list = res.data.list || []
+    let countData = res.data.count_data || {}
 
     queryParams.total = res.data.total
+
+    count_data.learned_count = countData.learned_count
+    count_data.learned_err_count = countData.learned_err_count
+    count_data.learned_wait_count = countData.learned_wait_count
+
     let needRefresh = false
     fileList.value = list.map((item) => {
       if (['1', '6', '0', '5', '4'].includes(item.status)) {
@@ -663,10 +845,15 @@ const getData = () => {
       }
       item.file_size_str = formatFileSize(item.file_size)
       item.update_time = dayjs(item.update_time * 1000).format('YYYY-MM-DD HH:mm')
+      item.doc_last_renew_time_desc = item.doc_last_renew_time > 0 ? dayjs(item.doc_last_renew_time * 1000).format(
+        'YYYY-MM-DD HH:mm'
+      ) : '--'
       return item
     })
     needRefresh && timingRefreshStatus()
     !needRefresh && clearInterval(timingRefreshStatusTimer.value)
+  }).finally(() => {
+    isLoading.value = false
   })
 }
 
@@ -712,6 +899,7 @@ const addUrlState = reactive({
   library_id: query.id,
   doc_auto_renew_frequency: 1,
   confirmLoading: false,
+  doc_auto_renew_minute: '',
   rules: {
     urls: [
       {
@@ -734,6 +922,7 @@ const handleOpenUrlModal = () => {
   addUrlState.open = true
   addUrlState.confirmLoading = false
   addUrlState.urls = ''
+  addUrlState.doc_auto_renew_minute = '02:00'
   addUrlState.doc_auto_renew_frequency = 1
 }
 const urlFormRef = ref(null)
@@ -747,6 +936,7 @@ const handleSaveUrl = () => {
         library_id: addUrlState.library_id,
         urls: JSON.stringify(transformUrlData(addUrlState.urls)),
         doc_auto_renew_frequency: addUrlState.doc_auto_renew_frequency,
+        doc_auto_renew_minute: convertTime(addUrlState.doc_auto_renew_minute),
         doc_type: 2
       }).then(() => {
         addUrlState.open = false
@@ -794,7 +984,7 @@ const onFilesChange = (files) => {
 
 const handleSaveFiles = () => {
   // 提交后，需要显示引导学习的弹窗提示。如果勾选了“不再显示”，以后批量上传后不再显示弹窗提示。
-  if (guideLearningTipsRef.value && !userStore.getGuideLearningTips) {
+  if (guideLearningTipsRef.value && !userStore.getGuideLearningTips && addFileState.fileList.length > 1) {
     guideLearningTipsRef.value.show()
   }
 
@@ -892,6 +1082,37 @@ const pdfParseTypeChange = (item) => {
   addFileState.pdf_parse_type = item.key
 }
 
+const editOnlineDocRef = ref(null)
+const handleEditOnlineDoc = (record) => {
+  editOnlineDocRef.value.show({
+    ...record
+  })
+}
+const handleUpdataDoc = (record) => {
+  manualCrawl({
+    id: record.id
+  }).then((res) => {
+    message.success('更新成功')
+    getData()
+  })
+}
+
+const handleCancelOcrPdf = (record) => {
+  Modal.confirm({
+    title: `取消确认？`,
+    content: '确认取消该文档解析',
+    okText: '确定',
+    onOk() {
+      cancelOcrPdf({
+        id: record.id
+      }).then((res) => {
+        message.success('取消成功')
+        getData()
+      })
+    }
+  })
+}
+
 onMounted(() => {
   getData()
 })
@@ -953,6 +1174,7 @@ onUnmounted(() => {
   }
   .right-content-box {
     flex: 1;
+    overflow: hidden;
   }
 }
 
@@ -986,7 +1208,7 @@ onUnmounted(() => {
 }
 
 .list-tools {
-  margin-bottom: 8px;
+  margin-bottom: 16px;
   .tools-items {
     display: flex;
     align-items: center;
@@ -997,6 +1219,29 @@ onUnmounted(() => {
 }
 
 .list-content {
+  .text-block{
+    color: #595959;
+  }
+  .c-gray{
+    color: #8c8c8c;
+  }
+  .time-content-box{
+    display: flex;
+    color: #8c8c8c;
+  }
+  .btn-hover-block{
+    height: 24px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    cursor: pointer;
+    width: fit-content;
+    border-radius: 6px;
+    transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+    &:hover {
+      background: #E4E6EB;
+    }
+  }
   .status-tag {
     display: inline-block;
     height: 24px;
@@ -1006,7 +1251,7 @@ onUnmounted(() => {
     font-size: 14px;
     font-weight: 500;
     text-align: center;
-    color: #3a4559;
+    color: #595959;
     background-color: #edeff2;
 
     &.running {
@@ -1015,8 +1260,8 @@ onUnmounted(() => {
     }
 
     &.complete {
-      color: #21A665;
-      background: #E8FCF3;
+      color: #21a665;
+      background: #e8fcf3;
     }
 
     &.error {
@@ -1025,7 +1270,6 @@ onUnmounted(() => {
       background-color: #f5c6c8;
     }
 
-    
     &.warning {
       cursor: pointer;
       background: #faebe6;
@@ -1052,6 +1296,46 @@ onUnmounted(() => {
       // background: #faebe6;
       color: #ed744a;
     }
+    &.cancel{
+      background: #FAE4DC;
+      color: #ed744a;
+    }
+  }
+}
+.pdf-progress-box {
+  .progress-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    .status-box {
+      width: fit-content;
+      padding: 0 6px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      height: 22px;
+      border-radius: 6px;
+      background: #e8effc;
+      color: #2475fc;
+      font-weight: 500;
+    }
+  }
+  .progress-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 20px;
+    .ant-progress-line {
+      margin: 0;
+    }
+    .progress-bar-box {
+      flex: 1;
+    }
+    .num-box {
+      font-size: 12px;
+      color: #8c8c8c;
+    }
   }
 }
 //.upload-file-box {
@@ -1059,6 +1343,9 @@ onUnmounted(() => {
 //}
 .ml8 {
   margin-left: 8px;
+}
+.ml4 {
+  margin-left: 4px;
 }
 .url-add-form {
   margin-top: 24px;
@@ -1119,6 +1406,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
   .select-card-item {
     width: calc(50% - 8px);
     position: relative;
@@ -1141,6 +1429,7 @@ onUnmounted(() => {
     .card-title {
       display: flex;
       align-items: center;
+      gap: 4px;
       line-height: 22px;
       margin-bottom: 4px;
       color: #262626;
@@ -1172,5 +1461,28 @@ onUnmounted(() => {
 }
 .mt24 {
   margin-top: 24px;
+}
+
+.right-box {
+  display: flex;
+  gap: 16px;
+}
+
+.status-box {
+  display: flex;
+  align-items: center;
+
+  .status-item {
+    display: flex;
+    align-items: center;
+
+    .status-label {
+      color: #595959;
+    }
+
+    .content-tip {
+      color: red;
+    }
+  }
 }
 </style>

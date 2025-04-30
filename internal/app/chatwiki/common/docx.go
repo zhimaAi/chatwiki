@@ -214,9 +214,11 @@ var (
 )
 
 type PdfOcrCacheBuildHandler struct {
-	pdfUrl  string
-	pageNum int
-	lang    string
+	userId       int
+	pdfParseType int
+	pdfUrl       string
+	pageNum      int
+	lang         string
 }
 
 func (h *PdfOcrCacheBuildHandler) GetCacheKey() string {
@@ -224,7 +226,7 @@ func (h *PdfOcrCacheBuildHandler) GetCacheKey() string {
 }
 
 func (h *PdfOcrCacheBuildHandler) GetCacheData() (any, error) {
-	result, wordCount, err := ocrReadOnePagePdfImpl(h.pdfUrl, h.pageNum, h.lang)
+	result, wordCount, err := ocrReadOnePagePdfImpl(h.userId, h.pdfParseType, h.pdfUrl, h.pageNum, h.lang)
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +237,7 @@ func (h *PdfOcrCacheBuildHandler) GetCacheData() (any, error) {
 	}, nil
 }
 
-func ocrReadOnePagePdfImpl(pdfUrl string, pageNum int, lang string) ([]define.DocSplitItem, int, error) {
+func ocrReadOnePagePdfImpl(userId int, pdfParseType int, pdfUrl string, pageNum int, lang string) ([]define.DocSplitItem, int, error) {
 	file := GetFileByLink(pdfUrl)
 	outDir := define.UploadDir + fmt.Sprintf(`pdf_split/%s`, tool.Random(8)) //随机生成切分后的目录
 	defer func(path string) {
@@ -250,19 +252,21 @@ func ocrReadOnePagePdfImpl(pdfUrl string, pageNum int, lang string) ([]define.Do
 	if !tool.IsFile(item) {
 		return nil, 0, errors.New(`page not found`)
 	}
-	content, err := RequestConvertService(item, `pdf`)
+	content, err := RequestConvertService(item, `pdf`, pdfParseType)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	return ParseHtmlContent(content)
+	return ParseOnePageHtmlContent(userId, content, pageNum)
 }
 
-func OcrReadOnePagePdf(pdfUrl string, pageNum int, lang string) ([]define.DocSplitItem, int, error) {
+func OcrReadOnePagePdf(userId int, pdfParseType int, pdfUrl string, pageNum int, lang string) ([]define.DocSplitItem, int, error) {
 	cacheHandler := &PdfOcrCacheBuildHandler{
-		pdfUrl:  pdfUrl,
-		pageNum: pageNum,
-		lang:    lang,
+		userId:       userId,
+		pdfParseType: pdfParseType,
+		pdfUrl:       pdfUrl,
+		pageNum:      pageNum,
+		lang:         lang,
 	}
 
 	var cacheItem PdfOcrCacheItem

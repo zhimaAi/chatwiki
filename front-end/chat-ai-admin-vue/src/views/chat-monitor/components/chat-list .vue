@@ -1,5 +1,6 @@
 <style lang="less" scoped>
 .scroll-wrapper {
+  position: relative;
   height: 100%;
   overflow: hidden;
 }
@@ -140,7 +141,7 @@ import ObserveDOM from '@better-scroll/observe-dom'
 import Pullup from '@better-scroll/pull-up'
 import { storeToRefs } from 'pinia'
 import { useChatMonitorStore } from '@/stores/modules/chat-monitor.js'
-import { ref, onMounted, nextTick, onUnmounted } from 'vue'
+import { ref, onMounted, nextTick, onUnmounted, watch } from 'vue'
 import ListEmpty from './list-empty.vue'
 
 BScroll.use(MouseWheel)
@@ -197,13 +198,20 @@ const getData = async () => {
   } finally {
     loading.value = false
     scrollController.finishPullUp()
-    scrollController.refresh()
   }
 }
 
 const changeReceiver = (item) => {
   emit('switchChat', item)
 }
+
+watch(receiverList, (newValue) => {
+  if (newValue.length > 0) {
+    nextTick(() => {
+      scrollController && scrollController.refresh()
+    })
+  }
+})
 
 onMounted(() => {
   nextTick(() => {

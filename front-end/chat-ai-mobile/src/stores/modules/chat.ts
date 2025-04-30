@@ -397,7 +397,8 @@ export const useChatStore = defineStore('chat', () => {
       question: data.message,
       // prompt: robot.prompt,
       // library_ids: robot.library_ids,
-      dialogue_id: dialogue_id.value
+      dialogue_id: dialogue_id.value,
+      global: data.global
     }
 
     sendLock.value = true

@@ -1,4 +1,3 @@
-import { h as flh } from '@logicflow/core'
 import { BaseVueNodeView, BaseVueNodeModel } from '../base-node.js'
 import VueNode from './index.vue'
 import { getQuestionNodeAnchor } from '../../util.js'
@@ -69,10 +68,11 @@ class VueHtmlNodeModel extends BaseVueNodeModel {
     ]
 
     let anchorListPos = this.getAnchorPos()
+    let y0 = y - height / 2
 
     for (let i = 0; i < anchorListPos.length; i++) {
       let { offsetTop, offsetHeight } = anchorListPos[i]
-      let y0 = y - height / 2
+      
 
       defaultAnchor.push({
         id: anchorListPos[i].id,
@@ -81,6 +81,14 @@ class VueHtmlNodeModel extends BaseVueNodeModel {
         type: 'right'
       })
     }
+
+    defaultAnchor.push({
+      id: nodeSortKey + '-anchor_right',
+      x: x + width / 2,
+      y: y0 + 428 + (anchorListPos.length * 34) - 16,
+      type: 'right',
+      nodeId: id
+    })
 
     return defaultAnchor
   }

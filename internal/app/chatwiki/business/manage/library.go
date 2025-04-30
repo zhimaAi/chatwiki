@@ -149,6 +149,9 @@ func GetLibraryInfo(c *gin.Context) {
 		return
 	}
 	data := msql.Datas{}
+	if cast.ToInt(info[`ai_chunk_size`]) == 0 {
+		info[`ai_chunk_size`] = cast.ToString(define.SplitAiChunkMaxSize)
+	}
 	for k, v := range info {
 		data[k] = v
 	}
@@ -208,6 +211,10 @@ func CreateLibrary(c *gin.Context) {
 	semanticChunkDefaultChunkSize := cast.ToInt(c.PostForm(`semantic_chunk_default_chunk_size`))
 	semanticChunkDefaultChunkOverlap := cast.ToInt(c.PostForm(`semantic_chunk_default_chunk_overlap`))
 	semanticChunkDefaultThreshold := cast.ToInt(c.PostForm(`semantic_chunk_default_threshold`))
+	AiChunkPrumpt := cast.ToString(c.PostForm(`ai_chunk_prumpt`))
+	AiChunkModel := strings.TrimSpace(c.PostForm(`ai_chunk_model`))
+	AiChunkModelConfigId := cast.ToInt(c.PostForm(`ai_chunk_model_config_id`))
+	AiChunkSize := cast.ToInt(c.PostForm(`ai_chunk_size`))
 	avatar := ""
 	if len(libraryName) == 0 || !tool.InArrayInt(typ, define.LibraryTypes[:]) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
@@ -269,6 +276,10 @@ func CreateLibrary(c *gin.Context) {
 		`semantic_chunk_default_chunk_size`:    semanticChunkDefaultChunkSize,
 		`semantic_chunk_default_chunk_overlap`: semanticChunkDefaultChunkOverlap,
 		`semantic_chunk_default_threshold`:     semanticChunkDefaultThreshold,
+		`ai_chunk_prumpt`:                      AiChunkPrumpt,
+		`ai_chunk_model`:                       AiChunkModel,
+		`ai_chunk_model_config_id`:             AiChunkModelConfigId,
+		`ai_chunk_size`:                        AiChunkSize,
 	}
 	if len(avatar) > 0 {
 		data[`avatar`] = avatar
@@ -391,6 +402,10 @@ func EditLibrary(c *gin.Context) {
 	semanticChunkDefaultChunkSize := cast.ToInt(c.PostForm(`semantic_chunk_default_chunk_size`))
 	semanticChunkDefaultChunkOverlap := cast.ToInt(c.PostForm(`semantic_chunk_default_chunk_overlap`))
 	semanticChunkDefaultThreshold := cast.ToInt(c.PostForm(`semantic_chunk_default_threshold`))
+	AiChunkPrumpt := cast.ToString(c.PostForm(`ai_chunk_prumpt`))
+	AiChunkModel := strings.TrimSpace(c.PostForm(`ai_chunk_model`))
+	AiChunkModelConfigId := cast.ToInt(c.PostForm(`ai_chunk_model_config_id`))
+	AiChunkSize := cast.ToInt(c.PostForm(`ai_chunk_size`))
 	if id <= 0 || len(libraryName) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
@@ -439,7 +454,7 @@ func EditLibrary(c *gin.Context) {
 		return
 	}
 
-	if !tool.InArrayInt(chunkType, []int{define.ChunkTypeNormal, define.ChunkTypeSemantic}) {
+	if !tool.InArrayInt(chunkType, []int{define.ChunkTypeNormal, define.ChunkTypeSemantic, define.ChunkTypeAi}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `chunk_type`))))
 		return
 	}
@@ -470,6 +485,17 @@ func EditLibrary(c *gin.Context) {
 		}
 		if semanticChunkDefaultThreshold < 1 || semanticChunkDefaultThreshold > 100 {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `semantic_chunk_threshold_err`, 1, 100))))
+			return
+		}
+	}
+
+	if chunkType == define.ChunkTypeAi {
+		if ok := common.CheckModelIsValid(userId, AiChunkModelConfigId, AiChunkModel, common.Llm); !ok {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `ai_chunk_model`))))
+			return
+		}
+		if len(AiChunkPrumpt) == 0 || len(AiChunkPrumpt) > 500 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `ai_chunk_prumpt`))))
 			return
 		}
 	}
@@ -514,6 +540,10 @@ func EditLibrary(c *gin.Context) {
 		`semantic_chunk_default_chunk_size`:    semanticChunkDefaultChunkSize,
 		`semantic_chunk_default_chunk_overlap`: semanticChunkDefaultChunkOverlap,
 		`semantic_chunk_default_threshold`:     semanticChunkDefaultThreshold,
+		`ai_chunk_prumpt`:                      AiChunkPrumpt,
+		`ai_chunk_model`:                       AiChunkModel,
+		`ai_chunk_model_config_id`:             AiChunkModelConfigId,
+		`ai_chunk_size`:                        AiChunkSize,
 	}
 	if len(avatar) > 0 {
 		data[`avatar`] = avatar

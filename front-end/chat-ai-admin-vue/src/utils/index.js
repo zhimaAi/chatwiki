@@ -334,3 +334,35 @@ export function formatDisplayChatTime(time) {
     return `${year}-${month}-${day} ${timeStr}`
   }
 }
+
+
+
+
+/**
+ * 在时间格式和分钟数之间转换
+ * @param {string|number} input - 输入可以是时间格式字符串（如 "00:10"）或分钟数（如 10 或 "70"）
+ * @returns {string|number} - 返回转换后的结果
+ */
+export function convertTime(input) {
+  // 如果输入是数字，或者字符串形式的数字，转换为时间格式
+  if (typeof input === 'number' || (typeof input === 'string' && !isNaN(input))) {
+    const minutes = parseInt(input, 10);
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    // 使用 padStart 确保两位数格式
+    return `${String(hours).padStart(2, '0')}:${String(remainingMinutes).padStart(2, '0')}`;
+  }
+  
+  // 如果输入是时间格式字符串，转换为分钟数
+  if (typeof input === 'string') {
+    const parts = input.split(':');
+    if (parts.length === 2) {
+      const hours = parseInt(parts[0], 10) || 0;
+      const minutes = parseInt(parts[1], 10) || 0;
+      return hours * 60 + minutes;
+    }
+  }
+  
+  // 如果输入无效，返回原始值或抛出错误
+  return input;
+}

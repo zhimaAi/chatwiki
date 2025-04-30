@@ -1,6 +1,6 @@
 <template>
   <a-select
-    v-model:value="value"
+    v-model:value="selectMode"
     :placeholder="placeholder"
     @change="handleChangeModel"
     style="width: 100%"
@@ -74,13 +74,13 @@ const props = defineProps({
   }
 })
 
-const value = ref()
+const selectMode = ref()
 
 watch([() => props.modeId, () => props.modeName], ([newModeId, newModeName]) => {
   if (!newModeId || !newModeName) {
     return
   }
-  value.value = newModeId + '-' + newModeName
+  selectMode.value = newModeId + '-' + newModeName
 })
 
 const modelList = ref([])
@@ -152,7 +152,7 @@ const getModelList = () => {
     newList = uniqueArr(duplicateRemoval(newList, 'model_define'), newList, 'model_define')
 
     if (newList.length === 0) {
-      value.value = '无可用模型'
+      selectMode.value = '无可用模型'
     }
 
     modelList.value = [...newList]
@@ -170,6 +170,10 @@ watch(
 
 onMounted(() => {
   getModelList(false)
+
+  if (props.modeId && props.modeName) {
+    selectMode.value = props.modeId + '-' + props.modeName
+  }
 })
 </script>
 

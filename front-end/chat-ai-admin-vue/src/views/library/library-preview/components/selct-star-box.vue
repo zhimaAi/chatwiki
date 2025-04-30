@@ -4,7 +4,7 @@
       <a-tab-pane :key="-1">
         <template #tab>全部</template>
       </a-tab-pane>
-      <a-tab-pane :key="0">
+      <a-tab-pane :key="0" v-if="!hideId.includes(0)">
         <template #tab>
           <div class="star-item"><StarOutlined />未标记</div>
         </template>
@@ -29,6 +29,10 @@ const props = defineProps({
   startLists: {
     type: Array,
     default: () => []
+  },
+  hideId: {
+    type: [Number, String, Array],
+    default: () => []
   }
 })
 
@@ -49,6 +53,7 @@ const handleChange = () => {
     display: flex;
     align-items: center;
     gap: 4px;
+    min-width: 32px;
     .anticon {
       margin: 0;
       font-size: 16px;

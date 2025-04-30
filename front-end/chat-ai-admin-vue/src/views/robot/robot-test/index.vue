@@ -195,7 +195,7 @@ const {
   $reset
 } = chatStore
 const { messageList, sendLock, myChatList, robot, dialogue_id } = storeToRefs(chatStore)
-console.log(robot.value,'==')
+
 const route = useRoute()
 const isRobotInfo = ref(false)
 
@@ -218,7 +218,8 @@ const onSendMesage = async () => {
   isAllowedScrollToBottom = true
 
   sendMessage({
-    message: message.value
+    message: message.value,
+    global: JSON.stringify(query)
   })
 
   message.value = ''

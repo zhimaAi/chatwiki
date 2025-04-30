@@ -112,14 +112,20 @@ func init() {
 	Route[http.MethodPost][`/manage/restudyLibraryFile`] = manage.RestudyLibraryFile
 	Route[http.MethodPost][`/manage/renewLibraryFile`] = manage.RenewLibraryFile
 	Route[http.MethodPost][`/manage/editLibFile`] = manage.EditLibFile
+	Route[http.MethodPost][`/manage/manualCrawl`] = manage.ManualCrawl
 	Route[http.MethodPost][`/manage/constructGraph`] = manage.ConstructGraph
 	Route[http.MethodPost][`/manage/reconstructVector`] = manage.ReconstructVector
+	Route[http.MethodPost][`/manage/reconstructCategoryVector`] = manage.ReconstructCategoryVector
 	Route[http.MethodPost][`/manage/reconstructGraph`] = manage.ReconstructGraph
+	Route[http.MethodPost][`/manage/cancelOcrPdf`] = manage.CancelOcrPdf
 	/*paragraph API*/
 	Route[http.MethodGet][`/manage/getSeparatorsList`] = manage.GetSeparatorsList
 	Route[http.MethodGet][`/manage/getLibFileSplit`] = manage.GetLibFileSplit
+	Route[http.MethodGet][`/manage/getLibFileSplitAiChunks`] = manage.GetLibFileSplitAiChunks
 	Route[http.MethodPost][`/manage/saveLibFileSplit`] = manage.SaveLibFileSplit
 	Route[http.MethodGet][`/manage/getParagraphList`] = manage.GetParagraphList
+	Route[http.MethodGet][`/manage/getCategoryParagraphList`] = manage.GetCategoryParagraphList
+	Route[http.MethodPost][`/manage/saveCategoryParagraph`] = manage.SaveCategoryParagraph
 	Route[http.MethodPost][`/manage/addParagraph`] = manage.SaveParagraph
 	Route[http.MethodPost][`/manage/editParagraph`] = manage.SaveParagraph
 	Route[http.MethodPost][`/manage/deleteParagraph`] = manage.DeleteParagraph

@@ -24,6 +24,7 @@ type WorkFlowParams struct {
 	*define.ChatRequestParam
 	CurMsgId   int
 	DialogueId int
+	SessionId  int
 }
 
 type WorkFlow struct {
@@ -37,6 +38,7 @@ type WorkFlow struct {
 	isTimeout   bool
 	global      common.SimpleFields
 	output      common.SimpleFields
+	outputs     map[string]common.SimpleFields
 	curNodeKey  string
 	runNodeKeys []string
 	curNode     NodeAdapter
@@ -93,6 +95,7 @@ func (flow *WorkFlow) Running() (err error) {
 			NodeType:  cast.ToInt(nodeInfo[`node_type`]),
 		}
 		flow.output, nextNodeKey, err = flow.curNode.Running(flow)
+		flow.outputs[flow.curNodeKey] = flow.output //记录每个节点输出的变量
 		nodeLog.EndTime = time.Now().UnixMilli()
 		nodeLog.Output = flow.output
 		nodeLog.Error = err
@@ -142,13 +145,21 @@ func (flow *WorkFlow) Ending() {
 }
 
 func (flow *WorkFlow) VariableReplace(content string) string {
-	for key, field := range flow.output {
-		content = strings.ReplaceAll(content, fmt.Sprintf(`【%s】`, key), field.ShowVals())
-	}
+	//优先替换全局变量
 	for key, field := range flow.global {
 		content = strings.ReplaceAll(content, fmt.Sprintf(`【global.%s】`, key), field.ShowVals())
 	}
-	return regexp.MustCompile(`【[a-zA-Z_][a-zA-Z0-9_\-.]*】`).ReplaceAllString(content, ``)
+	//再替换节点输出变量
+	for nodeKey, output := range flow.outputs {
+		for key, field := range output {
+			content = strings.ReplaceAll(content, fmt.Sprintf(`【%s.%s】`, nodeKey, key), field.ShowVals())
+		}
+	}
+	//这个变成了旧数据兼容
+	for key, field := range flow.output {
+		content = strings.ReplaceAll(content, fmt.Sprintf(`【%s】`, key), field.ShowVals())
+	}
+	return regexp.MustCompile(`【([a-f0-9]{32}\.)?[a-zA-Z_][a-zA-Z0-9_\-.]*】`).ReplaceAllString(content, ``)
 }
 
 func (flow *WorkFlow) GetVariable(key string) (field common.SimpleField, exist bool) {
@@ -164,6 +175,10 @@ func (flow *WorkFlow) GetVariable(key string) (field common.SimpleField, exist b
 	return
 }
 
+func SysGlobalVariables() []string { //固定值,runtime时不可变更
+	return []string{`global.question`, `global.openid`}
+}
+
 func RunningWorkFlow(params *WorkFlowParams) (*WorkFlow, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	flow := &WorkFlow{
@@ -174,10 +189,11 @@ func RunningWorkFlow(params *WorkFlowParams) (*WorkFlow, error) {
 		cancel:    cancel,
 		ticker:    time.NewTicker(time.Minute * 5), //DIY
 		global: common.SimpleFields{
-			`question`: common.SimpleField{Key: `question`, Desc: tea.String(`用户消息`), Typ: common.TypString, Vals: []common.Val{{String: &params.Question}}},
-			`openid`:   common.SimpleField{Key: `openid`, Desc: tea.String(`用户openid`), Typ: common.TypString, Vals: []common.Val{{String: &params.Openid}}},
+			`question`: common.SimpleField{Sys: true, Key: `question`, Desc: tea.String(`用户消息`), Typ: common.TypString, Vals: []common.Val{{String: &params.Question}}},
+			`openid`:   common.SimpleField{Sys: true, Key: `openid`, Desc: tea.String(`用户openid`), Typ: common.TypString, Vals: []common.Val{{String: &params.Openid}}},
 		},
-		curNodeKey:  params.Robot[`start_node_key`], //开始节点
+		outputs:     make(map[string]common.SimpleFields), //记录每个节点输出的变量
+		curNodeKey:  params.Robot[`start_node_key`],       //开始节点
 		runNodeKeys: make([]string, 0),
 		runLogs:     make([]string, 0),
 	}
@@ -216,7 +232,7 @@ func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monit
 	}
 	content = cast.ToString(flow.output[`special.llm_reply_content`].GetVal(common.TypString))
 	if len(content) == 0 {
-		err = errors.New(`没有AI对话节点回复返回`)
+		err = errors.New(`工作流没有可以回复的内容返回`)
 		return
 	}
 	requestTime = cast.ToInt64(flow.output[`special.llm_request_time`].GetVal(common.TypNumber))

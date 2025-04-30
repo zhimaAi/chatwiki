@@ -38,7 +38,6 @@
             :disabled="!isEdit"
             v-model:value="formState.prompt_struct.role.describe"
             :placeholder="placeholderMap.role"
-            :auto-size="{ minRows: 1, maxRows: 5 }"
           />
         </div>
       </div>
@@ -56,7 +55,6 @@
             :disabled="!isEdit"
             v-model:value="formState.prompt_struct.task.describe"
             :placeholder="placeholderMap.task"
-            :auto-size="{ minRows: 1, maxRows: 5 }"
           />
         </div>
       </div>
@@ -75,7 +73,7 @@
               :disabled="!isEdit"
               v-model:value="formState.prompt_struct.constraints.describe"
               :placeholder="placeholderMap.constraints"
-              :auto-size="{ minRows: 1, maxRows: 5 }"
+              style="min-height: 130px;"
             />
           </div>
         </div>
@@ -111,7 +109,6 @@
               :disabled="!isEdit"
               v-model:value="formState.prompt_struct.output.describe"
               :placeholder="placeholderMap.output"
-              :auto-size="{ minRows: 1, maxRows: 5 }"
             />
           </div>
         </div>
@@ -129,7 +126,6 @@
               :disabled="!isEdit"
               v-model:value="formState.prompt_struct.tone.describe"
               :placeholder="placeholderMap.tone"
-              :auto-size="{ minRows: 1, maxRows: 5 }"
             />
           </div>
         </div>
@@ -162,7 +158,6 @@
               :disabled="!isEdit"
               v-model:value="item.describe"
               placeholder="请输入"
-              :auto-size="{ minRows: 1, maxRows: 5 }"
             />
           </div>
         </div>
@@ -206,7 +201,6 @@
         v-model:value="formState.prompt"
         :disabled="!isEdit"
         placeholder="请输入"
-        :auto-size="{ minRows: 5, maxRows: 15 }"
       />
     </div>
     <AiCreatePrompt @handleAiSave="handleAiSave" ref="aiCreatePromptRef" />

@@ -70,7 +70,7 @@ type Monitor struct {
 }
 
 func (m *Monitor) Save(err error) {
-	if len(m.params.Robot) == 0 {
+	if m.params.ChatBaseParam == nil || len(m.params.Robot) == 0 {
 		return //机器人信息为空,请求参数robot_key错误
 	}
 	m.EndTime = time.Now().UnixMilli()

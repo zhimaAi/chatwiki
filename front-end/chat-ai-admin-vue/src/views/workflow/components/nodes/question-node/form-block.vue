@@ -160,6 +160,16 @@
                 </div>
               </div>
             </a-form-item>
+            </div>
+
+            <div class="form-item-list">
+              <a-form-item
+              :label="null"
+            >
+              <div class="flex-block-item">
+                <a-input class="flex1" value="默认分类" readonly></a-input>
+              </div>
+            </a-form-item>
           </div>
           <a-button @click="handleAddcategory" :icon="h(PlusOutlined)" block type="dashed"
             >添加问题分类</a-button
@@ -171,19 +181,14 @@
 </template>
 
 <script setup>
+import { getSystemVariable } from '../../util'
 import { ref, reactive, watch, h, inject, computed } from 'vue'
-import { message, Modal } from 'ant-design-vue'
 import {
-  CloseCircleFilled,
   CloseCircleOutlined,
   QuestionCircleOutlined,
   UpOutlined,
   DownOutlined,
-  LoadingOutlined,
   PlusOutlined,
-  EditOutlined,
-  SyncOutlined,
-  ExclamationCircleOutlined
 } from '@ant-design/icons-vue'
 import { useRobotStore } from '@/stores/modules/robot'
 const robotStore = useRobotStore()
@@ -250,12 +255,13 @@ watch(
       for (let key in cate) {
         if (key == 'categorys') {
           if (cate.categorys && cate.categorys.length > 0) {
-            formState[key] = cate.categorys.map((item) => {
+            let items = cate.categorys.map((item) => {
               return {
                 ...item,
                 key: Math.random() * 10000
               }
             })
+            formState[key] = items
           } else {
             formState[key] = [
               {
@@ -315,7 +321,7 @@ watch(
 )
 
 function getNodeHeight() {
-  let baseHeight = 72 + 260 + 132 + formState.categorys.length * 42
+  let baseHeight = 72 + 260 + 132 + (formState.categorys.length + 1) * 38
   return showMoreBtn.value ? baseHeight + 144 : baseHeight
 }
 
@@ -379,16 +385,7 @@ function getVariableOptions() {
     })
   }
   let lists = [
-    {
-      label: '用户消息',
-      value: '【global.question】',
-      payload: { typ: 'string' }
-    },
-    {
-      label: 'open_id',
-      value: '【global.openid】',
-      payload: { typ: 'string' }
-    },
+    ...getSystemVariable(),
     ...outOptions
   ]
   variableOptions.value = lists

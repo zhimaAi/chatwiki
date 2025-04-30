@@ -86,6 +86,7 @@ const (
 )
 
 const (
-	PdfParseTypeText = 1
-	PdfParseTypeOcr  = 2
+	PdfParseTypeText         = 1
+	PdfParseTypeOcr          = 2
+	PdfParseTypeOcrWithImage = 3
 )

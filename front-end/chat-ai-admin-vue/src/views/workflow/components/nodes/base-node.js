@@ -2,6 +2,45 @@ import { HtmlNode, HtmlNodeModel, h as flh } from '@logicflow/core'
 import { createApp, h } from 'vue'
 import { generateUniqueId } from '@/utils/index'
 
+function transformArray(arr, parent) {
+  let result = []
+  
+  arr.forEach((item) => {
+    let node_id = parent ? parent.node_id : item.node_id
+    let node_name = parent ? parent.node_name : item.node_name
+    let node_type = parent? parent.node_type : item.node_type
+    let text = parent ? `${parent.text}.${item.key}` : String(item.key)
+    let label = `${node_name}/${text.replace(/\./g, '/')}`
+    let value = ''
+
+    if(node_type == 1){
+      value = `【global.${text}】`
+    }else{
+      value = `【${node_id}.${text}】`
+    }
+
+    let data = {
+      label: label,
+      value: value,
+      node_id: node_id,
+      node_name: node_name,
+      node_type: node_type,
+      text: text,
+      key: item.key,
+      id: node_id,
+      typ: item.typ,
+      hasSub: item.subs && item.subs.length > 0
+    }
+
+    result.push(data)
+
+    if (item.subs && Array.isArray(item.subs)) {
+      result = result.concat(transformArray(item.subs, data))
+    }
+  })
+  return result
+}
+
 export class BaseVueNodeView extends HtmlNode {
   constructor(props) {
     super(props)
@@ -25,11 +64,20 @@ export class BaseVueNodeView extends HtmlNode {
             ...props.model.properties,
             ...data,
           }
+
           props.model._height = data.height || props.model.properties.height
           props.model.refreshBranch()  // 视图变化  边的线位置更新
+
+          props.graphModel.eventCenter.emit('custom:setData',  props.model)
         },
         setTitle: (title) => {
           props.model.properties.node_name = title;
+
+          props.graphModel.eventCenter.emit('custom:setNodeName',  {
+            node_name: title, 
+            node_id: props.model.id,
+            node_type: props.model.type
+          })
         }
       }),
       mounted: () => {},
@@ -57,7 +105,7 @@ export class BaseVueNodeView extends HtmlNode {
     let targetAnchorIds = edges.map((edge) => edge.targetAnchorId)
     let anchorIsSelected = false
 
-    const { x, y, type, id } = anchorData
+    const { x, y, type } = anchorData
     const radius = 10 // 圆形的半径
 
     if (type === 'left') {
@@ -189,7 +237,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
     super.initNodeData(data)
   }
 
-  getAnchorLineStyle(anchorInfo) {
+  getAnchorLineStyle() {
     const style = super.getAnchorLineStyle()
     style.stroke = '#2475FC'
     return style
@@ -201,6 +249,91 @@ export class BaseVueNodeModel extends HtmlNodeModel {
     style.hover.stroke = 'none'
 
     return style
+  }
+
+  getGlobalVariable() {
+    const { nodes } = this.graphModel
+
+    let startNode = nodes.find((node) => node.type === 'start-node')
+
+    if(!startNode){
+      return {
+        sys_global: [],
+        diy_global: [],
+        all_global: [],
+      }
+    }
+    
+    let node_params = JSON.parse(startNode.properties.node_params)
+
+    return {
+      sys_global: node_params.start.sys_global,
+      diy_global: node_params.start.diy_global,
+      all_global: [...node_params.start.sys_global, ...node_params.start.diy_global],
+    }
+  }
+
+  getAllParentVariable(){
+    const parentNodes = [];
+    const visited = new Set();
+    const edges = this.incoming.edges;
+    const { nodes } = this.graphModel
+
+    let startNode = nodes.find((node) => node.type === 'start-node')
+
+    if(startNode){
+      visited.add(startNode.id);
+      parentNodes.push(startNode)
+    }
+
+    // 递归函数用于遍历父节点
+    const traverseParents = (edges) => {
+      for(let i=0;i<edges.length;i++){
+        let edge = edges[i]
+        let node = edge.sourceNode
+
+        if (visited.has(node.id)) continue;
+
+        visited.add(node.id);
+
+        if (node.type ==='http-node'){
+          parentNodes.push(node);
+        };
+
+        traverseParents(node.incoming.edges);
+      }
+    };
+    
+    // 获取所有父节点
+    traverseParents(edges);
+
+    // 取出输出的变量
+    let variableArr = []
+
+    parentNodes.forEach((node) => {
+      let node_params = JSON.parse(node.properties.node_params)
+      let arr = []
+
+      if(node.type === 'http-node'){
+        arr = arr.concat(node_params.curl.output)
+      }
+
+      if(node.type === 'start-node'){
+        arr = arr.concat(node_params.start.diy_global, node_params.start.sys_global)
+      }
+
+      arr.forEach(variable => {
+        variable.node_id = node.id
+        variable.node_name = node.properties.node_name
+        variable.node_type = node.properties.node_type
+      })
+
+      variableArr = variableArr.concat(arr)
+    })
+
+    variableArr = transformArray(variableArr, '').filter((it) => !it.hasSub)
+
+    return variableArr;
   }
 
   refreshBranch() {

@@ -32,7 +32,7 @@
     "@simonwep/pickr": "^1.9.1",
     "ant-design-vue": "^4.1.2",
     "axios": "^1.6.8",
-    "cherry-markdown": "^0.8.58",
+    "cherry-markdown": "^0.9.1",
     "crypto-js": "^4.2.0",
     "dayjs": "^1.11.11",
     "echarts": "^5.5.1",

@@ -30,20 +30,6 @@
         <SelectStarBox :startLists="startLists" @change="handleCategoryChange" />
       </div>
       <a-space>
-        <!-- <a-flex align="center" class="custom-select-box">
-          <span>分类：</span>
-          <a-select
-            v-model:value="filterData.category_id"
-            placeholder="请选择"
-            style="width: 120px"
-            @change="search"
-          >
-            <a-select-option :value="-1">全部</a-select-option>
-            <a-select-option v-for="item in startLists" :key="item.id" :value="item.id">
-              <StarFilled :style="{ color: colorLists[item.type] }" /> {{ item.name || '-' }}
-            </a-select-option>
-          </a-select>
-        </a-flex> -->
         <a-select
           v-model:value="filterData.status"
           placeholder="请选择"
@@ -507,6 +493,9 @@ const updataList = () => {
       item.status_text = listStatusMap[item.status]
       item.graph_status_text = graphStatusMap[item.graph_status]
       item.isExcelQa = isExcelQa
+      if(item.similar_questions){
+        item.similar_questions = JSON.parse(item.similar_questions)
+      }
     })
     paragraphLists.value = list
     setIntervalUpStatus()
@@ -529,6 +518,7 @@ const handleEditParagraph = (data) => {
     lastItem.answer = data.answer
     lastItem.answer = data.answer
     lastItem.images = data.images
+    lastItem.category_id = data.category_id
     lastItem.word_total = data.question.length + data.answer.length + data.content.length
     lastItem.similar_questions = JSON.parse(data.similar_questions)
     lists.splice(index, 1, lastItem)

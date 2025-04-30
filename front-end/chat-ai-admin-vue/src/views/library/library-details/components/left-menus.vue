@@ -60,6 +60,24 @@ const baseMenus = [
     path: '/library/details/knowledge-document'
   },
   {
+    key: 'categary-manage',
+    id: 'categary-manage',
+    icon: () =>
+      h('span', {}, [
+        h(SvgIcon, {
+          name: 'doc-menu-icon',
+          class: 'menu-icon'
+        }),
+        h(SvgIcon, {
+          name: 'doc-active-menu-icon',
+          class: 'menu-icon-active'
+        })
+      ]),
+    label: '精选',
+    title: '精选',
+    path: '/library/details/categary-manage'
+  },
+  {
     key: 'recall-testing',
     id: 'recall-testing',
     icon: () =>

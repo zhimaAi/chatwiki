@@ -20,6 +20,7 @@
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",
     "@vant/touch-emulator": "^1.4.0",
+    "ant-design-vue": "^4.2.6",
     "axios": "^1.6.8",
     "cherry-markdown": "^0.8.44",
     "crypto-js": "^4.2.0",
