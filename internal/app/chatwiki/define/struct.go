@@ -61,6 +61,7 @@ type ChatRequestParam struct {
 	Prompt         string
 	LibraryIds     string
 	IsClose        *bool
+	WorkFlowGlobal map[string]any
 }
 
 type DocSplitItem struct {
@@ -97,6 +98,13 @@ type SplitParams struct {
 	SemanticChunkOverlap       int      `json:"semantic_chunk_overlap"`
 	SemanticChunkThreshold     int      `json:"semantic_chunk_threshold"`
 	PdfParseType               int      `json:"pdf_parse_type"`
+	AiChunkPrumpt              string   `json:"ai_chunk_prumpt"`
+	AiChunkModel               string   `json:"ai_chunk_model"`
+	AiChunkModelConfigId       int      `json:"ai_chunk_model_config_id"`
+	AiChunkTaskId              string   `json:"ai_chunk_task_id"`
+	AiChunkSize                int      `json:"ai_chunk_size"`
+	AiChunkNew                 bool     `json:"ai_chunk_new"`
+	FileExt                    string   `json:"file_ext"`
 }
 
 type FormFilterCondition struct {

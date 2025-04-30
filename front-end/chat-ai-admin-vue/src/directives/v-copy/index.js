@@ -2,8 +2,8 @@ import { message } from 'ant-design-vue'
 
 export const copy = {
   mounted: function (el, binding) {
-    const { text, onSuccess } = binding.value
-
+    const {  onSuccess } = binding.value
+    const text = binding.value
     el.$value = text
 
     // el控件定义 onclick 事件
@@ -20,7 +20,7 @@ export const copy = {
       textarea.style.position = 'fixed'
       textarea.style.left = '-9999px'
       // 将要 copy 的值赋给 textarea 标签的 value 属性
-      textarea.value = el.$value
+      textarea.value = el.$value || text
       // 将 textarea 插入到 body 中
       document.body.appendChild(textarea)
       // 选中值并复制

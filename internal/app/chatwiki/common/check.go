@@ -3,12 +3,8 @@
 package common
 
 import (
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/pkg/lib_define"
 	"encoding/json"
 	"errors"
-	"github.com/zhimaAi/go_tools/msql"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -16,7 +12,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
+	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_define"
 )
 
 var InvalidLibraryImageError = errors.New("invalid library image")
@@ -135,6 +136,14 @@ func IsVariableNames(variable string) bool {
 	return false
 }
 
+func IsMd5Str(md5 string) bool {
+	ok, err := regexp.MatchString(`^[a-f0-9]{32}$`, md5)
+	if err == nil && ok {
+		return true
+	}
+	return false
+}
+
 func GetImgInMessage(message string) (string, []string) {
 	imgRE := regexp.MustCompile(`<img[^>]+\bsrc=["']([^"']+)["']>`)
 	imgs := imgRE.FindAllStringSubmatch(message, -1)
@@ -192,7 +201,15 @@ func CheckSplitParams(libraryInfo msql.Params, splitParams define.SplitParams, l
 			return splitParams, errors.New(i18n.Show(lang, `semantic_chunk_threshold_err`, 1, 100))
 		}
 	}
-
+	// ai chunks
+	if splitParams.ChunkType == define.ChunkTypeAi {
+		if splitParams.AiChunkPrumpt == "" {
+			splitParams.AiChunkPrumpt = define.PrumptAiChunk
+		}
+		if splitParams.AiChunkSize > define.SplitAiChunkMaxSize || splitParams.AiChunkSize == 0 {
+			splitParams.ChunkSize = define.SplitAiChunkMaxSize
+		}
+	}
 	for i, noStr := range strings.Split(splitParams.SeparatorsNo, `,`) {
 		no := cast.ToInt(noStr)
 		if no < 1 || no > len(define.SeparatorsList) {

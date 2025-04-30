@@ -1035,6 +1035,22 @@ func (h *ModelCallHandler) RequestChat(
 	return resp, requestTime, nil
 }
 
+func CheckModelIsValid(userId, modelConfigId int, useModel, modelType string) bool {
+	config, err := GetModelConfigInfo(modelConfigId, userId)
+	if err != nil {
+		logs.Error(err.Error())
+		return false
+	}
+	modelInfo, _ := GetModelInfoByDefine(config[`model_define`])
+	modelList := modelInfo.LlmModelList
+	if modelType == TextEmbedding {
+		modelList = modelInfo.VectorModelList
+	}
+	if !tool.InArrayString(useModel, modelList) && !IsMultiConfModel(config["model_define"]) {
+		return false
+	}
+	return true
+}
 func CheckModelIsDeepSeek(model string) bool {
 	modelLower := strings.ToLower(model)
 	return strings.Contains(modelLower, `deepseek-r1`) ||

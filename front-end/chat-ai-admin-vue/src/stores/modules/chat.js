@@ -346,7 +346,8 @@ export const useChatStore = defineStore('chat', () => {
       // prompt: robot.prompt,
       // library_ids: robot.library_ids,
       form_ids: robot.form_ids,
-      dialogue_id: dialogue_id.value
+      dialogue_id: dialogue_id.value,
+      global: data.global
     }
 
     if (import.meta.env.DEV) {

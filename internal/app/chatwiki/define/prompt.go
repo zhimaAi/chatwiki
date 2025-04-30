@@ -135,3 +135,5 @@ const PromptDefaultCreatePrompt = `# 角色
 - 必填模块必须包含role/task/constraints/output/tone五个字段；
 - custom模块需智能判断用户需求添加，每个条目应有明确subject和具体描述；
 - 所有describe字段需用自然口语化表达，避免技术术语。`
+
+const PrumptAiChunk = `你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。`

@@ -21,7 +21,7 @@
     @handleMenu="handleMenu"
   >
     <div class="ai-dialogue-node">
-      <div class="node-desc">由大模型判断用户消息属于哪个分类，不同分类走不同分支</div>
+      <div class="node-desc">调用大模型，生成回复。</div>
       <FormBlock @setData="handleSetData" :properties="properties" />
     </div>
   </node-common>

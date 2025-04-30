@@ -53,10 +53,11 @@ export const createLibrary = (data) => {
   })
 }
 
-export const getLibraryFileList = ({ library_id, file_name = undefined, page = 1, size = 20 }) => {
+export const getLibraryFileList = ({ status, library_id, file_name = undefined, page = 1, size = 20 }) => {
   return request.get({
     url: '/manage/getLibFileList',
     params: {
+      status,
       library_id,
       file_name,
       page,
@@ -204,6 +205,13 @@ export const reconstructVector = (data) => {
   })
 }
 
+export const reconstructCategoryVector = (data) => {
+  return request.post({
+    url: '/manage/reconstructCategoryVector',
+    data: data
+  })
+}
+
 export const reconstructGraph = (data) => {
   return request.post({
     url: '/manage/reconstructGraph',
@@ -211,6 +219,13 @@ export const reconstructGraph = (data) => {
   })
 }
 
+// 获取ai分段
+export const getLibFileSplitAiChunks = (params) => {
+  return request.get({
+    url: '/manage/getLibFileSplitAiChunks',
+    params: params
+  })
+}
 export const getCategoryList = (params = {}) => {
   return request.get({
     url: '/manage/getCategoryList',
@@ -239,10 +254,41 @@ export const restudyLibraryFile = (data) => {
   })
 }
 
+export const getCategoryParagraphList = (params = {}) => {
+  return request.get({
+    url: '/manage/getCategoryParagraphList',
+    params: params
+  })
+}
+
+export const saveCategoryParagraph = (data) => {
+  return request.post({
+    url: '/manage/saveCategoryParagraph',
+    data: data
+  })
+}
+
+export const manualCrawl = (data) => {
+  return request.post({
+    url: '/manage/manualCrawl',
+    data: data
+  })
+}
+
+
 // 知识库关联机器人
 export const relationRobot = (data) => {
   return request.post({
     url: '/manage/relationRobot',
+    data: data
+  })
+}
+
+
+// pdf取消解析
+export const cancelOcrPdf = (data) => {
+  return request.post({
+    url: '/manage/cancelOcrPdf',
     data: data
   })
 }

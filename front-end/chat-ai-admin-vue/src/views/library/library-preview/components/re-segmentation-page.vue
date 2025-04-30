@@ -78,6 +78,11 @@ const analysisLists = [
     title: '纯文本解析',
     desc: '只提取Pdf中的文字内容，如果文档为扫描件可能提取不到内容。',
     pdf_parse_type: 1
+  },
+  {
+    title: '图文解析',
+    desc: '提取PDF文档中的图片和文字',
+    pdf_parse_type: 3
   }
 ]
 
@@ -130,7 +135,7 @@ const handleSaveType = () => {
     })
       .then((res) => {
         message.success('重新学习成功')
-        if (formState.pdf_parse_type == 2) {
+        if (formState.pdf_parse_type == 2 || formState.pdf_parse_type == 3) {
           //跳转回知识库文档列表，当前文档状态进入转换中
           router.push({
             path: '/library/details/knowledge-document',

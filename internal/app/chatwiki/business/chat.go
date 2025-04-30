@@ -299,9 +299,9 @@ func DelChatMessageFeedback(c *gin.Context) {
 }
 
 func saveCustomerInfo(c *gin.Context, chatBaseParam *define.ChatBaseParam) {
-	nickname := strings.TrimSpace(c.PostForm(`nickname`))
-	name := strings.TrimSpace(c.PostForm(`name`))
-	avatar := strings.TrimSpace(c.PostForm(`avatar`))
+	nickname := strings.TrimSpace(c.DefaultPostForm(`nickname`, c.Query(`nickname`)))
+	name := strings.TrimSpace(c.DefaultPostForm(`name`, c.Query(`name`)))
+	avatar := strings.TrimSpace(c.DefaultPostForm(`avatar`, c.Query(`avatar`)))
 	upData := msql.Datas{}
 	if len(chatBaseParam.Customer) == 0 || chatBaseParam.Customer[`nickname`] != nickname {
 		upData[`nickname`] = nickname
@@ -479,15 +479,18 @@ func ChatQuestionGuide(c *gin.Context) {
 func getChatRequestParam(c *gin.Context) *define.ChatRequestParam {
 	chatBaseParam, err := common.CheckChatRequest(c)
 	isClose := false
+	workFlowGlobal := make(map[string]any)
+	_ = tool.JsonDecodeUseNumber(c.DefaultPostForm(`global`, `{}`), &workFlowGlobal)
 	return &define.ChatRequestParam{
-		ChatBaseParam: chatBaseParam,
-		Error:         err,
-		Lang:          common.GetLang(c),
-		Question:      strings.TrimSpace(c.PostForm(`question`)),
-		DialogueId:    cast.ToInt(c.PostForm(`dialogue_id`)),
-		Prompt:        strings.TrimSpace(c.PostForm(`prompt`)),
-		LibraryIds:    strings.TrimSpace(c.PostForm(`library_ids`)),
-		IsClose:       &isClose,
+		ChatBaseParam:  chatBaseParam,
+		Error:          err,
+		Lang:           common.GetLang(c),
+		Question:       strings.TrimSpace(c.PostForm(`question`)),
+		DialogueId:     cast.ToInt(c.PostForm(`dialogue_id`)),
+		Prompt:         strings.TrimSpace(c.PostForm(`prompt`)),
+		LibraryIds:     strings.TrimSpace(c.PostForm(`library_ids`)),
+		IsClose:        &isClose,
+		WorkFlowGlobal: workFlowGlobal,
 	}
 }
 
@@ -629,7 +632,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	)
 	msgType := define.MsgTypeText
 	if cast.ToInt(params.Robot[`application_type`]) == define.ApplicationTypeFlow {
-		workFlowParams := &work_flow.WorkFlowParams{ChatRequestParam: params, CurMsgId: int(id), DialogueId: dialogueId}
+		workFlowParams := &work_flow.WorkFlowParams{ChatRequestParam: params, CurMsgId: int(id), DialogueId: dialogueId, SessionId: sessionId}
 		content, requestTime, monitor.LibUseTime, list, err = work_flow.CallWorkFlow(workFlowParams, &debugLog, monitor)
 		if err != nil {
 			sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)

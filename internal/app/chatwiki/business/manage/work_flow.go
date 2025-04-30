@@ -76,11 +76,12 @@ func GetNodeList(c *gin.Context) {
 		GetNodeList(c)
 		return
 	}
-	for i := range list {
+	for i, node := range list {
 		delete(list[i], `admin_user_id`)
 		delete(list[i], `robot_id`)
 		delete(list[i], `create_time`)
 		delete(list[i], `update_time`)
+		list[i][`node_params`] = tool.JsonEncodeNoError(work_flow.DisposeNodeParams(cast.ToInt(node[`node_type`]), node[`node_params`]))
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 }

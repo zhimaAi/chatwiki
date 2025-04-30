@@ -140,7 +140,7 @@
           </div>
         </div>
 
-        <div class="form-item">
+        <div class="form-item" v-if="formState.search_type != 3 && formState.search_type != 4">
           <div class="form-item-label">
             <span>相似度阈值&nbsp;</span>
             <a-tooltip>
@@ -333,6 +333,12 @@ const updateLibraryInfo = (val) => {
 
 const onSave = () => {
   let params = { ...formState }
+
+  if (formState.search_type == 3 || formState.search_type == 4) {
+    // 当选择“知识图谱检索”和“全文检索”类型时，不显示“相似度阈值”设置项。
+    delete params.similarity
+  }
+
   params.size = params.top_k
   saveLibrarySearch(params).then((res) => {
     message.success('保存成功')

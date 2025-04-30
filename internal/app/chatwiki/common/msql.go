@@ -15,6 +15,7 @@ import (
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 
 	"github.com/gin-contrib/sse"
+	"github.com/go-redis/redis/v8"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
@@ -505,68 +506,14 @@ func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size 
 		return list, nil
 	}
 
-	list, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
+	return msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
 		Alias("a").
 		Join("chat_ai_library_file_data b", "a.data_id=b.id", "left").
 		Where(`a.id`, `in`, strings.Join(ids, `,`)).
 		Where(`b.id is not null`).
 		Field(`b.*,a.id as index_id`).
-		Field(fmt.Sprintf(`ts_rank(to_tsvector('zhima_zh_parser',upper(a.content)),to_tsquery('zhima_zh_parser',upper('%s'))) as rank`, strings.Join(queryTokens, " | "))).
-		Order(`rank DESC`).Limit(size).Select()
-	if err != nil {
-		return nil, err
-	}
-
-	listIds := make([]string, 0)
-	for _, one := range list {
-		listIds = append(listIds, cast.ToString(one[`index_id`]))
-	}
-
-	answerTokensResult, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
-		Alias(`a`).
-		Join(`LATERAL ts_parse('zhparser', a.content) as b`, `true`, `LEFT`).
-		Where(`id`, `in`, strings.Join(listIds, `,`)).
-		Field(`a.id, string_agg(b.token, ',') AS tokens`).
-		Group(`a.id`).Select()
-	if err != nil {
-		return nil, err
-	}
-
-	similarities := make(map[int]float64)
-	for _, one := range answerTokensResult {
-		answerTokens := strings.Split(one[`tokens`], ",")
-		score := overlapCoefficient(queryTokens, answerTokens)
-		similarities[cast.ToInt(one[`id`])] = score
-	}
-
-	// add similarity field
-	var result []msql.Params
-	bestScores := make(map[interface{}]msql.Params) // unique
-	for _, one := range list {
-		score := similarities[cast.ToInt(one[`index_id`])]
-		if score < similarity {
-			continue
-		}
-		id := one[`id`]
-		if existing, exists := bestScores[id]; !exists || cast.ToFloat64(existing[`similarity`]) < score {
-			one[`similarity`] = cast.ToString(score)
-			bestScores[id] = one
-		}
-	}
-
-	// convert map to slice
-	for _, one := range bestScores {
-		result = append(result, one)
-	}
-
-	// sort
-	sort.Slice(result, func(i, j int) bool {
-		similarityI := cast.ToFloat64(result[i]["similarity"])
-		similarityJ := cast.ToFloat64(result[j]["similarity"])
-		return similarityI > similarityJ
-	})
-
-	return result, err
+		Field(fmt.Sprintf(`ts_rank(to_tsvector('zhima_zh_parser',upper(a.content)),to_tsquery('zhima_zh_parser',upper('%s'))) as similarity`, question)).
+		Order(`similarity DESC`).Limit(size).Select()
 }
 
 func GetMatchLibraryParagraphByMergeRerank(openid, appType, question string, size int, vectorList, searchList, graphList []msql.Params, robot msql.Params) ([]msql.Params, error) {
@@ -831,34 +778,6 @@ func GetOptimizedQuestions(param *define.ChatRequestParam, contextList []map[str
 	return result, nil
 }
 
-// overlap coefficient
-func overlapCoefficient(setA, setB []string) float64 {
-	setAMap := make(map[string]bool)
-	setBMap := make(map[string]bool)
-
-	for _, item := range setA {
-		setAMap[item] = true
-	}
-	for _, item := range setB {
-		setBMap[item] = true
-	}
-
-	intersectionSize := 0
-	for item := range setAMap {
-		if setBMap[item] {
-			intersectionSize++
-		}
-	}
-
-	minSize := min(len(setAMap), len(setBMap))
-
-	if minSize == 0 {
-		return 0
-	}
-
-	return float64(intersectionSize) / float64(minSize)
-}
-
 func ClientSideNeedLogin(adminUserId int) bool {
 	info, err := msql.Model(define.TableUser, define.Postgres).Where(`id`, cast.ToString(adminUserId)).
 		Where(`is_deleted`, define.Normal).Field(`client_side_login_switch`).Find()
@@ -999,6 +918,29 @@ func LibraryAiSummary(lang, openid, appType, question string, optimizedQuestions
 	}
 	chanStream <- sse.Event{Event: `finish`, Data: tool.Time2Int()}
 
+	return nil
+}
+
+type LibFileSplitAiChunksBacheHandle struct{ TaskId string }
+
+func (h *LibFileSplitAiChunksBacheHandle) GetCacheKey() string {
+	return fmt.Sprintf(`chatwiki.lib.file.split.ai.chunks.%s`, h.TaskId)
+}
+func (h *LibFileSplitAiChunksBacheHandle) GetCacheData() (any, error) {
+	return nil, nil
+}
+
+type LibFileSplitAiChunksCache struct {
+	ErrMsg string                `json:"err_msg"`
+	List   []define.DocSplitItem `json:"list"`
+}
+
+func (h *LibFileSplitAiChunksBacheHandle) SaveCacheData(list LibFileSplitAiChunksCache) error {
+	_, err := define.Redis.Set(context.Background(), h.GetCacheKey(), tool.JsonEncodeNoError(list), 1*time.Hour).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		logs.Error(err.Error())
+		return err
+	}
 	return nil
 }
 

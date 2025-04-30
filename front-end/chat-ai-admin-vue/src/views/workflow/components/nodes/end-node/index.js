@@ -1,4 +1,3 @@
-import { h as flh } from '@logicflow/core'
 import { BaseVueNodeView, BaseVueNodeModel } from '../base-node.js'
 import VueNode from './index.vue'
 

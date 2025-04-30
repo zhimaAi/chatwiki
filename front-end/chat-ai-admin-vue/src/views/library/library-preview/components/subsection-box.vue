@@ -148,7 +148,7 @@ const props = defineProps({
 })
 
 const toReSegmentationPage = (item, index) => {
-  let { id, title, content, question, answer, images } = item
+  let { id, title, content, question, answer, images, category_id } = item
   let similar_questions = item.similar_questions || []
   Modal.confirm({
     title: '重新转换确认',
@@ -156,7 +156,7 @@ const toReSegmentationPage = (item, index) => {
     content: `确定要重新转换【分段${index + 1}】吗?`,
     onOk() {
       return new Promise((resolve, reject) => {
-        editParagraph({ id, title, content, question, answer, images, similar_questions: JSON.stringify(similar_questions)  })
+        editParagraph({ id, title, content, question, answer, images, category_id, similar_questions: JSON.stringify(similar_questions)  })
           .then((res) => {
             emit('handleConvert', item)
             resolve()

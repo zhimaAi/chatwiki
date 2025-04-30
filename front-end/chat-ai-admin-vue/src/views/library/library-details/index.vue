@@ -13,7 +13,10 @@
         </div>
       </div>
 
-      <div class="right-content-box">
+      <div
+        class="right-content-box"
+        :style="{ overflow: rotue.name == 'knowledgeDocument' ? 'hidden' : '' }"
+      >
         <router-view></router-view>
       </div>
     </div>
@@ -92,7 +95,7 @@ getInfo()
   }
   .right-content-box {
     flex: 1;
-    padding: 24px 10px 24px 24px;
+    padding: 24px 10px 0 24px;
   }
 }
 </style>

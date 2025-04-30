@@ -38,23 +38,23 @@
                     placeholder="请输入参数KEY"
                   ></a-input>
                 </a-form-item-rest>
-                <a-mentions
-                  class="flex1"
-                  v-model:value="item.value"
-                  prefix="/"
-                  placeholder="请输入参数值，键入“/”插入变量"
-                  :options="variableOptions"
-                  @blur="() => (isFocus = false)"
-                  @focus="() => (isFocus = true)"
-                  @select="onTextChange('headers', index, item.value)"
-                >
-                  <template #option="{ value, label, payload }">
+
+                <at-input 
+                inputStyle="overflow-y: hidden; overflow-x: scroll; height: 32px;" 
+                :ref="(el) => setAtInputRef(el, 'headers', index)"
+                :options="variableOptions" 
+                :defaultSelectedList="item.tags" 
+                :defaultValue="item.value" 
+                @open="getVlaueVariableList"  
+                @change="(text, selectedList) => changeValue('headers', text, selectedList, item, index)" 
+                placeholder="请输入变量值，键入“/”插入变量">
+                  <template #option="{ label, payload }">
                     <div class="field-list-item">
                       <div class="field-label">{{ label }}</div>
                       <div class="field-type">{{ payload.typ }}</div>
                     </div>
                   </template>
-                </a-mentions>
+                </at-input>
 
                 <div class="btn-hover-wrap" @click="onDelHeader(index)">
                   <CloseCircleOutlined />
@@ -82,23 +82,22 @@
                     placeholder="请输入参数KEY"
                   ></a-input>
                 </a-form-item-rest>
-                <a-mentions
-                  class="flex1"
-                  v-model:value="item.value"
-                  prefix="/"
-                  @blur="() => (isFocus = false)"
-                  @focus="() => (isFocus = true)"
-                  placeholder="请输入参数值，键入“/”插入变量"
-                  :options="variableOptions"
-                  @select="onTextChange('params', index, item.value)"
-                >
-                  <template #option="{ value, label, payload }">
+                <at-input 
+                inputStyle="overflow-y: hidden; overflow-x: scroll; height: 32px;"
+                :ref="(el) => setAtInputRef(el, 'params', index)"
+                :options="variableOptions" 
+                :defaultSelectedList="item.tags" 
+                :defaultValue="item.value" 
+                @open="getVlaueVariableList"  
+                @change="(text, selectedList) => changeValue('params', text, selectedList, item, index)" 
+                placeholder="请输入变量值，键入“/”插入变量">
+                  <template #option="{ label, payload }">
                     <div class="field-list-item">
                       <div class="field-label">{{ label }}</div>
                       <div class="field-type">{{ payload.typ }}</div>
                     </div>
                   </template>
-                </a-mentions>
+                </at-input>
                 <div class="btn-hover-wrap" @click="onDelParams(index)">
                   <CloseCircleOutlined />
                 </div>
@@ -132,28 +131,22 @@
                       placeholder="请输入参数KEY"
                     ></a-input>
                   </a-form-item-rest>
-                  <!-- <a-input
-                    class="flex1"
-                    v-model:value="item.value"
-                    placeholder="请输入参数值，键入“/”插入变量"
-                  ></a-input> -->
-                  <a-mentions
-                    class="flex1"
-                    @blur="() => (isFocus = false)"
-                    @focus="() => (isFocus = true)"
-                    v-model:value="item.value"
-                    prefix="/"
-                    placeholder="请输入参数值，键入“/”插入变量"
-                    :options="variableOptions"
-                    @select="onTextChange('body', index, item.value)"
-                  >
-                    <template #option="{ value, label, payload }">
+                  <at-input 
+                  inputStyle="overflow-y: hidden; overflow-x: scroll; height: 32px;"
+                  :ref="(el) => setAtInputRef(el, 'body', index)"
+                  :options="variableOptions" 
+                  :defaultSelectedList="item.tags" 
+                  :defaultValue="item.value" 
+                  @open="getVlaueVariableList"  
+                  @change="(text, selectedList) => changeValue('body', text, selectedList, item, index)" 
+                  placeholder="请输入变量值，键入“/”插入变量">
+                    <template #option="{ label, payload }">
                       <div class="field-list-item">
                         <div class="field-label">{{ label }}</div>
                         <div class="field-type">{{ payload.typ }}</div>
                       </div>
                     </template>
-                  </a-mentions>
+                  </at-input>
                   <div class="btn-hover-wrap" @click="onDelBody(index)">
                     <CloseCircleOutlined />
                   </div>
@@ -165,17 +158,22 @@
             >
           </div>
           <a-form-item :label="null" name="body_raw" v-if="formState.type == 2">
-            <a-mentions
-              @wheel.stop=""
-              v-model:value="formState.body_raw"
-              @blur="() => (isFocus = false)"
-              @focus="() => (isFocus = true)"
-              prefix="/"
-              :rows="4"
-              :options="variableOptions"
-              @select="onBodyRawChange()"
-              placeholder="请输入json, 输入 / 插入变量"
-            ></a-mentions>
+            <at-input 
+            type="textarea"
+            :options="variableOptions" 
+            :defaultSelectedList="formState.body_raw_tags" 
+            :defaultValue="formState.body_raw" 
+            :ref="(el) => setAtInputRef(el, 'body', 'body_raw')"
+            @open="getVlaueVariableList"
+            @change="(text, selectedList) => changeValue('body_raw', text, selectedList)" 
+            placeholder="请输入变量值，键入“/”插入变量">
+              <template #option="{ label, payload }">
+                <div class="field-list-item">
+                  <div class="field-label">{{ label }}</div>
+                  <div class="field-type">{{ payload.typ }}</div>
+                </div>
+              </template>
+            </at-input>
           </a-form-item>
         </div>
         <a-form-item name="timeout">
@@ -254,19 +252,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, h, inject } from 'vue'
-import { message, Modal } from 'ant-design-vue'
+import { ref, reactive, watch, h, inject, toRaw, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import {
-  CloseCircleFilled,
   CloseCircleOutlined,
-  LoadingOutlined,
   PlusOutlined,
   PlusCircleOutlined,
-  EditOutlined,
-  SyncOutlined,
-  ExclamationCircleOutlined
 } from '@ant-design/icons-vue'
 import SubKey from './subs-key.vue'
+import AtInput from '../at-input/at-input.vue'
 
 const graphModel = inject('getGraph')
 const getNode = inject('getNode')
@@ -279,6 +272,34 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['setData'])
+const atInputRefs = reactive({})
+
+const setAtInputRef = (el, name, index) => {
+  if (el) {
+    let key = `at_input_${name}_${index}`
+    atInputRefs[key] = el
+  }
+}
+
+const changeValue = (type, text, selectedList, item) => {
+  if(type == 'body_raw') {
+    formState.body_raw = text
+    formState.body_raw_tags = selectedList
+  }else{
+    item.tags = selectedList
+    item.value = text
+  }
+}
+
+const getVlaueVariableList = () => {
+  let list = getNode().getAllParentVariable()
+  list.forEach((item) => {
+    item.tags = item.tags || []
+  })
+  
+  variableOptions.value = list
+}
+
 const formRef = ref()
 
 const formState = reactive({
@@ -299,6 +320,7 @@ const formState = reactive({
   type: 1,
   body: [],
   body_raw: '',
+  body_raw_tags: [],
   timeout: 30,
   output: [
     {
@@ -326,14 +348,16 @@ watch(
   () => props.properties,
   (val) => {
     try {
-      if (!isFocus.value) {
-        getVariableOptions()
-      }
       if (lock) {
         return
       }
-      let curl = JSON.parse(val.node_params).curl || {}
+      getVlaueVariableList()
+      
+      let dataRaw = val.dataRaw || val.node_params || '{}'
+      let curl = JSON.parse(dataRaw).curl || {}
+      
       curl = JSON.parse(JSON.stringify(curl))
+
       for (let key in curl) {
         if (key == 'headers' || key == 'params' || key == 'body') {
           if (curl[key] && curl[key].length > 0) {
@@ -367,7 +391,9 @@ watch(
           height: getNodeHeight()
         })
       }, 100)
-    } catch (error) {}
+    } catch (error) {
+      console.log(error)
+    }
   },
   { immediate: true, deep: true }
 )
@@ -388,7 +414,7 @@ watch(
   { deep: true }
 )
 const test = () => {
-  console.log(formState.output, '==')
+  // console.log(formState.output, '==')
 }
 
 function getNodeHeight() {
@@ -546,6 +572,7 @@ const onTextChange = (key, index, data) => {
   let regex = / +【/g
   formState[key][index]['value'] = data.replace(/\//g, '').replace(regex, '【')
 }
+
 const onBodyRawChange = () => {
   let regex = / +【/g
   formState.body_raw = formState.body_raw.replace(/\//g, '').replace(regex, '【')
@@ -572,43 +599,63 @@ function transformArray(arr, parentLabel = '') {
   return result
 }
 
-function getVariableOptions() {
-  let node = getNode()
-  let preNodes = graphModel().getNodeIncomingNode(node.id)
-  let outOptions = []
+const onUpatateNodeName = (data) => {
+  if(data.node_type !== 'http-node'){
+    return;
+  }
 
-  if (preNodes && preNodes.length) {
-    preNodes.forEach((item) => {
-      let node_type = item.properties.node_type
-      let output = item.properties.output
-      if (node_type == 4 && output && output.length) {
-        outOptions = transformArray(output)
-        outOptions = outOptions.filter((it) => !it.hasSub)
-        outOptions = outOptions.map((it) => {
-          return {
-            ...it,
-            value: `【${it.value}】`
-          }
-        })
+  getVlaueVariableList()
+
+  nextTick(() => {
+    if(formState.body_raw_tags && formState.body_raw_tags.length > 0){
+      formState.body_raw_tags.forEach(tag => {
+        if(tag.node_id == data.node_id){
+          let arr = tag.label.split('/')
+          arr[0] = data.node_name
+          tag.label = arr.join('/')
+          tag.node_name = data.node_name
+        }
+      })
+    }
+
+    let keys = ['headers', 'params', 'body'];
+    
+    keys.forEach(key => {
+      let items = formState[key]
+
+      items.forEach((item) => {
+        if(item.tags && item.tags.length > 0){
+          item.tags.forEach(tag => {
+            if(tag.node_id == data.node_id){
+              let arr = tag.label.split('/')
+              arr[0] = data.node_name
+              tag.label = arr.join('/')
+              tag.node_name = data.node_name
+            }
+          })
+        }
+      })
+    })
+
+    Object.keys(toRaw(atInputRefs)).forEach(key => {
+      if(atInputRefs[key] && atInputRefs[key].$refs.JMention){
+        atInputRefs[key].refresh()
       }
     })
-  }
-  let lists = [
-    {
-      label: '用户消息',
-      value: '【global.question】',
-      payload: { typ: 'string' }
-    },
-    {
-      label: 'open_id',
-      value: '【global.openid】',
-      payload: { typ: 'string' }
-    },
-    ...outOptions
-  ]
-  variableOptions.value = lists
+  })
 }
 
+onMounted(() => {
+  const mode = graphModel()
+
+  mode.eventCenter.on('custom:setNodeName', onUpatateNodeName)
+})
+
+onBeforeUnmount(() => {
+  const mode = graphModel()
+
+  mode.eventCenter.off('custom:setNodeName', onUpatateNodeName)
+})
 defineExpose({})
 </script>
 

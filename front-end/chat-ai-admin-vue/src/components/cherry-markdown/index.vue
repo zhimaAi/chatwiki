@@ -50,7 +50,16 @@ const md = new CherryEngine({
       },
       header: {
         anchorStyle: 'none'
-      }
+      },
+      mathBlock: {
+        plugins: true, 
+        engine: 'MathJax', // katex或MathJax
+        src: './libs/MathJax/es5/tex-svg.js',
+        // src: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js',
+      },
+      inlineMath: {
+        engine: 'MathJax', // katex或MathJax
+      },
     }
   }
 })

@@ -40,10 +40,10 @@
 }
 .box-right {
   margin: 0 96px 0 48px;
-  .demo-box{
+  .demo-box {
     position: relative;
   }
-  iframe{
+  iframe {
     width: 375px;
     height: 720px;
     border-radius: 4px;
@@ -55,32 +55,67 @@
     box-shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.16);
   }
 }
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0;
+  height: 24px;
+  .title-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: #262626;
+  }
+}
 </style>
 
 <template>
   <div class="web-app-box">
     <div class="box-left">
       <div class="box-wrapper">
-        <card-box title="WebApp 链接">
+        <card-box title="H5链接">
           <template #icon>
-            <svg-icon name="circularNeedle" style="font-size: 16px; color: #262626"></svg-icon>
+            <svg-icon name="phone" style="font-size: 16px; color: #262626"></svg-icon>
           </template>
           <div class="web-app-info">
             <div class="web-app-link">
-              <a :href="h5_website" target="_blank">{{ h5_website }}</a>
+              <a :href="h5_src" target="_blank">{{ h5_src }}</a>
             </div>
             <div class="link-action">
-              <a-button class="action-btn" type="primary" ghost @click="copyH5WebSite"
+              <a-button class="action-btn" type="primary" ghost @click="copyH5WebSite(h5_src)"
                 >复 制</a-button
               >
-              <a-button class="action-btn" @click="handlePreview">预 览</a-button>
+              <a-button class="action-btn" @click="handlePreview(h5_src)">预 览</a-button>
               <a-tooltip color="#fff" placement="top">
                 <template #title>
-                  <img style="width: 180px" :src="previewQrcode" alt="" />
+                  <img style="width: 180px" :src="previewQrcodeH5" alt="" />
                 </template>
                 <a-button class="action-btn">二维码</a-button>
               </a-tooltip>
             </div>
+
+            <div class="card-title">
+              <svg-icon name="circularNeedle" style="font-size: 16px; color: #262626"></svg-icon>
+              <div class="title-text">pc网页链接</div>
+            </div>
+
+            <div class="web-app-link">
+              <a :href="pc_src" target="_blank">{{ pc_src }}</a>
+            </div>
+            <div class="link-action">
+              <a-button class="action-btn" type="primary" ghost @click="copyH5WebSite(pc_src)"
+                >复 制</a-button
+              >
+              <a-button class="action-btn" @click="handlePreview(pc_src)">预 览</a-button>
+              <a-tooltip color="#fff" placement="top">
+                <template #title>
+                  <img style="width: 180px" :src="previewQrcodePc" alt="" />
+                </template>
+                <a-button class="action-btn">二维码</a-button>
+              </a-tooltip>
+            </div>
+
             <div class="access-restrictions form-box">
               <div class="form-item">
                 <div class="form-item-label">访问限制</div>
@@ -176,9 +211,11 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 const robotStore = useRobotStore()
 const { robotInfo, external_config_h5 } = storeToRefs(robotStore)
-const { h5_website } = robotInfo.value
+const { h5_website, h5_domain, robot_key } = robotInfo.value
 const { getRobot } = robotStore
-const previewQrcode = ref('')
+
+const previewQrcodePc = ref('')
+const previewQrcodeH5 = ref('')
 
 const formRef = ref()
 const formState = reactive({
@@ -189,24 +226,32 @@ const formState = reactive({
   pageStyle: external_config_h5.value.pageStyle
 })
 
-const previewIframeSrc = computed(()=>{
+const pc_src = computed(() => {
+  return `${h5_domain}/#/chat/pc?robot_key=${robot_key}`
+})
+
+const h5_src = computed(() => {
+  return `${h5_domain}/#/chat/h5?robot_key=${robot_key}`
+})
+
+const previewIframeSrc = computed(() => {
   return h5_website
 })
-watch(formState,(val)=>{
+watch(formState, (val) => {
   updatePreview(val)
 })
-const updataQuickComand = (data) =>{
+const updataQuickComand = (data) => {
   updatePreview(data, 'updataQuickComand')
 }
-const updatePreview = (data, type) =>{
-  let iframe = document.getElementById('mobile-preview');
+const updatePreview = (data, type) => {
+  let iframe = document.getElementById('mobile-preview')
   iframe.contentWindow.postMessage(
     {
       type: type || 'onPreview',
-      data: JSON.parse(JSON.stringify(data)),
+      data: JSON.parse(JSON.stringify(data))
     },
     '*'
-  );
+  )
 }
 
 const formRules = {
@@ -290,22 +335,25 @@ const saveForm = () => {
     })
 }
 
-const handlePreview = () => {
-  window.open(h5_website)
+const handlePreview = (src) => {
+  window.open(src)
 }
 
-const copyH5WebSite = () => {
-  copyText(h5_website)
+const copyH5WebSite = (text) => {
+  copyText(text)
   message.success('复制成功')
 }
 
 const generateQR = async () => {
   try {
-    previewQrcode.value = await QRCode.toDataURL(h5_website)
+    previewQrcodePc.value = await QRCode.toDataURL(pc_src.value)
+    previewQrcodeH5.value = await QRCode.toDataURL(h5_src.value)
   } catch (err) {
     console.error(err)
   }
 }
 
-generateQR()
+setTimeout(() => {
+  generateQR()
+}, 300)
 </script>

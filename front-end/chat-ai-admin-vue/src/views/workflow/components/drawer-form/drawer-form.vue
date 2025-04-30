@@ -109,7 +109,7 @@ const updateNodeItem = (val) => {
   // 更新节点
   let newState = JSON.parse(JSON.stringify(val))
   Object.assign(properties, newState)
-  // console.log(properties,'===')
+
   emit('change', {
     ...properties,
   })

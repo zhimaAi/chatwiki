@@ -90,6 +90,24 @@
         </div>
       </div>
       <div class="node-list">
+        <div class="node-type">变量赋值</div>
+        <div class="node-flex-box">
+          <div class="node-item" @click="handleAddNode('variable-assignment-node')">
+            <img src="@/assets/svg/variable-assignment-node.svg" alt="" />
+            <div class="node-name">变量赋值</div>
+          </div>
+        </div>
+      </div>
+      <div class="node-list">
+        <div class="node-type">执行动作</div>
+        <div class="node-flex-box">
+          <div class="node-item" @click="handleAddNode('specify-reply-node')">
+            <img src="@/assets/svg/specify-reply-node.svg" alt="" />
+            <div class="node-name">发送固定消息</div>
+          </div>
+        </div>
+      </div>
+      <div class="node-list">
         <div class="node-type">结束</div>
         <div class="node-flex-box">
           <div class="node-item" @click="handleAddNode('end-node')">
@@ -116,6 +134,26 @@ const getRowData = () => {
 }
 
 const data = {
+  'specify-reply-node':{
+    id: '',
+    type: 'specify-reply-node',
+    x: 600,
+    y: 400,
+    width: 420,
+    height: 312,
+    properties: {
+      ...getRowData(),
+      node_type: 9,
+      node_name: '指定回复',
+      node_icon_name: 'specify-reply-node',
+      node_params: JSON.stringify({
+        reply: {
+          content: '',
+          content_tags: [],
+        }
+      })
+    }
+  },
   'ai-dialogue-node': {
     id: '',
     type: 'ai-dialogue-node',
@@ -138,7 +176,6 @@ const data = {
       })
     }
   },
-
   'end-node': {
     id: '',
     type: 'end-node',
@@ -150,6 +187,24 @@ const data = {
       node_name: '流程结束',
       node_icon_name: 'end-node',
       node_params: JSON.stringify({})
+    }
+  },
+  'variable-assignment-node': {
+    id: '',
+    type: 'variable-assignment-node',
+    x: 600,
+    y: 400,
+    properties: {
+      ...getRowData(),
+      node_type: 8,
+      node_name: '变量赋值',
+      node_icon_name: 'variable-assignment-node',
+      node_params: JSON.stringify({
+        assign: [{
+          variable: '',
+          value: ''
+        }]
+      })
     }
   },
   'knowledge-base-node': {

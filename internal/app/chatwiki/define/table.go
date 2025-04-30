@@ -16,6 +16,7 @@ const (
 	FileStatusWaitSplit      = 4
 	FileStatusLearning       = 1
 	FileStatusLearned        = 2
+	FileStatusCancelled      = 9
 )
 
 const (
@@ -58,6 +59,7 @@ const (
 const (
 	ChunkTypeNormal   = 1
 	ChunkTypeSemantic = 2
+	ChunkTypeAi       = 3
 )
 
 const (
@@ -67,8 +69,9 @@ const (
 )
 
 const (
-	SplitChunkMaxSize = 10000
-	SplitChunkMinSize = 200
+	SplitChunkMaxSize   = 10000
+	SplitChunkMinSize   = 200
+	SplitAiChunkMaxSize = 5000
 )
 
 const (

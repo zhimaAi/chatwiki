@@ -16,6 +16,15 @@
   color: #999;
 }
 
+.form-alert-tip {
+  color: #8c8c8c;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 14px;
+  margin: 2px 0 6px;
+  white-space: nowrap;
+}
+
 .card-box {
   display: flex;
   justify-content: space-between;
@@ -70,11 +79,12 @@
 
 .select-card-box {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
   width: 550px;
   .select-card-item {
-    width: calc(50% - 8px);
+    width: 100%;
     position: relative;
     padding: 16px;
     border-radius: 6px;
@@ -106,7 +116,6 @@
       font-size: 16px;
     }
     .card-desc {
-      min-height: 44px;
       line-height: 22px;
       font-size: 14px;
       color: #595959;
@@ -229,6 +238,7 @@
           </a-form-item>
           <template v-if="!isQaLibrary">
             <a-form-item label="分段方式" required>
+              <div class="form-alert-tip">提示：语义分段更适合没有排版过的文章，即没有明显换行符号的文本，否则更推荐使用普通分段</div>
               <div class="select-card-box">
                 <div
                   class="select-card-item"
@@ -258,12 +268,21 @@
                     将文章拆分成句子后，通过语句向量相似度进行分段，会消耗模型token
                   </div>
                 </div>
+                <div
+                  class="select-card-item"
+                  @click="handleChangeSegmentationType(3)"
+                  :class="{ active: formState.chunk_type == 3 }"
+                >
+                  <svg-icon class="check-arrow" name="check-arrow-filled"></svg-icon>
+                  <div class="card-title">
+                    <svg-icon name="semantic-segmentation" class="title-icon"></svg-icon>
+                    AI分段
+                  </div>
+                  <div class="card-desc">
+                    将文章提交给大模型，大模型基于设定的提示词进行分段，会消耗大量模型token
+                  </div>
+                </div>
               </div>
-              <a-alert
-                v-if="formState.chunk_type == 2"
-                style="margin-top: 12px; width: 650px"
-                message="提示：语义分段更适合没有排版过的文章，即没有明显换行符号的文本，否则更推荐使用普通分段"
-              ></a-alert>
             </a-form-item>
             <template v-if="formState.chunk_type == 1">
               <a-form-item label="分段标识符" required>
@@ -351,6 +370,57 @@
                 </a-flex>
               </a-form-item>
             </template>
+
+            <template v-if="formState.chunk_type == 3">
+              <a-form-item required v-if="formState.chunk_type == 3">
+                <template #label>
+                  AI大模型
+                </template>
+                <ModelSelect
+                  modelType="LLM"
+                  placeholder="请选择AI大模型"
+                  v-model:modeName="formState.ai_chunk_model"
+                  v-model:modeId="formState.ai_chunk_model_config_id"
+                  :modeName="formState.ai_chunk_model"
+                  :modeId="formState.ai_chunk_model_config_id"
+                  style="width: 300px"
+                  @change="onChangeModel"
+                  @loaded="onVectorModelLoaded"
+                />
+              </a-form-item>
+              <a-form-item label="提示词设置" required>
+                <a-flex :gap="8" align="center">
+                  <a-textarea
+                    @blur="handleEdit"
+                    :maxLength="500"
+                    style="height: 80px"
+                    v-model:value="formState.ai_chunk_prumpt"
+                    :placeholder="defaultAiChunkPrumpt"
+                  />
+                </a-flex>
+              </a-form-item>
+              <a-form-item>
+                <template #label>
+                  单次最大字符数
+                  <a-tooltip>
+                    <template #title>由于大模型支持的上下文数量有限制，如果上传的文档较大，会按照最大字符数先拆分成多个分段，再提交给大模型进行分段。</template>
+                    <QuestionCircleOutlined style="cursor: pointer; margin-left: 2px" />
+                  </a-tooltip>
+                </template>
+                <a-input-number
+                  @blur="handleEdit"
+                  class="form-item-inptu-numbner"
+                  v-model:value="formState.ai_chunk_size"
+                  placeholder="请输入单次最大字符数"
+                  :precision="0"
+                  :min="0"
+                  :formatter="(value) => parseInt(value)"
+                  :parser="(value) => parseInt(value)"
+                />
+                字符
+              </a-form-item>
+            </template>
+
           </template>
         </a-form>
       </div>
@@ -360,7 +430,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, h, computed} from 'vue'
+import { reactive, ref, h, nextTick,computed} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Form, message, Modal } from 'ant-design-vue'
 import { QuestionCircleOutlined, CheckCircleFilled } from '@ant-design/icons-vue'
@@ -382,6 +452,8 @@ const rotue = useRoute()
 const router = useRouter()
 const query = rotue.query
 const defaultAvatar = LIBRARY_OPEN_AVATAR
+const defaultAiChunkPrumpt = '你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。'
+
 const formState = reactive({
   library_name: '',
   library_intro: '',
@@ -399,7 +471,11 @@ const formState = reactive({
   normal_chunk_default_chunk_overlap: 50,
   semantic_chunk_default_chunk_size: 512,
   semantic_chunk_default_chunk_overlap: 50,
-  semantic_chunk_default_threshold: 90
+  semantic_chunk_default_threshold: 90,
+  ai_chunk_size: 5000, // ai大模型分段最大字符数
+  ai_chunk_model:'', // ai大模型分段模型名称
+  ai_chunk_model_config_id: '', // ai大模型分段模型配置id
+  ai_chunk_prumpt: defaultAiChunkPrumpt // ai大模型分段提示词设置
 })
 const currentModelDefine = ref('')
 const isActive = ref(0)
@@ -444,6 +520,10 @@ const getInfo = () => {
     formState.semantic_chunk_default_chunk_size = res.data.semantic_chunk_default_chunk_size
     formState.semantic_chunk_default_chunk_overlap = res.data.semantic_chunk_default_chunk_overlap
     formState.semantic_chunk_default_threshold = res.data.semantic_chunk_default_threshold
+    formState.ai_chunk_size = res.data.ai_chunk_size || 5000
+    formState.ai_chunk_model = res.data.ai_chunk_model
+    formState.ai_chunk_model_config_id = res.data.ai_chunk_model_config_id
+    formState.ai_chunk_prumpt = res.data.ai_chunk_prumpt || defaultAiChunkPrumpt
     isQaLibrary.value = res.data.type == 2
   })
 }
@@ -563,6 +643,45 @@ const onChangeModel = () => {
 const vectorModelList = ref([])
 const onVectorModelLoaded = (list) => {
   vectorModelList.value = list
+
+  nextTick(() => {
+    if (!formState.ai_chunk_model || !Number(formState.ai_chunk_model_config_id)) {
+      setDefaultModel()
+    }
+  })
+  // handleEdit()
+}
+
+const setDefaultModel = () => {
+  if (vectorModelList.value.length > 0) {
+    // 遍历查找chatwiki模型
+    let modelConfig = null
+    let model = null
+
+    // 云版默认选中qwen-max
+    for (let item of vectorModelList.value) {
+      if (item.model_define === 'tongyi') {
+        modelConfig = item
+        for (let child of modelConfig.children) {
+          if (child.name === 'qwen-max') {
+            model = child
+            break
+          }
+        }
+        break
+      }
+    }
+
+    if (!modelConfig) {
+      modelConfig = vectorModelList.value[0]
+      model = modelConfig.children[0]
+    }
+
+    if (modelConfig && model) {
+      formState.ai_chunk_model = model.name
+      formState.ai_chunk_model_config_id = model.model_config_id
+    }
+  }
 }
 
 const openGrapgModalRef = ref(null)
@@ -636,6 +755,10 @@ const handleEdit = (callback = null) => {
     semantic_chunk_default_chunk_size: formState.semantic_chunk_default_chunk_size,
     semantic_chunk_default_chunk_overlap: formState.semantic_chunk_default_chunk_overlap,
     semantic_chunk_default_threshold: formState.semantic_chunk_default_threshold,
+    ai_chunk_size: formState.ai_chunk_size,
+    ai_chunk_model: formState.ai_chunk_model,
+    ai_chunk_model_config_id: formState.ai_chunk_model_config_id,
+    ai_chunk_prumpt: formState.ai_chunk_prumpt,
     id: rotue.query.id
   }
   if (oldModelDefineList.indexOf(currentModelDefine.value) > -1) {

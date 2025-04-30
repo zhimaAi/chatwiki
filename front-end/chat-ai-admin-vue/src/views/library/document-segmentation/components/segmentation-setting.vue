@@ -245,10 +245,11 @@
   .select-card-box {
     display: flex;
     align-items: center;
+    flex-direction: column;
     gap: 8px;
     width: 100%;
     .select-card-item {
-      width: calc(50% - 4px);
+      width: 100%;
       position: relative;
       padding: 16px;
       border-radius: 6px;
@@ -298,6 +299,16 @@
       }
     }
   }
+}
+
+.form-item-inptu-numbner-box {
+  display: flex;
+  align-items: center;
+}
+
+.form-item-inptu-numbner {
+  flex: 1;
+  margin-right: 5px;
 }
 </style>
 
@@ -565,6 +576,20 @@
                         将文章拆分成句子后，通过语句向量相似度进行分段，会消耗模型token
                       </div>
                     </div>
+                    <div
+                      class="select-card-item"
+                      @click="formState.chunk_type = 3"
+                      :class="{ active: formState.chunk_type == 3 }"
+                    >
+                      <svg-icon class="check-arrow" name="check-arrow-filled"></svg-icon>
+                      <div class="card-title">
+                        <svg-icon name="semantic-segmentation" class="title-icon"></svg-icon>
+                        AI分段
+                      </div>
+                      <div class="card-desc">
+                        将文章提交给大模型，大模型基于设定的提示词进行分段，会消耗大量模型token
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -695,6 +720,62 @@
                   </div>
                 </a-flex>
               </div>
+              <!-- AI分段 -->
+              <div v-show="formState.chunk_type == 3">
+                <div class="form-item" style="margin-bottom: 16px">
+                  <div class="form-item-label">AI大模型：</div>
+                  <div class="form-item-body">
+                    <ModelSelect
+                      modelType="LLM"
+                      placeholder="请选择AI大模型"
+                      v-model:modeName="formState.ai_chunk_model"
+                      v-model:modeId="formState.ai_chunk_model_config_id"
+                      :modeName="formState.ai_chunk_model"
+                      :modeId="formState.ai_chunk_model_config_id"
+                      style="width: 100%"
+                      @loaded="onVectorModelLoaded"
+                    />
+                  </div>
+                </div>
+
+                <div class="form-item" style="margin-bottom: 16px">
+                  <div class="form-item-label">提示词设置：</div>
+                  <div class="form-item-body">
+                    <a-textarea
+                      :maxLength="500"
+                      style="height: 80px"
+                      v-model:value="formState.ai_chunk_prumpt"
+                      :placeholder="defaultAiChunkPrumpt"
+                    />
+                  </div>
+                </div>
+
+                <div class="form-item" style="margin-bottom: 16px">
+                  <div class="form-item-label">
+                    单次最大字符数
+                    <a-tooltip>
+                      <template #title
+                        >由于大模型支持的上下文数量有限制，如果上传的文档较大，会按照最大字符数先拆分成多个分段，再提交给大模型进行分段。</template
+                      >
+                      <QuestionCircleOutlined
+                        style="cursor: pointer; margin-left: 2px"
+                      /> </a-tooltip
+                    >：
+                  </div>
+                  <div class="form-item-body form-item-inptu-numbner-box">
+                    <a-input-number
+                      class="form-item-inptu-numbner"
+                      v-model:value="formState.ai_chunk_size"
+                      placeholder="请输入单次最大字符数"
+                      :precision="0"
+                      :min="0"
+                      :formatter="(value) => parseInt(value)"
+                      :parser="(value) => parseInt(value)"
+                    />
+                    字符
+                  </div>
+                </div>
+              </div>
               <div class="btn-box-block">
                 <a-button @click="handleReset" style="flex: 1">重置</a-button>
                 <a-button
@@ -707,7 +788,7 @@
                 >
               </div>
               <div class="btn-box-block">
-                <a-button type="primary" v-if="!props.hideSave" block @click="onSave"
+                <a-button type="primary" v-if="!props.hideSave" block :disabled="reLoading" @click="onSave"
                   >保存</a-button
                 >
               </div>
@@ -722,13 +803,13 @@
 <script setup>
 import { getSeparatorsList } from '@/api/library/index'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
-import { reactive, ref, toRaw, computed, watch } from 'vue'
+import { reactive, ref, toRaw, computed, watch, nextTick } from 'vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { Form } from 'ant-design-vue'
 import { message } from 'ant-design-vue'
 
 const useForm = Form.useForm
-const emit = defineEmits(['change', 'validate', 'save'])
+const emit = defineEmits(['change', 'validate', 'save', 'changeChunkType'])
 
 const props = defineProps({
   mode: {
@@ -757,11 +838,15 @@ const isHtmlOrDocx = computed(() => {
     (props.libFileInfo.file_ext == 'docx' || props.libFileInfo.file_ext == 'html')
   )
 })
+
+const defaultAiChunkPrumpt = '你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。'
+
 watch(props, (val) => {
   let libFileInfo = val.libFileInfo
   let separators_no = libFileInfo.separators_no ? libFileInfo.separators_no.split(',') : [11, 12]
   formState.separators_no = separators_no.map((item) => +item)
   formState.chunk_size = +libFileInfo.chunk_size || 512
+  formState.ai_chunk_size = +libFileInfo.ai_chunk_size || 5000
   formState.chunk_overlap = +libFileInfo.chunk_overlap || 50
   // formState.is_qa_doc = +libFileInfo.is_qa_doc
   formState.question_lable = libFileInfo.question_lable
@@ -777,6 +862,13 @@ watch(props, (val) => {
   formState.semantic_chunk_size = +libFileInfo.semantic_chunk_size || 512
   formState.semantic_chunk_overlap = +libFileInfo.semantic_chunk_overlap || 50
   formState.semantic_chunk_threshold = +libFileInfo.semantic_chunk_threshold || 90
+  formState.semantic_chunk_use_model = libFileInfo.semantic_chunk_use_model || ''
+  formState.ai_chunk_prumpt = libFileInfo.ai_chunk_prumpt || defaultAiChunkPrumpt
+  formState.ai_chunk_model = libFileInfo.ai_chunk_model || ''
+  formState.semantic_chunk_model_config_id =
+    libFileInfo.semantic_chunk_model_config_id > 0 ? libFileInfo.semantic_chunk_model_config_id : ''
+  formState.ai_chunk_model_config_id =
+    libFileInfo.ai_chunk_model_config_id > 0 ? libFileInfo.ai_chunk_model_config_id : ''
 
   setTimeout(() => {
     formState.semantic_chunk_use_model = libFileInfo.semantic_chunk_use_model || ''
@@ -805,6 +897,7 @@ watch(props, (val) => {
 
   formState.is_qa_doc = props.library_type == 2 ? 1 : 0
 })
+
 const formState = reactive({
   separators_no: [], // 自定义分段-分隔符序号集
   chunk_size: 512, // 自定义分段-分段最大长度 默认512，最大值不得超过2000
@@ -823,7 +916,11 @@ const formState = reactive({
   semantic_chunk_overlap: 50, // 语义分段重叠长度
   semantic_chunk_threshold: 90, // 语义分段阈值
   semantic_chunk_use_model: '',
-  semantic_chunk_model_config_id: ''
+  semantic_chunk_model_config_id: '',
+  ai_chunk_size: 5000, // ai大模型分段最大字符数
+  ai_chunk_model:'', // ai大模型分段模型名称
+  ai_chunk_model_config_id: '', // ai大模型分段模型配置id
+  ai_chunk_prumpt: defaultAiChunkPrumpt // ai大模型分段提示词设置
 })
 
 let baseFormState = {}
@@ -834,6 +931,44 @@ setTimeout(() => {
 const vectorModelList = ref([])
 const onVectorModelLoaded = (list) => {
   vectorModelList.value = list
+
+  nextTick(() => {
+    if (!formState.ai_chunk_model || !Number(formState.ai_chunk_model_config_id)) {
+      setDefaultModel()
+    }
+  })
+}
+
+const setDefaultModel = () => {
+  if (vectorModelList.value.length > 0) {
+    // 遍历查找chatwiki模型
+    let modelConfig = null
+    let model = null
+
+    // 云版默认选中qwen-max
+    for (let item of vectorModelList.value) {
+      if (item.model_define === 'tongyi') {
+        modelConfig = item
+        for (let child of modelConfig.children) {
+          if (child.name === 'qwen-max') {
+            model = child
+            break
+          }
+        }
+        break
+      }
+    }
+
+    if (!modelConfig) {
+      modelConfig = vectorModelList.value[0]
+      model = modelConfig.children[0]
+    }
+
+    if (modelConfig && model) {
+      formState.ai_chunk_model = model.name
+      formState.ai_chunk_model_config_id = model.model_config_id
+    }
+  }
 }
 
 const handleReset = () => {
@@ -869,6 +1004,23 @@ const formRules = reactive({
           console.log(value, '==')
           if (!value) {
             return Promise.reject('请选择嵌入模型')
+          }
+
+          return Promise.resolve()
+        }
+
+        return Promise.resolve()
+      }
+    }
+  ],
+  ai_chunk_model_config_id: [
+    {
+      message: '请选择AI大模型',
+      validator: async (rule, value) => {
+        if (formState.is_qa_doc == 0 && formState.chunk_type == 3) {
+          console.log(value, '==')
+          if (!value) {
+            return Promise.reject('请选择AI大模型')
           }
 
           return Promise.resolve()
@@ -919,6 +1071,36 @@ const formRules = reactive({
             return Promise.reject('请输入分段最大长度')
           } else if (value > 10000) {
             return Promise.reject('最大分段长最大值不得超过10000')
+          }
+        } else if (formState.chunk_type == 3) {
+          if (!value) {
+            return Promise.reject('请输入分段最大长度')
+          }
+        }
+
+        return Promise.resolve()
+      }
+    }
+  ],
+  ai_chunk_size: [
+    {
+      validator: async (rule, value) => {
+        if (formState.chunk_type == 3) {
+          if (!value) {
+            return Promise.reject('请输入分段最大长度')
+          }
+        }
+
+        return Promise.resolve()
+      }
+    }
+  ],
+  ai_chunk_prumpt: [
+    {
+      validator: async (rule, value) => {
+        if (!formState.ai_chunk_prumpt) {
+          if (!value) {
+            return Promise.reject('请输入提示词')
           }
         }
 
@@ -1043,6 +1225,15 @@ const handleChangeQaIndexType = (type) => {
   formState.qa_index_type = type
   onChange()
 }
+
+watch(() => formState.chunk_type, (val) => {
+  emit('changeChunkType', val)
+})
+
+watch(() => reLoading.value, (val) => {
+})
+
+
 
 defineExpose({
   formState,

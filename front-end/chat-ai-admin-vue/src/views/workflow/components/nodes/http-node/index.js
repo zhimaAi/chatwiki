@@ -1,7 +1,5 @@
-import { h as flh } from '@logicflow/core'
 import { BaseVueNodeView, BaseVueNodeModel } from '../base-node.js'
 import VueNode from './index.vue'
-import { getMessageNodeAnchor } from '../../util.js'
 
 class VueHtmlNode extends BaseVueNodeView {
   constructor(props) {
@@ -43,12 +41,6 @@ class VueHtmlNodeModel extends BaseVueNodeModel {
     this.targetRules = [targetRule01]
   }
 
-  getAnchorPos() {
-    let anchorListPos = getMessageNodeAnchor(this)
-
-    return anchorListPos
-  }
-
   getDefaultAnchor() {
     // 定义锚点位置
     const { id, x, y, width, height, isHovered, isSelected } = this
@@ -70,20 +62,6 @@ class VueHtmlNodeModel extends BaseVueNodeModel {
         nodeId: id,
       },
     ]
-
-    let anchorListPos = this.getAnchorPos()
-
-    for (let i = 0; i < anchorListPos.length; i++) {
-      let { offsetTop, offsetHeight } = anchorListPos[i]
-      let y0 = y - height / 2
-
-      defaultAnchor.push({
-        id: anchorListPos[i].id,
-        x: x + width / 2,
-        y: y0 + offsetTop + offsetHeight / 2,
-        type: 'right',
-      })
-    }
 
     return defaultAnchor
   }

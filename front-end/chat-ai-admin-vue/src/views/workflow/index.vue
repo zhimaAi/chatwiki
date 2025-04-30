@@ -15,6 +15,7 @@
 
     .page-left {
       height: 100%;
+      padding-bottom: 8px;
     }
 
     .page-container {
@@ -46,18 +47,15 @@
         />
       </div>
     </div>
-
-    <!-- <DrawerForm @change="onChange" ref="drawerFormRef" /> -->
   </div>
 </template>
 
 <script setup>
-// import { getNodeList, saveNodesDraft, saveNodesRelease } from '@/api/robot/index'
 import { getNodeList, saveNodes } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
 import { generateUniqueId } from '@/utils/index'
 import { getNodeIconName } from './components/util.js'
-import { onMounted, ref, reactive, computed, onUnmounted } from 'vue'
+import { onMounted, ref, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
@@ -67,11 +65,9 @@ import PageHeader from './components/page-header.vue'
 
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
 import { getModelConfigOption } from '@/api/model/index'
-// import DrawerForm from './components/drawer-form/drawer-form.vue'
+
 const route = useRoute()
 const robot_key = ref(route.query.robot_key)
-
-const drawerFormRef = ref(null)
 
 const workflowCanvasRef = ref(null)
 
@@ -85,7 +81,9 @@ const nodeTypes = {
   4: 'http-node',
   5: 'knowledge-base-node',
   6: 'ai-dialogue-node',
-  7: 'end-node'
+  7: 'end-node',
+  8: 'variable-assignment-node',
+  9: 'specify-reply-node'
 }
 
 function getNode() {
@@ -104,6 +102,15 @@ function getNode() {
 
         edges.push(edge)
       } else {
+        if(item.node_type == 1){
+          let node_params = JSON.parse(item.node_params)
+          
+          if(!node_params.start){
+            node_params.start = []
+          }
+
+          item.node_params = JSON.stringify(node_params)
+        }
         // 节点数据处理
         let node = JSON.parse(item.node_info_json)
 
@@ -125,9 +132,11 @@ function getNode() {
 
         item.iconKey = iconKey
         item.node_icon_name = getNodeIconName(iconKey)
+        item.dataRaw = node.dataRaw || item.node_params
 
         // 删除不要的参数
         delete item.node_info_json
+
         // 设置 properties
         node.properties = item
         nodes.push(node)
@@ -144,6 +153,7 @@ const setWorkflowData = (data) => {
 
 const getCanvasData = () => {
   let data = workflowCanvasRef.value.getData()
+
   let list = []
   let edgeMap = {}
   // 先处理边数据
@@ -183,7 +193,8 @@ const getCanvasData = () => {
       x: item.x,
       y: item.y,
       id: item.id,
-      nodeSortKey: obj.nodeSortKey
+      nodeSortKey: obj.nodeSortKey,
+      dataRaw: item.properties.node_params,
     }
 
     // 关联next_node_key
@@ -205,7 +216,6 @@ const getCanvasData = () => {
     if (obj.node_type == 3) {
       // 判断分支
       if (node_params.cate && node_params.cate.categorys && node_params.cate.categorys.length > 0) {
-        console.log(obj, node_params.cate.categorys, edgeMap, '==')
         node_params.cate.categorys.forEach((msg, index) => {
           let key = obj.nodeSortKey + '-anchor_' + index
           msg.next_node_key = edgeMap[key] || ''
@@ -213,14 +223,17 @@ const getCanvasData = () => {
       }
     }
 
-    for (let key in node_params) {
+    // for (let key in node_params) {
       // for (let key2 in node_params[key]) {
       //   node_params[key][key2] = obj[key2] || ''
       // }
-    }
+    // }
 
     // obj.node_params = JSON.stringify(node_params)
     obj.node_params = node_params
+
+    delete obj.dataRaw
+
     list.push(obj)
   })
 
@@ -233,7 +246,7 @@ const handleSave = (type) => {
     robot_key: robot_key.value,
     data_type: 1,
     node_list: JSON.stringify(list)
-  }).then((res) => {
+  }).then(() => {
     type == 'handle' && message.success('保存成功')
     robotStore.setDrafSaveTime({
       type,
@@ -268,7 +281,7 @@ const handleRelease = async () => {
       // 跳过
       continue
     }
-    console.log(node, node.node_type, '===')
+
     if (node.node_type == 1) {
       if (node.next_node_key == '') {
         errorNodes.push(node)
@@ -326,53 +339,11 @@ const handleSelectedNode = (data) => {
     return
   }
 
-  // drawerFormRef.value.onShow({
-  //   ...data
-  // })
 }
 
 // 删除节点
 const handleDeleteNode = () => {
-  // drawerFormRef.value.onClose()
-}
-
-const onChange = (data) => {
-  // 更新表单数据
-  updateNode(data)
-}
-// 更新节点
-const updateNode = (data) => {
-  let node = selectedNode.value
-  let properties = JSON.parse(JSON.stringify(data))
-
-  // 设置动作节点的内容
-  if (properties.node_sub_type == 41) {
-    properties.content = properties.notice_content
-  }
-
-  if (properties.node_sub_type == 51) {
-    properties.content = '触发时自动结束对话。访客之后再咨询会重新从开始节点继续执行。'
-  }
-
-  if (properties.node_sub_type == 52) {
-    properties.content = properties.switch_content
-  }
-
-  if (properties.message_list && properties.message_list.length > 0) {
-    properties.message_list.forEach((msg) => {
-      msg.sort_content = msg.content || ''
-
-      if (msg.sort_content.length > 50) {
-        msg.sort_content = msg.sort_content.substring(0, 50) + '...'
-      }
-    })
-  }
-
-  node.properties = properties
-
-  if (node) {
-    workflowCanvasRef.value.updateNode(node)
-  }
+  
 }
 
 const getModelList = async () => {

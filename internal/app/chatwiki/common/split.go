@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -27,6 +28,7 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 	"golang.org/x/image/webp"
 
 	"chatwiki/internal/app/chatwiki/define"
@@ -48,6 +50,7 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 		err = errors.New(i18n.Show(lang, `status_exception`))
 		return
 	}
+	splitParams.FileExt = info[`file_ext`]
 	library, err := GetLibraryInfo(cast.ToInt(info[`library_id`]), userId)
 	if err != nil {
 		err = errors.New(i18n.Show(lang, `sys_err`))
@@ -62,9 +65,8 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 	if err != nil {
 		return
 	}
-	pdfParseType := splitParams.PdfParseType
-	if pdfParseType == 0 {
-		pdfParseType = cast.ToInt(info[`pdf_parse_type`])
+	if splitParams.PdfParseType == 0 {
+		splitParams.PdfParseType = cast.ToInt(info[`pdf_parse_type`])
 	}
 	if (cast.ToInt(library[`type`]) == define.GeneralLibraryType && splitParams.IsQaDoc == define.DocTypeQa) ||
 		(cast.ToInt(library[`type`]) == define.QALibraryType && splitParams.IsQaDoc != define.DocTypeQa) {
@@ -81,13 +83,13 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 		err = errors.New(`开源版不支持ofd文档`)
 	} else if define.IsTxtFile(info[`file_ext`]) || define.IsMdFile(info[`file_ext`]) {
 		list, wordTotal, err = ReadTxt(info[`file_url`])
-	} else if define.IsPdfFile(info[`file_ext`]) && pdfParseType == define.PdfParseTypeText {
+	} else if define.IsPdfFile(info[`file_ext`]) && splitParams.PdfParseType == define.PdfParseTypeText {
 		list, wordTotal, err = ReadPdf(info[`file_url`], pdfPageNum, lang)
-	} else if define.IsPdfFile(info[`file_ext`]) && pdfParseType == define.PdfParseTypeOcr && pdfPageNum > 0 {
-		list, wordTotal, err = OcrReadOnePagePdf(info[`file_url`], pdfPageNum, lang)
+	} else if define.IsPdfFile(info[`file_ext`]) && (splitParams.PdfParseType == define.PdfParseTypeOcr || splitParams.PdfParseType == define.PdfParseTypeOcrWithImage) && pdfPageNum > 0 {
+		list, wordTotal, err = OcrReadOnePagePdf(userId, splitParams.PdfParseType, info[`file_url`], pdfPageNum, lang)
 	} else {
 		if len(info[`html_url`]) == 0 || !LinkExists(info[`html_url`]) { //compatible with old data
-			list, wordTotal, err = ConvertAndReadHtmlContent(cast.ToInt(info[`id`]), info[`file_url`], userId)
+			list, wordTotal, err = ConvertAndReadHtmlContent(cast.ToInt(info[`id`]), info[`file_url`], userId, splitParams.PdfParseType)
 		} else {
 			list, wordTotal, err = ReadHtmlContent(info[`html_url`], userId)
 		}
@@ -107,7 +109,7 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 			list = QaDocSplit(splitParams, list)
 		}
 	} else {
-		list, err = MultDocSplit(cast.ToInt(info[`admin_user_id`]), splitParams, list)
+		list, err = MultDocSplit(cast.ToInt(info[`admin_user_id`]), fileId, splitParams, list)
 	}
 	if err != nil {
 		return
@@ -164,7 +166,6 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 			return errors.New(i18n.Show(lang, `param_invalid`, `qa_index_type`))
 		}
 	}
-
 	//add lock dispose
 	if !lib_redis.AddLock(define.Redis, define.LockPreKey+`SaveLibFileSplit`+cast.ToString(fileId), time.Minute*5) {
 		err = errors.New(i18n.Show(lang, `op_lock`))
@@ -213,6 +214,11 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		`semantic_chunk_threshold`:       splitParams.SemanticChunkThreshold,
 		`semantic_chunk_use_model`:       splitParams.SemanticChunkUseModel,
 		`semantic_chunk_model_config_id`: splitParams.SemanticChunkModelConfigId,
+		`ai_chunk_model`:                 splitParams.AiChunkModel,
+		`ai_chunk_model_config_id`:       splitParams.AiChunkModelConfigId,
+		`ai_chunk_size`:                  splitParams.AiChunkSize,
+		`ai_chunk_prumpt`:                splitParams.AiChunkPrumpt,
+		`ai_chunk_task_id`:               splitParams.AiChunkTaskId,
 		`pdf_parse_type`:                 splitParams.PdfParseType,
 		`update_time`:                    tool.Time2Int(),
 	}
@@ -233,12 +239,25 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 	lib_redis.DelCacheData(define.Redis, &LibFileCacheBuildHandler{FileId: fileId})
 
 	//database dispose
-	vm := msql.Model("chat_ai_library_file_data", define.Postgres)
-	q := vm.Where(`admin_user_id`, cast.ToString(userId)).Where(`file_id`, cast.ToString(fileId))
+	shouldDeleteQuery := msql.Model("chat_ai_library_file_data", define.Postgres).
+		Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`file_id`, cast.ToString(fileId))
 	if pdfPageNum > 0 {
-		q.Where(`page_num`, cast.ToString(pdfPageNum))
+		shouldDeleteQuery.Where(`page_num`, cast.ToString(pdfPageNum))
 	}
-	shouldDeleteIds, err := q.ColumnArr(`id`)
+	shouldDeleteIds, err := shouldDeleteQuery.Where("category_id", "0").ColumnArr(`id`)
+	if err != nil {
+		logs.Error(err.Error())
+		return errors.New(i18n.Show(lang, `sys_err`))
+	}
+
+	shouldIsolatedQuery := msql.Model("chat_ai_library_file_data", define.Postgres).
+		Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`file_id`, cast.ToString(fileId))
+	if pdfPageNum > 0 {
+		shouldIsolatedQuery.Where(`page_num`, cast.ToString(pdfPageNum))
+	}
+	shouldIsolatedIds, err := shouldIsolatedQuery.Where("category_id", ">", "0").ColumnArr(`id`)
 	if err != nil {
 		logs.Error(err.Error())
 		return errors.New(i18n.Show(lang, `sys_err`))
@@ -254,6 +273,15 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
 			Where(`data_id`, `in`, strings.Join(shouldDeleteIds, `,`)).
 			Delete()
+		if err != nil {
+			logs.Error(err.Error())
+			return errors.New(i18n.Show(lang, `sys_err`))
+		}
+	}
+	if len(shouldIsolatedIds) > 0 {
+		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
+			Where(`id`, `in`, strings.Join(shouldIsolatedIds, `,`)).
+			Update(msql.Datas{"isolated": true})
 		if err != nil {
 			logs.Error(err.Error())
 			return errors.New(i18n.Show(lang, `sys_err`))
@@ -306,7 +334,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 			} else {
 				data[`images`] = `[]`
 			}
-			id, err := vm.Insert(data, `id`)
+			id, err := msql.Model("chat_ai_library_file_data", define.Postgres).Insert(data, `id`)
 			if err != nil {
 				logs.Error(err.Error())
 				return errors.New(i18n.Show(lang, `sys_err`))
@@ -369,7 +397,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 			} else {
 				data[`images`] = `[]`
 			}
-			id, err := vm.Insert(data, `id`)
+			id, err := msql.Model("chat_ai_library_file_data", define.Postgres).Insert(data, `id`)
 			if err != nil {
 				logs.Error(err.Error())
 				return errors.New(i18n.Show(lang, `sys_err`))
@@ -414,7 +442,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 	return nil
 }
 
-func MultDocSplit(adminUserId int, splitParams define.SplitParams, items []define.DocSplitItem) ([]define.DocSplitItem, error) {
+func MultDocSplit(adminUserId, fileId int, splitParams define.SplitParams, items []define.DocSplitItem) ([]define.DocSplitItem, error) {
 	var err error
 	if splitParams.ChunkType == define.ChunkTypeNormal {
 		split := textsplitter.NewRecursiveCharacter()
@@ -437,6 +465,43 @@ func MultDocSplit(adminUserId int, splitParams define.SplitParams, items []defin
 					continue
 				}
 				list = append(list, define.DocSplitItem{PageNum: item.PageNum, Content: content, Images: images})
+			}
+		}
+		return list, err
+	} else if splitParams.ChunkType == define.ChunkTypeAi {
+		if define.IsTableFile(splitParams.FileExt) {
+			return items, nil
+		}
+		list := make([]define.DocSplitItem, 0)
+		if splitParams.AiChunkNew {
+			go func(items []define.DocSplitItem) {
+				_, err = AISplitDocs(cast.ToInt(adminUserId), splitParams, items)
+				if err != nil {
+					updateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusException, `errmsg`: err.Error()})
+					logs.Error(err.Error())
+					return
+				}
+			}(items)
+			list = items
+		} else {
+			// get db data
+			data, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`file_id`, cast.ToString(fileId)).Select()
+			if err != nil {
+				logs.Error(err.Error())
+			}
+			for _, item := range data {
+				var images []string
+				if len(item[`images`]) > 0 {
+					_ = tool.JsonDecode(item[`images`], &images)
+				}
+				list = append(list, define.DocSplitItem{
+					Content:   item[`content`],
+					Number:    cast.ToInt(item[`number`]),
+					Images:    images,
+					Title:     item[`title`],
+					PageNum:   cast.ToInt(item[`page_num`]),
+					WordTotal: cast.ToInt(item[`word_total`]),
+				})
 			}
 		}
 		return list, err
@@ -471,8 +536,8 @@ func MultDocSplit(adminUserId int, splitParams define.SplitParams, items []defin
 	}
 }
 
-func ConvertAndReadHtmlContent(fileId int, fileUrl string, userId int) ([]define.DocSplitItem, int, error) {
-	htmlUrl, err := ConvertHtml(fileUrl, userId)
+func ConvertAndReadHtmlContent(fileId int, fileUrl string, userId int, pdfParseType int) ([]define.DocSplitItem, int, error) {
+	htmlUrl, err := ConvertHtml(fileId, fileUrl, userId, pdfParseType)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -490,16 +555,21 @@ func ConvertAndReadHtmlContent(fileId int, fileUrl string, userId int) ([]define
 	return ReadHtmlContent(htmlUrl, userId)
 }
 
-func RequestConvertService(file, fromFormat string) (content string, err error) {
+func RequestConvertService(file, fromFormat string, pdfParseType int) (content string, err error) {
 	useOcr := false
+	extractImage := false
 	if fromFormat == "pdf" {
 		useOcr = true
+	}
+	if pdfParseType == define.PdfParseTypeOcrWithImage {
+		extractImage = true
 	}
 	request := curl.Post(define.Config.WebService[`converter`]+`/convert`).
 		PostFile(`file`, file).
 		Param(`from_format`, fromFormat).
 		Param(`to_format`, `html`).
-		Param(`use_ocr`, cast.ToString(useOcr))
+		Param(`use_ocr`, cast.ToString(useOcr)).
+		Param(`extract_images`, cast.ToString(extractImage))
 	if resp, err := request.Response(); err != nil {
 		return ``, err
 	} else if resp.StatusCode != http.StatusOK {
@@ -508,8 +578,8 @@ func RequestConvertService(file, fromFormat string) (content string, err error) 
 	return request.String()
 }
 
-func PdfConvertHtml(file string) (content string, err error) {
-	page, err := api.PageCountFile(file)
+func PdfConvertHtml(fileId int, fileLink string, pdfParseType int) (content string, err error) {
+	page, err := api.PageCountFile(fileLink)
 	if err != nil { //获取页码出错
 		return
 	}
@@ -518,19 +588,37 @@ func PdfConvertHtml(file string) (content string, err error) {
 		_ = os.RemoveAll(path) //结束后删除目录
 	}(outDir)
 	_ = tool.MkDirAll(outDir) //确保输出目录存在
-	if err = api.SplitFile(file, outDir, 1, nil); err != nil {
+	if err = api.SplitFile(fileLink, outDir, 1, nil); err != nil {
 		return
 	}
 	//来自spanFileName,千万不要改,大写会出问题!!!
-	filename := strings.TrimSuffix(filepath.Base(file), `.pdf`)
+	filename := strings.TrimSuffix(filepath.Base(fileLink), `.pdf`)
 	for idx := 1; idx <= page; idx++ {
 		item := fmt.Sprintf(`%s/%s_%d.pdf`, outDir, filename, idx)
 		if !tool.IsFile(item) {
 			continue //预防文件不存在的情况
 		}
-		onePage, err := RequestConvertService(item, `pdf`)
+		onePage, err := RequestConvertService(item, `pdf`, pdfParseType)
 		if err != nil {
 			return ``, fmt.Errorf(`[%d/%d]:%v`, idx, page, err)
+		}
+		info, err := msql.Model(`chat_ai_library_file`, define.Postgres).
+			Where(`id`, cast.ToString(fileId)).
+			Find()
+		if err != nil {
+			return ``, fmt.Errorf(`get library file error, file id = %d, err = %v`, fileId, err)
+		}
+		if len(info) == 0 {
+			return ``, fmt.Errorf("cannot find library file id = %d", fileId)
+		}
+		if cast.ToInt(info[`status`]) == define.FileStatusCancelled {
+			return ``, fmt.Errorf("pdf parse cancelled, file_id = %d", fileId)
+		}
+		_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
+			Where(`id`, cast.ToString(fileId)).
+			Update(msql.Datas{"ocr_pdf_index": idx})
+		if err != nil {
+			return ``, err
 		}
 
 		content += onePage
@@ -538,15 +626,15 @@ func PdfConvertHtml(file string) (content string, err error) {
 	return
 }
 
-func ConvertHtml(link string, userId int) (content string, err error) {
+func ConvertHtml(fileId int, link string, userId int, pdfParseType int) (content string, err error) {
 	if !LinkExists(link) {
 		return ``, errors.New(`file not exist:` + link)
 	}
 	ext := strings.ToLower(strings.TrimLeft(filepath.Ext(link), `.`))
 	if ext == `pdf` { //切分成每一页再转换合并
-		content, err = PdfConvertHtml(GetFileByLink(link))
+		content, err = PdfConvertHtml(fileId, GetFileByLink(link), pdfParseType)
 	} else { //直接请求转换服务
-		content, err = RequestConvertService(GetFileByLink(link), ext)
+		content, err = RequestConvertService(GetFileByLink(link), ext, pdfParseType)
 	}
 	if err != nil {
 		return ``, err
@@ -626,21 +714,21 @@ func ReadHtmlContent(htmlUrl string, userId int) ([]define.DocSplitItem, int, er
 	if err != nil {
 		return nil, 0, err
 	}
-	return ParseHtmlContent(content)
+	return ParseHtmlContent(userId, content)
 }
 
-func ParseHtmlContent(content string) ([]define.DocSplitItem, int, error) {
+func ParseHtmlContent(userId int, content string) ([]define.DocSplitItem, int, error) {
 	content = strings.ReplaceAll(content, `<!DOCTYPE html>`, ``)
 	pages := strings.Split(content, `<meta charset="UTF-8"/>`)
 	list := make([]define.DocSplitItem, 0)
 	wordTotal := 0
 	pageNum := 0
 	for _, pageContent := range pages {
-		//pageContent, err := ReplaceBase64Img(pageContent, userId)
-		//if err != nil {
-		//	logs.Error(err.Error())
-		//	continue
-		//}
+		pageContent, err := ReplaceBase64Img(pageContent, userId)
+		if err != nil {
+			logs.Error(err.Error())
+			continue
+		}
 		pageContent = strip.StripTags(pageContent)
 		pageContent = strings.TrimSpace(pageContent)
 		if len(pageContent) == 0 {
@@ -650,6 +738,26 @@ func ParseHtmlContent(content string) ([]define.DocSplitItem, int, error) {
 		list = append(list, define.DocSplitItem{Content: pageContent, PageNum: pageNum, WordTotal: utf8.RuneCountInString(pageContent)})
 		wordTotal += utf8.RuneCountInString(pageContent)
 	}
+
+	return list, wordTotal, nil
+}
+
+func ParseOnePageHtmlContent(userId int, content string, pageNum int) ([]define.DocSplitItem, int, error) {
+	content = strings.ReplaceAll(content, `<!DOCTYPE html>`, ``)
+	list := make([]define.DocSplitItem, 0)
+	wordTotal := 0
+	pageContent, err := ReplaceBase64Img(content, userId)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, wordTotal, err
+	}
+	pageContent = strip.StripTags(pageContent)
+	pageContent = strings.TrimSpace(pageContent)
+	if len(pageContent) == 0 {
+		return nil, wordTotal, err
+	}
+	list = append(list, define.DocSplitItem{Content: pageContent, PageNum: pageNum, WordTotal: utf8.RuneCountInString(pageContent)})
+	wordTotal += utf8.RuneCountInString(pageContent)
 
 	return list, wordTotal, nil
 }
@@ -961,14 +1069,212 @@ func AutoSplitLibFile(adminUserId, fileId int, splitParams define.SplitParams) {
 		logs.Error(err.Error())
 		return
 	}
-	err = SaveLibFileSplit(adminUserId, fileId, wordTotal, define.QAIndexTypeQuestionAndAnswer, splitParams, list, 0, lang)
-	if err != nil {
-		logs.Error(err.Error())
-		return
+
+	if splitParams.ChunkType == define.ChunkTypeAi && splitParams.AiChunkNew {
+		if err = SaveAISplitDocs(adminUserId, fileId, wordTotal, define.QAIndexTypeQuestionAndAnswer, splitParams, list, 0, lang); err != nil {
+			logs.Error(err.Error())
+			return
+		}
+	} else {
+		err = SaveLibFileSplit(adminUserId, fileId, wordTotal, define.QAIndexTypeQuestionAndAnswer, splitParams, list, 0, lang)
+		if err != nil {
+			logs.Error(err.Error())
+			return
+		}
 	}
 }
 
 func updateLibFileData(adminUserId, fileId int, data msql.Datas) error {
 	_, err := msql.Model(`chat_ai_library_file`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`id`, cast.ToString(fileId)).Update(data)
 	return err
+}
+
+func AISplitDocs(adminUserId int, splitParams define.SplitParams, list []define.DocSplitItem) ([]define.DocSplitItem, error) {
+	wg := &sync.WaitGroup{}
+	lock := &sync.Mutex{}
+	contents := ""
+	var errMsg = ""
+	contentMap := make(map[int]define.DocSplitItem)
+	index := 1
+	maxToken := 0
+	currChan := make(chan struct{}, 8)
+	if !CheckModelIsValid(adminUserId, cast.ToInt(splitParams.AiChunkModelConfigId), splitParams.AiChunkModel, Llm) {
+		errMsg = `model not valid`
+		return nil, errors.New(errMsg)
+	}
+	var submitContent []define.DocSplitItem
+	for key, item := range list {
+		spliteItem := define.DocSplitItem{
+			PageNum: item.PageNum,
+			Content: item.Content,
+		}
+		// pdf page submit
+		if define.IsPdfFile(splitParams.FileExt) {
+			submitContent = append(submitContent, spliteItem)
+			continue
+		} else if len(contents) >= splitParams.AiChunkSize {
+			submitContent = append(submitContent, spliteItem)
+			continue
+		}
+		if key+1 == len(list) {
+			submitContent = append(submitContent, spliteItem)
+		}
+	}
+	for _, item := range submitContent {
+		contents = item.Content
+		// ai split
+		if len(contents) == 0 {
+			continue
+		}
+		if len(contents) <= 2 {
+			lock.Lock()
+			contentMap[index] = define.DocSplitItem{
+				PageNum: item.PageNum,
+				Content: contents,
+			}
+			lock.Unlock()
+			continue
+		}
+		currChan <- struct{}{}
+		wg.Add(1)
+		go func(wg *sync.WaitGroup, contentMap map[int]define.DocSplitItem, index int, contents string, errMsg *string) {
+			defer wg.Done()
+			defer func() { <-currChan }()
+
+			messages := []adaptor.ZhimaChatCompletionMessage{
+				{
+					Role:    `system`,
+					Content: splitParams.AiChunkPrumpt,
+				},
+				{
+					Role:    `assistant`,
+					Content: "将下面的内容按要求分段,原文本输出,以\n为分段标识",
+				},
+				{
+					Role:    `user`,
+					Content: contents,
+				},
+			}
+
+			chatResp, _, err := RequestChat(
+				adminUserId,
+				"",
+				msql.Params{},
+				"",
+				cast.ToInt(splitParams.AiChunkModelConfigId),
+				splitParams.AiChunkModel,
+				messages,
+				nil,
+				0.1,
+				maxToken,
+			)
+			if err != nil {
+				logs.Error(err.Error())
+				*errMsg = err.Error()
+				return
+			}
+			lock.Lock()
+			contentMap[index] = define.DocSplitItem{
+				PageNum: item.PageNum,
+				Content: chatResp.Result,
+			}
+			lock.Unlock()
+		}(wg, contentMap, index, contents, &errMsg)
+		index++
+
+	}
+	wg.Wait()
+	var newList []define.DocSplitItem
+	var imageInsertIndex = map[int][]string{}
+	var number = 1
+	for i := 1; i <= len(contentMap); i++ {
+		allContents := contentMap[i].Content
+		allContents = strings.ReplaceAll(allContents, `\t`, "\n\n")
+		allContents = strings.ReplaceAll(allContents, `\r`, "\n\n")
+		allContents = strings.ReplaceAll(allContents, `\n`, "\n")
+		splitData := strings.Split(allContents, "\n\n")
+		for _, item := range splitData {
+			item = strings.TrimSpace(item)
+			if len(item) == 0 {
+				continue
+			}
+			content, images := ExtractTextImages(item)
+			if len(images) > 0 && len(content) == 0 {
+				index := min(len(newList)-1, 0)
+				imageInsertIndex[index] = images
+			} else {
+				newItem := define.DocSplitItem{
+					Images:    images,
+					PageNum:   contentMap[i].PageNum,
+					Number:    number,
+					Content:   content,
+					WordTotal: utf8.RuneCountInString(content),
+				}
+				newList = append(newList, newItem)
+				number++
+			}
+		}
+	}
+	if len(imageInsertIndex) > 0 {
+		for index, images := range imageInsertIndex {
+			newList[index].Images = append(newList[index].Images, images...)
+		}
+	}
+	// save data
+	redisClient := LibFileSplitAiChunksBacheHandle{TaskId: splitParams.AiChunkTaskId}
+	redisClient.SaveCacheData(LibFileSplitAiChunksCache{
+		List:   newList,
+		ErrMsg: errMsg,
+	})
+	if errMsg != "" {
+		logs.Error(errMsg)
+		return nil, errors.New(errMsg)
+	}
+	return newList, nil
+}
+
+func SaveAISplitDocs(userId, fileId, wordTotal, qaIndexType int, splitParams define.SplitParams, list []define.DocSplitItem, pdfPageNum int, lang string) (err error) {
+	// save data
+	taskId := splitParams.AiChunkTaskId
+	ticker := time.NewTicker(1 * time.Second)
+	timeout := 0
+	errChan := make(chan error, 1)
+
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				timeout++
+				var list = LibFileSplitAiChunksCache{}
+				if err = lib_redis.GetCacheWithBuild(define.Redis, &LibFileSplitAiChunksBacheHandle{TaskId: taskId}, &list, 1*time.Hour); err != nil {
+					logs.Error(err.Error())
+					errChan <- err
+					return
+				}
+				if list.ErrMsg != "" {
+					errChan <- nil
+					// errChan <- errors.New(list.ErrMsg)
+					return
+				}
+				if len(list.List) == 0 {
+					continue
+				}
+				if timeout == 3600 {
+					errChan <- errors.New(`ai request timeout`)
+					return
+				}
+				SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType, splitParams, list.List, pdfPageNum, lang)
+				errChan <- nil
+				return
+			}
+		}
+	}()
+	lib_redis.DelCacheData(define.Redis, &LibFileSplitAiChunksBacheHandle{TaskId: taskId})
+	if err = <-errChan; err != nil {
+		updateLibFileData(userId, fileId, msql.Datas{`status`: define.FileStatusException, `errmsg`: err.Error()})
+		logs.Error(err.Error())
+		return err
+	}
+	return nil
 }

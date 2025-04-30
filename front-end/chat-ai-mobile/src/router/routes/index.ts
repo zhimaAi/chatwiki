@@ -10,7 +10,19 @@ const routes:Array<RouteRecordRaw> = [
   {
     path: '/chat',
     name: 'chat',
-    component: () => import('@/views/chat/index.vue')
+    component: () => import('@/views/chat/index.vue'),
+    children: [
+      {
+        path: '/chat/pc',
+        name: 'chatPc',
+        component: () => import('@/views/chat/index.vue')
+      },
+      {
+        path: '/chat/h5',
+        name: 'chatH5',
+        component: () => import('@/views/chat/index.vue')
+      },
+    ]
   }
 ]
 

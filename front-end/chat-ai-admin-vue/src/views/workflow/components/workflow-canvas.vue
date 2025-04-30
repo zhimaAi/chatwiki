@@ -67,15 +67,17 @@ import { register, getTeleport } from '@logicflow/vue-node-registry'
 import customEdge from './edges/custom-line/index.js'
 import startNode from './nodes/start-node/index.js'
 import questionNode from './nodes/question-node/index.js'
-import messageNode from './nodes/message-node/index.js'
 import actionNode from './nodes/action-node/index.js'
 import qaNode from './nodes/qa-node/index.js'
 import aiDialogueNode from './nodes/ai-dialogue-node'
 import httpNode from './nodes/http-node/index.js'
 import knowledgeBaseNode from './nodes/knowledge-base-node/index.js'
 import endNode from './nodes/end-node/index.js'
-import judgeNode from './nodes/judge-node'
+import variableAssignmentNode from './nodes/variable-assignment-node/index.js'
+import judgeNode from './nodes/judge-node/index.js'
+import specifyReplyNode from './nodes/specify-reply-node/index.js'
 import { ContextPad } from './plugins/context-pad/index.js'
+
 
 const emit = defineEmits(['selectedNode', 'deleteNode'])
 
@@ -122,7 +124,6 @@ function initLogicFlow() {
 
     register(customEdge, lf)
     register(startNode, lf)
-    register(messageNode, lf)
     register(questionNode, lf)
     register(actionNode, lf)
     register(httpNode, lf)
@@ -131,7 +132,8 @@ function initLogicFlow() {
     register(knowledgeBaseNode, lf)
     register(endNode, lf)
     register(judgeNode, lf)
-    
+    register(variableAssignmentNode, lf)
+    register(specifyReplyNode, lf)
 
     lf.setDefaultEdgeType('custom-edge')
 
@@ -171,6 +173,16 @@ function initLogicFlow() {
       emit('deleteNode', JSON.parse(JSON.stringify(data)))
     })
 
+    // 更新数据
+    // lf.on('custom:setData', (node) => {
+    //   console.log(node)
+    // })
+
+    // 更新NodeName
+    // lf.on('custom:setNodeName', (data) => {
+    //   console.log(data)
+    // })
+
     lf.render(canvasData)
 
     lf.setZoomMiniSize(0.01)
@@ -199,7 +211,6 @@ const setData = (data) => {
 
 // 自定义添加节点
 const onCustomAddNode = (data, model, anchorData) => {
-  console.log(data,model,anchorData,'===')
   data.id = generateUniqueId(data.type)
   data.nodeSortKey = data.id.substring(0, 8) + data.id.substring(data.id.length - 8)
   data.width = getNodeWidth(data)

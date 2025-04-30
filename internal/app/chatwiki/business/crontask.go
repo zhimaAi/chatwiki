@@ -22,26 +22,31 @@ func RenewCrawl() {
 		Where(`doc_type`, cast.ToString(define.DocTypeOnline)).
 		Where(`status`, cast.ToString(define.FileStatusLearned)).
 		Where(`doc_auto_renew_frequency`, ">", "1").
-		Where(`doc_last_renew_time`, "<=", cast.ToString(time.Now().Add(-24*time.Hour).Unix())).
-		Field(`id,admin_user_id,doc_auto_renew_frequency,doc_last_renew_time,doc_url`).
+		Field(`id,admin_user_id,doc_auto_renew_frequency,doc_auto_renew_minute,doc_last_renew_time,doc_url`).
 		Select()
 	if err != nil {
 		logs.Error(err.Error())
 		return
 	}
 
+	timestamp := time.Now().Unix()
+	t := time.Unix(timestamp, 0)
+	currentMinute := t.Hour()*60 + t.Minute()
+
 	for _, doc := range docs {
 		shouldRenew := false
-		if cast.ToInt(doc[`doc_auto_renew_frequency`]) == 2 && cast.ToInt64(doc[`doc_last_renew_time`]) <= time.Now().Add(-24*time.Hour).Unix() { // everyday
-			shouldRenew = true
-		} else if cast.ToInt(doc[`doc_auto_renew_frequency`]) == 3 && cast.ToInt64(doc[`doc_last_renew_time`]) <= time.Now().Add(-3*24*time.Hour).Unix() { //every 3 days
-			shouldRenew = true
-		} else if cast.ToInt(doc[`doc_auto_renew_frequency`]) == 4 && cast.ToInt64(doc[`doc_last_renew_time`]) <= time.Now().Add(-24*7*time.Hour).Unix() { //every 7 days
-			shouldRenew = true
-		} else if cast.ToInt(doc[`doc_auto_renew_frequency`]) == 5 && cast.ToInt64(doc[`doc_last_renew_time`]) <= time.Now().Add(-24*30*time.Hour).Unix() { //every 30 days
-			shouldRenew = true
-		} else {
-			shouldRenew = false
+		if cast.ToInt(doc[`doc_auto_renew_minute`]) == currentMinute {
+			if cast.ToInt(doc[`doc_auto_renew_frequency`]) == 2 { // everyday
+				shouldRenew = true
+			} else if cast.ToInt(doc[`doc_auto_renew_frequency`]) == 3 && cast.ToInt64(doc[`doc_last_renew_time`]) <= time.Now().Add(-3*24*time.Hour).Unix() { //every 3 days
+				shouldRenew = true
+			} else if cast.ToInt(doc[`doc_auto_renew_frequency`]) == 4 && cast.ToInt64(doc[`doc_last_renew_time`]) <= time.Now().Add(-24*7*time.Hour).Unix() { //every 7 days
+				shouldRenew = true
+			} else if cast.ToInt(doc[`doc_auto_renew_frequency`]) == 5 && cast.ToInt64(doc[`doc_last_renew_time`]) <= time.Now().Add(-24*30*time.Hour).Unix() { //every 30 days
+				shouldRenew = true
+			} else {
+				shouldRenew = false
+			}
 		}
 
 		if shouldRenew {
