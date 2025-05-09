@@ -6,13 +6,13 @@
       </a-tab-pane>
       <a-tab-pane :key="0" v-if="!hideId.includes(0)">
         <template #tab>
-          <div class="star-item"><StarOutlined />未标记</div>
+          <div class="star-item"><StarOutlined />未精选</div>
         </template>
       </a-tab-pane>
       <a-tab-pane v-for="item in props.startLists" :key="item.id">
         <template #tab>
           <div class="star-item">
-            <StarFilled :style="{ color: colorLists[item.type] }" /> {{ item.name || '-' }}
+            <StarFilled :style="{ color: colorLists[item.type] }" /> {{ item.name || '-' }} <span v-if="item.data_count > 0">({{ item.data_count }})</span>
           </div>
         </template>
       </a-tab-pane>
@@ -58,6 +58,9 @@ const handleChange = () => {
       margin: 0;
       font-size: 16px;
     }
+  }
+  ::v-deep(.ant-tabs-nav-operations) {
+    display: none !important;
   }
   ::v-deep(.ant-tabs-nav) {
     margin-bottom: 0;

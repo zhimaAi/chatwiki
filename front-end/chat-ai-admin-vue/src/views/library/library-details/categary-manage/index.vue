@@ -43,6 +43,7 @@
     <EditSubscription
       :detailsInfo="detailsInfo"
       @handleEdit="handleEditParagraph"
+      @handleStatrList="getStatrList"
       ref="editSubscriptionRef"
     ></EditSubscription>
   </div>

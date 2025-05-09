@@ -24,6 +24,7 @@
             <div class="link-text" @click="handlePreview(item)">
               <LinkOutlined />
               {{ item.file_name }}
+              <span v-if="!item.file_name">{{ item.library_name }}-精选</span>
             </div>
             <span class="v-line"></span>
             <span class="gray-text"
@@ -61,6 +62,10 @@ const handleLoading = () => {
   loading.value = true;
 }
 const handlePreview = (record) => {
+  if(!record.file_name){
+    window.open(`/#/library/details/categary-manage?id=${record.library_id}`)
+    return
+  }
   window.open(`/#/library/preview?id=${record.file_id}`)
 }
 </script>

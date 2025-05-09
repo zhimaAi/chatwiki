@@ -1,5 +1,5 @@
 <template>
-  <div class="subsection-box">
+  <div class="subsection-box content-container" ref="containerRef">
     <div class="subsection-box-title">
       分段预览
       <span>共{{ props.total }}个分段</span>
@@ -9,6 +9,7 @@
       v-for="(item, index) in props.paragraphLists"
       :key="item.id"
       @click="handleToTargetPage(item, index)"
+      :style="{'--status-color': getColor(item)}"
     >
       <div class="top-block">
         <div class="title">
@@ -64,7 +65,7 @@
                 <a-menu-item>
                   <div class="start-item" @click="handleOpenSetStartModal">
                     <SettingOutlined />
-                    <div>标记设置</div>
+                    <div>精选设置</div>
                   </div>
                 </a-menu-item>
               </a-menu>
@@ -95,16 +96,52 @@
       </div>
       <div class="content-box" v-if="item.question">Q：{{ item.question }}</div>
       <div class="content-box" v-if="item.answer">A：{{ item.answer }}</div>
-      <div class="content-box" v-html="item.content"></div>
+      <div class="content-box" @mouseup="handleMouseUp($event, index)" v-html="item.content"></div>
       <div class="fragment-img" v-viewer>
-        <img v-for="(item, index) in item.images" :key="index" :src="item" alt="" />
+        <img v-for="(item, imageIndex) in item.images" :key="imageIndex" :src="item" alt="" />
       </div>
     </div>
     <ClassificationMarkModal @ok="getCategoryLists" ref="classificationMarkModalRef" />
+    <!-- 选择内容气泡 -->
+    <div 
+      v-if="showBubble"
+      class="bubble-card"
+      :style="bubbleStyle"
+    >
+      <button class="bubble-item" @click="handleAction('separate')">
+        <svg-icon
+          name="segmentation"
+          style="font-size: 16px; color: #262626; margin-right: 4px"
+        ></svg-icon>
+        单独成段
+      </button>
+      <button class="bubble-item" @click="handleAction('merge-next')">
+        <svg-icon
+          name="segmentation-down"
+          style="font-size: 16px; color: #262626; margin-right: 4px"
+        ></svg-icon>
+        合并到下一分段
+      </button>
+      <button class="bubble-item" @click="handleAction('merge-prev')">
+        <svg-icon
+          name="segmentation-up"
+          style="font-size: 16px; color: #262626; margin-right: 4px"
+        ></svg-icon>
+        合并到上一分段
+      </button>
+      <button class="bubble-item" @click="handleAction('delete')">
+        <svg-icon
+          name="delete"
+          style="font-size: 16px; color: #262626; margin-right: 4px"
+        ></svg-icon>
+        删除
+      </button>
+    </div>
   </div>
 </template>
 <script setup>
-import { reactive, ref, computed, createVNode } from 'vue'
+import { ref, computed, createVNode, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
   ExclamationCircleOutlined,
@@ -130,7 +167,11 @@ const emit = defineEmits([
   'handleScrollTargetPage',
   'openEditSubscription',
   'handleConvert',
-  'getStatrList'
+  'getStatrList',
+  'handleSplit',
+  'handleSplitNext',
+  'handleSplitUp',
+  'handleSplitDelete'
 ])
 const props = defineProps({
   paragraphLists: {
@@ -147,6 +188,7 @@ const props = defineProps({
   }
 })
 
+const route = useRoute()
 const toReSegmentationPage = (item, index) => {
   let { id, title, content, question, answer, images, category_id } = item
   let similar_questions = item.similar_questions || []
@@ -204,7 +246,10 @@ const handleToTargetPage = (item, index) => {
 
 const startLists = ref([])
 const getCategoryLists = () => {
-  getCategoryList().then((res) => {
+  let params = {
+    file_id: route.query.id
+  }
+  getCategoryList(params).then((res) => {
     startLists.value = res.data || []
     emit('getStatrList', res.data || [])
   })
@@ -221,7 +266,7 @@ const getColor = (data) => {
   if (type) {
     return colorLists[type]
   } else {
-    return '#F4EA2A'
+    return ''
   }
 }
 const handleSetCategory = (item, star = {}) => {
@@ -231,8 +276,418 @@ const handleSetCategory = (item, star = {}) => {
   }).then((res) => {
     message.success('设置成功')
     item.category_id = star.id
+    getCategoryLists()
   })
 }
+
+const containerRef = ref(null);
+const showBubble = ref(false);
+const position = ref({ x: 0, y: 0 });
+const selectedText = ref('');
+const selectedRange = ref(null);
+const selectedData = ref({
+  text: '',
+  parentIndex: -1,
+  originalHtml: ''
+});
+
+// 计算气泡卡片样式
+const bubbleStyle = computed(() => {
+  if (!showBubble.value) return {};
+  
+  // 获取气泡卡片的预估宽度和高度
+  const bubbleWidth = 162; // 根据实际样式调整
+  
+  // 计算理想位置
+  let left = position.value.x;
+  let top = position.value.y;
+  
+  // 获取容器和视口尺寸
+  const containerRect = containerRef.value.getBoundingClientRect();
+  const viewportWidth = window.innerWidth;
+  
+  // 防止左侧超出
+  if (left < 10) {
+    left = 10;
+  }
+  // 防止右侧超出
+  else if (left + bubbleWidth > viewportWidth - 50) {
+    left = viewportWidth - bubbleWidth - 50;
+  }
+  
+  // 转换为相对于容器的位置
+  const containerLeft = left - containerRect.left;
+  const containerTop = top;
+  
+  return {
+    left: `${containerLeft}px`,
+    top: `${containerTop}px`,
+    // 添加一个箭头指向选中文本
+    // '--arrow-offset': `${position.value.x - containerLeft}px`
+  };
+});
+
+const handleMouseUp = (event, parentIndex) => {
+  const selection = window.getSelection();
+  const selectedTextContent = selection.toString().trim();
+  
+  if (selectedTextContent) {
+    // 保存选中信息
+    selectedData.value = {
+      text: selectedTextContent,
+      parentIndex,
+      originalHtml: props.paragraphLists[parentIndex].content
+    };
+
+    selectedText.value = selectedTextContent;
+    selectedRange.value = selection.getRangeAt(0).cloneRange();
+    
+    // 获取选中文本的位置
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    
+    // 计算相对于内容区域的位置
+    const contentRect = containerRef.value.getBoundingClientRect();
+    
+    position.value = {
+      x: rect.left + rect.width / 2,
+      y: rect.top - contentRect.top - 50 // 向上偏移50px显示气泡
+    };
+    
+    showBubble.value = true;
+  } else {
+    showBubble.value = false;
+  }
+};
+
+const handleAction = (action) => {
+  const { parentIndex } = selectedData.value;
+  
+  switch(action) {
+    case 'separate':
+      separateParagraph(parentIndex);
+      break;
+    case 'merge-next':
+      mergeWithNext(parentIndex);
+      break;
+    case 'merge-prev':
+      mergeWithPrevious(parentIndex);
+      break;
+    case 'delete':
+      onDeleteParagraph(parentIndex);
+      break;
+  }
+  
+  showBubble.value = false;
+  window.getSelection().removeAllRanges();
+};
+
+// 新增HTML内容拆分方法
+const splitHtmlContent = (container, startOffset, endOffset) => {
+  // 增加全选内容判断
+  const isFullSelection = 
+    startOffset === 0 && 
+    endOffset === container.textContent.length &&
+    container.textContent.trim().length > 0;
+
+  if (isFullSelection) {
+    return ['', container.innerHTML, '']; // 当全选时返回完整内容
+  }
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT)
+  let node
+  let count = 0
+  let startNode, endNode
+  let startIndex, endIndex
+
+  while ((node = walker.nextNode())) {
+    const length = node.nodeValue.length
+    if (!startNode && count + length >= startOffset) {
+      startNode = node
+      startIndex = startOffset - count
+    }
+    if (!endNode && count + length >= endOffset) {
+      endNode = node
+      endIndex = endOffset - count
+      break
+    }
+    count += length
+  }
+
+  const range = document.createRange()
+  range.setStart(startNode, startIndex)
+  range.setEnd(endNode, endIndex)
+
+  const beforeRange = document.createRange()
+  beforeRange.setStart(container, 0)
+  beforeRange.setEnd(startNode, startIndex)
+
+  const afterRange = document.createRange()
+  afterRange.setStart(endNode, endIndex)
+  afterRange.setEnd(container, container.childNodes.length)
+
+  return [
+    getRangeHtml(beforeRange),
+    getRangeHtml(range),
+    getRangeHtml(afterRange)
+  ]
+}
+
+const getRangeHtml = (range) => {
+  const div = document.createElement('div')
+  div.appendChild(range.cloneContents())
+  return div.innerHTML
+}
+
+// 修改后的分段方法
+const separateParagraph = (index) => {
+  const content = props.paragraphLists[index].content
+  const selection = window.getSelection()
+  const range = selection.getRangeAt(0)
+  const selectedText = range.toString()
+
+  if (!selectedText) return
+
+  Modal.confirm({
+    title: '单独分段',
+    icon: createVNode(ExclamationCircleOutlined),
+    content: '确认将该分段内容单独分段么？分段后，原分段的内容会被删除',
+    onOk() {
+      // 创建临时容器处理HTML内容
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = content
+
+      // 拆分选中内容
+      const [beforeContent, selectedContent, afterContent] = splitHtmlContent(
+        tempDiv,
+        range.startOffset,
+        range.endOffset
+      )
+
+      // 新增全选判断逻辑
+      const isEmptyBefore = beforeContent.replace(/<[^>]+>/g, '').trim() === '';
+      const isEmptyAfter = afterContent.replace(/<[^>]+>/g, '').trim() === '';
+
+      // 触发更新时需要保留原始选中信息
+      if (isEmptyBefore && isEmptyAfter) {
+        // 当全选内容时直接替换原段落
+        emit('handleSplit', {
+          index,
+          beforeContent: '',       // 清空原内容
+          selectedContent,
+          afterContent: '',        // 不保留后续内容
+          isFullSelection: true    // 添加全选标识
+        });
+      } else {
+        emit('handleSplit', {
+          index,
+          beforeContent,
+          selectedContent,
+          afterContent,
+          originalSelection: {
+            start: range.startOffset,
+            end: range.endOffset,
+            parentIndex: index
+          }
+        })
+      }
+    }
+  })
+}
+
+// 合并到下一分段
+const mergeWithNext = (index) => {
+  if (index >= props.paragraphLists.length - 1) {
+    return message.error('没有下一个分段')
+  };
+
+  const content = props.paragraphLists[index].content
+  const selection = window.getSelection()
+  const range = selection.getRangeAt(0)
+  const selectedText = range.toString()
+
+  if (!selectedText) return
+
+  Modal.confirm({
+    title: '合并到下一个分段',
+    icon: createVNode(ExclamationCircleOutlined),
+    content: '确认将该分段内容合并到下一个分段么？分段后，原分段的内容会被删除',
+    onOk() {
+      // 创建临时容器处理HTML内容
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = content
+
+      // 拆分选中内容
+      const [beforeContent, selectedContent, afterContent] = splitHtmlContent(
+        tempDiv,
+        range.startOffset,
+        range.endOffset
+      )
+
+      // 新增全选判断逻辑
+      const isEmptyBefore = beforeContent.replace(/<[^>]+>/g, '').trim() === '';
+      const isEmptyAfter = afterContent.replace(/<[^>]+>/g, '').trim() === '';
+
+      // 触发更新时需要保留原始选中信息
+      if (isEmptyBefore && isEmptyAfter) {
+        // 当全选内容时直接替换原段落
+        emit('handleSplitNext', {
+          index,
+          beforeContent: '',       // 清空原内容
+          selectedContent,
+          afterContent: '',        // 不保留后续内容
+          isFullSelection: true    // 添加全选标识
+        });
+      } else {
+        // 触发更新时需要保留原始选中信息
+        emit('handleSplitNext', {
+          index,
+          beforeContent,
+          selectedContent,
+          afterContent,
+          originalSelection: {
+            start: range.startOffset,
+            end: range.endOffset,
+            parentIndex: index
+          }
+        })
+      }
+    }
+  })
+};
+
+// 合并到上一分段
+const mergeWithPrevious = (index) => {
+  if (index <= 0) {
+    return message.error('没有上一个分段')
+  };
+
+  const content = props.paragraphLists[index].content
+  const selection = window.getSelection()
+  const range = selection.getRangeAt(0)
+  const selectedText = range.toString()
+
+  if (!selectedText) return
+
+  Modal.confirm({
+    title: '合并到上一个分段',
+    icon: createVNode(ExclamationCircleOutlined),
+    content: '确认将该分段内容合并到上一个分段么？分段后，原分段的内容会被删除',
+    onOk() {
+      // 创建临时容器处理HTML内容
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = content
+
+      // 拆分选中内容
+      const [beforeContent, selectedContent, afterContent] = splitHtmlContent(
+        tempDiv,
+        range.startOffset,
+        range.endOffset
+      )
+
+      // 新增全选判断逻辑
+      const isEmptyBefore = beforeContent.replace(/<[^>]+>/g, '').trim() === '';
+      const isEmptyAfter = afterContent.replace(/<[^>]+>/g, '').trim() === '';
+
+
+      // 触发更新时需要保留原始选中信息
+      if (isEmptyBefore && isEmptyAfter) {
+        // 当全选内容时直接替换原段落
+        emit('handleSplitUp', {
+          index,
+          beforeContent: '',       // 清空原内容
+          selectedContent,
+          afterContent: '',        // 不保留后续内容
+          isFullSelection: true    // 添加全选标识
+        });
+      } else {
+        // 触发更新时需要保留原始选中信息
+        emit('handleSplitUp', {
+          index,
+          beforeContent,
+          selectedContent,
+          afterContent,
+          originalSelection: {
+            start: range.startOffset,
+            end: range.endOffset,
+            parentIndex: index
+          }
+        })
+      }
+    }
+  })
+};
+
+// 删除当前分段
+const onDeleteParagraph = (index) => {
+  const content = props.paragraphLists[index].content
+  const selection = window.getSelection()
+  const range = selection.getRangeAt(0)
+  const selectedText = range.toString()
+
+  if (!selectedText) return
+
+  Modal.confirm({
+    title: '删除',
+    icon: createVNode(ExclamationCircleOutlined),
+    content: '确认将该分段内容删除么？',
+    onOk() {
+      // 创建临时容器处理HTML内容
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = content
+
+      // 拆分选中内容
+      const [beforeContent, selectedContent, afterContent] = splitHtmlContent(
+        tempDiv,
+        range.startOffset,
+        range.endOffset
+      )
+
+      // 新增全选判断逻辑
+      const isEmptyBefore = beforeContent.replace(/<[^>]+>/g, '').trim() === '';
+      const isEmptyAfter = afterContent.replace(/<[^>]+>/g, '').trim() === '';
+
+      // 触发更新时需要保留原始选中信息
+      if (isEmptyBefore && isEmptyAfter) {
+        // 当全选内容时直接替换原段落
+        emit('handleSplitDelete', {
+          index,
+          beforeContent: '',       // 清空原内容
+          selectedContent: '',     // 删除-不保留选中内容
+          afterContent: '',        // 不保留后续内容
+          isFullSelection: true    // 添加全选标识
+        });
+      } else {
+        // 触发更新时需要保留原始选中信息
+        emit('handleSplitDelete', {
+          index,
+          beforeContent,
+          selectedContent: '',     // 删除-不保留选中内容
+          afterContent,
+          originalSelection: {
+            start: range.startOffset,
+            end: range.endOffset,
+            parentIndex: index
+          }
+        })
+      }
+    }
+  })
+};
+
+// 点击其他地方隐藏气泡
+const handleClickOutside = (event) => {
+  if (showBubble.value && !event.target.closest('.bubble-card')) {
+    showBubble.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 
 defineExpose({ handleOpenEditModal })
 </script>
@@ -267,7 +722,19 @@ defineExpose({ handleOpenEditModal })
       margin-left: 8px;
     }
   }
+
+  .list-item::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background-color: var(--status-color, #FFF);
+  }
   .list-item {
+    position: relative;
+    overflow: hidden;
     margin-top: 8px;
     width: 100%;
     background: #fff;
@@ -361,5 +828,87 @@ defineExpose({ handleOpenEditModal })
   .anticon {
     font-size: 16px;
   }
+}
+
+.content-container {
+  position: relative;
+  padding: 20px;
+}
+
+.content-block {
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+.bubble-card {
+  position: absolute;
+  display: inline-flex;
+  padding: 2px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border-radius: 6px;
+  background: #FFF;
+  box-shadow: 0 6px 30px 5px #0000000d, 0 16px 24px 2px #0000000a, 0 8px 10px -5px #00000014;
+  
+  .bubble-item {
+    display: flex;
+    padding: 5px 16px;
+    align-items: center;
+    gap: 8px;
+    align-self: stretch;
+    border-radius: 6px;
+    cursor: pointer;
+    background: white;
+    border: none;
+
+    &:hover {
+      background: #E4E6EB;
+    }
+  }
+  /* 添加箭头 */
+  // &::after {
+  //   content: '';
+  //   position: absolute;
+  //   bottom: -10px;
+  //   left: var(--arrow-offset, 50%);
+  //   transform: translateX(-50%);
+  //   border-width: 10px 10px 0;
+  //   border-style: solid;
+  //   border-color: white transparent transparent;
+  //   filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.1));
+  // }
+  
+  // /* 箭头边框 */
+  // &::before {
+  //   content: '';
+  //   position: absolute;
+  //   bottom: -11px;
+  //   left: var(--arrow-offset, 50%);
+  //   transform: translateX(-50%);
+  //   border-width: 10px 10px 0;
+  //   border-style: solid;
+  //   border-color: #ddd transparent transparent;
+  //   z-index: -1;
+  // }
+}
+
+/* 响应式调整 */
+@media (max-width: 600px) {
+  .bubble-card {
+    max-width: 250px;
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+/* 为高亮和评论添加样式 */
+.highlight {
+  background-color: yellow;
+}
+
+.comment {
+  background-color: #e6f7ff;
+  border-bottom: 1px dashed #1890ff;
 }
 </style>

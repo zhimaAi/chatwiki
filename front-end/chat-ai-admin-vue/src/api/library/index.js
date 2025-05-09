@@ -292,3 +292,10 @@ export const cancelOcrPdf = (data) => {
     data: data
   })
 }
+
+export const getLibRawFileOnePage = (params = {}) => {
+  return request.get({
+    url: '/manage/getLibRawFileOnePage',
+    params: params
+  })
+}

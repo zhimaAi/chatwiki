@@ -29,6 +29,8 @@ export interface Message {
   reasoning_content: string
   reasoning_status: boolean
   show_reasoning: boolean
+  quote_loading: boolean
+  show_quote_file: boolean
 }
 
 export interface Chat {
@@ -62,6 +64,8 @@ export interface Robot {
   app_id: number,
   is_sending: boolean,
   feedback_switch: boolean,
+  chat_type: any
+  answer_source_switch: boolean
 }
 
 export interface PageStyle {
@@ -144,6 +148,8 @@ export const useChatStore = defineStore('chat', () => {
     app_id: -2, // webapp:-1,嵌入网站:-2
     is_sending: false, // 是否在发送中
     feedback_switch: false,
+    chat_type: '',
+    answer_source_switch: false,
   })
   // 样式配置
   const externalConfigPC = reactive<ExternalConfigPc>({
@@ -221,6 +227,10 @@ export const useChatStore = defineStore('chat', () => {
       robot.library_ids = robotInfo.library_ids
       robot.yunpc_fast_command_switch = robotInfo.yunpc_fast_command_switch
       robot.feedback_switch = robotInfo.feedback_switch == '1';
+
+      robot.chat_type = robotInfo.chat_type;
+      robot.answer_source_switch = robotInfo.answer_source_switch == 'true';
+
       robot.id = robotInfo.id
 
       if (robotInfo.welcomes) {
@@ -367,8 +377,13 @@ export const useChatStore = defineStore('chat', () => {
       messageList.value[msgIndex].content = oldText + content
     }
 
+    if(type == 'start_quote_file'){
+      messageList.value[msgIndex].quote_loading = true
+    }
     if (type == 'quote_file') {
       messageList.value[msgIndex].quote_file = content.length > 0 ? content : []
+      messageList.value[msgIndex].show_quote_file = true
+      messageList.value[msgIndex].quote_loading = false
     }
 
     if (type == 'ai_message') {
@@ -379,6 +394,9 @@ export const useChatStore = defineStore('chat', () => {
       }
       messageList.value[msgIndex].id = content.id
       messageList.value[msgIndex].msg_type = content.msg_type // 更新真实的msg_type
+      if (content.quote_file && typeof content.quote_file === 'string') {
+        messageList.value[msgIndex].quote_file = JSON.parse(content.quote_file)
+      }
     }
 
     if (type == 'debug') {
@@ -477,6 +495,9 @@ export const useChatStore = defineStore('chat', () => {
         updateAiMessage('ai_message', data, aiMsg.uid)
       }
 
+      if(res.event == 'start_quote_file'){
+        updateAiMessage('start_quote_file', res.data, aiMsg.uid)
+      }
       // 更新引用文件
       if (res.event == 'quote_file') {
         const data = JSON.parse(res.data)
@@ -621,7 +642,7 @@ export const useChatStore = defineStore('chat', () => {
         }
 
         if (item.quote_file) {
-          item.quote_file = []
+          item.quote_file = JSON.parse(item.quote_file) || []
         }
       })
 

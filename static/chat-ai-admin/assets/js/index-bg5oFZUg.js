@@ -1,0 +1,1 @@
+import{ce as a}from"../../index-UhR4yadr.js";const s=({file:t,category:e})=>a.post({headers:{"Content-Type":"multipart/form-data"},url:"/manage/upload",data:{file:t,category:e}}),o=({openid:t})=>a.get({url:"/chat/getWsUrl",params:{openid:t,debug:0}});export{o as g,s as u};

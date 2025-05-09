@@ -1,16 +1,16 @@
 <template>
   <div>
-    <a-modal v-model:open="open" title="设置分类标记" @ok="handleOk" :width="586">
+    <a-modal v-model:open="open" title="精选设置" @ok="handleOk" :width="586">
       <div class="modal-box">
-        <a-alert show-icon message="添加了分类标记的分段，重新分段时将会会被保留。"></a-alert>
+        <!-- <a-alert show-icon message="添加了分类标记的分段，重新分段时将会会被保留。"></a-alert> -->
         <div class="list-box">
           <a-table :data-source="tableData" :pagination="false">
-            <a-table-column key="tags" title="分类标记" data-index="tags" :width="200">
+            <a-table-column key="tags" title="图标" data-index="tags" :width="200">
               <template #default="{ record }">
                 <StarFilled class="start-icon" :style="{ color: colorLists[record.type] }" />
               </template>
             </a-table-column>
-            <a-table-column key="name" title="分类名称" data-index="name" :width="200">
+            <a-table-column key="name" title="备注" data-index="name" :width="200">
               <template #default="{ record }">
                 <a-input v-model:value="record.name" :maxLength="4" placeholder="请设置,最多4个字" />
               </template>

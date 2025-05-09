@@ -7,6 +7,7 @@
           <div class="list-item" v-for="(item, index) in lists" :key="item.id">
             <div class="item-title">
               参考内容{{ index + 1 }}
+              <a v-if="item.page_num > 0" @click="viewSourceFile(item)">预览原文件</a>
             </div>
             <div class="content-body">
               <div class="content-text" v-html="item.content"></div>
@@ -20,12 +21,24 @@
         </div>
       </div>
     </van-popup>
+    <van-popup v-model:show="viewOpen" closeable round>
+      <div class="modal-box">
+        <div class="title-block">{{ baseParmas.file_name }}</div>
+        <div class="content-block">
+          <VuePdfEmbed :source="sourceUrl"  />
+        </div>
+      </div>
+    </van-popup>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { getAnswerSource } from '@/api/chat/index.js'
+import VuePdfEmbed from 'vue-pdf-embed'
+import { useChatStore } from '@/stores/modules/chat'
+const chatStore = useChatStore()
+const { user } = chatStore
 const show = ref(false)
 const baseParmas = ref({})
 const lists = ref([])
@@ -47,6 +60,14 @@ const getLists = () => {
       lists.value = []
     })
 }
+
+const sourceUrl = ref('')
+const viewOpen = ref(false)
+const viewSourceFile = (item) => {
+  viewOpen.value = true;
+  sourceUrl.value = '/manage/getLibRawFileOnePage?id=' + baseParmas.value.file_id + '&page=' + item.page_num + '&admin_user_id=' + user.admin_user_id
+}
+
 defineExpose({
   showPopup
 })
@@ -79,6 +100,7 @@ defineExpose({
   }
   .item-title {
     display: flex;
+    justify-content: space-between;
     gap: 8px;
     margin-bottom: 12px;
     font-size: 14px;
@@ -86,6 +108,10 @@ defineExpose({
     span {
       color: #8c8c8c;
       font-weight: 400;
+    }
+    a{
+      color:#2475fc;
+      cursor: pointer;
     }
   }
   .content-body {

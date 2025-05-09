@@ -786,7 +786,7 @@ const handlePreview = (record, params = {}) => {
   if (record.status == '4') {
     return router.push({
       path: '/library/document-segmentation',
-      query: { document_id: record.id }
+      query: { document_id: record.id, page: queryParams.page }
     })
   }
   if (record.status == '3' && libraryInfo.value.type != 2) {
@@ -840,7 +840,8 @@ const getData = () => {
 
     let needRefresh = false
     fileList.value = list.map((item) => {
-      if (['1', '6', '0', '5', '4'].includes(item.status)) {
+      // , '4' 是待学习，如果加进去会一直刷新状态不会改变
+      if (['1', '6', '0', '5'].includes(item.status)) {
         needRefresh = true
       }
       item.file_size_str = formatFileSize(item.file_size)
@@ -1114,6 +1115,9 @@ const handleCancelOcrPdf = (record) => {
 }
 
 onMounted(() => {
+  if (query.page) {
+    queryParams.page = +query.page
+  }
   getData()
 })
 

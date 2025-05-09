@@ -247,8 +247,14 @@ export const useChatStore = defineStore('chat', () => {
       messageList.value[msgIndex].content = oldText + content
     }
 
+    if(type == 'start_quote_file'){
+      messageList.value[msgIndex].quote_loading = true
+    }
+
     if (type == 'quote_file') {
       messageList.value[msgIndex].quote_file = content.length > 0 ? content : []
+      messageList.value[msgIndex].show_quote_file = true
+      messageList.value[msgIndex].quote_loading = false
     }
 
     if (type == 'ai_message') {
@@ -337,7 +343,9 @@ export const useChatStore = defineStore('chat', () => {
       recall_time: '',
       request_time: '',
       show_reasoning: false,
-      reasoning_status: false
+      reasoning_status: false,
+      quote_loading: false,
+      show_quote_file: true,
     }
     let params = {
       robot_key: robot.robot_key,
@@ -403,6 +411,10 @@ export const useChatStore = defineStore('chat', () => {
         let data = JSON.parse(res.data)
 
         updateAiMessage('ai_message', data, aiMsg.uid)
+      }
+
+      if(res.event == 'start_quote_file'){
+        updateAiMessage('start_quote_file', res.data, aiMsg.uid)
       }
 
       // 更新引用文件
@@ -584,7 +596,6 @@ export const useChatStore = defineStore('chat', () => {
       })
 
       messageList.value = [...list, ...messageList.value]
-
       return res
     } catch (err) {
       Promise.reject(err)

@@ -3,6 +3,8 @@
   position: relative;
   .robot-info-box {
     .robot-prompt {
+      display: flex;
+      align-items: center;
       line-height: 22px;
       font-size: 14px;
       white-space: pre-wrap;
@@ -25,7 +27,16 @@
     </template>
     <div class="robot-info-box">
       <div class="robot-prompt">
-        开启后，机器人回答问题后，自动根据对话内容提供3条用户提问建议
+        开启后，机器人回答问题后，自动根据对话内容提供
+        <a-input-number
+          v-model:value="robotInfo.question_guide_num"
+          style="width: 80px"
+          :precision="0"
+          :min="1"
+          :max="10"
+          @blur="handleEdit"
+        />
+        条用户提问建议，最大不超过10条。
       </div>
     </div>
 

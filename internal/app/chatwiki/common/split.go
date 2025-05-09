@@ -4,6 +4,7 @@ package common
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -19,6 +20,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/gin-contrib/sse"
 	strip "github.com/grokify/html-strip-tags-go"
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/spf13/cast"
@@ -36,7 +38,7 @@ import (
 	"chatwiki/internal/pkg/lib_redis"
 )
 
-func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitParams, lang string) (list []define.DocSplitItem, wordTotal int, err error) {
+func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitParams, lang string) (list []define.DocSplitItem, wordTotal int, _splitParams define.SplitParams, err error) {
 	info, err := GetLibFileInfo(fileId, userId)
 	if err != nil {
 		err = errors.New(i18n.Show(lang, `sys_err`))
@@ -67,6 +69,9 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 	}
 	if splitParams.PdfParseType == 0 {
 		splitParams.PdfParseType = cast.ToInt(info[`pdf_parse_type`])
+		if splitParams.PdfParseType == 0 {
+			splitParams.PdfParseType = define.PdfParseTypeText
+		}
 	}
 	if (cast.ToInt(library[`type`]) == define.GeneralLibraryType && splitParams.IsQaDoc == define.DocTypeQa) ||
 		(cast.ToInt(library[`type`]) == define.QALibraryType && splitParams.IsQaDoc != define.DocTypeQa) {
@@ -122,6 +127,7 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 			list[i].WordTotal = utf8.RuneCountInString(list[i].Content)
 		}
 	}
+	_splitParams = splitParams
 
 	return
 }
@@ -1063,7 +1069,7 @@ func DefaultSplitParams() define.SplitParams {
 
 func AutoSplitLibFile(adminUserId, fileId int, splitParams define.SplitParams) {
 	lang := define.LangZhCn
-	list, wordTotal, err := GetLibFileSplit(adminUserId, fileId, 0, splitParams, lang)
+	list, wordTotal, splitParams, err := GetLibFileSplit(adminUserId, fileId, 0, splitParams, lang)
 	if err != nil {
 		updateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusException, `errmsg`: err.Error()})
 		logs.Error(err.Error())
@@ -1103,23 +1109,32 @@ func AISplitDocs(adminUserId int, splitParams define.SplitParams, list []define.
 		return nil, errors.New(errMsg)
 	}
 	var submitContent []define.DocSplitItem
-	for key, item := range list {
-		spliteItem := define.DocSplitItem{
-			PageNum: item.PageNum,
-			Content: item.Content,
-		}
-		// pdf page submit
+	spliter := NewAiSpliterClient(splitParams.AiChunkSize)
+	for _, item := range list {
+		// pdf 按页提交
 		if define.IsPdfFile(splitParams.FileExt) {
+			spliteItem := define.DocSplitItem{
+				PageNum: item.PageNum,
+				Content: item.Content,
+			}
 			submitContent = append(submitContent, spliteItem)
 			continue
-		} else if len(contents) >= splitParams.AiChunkSize {
-			submitContent = append(submitContent, spliteItem)
-			continue
-		}
-		if key+1 == len(list) {
-			submitContent = append(submitContent, spliteItem)
+		} else {
+			chunks, err := spliter.SplitText(item.Content)
+			if err != nil {
+				errMsg = err.Error()
+				return nil, errors.New(errMsg)
+			}
+			for _, chunk := range chunks {
+				spliteItem := define.DocSplitItem{
+					PageNum: item.PageNum,
+					Content: chunk,
+				}
+				submitContent = append(submitContent, spliteItem)
+			}
 		}
 	}
+
 	for _, item := range submitContent {
 		contents = item.Content
 		// ai split
@@ -1140,7 +1155,6 @@ func AISplitDocs(adminUserId int, splitParams define.SplitParams, list []define.
 		go func(wg *sync.WaitGroup, contentMap map[int]define.DocSplitItem, index int, contents string, errMsg *string) {
 			defer wg.Done()
 			defer func() { <-currChan }()
-
 			messages := []adaptor.ZhimaChatCompletionMessage{
 				{
 					Role:    `system`,
@@ -1155,8 +1169,21 @@ func AISplitDocs(adminUserId int, splitParams define.SplitParams, list []define.
 					Content: contents,
 				},
 			}
-
-			chatResp, _, err := RequestChat(
+			ctx, cancel := context.WithCancel(context.Background())
+			retryTimes := 0
+			chanStream := make(chan sse.Event, 100)
+			go func() {
+				for {
+					select {
+					case <-chanStream:
+						continue
+					case <-ctx.Done():
+						return
+					}
+				}
+			}()
+		Retry:
+			chatResp, _, err := RequestChatStream(
 				adminUserId,
 				"",
 				msql.Params{},
@@ -1165,11 +1192,16 @@ func AISplitDocs(adminUserId int, splitParams define.SplitParams, list []define.
 				splitParams.AiChunkModel,
 				messages,
 				nil,
+				chanStream,
 				0.1,
 				maxToken,
 			)
-			if err != nil {
+			if err != nil && len(chatResp.Result) <= 0 {
 				logs.Error(err.Error())
+				if retryTimes <= 3 {
+					retryTimes++
+					goto Retry
+				}
 				*errMsg = err.Error()
 				return
 			}
@@ -1179,10 +1211,11 @@ func AISplitDocs(adminUserId int, splitParams define.SplitParams, list []define.
 				Content: chatResp.Result,
 			}
 			lock.Unlock()
+			cancel()
 		}(wg, contentMap, index, contents, &errMsg)
 		index++
-
 	}
+
 	wg.Wait()
 	var newList []define.DocSplitItem
 	var imageInsertIndex = map[int][]string{}

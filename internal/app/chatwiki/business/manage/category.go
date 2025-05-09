@@ -23,18 +23,28 @@ var categoryList = []string{"a", "b", "c", "d", "e"}
 
 func initCategory(adminUserId int) {
 	for _, t := range categoryList {
-		res, err := msql.Model(`category`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`type`, t).Select()
+		res, err := msql.Model(`category`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`type`, t).Find()
 		if err != nil {
 			logs.Error(err.Error())
 		}
 		if len(res) == 0 {
-			if _, err := msql.Model(`category`, define.Postgres).Insert(msql.Datas{
+			data := msql.Datas{
 				`admin_user_id`: adminUserId,
 				`type`:          t,
 				`create_time`:   tool.Time2Int(),
 				`update_time`:   tool.Time2Int(),
-			}); err != nil {
+			}
+			if t == `a` {
+				data[`name`] = `精选`
+			}
+			if _, err := msql.Model(`category`, define.Postgres).Insert(data); err != nil {
 				logs.Error(err.Error())
+			}
+		} else {
+			if t == `a` && len(res[`name`]) == 0 {
+				if _, err := msql.Model(`category`, define.Postgres).Where(`id`, res[`id`]).Update(msql.Datas{`name`: `精选`}); err != nil {
+					logs.Error(err.Error())
+				}
 			}
 		}
 	}
@@ -46,7 +56,21 @@ func GetCategoryList(c *gin.Context) {
 		return
 	}
 	initCategory(userId)
-	res, err := msql.Model(`category`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).Select()
+	fileId := cast.ToInt(c.Query(`file_id`))
+	libraryId := cast.ToInt(c.Query(`library_id`))
+	m := msql.Model(`category`, define.Postgres).
+		Alias(`c`).
+		Where(`c.admin_user_id`, cast.ToString(userId)).
+		Field(`c.id,c.name,c.type,count(d.*) as data_count`).
+		Group(`c.id`)
+	if fileId > 0 {
+		m.Join(`chat_ai_library_file_data d`, `c.id = d.category_id and d.file_id = `+cast.ToString(fileId)+` and d.isolated=false`, `left`)
+	} else if libraryId > 0 {
+		m.Join(`chat_ai_library_file_data d`, `c.id = d.category_id and d.library_id = `+cast.ToString(libraryId)+` and d.isolated=false`, `left`)
+	} else {
+		m.Join(`chat_ai_library_file_data d`, `c.id = d.category_id and d.isolated=false`, `left`)
+	}
+	res, err := m.Select()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))

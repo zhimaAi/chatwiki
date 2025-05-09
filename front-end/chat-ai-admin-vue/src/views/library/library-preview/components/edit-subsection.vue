@@ -16,7 +16,7 @@
                 <div class="star-item-box">
                   <StarFilled v-if="payload.id > 0" :style="{ color: payload.color }" />
                   <StarOutlined v-else />
-                  <div>{{ payload.name || '-' }}</div>
+                  <div>{{ payload.name || '-' }}</div> <span v-if="payload.data_count > 0">({{ payload.data_count }})</span>
                 </div>
               </template>
             </a-segmented>
@@ -98,14 +98,16 @@ import { useRoute } from 'vue-router'
 import UploadImg from '@/components/upload-img/index.vue'
 import { isArray } from 'ant-design-vue/lib/_util/util.js'
 import colorLists from '@/utils/starColors.js'
+
 const route = useRoute()
+const query = route.query
 const pathName = route.name
 const props = defineProps({
   detailsInfo: {
     type: Object
   }
 })
-const emit = defineEmits(['handleEdit'])
+const emit = defineEmits(['handleEdit', 'handleStatrList'])
 const activeKey = ref('1')
 const open = ref(false)
 const title = ref('')
@@ -134,7 +136,7 @@ const showModal = (data) => {
 
 const startLists = ref([])
 const getCategoryLists = () => {
-  getCategoryList().then((res) => {
+  getCategoryList({file_id: query.id}).then((res) => {
     let list = res.data || []
     list = list.map((item) => {
       return {
@@ -159,6 +161,7 @@ const getCategoryLists = () => {
         ...list
       ]
     }
+    emit('handleStatrList', res.data || [])
   })
 }
 
@@ -220,6 +223,7 @@ const handleOk = () => {
       emit('handleEdit', {
         ...data
       })
+      getCategoryLists()
     })
   } else {
     editParagraph(formData).then((res) => {
@@ -228,6 +232,7 @@ const handleOk = () => {
       emit('handleEdit', {
         ...data
       })
+      getCategoryLists()
     })
   }
 }

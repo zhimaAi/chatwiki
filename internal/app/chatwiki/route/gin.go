@@ -107,6 +107,7 @@ func init() {
 	Route[http.MethodPost][`/manage/delLibraryFile`] = manage.DelLibraryFile
 	Route[http.MethodGet][`/manage/getLibFileInfo`] = manage.GetLibFileInfo
 	Route[http.MethodGet][`/manage/getLibRawFile`] = manage.GetLibRawFile
+	noAuthFuns(Route[http.MethodGet], `/manage/getLibRawFileOnePage`, manage.GetLibRawFileOnePage)
 	Route[http.MethodGet][`/manage/getLibFileExcelTitle`] = manage.GetLibFileExcelTitle
 	Route[http.MethodPost][`/manage/readLibFileExcelTitle`] = manage.ReadLibFileExcelTitle
 	Route[http.MethodPost][`/manage/restudyLibraryFile`] = manage.RestudyLibraryFile
