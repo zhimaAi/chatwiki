@@ -119,6 +119,7 @@ func SaveRobot(c *gin.Context) {
 
 	enableQuestionOptimize := cast.ToBool(c.DefaultPostForm(`enable_question_optimize`, `false`))
 	enableQuestionGuide := cast.ToBool(c.DefaultPostForm(`enable_question_guide`, `true`))
+	questionGuideNum := cast.ToInt(c.DefaultPostForm(`question_guide_num`, `3`))
 	enableCommonQuestion := cast.ToBool(c.DefaultPostForm(`enable_common_question`, `true`))
 	commonQuestionList := strings.TrimSpace(c.DefaultPostForm(`common_question_list`, `[]`))
 	thinkSwitch := strings.TrimSpace(c.DefaultPostForm(`think_switch`, `1`))
@@ -159,6 +160,10 @@ func SaveRobot(c *gin.Context) {
 	}
 	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText, define.SearchTypeGraph}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
+		return
+	}
+	if questionGuideNum < 1 || questionGuideNum > 10 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `question_optimize_num`))))
 		return
 	}
 	//data check
@@ -348,6 +353,7 @@ func SaveRobot(c *gin.Context) {
 		`answer_source_switch`:     answerSourceSwitch,
 		`enable_question_optimize`: enableQuestionOptimize,
 		`enable_question_guide`:    enableQuestionGuide,
+		`question_guide_num`:       questionGuideNum,
 		`enable_common_question`:   enableCommonQuestion,
 		`common_question_list`:     commonQuestionList,
 		`think_switch`:             thinkSwitch,

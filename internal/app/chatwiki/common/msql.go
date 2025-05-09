@@ -601,7 +601,6 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 	sort.Slice(graphList, func(i, j int) bool {
 		return cast.ToFloat64(graphList[i][`similarity`]) > cast.ToFloat64(graphList[j][`similarity`])
 	})
-	fmt.Println(graphList)
 
 	temp = time.Now()
 	rerankList, err := GetMatchLibraryParagraphByMergeRerank(openid, appType, question, fetchSize, vectorList, searchList, graphList, robot)

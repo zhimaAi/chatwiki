@@ -121,22 +121,37 @@
         }
       }
     }
+  }
 
-    .file-items {
-      .file-item {
-        line-height: 22px;
-        margin-top: 8px;
-        font-size: 14px;
-        font-size: 14px;
-        cursor: pointer;
-      }
-
-      .file-name {
-        color: #164799;
+  .file-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    line-height: 22px;
+    font-weight: 400;
+    color: #164799;
+    font-size: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #edeff2;
+    margin-bottom: 12px;
+    .file-name {
+      cursor: pointer;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      color: #164799;
+      position: relative;
+      .svg-action {
+        position: relative;
+        top: 2px;
       }
     }
   }
-
+  .label-flex-block {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
   .thinking-label-wrapper {
     display: flex;
     align-items: center;
@@ -241,32 +256,74 @@
             </div>
 
             <div class="itme-right">
-              <!-- 思考过程label -->
-              <div
-                class="thinking-label-wrapper"
-                :class="{ reasoning_open: item.show_reasoning }"
-                v-if="item.reasoning_content"
-              >
-                <div class="thinking-label" @click="toggleReasonProcess(item)">
-                  <LoadingOutlined class="loading" v-if="item.reasoning_status" />
-                  <svg-icon class="think-icon" name="think" v-else></svg-icon>
-                  <span class="label-text">{{
-                    item.reasoning_status ? '深度思考中...' : '已完成深度思考'
-                  }}</span>
-
-                  <svg-icon
-                    name="arrow-down"
-                    class="arrow-down"
-                    v-if="!item.reasoning_status"
-                  ></svg-icon>
+              <!-- 检索知识库 -->
+              <div class="label-flex-block">
+                <div
+                  class="thinking-label-wrapper"
+                  :class="{ reasoning_open: item.show_quote_file }"
+                  v-if="item.msg_type == 1 && isShowQuoteFileProgress"
+                >
+                  <div class="thinking-label" @click="toggleQuoteFiel(item)">
+                    <template v-if="item.quote_loading">
+                      <LoadingOutlined class="loading" />
+                      <span class="label-text">正在检索知识库...</span>
+                    </template>
+                    <template v-else>
+                      <svg-icon class="think-icon" name="quote-file"></svg-icon>
+                      <span class="label-text">检索到{{ item.quote_file.length }}个知识库文档</span>
+                    </template>
+                    <svg-icon
+                      name="arrow-down"
+                      class="arrow-down"
+                      v-if="item.quote_file.length"
+                    ></svg-icon>
+                  </div>
                 </div>
-                <a-tooltip>
-                  <template #title>在应用设置中关闭推理过程开关，将不再显示推理过程</template>
-                  <InfoCircleOutlined class="tip" />
-                </a-tooltip>
+
+                <!-- 思考过程label -->
+                <div
+                  class="thinking-label-wrapper"
+                  :class="{ reasoning_open: item.show_reasoning }"
+                  v-if="item.reasoning_content"
+                >
+                  <div class="thinking-label" @click="toggleReasonProcess(item)">
+                    <LoadingOutlined class="loading" v-if="item.reasoning_status" />
+                    <svg-icon class="think-icon" name="think" v-else></svg-icon>
+                    <span class="label-text">{{
+                      item.reasoning_status ? '深度思考中...' : '已完成深度思考'
+                    }}</span>
+
+                    <svg-icon
+                      name="arrow-down"
+                      class="arrow-down"
+                      v-if="!item.reasoning_status"
+                    ></svg-icon>
+                  </div>
+                  <a-tooltip>
+                    <template #title>在应用设置中关闭推理过程开关，将不再显示推理过程</template>
+                    <InfoCircleOutlined class="tip" />
+                  </a-tooltip>
+                </div>
               </div>
 
               <div class="item-body">
+                <div
+                  class="file-items"
+                  v-if="item.show_quote_file && item.quote_file && item.quote_file.length > 0"
+                >
+                  <div
+                    class="file-item"
+                    v-for="file in item.quote_file"
+                    :key="file.id"
+                    @click="openLibrary(item.quote_file, file, item.id)"
+                  >
+                    <a class="file-name">
+                      <svg-icon class="think-icon" name="quote-file"></svg-icon>
+                      <span v-if="file.file_name">{{ file.file_name }}</span>
+                      <span v-else>{{ file.library_name }}-精选</span>
+                    </a>
+                  </div>
+                </div>
                 <div class="thinking-content" v-if="item.show_reasoning">
                   <cherry-markdown :content="item.reasoning_content"></cherry-markdown>
                 </div>
@@ -311,31 +368,9 @@
                   v-if="showQuoteFileBox(item)"
                   v-show="!item.question"
                 >
-                  <div class="message-action">
-                    <div class="action-btn" v-if="item.quote_file && item.quote_file.length > 0">
-                      <span>答案来源&nbsp;</span>
-                      <a-tooltip placement="top" :overlayInnerStyle="{ width: '400px' }">
-                        <template #title>
-                          <span
-                            >您可以修改相应文档并重新上传，以调整机器人的回答效果。答案来源仅后台测试时可见。</span
-                          >
-                        </template>
-                        <QuestionCircleOutlined />
-                      </a-tooltip>
-                    </div>
-                    <div class="action-btn" v-if="item.debug && item.debug.length > 0">
+                  <div class="message-action" v-if="item.debug && item.debug.length > 0">
+                    <div class="action-btn">
                       <span><a @click="openPromptLog(item)">Prompt 日志</a></span>
-                    </div>
-                  </div>
-
-                  <div class="file-items" v-if="item.quote_file && item.quote_file.length > 0">
-                    <div
-                      class="file-item"
-                      v-for="file in item.quote_file"
-                      :key="file.id"
-                      @click="openLibrary(item.quote_file, file, item.id)"
-                    >
-                      <a class="file-name">{{ file.file_name }}</a>
                     </div>
                   </div>
                 </div>
@@ -390,12 +425,21 @@ const toggleReasonProcess = (item) => {
   item.show_reasoning = !item.show_reasoning
 }
 
+const toggleQuoteFiel = (item) => {
+  item.show_quote_file = !item.show_quote_file
+}
+
 const common_question_list = computed(() => {
   if (props.robotInfo.common_question_list.length) {
     return JSON.parse(props.robotInfo.common_question_list)
   }
   return []
 })
+
+const isShowQuoteFileProgress = computed(() => {
+  return props.robotInfo.chat_type == 1 || props.robotInfo.chat_type == 3
+})
+
 const onClickMeun = (item) => {
   emit('clickMsgMeun', item)
 }
@@ -542,9 +586,9 @@ function openPromptLog(item) {
 // 打开知识库
 function openLibrary(files, file, message_id) {
   let newfiles = toRaw(files)
-
+  file.message_id = file.message_id || message_id
   newfiles.forEach((item) => {
-    item.message_id = message_id
+    item.message_id = item.message_id || message_id
   })
 
   emit('openLibrary', newfiles, toRaw(file))

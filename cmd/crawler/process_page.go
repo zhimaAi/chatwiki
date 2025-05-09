@@ -6,13 +6,14 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/playwright-community/playwright-go"
-	"github.com/syyongx/php2go"
-	"github.com/zhimaAi/go_tools/logs"
 	netURL "net/url"
 	"regexp"
 	"runtime"
 	"strings"
+
+	"github.com/playwright-community/playwright-go"
+	"github.com/syyongx/php2go"
+	"github.com/zhimaAi/go_tools/logs"
 )
 
 type PageInfo struct {
@@ -74,8 +75,7 @@ func fetchURLContent(parsedURL *netURL.URL) (*PageInfo, error) {
 	}(&page, &context)
 
 	// navigate to url, with timeout 15s
-	timeout := float64(15000)
-	if _, err = page.Goto(parsedURL.String(), playwright.PageGotoOptions{Timeout: &timeout, WaitUntil: playwright.WaitUntilStateNetworkidle}); err != nil {
+	if _, err = page.Goto(parsedURL.String(), playwright.PageGotoOptions{WaitUntil: playwright.WaitUntilStateNetworkidle}); err != nil {
 		return nil, fmt.Errorf("could not navigate to url: %v", err)
 	}
 
@@ -186,6 +186,13 @@ var specialPageProcessors = map[string]SpecialPageProcessingFunc{
 	"yuque.com":       PageProcessForYuque,
 }
 
+// escapeJSContent escapes content for safe JavaScript evaluation
+func escapeJSContent(content string) string {
+	content = strings.ReplaceAll(content, "`", "\\`")
+	content = strings.ReplaceAll(content, "${", "\\${")
+	return content
+}
+
 func PageProcessForTencentDoc(page *playwright.Page) error {
 	err := (*page).WaitForLoadState(playwright.PageWaitForLoadStateOptions{State: playwright.LoadStateNetworkidle})
 	if err != nil {
@@ -211,7 +218,7 @@ func PageProcessForTencentDoc(page *playwright.Page) error {
 	if !ok {
 		return errors.New("could not convert content to string")
 	}
-	_, err = (*page).Evaluate(fmt.Sprintf("document.body.innerHTML = `%s`", strings.ReplaceAll(content, "`", "\\`")))
+	_, err = (*page).Evaluate(fmt.Sprintf("document.body.innerHTML = `%s`", escapeJSContent(content)))
 	if err != nil {
 		return err
 	}
@@ -238,7 +245,7 @@ func PageProcessForKDoc(page *playwright.Page) error {
 	if !ok {
 		return errors.New("could not convert content to string")
 	}
-	_, err = (*page).Evaluate(fmt.Sprintf("document.body.innerHTML = `%s`", strings.ReplaceAll(content, "`", "\\`")))
+	_, err = (*page).Evaluate(fmt.Sprintf("document.body.innerHTML = `%s`", escapeJSContent(content)))
 	if err != nil {
 		return err
 	}
@@ -252,7 +259,7 @@ func PageProcessForFeishu(page *playwright.Page) error {
 	if err != nil {
 		return err
 	}
-	_, err = (*page).Evaluate(fmt.Sprintf("document.body.innerHTML = `%s`", strings.ReplaceAll(content, "`", "\\`")))
+	_, err = (*page).Evaluate(fmt.Sprintf("document.body.innerHTML = `%s`", escapeJSContent(content)))
 	if err != nil {
 		return err
 	}
@@ -264,7 +271,7 @@ func PageProcessForJianshu(page *playwright.Page) error {
 	if err != nil {
 		return err
 	}
-	_, err = (*page).Evaluate(fmt.Sprintf("document.body.innerHTML = `%s`", strings.ReplaceAll(content, "`", "\\`")))
+	_, err = (*page).Evaluate(fmt.Sprintf("document.body.innerHTML = `%s`", escapeJSContent(content)))
 	if err != nil {
 		return err
 	}
@@ -276,7 +283,8 @@ func PageProcessForYuque(page *playwright.Page) error {
 	if err != nil {
 		return err
 	}
-	_, err = (*page).Evaluate(fmt.Sprintf("document.body.innerHTML = `%s`", strings.ReplaceAll(content, "`", "\\`")))
+	content = escapeJSContent(content)
+	_, err = (*page).Evaluate(fmt.Sprintf("document.body.innerHTML = `%s`", content))
 	if err != nil {
 		return err
 	}

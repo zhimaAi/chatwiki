@@ -10,6 +10,8 @@ import (
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -341,12 +343,13 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 		}
 		fileIds = append(fileIds, fileId)
 		if status == define.FileStatusInitial && !uploadInfo.Custom { //async task:convert html
-
 			if message, err := tool.JsonEncode(map[string]any{`file_id`: fileId, `file_url`: uploadInfo.Link}); err != nil {
 				logs.Error(err.Error())
 			} else if err := common.AddJobs(define.ConvertHtmlTopic, message); err != nil {
 				logs.Error(err.Error())
 			}
+		} else if uploadInfo.Custom {
+			continue
 		} else {
 			switch cast.ToInt(libraryInfo[`type`]) {
 			case define.GeneralLibraryType:
@@ -476,6 +479,12 @@ func DelLibraryFile(c *gin.Context) {
 		if err != nil {
 			logs.Error(err.Error())
 		}
+		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
+			Where(`file_id`, cast.ToString(id)).
+			Update(msql.Datas{`isolated`: true})
+		if err != nil {
+			logs.Error(err.Error())
+		}
 
 		if common.GetNeo4jStatus(userId) {
 			for _, dataId := range dataIdList {
@@ -588,6 +597,51 @@ func GetLibRawFile(c *gin.Context) {
 	return
 }
 
+func GetLibRawFileOnePage(c *gin.Context) {
+	adminUserId := cast.ToInt(c.Query(`admin_user_id`))
+	id := cast.ToInt(c.Query(`id`))
+	page := cast.ToInt(c.Query(`page`))
+	if adminUserId == 0 || id <= 0 || page <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	info, err := common.GetLibFileInfo(id, adminUserId)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(info) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `file_deleted`))))
+		return
+	}
+	if !common.LinkExists(info[`file_url`]) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+
+	file := common.GetFileByLink(info[`file_url`])
+	outDir := define.UploadDir + fmt.Sprintf(`pdf_split/%s`, tool.Random(8))
+	defer func(path string) {
+		_ = os.RemoveAll(path)
+	}(outDir)
+	_ = tool.MkDirAll(outDir)
+	if err := api.SplitFile(file, outDir, 1, nil); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	filename := strings.TrimSuffix(filepath.Base(file), `.pdf`)
+	item := fmt.Sprintf(`%s/%s_%d.pdf`, outDir, filename, page)
+	if !tool.IsFile(item) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+
+	fmt.Printf(item)
+	c.File(item)
+	return
+}
+
 func GetSeparatorsList(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
@@ -668,7 +722,7 @@ func GetLibFileSplit(c *gin.Context) {
 		splitParams.AiChunkTaskId = uuid.New().String()
 		splitParams.AiChunkNew = true
 	}
-	list, wordTotal, err := common.GetLibFileSplit(userId, fileId, pdfPageNum, splitParams, common.GetLang(c))
+	list, wordTotal, splitParams, err := common.GetLibFileSplit(userId, fileId, pdfPageNum, splitParams, common.GetLang(c))
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), err.Error()))))
@@ -714,7 +768,7 @@ func SaveLibFileSplit(c *gin.Context) {
 		// do nothging
 		// 同步orc解析pdf的情况很耗时，直接使用前端传入的值保存
 	} else if !(pdfPageNum > 0 && (splitParams.PdfParseType == define.PdfParseTypeOcr || splitParams.PdfParseType == define.PdfParseTypeOcrWithImage)) {
-		list, wordTotal, err = common.GetLibFileSplit(userId, fileId, pdfPageNum, splitParams, common.GetLang(c))
+		list, wordTotal, splitParams, err = common.GetLibFileSplit(userId, fileId, pdfPageNum, splitParams, common.GetLang(c))
 		if err != nil {
 			logs.Error(err.Error())
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))

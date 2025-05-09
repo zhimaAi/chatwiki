@@ -138,7 +138,7 @@ func FormatSystemPrompt(prompt string, list []msql.Params) (string, string) {
 	}
 	if len(knowledges) > 0 {
 		output += fmt.Sprintf("\n# 知识库\n%s", strings.Join(knowledges, "\n"))
-		libraryOutput += fmt.Sprintf("\n# 知识库\n%s", strings.Join(knowledges, "\n"))
+		libraryOutput += fmt.Sprintf("# 知识库\n%s", strings.Join(knowledges, "\n"))
 	}
 	return UnifyLineBreak(output), UnifyLineBreak(libraryOutput) //统一处理换行符问题
 }

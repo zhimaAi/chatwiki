@@ -69,9 +69,27 @@ func GetAnswerSource(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	list, err := msql.Model(`chat_ai_answer_source`, define.Postgres).Where(`admin_user_id`, cast.ToString(chatBaseParam.AdminUserId)).
-		Where(`message_id`, cast.ToString(messageId)).Where(`file_id`, cast.ToString(fileId)).
-		Order(`id`).Field(`paragraph_id as id,word_total,similarity,title,type,content,question,answer,images`).Select()
+	list, err := msql.Model(`chat_ai_answer_source`, define.Postgres).
+		Alias(`c`).
+		Join(`chat_ai_library_file_data d`, `c.paragraph_id = d.id`, `left`).
+		Join(`chat_ai_library_file f`, `d.file_id = f.id`, `left`).
+		Where(`c.admin_user_id`, cast.ToString(chatBaseParam.AdminUserId)).
+		Where(`c.message_id`, cast.ToString(messageId)).
+		Where(`c.file_id`, cast.ToString(fileId)).
+		Order(`c.id`).
+		Field(`
+			c.paragraph_id as id,
+			c.word_total,
+			c.similarity,
+			c.title,
+			c.type,
+			c.content,
+			c.question,
+			c.answer,
+			c.images,
+			case when f.id is null or f.file_ext != 'pdf' then 0 else d.page_num end as page_num
+		`).
+		Select()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))

@@ -187,7 +187,18 @@
                 ></svg-icon>
               </div>
             </div>
-            <a-select
+            <!-- 自定义选择器 -->
+            <CustomSelector
+              v-model="formState.use_model"
+              :options="processedModelList"
+              placeholder="请选择嵌入模型"
+              label-key="use_model_name"
+              value-key="value"
+              :model-define="modelDefine"
+              :model-config-id="formState.model_config_id"
+              @change="handleModelChange"
+            />
+            <!-- <a-select
               @change="handleChangeModel"
               v-model:value="formState.use_model"
               placeholder="请选择嵌入模型"
@@ -215,7 +226,7 @@
                   <span v-else>{{ val.name }}</span>
                 </a-select-option>
               </a-select-opt-group>
-            </a-select>
+            </a-select> -->
           </a-form-item>
           <a-form-item label="生成知识图谱" v-show="neo4j_status">
             <a-switch
@@ -441,8 +452,9 @@ import { LIBRARY_OPEN_AVATAR } from '@/constants/index'
 import AvatarInput from '@/views/library/add-library/components/avatar-input.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import OpenGrapgModal from './components/open-grapg-modal.vue'
-
+import CustomSelector from '@/components/custom-selector/index.vue'
 import { useCompanyStore } from '@/stores/modules/company'
+
 const companyStore = useCompanyStore()
 const neo4j_status = computed(()=>{
   return companyStore.companyInfo?.neo4j_status == 'true'
@@ -458,6 +470,8 @@ const formState = reactive({
   library_name: '',
   library_intro: '',
   use_model: '',
+  use_model_icon: '', // 新增图标字段
+  use_model_name: '', // 新增系统名称
   is_offline: '',
   model_config_id: '',
   avatar: defaultAvatar,
@@ -481,6 +495,32 @@ const currentModelDefine = ref('')
 const isActive = ref(0)
 
 const libraryInfo = ref({})
+
+// 处理原始数据格式
+const processedModelList = computed(() => {
+  return modelList.value.map(group => ({
+    groupLabel: group.name,
+    groupIcon: group.icon,
+    children: group.children.map(child => ({
+      icon: child.icon,
+      use_model_name: child.use_model_name,
+      value: modelDefine.includes(child.model_define) && child.deployment_name ? child.deployment_name : child.name,
+      rawData: child // 保留原始数据
+    }))
+  }))
+})
+
+// 处理选择事件
+const handleModelChange = (item) => {
+  formState.use_model = modelDefine.includes(item.rawData.model_define) && item.rawData.deployment_name 
+    ? item.rawData.deployment_name 
+    : item.rawData.name
+  formState.use_model_icon = item.icon
+  formState.use_model_name = item.use_model_name
+  formState.model_config_id = item.rawData.id
+  currentModelDefine.value = item.rawData.model_define
+  handleEdit()
+}
 
 const segmentationTags = ref([])
 getSeparatorsList().then((res) => {
@@ -612,7 +652,9 @@ const getModelList = () => {
           name: ele,
           deployment_name: item.model_config.deployment_name,
           id: item.model_config.id,
-          model_define: item.model_info.model_define
+          model_define: item.model_info.model_define,
+          icon: item.model_info.model_icon_url, // 添加图标字段
+          use_model_name: item.model_info.model_name // 添加系统名称字段
         })
       }
 

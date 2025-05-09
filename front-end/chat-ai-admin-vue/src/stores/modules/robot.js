@@ -87,6 +87,7 @@ export const useRobotStore = defineStore('robot', () => {
     feedback_switch: 1,
     application_type: 0,
     sensitive_words_switch: 0,
+    question_guide_num: ''
   })
 
   // WebApp配置
@@ -172,6 +173,7 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.feedback_switch = +data.feedback_switch 
     robotInfo.application_type = data.application_type
     robotInfo.sensitive_words_switch = +data.sensitive_words_switch
+    robotInfo.question_guide_num = +data.question_guide_num
     // h5配置
     if (data.external_config_h5 !== '') {
       Object.assign(external_config_h5, JSON.parse(data.external_config_h5))

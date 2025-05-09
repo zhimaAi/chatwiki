@@ -52,7 +52,7 @@ type NodeLog struct {
 	NodeName  string       `json:"node_name"`
 	NodeType  int          `json:"node_type"`
 	Output    SimpleFields `json:"output"`
-	Error     error        `json:"error"`
+	ErrorMsg  string       `json:"error_msg"`
 	UseTime   int64        `json:"use_time"` //millisecond
 }
 

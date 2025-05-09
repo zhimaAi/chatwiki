@@ -662,7 +662,11 @@ const handleSaveLibFileSplit = async () => {
         goBack()
         return
       }
-      router.replace('/library/details?id=' + library_id)
+      let page = 1
+      if (route.query.page) {
+        page = route.query.page
+      }
+      router.replace('/library/details?id=' + library_id + '&page=' + page)
     })
     .finally(() => {
       saveLoading.value = false

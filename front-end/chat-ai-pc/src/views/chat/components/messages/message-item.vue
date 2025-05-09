@@ -127,7 +127,7 @@
     padding: 0 8px;
     height: 24px;
     border-radius: 6px;
-    span{
+    span {
       display: flex;
       height: 100%;
       line-height: 25px;
@@ -141,7 +141,7 @@
       height: 16px;
     }
     &:hover {
-      background: #F2F4F7;
+      background: #f2f4f7;
       text-align: center;
       color: #3a4559;
       .copy-icon {
@@ -178,7 +178,7 @@
       margin-right: 2px;
     }
     &:hover {
-      background: #F2F4F7;
+      background: #f2f4f7;
     }
   }
 
@@ -203,7 +203,7 @@
       margin-right: 2px;
     }
     &:hover {
-      background: #F2F4F7;
+      background: #f2f4f7;
     }
   }
 
@@ -222,13 +222,12 @@
     justify-content: center;
     transition: all 0.5s ease;
 
-    .copy-block{
+    .copy-block {
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 0;
-    width: 26px;
-
+      width: 26px;
     }
 
     .operation-right {
@@ -244,13 +243,16 @@
   padding: 16px;
   flex-shrink: 0;
   border-radius: 12px;
-  background: var(--Conditional-pop-over, #FFF);
-  box-shadow: 0 6px 30px 5px #0000000d, 0 16px 24px 2px #0000000a, 0 8px 10px -5px #00000014;
+  background: var(--Conditional-pop-over, #fff);
+  box-shadow:
+    0 6px 30px 5px #0000000d,
+    0 16px 24px 2px #0000000a,
+    0 8px 10px -5px #00000014;
 
   .modal-title {
     color: #262626;
     text-align: left;
-    font-family: "PingFang SC";
+    font-family: 'PingFang SC';
     font-size: 14px;
     font-style: normal;
     font-weight: 400;
@@ -265,7 +267,7 @@
     justify-content: flex-end;
     gap: 8px;
   }
-  
+
   .model-btn {
     width: 74px;
     height: 32px;
@@ -287,31 +289,40 @@
   align-items: flex-start;
   align-self: stretch;
   border-radius: 2px;
-  border: 1px solid var(--Neutral-5, #D9D9D9);
-  background: var(--Neutral-1, #FFF);
+  border: 1px solid var(--Neutral-5, #d9d9d9);
+  background: var(--Neutral-1, #fff);
 }
 
-.answer-reference-box{
-  border-top: 1px solid #EDEFF2;
-  padding-top: 12px;
-  margin-top: 16px;
-  .title-block{
-    color: #7a8699;
-    font-size: 14px;
-    line-height: 22px;
-    font-weight: 400;
-  }
-  .list-item{
+.answer-reference-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  line-height: 22px;
+  font-weight: 400;
+  color: #164799;
+  font-size: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #edeff2;
+  margin-bottom: 12px;
+  .list-item {
     cursor: pointer;
-    margin-top: 8px;
     display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    font-weight: 400;
-    line-height: 22px;
+    align-items: baseline;
+    gap: 4px;
     color: #164799;
+    position: relative;
+    .svg-action {
+      position: relative;
+      top: 2px;
+    }
   }
+}
+
+.label-flex-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .thinking-label-wrapper {
@@ -393,24 +404,54 @@
       <img class="avatar" :src="props.msg.avatar" />
     </div>
     <div class="message-item-body">
-      <!-- 思考过程label -->
-      <div
-        class="thinking-label-wrapper"
-        :class="{ reasoning_open: props.msg.show_reasoning }"
-        v-if="props.msg.reasoning_content && props.msg.reasoning_content.length > 0"
-      >
-        <div class="thinking-label" @click="toggleReasonProcess()">
-          <van-loading class="loading" color="#262626" size="16px" type="spinner" v-if="props.msg.reasoning_status" />
-          <svg-icon class="think-icon" name="think" v-else></svg-icon>
-          <span class="label-text">{{
-            props.msg.reasoning_status ? '深度思考中...' : '已完成深度思考'
-          }}</span>
+      <div class="label-flex-block">
+        <!-- 检索知识库 -->
+        <div
+          class="thinking-label-wrapper"
+          :class="{ reasoning_open: props.msg.show_quote_file }"
+          v-if="props.msg.is_customer == 0 && props.msg.msg_type == 1 && isShowQuoteFileProgress"
+        >
+          <div class="thinking-label" @click="toggleQuoteFiel()">
+            <template v-if="props.msg.quote_loading">
+              <van-loading class="loading" color="#262626" size="16px" type="spinner" />
+              <span class="label-text">正在检索知识库...</span>
+            </template>
+            <template v-else>
+              <svg-icon class="think-icon" name="quote-file"></svg-icon>
+              <span class="label-text">检索到{{ props.msg.quote_file.length }}个知识库文档</span>
+            </template>
+            <svg-icon
+              name="down-arrow"
+              class="down-arrow"
+              v-if="props.msg.quote_file.length"
+            ></svg-icon>
+          </div>
+        </div>
+        <!-- 思考过程label -->
+        <div
+          class="thinking-label-wrapper"
+          :class="{ reasoning_open: props.msg.show_reasoning }"
+          v-if="props.msg.reasoning_content && props.msg.reasoning_content.length > 0"
+        >
+          <div class="thinking-label" @click="toggleReasonProcess()">
+            <van-loading
+              class="loading"
+              color="#262626"
+              size="16px"
+              type="spinner"
+              v-if="props.msg.reasoning_status"
+            />
+            <svg-icon class="think-icon" name="think" v-else></svg-icon>
+            <span class="label-text">{{
+              props.msg.reasoning_status ? '深度思考中...' : '已完成深度思考'
+            }}</span>
 
-          <svg-icon
-            name="down-arrow"
-            class="down-arrow"
-            v-if="!props.msg.reasoning_status"
-          ></svg-icon>
+            <svg-icon
+              name="down-arrow"
+              class="down-arrow"
+              v-if="!props.msg.reasoning_status"
+            ></svg-icon>
+          </div>
         </div>
       </div>
 
@@ -420,6 +461,24 @@
         </div>
         <template v-if="props.msg.msg_type == 1">
           <div class="text-message" v-if="props.msg.content !== ''" v-viewer>
+            <div
+              class="answer-reference-box"
+              v-if="
+                isShowQuoteFileProgress &&
+                props.msg.show_quote_file &&
+                props.msg.is_customer != 1 &&
+                props.msg.quote_file &&
+                props.msg.quote_file.length
+              "
+            >
+              <div class="list-item" v-for="(item, index) in props.msg.quote_file" :key="index">
+                <svg-icon name="quote-file" />
+                <span @click="handleToLink(item)">
+                  <span v-if="item.file_name">{{ item.file_name }}</span>
+                  <span v-else>{{ item.library_name }}-精选</span>
+                </span>
+              </div>
+            </div>
             <div v-if="props.msg.is_customer == 1" v-html="props.msg.content"></div>
             <cherry-markdown :content="props.msg.content" v-else />
             <div class="operation" v-if="isShowCopy">
@@ -427,8 +486,17 @@
                 <div class="copy-icon"></div>
                 <span>复制</span>
               </div>
-              <div ref="operationRef" class="operation-right" v-if="!isCustomerMessage && !isWelcomeMessage && robot.feedback_switch">
-                <div v-tooltip="'点赞'" @click="handlePraise(props.msg)" class="praise-block" :class="{'praise-active': !isTrampleClick && isPraiseActive}">
+              <div
+                ref="operationRef"
+                class="operation-right"
+                v-if="!isCustomerMessage && !isWelcomeMessage && robot.feedback_switch"
+              >
+                <div
+                  v-tooltip="'点赞'"
+                  @click="handlePraise(props.msg)"
+                  class="praise-block"
+                  :class="{ 'praise-active': !isTrampleClick && isPraiseActive }"
+                >
                   <div class="praise-icon"></div>
                 </div>
                 <van-popover placement="top-end" v-if="!isTrampleActive" @close="onCancel">
@@ -442,32 +510,34 @@
                       ></textarea>
                     </div>
                     <div class="btn-box">
-                      <van-button class="model-btn cancel-btn" type="default" @click="onCancel">取消</van-button>
-                      <van-button class="model-btn submit-btn" type="primary" @click="onSubmit">提交</van-button>
+                      <van-button class="model-btn cancel-btn" type="default" @click="onCancel"
+                        >取消</van-button
+                      >
+                      <van-button class="model-btn submit-btn" type="primary" @click="onSubmit"
+                        >提交</van-button
+                      >
                     </div>
                   </div>
                   <template #reference>
-                      <div v-tooltip="'点踩'" @click="handleTrample(props.msg, 4)" class="trample-block" :class="{'trample-active': isTrampleClick}">
-                        <div class="trample-icon"></div>
-                      </div>
+                    <div
+                      v-tooltip="'点踩'"
+                      @click="handleTrample(props.msg, 4)"
+                      class="trample-block"
+                      :class="{ 'trample-active': isTrampleClick }"
+                    >
+                      <div class="trample-icon"></div>
+                    </div>
                   </template>
                 </van-popover>
-                <div v-tooltip="'点踩'" v-else @click="handleTrample(props.msg, 3)" class="trample-block" :class="{'trample-active': isTrampleActive}">
+                <div
+                  v-tooltip="'点踩'"
+                  v-else
+                  @click="handleTrample(props.msg, 3)"
+                  class="trample-block"
+                  :class="{ 'trample-active': isTrampleActive }"
+                >
                   <div class="trample-icon"></div>
                 </div>
-              </div>
-            </div>
-            <div class="answer-reference-box" v-if="props.msg.is_customer != 1 && props.msg.quote_file && props.msg.quote_file.length">
-              <div class="title-block">回答参考
-                <van-icon v-tooltip="'如果不想显示“回答参考”，可以在机器人配置界面“基础配置 - 显示引文”，关闭开关。'" name="question-o" />
-              </div>
-              <div
-                class="list-item"
-                v-for="(item, index) in props.msg.quote_file"
-                :key="index"
-              >
-                <svg-icon name="attachment"  />
-                <span @click="handleToLink(item)">{{ item.file_name}}</span>
               </div>
             </div>
             <div class="hover-copy-tool-block" v-if="isShowHoverCopy">
@@ -476,7 +546,12 @@
                   <div class="copy-icon"></div>
                 </div>
                 <template v-if="!isCustomerMessage && !isWelcomeMessage && robot.feedback_switch">
-                  <div v-tooltip="'点赞'" @click="handlePraise(props.msg)" class="praise-block" :class="{'praise-active': !isTrampleClick && isPraiseActive}">
+                  <div
+                    v-tooltip="'点赞'"
+                    @click="handlePraise(props.msg)"
+                    class="praise-block"
+                    :class="{ 'praise-active': !isTrampleClick && isPraiseActive }"
+                  >
                     <div class="praise-icon"></div>
                   </div>
                   <van-popover placement="top-end" v-if="!isTrampleActive" @close="onCancel">
@@ -490,17 +565,32 @@
                         ></textarea>
                       </div>
                       <div class="btn-box">
-                        <van-button class="model-btn cancel-btn" type="default" @click="onCancel">取消</van-button>
-                        <van-button class="model-btn submit-btn" type="primary" @click="onSubmit">提交</van-button>
+                        <van-button class="model-btn cancel-btn" type="default" @click="onCancel"
+                          >取消</van-button
+                        >
+                        <van-button class="model-btn submit-btn" type="primary" @click="onSubmit"
+                          >提交</van-button
+                        >
                       </div>
                     </div>
                     <template #reference>
-                        <div v-tooltip="'点踩'" @click="handleTrample(props.msg, 2)" class="trample-block" :class="{'trample-active': isTrampleClick}">
-                          <div class="trample-icon"></div>
-                        </div>
+                      <div
+                        v-tooltip="'点踩'"
+                        @click="handleTrample(props.msg, 2)"
+                        class="trample-block"
+                        :class="{ 'trample-active': isTrampleClick }"
+                      >
+                        <div class="trample-icon"></div>
+                      </div>
                     </template>
                   </van-popover>
-                  <div v-else v-tooltip="'点踩'" @click="handleTrample(props.msg, 1)" class="trample-block" :class="{'trample-active': isTrampleActive}">
+                  <div
+                    v-else
+                    v-tooltip="'点踩'"
+                    @click="handleTrample(props.msg, 1)"
+                    class="trample-block"
+                    :class="{ 'trample-active': isTrampleActive }"
+                  >
                     <div class="trample-icon"></div>
                   </div>
                 </template>
@@ -560,9 +650,9 @@ import useClipboard from 'vue-clipboard3'
 import QuoteModal from '../quote-modal/index.vue'
 
 interface praiseParams {
-  ai_message_id: string;
-  type: number;
-  customer_message_id?: string;
+  ai_message_id: string
+  type: number
+  customer_message_id?: string
 }
 
 const { toClipboard } = useClipboard()
@@ -595,8 +685,8 @@ const props = defineProps({
 })
 
 const isTrampleClick = ref(false)
-const isPraiseActive = ref(props.msg.feedback_type == '1' ? true : false);
-const isTrampleActive = ref(props.msg.feedback_type == '2' ? true : false);
+const isPraiseActive = ref(props.msg.feedback_type == '1' ? true : false)
+const isTrampleActive = ref(props.msg.feedback_type == '2' ? true : false)
 
 const isShowCopy = computed(() => {
   // 最后一条消息 机器人的消息 消息类型为1 不是正在发送
@@ -609,7 +699,7 @@ const isShowCopy = computed(() => {
 })
 
 const isShowHoverCopy = computed(() => {
-  return !isShowCopy.value && props.index !== props.messageLength - 1 
+  return !isShowCopy.value && props.index !== props.messageLength - 1
 })
 
 const handleCopy = async () => {
@@ -624,7 +714,7 @@ const handlePraise = async (item) => {
     customer_message_id.value = props.prevMsg.id
   }
   ai_message_id.value = item.id
-  const params:praiseParams  = {
+  const params: praiseParams = {
     ai_message_id: ai_message_id.value,
     type: 1
   }
@@ -642,7 +732,6 @@ const handlePraise = async (item) => {
 }
 
 const handleTrample = async (item, type) => {
-
   isTrampleClick.value = true
   if (props.prevMsg && props.prevMsg.is_customer == 1) {
     customer_message_id.value = props.prevMsg.id
@@ -692,6 +781,11 @@ const onSubmit = async () => {
 // 检查是否为用户消息
 const isCustomerMessage = computed(() => props.msg.is_customer == 1)
 
+// 是否显示引用
+const isShowQuoteFileProgress = computed(() => {
+  return (robot.chat_type == 1 || robot.chat_type == 3) && robot.answer_source_switch
+})
+
 // 是否为欢迎语
 const isWelcomeMessage = computed(() => props.msg.msg_type == 2)
 
@@ -717,19 +811,22 @@ const sendTextMessage = (text: string) => {
 }
 const quoteModalRef = ref<any>(null)
 const handleToLink = (item) => {
-  quoteModalRef.value && quoteModalRef.value.showPopup({
-    message_id: props.msg.id,
-    file_id: item.id,
-    robot_key: robot.robot_key,
-    openid: robot.openid,
-    file_name: item.file_name,
-  })
+  quoteModalRef.value &&
+    quoteModalRef.value.showPopup({
+      message_id: item.message_id || props.msg.id,
+      file_id: item.id,
+      robot_key: robot.robot_key,
+      openid: robot.openid,
+      file_name: item.file_name || item.library_name + '-精选'
+    })
 }
 
 const toggleReasonProcess = () => {
-  props.msg.show_reasoning = ! props.msg.show_reasoning
+  props.msg.show_reasoning = !props.msg.show_reasoning
 }
-
+const toggleQuoteFiel = () => {
+  props.msg.show_quote_file = !props.msg.show_quote_file
+}
 onMounted(() => {
   startLoadingAnimation()
 })

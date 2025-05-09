@@ -77,7 +77,9 @@
               <div class="section-item-nav">
                 <div class="section-item-nav-left">
                   <svg-icon class="section-item-icon" name="document"></svg-icon>
-                  <div class="section-item-label" @click="goToFile(item.file_id)">{{ item.file_name }}</div>
+                  <div class="section-item-label" @click="goToFile(item)">
+                    {{ item.file_name }}<span v-if="!item.file_name">{{ item.library_name }}-精选</span>
+                  </div>
                 </div>
                 <div class="section-item-nav-right">相似度：{{ formatNumber(item.similarity) }}</div>
               </div>
@@ -179,8 +181,12 @@ const highlightKeywords = (content, keyword) => {
 }
 
 // 新窗口跳转到文档
-const goToFile = (file_id) => {
-  window.open(`#/library/preview?id=${file_id}`)
+const goToFile = (item) => {
+  if(!item.file_name){
+    window.open(`#/library/details/categary-manage?id=${item.library_id}`)
+    return
+  }
+  window.open(`#/library/preview?id=${item.file_id}`)
 }
 
 const formState = reactive({

@@ -14,11 +14,14 @@
               }
             }"
           >
-            {{ detailsInfo.library_name }}知识库</router-link
-          >
+            <div class="library-line1">{{ detailsInfo.library_name }}知识库</div>
+          </router-link >
         </a-breadcrumb-item>
         <a-breadcrumb-item>知识库详情</a-breadcrumb-item>
       </a-breadcrumb>
+      <div class="selct-star-box">
+        <SelectStarBox :startLists="startLists" @change="handleCategoryChange" />
+      </div>
     </div>
     <div class="document-title-block" style="height: 22px;">
       <LeftOutlined @click="goBack" />
@@ -26,8 +29,9 @@
       <SegmentationMode :detailsInfo="detailsInfo"></SegmentationMode>
     </div>
     <div class="search-content-block">
-      <div class="selct-star-box">
-        <SelectStarBox :startLists="startLists" @change="handleCategoryChange" />
+      <div class="preview-box">
+        <a-button v-if="!isCollapsed" @click="toggleCollapse('put')"><svg-icon class="preview-box-icon" name="put-away"></svg-icon> 收起预览</a-button>
+        <a-button v-else @click="toggleCollapse('expand')"><svg-icon class="preview-box-icon" name="expand"></svg-icon> 展开预览</a-button>
       </div>
       <a-space>
         <a-select
@@ -37,7 +41,7 @@
           @change="search"
         >
           <a-select-option :value="-1">全部嵌入状态</a-select-option>
-          <a-select-option v-for="(i, key) in listStatusMap" :value="key">{{ i }}</a-select-option>
+          <a-select-option v-for="(i, key) in listStatusMap" :key="i" :value="key">{{ i }}</a-select-option>
         </a-select>
         <a-select
           v-if="detailsInfo.graph_switch"
@@ -47,7 +51,7 @@
           style="width: 160px"
         >
           <a-select-option :value="-1">全部知识图谱状态</a-select-option>
-          <a-select-option v-for="(i, key) in graphStatusMap" :value="key">{{ i }}</a-select-option>
+          <a-select-option v-for="(i, key) in graphStatusMap" :key="i" :value="key">{{ i }}</a-select-option>
         </a-select>
         <a-dropdown>
           <template #overlay>
@@ -104,19 +108,24 @@
               <SubsectionBox
                 ref="subsectionBoxRef"
                 :total="total"
-                :paragraphLists="paragraphLists"
                 :detailsInfo="detailsInfo"
+                :paragraphLists="paragraphLists"
                 @openEditSubscription="openEditSubscription"
                 @handleDelParagraph="handleDelParagraph"
                 @handleConvert="handleConvert"
+                @handleScrollTargetPage="paragraphPosition"
                 @getStatrList="getStatrList"
+                @handleSplit="handleSplit"
+                @handleSplitNext="handleSplitNext"
+                @handleSplitUp="handleSplitUp"
+                @handleSplitDelete="handleSplitDelete"
               ></SubsectionBox>
             </div>
           </cu-scroll>
         </template>
         <template v-else>
           <div class="pdf-view-box">
-            <div class="view-content-wrap">
+            <div class="view-content-wrap" :class="{ 'collapsed': isCollapsed }">
               <div v-if="detailsInfo?.file_ext == 'pdf'" class="pdf-mode-switch">
                 <a-radio-group v-model:value="pdfPreviewMode">
                   <a-radio-button :value="1">
@@ -219,6 +228,10 @@
                     @handleConvert="handleConvert"
                     @handleScrollTargetPage="paragraphPosition"
                     @getStatrList="getStatrList"
+                    @handleSplit="handleSplit"
+                    @handleSplitNext="handleSplitNext"
+                    @handleSplitUp="handleSplitUp"
+                    @handleSplitDelete="handleSplitDelete"
                   ></SubsectionBox>
                 </div>
               </cu-scroll>
@@ -245,15 +258,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, defineAsyncComponent, nextTick, h, onMounted } from 'vue'
+import { ref, reactive, computed, nextTick, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import PdfEmbed from 'vue-pdf-embed'
 import { message } from 'ant-design-vue'
-import { LeftOutlined, PlusOutlined, DownOutlined, StarFilled } from '@ant-design/icons-vue'
+import { LeftOutlined, PlusOutlined, DownOutlined } from '@ant-design/icons-vue'
 import Empty from './components/empty.vue'
 import SubsectionBox from './components/subsection-box.vue'
 import {
   getLibFileInfo,
+  saveLibFileSplit,
   getParagraphList,
   reconstructGraph,
   reconstructVector
@@ -265,17 +278,17 @@ import UpdateFrequency from './components/update-frequency.vue'
 import RenameModal from '../library-details/components/rename-modal.vue'
 import PdfPreview from '@/components/pdf-preview/pdf-preview.vue'
 import { useUserStore } from '@/stores/modules/user.js'
-import colorLists from '@/utils/starColors.js'
 import ReSegmentationPage from './components/re-segmentation-page.vue'
 import QaSubsectionBox from './components/qa-subsection-box.vue'
 import SelectStarBox from './components/selct-star-box.vue'
-
 import { useCompanyStore } from '@/stores/modules/company'
+
 const companyStore = useCompanyStore()
 const neo4j_status = computed(()=>{
   return companyStore.companyInfo?.neo4j_status == 'true'
 })
 
+const isCollapsed = ref(false)
 const pdfRef = ref(null)
 const pdfLoadedPage = ref(0)
 const pdfTotalPage = ref(0)
@@ -326,13 +339,6 @@ const getFileUrl = computed(() => {
   return '/manage/getLibRawFile?id=' + route.query.id + '&token=' + userStore.getToken
 })
 
-onMounted(() => {
-  if (route.query.graph_status) {
-    filterData.graph_status = route.query.graph_status
-    search()
-  }
-})
-
 const goBack = () => {
   router.back()
 }
@@ -366,24 +372,7 @@ const handleClickItem = (index, type = 1) => {
 }
 
 const pageLoading = ref(true)
-
-const getFileInfo = async () => {
-  getLibFileInfo({
-    id: route.query.id
-  }).then((res) => {
-    detailsInfo.value = {
-      ...res.data,
-      graph_switch: res.data.graph_switch == '1' && neo4j_status.value
-    }
-    let status = res.data.status
-    if (status == 1 || status == 2) {
-      getParagraphLists()
-    } else {
-      pageLoading.value = false
-    }
-  })
-}
-getFileInfo()
+const library_type = ref(0)
 
 const paginations = ref({
   page: 1,
@@ -398,8 +387,96 @@ const listStatusMap = {
   2: '转换异常',
   3: '转换中...'
 }
+const defaultAiChunkPrumpt = '你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。'
+const settingMode = ref(1) // 1 表格，0 非表格
+let formData = {
+  id: route.query.id,
+  separators_no: '', // 自定义分段-分隔符序号集
+  chunk_size: 512, // 自定义分段-分段最大长度 默认512，最大值不得超过2000
+  chunk_overlap: 50, // 自定义分段-分段重叠长度 默认为50，最小不得低于10，最大不得超过最大分段长度的50%
+  is_qa_doc: 0, // 0 普通文档 1 QA文档
+  question_lable: '', // QA文档-问题开始标识符
+  similar_label: '', // QA文档-相似度标识符
+  answer_lable: '', // QA文档-答案开始标识符
+  enable_extract_image: true,
+  ai_chunk_size: 5000, // ai大模型分段最大字符数
+  ai_chunk_model:'', // ai大模型分段模型名称
+  ai_chunk_model_config_id: '', // ai大模型分段模型配置id
+  ai_chunk_prumpt: defaultAiChunkPrumpt,
+  ai_chunk_task_id: ''  //  ai分段数据id，如果有ai分段数据就有值
+}
+const saveLoading = ref(false)
 
 let isLoading = true
+
+const getFileInfo = async () => {
+  getLibFileInfo({
+    id: route.query.id
+  }).then((res) => {
+    library_type.value = res.data.library_type
+    detailsInfo.value = {
+      ...res.data,
+      graph_switch: res.data.graph_switch == '1' && neo4j_status.value
+    }
+    let status = res.data.status
+    if (status == 1 || status == 2) {
+      getParagraphLists()
+    } else {
+      pageLoading.value = false
+    }
+
+    formData = {
+      ...formData,
+      separators_no: res.data.separators_no || '11,12',
+      chunk_size: +res.data.chunk_size || 512,
+      ai_chunk_size: +res.data.ai_chunk_size || 5000, // ai模型的默认值是5000
+      chunk_overlap: +res.data.chunk_overlap || 50,
+      is_qa_doc: library_type.value == 2 ? 1 : 0,
+      question_lable: res.data.question_lable,
+      similar_label: res.data.similar_label,
+      answer_lable: res.data.answer_lable,
+      question_column: res.data.question_column,
+      similar_column: res.data.similar_column,
+      answer_column: res.data.answer_column,
+      enable_extract_image: res.data.enable_extract_image == 'true',
+      qa_index_type: +res.data.qa_index_type,
+
+      chunk_type: +res.data.chunk_type,
+      semantic_chunk_size: +res.data.semantic_chunk_size || 512,
+      semantic_chunk_overlap: +res.data.semantic_chunk_overlap || 50,
+      semantic_chunk_threshold: +res.data.semantic_chunk_threshold || 90,
+      semantic_chunk_use_model: res.data.semantic_chunk_use_model || '',
+      ai_chunk_prumpt: res.data.ai_chunk_prumpt || '',
+      ai_chunk_model: res.data.ai_chunk_model || '',
+      semantic_chunk_model_config_id:
+        res.data.semantic_chunk_model_config_id > 0 ? res.data.semantic_chunk_model_config_id : '',
+      ai_chunk_model_config_id:
+        res.data.ai_chunk_model_config_id > 0 ? res.data.ai_chunk_model_config_id : '',
+      ai_chunk_task_id: res.data.ai_chunk_task_id || ''
+    }
+
+    if (res.data.chunk_type == 0) {
+      formData = {
+        ...formData,
+        separators_no: res.data.normal_chunk_default_separators_no,
+        chunk_size: +res.data.normal_chunk_default_chunk_size,
+        chunk_overlap: +res.data.normal_chunk_default_chunk_overlap,
+        chunk_type: +res.data.default_chunk_type,
+        semantic_chunk_size: +res.data.semantic_chunk_default_chunk_size,
+        semantic_chunk_overlap: +res.data.semantic_chunk_default_chunk_overlap,
+        semantic_chunk_threshold: +res.data.semantic_chunk_default_threshold,
+        semantic_chunk_use_model: res.data.default_use_model || '',
+        semantic_chunk_model_config_id: res.data.default_model_config_id > 0 ? res.data.default_model_config_id : ''
+      }
+    }
+
+    if (status == 4 || status == 2) {
+      settingMode.value = parseInt(res.data.is_table_file)
+    }
+
+  })
+}
+getFileInfo()
 
 const search = () => {
   paginations.value.page = 1
@@ -516,11 +593,10 @@ const handleEditParagraph = (data) => {
     lastItem.content = data.content
     lastItem.question = data.question
     lastItem.answer = data.answer
-    lastItem.answer = data.answer
     lastItem.images = data.images
     lastItem.category_id = data.category_id
     lastItem.word_total = data.question.length + data.answer.length + data.content.length
-    lastItem.similar_questions = JSON.parse(data.similar_questions)
+    lastItem.similar_questions = data.similar_questions.length ? JSON.parse(data.similar_questions) : []
     lists.splice(index, 1, lastItem)
     paragraphLists.value = lists
   }
@@ -534,12 +610,6 @@ const handleDelParagraph = (id) => {
     paragraphLists.value = lists
     total.value = total.value--
   }
-}
-
-const pdfIsLoading = ref(true)
-
-const handleLoad = (e) => {
-  pdfIsLoading.value = false
 }
 
 const editSubscriptionRef = ref(null)
@@ -696,13 +766,335 @@ const handleReSegmentationPageOk = () => {
   handleeEableScroll()
   search()
 }
+
+const toggleCollapse = () => {
+  isCollapsed.value = !isCollapsed.value
+}
+
+// 单独分段
+const createNewParagraph = (item, content) => {
+  let newItem = JSON.parse(JSON.stringify(item))
+  newItem.content = content
+  newItem.word_total = content.length
+  return newItem
+}
+
+const isFullSelectionRef = ref(false)
+const splitType = ref(1) // 1单独分段 2合并到下一分段 3合并到上一分段 4删除
+
+// 单独分段
+const handleSplit = ({ index, beforeContent, selectedContent, afterContent, isFullSelection }) => {
+  const newList = [...paragraphLists.value]
+
+  isFullSelectionRef.value = isFullSelection
+  splitType.value = 1
+  if (isFullSelection) {
+    // 插入选中内容段落
+    newList.splice(index + 1, 0, createNewParagraph(newList[index], selectedContent))
+    // 直接删除当前段落
+    newList.splice(index, 1);
+  } else {
+    // 更新原段落
+    newList[index].content = beforeContent || ''
+    newList[index].word_total = beforeContent.length || 0
+
+    // 插入选中内容段落
+    newList.splice(index + 1, 0, createNewParagraph(newList[index], selectedContent))
+
+    // 插入剩余内容段落
+    if (afterContent.trim()) {
+      newList[index].content += afterContent || ''
+      newList[index].word_total += afterContent.length || 0
+    }
+
+    // 不是全选最终数据长度会加1
+    newList[index + 1].images = []
+  }
+
+  paragraphLists.value = newList
+
+  // 这里直接调用保存接口/manage/saveLibFileSplit
+  handleSaveLibFileSplit(newList, index)
+}
+
+// 合并到下一个分段
+const handleSplitNext = ({ index, beforeContent, selectedContent, afterContent, isFullSelection }) => {
+  const newList = [...paragraphLists.value]
+
+  isFullSelectionRef.value = isFullSelection
+  splitType.value = 2
+
+  if (isFullSelection) {
+    // 合并内容到下一段落
+    newList[index + 1].content = selectedContent + newList[index + 1].content;
+    newList[index + 1].word_total += selectedContent.length
+    // 删除当前段落
+    newList.splice(index, 1);
+    paragraphLists.value = newList;
+    handleSaveLibFileSplit(newList, index);
+  } else {
+    // 更新原段落
+    newList[index].content = beforeContent || ''
+    newList[index].word_total = beforeContent.length || 0
+
+    // 修改下一个段落的内容
+    newList[index + 1].content = selectedContent + newList[index + 1].content;
+
+    // 插入剩余内容到原段落
+    if (afterContent.trim()) {
+      newList[index].content += afterContent || ''
+      newList[index].word_total += afterContent.length || 0
+    }
+
+    paragraphLists.value = newList
+
+    // 这里直接调用保存接口/manage/saveLibFileSplit
+    handleSaveLibFileSplit(newList, index + 1)
+  }
+}
+
+// 合并到上一个分段
+const handleSplitUp = ({ index, beforeContent, selectedContent, afterContent, isFullSelection }) => {
+  const newList = [...paragraphLists.value]
+
+  isFullSelectionRef.value = isFullSelection
+  splitType.value = 3
+
+  if (isFullSelection) {
+    // 合并内容到上一段落
+    newList[index - 1].content += selectedContent
+    newList[index - 1].word_total += selectedContent.length
+    // 删除当前段落
+    newList.splice(index, 1);
+    paragraphLists.value = newList;
+    handleSaveLibFileSplit(newList, index);
+  } else {
+    // 更新原段落
+    newList[index].content = beforeContent || ''
+    newList[index].word_total = beforeContent.length || 0
+
+    // 修改上一个段落的内容
+    newList[index - 1].content += selectedContent
+
+    // 插入剩余内容段落
+    if (afterContent.trim()) {
+      newList[index].content += afterContent || ''
+      newList[index].word_total += afterContent.length || 0
+    }
+
+    paragraphLists.value = newList
+
+    // 这里直接调用保存接口/manage/saveLibFileSplit
+    handleSaveLibFileSplit(newList, index - 1)
+  }
+}
+
+// 删除
+const handleSplitDelete = ({ index, beforeContent, afterContent, isFullSelection }) => {
+  const newList = [...paragraphLists.value]
+
+  isFullSelectionRef.value = isFullSelection
+  splitType.value = 4
+
+  if (isFullSelection) {
+    // 删除当前段落
+    newList.splice(index, 1);
+  } else {
+    // 更新原段落
+    newList[index].content = beforeContent || ''
+    newList[index].word_total = beforeContent.length || 0
+
+    // 插入剩余内容段落
+    if (afterContent.trim()) {
+      newList[index].content += afterContent || ''
+      newList[index].word_total += afterContent.length || 0
+    }
+  }
+
+  paragraphLists.value = newList
+
+  // 这里直接调用保存接口/manage/saveLibFileSplit
+  handleSaveLibFileSplit(newList, index)
+}
+
+function formatList (array, keys, renameMap = {}, index) {
+  let sourceNumber = index + 1  // 索引从0开始
+  if (!Array.isArray(array) || !Array.isArray(keys)) {
+    return JSON.stringify([]);
+  }
+  const newArray = array.map((originalObj, originalIndex) => {
+      const newObj = {};
+      for (const key of keys) {
+        const sourceKey = renameMap[key] || key;
+        const sourceValue = originalObj[sourceKey];
+
+        if (!Object.prototype.hasOwnProperty.call(originalObj, sourceKey)) continue;
+
+        if (key === 'number') {
+          newObj[key] = originalIndex + 1;
+        } else if (key === 'page_num' || key === 'word_total') {
+          newObj[key] = +sourceValue;
+        } else if (key === 'content') {
+          if (!sourceValue) return null;
+          newObj[key] = sourceValue;
+        } else if (key === 'images') {
+          if (splitType.value == 1) {
+            // 单独分段
+            // 是否全选
+            if (isFullSelectionRef.value) {
+              // 全选最终的数据长度不会改变，因为全选的源数据被删除，然后新插入数据体
+              if (sourceNumber == newObj.number) {
+                // 如果之前的数据有图片，还是携带
+                newObj[key] = sourceValue
+              } else {
+                // 其他的数据该有图片就有，没有就没有保持原样
+                newObj[key] = sourceValue
+              }
+            } else {
+              // 不是全选最终数据长度会加1
+              if (sourceNumber + 1 == newObj.number) {
+                newObj[key] = []
+              } else {
+                newObj[key] = sourceValue
+              }
+            }
+          } else if (splitType.value == 2) {
+            // 2合并到下一分段
+            // 是否全选
+            if (isFullSelectionRef.value) {
+              // 全选最终的数据长度-1，因为全选的源数据被删除，然后修改了下一分段的内容
+              if (sourceNumber == newObj.number) {
+                newObj[key] = sourceValue
+              } else {
+                newObj[key] = sourceValue
+              }
+            } else {
+              // 不是全选最终数据不会发生改变
+              if (sourceNumber == newObj.number) {
+                newObj[key] = sourceValue
+              } else {
+                newObj[key] = sourceValue
+              }
+            }
+          } else if (splitType.value == 3) {
+            // 3合并到上一分段
+            // 是否全选
+            if (isFullSelectionRef.value) {
+              // 全选最终的数据长度-1，因为全选的源数据被删除，然后修改了下一分段的内容
+              if (sourceNumber - 1 == newObj.number) {
+                newObj[key] = sourceValue
+              } else {
+                newObj[key] = sourceValue
+              }
+            } else {
+              // 不是全选最终数据不会发生改变
+              if (sourceNumber == newObj.number) {
+                newObj[key] = sourceValue
+              } else {
+                newObj[key] = sourceValue
+              }
+            }
+          } else if (splitType.value == 4) {
+            // 4删除
+            // 是否全选
+            if (isFullSelectionRef.value) {
+              // 全选最终的数据长度-1，因为全选的源数据被删除
+              newObj[key] = sourceValue
+            } else {
+              // 不是全选最终数据不会发生改变
+              newObj[key] = sourceValue
+            }
+          }
+        } else {
+          newObj[key] = sourceValue;
+        }
+      }
+      return newObj;
+    })
+    .filter(obj => obj !== null && (obj.content !== undefined && obj.content !== ''));
+
+  return JSON.stringify(newArray);
+}
+
+const renameMap = {
+  similar_question_list: 'similar_questions' // 新属性名: 旧属性名
+};
+
+const handleSaveLibFileSplit = async (documentFragmentList, index) => {
+  // 如果右侧的数据不是当前保存选中的分段类型则清空内容重新分段
+  // 如果之前已经分段成功了，保存的时候不再另外分段了
+
+  let split_params = {
+    ...formData,
+    semantic_chunk_model_config_id: formData.semantic_chunk_model_config_id
+      ? +formData.semantic_chunk_model_config_id
+      : 0,
+    ai_chunk_model_config_id: formData.ai_chunk_model_config_id
+      ? +formData.ai_chunk_model_config_id
+      : 0,
+    is_table_file: settingMode.value
+  }
+
+  delete split_params.id
+
+  let parmas = {
+    id: route.query.id,
+    word_total: total.value,
+    split_params: JSON.stringify(split_params),
+    list: formatList(documentFragmentList, ['number', 'page_num', 'title', 'content', 'question', 'similar_question_list', 'answer', 'word_total', 'images'], renameMap, index)
+  }
+
+  // 非表格的也需要存储qa_index_type
+  if (split_params.is_qa_doc == 1) {
+    // 表格类型 + QA文档
+    parmas.qa_index_type = split_params.qa_index_type
+  }
+
+  saveLoading.value = true
+
+  saveLibFileSplit(parmas)
+    .then(() => {
+      message.success('操作成功')
+      handleEditParagraph(documentFragmentList[index])
+    })
+    .finally(() => {
+      saveLoading.value = false
+    })
+}
+
+onMounted(() => {
+  if (route.query.graph_status) {
+    filterData.graph_status = route.query.graph_status
+    search()
+  }
+})
 </script>
 
 <style lang="less" scoped>
 .breadcrumb-block {
+  width: 100%;
+  position: relative;
   height: 56px;
   display: flex;
   align-items: center;
+
+  :deep(.ant-breadcrumb-link) {
+    display: inline-flex;
+  }
+
+  .library-line1 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+  }
+}
+
+.selct-star-box {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 .library-preview-page {
   height: 100%;
@@ -739,6 +1131,20 @@ const handleReSegmentationPageOk = () => {
     align-items: center;
     margin-bottom: 16px;
     justify-content: space-between;
+
+    .preview-box {
+      display: flex;
+      gap: 10px;
+      color: #595959;
+      font-size: 14px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 22px;
+
+      .preview-box-icon {
+        margin-right: 8px;
+      }
+    }
   }
 
   .pdf-view-box {
@@ -751,6 +1157,7 @@ const handleReSegmentationPageOk = () => {
       flex-direction: column;
       overflow: hidden;
       position: relative;
+      transition: all 0.3s ease;
 
       .pdf-mode-switch {
         position: absolute;
@@ -807,9 +1214,18 @@ const handleReSegmentationPageOk = () => {
         }
       }
     }
+
+    .view-content-wrap.collapsed {
+      width: 0;
+      opacity: 0;
+      flex: 0;
+      transform: translateX(-100%);
+    }
+
     .right-contnt-box {
       flex: 1;
       overflow: hidden;
+      transition: all 0.3s ease;
     }
   }
 }

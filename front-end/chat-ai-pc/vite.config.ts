@@ -76,6 +76,7 @@ export default defineConfig((opt: ConfigEnv): UserConfig => {
             axios: ['axios'],
             'crypto-js': ['crypto-js'],
             qs: ['qs'],
+            'vue-pdf-embed': ['vue-pdf-embed']
           }
         }
       },

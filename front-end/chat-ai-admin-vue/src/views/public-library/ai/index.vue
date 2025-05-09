@@ -30,7 +30,18 @@
             :rules="[{ required: true, message: '请选择嵌入模型' }]"
             v-if="formState.use_model_switch == 1"
           >
-            <a-select
+            <!-- 自定义选择器 -->
+            <CustomSelector
+              v-model="formState.use_model"
+              :options="processedModelList"
+              placeholder="请选择嵌入模型"
+              label-key="use_model_name"
+              value-key="value"
+              :model-define="modelDefine"
+              :model-config-id="formState.model_config_id"
+              @change="handleModelChange"
+            />
+            <!-- <a-select
               @change="handleChangeModel"
               v-model:value="formState.use_model"
               placeholder="请选择嵌入模型"
@@ -58,7 +69,7 @@
                   <span v-else>{{ val.name }}</span>
                 </a-select-option>
               </a-select-opt-group>
-            </a-select>
+            </a-select> -->
           </a-form-item>
 
           <a-form-item>
@@ -80,7 +91,18 @@
             :rules="[{ required: true, message: '请选择总结模型' }]"
             v-if="formState.ai_summary == 1"
           >
-            <a-select
+            <!-- 自定义选择器 -->
+            <CustomSelector
+              v-model="formState.ai_summary_model"
+              :options="processedModelList2"
+              placeholder="请选择总结模型"
+              label-key="summary_model_name"
+              value-key="value"
+              :model-define="modelDefine"
+              :model-config-id="formState.summary_model_config_id"
+              @change="handleModelChange2"
+            />
+            <!-- <a-select
               v-model:value="formState.ai_summary_model"
               placeholder="请选择总结模型"
               @change="handleChangeModel2"
@@ -109,7 +131,7 @@
                   <span v-else>{{ val.name }}</span>
                 </a-select-option>
               </a-select-opt-group>
-            </a-select>
+            </a-select> -->
           </a-form-item>
 
           <a-form-item :wrapper-col="{ offset: 2, span: 8 }">
@@ -130,6 +152,7 @@ import { ref, reactive, computed, onMounted, toRaw } from 'vue'
 import { InfoCircleOutlined } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import ConfigPageMenu from '../components/config-page-menu.vue'
+import CustomSelector from '@/components/custom-selector/index.vue'
 
 function uniqueArr(arr, arr1, key) {
   const keyVals = new Set(arr.map((item) => item.model_define))
@@ -162,8 +185,12 @@ const formState = reactive({
   access_rights: '',
   model_config_id: '',
   use_model: '',
+  use_model_icon: '', // 新增图标字段
+  use_model_name: '', // 新增系统名称
   use_model_switch: '',
   statistics_set: '',
+  summary_model_icon: '', // 新增图标字段
+  summary_model_name: '', // 新增系统名称
   summary_model_config_id: ''
 })
 
@@ -176,6 +203,57 @@ const modelList2 = ref([])
 const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
 const oldModelDefineList = ['azure']
 const currentModelDefine = ref('')
+const currentModelDefine2 = ref('')
+
+// 处理原始数据格式
+const processedModelList = computed(() => {
+  return modelList.value.map(group => ({
+    groupLabel: group.name,
+    groupIcon: group.icon,
+    children: group.children.map(child => ({
+      icon: child.icon,
+      use_model_name: child.use_model_name,
+      value: modelDefine.includes(child.model_define) && child.deployment_name ? child.deployment_name : child.name,
+      rawData: child // 保留原始数据
+    }))
+  }))
+})
+
+// 处理选择事件
+const handleModelChange = (item) => {
+  formState.use_model = modelDefine.includes(item.rawData.model_define) && item.rawData.deployment_name 
+    ? item.rawData.deployment_name 
+    : item.rawData.name
+  formState.use_model_icon = item.icon
+  formState.use_model_name = item.use_model_name
+  formState.model_config_id = item.rawData.id
+  currentModelDefine.value = item.rawData.model_define
+}
+
+// 处理原始数据格式
+const processedModelList2 = computed(() => {
+  return modelList2.value.map(group => ({
+    groupLabel: group.name,
+    groupIcon: group.icon,
+    children: group.children.map(child => ({
+      icon: child.icon,
+      summary_model_name: child.summary_model_name,
+      value: modelDefine.includes(child.model_define) && child.deployment_name ? child.deployment_name : child.name,
+      rawData: child // 保留原始数据
+    }))
+  }))
+})
+
+// 处理选择事件
+const handleModelChange2 = (item) => {
+  formState.ai_summary_model = modelDefine.includes(item.rawData.model_define) && item.rawData.deployment_name 
+    ? item.rawData.deployment_name 
+    : item.rawData.name
+  formState.summary_model_icon = item.icon
+  formState.summary_model_name = item.summary_model_name
+  formState.summary_model_config_id = item.rawData.id
+  currentModelDefine2.value = item.rawData.model_define
+}
 
 const handleChangeModel = (val, option) => {
   const self = option.current_obj
@@ -187,7 +265,6 @@ const handleChangeModel = (val, option) => {
   formState.model_config_id = self.id || option.model_config_id
 }
 
-const currentModelDefine2 = ref('')
 const handleChangeModel2 = (val, option) => {
   const self = option.current_obj
   formState.ai_summary_model =
@@ -274,7 +351,9 @@ const getModelList = (is_offline) => {
           name: ele,
           deployment_name: item.model_config.deployment_name,
           id: item.model_config.id,
-          model_define: item.model_info.model_define
+          model_define: item.model_info.model_define,
+          icon: item.model_info.model_icon_url, // 添加图标字段
+          use_model_name: item.model_info.model_name // 添加系统名称字段
         })
       }
 
@@ -318,7 +397,9 @@ const getModelList2 = () => {
           name: ele,
           deployment_name: item.model_config.deployment_name,
           id: item.model_config.id,
-          model_define: item.model_info.model_define
+          model_define: item.model_info.model_define,
+          icon: item.model_info.model_icon_url, // 添加图标字段
+          summary_model_name: item.model_info.model_name // 添加系统名称字段
         })
       }
       return {

@@ -34,6 +34,23 @@ chatwiki.com</a>
 ---
 查看完整更新日志请点击👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2025/05/09**
+
+1.AI分段逻辑优化+添加重试机制<br/>
+2.爬虫爬取时间去掉15秒超时限制默认30秒<br/>
+3.聊天测试、webapp、网页插件要支持先显示召回过程<br/>
+4.用户问题建议支持自定义生成的建议条数<br/>
+5.知识库-精选优化合集<br/>
+6.知识库-学习完成后，不要自动刷新知识库列表<br/>
+7.选择模型显示模型的系统名称<br/>
+8.爬虫去除文本中的特殊字符<br/>
+9.修复-显示工作流召回过程关联文档<br/>
+10.修复工作流运行出错结果被其他错误覆盖<br/>
+11.修复聊天响应监控未记录到error类型的变量具体值<br/>
+12.聊天测试和对外服务有页面,引文PDF支持查看原文件对应对应的页面<br/>
+13.知识图谱默认值改为启用<br/>
+14.普通知识库支持手动分段<br/>
+
 **2025/04/30**
 
 1.提示词输入框支持拖动调整高度<br/>
@@ -70,15 +87,6 @@ chatwiki.com</a>
 14.金山文档dom结构修正<br/>
 15.【应用管理】默认提示词调整<br/>
 16.知识图谱增加开关<br/>
-
-**2025/04/18**
-
-1.知识库体验优化<br/>
-2.html自动学习<br/>
-3.知识图谱实体匹配支持模糊匹配<br/>
-4.优化graph的删除语句<br/>
-5.Pdf文档详情支持原文预览<br/>
-6.支持搜索知识库<br/>
 
 ### 能力
 
@@ -202,6 +210,7 @@ docker compose up -d
 - [如何配置对外服务和接收推送的域名](https://www.yuque.com/zhimaxiaoshiwangluo/pggco1/nfk4slc95s4i8u4v)
 - [免Docker部署ChatWiki](https://www.yuque.com/zhimaxiaoshiwangluo/pggco1/klriercbhpy97o0g)
 - [如何获取大模型ApiKey](https://www.yuque.com/zhimaxiaoshiwangluo/pggco1/lx3ho90skq95dpdq)
+- [如何开启知识图谱](https://www.yuque.com/zhimaxiaoshiwangluo/pggco1/sx0gciofnhy058rw)
 
 ### 界面
 

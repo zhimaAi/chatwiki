@@ -61,6 +61,11 @@
         font-size: 14px;
         color: #8c8c8c;
       }
+      .right-box{
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
       .document-similarity {
         margin-top: 4px;
@@ -95,6 +100,11 @@
     }
   }
 }
+
+.iframe-box{
+  width: 100%;
+  height: 620px;
+}
 </style>
 
 <template>
@@ -120,7 +130,8 @@
           :key="file.id"
           @click="chagenFile(file)"
         >
-          {{ file.file_name }}
+          <span v-if="file.file_name">{{ file.file_name }}</span>
+          <span v-else>{{ file.library_name }}-精选</span>
         </div>
       </div>
 
@@ -132,7 +143,10 @@
               <span class="document-title" v-if="item.title">{{ item.title }}</span>
               <span class="document-size"> 共{{ item.word_total }}个字符 </span>
             </div>
-            <div class="right-box"><a @click="toSource">查看源文档&gt;</a></div>
+            <div class="right-box">
+              <a @click="viewSourceFile(item)" v-if="item.page_num > 0">预览原文件&gt;</a>
+              <a @click="toSource">查看源文档&gt;</a>
+            </div>
           </div>
 
           <div class="document-item-body">
@@ -153,16 +167,24 @@
       </div>
     </div>
   </a-drawer>
+  <a-modal v-model:open="viewOpen" :title="viewTitle" :footer="null" :width="740">
+    <div class="iframe-box">
+      <CuScroll>
+        <VuePdfEmbed :source="sourceUrl"  />
+      </CuScroll>
+    </div>
+  </a-modal>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed} from 'vue'
 import { useRouter } from 'vue-router'
 import { CloseOutlined } from '@ant-design/icons-vue'
 import { getAnswerSource } from '@/api/chat/index'
+import VuePdfEmbed from 'vue-pdf-embed'
 import { useChatStore } from '@/stores/modules/chat'
 const chatStore = useChatStore()
-const { robot } = chatStore
+const { robot, user } = chatStore
 const router = useRouter()
 
 const show = ref(false)
@@ -210,7 +232,27 @@ const getDocumentList = (file) => {
 
 // 查看原文档
 const toSource = () => {
-  router.push('/library/preview?id=' + activeFileId.value)
+  let currentItem = fileList.value.filter(item => item.id == activeFileId.value)[0] || {}
+  if(currentItem.file_name){
+    window.open(`#/library/preview?id=${activeFileId.value}`)
+  }else{
+    window.open(`#/library/details/categary-manage?id=${currentItem.library_id}`)
+  }
+}
+
+const viewTitle = computed(()=>{
+  let currentItem = fileList.value.filter(item => item.id == activeFileId.value)[0] || {}
+  if(currentItem.file_name){
+    return currentItem.file_name
+  }
+  return currentItem.library_name + '-精选'
+})
+const sourceUrl = ref('')
+const viewOpen = ref(false)
+const viewSourceFile = (item) => {
+  console.log(robot)
+  viewOpen.value = true;
+  sourceUrl.value = '/manage/getLibRawFileOnePage?id=' + activeFileId.value + '&page=' + item.page_num + '&admin_user_id=' + user.admin_user_id
 }
 
 const onClose = () => {

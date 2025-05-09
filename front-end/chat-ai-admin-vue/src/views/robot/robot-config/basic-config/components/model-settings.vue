@@ -8,7 +8,10 @@
     <div class="setting-info-block">
       <div class="set-item w-100">
         LLM模型：
-        <span>{{ formState.use_model }}</span>
+        <span class="set-item-content" v-if="formState.use_model_icon && formState.use_model_name">
+          <img :src="formState.use_model_icon" class="model-icon" />{{ formState.use_model_name }} {{ formState.use_model }}
+        </span>
+        <span v-else>{{ formState.use_model }}</span>
       </div>
       <div class="set-item">
         温度：
@@ -36,37 +39,17 @@
                 <span>LLM模型&nbsp;</span>
               </div>
               <div class="form-item-body">
-                <a-select
-                  v-model:value="formState.use_model"
+                <!-- 自定义选择器 -->
+                <CustomSelector
+                  v-model="formState.use_model"
+                  :options="processedModelList"
                   placeholder="请选择LLM模型"
-                  @change="handleChangeModel"
-                  style="width: 100%"
-                >
-                  <a-select-opt-group v-for="item in modelList" :key="item.id">
-                    <template #label>
-                      <a-flex align="center" :gap="6">
-                        <img class="model-icon" :src="item.icon" alt="" />{{ item.name }}
-                      </a-flex>
-                    </template>
-                    <a-select-option
-                      :value="
-                        modelDefine.indexOf(item.model_define) > -1 && val.deployment_name
-                          ? val.deployment_name
-                          : val.name + val.id
-                      "
-                      :model_config_id="item.id"
-                      :current_obj="val"
-                      v-for="val in item.children"
-                      :key="val.name + val.id"
-                    >
-                      <span
-                        v-if="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name"
-                        >{{ val.deployment_name }}</span
-                      >
-                      <span v-else>{{ val.name }}</span>
-                    </a-select-option>
-                  </a-select-opt-group>
-                </a-select>
+                  label-key="use_model_name"
+                  value-key="value"
+                  :model-define="modelDefine"
+                  :model-config-id="formState.model_config_id"
+                  @change="handleModelChange"
+                />
               </div>
             </div>
           </a-col>
@@ -192,10 +175,11 @@
 
 <script setup>
 import { getModelConfigOption } from '@/api/model/index'
-import { ref, reactive, inject, toRaw, watchEffect } from 'vue'
+import { ref, reactive, inject, toRaw, watchEffect, computed, onMounted, onBeforeUnmount } from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import EditBox from './edit-box.vue'
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
+import CustomSelector from '@/components/custom-selector/index.vue'
 
 const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
 const oldModelDefineList = ['azure']
@@ -208,6 +192,8 @@ const isEdit = ref(false)
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
 const formState = reactive({
   use_model: undefined,
+  use_model_icon: '', // 新增图标字段
+  use_model_name: '', // 新增系统名称
   model_config_id: '',
   temperature: 0,
   max_token: 0,
@@ -218,25 +204,65 @@ const currentModelDefine = ref('')
 const oldModelDefine = ref('')
 const currentUseModel = ref('')
 
-const handleChangeModel = (val, option) => {
-  const self = option.current_obj
-  formState.use_model =
-    modelDefine.indexOf(self.model_define) > -1 && self.deployment_name
-      ? self.deployment_name
-      : self.name
-  currentModelDefine.value = self.model_define
-  formState.model_config_id = self.id || option.model_config_id
+// 处理原始数据格式
+const processedModelList = computed(() => {
+  return modelList.value.map(group => ({
+    groupLabel: group.name,
+    groupIcon: group.icon,
+    children: group.children.map(child => ({
+      icon: child.icon,
+      use_model_name: child.use_model_name,
+      value: modelDefine.includes(child.model_define) && child.deployment_name ? child.deployment_name : child.name,
+      rawData: child // 保留原始数据
+    }))
+  }))
+})
+
+// 处理选择事件
+const handleModelChange = (item) => {
+  formState.use_model = modelDefine.includes(item.rawData.model_define) && item.rawData.deployment_name 
+    ? item.rawData.deployment_name 
+    : item.rawData.name
+  formState.use_model_icon = item.icon
+  formState.use_model_name = item.use_model_name
+  formState.model_config_id = item.rawData.id
+  currentModelDefine.value = item.rawData.model_define
 }
+
+// 新增自定义选择器逻辑
+const showOptions = ref(false)
+const clickOutsideHandler = (e) => {
+  if (!e.target.closest('.custom-select')) {
+    showOptions.value = false
+  }
+}
+
+// 事件监听
+onMounted(() => {
+  // 首次进入初始化回显数据
+  if (modelDefine.indexOf(currentModelDefine.value) > -1) {
+    formState.use_model = currentUseModel.value
+  } else {
+    formState.use_model = robotInfo.use_model
+  }
+
+  document.addEventListener('click', clickOutsideHandler)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', clickOutsideHandler)
+})
 
 const handleSave = () => {
   // 初始化条件
   currentUseModel.value = formState.use_model
 
+  let params = { ...toRaw(formState) }
   if (oldModelDefineList.indexOf(currentModelDefine.value) > -1) {
     // 传给后端的是默认，渲染的是真实名称
-    formState.use_model = '默认'
+    params.use_model = '默认'
   }
-  updateRobotInfo({ ...toRaw(formState) })
+
+  updateRobotInfo(params)
   isEdit.value = false
 }
 
@@ -259,11 +285,6 @@ const handleEdit = (val) => {
 }
 
 watchEffect(() => {
-  if (modelDefine.indexOf(currentModelDefine.value) > -1) {
-    formState.use_model = currentUseModel.value
-  } else {
-    formState.use_model = robotInfo.use_model
-  }
   formState.model_config_id = robotInfo.model_config_id
   formState.temperature = robotInfo.temperature
   formState.max_token = robotInfo.max_token
@@ -311,7 +332,9 @@ const getModelList = () => {
           name: ele,
           deployment_name: item.model_config.deployment_name,
           id: item.model_config.id,
-          model_define: item.model_info.model_define
+          model_define: item.model_info.model_define,
+          icon: item.model_info.model_icon_url, // 添加图标字段
+          use_model_name: item.model_info.model_name // 添加系统名称字段
         })
       }
       return {
@@ -330,6 +353,28 @@ const getModelList = () => {
       modelList.value,
       'model_define'
     )
+
+    // 初始化当前图标
+    if (robotInfo.use_model && robotInfo.model_config_id) {
+      modelList.value.some(group => 
+        group.children.some(child => {
+          const childName = modelDefine.includes(child.model_define) && child.deployment_name 
+            ? child.deployment_name 
+            : child.name;
+          if (modelDefine.includes(child.model_define) && child.deployment_name && child.id === robotInfo.model_config_id) {
+            formState.use_model_icon = child.icon;
+            formState.use_model_name = child.use_model_name;
+            formState.use_model = child.deployment_name
+            return true;
+          }
+          if (childName === robotInfo.use_model && child.id === robotInfo.model_config_id) {
+            formState.use_model_icon = child.icon;
+            formState.use_model_name = child.use_model_name;
+            return true;
+          }
+        })
+      );
+    }
   })
 }
 
@@ -365,9 +410,26 @@ getModelList()
   }
 }
 
+.set-item-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .model-icon {
   height: 18px;
+  width: 18px;
+  object-fit: contain;
+  vertical-align: middle;
 }
+
+/* 下拉选项对齐优化 */
+.ant-select-item-option-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .setting-info-block {
   padding: 16px;
   padding-top: 0;

@@ -98,7 +98,7 @@ func (flow *WorkFlow) Running() (err error) {
 		flow.outputs[flow.curNodeKey] = flow.output //记录每个节点输出的变量
 		nodeLog.EndTime = time.Now().UnixMilli()
 		nodeLog.Output = flow.output
-		nodeLog.Error = err
+		nodeLog.ErrorMsg = fmt.Sprintf(`%v`, err)
 		nodeLog.UseTime = nodeLog.EndTime - nodeLog.StartTime
 		flow.nodeLogs = append(flow.nodeLogs, nodeLog)
 		//节点运行结束
@@ -209,10 +209,12 @@ func RunningWorkFlow(params *WorkFlowParams) (*WorkFlow, error) {
 		flow.cancel()
 	}(flow)
 	err := flow.Running() //运行流程
-	if flow.isTimeout {
-		err = errors.New(`工作流执行超时`)
-	} else if !flow.isFinish {
-		err = errors.New(`工作流未到结束节点`)
+	if err == nil {       //额外的校验逻辑
+		if flow.isTimeout {
+			err = errors.New(`工作流执行超时`)
+		} else if !flow.isFinish {
+			err = errors.New(`工作流未到结束节点`)
+		}
 	}
 	go flow.Ending() //记录runtime日志
 	return flow, err //返回数据

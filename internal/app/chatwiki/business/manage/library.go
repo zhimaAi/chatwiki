@@ -454,7 +454,7 @@ func EditLibrary(c *gin.Context) {
 		return
 	}
 
-	if !tool.InArrayInt(chunkType, []int{define.ChunkTypeNormal, define.ChunkTypeSemantic, define.ChunkTypeAi}) {
+	if !tool.InArrayInt(chunkType, []int{define.ChunkTypeNormal, define.ChunkTypeSemantic, define.ChunkTypeAi}) && cast.ToInt(typ) != define.OpenLibraryType {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `chunk_type`))))
 		return
 	}
@@ -654,6 +654,13 @@ func LibraryRecallTest(c *gin.Context) {
 	}
 
 	list, _, err := common.GetMatchLibraryParagraphList("", "", question, []string{}, libraryIds, size, similarity, searchType, robot)
+	for _, item := range list {
+		library, err := common.GetLibraryInfo(cast.ToInt(item[`library_id`]), userId)
+		if err != nil {
+			logs.Error(err.Error())
+		}
+		item[`library_name`] = library[`library_name`]
+	}
 	c.String(http.StatusOK, lib_web.FmtJson(list, err))
 }
 

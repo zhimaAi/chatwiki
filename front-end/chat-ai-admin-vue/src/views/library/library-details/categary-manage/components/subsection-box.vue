@@ -135,6 +135,7 @@
 <script setup>
 import { reactive, ref, computed, createVNode } from 'vue'
 import { message } from 'ant-design-vue'
+import { useRoute } from 'vue-router'
 import {
   ExclamationCircleOutlined,
   CheckCircleFilled,
@@ -178,6 +179,9 @@ const props = defineProps({
     default: false
   }
 })
+
+const route = useRoute()
+const query = route.query
 
 const toReSegmentationPage = (item, index) => {
   let { id, title, content, question, answer, images, category_id, library_id } = item
@@ -229,7 +233,7 @@ const hanldleDelete = (record) => {
 
 const startLists = ref([])
 const getCategoryLists = () => {
-  getCategoryList().then((res) => {
+  getCategoryList({library_id: query.id}).then((res) => {
     startLists.value = res.data || []
     emit('getStatrList', res.data || [])
   })
@@ -260,6 +264,7 @@ const handleSetCategory = (item, star = {}) => {
     } else {
       item.category_id = star.id
     }
+    getCategoryLists()
   })
 }
 
