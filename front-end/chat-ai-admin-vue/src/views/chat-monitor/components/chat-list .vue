@@ -179,7 +179,7 @@ const initScroll = () => {
   })
 }
 
-const getData = async () => {
+const getData = async (params) => {
   if (loading.value || finished.value) {
     scrollController.finishPullUp()
     return
@@ -188,9 +188,9 @@ const getData = async () => {
   loading.value = true
 
   try {
-    let res = await getReceiverList()
+    let res = await getReceiverList(params)
 
-    if (res.data.list.length === 0) {
+    if (res.data.list.length === 0 && !params.keyword) {
       finished.value = true
     }
   } catch (error) {
@@ -223,5 +223,9 @@ onUnmounted(() => {
   if (scrollController) {
     scrollController.destroy()
   }
+})
+
+defineExpose({
+  getData
 })
 </script>

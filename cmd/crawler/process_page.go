@@ -6,14 +6,15 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/playwright-community/playwright-go"
+	"github.com/syyongx/php2go"
+	"github.com/zhimaAi/go_tools/logs"
+	"log"
 	netURL "net/url"
 	"regexp"
 	"runtime"
 	"strings"
-
-	"github.com/playwright-community/playwright-go"
-	"github.com/syyongx/php2go"
-	"github.com/zhimaAi/go_tools/logs"
+	"time"
 )
 
 type PageInfo struct {
@@ -75,7 +76,7 @@ func fetchURLContent(parsedURL *netURL.URL) (*PageInfo, error) {
 	}(&page, &context)
 
 	// navigate to url, with timeout 15s
-	if _, err = page.Goto(parsedURL.String(), playwright.PageGotoOptions{WaitUntil: playwright.WaitUntilStateNetworkidle}); err != nil {
+	if _, err = page.Goto(parsedURL.String(), playwright.PageGotoOptions{WaitUntil: playwright.WaitUntilStateLoad}); err != nil {
 		return nil, fmt.Errorf("could not navigate to url: %v", err)
 	}
 
@@ -180,7 +181,7 @@ func NeedWaitPageForYuque(page *playwright.Page) error {
 
 var specialPageProcessors = map[string]SpecialPageProcessingFunc{
 	"docs.qq.com/doc": PageProcessForTencentDoc,
-	"www.kdocs.cn":    PageProcessForKDoc,
+	"kdocs.cn":        PageProcessForKDoc,
 	"feishu.cn":       PageProcessForFeishu,
 	"www.jianshu.com": PageProcessForJianshu,
 	"yuque.com":       PageProcessForYuque,
@@ -194,22 +195,25 @@ func escapeJSContent(content string) string {
 }
 
 func PageProcessForTencentDoc(page *playwright.Page) error {
-	err := (*page).WaitForLoadState(playwright.PageWaitForLoadStateOptions{State: playwright.LoadStateNetworkidle})
+	time.Sleep(3 * time.Second)
+	err := (*page).Locator("#zoomable-container div.surface").Focus()
 	if err != nil {
 		return err
 	}
+	t, err := (*page).Content()
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	log.Println(t)
 
-	err = (*page).Locator("#scrollable-content > div.resize-sensor > div.resize-sensor-expand").Focus()
-	if err != nil {
-		return err
-	}
 	modifier := "Control"
 	if php2go.InArray(runtime.GOOS, []string{`windows`, `darwin`}) {
 		modifier = "Meta"
 	}
 	_ = (*page).Keyboard().Press(fmt.Sprintf(`%s+KeyA`, modifier))
 	_ = (*page).Keyboard().Press(fmt.Sprintf(`%s+KeyC`, modifier))
-
+	time.Sleep(2 * time.Second)
 	r, err := (*page).Evaluate("navigator.clipboard.readText()")
 	if err != nil {
 		return err
@@ -226,7 +230,7 @@ func PageProcessForTencentDoc(page *playwright.Page) error {
 }
 
 func PageProcessForKDoc(page *playwright.Page) error {
-	err := (*page).Locator("#otl-main-editor").Focus()
+	err := (*page).Locator("#workspace").Focus()
 	if err != nil {
 		return err
 	}

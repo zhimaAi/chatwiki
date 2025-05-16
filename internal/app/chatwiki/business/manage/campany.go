@@ -5,8 +5,13 @@ package manage
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/app/chatwiki/middlewares"
+	"chatwiki/internal/pkg/lib_web"
+	"errors"
+	"github.com/zhimaAi/go_tools/logs"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -83,4 +88,47 @@ func GetCompany(c *gin.Context) {
 	}
 	data[`neo4j_status`] = cast.ToString(common.GetNeo4jStatus(cast.ToInt(data[`parent_id`])))
 	common.FmtOk(c, data)
+}
+
+func SaveAliOcr(c *gin.Context) {
+	aliOcrKey := strings.TrimSpace(c.PostForm(`ali_ocr_key`))
+	aliOcrSecret := strings.TrimSpace(c.PostForm(`ali_ocr_secret`))
+	aliOcrSwitch := cast.ToInt(c.PostForm(`ali_ocr_switch`))
+
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+
+	if aliOcrSwitch != 1 && aliOcrSwitch != 2 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `ali_ocr_switch`))))
+		return
+	}
+
+	_, err := msql.Model(`company`, define.Postgres).
+		Where(`parent_id`, cast.ToString(userId)).
+		Update(msql.Datas{
+			"ali_ocr_key":    aliOcrKey,
+			"ali_ocr_secret": aliOcrSecret,
+			"ali_ocr_switch": aliOcrSwitch,
+		})
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}
+
+func CheckAliOcr(c *gin.Context) {
+	aliOcrKey := strings.TrimSpace(c.PostForm(`ali_ocr_key`))
+	aliOcrSecret := strings.TrimSpace(c.PostForm(`ali_ocr_secret`))
+	if len(aliOcrKey) != 0 && len(aliOcrSecret) != 0 {
+		if err := common.CheckAliOcr(aliOcrKey, aliOcrSecret); err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `ali_ocr_check_err`))))
+			return
+		}
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }

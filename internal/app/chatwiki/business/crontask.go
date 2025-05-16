@@ -140,3 +140,31 @@ func DeleteDownloadFile() {
 		logs.Error(err.Error())
 	}
 }
+
+func CheckAliOcrRequest() {
+	files, err := msql.Model(`chat_ai_library_file`, define.Postgres).
+		Where(`status`, cast.ToString(define.FileStatusInitial)).
+		Where(`pdf_parse_type`, cast.ToString(define.PdfParseTypeOcrAli)).
+		Where(`create_time`, `>`, cast.ToString(time.Now().Add(-24*time.Hour).Unix())).
+		Where(`ali_ocr_job_id`, `<>`, ``).
+		Select()
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+
+	for _, file := range files {
+		company, err := msql.Model(`company`, define.Postgres).Where(`parent_id`, file[`admin_user_id`]).Find()
+		if err != nil {
+			logs.Error(err.Error())
+			continue
+		}
+		if len(company) == 0 || cast.ToInt(company[`ali_ocr_switch`]) != 1 {
+			continue
+		}
+		if err := common.QueryAndParseAliOcrRequest(file, company[`ali_ocr_key`], company[`ali_ocr_secret`]); err != nil {
+			logs.Error(err.Error())
+			continue
+		}
+	}
+}

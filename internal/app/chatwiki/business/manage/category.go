@@ -62,6 +62,7 @@ func GetCategoryList(c *gin.Context) {
 		Alias(`c`).
 		Where(`c.admin_user_id`, cast.ToString(userId)).
 		Field(`c.id,c.name,c.type,count(d.*) as data_count`).
+		Order(`c.type asc`).
 		Group(`c.id`)
 	if fileId > 0 {
 		m.Join(`chat_ai_library_file_data d`, `c.id = d.category_id and d.file_id = `+cast.ToString(fileId)+` and d.isolated=false`, `left`)

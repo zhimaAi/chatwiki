@@ -89,4 +89,5 @@ const (
 	PdfParseTypeText         = 1
 	PdfParseTypeOcr          = 2
 	PdfParseTypeOcrWithImage = 3
+	PdfParseTypeOcrAli       = 4
 )

@@ -4,6 +4,7 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_define"
 	"errors"
 	"fmt"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
 type PromptItem struct {
@@ -80,6 +82,9 @@ func CheckPromptConfig(promptType int, promptStruct string) (string, error) {
 	structPrompt.Constraints.Subject = empty.Constraints.Subject
 	structPrompt.Output.Subject = empty.Output.Subject
 	structPrompt.Tone.Subject = empty.Tone.Subject
+	if structPrompt.Custom == nil {
+		structPrompt.Custom = make([]PromptItem, 0)
+	}
 	return tool.JsonEncodeNoError(structPrompt), nil
 }
 
@@ -148,4 +153,24 @@ func UnifyLineBreak(content string) string {
 	content = strings.ReplaceAll(content, "\r", "\n")
 	content = strings.ReplaceAll(content, "\n", "\r\n")
 	return content
+}
+
+func CreatePromptByAi(demand string, adminUserId, modelConfigId int, useModel string) (string, error) {
+	messages := []adaptor.ZhimaChatCompletionMessage{
+		{Role: `system`, Content: define.PromptDefaultCreatePrompt},
+		{Role: `user`, Content: demand},
+	}
+	chatResp, _, err := RequestChat(adminUserId, cast.ToString(adminUserId), nil, lib_define.AppYunPc,
+		modelConfigId, useModel, messages, nil, 0.5, 2000)
+	if err != nil {
+		logs.Error(err.Error())
+		return ``, err
+	}
+	chatResp.Result, _ = strings.CutPrefix(chatResp.Result, "```json")
+	chatResp.Result, _ = strings.CutSuffix(chatResp.Result, "```")
+	promptStruct, err := CheckPromptConfig(define.PromptTypeStruct, chatResp.Result)
+	if err != nil {
+		return ``, fmt.Errorf(`%s`, chatResp.Result)
+	}
+	return promptStruct, nil
 }

@@ -128,7 +128,22 @@ export default defineConfig((opt) => {
       cssCodeSplit: !(env.VITE_USE_CSS_SPLIT === 'false')
     },
     optimizeDeps: {
-      include: ['vue', 'vue-router', 'pinia', 'vue-i18n', 'dayjs', 'axios', 'crypto-js', 'qs']
+      exclude: ['@neo4j-nvl/layout-workers'],
+      include: [
+        'vue', 
+        'vue-router', 
+        'pinia', 
+        'vue-i18n', 
+        'dayjs', 
+        'axios', 
+        'crypto-js', 
+        'qs',
+        '@neo4j-nvl/layout-workers > cytoscape',
+        '@neo4j-nvl/layout-workers > cytoscape-cose-bilkent',
+        '@neo4j-nvl/layout-workers > @neo4j-bloom/dagre',
+        '@neo4j-nvl/layout-workers > bin-pack',
+        '@neo4j-nvl/layout-workers > graphlib',
+      ]
     }
   }
 })

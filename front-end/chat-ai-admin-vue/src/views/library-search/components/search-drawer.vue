@@ -5,7 +5,7 @@
     <div class="prompt-form">
       <div class="prompt-form-label">模型设置</div>
 
-      <div clas="prompt-form-item">
+      <div class="prompt-form-item">
         <div class="prompt-form-item-label">
           <span style="color: red;">* </span><span>模型选择</span>
         </div>
@@ -17,6 +17,27 @@
           @loaded="onVectorModelLoaded"
           @change="handleChangeModel"
         />
+      </div>
+
+      <div class="prompt-form-item">
+        <div class="prompt-form-item-label">
+          <span style="color: red;">* </span><span>提示词</span>
+        </div>
+        <a-radio-group v-model:value="formState.prompt_type" @change="onSave">
+          <a-radio value="0">默认提示词</a-radio>
+          <a-radio value="1">自定义提示词</a-radio>
+        </a-radio-group>
+        <div class="prompt-form-item-content">
+          <div class="prompt-form-item-tip" v-if="formState.prompt_type == '0'">将提交的内容进行智能总结,不要随意发挥</div>
+          <a-textarea
+            v-else
+            @blur="onSave"
+            :maxLength="500"
+            style="height: 80px;"
+            v-model:value="formState.prompt"
+            placeholder="请输入自定义提示词"
+          />
+        </div>
       </div>
 
       <div class="prompt-form-item">
@@ -243,6 +264,8 @@ const open = ref(false);
 const formState = reactive({
   use_model: '',
   model_config_id: '',
+  prompt_type: '0', // 提示词类型 0:默认 1:自定义
+  prompt: '', // 提示词 500字符
   temperature: 0.5,
   max_token: 2000,
   context_pair: 0,
@@ -334,9 +357,17 @@ const updateLibraryInfo = (val) => {
 const onSave = () => {
   let params = { ...formState }
 
+  if (!params.prompt && formState.prompt_type == '1') {
+    return message.error('请输入自定义提示词')
+  }
+
   if (formState.search_type == 3 || formState.search_type == 4) {
     // 当选择“知识图谱检索”和“全文检索”类型时，不显示“相似度阈值”设置项。
     delete params.similarity
+  }
+
+  if (formState.prompt_type == '0') {
+    delete params.prompt
   }
 
   params.size = params.top_k
@@ -373,6 +404,11 @@ onMounted(() => {
 
   .prompt-form-item {
     margin: 24px 0;
+
+    .prompt-form-item-label {
+      font-size: 14px;
+      color: #262626;
+    }
   }
 
   .prompt-form-label {
@@ -382,6 +418,16 @@ onMounted(() => {
     font-weight: 600;
     line-height: 24px;
     margin-bottom: 16px;
+  }
+
+  .prompt-form-item-tip {
+    line-height: 22px;
+    font-size: 14px;
+    color: #595959;
+  }
+
+  .prompt-form-item-content {
+    margin-top: 8px;
   }
 
   .question-icon {

@@ -856,7 +856,7 @@ func GetRobotNode(robotId uint, nodeKey string) (msql.Params, error) {
 	return result, err
 }
 
-func LibraryAiSummary(lang, openid, appType, question string, optimizedQuestions []string, libraryIds string, size, maxToken int, similarity, temperature float64, searchType int, robot msql.Params, chanStream chan sse.Event) error {
+func LibraryAiSummary(lang, question, prompt string, optimizedQuestions []string, libraryIds string, size, maxToken int, similarity, temperature float64, searchType int, robot msql.Params, chanStream chan sse.Event) error {
 	defer close(chanStream)
 	chanStream <- sse.Event{Event: `ping`, Data: tool.Time2Int()}
 	list, _, err := GetMatchLibraryParagraphList("", "", question, []string{}, libraryIds, size, similarity, searchType, robot)
@@ -865,6 +865,10 @@ func LibraryAiSummary(lang, openid, appType, question string, optimizedQuestions
 		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(lang, `sys_err`)}
 		return err
 	}
+	if len(list) == 0 {
+		chanStream <- sse.Event{Event: `finish`, Data: tool.Time2Int()}
+		return nil
+	}
 	quoteFile := []msql.Params{}
 	quoteFileMap := make(map[int]bool)
 	summary := []adaptor.ZhimaChatCompletionMessage{
@@ -872,27 +876,32 @@ func LibraryAiSummary(lang, openid, appType, question string, optimizedQuestions
 			Role:    `user`,
 			Content: question,
 		},
+		{
+			Role:    `system`,
+			Content: prompt,
+		},
 	}
-	if len(list) >= 0 {
-		for _, item := range list {
-			summary = append(summary, adaptor.ZhimaChatCompletionMessage{
-				Role:    `system`,
-				Content: item[`content`],
-			})
-			file, err := GetLibFileInfo(cast.ToInt(item[`file_id`]), cast.ToInt(item[`admin_user_id`]))
-			if err != nil {
-				logs.Error(err.Error())
-				continue
-			}
-			if _, ok := quoteFileMap[cast.ToInt(file[`id`])]; ok {
-				continue
-			}
-			quoteFile = append(quoteFile, msql.Params{
-				`id`:        file[`id`],
-				`file_name`: file[`file_name`],
-			})
+
+	prompt, _ = FormatSystemPrompt("", list)
+	for _, item := range list {
+		file, err := GetLibFileInfo(cast.ToInt(item[`file_id`]), cast.ToInt(item[`admin_user_id`]))
+		if err != nil {
+			logs.Error(err.Error())
+			continue
 		}
+		if _, ok := quoteFileMap[cast.ToInt(file[`id`])]; ok {
+			continue
+		}
+		quoteFile = append(quoteFile, msql.Params{
+			`id`:        file[`id`],
+			`file_name`: file[`file_name`],
+		})
 	}
+
+	summary = append(summary, adaptor.ZhimaChatCompletionMessage{
+		Role:    `assistant`,
+		Content: prompt,
+	})
 	// to ai summary
 	chatResp, requestTime, err := RequestSearchStream(
 		cast.ToInt(robot[`admin_user_id`]),
@@ -905,8 +914,8 @@ func LibraryAiSummary(lang, openid, appType, question string, optimizedQuestions
 		float32(temperature),
 		maxToken,
 	)
-	logs.Info(`%v`, chatResp)
-	logs.Info(`%v`, requestTime)
+	logs.Info(`LibraryAiSummary:%v`, chatResp)
+	logs.Info(`LibraryAiSummary:%v`, requestTime)
 	if err != nil {
 		logs.Error(err.Error())
 		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(lang, `sys_err`)}
@@ -956,4 +965,37 @@ func SetNeo4jStatus(adminUserId int, status bool) {
 		define.Neo4jStatus = make(map[int]bool)
 	}
 	define.Neo4jStatus[adminUserId] = status
+}
+
+func ConstructGraph(id int) error {
+	dataList, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`file_id`, cast.ToString(id)).
+		Field(`id,file_id`).
+		Select()
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	if len(dataList) == 0 {
+		return err
+	}
+	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
+		Where(`id`, cast.ToString(id)).
+		Update(msql.Datas{`graph_status`: define.GraphStatusInitial})
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	lib_redis.DelCacheData(define.Redis, &LibFileCacheBuildHandler{FileId: id})
+	for _, data := range dataList {
+		message, err := tool.JsonEncode(map[string]any{`id`: data[`id`], `file_id`: data[`file_id`]})
+		if err != nil {
+			logs.Error(err.Error())
+			continue
+		}
+		if err = AddJobs(define.ConvertGraphTopic, message); err != nil {
+			logs.Error(err.Error())
+		}
+	}
+	return nil
 }

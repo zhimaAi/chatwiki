@@ -5,6 +5,7 @@
   overflow: hidden;
 
   .scroll-content {
+    min-height: 100%;
   }
 }
 .cu-scrolbar-box {
@@ -32,7 +33,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import BScroll from '@better-scroll/core'
 import ScrollBar from '@better-scroll/scroll-bar'
 import MouseWheel from '@better-scroll/mouse-wheel'
@@ -57,14 +58,23 @@ const props = defineProps({
   },
   scrollbar: {
     type: [Boolean, Object],
-    default: {}
+    default: {
+      minSize: 0
+    }
   },
   pullUpLoad: {
     // 布尔和对象
     type: [Boolean, Object],
     default: true
+  },
+  disableMouse: {
+    // 禁止数据按下拖动
+    type: Boolean,
+    default: false
   }
 })
+
+let mouseDownHandler = null // 保存 mousedown 监听器的引用
 
 const scroller = ref(null)
 let scrollController = null
@@ -115,7 +125,7 @@ onMounted(() => {
 
   scrollController.on('pullingUp', () => {
     emit('onScrollEnd')
-    console.log('pullingUp')
+
     nextTick(() => {
       scrollController.finishPullUp()
     })
@@ -124,6 +134,39 @@ onMounted(() => {
   scrollController.on('scroll', (position)=>{
     emit('scroll', position)
   })
+
+  // 定义 mousedown 事件处理函数
+  mouseDownHandler = (e) => {
+    const startY = e.clientY
+
+    const mouseMoveHandler = (e) => {
+      const deltaY = e.clientY - startY
+      if (Math.abs(deltaY) > 5) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+
+    const removeListeners = () => {
+      document.removeEventListener('mousemove', mouseMoveHandler)
+      document.removeEventListener('mouseup', removeListeners)
+    }
+
+    document.addEventListener('mousemove', mouseMoveHandler)
+    document.addEventListener('mouseup', removeListeners, { once: true })
+  }
+
+  // 添加 mousedown 监听
+  if (props.disableMouse) {
+    scroller.value?.addEventListener('mousedown', mouseDownHandler)
+  }
+})
+
+onUnmounted(() => {
+  // 移除 mousedown 监听（确保 scroller.value 存在）
+  if (scroller.value && mouseDownHandler) {
+    scroller.value.removeEventListener('mousedown', mouseDownHandler)
+  }
 })
 
 defineExpose({

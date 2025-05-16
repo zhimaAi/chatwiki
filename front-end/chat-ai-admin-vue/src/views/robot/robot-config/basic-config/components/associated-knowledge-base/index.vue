@@ -263,7 +263,7 @@ const onSave = () => {
 
 // 获取知识库
 const getList = async () => {
-  const res = await getLibraryList({ type: '' })
+  const res = await getLibraryList({ type: '', show_open_docs: 1 })
   if (res) {
     libraryList.value = res.data || []
   }

@@ -151,10 +151,14 @@ export const useChatMonitorStore = defineStore('chatMonitor', {
         return res
       })
     },
-    async getReceiverList() {
-      this.receiverListPage.page++
+    async getReceiverList (params) {
+      if (params?.page) {
+        this.receiverListPage.page = params?.page
+      } else {
+        this.receiverListPage.page++
+      }
 
-      return getReceiverList({ ...this.receiverListPage, robot_id: this.selectedRobotId }).then(
+      return getReceiverList({ ...this.receiverListPage, robot_id: this.selectedRobotId, ...params }).then(
         (res) => {
           let list = res.data.list || []
 
@@ -166,6 +170,7 @@ export const useChatMonitorStore = defineStore('chatMonitor', {
             }
           }
 
+
           if (this.receiverListPage.page == 1) {
             this.receiverList = list
           } else {
@@ -176,15 +181,15 @@ export const useChatMonitorStore = defineStore('chatMonitor', {
         }
       )
     },
-    changeRobot() {
+    changeRobot(params) {
       this.activeChat = null
-      this.resetReceiverList()
+      this.resetReceiverList(params)
     },
-    resetReceiverList() {
+    resetReceiverList(params) {
       this.receiverListPage.page = 0
       this.receiverList = []
 
-      return this.getReceiverList()
+      return this.getReceiverList(params)
     },
     async getChatMessage() {
       if (this.messageListLoading) {

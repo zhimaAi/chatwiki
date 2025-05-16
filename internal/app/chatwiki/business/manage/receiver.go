@@ -9,6 +9,7 @@ import (
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
@@ -28,6 +29,10 @@ func GetReceiverList(c *gin.Context) {
 	m := msql.Model(`chat_ai_receiver`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId))
 	if robotId > 0 {
 		m.Where(`robot_id`, cast.ToString(robotId))
+	}
+	keyword := strings.TrimSpace(c.Query(`keyword`))
+	if len(keyword) > 0 {
+		m.Where(`openid|nickname|name`, `like`, keyword)
 	}
 	list, err := m.Order(`id DESC`).Limit(size*(page-1), size).Select()
 	if err != nil {

@@ -40,6 +40,15 @@ export const deleteRobot = ({ id }) => {
   })
 }
 
+export const robotCopy = ({ id }) => {
+  return request.post({
+    url: '/manage/robotCopy',
+    data: {
+      from_id: id
+    }
+  })
+}
+
 export const editPrompt = ({ id, prompt }) => {
   return request.post({
     url: '/manage/editPrompt',
@@ -185,6 +194,17 @@ export const checkSensitiveWords = (data = {}) => {
 export const checkChatRequestPermission = (data = {}) => {
   return request.post({
     url: '/chat/checkChatRequestPermission',
+    data: data
+  })
+}
+
+// 编辑工作量基本信息
+export const editBaseInfo = (data = {}) => {
+  return request.post({
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    },
+    url: '/manage/editBaseInfo',
     data: data
   })
 }

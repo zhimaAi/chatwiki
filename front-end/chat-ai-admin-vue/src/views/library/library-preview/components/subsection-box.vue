@@ -8,7 +8,7 @@
       class="list-item"
       v-for="(item, index) in props.paragraphLists"
       :key="item.id"
-      @click="handleToTargetPage(item, index)"
+      @click.stop="handleToTargetPage(item, index, $event)"
       :style="{'--status-color': getColor(item)}"
     >
       <div class="top-block">
@@ -43,13 +43,13 @@
           <a-dropdown>
             <div class="hover-btn-box">
               <StarFilled
-                @click="handleSetCategory(item, {})"
+                @click.stop="handleSetCategory(item, {})"
                 :style="{ color: getColor(item), 'font-size': '16px' }"
                 v-if="item.category_id > 0"
               />
               <StarOutlined
                 @click="handleSetCategory(item, startLists[0])"
-                style="font-size: 16px"
+                style="font-size: 16px;color: #595959;"
                 v-else
               />
             </div>
@@ -57,13 +57,13 @@
             <template #overlay>
               <a-menu>
                 <a-menu-item v-for="star in startLists" :key="star.id">
-                  <div class="start-item" @click="handleSetCategory(item, star)">
+                  <div class="start-item" @click.stop="handleSetCategory(item, star)">
                     <StarFilled :style="{ color: colorLists[star.type] }" />
                     <div>{{ star.name || '-' }}</div>
                   </div>
                 </a-menu-item>
                 <a-menu-item>
-                  <div class="start-item" @click="handleOpenSetStartModal">
+                  <div class="start-item" @click.stop="handleOpenSetStartModal">
                     <SettingOutlined />
                     <div>精选设置</div>
                   </div>
@@ -71,15 +71,25 @@
               </a-menu>
             </template>
           </a-dropdown>
+
+          <template v-if="detailsInfo.graph_switch">
+            <a-tooltip>
+              <template #title>知识图谱</template>
+              <div class="hover-btn-box" @click="openGraphModel(item)">
+                <svg-icon name="graph-icon" style="font-size: 16px;color: #595959;"></svg-icon>
+              </div>
+            </a-tooltip>
+          </template>
+
           <a-tooltip>
             <template #title>重新转换</template>
             <div class="hover-btn-box">
-              <SyncOutlined @click="toReSegmentationPage(item, index)" />
+              <SyncOutlined @click.stop="toReSegmentationPage(item, index)" />
             </div>
           </a-tooltip>
           <a-dropdown placement="bottomRight">
             <div class="hover-btn-box">
-              <MoreOutlined />
+              <MoreOutlined style="font-size: 16px;color: #595959;" />
             </div>
             <template #overlay>
               <a-menu>
@@ -96,40 +106,41 @@
       </div>
       <div class="content-box" v-if="item.question">Q：{{ item.question }}</div>
       <div class="content-box" v-if="item.answer">A：{{ item.answer }}</div>
-      <div class="content-box" @mouseup="handleMouseUp($event, index)" v-html="item.content"></div>
-      <div class="fragment-img" v-viewer>
+      <div class="content-box" @mouseup.stop="handleMouseUp($event, index)" v-html="item.content"></div>
+      <div class="fragment-img" v-if="item.images.length > 0" v-viewer>
         <img v-for="(item, imageIndex) in item.images" :key="imageIndex" :src="item" alt="" />
       </div>
     </div>
     <ClassificationMarkModal @ok="getCategoryLists" ref="classificationMarkModalRef" />
+    <GraphModel ref="graphModelRef" />
     <!-- 选择内容气泡 -->
     <div 
       v-if="showBubble"
       class="bubble-card"
       :style="bubbleStyle"
     >
-      <button class="bubble-item" @click="handleAction('separate')">
+      <button class="bubble-item" @click.stop="handleAction('separate')">
         <svg-icon
           name="segmentation"
           style="font-size: 16px; color: #262626; margin-right: 4px"
         ></svg-icon>
         单独成段
       </button>
-      <button class="bubble-item" @click="handleAction('merge-next')">
-        <svg-icon
-          name="segmentation-down"
-          style="font-size: 16px; color: #262626; margin-right: 4px"
-        ></svg-icon>
-        合并到下一分段
-      </button>
-      <button class="bubble-item" @click="handleAction('merge-prev')">
+      <button class="bubble-item" @click.stop="handleAction('merge-prev')">
         <svg-icon
           name="segmentation-up"
           style="font-size: 16px; color: #262626; margin-right: 4px"
         ></svg-icon>
         合并到上一分段
       </button>
-      <button class="bubble-item" @click="handleAction('delete')">
+      <button class="bubble-item" @click.stop="handleAction('merge-next')">
+        <svg-icon
+          name="segmentation-down"
+          style="font-size: 16px; color: #262626; margin-right: 4px"
+        ></svg-icon>
+        合并到下一分段
+      </button>
+      <button class="bubble-item" @click.stop="handleAction('delete')">
         <svg-icon
           name="delete"
           style="font-size: 16px; color: #262626; margin-right: 4px"
@@ -140,7 +151,7 @@
   </div>
 </template>
 <script setup>
-import { ref, computed, createVNode, onMounted, onUnmounted } from 'vue'
+import { ref, createVNode, computed, onMounted, onUnmounted   } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
@@ -154,6 +165,7 @@ import {
 } from '@ant-design/icons-vue'
 import { Modal } from 'ant-design-vue'
 import ClassificationMarkModal from './classification-mark-modal.vue'
+import GraphModel from './graph-model/index.vue'
 import colorLists from '@/utils/starColors.js'
 import {
   deleteParagraph,
@@ -189,6 +201,7 @@ const props = defineProps({
 })
 
 const route = useRoute()
+
 const toReSegmentationPage = (item, index) => {
   let { id, title, content, question, answer, images, category_id } = item
   let similar_questions = item.similar_questions || []
@@ -197,9 +210,9 @@ const toReSegmentationPage = (item, index) => {
     icon: null,
     content: `确定要重新转换【分段${index + 1}】吗?`,
     onOk() {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         editParagraph({ id, title, content, question, answer, images, category_id, similar_questions: JSON.stringify(similar_questions)  })
-          .then((res) => {
+          .then(() => {
             emit('handleConvert', item)
             resolve()
           })
@@ -221,9 +234,9 @@ const hanldleDelete = (id) => {
     icon: createVNode(ExclamationCircleOutlined),
     content: '确认是否删除该分段?',
     onOk() {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         deleteParagraph({ id })
-          .then((res) => {
+          .then(() => {
             message.success('删除成功')
             emit('handleDelParagraph', id)
             resolve()
@@ -237,11 +250,16 @@ const hanldleDelete = (id) => {
   })
 }
 
-const handleToTargetPage = (item, index) => {
+const handleToTargetPage = (item, index, event) => {
+  // 如果有选中文本则不执行跳转
+  if (window.getSelection().toString().trim()) return;
+
   emit('handleScrollTargetPage', {
     page_num: item.page_num,
     index
   })
+  
+  handleClickOutside(event)
 }
 
 const startLists = ref([])
@@ -273,11 +291,17 @@ const handleSetCategory = (item, star = {}) => {
   updateParagraphCategory({
     id: item.id,
     category_id: star.id || 0
-  }).then((res) => {
+  }).then(() => {
     message.success('设置成功')
     item.category_id = star.id
     getCategoryLists()
   })
+}
+
+const graphModelRef = ref(null)
+const openGraphModel = (item) => {
+
+  graphModelRef.value.open(item)
 }
 
 const containerRef = ref(null);
@@ -328,36 +352,39 @@ const bubbleStyle = computed(() => {
 });
 
 const handleMouseUp = (event, parentIndex) => {
-  const selection = window.getSelection();
-  const selectedTextContent = selection.toString().trim();
-  
-  if (selectedTextContent) {
-    // 保存选中信息
-    selectedData.value = {
-      text: selectedTextContent,
-      parentIndex,
-      originalHtml: props.paragraphLists[parentIndex].content
-    };
+  setTimeout(() => {
+    const selection = window.getSelection();
+    const selectedTextContent = selection.toString().trim();
 
-    selectedText.value = selectedTextContent;
-    selectedRange.value = selection.getRangeAt(0).cloneRange();
-    
-    // 获取选中文本的位置
-    const range = selection.getRangeAt(0);
-    const rect = range.getBoundingClientRect();
-    
-    // 计算相对于内容区域的位置
-    const contentRect = containerRef.value.getBoundingClientRect();
-    
-    position.value = {
-      x: rect.left + rect.width / 2,
-      y: rect.top - contentRect.top - 50 // 向上偏移50px显示气泡
-    };
-    
-    showBubble.value = true;
-  } else {
-    showBubble.value = false;
-  }
+    if (selectedTextContent) {
+      event.stopPropagation(); // 阻止事件冒泡
+      // 保存选中信息
+      selectedData.value = {
+        text: selectedTextContent,
+        parentIndex,
+        originalHtml: props.paragraphLists[parentIndex].content
+      };
+
+      selectedText.value = selectedTextContent;
+      selectedRange.value = selection.getRangeAt(0).cloneRange();
+      
+      // 获取选中文本的位置
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      
+      // 计算相对于内容区域的位置
+      const contentRect = containerRef.value.getBoundingClientRect();
+      
+      position.value = {
+        x: rect.left + rect.width / 2,
+        y: rect.top - contentRect.top - 50 // 向上偏移50px显示气泡
+      };
+
+      showBubble.value = true;
+    } else {
+      showBubble.value = false;
+    }
+  }, 50);
 };
 
 const handleAction = (action) => {
@@ -377,7 +404,7 @@ const handleAction = (action) => {
       onDeleteParagraph(parentIndex);
       break;
   }
-  
+
   showBubble.value = false;
   window.getSelection().removeAllRanges();
 };
@@ -739,8 +766,8 @@ defineExpose({ handleOpenEditModal })
     width: 100%;
     background: #fff;
     border-radius: 6px;
-    padding: 16px;
     .top-block {
+      padding: 16px 16px 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -780,15 +807,15 @@ defineExpose({ handleOpenEditModal })
       font-size: 14px;
       font-weight: 400;
       line-height: 22px;
-      margin-top: 8px;
       white-space: pre-wrap;
       word-wrap: break-word;
+      padding: 8px 16px 16px;
     }
     .fragment-img {
+      padding: 0px 16px 16px;
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 8px;
       img {
         width: 80px;
         height: 80px;

@@ -2,13 +2,14 @@
   <div class="avatar-uploader">
     <a-upload
       v-model:file-list="fileList"
-      list-type="picture-card"
+      :list-type="props.listType"
       :show-upload-list="false"
       :before-upload="beforeUpload"
       accept=".jpg,.png,.jpeg"
       @preview="handlePreview"
+      :style="props.style" 
     >
-      <img class="avatar" v-if="value" :src="value" alt="avatar" />
+      <img class="avatar" :style="props.style" v-if="value" :src="value" alt="avatar" />
       <div v-else>
         <loading-outlined v-if="loading"></loading-outlined>
         <plus-outlined v-else></plus-outlined>
@@ -41,6 +42,14 @@ const props = defineProps({
   value: {
     type: String,
     default: ''
+  },
+  listType: {
+    type: String,
+    default: 'picture-card'
+  },
+  style: {
+    type: Object,
+    default: () => {}
   }
 })
 

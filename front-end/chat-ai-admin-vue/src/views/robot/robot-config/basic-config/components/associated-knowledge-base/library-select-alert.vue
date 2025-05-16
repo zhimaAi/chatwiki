@@ -147,7 +147,7 @@ const triggerChange = () => {
 }
 
 const getList = async () => {
-  const res = await getLibraryList({ library_name: searchKeyword.value, type: '' })
+  const res = await getLibraryList({ library_name: searchKeyword.value, type: '', show_open_docs: 1 })
   if (res) {
     let list = res.data || []
     options.value = list

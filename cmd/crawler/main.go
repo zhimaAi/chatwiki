@@ -93,6 +93,7 @@ func handleContentRequest(c *gin.Context) {
 		URL string `json:"url"`
 	}
 	if err := c.BindJSON(&request); err != nil {
+		log.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid params"})
 		return
 	}
@@ -100,6 +101,7 @@ func handleContentRequest(c *gin.Context) {
 	// parse url
 	parsedURL, err := netURL.Parse(request.URL)
 	if err != nil || parsedURL == nil {
+		log.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid URL"})
 		return
 	}
@@ -107,6 +109,7 @@ func handleContentRequest(c *gin.Context) {
 	// open browser
 	err = openBrowser()
 	if err != nil {
+		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -114,6 +117,7 @@ func handleContentRequest(c *gin.Context) {
 	// get page content
 	pageInfo, err := fetchURLContent(parsedURL)
 	if err != nil {
+		log.Println(err)
 		if errors.Is(err, TooManyRequestsError) {
 			c.JSON(http.StatusTooManyRequests, gin.H{"error": err.Error()})
 			return

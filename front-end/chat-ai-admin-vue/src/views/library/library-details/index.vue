@@ -3,18 +3,19 @@
     <div class="between-content-box">
       <div class="layout-left">
         <div class="library-name-box">
-          <img class="avatar" :src="libraryInfo.avatar || LIBRARY_NORMAL_AVATAR" alt="" />
+          <img class="avatar" :src="avatar || LIBRARY_NORMAL_AVATAR" alt="" />
           <div class="name">
-            {{ libraryInfo.library_name }}
+            {{ library_name }}
           </div>
         </div>
         <div class="left-menu-wrapper">
-          <LeftMenus :libraryInfo="libraryInfo"></LeftMenus>
+          <LeftMenus></LeftMenus>
         </div>
       </div>
 
       <div
         class="right-content-box"
+        :class="['page-' + rotue.name]"
         :style="{ overflow: rotue.name == 'knowledgeDocument' ? 'hidden' : '' }"
       >
         <router-view></router-view>
@@ -24,27 +25,28 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import LeftMenus from './components/left-menus.vue'
-import { getLibraryInfo } from '@/api/library'
 import { LIBRARY_NORMAL_AVATAR } from '@/constants/index'
+import { useLibraryStore } from '@/stores/modules/library'
+
+const libraryStore = useLibraryStore()
+const { getLibraryInfo } = libraryStore
+
+const library_name = computed(() => libraryStore.library_name)
+const avatar = computed(() => libraryStore.avatar)
 
 const rotue = useRoute()
 const query = rotue.query
 
-const libraryInfo = ref({
-  library_name: '',
-  avatar: '',
-  library_intro: '',
-  robot_nums: 0
-})
 const getInfo = () => {
-  getLibraryInfo({ id: query.id }).then((res) => {
-    libraryInfo.value = res.data
-  })
+  getLibraryInfo(query.id)
 }
-getInfo()
+
+onMounted(() => {
+  // getInfo()
+})
 </script>
 
 <style lang="less" scoped>
@@ -97,5 +99,10 @@ getInfo()
     flex: 1;
     padding: 24px 10px 0 24px;
   }
+}
+</style>
+<style>
+.page-knowledgeGraph{
+  padding: 0 !important;
 }
 </style>

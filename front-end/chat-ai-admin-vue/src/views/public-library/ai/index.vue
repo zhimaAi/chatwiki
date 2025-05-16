@@ -33,43 +33,13 @@
             <!-- 自定义选择器 -->
             <CustomSelector
               v-model="formState.use_model"
-              :options="processedModelList"
               placeholder="请选择嵌入模型"
               label-key="use_model_name"
               value-key="value"
-              :model-define="modelDefine"
+              :modelType="'TEXT EMBEDDING'"
               :model-config-id="formState.model_config_id"
               @change="handleModelChange"
             />
-            <!-- <a-select
-              @change="handleChangeModel"
-              v-model:value="formState.use_model"
-              placeholder="请选择嵌入模型"
-            >
-              <a-select-opt-group v-for="item in modelList" :key="item.id">
-                <template #label>
-                  <a-flex align="center" :gap="6">
-                    <img class="model-icon" :src="item.icon" alt="" />{{ item.name }}
-                  </a-flex>
-                </template>
-                <a-select-option
-                  :value="
-                    modelDefine.indexOf(item.model_define) > -1 && val.deployment_name
-                      ? val.deployment_name
-                      : val.name + val.id
-                  "
-                  :model_config_id="item.id"
-                  :current_obj="val"
-                  v-for="val in item.children"
-                  :key="val.name + val.id"
-                >
-                  <span v-if="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name">{{
-                    val.deployment_name
-                  }}</span>
-                  <span v-else>{{ val.name }}</span>
-                </a-select-option>
-              </a-select-opt-group>
-            </a-select> -->
           </a-form-item>
 
           <a-form-item>
@@ -94,44 +64,13 @@
             <!-- 自定义选择器 -->
             <CustomSelector
               v-model="formState.ai_summary_model"
-              :options="processedModelList2"
               placeholder="请选择总结模型"
               label-key="summary_model_name"
               value-key="value"
-              :model-define="modelDefine"
+              :modelType="'LLM'"
               :model-config-id="formState.summary_model_config_id"
               @change="handleModelChange2"
             />
-            <!-- <a-select
-              v-model:value="formState.ai_summary_model"
-              placeholder="请选择总结模型"
-              @change="handleChangeModel2"
-              style="width: 100%"
-            >
-              <a-select-opt-group v-for="item in modelList2" :key="item.id">
-                <template #label>
-                  <a-flex align="center" :gap="6">
-                    <img class="model-icon" :src="item.icon" alt="" />{{ item.name }}
-                  </a-flex>
-                </template>
-                <a-select-option
-                  :value="
-                    modelDefine.indexOf(item.model_define) > -1 && val.deployment_name
-                      ? val.deployment_name
-                      : val.name + val.id
-                  "
-                  :model_config_id="item.id"
-                  :current_obj="val"
-                  v-for="val in item.children"
-                  :key="val.name + val.id"
-                >
-                  <span v-if="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name">{{
-                    val.deployment_name
-                  }}</span>
-                  <span v-else>{{ val.name }}</span>
-                </a-select-option>
-              </a-select-opt-group>
-            </a-select> -->
           </a-form-item>
 
           <a-form-item :wrapper-col="{ offset: 2, span: 8 }">
@@ -144,8 +83,6 @@
 </template>
 
 <script setup>
-import { duplicateRemoval, removeRepeat } from '@/utils/index'
-import { getModelConfigOption } from '@/api/model/index'
 import { getLibraryInfo, editLibrary } from '@/api/library/index'
 import { useRoute } from 'vue-router'
 import { ref, reactive, computed, onMounted, toRaw } from 'vue'
@@ -154,26 +91,8 @@ import { message, Modal } from 'ant-design-vue'
 import ConfigPageMenu from '../components/config-page-menu.vue'
 import CustomSelector from '@/components/custom-selector/index.vue'
 
-function uniqueArr(arr, arr1, key) {
-  const keyVals = new Set(arr.map((item) => item.model_define))
-  arr1.filter((obj) => {
-    let val = obj[key]
-    if (keyVals.has(val)) {
-      arr.filter((obj1) => {
-        if (obj1.model_define == val) {
-          obj1.children = removeRepeat(obj1.children, obj.children)
-          return false
-        }
-      })
-    }
-  })
-  return arr
-}
-
 const route = useRoute()
-
 const library_id = computed(() => route.query.library_id)
-
 const formRef = ref()
 const loading = ref(false)
 let oldState = {}
@@ -194,30 +113,10 @@ const formState = reactive({
   summary_model_config_id: ''
 })
 
-// 获取嵌入模型列表
-const modelList = ref([])
-
-// 获取LLM模型
-const modelList2 = ref([])
-
 const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
 const oldModelDefineList = ['azure']
 const currentModelDefine = ref('')
 const currentModelDefine2 = ref('')
-
-// 处理原始数据格式
-const processedModelList = computed(() => {
-  return modelList.value.map(group => ({
-    groupLabel: group.name,
-    groupIcon: group.icon,
-    children: group.children.map(child => ({
-      icon: child.icon,
-      use_model_name: child.use_model_name,
-      value: modelDefine.includes(child.model_define) && child.deployment_name ? child.deployment_name : child.name,
-      rawData: child // 保留原始数据
-    }))
-  }))
-})
 
 // 处理选择事件
 const handleModelChange = (item) => {
@@ -229,20 +128,6 @@ const handleModelChange = (item) => {
   formState.model_config_id = item.rawData.id
   currentModelDefine.value = item.rawData.model_define
 }
-
-// 处理原始数据格式
-const processedModelList2 = computed(() => {
-  return modelList2.value.map(group => ({
-    groupLabel: group.name,
-    groupIcon: group.icon,
-    children: group.children.map(child => ({
-      icon: child.icon,
-      summary_model_name: child.summary_model_name,
-      value: modelDefine.includes(child.model_define) && child.deployment_name ? child.deployment_name : child.name,
-      rawData: child // 保留原始数据
-    }))
-  }))
-})
 
 // 处理选择事件
 const handleModelChange2 = (item) => {
@@ -335,96 +220,8 @@ const getData = () => {
   })
 }
 
-const getModelList = (is_offline) => {
-  getModelConfigOption({
-    model_type: 'TEXT EMBEDDING',
-    is_offline
-  }).then((res) => {
-    let list = res.data || []
-    let children = []
-
-    modelList.value = list.map((item) => {
-      children = []
-      for (let i = 0; i < item.model_info.vector_model_list.length; i++) {
-        const ele = item.model_info.vector_model_list[i]
-        children.push({
-          name: ele,
-          deployment_name: item.model_config.deployment_name,
-          id: item.model_config.id,
-          model_define: item.model_info.model_define,
-          icon: item.model_info.model_icon_url, // 添加图标字段
-          use_model_name: item.model_info.model_name // 添加系统名称字段
-        })
-      }
-
-      return {
-        id: item.model_config.id,
-        name: item.model_info.model_name,
-        model_define: item.model_info.model_define,
-        icon: item.model_info.model_icon_url,
-        children: children,
-        deployment_name: item.model_config.deployment_name
-      }
-    })
-
-    // 如果modelList存在两个相同model_define情况就合并到一个对象的children中去
-    modelList.value = uniqueArr(
-      duplicateRemoval(modelList.value, 'model_define'),
-      modelList.value,
-      'model_define'
-    )
-  })
-}
-
-const getModelList2 = () => {
-  getModelConfigOption({
-    model_type: 'LLM'
-  }).then((res) => {
-    // currentUseModel.value = robotInfo.use_model
-    let list = res.data || []
-    let children = []
-
-    modelList2.value = list.map((item) => {
-      children = []
-      for (let i = 0; i < item.model_info.llm_model_list.length; i++) {
-        const ele = item.model_info.llm_model_list[i]
-        // if (modelDefine.indexOf(item.model_info.model_define) > -1 && robotInfo.model_config_id == item.model_config.id) {
-        //   currentUseModel.value = item.model_config.deployment_name
-        //   currentModelDefine.value = item.model_info.model_define
-        //   oldModelDefine.value = item.model_info.model_define
-        // }
-        children.push({
-          name: ele,
-          deployment_name: item.model_config.deployment_name,
-          id: item.model_config.id,
-          model_define: item.model_info.model_define,
-          icon: item.model_info.model_icon_url, // 添加图标字段
-          summary_model_name: item.model_info.model_name // 添加系统名称字段
-        })
-      }
-      return {
-        id: item.model_config.id,
-        name: item.model_info.model_name,
-        model_define: item.model_info.model_define,
-        icon: item.model_info.model_icon_url,
-        children: children,
-        deployment_name: item.model_config.deployment_name
-      }
-    })
-
-    // 如果modelList存在两个相同model_define情况就合并到一个对象的children中去
-    modelList2.value = uniqueArr(
-      duplicateRemoval(modelList2.value, 'model_define'),
-      modelList2.value,
-      'model_define'
-    )
-  })
-}
-
 onMounted(() => {
   getData()
-  getModelList()
-  getModelList2()
 })
 </script>
 

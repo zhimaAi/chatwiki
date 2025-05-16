@@ -169,6 +169,9 @@
                 </div>
               </div>
             </template>
+            <template v-if="column.key === 'graph_entity_count'">
+              <a @click="toGraph(record)">{{ record.graph_entity_count }}</a>
+            </template>
             <template v-if="column.key === 'status'">
               <template v-if="record.file_ext == 'pdf' && record.pdf_parse_type >= 2">
                 <div class="pdf-progress-box" v-if="record.status == 0">
@@ -353,8 +356,8 @@
       @cancel="handleCloseFileUploadModal"
       width="740px"
     >
-      <a-form class="mt24" :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }">
-        <a-form-item required label="上传文档">
+      <a-form class="mt24">
+        <a-form-item required label="">
           <div class="upload-file-box">
             <UploadFilesInput
               :type="libraryInfo.type"
@@ -364,20 +367,25 @@
             />
           </div>
         </a-form-item>
-        <a-form-item v-if="existPdfFile" required label="PDF解析模式">
+        <a-form-item v-if="existPdfFile" required label="PDF解析模式" class="select-card-main">
           <div class="select-card-box">
             <div
               v-for="item in PDF_PARSE_MODE"
               :key="item.key"
-              :class="['select-card-item', { active: addFileState.pdf_parse_type == item.key }]"
-              @click="pdfParseTypeChange(item)"
+              :class="['select-card-item', { active: addFileState.pdf_parse_type == item.key }, { disabled: item.key == 4 && !ali_ocr_switch }]"
+              @click.stop="pdfParseTypeChange(item)"
             >
               <svg-icon class="check-arrow" name="check-arrow-filled"></svg-icon>
               <div class="card-title">
                 <svg-icon :name="item.icon" style="font-size: 16px"></svg-icon>
                 {{ item.title }}
+                <div class="card-switch-box" v-if="item.key == 4 && !ali_ocr_switch">未开启</div>
               </div>
               <div class="card-desc">{{ item.desc }}</div>
+              <div class="card-switch" v-if="item.key == 4 && !ali_ocr_switch">
+                未开启阿里云OCR
+                <div class="card-switch-btn" @click.stop="onGoSwitch">去开启</div>
+              </div>
             </div>
           </div>
         </a-form-item>
@@ -442,6 +450,7 @@
 </template>
 
 <script setup>
+import { useStorage } from '@/hooks/web/useStorage'
 import { reactive, ref, toRaw, onUnmounted, onMounted, computed, createVNode } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -480,12 +489,21 @@ import PageAlert from '@/components/page-alert/page-alert.vue'
 import GuideLearningTips from './components/guide-learning-tips.vue'
 import EditOnlineDoc from './components/edit-online-doc.vue'
 import { useUserStore } from '@/stores/modules/user'
-
+import { useLibraryStore } from '@/stores/modules/library'
 import { convertTime } from '@/utils/index'
 import { useCompanyStore } from '@/stores/modules/company'
+
+const { setStorage } = useStorage('localStorage')
+
+const libraryStore = useLibraryStore()
+const { changeGraphSwitch } = libraryStore
+
 const companyStore = useCompanyStore()
 const neo4j_status = computed(() => {
   return companyStore.companyInfo?.neo4j_status == 'true'
+})
+const ali_ocr_switch = computed(() => {
+  return companyStore.companyInfo?.ali_ocr_switch == '1'
 })
 
 const userStore = useUserStore()
@@ -502,7 +520,18 @@ const PDF_PARSE_MODE = [
     icon: 'pdf-text',
     desc: '只提取pdf中的文字内容，如果文档为扫描件可能提取不到内容。'
   },
-  { key: 3, title: '图文解析', icon: 'pdf-img', desc: '提取PDF文档中的图片和文字' }
+  {
+    key: 3,
+    title: '图文解析',
+    icon: 'pdf-img',
+    desc: '提取PDF文档中的图片和文字'
+  },
+  {
+    key: 4,
+    title: '阿里云OCR解析',
+    icon: 'ali-ocr',
+    desc: '通过阿里云文档智能接口解析提取图片和文字',
+  }
 ]
 const rotue = useRoute()
 const router = useRouter()
@@ -1065,6 +1094,7 @@ const createGraphSwitchChange = () => {
     libraryInfo.value.graph_switch = 0
     saveLibraryConfig(false, () => {
       getData()
+      changeGraphSwitch(0)
     })
   }
 }
@@ -1076,11 +1106,19 @@ const handleOpenGrapgOk = (data) => {
   libraryInfo.value.graph_use_model = data.graph_use_model
   saveLibraryConfig(false, () => {
     getData()
+    changeGraphSwitch(1)
   })
 }
 
 const pdfParseTypeChange = (item) => {
+  if (item.key == 4 && !ali_ocr_switch.value) {
+    return false
+  }
   addFileState.pdf_parse_type = item.key
+}
+
+const onGoSwitch = () => {
+  window.open('#/user/aliocr')
 }
 
 const editOnlineDocRef = ref(null)
@@ -1110,6 +1148,17 @@ const handleCancelOcrPdf = (record) => {
         message.success('取消成功')
         getData()
       })
+    }
+  })
+}
+
+const toGraph = (record) => {
+  setStorage('graph:autoOpenFileId', record.id)
+  
+  router.push({
+    path: '/library/details/knowledge-graph',
+    query: {
+      id: query.id,
     }
   })
 }
@@ -1411,7 +1460,9 @@ onUnmounted(() => {
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
+  margin-top: 8px;
   .select-card-item {
+    min-height: 105px;
     width: calc(50% - 8px);
     position: relative;
     padding: 16px;
@@ -1445,10 +1496,43 @@ onUnmounted(() => {
       font-size: 16px;
     }
     .card-desc {
-      min-height: 44px;
       line-height: 22px;
       font-size: 14px;
       color: #595959;
+    }
+
+    .card-switch {
+      display: flex;
+      gap: 4px;
+      color: #8c8c8c;
+      font-size: 14px;
+      line-height: 22px;
+
+      .card-switch-btn {
+        cursor: pointer;
+        color: #2475fc;
+
+        &:hover {
+          opacity: 0.8;
+        }
+      }
+    }
+
+    .card-switch-box {
+      width: 52px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border-radius: 6px;
+      border: 1px solid #EDB8A6;
+      background: #FFECE5;
+      color: #ed744a;
+      font-size: 12px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 20px;
     }
 
     &.active {
@@ -1487,6 +1571,12 @@ onUnmounted(() => {
     .content-tip {
       color: red;
     }
+  }
+}
+
+.select-card-main {
+  :deep(.ant-row) {
+    display: block;
   }
 }
 </style>

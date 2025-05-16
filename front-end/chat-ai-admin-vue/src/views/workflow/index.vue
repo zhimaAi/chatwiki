@@ -34,7 +34,7 @@
 
 <template>
   <div class="workflow-page">
-    <PageHeader @save="handleSave" @release="handleRelease" :saveLoading="saveLoading" />
+    <PageHeader @edit="handleEdit" @save="handleSave" @release="handleRelease" :saveLoading="saveLoading" />
     <div class="page-body">
       <div class="page-left">
         <PageSidebar />
@@ -47,6 +47,7 @@
         />
       </div>
     </div>
+    <AddRobotAlert ref="addRobotAlertRef" />
   </div>
 </template>
 
@@ -62,6 +63,7 @@ import dayjs from 'dayjs'
 import PageSidebar from './components/page-sidebar.vue'
 import WorkflowCanvas from './components/workflow-canvas.vue'
 import PageHeader from './components/page-header.vue'
+import AddRobotAlert from '@/views/robot/robot-list/components/add-robot-alert.vue'
 
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
 import { getModelConfigOption } from '@/api/model/index'
@@ -69,6 +71,7 @@ import { getModelConfigOption } from '@/api/model/index'
 const route = useRoute()
 const robot_key = ref(route.query.robot_key)
 
+const addRobotAlertRef = ref(null)
 const workflowCanvasRef = ref(null)
 
 const robotStore = useRobotStore()
@@ -145,6 +148,11 @@ function getNode() {
 
     setWorkflowData({ nodes: nodes, edges: edges })
   })
+}
+
+const toAddRobot = (val) => {
+  // router.push({ name: 'addRobot' })
+  addRobotAlertRef.value.open(val)
 }
 
 const setWorkflowData = (data) => {
@@ -253,6 +261,11 @@ const handleSave = (type) => {
       time: dayjs().format('MM/DD HH:mm:ss')
     })
   })
+}
+
+// 编辑
+const handleEdit = () => {
+  toAddRobot(1)
 }
 
 let timer = setInterval(

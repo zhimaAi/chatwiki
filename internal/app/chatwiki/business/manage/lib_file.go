@@ -6,14 +6,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
-	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	"github.com/pdfcpu/pdfcpu/pkg/api"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -287,10 +288,13 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 		splitParams.IsTableFile = cast.ToInt(c.PostForm(`is_table_file`))
 	}
 	for _, uploadInfo := range libraryFiles {
-		status := define.FileStatusInitial
+		status := define.FileStatusWaitSplit
 		isTableFile := define.IsTableFile(uploadInfo.Ext)
-		if !(define.IsPdfFile(uploadInfo.Ext) && (pdfParseType == define.PdfParseTypeOcr || pdfParseType == define.PdfParseTypeOcrWithImage)) {
-			status = define.FileStatusWaitSplit
+
+		if define.IsPdfFile(uploadInfo.Ext) && (pdfParseType == define.PdfParseTypeOcr ||
+			pdfParseType == define.PdfParseTypeOcrWithImage ||
+			pdfParseType == define.PdfParseTypeOcrAli) {
+			status = define.FileStatusInitial
 		}
 		insData := msql.Datas{
 			`admin_user_id`:        userId,
@@ -325,6 +329,9 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 				continue
 			}
 			insData[`ocr_pdf_total`] = page
+			if pdfParseType == define.PdfParseTypeOcrAli && page > 1000 {
+				return nil, errors.New(i18n.Show(common.GetLang(c), `exceed_max_pdf_page_count`))
+			}
 		}
 		if uploadInfo.Custom {
 			insData[`status`] = define.FileStatusLearned
@@ -342,52 +349,79 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 			continue
 		}
 		fileIds = append(fileIds, fileId)
-		if status == define.FileStatusInitial && !uploadInfo.Custom { //async task:convert html
+		if uploadInfo.Custom {
+			continue
+		}
+		if define.IsPdfFile(uploadInfo.Ext) && (pdfParseType == define.PdfParseTypeOcr || pdfParseType == define.PdfParseTypeOcrWithImage) {
 			if message, err := tool.JsonEncode(map[string]any{`file_id`: fileId, `file_url`: uploadInfo.Link}); err != nil {
 				logs.Error(err.Error())
 			} else if err := common.AddJobs(define.ConvertHtmlTopic, message); err != nil {
 				logs.Error(err.Error())
 			}
-		} else if uploadInfo.Custom {
 			continue
-		} else {
-			switch cast.ToInt(libraryInfo[`type`]) {
-			case define.GeneralLibraryType:
-				if isTableFile {
-					autoSplit = true
+		}
+		if define.IsPdfFile(uploadInfo.Ext) && pdfParseType == define.PdfParseTypeOcrAli {
+			jobId, err := common.SubmitOdcParserJob(c, userId, uploadInfo.Link)
+			if err != nil {
+				logs.Error(err.Error())
+				_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
+					`status`:      define.FileStatusException,
+					`errmsg`:      err.Error(),
+					`update_time`: tool.Time2Int(),
+				})
+				if err != nil {
+					logs.Error(err.Error())
 				}
-				splitParams.FileExt = uploadInfo.Ext
-				splitParams.ChunkType = cast.ToInt(libraryInfo[`chunk_type`])
-				if splitParams.ChunkType == define.ChunkTypeNormal {
-					splitParams.SeparatorsNo = cast.ToString(libraryInfo[`normal_chunk_default_separators_no`])
-					splitParams.ChunkSize = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_size`])
-					splitParams.ChunkOverlap = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_overlap`])
-				} else if splitParams.ChunkType == define.ChunkTypeSemantic {
-					splitParams.SemanticChunkSize = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_size`])
-					splitParams.SemanticChunkOverlap = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_overlap`])
-					splitParams.SemanticChunkThreshold = cast.ToInt(libraryInfo[`semantic_chunk_default_threshold`])
-				} else if splitParams.ChunkType == define.ChunkTypeAi {
-					splitParams.AiChunkModel = cast.ToString(libraryInfo[`ai_chunk_model`])
-					splitParams.AiChunkModelConfigId = cast.ToInt(libraryInfo[`ai_chunk_model_config_id`])
-					splitParams.AiChunkPrumpt = cast.ToString(libraryInfo[`ai_chunk_prumpt`])
-					splitParams.AiChunkSize = cast.ToInt(libraryInfo[`ai_chunk_size`])
-					splitParams.AiChunkNew = !isTableFile
-					splitParams.AiChunkTaskId = uuid.New().String()
+				lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: cast.ToInt(fileId)})
+			} else {
+				_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
+					`ali_ocr_job_id`: jobId,
+					`update_time`:    tool.Time2Int(),
+				})
+				if err != nil {
+					logs.Error(err.Error())
 				}
-				splitParams.SemanticChunkModelConfigId = cast.ToInt(libraryInfo[`model_config_id`])
-				splitParams.SemanticChunkUseModel = libraryInfo[`use_model`]
-			case define.QALibraryType:
-				if !define.IsTableFile(uploadInfo.Ext) {
-					autoSplit = true
-				}
-			case define.OpenLibraryType:
-				if define.IsMdFile(uploadInfo.Ext) {
-					autoSplit = true
-				}
+				lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: cast.ToInt(fileId)})
 			}
-			if autoSplit {
-				go common.AutoSplitLibFile(userId, int(fileId), splitParams)
+			continue
+		}
+
+		switch cast.ToInt(libraryInfo[`type`]) {
+		case define.GeneralLibraryType:
+			if isTableFile {
+				autoSplit = true
 			}
+			splitParams.FileExt = uploadInfo.Ext
+			splitParams.ChunkType = cast.ToInt(libraryInfo[`chunk_type`])
+			if splitParams.ChunkType == define.ChunkTypeNormal {
+				splitParams.SeparatorsNo = cast.ToString(libraryInfo[`normal_chunk_default_separators_no`])
+				splitParams.ChunkSize = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_size`])
+				splitParams.ChunkOverlap = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_overlap`])
+			} else if splitParams.ChunkType == define.ChunkTypeSemantic {
+				splitParams.SemanticChunkSize = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_size`])
+				splitParams.SemanticChunkOverlap = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_overlap`])
+				splitParams.SemanticChunkThreshold = cast.ToInt(libraryInfo[`semantic_chunk_default_threshold`])
+			} else if splitParams.ChunkType == define.ChunkTypeAi {
+				splitParams.AiChunkModel = cast.ToString(libraryInfo[`ai_chunk_model`])
+				splitParams.AiChunkModelConfigId = cast.ToInt(libraryInfo[`ai_chunk_model_config_id`])
+				splitParams.AiChunkPrumpt = cast.ToString(libraryInfo[`ai_chunk_prumpt`])
+				splitParams.AiChunkSize = cast.ToInt(libraryInfo[`ai_chunk_size`])
+				splitParams.AiChunkNew = !isTableFile
+				splitParams.AiChunkTaskId = uuid.New().String()
+			}
+			splitParams.SemanticChunkModelConfigId = cast.ToInt(libraryInfo[`model_config_id`])
+			splitParams.SemanticChunkUseModel = libraryInfo[`use_model`]
+		case define.QALibraryType:
+			if !define.IsTableFile(uploadInfo.Ext) {
+				autoSplit = true
+			}
+		case define.OpenLibraryType:
+			if define.IsMdFile(uploadInfo.Ext) {
+				autoSplit = true
+			}
+		}
+		if autoSplit {
+			go common.AutoSplitLibFile(userId, int(fileId), splitParams)
 		}
 	}
 	return fileIds, nil
@@ -670,10 +704,6 @@ func GetLibFileSplit(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	pdfParseType := cast.ToInt(c.Query(`pdf_parse_type`))
-	if pdfParseType <= 0 {
-		pdfParseType = define.PdfParseTypeText
-	}
 	splitParams := define.SplitParams{
 		IsDiySplit:                 cast.ToInt(c.Query(`is_diy_split`)),
 		SeparatorsNo:               strings.TrimSpace(c.Query(`separators_no`)),
@@ -699,7 +729,6 @@ func GetLibFileSplit(c *gin.Context) {
 		AiChunkModelConfigId:       cast.ToInt(c.Query(`ai_chunk_model_config_id`)),
 		AiChunkSize:                cast.ToInt(c.Query(`ai_chunk_size`)),
 		AiChunkTaskId:              strings.TrimSpace(c.Query(`ai_chunk_task_id`)),
-		PdfParseType:               pdfParseType,
 	}
 	if splitParams.ChunkType == define.ChunkTypeSemantic {
 		if splitParams.SemanticChunkModelConfigId <= 0 {
@@ -789,13 +818,15 @@ func SaveLibFileSplit(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			return
 		}
+		c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 	} else {
-		if err = common.SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType, splitParams, list, pdfPageNum, common.GetLang(c)); err != nil {
+		dataIds, err := common.SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType, splitParams, list, pdfPageNum, common.GetLang(c))
+		if err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			return
 		}
+		c.String(http.StatusOK, lib_web.FmtJson(dataIds, nil))
 	}
-	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
 func GetLibFileExcelTitle(c *gin.Context) {
@@ -961,41 +992,169 @@ func ConstructGraph(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+	if err = common.ConstructGraph(id); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
 
-	dataList, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
-		Where(`file_id`, cast.ToString(id)).
-		Field(`id,file_id`).
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}
+
+func GetFileGraphInfo(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	if !common.GetNeo4jStatus(userId) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `graph_not_opened`))))
+		return
+	}
+	fileId := cast.ToInt(c.Query(`file_id`))
+	dataId := cast.ToInt(c.Query(`data_id`))
+	searchTerm := strings.TrimSpace(c.Query(`search_term`))
+
+	if fileId <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	info, err := common.GetLibFileInfo(fileId, userId)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(info) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	paragraphList, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Alias(`d`).
+		Join(`chat_ai_library_file f`, `d.file_id = f.id`, `left`).
+		Where(`d.admin_user_id`, cast.ToString(userId)).
+		Where(`d.file_id`, cast.ToString(fileId)).
+		Field(`d.id,d.file_id,d.content,f.file_name`).
 		Select()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	if len(dataList) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `status_exception`))))
-		return
+	paragraphMap := make(map[string]map[string]string)
+	for _, paragraph := range paragraphList {
+		paragraphId := cast.ToString(paragraph["id"])
+		paragraphMap[paragraphId] = paragraph
 	}
-	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
-		Where(`id`, cast.ToString(id)).
-		Update(msql.Datas{`graph_status`: define.GraphStatusInitial})
+
+	// 获取节点数据，添加搜索条件筛选
+	nodeRes, err := common.NewGraphDB(userId).GetFileNodes(fileId, dataId, searchTerm)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: id})
-	for _, data := range dataList {
-		message, err := tool.JsonEncode(map[string]any{`id`: data[`id`], `file_id`: data[`file_id`]})
-		if err != nil {
-			logs.Error(err.Error())
+
+	// 准备节点数据
+	nodes := make([]map[string]any, 0)
+	nodeIds := make(map[int64]bool)
+
+	for _, record := range nodeRes.Records {
+		nodeId, _ := record.Get("id")
+		name, _ := record.Get("name")
+		dataId, _ := record.Get("data_id")
+
+		// 将节点ID添加到nodeIds集合中
+		if idInt64, ok := nodeId.(int64); ok {
+			nodeIds[idInt64] = true
+		}
+
+		node := map[string]any{
+			"id":      nodeId,
+			"name":    name,
+			"data_id": dataId,
+		}
+
+		// 将段落数据添加到节点中
+		if dataIdStr := cast.ToString(dataId); dataIdStr != "" && paragraphMap[dataIdStr] != nil {
+			paragraph := paragraphMap[dataIdStr]
+			node["file_id"] = paragraph["file_id"]
+			node["file_name"] = paragraph["file_name"]
+			node["content"] = paragraph["content"]
+		}
+
+		nodes = append(nodes, node)
+	}
+
+	// 如果没有找到节点，直接返回空结果
+	if len(nodes) == 0 {
+		result := map[string]any{
+			"nodes": nodes,
+			"edges": []map[string]any{},
+		}
+		c.String(http.StatusOK, lib_web.FmtJson(result, nil))
+		return
+	}
+
+	// 获取边数据，添加搜索条件筛选
+	edgeRes, err := common.NewGraphDB(userId).GetFileRelationships(fileId, dataId, searchTerm)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+
+	// 准备边数据，只保留与筛选后节点相关的边
+	edges := make([]map[string]any, 0)
+	// 用于去重的映射，记录已经添加的边的方向
+	edgeDirections := make(map[string]bool)
+
+	for _, record := range edgeRes.Records {
+		edgeId, _ := record.Get("id")
+		fromId, _ := record.Get("from_id")
+		toId, _ := record.Get("to_id")
+		label, _ := record.Get("label")
+
+		// 检查边的两端是否都在筛选后的节点集合中
+		fromIdInt64, fromOk := fromId.(int64)
+		toIdInt64, toOk := toId.(int64)
+
+		if !fromOk || !toOk {
 			continue
 		}
-		if err = common.AddJobs(define.ConvertGraphTopic, message); err != nil {
-			logs.Error(err.Error())
+
+		// 只有当边的两端都在筛选后的节点列表中，才考虑添加这条边
+		if nodeIds[fromIdInt64] && nodeIds[toIdInt64] {
+			// 创建方向键，格式为：较小ID-较大ID
+			var directionKey string
+			if fromIdInt64 < toIdInt64 {
+				directionKey = fmt.Sprintf("%d-%d", fromIdInt64, toIdInt64)
+			} else {
+				directionKey = fmt.Sprintf("%d-%d", toIdInt64, fromIdInt64)
+			}
+
+			// 如果这个方向已经被添加过，则跳过
+			if edgeDirections[directionKey] {
+				continue
+			}
+
+			// 标记这个方向已经被添加
+			edgeDirections[directionKey] = true
+
+			edges = append(edges, map[string]any{
+				"id":      edgeId,
+				"from_id": fromId,
+				"to_id":   toId,
+				"label":   label,
+			})
 		}
 	}
 
-	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+	// 构建结果
+	result := map[string]any{
+		"nodes": nodes,
+		"edges": edges,
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(result, nil))
 }
 
 func RestudyLibraryFile(c *gin.Context) {
@@ -1009,7 +1168,7 @@ func RestudyLibraryFile(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	if !tool.InArray(pdfParseType, []int{define.PdfParseTypeText, define.PdfParseTypeOcr, define.PdfParseTypeOcrWithImage}) {
+	if !tool.InArray(pdfParseType, []int{define.PdfParseTypeText, define.PdfParseTypeOcr, define.PdfParseTypeOcrWithImage, define.PdfParseTypeOcrAli}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `pdf_parse_type`))))
 		return
 	}
@@ -1031,6 +1190,10 @@ func RestudyLibraryFile(c *gin.Context) {
 	if err != nil {
 		logs.Error(err.Error())
 	}
+	if page > 1000 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `exceed_max_pdf_page_count`))))
+		return
+	}
 
 	// update status
 	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
@@ -1043,16 +1206,42 @@ func RestudyLibraryFile(c *gin.Context) {
 		})
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
 	}
 
-	// delete cache
-	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: id})
+	if pdfParseType == define.PdfParseTypeOcrAli {
+		jobId, err := common.SubmitOdcParserJob(c, userId, info["file_url"])
+		if err != nil {
+			logs.Error(err.Error())
+			_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(id)).Update(msql.Datas{
+				`status`:      define.FileStatusException,
+				`errmsg`:      err.Error(),
+				`update_time`: tool.Time2Int(),
+			})
+			if err != nil {
+				logs.Error(err.Error())
+			}
+			lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: id})
+		} else {
+			_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(id)).Update(msql.Datas{
+				`ali_ocr_job_id`: jobId,
+				`update_time`:    tool.Time2Int(),
+			})
+			if err != nil {
+				logs.Error(err.Error())
+			}
+			lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: id})
+		}
+	} else {
+		// delete cache
+		lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: id})
 
-	// push to nsq task
-	if message, err := tool.JsonEncode(map[string]any{`file_id`: id, `admin_user_id`: info[`admin_user_id`], `file_url`: info[`file_url`]}); err != nil {
-		logs.Error(err.Error())
-	} else if err := common.AddJobs(define.ConvertHtmlTopic, message); err != nil {
-		logs.Error(err.Error())
+		// push to nsq task
+		if message, err := tool.JsonEncode(map[string]any{`file_id`: id, `admin_user_id`: info[`admin_user_id`], `file_url`: info[`file_url`]}); err != nil {
+			logs.Error(err.Error())
+		} else if err := common.AddJobs(define.ConvertHtmlTopic, message); err != nil {
+			logs.Error(err.Error())
+		}
 	}
 
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
