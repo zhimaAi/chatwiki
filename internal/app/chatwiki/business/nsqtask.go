@@ -459,6 +459,7 @@ func CrawlArticle(msg string, _ ...string) error {
 	//start crawl
 	uploadInfo, err := common.SaveUrlPage(cast.ToInt(file[`admin_user_id`]), file[`doc_url`], "library_file")
 	if err != nil {
+		logs.Error(err.Error())
 		_, err := m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
 			`status`: define.FileStatusCrawlException,
 			`errmsg`: err.Error(),

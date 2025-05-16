@@ -31,16 +31,14 @@ func (c *AiSpliter) SplitText(text string) ([]string, error) {
 		chunks := c.aiSplit(text)
 		for _, chunk := range chunks {
 			contents += chunk
-			if utf8.RuneCountInString(contents) > c.AiChunkSize {
+			if utf8.RuneCountInString(contents) >= c.AiChunkSize {
 				result = append(result, contents)
 				contents = ""
-			} else {
-				contents += chunk
 			}
 		}
 	}
 	// 添加重叠内容
-	result = c.addOverlappingContent(result)
+	// result = c.addOverlappingContent(result)
 	return result, nil
 }
 
@@ -55,7 +53,7 @@ func (c *AiSpliter) aiSplit(text string) []string {
 		for _, sep := range separators {
 			if i+len(sep) <= len(text) && text[i:i+len(sep)] == sep {
 				if i > startIdx {
-					sentence := strings.TrimSpace(text[startIdx : i+len(sep)])
+					sentence := strings.TrimSpace(text[startIdx:i+len(sep)]) + sep
 					if len(sentence) > 0 {
 						sentences = append(sentences, sentence)
 					}

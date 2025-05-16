@@ -190,13 +190,12 @@
             <!-- 自定义选择器 -->
             <CustomSelector
               v-model="formState.use_model"
-              :options="processedModelList"
-              placeholder="请选择嵌入模型"
               label-key="use_model_name"
               value-key="value"
-              :model-define="modelDefine"
+              :modelType="'TEXT EMBEDDING'"
               :model-config-id="formState.model_config_id"
               @change="handleModelChange"
+              @loaded="onVectorModelLoaded"
             />
             <!-- <a-select
               @change="handleChangeModel"
@@ -446,8 +445,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { Form, message, Modal } from 'ant-design-vue'
 import { QuestionCircleOutlined, CheckCircleFilled } from '@ant-design/icons-vue'
 import { getLibraryInfo, editLibrary, getSeparatorsList } from '@/api/library'
-import { getModelConfigOption } from '@/api/model/index'
-import { duplicateRemoval, removeRepeat } from '@/utils/index'
 import { LIBRARY_OPEN_AVATAR } from '@/constants/index'
 import AvatarInput from '@/views/library/add-library/components/avatar-input.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
@@ -495,20 +492,6 @@ const currentModelDefine = ref('')
 const isActive = ref(0)
 
 const libraryInfo = ref({})
-
-// 处理原始数据格式
-const processedModelList = computed(() => {
-  return modelList.value.map(group => ({
-    groupLabel: group.name,
-    groupIcon: group.icon,
-    children: group.children.map(child => ({
-      icon: child.icon,
-      use_model_name: child.use_model_name,
-      value: modelDefine.includes(child.model_define) && child.deployment_name ? child.deployment_name : child.name,
-      rawData: child // 保留原始数据
-    }))
-  }))
-})
 
 // 处理选择事件
 const handleModelChange = (item) => {
@@ -615,69 +598,8 @@ const handleSelectLibrary = () => {
   return false
 }
 
-// 获取嵌入模型列表
-const modelList = ref([])
 const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
 const oldModelDefineList = ['azure']
-
-function uniqueArr(arr, arr1, key) {
-  const keyVals = new Set(arr.map((item) => item.model_define))
-  arr1.filter((obj) => {
-    let val = obj[key]
-    if (keyVals.has(val)) {
-      arr.filter((obj1) => {
-        if (obj1.model_define == val) {
-          obj1.children = removeRepeat(obj1.children, obj.children)
-          return false
-        }
-      })
-    }
-  })
-  return arr
-}
-
-const getModelList = () => {
-  getModelConfigOption({
-    model_type: 'TEXT EMBEDDING',
-    is_offline: false
-  }).then((res) => {
-    let list = res.data || []
-    let children = []
-
-    modelList.value = list.map((item) => {
-      children = []
-      for (let i = 0; i < item.model_info.vector_model_list.length; i++) {
-        const ele = item.model_info.vector_model_list[i]
-        children.push({
-          name: ele,
-          deployment_name: item.model_config.deployment_name,
-          id: item.model_config.id,
-          model_define: item.model_info.model_define,
-          icon: item.model_info.model_icon_url, // 添加图标字段
-          use_model_name: item.model_info.model_name // 添加系统名称字段
-        })
-      }
-
-      return {
-        id: item.model_config.id,
-        name: item.model_info.model_name,
-        model_define: item.model_info.model_define,
-        icon: item.model_info.model_icon_url,
-        children: children,
-        deployment_name: item.model_config.deployment_name
-      }
-    })
-
-    // 如果modelList存在两个相同model_define情况就合并到一个对象的children中去
-    modelList.value = uniqueArr(
-      duplicateRemoval(modelList.value, 'model_define'),
-      modelList.value,
-      'model_define'
-    )
-  })
-}
-
-getModelList()
 
 const onChangeModel = () => {
   handleEdit()

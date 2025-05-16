@@ -30,6 +30,19 @@
     padding-left: 20px;
   }
 
+  .edit-box {
+    margin-left: 4px;
+
+    .edit-box-icon {
+      font-size: 18px;
+      cursor: pointer;
+
+      &:hover {
+        color: #2475fc;
+      }
+    }
+  }
+
   .header-right {
     display: flex;
     align-items: center;
@@ -102,6 +115,9 @@
     <div class="header-content">
       <a-image :width="32" :src="robotInfo.robot_avatar_url" />
       <div class="robot-name ml8">{{ robotInfo.robot_name }}</div>
+      <div class="edit-box" @click="onEdit">
+        <svg-icon class="edit-box-icon" name="edit"></svg-icon>
+      </div>
       <template v-if="robotInfo.start_node_key != ''">
         <div class="robot-status-box status-1">
           <CheckCircleFilled class="robot-status-icon" />
@@ -140,7 +156,7 @@ const draftSaveTime = computed(() => {
 
 const router = useRouter()
 
-const emit = defineEmits(['save', 'release'])
+const emit = defineEmits(['save', 'release', 'edit'])
 const props = defineProps({
   saveLoading: {
     default: false,
@@ -154,6 +170,10 @@ const props = defineProps({
 
 const onBack = () => {
   router.push('/')
+}
+
+const onEdit = () => {
+  emit('edit')
 }
 
 const handleSave = () => {

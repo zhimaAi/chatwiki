@@ -6,8 +6,12 @@ require (
 	github.com/88250/lute v1.7.6
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/Unknwon/goconfig v1.0.0
-	github.com/alibabacloud-go/tea v1.2.2
+	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.7
+	github.com/alibabacloud-go/docmind-api-20220711 v1.4.5
+	github.com/alibabacloud-go/tea v1.3.9
+	github.com/alibabacloud-go/tea-utils/v2 v2.0.7
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
+	github.com/aliyun/credentials-go v1.4.6
 	github.com/antchfx/xmlquery v1.4.4
 	github.com/beego/i18n v0.0.0-20161101132742-e9308947f407
 	github.com/caarlos0/env/v11 v11.1.0
@@ -30,13 +34,14 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/neo4j/neo4j-go-driver/v5 v5.28.0
 	github.com/pdfcpu/pdfcpu v0.9.1
-	github.com/playwright-community/playwright-go v0.4401.1
+	github.com/playwright-community/playwright-go v0.5200.0
 	github.com/pressly/goose/v3 v3.20.0
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/spf13/cast v1.6.0
 	github.com/syyongx/php2go v0.9.8
 	github.com/tmc/langchaingo v0.1.13
 	github.com/xuri/excelize/v2 v2.9.0
+	github.com/yuin/goldmark v1.7.11
 	github.com/zhimaAi/go_tools v0.0.0-20250107073519-cf149802f8e6
 	github.com/zhimaAi/llm_adaptor v0.0.0-20250326035857-99164d48e9ad
 	github.com/zhimaAi/pdf v0.0.0-20240423033113-08880067bc13
@@ -50,7 +55,16 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/BurntSushi/graphics-go v0.0.0-20160129215708-b43f31a4a966 // indirect
 	github.com/alecthomas/chroma v0.10.0 // indirect
-	github.com/alibabacloud-go/debug v1.0.0 // indirect
+	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.5 // indirect
+	github.com/alibabacloud-go/debug v1.0.1 // indirect
+	github.com/alibabacloud-go/endpoint-util v1.1.0 // indirect
+	github.com/alibabacloud-go/openapi-util v0.1.1 // indirect
+	github.com/alibabacloud-go/openplatform-20191219/v2 v2.0.1 // indirect
+	github.com/alibabacloud-go/tea-fileform v1.1.1 // indirect
+	github.com/alibabacloud-go/tea-oss-sdk v1.1.3 // indirect
+	github.com/alibabacloud-go/tea-oss-utils v1.1.0 // indirect
+	github.com/alibabacloud-go/tea-utils v1.3.6 // indirect
+	github.com/alibabacloud-go/tea-xml v1.1.3 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/antchfx/xpath v1.3.3 // indirect
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de // indirect
@@ -60,16 +74,17 @@ require (
 	github.com/casbin/govaluate v1.1.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/clbanning/mxj/v2 v2.7.0 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
-	github.com/deckarep/golang-set/v2 v2.6.0 // indirect
+	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.4 // indirect
 	github.com/glebarez/go-sqlite v1.20.3 // indirect
 	github.com/glebarez/sqlite v1.7.0 // indirect
-	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
+	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
 	github.com/go-shiori/dom v0.0.0-20210627111528-4e4722cd0d65 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
@@ -117,6 +132,7 @@ require (
 	github.com/smartystreets/goconvey v1.8.1 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.1005 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/hunyuan v1.0.1005 // indirect
+	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/volcengine/volc-sdk-golang v1.0.176 // indirect
@@ -131,15 +147,15 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
-	golang.org/x/crypto v0.37.0 // indirect
-	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 // indirect
-	golang.org/x/net v0.39.0 // indirect
-	golang.org/x/sync v0.13.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
-	golang.org/x/text v0.24.0 // indirect
+	golang.org/x/crypto v0.38.0 // indirect
+	golang.org/x/net v0.40.0 // indirect
+	golang.org/x/sync v0.14.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/text v0.25.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
 	golang.org/x/tools v0.32.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
+	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/driver/mysql v1.5.6 // indirect

@@ -59,11 +59,25 @@
     }
   }
 }
+
+.robot-avatar-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .form-item-tip {
+    color: #8c8c8c;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 22px;
+  }
+}
 </style>
 
 <template>
   <a-modal
-    width="746px"
+    :width="isEdit ? '472px' : '746px'"
     v-model:open="show"
     :confirmLoading="saveLoading"
     :title="title"
@@ -108,19 +122,36 @@
             </div>
           </div>
         </a-form-item> -->
-        <a-form-item ref="name" label="应用名称" v-bind="validateInfos.robot_name">
+        <a-form-item ref="name" label="" v-bind="validateInfos.robot_avatar_url" v-if="isEdit">
+          <div class="robot-avatar-box">
+            <AvatarInput :listType="'picture'" :style="{ width: '62px', height: '62px', borderRadius: '16px' }" v-model:value="formState.robot_avatar_url" @change="onAvatarChange" />
+            <div class="form-item-tip">请上传机器人头像，建议尺寸为100*100px,大小不超过100KB</div>
+          </div>
+        </a-form-item>
+
+        <a-form-item v-if="!isEdit" ref="name" label="应用名称" v-bind="validateInfos.robot_name">
           <a-input v-model:value="formState.robot_name" placeholder="请输入应用名称" />
+        </a-form-item>
+        <a-form-item v-else ref="name" label="工作流名称" v-bind="validateInfos.robot_name">
+          <a-input v-model:value="formState.robot_name" placeholder="请输入机器人名称，最多20个字" />
         </a-form-item>
 
         <a-form-item label="简介" v-bind="validateInfos.robot_intro">
           <a-textarea
+            v-if="!isEdit"
             :rows="3"
             v-model:value="formState.robot_intro"
             placeholder="请输入机器人简介，比如ChatWiki产品帮助机器人，可以通过提问获取ChatWiki的使用帮助，比如如何创建机器人，如何新建知识库，如何添加模型等。"
           />
+          <a-textarea
+            v-else
+            :rows="3"
+            v-model:value="formState.robot_intro"
+            placeholder="请输入机器人简介，比如 ZHIMA CHATAI 基于大预言模型提供 ZHIMA CHATAI 产品帮助"
+          />
         </a-form-item>
 
-        <a-form-item ref="name" label="机器人头像" v-bind="validateInfos.robot_avatar_url">
+        <a-form-item ref="name" label="机器人头像" v-bind="validateInfos.robot_avatar_url" v-if="!isEdit">
           <AvatarInput v-model:value="formState.robot_avatar_url" @change="onAvatarChange" />
           <div class="form-item-tip">请上传机器人头像，建议尺寸为100*100px,大小不超过100KB</div>
         </a-form-item>
@@ -131,23 +162,26 @@
 
 <script setup>
 import { useStorage } from '@/hooks/web/useStorage'
-import { ref, reactive, h } from 'vue'
+import { ref, reactive, h, onMounted, computed } from 'vue'
 import { Form, message, Modal } from 'ant-design-vue'
 import { CloseCircleFilled } from '@ant-design/icons-vue'
 import { getModelConfigOption } from '@/api/model/index'
-import { saveRobot } from '@/api/robot/index'
-import { useRouter } from 'vue-router'
+import { saveRobot, editBaseInfo } from '@/api/robot/index'
+import { useRoute, useRouter } from 'vue-router'
 import AvatarInput from './avatar-input.vue'
 import { DEFAULT_ROBOT_AVATAR, DEFAULT_WORKFLOW_AVATAR } from '@/constants/index'
-import { computed } from 'vue'
+import { useRobotStore } from '@/stores/modules/robot'
+const robotStore = useRobotStore()
 
 const { setStorage } = useStorage('localStorage')
 
 let default_avatar = ''
 
+const route = useRoute()
 const router = useRouter()
 const useForm = Form.useForm
 
+const isEdit = ref(false)
 const show = ref(false)
 
 const saveLoading = ref(false)
@@ -161,8 +195,14 @@ const formState = reactive({
 })
 
 const title = computed(() => {
-  return formState.application_type == 0 ? '新建聊天机器人' : '新建工作流' 
+  return formState.application_type == 0 ? '新建聊天机器人' : isEdit.value ? '编辑工作流基本信息' : '新建工作流'
 })
+
+const robotInfo = computed(() => {
+  return robotStore.robotInfo
+})
+
+const { getRobot } = robotStore
 
 const rules = reactive({
   robot_name: [
@@ -195,7 +235,18 @@ const saveForm = () => {
 
   saveLoading.value = true
 
-  saveRobot(formData, formState.application_type)
+  let requertUrl = saveRobot
+  let tipVal = '机器人创建成功'
+  if (isEdit.value) {
+    requertUrl = editBaseInfo
+    formData.id = route.query.id
+    tipVal = '机器人编辑成功'
+    if (formData.robot_avatar == default_avatar) {
+      delete formData.robot_avatar
+    }
+  }
+
+  requertUrl(formData, formState.application_type)
     .then((res) => {
       saveLoading.value = false
 
@@ -203,14 +254,21 @@ const saveForm = () => {
         return message.error(res.msg)
       }
 
-      message.success('机器人创建成功')
-      if (formState.application_type == 0) {
-        setStorage('showNoLibraryTip', true)
-        router.push(
-          '/robot/config/basic-config?id=' + res.data.id + '&robot_key=' + res.data.robot_key
-        )
+      message.success(tipVal)
+
+      if (!isEdit.value) {
+        if (formState.application_type == 0) {
+          setStorage('showNoLibraryTip', true)
+          router.push(
+            '/robot/config/basic-config?id=' + res.data.id + '&robot_key=' + res.data.robot_key
+          )
+        } else {
+          router.push('/robot/config/workflow?id=' + res.data.id + '&robot_key=' + res.data.robot_key)
+        }
       } else {
-        router.push('/robot/config/workflow?id=' + res.data.id + '&robot_key=' + res.data.robot_key)
+        // 弹窗关闭 刷新数据
+        getRobot(route.query.id)
+        show.value = false
       }
     })
     .catch(() => {
@@ -248,7 +306,7 @@ const checkLLM = async () => {
 const open = async (type) => {
   if(type == 0){
     default_avatar = DEFAULT_ROBOT_AVATAR
-  }else{
+  } else {
     default_avatar = DEFAULT_WORKFLOW_AVATAR
   }
   
@@ -262,6 +320,12 @@ const open = async (type) => {
     formState.robot_intro = ''
     formState.application_type = type
     show.value = true
+
+    if (isEdit.value && robotInfo.value) {
+      formState.robot_name = robotInfo.value.robot_name
+      formState.robot_intro = robotInfo.value.robot_intro
+      formState.robot_avatar_url = robotInfo.value.robot_avatar_url
+    }
   }
 }
 
@@ -278,6 +342,12 @@ const handleSave = () => {
       console.log('error', err)
     })
 }
+
+onMounted(() => {
+  if (route.query.id) {
+    isEdit.value = true
+  }
+})
 
 defineExpose({
   open

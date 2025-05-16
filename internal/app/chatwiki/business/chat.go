@@ -597,7 +597,10 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	}()
 	var messages []adaptor.ZhimaChatCompletionMessage
 	var list []msql.Params
-	var showQuoteFile = cast.ToBool(params.Robot[`answer_source_switch`])
+	var (
+		showQuoteFile  = cast.ToBool(params.Robot[`answer_source_switch`])
+		startQuoteFile bool
+	)
 	if cast.ToInt(params.Robot[`application_type`]) == define.ApplicationTypeFlow {
 		//nothing to do
 	} else if cast.ToInt(params.Robot[`chat_type`]) == define.ChatTypeDirect {
@@ -605,6 +608,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	} else {
 		if showQuoteFile {
 			chanStream <- sse.Event{Event: `start_quote_file`, Data: tool.Time2Int()}
+			startQuoteFile = true
 		}
 		messages, list, monitor.LibUseTime, err = buildLibraryChatRequestMessage(params, id, dialogueId, &debugLog)
 
@@ -613,6 +617,9 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 
 	if err != nil {
 		logs.Error(err.Error())
+		if startQuoteFile {
+			chanStream <- sse.Event{Event: `quote_file`, Data: `[]`}
+		}
 		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(params.Lang, `sys_err`)}
 		return nil, err
 	}
@@ -631,6 +638,9 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	answerMessageId, err := msql.Model(`chat_ai_message`, define.Postgres).Insert(message, `id`)
 	if err != nil {
 		logs.Error(err.Error())
+		if startQuoteFile {
+			chanStream <- sse.Event{Event: `quote_file`, Data: `[]`}
+		}
 		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(params.Lang, `sys_err`)}
 		return nil, err
 	}
@@ -680,7 +690,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 			`message_id`:   cast.ToString(answerMessageId),
 		})
 	}
-	if showQuoteFile && len(quoteFile) > 0 {
+	if showQuoteFile && startQuoteFile {
 		chanStream <- sse.Event{Event: `quote_file`, Data: quoteFile}
 	}
 	quoteFileJson, _ := tool.JsonEncode(quoteFile)

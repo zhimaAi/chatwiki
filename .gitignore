@@ -33,3 +33,4 @@ config_dev.ini
 docker/dev/
 static/home/
 config_dev/
+Makefile

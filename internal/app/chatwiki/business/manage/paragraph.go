@@ -5,6 +5,7 @@ package manage
 import (
 	"encoding/json"
 	"errors"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 	"net/http"
 	"strings"
 	"unicode/utf8"
@@ -616,4 +617,62 @@ func UpdateParagraphCategory(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}
+
+func GenerateSimilarQuestions(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	libraryId := cast.ToInt(c.PostForm(`library_id`))
+	modelConfigId := cast.ToInt(c.PostForm(`model_config_id`))
+	useModel := cast.ToString(c.PostForm(`use_model`))
+	question := strings.TrimSpace(c.PostForm(`question`))
+	answer := strings.TrimSpace(c.PostForm(`answer`))
+	num := cast.ToInt(c.PostForm(`num`))
+	if libraryId == 0 || modelConfigId == 0 || len(useModel) == 0 || len(question) == 0 || len(answer) == 0 || num <= 0 || num > 20 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+
+	library, err := common.GetLibraryInfo(libraryId, userId)
+	if len(library) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+
+	prompt := strings.ReplaceAll(define.PromptGenerateSimilarQuestions, `{{num}}`, cast.ToString(num))
+	prompt = strings.ReplaceAll(prompt, `{{question}}`, question)
+	prompt = strings.ReplaceAll(prompt, `{{answer}}`, answer)
+
+	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `user`, Content: prompt}}
+
+	chatResp, _, err := common.RequestChat(
+		userId,
+		``,
+		msql.Params{},
+		``,
+		modelConfigId,
+		useModel,
+		messages,
+		nil,
+		0.1,
+		1024,
+	)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	chatResp.Result = strings.TrimPrefix(chatResp.Result, "```json")
+	chatResp.Result = strings.TrimSuffix(chatResp.Result, "```")
+	var result []string
+	err = json.Unmarshal([]byte(chatResp.Result), &result)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(result, nil))
 }

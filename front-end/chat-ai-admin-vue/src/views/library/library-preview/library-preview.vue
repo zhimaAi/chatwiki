@@ -103,7 +103,7 @@
         <template v-if="isTableType || doc_type == 3">
           <!-- 表格类型 不支持预览 -->
           <Empty @openEditSubscription="openEditSubscription" v-if="isEmpty"></Empty>
-          <cu-scroll :scrollbar="{ minSize: 0 }" v-else @onScrollEnd="onScrollEnd">
+          <cu-scroll :scrollbar="{ minSize: 0 }" v-else @onScrollEnd="onScrollEnd" :disableMouse="true">
             <div class="content-block">
               <SubsectionBox
                 ref="subsectionBoxRef"
@@ -213,6 +213,7 @@
               <Empty @openEditSubscription="openEditSubscription" v-if="isEmpty"></Empty>
               <cu-scroll
                 :scrollbar="scrollbar"
+                :disableMouse="true"
                 ref="rightScrollRef"
                 v-else
                 @onScrollEnd="onScrollEnd"
@@ -798,14 +799,14 @@ const handleSplit = ({ index, beforeContent, selectedContent, afterContent, isFu
     newList[index].content = beforeContent || ''
     newList[index].word_total = beforeContent.length || 0
 
-    // 插入选中内容段落
-    newList.splice(index + 1, 0, createNewParagraph(newList[index], selectedContent))
-
     // 插入剩余内容段落
     if (afterContent.trim()) {
-      newList[index].content += afterContent || ''
-      newList[index].word_total += afterContent.length || 0
+      // 插入选中内容段落
+      newList.splice(index + 1, 0, createNewParagraph(newList[index], afterContent))
     }
+
+    // 插入选中内容段落
+    newList.splice(index + 1, 0, createNewParagraph(newList[index], selectedContent))
 
     // 不是全选最终数据长度会加1
     newList[index + 1].images = []
@@ -1053,9 +1054,21 @@ const handleSaveLibFileSplit = async (documentFragmentList, index) => {
   saveLoading.value = true
 
   saveLibFileSplit(parmas)
-    .then(() => {
+    .then((res) => {
       message.success('操作成功')
-      handleEditParagraph(documentFragmentList[index])
+      // 后端返回的id替换成新的id
+      const newIds = res.data
+      for (let index = 0; index < newIds.length; index++) {
+        const item = newIds[index];
+        const pItem = paragraphLists.value[index]
+        if (index < paragraphLists.value.length) {
+          pItem.id = item.toString()
+          pItem.status = '0'
+          pItem.status_text = listStatusMap[pItem.status]
+        } else {
+          break;
+        }
+      }
     })
     .finally(() => {
       saveLoading.value = false

@@ -39,6 +39,12 @@ func SaveLibrarySearch(c *gin.Context) {
 	rerankStatus := cast.ToInt(c.PostForm(`rerank_status`))
 	rerankModelConfigID := cast.ToInt(c.PostForm(`rerank_model_config_id`))
 	rerankUseModel := strings.TrimSpace(c.PostForm(`rerank_use_model`))
+	promptType := cast.ToString(c.PostForm(`prompt_type`))
+	prompt := cast.ToString(c.PostForm(`prompt`))
+	if len(prompt) == 0 && cast.ToInt(promptType) != 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `prompt`))))
+		return
+	}
 	m := msql.Model(`user_search_config`, define.Postgres)
 	data, err := m.Where("user_id", cast.ToString(userId)).Field(`id`).Find()
 	if err != nil {
@@ -60,8 +66,9 @@ func SaveLibrarySearch(c *gin.Context) {
 		"rerank_model_config_id": rerankModelConfigID,
 		"rerank_use_model":       rerankUseModel,
 		"update_time":            tool.Time2Int(),
+		"prompt_type":            promptType,
+		"prompt":                 prompt,
 	}
-
 	if len(data) == 0 {
 		saveData[`create_time`] = tool.Time2Int()
 		_, err = m.Insert(saveData)
@@ -103,7 +110,7 @@ func LibraryAiSummary(c *gin.Context) {
 	modelConfigId := cast.ToInt(c.PostForm(`model_config_id`))
 	useModel := strings.TrimSpace(c.PostForm(`use_model`))
 	question := strings.TrimSpace(c.PostForm(`question`))
-	size := cast.ToInt(c.DefaultPostForm(`size`, "200"))
+	size := cast.ToInt(c.DefaultPostForm(`size`, "10"))
 	similarity := cast.ToFloat64(c.PostForm(`similarity`))
 	searchType := cast.ToInt(c.PostForm(`search_type`))
 	rerankModelConfigID := cast.ToInt(c.PostForm(`rerank_model_config_id`))
@@ -112,6 +119,7 @@ func LibraryAiSummary(c *gin.Context) {
 	temperature := cast.ToFloat64(c.DefaultPostForm(`temperature`, `0.5`))
 	maxToken := cast.ToInt(c.DefaultPostForm(`max_token`, `2000`))
 	recallType := cast.ToString(c.PostForm(`recall_type`))
+	prompt := cast.ToString(c.PostForm(`prompt`))
 	if modelConfigId <= 0 || useModel == "" {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `llm_model_err`))))
 		return
@@ -120,7 +128,12 @@ func LibraryAiSummary(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-
+	if len(prompt) == 0 {
+		prompt = define.PromptLibAiSummary
+	}
+	if size > 10 {
+		size = 10
+	}
 	if searchType != define.SearchTypeMixed && searchType != define.SearchTypeVector && searchType != define.SearchTypeFullText && searchType != define.SearchTypeGraph {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
 		return
@@ -185,7 +198,7 @@ func LibraryAiSummary(c *gin.Context) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := common.LibraryAiSummary(common.GetLang(c), "", "", question, []string{}, libraryIds, size, maxToken, similarity, temperature, searchType, robot, chanStream); err != nil {
+		if err := common.LibraryAiSummary(common.GetLang(c), question, prompt, []string{}, libraryIds, size, maxToken, similarity, temperature, searchType, robot, chanStream); err != nil {
 			common.FmtError(c, `sys_err`)
 			return
 		}

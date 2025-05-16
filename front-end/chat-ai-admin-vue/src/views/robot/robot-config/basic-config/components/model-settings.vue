@@ -42,11 +42,10 @@
                 <!-- 自定义选择器 -->
                 <CustomSelector
                   v-model="formState.use_model"
-                  :options="processedModelList"
                   placeholder="请选择LLM模型"
                   label-key="use_model_name"
                   value-key="value"
-                  :model-define="modelDefine"
+                  :modelType="'LLM'"
                   :model-config-id="formState.model_config_id"
                   @change="handleModelChange"
                 />
@@ -175,7 +174,7 @@
 
 <script setup>
 import { getModelConfigOption } from '@/api/model/index'
-import { ref, reactive, inject, toRaw, watchEffect, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, inject, toRaw, watchEffect, onMounted, onBeforeUnmount } from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import EditBox from './edit-box.vue'
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
@@ -183,7 +182,6 @@ import CustomSelector from '@/components/custom-selector/index.vue'
 
 const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
 const oldModelDefineList = ['azure']
-
 const grid = reactive({ sm: 24, md: 24, lg: 12, xl: 24, xxl: 24 })
 // 获取LLM模型
 const modelList = ref([])
@@ -203,20 +201,6 @@ const formState = reactive({
 const currentModelDefine = ref('')
 const oldModelDefine = ref('')
 const currentUseModel = ref('')
-
-// 处理原始数据格式
-const processedModelList = computed(() => {
-  return modelList.value.map(group => ({
-    groupLabel: group.name,
-    groupIcon: group.icon,
-    children: group.children.map(child => ({
-      icon: child.icon,
-      use_model_name: child.use_model_name,
-      value: modelDefine.includes(child.model_define) && child.deployment_name ? child.deployment_name : child.name,
-      rawData: child // 保留原始数据
-    }))
-  }))
-})
 
 // 处理选择事件
 const handleModelChange = (item) => {

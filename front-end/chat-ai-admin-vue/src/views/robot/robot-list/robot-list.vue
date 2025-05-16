@@ -270,6 +270,11 @@
                       >删 除</a
                     >
                   </a-menu-item>
+                  <a-menu-item>
+                    <a class="copy-text-color" href="javascript:;" @click="handleCopy(item)"
+                      >复 制</a
+                    >
+                  </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -286,7 +291,7 @@
 <script setup>
 import { DEFAULT_ROBOT_AVATAR, DEFAULT_WORKFLOW_AVATAR} from '@/constants/index.js'
 import { usePermissionStore } from '@/stores/modules/permission'
-import { getRobotList, deleteRobot } from '@/api/robot/index.js'
+import { getRobotList, deleteRobot, robotCopy } from '@/api/robot/index.js'
 import { ref, onMounted, createVNode, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ExclamationCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
@@ -375,7 +380,6 @@ const toEditRobot = ({id, robot_key, application_type}) => {
 }
 
 const handleDelete = (data) => {
-  console.log(data, '===')
   let secondsToGo = 3
   let modal = Modal.confirm({
     title: `删除机器人${data.robot_name}`,
@@ -391,7 +395,6 @@ const handleDelete = (data) => {
       onDelete(data)
     },
     onCancel() {
-      // console.log('Cancel')
     }
   })
 
@@ -422,6 +425,56 @@ const handleDelete = (data) => {
 const onDelete = ({ id }) => {
   deleteRobot({ id }).then(() => {
     message.success('删除成功')
+    getList()
+  })
+}
+
+const handleCopy = (data) => {
+  let secondsToGo = 3
+  let modal = Modal.confirm({
+    title: `复制机器人${data.robot_name}`,
+    icon: createVNode(ExclamationCircleOutlined),
+    content: '您确定要复制此机器人吗？',
+    okText: secondsToGo + ' 确 定',
+    okType: 'danger',
+    cancelText: '取 消',
+    okButtonProps: {
+      disabled: true
+    },
+    onOk() {
+      onCopy(data)
+    },
+    onCancel() {
+    }
+  })
+
+  let interval = setInterval(() => {
+    if (secondsToGo == 1) {
+      modal.update({
+        okText: '确 定',
+        okButtonProps: {
+          disabled: false
+        }
+      })
+
+      clearInterval(interval)
+      interval = undefined
+    } else {
+      secondsToGo -= 1
+
+      modal.update({
+        okText: secondsToGo + ' 确 定',
+        okButtonProps: {
+          disabled: true
+        }
+      })
+    }
+  }, 1000)
+}
+
+const onCopy = ({ id }) => {
+  robotCopy({ id }).then(() => {
+    message.success('复制成功')
     getList()
   })
 }

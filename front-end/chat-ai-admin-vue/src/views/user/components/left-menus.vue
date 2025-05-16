@@ -113,6 +113,14 @@ let baseMenu = [
     permissionKey: 'AccountManage'
   },
   {
+    name: '阿里云OCR',
+    key: 'enterprise',
+    path: '/user/aliocr',
+    svg: 'ali-ocr',
+    svgActive: 'ali-ocr',
+    haspermise: true
+  },
+  {
     name: '企业设置',
     key: 'enterprise',
     path: '/user/enterprise',
@@ -142,6 +150,14 @@ let baseMenu = [
     path: '/user/sensitive-words',
     svg: 'sensitive-icon',
     svgActive: 'sensitive-icon',
+    haspermise: true
+  },
+  {
+    name: '提示词模板库',
+    key: 'promptLibrary',
+    path: '/user/prompt-library',
+    svg: 'prompt-icon',
+    svgActive: 'prompt-icon',
     haspermise: true
   },
 ]

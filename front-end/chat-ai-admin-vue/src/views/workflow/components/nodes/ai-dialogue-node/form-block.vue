@@ -118,24 +118,34 @@
             </div>
           </div>
         </a-form-item>
-        <a-form-item label="提示词" name="prompt">
-          <at-input 
+        <a-form-item name="prompt" class="width-100">
+          <template #label>
+            <div class="space-between-box">
+              <div>提示词</div>
+              <div class="btn-hover-wrap" @click="onShowAddPromptModal">
+                <DownloadOutlined />从提示词库导入
+              </div>
+            </div>
+          </template>
+          <!-- {{ formState.prompt }} -->
+          <at-input
             type="textarea"
-            inputStyle="height: 100px;" 
-            :options="variableOptions" 
-            :defaultSelectedList="formState.prompt_tags" 
-            :defaultValue="formState.prompt" 
+            inputStyle="height: 100px;"
+            :options="variableOptions"
+            :defaultSelectedList="formState.prompt_tags"
+            :defaultValue="formState.prompt"
             ref="atInputRef"
             @open="getVlaueVariableList"
-            @change="(text, selectedList) => changeValue(text, selectedList)" 
-            placeholder="请输入消息内容，键入“/”可以插入变量">
-              <template #option="{ label, payload }">
-                <div class="field-list-item">
-                  <div class="field-label">{{ label }}</div>
-                  <div class="field-type">{{ payload.typ }}</div>
-                </div>
-              </template>
-            </at-input>
+            @change="(text, selectedList) => changeValue(text, selectedList)"
+            placeholder="请输入消息内容，键入“/”可以插入变量"
+          >
+            <template #option="{ label, payload }">
+              <div class="field-list-item">
+                <div class="field-label">{{ label }}</div>
+                <div class="field-type">{{ payload.typ }}</div>
+              </div>
+            </template>
+          </at-input>
           <div class="form-tip">输入 / 插入变量</div>
         </a-form-item>
         <div class="diy-form-item">
@@ -155,6 +165,7 @@
         </div>
       </div>
     </a-form>
+    <ImportPrompt @ok="handleSavePrompt" ref="importPromptRef" />
   </div>
 </template>
 
@@ -164,8 +175,10 @@ import {
   QuestionCircleOutlined,
   UpOutlined,
   DownOutlined,
+  DownloadOutlined
 } from '@ant-design/icons-vue'
 import AtInput from '../at-input/at-input.vue'
+import ImportPrompt from '@/components/import-prompt/index.vue'
 
 import { useRobotStore } from '@/stores/modules/robot'
 const robotStore = useRobotStore()
@@ -219,7 +232,7 @@ const formState = reactive({
   max_token: 0,
   context_pair: 6,
   prompt: '',
-  prompt_tags: [],
+  prompt_tags: []
 })
 let lock = false
 watch(
@@ -234,11 +247,19 @@ watch(
       let llm = JSON.parse(dataRaw).llm || {}
 
       llm = JSON.parse(JSON.stringify(llm))
-      
-      let { model_config_id, use_model, context_pair, temperature, max_token, prompt, prompt_tags } = llm
+
+      let {
+        model_config_id,
+        use_model,
+        context_pair,
+        temperature,
+        max_token,
+        prompt,
+        prompt_tags
+      } = llm
 
       getVlaueVariableList()
-      
+
       formState.model_config_id = model_config_id
       formState.use_model = use_model
       formState.context_pair = context_pair || 6
@@ -337,16 +358,16 @@ const handleChangeModel = (val, option) => {
 }
 
 const onUpatateNodeName = (data) => {
-  if(data.node_type !== 'http-node'){
-    return;
+  if (data.node_type !== 'http-node') {
+    return
   }
 
   getVlaueVariableList()
 
   nextTick(() => {
-    if(formState.prompt_tags && formState.prompt_tags.length > 0){
-      formState.prompt_tags.forEach(tag => {
-        if(tag.node_id == data.node_id){
+    if (formState.prompt_tags && formState.prompt_tags.length > 0) {
+      formState.prompt_tags.forEach((tag) => {
+        if (tag.node_id == data.node_id) {
           let arr = tag.label.split('/')
           arr[0] = data.node_name
           tag.label = arr.join('/')
@@ -356,6 +377,24 @@ const onUpatateNodeName = (data) => {
 
       atInputRef.value.refresh()
     }
+  })
+}
+
+const importPromptRef = ref(null)
+
+const onShowAddPromptModal = () => {
+  importPromptRef.value.show()
+}
+
+const handleSavePrompt = (item) => {
+  formState.prompt = ''
+  if (item.prompt_type == 1) {
+    formState.prompt = item.markdown
+  } else {
+    formState.prompt = item.prompt
+  }
+  nextTick(() => {
+    atInputRef.value.initData()
   })
 }
 
@@ -376,6 +415,27 @@ defineExpose({})
 
 <style lang="less" scoped>
 @import '../form-block.less';
+
+.width-100 {
+  ::v-deep(.ant-form-item-label) {
+    width: 100%;
+    label {
+      width: 100%;
+    }
+  }
+}
+.space-between-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  .btn-hover-wrap {
+    width: fit-content;
+    padding: 0 6px;
+    color: #2475fc;
+    gap: 4px;
+  }
+}
 
 .options-item {
   margin-top: 12px;

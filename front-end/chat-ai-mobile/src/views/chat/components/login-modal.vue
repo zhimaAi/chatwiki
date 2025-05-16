@@ -8,8 +8,8 @@
     round
     position="center"
     class="login-popup"
-    closeable
-    close-icon-position="top-right"
+    :close-on-click-overlay="false"
+    :closeable="false"
   >
     <div class="login-container">
       <h2 class="title">欢迎使用ChatWiki</h2>

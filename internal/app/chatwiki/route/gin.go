@@ -52,6 +52,8 @@ func init() {
 	/*company API*/
 	noAuthFuns(Route[http.MethodGet], "/manage/getCompany", manage.GetCompany)
 	Route[http.MethodPost]["/manage/saveCompany"] = manage.SaveCompany
+	Route[http.MethodPost]["/manage/saveAliOcr"] = manage.SaveAliOcr
+	Route[http.MethodPost][`/manage/checkAliOcr`] = manage.CheckAliOcr
 
 	/*robot API*/
 	Route[http.MethodPost][`/manage/upload`] = manage.Upload
@@ -62,6 +64,8 @@ func init() {
 	Route[http.MethodGet][`/manage/getRobotInfo`] = manage.GetRobotInfo
 	Route[http.MethodPost][`/manage/deleteRobot`] = manage.DeleteRobot
 	Route[http.MethodGet][`/manage/createPromptByAi`] = manage.CreatePromptByAi
+	Route[http.MethodPost][`/manage/robotCopy`] = manage.RobotCopy
+	Route[http.MethodPost][`/manage/editBaseInfo`] = manage.EditBaseInfo
 
 	/*library API*/
 	Route[http.MethodGet][`/manage/getLibraryList`] = manage.GetLibraryList
@@ -73,7 +77,7 @@ func init() {
 	Route[http.MethodPost][`/manage/relationRobot`] = manage.RelationRobot
 
 	/** library search API*/
-	Route[http.MethodPost][`/manage/liraryAiSummary`] = manage.LibraryAiSummary
+	Route[http.MethodPost][`/manage/libraryAiSummary`] = manage.LibraryAiSummary
 	Route[http.MethodGet][`/manage/getLibrarySearch`] = manage.GetLibrarySearch
 	Route[http.MethodPost][`/manage/saveLibrarySearch`] = manage.SaveLibrarySearch
 
@@ -115,6 +119,7 @@ func init() {
 	Route[http.MethodPost][`/manage/editLibFile`] = manage.EditLibFile
 	Route[http.MethodPost][`/manage/manualCrawl`] = manage.ManualCrawl
 	Route[http.MethodPost][`/manage/constructGraph`] = manage.ConstructGraph
+	Route[http.MethodGet][`/manage/getFileGraphInfo`] = manage.GetFileGraphInfo
 	Route[http.MethodPost][`/manage/reconstructVector`] = manage.ReconstructVector
 	Route[http.MethodPost][`/manage/reconstructCategoryVector`] = manage.ReconstructCategoryVector
 	Route[http.MethodPost][`/manage/reconstructGraph`] = manage.ReconstructGraph
@@ -131,9 +136,11 @@ func init() {
 	Route[http.MethodPost][`/manage/editParagraph`] = manage.SaveParagraph
 	Route[http.MethodPost][`/manage/deleteParagraph`] = manage.DeleteParagraph
 	Route[http.MethodPost][`/manage/updateParagraphCategory`] = manage.UpdateParagraphCategory
+	Route[http.MethodPost][`/manage/generateSimilarQuestions`] = manage.GenerateSimilarQuestions
 	/*category API*/
 	Route[http.MethodGet][`/manage/getCategoryList`] = manage.GetCategoryList
 	Route[http.MethodPost][`/manage/saveCategory`] = manage.SaveCategory
+
 	/*form API*/
 	Route[http.MethodGet][`/manage/getFormList`] = manage.GetFormList
 	Route[http.MethodGet][`/manage/getFormInfo`] = manage.GetFormInfo
@@ -227,6 +234,15 @@ func init() {
 	/*receiver API*/
 	Route[http.MethodGet][`/manage/getReceiverList`] = manage.GetReceiverList
 	Route[http.MethodPost][`/manage/setReceiverRead`] = manage.SetReceiverRead
+	/*prompt_library API*/
+	Route[http.MethodGet][`/manage/getPromptLibraryGroup`] = manage.GetPromptLibraryGroup
+	Route[http.MethodPost][`/manage/savePromptLibraryGroup`] = manage.SavePromptLibraryGroup
+	Route[http.MethodPost][`/manage/deletePromptLibraryGroup`] = manage.DeletePromptLibraryGroup
+	Route[http.MethodGet][`/manage/getPromptLibraryItems`] = manage.GetPromptLibraryItems
+	Route[http.MethodPost][`/manage/savePromptLibraryItems`] = manage.SavePromptLibraryItems
+	Route[http.MethodPost][`/manage/deletePromptLibraryItems`] = manage.DeletePromptLibraryItems
+	Route[http.MethodGet][`/manage/createPromptByLlm`] = manage.CreatePromptByLlm
+	Route[http.MethodPost][`/manage/movePromptLibraryItems`] = manage.MovePromptLibraryItems
 }
 
 func noAuthFuns(route map[string]lib_web.Action, path string, handlerFunc lib_web.Action) map[string]lib_web.Action {

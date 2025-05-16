@@ -6,9 +6,10 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/zhimaAi/go_tools/logs"
-	"strings"
 )
 
 // GraphDB 图数据库操作封装
@@ -51,6 +52,14 @@ func (g *GraphDB) ConstructEntity(subject, object, sanitizedPredicate string, li
 		logs.Error(`create graph error: %s, cypher is %s`, err.Error(), createGraphSQL)
 	}
 	return r, err
+}
+
+func (g *GraphDB) GetFileEntity(fileId int) (*neo4j.EagerResult, error) {
+	query := fmt.Sprintf(`
+			MATCH (s:Entity_%d {file_id: %d})
+			RETURN s.file_id as file_id, s.data_id as data_id, s.name as name, s.library_id as library_id
+		`, g.adminUserId, fileId)
+	return g.Execute(query)
 }
 
 func (g *GraphDB) GetEntityCount(idList []string) (*neo4j.EagerResult, error) {
@@ -125,4 +134,113 @@ func (g *GraphDB) FindRelatedEntities(entity string, libraryIds []string, limit 
 		return nil, err
 	}
 	return results, nil
+}
+
+// GetFileRelationships 获取指定文件的所有关系边
+func (g *GraphDB) GetFileRelationships(fileId int, dataId int, searchTerm ...string) (*neo4j.EagerResult, error) {
+	query := fmt.Sprintf(`
+		MATCH (s:Entity_%d {file_id: %d})-[r]-(o:Entity_%d {file_id: %d})
+		RETURN 
+			id(r) AS id,
+			id(s) AS from_id,
+			id(o) AS to_id,
+			type(r) AS label,
+			type(r) AS type
+	`, g.adminUserId, fileId, g.adminUserId, fileId)
+
+	if dataId > 0 {
+		query = fmt.Sprintf(`
+		MATCH (s:Entity_%d {file_id: %d, data_id: %d})-[r]-(o:Entity_%d {file_id: %d, data_id: %d})
+		RETURN 
+			id(r) AS id,
+			id(s) AS from_id,
+			id(o) AS to_id,
+			type(r) AS label,
+			type(r) AS type
+	`, g.adminUserId, fileId, dataId, g.adminUserId, fileId, dataId)
+	}
+
+	// 如果指定了搜索词，尝试作为关系类型或节点名称过滤
+	if len(searchTerm) > 0 && searchTerm[0] != "" {
+		// 转义单引号
+		escapedTerm := strings.ReplaceAll(searchTerm[0], "'", "''")
+
+		// 修改查询，同时过滤关系类型和节点名称
+		query = fmt.Sprintf(`
+		MATCH (s:Entity_%d {file_id: %d})-[r]-(o:Entity_%d {file_id: %d})
+		WHERE type(r) CONTAINS '%s' OR s.name CONTAINS '%s' OR o.name CONTAINS '%s'
+		RETURN 
+			id(r) AS id,
+			id(s) AS from_id,
+			id(o) AS to_id,
+			type(r) AS label,
+			type(r) AS type
+	`, g.adminUserId, fileId, g.adminUserId, fileId, escapedTerm, escapedTerm, escapedTerm)
+
+		if dataId > 0 {
+			query = fmt.Sprintf(`
+			MATCH (s:Entity_%d {file_id: %d, data_id: %d})-[r]-(o:Entity_%d {file_id: %d, data_id: %d})
+			WHERE type(r) CONTAINS '%s' OR s.name CONTAINS '%s' OR o.name CONTAINS '%s'
+			RETURN 
+				id(r) AS id,
+				id(s) AS from_id,
+				id(o) AS to_id,
+				type(r) AS label,
+				type(r) AS type
+		`, g.adminUserId, fileId, dataId, g.adminUserId, fileId, dataId, escapedTerm, escapedTerm, escapedTerm)
+		}
+	}
+
+	return g.Execute(query)
+}
+
+// GetFileNodes 获取文件中所有唯一节点
+func (g *GraphDB) GetFileNodes(fileId int, dataId int, searchTerm ...string) (*neo4j.EagerResult, error) {
+	query := fmt.Sprintf(`
+		MATCH (n:Entity_%d {file_id: %d})
+		RETURN DISTINCT id(n) AS id, n.name AS name, n.data_id as data_id
+		limit 500
+	`, g.adminUserId, fileId)
+
+	if dataId > 0 {
+		query = fmt.Sprintf(`
+		MATCH (n:Entity_%d {file_id: %d, data_id: %d})
+		RETURN DISTINCT id(n) AS id, n.name AS name, n.data_id as data_id
+		limit 500
+	`, g.adminUserId, fileId, dataId)
+	}
+
+	// 如果指定了搜索词，添加过滤条件
+	if len(searchTerm) > 0 && searchTerm[0] != "" {
+		// 转义单引号
+		escapedTerm := strings.ReplaceAll(searchTerm[0], "'", "''")
+
+		if dataId > 0 {
+			query = fmt.Sprintf(`
+			MATCH (n:Entity_%d {file_id: %d, data_id: %d})
+			WHERE n.name CONTAINS '%s'
+			RETURN DISTINCT id(n) AS id, n.name AS name, n.data_id as data_id
+			UNION
+			MATCH (n:Entity_%d {file_id: %d, data_id: %d})-[r]-(m:Entity_%d {file_id: %d, data_id: %d})
+			WHERE type(r) CONTAINS '%s' OR m.name CONTAINS '%s'
+			limit 500
+			RETURN DISTINCT id(n) AS id, n.name AS name, n.data_id as data_id
+		`, g.adminUserId, fileId, dataId, escapedTerm,
+				g.adminUserId, fileId, dataId, g.adminUserId, fileId, dataId, escapedTerm, escapedTerm)
+		} else {
+			query = fmt.Sprintf(`
+			MATCH (n:Entity_%d {file_id: %d})
+			WHERE n.name CONTAINS '%s'
+			RETURN DISTINCT id(n) AS id, n.name AS name, n.data_id as data_id
+			UNION
+			MATCH (n:Entity_%d {file_id: %d})-[r]-(m:Entity_%d {file_id: %d})
+			WHERE type(r) CONTAINS '%s' OR m.name CONTAINS '%s'
+			limit 500
+			RETURN DISTINCT id(n) AS id, n.name AS name, n.data_id as data_id
+		`, g.adminUserId, fileId, escapedTerm,
+				g.adminUserId, fileId, g.adminUserId, fileId, escapedTerm, escapedTerm)
+		}
+	}
+
+	return g.Execute(query)
 }

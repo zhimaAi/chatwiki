@@ -178,7 +178,6 @@ export const useSearchLiraryStore = defineStore('search-lirary', () => {
     let params = {
       model_config_id: searchConfigData.model_config_id,
       use_model: searchConfigData.use_model,
-      rerank_status: searchConfigData.rerank_status,
       temperature: searchConfigData.temperature,
       max_token: searchConfigData.max_token,
       size: searchConfigData.size,
@@ -186,13 +185,23 @@ export const useSearchLiraryStore = defineStore('search-lirary', () => {
       search_type: searchConfigData.search_type,
       question: keyword,
       id: library_ids.join(','),
-      rerank_use_model: searchConfigData.rerank_use_model,
       recall_type: 1
+    }
+
+    if (searchConfigData.rerank_status) {
+      params.rerank_status = searchConfigData.rerank_status
+    }
+    if (searchConfigData.rerank_use_model) {
+      params.rerank_use_model = searchConfigData.rerank_use_model
+    }
+    if (searchConfigData.prompt) {
+      params.prompt = searchConfigData.prompt
     }
 
     if (searchConfigData.rerank_status == 1) {
       params.rerank_model_config_id = searchConfigData.rerank_model_config_id
     }
+
     // if (import.meta.env.DEV) {
     //   params.debug = 0
     // }

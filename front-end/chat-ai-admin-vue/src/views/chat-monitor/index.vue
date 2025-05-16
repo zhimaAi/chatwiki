@@ -14,7 +14,11 @@
   overflow: hidden;
   background-color: #fff;
   .app-list-box {
-    padding: 16px;
+    padding: 16px 16px 8px;
+  }
+
+  .search-box {
+    padding: 0 16px 16px;
   }
 
   .chat-list-wrapper {
@@ -45,8 +49,20 @@
         </a-select>
       </div>
 
+      <div class="search-box">
+        <a-input
+          v-model:value="keyword"
+          placeholder="搜索客户昵称或openld，按enter搜索"
+          enter-button
+          style="width: 100%;"
+          @search="onSearch"
+          allowClear
+          @pressEnter="onSearch"
+        />
+      </div>
+
       <div class="chat-list-wrapper">
-        <ChatList @switchChat="handleSwitchChat" />
+        <ChatList ref="chatListRef" @switchChat="handleSwitchChat" />
       </div>
     </div>
     <div class="page-body">
@@ -69,6 +85,7 @@ import { useChatMonitorStore } from '@/stores/modules/chat-monitor.js'
 import ChatList from './components/chat-list .vue'
 import ChatBox from './components/chat-box.vue'
 import ListEmpty from './components/list-empty.vue'
+import { message } from 'ant-design-vue'
 
 const emitter = useEventBus()
 
@@ -76,10 +93,15 @@ const chatMonitorStore = useChatMonitorStore()
 const { init, changeRobot, switchChat, closeIM } = chatMonitorStore
 const { robotList, selectedRobotId, activeChat } = storeToRefs(chatMonitorStore)
 
+const chatListRef = ref(null)
 const chatBoxRef = ref(null)
-
+const keyword = ref('')
 const onChangeRobot = () => {
-  changeRobot()
+  const params = {
+    keyword: keyword.value,
+    page: 1
+  }
+  changeRobot(params)
 }
 
 const handleSwitchChat = async (item) => {
@@ -92,6 +114,16 @@ const onAddMessage = () => {
   nextTick(() => {
     chatBoxRef.value?.scrollToBottom()
   })
+}
+
+const onSearch = () => {
+  const params = {
+    keyword: keyword.value,
+    page: 1
+  }
+  if (chatListRef.value) {
+    chatListRef.value.getData(params)
+  }
 }
 
 onMounted(async () => {

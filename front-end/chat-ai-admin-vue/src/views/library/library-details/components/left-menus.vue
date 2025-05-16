@@ -4,42 +4,43 @@
       <router-link
         class="default-color"
         :to="{ path: item.path, query: query }"
-        v-for="item in items"
+        v-for="item in menus"
         :key="item.key"
       >
-        <a-menu-item :icon="item.icon" :path="item.path" :key="item.key">{{
-          item.label
-        }}</a-menu-item>
+        <a-menu-item :icon="item.icon" :path="item.path" :key="item.key" v-if="!item.hidden">{{ item.label }}</a-menu-item>
       </router-link>
     </a-menu>
   </div>
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
+import { h, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import SvgIcon from '@/components/svg-icon/index.vue'
 import { useUserStore } from '@/stores/modules/user'
+import { useLibraryStore } from '@/stores/modules/library'
+
+const libraryStore = useLibraryStore()
+
+const graph_switch = computed(() => {
+  return libraryStore.graph_switch
+})
 
 const userStore = useUserStore()
 const emit = defineEmits(['changeMenu'])
 const route = useRoute()
 const query = route.query
 
-const props = defineProps({
-  libraryInfo: {
-    type: Object,
-    default: () => {
-      return {}
-    }
-  }
+const robot_nums = computed(() => {
+  return userStore.getRobotNums
 })
+
 
 const selectedKeys = computed(() => {
   return [route.path.split('/')[3]]
 })
 
-const baseMenus = [
+const menus = computed(() => [
   {
     key: 'knowledge-document',
     id: 'knowledge-document',
@@ -55,9 +56,26 @@ const baseMenus = [
         })
       ]),
     label: '知识库文档',
-
     title: '知识库文档',
     path: '/library/details/knowledge-document'
+  },{
+    key: 'knowledge-graph',
+    id: 'knowledge-graph',
+    hidden: graph_switch.value == 0,
+    icon: () =>
+      h('span', {}, [
+        h(SvgIcon, {
+          name: 'doc-menu-icon',
+          class: 'menu-icon'
+        }),
+        h(SvgIcon, {
+          name: 'doc-active-menu-icon',
+          class: 'menu-icon-active'
+        })
+      ]),
+    label: '知识图谱',
+    title: '知识图谱',
+    path: '/library/details/knowledge-graph',
   },
   {
     key: 'categary-manage',
@@ -112,32 +130,26 @@ const baseMenus = [
     label: '知识库配置',
     title: '知识库配置',
     path: '/library/details/knowledge-config'
+  },
+  {
+    key: 'related-robots',
+    id: 'related-robots',
+    icon: () =>
+      h('span', {}, [
+        h(SvgIcon, {
+          name: 'knowledge-config-icon',
+          class: 'menu-icon'
+        }),
+        h(SvgIcon, {
+          name: 'knowledge-config-active-icon',
+          class: 'menu-icon-active'
+        })
+      ]),
+    label: `关联机器人${robot_nums.value > 0 ? ` (${robot_nums.value})` : ''}`,
+    path: '/library/details/related-robots'
   }
-]
+])
 
-const items = computed(() => {
-  let robot_nums = userStore.getRobotNums
-  return [
-    ...baseMenus,
-    {
-      key: 'related-robots',
-      id: 'related-robots',
-      icon: () =>
-        h('span', {}, [
-          h(SvgIcon, {
-            name: 'knowledge-config-icon',
-            class: 'menu-icon'
-          }),
-          h(SvgIcon, {
-            name: 'knowledge-config-active-icon',
-            class: 'menu-icon-active'
-          })
-        ]),
-      label: `关联机器人${robot_nums > 0 ? ` (${robot_nums})` : ''}`,
-      path: '/library/details/related-robots'
-    }
-  ]
-})
 
 const handleChangeMenu = ({ item }) => {
   if (selectedKeys.value.includes(item.id)) {

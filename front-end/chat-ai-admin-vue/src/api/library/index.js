@@ -3,7 +3,6 @@ import request from '@/utils/http/axios'
 import { useUserStore } from '@/stores/modules/user'
 
 const baseURL = import.meta.env.VITE_BASE_API_URL
-const userStore = useUserStore()
 
 export const saveLibrarySearch = (data) => {
   return request.post({
@@ -20,9 +19,11 @@ export const getLibrarySearch = (params = {}) => {
 }
 
 export const searchLirary = (data) => {
+  const userStore = useUserStore()
+  
   return new SSE({
     token: userStore.getToken ?? '',
-    url: baseURL + '/manage/liraryAiSummary',
+    url: baseURL + '/manage/libraryAiSummary',
     data: data
   })
 }
@@ -31,6 +32,13 @@ export const getLibraryList = (params = {}) => {
   return request.get({
     url: '/manage/getLibraryList',
     params: params
+  })
+}
+
+export const generateSimilarQuestions = (data) => {
+  return request.post({
+    url: '/manage/generateSimilarQuestions',
+    data
   })
 }
 
@@ -296,6 +304,14 @@ export const cancelOcrPdf = (data) => {
 export const getLibRawFileOnePage = (params = {}) => {
   return request.get({
     url: '/manage/getLibRawFileOnePage',
+    params: params
+  })
+}
+
+// 获取知识图谱数据
+export const getFileGraphInfo = (params) => {
+  return request.get({
+    url: '/manage/getFileGraphInfo',
     params: params
   })
 }

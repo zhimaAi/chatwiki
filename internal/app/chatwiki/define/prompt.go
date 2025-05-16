@@ -137,3 +137,14 @@ const PromptDefaultCreatePrompt = `# 角色
 - 所有describe字段需用自然口语化表达，避免技术术语。`
 
 const PrumptAiChunk = `你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。`
+
+const PromptGenerateSimilarQuestions = `有如下问题对：
+------
+question: {{question}}
+answer: {{answer}}
+------
+你需要生成{{num}}条相似问题。
+输出示例：["问题1", "问题2", "问题3", "问题4", "问题5"]]
+`
+
+const PromptLibAiSummary = `将提交的内容进行智能总结,不要随意发挥`

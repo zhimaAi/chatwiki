@@ -6,12 +6,12 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -20,7 +20,6 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
-	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
 func GetRobotList(c *gin.Context) {
@@ -643,8 +642,8 @@ func deleteRobotRelationData(robotId int, robotKey string) error {
 }
 
 func CreatePromptByAi(c *gin.Context) {
-	var userId int
-	if userId = GetAdminUserId(c); userId == 0 {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
 	id := cast.ToInt(c.Query(`id`))
@@ -654,7 +653,7 @@ func CreatePromptByAi(c *gin.Context) {
 		return
 	}
 	info, err := msql.Model(`chat_ai_robot`, define.Postgres).
-		Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Find()
+		Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(adminUserId)).Find()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -664,23 +663,167 @@ func CreatePromptByAi(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
-	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: define.PromptDefaultCreatePrompt}, {Role: `user`, Content: demand}}
-	chatResp, _, err := common.RequestChat(
-		userId, cast.ToString(userId), info, lib_define.AppYunPc, cast.ToInt(info[`model_config_id`]), info[`use_model`],
-		messages, nil, cast.ToFloat32(info[`temperature`]), cast.ToInt(info[`max_token`]),
-	)
+	promptStruct, err := common.CreatePromptByAi(demand, adminUserId, cast.ToInt(info[`model_config_id`]), info[`use_model`])
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	data := map[string]any{`promptStruct`: promptStruct, `markdown`: common.BuildPromptStruct(define.PromptTypeStruct, ``, promptStruct)}
+	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
+}
+
+func RobotCopy(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	fromId := cast.ToInt64(c.PostForm(`from_id`))
+	if fromId <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	m := msql.Model(`chat_ai_robot`, define.Postgres)
+	//data check
+	count, err := m.Where(`admin_user_id`, cast.ToString(userId)).Count()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	chatResp.Result, _ = strings.CutPrefix(chatResp.Result, "```json")
-	chatResp.Result, _ = strings.CutSuffix(chatResp.Result, "```")
-	promptStruct, err := common.CheckPromptConfig(define.PromptTypeStruct, chatResp.Result)
-	if err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf(`%s`, chatResp.Result)))
+	if count >= define.MaxRobotNum {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `max_robot_num`, define.MaxRobotNum))))
 		return
 	}
-	data := map[string]any{`promptStruct`: promptStruct, `markdown`: common.BuildPromptStruct(define.PromptTypeStruct, ``, promptStruct)}
-	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
+	//robot check
+	info, err := m.Where(`id`, cast.ToString(fromId)).Where(`admin_user_id`, cast.ToString(userId)).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(info) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	//database dispose
+	data := make(msql.Datas)
+	for key, val := range info {
+		if !tool.InArrayString(key, []string{`id`, `robot_key`, `robot_name`, `start_node_key`, `work_flow_model_config_ids`}) {
+			data[key] = val
+		}
+	}
+	var robotKey string
+	for i := 0; i < 5; i++ {
+		tempKey := tool.Random(10)
+		if robot, e := common.GetRobotInfo(tempKey); e == nil && len(robot) == 0 {
+			robotKey = tempKey
+			break
+		}
+		time.Sleep(time.Nanosecond) //sleep 1 ns
+	}
+	if len(robotKey) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	data[`robot_key`] = robotKey
+	data[`robot_name`] = createNewName(info[`robot_name`])
+	data[`create_time`] = tool.Time2Int()
+	data[`update_time`] = tool.Time2Int()
+	newId, err := m.Insert(data, `id`)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	//clear cached data
+	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
+	//work_flow
+	if cast.ToInt(info[`application_type`]) == define.ApplicationTypeFlow {
+		workFlowNodeCopy(userId, fromId, newId)
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
+}
+
+func createNewName(name string) string {
+	match := regexp.MustCompile(`^(.+?)(_(\d+))?$`).FindStringSubmatch(name)
+	if len(match) != 4 {
+		return fmt.Sprintf(`%s_%d`, name, 1)
+	}
+	return fmt.Sprintf(`%s_%d`, match[1], cast.ToInt(match[3])+1)
+}
+
+func workFlowNodeCopy(userId int, fromId, newId int64) {
+	m := msql.Model(`work_flow_node`, define.Postgres)
+	list, err := m.Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`robot_id`, cast.ToString(fromId)).
+		Where(`data_type`, cast.ToString(define.DataTypeDraft)).Select()
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	for _, node := range list {
+		data := make(msql.Datas)
+		for key, val := range node {
+			if !tool.InArrayString(key, []string{`id`, `robot_id`}) {
+				data[key] = val
+			}
+		}
+		data[`robot_id`] = newId
+		_, err = m.Insert(data, `id`)
+		if err != nil {
+			logs.Error(err.Error())
+		}
+	}
+}
+
+func EditBaseInfo(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	//get params
+	id := cast.ToInt64(c.PostForm(`id`))
+	robotName := strings.TrimSpace(c.PostForm(`robot_name`))
+	robotIntro := strings.TrimSpace(c.PostForm(`robot_intro`))
+	robotAvatar := ``
+	//check required
+	if id <= 0 || len(robotName) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	//data check
+	m := msql.Model(`chat_ai_robot`, define.Postgres)
+	robotKey, err := m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Value(`robot_key`)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(robotKey) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	//headImg uploaded
+	fileHeader, _ := c.FormFile(`robot_avatar`)
+	uploadInfo, err := common.SaveUploadedFile(fileHeader, define.ImageLimitSize, userId, `robot_avatar`, define.ImageAllowExt)
+	if err == nil && uploadInfo != nil {
+		robotAvatar = uploadInfo.Link
+	}
+	//database dispose
+	data := msql.Datas{
+		`robot_name`:  robotName,
+		`robot_intro`: robotIntro,
+		`update_time`: tool.Time2Int(),
+	}
+	if len(robotAvatar) > 0 {
+		data[`robot_avatar`] = robotAvatar
+	}
+	if _, err = m.Where(`id`, cast.ToString(id)).Update(data); err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	//clear cached data
+	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }

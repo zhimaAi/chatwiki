@@ -95,3 +95,52 @@ export const uploadCertificate = (data) => {
 export const uploadCheckFile = (data) => {
     return request.post({ url: '/manage/uploadCheckFile', data })
 }
+
+export const getPromptLibraryGroup = (params = {}) => {
+  return request.get({
+    url: '/manage/getPromptLibraryGroup',
+    params: params
+  })
+}
+
+export const savePromptLibraryGroup = (data) => {
+  return request.post({ url: '/manage/savePromptLibraryGroup', data })
+}
+
+export const deletePromptLibraryGroup = (data) => {
+  return request.post({ url: '/manage/deletePromptLibraryGroup', data })
+}
+
+export const getPromptLibraryItems = (params = {}) => {
+  return request.get({
+    url: '/manage/getPromptLibraryItems',
+    params: params
+  })
+}
+
+export const createPromptByLlm = (params = {}) => {
+  return request.get({
+    url: '/manage/createPromptByLlm',
+    params: params
+  })
+}
+
+export const savePromptLibraryItems = (data) => {
+  return request.post({ url: '/manage/savePromptLibraryItems', data })
+}
+
+export const deletePromptLibraryItems = (data) => {
+  return request.post({ url: '/manage/deletePromptLibraryItems', data })
+}
+
+export const movePromptLibraryItems = (data) => {
+  return request.post({ url: '/manage/movePromptLibraryItems', data })
+}
+
+export const checkAliOcr = (data) => {
+  return request.post({ url: '/manage/checkAliOcr', data })
+}
+
+export const saveAliOcr = (data) => {
+  return request.post({ url: '/manage/saveAliOcr', data })
+}

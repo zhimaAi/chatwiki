@@ -58,6 +58,15 @@ export default {
           }
         },
         {
+          path: '/user/aliocr',
+          name: 'userAliocr',
+          component: () => import('../views/user/aliocr/index.vue'),
+          meta: {
+            title: '阿里云OCR',
+            activeMenu: '/user'
+          }
+        },
+        {
           path: '/user/enterprise',
           name: 'userEnterprise',
           component: () => import('../views/user/enterprise/index.vue'),
@@ -92,7 +101,16 @@ export default {
             title: '敏感词管理',
             activeMenu: '/user'
           }
-        }
+        },
+        {
+          path: '/user/prompt-library',
+          name: 'promptLibrary',
+          component: () => import('../views/user/prompt-library/index.vue'),
+          meta: {
+            title: '提示词模板库',
+            activeMenu: '/user'
+          }
+        },
       ]
     }
   ]

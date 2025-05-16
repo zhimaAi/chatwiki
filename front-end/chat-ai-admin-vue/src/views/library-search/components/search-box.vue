@@ -190,6 +190,9 @@ const goToFile = (item) => {
 }
 
 const formState = reactive({
+  rerank_status: '',
+  rerank_use_model: '',
+  prompt: '',
   model_config_id: '',
   use_model: '',
   temperature: 0.5,
@@ -204,7 +207,6 @@ const handleRecallTest = () => {
   let parmas = {
     model_config_id: props.librarySearchData.model_config_id || formState.model_config_id,
     use_model: props.librarySearchData.use_model || formState.use_model,
-    rerank_status: props.librarySearchData.rerank_status,
     temperature: props.librarySearchData.temperature || formState.temperature,
     max_token: props.librarySearchData.max_token || formState.max_token,
     size: 200,  // 固定值
@@ -212,8 +214,16 @@ const handleRecallTest = () => {
     search_type: props.librarySearchData.search_type || formState.search_type,
     question: message.value,
     id: props.library_ids.join(','),
-    rerank_use_model: props.librarySearchData.rerank_use_model,
     recall_type: 1
+  }
+  if (props.librarySearchData.rerank_status) {
+    parmas.rerank_status = props.librarySearchData.rerank_status
+  }
+  if (props.librarySearchData.rerank_use_model) {
+    parmas.rerank_use_model = props.librarySearchData.rerank_use_model
+  }
+  if (props.librarySearchData.prompt) {
+    parmas.prompt = props.librarySearchData.prompt
   }
   if (props.librarySearchData.rerank_status == 1) {
     parmas.rerank_model_config_id = props.librarySearchData.rerank_model_config_id

@@ -9,12 +9,11 @@ import (
 )
 
 var (
-	client = &lib_web.JwtToken{}
+	jwtClient = &lib_web.JwtToken{}
 )
 
 func newClient() *lib_web.JwtToken {
-	client = lib_web.NewTokenClient(define.JwtTtl, define.JwtKey)
-	return client
+	return lib_web.NewTokenClient(define.JwtTtl, define.JwtKey)
 }
 func GetToken(userId, userName, parentId any) (jwt.MapClaims, error) {
 	return newClient().GetToken(userId, userName, parentId)

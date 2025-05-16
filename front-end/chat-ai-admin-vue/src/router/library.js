@@ -1,3 +1,5 @@
+import { useLibraryStore } from '@/stores/modules/library'
+
 export default {
   path: '/library',
   name: 'Library',
@@ -53,6 +55,17 @@ export default {
         isCustomPage: true
       },
       redirect: '/library/details/knowledge-document',
+      async beforeEnter (to, from, next){
+        try {
+          const { getLibraryInfo } = useLibraryStore()
+
+          await getLibraryInfo(to.query.id)
+    
+          next()
+        } catch (error) {
+          next(false)
+        }
+      },
       children: [
         {
           path: '/library/details/knowledge-document',
@@ -69,6 +82,15 @@ export default {
           component: () => import('@/views/library/library-details/recall-testing.vue'),
           meta: {
             title: '召回测试',
+            activeMenu: '/library'
+          }
+        },
+        {
+          path: '/library/details/knowledge-graph',
+          name: 'knowledgeGraph',
+          component: () => import('@/views/library/knowledge-graph/index.vue'),
+          meta: {
+            title: '知识图谱',
             activeMenu: '/library'
           }
         },

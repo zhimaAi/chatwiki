@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"image/png"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -132,17 +133,17 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 	return
 }
 
-func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams define.SplitParams, list []define.DocSplitItem, pdfPageNum int, lang string) error {
+func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams define.SplitParams, list []define.DocSplitItem, pdfPageNum int, lang string) ([]int64, error) {
 	info, err := GetLibFileInfo(fileId, userId)
 	if err != nil {
 		logs.Error(err.Error())
-		return errors.New(i18n.Show(lang, `sys_err`))
+		return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
 	}
 	if len(info) == 0 {
-		return errors.New(i18n.Show(lang, `no_data`))
+		return []int64{}, errors.New(i18n.Show(lang, `no_data`))
 	}
 	if !tool.InArrayInt(cast.ToInt(info[`status`]), []int{define.FileStatusWaitSplit, define.FileStatusLearned}) {
-		return errors.New(i18n.Show(lang, `status_exception`))
+		return []int64{}, errors.New(i18n.Show(lang, `status_exception`))
 	}
 
 	//check params
@@ -151,10 +152,10 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 			list[i].Number = i + 1 //serial number
 			list[i].WordTotal = utf8.RuneCountInString(list[i].Question + list[i].Answer)
 			if utf8.RuneCountInString(list[i].Question) < 1 || utf8.RuneCountInString(list[i].Question) > MaxContent {
-				return errors.New(i18n.Show(lang, `length_err`, i+1))
+				return []int64{}, errors.New(i18n.Show(lang, `length_err`, i+1))
 			}
 			if utf8.RuneCountInString(list[i].Answer) < 1 || utf8.RuneCountInString(list[i].Answer) > MaxContent {
-				return errors.New(i18n.Show(lang, `length_err`, i+1))
+				return []int64{}, errors.New(i18n.Show(lang, `length_err`, i+1))
 			}
 		}
 	} else {
@@ -162,14 +163,14 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 			list[i].Number = i + 1 //serial number
 			list[i].WordTotal = utf8.RuneCountInString(list[i].Content)
 			if list[i].WordTotal < 1 || list[i].WordTotal > MaxContent {
-				return errors.New(i18n.Show(lang, `length_err`, i+1))
+				return []int64{}, errors.New(i18n.Show(lang, `length_err`, i+1))
 			}
 		}
 	}
 
 	if splitParams.IsQaDoc == define.DocTypeQa {
 		if qaIndexType != define.QAIndexTypeQuestionAndAnswer && qaIndexType != define.QAIndexTypeQuestion {
-			return errors.New(i18n.Show(lang, `param_invalid`, `qa_index_type`))
+			return []int64{}, errors.New(i18n.Show(lang, `param_invalid`, `qa_index_type`))
 		}
 	}
 	//add lock dispose
@@ -186,11 +187,192 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 	defer func() {
 		_ = m.Rollback()
 	}()
-
 	if err != nil {
 		logs.Error(err.Error())
-		return errors.New(i18n.Show(lang, `sys_err`))
+		return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
 	}
+
+	//database dispose
+	shouldDeleteQuery := msql.Model("chat_ai_library_file_data", define.Postgres).
+		Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`file_id`, cast.ToString(fileId))
+	if pdfPageNum > 0 {
+		shouldDeleteQuery.Where(`page_num`, cast.ToString(pdfPageNum))
+	}
+	shouldDeleteIds, err := shouldDeleteQuery.Where("category_id", "0").ColumnArr(`id`)
+	if err != nil {
+		logs.Error(err.Error())
+		return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+	}
+
+	shouldIsolatedQuery := msql.Model("chat_ai_library_file_data", define.Postgres).
+		Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`file_id`, cast.ToString(fileId))
+	if pdfPageNum > 0 {
+		shouldIsolatedQuery.Where(`page_num`, cast.ToString(pdfPageNum))
+	}
+	shouldIsolatedIds, err := shouldIsolatedQuery.Where("category_id", ">", "0").ColumnArr(`id`)
+	if err != nil {
+		logs.Error(err.Error())
+		return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+	}
+	if len(shouldDeleteIds) > 0 {
+		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
+			Where(`id`, `in`, strings.Join(shouldDeleteIds, `,`)).
+			Delete()
+		if err != nil {
+			logs.Error(err.Error())
+			return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+		}
+		_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
+			Where(`data_id`, `in`, strings.Join(shouldDeleteIds, `,`)).
+			Delete()
+		if err != nil {
+			logs.Error(err.Error())
+			return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+		}
+	}
+	if len(shouldIsolatedIds) > 0 {
+		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
+			Where(`id`, `in`, strings.Join(shouldIsolatedIds, `,`)).
+			Update(msql.Datas{"isolated": true})
+		if err != nil {
+			logs.Error(err.Error())
+			return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+		}
+	}
+
+	var (
+		indexIds     []int64
+		dataIds      []int64
+		library, _   = GetLibraryData(cast.ToInt(info[`library_id`]))
+		skipUseModel = cast.ToInt(library[`type`]) == define.OpenLibraryType && cast.ToInt(library[`use_model_switch`]) != define.SwitchOn
+	)
+	for i, item := range list {
+		if utf8.RuneCountInString(item.Content) > MaxContent || utf8.RuneCountInString(item.Question) > MaxContent || utf8.RuneCountInString(item.Answer) > MaxContent {
+			return []int64{}, errors.New(i18n.Show(lang, `length_err`, i+1))
+		}
+
+		data := msql.Datas{
+			`admin_user_id`: info[`admin_user_id`],
+			`library_id`:    info[`library_id`],
+			`file_id`:       fileId,
+			`number`:        item.Number,
+			`page_num`:      item.PageNum,
+			`title`:         item.Title,
+			`word_total`:    item.WordTotal,
+			`create_time`:   tool.Time2Int(),
+			`update_time`:   tool.Time2Int(),
+		}
+		if splitParams.IsQaDoc == define.DocTypeQa {
+			if splitParams.IsTableFile == define.FileIsTable {
+				data[`type`] = define.ParagraphTypeExcelQA
+			} else {
+				data[`type`] = define.ParagraphTypeDocQA
+			}
+			data[`question`] = strings.TrimSpace(item.Question)
+			data[`answer`] = strings.TrimSpace(item.Answer)
+			similarQuestions, err := tool.JsonEncode(item.SimilarQuestionList)
+			if err != nil {
+				logs.Error(err.Error())
+			} else {
+				data[`similar_questions`] = similarQuestions
+			}
+			if len(item.Images) > 0 {
+				jsonImages, err := CheckLibraryImage(item.Images)
+				if err != nil {
+					_ = m.Rollback()
+					return []int64{}, errors.New(i18n.Show(lang, `param_invalid`, `images`))
+				}
+				data[`images`] = jsonImages
+			} else {
+				data[`images`] = `[]`
+			}
+			id, err := msql.Model("chat_ai_library_file_data", define.Postgres).Insert(data, `id`)
+			if err != nil {
+				logs.Error(err.Error())
+				return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+			}
+			dataIds = append(dataIds, id)
+			vectorID, err := SaveVector(
+				cast.ToInt64(info[`admin_user_id`]),
+				cast.ToInt64(info[`library_id`]),
+				cast.ToInt64(fileId),
+				id,
+				cast.ToString(define.VectorTypeQuestion),
+				strings.TrimSpace(item.Question),
+			)
+			if err != nil {
+				logs.Error(err.Error())
+				return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+			}
+			indexIds = append(indexIds, vectorID)
+
+			for _, similarQuestion := range item.SimilarQuestionList {
+				vectorID, err := SaveVector(
+					cast.ToInt64(info[`admin_user_id`]),
+					cast.ToInt64(info[`library_id`]),
+					cast.ToInt64(fileId),
+					id,
+					cast.ToString(define.VectorTypeSimilarQuestion),
+					strings.TrimSpace(similarQuestion),
+				)
+				if err != nil {
+					logs.Error(err.Error())
+					return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+				}
+				indexIds = append(indexIds, vectorID)
+			}
+
+			if qaIndexType == define.QAIndexTypeQuestionAndAnswer {
+				vectorID, err = SaveVector(
+					cast.ToInt64(info[`admin_user_id`]),
+					cast.ToInt64(info[`library_id`]),
+					cast.ToInt64(fileId),
+					id,
+					cast.ToString(define.VectorTypeAnswer),
+					strings.TrimSpace(item.Answer),
+				)
+				if err != nil {
+					logs.Error(err.Error())
+					return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+				}
+				indexIds = append(indexIds, vectorID)
+			}
+		} else {
+			data[`type`] = define.ParagraphTypeNormal
+			data[`content`] = strings.TrimSpace(item.Content)
+			if len(item.Images) > 0 {
+				jsonImages, err := CheckLibraryImage(item.Images)
+				if err != nil {
+					return []int64{}, errors.New(i18n.Show(lang, `param_invalid`, `images`))
+				}
+				data[`images`] = jsonImages
+			} else {
+				data[`images`] = `[]`
+			}
+			id, err := msql.Model("chat_ai_library_file_data", define.Postgres).Insert(data, `id`)
+			if err != nil {
+				logs.Error(err.Error())
+				return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+			}
+			dataIds = append(dataIds, id)
+			vectorID, err := SaveVector(
+				cast.ToInt64(info[`admin_user_id`]),
+				cast.ToInt64(info[`library_id`]),
+				cast.ToInt64(fileId),
+				id,
+				cast.ToString(define.VectorTypeParagraph),
+				strings.TrimSpace(item.Content),
+			)
+			if err != nil {
+				logs.Error(err.Error())
+				return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+			}
+			indexIds = append(indexIds, vectorID)
+		}
+	}
+
 	status := define.FileStatusLearning
 	errmsg := `success`
 	if len(list) <= 0 {
@@ -231,207 +413,26 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 	if qaIndexType != 0 {
 		data[`qa_index_type`] = qaIndexType
 	}
-
 	_, err = m.Where(`id`, cast.ToString(fileId)).Update(data)
 	if err != nil {
 		logs.Error(err.Error())
-		return errors.New(i18n.Show(lang, `sys_err`))
+		return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
 	}
 	if len(list) <= 0 {
 		err = m.Commit()
-		return errors.New(i18n.Show(lang, `doc_empty`))
+		lib_redis.DelCacheData(define.Redis, &LibFileCacheBuildHandler{FileId: fileId})
+		return []int64{}, errors.New(i18n.Show(lang, `doc_empty`))
 	}
-	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &LibFileCacheBuildHandler{FileId: fileId})
 
-	//database dispose
-	shouldDeleteQuery := msql.Model("chat_ai_library_file_data", define.Postgres).
-		Where(`admin_user_id`, cast.ToString(userId)).
-		Where(`file_id`, cast.ToString(fileId))
-	if pdfPageNum > 0 {
-		shouldDeleteQuery.Where(`page_num`, cast.ToString(pdfPageNum))
-	}
-	shouldDeleteIds, err := shouldDeleteQuery.Where("category_id", "0").ColumnArr(`id`)
-	if err != nil {
-		logs.Error(err.Error())
-		return errors.New(i18n.Show(lang, `sys_err`))
-	}
-
-	shouldIsolatedQuery := msql.Model("chat_ai_library_file_data", define.Postgres).
-		Where(`admin_user_id`, cast.ToString(userId)).
-		Where(`file_id`, cast.ToString(fileId))
-	if pdfPageNum > 0 {
-		shouldIsolatedQuery.Where(`page_num`, cast.ToString(pdfPageNum))
-	}
-	shouldIsolatedIds, err := shouldIsolatedQuery.Where("category_id", ">", "0").ColumnArr(`id`)
-	if err != nil {
-		logs.Error(err.Error())
-		return errors.New(i18n.Show(lang, `sys_err`))
-	}
-	if len(shouldDeleteIds) > 0 {
-		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
-			Where(`id`, `in`, strings.Join(shouldDeleteIds, `,`)).
-			Delete()
-		if err != nil {
-			logs.Error(err.Error())
-			return errors.New(i18n.Show(lang, `sys_err`))
-		}
-		_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
-			Where(`data_id`, `in`, strings.Join(shouldDeleteIds, `,`)).
-			Delete()
-		if err != nil {
-			logs.Error(err.Error())
-			return errors.New(i18n.Show(lang, `sys_err`))
-		}
-	}
-	if len(shouldIsolatedIds) > 0 {
-		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
-			Where(`id`, `in`, strings.Join(shouldIsolatedIds, `,`)).
-			Update(msql.Datas{"isolated": true})
-		if err != nil {
-			logs.Error(err.Error())
-			return errors.New(i18n.Show(lang, `sys_err`))
-		}
-	}
-
-	var (
-		indexIds     []int64
-		dataIds      []int64
-		library, _   = GetLibraryData(cast.ToInt(info[`library_id`]))
-		skipUseModel = cast.ToInt(library[`type`]) == define.OpenLibraryType && cast.ToInt(library[`use_model_switch`]) != define.SwitchOn
-	)
-	for i, item := range list {
-		if utf8.RuneCountInString(item.Content) > MaxContent || utf8.RuneCountInString(item.Question) > MaxContent || utf8.RuneCountInString(item.Answer) > MaxContent {
-			return errors.New(i18n.Show(lang, `length_err`, i+1))
-		}
-
-		data := msql.Datas{
-			`admin_user_id`: info[`admin_user_id`],
-			`library_id`:    info[`library_id`],
-			`file_id`:       fileId,
-			`number`:        item.Number,
-			`page_num`:      item.PageNum,
-			`title`:         item.Title,
-			`word_total`:    item.WordTotal,
-			`create_time`:   tool.Time2Int(),
-			`update_time`:   tool.Time2Int(),
-		}
-		if splitParams.IsQaDoc == define.DocTypeQa {
-			if splitParams.IsTableFile == define.FileIsTable {
-				data[`type`] = define.ParagraphTypeExcelQA
-			} else {
-				data[`type`] = define.ParagraphTypeDocQA
-			}
-			data[`question`] = strings.TrimSpace(item.Question)
-			data[`answer`] = strings.TrimSpace(item.Answer)
-			similarQuestions, err := tool.JsonEncode(item.SimilarQuestionList)
-			if err != nil {
-				logs.Error(err.Error())
-			} else {
-				data[`similar_questions`] = similarQuestions
-			}
-			if len(item.Images) > 0 {
-				jsonImages, err := CheckLibraryImage(item.Images)
-				if err != nil {
-					_ = m.Rollback()
-					return errors.New(i18n.Show(lang, `param_invalid`, `images`))
-				}
-				data[`images`] = jsonImages
-			} else {
-				data[`images`] = `[]`
-			}
-			id, err := msql.Model("chat_ai_library_file_data", define.Postgres).Insert(data, `id`)
-			if err != nil {
-				logs.Error(err.Error())
-				return errors.New(i18n.Show(lang, `sys_err`))
-			}
-			dataIds = append(dataIds, id)
-			vectorID, err := SaveVector(
-				cast.ToInt64(info[`admin_user_id`]),
-				cast.ToInt64(info[`library_id`]),
-				cast.ToInt64(fileId),
-				id,
-				cast.ToString(define.VectorTypeQuestion),
-				strings.TrimSpace(item.Question),
-			)
-			if err != nil {
-				logs.Error(err.Error())
-				return errors.New(i18n.Show(lang, `sys_err`))
-			}
-			indexIds = append(indexIds, vectorID)
-
-			for _, similarQuestion := range item.SimilarQuestionList {
-				vectorID, err := SaveVector(
-					cast.ToInt64(info[`admin_user_id`]),
-					cast.ToInt64(info[`library_id`]),
-					cast.ToInt64(fileId),
-					id,
-					cast.ToString(define.VectorTypeSimilarQuestion),
-					strings.TrimSpace(similarQuestion),
-				)
-				if err != nil {
-					logs.Error(err.Error())
-					return errors.New(i18n.Show(lang, `sys_err`))
-				}
-				indexIds = append(indexIds, vectorID)
-			}
-
-			if qaIndexType == define.QAIndexTypeQuestionAndAnswer {
-				vectorID, err = SaveVector(
-					cast.ToInt64(info[`admin_user_id`]),
-					cast.ToInt64(info[`library_id`]),
-					cast.ToInt64(fileId),
-					id,
-					cast.ToString(define.VectorTypeAnswer),
-					strings.TrimSpace(item.Answer),
-				)
-				if err != nil {
-					logs.Error(err.Error())
-					return errors.New(i18n.Show(lang, `sys_err`))
-				}
-				indexIds = append(indexIds, vectorID)
-			}
-		} else {
-			data[`type`] = define.ParagraphTypeNormal
-			data[`content`] = strings.TrimSpace(item.Content)
-			if len(item.Images) > 0 {
-				jsonImages, err := CheckLibraryImage(item.Images)
-				if err != nil {
-					return errors.New(i18n.Show(lang, `param_invalid`, `images`))
-				}
-				data[`images`] = jsonImages
-			} else {
-				data[`images`] = `[]`
-			}
-			id, err := msql.Model("chat_ai_library_file_data", define.Postgres).Insert(data, `id`)
-			if err != nil {
-				logs.Error(err.Error())
-				return errors.New(i18n.Show(lang, `sys_err`))
-			}
-			dataIds = append(dataIds, id)
-			vectorID, err := SaveVector(
-				cast.ToInt64(info[`admin_user_id`]),
-				cast.ToInt64(info[`library_id`]),
-				cast.ToInt64(fileId),
-				id,
-				cast.ToString(define.VectorTypeParagraph),
-				strings.TrimSpace(item.Content),
-			)
-			if err != nil {
-				logs.Error(err.Error())
-				return errors.New(i18n.Show(lang, `sys_err`))
-			}
-			indexIds = append(indexIds, vectorID)
-		}
-	}
 	err = m.Commit()
 	if err != nil {
 		logs.Error(err.Error())
-		return errors.New(i18n.Show(lang, `sys_err`))
+		return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
 	}
 
 	if skipUseModel {
-		return err
+		return []int64{}, err
 	}
 	//async task:convert vector
 	for _, id := range indexIds {
@@ -445,7 +446,29 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		}
 	}
 
-	return nil
+	if GetNeo4jStatus(userId) {
+		err = NewGraphDB(userId).DeleteByFile(fileId)
+		if err != nil {
+			logs.Error(err.Error())
+			return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+		}
+		_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
+			Where(`id`, cast.ToString(fileId)).
+			Update(msql.Datas{`graph_status`: define.GraphStatusNotStart})
+		if err != nil {
+			logs.Error(err.Error())
+			return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+		}
+		lib_redis.DelCacheData(define.Redis, &LibFileCacheBuildHandler{FileId: fileId})
+		if cast.ToInt(info[`graph_status`]) == define.GraphStatusConverted {
+			if err = ConstructGraph(cast.ToInt(info[`id`])); err != nil {
+				logs.Error(err.Error())
+				return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+			}
+		}
+	}
+
+	return dataIds, nil
 }
 
 func MultDocSplit(adminUserId, fileId int, splitParams define.SplitParams, items []define.DocSplitItem) ([]define.DocSplitItem, error) {
@@ -675,6 +698,9 @@ func ReplaceBase64Img(content string, userId int) (string, error) {
 				return
 			}
 			format := strings.TrimPrefix(parts[0], "data:image/")
+			if format == "svg+xml" {
+				return
+			}
 			base64Data := strings.TrimPrefix(parts[1], "base64,")
 			imgData, err := base64.StdEncoding.DecodeString(base64Data)
 			if err != nil {
@@ -712,6 +738,84 @@ func ReplaceBase64Img(content string, userId int) (string, error) {
 	return content, nil
 }
 
+func ReplaceRemoteImg(content string, userId int) (string, error) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(content))
+	if err != nil {
+		logs.Error(err.Error())
+		return ``, err
+	}
+	doc.Find("img").Each(func(index int, item *goquery.Selection) {
+		src, exists := item.Attr("src")
+		if exists && (strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://")) {
+			// 下载远程图片
+			resp, err := http.Get(src)
+			if err != nil {
+				logs.Error(err.Error())
+				return
+			}
+			defer func(Body io.ReadCloser) {
+				err := Body.Close()
+				if err != nil {
+					logs.Error(err.Error())
+				}
+			}(resp.Body)
+
+			if resp.StatusCode != http.StatusOK {
+				logs.Error(fmt.Sprintf("failed to download image: %s, status code: %d", src, resp.StatusCode))
+				return
+			}
+
+			// 读取图片数据
+			imgData, err := io.ReadAll(resp.Body)
+			if err != nil {
+				logs.Error(err.Error())
+				return
+			}
+
+			// 确定图片格式
+			contentType := resp.Header.Get("Content-Type")
+			format := "jpg" // 默认格式
+			if strings.Contains(contentType, "png") {
+				format = "png"
+			} else if strings.Contains(contentType, "gif") {
+				format = "gif"
+			} else if strings.Contains(contentType, "webp") {
+				// 如果是webp格式，转换为PNG
+				imgData, err = ConvertWebPToPNG(imgData)
+				if err != nil {
+					logs.Error(err.Error())
+					return
+				}
+				format = "png"
+			}
+
+			// 保存图片到本地
+			objectKey := fmt.Sprintf(`chat_ai/%d/%s/%s/%s.%s`, userId, `library_image`, tool.Date(`Ym`), tool.MD5(string(imgData)), format)
+			imgUrl, err := WriteFileByString(objectKey, string(imgData))
+			if err != nil {
+				logs.Error(err.Error())
+				return
+			}
+
+			// 替换图片标签
+			newTag := fmt.Sprintf("<b>{{!!%s!!}}</b>", imgUrl)
+			item.ReplaceWithHtml(newTag)
+		}
+	})
+
+	content, err = doc.Html()
+	if err != nil {
+		logs.Error(err.Error())
+		return ``, err
+	}
+
+	if !utf8.ValidString(content) {
+		content = tool.Convert(content, `gbk`, `utf-8`)
+	}
+
+	return content, nil
+}
+
 func ReadHtmlContent(htmlUrl string, userId int) ([]define.DocSplitItem, int, error) {
 	if !LinkExists(htmlUrl) {
 		return nil, 0, errors.New(`file not exist:` + htmlUrl)
@@ -735,9 +839,13 @@ func ParseHtmlContent(userId int, content string) ([]define.DocSplitItem, int, e
 			logs.Error(err.Error())
 			continue
 		}
+
 		pageContent = strip.StripTags(pageContent)
 		pageContent = strings.TrimSpace(pageContent)
 		if len(pageContent) == 0 {
+			if pageNum > 0 {
+				pageNum += 1
+			}
 			continue
 		}
 		pageNum += 1
@@ -1082,7 +1190,7 @@ func AutoSplitLibFile(adminUserId, fileId int, splitParams define.SplitParams) {
 			return
 		}
 	} else {
-		err = SaveLibFileSplit(adminUserId, fileId, wordTotal, define.QAIndexTypeQuestionAndAnswer, splitParams, list, 0, lang)
+		_, err = SaveLibFileSplit(adminUserId, fileId, wordTotal, define.QAIndexTypeQuestionAndAnswer, splitParams, list, 0, lang)
 		if err != nil {
 			logs.Error(err.Error())
 			return
@@ -1162,7 +1270,7 @@ func AISplitDocs(adminUserId int, splitParams define.SplitParams, list []define.
 				},
 				{
 					Role:    `assistant`,
-					Content: "将下面的内容按要求分段,原文本输出,以\n为分段标识",
+					Content: `以纯json数组对象输出段落,示例[{"chunk":"段落1"},{"chunk":"段落2"}]`,
 				},
 				{
 					Role:    `user`,
@@ -1220,18 +1328,20 @@ func AISplitDocs(adminUserId int, splitParams define.SplitParams, list []define.
 	var newList []define.DocSplitItem
 	var imageInsertIndex = map[int][]string{}
 	var number = 1
+	type chunkResult struct {
+		Chunk string `json:"chunk"`
+	}
 	for i := 1; i <= len(contentMap); i++ {
-		allContents := contentMap[i].Content
-		allContents = strings.ReplaceAll(allContents, `\t`, "\n\n")
-		allContents = strings.ReplaceAll(allContents, `\r`, "\n\n")
-		allContents = strings.ReplaceAll(allContents, `\n`, "\n")
-		splitData := strings.Split(allContents, "\n\n")
-		for _, item := range splitData {
-			item = strings.TrimSpace(item)
-			if len(item) == 0 {
+		allContents := []chunkResult{}
+		if err := tool.JsonDecode(contentMap[i].Content, &allContents); err != nil {
+			errMsg = err.Error()
+			return nil, errors.New(errMsg)
+		}
+		for _, item := range allContents {
+			if len(item.Chunk) == 0 {
 				continue
 			}
-			content, images := ExtractTextImages(item)
+			content, images := ExtractTextImages(item.Chunk)
 			if len(images) > 0 && len(content) == 0 {
 				index := min(len(newList)-1, 0)
 				imageInsertIndex[index] = images

@@ -1,7 +1,6 @@
 <style lang="less" scoped>
 .user-page-wrapper {
   display: flex;
-  margin-top: 16px;
   border-radius: 2px;
   width: 100%;
   height: 100%;

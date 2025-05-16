@@ -77,6 +77,7 @@ func StartCronTasks() {
 	_, _ = c.AddFunc("@every 1h", func() { business.DeleteClientSide() })
 	_, _ = c.AddFunc("@every 1h", func() { business.DeleteDownloadFile() })
 	_, _ = c.AddFunc("@every 15s", common.DeleteReceiver)
+	_, _ = c.AddFunc("@every 5s", func() { business.CheckAliOcrRequest() })
 	c.Start()
 	logs.Debug("cron start")
 }

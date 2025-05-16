@@ -34,13 +34,18 @@ func GetLibraryList(c *gin.Context) {
 		m.Where(`library_name`, `like`, libraryName)
 	}
 	typ := cast.ToString(c.Query(`type`))
+	showOpenDocs := cast.ToInt(c.Query(`show_open_docs`))
 	if typ == "" {
 		typ = fmt.Sprintf(`%v,%v`, define.GeneralLibraryType, define.QALibraryType)
 	} else if !tool.InArrayInt(cast.ToInt(typ), define.LibraryTypes[:]) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `type`))))
 		return
 	}
-	m.Where(`type`, `in`, cast.ToString(typ))
+	if showOpenDocs == define.SwitchOn {
+		m.Where(fmt.Sprintf(`(type in (%v) or (type=%v and use_model_switch = %v))`, typ, define.OpenLibraryType, define.SwitchOn))
+	} else {
+		m.Where(`type`, `in`, cast.ToString(typ))
+	}
 	userId := getLoginUserId(c)
 	if userId <= 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)

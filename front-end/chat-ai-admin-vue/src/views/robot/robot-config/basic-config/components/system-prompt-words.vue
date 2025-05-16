@@ -6,7 +6,8 @@
         <a-tab-pane :key="0" tab="自定义提示词"></a-tab-pane>
       </a-tabs>
       <div class="opt-block" v-if="isEdit">
-        <div class="ai-mark-box" @click="onShowAiCreateModal">
+        <div class="hover-btn-box" @click="onShowAddPromptModal"><DownloadOutlined />导入</div>
+        <div class="ai-mark-box hover-btn-box" @click="onShowAiCreateModal">
           <svg-icon name="ai-mark" />
           AI自动生成
         </div>
@@ -73,7 +74,7 @@
               :disabled="!isEdit"
               v-model:value="formState.prompt_struct.constraints.describe"
               :placeholder="placeholderMap.constraints"
-              style="min-height: 130px;"
+              style="min-height: 130px"
             />
           </div>
         </div>
@@ -204,13 +205,21 @@
       />
     </div>
     <AiCreatePrompt @handleAiSave="handleAiSave" ref="aiCreatePromptRef" />
+    <ImportPrompt @ok="handleSavePrompt" ref="importPromptRef" />
   </div>
 </template>
 <script setup>
 import { ref, reactive, inject, toRaw, watch, h } from 'vue'
-import { PlusOutlined, CloseCircleOutlined, DownOutlined, UpOutlined } from '@ant-design/icons-vue'
+import {
+  PlusOutlined,
+  CloseCircleOutlined,
+  DownOutlined,
+  UpOutlined,
+  DownloadOutlined
+} from '@ant-design/icons-vue'
 import AiCreatePrompt from './ai-create-prompt.vue'
-
+// front-end\chat-ai-admin-vue\src\components\import-prompt\index.vue
+import ImportPrompt from '@/components/import-prompt/index.vue'
 const isEdit = ref(false)
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
 
@@ -412,6 +421,23 @@ const aiCreatePromptRef = ref(null)
 const onShowAiCreateModal = () => {
   aiCreatePromptRef.value.show()
 }
+
+const importPromptRef = ref(null)
+
+const onShowAddPromptModal = () => {
+  importPromptRef.value.show()
+}
+
+const handleSavePrompt = (item) => {
+  if(item.prompt_type == 1){
+    prompt_type.value = 1
+    formState.prompt_struct = item.prompt_struct
+  }else{
+    prompt_type.value = 0
+    formState.prompt = item.prompt
+  }
+  onSave()
+}
 </script>
 
 <style lang="less" scoped>
@@ -426,11 +452,23 @@ const onShowAiCreateModal = () => {
   }
   .opt-block {
     display: flex;
-    gap: 16px;
+    gap: 8px;
     .tip-text {
       color: #8c8c8c;
       line-height: 22px;
       font-size: 12px;
+    }
+    .hover-btn-box {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 6px;
+      width: fit-content;
+      cursor: pointer;
+      &:hover {
+        background: #e4e6eb;
+        border-radius: 6px;
+      }
     }
   }
   .ai-mark-box {
