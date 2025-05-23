@@ -29,11 +29,13 @@ func (c *AiSpliter) SplitText(text string) ([]string, error) {
 		result = append(result, text)
 	} else {
 		chunks := c.aiSplit(text)
-		for _, chunk := range chunks {
+		for k, chunk := range chunks {
 			contents += chunk
 			if utf8.RuneCountInString(contents) >= c.AiChunkSize {
 				result = append(result, contents)
 				contents = ""
+			} else if k+1 == len(chunks) {
+				result = append(result, contents)
 			}
 		}
 	}
