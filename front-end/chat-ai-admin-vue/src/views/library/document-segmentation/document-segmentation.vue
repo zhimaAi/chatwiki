@@ -432,8 +432,9 @@ const getDocumentFragment = (type) => {
       params.ai_chunk_task_id = formData.ai_chunk_task_id
     }
 
-    if (params.ai_chunk_task_id && type && type === 'create') {
+    if (type && type === 'create') {
       // 如果是主动点击的生成分段预览则不传taskid
+      params.ai_chunk_preview = true
       delete params.ai_chunk_task_id
     }
   }
@@ -466,6 +467,7 @@ const getDocumentFragment = (type) => {
     .finally(() => {
       if (formData.chunk_type != 3) {
         segmentationSettingRef.value.reLoading = false
+        segmentationSettingRef.value.saveLoading = false
       }
     })
 }
@@ -512,6 +514,7 @@ const startPolling = () => {
     } else {
       aiLoading.value = false
       segmentationSettingRef.value.reLoading = false
+      segmentationSettingRef.value.saveLoading = false
       if (timer !== null) {
         clearTimeout(timer);
         timer = null;
@@ -624,9 +627,11 @@ const handleSaveLibFileSplit = async () => {
     return false
   }
 
-  if (task_id.value) {
-    formData.ai_chunk_task_id = task_id.value
+  // 如果点击了生成预览，则不传ai_chunk_task_id, 没点击生成预览，则传ai_chunk_task_id
+  if (task_id.value !== formData.ai_chunk_task_id) {
+    delete formData.ai_chunk_task_id
   }
+
   let split_params = {
     ...formData,
     semantic_chunk_model_config_id: formData.semantic_chunk_model_config_id

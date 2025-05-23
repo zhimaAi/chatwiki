@@ -7,13 +7,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
-	"strings"
-	"time"
 )
 
 func GetFormInfo(formId, adminUserId int) (msql.Params, error) {
@@ -407,6 +408,9 @@ func BuildFunctionTools(formIdList []string, adminUserId int) ([]adaptor.Functio
 }
 
 func SaveFormData(adminUserId, robotId int, functionToolCall adaptor.FunctionToolCall) error {
+	if _, ok := IsWorkFlowFuncCall(functionToolCall.Name); ok {
+		return nil
+	}
 	robot, err := msql.Model(`chat_ai_robot`, define.Postgres).
 		Where(`id`, cast.ToString(robotId)).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).

@@ -78,6 +78,7 @@ const robotStore = useRobotStore()
 
 // const nodes = []
 const nodeTypes = {
+  '-1': 'explain-node',
   1: 'start-node',
   2: 'judge-node',
   3: 'question-node',
@@ -122,6 +123,10 @@ function getNode() {
           node.id = item.node_key || generateUniqueId(node.type)
           node.x = node.x || 0
           node.y = node.y || 0
+        }
+
+        if(item.node_type == -1){
+          item.node_params = node.dataRaw
         }
 
         if (!node.nodeSortKey) {
@@ -290,7 +295,7 @@ const handleRelease = async () => {
   for (let i = 0; i < list.length; i++) {
     let node = list[i]
     // 跳过边节点
-    if (node.node_type == 0) {
+    if (node.node_type == 0 || node.node_type == -1) {
       // 跳过
       continue
     }

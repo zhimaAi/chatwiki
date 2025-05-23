@@ -61,11 +61,11 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
+// import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/modules/user'
 
-const router = useRouter()
+// const router = useRouter()
 const userStore = useUserStore()
 
 const { userInfo, avatar, user_name } = storeToRefs(userStore)
@@ -75,8 +75,9 @@ const onLogout = () => {
 }
 
 const toSystem = () => {
-  router.push({
-    path: '/user/model',
-  })
+  // router.push({
+  //   path: '/user/model',
+  // })
+  window.open(`/#/user/model`, "_blank", "noopener") // 建议添加 noopener 防止安全漏洞
 }
 </script>

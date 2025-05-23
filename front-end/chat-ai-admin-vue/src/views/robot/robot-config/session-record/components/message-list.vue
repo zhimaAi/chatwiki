@@ -37,6 +37,16 @@
       overflow: hidden;
     }
   }
+  .message-info{
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    line-height: 20px;
+    font-size: 12px;
+    color: #7a8699;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
 
   .user-message {
 
@@ -66,6 +76,9 @@
   }
 
   .robot-message {
+    .message-info{
+      justify-content: left;
+    }
     .item-body {
       position: relative;
       display: inline-block;
@@ -229,6 +242,10 @@
         <!-- 用户的消息 -->
         <div class="message-item user-message" :id="'msg-' + item.uid" v-if="item.is_customer == 1">
           <div class="itme-right">
+            <div class="message-info">
+              <span>{{ formatDisplayChatTime(item.create_time) }}</span>
+              <span>{{ item.name }}</span>
+            </div>
             <div class="item-body">
               <div class="message-content">{{ item.content }}</div>
             </div>
@@ -246,6 +263,10 @@
           </div>
 
           <div class="itme-right">
+            <div class="message-info">
+              <span>{{ formatDisplayChatTime(item.create_time) }}</span>
+              <span>{{ item.name }}</span>
+            </div>
             <div class="item-body">
               <template v-if="item.msg_type == 1">
                 <div class="message-content" v-viewer>
@@ -274,6 +295,7 @@
 
 <script setup>
 import { ref, nextTick } from 'vue'
+import { formatDisplayChatTime } from '@/utils/index'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 
 const emit = defineEmits(['scroll', 'scrollStart', 'scrollEnd'])

@@ -154,7 +154,7 @@
         </div>
         <div class="diy-form-item mt12">
           <div class="form-label">知识库引用</div>
-          <div class="form-content">流程开始>用户问题</div>
+          <div class="form-content">知识库搜索>知识库引用</div>
         </div>
       </div>
       <div class="gray-block mt16">
@@ -207,7 +207,7 @@ const showMoreBtn = ref(false)
 const hanldeShowMore = () => {
   showMoreBtn.value = !showMoreBtn.value
   emit('setData', {
-    height: showMoreBtn.value ? 810 : 670
+    height: showMoreBtn.value ? 810 : 674
   })
 }
 

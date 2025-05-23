@@ -1,9 +1,9 @@
 <template>
-  <div class="node-common-wrapper">
+  <div class="node-common-wrapper" :class="[`node-common-wrapper_${iconName}`]" :data-node-name="title" :data-node-type="node_type">
     <div class="node-common" :class="{ isHovered: isHovered, isSelected: isSelected }">
       <div class="node-header">
         <div class="node-header-left">
-          <span class="node-icon">
+          <span class="node-icon" v-if="iconName">
             <img :src="getImggeUrl(iconName)" alt="" />
           </span>
           <span v-if="['1', 1].includes(node_type)" class="node-title">{{ title }}</span>
@@ -260,4 +260,33 @@ export default {
     border: 2px solid #2475fc;
   }
 }
+
+
+.node-common-wrapper.node-common-wrapper_explain-node{
+  .node-icon{
+    display: none;
+  }
+  .node-title-input{
+    padding-left: 0;
+    font-size: 12px;
+    color: #7a8699;
+    font-weight: 400;
+    background: #FFEFD6;
+  }
+  .node-common{
+    background: #FFEFD6;
+    padding: 16px;
+  }
+  .node-common.isHovered {
+    &::before {
+      border: 1px solid #BFBFBF;
+    }
+  }
+    .node-common.isSelected {
+    &::before {
+      border: 2px solid #f90;
+    }
+  }
+}
+
 </style>

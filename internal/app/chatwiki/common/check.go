@@ -129,7 +129,7 @@ func IsVariableName(key string) bool {
 }
 
 func IsVariableNames(variable string) bool {
-	ok, err := regexp.MatchString(`^[a-zA-Z_][a-zA-Z0-9_\-.]*$`, variable)
+	ok, err := regexp.MatchString(`^([a-f0-9]{32}\.)?[a-zA-Z_][a-zA-Z0-9_\-.]*$`, variable)
 	if err == nil && ok {
 		return true
 	}
@@ -270,4 +270,19 @@ func CheckLibraryImage(images []string) (string, error) {
 		return "[]", nil
 	}
 	return string(jsonImages), nil
+}
+
+func CheckUserLogin(loginSwitch, expireTime int) bool {
+	if loginSwitch == define.SwitchOff || (expireTime < tool.Time2Int() && expireTime != 0) {
+		return true
+	}
+	return false
+}
+
+func IsWorkFlowFuncCall(name string) (string, bool) {
+	match := regexp.MustCompile(`^work_flow_([a-zA-Z0-9]{10})$`).FindStringSubmatch(name)
+	if len(match) == 2 {
+		return match[1], true
+	}
+	return ``, false
 }

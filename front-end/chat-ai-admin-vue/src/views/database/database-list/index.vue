@@ -1,7 +1,7 @@
 <template>
   <div class="library-page">
     <PageTabs class="mb-16" :tabs="pageTabs" active="/database/list"></PageTabs>
-    <page-alert style="margin-bottom: 16px;" title="使用说明">
+    <page-alert style="margin-bottom: 16px" title="使用说明">
       <div>
         <p>
           1、数据库可以关联到问答机器人，从对话中提取信息存储到指定数据表中，也可以利用数据表中已有数据回复用户咨询。创建机器人之前请先创建知识库，然后去机器人设置中关联。
@@ -9,7 +9,7 @@
         <p>2、支持Excel模版和Json模版导入已有数据，也支持将存储的数据导出Excel表。</p>
       </div>
     </page-alert>
-    
+
     <div class="library-page-body">
       <div class="list-toolbar">
         <div class="toolbar-box">
@@ -64,7 +64,6 @@
                   </template>
                 </a-dropdown>
               </div>
-
             </div>
           </div>
         </div>
@@ -84,16 +83,19 @@ import { getFormList, delForm } from '@/api/database'
 import AddDataSheet from './components/add-data-sheet.vue'
 import PageTabs from '@/components/cu-tabs/page-tabs.vue'
 import PageAlert from '@/components/page-alert/page-alert.vue'
-
+import { getDatabasePermission } from '@/utils/permission'
 const router = useRouter()
 
-const pageTabs = ref([{
-  title: '知识库',
-  path: '/library/list'
-}, {
-  title: '数据库',
-  path: '/database/list'
-}])
+const pageTabs = ref([
+  {
+    title: '知识库',
+    path: '/library/list'
+  },
+  {
+    title: '数据库',
+    path: '/database/list'
+  }
+])
 
 const permissionStore = usePermissionStore()
 let { role_permission } = permissionStore
@@ -111,20 +113,32 @@ getList()
 
 const addDataSheetRef = ref(null)
 const toAdd = (data = {}) => {
+  console.log(data)
+  if (data.id) {
+    let key = getDatabasePermission(data.id)
+    if (!(key == 4 || key == 2)) {
+      return message.error('您没有编辑该数据库的权限')
+    }
+  }
   addDataSheetRef.value.show(data)
 }
 
 const toEdit = (data) => {
-  router.push({
-    path: '/database/details',
-    query: {
-      form_id: data.id,
-      name: data.name
-    }
-  })
+  // router.push({
+  //   path: '/database/details',
+  //   query: {
+  //     form_id: data.id,
+  //     name: data.name
+  //   }
+  // })
+  window.open(`/#/database/details?form_id=${data.id}&name=${data.name}`, "_blank", "noopener") // 建议添加 noopener 防止安全漏洞
 }
 
 const handleDelete = (data) => {
+  let key = getDatabasePermission(data.id)
+  if (key != 4) {
+    return message.error('您没有删除该数据库的权限')
+  }
   let secondsToGo = 3
 
   let modal = Modal.confirm({
@@ -177,14 +191,14 @@ const onDelete = ({ id }) => {
 
 <style lang="less" scoped>
 .library-page {
-  .list-toolbar{
+  .list-toolbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
   }
 
-  .list-total{
+  .list-total {
     line-height: 24px;
     font-size: 16px;
     font-weight: 600;
@@ -203,7 +217,7 @@ const onDelete = ({ id }) => {
     position: relative;
     width: 100%;
     padding: 24px;
-    border: 1px solid #E4E6EB;
+    border: 1px solid #e4e6eb;
     border-radius: 12px;
     background-color: #fff;
     transition: all 0.25s;
@@ -233,13 +247,13 @@ const onDelete = ({ id }) => {
           }
         }
       }
-      .library-icon{
+      .library-icon {
         width: 52px;
         height: 52px;
         border-radius: 14px;
         overflow: hidden;
       }
-      .library-info-content{
+      .library-info-content {
         margin-left: 12px;
         flex: 1;
         overflow: hidden;
@@ -255,7 +269,7 @@ const onDelete = ({ id }) => {
         text-overflow: ellipsis;
       }
     }
-    .item-body{
+    .item-body {
       margin-top: 12px;
     }
     .library-desc {
@@ -272,7 +286,7 @@ const onDelete = ({ id }) => {
       line-clamp: 2;
       -webkit-box-orient: vertical;
     }
-    
+
     .item-footer {
       display: flex;
       align-items: center;
@@ -289,7 +303,7 @@ const onDelete = ({ id }) => {
 
       .text-item {
         margin-right: 12px;
-        &:last-child{
+        &:last-child {
           margin-right: 0;
         }
       }
@@ -313,7 +327,7 @@ const onDelete = ({ id }) => {
         transition: all 0.2s;
       }
       .action-item:hover {
-        background: #E4E6EB;
+        background: #e4e6eb;
       }
 
       .action-icon {

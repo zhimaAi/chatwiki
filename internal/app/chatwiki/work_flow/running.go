@@ -22,6 +22,7 @@ import (
 
 type WorkFlowParams struct {
 	*define.ChatRequestParam
+	RealRobot  msql.Params
 	CurMsgId   int
 	DialogueId int
 	SessionId  int
@@ -78,7 +79,7 @@ func (flow *WorkFlow) Running() (err error) {
 	for {
 		var nodeInfo msql.Params
 		flow.Logs(`当前运行节点:%s`, flow.curNodeKey)
-		flow.curNode, nodeInfo, err = GetNodeByKey(cast.ToUint(flow.params.Robot[`id`]), flow.curNodeKey)
+		flow.curNode, nodeInfo, err = GetNodeByKey(cast.ToUint(flow.params.RealRobot[`id`]), flow.curNodeKey)
 		if err != nil {
 			flow.Logs(err.Error())
 		}
@@ -131,7 +132,7 @@ func (flow *WorkFlow) Ending() {
 	flow.Logs(`保存工作流运行日志...`)
 	_, err := msql.Model(`work_flow_logs`, define.Postgres).Insert(msql.Datas{
 		`admin_user_id`: flow.params.AdminUserId,
-		`robot_id`:      flow.params.Robot[`id`],
+		`robot_id`:      flow.params.RealRobot[`id`],
 		`openid`:        flow.global[`openid`].GetVal(common.TypString),
 		`run_node_keys`: strings.Join(flow.runNodeKeys, `,`),
 		`run_logs`:      tool.JsonEncodeNoError(flow.runLogs),
@@ -163,14 +164,21 @@ func (flow *WorkFlow) VariableReplace(content string) string {
 }
 
 func (flow *WorkFlow) GetVariable(key string) (field common.SimpleField, exist bool) {
-	if field, exist = flow.output[key]; exist {
-		return
-	}
 	if strings.HasPrefix(key, `global.`) {
 		realKey := strings.TrimPrefix(key, `global.`)
 		if field, exist = flow.global[realKey]; exist {
 			return
 		}
+	}
+	if temp := strings.SplitN(key, `.`, 2); len(temp) == 2 && common.IsMd5Str(temp[0]) {
+		if output := flow.outputs[temp[0]]; len(output) > 0 {
+			if field, exist = output[temp[1]]; exist {
+				return
+			}
+		}
+	}
+	if field, exist = flow.output[key]; exist {
+		return
 	}
 	return
 }
@@ -193,7 +201,7 @@ func RunningWorkFlow(params *WorkFlowParams) (*WorkFlow, error) {
 			`openid`:   common.SimpleField{Sys: true, Key: `openid`, Desc: tea.String(`用户openid`), Typ: common.TypString, Vals: []common.Val{{String: &params.Openid}}},
 		},
 		outputs:     make(map[string]common.SimpleFields), //记录每个节点输出的变量
-		curNodeKey:  params.Robot[`start_node_key`],       //开始节点
+		curNodeKey:  params.RealRobot[`start_node_key`],   //开始节点
 		runNodeKeys: make([]string, 0),
 		runLogs:     make([]string, 0),
 	}
@@ -221,7 +229,10 @@ func RunningWorkFlow(params *WorkFlowParams) (*WorkFlow, error) {
 }
 
 func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monitor) (content string, requestTime int64, libUseTime common.LibUseTime, list []msql.Params, err error) {
-	if len(params.Robot[`start_node_key`]) == 0 {
+	if len(params.RealRobot) == 0 { //未传参时,使用params里面的
+		params.RealRobot = params.Robot
+	}
+	if len(params.RealRobot[`start_node_key`]) == 0 {
 		err = errors.New(`工作流机器人未发布`)
 		return
 	}
@@ -244,4 +255,73 @@ func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monit
 	}
 	*debugLog = append(*debugLog, flow.output[`special.llm_debug_log`].GetVals()...)
 	return
+}
+
+func BuildFunctionTools(robot msql.Params) ([]adaptor.FunctionTool, bool) {
+	if len(robot) == 0 || cast.ToInt(robot[`application_type`]) != define.ApplicationTypeChat || len(robot[`work_flow_ids`]) == 0 {
+		return nil, false
+	}
+	//判断func call能力
+	if err := common.CheckSupportFuncCall(cast.ToInt(robot[`admin_user_id`]), cast.ToInt(robot[`model_config_id`]), robot[`use_model`]); err != nil {
+		return nil, false
+	}
+	m := msql.Model(`chat_ai_robot`, define.Postgres)
+	list, err := m.Where(`application_type`, cast.ToString(define.ApplicationTypeFlow)).Where(`start_node_key`, `<>`, ``).
+		Where(`admin_user_id`, robot[`admin_user_id`]).Where(`id`, `in`, robot[`work_flow_ids`]).
+		Field(`id,robot_key,robot_name,robot_intro,start_node_key`).Select()
+	if err != nil {
+		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
+	}
+	functionTools := make([]adaptor.FunctionTool, 0)
+	for _, item := range list {
+		node, _, err := GetNodeByKey(cast.ToUint(item[`id`]), item[`start_node_key`])
+		if err != nil {
+			logs.Error(err.Error())
+			continue
+		}
+		startNode, _ := node.(*StartNode)
+		properties, required := make(map[string]map[string]string), make([]string, 0)
+		if startNode != nil && len(startNode.params.DiyGlobal) > 0 {
+			for _, param := range startNode.params.DiyGlobal {
+				properties[param.Key] = map[string]string{`type`: param.Typ, `description`: param.Desc}
+				if param.Required {
+					required = append(required, param.Key)
+				}
+			}
+		}
+		functionTools = append(functionTools, adaptor.FunctionTool{
+			Name:        fmt.Sprintf(`work_flow_%s`, item[`robot_key`]),
+			Description: fmt.Sprintf(`%s(%s)`, item[`robot_name`], item[`robot_intro`]),
+			Parameters: adaptor.Parameters{
+				Type:       `object`,
+				Properties: properties,
+				Required:   required,
+			},
+		})
+	}
+	return functionTools, len(functionTools) > 0
+}
+
+func ChooseWorkFlowRobot(functionTools []adaptor.FunctionToolCall) (_ msql.Params, global map[string]any) {
+	for _, functionTool := range functionTools {
+		robotKey, ok := common.IsWorkFlowFuncCall(functionTool.Name)
+		if !ok {
+			continue
+		}
+		robot, err := common.GetRobotInfo(robotKey)
+		if err != nil {
+			logs.Error(err.Error())
+		}
+		if len(robot) == 0 || cast.ToInt(robot[`application_type`]) != define.ApplicationTypeFlow || len(robot[`start_node_key`]) == 0 {
+			continue
+		}
+		_ = tool.JsonDecodeUseNumber(functionTool.Arguments, &global)
+		return robot, global
+	}
+	return
+}
+
+func BuildWorkFlowParams(params define.ChatRequestParam, workFlowRobot msql.Params, workFlowGlobal map[string]any, curMsgId, dialogueId, sessionId int) *WorkFlowParams {
+	params.WorkFlowGlobal = workFlowGlobal
+	return &WorkFlowParams{ChatRequestParam: &params, RealRobot: workFlowRobot, CurMsgId: curMsgId, DialogueId: dialogueId, SessionId: sessionId}
 }

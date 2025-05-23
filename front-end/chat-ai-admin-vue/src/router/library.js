@@ -97,10 +97,11 @@ export default {
         {
           path: '/library/details/knowledge-config',
           name: 'knowledgeConfig',
-          component: () => import('@/views/library/library-details/knowledge-config.vue'),
+          component: () => import('@/views/library/library-details/knowledge-config/index.vue'),
           meta: {
             title: '知识库配置',
-            activeMenu: '/library'
+            activeMenu: '/library',
+            cuStyle: true,
           }
         },
         {

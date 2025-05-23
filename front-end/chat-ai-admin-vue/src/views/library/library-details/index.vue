@@ -12,8 +12,11 @@
           <LeftMenus></LeftMenus>
         </div>
       </div>
-
+      <div v-if="cuStyle" style="flex: 1">
+        <router-view></router-view>
+      </div>
       <div
+        v-else
         class="right-content-box"
         :class="['page-' + rotue.name]"
         :style="{ overflow: rotue.name == 'knowledgeDocument' ? 'hidden' : '' }"
@@ -23,29 +26,50 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { onMounted, computed } from 'vue'
+<script>
+import { ref, computed, defineComponent } from 'vue'
 import { useRoute } from 'vue-router'
 import LeftMenus from './components/left-menus.vue'
 import { LIBRARY_NORMAL_AVATAR } from '@/constants/index'
+import { getLibraryPermission } from '@/utils/permission'
 import { useLibraryStore } from '@/stores/modules/library'
+export default defineComponent({
+  components: {
+    LeftMenus
+  },
 
-const libraryStore = useLibraryStore()
-const { getLibraryInfo } = libraryStore
+  async beforeRouteEnter(to, from, next) {
+    let key = getLibraryPermission(to.query.id)
+    if (key == 0 || key == 1) {
+      next(`/no-permission`)
+      return
+    }
+    next()
+  },
+  setup() {
+    const libraryStore = useLibraryStore()
+    const { getLibraryInfo } = libraryStore
+    const rotue = useRoute()
+    const query = rotue.query
+    const cuStyle = computed(() => {
+      return rotue.meta.cuStyle
+    })
 
-const library_name = computed(() => libraryStore.library_name)
-const avatar = computed(() => libraryStore.avatar)
+    const library_name = computed(() => libraryStore.library_name)
+    const avatar = computed(() => libraryStore.avatar)
 
-const rotue = useRoute()
-const query = rotue.query
+    const getInfo = () => {
+      getLibraryInfo({ id: query.id })
+    }
 
-const getInfo = () => {
-  getLibraryInfo(query.id)
-}
-
-onMounted(() => {
-  // getInfo()
+    return {
+      cuStyle,
+      LIBRARY_NORMAL_AVATAR,
+      rotue,
+      library_name,
+      avatar
+    }
+  }
 })
 </script>
 
@@ -102,7 +126,7 @@ onMounted(() => {
 }
 </style>
 <style>
-.page-knowledgeGraph{
+.page-knowledgeGraph {
   padding: 0 !important;
 }
 </style>

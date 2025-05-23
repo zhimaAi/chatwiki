@@ -19,7 +19,7 @@
 import { ref, h, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import SvgIcon from '@/components/svg-icon/index.vue'
-
+import { UserOutlined } from '@ant-design/icons-vue'
 const emit = defineEmits(['changeMenu'])
 const route = useRoute()
 const query = route.query
@@ -56,6 +56,17 @@ const items = ref([
     label: '数据管理',
     title: '数据管理',
     path: '/database/details/database-manage'
+  },
+  {
+    key: 'role-permission',
+    id: 'role-permission',
+    icon: () =>
+      h('span', {}, [
+        h(UserOutlined),
+      ]),
+    label: '权限管理',
+    title: '权限管理',
+    path: '/database/details/role-permission'
   }
 ])
 

@@ -11,6 +11,8 @@
     "dev3": "vite --host 0.0.0.0 --mode dev3",
     "dev4": "vite --host 0.0.0.0 --mode dev4",
     "dev5": "vite --host 0.0.0.0 --mode dev5",
+    "dev6": "vite --host 0.0.0.0 --mode dev6",
+    "dev7": "vite --host 0.0.0.0 --mode dev7",
     "dev9": "vite --host 0.0.0.0 --mode dev9",
     "build": "vite build",
     "build:test": "vite build --mode test",

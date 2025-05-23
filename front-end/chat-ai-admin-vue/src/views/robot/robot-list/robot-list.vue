@@ -299,6 +299,7 @@ import { Modal, message } from 'ant-design-vue'
 import AddRobotAlert from './components/add-robot-alert.vue'
 import PageAlert from '@/components/page-alert/page-alert.vue'
 import ListTabs from '@/components/cu-tabs/list-tabs.vue'
+import { getRobotPermission } from '@/utils/permission'
 
 const tabs = ref([
   {
@@ -373,13 +374,19 @@ const toAddRobot = (val) => {
 
 const toEditRobot = ({id, robot_key, application_type}) => {
   if(application_type == 0){
-    router.push({ path: '/robot/config/basic-config', query: { id: id, robot_key: robot_key  } })
+    // router.push({ path: '/robot/config/basic-config', query: { id: id, robot_key: robot_key  } })
+    window.open(`/#/robot/config/basic-config?id=${id}&robot_key=${robot_key}`, "_blank", "noopener") // 建议添加 noopener 防止安全漏洞
   }else{
-    router.push({ path: '/robot/config/workflow', query: { id: id, robot_key: robot_key  } })
+    // router.push({ path: '/robot/config/workflow', query: { id: id, robot_key: robot_key  } })
+    window.open(`/#/robot/config/workflow?id=${id}&robot_key=${robot_key}`, "_blank", "noopener") // 建议添加 noopener 防止安全漏洞
   }
 }
 
 const handleDelete = (data) => {
+  let key = getRobotPermission(data.id)
+  if(key != 4){
+    return message.error('您没有删除机器人的权限')
+  }
   let secondsToGo = 3
   let modal = Modal.confirm({
     title: `删除机器人${data.robot_name}`,

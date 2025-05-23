@@ -33,7 +33,7 @@
     overflow: hidden;
 
     .page-left {
-      width: 430px;
+      width: 400px;
       height: 100%;
       overflow-y: auto;
       &::-webkit-scrollbar {
@@ -136,6 +136,7 @@
           :library_type="library_type"
           :mode="settingMode"
           :hideSave="true"
+          :status="'paragraphsSegmented'"
           ref="segmentationSettingRef"
           @change="onChangeSetting"
           @changeChunkType="onChangeChunkType"
@@ -158,6 +159,8 @@
               :key="item.number"
             >
               <DocumentFragment
+                :status="'paragraphsSegmented'"
+                :currentData="currentData"
                 :number="item.number"
                 :title="item.title"
                 :content="item.content"
@@ -188,9 +191,10 @@ import DocumentFragment from './components/document-fragment.vue'
 import EditFragmentAlert from './components/edit-fragment-alert.vue'
 import {
   getLibFileSplit,
+  getSplitParagraph,
   getLibFileSplitAiChunks,
   getLibFileInfo,
-  saveLibFileSplit,
+  saveSplitParagraph,
   getLibFileExcelTitle
 } from '@/api/library/index'
 
@@ -207,6 +211,14 @@ const props = defineProps({
   pdfState: {
     type: Object,
     default: () => {}
+  },
+  currentData: {
+    type: Object,
+    default: () => {}
+  },
+  paragraphType: {
+    type: String,
+    default: ''
   }
 })
 const current_chunk_type = ref(1)
@@ -406,7 +418,52 @@ const getDocumentFragment = (type) => {
     }
   }
 
-  return getLibFileSplit(params)
+  let requiredUrl = getLibFileSplit
+
+  if (props.paragraphType && props.paragraphType === 'paragraphsSegmented' && type == 'create') {
+    requiredUrl = getSplitParagraph
+    delete params.id
+  }
+
+
+  if (props.paragraphType && props.paragraphType === 'paragraphsSegmented' && !type) {
+    // 不请求接口，直接将数据填充进去
+    documentFragmentList.value = props.currentData.list || []
+    // 这里是点击重新分段选中的数据，只有一条
+    props.currentData.list.map(data => {
+      documentFragmentTotal.value += data.content.length || 0
+    })
+
+    if (formData.chunk_type == 3) {
+      // ai分段
+      task_id.value = props.currentData.split_params?.ai_chunk_task_id || ''
+      aiLoading.value = true
+      segmentationSettingRef.value.reLoading = true
+      error.value = null
+
+      // 之前没有ai分段数据，重新异步请求ai分段数据
+      // 之前不管有没有ai分段数据，只要是点击生成分段预览则重新异步请求ai分段数据
+      if (!formData.ai_chunk_task_id && settingMode.value != 1 || (type && type === 'create')) {
+        // 清空之前的页面分段数据，重新请求
+        documentFragmentList.value = []
+        documentFragmentTotal.value = 0
+        startPolling()
+      } else {
+        aiLoading.value = false
+        segmentationSettingRef.value.reLoading = false
+      }
+    }
+
+    if (formData.chunk_type != 3) {
+      segmentationSettingRef.value.reLoading = false
+      segmentationSettingRef.value.saveLoading = false
+    }
+    emit('loading', false)
+
+    return false
+  }
+
+  return requiredUrl(params)
     .then((res) => {
       documentFragmentList.value = res.data.list || []
       documentFragmentTotal.value = res.data.list.length || 0
@@ -416,6 +473,7 @@ const getDocumentFragment = (type) => {
         task_id.value = res.data.split_params?.ai_chunk_task_id || ''
         aiLoading.value = true
         segmentationSettingRef.value.reLoading = true
+        segmentationSettingRef.value.saveLoading = true
         error.value = null
 
         // 之前没有ai分段数据，重新异步请求ai分段数据
@@ -428,12 +486,14 @@ const getDocumentFragment = (type) => {
         } else {
           aiLoading.value = false
           segmentationSettingRef.value.reLoading = false
+          segmentationSettingRef.value.saveLoading = false
         }
       }
     })
     .finally(() => {
       if (formData.chunk_type != 3) {
         segmentationSettingRef.value.reLoading = false
+        segmentationSettingRef.value.saveLoading = false
       }
       emit('loading', false)
     })
@@ -481,6 +541,7 @@ const startPolling = () => {
     } else {
       aiLoading.value = false
       segmentationSettingRef.value.reLoading = false
+      segmentationSettingRef.value.saveLoading = false
       if (timer !== null) {
         clearTimeout(timer);
         timer = null;
@@ -612,7 +673,7 @@ const handleSaveLibFileSplit = async () => {
   delete split_params.id
 
   let parmas = {
-    id: id,
+    file_id: id,
     word_total: documentFragmentTotal.value,
     split_params: JSON.stringify(split_params),
     list: JSON.stringify(documentFragmentList.value),
@@ -627,7 +688,13 @@ const handleSaveLibFileSplit = async () => {
 
   saveLoading.value = true
 
-  saveLibFileSplit(parmas)
+  if (props.paragraphType && props.paragraphType === 'paragraphsSegmented') {
+    // get的接口和save没有统一，多了个s，这里要特殊处理一下
+    parmas.data_id = parmas.data_ids
+    delete parmas.data_ids
+  }
+
+  saveSplitParagraph(parmas)
     .then(() => {
       emit('ok')
       emit('finish')

@@ -63,10 +63,13 @@
                       <template #overlay>
                         <a-menu>
                           <a-menu-item>
-                            <div @click="handleDel(item)">删除</div>
+                            <div @click="handleEditWord(item, 'copy')">复制</div>
                           </a-menu-item>
                           <a-menu-item>
                             <div @click="handleOpenGroup(item)">修改分组</div>
+                          </a-menu-item>
+                          <a-menu-item>
+                            <div @click="handleDel(item)">删除</div>
                           </a-menu-item>
                         </a-menu>
                       </template>
@@ -107,6 +110,14 @@
                         </div>
                         <div class="structure-content">
                           {{ item.prompt_struct.constraints.describe }}
+                        </div>
+                      </div>
+                      <div class="structure-list">
+                        <div class="structure-title">
+                          {{ item.prompt_struct.skill.subject }}
+                        </div>
+                        <div class="structure-content">
+                          {{ item.prompt_struct.skill.describe }}
                         </div>
                       </div>
                       <div class="structure-list">
@@ -217,10 +228,13 @@ const handleAddWord = (prompt_type) => {
   })
 }
 
-const handleEditWord = (data) => {
-  addDiyPromptRef.value.show({
-    ...data
-  })
+const handleEditWord = (data, type) => {
+  addDiyPromptRef.value.show(
+    {
+      ...data
+    },
+    type
+  )
 }
 
 function getGroupName(id) {

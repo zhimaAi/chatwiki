@@ -36,7 +36,7 @@ func AdminLogin(c *gin.Context) {
 		return
 	}
 	info, err := msql.Model(define.TableUser, define.Postgres).Where(`user_name`, req.UserName).Where("is_deleted", define.Normal).
-		Where(fmt.Sprintf(`password=MD5(concat(%s,salt))`, msql.ToString(req.Password))).Field(`id,user_name,user_roles,avatar,nick_name,parent_id`).Find()
+		Where(fmt.Sprintf(`password=MD5(concat(%s,salt))`, msql.ToString(req.Password))).Field(`id,user_name,user_roles,avatar,nick_name,parent_id,login_switch,expire_time`).Find()
 	if err != nil {
 		logs.Error(err.Error())
 		common.FmtError(c, `sys_err`)
@@ -44,6 +44,10 @@ func AdminLogin(c *gin.Context) {
 	}
 	if len(info) == 0 {
 		common.FmtError(c, `user_or_pwd_err`)
+		return
+	}
+	if common.CheckUserLogin(cast.ToInt(info[`login_switch`]), cast.ToInt(info["expire_time"])) {
+		common.FmtError(c, `client_side_cannot_login`)
 		return
 	}
 	data, err := common.GetToken(info[`id`], info[`user_name`], info["parent_id"])
@@ -232,4 +236,25 @@ func RefreshUserToken(c *gin.Context) {
 		return
 	}
 	common.FmtOk(c, data)
+}
+
+func LoginSwitch(c *gin.Context) {
+	if getAdminUserId(c) == 0 {
+		common.FmtError(c, `user_no_login`)
+		return
+	}
+	userId := cast.ToInt(c.PostForm(`user_id`))
+	if userId <= 0 {
+		common.FmtError(c, `param_lack`)
+		return
+	}
+	updata := fmt.Sprintf(`login_switch=1-login_switch,update_time=%v`, tool.Time2Int())
+	m := msql.Model(define.TableUser, define.Postgres)
+	// save ..
+	_, err := m.Where("id", cast.ToString(userId)).Update2(updata)
+	if err != nil {
+		common.FmtError(c, `user_save_err`)
+		return
+	}
+	common.FmtOk(c, userId)
 }

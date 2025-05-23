@@ -132,6 +132,14 @@ export const getLibFileSplit = (params) => {
   })
 }
 
+// 段落重新分段
+export const getSplitParagraph = (params) => {
+  return request.get({
+    url: '/manage/getSplitParagraph',
+    params: params
+  })
+}
+
 export const getLibFileInfo = (params = {}) => {
   return request.get({
     url: '/manage/getLibFileInfo',
@@ -142,6 +150,14 @@ export const getLibFileInfo = (params = {}) => {
 export const saveLibFileSplit = (data) => {
   return request.post({
     url: '/manage/saveLibFileSplit',
+    data: data
+  })
+}
+
+// 保存段落重新分段
+export const saveSplitParagraph = (data) => {
+  return request.post({
+    url: '/manage/saveSplitParagraph',
     data: data
   })
 }
@@ -234,6 +250,14 @@ export const getLibFileSplitAiChunks = (params) => {
     params: params
   })
 }
+
+export const getParagraphCount = (params = {}) => {
+  return request.get({
+    url: '/manage/getParagraphCount',
+    params: params
+  })
+}
+
 export const getCategoryList = (params = {}) => {
   return request.get({
     url: '/manage/getCategoryList',

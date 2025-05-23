@@ -101,7 +101,7 @@ export function getNodeHeight(node) {
   }
 
   if (node.type == 'ai-dialogue-node') {
-    return 670
+    return 674
   }
 
   if (node.type == 'end-node') {
@@ -115,7 +115,9 @@ export function getNodeHeight(node) {
   if (node.type == 'specify-reply-node') {
     return 312
   }
-
+  if (node.type == 'explain-node') {
+    return 152
+  }
   return 800
 }
 

@@ -29,8 +29,13 @@ func GetRobotList(c *gin.Context) {
 	}
 
 	m := msql.Model(`chat_ai_robot`, define.Postgres).
-		Field(`id,robot_name,robot_intro,robot_avatar,robot_key,application_type`).
+		Field(`id,robot_name,robot_intro,robot_avatar,robot_key,application_type,creator,start_node_key`).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id desc`)
+
+	applicationType := cast.ToInt(c.DefaultQuery(`application_type`, `-1`))
+	if applicationType >= 0 { //按应用类型筛选
+		m.Where(`application_type`, cast.ToString(applicationType))
+	}
 
 	userId := getLoginUserId(c)
 	if userId <= 0 {
@@ -52,8 +57,14 @@ func GetRobotList(c *gin.Context) {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
-	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot, define.RoleTypeAdmin}) {
-		managedRobotIdList := GetUserManagedData(userId, `managed_robot_list`)
+	//check permission
+	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot}) {
+		// managedRobotIdList := GetUserManagedData(userId, `managed_robot_list`)
+		managedRobotIdList := []string{`0`}
+		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeRobot)
+		for _, permission := range permissionData {
+			managedRobotIdList = append(managedRobotIdList, cast.ToString(permission[`object_id`]))
+		}
 		m.Where(`id`, `in`, strings.Join(managedRobotIdList, `,`))
 	}
 
@@ -86,7 +97,6 @@ func SaveRobot(c *gin.Context) {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
-
 	//get params
 	id := cast.ToInt64(c.PostForm(`id`))
 	robotName := strings.TrimSpace(c.PostForm(`robot_name`))
@@ -117,6 +127,9 @@ func SaveRobot(c *gin.Context) {
 	answerSourceSwitch := cast.ToBool(c.DefaultPostForm(`answer_source_switch`, `true`))
 
 	enableQuestionOptimize := cast.ToBool(c.DefaultPostForm(`enable_question_optimize`, `false`))
+	optimizeQuestionModelConfigId := cast.ToInt(c.DefaultPostForm(`optimize_question_model_config_id`, "0"))
+	optimizeQuestionUseModel := strings.TrimSpace(c.DefaultPostForm(`optimize_question_use_model`, ``))
+	optimizeQuestionDialogueBackground := strings.TrimSpace(c.DefaultPostForm(`optimize_question_dialogue_background`, ``))
 	enableQuestionGuide := cast.ToBool(c.DefaultPostForm(`enable_question_guide`, `true`))
 	questionGuideNum := cast.ToInt(c.DefaultPostForm(`question_guide_num`, `3`))
 	enableCommonQuestion := cast.ToBool(c.DefaultPostForm(`enable_common_question`, `true`))
@@ -250,17 +263,9 @@ func SaveRobot(c *gin.Context) {
 	}
 	//check form
 	if len(formIds) > 0 {
-		if modelInfo.SupportedFunctionCallList == nil {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `does_not_support_form`))))
-			return
-		}
-		if modelInfo.CheckFancCallRequest != nil {
-			if err = modelInfo.CheckFancCallRequest(modelInfo, config, useModel); err != nil {
-				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `form_ids_err`))))
-				return
-			}
-		} else if !tool.InArrayString(useModel, modelInfo.SupportedFunctionCallList) {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `form_ids_err`))))
+		//判断func call能力
+		if err = common.CheckSupportFuncCall(userId, modelConfigId, useModel); err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			return
 		}
 		if !common.CheckIds(formIds) {
@@ -329,36 +334,39 @@ func SaveRobot(c *gin.Context) {
 
 	//database dispose
 	data := msql.Datas{
-		`robot_name`:               robotName,
-		`robot_intro`:              robotIntro,
-		`prompt_type`:              promptType,
-		`prompt`:                   prompt,
-		`prompt_struct`:            promptStruct,
-		`library_ids`:              libraryIds,
-		`form_ids`:                 formIds,
-		`welcomes`:                 welcomes,
-		`model_config_id`:          modelConfigId,
-		`use_model`:                useModel,
-		`rerank_status`:            rerankStatus,
-		`rerank_model_config_id`:   rerankModelConfigId,
-		`rerank_use_model`:         rerankUseModel,
-		`temperature`:              temperature,
-		`max_token`:                maxToken,
-		`context_pair`:             contextPair,
-		`top_k`:                    topK,
-		`similarity`:               similarity,
-		`search_type`:              searchType,
-		`chat_type`:                chatType,
-		`answer_source_switch`:     answerSourceSwitch,
-		`enable_question_optimize`: enableQuestionOptimize,
-		`enable_question_guide`:    enableQuestionGuide,
-		`question_guide_num`:       questionGuideNum,
-		`enable_common_question`:   enableCommonQuestion,
-		`common_question_list`:     commonQuestionList,
-		`think_switch`:             thinkSwitch,
-		`feedback_switch`:          feedbackSwitch,
-		`sensitive_words_switch`:   sensitiveWordsSwitch,
-		`update_time`:              tool.Time2Int(),
+		`robot_name`:                            robotName,
+		`robot_intro`:                           robotIntro,
+		`prompt_type`:                           promptType,
+		`prompt`:                                prompt,
+		`prompt_struct`:                         promptStruct,
+		`library_ids`:                           libraryIds,
+		`form_ids`:                              formIds,
+		`welcomes`:                              welcomes,
+		`model_config_id`:                       modelConfigId,
+		`use_model`:                             useModel,
+		`rerank_status`:                         rerankStatus,
+		`rerank_model_config_id`:                rerankModelConfigId,
+		`rerank_use_model`:                      rerankUseModel,
+		`temperature`:                           temperature,
+		`max_token`:                             maxToken,
+		`context_pair`:                          contextPair,
+		`top_k`:                                 topK,
+		`similarity`:                            similarity,
+		`search_type`:                           searchType,
+		`chat_type`:                             chatType,
+		`answer_source_switch`:                  answerSourceSwitch,
+		`enable_question_optimize`:              enableQuestionOptimize,
+		`optimize_question_model_config_id`:     optimizeQuestionModelConfigId,
+		`optimize_question_dialogue_background`: optimizeQuestionDialogueBackground,
+		`optimize_question_use_model`:           optimizeQuestionUseModel,
+		`enable_question_guide`:                 enableQuestionGuide,
+		`question_guide_num`:                    questionGuideNum,
+		`enable_common_question`:                enableCommonQuestion,
+		`common_question_list`:                  commonQuestionList,
+		`think_switch`:                          thinkSwitch,
+		`feedback_switch`:                       feedbackSwitch,
+		`sensitive_words_switch`:                sensitiveWordsSwitch,
+		`update_time`:                           tool.Time2Int(),
 	}
 	if len(robotAvatar) > 0 {
 		data[`robot_avatar`] = robotAvatar
@@ -394,15 +402,18 @@ func SaveRobot(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			return
 		}
+		loginUserId := getLoginUserId(c)
 		data[`admin_user_id`] = userId
 		data[`robot_key`] = robotKey
 		data[`create_time`] = data[`update_time`]
+		data[`creator`] = loginUserId
 		id, err = m.Insert(data, `id`)
 		// add robot api key
-		if err == nil {
-			_ = AddUserMangedData(getLoginUserId(c), `managed_robot_list`, id)
-		}
 
+		if err == nil {
+			// _ = AddUserMangedData(loginUserId, `managed_robot_list`, id)
+			go AddDefaultPermissionManage(userId, loginUserId, int(id), define.ObjectTypeRobot)
+		}
 	}
 	if err != nil {
 		logs.Error(err.Error())
@@ -486,11 +497,14 @@ func AddFlowRobot(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+	loginUserId := getLoginUserId(c)
 	data[`robot_key`] = robotKey
+	data[`creator`] = loginUserId
 	id, err := m.Insert(data, `id`)
 	// add robot api key
 	if err == nil {
-		_ = AddUserMangedData(getLoginUserId(c), `managed_robot_list`, id)
+		// _ = AddUserMangedData(loginUserId, `managed_robot_list`, id)
+		go AddDefaultPermissionManage(userId, loginUserId, int(id), define.ObjectTypeRobot)
 	}
 	if err != nil {
 		logs.Error(err.Error())
@@ -573,6 +587,9 @@ func GetRobotInfo(c *gin.Context) {
 	}
 	if len(info[`prompt_struct`]) == 0 {
 		info[`prompt_struct`] = tool.JsonEncodeNoError(common.GetEmptyPromptStruct()) //旧数据默认给空值
+	}
+	if cast.ToInt(info[`prompt_type`]) == define.PromptTypeStruct { //用于旧数据格式化
+		info[`prompt_struct`], _ = common.CheckPromptConfig(define.PromptTypeStruct, info[`prompt_struct`])
 	}
 	//configure external service parameters
 	info[`h5_domain`] = define.Config.WebService[`h5_domain`]
@@ -726,6 +743,7 @@ func RobotCopy(c *gin.Context) {
 		return
 	}
 	data[`robot_key`] = robotKey
+	data[`creator`] = getLoginUserId(c)
 	data[`robot_name`] = createNewName(info[`robot_name`])
 	data[`create_time`] = tool.Time2Int()
 	data[`update_time`] = tool.Time2Int()
@@ -741,6 +759,7 @@ func RobotCopy(c *gin.Context) {
 	if cast.ToInt(info[`application_type`]) == define.ApplicationTypeFlow {
 		workFlowNodeCopy(userId, fromId, newId)
 	}
+	go AddDefaultPermissionManage(userId, getLoginUserId(c), int(newId), define.ObjectTypeRobot)
 	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
 }
 
@@ -825,5 +844,66 @@ func EditBaseInfo(c *gin.Context) {
 	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
-	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
+}
+
+func RelationWorkFlow(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	//get params
+	id := cast.ToInt64(c.PostForm(`id`))
+	workFlowIds := strings.TrimSpace(c.PostForm(`work_flow_ids`))
+	//check required
+	if id <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	//data check
+	m := msql.Model(`chat_ai_robot`, define.Postgres)
+	robot, err := m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`application_type`, cast.ToString(define.ApplicationTypeChat)).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(robot) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	if len(workFlowIds) > 0 {
+		if !common.CheckIds(workFlowIds) { //format check
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `work_flow_ids`))))
+			return
+		}
+		robotIds, err := m.Where(`application_type`, cast.ToString(define.ApplicationTypeFlow)).
+			Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`id`, `in`, workFlowIds).ColumnArr(`id`)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		workFlowIds = strings.Join(robotIds, `,`)
+	}
+	if len(workFlowIds) > 0 { //判断func call能力
+		if err = common.CheckSupportFuncCall(adminUserId, cast.ToInt(robot[`model_config_id`]), robot[`use_model`]); err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+			return
+		}
+	}
+	//database dispose
+	data := msql.Datas{
+		`work_flow_ids`: workFlowIds,
+		`update_time`:   tool.Time2Int(),
+	}
+	if _, err = m.Where(`id`, cast.ToString(id)).Update(data); err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	//clear cached data
+	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robot[`robot_key`]})
+	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robot[`robot_key`])))
 }

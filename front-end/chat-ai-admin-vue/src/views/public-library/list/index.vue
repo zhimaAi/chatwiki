@@ -75,13 +75,14 @@ const handleAdd = () => {
 }
 
 const toEdit = (data) => {
-  router.push({
-    path: '/public-library/home',
-    query: {
-      library_id: data.id,
-      library_key: data.library_key
-    }
-  })
+  // router.push({
+  //   path: '/public-library/home',
+  //   query: {
+  //     library_id: data.id,
+  //     library_key: data.library_key
+  //   }
+  // })
+  window.open(`/#/public-library/home?library_id=${data.id}&library_key=${data.library_key}`, "_blank", "noopener") // 建议添加 noopener 防止安全漏洞
 }
 
 const handleDelete = (data) => {

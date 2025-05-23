@@ -747,19 +747,35 @@ func GetOptimizedQuestions(param *define.ChatRequestParam, contextList []map[str
 		histories += "Q: " + item[`question`] + "\n"
 		histories += "A: " + item[`answer`] + "\n"
 	}
-	prompt := strings.ReplaceAll(define.PromptDefaultQuestionOptimize, `{{query}}`, param.Question)
-	prompt = strings.ReplaceAll(prompt, `{{histories}}`, histories)
+
+	var prompt string
+	if len(param.Robot[`optimize_question_dialogue_background`]) > 0 {
+		prompt = strings.ReplaceAll(define.PromptDefaultQuestionOptimize, `{{dialogue_background}}`, `# 对话背景：\n`+param.Robot[`optimize_question_dialogue_background`])
+	} else {
+		prompt = strings.ReplaceAll(define.PromptDefaultQuestionOptimize, `{{dialogue_background}}`, ``)
+	}
 
 	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
+	for _, item := range contextList {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: item[`question`]})
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: item[`answer`]})
+	}
+	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: param.Question})
 
-	var result []string
+	modelConfigId := cast.ToInt(param.Robot[`model_config_id`])
+	useModel := param.Robot[`use_model`]
+	if cast.ToInt(param.Robot[`optimize_question_model_config_id`]) > 0 {
+		modelConfigId = cast.ToInt(param.Robot[`optimize_question_model_config_id`])
+		useModel = param.Robot[`optimize_question_use_model`]
+	}
+
 	chatResp, _, err := RequestChat(
 		param.AdminUserId,
 		param.Openid,
 		param.Robot,
 		param.AppType,
-		cast.ToInt(param.Robot[`model_config_id`]),
-		param.Robot[`use_model`],
+		modelConfigId,
+		useModel,
 		messages,
 		nil,
 		cast.ToFloat32(param.Robot[`temperature`]),
@@ -769,12 +785,7 @@ func GetOptimizedQuestions(param *define.ChatRequestParam, contextList []map[str
 		return nil, err
 	}
 
-	err = json.Unmarshal([]byte(chatResp.Result), &result)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return []string{chatResp.Result}, nil
 }
 
 func ClientSideNeedLogin(adminUserId int) bool {

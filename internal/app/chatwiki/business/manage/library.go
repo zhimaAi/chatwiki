@@ -66,9 +66,16 @@ func GetLibraryList(c *gin.Context) {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
-	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot, define.RoleTypeAdmin}) && cast.ToInt(typ) != define.OpenLibraryType {
-		managedRobotIdList := GetUserManagedData(userId, `managed_library_list`)
-		m.Where(`id`, `in`, strings.Join(managedRobotIdList, `,`))
+	if cast.ToInt(typ) != define.OpenLibraryType {
+		// managedLibraryIdList := GetUserManagedData(userId, `managed_library_list`)
+		if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot}) {
+			managedLibraryIdList := []string{`0`}
+			permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeLibrary)
+			for _, permission := range permissionData {
+				managedLibraryIdList = append(managedLibraryIdList, cast.ToString(permission[`object_id`]))
+			}
+			m.Where(`id`, `in`, strings.Join(managedLibraryIdList, `,`))
+		}
 	}
 
 	list, err := m.
@@ -303,6 +310,8 @@ func CreateLibrary(c *gin.Context) {
 			partner = append(partner, cast.ToString(loginUserId))
 		}
 		_ = common.SaveLibDocPartner(loginUserId, int(libraryId), define.PartnerRightsManage, 1, partner)
+	} else {
+		go AddDefaultPermissionManage(userId, loginUserId, int(libraryId), define.ObjectTypeLibrary)
 	}
 	//common save
 	//fileIds, err = addLibFile(c, userId, int(libraryId), cast.ToInt(typ))
@@ -310,9 +319,8 @@ func CreateLibrary(c *gin.Context) {
 	//	c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 	//	return
 	//}
-	_ = AddUserMangedData(loginUserId, `managed_library_list`, libraryId)
-
-	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`id`: libraryId,
+	// _ = AddUserMangedData(loginUserId, `managed_library_list`, libraryId)
+	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`id`: cast.ToString(libraryId),
 		`library_key`: common.BuildLibraryKey(cast.ToInt(libraryId), cast.ToInt(data[`create_time`]))}, nil))
 }
 

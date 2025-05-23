@@ -208,3 +208,10 @@ export const editBaseInfo = (data = {}) => {
     data: data
   })
 }
+
+export const relationWorkFlow = (data = {}) => {
+  return request.post({
+    url: '/manage/relationWorkFlow',
+    data: data
+  })
+}

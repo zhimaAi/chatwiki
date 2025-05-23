@@ -15,6 +15,7 @@ export default {
         hideTitle: true
       }
     },
+
     {
       path: '/database/details',
       name: 'databaseDetails',
@@ -41,6 +42,14 @@ export default {
           component: () => import('../views/database/database-detail/database-manage/index.vue'),
           meta: {
             title: '数据管理',
+            activeMenu: 'library'
+          }
+        },
+        {
+          path: '/database/details/role-permission',
+          component: () => import('../views/database/role-permission/index.vue'),
+          meta: {
+            title: '权限管理',
             activeMenu: 'library'
           }
         },

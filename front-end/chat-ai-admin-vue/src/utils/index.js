@@ -178,16 +178,21 @@ export function getUuid(len, radix) {
 }
 
 export function unicodeToBase64(str) {
-  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
-    function (match, p1) {
+  return btoa(
+    encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function (match, p1) {
       return String.fromCharCode(parseInt(p1, 16))
-    }))
+    })
+  )
 }
 
 export function base64ToUnicode(base64) {
-  return decodeURIComponent(Array.prototype.map.call(atob(base64), function(c) {
-    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
-  }).join(''))
+  return decodeURIComponent(
+    Array.prototype.map
+      .call(atob(base64), function (c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+      })
+      .join('')
+  )
 }
 
 export function getOpenid() {
@@ -305,7 +310,6 @@ export function exportToJsonWithSaver(data, filename = 'data.json') {
   }, 0)
 }
 
-
 // 格式化显示时间
 export function formatDisplayChatTime(time) {
   time = time * 1000
@@ -335,9 +339,6 @@ export function formatDisplayChatTime(time) {
   }
 }
 
-
-
-
 /**
  * 在时间格式和分钟数之间转换
  * @param {string|number} input - 输入可以是时间格式字符串（如 "00:10"）或分钟数（如 10 或 "70"）
@@ -346,23 +347,94 @@ export function formatDisplayChatTime(time) {
 export function convertTime(input) {
   // 如果输入是数字，或者字符串形式的数字，转换为时间格式
   if (typeof input === 'number' || (typeof input === 'string' && !isNaN(input))) {
-    const minutes = parseInt(input, 10);
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
+    const minutes = parseInt(input, 10)
+    const hours = Math.floor(minutes / 60)
+    const remainingMinutes = minutes % 60
     // 使用 padStart 确保两位数格式
-    return `${String(hours).padStart(2, '0')}:${String(remainingMinutes).padStart(2, '0')}`;
+    return `${String(hours).padStart(2, '0')}:${String(remainingMinutes).padStart(2, '0')}`
   }
-  
+
   // 如果输入是时间格式字符串，转换为分钟数
   if (typeof input === 'string') {
-    const parts = input.split(':');
+    const parts = input.split(':')
     if (parts.length === 2) {
-      const hours = parseInt(parts[0], 10) || 0;
-      const minutes = parseInt(parts[1], 10) || 0;
-      return hours * 60 + minutes;
+      const hours = parseInt(parts[0], 10) || 0
+      const minutes = parseInt(parts[1], 10) || 0
+      return hours * 60 + minutes
     }
   }
-  
+
   // 如果输入无效，返回原始值或抛出错误
-  return input;
+  return input
 }
+
+export function formateDepartmentData(data, level = 0) {
+  if (!Array.isArray(data)) return data;
+  
+  return data.map(item => {
+    // 创建新对象，避免修改原数据
+    const newItem = { ...item };
+    
+    // 添加 level 字段
+    newItem.level = level;
+    
+    // 添加 key 和 title
+    newItem.key = newItem.id;
+    newItem.title = newItem.department_name;
+    
+    // 处理 children 和 user_data
+    newItem.children = [];
+    
+    // 如果有子部门，递归处理，层级+1
+    if (item.children && Array.isArray(item.children)) {
+      newItem.children = formateDepartmentData(item.children, level + 1);
+    }
+    
+    // 添加用户数据到 children
+    // if (item.user_data && Array.isArray(item.user_data)) {
+    //   const users = item.user_data.map(user => ({
+    //     ...user,
+    //     key: user.id,
+    //     title: user.user_name,
+    //     // 用户数据不需要 department 相关字段
+    //     id: user.id,
+    //     avatar: user.avatar,
+    //     user_name: user.user_name,
+    //     is_user: true,
+    //     // 用户数据的层级与当前部门相同
+    //     level: level
+    //   }));
+    //   newItem.children = [...newItem.children, ...users];
+    // }
+    
+    return newItem;
+  });
+}
+
+export function formateDepartmentCascaderData(data, level = 0, path) {
+  if (!Array.isArray(data)) return data;
+  return data.map(item => {
+    // 创建新对象，避免修改原数据
+    const newItem = { ...item };
+    
+    // 添加 level 字段
+    newItem.level = level;
+    
+    // 添加 key 和 title
+    newItem.key = newItem.id;
+    newItem.title = newItem.department_name;
+    newItem.label = newItem.department_name
+    newItem.value = newItem.key
+    newItem.path = path ? [...path, item.id] : [item.id];
+    
+    // 处理 children 和 user_data
+    newItem.children = [];
+    
+    // 如果有子部门，递归处理，层级+1
+    if (item.children && Array.isArray(item.children)) {
+      newItem.children = formateDepartmentCascaderData(item.children, level + 1, [...newItem.path]);
+    }
+    return newItem;
+  });
+}
+

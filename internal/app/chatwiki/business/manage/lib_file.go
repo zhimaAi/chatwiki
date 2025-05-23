@@ -138,7 +138,7 @@ func getLibFileCount(wheres [][]string) (data map[string]int, err error) {
 		if tool.InArrayInt(cast.ToInt(item[`status`]), []int{define.FileStatusLearned}) {
 			data[`learned_count`] += cast.ToInt(item[`count`])
 		}
-		if tool.InArrayInt(cast.ToInt(item[`status`]), []int{define.FileStatusWaitSplit}) {
+		if tool.InArrayInt(cast.ToInt(item[`status`]), []int{define.FileStatusWaitSplit, define.FileStatusChunking}) {
 			data[`learned_wait_count`] += cast.ToInt(item[`count`])
 		}
 	}
@@ -729,6 +729,7 @@ func GetLibFileSplit(c *gin.Context) {
 		AiChunkModelConfigId:       cast.ToInt(c.Query(`ai_chunk_model_config_id`)),
 		AiChunkSize:                cast.ToInt(c.Query(`ai_chunk_size`)),
 		AiChunkTaskId:              strings.TrimSpace(c.Query(`ai_chunk_task_id`)),
+		AiChunkPreview:             cast.ToBool(c.Query(`ai_chunk_preview`)),
 	}
 	if splitParams.ChunkType == define.ChunkTypeSemantic {
 		if splitParams.SemanticChunkModelConfigId <= 0 {
@@ -814,10 +815,12 @@ func SaveLibFileSplit(c *gin.Context) {
 		return
 	}
 	if splitParams.ChunkType == define.ChunkTypeAi && splitParams.AiChunkNew {
-		if err = common.SaveAISplitDocs(userId, fileId, wordTotal, qaIndexType, splitParams, list, pdfPageNum, common.GetLang(c)); err != nil {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
-			return
-		}
+		go func() {
+			if err = common.SaveAISplitDocs(userId, fileId, wordTotal, qaIndexType, splitParams, list, pdfPageNum, common.GetLang(c)); err != nil {
+				c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+				return
+			}
+		}()
 		c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 	} else {
 		dataIds, err := common.SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType, splitParams, list, pdfPageNum, common.GetLang(c))

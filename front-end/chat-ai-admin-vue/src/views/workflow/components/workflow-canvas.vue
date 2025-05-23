@@ -73,6 +73,7 @@ import aiDialogueNode from './nodes/ai-dialogue-node'
 import httpNode from './nodes/http-node/index.js'
 import knowledgeBaseNode from './nodes/knowledge-base-node/index.js'
 import endNode from './nodes/end-node/index.js'
+import explainNode from './nodes/explain-node/index.js'
 import variableAssignmentNode from './nodes/variable-assignment-node/index.js'
 import judgeNode from './nodes/judge-node/index.js'
 import specifyReplyNode from './nodes/specify-reply-node/index.js'
@@ -131,6 +132,7 @@ function initLogicFlow() {
     register(aiDialogueNode, lf)
     register(knowledgeBaseNode, lf)
     register(endNode, lf)
+    register(explainNode, lf)
     register(judgeNode, lf)
     register(variableAssignmentNode, lf)
     register(specifyReplyNode, lf)
