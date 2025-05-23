@@ -292,7 +292,6 @@ var modelList = [...]ModelInfo{
 		SupportedFunctionCallList: []string{
 			`qwen-plus`,
 			`qwen-max`,
-			`deepseek-v3`,
 		},
 		ConfigParams: []string{`api_key`},
 		ConfigList:   nil,
@@ -1051,8 +1050,34 @@ func CheckModelIsValid(userId, modelConfigId int, useModel, modelType string) bo
 	}
 	return true
 }
+
 func CheckModelIsDeepSeek(model string) bool {
 	modelLower := strings.ToLower(model)
 	return strings.Contains(modelLower, `deepseek-r1`) ||
 		strings.Contains(modelLower, `deepseek-reasoner`)
+}
+
+func CheckSupportFuncCall(adminUserId, modelConfigId int, useModel string) error {
+	config, err := GetModelConfigInfo(modelConfigId, adminUserId)
+	if err != nil {
+		return err
+	}
+	if len(config) == 0 || !tool.InArrayString(Llm, strings.Split(config[`model_types`], `,`)) {
+		return errors.New(`模型配置ID参数错误`)
+	}
+	modelInfo, _ := GetModelInfoByDefine(config[`model_define`])
+	if !tool.InArrayString(useModel, modelInfo.LlmModelList) && !IsMultiConfModel(config["model_define"]) {
+		return errors.New(`使用模型名称参数错误`)
+	}
+	if len(modelInfo.SupportedFunctionCallList) == 0 {
+		return errors.New(`模型服务商不支持func call`)
+	}
+	if modelInfo.CheckFancCallRequest != nil {
+		if err = modelInfo.CheckFancCallRequest(modelInfo, config, useModel); err != nil {
+			return errors.New(`使用模型不支持func call`)
+		}
+	} else if !tool.InArrayString(useModel, modelInfo.SupportedFunctionCallList) {
+		return errors.New(`使用模型不支持func call`)
+	}
+	return nil
 }

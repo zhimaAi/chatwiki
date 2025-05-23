@@ -108,3 +108,58 @@ export function checkRouterPermisission(value) {
 
   return true
 }
+
+// object_type 1:机器人 2:知识库 3:数据库
+
+// operate_rights  4:可管理  2:可编辑 1:查看
+export function getRobotPermission(id) {
+  const {  permission_manage_data } = usePermissionStore()
+  // 有权限的机器人
+  let list = permission_manage_data.filter(item => item.object_type == 1)
+  let allPermiston = list.filter(item => item.object_id == -1)
+  if(allPermiston.length >  0){
+    // 所有权限
+    return 4
+  }
+  let currentItem = list.filter(item => item.object_id == id)
+  if(currentItem.length == 0){
+    // 没有任何权限
+    return 0
+  }
+  return  currentItem[0].operate_rights
+}
+
+
+export function getLibraryPermission(id) {
+  const {  permission_manage_data } = usePermissionStore()
+  // 有权限的知识库
+  let list = permission_manage_data.filter(item => item.object_type == 2)
+  let allPermiston = list.filter(item => item.object_id == -1)
+  if(allPermiston.length >  0){
+    // 所有权限
+    return 4
+  }
+  let currentItem = list.filter(item => item.object_id == id)
+  if(currentItem.length == 0){
+    // 没有任何权限
+    return 0
+  }
+  return  currentItem[0].operate_rights
+}
+
+export function getDatabasePermission(id) {
+  const {  permission_manage_data } = usePermissionStore()
+  // 有权限的数据库
+  let list = permission_manage_data.filter(item => item.object_type == 3)
+  let allPermiston = list.filter(item => item.object_id == -1)
+  if(allPermiston.length >  0){
+    // 所有权限
+    return 4
+  }
+  let currentItem = list.filter(item => item.object_id == id)
+  if(currentItem.length == 0){
+    // 没有任何权限
+    return 0
+  }
+  return  currentItem[0].operate_rights
+}

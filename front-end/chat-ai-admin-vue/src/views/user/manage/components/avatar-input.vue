@@ -119,6 +119,8 @@ const handlePreview = async (file) => {
 <style lang="less" scoped>
 .avatar-uploader::v-deep(.ant-upload) {
   margin: 0 !important;
+  width: 62px !important;
+  height: 62px !important;
 }
 
 .ant-upload-select-picture-card i {

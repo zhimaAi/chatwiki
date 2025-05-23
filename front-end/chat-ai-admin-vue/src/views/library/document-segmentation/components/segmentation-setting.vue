@@ -171,6 +171,15 @@
       line-height: 14px;
       margin: 2px 0 6px;
     }
+
+    .form-item-title {
+      color: #262626;
+      font-size: 14px;
+      font-style: normal;
+      font-weight: 600;
+      line-height: 22px;
+      margin-bottom: 8px;
+    }
   }
   .excel-qa-form {
     .form-item {
@@ -542,6 +551,7 @@
           <template v-else>
             <div class="custom-setting-form subsection-form" v-if="props.mode != 1">
               <div class="form-item">
+                <div class="form-item-title" v-if="status === 'paragraphsSegmented'">分段及清洗规则</div>
                 <div class="form-item-label">分段方式：</div>
                 <div class="form-item-body">
                   <div class="form-item-tip">
@@ -788,7 +798,7 @@
                 >
               </div>
               <div class="btn-box-block">
-                <a-button type="primary" v-if="!props.hideSave" block :disabled="reLoading" @click="onSave"
+                <a-button type="primary" v-if="!props.hideSave" block :disabled="saveLoading" @click="onSave"
                   >保存</a-button
                 >
               </div>
@@ -830,6 +840,10 @@ const props = defineProps({
   hideSave: {
     type: Boolean,
     default: false
+  },
+  status: {
+    type: String,
+    default: ''
   }
 })
 const isHtmlOrDocx = computed(() => {
@@ -1163,8 +1177,12 @@ const changeDocumentType = (val) => {
 }
 
 const reLoading = ref(false)
+const saveLoading = ref(false)
 const reChange = () => {
   reLoading.value = true
+  if (formState.chunk_type != 3) {
+    saveLoading.value = true
+  }
   onChange()
 }
 
@@ -1188,6 +1206,7 @@ const onChange = (showErrorAlert = true) => {
         message.error(errorFields[0]['errors'][0])
         emit('validate', errorFields[0]['errors'][0])
         reLoading.value = false
+        saveLoading.value = false
         return
       }
       emit('validate', '')
@@ -1230,14 +1249,10 @@ watch(() => formState.chunk_type, (val) => {
   emit('changeChunkType', val)
 })
 
-watch(() => reLoading.value, (val) => {
-})
-
-
-
 defineExpose({
   formState,
   reLoading,
+  saveLoading,
   reChange
 })
 </script>

@@ -163,3 +163,11 @@ export const saveProfile = (data = {}) => {
     data: data
   })
 }
+
+export const loginSwitch = (data = {}) => {
+  // 登录开关
+  return request.post({
+    url: '/manage/loginSwitch',
+    data: data
+  })
+}

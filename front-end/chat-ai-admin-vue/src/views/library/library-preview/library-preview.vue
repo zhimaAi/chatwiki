@@ -39,6 +39,7 @@
           placeholder="请选择"
           style="width: 160px"
           @change="search"
+          v-if="is_qa_doc"
         >
           <a-select-option :value="-1">全部嵌入状态</a-select-option>
           <a-select-option v-for="(i, key) in listStatusMap" :key="i" :value="key">{{ i }}</a-select-option>
@@ -119,6 +120,7 @@
                 @handleSplitNext="handleSplitNext"
                 @handleSplitUp="handleSplitUp"
                 @handleSplitDelete="handleSplitDelete"
+                @handleSegmentation="handleSegmentation"
               ></SubsectionBox>
             </div>
           </cu-scroll>
@@ -210,6 +212,15 @@
               </cu-scroll>
             </div>
             <div class="right-contnt-box">
+              <div class="right-tabs-box" v-if="!is_qa_doc">
+                <a-tabs
+                  v-model:activeKey="filterData.status"
+                  style="background-color: #f2f4f7; padding: 0px 16px; border-radius: 6px;"
+                  @change="search"
+                >
+                  <a-tab-pane v-for="i in generalListStatusMap" :key="i.value" :tab="`${i.label} (${i.num})`"></a-tab-pane>
+                </a-tabs>
+              </div>
               <Empty @openEditSubscription="openEditSubscription" v-if="isEmpty"></Empty>
               <cu-scroll
                 :scrollbar="scrollbar"
@@ -233,6 +244,7 @@
                     @handleSplitNext="handleSplitNext"
                     @handleSplitUp="handleSplitUp"
                     @handleSplitDelete="handleSplitDelete"
+                    @handleSegmentation="handleSegmentation"
                   ></SubsectionBox>
                 </div>
               </cu-scroll>
@@ -255,6 +267,7 @@
       :detailsInfo="detailsInfo"
       ref="reSegmentationPageRef"
     />
+    <SegmentationSettingModal ref="segmentationSettingModalRef" @ok="onSaveModal" />
   </div>
 </template>
 
@@ -266,6 +279,7 @@ import { LeftOutlined, PlusOutlined, DownOutlined } from '@ant-design/icons-vue'
 import Empty from './components/empty.vue'
 import SubsectionBox from './components/subsection-box.vue'
 import {
+  getParagraphCount,
   getLibFileInfo,
   saveLibFileSplit,
   getParagraphList,
@@ -283,6 +297,7 @@ import ReSegmentationPage from './components/re-segmentation-page.vue'
 import QaSubsectionBox from './components/qa-subsection-box.vue'
 import SelectStarBox from './components/selct-star-box.vue'
 import { useCompanyStore } from '@/stores/modules/company'
+import SegmentationSettingModal from './components/segmentation-setting-modal.vue'
 
 const companyStore = useCompanyStore()
 const neo4j_status = computed(()=>{
@@ -388,6 +403,49 @@ const listStatusMap = {
   2: '转换异常',
   3: '转换中...'
 }
+
+const totalData = reactive({
+  "split_status_exception": 0, // 分段失败
+  "total": 0,// 全部
+  "vector_status_converted": 0, // 已转换
+  "vector_status_converting": 0, // 转换中
+  "vector_status_exception": 0,// 转换失败
+  "vector_status_initial": 0// 待转换
+})
+
+const generalListStatusMap = reactive([
+  {
+    value: -1,
+    label: '全部',
+    num: computed(() => totalData.total)
+  },
+  {
+    value: 4,
+    label: '分段失败',
+    num: computed(() => totalData.split_status_exception)
+  },
+  {
+    value: 0,
+    label: '未转换',
+    num: computed(() => totalData.vector_status_initial)
+  },
+  {
+    value: 3,
+    label: '转换中',
+    num: computed(() => totalData.vector_status_converting)
+  },
+  {
+    value: 2,
+    label: '转换异常',
+    num: computed(() => totalData.vector_status_exception)
+  },
+  {
+    value: 1,
+    label: '已转换',
+    num: computed(() => totalData.vector_status_converted)
+  }
+])
+
 const defaultAiChunkPrumpt = '你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。'
 const settingMode = ref(1) // 1 表格，0 非表格
 let formData = {
@@ -478,6 +536,21 @@ const getFileInfo = async () => {
   })
 }
 getFileInfo()
+
+const getParagraphCountFn = () => {
+  getParagraphCount({
+    file_id: route.query.id
+  }).then((res) => {
+    Object.assign(totalData, res.data)
+  })
+}
+
+const onSaveModal = () => {
+  // 先使用最简单的方式，刷新页面
+  window.location.reload();
+  // getParagraphLists()
+  // getParagraphCountFn()
+}
 
 const search = () => {
   paginations.value.page = 1
@@ -739,6 +812,7 @@ const pdfPageOnScroll = ({ y }) => {
 }
 
 const reSegmentationPageRef = ref(null)
+const segmentationSettingModalRef = ref(null)
 
 const handleSegmentationMenuClick = (e) => {
   let { key } = e
@@ -760,6 +834,13 @@ const handleSegmentationMenuClick = (e) => {
     })
   }
 }
+
+const handleSegmentation = (item) => {
+  if (segmentationSettingModalRef.value) {
+    segmentationSettingModalRef.value.show(item)
+  }
+}
+
 const handleeEableScroll = () => {
   pdfRef.value && pdfRef.value.getScrollInstance().enable()
 }
@@ -1076,6 +1157,7 @@ const handleSaveLibFileSplit = async (documentFragmentList, index) => {
 }
 
 onMounted(() => {
+  getParagraphCountFn()
   if (route.query.graph_status) {
     filterData.graph_status = route.query.graph_status
     search()
@@ -1240,6 +1322,10 @@ onMounted(() => {
       overflow: hidden;
       transition: all 0.3s ease;
     }
+  }
+
+  ::v-deep(.bscroll-vertical-scrollbar) {
+    z-index: 999 !important;
   }
 }
 .custom-select-box {

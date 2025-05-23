@@ -37,8 +37,6 @@ func (c *AiSpliter) SplitText(text string) ([]string, error) {
 			}
 		}
 	}
-	// 添加重叠内容
-	// result = c.addOverlappingContent(result)
 	return result, nil
 }
 

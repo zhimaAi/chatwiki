@@ -147,6 +147,14 @@ func (field SimpleField) GetVal(specifyTyp ...string) any {
 }
 
 func (field SimpleField) ShowVals(specifyTyp ...string) string {
+	if field.Key == `special.lib_paragraph_list` {
+		list := make([]msql.Params, 0)
+		for _, val := range field.Vals {
+			list = append(list, val.Params)
+		}
+		_, libraryContent := FormatSystemPrompt(``, list)
+		return libraryContent
+	}
 	temp := make([]string, 0)
 	for _, v := range field.GetVals(specifyTyp...) {
 		show := fmt.Sprintf(`%v`, v)

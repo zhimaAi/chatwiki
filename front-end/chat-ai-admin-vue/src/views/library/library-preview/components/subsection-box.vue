@@ -19,12 +19,18 @@
             {{ item.title }}
           </div>
           <span>共{{ item.word_total }}个字符</span>
-          <span>
+          <span class="status-box">
             嵌入状态：{{ item.status_text }}<LoadingOutlined v-if="item.status == 3" />
             <a-tooltip v-if="item.status == 2 && item.errmsg" :title="item.errmsg">
               <strong class="cfb363f"
                 >原因<ExclamationCircleOutlined class="err-icon cfb363f"
               /></strong>
+            </a-tooltip>
+            <a-tooltip v-if="item.split_status == 4 && item.split_err_msg" :title="item.split_err_msg">
+              <div class="split-err">
+                <ExclamationCircleFilled style="margin-left: 0;" class="cfb363f" />
+                分段失败
+              </div>
             </a-tooltip>
           </span>
           <span v-if="detailsInfo.graph_switch">
@@ -71,6 +77,13 @@
               </a-menu>
             </template>
           </a-dropdown>
+
+          <a-tooltip>
+            <template #title>重新分段</template>
+            <div class="hover-btn-box" @click.stop="onReSegment(item)">
+              <svg-icon name="segmentation-icon" style="font-size: 16px;"></svg-icon>
+            </div>
+          </a-tooltip>
 
           <template v-if="detailsInfo.graph_switch">
             <a-tooltip>
@@ -156,6 +169,7 @@ import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
   ExclamationCircleOutlined,
+  ExclamationCircleFilled,
   MoreOutlined,
   SyncOutlined,
   LoadingOutlined,
@@ -174,6 +188,7 @@ import {
   updateParagraphCategory
 } from '@/api/library'
 
+const route = useRoute()
 const emit = defineEmits([
   'handleDelParagraph',
   'handleScrollTargetPage',
@@ -183,8 +198,10 @@ const emit = defineEmits([
   'handleSplit',
   'handleSplitNext',
   'handleSplitUp',
-  'handleSplitDelete'
+  'handleSplitDelete',
+  'handleSegmentation'
 ])
+
 const props = defineProps({
   paragraphLists: {
     type: Array,
@@ -199,8 +216,6 @@ const props = defineProps({
     default: 0
   }
 })
-
-const route = useRoute()
 
 const toReSegmentationPage = (item, index) => {
   let { id, title, content, question, answer, images, category_id } = item
@@ -260,6 +275,10 @@ const handleToTargetPage = (item, index, event) => {
   })
   
   handleClickOutside(event)
+}
+
+const onReSegment = (item) => {
+  emit('handleSegmentation', item)
 }
 
 const startLists = ref([])
@@ -857,9 +876,30 @@ defineExpose({ handleOpenEditModal })
   }
 }
 
+.status-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.split-err {
+  cursor: pointer;
+  display: flex;
+  padding: 0 6px;
+  align-items: center;
+  gap: 2px;
+  border-radius: 6px;
+  background: #FBDDDE;
+  color: #fb363f;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 22px;
+}
+
 .content-container {
   position: relative;
-  padding: 20px;
+  padding: 0 20px 70px;
 }
 
 .content-block {

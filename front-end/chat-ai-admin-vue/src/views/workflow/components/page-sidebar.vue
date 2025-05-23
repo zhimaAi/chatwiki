@@ -234,7 +234,7 @@ const props = defineProps({
 
 const menus = [
   {
-    label: '对话流程',
+    label: '工作量编排',
     value: 'workflow',
     path: '/robot/config/workflow',
     iconName: 'workflow'

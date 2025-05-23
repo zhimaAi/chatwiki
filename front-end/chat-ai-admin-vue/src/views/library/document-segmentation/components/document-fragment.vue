@@ -26,6 +26,11 @@
       padding-left: 8px;
       color: #8c8c8c;
     }
+
+    .fragment-content-status {
+      padding-left: 8px;
+      color: #8c8c8c;
+    }
   }
 
   .fragment-content {
@@ -53,9 +58,17 @@
   <div class="document-fragment">
     <div class="fragment-header">
       <div class="fragment-info">
-        <span class="fragment-number">#{{ props.number }}</span
-        ><span class="fragment-title" v-if="props.title">{{ props.title }}</span
-        ><span class="fragment-content-lenght">共{{ props.total }}个字符</span>
+        <span class="fragment-number">#{{ props.number }}</span>
+        <span class="fragment-title" v-if="props.title">{{ props.title }}</span>
+        <span class="fragment-content-lenght">共{{ props.total }}个字符</span>
+        <span class="fragment-content-status" v-if="props.status === 'paragraphsSegmented'">
+          {{ props.currentData.status_text }}<LoadingOutlined v-if="props.currentData.status == 3" />
+          <a-tooltip v-if="props.currentData.status == 2 && props.currentData.errmsg" :title="props.currentData.errmsg">
+            <strong class="cfb363f"
+              >原因<ExclamationCircleOutlined class="err-icon cfb363f"
+            /></strong>
+          </a-tooltip>
+        </span>
       </div>
 
       <div class="fragment-action">
@@ -81,6 +94,10 @@
 </template>
 
 <script setup>
+import {
+  ExclamationCircleOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons-vue'
 const emit = defineEmits(['edit', 'delete'])
 const props = defineProps({
   number: {
@@ -106,6 +123,14 @@ const props = defineProps({
   },
   similar_question_list: {
     type: [Array, String]
+  },
+  status: {
+    type: String,
+    default: ''
+  },
+  currentData: {
+    type: Object,
+    default: () => {}
   }
 })
 

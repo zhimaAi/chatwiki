@@ -142,7 +142,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 	if len(info) == 0 {
 		return []int64{}, errors.New(i18n.Show(lang, `no_data`))
 	}
-	if !tool.InArrayInt(cast.ToInt(info[`status`]), []int{define.FileStatusWaitSplit, define.FileStatusLearned}) {
+	if !tool.InArrayInt(cast.ToInt(info[`status`]), []int{define.FileStatusWaitSplit, define.FileStatusChunking, define.FileStatusLearned}) {
 		return []int64{}, errors.New(i18n.Show(lang, `status_exception`))
 	}
 
@@ -243,10 +243,12 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 	}
 
 	var (
-		indexIds     []int64
-		dataIds      []int64
-		library, _   = GetLibraryData(cast.ToInt(info[`library_id`]))
-		skipUseModel = cast.ToInt(library[`type`]) == define.OpenLibraryType && cast.ToInt(library[`use_model_switch`]) != define.SwitchOn
+		aiChunkErrMsg = ""
+		aiChunkErrNum = 0
+		indexIds      []int64
+		dataIds       []int64
+		library, _    = GetLibraryData(cast.ToInt(info[`library_id`]))
+		skipUseModel  = cast.ToInt(library[`type`]) == define.OpenLibraryType && cast.ToInt(library[`use_model_switch`]) != define.SwitchOn
 	)
 	for i, item := range list {
 		if utf8.RuneCountInString(item.Content) > MaxContent || utf8.RuneCountInString(item.Question) > MaxContent || utf8.RuneCountInString(item.Answer) > MaxContent {
@@ -342,6 +344,12 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		} else {
 			data[`type`] = define.ParagraphTypeNormal
 			data[`content`] = strings.TrimSpace(item.Content)
+			if item.AiChunkErrMsg != "" {
+				data[`split_err_msg`] = item.AiChunkErrMsg
+				data[`split_status`] = define.SplitStatusException
+				aiChunkErrMsg = item.AiChunkErrMsg
+				aiChunkErrNum++
+			}
 			if len(item.Images) > 0 {
 				jsonImages, err := CheckLibraryImage(item.Images)
 				if err != nil {
@@ -369,6 +377,9 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 				logs.Error(err.Error())
 				return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
 			}
+			if item.AiChunkErrMsg != "" {
+				continue
+			}
 			indexIds = append(indexIds, vectorID)
 		}
 	}
@@ -378,6 +389,12 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 	if len(list) <= 0 {
 		status = define.FileStatusException
 		errmsg = i18n.Show(lang, `doc_empty`)
+	}
+	if aiChunkErrNum == len(indexIds) {
+		status = define.FileStatusException
+		errmsg = aiChunkErrMsg
+	} else if aiChunkErrNum > 0 {
+		status = define.FileStatusLearned
 	}
 	data := msql.Datas{
 		`status`:                         status,
@@ -503,18 +520,19 @@ func MultDocSplit(adminUserId, fileId int, splitParams define.SplitParams, items
 		}
 		list := make([]define.DocSplitItem, 0)
 		if splitParams.AiChunkNew {
-			go func(items []define.DocSplitItem) {
-				_, err = AISplitDocs(cast.ToInt(adminUserId), splitParams, items)
+			var aiSplitItems = make([]define.DocSplitItem, len(items))
+			copy(aiSplitItems, items)
+			go func() {
+				list, err = AISplitDocs(cast.ToInt(adminUserId), fileId, splitParams, aiSplitItems)
 				if err != nil {
-					updateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusException, `errmsg`: err.Error()})
 					logs.Error(err.Error())
 					return
 				}
-			}(items)
-			list = items
+			}()
+			return items, err
 		} else {
 			// get db data
-			data, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`file_id`, cast.ToString(fileId)).Select()
+			data, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`file_id`, cast.ToString(fileId)).Order(`number asc`).Select()
 			if err != nil {
 				logs.Error(err.Error())
 			}
@@ -532,8 +550,8 @@ func MultDocSplit(adminUserId, fileId int, splitParams define.SplitParams, items
 					WordTotal: cast.ToInt(item[`word_total`]),
 				})
 			}
+			return list, err
 		}
-		return list, err
 	} else {
 		split := NewSemanticSplitterClient()
 		split.GoRoutineNum = 5
@@ -1203,7 +1221,7 @@ func updateLibFileData(adminUserId, fileId int, data msql.Datas) error {
 	return err
 }
 
-func AISplitDocs(adminUserId int, splitParams define.SplitParams, list []define.DocSplitItem) ([]define.DocSplitItem, error) {
+func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list []define.DocSplitItem) ([]define.DocSplitItem, error) {
 	wg := &sync.WaitGroup{}
 	lock := &sync.Mutex{}
 	contents := ""
@@ -1216,6 +1234,10 @@ func AISplitDocs(adminUserId int, splitParams define.SplitParams, list []define.
 		errMsg = `model not valid`
 		return nil, errors.New(errMsg)
 	}
+	if !(splitParams.ParagraphChunk || splitParams.AiChunkPreview) {
+		updateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusChunking})
+	}
+
 	var submitContent []define.DocSplitItem
 	spliter := NewAiSpliterClient(splitParams.AiChunkSize)
 	for _, item := range list {
@@ -1237,6 +1259,7 @@ func AISplitDocs(adminUserId int, splitParams define.SplitParams, list []define.
 				spliteItem := define.DocSplitItem{
 					PageNum: item.PageNum,
 					Content: chunk,
+					Images:  item.Images,
 				}
 				submitContent = append(submitContent, spliteItem)
 			}
@@ -1254,6 +1277,7 @@ func AISplitDocs(adminUserId int, splitParams define.SplitParams, list []define.
 			contentMap[index] = define.DocSplitItem{
 				PageNum: item.PageNum,
 				Content: contents,
+				Images:  item.Images,
 			}
 			lock.Unlock()
 			continue
@@ -1304,6 +1328,11 @@ func AISplitDocs(adminUserId int, splitParams define.SplitParams, list []define.
 				0.1,
 				maxToken,
 			)
+			docSplitItem := define.DocSplitItem{
+				PageNum: item.PageNum,
+				Content: contents,
+				Images:  item.Images,
+			}
 			if err != nil && len(chatResp.Result) <= 0 {
 				logs.Error(err.Error())
 				if retryTimes <= 3 {
@@ -1311,17 +1340,22 @@ func AISplitDocs(adminUserId int, splitParams define.SplitParams, list []define.
 					goto Retry
 				}
 				*errMsg = err.Error()
-				return
+				lock.Lock()
+				docSplitItem.AiChunkErrMsg = err.Error()
+				contentMap[index] = docSplitItem
+				lock.Unlock()
+			} else {
+				lock.Lock()
+				docSplitItem.Content = chatResp.Result
+				contentMap[index] = docSplitItem
+				lock.Unlock()
 			}
-			lock.Lock()
-			contentMap[index] = define.DocSplitItem{
-				PageNum: item.PageNum,
-				Content: chatResp.Result,
-			}
-			lock.Unlock()
 			cancel()
 		}(wg, contentMap, index, contents, &errMsg)
 		index++
+		if splitParams.AiChunkPreview {
+			break
+		}
 	}
 
 	wg.Wait()
@@ -1332,29 +1366,44 @@ func AISplitDocs(adminUserId int, splitParams define.SplitParams, list []define.
 		Chunk string `json:"chunk"`
 	}
 	for i := 1; i <= len(contentMap); i++ {
-		allContents := []chunkResult{}
-		if err := tool.JsonDecode(contentMap[i].Content, &allContents); err != nil {
-			errMsg = err.Error()
-			return nil, errors.New(errMsg)
-		}
-		for _, item := range allContents {
-			if len(item.Chunk) == 0 {
-				continue
+		if contentMap[i].AiChunkErrMsg != "" {
+			newItem := define.DocSplitItem{
+				PageNum:       contentMap[i].PageNum,
+				Images:        contentMap[i].Images,
+				Number:        number,
+				Content:       contentMap[i].Content,
+				WordTotal:     utf8.RuneCountInString(contentMap[i].Content),
+				AiChunkErrMsg: contentMap[i].AiChunkErrMsg,
 			}
-			content, images := ExtractTextImages(item.Chunk)
-			if len(images) > 0 && len(content) == 0 {
-				index := min(len(newList)-1, 0)
-				imageInsertIndex[index] = images
-			} else {
-				newItem := define.DocSplitItem{
-					Images:    images,
-					PageNum:   contentMap[i].PageNum,
-					Number:    number,
-					Content:   content,
-					WordTotal: utf8.RuneCountInString(content),
+			newList = append(newList, newItem)
+			number++
+		} else {
+			allContents := []chunkResult{}
+			if err := tool.JsonDecode(contentMap[i].Content, &allContents); err != nil {
+				errMsg = err.Error()
+			}
+			for _, item := range allContents {
+				if len(item.Chunk) == 0 {
+					continue
 				}
-				newList = append(newList, newItem)
-				number++
+				content, images := ExtractTextImages(item.Chunk)
+				if len(images) > 0 && len(content) == 0 {
+					index := min(len(newList)-1, 0)
+					imageInsertIndex[index] = images
+				} else {
+					newItem := define.DocSplitItem{
+						Images:    images,
+						PageNum:   contentMap[i].PageNum,
+						Number:    number,
+						Content:   content,
+						WordTotal: utf8.RuneCountInString(content),
+					}
+					if len(images) <= 0 && len(contentMap[i].Images) > 0 {
+						newItem.Images = contentMap[i].Images
+					}
+					newList = append(newList, newItem)
+					number++
+				}
 			}
 		}
 	}
@@ -1371,7 +1420,10 @@ func AISplitDocs(adminUserId int, splitParams define.SplitParams, list []define.
 	})
 	if errMsg != "" {
 		logs.Error(errMsg)
-		return nil, errors.New(errMsg)
+		return newList, errors.New(errMsg)
+	}
+	if !(splitParams.ParagraphChunk || splitParams.AiChunkPreview) {
+		updateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusWaitSplit})
 	}
 	return newList, nil
 }
@@ -1382,7 +1434,6 @@ func SaveAISplitDocs(userId, fileId, wordTotal, qaIndexType int, splitParams def
 	ticker := time.NewTicker(1 * time.Second)
 	timeout := 0
 	errChan := make(chan error, 1)
-
 	go func() {
 		defer ticker.Stop()
 		for {
@@ -1396,9 +1447,7 @@ func SaveAISplitDocs(userId, fileId, wordTotal, qaIndexType int, splitParams def
 					return
 				}
 				if list.ErrMsg != "" {
-					errChan <- nil
-					// errChan <- errors.New(list.ErrMsg)
-					return
+					errChan <- errors.New(list.ErrMsg)
 				}
 				if len(list.List) == 0 {
 					continue
@@ -1415,7 +1464,6 @@ func SaveAISplitDocs(userId, fileId, wordTotal, qaIndexType int, splitParams def
 	}()
 	lib_redis.DelCacheData(define.Redis, &LibFileSplitAiChunksBacheHandle{TaskId: taskId})
 	if err = <-errChan; err != nil {
-		updateLibFileData(userId, fileId, msql.Datas{`status`: define.FileStatusException, `errmsg`: err.Error()})
 		logs.Error(err.Error())
 		return err
 	}

@@ -145,6 +145,7 @@ func GetPromptLibraryItems(c *gin.Context) {
 		delete(list[i], `create_time`)
 		delete(list[i], `update_time`)
 		if cast.ToInt(item[`prompt_type`]) == define.PromptTypeStruct {
+			item[`prompt_struct`], _ = common.CheckPromptConfig(define.PromptTypeStruct, item[`prompt_struct`])
 			list[i][`markdown`] = common.BuildPromptStruct(define.PromptTypeStruct, ``, item[`prompt_struct`])
 		}
 	}

@@ -244,6 +244,11 @@
               <template v-if="record.status == 9">
                 <span class="status-tag cancel"><ExclamationCircleOutlined /> 取消解析</span>
               </template>
+
+              <span class="status-tag subning" v-if="record.status == 10">
+                <a-spin size="small" />
+                正在分段
+              </span>
             </template>
             <template v-if="column.key === 'graph_status'">
               <!--0待生成 1排队中 2生成完成 3生成失败 4生成中 5部分成功-->
@@ -824,11 +829,17 @@ const handlePreview = (record, params = {}) => {
   if (record.status == '0') {
     return message.error('转换中,稍候可预览')
   }
+  if (record.status == '1') {
+    return message.error('学习中,不可预览')
+  }
   if (record.status == '6') {
     return message.error('获取中,不可预览')
   }
   if (record.status == '7') {
     return message.error('获取失败,不可预览')
+  }
+  if (record.status == '10') {
+    return message.error('正在分段,不可预览')
   }
 
   router.push({ name: 'libraryPreview', query: { id: record.id, ...params } })
@@ -1312,6 +1323,11 @@ onUnmounted(() => {
       background-color: #e8effc;
     }
 
+    &.subning {
+      color: #6524FC;
+      background-color: #EAE0FF;
+    }
+
     &.complete {
       color: #21a665;
       background: #e8fcf3;
@@ -1577,6 +1593,12 @@ onUnmounted(() => {
 .select-card-main {
   :deep(.ant-row) {
     display: block;
+  }
+}
+
+.subning {
+  :deep(.ant-spin-dot-item) {
+    background-color: #6524FC !important;
   }
 }
 </style>

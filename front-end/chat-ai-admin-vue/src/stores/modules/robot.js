@@ -47,6 +47,9 @@ export const useRobotStore = defineStore('robot', () => {
     robot_avatar_url: '',
     use_model: undefined,
     model_config_id: '',
+    optimize_question_dialogue_background: '',
+    optimize_question_model_config_id: '',
+    optimize_question_use_model: '',
     rerank_status: 0,
     rerank_use_model: undefined,
     rerank_model_config_id: undefined,
@@ -62,6 +65,7 @@ export const useRobotStore = defineStore('robot', () => {
     prompt_type: 1,
     library_ids: '',
     form_ids: '',
+    work_flow_ids: '',
     welcomes: {
       content: '',
       question: []
@@ -138,6 +142,9 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.robot_avatar_url = data.robot_avatar
     robotInfo.use_model = data.use_model
     robotInfo.model_config_id = data.model_config_id
+    robotInfo.optimize_question_dialogue_background = data.optimize_question_dialogue_background
+    robotInfo.optimize_question_model_config_id = data.optimize_question_model_config_id
+    robotInfo.optimize_question_use_model = data.optimize_question_use_model
     robotInfo.rerank_status = Number(data.rerank_status)
     robotInfo.rerank_use_model = data.rerank_use_model
     robotInfo.rerank_model_config_id = data.rerank_model_config_id
@@ -147,6 +154,7 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.prompt_type = +data.prompt_type
     robotInfo.library_ids = data.library_ids || ''
     robotInfo.form_ids = data.form_ids || ''
+    robotInfo.work_flow_ids = data.work_flow_ids || ''
     robotInfo.welcomes = welcomes
     robotInfo.unknown_question_prompt = unknown_question_prompt
 

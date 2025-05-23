@@ -1,7 +1,7 @@
 <style lang="less" scoped></style>
 
 <template>
-  <PopupMenu @addNode="handleAddNode" />
+  <PopupMenu @addNode="handleAddNode" type="node" />
 </template>
 
 <script>

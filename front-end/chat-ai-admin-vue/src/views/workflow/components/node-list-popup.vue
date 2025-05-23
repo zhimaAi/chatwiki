@@ -103,7 +103,7 @@
         <div class="node-flex-box">
           <div class="node-item" @click="handleAddNode('specify-reply-node')">
             <img src="@/assets/svg/specify-reply-node.svg" alt="" />
-            <div class="node-name">发送固定消息</div>
+            <div class="node-name">指定回复</div>
           </div>
         </div>
       </div>
@@ -116,6 +116,15 @@
           </div>
         </div>
       </div>
+      <div class="node-list" v-if="props.type != 'node'">
+        <div class="node-type">其他</div>
+        <div class="node-flex-box">
+          <div class="node-item" @click="handleAddNode('explain-node')">
+            <img src="@/assets/svg/explain-node.svg" alt="" />
+            <div class="node-name">注释卡片</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -123,6 +132,13 @@
 <script setup>
 import { generateUniqueId } from '@/utils/index'
 const emit = defineEmits(['addNode'])
+
+const props = defineProps({
+  type: {
+    type: String,
+    default: ''
+  }
+})
 
 const defaultRowData = {
   node_key: '',
@@ -187,6 +203,22 @@ const data = {
       node_name: '流程结束',
       node_icon_name: 'end-node',
       node_params: JSON.stringify({})
+    }
+  },
+  'explain-node': {
+    id: '',
+    type: 'explain-node',
+    x: 600,
+    y: 400,
+    properties: {
+      ...getRowData(),
+      node_type: -1,
+      node_name: '注释卡片',
+      node_icon_name: 'explain-node',
+      node_params: JSON.stringify({
+        height: 88,
+        content: '',
+      })
     }
   },
   'variable-assignment-node': {

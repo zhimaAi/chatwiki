@@ -8,6 +8,7 @@ import database from './database'
 import librarySearch from './library-search'
 import publicLibrary from './public-library'
 import chatMonitor from './chat-monitor'
+import noPermission from './no-permission'
 
 const routes = [
   {
@@ -42,6 +43,7 @@ const routes = [
   librarySearch,
   publicLibrary,
   authority,
+  noPermission,
   database,
   chatMonitor
 ]

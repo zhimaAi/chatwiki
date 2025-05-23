@@ -22,7 +22,62 @@
   </div>
 </template>
 
-<script setup>
+<script>
+import { useRoute } from 'vue-router'
+import { EditOutlined } from '@ant-design/icons-vue'
+import LeftMenus from './components/left-menus.vue'
+import { useDatabaseStore } from '@/stores/modules/database'
+import { computed, ref, defineComponent } from 'vue'
+import AddDataSheet from '../database-list/components/add-data-sheet.vue'
+import { getDatabasePermission } from '@/utils/permission'
+
+export default defineComponent({
+  components: {
+    LeftMenus,
+    AddDataSheet,
+    EditOutlined
+  },
+
+  async beforeRouteEnter(to, from, next) {
+    let key = getDatabasePermission(to.query.form_id)
+    if (key == 0 || key == 1) {
+      next(`/no-permission`)
+      return
+    }
+    next()
+  },
+
+  setup() {
+    const databaseStore = useDatabaseStore()
+    const rotue = useRoute()
+    const query = rotue.query
+
+    const dataBaseInfo = computed(() => {
+      return databaseStore.databaseInfo
+    })
+    const getInfo = () => {
+      databaseStore.getDatabaseInfo({ id: query.form_id })
+    }
+    getInfo()
+
+    const addDataSheetRef = ref(null)
+    const toEdit = () => {
+      addDataSheetRef.value.show({
+        ...databaseStore.databaseInfo
+      })
+    }
+
+    return {
+      dataBaseInfo,
+      getInfo,
+      toEdit,
+      addDataSheetRef
+    }
+  }
+})
+</script>
+
+<!-- <script setup>
 import { useRoute } from 'vue-router'
 import { EditOutlined } from '@ant-design/icons-vue'
 import LeftMenus from './components/left-menus.vue'
@@ -47,7 +102,7 @@ const toEdit = () => {
     ...databaseStore.databaseInfo
   })
 }
-</script>
+</script> -->
 
 <style lang="less" scoped>
 .details-library-page {

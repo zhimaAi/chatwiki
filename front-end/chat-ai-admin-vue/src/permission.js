@@ -29,6 +29,7 @@ function setTitle(to, companyInfo) {
   }
 }
 
+
 router.beforeEach(async (to, from, next) => {
   const companyStore = useCompanyStore()
   const { companyInfo, getCompanyInfo } = companyStore
@@ -45,12 +46,6 @@ router.beforeEach(async (to, from, next) => {
   let { userInfo, getUserInfo } = userStore
   let { getPermissionList, checkPermission } = permissionStore
 
-  let needGetPermissionRoutes = [
-    '/robot/list',
-    '/library/list',
-    '/user/model',
-    '/user/clientDownload'
-  ]
   if (to.path == '/set_token') {
     next()
     return
@@ -60,10 +55,7 @@ router.beforeEach(async (to, from, next) => {
     if (to.path === '/login') {
       next({ path: '/', query: to.query })
     } else {
-      if (needGetPermissionRoutes.includes(to.path)) {
-        await checkPermission()
-      }
-
+      await checkPermission()
       // 系统管理里面，menu根据顺序，如果有权限的，显示第一个menu
       const name = await checkSystemPermisission(to)
       if (name) {
@@ -84,6 +76,7 @@ router.beforeEach(async (to, from, next) => {
           return
         }
       }
+
       next()
     }
   } else {

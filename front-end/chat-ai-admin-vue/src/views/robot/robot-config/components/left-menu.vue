@@ -25,7 +25,7 @@
 import { ref, h, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import SvgIcon from '@/components/svg-icon/index.vue'
-
+import { getRobotPermission } from '@/utils/permission'
 const emit = defineEmits(['changeMenu'])
 const route = useRoute()
 const props = defineProps({
@@ -161,6 +161,9 @@ const baseItems = [
 ]
 
 const items = computed(()=>{
+  if(getRobotPermission(query.id) == 1) {
+    return baseItems.filter((item)=> item.id == 'external-services')
+  }
   if(props.robotInfo.application_type == 0){
     return baseItems.filter(item => item.id != 'workflow')
   }else{

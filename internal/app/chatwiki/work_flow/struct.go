@@ -350,6 +350,10 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 				variables = append(variables, variable)
 			}
 		}
+	case NodeTypeLibs:
+		variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, `special.lib_paragraph_list`))
+	case NodeTypeLlm, NodeTypeReply:
+		variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, `special.llm_reply_content`))
 	}
 	return variables
 }
@@ -422,7 +426,7 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 		if err = node.Verify(adminUserId); err != nil {
 			return
 		}
-		if node.NodeType == NodeTypeEdges {
+		if node.NodeType <= NodeTypeEdges {
 			continue
 		}
 		if node.NodeType == NodeTypeStart {
@@ -455,7 +459,7 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 		return
 	}
 	for _, node := range nodeList {
-		if tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeEdges, NodeTypeStart}) {
+		if tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeRemark, NodeTypeEdges, NodeTypeStart}) {
 			continue
 		}
 		if _, ok := fromNodes[node.NodeKey]; !ok {
@@ -568,7 +572,7 @@ func (node *WorkFlowNode) Verify(adminUserId int) error {
 	if len(node.NextNodeKey) > 0 && !common.IsMd5Str(node.NextNodeKey) {
 		return errors.New(`节点NextNodeKey参数格式错误:` + node.NodeName)
 	}
-	if len(node.NextNodeKey) == 0 && !tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeEdges, NodeTypeFinish, NodeTypeManual}) {
+	if len(node.NextNodeKey) == 0 && !tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeRemark, NodeTypeEdges, NodeTypeFinish, NodeTypeManual}) {
 		return errors.New(`节点没有指定下一个节点:` + node.NodeName)
 	}
 	var err error

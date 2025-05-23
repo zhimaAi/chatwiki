@@ -17,6 +17,7 @@ const (
 	FileStatusLearning       = 1
 	FileStatusLearned        = 2
 	FileStatusCancelled      = 9
+	FileStatusChunking       = 10
 )
 
 const (
@@ -29,6 +30,7 @@ const (
 	VectorStatusConverted  = 1
 	VectorStatusException  = 2
 	VectorStatusConverting = 3
+	SplitStatusException   = 4
 )
 
 const (

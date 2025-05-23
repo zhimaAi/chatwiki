@@ -21,6 +21,7 @@ import (
 )
 
 const (
+	NodeTypeRemark = -1 //注释
 	NodeTypeEdges  = 0  //图的edges
 	NodeTypeStart  = 1  //开始节点
 	NodeTypeTerm   = 2  //判断分支
@@ -35,6 +36,7 @@ const (
 )
 
 var NodeTypes = [...]int{
+	NodeTypeRemark,
 	NodeTypeEdges,
 	NodeTypeStart,
 	NodeTypeTerm,

@@ -4,35 +4,34 @@
       v-model:open="open"
       :confirm-loading="confirmLoading"
       :title="modalTitle"
-      width="746px"
+      width="766px"
       @ok="handleOk"
     >
-      <cu-scroll style="max-height: 600px">
-        <a-form style="margin-top: 24px" layout="vertical" ref="formRef" :model="formState">
-          <a-flex :gap="24">
-            <div style="flex: 1">
-              <a-form-item
-                name="title"
-                label="提示词标题"
-                :rules="[{ required: true, message: '请输入提示词标题' }]"
-              >
-                <a-input
-                  v-model:value="formState.title"
-                  placeholder="请输入提示词标题"
-                  :maxLength="10"
-                ></a-input>
-              </a-form-item>
-            </div>
-            <div style="flex: 1">
-              <a-form-item name="group_id" label="分组">
-                <a-select v-model:value="formState.group_id" style="width: 100%">
-                  <a-select-option v-for="item in props.groupList" :value="item.id">{{
-                    item.group_name
-                  }}</a-select-option>
-                </a-select>
-              </a-form-item>
-            </div>
-          </a-flex>
+      <cu-scroll style="max-height: 600px; margin-top: 24px">
+        <a-form
+          :label-col="{ span: 3 }"
+          :wrapper-col="{ span: 21 }"
+          ref="formRef"
+          :model="formState"
+        >
+          <a-form-item
+            name="title"
+            label="提示词标题"
+            :rules="[{ required: true, message: '请输入提示词标题' }]"
+          >
+            <a-input
+              v-model:value="formState.title"
+              placeholder="请输入提示词标题"
+              :maxLength="10"
+            ></a-input>
+          </a-form-item>
+          <a-form-item name="group_id" label="分组">
+            <a-select v-model:value="formState.group_id" style="width: 100%">
+              <a-select-option v-for="item in props.groupList" :value="item.id">{{
+                item.group_name
+              }}</a-select-option>
+            </a-select>
+          </a-form-item>
           <a-form-item
             name="prompt"
             label="提示词"
@@ -94,6 +93,20 @@
                   :bordered="false"
                   v-model:value="formState.prompt_struct.constraints.describe"
                   :placeholder="placeholderMap.constraints"
+                />
+              </div>
+            </div>
+
+            <div class="prompt-list">
+              <div class="prompt-header">
+                <div class="prompt-title">{{ formState.prompt_struct.skill.subject }}</div>
+              </div>
+              <div class="prompt-content">
+                <a-textarea
+                  style="height: 80px"
+                  :bordered="false"
+                  v-model:value="formState.prompt_struct.skill.describe"
+                  :placeholder="placeholderMap.skill"
                 />
               </div>
             </div>
@@ -190,28 +203,33 @@ let placeholderMap = {
   constraints:
     '请输入对大模型在回复时的要求，比如“你的回答应该使用自然的对话方式，简单直接地回答，不要解释你的答案；当用户问题没有找到相关知识点时，直接告诉用户问题暂时无法回答，不能胡编乱造，否则你将受到惩罚。”',
   output: '请输入对大模型输出格式的要求，比如“请使用markdown格式输出”',
-  tone: '请告知语言风格要求，比如“专业而不失亲切，适当使用emoji增强可读性”'
+  tone: '请告知语言风格要求，比如“专业而不失亲切，适当使用emoji增强可读性”',
+  skill: '请输入'
 }
 
 let prompt_struct_default = {
   role: {
-    subject: '',
+    subject: '角色',
     describe: ''
   },
   task: {
-    subject: '',
+    subject: '任务',
     describe: ''
   },
   constraints: {
-    subject: '',
+    subject: '要求',
+    describe: ''
+  },
+  skill: {
+    subject: '技能',
     describe: ''
   },
   output: {
-    subject: '',
+    subject: '输出格式',
     describe: ''
   },
   tone: {
-    subject: '',
+    subject: '风格语气',
     describe: ''
   },
   custom: []
@@ -230,16 +248,15 @@ const modalTitle = ref('')
 const open = ref(false)
 const formRef = ref(null)
 
-const show = (data = {}) => {
+const show = (data = {}, type) => {
   formRef.value && formRef.value.resetFields()
   formState.title = data.title || ''
-  formState.group_id = data.group_id || 0
-  formState.id = data.id || ''
+  formState.group_id = data.group_id > 0 ? data.group_id : 0
+  formState.id = type == 'copy' ? '' : data.id || ''
   formState.prompt_type = data.prompt_type
   formState.prompt = data.prompt || ''
   formState.prompt_struct = data.prompt_struct || JSON.parse(JSON.stringify(prompt_struct_default))
   modalTitle.value = `${data.id ? '编辑' : '新建'}${data.prompt_type == 0 ? '自定义' : '结构化'}提示词`
-  console.log(data,formState.prompt_struct,prompt_struct_default,'===')
   open.value = true
 }
 

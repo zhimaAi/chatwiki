@@ -75,6 +75,17 @@
                     {{ formState.promptStruct.constraints.describe }}
                   </div>
                 </div>
+                <!-- 技能 -->
+                <div class="prompt-list">
+                  <div class="prompt-header">
+                    <div class="prompt-title">
+                      {{ formState.promptStruct.skill.subject }}
+                    </div>
+                  </div>
+                  <div class="prompt-content">
+                    {{ formState.promptStruct.skill.describe }}
+                  </div>
+                </div>
                 <!-- 输出格式 -->
                 <div class="prompt-list">
                   <div class="prompt-header">
@@ -161,6 +172,10 @@ const defaultData = {
     describe: ''
   },
   constraints: {
+    subject: '',
+    describe: ''
+  },
+  skill: {
     subject: '',
     describe: ''
   },

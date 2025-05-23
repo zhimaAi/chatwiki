@@ -48,15 +48,16 @@
                   <a-cascader
                     v-model:value="term.variable"
                     @change="handleVariableChange(term)"
+                    @dropdownVisibleChange="onDropdownVisibleChange"
                     style="width: 180px"
                     :options="variableOptions"
                     :allowClear="false"
-                    :displayRender="({ labels }) => labels.join('.')"
-                    :field-names="{ children: 'subs' }"
+                    :displayRender="({ labels }) => labels.join('/')"
+                    :field-names="{ children: 'children' }"
                     placeholder="请选择"
                   />
                   <a-select v-model:value="term.type" style="width: 130px" placeholder="请选择">
-                    <a-select-option v-for="option in getTypeOptions(term)" :value="option.value">{{
+                    <a-select-option v-for="option in getTypeOptions(term)" :value="option.value" :key="option.value">{{
                       option.label
                     }}</a-select-option>
                   </a-select>
@@ -99,7 +100,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, h, inject } from 'vue'
+import { ref, reactive, watch, h, inject, onMounted } from 'vue'
 import draggable from 'vuedraggable'
 import {
   CloseCircleOutlined,
@@ -114,7 +115,7 @@ const props = defineProps({
   }
 })
 
-const graphModel = inject('getGraph')
+// const graphModel = inject('getGraph')
 const getNode = inject('getNode')
 
 const emit = defineEmits(['setData'])
@@ -126,17 +127,47 @@ const formState = reactive({
 
 const variableOptions = ref([])
 
+
 function getOptions(){
   let list = getNode().getAllParentVariable()
-  
-  list.forEach((item) => {
-    item.value = item.value.replace('【', '').replace('】', '')
-  })
 
-  variableOptions.value = list
+  variableOptions.value = handleOptions(list)
 }
 
+// 递归处理Options
+function handleOptions(options) {
+  options.forEach((item) => {
+
+    if(item.typ == 'node'){
+      if(item.node_type == 1){
+        item.value = 'global'
+      }else{
+        item.value = item.node_id;
+      }
+    }else{
+      item.value = item.key
+    }
+
+    if (item.children && item.children.length > 0) {
+      item.children = handleOptions(item.children)
+    }
+  })
+
+  return options
+}
+
+const onDropdownVisibleChange = (visible) => {
+  if (!visible) {
+    getOptions()
+  }
+}
+
+
+// 特殊节点列表
+let specialNodeList = ['special.lib_paragraph_list', 'special.llm_reply_content', 'specify-reply-node']
+
 let lock = false
+
 watch(
   () => props.properties,
   (val) => {
@@ -145,16 +176,25 @@ watch(
         return
       }
 
-      getOptions()
       let term = JSON.parse(val.node_params).term || []
 
       term = term.map((item) => {
         let terms = item.terms.map((it) => {
-          if (!it.variable.includes('global.')) {
-            let variableVal = it.variable.split('.')
-            it.variable = variableVal
-          } else {
-            it.variable = [it.variable]
+          // 判断是不是特殊节点
+          let specialKey = '';
+
+          for(let i = 0; i < specialNodeList.length; i++){
+            if(it.variable.indexOf(specialNodeList[i]) > -1){
+              specialKey = specialNodeList[i]
+              break;
+            }
+          }
+
+          if(specialKey != ''){
+            let arr = it.variable.split('.')
+            it.variable = [arr[0], specialKey]
+          }else{
+            it.variable = it.variable.split('.')
           }
           return {
             ...it,
@@ -162,6 +202,7 @@ watch(
             key: Math.random() * 10000
           }
         })
+
         return {
           ...item,
           is_or: item.is_or ? 1 : 0,
@@ -177,14 +218,16 @@ watch(
           height: getNodeHeight()
         })
       }, 100)
-    } catch (error) {}
+    } catch (error) {
+      console.log(error)
+    }
   },
   { immediate: true, deep: true }
 )
 
 watch(
   () => formState,
-  (val) => {
+  () => {
     let term = JSON.parse(JSON.stringify(formState.term))
 
     term = term.map((item) => {
@@ -264,17 +307,6 @@ const handleVariableChange = (term) => {
   term.type = void 0
 }
 
-function recursionData(data) {
-  data.forEach((item) => {
-    item.value = item.key
-    item.label = item.key
-    if (item.subs && item.subs.length) {
-      recursionData(item.subs)
-    }
-  })
-  return data
-}
-
 let baseTypeOptions = [
   {
     label: '等于',
@@ -329,7 +361,7 @@ function getTypeByVariable(data) {
       typ = slectItem[0].typ
     }
     if (typ == 'object') {
-      if (slectItem[0] && slectItem[0].subs) {
+      if (slectItem[0] && slectItem[0].children) {
         slectItem = slectItem[0].subs.filter((item) => item.key == data.variable[1])
       }
       if (slectItem && slectItem.length) {
@@ -337,7 +369,7 @@ function getTypeByVariable(data) {
       }
 
       if (typ == 'object') {
-        if (slectItem[0] && slectItem[0].subs) {
+        if (slectItem[0] && slectItem[0].children) {
           slectItem = slectItem[0].subs.filter((item) => item.key == data.variable[2])
         }
         if (slectItem && slectItem.length) {
@@ -382,6 +414,10 @@ function getTypeOptions(data) {
 
   return baseTypeOptions
 }
+
+onMounted(() => {
+  getOptions()
+})
 
 defineExpose({})
 </script>

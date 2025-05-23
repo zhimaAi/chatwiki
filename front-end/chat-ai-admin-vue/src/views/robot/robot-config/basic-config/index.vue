@@ -1,6 +1,7 @@
 <template>
   <a-tabs class="tab-wrapper" v-model:activeKey="activeKey">
     <a-tab-pane :key="1" tab="基础配置"></a-tab-pane>
+    <a-tab-pane :key="3" tab="权限管理"></a-tab-pane>
     <a-tab-pane :key="2" tab="常见问题"></a-tab-pane>
   </a-tabs>
   <div class="robot-config-page" v-if="activeKey == 1">
@@ -18,7 +19,10 @@
         <ChatMode />
       </div>
       <div class="setting-box">
-        <SystemPromptWords />
+        <SystemPromptWords :robotList="workFlowRobotList" />
+      </div>
+      <div class="setting-box">
+        <Skill :robotList="workFlowRobotList" />
       </div>
       <div class="setting-box">
         <DataBase />
@@ -52,8 +56,11 @@
       </div>
     </div>
   </div>
-  <div class="robot-config-page" v-else>
+  <div class="robot-config-page" v-if="activeKey == 2">
     <CommonProblem />
+  </div>
+  <div class="robot-config-page" v-if="activeKey == 3">
+    <rolePermission />
   </div>
 </template>
 
@@ -75,9 +82,11 @@ import ChatMode from './components/chat-mode/index.vue'
 import MarkdownSetting from './components/markdown-setting.vue'
 import CommonProblem from './components/common-problem.vue'
 import DisplayAitations from './components/display-aitations.vue'
-import { saveRobot } from '@/api/robot/index'
+import { saveRobot, getRobotList } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
 import ShowLike from './components/show-like.vue'
+import rolePermission from './role-permission.vue'
+import Skill from './components/skill/index.vue'
 
 const robotStore = useRobotStore()
 
@@ -105,11 +114,19 @@ const updateRobotInfo = (val) => {
 
   saveForm()
 }
+const workFlowRobotList = ref([])
+const getWorkFlowRobotList = ()=>{
+  getRobotList({ application_type: 1 }).then(res=>{
+    workFlowRobotList.value = res.data || []
+  })
+}
+getWorkFlowRobotList()
 
 provide('robotInfo', {
   robotInfo: formState,
   updateRobotInfo,
-  scrollBoxToBottom
+  scrollBoxToBottom,
+  getRobot,
 })
 
 const saveForm = () => {

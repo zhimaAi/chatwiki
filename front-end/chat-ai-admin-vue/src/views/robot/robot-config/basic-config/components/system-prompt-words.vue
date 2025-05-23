@@ -6,7 +6,19 @@
         <a-tab-pane :key="0" tab="自定义提示词"></a-tab-pane>
       </a-tabs>
       <div class="opt-block" v-if="isEdit">
-        <div class="hover-btn-box" @click="onShowAddPromptModal"><DownloadOutlined />导入</div>
+        <a-tooltip>
+          <template #title>将当前编辑的提示词保存到提示词库中</template>
+          <div class="hover-btn-box" style="color: #6524fc" @click="onShowUpPromptModal">
+            <ToTopOutlined />上传
+          </div>
+        </a-tooltip>
+        <a-tooltip>
+          <template #title>从提示词库导入提示词</template>
+          <div class="hover-btn-box" style="color: #6524fc" @click="onShowAddPromptModal">
+            <DownloadOutlined />导入
+          </div>
+        </a-tooltip>
+
         <div class="ai-mark-box hover-btn-box" @click="onShowAiCreateModal">
           <svg-icon name="ai-mark" />
           AI自动生成
@@ -78,6 +90,25 @@
             />
           </div>
         </div>
+        <!-- 技能 -->
+        <div class="prompt-list">
+          <div class="prompt-header">
+            <div class="prompt-title">{{ formState.prompt_struct.skill.subject }}</div>
+            <div class="btn-wrapper-box" v-if="isEdit">
+              <a @click="handleImportSkill()">自动导入技能</a>
+            </div>
+          </div>
+          <div class="prompt-content">
+            <a-textarea
+              :bordered="false"
+              :disabled="!isEdit"
+              v-model:value="formState.prompt_struct.skill.describe"
+              :placeholder="placeholderMap.skill"
+              style="min-height: 80px"
+            />
+          </div>
+        </div>
+
         <!-- 输出格式 -->
         <div class="prompt-list">
           <div class="prompt-header">
@@ -206,6 +237,7 @@
     </div>
     <AiCreatePrompt @handleAiSave="handleAiSave" ref="aiCreatePromptRef" />
     <ImportPrompt @ok="handleSavePrompt" ref="importPromptRef" />
+    <UploadPrompt ref="uploadPromptRef" />
   </div>
 </template>
 <script setup>
@@ -215,21 +247,29 @@ import {
   CloseCircleOutlined,
   DownOutlined,
   UpOutlined,
+  ToTopOutlined,
   DownloadOutlined
 } from '@ant-design/icons-vue'
 import AiCreatePrompt from './ai-create-prompt.vue'
 // front-end\chat-ai-admin-vue\src\components\import-prompt\index.vue
 import ImportPrompt from '@/components/import-prompt/index.vue'
+import UploadPrompt from '@/components/import-prompt/upload-prompt.vue'
 const isEdit = ref(false)
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
-
+const props = defineProps({
+  robotList: {
+    type: Array,
+    default: () => []
+  }
+})
 let placeholderMap = {
   role: '请输入，告知大模型要扮演的身份、职责、沟通风格等，比如“你扮演一名经验丰富的电商行业售后客服AI助手，具备良好的沟通能力和解决问题的能力。”',
   task: '请输入，比如“根据提供的知识库资料，找到对应的售后知识（每个知识点之间使用⧼-split_line-⧽进行分割），快速准确回答用户的问题。”',
   constraints:
     '请输入对大模型在回复时的要求，比如“你的回答应该使用自然的对话方式，简单直接地回答，不要解释你的答案；当用户问题没有找到相关知识点时，直接告诉用户问题暂时无法回答，不能胡编乱造，否则你将受到惩罚。”',
   output: '请输入对大模型输出格式的要求，比如“请使用markdown格式输出”',
-  tone: '请告知语言风格要求，比如“专业而不失亲切，适当使用emoji增强可读性”'
+  tone: '请告知语言风格要求，比如“专业而不失亲切，适当使用emoji增强可读性”',
+  skill: '请输入'
 }
 
 const PromptDefaultReplyMarkdown = `- 请使用markdown格式回答问题。`
@@ -255,6 +295,10 @@ const formState = reactive({
       describe: ''
     },
     constraints: {
+      subject: '',
+      describe: ''
+    },
+    skill: {
       subject: '',
       describe: ''
     },
@@ -377,6 +421,19 @@ const handleReset = (key) => {
   formState.prompt_struct[key].describe = prompt_struct_default.value[key].describe
 }
 
+const handleImportSkill = () => {
+  // 导入技能
+  let work_flow_ids = robotInfo.work_flow_ids.split(',')
+  let selectRobotList = props.robotList.filter((item) => {
+    return work_flow_ids.includes(item.id)
+  })
+  let skill_str = []
+  skill_str = selectRobotList.map(item => {
+    return `- ${item.robot_name} ${item.robot_intro}`
+  }).join('\n')
+  formState.prompt_struct['skill'].describe = skill_str
+}
+
 const handleAddTheme = () => {
   formState.prompt_struct.custom.push({
     subject: '',
@@ -428,11 +485,19 @@ const onShowAddPromptModal = () => {
   importPromptRef.value.show()
 }
 
+const uploadPromptRef = ref(null)
+const onShowUpPromptModal = () => {
+  uploadPromptRef.value.show({
+    ...formState,
+    prompt_type: prompt_type.value
+  })
+}
+
 const handleSavePrompt = (item) => {
-  if(item.prompt_type == 1){
+  if (item.prompt_type == 1) {
     prompt_type.value = 1
     formState.prompt_struct = item.prompt_struct
-  }else{
+  } else {
     prompt_type.value = 0
     formState.prompt = item.prompt
   }

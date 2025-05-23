@@ -30,6 +30,7 @@ func init() {
 	/* user API*/
 	noAuthFuns(Route[http.MethodPost], `/manage/saveProfile`, manage.SaveProfile)
 	Route[http.MethodPost]["/manage/refreshUserToken"] = manage.RefreshUserToken
+	Route[http.MethodPost]["/manage/loginSwitch"] = manage.LoginSwitch
 
 	/*admin API*/
 	noAuthFuns(Route[http.MethodPost], `/manage/login`, manage.AdminLogin)
@@ -66,6 +67,7 @@ func init() {
 	Route[http.MethodGet][`/manage/createPromptByAi`] = manage.CreatePromptByAi
 	Route[http.MethodPost][`/manage/robotCopy`] = manage.RobotCopy
 	Route[http.MethodPost][`/manage/editBaseInfo`] = manage.EditBaseInfo
+	Route[http.MethodPost][`/manage/relationWorkFlow`] = manage.RelationWorkFlow
 
 	/*library API*/
 	Route[http.MethodGet][`/manage/getLibraryList`] = manage.GetLibraryList
@@ -99,7 +101,6 @@ func init() {
 	Route[http.MethodGet][`/manage/getLibDocPartner`] = manage.GetLibDocPartner
 	Route[http.MethodGet][`/manage/libDocPartnerList`] = manage.LibDocPartnerList
 	Route[http.MethodPost][`/manage/deleteLibDocPartner`] = manage.DeleteLibDocPartner
-	Route[http.MethodPost][`/manage/SyncPartnerHistory`] = manage.SyncPartnerHistory
 	noAuthFuns(Route[http.MethodGet], `/manage/libDocHome/:key`, business.OpenHome)
 	noAuthFuns(Route[http.MethodGet], `/open/doc/:key`, business.OpenDoc)
 	noAuthFuns(Route[http.MethodGet], `/open/home/:key`, business.OpenHome)
@@ -130,10 +131,13 @@ func init() {
 	Route[http.MethodGet][`/manage/getLibFileSplitAiChunks`] = manage.GetLibFileSplitAiChunks
 	Route[http.MethodPost][`/manage/saveLibFileSplit`] = manage.SaveLibFileSplit
 	Route[http.MethodGet][`/manage/getParagraphList`] = manage.GetParagraphList
+	Route[http.MethodGet][`/manage/getParagraphCount`] = manage.GetParagraphCount
 	Route[http.MethodGet][`/manage/getCategoryParagraphList`] = manage.GetCategoryParagraphList
 	Route[http.MethodPost][`/manage/saveCategoryParagraph`] = manage.SaveCategoryParagraph
 	Route[http.MethodPost][`/manage/addParagraph`] = manage.SaveParagraph
 	Route[http.MethodPost][`/manage/editParagraph`] = manage.SaveParagraph
+	Route[http.MethodGet][`/manage/getSplitParagraph`] = manage.GetSplitParagraph
+	Route[http.MethodPost][`/manage/saveSplitParagraph`] = manage.SaveSplitParagraph
 	Route[http.MethodPost][`/manage/deleteParagraph`] = manage.DeleteParagraph
 	Route[http.MethodPost][`/manage/updateParagraphCategory`] = manage.UpdateParagraphCategory
 	Route[http.MethodPost][`/manage/generateSimilarQuestions`] = manage.GenerateSimilarQuestions
@@ -234,6 +238,17 @@ func init() {
 	/*receiver API*/
 	Route[http.MethodGet][`/manage/getReceiverList`] = manage.GetReceiverList
 	Route[http.MethodPost][`/manage/setReceiverRead`] = manage.SetReceiverRead
+	/*permission manage API*/
+	Route[http.MethodGet][`/manage/getDepartmentList`] = manage.GetDepartmentList
+	Route[http.MethodGet][`/manage/getAllDepartment`] = manage.GetAllDepartment
+	Route[http.MethodPost][`/manage/saveDepartment`] = manage.SaveDepartment
+	Route[http.MethodPost][`/manage/deleteDepartment`] = manage.DeleteDepartment
+	Route[http.MethodPost][`/manage/batchUpdateUserDepartment`] = manage.BatchUpdateUserDepartment
+	Route[http.MethodGet][`/manage/getPermissionManageList`] = manage.GetPermissionManageList
+	Route[http.MethodGet][`/manage/getPartnerManageList`] = manage.GetPartnerManageList
+	Route[http.MethodPost][`/manage/batchSavePermissionManage`] = manage.BatchSavePermissionManage
+	Route[http.MethodPost][`/manage/savePermissionManage`] = manage.SavePermissionManage
+	Route[http.MethodPost][`/manage/deletePermissionManage`] = manage.DeletePermissionMange
 	/*prompt_library API*/
 	Route[http.MethodGet][`/manage/getPromptLibraryGroup`] = manage.GetPromptLibraryGroup
 	Route[http.MethodPost][`/manage/savePromptLibraryGroup`] = manage.SavePromptLibraryGroup

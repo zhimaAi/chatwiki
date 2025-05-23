@@ -704,6 +704,11 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 			return nil, err
 		}
 	}
+	//聊天机器人支持关联工作流
+	workFlowFuncCall, needRunWorkFlow := work_flow.BuildFunctionTools(params.Robot)
+	if needRunWorkFlow {
+		functionTools = append(functionTools, workFlowFuncCall...)
+	}
 
 	var (
 		content, menuJson, reasoningContent string
@@ -725,7 +730,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		chanStream <- sse.Event{Event: `request_time`, Data: requestTime}
 		chanStream <- sse.Event{Event: `sending`, Data: content}
 	} else if cast.ToInt(params.Robot[`chat_type`]) == define.ChatTypeDirect {
-		if useStream {
+		if !needRunWorkFlow && useStream {
 			chatResp, requestTime, err = common.RequestChatStream(
 				params.AdminUserId,
 				params.Openid,
@@ -761,7 +766,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		}
 	} else if cast.ToInt(params.Robot[`chat_type`]) == define.ChatTypeMixture {
 		if len(list) == 0 {
-			if useStream {
+			if !needRunWorkFlow && useStream {
 				chatResp, requestTime, err = common.RequestChatStream(
 					params.AdminUserId,
 					params.Openid,
@@ -803,7 +808,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 				content = list[0][`answer`]
 				chanStream <- sse.Event{Event: `sending`, Data: content}
 			} else {
-				if useStream {
+				if !needRunWorkFlow && useStream {
 					chatResp, requestTime, err = common.RequestChatStream(
 						params.AdminUserId,
 						params.Openid,
@@ -859,7 +864,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 				content = list[0][`answer`]
 				chanStream <- sse.Event{Event: `sending`, Data: content}
 			} else { // ask gpt
-				if useStream {
+				if !needRunWorkFlow && useStream {
 					chatResp, requestTime, err = common.RequestChatStream(
 						params.AdminUserId,
 						params.Openid,
@@ -893,6 +898,24 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 					logs.Error(err.Error())
 					sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)
 				}
+			}
+		}
+	}
+	//聊天机器人支持关联工作流
+	if err == nil && needRunWorkFlow {
+		workFlowRobot, workFlowGlobal := work_flow.ChooseWorkFlowRobot(chatResp.FunctionToolCalls)
+		if len(workFlowRobot) == 0 { //大模型没有返回需要调用的工作流
+			chanStream <- sse.Event{Event: `request_time`, Data: requestTime}
+			chanStream <- sse.Event{Event: `sending`, Data: content}
+		} else { //组装工作流请求参数,并执行工作流
+			workFlowParams := work_flow.BuildWorkFlowParams(*params, workFlowRobot, workFlowGlobal, int(id), dialogueId, sessionId)
+			content, requestTime, _, _, err = work_flow.CallWorkFlow(workFlowParams, &debugLog, monitor)
+			if err == nil {
+				chanStream <- sse.Event{Event: `request_time`, Data: requestTime}
+				chanStream <- sse.Event{Event: `sending`, Data: content}
+			} else {
+				logs.Error(err.Error())
+				sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)
 			}
 		}
 	}

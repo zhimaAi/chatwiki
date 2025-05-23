@@ -160,7 +160,7 @@ export default {
 
     this.list = fields
 
-    this.updateHeight()
+    this.update()
     graphModel.eventCenter.on('custom:setNodeName', this.onUpatateNodeName)
   },
   onBeforeUnmount() {

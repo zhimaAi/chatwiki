@@ -3,25 +3,34 @@ import { createApp, h } from 'vue'
 import { generateUniqueId } from '@/utils/index'
 
 function transformArray(arr, parent) {
-  let result = []
-  
-  arr.forEach((item) => {
+  // 使用map处理数组并返回新的数组
+  return arr.map((item) => {
     let node_id = parent ? parent.node_id : item.node_id
     let node_name = parent ? parent.node_name : item.node_name
     let node_type = parent? parent.node_type : item.node_type
-    let text = parent ? `${parent.text}.${item.key}` : String(item.key)
-    let label = `${node_name}/${text.replace(/\./g, '/')}`
-    let value = ''
+    let label = item.name || item.key
+    let text = parent ? `${parent.text}.${label}` : label // 路径
+    let children = item.children || item.subs || []
 
+    let value = ''
+    let original_value = ''
+    
     if(node_type == 1){
-      value = `【global.${text}】`
+      original_value = `global.${text}`
     }else{
-      value = `【${node_id}.${text}】`
+      if(parent){
+        original_value = `${parent.original_value}.${item.key}`
+      }else{
+        original_value = `${node_id}.${item.key}`
+      }
     }
+
+    value = `【${original_value}】`
 
     let data = {
       label: label,
       value: value,
+      original_value: original_value,
       node_id: node_id,
       node_name: node_name,
       node_type: node_type,
@@ -29,16 +38,16 @@ function transformArray(arr, parent) {
       key: item.key,
       id: node_id,
       typ: item.typ,
-      hasSub: item.subs && item.subs.length > 0
+      children: children || [],
+    }
+    
+    // 递归处理子节点
+    if (data.children && data.children.length > 0) {
+      data.children = transformArray(data.children, data)
     }
 
-    result.push(data)
-
-    if (item.subs && Array.isArray(item.subs)) {
-      result = result.concat(transformArray(item.subs, data))
-    }
+    return data
   })
-  return result
 }
 
 export class BaseVueNodeView extends HtmlNode {
@@ -266,11 +275,13 @@ export class BaseVueNodeModel extends HtmlNodeModel {
     
     let node_params = JSON.parse(startNode.properties.node_params)
 
-    return {
+    let data = {
       sys_global: node_params.start.sys_global,
       diy_global: node_params.start.diy_global,
       all_global: [...node_params.start.sys_global, ...node_params.start.diy_global],
     }
+  
+    return data
   }
 
   getAllParentVariable(){
@@ -278,9 +289,11 @@ export class BaseVueNodeModel extends HtmlNodeModel {
     const visited = new Set();
     const edges = this.incoming.edges;
     const { nodes } = this.graphModel
+    // 节点白名单
+    const nodeWhiteList = ['start-node', 'http-node', 'knowledge-base-node', 'ai-dialogue-node', 'specify-reply-node']
 
     let startNode = nodes.find((node) => node.type === 'start-node')
-
+    // 插入起始节点(起始节点必传)
     if(startNode){
       visited.add(startNode.id);
       parentNodes.push(startNode)
@@ -296,7 +309,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
 
         visited.add(node.id);
 
-        if (node.type ==='http-node'){
+        if (nodeWhiteList.includes(node.type)){
           parentNodes.push(node);
         };
 
@@ -310,28 +323,68 @@ export class BaseVueNodeModel extends HtmlNodeModel {
     // 取出输出的变量
     let variableArr = []
 
-    parentNodes.forEach((node) => {
+    for (const node of parentNodes) {
+      // 如果节点类型既不是http-node也不是start-node，则跳过当前循环
+      if (!nodeWhiteList.includes(node.type)) {
+        continue;
+      }
+
       let node_params = JSON.parse(node.properties.node_params)
-      let arr = []
+  
+      let obj = {
+        label: node.properties.node_name,
+        value: node.id,
+        node_id: node.id,
+        node_type: node.properties.node_type,
+        typ: 'node',
+        children: []
+      }
 
       if(node.type === 'http-node'){
-        arr = arr.concat(node_params.curl.output)
+        obj.children = node_params.curl.output
       }
 
       if(node.type === 'start-node'){
-        arr = arr.concat(node_params.start.diy_global, node_params.start.sys_global)
+        obj.children = [...node_params.start.diy_global, ...node_params.start.sys_global]
       }
 
-      arr.forEach(variable => {
+      if(node.type === 'knowledge-base-node'){
+        obj.children = [{
+          key: 'special.lib_paragraph_list',
+          typ: 'string',
+          name: '知识库引用',
+          label: '知识库引用'
+        }]
+      }
+
+      if(node.type === 'ai-dialogue-node'){
+        obj.children = [{
+          key: 'special.llm_reply_content',
+          typ: 'string',
+          name: 'AI回复内容',
+          label: 'AI回复内容',
+        }]
+      }
+
+      if(node.type === 'specify-reply-node'){
+        obj.children = [{
+          key: 'special.llm_reply_content',
+          typ: 'string',
+          name: '消息内容',
+          label: '消息内容',
+        }]
+      }
+      
+      obj.children.forEach(variable => {
         variable.node_id = node.id
         variable.node_name = node.properties.node_name
         variable.node_type = node.properties.node_type
       })
 
-      variableArr = variableArr.concat(arr)
-    })
-
-    variableArr = transformArray(variableArr, '').filter((it) => !it.hasSub)
+      obj.children = transformArray(obj.children, null)
+      
+      variableArr.push(obj)
+    }
 
     return variableArr;
   }

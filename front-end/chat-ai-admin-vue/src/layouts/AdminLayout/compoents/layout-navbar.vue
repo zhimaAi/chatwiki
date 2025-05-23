@@ -138,6 +138,7 @@ const navs = [
 
 const handleClickNav = item => {
   router.push(item.path)
+  // window.open(`/#${item.path}`, "_blank", "noopener") // 建议添加 noopener 防止安全漏洞
 }
 
 watch(

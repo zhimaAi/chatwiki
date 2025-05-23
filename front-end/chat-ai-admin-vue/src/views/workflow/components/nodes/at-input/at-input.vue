@@ -1,16 +1,9 @@
 <template>
   <div style="width: 100%;position: relative;">
+    <div></div>
     <Teleport to="body">
-      <div v-show="showDropdown" class="dropdown-list" :style="positionStyle" ref="dropdownList" @scroll.stop="">
-        <div class="dropdown-list-item" :ref="'listItem' + optIndex" :class="{ 'active': chooseIndex === optIndex }"
-          v-for="(opt, optIndex) in showOptions" :key="opt.id + opt.value" @click="selectOption(opt)">
-          <slot name="option" :payload="opt" :label="opt.label" :value="opt.value">
-            {{ opt.label }}
-          </slot>
-        </div>
-        <div class="dropdown-list-nodata" v-show="showOptions.length === 0">
-          暂无数据
-        </div>
+      <div class="dropdown-list" ref="dropdownList" v-if="showDropdown" :style="positionStyle">
+        <CascadePanel :options="showOptions" @change="onSelectOption" />
       </div>
     </Teleport>
     <div class="mention-input-warpper" ref="JMentionContainer" >
@@ -32,8 +25,27 @@
 </template>
 
 <script>
+import CascadePanel from './cascade-panel.vue'
+
+// 把树状的options抓换成编排的数组
+const getTreeOptions = (options) => {
+  let result = [];
+  options.forEach((opt) => {
+    if (opt.children && opt.children.length > 0) {
+      result.push(...getTreeOptions(opt.children));
+    } else {
+      result.push(opt);
+    }
+  });
+  return result;
+}
+
 export default {
   name: "JMention",
+  components: {
+    CascadePanel,
+  },
+  inject: ['getNode', 'getGraph', 'setData'],
   emits: ["input", 'change', "update:selectedList", "focus", 'open'],
   props: {
     type: {
@@ -87,9 +99,7 @@ export default {
     };
   },
   watch: {
-    chooseIndex(newVal) {
-      this.scrollToSelectedItem(newVal);
-    },
+    chooseIndex() {},
     showAtList(val){
       this.onOpen(val);
     },
@@ -98,33 +108,46 @@ export default {
     },
   },
   mounted() {
+    const graphModel = this.getGraph()
+
     this.initShowOptionList();
 
-    document.addEventListener("dragstart", (e) => {
-      const target = e.target.closest(".dropdown-list");
-      if (target) {
-        e.preventDefault();
-      }
-    });
-    document.addEventListener("click", (e) => {
-      const target = e.target.closest(".dropdown-list");
-      if (!target) {
-        this.showDropdown = false;
-        this.showAtList = false;
-      }
-    });
-    document.addEventListener("scroll", () => {
-      this.showDropdown = false;
-      this.showAtList = false;
-    });
+    document.addEventListener("dragstart", this.handleDragstart);
+    document.addEventListener("click", this.handleClick);
+    document.addEventListener("scroll", this.onScroll);
+    graphModel.eventCenter.on('node:dragstart, blank:dragstart, graph:transform', this.hideDropdownMenus)
 
     this.initData();
   },
   beforeUnmount() {
-    document.removeEventListener("dragstart", () => { });
-    document.removeEventListener("click", () => { });
+    const graphModel = this.getGraph()
+
+    document.removeEventListener("dragstart", this.handleDragstart);
+    document.removeEventListener("click", this.handleClick);
+    document.removeEventListener("scroll", this.onScroll);
+
+    graphModel.eventCenter.off('node:dragstart, blank:dragstart, graph:transform', this.hideDropdownMenus)
   },
   methods: {
+    handleClick(e){
+      const target = e.target.closest(".dropdown-list");
+      if (!target) {
+        this.hideDropdownMenus()
+      }
+    },
+    handleDragstart(e){
+      const target = e.target.closest(".dropdown-list");
+      if (target) {
+        e.preventDefault();
+      }
+    },
+    onScroll(){
+      this.hideDropdownMenus()
+    },
+    hideDropdownMenus() {
+      this.showDropdown = false;
+      this.showAtList = false;
+    },
     onFocus(){
       this.$emit("focus");
     },
@@ -178,7 +201,17 @@ export default {
 
       this.localValue = text;
 
-      this.$emit("change", text, this.selectedList);
+      let selectedListMap = {};
+
+      this.selectedList.forEach(item => {
+        if(!selectedListMap[item.value] && text.indexOf(item.value) !== -1){
+          selectedListMap[item.value] = item;
+        }
+      });
+
+      let mySelectedList = Object.values(selectedListMap);
+
+      this.$emit("change", text, mySelectedList);
     },
     refresh(){
       this.selectedList = [];
@@ -192,19 +225,24 @@ export default {
 
       let html = this.defaultValue;
       let defaultSelectedList = this.defaultSelectedList || [];
-      let selectedList = [...defaultSelectedList, ...this.options].filter(item => item && item.value && item.value != '');
-
+      let treeOptions = getTreeOptions(this.options);
+      let selectedList = [...defaultSelectedList, ...treeOptions].filter(item => item && item.value && item.value != '' && item.typ !== 'node');
+  
       // 记录已经替换过的的value
       const replacedValues = new Set();
-      
+
       selectedList.forEach((opt) => {
         // 使用正则匹配完整的value,避免部分匹配
         const regex = new RegExp(`(${opt.value})`, 'g');
         if(regex.test(this.defaultValue) && !replacedValues.has(opt.value)){
-          html = html.replace(regex, 
-            `<span class="at-space" contentEditable="true">&nbsp;</span><span class="j-mention-at" data-id="${opt.node_id}" contentEditable="false" data-value="${opt.value}">${opt.label}</span>`
-          );
+          let text = opt.node_name + '.' + opt.text;
 
+          text = text.replace(/\./g, '/')
+
+          html = html.replace(regex, 
+            `<span class="j-mention-at" data-id="${opt.node_id}" contentEditable="false" data-value="${opt.value}">${text}</span> `
+          );
+   
           replacedValues.add(opt.value);
           
           this.selectOption(opt, true);
@@ -223,26 +261,6 @@ export default {
         return !this.selectedIdSet.has(opt.id + "");
       });
     },
-    scrollToSelectedItem(index) {
-      // 获取当前选中的列表项元素
-      const selectedItem = this.$refs[`listItem${index}`][0];
-      // 获取下拉列表容器
-      const dropdownList = this.$refs.dropdownList;
-      if (!selectedItem || !dropdownList) return;
-
-      // 获取元素位置和容器尺寸
-      const itemTop = selectedItem.offsetTop;
-      const containerHeight = dropdownList.offsetHeight;
-      const itemHeight = selectedItem.offsetHeight;
-      const scrollTop = dropdownList.scrollTop;
-      if (itemTop < scrollTop) {
-        dropdownList.scrollTop = itemTop;
-        return;
-      }
-      if (itemTop + itemHeight > scrollTop + containerHeight) {
-        dropdownList.scrollTop = itemTop - containerHeight + itemHeight;
-      }
-    },
     dropDownKeydown(event) {
       const { keyCode } = event;
       if (!this.showDropdown) {
@@ -259,10 +277,11 @@ export default {
       if (!keyCodeList.includes(keyCode)) return;
       event.preventDefault();
       event.stopPropagation();
+
       if (keyCode === 13) {
-        this.selectOption(this.showOptions[this.chooseIndex]);
         return;
       }
+
       const map = {
         38: -1,
         40: 1,
@@ -494,7 +513,7 @@ export default {
         const tmp = document.createElement("span");
         tmp.contentEditable = true;
         tmp.innerHTML += "&nbsp;";
-        span.classList.add("at-space");
+        tmp.classList.add("at-space");
 
         for (const key in dataSet) {
           span.dataset[key] = dataSet[key];
@@ -504,7 +523,7 @@ export default {
         const newRange = document.createRange();
         newRange.setStart(prevCharNode, prevCharOffset);
         newRange.insertNode(span);
-        newRange.insertNode(tmp);
+        // newRange.insertNode(tmp);
 
         // 将光标移动到 span 元素外部
         let nextNode = span.nextSibling;
@@ -519,13 +538,21 @@ export default {
         selection.addRange(range);
       }
     },
+    onSelectOption(value, selectedValuePath, selectedPath) {
+      let item = selectedPath[selectedPath.length - 1];
+      delete item['children'];
+      this.selectOption(item)
+    },
     selectOption(opt, isInit = false) {
       if (!opt) return;
       // 处理用户选择逻辑
       this.showDropdown = false;
       this.showAtList = false;
-      const text = opt.label;
-    
+
+      let text = opt.node_name + '.' + opt.text;
+
+      text = text.replace(/\./g, '/')
+
       const dataSet = {
         id: opt.id ,
         label: opt.label,
@@ -533,12 +560,15 @@ export default {
         text: opt.text,
         index: this.selectedList.length,
       };
- 
-      if (!isInit) this.insertAtCaret(text, dataSet);
+
       this.selectedList.push(opt);
       this.selectedIdSet.add(opt.value);
-      if (!isInit) this.initShowOptionList();
-      if (!isInit) this.updateValue();
+ 
+      if (!isInit) {
+        this.insertAtCaret(text, dataSet);
+        this.initShowOptionList();
+        this.updateValue();
+      }
     },
   },
 };
@@ -621,15 +651,13 @@ export default {
     user-select: none;
   }
 .dropdown-list {
-  position: absolute;
+  position: fixed;
   padding: 0;
   margin: 0;
   background-color: #fff;
-  z-index: 999;
+  z-index: 999999;
   min-width: 180px;
-  max-height: 200px;
-  max-width: 40%;
-  overflow: auto;
+  overflow: hidden;
   user-select: none;
   border-radius: 8px;
   box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);

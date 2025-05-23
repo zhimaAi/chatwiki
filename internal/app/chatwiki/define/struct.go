@@ -65,6 +65,7 @@ type ChatRequestParam struct {
 }
 
 type DocSplitItem struct {
+	FileDataId          int      `json:"file_data_id"`
 	Number              int      `json:"number"`
 	PageNum             int      `json:"page_num"`
 	Title               string   `json:"title"`
@@ -74,6 +75,7 @@ type DocSplitItem struct {
 	Answer              string   `json:"answer"`
 	WordTotal           int      `json:"word_total"`
 	Images              []string `json:"images"`
+	AiChunkErrMsg       string   `json:"ai_chunk_err_msg"`
 }
 
 type SplitParams struct {
@@ -104,6 +106,8 @@ type SplitParams struct {
 	AiChunkTaskId              string   `json:"ai_chunk_task_id"`
 	AiChunkSize                int      `json:"ai_chunk_size"`
 	AiChunkNew                 bool     `json:"ai_chunk_new"`
+	AiChunkPreview             bool     `json:"ai_chunk_preview"`
+	ParagraphChunk             bool     `json:"paragraph_chunk"`
 	FileExt                    string   `json:"file_ext"`
 }
 

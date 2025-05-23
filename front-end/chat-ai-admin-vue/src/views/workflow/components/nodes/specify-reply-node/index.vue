@@ -117,7 +117,7 @@ export default {
       content: '',
       content_tags: []
     }
- 
+    
     this.formState.content = reply.content
 
     this.formState.content_tags = reply.content_tags || []
@@ -126,7 +126,7 @@ export default {
       this.$refs[`atInputRef`].refresh()
     })
 
-    this.updateHeight()
+    this.update()
 
     graphModel.eventCenter.on('custom:setNodeName', this.onUpatateNodeName)
   },

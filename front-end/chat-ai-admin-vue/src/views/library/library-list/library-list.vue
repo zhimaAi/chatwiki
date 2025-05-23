@@ -76,7 +76,7 @@ import AddLibraryModel from '@/views/library/add-library/add-library-model.vue'
 import PageTabs from '@/components/cu-tabs/page-tabs.vue'
 import PageAlert from '@/components/page-alert/page-alert.vue'
 import ListTabs from '@/components/cu-tabs/list-tabs.vue'
-
+import { getLibraryPermission } from '@/utils/permission'
 
 
 const router = useRouter()
@@ -181,23 +181,29 @@ const onChangeTab = () => {
 
 const toEdit = (data) => {
   if (data.type == '1') {
-    router.push({
-      path: '/public-library/config',
-      query: {
-        library_id: data.id
-      }
-    })
+    // router.push({
+    //   path: '/public-library/config',
+    //   query: {
+    //     library_id: data.id
+    //   }
+    // })
+    window.open(`/#/public-library/config?library_id=${data.id}`, "_blank", "noopener") // 建议添加 noopener 防止安全漏洞
   } else {
-    router.push({
-      name: 'libraryDetails',
-      query: {
-        id: data.id
-      }
-    })
+    // router.push({
+    //   name: 'libraryDetails',
+    //   query: {
+    //     id: data.id
+    //   }
+    // })
+    window.open(`/#/library/details?id=${data.id}`, "_blank", "noopener") // 建议添加 noopener 防止安全漏洞
   }
 }
 
 const handleDelete = (data) => {
+  let key = getLibraryPermission(data.id)
+  if(key != 4){
+    return message.error('您没有删除该知识库的权限')
+  }
   let secondsToGo = 3
 
   let modal = Modal.confirm({

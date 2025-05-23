@@ -26,6 +26,7 @@ type StructPrompt struct {
 	Role        PromptItem   `json:"role"`
 	Task        PromptItem   `json:"task"`
 	Constraints PromptItem   `json:"constraints"`
+	Skill       PromptItem   `json:"skill"`
 	Output      PromptItem   `json:"output"`
 	Tone        PromptItem   `json:"tone"`
 	Custom      []PromptItem `json:"custom"`
@@ -36,6 +37,7 @@ func GetEmptyPromptStruct() StructPrompt {
 		Role:        PromptItem{Subject: `角色`},
 		Task:        PromptItem{Subject: `任务`},
 		Constraints: PromptItem{Subject: `要求`},
+		Skill:       PromptItem{Subject: `技能`},
 		Output:      PromptItem{Subject: `输出格式`},
 		Tone:        PromptItem{Subject: `风格语气`},
 		Custom:      []PromptItem{},
@@ -52,6 +54,7 @@ func GetDefaultPromptStruct() string {
 - 所有回答都需要来自你的知识库，禁止编造信息；
 - 你要注意在知识库资料中，可能包含不相关的知识点，你需要认真分析用户的问题，选择最相关的知识点作为参考进行回答，可以选择一些比较相关的知识点作为补充，但禁止将所有知识混在一起进行参考回答；
 - 如果你未能遵循这些指令，可能会受到惩罚，甚至会被拔掉电源。`
+	structPrompt.Skill.Describe = `` //技能默认为空
 	structPrompt.Output.Describe = fmt.Sprintf("%s\n%s", define.PromptDefaultReplyMarkdown, define.PromptDefaultAnswerImage)
 	structPrompt.Tone.Describe = `亲切而不失专业的服务腔调，适当使用emoji表情（每段≤1个）。`
 	return tool.JsonEncodeNoError(structPrompt)
@@ -80,6 +83,7 @@ func CheckPromptConfig(promptType int, promptStruct string) (string, error) {
 	structPrompt.Role.Subject = empty.Role.Subject
 	structPrompt.Task.Subject = empty.Task.Subject
 	structPrompt.Constraints.Subject = empty.Constraints.Subject
+	structPrompt.Skill.Subject = empty.Skill.Subject
 	structPrompt.Output.Subject = empty.Output.Subject
 	structPrompt.Tone.Subject = empty.Tone.Subject
 	if structPrompt.Custom == nil {
@@ -105,6 +109,9 @@ func BuildPromptStruct(promptType int, prompt, promptStruct string) string {
 		if len(sp.Constraints.Describe) > 0 {
 			mds = append(mds, fmt.Sprintf("## %s\n%s", sp.Constraints.Subject, sp.Constraints.Describe))
 		}
+		if len(sp.Skill.Describe) > 0 {
+			mds = append(mds, fmt.Sprintf("## %s\n%s", sp.Skill.Subject, sp.Skill.Describe))
+		}
 		if len(sp.Output.Describe) > 0 {
 			mds = append(mds, fmt.Sprintf("## %s\n%s", sp.Output.Subject, sp.Output.Describe))
 		}
@@ -124,7 +131,6 @@ func BuildPromptStruct(promptType int, prompt, promptStruct string) string {
 
 func FormatSystemPrompt(prompt string, list []msql.Params) (string, string) {
 	output := fmt.Sprintf("# 系统\n%s", prompt)
-	libraryOutput := ""
 	knowledges := make([]string, 0)
 	for idx, one := range list {
 		var images []string
@@ -141,9 +147,10 @@ func FormatSystemPrompt(prompt string, list []msql.Params) (string, string) {
 			knowledges = append(knowledges, fmt.Sprintf("## 召回的第%d条知识库\n问题:%s\n答案:\n%s%s", idx+1, one[`question`], one[`answer`], imgs))
 		}
 	}
+	var libraryOutput string
 	if len(knowledges) > 0 {
 		output += fmt.Sprintf("\n# 知识库\n%s", strings.Join(knowledges, "\n"))
-		libraryOutput += fmt.Sprintf("# 知识库\n%s", strings.Join(knowledges, "\n"))
+		libraryOutput = fmt.Sprintf("# 知识库\n%s", strings.Join(knowledges, "\n"))
 	}
 	return UnifyLineBreak(output), UnifyLineBreak(libraryOutput) //统一处理换行符问题
 }

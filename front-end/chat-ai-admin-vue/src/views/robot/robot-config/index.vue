@@ -72,6 +72,7 @@ import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
 import { useRobotStore } from '@/stores/modules/robot'
 import leftMenu from './components/left-menu.vue'
+import { getRobotPermission } from '@/utils/permission'
 
 export default defineComponent({
   name: 'robotPage',
@@ -80,9 +81,28 @@ export default defineComponent({
   },
   async beforeRouteEnter(to, from, next) {
     const robotStore = useRobotStore()
-    const { getRobot } = robotStore
+    const { getRobot, robotInfo } = robotStore
     await getRobot(to.query.id)
+    let key = getRobotPermission(to.query.id)
+    if(key == 0){
+      next(`/no-permission`)
+      return
+    }
+    if(key == 1){
+      // 只用查看权限
+      window.location.href = `${robotInfo.h5_domain}/#/chat/pc?robot_key=${robotInfo.robot_key}`
+      next(`/robot/list`)
+      return
+    }
 
+    if(robotInfo.application_type == 1 && to.name == 'basicConfig'){
+      next(`/robot/config/workflow?id=${robotInfo.id}&robot_key=${robotInfo.robot_key}`)
+      return
+    }
+    if(robotInfo.application_type == 0 && to.name == 'robotWorkflow'){
+      next(`/robot/config/basic-config?id=${robotInfo.id}&robot_key=${robotInfo.robot_key}`)
+      return
+    }
     next()
   },
   

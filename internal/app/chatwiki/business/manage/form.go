@@ -61,8 +61,13 @@ func GetFormList(c *gin.Context) {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
-	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot, define.RoleTypeAdmin}) {
-		managedFormIdList := GetUserManagedData(userId, `managed_form_list`)
+	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot}) {
+		// managedFormIdList := GetUserManagedData(userId, `managed_form_list`)
+		managedFormIdList := []string{`0`}
+		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeForm)
+		for _, permission := range permissionData {
+			managedFormIdList = append(managedFormIdList, cast.ToString(permission[`object_id`]))
+		}
 		m.Where(`f.id`, `in`, strings.Join(managedFormIdList, `,`))
 	}
 
@@ -113,8 +118,13 @@ func GetFormInfo(c *gin.Context) {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
-	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot, define.RoleTypeAdmin}) {
-		managedFormIdList := GetUserManagedData(userId, `managed_form_list`)
+	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot}) {
+		// managedFormIdList := GetUserManagedData(userId, `managed_form_list`)
+		managedFormIdList := []string{}
+		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeForm)
+		for _, permission := range permissionData {
+			managedFormIdList = append(managedFormIdList, cast.ToString(permission[`object_id`]))
+		}
 		if !tool.InArrayString(cast.ToString(id), managedFormIdList) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 			return
@@ -178,15 +188,18 @@ func SaveForm(c *gin.Context) {
 		}
 		_, err = m.Where(`id`, cast.ToString(id)).Update(data)
 	} else {
+		loginUserId := getLoginUserId(c)
 		data := msql.Datas{
 			`admin_user_id`: userId,
 			`name`:          name,
 			`description`:   description,
 			`update_time`:   tool.Time2Int(),
+			`creator`:       loginUserId,
 		}
 		data[`create_time`] = tool.Time2Int()
 		id, err = m.Insert(data, `id`)
-		_ = AddUserMangedData(getLoginUserId(c), `managed_form_list`, id)
+		// _ = AddUserMangedData(getLoginUserId(c), `managed_form_list`, id)
+		go AddDefaultPermissionManage(userId, loginUserId, int(id), define.ObjectTypeForm)
 	}
 	if err != nil {
 		logs.Error(err.Error())
