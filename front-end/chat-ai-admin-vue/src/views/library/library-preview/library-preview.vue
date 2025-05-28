@@ -905,11 +905,12 @@ const handleSplitNext = ({ index, beforeContent, selectedContent, afterContent, 
 
   isFullSelectionRef.value = isFullSelection
   splitType.value = 2
+  let oldWord_total = newList[index + 1].word_total
 
   if (isFullSelection) {
     // 合并内容到下一段落
-    newList[index + 1].content = selectedContent + newList[index + 1].content;
-    newList[index + 1].word_total += selectedContent.length
+    newList[index + 1].content = +selectedContent
+    newList[index + 1].word_total = parseInt(oldWord_total) + selectedContent.length
     // 删除当前段落
     newList.splice(index, 1);
     paragraphLists.value = newList;
@@ -920,7 +921,8 @@ const handleSplitNext = ({ index, beforeContent, selectedContent, afterContent, 
     newList[index].word_total = beforeContent.length || 0
 
     // 修改下一个段落的内容
-    newList[index + 1].content = selectedContent + newList[index + 1].content;
+    newList[index + 1].content += selectedContent
+    newList[index + 1].word_total = parseInt(oldWord_total) + selectedContent.length
 
     // 插入剩余内容到原段落
     if (afterContent.trim()) {
@@ -941,11 +943,12 @@ const handleSplitUp = ({ index, beforeContent, selectedContent, afterContent, is
 
   isFullSelectionRef.value = isFullSelection
   splitType.value = 3
+  let oldWord_total = newList[index - 1].word_total
 
   if (isFullSelection) {
     // 合并内容到上一段落
     newList[index - 1].content += selectedContent
-    newList[index - 1].word_total += selectedContent.length
+    newList[index - 1].word_total = parseInt(oldWord_total) + selectedContent.length
     // 删除当前段落
     newList.splice(index, 1);
     paragraphLists.value = newList;
@@ -957,6 +960,7 @@ const handleSplitUp = ({ index, beforeContent, selectedContent, afterContent, is
 
     // 修改上一个段落的内容
     newList[index - 1].content += selectedContent
+    newList[index - 1].word_total = parseInt(oldWord_total) + selectedContent.length
 
     // 插入剩余内容段落
     if (afterContent.trim()) {

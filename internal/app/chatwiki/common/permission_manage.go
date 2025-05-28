@@ -108,6 +108,7 @@ func GetAllPermissionManage(adminUserId int, identityId string, identityType, ob
 		logs.Error(err.Error())
 		return permissionData, permissionMergeData
 	}
+	permissionData = GetAdminPermissionData(adminUserId, cast.ToInt(identityId), permissionData)
 	departmentIds, err := GetUserAllDepartmentIds(adminUserId, cast.ToString(identityId))
 	if err != nil {
 		logs.Error(err.Error())
@@ -157,6 +158,36 @@ func CheckOperateRights(adminUserId, identityId, identityType int, objectId, obj
 
 func CheckIsAdminOrCreator(user, adminUserId, creator int) bool {
 	return user == adminUserId || user == creator
+}
+
+func GetAdminPermissionData(adminUserId, userId int, permissionData []msql.Params) []msql.Params {
+	if adminUserId != userId {
+		return permissionData
+	}
+	addPermission := map[int]int{
+		define.ObjectTypeRobot:   define.ObjectTypeAll,
+		define.ObjectTypeLibrary: define.ObjectTypeAll,
+		define.ObjectTypeForm:    define.ObjectTypeAll,
+	}
+	for _, item := range permissionData {
+		if cast.ToInt(item[`object_id`]) == define.ObjectTypeAll {
+			if _, ok := addPermission[cast.ToInt(item[`object_type`])]; ok {
+				delete(addPermission, cast.ToInt(item[`object_type`]))
+			}
+		}
+	}
+	if len(addPermission) > 0 {
+		for item := range addPermission {
+			permissionData = append(permissionData, msql.Params{
+				`identity_id`:    cast.ToString(userId),
+				`identity_type`:  cast.ToString(define.IdentityTypeUser),
+				`object_id`:      cast.ToString(define.ObjectTypeAll),
+				`object_type`:    cast.ToString(item),
+				`operate_rights`: cast.ToString(define.PermissionManageRights),
+			})
+		}
+	}
+	return permissionData
 }
 
 func mergePermissionData(permissionData []msql.Params) []msql.Params {

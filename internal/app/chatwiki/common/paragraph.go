@@ -46,7 +46,7 @@ func GetParagraphSplit(userId, fileId, pdfPageNum int, fileDataIds string, split
 			list = QaDocSplit(splitParams, list)
 		}
 	} else {
-		list, err = MultDocSplit(cast.ToInt(info[`admin_user_id`]), fileId, splitParams, list)
+		list, err = MultDocSplit(cast.ToInt(info[`admin_user_id`]), fileId, 0, splitParams, list)
 	}
 	if err != nil {
 		return
