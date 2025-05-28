@@ -115,7 +115,7 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 			list = QaDocSplit(splitParams, list)
 		}
 	} else {
-		list, err = MultDocSplit(cast.ToInt(info[`admin_user_id`]), fileId, splitParams, list)
+		list, err = MultDocSplit(cast.ToInt(info[`admin_user_id`]), fileId, pdfPageNum, splitParams, list)
 	}
 	if err != nil {
 		return
@@ -488,7 +488,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 	return dataIds, nil
 }
 
-func MultDocSplit(adminUserId, fileId int, splitParams define.SplitParams, items []define.DocSplitItem) ([]define.DocSplitItem, error) {
+func MultDocSplit(adminUserId, fileId, pdfPageNum int, splitParams define.SplitParams, items []define.DocSplitItem) ([]define.DocSplitItem, error) {
 	var err error
 	if splitParams.ChunkType == define.ChunkTypeNormal {
 		split := textsplitter.NewRecursiveCharacter()
@@ -540,6 +540,9 @@ func MultDocSplit(adminUserId, fileId int, splitParams define.SplitParams, items
 				var images []string
 				if len(item[`images`]) > 0 {
 					_ = tool.JsonDecode(item[`images`], &images)
+				}
+				if splitParams.PdfParseType >= define.PdfParseTypeText && cast.ToInt(item[`page_num`]) != pdfPageNum && pdfPageNum > 0 {
+					continue
 				}
 				list = append(list, define.DocSplitItem{
 					Content:   item[`content`],

@@ -430,9 +430,7 @@ const getDocumentFragment = (type) => {
     // 不请求接口，直接将数据填充进去
     documentFragmentList.value = props.currentData.list || []
     // 这里是点击重新分段选中的数据，只有一条
-    props.currentData.list.map(data => {
-      documentFragmentTotal.value += data.content.length || 0
-    })
+    documentFragmentTotal.value = props.currentData.list.length
 
     if (formData.chunk_type == 3) {
       // ai分段
@@ -634,6 +632,14 @@ const updataFormData = () => {
     ...data
   }
 }
+
+const formatWoedTotal = (arr) => {
+  let num = 0
+  arr.forEach((item) => {
+    num += parseInt(item.word_total)
+  })
+  return num
+}
 const handleSaveLibFileSplit = async () => {
   // 如果右侧的数据不是当前保存选中的分段类型则清空内容重新分段
   // 如果之前已经分段成功了，保存的时候不再另外分段了
@@ -674,7 +680,7 @@ const handleSaveLibFileSplit = async () => {
 
   let parmas = {
     file_id: id,
-    word_total: documentFragmentTotal.value,
+    word_total: formatWoedTotal(documentFragmentList.value),
     split_params: JSON.stringify(split_params),
     list: JSON.stringify(documentFragmentList.value),
     ...props.pdfState

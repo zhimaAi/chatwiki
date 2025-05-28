@@ -5,7 +5,7 @@ package chatwiki
 import (
 	"chatwiki/internal/app/chatwiki/business"
 	"chatwiki/internal/app/chatwiki/common"
-	_ "chatwiki/internal/app/chatwiki/data/migrations"
+	"chatwiki/internal/app/chatwiki/data/migrations"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/initialize"
 	"chatwiki/internal/pkg/casbin"
@@ -142,6 +142,7 @@ func CreateDefaultUser() (int64, bool, error) {
 	if err != nil {
 		panic(err)
 	}
+	migrations.SyncHistoryPermissionData()
 	return id, true, nil
 }
 func CreateDefaultRole(userId int64) {

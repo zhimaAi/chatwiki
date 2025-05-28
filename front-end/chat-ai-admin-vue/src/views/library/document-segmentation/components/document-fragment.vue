@@ -62,8 +62,8 @@
         <span class="fragment-title" v-if="props.title">{{ props.title }}</span>
         <span class="fragment-content-lenght">共{{ props.total }}个字符</span>
         <span class="fragment-content-status" v-if="props.status === 'paragraphsSegmented'">
-          {{ props.currentData.status_text }}<LoadingOutlined v-if="props.currentData.status == 3" />
-          <a-tooltip v-if="props.currentData.status == 2 && props.currentData.errmsg" :title="props.currentData.errmsg">
+          {{ props.currentData?.status_text || '-' }}<LoadingOutlined v-if="props.currentData?.status == 3" />
+          <a-tooltip v-if="props.currentData?.status == 2 && props.currentData.errmsg" :title="props.currentData.errmsg">
             <strong class="cfb363f"
               >原因<ExclamationCircleOutlined class="err-icon cfb363f"
             /></strong>
