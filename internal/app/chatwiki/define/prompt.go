@@ -128,3 +128,5 @@ answer: {{answer}}
 `
 
 const PromptLibAiSummary = `将提交的内容进行智能总结,不要随意发挥`
+
+const PromptAiGenerate = `将提交的内容生成用于大模型对话的提示词,不超过%v字`

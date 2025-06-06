@@ -229,10 +229,13 @@ import {
   getLibraryInfo,
   getLibFileExcelTitle
 } from '@/api/library/index'
+import { useLibraryStore } from '@/stores/modules/library'
 
+const libraryStore = useLibraryStore()
 const route = useRoute()
 const router = useRouter()
 
+const { setInitDocumentFragmentList } = libraryStore
 const { document_id } = route.query
 const spinning = ref(true)
 const settingMode = ref(1) // 1 表格，0 非表格
@@ -411,6 +414,7 @@ const task_id = ref('');
 const error = ref(null);
 let timer = null // 轮询定时器
 const documentFragmentList = ref([])
+const initDocumentFragmentList = ref([])
 const documentFragmentTotal = ref(0)
 const isEmpty = computed(() => documentFragmentTotal.value <= 0)
 
@@ -441,6 +445,8 @@ const getDocumentFragment = (type) => {
 
   return getLibFileSplit(params)
     .then((res) => {
+      initDocumentFragmentList.value = res.data.list || []
+      setInitDocumentFragmentList(initDocumentFragmentList.value)
       documentFragmentList.value = res.data.list || []
       documentFragmentTotal.value = res.data.list.length || 0
 
@@ -489,6 +495,8 @@ const pollData = async () => {
 
     // 条件2: 接口返回有效数据
     if (res.data.list?.length > 0) {
+      initDocumentFragmentList.value = res.data.list || []
+      setInitDocumentFragmentList(initDocumentFragmentList.value)
       documentFragmentList.value = res.data.list || []
       documentFragmentTotal.value = res.data.list.length || 0
       return true; // 停止轮询

@@ -5,18 +5,18 @@ package manage
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"unicode/utf8"
 
-	"github.com/google/uuid"
-	"github.com/zhimaAi/llm_adaptor/adaptor"
-
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
@@ -965,4 +965,54 @@ func GenerateSimilarQuestions(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, lib_web.FmtJson(result, nil))
+}
+
+func GenerateAiPrompt(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	aiChunkModel := strings.TrimSpace(c.PostForm(`ai_prompt_model`))
+	aiChunkModelConfigId := cast.ToInt(c.PostForm(`ai_prompt_model_config_id`))
+	aiPromptQuestion := strings.TrimSpace(c.PostForm(`ai_prompt_question`))
+	// check conf
+	if !common.CheckModelIsValid(adminUserId, aiChunkModelConfigId, aiChunkModel, common.Llm) {
+		common.FmtError(c, `param_invalid`, `ai_prompt_model`)
+		return
+	}
+	if len(aiPromptQuestion) == 0 {
+		common.FmtError(c, `question_empty`)
+		return
+	}
+	maxTokens := 0
+	// 生成AI提示词
+	prompt := fmt.Sprintf(define.PromptAiGenerate, 500)
+	messages := []adaptor.ZhimaChatCompletionMessage{
+		{
+			Role:    "system",
+			Content: prompt,
+		},
+		{
+			Role:    "user",
+			Content: aiPromptQuestion,
+		},
+	}
+	chatResp, _, err := common.RequestChat(
+		adminUserId,
+		"",
+		msql.Params{},
+		"",
+		cast.ToInt(aiChunkModelConfigId),
+		aiChunkModel,
+		messages,
+		nil,
+		0.1,
+		maxTokens,
+	)
+	if err != nil && len(chatResp.Result) <= 0 {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`, err.Error())
+		return
+	}
+	common.FmtOk(c, chatResp.Result)
 }

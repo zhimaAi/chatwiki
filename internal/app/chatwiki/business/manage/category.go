@@ -67,7 +67,7 @@ func GetCategoryList(c *gin.Context) {
 	if fileId > 0 {
 		m.Join(`chat_ai_library_file_data d`, `c.id = d.category_id and d.file_id = `+cast.ToString(fileId)+` and d.isolated=false`, `left`)
 	} else if libraryId > 0 {
-		m.Join(`chat_ai_library_file_data d`, `c.id = d.category_id and d.library_id = `+cast.ToString(libraryId)+` and d.isolated=false`, `left`)
+		m.Join(`chat_ai_library_file_data d`, `c.id = d.category_id and d.library_id = `+cast.ToString(libraryId), `left`)
 	} else {
 		m.Join(`chat_ai_library_file_data d`, `c.id = d.category_id and d.isolated=false`, `left`)
 	}

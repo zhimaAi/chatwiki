@@ -42,6 +42,14 @@ export const generateSimilarQuestions = (data) => {
   })
 }
 
+// AI生成提示词_ai分段
+export const generateAiPrompt = (data) => {
+  return request.post({
+    url: '/manage/generateAiPrompt',
+    data
+  })
+}
+
 export const deleteLibrary = ({ id }) => {
   return request.post({
     url: '/manage/deleteLibrary',

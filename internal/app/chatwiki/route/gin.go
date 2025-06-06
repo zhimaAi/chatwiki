@@ -141,6 +141,7 @@ func init() {
 	Route[http.MethodPost][`/manage/deleteParagraph`] = manage.DeleteParagraph
 	Route[http.MethodPost][`/manage/updateParagraphCategory`] = manage.UpdateParagraphCategory
 	Route[http.MethodPost][`/manage/generateSimilarQuestions`] = manage.GenerateSimilarQuestions
+	Route[http.MethodPost][`/manage/generateAiPrompt`] = manage.GenerateAiPrompt
 	/*category API*/
 	Route[http.MethodGet][`/manage/getCategoryList`] = manage.GetCategoryList
 	Route[http.MethodPost][`/manage/saveCategory`] = manage.SaveCategory
