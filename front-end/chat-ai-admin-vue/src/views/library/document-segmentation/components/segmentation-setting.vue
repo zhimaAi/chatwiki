@@ -132,6 +132,37 @@
         flex: 1;
       }
     }
+
+    .form-item-label-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .ai-generate {
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        padding: 1px 8px;
+        justify-content: center;
+        align-items: center;
+        gap: 4px;
+        border-radius: 6px;
+        margin-bottom: 3px;
+
+        &:hover {
+          background: #E4E6EB;
+        }
+
+        .ai-generate-text {
+          color: #6524fc;
+          font-size: 14px;
+          font-style: normal;
+          font-weight: 400;
+          line-height: 22px;
+        }
+      }
+    }
+
     .form-item-label {
       line-height: 22px;
       margin-bottom: 4px;
@@ -749,7 +780,13 @@
                 </div>
 
                 <div class="form-item" style="margin-bottom: 16px">
-                  <div class="form-item-label">提示词设置：</div>
+                  <div class="form-item-label-box">
+                    <div class="form-item-label">提示词设置：</div>
+                    <!-- <div class="ai-generate" @click="handleAIGenerate">
+                      <svg-icon name="ai-generate" style="font-size: 14px;"></svg-icon>
+                      <div class="ai-generate-text">AI自动生成</div>
+                    </div> -->
+                  </div>
                   <div class="form-item-body">
                     <a-textarea
                       :maxLength="500"
@@ -807,6 +844,7 @@
         </div>
       </div>
     </div>
+    <AiGenerate ref="aiGenerateRef" @handleEdit="handleEdit" />
   </div>
 </template>
 
@@ -817,6 +855,7 @@ import { reactive, ref, toRaw, computed, watch, nextTick } from 'vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { Form } from 'ant-design-vue'
 import { message } from 'ant-design-vue'
+import AiGenerate from './ai-generate-modal.vue'
 
 const useForm = Form.useForm
 const emit = defineEmits(['change', 'validate', 'save', 'changeChunkType'])
@@ -846,6 +885,7 @@ const props = defineProps({
     default: ''
   }
 })
+
 const isHtmlOrDocx = computed(() => {
   return (
     props.libFileInfo.doc_type == '1' &&
@@ -943,6 +983,13 @@ setTimeout(() => {
 }, 500)
 
 const vectorModelList = ref([])
+const aiGenerateRef = ref(null)
+// 处理AI生成按钮点击
+const handleAIGenerate = () => {
+  if (aiGenerateRef.value) {
+    aiGenerateRef.value.showModal()
+  }
+}
 const onVectorModelLoaded = (list) => {
   vectorModelList.value = list
 
@@ -1245,8 +1292,20 @@ const handleChangeQaIndexType = (type) => {
   onChange()
 }
 
+const handleEdit = (val) => {
+  formState.ai_chunk_prumpt = val
+  // if (!formState.ai_chunk_prumpt) {
+  //   formState.ai_chunk_prumpt += val
+  // } else {
+  //   formState.ai_chunk_prumpt += `\n${val}`
+  // }
+}
+
 watch(() => formState.chunk_type, (val) => {
   emit('changeChunkType', val)
+})
+
+watch(() => reLoading.value, (val) => {
 })
 
 defineExpose({

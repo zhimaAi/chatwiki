@@ -845,14 +845,15 @@ const sendTextMessage = (text: string) => {
 }
 
 const quoteModalRef = ref<any>(null)
-const handleToLink = (item) => {
+const handleToLink = (item: any) => {
   quoteModalRef.value &&
     quoteModalRef.value.showPopup({
       message_id: item.message_id || props.msg.id,
       file_id: item.id,
       robot_key: robot.robot_key,
       openid: robot.openid,
-      file_name: item.file_name || item.library_name + '-精选'
+      file_name: item.file_name || item.library_name + '-精选',
+      answer_source_data: item.answer_source_data ? JSON.parse(item.answer_source_data) : null
     })
 }
 

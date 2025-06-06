@@ -622,7 +622,7 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 	}
 	//return
 	for i, one := range list {
-		if i >= size {
+		if i >= size || cast.ToFloat64(one[`similarity`]) < similarity {
 			break
 		}
 		// Supplement file info

@@ -199,11 +199,23 @@ const reset = () => {
 
 const open = (files, file) => {
   reset()
-
-  fileList.value = files
+  fileList.value = files.map(item => {
+    let answer_source_data = null;
+    if(item.answer_source_data){
+      answer_source_data = JSON.parse(item.answer_source_data)
+    }
+    return {
+      ...item,
+      answer_source_data,
+    }
+  })
   activeFileId.value = file.id
   show.value = true
-
+  console.log(files, file)
+  if(file.answer_source_data){
+    documentList.value = JSON.parse(file.answer_source_data) || []
+    return
+  }
   getDocumentList(file)
 }
 
@@ -213,6 +225,11 @@ const chagenFile = (file) => {
   }
 
   activeFileId.value = file.id
+
+  if(file.answer_source_data){
+    documentList.value = file.answer_source_data || []
+    return
+  }
 
   getDocumentList(file)
 }

@@ -47,8 +47,13 @@ const showPopup = (data) => {
     ...data
   }
   lists.value = []
-  getLists()
   show.value = true
+  if(data.answer_source_data && data.answer_source_data.length){
+    lists.value = data.answer_source_data
+    return
+  }
+  getLists()
+
 }
 
 const getLists = () => {

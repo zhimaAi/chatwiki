@@ -228,6 +228,7 @@ const onSearch = async (keyword) => {
     return showErrorMsg('请在搜索设置中配置好相应配置后再使用')
   }
 
+  searchBoxRef.value?.handleRecallTest(librarySearchData.value)
   searchMessage(keyword, state.checkedList, librarySearchData.value)
 }
 

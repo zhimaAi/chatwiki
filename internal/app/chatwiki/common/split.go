@@ -1208,6 +1208,7 @@ func AutoSplitLibFile(adminUserId, fileId int, splitParams define.SplitParams) {
 	if splitParams.ChunkType == define.ChunkTypeAi && splitParams.AiChunkNew {
 		if err = SaveAISplitDocs(adminUserId, fileId, wordTotal, define.QAIndexTypeQuestionAndAnswer, splitParams, list, 0, lang); err != nil {
 			logs.Error(err.Error())
+			updateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusException, `errmsg`: err.Error()})
 			return
 		}
 	} else {
@@ -1268,7 +1269,9 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list [
 			}
 		}
 	}
-
+	type chunkResult struct {
+		Chunk string `json:"chunk"`
+	}
 	for _, item := range submitContent {
 		contents = item.Content
 		// ai split
@@ -1293,11 +1296,7 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list [
 			messages := []adaptor.ZhimaChatCompletionMessage{
 				{
 					Role:    `system`,
-					Content: splitParams.AiChunkPrumpt,
-				},
-				{
-					Role:    `assistant`,
-					Content: `以纯json数组对象输出段落,示例[{"chunk":"段落1"},{"chunk":"段落2"}]`,
+					Content: splitParams.AiChunkPrumpt + `\n 严格按照输出示例返回,输出示例:[{"chunk":"段落1"},{"chunk":"段落2"}]`,
 				},
 				{
 					Role:    `user`,
@@ -1349,7 +1348,12 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list [
 				lock.Unlock()
 			} else {
 				lock.Lock()
-				docSplitItem.Content = chatResp.Result
+				resp := []chunkResult{}
+				if err := tool.JsonDecode(chatResp.Result, &resp); err != nil {
+					docSplitItem.AiChunkErrMsg = fmt.Sprintf(`AI返回格式解析失败:%s`, err.Error())
+				} else {
+					docSplitItem.Content = chatResp.Result
+				}
 				contentMap[index] = docSplitItem
 				lock.Unlock()
 			}
@@ -1365,9 +1369,7 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list [
 	var newList []define.DocSplitItem
 	var imageInsertIndex = map[int][]string{}
 	var number = 1
-	type chunkResult struct {
-		Chunk string `json:"chunk"`
-	}
+
 	for i := 1; i <= len(contentMap); i++ {
 		if contentMap[i].AiChunkErrMsg != "" {
 			newItem := define.DocSplitItem{
@@ -1383,7 +1385,7 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list [
 		} else {
 			allContents := []chunkResult{}
 			if err := tool.JsonDecode(contentMap[i].Content, &allContents); err != nil {
-				errMsg = err.Error()
+				errMsg = fmt.Sprintf(`AI返回格式解析失败:%s`, err.Error())
 			}
 			for _, item := range allContents {
 				if len(item.Chunk) == 0 {

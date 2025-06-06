@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/pdfcpu/pdfcpu/pkg/api"
@@ -745,7 +746,7 @@ func GetLibFileSplit(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `ai_chunk_model`))))
 			return
 		}
-		if len(splitParams.AiChunkPrumpt) == 0 || len(splitParams.AiChunkPrumpt) > 500 {
+		if len(splitParams.AiChunkPrumpt) == 0 || utf8.RuneCountInString(splitParams.AiChunkPrumpt) > 500 {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `ai_chunk_prumpt`))))
 			return
 		}
@@ -815,7 +816,7 @@ func SaveLibFileSplit(c *gin.Context) {
 		return
 	}
 	if splitParams.ChunkType == define.ChunkTypeAi && splitParams.AiChunkNew {
-		go func() {
+		go func ()  {
 			if err = common.SaveAISplitDocs(userId, fileId, wordTotal, qaIndexType, splitParams, list, pdfPageNum, common.GetLang(c)); err != nil {
 				c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 				return

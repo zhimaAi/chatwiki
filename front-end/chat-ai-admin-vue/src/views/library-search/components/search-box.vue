@@ -2,7 +2,7 @@
   <div class="search-box-warpper">
     <div class="search-box-content">
       <div class="search-set-box">
-        <SearchDrawer :librarySearchData="props.librarySearchData" />
+        <SearchDrawer :librarySearchData="librarySearchDataRef" />
       </div>
       <div class="search-content" v-if="!isSearch">
         <div class="search-label">知识搜索</div>
@@ -158,8 +158,6 @@ const onSearch = async () => {
     return showErrorMsg('请输入消息内容')
   }
 
-  handleRecallTest()
-
   emit('search', message.value)
 
   isSearch.value = true
@@ -189,6 +187,8 @@ const goToFile = (item) => {
   window.open(`#/library/preview?id=${item.file_id}`)
 }
 
+const librarySearchDataRef = ref(props.librarySearchData)
+
 const formState = reactive({
   rerank_status: '',
   rerank_use_model: '',
@@ -203,30 +203,31 @@ const formState = reactive({
 
 const defaultParmas = ref({})
 
-const handleRecallTest = () => {
+const handleRecallTest = (searchObj) => {
+  librarySearchDataRef.value = searchObj
   let parmas = {
-    model_config_id: props.librarySearchData.model_config_id || formState.model_config_id,
-    use_model: props.librarySearchData.use_model || formState.use_model,
-    temperature: props.librarySearchData.temperature || formState.temperature,
-    max_token: props.librarySearchData.max_token || formState.max_token,
+    model_config_id: searchObj.model_config_id || formState.model_config_id,
+    use_model: searchObj.use_model || formState.use_model,
+    temperature: searchObj.temperature || formState.temperature,
+    max_token: searchObj.max_token || formState.max_token,
     size: 200,  // 固定值
-    similarity: props.librarySearchData.similarity || formState.similarity,
-    search_type: props.librarySearchData.search_type || formState.search_type,
+    similarity: searchObj.similarity || formState.similarity,
+    search_type: searchObj.search_type || formState.search_type,
     question: message.value,
     id: props.library_ids.join(','),
     recall_type: 1
   }
-  if (props.librarySearchData.rerank_status) {
-    parmas.rerank_status = props.librarySearchData.rerank_status
+  if (searchObj.rerank_status) {
+    parmas.rerank_status = searchObj.rerank_status
   }
-  if (props.librarySearchData.rerank_use_model) {
-    parmas.rerank_use_model = props.librarySearchData.rerank_use_model
+  if (searchObj.rerank_use_model) {
+    parmas.rerank_use_model = searchObj.rerank_use_model
   }
-  if (props.librarySearchData.prompt) {
-    parmas.prompt = props.librarySearchData.prompt
+  if (searchObj.prompt) {
+    parmas.prompt = searchObj.prompt
   }
-  if (props.librarySearchData.rerank_status == 1) {
-    parmas.rerank_model_config_id = props.librarySearchData.rerank_model_config_id
+  if (searchObj.rerank_status == 1) {
+    parmas.rerank_model_config_id = searchObj.rerank_model_config_id
   }
   loading.value = true
 
@@ -301,7 +302,7 @@ const getModelList = async() => {
 onMounted(async () => {
   await getModelList()
 
-  if (!props.librarySearchData?.model_config_id || !props.librarySearchData?.use_model) {
+  if (!librarySearchDataRef.value?.model_config_id || !librarySearchDataRef.value?.use_model) {
     if (modelList.value.length > 0) {
       let modelConfig = modelList.value[0]
       if (modelConfig) {
@@ -311,14 +312,15 @@ onMounted(async () => {
       }
     }
   } else {
-    formState.use_model = props.librarySearchData?.use_model + '$$'
-    formState.model_config_id = props.librarySearchData?.model_config_id + '$$'
+    formState.use_model = librarySearchDataRef.value?.use_model + '$$'
+    formState.model_config_id = librarySearchDataRef.value?.model_config_id + '$$'
     formState.use_model = formState.use_model.split('$$')[0]
-    formState.model_config_id = props.librarySearchData?.model_config_id.split('$$')[0]
+    formState.model_config_id = librarySearchDataRef.value?.model_config_id.split('$$')[0]
   }
 })
 
 defineExpose({
+  handleRecallTest
 })
 </script>
 

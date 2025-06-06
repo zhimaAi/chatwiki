@@ -623,34 +623,16 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(params.Lang, `sys_err`)}
 		return nil, err
 	}
-	//database dispose answer message
-	message = msql.Datas{
-		`admin_user_id`: params.AdminUserId,
-		`robot_id`:      params.Robot[`id`],
-		`openid`:        params.Openid,
-		`dialogue_id`:   dialogueId,
-		`session_id`:    sessionId,
-		`is_customer`:   define.MsgFromRobot,
-		`recall_time`:   monitor.LibUseTime.RecallTime,
-		`create_time`:   tool.Time2Int(),
-		`update_time`:   tool.Time2Int(),
-	}
-	answerMessageId, err := msql.Model(`chat_ai_message`, define.Postgres).Insert(message, `id`)
-	if err != nil {
-		logs.Error(err.Error())
-		if startQuoteFile {
-			chanStream <- sse.Event{Event: `quote_file`, Data: `[]`}
-		}
-		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(params.Lang, `sys_err`)}
-		return nil, err
-	}
 	//save answer source
+	var fileSourceMap = make(map[string][]msql.Datas)
 	if len(list) > 0 {
-		asm := msql.Model(`chat_ai_answer_source`, define.Postgres)
 		for _, one := range list {
-			_, err = asm.Insert(msql.Datas{
+			var images []string
+			if err := tool.JsonDecode(one[`images`], &images); err != nil {
+				logs.Error(err.Error())
+			}
+			fileSourceMap[one[`file_id`]] = append(fileSourceMap[one[`file_id`]], msql.Datas{
 				`admin_user_id`: params.AdminUserId,
-				`message_id`:    answerMessageId,
 				`file_id`:       one[`file_id`],
 				`paragraph_id`:  one[`id`],
 				`word_total`:    one[`word_total`],
@@ -660,18 +642,16 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 				`content`:       one[`content`],
 				`question`:      one[`question`],
 				`answer`:        one[`answer`],
-				`images`:        one[`images`],
+				`images`:        images,
 				`create_time`:   tool.Time2Int(),
 				`update_time`:   tool.Time2Int(),
 			})
-			if err != nil {
-				logs.Error(`sql:%s,err:%s`, asm.GetLastSql(), err.Error())
-			}
 		}
 	}
 	messages = common.BuildOpenApiContent(params, messages)
 	//dispose answer source and quote_file
 	quoteFile, ms := make([]msql.Params, 0), map[string]struct{}{}
+	var quoteFileForSave = make([]msql.Params, len(quoteFile))
 	for _, one := range list {
 		if _, ok := ms[one[`file_id`]]; ok {
 			continue //remove duplication
@@ -682,18 +662,24 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 			continue
 		}
 		ms[one[`file_id`]] = struct{}{}
-		quoteFile = append(quoteFile, msql.Params{
+		quoteFileForSave = append(quoteFileForSave, msql.Params{
 			`id`:           one[`file_id`],
 			`library_id`:   library[`id`],
 			`library_name`: library[`library_name`],
 			`file_name`:    one[`file_name`],
-			`message_id`:   cast.ToString(answerMessageId),
+		})
+		quoteFile = append(quoteFile, msql.Params{
+			`id`:                 one[`file_id`],
+			`library_id`:         library[`id`],
+			`library_name`:       library[`library_name`],
+			`file_name`:          one[`file_name`],
+			`answer_source_data`: tool.JsonEncodeNoError(fileSourceMap[one[`file_id`]]),
 		})
 	}
 	if showQuoteFile && startQuoteFile {
 		chanStream <- sse.Event{Event: `quote_file`, Data: quoteFile}
 	}
-	quoteFileJson, _ := tool.JsonEncode(quoteFile)
+	quoteFileJson, _ := tool.JsonEncode(quoteFileForSave)
 	var functionTools []adaptor.FunctionTool
 	if len(params.Robot[`form_ids`]) > 0 {
 		formIdList := strings.Split(params.Robot[`form_ids`], `,`)
@@ -932,6 +918,28 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	chanStream <- sse.Event{Event: `debug`, Data: debugLog}
 	//dispose answer source
 	if cast.ToInt(params.Robot[`application_type`]) == define.ApplicationTypeFlow {
+		fileSourceMap = map[string][]msql.Datas{}
+		for _, one := range list {
+			var images []string
+			if err := tool.JsonDecode(one[`images`], &images); err != nil {
+				logs.Error(err.Error())
+			}
+			fileSourceMap[one[`file_id`]] = append(fileSourceMap[one[`file_id`]], msql.Datas{
+				`admin_user_id`: params.AdminUserId,
+				`file_id`:       one[`file_id`],
+				`paragraph_id`:  one[`id`],
+				`word_total`:    one[`word_total`],
+				`similarity`:    one[`similarity`],
+				`title`:         one[`title`],
+				`type`:          one[`type`],
+				`content`:       one[`content`],
+				`question`:      one[`question`],
+				`answer`:        one[`answer`],
+				`images`:        images,
+				`create_time`:   tool.Time2Int(),
+				`update_time`:   tool.Time2Int(),
+			})
+		}
 		for _, one := range list {
 			if _, ok := ms[one[`file_id`]]; ok {
 				continue //remove duplication
@@ -943,19 +951,24 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 			}
 			ms[one[`file_id`]] = struct{}{}
 			quoteFile = append(quoteFile, msql.Params{
+				`id`:                 one[`file_id`],
+				`file_name`:          one[`file_name`],
+				`library_id`:         one[`library_id`],
+				`library_name`:       library[`library_name`],
+				`answer_source_data`: tool.JsonEncodeNoError(fileSourceMap[one[`file_id`]]),
+			})
+			quoteFileForSave = append(quoteFileForSave, msql.Params{
 				`id`:           one[`file_id`],
 				`file_name`:    one[`file_name`],
 				`library_id`:   one[`library_id`],
 				`library_name`: library[`library_name`],
-				`message_id`:   cast.ToString(answerMessageId),
 			})
 		}
-		quoteFileJson, _ = tool.JsonEncode(quoteFile)
 		if len(quoteFile) > 0 && showQuoteFile {
 			chanStream <- sse.Event{Event: `quote_file`, Data: quoteFile}
 		}
+		quoteFileJson, _ = tool.JsonEncode(quoteFileForSave)
 	}
-
 	//database dispose
 	message = msql.Datas{
 		`admin_user_id`:          params.AdminUserId,
@@ -984,7 +997,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		`last_chat_time`:    message[`create_time`],
 		`last_chat_message`: common.MbSubstr(cast.ToString(message[`content`]), 0, 1000),
 	}
-	id, err = msql.Model(`chat_ai_message`, define.Postgres).Where(`id`, cast.ToString(answerMessageId)).Update(message)
+	id, err = msql.Model(`chat_ai_message`, define.Postgres).Insert(message, `id`)
 	if err != nil {
 		logs.Error(err.Error())
 		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(params.Lang, `sys_err`)}
@@ -996,12 +1009,12 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	//websocket notify
 	common.ReceiverChangeNotify(params.AdminUserId, `ai_message`, common.ToStringMap(message, `id`, id))
 	//save answer source only workflow
-	if len(list) > 0 && cast.ToInt(params.Robot[`application_type`]) == define.ApplicationTypeFlow {
+	if len(list) > 0 {
 		asm := msql.Model(`chat_ai_answer_source`, define.Postgres)
 		for _, one := range list {
 			_, err = asm.Insert(msql.Datas{
 				`admin_user_id`: params.AdminUserId,
-				`message_id`:    answerMessageId,
+				`message_id`:    id,
 				`file_id`:       one[`file_id`],
 				`paragraph_id`:  one[`id`],
 				`word_total`:    one[`word_total`],

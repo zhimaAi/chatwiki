@@ -197,7 +197,11 @@ import {
   saveSplitParagraph,
   getLibFileExcelTitle
 } from '@/api/library/index'
+import { useLibraryStore } from '@/stores/modules/library'
 
+const libraryStore = useLibraryStore()
+
+const { setInitDocumentFragmentList } = libraryStore
 const route = useRoute()
 
 const emit = defineEmits(['ok', 'finish','loading'])
@@ -384,6 +388,7 @@ const getExcelQaTitle = () => {
 }
 
 // 获取文档切片
+const initDocumentFragmentList = ref([])
 const isAiSave = ref(false)
 const aiLoading = ref(false)
 const task_id = ref('');
@@ -463,6 +468,8 @@ const getDocumentFragment = (type) => {
 
   return requiredUrl(params)
     .then((res) => {
+      initDocumentFragmentList.value = res.data.list || []
+      setInitDocumentFragmentList(initDocumentFragmentList.value)
       documentFragmentList.value = res.data.list || []
       documentFragmentTotal.value = res.data.list.length || 0
 
@@ -514,6 +521,8 @@ const pollData = async () => {
 
     // 条件2: 接口返回有效数据
     if (res.data.list?.length > 0) {
+      initDocumentFragmentList.value = res.data.list || []
+      setInitDocumentFragmentList(initDocumentFragmentList.value)
       documentFragmentList.value = res.data.list || []
       documentFragmentTotal.value = res.data.list.length || 0
       return true; // 停止轮询

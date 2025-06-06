@@ -261,6 +261,26 @@ func SaveRobot(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `use_model`))))
 		return
 	}
+
+	//check optimize_question_model_config_id and optimize_question_use_model
+	if optimizeQuestionModelConfigId > 0 {
+		optimizeConfig, err := common.GetModelConfigInfo(optimizeQuestionModelConfigId, userId)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		if len(optimizeConfig) == 0 || !tool.InArrayString(common.Llm, strings.Split(optimizeConfig[`model_types`], `,`)) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `optimize_question_model_config_id`))))
+			return
+		}
+		optimizeModelInfo, _ := common.GetModelInfoByDefine(optimizeConfig[`model_define`])
+		if !tool.InArrayString(optimizeQuestionUseModel, optimizeModelInfo.LlmModelList) && !common.IsMultiConfModel(optimizeConfig["model_define"]) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `optimize_question_use_model`))))
+			return
+		}
+	}
+
 	//check form
 	if len(formIds) > 0 {
 		//判断func call能力

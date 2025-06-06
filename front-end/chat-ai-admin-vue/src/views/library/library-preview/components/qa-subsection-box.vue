@@ -131,7 +131,10 @@ import {
   getCategoryList,
   updateParagraphCategory
 } from '@/api/library'
+import { useRoute } from 'vue-router'
 
+const route = useRoute()
+const query = route.query
 const emit = defineEmits([
   'handleDelParagraph',
   'handleScrollTargetPage',
@@ -200,7 +203,11 @@ const hanldleDelete = (id) => {
 
 const startLists = ref([])
 const getCategoryLists = () => {
-  getCategoryList().then((res) => {
+  let params = {}
+  if (query.id) {
+    params.file_id = query.id
+  }
+  getCategoryList(params).then((res) => {
     startLists.value = res.data || []
     emit('getStatrList', res.data || [])
   })
@@ -227,6 +234,7 @@ const handleSetCategory = (item, star = {}) => {
   }).then((res) => {
     message.success('设置成功')
     item.category_id = star.id
+    getCategoryLists()
   })
 }
 
