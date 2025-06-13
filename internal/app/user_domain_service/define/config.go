@@ -9,3 +9,7 @@ type ConfigParam struct {
 	NumCPU     map[string]string
 	ChatWiki   map[string]string
 }
+
+const (
+	RobotDomainLabel = 1
+)
