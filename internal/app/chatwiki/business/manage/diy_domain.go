@@ -8,15 +8,16 @@ import (
 	"chatwiki/internal/app/chatwiki/middlewares"
 	"chatwiki/internal/pkg/lib_web"
 	"fmt"
+	"net/url"
+	"path/filepath"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/curl"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
-	"net/url"
-	"path/filepath"
-	"strings"
 )
 
 type SaveDiyDomainReq struct {
@@ -151,6 +152,7 @@ func UploadCertificate(c *gin.Context) {
 		`url`:                 uri,
 		`ssl_certificate`:     req.SslCertificate,
 		`ssl_certificate_key`: req.SslCertificateKey,
+		`label`:               data[`label`],
 	}
 	srvAddr := define.Config.UserDomainService[`domain`] + `/manage/save_cert`
 	resp := &lib_web.Response{}
@@ -166,7 +168,7 @@ func UploadCertificate(c *gin.Context) {
 		common.FmtError(c, `operate_err`)
 		return
 	}
-	msql.Model(`chat_ai_user_domain`, define.Postgres).Where(`id`, cast.ToString(req.Id)).Update(msql.Datas{`is_upload`: 1})
+	msql.Model(`chat_ai_user_domain`, define.Postgres).Where(`id`, cast.ToString(req.Id)).Update(msql.Datas{`is_upload`: define.SwitchOn})
 	common.FmtOk(c, nil)
 }
 

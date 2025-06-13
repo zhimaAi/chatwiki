@@ -23,4 +23,5 @@ func init() {
 	Route[lib_web.NoRoute][`/`] = business.NoRoute   //NoMethod
 	/*push_pwd API*/
 	Route[http.MethodPost][`/manage/save_cert`] = business.SaveCert
+	Route[http.MethodPost][`/manage/save_conf`] = business.SaveConf
 }

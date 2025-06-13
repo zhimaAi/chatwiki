@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/tool"
 
@@ -27,6 +28,7 @@ type SaveCertReq struct {
 	SslCertificate    string `form:"ssl_certificate" json:"ssl_certificate" binding:"required"`
 	SslCertificateKey string `form:"ssl_certificate_key" json:"ssl_certificate_key" binding:"required"`
 	Upstream          string `form:"upstream" json:"upstream"`
+	Label             string `form:"label" json:"label"`
 }
 
 func SaveCert(c *gin.Context) {
@@ -39,9 +41,13 @@ func SaveCert(c *gin.Context) {
 		return
 	}
 	if req.Upstream == "" {
-		req.Upstream = define.Config.ChatWiki[`host`] + `:` + define.Config.ChatWiki[`port`]
+		if cast.ToInt(req.Label) == define.RobotDomainLabel {
+			req.Upstream = define.Config.ChatWiki[`host`] + `:` + define.Config.ChatWiki[`port_h5`]
+		} else {
+			req.Upstream = define.Config.ChatWiki[`host`] + `:` + define.Config.ChatWiki[`port`]
+		}
 	}
-	if err = writeConf(req.Url, req.Upstream); err != nil {
+	if err = writeConf(req.Url, req.Upstream, true); err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `写入配置文件失败`))))
 		return
@@ -63,7 +69,45 @@ func SaveCert(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-func writeConf(domain, upstream string) error {
+type SaveConfReq struct {
+	Url      string `form:"url" json:"url" binding:"required"`
+	Upstream string `form:"upstream" json:"upstream"`
+	Label    string `form:"label" json:"label"`
+}
+
+func SaveConf(c *gin.Context) {
+	var (
+		req = SaveConfReq{}
+		err error
+	)
+	if err = c.ShouldBind(&req); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_err`, err.Error()))))
+		return
+	}
+	if req.Upstream == "" {
+		if cast.ToInt(req.Label) == define.RobotDomainLabel {
+			req.Upstream = define.Config.ChatWiki[`host`] + `:` + define.Config.ChatWiki[`port_h5`]
+		} else {
+			req.Upstream = define.Config.ChatWiki[`host`] + `:` + define.Config.ChatWiki[`port`]
+		}
+	}
+	if err = writeConf(req.Url, req.Upstream, false); err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `写入配置文件失败`))))
+		return
+	}
+	if output, code, err := reloadNginx(); err != nil {
+		logs.Error("output:%s,code:%d,err:%s", output, code, err.Error())
+		_ = deleteFile(req.Url)
+		reloadNginx()
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `Nginx配置文件启动失败,请检查后再试`+err.Error()))))
+		return
+	}
+
+	common.FmtOk(c, nil)
+}
+
+func writeConf(domain, upstream string, isHttps bool) error {
 	path := "/etc/nginx/conf.d"
 	// check file exist
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -73,7 +117,32 @@ func writeConf(domain, upstream string) error {
 	}
 
 	// tpl
-	conf := `
+	httpConf := `
+server {
+	listen 80;
+	server_name %s;
+
+	#error_log /var/log/nginx/%s.error.log;
+	#access_log /var/log/nginx/%s.access.log;
+
+	location / {
+		proxy_pass http://%s; 
+	  #  proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forward-For $remote_addr;
+        proxy_cache off;  # 关闭缓存
+        proxy_buffering off;  # 关闭代理缓冲
+        chunked_transfer_encoding on;  # 开启分块传输编码
+        tcp_nopush on;  # 开启TCP NOPUSH选项，禁止Nagle算法
+        tcp_nodelay on;  # 开启TCP NODELAY选项，禁止延迟ACK算法
+        keepalive_timeout 300s;  # 设定keep-alive超时时间为300秒
+        proxy_connect_timeout 300s;
+        proxy_send_timeout    300s;
+        proxy_read_timeout    300s;
+	}
+}
+`
+	httpsConf := `
 server {
 	listen 443 ssl;
 	server_name %s;
@@ -90,16 +159,25 @@ server {
 
 	location / {
 		proxy_pass http://%s; 
-	  %s  proxy_set_header Host $http_host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	  #  proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forward-For $remote_addr;
+        proxy_cache off;  # 关闭缓存
+        proxy_buffering off;  # 关闭代理缓冲
+        chunked_transfer_encoding on;  # 开启分块传输编码
+        tcp_nopush on;  # 开启TCP NOPUSH选项，禁止Nagle算法
+        tcp_nodelay on;  # 开启TCP NODELAY选项，禁止延迟ACK算法
+        keepalive_timeout 300s;  # 设定keep-alive超时时间为300秒
+        proxy_connect_timeout 300s;
+        proxy_send_timeout    300s;
+        proxy_read_timeout    300s;
 	}
-
-}
-`
+}`
 	// replace
-	note := "#"
-	conf = fmt.Sprintf(conf, domain, domain, domain, domain, domain, upstream, note)
+	conf := fmt.Sprintf(httpConf, domain, domain, domain, upstream)
+	if isHttps {
+		conf += fmt.Sprintf(httpsConf, domain, domain, domain, domain, domain, upstream)
+	}
 
 	// conf path
 	confFilePath := path + `/` + fmt.Sprintf("%s.conf", domain)
@@ -193,7 +271,7 @@ func deleteFile(domain string) error {
 
 func reloadNginx() (string, int, error) {
 	// exec ...
-	cmd := exec.Command("nginx", "-s", "reload")
+	cmd := exec.Command("sudo", "nginx", "-s", "reload")
 
 	var out bytes.Buffer
 	cmd.Stdout = &out
