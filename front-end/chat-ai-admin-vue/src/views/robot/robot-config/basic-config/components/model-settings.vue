@@ -180,7 +180,8 @@ import EditBox from './edit-box.vue'
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
 import CustomSelector from '@/components/custom-selector/index.vue'
 
-const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
+const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent', 'doubao']
+const modelShowModelName = ['doubao']
 const oldModelDefineList = ['azure']
 const grid = reactive({ sm: 24, md: 24, lg: 12, xl: 24, xxl: 24 })
 // 获取LLM模型
@@ -205,7 +206,7 @@ const currentUseModel = ref('')
 // 处理选择事件
 const handleModelChange = (item) => {
   formState.use_model = modelDefine.includes(item.rawData.model_define) && item.rawData.deployment_name 
-    ? item.rawData.deployment_name 
+    ? item.rawData.show_model_name || item.rawData.deployment_name 
     : item.rawData.name
   formState.use_model_icon = item.icon
   formState.use_model_name = item.use_model_name
@@ -308,13 +309,14 @@ const getModelList = () => {
           modelDefine.indexOf(item.model_info.model_define) > -1 &&
           robotInfo.model_config_id == item.model_config.id
         ) {
-          currentUseModel.value = item.model_config.deployment_name
+          currentUseModel.value = item.model_config.show_model_name || item.model_config.deployment_name
           currentModelDefine.value = item.model_info.model_define
           oldModelDefine.value = item.model_info.model_define
         }
         children.push({
           name: ele,
           deployment_name: item.model_config.deployment_name,
+          show_model_name: modelShowModelName.includes(item.model_info.model_define) ? item.model_config.show_model_name : '',
           id: item.model_config.id,
           model_define: item.model_info.model_define,
           icon: item.model_info.model_icon_url, // 添加图标字段
@@ -348,7 +350,7 @@ const getModelList = () => {
           if (modelDefine.includes(child.model_define) && child.deployment_name && child.id === robotInfo.model_config_id) {
             formState.use_model_icon = child.icon;
             formState.use_model_name = child.use_model_name;
-            formState.use_model = child.deployment_name
+            formState.use_model = child.show_model_name || child.deployment_name
             return true;
           }
           if (childName === robotInfo.use_model && child.id === robotInfo.model_config_id) {

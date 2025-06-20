@@ -53,7 +53,7 @@
             <a-button @click="handleBatchDelete" danger>批量删除</a-button>
           </div> -->
 
-          <a-flex align="center" class="tool-item custom-select-box" v-show="false">
+          <!-- <a-flex align="center" class="tool-item custom-select-box" v-show="false">
             <span>嵌入模型：</span>
             <model-select
               modelType="TEXT EMBEDDING"
@@ -64,8 +64,13 @@
               @change="onChangeModel"
               @loaded="onVectorModelLoaded"
             />
-          </a-flex>
+          </a-flex> -->
           <a-flex align="center" v-if="neo4j_status" class="tool-item custom-select-box pd-5-8">
+            <ModelSelect
+              modelType="LLM"
+              v-show="false"
+              @loaded="onVectorModelLoaded"
+            />
             <span>生成知识图谱：</span>
             <a-switch
               v-model:checked="createGraphSwitch"
@@ -609,7 +614,7 @@ const vectorModelList = ref([])
 const onVectorModelLoaded = (list) => {
   vectorModelList.value = list
 
-  setDefaultModel()
+  // setDefaultModel()
 }
 
 const setDefaultModel = () => {

@@ -110,7 +110,8 @@ const showOptions = ref(false)
 const placeholder = ref(props.placeholder)
 
 const modelList = ref([])
-const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
+const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent', 'doubao']
+const modelShowModelName = ['doubao']
 // 处理原始数据格式
 const processedModelList = computed(() => {
   return modelList.value.map(group => ({
@@ -119,7 +120,8 @@ const processedModelList = computed(() => {
     children: group.children.map(child => ({
       icon: child.icon,
       use_model_name: child.use_model_name,
-      value: modelDefine.includes(child.model_define) && child.deployment_name ? child.deployment_name : child.name,
+      show_model_name: child.show_model_name,
+      value: child.show_model_name ? child.show_model_name : modelDefine.includes(child.model_define) && child.deployment_name ? child.deployment_name : child.name,
       rawData: child // 保留原始数据
     }))
   }))
@@ -254,6 +256,10 @@ const handleWheel = (event) => {
           ) {
             label = item.model_config.deployment_name
           }
+          let show_model_name = ''
+          if(modelShowModelName.includes(item.model_config.model_define)){
+            show_model_name = item.model_config.show_model_name
+          }
 
           children.push({
             key: id + '_' + ele,
@@ -264,6 +270,7 @@ const handleWheel = (event) => {
             model_define: model_define,
             value: value,
             id: item.model_config.id,
+            show_model_name,
             icon: item.model_info.model_icon_url, // 添加图标字段
             use_model_name: item.model_info.model_name // 添加系统名称字段
           })

@@ -5,36 +5,12 @@
         <div class="gray-block-title">输入</div>
         <a-form-item label="LLM模型" name="use_model">
           <div class="flex-block-item">
-            <a-select
-              v-model:value="formState.use_model"
-              placeholder="请选择LLM模型"
-              @change="handleChangeModel"
+            <ModelSelect
+              modelType="LLM"
+              v-model:modeName="formState.use_model"
+              v-model:modeId="formState.model_config_id"
               style="width: 348px"
-            >
-              <a-select-opt-group v-for="item in modelList" :key="item.id">
-                <template #label>
-                  <a-flex align="center" :gap="6">
-                    <img class="model-icon" :src="item.icon" alt="" />{{ item.name }}
-                  </a-flex>
-                </template>
-                <a-select-option
-                  :value="
-                    modelDefine.indexOf(item.model_define) > -1 && val.deployment_name
-                      ? val.deployment_name
-                      : val.name + val.id
-                  "
-                  :model_config_id="item.id"
-                  :current_obj="val"
-                  v-for="val in item.children"
-                  :key="val.name + val.id"
-                >
-                  <span v-if="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name">{{
-                    val.deployment_name
-                  }}</span>
-                  <span v-else>{{ val.name }}</span>
-                </a-select-option>
-              </a-select-opt-group>
-            </a-select>
+            />
             <!-- <DownOutlined /> -->
             <a-button @click="hanldeShowMore"
               >高级设置
@@ -178,6 +154,7 @@ import {
   DownloadOutlined
 } from '@ant-design/icons-vue'
 import AtInput from '../at-input/at-input.vue'
+import ModelSelect from '@/components/model-select/model-select.vue'
 import ImportPrompt from '@/components/import-prompt/index.vue'
 
 import { useRobotStore } from '@/stores/modules/robot'
@@ -346,16 +323,6 @@ function transformArray(arr, parentLabel = '') {
   return result
 }
 
-const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
-
-const handleChangeModel = (val, option) => {
-  const self = option.current_obj
-  formState.use_model =
-    modelDefine.indexOf(self.model_define) > -1 && self.deployment_name
-      ? self.deployment_name
-      : self.name
-  formState.model_config_id = self.id || option.model_config_id
-}
 
 const onUpatateNodeName = (data) => {
   if (data.node_type !== 'http-node') {
