@@ -115,11 +115,10 @@ func GetLibraryList(c *gin.Context) {
 		}
 		for _, params := range newList {
 			params[`library_key`] = common.BuildLibraryKey(cast.ToInt(params[`id`]), cast.ToInt(params[`create_time`]))
-			if len(stats[params[`id`]]) == 0 {
-				continue
+			if data, ok := stats[params[`id`]]; ok && len(data) > 0 {
+				params[`file_total`] = stats[params[`id`]][`file_total`]
+				params[`file_size`] = stats[params[`id`]][`file_size`]
 			}
-			params[`file_total`] = stats[params[`id`]][`file_total`]
-			params[`file_size`] = stats[params[`id`]][`file_size`]
 			if len(params[`avatar`]) == 0 {
 				params[`avatar`] = define.LocalUploadPrefix + `default/library_avatar.png`
 			}

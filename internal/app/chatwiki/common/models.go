@@ -695,7 +695,7 @@ func GetModelInfoByDefine(modelDefine string) (ModelInfo, bool) {
 }
 
 func IsMultiConfModel(defineName string) bool {
-	return tool.InArrayString(defineName, []string{ModelOllama, ModelXnference, ModelOpenAIAgent})
+	return tool.InArrayString(defineName, []string{ModelAzureOpenAI, ModelOllama, ModelXnference, ModelOpenAIAgent, ModelDoubao})
 }
 
 func GetModelCallHandler(modelConfigId int, useModel string) (*ModelCallHandler, error) {

@@ -47,7 +47,6 @@ function uniqueArr(arr, arr1, key) {
 }
 
 const emit = defineEmits(['change', 'update:modeName', 'update:modeId', 'loaded'])
-
 const props = defineProps({
   modelType: {
     type: String,
@@ -84,7 +83,9 @@ watch([() => props.modeId, () => props.modeName], ([newModeId, newModeName]) => 
 })
 
 const modelList = ref([])
-const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
+const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent', 'doubao']
+const modelShowModelName = ['doubao']
+
 
 const handleChangeModel = (val, option) => {
   emit('update:modeName', option.modelName)
@@ -114,6 +115,8 @@ const getModelList = () => {
         subModelList = item.model_info.llm_model_list
       }
 
+
+
       for (let i = 0; i < subModelList.length; i++) {
         let ele = subModelList[i]
         let label = ele
@@ -123,9 +126,13 @@ const getModelList = () => {
           modelDefine.indexOf(item.model_config.model_define) > -1 &&
           item.model_config.deployment_name
         ) {
-          label = item.model_config.deployment_name
+          if(modelShowModelName.includes(item.model_config.model_define)){
+            // 优先显示show_model_name字段
+            label = item.model_config.show_model_name || item.model_config.deployment_name
+          }else{
+            label = item.model_config.deployment_name
+          }
         }
-
         children.push({
           key: id + '_' + ele,
           label: label,
@@ -156,7 +163,6 @@ const getModelList = () => {
     }
 
     modelList.value = [...newList]
-
     emit('loaded', JSON.parse(JSON.stringify(newList)))
   })
 }
