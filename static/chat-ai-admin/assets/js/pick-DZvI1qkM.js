@@ -1,1 +1,0 @@
-import{M as f,X as l,j as o}from"./index-DvGRcWf4.js";import{b5 as c,a$ as m}from"../../index-BYXP5-K6.js";function b(n,r,s){for(var a=-1,u=r.length,t={};++a<u;){var e=r[a],i=f(n,e);s(i,e)&&c(t,m(e,n),i)}return t}function k(n,r){return b(n,r,function(s,a){return l(n,a)})}var g=o(function(n,r){return n==null?{}:k(n,r)});export{b,g as p};
