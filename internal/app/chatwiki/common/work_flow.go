@@ -246,6 +246,6 @@ func (m *MixedInt) Int() int {
 }
 
 func (m *MixedInt) UnmarshalJSON(data []byte) error {
-	*m = MixedInt(cast.ToInt(string(data)))
+	*m = MixedInt(cast.ToInt(strings.Trim(string(data), `"`)))
 	return nil
 }

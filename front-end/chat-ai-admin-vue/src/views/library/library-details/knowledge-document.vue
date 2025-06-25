@@ -53,7 +53,7 @@
             <a-button @click="handleBatchDelete" danger>批量删除</a-button>
           </div> -->
 
-          <!-- <a-flex align="center" class="tool-item custom-select-box" v-show="false">
+          <a-flex align="center" class="tool-item custom-select-box" v-show="false">
             <span>嵌入模型：</span>
             <model-select
               modelType="TEXT EMBEDDING"
@@ -62,9 +62,9 @@
               :modeId="modelForm.model_config_id"
               style="width: 240px"
               @change="onChangeModel"
-              @loaded="onVectorModelLoaded"
+              @loaded="onVectorTextModelLoaded"
             />
-          </a-flex> -->
+          </a-flex>
           <a-flex align="center" v-if="neo4j_status" class="tool-item custom-select-box pd-5-8">
             <ModelSelect
               modelType="LLM"
@@ -614,7 +614,14 @@ const vectorModelList = ref([])
 const onVectorModelLoaded = (list) => {
   vectorModelList.value = list
 
-  // setDefaultModel()
+}
+
+const vectorModelTextList = ref([])
+
+const onVectorTextModelLoaded = (list) => {
+  vectorModelTextList.value = list
+
+  setDefaultModel()
 }
 
 const setDefaultModel = () => {
@@ -627,12 +634,12 @@ const setDefaultModel = () => {
     return
   }
 
-  if (vectorModelList.value.length > 0 && !libraryInfo.value.use_model) {
+  if (vectorModelTextList.value.length > 0 && !libraryInfo.value.use_model) {
     // 遍历查找chatwiki模型
     let modelConfig = null
     let model = null
 
-    for (let item of vectorModelList.value) {
+    for (let item of vectorModelTextList.value) {
       if (item.model_define === 'chatwiki') {
         modelConfig = item
         for (let child of modelConfig.children) {
@@ -646,7 +653,7 @@ const setDefaultModel = () => {
     }
 
     if (!modelConfig) {
-      modelConfig = vectorModelList.value[0]
+      modelConfig = vectorModelTextList.value[0]
       model = modelConfig.children[0]
     }
 
@@ -914,7 +921,7 @@ const timingRefreshStatus = () => {
 const addCustomDocumentRef = ref(null)
 
 const handleMenuClick = (e) => {
-  if (vectorModelList.value.length == 0) {
+  if (vectorModelTextList.value.length == 0) {
     Modal.confirm({
       title: `请先到模型管理中添加嵌入模型？`,
       content:
