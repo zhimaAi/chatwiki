@@ -291,16 +291,16 @@ func SaveCategoryParagraph(c *gin.Context) {
 	}
 
 	if cast.ToInt(library[`type`]) == define.QALibraryType {
-		if len(question) < 1 || len(question) > common.MaxContent {
+		if len(question) < 1 || utf8.RuneCountInString(question) > common.MaxContent {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `length_error`))))
 			return
 		}
-		if len(answer) < 1 || len(answer) > common.MaxContent {
+		if len(answer) < 1 || utf8.RuneCountInString(answer) > common.MaxContent {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `length_error`))))
 			return
 		}
 	} else {
-		if len(content) < 1 || len(content) > common.MaxContent {
+		if len(content) < 1 || utf8.RuneCountInString(content) > common.MaxContent {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `length_error`))))
 			return
 		}
@@ -455,16 +455,16 @@ func SaveParagraph(c *gin.Context) {
 		return
 	}
 	if cast.ToInt(fileInfo[`is_qa_doc`]) == define.DocTypeQa {
-		if len(question) < 1 || len(question) > common.MaxContent {
+		if len(question) < 1 || utf8.RuneCountInString(question) > common.MaxContent {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `length_error`))))
 			return
 		}
-		if len(answer) < 1 || len(answer) > common.MaxContent {
+		if len(answer) < 1 || utf8.RuneCountInString(answer) > common.MaxContent {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `length_error`))))
 			return
 		}
 	} else {
-		if len(content) < 1 || len(content) > common.MaxContent {
+		if len(content) < 1 || utf8.RuneCountInString(content) > common.MaxContent {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `length_error`))))
 			return
 		}

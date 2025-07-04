@@ -1096,6 +1096,7 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 
 	//part0:init messages
 	messages := make([]adaptor.ZhimaChatCompletionMessage, 0)
+	//part1:prompt
 	prompt, libraryContent := common.FormatSystemPrompt(params.Prompt, list)
 	if isDeepSeek {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: libraryContent})
@@ -1104,13 +1105,13 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: prompt})
 		*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: prompt})
 	}
-	//part1:context_qa
+	//part2:context_qa
 	for i := range contextList {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})
 		*debugLog = append(*debugLog, map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]})
 	}
-	//part2:question,prompt+library
+	//part3:question,prompt+question
 	if isDeepSeek {
 		content := strings.Join([]string{params.Prompt, params.Question}, "\n\n")
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: content})
@@ -1137,7 +1138,7 @@ func buildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: prompt})
 		*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: prompt})
 	}
-	//part1:context_qa
+	//part2:context_qa
 	contextList := common.BuildChatContextPair(params.Openid, cast.ToInt(params.Robot[`id`]),
 		dialogueId, int(curMsgId), cast.ToInt(params.Robot[`context_pair`]))
 	for i := range contextList {
@@ -1145,15 +1146,14 @@ func buildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})
 		*debugLog = append(*debugLog, map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]})
 	}
-
-	//part2:cur_question
-	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: params.Question})
-	*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
 	//part3:cur_question
 	if isDeepSeek {
 		content := strings.Join([]string{prompt, params.Question}, "\n\n")
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: content})
-		*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: content})
+		*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: content})
+	} else {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: params.Question})
+		*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
 	}
 	return messages, []msql.Params{}, nil
 }

@@ -47,6 +47,7 @@
     <div class="list-box">
       <div class="user-box">
         <User
+          :channelItem="channelItem"
           :userList="userList"
           @userScrollStart="onUserScrollStart"
           @userScrollEnd="onUserScrollEnd"
