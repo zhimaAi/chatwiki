@@ -4,7 +4,6 @@ package work_flow
 
 import (
 	"chatwiki/internal/app/chatwiki/common"
-	"chatwiki/internal/app/chatwiki/define"
 	"errors"
 	"fmt"
 	"net/http"
@@ -311,25 +310,25 @@ type LlmNode struct {
 func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
 	flow.Logs(`执行AI对话逻辑...`)
 	debugLog := common.SimpleField{Key: `special.llm_debug_log`, Typ: common.TypArrObject, Vals: []common.Val{}}
+	// check is deep-seek-r1
+	isDeepSeek := common.CheckModelIsDeepSeek(n.params.UseModel)
+	//part0:init messages
+	messages := make([]adaptor.ZhimaChatCompletionMessage, 0)
 	//part1:prompt
-	prompt := flow.VariableReplace(n.params.Prompt) + "\n\n" + define.PromptDefaultAnswerImage
-	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
-	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: prompt}})
-	//part2:library
+	list := make([]msql.Params, 0)
 	for _, val := range flow.output[`special.lib_paragraph_list`].Vals {
-		var images []string
-		if err := tool.JsonDecodeUseNumber(val.Params[`images`], &images); err != nil {
-			logs.Error(err.Error())
-		}
-		if cast.ToInt(val.Params[`type`]) == define.ParagraphTypeNormal {
-			messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: common.EmbTextImages(val.Params[`content`], images)})
-			debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `library`, `content`: common.EmbTextImages(val.Params[`content`], images)}})
-		} else {
-			messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: "question: " + val.Params[`question`] + "\nanswer: " + common.EmbTextImages(val.Params[`answer`], images)})
-			debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `library`, `content`: "question: " + val.Params[`question`] + "\nanswer: " + common.EmbTextImages(val.Params[`answer`], images)}})
-		}
+		list = append(list, val.Params)
 	}
-	//part3:context_qa
+	confPrompt := flow.VariableReplace(n.params.Prompt)
+	prompt, libraryContent := common.FormatSystemPrompt(confPrompt, list)
+	if isDeepSeek {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: libraryContent})
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: libraryContent}})
+	} else {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: prompt})
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: prompt}})
+	}
+	//part2:context_qa
 	contextList := common.BuildChatContextPair(flow.params.Openid, cast.ToInt(flow.params.Robot[`id`]),
 		flow.params.DialogueId, flow.params.CurMsgId, n.params.ContextPair.Int())
 	for i := range contextList {
@@ -337,9 +336,15 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})
 		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]}})
 	}
-	//part4:cur_question
-	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: flow.params.Question})
-	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: flow.params.Question}})
+	//part3:question,prompt+question
+	if isDeepSeek {
+		content := strings.Join([]string{confPrompt, flow.params.Question}, "\n\n")
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: content})
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: content}})
+	} else {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: flow.params.Question})
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: flow.params.Question}})
+	}
 	//append OpenApiContent
 	messages = common.BuildOpenApiContent(flow.params.ChatRequestParam, messages)
 	//request chat

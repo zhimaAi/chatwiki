@@ -73,7 +73,7 @@
             <span>上下文数量&nbsp;</span>
             <a-tooltip>
               <template #title
-                >提示词中携带的历史聊天记录轮次。设置为0则不携带聊天记录。最多设置10轮。注意，携带的历史聊天记录越多，消耗的token相应也就越多。</template
+                >提示词中携带的历史聊天记录轮次。设置为0则不携带聊天记录。最多设置50轮。注意，携带的历史聊天记录越多，消耗的token相应也就越多。</template
               >
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
@@ -85,12 +85,12 @@
                   class="custom-slider"
                   v-model:value="formState.context_pair"
                   :min="0"
-                  :max="10"
+                  :max="50"
                 />
               </a-form-item-rest>
             </div>
             <div class="number-input-box">
-              <a-input-number v-model:value="formState.context_pair" :min="0" :max="10" />
+              <a-input-number v-model:value="formState.context_pair" :min="0" :max="50" />
             </div>
           </div>
         </a-form-item>
@@ -207,7 +207,7 @@ const formState = reactive({
   use_model: void 0,
   temperature: 0,
   max_token: 0,
-  context_pair: 6,
+  context_pair: 0,
   prompt: '',
   prompt_tags: []
 })
@@ -239,7 +239,7 @@ watch(
 
       formState.model_config_id = model_config_id
       formState.use_model = use_model
-      formState.context_pair = context_pair || 6
+      formState.context_pair = context_pair || 0
       formState.temperature = temperature
       formState.max_token = max_token
       formState.prompt = prompt

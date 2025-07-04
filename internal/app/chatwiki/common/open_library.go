@@ -7,6 +7,9 @@ import (
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_redis"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/gin-contrib/sse"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
@@ -14,8 +17,6 @@ import (
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
-	"strings"
-	"time"
 )
 
 func SaveLibDoc(adminUserId, userId, libraryId, docId, fileId, pid, isIndex, draft int, title string, info msql.Params, content string) (int, error) {
@@ -37,8 +38,11 @@ func SaveLibDoc(adminUserId, userId, libraryId, docId, fileId, pid, isIndex, dra
 	updateData[`edit_user`] = userId
 	if isIndex == define.LibDocIndex {
 		updateData[`is_pub`] = define.IsPub
-		updateData[`draft_content`] = ""
-		if draft != define.IsDraft {
+		if draft == define.IsDraft {
+			delete(updateData, `content`)
+			updateData[`draft_content`] = content
+		} else {
+			updateData[`draft_content`] = ""
 			updateData[`edit_user`] = 0
 		}
 	} else {

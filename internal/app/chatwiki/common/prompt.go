@@ -144,7 +144,15 @@ func FormatSystemPrompt(prompt string, list []msql.Params) (string, string) {
 		if cast.ToInt(one[`type`]) == define.ParagraphTypeNormal {
 			knowledges = append(knowledges, fmt.Sprintf("## 召回的第%d条知识库\n%s%s", idx+1, one[`content`], imgs))
 		} else {
-			knowledges = append(knowledges, fmt.Sprintf("## 召回的第%d条知识库\n问题:%s\n答案:\n%s%s", idx+1, one[`question`], one[`answer`], imgs))
+			var similarQuestions []string
+			if err := tool.JsonDecode(one[`similar_questions`], &similarQuestions); err != nil {
+				logs.Error(err.Error())
+			}
+			var similar string
+			if len(similarQuestions) > 0 {
+				similar = fmt.Sprintf("\n相似问法：%s", strings.Join(similarQuestions, `/`))
+			}
+			knowledges = append(knowledges, fmt.Sprintf("## 召回的第%d条知识库\n问题:%s%s\n答案:%s%s", idx+1, one[`question`], similar, one[`answer`], imgs))
 		}
 	}
 	var libraryOutput string

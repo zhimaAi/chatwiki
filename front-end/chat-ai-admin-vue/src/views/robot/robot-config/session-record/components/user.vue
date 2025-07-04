@@ -23,7 +23,7 @@
         <div class="user-info">{{ item.last_chat_message }}</div>
         <div class="user-source-box">
           <div class="user-source-title">来自：</div>
-          <div class="user-source-content">{{ formatSource(item.app_type) }}</div>
+          <div class="user-source-content">{{ formatSource(item) }}</div>
         </div>
       </div>
     </div>
@@ -36,13 +36,18 @@ const scrollUserBoxRef = ref(null)
 const props = defineProps({
   userList: {
     type: Array,
-    default: []
-  }
+    default: null
+  },
+  channelItem: {
+    type: Array,
+    default: null
+  },
 })
 
 const emit = defineEmits(['userClick', 'userScroll', 'userScrollStart', 'userScrollEnd'])
 
 const userLists = ref([])
+const channelItems = ref([])
 const currentItem = ref({})
 
 const search = (item) => {
@@ -124,34 +129,41 @@ function onScrollEnd() {
 }
 
 watch(
-  () => props.userList,
-  (val) => {
-    userLists.value = val
-    if (userLists.value.length > 0 && userLists.value.length <= 20) {
-      search(userLists.value[0])
-      currentItem.value = userLists.value[0]
+    () => props.userList,
+    (val) => {
+      userLists.value = val
+      if (userLists.value.length > 0 && userLists.value.length <= 20) {
+        search(userLists.value[0])
+        currentItem.value = userLists.value[0]
+      }
+    },
+    {
+      immediate: true
     }
-  },
-  {
-    immediate: true
-  }
 )
 
-const formatSource = (val) => {
-  let newVal
-  switch (val) {
-    case 'yun_h5':
-      newVal = 'WebAPP'
-      break
-    case 'yun_pc':
-      newVal = '嵌入网站'
-      break
+watch(
+    () => props.channelItem,
+    (val) => {
+      channelItems.value = val
+    },
+    {
+      immediate: true
+    }
+)
+
+const formatSource = (item) => {
+  for (let i = 0; i < channelItems.value.length; i++) {
+    if (item.app_type == channelItems.value[i].app_type
+        && (item.app_id || '') == channelItems.value[i].app_id) {
+      return channelItems.value[i].app_name
+    }
   }
-  return newVal
 }
 
 onMounted(() => {
   userLists.value = props.userList
+  channelItems.value = props.channelItem
 })
 </script>
 <style lang="less" scoped>

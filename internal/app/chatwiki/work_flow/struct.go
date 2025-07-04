@@ -235,8 +235,8 @@ func (params *LlmBaseParams) Verify(adminUserId int) error {
 	//} else if !tool.InArrayString(params.UseModel, modelInfo.SupportedFunctionCallList) {
 	//	return errors.New(`LLM模型不支持FunctionCall`)
 	//}
-	if params.ContextPair <= 0 || params.ContextPair > 10 {
-		return errors.New(`上下文数量范围1~10`)
+	if params.ContextPair < 0 || params.ContextPair > 50 {
+		return errors.New(`上下文数量范围0~50`)
 	}
 	if params.Temperature < 0 || params.Temperature > 2 {
 		return errors.New(`LLM模型温度取值范围0~2`)
