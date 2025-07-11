@@ -70,10 +70,16 @@ const { resetFields, validate, validateInfos } = useForm(formState, formRules)
 
 const getMenuData = async() => {
   await getMenu().then((res) => {
-    menuOptions.value = res.data
-
-    for (let i = 0; i < res.data.length; i++) {
-      const item = res.data[i];
+    let data = res.data || []
+    // 任何成员 都有账号设置页面 
+    data.forEach(item => {
+      if(item.uni_key == 'System'){
+        item.children = item.children.filter(it => it.uni_key != 'AccountManage')
+      }
+    })
+    menuOptions.value = data
+    for (let i = 0; i < data.length; i++) {
+      const item = data[i];
       robotChecked.value[item.uni_key] = []
     }
   })

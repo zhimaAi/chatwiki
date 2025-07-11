@@ -113,21 +113,25 @@ const formRules = reactive({})
 const { resetFields, validate, validateInfos } = useForm(formState, formRules)
 
 let object_array = []
+
+let tempCheckList = []
 const show = (data, list) => {
-  getAllUserList()
   getAllDepartList()
   userCheckList.value = []
   departmentCheckList.value = []
+  tempCheckList = []
   data.forEach((item) => {
     if (item.identity_type == 1) {
       // 用户
-      userCheckList.value.push(item.identity_id)
+      // userCheckList.value.push(item.identity_id)
+      tempCheckList.push(item.identity_id)
     }
     if (item.identity_type == 2) {
       // 部门
       departmentCheckList.value.push(item.identity_id)
     }
   })
+  getAllUserList()
   formState.operate_rights = '4'
   formState.identity_type = '1'
   object_array = list
@@ -176,7 +180,8 @@ const getAllUserList = () => {
     page: 1,
     size: 200
   }).then((res) => {
-    userLists.value = res.data.list
+    // userLists.value = res.data.list
+    userLists.value = res.data.list.filter(item => !tempCheckList.includes(item.id))
   })
 }
 
