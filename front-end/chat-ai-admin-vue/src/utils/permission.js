@@ -78,6 +78,10 @@ export function checkSystemPermisission(to) {
         }
       }
     }
+    if( !flag ){
+      // 所有的菜单都没有权限的时候 跳转账号管理页面
+      return 'AccountManage'
+    }
     return to.name
   } else {
     return

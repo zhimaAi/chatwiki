@@ -22,7 +22,7 @@
             </template>
 
             <template v-if="column.key === 'operate_rights'">
-              <div class="hover-btn-box" v-if="currentPermission == 2">
+              <div class="hover-btn-box" v-if="currentPermission == 2 || record.user_name == user_name">
                 <span v-if="record.operate_rights == 4">管理</span>
                 <span v-if="record.operate_rights == 2">编辑</span>
                 <span v-if="record.operate_rights == 1">查看</span>
@@ -79,7 +79,7 @@
               </a-popover>
             </template>
             <template v-if="column.key === 'action'">
-              <template v-if="currentPermission == 4">
+              <template v-if="currentPermission == 4 && record.user_name != user_name">
                 <a @click="handleDel(record)" v-if="record.role_type != 1 && record.is_creator != 1"
                   >移除</a
                 >
@@ -93,7 +93,7 @@
   </cu-scroll>
 </template>
 <script setup>
-import { ref, reactive, h, createVNode } from 'vue'
+import { ref, reactive, h, createVNode, computed } from 'vue'
 import {
   PlusOutlined,
   UserOutlined,
@@ -114,6 +114,13 @@ import AddCollaborator from '@/components/add-collaborator/add-collaborator.vue'
 import { getLibraryPermission } from '@/utils/permission'
 import { useRoute } from 'vue-router'
 const query = useRoute().query
+
+import { useUserStore } from '@/stores/modules/user'
+const userStore = useUserStore()
+
+const user_name = computed(() => {
+  return userStore.user_name
+})
 
 const currentPermission = ref(getLibraryPermission(query.id))
 

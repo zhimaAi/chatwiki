@@ -110,7 +110,7 @@ let baseMenu = [
     key: 'account',
     path: '/user/account',
     icon: SettingFilled,
-    permissionKey: 'AccountManage'
+    haspermise: true
   },
   {
     name: '阿里云OCR',
