@@ -118,7 +118,7 @@ let baseMenu = [
     path: '/user/aliocr',
     svg: 'ali-ocr',
     svgActive: 'ali-ocr',
-    haspermise: true
+    permissionKey: 'AliyunOCRManage'
   },
   {
     name: '企业设置',
@@ -134,7 +134,7 @@ let baseMenu = [
     path: '/user/domain',
     svg: 'network',
     svgActive: 'network',
-    permissionKey: 'AccountManage'
+    permissionKey: 'UserDomainManage'
   },
   {
     name: '客户端下载',
@@ -150,7 +150,7 @@ let baseMenu = [
     path: '/user/sensitive-words',
     svg: 'sensitive-icon',
     svgActive: 'sensitive-icon',
-    haspermise: true
+    permissionKey: 'SensitiveWordManage'
   },
   {
     name: '提示词模板库',
@@ -158,13 +158,13 @@ let baseMenu = [
     path: '/user/prompt-library',
     svg: 'prompt-icon',
     svgActive: 'prompt-icon',
-    haspermise: true
+    permissionKey: 'PromptTemplateManage'
   },
 ]
 
 const menus = computed(() => {
-  let { role_permission } = permissionStore
-  return baseMenu.filter((item) => item.haspermise || role_permission.includes(item.permissionKey))
+  let { role_permission, role_type } = permissionStore
+  return baseMenu.filter((item) => role_type == 1 || item.haspermise || role_permission.includes(item.permissionKey))
 })
 
 const activeMenu = computed(() => {

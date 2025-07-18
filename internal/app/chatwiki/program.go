@@ -241,7 +241,7 @@ func InitRoleRootPermissions() {
 
 		// reset role permissions
 		_, err = casbin.Handler.DelRoleRules(role[`id`])
-		for _, item := range define.AllUniKeyList {
+		for _, item := range define.GetAllUniKeyList() {
 			_, err := casbin.Handler.AddPolicies([][]string{{role[`id`], item, "GET"}})
 			if err != nil {
 				panic(err.Error())

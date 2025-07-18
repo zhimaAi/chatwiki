@@ -17,7 +17,7 @@
           <h3 class="list-total">全部 ({{ list.length }})</h3>
         </div>
 
-        <div class="toolbar-box">
+        <div class="toolbar-box" v-if="createOpenLibDoc">
           <a-button type="primary" @click="handleAdd()">
             <template #icon>
               <PlusOutlined />
@@ -35,7 +35,7 @@
 </template>
 
 <script setup>
-import { ref, createVNode } from 'vue'
+import { ref, createVNode, computed  } from 'vue'
 import { useRouter } from 'vue-router'
 import { getLibraryList, deleteLibrary } from '@/api/library'
 import { formatFileSize } from '@/utils/index'
@@ -45,6 +45,9 @@ import { ExclamationCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import LibraryList from './components/libray-list/index.vue'
 import AddLibraryModel from '../add/add-library-model.vue'
 import PageAlert from '@/components/page-alert/page-alert.vue'
+import { usePermissionStore } from '@/stores/modules/permission'
+let { role_permission, role_type } = usePermissionStore()
+const createOpenLibDoc = computed(() => role_type == 1 || role_permission.includes('CreateOpenLibDoc'))
 
 const router = useRouter()
 

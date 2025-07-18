@@ -98,8 +98,8 @@ const pageTabs = ref([
 ])
 
 const permissionStore = usePermissionStore()
-let { role_permission } = permissionStore
-const formCreate = computed(() => role_permission.includes('FormCreate'))
+let { role_permission, role_type } = permissionStore
+const formCreate = computed(() => role_type == 1 || role_permission.includes('FormCreate'))
 
 const list = ref([])
 

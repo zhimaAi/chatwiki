@@ -223,7 +223,10 @@ export default {
     initData() {
       const JMention = this.$refs.JMention;
 
-      let html = this.defaultValue;
+      // let html = this.defaultValue;
+      let html = this.defaultValue
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
       let defaultSelectedList = this.defaultSelectedList || [];
       let treeOptions = getTreeOptions(this.options);
       let selectedList = [...defaultSelectedList, ...treeOptions].filter(item => item && item.value && item.value != '' && item.typ !== 'node');
