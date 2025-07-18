@@ -99,7 +99,7 @@ const navs = [
     title: '文档',
     icon: 'nav-doc',
     path: '/public-library/list',
-    permission: ['*:*:*']
+    permission: ['OpenLibDocManage']
   },
   {
     id: 4,
@@ -108,7 +108,7 @@ const navs = [
     title: '搜索',
     icon: 'search',
     path: '/library-search/index',
-    permission: ['LibrarySearch']
+    permission: ['SearchManage']
   },
   {
     id: 5,
@@ -117,7 +117,7 @@ const navs = [
     title: '会话',
     icon: 'nav-chat',
     path: '/chat-monitor/index',
-    permission: ['*:*:*']
+    permission: ['ChatSessionManage']
   },
   // {
   //   id: 6,

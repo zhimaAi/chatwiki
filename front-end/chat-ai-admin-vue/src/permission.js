@@ -56,27 +56,12 @@ router.beforeEach(async (to, from, next) => {
       next({ path: '/', query: to.query })
     } else {
       await checkPermission()
-      // 系统管理里面，menu根据顺序，如果有权限的，显示第一个menu
-      const name = await checkSystemPermisission(to)
-      if (name) {
-        if (name === 'AccountManage') {
+      
+      const name = checkSystemPermisission(to)
+      if (name === 'AccountManage') {
           next(`/user/account`)
           return
-        } else if (name === 'TokenManage') {
-          next(`/user/usetoken`)
-          return
-        } else if (name === 'TeamManage') {
-          next(`/user/manage`)
-          return
-        } else if (name === 'CompanyManage') {
-          next(`/user/enterprise`)
-          return
-        } else if (name === 'ClientSideManage') {
-          next(`/user/clientDownload`)
-          return
-        }
       }
-
       next()
     }
   } else {

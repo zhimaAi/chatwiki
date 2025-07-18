@@ -33,10 +33,12 @@ export function checkPermi(value) {
  * @returns {Boolean}
  */
 export function checkRole(value) {
-  if (value && value instanceof Array && value.length > 0) {
     const permissionStore = usePermissionStore()
-    const { role_permission } = permissionStore
-
+    const { role_permission, role_type } = permissionStore
+    if(role_type == 1) {
+      return true
+    }
+  if (value && value instanceof Array && value.length > 0) {
     const permissionRoles = value
     const super_admin = 'admin'
     const all_permission = '*:*:*'
@@ -56,35 +58,9 @@ export function checkRole(value) {
 }
 
 export function checkSystemPermisission(to) {
-  const { role_permission, menus } = usePermissionStore()
-  if (!to.name) {
-    return
-  }
-  if (to.name !== 'userModel') {
-    return
-  }
-  let flag = false
-  if (!role_permission.includes(to.name)) {
-    for (let i = 0; i < menus.length; i++) {
-      const item = menus[i]
-      if (flag) return
-      if (item.uni_key === 'System' && item.children.length > 0) {
-        for (let j = 0; j < item.children.length; j++) {
-          const element = item.children[j]
-          if (role_permission.includes(element.uni_key)) {
-            flag = true
-            return element.uni_key
-          }
-        }
-      }
-    }
-    if( !flag ){
-      // 所有的菜单都没有权限的时候 跳转账号管理页面
-      return 'AccountManage'
-    }
-    return to.name
-  } else {
-    return
+  const { role_permission } = usePermissionStore()
+  if(to.name == 'userModel' && !role_permission.includes('ModelManage')){
+    return 'AccountManage'
   }
 }
 

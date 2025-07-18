@@ -1,5 +1,5 @@
 <template>
-  <a-button @click="showDrawer" :icon="h(SettingOutlined)">搜索设置</a-button>
+  <a-button v-if="searchSets" @click="showDrawer" :icon="h(SettingOutlined)">搜索设置</a-button>
   <a-drawer v-model:open="open" class="custom-class" root-class-name="root-class-name" title="搜索设置" width="472"
     placement="right" @after-open-change="afterOpenChange">
     <div class="prompt-form">
@@ -213,12 +213,16 @@
 </template>
 <script lang="ts" setup>
 import { getModelConfigOption } from '@/api/model/index'
-import { ref, h, reactive, onMounted, toRaw, watch } from 'vue';
+import { ref, h, reactive, onMounted, toRaw, watch, computed  } from 'vue';
 import { SettingOutlined } from '@ant-design/icons-vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { saveLibrarySearch } from '@/api/library'
 import { message } from 'ant-design-vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
+import { usePermissionStore } from '@/stores/modules/permission'
+
+let { role_permission, role_type } = usePermissionStore()
+const searchSets = computed(() => role_type == 1 || role_permission.includes('SearchSets'))
 
 const props = defineProps({
   librarySearchData: {

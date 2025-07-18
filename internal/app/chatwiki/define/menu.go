@@ -8,45 +8,81 @@ type Menu struct {
 }
 
 var Menus = []Menu{
+	// {
+	// 	Name:   "发现",
+	// 	UniKey: "Discovery",
+	// 	Children: []*Menu{
+	// 		{
+	// 			Name:   "发现",
+	// 			UniKey: "DiscoveryManage",
+	// 		},
+	// 	},
+	// },
 	{
 		Name:   "机器人管理",
 		UniKey: "Robot",
 		Children: []*Menu{
 			{
-				Name:   "创建机器人",
-				UniKey: "RobotCreate",
-			},
-			{
 				Name:   "机器人管理",
 				UniKey: "RobotManage",
+				Children: []*Menu{
+					{
+						Name:   "创建机器人",
+						UniKey: "RobotCreate",
+					},
+				},
 			},
 		},
 	},
 	{
-		Name:   "知识库管理",
+		Name:   "知识库",
 		UniKey: "library",
 		Children: []*Menu{
 			{
-				Name:   "创建知识库",
-				UniKey: "LibraryCreate",
+				Name:   "知识库",
+				UniKey: "LibraryManage",
+				Children: []*Menu{
+					{
+						Name:   "创建知识库",
+						UniKey: "LibraryCreate",
+					},
+				},
 			},
 			{
-				Name:   "知识库管理",
-				UniKey: "LibraryManage",
+				Name:   "数据库",
+				UniKey: "FormManage",
+				Children: []*Menu{
+					{
+						Name:   "创建数据库",
+						UniKey: "FormCreate",
+					},
+				},
 			},
+			// {
+			// 	Name:   "文档提取FAQ",
+			// 	UniKey: "DocFaq",
+			// 	Children: []*Menu{
+			// 		{
+			// 			Name:   "上传文档提取",
+			// 			UniKey: "UploadDocFaq",
+			// 		},
+			// 	},
+			// },
 		},
 	},
 	{
-		Name:   "数据库",
-		UniKey: "Form",
+		Name:   "文档",
+		UniKey: "OpenLibDoc",
 		Children: []*Menu{
 			{
-				Name:   "创建数据库",
-				UniKey: "FormCreate",
-			},
-			{
-				Name:   "数据库管理",
-				UniKey: "FormManage",
+				Name:   "对外文档",
+				UniKey: "OpenLibDocManage",
+				Children: []*Menu{
+					{
+						Name:   "新建对外文档",
+						UniKey: "CreateOpenLibDoc",
+					},
+				},
 			},
 		},
 	},
@@ -55,8 +91,24 @@ var Menus = []Menu{
 		UniKey: "Search",
 		Children: []*Menu{
 			{
-				Name:   "知识库搜索",
-				UniKey: "LibrarySearch",
+				Name:   "搜索",
+				UniKey: "SearchManage",
+				Children: []*Menu{
+					{
+						Name:   "搜索设置",
+						UniKey: "SearchSets",
+					},
+				},
+			},
+		},
+	},
+	{
+		Name:   "会话",
+		UniKey: "ChatSession",
+		Children: []*Menu{
+			{
+				Name:   "会话",
+				UniKey: "ChatSessionManage",
 			},
 		},
 	},
@@ -77,16 +129,28 @@ var Menus = []Menu{
 				UniKey: "TeamManage",
 			},
 			{
-				Name:   "账号设置",
-				UniKey: "AccountManage",
+				Name:   "自定义域名",
+				UniKey: "UserDomainManage",
 			},
-			{
-				Name:   "企业设置",
-				UniKey: "CompanyManage",
-			},
+			// {
+			// 	Name:   "版本信息",
+			// 	UniKey: "VersionManage",
+			// },
 			{
 				Name:   "客户端下载",
 				UniKey: "ClientSideManage",
+			},
+			{
+				Name:   "阿里云OCR",
+				UniKey: "AliyunOCRManage",
+			},
+			{
+				Name:   "敏感词管理",
+				UniKey: "SensitiveWordManage",
+			},
+			{
+				Name:   "提示词模板库",
+				UniKey: "PromptTemplateManage",
 			},
 		},
 	},
@@ -129,4 +193,24 @@ var ContainsUniKeyList = []map[string]string{
 	{
 		"FormCreate": "FormManage",
 	},
+}
+
+func GetAllUniKeyList() []string {
+	var uniKeys []string
+	for _, item := range Menus {
+		uniKeys = append(uniKeys, RescurseUniKeyList(item.Children)...)
+	}
+	return uniKeys
+}
+
+func RescurseUniKeyList(menu []*Menu) (uniKeys []string) {
+	for _, item := range menu {
+		if item.UniKey != "" {
+			uniKeys = append(uniKeys, item.UniKey)
+		}
+		if item.Children != nil {
+			uniKeys = append(uniKeys, RescurseUniKeyList(item.Children)...)
+		}
+	}
+	return uniKeys
 }

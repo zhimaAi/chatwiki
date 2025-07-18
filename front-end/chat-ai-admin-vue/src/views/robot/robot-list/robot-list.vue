@@ -316,9 +316,9 @@ const tabs = ref([
 ])
 
 const permissionStore = usePermissionStore()
-let { role_permission } = permissionStore
 
-const robotCreate = computed(() => role_permission.includes('RobotCreate'))
+let { role_permission, role_type } = permissionStore
+const robotCreate = computed(() => role_type == 1 || role_permission.includes('RobotCreate'))
 
 const router = useRouter()
 

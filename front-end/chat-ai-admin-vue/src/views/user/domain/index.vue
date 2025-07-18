@@ -50,10 +50,10 @@
           <template #description>
             <div class="tip-text">
               <div>将域名解析到ChatWiki服务器，可以通过自由域名访问对外文档和对外服务web APP。</div>
-              <div>
+              <!-- <div>
                 1、域名解析请参考帮助文档，目前只支持阿里云备案的域名，将域名cname到wiki.aishipinhao.com。
-              </div>
-              <div>2、如需使用https,请在添加域名后，上传证书文件，包括公钥和私钥(ky文件)。</div>
+              </div> -->
+              <div>1、如需使用https,请在添加域名后，上传证书文件，包括公钥和私钥(ky文件)。</div>
             </div>
           </template>
         </a-alert>

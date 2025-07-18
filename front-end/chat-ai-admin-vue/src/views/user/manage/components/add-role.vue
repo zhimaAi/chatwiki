@@ -16,18 +16,38 @@
             <a-textarea v-model:value="formState.mark" placeholder="请输入角色备注" />
           </a-form-item>
           <a-form-item label="角色权限">
-
             <div class="role-check-box" v-for="item in menuOptions" :key="item.uni_key">
               <a-flex class="title-boock" justify="space-between">
                 <div class="title-row">{{ item.name }}</div>
                 <div class="check-num">
-                  {{ robotChecked[item.uni_key].length }}/{{ item.children.length }}
+                  {{ robotChecked[item.uni_key].length }}/{{ getChildrenTotal(item.children) }}
                 </div>
               </a-flex>
               <a-checkbox-group v-model:value="robotChecked[item.uni_key]" style="width: 100%">
                 <a-row :gutter="[0, 12]">
-                  <a-col :span="6" v-for="sub in item.children" :key="sub.uni_key">
-                    <a-checkbox :disabled="formState.role_type > 0" :value="sub.uni_key">{{ sub.name }}</a-checkbox>
+                  <a-col
+                    :span="sub.children && sub.children.length ? 12 : 6"
+                    v-for="sub in item.children"
+                    :key="sub.uni_key"
+                  >
+                    <a-checkbox
+                      @change="handleSubChaneg(sub, item.uni_key)"
+                      :disabled="formState.role_type > 0"
+                      :value="sub.uni_key"
+                      >{{ sub.name }}</a-checkbox
+                    >
+                    <span v-if="sub.children && sub.children.length > 0"
+                      >(
+                      <a-checkbox
+                        @change="handleSonChange(son, sub, item.uni_key)"
+                        v-for="son in sub.children"
+                        :key="son.uni_key"
+                        :disabled="formState.role_type > 0"
+                        :value="son.uni_key"
+                        >{{ son.name }}</a-checkbox
+                      >
+                      )</span
+                    >
                   </a-col>
                 </a-row>
               </a-checkbox-group>
@@ -40,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import { Form, message } from 'ant-design-vue'
 import { getRole, getMenu, saveRole } from '@/api/manage/index.js'
 const emit = defineEmits(['ok'])
@@ -68,24 +88,24 @@ const formRules = reactive({
 
 const { resetFields, validate, validateInfos } = useForm(formState, formRules)
 
-const getMenuData = async() => {
+const getMenuData = async () => {
   await getMenu().then((res) => {
     let data = res.data || []
-    // 任何成员 都有账号设置页面 
-    data.forEach(item => {
-      if(item.uni_key == 'System'){
-        item.children = item.children.filter(it => it.uni_key != 'AccountManage')
+    // 任何成员 都有账号设置页面
+    data.forEach((item) => {
+      if (item.uni_key == 'System') {
+        item.children = item.children.filter((it) => it.uni_key != 'AccountManage')
       }
     })
     menuOptions.value = data
     for (let i = 0; i < data.length; i++) {
-      const item = data[i];
+      const item = data[i]
       robotChecked.value[item.uni_key] = []
     }
   })
 }
 
-const add = async() => {
+const add = async () => {
   await getMenuData()
   modalTitle.value = '添加角色'
   id.value = ''
@@ -114,9 +134,16 @@ const formatCheckList = (data, list) => {
   data.forEach((item) => {
     resultList[item.uni_key] = []
     for (let i = 0; i < item.children.length; i++) {
-      const sub = item.children[i];
+      const sub = item.children[i]
       if (list.includes(sub.uni_key)) {
         resultList[item.uni_key].push(sub.uni_key)
+      }
+      if (sub.children && sub.children.length > 0) {
+        sub.children.forEach((it) => {
+          if (list.includes(it.uni_key)) {
+            resultList[item.uni_key].push(it.uni_key)
+          }
+        })
       }
     }
   })
@@ -139,7 +166,7 @@ const handleOk = () => {
     let uni_keys = deconstruction(robotChecked.value)
     let parmas = {
       id: id.value,
-      mark: formState.mark,
+      mark: formState.mark
     }
 
     if (formState.role_type == 0) {
@@ -154,6 +181,41 @@ const handleOk = () => {
       emit('ok')
     })
   })
+}
+
+const handleSubChaneg = (sub, uni_key) => {
+  if (!sub.children) {
+    return
+  }
+  nextTick(() => {
+    if (!robotChecked.value[uni_key].includes(sub.uni_key)) {
+      // 父级取消勾选 要把子级取消勾选
+      let sonKey = sub.children.map((item) => item.uni_key)
+      robotChecked.value[uni_key] = robotChecked.value[uni_key].filter(
+        (item) => !sonKey.includes(item)
+      )
+    }
+  })
+}
+const handleSonChange = (son, sub, uni_key) => {
+  nextTick(() => {
+    if (robotChecked.value[uni_key].includes(son.uni_key)) {
+      // 孙子勾选  父级 勾选上去
+      robotChecked.value[uni_key].push(sub.uni_key)
+      // 数组去重
+      robotChecked.value[uni_key] = [...new Set(robotChecked.value[uni_key])]
+    }
+  })
+}
+
+const getChildrenTotal = (data) => {
+  let total = data.length
+  data.forEach((item) => {
+    if (item.children && item.children.length) {
+      total = total + item.children.length
+    }
+  })
+  return total
 }
 
 onMounted(() => {
@@ -190,6 +252,9 @@ defineExpose({
     font-size: 14px;
     font-weight: 400;
     line-height: 22px;
+  }
+  &::v-deep(.ant-checkbox + span) {
+    padding-right: 0;
   }
 }
 </style>

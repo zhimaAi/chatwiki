@@ -104,8 +104,8 @@ const tabs = ref([
 ])
 
 const permissionStore = usePermissionStore()
-let { role_permission } = permissionStore
-const libraryCreate = computed(() => role_permission.includes('LibraryCreate'))
+let { role_permission, role_type } = permissionStore
+const libraryCreate = computed(() => role_type == 1 || role_permission.includes('LibraryCreate'))
 
 const addLibraryModelRef = ref(null)
 const addLibrayPopup = ref(null)
