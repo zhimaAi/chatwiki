@@ -9,6 +9,7 @@
               modelType="LLM"
               v-model:modeName="formState.use_model"
               v-model:modeId="formState.model_config_id"
+              @loaded="onVectorModelLoaded"
               style="width: 348px"
             />
             <!-- <DownOutlined /> -->
@@ -66,6 +67,20 @@
             <div class="number-input-box">
               <a-input-number v-model:value="formState.max_token" :min="0" :max="100 * 1024" />
             </div>
+          </div>
+        </a-form-item>
+        <a-form-item name="enable_thinking" v-if="showMoreBtn && show_enable_thinking">
+          <template #label>
+            <span>深度思考&nbsp;</span>
+            <a-tooltip>
+              <template #title
+                >开启时，调用大模型时会指定走深度思考模式</template
+              >
+              <QuestionCircleOutlined class="question-icon" />
+            </a-tooltip>
+          </template>
+          <div class="number-box">
+            <a-switch v-model:checked="formState.enable_thinking" />
           </div>
         </a-form-item>
         <a-form-item name="context_pair">
@@ -184,7 +199,7 @@ const showMoreBtn = ref(false)
 const hanldeShowMore = () => {
   showMoreBtn.value = !showMoreBtn.value
   emit('setData', {
-    height: showMoreBtn.value ? 810 : 674
+    height: showMoreBtn.value ? 890 : 674
   })
 }
 
@@ -209,7 +224,8 @@ const formState = reactive({
   max_token: 0,
   context_pair: 0,
   prompt: '',
-  prompt_tags: []
+  prompt_tags: [],
+  enable_thinking: false
 })
 let lock = false
 watch(
@@ -232,7 +248,8 @@ watch(
         temperature,
         max_token,
         prompt,
-        prompt_tags
+        prompt_tags,
+        enable_thinking,
       } = llm
 
       getVlaueVariableList()
@@ -243,6 +260,7 @@ watch(
       formState.temperature = temperature
       formState.max_token = max_token
       formState.prompt = prompt
+      formState.enable_thinking = enable_thinking
       formState.prompt_tags = prompt_tags || []
       if (!formState.model_config_id && modelList.value.length > 0) {
         formState.model_config_id = modelList.value[0].id
@@ -323,7 +341,6 @@ function transformArray(arr, parentLabel = '') {
   return result
 }
 
-
 const onUpatateNodeName = (data) => {
   if (data.node_type !== 'http-node') {
     return
@@ -364,6 +381,19 @@ const handleSavePrompt = (item) => {
     atInputRef.value.initData()
   })
 }
+
+const choosable_thinking = ref({})
+const onVectorModelLoaded = (list, choosable_thinking_map) => {
+  choosable_thinking.value = choosable_thinking_map
+}
+
+const show_enable_thinking = computed(()=>{
+  if(!formState.model_config_id){
+    return false
+  }
+  let key = formState.model_config_id + '#' + formState.use_model
+  return choosable_thinking.value[key]
+})
 
 onMounted(() => {
   const mode = graphModel()

@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
+	"sort"
 )
 
 func RerankData(adminUserId int, openid, appType string, robot msql.Params, req *adaptor.ZhimaRerankReq) ([]msql.Params, error) {
@@ -18,12 +19,17 @@ func RerankData(adminUserId int, openid, appType string, robot msql.Params, req 
 	if err != nil {
 		return nil, err
 	}
-	// todo token统计
 	if handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
-		handler.modelInfo.TokenUseReport(handler.config, useModel, res.InputToken, res.OutputToken)
+		handler.modelInfo.TokenUseReport(handler.config, useModel, res.InputToken, res.OutputToken, robot)
 	}
-	for key, item := range req.Data {
-		item[`similarity`] = cast.ToString(res.Data[key].RelevanceScore)
+	sort.Slice(res.Data, func(i, j int) bool {
+		return res.Data[i].RelevanceScore > res.Data[j].RelevanceScore
+	})
+	rerankList := make([]msql.Params, 0)
+	for _, item := range res.Data {
+		if len(req.Data) > item.Index {
+			rerankList = append(rerankList, req.Data[item.Index])
+		}
 	}
-	return req.Data, nil
+	return rerankList, nil
 }

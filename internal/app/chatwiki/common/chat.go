@@ -59,7 +59,7 @@ func BuildChatContextPair(openid string, robotId, dialogueId, curMsgId, contextP
 }
 
 func BuildOpenApiContent(params *define.ChatRequestParam, messages []adaptor.ZhimaChatCompletionMessage) []adaptor.ZhimaChatCompletionMessage {
-	if params.AppType != lib_define.AppOpenApi {
+	if params.AppType != lib_define.AppOpenApi || len(params.OpenApiContent) == 0 {
 		return messages
 	}
 	var contents = make([]adaptor.ZhimaChatCompletionMessage, 0)

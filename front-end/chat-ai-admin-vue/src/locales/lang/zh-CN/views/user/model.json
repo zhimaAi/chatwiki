@@ -23,5 +23,6 @@
   "rolePermissions": "角色权限",
   "app_id": "appid",
   "region": "地区",
-  "show_model_name": "模型名称"
+  "show_model_name": "模型名称",
+  "thinking_type": "深度思考"
 }

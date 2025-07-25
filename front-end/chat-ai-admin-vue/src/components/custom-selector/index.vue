@@ -222,16 +222,20 @@ const handleWheel = (event) => {
       showOptions.value = false
     }
   }
-
+  let choosable_thinking = {}
   const getModelList = () => {
     getModelConfigOption({
       model_type: props.modelType,
       is_offline: props.isOffline // 0 1 区分线上线下
     }).then((res) => {
       let list = res.data || []
-
       let newList = list.map((item) => {
         let { model_define, deployment_name, id } = item.model_config
+        choosable_thinking = {
+          ...choosable_thinking,
+          ...item.choosable_thinking
+        }
+
         let key = `${model_define}-${deployment_name || ''}-${id}`
 
         let subModelList = []
@@ -283,7 +287,7 @@ const handleWheel = (event) => {
           model_config_id: id,
           deployment_name: deployment_name,
           name: item.model_info.model_name,
-          icon: item.model_info.model_icon_url
+          icon: item.model_info.model_icon_url,
         }
       })
 
@@ -295,8 +299,7 @@ const handleWheel = (event) => {
       }
 
       modelList.value = [...newList]
-
-      emit('loaded', JSON.parse(JSON.stringify(newList)))
+      emit('loaded', JSON.parse(JSON.stringify(newList)), choosable_thinking)
     })
   }
 

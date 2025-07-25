@@ -113,6 +113,7 @@ func SaveRobot(c *gin.Context) {
 	temperature := cast.ToFloat32(c.DefaultPostForm(`temperature`, `0.5`))
 	maxToken := cast.ToInt(c.DefaultPostForm(`max_token`, `2000`))
 	contextPair := cast.ToInt(c.DefaultPostForm(`context_pair`, `6`))
+	enableThinking := cast.ToUint(c.PostForm(`enable_thinking`))
 	topK := cast.ToInt(c.DefaultPostForm(`top_k`, `5`))
 	similarity := cast.ToFloat32(c.DefaultPostForm(`similarity`, `0.6`))
 	searchType := cast.ToInt(c.DefaultPostForm(`search_type`, `1`))
@@ -137,6 +138,7 @@ func SaveRobot(c *gin.Context) {
 	thinkSwitch := strings.TrimSpace(c.DefaultPostForm(`think_switch`, `1`))
 	feedbackSwitch := strings.TrimSpace(c.DefaultPostForm(`feedback_switch`, `1`))
 	sensitiveWordsSwitch := strings.TrimSpace(c.DefaultPostForm(`sensitive_words_switch`, `0`))
+	promptRoleType := cast.ToInt(c.PostForm(`prompt_role_type`))
 
 	//set default value
 	if id == 0 {
@@ -370,6 +372,7 @@ func SaveRobot(c *gin.Context) {
 		`temperature`:                           temperature,
 		`max_token`:                             maxToken,
 		`context_pair`:                          contextPair,
+		`enable_thinking`:                       enableThinking,
 		`top_k`:                                 topK,
 		`similarity`:                            similarity,
 		`search_type`:                           searchType,
@@ -386,6 +389,7 @@ func SaveRobot(c *gin.Context) {
 		`think_switch`:                          thinkSwitch,
 		`feedback_switch`:                       feedbackSwitch,
 		`sensitive_words_switch`:                sensitiveWordsSwitch,
+		`prompt_role_type`:                      promptRoleType,
 		`update_time`:                           tool.Time2Int(),
 	}
 	if len(robotAvatar) > 0 {

@@ -285,6 +285,7 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 		splitParams.SimilarLabel = similarLabel
 		splitParams.AnswerLable = answerLable
 		splitParams.IsQaDoc = isQaDoc
+		splitParams.QaIndexType = cast.ToInt(libraryInfo[`qa_index_type`])
 		splitParams.ChunkSize = 512
 		splitParams.IsTableFile = cast.ToInt(c.PostForm(`is_table_file`))
 	}
@@ -413,7 +414,7 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 			splitParams.SemanticChunkModelConfigId = cast.ToInt(libraryInfo[`model_config_id`])
 			splitParams.SemanticChunkUseModel = libraryInfo[`use_model`]
 		case define.QALibraryType:
-			if !define.IsTableFile(uploadInfo.Ext) {
+			if define.IsTableFile(uploadInfo.Ext) || define.IsDocxFile(uploadInfo.Ext) {
 				autoSplit = true
 			}
 		case define.OpenLibraryType:
@@ -816,7 +817,7 @@ func SaveLibFileSplit(c *gin.Context) {
 		return
 	}
 	if splitParams.ChunkType == define.ChunkTypeAi && splitParams.AiChunkNew {
-		go func ()  {
+		go func() {
 			if err = common.SaveAISplitDocs(userId, fileId, wordTotal, qaIndexType, splitParams, list, pdfPageNum, common.GetLang(c)); err != nil {
 				c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 				return

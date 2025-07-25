@@ -2,6 +2,17 @@
 
 package define
 
+const (
+	PromptRoleTypeSystem = 0
+	PromptRoleTypeUser   = 1
+	PromptRoleUser       = `user`
+)
+
+var PromptRoleTypeMap = map[int]string{
+	PromptRoleTypeSystem: `system`,
+	PromptRoleTypeUser:   `user`,
+}
+
 const PromptDefaultQuestionOptimize = `
 # 请根据以下步骤分析用户当前问题及上下文和对话背景，补全用户的提问
 1、上下文分析

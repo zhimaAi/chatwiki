@@ -48,7 +48,22 @@
                   :modelType="'LLM'"
                   :model-config-id="formState.model_config_id"
                   @change="handleModelChange"
+                  @loaded="onVectorModelLoaded"
                 />
+              </div>
+            </div>
+          </a-col>
+
+          <a-col v-bind="grid">
+            <div class="form-item" style="display: flex; align-items: center;">
+              <div class="form-item-label mb12">
+                <span>提示词所属角色：&nbsp;</span>
+              </div>
+              <div>
+                <a-radio-group v-model:value="formState.prompt_role_type" >
+                  <a-radio value="0">系统角色（System）</a-radio>
+                  <a-radio value="1">用户角色（User）</a-radio>
+                </a-radio-group>
               </div>
             </div>
           </a-col>
@@ -146,6 +161,27 @@
             </div>
           </a-col>
 
+          <a-col v-bind="grid" v-if="show_enable_thinking">
+            <div class="form-item justify-between">
+              <div class="form-item-label">
+                <span>深度思考&nbsp;</span>
+                <a-tooltip>
+                  <template #title>
+                    <span
+                      >开启时，调用大模型时会指定走深度思考模式</span
+                    >
+                  </template>
+                  <QuestionCircleOutlined class="question-icon" />
+                </a-tooltip>
+              </div>
+              <a-switch
+                v-model:checked="formState.enable_thinking"
+                :checkedValue="1"
+                :unCheckedValue="0"
+              />
+            </div>
+          </a-col>
+
           <a-col v-bind="grid">
             <div class="form-item justify-between">
               <div class="form-item-label">
@@ -174,7 +210,7 @@
 
 <script setup>
 import { getModelConfigOption } from '@/api/model/index'
-import { ref, reactive, inject, toRaw, watchEffect, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, inject, toRaw, watchEffect, onMounted, onBeforeUnmount, computed } from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import EditBox from './edit-box.vue'
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
@@ -197,12 +233,14 @@ const formState = reactive({
   temperature: 0,
   max_token: 0,
   context_pair: 0,
-  think_switch: 1
+  think_switch: 1,
+  prompt_role_type: '0',
+  enable_thinking: 0,
 })
 const currentModelDefine = ref('')
 const oldModelDefine = ref('')
 const currentUseModel = ref('')
-
+let num = 0
 // 处理选择事件
 const handleModelChange = (item) => {
   formState.use_model = modelDefine.includes(item.rawData.model_define) && item.rawData.deployment_name 
@@ -212,7 +250,25 @@ const handleModelChange = (item) => {
   formState.use_model_name = item.use_model_name
   formState.model_config_id = item.rawData.id
   currentModelDefine.value = item.rawData.model_define
+  if(formState.use_model && formState.use_model.toLowerCase().includes('deepseek-r1')){
+    formState.prompt_role_type = '1'
+  }else{
+    formState.prompt_role_type = '0'
+  }
 }
+
+const choosable_thinking = ref({})
+const onVectorModelLoaded = (list, choosable_thinking_map) => {
+  choosable_thinking.value = choosable_thinking_map
+}
+
+const show_enable_thinking = computed(()=>{
+  if(!formState.model_config_id){
+    return false
+  }
+  let key = formState.model_config_id + '#' + formState.use_model
+  return choosable_thinking.value[key]
+})
 
 // 新增自定义选择器逻辑
 const showOptions = ref(false)
@@ -266,6 +322,8 @@ const handleEdit = (val) => {
   formState.max_token = robotInfo.max_token
   formState.context_pair = robotInfo.context_pair
   formState.think_switch = Number(robotInfo.think_switch)
+  formState.prompt_role_type = robotInfo.prompt_role_type
+  formState.enable_thinking = robotInfo.enable_thinking
   isEdit.value = val
 }
 
@@ -275,6 +333,8 @@ watchEffect(() => {
   formState.max_token = robotInfo.max_token
   formState.context_pair = robotInfo.context_pair
   formState.think_switch = Number(robotInfo.think_switch)
+  formState.prompt_role_type = robotInfo.prompt_role_type
+  formState.enable_thinking = robotInfo.enable_thinking
 })
 
 function uniqueArr(arr, arr1, key) {

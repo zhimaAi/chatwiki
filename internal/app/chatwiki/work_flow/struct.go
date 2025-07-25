@@ -199,12 +199,13 @@ type LibsNodeParams struct {
 /************************************/
 
 type LlmBaseParams struct {
-	ModelConfigId common.MixedInt `json:"model_config_id"`
-	UseModel      string          `json:"use_model"`
-	ContextPair   common.MixedInt `json:"context_pair"`
-	Temperature   float32         `json:"temperature"`
-	MaxToken      common.MixedInt `json:"max_token"`
-	Prompt        string          `json:"prompt"`
+	ModelConfigId  common.MixedInt `json:"model_config_id"`
+	UseModel       string          `json:"use_model"`
+	ContextPair    common.MixedInt `json:"context_pair"`
+	EnableThinking bool            `json:"enable_thinking"`
+	Temperature    float32         `json:"temperature"`
+	MaxToken       common.MixedInt `json:"max_token"`
+	Prompt         string          `json:"prompt"`
 }
 
 func (params *LlmBaseParams) Verify(adminUserId int) error {

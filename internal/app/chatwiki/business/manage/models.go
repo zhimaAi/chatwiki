@@ -9,6 +9,7 @@ import (
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -230,10 +231,11 @@ func EditModelConfig(c *gin.Context) {
 		return
 	}
 	//database dispose
-	data := msql.Datas{`update_time`: tool.Time2Int()}
+	data := msql.Datas{`model_types`: strings.Join(modelInfo.SupportedType, `,`), `update_time`: tool.Time2Int()}
 	for _, field := range modelInfo.ConfigParams {
-
-		if field != `model_type` {
+		if field == `model_type` { //special handling parameters
+			data[`model_types`] = info[`model_types`]
+		} else {
 			value := strings.TrimSpace(c.PostForm(field))
 			if len(value) == 0 && field != `show_model_name` {
 				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, field))))
@@ -247,7 +249,7 @@ func EditModelConfig(c *gin.Context) {
 			info[field] = value
 		}
 	}
-	if tool.InArrayString(c.PostForm(`model_define`), []string{common.ModelBaiduYiyan, common.ModelDoubao}) {
+	if tool.InArrayString(info[`model_define`], []string{common.ModelBaiduYiyan, common.ModelDoubao}) {
 		secretKey := strings.TrimSpace(c.PostForm(`secret_key`))
 		data[`secret_key`] = secretKey
 		info[`secret_key`] = secretKey
@@ -295,7 +297,18 @@ func GetModelConfigOption(c *gin.Context) {
 			if !ok {
 				continue
 			}
-			list = append(list, map[string]any{`model_config`: config, `model_info`: modelInfo})
+			choosableThinking := make(map[string]bool)
+			if cast.ToInt(config[`thinking_type`]) == 2 { //可选设置在配置上的
+				for _, modelName := range modelInfo.LlmModelList {
+					choosableThinking[fmt.Sprintf(`%s#%s`, config[`id`], modelName)] = true
+				}
+				choosableThinking[fmt.Sprintf(`%s#%s`, config[`id`], config[`show_model_name`])] = true //兼容
+			} else { //可选设置在模型上的
+				for _, modelName := range modelInfo.ChoosableThinkingModels {
+					choosableThinking[fmt.Sprintf(`%s#%s`, config[`id`], modelName)] = true
+				}
+			}
+			list = append(list, map[string]any{`model_config`: config, `model_info`: modelInfo, `choosable_thinking`: choosableThinking})
 		}
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
@@ -308,11 +321,14 @@ func configurationTest(config msql.Params, modelInfo common.ModelInfo) error {
 	}
 
 	if strings.Contains(config[`model_types`], `LLM`) {
-		handler, err := modelInfo.CallHandlerFunc(config, modelInfo.LlmModelList[0])
+		handler, err := modelInfo.CallHandlerFunc(modelInfo, config, modelInfo.LlmModelList[0])
 		if err != nil {
 			return err
 		}
 		client := &adaptor.Adaptor{}
+		if handler.Meta.ChoosableThinking {
+			handler.Meta.EnabledThinking = false //这里直接指定
+		}
 		client.Init(handler.Meta)
 
 		var messages []adaptor.ZhimaChatCompletionMessage
@@ -328,7 +344,7 @@ func configurationTest(config msql.Params, modelInfo common.ModelInfo) error {
 		}
 		logs.Info(r.Result)
 	} else if strings.Contains(config[`model_types`], `TEXT EMBEDDING`) {
-		handler, err := modelInfo.CallHandlerFunc(config, modelInfo.VectorModelList[0])
+		handler, err := modelInfo.CallHandlerFunc(modelInfo, config, modelInfo.VectorModelList[0])
 		if err != nil {
 			return err
 		}

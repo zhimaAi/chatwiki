@@ -93,6 +93,8 @@ export const useRobotStore = defineStore('robot', () => {
     sensitive_words_switch: 0,
     question_guide_num: '',
     start_node_key: '',
+    prompt_role_type: '0',
+    enable_thinking: 0,
   })
 
   // WebApp配置
@@ -183,8 +185,10 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.application_type = data.application_type
     robotInfo.sensitive_words_switch = +data.sensitive_words_switch
     robotInfo.question_guide_num = +data.question_guide_num
+    robotInfo.enable_thinking = +data.enable_thinking || 0
 
     robotInfo.start_node_key = data.start_node_key
+    robotInfo.prompt_role_type = data.prompt_role_type || '0'
     // h5配置
     if (data.external_config_h5 !== '') {
       Object.assign(external_config_h5, JSON.parse(data.external_config_h5))

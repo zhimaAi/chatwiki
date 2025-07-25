@@ -187,7 +187,8 @@ const data = {
           context_pair: 6,
           temperature: 0.5,
           max_token: 2000,
-          prompt: ''
+          prompt: '',
+          enable_thinking: false,
         }
       })
     }
@@ -280,6 +281,7 @@ const data = {
           temperature: 0.5,
           max_token: 2000,
           prompt: '',
+          enable_thinking: false,
           categorys: [
             {
               category: '',

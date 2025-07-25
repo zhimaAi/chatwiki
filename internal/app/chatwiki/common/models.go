@@ -25,9 +25,9 @@ type ModelCallHandler struct {
 	config msql.Params
 }
 
-type HandlerFunc func(config msql.Params, useModel string) (*ModelCallHandler, error)
+type HandlerFunc func(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error)
 type BeforeFunc func(info ModelInfo, config msql.Params, useModel string) error
-type AfterFunc func(config msql.Params, useModel string, promptToken, completionToken int)
+type AfterFunc func(config msql.Params, useModel string, promptToken, completionToken int, robot msql.Params)
 
 type ModelInfo struct {
 	ModelDefine               string        `json:"model_define"`
@@ -43,6 +43,8 @@ type ModelInfo struct {
 	ConfigList                []msql.Params `json:"config_list"`
 	ApiVersions               []string      `json:"api_versions"`
 	LlmModelList              []string      `json:"llm_model_list"`
+	ChoosableThinkingModels   []string      `json:"choosable_thinking_models"`
+	NetworkSearchModelList    []string      `json:"network_search_model_list"`
 	VectorModelList           []string      `json:"vector_model_list"`
 	RerankModelList           []string      `json:"rerank_model_list"`
 	HelpLinks                 string        `json:"help_links"`
@@ -72,10 +74,9 @@ const (
 	ModelHunyuan         = "hunyuan"
 	ModelDoubao          = "doubao"
 	ModelBaichuan        = "baichuan"
-
-	ModelZhipu       = "zhipu"
-	ModelMinimax     = "minimax"
-	ModelSiliconFlow = "siliconflow"
+	ModelZhipu           = "zhipu"
+	ModelMinimax         = "minimax"
+	ModelSiliconFlow     = "siliconflow"
 )
 
 const (
@@ -88,8 +89,55 @@ const (
 )
 
 func GetModelList() []ModelInfo {
-	list := modelList[:]
+	//模型过滤处理
+	list := make([]ModelInfo, 0)
+	for _, info := range modelList {
+		if tool.InArrayString(info.ModelDefine, []string{}) {
+			continue
+		}
+		list = append(list, info)
+	}
+	//添加自定义模型
 	//list = append(list, ModelInfo{ModelDefine: `DIY MODEL`})
+	//零值处理
+	for i, info := range list {
+		if info.SupportList == nil {
+			list[i].SupportList = make([]string, 0)
+		}
+		if info.SupportedType == nil {
+			list[i].SupportedType = make([]string, 0)
+		}
+		if info.SupportedFunctionCallList == nil {
+			list[i].SupportedFunctionCallList = make([]string, 0)
+		}
+		if info.ConfigParams == nil {
+			list[i].ConfigParams = make([]string, 0)
+		}
+		if info.HistoryConfigParams == nil {
+			list[i].HistoryConfigParams = make([]string, 0)
+		}
+		if info.ConfigList == nil {
+			list[i].ConfigList = make([]msql.Params, 0)
+		}
+		if info.ApiVersions == nil {
+			list[i].ApiVersions = make([]string, 0)
+		}
+		if info.LlmModelList == nil {
+			list[i].LlmModelList = make([]string, 0)
+		}
+		if info.ChoosableThinkingModels == nil {
+			list[i].ChoosableThinkingModels = make([]string, 0)
+		}
+		if info.NetworkSearchModelList == nil {
+			list[i].NetworkSearchModelList = make([]string, 0)
+		}
+		if info.VectorModelList == nil {
+			list[i].VectorModelList = make([]string, 0)
+		}
+		if info.RerankModelList == nil {
+			list[i].RerankModelList = make([]string, 0)
+		}
+	}
 	return list
 }
 
@@ -109,8 +157,6 @@ var modelList = [...]ModelInfo{
 			`gpt-4-turbo-preview`,
 		},
 		ConfigParams: []string{`api_key`},
-		ConfigList:   nil,
-		ApiVersions:  []string{},
 		LlmModelList: []string{
 			`gpt-4o`,
 			`gpt-4o-mini`,
@@ -134,7 +180,6 @@ var modelList = [...]ModelInfo{
 			`text-embedding-3-small`,
 			`text-embedding-ada-002`,
 		},
-		RerankModelList: []string{},
 		HelpLinks:       `https://openai.com/`,
 		CallHandlerFunc: GetOpenAIHandle,
 	},
@@ -146,11 +191,9 @@ var modelList = [...]ModelInfo{
 		SupportList:     []string{Llm, TextEmbedding},
 		SupportedType:   []string{Llm, TextEmbedding},
 		ConfigParams:    []string{`model_type`, `deployment_name`, `api_endpoint`, `api_key`, `api_version`},
-		ConfigList:      nil,
-		ApiVersions:     []string{"v1"},
+		ApiVersions:     []string{"v1", `v3`},
 		LlmModelList:    []string{"默认"},
 		VectorModelList: []string{"默认"},
-		RerankModelList: []string{},
 		HelpLinks:       `https://openai.com/`,
 		CallHandlerFunc: GetOpenAIAgentHandle,
 	},
@@ -162,7 +205,6 @@ var modelList = [...]ModelInfo{
 		SupportList:   []string{Llm, TextEmbedding, Speech2Text, Tts},
 		SupportedType: []string{Llm, TextEmbedding},
 		ConfigParams:  []string{`model_type`, `deployment_name`, `api_endpoint`, `api_key`, `api_version`},
-		ConfigList:    nil,
 		ApiVersions: []string{
 			`2023-05-15`,
 			`2023-06-01-preview`,
@@ -175,7 +217,6 @@ var modelList = [...]ModelInfo{
 		},
 		LlmModelList:    []string{`默认`},
 		VectorModelList: []string{`默认`},
-		RerankModelList: []string{},
 		HelpLinks:       `https://azure.microsoft.com/en-us/products/ai-services/openai-service`,
 		CallHandlerFunc: GetAzureHandler,
 	},
@@ -187,7 +228,6 @@ var modelList = [...]ModelInfo{
 		SupportList:   []string{Llm},
 		SupportedType: []string{Llm},
 		ConfigParams:  []string{`api_key`, `api_version`},
-		ConfigList:    nil,
 		ApiVersions:   []string{`2023-06-01`},
 		LlmModelList: []string{
 			`claude-3-opus-20240229`,
@@ -196,7 +236,6 @@ var modelList = [...]ModelInfo{
 			`claude-3-5-sonnet-20240620`,
 		},
 		VectorModelList: []string{`voyage-2`, `voyage-large-2`, `voyage-code-2`},
-		RerankModelList: []string{},
 		HelpLinks:       `https://claude.ai/`,
 		CallHandlerFunc: GetClaudeHandler,
 	},
@@ -208,8 +247,6 @@ var modelList = [...]ModelInfo{
 		SupportList:   []string{Llm, TextEmbedding},
 		SupportedType: []string{Llm, TextEmbedding},
 		ConfigParams:  []string{`api_key`},
-		ConfigList:    nil,
-		ApiVersions:   []string{},
 		LlmModelList: []string{
 			`gemini-1.0-pro`,
 			`gemini-1.5-flash`,
@@ -221,7 +258,6 @@ var modelList = [...]ModelInfo{
 			`text-embedding-004`,
 			`embedding-001`,
 		},
-		RerankModelList: []string{},
 		HelpLinks:       `https://ai.google.dev/`,
 		CallHandlerFunc: GetGeminiHandler,
 	},
@@ -232,42 +268,42 @@ var modelList = [...]ModelInfo{
 		Introduce:     `基于百度千帆大模型平台提供的文心一言API`,
 		SupportList:   []string{Llm, TextEmbedding},
 		SupportedType: []string{Llm, TextEmbedding},
-		SupportedFunctionCallList: []string{`ERNIE-4.0-8K`, `ERNIE-4.0-Turbo-8K`, `ERNIE-3.5-8K`,
-			"ernie-4.0-8k-latest", // v2 chat
-			"ernie-4.0-8k-preview",
-			"ernie-4.0-8k",
-			"ernie-4.0-turbo-8k-latest",
-			"ernie-4.0-turbo-8k-preview",
-			"ernie-4.0-turbo-8k",
-			"ernie-4.0-turbo-128k",
-			"ernie-3.5-8k-preview",
-			"ernie-3.5-8k",
-			"ernie-3.5-128k",
-			"ernie-lite-pro-128k",
+		SupportedFunctionCallList: []string{
+			//v2 chat
+			`ernie-x1-turbo-32k`,
 			`deepseek-v3`,
+			`deepseek-r1-250528`,
+			`deepseek-r1`,
+			//v1 chat
+			`ERNIE-4.0-8K`,
+			`ERNIE-4.0-Turbo-8K`,
+			`ERNIE-3.5-8K`,
 		},
 		ConfigParams:        []string{`api_key`},
-		ConfigList:          nil,
-		ApiVersions:         []string{},
 		HistoryConfigParams: []string{`secret_key`},
 		LlmModelList: []string{
+			// v2 chat
+			`ernie-4.5-turbo-32k`,
+			`ernie-4.5-turbo-128k`,
+			`ernie-4.0-8k`,
+			`ernie-speed-128k`,
+			`ernie-x1-turbo-32k`,
+			`deepseek-v3`,
+			`deepseek-r1-250528`,
+			`deepseek-r1`,
+			//v1 chat
 			`ERNIE-4.0-8K`,
 			`ERNIE-4.0-Turbo-8K`,
 			`ERNIE-4.0-8K-Preview`,
 			`ERNIE-4.0-8K-Latest`,
 			`ERNIE-3.5-8K`,
 			`ERNIE-3.5-128K`,
-			"ernie-4.0-8k-latest", // v2 chat
-			"ernie-4.0-8k-preview",
-			"ernie-4.0-8k",
-			"ernie-4.0-turbo-8k-latest",
-			"ernie-4.0-turbo-8k-preview",
-			"ernie-4.0-turbo-8k",
-			"ernie-4.0-turbo-128k",
-			"ernie-3.5-8k-preview",
-			"ernie-3.5-8k",
-			"ernie-3.5-128k",
-			"ernie-lite-pro-128k",
+		},
+		NetworkSearchModelList: []string{
+			`ernie-4.5-turbo-32k`,
+			`ernie-4.5-turbo-128k`,
+			`ernie-4.0-8k`,
+			`ernie-x1-turbo-32k`,
 			`deepseek-v3`,
 			`deepseek-r1`,
 		},
@@ -277,7 +313,6 @@ var modelList = [...]ModelInfo{
 			`bge-large-en`,
 			`tao-8k`,
 		},
-		RerankModelList:      []string{},
 		HelpLinks:            `https://cloud.baidu.com/`,
 		CallHandlerFunc:      GetYiyanHandler,
 		CheckFancCallRequest: CheckYiyanFancCall,
@@ -287,32 +322,51 @@ var modelList = [...]ModelInfo{
 		ModelName:     `通义千问`,
 		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelAliyunTongyi + `.png`,
 		Introduce:     `基于阿里云提供的通义千问API`,
-		SupportList:   []string{Llm, TextEmbedding, Tts},
-		SupportedType: []string{Llm, TextEmbedding},
+		SupportList:   []string{Llm, TextEmbedding, Tts, Rerank},
+		SupportedType: []string{Llm, TextEmbedding, Rerank},
 		SupportedFunctionCallList: []string{
 			`qwen-plus`,
-			`qwen-max`,
-		},
-		ConfigParams: []string{`api_key`},
-		ConfigList:   nil,
-		ApiVersions:  []string{},
-		LlmModelList: []string{
 			`qwen-turbo`,
-			`qwen-plus`,
+			`qwen3-235b-a22b`,
 			`qwen-max`,
-			`qwen-max-0428`,
-			`qwen-max-0403`,
-			`qwen-max-0107`,
-			`qwen-max-longcontext`,
+			`qwen-long`,
 			`deepseek-v3`,
 			`deepseek-r1`,
+			`deepseek-r1-0528`,
+		},
+		ConfigParams: []string{`api_key`},
+		LlmModelList: []string{
+			`qwen-plus`,
+			`qwen-turbo`,
+			`qwen3-235b-a22b`,
+			`qwen-max`,
+			`qwen-long`,
+			`deepseek-v3`,
+			`deepseek-r1`,
+			`deepseek-r1-0528`,
+			`Moonshot-Kimi-K2-Instruct`,
+		},
+		ChoosableThinkingModels: []string{
+			`qwen-plus`,
+			`qwen-turbo`,
+			`qwen3-235b-a22b`,
+		},
+		NetworkSearchModelList: []string{
+			`qwen-plus`,
+			`qwen-turbo`,
+			`qwen3-235b-a22b`,
+			`qwen-max`,
+			`Moonshot-Kimi-K2-Instruct`,
 		},
 		VectorModelList: []string{
-			`text-embedding-v1`,
-			`text-embedding-v2`,
+			`text-embedding-v4`,
 			`text-embedding-v3`,
+			`text-embedding-v2`,
+			`text-embedding-v1`,
 		},
-		RerankModelList: []string{},
+		RerankModelList: []string{
+			`gte-rerank-v2`,
+		},
 		HelpLinks:       `https://dashscope.aliyun.com/?spm=a2c4g.11186623.nav-dropdown-menu-0.142.6d1b46c1EeV28g&scm=20140722.X_data-37f0c4e3bf04683d35bc._.V_1`,
 		CallHandlerFunc: GetTongyiHandler,
 	},
@@ -324,9 +378,6 @@ var modelList = [...]ModelInfo{
 		SupportList:   []string{TextEmbedding, Rerank},
 		SupportedType: []string{TextEmbedding, Rerank},
 		ConfigParams:  []string{`api_endpoint`},
-		ConfigList:    nil,
-		ApiVersions:   []string{},
-		LlmModelList:  []string{},
 		VectorModelList: []string{
 			"bge-m3",
 		},
@@ -345,8 +396,6 @@ var modelList = [...]ModelInfo{
 		SupportList:   []string{Llm, TextEmbedding, Rerank},
 		SupportedType: []string{Llm, TextEmbedding, Rerank},
 		ConfigParams:  []string{`api_key`},
-		ConfigList:    nil,
-		ApiVersions:   []string{},
 		LlmModelList: []string{
 			`command-r-plus`,
 			`command-r`,
@@ -381,31 +430,27 @@ var modelList = [...]ModelInfo{
 		SupportList:     []string{Llm, TextEmbedding},
 		SupportedType:   []string{Llm, TextEmbedding},
 		ConfigParams:    []string{`model_type`, `deployment_name`, `api_endpoint`},
-		ConfigList:      nil,
-		ApiVersions:     []string{},
 		LlmModelList:    []string{"默认"},
 		VectorModelList: []string{"默认"},
-		RerankModelList: []string{},
 		HelpLinks:       `https://www.ollama.com/`,
 		CallHandlerFunc: GetOllamaHandle,
 	},
-	//{
-	//	ModelDefine:     ModelXnference,
-	//	ModelName:       `xorbitsai inference`,
-	//	ModelIconUrl:    LocalUploadPrefix + `model_icon/` + ModelXnference + `.png`,
-	//	Introduce:       `Xorbits Inference(Xinference)是一个开源平台,用于简化各种AI模型的运行和集成,借助Xinference,您可以使用任何开源LLM,嵌入模型和多模态模型在本地服务器中部署`,
-	//	IsOffline:       true,
-	//	SupportList:     []string{Llm, TextEmbedding, Rerank},
-	//	SupportedType:   []string{Llm, TextEmbedding, Rerank},
-	//	ConfigParams:    []string{`model_type`, `deployment_name`, `api_version`, `api_endpoint`},
-	//	ConfigList:      nil,
-	//	ApiVersions:     []string{"v1"},
-	//	LlmModelList:    []string{"默认"},
-	//	VectorModelList: []string{"默认"},
-	//	RerankModelList: []string{"默认"},
-	//	HelpLinks:       `https://baidu.com/`,
-	//	CallHandlerFunc: GetXinferenceHandle,
-	//},
+	{
+		ModelDefine:     ModelXnference,
+		ModelName:       `xorbitsai inference`,
+		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelXnference + `.png`,
+		Introduce:       `Xorbits Inference(Xinference)是一个开源平台,用于简化各种AI模型的运行和集成,借助Xinference,您可以使用任何开源LLM,嵌入模型和多模态模型在本地服务器中部署`,
+		IsOffline:       true,
+		SupportList:     []string{Llm, TextEmbedding, Rerank},
+		SupportedType:   []string{Llm, TextEmbedding, Rerank},
+		ConfigParams:    []string{`model_type`, `deployment_name`, `api_version`, `api_endpoint`},
+		ApiVersions:     []string{"v1"},
+		LlmModelList:    []string{"默认"},
+		VectorModelList: []string{"默认"},
+		RerankModelList: []string{"默认"},
+		HelpLinks:       `https://baidu.com/`,
+		CallHandlerFunc: GetXinferenceHandle,
+	},
 	{
 		ModelDefine:               ModelDeepseek,
 		ModelName:                 `DeepSeek`,
@@ -415,14 +460,10 @@ var modelList = [...]ModelInfo{
 		SupportedType:             []string{Llm},
 		SupportedFunctionCallList: []string{`deepseek-chat`},
 		ConfigParams:              []string{`api_key`},
-		ConfigList:                nil,
-		ApiVersions:               []string{},
 		LlmModelList: []string{
 			`deepseek-chat`,
 			`deepseek-reasoner`,
 		},
-		VectorModelList: []string{},
-		RerankModelList: []string{},
 		HelpLinks:       `https://www.deepseek.com/`,
 		CallHandlerFunc: GetDeepseekHandle,
 	},
@@ -434,9 +475,6 @@ var modelList = [...]ModelInfo{
 		SupportList:   []string{TextEmbedding, Rerank},
 		SupportedType: []string{TextEmbedding, Rerank},
 		ConfigParams:  []string{`api_key`},
-		ConfigList:    nil,
-		ApiVersions:   []string{},
-		LlmModelList:  []string{},
 		VectorModelList: []string{
 			`jina-embeddings-v2-base-en`,
 			`jina-embeddings-v2-base-zh`,
@@ -463,14 +501,10 @@ var modelList = [...]ModelInfo{
 		SupportedType:             []string{Llm},
 		SupportedFunctionCallList: []string{`yi-large-fc`},
 		ConfigParams:              []string{`api_key`},
-		ConfigList:                nil,
-		ApiVersions:               []string{},
 		LlmModelList: []string{
 			`yi-large`,
 			`yi-large-fc`,
 		},
-		VectorModelList: []string{},
-		RerankModelList: []string{},
 		HelpLinks:       `https://platform.lingyiwanwu.com/`,
 		CallHandlerFunc: GetLingYiWanWuHandle,
 	},
@@ -483,13 +517,9 @@ var modelList = [...]ModelInfo{
 		SupportedType:             []string{Llm},
 		SupportedFunctionCallList: []string{`moonshot-v1-8k`},
 		ConfigParams:              []string{`api_key`},
-		ConfigList:                nil,
-		ApiVersions:               []string{},
 		LlmModelList: []string{
 			`moonshot-v1-8k`,
 		},
-		VectorModelList: []string{},
-		RerankModelList: []string{},
 		HelpLinks:       `https://www.moonshot.cn/`,
 		CallHandlerFunc: GetMoonShotHandle,
 	},
@@ -501,8 +531,6 @@ var modelList = [...]ModelInfo{
 		SupportList:   []string{Llm},
 		SupportedType: []string{Llm},
 		ConfigParams:  []string{`app_id`, `api_key`, `secret_key`},
-		ConfigList:    nil,
-		ApiVersions:   []string{},
 		LlmModelList: []string{
 			`Spark Lite`,
 			`Spark V2.0`,
@@ -510,8 +538,6 @@ var modelList = [...]ModelInfo{
 			`Spark Max`,
 			`Spark4.0 Ultra`,
 		},
-		VectorModelList: []string{},
-		RerankModelList: []string{},
 		HelpLinks:       `https://xinghuo.xfyun.cn/sparkapi`,
 		CallHandlerFunc: GetSparkHandle,
 	},
@@ -523,8 +549,6 @@ var modelList = [...]ModelInfo{
 		SupportList:   []string{Llm, TextEmbedding},
 		SupportedType: []string{Llm, TextEmbedding},
 		ConfigParams:  []string{`api_key`, `secret_key`},
-		ConfigList:    nil,
-		ApiVersions:   []string{},
 		LlmModelList: []string{
 			`hunyuan-lite`,
 			`hunyuan-functioncall`,
@@ -535,7 +559,6 @@ var modelList = [...]ModelInfo{
 		VectorModelList: []string{
 			`默认`,
 		},
-		RerankModelList: []string{},
 		HelpLinks:       `https://cloud.tencent.com/product/hunyuan`,
 		CallHandlerFunc: GetHunyuanHandle,
 	},
@@ -546,15 +569,12 @@ var modelList = [...]ModelInfo{
 		Introduce:     `基于火山引擎提供的豆包大模型API`,
 		SupportList:   []string{Llm, TextEmbedding},
 		SupportedType: []string{Llm, TextEmbedding},
-		ConfigParams:  []string{`model_type`, `deployment_name`, `show_model_name`, `api_key`, `region`},
-		ConfigList:    nil,
-		ApiVersions:   []string{},
+		ConfigParams:  []string{`model_type`, `deployment_name`, `show_model_name`, `api_key`, `thinking_type`, `region`},
 		HistoryConfigParams: []string{
 			`secret_key`,
 		},
 		LlmModelList:    []string{`默认`},
 		VectorModelList: []string{`默认`},
-		RerankModelList: []string{},
 		HelpLinks:       `https://www.volcengine.com/product/doubao`,
 		CallHandlerFunc: GetDoubaoHandle,
 	},
@@ -567,8 +587,6 @@ var modelList = [...]ModelInfo{
 		SupportedType:             []string{Llm, TextEmbedding},
 		SupportedFunctionCallList: []string{`Baichuan4`, `Baichuan3-Turbo`, `Baichuan3-Turbo-128k`, `Baichuan2-Turbo`, `Baichuan2-Turbo-192k`},
 		ConfigParams:              []string{`api_key`},
-		ConfigList:                nil,
-		ApiVersions:               []string{},
 		LlmModelList: []string{
 			`Baichuan4`,
 			`Baichuan3-Turbo`,
@@ -579,7 +597,6 @@ var modelList = [...]ModelInfo{
 		VectorModelList: []string{
 			`Baichuan-Text-Embedding`,
 		},
-		RerankModelList: []string{},
 		HelpLinks:       `https://platform.baichuan-ai.com`,
 		CallHandlerFunc: GetBaichuanHandle,
 	},
@@ -592,8 +609,6 @@ var modelList = [...]ModelInfo{
 		SupportedType:             []string{Llm, TextEmbedding},
 		SupportedFunctionCallList: []string{`glm-4-0520`, `glm-4`, `glm-4-air`, `glm-4-airx`, `glm-4-flash`},
 		ConfigParams:              []string{`api_key`},
-		ConfigList:                nil,
-		ApiVersions:               []string{},
 		LlmModelList: []string{
 			`glm-4-0520`,
 			`glm-4`,
@@ -604,21 +619,17 @@ var modelList = [...]ModelInfo{
 		VectorModelList: []string{
 			`embedding-2`,
 		},
-		RerankModelList: []string{},
 		HelpLinks:       `https://open.bigmodel.cn/`,
 		CallHandlerFunc: GetZhipuHandle,
 	},
 	{
-		ModelDefine:               ModelMinimax,
-		ModelName:                 `minimax`,
-		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelMinimax + `.png`,
-		Introduce:                 `MiniMax 成立于 2021 年 12 月，是领先的通用人工智能科技公司，致力于与用户共创智能。MiniMax 自主研发多模态、万亿参数的 MoE 大模型，并基于大模型推出海螺AI、星野等原生应用。MiniMax API 开放平台提供安全、灵活、可靠的 API 服务，助力企业和开发者快速搭建 AI 应用。`,
-		SupportList:               []string{Llm},
-		SupportedType:             []string{Llm},
-		SupportedFunctionCallList: []string{},
-		ConfigParams:              []string{`api_key`},
-		ConfigList:                nil,
-		ApiVersions:               []string{},
+		ModelDefine:   ModelMinimax,
+		ModelName:     `minimax`,
+		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelMinimax + `.png`,
+		Introduce:     `MiniMax 成立于 2021 年 12 月，是领先的通用人工智能科技公司，致力于与用户共创智能。MiniMax 自主研发多模态、万亿参数的 MoE 大模型，并基于大模型推出海螺AI、星野等原生应用。MiniMax API 开放平台提供安全、灵活、可靠的 API 服务，助力企业和开发者快速搭建 AI 应用。`,
+		SupportList:   []string{Llm},
+		SupportedType: []string{Llm},
+		ConfigParams:  []string{`api_key`},
 		LlmModelList: []string{
 			`abab6.5s-chat`,
 			`abab6.5g-chat`,
@@ -626,60 +637,51 @@ var modelList = [...]ModelInfo{
 			`abab5.5s-chat`,
 			`abab5.5-chat`,
 		},
-		VectorModelList: []string{},
-		RerankModelList: []string{},
 		HelpLinks:       `https://www.minimaxi.com/`,
 		CallHandlerFunc: GetMinimaxHandle,
 	},
 	{
-		ModelDefine:               ModelSiliconFlow,
-		ModelName:                 `硅基流动`,
-		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelSiliconFlow + `.png`,
-		Introduce:                 `支持通义千问，mata-lama，google-gemma，bge-m3等开源模型，可以免部署、低成本使用`,
-		SupportList:               []string{Llm, TextEmbedding, Rerank},
-		SupportedType:             []string{Llm, TextEmbedding, Rerank},
-		SupportedFunctionCallList: []string{},
-		ConfigParams:              []string{`api_key`},
-		ConfigList:                nil,
-		ApiVersions:               []string{},
-		LlmModelList: []string{
-			`Qwen/Qwen2.5-72B-Instruct-128K`,
+		ModelDefine:   ModelSiliconFlow,
+		ModelName:     `硅基流动`,
+		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelSiliconFlow + `.png`,
+		Introduce:     `支持通义千问，mata-lama，google-gemma，bge-m3等开源模型，可以免部署、低成本使用`,
+		SupportList:   []string{Llm, TextEmbedding, Rerank},
+		SupportedType: []string{Llm, TextEmbedding, Rerank},
+		SupportedFunctionCallList: []string{
 			`deepseek-ai/DeepSeek-R1`,
+			`Pro/deepseek-ai/DeepSeek-R1`,
 			`deepseek-ai/DeepSeek-V3`,
-			`AIDC-AI/Marco-o1`,
-			`meta-llama/Llama-3.3-70B-Instruct`,
-			`deepseek-ai/DeepSeek-V2.5`,
-			`Qwen/Qwen2.5-72B-Instruct`,
-			`Qwen/Qwen2.5-32B-Instruct`,
-			`Qwen/Qwen2.5-14B-Instruct`,
-			`Qwen/Qwen2.5-7B-Instruct`,
-			`Qwen/Qwen2.5-Coder-32B-Instruct`,
-			`Qwen/Qwen2.5-Coder-7B-Instruct`,
-			`Qwen/Qwen2-7B-Instruct`,
-			`Qwen/Qwen2-1.5B-Instruct`,
-			`Qwen/QwQ-32B-Preview`,
-			`TeleAI/TeleChat2`,
-			`01-ai/Yi-1.5-34B-Chat-16K`,
-			`01-ai/Yi-1.5-9B-Chat-16K`,
-			`01-ai/Yi-1.5-6B-Chat`,
-			`THUDM/glm-4-9b-chat`,
-			`Vendor-A/Qwen/Qwen2.5-72B-Instruct`,
-			`internlm/internlm2_5-7b-chat`,
-			`internlm/internlm2_5-20b-chat`,
-			`meta-llama/Meta-Llama-3.1-405B-Instruct`,
-			`meta-llama/Meta-Llama-3.1-70B-Instruct`,
-			`meta-llama/Meta-Llama-3.1-8B-Instruct`,
-			`google/gemma-2-27b-it`,
-			`google/gemma-2-9b-it`,
-			`Pro/Qwen/Qwen2.5-7B-Instruct`,
-			`Pro/Qwen/Qwen2-7B-Instruct`,
-			`Pro/Qwen/Qwen2-1.5B-Instruct`,
-			`Pro/THUDM/glm-4-9b-chat`,
-			`Pro/meta-llama/Meta-Llama-3.1-8B-Instruct`,
-			`Pro/google/gemma-2-9b-it`,
+			`Pro/deepseek-ai/DeepSeek-V3`,
+			`Pro/moonshotai/Kimi-K2-Instruct`,
+			`Qwen/Qwen3-235B-A22B`,
 		},
-		VectorModelList: []string{`BAAI/bge-m3`, `Pro/BAAI/bge-m3`},
-		RerankModelList: []string{`BAAI/bge-reranker-v2-m3`, `Pro/BAAI/bge-reranker-v2-m3`},
+		ConfigParams: []string{`api_key`},
+		LlmModelList: []string{
+			`deepseek-ai/DeepSeek-R1`,
+			`Pro/deepseek-ai/DeepSeek-R1`,
+			`deepseek-ai/DeepSeek-V3`,
+			`Pro/deepseek-ai/DeepSeek-V3`,
+			`Pro/moonshotai/Kimi-K2-Instruct`,
+			`baidu/ERNIE-4.5-300B-A47B`,
+			`Qwen/Qwen3-235B-A22B`,
+		},
+		ChoosableThinkingModels: []string{
+			`Qwen/Qwen3-235B-A22B`,
+		},
+		VectorModelList: []string{
+			`Qwen/Qwen3-Embedding-8B`,
+			`Qwen/Qwen3-Embedding-4B`,
+			`Qwen/Qwen3-Embedding-0.6B`,
+			`BAAI/bge-m3`,
+			`Pro/BAAI/bge-m3`,
+		},
+		RerankModelList: []string{
+			`Qwen/Qwen3-Reranker-8B`,
+			`Qwen/Qwen3-Reranker-4B`,
+			`Qwen/Qwen3-Reranker-0.6B`,
+			`BAAI/bge-reranker-v2-m3`,
+			`Pro/BAAI/bge-reranker-v2-m3`,
+		},
 		HelpLinks:       `https://siliconflow.cn/zh-cn/`,
 		CallHandlerFunc: GetSiliconFlow,
 	},
@@ -719,7 +721,7 @@ func GetModelCallHandler(modelConfigId int, useModel string) (*ModelCallHandler,
 			return nil, err
 		}
 	}
-	handler, err := modelInfo.CallHandlerFunc(config, useModel)
+	handler, err := modelInfo.CallHandlerFunc(modelInfo, config, useModel)
 	if err != nil {
 		return nil, err
 	}
@@ -737,7 +739,7 @@ func GetVector2000(adminUserId int, openid string, robot msql.Params, library ms
 		return ``, err
 	}
 	if handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
-		handler.modelInfo.TokenUseReport(handler.config, useModel, res.PromptToken, res.CompletionToken)
+		handler.modelInfo.TokenUseReport(handler.config, useModel, res.PromptToken, res.CompletionToken, robot)
 	}
 	return tool.JsonEncode(res.Result)
 }
@@ -749,7 +751,7 @@ func RequestChatStream(adminUserId int, openid string, robot msql.Params, appTyp
 	}
 	chatResp, requestTime, err := handler.RequestChatStream(adminUserId, openid, robot, appType, messages, functionTools, chanStream, temperature, maxToken)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
-		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken)
+		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken, robot)
 	}
 	return chatResp, requestTime, err
 }
@@ -761,7 +763,7 @@ func RequestSearchStream(adminUserId int, modelConfigId int, useModel string, li
 	}
 	chatResp, requestTime, err := handler.RequestChatStream(adminUserId, "", library, "", messages, functionTools, chanStream, temperature, maxToken)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
-		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken)
+		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken, msql.Params{})
 	}
 	return chatResp, requestTime, err
 }
@@ -773,7 +775,7 @@ func RequestChat(adminUserId int, openid string, robot msql.Params, appType stri
 	}
 	chatResp, requestTime, err := handler.RequestChat(adminUserId, openid, robot, appType, messages, functionTools, temperature, maxToken)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
-		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken)
+		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken, robot)
 	}
 	return chatResp, requestTime, err
 }
@@ -871,6 +873,9 @@ func (h *ModelCallHandler) RequestChatStream(
 	maxToken int,
 ) (adaptor.ZhimaChatCompletionResponse, int64, error) {
 	client := &adaptor.Adaptor{}
+	if h.Meta.ChoosableThinking && len(robot) > 0 && cast.ToBool(robot[`enable_thinking`]) {
+		h.Meta.EnabledThinking = true
+	}
 	client.Init(h.Meta)
 	req := adaptor.ZhimaChatCompletionRequest{
 		Messages:      messages,
@@ -995,6 +1000,9 @@ func (h *ModelCallHandler) RequestChat(
 	maxToken int,
 ) (adaptor.ZhimaChatCompletionResponse, int64, error) {
 	client := &adaptor.Adaptor{}
+	if h.Meta.ChoosableThinking && len(robot) > 0 && cast.ToBool(robot[`enable_thinking`]) {
+		h.Meta.EnabledThinking = true
+	}
 	client.Init(h.Meta)
 	req := adaptor.ZhimaChatCompletionRequest{
 		Messages:      messages,

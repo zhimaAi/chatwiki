@@ -23,3 +23,11 @@ export const getModelConfigOption = (params) => {
 export const getTokenModels = (params) => {
   return request.get({ url: '/manage/stats/getActiveModels', params })
 }
+
+export const getSelfModelBuylog = (params) => {
+  return request.get({ url: '/manage/getSelfModelBuylog', params })
+}
+
+export const getSelfModelConfigs = (params) => {
+  return request.get({ url: '/manage/getSelfModelConfigs', params })
+}

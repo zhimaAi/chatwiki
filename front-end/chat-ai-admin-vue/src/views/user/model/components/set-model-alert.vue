@@ -57,6 +57,14 @@
                 </a-radio-group>
               </template>
 
+              <template v-if="item.componentType == 'radio2'">
+                <a-radio-group v-model:value="formState[item.key]" :disabled="item.disabled">
+                  <a-radio :value="val.value" v-for="(val, index) in item.options" :key="val.value"
+                    ><span>{{ val.label }}</span></a-radio
+                  >
+                </a-radio-group>
+              </template>
+
               <template v-if="item.componentType == 'select'">
                 <a-select v-model:value="formState[item.key]" :placeholder="item.placeholder">
                   <a-select-option :value="val" v-for="(val, index) in item.options" :key="index">
@@ -194,6 +202,7 @@ const open = (data, record) => {
   formRules.value = formRulesTemp
   formState.value = formStateTemp
   formItems.value = formItemsTemp
+
   show.value = true
 
   setTimeout(() => {
