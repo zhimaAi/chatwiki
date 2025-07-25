@@ -1091,18 +1091,17 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 	if err != nil {
 		return nil, nil, libUseTime, err
 	}
-	// check is deep-seek-r1
-	isDeepSeek := common.CheckModelIsDeepSeek(params.Robot[`use_model`])
 
 	//part0:init messages
 	messages := make([]adaptor.ZhimaChatCompletionMessage, 0)
 	//part1:prompt
+	roleType := define.PromptRoleTypeMap[cast.ToInt(params.Robot[`prompt_role_type`])]
 	prompt, libraryContent := common.FormatSystemPrompt(params.Prompt, list)
-	if isDeepSeek {
+	if roleType == define.PromptRoleUser {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: libraryContent})
 		*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: libraryContent})
 	} else {
-		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: prompt})
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: roleType, Content: prompt})
 		*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: prompt})
 	}
 	//part2:context_qa
@@ -1112,7 +1111,7 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 		*debugLog = append(*debugLog, map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]})
 	}
 	//part3:question,prompt+question
-	if isDeepSeek {
+	if roleType == define.PromptRoleUser {
 		content := strings.Join([]string{params.Prompt, params.Question}, "\n\n")
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: content})
 		*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: content})
@@ -1127,15 +1126,14 @@ func buildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 	if len(params.Prompt) == 0 { //no custom is used
 		params.Prompt = common.BuildPromptStruct(cast.ToInt(params.Robot[`prompt_type`]), params.Robot[`prompt`], params.Robot[`prompt_struct`])
 	}
-	// check is deep-seek-r1
-	isDeepSeek := common.CheckModelIsDeepSeek(params.Robot[`use_model`])
 
 	//part0:init messages
 	messages := make([]adaptor.ZhimaChatCompletionMessage, 0)
 	//part1:prompt
 	prompt, _ := common.FormatSystemPrompt(params.Prompt, nil)
-	if !isDeepSeek {
-		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: prompt})
+	roleType := define.PromptRoleTypeMap[cast.ToInt(params.Robot[`prompt_role_type`])]
+	if roleType != define.PromptRoleUser {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: roleType, Content: prompt})
 		*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: prompt})
 	}
 	//part2:context_qa
@@ -1147,7 +1145,7 @@ func buildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 		*debugLog = append(*debugLog, map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]})
 	}
 	//part3:cur_question
-	if isDeepSeek {
+	if roleType == define.PromptRoleUser {
 		content := strings.Join([]string{prompt, params.Question}, "\n\n")
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: content})
 		*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: content})

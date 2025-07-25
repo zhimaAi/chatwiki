@@ -9,6 +9,7 @@ export const useLibraryStore = defineStore('library', {
       library_intro: '',
       robot_nums: 0,
       graph_switch: 0,
+      qa_index_type: 1,
       initDocumentFragmentList: []
     }
   },
@@ -22,6 +23,7 @@ export const useLibraryStore = defineStore('library', {
       this.library_intro = res.data.library_intro
       this.robot_nums = res.data.robot_nums
       this.graph_switch = res.data.graph_switch * 1
+      this.qa_index_type = res.data.qa_index_type
     },
     changeGraphSwitch(val){
       this.graph_switch = val

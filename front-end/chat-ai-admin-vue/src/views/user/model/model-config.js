@@ -33,6 +33,35 @@ const modelFieldConfig = {
       }
     ]
   },
+  thinking_type: {
+    componentType: 'radio2',
+    defaultValue: '0',
+    key: 'thinking_type',
+    label: '深度思考',
+    optionsKey: 'thinking_type',
+    options: [
+      {
+        label: '支持（类似deepseek r1这种只支持思考模式的模型）',
+        value: '1'
+      },
+      {
+        label: '可选（比如doubao1.6,可以通过接口控制是否启用深度思考模式）',
+        value: '2'
+      },
+      {
+        label: '不支持（比如deepseek v3,模型本身不支持深度思考模式）',
+        value: '0'
+      },
+    ],
+    disabled: false,
+    rules: [
+      {
+        required: true,
+        message: '请选择深度思考',
+        trigger: 'change'
+      }
+    ]
+  },
   deployment_name: {
     ...inputDefaultConfig,
     label: '部署名称',
@@ -375,6 +404,14 @@ function getModelTableData(data) {
       rows.push({
         model_name: item,
         model_type: 'TEXT EMBEDDING'
+      })
+    })
+
+    
+    data.rerank_model_list.forEach((item) => {
+      rows.push({
+        model_name: item,
+        model_type: 'RERANK'
       })
     })
 

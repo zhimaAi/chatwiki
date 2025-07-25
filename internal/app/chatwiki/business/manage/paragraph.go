@@ -502,27 +502,52 @@ func SaveParagraph(c *gin.Context) {
 		}
 		if err != nil {
 			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			_ = m.Rollback()
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			return
 		}
 		vectorID, err := common.SaveVector(int64(userId), cast.ToInt64(fileInfo[`library_id`]),
 			fileId, id, cast.ToString(define.VectorTypeQuestion), question)
 		if err != nil {
 			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			_ = m.Rollback()
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			return
 		}
 		vectorIds = append(vectorIds, vectorID)
+		similarQuestionArr := make([]string, 0)
+		tool.JsonDecode(similarQuestions, &similarQuestionArr)
+		if err = common.DeleteLibraryFileDataIndex(cast.ToString(id), cast.ToString(define.VectorTypeSimilarQuestion)); err != nil {
+			logs.Error(err.Error())
+			_ = m.Rollback()
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		for _, similarQuestion := range similarQuestionArr {
+			vectorID, err := common.SaveVector(
+				cast.ToInt64(userId),
+				cast.ToInt64(fileInfo[`library_id`]),
+				fileId,
+				id,
+				cast.ToString(define.VectorTypeSimilarQuestion),
+				strings.TrimSpace(similarQuestion),
+			)
+			if err != nil {
+				logs.Error(err.Error())
+				_ = m.Rollback()
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+				return
+			}
+			vectorIds = append(vectorIds, vectorID)
+		}
 
 		if fileInfo[`type`] == cast.ToString(define.QAIndexTypeQuestionAndAnswer) {
 			vectorID, err = common.SaveVector(int64(userId), cast.ToInt64(fileInfo[`library_id`]),
 				fileId, id, cast.ToString(define.VectorTypeAnswer), question)
 			if err != nil {
 				logs.Error(err.Error())
-				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 				_ = m.Rollback()
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 				return
 			}
 			vectorIds = append(vectorIds, vectorID)
@@ -542,16 +567,16 @@ func SaveParagraph(c *gin.Context) {
 		}
 		if err != nil {
 			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			_ = m.Rollback()
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			return
 		}
 		vectorID, err := common.SaveVector(int64(userId), cast.ToInt64(fileInfo[`library_id`]),
 			fileId, id, cast.ToString(define.VectorTypeParagraph), content)
 		if err != nil {
 			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			_ = m.Rollback()
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			return
 		}
 		vectorIds = append(vectorIds, vectorID)
@@ -586,7 +611,7 @@ func SaveParagraph(c *gin.Context) {
 		}
 	}
 
-	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+	c.String(http.StatusOK, lib_web.FmtJson(m.Where(`id`, cast.ToString(id)).Find()))
 }
 
 func SaveSplitParagraph(c *gin.Context) {

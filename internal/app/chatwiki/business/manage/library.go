@@ -29,6 +29,10 @@ func GetLibraryList(c *gin.Context) {
 	}
 	m := msql.Model(`chat_ai_library`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId))
+	ids := strings.TrimSpace(c.Query(`ids`))
+	if len(ids) > 0 {
+		m.Where(`id`, `in`, ids)
+	}
 	libraryName := strings.TrimSpace(c.Query(`library_name`))
 	if len(libraryName) > 0 {
 		m.Where(`library_name`, `like`, libraryName)
@@ -226,6 +230,7 @@ func CreateLibrary(c *gin.Context) {
 	AiChunkModel := strings.TrimSpace(c.PostForm(`ai_chunk_model`))
 	AiChunkModelConfigId := cast.ToInt(c.PostForm(`ai_chunk_model_config_id`))
 	AiChunkSize := cast.ToInt(c.PostForm(`ai_chunk_size`))
+	qaIndexType := cast.ToInt(c.PostForm(`qa_index_type`))
 	avatar := ""
 	if len(libraryName) == 0 || !tool.InArrayInt(typ, define.LibraryTypes[:]) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
@@ -291,6 +296,7 @@ func CreateLibrary(c *gin.Context) {
 		`ai_chunk_model`:                       AiChunkModel,
 		`ai_chunk_model_config_id`:             AiChunkModelConfigId,
 		`ai_chunk_size`:                        AiChunkSize,
+		`qa_index_type`:                        qaIndexType,
 	}
 	if len(avatar) > 0 {
 		data[`avatar`] = avatar
@@ -418,6 +424,7 @@ func EditLibrary(c *gin.Context) {
 	AiChunkModel := strings.TrimSpace(c.PostForm(`ai_chunk_model`))
 	AiChunkModelConfigId := cast.ToInt(c.PostForm(`ai_chunk_model_config_id`))
 	AiChunkSize := cast.ToInt(c.PostForm(`ai_chunk_size`))
+	qaIndexType := cast.ToInt(c.PostForm(`qa_index_type`))
 	if id <= 0 || len(libraryName) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
@@ -556,6 +563,7 @@ func EditLibrary(c *gin.Context) {
 		`ai_chunk_model`:                       AiChunkModel,
 		`ai_chunk_model_config_id`:             AiChunkModelConfigId,
 		`ai_chunk_size`:                        AiChunkSize,
+		`qa_index_type`:                        qaIndexType,
 	}
 	if len(avatar) > 0 {
 		data[`avatar`] = avatar
@@ -575,6 +583,10 @@ func EditLibrary(c *gin.Context) {
 		}
 	} else if info[`use_model`] != useModel || cast.ToInt(info[`model_config_id`]) != modelConfigId {
 		go common.EmbeddingNewVector(id, cast.ToInt(info[`admin_user_id`]))
+	}
+	// QA 切换索引方式
+	if cast.ToInt(info[`type`]) == define.QALibraryType && qaIndexType != cast.ToInt(info[`qa_index_type`]) {
+		go common.EmbeddingNewQAVector(id, cast.ToInt(info[`admin_user_id`]),qaIndexType)
 	}
 
 	//clear cached data

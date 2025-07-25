@@ -52,7 +52,7 @@
     <div class="prompt-log-content">
       <div class="prompt-log-items">
         <div class="prompt-log-label">
-          <span>SYSTEM </span>
+          <span>提示词 </span>
           <a-tooltip>
             <template #title>系统提示词和文档分段。</template>
             <QuestionCircleOutlined class="question-icon" />

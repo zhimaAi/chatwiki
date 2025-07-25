@@ -12,7 +12,7 @@ import (
 	"github.com/zhimaAi/go_tools/msql"
 )
 
-func GetAzureHandler(config msql.Params, _ string) (*ModelCallHandler, error) {
+func GetAzureHandler(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:       `azure`,
@@ -26,7 +26,7 @@ func GetAzureHandler(config msql.Params, _ string) (*ModelCallHandler, error) {
 	return handler, nil
 }
 
-func GetClaudeHandler(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetClaudeHandler(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:       `claude`,
@@ -39,7 +39,7 @@ func GetClaudeHandler(config msql.Params, useModel string) (*ModelCallHandler, e
 	return handler, nil
 }
 
-func GetGeminiHandler(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetGeminiHandler(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:   `gemini`,
@@ -51,7 +51,7 @@ func GetGeminiHandler(config msql.Params, useModel string) (*ModelCallHandler, e
 	return handler, nil
 }
 
-func GetYiyanHandler(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetYiyanHandler(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:      `baidu`,
@@ -74,19 +74,20 @@ func CheckYiyanFancCall(modelInfo ModelInfo, config msql.Params, useModel string
 	return errors.New(`model is not support`)
 }
 
-func GetTongyiHandler(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetTongyiHandler(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
-			Corp:   `ali`,
-			APIKey: config[`api_key`],
-			Model:  useModel,
+			Corp:              `ali`,
+			APIKey:            config[`api_key`],
+			Model:             useModel,
+			ChoosableThinking: tool.InArrayString(useModel, modelInfo.ChoosableThinkingModels),
 		},
 		config: config,
 	}
 	return handler, nil
 }
 
-func GetBaaiHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetBaaiHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:     `baai`,
@@ -99,7 +100,7 @@ func GetBaaiHandle(config msql.Params, useModel string) (*ModelCallHandler, erro
 	return handler, nil
 }
 
-func GetCohereHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetCohereHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:     `cohere`,
@@ -112,7 +113,7 @@ func GetCohereHandle(config msql.Params, useModel string) (*ModelCallHandler, er
 	return handler, nil
 }
 
-func GetOllamaHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetOllamaHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	if useModel == "默认" && cast.ToString(config["deployment_name"]) != "" {
 		useModel = cast.ToString(config["deployment_name"])
 	}
@@ -128,7 +129,20 @@ func GetOllamaHandle(config msql.Params, useModel string) (*ModelCallHandler, er
 	return handler, nil
 }
 
-func GetDeepseekHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetXinferenceHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
+	handler := &ModelCallHandler{
+		Meta: adaptor.Meta{
+			Corp:       `xinference`,
+			EndPoint:   config[`api_endpoint`],
+			APIKey:     config[`api_key`],
+			APIVersion: config["api_version"],
+			Model:      useModel,
+		},
+	}
+	return handler, nil
+}
+
+func GetDeepseekHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:   `deepseek`,
@@ -139,7 +153,7 @@ func GetDeepseekHandle(config msql.Params, useModel string) (*ModelCallHandler, 
 	}
 	return handler, nil
 }
-func GetJinaHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetJinaHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:   `jina`,
@@ -151,7 +165,7 @@ func GetJinaHandle(config msql.Params, useModel string) (*ModelCallHandler, erro
 	return handler, nil
 }
 
-func GetLingYiWanWuHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetLingYiWanWuHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:   `lingyiwanwu`,
@@ -163,7 +177,7 @@ func GetLingYiWanWuHandle(config msql.Params, useModel string) (*ModelCallHandle
 	return handler, nil
 }
 
-func GetMoonShotHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetMoonShotHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:   `moonshot`,
@@ -175,7 +189,7 @@ func GetMoonShotHandle(config msql.Params, useModel string) (*ModelCallHandler, 
 	return handler, nil
 }
 
-func GetBaichuanHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetBaichuanHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:   `baichuan`,
@@ -187,7 +201,7 @@ func GetBaichuanHandle(config msql.Params, useModel string) (*ModelCallHandler, 
 	return handler, nil
 }
 
-func GetZhipuHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetZhipuHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:   `zhipu`,
@@ -199,7 +213,7 @@ func GetZhipuHandle(config msql.Params, useModel string) (*ModelCallHandler, err
 	return handler, nil
 }
 
-func GetOpenAIHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetOpenAIHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:   `openai`,
@@ -211,7 +225,7 @@ func GetOpenAIHandle(config msql.Params, useModel string) (*ModelCallHandler, er
 	return handler, nil
 }
 
-func GetOpenAIAgentHandle(config msql.Params, _ string) (*ModelCallHandler, error) {
+func GetOpenAIAgentHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:       `openaiAgent`,
@@ -225,7 +239,7 @@ func GetOpenAIAgentHandle(config msql.Params, _ string) (*ModelCallHandler, erro
 	return handler, nil
 }
 
-func GetSparkHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetSparkHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:      `spark`,
@@ -239,7 +253,7 @@ func GetSparkHandle(config msql.Params, useModel string) (*ModelCallHandler, err
 	return handler, nil
 }
 
-func GetHunyuanHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetHunyuanHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:      `hunyuan`,
@@ -253,21 +267,22 @@ func GetHunyuanHandle(config msql.Params, useModel string) (*ModelCallHandler, e
 	return handler, nil
 }
 
-func GetDoubaoHandle(config msql.Params, _ string) (*ModelCallHandler, error) {
+func GetDoubaoHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
-			Corp:      `doubao`,
-			APIKey:    config[`api_key`],
-			SecretKey: config[`secret_key`],
-			Region:    config[`region`],
-			Model:     config[`deployment_name`],
+			Corp:              `doubao`,
+			APIKey:            config[`api_key`],
+			SecretKey:         config[`secret_key`],
+			Region:            config[`region`],
+			Model:             config[`deployment_name`],
+			ChoosableThinking: cast.ToUint(config[`thinking_type`]) == 2, //深度思考选项:0不支持,1支持,2可选
 		},
 		config: config,
 	}
 	return handler, nil
 }
 
-func GetMinimaxHandle(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetMinimaxHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:   `minimax`,
@@ -279,14 +294,15 @@ func GetMinimaxHandle(config msql.Params, useModel string) (*ModelCallHandler, e
 	return handler, nil
 }
 
-func GetSiliconFlow(config msql.Params, useModel string) (*ModelCallHandler, error) {
+func GetSiliconFlow(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
-			EndPoint:   `https://api.siliconflow.cn`,
-			Corp:       ModelSiliconFlow,
-			APIKey:     config[`api_key`],
-			APIVersion: `v1`,
-			Model:      useModel,
+			EndPoint:          `https://api.siliconflow.cn`,
+			Corp:              ModelSiliconFlow,
+			APIKey:            config[`api_key`],
+			APIVersion:        `v1`,
+			Model:             useModel,
+			ChoosableThinking: tool.InArrayString(useModel, modelInfo.ChoosableThinkingModels),
 		},
 		config: config,
 	}

@@ -229,7 +229,9 @@
             >
               <a-select-opt-group v-for="item in rerankModelList" :key="item.id">
                 <template #label>
-                  <span><img class="model-icon" :src="item.icon" alt="" /></span>
+                  <a-flex align="center" :gap="8">
+                    <img class="model-icon" :src="item.icon" alt="" />{{ item.name }}
+                  </a-flex>
                 </template>
                 <a-select-option
                   :value="val"

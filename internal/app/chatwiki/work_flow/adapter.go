@@ -175,6 +175,7 @@ func (n *CateNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: flow.params.Question})
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: flow.params.Question}})
 	//request chat
+	flow.params.Robot[`enable_thinking`] = cast.ToString(cast.ToUint(n.params.EnableThinking))
 	chatResp, requestTime, err := common.RequestChat(
 		flow.params.AdminUserId, flow.params.Openid, flow.params.Robot, flow.params.AppType,
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
@@ -348,6 +349,7 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 	//append OpenApiContent
 	messages = common.BuildOpenApiContent(flow.params.ChatRequestParam, messages)
 	//request chat
+	flow.params.Robot[`enable_thinking`] = cast.ToString(cast.ToUint(n.params.EnableThinking))
 	chatResp, requestTime, err := common.RequestChat(
 		flow.params.AdminUserId, flow.params.Openid, flow.params.Robot, flow.params.AppType,
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),

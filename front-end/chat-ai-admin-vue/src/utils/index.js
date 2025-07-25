@@ -310,6 +310,22 @@ export function exportToJsonWithSaver(data, filename = 'data.json') {
   }, 0)
 }
 
+export function formatPriceWithCommas(price) {
+  // 将价格转换为字符串，以确保小数部分不会被截断
+  const priceStr = price.toString();
+
+  // 分离整数部分和小数部分
+  const [integerPart, decimalPart] = priceStr.split('.');
+
+  // 使用正则表达式将整数部分转换为千分位格式
+  const formattedIntegerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+  // 如果存在小数部分，则将其添加回结果中
+  const formattedPrice = decimalPart ? `${formattedIntegerPart}.${decimalPart}` : formattedIntegerPart;
+
+  return formattedPrice;
+}
+
 // 格式化显示时间
 export function formatDisplayChatTime(time) {
   time = time * 1000

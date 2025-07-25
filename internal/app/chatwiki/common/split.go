@@ -309,8 +309,14 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 				return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
 			}
 			indexIds = append(indexIds, vectorID)
-
+			if err = DeleteLibraryFileDataIndex(cast.ToString(id), cast.ToString(define.VectorTypeSimilarQuestion)); err != nil {
+				logs.Error(err.Error())
+				return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+			}
 			for _, similarQuestion := range item.SimilarQuestionList {
+				if len(similarQuestion) <= 0 {
+					continue
+				}
 				vectorID, err := SaveVector(
 					cast.ToInt64(info[`admin_user_id`]),
 					cast.ToInt64(info[`library_id`]),
@@ -1047,8 +1053,11 @@ func ReadQaTab(fileUrl, fileExt string, splitParams define.SplitParams) ([]defin
 		if len(row) > questionIndex {
 			question = row[questionIndex]
 		}
-		if similarIndex > 0 && len(row) > similarIndex {
-			similarQuestionList = append(similarQuestionList, row[similarIndex])
+		if similarIndex > 0 && len(row) > similarIndex && len(row[similarIndex]) > 0 {
+			// 通过换行符分割相似问题
+			similarQuestionList = append(similarQuestionList, strings.FieldsFunc(row[similarIndex], func(r rune) bool {
+				return r == '\n' || r == '\r'
+			})...)
 		}
 		answer, images := ExtractTextImages(answer)
 		if len(answer) == 0 || len(question) == 0 {
@@ -1089,6 +1098,8 @@ func QaDocSplit(splitParams define.SplitParams, items []define.DocSplitItem) []d
 					continue
 				}
 			} else {
+				splitParams.SimilarLabel = strings.ReplaceAll(splitParams.SimilarLabel, ":", "：")
+				splitParams.AnswerLable = strings.ReplaceAll(splitParams.AnswerLable, ":", "：")
 				similarIndex := strings.Index(section, splitParams.SimilarLabel)
 				answerIndex := strings.Index(section, splitParams.AnswerLable)
 
@@ -1098,7 +1109,11 @@ func QaDocSplit(splitParams define.SplitParams, items []define.DocSplitItem) []d
 
 					// 相似问题文本块在 Similar 标签和 Answer 标签之间
 					similarBlock := section[similarIndex+len(splitParams.SimilarLabel) : answerIndex]
-					similarList = append(similarList, similarBlock)
+					// 通过换行符分割相似问题
+					similarList = append(similarList, strings.FieldsFunc(similarBlock, func(r rune) bool {
+						return r == '\n' || r == '\r'
+					})...)
+					// similarList = append(similarList, similarBlock)
 
 					// 答案部分从 Answer 标签之后开始
 					answer = section[answerIndex+len(splitParams.AnswerLable):]
@@ -1204,15 +1219,18 @@ func AutoSplitLibFile(adminUserId, fileId int, splitParams define.SplitParams) {
 		logs.Error(err.Error())
 		return
 	}
-
+	// default type
+	if splitParams.QaIndexType == 0 {
+		splitParams.QaIndexType = define.QAIndexTypeQuestionAndAnswer
+	}
 	if splitParams.ChunkType == define.ChunkTypeAi && splitParams.AiChunkNew {
-		if err = SaveAISplitDocs(adminUserId, fileId, wordTotal, define.QAIndexTypeQuestionAndAnswer, splitParams, list, 0, lang); err != nil {
+		if err = SaveAISplitDocs(adminUserId, fileId, wordTotal, splitParams.QaIndexType, splitParams, list, 0, lang); err != nil {
 			logs.Error(err.Error())
 			updateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusException, `errmsg`: err.Error()})
 			return
 		}
 	} else {
-		_, err = SaveLibFileSplit(adminUserId, fileId, wordTotal, define.QAIndexTypeQuestionAndAnswer, splitParams, list, 0, lang)
+		_, err = SaveLibFileSplit(adminUserId, fileId, wordTotal, splitParams.QaIndexType, splitParams, list, 0, lang)
 		if err != nil {
 			logs.Error(err.Error())
 			return

@@ -67,6 +67,67 @@ func EmbeddingNewVector(libraryId, adminUserId int) {
 	}
 }
 
+func EmbeddingNewQAVector(libraryId, adminUserId, qaIndexType int) {
+	//async task:convert vector
+	var (
+		vectorData = make(map[string][]int)
+		m          = msql.Model(`chat_ai_library_file_data_index`, define.Postgres)
+	)
+	answerIds, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`library_id`, cast.ToString(libraryId)).
+		Where(`type`, `in`, cast.ToString(define.VectorTypeAnswer)).
+		ColumnArr(`id`)
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	if len(answerIds) > 0 {
+		m.Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Where(`library_id`, cast.ToString(libraryId)).
+			Where(`id`, `in`, strings.Join(answerIds, `,`)).
+			Delete()
+	}
+	if qaIndexType == define.QAIndexTypeQuestionAndAnswer {
+		if len(answerIds) <= 0 {
+			// 新增
+			page := 1
+			size := 200
+			for {
+				m := msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
+					Where(`library_id`, cast.ToString(libraryId)).
+					Field(`id,file_id,answer`)
+				list, _, err := m.Order(`id desc`).Paginate(page, size)
+				if err != nil {
+					logs.Error(err.Error())
+					return
+				}
+				if len(list) == 0 {
+					break
+				}
+				for _, item := range list {
+					vectorID, err := SaveVector(int64(adminUserId), cast.ToInt64(libraryId), 0, cast.ToInt64(item[`id`]), cast.ToString(define.VectorTypeAnswer), item[`answer`])
+					if err != nil {
+						logs.Error(err.Error())
+						return
+					}
+					vectorData[item[`file_id`]] = append(vectorData[item[`file_id`]], cast.ToInt(vectorID))
+				}
+				page++
+			}
+			for fileId, ids := range vectorData {
+				for _, id := range ids {
+					if message, err := tool.JsonEncode(map[string]any{`id`: id, `file_id`: fileId}); err != nil {
+						logs.Error(err.Error())
+					} else if err := AddJobs(define.ConvertVectorTopic, message); err != nil {
+						logs.Error(err.Error())
+					}
+				}
+			}
+		}
+	}
+
+}
+
 func AddFileDataIndex(libraryId, adminUserId int) error {
 	dataIds, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`library_id`, cast.ToString(libraryId)).

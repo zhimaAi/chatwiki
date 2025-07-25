@@ -9,6 +9,7 @@
               modelType="LLM"
               v-model:modeName="formState.use_model"
               v-model:modeId="formState.model_config_id"
+              @loaded="onVectorModelLoaded"
               style="width: 348px"
             />
             <a-button @click="hanldeShowMore"
@@ -65,6 +66,20 @@
             <div class="number-input-box">
               <a-input-number v-model:value="formState.max_token" :min="0" :max="100 * 1024" />
             </div>
+          </div>
+        </a-form-item>
+        <a-form-item name="enable_thinking" v-if="showMoreBtn && show_enable_thinking">
+          <template #label>
+            <span>深度思考&nbsp;</span>
+            <a-tooltip>
+              <template #title
+                >开启时，调用大模型时会指定走深度思考模式</template
+              >
+              <QuestionCircleOutlined class="question-icon" />
+            </a-tooltip>
+          </template>
+          <div class="number-box">
+            <a-switch v-model:checked="formState.enable_thinking" />
           </div>
         </a-form-item>
         <a-form-item name="context_pair">
@@ -136,12 +151,10 @@
                 </div>
               </div>
             </a-form-item>
-            </div>
+          </div>
 
-            <div class="form-item-list">
-              <a-form-item
-              :label="null"
-            >
+          <div class="form-item-list">
+            <a-form-item :label="null">
               <div class="flex-block-item">
                 <a-input class="flex1" value="默认分类" readonly></a-input>
               </div>
@@ -164,7 +177,7 @@ import {
   QuestionCircleOutlined,
   UpOutlined,
   DownOutlined,
-  PlusOutlined,
+  PlusOutlined
 } from '@ant-design/icons-vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { useRobotStore } from '@/stores/modules/robot'
@@ -206,6 +219,7 @@ const formState = reactive({
   max_token: 0,
   context_pair: 0,
   prompt: '',
+  enable_thinking: false,
   categorys: [
     {
       category: '',
@@ -299,7 +313,7 @@ watch(
 
 function getNodeHeight() {
   let baseHeight = 72 + 260 + 132 + (formState.categorys.length + 1) * 38
-  return showMoreBtn.value ? baseHeight + 144 : baseHeight
+  return showMoreBtn.value ? baseHeight + 210 : baseHeight
 }
 
 const handleAddcategory = () => {
@@ -361,10 +375,7 @@ function getVariableOptions() {
       }
     })
   }
-  let lists = [
-    ...getSystemVariable(),
-    ...outOptions
-  ]
+  let lists = [...getSystemVariable(), ...outOptions]
   variableOptions.value = lists
 }
 
@@ -378,7 +389,18 @@ const checkedHeader = (rule, value) => {
   return Promise.resolve()
 }
 
+const choosable_thinking = ref({})
+const onVectorModelLoaded = (list, choosable_thinking_map) => {
+  choosable_thinking.value = choosable_thinking_map
+}
 
+const show_enable_thinking = computed(()=>{
+  if(!formState.model_config_id){
+    return false
+  }
+  let key = formState.model_config_id + '#' + formState.use_model
+  return choosable_thinking.value[key]
+})
 defineExpose({})
 </script>
 

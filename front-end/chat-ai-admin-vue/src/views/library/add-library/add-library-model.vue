@@ -92,6 +92,57 @@
     }
   }
 }
+
+.indexing-methods-box {
+  .list-item {
+    margin-top: 8px;
+    padding: 16px;
+    border: 1px solid #d9d9d9;
+    position: relative;
+    cursor: pointer;
+    &.active {
+      border: 2px solid #2475fc;
+      .list-title-block {
+        color: #2475fc;
+        .svg-action {
+          font-size: 16px;
+          color: #2475fc;
+        }
+      }
+      .check-icon {
+        display: block;
+      }
+    }
+    .check-icon {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      font-size: 18px;
+      color: #fff;
+      display: none;
+    }
+    .list-title-block {
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 22px;
+      color: #262626;
+      .svg-action {
+        font-size: 16px;
+        margin-right: 4px;
+        color: #262626;
+      }
+    }
+    .list-content {
+      margin-top: 4px;
+      color: #595959;
+      font-size: 14px;
+      line-height: 22px;
+    }
+  }
+}
+
 </style>
 
 <template>
@@ -150,6 +201,38 @@
             @loaded="onTextModelLoaded"
             style="width: 100%"
           />
+        </a-form-item>
+        <a-form-item label="索引方式" v-show="!isHide && formState.type == 2">
+          <div class="indexing-methods-box">
+            <div
+              class="list-item"
+              :class="{ active: formState.qa_index_type == 1 }"
+              @click="handleChangeQaIndexType(1)"
+            >
+              <svg-icon class="check-icon" name="check-arrow-filled"></svg-icon>
+              <div class="list-title-block">
+                <svg-icon name="file-search"></svg-icon>
+                问题与答案一起生成索引
+              </div>
+              <div class="list-content">
+                回答用户提问时，将用户提问与导入的问题和答案一起对比相似度，根据相似度高的问题和答案回复
+              </div>
+            </div>
+            <div
+              class="list-item"
+              :class="{ active: formState.qa_index_type == 2 }"
+              @click="handleChangeQaIndexType(2)"
+            >
+              <svg-icon class="check-icon" name="check-arrow-filled"></svg-icon>
+              <div class="list-title-block">
+                <svg-icon name="comment-search"></svg-icon>
+                仅对问题生成索引
+              </div>
+              <div class="list-content">
+                回答用户提问时，将用户提问与导入的问题一起对比相似度，再根据相似度高的问题和对应的答案来回复
+              </div>
+            </div>
+          </div>
         </a-form-item>
         <div v-show="!isHide && formState.type == 0">
           <a-form-item label="分段方式" required>
@@ -430,7 +513,8 @@ const formState = reactive({
   ai_chunk_size: 5000, // ai大模型分段最大字符数
   ai_chunk_model:'', // ai大模型分段模型名称
   ai_chunk_model_config_id: '', // ai大模型分段模型配置id
-  ai_chunk_prumpt: default_ai_chunk_prumpt // ai大模型分段提示词设置
+  ai_chunk_prumpt: default_ai_chunk_prumpt, // ai大模型分段提示词设置
+  qa_index_type: 1,
 })
 
 const rules = reactive({
@@ -561,6 +645,7 @@ const saveForm = () => {
   formData.append('type', formState.type)
   formData.append('access_rights', formState.access_rights)
   formData.append('library_name', formState.library_name)
+  formData.append('qa_index_type', formState.qa_index_type)
   formData.append('library_intro', formState.library_intro)
   formData.append('use_model', newFormState.use_model)
   formData.append('model_config_id', formState.model_config_id)
@@ -629,6 +714,7 @@ const saveForm = () => {
 }
 
 const show = ({ type }) => {
+  console.log(type)
   formState.type = type
   if (type == 0) {
     formState.avatar = LIBRARY_NORMAL_AVATAR
@@ -640,6 +726,7 @@ const show = ({ type }) => {
 
   formState.library_name = ''
   formState.library_intro = ''
+  formState.qa_index_type = 1
   formState.chunk_type = 1
   formState.normal_chunk_default_separators_no = [10, 12]
   formState.normal_chunk_default_chunk_size = 512
@@ -657,6 +744,12 @@ const show = ({ type }) => {
   visible.value = true
 }
 
+const handleChangeQaIndexType = (type) => {
+  if (type == formState.qa_index_type) {
+    return
+  }
+  formState.qa_index_type = type
+}
 defineExpose({
   show
 })

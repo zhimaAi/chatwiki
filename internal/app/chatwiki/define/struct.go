@@ -86,6 +86,7 @@ type SplitParams struct {
 	ChunkSize                  int      `json:"chunk_size"`
 	ChunkOverlap               int      `json:"chunk_overlap"`
 	IsQaDoc                    int      `json:"is_qa_doc"`
+	QaIndexType                int      `json:"qa_index_type"`
 	QuestionLable              string   `json:"question_lable"`
 	SimilarLabel               string   `json:"similar_label"`
 	AnswerLable                string   `json:"answer_lable"`

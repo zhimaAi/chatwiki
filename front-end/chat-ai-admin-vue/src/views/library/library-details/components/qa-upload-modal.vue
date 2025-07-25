@@ -38,7 +38,7 @@
         <template v-if="isHide">
           <div class="set-box" v-if="fileType == 1">
             <div class="form-item">
-              <div class="form-item-label">问题所在列：</div>
+              <div class="form-item-label required">问题所在列：</div>
               <div class="form-item-body">
                 <a-select
                   v-model:value="formState.question_column"
@@ -73,7 +73,7 @@
             </div>
 
             <div class="form-item">
-              <div class="form-item-label">答案所在列：</div>
+              <div class="form-item-label required">答案所在列：</div>
               <div class="form-item-body">
                 <a-select
                   v-model:value="formState.answer_column"
@@ -123,6 +123,10 @@ import { DownOutlined, UpOutlined } from '@ant-design/icons-vue'
 import { readLibFileExcelTitle, addLibraryFile } from '@/api/library/index'
 import { message } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useLibraryStore } from '@/stores/modules/library'
+const libraryStore = useLibraryStore()
+const { qa_index_type } = libraryStore
+console.log(qa_index_type,'qa_index_type==')
 const router = useRouter()
 const rotue = useRoute()
 const query = rotue.query
@@ -184,6 +188,14 @@ const handleSaveFiles = () => {
     formData.append('library_files', file)
   })
   if (isTableType) {
+    if(!formState.question_column){
+      confirmLoading.value = false
+      return message.error('请选择问题所在列')
+    }
+    if(!formState.answer_column){
+      confirmLoading.value = false
+      return message.error('请选择答案所在列')
+    }
     formData.append('question_column', formState.question_column)
     formData.append('answer_column', formState.answer_column)
     formState.similar_column && formData.append('similar_column', formState.similar_column)
@@ -193,15 +205,16 @@ const handleSaveFiles = () => {
     formData.append('similar_label', formState.similar_label)
   }
   formData.append('is_qa_doc', 1)
+  formData.append('qa_index_type', qa_index_type)
   addLibraryFile(formData)
     .then((res) => {
       emit('ok')
       open.value = false
       fileList.value = []
       confirmLoading.value = false
-      if (isTableType) {
-        router.push('/library/document-segmentation?document_id=' + res.data.file_ids[0])
-      }
+      // if (isTableType) {
+      //   router.push('/library/document-segmentation?document_id=' + res.data.file_ids[0])
+      // }
     })
     .catch(() => {
       confirmLoading.value = false
@@ -265,6 +278,16 @@ defineExpose({
     align-items: center;
     .form-item-body {
       flex: 1;
+    }
+  }
+  .form-item-label.required{
+
+    &::before{
+      content: '*';
+      margin-right: 2px;
+      color: red;
+      font-weight: 600;
+      font-size: 14px;
     }
   }
 }

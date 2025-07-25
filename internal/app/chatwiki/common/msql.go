@@ -520,29 +520,17 @@ func GetMatchLibraryParagraphByMergeRerank(openid, appType, question string, siz
 	if len(robot) == 0 || cast.ToInt(robot[`rerank_status`]) == 0 {
 		return nil, nil //not rerank config
 	}
-	//merge and remove duplication
-	ms := map[string]struct{}{}
-	for i := range vectorList {
-		ms[vectorList[i][`id`]] = struct{}{}
-	}
-	list := vectorList
-	for i := range searchList {
-		if _, ok := ms[searchList[i][`id`]]; ok {
-			continue //duplication skip
-		}
-		ms[searchList[i][`id`]] = struct{}{}
-		list = append(list, searchList[i])
-	}
-	for i := range graphList {
-		if _, ok := ms[graphList[i][`id`]]; ok {
-			continue //duplication skip
-		}
-		ms[graphList[i][`id`]] = struct{}{}
-		list = append(list, graphList[i])
-	}
+	//merge all list
+	list := append(append(vectorList, searchList...), graphList...)
 	if len(list) == 0 {
 		return nil, nil
 	}
+	//remove duplication
+	list = SliceMsqlParamsUnique(list, `id`)
+	//sort by similarity
+	sort.Slice(list, func(i, j int) bool {
+		return cast.ToFloat64(list[i][`similarity`]) > cast.ToFloat64(list[j][`similarity`])
+	})
 	// Rerank resorted
 	chunks := make([]string, 0)
 	for _, one := range list {
@@ -590,6 +578,11 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 		searchList = append(searchList, changeListContent(list)...)
 	}
 	libUseTime.RecallTime = time.Now().Sub(temp).Milliseconds()
+
+	//由于存在问题优化,导致召回的内容会出现重复的
+	vectorList = SliceMsqlParamsUnique(vectorList, `id`)
+	searchList = SliceMsqlParamsUnique(searchList, `id`)
+	graphList = SliceMsqlParamsUnique(graphList, `id`)
 
 	// Sort retrieved content by similarity score after question optimization
 	sort.Slice(vectorList, func(i, j int) bool {
@@ -707,6 +700,9 @@ func SaveVector(adminUserID, libraryID, fileID, dataID int64, vectorType, conten
 	if err != nil {
 		logs.Error(err.Error())
 		return 0, err
+	}
+	if vectorType == cast.ToString(define.VectorTypeSimilarQuestion) {
+		info = nil
 	}
 	if len(info) == 0 {
 		id, err := m.Insert(msql.Datas{
@@ -1009,4 +1005,15 @@ func ConstructGraph(id int) error {
 		}
 	}
 	return nil
+}
+
+func DeleteLibraryFileDataIndex(dataIdList, vectorType string) error {
+	_, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
+		Where(`data_id`, `in`, dataIdList).
+		Where(`type`, `in`, vectorType).
+		Delete()
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	return err
 }

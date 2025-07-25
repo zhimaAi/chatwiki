@@ -198,7 +198,9 @@
               @change="handleChangeRerankModel" style="width: 100%">
               <a-select-opt-group v-for="item in rerankModelList" :key="item.id">
                 <template #label>
-                  <span><img class="model-icon" :src="item.icon" alt="" /></span>
+                  <a-flex align="center" :gap="8">
+                    <img class="model-icon" :src="item.icon" alt="" />{{ item.name }}
+                  </a-flex>
                 </template>
                 <a-select-option :value="val" :rerank_model_config_id="item.id" v-for="val in item.children" :key="val">
                   <span>{{ val }}</span>
