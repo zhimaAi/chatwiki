@@ -570,7 +570,7 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 		if err != nil {
 			logs.Error(err.Error())
 		}
-		graphList = append(graphList, list...)
+		graphList = append(graphList, changeListContent(list)...)
 		list, err = GetMatchLibraryParagraphByFullTextSearch(q, libraryIds, fetchSize, similarity, searchType)
 		if err != nil {
 			logs.Error(err.Error())
@@ -627,9 +627,9 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 }
 
 func changeListContent(list []msql.Params) []msql.Params {
-	for _, one := range list {
+	for idx, one := range list {
 		if one[`content`] == "" && one[`answer`] != "" {
-			one[`content`] = one[`answer`]
+			list[idx][`content`] = one[`answer`]
 		}
 	}
 	return list
