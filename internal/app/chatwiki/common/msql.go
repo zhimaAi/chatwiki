@@ -184,7 +184,7 @@ func (h *LibFileCacheBuildHandler) GetCacheKey() string {
 	return fmt.Sprintf(`chatwiki.file_info.%d`, h.FileId)
 }
 func (h *LibFileCacheBuildHandler) GetCacheData() (any, error) {
-	return msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(h.FileId)).Find()
+	return msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(h.FileId)).Where(`delete_time`, `0`).Find()
 }
 
 func GetLibFileInfo(fileId, adminUserId int) (msql.Params, error) {
@@ -240,6 +240,7 @@ func GetMatchLibraryParagraphByVectorSimilarity(adminUserId int, robot msql.Para
 				subList, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
 					Alias("a").
 					Join(`chat_ai_library_file_data_index b`, `a.id=b.data_id`, `left`).
+					Where(`a.delete_time`, `0`).
 					Where(`a.library_id`, `in`, libraryIds).
 					Where(`b.status`, cast.ToString(define.VectorStatusConverted)).
 					Where("vector_dims(b.embedding)", cast.ToString(len(embeddingArr))).
@@ -450,6 +451,7 @@ func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appTyp
 		}
 
 		paragraphs, err := msql.Model("chat_ai_library_file_data", define.Postgres).
+			Where(`delete_time`, `0`).
 			Where("id", "in", strings.Join(dataIdList, ",")).
 			Select()
 		if err != nil {
@@ -509,6 +511,7 @@ func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size 
 	return msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
 		Alias("a").
 		Join("chat_ai_library_file_data b", "a.data_id=b.id", "left").
+		Where(`a.delete_time`, `0`).
 		Where(`a.id`, `in`, strings.Join(ids, `,`)).
 		Where(`b.id is not null`).
 		Field(`b.*,a.id as index_id`).
@@ -863,9 +866,13 @@ func GetRobotNode(robotId uint, nodeKey string) (msql.Params, error) {
 	return result, err
 }
 
-func LibraryAiSummary(lang, question, prompt string, optimizedQuestions []string, libraryIds string, size, maxToken int, similarity, temperature float64, searchType int, robot msql.Params, chanStream chan sse.Event) error {
+func LibraryAiSummary(lang, question, prompt string, optimizedQuestions []string, libraryIds string, size, maxToken int, similarity, temperature float64, searchType int, robot msql.Params, chanStream chan sse.Event, summarySwitch int) error {
 	defer close(chanStream)
 	chanStream <- sse.Event{Event: `ping`, Data: tool.Time2Int()}
+	if summarySwitch == define.SwitchOff {
+		chanStream <- sse.Event{Event: `finish`, Data: tool.Time2Int()}
+		return nil
+	}
 	list, _, err := GetMatchLibraryParagraphList("", "", question, []string{}, libraryIds, size, similarity, searchType, robot)
 	if err != nil {
 		logs.Error(err.Error())
@@ -977,6 +984,7 @@ func SetNeo4jStatus(adminUserId int, status bool) {
 func ConstructGraph(id int) error {
 	dataList, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
 		Where(`file_id`, cast.ToString(id)).
+		Where(`delete_time`, `0`).
 		Field(`id,file_id`).
 		Select()
 	if err != nil {

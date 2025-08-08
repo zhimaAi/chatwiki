@@ -335,7 +335,7 @@ func configurationTest(config msql.Params, modelInfo common.ModelInfo) error {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: `configuration test`})
 		req := adaptor.ZhimaChatCompletionRequest{
 			Messages:    messages,
-			MaxToken:    10,
+			MaxToken:    100,
 			Temperature: 0.1,
 		}
 		r, err := client.CreateChatCompletion(req)

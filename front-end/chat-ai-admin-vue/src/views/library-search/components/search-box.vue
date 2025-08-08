@@ -199,6 +199,7 @@ const formState = reactive({
   max_token: 2000,
   similarity: 0.4,
   search_type: 1,
+  summary_switch: 0,
 })
 
 const defaultParmas = ref({})
@@ -213,9 +214,10 @@ const handleRecallTest = (searchObj) => {
     size: 200,  // 固定值
     similarity: searchObj.similarity || formState.similarity,
     search_type: searchObj.search_type || formState.search_type,
+    summary_switch: searchObj.summary_switch || formState.summary_switch,
     question: message.value,
     id: props.library_ids.join(','),
-    recall_type: 1
+    recall_type: 1,
   }
   if (searchObj.rerank_status) {
     parmas.rerank_status = searchObj.rerank_status
@@ -301,22 +303,28 @@ const getModelList = async() => {
 
 onMounted(async () => {
   await getModelList()
-
-  if (!librarySearchDataRef.value?.model_config_id || !librarySearchDataRef.value?.use_model) {
-    if (modelList.value.length > 0) {
-      let modelConfig = modelList.value[0]
-      if (modelConfig) {
-        let model = modelConfig.children[0]
-        formState.use_model = model.name
-        formState.model_config_id = model.model_config_id
+  setTimeout(() => {
+    librarySearchDataRef.value = props.librarySearchData
+    console.log(props.librarySearchData, 'props.librarySearchData')
+    if (!librarySearchDataRef.value?.model_config_id || !librarySearchDataRef.value?.use_model) {
+      if (modelList.value.length > 0) {
+        let modelConfig = modelList.value[0]
+        if (modelConfig) {
+          let model = modelConfig.children[0]
+          formState.use_model = model.name
+          formState.model_config_id = model.model_config_id
+        }
       }
+    } else {
+      formState.use_model = librarySearchDataRef.value?.use_model + '$$'
+      formState.model_config_id = librarySearchDataRef.value?.model_config_id + '$$'
+      formState.use_model = formState.use_model.split('$$')[0]
+      formState.model_config_id = librarySearchDataRef.value?.model_config_id.split('$$')[0]
     }
-  } else {
-    formState.use_model = librarySearchDataRef.value?.use_model + '$$'
-    formState.model_config_id = librarySearchDataRef.value?.model_config_id + '$$'
-    formState.use_model = formState.use_model.split('$$')[0]
-    formState.model_config_id = librarySearchDataRef.value?.model_config_id.split('$$')[0]
-  }
+
+  }, 500)
+  
+
 })
 
 defineExpose({

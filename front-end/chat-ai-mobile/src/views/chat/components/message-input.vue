@@ -173,6 +173,14 @@ const sendMessage = async () => {
     userStore.setLoginStatus(false)
     return false
   }
+  // 有权限的账号登录后才可访问
+  if (result.data?.code == 10003) {
+    // 弹出登录
+    showToast('当前账号无访问权限')
+    emit('showLogin')
+    userStore.setLoginStatus(false)
+    return false
+  }
   userStore.setLoginStatus(true)
   if(result.data && result.data.words){
     return showToast(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)

@@ -41,6 +41,7 @@ func SaveLibrarySearch(c *gin.Context) {
 	rerankUseModel := strings.TrimSpace(c.PostForm(`rerank_use_model`))
 	promptType := cast.ToString(c.PostForm(`prompt_type`))
 	prompt := cast.ToString(c.PostForm(`prompt`))
+	summarySwitch := cast.ToInt(c.PostForm(`summary_switch`))
 	if len(prompt) == 0 && cast.ToInt(promptType) != 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `prompt`))))
 		return
@@ -54,8 +55,6 @@ func SaveLibrarySearch(c *gin.Context) {
 	// 准备保存的数据
 	saveData := msql.Datas{
 		"user_id":                userId,
-		"model_config_id":        modelConfigId,
-		"use_model":              useModel,
 		"temperature":            temperature,
 		"max_token":              maxToken,
 		"context_pair":           contextPair,
@@ -68,6 +67,13 @@ func SaveLibrarySearch(c *gin.Context) {
 		"update_time":            tool.Time2Int(),
 		"prompt_type":            promptType,
 		"prompt":                 prompt,
+		"summary_switch":         summarySwitch,
+	}
+	if modelConfigId > 0 {
+		saveData[`model_config_id`] = modelConfigId
+	}
+	if useModel != "" {
+		saveData[`use_model`] = useModel
 	}
 	if len(data) == 0 {
 		saveData[`create_time`] = tool.Time2Int()
@@ -120,6 +126,7 @@ func LibraryAiSummary(c *gin.Context) {
 	maxToken := cast.ToInt(c.DefaultPostForm(`max_token`, `2000`))
 	recallType := cast.ToString(c.PostForm(`recall_type`))
 	prompt := cast.ToString(c.PostForm(`prompt`))
+	summarySwitch := cast.ToInt(c.PostForm(`summary_switch`))
 	if modelConfigId <= 0 || useModel == "" {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `llm_model_err`))))
 		return
@@ -198,7 +205,7 @@ func LibraryAiSummary(c *gin.Context) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := common.LibraryAiSummary(common.GetLang(c), question, prompt, []string{}, libraryIds, size, maxToken, similarity, temperature, searchType, robot, chanStream); err != nil {
+		if err := common.LibraryAiSummary(common.GetLang(c), question, prompt, []string{}, libraryIds, size, maxToken, similarity, temperature, searchType, robot, chanStream, summarySwitch); err != nil {
 			common.FmtError(c, `sys_err`)
 			return
 		}

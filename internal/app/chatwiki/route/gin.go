@@ -65,6 +65,8 @@ func init() {
 	Route[http.MethodGet][`/manage/getRobotInfo`] = manage.GetRobotInfo
 	Route[http.MethodPost][`/manage/deleteRobot`] = manage.DeleteRobot
 	Route[http.MethodGet][`/manage/createPromptByAi`] = manage.CreatePromptByAi
+	Route[http.MethodGet][`/manage/robotExport`] = manage.RobotExport
+	Route[http.MethodPost][`/manage/robotImport`] = manage.RobotImport
 	Route[http.MethodPost][`/manage/robotCopy`] = manage.RobotCopy
 	Route[http.MethodPost][`/manage/editBaseInfo`] = manage.EditBaseInfo
 	Route[http.MethodPost][`/manage/relationWorkFlow`] = manage.RelationWorkFlow

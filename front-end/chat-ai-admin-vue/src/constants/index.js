@@ -61,6 +61,8 @@ export const LIBRARY_OPEN_AVATAR = '/upload/default/library_open_avatar.svg'
 export const DEFAULT_ROBOT_AVATAR = '/upload/default/robot_avatar.svg'
 // 默认的工作流头像
 export const DEFAULT_WORKFLOW_AVATAR = '/upload/default/workflow_avatar.svg'
+// 默认的导入csl头像
+export const DEFAULT_IMPORT_CSL_AVATAR = new URL('@/assets/img/import_csl_avatar.svg', import.meta.url).href
 
 // 默认的webApp浮动图标
 export const DEFAULT_WEBAPP_ICON = new URL('@/assets/img/sdk_float_avatar.svg', import.meta.url)

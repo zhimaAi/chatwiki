@@ -103,11 +103,9 @@ func (flow *WorkFlow) Running() (err error) {
 		nodeLog.UseTime = nodeLog.EndTime - nodeLog.StartTime
 		flow.nodeLogs = append(flow.nodeLogs, nodeLog)
 		//节点运行结束
-		if !flow.isFinish {
-			flow.Logs(`结果nextNodeKey:%s,err:%v`, nextNodeKey, err)
-			if len(flow.output) > 0 {
-				flow.Logs(`输出变量:%s`, tool.JsonEncodeNoError(flow.output))
-			}
+		flow.Logs(`结果nextNodeKey:%s,err:%v`, nextNodeKey, err)
+		if len(flow.output) > 0 {
+			flow.Logs(`输出变量:%s`, tool.JsonEncodeNoError(flow.output))
 		}
 		if flow.isTimeout || err != nil || len(nextNodeKey) == 0 {
 			break //结束

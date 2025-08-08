@@ -167,7 +167,7 @@
       <div class="technical-support-text">由 ChatWiki 提供软件支持</div>
     </div>
 
-    <LogOut v-if="isShowLogOut && externalConfigH5.accessRestrictionsType == 2" class="log-out" :class="{ 'scrolled': isScrolled }" @click="onTrigger" />
+    <LogOut v-if="isShowLogOut && externalConfigH5.accessRestrictionsType > 1" class="log-out" :class="{ 'scrolled': isScrolled }" @click="onTrigger" />
     <LoginModal ref="loginModalRef" />
   </div>
 </template>

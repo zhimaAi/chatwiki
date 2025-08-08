@@ -37,6 +37,22 @@ func CheckChatRequestPermission(c *gin.Context) {
 				common.FmtOk(c, map[string]any{`code`: define.ErrorCodeNeedLogin})
 				return
 			}
+			if cast.ToInt(externalConfigH5[`accessRestrictionsType`]) == define.AccessPermissionTypeLogin {
+				var (
+					adminUserId = common.GetAdminUserId(c)
+					userId      = common.GetLoginUserId(c)
+				)
+				if adminUserId == 0 {
+					common.FmtOk(c, map[string]any{`code`: define.ErrorCodeNeedLogin})
+					return
+				}
+				// check permission
+				permission := common.CheckObjectAccessRights(adminUserId, userId, define.IdentityTypeUser, cast.ToInt(params.Robot[`id`]), define.ObjectTypeRobot, define.PermissionQueryRights)
+				if !permission {
+					common.FmtOk(c, map[string]any{`code`: define.ErrorCodeNeedNoPermissionLogin})
+					return
+				}
+			}
 		}
 	}
 	common.FmtOk(c, nil)

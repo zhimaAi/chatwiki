@@ -156,6 +156,18 @@ func CheckOperateRights(adminUserId, identityId, identityType int, objectId, obj
 	return checkOperateRights(mergePermissionData, adminUserId, identityId, objectId, objectType, operateRights)
 }
 
+func CheckObjectAccessRights(adminUserId, identityId, identityType int, objectId, objectType, operateRights int) bool {
+	// role
+	if CheckIsAdminOrCreator(cast.ToInt(identityId), adminUserId, 0) {
+		return true
+	}
+	_, mergePermissionData := GetAllPermissionManage(adminUserId, cast.ToString(identityId), identityType, objectType)
+	if identityType == define.IdentityTypeDepartment {
+		identityId = 0
+	}
+	return checkOperateRights(mergePermissionData, adminUserId, identityId, objectId, objectType, operateRights)
+}
+
 func CheckIsAdminOrCreator(user, adminUserId, creator int) bool {
 	return user == adminUserId || user == creator
 }

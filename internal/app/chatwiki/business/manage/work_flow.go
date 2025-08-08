@@ -76,14 +76,21 @@ func GetNodeList(c *gin.Context) {
 		GetNodeList(c)
 		return
 	}
+	filtered := make([]msql.Params, 0)
 	for i, node := range list {
+		nodeType := cast.ToInt(node[`node_type`])
+		if !tool.InArrayInt(nodeType, work_flow.NodeTypes[:]) {
+			logs.Error(`节点类型非法:%s`, node[`node_type`])
+			continue
+		}
 		delete(list[i], `admin_user_id`)
 		delete(list[i], `robot_id`)
 		delete(list[i], `create_time`)
 		delete(list[i], `update_time`)
 		list[i][`node_params`] = tool.JsonEncodeNoError(work_flow.DisposeNodeParams(cast.ToInt(node[`node_type`]), node[`node_params`]))
+		filtered = append(filtered, list[i])
 	}
-	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
+	c.String(http.StatusOK, lib_web.FmtJson(filtered, nil))
 }
 
 func SaveNodes(c *gin.Context) {

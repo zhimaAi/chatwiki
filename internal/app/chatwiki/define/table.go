@@ -153,4 +153,5 @@ const (
 
 const (
 	AccessRestrictionsTypeLogin = 2
+	AccessPermissionTypeLogin   = 3
 )

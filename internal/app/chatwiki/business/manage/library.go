@@ -81,7 +81,6 @@ func GetLibraryList(c *gin.Context) {
 			m.Where(`id`, `in`, strings.Join(managedLibraryIdList, `,`))
 		}
 	}
-
 	list, err := m.
 		Field(`id,type,access_rights,avatar,library_name,library_intro,avatar,graph_switch,graph_model_config_id,graph_use_model,create_time`).
 		Order(`id desc`).
@@ -110,6 +109,7 @@ func GetLibraryList(c *gin.Context) {
 	}
 	if len(libraryIds) > 0 {
 		stats, err := msql.Model(`chat_ai_library_file`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Where(`delete_time`, `0`).
 			Where(`library_id`, `in`, strings.Join(libraryIds, `,`)).Group(`library_id`).
 			ColumnMap(`COUNT(1) as file_total,SUM(file_size) as file_size`, `library_id`)
 		if err != nil {
@@ -214,9 +214,10 @@ func CreateLibrary(c *gin.Context) {
 	aiSummaryModel := strings.TrimSpace(c.PostForm(`ai_summary_model`))
 	typ := cast.ToInt(c.PostForm(`type`))
 	accessRights := cast.ToInt(c.PostForm(`access_rights`))
-	chunkType := cast.ToInt(c.PostForm(`chunk_type`))
+	avatar := strings.TrimSpace(c.DefaultPostForm(`avatar_from_template`, ""))
 	modelConfigId := cast.ToInt(c.PostForm(`model_config_id`))
 	useModel := strings.TrimSpace(c.PostForm(`use_model`))
+	chunkType := cast.ToInt(c.PostForm(`chunk_type`))
 	graphSwitch := cast.ToInt(c.PostForm(`graph_switch`))
 	graphModelConfigId := cast.ToInt(c.PostForm(`graph_model_config_id`))
 	graphUseModel := strings.TrimSpace(c.PostForm(`graph_use_model`))
@@ -231,7 +232,6 @@ func CreateLibrary(c *gin.Context) {
 	AiChunkModelConfigId := cast.ToInt(c.PostForm(`ai_chunk_model_config_id`))
 	AiChunkSize := cast.ToInt(c.PostForm(`ai_chunk_size`))
 	qaIndexType := cast.ToInt(c.PostForm(`qa_index_type`))
-	avatar := ""
 	if len(libraryName) == 0 || !tool.InArrayInt(typ, define.LibraryTypes[:]) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
@@ -272,6 +272,8 @@ func CreateLibrary(c *gin.Context) {
 		`creator`:                              loginUserId,
 		`library_name`:                         libraryName,
 		`library_intro`:                        libraryIntro,
+		`model_config_id`:                      modelConfigId,
+		`use_model`:                            useModel,
 		`ai_summary`:                           aiSummary,
 		`ai_summary_model`:                     aiSummaryModel,
 		`summary_model_config_id`:              summaryModelConfigId,
@@ -280,8 +282,6 @@ func CreateLibrary(c *gin.Context) {
 		`create_time`:                          tool.Time2Int(),
 		`update_time`:                          tool.Time2Int(),
 		`chunk_type`:                           chunkType,
-		`model_config_id`:                      modelConfigId,
-		`use_model`:                            useModel,
 		`use_model_switch`:                     cast.ToString(useModelSwitch),
 		`graph_switch`:                         graphSwitch,
 		`graph_model_config_id`:                graphModelConfigId,
@@ -586,7 +586,7 @@ func EditLibrary(c *gin.Context) {
 	}
 	// QA 切换索引方式
 	if cast.ToInt(info[`type`]) == define.QALibraryType && qaIndexType != cast.ToInt(info[`qa_index_type`]) {
-		go common.EmbeddingNewQAVector(id, cast.ToInt(info[`admin_user_id`]),qaIndexType)
+		go common.EmbeddingNewQAVector(id, cast.ToInt(info[`admin_user_id`]), qaIndexType)
 	}
 
 	//clear cached data

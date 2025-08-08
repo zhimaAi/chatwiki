@@ -65,11 +65,11 @@ func GetCategoryList(c *gin.Context) {
 		Order(`c.type asc`).
 		Group(`c.id`)
 	if fileId > 0 {
-		m.Join(`chat_ai_library_file_data d`, `c.id = d.category_id and d.file_id = `+cast.ToString(fileId)+` and d.isolated=false`, `left`)
+		m.Join(`chat_ai_library_file_data d`, `c.id = d.category_id and d.file_id = `+cast.ToString(fileId)+` and d.isolated=false and d.delete_time =0`, `left`)
 	} else if libraryId > 0 {
-		m.Join(`chat_ai_library_file_data d`, `c.id = d.category_id and d.library_id = `+cast.ToString(libraryId), `left`)
+		m.Join(`chat_ai_library_file_data d`, `c.id = d.category_id and d.library_id = `+cast.ToString(libraryId)+` and d.delete_time =0`, `left`)
 	} else {
-		m.Join(`chat_ai_library_file_data d`, `c.id = d.category_id and d.isolated=false`, `left`)
+		m.Join(`chat_ai_library_file_data d`, `c.id = d.category_id and d.isolated=false and d.delete_time =0`, `left`)
 	}
 	res, err := m.Select()
 	if err != nil {

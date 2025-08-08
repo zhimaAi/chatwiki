@@ -53,7 +53,7 @@ func GetLibFileList(c *gin.Context) {
 		return
 	}
 	wheres := [][]string{
-		{`admin_user_id`, cast.ToString(userId)}, {`library_id`, cast.ToString(libraryId)},
+		{`admin_user_id`, cast.ToString(userId)}, {`library_id`, cast.ToString(libraryId)}, {`delete_time`, `0`},
 	}
 	status := cast.ToString(c.Query(`status`))
 	page := max(1, cast.ToInt(c.Query(`page`)))
@@ -63,6 +63,7 @@ func GetLibFileList(c *gin.Context) {
 		Join(`chat_ai_library_file_data d`, `f.id=d.file_id`, `left`).
 		Where(`f.admin_user_id`, cast.ToString(userId)).
 		Where(`f.library_id`, cast.ToString(libraryId)).
+		Where(`f.delete_time`, `0`).
 		Group(`f.id`).
 		Field(`f.*, count(d.id) as paragraph_count`).
 		Field(`count(case when d.graph_status = 3 then 1 else null end) as graph_err_count`).
@@ -481,7 +482,10 @@ func DelLibraryFile(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 			return
 		}
-		_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(id)).Delete()
+		_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(id)).Update(msql.Datas{
+			`delete_time`: tool.Time2Int(),
+			`update_time`: tool.Time2Int(),
+		})
 		if err != nil {
 			logs.Error(err.Error())
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -504,14 +508,20 @@ func DelLibraryFile(c *gin.Context) {
 
 		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
 			Where(`id`, `in`, strings.Join(dataIdList, `,`)).
-			Delete()
+			Update(msql.Datas{
+				`delete_time`: tool.Time2Int(),
+				`update_time`: tool.Time2Int(),
+			})
 		if err != nil {
 			logs.Error(err.Error())
 			continue
 		}
 		_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
 			Where(`data_id`, `in`, strings.Join(dataIdList, `,`)).
-			Delete()
+			Update(msql.Datas{
+				`delete_time`: tool.Time2Int(),
+				`update_time`: tool.Time2Int(),
+			})
 		if err != nil {
 			logs.Error(err.Error())
 		}
@@ -1036,6 +1046,7 @@ func GetFileGraphInfo(c *gin.Context) {
 		Alias(`d`).
 		Join(`chat_ai_library_file f`, `d.file_id = f.id`, `left`).
 		Where(`d.admin_user_id`, cast.ToString(userId)).
+		Where(`f.delete_time`, `0`).
 		Where(`d.file_id`, cast.ToString(fileId)).
 		Field(`d.id,d.file_id,d.content,f.file_name`).
 		Select()
@@ -1321,6 +1332,7 @@ func ReconstructVector(c *gin.Context) {
 		return
 	}
 	dataList, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
+		Where(`delete_time`, `0`).
 		Where(`file_id`, cast.ToString(id)).
 		Where(`status`, cast.ToString(define.VectorStatusException)).
 		Field(`id,file_id`).
@@ -1365,6 +1377,7 @@ func ReconstructCategoryVector(c *gin.Context) {
 	}
 	dataList, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
 		Alias(`idx`).
+		Where(`delete_time`, `0`).
 		Where(`library_id`, cast.ToString(id)).
 		Where(`status`, cast.ToString(define.VectorStatusException)).
 		Where(`exists (select 1 from chat_ai_library_file_data where id = idx.data_id and category_id > 0)`).
@@ -1419,6 +1432,7 @@ func ReconstructGraph(c *gin.Context) {
 
 	dataList, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
 		Where(`file_id`, cast.ToString(id)).
+		Where(`delete_time`, `0`).
 		Where(`graph_status`, cast.ToString(define.GraphStatusException)).
 		Field(`id,file_id`).
 		Select()

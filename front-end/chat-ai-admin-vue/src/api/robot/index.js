@@ -215,3 +215,14 @@ export const relationWorkFlow = (data = {}) => {
     data: data
   })
 }
+
+// 导入csl文件
+export const robotImport = (data = {}) => {
+  return request.post({
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    },
+    url: '/manage/robotImport',
+    data: data
+  })
+}
