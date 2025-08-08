@@ -93,7 +93,8 @@ export const useSearchLiraryStore = defineStore('search-lirary', () => {
     temperature: "",
     update_time: "",
     use_model: "",
-    user_id: ""
+    user_id: "",
+    summary_switch: 0,
   })
 
   // 更新AI的消息到列表
@@ -185,7 +186,8 @@ export const useSearchLiraryStore = defineStore('search-lirary', () => {
       search_type: searchConfigData.search_type,
       question: keyword,
       id: library_ids.join(','),
-      recall_type: 1
+      recall_type: 1,
+      summary_switch: searchConfigData.summary_switch,
     }
 
     if (searchConfigData.rerank_status) {
@@ -309,7 +311,6 @@ export const useSearchLiraryStore = defineStore('search-lirary', () => {
 
     try {
       let _data = res.data
-
       Object.assign(searchFormState, { ..._data });
     } catch (e) {
       Promise.reject(e)

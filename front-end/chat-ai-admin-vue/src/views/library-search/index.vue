@@ -222,6 +222,7 @@ const onSearch = async (keyword) => {
   if (!librarySearchData.value.id) {
     librarySearchData.value = Object.assign(defaultParmas.value)
   }
+  console.log(librarySearchData.value,'---')
 
   if (!librarySearchData.value.model_config_id || !librarySearchData.value.use_model) {
     isError.value = true

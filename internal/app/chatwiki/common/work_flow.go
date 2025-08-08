@@ -47,21 +47,25 @@ var TypArrays = [...]string{
 
 type SimpleFields map[string]SimpleField
 type SimpleField struct {
-	Sys  bool    `json:"sys"`
-	Key  string  `json:"key"`
-	Desc *string `json:"desc,omitempty"`
-	Typ  string  `json:"typ"`
-	Vals []Val   `json:"vals,omitempty"`
+	Sys      bool    `json:"sys"`
+	Key      string  `json:"key"`
+	Desc     *string `json:"desc,omitempty"`
+	Typ      string  `json:"typ"`
+	Vals     []Val   `json:"vals,omitempty"`
+	Required bool    `json:"required"`
+	Default  string  `json:"default,omitempty"`
+	Enum     string  `json:"enum,omitempty"` //枚举值
 }
 
 func (field SimpleField) SetVals(data any) SimpleField {
 	var datas []any
-	if tool.InArrayString(field.Typ, TypArrays[:]) {
-		if array, ok := data.([]any); ok {
-			datas = append(datas, array...)
-		}
+	if array, ok := data.([]any); ok {
+		datas = append(datas, array...)
 	} else {
 		datas = append(datas, data)
+	}
+	if !tool.InArrayString(field.Typ, TypArrays[:]) && len(datas) > 0 {
+		datas = datas[:1]
 	}
 	if data == nil || len(datas) == 0 {
 		field.Vals = nil
@@ -147,6 +151,7 @@ func (field SimpleField) GetVal(specifyTyp ...string) any {
 }
 
 func (field SimpleField) ShowVals(specifyTyp ...string) string {
+	//特殊的变量值,使用特定的输出方式
 	if field.Key == `special.lib_paragraph_list` {
 		list := make([]msql.Params, 0)
 		for _, val := range field.Vals {
@@ -155,9 +160,17 @@ func (field SimpleField) ShowVals(specifyTyp ...string) string {
 		_, libraryContent := FormatSystemPrompt(``, list)
 		return libraryContent
 	}
+	//标准的变量值,统一格式输出
 	temp := make([]string, 0)
+	typ := field.Typ
+	if len(specifyTyp) > 0 && len(specifyTyp[0]) > 0 {
+		typ = specifyTyp[0] //指定类型
+	}
 	for _, v := range field.GetVals(specifyTyp...) {
 		show := fmt.Sprintf(`%v`, v)
+		if tool.InArrayString(typ, []string{TypObject, TypParams, TypArrObject, TypArrParams}) {
+			show = tool.JsonEncodeNoError(v) //复杂类型json形式输出
+		}
 		if len(show) > 0 { //filter empty
 			temp = append(temp, show)
 		}

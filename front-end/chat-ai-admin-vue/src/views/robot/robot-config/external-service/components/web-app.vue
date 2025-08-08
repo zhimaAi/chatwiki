@@ -37,6 +37,9 @@
       margin-top: 16px;
     }
   }
+  .ml4 {
+    margin-left: 4px;
+  }
 }
 .box-right {
   margin: 0 96px 0 48px;
@@ -128,6 +131,12 @@
                     <a-radio :value="2"
                       ><span class="default-text-color">登录后才可访问</span></a-radio
                     >
+                    <a-radio :value="3"
+                      ><span class="default-text-color">有权限的账号登录后才可访问</span>
+                      <a-tooltip title="可在基础配置→ 权限管理处添加协作者。">
+                        <QuestionCircleOutlined class="ml4" />
+                      </a-tooltip>
+                    </a-radio>
                   </a-radio-group>
                 </div>
               </div>
@@ -207,6 +216,7 @@ import ColorPicker from '@/components/color-picker/index.vue'
 import QuickInstruction from './quick-instruction.vue'
 import PreviewCommand from './preview-command.vue'
 import { useRouter } from 'vue-router'
+import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 
 const router = useRouter()
 const robotStore = useRobotStore()

@@ -54,6 +54,7 @@ func GetParagraphList(c *gin.Context) {
 		Join("chat_ai_library_file_data_index b", "a.id=b.data_id", "inner").
 		Where(`a.admin_user_id`, cast.ToString(userId)).Where(`a.file_id`, cast.ToString(fileId)).
 		Where(`a.isolated`, "false").
+		Where(`a.delete_time`, `0`).
 		Field(`a.*`).
 		Field(`
 			CASE 
@@ -136,6 +137,7 @@ func GetParagraphCount(c *gin.Context) {
 		Join("chat_ai_library_file_data_index b", "a.id=b.data_id", "inner").
 		Where(`a.admin_user_id`, cast.ToString(userId)).Where(`a.file_id`, cast.ToString(fileId)).
 		Where(`a.isolated`, "false").
+		Where(`a.delete_time`, `0`).
 		Field(`a.split_status,b.status`)
 	list, err := query.Select()
 	if err != nil {
@@ -201,6 +203,7 @@ func GetCategoryParagraphList(c *gin.Context) {
 		Join("chat_ai_library_file_data_index b", "a.id=b.data_id", "inner").
 		Where(`a.admin_user_id`, cast.ToString(userId)).Where(`a.library_id`, cast.ToString(libraryId)).
 		Where(`a.category_id`, `>`, `0`).
+		Where(`a.delete_time`, `0`).
 		Field(`a.*,f.file_name`).
 		Field(`
 			CASE 
@@ -444,7 +447,7 @@ func SaveParagraph(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
-	fileInfo, err := msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(fileId)).Find()
+	fileInfo, err := common.GetLibFileInfo(int(fileId), userId)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -473,6 +476,9 @@ func SaveParagraph(c *gin.Context) {
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `images`))))
 		return
+	}
+	if imagesJson := strings.TrimSpace(c.PostForm(`images_json`)); len(imagesJson) > 0 {
+		jsonImages = imagesJson //适用于特殊场景,直接传递参数
 	}
 
 	_ = m.Begin()
@@ -627,7 +633,7 @@ func SaveSplitParagraph(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	fileInfo, err := msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(fileId)).Find()
+	fileInfo, err := common.GetLibFileInfo(int(fileId), adminUserId)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -905,6 +911,7 @@ func UpdateParagraphCategory(c *gin.Context) {
 	}
 	data, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`delete_time`, `0`).
 		Where(`id`, cast.ToString(id)).
 		Find()
 	if err != nil {

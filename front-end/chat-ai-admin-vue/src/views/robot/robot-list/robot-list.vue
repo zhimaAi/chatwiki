@@ -215,6 +215,12 @@
                   <span>工作流</span>
                 </span>
               </a-menu-item>
+              <a-menu-item @click="toImportCsl">
+                <span class="create-action">
+                  <img class="icon" :src="DEFAULT_IMPORT_CSL_AVATAR" alt="">
+                  <span>导入csl创建</span>
+                </span>
+              </a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -275,6 +281,9 @@
                       >复 制</a
                     >
                   </a-menu-item>
+                  <a-menu-item @click="handleExportCsl(item)">
+                    <span>导出为csl</span>
+                  </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -285,21 +294,23 @@
     </div>
 
     <AddRobotAlert ref="addRobotAlertRef" />
+    <ImportCslAlert ref="importCslAlertRef" @ok="handleImportOk" />
   </div>
 </template>
 
 <script setup>
-import { DEFAULT_ROBOT_AVATAR, DEFAULT_WORKFLOW_AVATAR} from '@/constants/index.js'
+import { DEFAULT_ROBOT_AVATAR, DEFAULT_WORKFLOW_AVATAR, DEFAULT_IMPORT_CSL_AVATAR} from '@/constants/index.js'
 import { usePermissionStore } from '@/stores/modules/permission'
 import { getRobotList, deleteRobot, robotCopy } from '@/api/robot/index.js'
 import { ref, onMounted, createVNode, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { ExclamationCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { Modal, message } from 'ant-design-vue'
 import AddRobotAlert from './components/add-robot-alert.vue'
+import ImportCslAlert from './components/import-csl-alert.vue'
 import PageAlert from '@/components/page-alert/page-alert.vue'
 import ListTabs from '@/components/cu-tabs/list-tabs.vue'
 import { getRobotPermission } from '@/utils/permission'
+import { useOpenUrlWithToken } from '@/hooks/web'
 
 const tabs = ref([
   {
@@ -320,7 +331,6 @@ const permissionStore = usePermissionStore()
 let { role_permission, role_type } = permissionStore
 const robotCreate = computed(() => role_type == 1 || role_permission.includes('RobotCreate'))
 
-const router = useRouter()
 
 const activeKey = ref('2')
 
@@ -367,9 +377,19 @@ const getList = () => {
 }
 
 const addRobotAlertRef = ref(null)
+const importCslAlertRef = ref(null)
 const toAddRobot = (val) => {
   // router.push({ name: 'addRobot' })
   addRobotAlertRef.value.open(val)
+}
+
+const toImportCsl = () => {
+  importCslAlertRef.value.open()
+}
+
+const handleImportOk = (data) => {
+  getList()
+ toEditRobot(data)
 }
 
 const toEditRobot = ({id, robot_key, application_type}) => {
@@ -484,6 +504,12 @@ const onCopy = ({ id }) => {
     message.success('复制成功')
     getList()
   })
+}
+
+// 导出为csl
+const handleExportCsl = (data) => {
+  const { openUrlWithToken } = useOpenUrlWithToken()
+  openUrlWithToken(`/manage/robotExport?id=${data.id}`)
 }
 
 const toTestPage = (item) => {

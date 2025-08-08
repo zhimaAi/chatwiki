@@ -75,6 +75,7 @@ func GetAnswerSource(c *gin.Context) {
 		Join(`chat_ai_library_file f`, `d.file_id = f.id`, `left`).
 		Where(`c.admin_user_id`, cast.ToString(chatBaseParam.AdminUserId)).
 		Where(`c.message_id`, cast.ToString(messageId)).
+		Where(`d.delete_time`, `0`).
 		Where(`c.file_id`, cast.ToString(fileId)).
 		Order(`c.id`).
 		Field(`

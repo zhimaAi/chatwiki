@@ -12,4 +12,5 @@ const (
 	StatusOK                        = 0
 	ErrorCodeContainsSensitiveWords = 10001
 	ErrorCodeNeedLogin              = 10002
+	ErrorCodeNeedNoPermissionLogin  = 10003
 )

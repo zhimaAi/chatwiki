@@ -55,6 +55,7 @@ type ModelInfo struct {
 }
 
 const (
+	ModelChatWiki        = `chatwiki` //DIY
 	ModelAzureOpenAI     = `azure`
 	ModelAnthropicClaude = `claude`
 	ModelGoogleGemini    = `gemini`
@@ -806,12 +807,12 @@ func (h *ModelCallHandler) GetVector2000(adminUserId int, openid string, robot m
 	if len(res.Result) < define.VectorDimension {
 		res.Result = append(res.Result, make([]float64, define.VectorDimension-len(res.Result))...)
 	}
-	go func() {
-		err := LlmLogRequest("Text Embedding", adminUserId, openid, robot, library, h.config, lib_define.AppYunH5, fileInfo, h.Meta.Model, res.PromptToken, res.CompletionToken, req, res)
-		if err != nil {
-			logs.Error(err.Error())
-		}
-	}()
+	//go func() {
+	err = LlmLogRequest("Text Embedding", adminUserId, openid, robot, library, h.config, lib_define.AppYunH5, fileInfo, h.Meta.Model, res.PromptToken, res.CompletionToken, req, res)
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	//}()
 	return res, nil
 }
 
@@ -852,12 +853,12 @@ func (h *ModelCallHandler) RequestRerank(adminUserId int, openid, appType string
 		PromptToken:     res.InputToken,
 		CompletionToken: res.OutputToken,
 	}
-	go func() {
-		err := LlmLogRequest("RERANK", adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.Meta.Model, totalResponse.PromptToken, totalResponse.CompletionToken, req, totalResponse)
-		if err != nil {
-			logs.Error(err.Error())
-		}
-	}()
+	//go func() {
+	err = LlmLogRequest("RERANK", adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.Meta.Model, totalResponse.PromptToken, totalResponse.CompletionToken, req, totalResponse)
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	//}()
 	return res, nil
 }
 
@@ -943,16 +944,16 @@ func (h *ModelCallHandler) RequestChatStream(
 		chanStream <- sse.Event{Event: `sending`, Data: totalResponse.Result}
 	}
 
-	go func() {
-		library := msql.Params{}
-		if appType == "" && openid == "" {
-			library, robot = robot, library
-		}
-		err = LlmLogRequest("LLM", adminUserId, openid, robot, library, h.config, appType, msql.Params{}, h.Meta.Model, totalResponse.PromptToken, totalResponse.CompletionToken, req, totalResponse)
-		if err != nil {
-			logs.Error(err.Error())
-		}
-	}()
+	//go func() {
+	library := msql.Params{}
+	if appType == "" && openid == "" {
+		library, robot = robot, library
+	}
+	err = LlmLogRequest("LLM", adminUserId, openid, robot, library, h.config, appType, msql.Params{}, h.Meta.Model, totalResponse.PromptToken, totalResponse.CompletionToken, req, totalResponse)
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	//}()
 	if len(functionToolCall.Name) > 0 && len(functionToolCall.Arguments) > 0 {
 		go func(adminUserId, robotId int, functionToolCall adaptor.FunctionToolCall) {
 			err := SaveFormData(adminUserId, robotId, functionToolCall)
@@ -1024,12 +1025,12 @@ func (h *ModelCallHandler) RequestChat(
 	if h.CheckFunctionArguments(functionToolCall, functionTools) && len(resp.Result) == 0 {
 		resp.Result = `OK`
 	}
-	go func() {
-		err := LlmLogRequest("LLM", adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.Meta.Model, resp.PromptToken, resp.CompletionToken, req, resp)
-		if err != nil {
-			logs.Error(err.Error())
-		}
-	}()
+	//go func() {
+	err = LlmLogRequest("LLM", adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.Meta.Model, resp.PromptToken, resp.CompletionToken, req, resp)
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	//}()
 	if len(functionToolCall.Name) > 0 && len(functionToolCall.Arguments) > 0 {
 		go func(adminUserId, robotId int, functionToolCall adaptor.FunctionToolCall) {
 			err := SaveFormData(adminUserId, robotId, functionToolCall)

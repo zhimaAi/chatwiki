@@ -5,6 +5,22 @@
     <div class="prompt-form">
       <div class="prompt-form-label">模型设置</div>
 
+      <div class="form-item">
+        <div class="form-item-label">
+          <a-flex align="center">
+            <span>AI智能总结</span>
+            <a-tooltip>
+              <template #title>开启后，搜索知识库时，由大模型自动总结文档，并给出总结后的结果</template>
+              <QuestionCircleOutlined class="question-icon" />
+            </a-tooltip>
+            <a-switch style="margin-left: 24px;" @change="handleChangeModel" v-model:checked="formState.summary_switch" :checkedValue="1" :unCheckedValue="0" checked-children="开" un-checked-children="关" />
+          </a-flex>
+        </div>
+      </div>
+      <div v-show="formState.summary_switch == 1">
+
+
+
       <div class="prompt-form-item">
         <div class="prompt-form-item-label">
           <span style="color: red;">* </span><span>模型选择</span>
@@ -23,7 +39,7 @@
         <div class="prompt-form-item-label">
           <span style="color: red;">* </span><span>提示词</span>
         </div>
-        <a-radio-group v-model:value="formState.prompt_type" @change="onSave">
+        <a-radio-group v-model:value="formState.prompt_type" @change="handlePromptTypeChange">
           <a-radio value="0">默认提示词</a-radio>
           <a-radio value="1">自定义提示词</a-radio>
         </a-radio-group>
@@ -83,6 +99,8 @@
           </div>
         </div>
       </div>
+
+     </div> 
 
       <!-- <div class="prompt-form-item">
         <div class="prompt-form-item-label">
@@ -211,6 +229,10 @@
         </div>
       </div>
     </div>
+    <a-modal v-model:open="modalOpen" @cancel="handleClose" title="请输入自定义提示词" @ok="handleOk">
+
+      <a-textarea v-model:value="promptVal" placeholder="请输入" style="min-height: 300px;" allow-clear />
+    </a-modal>
   </a-drawer>
 </template>
 <script lang="ts" setup>
@@ -282,6 +304,7 @@ const formState = reactive({
   rerank_status: 0,
   rerank_use_model: void 0,
   rerank_model_config_id: void 0,
+  summary_switch: 0,
 })
 
 // 获取rerank模型列表
@@ -349,6 +372,7 @@ const updateLibraryInfo = (val) => {
   newState.rerank_status = parseFloat(newState.rerank_status)
   newState.similarity = parseFloat(newState.similarity)
   newState.top_k = parseFloat(newState.size)
+  newState.summary_switch = +newState.summary_switch
   
   if (newState.rerank_use_model === '') {
     // 这里是因为服务端可能会返回个空字符串，我这里改成undefined才有placeholder
@@ -380,6 +404,32 @@ const onSave = () => {
   saveLibrarySearch(params).then((res) => {
     message.success('保存成功')
   })
+}
+
+const modalOpen = ref(false)
+const promptVal = ref('')
+const handlePromptTypeChange = () => {
+  if(formState.prompt_type == '1'){
+    promptVal.value = formState.prompt
+    modalOpen.value = true
+  } else {
+    onSave()
+  }
+}
+
+const handleOk = () => {
+  if(!promptVal.value) {
+    return message.error('请输入提示语')
+  } else {
+    formState.prompt = promptVal.value
+    modalOpen.value =false
+    onSave()
+  }
+}
+
+const handleClose = () => {
+  formState.prompt_type = '0'
+  modalOpen.value = false
 }
 
 const afterOpenChange = (bool) => {
@@ -438,6 +488,7 @@ onMounted(() => {
 
   .question-icon {
     color: #8c8c8c;
+    margin-left: 2px;
   }
 
   .number-box {
@@ -474,6 +525,7 @@ onMounted(() => {
 
       .question-icon {
         color: #8c8c8c;
+        margin-left: 2px;
       }
     }
 

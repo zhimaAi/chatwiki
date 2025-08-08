@@ -194,6 +194,7 @@ type LibsNodeParams struct {
 	RerankStatus        uint            `json:"rerank_status"`
 	RerankModelConfigId common.MixedInt `json:"rerank_model_config_id"`
 	RerankUseModel      string          `json:"rerank_use_model"`
+	QuestionValue       string          `json:"question_value"`
 }
 
 /************************************/
@@ -255,6 +256,7 @@ func (params *LlmBaseParams) Verify(adminUserId int) error {
 
 type LlmNodeParams struct {
 	LlmBaseParams
+	QuestionValue string `json:"question_value"`
 }
 
 /************************************/
@@ -273,21 +275,127 @@ type ReplyNodeParams struct {
 
 /************************************/
 
+const StaffAll = 1 //转接类型:1自动分配,2指定客服,3指定客服组
+const StaffIds = 2
+const StaffGroup = 3
+
 type ManualNodeParams struct {
+	SwitchType    common.MixedInt `json:"switch_type"`
+	SwitchStaff   string          `json:"switch_staff"`
+	SwitchContent string          `json:"switch_content"`
+}
+
+/************************************/
+
+type QuestionOptimizeNodeParams struct {
+	LlmBaseParams
+	QuestionValue string `json:"question_value"`
+}
+
+func (params *QuestionOptimizeNodeParams) Verify(adminUserId int) error {
+	if len(params.QuestionValue) == 0 {
+		return errors.New(`用户问题不能为空`)
+	}
+	return params.LlmBaseParams.Verify(adminUserId)
+}
+
+/************************************/
+
+type ParamsExtractorNodeParams struct {
+	LlmBaseParams
+	QuestionValue string               `json:"question_value"`
+	Output        common.RecurveFields `json:"output"`
+}
+
+func (params *ParamsExtractorNodeParams) Verify(adminUserId int) error {
+	if len(params.QuestionValue) == 0 {
+		return errors.New(`用户问题不能为空`)
+	}
+	if err := params.LlmBaseParams.Verify(adminUserId); err != nil {
+		return err
+	}
+	//输出字段校验
+	return params.Output.Verify()
+}
+
+/************************************/
+
+type FormFieldTyp struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+type FormFieldValue struct {
+	FormFieldTyp
+	Value string `json:"value"`
+}
+
+type FormInsertNodeParams struct {
+	FormId common.MixedInt  `json:"form_id"`
+	Datas  []FormFieldValue `json:"datas"`
+}
+
+type FormDeleteNodeParams struct {
+	FormId common.MixedInt              `json:"form_id"`
+	Typ    common.MixedInt              `json:"typ"`
+	Where  []define.FormFilterCondition `json:"where"`
+}
+
+type FormUpdateNodeParams struct {
+	FormId common.MixedInt              `json:"form_id"`
+	Typ    common.MixedInt              `json:"typ"`
+	Where  []define.FormFilterCondition `json:"where"`
+	Datas  []FormFieldValue             `json:"datas"`
+}
+
+type FormFieldOrder struct {
+	FormFieldTyp
+	IsAsc bool `json:"is_asc"`
+}
+
+type FormSelectNodeParams struct {
+	FormId common.MixedInt              `json:"form_id"`
+	Typ    common.MixedInt              `json:"typ"`
+	Where  []define.FormFilterCondition `json:"where"`
+	Fields []FormFieldTyp               `json:"fields"`
+	Order  []FormFieldOrder             `json:"order"`
+	Limit  common.MixedInt              `json:"limit"`
+}
+
+/************************************/
+
+type CodeRunParams struct {
+	Field    string `json:"field"`
+	Variable string `json:"variable"`
+}
+
+type CodeRunNodeParams struct {
+	Params    []CodeRunParams      `json:"params"`
+	MainFunc  string               `json:"main_func"`
+	Timeout   uint                 `json:"timeout"`
+	Output    common.RecurveFields `json:"output"`
+	Exception string               `json:"exception"`
 }
 
 /************************************/
 
 type NodeParams struct {
-	Start  StartNodeParams  `json:"start"`
-	Term   TermNodeParams   `json:"term"`
-	Cate   CateNodeParams   `json:"cate"`
-	Curl   CurlNodeParams   `json:"curl"`
-	Libs   LibsNodeParams   `json:"libs"`
-	Llm    LlmNodeParams    `json:"llm"`
-	Assign AssignNodeParams `json:"assign"`
-	Reply  ReplyNodeParams  `json:"reply"`
-	Manual ManualNodeParams `json:"manual"`
+	Start            StartNodeParams            `json:"start"`
+	Term             TermNodeParams             `json:"term"`
+	Cate             CateNodeParams             `json:"cate"`
+	Curl             CurlNodeParams             `json:"curl"`
+	Libs             LibsNodeParams             `json:"libs"`
+	Llm              LlmNodeParams              `json:"llm"`
+	Assign           AssignNodeParams           `json:"assign"`
+	Reply            ReplyNodeParams            `json:"reply"`
+	Manual           ManualNodeParams           `json:"manual"`
+	QuestionOptimize QuestionOptimizeNodeParams `json:"question_optimize"`
+	ParamsExtractor  ParamsExtractorNodeParams  `json:"params_extractor"`
+	FormInsert       FormInsertNodeParams       `json:"form_insert"`
+	FormDelete       FormDeleteNodeParams       `json:"form_delete"`
+	FormUpdate       FormUpdateNodeParams       `json:"form_update"`
+	FormSelect       FormSelectNodeParams       `json:"form_select"`
+	CodeRun          CodeRunNodeParams          `json:"code_run"`
 }
 
 func DisposeNodeParams(nodeType int, nodeParams string) NodeParams {
@@ -324,6 +432,36 @@ func DisposeNodeParams(nodeType int, nodeParams string) NodeParams {
 	}
 	if params.Assign == nil {
 		params.Assign = make([]AssignNodeParam, 0)
+	}
+	if params.ParamsExtractor.Output == nil {
+		params.ParamsExtractor.Output = make(common.RecurveFields, 0)
+	}
+	if params.FormInsert.Datas == nil {
+		params.FormInsert.Datas = make([]FormFieldValue, 0)
+	}
+	if params.FormDelete.Where == nil {
+		params.FormDelete.Where = make([]define.FormFilterCondition, 0)
+	}
+	if params.FormUpdate.Where == nil {
+		params.FormUpdate.Where = make([]define.FormFilterCondition, 0)
+	}
+	if params.FormUpdate.Datas == nil {
+		params.FormUpdate.Datas = make([]FormFieldValue, 0)
+	}
+	if params.FormSelect.Where == nil {
+		params.FormSelect.Where = make([]define.FormFilterCondition, 0)
+	}
+	if params.FormSelect.Fields == nil {
+		params.FormSelect.Fields = make([]FormFieldTyp, 0)
+	}
+	if params.FormSelect.Order == nil {
+		params.FormSelect.Order = make([]FormFieldOrder, 0)
+	}
+	if params.CodeRun.Params == nil {
+		params.CodeRun.Params = make([]CodeRunParams, 0)
+	}
+	if params.CodeRun.Output == nil {
+		params.CodeRun.Output = make(common.RecurveFields, 0)
 	}
 	return params
 }

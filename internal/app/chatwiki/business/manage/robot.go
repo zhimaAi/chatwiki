@@ -101,7 +101,7 @@ func SaveRobot(c *gin.Context) {
 	id := cast.ToInt64(c.PostForm(`id`))
 	robotName := strings.TrimSpace(c.PostForm(`robot_name`))
 	robotIntro := strings.TrimSpace(c.PostForm(`robot_intro`))
-	robotAvatar := ``
+	robotAvatar := strings.TrimSpace(c.DefaultPostForm(`avatar_from_template`, ``))
 	promptType := cast.ToInt(c.DefaultPostForm(`prompt_type`, `1`))
 	prompt := strings.TrimSpace(c.PostForm(`prompt`))
 	promptStruct := strings.TrimSpace(c.DefaultPostForm(`prompt_struct`, common.GetDefaultPromptStruct()))
@@ -120,11 +120,11 @@ func SaveRobot(c *gin.Context) {
 	chatType := cast.ToInt(c.DefaultPostForm(`chat_type`, `1`))
 	unknownQuestionPrompt := strings.TrimSpace(c.DefaultPostForm(`unknown_question_prompt`, `{"content":"哎呀，这个问题我暂时还不太清楚呢～（对手指）"}`))
 
-	libraryQaDirectReplySwitch := cast.ToBool(c.PostForm(`library_qa_direct_reply_switch`))
-	libraryQaDirectReplyScore := cast.ToFloat32(c.PostForm(`library_qa_direct_reply_score`))
+	libraryQaDirectReplySwitch := cast.ToBool(c.DefaultPostForm(`library_qa_direct_reply_switch`, `true`))
+	libraryQaDirectReplyScore := cast.ToFloat32(c.DefaultPostForm(`library_qa_direct_reply_score`, `0.9`))
 
-	mixtureQaDirectReplySwitch := cast.ToBool(c.PostForm(`mixture_qa_direct_reply_switch`))
-	mixtureQaDirectReplyScore := cast.ToFloat32(c.PostForm(`mixture_qa_direct_reply_score`))
+	mixtureQaDirectReplySwitch := cast.ToBool(c.DefaultPostForm(`mixture_qa_direct_reply_switch`, `true`))
+	mixtureQaDirectReplyScore := cast.ToFloat32(c.DefaultPostForm(`mixture_qa_direct_reply_score`, `0.9`))
 	answerSourceSwitch := cast.ToBool(c.DefaultPostForm(`answer_source_switch`, `true`))
 
 	enableQuestionOptimize := cast.ToBool(c.DefaultPostForm(`enable_question_optimize`, `false`))
@@ -377,6 +377,10 @@ func SaveRobot(c *gin.Context) {
 		`similarity`:                            similarity,
 		`search_type`:                           searchType,
 		`chat_type`:                             chatType,
+		`library_qa_direct_reply_switch`:        libraryQaDirectReplySwitch,
+		`library_qa_direct_reply_score`:         libraryQaDirectReplyScore,
+		`mixture_qa_direct_reply_switch`:        mixtureQaDirectReplySwitch,
+		`mixture_qa_direct_reply_score`:         mixtureQaDirectReplyScore,
 		`answer_source_switch`:                  answerSourceSwitch,
 		`enable_question_optimize`:              enableQuestionOptimize,
 		`optimize_question_model_config_id`:     optimizeQuestionModelConfigId,
@@ -397,18 +401,6 @@ func SaveRobot(c *gin.Context) {
 	}
 	if len(unknownQuestionPrompt) > 0 {
 		data[`unknown_question_prompt`] = unknownQuestionPrompt
-	}
-	if chatType == define.ChatTypeLibrary {
-		data[`library_qa_direct_reply_switch`] = libraryQaDirectReplySwitch
-		if libraryQaDirectReplySwitch {
-			data[`library_qa_direct_reply_score`] = libraryQaDirectReplyScore
-		}
-	}
-	if chatType == define.ChatTypeMixture {
-		data[`mixture_qa_direct_reply_switch`] = mixtureQaDirectReplySwitch
-		if mixtureQaDirectReplySwitch {
-			data[`mixture_qa_direct_reply_score`] = mixtureQaDirectReplyScore
-		}
 	}
 
 	if id > 0 {
@@ -469,7 +461,7 @@ func AddFlowRobot(c *gin.Context) {
 	//get params
 	robotName := strings.TrimSpace(c.PostForm(`robot_name`))
 	robotIntro := strings.TrimSpace(c.PostForm(`robot_intro`))
-	robotAvatar := define.LocalUploadPrefix + `default/workflow_avatar.svg`
+	robotAvatar := strings.TrimSpace(c.DefaultPostForm(`avatar_from_template`, define.LocalUploadPrefix+`default/workflow_avatar.svg`))
 	//check required
 	if len(robotName) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))

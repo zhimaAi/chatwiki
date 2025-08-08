@@ -20,18 +20,25 @@ import (
 )
 
 const (
-	NodeTypeRemark = -1 //注释
-	NodeTypeEdges  = 0  //图的edges
-	NodeTypeStart  = 1  //开始节点
-	NodeTypeTerm   = 2  //判断分支
-	NodeTypeCate   = 3  //问题分类
-	NodeTypeCurl   = 4  //http请求
-	NodeTypeLibs   = 5  //知识库检索
-	NodeTypeLlm    = 6  //AI对话
-	NodeTypeFinish = 7  //结束节点
-	NodeTypeAssign = 8  //赋值节点
-	NodeTypeReply  = 9  //指定回复
-	NodeTypeManual = 10 //转人工(xkf)
+	NodeTypeRemark           = -1 //注释
+	NodeTypeEdges            = 0  //图的edges
+	NodeTypeStart            = 1  //开始节点
+	NodeTypeTerm             = 2  //判断分支
+	NodeTypeCate             = 3  //问题分类
+	NodeTypeCurl             = 4  //http请求
+	NodeTypeLibs             = 5  //知识库检索
+	NodeTypeLlm              = 6  //AI对话
+	NodeTypeFinish           = 7  //结束节点
+	NodeTypeAssign           = 8  //赋值节点
+	NodeTypeReply            = 9  //指定回复
+	NodeTypeManual           = 10 //转人工(xkf)
+	NodeTypeQuestionOptimize = 11 // 问题优化
+	NodeTypeParamsExtractor  = 12 // 参数提取
+	NodeTypeFormInsert       = 13 //数据表单新增
+	NodeTypeFormDelete       = 14 //数据表单删除
+	NodeTypeFormUpdate       = 15 //数据表单更新
+	NodeTypeFormSelect       = 16 //数据表单查询
+	NodeTypeCodeRun          = 17 //代码运行
 )
 
 var NodeTypes = [...]int{
