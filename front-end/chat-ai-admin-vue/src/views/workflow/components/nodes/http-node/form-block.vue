@@ -562,11 +562,11 @@ const typOptions = [
   {
     lable: 'array\<float>',
     value: 'array\<float>'
+  },
+  {
+    lable: 'array\<object>',
+    value: 'array\<object>'
   }
-  // {
-  //   lable: 'array\<object>',
-  //   value: 'array\<object>'
-  // }
 ]
 const onTextChange = (key, index, data) => {
   let regex = / +【/g
