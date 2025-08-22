@@ -392,7 +392,7 @@ const library_type = ref(0)
 
 const paginations = ref({
   page: 1,
-  size: 10
+  size: 1000
 })
 const paragraphInfo = ref({})
 const paragraphLists = ref([])
@@ -891,6 +891,7 @@ const handleSplit = ({ index, beforeContent, selectedContent, afterContent, isFu
 
     // 不是全选最终数据长度会加1
     newList[index + 1].images = []
+    newList.splice(index, 1);
   }
 
   paragraphLists.value = newList
