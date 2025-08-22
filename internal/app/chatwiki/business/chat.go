@@ -473,7 +473,9 @@ func ChatQuestionGuide(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson([]string{}, nil))
 		return
 	}
-
+	if len(guides) >= cast.ToInt(chatBaseParam.Robot[`question_guide_num`]) {
+		guides = guides[:cast.ToInt(chatBaseParam.Robot[`question_guide_num`])]
+	}
 	c.String(http.StatusOK, lib_web.FmtJson(guides, nil))
 }
 
