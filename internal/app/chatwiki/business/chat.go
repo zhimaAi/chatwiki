@@ -794,6 +794,18 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 				len(list[0][`similarity`]) > 0 &&
 				cast.ToFloat32(list[0][`similarity`]) >= cast.ToFloat32(params.Robot[`mixture_qa_direct_reply_score`]) {
 				content = list[0][`answer`]
+
+				if len(list[0][`images`]) > 0 {
+					var imageSlice []string
+					image_decode_err := json.Unmarshal([]byte(cast.ToString(list[0][`images`])), &imageSlice)
+					if image_decode_err == nil {
+						// 成功解码JSON到切片
+						for _, imageUrl := range imageSlice {
+							content += `<br/>![img](` + imageUrl + `)`
+						}
+					}
+				}
+
 				chanStream <- sse.Event{Event: `sending`, Data: content}
 			} else {
 				if !needRunWorkFlow && useStream {
@@ -850,6 +862,18 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 				len(list[0][`similarity`]) > 0 &&
 				cast.ToFloat32(list[0][`similarity`]) >= cast.ToFloat32(params.Robot[`library_qa_direct_reply_score`]) {
 				content = list[0][`answer`]
+
+				if len(list[0][`images`]) > 0 {
+					var imageSlice []string
+					image_decode_err := json.Unmarshal([]byte(cast.ToString(list[0][`images`])), &imageSlice)
+					if image_decode_err == nil {
+						// 成功解码JSON到切片
+						for _, imageUrl := range imageSlice {
+							content += `<br/>![img](` + imageUrl + `)`
+						}
+					}
+				}
+
 				chanStream <- sse.Event{Event: `sending`, Data: content}
 			} else { // ask gpt
 				if !needRunWorkFlow && useStream {

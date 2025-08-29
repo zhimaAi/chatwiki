@@ -97,6 +97,11 @@ func ConvertHtml(msg string, _ ...string) error {
 
 	//create default lib file split
 	splitParams := common.DefaultSplitParams()
+	if len(info[`async_split_params`]) > 0 {
+		if err = tool.JsonDecodeUseNumber(info[`async_split_params`], &splitParams); err != nil {
+			logs.Error(err.Error())
+		}
+	}
 	common.AutoSplitLibFile(cast.ToInt(info[`admin_user_id`]), fileId, splitParams)
 
 	return nil
@@ -478,6 +483,7 @@ func CrawlArticle(msg string, _ ...string) error {
 		`file_url`:            uploadInfo.Link,
 		`update_time`:         tool.Time2Int(),
 		`doc_last_renew_time`: tool.Time2Int(),
+		`async_split_params`:  ``, //清空之前的参数
 	})
 	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: fileId})
 	if err != nil {

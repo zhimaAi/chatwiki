@@ -71,6 +71,7 @@ func (field SimpleField) SetVals(data any) SimpleField {
 		field.Vals = nil
 		return field
 	}
+	field.Vals = make([]Val, 0) //清空原有的值
 	for _, one := range datas {
 		switch field.Typ {
 		case TypString, TypArrString:

@@ -178,7 +178,14 @@ func QueryAndParseAliOcrRequest(file msql.Params, aliOcrKey, aliOcrSecret string
 		return err
 	}
 
-	AutoSplitLibFile(cast.ToInt(file[`admin_user_id`]), cast.ToInt(file[`id`]), DefaultSplitParams())
+	//create default lib file split
+	splitParams := DefaultSplitParams()
+	if len(file[`async_split_params`]) > 0 {
+		if err = tool.JsonDecodeUseNumber(file[`async_split_params`], &splitParams); err != nil {
+			logs.Error(err.Error())
+		}
+	}
+	AutoSplitLibFile(cast.ToInt(file[`admin_user_id`]), cast.ToInt(file[`id`]), splitParams)
 
 	return nil
 }
