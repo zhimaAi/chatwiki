@@ -288,11 +288,11 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 		splitParams.IsQaDoc = isQaDoc
 		splitParams.QaIndexType = cast.ToInt(libraryInfo[`qa_index_type`])
 		splitParams.ChunkSize = 512
-		splitParams.IsTableFile = cast.ToInt(c.PostForm(`is_table_file`))
 	}
 	for _, uploadInfo := range libraryFiles {
 		status := define.FileStatusWaitSplit
 		isTableFile := define.IsTableFile(uploadInfo.Ext)
+		splitParams.IsTableFile = cast.ToInt(isTableFile)
 
 		if define.IsPdfFile(uploadInfo.Ext) && (pdfParseType == define.PdfParseTypeOcr ||
 			pdfParseType == define.PdfParseTypeOcrWithImage ||
@@ -355,40 +355,6 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 		if uploadInfo.Custom {
 			continue
 		}
-		if define.IsPdfFile(uploadInfo.Ext) && (pdfParseType == define.PdfParseTypeOcr || pdfParseType == define.PdfParseTypeOcrWithImage) {
-			if message, err := tool.JsonEncode(map[string]any{`file_id`: fileId, `file_url`: uploadInfo.Link}); err != nil {
-				logs.Error(err.Error())
-			} else if err := common.AddJobs(define.ConvertHtmlTopic, message); err != nil {
-				logs.Error(err.Error())
-			}
-			continue
-		}
-		if define.IsPdfFile(uploadInfo.Ext) && pdfParseType == define.PdfParseTypeOcrAli {
-			jobId, err := common.SubmitOdcParserJob(c, userId, uploadInfo.Link)
-			if err != nil {
-				logs.Error(err.Error())
-				_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
-					`status`:      define.FileStatusException,
-					`errmsg`:      err.Error(),
-					`update_time`: tool.Time2Int(),
-				})
-				if err != nil {
-					logs.Error(err.Error())
-				}
-				lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: cast.ToInt(fileId)})
-			} else {
-				_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
-					`ali_ocr_job_id`: jobId,
-					`update_time`:    tool.Time2Int(),
-				})
-				if err != nil {
-					logs.Error(err.Error())
-				}
-				lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: cast.ToInt(fileId)})
-			}
-			continue
-		}
-
 		switch cast.ToInt(libraryInfo[`type`]) {
 		case define.GeneralLibraryType:
 			if isTableFile {
@@ -422,6 +388,48 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 			if define.IsMdFile(uploadInfo.Ext) {
 				autoSplit = true
 			}
+		}
+		if define.IsPdfFile(uploadInfo.Ext) && (pdfParseType == define.PdfParseTypeOcr || pdfParseType == define.PdfParseTypeOcrWithImage) {
+			_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
+				`async_split_params`: tool.JsonEncodeNoError(splitParams),
+				`update_time`:        tool.Time2Int(),
+			})
+			if err != nil {
+				logs.Error(err.Error())
+			}
+			lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: cast.ToInt(fileId)})
+			if message, err := tool.JsonEncode(map[string]any{`file_id`: fileId, `file_url`: uploadInfo.Link}); err != nil {
+				logs.Error(err.Error())
+			} else if err := common.AddJobs(define.ConvertHtmlTopic, message); err != nil {
+				logs.Error(err.Error())
+			}
+			continue
+		}
+		if define.IsPdfFile(uploadInfo.Ext) && pdfParseType == define.PdfParseTypeOcrAli {
+			jobId, err := common.SubmitOdcParserJob(c, userId, uploadInfo.Link)
+			if err != nil {
+				logs.Error(err.Error())
+				_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
+					`status`:      define.FileStatusException,
+					`errmsg`:      err.Error(),
+					`update_time`: tool.Time2Int(),
+				})
+				if err != nil {
+					logs.Error(err.Error())
+				}
+				lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: cast.ToInt(fileId)})
+			} else {
+				_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
+					`async_split_params`: tool.JsonEncodeNoError(splitParams),
+					`ali_ocr_job_id`:     jobId,
+					`update_time`:        tool.Time2Int(),
+				})
+				if err != nil {
+					logs.Error(err.Error())
+				}
+				lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: cast.ToInt(fileId)})
+			}
+			continue
 		}
 		if autoSplit {
 			go common.AutoSplitLibFile(userId, int(fileId), splitParams)
@@ -1215,10 +1223,11 @@ func RestudyLibraryFile(c *gin.Context) {
 	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
 		Where(`id`, cast.ToString(id)).
 		Update(msql.Datas{
-			`status`:         cast.ToString(define.FileStatusInitial),
-			`pdf_parse_type`: pdfParseType,
-			`ocr_pdf_index`:  0,
-			`ocr_pdf_total`:  page,
+			`status`:             cast.ToString(define.FileStatusInitial),
+			`pdf_parse_type`:     pdfParseType,
+			`ocr_pdf_index`:      0,
+			`ocr_pdf_total`:      page,
+			`async_split_params`: ``, //清空之前的参数
 		})
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
