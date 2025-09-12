@@ -20,12 +20,19 @@ import (
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
+type Draft struct {
+	IsDraft      bool
+	NodeMaps     map[string]msql.Params
+	StartNodeKey string
+}
+
 type WorkFlowParams struct {
 	*define.ChatRequestParam
 	RealRobot  msql.Params
 	CurMsgId   int
 	DialogueId int
 	SessionId  int
+	Draft      Draft
 }
 
 type WorkFlow struct {
@@ -76,10 +83,13 @@ func (flow *WorkFlow) LlmCallLogs(info LlmCallInfo) {
 func (flow *WorkFlow) Running() (err error) {
 	flow.running = true
 	flow.Logs(`进行工作流...`)
+	if flow.params.Draft.IsDraft {
+		flow.Logs(`使用草稿调试...`)
+	}
 	for {
 		var nodeInfo msql.Params
 		flow.Logs(`当前运行节点:%s`, flow.curNodeKey)
-		flow.curNode, nodeInfo, err = GetNodeByKey(cast.ToUint(flow.params.RealRobot[`id`]), flow.curNodeKey)
+		flow.curNode, nodeInfo, err = GetNodeByKey(flow, cast.ToUint(flow.params.RealRobot[`id`]), flow.curNodeKey)
 		if err != nil {
 			flow.Logs(err.Error())
 		}
@@ -98,7 +108,7 @@ func (flow *WorkFlow) Running() (err error) {
 		flow.output, nextNodeKey, err = flow.curNode.Running(flow)
 		flow.outputs[flow.curNodeKey] = flow.output //记录每个节点输出的变量
 		nodeLog.EndTime = time.Now().UnixMilli()
-		nodeLog.Output = flow.output
+		nodeLog.Output = common.GetFieldsObject(common.GetRecurveFields(flow.output))
 		nodeLog.ErrorMsg = fmt.Sprintf(`%v`, err)
 		nodeLog.UseTime = nodeLog.EndTime - nodeLog.StartTime
 		flow.nodeLogs = append(flow.nodeLogs, nodeLog)
@@ -185,7 +195,7 @@ func SysGlobalVariables() []string { //固定值,runtime时不可变更
 	return []string{`global.question`, `global.openid`}
 }
 
-func RunningWorkFlow(params *WorkFlowParams) (*WorkFlow, error) {
+func RunningWorkFlow(params *WorkFlowParams, startNodeKey string) (*WorkFlow, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	flow := &WorkFlow{
 		params:    params,
@@ -199,7 +209,7 @@ func RunningWorkFlow(params *WorkFlowParams) (*WorkFlow, error) {
 			`openid`:   common.SimpleField{Sys: true, Key: `openid`, Desc: tea.String(`用户openid`), Typ: common.TypString, Vals: []common.Val{{String: &params.Openid}}},
 		},
 		outputs:     make(map[string]common.SimpleFields), //记录每个节点输出的变量
-		curNodeKey:  params.RealRobot[`start_node_key`],   //开始节点
+		curNodeKey:  startNodeKey,                         //开始节点
 		runNodeKeys: make([]string, 0),
 		runLogs:     make([]string, 0),
 	}
@@ -226,15 +236,33 @@ func RunningWorkFlow(params *WorkFlowParams) (*WorkFlow, error) {
 	return flow, err //返回数据
 }
 
-func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monitor) (content string, requestTime int64, libUseTime common.LibUseTime, list []msql.Params, err error) {
+func BaseCallWorkFlow(params *WorkFlowParams) (flow *WorkFlow, nodeLogs []common.NodeLog, err error) {
 	if len(params.RealRobot) == 0 { //未传参时,使用params里面的
 		params.RealRobot = params.Robot
 	}
-	if len(params.RealRobot[`start_node_key`]) == 0 {
-		err = errors.New(`工作流机器人未发布`)
-		return
+	var startNodeKey string
+	if params.Draft.IsDraft {
+		startNodeKey = params.Draft.StartNodeKey
+		if len(startNodeKey) == 0 {
+			err = errors.New(`没有开始节点数据`)
+			return
+		}
+	} else {
+		startNodeKey = params.RealRobot[`start_node_key`]
+		if len(startNodeKey) == 0 {
+			err = errors.New(`工作流未发布`)
+			return
+		}
 	}
-	flow, err := RunningWorkFlow(params)
+	flow, err = RunningWorkFlow(params, startNodeKey)
+	if flow != nil {
+		nodeLogs = flow.nodeLogs
+	}
+	return
+}
+
+func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monitor) (content string, requestTime int64, libUseTime common.LibUseTime, list []msql.Params, err error) {
+	flow, _, err := BaseCallWorkFlow(params)
 	if flow != nil && len(flow.nodeLogs) > 0 {
 		monitor.NodeLogs = flow.nodeLogs //记录监控数据
 	}
@@ -272,7 +300,7 @@ func BuildFunctionTools(robot msql.Params) ([]adaptor.FunctionTool, bool) {
 	}
 	functionTools := make([]adaptor.FunctionTool, 0)
 	for _, item := range list {
-		node, _, err := GetNodeByKey(cast.ToUint(item[`id`]), item[`start_node_key`])
+		node, _, err := GetNodeByKey(nil, cast.ToUint(item[`id`]), item[`start_node_key`])
 		if err != nil {
 			logs.Error(err.Error())
 			continue

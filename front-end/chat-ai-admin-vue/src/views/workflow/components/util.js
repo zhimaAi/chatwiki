@@ -146,3 +146,30 @@ export function getSystemVariable() {
     },
   ]
 }
+
+
+const nodeTypeMaps = {
+  1: 'start-node',
+  2: 'judge-node',
+  3: 'question-node',
+  4: 'http-node',
+  5: 'knowledge-base-node',
+  6: 'ai-dialogue-node',
+  7: 'end-node',
+  8: 'variable-assignment-node',
+  9: 'specify-reply-node',
+  // 10: '',
+  11: 'problem-optimization-node',
+  12: 'parameter-extraction-node',
+  13: 'data-node',
+  14: 'data-node',
+  15: 'data-node',
+  16: 'data-node',
+  17: 'code-run-node'
+}
+
+export function getImageUrl(node_type) {
+  let name = nodeTypeMaps[node_type]
+  let url = new URL(`../../../assets/svg/${name}.svg`, import.meta.url)
+  return url.href
+}

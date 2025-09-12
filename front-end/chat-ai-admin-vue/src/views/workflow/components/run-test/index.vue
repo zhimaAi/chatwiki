@@ -1,0 +1,399 @@
+<template>
+  <div>
+    <a-button @click="handleOpenTestModal" style="background-color: #00ad3a" type="primary"
+      ><CaretRightOutlined />运行测试</a-button
+    >
+    <a-modal
+      v-model:open="open"
+      title="运行测试"
+      :footer="null"
+      :width="720"
+      wrapClassName="no-padding-modal"
+      :bodyStyle="{ 'max-height': '600px', 'padding-right': '24px', 'overflow-y': 'auto' }"
+    >
+      <div class="test-model-box">
+        <div class="top-title">开始节点参数</div>
+        <a-form
+          :model="formState"
+          ref="formRef"
+          :label-col="{ span: 7 }"
+          :wrapper-col="{ span: 17 }"
+          autocomplete="off"
+        >
+          <a-form-item name="question" :rules="[{ required: true, message: '请输入question!' }]">
+            <template #label>
+              <a-flex :gap="4">question <a-tag style="margin: 0">string</a-tag> </a-flex>
+            </template>
+            <a-input placeholder="请输入" v-model:value="formState.question" />
+          </a-form-item>
+          <a-form-item name="openid" :rules="[{ required: true, message: '请输入openid!' }]">
+            <template #label>
+              <a-flex :gap="4">openid <a-tag style="margin: 0">string</a-tag> </a-flex>
+            </template>
+            <a-input placeholder="请输入" v-model:value="formState.openid" />
+          </a-form-item>
+
+          <a-form-item
+            :name="['globalState', item.key]"
+            v-for="item in diy_global"
+            :key="item.key"
+            :rules="[{ required: item.required, message: `请输入${item.key}` }]"
+          >
+            <template #label>
+              <a-flex :gap="4">{{ item.key }} <a-tag style="margin: 0">{{ item.typ }}</a-tag> </a-flex>
+            </template>
+            <template v-if="item.typ == 'string'">
+              <a-input placeholder="请输入" v-model:value="formState.globalState[item.key]" />
+            </template>
+            <template v-if="item.typ == 'number'">
+              <a-input-number
+                style="width: 100%"
+                placeholder="请输入"
+                v-model:value="formState.globalState[item.key]"
+              />
+            </template>
+            <template v-if="item.typ == 'array<string>'">
+              <div class="input-list-box">
+                <div
+                  class="input-list-item"
+                  v-for="(input, i) in formState.globalState[item.key]"
+                  :key="item.key"
+                >
+                  <a-form-item-rest
+                    ><a-input placeholder="请输入" v-model:value="input.value"
+                  /></a-form-item-rest>
+
+                  <CloseCircleOutlined
+                    v-if="formState.globalState[item.key].length > 1"
+                    @click="handleDelItem(item.key, i)"
+                  />
+                </div>
+                <div class="add-btn-box">
+                  <a-button @click="handleAddItem(item.key)" block type="dashed">添加</a-button>
+                </div>
+              </div>
+            </template>
+          </a-form-item>
+
+          <!-- <a-form-item name="global">
+            <template #label>
+              <a-flex :gap="4"
+                >global
+                <a-tooltip>
+                  <template #title>
+                    <div class="tooltip-content">
+                      {{ golbalTips }}
+                    </div>
+                  </template>
+                  <QuestionCircleOutlined />
+                </a-tooltip>
+
+                <a-tag style="margin: 0">string</a-tag>
+              </a-flex>
+            </template>
+            <a-textarea
+              v-model:value="formState.global"
+              placeholder="请输入"
+              :auto-size="{ minRows: 4, maxRows: 8 }"
+            />
+          </a-form-item> -->
+        </a-form>
+
+        <div class="result-list-box loading-box" v-if="loading">
+          <a-spin v-if="loading" tip="测试结果生成中..." />
+        </div>
+
+        <div class="result-list-box" v-if="resultList.length > 0">
+          <div class="list-item-block" v-for="(item, index) in resultList" :key="index">
+            <div class="status-block">
+              <CheckCircleFilled v-if="item.is_success" style="color: #138b1b" />
+              <CloseCircleFilled v-else style="color: #d81e06" />
+            </div>
+            <div class="icon-name-box">
+              <img :src="item.node_icon" alt="" />
+              <div class="node-name">{{ item.node_name }}</div>
+            </div>
+            <div class="time-tag" v-if="item.is_success">{{ item.use_time }}ms</div>
+            <div class="out-put-box" v-if="item.is_success">
+              <a-tooltip>
+                <template #title>{{ item.output }}</template>
+                <div class="out-text-box">{{ item.output }}</div>
+              </a-tooltip>
+            </div>
+          </div>
+        </div>
+
+        <div class="save-btn-box">
+          <a-button
+            :loading="loading"
+            @click="handleSubmit"
+            style="background-color: #00ad3a"
+            type="primary"
+            ><CaretRightOutlined />运行测试</a-button
+          >
+        </div>
+      </div>
+    </a-modal>
+  </div>
+</template>
+
+<script setup>
+import {
+  CaretRightOutlined,
+  CheckCircleFilled,
+  CloseCircleFilled,
+  CloseCircleOutlined,
+  QuestionCircleOutlined
+} from '@ant-design/icons-vue'
+import { reactive, ref, computed, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
+import { callWorkFlow } from '@/api/robot/index'
+// import { workflowApiPost } from '@/api/workflow/index'
+import { getImageUrl } from '../util'
+import { message } from 'ant-design-vue'
+const props = defineProps({
+  lf: {
+    type: Object
+  },
+  start_node_params: {
+    default: {},
+    type: Object
+  }
+})
+
+const diy_global = computed(() => {
+  return props.start_node_params.diy_global || []
+})
+
+const golbalTips = `自定义全局变量（json格式）
+示例：
+  {
+    "str": "字符串",
+    "num": 1,
+    "arr": [
+      "a",
+      "b"
+    ]
+  }`
+const emit = defineEmits(['save', 'getGlobal'])
+const query = useRoute().query
+
+const open = ref(false)
+const resultList = ref([])
+
+const loading = ref(false)
+
+const formState = reactive({
+  is_draft: true,
+  robot_key: query.robot_key,
+  question: '',
+  openid: '',
+  global: '',
+  globalState: {}
+})
+
+
+const handleOpenTestModal = () => {
+  emit('save', 'automatic')
+  let localData = localStorage.getItem('workflow_run_test_data') || '{}'
+  localData = JSON.parse(localData)
+  formState.question = localData.question || ''
+  formState.openid = localData.openid || ''
+  formState.global = localData.global || ''
+  resultList.value = []
+  emit('getGlobal')
+  nextTick(() => {
+    diy_global.value.forEach((item) => {
+      formState.globalState[item.key] = setGlobalDefaultVal(item)
+    })
+    try {
+      let global = JSON.parse(localData.global)
+      for (let key in formState.globalState) {
+        if (global[key]) {
+          if (Array.isArray(global[key])) {
+            formState.globalState[key] = global[key].map((item) => {
+              return {
+                value: item,
+                key: Math.random() * 1000
+              }
+            })
+          } else {
+            formState.globalState[key] = global[key]
+          }
+        }
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  })
+  open.value = true
+}
+
+function setGlobalDefaultVal(item) {
+  if (item.typ == 'string' || item.typ == 'number') {
+    return ''
+  }
+  return [
+    {
+      value: '',
+      key: Math.random() * 10000
+    }
+  ]
+}
+
+function getGlobalDefaultVal() {
+  let result = {}
+  diy_global.value.forEach((item) => {
+    if (item.typ == 'string') {
+      result[item.key] = formState.globalState[item.key]
+    }
+    if (item.typ == 'number') {
+      result[item.key] = formState.globalState[item.key] ? +formState.globalState[item.key] : ''
+    }
+    if (item.typ == 'array<string>') {
+      let list = formState.globalState[item.key].map((it) => it.value).filter((it) => it)
+      result[item.key] = list
+    }
+  })
+  return JSON.stringify(result)
+}
+
+const handleDelItem = (key, index) => {
+  formState.globalState[key].splice(index, 1)
+}
+const handleAddItem = (key) => {
+  formState.globalState[key].push({
+    value: '',
+    key: Math.random() * 10000
+  })
+}
+
+const formRef = ref(null)
+
+const handleSubmit = () => {
+  formRef.value.validate().then(() => {
+    let postData = { ...formState }
+
+    postData.global = getGlobalDefaultVal()
+    delete postData.globalState
+    loading.value = true
+    resultList.value = []
+    localStorage.setItem('workflow_run_test_data', JSON.stringify({ ...postData }))
+    callWorkFlow({
+      ...postData
+    })
+      .then((res) => {
+        message.success('测试结果生成完成')
+        formateData(res.data || [])
+      })
+      .catch((res) => {
+        resultList.value = []
+        if (res.data && res.data.length) {
+          formateData(res.data)
+        }
+      })
+      .finally(() => {
+        loading.value = false
+      })
+  })
+}
+
+const formateData = (data) => {
+  resultList.value = data.map((item) => {
+    return {
+      ...item,
+      is_success: item.error_msg === '<nil>',
+      node_icon: getImageUrl(item.node_type)
+    }
+  })
+}
+</script>
+
+<style lang="less" scoped>
+.test-model-box {
+  margin: 24px 0;
+  .top-title {
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .save-btn-box {
+    margin: 32px 0;
+    margin-top: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+.tooltip-content {
+  white-space: pre-wrap;
+}
+.loading-box {
+  height: 100px;
+  justify-content: center;
+}
+.result-list-box {
+  margin: 24px 0;
+  width: 100%;
+  border: 1px solid #ebebeb;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  .list-item-block {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    gap: 8px;
+    .status-block {
+      font-size: 20px;
+    }
+    .icon-name-box {
+      display: flex;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      img {
+        width: 24px;
+        height: 24px;
+      }
+    }
+    .time-tag {
+      width: fit-content;
+      border-radius: 4px;
+      height: 22px;
+      background: #d2f1dc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      font-size: 12px;
+    }
+    .out-put-box {
+      flex: 1;
+      margin-left: 24px;
+      overflow: hidden;
+      .out-text-box {
+        background: #f2f2f2;
+        border-radius: 6px;
+        padding: 8px;
+        width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+}
+
+.input-list-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  .input-list-item {
+    display: flex;
+    gap: 8px;
+  }
+}
+</style>

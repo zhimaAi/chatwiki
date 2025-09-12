@@ -1181,3 +1181,79 @@ func buildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 	}
 	return messages, []msql.Params{}, nil
 }
+
+func GetDialogueSession(params *define.ChatRequestParam) (int, int, error) {
+	var err error
+	dialogueId := params.DialogueId
+	if dialogueId > 0 {
+		dialogue, err := common.GetDialogueInfo(dialogueId, params.AdminUserId, cast.ToInt(params.Robot[`id`]), params.Openid)
+		if err != nil {
+			logs.Error(err.Error())
+			return 0, 0, err
+		}
+		if len(dialogue) == 0 {
+			return 0, 0, errors.New(i18n.Show(params.Lang, `param_invalid`, `dialogue_id`))
+		}
+	} else {
+		dialogueId, err = common.GetDialogueId(params.ChatBaseParam, params.Question)
+		if err != nil {
+			logs.Error(err.Error())
+			return 0, 0, err
+		}
+	}
+	sessionId, err := common.GetSessionId(params, dialogueId)
+	if err != nil {
+		logs.Error(err.Error())
+		return 0, 0, err
+	}
+	return dialogueId, sessionId, nil
+}
+
+func CallWorkFlow(c *gin.Context) {
+	chatRequestParam := getChatRequestParam(c)
+	if chatRequestParam.Error != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, chatRequestParam.Error))
+		return
+	}
+	if len(chatRequestParam.Question) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(chatRequestParam.Lang, `question_empty`))))
+		return
+	}
+	dialogueId, sessionId, err := GetDialogueSession(chatRequestParam)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	isDraft := cast.ToBool(c.PostForm(`is_draft`))
+	workFlowParams := &work_flow.WorkFlowParams{
+		ChatRequestParam: chatRequestParam,
+		DialogueId:       dialogueId,
+		SessionId:        sessionId,
+		Draft:            work_flow.Draft{IsDraft: isDraft},
+	}
+	if isDraft { //运行测试(草稿)
+		workFlowParams.Draft.NodeMaps, err = msql.Model(`work_flow_node`, define.Postgres).
+			Where(`admin_user_id`, chatRequestParam.Robot[`admin_user_id`]).Where(`robot_id`, chatRequestParam.Robot[`id`]).
+			Where(`data_type`, cast.ToString(define.DataTypeDraft)).ColumnMap(`*`, `node_key`)
+		nodeList := make([]work_flow.WorkFlowNode, 0)
+		for _, params := range workFlowParams.Draft.NodeMaps {
+			node := work_flow.WorkFlowNode{
+				NodeType:     common.MixedInt(cast.ToInt(params[`node_type`])),
+				NodeName:     params[`node_name`],
+				NodeKey:      params[`node_key`],
+				NodeParams:   work_flow.NodeParams{},
+				NodeInfoJson: make(map[string]any),
+				NextNodeKey:  params[`next_node_key`],
+			}
+			_ = tool.JsonDecodeUseNumber(params[`node_params`], &node.NodeParams)
+			_ = tool.JsonDecodeUseNumber(params[`node_info_json`], &node.NodeInfoJson)
+			nodeList = append(nodeList, node)
+		}
+		if workFlowParams.Draft.StartNodeKey, _, _, err = work_flow.VerifyWorkFlowNodes(nodeList, chatRequestParam.AdminUserId); err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+			return
+		}
+	}
+	_, nodeLogs, err := work_flow.BaseCallWorkFlow(workFlowParams)
+	c.String(http.StatusOK, lib_web.FmtJson(nodeLogs, err))
+}

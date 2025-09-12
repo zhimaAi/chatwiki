@@ -109,6 +109,15 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 		return
 	}
 
+	//fix: pq: invalid byte sequence for encoding "UTF8": 0x00
+	regReplace := regexp.MustCompile(`[\x00-\x1F\x7F]`)
+	for i, item := range list {
+		list[i].Title = regReplace.ReplaceAllString(item.Title, ``)
+		list[i].Content = regReplace.ReplaceAllString(item.Content, ``)
+		list[i].Question = regReplace.ReplaceAllString(item.Question, ``)
+		list[i].Answer = regReplace.ReplaceAllString(item.Answer, ``)
+	}
+
 	// split by document type
 	if splitParams.IsQaDoc == define.DocTypeQa {
 		if cast.ToInt(info[`is_table_file`]) != define.FileIsTable {

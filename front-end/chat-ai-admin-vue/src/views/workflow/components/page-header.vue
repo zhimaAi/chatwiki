@@ -46,6 +46,7 @@
   .header-right {
     display: flex;
     align-items: center;
+    gap: 8px;
   }
 
   .back-btn {
@@ -100,10 +101,6 @@
     color: #8c8c8c;
   }
 
-  .save-draft,
-  .publish-robot {
-    margin-left: 8px;
-  }
 }
 </style>
 
@@ -137,14 +134,16 @@
       </div>
       <a-button class="save-draft" @click="handleSave">保存草稿</a-button>
       <a-button type="primary" :loading="props.saveLoading"  class="publish-robot" @click="handleRelease">发布机器人</a-button>
+      <RunTest :start_node_params="start_node_params" @getGlobal="getGlobal" @save="handleSave" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { LeftOutlined, ExclamationCircleFilled, CheckCircleFilled } from '@ant-design/icons-vue'
+import { LeftOutlined, ExclamationCircleFilled, CheckCircleFilled, CaretRightOutlined } from '@ant-design/icons-vue'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import RunTest from './run-test/index.vue'
 import { useRobotStore } from '@/stores/modules/robot'
 const robotStore = useRobotStore()
 const robotInfo = computed(() => {
@@ -156,7 +155,7 @@ const draftSaveTime = computed(() => {
 
 const router = useRouter()
 
-const emit = defineEmits(['save', 'release', 'edit'])
+const emit = defineEmits(['save', 'release', 'edit', 'getGlobal'])
 const props = defineProps({
   saveLoading: {
     default: false,
@@ -165,6 +164,10 @@ const props = defineProps({
   showRight: {
     default: true,
     type: Boolean
+  },
+  start_node_params: {
+    default: {},
+    type: Object
   }
 })
 
@@ -176,11 +179,15 @@ const onEdit = () => {
   emit('edit')
 }
 
-const handleSave = () => {
-  emit('save', 'handle')
+const handleSave = (type="handle") => {
+  emit('save', type)
 }
 
 const handleRelease = () => {
   emit('release')
+}
+
+const getGlobal = () => {
+  emit('getGlobal')
 }
 </script>

@@ -226,3 +226,10 @@ export const robotImport = (data = {}) => {
     data: data
   })
 }
+
+export const callWorkFlow = (data = {}) => {
+  return request.post({
+    url: '/chat/callWorkFlow',
+    data: data
+  })
+}
