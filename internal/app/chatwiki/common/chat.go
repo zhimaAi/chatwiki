@@ -18,10 +18,13 @@ func BuildChatContextPair(openid string, robotId, dialogueId, curMsgId, contextP
 	if contextPair <= 0 {
 		return contextList //no context required
 	}
-	list, err := msql.Model(`chat_ai_message`, define.Postgres).Where(`openid`, openid).
+	m := msql.Model(`chat_ai_message`, define.Postgres).Where(`openid`, openid).
 		Where(`robot_id`, cast.ToString(robotId)).Where(`dialogue_id`, cast.ToString(dialogueId)).
-		Where(`msg_type`, cast.ToString(define.MsgTypeText)).Where(`id`, `<`, cast.ToString(curMsgId)).
-		Order(`id desc`).Field(`id,content,is_customer,is_valid_function_call`).Limit(contextPair * 4).Select()
+		Where(`msg_type`, cast.ToString(define.MsgTypeText))
+	if curMsgId > 0 { //兼容调试运行获取上下文
+		m.Where(`id`, `<`, cast.ToString(curMsgId))
+	}
+	list, err := m.Order(`id desc`).Field(`id,content,is_customer,is_valid_function_call`).Limit(contextPair * 4).Select()
 	if err != nil {
 		logs.Error(err.Error())
 	}

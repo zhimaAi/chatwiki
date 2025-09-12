@@ -34,7 +34,7 @@
 
 <template>
   <div class="workflow-page">
-    <PageHeader @edit="handleEdit" @save="handleSave" @release="handleRelease" :saveLoading="saveLoading" />
+    <PageHeader @edit="handleEdit" @save="handleSave" @release="handleRelease" @getGlobal="getGlobal" :start_node_params="start_node_params" :saveLoading="saveLoading" />
     <div class="page-body">
       <div class="page-left">
         <PageSidebar />
@@ -411,6 +411,19 @@ const getModelList = async () => {
     modelList = uniqueArr(duplicateRemoval(modelList, 'model_define'), modelList, 'model_define')
     robotStore.setModelList(modelList)
   })
+}
+
+const start_node_params = ref({
+  diy_global: [],
+  sys_global: [],
+})
+const getGlobal = () => {
+  let list = getCanvasData()
+  let start_node = list.filter(item => item.node_type == 1)
+  if(start_node.length > 0){
+    start_node_params.value = start_node[0].node_params.start
+  }
+  console.log(start_node_params.value,'==')
 }
 
 onMounted(async () => {

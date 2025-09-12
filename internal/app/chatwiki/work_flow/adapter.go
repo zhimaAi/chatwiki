@@ -60,8 +60,14 @@ type NodeAdapter interface {
 	Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error)
 }
 
-func GetNodeByKey(robotId uint, nodeKey string) (NodeAdapter, msql.Params, error) {
-	info, err := common.GetRobotNode(robotId, nodeKey)
+func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, msql.Params, error) {
+	var err error
+	var info msql.Params
+	if flow != nil && flow.params.Draft.IsDraft {
+		info = flow.params.Draft.NodeMaps[nodeKey]
+	} else {
+		info, err = common.GetRobotNode(robotId, nodeKey)
+	}
 	if err != nil {
 		logs.Error(err.Error())
 		return nil, info, err

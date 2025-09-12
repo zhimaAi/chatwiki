@@ -209,6 +209,58 @@ func SimplifyFields(recurveFields RecurveFields) SimpleFields {
 	return simpleFields
 }
 
+func GetRecurveFields(simpleFields SimpleFields) RecurveFields {
+	fieldMap := make(map[string]RecurveField)
+	for key, field := range simpleFields {
+		if before, after, found := strings.Cut(key, `.`); !found {
+			fieldMap[key] = RecurveField{SimpleField: field}
+		} else { //递归组装object
+			if _, ok := fieldMap[before]; !ok {
+				objField := field //组建出来的Object
+				objField.Key, objField.Typ, objField.Vals = before, TypObject, nil
+				fieldMap[before] = RecurveField{SimpleField: objField, Subs: make(RecurveFields, 0)}
+			}
+			temp := fieldMap[before]
+			field.Key = after //取下一级的key值
+			for _, recurveField := range GetRecurveFields(SimpleFields{after: field}) {
+				var exist bool
+				for idx, sub := range temp.Subs {
+					if sub.Key == recurveField.Key {
+						exist = true
+						temp.Subs[idx].Subs = append(sub.Subs, recurveField.Subs...)
+						break
+					}
+				}
+				if !exist {
+					temp.Subs = append(temp.Subs, recurveField)
+				}
+			}
+			fieldMap[before] = temp
+		}
+	}
+	recurveFields := make(RecurveFields, 0)
+	for _, field := range fieldMap {
+		recurveFields = append(recurveFields, field)
+	}
+	return recurveFields
+}
+
+func GetFieldsObject(recurveFields RecurveFields) map[string]any {
+	result := make(map[string]any)
+	for _, field := range recurveFields {
+		if field.Typ == TypObject {
+			result[field.Key] = GetFieldsObject(field.Subs)
+		} else {
+			if tool.InArrayString(field.Typ, TypArrays[:]) {
+				result[field.Key] = field.GetVals()
+			} else {
+				result[field.Key] = field.GetVal()
+			}
+		}
+	}
+	return result
+}
+
 func (fields RecurveFields) ExtractionData(result map[string]any) RecurveFields {
 	if result == nil {
 		result = make(map[string]any)
