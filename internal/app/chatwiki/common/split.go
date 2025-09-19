@@ -510,9 +510,14 @@ func MultDocSplit(adminUserId, fileId, pdfPageNum int, splitParams define.SplitP
 		split.Separators = append(splitParams.Separators, split.Separators...)
 		split.ChunkSize = splitParams.ChunkSize
 		split.ChunkOverlap = splitParams.ChunkOverlap
+		split.LenFunc = func(s string) int {
+			//将内容包含图片的部分统计为字符-(长度1),这里不能为长度0,最后一段会被丢弃
+			return utf8.RuneCountInString(regexp.MustCompile(`\{\{!!(.+?)!!}}`).ReplaceAllString(s, `-`))
+		}
 		list := make([]define.DocSplitItem, 0)
 		for _, item := range items {
-			contents, err := split.SplitText(item.Content)
+			//内容包含图片:前面追加一个第一顺位的切分字符,避免图片出现在两段里面
+			contents, err := split.SplitText(strings.ReplaceAll(item.Content, `{{!!`, split.Separators[0]+`{{!!`))
 			if err != nil {
 				logs.Error(err.Error())
 				continue
@@ -521,6 +526,8 @@ func MultDocSplit(adminUserId, fileId, pdfPageNum int, splitParams define.SplitP
 				if len(content) == 0 {
 					continue
 				}
+				//将追加的第一顺位的切分字符剔除掉
+				content = strings.ReplaceAll(content, split.Separators[0]+`{{!!`, `{{!!`)
 				content, images := ExtractTextImages(content)
 				if len(content) == 0 {
 					continue

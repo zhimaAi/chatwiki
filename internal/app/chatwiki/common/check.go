@@ -248,7 +248,7 @@ func CheckSplitParams(libraryInfo msql.Params, splitParams define.SplitParams, l
 
 func CheckLibraryImage(images []string) (string, error) {
 	extensions := strings.Join(define.ImageAllowExt, "|")
-	pattern := `^\/upload\/chat_ai\/\d+\/library_image\/\d+\/[a-f0-9]{32}\.(` + extensions + `)$`
+	pattern := `(?i)^\/upload\/chat_ai\/\d+\/library_image\/\d+\/[a-f0-9]{32}\.(` + extensions + `)$`
 	re := regexp.MustCompile(pattern)
 	for _, image := range images {
 		if IsUrl(image) { //oss file

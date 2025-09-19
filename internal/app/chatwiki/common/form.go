@@ -86,7 +86,7 @@ func GetFormEntryList(adminUserId, formId, filterId, page, size int, startTimeSt
 				RuleValue2:  cast.ToString(filterCondition[`rule_value2`]),
 			})
 		}
-		m.Where(buildFilterConditionSql(cast.ToInt(filter[`type`]), formatedFilterConditions))
+		m.Where(BuildFilterConditionSql(cast.ToInt(filter[`type`]), formatedFilterConditions))
 	}
 
 	entries, total, err := m.Order(`id desc`).Field(`id`).Paginate(page, size)
@@ -131,11 +131,14 @@ func GetFormEntryCountByFilter(adminUserId, formId, _type int, filterConditions 
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`form_id`, cast.ToString(formId)).
 		Where(`delete_time`, `0`).
-		Where(buildFilterConditionSql(_type, filterConditions))
+		Where(BuildFilterConditionSql(_type, filterConditions))
 	return m.Order(`id desc`).Count(`id`)
 }
 
-func buildFilterConditionSql(_type int, filterConditions []define.FormFilterCondition) string {
+func BuildFilterConditionSql(_type int, filterConditions []define.FormFilterCondition) string {
+	if len(filterConditions) == 0 {
+		return `` //防止拼接出错误的sql
+	}
 	var rawSql []string
 	for _, filterCondition := range filterConditions {
 		sql := `(`
@@ -180,6 +183,9 @@ func buildFilterConditionSql(_type int, filterConditions []define.FormFilterCond
 			sql = sql + `boolean_content = true`
 		} else if filterCondition.Rule == `boolean_false` {
 			sql = sql + `boolean_content = false`
+		}
+		if filterCondition.FormFieldId == 0 { //FormFieldId==0时,表示的是form_entry_id,int类型
+			sql = strings.ReplaceAll(sql, `form_field_id=0 and integer_content`, `form_entry_id`)
 		}
 		sql = sql + `)`
 		rawSql = append(rawSql, sql)
@@ -275,6 +281,9 @@ func SaveFormEntry(adminUserId, formId, formEntryId int, entryValues map[string]
 	var fieldValues []msql.Datas
 	for _, formField := range formFields {
 		content, ok := entryValues[formField[`name`]]
+		if !ok && formEntryId > 0 {
+			continue //更新的时候,允许仅更新部分字段
+		}
 		if cast.ToBool(formField[`required`]) && !ok {
 			return errors.New(`lack param field ` + formField[`name`])
 		}
@@ -327,10 +336,23 @@ func SaveFormEntry(adminUserId, formId, formEntryId int, entryValues map[string]
 			return err
 		}
 		for _, fieldValue := range fieldValues {
-			_, err = m.Where(`admin_user_id`, cast.ToString(adminUserId)).
-				Where(`form_entry_id`, cast.ToString(formEntryId)).
-				Where(`form_field_id`, cast.ToString(fieldValue[`form_field_id`])).
-				Update(fieldValue)
+			wheres := [][]string{
+				{`admin_user_id`, cast.ToString(adminUserId)},
+				{`form_entry_id`, cast.ToString(formEntryId)},
+				{`form_field_id`, cast.ToString(fieldValue[`form_field_id`])},
+			}
+			fieldValueId, err := m.Where2(wheres).Value(`id`)
+			if err != nil {
+				_ = m.Rollback()
+				return err
+			}
+			if cast.ToUint(fieldValueId) == 0 { //新增字段,没有数据的走新增
+				fieldValue[`form_entry_id`] = formEntryId
+				fieldValue[`create_time`] = tool.Time2Int()
+				_, err = m.Insert(fieldValue)
+			} else { //走更新逻辑
+				_, err = m.Where2(wheres).Update(fieldValue)
+			}
 			if err != nil {
 				_ = m.Rollback()
 				return err
@@ -350,7 +372,7 @@ func SaveFormEntry(adminUserId, formId, formEntryId int, entryValues map[string]
 		for _, fieldValue := range fieldValues {
 			fieldValue[`form_entry_id`] = formEntryId
 			fieldValue[`create_time`] = tool.Time2Int()
-			_, err = m.Where(`admin_user_id`, cast.ToString(adminUserId)).Insert(fieldValue)
+			_, err = m.Insert(fieldValue)
 			if err != nil {
 				_ = m.Rollback()
 				return err
