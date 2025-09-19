@@ -891,7 +891,7 @@ func RelationWorkFlow(c *gin.Context) {
 	}
 	if len(workFlowIds) > 0 {
 		if !common.CheckIds(workFlowIds) { //format check
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `work_flow_ids`))))
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `work_flow_ids`))))
 			return
 		}
 		robotIds, err := m.Where(`application_type`, cast.ToString(define.ApplicationTypeFlow)).

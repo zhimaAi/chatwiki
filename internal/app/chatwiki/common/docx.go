@@ -75,6 +75,9 @@ func GetImgByZip(reader *zip.ReadCloser, name string, userId int) (imgStr string
 	}
 	// save to file
 	ext := strings.ToLower(strings.TrimLeft(filepath.Ext(name), `.`))
+	if !tool.InArrayString(ext, define.ImageAllowExt) {
+		return ``, InvalidLibraryImageError
+	}
 	objectKey := fmt.Sprintf(`chat_ai/%d/%s/%s/%s.%s`, userId, `library_image`, tool.Date(`Ym`), tool.MD5(string(bs)), ext)
 	imgUrl, err := WriteFileByString(objectKey, string(bs))
 	if err != nil {
