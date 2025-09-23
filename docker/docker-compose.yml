@@ -153,7 +153,7 @@ services:
         /bin/bash
 
   chatwiki_websocket:
-    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/ubuntu:24.10
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/ubuntu:22.04
     container_name: chatwiki_websocket
     ports:
       - ${WS_SERVICE_PORT}:24628

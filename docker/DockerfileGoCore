@@ -1,12 +1,13 @@
-FROM registry.cn-hangzhou.aliyuncs.com/chatwiki/ubuntu:24.10
+FROM registry.cn-hangzhou.aliyuncs.com/chatwiki/ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN sed -i s/archive.ubuntu.com/mirrors.aliyun.com/g /etc/apt/sources.list.d/ubuntu.sources  \
-    && sed -i s/security.ubuntu.com/mirrors.aliyun.com/g /etc/apt/sources.list.d/ubuntu.sources  \
+RUN sed -i s/archive.ubuntu.com/mirrors.aliyun.com/g /etc/apt/sources.list  \
+    && sed -i s/security.ubuntu.com/mirrors.aliyun.com/g /etc/apt/sources.list  \
     && apt update \
     && apt install supervisor -y \
-    && apt install nginx -y
+    && apt install nginx -y \
+    && apt install -y ca-certificates && update-ca-certificates
 
 COPY go_core/chatwiki.conf /etc/supervisor/conf.d/
 COPY nginx/*.conf /etc/nginx/conf.d/
