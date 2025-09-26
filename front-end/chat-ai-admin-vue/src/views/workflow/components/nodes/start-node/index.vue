@@ -269,7 +269,9 @@ export default {
     this.sys_global = node_params.start.sys_global
     this.diy_global = node_params.start.diy_global
 
-    this.updateHeight()
+    this.$nextTick(()=>{
+      this.updateHeight()
+    })
   },
   methods: {
     getHeight() {

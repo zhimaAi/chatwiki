@@ -146,7 +146,7 @@ export function getSystemVariable() {
     },
   ]
 }
-
+export const haveOutKeyNode = ['http-node', 'code-run-node']
 
 const nodeTypeMaps = {
   1: 'start-node',

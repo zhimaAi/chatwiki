@@ -160,7 +160,9 @@ export default {
 
     this.list = fields
 
-    this.update()
+    this.$nextTick(()=>{
+      this.update()
+    })
     graphModel.eventCenter.on('custom:setNodeName', this.onUpatateNodeName)
   },
   onBeforeUnmount() {

@@ -330,7 +330,11 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 	messages := make([]adaptor.ZhimaChatCompletionMessage, 0)
 	//part1:prompt
 	list := make([]msql.Params, 0)
-	for _, val := range flow.output[`special.lib_paragraph_list`].Vals {
+	libsOutput := flow.output
+	if len(n.params.LibsNodeKey) > 0 {
+		libsOutput = flow.outputs[n.params.LibsNodeKey]
+	}
+	for _, val := range libsOutput[`special.lib_paragraph_list`].Vals {
 		list = append(list, val.Params)
 	}
 	confPrompt := flow.VariableReplace(n.params.Prompt)
@@ -351,13 +355,18 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]}})
 	}
 	//part3:question,prompt+question
+	var question = flow.params.Question
+	field, exist := flow.GetVariable(n.params.QuestionValue)
+	if exist {
+		question = field.ShowVals()
+	}
 	if isDeepSeek {
-		content := strings.Join([]string{confPrompt, flow.params.Question}, "\n\n")
+		content := strings.Join([]string{confPrompt, question}, "\n\n")
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: content})
 		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: content}})
 	} else {
-		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: flow.params.Question})
-		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: flow.params.Question}})
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: question})
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: question}})
 	}
 	//append OpenApiContent
 	messages = common.BuildOpenApiContent(flow.params.ChatRequestParam, messages)
@@ -372,8 +381,8 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `llm_answer`, `content`: chatResp.Result}})
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]any{`type`: `llm_error`, `content`: err}})
 	output = common.SimpleFields{
-		`special.lib_use_time`:       flow.output[`special.lib_use_time`],
-		`special.lib_paragraph_list`: flow.output[`special.lib_paragraph_list`],
+		`special.lib_use_time`:       libsOutput[`special.lib_use_time`],
+		`special.lib_paragraph_list`: libsOutput[`special.lib_paragraph_list`],
 		debugLog.Key:                 debugLog,
 	}
 	if err != nil {

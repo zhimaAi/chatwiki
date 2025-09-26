@@ -75,6 +75,15 @@ export class BaseVueNodeView extends HtmlNode {
           }
 
           props.model._height = data.height || props.model.properties.height
+
+          let height = null
+      
+          if (this.r && this.r.el){
+            height = this.r.el.clientHeight
+          }
+    
+          props.model._height = height || data.height || props.model.properties.height
+
           props.model.refreshBranch()  // 视图变化  边的线位置更新
 
           props.graphModel.eventCenter.emit('custom:setData',  props.model)
