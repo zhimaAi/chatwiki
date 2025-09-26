@@ -61,7 +61,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, h, computed, toRaw } from 'vue'
+import { ref, reactive, watch, h, computed, toRaw, nextTick } from 'vue'
 import LibrarySelectAlert from './library-select-alert.vue'
 import RecallSettingsAlert from './recall-settings-alert.vue'
 import { getLibraryList } from '@/api/library/index'
@@ -116,6 +116,9 @@ watch(
           formState[key] = libs[key]
         }
       }
+      setTimeout(() => {
+        updata()
+      }, 1000)
       lock = true
     } catch (error) {}
   },
@@ -125,23 +128,27 @@ watch(
 watch(
   () => formState,
   (val) => {
-    emit('setData', {
-      ...formState,
-      library_ids: formState.library_ids.join(','),
-      node_params: JSON.stringify({
-        libs: {
-          ...formState,
-          rerank_model_config_id: formState.rerank_model_config_id
-            ? +formState.rerank_model_config_id
-            : void 0,
-          library_ids: formState.library_ids.join(',')
-        }
-      }),
-      height: 416 + formState.library_ids.length * 72
-    })
+    updata()
   },
   { deep: true }
 )
+
+const updata = () => {
+  emit('setData', {
+    ...formState,
+    library_ids: formState.library_ids.join(','),
+    node_params: JSON.stringify({
+      libs: {
+        ...formState,
+        rerank_model_config_id: formState.rerank_model_config_id
+          ? +formState.rerank_model_config_id
+          : void 0,
+        library_ids: formState.library_ids.join(',')
+      }
+    }),
+    height: 500,
+  })
+}
 
 const libraryList = ref([])
 const librarySelectAlertRef = ref(null)

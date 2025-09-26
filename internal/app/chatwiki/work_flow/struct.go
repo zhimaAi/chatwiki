@@ -257,6 +257,7 @@ func (params *LlmBaseParams) Verify(adminUserId int) error {
 type LlmNodeParams struct {
 	LlmBaseParams
 	QuestionValue string `json:"question_value"`
+	LibsNodeKey   string `json:"libs_node_key"`
 }
 
 /************************************/
@@ -654,6 +655,13 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 				err = errors.New(node.NodeName + `节点提示词变量不存在:` + variable)
 				return
 			}
+			if len(node.NodeParams.Llm.LibsNodeKey) > 0 {
+				variable := fmt.Sprintf(`%s.%s`, node.NodeParams.Llm.LibsNodeKey, `special.lib_paragraph_list`)
+				if !tool.InArrayString(variable, variables) {
+					err = errors.New(node.NodeName + `节点的知识库引用选择的不是上级检索知识库节点`)
+					return
+				}
+			}
 		case NodeTypeAssign:
 			for i, param := range node.NodeParams.Assign {
 				if !tool.InArrayString(param.Variable, variables) { //自定义变量不存在
@@ -911,6 +919,12 @@ func (params *LlmNodeParams) Verify(adminUserId int) error {
 	}
 	if len(params.Prompt) == 0 {
 		return errors.New(`提示词内容不能为空`)
+	}
+	if len(params.QuestionValue) == 0 {
+		return errors.New(`用户问题不能为空`)
+	}
+	if len(params.LibsNodeKey) > 0 && !common.IsMd5Str(params.LibsNodeKey) {
+		return errors.New(`知识库引用节点参数格式错误`)
 	}
 	return nil
 }

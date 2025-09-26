@@ -73,9 +73,7 @@
           <template #label>
             <span>深度思考&nbsp;</span>
             <a-tooltip>
-              <template #title
-                >开启时，调用大模型时会指定走深度思考模式</template
-              >
+              <template #title>开启时，调用大模型时会指定走深度思考模式</template>
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
           </template>
@@ -141,11 +139,37 @@
         </a-form-item>
         <div class="diy-form-item">
           <div class="form-label">用户问题</div>
-          <div class="form-content">流程开始>用户问题</div>
+          <div class="form-content">
+            <a-cascader
+              v-model:value="formState.question_value"
+              @dropdownVisibleChange="onDropdownVisibleChange"
+              style="width: 220px"
+              :options="variableOptionsSelect"
+              :allowClear="false"
+              :displayRender="({ labels }) => labels.join('/')"
+              :field-names="{ children: 'children' }"
+              placeholder="请选择"
+            />
+          </div>
         </div>
         <div class="diy-form-item mt12">
           <div class="form-label">知识库引用</div>
-          <div class="form-content">知识库搜索>知识库引用</div>
+          <div class="form-content">
+            <a-select
+              placeholder="请选择"
+              allowClear
+              @dropdownVisibleChange="onDropdownVisibleChange"
+              v-model:value="formState.libs_node_key"
+              style="width: 220px"
+            >
+              <a-select-option
+                v-for="item in knowledgeQuoteOptions"
+                :value="item.node_id"
+                :key="item.node_id"
+                >{{ item.label }}</a-select-option
+              >
+            </a-select>
+          </div>
         </div>
       </div>
       <div class="gray-block mt16">
@@ -171,6 +195,7 @@ import {
 import AtInput from '../at-input/at-input.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import ImportPrompt from '@/components/import-prompt/index.vue'
+import { haveOutKeyNode } from '@/views/workflow/components/util.js'
 
 import { useRobotStore } from '@/stores/modules/robot'
 const robotStore = useRobotStore()
@@ -193,13 +218,14 @@ const modelList = computed(() => {
 
 const isFocus = ref(false)
 const variableOptions = ref([])
+const variableOptionsSelect = ref([])
 
 const showMoreBtn = ref(false)
 
 const hanldeShowMore = () => {
   showMoreBtn.value = !showMoreBtn.value
   emit('setData', {
-    height: showMoreBtn.value ? 890 : 674
+    height: showMoreBtn.value ? 890 : 684
   })
 }
 
@@ -210,8 +236,17 @@ const changeValue = (text, selectedList) => {
 
 const getVlaueVariableList = () => {
   let list = getNode().getAllParentVariable()
-
   variableOptions.value = list
+}
+
+function formatQuestionValue(val) {
+  if (val) {
+    let lists = val.split('.')
+    let str1 = lists[0]
+    let str2 = lists.filter((item, index) => index > 0).join('.')
+    return [str1, str2]
+  }
+  return ['global', 'question']
 }
 
 const emit = defineEmits(['setData'])
@@ -225,7 +260,9 @@ const formState = reactive({
   context_pair: 0,
   prompt: '',
   prompt_tags: [],
-  enable_thinking: false
+  question_value: '',
+  enable_thinking: false,
+  libs_node_key: void 0
 })
 let lock = false
 watch(
@@ -249,11 +286,12 @@ watch(
         max_token,
         prompt,
         prompt_tags,
+        question_value,
         enable_thinking,
+        libs_node_key
       } = llm
-
       getVlaueVariableList()
-
+      getOptions()
       formState.model_config_id = model_config_id
       formState.use_model = use_model
       formState.context_pair = context_pair || 0
@@ -262,6 +300,8 @@ watch(
       formState.prompt = prompt
       formState.enable_thinking = enable_thinking
       formState.prompt_tags = prompt_tags || []
+      formState.libs_node_key = libs_node_key
+      formState.question_value = formatQuestionValue(question_value)
       if (!formState.model_config_id && modelList.value.length > 0) {
         formState.model_config_id = modelList.value[0].id
         formState.use_model = modelList.value[0].children[0].name
@@ -273,6 +313,7 @@ watch(
           node_params: JSON.stringify({
             llm: {
               ...formState,
+              question_value: formState.question_value.join('.'),
               model_config_id: formState.model_config_id
                 ? +formState.model_config_id
                 : formState.model_config_id
@@ -295,6 +336,7 @@ watch(
       node_params: JSON.stringify({
         llm: {
           ...formState,
+          question_value: formState.question_value.join('.'),
           model_config_id: formState.model_config_id
             ? +formState.model_config_id
             : formState.model_config_id
@@ -342,10 +384,9 @@ function transformArray(arr, parentLabel = '') {
 }
 
 const onUpatateNodeName = (data) => {
-  if (data.node_type !== 'http-node') {
+  if (!haveOutKeyNode.includes(data.node_type)) {
     return
   }
-
   getVlaueVariableList()
 
   nextTick(() => {
@@ -381,14 +422,50 @@ const handleSavePrompt = (item) => {
     atInputRef.value.initData()
   })
 }
+function getOptions() {
+  let list = getNode().getAllParentVariable()
+  variableOptionsSelect.value = handleOptions(list)
+}
+
+const knowledgeQuoteOptions = computed(() => {
+  let list = variableOptionsSelect.value.filter((item) => item.node_type == 5)
+  return list
+})
+
+// 递归处理Options
+function handleOptions(options) {
+  options.forEach((item) => {
+    if (item.typ == 'node') {
+      if (item.node_type == 1) {
+        item.value = 'global'
+      } else {
+        item.value = item.node_id
+      }
+    } else {
+      item.value = item.key
+    }
+
+    if (item.children && item.children.length > 0) {
+      item.children = handleOptions(item.children)
+    }
+  })
+
+  return options
+}
+
+const onDropdownVisibleChange = (visible) => {
+  if (visible) {
+    getOptions()
+  }
+}
 
 const choosable_thinking = ref({})
 const onVectorModelLoaded = (list, choosable_thinking_map) => {
   choosable_thinking.value = choosable_thinking_map
 }
 
-const show_enable_thinking = computed(()=>{
-  if(!formState.model_config_id){
+const show_enable_thinking = computed(() => {
+  if (!formState.model_config_id) {
     return false
   }
   let key = formState.model_config_id + '#' + formState.use_model
