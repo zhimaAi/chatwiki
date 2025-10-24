@@ -19,7 +19,6 @@
         v-else
         class="right-content-box"
         :class="['page-' + rotue.name]"
-        :style="{ overflow: rotue.name == 'knowledgeDocument' ? 'hidden' : '' }"
       >
         <router-view></router-view>
       </div>
@@ -123,6 +122,16 @@ export default defineComponent({
     flex: 1;
     padding: 24px 10px 0 24px;
   }
+}
+.between-content-box .page-knowledgeDocument{
+  overflow: hidden;
+  padding-top: 0;
+  padding-left: 0;
+}
+.between-content-box .page-qaDocImportRecord{
+  overflow: hidden;
+  padding-top: 0;
+  padding-left: 0;
 }
 </style>
 <style>

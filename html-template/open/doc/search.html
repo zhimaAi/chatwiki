@@ -7,22 +7,20 @@
       content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
     />
     <title>{{.search}}-{{.library_title}}</title>
-    <link rel="stylesheet" href="/open/static/css/base.css?v=2025030301" />
-    <link rel="stylesheet" href="/open/static/css/search.css?v=2025030702" />
+    <link rel="stylesheet" href="/open/static/css/base.css?v=20250528" />
+    <link rel="stylesheet" href="/open/static/css/search.css?v=20250528" />
     <script src="/open/static/libs/jquery/jquery-3.7.1.min.js"></script>
+    <link rel="stylesheet" href="/open/static/libs/layer/theme/default.css" />
+    <script src="/open/static/libs/layer/layer.js"></script>
     <!-- 百度统计 -->
     {{template "baidu_statistics" }}
     {{.statistics_set}}
   </head>
   <body>
-    <input
-      type="hidden"
-      id="library_key"
-      name="library_key"
-      value="{{.library_key}}"
-    />
+    <input type="hidden" id="library_key" name="library_key" value="{{.library_key}}" />
     <input type="hidden" id="doc_id" name="doc_id" value="{{.doc_id}}" />
     <input type="hidden" id="keyword" name="keyword" value="{{.search}}" />
+    <input type="hidden" id="preview_key" name="preview_key" value="{{.preview_key}}">
     <div class="search-page">
       <div class="home-page-left" id="wikiSidebarWrapper">
         <div class="wiki-sidebar-mask" onclick="toggleSidebar()"></div>
@@ -66,7 +64,7 @@
 
           <div class="sidebar-menus">
             <div class="sidebar-menu-item active">
-              <a class="link" id="home-link" href="/open/home/{{.library_key}}">
+              <a class="link sidebar-link" id="home-link" href="/open/home/{{.library_key}}">
                 <img
                   class="menu-icon default-icon"
                   src="/open/static/img/menu_ai.svg"
@@ -97,7 +95,7 @@
 
             <div class="directory-body">
               <div class="directory-list" id="directory-list">
-                {{ template "directory_menu" .catalog}}
+                {{ template "directory_menu" .catalog }}
               </div>
             </div>
           </div>

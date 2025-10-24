@@ -24,7 +24,7 @@
       @click="showMenu"
     />
     <div class="node-list-fix" v-show="isShowMenu">
-      <NodeListPopup @addNode="handleAddNode" />
+      <NodeListPopup @addNode="handleAddNode" type="float-btn" />
     </div>
   </div>
 </template>

@@ -6,7 +6,7 @@
         <a-form
           ref="formRef"
           :model="formState"
-          :label-col="{ span: 2 }"
+          :label-col="{ span: 4 }"
           :wrapper-col="{ span: 8 }"
         >
           <a-form-item>
@@ -73,7 +73,7 @@
             />
           </a-form-item>
 
-          <a-form-item :wrapper-col="{ offset: 2, span: 8 }">
+          <a-form-item :wrapper-col="{ offset: 4, span: 8 }">
             <a-button type="primary" :loading="loading" @click="handleSubmit">保存</a-button>
           </a-form-item>
         </a-form>
@@ -90,6 +90,9 @@ import { InfoCircleOutlined } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import ConfigPageMenu from '../components/config-page-menu.vue'
 import CustomSelector from '@/components/custom-selector/index.vue'
+import { usePublicLibraryStore } from '@/stores/modules/public-library'
+
+const libraryStore = usePublicLibraryStore()
 
 const route = useRoute()
 const library_id = computed(() => route.query.library_id)
@@ -140,25 +143,25 @@ const handleModelChange2 = (item) => {
   currentModelDefine2.value = item.rawData.model_define
 }
 
-const handleChangeModel = (val, option) => {
-  const self = option.current_obj
-  formState.use_model =
-    modelDefine.indexOf(self.model_define) > -1 && self.deployment_name
-      ? self.deployment_name
-      : self.name
-  currentModelDefine.value = self.model_define
-  formState.model_config_id = self.id || option.model_config_id
-}
+// const handleChangeModel = (val, option) => {
+//   const self = option.current_obj
+//   formState.use_model =
+//     modelDefine.indexOf(self.model_define) > -1 && self.deployment_name
+//       ? self.deployment_name
+//       : self.name
+//   currentModelDefine.value = self.model_define
+//   formState.model_config_id = self.id || option.model_config_id
+// }
 
-const handleChangeModel2 = (val, option) => {
-  const self = option.current_obj
-  formState.ai_summary_model =
-    modelDefine.indexOf(self.model_define) > -1 && self.deployment_name
-      ? self.deployment_name
-      : self.name
-  currentModelDefine2.value = self.model_define
-  formState.summary_model_config_id = self.id || option.model_config_id
-}
+// const handleChangeModel2 = (val, option) => {
+//   const self = option.current_obj
+//   formState.ai_summary_model =
+//     modelDefine.indexOf(self.model_define) > -1 && self.deployment_name
+//       ? self.deployment_name
+//       : self.name
+//   currentModelDefine2.value = self.model_define
+//   formState.summary_model_config_id = self.id || option.model_config_id
+// }
 
 const handleSubmit = async () => {
   try {
@@ -204,6 +207,8 @@ const saveData = () => {
       message.success('保存成功')
       loading.value = false
       oldState = JSON.parse(JSON.stringify(data))
+
+      libraryStore.getLibraryInfo()
     })
     .catch(() => {
       loading.value = false

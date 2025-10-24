@@ -9,12 +9,12 @@
   }
 }
 .cu-scrolbar-box {
-  /deep/ .bscroll-vertical-scrollbar {
+  :deep(.bscroll-vertical-scrollbar) {
     transition: opacity 0.4s;
     opacity: 0;
   }
   &:hover {
-    /deep/ .bscroll-vertical-scrollbar {
+    :deep(.bscroll-vertical-scrollbar) {
       opacity: 1;
     }
   }
@@ -58,8 +58,12 @@ const props = defineProps({
   },
   scrollbar: {
     type: [Boolean, Object],
-    default: {
-      minSize: 0
+    default: () => {
+      return {
+        minSize: 0,
+        interactive: true,
+        scrollbarTrackClickable: true,
+      }
     }
   },
   pullUpLoad: {

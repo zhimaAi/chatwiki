@@ -1,6 +1,12 @@
 <template>
   <div>
-    <a-modal v-model:open="open" title="AI 生成提示词" :width="746">
+    <a-modal
+      v-model:open="open"
+      title="AI 生成提示词"
+      wrapClassName="no-padding-modal"
+      :bodyStyle="{ 'max-height': '600px', 'overflow-y': 'auto' }"
+      :width="746"
+    >
       <template #footer>
         <a-button type="primary" :loading="confirmLoading" @click="handleOk">使用该提示</a-button>
       </template>
@@ -16,16 +22,18 @@
           />
         </div>
         <div class="input-box">
-          <a-input
+          <a-textarea
             style="width: 100%"
             v-model:value="demand"
+            auto-size
             size="large"
-            @pressEnter="handleCreatePrompt"
             placeholder="请输入AI 生成提示词例如：创建一个电商行业售后客服"
-          ></a-input>
-          <div class="btn-box" @click="handleCreatePrompt">
+          ></a-textarea>
+          <div class="btn-box" :class="{ 'disabed-status': isLoading }" @click="handleCreatePrompt">
+            <LoadingOutlined v-if="isLoading" />
             <svg-icon name="ai-mark" />
-            <span>生成</span>
+            <span v-if="isLoading">生成中...</span>
+            <span v-else>生成</span>
           </div>
         </div>
         <div class="quick-tags-box">
@@ -39,89 +47,87 @@
           >
         </div>
         <div class="ai-list-box">
-          <cu-scroll style="height: 100%">
-            <template v-if="isLoading">
-              <div class="loading-box">
-                <a-spin tip="正在生成中..."></a-spin>
+          <template v-if="isLoading">
+            <div class="loading-box">
+              <a-spin tip="正在生成中..."></a-spin>
+            </div>
+          </template>
+          <template v-else>
+            <div class="prompt-list-box" v-if="hasData">
+              <div class="prompt-list">
+                <div class="prompt-header">
+                  <div class="prompt-title">{{ formState.promptStruct.role.subject }}</div>
+                </div>
+                <div class="prompt-content">
+                  {{ formState.promptStruct.role.describe }}
+                </div>
               </div>
-            </template>
-            <template v-else>
-              <div class="prompt-list-box" v-if="hasData">
-                <div class="prompt-list">
-                  <div class="prompt-header">
-                    <div class="prompt-title">{{ formState.promptStruct.role.subject }}</div>
-                  </div>
-                  <div class="prompt-content">
-                    {{ formState.promptStruct.role.describe }}
+              <!-- 任务 -->
+              <div class="prompt-list">
+                <div class="prompt-header">
+                  <div class="prompt-title">{{ formState.promptStruct.task.subject }}</div>
+                </div>
+                <div class="prompt-content">
+                  {{ formState.promptStruct.task.describe }}
+                </div>
+              </div>
+              <!-- 要求 -->
+              <div class="prompt-list">
+                <div class="prompt-header">
+                  <div class="prompt-title">
+                    {{ formState.promptStruct.constraints.subject }}
                   </div>
                 </div>
-                <!-- 任务 -->
-                <div class="prompt-list">
-                  <div class="prompt-header">
-                    <div class="prompt-title">{{ formState.promptStruct.task.subject }}</div>
-                  </div>
-                  <div class="prompt-content">
-                    {{ formState.promptStruct.task.describe }}
+                <div class="prompt-content">
+                  {{ formState.promptStruct.constraints.describe }}
+                </div>
+              </div>
+              <!-- 技能 -->
+              <div class="prompt-list">
+                <div class="prompt-header">
+                  <div class="prompt-title">
+                    {{ formState.promptStruct.skill.subject }}
                   </div>
                 </div>
-                <!-- 要求 -->
-                <div class="prompt-list">
-                  <div class="prompt-header">
-                    <div class="prompt-title">
-                      {{ formState.promptStruct.constraints.subject }}
-                    </div>
-                  </div>
-                  <div class="prompt-content">
-                    {{ formState.promptStruct.constraints.describe }}
-                  </div>
+                <div class="prompt-content">
+                  {{ formState.promptStruct.skill.describe }}
                 </div>
-                <!-- 技能 -->
-                <div class="prompt-list">
-                  <div class="prompt-header">
-                    <div class="prompt-title">
-                      {{ formState.promptStruct.skill.subject }}
-                    </div>
-                  </div>
-                  <div class="prompt-content">
-                    {{ formState.promptStruct.skill.describe }}
-                  </div>
+              </div>
+              <!-- 输出格式 -->
+              <div class="prompt-list">
+                <div class="prompt-header">
+                  <div class="prompt-title">{{ formState.promptStruct.output.subject }}</div>
                 </div>
-                <!-- 输出格式 -->
-                <div class="prompt-list">
-                  <div class="prompt-header">
-                    <div class="prompt-title">{{ formState.promptStruct.output.subject }}</div>
-                  </div>
-                  <div class="prompt-content">
-                    {{ formState.promptStruct.output.describe }}
-                  </div>
+                <div class="prompt-content">
+                  {{ formState.promptStruct.output.describe }}
                 </div>
-                <!-- 风格 -->
-                <div class="prompt-list">
-                  <div class="prompt-header">
-                    <div class="prompt-title">{{ formState.promptStruct.tone.subject }}</div>
-                  </div>
-                  <div class="prompt-content">
-                    {{ formState.promptStruct.tone.describe }}
-                  </div>
+              </div>
+              <!-- 风格 -->
+              <div class="prompt-list">
+                <div class="prompt-header">
+                  <div class="prompt-title">{{ formState.promptStruct.tone.subject }}</div>
                 </div>
+                <div class="prompt-content">
+                  {{ formState.promptStruct.tone.describe }}
+                </div>
+              </div>
 
-                <!-- 自定义 -->
-                <div
-                  class="prompt-list"
-                  v-for="(item, index) in formState.promptStruct.custom"
-                  :key="index + item.key ? item.key : ''"
-                >
-                  <div class="prompt-header">
-                    <div class="prompt-title">{{ item.subject }}</div>
-                  </div>
-                  <div class="prompt-content">{{ item.describe }}</div>
+              <!-- 自定义 -->
+              <div
+                class="prompt-list"
+                v-for="(item, index) in formState.promptStruct.custom"
+                :key="index + item.key ? item.key : ''"
+              >
+                <div class="prompt-header">
+                  <div class="prompt-title">{{ item.subject }}</div>
                 </div>
+                <div class="prompt-content">{{ item.describe }}</div>
               </div>
-              <div class="empty-box" v-else>
-                <a-empty :image="simpleImage" :description="description" />
-              </div>
-            </template>
-          </cu-scroll>
+            </div>
+            <div class="empty-box" v-else>
+              <a-empty :image="simpleImage" :description="description" />
+            </div>
+          </template>
         </div>
       </div>
     </a-modal>
@@ -132,6 +138,7 @@
 import { ref, reactive, nextTick } from 'vue'
 import { createPromptByLlm } from '@/api/user/index.js'
 import { message } from 'ant-design-vue'
+import { LoadingOutlined } from '@ant-design/icons-vue'
 import { useRoute } from 'vue-router'
 import { Empty } from 'ant-design-vue'
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE
@@ -256,6 +263,7 @@ defineExpose({
   }
 }
 .ai-create-box {
+  padding-right: 24px;
   .input-box {
     position: relative;
     margin-top: 20px;
@@ -263,7 +271,7 @@ defineExpose({
       cursor: pointer;
       position: absolute;
       right: 16px;
-      top: 8px;
+      bottom: 8px;
       display: flex;
       height: 24px;
       align-items: center;
@@ -271,12 +279,15 @@ defineExpose({
       font-size: 16px;
       line-height: 24px;
       color: #6524fc;
+      &.disabed-status {
+        cursor: not-allowed;
+      }
     }
   }
   .ai-list-box {
     margin-top: 8px;
     border-radius: 12px;
-    height: 382px;
+    min-height: 282px;
     padding: 16px 3px 16px 16px;
     border: 1px solid #2475fc;
     background: #f0f5ff;

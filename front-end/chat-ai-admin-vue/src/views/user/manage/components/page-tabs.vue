@@ -61,11 +61,11 @@ const tabs = ref([
     title: t('views.user.model.teamMembers'),
     langKey: 'views.user.model.teamMembers'
   },
-  {
-    value: 0,
-    title: t('views.user.model.rolePermissions'),
-    langKey: 'views.user.model.rolePermissions'
-  }
+  // {
+  //   value: 0,
+  //   title: t('views.user.model.rolePermissions'),
+  //   langKey: 'views.user.model.rolePermissions'
+  // }
 ])
 
 const handleClickTab = (val) => {

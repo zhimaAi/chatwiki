@@ -34,6 +34,13 @@
         <a-button v-else @click="toggleCollapse('expand')"><svg-icon class="preview-box-icon" name="expand"></svg-icon> 展开预览</a-button>
       </div>
       <a-space>
+        <a-input
+          v-model:value="filterData.search"
+          placeholder="搜索内容"
+          style="width: 200px"
+          allowClear
+          @change="search"
+        />
         <a-select
           v-model:value="filterData.status"
           placeholder="请选择"
@@ -91,6 +98,7 @@
               ref="subsectionBoxRef"
               :total="total"
               :paragraphLists="paragraphLists"
+              :search="filterData.search"
               :detailsInfo="detailsInfo"
               @openEditSubscription="openEditSubscription"
               @handleDelParagraph="handleDelParagraph"
@@ -111,6 +119,7 @@
                 :total="total"
                 :detailsInfo="detailsInfo"
                 :paragraphLists="paragraphLists"
+                :search="filterData.search"
                 @openEditSubscription="openEditSubscription"
                 @handleDelParagraph="handleDelParagraph"
                 @handleConvert="handleConvert"
@@ -235,6 +244,7 @@
                     :total="total"
                     :detailsInfo="detailsInfo"
                     :paragraphLists="paragraphLists"
+                    :search="filterData.search"
                     @openEditSubscription="openEditSubscription"
                     @handleDelParagraph="handleDelParagraph"
                     @handleConvert="handleConvert"
@@ -347,7 +357,8 @@ const detailsInfo = ref({})
 const filterData = reactive({
   status: -1,
   graph_status: -1,
-  category_id: -1
+  category_id: -1,
+  search: '',
 })
 const pdfPreviewMode = ref(1)
 
@@ -539,7 +550,8 @@ getFileInfo()
 
 const getParagraphCountFn = () => {
   getParagraphCount({
-    file_id: route.query.id
+    file_id: route.query.id,
+    search: filterData.search
   }).then((res) => {
     Object.assign(totalData, res.data)
   })
@@ -557,6 +569,7 @@ const search = () => {
   total.value = 0
   paragraphLists.value = []
   getParagraphLists()
+  getParagraphCountFn()
 }
 
 const handleCategoryChange = (id)=>{

@@ -36,6 +36,7 @@ func GetSessionRecordList(c *gin.Context) {
 	}
 	robotId := cast.ToUint(c.Query(`robot_id`))
 	appType := strings.TrimSpace(c.Query(`app_type`))
+	appId := strings.TrimSpace(c.Query(`app_id`))
 	startTime := cast.ToInt(c.Query(`start_time`))
 	endTime := cast.ToInt(c.Query(`end_time`))
 	name := strings.TrimSpace(c.Query(`name`))
@@ -49,6 +50,9 @@ func GetSessionRecordList(c *gin.Context) {
 	m.Where(`d.is_background`, `0`)
 	if len(appType) > 0 {
 		m.Where(`s.app_type`, appType)
+	}
+	if len(appId) > 0 {
+		m.Where(`s.app_id`, appId)
 	}
 	if startTime > 0 && endTime > 0 && endTime >= startTime {
 		m.Where(`s.last_chat_time`, `between`, fmt.Sprintf(`%d,%d`, startTime, endTime))
@@ -71,7 +75,7 @@ func GetSessionRecordList(c *gin.Context) {
 		return
 	}
 	list, err = m.Where(`id`, `in`, strings.Join(sessionIds, `,`)).
-		Field(`id session_id,dialogue_id,last_chat_time,last_chat_message,app_type,openid`).
+		Field(`id session_id,dialogue_id,last_chat_time,last_chat_message,app_type,app_id,openid`).
 		Order(`last_chat_time DESC`).Select()
 	if err != nil {
 		logs.Error(err.Error())
@@ -104,6 +108,7 @@ func CreateSessionExport(c *gin.Context) {
 		`admin_user_id`: userId,
 		`robot_id`:      robotId,
 		`app_type`:      strings.TrimSpace(c.Query(`app_type`)),
+		`app_id`:        strings.TrimSpace(c.Query(`app_id`)),
 		`start_time`:    cast.ToInt(c.Query(`start_time`)),
 		`end_time`:      cast.ToInt(c.Query(`end_time`)),
 		`name`:          strings.TrimSpace(c.Query(`name`)),

@@ -40,7 +40,20 @@
 
         <div class="diy-form-item">
           <div class="form-label">用户问题</div>
-          <div class="form-content">流程开始>用户问题</div>
+          <div class="form-content">
+            <div class="form-content">
+              <a-cascader
+                v-model:value="formState.question_value"
+                @dropdownVisibleChange="onDropdownVisibleChange"
+                style="width: 220px"
+                :options="variableOptions"
+                :allowClear="false"
+                :displayRender="({ labels }) => labels.join('/')"
+                :field-names="{ children: 'children' }"
+                placeholder="请选择"
+              />
+            </div>
+          </div>
         </div>
       </div>
       <div class="gray-block mt16">
@@ -61,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, h, computed, toRaw, nextTick } from 'vue'
+import { ref, reactive, watch, h, computed, toRaw, inject, nextTick } from 'vue'
 import LibrarySelectAlert from './library-select-alert.vue'
 import RecallSettingsAlert from './recall-settings-alert.vue'
 import { getLibraryList } from '@/api/library/index'
@@ -87,6 +100,18 @@ const props = defineProps({
   }
 })
 
+const getNode = inject('getNode')
+
+function formatQuestionValue(val) {
+  if (val) {
+    let lists = val.split('.')
+    let str1 = lists[0]
+    let str2 = lists.filter((item, index) => index > 0).join('.')
+    return [str1, str2]
+  }
+  return ['global', 'question']
+}
+
 const emit = defineEmits(['setData'])
 const formRef = ref()
 
@@ -97,7 +122,8 @@ const formState = reactive({
   rerank_model_config_id: void 0,
   top_k: 5,
   similarity: 0.5,
-  search_type: 1
+  search_type: 1,
+  question_value: ''
 })
 let lock = false
 watch(
@@ -107,11 +133,14 @@ watch(
       if (lock) {
         return
       }
+      getOptions()
       let libs = JSON.parse(val.node_params).libs || {}
       libs = JSON.parse(JSON.stringify(libs))
       for (let key in libs) {
         if (key == 'library_ids') {
           formState[key] = libs[key] ? libs[key].split(',') : []
+        } else if (key == 'question_value') {
+          formState.question_value = formatQuestionValue(libs['question_value'])
         } else {
           formState[key] = libs[key]
         }
@@ -143,10 +172,11 @@ const updata = () => {
         rerank_model_config_id: formState.rerank_model_config_id
           ? +formState.rerank_model_config_id
           : void 0,
+        question_value: formState.question_value.join('.'),
         library_ids: formState.library_ids.join(',')
       }
     }),
-    height: 500,
+    height: 500
   })
 }
 
@@ -208,6 +238,40 @@ const getList = async () => {
 }
 
 getList()
+
+const variableOptions = ref([])
+function getOptions() {
+  let list = getNode().getAllParentVariable()
+
+  variableOptions.value = handleOptions(list)
+}
+
+// 递归处理Options
+function handleOptions(options) {
+  options.forEach((item) => {
+    if (item.typ == 'node') {
+      if (item.node_type == 1) {
+        item.value = 'global'
+      } else {
+        item.value = item.node_id
+      }
+    } else {
+      item.value = item.key
+    }
+
+    if (item.children && item.children.length > 0) {
+      item.children = handleOptions(item.children)
+    }
+  })
+
+  return options
+}
+
+const onDropdownVisibleChange = (visible) => {
+  if (!visible) {
+    getOptions()
+  }
+}
 
 defineExpose({})
 </script>

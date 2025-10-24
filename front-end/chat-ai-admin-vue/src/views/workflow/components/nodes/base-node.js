@@ -1,5 +1,5 @@
 import { HtmlNode, HtmlNodeModel, h as flh } from '@logicflow/core'
-import { createApp, h } from 'vue'
+import { createApp, h, nextTick } from 'vue'
 import { generateUniqueId } from '@/utils/index'
 
 function transformArray(arr, parent) {
@@ -63,30 +63,30 @@ export class BaseVueNodeView extends HtmlNode {
       isSelected: props.model.isSelected,
       isHovered: props.model.isHovered,
     })
+
     this.app = createApp({
       render: () => this.r,
       provide: () => ({
         getNode: () => props.model,
         getGraph: () => props.graphModel,
         setData: (data) => {
-          props.model.properties = {
-            ...props.model.properties,
-            ...data,
-          }
-
-          props.model._height = data.height || props.model.properties.height
-
-          let height = null
+          nextTick(() => {
+            props.model.properties = {
+              ...props.model.properties,
+              ...data,
+            }
+            // 获取高度
+            let height = null
       
-          if (this.r && this.r.el){
-            height = this.r.el.clientHeight
-          }
-    
-          props.model._height = height || data.height || props.model.properties.height
+            if (this.r && this.r.el){
+              height = this.r.el.clientHeight
+            }
 
-          props.model.refreshBranch()  // 视图变化  边的线位置更新
+            props.model._height = height || data.height || props.model.properties.height
+            props.model.refreshBranch()  // 视图变化  边的线位置更新
 
-          props.graphModel.eventCenter.emit('custom:setData',  props.model)
+            props.graphModel.eventCenter.emit('custom:setData',  props.model)
+          })
         },
         setTitle: (title) => {
           props.model.properties.node_name = title;
@@ -230,10 +230,20 @@ export class BaseVueNodeView extends HtmlNode {
   }
 
   setHtml(rootEl) {
+    if(this.props.model.virtual){
+      return
+    }
+
     if (!this.isMounted) {
       this.isMounted = true
+
       const node = document.createElement('div')
+
+      node.className = 'root-node'
+      node.id = 'node-'+this.props.model.id
+
       rootEl.appendChild(node)
+
       this.app.mount(node)
     } else {
       this.r.component.props.isSelected = this.props.model.isSelected
@@ -299,7 +309,17 @@ export class BaseVueNodeModel extends HtmlNodeModel {
     const edges = this.incoming.edges;
     const { nodes } = this.graphModel
     // 节点白名单
-    const nodeWhiteList = ['start-node', 'http-node', 'knowledge-base-node', 'ai-dialogue-node', 'specify-reply-node']
+    const nodeWhiteList = [
+      'start-node',
+      'http-node',
+      'parameter-extraction-node',
+      'knowledge-base-node',
+      'ai-dialogue-node',
+      'specify-reply-node',
+      'problem-optimization-node',
+      'select-data-node',
+      'code-run-node'
+    ]
 
     let startNode = nodes.find((node) => node.type === 'start-node')
     // 插入起始节点(起始节点必传)
@@ -353,8 +373,30 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         obj.children = node_params.curl.output
       }
 
+      if(node.type === 'code-run-node'){
+        obj.children = node_params.code_run.output
+      }
+
+      if(node.type === 'parameter-extraction-node'){
+        obj.children = node_params.params_extractor.output
+      }
+
       if(node.type === 'start-node'){
         obj.children = [...node_params.start.diy_global, ...node_params.start.sys_global]
+      }
+
+      if(node.type === 'select-data-node'){
+        obj.children = [{
+          key: 'output_list',
+          typ: 'Array(Object)',
+          name: 'output_list',
+          label: 'output_list'
+        },{
+          key: 'row_num',
+          typ: 'integer',
+          name: 'row_num',
+          label: 'row_num'
+        }]
       }
 
       if(node.type === 'knowledge-base-node'){
@@ -383,7 +425,17 @@ export class BaseVueNodeModel extends HtmlNodeModel {
           label: '消息内容',
         }]
       }
-      
+
+      if(node.type === 'problem-optimization-node'){
+        obj.children = [{
+          key: 'special.question_optimize_reply_content',
+          typ: 'string',
+          name: '问题优化结果',
+          label: '问题优化结果',
+        }]
+      }
+
+
       obj.children.forEach(variable => {
         variable.node_id = node.id
         variable.node_name = node.properties.node_name

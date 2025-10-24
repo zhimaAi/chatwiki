@@ -591,6 +591,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	chanStream <- sse.Event{Event: `c_message`, Data: common.ToStringMap(message, `id`, id)}
 	//websocket notify
 	common.ReceiverChangeNotify(params.AdminUserId, `c_message`, common.ToStringMap(message, `id`, id))
+	isBackground := len(params.Customer) > 0 && cast.ToInt(params.Customer[`is_background`]) > 0
 	//obtain the data required for gpt
 	chanStream <- sse.Event{Event: `robot`, Data: params.Robot}
 	debugLog := make([]any, 0) //debug log
@@ -600,8 +601,10 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	var messages []adaptor.ZhimaChatCompletionMessage
 	var list []msql.Params
 	var (
-		showQuoteFile  = cast.ToBool(params.Robot[`answer_source_switch`])
-		startQuoteFile bool
+		showQuoteFile   = cast.ToBool(params.Robot[`answer_source_switch`])
+		startQuoteFile  bool
+		hitCache        bool
+		answerMessageId = ""
 	)
 	if cast.ToInt(params.Robot[`application_type`]) == define.ApplicationTypeFlow {
 		//nothing to do
@@ -612,9 +615,17 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 			chanStream <- sse.Event{Event: `start_quote_file`, Data: tool.Time2Int()}
 			startQuoteFile = true
 		}
-		messages, list, monitor.LibUseTime, err = buildLibraryChatRequestMessage(params, id, dialogueId, &debugLog)
+		hitCache, answerMessageId = common.HitRobotMessageCache(params.Robot[`robot_key`], params.Question, params.Robot[`cache_config`])
+		if hitCache {
+			list, hitCache, err = common.BuildLibraryMessagesFromCache(params.Robot[`robot_key`], answerMessageId)
+		} else {
+			messages, list, monitor.LibUseTime, err = buildLibraryChatRequestMessage(params, id, dialogueId, &debugLog)
 
-		chanStream <- sse.Event{Event: `recall_time`, Data: monitor.LibUseTime.RecallTime}
+			chanStream <- sse.Event{Event: `recall_time`, Data: monitor.LibUseTime.RecallTime}
+			if !isBackground && len(list) == 0 { //未知问题统计
+				common.SaveUnknownIssueRecord(params.AdminUserId, params.Robot, params.Question)
+			}
+		}
 	}
 
 	if err != nil {
@@ -703,6 +714,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		requestTime                         int64
 		chatResp                            = adaptor.ZhimaChatCompletionResponse{}
 		llmStartTime                        = time.Now()
+		saveRobotChatCache                  bool
 	)
 	msgType := define.MsgTypeText
 	if cast.ToInt(params.Robot[`application_type`]) == define.ApplicationTypeFlow {
@@ -717,6 +729,10 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		chanStream <- sse.Event{Event: `recall_time`, Data: monitor.LibUseTime.RecallTime}
 		chanStream <- sse.Event{Event: `request_time`, Data: requestTime}
 		chanStream <- sse.Event{Event: `sending`, Data: content}
+	} else if hitCache {
+		// response from cache
+		chatResp, requestTime, err = common.ResponseMessagesFromCache(params.Robot[`robot_key`], answerMessageId, useStream, chanStream)
+		content = chatResp.Result
 	} else if cast.ToInt(params.Robot[`chat_type`]) == define.ChatTypeDirect {
 		if !needRunWorkFlow && useStream {
 			chatResp, requestTime, err = common.RequestChatStream(
@@ -787,6 +803,8 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 			if err != nil {
 				logs.Error(err.Error())
 				sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)
+			} else {
+				saveRobotChatCache = true
 			}
 		} else {
 			if cast.ToBool(params.Robot[`mixture_qa_direct_reply_switch`]) &&
@@ -801,7 +819,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 					if image_decode_err == nil {
 						// 成功解码JSON到切片
 						for _, imageUrl := range imageSlice {
-							content += `<br/>![img](` + imageUrl + `)`
+							content += fmt.Sprintf("\n![img](%s)", imageUrl)
 						}
 					}
 				}
@@ -841,6 +859,8 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 				if err != nil {
 					logs.Error(err.Error())
 					sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)
+				} else {
+					saveRobotChatCache = true
 				}
 			}
 		}
@@ -869,7 +889,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 					if image_decode_err == nil {
 						// 成功解码JSON到切片
 						for _, imageUrl := range imageSlice {
-							content += `<br/>![img](` + imageUrl + `)`
+							content += fmt.Sprintf("\n![img](%s)", imageUrl)
 						}
 					}
 				}
@@ -909,6 +929,8 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 				if err != nil {
 					logs.Error(err.Error())
 					sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)
+				} else {
+					saveRobotChatCache = true
 				}
 			}
 		}
@@ -1028,6 +1050,9 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		logs.Error(err.Error())
 		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(params.Lang, `sys_err`)}
 		return nil, err
+	}
+	if saveRobotChatCache {
+		go common.SetRobotMessageCache(params.Robot[`robot_key`], params.Question, cast.ToString(id), params.Robot[`cache_config`])
 	}
 	common.UpLastChat(dialogueId, sessionId, lastChat, define.MsgFromRobot)
 	//message push

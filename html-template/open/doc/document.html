@@ -6,15 +6,17 @@
     <meta name="keywords" content="{{.seo_keywords}}">
     <meta name="description" content="{{.seo_desc}}">
     <title>{{ .seo_title }}</title>
-    <link rel="stylesheet" href="/open/static/css/base.css?v=2025030501" />
+    <link rel="stylesheet" href="/open/static/css/base.css?v=2025052903" />
     <link rel="stylesheet" href="/open/static/libs/vditor/index.css">
     <link rel="stylesheet" href="/open/static/theme/ant-design.css">
-    <link rel="stylesheet" href="/open/static/css/document.css?v=2025030501" />
+    <link rel="stylesheet" href="/open/static/css/document.css?v=2025052903" />
+    <script src="/open/static/libs/jquery/jquery-3.7.1.min.js"></script>
+    <link rel="stylesheet" href="/open/static/libs/layer/theme/default.css" />
+    <script src="/open/static/libs/layer/layer.js"></script>
     <!-- 代码高亮主题 -->
     <link rel="stylesheet" href="/open/static/libs/highlight/styles/default.min.css">
     <!-- <link rel="stylesheet" href="/open/static/libs/highlight/styles/dark.css"> -->
     <script src="/open/static/css/font/iconfont.js"></script>
-    <script src="/open/static/libs/jquery/jquery-3.7.1.min.js"></script>
     <script src="/open/static/libs/highlight/highlight.js"></script>
     <!-- 代码高亮语言 -->
     <!-- <script src="/open/static/libs/highlight/languages/go.js"></script>
@@ -26,8 +28,10 @@
   <body>
     <input type="hidden" id="library_key" name="library_key" value="{{.library_key}}"> 
     <input type="hidden" id="doc-key" value="{{.doc_key}}" />
-    <div class="document-page">
-      <div class="document-page-header">
+    <input type="hidden" id="preview_key" name="preview_key" value="{{.preview_key}}">
+    <div class="page-wrapper document-page ">
+      {{ template "preview_tips" }}
+      <div class="page-header document-page-header">
         <div class="library-title">{{.library_title}}</div>
         <div class="action-box">
           <span class="action-btn" onclick="toSearchPage('')">
@@ -38,132 +42,135 @@
           </span>
         </div>
       </div>
-      <!-- 左侧开始 -->
-      <div class="document-page-left" id="wikiSidebarWrapper">
-        <div class="wiki-sidebar-mask" onclick="toggleSidebar()"></div>
-        <div class="wiki-sidebar">
-          <div class="wiki-sidebar-header">
-            {{if not .library_avatar}}
-            <img class="wiki-logo" src="/open/static/img/t.svg" alt="" />
-            {{else}}
-            <img class="wiki-logo" src="{{.library_avatar}}" alt="" />
-            {{end}}
-            <h3 class="wiki-name">
-              {{.library_title}}
-            </h3>
-            <div class="action-box">
-              <span class="action-btn sidebar-toggle-btn" id="sidebar-toggle" onclick="toggleSidebar()">
-                <img src="/open/static/img/sidebar_toggle.svg" alt="" />
-              </span>
-            </div>
-          </div>
-
-          <div class="wiki-search-box">
-            <div class="search-input-box">
-              <input id="sidebar-search-input" class="search-input" type="text" placeholder="" onkeydown="handleEnterSidebarSearch(event)" />
-              <img
-                class="search-icon"
-                src="/open/static/img/search.png"
-                alt=""
-                onclick="onSidebarSearch()"
-              />
-            </div>
-          </div>
-
-          <div class="sidebar-menus">
-            <div class="sidebar-menu-item">
-              <a class="link" id="home-link" href="/open/home/{{.library_key}}">
-                <img
-                  class="menu-icon default-icon"
-                  src="/open/static/img/menu_ai.svg"
-                  alt="首页"
-                />
-                <img
-                  class="menu-icon active-icon"
-                  src="/open/static/img/menu_ai_active.svg"
-                  alt="首页"
-                />
-                <span class="menu-name">首页</span>
-              </a>
-            </div>
-          </div>
-
-          <div class="sidebar-directory">
-            <div class="directory-header">
-              <span class="directory-label">文档目录</span>
+      <div class="page-container">
+        <!-- 左侧开始 -->
+        <div class="page-left document-page-left" id="wikiSidebarWrapper">
+          <div class="wiki-sidebar-mask" onclick="toggleSidebar()"></div>
+          <div class="wiki-sidebar">
+            <div class="wiki-sidebar-header">
+              {{if not .library_avatar}}
+              <img class="wiki-logo" src="/open/static/img/t.svg" alt="" />
+              {{else}}
+              <img class="wiki-logo" src="{{.library_avatar}}" alt="" />
+              {{end}}
+              <h3 class="wiki-name">
+                {{.library_title}}
+              </h3>
               <div class="action-box">
+                <span class="action-btn sidebar-toggle-btn" id="sidebar-toggle" onclick="toggleSidebar()">
+                  <img src="/open/static/img/sidebar_toggle.svg" alt="" />
+                </span>
+              </div>
+            </div>
+
+            <div class="wiki-search-box">
+              <div class="search-input-box">
+                <input id="sidebar-search-input" class="search-input" type="text" placeholder="" onkeydown="handleEnterSidebarSearch(event)" />
                 <img
-                  class="action-btn"
-                  src="/open/static/img/directory_expanded.svg"
-                  title="收起全部菜单"
-                  onclick="closeAllCatalog()"
+                  class="search-icon"
+                  src="/open/static/img/search.png"
+                  alt=""
+                  onclick="onSidebarSearch()"
                 />
               </div>
             </div>
 
-            <div class="directory-body">
-              <div class="directory-list" id="directory-list">
-                {{ template "directory_menu" .catalog}}
+            <div class="sidebar-menus">
+              <div class="sidebar-menu-item">
+                <a class="link sidebar-link" id="home-link" href="/open/home/{{.library_key}}">
+                  <img
+                    class="menu-icon default-icon"
+                    src="/open/static/img/menu_ai.svg"
+                    alt="首页"
+                  />
+                  <img
+                    class="menu-icon active-icon"
+                    src="/open/static/img/menu_ai_active.svg"
+                    alt="首页"
+                  />
+                  <span class="menu-name">首页</span>
+                </a>
+              </div>
+            </div>
+
+            <div class="sidebar-directory">
+              <div class="directory-header">
+                <span class="directory-label">文档目录</span>
+                <div class="action-box">
+                  <img
+                    class="action-btn"
+                    src="/open/static/img/directory_expanded.svg"
+                    title="收起全部菜单"
+                    onclick="closeAllCatalog()"
+                  />
+                </div>
+              </div>
+
+              <div class="directory-body">
+                <div class="directory-list" id="directory-list">
+                  {{ template "directory_menu" .catalog}}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <!-- 内容区域 -->
-      <div class="document-page-body">
-        <div class="markdown-content">
-          <h1>{{.title}}</h1>
-          <div class="vditor-reset">
-            {{.body}}
-          </div>
-          <div class="document-footer">
-            <div class="page-turning">
-              {{if .prev_doc}}
-              <a class="prev-page" href="/open/doc/{{.prev_doc.DocKey}}">
-                <svg class="w-icon" aria-hidden="true">
-                  <use xlink:href="#icon-jiantou_xiangzuo"></use>
-                </svg>
-                <span>上一篇：</span>
-                <span>{{.prev_doc.Title}}</span>
-              </a>
-              {{else}}
-              <a class="prev-page" href="javascript:;">
-                <svg class="w-icon" aria-hidden="true">
-                  <use xlink:href="#icon-jiantou_xiangzuo"></use>
-                </svg>
-                <span>上一篇：</span>
-                <span>无</span>
-              </a>
-              {{end}}
+        <!-- 内容区域 -->
+        <div class="page-body document-page-body">
+          <div class="markdown-content">
+            <h1>{{.title}}</h1>
+            <div class="vditor-reset">
+              {{.body}}
+            </div>
+            <div class="document-footer">
+              <div class="page-turning">
+                {{if .prev_doc}}
+                <a class="prev-page page-link" href="/open/doc/{{.prev_doc.DocKey}}">
+                  <svg class="w-icon" aria-hidden="true">
+                    <use xlink:href="#icon-jiantou_xiangzuo"></use>
+                  </svg>
+                  <span>上一篇：</span>
+                  <span>{{.prev_doc.Title}}</span>
+                </a>
+                {{else}}
+                <a class="prev-page" href="javascript:;">
+                  <svg class="w-icon" aria-hidden="true">
+                    <use xlink:href="#icon-jiantou_xiangzuo"></use>
+                  </svg>
+                  <span>上一篇：</span>
+                  <span>无</span>
+                </a>
+                {{end}}
 
-              {{if .next_doc}}
-              <a class="next-page" href="/open/doc/{{.next_doc.DocKey}}">
-                <span>下一篇：</span>
-                <span>{{.next_doc.Title}}</span>
-                <svg class="w-icon" aria-hidden="true">
-                  <use xlink:href="#icon-jiantou_xiangyou"></use>
-                </svg>
-              </a>
-              {{else}}
-              <a class="next-page" href="javascript:;">
-                <span>下一篇：</span>
-                <span>无</span>
-                <svg class="w-icon" aria-hidden="true">
-                  <use xlink:href="#icon-jiantou_xiangyou"></use>
-                </svg>
-              </a>
-              {{end}}
+                {{if .next_doc}}
+                <a class="next-page page-link" href="/open/doc/{{.next_doc.DocKey}}">
+                  <span>下一篇：</span>
+                  <span>{{.next_doc.Title}}</span>
+                  <svg class="w-icon" aria-hidden="true">
+                    <use xlink:href="#icon-jiantou_xiangyou"></use>
+                  </svg>
+                </a>
+                {{else}}
+                <a class="next-page" href="javascript:;">
+                  <span>下一篇：</span>
+                  <span>无</span>
+                  <svg class="w-icon" aria-hidden="true">
+                    <use xlink:href="#icon-jiantou_xiangyou"></use>
+                  </svg>
+                </a>
+                {{end}}
+              </div>
             </div>
           </div>
         </div>
+        <!-- 右边开始 -->
+        <div class="page-right document-page-right" style="display: none;">
+          
+        </div>
       </div>
-      <!-- 右边开始 -->
-      <div class="document-page-right" style="display: none;">
-        
-      </div>
+      
     </div>
 
-    <script src="/open/static/js/base.js?v=2025031101"></script>
-    <script src="/open/static/js/document.js?v=2025032401"></script>
+    <script src="/open/static/js/base.js?v=2025052903"></script>
+    <script src="/open/static/js/document.js?v=2025052903"></script>
   </body>
 </html>

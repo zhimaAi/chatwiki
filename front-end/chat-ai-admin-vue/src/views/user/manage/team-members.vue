@@ -23,7 +23,7 @@
                 </template>
                 添加团队成员
               </a-button>
-              <a-dropdown>
+              <a-dropdown v-if="false">
                 <a-button>批量修改权限</a-button>
                 <template #overlay>
                   <a-menu>
@@ -120,7 +120,7 @@
                 </template>
               </a-table-column>
 
-              <a-table-column data-index="managed_robot_list" width="200px">
+              <a-table-column v-if="false" data-index="managed_robot_list" width="200px">
                 <template #title>
                   管理的机器人
                   <a-tooltip>
@@ -154,7 +154,7 @@
                   </div>
                 </template>
               </a-table-column>
-              <a-table-column data-index="managed_library_list" width="200px">
+              <a-table-column v-if="false" data-index="managed_library_list" width="200px">
                 <template #title>
                   管理的知识库
                   <a-tooltip>
@@ -188,7 +188,7 @@
                   </div>
                 </template>
               </a-table-column>
-              <a-table-column data-index="managed_form_list" width="200px">
+              <a-table-column v-if="false" data-index="managed_form_list" width="200px">
                 <template #title>
                   管理的数据库
                   <a-tooltip>
@@ -318,12 +318,12 @@ const tabOption = [
       title: '团队成员'
     }
   },
-  {
-    value: 2,
-    payload: {
-      title: '知识库权限'
-    }
-  }
+  // {
+  //   value: 2,
+  //   payload: {
+  //     title: '知识库权限'
+  //   }
+  // }
 ]
 
 const requestParams = reactive({

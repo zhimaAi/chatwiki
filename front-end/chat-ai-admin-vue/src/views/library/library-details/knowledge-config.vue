@@ -571,6 +571,7 @@ const formState = reactive({
   ai_chunk_model_config_id: '', // ai大模型分段模型配置id
   ai_chunk_prumpt: defaultAiChunkPrumpt, // ai大模型分段提示词设置
   qa_index_type: 1,
+  group_id: 0,
 })
 const currentModelDefine = ref('')
 const isActive = ref(0)
@@ -609,6 +610,7 @@ const getInfo = () => {
     formState.library_intro = res.data.library_intro
     formState.use_model = res.data.use_model
     formState.is_offline = res.data.is_offline
+    formState.group_id = res.data.group_id
 
     formState.model_config_id = res.data.model_config_id
     formState.avatar = res.data.avatar ? res.data.avatar : defaultAvatar
@@ -809,6 +811,7 @@ const handleEdit = (callback = null) => {
     ai_chunk_model: formState.ai_chunk_model,
     ai_chunk_model_config_id: formState.ai_chunk_model_config_id,
     ai_chunk_prumpt: formState.ai_chunk_prumpt,
+    group_id: formState.group_id,
     id: rotue.query.id
   }
   if (oldModelDefineList.indexOf(currentModelDefine.value) > -1) {

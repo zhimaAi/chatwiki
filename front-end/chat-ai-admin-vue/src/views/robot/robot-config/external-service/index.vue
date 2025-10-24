@@ -37,6 +37,9 @@ import { useRobotStore } from '@/stores/modules/robot'
 import TopMeun from './components/top-meun.vue'
 import WebAPP from './components/web-app.vue'
 import EmbedWebsite from './components/embed-website.vue'
+import WeChatOfficialAccount from './components/wechat-official-account.vue'
+import WeChatMiniProgram from './components/wechat-mini-program.vue'
+import WeChatCustomerService from './components/wechat-customer-service.vue'
 
 const robotStore = useRobotStore()
 
@@ -45,13 +48,19 @@ const { getRobot } = robotStore
 
 const tabComponents = {
   WebAPP,
-  EmbedWebsite
+  EmbedWebsite,
+  WeChatOfficialAccount,
+  WeChatMiniProgram,
+  WeChatCustomerService
 }
 
-const activeMenuKey = ref('WebAPP')
+const activeLocalKey = '/robot/config/external-services/activeKey'
+
+const activeMenuKey = ref(localStorage.getItem(activeLocalKey) || 'WebAPP')
 
 const changeMenu = (item) => {
   activeMenuKey.value = item.id
+  localStorage.setItem(activeLocalKey, activeMenuKey.value)
 }
 
 provide('robotInfo', {

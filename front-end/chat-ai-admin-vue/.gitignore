@@ -31,3 +31,5 @@ stats.html
 *.sw?
 
 *.tsbuildinfo
+
+.kilocode/*

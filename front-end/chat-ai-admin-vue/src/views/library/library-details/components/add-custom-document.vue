@@ -74,7 +74,11 @@ const props = defineProps({
   libraryInfo:{
     type: Object,
     default: () => {}
-  }
+  },
+  group_id: {
+    type: [Number, String],
+    default: () => 0
+  },
 })
 
 const formState = reactive({
@@ -120,6 +124,7 @@ const add = () => {
   formState.file_name = ''
   formState.is_qa_doc = 0
   formState.qa_index_type = 1
+  formState.library_id = props.libraryInfo.id || rotue.query.id
   if(props.libraryInfo.type == 2){
     formState.is_qa_doc = 1
   }
@@ -129,9 +134,9 @@ const saveLoading = ref(false)
 const handleOk = () => {
   validate().then(() => {
     let formData = {
-      ...toRaw(formState)
+      ...toRaw(formState),
+      group_id: props.group_id
     }
-    console.log(formData, formState)
     saveLoading.value = true
     addLibraryFile(formData)
       .then((res) => {

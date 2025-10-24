@@ -30,6 +30,11 @@ export const nodesGroup = [
     icon: ''
   },
   {
+    key: 'database-operation',
+    name: '数据库操作',
+    icon: ''
+  },
+  {
     key: 'external-service',
     name: '外部调用',
     icon: ''
@@ -121,8 +126,34 @@ export const nodeList = [
           max_token: 2000,
           prompt: '',
           enable_thinking: false,
-          question_value: 'global.question',
-          libs_node_key: void 0,
+          question_value: 'global.question'
+        }
+      })
+    }
+  },
+  {
+    id: '',
+    groupKey: 'large-model-capability',
+    type: 'problem-optimization-node',
+    width: 568,
+    height: 614,
+    properties: {
+      ...getRowData(),
+      node_type: 11,
+      node_name: '问题优化',
+      node_icon: getNodeIconUrl('problem-optimization-node'),
+      node_icon_name: 'problem-optimization-node',
+      node_params: JSON.stringify({
+        question_optimize: {
+          model_config_id: void 0,
+          use_model: '',
+          context_pair: 6,
+          temperature: 0.5,
+          max_token: 2000,
+          prompt: '',
+          prompt_tags: [],
+          enable_thinking: false,
+          question_value: 'global.question'
         }
       })
     }
@@ -203,7 +234,8 @@ export const nodeList = [
           rerank_status: 0,
           rerank_model_config_id: void 0,
           rerank_use_model: '',
-          question_value: 'global.question'
+          question_value: 'global.question',
+          libs_node_key: void 0,
         }
       })
     }
@@ -316,6 +348,169 @@ export const nodeList = [
       })
     }
   },
+  {
+    id: '',
+    groupKey: 'database-operation',
+    type: 'add-data-node',
+    width: 568,
+    height: 328,
+    properties: {
+      ...getRowData(),
+      node_type: 13,
+      node_name: '新增数据',
+      node_icon: getNodeIconUrl('data-node'),
+      node_icon_name: 'data-node',
+      node_params: JSON.stringify({
+        form_insert: {
+          form_id: null,
+          datas: []
+        }
+      })
+    }
+  },
+  {
+    id: '',
+    groupKey: 'database-operation',
+    type: 'delete-data-node',
+    width: 568,
+    height: 302,
+    properties: {
+      ...getRowData(),
+      node_type: 14,
+      node_name: '删除数据',
+      node_icon: getNodeIconUrl('data-node'),
+      node_icon_name: 'data-node',
+      node_params: JSON.stringify({
+        form_delete: {
+          form_name: '',
+          form_description: '',
+          form_id: '',
+          typ: 1,
+          where: []
+        }
+      })
+    }
+  },
+  {
+    id: '',
+    groupKey: 'database-operation',
+    type: 'update-data-node',
+    width: 568,
+    height: 406,
+    properties: {
+      ...getRowData(),
+      node_type: 15,
+      node_name: '更新数据',
+      node_icon: getNodeIconUrl('data-node'),
+      node_icon_name: 'data-node',
+      node_params: JSON.stringify({
+        form_update: {
+          form_name: '',
+          form_description: '',
+          form_id: '',
+          typ: 1,
+          datas: [],
+          where: []
+        }
+      })
+    }
+  },
+  {
+    id: '',
+    groupKey: 'database-operation',
+    type: 'select-data-node',
+    width: 568,
+    height: 868,
+    properties: {
+      ...getRowData(),
+      node_type: 16,
+      node_name: '查询数据',
+      node_icon: getNodeIconUrl('data-node'),
+      node_icon_name: 'data-node',
+      node_params: JSON.stringify({
+        form_select: {
+          form_name: '',
+          form_description: '',
+          form_id: '',
+          typ: 1,
+          fields: [],
+          where: [],
+          order: [],
+          limit: 100
+        }
+      })
+    }
+  },
+  {
+    id: '',
+    groupKey: 'large-model-capability',
+    type: 'parameter-extraction-node',
+    width: 568,
+    height: 645,
+    properties: {
+      ...getRowData(),
+      node_type: 12,
+      node_name: '参数提取器',
+      node_icon: getNodeIconUrl('parameter-extraction-node'),
+      node_icon_name: 'parameter-extraction-node',
+      node_params: JSON.stringify({
+        params_extractor: {
+          model_config_id: void 0,
+          use_model: '',
+          temperature: 0.5,
+          max_token: 2000,
+          context_pair: 2,
+          prompt: '',
+          prompt_tags: [],
+          question_value: '',
+          enable_thinking: false,
+          output: [
+            // {
+            //   key: '',
+            //   typ: 'string',
+            //   required: false,
+            //   default: '',
+            //   enum: '',
+            //   subs: []
+            // }
+          ]
+        }
+      })
+    }
+  },
+  {
+    id: '',
+    groupKey: 'external-service',
+    type: 'code-run-node',
+    width: 568,
+    height: 820,
+    properties: {
+      ...getRowData(),
+      node_type: 17,
+      node_name: '代码运行',
+      node_icon: getNodeIconUrl('code-run-node'),
+      node_icon_name: 'code-run-node',
+      node_params: JSON.stringify({
+        code_run: {
+          main_func: '',
+          params: [
+            {
+              field: '',
+              variable: ''
+            }
+          ],
+          timeout: 30,
+          output: [
+            {
+              key: '',
+              typ: 'string'
+            }
+          ],
+          exception: '',
+        }
+      })
+    }
+  }
 ]
 
 // 获取分组和节点

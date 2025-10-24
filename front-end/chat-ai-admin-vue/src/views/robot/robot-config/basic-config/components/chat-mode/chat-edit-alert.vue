@@ -71,10 +71,10 @@
             <div class="direct-desc">{{ item.direct_desc }}</div>
             <div class="qa" v-show="item.isQaDirectReply && chat_typeValue == item.direct_id">
                 <div class="prompt-form-item-label">
-                    <span class="qa-title">QA文档直接回复答案</span>
+                    <span class="qa-title">命中问答知识时直接回复答案</span>
                     <a-tooltip>
-                        <template #title v-if="item.chat_type == '1'">仅知识库模式下，检索出来的score排名最高的分段为QA模式，且score超过置顶阈值是，直接回复分段的答案，不经过大语言模型（LLM）生成回复。</template>
-                        <template #title v-else-if="item.chat_type == '3'">混合模式下，检索出来的score排名最高的分段为QA模式，且score超过置顶阈值是，直接回复分段的答案，不经过大语言模型（LLM）生成回复。</template>
+                        <template #title v-if="item.chat_type == '1'">仅知识库模式下，检索出来的score排名最高的分段为QA模式，且score超过指定阈值是，直接回复分段的答案，不经过大语言模型（LLM）生成回复。</template>
+                        <template #title v-else-if="item.chat_type == '3'">混合模式下，检索出来的score排名最高的分段为QA模式，且score超过指定阈值是，直接回复分段的答案，不经过大语言模型（LLM）生成回复。</template>
                         <QuestionCircleOutlined class="question-icon" />
                     </a-tooltip>
                     <div class="direct-switch">

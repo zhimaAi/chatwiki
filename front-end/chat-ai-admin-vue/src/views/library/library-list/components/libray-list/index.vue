@@ -3,6 +3,7 @@
   display: flex;
   flex-flow: row wrap;
   margin: 0 -8px 0 -8px;
+  flex: 1;
 }
 .list-item-wrapper {
   padding: 8px;
@@ -148,6 +149,15 @@
     }
   }
 }
+
+// 大于1920px
+@media screen and (max-width: 1500px) {
+  .list-box {
+    .list-item-wrapper {
+      width: 33.3%;
+    }
+  }
+}
 </style>
 
 <template>
@@ -195,6 +205,9 @@
                       >删 除</a
                     >
                   </a-menu-item>
+                  <a-menu-item>
+                    <div @click.stop="openEditGroupModal(item)">修改分组</div>
+                  </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -209,7 +222,7 @@
 
 <script setup>
 import { computed } from 'vue'
-const emit = defineEmits(['add', 'edit', 'delete'])
+const emit = defineEmits(['add', 'edit', 'delete', 'openEditGroupModal'])
 
 import { useCompanyStore } from '@/stores/modules/company'
 const companyStore = useCompanyStore()
@@ -230,5 +243,9 @@ const toEdit = (item) => {
 
 const handleDelete = (item) => {
   emit('delete', item)
+}
+
+const openEditGroupModal = (item)=>{
+  emit('openEditGroupModal', item)
 }
 </script>

@@ -6,11 +6,14 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_redis"
+	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/gin-contrib/sse"
+	"github.com/go-redis/redis/v8"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
@@ -18,7 +21,7 @@ import (
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
-func SaveLibDoc(adminUserId, userId, libraryId, docId, fileId, pid, isIndex, draft int, title string, info msql.Params, content string) (int, error) {
+func SaveLibDoc(adminUserId, userId, libraryId, docId, fileId, pid, isIndex, draft int, title string, info msql.Params, content string, isDir int, docIcon string) (int, error) {
 	var (
 		err     error
 		summary string
@@ -33,6 +36,8 @@ func SaveLibDoc(adminUserId, userId, libraryId, docId, fileId, pid, isIndex, dra
 		`content`:     content,
 		`summary`:     summary,
 		`update_time`: tool.Time2Int(),
+		`is_dir`:      isDir,
+		`doc_icon`:    docIcon,
 	}
 	updateData[`edit_user`] = userId
 	if isIndex == define.LibDocIndex {
@@ -184,7 +189,7 @@ func GetLibDocInfoByFileId(docId int) msql.Params {
 		return info
 	}
 	m := msql.Model(`chat_ai_library_file_doc`, define.Postgres)
-	info, _ = m.Where(`file_id`, cast.ToString(docId)).Field(`id,doc_key,title,pid,library_id,is_draft,is_pub,create_time,update_time`).Find()
+	info, _ = m.Where(`file_id`, cast.ToString(docId)).Field(`id,doc_key,title,pid,library_id,is_draft,is_pub,create_time,update_time,is_dir,doc_icon`).Find()
 	return info
 }
 
@@ -193,7 +198,7 @@ func GetLibDocChildren(pid []string, fetchAll bool) []msql.Params {
 	if !fetchAll {
 		m.Where(`is_pub`, `1`)
 	}
-	children, _ := m.Where(`pid`, `in`, strings.Join(pid, `,`)).Where(`delete_time`, `0`).Field(`id,doc_key,pid,file_id,sort,title,create_time,update_time`).Order(`sort desc`).Select()
+	children, _ := m.Where(`pid`, `in`, strings.Join(pid, `,`)).Where(`delete_time`, `0`).Field(`id,doc_key,pid,file_id,is_draft,sort,title,create_time,update_time,is_dir,doc_icon`).Order(`sort desc`).Select()
 	return children
 }
 
@@ -215,6 +220,8 @@ type LibraryCatalog struct {
 	FileId     int               `json:"file_id"`
 	Title      string            `json:"title"`
 	Sort       int               `json:"sort"`
+	DocIcon    string            `json:"doc_icon"`
+	IsDir      int               `json:"is_dir"`
 	CreateTime int               `json:"create_time"`
 	UpdateTime int               `json:"update_time"`
 	Children   []*LibraryCatalog `json:"children"`
@@ -227,12 +234,17 @@ type LibraryCatalog struct {
 }
 
 type LibraryCatalogCacheBuildHandle struct {
-	LibraryId int
+	LibraryId  int
+	PreviewKey string
 }
 
 func (h *LibraryCatalogCacheBuildHandle) GetCacheKey() string {
+	if h.PreviewKey != "" {
+		return fmt.Sprintf(`chatwiki.library_catalog.v1.preview.%d`, h.LibraryId)
+	}
 	return fmt.Sprintf(`chatwiki.library_catalog.v1.%d`, h.LibraryId)
 }
+
 func (h *LibraryCatalogCacheBuildHandle) GetCacheData() (any, error) {
 	var (
 		page = 1
@@ -241,7 +253,11 @@ func (h *LibraryCatalogCacheBuildHandle) GetCacheData() (any, error) {
 	)
 	m := msql.Model(`chat_ai_library_file_doc`, define.Postgres)
 	for {
-		info, _, err := m.Where(`library_id`, cast.ToString(h.LibraryId)).Where(`is_pub`, `1`).Where(`delete_time`, `0`).Field(`id,doc_key,pid,is_index,file_id,sort,title,create_time,update_time`).Order(`sort desc`).Paginate(page, size)
+		m.Where(`library_id`, cast.ToString(h.LibraryId)).Where(`delete_time`, `0`)
+		if h.PreviewKey == "" {
+			m.Where(`is_pub`, `1`)
+		}
+		info, _, err := m.Field(`id,doc_key,pid,is_index,file_id,sort,title,create_time,update_time,doc_icon,is_dir`).Order(`sort desc`).Paginate(page, size)
 		if len(info) == 0 || err != nil {
 			break
 		}
@@ -258,6 +274,8 @@ func (h *LibraryCatalogCacheBuildHandle) GetCacheData() (any, error) {
 				Sort:       cast.ToInt(item[`sort`]),
 				CreateTime: cast.ToInt(item[`create_time`]),
 				UpdateTime: cast.ToInt(item[`update_time`]),
+				DocIcon:    item[`doc_icon`],
+				IsDir:      cast.ToInt(item[`is_dir`]),
 				Children:   make([]*LibraryCatalog, 0),
 			}
 			tree = append(tree, data)
@@ -351,9 +369,9 @@ func findNode(root *LibraryCatalog, targetValue string) *LibraryCatalog {
 	return nil
 }
 
-func GetLibDocCateLogByCache(pid int) ([]*LibraryCatalog, error) {
+func GetLibDocCateLogByCache(pid int, preview string) ([]*LibraryCatalog, error) {
 	result := make([]*LibraryCatalog, 0)
-	err := lib_redis.GetCacheWithBuild(define.Redis, &LibraryCatalogCacheBuildHandle{LibraryId: pid}, &result, time.Hour*3)
+	err := lib_redis.GetCacheWithBuild(define.Redis, &LibraryCatalogCacheBuildHandle{LibraryId: pid, PreviewKey: preview}, &result, time.Hour*3)
 	return result, err
 }
 
@@ -362,7 +380,7 @@ func GetLibDocCateLog(pid, libraryId int, fetchAll bool) []msql.Params {
 	if !fetchAll {
 		m.Where(`is_pub`, `1`)
 	}
-	info, _ := m.Field(`id,doc_key,pid,file_id,sort,title,create_time,update_time`).Order(`sort desc`).Select()
+	info, _ := m.Field(`id,doc_key,pid,is_draft,file_id,sort,title,create_time,update_time,is_dir,doc_icon`).Order(`sort desc`).Select()
 	docIds := []string{}
 	for _, item := range info {
 		docIds = append(docIds, item[`id`])
@@ -401,7 +419,7 @@ func LibDocSearch(lang string, libraryId int, search string, library msql.Params
 		}
 		vectorList = append(vectorList, list...)
 	}
-	list, err := GetMatchLibraryParagraphByFullTextSearch(search, cast.ToString(libraryId), fetchSize, similarity, searchType)
+	list, err := GetMatchLibraryParagraphByFullTextSearch(search, cast.ToString(libraryId), fetchSize, searchType)
 	if err != nil {
 		logs.Error(err.Error())
 		return result, summary, quoteFile, nil
@@ -410,7 +428,7 @@ func LibDocSearch(lang string, libraryId int, search string, library msql.Params
 
 	//RRF sort
 	list = (&RRF{}).
-		Add(DataSource{List: vectorList, Key: `id`, Fixed: 60}).
+		Add(DataSource{List: vectorList, Key: `id`, Fixed: 59}).
 		Add(DataSource{List: searchList, Key: `id`, Fixed: 60}).Sort()
 
 	// quoteFile
@@ -431,6 +449,8 @@ func LibDocSearch(lang string, libraryId int, search string, library msql.Params
 		one[`pid`] = docInfo[`pid`]
 		one[`doc_id`] = docInfo[`id`]
 		one[`doc_key`] = docInfo[`doc_key`]
+		one[`is_dir`] = docInfo[`is_dir`]
+		one[`doc_icon`] = docInfo[`doc_icon`]
 		one[`create_time`] = docInfo[`create_time`]
 		one[`update_time`] = docInfo[`update_time`]
 		if key < summarySie {
@@ -642,4 +662,64 @@ func LibDocPartnerList(libraryIds []string, page, size int) ([]msql.Params, int,
 		}
 	}
 	return list, total, err
+}
+
+type LibDocPreviewCacheBuildHandler struct {
+	LibraryKey string
+	PreviewKey string
+}
+
+func (h *LibDocPreviewCacheBuildHandler) GetCacheKey() string {
+	return fmt.Sprintf(`chatwiki.doc_preview_info.v1.%s.%s`, h.LibraryKey, h.PreviewKey)
+}
+func (h *LibDocPreviewCacheBuildHandler) GetCacheData() (any, error) {
+	return nil, nil
+}
+
+func (h *LibDocPreviewCacheBuildHandler) SaveCacheData(value interface{}, expire time.Duration) error {
+	_, err := define.Redis.Set(context.Background(), h.GetCacheKey(), value, expire).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		logs.Error(err.Error())
+		return err
+	}
+	return nil
+}
+
+func CheckPreviewOpenDoc(libraryKey, previewKey string) bool {
+	handler := &LibDocPreviewCacheBuildHandler{
+		LibraryKey: libraryKey,
+		PreviewKey: previewKey,
+	}
+	data, err := define.Redis.Get(context.Background(), handler.GetCacheKey()).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		logs.Error(err.Error())
+		return false
+	}
+	if cast.ToInt(data) <= 0 {
+		return false
+	}
+	return true
+}
+
+func GetOpenBindLibList(domain, typ string) ([]msql.Params, error) {
+	var (
+		err      error
+		bindList = []msql.Params{}
+	)
+	list, err := msql.Model(`chat_ai_library`, define.Postgres).
+		Where(`type`, cast.ToString(typ)).
+		Field(`id,library_name,avatar,access_rights,share_url,create_time`).Order(`id asc`).Select()
+	for _, item := range list {
+		if cast.ToInt(item[`access_rights`]) != define.OpenLibraryAccessRights {
+			continue
+		}
+		// 去除http(s)前缀后进行域名匹配
+		shareUrl := strings.TrimPrefix(strings.TrimPrefix(item[`share_url`], "https://"), "http://")
+		domainTrim := strings.TrimPrefix(strings.TrimPrefix(domain, "https://"), "http://")
+		if strings.Contains(shareUrl, domainTrim) {
+			item[`library_key`] = BuildLibraryKey(cast.ToInt(item[`id`]), cast.ToInt(item[`create_time`]))
+			bindList = append(bindList, item)
+		}
+	}
+	return bindList, err
 }

@@ -4,32 +4,43 @@
   width: 100%;
   display: flex;
   flex-direction: column;
+
   .toolbar-wrapper {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 80px;
-    padding: 0 24px;
-    border-bottom: 1px solid #f0f0f0;
+    height: 64px;
+    padding: 0 16px 0 32px;
+    background-color: #fff;
+    border-bottom: 1px solid #D9D9D9;
 
     .toolbar-right {
       display: flex;
       align-items: center;
     }
+
     .action-item {
       margin-right: 8px;
+
       &:last-child {
         margin-right: 0;
       }
+
+      .action-name{
+        margin-left: 8px;
+      }
     }
-    .action-icon {
-      margin-right: 4px;
+
+    .change-home-preview-style-btn {
+      margin-left: 8px;
+      cursor: pointer;
     }
 
     .edit-user {
       display: flex;
       align-items: center;
       margin-right: 16px;
+
       .line {
         width: 1px;
         height: 16px;
@@ -37,16 +48,19 @@
         border-radius: 1px;
         background: #d9d9d9;
       }
+
       .user-avatar {
         width: 24px;
         height: 24px;
         border-radius: 6px;
       }
+
       .user-name {
         margin-left: 8px;
         font-size: 14px;
         color: #595959;
       }
+
       .edit-status-text {
         margin-left: 8px;
         font-size: 14px;
@@ -55,31 +69,122 @@
     }
   }
 
+  .library-info {
+    display: flex;
+    flex-direction: row;
+    line-height: 22px;
+    padding: 24px 24px 24px 0;
+
+    .library-logo {
+      width: 32px;
+      height: 32px;
+      margin-right: 8px;
+      border-radius: 12px;
+    }
+
+    .library-info-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      flex-direction: row;
+    }
+
+    .library-name {
+      flex: 1;
+      line-height: 24px;
+      height: 24px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #000000;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .libray-arrow-down {
+      margin-left: 12px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .publish-status {
+      display: flex;
+      align-items: center;
+      height: 22px;
+      line-height: 22px;
+      padding: 0 6px;
+      border-radius: 6px;
+      margin-left: 12px;
+      color: #3a4559;
+
+      &.is-publish {
+        color: #21A665;
+        background-color: #CAFCE4;
+      }
+
+      .status-icon {
+        margin-right: 2px;
+        font-size: 14px;
+      }
+
+      .status-name {
+        font-size: 14px;
+        font-weight: 500;
+      }
+    }
+  }
+
   .preview-box {
+    position: relative;
     flex: 1;
+    padding: 0;
     overflow: hidden;
     text-align: center;
     display: flex;
     align-items: center;
     justify-content: center;
 
+    &.is-dragging::before {
+      content: '';
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0);
+      z-index: 10;
+    }
+
+    &.is-mobile {
+      align-items: flex-start;
+      overflow-y: auto;
+    }
+
     .mobile-box {
       display: flex;
       align-items: center;
       justify-content: center;
-      height: 100%;
+      height: 800px;
       width: 100%;
       padding: 24px 0;
+      padding-bottom: 41px;
       overflow: hidden;
     }
+
     .pc-box {
       height: 100%;
       width: 100%;
     }
+
     .iframe {
       height: 100%;
       width: 100%;
     }
+  }
+
+  .seo-setting-box {
+    padding: 0 24px 32px 24px;
   }
 }
 </style>
@@ -88,11 +193,27 @@
   <div class="home-preview">
     <div class="toolbar-wrapper">
       <div class="toolbar-left">
-        <div class="toolbar-item">
-          <a-radio-group v-model:value="styleType">
-            <a-radio-button value="pc">PC端样式</a-radio-button>
-            <a-radio-button value="mobile">移动端样式</a-radio-button>
-          </a-radio-group>
+        <div class="library-info">
+          <div class="library-info-content">
+            <wiki-dropdown :libraryInfo="libraryInfo" :libraryList="libraryList"
+              @change="handleChangeLibrary"></wiki-dropdown>
+
+            <div class="publish-status" v-if="libraryInfo.access_rights == 0">
+              <ExclamationCircleFilled class="status-icon" />
+              <span class="status-name">未公开</span>
+            </div>
+            <div class="publish-status  is-publish" v-if="libraryInfo.access_rights == 1">
+              <CheckCircleFilled class="status-icon" />
+              <span class="status-name">已公开</span>
+            </div>
+
+            <span class="change-home-preview-style-btn">
+              <a-tooltip :title="homePreviewTip">
+                <svg-icon name="switch-mobile" style="font-size: 14px;color:#595959;"
+                  @click.stop="changeHomePreviewStyle(item)"></svg-icon>
+              </a-tooltip>
+            </span>
+          </div>
         </div>
       </div>
       <div class="toolbar-right">
@@ -103,104 +224,116 @@
         </div>
 
         <div class="action-item">
-          <SharePopup
-            ref="sharePopupRef"
-            base-url="/open/home"
-            :docKey="state.library_key"
-            :libraryId="id"
-          >
-            <a-button
-              ><svg-icon class="action-icon" name="share" style="font-size: 16px"></svg-icon>
-              分享</a-button
-            >
-          </SharePopup>
-        </div>
-        <div class="action-item" v-if="isEdit">
-          <a-button @click="handleSeoSetting">
-            <svg-icon
-              class="action-icon"
-              name="jibenpeizhi"
-              style="font-size: 16px; color: #595959"
-            ></svg-icon>
-            <span>SEO设置</span>
+          <a-button type="primary" :loading="publishLoading" @click="handlePublish" v-if="isEdit">
+            <CheckOutlined /> <span class="action-name">发布</span>
+          </a-button>
+          <a-button type="primary" @click="handleHomeEdit" v-else>
+            <svg-icon class="action-icon" name="edit" style="font-size: 16px; color: #fff"></svg-icon>
+            <span class="action-name">编辑</span>
           </a-button>
         </div>
+
         <div class="action-item">
-          <a-button type="primary" :loading="publishLoading" @click="handlePublish" v-if="isEdit"
-            ><CheckOutlined /> 发布</a-button
-          >
-          <a-button type="primary" @click="handleHomeEdit" v-else>
-            <svg-icon
-              class="action-icon"
-              name="edit"
-              style="font-size: 16px; color: #fff"
-            ></svg-icon>
-            <span>编辑</span>
+          <a-button @click="handleCopyShareUrl">
+            <svg-icon class="action-icon" name="link-left" style="font-size: 16px"></svg-icon>
+            <span class="action-name">复制链接</span>
+          </a-button>
+        </div>
+
+        <div class="action-item">
+          <a-button @click="handleOpenSeoSetting">
+            <CheckCircleFilled style="color: #21a665; font-size: 14px" class="status-icon" v-if="isSetSeo" />
+            <ExclamationCircleFilled  style="color: #ccc; font-size: 14px" class="status-icon" v-else />
+            <span class="action-name">SEO</span>
+          </a-button>
+        </div>
+
+        <div class="action-item">
+          <a-button @click="toSettingPage">
+            <svg-icon name="jibenpeizhi" style="font-size: 14px;color: #595959;"></svg-icon>
+            <span class="action-name">设置</span>
           </a-button>
         </div>
       </div>
     </div>
 
-    <div class="preview-box">
+    <div class="preview-box" :class="{ 'is-mobile': styleType == 'mobile', 'is-dragging': isDragging }"
+      v-if="state.doc_id">
       <div class="mobile-box" v-if="styleType == 'mobile'">
         <PhoneBox>
-          <iframe
-            ref="iframeRef"
-            class="iframe"
-            :src="previewUrl"
-            frameborder="0"
-            v-if="state.library_key"
-          ></iframe>
+          <iframe ref="iframeRef" class="iframe" :src="previewUrl" frameborder="0"
+            v-if="libraryInfo.library_key"></iframe>
         </PhoneBox>
       </div>
 
       <div class="pc-box" v-else>
-        <iframe
-          ref="iframeRef"
-          class="iframe"
-          :src="previewUrl"
-          frameborder="0"
-          v-if="state.library_key"
-        ></iframe>
+        <iframe ref="iframeRef" class="iframe" :src="previewUrl" frameborder="0"
+          v-if="libraryInfo.library_key"></iframe>
       </div>
     </div>
     <EditTitle ref="editTitleRef" @ok="handleSaveTitle" :confirm-loading="saveTitleLoading" />
     <EditDesc ref="editDescRef" @ok="handleSaveDesc" :confirm-loading="saveDescLoading" />
-    <EditQuestionGuide
-      ref="editQuestionGuideRef"
-      @ok="handleSaveQuestionGuide"
-      :confirm-loading="saveQuestionGuideLoading"
-    />
-    <SeoSetting ref="seoSettingRef" @ok="saveSeoSuccess" />
+    <EditQuestionGuide ref="editQuestionGuideRef" @ok="handleSaveQuestionGuide"
+      :confirm-loading="saveQuestionGuideLoading" />
+    <SeoSetting ref="seoSettingRef" @ok="saveSeoOk" />
+    <ShortcutSelector ref="shortcutSelectorRef" :iconTemplateConfig="iconTemplateConfig" @ok="onSelectAddShortcut" />
   </div>
 </template>
 
 <script setup>
-import { getLibraryInfo } from '@/api/library/index'
+import { generateUniqueId } from '@/utils/index'
+import { useCopyShareUrl } from '@/hooks/web/useCopyShareUrl'
+import { OPEN_BOC_BASE_URL } from '@/constants/index'
 import {
   saveDraftLibDoc,
   saveQuestionGuide,
   deleteQuestionGuide,
   saveLibDoc,
-  getLibDocInfo
+  getLibDocInfo,
+  getLibDocHomeConfig,
+  saveLibDocIndexQuickDoc,
+  saveLibDocBannerImg
 } from '@/api/public-library'
 import { getUser } from '@/api/manage'
+import { uploadFile } from '@/api/app'
 import { useUserStore } from '@/stores/modules/user'
-import { ref, computed, reactive, onMounted, onBeforeUnmount } from 'vue'
-import { useRoute } from 'vue-router'
-import { CheckOutlined } from '@ant-design/icons-vue'
+import { ref, computed, reactive, nextTick, onMounted, onBeforeUnmount, inject } from 'vue'
+import { CheckOutlined, ExclamationCircleFilled, CheckCircleFilled } from '@ant-design/icons-vue'
+import { useRouter } from 'vue-router'
+import { usePublicLibraryStore } from '@/stores/modules/public-library'
 import { message, Modal } from 'ant-design-vue'
 import EditTitle from './components/edit-title.vue'
 import EditDesc from './components/edit-desc.vue'
 import EditQuestionGuide from './components/edit-question-guide.vue'
 import PhoneBox from './components/phone-box.vue'
 import SeoSetting from '../components/seo-setting.vue'
-import SharePopup from '../components/share-popup.vue'
+import WikiDropdown from '../components/wiki-dropdown.vue'
+import ShortcutSelector from './components/shortcut-selector.vue'
 
-const route = useRoute()
+
+const router = useRouter()
+// 接受isDragging
+const isDragging = inject('isDragging')
+
+const libraryStore = usePublicLibraryStore()
 const { getToken, user_id } = useUserStore()
 
-const id = computed(() => route.query.library_id)
+const libraryInfo = computed(() => libraryStore.libraryInfo)
+const libraryId = computed(() => libraryStore.library_id)
+const libraryKey = computed(() => libraryStore.library_key)
+const iconTemplateConfig = computed(() => libraryStore.iconTemplateConfig)
+
+const homePreviewStyle = computed(() => {
+  return libraryStore.homePreviewStyle
+})
+
+const homePreviewTip = computed(() => {
+  return homePreviewStyle.value == 'mobile' ? '切换到PC端' : '切换到移动端'
+})
+
+const changeHomePreviewStyle = () => {
+  libraryStore.changeHomePreviewStyle()
+}
 
 const iframeRef = ref(null)
 const time = ref(new Date().getTime())
@@ -211,17 +344,30 @@ const state = reactive({
   content: '',
   library_intro: '',
   library_name: '',
-  library_key: ''
-})
-
-const docState = reactive({
-  doc_id: '',
+  library_key: '',
   is_pub: '',
   doc_key: '',
   seo_title: '',
   seo_desc: '',
   seo_keywords: ''
 })
+
+const isSetSeo = computed(() => { 
+  return state.seo_title || state.seo_desc || state.seo_keywords
+})
+
+// 打开seo设置
+const seoSettingRef = ref(null);
+const handleOpenSeoSetting = () => {
+  seoSettingRef.value.open({ ...state })
+}
+
+const saveSeoOk = (data) => {
+  state.seo_title = data.seo_title
+  state.seo_desc = data.seo_desc
+  state.seo_keywords = data.seo_keywords
+  // time.value = new Date().getTime()
+}
 
 const editUser = reactive({
   show: false,
@@ -270,17 +416,93 @@ const handleSaveDesc = (data) => {
     })
 }
 
+// 添加快捷方式
+const shortcutSelectorRef = ref(null);
+const shortcutList = ref([]);
+const shortcutListValue = ref([]);
+
+const handleOpenShortcutSelector = (data) => {
+  console.log(data)
+  shortcutSelectorRef.value.open({ library_key: libraryInfo.value.library_key, ...data })
+}
+const onSelectAddShortcut = (data) => {
+  let key = generateUniqueId('shortcutList');
+  console.log(data)
+  if (!data.old_doc_id) {
+    shortcutList.value.push({
+      doc_id: data.doc_id,
+      key
+    })
+  } else {
+    let index = shortcutList.value.findIndex(item => item.key == data.old_doc_key)
+    // 如果key不存在则用id在找一次
+    if(index == -1){
+      index = shortcutList.value.findIndex(item => item.doc_id == data.old_doc_id)
+    }
+    
+    if (index > -1) {
+      shortcutList.value.splice(index, 1, { doc_id: data.doc_id, key})
+    } else {
+      shortcutList.value.push({ doc_id: data.doc_id, key })
+    }
+  }
+
+  saveLibDocIndexQuickDoc({
+    library_key: libraryInfo.value.library_key,
+    doc_id: state.doc_id,
+    quick_doc_content: JSON.stringify(shortcutList.value.filter(item => item.doc_id))
+  }).then(() => {
+    time.value = new Date().getTime()
+    message.success('保存成功')
+  })
+}
+
+const handleDeleteShorcut = (data) => {
+  let index = shortcutList.value.findIndex(item => item.key == data.key)
+
+  // 如果key不存在则用id在找一次
+  if(index == -1){
+    index = shortcutList.value.findIndex(item => item.doc_id == data.doc_id)
+  }
+
+  if (index > -1) {
+    shortcutList.value.splice(index, 1)
+  }
+
+  saveLibDocIndexQuickDoc({
+    library_key: libraryInfo.value.library_key,
+    doc_id: state.doc_id,
+    quick_doc_content: JSON.stringify(shortcutList.value.filter(item => item.doc_id))
+  }).then(() => {
+    time.value = new Date().getTime()
+    message.success('删除成功')
+  })
+}
+
+const handleShortcutSort = (data) => { 
+  shortcutList.value = data.list;
+
+  saveLibDocIndexQuickDoc({
+    library_key: libraryInfo.value.library_key,
+    doc_id: state.doc_id,
+    quick_doc_content: JSON.stringify(shortcutList.value.filter(item => item.doc_id))
+  }).then(() => {
+    // time.value = new Date().getTime()
+    message.success('保存成功')
+  })
+ }
+
 // 保存
 const saveDraftDoc = async () => {
   let res = await saveDraftLibDoc({
-    library_key: state.library_key,
+    library_key: libraryInfo.value.library_key,
     doc_id: state.doc_id,
     title: state.title,
     content: state.content,
     is_index: 1
   }).then((res) => {
     state.doc_id = res.data.doc_id
-    docState.doc_id = res.data.doc_id
+
     time.value = new Date().getTime()
     return res
   })
@@ -298,7 +520,7 @@ const handleSaveDraft = async () => {
 const publishLoading = ref(false)
 const handlePublish = () => {
   let data = {
-    library_key: state.library_key,
+    library_key: libraryInfo.value.library_key,
     doc_id: state.doc_id,
     title: state.title,
     content: state.content,
@@ -310,7 +532,6 @@ const handlePublish = () => {
   saveLibDoc(data)
     .then((res) => {
       state.doc_id = res.data.doc_id
-      docState.doc_id = res.data.doc_id
       publishLoading.value = false
       message.success('发布成功')
       setHomeEditStatus(false)
@@ -320,25 +541,6 @@ const handlePublish = () => {
     .catch(() => {
       publishLoading.value = false
     })
-}
-
-const seoSettingRef = ref(null)
-
-const handleSeoSetting = () => {
-  let params = {
-    library_key: state.library_key,
-    seo_title: docState.seo_title,
-    seo_desc: docState.seo_desc,
-    seo_keywords: docState.seo_keywords,
-    doc_id: state.doc_id
-  }
-
-  seoSettingRef.value.open(params)
-}
-
-const saveSeoSuccess = () => {
-  getHomeInfo()
-  time.value = new Date().getTime()
 }
 
 // 保存问题引导
@@ -353,7 +555,7 @@ const handleSaveQuestionGuide = (data) => {
   questionGuide.question = data.question
   saveQuestionGuideLoading.value = true
   saveQuestionGuide({
-    library_key: state.library_key,
+    library_key: libraryInfo.value.library_key,
     id: questionGuide.id || '',
     question: questionGuide.question
   })
@@ -367,45 +569,139 @@ const handleSaveQuestionGuide = (data) => {
     })
 }
 
-const styleType = ref('pc')
+const styleType = computed(() => {
+  return libraryStore.homePreviewStyle
+})
 
 let prviewHost = import.meta.env.VITE_OPEN_DOC_HOST || ''
 
 const previewUrl = computed(() => {
-  return `${prviewHost}/manage/libDocHome/${state.library_key}?&v=${time.value}&token=${getToken}`
+  let url = ''
+  if (import.meta.env.DEV) {
+    url = `${prviewHost}/home/${libraryInfo.value.library_key}?&v=${time.value}&token=${getToken}`
+  } else {
+    url = `${libraryInfo.value.share_url || ''}${OPEN_BOC_BASE_URL}/home/${libraryInfo.value.library_key}?&v=${time.value}&token=${getToken}`
+  }
+
+  return url
 })
 
-const getData = () => {
-  getLibraryInfo({ id: id.value }).then((res) => {
-    Object.assign(state, res.data)
-  })
-}
+const getHomeInfo = async () => {
+  await getLibDocHomeConfig({ library_key: libraryInfo.value.library_key }).then(async (res) => {
+    // 如果没有doc_id 则创建一个新的doc_id
+    if (!res.data.id) {
+      state.title = libraryInfo.value.library_name
+      state.content = libraryInfo.value.library_intro
 
-const getHomeInfo = () => {
-  getLibDocInfo({ doc_id: state.doc_id, library_key: state.library_key }).then((res) => {
-    Object.assign(docState, res.data)
+      await saveDraftDoc()
 
-    let editStatus = res.data.edit_user && res.data.edit_user != 0
+      getHomeInfo()
+      return
+    }
+
+    state.library_key = libraryInfo.value.library_key;
+    state.library_intro = libraryInfo.value.library_intro;
+    state.library_name = libraryInfo.value.library_name;
+    state.doc_id = res.data.id;
+    state.title = res.data.title;
+    state.content = res.data.content;
+    state.seo_title = res.data.seo_title;
+    state.seo_desc = res.data.seo_desc;
+    state.seo_keywords = res.data.seo_keywords;
+    state.is_pub = res.data.is_pub;
+    state.doc_key = res.data.doc_key;
+
+    if (res.data.quick_doc_content && res.data.quick_doc_content.length) {
+      let shortcuts= JSON.parse(res.data.quick_doc_content) || [];
+
+      shortcutList.value = shortcuts.filter(item => item.doc_id)
+    }else{
+      shortcutList.value = [];
+    }
+
+    if (res.data.quick_doc_content_value && res.data.quick_doc_content_value.length) {
+      shortcutListValue.value = JSON.parse(res.data.quick_doc_content_value) || [];
+    }else{
+      shortcutListValue.value = []
+    }
+
+    let editStatus = res.data.edit_user && res.data.edit_user != 0;
 
     if (editStatus && res.data.edit_user != user_id) {
       editUser.show = true
       getEditUser(res.data.edit_user)
     }
 
-    if (editStatus && res.data.edit_user == user_id) {
-      setHomeEditStatus(true)
-    } else {
-      setHomeEditStatus(false)
-    }
+    nextTick(() => {
+      if (editStatus && res.data.edit_user == user_id) {
+        setHomeEditStatus(true)
+      } else {
+        setHomeEditStatus(false)
+      }
+    })
   })
 }
 
-const initHomeDoc = (data) => {
-  state.doc_id = data.doc_id
-  state.title = data.title
-  state.content = data.content
+// 知识库列表
+const libraryList = computed(() => libraryStore.libraryList)
 
-  getHomeInfo()
+const fetchLibraryList = () => {
+  libraryStore.getLibraryList()
+}
+
+const handleHomeEdit = async () => {
+  try {
+    let doc = await getLibDocInfo({
+      doc_id: state.doc_id,
+      library_key: libraryInfo.value.library_key
+    })
+
+    let editStatus = doc.data.edit_user && doc.data.edit_user != 0
+
+    if (editStatus && doc.data.edit_user != user_id) {
+      let user = await getEditUser(doc.data.edit_user)
+      let name = user.data.nick_name || user.data.user_name
+      editUser.show = true
+      Modal.warning({
+        title: name + '正在编辑此文档',
+        content: '需要其他协作者结束编辑并发布后才可以继续编辑',
+        okText: '知道了'
+      })
+
+      return
+    }
+
+    saveDraftDoc()
+
+    // setHomeEditStatus(true)
+    isEdit.value = true
+    editUser.show = false
+  } catch (error) {
+    return
+  }
+}
+
+const setHomeEditStatus = (type) => {
+  if (!iframeRef.value) {
+    return
+  }
+  isEdit.value = type
+
+  const iframeWindow = iframeRef.value.contentWindow
+
+  iframeWindow.postMessage({ action: 'setEditStatus', data: { type: isEdit.value } }, '*')
+}
+
+const { copyShareUrl } = useCopyShareUrl()
+
+const handleCopyShareUrl = async () => {
+  const docUrl = OPEN_BOC_BASE_URL + '/home/' + libraryInfo.value.library_key
+
+  await copyShareUrl(docUrl)
+}
+
+const initHomeDoc = () => {
+
 }
 
 const handleEditTitle = (data) => {
@@ -438,7 +734,7 @@ const handleDeleteQuestionGuide = (data) => {
     cancelText: '取消',
     onOk() {
       deleteQuestionGuide({
-        library_key: state.library_key,
+        library_key: libraryInfo.value.library_key,
         id: questionGuide.id
       }).then(() => {
         message.success('删除成功')
@@ -448,110 +744,109 @@ const handleDeleteQuestionGuide = (data) => {
   })
 }
 
-const handleEditMsg = (message) => {
-  if (message.key == 'title') {
-    handleEditTitle(message.data)
+const saveBannerImage = (url) => {
+  let data = {
+    banner_img_url: url,
+    doc_id: state.doc_id,
+    library_key: libraryInfo.value.library_key,
   }
 
-  if (message.key == 'content') {
-    handleEditDesc(message.data)
-  }
-
-  if (message.key == 'question') {
-    handleEditQuestionGuide(message.data)
-  }
+  saveLibDocBannerImg(data).then(() => {
+    time.value = new Date().getTime()
+    message.success('保存成功')
+  })
 }
 
-const handleAddMsg = (message) => {
-  if (message.key == 'question') {
+const onQuestionMessage = (message) => {
+  if (message.action == 'edit' || message.action == 'add') {
     handleEditQuestionGuide(message.data)
-  }
-}
-
-const handleDeleteMsg = (message) => {
-  if (message.key == 'question') {
+  } else if (message.action == 'delete') {
     handleDeleteQuestionGuide(message.data)
   }
 }
 
-const handleHomeEdit = async () => {
-  try {
-    let doc = await getLibDocInfo({
-      doc_id: state.doc_id,
-      library_key: state.library_key
-    })
-
-    let editStatus = doc.data.edit_user && doc.data.edit_user != 0
-
-    if (editStatus && doc.data.edit_user != user_id) {
-      let user = await getEditUser(doc.data.edit_user)
-      let name = user.data.nick_name || user.data.user_name
-      editUser.show = true
-      Modal.warning({
-        title: name + '正在编辑此文档',
-        content: '需要其他协作者结束编辑并发布后才可以继续编辑',
-        okText: '知道了'
-      })
-
-      return
-    }
-
-    saveDraftDoc()
-
-    // setHomeEditStatus(true)
-    isEdit.value = true
-    editUser.show = false
-  } catch (error) {
-    return
+const onShortcutMessage = (message) => {
+  if (message.action == 'edit' || message.action == 'add') {
+    handleOpenShortcutSelector(message.data)
+  }else if (message.action == 'delete') {
+    handleDeleteShorcut(message.data)
+  }else if(message.action == 'dragEnd'){
+    handleShortcutSort(message.data)
   }
 }
 
-const setHomeEditStatus = (type) => {
-  isEdit.value = type
+const onBannerMessage = (message) => {
+  let data = message.data;
 
-  const iframeWindow = iframeRef.value.contentWindow
-
-  iframeWindow.postMessage({ action: 'setEditStatus', data: { type: isEdit.value } }, '*')
+  uploadFile({
+    file: data.file,
+    category: 'library_doc_image'
+  }).then((res) => {
+    let url = res.data.link;
+    saveBannerImage(url)
+  })
 }
 
-const handleMessage = (event) => {
+const onPreviewPageMessage = (event) => {
   const message = event.data
 
-  if (message.action === 'check_preview') {
-    const iframeWindow = iframeRef.value.contentWindow
-
-    iframeWindow.postMessage({ action: 'setPreview', token: getToken }, '*')
-  }
-
-  if (message.action === 'init') {
+  if (message.key == 'init') {
     initHomeDoc(message.data)
 
     if (isEdit.value) {
       setHomeEditStatus(true)
     }
-  }
-  // 处理不同类型的消息
-  if (message.action === 'edit') {
-    // 在这里处理 data 中的数据
-    handleEditMsg(message)
+  } else if (message.key == 'content') {
+    handleEditDesc(message.data);
+  } else if (message.key == 'title') {
+    handleEditTitle(message.data);
+  } else if (message.key == 'banner') {
+    onBannerMessage(message);
+  } else if (message.key == 'question') {
+    onQuestionMessage(message);
+  } else if (message.key == 'shortcut') {
+    onShortcutMessage(message)
   }
 
-  if (message.action === 'add') {
-    handleAddMsg(message)
-  }
+  // 好像没用了，验证无用后可以删除
+  // if (message.action === 'check_preview') {
+  //   const iframeWindow = iframeRef.value.contentWindow
 
-  if (message.action === 'delete') {
-    handleDeleteMsg(message)
-  }
+  //   iframeWindow.postMessage({ action: 'setPreview', token: getToken }, '*')
+  // }
 }
 
-onMounted(() => {
-  getData()
+const toSettingPage = () => {
+  router.push({
+    path: '/public-library/config',
+    query: {
+      library_id: libraryId.value,
+      library_key: libraryKey.value
+    }
+  })
+}
 
-  window.addEventListener('message', handleMessage)
+const handleChangeLibrary = async (data) => {
+  await router.replace({
+    path: '/public-library/home',
+    query: {
+      library_id: data.id,
+      library_key: data.library_key
+    }
+  })
+
+  window.location.reload()
+}
+
+onMounted(async () => {
+  window.addEventListener('message', onPreviewPageMessage)
+
+  await getHomeInfo();
+
+  fetchLibraryList();
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('message', handleMessage)
+  window.removeEventListener('message', onPreviewPageMessage)
 })
 </script>

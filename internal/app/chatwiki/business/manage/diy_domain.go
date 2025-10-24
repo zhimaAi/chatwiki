@@ -21,8 +21,9 @@ import (
 )
 
 type SaveDiyDomainReq struct {
-	Id  int64  `form:"id" json:"id"`
-	Url string `form:"url" json:"url" binding:"required"`
+	Id    int64  `form:"id" json:"id"`
+	Url   string `form:"url" json:"url" binding:"required"`
+	Label int    `form:"label" json:"label"`
 }
 
 func SaveDiyDomain(c *gin.Context) {
@@ -50,9 +51,37 @@ func SaveDiyDomain(c *gin.Context) {
 			`update_time`: tool.Time2Int(),
 		})
 	} else {
+		// http request to write files
+		uri, err := ParseUrl(req.Url)
+		if err != nil {
+			common.FmtError(c, `param_invalid`, `url`)
+			return
+		}
+		if strings.Contains(req.Url, `http://`) {
+			body := map[string]string{
+				`url`:   uri,
+				`label`: cast.ToString(req.Label),
+			}
+			srvAddr := define.Config.UserDomainService[`domain`] + `/manage/save_conf`
+			resp := &lib_web.Response{}
+			request, _ := curl.Post(srvAddr).JSONBody(body)
+			err = request.ToJSON(resp)
+			if err != nil {
+				logs.Error(err.Error())
+				common.FmtError(c, `operate_err`)
+				return
+			}
+			if resp.Res != define.StatusOK {
+				logs.Error("resp:%#v", resp)
+				common.FmtError(c, `operate_err`)
+				return
+			}
+		}
+
 		id, err = m.Insert(msql.Datas{
 			`url`:           req.Url,
 			`admin_user_id`: adminUserId,
+			`label`:         req.Label,
 			`create_time`:   tool.Time2Int(),
 			`update_time`:   tool.Time2Int(),
 		}, `id`)

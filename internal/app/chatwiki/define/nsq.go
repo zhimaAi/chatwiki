@@ -19,5 +19,8 @@ const CrawlArticleChannel = `chatwiki_crawl_article_channel`
 const ExportTaskTopic = `chatwiki_export_task_topic`
 const ExportTaskChannel = `chatwiki_export_task_channel`
 
+const ExtractFaqFilesTopic = `chatwiki_extract_faq_files_topic`
+const ExtractFaqFilesChannel = `chatwiki_extract_faq_files_channel`
+
 var ConsumerHandle *mq.ConsumerHandle
 var ProducerHandle *mq.ProducerHandle

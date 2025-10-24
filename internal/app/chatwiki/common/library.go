@@ -4,9 +4,13 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_redis"
+	"chatwiki/internal/pkg/lib_web"
+	"fmt"
 	"strings"
 
 	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/curl"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
@@ -156,4 +160,53 @@ func AddFileDataIndex(libraryId, adminUserId int) error {
 		}
 	}
 	return err
+}
+
+func AddDefaultLibrary(token, robotName, libraryIds, robotKey string, adminUserId int) (int, error) {
+	libraryData := map[string]string{
+		`library_name`:                       robotName + `默认知识库`,
+		`chunk_type`:                         cast.ToString(define.ChunkTypeNormal),
+		`normal_chunk_default_separators_no`: `10,12`,
+		`normal_chunk_default_chunk_size`:    `512`,
+		`type`:                               cast.ToString(define.QALibraryType),
+	}
+
+	modelConfig := GetDefaultEmbeddingConfig(adminUserId)
+	if len(modelConfig) > 0 {
+		libraryData[`use_model`] = modelConfig[`vector_model`]
+		libraryData[`model_config_id`] = modelConfig[`id`]
+	}
+
+	var (
+		res lib_web.Response
+		err error
+	)
+	req := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/createLibrary`, define.Config.WebService[`port`])).Header(`token`, token)
+	for key, item := range libraryData {
+		req.Param(key, item)
+	}
+	if err = req.ToJSON(&res); err != nil {
+		logs.Error(err.Error())
+		return 0, err
+	}
+	if cast.ToInt(res.Res) != define.StatusOK {
+		return 0, fmt.Errorf(`%s`, cast.ToString(res.Msg))
+	}
+	id := cast.ToInt(cast.ToStringMap(res.Data)[`id`])
+	if len(libraryIds) > 0 {
+		libraryIds = fmt.Sprintf(`%d,%s`, id, libraryIds)
+	} else {
+		libraryIds = cast.ToString(id)
+	}
+	// 更新机器人的知识库关联信息
+	if _, err = msql.Model(`chat_ai_robot`, define.Postgres).Where(`robot_key`, robotKey).Update(msql.Datas{
+		`library_ids`:        libraryIds,
+		`default_library_id`: id,
+		`update_time`:        tool.Time2Int(),
+	}); err != nil {
+		logs.Error(err.Error())
+		return 0, err
+	}
+	lib_redis.DelCacheData(define.Redis, &RobotCacheBuildHandler{RobotKey: robotKey})
+	return id, err
 }

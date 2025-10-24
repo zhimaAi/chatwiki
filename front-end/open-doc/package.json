@@ -1,0 +1,50 @@
+{
+  "name": "open-doc",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev1": "vite --mode dev1",
+    "dev2": "vite --mode dev2",
+    "dev3": "vite --mode dev3",
+    "dev5": "vite --mode dev5",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
+    "lint:eslint": "eslint . --fix",
+    "lint": "run-s lint:*",
+    "format": "prettier --write src/"
+  },
+  "dependencies": {
+    "@ant-design/icons-vue": "^7.0.1",
+    "ant-design-vue": "^4.2.6",
+    "axios": "^1.10.0",
+    "cherry-markdown": "^0.9.3",
+    "dayjs": "^1.11.18",
+    "pinia": "^3.0.3",
+    "qs": "^6.14.0",
+    "vue": "^3.5.17",
+    "vue-draggable-plus": "^0.6.0",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.29.0",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "@vitejs/plugin-vue-jsx": "^5.0.0",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "eslint": "^9.29.0",
+    "eslint-plugin-oxlint": "~1.1.0",
+    "eslint-plugin-vue": "~10.2.0",
+    "globals": "^16.2.0",
+    "less": "^4.3.0",
+    "npm-run-all2": "^8.0.4",
+    "oxlint": "~1.1.0",
+    "prettier": "3.5.3",
+    "rollup-plugin-visualizer": "^6.0.3",
+    "terser": "^5.43.1",
+    "vite": "npm:rolldown-vite@latest",
+    "vite-plugin-compression": "^0.5.1",
+    "vite-plugin-vue-devtools": "^7.7.7"
+  }
+}

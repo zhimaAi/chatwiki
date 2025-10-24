@@ -1,11 +1,3 @@
-export function getNodeIconName(key) {
-  let icons = {
-    'start-node': 'start-node'
-  }
-
-  return icons[key] || key
-}
-
 export function getJudgeNodeAnchor(node) {
   let baseTop = 84 // 根据设计稿计算得到
   let anchors = []
@@ -77,7 +69,8 @@ export function getNodeWidth(node) {
     'ai-dialogue-node': 568,
     'knowledge-base-node': 568,
     'end-node': 420,
-    'specify-reply-node': 420
+    'specify-reply-node': 420,
+    'code-run-node': 568,
   }
 
   return widths[node.type] || 568
@@ -101,7 +94,15 @@ export function getNodeHeight(node) {
   }
 
   if (node.type == 'ai-dialogue-node') {
-    return 674
+    return 684
+  }
+
+  if (node.type == 'problem-optimization-node') {
+    return 628
+  }
+
+  if (node.type == 'parameter-extraction-node') {
+    return 645
   }
 
   if (node.type == 'end-node') {
@@ -146,7 +147,9 @@ export function getSystemVariable() {
     },
   ]
 }
+
 export const haveOutKeyNode = ['http-node', 'code-run-node']
+
 
 const nodeTypeMaps = {
   1: 'start-node',

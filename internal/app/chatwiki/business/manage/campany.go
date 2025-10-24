@@ -9,10 +9,11 @@ import (
 	"chatwiki/internal/app/chatwiki/middlewares"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
-	"github.com/zhimaAi/go_tools/logs"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/zhimaAi/go_tools/logs"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
@@ -66,6 +67,46 @@ func SaveCompany(c *gin.Context) {
 	}
 	common.FmtOk(c, insertId)
 }
+
+type SaveTopNavigateReq struct {
+	Id          int    `form:"id" json:"id" binding:"required"`
+	TopNavigate string `form:"top_navigate" json:"top_navigate"`
+}
+
+func SaveTopNavigate(c *gin.Context) {
+	var (
+		err      error
+		insertId int64
+	)
+	//get params
+	var req SaveTopNavigateReq
+	if err = c.ShouldBind(&req); err != nil {
+		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
+		return
+	}
+	var adminUserId = GetAdminUserId(c)
+	// login user
+	user := GetLoginUserInfo(c)
+	if user == nil {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+	data := msql.Datas{
+		"top_navigate": req.TopNavigate,
+		"update_time":  time.Now().Unix(),
+	}
+
+	m := msql.Model(define.TableCompany, define.Postgres)
+	// save ..
+	_, err = m.Where("id", cast.ToString(req.Id)).Where(`parent_id`, cast.ToString(adminUserId)).Update(data)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `company_save_err`)
+		return
+	}
+	common.FmtOk(c, insertId)
+}
+
 func GetCompany(c *gin.Context) {
 	var (
 		data = msql.Params{}

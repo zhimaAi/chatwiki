@@ -486,7 +486,7 @@ func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appTyp
 	return result, nil
 }
 
-func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size int, similarity float64, searchType int) ([]msql.Params, error) {
+func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size, searchType int) ([]msql.Params, error) {
 	list := make([]msql.Params, 0)
 	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeFullText}) {
 		return list, nil
@@ -517,6 +517,22 @@ func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size 
 		Field(`b.*,a.id as index_id`).
 		Field(fmt.Sprintf(`ts_rank(to_tsvector('zhima_zh_parser',upper(a.content)),to_tsquery('zhima_zh_parser',upper('%s'))) as similarity`, question)).
 		Order(`similarity DESC`).Limit(size).Select()
+}
+
+func GetMatchFileParagraphIdsByFullTextSearch(question, fileIds string) ([]string, error) {
+	ids := make([]string, 0)
+	// 精准搜索
+	ids, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`file_id`, `in`, fileIds).
+		Where(`delete_time`, `0`).
+		Where(fmt.Sprintf(`content similar to '%%%s%%'`, question)).
+		Limit(1000).ColumnArr(`id`)
+	if err != nil {
+		return ids, err
+	}
+	if len(ids) <= 0 {
+		return []string{`0`}, nil
+	}
+	return ids, nil
 }
 
 func GetMatchLibraryParagraphByMergeRerank(openid, appType, question string, size int, vectorList, searchList, graphList []msql.Params, robot msql.Params) ([]msql.Params, error) {
@@ -574,7 +590,7 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 			logs.Error(err.Error())
 		}
 		graphList = append(graphList, changeListContent(list)...)
-		list, err = GetMatchLibraryParagraphByFullTextSearch(q, libraryIds, fetchSize, similarity, searchType)
+		list, err = GetMatchLibraryParagraphByFullTextSearch(q, libraryIds, fetchSize, searchType)
 		if err != nil {
 			logs.Error(err.Error())
 		}
@@ -607,7 +623,7 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 
 	//RRF sort
 	list := (&RRF{}).
-		Add(DataSource{List: vectorList, Key: `id`, Fixed: 60}).
+		Add(DataSource{List: vectorList, Key: `id`, Fixed: 59}).
 		Add(DataSource{List: searchList, Key: `id`, Fixed: 60}).
 		Add(DataSource{List: graphList, Key: `id`, Fixed: 60}).
 		Add(DataSource{List: rerankList, Key: `id`, Fixed: 58}).Sort()
@@ -617,15 +633,18 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 		})
 	}
 	//return
+	var ids []string
 	for i, one := range list {
-		if i >= size || cast.ToFloat64(one[`similarity`]) < similarity {
+		if i >= size {
 			break
 		}
 		// Supplement file info
 		fileInfo, _ := GetLibFileInfo(cast.ToInt(one[`file_id`]), 0)
 		one[`file_name`] = fileInfo[`file_name`]
+		ids = append(ids, one[`id`])
 		result = append(result, one)
 	}
+	go UpdateParagraphHits(strings.Join(ids, `,`), 1)
 	return result, libUseTime, nil
 }
 
@@ -693,6 +712,43 @@ func GetDefaultLlmConfig(adminUserId int) (int, string, bool) {
 	return 0, ``, false
 }
 
+func GetDefaultEmbeddingConfig(adminUserId int) msql.Params {
+	configs, err := msql.Model(`chat_ai_model_config`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id desc`).Select()
+	if err != nil {
+		return nil
+	}
+	for _, config := range configs {
+		if !tool.InArrayString(TextEmbedding, strings.Split(config[`model_types`], `,`)) {
+			continue
+		}
+		modelInfo, ok := GetModelInfoByDefine(config[`model_define`])
+		if ok && len(modelInfo.VectorModelList) > 0 {
+			config[`vector_model`] = modelInfo.VectorModelList[0]
+			return config
+		}
+	}
+	return nil
+}
+
+type WechatAppCacheBuildHandler struct {
+	Field string
+	Value string
+}
+
+func (h *WechatAppCacheBuildHandler) GetCacheKey() string {
+	return fmt.Sprintf(`chatwiki.app_info.%s.%s`, h.Field, h.Value)
+}
+func (h *WechatAppCacheBuildHandler) GetCacheData() (any, error) {
+	return msql.Model(`chat_ai_wechat_app`, define.Postgres).Where(h.Field, h.Value).Find()
+}
+
+func GetWechatAppInfo(field, value string) (msql.Params, error) {
+	result := make(msql.Params)
+	err := lib_redis.GetCacheWithBuild(define.Redis, &WechatAppCacheBuildHandler{Field: field, Value: value}, &result, time.Hour)
+	return result, err
+}
+
 func SaveVector(adminUserID, libraryID, fileID, dataID int64, vectorType, content string) (int64, error) {
 	m := msql.Model(`chat_ai_library_file_data_index`, define.Postgres)
 	info, err := m.
@@ -738,6 +794,29 @@ func SaveVector(adminUserID, libraryID, fileID, dataID int64, vectorType, conten
 		}
 		return cast.ToInt64(info[`id`]), nil
 	}
+}
+
+type WeChatDialogueCacheBuildHandler struct {
+	AdminUserId, RobotId int
+	Openid               string
+}
+
+func (h *WeChatDialogueCacheBuildHandler) GetCacheKey() string {
+	return fmt.Sprintf(`chatwiki.wechat_dialogue.%d.%d.%s`, h.AdminUserId, h.RobotId, h.Openid)
+}
+func (h *WeChatDialogueCacheBuildHandler) GetCacheData() (any, error) {
+	return msql.Model(`chat_ai_dialogue`, define.Postgres).Where(`admin_user_id`, cast.ToString(h.AdminUserId)).
+		Where(`robot_id`, cast.ToString(h.RobotId)).Where(`openid`, h.Openid).Order(`id DESC`).Value(`id`)
+}
+
+func GetLastDialogueId(adminUserId, robotId int, openid string) int {
+	var dialogueId any
+	err := lib_redis.GetCacheWithBuild(define.Redis,
+		&WeChatDialogueCacheBuildHandler{AdminUserId: adminUserId, RobotId: robotId, Openid: openid}, &dialogueId, time.Hour)
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	return cast.ToInt(dialogueId)
 }
 
 func GetOptimizedQuestions(param *define.ChatRequestParam, contextList []map[string]string) ([]string, error) {
@@ -1013,6 +1092,24 @@ func ConstructGraph(id int) error {
 		}
 	}
 	return nil
+}
+
+type FaqFilesCacheBuildHandler struct{ FileId int }
+
+func (h *FaqFilesCacheBuildHandler) GetCacheKey() string {
+	return fmt.Sprintf(`chatwiki_faq_files_info.%d`, h.FileId)
+}
+func (h *FaqFilesCacheBuildHandler) GetCacheData() (any, error) {
+	return msql.Model(`chat_ai_faq_files`, define.Postgres).Where(`id`, cast.ToString(h.FileId)).Find()
+}
+
+func GetFaqFilesInfo(fileId, adminUserId int) (msql.Params, error) {
+	result := make(msql.Params)
+	err := lib_redis.GetCacheWithBuild(define.Redis, &FaqFilesCacheBuildHandler{FileId: fileId}, &result, time.Hour)
+	if err == nil && adminUserId != 0 && cast.ToInt(result[`admin_user_id`]) != adminUserId {
+		result = make(msql.Params) //attribution error. null data returned
+	}
+	return result, err
 }
 
 func DeleteLibraryFileDataIndex(dataIdList, vectorType string) error {

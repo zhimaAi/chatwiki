@@ -40,7 +40,7 @@ const props = defineProps({
   },
 })
 
-let fileTypes = ['pdf', 'docx', 'txt', 'md', 'xlsx', 'csv', 'html']
+let fileTypes = ['pdf', 'docx', 'ofd', 'txt', 'md', 'xlsx', 'csv', 'html']
 if(props.type == 2){
   fileTypes = ['docx', 'csv', 'xlsx']
 }

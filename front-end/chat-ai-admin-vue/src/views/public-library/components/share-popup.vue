@@ -16,6 +16,7 @@
 </template>
 
 <script setup>
+import { OPEN_BOC_BASE_URL } from '@/constants/index'
 import { nextTick, ref } from 'vue'
 import ShareForm from './share-form.vue'
 
@@ -33,7 +34,7 @@ const props = defineProps({
   },
   baseUrl: {
     type: String,
-    default: '/open/doc'
+    default: OPEN_BOC_BASE_URL + '/doc'
   }
 })
 

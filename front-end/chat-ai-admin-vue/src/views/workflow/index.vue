@@ -15,7 +15,7 @@
 
     .page-left {
       height: 100%;
-      padding-bottom: 8px;
+      padding: 8px;
     }
 
     .page-container {
@@ -34,7 +34,16 @@
 
 <template>
   <div class="workflow-page">
-    <PageHeader @edit="handleEdit" @save="handleSave" @release="handleRelease" @getGlobal="getGlobal" :start_node_params="start_node_params" :saveLoading="saveLoading" />
+    <PageHeader
+      @edit="handleEdit"
+      @save="handleSave"
+      @release="handleRelease"
+      @getGlobal="getGlobal"
+      @getVersionRecord="getVersionRecord"
+      :currentVersion="currentVersion"
+      :start_node_params="start_node_params"
+      :saveLoading="saveLoading"
+    />
     <div class="page-body">
       <div class="page-left">
         <PageSidebar />
@@ -48,14 +57,15 @@
       </div>
     </div>
     <AddRobotAlert ref="addRobotAlertRef" />
+    <VersionModel ref="versionModelRef" />
+    <PublishDetail ref="publishDetailRef" @preview="handlePreviewVersion" @setVersion="setVersion" />
   </div>
 </template>
 
 <script setup>
-import { getNodeList, saveNodes } from '@/api/robot/index'
+import { getNodeList, saveNodes, workFlowVersions } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
 import { generateUniqueId } from '@/utils/index'
-import { getNodeIconName } from './components/util.js'
 import { onMounted, ref, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
@@ -64,6 +74,9 @@ import PageSidebar from './components/page-sidebar.vue'
 import WorkflowCanvas from './components/workflow-canvas.vue'
 import PageHeader from './components/page-header.vue'
 import AddRobotAlert from '@/views/robot/robot-list/components/add-robot-alert.vue'
+import { getNodeTypes } from './components/node-list'
+import VersionModel from './components/version-model.vue'
+import PublishDetail from './components/publish-detail.vue'
 
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
 import { getModelConfigOption } from '@/api/model/index'
@@ -76,28 +89,15 @@ const workflowCanvasRef = ref(null)
 
 const robotStore = useRobotStore()
 
-// const nodes = []
-const nodeTypes = {
-  '-1': 'explain-node',
-  1: 'start-node',
-  2: 'judge-node',
-  3: 'question-node',
-  4: 'http-node',
-  5: 'knowledge-base-node',
-  6: 'ai-dialogue-node',
-  7: 'end-node',
-  8: 'variable-assignment-node',
-  9: 'specify-reply-node'
-}
+const currentVersion = ref('')
 
-function getNode() {
-  getNodeList({
-    robot_key: robot_key.value,
-    data_type: 1
-  }).then((res) => {
-    let list = res.data || []
-    let nodes = []
-    let edges = []
+// const nodes = []
+const nodeTypes = getNodeTypes()
+
+function getNode(list) {
+  list = list || []
+  let nodes = []
+  let edges = []
 
     list.forEach((item) => {
       // 边数据处理
@@ -135,11 +135,6 @@ function getNode() {
           item.nodeSortKey = node.nodeSortKey
         }
 
-        // 设置icon
-        let iconKey = nodeTypes[item.node_type]
-
-        item.iconKey = iconKey
-        item.node_icon_name = getNodeIconName(iconKey)
         item.dataRaw = node.dataRaw || item.node_params
 
         // 删除不要的参数
@@ -147,17 +142,19 @@ function getNode() {
 
         // 设置 properties
         node.properties = item
+        node.properties.width = node.width
+        node.properties.height = node.height
+
         nodes.push(node)
       }
     })
 
-    setWorkflowData({ nodes: nodes, edges: edges })
-  })
+  setWorkflowData({ nodes: nodes, edges: edges })
 }
 
 const toAddRobot = (val) => {
   // router.push({ name: 'addRobot' })
-  addRobotAlertRef.value.open(val)
+  addRobotAlertRef.value.open(val, true)
 }
 
 const setWorkflowData = (data) => {
@@ -205,6 +202,8 @@ const getCanvasData = () => {
       type: item.type,
       x: item.x,
       y: item.y,
+      width: item.properties.width,
+      height: item.properties.height,
       id: item.id,
       nodeSortKey: obj.nodeSortKey,
       dataRaw: item.properties.node_params,
@@ -214,8 +213,8 @@ const getCanvasData = () => {
     obj.next_node_key = edgeMap[obj.nodeSortKey + '-anchor_right'] || ''
     obj.prev_node_key = edgeMap[obj.nodeSortKey + '-anchor_left'] || ''
 
-    let node_params = JSON.parse(obj.node_params)
 
+    let node_params = JSON.parse(obj.node_params)
     if (obj.node_type == 2) {
       // 判断分支
       if (node_params.term && node_params.term.length > 0) {
@@ -227,12 +226,19 @@ const getCanvasData = () => {
     }
 
     if (obj.node_type == 3) {
-      // 判断分支
+      // 问题分类
       if (node_params.cate && node_params.cate.categorys && node_params.cate.categorys.length > 0) {
         node_params.cate.categorys.forEach((msg, index) => {
           let key = obj.nodeSortKey + '-anchor_' + index
           msg.next_node_key = edgeMap[key] || ''
         })
+      }
+    }
+    if (obj.node_type == 17) {
+      // 代码运行
+      let exception = edgeMap[obj.nodeSortKey + '-anchor_right_exception']
+      if(exception){
+        node_params.code_run.exception = exception
       }
     }
 
@@ -255,6 +261,7 @@ const getCanvasData = () => {
 
 const handleSave = (type) => {
   let list = getCanvasData()
+
   saveNodes({
     robot_key: robot_key.value,
     data_type: 1,
@@ -273,20 +280,30 @@ const handleEdit = () => {
   toAddRobot(1)
 }
 
-let timer = setInterval(
-  () => {
-    if (import.meta.env.PROD) {
-      handleSave('automatic')
-    }
-  },
-  1 * 60 * 1000
-)
+let timer = null
+const startTimer = () => {
+  timer = setInterval(
+    () => {
+      if (import.meta.env.PROD) {
+        handleSave('automatic')
+      }
+    },
+    1 * 60 * 1000
+  )
+}
 
 onUnmounted(() => {
   timer && clearInterval(timer)
 })
 
+
+const versionModelRef = ref(null)
+
 const saveLoading = ref(false)
+
+const openVersionModel = (node_list) => {
+  versionModelRef.value.show(node_list)
+}
 // 发布机器人
 const handleRelease = async () => {
   let list = getCanvasData()
@@ -321,27 +338,27 @@ const handleRelease = async () => {
   }
 
   // 先保存草稿，再发布
-  saveLoading.value = true;
+  // saveLoading.value = true;
   try {
-    message.loading('保存中...')
+    // message.loading('保存中...')
     await saveNodes({
       robot_key: robot_key.value,
       data_type: 1,
       node_list: JSON.stringify(list)
     })
-
-    const res = await saveNodes({
-      robot_key: robot_key.value,
-      data_type: 2,
-      node_list: JSON.stringify(list)
-    })
-    setTimeout(()=>{
-      message.destroy()
-      saveLoading.value = false;
-      if (res && res.res == 0) {
-        message.success('发布成功')
-      }
-    },400)
+    openVersionModel(JSON.stringify(list))
+    // const res = await saveNodes({
+    //   robot_key: robot_key.value,
+    //   data_type: 2,
+    //   node_list: JSON.stringify(list)
+    // })
+    // setTimeout(()=>{
+    //   message.destroy()
+    //   saveLoading.value = false;
+    //   if (res && res.res == 0) {
+    //     message.success('发布成功')
+    //   }
+    // },400)
   } catch (e) {
     saveLoading.value = false;
     // message.success('发布失败，请重试')
@@ -426,8 +443,37 @@ const getGlobal = () => {
   console.log(start_node_params.value,'==')
 }
 
+const publishDetailRef = ref(null)
+const getVersionRecord = ()=> {
+  if(currentVersion.value == ''){
+    handleSave('automatic')
+  }
+  publishDetailRef.value.showDrawer()
+}
+
+const setVersion = (data) => {
+  // 设置为当前的版本
+  currentVersion.value = ''
+  clearInterval(timer)
+  startTimer()
+  getNode(data)
+  handleSave('automatic')
+}
+
+const handlePreviewVersion = (data, version) => {
+  currentVersion.value = version
+  clearInterval(timer)
+  getNode(data)
+}
+
+
 onMounted(async () => {
   await getModelList()
-  getNode()
+  const res = await getNodeList({
+    robot_key: robot_key.value,
+    data_type: 1
+  })
+  getNode(res.data)
+  startTimer()
 })
 </script>

@@ -68,8 +68,11 @@ export const DEFAULT_IMPORT_CSL_AVATAR = new URL('@/assets/img/import_csl_avatar
 export const DEFAULT_WEBAPP_ICON = new URL('@/assets/img/sdk_float_avatar.svg', import.meta.url)
   .href
 
+
 // 默认prompt
 export const DERAULT_ROBOT_PROMPT = `回答要求：
 1、你现在是一位客服，请使用简洁、礼貌且专业的语言来回答问题
 2、你只能根据知识库回答用户提问，如果你不知道答案，请回答“对不起，没有在知识库中查找到相关信息。”
 3、请使用中文回答`
+
+export const OPEN_BOC_BASE_URL = '/open-doc'

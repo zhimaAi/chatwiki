@@ -69,21 +69,21 @@
       </div>
       <template v-if="robotInfo.chat_type == '1'">
         <div class="set-item">
-          QA文档直接回复答案：
+          命中问答知识时直接回复答案：
           <span>{{ robotInfo.library_qa_direct_reply_switch == 'true' ? '开' : '关' }}</span>
         </div>
         <div class="set-item" v-if="robotInfo.library_qa_direct_reply_switch == 'true'">
-          相似度值：
+          相似度阈值：
           <span>{{ robotInfo.library_qa_direct_reply_score }}</span>
         </div>
       </template>
       <template v-if="robotInfo.chat_type == '3'">
         <div class="set-item">
-          QA文档直接回复答案：
+          命中问答知识时直接回复答案：
           <span>{{ robotInfo.mixture_qa_direct_reply_switch == 'true' ? '开' : '关' }}</span>
         </div>
         <div class="set-item" v-if="robotInfo.mixture_qa_direct_reply_switch == 'true'">
-          相似度值：
+          相似度阈值：
           <span>{{ robotInfo.mixture_qa_direct_reply_score }}</span>
         </div>
       </template>

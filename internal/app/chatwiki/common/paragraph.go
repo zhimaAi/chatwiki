@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
 	"errors"
+	"fmt"
 	"unicode/utf8"
 
 	"github.com/spf13/cast"
@@ -118,4 +119,16 @@ func SaveSplitParagraph(adminUserId, fileId, dataId int, list []define.DocSplitI
 		m.Where(`id`, item[`id`]).Update(msql.Datas{`number`: cast.ToInt(item[`number`]) + len(list) - 1, `update_time`: cast.ToString(tool.Time2Int())})
 	}
 	return list, nil
+}
+
+func UpdateParagraphHits(dataIds string, today int) {
+	sqlRaw := fmt.Sprintf(`update_time = %v`, tool.Time2Int())
+	if today > 0 {
+		sqlRaw = fmt.Sprintf(`%v,today_hits = today_hits + %v,total_hits = total_hits+%v`, sqlRaw, today, today)
+	} else if today == 0 {
+		sqlRaw = fmt.Sprintf(`%v,today_hits = 0`, sqlRaw)
+	}
+	msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`id`, `in`, cast.ToString(dataIds)).
+		Update2(sqlRaw)
 }

@@ -66,6 +66,7 @@ export interface Robot {
   feedback_switch: boolean,
   chat_type: any
   answer_source_switch: boolean
+  application_type: string
 }
 
 export interface PageStyle {
@@ -150,6 +151,7 @@ export const useChatStore = defineStore('chat', () => {
     feedback_switch: false,
     chat_type: '',
     answer_source_switch: false,
+    application_type: '0'
   })
   // 样式配置
   const externalConfigPC = reactive<ExternalConfigPc>({
@@ -230,6 +232,7 @@ export const useChatStore = defineStore('chat', () => {
 
       robot.chat_type = robotInfo.chat_type;
       robot.answer_source_switch = robotInfo.answer_source_switch == 'true';
+      robot.application_type = robotInfo.application_type
 
       robot.id = robotInfo.id
 

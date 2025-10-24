@@ -18,6 +18,7 @@ const (
 	TableFastCommand       = "fast_command"
 	TableChatAiRobotApikey = "chat_ai_robot_apikey"
 	TableRule              = "casbin_rule"
+	TableChatAiWechatApp   = "chat_ai_wechat_app"
 )
 
 const (
@@ -56,11 +57,13 @@ const (
 )
 
 const (
-	ExportSourceSession uint = 1 //会话记录导出
+	ExportSourceSession    uint = 1 //会话记录导出
+	ExportSourceLibFileDoc uint = 2 //知识库文档
 )
 
 var ExportSourceList = []map[string]any{
 	{`source`: ExportSourceSession, `source_name`: `会话记录导出`},
+	{`source`: ExportSourceLibFileDoc, `source_name`: `知识库文档导出`},
 }
 
 const (
@@ -91,3 +94,9 @@ const (
 	PdfParseTypeOcrWithImage = 3
 	PdfParseTypeOcrAli       = 4
 )
+
+const (
+	OpenLibraryDefault = `default`
+)
+
+const DefaultLibDocBanner = `/upload/default/open_doc_home_default_banner.png`

@@ -54,7 +54,6 @@
 </template>
 
 <script setup>
-import { getNodeHeight, getNodeWidth } from './util'
 import '@logicflow/core/lib/style/index.css'
 import '@logicflow/extension/lib/style/index.css'
 import { onMounted, ref } from 'vue'
@@ -64,6 +63,7 @@ import { generateUniqueId } from '@/utils/index'
 import LogicFlow from '@logicflow/core'
 import { DndPanel, MiniMap } from '@logicflow/extension'
 import { register, getTeleport } from '@logicflow/vue-node-registry'
+import { getNodesMap } from './node-list'
 import customEdge from './edges/custom-line/index.js'
 import startNode from './nodes/start-node/index.js'
 import questionNode from './nodes/question-node/index.js'
@@ -77,8 +77,14 @@ import explainNode from './nodes/explain-node/index.js'
 import variableAssignmentNode from './nodes/variable-assignment-node/index.js'
 import judgeNode from './nodes/judge-node/index.js'
 import specifyReplyNode from './nodes/specify-reply-node/index.js'
+import parameterExtractionNode from './nodes/parameter-extraction-node/index'
+import problemOptimizationNode from './nodes/problem-optimization-node/index.js'
+import addDataNode from './nodes/add-data-node/index.js'
+import updateDataNode from './nodes/update-data-node/index.js'
+import deleteDataNode from './nodes/delete-data-node/index.js'
+import selectDataNode from './nodes/select-data-node/index.js'
+import codeRunNode from './nodes/code-run-node/index.js'
 import { ContextPad } from './plugins/context-pad/index.js'
-
 
 const emit = defineEmits(['selectedNode', 'deleteNode'])
 
@@ -136,7 +142,14 @@ function initLogicFlow() {
     register(judgeNode, lf)
     register(variableAssignmentNode, lf)
     register(specifyReplyNode, lf)
-
+    register(parameterExtractionNode, lf)
+    register(problemOptimizationNode, lf)
+    register(addDataNode, lf)
+    register(updateDataNode, lf)
+    register(deleteDataNode, lf)
+    register(selectDataNode, lf)
+    register(codeRunNode, lf)
+    
     lf.setDefaultEdgeType('custom-edge')
 
     lf.on('graph:rendered', ({ graphModel }) => {
@@ -201,11 +214,23 @@ const getData = () => {
 }
 
 const setData = (data) => {
+  let nodesMap = getNodesMap()
+
   data.nodes.forEach((node) => {
-    // 目前所有的节点width
-    node.properties.width = node.width = getNodeWidth(node)
-    node.properties.height = node.height = getNodeHeight(node)
+    // 设置开始节点的宽高
+    let nodeCongfig = nodesMap[node.type]
+
+    node.properties.node_icon_name = nodeCongfig.properties.node_icon_name
+
+    if(!node.properties.width){
+      node.properties.width = nodeCongfig.width
+    }
+
+    if(!node.properties.height){
+      node.properties.height = nodeCongfig.height
+    }
   })
+  lf.clearData()
 
   lf.graphModel.graphDataToModel(data)
   lf.graphModel.translateCenter()
@@ -215,8 +240,7 @@ const setData = (data) => {
 const onCustomAddNode = (data, model, anchorData) => {
   data.id = generateUniqueId(data.type)
   data.nodeSortKey = data.id.substring(0, 8) + data.id.substring(data.id.length - 8)
-  data.width = getNodeWidth(data)
-  data.height = getNodeHeight(data)
+
   data.properties.width = data.width
   data.properties.height = data.height
   data.properties.nodeSortKey = data.nodeSortKey
@@ -264,7 +288,7 @@ const onCustomAddNode = (data, model, anchorData) => {
 }
 
 const updateNode = (data) => {
-  data.properties.height = data.height = getNodeHeight(data)
+  data.properties.height = data.height
 
   let node = lf.getNodeModelById(data.id)
 

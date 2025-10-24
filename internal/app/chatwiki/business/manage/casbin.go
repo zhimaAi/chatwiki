@@ -322,6 +322,7 @@ func GetUserList(c *gin.Context) {
 			user["role_type"] = role[`role_type`]
 		}
 		user["salt"] = ""
+		user["password"] = ""
 		permissionManageRobot, permissionManageLib, permissionManageForm := make([]msql.Params, 0), make([]msql.Params, 0), make([]msql.Params, 0)
 		for _, permission := range permissionManageData {
 			if permission["identity_id"] == user["id"] && cast.ToInt(permission["identity_type"]) == define.IdentityTypeUser {

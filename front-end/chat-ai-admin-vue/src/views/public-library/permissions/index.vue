@@ -24,6 +24,9 @@ import { message } from 'ant-design-vue'
 import ConfigPageMenu from '../components/config-page-menu.vue'
 import PermissionsForm from './components/permissions-form.vue'
 import CollaboratorList from './components/collaborator-list.vue'
+import { usePublicLibraryStore } from '@/stores/modules/public-library'
+
+const libraryStore = usePublicLibraryStore()
 
 const route = useRoute()
 
@@ -83,6 +86,8 @@ const submit = async () => {
 
   await editLibrary(data)
 
+  libraryStore.getLibraryInfo()
+  
   message.success('修改成功')
 }
 

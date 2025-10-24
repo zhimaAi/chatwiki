@@ -48,7 +48,7 @@
       <a-textarea
         v-model:value="valueText"
         :auto-size="{ minRows: 5, maxRows: 5 }"
-        placeholder="在此输入您想了解的内容，Shift+Enter换行"
+        :placeholder="translate('在此输入您想了解的内容，Shift+Enter换行')"
         @change="onChange"
         @keydown="handleKeydown"
       />
@@ -58,7 +58,7 @@
         </span>
 
         <button class="send-msg-btn" @click="sendMessage" v-if="!props.loading">
-          <span>发送</span>
+          <span>{{ translate('发送') }}</span>
         </button>
       </div>
     </div>
@@ -71,7 +71,7 @@ import { useChatStore } from '@/stores/modules/chat'
 import { useUserStore } from '@/stores/modules/user'
 import { Textarea as ATextarea, Spin as ASpin } from 'ant-design-vue'
 import { showToast } from 'vant'
-
+import { translate } from '@/utils/translate.js'
 const chatStore = useChatStore()
 const userStore = useUserStore()
 const { robot } = chatStore

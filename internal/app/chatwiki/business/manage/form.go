@@ -68,7 +68,7 @@ func GetFormList(c *gin.Context) {
 		for _, permission := range permissionData {
 			managedFormIdList = append(managedFormIdList, cast.ToString(permission[`object_id`]))
 		}
-		m.Where(`f.id`, `in`, strings.Join(managedFormIdList, `,`))
+		//m.Where(`f.id`, `in`, strings.Join(managedFormIdList, `,`))
 	}
 
 	list, err := m.Select()
@@ -126,8 +126,8 @@ func GetFormInfo(c *gin.Context) {
 			managedFormIdList = append(managedFormIdList, cast.ToString(permission[`object_id`]))
 		}
 		if !tool.InArrayString(cast.ToString(id), managedFormIdList) {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-			return
+			//c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+			//return
 		}
 	}
 
@@ -254,6 +254,15 @@ func GetFormFieldList(c *gin.Context) {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
+	}
+	if len(list) == 0 { //没有字段时,将所有的脏数据记录标记为已删除
+		_, err = msql.Model(`form_entry`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(userId)).
+			Where(`form_id`, cast.ToString(formId)).Where(`delete_time`, `0`).
+			Update(msql.Datas{`delete_time`: tool.Time2Int()})
+		if err != nil {
+			logs.Error(err.Error())
+		}
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 	return
@@ -448,9 +457,16 @@ func DelFormField(c *gin.Context) {
 		_ = m.Rollback()
 		return
 	}
+	_, err = msql.Model(`form_field_value`, define.Postgres).
+		Where(`form_field_id`, cast.ToString(id)).Delete()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		_ = m.Rollback()
+		return
+	}
 	count, err := msql.Model(`form_filter_condition`, define.Postgres).
-		Where(`form_field_id`, cast.ToString(id)).
-		Delete()
+		Where(`form_field_id`, cast.ToString(id)).Delete()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -544,27 +560,38 @@ func UploadFormFile(c *gin.Context) {
 			common.FmtError(c, `upload_empty`)
 			return
 		}
-		uploadInfo, err := common.ReadUploadedFile(fileHeader, define.LibFileLimitSize, define.FormFileAllowExt)
+		// uploadInfo, err := common.ReadUploadedFile(fileHeader, define.LibFileLimitSize, define.FormFileAllowExt)
+		uploadInfo, err := common.SaveUploadedFile(fileHeader, define.LibFileLimitSize, adminUserId, `form_files`, define.FormFileAllowExt)
 		if err != nil {
 			logs.Error(err.Error())
 			common.FmtError(c, `file_err`)
 			return
 		}
-		if uploadInfo == nil || uploadInfo.Columns == "" {
+		if uploadInfo == nil || uploadInfo.Link == "" {
 			common.FmtError(c, `upload_empty`)
 			return
 		}
 		if uploadInfo.Ext == `json` {
-			if err = tool.JsonDecode(uploadInfo.Columns, &uploadInfoMap); err != nil {
+			content, err := tool.ReadFile(common.GetFileByLink(uploadInfo.Link))
+			if err != nil {
+				logs.Error(err.Error())
+				common.FmtError(c, `read_file_err`)
+				return
+			}
+			if err = tool.JsonDecode(content, &uploadInfoMap); err != nil {
 				logs.Error(err.Error())
 				common.FmtError(c, `file_data_err`)
 				return
 			}
 		} else {
-			splitData := strings.Split(uploadInfo.Columns, "\r\n")
+			splitData, err := common.ParseTabFile(uploadInfo.Link, uploadInfo.Ext)
+			if err != nil {
+				logs.Error(err.Error())
+				common.FmtError(c, `parse_file_err`)
+				return
+			}
 			title := make([]string, 0)
-			for key, item := range splitData {
-				upData := strings.Split(item, ",")
+			for key, upData := range splitData {
 				if len(upData) < len(title) {
 					continue
 				}

@@ -223,6 +223,7 @@ import DocumentFragment from './components/document-fragment.vue'
 import EditFragmentAlert from './components/edit-fragment-alert.vue'
 import {
   getLibFileSplit,
+  getLibFileSplitPreview,
   getLibFileSplitAiChunks,
   getLibFileInfo,
   saveLibFileSplit,
@@ -442,8 +443,12 @@ const getDocumentFragment = (type) => {
       delete params.ai_chunk_task_id
     }
   }
+  let fun = getLibFileSplit
+  if(type ==  'create'){
+    fun = getLibFileSplitPreview
+  }
 
-  return getLibFileSplit(params)
+  return fun(params)
     .then((res) => {
       initDocumentFragmentList.value = res.data.list || []
       setInitDocumentFragmentList(initDocumentFragmentList.value)
@@ -456,7 +461,6 @@ const getDocumentFragment = (type) => {
         aiLoading.value = true
         segmentationSettingRef.value.reLoading = true
         error.value = null
-
         // 之前没有ai分段数据，重新异步请求ai分段数据
         // 之前不管有没有ai分段数据，只要是点击生成分段预览则重新异步请求ai分段数据
         if (!formData.ai_chunk_task_id && settingMode.value != 1 || (type && type === 'create')) {
@@ -619,10 +623,10 @@ const updataFormData = () => {
 const handleSaveLibFileSplit = async () => {
   // 如果右侧的数据不是当前保存选中的分段类型则清空内容重新分段
   // 如果之前已经分段成功了，保存的时候不再另外分段了
-  if (documentFragmentTotal.value <= 0 || formData.chunk_type != current_chunk_type.value) {
-    updataFormData()
-    await getDocumentFragment()
-  }
+  // if (documentFragmentTotal.value <= 0 || formData.chunk_type != current_chunk_type.value) {
+  //   updataFormData()
+  //   await getDocumentFragment()
+  // }
 
   updataFormData()
   if (validateMessage.value) {
@@ -642,6 +646,7 @@ const handleSaveLibFileSplit = async () => {
 
   let split_params = {
     ...formData,
+    chunk_async: true,
     semantic_chunk_model_config_id: formData.semantic_chunk_model_config_id
       ? +formData.semantic_chunk_model_config_id
       : 0,
@@ -655,6 +660,7 @@ const handleSaveLibFileSplit = async () => {
 
   let parmas = {
     id: document_id,
+    chunk_async: true,
     word_total: documentFragmentTotal.value,
     split_params: JSON.stringify(split_params),
     list: JSON.stringify(documentFragmentList.value)
@@ -671,10 +677,6 @@ const handleSaveLibFileSplit = async () => {
   saveLibFileSplit(parmas)
     .then(() => {
       message.success('保存成功')
-      if (route.query.source == 'preview' && !isEdit) {
-        goBack()
-        return
-      }
       let page = 1
       if (route.query.page) {
         page = route.query.page

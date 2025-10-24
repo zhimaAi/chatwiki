@@ -2,7 +2,7 @@
   <div class="page-container-box">
     <a-tabs v-model:activeKey="activeKey" @change="handleChangeTabs">
       <a-tab-pane :key="1" tab="知识库配置"></a-tab-pane>
-      <a-tab-pane :key="2" tab="角色权限"></a-tab-pane>
+      <a-tab-pane v-if="false" :key="2" tab="角色权限"></a-tab-pane>
     </a-tabs>
     <div class="content-box">
       <KnowledgeConfig v-if="activeKey == 1" />

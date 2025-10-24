@@ -4,6 +4,8 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/wechat/common"
+	"chatwiki/internal/pkg/lib_define"
 	"errors"
 	"fmt"
 	"os"
@@ -31,7 +33,7 @@ func CreateExportTask(adminUserId, robotId, source uint, fileName string, params
 	if err != nil {
 		return 0, err
 	}
-	id, err := msql.Model(`chat_ai_export_task`, define.Postgres).Insert(msql.Datas{
+	insData := msql.Datas{
 		`admin_user_id`: adminUserId,
 		`robot_id`:      robotId,
 		`file_name`:     fileName,
@@ -39,7 +41,11 @@ func CreateExportTask(adminUserId, robotId, source uint, fileName string, params
 		`params`:        paramsJson,
 		`create_time`:   tool.Time2Int(),
 		`update_time`:   tool.Time2Int(),
-	}, `id`)
+	}
+	if source == define.ExportSourceLibFileDoc {
+		insData[`library_id`] = params[`library_id`]
+	}
+	id, err := msql.Model(`chat_ai_export_task`, define.Postgres).Insert(insData, `id`)
 	if err != nil {
 		return 0, err
 	}
@@ -70,6 +76,9 @@ func RunSessionExport(params map[string]any) (string, error) {
 	if len(cast.ToString(params[`app_type`])) > 0 {
 		sessionModel.Where(`s.app_type`, cast.ToString(params[`app_type`]))
 	}
+	if len(cast.ToString(params[`app_id`])) > 0 {
+		sessionModel.Where(`s.app_id`, cast.ToString(params[`app_id`]))
+	}
 	startTime, endTime := cast.ToInt(params[`start_time`]), cast.ToInt(params[`end_time`])
 	if startTime > 0 && endTime > 0 && endTime >= startTime {
 		sessionModel.Where(`s.last_chat_time`, `between`, fmt.Sprintf(`%d,%d`, startTime, endTime))
@@ -78,7 +87,7 @@ func RunSessionExport(params map[string]any) (string, error) {
 		sessionModel.Join(`chat_ai_customer c`, fmt.Sprintf(`c.admin_user_id=%d AND c.openid=s.openid`, cast.ToUint(params[`admin_user_id`])), `left`)
 		sessionModel.Where(`c.name`, `like`, cast.ToString(params[`name`]))
 	}
-	sessions, err := sessionModel.Order(`s.id DESC`).Field(`s.id,s.app_type,s.openid`).Select()
+	sessions, err := sessionModel.Order(`s.id DESC`).Field(`s.id,s.app_type,s.app_id,s.openid`).Select()
 	if err != nil {
 		logs.Error(err.Error())
 		return ``, err
@@ -105,6 +114,9 @@ func RunSessionExport(params map[string]any) (string, error) {
 		customerName := `访客XXXX`
 		if customer, _ := GetCustomerInfo(session[`openid`], cast.ToInt(params[`admin_user_id`])); len(customer) > 0 {
 			customerName = customer[`name`]
+		}
+		if session[`app_type`] == lib_define.AppWechatKefu { //特殊处理
+			session[`openid`], _ = common.GetExternalUserInfo(session[`openid`])
 		}
 		for _, item := range list {
 			var sender = robot[`robot_name`]
@@ -150,4 +162,63 @@ func RunSessionExport(params map[string]any) (string, error) {
 		}
 	}
 	return file[6:], nil
+}
+
+func RunLibFileDocExport(params map[string]any) (string, string, error) {
+	libraryId := cast.ToInt(params[`library_id`])
+	dataIds := cast.ToString(params[`data_ids`])
+	exportType := cast.ToInt(params[`export_type`])
+	adminUserId := cast.ToInt(params[`admin_user_id`])
+	groupId := cast.ToInt(params[`group_id`])
+	filePath := ""
+	ext := `xlsx`
+	fileName := ""
+	switch exportType {
+	case define.ExportQALibDocs:
+		// 导出QA文档
+		libraryInfo, err := GetLibraryInfo(libraryId, adminUserId)
+		if err != nil {
+			logs.Error(err.Error())
+			return ``, ``, err
+		}
+		if len(libraryInfo) == 0 {
+			return ``, ``, err
+		}
+		fileName = libraryInfo[`library_name`] + tool.Date(`YmdHis`) + `.` + ext
+		id := 0
+		pageSize := 500
+		data := make([]msql.Params, 0)
+		// 查询QA列表
+		for {
+			m := msql.Model("chat_ai_library_file_data", define.Postgres).
+				Where("library_id", cast.ToString(libraryId)).
+				Where("admin_user_id", cast.ToString(adminUserId)).
+				Where(`delete_time`, `0`).
+				Where(`id`, `>`, cast.ToString(id)).
+				Field("id,question,similar_questions,answer,images")
+			if len(dataIds) > 0 {
+				m.Where(`id`, `in`, dataIds)
+			}
+			if groupId >= 0 {
+				m.Where(`group_id`, cast.ToString(groupId))
+			}
+			// 分页查询
+			list, err := m.Order("id ASC").Limit(pageSize).Select()
+			if err != nil {
+				logs.Error(err.Error())
+				return ``, ``, err
+			}
+			if len(list) == 0 {
+				break
+			}
+			id = cast.ToInt(list[len(list)-1][`id`])
+			data = append(data, list...)
+		}
+		filePath, err = ExportFAQFileAllQA(data, ext, `library_file`)
+		if err != nil {
+			logs.Error(err.Error())
+			return ``, ``, err
+		}
+	}
+	return filePath[6:], fileName, nil
 }

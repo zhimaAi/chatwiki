@@ -24,6 +24,9 @@ import { useRoute } from 'vue-router'
 import { reactive, computed, onMounted, toRaw } from 'vue'
 import { message } from 'ant-design-vue'
 import ConfigPageMenu from '../components/config-page-menu.vue'
+import { usePublicLibraryStore } from '@/stores/modules/public-library'
+
+const libraryStore = usePublicLibraryStore()
 
 const route = useRoute()
 const library_id = computed(() => route.query.library_id)
@@ -38,6 +41,7 @@ const handleSubmit = async () => {
     })
 
     if (res.code === 0) {
+      libraryStore.getLibraryInfo()
       message.success('保存成功')
     }
   } catch (error) {

@@ -71,9 +71,10 @@ const (
 )
 
 const (
-	SplitChunkMaxSize   = 10000
-	SplitChunkMinSize   = 200
-	SplitAiChunkMaxSize = 5000
+	SplitChunkMaxSize        = 10000
+	SplitChunkMinSize        = 200
+	SplitAiChunkMaxSize      = 5000
+	SplitPreviewChunkMaxSize = 5000
 )
 
 const (
@@ -154,4 +155,33 @@ const (
 const (
 	AccessRestrictionsTypeLogin = 2
 	AccessPermissionTypeLogin   = 3
+)
+
+const (
+	FAQFileStatusQueuing       = 0
+	FAQFileStatusAnalyzing     = 1
+	FAQFileStatusExtracting    = 2
+	FAQFileStatusExtracted     = 3
+	FAQFileStatusExtractFailed = 4
+)
+const (
+	FAQFileSplitStatusSuccess = 1
+	FAQFileSplitStatusFailed  = 2
+)
+const (
+	FAQChunkTypeLength       = 1
+	FAQChunkTypeSeparatorsNo = 2
+
+	FAQExtractTypeAI = 1
+)
+
+const (
+	LibraryGroupTypeQA   = 0
+	LibraryGroupTypeFile = 1
+)
+
+// chat_ai_library_file_doc 中的is_dir字段
+const (
+	IsFile = 0
+	ISDir  = 1
 )

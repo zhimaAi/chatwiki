@@ -1,7 +1,7 @@
 <template>
-  <a-tabs class="tab-wrapper" v-model:activeKey="activeKey">
+  <a-tabs class="tab-wrapper" @change="handleTabChange" v-model:activeKey="activeKey">
     <a-tab-pane :key="1" tab="基础配置"></a-tab-pane>
-    <a-tab-pane :key="3" tab="权限管理"></a-tab-pane>
+    <a-tab-pane v-if="false" :key="3" tab="权限管理"></a-tab-pane>
     <a-tab-pane :key="2" tab="常见问题"></a-tab-pane>
   </a-tabs>
   <div class="robot-config-page" v-if="activeKey == 1">
@@ -17,6 +17,9 @@
       </div>
       <div class="setting-box">
         <ChatMode />
+      </div>
+      <div class="setting-box">
+        <ChatCache />
       </div>
       <div class="setting-box">
         <SystemPromptWords :robotList="workFlowRobotList" />
@@ -87,8 +90,10 @@ import { useRobotStore } from '@/stores/modules/robot'
 import ShowLike from './components/show-like.vue'
 import rolePermission from './role-permission.vue'
 import Skill from './components/skill/index.vue'
+import ChatCache from './components/chat-cache.vue'
 
 const robotStore = useRobotStore()
+const activeLocalKey = '/robot/config/basic-config/activeKey'
 
 const scrollBox = ref(null)
 
@@ -98,7 +103,7 @@ const { getRobot } = robotStore
 const scrollBoxToBottom = () => {
   scrollBox.value.scrollTop = scrollBox.value.scrollHeight
 }
-const activeKey = ref(1)
+const activeKey = ref(+localStorage.getItem(activeLocalKey) || 1)
 const saveLoading = ref(false)
 
 // 基本配置
@@ -157,6 +162,8 @@ const saveForm = () => {
 
   formData.unknown_question_prompt = JSON.stringify(unknown_question_prompt)
 
+  formData.cache_config = JSON.stringify(formData.cache_config)
+
   delete formData.robot_avatar_url
 
   saveLoading.value = true
@@ -176,6 +183,10 @@ const saveForm = () => {
     .catch(() => {
       saveLoading.value = false
     })
+}
+
+const handleTabChange = () => {
+  localStorage.setItem(activeLocalKey, activeKey.value)
 }
 </script>
 

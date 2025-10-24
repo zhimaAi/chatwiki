@@ -36,7 +36,7 @@
           </a-radio-group>
         </a-form-item>
 
-        <a-form-item label="分享链接" v-if="formState.access_rights == 1">
+        <a-form-item label="复制链接" v-if="formState.access_rights == 1">
           <div class="share-url-box" style="width: 100; overflow: hidden">
             <a-input-group compact>
               <a-select
@@ -76,6 +76,7 @@
 </template>
 
 <script setup>
+import { OPEN_BOC_BASE_URL } from '@/constants/index'
 import useClipboard from 'vue-clipboard3'
 import { getDomainList } from '@/api/user/index'
 import { getLibraryInfo, editLibrary } from '@/api/library/index'
@@ -85,12 +86,15 @@ import { useRoute } from 'vue-router'
 import { usePublicLibraryStore } from '@/stores/modules/public-library'
 
 const emit = defineEmits(['success'])
-const { operate_rights } = usePublicLibraryStore()
+
+const libraryStore = usePublicLibraryStore()
+
+const { operate_rights } =libraryStore
 
 const props = defineProps({
   baseUrl: {
     type: String,
-    default: '/open/doc'
+    default: OPEN_BOC_BASE_URL + '/doc'
   },
   hideCopy: {
     type: Boolean,
@@ -162,8 +166,6 @@ const getMyDomainList = () => {
     if (!formState.share_url) {
       if (domainList.value.length > 0) {
         formState.share_url = domainList.value[0].url
-      } else {
-        formState.share_url = window.location.origin
       }
     }
   })
@@ -172,6 +174,7 @@ const getMyDomainList = () => {
 const copyText = async () => {
   if (!formState.share_url) {
     message.error('请选择自定义域名')
+    return
   }
 
   let text = formState.share_url + shareUrl.value
@@ -198,6 +201,9 @@ const submit = async () => {
   }
   try {
     let res = await editLibrary(data)
+
+    libraryStore.getLibraryInfo()
+    
     emit('success', res)
   } catch (error) {
     // console.error('修改失败:', error)

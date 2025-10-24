@@ -4,8 +4,11 @@ go 1.23.4
 
 require (
 	github.com/88250/lute v1.7.6
+	github.com/ArtisanCloud/PowerLibs/v3 v3.2.2
+	github.com/ArtisanCloud/PowerWeChat/v3 v3.2.18
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/Unknwon/goconfig v1.0.0
+	github.com/ZeroHawkeye/wordZero v1.3.9
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.7
 	github.com/alibabacloud-go/docmind-api-20220711 v1.4.5
 	github.com/alibabacloud-go/tea v1.3.9
@@ -14,10 +17,12 @@ require (
 	github.com/aliyun/credentials-go v1.4.6
 	github.com/antchfx/xmlquery v1.4.4
 	github.com/beego/i18n v0.0.0-20161101132742-e9308947f407
+	github.com/beevik/etree v1.4.0
 	github.com/caarlos0/env/v11 v11.1.0
 	github.com/casbin/casbin/v2 v2.89.0
 	github.com/casbin/gorm-adapter/v3 v3.24.0
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
+	github.com/dop251/goja v0.0.0-20250531102226-cb187b08699c
 	github.com/elliotchance/orderedmap/v2 v2.2.0
 	github.com/gin-contrib/sse v0.1.0
 	github.com/gin-gonic/gin v1.10.0
@@ -34,6 +39,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/neo4j/neo4j-go-driver/v5 v5.28.0
 	github.com/pdfcpu/pdfcpu v0.9.1
+	github.com/pkg/sftp v1.13.9 // indirect
 	github.com/playwright-community/playwright-go v0.5200.0
 	github.com/pressly/goose/v3 v3.20.0
 	github.com/robfig/cron/v3 v3.0.0
@@ -41,18 +47,21 @@ require (
 	github.com/syyongx/php2go v0.9.8
 	github.com/tmc/langchaingo v0.1.13
 	github.com/xuri/excelize/v2 v2.9.1
-	github.com/yuin/goldmark v1.7.11
+	github.com/yuin/goldmark v1.7.12
 	github.com/zhimaAi/go_tools v0.0.0-20250619040721-395f6ac83f6d
 	github.com/zhimaAi/llm_adaptor v0.0.0-20250923074132-5c386d6fa3c6
 	github.com/zhimaAi/pdf v0.0.0-20240423033113-08880067bc13
 	go.uber.org/zap v1.27.0
+	golang.org/x/crypto v0.40.0 // indirect
 	golang.org/x/image v0.25.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gorm.io/driver/postgres v1.5.7
 	gorm.io/gorm v1.25.8
 )
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/ArtisanCloud/PowerSocialite/v3 v3.0.7 // indirect
 	github.com/BurntSushi/graphics-go v0.0.0-20160129215708-b43f31a4a966 // indirect
 	github.com/alecthomas/chroma v0.10.0 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.5 // indirect
@@ -86,6 +95,7 @@ require (
 	github.com/glebarez/sqlite v1.7.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
 	github.com/go-shiori/dom v0.0.0-20210627111528-4e4722cd0d65 // indirect
+	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
@@ -94,6 +104,7 @@ require (
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/snappy v1.0.0 // indirect
+	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -118,10 +129,11 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/nsqio/go-nsq v1.1.0 // indirect
+	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pkg/sftp v1.13.9 // indirect
 	github.com/pkoukk/tiktoken-go v0.1.7 // indirect
+	github.com/redis/go-redis/v9 v9.5.2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/richardlehane/mscfb v1.0.4 // indirect
 	github.com/richardlehane/msoleps v1.0.4 // indirect
@@ -147,7 +159,6 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
-	golang.org/x/crypto v0.40.0 // indirect
 	golang.org/x/net v0.42.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect

@@ -260,6 +260,7 @@ import {
 } from '@ant-design/icons-vue'
 import SubKey from './subs-key.vue'
 import AtInput from '../at-input/at-input.vue'
+import { haveOutKeyNode } from '@/views/workflow/components/util.js'
 
 const graphModel = inject('getGraph')
 const getNode = inject('getNode')
@@ -600,8 +601,8 @@ function transformArray(arr, parentLabel = '') {
 }
 
 const onUpatateNodeName = (data) => {
-  if(data.node_type !== 'http-node'){
-    return;
+  if(!haveOutKeyNode.includes(data.node_type)){
+    return
   }
 
   getVlaueVariableList()

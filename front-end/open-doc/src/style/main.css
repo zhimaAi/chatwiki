@@ -1,0 +1,50 @@
+@import './base.css';
+
+/* 自定义滚动条样式 */
+.custom-scrollbar {
+  overflow-y: auto;
+
+  /* Webkit 滚动条样式 */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d9d9d9;
+    border-radius: 3px;
+    transition: background 0.2s ease;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #bfbfbf;
+  }
+
+  /* Firefox 滚动条样式 */
+  scrollbar-width: thin;
+  scrollbar-color: #d9d9d9 transparent;
+}
+
+/* 自定义弹出框样式 */
+.custom-popover {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+.custom-popover .ant-popover-title {
+  display: none !important;
+}
+.custom-popover .ant-popover-inner {
+  padding: 0 !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+.custom-popover.hide-arrow .ant-popover-arrow {
+  display: none !important;
+}
+.custom-popover .ant-popover-inner-content {
+  padding: 0 !important;
+}

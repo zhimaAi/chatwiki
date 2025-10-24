@@ -42,7 +42,7 @@
       font-weight: 400;
       background: none;
 
-      transition: height 0.1s ease-in-out;;
+      transition: height 0.1s ease-in-out;
 
       &::placeholder {
         font-size: 16px;
@@ -53,27 +53,27 @@
 
     /* 滚动条样式 */
     .text-input::-webkit-scrollbar {
-        width: 4px; /*  设置纵轴（y轴）轴滚动条 */
-        height: 4px; /*  设置横轴（x轴）轴滚动条 */
+      width: 4px; /*  设置纵轴（y轴）轴滚动条 */
+      height: 4px; /*  设置横轴（x轴）轴滚动条 */
     }
     /* 滚动条滑块（里面小方块） */
     .text-input::-webkit-scrollbar-thumb {
-        cursor: pointer;
-        border-radius: 5px;
-        background: transparent;
+      cursor: pointer;
+      border-radius: 5px;
+      background: transparent;
     }
     /* 滚动条轨道 */
     .text-input::-webkit-scrollbar-track {
-        border-radius: 5px;
-        background: transparent;
+      border-radius: 5px;
+      background: transparent;
     }
 
     /* hover时显色 */
     .text-input:hover::-webkit-scrollbar-thumb {
-        background: rgba(0,0,0,0.2);
+      background: rgba(0, 0, 0, 0.2);
     }
     .text-input:hover::-webkit-scrollbar-track {
-        background: rgba(0,0,0,0.1);
+      background: rgba(0, 0, 0, 0.1);
     }
 
     .send-btn {
@@ -103,17 +103,22 @@
       <div class="message-input" :class="{ 'is-set': valueText }">
         <textarea
           ref="messageTextarea"
-          :style="{height: inputHeight}"
+          :style="{ height: inputHeight }"
           class="text-input"
           v-model="valueText"
-          placeholder="在此输入您想了解的内容"
+          :placeholder="translate('在此输入您想了解的内容')"
           @change="onChange"
           @input="onInput"
-          @keyup.enter="handleEnter" 
+          @keyup.enter="handleEnter"
           @focus="onFocus"
           @blur="onBlur"
         ></textarea>
-        <svg-icon :name="isSendBtn ? 'paper-airplane-new-active' : 'paper-airplane-new'" :class="{'send-btn-active': isSendBtn}" class="send-btn" @click="sendMessage" />
+        <svg-icon
+          :name="isSendBtn ? 'paper-airplane-new-active' : 'paper-airplane-new'"
+          :class="{ 'send-btn-active': isSendBtn }"
+          class="send-btn"
+          @click="sendMessage"
+        />
       </div>
     </div>
   </div>
@@ -125,21 +130,21 @@ import calcTextareaHeight from '@/utils/calcTextareaHeight'
 import { useChatStore } from '@/stores/modules/chat'
 import { useUserStore } from '@/stores/modules/user'
 import { showToast } from 'vant'
-
+import { translate } from '@/utils/translate.js'
 const chatStore = useChatStore()
 const userStore = useUserStore()
 const { robot } = chatStore
 import { checkChatRequestPermission } from '@/api/robot/index'
 
-const emit = defineEmits(['update:value', 'send', 'showLogin' ])
+const emit = defineEmits(['update:value', 'send', 'showLogin'])
 
 const isSendBtn = ref(false)
-const valueText = ref("")
-const inputHeight = ref("1.5em")
+const valueText = ref('')
+const inputHeight = ref('1.5em')
 const messageTextarea = ref(null)
 
 const onChange = (event: Event) => {
-  const target = event.target as HTMLInputElement;
+  const target = event.target as HTMLInputElement
   emit('update:value', target.value)
 }
 
@@ -163,7 +168,7 @@ const sendMessage = async () => {
   let result = await checkChatRequestPermission({
     robot_key: robot.robot_key,
     openid: robot.openid,
-    question: valueText.value,
+    question: valueText.value
   })
   // 未登录
   if (result.data?.code == 10002) {
@@ -182,23 +187,23 @@ const sendMessage = async () => {
     return false
   }
   userStore.setLoginStatus(true)
-  if(result.data && result.data.words){
+  if (result.data && result.data.words) {
     return showToast(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)
   }
   if (valueText.value.trim()) {
     isSendBtn.value = false
     emit('send', valueText.value)
-    valueText.value = ""
+    valueText.value = ''
     inputHeight.value = '1.5em'
   }
 }
 
 const handleEnter = (e: KeyboardEvent) => {
   e.preventDefault()
-  const target = e.target as HTMLInputElement;
-  if(e.shiftKey){
-    inputHeight.value = target.scrollHeight + 'px';
-    return 
+  const target = e.target as HTMLInputElement
+  if (e.shiftKey) {
+    inputHeight.value = target.scrollHeight + 'px'
+    return
   }
   if (!valueText.value.trim()) {
     return
@@ -207,14 +212,14 @@ const handleEnter = (e: KeyboardEvent) => {
 }
 
 const onFocus = (event) => {
-  event.target.parentNode.style.borderColor = "#2475FC"
+  event.target.parentNode.style.borderColor = '#2475FC'
 }
 
 const onBlur = (event) => {
-  event.target.parentNode.style.borderColor = "#DDD"
+  event.target.parentNode.style.borderColor = '#DDD'
 }
 const handleSetValue = (data: string) => {
-  valueText.value = data;
+  valueText.value = data
 }
 defineExpose({
   handleSetValue,

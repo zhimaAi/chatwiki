@@ -35,6 +35,24 @@ const items = ref([
     id: 'EmbedWebsite',
     label: '嵌入网站',
     title: '嵌入网站'
+  },
+  {
+    key: 'WeChatOfficialAccount',
+    id: 'WeChatOfficialAccount',
+    label: '微信公众号',
+    title: '微信公众号'
+  },
+  {
+    key: 'WeChatMiniProgram',
+    id: 'WeChatMiniProgram',
+    label: '微信小程序',
+    title: '微信小程序'
+  },
+  {
+    key: 'WeChatCustomerService',
+    id: 'WeChatCustomerService',
+    label: '微信客服',
+    title: '微信客服'
   }
 ])
 

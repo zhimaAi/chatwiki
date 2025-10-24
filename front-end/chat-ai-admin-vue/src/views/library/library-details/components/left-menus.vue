@@ -7,7 +7,9 @@
         v-for="item in menus"
         :key="item.key"
       >
-        <a-menu-item :icon="item.icon" :path="item.path" :key="item.key" v-if="!item.hidden">{{ item.label }}</a-menu-item>
+        <a-menu-item :icon="item.icon" :path="item.path" :key="item.key" v-if="!item.hidden">{{
+          item.label
+        }}</a-menu-item>
       </router-link>
     </a-menu>
   </div>
@@ -35,121 +37,180 @@ const robot_nums = computed(() => {
   return userStore.getRobotNums
 })
 
-
 const selectedKeys = computed(() => {
   return [route.path.split('/')[3]]
 })
 
-const menus = computed(() => [
-  {
-    key: 'knowledge-document',
-    id: 'knowledge-document',
-    icon: () =>
-      h('span', {}, [
-        h(SvgIcon, {
-          name: 'doc-menu-icon',
-          class: 'menu-icon'
-        }),
-        h(SvgIcon, {
-          name: 'doc-active-menu-icon',
-          class: 'menu-icon-active'
-        })
-      ]),
-    label: '知识库文档',
-    title: '知识库文档',
-    path: '/library/details/knowledge-document'
-  },{
-    key: 'knowledge-graph',
-    id: 'knowledge-graph',
-    hidden: graph_switch.value == 0,
-    icon: () =>
-      h('span', {}, [
-        h(SvgIcon, {
-          name: 'doc-menu-icon',
-          class: 'menu-icon'
-        }),
-        h(SvgIcon, {
-          name: 'doc-active-menu-icon',
-          class: 'menu-icon-active'
-        })
-      ]),
-    label: '知识图谱',
-    title: '知识图谱',
-    path: '/library/details/knowledge-graph',
-  },
-  {
-    key: 'categary-manage',
-    id: 'categary-manage',
-    icon: () =>
-      h('span', {}, [
-        h(SvgIcon, {
-          name: 'doc-menu-icon',
-          class: 'menu-icon'
-        }),
-        h(SvgIcon, {
-          name: 'doc-active-menu-icon',
-          class: 'menu-icon-active'
-        })
-      ]),
-    label: '精选',
-    title: '精选',
-    path: '/library/details/categary-manage'
-  },
-  {
-    key: 'recall-testing',
-    id: 'recall-testing',
-    icon: () =>
-      h('span', {}, [
-        h(SvgIcon, {
-          name: 'test-menu-icon',
-          class: 'menu-icon'
-        }),
-        h(SvgIcon, {
-          name: 'test-active-menu-icon',
-          class: 'menu-icon-active'
-        })
-      ]),
-    label: '召回测试',
-    title: '召回测试',
-    path: '/library/details/recall-testing'
-  },
-  {
-    key: 'knowledge-config',
-    id: 'knowledge-config',
-    icon: () =>
-      h('span', {}, [
-        h(SvgIcon, {
-          name: 'knowledge-config-icon',
-          class: 'menu-icon'
-        }),
-        h(SvgIcon, {
-          name: 'knowledge-config-active-icon',
-          class: 'menu-icon-active'
-        })
-      ]),
-    label: '知识库配置',
-    title: '知识库配置',
-    path: '/library/details/knowledge-config'
-  },
-  {
-    key: 'related-robots',
-    id: 'related-robots',
-    icon: () =>
-      h('span', {}, [
-        h(SvgIcon, {
-          name: 'knowledge-config-icon',
-          class: 'menu-icon'
-        }),
-        h(SvgIcon, {
-          name: 'knowledge-config-active-icon',
-          class: 'menu-icon-active'
-        })
-      ]),
-    label: `关联机器人${robot_nums.value > 0 ? ` (${robot_nums.value})` : ''}`,
-    path: '/library/details/related-robots'
+const menus = computed(() => {
+  let lists = [
+    {
+      key: 'knowledge-document',
+      id: 'knowledge-document',
+      icon: () =>
+        h('span', {}, [
+          h(SvgIcon, {
+            name: 'doc-menu-icon',
+            class: 'menu-icon'
+          }),
+          h(SvgIcon, {
+            name: 'doc-active-menu-icon',
+            class: 'menu-icon-active'
+          })
+        ]),
+      label: libraryStore.type == 2 ? '知识管理' : '知识库文档' ,
+      title: '知识库文档',
+      path: '/library/details/knowledge-document'
+    },
+    {
+      key: 'knowledge-graph',
+      id: 'knowledge-graph',
+      hidden: graph_switch.value == 0,
+      icon: () =>
+        h('span', {}, [
+          h(SvgIcon, {
+            name: 'doc-menu-icon',
+            class: 'menu-icon'
+          }),
+          h(SvgIcon, {
+            name: 'doc-active-menu-icon',
+            class: 'menu-icon-active'
+          })
+        ]),
+      label: '知识图谱',
+      title: '知识图谱',
+      path: '/library/details/knowledge-graph'
+    },
+    {
+      key: 'categary-manage',
+      id: 'categary-manage',
+      icon: () =>
+        h('span', {}, [
+          h(SvgIcon, {
+            name: 'doc-menu-icon',
+            class: 'menu-icon'
+          }),
+          h(SvgIcon, {
+            name: 'doc-active-menu-icon',
+            class: 'menu-icon-active'
+          })
+        ]),
+      label: '精选',
+      title: '精选',
+      path: '/library/details/categary-manage'
+    },
+    {
+      key: 'recall-testing',
+      id: 'recall-testing',
+      icon: () =>
+        h('span', {}, [
+          h(SvgIcon, {
+            name: 'test-menu-icon',
+            class: 'menu-icon'
+          }),
+          h(SvgIcon, {
+            name: 'test-active-menu-icon',
+            class: 'menu-icon-active'
+          })
+        ]),
+      label: '召回测试',
+      title: '召回测试',
+      path: '/library/details/recall-testing'
+    },
+    {
+      key: 'knowledge-config',
+      id: 'knowledge-config',
+      icon: () =>
+        h('span', {}, [
+          h(SvgIcon, {
+            name: 'knowledge-config-icon',
+            class: 'menu-icon'
+          }),
+          h(SvgIcon, {
+            name: 'knowledge-config-active-icon',
+            class: 'menu-icon-active'
+          })
+        ]),
+      label: '知识库配置',
+      title: '知识库配置',
+      path: '/library/details/knowledge-config'
+    },
+    {
+      key: 'related-robots',
+      id: 'related-robots',
+      icon: () =>
+        h('span', {}, [
+          h(SvgIcon, {
+            name: 'knowledge-config-icon',
+            class: 'menu-icon'
+          }),
+          h(SvgIcon, {
+            name: 'knowledge-config-active-icon',
+            class: 'menu-icon-active'
+          })
+        ]),
+      label: `关联机器人${robot_nums.value > 0 ? ` (${robot_nums.value})` : ''}`,
+      path: '/library/details/related-robots'
+    }
+  ]
+  if (libraryStore.type == 2) {
+    lists.push({
+      key: 'import-record',
+      id: 'import-record',
+      icon: () =>
+        h('span', {}, [
+          h(SvgIcon, {
+            name: 'doc-menu-icon',
+            class: 'menu-icon'
+          }),
+          h(SvgIcon, {
+            name: 'doc-active-menu-icon',
+            class: 'menu-icon-active'
+          })
+        ]),
+      label: '导入记录',
+      title: '导入记录',
+      path: '/library/details/import-record'
+    })
+    lists.push({
+      key: 'export-record',
+      id: 'export-record',
+      icon: () =>
+        h('span', {}, [
+          h(SvgIcon, {
+            name: 'doc-menu-icon',
+            class: 'menu-icon'
+          }),
+          h(SvgIcon, {
+            name: 'doc-active-menu-icon',
+            class: 'menu-icon-active'
+          })
+        ]),
+      label: '导出记录',
+      title: '导出记录',
+      path: '/library/details/export-record'
+    })
+  }else{
+    lists.push({
+      key: 'recycle-bin-record',
+      id: 'recycle-bin-record',
+      icon: () =>
+        h('span', {}, [
+          h(SvgIcon, {
+            name: 'doc-menu-icon',
+            class: 'menu-icon'
+          }),
+          h(SvgIcon, {
+            name: 'doc-active-menu-icon',
+            class: 'menu-icon-active'
+          })
+        ]),
+      label: '回收站',
+      title: '回收站',
+      path: '/library/details/recycle-bin-record'
+    })
   }
-])
-
+  return lists
+})
 
 const handleChangeMenu = ({ item }) => {
   if (selectedKeys.value.includes(item.id)) {

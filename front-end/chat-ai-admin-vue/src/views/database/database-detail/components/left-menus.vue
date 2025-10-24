@@ -57,17 +57,17 @@ const items = ref([
     title: '数据管理',
     path: '/database/details/database-manage'
   },
-  {
-    key: 'role-permission',
-    id: 'role-permission',
-    icon: () =>
-      h('span', {}, [
-        h(UserOutlined),
-      ]),
-    label: '权限管理',
-    title: '权限管理',
-    path: '/database/details/role-permission'
-  }
+  // {
+  //   key: 'role-permission',
+  //   id: 'role-permission',
+  //   icon: () =>
+  //     h('span', {}, [
+  //       h(UserOutlined),
+  //     ]),
+  //   label: '权限管理',
+  //   title: '权限管理',
+  //   path: '/database/details/role-permission'
+  // }
 ])
 
 const handleChangeMenu = ({ item }) => {

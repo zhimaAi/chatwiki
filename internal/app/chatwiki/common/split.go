@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"image/png"
@@ -86,7 +87,7 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 	} else if define.IsDocxFile(info[`file_ext`]) {
 		list, wordTotal, err = ReadDocx(info[`file_url`], userId)
 	} else if define.IsOfdFile(info[`file_ext`]) {
-		err = errors.New(`开源版不支持ofd文档`)
+		list, wordTotal, err = ReadOfd(info[`file_url`], userId)
 	} else if define.IsTxtFile(info[`file_ext`]) || define.IsMdFile(info[`file_ext`]) {
 		list, wordTotal, err = ReadTxt(info[`file_url`])
 	} else if define.IsPdfFile(info[`file_ext`]) && splitParams.PdfParseType == define.PdfParseTypeText {
@@ -110,12 +111,27 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 	}
 
 	//fix: pq: invalid byte sequence for encoding "UTF8": 0x00
-	regReplace := regexp.MustCompile(`[\x00-\x1F\x7F]`)
+	regReplace := regexp.MustCompile(`[\x00-\x08\x0E-\x1F\x7F]`)
 	for i, item := range list {
 		list[i].Title = regReplace.ReplaceAllString(item.Title, ``)
 		list[i].Content = regReplace.ReplaceAllString(item.Content, ``)
 		list[i].Question = regReplace.ReplaceAllString(item.Question, ``)
+		for j, similar := range list[i].SimilarQuestionList {
+			list[i].SimilarQuestionList[j] = regReplace.ReplaceAllString(similar, ``)
+		}
 		list[i].Answer = regReplace.ReplaceAllString(item.Answer, ``)
+	}
+
+	//fix:sql err
+	quotesReplacer := strings.NewReplacer(`'`, `"`)
+	for i, item := range list {
+		list[i].Title = quotesReplacer.Replace(item.Title)
+		list[i].Content = quotesReplacer.Replace(item.Content)
+		list[i].Question = quotesReplacer.Replace(item.Question)
+		for j, similar := range list[i].SimilarQuestionList {
+			list[i].SimilarQuestionList[j] = quotesReplacer.Replace(similar)
+		}
+		list[i].Answer = quotesReplacer.Replace(item.Answer)
 	}
 
 	// split by document type
@@ -275,6 +291,13 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 			`create_time`:   tool.Time2Int(),
 			`update_time`:   tool.Time2Int(),
 		}
+
+		// 如果知识库的的类型是问答知识库
+		// 则把知识库文件中的group_id塞到分段表的group_id
+		if cast.ToInt(library[`type`]) == define.QALibraryType {
+			data[`group_id`] = info[`group_id`]
+		}
+
 		if splitParams.IsQaDoc == define.DocTypeQa {
 			if splitParams.IsTableFile == define.FileIsTable {
 				data[`type`] = define.ParagraphTypeExcelQA
@@ -299,6 +322,46 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 			} else {
 				data[`images`] = `[]`
 			}
+
+			// 仅对问答知识库处理
+			if cast.ToInt(library[`type`]) == define.QALibraryType {
+				// 在这里检测，如果问题相同，就删除原有问答再新增新问答
+				// 不过有一个问题，因为这个方法是通过goroutine方式运行，有一个极限的情况
+				// 当用户快速上传多个文件，而多个文件中存在相同问题，则可能还是会出现问题相同，答案不同的情况
+				qaQuestionExistQuery := msql.Model("chat_ai_library_file_data", define.Postgres).
+					Where(`admin_user_id`, cast.ToString(userId)).
+					Where(`library_id`, cast.ToString(info[`library_id`])).
+					Where(`question`, cast.ToString(data[`question`]))
+				qaQuestionExistIds, err := qaQuestionExistQuery.ColumnArr(`id`)
+				if err != nil {
+					logs.Error(err.Error())
+					return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+				}
+
+				// 将重复的问答直接删除问答和向量索引
+				if len(qaQuestionExistIds) > 0 {
+					_, err = msql.Model("chat_ai_library_file_data", define.Postgres).
+						Where(`admin_user_id`, cast.ToString(userId)).
+						Where(`library_id`, cast.ToString(info[`library_id`])).
+						Where(`id`, `in`, strings.Join(qaQuestionExistIds, `,`)).
+						Delete()
+					if err != nil {
+						logs.Error(err.Error())
+						return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+					}
+					_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
+						Where(`admin_user_id`, cast.ToString(userId)).
+						Where(`library_id`, cast.ToString(info[`library_id`])).
+						Where(`data_id`, `in`, strings.Join(qaQuestionExistIds, `,`)).
+						Delete()
+					if err != nil {
+						logs.Error(err.Error())
+						return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+					}
+				}
+			}
+
+			// 实际添加分段文件
 			id, err := msql.Model("chat_ai_library_file_data", define.Postgres).Insert(data, `id`)
 			if err != nil {
 				logs.Error(err.Error())
@@ -374,6 +437,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 			} else {
 				data[`images`] = `[]`
 			}
+
 			id, err := msql.Model("chat_ai_library_file_data", define.Postgres).Insert(data, `id`)
 			if err != nil {
 				logs.Error(err.Error())
@@ -504,7 +568,10 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 }
 
 func MultDocSplit(adminUserId, fileId, pdfPageNum int, splitParams define.SplitParams, items []define.DocSplitItem) ([]define.DocSplitItem, error) {
-	var err error
+	var (
+		err         error
+		previewText string
+	)
 	if splitParams.ChunkType == define.ChunkTypeNormal {
 		split := textsplitter.NewRecursiveCharacter()
 		split.Separators = append(splitParams.Separators, split.Separators...)
@@ -533,6 +600,10 @@ func MultDocSplit(adminUserId, fileId, pdfPageNum int, splitParams define.SplitP
 					continue
 				}
 				list = append(list, define.DocSplitItem{PageNum: item.PageNum, Content: content, Images: images})
+				previewText += content
+				if splitParams.ChunkPreview && utf8.RuneCountInString(previewText) >= splitParams.ChunkPreviewSize {
+					return list, err
+				}
 			}
 		}
 		return list, err
@@ -602,6 +673,10 @@ func MultDocSplit(adminUserId, fileId, pdfPageNum int, splitParams define.SplitP
 					continue
 				}
 				list = append(list, define.DocSplitItem{PageNum: item.PageNum, Content: content, Images: images})
+				previewText += content
+				if splitParams.ChunkPreview && utf8.RuneCountInString(previewText) >= splitParams.ChunkPreviewSize {
+					return list, err
+				}
 			}
 		}
 		return list, err
@@ -936,8 +1011,9 @@ func ParseTabFile(fileUrl, fileExt string) ([][]string, error) {
 		if !utf8.ValidString(content) {
 			content = tool.Convert(content, `gbk`, `utf-8`)
 		}
-		for _, val := range strings.Fields(content) {
-			rows = append(rows, strings.Split(val, `,`))
+		rows, err = csv.NewReader(strings.NewReader(content)).ReadAll()
+		if err != nil {
+			return nil, err
 		}
 	} else {
 		f, err := excelize.OpenFile(GetFileByLink(fileUrl))
@@ -1185,6 +1261,33 @@ func ExtractTextImages(content string) (string, []string) {
 	return content, images
 }
 
+func ExtractTextImagesPlaceholders(content string) (string, []string) {
+	re := regexp.MustCompile(`\{\{\!\!(.+?)\!\!\}\}`)
+	matches := re.FindAllStringSubmatch(content, -1)
+	images := make([]string, 0)
+	for _, match := range matches {
+		if len(match) > 1 {
+			images = append(images, match[1])
+		}
+	}
+	content = re.ReplaceAllString(content, "[图片占位符]")
+	return content, images
+}
+
+func InTextImagesPlaceholders(content string, images []string) (string, []string, []string) {
+
+	count := strings.Count(content, "[图片占位符]")
+	imgs := make([]string, 0)
+	for i := 0; i < count; i++ {
+		if len(images) > 0 {
+			imgs = append(imgs, images[0])
+			images = images[1:]
+		}
+	}
+	content = strings.ReplaceAll(content, "[图片占位符]", "")
+	return content, imgs, images
+}
+
 func EmbTextImages(content string, images []string) string {
 	var imgTags []string
 	for _, image := range images {
@@ -1220,8 +1323,8 @@ func ConvertWebPToPNG(webpData []byte) ([]byte, error) {
 
 func DefaultSplitParams() define.SplitParams {
 	return define.SplitParams{
-		// ChunkSize:          512,
-		// ChunkOverlap:       0,
+		ChunkSize:          512,
+		ChunkOverlap:       0,
 		SeparatorsNo:       `11,12`,
 		EnableExtractImage: true,
 	}
@@ -1231,7 +1334,7 @@ func AutoSplitLibFile(adminUserId, fileId int, splitParams define.SplitParams) {
 	lang := define.LangZhCn
 	list, wordTotal, splitParams, err := GetLibFileSplit(adminUserId, fileId, 0, splitParams, lang)
 	if err != nil {
-		updateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusException, `errmsg`: err.Error()})
+		UpdateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusException, `errmsg`: err.Error()})
 		logs.Error(err.Error())
 		return
 	}
@@ -1242,10 +1345,11 @@ func AutoSplitLibFile(adminUserId, fileId int, splitParams define.SplitParams) {
 	if splitParams.ChunkType == define.ChunkTypeAi && splitParams.AiChunkNew {
 		if err = SaveAISplitDocs(adminUserId, fileId, wordTotal, splitParams.QaIndexType, splitParams, list, 0, lang); err != nil {
 			logs.Error(err.Error())
-			updateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusException, `errmsg`: err.Error()})
+			UpdateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusException, `errmsg`: err.Error()})
 			return
 		}
 	} else {
+		// 知识库问答文件导入走这里@sizz 20250903
 		_, err = SaveLibFileSplit(adminUserId, fileId, wordTotal, splitParams.QaIndexType, splitParams, list, 0, lang)
 		if err != nil {
 			logs.Error(err.Error())
@@ -1254,7 +1358,7 @@ func AutoSplitLibFile(adminUserId, fileId int, splitParams define.SplitParams) {
 	}
 }
 
-func updateLibFileData(adminUserId, fileId int, data msql.Datas) error {
+func UpdateLibFileData(adminUserId, fileId int, data msql.Datas) error {
 	_, err := msql.Model(`chat_ai_library_file`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`id`, cast.ToString(fileId)).Update(data)
 	return err
 }
@@ -1272,8 +1376,8 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list [
 		errMsg = `model not valid`
 		return nil, errors.New(errMsg)
 	}
-	if !(splitParams.ParagraphChunk || splitParams.AiChunkPreview) {
-		updateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusChunking})
+	if !(splitParams.ParagraphChunk || splitParams.ChunkPreview) {
+		UpdateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusChunking})
 	}
 
 	var submitContent []define.DocSplitItem
@@ -1394,7 +1498,7 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list [
 			cancel()
 		}(wg, contentMap, index, contents, &errMsg)
 		index++
-		if splitParams.AiChunkPreview {
+		if splitParams.ChunkPreview {
 			break
 		}
 	}
@@ -1461,8 +1565,8 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list [
 		logs.Error(errMsg)
 		return newList, errors.New(errMsg)
 	}
-	if !(splitParams.ParagraphChunk || splitParams.AiChunkPreview) {
-		updateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusWaitSplit})
+	if !(splitParams.ParagraphChunk || splitParams.ChunkPreview) {
+		UpdateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusWaitSplit})
 	}
 	return newList, nil
 }

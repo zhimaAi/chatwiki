@@ -4,6 +4,9 @@ package work_flow
 
 import (
 	"chatwiki/internal/app/chatwiki/common"
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_define"
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -54,6 +57,13 @@ var NodeTypes = [...]int{
 	NodeTypeAssign,
 	NodeTypeReply,
 	NodeTypeManual,
+	NodeTypeQuestionOptimize,
+	NodeTypeParamsExtractor,
+	NodeTypeFormInsert,
+	NodeTypeFormDelete,
+	NodeTypeFormUpdate,
+	NodeTypeFormSelect,
+	NodeTypeCodeRun,
 }
 
 type NodeAdapter interface {
@@ -101,6 +111,20 @@ func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, ms
 		return &ReplyNode{params: nodeParams.Reply, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeManual:
 		return &ManualNode{params: nodeParams.Manual}, info, nil
+	case NodeTypeQuestionOptimize:
+		return &QuestionOptimizeNode{params: nodeParams.QuestionOptimize, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeParamsExtractor:
+		return &ParamsExtractorNode{params: nodeParams.ParamsExtractor, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeFormInsert:
+		return &FormInsertNode{params: nodeParams.FormInsert, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeFormDelete:
+		return &FormDeleteNode{params: nodeParams.FormDelete, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeFormUpdate:
+		return &FormUpdateNode{params: nodeParams.FormUpdate, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeFormSelect:
+		return &FormSelectNode{params: nodeParams.FormSelect, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeCodeRun:
+		return &CodeRunNode{params: nodeParams.CodeRun, nextNodeKey: info[`next_node_key`]}, info, nil
 	default:
 		return nil, info, errors.New(`不支持的节点类型:` + info[`node_type`])
 	}
@@ -297,10 +321,19 @@ func (n *LibsNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	robot[`rerank_model_config_id`] = cast.ToString(n.params.RerankModelConfigId)
 	robot[`rerank_use_model`] = n.params.RerankUseModel
 	//start call
+	var question = flow.params.Question
+	field, exist := flow.GetVariable(n.params.QuestionValue)
+	if exist {
+		question = field.ShowVals()
+	}
 	list, libUseTime, err := common.GetMatchLibraryParagraphList(
-		flow.params.Openid, flow.params.AppType, flow.params.Question, []string{},
+		flow.params.Openid, flow.params.AppType, question, []string{},
 		n.params.LibraryIds, n.params.TopK.Int(), n.params.Similarity, n.params.SearchType.Int(), robot,
 	)
+	isBackground := len(flow.params.Customer) > 0 && cast.ToInt(flow.params.Customer[`is_background`]) > 0
+	if !isBackground && len(list) == 0 { //未知问题统计
+		common.SaveUnknownIssueRecord(flow.params.AdminUserId, flow.params.Robot, question)
+	}
 	if err != nil {
 		return
 	}
@@ -456,5 +489,377 @@ func (n *ManualNode) Running(flow *WorkFlow) (_ common.SimpleFields, _ string, e
 	flow.Logs(`执行转人工逻辑...`)
 	flow.isFinish = true
 	err = errors.New(`仅云版支持转人工节点`)
+	return
+}
+
+type QuestionOptimizeNode struct {
+	params      QuestionOptimizeNodeParams
+	nextNodeKey string
+}
+
+func (n *QuestionOptimizeNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	flow.Logs(`执行问题优化逻辑...`)
+	debugLog := common.SimpleField{Key: `special.question_optimize_debug_log`, Typ: common.TypArrObject, Vals: []common.Val{}}
+	//part1:prompt
+	prompt := define.PromptWorkFlowQuestionOptimize
+	userPrompt := flow.VariableReplace(n.params.Prompt)
+	if userPrompt != `` {
+		prompt += fmt.Sprintf(`\n\n# 对话背景:\n %s`, userPrompt)
+	}
+	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
+	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: prompt}})
+	//part3:context_qa
+	contextList := common.BuildChatContextPair(flow.params.Openid, cast.ToInt(flow.params.Robot[`id`]),
+		flow.params.DialogueId, flow.params.CurMsgId, n.params.ContextPair.Int())
+	for i := range contextList {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]}})
+	}
+	//part4:cur_question
+	var question = flow.params.Question
+	field, exist := flow.GetVariable(n.params.QuestionValue)
+	if exist {
+		question = field.ShowVals()
+	}
+	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: question})
+	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: question}})
+	//append OpenApiContent
+	messages = common.BuildOpenApiContent(flow.params.ChatRequestParam, messages)
+	//request chat
+	flow.params.Robot[`enable_thinking`] = cast.ToString(cast.ToUint(n.params.EnableThinking))
+	chatResp, requestTime, err := common.RequestChat(
+		flow.params.AdminUserId, flow.params.Openid, flow.params.Robot, flow.params.AppType,
+		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
+	)
+	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
+	//提前给输出日志,避免下面报错丢失日志
+	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `question_optimize_answer`, `content`: chatResp.Result}})
+	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]any{`type`: `question_optimize_error`, `content`: err}})
+	output = common.SimpleFields{
+		debugLog.Key: debugLog,
+	}
+	if err != nil {
+		err = errors.New(`llm请求失败:` + err.Error())
+		return
+	}
+	llmTime := int(requestTime)
+	output[`special.question_optimize_request_time`] = common.SimpleField{Key: `special.question_optimize_request_time`, Typ: common.TypNumber, Vals: []common.Val{{Number: &llmTime}}}
+	output[`special.question_optimize_reply_content`] = common.SimpleField{Key: `special.question_optimize_reply_content`, Typ: common.TypString, Vals: []common.Val{{String: &chatResp.Result}}}
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+type ParamsExtractorNode struct {
+	params      ParamsExtractorNodeParams
+	nextNodeKey string
+}
+
+func (n *ParamsExtractorNode) Running(flow *WorkFlow) (outputs common.SimpleFields, nextNodeKey string, err error) {
+	flow.Logs(`执行参数提取逻辑...`)
+	debugLog := common.SimpleField{Key: `special.params_extractor_debug_log`, Typ: common.TypArrObject, Vals: []common.Val{}}
+	//part1:prompt
+	prompt := define.CompletionGenerateJsonPrompt
+	userPrompt := flow.VariableReplace(n.params.Prompt)
+	// 获取参数列表
+	params := tool.JsonEncodeNoError(n.params.Output)
+	if len(params) <= 0 {
+		params = `[]`
+	}
+	prompt = fmt.Sprintf(prompt, userPrompt, params)
+
+	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
+	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: prompt}})
+	//part3:context_qa
+	contextList := common.BuildChatContextPair(flow.params.Openid, cast.ToInt(flow.params.Robot[`id`]),
+		flow.params.DialogueId, flow.params.CurMsgId, n.params.ContextPair.Int())
+	for i := range contextList {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]}})
+	}
+	//part4:cur_question
+	var question = flow.params.Question
+	field, exist := flow.GetVariable(n.params.QuestionValue)
+	if exist {
+		question = field.ShowVals()
+	}
+	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: question})
+	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: question}})
+	//append OpenApiContent
+	messages = common.BuildOpenApiContent(flow.params.ChatRequestParam, messages)
+	//request chat
+	flow.params.Robot[`enable_thinking`] = cast.ToString(cast.ToUint(n.params.EnableThinking))
+	chatResp, requestTime, err := common.RequestChat(
+		flow.params.AdminUserId, flow.params.Openid, flow.params.Robot, flow.params.AppType,
+		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
+	)
+	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
+	chatResp.Result, _ = strings.CutPrefix(chatResp.Result, "```json")
+	chatResp.Result, _ = strings.CutSuffix(chatResp.Result, "```")
+	//提前给输出日志,避免下面报错丢失日志
+	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `params_extractor_answer`, `content`: chatResp.Result}})
+	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]any{`type`: `params_extractor_error`, `content`: err}})
+	outputs = common.SimpleFields{
+		debugLog.Key: debugLog,
+	}
+	if err != nil {
+		err = errors.New(`llm请求失败:` + err.Error())
+		return
+	}
+	var result = make([]map[string]any, 0)
+	if err = tool.JsonDecodeUseNumber(chatResp.Result, &result); err != nil {
+		err = errors.New(`llm返回数据格式错误:` + err.Error())
+		return
+	}
+	mapResult := make(map[string]any)
+	for _, item := range result {
+		mapResult[cast.ToString(item[`key`])] = item[`vals`]
+	}
+	output := common.SimplifyFields(n.params.Output.ExtractionData(mapResult)) //提取数据
+	for key, out := range output {
+		// 枚举值过滤
+		if len(out.Enum) > 0 {
+			enumValues := make([]any, 0)
+			enums := strings.Split(strings.ReplaceAll(out.Enum, "\n", ","), ",")
+			for _, val := range out.GetVals() {
+				if tool.InArrayString(cast.ToString(val), enums) {
+					enumValues = append(enumValues, val)
+				}
+			}
+			out.Vals = nil
+			out = out.SetVals(enumValues)
+		}
+		if len(out.GetVals()) <= 0 {
+			out = out.SetVals(out.Default)
+		}
+		outputs[key] = out
+	}
+
+	llmTime := int(requestTime)
+	outputs[`special.params_extractor_request_time`] = common.SimpleField{Key: `special.params_extractor_request_time`, Typ: common.TypNumber, Vals: []common.Val{{Number: &llmTime}}}
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+type FormInsertNode struct {
+	params      FormInsertNodeParams
+	nextNodeKey string
+}
+
+func (n *FormInsertNode) Running(flow *WorkFlow) (_ common.SimpleFields, nextNodeKey string, err error) {
+	flow.Logs(`执行数据表单新增逻辑...`)
+	if err = checkFormId(flow.params.AdminUserId, n.params.FormId.Int()); err != nil {
+		return
+	}
+	entryValues := make(map[string]any)
+	for _, field := range n.params.Datas {
+		entryValues[field.Name] = flow.VariableReplace(field.Value)
+	}
+	err = common.SaveFormEntry(flow.params.AdminUserId, n.params.FormId.Int(), 0, entryValues)
+	if err != nil {
+		return
+	}
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+type FormDeleteNode struct {
+	params      FormDeleteNodeParams
+	nextNodeKey string
+}
+
+func (n *FormDeleteNode) Running(flow *WorkFlow) (_ common.SimpleFields, nextNodeKey string, err error) {
+	flow.Logs(`执行数据表单删除逻辑...`)
+	if err = checkFormId(flow.params.AdminUserId, n.params.FormId.Int()); err != nil {
+		return
+	}
+	where := make([]define.FormFilterCondition, len(n.params.Where))
+	for idx, condition := range n.params.Where {
+		condition.RuleValue1 = flow.VariableReplace(condition.RuleValue1)
+		condition.RuleValue2 = flow.VariableReplace(condition.RuleValue2)
+		where[idx] = condition
+	}
+	_, err = msql.Model(`form_entry`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(flow.params.AdminUserId)).
+		Where(`form_id`, cast.ToString(n.params.FormId.Int())).Where(`delete_time`, `0`).
+		Where(common.BuildFilterConditionSql(n.params.Typ.Int(), where)).
+		Update(msql.Datas{`delete_time`: tool.Time2Int()})
+	if err != nil {
+		return
+	}
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+type FormUpdateNode struct {
+	params      FormUpdateNodeParams
+	nextNodeKey string
+}
+
+func (n *FormUpdateNode) Running(flow *WorkFlow) (_ common.SimpleFields, nextNodeKey string, err error) {
+	flow.Logs(`执行数据表单更新逻辑...`)
+	if err = checkFormId(flow.params.AdminUserId, n.params.FormId.Int()); err != nil {
+		return
+	}
+	where := make([]define.FormFilterCondition, len(n.params.Where))
+	for idx, condition := range n.params.Where {
+		condition.RuleValue1 = flow.VariableReplace(condition.RuleValue1)
+		condition.RuleValue2 = flow.VariableReplace(condition.RuleValue2)
+		where[idx] = condition
+	}
+	entryIds, err := msql.Model(`form_entry`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(flow.params.AdminUserId)).
+		Where(`form_id`, cast.ToString(n.params.FormId.Int())).Where(`delete_time`, `0`).
+		Where(common.BuildFilterConditionSql(n.params.Typ.Int(), where)).ColumnArr(`id`)
+	if err != nil {
+		return
+	}
+	if len(entryIds) > 0 {
+		errs := make([]string, 0)
+		entryValues := make(map[string]any)
+		for _, field := range n.params.Datas {
+			entryValues[field.Name] = flow.VariableReplace(field.Value)
+		}
+		for _, entryId := range entryIds {
+			err = common.SaveFormEntry(flow.params.AdminUserId, n.params.FormId.Int(), cast.ToInt(entryId), entryValues)
+			if err != nil {
+				errs = append(errs, err.Error())
+			}
+		}
+		if len(errs) > 0 {
+			err = errors.New(strings.Join(errs, "\n"))
+			return
+		}
+	}
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+type FormSelectNode struct {
+	params      FormSelectNodeParams
+	nextNodeKey string
+}
+
+func (n *FormSelectNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	flow.Logs(`执行数据表单查询逻辑...`)
+	if err = checkFormId(flow.params.AdminUserId, n.params.FormId.Int()); err != nil {
+		return
+	}
+	where := make([]define.FormFilterCondition, len(n.params.Where))
+	for idx, condition := range n.params.Where {
+		condition.RuleValue1 = flow.VariableReplace(condition.RuleValue1)
+		condition.RuleValue2 = flow.VariableReplace(condition.RuleValue2)
+		where[idx] = condition
+	}
+	orderBy := make([]string, 0)
+	for _, order := range n.params.Order {
+		if order.IsAsc { //升序
+			orderBy = append(orderBy, fmt.Sprintf(`%s asc`, order.Name))
+		} else { //降序
+			orderBy = append(orderBy, fmt.Sprintf(`%s desc`, order.Name))
+		}
+	}
+	entryIds, err := msql.Model(`form_entry`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(flow.params.AdminUserId)).
+		Where(`form_id`, cast.ToString(n.params.FormId.Int())).Where(`delete_time`, `0`).
+		Where(common.BuildFilterConditionSql(n.params.Typ.Int(), where)).
+		Order(strings.Join(orderBy, `,`)).Limit(n.params.Limit.Int()).ColumnArr(`id`)
+	if err != nil {
+		return
+	}
+	//拼接数据
+	list := make([]map[string]any, len(entryIds))
+	if len(entryIds) > 0 {
+		fields, ok := msql.Model(`form_field`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(flow.params.AdminUserId)).
+			Where(`form_id`, cast.ToString(n.params.FormId.Int())).ColumnMap(`id,type`, `name`)
+		if ok != nil {
+			err = ok
+			return
+		}
+		values, ok := msql.Model(`form_field_value`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(flow.params.AdminUserId)).
+			Where(`form_entry_id`, `in`, strings.Join(entryIds, `,`)).
+			ColumnMap(`type,string_content,integer_content,number_content,boolean_content`,
+				`concat(form_entry_id, '-', form_field_id) uni`)
+		if ok != nil {
+			err = ok
+			return
+		}
+		for idx, entryId := range entryIds {
+			list[idx] = map[string]any{`id`: cast.ToInt(entryId)}
+			for _, field := range n.params.Fields {
+				item := values[fmt.Sprintf(`%s-%s`, entryId, fields[field.Name][`id`])]
+				var value any = item[fmt.Sprintf(`%s_content`, item[`type`])]
+				switch fields[field.Name][`type`] {
+				case `string`:
+					value = cast.ToString(value)
+				case `integer`:
+					value = cast.ToInt(value)
+				case `number`:
+					value = cast.ToFloat32(value)
+				case `boolean`:
+					value = cast.ToBool(value)
+				}
+				list[idx][field.Name] = value
+			}
+		}
+	}
+	//组装输出结果
+	vals := make([]common.Val, 0)
+	for _, obj := range list {
+		vals = append(vals, common.Val{Object: obj})
+	}
+	total := len(vals)
+	output = common.SimpleFields{
+		`output_list`: common.SimpleField{Key: `output_list`, Typ: common.TypArrObject, Vals: vals},
+		`row_num`:     common.SimpleField{Key: `row_num`, Typ: common.TypNumber, Vals: []common.Val{{Number: &total}}},
+	}
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+type CodeRunNode struct {
+	params      CodeRunNodeParams
+	nextNodeKey string
+}
+
+func (n *CodeRunNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, _ error) {
+	flow.Logs(`执行代码运行逻辑...`)
+	//开始组装变量
+	params := make(map[string]any)
+	for _, param := range n.params.Params {
+		field, exist := flow.GetVariable(param.Variable)
+		if !exist { //变量不存在
+			params[param.Field] = nil
+			continue
+		}
+		if tool.InArrayString(field.Typ, common.TypArrays[:]) {
+			params[param.Field] = field.GetVals()
+		} else {
+			params[param.Field] = field.GetVal()
+		}
+	}
+	//开始代码运行
+	data := lib_define.CodeRunBody{MainFunc: n.params.MainFunc, Params: params}
+	flow.Logs(`body:%s`, tool.JsonEncodeNoError(data))
+	timeout := time.Duration(n.params.Timeout) * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	jsonStr, err := common.RequestCodeRun(ctx, `javaScript`, data)
+	flow.Logs(`result:%s,err:%v`, jsonStr, err)
+	if err != nil {
+		nextNodeKey = n.params.Exception
+		return //代码运行异常
+	}
+	result := make(map[string]any)
+	if err = tool.JsonDecodeUseNumber(jsonStr, &result); err != nil {
+		flow.Logs(`结果解析异常:%s`, err.Error())
+		nextNodeKey = n.params.Exception
+		return //结果解析异常
+	}
+	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
+	nextNodeKey = n.nextNodeKey
 	return
 }

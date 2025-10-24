@@ -2,7 +2,7 @@
   <div class="robot-page">
     <div class="search-content-block">
       <div class="selct-star-box">
-        <SelectStarBox :hideId="[0]" :startLists="startLists" @change="handleCategoryChange" />
+        <SelectStarBox v-if="libraryType == 0" :hideId="[0]" :startLists="startLists" @change="handleCategoryChange" />
       </div>
       <a-space>
         <a-select
@@ -63,6 +63,12 @@ import {
 import { PlusOutlined, DownOutlined, StarFilled } from '@ant-design/icons-vue'
 import SubsectionBox from './components/subsection-box.vue'
 import EditSubscription from '@/views/library/library-preview/components/edit-subsection.vue'
+import { useLibraryStore } from '@/stores/modules/library'
+const libraryStore = useLibraryStore()
+
+
+const libraryType = libraryStore.type
+
 const route = useRoute()
 const query = route.query
 
@@ -91,7 +97,7 @@ const getStatrList = (data) => {
 
 const paginations = ref({
   page: 1,
-  size: 10
+  size: 30
 })
 
 const filterData = reactive({
@@ -223,12 +229,9 @@ const getParagraphLists = () => {
     if (data.info) {
       detailsInfo.value = {
         ...data.info,
+        library_id: data.info.id,
         is_qa_doc: data.info.type == 2 ? 1 : 0
       }
-    }
-    detailsInfo.value = {
-      ...data.info,
-      is_qa_doc: data.info.type == 2 ? 1 : 0
     }
     list.forEach((item) => {
       item.status_text = listStatusMap[item.status]

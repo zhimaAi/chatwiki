@@ -1,0 +1,71 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+dl,
+dd,
+ol,
+ul,
+form,
+fieldset,
+legend,
+figure,
+figcaption,
+menu,
+th,
+td {
+  margin: 0;
+  padding: 0;
+}
+/***** 全局样式重置 *****/
+html {
+  /* font-size: 50px; /* 1rem=50px，便于移动端REM计算 [1]() */
+  font-size: 14px;
+  /* -webkit-text-size-adjust: 100%; 禁止字体缩放 */
+  -webkit-tap-highlight-color: transparent; /* 禁用点击高亮 */
+}
+body {
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+/***** 列表元素重置 *****/
+ul,
+ol {
+  list-style: none; /* 移除默认列表样式 [6]() */
+}
+
+/***** 链接与交互元素 *****/
+a {
+  text-decoration: none;
+  color: inherit;
+  -webkit-touch-callout: none; /* 禁止长按链接弹出菜单 [10]() */
+}
+
+img {
+  border: 0;
+  vertical-align: middle;
+  -webkit-touch-callout: none; /* 禁止图片长按菜单 */
+}
+input {
+  outline: none;
+}
+.w-icon {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  fill: currentColor;
+  overflow: hidden;
+}

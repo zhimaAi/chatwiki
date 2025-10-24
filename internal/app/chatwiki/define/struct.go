@@ -56,6 +56,7 @@ type ChatRequestParam struct {
 	Error          error
 	Lang           string
 	Question       string
+	MsgId          string
 	OpenApiContent string
 	DialogueId     int
 	Prompt         string
@@ -79,6 +80,7 @@ type DocSplitItem struct {
 }
 
 type SplitParams struct {
+	SplitPreviewParams
 	IsTableFile                int      `json:"is_table_file"`
 	IsDiySplit                 int      `json:"is_diy_split"`
 	SeparatorsNo               string   `json:"separators_no"`
@@ -107,9 +109,14 @@ type SplitParams struct {
 	AiChunkTaskId              string   `json:"ai_chunk_task_id"`
 	AiChunkSize                int      `json:"ai_chunk_size"`
 	AiChunkNew                 bool     `json:"ai_chunk_new"`
-	AiChunkPreview             bool     `json:"ai_chunk_preview"`
 	ParagraphChunk             bool     `json:"paragraph_chunk"`
+	ChunkAsync                 bool     `json:"chunk_async"` // 异步
 	FileExt                    string   `json:"file_ext"`
+}
+
+type SplitPreviewParams struct {
+	ChunkPreview     bool `json:"chunk_preview"`
+	ChunkPreviewSize int  `json:"chunk_preview_size"`
 }
 
 type FormFilterCondition struct {
@@ -119,13 +126,14 @@ type FormFilterCondition struct {
 	RuleValue2  string `json:"rule_value2"`
 }
 
-func (f FormFilterCondition) Check(_type string) error {
+func (f FormFilterCondition) Check(_type string, workFlow ...bool) error {
+	isWorkFlow := len(workFlow) > 0 && workFlow[0]
 	if _type == `string` {
 		if !tool.InArrayString(f.Rule, []string{`string_eq`, `string_neq`, `string_contain`, `string_not_contain`, `string_empty`, `string_not_empty`}) {
 			return errors.New(`rule value must be one of string_eq, string_neq, string_contain, string_not_contain, string_empty, string_not_empty when type is String`)
 		}
 		if len(f.RuleValue2) > 0 {
-			return errors.New(`rule_value1 is empty or rule_value2 not empty when type is String`)
+			return errors.New(`rule_value2 not empty when type is String`)
 		}
 	} else if _type == `integer` {
 		if !tool.InArrayString(f.Rule, []string{`integer_gt`, `integer_gte`, `integer_lt`, `integer_lte`, `integer_eq`, `integer_between`}) {
@@ -134,14 +142,14 @@ func (f FormFilterCondition) Check(_type string) error {
 		if len(f.RuleValue1) == 0 {
 			return errors.New(`rule_value1 is empty when type is Integer or Number`)
 		}
-		if _, err := strconv.Atoi(f.RuleValue1); err != nil {
+		if _, err := strconv.Atoi(f.RuleValue1); !isWorkFlow && err != nil {
 			return errors.New(`rule_value1 is not integer when type is Integer`)
 		}
 		if f.Rule == `number_between` {
 			if len(f.RuleValue2) == 0 {
 				return errors.New(`rule_value2 is empty when rule is between`)
 			}
-			if _, err := strconv.Atoi(f.RuleValue2); err != nil {
+			if _, err := strconv.Atoi(f.RuleValue2); !isWorkFlow && err != nil {
 				return errors.New(`rule_value2 is invalid integer when rule is between and type is integer`)
 			}
 		}
@@ -152,14 +160,14 @@ func (f FormFilterCondition) Check(_type string) error {
 		if len(f.RuleValue1) == 0 {
 			return errors.New(`rule_value1 is empty when type is integer or number`)
 		}
-		if _, err := strconv.ParseFloat(f.RuleValue1, 64); err != nil {
+		if _, err := strconv.ParseFloat(f.RuleValue1, 64); !isWorkFlow && err != nil {
 			return errors.New(`rule_value1 is invalid number when rule is number`)
 		}
 		if f.Rule == `number_between` {
 			if len(f.RuleValue2) == 0 {
 				return errors.New(`rule_value2 is empty when rule is between and type is number`)
 			}
-			if _, err := strconv.ParseFloat(f.RuleValue2, 64); err != nil {
+			if _, err := strconv.ParseFloat(f.RuleValue2, 64); !isWorkFlow && err != nil {
 				return errors.New(`rule_value2 is invalid number when rule is between and type is number`)
 			}
 		}
@@ -196,4 +204,16 @@ type UploadFormFile struct {
 	Finish    bool             `json:"finish"`
 	Success   int              `json:"success"`
 	ErrData   []map[string]any `json:"err_data"`
+}
+
+type SplitFaqParams struct {
+	SeparatorsNo       string `json:"separators_no"`
+	ChunkSize          int    `json:"chunk_size"`
+	ChunkType          int    `json:"chunk_type"`
+	ChunkPrompt        string `json:"chunk_prompt"`
+	ChunkModel         string `json:"chunk_model"`
+	ChunkModelConfigId int    `json:"chunk_model_config_id"`
+	IsQaDoc            int    `json:"is_qa_doc"`
+	FileExt            string `json:"file_ext"`
+	ExtractType        int    `json:"extract_type"`
 }

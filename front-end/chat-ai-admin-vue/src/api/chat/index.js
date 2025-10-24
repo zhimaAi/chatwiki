@@ -37,14 +37,19 @@ export const getExportTaskList = (params) => {
   return request.get({ url: '/manage/getExportTaskList', params })
 }
 
+// 获取未知问题统计列表
+export const unknownIssueStats = (params) => {
+  return request.get({ url: '/manage/unknownIssueStats', params })
+}
+
 // 导出任务下载文件
 export const downloadExportFile = (params) => {
   return request.get({ url: '/manage/downloadExportFile', params })
 }
 
 // 获取会话来源列表
-export const getSessionChannelList = (data) => {
-  return request.get({ url: '/manage/getSessionChannelList', data })
+export const getSessionChannelList = (params) => {
+  return request.get({ url: '/manage/getSessionChannelList', params })
 }
 
 // 获取答案来源

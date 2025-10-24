@@ -3,6 +3,8 @@
     <a-modal
       v-model:open="open"
       @ok="handleOk"
+      wrapClassName="no-padding-modal"
+      :bodyStyle="{ 'max-height': '670px', 'overflow-y': 'auto', 'padding-right': '12px' }"
       :width="!isAIGenerate ? '746px' : isGenerate ? '944px' : '472px'"
       :ok-button-props="{ style: { display: isAIGenerate ? 'none' : 'block' } }"
     >
@@ -15,20 +17,21 @@
             class="back-button"
             @click="isAIGenerate = false"
           >
-            <template #icon><LeftOutlined style="font-size: 12px;" /></template>
+            <template #icon><LeftOutlined style="font-size: 12px" /></template>
           </a-button>
-          <span>{{ isAIGenerate ? 'AI生成相似问法' : '编辑分段' }}</span>
+          <span v-if="isAIGenerate">AI生成相似问法</span>
+          <span v-else>{{ id ? '编辑分段' : '新增分段' }}</span>
         </div>
       </template>
 
       <div class="form-box-wrapper" v-show="!isAIGenerate">
-        <div class="form-item">
+        <div class="form-item" v-if="!isQaDocment">
           <div class="form-label">分段标题：</div>
           <div class="form-content">
             <a-input :maxLength="25" v-model:value="title" placeholder="请输入分段标题" />
           </div>
         </div>
-        <div class="form-item">
+        <div class="form-item" v-if="!isQaDocment">
           <div class="form-label">分段分类标记</div>
           <div class="form-content">
             <a-segmented v-model:value="category_id" :options="startLists">
@@ -36,13 +39,22 @@
                 <div class="star-item-box">
                   <StarFilled v-if="payload.id > 0" :style="{ color: payload.color }" />
                   <StarOutlined v-else />
-                  <div>{{ payload.name || '-' }}</div> <span v-if="payload.data_count > 0">({{ payload.data_count }})</span>
+                  <div>{{ payload.name || '-' }}</div>
+                  <span v-if="payload.data_count > 0">({{ payload.data_count }})</span>
                 </div>
               </template>
             </a-segmented>
           </div>
         </div>
         <template v-if="isQaDocment">
+          <div class="form-item">
+            <div class="form-label required">所属分组：</div>
+            <div class="form-content">
+              <a-select v-model:value="group_id" style="width: 100%">
+                <a-select-option v-for="item in groupLists" :value="item.id">{{ item.group_name }}</a-select-option>
+              </a-select>
+            </div>
+          </div>
           <div class="form-item">
             <div class="form-label required">分段问题：</div>
             <div class="form-content">
@@ -51,24 +63,6 @@
                 v-model:value="question"
                 style="height: 100px"
               ></a-textarea>
-            </div>
-          </div>
-          <div class="form-item">
-            <div class="form-label-box">
-              <div class="form-label required">相似问法</div>
-              <div class="ai-generate" @click="handleAIGenerate">
-                <svg-icon name="ai-generate" style="font-size: 14px;"></svg-icon>
-                <div class="ai-generate-text">AI自动生成</div>
-              </div>
-            </div>
-            <div class="form-content">
-              <a-textarea
-                placeholder="请输入相似问法"
-                v-model:value="similar_questions"
-                style="height: 100px"
-                @blur="onProcessText"
-              ></a-textarea>
-              <div class="form-content-tip">一行一个，最多可添加100个相似问法</div>
             </div>
           </div>
           <div class="form-item">
@@ -95,7 +89,7 @@
           </div>
         </div>
         <div class="form-item">
-          <div class="form-label">附件</div>
+          <!-- <div class="form-label">附件</div> -->
           <div class="form-content">
             <div class="upload-box-wrapper">
               <a-tabs v-model:activeKey="activeKey" size="small">
@@ -103,7 +97,7 @@
                   <template #tab>
                     <span>
                       <svg-icon name="img-icon" style="font-size: 14px; color: #2475fc"></svg-icon>
-                      图片
+                      答案附图
                       <span v-if="images.length">({{ images.length }})</span>
                     </span>
                   </template>
@@ -111,6 +105,25 @@
               </a-tabs>
               <UploadImg v-model:value="images"></UploadImg>
             </div>
+          </div>
+        </div>
+
+        <div class="form-item" v-if="isQaDocment">
+          <div class="form-label-box">
+            <div class="form-label">相似问法</div>
+            <div class="ai-generate" @click="handleAIGenerate">
+              <svg-icon name="ai-generate" style="font-size: 14px"></svg-icon>
+              <div class="ai-generate-text">AI自动生成</div>
+            </div>
+          </div>
+          <div class="form-content">
+            <a-textarea
+              placeholder="请输入相似问法"
+              v-model:value="similar_questions"
+              style="height: 100px"
+              @blur="onProcessText"
+            ></a-textarea>
+            <div class="form-content-tip">一行一个，最多可添加100个相似问法</div>
           </div>
         </div>
       </div>
@@ -143,11 +156,11 @@
                   <div class="input-group">
                     <div class="form-label required">问题个数：</div>
                     <div class="form-label-input-box">
-                      <a-input-number 
-                        v-model:value="formState.count" 
-                        :min="1" 
-                        :max="20" 
-                        style="width: 100%; padding: 2px 11px;"
+                      <a-input-number
+                        v-model:value="formState.count"
+                        :min="1"
+                        :max="20"
+                        style="width: 100%; padding: 2px 11px"
                       />个
                     </div>
                   </div>
@@ -167,12 +180,8 @@
             </div>
 
             <div class="form-item generate-btn-box">
-              <a-button 
-                @click="handleGenerate"
-                :loading="generating"
-                class="generate-btn"
-              >
-                <svg-icon name="ai-generate-white" style="font-size: 16px;"></svg-icon>
+              <a-button @click="handleGenerate" :loading="generating" class="generate-btn">
+                <svg-icon name="ai-generate-white" style="font-size: 16px"></svg-icon>
                 开始生成
               </a-button>
             </div>
@@ -180,7 +189,7 @@
           <div class="ai-generate-wrapper-right" :class="{ 'show-result': isGenerate }">
             <!-- 生成结果区域 -->
             <div class="result-nav">
-              <svg-icon name="generate-icon" style="font-size: 14px;"></svg-icon>
+              <svg-icon name="generate-icon" style="font-size: 14px"></svg-icon>
               <span class="tip" v-if="generating">相似问法生成中...</span>
               <div class="result-nav-text" v-else>相似问法生成完毕</div>
             </div>
@@ -201,7 +210,9 @@
               <div class="dialog-content" v-html="renderedMarkdown"></div>
             </div>
             <div class="result-footer">
-              <a-button class="result-footer-btn" type="primary" @click="handleSaveSimilar">保存相似问法</a-button>
+              <a-button class="result-footer-btn" type="primary" @click="handleSaveSimilar"
+                >保存相似问法</a-button
+              >
             </div>
           </div>
         </div>
@@ -221,14 +232,20 @@
 import { LeftOutlined } from '@ant-design/icons-vue'
 import { ref, reactive, nextTick, watch } from 'vue'
 import { message } from 'ant-design-vue'
-import { editParagraph, getCategoryList, saveCategoryParagraph, generateSimilarQuestions } from '@/api/library'
+import {
+  editParagraph,
+  getCategoryList,
+  saveCategoryParagraph,
+  generateSimilarQuestions,
+  getLibraryGroup
+} from '@/api/library'
 import { StarOutlined, StarFilled } from '@ant-design/icons-vue'
 import { useRoute } from 'vue-router'
 import UploadImg from '@/components/upload-img/index.vue'
 import { isArray } from 'ant-design-vue/lib/_util/util.js'
 import colorLists from '@/utils/starColors.js'
 import CustomSelector from '@/components/custom-selector/index.vue'
-import MarkdownIt from 'markdown-it';
+import MarkdownIt from 'markdown-it'
 
 // 新增状态
 const isError = ref(false)
@@ -245,19 +262,22 @@ const formState = reactive({
   count: 5
 })
 const md = new MarkdownIt({
-  html: true,        // 启用 HTML 标签
-  linkify: true,     // 自动转换 URL 为链接
+  html: true, // 启用 HTML 标签
+  linkify: true, // 自动转换 URL 为链接
   typographer: true // 启用一些排版替换
-});
-const renderedMarkdown = ref('');
+})
+const renderedMarkdown = ref('')
 const messageObj = reactive({
   finish: '',
-  content: '',
+  content: ''
 })
 
-watch(() => messageObj.content, () => {
-  renderedMarkdown.value = md.render(messageObj.content);
-})
+watch(
+  () => messageObj.content,
+  () => {
+    renderedMarkdown.value = md.render(messageObj.content)
+  }
+)
 
 const route = useRoute()
 const query = route.query
@@ -282,6 +302,9 @@ const similar_questions = ref('')
 const images = ref([])
 const category_id = ref(0)
 const id = ref('')
+
+const group_id = ref('0')
+
 const isQaDocment = ref(false)
 const showModal = (data) => {
   // 重置AI生成状态
@@ -295,16 +318,30 @@ const showModal = (data) => {
   answer.value = data.answer || ''
   images.value = data.images || []
   question.value = data.question || ''
-  similar_questions.value = data.similar_questions? data.similar_questions.join('\n') : ''
+  similar_questions.value = data.similar_questions ? data.similar_questions.join('\n') : ''
   isQaDocment.value = props.detailsInfo.is_qa_doc == '1'
   category_id.value = data.category_id || 0
+  group_id.value = data.group_id || '0'
   getCategoryLists()
+  if(isQaDocment) {
+    getGroupLists()
+  }
   open.value = true
 }
 
+const groupLists = ref([])
+const getGroupLists = () => {
+  getLibraryGroup({
+    library_id: props.detailsInfo.library_id
+  }).then((res) => {
+    groupLists.value = res.data || []
+  })
+}
+
+
 const startLists = ref([])
 const getCategoryLists = () => {
-  getCategoryList({file_id: query.id}).then((res) => {
+  getCategoryList({ file_id: query.id }).then((res) => {
     let list = res.data || []
     list = list.map((item) => {
       return {
@@ -363,6 +400,9 @@ const handleOk = () => {
     images: images.value,
     category_id: category_id.value
   }
+  if(isQaDocment.value){
+    data.group_id = group_id.value || 0
+  }
   let similarQuestions = similar_questions.value.trim()
   if (similarQuestions) {
     similarQuestions = similarQuestions.split('\n')
@@ -384,6 +424,14 @@ const handleOk = () => {
     } else {
       formData.append(key, data[key])
     }
+  }
+  if(pathName == 'knowledgeDocument'){
+    formData.delete('file_id')
+    formData.append('library_id', route.query.id)
+  }
+  if(pathName == 'libraryConfig'){
+    formData.delete('file_id')
+    formData.append('library_id', props.detailsInfo.library_id)
   }
   if (pathName == 'categaryManages') {
     formData.delete('file_id')
@@ -431,8 +479,10 @@ const handleGenerate = async () => {
     }
     const res = await generateSimilarQuestions(params)
     // 接口调用
-    aiResult.value = res.data.map(item => item).join('\n')
-    messageObj.content = res.data.map((text, i) => `<div class="dialog-message">${i + 1}. ${text}</div>`).join('')
+    aiResult.value = res.data.map((item) => item).join('\n')
+    messageObj.content = res.data
+      .map((text, i) => `<div class="dialog-message">${i + 1}. ${text}</div>`)
+      .join('')
     showResult.value = true
   } finally {
     generating.value = false
@@ -455,9 +505,10 @@ const handleSaveSimilar = () => {
 
 // 处理选择事件
 const handleModelChange = (item) => {
-  formState.use_model = modelDefine.includes(item.rawData.model_define) && item.rawData.deployment_name 
-    ? item.rawData.deployment_name 
-    : item.rawData.name
+  formState.use_model =
+    modelDefine.includes(item.rawData.model_define) && item.rawData.deployment_name
+      ? item.rawData.deployment_name
+      : item.rawData.name
   formState.use_model_icon = item.icon
   formState.use_model_name = item.use_model_name
   formState.model_config_id = item.rawData.id
@@ -511,10 +562,10 @@ const setDefaultModel = () => {
 
 function processText(input) {
   return input
-    .split('\n')            // 按换行符分割成数组
-    .map(line => line.trim()) // 去除每行首尾空格
-    .filter(line => line)    // 过滤掉空行
-    .join('\n');            // 重新用换行符连接
+    .split('\n') // 按换行符分割成数组
+    .map((line) => line.trim()) // 去除每行首尾空格
+    .filter((line) => line) // 过滤掉空行
+    .join('\n') // 重新用换行符连接
 }
 
 const onProcessText = () => {
@@ -555,7 +606,7 @@ defineExpose({ showModal })
   display: flex;
   gap: 16px;
   align-items: flex-end;
-  
+
   .input-group {
     flex: 1;
   }
@@ -624,7 +675,7 @@ defineExpose({ showModal })
       border-radius: 6px;
 
       &:hover {
-        background: #E4E6EB;
+        background: #e4e6eb;
       }
 
       .ai-generate-text {
@@ -720,7 +771,7 @@ defineExpose({ showModal })
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: var(---ai, linear-gradient(94deg, #2475FC 0.65%, #3C01FF 53.2%, #C20CFF 100%));
+  background: var(---ai, linear-gradient(94deg, #2475fc 0.65%, #3c01ff 53.2%, #c20cff 100%));
   color: #ffffff;
   font-size: 14px;
   font-style: normal;
@@ -785,7 +836,7 @@ defineExpose({ showModal })
       left: 50%;
       bottom: 0px;
       transform: translateX(-50%);
-      
+
       .result-footer-btn {
         width: 160px;
       }
@@ -818,7 +869,7 @@ defineExpose({ showModal })
   height: 100%;
   width: 100%;
   border-radius: 24px;
-  background: linear-gradient(94deg, #00BFFF 2.9%, #C1C4FF 63.43%, #FFF 98.28%);
+  background: linear-gradient(94deg, #00bfff 2.9%, #c1c4ff 63.43%, #fff 98.28%);
   transform-origin: left;
   animation: slide 1s infinite;
 

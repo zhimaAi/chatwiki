@@ -49,6 +49,12 @@
       </a-flex>
     </div>
     <a-divider></a-divider>
+    <div class="enterprise-box">
+      <a-flex>
+        <div class="content-label" style="line-height: 32px">顶部导航设置：</div>
+        <NavSetting @handleGetCompany="handleGetCompany" />
+      </a-flex>
+    </div>
     <a-modal
       v-model:open="open"
       :title="t('views.user.enterprise.SetSystemName')"
@@ -74,6 +80,7 @@ import { useCompanyStore } from '@/stores/modules/company'
 import { saveCompany } from '@/api/user/index.js'
 import { useI18n } from '@/hooks/web/useI18n'
 import { message } from 'ant-design-vue'
+import NavSetting from './components/nav-setting.vue'
 
 const { t } = useI18n()
 
@@ -97,8 +104,8 @@ const formState = reactive({
   id: ''
 })
 const openCompanyModal = () => {
-  formState.name = name.value;
-  formState.id = id.value;
+  formState.name = name.value
+  formState.id = id.value
   open.value = true
 }
 const handleSetCompany = () => {

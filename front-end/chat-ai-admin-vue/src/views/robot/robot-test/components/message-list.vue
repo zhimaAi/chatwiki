@@ -437,7 +437,8 @@ const common_question_list = computed(() => {
 })
 
 const isShowQuoteFileProgress = computed(() => {
-  return props.robotInfo.chat_type == 1 || props.robotInfo.chat_type == 3
+  // 普通机器人才显示
+  return (props.robotInfo.chat_type == 1 || props.robotInfo.chat_type == 3) && props.robotInfo.application_type == '0'
 })
 
 const onClickMeun = (item) => {

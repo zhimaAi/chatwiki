@@ -265,7 +265,7 @@ export default {
   computed: {},
   mounted() {
     let node_params = JSON.parse(this.properties.node_params)
-
+    console.log(1111111111)
     this.sys_global = node_params.start.sys_global
     this.diy_global = node_params.start.diy_global
 

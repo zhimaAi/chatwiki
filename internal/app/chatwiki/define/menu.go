@@ -58,16 +58,16 @@ var Menus = []Menu{
 					},
 				},
 			},
-			// {
-			// 	Name:   "文档提取FAQ",
-			// 	UniKey: "DocFaq",
-			// 	Children: []*Menu{
-			// 		{
-			// 			Name:   "上传文档提取",
-			// 			UniKey: "UploadDocFaq",
-			// 		},
-			// 	},
-			// },
+			{
+				Name:   "文档提取FAQ",
+				UniKey: "DocFaq",
+				Children: []*Menu{
+					{
+						Name:   "上传文档提取",
+						UniKey: "UploadDocFaq",
+					},
+				},
+			},
 		},
 	},
 	{

@@ -13,7 +13,11 @@ export default {
       meta: {
         title: '知识库管理',
         activeMenu: '/library',
-        hideTitle: true
+        hideTitle: true,
+        pageStyle:{
+          'padding-right': 0,
+          overflow: 'hidden'
+        }
       }
     },
     {
@@ -70,9 +74,36 @@ export default {
         {
           path: '/library/details/knowledge-document',
           name: 'knowledgeDocument',
-          component: () => import('../views/library/library-details/knowledge-document.vue'),
+          component: () => import('../views/library/library-details/knowledge-document/index.vue'),
           meta: {
             title: '知识库文档',
+            activeMenu: '/library'
+          }
+        },
+        {
+          path: '/library/details/import-record',
+          name: 'qaDocImportRecord',
+          component: () => import('../views/library/library-details/import-record.vue'),
+          meta: {
+            title: '导入记录',
+            activeMenu: '/library'
+          }
+        },
+        {
+          path: '/library/details/export-record',
+          name: 'qaDocExportRecord',
+          component: () => import('../views/library/library-details/export-record.vue'),
+          meta: {
+            title: '导出记录',
+            activeMenu: '/library'
+          }
+        },
+        {
+          path: '/library/details/recycle-bin-record',
+          name: 'recycleBinRecord',
+          component: () => import('../views/library/library-details/recycle-bin-record.vue'),
+          meta: {
+            title: '回收站',
             activeMenu: '/library'
           }
         },

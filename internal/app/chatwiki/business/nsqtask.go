@@ -520,15 +520,22 @@ func ExportTask(id string, _ ...string) error {
 		return nil
 	}
 	var status = define.ExportStatusError
-	var fileUrl string
+	var (
+		fileUrl  string
+		fileName string
+	)
 	var errMsg = `unknown`
 	defer func() {
-		_, err := m.Where(`id`, id).Where(`status`, cast.ToString(define.ExportStatusRunning)).Update(msql.Datas{
+		datas := msql.Datas{
 			`status`:      status,
 			`file_url`:    fileUrl,
 			`err_msg`:     errMsg,
 			`update_time`: tool.Time2Int(),
-		})
+		}
+		if len(fileName) > 0 {
+			datas[`file_name`] = fileName
+		}
+		_, err := m.Where(`id`, id).Where(`status`, cast.ToString(define.ExportStatusRunning)).Update(datas)
 		if err != nil {
 			logs.Error(err.Error())
 		}
@@ -541,6 +548,8 @@ func ExportTask(id string, _ ...string) error {
 	switch cast.ToUint(task[`source`]) {
 	case define.ExportSourceSession: //会话记录导出
 		fileUrl, err = common.RunSessionExport(params)
+	case define.ExportSourceLibFileDoc: //知识库文档导出
+		fileUrl, fileName, err = common.RunLibFileDocExport(params)
 	default:
 		errMsg = `来源类型错误:` + task[`source`]
 	}
@@ -550,5 +559,199 @@ func ExportTask(id string, _ ...string) error {
 		status = define.ExportStatusSucceed
 		errMsg = `SUCCEED`
 	}
+	return nil
+}
+
+func ExtractFaqFiles(msg string, _ ...string) error {
+	logs.Debug(`nsq:%s`, msg)
+	data := make(map[string]any)
+	if err := tool.JsonDecode(msg, &data); err != nil {
+		logs.Error(`parsing failure:%s/%s`, msg, err.Error())
+		return nil
+	}
+	dataIds, fileId := cast.ToString(data[`ids`]), cast.ToInt(data[`file_id`])
+	var file msql.Params
+	var err error
+	if file, err = common.GetFaqFilesInfo(fileId, 0); err != nil {
+		logs.Error(err.Error())
+	}
+	if len(file) == 0 {
+		logs.Error(`file not found:%s`, msg)
+		return nil
+	}
+	lib_redis.DelCacheData(define.Redis, &common.FaqFilesCacheBuildHandler{FileId: fileId})
+
+	adminUserId := cast.ToInt(file[`admin_user_id`])
+	splitFaqParams := define.SplitFaqParams{
+		ChunkType:          cast.ToInt(file[`chunk_type`]),
+		ChunkSize:          cast.ToInt(file[`chunk_size`]),
+		SeparatorsNo:       file[`separators_no`],
+		ChunkPrompt:        file[`chunk_prompt`],
+		ChunkModel:         file[`chunk_model`],
+		ChunkModelConfigId: cast.ToInt(file[`chunk_model_config_id`]),
+		ExtractType:        define.FAQExtractTypeAI,
+	}
+	// FAQFileStatusAnalyzing
+	status := define.FAQFileStatusAnalyzing
+	errMsg := ""
+	if err = common.UpdateLibFileFaqStatus(fileId, adminUserId, status, errMsg); err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+	var list []define.DocSplitItem
+	m := msql.Model(`chat_ai_faq_files_data`, define.Postgres)
+	if len(dataIds) > 0 {
+		result, err := m.Where(`id`, `in`, dataIds).
+			Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Select()
+		if err != nil {
+			logs.Error(err.Error())
+		}
+		for _, item := range result {
+			var images []string
+			if err = tool.JsonDecode(cast.ToString(item[`images`]), &images); err != nil {
+				logs.Error(err.Error())
+			}
+			list = append(list, define.DocSplitItem{
+				Number:  cast.ToInt(item[`number`]),
+				PageNum: cast.ToInt(item[`page_num`]),
+				Title:   cast.ToString(item[`title`]),
+				Content: cast.ToString(item[`content`]),
+				Images:  images,
+			})
+		}
+	} else {
+		list, err = common.GetLibFileFaqSplit(fileId, adminUserId, splitFaqParams)
+		if err != nil {
+			logs.Error(err.Error())
+			return nil
+		}
+	}
+	// FAQ chunks
+	splitList, err := common.MultSplitFaqFiles(list, splitFaqParams)
+	status = define.FAQFileStatusExtracting
+	if err = common.UpdateLibFileFaqStatus(fileId, adminUserId, status, errMsg); err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+	//FAQ Extracting
+	newList := make(chan define.DocSplitItem, 10)
+	go common.ExtractLibFaqFiles(adminUserId, splitFaqParams, splitList, newList)
+	if file, err = common.GetFaqFilesInfo(fileId, 0); err != nil {
+		logs.Error(err.Error())
+	}
+	if len(file) == 0 {
+		logs.Error(`file not found:%s`, msg)
+		return nil
+	}
+	isNew := true
+	qaModel := msql.Model(`chat_ai_faq_files_data_qa`, define.Postgres)
+	if len(dataIds) > 0 {
+		isNew = false
+		_, err = m.Where(`id`, `in`, dataIds).
+			Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Delete()
+		_, err = qaModel.Where(`data_id`, `in`, dataIds).
+			Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Delete()
+	} else {
+		_, err = m.Where(`file_id`, `in`, cast.ToString(fileId)).
+			Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Delete()
+		_, err = qaModel.Where(`file_id`, `in`, cast.ToString(fileId)).
+			Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Delete()
+	}
+	if err != nil {
+		logs.Error(err.Error())
+		errMsg = err.Error()
+		common.UpdateLibFileFaqStatus(fileId, adminUserId, define.FAQFileStatusExtractFailed, errMsg)
+		return nil
+	}
+	// save faq
+	status = define.FAQFileStatusExtracted
+	type chunkResult struct {
+		Question string `json:"question"`
+		Answer   string `json:"answer"`
+	}
+	failCount := 0
+	total := 0
+	for {
+		select {
+		case item, ok := <-newList:
+			if !ok {
+				goto EndExtract
+			}
+			total++
+			data := msql.Datas{
+				`admin_user_id`: file[`admin_user_id`],
+				`file_id`:       fileId,
+				`number`:        item.Number,
+				`split_status`:  define.FAQFileSplitStatusSuccess,
+				`page_num`:      item.PageNum,
+				`title`:         item.Title,
+				`content`:       item.Content,
+				`images`:        tool.JsonEncodeNoError(item.Images),
+				`word_total`:    item.WordTotal,
+				`create_time`:   tool.Time2Int(),
+				`update_time`:   tool.Time2Int(),
+			}
+			allContents := []chunkResult{}
+			if item.AiChunkErrMsg == "" {
+				if err := tool.JsonDecode(item.Answer, &allContents); err != nil {
+					data[`split_errmsg`] = fmt.Sprintf(`json解析失败:%s`, err.Error())
+					data[`split_status`] = define.FAQFileSplitStatusFailed
+					data[`err_content`] = item.Answer
+				}
+			} else {
+				data[`split_errmsg`] = item.AiChunkErrMsg
+				data[`split_status`] = define.FAQFileSplitStatusFailed
+			}
+			if data[`split_status`] == define.FAQFileSplitStatusFailed {
+				failCount++
+			}
+			dataId, err := m.Insert(data, `id`)
+			if err != nil {
+				logs.Error(err.Error())
+				errMsg = err.Error()
+				continue
+			}
+			var (
+				images = item.Images
+				imgs   = make([]string, 0)
+			)
+			for k, chunk := range allContents {
+				if len(chunk.Question+chunk.Answer) == 0 {
+					continue
+				}
+				var answer string
+				answer, imgs, images = common.InTextImagesPlaceholders(chunk.Answer, images)
+				_, err := qaModel.Insert(msql.Datas{
+					`admin_user_id`: adminUserId,
+					`file_id`:       fileId,
+					`data_id`:       dataId,
+					`number`:        k + 1,
+					`page_num`:      item.PageNum,
+					`question`:      chunk.Question,
+					`answer`:        answer,
+					`images`:        tool.JsonEncodeNoError(imgs),
+					`create_time`:   tool.Time2Int(),
+					`update_time`:   tool.Time2Int(),
+				})
+				if err != nil {
+					logs.Error(err.Error())
+					errMsg = err.Error()
+					continue
+				}
+			}
+		}
+	}
+
+EndExtract:
+	if failCount == total && isNew {
+		errMsg = `提取文件失败`
+		status = define.FAQFileStatusExtractFailed
+	}
+	common.UpdateLibFileFaqStatus(fileId, adminUserId, status, errMsg)
 	return nil
 }
