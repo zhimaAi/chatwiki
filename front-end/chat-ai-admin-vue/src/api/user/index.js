@@ -144,3 +144,7 @@ export const checkAliOcr = (data) => {
 export const saveAliOcr = (data) => {
   return request.post({ url: '/manage/saveAliOcr', data })
 }
+
+export const saveTopNavigate = (data) => {
+  return request.post({ url: '/manage/saveTopNavigate', data })
+}

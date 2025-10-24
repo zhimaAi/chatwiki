@@ -68,7 +68,11 @@ const md = new CherryEngine({
         editCode: false, // 是否显示“编辑”按钮
         changeLang: true // 是否显示“切换语言”按钮
       },
+      link: {
+        target: '_blank',
+      },
       autoLink: {
+        target: '_blank',
         enableShortLink: false
       },
       header: {

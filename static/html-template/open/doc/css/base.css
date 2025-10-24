@@ -409,6 +409,34 @@ video {
   display: block;
 }
 
+.preview-tips{
+  position: relative;
+  display: none;
+}
+.preview-tips-content{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  line-height: 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.88);
+  background-color: #fffbe6;
+  border: 1px solid #ffe58f;
+  word-wrap: break-word;
+  box-sizing: border-box;
+}
+.preview-tips .tips-icon{
+  margin-right: 8px;
+}
+.preview-tips .tips-icon svg{
+  vertical-align: -2px;
+}
+.preview-tips .tips-text{
+ 
+}
+
 @media (max-width: 992px) {
   .wiki-sidebar-mask {
     display: none;

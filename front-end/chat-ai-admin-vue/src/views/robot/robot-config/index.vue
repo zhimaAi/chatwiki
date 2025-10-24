@@ -1,7 +1,15 @@
 <style lang="less" scoped>
+.robot-main-container {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 .robot-page-layout {
   display: flex;
   height: 100%;
+  flex: 1;
   width: 100%;
   border: 2px;
   overflow: hidden;
@@ -16,30 +24,8 @@
     width: 255px;
     height: 100%;
     border-right: 1px solid #f2f4f7;
-
-    .robot-name-box {
-      display: flex;
-      align-items: center;
-      padding: 24px 24px 16px 24px;
-
-      .robot-avatar {
-        width: 20px;
-        height: 20px;
-        margin-right: 8px;
-        border-radius: 2px;
-      }
-
-      .robot-name {
-        flex: 1;
-        line-height: 22px;
-        font-size: 14px;
-        font-weight: 600;
-        color: #262626;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-      }
-    }
+    border-top: 1px solid #f2f4f7;
+    border-radius: 6px;
   }
 
   .layout-body {
@@ -51,17 +37,15 @@
 </style>
 
 <template>
-  <div class="robot-page-layout">
-    
-    <div class="layout-left" v-if="isShowLeft">
-      <div class="robot-name-box">
-        <img class="robot-avatar" :src="robotInfo.robot_avatar_url" alt="" />
-        <span class="robot-name">{{ robotInfo.robot_name }}</span>
+  <div class="robot-main-container">
+    <div class="robot-page-layout">
+      <div class="layout-left" v-if="isShowLeft">
+        <TopHeader />
+        <leftMenu @changeMenu="changeMenu" :robotInfo="robotInfo" />
       </div>
-      <leftMenu @changeMenu="changeMenu" :robotInfo="robotInfo" />
-    </div>
-    <div class="layout-body">
-      <router-view></router-view>
+      <div class="layout-body">
+        <router-view></router-view>
+      </div>
     </div>
   </div>
 </template>
@@ -74,44 +58,49 @@ import { useRobotStore } from '@/stores/modules/robot'
 import leftMenu from './components/left-menu.vue'
 import { getRobotPermission } from '@/utils/permission'
 
+import TopHeader from './components/top-header.vue'
+
 export default defineComponent({
   name: 'robotPage',
   components: {
-    leftMenu
+    leftMenu,
+    TopHeader
   },
   async beforeRouteEnter(to, from, next) {
     const robotStore = useRobotStore()
-    const { getRobot, robotInfo } = robotStore
+    const { getRobot, robotInfo, getRobotLists, getGroupList } = robotStore
     await getRobot(to.query.id)
+    getRobotLists()
+    getGroupList()
     let key = getRobotPermission(to.query.id)
-    if(key == 0){
+    if (key == 0) {
       next(`/no-permission`)
       return
     }
-    if(key == 1){
+    if (key == 1) {
       // 只用查看权限
       window.location.href = `${robotInfo.h5_domain}/#/chat/pc?robot_key=${robotInfo.robot_key}`
       next(`/robot/list`)
       return
     }
-
-    if(robotInfo.application_type == 1 && to.name == 'basicConfig'){
+    let workFlowFilterRouter = ['basicConfig', 'libraryConfig', 'skillConfig']
+    if (robotInfo.application_type == 1 && workFlowFilterRouter.includes(to.name)) {
       next(`/robot/config/workflow?id=${robotInfo.id}&robot_key=${robotInfo.robot_key}`)
       return
     }
-    if(robotInfo.application_type == 0 && to.name == 'robotWorkflow'){
+    if (robotInfo.application_type == 0 && to.name == 'robotWorkflow') {
       next(`/robot/config/basic-config?id=${robotInfo.id}&robot_key=${robotInfo.robot_key}`)
       return
     }
     next()
   },
-  
+
   setup() {
     const router = useRouter()
     const robotStore = useRobotStore()
     const { robotInfo } = storeToRefs(robotStore)
     // 基本配置
-    const isShowLeft = computed(()=>{
+    const isShowLeft = computed(() => {
       return useRoute().name != 'robotWorkflow'
     })
     const changeMenu = (item) => {

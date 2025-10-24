@@ -169,7 +169,6 @@ const defaultAvatar = LIBRARY_OPEN_AVATAR
 
 const formState = reactive({
   type: type.value,
-  access_rights: 0,
   library_name: '',
   library_intro: '',
   use_model: '',

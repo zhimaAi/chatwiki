@@ -1,16 +1,36 @@
-.document-page {
+.page-wrapper {
   display: flex;
+  flex-flow: column;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+.page-container{
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+.page-left,
+.page-body,
+.page-right{
+  height: 100%;
+  overflow: hidden;
+}
+
+.page-body{
+  flex: 1;
+  overflow-y: auto;
 }
 
 .document-page > .document-page-left {
   width: 256px;
-  height: 100vh;
+  height: 100%;
   border-right: 1px solid #d9d9d9;
 }
 
 .document-page > .document-page-body {
   flex: 1;
-  height: 100vh;
+  height: 100%;
   padding: 80px 53px 24px 53px;
   overflow: hidden;
   overflow-y: auto;
@@ -18,7 +38,7 @@
 
 .document-page > .document-page-right {
   width: 320px;
-  min-height: 100vh;
+  min-height: 100%;
   padding-top: 80px;
   border-left: 1px solid #d9d9d9;
 }
@@ -27,6 +47,7 @@
   width: 100%;
   max-width: 1000px;
   margin: 0 auto;
+  padding: 16px;
 }
 .vditor-reset {
   overflow: hidden;
@@ -58,8 +79,8 @@
   color: #1366ec !important;
 }
 @media (max-width: 992px) {
-  .document-page {
-    flex-direction: column;
+  .page-wrapper{
+    flex-flow: column;
   }
   .document-page > .document-page-left {
     width: auto;
@@ -67,9 +88,6 @@
     border-right: 0;
   }
   .document-page-header {
-    position: fixed;
-    left: 0;
-    right: 0;
     display: flex;
     align-items: center;
     padding: 2px 16px;
@@ -110,5 +128,12 @@
   }
   .document-page > .document-page-body {
     padding: 60px 16px 16px 16px;
+  }
+
+  .document-footer .page-turning{
+    flex-flow: column;
+  }
+  .document-footer .page-turning .w-icon{
+    display: none;
   }
 }

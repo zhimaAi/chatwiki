@@ -33,16 +33,13 @@
 </template>
 
 <script setup>
-import { getLibraryInfo, editLibrary } from '@/api/library/index'
-import { reactive, ref, toRaw, onMounted, computed } from 'vue'
+import { reactive, ref, toRaw, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { useRoute } from 'vue-router'
 import ConfigPageMenu from '../components/config-page-menu.vue'
 import LibraryForm from './components/library-form.vue'
+import { usePublicLibraryStore } from '@/stores/modules/public-library'
 
-const route = useRoute()
-
-const id = computed(() => route.query.library_id)
+const libraryStore = usePublicLibraryStore()
 
 const state = reactive({
   type: 1,
@@ -88,15 +85,13 @@ const submit = async () => {
     delete data.avatar_file
   }
 
-  await editLibrary(data)
+  await libraryStore.saveEditLibrary(data)
 
   message.success('修改成功')
 }
 
 const getData = () => {
-  getLibraryInfo({ id: id.value }).then((res) => {
-    Object.assign(state, res.data)
-  })
+  Object.assign(state, {...libraryStore.libraryInfo})
 }
 
 onMounted(() => {

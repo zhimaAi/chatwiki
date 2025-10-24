@@ -111,9 +111,14 @@
           <template #label>
             <div class="space-between-box">
               <div>提示词</div>
-              <div class="btn-hover-wrap" @click="onShowAddPromptModal">
-                <DownloadOutlined />从提示词库导入
-              </div>
+              <a-flex :gap="8">
+                <div class="btn-hover-wrap" @click="onShowAddPromptModal">
+                  <DownloadOutlined />从提示词库导入
+                </div>
+                <div class="btn-hover-wrap" @click="handleOpenFullAtModal">
+                  <FullscreenOutlined />
+                </div>
+              </a-flex>
             </div>
           </template>
           <!-- {{ formState.prompt }} -->
@@ -181,6 +186,17 @@
       </div>
     </a-form>
     <ImportPrompt @ok="handleSavePrompt" ref="importPromptRef" />
+    <FullAtInput
+      :options="variableOptions"
+      :defaultSelectedList="formState.prompt_tags"
+      :defaultValue="formState.prompt"
+      placeholder="请输入消息内容，键入“/”可以插入变量"
+      type="textarea"
+      @open="getVlaueVariableList"
+      @change="(text, selectedList) => changeValue(text, selectedList)"
+      @ok="handleRefreshAtInput"
+      ref="fullAtInputRef"
+    />
   </div>
 </template>
 
@@ -190,13 +206,14 @@ import {
   QuestionCircleOutlined,
   UpOutlined,
   DownOutlined,
-  DownloadOutlined
+  DownloadOutlined,
+  FullscreenOutlined
 } from '@ant-design/icons-vue'
 import AtInput from '../at-input/at-input.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import ImportPrompt from '@/components/import-prompt/index.vue'
 import { haveOutKeyNode } from '@/views/workflow/components/util.js'
-
+import FullAtInput from '../components/full-at-input.vue'
 import { useRobotStore } from '@/stores/modules/robot'
 const robotStore = useRobotStore()
 
@@ -384,7 +401,7 @@ function transformArray(arr, parentLabel = '') {
 }
 
 const onUpatateNodeName = (data) => {
-  if (!haveOutKeyNode.includes(data.node_type)) {
+  if(!haveOutKeyNode.includes(data.node_type)){
     return
   }
   getVlaueVariableList()
@@ -424,8 +441,10 @@ const handleSavePrompt = (item) => {
 }
 function getOptions() {
   let list = getNode().getAllParentVariable()
+
   variableOptionsSelect.value = handleOptions(list)
 }
+
 
 const knowledgeQuoteOptions = computed(() => {
   let list = variableOptionsSelect.value.filter((item) => item.node_type == 5)
@@ -471,6 +490,15 @@ const show_enable_thinking = computed(() => {
   let key = formState.model_config_id + '#' + formState.use_model
   return choosable_thinking.value[key]
 })
+
+const fullAtInputRef = ref(null)
+const handleOpenFullAtModal = () => {
+  fullAtInputRef.value.show()
+}
+
+const handleRefreshAtInput = () => {
+  atInputRef.value.refresh()
+}
 
 onMounted(() => {
   const mode = graphModel()

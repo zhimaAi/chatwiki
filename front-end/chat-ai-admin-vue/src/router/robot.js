@@ -13,7 +13,10 @@ export default {
         hideTitle: true,
         activeMenu: '/robot',
         bgColor: '#ffffff',
-        pageStyle: {}
+        pageStyle: {
+          'padding-right': 0,
+          overflow: 'hidden'
+        }
       }
     },
     {
@@ -55,15 +58,33 @@ export default {
             isCustomPage: true
           }
         },
-        // {
-        //   path: '/robot/config/api-key-manage',
-        //   name: 'apiKeyManage',
-        //   component: () => import('@/views/robot/api-key-manage/index.vue'),
-        //   meta: {
-        //     title: 'API key管理',
-        //     isCustomPage: true
-        //   }
-        // },
+        {
+          path: '/robot/config/library-config',
+          name: 'libraryConfig',
+          component: () => import('@/views/robot/robot-config/library-config/index.vue'),
+          meta: {
+            title: '知识库',
+            isCustomPage: true
+          }
+        },
+        {
+          path: '/robot/config/skill-config',
+          name: 'skillConfig',
+          component: () => import('@/views/robot/robot-config/skill-config/index.vue'),
+          meta: {
+            title: '工作流',
+            isCustomPage: true
+          }
+        },
+        {
+          path: '/robot/config/api-key-manage',
+          name: 'apiKeyManage',
+          component: () => import('@/views/robot/api-key-manage/index.vue'),
+          meta: {
+            title: 'API key管理',
+            isCustomPage: true
+          }
+        },
         {
           path: '/robot/config/qa-feedbacks',
           name: 'qaFeedbacks',
@@ -88,6 +109,15 @@ export default {
           component: () => import('@/views/robot/robot-config/export-record/index.vue'),
           meta: {
             title: '导出记录',
+            isCustomPage: true
+          }
+        },
+        {
+          path: '/robot/config/unknown_issue',
+          name: 'unknownIssue',
+          component: () => import('@/views/robot/robot-config/unknown_issue/unknow-index.vue'),
+          meta: {
+            title: '未知问题',
             isCustomPage: true
           }
         },

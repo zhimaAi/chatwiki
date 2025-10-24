@@ -66,12 +66,41 @@ export const editExternalConfig = (data = {}) => {
   })
 }
 
+export const getWechatAppList = ({ robot_id, app_type, app_name }) => {
+  return request.get({
+    url: '/manage/getWechatAppList',
+    params: {
+      robot_id,
+      app_type,
+      app_name
+    }
+  })
+}
+
+export const saveWechatApp = (data) => {
+  return request.post({
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    },
+    url: '/manage/saveWechatApp',
+    data: data
+  })
+}
+
+export const deleteWechatApp = ({ id }) => {
+  return request.post({
+    url: '/manage/deleteWechatApp',
+    data: { id }
+  })
+}
+
 export const getFastCommandList = (params = {}) => {
   return request.get({
     url: '/manage/getFastCommandList',
     params: params
   })
 }
+
 
 export const getFastCommandInfo = (params = {}) => {
   return request.get({
@@ -227,9 +256,107 @@ export const robotImport = (data = {}) => {
   })
 }
 
+export const getUnknownIssueSummary = (params = {}) => {
+  return request.get({
+    url: '/manage/getUnknownIssueSummary',
+    params: params
+  })
+}
+
+export const setUnknownIssueSummary = (data = {}) => {
+  return request.post({
+    url: '/manage/setUnknownIssueSummary',
+    data: data
+  })
+}
+
+
+export const unknownIssueSummaryImport = (data = {}) => {
+  return request.post({
+    url: '/manage/unknownIssueSummaryImport',
+    data: data
+  })
+}
+
+export const unknownIssueSummaryAnswer = (data = {}) => {
+  return request.post({
+    url: '/manage/unknownIssueSummaryAnswer',
+    data: data
+  })
+}
+
+export const relationLibrary = (data = {}) => {
+  return request.post({
+    url: '/manage/relationLibrary',
+    data: data
+  })
+}
+
+export const robotAutoAdd = (data = {}) => {
+  return request.post({
+    url: '/manage/robotAutoAdd',
+    data: data
+  })
+}
+
+export const getRobotGroupList = (params = {}) => {
+  return request.get({
+    url: '/manage/getRobotGroupList',
+    params: params
+  })
+}
+
+export const saveRobotGroup = (data = {}) => {
+  return request.post({
+    url: '/manage/saveRobotGroup',
+    data: data
+  })
+}
+
+export const deleteRobotGroup = (data = {}) => {
+  return request.post({
+    url: '/manage/deleteRobotGroup',
+    data: data
+  })
+}
+
+export const relationRobotGroup = (data = {}) => {
+  return request.post({
+    url: '/manage/relationRobotGroup',
+    data: data
+  })
+}
+
 export const callWorkFlow = (data = {}) => {
   return request.post({
     url: '/chat/callWorkFlow',
+    data: data
+  })
+}
+export const workFlowNextVersion = (data = {}) => {
+  return request.post({
+    url: '/manage/workFlowNextVersion',
+    data: data
+  })
+}
+
+export const workFlowPublishVersion = (data = {}) => {
+  return request.post({
+    url: '/manage/workFlowPublishVersion',
+    data: data
+  })
+}
+
+export const workFlowVersions = (data = {}) => {
+  return request.post({
+    url: '/manage/workFlowVersions',
+    data: data
+  })
+}
+
+export const workFlowVersionDetail = (data = {}) => {
+  return request.post({
+    url: '/manage/workFlowVersionDetail',
     data: data
   })
 }

@@ -40,16 +40,18 @@ func GetDialogueId(chatBaseParam *define.ChatBaseParam, question string) (int, e
 	}, `id`)
 	if err == nil { //clear cached data
 		lib_redis.DelCacheData(define.Redis, &DialogueCacheBuildHandler{DialogueId: int(id)})
+		lib_redis.DelCacheData(define.Redis, &WeChatDialogueCacheBuildHandler{
+			AdminUserId: chatBaseParam.AdminUserId, RobotId: cast.ToInt(chatBaseParam.Robot[`id`]), Openid: chatBaseParam.Openid})
 	}
 	return int(id), err
 }
 
-func sessionCacheKey(dialogueId int) string {
+func SessionCacheKey(dialogueId int) string {
 	return fmt.Sprintf(`chatwiki.get_session.by_dialogue.%d`, dialogueId)
 }
 
 func GetSessionId(params *define.ChatRequestParam, dialogueId int) (int, error) {
-	cacheKey := sessionCacheKey(dialogueId)
+	cacheKey := SessionCacheKey(dialogueId)
 	sessionId, err := define.Redis.Get(context.Background(), cacheKey).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return 0, err
@@ -58,9 +60,14 @@ func GetSessionId(params *define.ChatRequestParam, dialogueId int) (int, error) 
 		return sessionId, nil
 	}
 	//create new session
+	var appId string
+	if params.ChatBaseParam != nil && len(params.AppInfo) > 0 {
+		appId = params.AppInfo[`app_id`]
+	}
 	id, err := msql.Model(`chat_ai_session`, define.Postgres).Insert(msql.Datas{
 		`admin_user_id`:     params.ChatBaseParam.AdminUserId,
 		`app_type`:          params.ChatBaseParam.AppType,
+		`app_id`:            appId,
 		`dialogue_id`:       dialogueId,
 		`robot_id`:          params.ChatBaseParam.Robot[`id`],
 		`openid`:            params.ChatBaseParam.Openid,
@@ -94,7 +101,7 @@ func UpLastChat(dialogueId, sessionId int, lastChat msql.Datas, isCustomer int) 
 		return
 	}
 	//update session_id ttl
-	_, err = define.Redis.Expire(context.Background(), sessionCacheKey(dialogueId), GetSessionTtl()).Result()
+	_, err = define.Redis.Expire(context.Background(), SessionCacheKey(dialogueId), GetSessionTtl()).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		logs.Error(err.Error())
 	}

@@ -19,7 +19,7 @@
       @input="divInput" 
       @keydown="dropDownKeydown"
       @click="clickJMention"></div>
-        <div class="placeholder" v-if="localValue.length == 0">{{ placeholder }}</div>
+        <span class="placeholder" v-if="localValue.length == 0">{{ placeholder }}</span>
     </div>
   </div>
 </template>
@@ -99,6 +99,11 @@ export default {
     };
   },
   watch: {
+    defaultValue(val){
+      if(!val || val == ''){
+        this.refresh()
+      }
+    },
     chooseIndex() {},
     showAtList(val){
       this.onOpen(val);
@@ -590,17 +595,29 @@ export default {
 <style lang="less" scoped>
 .mention-input-warpper {
   position: relative; 
-  overflow-x: hidden; 
-  overflow-y: hidden
+  overflow: hidden; 
+  border-radius: 6px;
+  padding: 4px 8px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+
+  &:hover {
+    border: 1px solid #409eff;
+  }
+
+  &:focus {
+    border-color: #4d94ff;
+    box-shadow: 0 0 0 2px rgba(5, 138, 255, 0.06);
+    border-inline-end-width: 1px;
+    outline: 0;
+  }
 }
 .j-mention {
   position: relative;
   overflow: scroll;
   width: 100%;
-  min-height: 32px;
-  border-radius: 6px;
-  padding: 4px 11px;
-  border: 1px solid #d9d9d9;
+  line-height: 24px;
+  min-height: 24px;
   outline: none;
   background: #fff;
 
@@ -614,17 +631,6 @@ export default {
     white-space: pre-wrap;
     word-wrap: break-word;
     min-height: 64px;
-  }
-
-  &:hover {
-    border: 1px solid #409eff;
-  }
-
-  &:focus {
-    border-color: #4d94ff;
-    box-shadow: 0 0 0 2px rgba(5, 138, 255, 0.06);
-    border-inline-end-width: 1px;
-    outline: 0;
   }
 
   &::-webkit-scrollbar {
@@ -648,10 +654,14 @@ export default {
     position: absolute;
     top: 0;
     left: 0;
-    padding: 4px 11px;
+    right: 0;
+    line-height: 24px;
+    overflow: hidden;
+    padding: 4px 8px;
     color: #bfbfbf;
     pointer-events: none;
     user-select: none;
+    white-space: nowrap;
   }
 .dropdown-list {
   position: fixed;

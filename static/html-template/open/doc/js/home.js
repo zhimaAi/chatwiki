@@ -144,6 +144,12 @@ function onFloatBtnHover(event, status) {
 }
 
 function clickQuestionGuide(e){
+  // 预览页面不支持搜索
+  let preview_key = $("#preview_key").val();
+  if(preview_key){
+    layer.alert('预览模式不支持搜索');  
+    return;
+  }
   let libraryKey = $("#library_key").val();
   let keyword = $(e.target).data('question');
 

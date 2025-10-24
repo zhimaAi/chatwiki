@@ -112,7 +112,7 @@
 import { PlusOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
 import NodeCommon from '../base-node.vue'
 import AtInput from '../at-input/at-input.vue'
-
+import { haveOutKeyNode } from '@/views/workflow/components/util.js'
 export default {
   name: 'VariableAssignmentNode',
   inject: ['getNode', 'getGraph', 'setData'],
@@ -171,8 +171,8 @@ export default {
   },
   methods: {
     onUpatateNodeName(data){
-      if(data.node_type !== 'http-node'){
-        return;
+      if(!haveOutKeyNode.includes(data.node_type)){
+        return
       }
       
       this.getValueOptions()

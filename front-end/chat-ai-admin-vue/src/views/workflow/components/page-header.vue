@@ -4,6 +4,9 @@
   align-items: center;
   height: 56px;
   padding: 0 16px;
+  padding-left: 0;
+  box-shadow: 1px 1px 4px 0px rgba(0, 0, 0, 0.1);
+  z-index: 10;
   background: #f0f2f5;
   .ml8 {
     margin-left: 8px;
@@ -27,7 +30,7 @@
     flex: 1;
     display: flex;
     align-items: center;
-    padding-left: 20px;
+    // padding-left: 20px;
   }
 
   .edit-box {
@@ -71,7 +74,6 @@
     color: #262626;
   }
   .robot-status-box {
-    margin-left: 8px;
     display: flex;
     gap: 2px;
     align-items: center;
@@ -106,17 +108,18 @@
 
 <template>
   <div class="page-header">
-    <div class="header-left">
+    <!-- <div class="header-left">
       <div class="back-btn" @click="onBack"><LeftOutlined /></div>
-    </div>
+    </div> -->
     <div class="header-content">
-      <a-image :width="32" :src="robotInfo.robot_avatar_url" />
+      <!-- <a-image :width="32" :src="robotInfo.robot_avatar_url" />
       <div class="robot-name ml8">{{ robotInfo.robot_name }}</div>
       <div class="edit-box" @click="onEdit">
         <svg-icon class="edit-box-icon" name="edit"></svg-icon>
-      </div>
+      </div> -->
+      <TopHeader />
       <template v-if="robotInfo.start_node_key != ''">
-        <div class="robot-status-box status-1">
+        <div class="robot-status-box status-1" @click="onEdit">
           <CheckCircleFilled class="robot-status-icon" />
           <div class="robot-status-text">已发布</div>
         </div>
@@ -129,19 +132,26 @@
       </template>
     </div>
     <div class="header-right" v-if="props.showRight">
-      <div class="last-save-time" v-if="draftSaveTime && draftSaveTime.time">
-        {{ draftSaveTime.time }} {{ draftSaveTime.type == 'handle' ? '手动' : '自动' }}保存草稿
-      </div>
-      <a-button class="save-draft" @click="handleSave">保存草稿</a-button>
-      <a-button type="primary" :loading="props.saveLoading"  class="publish-robot" @click="handleRelease">发布机器人</a-button>
-      <RunTest :start_node_params="start_node_params" @getGlobal="getGlobal" @save="handleSave" />
+      <template v-if="currentVersion == '' ">
+        <div class="last-save-time" v-if="draftSaveTime && draftSaveTime.time">
+          {{ draftSaveTime.time }} {{ draftSaveTime.type == 'handle' ? '手动' : '自动' }}保存草稿
+        </div>
+        <a-button class="save-draft" @click="handleSave">保存草稿</a-button>
+        <a-button type="primary" :loading="props.saveLoading"  class="publish-robot" @click="handleRelease">发布机器人</a-button>
+        <RunTest :start_node_params="start_node_params" @getGlobal="getGlobal" @save="handleSave" />
+      </template>
+      <a-tooltip title="历史发布详情">
+        <a-button @click="getVersionRecord()"><ClockCircleOutlined /></a-button>
+      </a-tooltip>
     </div>
   </div>
 </template>
 
 <script setup>
-import { LeftOutlined, ExclamationCircleFilled, CheckCircleFilled, CaretRightOutlined } from '@ant-design/icons-vue'
+import { LeftOutlined, ExclamationCircleFilled, CheckCircleFilled, ClockCircleOutlined } from '@ant-design/icons-vue'
 import { computed } from 'vue'
+// front-end\chat-ai-admin-vue\src\views\robot\robot-config\components\top-header.vue
+import TopHeader from '@/views/robot/robot-config/components/top-header.vue'
 import { useRouter } from 'vue-router'
 import RunTest from './run-test/index.vue'
 import { useRobotStore } from '@/stores/modules/robot'
@@ -155,7 +165,7 @@ const draftSaveTime = computed(() => {
 
 const router = useRouter()
 
-const emit = defineEmits(['save', 'release', 'edit', 'getGlobal'])
+const emit = defineEmits(['save', 'release', 'edit', 'getGlobal', 'getVersionRecord'])
 const props = defineProps({
   saveLoading: {
     default: false,
@@ -168,6 +178,10 @@ const props = defineProps({
   start_node_params: {
     default: {},
     type: Object
+  },
+  currentVersion:{
+    default: '',
+    type: String
   }
 })
 
@@ -190,4 +204,9 @@ const handleRelease = () => {
 const getGlobal = () => {
   emit('getGlobal')
 }
+
+const getVersionRecord = () => {
+  emit('getVersionRecord')
+}
+
 </script>

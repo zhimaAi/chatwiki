@@ -9,6 +9,7 @@ import librarySearch from './library-search'
 import publicLibrary from './public-library'
 import chatMonitor from './chat-monitor'
 import noPermission from './no-permission'
+import AiExtractFaq from './ai-extract-faq'
 
 const routes = [
   {
@@ -41,11 +42,12 @@ const routes = [
   robot,
   library,
   librarySearch,
-  publicLibrary,
+  ...publicLibrary,
   authority,
   noPermission,
   database,
-  chatMonitor
+  chatMonitor,
+  AiExtractFaq,
 ]
 
 if (import.meta.env.DEV) {

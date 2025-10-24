@@ -164,7 +164,7 @@
       <MessageInput v-if="isMobileDevice" ref="messageInputRef" @showLogin="onShowLogin" @send="onSendMesage" :loading="sendLock" />
       <MessageInputPc v-else  ref="messageInputRef" @showLogin="onShowLogin" @send="onSendMesage" :loading="sendLock"></MessageInputPc>
 
-      <div class="technical-support-text">由 ChatWiki 提供软件支持</div>
+      <div class="technical-support-text">{{ translate('由 ChatWiki 提供软件支持') }} </div>
     </div>
 
     <LogOut v-if="isShowLogOut && externalConfigH5.accessRestrictionsType > 1" class="log-out" :class="{ 'scrolled': isScrolled }" @click="onTrigger" />
@@ -191,6 +191,7 @@ import { showConfirmDialog } from 'vant';
 import MessageInputPc from './components/message-input-pc.vue'
 import { useRoute } from 'vue-router'
 import { useWindowWidth } from './useWindowWidth';
+import { translate } from '@/utils/translate.js'
 
 const { windowWidth } = useWindowWidth();
 const route = useRoute()

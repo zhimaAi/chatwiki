@@ -63,11 +63,11 @@
         </a-radio-group>
       </a-form-item>
 
-      <a-form-item label="分享链接" v-if="formState.access_rights == 1">
+      <a-form-item label="复制链接" v-if="formState.access_rights == 1">
         <div class="share-url-box">
-          <a-input-group compact style="width: 460px">
+          <a-input-group compact style="width: 600px;display: flex;">
             <a-select
-              style="width: 45%"
+              style="width: 250px"
               v-model:value="formState.share_url"
               placeholder="请选择自定义域名"
               @change="onSubmit"
@@ -78,8 +78,8 @@
             </a-select>
             <a-input
               :disabled="true"
-              :value="'/open/home/' + formState.library_key"
-              style="width: 55%"
+              :value="OPEN_BOC_BASE_URL + '/home/' + formState.library_key"
+              style="width: 350px"
             />
           </a-input-group>
 
@@ -96,6 +96,7 @@ import useClipboard from 'vue-clipboard3'
 import { getDomainList } from '@/api/user/index'
 import { reactive, ref, onMounted, watch, computed } from 'vue'
 import { message } from 'ant-design-vue'
+import { OPEN_BOC_BASE_URL } from '@/constants/index'
 
 const { toClipboard } = useClipboard()
 
@@ -122,7 +123,7 @@ const formState = reactive({
 })
 
 const shareUrl = computed(() => {
-  return formState.share_url + '/open/home/' + formState.library_key
+  return formState.share_url + OPEN_BOC_BASE_URL + '/home/' + formState.library_key
 })
 
 const onSubmit = () => {
@@ -136,8 +137,6 @@ const getMyDomainList = () => {
     if (!formState.share_url) {
       if (domainList.value.length > 0) {
         formState.share_url = domainList.value[0].url
-      } else {
-        formState.share_url = window.location.origin
       }
     }
   })
@@ -156,6 +155,8 @@ const setFormState = (val) => {
 const copyText = async () => {
   if (!formState.share_url) {
     message.error('请选择自定义域名')
+
+    return
   }
 
   let text = shareUrl.value

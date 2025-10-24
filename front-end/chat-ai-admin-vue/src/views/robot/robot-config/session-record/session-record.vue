@@ -114,7 +114,7 @@ const datekey = ref('1')
 const requestParams = reactive({
   robot_id: query.id, // 机器人ID
   app_type: 'all', // 应用类型:从来源接口获取
-  app_id: '', // 应用类型:从来源接口获取-云版才有此参数
+  app_id: 'all', // 应用类型:从来源接口获取
   start_time: '', // 开始时间-时间戳
   end_time: '', // 结束时间-时间戳
   name: '', // 客户名称检索
@@ -265,14 +265,17 @@ const openNewChat = async (item) => {
 }
 
 const getChannelLists = async () => {
-  const res = await getChannelList()
+  let params = {
+    robot_id: requestParams.robot_id, // 机器人ID
+  }
+  const res = await getChannelList(params)
   channelItem.value = [...[{ app_type: 'all', app_name: '全部渠道' }], ...res.data]
 }
 
 const getPostParmas = () => {
   let params = {
     robot_id: requestParams.robot_id, // 机器人ID
-    // app_id: requestParams.app_id, // 应用类型:从来源接口获取-云版才有此参数
+    // app_id: requestParams.app_id, // 应用类型:从来源接口获取
     start_time: requestParams.start_time, // 开始时间-时间戳
     end_time: requestParams.end_time, // 结束时间-时间戳
     name: requestParams.name, // 客户名称检索
@@ -281,6 +284,9 @@ const getPostParmas = () => {
   }
   if (requestParams.app_type !== 'all') {
     params.app_type = requestParams.app_type // 应用类型:从来源接口获取
+  }
+  if (requestParams.app_id !== 'all') {
+    params.app_id = requestParams.app_id // 应用类型:从来源接口获取
   }
   return params
 }

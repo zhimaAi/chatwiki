@@ -64,14 +64,14 @@
     @keydown.shift.enter.prevent="onTextEnter"
     @keydown.ctrl.enter.prevent="onTextEnter"
     @keydown.alt.enter.prevent="onTextEnter"
-    placeholder="在此输入您想了解的内容"
+    :placeholder="translate('在此输入您想了解的内容')"
   ></textarea>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import calcTextareaHeight from '@/utils/calcTextareaHeight'
-
+import { translate } from '@/utils/translate.js'
 const props = defineProps({
   value: {
     type: String,

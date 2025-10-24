@@ -250,7 +250,7 @@ func (libraryCsl *LibraryCsl) Import(adminUserId, userId int, cslIdMaps *CslIdMa
 		oldFileDocPId := cast.ToInt(fileDoc[`pid`])
 		newLibFileId := cslIdMaps.LibFiles[cast.ToInt(fileDoc[`file_id`])]
 		newFileDocId, err := SaveLibDoc(adminUserId, userId, newLibraryId, 0, newLibFileId, 0,
-			cast.ToInt(fileDoc[`is_index`]), cast.ToInt(fileDoc[`is_draft`]), fileDoc[`title`], nil, fileDoc[`content`])
+			cast.ToInt(fileDoc[`is_index`]), cast.ToInt(fileDoc[`is_draft`]), fileDoc[`title`], nil, fileDoc[`content`], cast.ToInt(fileDoc[`is_dir`]), fileDoc[`doc_icon`])
 		if err != nil {
 			logs.Error(err.Error())
 		}

@@ -14,6 +14,7 @@ import (
 
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
+	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 )
 
@@ -494,6 +495,29 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 		variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, `special.lib_paragraph_list`))
 	case NodeTypeLlm, NodeTypeReply:
 		variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, `special.llm_reply_content`))
+	case NodeTypeQuestionOptimize:
+		variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, `special.question_optimize_reply_content`))
+	case NodeTypeParamsExtractor:
+		for variable := range common.SimplifyFields(node.NodeParams.ParamsExtractor.Output) {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+				variables = append(variables, variable)
+			}
+		}
+	case NodeTypeFormSelect:
+		for _, variable := range []string{`output_list`, `row_num`} {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+				variables = append(variables, variable)
+			}
+		}
+	case NodeTypeCodeRun:
+		for variable := range common.SimplifyFields(node.NodeParams.CodeRun.Output) {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+				variables = append(variables, variable)
+			}
+		}
 	}
 	return variables
 }
@@ -585,6 +609,9 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 			for _, category := range node.NodeParams.Cate.Categorys {
 				fromNodes.AddRelation(&nodeList[i], category.NextNodeKey)
 			}
+		}
+		if node.NodeType == NodeTypeCodeRun {
+			fromNodes.AddRelation(&nodeList[i], node.NodeParams.CodeRun.Exception)
 		}
 		if tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeFinish, NodeTypeManual}) {
 			finishNodeCount++
@@ -678,6 +705,73 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
 				return
 			}
+		case NodeTypeQuestionOptimize:
+			if variable, ok := CheckVariablePlaceholder(node.NodeParams.QuestionOptimize.Prompt, variables); !ok {
+				err = errors.New(node.NodeName + `节点对话背景变量不存在:` + variable)
+				return
+			}
+			if !tool.InArrayString(node.NodeParams.QuestionOptimize.QuestionValue, variables) {
+				err = errors.New(node.NodeName + `节点问题变量不存在:` + node.NodeParams.QuestionOptimize.QuestionValue)
+				return
+			}
+		case NodeTypeParamsExtractor:
+			if !tool.InArrayString(node.NodeParams.ParamsExtractor.QuestionValue, variables) {
+				err = errors.New(node.NodeName + `节点问题变量不存在:` + node.NodeParams.QuestionOptimize.QuestionValue)
+				return
+			}
+		case NodeTypeFormInsert:
+			for _, field := range node.NodeParams.FormInsert.Datas {
+				if variable, ok := CheckVariablePlaceholder(field.Value, variables); !ok {
+					err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+					return
+				}
+			}
+		case NodeTypeFormDelete:
+			for _, field := range node.NodeParams.FormDelete.Where {
+				if variable, ok := CheckVariablePlaceholder(field.RuleValue1, variables); !ok {
+					err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+					return
+				}
+				if variable, ok := CheckVariablePlaceholder(field.RuleValue2, variables); !ok {
+					err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+					return
+				}
+			}
+		case NodeTypeFormUpdate:
+			for _, field := range node.NodeParams.FormUpdate.Where {
+				if variable, ok := CheckVariablePlaceholder(field.RuleValue1, variables); !ok {
+					err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+					return
+				}
+				if variable, ok := CheckVariablePlaceholder(field.RuleValue2, variables); !ok {
+					err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+					return
+				}
+			}
+			for _, field := range node.NodeParams.FormUpdate.Datas {
+				if variable, ok := CheckVariablePlaceholder(field.Value, variables); !ok {
+					err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+					return
+				}
+			}
+		case NodeTypeFormSelect:
+			for _, field := range node.NodeParams.FormSelect.Where {
+				if variable, ok := CheckVariablePlaceholder(field.RuleValue1, variables); !ok {
+					err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+					return
+				}
+				if variable, ok := CheckVariablePlaceholder(field.RuleValue2, variables); !ok {
+					err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+					return
+				}
+			}
+		case NodeTypeCodeRun:
+			for _, param := range node.NodeParams.CodeRun.Params {
+				if !tool.InArrayString(param.Variable, variables) {
+					err = errors.New(node.NodeName + `节点选择的变量不存在:` + param.Variable)
+					return
+				}
+			}
 		}
 	}
 	var libraryArr []string
@@ -694,6 +788,10 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 			}
 		case NodeTypeLlm:
 			modelConfigId = node.NodeParams.Llm.ModelConfigId.Int()
+		case NodeTypeQuestionOptimize:
+			modelConfigId = node.NodeParams.QuestionOptimize.ModelConfigId.Int()
+		case NodeTypeParamsExtractor:
+			modelConfigId = node.NodeParams.ParamsExtractor.ModelConfigId.Int()
 		}
 		if modelConfigId > 0 {
 			if len(modelConfigIds) > 0 {
@@ -742,6 +840,20 @@ func (node *WorkFlowNode) Verify(adminUserId int) error {
 		err = node.NodeParams.Reply.Verify()
 	case NodeTypeManual:
 		err = node.NodeParams.Manual.Verify(adminUserId)
+	case NodeTypeQuestionOptimize:
+		err = node.NodeParams.QuestionOptimize.Verify(adminUserId)
+	case NodeTypeParamsExtractor:
+		err = node.NodeParams.ParamsExtractor.Verify(adminUserId)
+	case NodeTypeFormInsert:
+		err = node.NodeParams.FormInsert.Verify(adminUserId)
+	case NodeTypeFormDelete:
+		err = node.NodeParams.FormDelete.Verify(adminUserId)
+	case NodeTypeFormUpdate:
+		err = node.NodeParams.FormUpdate.Verify(adminUserId)
+	case NodeTypeFormSelect:
+		err = node.NodeParams.FormSelect.Verify(adminUserId)
+	case NodeTypeCodeRun:
+		err = node.NodeParams.CodeRun.Verify()
 	}
 	if err != nil {
 		return errors.New(node.NodeName + `节点:` + err.Error())
@@ -874,6 +986,9 @@ func (params *LibsNodeParams) Verify(adminUserId int) error {
 	if len(params.LibraryIds) == 0 || !common.CheckIds(params.LibraryIds) {
 		return errors.New(`关联知识库为空或参数错误`)
 	}
+	if len(params.QuestionValue) == 0 {
+		return errors.New(`用户问题不能为空`)
+	}
 	for _, libraryId := range strings.Split(params.LibraryIds, `,`) {
 		info, err := common.GetLibraryInfo(cast.ToInt(libraryId), adminUserId)
 		if err != nil {
@@ -956,4 +1071,205 @@ func (params *ReplyNodeParams) Verify() error {
 
 func (params *ManualNodeParams) Verify(adminUserId int) error {
 	return errors.New(`仅云版支持转人工节点`)
+}
+
+func checkFormId(adminUserId, formId int) error {
+	if formId <= 0 {
+		return errors.New(`未选择操作的数据表`)
+	}
+	form, err := msql.Model(`form`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, cast.ToString(formId)).Where(`delete_time`, `0`).Field(`id`).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	if len(form) == 0 {
+		return errors.New(`数据表信息不存在`)
+	}
+	return nil
+}
+
+func checkFormDatas(adminUserId, formId int, datas []FormFieldValue) error {
+	if len(datas) == 0 {
+		return errors.New(`字段列表不能为空`)
+	}
+	fields, err := msql.Model(`form_field`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`form_id`, cast.ToString(formId)).ColumnMap(`type,required,description`, `name`)
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	maps := map[string]struct{}{}
+	for i, data := range datas {
+		if len(data.Name) == 0 {
+			return errors.New(fmt.Sprintf(`第%d行:字段名参数不能为空`, i+1))
+		}
+		field, ok := fields[data.Name]
+		if !ok {
+			return errors.New(fmt.Sprintf(`第%d行:字段名%s不存在于数据表`, i+1, data.Name))
+		}
+		if len(data.Type) == 0 || data.Type != field[`type`] {
+			return errors.New(fmt.Sprintf(`第%d行:字段名%s(%s)类型与数据表不一致`, i+1, data.Name, field[`description`]))
+		}
+		if len(data.Value) == 0 && cast.ToBool(field[`required`]) {
+			return errors.New(fmt.Sprintf(`第%d行:字段名%s(%s)为必要字段,不能为空`, i+1, data.Name, field[`description`]))
+		}
+		if _, ok := maps[data.Name]; ok {
+			return errors.New(fmt.Sprintf(`第%d行:字段名%s(%s)重复出现在字段列表`, i+1, data.Name, field[`description`]))
+		}
+		maps[data.Name] = struct{}{}
+	}
+	return nil
+}
+
+func checkFormWhere(adminUserId, formId int, where []define.FormFilterCondition) error {
+	if len(where) == 0 {
+		return errors.New(`条件列表不能为空`)
+	}
+	fields, err := msql.Model(`form_field`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`form_id`, cast.ToString(formId)).ColumnMap(`name,type,description`, `id`)
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	fields[`0`] = msql.Params{`name`: `id`, `type`: `integer`, `description`: `ID`} //追加一个ID,用于兼容处理
+	for i, condition := range where {
+		if condition.FormFieldId < 0 { //特比注意,这里可以等于0
+			return errors.New(fmt.Sprintf(`第%d行:选择字段参数非法`, i+1))
+		}
+		field, ok := fields[cast.ToString(condition.FormFieldId)]
+		if !ok {
+			return errors.New(fmt.Sprintf(`第%d行:选择的字段不存在于数据表`, i+1))
+		}
+		if err = condition.Check(field[`type`], true); err != nil {
+			return errors.New(fmt.Sprintf(`第%d行:字段名%s(%s)校验错误:%s`, i+1, field[`name`], field[`description`], err.Error()))
+		}
+	}
+	return nil
+}
+
+func checkFormFields(adminUserId, formId int, Fields []FormFieldTyp) error {
+	if len(Fields) == 0 {
+		return errors.New(`字段列表不能为空`)
+	}
+	fields, err := msql.Model(`form_field`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`form_id`, cast.ToString(formId)).ColumnMap(`type,description`, `name`)
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	maps := map[string]struct{}{}
+	for i, data := range Fields {
+		if len(data.Name) == 0 {
+			return errors.New(fmt.Sprintf(`第%d行:字段名参数不能为空`, i+1))
+		}
+		field, ok := fields[data.Name]
+		if !ok {
+			return errors.New(fmt.Sprintf(`第%d行:字段名%s不存在于数据表`, i+1, data.Name))
+		}
+		if len(data.Type) == 0 || data.Type != field[`type`] {
+			return errors.New(fmt.Sprintf(`第%d行:字段名%s(%s)类型与数据表不一致`, i+1, data.Name, field[`description`]))
+		}
+		if _, ok := maps[data.Name]; ok {
+			return errors.New(fmt.Sprintf(`第%d行:字段名%s(%s)重复出现在字段列表`, i+1, data.Name, field[`description`]))
+		}
+		maps[data.Name] = struct{}{}
+	}
+	return nil
+}
+
+func (params *FormInsertNodeParams) Verify(adminUserId int) error {
+	if err := checkFormId(adminUserId, params.FormId.Int()); err != nil {
+		return err
+	}
+	if err := checkFormDatas(adminUserId, params.FormId.Int(), params.Datas); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (params *FormDeleteNodeParams) Verify(adminUserId int) error {
+	if err := checkFormId(adminUserId, params.FormId.Int()); err != nil {
+		return err
+	}
+	if !tool.InArrayInt(params.Typ.Int(), []int{1, 2}) {
+		return errors.New(`条件之间关系参数错误`)
+	}
+	if err := checkFormWhere(adminUserId, params.FormId.Int(), params.Where); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (params *FormUpdateNodeParams) Verify(adminUserId int) error {
+	if err := checkFormId(adminUserId, params.FormId.Int()); err != nil {
+		return err
+	}
+	if !tool.InArrayInt(params.Typ.Int(), []int{1, 2}) {
+		return errors.New(`条件之间关系参数错误`)
+	}
+	if err := checkFormWhere(adminUserId, params.FormId.Int(), params.Where); err != nil {
+		return err
+	}
+	if err := checkFormDatas(adminUserId, params.FormId.Int(), params.Datas); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (params *FormSelectNodeParams) Verify(adminUserId int) error {
+	if err := checkFormId(adminUserId, params.FormId.Int()); err != nil {
+		return err
+	}
+	if !tool.InArrayInt(params.Typ.Int(), []int{1, 2}) {
+		return errors.New(`条件之间关系参数错误`)
+	}
+	if err := checkFormWhere(adminUserId, params.FormId.Int(), params.Where); err != nil {
+		return err
+	}
+	if err := checkFormFields(adminUserId, params.FormId.Int(), params.Fields); err != nil {
+		return err
+	}
+	for _, order := range params.Order {
+		if !tool.InArrayString(order.Name, []string{`id`, `create_time`, `update_time`}) {
+			return fmt.Errorf(`不支持%s用于排序操作`, order.Name)
+		}
+	}
+	if params.Limit <= 0 || params.Limit > 1000 {
+		return errors.New(`查询数量范围:1~1000`)
+	}
+	return nil
+}
+
+func (params *CodeRunNodeParams) Verify() error {
+	maps := map[string]struct{}{}
+	for idx, param := range params.Params {
+		if !common.IsVariableName(param.Field) {
+			return errors.New(fmt.Sprintf(`自定义输入参数KEY格式错误:%s`, param.Field))
+		}
+		if len(param.Variable) == 0 {
+			return errors.New(fmt.Sprintf(`第%d个自定义输入参数:请选择变量`, idx+1))
+		}
+		if !common.IsVariableNames(param.Variable) {
+			return errors.New(fmt.Sprintf(`第%d个自定义输入参数:变量格式错误`, idx+1))
+		}
+		if _, ok := maps[param.Field]; ok {
+			return errors.New(fmt.Sprintf(`自定义输入参数KEY重复定义:%s`, param.Field))
+		}
+		maps[param.Field] = struct{}{}
+	}
+	ok, err := regexp.MatchString(`function\s+main\s*\(.*\)\s*\{`, params.MainFunc)
+	if err != nil || !ok {
+		return errors.New(`JavaScript代码缺少main函数`)
+	}
+	if params.Timeout < 1 || params.Timeout > 60 {
+		return errors.New(`代码运行超时时间范围1~60秒`)
+	}
+	if err = params.Output.Verify(); err != nil {
+		return err
+	}
+	if len(params.Exception) == 0 || !common.IsMd5Str(params.Exception) {
+		return errors.New(`异常处理:下一个节点未指定或格式错误`)
+	}
+	return nil
 }

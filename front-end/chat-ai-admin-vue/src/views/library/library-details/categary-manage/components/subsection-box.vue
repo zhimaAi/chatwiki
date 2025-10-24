@@ -7,8 +7,10 @@
           <template v-else>分段 （共{{ props.total }}个分段）</template>
         </template>
         <template #default="{ record, index }">
-          <a v-if="record.file_name" class="file-name-text" @click="toFileDetail(record)">{{ record.file_name }}</a>
-          <div v-else class="file-name-text" style="color: #F40;">原文档已删除</div>
+          <a v-if="record.file_name" class="file-name-text" @click="toFileDetail(record)">{{
+            record.file_name
+          }}</a>
+          <div v-else class="file-name-text" style="color: #f40">原文档已删除</div>
           <template v-if="isQaLibray">
             <div class="qa-list-box">
               <div class="list-item">
@@ -70,7 +72,23 @@
       <a-table-column title="操作" key="action" data-index="action" :width="120">
         <template #default="{ record, index }">
           <div class="right-opration">
-            <a-dropdown>
+            <div class="hover-btn-box" v-if="isQaLibray">
+              <a-popconfirm
+                v-if="record.category_id > 0"
+                title="是否取消该标记？"
+                ok-text="确定"
+                cancel-text="取消"
+                @confirm="handleSetCategory(record, {})"
+              >
+                <StarFilled :style="{ color: getColor(record), 'font-size': '16px' }" />
+              </a-popconfirm>
+              <StarOutlined
+                @click="handleSetCategory(record, startLists[0])"
+                style="font-size: 16px"
+                v-else
+              />
+            </div>
+            <a-dropdown v-else>
               <div class="hover-btn-box">
                 <a-popconfirm
                   v-if="record.category_id > 0"
@@ -104,6 +122,7 @@
                 </a-menu>
               </template>
             </a-dropdown>
+
             <a-tooltip>
               <template #title>重新转换</template>
               <div class="hover-btn-box" @click="toReSegmentationPage(record, index)">
@@ -233,7 +252,7 @@ const hanldleDelete = (record) => {
 
 const startLists = ref([])
 const getCategoryLists = () => {
-  getCategoryList({library_id: query.id}).then((res) => {
+  getCategoryList({ library_id: query.id }).then((res) => {
     startLists.value = res.data || []
     emit('getStatrList', res.data || [])
   })
@@ -250,7 +269,7 @@ const getColor = (data) => {
   if (type) {
     return colorLists[type]
   } else {
-    return '#F4EA2A'
+    return '#F59A23'
   }
 }
 const handleSetCategory = (item, star = {}) => {
@@ -308,6 +327,7 @@ defineExpose({ handleOpenEditModal })
     }
     .list-content {
       flex: 1;
+      word-break: break-all;
     }
   }
 }

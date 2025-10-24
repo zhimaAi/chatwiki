@@ -1,7 +1,5 @@
 <style lang="less" scoped>
 .side-meuns {
-  padding: 0 8px;
-
   .side-meun-item {
     display: flex;
     align-items: center;
@@ -9,6 +7,10 @@
     line-height: 22px;
     border-radius: 6px;
     cursor: pointer;
+
+    .meun-item-body{
+      flex: 1;
+    }
 
     .menu-icon {
       font-size: 14px;
@@ -45,8 +47,14 @@
         @click="handdleMenu(item)"
         v-if="checkPermission(item.permissions)"
       >
-        <svg-icon class="menu-icon" :name="item.icon"></svg-icon>
-        <span class="menu-name">{{ item.name }}</span>
+        <div class="meun-item-body">
+          <svg-icon class="menu-icon" :name="item.icon"></svg-icon>
+          <span class="menu-name">{{ item.name }}</span>
+        </div>
+
+        <div class="actions-box">
+          
+        </div>
       </div>
     </template>
   </div>
@@ -56,6 +64,7 @@
 import { usePublicLibraryStore } from '@/stores/modules/public-library'
 
 const emit = defineEmits(['menuClick'])
+const libraryStore = usePublicLibraryStore()
 
 const props = defineProps({
   menus: {
@@ -68,9 +77,10 @@ const props = defineProps({
   }
 })
 
-const { checkPermission } = usePublicLibraryStore()
+const { checkPermission } = libraryStore
 
 const handdleMenu = (item) => {
   emit('menuClick', item)
 }
+
 </script>

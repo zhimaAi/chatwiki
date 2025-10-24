@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
@@ -29,7 +30,7 @@ func GetRobotList(c *gin.Context) {
 	}
 
 	m := msql.Model(`chat_ai_robot`, define.Postgres).
-		Field(`id,robot_name,robot_intro,robot_avatar,robot_key,application_type,creator,start_node_key`).
+		Field(`id,robot_name,robot_intro,robot_avatar,robot_key,application_type,creator,start_node_key,group_id`).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id desc`)
 
 	applicationType := cast.ToInt(c.DefaultQuery(`application_type`, `-1`))
@@ -65,7 +66,7 @@ func GetRobotList(c *gin.Context) {
 		for _, permission := range permissionData {
 			managedRobotIdList = append(managedRobotIdList, cast.ToString(permission[`object_id`]))
 		}
-		m.Where(`id`, `in`, strings.Join(managedRobotIdList, `,`))
+		//m.Where(`id`, `in`, strings.Join(managedRobotIdList, `,`))
 	}
 
 	list, err := m.Select()
@@ -138,6 +139,8 @@ func SaveRobot(c *gin.Context) {
 	thinkSwitch := strings.TrimSpace(c.DefaultPostForm(`think_switch`, `1`))
 	feedbackSwitch := strings.TrimSpace(c.DefaultPostForm(`feedback_switch`, `1`))
 	sensitiveWordsSwitch := strings.TrimSpace(c.DefaultPostForm(`sensitive_words_switch`, `0`))
+	cacaheConfig := strings.TrimSpace(c.DefaultPostForm(`cache_config`, `{"cache_switch":1,"valid_time":86400}`))
+	groupId := cast.ToInt(c.PostForm(`group_id`))
 	promptRoleType := cast.ToInt(c.PostForm(`prompt_role_type`))
 
 	//set default value
@@ -237,6 +240,13 @@ func SaveRobot(c *gin.Context) {
 			if len(info) != 0 {
 				validLibraryIds = append(validLibraryIds, libraryId)
 			}
+		}
+		// default library check
+		defaultLibraryId, _ := msql.Model(`chat_ai_robot`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).
+			Where(`id`, cast.ToString(id)).Value(`default_library_id`)
+		if len(defaultLibraryId) > 0 && !tool.InArrayString(defaultLibraryId, strings.Split(libraryIds, `,`)) {
+			common.FmtError(c, `default_library_remove`)
+			return
 		}
 		libraryIds = strings.Join(validLibraryIds, `,`)
 	}
@@ -393,6 +403,7 @@ func SaveRobot(c *gin.Context) {
 		`think_switch`:                          thinkSwitch,
 		`feedback_switch`:                       feedbackSwitch,
 		`sensitive_words_switch`:                sensitiveWordsSwitch,
+		`cache_config`:                          cacaheConfig,
 		`prompt_role_type`:                      promptRoleType,
 		`update_time`:                           tool.Time2Int(),
 	}
@@ -423,12 +434,16 @@ func SaveRobot(c *gin.Context) {
 		data[`robot_key`] = robotKey
 		data[`create_time`] = data[`update_time`]
 		data[`creator`] = loginUserId
+		data[`group_id`] = groupId
 		id, err = m.Insert(data, `id`)
 		// add robot api key
 
 		if err == nil {
+			addDefaultApiKey(c, robotKey)
 			// _ = AddUserMangedData(loginUserId, `managed_robot_list`, id)
 			go AddDefaultPermissionManage(userId, loginUserId, int(id), define.ObjectTypeRobot)
+			// add default library
+			_, _ = common.AddDefaultLibrary(c.GetHeader(`token`), robotName, libraryIds, robotKey, userId)
 		}
 	}
 	if err != nil {
@@ -460,6 +475,7 @@ func AddFlowRobot(c *gin.Context) {
 	}
 	//get params
 	robotName := strings.TrimSpace(c.PostForm(`robot_name`))
+	groupId := cast.ToInt(c.PostForm(`group_id`))
 	robotIntro := strings.TrimSpace(c.PostForm(`robot_intro`))
 	robotAvatar := strings.TrimSpace(c.DefaultPostForm(`avatar_from_template`, define.LocalUploadPrefix+`default/workflow_avatar.svg`))
 	//check required
@@ -495,6 +511,7 @@ func AddFlowRobot(c *gin.Context) {
 		`robot_name`:              robotName,
 		`robot_intro`:             robotIntro,
 		`robot_avatar`:            robotAvatar,
+		`group_id`:                groupId,
 		`application_type`:        define.ApplicationTypeFlow,
 		`create_time`:             tool.Time2Int(),
 		`update_time`:             tool.Time2Int(),
@@ -519,6 +536,7 @@ func AddFlowRobot(c *gin.Context) {
 	id, err := m.Insert(data, `id`)
 	// add robot api key
 	if err == nil {
+		addDefaultApiKey(c, robotKey)
 		// _ = AddUserMangedData(loginUserId, `managed_robot_list`, id)
 		go AddDefaultPermissionManage(userId, loginUserId, int(id), define.ObjectTypeRobot)
 	}
@@ -601,6 +619,11 @@ func GetRobotInfo(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
+	// add default library
+	if cast.ToInt(info[`default_library_id`]) <= 0 && cast.ToInt(info[`application_type`]) == define.ApplicationTypeChat {
+		_, _ = common.AddDefaultLibrary(c.GetHeader(`token`), info[`robot_name`], info[`library_ids`], info[`robot_key`], userId)
+		info, _ = common.GetRobotInfo(info[`robot_key`])
+	}
 	if len(info[`prompt_struct`]) == 0 {
 		info[`prompt_struct`] = tool.JsonEncodeNoError(common.GetEmptyPromptStruct()) //旧数据默认给空值
 	}
@@ -611,7 +634,10 @@ func GetRobotInfo(c *gin.Context) {
 	info[`h5_domain`] = define.Config.WebService[`h5_domain`]
 	info[`pc_domain`] = define.Config.WebService[`pc_domain`]
 	info[`prompt_struct_default`] = common.GetDefaultPromptStruct() //提供给前端的默认值
-
+	info[`wechat_ip`] = define.Config.WebService[`wechat_ip`]
+	info[`push_wechat_kefu`] = fmt.Sprintf(`%s/push_pwd/wechat_kefu`, define.Config.WebService[`push_domain`])
+	info[`push_token`] = lib_define.SignToken
+	info[`push_aeskey`] = lib_define.AesKey
 	c.String(http.StatusOK, lib_web.FmtJson(info, nil))
 }
 
@@ -669,7 +695,8 @@ func deleteRobotRelationData(robotId int, robotKey string) error {
 	if robotId <= 0 || robotKey == "" {
 		return nil
 	}
-	err := deleteFastCommandByRobotId(robotId)
+	err := deleteRobotApiKey(robotKey)
+	err = deleteFastCommandByRobotId(robotId)
 	err = deleteWorkFlowByRobotId(robotId)
 	return err
 }
@@ -769,6 +796,9 @@ func RobotCopy(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+	// add robot api key
+	addDefaultApiKey(c, robotKey)
+	//_ = AddUserMangedData(getLoginUserId(c), `managed_robot_list`, newId)
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
 	//work_flow
@@ -820,6 +850,7 @@ func EditBaseInfo(c *gin.Context) {
 	id := cast.ToInt64(c.PostForm(`id`))
 	robotName := strings.TrimSpace(c.PostForm(`robot_name`))
 	robotIntro := strings.TrimSpace(c.PostForm(`robot_intro`))
+	groupId := cast.ToInt(c.PostForm(`group_id`))
 	robotAvatar := ``
 	//check required
 	if id <= 0 || len(robotName) == 0 {
@@ -848,6 +879,7 @@ func EditBaseInfo(c *gin.Context) {
 	data := msql.Datas{
 		`robot_name`:  robotName,
 		`robot_intro`: robotIntro,
+		`group_id`:    groupId,
 		`update_time`: tool.Time2Int(),
 	}
 	if len(robotAvatar) > 0 {
@@ -922,4 +954,152 @@ func RelationWorkFlow(c *gin.Context) {
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robot[`robot_key`]})
 	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robot[`robot_key`])))
+}
+
+func SetUnknownIssueSummary(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	//get params
+	id := cast.ToInt64(c.PostForm(`id`))
+	unknownSummaryStatus := cast.ToInt(c.PostForm(`unknown_summary_status`))
+	unknownSummaryModelConfigId := cast.ToInt(c.PostForm(`unknown_summary_model_config_id`))
+	unknownSummaryUseModel := strings.TrimSpace(c.PostForm(`unknown_summary_use_model`))
+	unknownSummarySimilarity := cast.ToFloat32(c.DefaultPostForm(`unknown_summary_similarity`, `0.8`))
+	//check required
+	if id <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	if unknownSummaryStatus != 0 || unknownSummaryModelConfigId != 0 || len(unknownSummaryUseModel) != 0 {
+		if unknownSummaryModelConfigId <= 0 || len(unknownSummaryUseModel) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+			return
+		}
+		config, err := common.GetModelConfigInfo(unknownSummaryModelConfigId, adminUserId)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		if len(config) == 0 || !tool.InArrayString(common.TextEmbedding, strings.Split(config[`model_types`], `,`)) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `unknown_summary_model_config_id`))))
+			return
+		}
+		modelInfo, _ := common.GetModelInfoByDefine(config[`model_define`])
+		if !tool.InArrayString(unknownSummaryUseModel, modelInfo.VectorModelList) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `unknown_summary_use_model`))))
+			return
+		}
+	}
+	if unknownSummarySimilarity < 0 || unknownSummarySimilarity > 1 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `unknown_summary_similarity`))))
+		return
+	}
+	//data check
+	m := msql.Model(`chat_ai_robot`, define.Postgres)
+	robotKey, err := m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(adminUserId)).Value(`robot_key`)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(robotKey) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	//database dispose
+	data := msql.Datas{
+		`unknown_summary_status`:          unknownSummaryStatus,
+		`unknown_summary_model_config_id`: unknownSummaryModelConfigId,
+		`unknown_summary_use_model`:       unknownSummaryUseModel,
+		`unknown_summary_similarity`:      unknownSummarySimilarity,
+		`update_time`:                     tool.Time2Int(),
+	}
+	if _, err = m.Where(`id`, cast.ToString(id)).Update(data); err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	//clear cached data
+	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
+	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
+}
+
+func RobotAutoAdd(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	var (
+		robotInfo msql.Params
+		err       error
+	)
+	userId := getLoginUserId(c)
+	if userId != adminUserId {
+		common.FmtOk(c, robotInfo)
+		return
+	}
+	robot, _ := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`application_type`, cast.ToString(define.ApplicationTypeChat)).
+		Order(`id desc`).
+		ColumnArr(`id`)
+	if len(robot) == 0 {
+		if robotInfo, err = common.RobotAutoAdd(c.GetHeader(`token`), adminUserId); err != nil {
+			common.FmtError(c, `sys_err`, err.Error())
+			return
+		}
+	}
+	common.FmtOk(c, robotInfo)
+}
+
+func RelationLibrary(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	id := strings.TrimSpace(c.PostForm(`id`))
+	if len(id) == 0 {
+		common.FmtError(c, `param_lack`, `id`)
+		return
+	}
+	defaultLibraryId := cast.ToInt(c.DefaultPostForm(`default_library_id`, `0`))
+	libraryIds := strings.TrimSpace(c.PostForm(`library_ids`))
+	robotInfo, _ := msql.Model(`chat_ai_robot`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, cast.ToString(id)).Field(`robot_key,library_ids,default_library_id`).Find()
+	if defaultLibraryId > 0 {
+		robotLibraryIds := []string{cast.ToString(defaultLibraryId)}
+		for _, libraryId := range strings.Split(robotInfo[`library_ids`], `,`) {
+			if !tool.InArrayString(libraryId, robotLibraryIds) {
+				robotLibraryIds = append(robotLibraryIds, libraryId)
+			}
+		}
+		libraryIds = strings.Join(robotLibraryIds, `,`)
+	} else {
+		//data check
+		defaultLibraryId := cast.ToString(robotInfo[`default_library_id`])
+		if !tool.InArrayString(defaultLibraryId, strings.Split(libraryIds, `,`)) {
+			common.FmtError(c, `default_library_remove`)
+			return
+		}
+	}
+	updateData := msql.Datas{
+		`library_ids`: libraryIds,
+		`update_time`: tool.Time2Int(),
+	}
+	if defaultLibraryId > 0 {
+		updateData[`default_library_id`] = defaultLibraryId
+	}
+	if _, err := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, cast.ToString(id)).
+		Update(updateData); err != nil {
+		common.FmtError(c, `sys_err`, err.Error())
+		return
+	}
+	//clear cached data
+	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotInfo[`robot_key`]})
+	common.FmtOk(c, nil)
 }

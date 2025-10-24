@@ -50,9 +50,11 @@ func init() {
 	Route[http.MethodPost]["/manage/saveRole"] = manage.SaveRole
 	Route[http.MethodPost]["/manage/delRole"] = manage.DelRole
 	Route[http.MethodGet]["/manage/getRole"] = manage.GetRole
+
 	/*company API*/
 	noAuthFuns(Route[http.MethodGet], "/manage/getCompany", manage.GetCompany)
 	Route[http.MethodPost]["/manage/saveCompany"] = manage.SaveCompany
+	Route[http.MethodPost]["/manage/saveTopNavigate"] = manage.SaveTopNavigate
 	Route[http.MethodPost]["/manage/saveAliOcr"] = manage.SaveAliOcr
 	Route[http.MethodPost][`/manage/checkAliOcr`] = manage.CheckAliOcr
 
@@ -60,6 +62,7 @@ func init() {
 	Route[http.MethodPost][`/manage/upload`] = manage.Upload
 	Route[http.MethodGet][`/manage/getRobotList`] = manage.GetRobotList
 	Route[http.MethodPost][`/manage/saveRobot`] = manage.SaveRobot
+	Route[http.MethodPost][`/manage/robotAutoAdd`] = manage.RobotAutoAdd
 	Route[http.MethodPost][`/manage/addFlowRobot`] = manage.AddFlowRobot
 	Route[http.MethodPost][`/manage/editExternalConfig`] = manage.EditExternalConfig
 	Route[http.MethodGet][`/manage/getRobotInfo`] = manage.GetRobotInfo
@@ -70,7 +73,20 @@ func init() {
 	Route[http.MethodPost][`/manage/robotCopy`] = manage.RobotCopy
 	Route[http.MethodPost][`/manage/editBaseInfo`] = manage.EditBaseInfo
 	Route[http.MethodPost][`/manage/relationWorkFlow`] = manage.RelationWorkFlow
+	Route[http.MethodPost][`/manage/setUnknownIssueSummary`] = manage.SetUnknownIssueSummary
+	Route[http.MethodPost][`/manage/relationLibrary`] = manage.RelationLibrary
 
+	/*apiKey API*/
+	Route[http.MethodPost][`/manage/addRobotApikey`] = manage.AddRobotApikey
+	Route[http.MethodPost][`/manage/deleteRobotApikey`] = manage.DeleteRobotApikey
+	Route[http.MethodPost][`/manage/updateRobotApikey`] = manage.UpdateRobotApikey
+	Route[http.MethodPost][`/manage/listRobotApikey`] = manage.ListRobotApikey
+
+	/*robot Group API*/
+	Route[http.MethodPost][`/manage/saveRobotGroup`] = manage.SaveRobotGroup
+	Route[http.MethodPost][`/manage/deleteRobotGroup`] = manage.DeleteRobotGroup
+	Route[http.MethodGet][`/manage/getRobotGroupList`] = manage.GetRobotGroupList
+	Route[http.MethodPost][`/manage/relationRobotGroup`] = manage.RelationRobotGroup
 	/*library API*/
 	Route[http.MethodGet][`/manage/getLibraryList`] = manage.GetLibraryList
 	Route[http.MethodGet][`/manage/getLibraryInfo`] = manage.GetLibraryInfo
@@ -96,9 +112,12 @@ func init() {
 	Route[http.MethodPost][`/manage/uploadLibDoc`] = manage.UploadLibDoc
 	Route[http.MethodGet][`/manage/exportLibDoc`] = manage.ExportLibDoc
 	Route[http.MethodPost][`/manage/deleteLibDoc`] = manage.DeleteLibDoc
+	Route[http.MethodPost][`/manage/previewLibDoc`] = manage.PreviewLibDoc
 	Route[http.MethodPost][`/manage/saveQuestionGuide`] = manage.SaveQuestionGuide
 	Route[http.MethodPost][`/manage/deleteQuestionGuide`] = manage.DeleteQuestionGuide
 	Route[http.MethodPost][`/manage/saveLibDocSeo`] = manage.SaveLibDocSeo
+	Route[http.MethodPost][`/manage/saveLibDocIndexQuickDoc`] = manage.SaveLibDocIndexQuickDoc
+	Route[http.MethodPost][`/manage/saveLibDocBannerImg`] = manage.SaveLibDocBannerImg
 	Route[http.MethodPost][`/manage/saveLibDocPartner`] = manage.SaveLibDocPartner
 	Route[http.MethodGet][`/manage/getLibDocPartner`] = manage.GetLibDocPartner
 	Route[http.MethodGet][`/manage/libDocPartnerList`] = manage.LibDocPartnerList
@@ -108,6 +127,11 @@ func init() {
 	noAuthFuns(Route[http.MethodGet], `/open/home/:key`, business.OpenHome)
 	noAuthFuns(Route[http.MethodGet], `/open/search/:type/:lib_key`, business.OpenSearch)
 	noAuthFuns(Route[http.MethodGet], `/open/summary/:lib_key`, business.OpenAiSummary)
+	/*** v2 API**/
+	noAuthFuns(Route[http.MethodGet], `/open/doc/api/:key`, business.OpenDocApi)
+	noAuthFuns(Route[http.MethodGet], `/open/home/api/:key`, business.OpenHomeApi)
+	noAuthFuns(Route[http.MethodGet], `/open/search/api/:lib_key`, business.OpenSearchApi)
+	noAuthFuns(Route[http.MethodGet], `/open/doc/bindLibList/api`, business.OpenBindLibList)
 	/*libFile API*/
 	Route[http.MethodGet][`/manage/getLibFileList`] = manage.GetLibFileList
 	Route[http.MethodPost][`/manage/addLibraryFile`] = manage.AddLibraryFile
@@ -127,9 +151,16 @@ func init() {
 	Route[http.MethodPost][`/manage/reconstructCategoryVector`] = manage.ReconstructCategoryVector
 	Route[http.MethodPost][`/manage/reconstructGraph`] = manage.ReconstructGraph
 	Route[http.MethodPost][`/manage/cancelOcrPdf`] = manage.CancelOcrPdf
+	Route[http.MethodGet][`/manage/createExportLibFileTask`] = manage.CreateExportLibFileTask
+	Route[http.MethodGet][`/manage/downloadLibraryFile`] = manage.DownloadLibraryFile
+	/*libFile Collection API*/
+	Route[http.MethodGet][`/manage/getLibFileRecycleList`] = manage.GetLibFileRecycleList
+	Route[http.MethodPost][`/manage/delRecycleLibraryFile`] = manage.DelRecycleLibraryFile
+	Route[http.MethodPost][`/manage/restoreRecycleLibraryFile`] = manage.RestoreRecycleLibraryFile
 	/*paragraph API*/
 	Route[http.MethodGet][`/manage/getSeparatorsList`] = manage.GetSeparatorsList
 	Route[http.MethodGet][`/manage/getLibFileSplit`] = manage.GetLibFileSplit
+	Route[http.MethodGet][`/manage/getLibFileSplitPreview`] = manage.GetLibFileSplitPreview
 	Route[http.MethodGet][`/manage/getLibFileSplitAiChunks`] = manage.GetLibFileSplitAiChunks
 	Route[http.MethodPost][`/manage/saveLibFileSplit`] = manage.SaveLibFileSplit
 	Route[http.MethodGet][`/manage/getParagraphList`] = manage.GetParagraphList
@@ -138,6 +169,7 @@ func init() {
 	Route[http.MethodPost][`/manage/saveCategoryParagraph`] = manage.SaveCategoryParagraph
 	Route[http.MethodPost][`/manage/addParagraph`] = manage.SaveParagraph
 	Route[http.MethodPost][`/manage/editParagraph`] = manage.SaveParagraph
+	Route[http.MethodPost][`/manage/setParagraphGroup`] = manage.SetParagraphGroup
 	Route[http.MethodGet][`/manage/getSplitParagraph`] = manage.GetSplitParagraph
 	Route[http.MethodPost][`/manage/saveSplitParagraph`] = manage.SaveSplitParagraph
 	Route[http.MethodPost][`/manage/deleteParagraph`] = manage.DeleteParagraph
@@ -202,6 +234,11 @@ func init() {
 	Route[http.MethodPost][`/manage/delModelConfig`] = manage.DelModelConfig
 	Route[http.MethodPost][`/manage/editModelConfig`] = manage.EditModelConfig
 	Route[http.MethodGet][`/manage/getModelConfigOption`] = manage.GetModelConfigOption
+	/*WeChat API*/
+	Route[http.MethodGet][`/manage/getWechatAppList`] = manage.GetWechatAppList
+	Route[http.MethodPost][`/manage/saveWechatApp`] = manage.SaveWechatApp
+	Route[http.MethodGet][`/manage/getWechatAppInfo`] = manage.GetWechatAppInfo
+	Route[http.MethodPost][`/manage/deleteWechatApp`] = manage.DeleteWechatApp
 	/*Fast Command API*/
 	Route[http.MethodGet][`/manage/getFastCommandList`] = manage.GetFastCommandList
 	Route[http.MethodPost][`/manage/saveFastCommand`] = manage.SaveFastCommand
@@ -210,6 +247,10 @@ func init() {
 	Route[http.MethodPost][`/manage/deleteFastCommand`] = manage.DeleteFastCommand
 	Route[http.MethodPost][`/manage/updateFastCommandSwitch`] = manage.UpdateFastCommandSwitch
 	noAuthFuns(Route[http.MethodGet], `/chat/getFastCommandList`, business.GetFastCommandList)
+	/* Open API*/
+	noAuthFuns(Route[http.MethodPost], `/open/chatMessage`, business.ChatMessages)
+	noAuthFuns(Route[http.MethodPost], `/v1/chat/completions`, business.Completions)
+	noAuthFuns(Route[http.MethodGet], `/open/getRobotInfo`, business.GetRobotInfo)
 
 	//register client side route
 	RegClientSideRoute()
@@ -233,6 +274,11 @@ func init() {
 	/*work_flow API*/
 	Route[http.MethodGet][`/manage/getNodeList`] = manage.GetNodeList
 	Route[http.MethodPost][`/manage/saveNodes`] = manage.SaveNodes
+	Route[http.MethodPost][`/manage/testCodeRun`] = manage.TestCodeRun
+	Route[http.MethodPost][`/manage/workFlowPublishVersion`] = manage.WorkFlowPublishVersion
+	Route[http.MethodPost][`/manage/workFlowNextVersion`] = manage.WorkFlowNextVersion
+	Route[http.MethodPost][`/manage/workFlowVersions`] = manage.WorkFlowVersions
+	Route[http.MethodPost][`/manage/workFlowVersionDetail`] = manage.WorkFlowVersionDetail
 	/* sensitive words API*/
 	Route[http.MethodGet][`/manage/getSensitiveWordsList`] = manage.GetSensitiveWordsList
 	Route[http.MethodPost][`/manage/saveSensitiveWords`] = manage.SaveSensitiveWords
@@ -261,6 +307,33 @@ func init() {
 	Route[http.MethodPost][`/manage/deletePromptLibraryItems`] = manage.DeletePromptLibraryItems
 	Route[http.MethodGet][`/manage/createPromptByLlm`] = manage.CreatePromptByLlm
 	Route[http.MethodPost][`/manage/movePromptLibraryItems`] = manage.MovePromptLibraryItems
+	/*library_group API*/
+	Route[http.MethodGet][`/manage/getLibraryGroup`] = manage.GetLibraryGroup
+	Route[http.MethodPost][`/manage/saveLibraryGroup`] = manage.SaveLibraryGroup
+	Route[http.MethodPost][`/manage/deleteLibraryGroup`] = manage.DeleteLibraryGroup
+	Route[http.MethodGet][`/manage/getLibraryListGroup`] = manage.GetLibraryListGroup
+	Route[http.MethodPost][`/manage/saveLibraryListGroup`] = manage.SaveLibraryListGroup
+	Route[http.MethodPost][`/manage/deleteLibraryListGroup`] = manage.DeleteLibraryListGroup
+	Route[http.MethodPost][`/manage/sortLibararyListGroup`] = manage.SortLibararyListGroup
+	Route[http.MethodPost][`/manage/relationLibraryGroup`] = manage.RelationLibraryGroup
+	/*unknown_issue API*/
+	Route[http.MethodGet][`/manage/unknownIssueStats`] = manage.UnknownIssueStats
+	Route[http.MethodGet][`/manage/getUnknownIssueSummary`] = manage.GetUnknownIssueSummary
+	Route[http.MethodPost][`/manage/unknownIssueSummaryAnswer`] = manage.UnknownIssueSummaryAnswer
+	Route[http.MethodPost][`/manage/unknownIssueSummaryImport`] = manage.UnknownIssueSummaryImport
+	/* Lib File FAQ API*/
+	Route[http.MethodGet][`/manage/getFAQConfig`] = manage.GetFAQConfig
+	Route[http.MethodPost][`/manage/addFAQFile`] = manage.AddFAQFile
+	Route[http.MethodPost][`/manage/renewFAQFileData`] = manage.RenewFAQFileData
+	Route[http.MethodPost][`/manage/deleteFAQFile`] = manage.DeleteFAQFile
+	Route[http.MethodGet][`/manage/getFAQFileList`] = manage.GetFAQFileList
+	Route[http.MethodGet][`/manage/getFAQFileChunks`] = manage.GetFAQFileChunks
+	Route[http.MethodGet][`/manage/getFAQFileInfo`] = manage.GetFAQFileInfo
+	Route[http.MethodGet][`/manage/getFAQFileQAList`] = manage.GetFAQFileQAList
+	Route[http.MethodPost][`/manage/saveFAQFileQA`] = manage.SaveFAQFileQA
+	Route[http.MethodPost][`/manage/deleteFAQFileQA`] = manage.DeleteFAQFileQA
+	Route[http.MethodPost][`/manage/importParagraph`] = manage.ImportParagraph
+	Route[http.MethodGet][`/manage/exportFAQFileAllQA`] = manage.ExportFAQFileAllQA
 }
 
 func noAuthFuns(route map[string]lib_web.Action, path string, handlerFunc lib_web.Action) map[string]lib_web.Action {

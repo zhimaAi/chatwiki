@@ -48,6 +48,15 @@
               <span class="menu-name">系统管理</span>
             </a>
           </a-menu-item>
+          <template v-for="item in navs">
+            <a-menu-item v-if="checkRole(item.permission)">
+              <a class="menu-item" href="javascript:;" @click="handleClickNav(item)">
+                <svg-icon class="menu-icon" :name="item.icon"></svg-icon>
+                <span class="menu-name">{{ item.title }}</span>
+              </a>
+            </a-menu-item>
+          </template>
+
           <a-menu-item>
             <a class="menu-item" href="javascript:;" @click="onLogout">
               <svg-icon class="menu-icon" name="logout"></svg-icon>
@@ -62,9 +71,14 @@
 
 <script setup>
 // import { useRouter } from 'vue-router'
+import { computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/modules/user'
-
+import { useCompanyStore } from '@/stores/modules/company'
+import { checkRole } from '@/utils/permission'
+const companyStore = useCompanyStore()
+const router = useRouter()
 // const router = useRouter()
 const userStore = useUserStore()
 
@@ -80,4 +94,70 @@ const toSystem = () => {
   // })
   window.open(`/#/user/model`, "_blank", "noopener") // 建议添加 noopener 防止安全漏洞
 }
+
+const baseNavs = [
+  {
+    id: 1,
+    key: 'robot',
+    label: 'robot',
+    title: '应用',
+    icon: 'nav-robot',
+    path: '/robot/list',
+    permission: ['RobotManage']
+  },
+  {
+    id: 2,
+    key: 'library',
+    label: 'library',
+    title: '知识库',
+    icon: 'nav-library',
+    path: '/library/list',
+    permission: ['LibraryManage']
+  },
+  {
+    id: 3,
+    key: 'PublicLibrary',
+    label: 'PublicLibrary',
+    title: '文档',
+    icon: 'nav-doc',
+    path: '/public-library/list',
+    permission: ['OpenLibDocManage']
+  },
+  {
+    id: 4,
+    key: 'library-search',
+    label: 'library-search',
+    title: '搜索',
+    icon: 'search',
+    path: '/library-search/index',
+    permission: ['SearchManage']
+  },
+  {
+    id: 5,
+    key: 'chat-monitor',
+    label: 'chat-monitor',
+    title: '会话',
+    icon: 'nav-chat',
+    path: '/chat-monitor/index',
+    permission: ['ChatSessionManage']
+  },
+]
+
+const top_navigate = computed(() => {
+  return companyStore.top_navigate
+})
+
+const navs = computed(() => {
+  const closeList = top_navigate.value.filter(item => !item.open); // 获取所有关闭的菜单项
+
+  return closeList
+    .map(item => baseNavs.find(nav => nav.key === item.id)) // 查找匹配的菜单项
+    .filter(Boolean); // 过滤掉未找到的菜单项（undefined）
+});
+
+const handleClickNav = item => {
+  router.push(item.path)
+}
+
+
 </script>

@@ -124,7 +124,7 @@
         :key="item.id"
         @click="toLibraryDetail(item)"
       >
-        <span class="close-btn" @click.stop="handleRemoveCheckedLibrary(item)">
+        <span v-if="item.id != robotInfo.default_library_id" class="close-btn" @click.stop="handleRemoveCheckedLibrary(item)">
           <CloseCircleOutlined />
         </span>
         <div class="library-name">
@@ -300,13 +300,5 @@ const toLibraryDetail = (item) => {
 
 onMounted(() => {
   getList()
-
-  // 检查本地缓存中的showNoLibraryTip值
-  const showNoLibraryTip = getStorage('showNoLibraryTip')
-  if (showNoLibraryTip) {
-    handleShowNoLibraryTip()
-
-    removeStorage('showNoLibraryTip')
-  }
 })
 </script>

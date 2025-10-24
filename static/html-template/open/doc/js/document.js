@@ -23,9 +23,35 @@ function loadHighlightScript(language) {
   });
 }
 
+// 上一页下一页链接处理
+function resetPageLink() {
+  let preview_key = $("#preview_key").val();
+
+  if(!preview_key){
+    return
+  }
+
+  document.querySelector('.preview-tips').style.display = 'block'
+
+  const pageLinks = document.querySelectorAll('.page-link')
+
+  pageLinks.forEach((link) => {
+    let href = link.getAttribute('href')
+
+    if(href.indexOf('?') > -1){
+      href = href + `preview=${preview_key}`
+    }else{
+      href = href + `?preview=${preview_key}`
+    }
+
+    link.setAttribute('href', href)
+  })
+}
+
 function init() {
   initToggleCatalog();
-
+  resetPageLink();
+  
   document.querySelectorAll("pre code").forEach((el) => {
     let language = el.className.match(/language-(\w+)/)?.[1];
 

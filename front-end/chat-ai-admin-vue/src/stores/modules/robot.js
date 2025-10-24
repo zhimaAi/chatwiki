@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { getRobotInfo } from '@/api/robot/index'
+import { getRobotInfo, getRobotList, getRobotGroupList } from '@/api/robot/index'
 
 // WebApp配置
 const external_config_h5_default = {
@@ -82,6 +82,10 @@ export const useRobotStore = defineStore('robot', () => {
       content: '',
       question: []
     },
+    wechat_ip: '',
+    push_aeskey: '',
+    push_token: '',
+    push_wechat_kefu: '',
     show_type: 1,
     enable_question_optimize: 'false',
     enable_question_guide: 'false',
@@ -93,6 +97,15 @@ export const useRobotStore = defineStore('robot', () => {
     sensitive_words_switch: 0,
     question_guide_num: '',
     start_node_key: '',
+    unknown_summary_status: 1,
+    unknown_summary_similarity: '',
+    unknown_summary_use_model: '',
+    unknown_summary_model_config_id: '',
+    default_library_id: '',
+    cache_config: {
+      cache_switch: 0,
+      valid_time: 86400,
+    },
     prompt_role_type: '0',
     enable_thinking: 0,
   })
@@ -168,6 +181,10 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.similarity = Number(data.similarity)
     robotInfo.search_type = Number(data.search_type)
     robotInfo.think_switch = Number(data.think_switch)
+    robotInfo.wechat_ip = data.wechat_ip
+    robotInfo.push_token = data.push_token
+    robotInfo.push_aeskey = data.push_aeskey
+    robotInfo.push_wechat_kefu = data.push_wechat_kefu
     robotInfo.pc_domain = data.pc_domain
     robotInfo.chat_type = data.chat_type
     robotInfo.library_qa_direct_reply_score = data.library_qa_direct_reply_score
@@ -188,6 +205,27 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.enable_thinking = +data.enable_thinking || 0
 
     robotInfo.start_node_key = data.start_node_key
+
+    robotInfo.default_library_id = data.default_library_id
+
+    robotInfo.unknown_summary_status = data.unknown_summary_status
+    robotInfo.unknown_summary_similarity = data.unknown_summary_similarity
+    robotInfo.unknown_summary_use_model = data.unknown_summary_use_model
+    robotInfo.unknown_summary_model_config_id = data.unknown_summary_model_config_id
+
+    if (data.cache_config) {
+      let parsedCacheConfig = {};
+      try {
+        parsedCacheConfig = typeof data.cache_config === 'string'
+          ? JSON.parse(data.cache_config)
+          : data.cache_config;
+      } catch (e) {
+        parsedCacheConfig = {};
+      }
+      robotInfo.cache_config = {
+        ...parsedCacheConfig
+      };
+    }
     robotInfo.prompt_role_type = data.prompt_role_type || '0'
     // h5配置
     if (data.external_config_h5 !== '') {
@@ -205,6 +243,8 @@ export const useRobotStore = defineStore('robot', () => {
       external_config_pc.headTitle = robotInfo.robot_name
       external_config_pc.headImage = robotInfo.robot_avatar_url
     }
+
+
   }
 
   const getRobot = async (id) => {
@@ -241,6 +281,20 @@ export const useRobotStore = defineStore('robot', () => {
     modelList.value = data
   }
 
+  const robotList = ref([])
+  const getRobotLists = () => {
+    getRobotList().then(res => {
+      robotList.value = res.data || []
+    })
+  }
+
+  const robotGroupList = ref([])
+  const getGroupList = () => {
+    getRobotGroupList().then((res) => {
+      robotGroupList.value = res.data || []
+    })
+  }
+
   return {
     robotInfo,
     getRobot,
@@ -251,6 +305,10 @@ export const useRobotStore = defineStore('robot', () => {
     draftSaveTime,
     setDrafSaveTime,
     modelList,
-    setModelList
+    setModelList,
+    robotList,
+    getRobotLists,
+    robotGroupList,
+    getGroupList,
   }
 })

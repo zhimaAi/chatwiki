@@ -69,7 +69,7 @@ export const createLibrary = (data) => {
   })
 }
 
-export const getLibraryFileList = ({ status, library_id, file_name = undefined, page = 1, size = 20 }) => {
+export const getLibraryFileList = ({ status, library_id, file_name = undefined, page = 1, size = 20, group_id }) => {
   return request.get({
     url: '/manage/getLibFileList',
     params: {
@@ -77,7 +77,8 @@ export const getLibraryFileList = ({ status, library_id, file_name = undefined, 
       library_id,
       file_name,
       page,
-      size
+      size,
+      group_id
     }
   })
 }
@@ -136,6 +137,14 @@ export const getSeparatorsList = () => {
 export const getLibFileSplit = (params) => {
   return request.get({
     url: '/manage/getLibFileSplit',
+    params: params
+  })
+}
+
+// 获取文档拆分 //新接口
+export const getLibFileSplitPreview = (params) => {
+  return request.get({
+    url: '/manage/getLibFileSplitPreview',
     params: params
   })
 }
@@ -345,5 +354,176 @@ export const getFileGraphInfo = (params) => {
   return request.get({
     url: '/manage/getFileGraphInfo',
     params: params
+  })
+}
+
+export const getLibraryGroup = (params) => {
+  return request.get({
+    url: '/manage/getLibraryGroup',
+    params: params
+  })
+}
+
+export const sortLibararyListGroup = (data) => {
+  return request.post({
+    url: '/manage/sortLibararyListGroup',
+    data: data
+  })
+}
+
+export const saveLibraryGroup = (data) => {
+  return request.post({
+    url: '/manage/saveLibraryGroup',
+    data: data
+  })
+}
+
+export const relationLibraryGroup = (data) => {
+  return request.post({
+    url: '/manage/relationLibraryGroup',
+    data: data
+  })
+}
+
+export const deleteLibraryGroup = (data) => {
+  return request.post({
+    url: '/manage/deleteLibraryGroup',
+    data: data
+  })
+}
+
+export const setParagraphGroup = (data) => {
+  return request.post({
+    url: '/manage/setParagraphGroup',
+    data: data
+  })
+}
+
+export const getFAQFileList = (params) => {
+  return request.get({
+    url: '/manage/getFAQFileList',
+    params: params
+  })
+}
+
+export const addFAQFile = (data) => {
+  return request.post({
+    url: '/manage/addFAQFile',
+    data: data
+  })
+}
+
+export const importParagraph = (data) => {
+  return request.post({
+    url: '/manage/importParagraph',
+    data: data
+  })
+}
+
+export const deleteFAQFile = (data) => {
+  return request.post({
+    url: '/manage/deleteFAQFile',
+    data: data
+  })
+}
+
+export const renewFAQFileData = (data) => {
+  return request.post({
+    url: '/manage/renewFAQFileData',
+    data: data
+  })
+}
+
+export const getFAQFileQAList = (params) => {
+  return request.get({
+    url: '/manage/getFAQFileQAList',
+    params: params
+  })
+}
+
+export const deleteFAQFileQA = (data) => {
+  return request.post({
+    url: '/manage/deleteFAQFileQA',
+    data: data
+  })
+}
+
+export const saveFAQFileQA = (data) => {
+  return request.post({
+    url: '/manage/saveFAQFileQA',
+    data: data
+  })
+}
+
+export const getFAQConfig = (params) => {
+  return request.get({
+    url: '/manage/getFAQConfig',
+    params: params
+  })
+}
+
+export const getFAQFileInfo = (params) => {
+  return request.get({
+    url: '/manage/getFAQFileInfo',
+    params: params
+  })
+}
+
+export const getFAQFileChunks = (params) => {
+  return request.get({
+    url: '/manage/getFAQFileChunks',
+    params: params
+  })
+}
+
+export const createExportLibFileTask = (params) => {
+  return request.get({
+    url: '/manage/createExportLibFileTask',
+    params: params
+  })
+}
+
+export const getLibraryListGroup = (params) => {
+  return request.get({
+    url: '/manage/getLibraryListGroup',
+    params: params
+  })
+}
+
+
+export const saveLibraryListGroup = (data) => {
+  return request.post({
+    url: '/manage/saveLibraryListGroup',
+    data: data
+  })
+}
+
+export const deleteLibraryListGroup = (data) => {
+  return request.post({
+    url: '/manage/deleteLibraryListGroup',
+    data: data
+  })
+}
+
+
+export const getLibFileRecycleList = (params) => {
+  return request.get({
+    url: '/manage/getLibFileRecycleList',
+    params: params
+  })
+}
+
+export const delRecycleLibraryFile = (data) => {
+  return request.post({
+    url: '/manage/delRecycleLibraryFile',
+    data: data
+  })
+}
+
+
+export const restoreRecycleLibraryFile = (data) => {
+  return request.post({
+    url: '/manage/restoreRecycleLibraryFile',
+    data: data
   })
 }

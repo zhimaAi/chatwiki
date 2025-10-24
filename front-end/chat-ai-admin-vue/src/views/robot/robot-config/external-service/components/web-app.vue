@@ -131,7 +131,7 @@
                     <a-radio :value="2"
                       ><span class="default-text-color">登录后才可访问</span></a-radio
                     >
-                    <a-radio :value="3"
+                    <a-radio v-if="false" :value="3"
                       ><span class="default-text-color">有权限的账号登录后才可访问</span>
                       <a-tooltip title="可在基础配置→ 权限管理处添加协作者。">
                         <QuestionCircleOutlined class="ml4" />
@@ -183,7 +183,7 @@
                   placeholder="请选择语言"
                 >
                   <a-select-option value="zh-CN">简体中文</a-select-option>
-                  <!-- <a-select-option value="en-US">English</a-select-option> -->
+                  <a-select-option value="en-US">English</a-select-option>
                 </a-select>
               </a-form-item>
             </a-form>

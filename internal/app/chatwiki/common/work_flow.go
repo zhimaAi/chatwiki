@@ -5,6 +5,8 @@ package common
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cast"
@@ -314,4 +316,48 @@ func (m *MixedInt) Int() int {
 func (m *MixedInt) UnmarshalJSON(data []byte) error {
 	*m = MixedInt(cast.ToInt(strings.Trim(string(data), `"`)))
 	return nil
+}
+
+var verReg = regexp.MustCompile(`^(\d+)\.(\d+)\.(\d+)$`)
+
+func NextWorkFlowVersion(currentVersion string) string {
+	if currentVersion == `` {
+		return `0.0.1`
+	}
+	sm := verReg.FindStringSubmatch(currentVersion)
+	if sm == nil {
+		return ``
+	}
+	major, _ := strconv.Atoi(sm[1])
+	minor, _ := strconv.Atoi(sm[2])
+	patch, _ := strconv.Atoi(sm[3])
+	patch++
+	if patch >= 20 {
+		patch = 0
+		minor++
+		if minor >= 20 {
+			minor = 0
+			major++
+		}
+	}
+	return fmt.Sprintf("%d.%d.%d", major, minor, patch)
+}
+
+var validSeg = regexp.MustCompile(`^(0|[1-9]\d{0,3})$`) // 0 or 1-999
+
+func ValidateWorkFlowVersion(ver string) bool {
+	seg := strings.Split(ver, `.`)
+	if len(seg) != 3 {
+		return false
+	}
+	for _, s := range seg {
+		if !validSeg.MatchString(s) {
+			return false
+		}
+		n, _ := strconv.Atoi(s)
+		if n > 1000 {
+			return false
+		}
+	}
+	return true
 }

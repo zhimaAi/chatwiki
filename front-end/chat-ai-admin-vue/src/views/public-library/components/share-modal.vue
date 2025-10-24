@@ -1,17 +1,18 @@
 <template>
-  <a-modal v-model:open="open" title="分享" :footer="null" width="600px">
+  <a-modal v-model:open="open" title="复制链接" :footer="null" width="600px">
     <ShareForm ref="shareFormRef" :baseUrl="props.baseUrl" />
   </a-modal>
 </template>
 
 <script setup>
+import { OPEN_BOC_BASE_URL } from '@/constants/index'
 import { ref, nextTick } from 'vue'
 import ShareForm from './share-form.vue'
 
 const props = defineProps({
   baseUrl: {
     type: String,
-    default: '/open/doc'
+    default: OPEN_BOC_BASE_URL + '/doc'
   }
 })
 

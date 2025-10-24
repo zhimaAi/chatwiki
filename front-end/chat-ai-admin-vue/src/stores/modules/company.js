@@ -1,6 +1,41 @@
 import { defineStore } from 'pinia'
 import { getCompany } from '@/api/user'
 const defaultAvatar = 'https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/favicon.ico'
+const topNavigateDefaultData = [
+  {
+    id: 'robot',
+    name: '机器人',
+    open: true,
+    isDisabled: true,
+  },
+  {
+    id: 'library',
+    name: '知识库',
+    open: true,
+    isDisabled: true,
+  },
+  {
+    id: 'PublicLibrary',
+    name: '文档',
+    open: true
+  },
+  {
+    id: 'library-search',
+    name: '搜索',
+    open: true
+  },
+  {
+    id: 'chat-monitor',
+    name: '会话',
+    open: true
+  },
+  // {
+  //   id: 'user',
+  //   name: '系统设置',
+  //   open: true
+  // }
+]
+
 export const useCompanyStore = defineStore('company', {
   state: () => {
     return {
@@ -9,7 +44,9 @@ export const useCompanyStore = defineStore('company', {
       companyInfo: undefined,
       ali_ocr_switch: '2',
       ali_ocr_key: '',
-      ali_ocr_secret: ''
+      ali_ocr_secret: '',
+      topNavigateDefaultData: topNavigateDefaultData,
+      top_navigate: topNavigateDefaultData,
     }
   },
   getters: {
@@ -35,10 +72,16 @@ export const useCompanyStore = defineStore('company', {
       this.ali_ocr_switch = data ? data.ali_ocr_switch : '';
       this.ali_ocr_key = data ? data.ali_ocr_key : '';
       this.ali_ocr_secret = data ? data.ali_ocr_secret : '2';
+      if(data && data.top_navigate){
+        this.top_navigate = JSON.parse(data.top_navigate) || topNavigateDefaultData
+      }else{
+        this.top_navigate = topNavigateDefaultData
+      }
       setFavicon(data?.avatar || defaultAvatar)
     },
   },
 })
+
 
 function setFavicon(url) {
   // 1. 移除已存在的 favicon 链接

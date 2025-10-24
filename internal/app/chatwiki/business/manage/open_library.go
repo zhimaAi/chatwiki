@@ -7,15 +7,16 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_redis"
 	"fmt"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
-	"net/http"
-	"os"
-	"strings"
-	"time"
 )
 
 func GetCatalog(c *gin.Context) {
@@ -68,6 +69,7 @@ func GetLibDocInfo(c *gin.Context) {
 	libraryKey := cast.ToString(c.Query(`library_key`))
 	libraryId := cast.ToInt(common.ParseLibraryKey(libraryKey))
 	docId := cast.ToInt(c.Query(`doc_id`))
+	isIndex := cast.ToInt(c.Query(`is_index`))
 	info, err := common.GetLibraryData(libraryId)
 	if err != nil {
 		logs.Error(err.Error())
@@ -92,10 +94,63 @@ func GetLibDocInfo(c *gin.Context) {
 			return
 		}
 	}
-	docInfo := common.GetLibDocInfo(docId)
+	var docInfo msql.Params
+	if docId == 0 && isIndex == define.LibDocIndex {
+		docInfo = common.GetLibDocIndex(libraryId)
+	} else {
+		docInfo = common.GetLibDocInfo(docId)
+	}
 	if cast.ToInt(docInfo[`is_draft`]) == define.IsDraft {
 		docInfo[`content`] = docInfo[`draft_content`]
 	}
+
+	// 给默认的banner
+	if len(cast.ToString(docInfo[`banner_img_url`])) == 0 {
+		docInfo[`banner_img_url`] = define.DefaultLibDocBanner
+	}
+
+	// 渲染首页快速文档内容
+	docInfo[`quick_doc_content_value`] = ""
+	if len(cast.ToString(docInfo[`quick_doc_content`])) > 0 {
+		quickDocArr := []msql.Datas{} // 快速文档内容数组
+		// 将quickDocIdArr中的doc_id提取出来，存到quickDocIds中
+		quickDocIdArr := []msql.Datas{}
+		quickDocIds := []int{}
+		if err := tool.JsonDecode(cast.ToString(docInfo[`quick_doc_content`]), &quickDocIdArr); err != nil {
+			logs.Error(err.Error())
+			return
+		}
+		for _, quickDocId := range quickDocIdArr {
+			if quickDocId[`doc_id`] != nil {
+				quickDocIds = append(quickDocIds, int(cast.ToInt(quickDocId[`doc_id`])))
+			}
+		}
+		for _, quickDocId := range quickDocIds {
+			quickDocItem := msql.Datas{}
+			quickDocInfo := common.GetLibDocInfo(quickDocId)
+			if len(quickDocInfo) <= 0 {
+				continue
+			}
+			quickDocItem[`id`] = quickDocInfo[`id`]
+			quickDocItem[`pid`] = quickDocInfo[`pid`]
+			quickDocItem[`doc_key`] = quickDocInfo[`doc_key`]
+			quickDocItem[`is_dir`] = quickDocInfo[`is_dir`]
+			quickDocItem[`doc_icon`] = quickDocInfo[`doc_icon`]
+			quickDocItem[`is_draft`] = quickDocInfo[`is_draft`]
+			quickDocItem[`title`] = quickDocInfo[`title`]
+			quickDocItem[`content`] = quickDocInfo[`content`]
+			quickDocItem[`create_time`] = quickDocInfo[`create_time`]
+			quickDocItem[`update_time`] = quickDocInfo[`update_time`]
+			quickDocItem[`children`] = common.GetLibDocCateLog(quickDocId, libraryId, false)
+			// 最后添加成数组
+			quickDocArr = append(quickDocArr, quickDocItem)
+		}
+		docInfo[`quick_doc_content_value`], err = tool.JsonEncode(quickDocArr)
+		if err != nil {
+			logs.Error("json encode quick_doc_content_value error:%v", quickDocArr)
+		}
+	}
+
 	common.FmtOk(c, docInfo)
 }
 
@@ -129,12 +184,6 @@ func LibDocSearch(c *gin.Context) {
 			return
 		}
 	}
-	//docInfo, err := common.LibDocSearch(libraryId, search, info)
-	//if err != nil {
-	//	common.FmtError(c, `sys_err`)
-	//	return
-	//}
-	//common.FmtOk(c, docInfo)
 }
 
 func DraftLibDoc(c *gin.Context) {
@@ -150,6 +199,8 @@ func DraftLibDoc(c *gin.Context) {
 	isIndex := cast.ToInt(c.PostForm(`is_index`))
 	title := strings.TrimSpace(c.PostForm(`title`))
 	content := strings.TrimSpace(c.PostForm(`content`))
+	isDir := cast.ToInt(c.PostForm(`is_dir`))
+	docIcon := cast.ToString(c.PostForm(`doc_icon`))
 	if len(title) <= 0 {
 		column := `title`
 		common.FmtError(c, `param_empty`, column)
@@ -197,12 +248,13 @@ func DraftLibDoc(c *gin.Context) {
 			return
 		}
 	}
-	id, err := common.SaveLibDoc(adminUserId, getLoginUserId(c), libraryId, docId, 0, pid, isIndex, define.IsDraft, title, info, content)
+	id, err := common.SaveLibDoc(adminUserId, getLoginUserId(c), libraryId, docId, 0, pid, isIndex, define.IsDraft, title, info, content, isDir, docIcon)
 	if err != nil {
 		logs.Error(err.Error())
 		common.FmtError(c, `doc_save_err`)
 		return
 	}
+	lib_redis.DelCacheData(define.Redis, &common.LibraryCatalogCacheBuildHandle{LibraryId: libraryId, PreviewKey: "preview"})
 	common.FmtOk(c, map[string]any{"doc_id": id, `sort`: time.Now().UnixMilli()})
 }
 
@@ -221,6 +273,9 @@ func SaveLibDoc(c *gin.Context) {
 	title := strings.TrimSpace(c.PostForm(`title`))
 	content := strings.TrimSpace(c.PostForm(`content`))
 	docKey := ""
+	isDir := cast.ToInt(c.PostForm(`is_dir`))
+	docIcon := cast.ToString(c.PostForm(`doc_icon`))
+
 	if libraryId <= 0 {
 		common.FmtError(c, `library_ids_err`)
 		return
@@ -298,7 +353,7 @@ func SaveLibDoc(c *gin.Context) {
 		fileId = int(fileIds[0])
 	}
 
-	id, err := common.SaveLibDoc(adminUserId, getLoginUserId(c), libraryId, docId, fileId, pid, isIndex, 0, title, info, content)
+	id, err := common.SaveLibDoc(adminUserId, getLoginUserId(c), libraryId, docId, fileId, pid, isIndex, 0, title, info, content, isDir, docIcon)
 	if err != nil {
 		logs.Error(err.Error())
 		common.FmtError(c, `doc_save_err`)
@@ -306,6 +361,7 @@ func SaveLibDoc(c *gin.Context) {
 	}
 	lib_redis.DelCacheData(define.Redis, &common.LibDocCacheBuildHandler{DocKey: docKey})
 	lib_redis.DelCacheData(define.Redis, &common.LibraryCatalogCacheBuildHandle{LibraryId: libraryId})
+	lib_redis.DelCacheData(define.Redis, &common.LibraryCatalogCacheBuildHandle{LibraryId: libraryId, PreviewKey: "preview"})
 	common.FmtOk(c, map[string]any{"doc_id": id})
 }
 
@@ -362,7 +418,42 @@ func ChangeLibDoc(c *gin.Context) {
 		return
 	}
 	lib_redis.DelCacheData(define.Redis, &common.LibraryCatalogCacheBuildHandle{LibraryId: libraryId})
+	lib_redis.DelCacheData(define.Redis, &common.LibraryCatalogCacheBuildHandle{LibraryId: libraryId, PreviewKey: "preview"})
 	common.FmtOk(c, map[string]any{"doc_id": id, `sort`: sort})
+}
+
+func PreviewLibDoc(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	//get params
+	libraryKey := cast.ToString(c.PostForm(`library_key`))
+	libraryId := cast.ToInt(common.ParseLibraryKey(libraryKey))
+
+	info, err := common.GetLibraryInfo(libraryId, adminUserId)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(info) == 0 {
+		common.FmtError(c, `no_data`)
+		return
+	}
+	previewKey := tool.Random(12)
+	expire := 600
+	// cache save key
+	redisClient := common.LibDocPreviewCacheBuildHandler{
+		LibraryKey: libraryKey,
+		PreviewKey: previewKey,
+	}
+	if err := redisClient.SaveCacheData(expire, time.Duration(expire)*time.Second); err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	common.FmtOk(c, map[string]any{"preview_key": previewKey, `time_durcation`: expire})
 }
 
 func SaveLibDocSeo(c *gin.Context) {
@@ -401,6 +492,97 @@ func SaveLibDocSeo(c *gin.Context) {
 		`seo_title`:    strings.TrimSpace(c.PostForm(`seo_title`)),
 		`seo_desc`:     strings.TrimSpace(c.PostForm(`seo_desc`)),
 		`seo_keywords`: strings.TrimSpace(c.PostForm(`seo_keywords`)),
+	}
+	id, err := common.ChangeLibDoc(docId, updateData)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `doc_save_err`)
+		return
+	}
+	common.FmtOk(c, map[string]any{"doc_id": id})
+}
+
+// 保存对外知识库首页快捷文档
+func SaveLibDocIndexQuickDoc(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	if !checkPartnerRights(c, define.PartnerRightsEdit) {
+		common.FmtError(c, `auth_no_permission`)
+		return
+	}
+	//get params
+	libraryKey := cast.ToString(c.PostForm(`library_key`))
+	libraryId := cast.ToInt(common.ParseLibraryKey(libraryKey))
+	docId := cast.ToInt(c.PostForm(`doc_id`))
+	info, err := common.GetLibraryInfo(libraryId, adminUserId)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(info) == 0 {
+		common.FmtError(c, `no_data`)
+		return
+	}
+	if cast.ToInt(info[`type`]) != define.OpenLibraryType {
+		common.FmtError(c, `library_ids_err`)
+		return
+	}
+	docInfo := common.GetLibDocFields(docId, `id`)
+	if len(docInfo) == 0 {
+		common.FmtError(c, `no_data`)
+		return
+	}
+	updateData := msql.Datas{
+		`quick_doc_content`: strings.TrimSpace(c.PostForm(`quick_doc_content`)),
+	}
+	id, err := common.ChangeLibDoc(docId, updateData)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `doc_save_err`)
+		return
+	}
+	common.FmtOk(c, map[string]any{"doc_id": id})
+}
+
+// 保存对外知识库首页背景图
+func SaveLibDocBannerImg(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	if !checkPartnerRights(c, define.PartnerRightsEdit) {
+		common.FmtError(c, `auth_no_permission`)
+		return
+	}
+	//get params
+	libraryKey := cast.ToString(c.PostForm(`library_key`))
+	libraryId := cast.ToInt(common.ParseLibraryKey(libraryKey))
+	docId := cast.ToInt(c.PostForm(`doc_id`))
+	info, err := common.GetLibraryInfo(libraryId, adminUserId)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(info) == 0 {
+		common.FmtError(c, `no_data`)
+		return
+	}
+	if cast.ToInt(info[`type`]) != define.OpenLibraryType {
+		common.FmtError(c, `library_ids_err`)
+		return
+	}
+	docInfo := common.GetLibDocFields(docId, `id`)
+	if len(docInfo) == 0 {
+		common.FmtError(c, `no_data`)
+		return
+	}
+
+	updateData := msql.Datas{
+		`banner_img_url`: strings.TrimSpace(c.PostForm(`banner_img_url`)),
 	}
 	id, err := common.ChangeLibDoc(docId, updateData)
 	if err != nil {
@@ -487,7 +669,7 @@ func UploadLibDoc(c *gin.Context) {
 		for _, item := range fileName {
 			title += item
 		}
-		docId, err := common.SaveLibDoc(adminUserId, getLoginUserId(c), libraryId, docId, int(fileIds[0]), pid, 0, 0, title, info, uploadInfo.Columns)
+		docId, err := common.SaveLibDoc(adminUserId, getLoginUserId(c), libraryId, docId, int(fileIds[0]), pid, 0, 0, title, info, uploadInfo.Columns, define.IsFile, "")
 		if err != nil {
 			logs.Error(err.Error())
 			common.FmtError(c, `file_data_err`)

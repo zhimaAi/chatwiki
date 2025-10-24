@@ -9,6 +9,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/initialize"
 	"chatwiki/internal/pkg/casbin"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
 	"database/sql"
 	"embed"
@@ -64,7 +65,10 @@ func StartConsumer() {
 	common.RunTask(define.ConvertVectorTopic, define.ConvertVectorChannel, 2, business.ConvertVector)
 	common.RunTask(define.ConvertGraphTopic, define.ConvertGraphChannel, 10, business.ConvertGraph)
 	common.RunTask(define.CrawlArticleTopic, define.CrawlArticleChannel, 2, business.CrawlArticle)
+	common.RunTask(lib_define.PushMessage, lib_define.PushChannel, 10, business.AppPush)
+	common.RunTask(lib_define.PushEvent, lib_define.PushChannel, 5, business.AppPush)
 	common.RunTask(define.ExportTaskTopic, define.ExportTaskChannel, 5, business.ExportTask)
+	common.RunTask(define.ExtractFaqFilesTopic, define.ExtractFaqFilesChannel, 5, business.ExtractFaqFiles)
 }
 
 func StartCronTasks() {
@@ -78,6 +82,7 @@ func StartCronTasks() {
 	_, _ = c.AddFunc("@every 1h", func() { business.DeleteDownloadFile() })
 	_, _ = c.AddFunc("@every 15s", common.DeleteReceiver)
 	_, _ = c.AddFunc("@every 5s", func() { business.CheckAliOcrRequest() })
+	_, _ = c.AddFunc("0 0 * * *", func() { business.UpdateLibraryFileData() })
 	c.Start()
 	logs.Debug("cron start")
 }

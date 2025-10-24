@@ -78,11 +78,11 @@ func GetLibraryList(c *gin.Context) {
 			for _, permission := range permissionData {
 				managedLibraryIdList = append(managedLibraryIdList, cast.ToString(permission[`object_id`]))
 			}
-			m.Where(`id`, `in`, strings.Join(managedLibraryIdList, `,`))
+			//m.Where(`id`, `in`, strings.Join(managedLibraryIdList, `,`))
 		}
 	}
 	list, err := m.
-		Field(`id,type,access_rights,avatar,library_name,library_intro,avatar,graph_switch,graph_model_config_id,graph_use_model,create_time`).
+		Field(`id,type,access_rights,avatar,library_name,library_intro,avatar,graph_switch,graph_model_config_id,graph_use_model,create_time,group_id`).
 		Order(`id desc`).
 		Select()
 	if err != nil {
@@ -232,6 +232,7 @@ func CreateLibrary(c *gin.Context) {
 	AiChunkModelConfigId := cast.ToInt(c.PostForm(`ai_chunk_model_config_id`))
 	AiChunkSize := cast.ToInt(c.PostForm(`ai_chunk_size`))
 	qaIndexType := cast.ToInt(c.PostForm(`qa_index_type`))
+	groupId := cast.ToInt(c.PostForm(`group_id`))
 	if len(libraryName) == 0 || !tool.InArrayInt(typ, define.LibraryTypes[:]) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
@@ -297,6 +298,7 @@ func CreateLibrary(c *gin.Context) {
 		`ai_chunk_model_config_id`:             AiChunkModelConfigId,
 		`ai_chunk_size`:                        AiChunkSize,
 		`qa_index_type`:                        qaIndexType,
+		`group_id`:                             groupId,
 	}
 	if len(avatar) > 0 {
 		data[`avatar`] = avatar
@@ -347,6 +349,17 @@ func DeleteLibrary(c *gin.Context) {
 	}
 	if len(info) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	// check robot relation
+	robotdata, err := common.GetLibraryRobotInfo(userId, id)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(robotdata) > 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `relation_robot`))))
 		return
 	}
 	_, err = msql.Model(`chat_ai_library`, define.Postgres).Where(`id`, cast.ToString(id)).Delete()
@@ -425,6 +438,7 @@ func EditLibrary(c *gin.Context) {
 	AiChunkModelConfigId := cast.ToInt(c.PostForm(`ai_chunk_model_config_id`))
 	AiChunkSize := cast.ToInt(c.PostForm(`ai_chunk_size`))
 	qaIndexType := cast.ToInt(c.PostForm(`qa_index_type`))
+	iconTemplateConfigId := cast.ToInt(c.PostForm(`icon_template_config_id`))
 	if id <= 0 || len(libraryName) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
@@ -564,6 +578,7 @@ func EditLibrary(c *gin.Context) {
 		`ai_chunk_model_config_id`:             AiChunkModelConfigId,
 		`ai_chunk_size`:                        AiChunkSize,
 		`qa_index_type`:                        qaIndexType,
+		`icon_template_config_id`:              iconTemplateConfigId,
 	}
 	if len(avatar) > 0 {
 		data[`avatar`] = avatar

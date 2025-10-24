@@ -515,6 +515,7 @@ const formState = reactive({
   ai_chunk_model_config_id: '', // ai大模型分段模型配置id
   ai_chunk_prumpt: default_ai_chunk_prumpt, // ai大模型分段提示词设置
   qa_index_type: 1,
+  group_id: 0,
 })
 
 const rules = reactive({
@@ -682,6 +683,8 @@ const saveForm = () => {
   formData.append('ai_chunk_model_config_id', formState.ai_chunk_model_config_id)
   formData.append('ai_chunk_prumpt', formState.ai_chunk_prumpt)
 
+  formData.append('group_id', formState.group_id)
+
   saveLoading.value = true
 
   createLibrary(formData)
@@ -713,7 +716,7 @@ const saveForm = () => {
     })
 }
 
-const show = ({ type }) => {
+const show = ({ type, group_id }) => {
   console.log(type)
   formState.type = type
   if (type == 0) {
@@ -740,7 +743,7 @@ const show = ({ type }) => {
   formState.ai_chunk_model = ''
   formState.ai_chunk_model_config_id = ''
   formState.ai_chunk_prumpt = default_ai_chunk_prumpt
-
+  formState.group_id = group_id || 0
   visible.value = true
 }
 

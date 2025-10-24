@@ -269,7 +269,14 @@ func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monit
 	if flow == nil || err != nil {
 		return
 	}
-	content = cast.ToString(flow.output[`special.llm_reply_content`].GetVal(common.TypString))
+
+	var replyContentNodes = []string{`special.llm_reply_content`, `special.question_optimize_reply_content`}
+	for _, nodeKey := range replyContentNodes {
+		content = cast.ToString(flow.output[nodeKey].GetVal(common.TypString))
+		if len(content) > 0 {
+			break
+		}
+	}
 	if len(content) == 0 {
 		err = errors.New(`工作流没有可以回复的内容返回`)
 		return

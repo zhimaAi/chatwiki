@@ -35,8 +35,7 @@
 </template>
 
 <script setup>
-import { ref, createVNode, computed  } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, createVNode, computed } from 'vue'
 import { getLibraryList, deleteLibrary } from '@/api/library'
 import { formatFileSize } from '@/utils/index'
 import { LIBRARY_NORMAL_AVATAR, LIBRARY_OPEN_AVATAR } from '@/constants/index'
@@ -48,8 +47,6 @@ import PageAlert from '@/components/page-alert/page-alert.vue'
 import { usePermissionStore } from '@/stores/modules/permission'
 let { role_permission, role_type } = usePermissionStore()
 const createOpenLibDoc = computed(() => role_type == 1 || role_permission.includes('CreateOpenLibDoc'))
-
-const router = useRouter()
 
 const addLibraryModelRef = ref(null)
 

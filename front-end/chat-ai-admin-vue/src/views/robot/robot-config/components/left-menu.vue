@@ -1,10 +1,6 @@
 <template>
   <div class="left-menu-box">
-    <a-menu
-      class="left-menu"
-      :selectedKeys="selectedKeys"
-      @click="handleChangeMenu"
-    >
+    <a-menu class="left-menu" :selectedKeys="selectedKeys" @click="handleChangeMenu">
       <router-link
         class="default-color"
         tag="a"
@@ -41,7 +37,7 @@ const selectedKeys = computed(() => {
 })
 
 const baseItems = [
-{
+  {
     key: 'workflow',
     id: 'workflow',
     icon: () =>
@@ -51,7 +47,8 @@ const baseItems = [
       }),
     label: '工作流编排',
     title: '工作流编排',
-    path: '/robot/config/workflow'
+    path: '/robot/config/workflow',
+    menuIn: ['1']
   },
   {
     key: 'basic-config',
@@ -63,7 +60,34 @@ const baseItems = [
       }),
     label: '基础配置',
     title: '基础配置',
-    path: '/robot/config/basic-config'
+    path: '/robot/config/basic-config',
+    menuIn: ['0']
+  },
+  {
+    key: 'library-config',
+    id: 'library-config',
+    icon: () =>
+      h(SvgIcon, {
+        name: 'guanlianzhishiku',
+        class: 'menu-icon'
+      }),
+    label: '知识库',
+    title: '知识库',
+    path: '/robot/config/library-config',
+    menuIn: ['0']
+  },
+  {
+    key: 'skill-config',
+    id: 'skill-config',
+    icon: () =>
+      h(SvgIcon, {
+        name: 'skii',
+        class: 'menu-icon'
+      }),
+    label: '工作流',
+    title: '工作流',
+    path: '/robot/config/skill-config',
+    menuIn: ['0']
   },
   {
     key: 'external-services',
@@ -75,7 +99,8 @@ const baseItems = [
       }),
     label: '对外服务',
     title: '对外服务',
-    path: '/robot/config/external-services'
+    path: '/robot/config/external-services',
+    menuIn: ['0', '1']
   },
   {
     key: 'test',
@@ -93,6 +118,7 @@ const baseItems = [
       id: props.robotInfo.id
     },
     target: '_blank',
+    menuIn: ['0', '1']
   },
   {
     key: 'qa-feedbacks',
@@ -104,7 +130,8 @@ const baseItems = [
       }),
     label: '问答反馈',
     title: '问答反馈',
-    path: '/robot/config/qa-feedbacks'
+    path: '/robot/config/qa-feedbacks',
+    menuIn: ['0', '1']
   },
   {
     key: 'session-record',
@@ -120,20 +147,35 @@ const baseItems = [
     query: {
       robot_key: props.robotInfo.robot_key,
       id: props.robotInfo.id
-    }
+    },
+    menuIn: ['0', '1']
   },
-  // {
-  //   key: 'api-key-manage',
-  //   id: 'api-key-manage',
-  //   icon: () =>
-  //     h(SvgIcon, {
-  //       name: 'duiwaifuwu',
-  //       class: 'menu-icon'
-  //     }),
-  //   label: 'API Key管理',
-  //   title: 'API Key管理',
-  //   path: '/robot/config/api-key-manage'
-  // },
+  {
+    key: 'api-key-manage',
+    id: 'api-key-manage',
+    icon: () =>
+      h(SvgIcon, {
+        name: 'duiwaifuwu',
+        class: 'menu-icon'
+      }),
+    label: 'API Key管理',
+    title: 'API Key管理',
+    path: '/robot/config/api-key-manage',
+    menuIn: ['0', '1']
+  },
+  {
+    key: 'unknown_issue',
+    id: 'unknown_issue',
+    icon: () =>
+      h(SvgIcon, {
+        name: 'unknown-issue',
+        class: 'menu-icon'
+      }),
+    label: '未知问题',
+    title: '未知问题',
+    path: '/robot/config/unknown_issue',
+    menuIn: ['0', '1']
+  },
   {
     key: 'statistical_analysis',
     id: 'statistical_analysis',
@@ -144,7 +186,8 @@ const baseItems = [
       }),
     label: '统计分析',
     title: '统计分析',
-    path: '/robot/config/statistical_analysis'
+    path: '/robot/config/statistical_analysis',
+    menuIn: ['0', '1']
   },
   {
     key: 'export-record',
@@ -156,23 +199,18 @@ const baseItems = [
       }),
     label: '导出记录',
     title: '导出记录',
-    path: '/robot/config/export-record'
-  },
+    path: '/robot/config/export-record',
+    menuIn: ['0', '1']
+  }
 ]
 
-const items = computed(()=>{
-  if(getRobotPermission(query.id) == 1) {
-    return baseItems.filter((item)=> item.id == 'external-services')
+const items = computed(() => {
+  let lists = baseItems
+  if (getRobotPermission(query.id) == 1) {
+    return lists.filter((item) => item.id == 'external-services')
   }
-  if(props.robotInfo.application_type == 0){
-    return baseItems.filter(item => item.id != 'workflow')
-  }else{
-    return baseItems.filter(item => item.id != 'basic-config')
-  }
+  return lists.filter((item) => item.menuIn.includes(props.robotInfo?.application_type))
 })
-
-
-
 
 const handleChangeMenu = ({ item }) => {
   if (selectedKeys.value.includes(item.id)) {
@@ -184,12 +222,12 @@ const handleChangeMenu = ({ item }) => {
 </script>
 
 <style lang="less" scoped>
-.default-color{
+.default-color {
   color: inherit;
 }
 .left-menu-box {
   .left-menu {
-    border-right: 0;
+    border-right: 0 !important;
 
     ::v-deep(.menu-icon) {
       color: #a1a7b3;

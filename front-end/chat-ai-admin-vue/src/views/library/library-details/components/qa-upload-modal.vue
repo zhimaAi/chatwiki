@@ -13,7 +13,7 @@
         <a-alert show-icon>
           <template #message>
             <div>
-              通过word或者EXce形式导入问答对，建议您参考<a
+              通过word或者Excel形式导入问答，建议您参考<a
                 href="https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/template/FAQ导入模板.docx"
                 >word导入模板</a
               >&nbsp;
@@ -22,9 +22,20 @@
               >创建导入文档
             </div>
             <div>如果您不是使用导入模板创建的文档，可以点击高级设置指定提取规则</div>
+            <div>知识库已有相同的问题时，会覆盖原有问答</div>
           </template>
         </a-alert>
       </div>
+      <a-flex align="center" style="margin: 16px 0">
+        <div>所属分组：</div>
+        <a-select v-model:value="formState.group_id" style="flex: 1" placeholder="请选择分组">
+          <a-select-option
+            v-for="item in props.groupLists.filter((item) => item.id >= 0)"
+            :value="item.id"
+            >{{ item.group_name }}</a-select-option
+          >
+        </a-select>
+      </a-flex>
       <div class="upload-file-box">
         <UploadFilesInput :type="2" v-model:value="fileList" @change="onFilesChange" />
       </div>
@@ -117,7 +128,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import UploadFilesInput from '../../add-library/components/upload-input.vue'
 import { DownOutlined, UpOutlined } from '@ant-design/icons-vue'
 import { readLibFileExcelTitle, addLibraryFile } from '@/api/library/index'
@@ -137,17 +148,38 @@ const fileList = ref([])
 const emit = defineEmits(['ok'])
 const excellQaLists = ref([])
 
+const props = defineProps({
+  library_id: {
+    type: [Number, String],
+    default: () => ''
+  },
+  groupLists: {
+    type: Array,
+    default: () => []
+  },
+})
+
+const libraryId = computed(() => {
+  return props.library_id || query.id
+})
+
+
 const formState = reactive({
   question_column: void 0,
   answer_column: void 0,
   similar_column: void 0,
   question_lable: '问题：',
   answer_lable: '答案：',
-  similar_label: '相似问题：'
+  similar_label: '相似问法：',
+  group_id: void 0,
 })
 
 const isHide = ref(true)
-const show = () => {
+const show = (groupId) => {
+  formState.group_id = void 0
+  if(groupId >= 0){
+    formState.group_id = groupId
+  }
   open.value = true
 }
 
@@ -179,7 +211,7 @@ const handleSaveFiles = () => {
 
   let formData = new FormData()
 
-  formData.append('library_id', query.id)
+  formData.append('library_id', libraryId.value)
   let isTableType = false
   fileList.value.forEach((file) => {
     if (file.name.includes('.xlsx') || file.name.includes('.csv')) {
@@ -204,6 +236,7 @@ const handleSaveFiles = () => {
     formData.append('answer_lable', formState.answer_lable)
     formData.append('similar_label', formState.similar_label)
   }
+  formData.append('group_id', formState.group_id >= 0 ? formState.group_id : 0)
   formData.append('is_qa_doc', 1)
   formData.append('qa_index_type', qa_index_type)
   addLibraryFile(formData)
@@ -232,7 +265,7 @@ const onFilesChange = (files) => {
   formState.similar_column = void 0
   formState.question_lable = '问题：'
   formState.answer_lable = '答案：'
-  formState.similar_label = '相似问题：'
+  formState.similar_label = '相似问法：'
   fileList.value = files
   if (files && files.length > 0) {
     if (files[0].type.includes('.document')) {

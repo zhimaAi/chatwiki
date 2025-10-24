@@ -3,26 +3,32 @@
   display: flex;
   flex-flow: column nowrap;
   height: 100%;
-  width: 254px;
+  width: 100%;
   overflow: hidden;
 
   .directory-header {
     display: flex;
     align-items: center;
+    flex-wrap: nowrap;
+    width: 100%;
+    overflow: hidden;
     height: 40px;
-    padding: 0 8px 0 24px;
+    padding: 0 8px 0 16px;
 
     .label-text {
       flex: 1;
+      white-space: nowrap;
       padding-left: 8px;
       font-size: 14px;
       font-weight: 400;
+      overflow: hidden;
       color: #595959;
     }
 
     .action-box {
       display: flex;
       align-items: center;
+
       .action-btn {
         display: flex;
         align-items: center;
@@ -41,14 +47,40 @@
     }
   }
 }
+
 .directory-body {
   flex: 1;
-  width: 280px;
+  width: 100%;
   overflow: hidden;
   overflow-y: auto;
+
+  /* 自定义滚动条样式 */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d9d9d9;
+    border-radius: 3px;
+    transition: background 0.2s;
+
+    &:hover {
+      background: #bfbfbf;
+    }
+  }
+
+  &::-webkit-scrollbar-thumb:active {
+    background: #999999;
+  }
 }
+
 .directory-content {
-  width: 254px;
+  width: 100%;
   margin-top: 7px;
   padding: 0 8px;
 
@@ -77,7 +109,7 @@
 
   ::v-deep(.ant-tree-treenode) {
     align-items: center;
-    padding: 0 8px 0 10px;
+    padding: 0 8px 0 8px;
     margin-bottom: 4px;
     border-radius: 6px;
     cursor: pointer;
@@ -120,10 +152,12 @@
       margin-right: 0;
       align-self: unset;
     }
+
     .ant-tree-node-selected {
       background: none;
 
       .doc-item {
+
         .doc-title,
         .doc-icon {
           color: #2475fc;
@@ -149,6 +183,7 @@
       font-size: 16px;
       color: #595959;
     }
+
     .doc-title {
       flex: 1;
       height: 32px;
@@ -159,6 +194,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+
       .title-text {
         padding-left: 4px;
       }
@@ -184,7 +220,7 @@
       opacity: 1;
     }
 
-    &:hover {
+    &:hover.no-edit {
       padding-right: 48px;
 
       .doc-action-box {
@@ -204,11 +240,14 @@
         <a-dropdown>
           <template #overlay>
             <a-menu>
-              <a-menu-item key="addDoc" @click="addDoc()"> 添加文档 </a-menu-item>
+              <a-menu-item key="addDir" @click="addDoc(null, 0)"> 添加文档 </a-menu-item>
               <a-menu-item key="importDoc" @click="importDoc()"> 导入文档 </a-menu-item>
+              <a-menu-item key="addDoc" @click="addDoc(null, 1)"> 添加文件夹 </a-menu-item>
             </a-menu>
           </template>
-          <span class="action-btn"><PlusOutlined style="color: #595959" /></span>
+          <span class="action-btn">
+            <PlusOutlined style="color: #595959" />
+          </span>
         </a-dropdown>
 
         <a-tooltip>
@@ -217,74 +256,95 @@
             <svg-icon name="menu-expand" style="font-size: 16px; color: #595959"></svg-icon>
           </span>
         </a-tooltip>
+
+        <a-tooltip>
+          <template #title>图标模板设置</template>
+          <span class="action-btn" @click="openIconTemplate">
+            <svg-icon name="system-setting" style="font-size: 16px; color: #595959"></svg-icon>
+          </span>
+        </a-tooltip>
       </div>
     </div>
 
     <div class="directory-body">
       <div class="directory-content">
-        <a-tree
-          class="directory-tree"
-          v-model:expandedKeys="expandedKeys"
-          :selected-keys="selectedKeys"
-          :loadedKeys="loadedKeys"
-          block-node
-          :tree-data="props.list"
-          :load-data="loadData"
-          :field-names="{ key: 'id', title: 'title', children: 'children' }"
-          draggable
-          @dragenter="onDragEnter"
-          @drop="onDrop"
-          @select="onSelect"
-        >
+        <a-tree class="directory-tree" block-node v-model:expandedKeys="expandedKeys" :draggable="draggable" :selected-keys="selectedKeys"
+          :loadedKeys="loadedKeys" :tree-data="props.list" :load-data="loadData"
+          :field-names="{ key: 'id', title: 'title', children: 'children' }" :allowDrop="allowDrop"
+          @dragenter="onDragEnter" @drop="onDrop" @select="onSelect">
           <template #switcherIcon="{ switcherCls }">
             <div style="margin-right: 4px">
               <span class="action-btn toggle-btn">
-                <CaretDownOutlined style="font-size: 12px" :class="switcherCls"
-              /></span>
+                <CaretDownOutlined style="font-size: 12px" :class="switcherCls" />
+              </span>
             </div>
           </template>
           <template #title="treeNode">
-            <div
-              class="doc-item"
-              :data-level="treeNode.level"
-              :class="{ 'is-leaf': treeNode.dataRef.isLeaf }"
-            >
-              <svg-icon class="doc-icon" name="doc-file"></svg-icon>
-              <div class="doc-title">{{ treeNode.dataRef.title }}</div>
-              <div class="doc-action-box">
+            <div class="doc-item" :data-level="treeNode.level"
+              :class="[{ 'is-leaf': treeNode.dataRef.isLeaf }, treeNode.dataRef.isEdit ? 'is-edit' : 'no-edit']">
+              <span class="doc-icon" v-if="treeNode.data.doc_icon">{{ treeNode.data.doc_icon }}</span>
+              <span class="doc-icon" v-else>{{ treeNode.data.is_dir == 1 ?
+                iconTemplateConfig.levels[treeNode.level].folder_icon :
+                iconTemplateConfig.levels[treeNode.level].doc_icon }}</span>
+
+              <div class="doc-title">
+                <span class="doc-title-text" v-if="!treeNode.dataRef.isEdit">{{ treeNode.dataRef.title }}</span>
+                <a-input :class="[`rename-input-${treeNode.dataRef.id}`]" name="rename"
+                  :defaultValue="treeNode.dataRef.title" placeholder="请输入标题" @blur="saveName(treeNode)"
+                  @pressEnter="saveName(treeNode)" v-else />
+              </div>
+
+              <div class="doc-action-box" v-if="!treeNode.dataRef.isEdit">
                 <!-- action1 -->
-                <a-dropdown v-if="treeNode.level < 2">
+                <a-dropdown v-if="treeNode.dataRef.is_dir == 1">
                   <template #overlay>
                     <a-menu>
-                      <a-menu-item key="addDoc" @click.stop.prevent="addDoc(treeNode)">
+                      <a-menu-item key="addDir" @click.stop.prevent="addDoc(treeNode, 0)">
                         <span class="menu-name">添加文档</span>
                       </a-menu-item>
                       <a-menu-item key="importDoc" @click.stop.prevent="importDoc(treeNode)">
                         <span class="menu-name">导入文档</span>
                       </a-menu-item>
+                      <a-menu-item key="addDoc" @click.stop.prevent="addDoc(treeNode, 1)">
+                        <span class="menu-name">添加文件夹</span>
+                      </a-menu-item>
                     </a-menu>
                   </template>
-                  <span class="action-btn" @click.stop=""><PlusOutlined /></span>
+                  <span class="action-btn" @click.stop="">
+                    <PlusOutlined />
+                  </span>
                 </a-dropdown>
                 <!-- action2 -->
                 <a-dropdown>
                   <template #overlay>
                     <a-menu>
-                      <a-menu-item key="copyLink" @click.stop.prevent="handleCopyLink(treeNode)">
-                        复制链接<span class="menu-name"></span>
-                      </a-menu-item>
-                      <a-menu-item key="copyDoc" @click.stop.prevent="handleCopyDoc(treeNode)">
-                        <span class="menu-name">复制文档</span>
-                      </a-menu-item>
-                      <a-menu-item key="exportDoc" @click.stop.prevent="handleExportDoc(treeNode)">
-                        <span class="menu-name">导出文档</span>
-                      </a-menu-item>
-                      <a-menu-item key="deleteDoc" @click.stop.prevent="handleDeleteDoc(treeNode)">
-                        <span class="menu-name">删除文档</span>
-                      </a-menu-item>
+                      <template v-if="treeNode.dataRef.is_dir == 1">
+                        <a-menu-item key="rename" @click.stop.prevent="handleRenameDoc(treeNode)">
+                          <span class="menu-name">重命名</span>
+                        </a-menu-item>
+                        <a-menu-item key="deleteDoc" @click.stop.prevent="handleDeleteDoc(treeNode)">
+                          <span class="menu-name">删除</span>
+                        </a-menu-item>
+                      </template>
+                      <template v-else>
+                        <a-menu-item key="copyLink" @click.stop.prevent="handleCopyLink(treeNode)">
+                          复制链接<span class="menu-name"></span>
+                        </a-menu-item>
+                        <a-menu-item key="copyDoc" @click.stop.prevent="handleCopyDoc(treeNode)">
+                          <span class="menu-name">复制文档</span>
+                        </a-menu-item>
+                        <a-menu-item key="exportDoc" @click.stop.prevent="handleExportDoc(treeNode)">
+                          <span class="menu-name">导出文档</span>
+                        </a-menu-item>
+                        <a-menu-item key="deleteDoc" @click.stop.prevent="handleDeleteDoc(treeNode)">
+                          <span class="menu-name">删除文档</span>
+                        </a-menu-item>
+                      </template>
                     </a-menu>
                   </template>
-                  <span class="action-btn" @click.stop=""><MoreOutlined /></span>
+                  <span class="action-btn" @click.stop="">
+                    <MoreOutlined />
+                  </span>
                 </a-dropdown>
               </div>
             </div>
@@ -294,13 +354,15 @@
     </div>
 
     <UploadDoc ref="uploadDocRef" @file-loaded="handleFileLoaded" />
+    <IconTemplate ref="iconTemplateRef" @select="selectTemplate" />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { PlusOutlined, CaretDownOutlined, MoreOutlined } from '@ant-design/icons-vue'
 import UploadDoc from './upload-doc.vue'
+import IconTemplate from './icon-template.vue'
 
 const emit = defineEmits([
   'addDoc',
@@ -311,7 +373,9 @@ const emit = defineEmits([
   'exportDoc',
   'dragenter',
   'drop',
-  'select'
+  'select',
+  'renameDoc',
+  'saveName',
 ])
 
 const props = defineProps({
@@ -321,13 +385,33 @@ const props = defineProps({
   },
   loadData: {
     type: Function,
-    default: () => {}
+    default: () => { }
   },
   selectedKeys: {
     type: Array,
     default: () => []
+  },
+  iconTemplateConfig: {
+    type: Object,
+    default: () => ({})
+  },
+  draggable: {
+    type: Boolean,
+    default: true
   }
 })
+
+const debounce = (fn, delay) => {
+  let timer = null
+  return function (...args) {
+    if (timer) {
+      clearTimeout(timer)
+    }
+    timer = setTimeout(() => {
+      fn.apply(this, args)
+    }, delay)
+  }
+}
 
 const expandedKeys = ref([])
 const loadedKeys = ref([])
@@ -370,8 +454,8 @@ const toggleExpandAll = (type) => {
 
 const uploadDocRef = ref(null)
 
-const addDoc = (node) => {
-  emit('addDoc', node)
+const addDoc = (node, isDir) => {
+  emit('addDoc', node, isDir)
 }
 
 let currentNode = null
@@ -379,6 +463,15 @@ let currentNode = null
 const importDoc = (node) => {
   currentNode = node
   uploadDocRef.value.triggerUpload()
+}
+
+const iconTemplateRef = ref(null)
+const openIconTemplate = () => {
+  iconTemplateRef.value.open()
+}
+
+const selectTemplate = (templateId) => {
+  emit('selectTemplate', templateId)
 }
 
 const handleFileLoaded = (doc) => {
@@ -397,8 +490,40 @@ const handleExportDoc = (node) => {
   emit('exportDoc', node)
 }
 
+const handleRenameDoc = (node) => {
+  emit('renameDoc', node)
+
+  nextTick(() => {
+    let el = document.querySelector('.rename-input-' + node.data.id);
+
+    if (el) {
+      el.focus()
+      el.select()
+    }
+  })
+}
+
+const saveName = debounce((node) => {
+  let el = document.querySelector('.rename-input-' + node.data.id);
+  if (!el) return
+  let value = el.value.trim()
+
+  emit('saveName', node, value)
+}, 200)
+
 const handleDeleteDoc = (node) => {
   emit('deleteDoc', node)
+}
+
+const allowDrop = ({ dropNode, dragNode, dropPosition }) => {
+  // console.log({ dropNode, dragNode, dropPosition })
+  if((dropNode.is_dir == 0 && dragNode.is_dir == 0) && dropPosition == 0){
+    return false;
+  } else if((dropNode.is_dir == 0 && dragNode.is_dir == 1)  && dropPosition == 0){
+    return false;
+  }
+
+  return true;
 }
 
 const onDragEnter = (info) => {
@@ -410,14 +535,6 @@ const onDrop = (info) => {
 }
 
 const onSelect = (selectedKeys, e) => {
-  // selectedKeys.value = [e.node.dataRef.key]
-  // console.log(selectedKeys)
-  // let key = e.node.dataRef.key
-  // console.log('key: ', key)
-  // selectedKeys.value = []
-  // nextTick(() => {
-  //   selectedKeys.value = [key]
-  // })
   emit('select', e.node.dataRef)
 }
 

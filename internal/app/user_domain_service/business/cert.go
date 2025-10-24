@@ -33,8 +33,9 @@ type SaveCertReq struct {
 
 func SaveCert(c *gin.Context) {
 	var (
-		req = SaveCertReq{}
-		err error
+		req     = SaveCertReq{}
+		err     error
+		isRobot bool
 	)
 	if err = c.ShouldBind(&req); err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_err`, err.Error()))))
@@ -42,12 +43,13 @@ func SaveCert(c *gin.Context) {
 	}
 	if req.Upstream == "" {
 		if cast.ToInt(req.Label) == define.RobotDomainLabel {
+			isRobot = true
 			req.Upstream = define.Config.ChatWiki[`host`] + `:` + define.Config.ChatWiki[`port_h5`]
 		} else {
 			req.Upstream = define.Config.ChatWiki[`host`] + `:` + define.Config.ChatWiki[`port`]
 		}
 	}
-	if err = writeConf(req.Url, req.Upstream, true); err != nil {
+	if err = writeConf(req.Url, req.Upstream, true, isRobot); err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `写入配置文件失败`))))
 		return
@@ -77,8 +79,9 @@ type SaveConfReq struct {
 
 func SaveConf(c *gin.Context) {
 	var (
-		req = SaveConfReq{}
-		err error
+		req     = SaveConfReq{}
+		err     error
+		isRobot bool
 	)
 	if err = c.ShouldBind(&req); err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_err`, err.Error()))))
@@ -86,12 +89,13 @@ func SaveConf(c *gin.Context) {
 	}
 	if req.Upstream == "" {
 		if cast.ToInt(req.Label) == define.RobotDomainLabel {
+			isRobot = true
 			req.Upstream = define.Config.ChatWiki[`host`] + `:` + define.Config.ChatWiki[`port_h5`]
 		} else {
 			req.Upstream = define.Config.ChatWiki[`host`] + `:` + define.Config.ChatWiki[`port`]
 		}
 	}
-	if err = writeConf(req.Url, req.Upstream, false); err != nil {
+	if err = writeConf(req.Url, req.Upstream, false, isRobot); err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `写入配置文件失败`))))
 		return
@@ -107,7 +111,7 @@ func SaveConf(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-func writeConf(domain, upstream string, isHttps bool) error {
+func writeConf(domain, upstream string, isHttps, isRobot bool) error {
 	path := "/etc/nginx/conf.d"
 	// check file exist
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -124,10 +128,11 @@ server {
 
 	#error_log /var/log/nginx/%s.error.log;
 	#access_log /var/log/nginx/%s.access.log;
-
+	# open docs域名访问时
+	%s
 	location / {
 		proxy_pass http://%s; 
-	  #  proxy_set_header Host $http_host;
+	  %s  proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forward-For $remote_addr;
         proxy_cache off;  # 关闭缓存
@@ -156,10 +161,11 @@ server {
 
 	#error_log /var/log/nginx/%s.error.log;
 	#access_log /var/log/nginx/%s.access.log;
-
+	# open docs域名访问时
+	%s
 	location / {
 		proxy_pass http://%s; 
-	  #  proxy_set_header Host $http_host;
+	  %s proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forward-For $remote_addr;
         proxy_cache off;  # 关闭缓存
@@ -174,9 +180,20 @@ server {
 	}
 }`
 	// replace
-	conf := fmt.Sprintf(httpConf, domain, domain, domain, upstream)
+	openDocConf := `	
+	location = / {
+        # /open-doc/default路径
+        rewrite ^ /open-doc/ permanent;
+    }`
+	note := ``
+	if isRobot {
+		openDocConf = ``
+		note = `#`
+	}
+
+	conf := fmt.Sprintf(httpConf, domain, domain, domain, openDocConf, upstream, note)
 	if isHttps {
-		conf += fmt.Sprintf(httpsConf, domain, domain, domain, domain, domain, upstream)
+		conf += fmt.Sprintf(httpsConf, domain, domain, domain, domain, domain, openDocConf, upstream, note)
 	}
 
 	// conf path

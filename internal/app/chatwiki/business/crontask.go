@@ -5,6 +5,7 @@ package business
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -167,4 +168,45 @@ func CheckAliOcrRequest() {
 			continue
 		}
 	}
+}
+
+func UpdateLibraryFileData() {
+	// 每次处理的批次大小
+	const batchSize = 1000
+	logs.Debug("开始更新文档分段数据")
+	var (
+		total = 0
+		page  = 0
+	)
+	for {
+		// 获取一批数据
+		rows, err := msql.Model("chat_ai_library_file_data", define.Postgres).
+			Limit((page * batchSize), batchSize).
+			Order(`id asc`).
+			ColumnArr(`id`)
+
+		if err != nil {
+			logs.Error(err.Error())
+			return
+		}
+
+		// 如果没有数据了就退出循环
+		if len(rows) == 0 {
+			break
+		}
+		minId := cast.ToInt(rows[0])
+		maxId := cast.ToInt(rows[len(rows)-1])
+		// 更新数据
+		_, err = msql.Model("chat_ai_library_file_data", define.Postgres).
+			Where("id", ">=", cast.ToString(minId)).
+			Where("id", "<=", cast.ToString(maxId)).
+			Update2(fmt.Sprintf(`yesterday_hits = today_hits, today_hits = 0,update_time=%v`, tool.Time2Int()))
+		if err != nil {
+			logs.Error(err.Error())
+			return
+		}
+		page++
+		total += len(rows)
+	}
+	logs.Debug("结束更新文档分段数据,共:%v", total)
 }

@@ -39,6 +39,8 @@
     "ant-design-vue": "^4.1.2",
     "axios": "^1.6.8",
     "cherry-markdown": "^0.9.1",
+    "codemirror": "^5.65.19",
+    "codemirror-editor-vue3": "^2.8.0",
     "crypto-js": "^4.2.0",
     "dayjs": "^1.11.11",
     "echarts": "^5.5.1",
@@ -63,8 +65,8 @@
   "devDependencies": {
     "@intlify/unplugin-vue-i18n": "^3.0.1",
     "@rushstack/eslint-patch": "^1.3.3",
-    "@vitejs/plugin-vue": "^5.0.4",
-    "@vitejs/plugin-vue-jsx": "^3.1.0",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "@vitejs/plugin-vue-jsx": "^4.2.0",
     "@vue/eslint-config-prettier": "^8.0.0",
     "@vue/test-utils": "^2.4.5",
     "eslint": "^8.49.0",
@@ -75,7 +77,7 @@
     "rollup-plugin-external-globals": "^0.9.2",
     "rollup-plugin-visualizer": "^5.12.0",
     "unplugin-vue-components": "^0.26.0",
-    "vite": "^5.1.6",
+    "vite": "^6.3.5",
     "vite-plugin-svg-icons": "^2.0.1",
     "vite-plugin-vue-devtools": "^7.0.18",
     "vitest": "^1.4.0"

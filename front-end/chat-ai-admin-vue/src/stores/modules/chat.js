@@ -614,9 +614,9 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  const getChannelList = async () => {
+  const getChannelList = async (params) => {
     try {
-      const res = await getSessionChannelList()
+      const res = await getSessionChannelList(params)
       if (!res) {
         return Promise.reject(res)
       }

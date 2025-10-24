@@ -93,6 +93,7 @@ export function checkRouterPermisission(value) {
 
 // operate_rights  4:可管理  2:可编辑 1:查看
 export function getRobotPermission(id) {
+  return 4
   const {  permission_manage_data } = usePermissionStore()
   // 有权限的机器人
   let list = permission_manage_data.filter(item => item.object_type == 1)
@@ -111,6 +112,7 @@ export function getRobotPermission(id) {
 
 
 export function getLibraryPermission(id) {
+  return 4
   const {  permission_manage_data } = usePermissionStore()
   // 有权限的知识库
   let list = permission_manage_data.filter(item => item.object_type == 2)
@@ -128,6 +130,7 @@ export function getLibraryPermission(id) {
 }
 
 export function getDatabasePermission(id) {
+  return 4
   const {  permission_manage_data } = usePermissionStore()
   // 有权限的数据库
   let list = permission_manage_data.filter(item => item.object_type == 3)

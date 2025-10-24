@@ -55,5 +55,6 @@ const handleMenu = ({ item }) => {
 <style lang="less" scoped>
 .page-menus-box {
   margin-bottom: 16px;
+  padding-left: 24px;
 }
 </style>

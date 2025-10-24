@@ -144,7 +144,7 @@
     </div>
     <div class="chat-page-footer">
       <MessageInput v-model:value="message" @send="onSendMesage" :loading="sendLock" />
-      <div class="technical-support-text">由 ChatWiki 提供软件支持</div>
+      <div class="technical-support-text">{{ translate('由 ChatWiki 提供软件支持') }}</div>
     </div>
   </div>
 </template>
@@ -162,7 +162,7 @@ import MessageInput from './components/message-input.vue'
 import MessageList from './components/messages/message-list.vue'
 import MessageItem from './components/messages/message-item.vue'
 import FastComand from './components/fast-comand/index.vue'
-
+import { translate } from '@/utils/translate.js'
 import { checkChatRequestPermission } from '@/api/robot/index'
 
 type MessageListComponent = {  

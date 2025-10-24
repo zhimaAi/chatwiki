@@ -108,6 +108,35 @@ services:
         supervisord
         /bin/bash
 
+  chatwiki_go_push_service:
+    env_file: ./.env
+    build:
+      context: .
+      dockerfile: DockerfileGoPush
+    container_name: chatwiki_go_push_service
+    volumes:
+      - ../:/var/www/chatwiki/
+    working_dir: /var/www/chatwiki
+    ports:
+      - ${PUSH_SERVICE_PORT}:24529
+    networks:
+      - chatwiki_network
+    restart: always
+    depends_on:
+      - chatwiki_redis_service
+      - chatwiki_postgres_service
+      - chatwiki_go_nsq_service
+    environment:
+      TZ: ${TIMEZONE}
+    stdin_open: true
+    tty: true
+    command:
+      - /bin/bash
+      - -c
+      - |
+        supervisord
+        /bin/bash
+
   chatwiki_go_core_service:
     env_file: ./.env
     build:
@@ -166,6 +195,19 @@ services:
     restart: always
     depends_on:
       - chatwiki_go_nsq_service
+    environment:
+      TZ: ${TIMEZONE}
+
+  chatwiki_code_run:
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/ubuntu:22.04
+    container_name: chatwiki_code_run
+    networks:
+      - chatwiki_network
+    volumes:
+      - ../:/var/www/chatwiki/
+    working_dir: /var/www/chatwiki
+    command: ./build/code_run --IsDev=false
+    restart: always
     environment:
       TZ: ${TIMEZONE}
 

@@ -9,7 +9,7 @@
             class="tab-item"
             :class="{ active: props.msg.question_tabkey == 1 }"
           >
-            猜你想问
+            {{ translate('猜你想问') }}
           </div>
           <div
             v-if="
@@ -31,7 +31,7 @@
             class="tab-item"
             :class="{ active: props.msg.question_tabkey == 2 }"
           >
-            常见问题
+            {{ translate('常见问题') }}
           </div>
         </div>
         <template v-if="props.msg.question_tabkey == 1">
@@ -61,6 +61,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { translate } from '@/utils/translate.js'
 const emit = defineEmits(['sendTextMessage'])
 const props = defineProps({
   msg: {

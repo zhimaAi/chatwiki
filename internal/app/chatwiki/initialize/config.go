@@ -50,8 +50,14 @@ func initConfig() {
 	if len(define.Config.WebService[`api_domain`]) == 0 {
 		define.Config.WebService[`api_domain`] = fmt.Sprintf(`http://%s:18080`, ip)
 	}
+	if len(define.Config.WebService[`push_domain`]) == 0 {
+		define.Config.WebService[`push_domain`] = fmt.Sprintf(`http://%s:18888`, ip)
+	}
 	if len(define.Config.WebService[`ws_domain`]) == 0 {
 		define.Config.WebService[`ws_domain`] = fmt.Sprintf(`%s:18083`, ip)
+	}
+	if len(define.Config.WebService[`wechat_ip`]) == 0 {
+		define.Config.WebService[`wechat_ip`] = ip
 	}
 	define.Config.NumCPU, err = config.GetSection(`num_cpu`)
 	if err != nil {

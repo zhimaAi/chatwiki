@@ -90,9 +90,6 @@ const initToggleCatalog = function () {
       $(".directory-item[data-pid=" + id + "]").show();
     }
   });
-
-  // 收起所有目录
-
 };
 
 // 侧边栏菜单展开收起
@@ -110,16 +107,57 @@ function toggleSidebar() {
   }
 }
 
+// 侧边栏链接处理
+function resetSidebarLink() {
+  let preview_key = $("#preview_key").val();
+
+  if(!preview_key){
+    return
+  }
+
+  document.querySelector('.preview-tips').style.display = 'block'
+
+  const sidebarLinks = document.querySelectorAll('.sidebar-link')
+
+  sidebarLinks.forEach((link) => {
+    let href = link.getAttribute('href')
+
+    if(href.indexOf('?') > -1){
+      href = href + `preview=${preview_key}`
+    }else{
+      href = href + `?preview=${preview_key}`
+    }
+
+    link.setAttribute('href', href)
+  })
+}
+
 // 侧边栏搜索
 function toSearchPage(keyword){
+  let preview_key = $("#preview_key").val();
+  // 预览页面不支持搜索
+  if(preview_key){
+    layer.alert('预览模式不支持搜索');  
+    return;
+  }
+
   let libraryKey = $("#library_key").val();
   window.location.href = `/open/search/html/${libraryKey}?v=${encodeURIComponent(keyword)}`;
 }
+
 function onSidebarSearch() {
   let keyword = $("#sidebar-search-input").val();
+  let preview_key = $("#preview_key").val();
+  // 预览页面不支持搜索
+  if(preview_key){
+    layer.alert('预览模式不支持搜索');  
+    return;
+  }
+
   if (!keyword) {
     return;
   }
+  
   toSearchPage(keyword)
 }
 
@@ -130,7 +168,15 @@ function handleEnterSidebarSearch(event){
 }
 
 function onSearch(){
+  let preview_key = $("#preview_key").val();
   var keyword = $("#search-input").val();
+
+  // 预览页面不支持搜索
+  if(preview_key){
+    layer.alert('预览模式不支持搜索');  
+    return;
+  }
+
   if (!keyword) {
     return;
   }
@@ -145,5 +191,5 @@ function handleEnterSearch(event){
 }
 
 $(function(){
-
+  resetSidebarLink()
 })

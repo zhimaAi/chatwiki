@@ -37,36 +37,78 @@
       color: #262626;
     }
   }
+  .flex-between-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .btn-hover-wrap {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease-in;
+    &:hover {
+      background: #e4e6eb;
+    }
+  }
 }
 </style>
 
 <template>
-  <node-common :title="properties.node_name" :menus="menus" :icon-name="properties.node_icon_name"
-    :isSelected="isSelected" :isHovered="isHovered" :node-key="properties.node_key" :node_type="properties.node_type"
-    @handleMenu="handleMenu">
+  <node-common
+    :title="properties.node_name"
+    :menus="menus"
+    :icon-name="properties.node_icon_name"
+    :isSelected="isSelected"
+    :isHovered="isHovered"
+    :node-key="properties.node_key"
+    :node_type="properties.node_type"
+    @handleMenu="handleMenu"
+  >
     <div class="specify-reply-node">
       <div class="node-desc">触发该节点，将生成一条固定消息</div>
       <div class="node-content">
-        <div class="form-label">
-          输出
-        </div>
-        <div class="form-item">
-          <div class="form-item-label">消息内容</div>
+        <div class="form-label">输出</div>
+        <div class="form-item" @mousedown.stop="">
+          <div class="form-item-label">
+            <div class="flex-between-box">
+              <div>消息内容</div>
+              <div class="btn-hover-wrap" @click="handleOpenFullAtModal">
+                <FullscreenOutlined />
+              </div>
+            </div>
+          </div>
           <div class="form-item-body">
-            <at-input inputStyle="height: 100px;" 
+            <at-input
+              inputStyle="height: 100px;"
               :options="valueOptions"
-              :defaultSelectedList="formState.content_tags" 
-              :defaultValue="formState.content" 
+              :defaultSelectedList="formState.content_tags"
+              :defaultValue="formState.content"
               ref="atInputRef"
-              placeholder="请输入消息内容，键入“/”可以插入变量" 
+              placeholder="请输入消息内容，键入“/”可以插入变量"
               input-style="height: 130px"
-              type="textarea" 
-              @open="showAtList" 
+              type="textarea"
+              @open="showAtList"
               @change="(text, selectedList) => changeValue(text, selectedList)"
-              />
+            />
           </div>
         </div>
       </div>
+      <FullAtInput
+        :options="valueOptions"
+        :defaultSelectedList="formState.content_tags"
+        :defaultValue="formState.content"
+        placeholder="请输入消息内容，键入“/”可以插入变量"
+        type="textarea"
+        @open="showAtList"
+        @change="(text, selectedList) => changeValue(text, selectedList)"
+        @ok="handleRefreshAtInput"
+        ref="fullAtInputRef"
+      />
     </div>
   </node-common>
 </template>
@@ -74,13 +116,18 @@
 <script>
 import NodeCommon from '../base-node.vue'
 import AtInput from '../at-input/at-input.vue'
+import { haveOutKeyNode } from '@/views/workflow/components/util.js'
+import { FullscreenOutlined } from '@ant-design/icons-vue'
+import FullAtInput from '../components/full-at-input.vue'
 
 export default {
   name: 'SpecifyReplyNode',
   inject: ['getNode', 'getGraph', 'setData'],
   components: {
     NodeCommon,
-    AtInput
+    AtInput,
+    FullscreenOutlined,
+    FullAtInput
   },
   props: {
     properties: {
@@ -99,12 +146,10 @@ export default {
       formState: {
         content: '',
         content_tags: []
-      },
+      }
     }
   },
-  computed: {
-
-  },
+  computed: {},
   mounted() {
     this.getValueOptions()
 
@@ -117,7 +162,7 @@ export default {
       content: '',
       content_tags: []
     }
-    
+
     this.formState.content = reply.content
 
     this.formState.content_tags = reply.content_tags || []
@@ -136,16 +181,16 @@ export default {
   },
   methods: {
     onUpatateNodeName(data) {
-      if (data.node_type !== 'http-node') {
-        return;
+      if(!haveOutKeyNode.includes(data.node_type)){
+        return
       }
 
       this.getValueOptions()
 
       this.$nextTick(() => {
-        if(this.formState.content_tags && this.formState.content_tags.length > 0){
-          this.formState.content_tags.forEach(tag => {
-            if(tag.node_id == data.node_id){
+        if (this.formState.content_tags && this.formState.content_tags.length > 0) {
+          this.formState.content_tags.forEach((tag) => {
+            if (tag.node_id == data.node_id) {
               let arr = tag.label.split('/')
               arr[0] = data.node_name
               tag.label = arr.join('/')
@@ -156,10 +201,9 @@ export default {
 
         this.$refs[`atInputRef`].refresh()
       })
-
     },
     getValueOptions() {
-      let options = this.getNode().getAllParentVariable();
+      let options = this.getNode().getAllParentVariable()
 
       this.valueOptions = options || []
     },
@@ -177,7 +221,7 @@ export default {
       let height = this.getHeight()
       let node_params = JSON.parse(this.properties.node_params)
 
-      node_params.reply = {...this.formState}
+      node_params.reply = { ...this.formState }
 
       this.setData({
         height: height,
@@ -193,13 +237,19 @@ export default {
       this.formState.content_tags = selectedList
       this.formState.content = text
 
-      this.update();
+      this.update()
     },
     handleMenu(item) {
       if (item.key === 'delete') {
         let node = this.getNode()
         this.getGraph().deleteNode(node.id)
       }
+    },
+    handleOpenFullAtModal() {
+      this.$refs.fullAtInputRef.show()
+    },
+    handleRefreshAtInput(){
+      this.$refs[`atInputRef`].refresh()
     },
   }
 }

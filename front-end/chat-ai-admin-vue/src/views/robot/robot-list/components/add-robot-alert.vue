@@ -129,11 +129,14 @@
           </div>
         </a-form-item>
 
-        <a-form-item v-if="!isEdit" ref="name" label="应用名称" v-bind="validateInfos.robot_name">
+        <a-form-item  ref="name" label="应用名称" v-bind="validateInfos.robot_name">
           <a-input v-model:value="formState.robot_name" placeholder="请输入应用名称" />
         </a-form-item>
-        <a-form-item v-else ref="name" label="工作流名称" v-bind="validateInfos.robot_name">
-          <a-input v-model:value="formState.robot_name" placeholder="请输入机器人名称，最多20个字" />
+
+        <a-form-item  ref="group_id" label="分组" v-bind="validateInfos.group_id">
+          <a-select v-model:value="formState.group_id" style="width: 100%" placeholder="请选择分组">
+            <a-select-option v-for="item in groupLists" :value="item.id">{{ item.group_name }}</a-select-option>
+          </a-select>
         </a-form-item>
 
         <a-form-item label="简介" v-bind="validateInfos.robot_intro">
@@ -166,7 +169,7 @@ import { ref, reactive, h, onMounted, computed } from 'vue'
 import { Form, message, Modal } from 'ant-design-vue'
 import { CloseCircleFilled } from '@ant-design/icons-vue'
 import { getModelConfigOption } from '@/api/model/index'
-import { saveRobot, editBaseInfo } from '@/api/robot/index'
+import { saveRobot, editBaseInfo, getRobotGroupList } from '@/api/robot/index'
 import { useRoute, useRouter } from 'vue-router'
 import AvatarInput from './avatar-input.vue'
 import { DEFAULT_ROBOT_AVATAR, DEFAULT_WORKFLOW_AVATAR } from '@/constants/index'
@@ -175,6 +178,7 @@ const robotStore = useRobotStore()
 
 const { setStorage } = useStorage('localStorage')
 
+const emit = defineEmits(['addRobot', 'editRobot'])
 let default_avatar = ''
 
 const route = useRoute()
@@ -185,17 +189,32 @@ const isEdit = ref(false)
 const show = ref(false)
 
 const saveLoading = ref(false)
+const groupLists = ref([])
 
 const formState = reactive({
   robot_name: '',
   robot_intro: '',
   robot_avatar: undefined,
   robot_avatar_url: '',
-  application_type: 0
+  application_type: 0,
+  group_id: '0'
 })
 
 const title = computed(() => {
-  return formState.application_type == 0 ? '新建聊天机器人' : isEdit.value ? '编辑工作流基本信息' : '新建工作流'
+  if(formState.application_type == 0){
+    if(isEdit.value){
+      return '编辑机器人基本信息'
+    }else{
+      return '新建聊天机器人'
+    }
+
+  }else{
+    if(isEdit.value){
+      return '编辑工作流基本信息'
+    }else{
+      return '新建工作流'
+    }
+  }
 })
 
 const robotInfo = computed(() => {
@@ -230,7 +249,8 @@ const saveForm = () => {
   let formData = {
     robot_name: formState.robot_name,
     robot_intro: formState.robot_intro,
-    robot_avatar: formState.robot_avatar || default_avatar
+    robot_avatar: formState.robot_avatar || default_avatar,
+    group_id: formState.group_id || '0'
   }
 
   saveLoading.value = true
@@ -255,10 +275,13 @@ const saveForm = () => {
       }
 
       message.success(tipVal)
-
+      if(!isEdit.value && route.query.robot_key){
+        emit('addRobot')
+        show.value = false
+        return
+      }
       if (!isEdit.value) {
         if (formState.application_type == 0) {
-          setStorage('showNoLibraryTip', true)
           router.push(
             '/robot/config/basic-config?id=' + res.data.id + '&robot_key=' + res.data.robot_key
           )
@@ -268,6 +291,7 @@ const saveForm = () => {
       } else {
         // 弹窗关闭 刷新数据
         getRobot(route.query.id)
+        emit('editRobot')
         show.value = false
       }
     })
@@ -303,16 +327,16 @@ const checkLLM = async () => {
   return true
 }
 
-const open = async (type) => {
+const open = async (type, is_edit) => {
   if(type == 0){
     default_avatar = DEFAULT_ROBOT_AVATAR
   } else {
     default_avatar = DEFAULT_WORKFLOW_AVATAR
   }
-  
+  isEdit.value = is_edit
   // 验证是否有LLM
   let state = await checkLLM()
-  
+  getGroupList()
   if (state) {
     formState.robot_avatar = ''
     formState.robot_avatar_url = default_avatar
@@ -327,6 +351,16 @@ const open = async (type) => {
       formState.robot_avatar_url = robotInfo.value.robot_avatar_url
     }
   }
+}
+
+const setGroupId = (id) => {
+  formState.group_id = id || '0'
+}
+
+const getGroupList = () => {
+  getRobotGroupList().then((res) => {
+    groupLists.value  = res.data || []
+  })
 }
 
 const onCancel = () => {
@@ -344,12 +378,11 @@ const handleSave = () => {
 }
 
 onMounted(() => {
-  if (route.query.id) {
-    isEdit.value = true
-  }
+
 })
 
 defineExpose({
-  open
+  open,
+  setGroupId,
 })
 </script>

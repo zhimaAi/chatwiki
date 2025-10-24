@@ -24,6 +24,10 @@
       margin-top: 8px;
       font-size: 14px;
       color: #595959;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
     }
   }
 
@@ -113,17 +117,19 @@
         <span class="robot-name">{{ robotInfo.robot_name }}</span>
       </div>
       <div class="robot-intro">
-        {{ robotInfo.robot_intro || '还没有设置机器人介绍，快来写一段简介吧' }}
+        <span>分组：{{ groupName }}</span>
+        <span>简介：{{ robotInfo.robot_intro || '还没有设置机器人介绍，快来写一段简介吧' }}</span>
       </div>
     </div>
   </edit-box>
 </template>
 <script setup>
 import { getBase64 } from '@/utils/index'
-import { ref, reactive, inject, toRaw } from 'vue'
+import { ref, reactive, inject, toRaw, computed } from 'vue'
 import EditBox from './edit-box.vue'
 import CuUpload from '@/components/cu-upload/cu-upload.vue'
-
+import { useRobotStore } from '@/stores/modules/robot'
+const robotStore = useRobotStore()
 const isEdit = ref(false)
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
 
@@ -132,6 +138,27 @@ const formState = reactive({
   robot_avatar: '',
   robot_avatar_url: '',
   robot_intro: ''
+})
+
+const robotList = computed(() => {
+  return robotStore.robotList || []
+})
+
+const robotGroupList = computed(() => {
+  return robotStore.robotGroupList || []
+})
+
+
+const groupName = computed(() => {
+  let group_name = '未分组'
+  let currentRobotItem = robotList.value.find((item) => item.id == robotInfo.id) || {}
+  if(currentRobotItem.group_id > 0){
+    let groupItem = robotGroupList.value.find((item) => item.id == currentRobotItem.group_id)
+    if (groupItem) {
+      group_name = groupItem.group_name
+    }
+  }
+  return group_name
 })
 
 const onSave = () => {

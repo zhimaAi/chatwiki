@@ -23,13 +23,19 @@ func GetExportTaskList(c *gin.Context) {
 		return
 	}
 	robotId := cast.ToUint(c.Query(`robot_id`))
+	libraryId := cast.ToUint(c.Query(`library_id`))
 	startTime := cast.ToInt(c.Query(`start_time`))
 	endTime := cast.ToInt(c.Query(`end_time`))
 	page := max(1, cast.ToInt(c.Query(`page`)))
 	size := max(1, cast.ToInt(c.Query(`size`)))
+	source := cast.ToInt(c.DefaultQuery(`source`, cast.ToString(define.ExportSourceSession)))
 	m := msql.Model(`chat_ai_export_task`, define.Postgres).
 		Field(`id,create_time,file_name,source,status,file_url,err_msg`).
-		Where(`admin_user_id`, cast.ToString(userId)).Where(`robot_id`, cast.ToString(robotId))
+		Where(`admin_user_id`, cast.ToString(userId)).Where(`robot_id`, cast.ToString(robotId)).
+		Where(`source`, cast.ToString(source))
+	if libraryId > 0 {
+		m.Where(`library_id`, cast.ToString(libraryId))
+	}
 	if startTime > 0 && endTime > 0 && endTime >= startTime {
 		m.Where(`create_time`, `between`, fmt.Sprintf(`%d,%d`, startTime, endTime))
 	}

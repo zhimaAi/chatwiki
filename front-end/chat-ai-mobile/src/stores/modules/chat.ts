@@ -67,6 +67,7 @@ export interface Robot {
   feedback_switch: boolean
   chat_type: any
   answer_source_switch: boolean
+  application_type: string // 机器人类型 0普通 1工作流
 }
 
 export interface PageStyle {
@@ -122,6 +123,7 @@ export const useChatStore = defineStore('chat', () => {
     feedback_switch: false,
     chat_type: '',
     answer_source_switch: false,
+    application_type: '0',
   })
 
   // 样式配置
@@ -198,6 +200,7 @@ export const useChatStore = defineStore('chat', () => {
       robot.feedback_switch = robotInfo.feedback_switch == '1';
       robot.chat_type = robotInfo.chat_type;
       robot.answer_source_switch = robotInfo.answer_source_switch == 'true';
+      robot.application_type = robotInfo.application_type
       if (robotInfo.common_question_list) {
         robot.common_question_list = JSON.parse(robotInfo.common_question_list)
       }

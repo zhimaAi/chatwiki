@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { store } from '../index'
 import { Modal } from 'ant-design-vue'
-import { loginApi, getUserInfo, refreshUserToken } from '@/api/user'
+import { loginApi, getUserInfo, getUnReadMessageTotal, refreshUserToken } from '@/api/user'
 // import { getTokenCache, setTokenCache } from '@/storage/user'
 import router from '@/router'
 import { DEFAULT_USER_AVATAR } from '@/constants/index'
@@ -15,6 +15,7 @@ export const useUserStore = defineStore('user', {
       // 记住我
       rememberMe: true,
       loginInfo: undefined,
+      myAppList: [],
       unReadMessageTotal: 0,
       isLayoutScroll: true,
       isShowResetPassModal: false,
@@ -53,6 +54,18 @@ export const useUserStore = defineStore('user', {
     },
     getLoginInfo() {
       return this.loginInfo
+    },
+    getCurrentApp() {
+      return (appId) => {
+          return this.myAppList.find((item) => item.wechatapp_id === appId)
+      }
+    },
+    getAppType() {
+      return (appId) => {
+          let app = this.myAppList.find((item) => item.wechatapp_id === appId)
+
+          return app ? app.app_type : null
+      }
     },
     getRobotNums () {
       return this.robot_nums
@@ -117,6 +130,19 @@ export const useUserStore = defineStore('user', {
       }
 
       this.setUserInfo(res.data)
+
+      return res
+    },
+    async getUnReadMessageTotal() {
+      let query = router.currentRoute.value.query
+
+      const res = await getUnReadMessageTotal({
+          wechatapp_id: query.wechatapp_id
+      })
+
+      if (res) {
+          this.unReadMessageTotal = res.data.totalCount
+      }
 
       return res
     },

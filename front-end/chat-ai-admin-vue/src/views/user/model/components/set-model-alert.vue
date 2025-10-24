@@ -59,7 +59,7 @@
 
               <template v-if="item.componentType == 'radio2'">
                 <a-radio-group v-model:value="formState[item.key]" :disabled="item.disabled">
-                  <a-radio :value="val.value" v-for="(val, index) in item.options" :key="val.value"
+                  <a-radio style="line-height: 32px;" :value="val.value" v-for="(val, index) in item.options" :key="val.value"
                     ><span>{{ val.label }}</span></a-radio
                   >
                 </a-radio-group>

@@ -84,10 +84,10 @@
         <a-checkbox-group v-model:value="state.checkedList" style="width: 100%">
           <div class="list-box" ref="scrollContainer">
             <div class="list-item-wraapper" v-for="item in options" :key="item.id">
-              <a-checkbox class="list-item" :disabled="item.start_node_key===''" :value="item.id">
+              <a-checkbox class="list-item"  :value="item.id">
                 <div class="library-name">{{ item.robot_name }}
                   <span class="library-desc" v-if="item.start_node_key===''"> (未发布)</span></div>
-                <div class="library-desc">{{ item.robot_intro }}</div>
+                <div class="library-desc">{{ item.robot_intro || '--' }}</div>
               </a-checkbox>
             </div>
           </div>
@@ -95,7 +95,7 @@
       </a-spin>
       <div class="empty-box" v-if="!isRefresh && !options.length">
         <img src="@/assets/img/library/preview/empty.png" alt="" />
-        <div>暂无数据表, 请先去添加数据表</div>
+        <div>暂无数据，请先添加工作流</div>
       </div>
     </div>
   </a-modal>

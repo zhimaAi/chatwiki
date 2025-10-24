@@ -1,32 +1,163 @@
 <style lang="less" scoped>
 .robot-page {
   padding-bottom: 8px;
-  .page-title{
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  .page-title {
     line-height: 28px;
-    margin: 16px 0;
+    padding: 16px 0;
     font-size: 20px;
     font-weight: 600;
     color: #000000;
   }
+  .list-group-box {
+    display: flex;
+    gap: 16px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .group-list-box {
+    width: 256px;
+    height: calc(100% - 8px);
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    margin-top: 8px;
+    padding: 16px;
+    padding-right: 0;
+    position: relative;
+    &.hide-group {
+      width: 0;
+      padding: 0;
+      border-left: 0;
+      border-top: 0;
+      border-bottom: 0;
+    }
+    .hide-group-box {
+      position: absolute;
+      right: -8px;
+      top: 40%;
+      height: 50px;
+      width: 13px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #e5e5ea;
+      color: #8c8c8c;
+      cursor: pointer;
+      opacity: 0.78;
+      &:hover {
+        opacity: 1;
+      }
+    }
+    .head-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #262626;
+    }
+
+    .search-box {
+      margin-top: 16px;
+    }
+
+    .classify-box {
+      flex: 1;
+      overflow: hidden;
+      font-size: 14px;
+      .classify-item {
+        height: 32px;
+        padding: 0 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 4px;
+        cursor: pointer;
+        border-radius: 6px;
+        color: #595959;
+        transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+
+        .classify-title {
+          flex: 1;
+          text-overflow: ellipsis;
+          overflow: hidden;
+          white-space: nowrap;
+        }
+        .num {
+          display: block;
+        }
+
+        .btn-box {
+          display: none;
+        }
+        &:hover {
+          background: #f2f4f7;
+          .num {
+            display: none;
+          }
+          .num.num-block {
+            display: block;
+          }
+          .btn-box {
+            display: block;
+          }
+        }
+        &.active {
+          color: #2475fc;
+          background: #e6efff;
+        }
+      }
+    }
+
+    .hover-btn-wrap {
+      width: fit-content;
+      height: 24px;
+      border-radius: 6px;
+      padding: 0 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+      &:hover {
+        background: #e4e6eb;
+      }
+    }
+  }
+
   .robot-item {
     padding: 8px;
     border-bottom: 1px solid #ccc;
   }
 
-  ::v-deep(.ant-tabs-nav::before){
+  ::v-deep(.ant-tabs-nav::before) {
     border-bottom: 0;
   }
 
-  .list-toolbar{
+  .list-toolbar {
     display: flex;
     justify-content: space-between;
     margin-bottom: 8px;
   }
+  .robot-scroll-box{
+    flex: 1;
+    overflow: hidden;
+    height: 100%;
+  }
 
   .list-box {
+    flex: 1;
+    width: 100%;
     display: flex;
     flex-flow: row wrap;
     margin: 0 -8px 0 -8px;
+    height: fit-content;
   }
 
   .list-item-wrapper {
@@ -38,7 +169,7 @@
     position: relative;
     width: 100%;
     padding: 24px;
-    border: 1px solid #E4E6EB;
+    border: 1px solid #e4e6eb;
     border-radius: 12px;
     background-color: #fff;
     transition: all 0.25s;
@@ -55,8 +186,8 @@
     }
 
     .robot-avatar {
-      width: 52px;
-      height: 52px;
+      width: 48px;
+      height: 48px;
       border-radius: 14px;
       overflow: hidden;
     }
@@ -64,6 +195,7 @@
     .robot-info-content {
       flex: 1;
       padding-left: 12px;
+      overflow: hidden;
     }
 
     .robot-name {
@@ -94,7 +226,7 @@
       -webkit-box-orient: vertical;
     }
 
-    .robot-type-tag{
+    .robot-type-tag {
       display: inline-block;
       height: 22px;
       line-height: 20px;
@@ -103,7 +235,7 @@
       font-weight: 400;
       border-radius: 6px;
       color: rgb(36, 117, 252);
-      border: 1px solid #CDE0FF;
+      border: 1px solid #cde0ff;
     }
 
     .robot-action {
@@ -113,7 +245,7 @@
       color: #2475fc;
       display: flex;
       align-items: center;
- 
+
       .robot-action-item {
         display: flex;
         align-items: center;
@@ -126,7 +258,7 @@
         transition: all 0.2s;
       }
       .robot-action-item:hover {
-        background: #E4E6EB;
+        background: #e4e6eb;
       }
 
       .action-icon {
@@ -152,17 +284,26 @@
       font-size: 14px;
     }
   }
-
 }
 
-.create-action{
+.empty-box {
+  width: 100%;
+  padding-top: 100px;
+}
+.create-action {
   display: flex;
   align-items: center;
- .icon{
+  .icon {
     width: 20px;
     height: 20px;
     margin-right: 8px;
- }
+  }
+}
+.toolbar-box {
+  padding-right: 32px;
+}
+.mr-16 {
+  margin-right: 16px;
 }
 
 // 大于1920px
@@ -191,11 +332,11 @@
 
     <div class="list-toolbar">
       <div class="toolbar-box">
-        <ListTabs :tabs="tabs" v-model:value="activeKey" />
+        <ListTabs :tabs="tabs" @change="getGroupList" v-model:value="activeKey" />
       </div>
       <div class="toolbar-box">
         <a-dropdown v-if="robotCreate">
-          <a-button type="primary" @click.prevent="" >
+          <a-button type="primary" @click.prevent="">
             <template #icon>
               <PlusOutlined />
             </template>
@@ -205,13 +346,13 @@
             <a-menu>
               <a-menu-item @click.prevent="toAddRobot(0)">
                 <span class="create-action">
-                  <img class="icon" :src="DEFAULT_ROBOT_AVATAR" alt="">
+                  <img class="icon" :src="DEFAULT_ROBOT_AVATAR" alt="" />
                   <span>聊天机器人</span>
                 </span>
               </a-menu-item>
               <a-menu-item @click.prevent="toAddRobot(1)">
                 <span class="create-action">
-                  <img class="icon" :src="DEFAULT_WORKFLOW_AVATAR" alt="">
+                  <img class="icon" :src="DEFAULT_WORKFLOW_AVATAR" alt="" />
                   <span>工作流</span>
                 </span>
               </a-menu-item>
@@ -224,99 +365,190 @@
             </a-menu>
           </template>
         </a-dropdown>
-        
       </div>
     </div>
-
-    <div class="list-box">
-      <div
-        class="list-item-wrapper"
-        v-for="item in filterRobotList"
-        :key="item.id"
-        @click="toEditRobot(item)"
-      >
-        <div class="list-item">
-          <div class="robot-info">
-            <img class="robot-avatar" :src="item.robot_avatar" alt="" />
-            <div class="robot-info-content">
-              <div class="robot-name">{{ item.robot_name }}</div>
-              <div class="robot-type-tag">
-              {{ item.application_type == 0 ? '聊天机器人' : '工作流' }}
+    <div class="list-group-box">
+      <div class="group-list-box" :class="{ 'hide-group': isHideGroup }">
+        <cu-scroll style="padding-right: 16px">
+          <div class="group-head-box" v-if="!isHideGroup">
+            <div class="head-title">
+              <div>机器人分组</div>
+              <a-tooltip title="新建分组">
+                <div class="hover-btn-wrap" @click="openGroupModal({})"><PlusOutlined /></div>
+              </a-tooltip>
             </div>
+            <div class="search-box">
+              <a-input
+                v-model:value="groupSearchKey"
+                allowClear
+                placeholder="搜索分组"
+                style="width: 100%"
+              >
+                <template #suffix>
+                  <SearchOutlined @click.stop="" />
+                </template>
+              </a-input>
             </div>
           </div>
-          <div class="robot-desc">{{ item.robot_intro }}</div>
-          <div class="robot-action" @click.stop>
-            <!-- <div class="robot-action-item" @click="toEditRobot(item)"><svg-icon class="action-icon" name="jibenpeizhi" /></div> -->
-            <!-- <div class="robot-action-item" @click="toTestPage(item)"><svg-icon class="action-icon" name="cmd" /></div> -->
-            <a-tooltip title="聊天测试">
-              <div class="robot-action-item" @click.stop="toTestPage(item)">
-                <svg-icon class="action-icon" name="chat"></svg-icon>
+          <div class="classify-box">
+            <div
+              class="classify-item"
+              @click="handleChangeGroup(item)"
+              :class="{ active: item.id == group_id }"
+              v-for="item in filterGroupLists"
+              :key="item.id"
+            >
+              <div class="classify-title">{{ item.group_name }}</div>
+              <div class="right-content">
+                <div class="num" :class="{ 'num-block': item.id <= 0 }">{{ item.total }}</div>
+                <div class="btn-box" v-if="item.id > 0">
+                  <a-dropdown placement="bottomRight">
+                    <div class="hover-btn-wrap">
+                      <EllipsisOutlined />
+                    </div>
+                    <template #overlay>
+                      <a-menu>
+                        <a-menu-item>
+                          <div @click.stop="openGroupModal(item)">重命名</div>
+                        </a-menu-item>
+                        <a-menu-item>
+                          <div @click.stop="handleDelGroup(item)">删 除</div>
+                        </a-menu-item>
+                      </a-menu>
+                    </template>
+                  </a-dropdown>
+                </div>
               </div>
-            </a-tooltip>
-            <a-tooltip title="会话记录">
-              <div class="robot-action-item" @click.stop="toSessionRecordPage(item)">
-                <svg-icon class="action-icon" name="session"></svg-icon>
-              </div>
-            </a-tooltip>
-            <a-tooltip title="统计分析">
-              <div class="robot-action-item" @click.stop="toAnalysisPage(item)">
-                <svg-icon class="action-icon" name="analysis"></svg-icon>
-              </div>
-            </a-tooltip>
-
-            <a-dropdown>
-              <div class="robot-action-item" @click.stop>
-                <svg-icon class="action-icon" name="point-h"></svg-icon>
-              </div>
-              <template #overlay>
-                <a-menu>
-                  <a-menu-item>
-                    <a class="delete-text-color" href="javascript:;" @click="handleDelete(item)"
-                      >删 除</a
-                    >
-                  </a-menu-item>
-                  <a-menu-item>
-                    <a class="copy-text-color" href="javascript:;" @click="handleCopy(item)"
-                      >复 制</a
-                    >
-                  </a-menu-item>
-                  <a-menu-item @click="handleExportCsl(item)">
-                    <span>导出为csl</span>
-                  </a-menu-item>
-                </a-menu>
-              </template>
-            </a-dropdown>
-            
+            </div>
           </div>
-        </div>
+        </cu-scroll>
+        <a-tooltip placement="right" :title="isHideGroup ? '展开分组' : '收起分组'">
+          <div class="hide-group-box" @click="handleChangeHideGroup">
+            <LeftOutlined v-if="!isHideGroup" />
+            <RightOutlined v-else />
+          </div>
+        </a-tooltip>
+      </div>
+      <div class="robot-scroll-box">
+        <cu-scroll style="padding-right: 16px">
+          <div class="list-box">
+            <div class="empty-box" v-if="filterRobotList.length == 0">
+              <a-empty></a-empty>
+            </div>
+            <div
+              class="list-item-wrapper"
+              v-for="item in filterRobotList"
+              :key="item.id"
+              @click="toEditRobot(item)"
+            >
+              <div class="list-item">
+                <div class="robot-info">
+                  <img class="robot-avatar" :src="item.robot_avatar" alt="" />
+                  <div class="robot-info-content">
+                    <div class="robot-name">{{ item.robot_name }}</div>
+                    <div class="robot-type-tag">
+                      {{ item.application_type == 0 ? '聊天机器人' : '工作流' }}
+                    </div>
+                  </div>
+                </div>
+                <div class="robot-desc">{{ item.robot_intro }}</div>
+                <div class="robot-action" @click.stop>
+                  <!-- <div class="robot-action-item" @click="toEditRobot(item)"><svg-icon class="action-icon" name="jibenpeizhi" /></div> -->
+                  <!-- <div class="robot-action-item" @click="toTestPage(item)"><svg-icon class="action-icon" name="cmd" /></div> -->
+                  <a-tooltip title="聊天测试">
+                    <div class="robot-action-item" @click.stop="toTestPage(item)">
+                      <svg-icon class="action-icon" name="chat"></svg-icon>
+                    </div>
+                  </a-tooltip>
+                  <a-tooltip title="会话记录">
+                    <div class="robot-action-item" @click.stop="toSessionRecordPage(item)">
+                      <svg-icon class="action-icon" name="session"></svg-icon>
+                    </div>
+                  </a-tooltip>
+                  <a-tooltip title="统计分析">
+                    <div class="robot-action-item" @click.stop="toAnalysisPage(item)">
+                      <svg-icon class="action-icon" name="analysis"></svg-icon>
+                    </div>
+                  </a-tooltip>
+
+                  <a-dropdown>
+                    <div class="robot-action-item" @click.stop>
+                      <svg-icon class="action-icon" name="point-h"></svg-icon>
+                    </div>
+                    <template #overlay>
+                      <a-menu>
+                        <a-menu-item>
+                          <a
+                            class="delete-text-color"
+                            href="javascript:;"
+                            @click="handleDelete(item)"
+                            >删 除</a
+                          >
+                        </a-menu-item>
+                        <a-menu-item>
+                          <div @click.stop="openEditGroupModal(item)">修改分组</div>
+                        </a-menu-item>
+                        <a-menu-item>
+                          <a class="copy-text-color" href="javascript:;" @click="handleCopy(item)"
+                            >复 制</a
+                          >
+                        </a-menu-item>
+                        <a-menu-item @click="handleExportCsl(item)">
+                          <span>导出为csl</span>
+                        </a-menu-item>
+                      </a-menu>
+                    </template>
+                  </a-dropdown>
+                </div>
+              </div>
+            </div>
+          </div>
+        </cu-scroll>
       </div>
     </div>
 
     <AddRobotAlert ref="addRobotAlertRef" />
+    <AddGroup ref="addGroupRef" @ok="initData" />
+    <EditGroup ref="editGroupRef" @ok="initData" />
     <ImportCslAlert ref="importCslAlertRef" @ok="handleImportOk" />
   </div>
 </template>
 
 <script setup>
-import { DEFAULT_ROBOT_AVATAR, DEFAULT_WORKFLOW_AVATAR, DEFAULT_IMPORT_CSL_AVATAR} from '@/constants/index.js'
+import { DEFAULT_ROBOT_AVATAR, DEFAULT_WORKFLOW_AVATAR, DEFAULT_IMPORT_CSL_AVATAR } from '@/constants/index.js'
 import { usePermissionStore } from '@/stores/modules/permission'
-import { getRobotList, deleteRobot, robotCopy } from '@/api/robot/index.js'
+import {
+  getRobotList,
+  deleteRobot,
+  robotCopy,
+  getRobotGroupList,
+  deleteRobotGroup
+} from '@/api/robot/index.js'
 import { ref, onMounted, createVNode, computed } from 'vue'
-import { ExclamationCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
+import {
+  ExclamationCircleOutlined,
+  PlusOutlined,
+  SearchOutlined,
+  EllipsisOutlined,
+  LeftOutlined,
+  RightOutlined
+} from '@ant-design/icons-vue'
 import { Modal, message } from 'ant-design-vue'
 import AddRobotAlert from './components/add-robot-alert.vue'
 import ImportCslAlert from './components/import-csl-alert.vue'
 import PageAlert from '@/components/page-alert/page-alert.vue'
 import ListTabs from '@/components/cu-tabs/list-tabs.vue'
 import { getRobotPermission } from '@/utils/permission'
+import AddGroup from '@/views/robot/robot-list/components/add-group.vue'
+import EditGroup from '@/views/robot/robot-list/components/edit-group.vue'
 import { useOpenUrlWithToken } from '@/hooks/web'
 
 const tabs = ref([
   {
     title: '全部 (0)',
     value: '2'
-  },{
+  },
+  {
     title: '聊天机器人 (0)',
     value: '0'
   },
@@ -334,42 +566,64 @@ const robotCreate = computed(() => role_type == 1 || role_permission.includes('R
 
 const activeKey = ref('2')
 
+const group_id = ref('')
+
 const robotList = ref([])
 
-const filterRobotList = computed(()=>{
-  if(activeKey.value == 2){
-    return robotList.value
+let hideGroupLocalKey = 'robot-list-hide-group-key'
+
+const isHideGroup = ref(localStorage.getItem(hideGroupLocalKey) == 1)
+
+const handleChangeHideGroup = () => {
+  isHideGroup.value = !isHideGroup.value
+  localStorage.setItem(hideGroupLocalKey, isHideGroup.value ? 1 : 0)
+}
+
+const filterRobotList = computed(() => {
+  let lists = robotList.value
+  if (group_id.value != '') {
+    lists = lists.filter((item) => item.group_id == group_id.value)
   }
-  return robotList.value.filter(item => item.application_type == activeKey.value)
+  if (activeKey.value == 2) {
+    return lists
+  }
+  return lists.filter((item) => item.application_type == activeKey.value)
 })
+
+const initData = () => {
+  getList()
+  getGroupList()
+}
 
 const getList = () => {
   getRobotList()
     .then((res) => {
-      let allNumber = 0;
-      let chatNumber = 0;
-      let workflowNumber = 0;
+      let allNumber = 0
+      let chatNumber = 0
+      let workflowNumber = 0
 
-      res.data.forEach(item => {
-        if(item.application_type == 0){
-          chatNumber++;
-        }else{
-          workflowNumber++;
+      res.data.forEach((item) => {
+        if (item.application_type == 0) {
+          chatNumber++
+        } else {
+          workflowNumber++
         }
-        allNumber++;
-      });
+        allNumber++
+      })
 
       tabs.value = [
         {
-          title: '全部 ('+allNumber+')',
-          value: '2' 
-        },{
-          title: '聊天机器人 ('+chatNumber+')',
+          title: '全部 (' + allNumber + ')',
+          value: '2'
+        },
+        {
+          title: '聊天机器人 (' + chatNumber + ')',
           value: '0'
-        },{
-          title: '工作流 ('+workflowNumber+')',
+        },
+        {
+          title: '工作流 (' + workflowNumber + ')',
           value: '1'
-         },
+        }
       ]
       robotList.value = res.data
     })
@@ -381,6 +635,7 @@ const importCslAlertRef = ref(null)
 const toAddRobot = (val) => {
   // router.push({ name: 'addRobot' })
   addRobotAlertRef.value.open(val)
+  addRobotAlertRef.value.setGroupId(group_id.value)
 }
 
 const toImportCsl = () => {
@@ -392,19 +647,24 @@ const handleImportOk = (data) => {
  toEditRobot(data)
 }
 
-const toEditRobot = ({id, robot_key, application_type}) => {
-  if(application_type == 0){
+const toEditRobot = ({ id, robot_key, application_type }) => {
+  localStorage.setItem('last_local_robot_id', id)
+  if (application_type == 0) {
     // router.push({ path: '/robot/config/basic-config', query: { id: id, robot_key: robot_key  } })
-    window.open(`/#/robot/config/basic-config?id=${id}&robot_key=${robot_key}`, "_blank", "noopener") // 建议添加 noopener 防止安全漏洞
-  }else{
+    window.open(
+      `/#/robot/config/basic-config?id=${id}&robot_key=${robot_key}`,
+      '_blank',
+      'noopener'
+    ) // 建议添加 noopener 防止安全漏洞
+  } else {
     // router.push({ path: '/robot/config/workflow', query: { id: id, robot_key: robot_key  } })
-    window.open(`/#/robot/config/workflow?id=${id}&robot_key=${robot_key}`, "_blank", "noopener") // 建议添加 noopener 防止安全漏洞
+    window.open(`/#/robot/config/workflow?id=${id}&robot_key=${robot_key}`, '_blank', 'noopener') // 建议添加 noopener 防止安全漏洞
   }
 }
 
 const handleDelete = (data) => {
   let key = getRobotPermission(data.id)
-  if(key != 4){
+  if (key != 4) {
     return message.error('您没有删除机器人的权限')
   }
   let secondsToGo = 3
@@ -421,8 +681,7 @@ const handleDelete = (data) => {
     onOk() {
       onDelete(data)
     },
-    onCancel() {
-    }
+    onCancel() {}
   })
 
   let interval = setInterval(() => {
@@ -471,8 +730,7 @@ const handleCopy = (data) => {
     onOk() {
       onCopy(data)
     },
-    onCancel() {
-    }
+    onCancel() {}
   })
 
   let interval = setInterval(() => {
@@ -524,7 +782,78 @@ const toAnalysisPage = (item) => {
   window.open(`#/robot/config/statistical_analysis?robot_key=${item.robot_key}&id=${item.id}`)
 }
 
+const groupSearchKey = ref('')
+const groupLists = ref([])
+
+const filterGroupLists = computed(() => {
+  return groupLists.value.filter((item) => item.group_name.includes(groupSearchKey.value))
+})
+
+const getGroupList = () => {
+  getRobotGroupList({
+    application_type: activeKey.value == 2 ? null : activeKey.value
+  }).then((res) => {
+    let lists = res.data || []
+    let totalNumber = 0
+    // 计算每个分组的机器人数量
+    lists.forEach((group) => {
+      totalNumber += +group.total
+    })
+    groupLists.value = [
+      {
+        group_name: '全部',
+        total: totalNumber,
+        id: ''
+      },
+      ...lists
+    ]
+  })
+}
+
+const handleChangeGroup = (item) => {
+  group_id.value = item.id
+  getList()
+}
+
+const addGroupRef = ref(null)
+const openGroupModal = (data) => {
+  addGroupRef.value.show({
+    ...data
+  })
+}
+
+const editGroupRef = ref(null)
+const openEditGroupModal = (item) => {
+  editGroupRef.value.show({
+    ...item
+  })
+}
+
+const handleDelGroup = (item) => {
+  Modal.confirm({
+    title: `确认删除分组${item.group_name}`,
+    icon: createVNode(ExclamationCircleOutlined),
+    content: '',
+    okText: '确认',
+    okType: 'danger',
+    cancelText: '取消',
+    onOk() {
+      deleteRobotGroup({
+        id: item.id
+      }).then(() => {
+        message.success('删除成功')
+        getGroupList()
+        if (group_id.value == item.id) {
+          group_id.value = ''
+          getList()
+        }
+      })
+    }
+  })
+}
+
 onMounted(() => {
   getList()
+  getGroupList()
 })
 </script>

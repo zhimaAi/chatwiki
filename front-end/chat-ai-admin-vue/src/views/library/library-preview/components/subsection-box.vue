@@ -117,9 +117,9 @@
           </a-dropdown>
         </div>
       </div>
-      <div class="content-box" v-if="item.question">Q：{{ item.question }}</div>
-      <div class="content-box" v-if="item.answer">A：{{ item.answer }}</div>
-      <div class="content-box" @mouseup.stop="handleMouseUp($event, index)" v-html="item.content"></div>
+      <div class="content-box" v-if="item.question">Q： <span v-html="textToHighlight(item.question, props.search)"></span></div>
+      <div class="content-box" v-if="item.answer">A：<span v-html="textToHighlight(item.answer, props.search)"></span></div>
+      <div class="content-box" @mouseup.stop="handleMouseUp($event, index)" v-html="textToHighlight(item.content, props.search)"></div>
       <div class="fragment-img" v-if="item.images.length > 0" v-viewer>
         <img v-for="(item, imageIndex) in item.images" :key="imageIndex" :src="item" alt="" />
       </div>
@@ -206,6 +206,10 @@ const props = defineProps({
   paragraphLists: {
     type: Array,
     default: () => []
+  },
+  search: {
+    type: String,
+    default: ''
   },
   detailsInfo:{
     type: Object,
@@ -727,6 +731,40 @@ const handleClickOutside = (event) => {
   }
 };
 
+
+function textToHighlight(fullText, highlightText, options = {}) {
+  if (!highlightText || !fullText) return fullText;
+
+  const {
+    highlightClass = 'highlight',
+    caseSensitive = false,
+    wholeWord = false
+  } = options;
+
+  const flags = caseSensitive ? 'g' : 'gi';
+  let regexPattern;
+
+  if (wholeWord) {
+    // 使用单词边界匹配完整单词
+    regexPattern = new RegExp(`\\b${escapeRegExp(highlightText)}\\b`, flags);
+  } else {
+    regexPattern = new RegExp(escapeRegExp(highlightText), flags);
+  }
+
+  return fullText.replace(regexPattern, match => 
+    `<span class="${highlightClass}">${match}</span>`
+  );
+}
+
+/**
+ * 转义正则表达式特殊字符
+ * @param {string} string 
+ * @returns {string}
+ */
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
 });
@@ -829,6 +867,14 @@ defineExpose({ handleOpenEditModal })
       white-space: pre-wrap;
       word-wrap: break-word;
       padding: 8px 16px 16px;
+
+      &::v-deep(.highlight) {
+        background-color: #FFEB3B; /* 黄色高亮 */
+        padding: 0 2px;
+        border-radius: 2px;
+        box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+      }
+      
     }
     .fragment-img {
       padding: 0px 16px 16px;
@@ -978,4 +1024,6 @@ defineExpose({ handleOpenEditModal })
   background-color: #e6f7ff;
   border-bottom: 1px dashed #1890ff;
 }
+
+
 </style>

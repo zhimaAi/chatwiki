@@ -5,8 +5,10 @@ package common
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -144,14 +146,18 @@ func IsMd5Str(md5 string) bool {
 	return false
 }
 
-func GetImgInMessage(message string) (string, []string) {
-	imgRE := regexp.MustCompile(`<img[^>]+\bsrc=["']([^"']+)["']>`)
+func GetImgInMessage(message string, getLocalPath bool) (string, []string) {
+	imgRE := regexp.MustCompile(`!\[.*?]\((\S+).*\)`)
 	imgs := imgRE.FindAllStringSubmatch(message, -1)
 	out := make([]string, len(imgs))
 	for i := range out {
 		out[i] = imgs[i][1]
-		if !strings.Contains(out[i], "http://") && !strings.Contains(out[i], "https://") {
-			out[i] = define.Config.WebService["api_domain"] + out[i]
+		if getLocalPath {
+			out[i] = GetFileByLink(out[i])
+		} else {
+			if !IsUrl(out[i]) {
+				out[i] = define.Config.WebService["api_domain"] + out[i]
+			}
 		}
 	}
 	message = imgRE.ReplaceAllString(message, "")
@@ -285,4 +291,90 @@ func IsWorkFlowFuncCall(name string) (string, bool) {
 		return match[1], true
 	}
 	return ``, false
+}
+
+func CheckRobotKey2(robotKey string, lang string) (map[string]string, error) {
+	if !CheckRobotKey(robotKey) {
+		return nil, errors.New(i18n.Show(lang, `param_invalid`, `robot_key`))
+	}
+	robot, err := GetRobotInfo(robotKey)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, errors.New(i18n.Show(lang, `sys_err`))
+	}
+	if len(robot) == 0 {
+		return nil, errors.New(i18n.Show(lang, `no_data`))
+	}
+	if cast.ToInt(robot[`application_type`]) != define.ApplicationTypeFlow {
+		return nil, errors.New(i18n.Show(lang, `no_data`))
+	}
+	return robot, nil
+}
+
+func CheckWorkFlowVersionId(versionId, adminUserId int, lang string) (map[string]string, error) {
+	if versionId <= 0 {
+		return nil, errors.New(i18n.Show(lang, `param_invalid`, `version_id`))
+	}
+	m := msql.Model(`work_flow_version`, define.Postgres)
+	versionInfo, err := m.Where(`id`, cast.ToString(versionId)).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).Field(`id as version_id,version,create_time,update_time`).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, errors.New(i18n.Show(lang, `sys_err`))
+	}
+	if len(versionInfo) == 0 {
+		return nil, errors.New(i18n.Show(lang, `no_data`))
+	}
+	return versionInfo, nil
+}
+
+func CheckWorkFlowVersion(robotId, adminUserId int, version, lang string) error {
+	if !ValidateWorkFlowVersion(version) {
+		return errors.New(i18n.Show(lang, `param_invalid`, `version`))
+	}
+	existVersion, err := msql.Model(`work_flow_version`, define.Postgres).
+		Where(`robot_id`, cast.ToString(robotId)).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id desc`).Limit(1).Value(`version`)
+	if err != nil {
+		logs.Error(err.Error())
+		return errors.New(i18n.Show(lang, `sys_err`))
+	}
+	if existVersion == `` {
+		return nil
+	}
+	ret, err := CompareTriple(existVersion, version)
+	if err != nil {
+		logs.Error(err.Error())
+		return errors.New(i18n.Show(lang, `param_invalid`, `version`))
+	}
+	if ret != -1 {
+		return errors.New(i18n.Show(lang, `param_invalid`, `version`))
+	}
+	return nil
+}
+
+func CompareTriple(v1, v2 string) (int, error) {
+	parts1 := strings.Split(v1, ".")
+	parts2 := strings.Split(v2, ".")
+	if len(parts1) != 3 || len(parts2) != 3 {
+		return 0, fmt.Errorf("invalid format")
+	}
+
+	for i := 0; i < 3; i++ {
+		a, err := strconv.Atoi(parts1[i])
+		if err != nil {
+			return 0, err
+		}
+		b, err := strconv.Atoi(parts2[i])
+		if err != nil {
+			return 0, err
+		}
+		if a < b {
+			return -1, nil
+		}
+		if a > b {
+			return 1, nil
+		}
+	}
+	return 0, nil
 }

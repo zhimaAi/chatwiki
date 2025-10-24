@@ -9,9 +9,11 @@
     <meta name="keywords" content="{{.seo_keywords}}">
     <meta name="description" content="{{.seo_desc}}">
     <title>{{ .seo_title }}</title>
-    <link rel="stylesheet" href="/open/static/css/base.css?v=2005030301" />
-    <link rel="stylesheet" href="/open/static/css/home.css?v=2025030702" />
+    <link rel="stylesheet" href="/open/static/css/base.css?v=2025052903" />
+    <link rel="stylesheet" href="/open/static/css/home.css?v=2025052903" />
     <script src="/open/static/libs/jquery/jquery-3.7.1.min.js"></script>
+    <link rel="stylesheet" href="/open/static/libs/layer/theme/default.css" />
+    <script src="/open/static/libs/layer/layer.js"></script>
     <!-- 百度统计 -->
     {{ template "baidu_statistics" }}
     {{.statistics_set}}
@@ -21,7 +23,9 @@
     <input type="hidden" id="doc_id" name="doc_id" value="{{.doc_id}}"> 
     <input type="hidden" id="title" name="title" value="{{.title}}">
     <input type="hidden" id="content" name="content" value="{{.content}}">
-    <div class="home-page">
+    <input type="hidden" id="preview_key" name="preview_key" value="{{.preview_key}}">
+    {{ template "preview_tips" }}
+    <div class="home-page page-wrapper">
       <div class="home-page-header">
         <div class="library-title">{{ .library_title }}</div>
         <div class="action-box">
@@ -30,7 +34,6 @@
           </span>
         </div>
       </div>
-
       <!-- 左侧开始 -->
       <div class="home-page-left" id="wikiSidebarWrapper">
         <div class="wiki-sidebar-mask" onclick="toggleSidebar()"></div>
@@ -66,7 +69,7 @@
 
           <div class="sidebar-menus">
             <div class="sidebar-menu-item active">
-              <a class="link" id="home-link" href="/open/home/{{.library_key}}">
+              <a class="link sidebar-link" id="home-link" href="/open/home/{{.library_key}}">
                 <img
                   class="menu-icon default-icon"
                   src="/open/static/img/menu_ai.svg"
@@ -150,7 +153,7 @@
         <img class="action-icon" title="删除" src="/open/static/img/delete.svg" alt="">
       </div>
     </div>
-    <script src="/open/static/js/base.js?v=2025031101"></script>
-    <script src="/open/static/js/home.js?v=2025030703"></script>
+    <script src="/open/static/js/base.js?v=2025052904"></script>
+    <script src="/open/static/js/home.js?v=2025052904"></script>
   </body>
 </html>

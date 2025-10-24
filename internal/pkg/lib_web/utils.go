@@ -54,3 +54,13 @@ func GetClientIP(c *gin.Context) string {
 	// if not exists get from request
 	return GetRequestIP(c)
 }
+
+// 获取请求的域名
+func GetRequestDomain(c *gin.Context) string {
+	host := c.Request.Host
+	// 如果域名中包含端口号，去除端口号部分
+	if strings.Contains(host, ":") {
+		host = strings.Split(host, ":")[0]
+	}
+	return host
+}

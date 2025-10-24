@@ -94,6 +94,10 @@ const pageTabs = ref([
   {
     title: '数据库',
     path: '/database/list'
+  },
+  {
+    title: '文档提取FAQ',
+    path: '/ai-extract-faq/list'
   }
 ])
 
