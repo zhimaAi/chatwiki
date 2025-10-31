@@ -171,7 +171,7 @@
         :mouseEnterDelay="0"
         :mouseLeaveDelay="0"
         placement="right"
-        v-model="handleTooltipShow"
+        v-model:open="handleTooltipShow"
         :arrow="false"
       >
         <template #title>{{ sidebarHide ? '展开' : '收起' }}</template>
@@ -206,20 +206,24 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useGlobalStore } from '@/stores/modules/global'
+
+const globalStore = useGlobalStore()
+
 const router = useRouter()
 const route = useRoute()
 const activeMenuKey = computed(() => route.path.split('/')[3])
-const sidebarHide = ref(false)
+const sidebarHide = ref(true)
 
 const menuTooltip = ref(false)
 
-const handleTooltipShow = ref(false)
+const handleTooltipShow = ref(true)
 function onHandleClick() {
   sidebarHide.value = !sidebarHide.value
   handleTooltipShow.value = false
-
+  globalStore.setHideLayoutTopAndBottom(sidebarHide.value)
   setTimeout(() => {
     menuTooltip.value = sidebarHide.value
   }, 250)
@@ -306,4 +310,10 @@ const onMenuClick = (item) => {
     query: route.query
   })
 }
+
+onMounted(()=>{
+  setTimeout(()=>{
+    handleTooltipShow.value = false
+  },3000)
+})
 </script>

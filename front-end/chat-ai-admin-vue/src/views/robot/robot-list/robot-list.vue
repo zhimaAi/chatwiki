@@ -507,7 +507,7 @@
       </div>
     </div>
 
-    <AddRobotAlert ref="addRobotAlertRef" />
+    <AddRobotAlert ref="addRobotAlertRef" @ok="initData" />
     <AddGroup ref="addGroupRef" @ok="initData" />
     <EditGroup ref="editGroupRef" @ok="initData" />
     <ImportCslAlert ref="importCslAlertRef" @ok="handleImportOk" />

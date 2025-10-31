@@ -93,11 +93,11 @@ const (
 )
 
 var SeparatorsList = []map[string]any{
-	{`no`: 1, `name`: `#`, `code`: `#`},
-	{`no`: 2, `name`: `##`, `code`: `##`},
-	{`no`: 3, `name`: `###`, `code`: `###`},
-	{`no`: 4, `name`: `####`, `code`: `####`},
-	{`no`: 5, `name`: `#####`, `code`: `#####`},
+	{`no`: 1, `name`: `#`, `code`: []string{"\r\n# ", "\n# ", "\r# "}},
+	{`no`: 2, `name`: `##`, `code`: []string{"\r\n## ", "\n## ", "\r## "}},
+	{`no`: 3, `name`: `###`, `code`: []string{"\r\n### ", "\n### ", "\r### "}},
+	{`no`: 4, `name`: `####`, `code`: []string{"\r\n#### ", "\n#### ", "\r#### "}},
+	{`no`: 5, `name`: `#####`, `code`: []string{"\r\n##### ", "\n##### ", "\r##### "}},
 	{`no`: 6, `name`: `-`, `code`: `-`},
 	{`no`: 7, `name`: `space`, `code`: " "},
 	{`no`: 8, `name`: `semicolon`, `code`: []string{`；`, `;`}},

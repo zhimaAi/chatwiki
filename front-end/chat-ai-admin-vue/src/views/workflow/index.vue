@@ -475,5 +475,8 @@ onMounted(async () => {
   })
   getNode(res.data)
   startTimer()
+  if(route.query.show_tips){
+    message.info('按住Shift 滚动鼠标可左右移动画布，按住Ctrl 滚动鼠标可放大缩小画布', 6)
+  }
 })
 </script>

@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
@@ -171,6 +172,7 @@ func CheckSplitParams(libraryInfo msql.Params, splitParams define.SplitParams, l
 			splitParams.SeparatorsNo = libraryInfo[`normal_chunk_default_separators_no`]
 			splitParams.ChunkSize = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_size`])
 			splitParams.ChunkOverlap = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_overlap`])
+			splitParams.NotMergedText = cast.ToBool(libraryInfo[`normal_chunk_default_not_merged_text`])
 		} else {
 			splitParams.SemanticChunkSize = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_size`])
 			splitParams.SemanticChunkOverlap = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_overlap`])
@@ -377,4 +379,22 @@ func CompareTriple(v1, v2 string) (int, error) {
 		}
 	}
 	return 0, nil
+}
+
+func IsBasicDate(date string, layouts ...string) bool {
+	layout := "20060102"
+	if len(layouts) > 0 {
+		layout = layouts[0]
+	}
+	_, err := time.Parse(layout, date)
+	return err == nil
+}
+
+func IsValidDate(s string, layouts ...string) bool {
+	layout := "20060102"
+	if len(layouts) > 0 {
+		layout = layouts[0]
+	}
+	t, err := time.Parse(layout, s)
+	return err == nil && t.Format(layout) == s
 }

@@ -39,6 +39,7 @@
     border-radius: 8px;
     background-color: #fff;
     filter: drop-shadow(0 4px 16px #0000001a);
+    z-index: 100;
   }
 }
 </style>
@@ -149,7 +150,7 @@ function initLogicFlow() {
     register(deleteDataNode, lf)
     register(selectDataNode, lf)
     register(codeRunNode, lf)
-    
+
     lf.setDefaultEdgeType('custom-edge')
 
     lf.on('graph:rendered', ({ graphModel }) => {
@@ -204,7 +205,33 @@ function initLogicFlow() {
 
     lf.setZoomMaxSize(8)
 
-    lf.extension.miniMap.show()
+    // 监听 wheel 事件
+    lf.container.addEventListener(
+      'wheel',
+      (e) => {
+        // 检测是否按下 Shift 键
+        if (e.shiftKey) {
+          // 阻止默认行为（避免页面垂直滚动）
+          e.preventDefault()
+
+          // 获取当前画布的 transform 状态
+          const transform = lf.getTransform()
+          let SCALE_X = transform.SCALE_X
+          let SCALE_Y = transform.SCALE_Y
+          // 根据滚轮方向调整 x 坐标（deltaY 用于判断滚轮方向）
+          // console.log(e.deltaY)
+          // 设置新的 transform
+          if (e.deltaY > 0) {
+            lf.translate(-100 * SCALE_X, 100 * SCALE_Y)
+          } else {
+            lf.translate(100 * SCALE_X, -100 * SCALE_Y)
+          }
+        }
+      },
+      { passive: false }
+    ) // passive: false 允许调用 preventDefault()
+
+    // lf.extension.miniMap.show()
   }
 }
 
@@ -222,11 +249,11 @@ const setData = (data) => {
 
     node.properties.node_icon_name = nodeCongfig.properties.node_icon_name
 
-    if(!node.properties.width){
+    if (!node.properties.width) {
       node.properties.width = nodeCongfig.width
     }
 
-    if(!node.properties.height){
+    if (!node.properties.height) {
       node.properties.height = nodeCongfig.height
     }
   })
@@ -244,7 +271,7 @@ const onCustomAddNode = (data, model, anchorData) => {
   data.properties.width = data.width
   data.properties.height = data.height
   data.properties.nodeSortKey = data.nodeSortKey
-  
+
   if (anchorData) {
     data.x = anchorData.x + data.width + 100
     data.y = anchorData.y + data.height / 2 - 24
@@ -267,7 +294,7 @@ const onCustomAddNode = (data, model, anchorData) => {
   })
 
   zIndex = zIndex + 1
-  
+
   let node = lf.addNode(data)
 
   if (anchorData) {

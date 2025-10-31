@@ -153,6 +153,7 @@ const formState = reactive({
   doc_auto_renew_frequency: 1,
   chunk_type: 1,
   normal_chunk_default_separators_no: [10, 12],
+  normal_chunk_default_not_merged_text: 0,
   normal_chunk_default_chunk_size: 512,
   normal_chunk_default_chunk_overlap: 50,
   semantic_chunk_default_chunk_size: 512,
@@ -230,6 +231,7 @@ const saveForm = () => {
     formState.normal_chunk_default_separators_no.join(',')
   )
   formData.append('normal_chunk_default_chunk_size', formState.normal_chunk_default_chunk_size)
+  formData.append('normal_chunk_default_not_merged_text', formState.normal_chunk_default_not_merged_text)
   formData.append(
     'normal_chunk_default_chunk_overlap',
     formState.normal_chunk_default_chunk_overlap
@@ -264,6 +266,7 @@ const show = () => {
   formState.library_intro = ''
   formState.chunk_type = 1
   formState.normal_chunk_default_separators_no = [10, 12]
+  formState.normal_chunk_default_not_merged_text = 0
   formState.normal_chunk_default_chunk_size = 512
   formState.normal_chunk_default_chunk_overlap = 50
   formState.semantic_chunk_default_chunk_size = 512

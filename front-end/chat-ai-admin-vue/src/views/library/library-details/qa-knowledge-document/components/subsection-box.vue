@@ -23,9 +23,7 @@
                     <span class="status-error"><ExclamationCircleFilled /> </span>
                   </span>
                 </a-tooltip>
-                <span @click="handleOpenEditModal(record)" class="question-text">{{
-                  record.question
-                }}</span>
+                <span @click="handleOpenEditModal(record)" v-html="textToHighlight(record.question, props.search)" class="question-text"></span>
                 <template v-if="record.similar_questions && record.similar_questions.length">
                   <a-popover placement="topLeft" :overlayInnerStyle="{ 'padding-right': '2px' }">
                     <template #content>
@@ -49,7 +47,7 @@
             </div>
             <div class="list-item list-item-answer">
               <div class="list-label">答案</div>
-              <div class="list-content">{{ record.answer }}</div>
+              <div class="list-content" v-html="textToHighlight(record.answer, props.search)"></div>
             </div>
             <div class="fragment-img" v-viewer>
               <img v-for="(item, index) in record.images" :key="index" :src="item" alt="" />
@@ -141,6 +139,10 @@ const props = defineProps({
   isLoading: {
     type: Boolean,
     default: false
+  },
+  search: {
+    type: String,
+    default: ''
   }
 })
 
@@ -204,6 +206,40 @@ const tableChange = (a, b, sort) => {
   })
 }
 
+function textToHighlight(fullText, highlightText, options = {}) {
+  if (!highlightText || !fullText) return fullText;
+
+  const {
+    highlightClass = 'highlight',
+    caseSensitive = false,
+    wholeWord = false
+  } = options;
+
+  const flags = caseSensitive ? 'g' : 'gi';
+  let regexPattern;
+
+  if (wholeWord) {
+    // 使用单词边界匹配完整单词
+    regexPattern = new RegExp(`\\b${escapeRegExp(highlightText)}\\b`, flags);
+  } else {
+    regexPattern = new RegExp(escapeRegExp(highlightText), flags);
+  }
+
+  return fullText.replace(regexPattern, match => 
+    `<span class="${highlightClass}">${match}</span>`
+  );
+}
+
+/**
+ * 转义正则表达式特殊字符
+ * @param {string} string 
+ * @returns {string}
+ */
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+
 defineExpose({ handleOpenEditModal, state, resetSelect })
 </script>
 <style lang="less" scoped>
@@ -247,6 +283,12 @@ defineExpose({ handleOpenEditModal, state, resetSelect })
       flex-wrap: wrap;
       gap: 4px;
       word-break: break-all;
+      &::v-deep(.highlight) {
+        background-color: #FFEB3B; /* 黄色高亮 */
+        padding: 0 2px;
+        border-radius: 2px;
+        box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+      }
     }
   }
   .list-item-answer {

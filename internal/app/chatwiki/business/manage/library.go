@@ -224,6 +224,7 @@ func CreateLibrary(c *gin.Context) {
 	normalChunkDefaultSeparatorsNo := cast.ToString(c.PostForm(`normal_chunk_default_separators_no`))
 	normalChunkDefaultChunkSize := cast.ToInt(c.PostForm(`normal_chunk_default_chunk_size`))
 	normalChunkDefaultChunkOverlap := cast.ToInt(c.PostForm(`normal_chunk_default_chunk_overlap`))
+	normalChunkDefaultNotMergedText := cast.ToBool(c.PostForm(`normal_chunk_default_not_merged_text`))
 	semanticChunkDefaultChunkSize := cast.ToInt(c.PostForm(`semantic_chunk_default_chunk_size`))
 	semanticChunkDefaultChunkOverlap := cast.ToInt(c.PostForm(`semantic_chunk_default_chunk_overlap`))
 	semanticChunkDefaultThreshold := cast.ToInt(c.PostForm(`semantic_chunk_default_threshold`))
@@ -290,6 +291,7 @@ func CreateLibrary(c *gin.Context) {
 		`normal_chunk_default_separators_no`:   normalChunkDefaultSeparatorsNo,
 		`normal_chunk_default_chunk_size`:      normalChunkDefaultChunkSize,
 		`normal_chunk_default_chunk_overlap`:   normalChunkDefaultChunkOverlap,
+		`normal_chunk_default_not_merged_text`: normalChunkDefaultNotMergedText,
 		`semantic_chunk_default_chunk_size`:    semanticChunkDefaultChunkSize,
 		`semantic_chunk_default_chunk_overlap`: semanticChunkDefaultChunkOverlap,
 		`semantic_chunk_default_threshold`:     semanticChunkDefaultThreshold,
@@ -430,6 +432,7 @@ func EditLibrary(c *gin.Context) {
 	normalChunkDefaultSeparatorsNo := cast.ToString(c.PostForm(`normal_chunk_default_separators_no`))
 	normalChunkDefaultChunkSize := cast.ToInt(c.PostForm(`normal_chunk_default_chunk_size`))
 	normalChunkDefaultChunkOverlap := cast.ToInt(c.PostForm(`normal_chunk_default_chunk_overlap`))
+	normalChunkDefaultNotMergedText := cast.ToBool(c.PostForm(`normal_chunk_default_not_merged_text`))
 	semanticChunkDefaultChunkSize := cast.ToInt(c.PostForm(`semantic_chunk_default_chunk_size`))
 	semanticChunkDefaultChunkOverlap := cast.ToInt(c.PostForm(`semantic_chunk_default_chunk_overlap`))
 	semanticChunkDefaultThreshold := cast.ToInt(c.PostForm(`semantic_chunk_default_threshold`))
@@ -569,6 +572,7 @@ func EditLibrary(c *gin.Context) {
 		`chunk_type`:                           chunkType,
 		`normal_chunk_default_separators_no`:   normalChunkDefaultSeparatorsNo,
 		`normal_chunk_default_chunk_size`:      normalChunkDefaultChunkSize,
+		`normal_chunk_default_not_merged_text`: normalChunkDefaultNotMergedText,
 		`normal_chunk_default_chunk_overlap`:   normalChunkDefaultChunkOverlap,
 		`semantic_chunk_default_chunk_size`:    semanticChunkDefaultChunkSize,
 		`semantic_chunk_default_chunk_overlap`: semanticChunkDefaultChunkOverlap,
@@ -653,7 +657,8 @@ func LibraryRecallTest(c *gin.Context) {
 		}
 	}
 	robot := msql.Params{
-		`recall_type`: recallType,
+		`recall_type`:   recallType,
+		`admin_user_id`: cast.ToString(userId),
 	}
 	for _, libraryId := range strings.Split(libraryIds, `,`) {
 		info, err := common.GetLibraryInfo(cast.ToInt(libraryId), userId)

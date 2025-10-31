@@ -112,6 +112,7 @@ type SplitParams struct {
 	ParagraphChunk             bool     `json:"paragraph_chunk"`
 	ChunkAsync                 bool     `json:"chunk_async"` // 异步
 	FileExt                    string   `json:"file_ext"`
+	NotMergedText              bool     `json:"not_merged_text"`
 }
 
 type SplitPreviewParams struct {

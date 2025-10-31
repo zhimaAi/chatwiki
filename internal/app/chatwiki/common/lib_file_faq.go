@@ -4,6 +4,7 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/textsplitter"
 	"context"
 	"errors"
 	"fmt"
@@ -15,7 +16,6 @@ import (
 	"github.com/ZeroHawkeye/wordZero/pkg/document"
 	"github.com/gin-contrib/sse"
 	"github.com/spf13/cast"
-	"github.com/tmc/langchaingo/textsplitter"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"

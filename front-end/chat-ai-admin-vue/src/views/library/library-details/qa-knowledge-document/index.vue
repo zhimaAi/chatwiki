@@ -149,6 +149,13 @@
             </a-popover>
             <div>{{ currentGroupItem.group_name }}</div>
             <div class="btn-right-box">
+              <div>
+                <a-input @change="search" v-model:value="filterData.search" placeholder="搜索问答">
+                  <template #suffix>
+                    <SearchOutlined />
+                  </template>
+                </a-input>
+              </div>
               <a-button @click="handleBathDel">批量删除</a-button>
               <a-button @click="handleOpenMoveModal">批量移动</a-button>
               <a-button @click="handleOpenFileUploadModal()">批量导入</a-button>
@@ -175,6 +182,7 @@
             :total="total"
             :isLoading="isLoading"
             :paragraphLists="paragraphLists"
+            :search="filterData.search"
             @openEditSubscription="openEditSubscription"
             @handleDelParagraph="initData"
             @getList="getParagraphLists"
@@ -307,7 +315,8 @@ const filterData = reactive({
   category_id: -1,
   sort_field: '',
   sort_type: '',
-  library_id: libraryId.value
+  library_id: libraryId.value,
+  search: '',
 })
 
 const handleSort = (sort) => {

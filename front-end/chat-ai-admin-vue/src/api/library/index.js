@@ -69,7 +69,7 @@ export const createLibrary = (data) => {
   })
 }
 
-export const getLibraryFileList = ({ status, library_id, file_name = undefined, page = 1, size = 20, group_id }) => {
+export const getLibraryFileList = ({ status, library_id, file_name = undefined, page = 1, size = 20, group_id,sort_field,sort_type }) => {
   return request.get({
     url: '/manage/getLibFileList',
     params: {
@@ -78,7 +78,9 @@ export const getLibraryFileList = ({ status, library_id, file_name = undefined, 
       file_name,
       page,
       size,
-      group_id
+      group_id,
+      sort_field,
+      sort_type
     }
   })
 }
@@ -524,6 +526,41 @@ export const delRecycleLibraryFile = (data) => {
 export const restoreRecycleLibraryFile = (data) => {
   return request.post({
     url: '/manage/restoreRecycleLibraryFile',
+    data: data
+  })
+}
+
+export const statLibraryTotal = (data) => {
+  return request.post({
+    url: '/manage/statLibraryTotal',
+    data: data
+  })
+}
+
+export const statLibraryDataSort = (data) => {
+  return request.post({
+    url: '/manage/statLibraryDataSort',
+    data: data
+  })
+}
+
+export const statLibrarySort = (data) => {
+  return request.post({
+    url: '/manage/statLibrarySort',
+    data: data
+  })
+}
+
+export const statLibraryDataRobotDetail = (data) => {
+  return request.post({
+    url: '/manage/statLibraryDataRobotDetail',
+    data: data
+  })
+}
+
+export const statLibraryRobotDetail = (data) => {
+  return request.post({
+    url: '/manage/statLibraryRobotDetail',
     data: data
   })
 }

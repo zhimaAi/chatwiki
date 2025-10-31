@@ -318,6 +318,21 @@
                 </a-flex>
               </a-form-item>
             </a-flex>
+            <div class="graph-switch-box">
+              <div class="lable-text">
+                自动合并较小分段
+                <a-tooltip title="开启后，如果分段长度不足设置的最大分段长度，会尝试与下一分段合并，直至合并后的分段字符数大于分段最大长度">
+                  <QuestionCircleOutlined class="ml4" />
+                </a-tooltip>
+              </div>
+              <a-switch
+                checkedValue="false" 
+                unCheckedValue="true" 
+                v-model:checked="formState.normal_chunk_default_not_merged_text" 
+                checked-children="开" 
+                un-checked-children="关" 
+              />
+            </div>
           </template>
           <template v-if="formState.chunk_type == 2">
             <a-form-item required v-if="formState.chunk_type == 2">
@@ -507,6 +522,7 @@ const formState = reactive({
   semantic_chunk_default_chunk_size: 512,
   semantic_chunk_default_chunk_overlap: 50,
   semantic_chunk_default_threshold: 90,
+  normal_chunk_default_not_merged_text: 'false',
   graph_switch: false,
   graph_model_config_id: void 0,
   graph_use_model: '',
@@ -663,6 +679,7 @@ const saveForm = () => {
     'normal_chunk_default_separators_no',
     formState.normal_chunk_default_separators_no.join(',')
   )
+  formData.append('normal_chunk_default_not_merged_text', formState.normal_chunk_default_not_merged_text)
   formData.append('normal_chunk_default_chunk_size', formState.normal_chunk_default_chunk_size)
   formData.append(
     'normal_chunk_default_chunk_overlap',
@@ -734,6 +751,7 @@ const show = ({ type, group_id }) => {
   formState.normal_chunk_default_separators_no = [10, 12]
   formState.normal_chunk_default_chunk_size = 512
   formState.normal_chunk_default_chunk_overlap = 50
+  formState.normal_chunk_default_not_merged_text = 'false'
   formState.semantic_chunk_default_chunk_size = 512
   formState.semantic_chunk_default_chunk_overlap = 50
   formState.semantic_chunk_default_threshold = 50

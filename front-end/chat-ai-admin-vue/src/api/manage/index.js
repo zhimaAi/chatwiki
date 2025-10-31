@@ -171,3 +171,11 @@ export const loginSwitch = (data = {}) => {
     data: data
   })
 }
+
+export const statAiTipAnalyse = (params = {}) => {
+  // 获取角色信息
+  return request.get({
+    url: '/manage/stats/statAiTipAnalyse',
+    params: params
+  })
+}

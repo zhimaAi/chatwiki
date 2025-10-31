@@ -4,7 +4,9 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -19,6 +21,8 @@ const StatsTypeDailyActiveUser = 1
 const StatsTypeDailyNewUser = 2
 const StatsTypeDailyMsgCount = 3
 const StatsTypeDailyTokenCount = 4
+const StatsTypeDailyLibraryTipCount = 5
+const StatsTypeDailyAiMsgCount = 6
 
 var statsMu sync.Mutex
 
@@ -422,4 +426,155 @@ func statDailyTokenCount(adminUserId int, robot msql.Params, appType string, pro
 		}
 	}
 	return nil
+}
+
+func statDailyRequestLibraryTip(adminUserId int, robot msql.Params, appType, statType string) {
+	row, err := msql.Model(`llm_request_daily_stats`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`robot_id`, robot[`id`]).
+		Where(`app_type`, appType).
+		Where(`date`, time.Now().Format(`2006-01-02`)).
+		Where(`type`, statType).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	if len(row) == 0 {
+		_, err = msql.Model(`llm_request_daily_stats`, define.Postgres).Insert(msql.Datas{
+			`admin_user_id`: cast.ToString(adminUserId),
+			`robot_id`:      robot[`id`],
+			`date`:          time.Now().Format(`2006-01-02`),
+			`app_type`:      appType,
+			`type`:          statType,
+			`amount`:        1,
+			`create_time`:   tool.Time2Int(),
+			`update_time`:   tool.Time2Int(),
+		})
+		if err != nil {
+			logs.Error(err.Error())
+			return
+		}
+	} else {
+		_, err = msql.Model(`llm_request_daily_stats`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Where(`robot_id`, robot[`id`]).
+			Where(`app_type`, appType).
+			Where(`date`, time.Now().Format(`2006-01-02`)).
+			Where(`type`, statType).
+			Update(msql.Datas{
+				`amount`:      cast.ToString(cast.ToInt(row[`amount`]) + 1),
+				`update_time`: tool.Time2Int(),
+			})
+		if err != nil {
+			logs.Error(err.Error())
+			return
+		}
+	}
+	return
+}
+
+func StatAiTipAnalyse(userId, robotId int, startDate, endDate, lang, channel string) (map[string]any, error) {
+	types := fmt.Sprintf(`%d,%d`, StatsTypeDailyAiMsgCount, StatsTypeDailyLibraryTipCount)
+	condition := fmt.Sprintf(`admin_user_id = %d and robot_id = %d and type in(%s) 
+		and date >= '%s' and date <= '%s'`, userId, robotId, types, startDate, endDate)
+	if len(channel) > 0 {
+		condition = condition + fmt.Sprintf(`and app_type = '%s'`, channel)
+	}
+	m := msql.Model(`llm_request_daily_stats`, define.Postgres).
+		Where(condition).
+		Group(`date,type`).
+		Order(`date asc`).
+		Field(`date,sum(amount) as amount,type`)
+	result, err := m.Select()
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, errors.New(i18n.Show(lang, `sys_err`))
+	}
+	list := make([]map[string]any, 0)
+	libraryHitRate, messageTotal, libraryHitTotal, libraryMissCount := 0, 0, 0, 0
+	fillBackDateRange(startDate, endDate, func(tempDate string) {
+		boolFind := false
+		msgCount := 0
+		libraryHitCount := 0
+		for _, resultVal := range result {
+			if DbDateToDateFormat(resultVal[`date`]) == tempDate {
+				if resultVal[`type`] == cast.ToString(StatsTypeDailyAiMsgCount) {
+					msgCount = cast.ToInt(resultVal[`amount`])
+					messageTotal += msgCount
+				} else if resultVal[`type`] == cast.ToString(StatsTypeDailyLibraryTipCount) {
+					libraryHitCount = cast.ToInt(resultVal[`amount`])
+					libraryHitTotal += libraryHitCount
+				}
+				boolFind = true
+			}
+		}
+		libraryHitRateVal := 0
+		if !boolFind {
+			list = append(list, map[string]any{
+				`date`:               tempDate,
+				`message_total`:      0,
+				`library_hit_total`:  0,
+				`library_miss_total`: 0,
+				`library_hit_rate`:   libraryHitRateVal,
+			})
+		} else {
+			if msgCount > 0 {
+				libraryHitRateVal = int(float64(libraryHitCount) / float64(msgCount) * 100)
+			}
+			list = append(list, map[string]any{
+				`date`:               tempDate,
+				`message_total`:      msgCount,
+				`library_hit_total`:  libraryHitCount,
+				`library_miss_total`: msgCount - libraryHitCount,
+				`library_hit_rate`:   libraryHitRateVal,
+			})
+		}
+	})
+	if messageTotal > 0 {
+		libraryHitRate = int(float64(libraryHitTotal) / float64(messageTotal) * 100)
+	}
+	libraryMissCount = messageTotal - libraryHitTotal
+	data := make(map[string]any)
+	data[`chart_list`] = list
+	data[`header`] = map[string]any{
+		`library_hit_rate`:   libraryHitRate,
+		`message_total`:      messageTotal,
+		`library_hit_total`:  libraryHitTotal,
+		`library_miss_total`: libraryMissCount,
+	}
+	return data, nil
+}
+
+func fillBackDateRange(startDate, endDate string, back func(string)) {
+	tempDate := ``
+	for {
+		if tempDate == `` {
+			tempDate = startDate
+		} else {
+			date, err := time.Parse("2006-01-02", tempDate)
+			if err != nil {
+				break
+			}
+			nextDate := date.AddDate(0, 0, 1)
+			tempDate = nextDate.Format("2006-01-02")
+		}
+		back(tempDate)
+		if tempDate >= endDate {
+			break
+		}
+	}
+}
+
+func DbDateToDateFormat(date string, formats ...string) string {
+	format := "2006-01-02"
+	if len(formats) > 0 {
+		format = formats[0]
+	}
+	t, err := time.Parse(time.RFC3339, date)
+	if err != nil {
+		logs.Error(err.Error())
+		return date
+	}
+	return t.Format(format)
 }
