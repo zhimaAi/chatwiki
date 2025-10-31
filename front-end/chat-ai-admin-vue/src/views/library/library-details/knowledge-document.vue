@@ -875,7 +875,9 @@ const queryParams = reactive({
   status: '', // 2:成功 3:全部失败 8:部分失败 4:待学习
   page: 1,
   size: 10,
-  total: 0
+  total: 0,
+  sort_field: '',
+  sort_type: '',
 })
 
 const statusList = [
@@ -941,6 +943,27 @@ const columnsDefault = [
     width: 260
   },
   {
+    title: '合计',
+    dataIndex: 'total_hits',
+    key: 'total_hits',
+    width: 150,
+    sorter: true
+  },
+  {
+    title: '昨日',
+    dataIndex: 'yesterday_hits',
+    key: 'yesterday_hits',
+    width: 150,
+    sorter: true
+  },
+  {
+    title: '今日',
+    dataIndex: 'today_hits',
+    key: 'today_hits',
+    width: 150,
+    sorter: true
+  },
+  {
     title: '知识图谱实体数',
     dataIndex: 'graph_entity_count',
     key: 'graph_entity_count',
@@ -971,9 +994,16 @@ const handleChangeStatus = (item) => {
   onSearch()
 }
 
-const onTableChange = (pagination) => {
+const onTableChange = (pagination, _ , sorter) => {
+  console.log(sorter,'==')
   queryParams.page = pagination.current
   queryParams.size = pagination.pageSize
+  queryParams.sort_field = ''
+  queryParams.sort_type = ''
+  if(sorter.order && sorter.field){
+    queryParams.sort_field = sorter.field
+    queryParams.sort_type = sorter.order == 'ascend' ? 'asc' : 'desc'
+  }
   getData()
 }
 
@@ -1069,6 +1099,7 @@ const handlePreview = (record, params = {}) => {
 
 const getData = () => {
   let params = toRaw(queryParams)
+  console.log(params,'===')
   if (params.status == 0) {
     params.status = ''
   }

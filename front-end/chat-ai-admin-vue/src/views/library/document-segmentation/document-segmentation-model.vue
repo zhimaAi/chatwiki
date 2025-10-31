@@ -231,6 +231,7 @@ let formData = {
   id: id,
   separators_no: '', // 自定义分段-分隔符序号集
   chunk_size: 512, // 自定义分段-分段最大长度 默认512，最大值不得超过2000
+  not_merged_text: false,
   chunk_overlap: 50, // 自定义分段-分段重叠长度 默认为50，最小不得低于10，最大不得超过最大分段长度的50%
   is_qa_doc: 0, // 0 普通文档 1 QA文档
   question_lable: '', // QA文档-问题开始标识符
@@ -295,6 +296,7 @@ const getDocumentStatus = () => {
       ...formData,
       separators_no: res.data.separators_no || '11,12',
       chunk_size: +res.data.chunk_size || 512,
+      not_merged_text: res.data.not_merged_text,
       ai_chunk_size: +res.data.ai_chunk_size || 5000, // ai模型的默认值是5000
       chunk_overlap: +res.data.chunk_overlap || 50,
       is_qa_doc: library_type.value == 2 ? 1 : 0,
@@ -324,6 +326,7 @@ const getDocumentStatus = () => {
         ...formData,
         separators_no: res.data.normal_chunk_default_separators_no,
         chunk_size: res.data.normal_chunk_default_chunk_size,
+        not_merged_text: res.data.normal_chunk_default_not_merged_text,
         chunk_overlap: res.data.normal_chunk_default_chunk_overlap,
         chunk_type: +res.data.default_chunk_type,
         semantic_chunk_size: +res.data.semantic_chunk_default_chunk_size,

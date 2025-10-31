@@ -178,7 +178,7 @@ const robotStore = useRobotStore()
 
 const { setStorage } = useStorage('localStorage')
 
-const emit = defineEmits(['addRobot', 'editRobot'])
+const emit = defineEmits(['addRobot', 'editRobot', 'ok'])
 let default_avatar = ''
 
 const route = useRoute()
@@ -286,7 +286,11 @@ const saveForm = () => {
             '/robot/config/basic-config?id=' + res.data.id + '&robot_key=' + res.data.robot_key
           )
         } else {
-          router.push('/robot/config/workflow?id=' + res.data.id + '&robot_key=' + res.data.robot_key)
+          // message.info('按住Shift 滚动鼠标可左右移动画布，按住Ctrl 滚动鼠标可放大缩小画布', 6)
+          window.open('/#/robot/config/workflow?id=' + res.data.id + '&robot_key=' + res.data.robot_key + '&show_tips=1')
+          show.value = false
+           emit('ok')
+          // router.push('/robot/config/workflow?id=' + res.data.id + '&robot_key=' + res.data.robot_key)
         }
       } else {
         // 弹窗关闭 刷新数据

@@ -213,6 +213,7 @@ func init() {
 	Route[http.MethodGet][`/manage/stats/getActiveModels`] = manage.GetActiveModels
 	Route[http.MethodGet][`/manage/stats/token`] = manage.StatToken
 	Route[http.MethodGet][`/manage/stats/analyse`] = manage.StatAnalyse
+	Route[http.MethodGet][`/manage/stats/statAiTipAnalyse`] = manage.StatAiTipAnalyse
 	/*debug API*/
 	Route[http.MethodPost][`/manage/getDialogueList`] = manage.GetDialogueList
 	Route[http.MethodPost][`/manage/libraryRecallTest`] = manage.LibraryRecallTest
@@ -334,6 +335,12 @@ func init() {
 	Route[http.MethodPost][`/manage/deleteFAQFileQA`] = manage.DeleteFAQFileQA
 	Route[http.MethodPost][`/manage/importParagraph`] = manage.ImportParagraph
 	Route[http.MethodGet][`/manage/exportFAQFileAllQA`] = manage.ExportFAQFileAllQA
+	/* stat library tip */
+	Route[http.MethodPost][`/manage/statLibraryTotal`] = manage.StatLibraryTotal
+	Route[http.MethodPost][`/manage/statLibraryDataSort`] = manage.StatLibraryDataSort
+	Route[http.MethodPost][`/manage/statLibrarySort`] = manage.StatLibrarySort
+	Route[http.MethodPost][`/manage/statLibraryDataRobotDetail`] = manage.StatLibraryDataRobotDetail
+	Route[http.MethodPost][`/manage/statLibraryRobotDetail`] = manage.StatLibraryRobotDetail
 }
 
 func noAuthFuns(route map[string]lib_web.Action, path string, handlerFunc lib_web.Action) map[string]lib_web.Action {

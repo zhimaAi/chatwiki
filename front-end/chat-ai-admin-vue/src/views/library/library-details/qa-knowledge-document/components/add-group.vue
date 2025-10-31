@@ -23,7 +23,7 @@ const modalTitle = ref('新建分组')
 
 const props = defineProps({
   group_type:{
-    type: String,
+    type: [Number, String],
     default: 0
   }
 })

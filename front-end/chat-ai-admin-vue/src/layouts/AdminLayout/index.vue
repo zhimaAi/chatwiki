@@ -63,7 +63,7 @@
 
 <template>
   <div class="admin-layout">
-    <div class="layout-header-wrapper">
+    <div class="layout-header-wrapper" v-if="!hideLayoutTopAndBottom">
       <div class="layout-header">
         <div class="header-left">
           <LayoutLogo />
@@ -98,7 +98,7 @@
         </div>
       </template>
     </div>
-    <div class="layout-footer-wrapper">
+    <div class="layout-footer-wrapper" v-if="!hideLayoutTopAndBottom">
       <LayoutFooter />
     </div>
     <ResetPassword v-if="showResetModal"></ResetPassword>
@@ -116,10 +116,20 @@ import LayoutFooter from './compoents/layout-footer.vue'
 import UserDropdown from './compoents/user-dropdown.vue'
 // import LocaleDropdown from './compoents/locale-dropdown.vue'
 import ResetPassword from './compoents/reset-password.vue'
+import { useGlobalStore } from '@/stores/modules/global'
+const globalStore = useGlobalStore()
+
 
 
 const route = useRoute()
 const userStore = useUserStore()
+
+const hideLayoutTopAndBottom = computed(() => {
+  if(route.name != 'robotWorkflow'){
+    return false
+  }
+  return globalStore.hideLayoutTopAndBottom || false
+})
 
 const isCustomPage = computed(() => {
   return route.meta.isCustomPage || false

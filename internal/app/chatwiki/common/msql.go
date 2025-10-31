@@ -519,6 +519,37 @@ func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size,
 		Order(`similarity DESC`).Limit(size).Select()
 }
 
+func GetMatchLibraryDataIdsByFullText(content, libraryIds string, size int) ([]string, error) {
+	queryTokens := []string{content}
+	ids, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`library_id`, `in`, libraryIds).
+		Where(`delete_time`, `0`).
+		Where(fmt.Sprintf(`to_tsvector('zhima_zh_parser',upper(content))@@to_tsquery('zhima_zh_parser',upper('%s'))`, strings.Join(queryTokens, " | "))).
+		Limit(size).ColumnArr(`id`)
+	if err != nil {
+		return nil, err
+	}
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	return ids, nil
+}
+
+func GetMatchLibraryDataIdsByLike(content, libraryIds string, size int) ([]string, error) {
+	ids := make([]string, 0)
+	// 精准搜索
+	ids, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`library_id`, `in`, libraryIds).
+		Where(`delete_time`, `0`).
+		Where(fmt.Sprintf(`content similar to '%%%s%%'`, content)).
+		Limit(size).ColumnArr(`id`)
+	if err != nil {
+		return ids, err
+	}
+	if len(ids) <= 0 {
+		return []string{`0`}, nil
+	}
+	return ids, nil
+}
+
 func GetMatchFileParagraphIdsByFullTextSearch(question, fileIds string) ([]string, error) {
 	ids := make([]string, 0)
 	// 精准搜索
@@ -645,6 +676,11 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 		result = append(result, one)
 	}
 	go UpdateParagraphHits(strings.Join(ids, `,`), 1)
+	if len(result) > 0 {
+		go statDailyRequestLibraryTip(adminUserId, robot, appType, cast.ToString(StatsTypeDailyLibraryTipCount))
+		go StatLibraryTipUp(result, robot)
+	}
+	go statDailyRequestLibraryTip(adminUserId, robot, appType, cast.ToString(StatsTypeDailyAiMsgCount))
 	return result, libUseTime, nil
 }
 

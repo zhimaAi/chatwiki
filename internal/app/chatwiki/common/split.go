@@ -4,6 +4,10 @@ package common
 
 import (
 	"bytes"
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_redis"
+	"chatwiki/internal/pkg/textsplitter"
 	"context"
 	"encoding/base64"
 	"encoding/csv"
@@ -26,7 +30,6 @@ import (
 	strip "github.com/grokify/html-strip-tags-go"
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/spf13/cast"
-	"github.com/tmc/langchaingo/textsplitter"
 	"github.com/xuri/excelize/v2"
 	"github.com/zhimaAi/go_tools/curl"
 	"github.com/zhimaAi/go_tools/logs"
@@ -34,10 +37,6 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 	"golang.org/x/image/webp"
-
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/pkg/lib_redis"
 )
 
 func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitParams, lang string) (list []define.DocSplitItem, wordTotal int, _splitParams define.SplitParams, err error) {
@@ -505,6 +504,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		`ai_chunk_task_id`:               splitParams.AiChunkTaskId,
 		`pdf_parse_type`:                 splitParams.PdfParseType,
 		`update_time`:                    tool.Time2Int(),
+		`not_merged_text`:                splitParams.NotMergedText,
 	}
 	if qaIndexType != 0 {
 		data[`qa_index_type`] = qaIndexType
@@ -577,6 +577,7 @@ func MultDocSplit(adminUserId, fileId, pdfPageNum int, splitParams define.SplitP
 		split.Separators = append(splitParams.Separators, split.Separators...)
 		split.ChunkSize = splitParams.ChunkSize
 		split.ChunkOverlap = splitParams.ChunkOverlap
+		split.NotMergedText = splitParams.NotMergedText
 		split.LenFunc = func(s string) int {
 			//将内容包含图片的部分统计为字符-(长度1),这里不能为长度0,最后一段会被丢弃
 			return utf8.RuneCountInString(regexp.MustCompile(`\{\{!!(.+?)!!}}`).ReplaceAllString(s, `-`))
@@ -600,10 +601,6 @@ func MultDocSplit(adminUserId, fileId, pdfPageNum int, splitParams define.SplitP
 					continue
 				}
 				list = append(list, define.DocSplitItem{PageNum: item.PageNum, Content: content, Images: images})
-				previewText += content
-				if splitParams.ChunkPreview && utf8.RuneCountInString(previewText) >= splitParams.ChunkPreviewSize {
-					return list, err
-				}
 			}
 		}
 		return list, err

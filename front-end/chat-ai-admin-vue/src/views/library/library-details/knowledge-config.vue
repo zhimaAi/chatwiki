@@ -190,7 +190,7 @@
   <cu-scroll>
     <div class="add-library-page">
       <div class="form-box">
-        <a-form :label-col="{ span: 5 }">
+        <a-form :label-col="{ span: 6 }">
           <a-form-item ref="name" label="知识库名称" v-bind="validateInfos.library_name">
             <a-input
               @blur="handleEdit"
@@ -414,6 +414,22 @@
                   字符
                 </a-flex>
               </a-form-item>
+              <a-form-item>
+                <template #label>
+                  自动合并较小分段
+                  <a-tooltip title="开启后，如果分段长度不足设置的最大分段长度，会尝试与下一分段合并，直至合并后的分段字符数大于分段最大长度">
+                    <QuestionCircleOutlined />
+                  </a-tooltip>
+                </template>
+                <a-switch
+                   @change="handleEdit"
+                  checkedValue="false" 
+                  unCheckedValue="true" 
+                  v-model:checked="formState.normal_chunk_default_not_merged_text" 
+                  checked-children="开" 
+                  un-checked-children="关" 
+                />
+              </a-form-item>
             </template>
             <template v-if="formState.chunk_type == 2">
               <a-form-item required v-if="formState.chunk_type == 2">
@@ -566,6 +582,7 @@ const formState = reactive({
   semantic_chunk_default_chunk_size: 512,
   semantic_chunk_default_chunk_overlap: 50,
   semantic_chunk_default_threshold: 90,
+  normal_chunk_default_not_merged_text: 'false',
   ai_chunk_size: 5000, // ai大模型分段最大字符数
   ai_chunk_model:'', // ai大模型分段模型名称
   ai_chunk_model_config_id: '', // ai大模型分段模型配置id
@@ -626,6 +643,7 @@ const getInfo = () => {
       ? res.data.normal_chunk_default_separators_no.split(',').map((item) => +item)
       : []
     formState.normal_chunk_default_chunk_size = res.data.normal_chunk_default_chunk_size
+    formState.normal_chunk_default_not_merged_text = res.data.normal_chunk_default_not_merged_text
     formState.normal_chunk_default_chunk_overlap = res.data.normal_chunk_default_chunk_overlap
     formState.semantic_chunk_default_chunk_size = res.data.semantic_chunk_default_chunk_size
     formState.semantic_chunk_default_chunk_overlap = res.data.semantic_chunk_default_chunk_overlap
@@ -804,6 +822,7 @@ const handleEdit = (callback = null) => {
     normal_chunk_default_separators_no: formState.normal_chunk_default_separators_no.join(','),
     normal_chunk_default_chunk_size: formState.normal_chunk_default_chunk_size,
     normal_chunk_default_chunk_overlap: formState.normal_chunk_default_chunk_overlap,
+    normal_chunk_default_not_merged_text: formState.normal_chunk_default_not_merged_text,
     semantic_chunk_default_chunk_size: formState.semantic_chunk_default_chunk_size,
     semantic_chunk_default_chunk_overlap: formState.semantic_chunk_default_chunk_overlap,
     semantic_chunk_default_threshold: formState.semantic_chunk_default_threshold,

@@ -1,0 +1,1 @@
+import{e as f,j as l,f as o}from"./hasIn-BtXuxCTT.js";import{b7 as c,b1 as b}from"../../index-Bo1NSLpy.js";function m(n,r,s){for(var a=-1,u=r.length,t={};++a<u;){var e=r[a],i=f(n,e);s(i,e)&&c(t,b(e,n),i)}return t}function k(n,r){return m(n,r,function(s,a){return l(n,a)})}var g=o(function(n,r){return n==null?{}:k(n,r)});export{m as b,g as p};

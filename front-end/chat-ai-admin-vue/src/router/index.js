@@ -10,6 +10,7 @@ import publicLibrary from './public-library'
 import chatMonitor from './chat-monitor'
 import noPermission from './no-permission'
 import AiExtractFaq from './ai-extract-faq'
+import triggerStatics from './trigger-statics'
 
 const routes = [
   {
@@ -48,6 +49,7 @@ const routes = [
   database,
   chatMonitor,
   AiExtractFaq,
+  triggerStatics,
 ]
 
 if (import.meta.env.DEV) {

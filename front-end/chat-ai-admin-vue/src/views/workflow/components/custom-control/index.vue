@@ -3,8 +3,17 @@
   position: absolute;
   right: 28px;
   bottom: 24px;
-  z-index: 100;
-
+  z-index: 10;
+  &:hover {
+    &::after {
+      content: '';
+      position: absolute;
+      top: -10px;
+      left: 0;
+      width: 100%;
+      height: 30px;
+    }
+  }
   .custom-control {
     display: flex;
     flex-flow: row nowrap;
@@ -37,7 +46,7 @@
 </style>
 
 <template>
-  <div class="custom-control-warpper">
+  <div class="custom-control-warpper" @mouseenter="handleMouseenter" @mouseleave="handleMouseleave">
     <div class="custom-control">
       <div class="action-btn zoom-btn" @click="handleReduce">
         <svg-icon name="minus" size="16" />
@@ -58,8 +67,8 @@ const props = defineProps({
   lf: {
     type: Object,
     default: () => ({}),
-    required: true,
-  },
+    required: true
+  }
 })
 
 const { eventCenter } = props.lf.graphModel
@@ -108,6 +117,30 @@ const onGraphTransform = (args) => {
   let value = Math.floor(args.transform.SCALE_X * 100)
   zoom.value = value
   zoomSelectTitle.value = `${value}%`
+}
+let miniMap = null
+const handleMouseenter = () => {
+  props.lf.extension.miniMap.show()
+  miniMap = document.querySelector('.lf-mini-map')
+  starListenEvent()
+}
+
+const handleMouseleave = (e) => {
+  if (e.y > 800) {
+    props.lf.extension.miniMap.hide()
+  }
+}
+
+function starListenEvent() {
+  if (!miniMap) {
+    return
+  }
+  miniMap.addEventListener('mouseenter', () => {
+    props.lf.extension.miniMap.show()
+  })
+  miniMap.addEventListener('mouseleave', () => {
+    props.lf.extension.miniMap.hide()
+  })
 }
 
 onMounted(() => {

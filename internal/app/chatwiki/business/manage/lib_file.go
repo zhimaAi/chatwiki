@@ -14,11 +14,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
-	"github.com/pdfcpu/pdfcpu/pkg/api"
-
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/spf13/cast"
 	"github.com/syyongx/php2go"
 	"github.com/zhimaAi/go_tools/logs"
@@ -58,6 +57,8 @@ func GetLibFileList(c *gin.Context) {
 	status := cast.ToString(c.Query(`status`))
 	page := max(1, cast.ToInt(c.Query(`page`)))
 	size := max(1, cast.ToInt(c.Query(`size`)))
+	sortField := cast.ToString(c.Query(`sort_field`))
+	sortType := cast.ToString(c.Query(`sort_type`))
 	// groupId := cast.ToInt(c.Query(`group_id`))
 	// 全部时给一个默认值
 	groupId := cast.ToInt(c.DefaultQuery(`group_id`, `-1`))
@@ -75,7 +76,10 @@ func GetLibFileList(c *gin.Context) {
     			(SELECT graph_err_msg FROM chat_ai_library_file_data WHERE file_id = f.id AND graph_err_msg <> '' LIMIT 1),
     			'no error'
   			) AS graph_err_msg
-		`)
+		`).
+		Field(`COALESCE((SELECT SUM(yesterday_hits) FROM chat_ai_library_file_data WHERE file_id = f.id), 0) as yesterday_hits`).
+		Field(`COALESCE((SELECT SUM(today_hits) FROM chat_ai_library_file_data WHERE file_id = f.id), 0) as today_hits`).
+		Field(`COALESCE((SELECT SUM(total_hits) FROM chat_ai_library_file_data WHERE file_id = f.id), 0) as total_hits`)
 	fileName := strings.TrimSpace(c.Query(`file_name`))
 	if len(fileName) > 0 {
 		m.Where(`file_name`, `like`, fileName)
@@ -89,7 +93,13 @@ func GetLibFileList(c *gin.Context) {
 		m.Where(`f.group_id`, cast.ToString(groupId))
 		wheres = append(wheres, []string{`f.group_id`, cast.ToString(groupId)})
 	}
-	list, total, err := m.Order(`id desc`).Paginate(page, size)
+	sortFields := []string{`yesterday_hits`, `today_hits`, `total_hits`}
+	if tool.InArray(sortField, sortFields) {
+		m.Order(sortField + ` ` + sortType)
+	} else {
+		m.Order(`id desc`)
+	}
+	list, total, err := m.Paginate(page, size)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -109,7 +119,9 @@ func GetLibFileList(c *gin.Context) {
 			return
 		}
 	}
+	libFileIds := make([]string, 0)
 	for _, item := range list {
+		libFileIds = append(libFileIds, item[`id`])
 		item[`graph_entity_count`] = `0`
 		if graphEntityCountRes == nil {
 			continue
@@ -122,7 +134,6 @@ func GetLibFileList(c *gin.Context) {
 			}
 		}
 	}
-
 	data := map[string]any{`info`: info, `list`: list, `count_data`: countData, `total`: total, `page`: page, `size`: size}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
@@ -377,6 +388,7 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 				splitParams.SeparatorsNo = cast.ToString(libraryInfo[`normal_chunk_default_separators_no`])
 				splitParams.ChunkSize = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_size`])
 				splitParams.ChunkOverlap = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_overlap`])
+				splitParams.NotMergedText = cast.ToBool(libraryInfo[`normal_chunk_default_not_merged_text`])
 			} else if splitParams.ChunkType == define.ChunkTypeSemantic {
 				splitParams.SemanticChunkSize = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_size`])
 				splitParams.SemanticChunkOverlap = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_overlap`])
@@ -600,6 +612,7 @@ func GetLibFileInfo(c *gin.Context) {
 	info[`normal_chunk_default_separators_no`] = library[`normal_chunk_default_separators_no`]
 	info[`normal_chunk_default_chunk_size`] = library[`normal_chunk_default_chunk_size`]
 	info[`normal_chunk_default_chunk_overlap`] = library[`normal_chunk_default_chunk_overlap`]
+	info[`normal_chunk_default_not_merged_text`] = library[`normal_chunk_default_not_merged_text`]
 	info[`semantic_chunk_default_chunk_size`] = library[`semantic_chunk_default_chunk_size`]
 	info[`semantic_chunk_default_chunk_overlap`] = library[`semantic_chunk_default_chunk_overlap`]
 	info[`semantic_chunk_default_threshold`] = library[`semantic_chunk_default_threshold`]
@@ -761,6 +774,7 @@ func GetLibFileSplit(c *gin.Context) {
 		AiChunkModelConfigId:       cast.ToInt(c.Query(`ai_chunk_model_config_id`)),
 		AiChunkSize:                cast.ToInt(c.Query(`ai_chunk_size`)),
 		AiChunkTaskId:              strings.TrimSpace(c.Query(`ai_chunk_task_id`)),
+		NotMergedText:              cast.ToBool(c.Query(`not_merged_text`)),
 	}
 	if splitParams.ChunkType == define.ChunkTypeSemantic {
 		if splitParams.SemanticChunkModelConfigId <= 0 {
@@ -833,6 +847,7 @@ func GetLibFileSplitPreview(c *gin.Context) {
 		AiChunkModelConfigId:       cast.ToInt(c.Query(`ai_chunk_model_config_id`)),
 		AiChunkSize:                cast.ToInt(c.Query(`ai_chunk_size`)),
 		AiChunkTaskId:              strings.TrimSpace(c.Query(`ai_chunk_task_id`)),
+		NotMergedText:              cast.ToBool(c.Query(`not_merged_text`)),
 	}
 	splitParams.ChunkPreview = true
 	splitParams.ChunkPreviewSize = define.SplitPreviewChunkMaxSize

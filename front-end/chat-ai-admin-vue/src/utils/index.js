@@ -1,6 +1,7 @@
 import { message } from 'ant-design-vue'
 import { useStorage } from '../hooks/web/useStorage'
 import CryptoJS from 'crypto-js'
+import dayjs from 'dayjs'
 
 export function generateUniqueId(salt = '') {
   // 获取当前时间戳（毫秒级）
@@ -454,3 +455,40 @@ export function formateDepartmentCascaderData(data, level = 0, path) {
   });
 }
 
+
+export function getDateRangePresets() {
+  return [
+    {
+      label: '今天',
+      value: [dayjs().startOf('day'), dayjs().endOf('day')]
+    },
+    {
+      label: '昨天',
+      value: [dayjs().subtract(1, 'day').startOf('day'), dayjs().subtract(1, 'day').endOf('day')]
+    },
+    {
+      label: '本周',
+      value: [dayjs().startOf('week'), dayjs().endOf('week')]
+    },
+    {
+      label: '本月',
+      value: [dayjs().startOf('month'), dayjs().endOf('month')]
+    },
+    {
+      label: '本年',
+      value: [dayjs().startOf('year'), dayjs().endOf('year')]
+    },
+    {
+      label: '近7天',
+      value: [dayjs().subtract(6, 'day').startOf('day'), dayjs().endOf('day')]
+    },
+    {
+      label: '近30天',
+      value: [dayjs().subtract(29, 'day').startOf('day'), dayjs().endOf('day')]
+    },
+    {
+      label: '近90天',
+      value: [dayjs().subtract(89, 'day').startOf('day'), dayjs().endOf('day')]
+    }
+  ]
+}

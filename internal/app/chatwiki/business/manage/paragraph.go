@@ -52,11 +52,24 @@ func GetParagraphList(c *gin.Context) {
 	sortField := c.Query(`sort_field`)
 	sortType := c.Query(`sort_type`)
 	search := cast.ToString(c.Query(`search`))
-	if len(search) > 0 {
+	if len(search) > 0 && fileId > 0 {
 		paraIds, err = common.GetMatchFileParagraphIdsByFullTextSearch(search, cast.ToString(fileId))
 		if err != nil {
 			logs.Error(`GetMatchFileParagraphIdsByFullTextSearch err:%v`, err)
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+	}
+	if len(search) > 0 && libraryId > 0 {
+		paraIds, err = common.GetMatchLibraryDataIdsByLike(search, cast.ToString(libraryId), 1000)
+		if err != nil {
+			logs.Error(`GetMatchLibraryDataIdsByLike err:%v`, err)
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		if len(paraIds) == 0 {
+			data := map[string]any{`info`: info, `list`: make([]map[string]any, 0), `total`: 0, `exception_total`: 0, `page`: page, `size`: size}
+			c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 			return
 		}
 	}
@@ -965,6 +978,7 @@ func GetSplitParagraph(c *gin.Context) {
 		AiChunkSize:                cast.ToInt(c.Query(`ai_chunk_size`)),
 		AiChunkTaskId:              strings.TrimSpace(c.Query(`ai_chunk_task_id`)),
 		ParagraphChunk:             true,
+		NotMergedText:              cast.ToBool(c.Query(`not_merged_text`)),
 	}
 	if splitParams.ChunkType == define.ChunkTypeSemantic {
 		if splitParams.SemanticChunkModelConfigId <= 0 {

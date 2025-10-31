@@ -688,6 +688,24 @@
                     </div>
                   </div>
                 </a-flex>
+                <div class="form-item">
+                  <div class="form-item-body">
+                    <a-flex align="center">
+                      <div>自动合并较小分段
+                        <a-tooltip title="开启后，如果分段长度不足设置的最大分段长度，会尝试与下一分段合并，直至合并后的分段字符数大于分段最大长度">
+                           <QuestionCircleOutlined />
+                        </a-tooltip>
+                       ：</div>
+                      <a-switch 
+                        :checkedValue="false" 
+                        :unCheckedValue="true" 
+                        v-model:checked="formState.not_merged_text" 
+                        checked-children="开" 
+                        un-checked-children="关" 
+                      />
+                    </a-flex>
+                  </div>
+                </div>
               </template>
               <div v-show="formState.chunk_type == 2">
                 <div class="form-item" style="margin-bottom: 16px">
@@ -900,6 +918,7 @@ watch(props, (val) => {
   let separators_no = libFileInfo.separators_no ? libFileInfo.separators_no.split(',') : [11, 12]
   formState.separators_no = separators_no.map((item) => +item)
   formState.chunk_size = +libFileInfo.chunk_size || 512
+  formState.not_merged_text = libFileInfo.not_merged_text == 'true'
   formState.ai_chunk_size = +libFileInfo.ai_chunk_size || 5000
   formState.chunk_overlap = +libFileInfo.chunk_overlap || 50
   // formState.is_qa_doc = +libFileInfo.is_qa_doc
@@ -937,6 +956,7 @@ watch(props, (val) => {
       : [11, 12]
     formState.separators_no = separators_no.map((item) => +item)
     formState.chunk_size = +libFileInfo.normal_chunk_default_chunk_size || 512
+    formState.not_merged_text = libFileInfo.normal_chunk_default_not_merged_text == 'true'
     formState.chunk_overlap = +libFileInfo.normal_chunk_default_chunk_overlap || 50
     formState.chunk_type = +libFileInfo.default_chunk_type
     formState.semantic_chunk_size = +libFileInfo.semantic_chunk_default_chunk_size || 512
@@ -954,6 +974,7 @@ watch(props, (val) => {
 
 const formState = reactive({
   separators_no: [], // 自定义分段-分隔符序号集
+  not_merged_text: false,
   chunk_size: 512, // 自定义分段-分段最大长度 默认512，最大值不得超过2000
   chunk_overlap: 50, // 自定义分段-分段重叠长度 默认为50，最小不得低于10，最大不得超过最大分段长度的50%
   is_qa_doc: 0, // 0 普通文档 1 QA文档

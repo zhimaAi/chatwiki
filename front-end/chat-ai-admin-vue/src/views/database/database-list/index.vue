@@ -98,7 +98,11 @@ const pageTabs = ref([
   {
     title: '文档提取FAQ',
     path: '/ai-extract-faq/list'
-  }
+  },
+  {
+    title: '触发次数统计',
+    path: '/trigger-statics/list'
+  },
 ])
 
 const permissionStore = usePermissionStore()

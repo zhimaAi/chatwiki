@@ -40,6 +40,7 @@ require (
 	github.com/neo4j/neo4j-go-driver/v5 v5.28.0
 	github.com/pdfcpu/pdfcpu v0.9.1
 	github.com/pkg/sftp v1.13.9 // indirect
+	github.com/pkoukk/tiktoken-go v0.1.7
 	github.com/playwright-community/playwright-go v0.5200.0
 	github.com/pressly/goose/v3 v3.20.0
 	github.com/robfig/cron/v3 v3.0.0
@@ -51,6 +52,7 @@ require (
 	github.com/zhimaAi/go_tools v0.0.0-20250619040721-395f6ac83f6d
 	github.com/zhimaAi/llm_adaptor v0.0.0-20250923074132-5c386d6fa3c6
 	github.com/zhimaAi/pdf v0.0.0-20240423033113-08880067bc13
+	gitlab.com/golang-commonmark/markdown v0.0.0-20211110145824-bf3e522c626a
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.40.0 // indirect
 	golang.org/x/image v0.25.0
@@ -132,7 +134,6 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pkoukk/tiktoken-go v0.1.7 // indirect
 	github.com/redis/go-redis/v9 v9.5.2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/richardlehane/mscfb v1.0.4 // indirect
@@ -153,7 +154,6 @@ require (
 	github.com/xuri/nfp v0.0.1 // indirect
 	gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 // indirect
 	gitlab.com/golang-commonmark/linkify v0.0.0-20191026162114-a0c2df6c8f82 // indirect
-	gitlab.com/golang-commonmark/markdown v0.0.0-20211110145824-bf3e522c626a // indirect
 	gitlab.com/golang-commonmark/mdurl v0.0.0-20191124015652-932350d1cb84 // indirect
 	gitlab.com/golang-commonmark/puny v0.0.0-20191124015043-9f83538fa04f // indirect
 	go.uber.org/atomic v1.9.0 // indirect

@@ -9,14 +9,15 @@ import (
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/syyongx/php2go"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
-	"net/http"
-	"strings"
-	"time"
 )
 
 func GetActiveModels(c *gin.Context) {
@@ -126,4 +127,35 @@ func StatAnalyse(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, lib_web.FmtJson(result, nil))
+}
+
+func StatAiTipAnalyse(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	robotId := cast.ToInt(c.Query(`robot_id`))
+	startDate := strings.TrimSpace(c.DefaultQuery(`start_date`, time.Now().Format(`2006-01-02`)))
+	channel := strings.TrimSpace(c.Query(`channel`))
+	endDate := strings.TrimSpace(c.DefaultQuery(`end_date`, time.Now().Format(`2006-01-02`)))
+	if robotId <= 0 || len(startDate) == 0 || len(endDate) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	_, err := time.Parse("2006-01-02", startDate)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `start_date`))))
+		return
+	}
+	_, err = time.Parse("2006-01-02", endDate)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `end_date`))))
+		return
+	}
+	data, err := common.StatAiTipAnalyse(userId, robotId, startDate, endDate, common.GetLang(c), channel)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
