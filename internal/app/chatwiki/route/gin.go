@@ -212,6 +212,8 @@ func init() {
 	/*stats*/
 	Route[http.MethodGet][`/manage/stats/getActiveModels`] = manage.GetActiveModels
 	Route[http.MethodGet][`/manage/stats/token`] = manage.StatToken
+	Route[http.MethodGet][`/manage/stats/token/app`] = manage.StatTokenApp
+	Route[http.MethodGet][`/manage/stats/token/appChart`] = manage.StatTokenAppChart
 	Route[http.MethodGet][`/manage/stats/analyse`] = manage.StatAnalyse
 	Route[http.MethodGet][`/manage/stats/statAiTipAnalyse`] = manage.StatAiTipAnalyse
 	/*debug API*/

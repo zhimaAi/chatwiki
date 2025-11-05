@@ -81,6 +81,151 @@ func StatToken(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
 
+func StatTokenApp(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+
+	m := msql.Model(`llm_token_app_daily_stats`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(userId))
+
+	tokenAppType := strings.TrimSpace(c.Query(`token_app_type`))
+	if tokenAppType != `` {
+		m.Where(`token_app_type`, tokenAppType)
+	} else {
+		m.Where(`token_app_type`, `in`, strings.Join(define.GetTokenAppTypes(), `,`))
+	}
+	robotId := strings.TrimSpace(c.Query(`robot_id`))
+	if cast.ToInt(robotId) > 0 {
+		m.Where(`robot_id`, robotId)
+	}
+	page := max(1, cast.ToInt(c.DefaultQuery(`page`, `1`)))
+	size := max(1, cast.ToInt(c.DefaultQuery(`size`, `10`)))
+	startDate := strings.TrimSpace(c.Query(`start_date`))
+	endDate := strings.TrimSpace(c.Query(`end_date`))
+	if len(startDate) == 0 || len(endDate) == 0 { //如果为空 那么默认近七天
+		startDate = time.Now().AddDate(0, 0, -7).Format(`2006-01-02`)
+		endDate = time.Now().Format(`2006-01-02`)
+	}
+	checkRet := common.CheckDataRangeDay(startDate, endDate, 365)
+	if !checkRet {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `date_range_max`, 365))))
+		return
+	}
+	if len(startDate) > 0 {
+		m.Where(`date`, `>=`, startDate)
+	}
+	if len(endDate) > 0 {
+		m.Where(`date`, `<=`, endDate)
+	}
+
+	fields := `token_app_type,to_char(date, 'YYYY-MM-DD') AS date,robot_id,prompt_token,completion_token,request_num,(prompt_token + completion_token) as total_token`
+	list, total, err := m.Field(fields).Order(`id desc`).Paginate(page, size)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	err = common.FillRobotName(&list, common.GetLang(c))
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	data := map[string]any{`list`: list, `total`: total, `page`: page, `size`: size}
+	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
+}
+
+func StatTokenAppChart(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+
+	m := msql.Model(`llm_token_app_daily_stats`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(userId))
+
+	tokenAppType := strings.TrimSpace(c.Query(`token_app_type`))
+	if tokenAppType != `` {
+		m.Where(`token_app_type`, tokenAppType)
+	} else {
+		m.Where(`token_app_type`, `in`, strings.Join(define.GetTokenAppTypes(), `,`))
+	}
+	robotId := strings.TrimSpace(c.Query(`robot_id`))
+	if cast.ToInt(robotId) > 0 {
+		m.Where(`robot_id`, robotId)
+	}
+	startDate := strings.TrimSpace(c.Query(`start_date`))
+	endDate := strings.TrimSpace(c.Query(`end_date`))
+	if len(startDate) == 0 || len(endDate) == 0 { //如果为空 那么默认近七天
+		startDate = time.Now().AddDate(0, 0, -7).Format(`2006-01-02`)
+		endDate = time.Now().Format(`2006-01-02`)
+	}
+	checkRet := common.CheckDataRangeDay(startDate, endDate, 365)
+	if !checkRet {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `date_range_max`, 365))))
+		return
+	}
+	if len(startDate) > 0 {
+		m.Where(`date`, `>=`, startDate)
+	}
+	if len(endDate) > 0 {
+		m.Where(`date`, `<=`, endDate)
+	}
+
+	fields := `to_char(date, 'YYYY-MM-DD') AS date,sum(prompt_token) as prompt_token,sum(completion_token) as completion_token,sum(request_num) as request_num,sum(request_num) as request_num`
+	list, err := m.Field(fields).Group(`date`).Select()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	dataList := make([]msql.Params, 0)
+	err = RangeDate(startDate, endDate, common.GetLang(c), func(date string) {
+		boolFind := false
+		for _, item := range list {
+			if item[`date`] == date {
+				item[`total_token`] = cast.ToString(cast.ToInt(item[`prompt_token`]) + cast.ToInt(item[`completion_token`]))
+				dataList = append(dataList, item)
+				boolFind = true
+			}
+		}
+		if !boolFind {
+			dataList = append(dataList, msql.Params{
+				`date`:             date,
+				`prompt_token`:     `0`,
+				`completion_token`: `0`,
+				`request_num`:      `0`,
+				`total_token`:      `0`,
+			})
+		}
+	})
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	data := map[string]any{`list`: dataList}
+	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
+}
+
+func RangeDate(startDate, endDate, lang string, call func(string)) error {
+	start, err := time.Parse(`2006-01-02`, startDate)
+	if err != nil || endDate == "" {
+		return errors.New(i18n.Show(lang, `param_invalid`, `start_date`))
+	}
+	end, err := time.Parse(`2006-01-02`, endDate)
+	if err != nil {
+		return errors.New(i18n.Show(lang, `param_invalid`, `end_date`))
+	}
+	if end.Before(start) {
+		return errors.New(i18n.Show(lang, `param_invalid`, `start_date,end_date`))
+	}
+	for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
+		call(d.Format(`2006-01-02`))
+	}
+	return nil
+}
+
 func StatAnalyse(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {

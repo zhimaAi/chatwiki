@@ -598,7 +598,7 @@ func ExtractFaqFiles(msg string, _ ...string) error {
 		logs.Error(err.Error())
 		return nil
 	}
-	var list []define.DocSplitItem
+	var list define.DocSplitItems
 	m := msql.Model(`chat_ai_faq_files_data`, define.Postgres)
 	if len(dataIds) > 0 {
 		result, err := m.Where(`id`, `in`, dataIds).
@@ -613,7 +613,6 @@ func ExtractFaqFiles(msg string, _ ...string) error {
 				logs.Error(err.Error())
 			}
 			list = append(list, define.DocSplitItem{
-				Number:  cast.ToInt(item[`number`]),
 				PageNum: cast.ToInt(item[`page_num`]),
 				Title:   cast.ToString(item[`title`]),
 				Content: cast.ToString(item[`content`]),

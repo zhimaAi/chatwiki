@@ -152,7 +152,7 @@ const formState = reactive({
   qa_index_type: 1, // 1问题与答案一起生成索引 2仅对问题生成索引
   doc_auto_renew_frequency: 1,
   chunk_type: 1,
-  normal_chunk_default_separators_no: [10, 12],
+  normal_chunk_default_separators_no: [12, 11],
   normal_chunk_default_not_merged_text: 0,
   normal_chunk_default_chunk_size: 512,
   normal_chunk_default_chunk_overlap: 50,
@@ -265,7 +265,7 @@ const show = () => {
   formState.library_name = ''
   formState.library_intro = ''
   formState.chunk_type = 1
-  formState.normal_chunk_default_separators_no = [10, 12]
+  formState.normal_chunk_default_separators_no = [12, 11]
   formState.normal_chunk_default_not_merged_text = 0
   formState.normal_chunk_default_chunk_size = 512
   formState.normal_chunk_default_chunk_overlap = 50

@@ -39,7 +39,7 @@ import (
 	"golang.org/x/image/webp"
 )
 
-func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitParams, lang string) (list []define.DocSplitItem, wordTotal int, _splitParams define.SplitParams, err error) {
+func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitParams, lang string) (list define.DocSplitItems, wordTotal int, _splitParams define.SplitParams, err error) {
 	info, err := GetLibFileInfo(fileId, userId)
 	if err != nil {
 		err = errors.New(i18n.Show(lang, `sys_err`))
@@ -144,8 +144,8 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 	if err != nil {
 		return
 	}
+	list.UnifySetNumber() //对number统一编号
 	for i := range list {
-		list[i].Number = i + 1 //serial number
 		if splitParams.IsQaDoc == define.DocTypeQa {
 			list[i].WordTotal = utf8.RuneCountInString(list[i].Question) + utf8.RuneCountInString(list[i].Answer)
 		} else {
@@ -157,7 +157,7 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 	return
 }
 
-func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams define.SplitParams, list []define.DocSplitItem, pdfPageNum int, lang string) ([]int64, error) {
+func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams define.SplitParams, list define.DocSplitItems, pdfPageNum int, lang string) ([]int64, error) {
 	info, err := GetLibFileInfo(fileId, userId)
 	if err != nil {
 		logs.Error(err.Error())
@@ -173,7 +173,6 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 	//check params
 	if splitParams.IsQaDoc == define.DocTypeQa { // qa
 		for i := range list {
-			list[i].Number = i + 1 //serial number
 			list[i].WordTotal = utf8.RuneCountInString(list[i].Question + list[i].Answer)
 			if utf8.RuneCountInString(list[i].Question) < 1 || utf8.RuneCountInString(list[i].Question) > MaxContent {
 				return []int64{}, errors.New(i18n.Show(lang, `length_err`, i+1))
@@ -184,13 +183,13 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		}
 	} else {
 		for i := range list {
-			list[i].Number = i + 1 //serial number
 			list[i].WordTotal = utf8.RuneCountInString(list[i].Content)
 			if list[i].WordTotal < 1 || list[i].WordTotal > MaxContent {
 				return []int64{}, errors.New(i18n.Show(lang, `length_err`, i+1))
 			}
 		}
 	}
+	list.UnifySetNumber() //对number统一编号
 
 	if splitParams.IsQaDoc == define.DocTypeQa {
 		if qaIndexType != define.QAIndexTypeQuestionAndAnswer && qaIndexType != define.QAIndexTypeQuestion {
@@ -289,6 +288,8 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 			`word_total`:    item.WordTotal,
 			`create_time`:   tool.Time2Int(),
 			`update_time`:   tool.Time2Int(),
+			//父子分段
+			`father_chunk_paragraph_number`: item.FatherChunkParagraphNumber,
 		}
 
 		// 如果知识库的的类型是问答知识库
@@ -505,6 +506,11 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		`pdf_parse_type`:                 splitParams.PdfParseType,
 		`update_time`:                    tool.Time2Int(),
 		`not_merged_text`:                splitParams.NotMergedText,
+		`father_chunk_paragraph_type`:    splitParams.FatherChunkParagraphType,
+		`father_chunk_separators_no`:     splitParams.FatherChunkSeparatorsNo,
+		`father_chunk_chunk_size`:        splitParams.FatherChunkChunkSize,
+		`son_chunk_separators_no`:        splitParams.SonChunkSeparatorsNo,
+		`son_chunk_chunk_size`:           splitParams.SonChunkChunkSize,
 	}
 	if qaIndexType != 0 {
 		data[`qa_index_type`] = qaIndexType
@@ -567,50 +573,133 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 	return dataIds, nil
 }
 
-func MultDocSplit(adminUserId, fileId, pdfPageNum int, splitParams define.SplitParams, items []define.DocSplitItem) ([]define.DocSplitItem, error) {
+func RecursiveCharacter(items define.DocSplitItems, separators []string, chunkSize, chunkOverlap int, notMergedText bool) (define.DocSplitItems, error) {
+	split := textsplitter.NewRecursiveCharacter()
+	split.Separators = append(separators, ``)
+	split.ChunkSize = chunkSize
+	split.ChunkOverlap = chunkOverlap
+	split.NotMergedText = notMergedText
+	split.LenFunc = func(s string) int {
+		//将内容包含图片的部分统计为字符-(长度1),这里不能为长度0,最后一段会被丢弃
+		return utf8.RuneCountInString(regexp.MustCompile(`\{\{!!(.+?)!!}}`).ReplaceAllString(s, `-`))
+	}
+	list := make(define.DocSplitItems, 0)
+	for _, item := range items {
+		//内容包含图片:前面追加一个第一顺位的切分字符,避免图片出现在两段里面
+		contents, err := split.SplitText(strings.ReplaceAll(item.Content, `{{!!`, split.Separators[0]+`{{!!`))
+		if err != nil {
+			logs.Error(err.Error())
+			continue
+		}
+		for _, content := range contents {
+			if len(content) == 0 {
+				continue
+			}
+			//将追加的第一顺位的切分字符剔除掉
+			content = strings.ReplaceAll(content, split.Separators[0]+`{{!!`, `{{!!`)
+			content, images := ExtractTextImages(content)
+			if len(content) == 0 {
+				continue
+			}
+			list = append(list, define.DocSplitItem{
+				PageNum: item.PageNum, Content: content, Images: images,
+				FatherChunkParagraphNumber: item.FatherChunkParagraphNumber,
+			})
+		}
+	}
+	return list, nil
+}
+
+func GetSeparatorsByNo(separatorsNo, lang string) ([]string, error) {
+	separators := make([]string, 0)
+	if len(separatorsNo) == 0 {
+		return separators, nil
+	}
+	list := make([]any, 0)
+	if err := tool.JsonDecodeUseNumber(separatorsNo, &list); err != nil {
+		for _, no := range strings.Split(separatorsNo, `,`) {
+			list = append(list, cast.ToInt(no))
+		}
+	}
+	replacer := strings.NewReplacer(`\\n`, `\n`, `\\r`, `\r`, `\\t`, `\t`, `\n`, "\n", `\r`, "\r", `\t`, "\t")
+	for i, no := range list {
+		//自定义分段标识符
+		if noStr, ok := no.(string); ok {
+			separators = append(separators, replacer.Replace(noStr))
+			continue
+		}
+		//系统预设分段标识符
+		no := cast.ToInt(no)
+		if no < 1 || no > len(define.SeparatorsList) {
+			return separators, errors.New(i18n.Show(lang, `param_invalid`, `separators_no.`+cast.ToString(i)))
+		}
+		code := define.SeparatorsList[no-1][`code`]
+		if realCode, ok := code.([]string); ok {
+			separators = append(separators, realCode...)
+		} else {
+			separators = append(separators, cast.ToString(code))
+		}
+	}
+	return separators, nil
+}
+
+func MergeDocSplitItems(items define.DocSplitItems) define.DocSplitItems {
+	if len(items) <= 1 {
+		return items
+	}
+	contents := make([]string, len(items))
+	for i, item := range items {
+		contents[i] = item.Content
+	}
+	items[0].Content = strings.Join(contents, "\r\n")
+	return define.DocSplitItems{items[0]}
+}
+
+func MultDocSplit(adminUserId, fileId, pdfPageNum int, splitParams define.SplitParams, items define.DocSplitItems) (define.DocSplitItems, error) {
 	var (
 		err         error
 		previewText string
+		separators  []string
 	)
 	if splitParams.ChunkType == define.ChunkTypeNormal {
-		split := textsplitter.NewRecursiveCharacter()
-		split.Separators = append(splitParams.Separators, split.Separators...)
-		split.ChunkSize = splitParams.ChunkSize
-		split.ChunkOverlap = splitParams.ChunkOverlap
-		split.NotMergedText = splitParams.NotMergedText
-		split.LenFunc = func(s string) int {
-			//将内容包含图片的部分统计为字符-(长度1),这里不能为长度0,最后一段会被丢弃
-			return utf8.RuneCountInString(regexp.MustCompile(`\{\{!!(.+?)!!}}`).ReplaceAllString(s, `-`))
+		separators = append(splitParams.Separators, textsplitter.DefaultOptions().Separators...) //补充默认分隔符
+		return RecursiveCharacter(items, separators, splitParams.ChunkSize, splitParams.ChunkOverlap, splitParams.NotMergedText)
+	} else if splitParams.ChunkType == define.ChunkTypeFatherSon {
+		if cast.ToBool(splitParams.IsTableFile) { //表格按分段特殊处理
+			for i := range items { //标记父编号
+				items[i].FatherChunkParagraphNumber = i + 1
+			}
+			return RecursiveCharacter(items, textsplitter.DefaultOptions().Separators,
+				textsplitter.DefaultOptions().ChunkSize, textsplitter.DefaultOptions().ChunkOverlap, false)
 		}
-		list := make([]define.DocSplitItem, 0)
-		for _, item := range items {
-			//内容包含图片:前面追加一个第一顺位的切分字符,避免图片出现在两段里面
-			contents, err := split.SplitText(strings.ReplaceAll(item.Content, `{{!!`, split.Separators[0]+`{{!!`))
+		items = MergeDocSplitItems(items) //pdf等文件先合并成一个
+		if splitParams.FatherChunkParagraphType != define.FatherChunkParagraphTypeFullText {
+			separators, err = GetSeparatorsByNo(splitParams.FatherChunkSeparatorsNo, ``)
+			items, err = RecursiveCharacter(items, separators, splitParams.FatherChunkChunkSize, 0, true)
 			if err != nil {
-				logs.Error(err.Error())
-				continue
+				return items, err
 			}
-			for _, content := range contents {
-				if len(content) == 0 {
-					continue
-				}
-				//将追加的第一顺位的切分字符剔除掉
-				content = strings.ReplaceAll(content, split.Separators[0]+`{{!!`, `{{!!`)
-				content, images := ExtractTextImages(content)
-				if len(content) == 0 {
-					continue
-				}
-				list = append(list, define.DocSplitItem{PageNum: item.PageNum, Content: content, Images: images})
+		} else { //出于性能原因,超过10000个标记的文本将被自动截断
+			items, err = RecursiveCharacter(items, nil, 10000, 0, true)
+			if err != nil {
+				return items, err
 			}
 		}
-		return list, err
+		for i := range items { //标记父编号
+			items[i].FatherChunkParagraphNumber = i + 1
+		}
+		separators, err = GetSeparatorsByNo(splitParams.SonChunkSeparatorsNo, ``)
+		if err != nil {
+			return items, err
+		}
+		return RecursiveCharacter(items, separators, splitParams.SonChunkChunkSize, 0, true)
 	} else if splitParams.ChunkType == define.ChunkTypeAi {
 		if define.IsTableFile(splitParams.FileExt) {
 			return items, nil
 		}
-		list := make([]define.DocSplitItem, 0)
+		list := make(define.DocSplitItems, 0)
 		if splitParams.AiChunkNew {
-			var aiSplitItems = make([]define.DocSplitItem, len(items))
+			var aiSplitItems = make(define.DocSplitItems, len(items))
 			copy(aiSplitItems, items)
 			go func() {
 				list, err = AISplitDocs(cast.ToInt(adminUserId), fileId, splitParams, aiSplitItems)
@@ -622,7 +711,9 @@ func MultDocSplit(adminUserId, fileId, pdfPageNum int, splitParams define.SplitP
 			return items, err
 		} else {
 			// get db data
-			data, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`file_id`, cast.ToString(fileId)).Order(`number asc`).Select()
+			data, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+				Where(`file_id`, cast.ToString(fileId)).
+				Order(`page_num,father_chunk_paragraph_number,number`).Select()
 			if err != nil {
 				logs.Error(err.Error())
 			}
@@ -654,7 +745,7 @@ func MultDocSplit(adminUserId, fileId, pdfPageNum int, splitParams define.SplitP
 		split.AdminUserId = adminUserId
 		split.ModelConfigId = splitParams.SemanticChunkModelConfigId
 		split.UseModel = splitParams.SemanticChunkUseModel
-		list := make([]define.DocSplitItem, 0)
+		list := make(define.DocSplitItems, 0)
 		for _, item := range items {
 			contents, err := split.SplitText(item.Content)
 			if err != nil {
@@ -680,7 +771,7 @@ func MultDocSplit(adminUserId, fileId, pdfPageNum int, splitParams define.SplitP
 	}
 }
 
-func ConvertAndReadHtmlContent(fileId int, fileUrl string, userId int, pdfParseType int) ([]define.DocSplitItem, int, error) {
+func ConvertAndReadHtmlContent(fileId int, fileUrl string, userId int, pdfParseType int) (define.DocSplitItems, int, error) {
 	htmlUrl, err := ConvertHtml(fileId, fileUrl, userId, pdfParseType)
 	if err != nil {
 		return nil, 0, err
@@ -931,7 +1022,7 @@ func ReplaceRemoteImg(content string, userId int) (string, error) {
 	return content, nil
 }
 
-func ReadHtmlContent(htmlUrl string, userId int) ([]define.DocSplitItem, int, error) {
+func ReadHtmlContent(htmlUrl string, userId int) (define.DocSplitItems, int, error) {
 	if !LinkExists(htmlUrl) {
 		return nil, 0, errors.New(`file not exist:` + htmlUrl)
 	}
@@ -942,10 +1033,10 @@ func ReadHtmlContent(htmlUrl string, userId int) ([]define.DocSplitItem, int, er
 	return ParseHtmlContent(userId, content)
 }
 
-func ParseHtmlContent(userId int, content string) ([]define.DocSplitItem, int, error) {
+func ParseHtmlContent(userId int, content string) (define.DocSplitItems, int, error) {
 	content = strings.ReplaceAll(content, `<!DOCTYPE html>`, ``)
 	pages := strings.Split(content, `<meta charset="UTF-8"/>`)
-	list := make([]define.DocSplitItem, 0)
+	list := make(define.DocSplitItems, 0)
 	wordTotal := 0
 	pageNum := 0
 	for _, pageContent := range pages {
@@ -971,9 +1062,9 @@ func ParseHtmlContent(userId int, content string) ([]define.DocSplitItem, int, e
 	return list, wordTotal, nil
 }
 
-func ParseOnePageHtmlContent(userId int, content string, pageNum int) ([]define.DocSplitItem, int, error) {
+func ParseOnePageHtmlContent(userId int, content string, pageNum int) (define.DocSplitItems, int, error) {
 	content = strings.ReplaceAll(content, `<!DOCTYPE html>`, ``)
-	list := make([]define.DocSplitItem, 0)
+	list := make(define.DocSplitItems, 0)
 	wordTotal := 0
 	pageContent, err := ReplaceBase64Img(content, userId)
 	if err != nil {
@@ -1025,7 +1116,7 @@ func ParseTabFile(fileUrl, fileExt string) ([][]string, error) {
 	return rows, nil
 }
 
-func ReadTab(fileUrl, fileExt string) ([]define.DocSplitItem, int, error) {
+func ReadTab(fileUrl, fileExt string) (define.DocSplitItems, int, error) {
 	rows, err := ParseTabFile(fileUrl, fileExt)
 	if err != nil {
 		return nil, 0, err
@@ -1034,7 +1125,7 @@ func ReadTab(fileUrl, fileExt string) ([]define.DocSplitItem, int, error) {
 		return nil, 0, errors.New(`excel_less_row`)
 	}
 	//line collection
-	list := make([]define.DocSplitItem, 0)
+	list := make(define.DocSplitItems, 0)
 	wordTotal := 0
 	for i := range rows {
 		pairs := make([]string, 0)
@@ -1056,7 +1147,7 @@ func ReadTab(fileUrl, fileExt string) ([]define.DocSplitItem, int, error) {
 	return list, wordTotal, nil
 }
 
-func ReadTxt(fileUrl string) ([]define.DocSplitItem, int, error) {
+func ReadTxt(fileUrl string) (define.DocSplitItems, int, error) {
 	if !LinkExists(fileUrl) {
 		return nil, 0, errors.New(`file not exist:` + fileUrl)
 	}
@@ -1067,7 +1158,7 @@ func ReadTxt(fileUrl string) ([]define.DocSplitItem, int, error) {
 	if !utf8.ValidString(content) {
 		content = tool.Convert(content, `gbk`, `utf-8`)
 	}
-	list := []define.DocSplitItem{{Content: content}}
+	list := define.DocSplitItems{{Content: content}}
 	return list, utf8.RuneCountInString(content), nil
 }
 
@@ -1103,7 +1194,7 @@ func IdentifierFromColumnIndex(index int) (string, error) {
 	return string(runes), nil
 }
 
-func ReadQaTab(fileUrl, fileExt string, splitParams define.SplitParams) ([]define.DocSplitItem, int, error) {
+func ReadQaTab(fileUrl, fileExt string, splitParams define.SplitParams) (define.DocSplitItems, int, error) {
 	rows, err := ParseTabFile(fileUrl, fileExt)
 	if err != nil {
 		return nil, 0, err
@@ -1131,7 +1222,7 @@ func ReadQaTab(fileUrl, fileExt string, splitParams define.SplitParams) ([]defin
 	}
 
 	//line collection
-	list := make([]define.DocSplitItem, 0)
+	list := make(define.DocSplitItems, 0)
 	wordTotal := 0
 	for i, row := range rows[1:] {
 		var question, answer string
@@ -1160,8 +1251,8 @@ func ReadQaTab(fileUrl, fileExt string, splitParams define.SplitParams) ([]defin
 	return list, wordTotal, nil
 }
 
-func QaDocSplit(splitParams define.SplitParams, items []define.DocSplitItem) []define.DocSplitItem {
-	list := make([]define.DocSplitItem, 0)
+func QaDocSplit(splitParams define.SplitParams, items define.DocSplitItems) define.DocSplitItems {
+	list := make(define.DocSplitItems, 0)
 	for i, item := range items {
 		for _, section := range strings.Split(item.Content, splitParams.QuestionLable) {
 			if len(strings.TrimSpace(section)) == 0 {
@@ -1322,7 +1413,7 @@ func DefaultSplitParams() define.SplitParams {
 	return define.SplitParams{
 		ChunkSize:          512,
 		ChunkOverlap:       0,
-		SeparatorsNo:       `11,12`,
+		SeparatorsNo:       `12,11`,
 		EnableExtractImage: true,
 	}
 }
@@ -1360,7 +1451,7 @@ func UpdateLibFileData(adminUserId, fileId int, data msql.Datas) error {
 	return err
 }
 
-func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list []define.DocSplitItem) ([]define.DocSplitItem, error) {
+func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list define.DocSplitItems) (define.DocSplitItems, error) {
 	wg := &sync.WaitGroup{}
 	lock := &sync.Mutex{}
 	contents := ""
@@ -1377,7 +1468,7 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list [
 		UpdateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusChunking})
 	}
 
-	var submitContent []define.DocSplitItem
+	var submitContent define.DocSplitItems
 	spliter := NewAiSpliterClient(splitParams.AiChunkSize)
 	for _, item := range list {
 		// pdf 按页提交
@@ -1501,7 +1592,7 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list [
 	}
 
 	wg.Wait()
-	var newList []define.DocSplitItem
+	var newList define.DocSplitItems
 	var imageInsertIndex = map[int][]string{}
 	var number = 1
 
@@ -1568,7 +1659,7 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list [
 	return newList, nil
 }
 
-func SaveAISplitDocs(userId, fileId, wordTotal, qaIndexType int, splitParams define.SplitParams, list []define.DocSplitItem, pdfPageNum int, lang string) (err error) {
+func SaveAISplitDocs(userId, fileId, wordTotal, qaIndexType int, splitParams define.SplitParams, list define.DocSplitItems, pdfPageNum int, lang string) (err error) {
 	// save data
 	taskId := splitParams.AiChunkTaskId
 	ticker := time.NewTicker(1 * time.Second)

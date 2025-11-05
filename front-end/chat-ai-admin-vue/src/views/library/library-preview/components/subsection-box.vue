@@ -14,7 +14,7 @@
       <div class="top-block">
         <div class="title">
           <!-- id：{{ item.id }} -->
-          分段{{ index + 1 }}
+          分段 <template v-if="props.detailsInfo.chunk_type == 4">{{ item.father_chunk_paragraph_number }}-</template> {{ item.number }}
           <div class="title-block">
             {{ item.title }}
           </div>

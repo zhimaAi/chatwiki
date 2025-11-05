@@ -328,7 +328,7 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 			`status`:               status,
 			`chunk_size`:           512,
 			`chunk_overlap`:        0,
-			`separators_no`:        `11,12`,
+			`separators_no`:        `12,11`,
 			`enable_extract_image`: true,
 			`pdf_parse_type`:       pdfParseType,
 			`is_qa_doc`:            isQaDoc,
@@ -400,6 +400,13 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 				splitParams.AiChunkSize = cast.ToInt(libraryInfo[`ai_chunk_size`])
 				splitParams.AiChunkNew = !isTableFile
 				splitParams.AiChunkTaskId = uuid.New().String()
+			} else if splitParams.ChunkType == define.ChunkTypeFatherSon {
+				splitParams.FatherChunkParagraphType = cast.ToInt(libraryInfo[`father_chunk_paragraph_type`])
+				splitParams.FatherChunkSeparatorsNo = libraryInfo[`father_chunk_separators_no`]
+				splitParams.FatherChunkChunkSize = cast.ToInt(libraryInfo[`father_chunk_chunk_size`])
+				splitParams.SonChunkSeparatorsNo = libraryInfo[`son_chunk_separators_no`]
+				splitParams.SonChunkChunkSize = cast.ToInt(libraryInfo[`son_chunk_chunk_size`])
+				splitParams.NotMergedText = true //父子分段不合并较小分段
 			}
 			splitParams.SemanticChunkModelConfigId = cast.ToInt(libraryInfo[`model_config_id`])
 			splitParams.SemanticChunkUseModel = libraryInfo[`use_model`]
@@ -635,14 +642,7 @@ func GetLibFileInfo(c *gin.Context) {
 		info[`graph_switch`] = "0"
 	}
 
-	var separators []string
-	for _, noStr := range strings.Split(info[`separators_no`], `,`) {
-		if len(noStr) == 0 {
-			continue
-		}
-		no := cast.ToInt(noStr)
-		separators = append(separators, cast.ToString(define.SeparatorsList[no-1][`name`]))
-	}
+	separators, _ := common.GetSeparatorsByNo(info[`separators_no`], common.GetLang(c))
 	info[`separators`] = strings.Join(separators, ", ")
 
 	c.String(http.StatusOK, lib_web.FmtJson(info, nil))
@@ -734,7 +734,7 @@ func GetSeparatorsList(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 }
 
-func GetLibFileSplit(c *gin.Context) {
+func unifyGetLibFileSplit(c *gin.Context, chunkPreview bool) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
 		return
@@ -775,6 +775,18 @@ func GetLibFileSplit(c *gin.Context) {
 		AiChunkSize:                cast.ToInt(c.Query(`ai_chunk_size`)),
 		AiChunkTaskId:              strings.TrimSpace(c.Query(`ai_chunk_task_id`)),
 		NotMergedText:              cast.ToBool(c.Query(`not_merged_text`)),
+		FatherChunkParagraphType:   cast.ToInt(c.Query(`father_chunk_paragraph_type`)),
+		FatherChunkSeparatorsNo:    strings.TrimSpace(c.Query(`father_chunk_separators_no`)),
+		FatherChunkChunkSize:       cast.ToInt(c.Query(`father_chunk_chunk_size`)),
+		SonChunkSeparatorsNo:       strings.TrimSpace(c.Query(`son_chunk_separators_no`)),
+		SonChunkChunkSize:          cast.ToInt(c.Query(`son_chunk_chunk_size`)),
+	}
+	if chunkPreview { //预览逻辑
+		splitParams.ChunkPreview = true
+		splitParams.ChunkPreviewSize = define.SplitPreviewChunkMaxSize
+		if define.IsDev {
+			splitParams.ChunkPreviewSize = 500
+		}
 	}
 	if splitParams.ChunkType == define.ChunkTypeSemantic {
 		if splitParams.SemanticChunkModelConfigId <= 0 {
@@ -785,7 +797,7 @@ func GetLibFileSplit(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `semantic_chunk_use_model`))))
 			return
 		}
-	} else if splitParams.ChunkType == define.ChunkTypeAi && splitParams.AiChunkTaskId == "" {
+	} else if splitParams.ChunkType == define.ChunkTypeAi && (splitParams.AiChunkTaskId == "" || chunkPreview) {
 		if ok := common.CheckModelIsValid(userId, splitParams.AiChunkModelConfigId, splitParams.AiChunkModel, common.Llm); !ok {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `ai_chunk_model`))))
 			return
@@ -796,93 +808,47 @@ func GetLibFileSplit(c *gin.Context) {
 		}
 		splitParams.AiChunkTaskId = uuid.New().String()
 		splitParams.AiChunkNew = true
+	} else if splitParams.ChunkType == define.ChunkTypeFatherSon {
+		if !tool.InArrayInt(splitParams.FatherChunkParagraphType, []int{define.FatherChunkParagraphTypeFullText, define.FatherChunkParagraphTypeSection}) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `father_chunk_paragraph_type`))))
+			return
+		}
+		if splitParams.FatherChunkParagraphType != define.FatherChunkParagraphTypeFullText {
+			if len(splitParams.FatherChunkSeparatorsNo) == 0 {
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `father_chunk_separators_no`))))
+				return
+			}
+			if splitParams.FatherChunkChunkSize < 0 {
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `father_chunk_chunk_size`))))
+				return
+			}
+		}
+		if len(splitParams.SonChunkSeparatorsNo) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `son_chunk_separators_no`))))
+			return
+		}
+		if splitParams.SonChunkChunkSize < 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `son_chunk_chunk_size`))))
+			return
+		}
 	}
+
 	list, wordTotal, splitParams, err := common.GetLibFileSplit(userId, fileId, pdfPageNum, splitParams, common.GetLang(c))
 	if err != nil {
 		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), err.Error()))))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	data := map[string]any{`split_params`: splitParams, `list`: list, `word_total`: wordTotal}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
 
+func GetLibFileSplit(c *gin.Context) {
+	unifyGetLibFileSplit(c, false)
+}
+
 func GetLibFileSplitPreview(c *gin.Context) {
-	var userId int
-	if userId = GetAdminUserId(c); userId == 0 {
-		return
-	}
-	fileId := cast.ToInt(c.Query(`id`))
-	if fileId <= 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
-		return
-	}
-	pdfPageNum := cast.ToInt(c.Query(`pdf_page_num`))
-	if pdfPageNum < 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
-		return
-	}
-	splitParams := define.SplitParams{
-		IsDiySplit:                 cast.ToInt(c.Query(`is_diy_split`)),
-		SeparatorsNo:               strings.TrimSpace(c.Query(`separators_no`)),
-		Separators:                 make([]string, 0),
-		ChunkSize:                  cast.ToInt(c.Query(`chunk_size`)),
-		ChunkOverlap:               cast.ToInt(c.Query(`chunk_overlap`)),
-		IsQaDoc:                    cast.ToInt(c.Query(`is_qa_doc`)),
-		QuestionLable:              strings.TrimSpace(c.Query(`question_lable`)),
-		SimilarLabel:               strings.TrimSpace(c.Query(`similar_label`)),
-		AnswerLable:                strings.TrimSpace(c.Query(`answer_lable`)),
-		QuestionColumn:             strings.TrimSpace(c.Query(`question_column`)),
-		SimilarColumn:              strings.TrimSpace(c.Query(`similar_column`)),
-		AnswerColumn:               strings.TrimSpace(c.Query(`answer_column`)),
-		EnableExtractImage:         cast.ToBool(c.Query(`enable_extract_image`)),
-		ChunkType:                  cast.ToInt(c.Query(`chunk_type`)),
-		SemanticChunkSize:          cast.ToInt(c.Query(`semantic_chunk_size`)),
-		SemanticChunkOverlap:       cast.ToInt(c.Query(`semantic_chunk_overlap`)),
-		SemanticChunkThreshold:     cast.ToInt(c.Query(`semantic_chunk_threshold`)),
-		SemanticChunkModelConfigId: cast.ToInt(c.Query(`semantic_chunk_model_config_id`)),
-		SemanticChunkUseModel:      strings.TrimSpace(c.Query(`semantic_chunk_use_model`)),
-		AiChunkPrumpt:              cast.ToString(c.Query(`ai_chunk_prumpt`)),
-		AiChunkModel:               strings.TrimSpace(c.Query(`ai_chunk_model`)),
-		AiChunkModelConfigId:       cast.ToInt(c.Query(`ai_chunk_model_config_id`)),
-		AiChunkSize:                cast.ToInt(c.Query(`ai_chunk_size`)),
-		AiChunkTaskId:              strings.TrimSpace(c.Query(`ai_chunk_task_id`)),
-		NotMergedText:              cast.ToBool(c.Query(`not_merged_text`)),
-	}
-	splitParams.ChunkPreview = true
-	splitParams.ChunkPreviewSize = define.SplitPreviewChunkMaxSize
-	if define.IsDev {
-		splitParams.ChunkPreviewSize = 500
-	}
-	if splitParams.ChunkType == define.ChunkTypeSemantic {
-		if splitParams.SemanticChunkModelConfigId <= 0 {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `semantic_chunk_model_config_id`))))
-			return
-		}
-		if len(splitParams.SemanticChunkUseModel) == 0 {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `semantic_chunk_use_model`))))
-			return
-		}
-	} else if splitParams.ChunkType == define.ChunkTypeAi {
-		if ok := common.CheckModelIsValid(userId, splitParams.AiChunkModelConfigId, splitParams.AiChunkModel, common.Llm); !ok {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `ai_chunk_model`))))
-			return
-		}
-		if len(splitParams.AiChunkPrumpt) == 0 || utf8.RuneCountInString(splitParams.AiChunkPrumpt) > 500 {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `ai_chunk_prumpt`))))
-			return
-		}
-		splitParams.AiChunkTaskId = uuid.New().String()
-		splitParams.AiChunkNew = true
-	}
-	list, wordTotal, splitParams, err := common.GetLibFileSplit(userId, fileId, pdfPageNum, splitParams, common.GetLang(c))
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), err.Error()))))
-		return
-	}
-	data := map[string]any{`split_params`: splitParams, `list`: list, `word_total`: wordTotal}
-	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
+	unifyGetLibFileSplit(c, true)
 }
 
 func SaveLibFileSplit(c *gin.Context) {
@@ -892,7 +858,7 @@ func SaveLibFileSplit(c *gin.Context) {
 	}
 	fileId := cast.ToInt(c.PostForm(`id`))
 	wordTotal := cast.ToInt(c.PostForm(`word_total`))
-	splitParams, list := define.SplitParams{}, make([]define.DocSplitItem, 0)
+	splitParams, list := define.SplitParams{}, make(define.DocSplitItems, 0)
 	qaIndexType := cast.ToInt(c.PostForm(`qa_index_type`))
 	pdfPageNum := cast.ToInt(c.PostForm(`pdf_page_num`))
 	if pdfPageNum < 0 {
@@ -966,7 +932,7 @@ func saveLibFileSplitAsync(c *gin.Context) {
 	}
 	fileId := cast.ToInt(c.PostForm(`id`))
 	wordTotal := cast.ToInt(c.PostForm(`word_total`))
-	splitParams, list := define.SplitParams{}, make([]define.DocSplitItem, 0)
+	splitParams, list := define.SplitParams{}, make(define.DocSplitItems, 0)
 	qaIndexType := cast.ToInt(c.PostForm(`qa_index_type`))
 	pdfPageNum := cast.ToInt(c.PostForm(`pdf_page_num`))
 	if pdfPageNum < 0 {

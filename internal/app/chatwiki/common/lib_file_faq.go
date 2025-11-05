@@ -39,7 +39,7 @@ func UpdateLibFileFaqStatus(id, adminUserId, status int, errMsg string) error {
 	return err
 }
 
-func GetLibFileFaqSplit(fileId, userId int, splitParams define.SplitFaqParams) (list []define.DocSplitItem, err error) {
+func GetLibFileFaqSplit(fileId, userId int, splitParams define.SplitFaqParams) (list define.DocSplitItems, err error) {
 	info, err := GetFaqFilesInfo(fileId, userId)
 	if err != nil {
 		logs.Error(err.Error())
@@ -65,7 +65,7 @@ func GetLibFileFaqSplit(fileId, userId int, splitParams define.SplitFaqParams) (
 	return
 }
 
-func MultSplitFaqFiles(list []define.DocSplitItem, splitParams define.SplitFaqParams) (listSplit []define.DocSplitItem, err error) {
+func MultSplitFaqFiles(list define.DocSplitItems, splitParams define.SplitFaqParams) (listSplit define.DocSplitItems, err error) {
 	if len(list) == 0 {
 		return
 	}
@@ -96,7 +96,8 @@ func MultSplitFaqFiles(list []define.DocSplitItem, splitParams define.SplitFaqPa
 		}
 	} else if splitParams.ChunkType == define.FAQChunkTypeSeparatorsNo {
 		spliter := textsplitter.NewRecursiveCharacter()
-		spliter.Separators = append(spliter.Separators, splitParams.SeparatorsNo)
+		separators, _ := GetSeparatorsByNo(splitParams.SeparatorsNo, ``)
+		spliter.Separators = append(separators, spliter.Separators...)
 		spliter.ChunkSize = splitParams.ChunkSize
 		for _, item := range list {
 			chunks, err := spliter.SplitText(item.Content)
@@ -121,8 +122,8 @@ func MultSplitFaqFiles(list []define.DocSplitItem, splitParams define.SplitFaqPa
 			}
 		}
 	}
+	listSplit.UnifySetNumber() //对number统一编号
 	for i := range listSplit {
-		listSplit[i].Number = i + 1 //serial number
 		if splitParams.IsQaDoc == define.DocTypeQa {
 			listSplit[i].WordTotal = utf8.RuneCountInString(listSplit[i].Question) + utf8.RuneCountInString(listSplit[i].Answer)
 		} else {
@@ -132,7 +133,7 @@ func MultSplitFaqFiles(list []define.DocSplitItem, splitParams define.SplitFaqPa
 	return listSplit, nil
 }
 
-func ExtractLibFaqFiles(adminUserId int, splitParams define.SplitFaqParams, submitList []define.DocSplitItem, results chan define.DocSplitItem) error {
+func ExtractLibFaqFiles(adminUserId int, splitParams define.SplitFaqParams, submitList define.DocSplitItems, results chan define.DocSplitItem) error {
 	defer close(results)
 	if splitParams.ExtractType != define.FAQExtractTypeAI {
 		return errors.New(`提取方式不对`)

@@ -1,0 +1,1 @@
+import{M as e}from"./vue-chunks-BRsu9_To.js";import{c as s}from"./index-B8KmO6dn.js";const n=e("database",{state:()=>({databaseInfo:{}}),getters:{},actions:{async getDatabaseInfo(t){const a=await s(t);return a?(this.setDatabaseInfo(a.data),a):Promise.reject(a)},setDatabaseInfo(t){this.databaseInfo=t}}});export{n as u};

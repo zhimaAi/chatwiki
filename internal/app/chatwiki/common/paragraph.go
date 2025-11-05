@@ -15,7 +15,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-func GetParagraphSplit(userId, fileId, pdfPageNum int, fileDataIds string, splitParams define.SplitParams, lang string) (list []define.DocSplitItem, wordTotal int, _splitParams define.SplitParams, err error) {
+func GetParagraphSplit(userId, fileId, pdfPageNum int, fileDataIds string, splitParams define.SplitParams, lang string) (list define.DocSplitItems, wordTotal int, _splitParams define.SplitParams, err error) {
 	info, err := GetLibFileInfo(fileId, userId)
 	if err != nil {
 		err = errors.New(i18n.Show(lang, `sys_err`))
@@ -52,8 +52,8 @@ func GetParagraphSplit(userId, fileId, pdfPageNum int, fileDataIds string, split
 	if err != nil {
 		return
 	}
+	list.UnifySetNumber() //对number统一编号
 	for i := range list {
-		list[i].Number = i + 1 //serial number
 		if splitParams.IsQaDoc == define.DocTypeQa {
 			list[i].WordTotal = utf8.RuneCountInString(list[i].Question) + utf8.RuneCountInString(list[i].Answer)
 		} else {
@@ -65,7 +65,7 @@ func GetParagraphSplit(userId, fileId, pdfPageNum int, fileDataIds string, split
 	return
 }
 
-func GetFileDataInfo(id string, FileDataId, pdfPageNum int, lang string) (list []define.DocSplitItem, err error) {
+func GetFileDataInfo(id string, FileDataId, pdfPageNum int, lang string) (list define.DocSplitItems, err error) {
 	data, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`id`, `in`, id).Select()
 	if err != nil {
 		err = errors.New(i18n.Show(lang, `sys_err`))
@@ -84,39 +84,64 @@ func GetFileDataInfo(id string, FileDataId, pdfPageNum int, lang string) (list [
 			Answer:     item[`answer`],
 			Images:     images,
 			WordTotal:  cast.ToInt(item[`word_total`]),
-			Number:     cast.ToInt(item[`number`]),
+			//父子分段
+			FatherChunkParagraphNumber: cast.ToInt(item[`father_chunk_paragraph_number`]),
 		})
 	}
+	list.UnifySetNumber() //对number统一编号
 	return list, nil
 }
 
-func SaveSplitParagraph(adminUserId, fileId, dataId int, list []define.DocSplitItem) ([]define.DocSplitItem, error) {
+func SaveSplitParagraph(adminUserId, fileId int, paragraph msql.Params, list define.DocSplitItems) (define.DocSplitItems, error) {
+	if len(paragraph) == 0 { //pdf单页重新分段,兼容处理
+		fatherChunkParagraphNumber, number, sqlErr := GetAddParagraphNumbers(int64(fileId))
+		if sqlErr != nil {
+			logs.Error(sqlErr.Error())
+			return list, sqlErr
+		}
+		//给新数据设置编号
+		for i := range list {
+			list[i].FatherChunkParagraphNumber, list[i].Number = fatherChunkParagraphNumber, number+i
+		}
+		return list, nil
+	}
 	m := msql.Model(`chat_ai_library_file_data`, define.Postgres)
-	data, err := m.Where(`file_id`, cast.ToString(fileId)).Order(`number asc`).Field(`id,number`).Select()
+	datas, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`file_id`, cast.ToString(fileId)).
+		Where(`father_chunk_paragraph_number`, paragraph[`father_chunk_paragraph_number`]).
+		Order(`page_num,father_chunk_paragraph_number,number`).Field(`id,number`).Select()
 	if err != nil {
-		logs.Error(err.Error())
+		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 		return list, err
 	}
-	var number int
-	for _, item := range data {
-		if cast.ToInt(item[`id`]) == dataId {
-			number = cast.ToInt(item[`number`])
-			for i := range list {
-				list[i].Number = number + i
+	indexModel := msql.Model(`chat_ai_library_file_data_index`, define.Postgres)
+	var number int //编号变量
+	for _, item := range datas {
+		if item[`id`] == paragraph[`id`] { //重新分段的段落
+			//删除分段及分段索引
+			_, err = m.Where(`id`, item[`id`]).Delete()
+			if err != nil {
+				logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 			}
-			break
+			_, err = indexModel.Where(`data_id`, item[`id`]).Delete()
+			if err != nil {
+				logs.Error(`sql:%s,err:%s`, indexModel.GetLastSql(), err.Error())
+			}
+			//给新数据设置编号
+			for i := range list {
+				number++
+				list[i].FatherChunkParagraphNumber = cast.ToInt(paragraph[`father_chunk_paragraph_number`]) //保持不变
+				list[i].Number = number
+				list[i].PageNum = cast.ToInt(paragraph[`page_num`]) //保持不变
+			}
+		} else { //其他数据直接修改编号
+			number++
+			if cast.ToInt(item[`id`]) != number { //修正编号
+				_, err = m.Where(`id`, item[`id`]).Update(msql.Datas{`number`: number, `update_time`: cast.ToString(tool.Time2Int())})
+				if err != nil {
+					logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
+				}
+			}
 		}
-	}
-	for _, item := range data {
-		if cast.ToInt(item[`id`]) == dataId {
-			m.Where(`id`, item[`id`]).Delete()
-			msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`data_id`, item[`id`]).Delete()
-			continue
-		}
-		if cast.ToInt(item[`number`]) < number {
-			continue
-		}
-		m.Where(`id`, item[`id`]).Update(msql.Datas{`number`: cast.ToInt(item[`number`]) + len(list) - 1, `update_time`: cast.ToString(tool.Time2Int())})
 	}
 	return list, nil
 }
@@ -131,4 +156,51 @@ func UpdateParagraphHits(dataIds string, today int) {
 	msql.Model(`chat_ai_library_file_data`, define.Postgres).
 		Where(`id`, `in`, cast.ToString(dataIds)).
 		Update2(sqlRaw)
+}
+
+func GetAddParagraphNumbers(fileId int64) (int, int, error) {
+	m := msql.Model(`chat_ai_library_file_data`, define.Postgres)
+	maxFn, err := m.Where(`file_id`, cast.ToString(fileId)).Max(`father_chunk_paragraph_number`)
+	if err != nil {
+		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
+		return 0, 0, err
+	}
+	if cast.ToInt(maxFn) > 0 { //父子分段,新起一个父分段
+		return cast.ToInt(maxFn) + 1, 1, nil
+	}
+	maxNumber, err := m.Where(`file_id`, cast.ToString(fileId)).Max(`number`)
+	if err != nil {
+		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
+		return 0, 0, err
+	}
+	return 0, cast.ToInt(maxNumber) + 1, nil
+}
+
+func RefreshParagraphNumbers(fileId int64) {
+	m := msql.Model(`chat_ai_library_file_data`, define.Postgres)
+	datas, err := m.Where(`file_id`, cast.ToString(fileId)).
+		Field(`id,father_chunk_paragraph_number,number`).
+		Order(`page_num,father_chunk_paragraph_number,number`).
+		Select()
+	if err != nil {
+		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
+		return
+	}
+	list := make(define.DocSplitItems, len(datas))
+	for i, item := range datas {
+		list[i] = define.DocSplitItem{
+			Number:                     cast.ToInt(item[`number`]),
+			FatherChunkParagraphNumber: cast.ToInt(item[`father_chunk_paragraph_number`]),
+		}
+	}
+	list.UnifySetNumber() //对number统一编号
+	//所有数据修正编号
+	for i, item := range datas {
+		if cast.ToInt(item[`id`]) != list[i].Number {
+			_, err = m.Where(`id`, item[`id`]).Update(msql.Datas{`number`: list[i].Number, `update_time`: cast.ToString(tool.Time2Int())})
+			if err != nil {
+				logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
+			}
+		}
+	}
 }

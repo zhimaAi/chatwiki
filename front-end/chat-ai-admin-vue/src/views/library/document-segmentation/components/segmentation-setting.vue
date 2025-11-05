@@ -350,6 +350,15 @@
   flex: 1;
   margin-right: 5px;
 }
+
+.main-title-block{
+  margin: 16px 0;
+  padding-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid #d9d9d9;
+}
+
 </style>
 
 <template>
@@ -618,6 +627,21 @@
                       </div>
                     </div>
                     <div
+                      v-if="props.library_type == 0"
+                      class="select-card-item"
+                      @click="formState.chunk_type = 4"
+                      :class="{ active: formState.chunk_type == 4 }"
+                    >
+                      <svg-icon class="check-arrow" name="check-arrow-filled"></svg-icon>
+                      <div class="card-title">
+                        <svg-icon name="semantic-segmentation" class="title-icon"></svg-icon>
+                        父子分段
+                      </div>
+                      <div class="card-desc">
+                        基于文章中句号等符号进行分段，不会消耗模型token。父分段会拆分为若干子分段，子块用于检索，父块用作上下文
+                      </div>
+                    </div>
+                    <div
                       class="select-card-item"
                       @click="formState.chunk_type = 3"
                       :class="{ active: formState.chunk_type == 3 }"
@@ -641,7 +665,7 @@
                     <a-select
                       placeholder="请选择"
                       style="width: 100%"
-                      mode="multiple"
+                      mode="tags"
                       v-model:value="formState.separators_no"
                     >
                       <a-select-option
@@ -841,6 +865,98 @@
                   </div>
                 </div>
               </div>
+              <template v-if="formState.chunk_type == 4 && props.library_type == 0">
+                <div class="main-title-block">父块（用作上下文）</div>
+                <div class="form-item">
+                  <div class="form-item-label">分段类型：</div>
+                  <div class="form-item-body">
+                    <a-radio-group v-model:value="formState.father_chunk_paragraph_type">
+                      <a-radio :value="1">全文
+                        <a-tooltip title="整个文档用作父块并直接检索。请注意，出于性能原因，超过 10000 个标记的文本将被自动截断。">
+                          <QuestionCircleOutlined />
+                        </a-tooltip>
+                      </a-radio>
+                      <a-radio :value="2">段落
+                        <a-tooltip title="此模式根据分隔符和最大块长度将文本拆分为段落，使用拆分文本作为检索的父块">
+                          <QuestionCircleOutlined />
+                        </a-tooltip>
+                      </a-radio>
+                    </a-radio-group>
+                  </div>
+                </div>
+                <div class="form-item" v-if="formState.father_chunk_paragraph_type == 2">
+                  <div class="form-item-label">分段标识符：</div>
+                  <div class="form-item-body">
+                    <a-select
+                      placeholder="请选择"
+                      style="width: 100%"
+                      mode="tags"
+                      v-model:value="formState.father_chunk_separators_no"
+                    >
+                      <a-select-option
+                        :value="item.no"
+                        v-for="item in separatorsOptions"
+                        :key="item.no"
+                        >{{ item.name }}</a-select-option
+                      >
+                    </a-select>
+                  </div>
+                </div>
+                <div class="form-item" v-if="formState.father_chunk_paragraph_type == 2">
+                  <div class="form-item-label">分段最大长度：</div>
+                  <div class="form-item-body">
+                    <a-flex align="center" :gap="8">
+                      <a-input-number
+                        style="flex: 1"
+                        v-model:value="formState.father_chunk_chunk_size"
+                        placeholder="分段最大长度"
+                        :min="200"
+                        :max="10000"
+                        :precision="0"
+                        :formatter="(value) => parseInt(value)"
+                        :parser="(value) => parseInt(value)"
+                      /><span class="unit-text">字符</span>
+                    </a-flex>
+                  </div>
+                </div>
+                <div class="main-title-block">子块（用于检索）</div>
+                <div class="form-item">
+                  <div class="form-item-label">分段标识符：</div>
+                  <div class="form-item-body">
+                    <a-select
+                      placeholder="请选择"
+                      style="width: 100%"
+                      mode="tags"
+                      v-model:value="formState.son_chunk_separators_no"
+                    >
+                      <a-select-option
+                        :value="item.no"
+                        v-for="item in separatorsOptions"
+                        :key="item.no"
+                        >{{ item.name }}</a-select-option
+                      >
+                    </a-select>
+                  </div>
+                </div>
+                <div class="form-item">
+                  <div class="form-item-label">分段最大长度：</div>
+                  <div class="form-item-body">
+                    <a-flex align="center" :gap="8">
+                      <a-input-number
+                        style="flex: 1"
+                        v-model:value="formState.son_chunk_chunk_size"
+                        placeholder="分段最大长度"
+                        :min="200"
+                        :max="10000"
+                        :precision="0"
+                        :formatter="(value) => parseInt(value)"
+                        :parser="(value) => parseInt(value)"
+                      /><span class="unit-text">字符</span>
+                    </a-flex>
+                  </div>
+                </div>
+              </template>
+
               <div class="btn-box-block">
                 <a-button @click="handleReset" style="flex: 1">重置</a-button>
                 <a-button
@@ -874,6 +990,7 @@ import ModelSelect from '@/components/model-select/model-select.vue'
 import { Form } from 'ant-design-vue'
 import { message } from 'ant-design-vue'
 import AiGenerate from './ai-generate-modal.vue'
+import { formatSeparatorsNo } from '@/utils/index'
 
 const useForm = Form.useForm
 const emit = defineEmits(['change', 'validate', 'save', 'changeChunkType'])
@@ -915,8 +1032,7 @@ const defaultAiChunkPrumpt = '你是一位文章分段助手，根据文章内�
 
 watch(props, (val) => {
   let libFileInfo = val.libFileInfo
-  let separators_no = libFileInfo.separators_no ? libFileInfo.separators_no.split(',') : [11, 12]
-  formState.separators_no = separators_no.map((item) => +item)
+  formState.separators_no = formatSeparatorsNo(libFileInfo.separators_no, [12, 11])
   formState.chunk_size = +libFileInfo.chunk_size || 512
   formState.not_merged_text = libFileInfo.not_merged_text == 'true'
   formState.ai_chunk_size = +libFileInfo.ai_chunk_size || 5000
@@ -943,6 +1059,12 @@ watch(props, (val) => {
   formState.ai_chunk_model_config_id =
     libFileInfo.ai_chunk_model_config_id > 0 ? libFileInfo.ai_chunk_model_config_id : ''
 
+  formState.father_chunk_paragraph_type = +libFileInfo.father_chunk_paragraph_type || 2
+  formState.father_chunk_separators_no = formatSeparatorsNo(libFileInfo.father_chunk_separators_no, [12, 11])
+  formState.father_chunk_chunk_size = +libFileInfo.father_chunk_chunk_size || 1024
+  formState.son_chunk_separators_no = formatSeparatorsNo(libFileInfo.son_chunk_separators_no, [8, 10])
+  formState.son_chunk_chunk_size = +libFileInfo.son_chunk_chunk_size || 512
+
   setTimeout(() => {
     formState.semantic_chunk_use_model = libFileInfo.semantic_chunk_use_model || ''
     formState.semantic_chunk_model_config_id =
@@ -951,10 +1073,7 @@ watch(props, (val) => {
         : ''
   }, 200)
   if (libFileInfo.chunk_type == 0) {
-    separators_no = libFileInfo.normal_chunk_default_separators_no
-      ? libFileInfo.normal_chunk_default_separators_no.split(',')
-      : [11, 12]
-    formState.separators_no = separators_no.map((item) => +item)
+    formState.separators_no = formatSeparatorsNo(libFileInfo.normal_chunk_default_separators_no, [12, 11])
     formState.chunk_size = +libFileInfo.normal_chunk_default_chunk_size || 512
     formState.not_merged_text = libFileInfo.normal_chunk_default_not_merged_text == 'true'
     formState.chunk_overlap = +libFileInfo.normal_chunk_default_chunk_overlap || 50
@@ -995,7 +1114,13 @@ const formState = reactive({
   ai_chunk_size: 5000, // ai大模型分段最大字符数
   ai_chunk_model:'', // ai大模型分段模型名称
   ai_chunk_model_config_id: '', // ai大模型分段模型配置id
-  ai_chunk_prumpt: defaultAiChunkPrumpt // ai大模型分段提示词设置
+  ai_chunk_prumpt: defaultAiChunkPrumpt, // ai大模型分段提示词设置
+
+  father_chunk_paragraph_type: 2,
+  father_chunk_separators_no: [],
+  father_chunk_chunk_size: 1024,
+  son_chunk_separators_no: [],
+  son_chunk_chunk_size: 512,
 })
 
 let baseFormState = {}

@@ -15,7 +15,7 @@ services:
       TZ: ${TIMEZONE}
 
   chatwiki_crawler:
-    image: mcr.microsoft.com/playwright:v1.44.1-jammy
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/playwright:v1.44.1-jammy
     container_name: chatwiki_crawler
     restart: always
     environment:
@@ -91,6 +91,7 @@ services:
       context: .
       dockerfile: DockerfileGoNsq
     container_name: chatwiki_go_nsq_service
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/go_nsq_service:20251103
     working_dir: /var/www/go-nsq
     ports:
       - ${NSQADMIN_PORT}:4171
@@ -114,6 +115,7 @@ services:
       context: .
       dockerfile: DockerfileGoPush
     container_name: chatwiki_go_push_service
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/go_push_service:20251103
     volumes:
       - ../:/var/www/chatwiki/
     working_dir: /var/www/chatwiki
@@ -143,6 +145,7 @@ services:
       context: .
       dockerfile: DockerfileGoCore
     container_name: chatwiki_go_core_service
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/go_core_service:20251103
     volumes:
       - ../:/var/www/chatwiki/
       - ../volumes/nginx_logs:/var/log/nginx/

@@ -173,12 +173,19 @@ func CheckSplitParams(libraryInfo msql.Params, splitParams define.SplitParams, l
 			splitParams.ChunkSize = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_size`])
 			splitParams.ChunkOverlap = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_overlap`])
 			splitParams.NotMergedText = cast.ToBool(libraryInfo[`normal_chunk_default_not_merged_text`])
-		} else {
+		} else if splitParams.ChunkType == define.ChunkTypeSemantic {
 			splitParams.SemanticChunkSize = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_size`])
 			splitParams.SemanticChunkOverlap = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_overlap`])
 			splitParams.SemanticChunkThreshold = cast.ToInt(libraryInfo[`semantic_chunk_default_threshold`])
 			splitParams.SemanticChunkModelConfigId = cast.ToInt(libraryInfo[`model_config_id`])
 			splitParams.SemanticChunkUseModel = cast.ToString(libraryInfo[`use_model`])
+		} else if splitParams.ChunkType == define.ChunkTypeFatherSon {
+			splitParams.FatherChunkParagraphType = cast.ToInt(libraryInfo[`father_chunk_paragraph_type`])
+			splitParams.FatherChunkSeparatorsNo = libraryInfo[`father_chunk_separators_no`]
+			splitParams.FatherChunkChunkSize = cast.ToInt(libraryInfo[`father_chunk_chunk_size`])
+			splitParams.SonChunkSeparatorsNo = libraryInfo[`son_chunk_separators_no`]
+			splitParams.SonChunkChunkSize = cast.ToInt(libraryInfo[`son_chunk_chunk_size`])
+			splitParams.NotMergedText = true //父子分段不合并较小分段
 		}
 	}
 
@@ -209,6 +216,7 @@ func CheckSplitParams(libraryInfo msql.Params, splitParams define.SplitParams, l
 			return splitParams, errors.New(i18n.Show(lang, `semantic_chunk_threshold_err`, 1, 100))
 		}
 	}
+
 	// ai chunks
 	if splitParams.ChunkType == define.ChunkTypeAi {
 		if splitParams.AiChunkPrumpt == "" {
@@ -218,18 +226,35 @@ func CheckSplitParams(libraryInfo msql.Params, splitParams define.SplitParams, l
 			splitParams.ChunkSize = define.SplitAiChunkMaxSize
 		}
 	}
-	for i, noStr := range strings.Split(splitParams.SeparatorsNo, `,`) {
-		no := cast.ToInt(noStr)
-		if no < 1 || no > len(define.SeparatorsList) {
-			return splitParams, errors.New(i18n.Show(lang, `param_invalid`, `separators_no.`+cast.ToString(i)))
+
+	//father son split
+	if splitParams.ChunkType == define.ChunkTypeFatherSon {
+		if !tool.InArrayInt(splitParams.FatherChunkParagraphType, []int{define.FatherChunkParagraphTypeFullText, define.FatherChunkParagraphTypeSection}) {
+			return splitParams, errors.New(i18n.Show(lang, `param_invalid`, `father_chunk_paragraph_type`))
 		}
-		code := define.SeparatorsList[no-1][`code`]
-		if realCode, ok := code.([]string); ok {
-			splitParams.Separators = append(splitParams.Separators, realCode...)
-		} else {
-			splitParams.Separators = append(splitParams.Separators, cast.ToString(code))
+		if splitParams.FatherChunkParagraphType != define.FatherChunkParagraphTypeFullText {
+			if len(splitParams.FatherChunkSeparatorsNo) == 0 {
+				return splitParams, errors.New(i18n.Show(lang, `param_invalid`, `father_chunk_separators_no`))
+			}
+			if splitParams.FatherChunkChunkSize < 0 {
+				return splitParams, errors.New(i18n.Show(lang, `param_invalid`, `father_chunk_chunk_size`))
+			}
+		}
+		if len(splitParams.SonChunkSeparatorsNo) == 0 {
+			return splitParams, errors.New(i18n.Show(lang, `param_invalid`, `son_chunk_separators_no`))
+		}
+		if splitParams.SonChunkChunkSize < 0 {
+			return splitParams, errors.New(i18n.Show(lang, `param_invalid`, `son_chunk_chunk_size`))
 		}
 	}
+
+	//分隔符序号转换成分隔符实体
+	separators, err := GetSeparatorsByNo(splitParams.SeparatorsNo, lang)
+	if err != nil {
+		return splitParams, err
+	}
+	splitParams.Separators = separators
+
 	//qa_doc
 	if splitParams.IsQaDoc == define.DocTypeQa {
 		if splitParams.IsTableFile == define.FileIsTable {
@@ -397,4 +422,23 @@ func IsValidDate(s string, layouts ...string) bool {
 	}
 	t, err := time.Parse(layout, s)
 	return err == nil && t.Format(layout) == s
+}
+
+func CheckDataRangeDay(startDate, endDate string, maxDayNum int) bool {
+	start, err := time.Parse("2006-01-02", startDate)
+	if err != nil {
+		return false
+	}
+	end, err := time.Parse("2006-01-02", endDate)
+	if err != nil {
+		return false
+	}
+	if end.Before(start) {
+		return false
+	}
+	days := int(end.Sub(start).Hours()/24) + 1
+	if days > maxDayNum {
+		return false
+	}
+	return true
 }
