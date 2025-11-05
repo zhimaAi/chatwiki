@@ -166,7 +166,7 @@ func AddDefaultLibrary(token, robotName, libraryIds, robotKey string, adminUserI
 	libraryData := map[string]string{
 		`library_name`:                       robotName + `默认知识库`,
 		`chunk_type`:                         cast.ToString(define.ChunkTypeNormal),
-		`normal_chunk_default_separators_no`: `10,12`,
+		`normal_chunk_default_separators_no`: `12,11`,
 		`normal_chunk_default_chunk_size`:    `512`,
 		`type`:                               cast.ToString(define.QALibraryType),
 	}

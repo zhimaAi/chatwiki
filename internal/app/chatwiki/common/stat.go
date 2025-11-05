@@ -139,7 +139,75 @@ func LlmLogRequest(
 		logs.Error(err.Error())
 		return err
 	}
+	//app token stat
+	if err = statTokenApp(_type, adminUserId, robot, corpName, model, promptToken, completionToken); err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	return nil
+}
 
+func statTokenApp(_type string, adminUserId int, robot msql.Params, corpName, model string, promptToken, completionToken int) error {
+	var oldPromptToken int
+	var oldCompletionToken int
+	robotId := cast.ToInt(robot[`id`])
+	tokenAppType := define.TokenAppTypeOther
+	if len(robot) > 0 && cast.ToInt(robot[`id`]) > 0 {
+		applicationType := cast.ToInt(robot[`application_type`])
+		if applicationType == define.ApplicationTypeChat {
+			tokenAppType = define.TokenAppTypeRobot
+		} else if applicationType == define.ApplicationTypeFlow {
+			tokenAppType = define.TokenAppTypeWorkflow
+		}
+	}
+	stats, err := msql.Model(`llm_token_app_daily_stats`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`token_app_type`, cast.ToString(tokenAppType)).
+		Where(`date`, time.Now().Format(`2006-01-02`)).
+		Where(`robot_id`, cast.ToString(robotId)).
+		Field(`prompt_token, completion_token,request_num`).
+		Find()
+	if err != nil {
+		return err
+	}
+	if len(stats) == 0 {
+		_, err := msql.Model(`llm_token_app_daily_stats`, define.Postgres).Insert(msql.Datas{
+			`admin_user_id`:    cast.ToString(adminUserId),
+			`token_app_type`:   tokenAppType,
+			`robot_id`:         cast.ToString(robotId),
+			`corp`:             corpName,
+			`model`:            model,
+			`type`:             _type,
+			`date`:             time.Now().Format(`2006-01-02`),
+			`request_num`:      1,
+			`prompt_token`:     cast.ToString(promptToken),
+			`completion_token`: cast.ToString(completionToken),
+			`create_time`:      tool.Time2Int(),
+			`update_time`:      tool.Time2Int(),
+		})
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	oldPromptToken = cast.ToInt(stats[`prompt_token`])
+	oldCompletionToken = cast.ToInt(stats[`completion_token`])
+	requestNum := cast.ToInt(stats[`request_num`])
+
+	_, err = msql.Model(`llm_token_app_daily_stats`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`token_app_type`, cast.ToString(tokenAppType)).
+		Where(`date`, time.Now().Format(`2006-01-02`)).
+		Where(`robot_id`, cast.ToString(robotId)).
+		Update(msql.Datas{
+			`prompt_token`:     cast.ToString(promptToken + oldPromptToken),
+			`completion_token`: cast.ToString(completionToken + oldCompletionToken),
+			`request_num`:      requestNum + 1,
+			`update_time`:      tool.Time2Int(),
+		})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

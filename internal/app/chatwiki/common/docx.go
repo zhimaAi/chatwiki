@@ -144,7 +144,7 @@ func GetDocxInfoInfo(fileUrl string, userId int) (string, error) {
 	return content, err
 }
 
-func ReadDocx(fileUrl string, userId int) ([]define.DocSplitItem, int, error) {
+func ReadDocx(fileUrl string, userId int) (define.DocSplitItems, int, error) {
 	if !LinkExists(fileUrl) {
 		return nil, 0, errors.New(`file not exist:` + fileUrl)
 	}
@@ -152,11 +152,11 @@ func ReadDocx(fileUrl string, userId int) ([]define.DocSplitItem, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	list := []define.DocSplitItem{{Content: content}}
+	list := define.DocSplitItems{{Content: content}}
 	return list, utf8.RuneCountInString(content), nil
 }
 
-func ReadPdf(pdfUrl string, pageNum int, lang string) ([]define.DocSplitItem, int, error) {
+func ReadPdf(pdfUrl string, pageNum int, lang string) (define.DocSplitItems, int, error) {
 	if len(pdfUrl) == 0 {
 		return nil, 0, errors.New(`file link cannot be empty`)
 	}
@@ -170,7 +170,7 @@ func ReadPdf(pdfUrl string, pageNum int, lang string) ([]define.DocSplitItem, in
 		_ = file.Close()
 	}(file)
 	//paging collection
-	list := make([]define.DocSplitItem, 0)
+	list := make(define.DocSplitItems, 0)
 	wordTotal := 0
 	if pageNum <= 0 {
 		for num := 1; num <= reader.NumPage(); num++ {
@@ -207,7 +207,7 @@ func ReadPdf(pdfUrl string, pageNum int, lang string) ([]define.DocSplitItem, in
 }
 
 type PdfOcrCacheItem struct {
-	Result    []define.DocSplitItem
+	Result    define.DocSplitItems
 	WordCount int
 	Timestamp time.Time
 }
@@ -240,7 +240,7 @@ func (h *PdfOcrCacheBuildHandler) GetCacheData() (any, error) {
 	}, nil
 }
 
-func ocrReadOnePagePdfImpl(userId int, pdfParseType int, pdfUrl string, pageNum int, lang string) ([]define.DocSplitItem, int, error) {
+func ocrReadOnePagePdfImpl(userId int, pdfParseType int, pdfUrl string, pageNum int, lang string) (define.DocSplitItems, int, error) {
 	file := GetFileByLink(pdfUrl)
 	outDir := define.UploadDir + fmt.Sprintf(`pdf_split/%s`, tool.Random(8)) //随机生成切分后的目录
 	defer func(path string) {
@@ -263,7 +263,7 @@ func ocrReadOnePagePdfImpl(userId int, pdfParseType int, pdfUrl string, pageNum 
 	return ParseOnePageHtmlContent(userId, content, pageNum)
 }
 
-func OcrReadOnePagePdf(userId int, pdfParseType int, pdfUrl string, pageNum int, lang string) ([]define.DocSplitItem, int, error) {
+func OcrReadOnePagePdf(userId int, pdfParseType int, pdfUrl string, pageNum int, lang string) (define.DocSplitItems, int, error) {
 	cacheHandler := &PdfOcrCacheBuildHandler{
 		userId:       userId,
 		pdfParseType: pdfParseType,

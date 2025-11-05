@@ -1,3 +1,31 @@
+<template>
+  <div class="user-model-page">
+    <!-- <div class="page-title">Token使用</div> -->
+    <div class="tabs-box">
+      <a-tabs v-model:activeKey="activeKey">
+        <a-tab-pane :key="1" tab="按应用统计"></a-tab-pane>
+        <a-tab-pane :key="2" tab="按模型统计"></a-tab-pane>
+        <!-- <a-tab-pane :key="3" tab="Token限额"></a-tab-pane> -->
+      </a-tabs>
+    </div>
+
+    <div class="list-wrapper">
+      <StaticsByApp v-if="activeKey == 1" />
+      <UseToken v-if="activeKey == 2"></UseToken>
+      <QuotaToken v-if="activeKey == 3"></QuotaToken>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import StaticsByApp from './statics-by-app.vue'
+import UseToken from './use-token.vue'
+import QuotaToken from './quota-token.vue'
+
+const activeKey = ref(1)
+</script>
+
 <style lang="less" scoped>
 .user-model-page {
   width: 100%;
@@ -13,11 +41,18 @@
     padding: 24px 24px 16px;
     background-color: #fff;
     color: #000000;
-    font-family: "PingFang SC";
+    font-family: 'PingFang SC';
     font-size: 16px;
     font-style: normal;
     font-weight: 600;
     line-height: 24px;
+  }
+
+  .tabs-box {
+    background: #fff;
+    &::v-deep(.ant-tabs-nav-wrap) {
+      padding-left: 24px;
+    }
   }
 
   .list-wrapper {
@@ -28,17 +63,3 @@
   }
 }
 </style>
-
-<template>
-  <div class="user-model-page">
-    <div class="page-title">Token使用</div>
-    <div class="list-wrapper">
-      <UseToken></UseToken>
-    </div>
-  </div>
-</template>
-
-<script setup>
-import { ref } from 'vue'
-import UseToken from './use-token.vue'
-</script>

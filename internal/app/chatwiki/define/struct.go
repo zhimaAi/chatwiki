@@ -77,6 +77,26 @@ type DocSplitItem struct {
 	WordTotal           int      `json:"word_total"`
 	Images              []string `json:"images"`
 	AiChunkErrMsg       string   `json:"ai_chunk_err_msg"`
+	//父子分段
+	FatherChunkParagraphNumber int `json:"father_chunk_paragraph_number"`
+}
+
+type DocSplitItems []DocSplitItem
+
+func (list *DocSplitItems) UnifySetNumber() {
+	if len(*list) == 0 {
+		return
+	}
+	var curIdx int
+	var lastFn = (*list)[0].FatherChunkParagraphNumber
+	for i := range *list {
+		if i > 0 && lastFn != (*list)[i].FatherChunkParagraphNumber {
+			curIdx = 0
+			lastFn = (*list)[i].FatherChunkParagraphNumber
+		}
+		curIdx++
+		(*list)[i].Number = curIdx //serial number
+	}
 }
 
 type SplitParams struct {
@@ -113,6 +133,12 @@ type SplitParams struct {
 	ChunkAsync                 bool     `json:"chunk_async"` // 异步
 	FileExt                    string   `json:"file_ext"`
 	NotMergedText              bool     `json:"not_merged_text"`
+	//父子分段
+	FatherChunkParagraphType int    `json:"father_chunk_paragraph_type"`
+	FatherChunkSeparatorsNo  string `json:"father_chunk_separators_no"`
+	FatherChunkChunkSize     int    `json:"father_chunk_chunk_size"`
+	SonChunkSeparatorsNo     string `json:"son_chunk_separators_no"`
+	SonChunkChunkSize        int    `json:"son_chunk_chunk_size"`
 }
 
 type SplitPreviewParams struct {

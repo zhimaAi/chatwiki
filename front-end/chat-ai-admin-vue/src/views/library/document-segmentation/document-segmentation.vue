@@ -174,6 +174,7 @@
       <div class="page-right">
         <div class="document-fragment-preview">
           <div class="preview-header">
+            {{ formData.chunk_type }}
             <span class="label-text">分段预览</span>
             <span class="fragment-number">共{{ documentFragmentTotal }}个分段</span>
           </div>
@@ -183,9 +184,11 @@
             <div
               class="fragment-item"
               v-for="(item, index) in documentFragmentList"
-              :key="item.number"
+              :key="index"
             >
               <DocumentFragment
+                :chunk_type="formData.chunk_type"
+                :father_chunk_paragraph_number="item.father_chunk_paragraph_number"
                 :number="item.number"
                 :title="item.title"
                 :content="item.content"
@@ -266,7 +269,13 @@ const segmentationSettingRef = ref(null)
 
 const onChangeSetting = (data) => {
   if (typeof data.separators_no == 'object') {
-    data.separators_no = data.separators_no.join(',')
+    data.separators_no = JSON.stringify(data.separators_no)
+  }
+  if (typeof data.father_chunk_separators_no == 'object') {
+    data.father_chunk_separators_no = JSON.stringify(data.father_chunk_separators_no)
+  }
+  if (typeof data.son_chunk_separators_no == 'object') {
+    data.son_chunk_separators_no = JSON.stringify(data.son_chunk_separators_no)
   }
   isEdit = true
   formData = {
@@ -311,7 +320,7 @@ const getDocumentStatus = () => {
     libFileInfo.value = res.data
     formData = {
       ...formData,
-      separators_no: res.data.separators_no || '11,12',
+      separators_no: res.data.separators_no || '[12,11]',
       chunk_size: +res.data.chunk_size || 512,
       not_merged_text: res.data.not_merged_text  == 'true',
       ai_chunk_size: +res.data.ai_chunk_size || 5000, // ai模型的默认值是5000
@@ -337,7 +346,12 @@ const getDocumentStatus = () => {
         res.data.semantic_chunk_model_config_id > 0 ? res.data.semantic_chunk_model_config_id : '',
       ai_chunk_model_config_id:
         res.data.ai_chunk_model_config_id > 0 ? res.data.ai_chunk_model_config_id : '',
-      ai_chunk_task_id: res.data.ai_chunk_task_id || ''
+      ai_chunk_task_id: res.data.ai_chunk_task_id || '',
+      father_chunk_paragraph_type: +res.data.father_chunk_paragraph_type || 2,
+      father_chunk_separators_no: res.data.father_chunk_separators_no || '[12,11]',
+      father_chunk_chunk_size: +res.data.father_chunk_chunk_size || 1024,
+      son_chunk_separators_no: res.data.son_chunk_separators_no || '[8,10]',
+      son_chunk_chunk_size: +res.data.son_chunk_chunk_size || 512,
     }
 
     if (res.data.chunk_type == 0) {
@@ -617,7 +631,13 @@ const updataFormData = () => {
   let data = segmentationSettingRef.value.formState
   data = JSON.parse(JSON.stringify(data))
   if (typeof data.separators_no == 'object') {
-    data.separators_no = data.separators_no.join(',')
+    data.separators_no = JSON.stringify(data.separators_no)
+  }
+  if (typeof data.father_chunk_separators_no == 'object') {
+    data.father_chunk_separators_no = JSON.stringify(data.father_chunk_separators_no)
+  }
+  if (typeof data.son_chunk_separators_no == 'object') {
+    data.son_chunk_separators_no = JSON.stringify(data.son_chunk_separators_no)
   }
   formData = {
     ...formData,

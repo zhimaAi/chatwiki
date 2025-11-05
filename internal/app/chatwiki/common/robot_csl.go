@@ -281,7 +281,7 @@ func BuildLibFileCsl(libFile msql.Params) (libFileCsl *LibFileCsl, err error) {
 	}
 	//文件分段列表
 	fileData, sqlErr := msql.Model(`chat_ai_library_file_data `, define.Postgres).
-		Where(`file_id`, libFile[`id`]).Order(`number`).Order(`id`).Select()
+		Where(`file_id`, libFile[`id`]).Order(`page_num,father_chunk_paragraph_number,number`).Order(`id`).Select()
 	if sqlErr != nil {
 		err = sqlErr
 		return

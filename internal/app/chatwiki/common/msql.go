@@ -663,6 +663,10 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 			return cast.ToFloat64(list[i][`similarity`]) > cast.ToFloat64(list[j][`similarity`])
 		})
 	}
+
+	//父子分段-替换成对应的父分段内容+去重
+	list = FatherSonChunkReplace(list)
+
 	//return
 	var ids []string
 	for i, one := range list {
@@ -682,6 +686,31 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 	}
 	go statDailyRequestLibraryTip(adminUserId, robot, appType, cast.ToString(StatsTypeDailyAiMsgCount))
 	return result, libUseTime, nil
+}
+
+func FatherSonChunkReplace(list []msql.Params) []msql.Params {
+	existMap := make(map[string]struct{})
+	result := make([]msql.Params, 0)
+	m := msql.Model(`chat_ai_library_file_data`, define.Postgres)
+	for _, one := range list {
+		if cast.ToUint(one[`father_chunk_paragraph_number`]) > 0 { //父子分段逻辑,子段替换成父段内容
+			if _, ok := existMap[one[`father_chunk_paragraph_number`]]; ok {
+				continue //已存在对应的父分段内容,去重
+			}
+			contents, err := m.Where(`content`, `<>`, ``).Where(`file_id`, one[`file_id`]).
+				Where(`father_chunk_paragraph_number`, one[`father_chunk_paragraph_number`]).
+				Order(`page_num,father_chunk_paragraph_number,number`).ColumnArr(`content`)
+			if err != nil {
+				logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
+			}
+			if len(contents) > 0 { //返回对应的父分段内容
+				one[`content`] = strings.Join(contents, "\r\n")
+				existMap[one[`father_chunk_paragraph_number`]] = struct{}{}
+			}
+		}
+		result = append(result, one)
+	}
+	return result
 }
 
 func changeListContent(list []msql.Params) []msql.Params {
@@ -1068,8 +1097,8 @@ func (h *LibFileSplitAiChunksBacheHandle) GetCacheData() (any, error) {
 }
 
 type LibFileSplitAiChunksCache struct {
-	ErrMsg string                `json:"err_msg"`
-	List   []define.DocSplitItem `json:"list"`
+	ErrMsg string               `json:"err_msg"`
+	List   define.DocSplitItems `json:"list"`
 }
 
 func (h *LibFileSplitAiChunksBacheHandle) SaveCacheData(list LibFileSplitAiChunksCache) error {

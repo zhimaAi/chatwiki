@@ -58,7 +58,7 @@
   <div class="document-fragment">
     <div class="fragment-header">
       <div class="fragment-info">
-        <span class="fragment-number">#{{ props.number }}</span>
+        <span class="fragment-number">#<span v-if="props.chunk_type == 4">{{ props.father_chunk_paragraph_number }}-</span>{{ props.number }}</span>
         <span class="fragment-title" v-if="props.title">{{ props.title }}</span>
         <span class="fragment-content-lenght">共{{ props.total }}个字符</span>
         <span class="fragment-content-status" v-if="props.status === 'paragraphsSegmented'">
@@ -101,6 +101,12 @@ import {
 const emit = defineEmits(['edit', 'delete'])
 const props = defineProps({
   number: {
+    type: [Number, String]
+  },
+  father_chunk_paragraph_number: {
+    type: [Number, String]
+  },
+  chunk_type:{
     type: [Number, String]
   },
   total: {

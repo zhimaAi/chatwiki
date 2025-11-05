@@ -134,7 +134,7 @@ func GetParagraphList(c *gin.Context) {
 		query.Where(`b.id`, `in`, strings.Join(paraIds, `,`))
 		exception.Where(`b.id`, `in`, strings.Join(paraIds, `,`))
 	}
-	orderRaw := `a.page_num asc, a.number asc`
+	orderRaw := `a.page_num,a.father_chunk_paragraph_number,a.number`
 	if len(sortField) > 0 && len(sortType) > 0 {
 		orderRaw = fmt.Sprintf(`a.%s %s`, sortField, sortType)
 	}
@@ -649,7 +649,14 @@ func SaveParagraph(c *gin.Context) {
 		} else {
 			data[`type`] = define.ParagraphTypeDocQA
 			data[`create_time`] = data[`update_time`]
-			data[`number`] = getParagraphAddNumber(c, fileId)
+			if fatherChunkParagraphNumber, number, sqlErr := common.GetAddParagraphNumbers(fileId); sqlErr == nil {
+				data[`father_chunk_paragraph_number`] = fatherChunkParagraphNumber
+				data[`number`] = number
+			} else {
+				_ = m.Rollback()
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+				return
+			}
 			id, err = m.Insert(data, `id`)
 		}
 		if err != nil {
@@ -714,7 +721,14 @@ func SaveParagraph(c *gin.Context) {
 		} else {
 			data[`type`] = define.ParagraphTypeNormal
 			data[`create_time`] = data[`update_time`]
-			data[`number`] = getParagraphAddNumber(c, fileId)
+			if fatherChunkParagraphNumber, number, sqlErr := common.GetAddParagraphNumbers(fileId); sqlErr == nil {
+				data[`father_chunk_paragraph_number`] = fatherChunkParagraphNumber
+				data[`number`] = number
+			} else {
+				_ = m.Rollback()
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+				return
+			}
 			id, err = m.Insert(data, `id`)
 		}
 		if err != nil {
@@ -801,6 +815,21 @@ func SaveSplitParagraph(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
+	list := make(define.DocSplitItems, 0)
+	if err := tool.JsonDecodeUseNumber(c.PostForm(`list`), &list); err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `list`))))
+		return
+	}
+	for i, item := range list {
+		if item.Images == nil {
+			list[i].Images = make([]string, 0) //初始化,防止json后nil
+		}
+		if _, err := common.CheckLibraryImage(item.Images); err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `images`))))
+			return
+		}
+	}
 	fileInfo, err := common.GetLibFileInfo(int(fileId), adminUserId)
 	if err != nil {
 		logs.Error(err.Error())
@@ -811,34 +840,36 @@ func SaveSplitParagraph(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
-	list := make([]define.DocSplitItem, 0)
-	if err := tool.JsonDecodeUseNumber(c.PostForm(`list`), &list); err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `list`))))
-		return
-	}
-	list, err = common.SaveSplitParagraph(adminUserId, cast.ToInt(fileId), cast.ToInt(id), list)
+	m := msql.Model(`chat_ai_library_file_data`, define.Postgres)
+	paragraph, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`file_id`, cast.ToString(fileId)).Where(`id`, cast.ToString(id)).Find()
 	if err != nil {
+		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	m := msql.Model(`chat_ai_library_file_data`, define.Postgres)
+	//数据库处理
 	_ = m.Begin()
+	list, err = common.SaveSplitParagraph(adminUserId, cast.ToInt(fileId), paragraph, list)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		_ = m.Rollback()
+		return
+	}
 	var vectorIds []int64
 	for _, item := range list {
-		jsonImages, err := common.CheckLibraryImage(item.Images)
-		if err != nil {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `images`))))
-			return
-		}
 		data := msql.Datas{
 			`admin_user_id`: adminUserId,
 			`library_id`:    fileInfo[`library_id`],
 			`file_id`:       fileId,
+			`number`:        item.Number,
 			`title`:         item.Title,
-			`images`:        jsonImages,
+			`images`:        tool.JsonEncodeNoError(item.Images),
 			`category_id`:   categoryId,
 			`update_time`:   tool.Time2Int(),
+			//父子分段
+			`father_chunk_paragraph_number`: item.FatherChunkParagraphNumber,
 		}
 		if cast.ToInt(fileInfo[`is_qa_doc`]) == define.DocTypeQa {
 			data[`word_total`] = utf8.RuneCountInString(item.Question + item.Answer)
@@ -848,7 +879,6 @@ func SaveSplitParagraph(c *gin.Context) {
 			data[`similar_questions`] = similarQuestions
 			data[`type`] = define.ParagraphTypeDocQA
 			data[`create_time`] = data[`update_time`]
-			data[`number`] = item.Number
 			id, err = m.Insert(data, `id`)
 			if err != nil {
 				logs.Error(err.Error())
@@ -883,7 +913,6 @@ func SaveSplitParagraph(c *gin.Context) {
 			data[`answer`] = ``
 			data[`type`] = define.ParagraphTypeNormal
 			data[`create_time`] = data[`update_time`]
-			data[`number`] = item.Number
 			data[`page_num`] = item.PageNum
 			id, err = m.Insert(data, `id`)
 			if err != nil {
@@ -910,6 +939,10 @@ func SaveSplitParagraph(c *gin.Context) {
 		m.Rollback()
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
+	}
+	//pdf单页重新分段,兼容处理,刷新全部分段的编号
+	if len(paragraph) == 0 {
+		common.RefreshParagraphNumbers(fileId)
 	}
 	//async task:convert vector
 	for _, id := range vectorIds {
@@ -979,6 +1012,11 @@ func GetSplitParagraph(c *gin.Context) {
 		AiChunkTaskId:              strings.TrimSpace(c.Query(`ai_chunk_task_id`)),
 		ParagraphChunk:             true,
 		NotMergedText:              cast.ToBool(c.Query(`not_merged_text`)),
+		FatherChunkParagraphType:   cast.ToInt(c.Query(`father_chunk_paragraph_type`)),
+		FatherChunkSeparatorsNo:    strings.TrimSpace(c.Query(`father_chunk_separators_no`)),
+		FatherChunkChunkSize:       cast.ToInt(c.Query(`father_chunk_chunk_size`)),
+		SonChunkSeparatorsNo:       strings.TrimSpace(c.Query(`son_chunk_separators_no`)),
+		SonChunkChunkSize:          cast.ToInt(c.Query(`son_chunk_chunk_size`)),
 	}
 	if splitParams.ChunkType == define.ChunkTypeSemantic {
 		if splitParams.SemanticChunkModelConfigId <= 0 {
@@ -1000,11 +1038,35 @@ func GetSplitParagraph(c *gin.Context) {
 		}
 		splitParams.AiChunkTaskId = uuid.New().String()
 		splitParams.AiChunkNew = true
+	} else if splitParams.ChunkType == define.ChunkTypeFatherSon {
+		if !tool.InArrayInt(splitParams.FatherChunkParagraphType, []int{define.FatherChunkParagraphTypeFullText, define.FatherChunkParagraphTypeSection}) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `father_chunk_paragraph_type`))))
+			return
+		}
+		if splitParams.FatherChunkParagraphType != define.FatherChunkParagraphTypeFullText {
+			if len(splitParams.FatherChunkSeparatorsNo) == 0 {
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `father_chunk_separators_no`))))
+				return
+			}
+			if splitParams.FatherChunkChunkSize < 0 {
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `father_chunk_chunk_size`))))
+				return
+			}
+		}
+		if len(splitParams.SonChunkSeparatorsNo) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `son_chunk_separators_no`))))
+			return
+		}
+		if splitParams.SonChunkChunkSize < 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `son_chunk_chunk_size`))))
+			return
+		}
 	}
+
 	list, wordTotal, splitParams, err := common.GetParagraphSplit(adminUserId, fileId, pdfPageNum, dataIds, splitParams, common.GetLang(c))
 	if err != nil {
 		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), err.Error()))))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	data := map[string]any{`split_params`: splitParams, `list`: list, `word_total`: wordTotal}

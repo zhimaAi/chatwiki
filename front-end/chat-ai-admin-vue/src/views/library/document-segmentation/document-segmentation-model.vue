@@ -156,10 +156,12 @@
             <div
               class="fragment-item"
               v-for="(item, index) in documentFragmentList"
-              :key="item.number"
+              :key="index"
             >
               <DocumentFragment
                 :status="'paragraphsSegmented'"
+                :chunk_type="formData.chunk_type"
+                :father_chunk_paragraph_number="item.father_chunk_paragraph_number"
                 :currentData="currentData"
                 :number="item.number"
                 :title="item.title"
@@ -204,7 +206,7 @@ const libraryStore = useLibraryStore()
 const { setInitDocumentFragmentList } = libraryStore
 const route = useRoute()
 
-const emit = defineEmits(['ok', 'finish','loading'])
+const emit = defineEmits(['ok', 'finish', 'loading'])
 
 const { id } = route.query
 const spinning = ref(true)
@@ -226,7 +228,8 @@ const props = defineProps({
   }
 })
 const current_chunk_type = ref(1)
-const defaultAiChunkPrumpt = '你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。'
+const defaultAiChunkPrumpt =
+  '你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。'
 let formData = {
   id: id,
   separators_no: '', // 自定义分段-分隔符序号集
@@ -238,10 +241,15 @@ let formData = {
   answer_lable: '', // QA文档-答案开始标识符
   enable_extract_image: true,
   ai_chunk_size: 5000, // ai大模型分段最大字符数
-  ai_chunk_model:'', // ai大模型分段模型名称
+  ai_chunk_model: '', // ai大模型分段模型名称
   ai_chunk_model_config_id: '', // ai大模型分段模型配置id
   ai_chunk_prumpt: defaultAiChunkPrumpt,
-  ai_chunk_task_id: ''  //  ai分段数据id，如果有ai分段数据就有值
+  ai_chunk_task_id: '', //  ai分段数据id，如果有ai分段数据就有值
+  father_chunk_paragraph_type: 2,
+  father_chunk_separators_no: [],
+  father_chunk_chunk_size: 1024,
+  son_chunk_separators_no: [],
+  son_chunk_chunk_size: 512
 }
 let isEdit = false
 
@@ -249,7 +257,13 @@ const segmentationSettingRef = ref(null)
 
 const onChangeSetting = (data) => {
   if (typeof data.separators_no == 'object') {
-    data.separators_no = data.separators_no.join(',')
+    data.separators_no = JSON.stringify(data.separators_no)
+  }
+  if (typeof data.father_chunk_separators_no == 'object') {
+    data.father_chunk_separators_no = JSON.stringify(data.father_chunk_separators_no)
+  }
+  if (typeof data.son_chunk_separators_no == 'object') {
+    data.son_chunk_separators_no = JSON.stringify(data.son_chunk_separators_no)
   }
   isEdit = true
   formData = {
@@ -294,9 +308,9 @@ const getDocumentStatus = () => {
     libFileInfo.value = res.data
     formData = {
       ...formData,
-      separators_no: res.data.separators_no || '11,12',
+      separators_no: res.data.separators_no || '[12,11]',
       chunk_size: +res.data.chunk_size || 512,
-      not_merged_text: res.data.not_merged_text,
+      not_merged_text: res.data.not_merged_text == 'true',
       ai_chunk_size: +res.data.ai_chunk_size || 5000, // ai模型的默认值是5000
       chunk_overlap: +res.data.chunk_overlap || 50,
       is_qa_doc: library_type.value == 2 ? 1 : 0,
@@ -318,7 +332,13 @@ const getDocumentStatus = () => {
         res.data.semantic_chunk_model_config_id > 0 ? res.data.semantic_chunk_model_config_id : '',
       ai_chunk_model_config_id:
         res.data.ai_chunk_model_config_id > 0 ? res.data.ai_chunk_model_config_id : '',
-      ai_chunk_task_id: res.data.ai_chunk_task_id || ''
+      ai_chunk_task_id: res.data.ai_chunk_task_id || '',
+
+      father_chunk_paragraph_type: +res.data.father_chunk_paragraph_type || 2,
+      father_chunk_separators_no: res.data.father_chunk_separators_no || '[12,11]',
+      father_chunk_chunk_size: +res.data.father_chunk_chunk_size || 1024,
+      son_chunk_separators_no: res.data.son_chunk_separators_no || '[8,10]',
+      son_chunk_chunk_size: +res.data.son_chunk_chunk_size || 512
     }
 
     if (res.data.chunk_type == 0) {
@@ -326,7 +346,7 @@ const getDocumentStatus = () => {
         ...formData,
         separators_no: res.data.normal_chunk_default_separators_no,
         chunk_size: res.data.normal_chunk_default_chunk_size,
-        not_merged_text: res.data.normal_chunk_default_not_merged_text,
+        not_merged_text: res.data.normal_chunk_default_not_merged_text == 'true',
         chunk_overlap: res.data.normal_chunk_default_chunk_overlap,
         chunk_type: +res.data.default_chunk_type,
         semantic_chunk_size: +res.data.semantic_chunk_default_chunk_size,
@@ -355,7 +375,7 @@ const getDocumentStatus = () => {
       spinning.value = false
       settingMode.value = parseInt(res.data.is_table_file)
       library_id = res.data.library_id
-    
+
       if (library_type.value == 2) {
         if (formData.question_lable || formData.question_column) {
           getDocumentFragment()
@@ -371,7 +391,7 @@ const getDocumentStatus = () => {
   })
 }
 
-onMounted(async() => {
+onMounted(async () => {
   await getDocumentStatus()
 })
 
@@ -394,8 +414,8 @@ const getExcelQaTitle = () => {
 const initDocumentFragmentList = ref([])
 const isAiSave = ref(false)
 const aiLoading = ref(false)
-const task_id = ref('');
-const error = ref(null);
+const task_id = ref('')
+const error = ref(null)
 let timer = null // 轮询定时器
 const documentFragmentList = ref([])
 const documentFragmentTotal = ref(0)
@@ -433,7 +453,6 @@ const getDocumentFragment = (type) => {
     delete params.id
   }
 
-
   if (props.paragraphType && props.paragraphType === 'paragraphsSegmented' && !type) {
     // 不请求接口，直接将数据填充进去
     documentFragmentList.value = props.currentData.list || []
@@ -449,7 +468,7 @@ const getDocumentFragment = (type) => {
 
       // 之前没有ai分段数据，重新异步请求ai分段数据
       // 之前不管有没有ai分段数据，只要是点击生成分段预览则重新异步请求ai分段数据
-      if (!formData.ai_chunk_task_id && settingMode.value != 1 || (type && type === 'create')) {
+      if ((!formData.ai_chunk_task_id && settingMode.value != 1) || (type && type === 'create')) {
         // 清空之前的页面分段数据，重新请求
         documentFragmentList.value = []
         documentFragmentTotal.value = 0
@@ -486,7 +505,7 @@ const getDocumentFragment = (type) => {
 
         // 之前没有ai分段数据，重新异步请求ai分段数据
         // 之前不管有没有ai分段数据，只要是点击生成分段预览则重新异步请求ai分段数据
-        if (!formData.ai_chunk_task_id && settingMode.value != 1 || (type && type === 'create')) {
+        if ((!formData.ai_chunk_task_id && settingMode.value != 1) || (type && type === 'create')) {
           // 清空之前的页面分段数据，重新请求
           documentFragmentList.value = []
           documentFragmentTotal.value = 0
@@ -518,8 +537,8 @@ const pollData = async () => {
 
     // 条件1: 接口返回错误信息
     if (res.data.err_msg) {
-      error.value = res.data.err_msg;
-      return true; // 停止轮询
+      error.value = res.data.err_msg
+      return true // 停止轮询
     }
 
     // 条件2: 接口返回有效数据
@@ -528,33 +547,33 @@ const pollData = async () => {
       setInitDocumentFragmentList(initDocumentFragmentList.value)
       documentFragmentList.value = res.data.list || []
       documentFragmentTotal.value = res.data.list.length || 0
-      return true; // 停止轮询
+      return true // 停止轮询
     }
-    
-    return false; // 继续轮询
-  } catch (err) {
-    error.value = '请求异常，停止轮询';
-    return true; // 停止轮询
-  }
-};
 
-function formatError (errorStr) {
-  return errorStr.split("message:")[1]
+    return false // 继续轮询
+  } catch (err) {
+    error.value = '请求异常，停止轮询'
+    return true // 停止轮询
+  }
+}
+
+function formatError(errorStr) {
+  return errorStr.split('message:')[1]
 }
 
 // 启动轮询控制
 const startPolling = () => {
   const executePoll = async () => {
-    const shouldStop = await pollData();
+    const shouldStop = await pollData()
     if (!shouldStop) {
-      timer = setTimeout(executePoll, 3000); // 3秒后再次执行
+      timer = setTimeout(executePoll, 3000) // 3秒后再次执行
     } else {
       aiLoading.value = false
       segmentationSettingRef.value.reLoading = false
       segmentationSettingRef.value.saveLoading = false
       if (timer !== null) {
-        clearTimeout(timer);
-        timer = null;
+        clearTimeout(timer)
+        timer = null
       }
       if (isAiSave.value) {
         // 保存
@@ -569,9 +588,9 @@ const startPolling = () => {
         })
       }
     }
-  };
-  executePoll(); // 立即执行首次查询
-};
+  }
+  executePoll() // 立即执行首次查询
+}
 
 const getAiDocumentFragment = () => {
   return getLibFileSplitAiChunks({
@@ -637,7 +656,15 @@ const updataFormData = () => {
   let data = segmentationSettingRef.value.formState
   data = JSON.parse(JSON.stringify(data))
   if (typeof data.separators_no == 'object') {
-    data.separators_no = data.separators_no.join(',')
+    data.separators_no = JSON.stringify(data.separators_no)
+  }
+  if (typeof data.father_chunk_separators_no == 'object') {
+    
+    data.father_chunk_separators_no = JSON.stringify(data.father_chunk_separators_no)
+  }
+  if (typeof data.son_chunk_separators_no == 'object') {
+    data.son_chunk_separators_no = JSON.stringify(data.son_chunk_separators_no)
+    
   }
   formData = {
     ...formData,
@@ -739,10 +766,10 @@ const handleScrollToErrorDom = (index) => {
 // 组件卸载时清理
 onUnmounted(() => {
   if (timer) {
-    clearTimeout(timer);
-    timer = null;
+    clearTimeout(timer)
+    timer = null
   }
-});
+})
 
 defineExpose({
   handleSaveLibFileSplit

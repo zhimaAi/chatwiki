@@ -59,9 +59,15 @@ const (
 )
 
 const (
-	ChunkTypeNormal   = 1
-	ChunkTypeSemantic = 2
-	ChunkTypeAi       = 3
+	ChunkTypeNormal    = 1 //普通分段
+	ChunkTypeSemantic  = 2 //语义分段
+	ChunkTypeAi        = 3 //AI分段
+	ChunkTypeFatherSon = 4 //父子分段
+)
+
+const (
+	FatherChunkParagraphTypeFullText = 1
+	FatherChunkParagraphTypeSection  = 2
 )
 
 const (

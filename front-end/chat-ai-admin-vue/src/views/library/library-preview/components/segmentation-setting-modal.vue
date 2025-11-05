@@ -72,10 +72,11 @@ const show = (data) => {
   formState.file_id = data.file_id
   // 点击当前段落的重新分段，需要填充的数据
   currentData.list = [{
+    father_chunk_paragraph_number: +data.father_chunk_paragraph_number,
     content: data.content,
-    number: data.number,
+    number: +data.number,
     title: data.title,
-    word_total: data.word_total,
+    word_total: +data.word_total,
     question: data.question,
     answer: data.answer,
     images: data.images

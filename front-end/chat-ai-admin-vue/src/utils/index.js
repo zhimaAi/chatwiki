@@ -492,3 +492,28 @@ export function getDateRangePresets() {
     }
   ]
 }
+
+export function isJsonString(str) {
+  if (typeof str !== 'string') {
+    return false
+  }
+  try {
+    const parsed = JSON.parse(str)
+    // 检查解析后的结果是否是对象或数组（JSON 的顶层只能是对象或数组）
+    return typeof parsed === 'object' && parsed !== null
+  } catch (e) {
+    return false
+  }
+}
+
+
+export function formatSeparatorsNo(data, defaultValue) {
+  if (!data) {
+    return defaultValue
+  }
+  if (isJsonString(data)) {
+    return JSON.parse(data)
+  } else {
+    return data.split(',').map(item => +item)
+  }
+}

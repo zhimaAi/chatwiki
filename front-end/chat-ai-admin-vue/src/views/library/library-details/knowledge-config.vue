@@ -184,6 +184,14 @@
   }
 }
 
+.main-title-block {
+  margin: 16px 0;
+  padding-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid #d9d9d9;
+  width: 720px;
+}
 </style>
 
 <template>
@@ -287,7 +295,7 @@
             />
             <div class="form-item-tip">开启后，可以文档列表手动点击知识图谱学习生成知识图谱</div>
           </a-form-item>
-          <a-form-item label="知识图谱模型" v-show="formState.graph_switch && neo4j_status" >
+          <a-form-item label="知识图谱模型" v-show="formState.graph_switch && neo4j_status">
             <ModelSelect
               modelType="LLM"
               v-model:modeName="formState.graph_use_model"
@@ -297,7 +305,7 @@
               @loaded="onVectorModelLoaded"
             />
           </a-form-item>
-          <a-form-item label="索引方式" v-if="isQaLibrary" >
+          <a-form-item label="索引方式" v-if="isQaLibrary">
             <div class="indexing-methods-box">
               <div
                 class="list-item"
@@ -331,7 +339,9 @@
           </a-form-item>
           <template v-if="!isQaLibrary">
             <a-form-item label="分段方式" required>
-              <div class="form-alert-tip">提示：语义分段更适合没有排版过的文章，即没有明显换行符号的文本，否则更推荐使用普通分段</div>
+              <div class="form-alert-tip">
+                提示：语义分段更适合没有排版过的文章，即没有明显换行符号的文本，否则更推荐使用普通分段
+              </div>
               <div class="select-card-box">
                 <div
                   class="select-card-item"
@@ -361,6 +371,22 @@
                     将文章拆分成句子后，通过语句向量相似度进行分段，会消耗模型token
                   </div>
                 </div>
+
+                <div
+                  v-if="!isQaLibrary"
+                  class="select-card-item"
+                  @click="handleChangeSegmentationType(4)"
+                  :class="{ active: formState.chunk_type == 4 }"
+                >
+                  <svg-icon class="check-arrow" name="check-arrow-filled"></svg-icon>
+                  <div class="card-title">
+                    <svg-icon name="semantic-segmentation" class="title-icon"></svg-icon>
+                    父子分段
+                  </div>
+                  <div class="card-desc">
+                    基于文章中句号等符号进行分段，不会消耗模型token。父分段会拆分为若干子分段，子块用于检索，父块用作上下文
+                  </div>
+                </div>
                 <div
                   class="select-card-item"
                   @click="handleChangeSegmentationType(3)"
@@ -382,7 +408,7 @@
                 <a-select
                   @change="handleEdit"
                   v-model:value="formState.normal_chunk_default_separators_no"
-                  mode="multiple"
+                  mode="tags"
                   style="width: 100%"
                   placeholder="请选择分段标识符"
                   :options="segmentationTags"
@@ -417,17 +443,19 @@
               <a-form-item>
                 <template #label>
                   自动合并较小分段
-                  <a-tooltip title="开启后，如果分段长度不足设置的最大分段长度，会尝试与下一分段合并，直至合并后的分段字符数大于分段最大长度">
+                  <a-tooltip
+                    title="开启后，如果分段长度不足设置的最大分段长度，会尝试与下一分段合并，直至合并后的分段字符数大于分段最大长度"
+                  >
                     <QuestionCircleOutlined />
                   </a-tooltip>
                 </template>
                 <a-switch
-                   @change="handleEdit"
-                  checkedValue="false" 
-                  unCheckedValue="true" 
-                  v-model:checked="formState.normal_chunk_default_not_merged_text" 
-                  checked-children="开" 
-                  un-checked-children="关" 
+                  @change="handleEdit"
+                  checkedValue="false"
+                  unCheckedValue="true"
+                  v-model:checked="formState.normal_chunk_default_not_merged_text"
+                  checked-children="开"
+                  un-checked-children="关"
                 />
               </a-form-item>
             </template>
@@ -482,9 +510,7 @@
 
             <template v-if="formState.chunk_type == 3">
               <a-form-item required v-if="formState.chunk_type == 3">
-                <template #label>
-                  AI大模型
-                </template>
+                <template #label> AI大模型 </template>
                 <ModelSelect
                   modelType="LLM"
                   placeholder="请选择AI大模型"
@@ -512,7 +538,9 @@
                 <template #label>
                   单次最大字符数
                   <a-tooltip>
-                    <template #title>由于大模型支持的上下文数量有限制，如果上传的文档较大，会按照最大字符数先拆分成多个分段，再提交给大模型进行分段。</template>
+                    <template #title
+                      >由于大模型支持的上下文数量有限制，如果上传的文档较大，会按照最大字符数先拆分成多个分段，再提交给大模型进行分段。</template
+                    >
                     <QuestionCircleOutlined style="cursor: pointer; margin-left: 2px" />
                   </a-tooltip>
                 </template>
@@ -530,6 +558,84 @@
               </a-form-item>
             </template>
 
+            <template v-if="formState.chunk_type == 4 && !isQaLibrary">
+              <div class="main-title-block">父块（用作上下文）</div>
+              <a-form-item label="分段类型">
+                <a-radio-group @change="handleEdit" v-model:value="formState.father_chunk_paragraph_type">
+                  <a-radio :value="1"
+                    >全文
+                    <a-tooltip
+                      title="整个文档用作父块并直接检索。请注意，出于性能原因，超过 10000 个标记的文本将被自动截断。"
+                    >
+                      <QuestionCircleOutlined />
+                    </a-tooltip>
+                  </a-radio>
+                  <a-radio :value="2"
+                    >段落
+                    <a-tooltip
+                      title="此模式根据分隔符和最大块长度将文本拆分为段落，使用拆分文本作为检索的父块"
+                    >
+                      <QuestionCircleOutlined />
+                    </a-tooltip>
+                  </a-radio>
+                </a-radio-group>
+              </a-form-item>
+
+              <a-form-item label="分段标识符" v-if="formState.father_chunk_paragraph_type == 2">
+                <a-select
+                  placeholder="请选择"
+                  @change="handleEdit"
+                  style="width: 100%"
+                  mode="tags"
+                  :options="segmentationTags"
+                  v-model:value="formState.father_chunk_separators_no"
+                >
+                </a-select>
+              </a-form-item>
+              <a-form-item label="分段最大长度" v-if="formState.father_chunk_paragraph_type == 2">
+                <a-flex align="center" :gap="8">
+                  <a-input-number
+                    style="flex: 1"
+                    @blur="handleEdit"
+                    v-model:value="formState.father_chunk_chunk_size"
+                    placeholder="分段最大长度"
+                    :min="200"
+                    :max="10000"
+                    :precision="0"
+                    :formatter="(value) => parseInt(value)"
+                    :parser="(value) => parseInt(value)"
+                  /><span class="unit-text">字符</span>
+                </a-flex>
+              </a-form-item>
+              <div class="main-title-block">子块（用于检索）</div>
+
+              <a-form-item label="分段标识符">
+                <a-select
+                  placeholder="请选择"
+                  @change="handleEdit"
+                  style="width: 100%"
+                  mode="tags"
+                  :options="segmentationTags"
+                  v-model:value="formState.son_chunk_separators_no"
+                >
+                </a-select>
+              </a-form-item>
+              <a-form-item label="分段最大长度">
+                <a-flex align="center" :gap="8">
+                  <a-input-number
+                    style="flex: 1"
+                    @blur="handleEdit"
+                    v-model:value="formState.son_chunk_chunk_size"
+                    placeholder="分段最大长度"
+                    :min="200"
+                    :max="10000"
+                    :precision="0"
+                    :formatter="(value) => parseInt(value)"
+                    :parser="(value) => parseInt(value)"
+                  /><span class="unit-text">字符</span>
+                </a-flex>
+              </a-form-item>
+            </template>
           </template>
         </a-form>
       </div>
@@ -539,7 +645,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, h, nextTick,computed} from 'vue'
+import { reactive, ref, h, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Form, message, Modal } from 'ant-design-vue'
 import { QuestionCircleOutlined, CheckCircleFilled } from '@ant-design/icons-vue'
@@ -550,9 +656,10 @@ import ModelSelect from '@/components/model-select/model-select.vue'
 import OpenGrapgModal from './components/open-grapg-modal.vue'
 import CustomSelector from '@/components/custom-selector/index.vue'
 import { useCompanyStore } from '@/stores/modules/company'
+import { formatSeparatorsNo } from '@/utils/index'
 
 const companyStore = useCompanyStore()
-const neo4j_status = computed(()=>{
+const neo4j_status = computed(() => {
   return companyStore.companyInfo?.neo4j_status == 'true'
 })
 
@@ -560,7 +667,8 @@ const rotue = useRoute()
 const router = useRouter()
 const query = rotue.query
 const defaultAvatar = LIBRARY_OPEN_AVATAR
-const defaultAiChunkPrumpt = '你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。'
+const defaultAiChunkPrumpt =
+  '你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。'
 
 const formState = reactive({
   library_name: '',
@@ -576,7 +684,7 @@ const formState = reactive({
   graph_model_config_id: void 0,
   graph_use_model: '',
   chunk_type: 1,
-  normal_chunk_default_separators_no: [10, 12],
+  normal_chunk_default_separators_no: [12, 11],
   normal_chunk_default_chunk_size: 512,
   normal_chunk_default_chunk_overlap: 50,
   semantic_chunk_default_chunk_size: 512,
@@ -584,11 +692,16 @@ const formState = reactive({
   semantic_chunk_default_threshold: 90,
   normal_chunk_default_not_merged_text: 'false',
   ai_chunk_size: 5000, // ai大模型分段最大字符数
-  ai_chunk_model:'', // ai大模型分段模型名称
+  ai_chunk_model: '', // ai大模型分段模型名称
   ai_chunk_model_config_id: '', // ai大模型分段模型配置id
   ai_chunk_prumpt: defaultAiChunkPrumpt, // ai大模型分段提示词设置
   qa_index_type: 1,
   group_id: 0,
+  father_chunk_paragraph_type: 2,
+  father_chunk_separators_no: [],
+  father_chunk_chunk_size: 1024,
+  son_chunk_separators_no: [],
+  son_chunk_chunk_size: 512
 })
 const currentModelDefine = ref('')
 const isActive = ref(0)
@@ -597,9 +710,10 @@ const libraryInfo = ref({})
 
 // 处理选择事件
 const handleModelChange = (item) => {
-  formState.use_model = modelDefine.includes(item.rawData.model_define) && item.rawData.deployment_name 
-    ? item.rawData.deployment_name 
-    : item.rawData.name
+  formState.use_model =
+    modelDefine.includes(item.rawData.model_define) && item.rawData.deployment_name
+      ? item.rawData.deployment_name
+      : item.rawData.name
   formState.use_model_icon = item.icon
   formState.use_model_name = item.use_model_name
   formState.model_config_id = item.rawData.id
@@ -639,9 +753,7 @@ const getInfo = () => {
     formState.graph_use_model = res.data.graph_use_model
 
     formState.chunk_type = +res.data.chunk_type
-    formState.normal_chunk_default_separators_no = res.data.normal_chunk_default_separators_no
-      ? res.data.normal_chunk_default_separators_no.split(',').map((item) => +item)
-      : []
+    formState.normal_chunk_default_separators_no = formatSeparatorsNo( res.data.normal_chunk_default_separators_no, [12, 11])
     formState.normal_chunk_default_chunk_size = res.data.normal_chunk_default_chunk_size
     formState.normal_chunk_default_not_merged_text = res.data.normal_chunk_default_not_merged_text
     formState.normal_chunk_default_chunk_overlap = res.data.normal_chunk_default_chunk_overlap
@@ -652,6 +764,11 @@ const getInfo = () => {
     formState.ai_chunk_model = res.data.ai_chunk_model
     formState.ai_chunk_model_config_id = res.data.ai_chunk_model_config_id
     formState.ai_chunk_prumpt = res.data.ai_chunk_prumpt || defaultAiChunkPrumpt
+    formState.father_chunk_paragraph_type = +res.data.father_chunk_paragraph_type || 2
+    formState.father_chunk_separators_no = formatSeparatorsNo(res.data.father_chunk_separators_no, [12, 11])
+    formState.father_chunk_chunk_size = +res.data.father_chunk_chunk_size || 1024
+    formState.son_chunk_separators_no = formatSeparatorsNo(res.data.son_chunk_separators_no, [8, 10])
+    formState.son_chunk_chunk_size = +res.data.son_chunk_chunk_size || 512
     isQaLibrary.value = res.data.type == 2
   })
 }
@@ -794,11 +911,12 @@ const handleOpenGrapgOk = (data) => {
         content: '您可以在文档列表中点击知识图谱学习，系統将在您手动操作后开始抽取知识图谱',
         cancelText: '知道了',
         okText: '去学习',
-        icon: h(CheckCircleFilled, {style: {color: '#52c41a'}}),
-        onOk: () => router.push({
-          path: '/library/details/knowledge-document',
-          query: {id: query.id}
-        })
+        icon: h(CheckCircleFilled, { style: { color: '#52c41a' } }),
+        onOk: () =>
+          router.push({
+            path: '/library/details/knowledge-document',
+            query: { id: query.id }
+          })
       })
     })
   }
@@ -819,7 +937,7 @@ const handleEdit = (callback = null) => {
     graph_model_config_id: formState.graph_model_config_id,
     graph_use_model: formState.graph_use_model,
     chunk_type: formState.chunk_type,
-    normal_chunk_default_separators_no: formState.normal_chunk_default_separators_no.join(','),
+    normal_chunk_default_separators_no: JSON.stringify(formState.normal_chunk_default_separators_no),
     normal_chunk_default_chunk_size: formState.normal_chunk_default_chunk_size,
     normal_chunk_default_chunk_overlap: formState.normal_chunk_default_chunk_overlap,
     normal_chunk_default_not_merged_text: formState.normal_chunk_default_not_merged_text,
@@ -830,6 +948,11 @@ const handleEdit = (callback = null) => {
     ai_chunk_model: formState.ai_chunk_model,
     ai_chunk_model_config_id: formState.ai_chunk_model_config_id,
     ai_chunk_prumpt: formState.ai_chunk_prumpt,
+    father_chunk_paragraph_type: formState.father_chunk_paragraph_type,
+    father_chunk_separators_no: JSON.stringify(formState.father_chunk_separators_no),
+    father_chunk_chunk_size: formState.father_chunk_chunk_size,
+    son_chunk_separators_no: JSON.stringify(formState.son_chunk_separators_no),
+    son_chunk_chunk_size: formState.son_chunk_chunk_size,
     group_id: formState.group_id,
     id: rotue.query.id
   }
@@ -852,5 +975,4 @@ const handleChangeQaIndexType = (type) => {
   formState.qa_index_type = type
   handleEdit()
 }
-
 </script>

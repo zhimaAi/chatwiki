@@ -1,7 +1,7 @@
 -- +goose Up
 
 ALTER TABLE "chat_ai_library" ADD COLUMN "chunk_type" int2 NOT NULL DEFAULT 1;
-ALTER TABLE "chat_ai_library" ADD COLUMN "normal_chunk_default_separators_no" varchar(100) NOT NULL DEFAULT '11,12';
+ALTER TABLE "chat_ai_library" ADD COLUMN "normal_chunk_default_separators_no" varchar(100) NOT NULL DEFAULT '12,11';
 ALTER TABLE "chat_ai_library" ADD COLUMN "normal_chunk_default_chunk_size" int4 NOT NULL DEFAULT 512;
 ALTER TABLE "chat_ai_library" ADD COLUMN "normal_chunk_default_chunk_overlap" int4 NOT NULL DEFAULT 50;
 ALTER TABLE "chat_ai_library" ADD COLUMN "semantic_chunk_default_chunk_size" int4 NOT NULL DEFAULT 512;

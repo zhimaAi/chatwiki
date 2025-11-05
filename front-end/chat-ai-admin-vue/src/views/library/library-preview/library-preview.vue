@@ -474,7 +474,12 @@ let formData = {
   ai_chunk_model:'', // ai大模型分段模型名称
   ai_chunk_model_config_id: '', // ai大模型分段模型配置id
   ai_chunk_prumpt: defaultAiChunkPrumpt,
-  ai_chunk_task_id: ''  //  ai分段数据id，如果有ai分段数据就有值
+  ai_chunk_task_id: '',  //  ai分段数据id，如果有ai分段数据就有值
+  father_chunk_paragraph_type: 2,
+  father_chunk_separators_no: [],
+  father_chunk_chunk_size: 1024,
+  son_chunk_separators_no: [],
+  son_chunk_chunk_size: 512,
 }
 const saveLoading = ref(false)
 
@@ -498,9 +503,9 @@ const getFileInfo = async () => {
 
     formData = {
       ...formData,
-      separators_no: res.data.separators_no || '11,12',
+      separators_no: res.data.separators_no || '[12,11]',
       chunk_size: +res.data.chunk_size || 512,
-      not_merged_text: res.data.not_merged_text,
+      not_merged_text: res.data.not_merged_text == 'true',
       ai_chunk_size: +res.data.ai_chunk_size || 5000, // ai模型的默认值是5000
       chunk_overlap: +res.data.chunk_overlap || 50,
       is_qa_doc: library_type.value == 2 ? 1 : 0,
@@ -524,15 +529,22 @@ const getFileInfo = async () => {
         res.data.semantic_chunk_model_config_id > 0 ? res.data.semantic_chunk_model_config_id : '',
       ai_chunk_model_config_id:
         res.data.ai_chunk_model_config_id > 0 ? res.data.ai_chunk_model_config_id : '',
-      ai_chunk_task_id: res.data.ai_chunk_task_id || ''
+      ai_chunk_task_id: res.data.ai_chunk_task_id || '',
+
+      father_chunk_paragraph_type: +res.data.father_chunk_paragraph_type || 2,
+      father_chunk_separators_no: res.data.father_chunk_separators_no || '[12,11]',
+      father_chunk_chunk_size: +res.data.father_chunk_chunk_size || 1024,
+      son_chunk_separators_no: res.data.son_chunk_separators_no || '[8,10]',
+      son_chunk_chunk_size: +res.data.son_chunk_chunk_size || 512,
     }
+    console.log(formData, '==')
 
     if (res.data.chunk_type == 0) {
       formData = {
         ...formData,
         separators_no: res.data.normal_chunk_default_separators_no,
         chunk_size: +res.data.normal_chunk_default_chunk_size,
-        not_merged_text: data.normal_chunk_default_not_merged_text,
+        not_merged_text: data.normal_chunk_default_not_merged_text == 'true',
         chunk_overlap: +res.data.normal_chunk_default_chunk_overlap,
         chunk_type: +res.data.default_chunk_type,
         semantic_chunk_size: +res.data.semantic_chunk_default_chunk_size,
@@ -1035,7 +1047,9 @@ function formatList (array, keys, renameMap = {}, index) {
 
         if (key === 'number') {
           newObj[key] = originalIndex + 1;
-        } else if (key === 'page_num' || key === 'word_total') {
+        } else if (key === 'father_chunk_paragraph_number') {
+          newObj[key] = +sourceValue;
+        }else if (key === 'page_num' || key === 'word_total') {
           newObj[key] = +sourceValue;
         } else if (key === 'content') {
           if (!sourceValue) return null;
@@ -1144,7 +1158,7 @@ const handleSaveLibFileSplit = async (documentFragmentList, index) => {
     id: route.query.id,
     word_total: total.value,
     split_params: JSON.stringify(split_params),
-    list: formatList(documentFragmentList, ['number', 'page_num', 'title', 'content', 'question', 'similar_question_list', 'answer', 'word_total', 'images'], renameMap, index)
+    list: formatList(documentFragmentList, ['number', 'father_chunk_paragraph_number', 'page_num', 'title', 'content', 'question', 'similar_question_list', 'answer', 'word_total', 'images'], renameMap, index)
   }
 
   // 非表格的也需要存储qa_index_type

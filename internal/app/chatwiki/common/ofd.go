@@ -155,7 +155,7 @@ func GetOfdInfoInfo(fileUrl string, userId int) (string, error) {
 	return content, err
 }
 
-func ReadOfd(fileUrl string, userId int) ([]define.DocSplitItem, int, error) {
+func ReadOfd(fileUrl string, userId int) (define.DocSplitItems, int, error) {
 	if !LinkExists(fileUrl) {
 		return nil, 0, errors.New(`file not exist:` + fileUrl)
 	}
@@ -163,6 +163,6 @@ func ReadOfd(fileUrl string, userId int) ([]define.DocSplitItem, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	list := []define.DocSplitItem{{Content: content}}
+	list := define.DocSplitItems{{Content: content}}
 	return list, utf8.RuneCountInString(content), nil
 }

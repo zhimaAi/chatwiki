@@ -234,10 +234,44 @@ func CreateLibrary(c *gin.Context) {
 	AiChunkSize := cast.ToInt(c.PostForm(`ai_chunk_size`))
 	qaIndexType := cast.ToInt(c.PostForm(`qa_index_type`))
 	groupId := cast.ToInt(c.PostForm(`group_id`))
+	fatherChunkParagraphType := cast.ToInt(c.PostForm(`father_chunk_paragraph_type`))
+	fatherChunkSeparatorsNo := strings.TrimSpace(c.PostForm(`father_chunk_separators_no`))
+	fatherChunkChunkSize := cast.ToInt(c.PostForm(`father_chunk_chunk_size`))
+	sonChunkSeparatorsNo := strings.TrimSpace(c.PostForm(`son_chunk_separators_no`))
+	sonChunkChunkSize := cast.ToInt(c.PostForm(`son_chunk_chunk_size`))
 	if len(libraryName) == 0 || !tool.InArrayInt(typ, define.LibraryTypes[:]) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
+	if chunkType == define.ChunkTypeFatherSon {
+		if typ != define.GeneralLibraryType { //父子分段仅支持普通知识库
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `chunk_type`))))
+			return
+		}
+		if !tool.InArrayInt(fatherChunkParagraphType, []int{define.FatherChunkParagraphTypeFullText, define.FatherChunkParagraphTypeSection}) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `father_chunk_paragraph_type`))))
+			return
+		}
+		if fatherChunkParagraphType != define.FatherChunkParagraphTypeFullText {
+			if len(fatherChunkSeparatorsNo) == 0 {
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `father_chunk_separators_no`))))
+				return
+			}
+			if fatherChunkChunkSize < 0 {
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `father_chunk_chunk_size`))))
+				return
+			}
+		}
+		if len(sonChunkSeparatorsNo) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `son_chunk_separators_no`))))
+			return
+		}
+		if sonChunkChunkSize < 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `son_chunk_chunk_size`))))
+			return
+		}
+	}
+
 	if summaryModelConfigId > 0 {
 		summaryConfig, err := common.GetModelConfigInfo(summaryModelConfigId, userId)
 		if err != nil {
@@ -301,6 +335,11 @@ func CreateLibrary(c *gin.Context) {
 		`ai_chunk_size`:                        AiChunkSize,
 		`qa_index_type`:                        qaIndexType,
 		`group_id`:                             groupId,
+		`father_chunk_paragraph_type`:          fatherChunkParagraphType,
+		`father_chunk_separators_no`:           fatherChunkSeparatorsNo,
+		`father_chunk_chunk_size`:              fatherChunkChunkSize,
+		`son_chunk_separators_no`:              sonChunkSeparatorsNo,
+		`son_chunk_chunk_size`:                 sonChunkChunkSize,
 	}
 	if len(avatar) > 0 {
 		data[`avatar`] = avatar
@@ -442,6 +481,11 @@ func EditLibrary(c *gin.Context) {
 	AiChunkSize := cast.ToInt(c.PostForm(`ai_chunk_size`))
 	qaIndexType := cast.ToInt(c.PostForm(`qa_index_type`))
 	iconTemplateConfigId := cast.ToInt(c.PostForm(`icon_template_config_id`))
+	fatherChunkParagraphType := cast.ToInt(c.PostForm(`father_chunk_paragraph_type`))
+	fatherChunkSeparatorsNo := strings.TrimSpace(c.PostForm(`father_chunk_separators_no`))
+	fatherChunkChunkSize := cast.ToInt(c.PostForm(`father_chunk_chunk_size`))
+	sonChunkSeparatorsNo := strings.TrimSpace(c.PostForm(`son_chunk_separators_no`))
+	sonChunkChunkSize := cast.ToInt(c.PostForm(`son_chunk_chunk_size`))
 	if id <= 0 || len(libraryName) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
@@ -490,7 +534,8 @@ func EditLibrary(c *gin.Context) {
 		return
 	}
 
-	if !tool.InArrayInt(chunkType, []int{define.ChunkTypeNormal, define.ChunkTypeSemantic, define.ChunkTypeAi}) && cast.ToInt(typ) != define.OpenLibraryType {
+	allowChunktypes := []int{define.ChunkTypeNormal, define.ChunkTypeSemantic, define.ChunkTypeAi, define.ChunkTypeFatherSon}
+	if !tool.InArrayInt(chunkType, allowChunktypes) && cast.ToInt(typ) != define.OpenLibraryType {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `chunk_type`))))
 		return
 	}
@@ -524,7 +569,6 @@ func EditLibrary(c *gin.Context) {
 			return
 		}
 	}
-
 	if chunkType == define.ChunkTypeAi {
 		if ok := common.CheckModelIsValid(userId, AiChunkModelConfigId, AiChunkModel, common.Llm); !ok {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `ai_chunk_model`))))
@@ -532,6 +576,30 @@ func EditLibrary(c *gin.Context) {
 		}
 		if len(AiChunkPrumpt) == 0 || len(AiChunkPrumpt) > 500 {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `ai_chunk_prumpt`))))
+			return
+		}
+	}
+	if chunkType == define.ChunkTypeFatherSon {
+		if !tool.InArrayInt(fatherChunkParagraphType, []int{define.FatherChunkParagraphTypeFullText, define.FatherChunkParagraphTypeSection}) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `father_chunk_paragraph_type`))))
+			return
+		}
+		if fatherChunkParagraphType != define.FatherChunkParagraphTypeFullText {
+			if len(fatherChunkSeparatorsNo) == 0 {
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `father_chunk_separators_no`))))
+				return
+			}
+			if fatherChunkChunkSize < 0 {
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `father_chunk_chunk_size`))))
+				return
+			}
+		}
+		if len(sonChunkSeparatorsNo) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `son_chunk_separators_no`))))
+			return
+		}
+		if sonChunkChunkSize < 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `son_chunk_chunk_size`))))
 			return
 		}
 	}
@@ -546,6 +614,11 @@ func EditLibrary(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
+	if chunkType == define.ChunkTypeFatherSon && cast.ToInt(info[`type`]) != define.GeneralLibraryType { //父子分段仅支持普通知识库
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `chunk_type`))))
+		return
+	}
+
 	//headImg uploaded
 	avatar := ""
 	fileAvatar, _ := c.FormFile(`avatar`)
@@ -583,6 +656,11 @@ func EditLibrary(c *gin.Context) {
 		`ai_chunk_size`:                        AiChunkSize,
 		`qa_index_type`:                        qaIndexType,
 		`icon_template_config_id`:              iconTemplateConfigId,
+		`father_chunk_paragraph_type`:          fatherChunkParagraphType,
+		`father_chunk_separators_no`:           fatherChunkSeparatorsNo,
+		`father_chunk_chunk_size`:              fatherChunkChunkSize,
+		`son_chunk_separators_no`:              sonChunkSeparatorsNo,
+		`son_chunk_chunk_size`:                 sonChunkChunkSize,
 	}
 	if len(avatar) > 0 {
 		data[`avatar`] = avatar

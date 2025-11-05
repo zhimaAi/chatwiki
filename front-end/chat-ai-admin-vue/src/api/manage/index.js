@@ -179,3 +179,18 @@ export const statAiTipAnalyse = (params = {}) => {
     params: params
   })
 }
+
+
+export const tokenApp = (params = {}) => {
+  return request.get({
+    url: '/manage/stats/token/app',
+    params: params
+  })
+}
+
+export const tokenAppChart = (params = {}) => {
+  return request.get({
+    url: '/manage/stats/token/appChart',
+    params: params
+  })
+}
