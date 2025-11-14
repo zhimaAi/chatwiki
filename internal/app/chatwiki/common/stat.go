@@ -5,6 +5,7 @@ package common
 import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_redis"
 	"context"
 	"errors"
 	"fmt"
@@ -134,7 +135,6 @@ func LlmLogRequest(
 			return err
 		}
 	}
-
 	if err = statToken(_type, adminUserId, corpName, model, promptToken, completionToken); err != nil {
 		logs.Error(err.Error())
 		return err
@@ -147,11 +147,11 @@ func LlmLogRequest(
 	return nil
 }
 
-func statTokenApp(_type string, adminUserId int, robot msql.Params, corpName, model string, promptToken, completionToken int) error {
-	var oldPromptToken int
-	var oldCompletionToken int
-	robotId := cast.ToInt(robot[`id`])
+func GetTokenAppType(robot msql.Params) string {
 	tokenAppType := define.TokenAppTypeOther
+	if len(robot) == 0 {
+		return tokenAppType
+	}
 	if len(robot) > 0 && cast.ToInt(robot[`id`]) > 0 {
 		applicationType := cast.ToInt(robot[`application_type`])
 		if applicationType == define.ApplicationTypeChat {
@@ -160,6 +160,17 @@ func statTokenApp(_type string, adminUserId int, robot msql.Params, corpName, mo
 			tokenAppType = define.TokenAppTypeWorkflow
 		}
 	}
+	return tokenAppType
+}
+
+func statTokenApp(_type string, adminUserId int, robot msql.Params, corpName, model string, promptToken, completionToken int) error {
+	var oldPromptToken int
+	var oldCompletionToken int
+	if robot == nil {
+		robot = msql.Params{}
+	}
+	robotId := cast.ToInt(robot[`id`])
+	tokenAppType := GetTokenAppType(robot)
 	stats, err := msql.Model(`llm_token_app_daily_stats`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`token_app_type`, cast.ToString(tokenAppType)).
@@ -172,23 +183,20 @@ func statTokenApp(_type string, adminUserId int, robot msql.Params, corpName, mo
 	}
 	if len(stats) == 0 {
 		_, err := msql.Model(`llm_token_app_daily_stats`, define.Postgres).Insert(msql.Datas{
-			`admin_user_id`:    cast.ToString(adminUserId),
-			`token_app_type`:   tokenAppType,
-			`robot_id`:         cast.ToString(robotId),
-			`corp`:             corpName,
-			`model`:            model,
-			`type`:             _type,
-			`date`:             time.Now().Format(`2006-01-02`),
-			`request_num`:      1,
-			`prompt_token`:     cast.ToString(promptToken),
-			`completion_token`: cast.ToString(completionToken),
-			`create_time`:      tool.Time2Int(),
-			`update_time`:      tool.Time2Int(),
+			`admin_user_id`:  cast.ToString(adminUserId),
+			`token_app_type`: tokenAppType,
+			`robot_id`:       cast.ToString(robotId),
+			`corp`:           corpName,
+			`model`:          model,
+			`type`:           _type,
+			`date`:           time.Now().Format(`2006-01-02`),
+			`request_num`:    1,
+			`create_time`:    tool.Time2Int(),
+			`update_time`:    tool.Time2Int(),
 		})
 		if err != nil {
 			return err
 		}
-		return nil
 	}
 	oldPromptToken = cast.ToInt(stats[`prompt_token`])
 	oldCompletionToken = cast.ToInt(stats[`completion_token`])
@@ -208,7 +216,58 @@ func statTokenApp(_type string, adminUserId int, robot msql.Params, corpName, mo
 	if err != nil {
 		return err
 	}
+	//today token app use
+	//tokenUseIncr(adminUserId, tokenAppType, robotId, promptToken, completionToken, time.Now().Format("2006-01-02"))
+	//token app use
+	tokenAppUseIncr(adminUserId, tokenAppType, robotId, promptToken, completionToken)
 	return nil
+}
+
+func tokenAppUseIncr(adminUserId int, tokenAppType string, robotId int, promptToken int, completionToken int) {
+	if !TokenAppIsSwitchOpen(adminUserId, robotId, tokenAppType) {
+		return
+	}
+	useCache := TokenAppUseCacheBuildHandler{
+		AdminUserId:  adminUserId,
+		TokenAppType: tokenAppType,
+		RobotId:      robotId,
+		DateYmd:      ``,
+	}
+	useToken, err := lib_redis.GetCacheIncrWithBuild(define.Redis, &useCache, time.Hour*30)
+	if err != nil {
+		logs.Error(`token app use cache get error：` + err.Error())
+		return
+	}
+	_, err = msql.Model(`llm_token_app_limit`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`token_app_type`, cast.ToString(tokenAppType)).
+		Where(`robot_id`, cast.ToString(robotId)).
+		Update(msql.Datas{
+			`use_token`: cast.ToString(cast.ToInt64(useToken) + cast.ToInt64(promptToken) + cast.ToInt64(completionToken)),
+		})
+	if err != nil {
+		logs.Error(`token app use cache update error：` + err.Error())
+		return
+	}
+	tokenUseIncr(adminUserId, tokenAppType, robotId, promptToken, completionToken, ``)
+}
+
+func tokenUseIncr(adminUserId int, tokenAppType string, robotId int, promptToken int, completionToken int, dateYmd string) {
+	defer func() {
+		if r := recover(); r != nil {
+			logs.Error(`token app use cache incr panic error：` + fmt.Sprint(r))
+		}
+	}()
+	useCache := TokenAppUseCacheBuildHandler{
+		AdminUserId:  adminUserId,
+		TokenAppType: tokenAppType,
+		RobotId:      robotId,
+		DateYmd:      dateYmd,
+	}
+	_, err := lib_redis.IncrCacheIncrWithBuild(define.Redis, &useCache, cast.ToInt64(promptToken+completionToken), time.Hour*30)
+	if err != nil {
+		logs.Error(`today token use incr error：` + err.Error())
+	}
 }
 
 func statToken(_type string, adminUserId int, corpName string, model string, promptToken int, completionToken int) error {
@@ -258,6 +317,36 @@ func statToken(_type string, adminUserId int, corpName string, model string, pro
 		return err
 	}
 	return nil
+}
+
+func GetTokenAppUseByDate(adminUserId, robotId int, tokenAppType, date string) (int64, error) {
+	m := msql.Model(`llm_token_app_daily_stats`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`token_app_type`, tokenAppType).
+		Where(`robot_id`, cast.ToString(robotId))
+	if date == `` {
+		date = time.Now().Format(`2006-01-02`)
+	}
+	stat, err := m.Where(`date`, date).
+		Field(`sum(prompt_token) as prompt_token, sum(completion_token) as completion_token`).
+		Find()
+	if err != nil {
+		return 0, err
+	}
+	return cast.ToInt64(stat[`prompt_token`]) + cast.ToInt64(stat[`completion_token`]), nil
+}
+
+func GetTokenAppLimitUse(adminUserId, robotId int, tokenAppType string) (int64, error) {
+	m := msql.Model(`llm_token_app_limit`, define.Postgres)
+	useToken, err := m.
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`token_app_type`, tokenAppType).
+		Where(`robot_id`, cast.ToString(robotId)).
+		Value(`use_token`)
+	if err != nil {
+		return 0, err
+	}
+	return cast.ToInt64(useToken), nil
 }
 
 func statDailyActiveUser(adminUserId int, robot msql.Params, appType string) error {

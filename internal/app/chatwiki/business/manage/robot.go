@@ -75,6 +75,53 @@ func GetRobotList(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+
+	// 添加 has_published 字段
+	// 先收集所有 application_type=1 的 robot IDs
+	var workflowRobotIds []string
+	for i := range list {
+		applicationType := cast.ToInt(list[i][`application_type`])
+		if applicationType == 1 {
+			workflowRobotIds = append(workflowRobotIds, cast.ToString(list[i][`id`]))
+		}
+	}
+
+	// 批量查询有发布版本的 robot IDs
+	publishedRobotMap := make(map[string]bool)
+	if len(workflowRobotIds) > 0 {
+		publishedRobots, err := msql.Model(`work_flow_version`, define.Postgres).
+			Where(`robot_id`, `in`, strings.Join(workflowRobotIds, `,`)).
+			Group(`robot_id`).
+			ColumnArr(`robot_id`)
+		if err != nil {
+			logs.Error(err.Error())
+		} else {
+			for _, robotId := range publishedRobots {
+				publishedRobotMap[robotId] = true
+			}
+		}
+	}
+
+	// 设置 has_published 字段
+	for i := range list {
+		applicationType := cast.ToInt(list[i][`application_type`])
+		if applicationType == 0 {
+			// application_type=0，聊天类型，has_published=1
+			list[i][`has_published`] = `1`
+		} else if applicationType == 1 {
+			// application_type=1，工作流类型，检查是否有发布版本
+			robotId := cast.ToString(list[i][`id`])
+			if publishedRobotMap[robotId] {
+				list[i][`has_published`] = `1`
+			} else {
+				list[i][`has_published`] = `0`
+			}
+		} else {
+			// 其他类型默认为0
+			list[i][`has_published`] = `0`
+		}
+	}
+
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 }
 
@@ -453,6 +500,7 @@ func SaveRobot(c *gin.Context) {
 	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
+	common.ClearMCPServerCache(userId)
 	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
 }
 
@@ -892,6 +940,7 @@ func EditBaseInfo(c *gin.Context) {
 	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
+	common.ClearMCPServerCache(userId)
 	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
 }
 

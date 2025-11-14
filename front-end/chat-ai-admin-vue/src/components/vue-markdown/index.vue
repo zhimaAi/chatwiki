@@ -1,6 +1,7 @@
 <style lang="less">
 .vue-markdown {
   line-height: 1.2;
+  white-space: pre-wrap;
   code {
     width: 100%;
     overflow: auto;

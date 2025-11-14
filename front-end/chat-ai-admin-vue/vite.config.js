@@ -88,6 +88,7 @@ export default defineConfig((opt) => {
       drop: env.VITE_DROP_DEBUGGER === 'true' ? ['debugger'] : undefined
     },
     build: {
+      ssr: false,
       outDir: fileURLToPath(new URL('../../static/chat-ai-admin', import.meta.url)),
       emptyOutDir: true,
       assetsDir: 'assets',
@@ -116,11 +117,14 @@ export default defineConfig((opt) => {
           },
           // 该选项允许你创建自定义的公共 chunk
           manualChunks: {
+            // 框架核心
             'vue-chunks': ['vue', 'vue-router', 'pinia', 'vue-i18n'],
-            dayjs: ['dayjs'],
-            axios: ['axios'],
-            'crypto-js': ['crypto-js'],
-            qs: ['qs'],
+            // UI组件库
+            'ui-antd': ['ant-design-vue', '@ant-design/icons-vue'],
+            // 图表库
+            'charts': ['echarts'],
+            // 工具库
+           'utils': ['axios', 'dayjs', 'crypto-js', 'qs', 'js-cookie', 'file-saver'],
             'vue-pdf-embed': ['vue-pdf-embed']
           }
         }
@@ -131,13 +135,15 @@ export default defineConfig((opt) => {
       exclude: ['@neo4j-nvl/layout-workers'],
       include: [
         'vue', 
-        'vue-router', 
+        'vue-router',
+        'ant-design-vue',
         'pinia', 
         'vue-i18n', 
         'dayjs', 
         'axios', 
         'crypto-js', 
         'qs',
+        'echarts',
         '@neo4j-nvl/layout-workers > cytoscape',
         '@neo4j-nvl/layout-workers > cytoscape-cose-bilkent',
         '@neo4j-nvl/layout-workers > @neo4j-bloom/dagre',

@@ -701,7 +701,7 @@ func IsMultiConfModel(defineName string) bool {
 	return tool.InArrayString(defineName, []string{ModelAzureOpenAI, ModelOllama, ModelXnference, ModelOpenAIAgent, ModelDoubao})
 }
 
-func GetModelCallHandler(modelConfigId int, useModel string) (*ModelCallHandler, error) {
+func GetModelCallHandler(modelConfigId int, useModel string, robot msql.Params) (*ModelCallHandler, error) {
 	if modelConfigId <= 0 {
 		return nil, errors.New(`model config id is empty`)
 	}
@@ -712,6 +712,14 @@ func GetModelCallHandler(modelConfigId int, useModel string) (*ModelCallHandler,
 	}
 	if len(config) == 0 {
 		return nil, errors.New(`model config is empty`)
+	}
+	//check token limit
+	robotId := 0
+	if len(robot) > 0 {
+		robotId = cast.ToInt(robot[`id`])
+	}
+	if !TokenAppAllowUse(cast.ToInt(config[`admin_user_id`]), robotId, GetTokenAppType(robot)) {
+		return nil, errors.New(`token usage exceeded`)
 	}
 	modelInfo, ok := GetModelInfoByDefine(config[`model_define`])
 	if !ok {
@@ -731,7 +739,7 @@ func GetModelCallHandler(modelConfigId int, useModel string) (*ModelCallHandler,
 }
 
 func GetVector2000(adminUserId int, openid string, robot msql.Params, library msql.Params, file msql.Params, modelConfigId int, useModel, input string) (string, error) {
-	handler, err := GetModelCallHandler(modelConfigId, useModel)
+	handler, err := GetModelCallHandler(modelConfigId, useModel, robot)
 	if err != nil {
 		return ``, err
 	}
@@ -746,7 +754,7 @@ func GetVector2000(adminUserId int, openid string, robot msql.Params, library ms
 }
 
 func RequestChatStream(adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, chanStream chan sse.Event, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
-	handler, err := GetModelCallHandler(modelConfigId, useModel)
+	handler, err := GetModelCallHandler(modelConfigId, useModel, robot)
 	if err != nil {
 		return adaptor.ZhimaChatCompletionResponse{}, 0, err
 	}
@@ -758,7 +766,7 @@ func RequestChatStream(adminUserId int, openid string, robot msql.Params, appTyp
 }
 
 func RequestSearchStream(adminUserId int, modelConfigId int, useModel string, library msql.Params, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, chanStream chan sse.Event, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
-	handler, err := GetModelCallHandler(modelConfigId, useModel)
+	handler, err := GetModelCallHandler(modelConfigId, useModel, nil)
 	if err != nil {
 		return adaptor.ZhimaChatCompletionResponse{}, 0, err
 	}
@@ -770,7 +778,7 @@ func RequestSearchStream(adminUserId int, modelConfigId int, useModel string, li
 }
 
 func RequestChat(adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
-	handler, err := GetModelCallHandler(modelConfigId, useModel)
+	handler, err := GetModelCallHandler(modelConfigId, useModel, robot)
 	if err != nil {
 		return adaptor.ZhimaChatCompletionResponse{}, 0, err
 	}

@@ -1,22 +1,27 @@
 <template>
-  <div class="node-common-wrapper" :class="[`node-common-wrapper_${iconName}`]" :data-node-name="title" :data-node-type="node_type">
+  <div
+    class="node-common-wrapper"
+    :class="[`node-common-wrapper_${iconName}`]"
+    :data-node-name="title"
+    :data-node-type="node_type"
+  >
     <div class="node-common" :class="{ isHovered: isHovered, isSelected: isSelected }">
       <div class="node-header">
         <div class="node-header-left">
-          <span class="node-icon" v-if="iconName">
-            <img :src="getImggeUrl(iconName)" alt="" />
+          <span class="node-icon" v-if="iconUrl || iconName">
+            <img :src="iconUrl || getImggeUrl(iconName)" alt="" />
           </span>
-          <span v-if="['1', 1].includes(node_type)" class="node-title">{{ title }}</span>
-          <a-input
+          <span class="node-title">{{ title }}</span>
+          <!-- <a-input
             v-else
             size="small"
             class="node-title-input"
             :value="title"
             @input="updateTitle($event.target.value)"
-          ></a-input>
+          ></a-input> -->
         </div>
         <div>
-          <div class="node-menu-wrapper" v-if="menus.length > 0">
+          <div class="node-menu-wrapper" v-if="!hideMenus">
             <div class="node-menu-btn" @click.stop="showMenu">
               <img
                 class="btn-icon"
@@ -27,13 +32,15 @@
 
             <div class="node-menus" v-show="isShowMenu">
               <div
-                class="node-menu del-btn"
-                v-for="item in menus"
+                class="node-menu"
+                v-for="item in allMenus"
                 :key="item.key"
                 @click.stop="handleMenu(item)"
               >
                 {{ item.name }}
               </div>
+
+              <div class="node-menu del-btn" @click.stop="handleDelete(item)">删除</div>
             </div>
           </div>
         </div>
@@ -48,8 +55,12 @@
 <script>
 export default {
   name: 'NodeCommon',
-  inject: ['setTitle'],
+  inject: ['setTitle',  'getNode',  'getGraph'],
   props: {
+    iconUrl: {
+      type: String,
+      default: ''
+    },
     iconName: {
       type: String,
       default: ''
@@ -75,6 +86,10 @@ export default {
         return []
       }
     },
+    hideMenus: {
+      type: Boolean,
+      default: false
+    },
     isSelected: {
       type: Boolean,
       default: false
@@ -86,7 +101,13 @@ export default {
   },
   data() {
     return {
-      isShowMenu: false
+      isShowMenu: false,
+      localMenus: []
+    }
+  },
+  computed: {
+    allMenus() {
+      return [...this.menus, ...this.localMenus]
     }
   },
   mounted() {
@@ -101,6 +122,10 @@ export default {
     },
     showMenu() {
       this.isShowMenu = !this.isShowMenu
+    },
+    handleDelete(){
+      let node = this.getNode()
+      this.getGraph().deleteNode(node.id)
     },
     // 点击菜单以外的地方，隐藏菜单
     documentClick(e) {
@@ -130,17 +155,18 @@ export default {
 .node-common {
   position: relative;
   width: 100%;
-  padding: 12px 16px 16px 16px;
+  padding: 16px;
   border-radius: 8px;
   background: #fff;
   box-sizing: border-box;
+  cursor: pointer;
 
   .node-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     height: 24px;
-    margin-bottom: 8px;
+    margin-bottom: 16px;
   }
   .node-title {
     height: 24px;
@@ -258,32 +284,30 @@ export default {
   }
 }
 
-
-.node-common-wrapper.node-common-wrapper_explain-node{
-  .node-icon{
+.node-common-wrapper.node-common-wrapper_explain-node {
+  .node-icon {
     display: none;
   }
-  .node-title-input{
+  .node-title-input {
     padding-left: 0;
     font-size: 12px;
     color: #7a8699;
     font-weight: 400;
-    background: #FFEFD6;
+    background: #ffefd6;
   }
-  .node-common{
-    background: #FFEFD6;
+  .node-common {
+    background: #ffefd6;
     padding: 16px;
   }
   .node-common.isHovered {
     &::before {
-      border: 1px solid #BFBFBF;
+      border: 1px solid #bfbfbf;
     }
   }
-    .node-common.isSelected {
+  .node-common.isSelected {
     &::before {
       border: 2px solid #f90;
     }
   }
 }
-
 </style>

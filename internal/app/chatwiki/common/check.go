@@ -338,6 +338,25 @@ func CheckRobotKey2(robotKey string, lang string) (map[string]string, error) {
 	return robot, nil
 }
 
+func CheckWorkflowRobotById(adminUserId, robotId string, lang string) (map[string]string, error) {
+	if cast.ToInt(robotId) <= 0 {
+		return nil, errors.New(i18n.Show(lang, `param_invalid`, `robot_id`))
+	}
+	robot, err := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`id`, robotId).Where(`admin_user_id`, adminUserId).Field(`id,application_type`).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, errors.New(i18n.Show(lang, `sys_err`))
+	}
+	if len(robot) == 0 {
+		return nil, errors.New(i18n.Show(lang, `no_data`))
+	}
+	if cast.ToInt(robot[`application_type`]) != define.ApplicationTypeFlow {
+		return nil, errors.New(i18n.Show(lang, `no_data`))
+	}
+	return robot, nil
+}
+
 func CheckWorkFlowVersionId(versionId, adminUserId int, lang string) (map[string]string, error) {
 	if versionId <= 0 {
 		return nil, errors.New(i18n.Show(lang, `param_invalid`, `version_id`))

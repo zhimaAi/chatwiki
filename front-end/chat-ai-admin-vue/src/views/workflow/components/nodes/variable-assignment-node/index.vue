@@ -1,270 +1,240 @@
 <style lang="less" scoped>
-.variable-node {
-  position: relative;
-  z-index: 2;
-  .node-desc {
-    line-height: 22px;
-    font-size: 14px;
-    font-weight: 400;
-    margin-bottom: 16px;
-    color: var(--wf-color-text-2);
-  }
-  .field-items{
-    .field-item{
+.ai-dialogue-node {
+  .field-list {
+    .field-item {
       display: flex;
-      align-items: center;
       margin-bottom: 8px;
-    }
-
-    .field-name-box{
-      width: 180px;
-      margin-right: 8px;
-    }
-    .field-value-box{
-      flex: 1;
-      overflow: hidden;
-    }
-    .field-actions{
-      margin-left: 12px;
-      .action-btn{
-        cursor: pointer;
-        font-size: 16px;
-        color: #595959;
+      &:last-child {
+        margin-bottom: 0;
       }
     }
-  }
-}
+    .field-item-label {
+      width: 60px;
+      line-height: 22px;
+      margin-right: 8px;
+      font-size: 14px;
+      font-weight: 400;
+      color: #262626;
+      text-align: right;
+    }
+    .field-item-content {
+      flex: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .field-list-item {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      line-height: 16px;
+      padding: 3px 4px;
+      border-radius: 4px;
+      border: 1px solid #d9d9d9;
+      color: #595959;
+      background: #fff;
+      .right-arrow {
+        width: 24px;
+        height: 100%;
+        border-radius: 4px;
+        background: #e4e6eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+      }
+      .field-text{
+        font-size: 12px;
+      }
+    }
+    .field-value {
+      display: flex;
+      align-items: center;
+      line-height: 16px;
+      padding: 3px 4px;
+      border-radius: 4px;
+      font-size: 12px;
+      border: 1px solid #d9d9d9;
+      color: #595959;
+      background: #fff;
 
-.field-value-option{
-  display: flex;
-  align-items: center;
-  color: #595959;
-  font-size: 14px;
-  font-weight: 400;
-  .option-label{
-    font-weight: 400;
-    margin-right: 6px;
-  }
-  .option-type{
-    width: fit-content;
-    padding: 1px 8px;
-    border-radius: 6px;
-    border: 1px solid #00000026;
-    background: var(--10, #FFF);
-    display: flex;
-    align-items: center;
-    font-size: 12px;
+      .field-type {
+        padding: 1px 8px;
+        margin-left: 4px;
+        border-radius: 4px;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 400;
+        background: #e4e6eb;
+      }
+    }
   }
 }
 </style>
 
 <template>
   <node-common
-    :title="properties.node_name"
+    :title="props.properties.node_name"
     :menus="menus"
-    :icon-name="properties.node_icon_name"
-    :isSelected="isSelected"
-    :isHovered="isHovered"
-    :node-key="properties.node_key"
-    :node_type="properties.node_type"
-    @handleMenu="handleMenu"
+    :icon-name="props.properties.node_icon_name"
+    :isSelected="props.isSelected"
+    :isHovered="props.isHovered"
+    :node-key="props.properties.node_key"
+    :node_type="props.properties.node_type"
+    style="width: 420px;"
   >
-    <div class="variable-node">
-      <div class="node-desc">通过本节点可以给全局变量赋值</div>
-      <div class="field-items">
-        <div class="field-item" v-for="(item, index) in list" :key="index"> 
-          <div class="field-name-box">
-            <a-select style="width: 100%;" placeholder="请输入选择变量" v-model:value="item.variable" @dropdownVisibleChange="dropdownVisibleChange" @change="update">
-              <a-select-option :value="opt.value" v-for="opt in options" :key="opt.key">
-                <span>{{ opt.label }}</span>
-              </a-select-option>
-            </a-select>
-          </div>
-          <div class="field-value-box">
-            <at-input :ref="'atInput' + index" inputStyle="overflow-y: hidden; overflow-x: scroll; height: 32px;" :options="valueOptions" :defaultSelectedList="item.tags" :defaultValue="item.value" @open="showAtList"  @change="(text, selectedList) => changeValue(text, selectedList, item, index)" placeholder="请输入变量值，键入“/”插入变量">
-              <template #option="{ label, payload }">
-                <div class="field-value-option">
-                  <div class="option-label">{{ label }}</div>
-                  <div class="option-type">{{ payload.typ }}</div>
-                </div>
-              </template>
-            </at-input>
-          </div>
-          <div class="field-actions">
-            <CloseCircleOutlined class="action-btn" @click="handleDel(index)" />
+    <div class="ai-dialogue-node">
+      <div class="field-list">
+        <div class="field-item">
+          <div class="field-item-label">变量</div>
+          <div class="field-item-content">
+            <div class="field-list-item" v-for="(item, index) in formState.list" :key="index">
+              <div class="field-text">
+                <AtText
+                  :options="valueOptions"
+                  :default-value="item.value"
+                  :defaultSelectedList="item.tags"
+                />
+              </div>
+              <div class="right-arrow"><ArrowRightOutlined /></div>
+              <div class="field-text">
+                {{ getKeyValue(item.variable) }}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div>
-        <a-button style="width: 100%;" class="add-btn" type="dashed" @click="handleAdd">
-          <template #icon>
-            <PlusOutlined />
-          </template>
-          添加赋值变量
-        </a-button>
       </div>
     </div>
   </node-common>
 </template>
 
-<script>
-import { PlusOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
+<script setup>
+import { ref, reactive, watch, onMounted, inject, nextTick, onBeforeUnmount } from 'vue'
 import NodeCommon from '../base-node.vue'
-import AtInput from '../at-input/at-input.vue'
+import { ArrowRightOutlined } from '@ant-design/icons-vue'
 import { haveOutKeyNode } from '@/views/workflow/components/util.js'
-export default {
-  name: 'VariableAssignmentNode',
-  inject: ['getNode', 'getGraph', 'setData'],
-  components: {
-    PlusOutlined,
-    CloseCircleOutlined,
-    NodeCommon,
-    AtInput
-  },
-  props: {
-    properties: {
-      type: Object,
-      default() {
-        return {}
-      }
-    },
-    isSelected: { type: Boolean, default: false },
-    isHovered: { type: Boolean, default: false }
-  },
-  data() {
-    return {
-      menus: [{ name: '删除', key: 'delete', color: '#fb363f' }],
-      list: [],
-      options: [],
-      valueOptions: [],
-    }
-  },
-  computed: {
-   
-  },
-  mounted() {
-    this.getOptions();
-    this.getValueOptions()
+import AtText from '../../at-input/at-text.vue'
 
-    const graphModel = this.getGraph()
-    
-    let dataRaw = this.properties.dataRaw || this.properties.node_params || '{}'
+const props = defineProps({
+  properties: {
+    type: Object,
+    default: () => ({})
+  },
+  isSelected: { type: Boolean, default: false },
+  isHovered: { type: Boolean, default: false }
+})
+
+const setData = inject('setData')
+const graphModel = inject('getGraph')
+const getNode = inject('getNode')
+const resetSize = inject('resetSize')
+
+// --- State ---
+const menus = ref([])
+const formState = reactive({
+  list: []
+})
+
+const options = ref([])
+const valueOptions = ref([])
+
+const reset = () => {
+  const dataRaw = props.properties.dataRaw || props.properties.node_params || '{}'
+  let fields = []
+  try {
     let node_params = JSON.parse(dataRaw)
-
-    let fields  = node_params.assign || []
-    
-    fields.forEach(item => {
-      item.tags = item.tags || []
-    });
-
-    this.list = fields
-
-    this.$nextTick(()=>{
-      this.update()
-    })
-    graphModel.eventCenter.on('custom:setNodeName', this.onUpatateNodeName)
-  },
-  onBeforeUnmount() {
-    const graphModel = this.getGraph()
-    graphModel.eventCenter.off('custom:setNodeName', this.onUpatateNodeName)
-  },
-  methods: {
-    onUpatateNodeName(data){
-      if(!haveOutKeyNode.includes(data.node_type)){
-        return
-      }
-      
-      this.getValueOptions()
-
-      this.$nextTick(() => {
-        this.list.forEach((item, index) => {
-          if(item.tags && item.tags.length > 0){
-            item.tags.forEach(tag => {
-              if(tag.node_id == data.node_id){
-                let arr = tag.label.split('/')
-                arr[0] = data.node_name
-                tag.label = arr.join('/')
-                tag.node_name = data.node_name
-              }
-            })
-          }
-
-          this.$refs[`atInput${index}`][0].refresh()
-        })
-      })
-      
-    },
-    getOptions(){
-      let globalVariable = this.getNode().getGlobalVariable()
-      let diy_global = globalVariable.diy_global || []
-      diy_global.forEach(item => {
-        item.label = item.key
-        item.value = 'global.'+item.key
-      });
-      this.options = diy_global || []
-    },
-    getValueOptions(){
-      let options = this.getNode().getAllParentVariable();
-
-      this.valueOptions = options || []
-    },
-    getHeight() {
-      let length = this.list.length == 0 ? 1 : this.list.length;
-
-      return 130 + 40 * length
-    },
-    updateHeight() {
-      let height = this.getHeight()
-
-      this.setData({
-        height: height
-      })
-    },
-    update() {
-      let height = this.getHeight()
-      let node_params = JSON.parse(this.properties.node_params)
-      
-      node_params.assign = [...this.list]
-
-      this.setData({
-        height: height,
-        node_params: JSON.stringify(node_params)
-      })
-    },
-    showAtList(val){
-      if(val){
-        this.getValueOptions()
-      }
-    },
-    changeValue(text, selectedList, item){
-      item.tags = selectedList
-      item.value = text
-
-      this.update();
-    },
-    handleAdd(){
-      this.list.push({
-        variable: void 0,
-        value: ''
-      })
-      this.update()
-    },
-    handleDel(index){
-      this.list.splice(index, 1)
-      this.update()
-    },
-    handleMenu(item) {
-      if (item.key === 'delete') {
-        let node = this.getNode()
-        this.getGraph().deleteNode(node.id)
-      }
-    },
-    dropdownVisibleChange(visible){
-      if(visible){
-        this.getOptions()
-      }
-    },
+    fields = node_params.assign || []
+  } catch (e) {
+    console.log(e)
   }
+
+  getVlaueVariableList()
+  getOptions()
+
+  fields.forEach((item) => {
+    item.tags = item.tags || []
+  })
+
+  formState.list = fields
+
+  nextTick(() => {
+    resetSize()
+  })
 }
+
+const update = () => {
+  let node_params = JSON.parse(props.properties.node_params)
+
+  node_params.assign = [...formState.list]
+
+  setData({
+    ...props.node,
+    node_params: JSON.stringify(node_params)
+  })
+}
+
+function getKeyValue(val) {
+  if (val) {
+    return val.split('.')[1]
+  }
+  return ''
+}
+
+const getOptions = () => {
+  let globalVariable = getNode().getGlobalVariable()
+  let diy_global = globalVariable.diy_global || []
+  diy_global.forEach((item) => {
+    item.label = item.key
+    item.value = 'global.' + item.key
+  })
+  options.value = diy_global || []
+}
+const getVlaueVariableList = () => {
+  let list = getNode().getAllParentVariable()
+
+  list.forEach((item) => {
+    item.tags = item.tags || []
+  })
+  valueOptions.value = list
+}
+
+const onUpatateNodeName = (data) => {
+  if (!haveOutKeyNode.includes(data.node_type)) {
+    return
+  }
+
+  getVlaueVariableList()
+  nextTick(() => {
+    formState.list.forEach((item) => {
+      if (item.tags && item.tags.length > 0) {
+        item.tags.forEach((tag) => {
+          if (tag.node_id == data.node_id) {
+            let arr = tag.label.split('/')
+            arr[0] = data.node_name
+            tag.label = arr.join('/')
+            tag.node_name = data.node_name
+          }
+        })
+      }
+    })
+    update()
+  })
+}
+
+// --- Watchers and Lifecycle Hooks ---
+watch(() => props.properties, reset, { deep: true })
+
+onMounted(() => {
+  reset()
+  resetSize()
+  const mode = graphModel()
+
+  mode.eventCenter.on('custom:setNodeName', onUpatateNodeName)
+})
+
+onBeforeUnmount(() => {
+  const mode = graphModel()
+
+  mode.eventCenter.off('custom:setNodeName', onUpatateNodeName)
+})
 </script>

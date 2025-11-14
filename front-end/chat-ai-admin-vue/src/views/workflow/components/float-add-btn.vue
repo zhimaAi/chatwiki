@@ -59,7 +59,7 @@ export default {
     documentClick(e) {
       if (this.isShowMenu) {
         const menus = this.$el.querySelector('.node-list-fix')
-        if (!menus.contains(e.target) && e.target !== this.$el.querySelector('.add-node-btn')) {
+        if (!e.composedPath().includes(menus) && !menus.contains(e.target) && e.target !== this.$el.querySelector('.add-node-btn')) {
           this.isShowMenu = false
         }
       }

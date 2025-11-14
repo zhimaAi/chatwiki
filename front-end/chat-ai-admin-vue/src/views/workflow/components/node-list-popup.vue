@@ -1,8 +1,38 @@
 <style lang="less" scoped>
 .node-list-popup {
+  display: flex;
+  flex-direction: column;
+  height: 620px;
+  width: 444px;
+  max-height: 80vh;
+  overflow: hidden;
+  .tabs-box {
+    display: flex;
+    align-items: center;
+    border-radius: 6px;
+    background: #F3F3F3;
+
+    .tab-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #595959;
+      font-size: 14px;
+      font-weight: 400;
+      padding: 12px 18px;
+      cursor: pointer;
+
+      &.active {
+        color: #2475fc;
+        font-weight: 600;
+        border-radius: 9px 9px 0 0;
+        background: #FFF;
+      }
+    }
+  }
+
   .node-list-popup-content {
-    width: 302px;
-    max-height: 600px;
+    flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
     padding: 2px;
@@ -48,38 +78,258 @@
       }
     }
   }
+
+  .mcp-box {
+    padding: 8px;
+
+    .search-box {
+      margin: 0 8px 8px;
+    }
+
+    .mcp-list {
+      .mcp-info {
+        display: flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        &:hover {
+          background: #E4E6EB;
+        }
+
+        .avatar {
+          width: 20px;
+          height: 20px;
+          flex-shrink: 0;
+          border-radius: 4.71px;
+          margin-right: 8px;
+        }
+
+        .info {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+
+          .name {
+            color: #262626;
+            font-size: 14px;
+            font-weight: 400;
+          }
+
+          .total {
+            color: #8c8c8c;
+            font-size: 12px;
+            font-weight: 400;
+          }
+        }
+      }
+
+      .mcp-tools {
+        margin-left: 28px;
+        border-left: 1px solid #D9D9D9;
+      }
+      .mcp-tool-item {
+        padding: 2px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        &:hover {
+          background: #E4E6EB;
+        }
+      }
+    }
+  }
+}
+
+.mcp-info-pop {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: #595959;
+  font-size: 14px;
+  font-weight: 400;
+  min-width: 260px;
+
+  .info {
+    display: flex;
+    align-items: center;
+    color: #262626;
+    font-size: 16px;
+
+    .avatar {
+      width: 62px;
+      height: 62px;
+      border-radius: 14.59px;
+      flex-shrink: 0;
+      margin-right: 12px;
+    }
+  }
+
+  .extra {
+    color: #8c8c8c;
+    font-size: 12px;
+  }
+}
+.params-box {
+  max-height: 80vh;
+  overflow-y: auto;
+
+  .param-item {
+    max-width: 500px;
+
+    &:first-child {
+      border-bottom: 1px solid #E4E6EB;
+      padding-bottom: 16px;
+    }
+    &:not(:last-child) {
+      margin-bottom: 16px;
+    }
+
+    .field {
+      color: #262626;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .name {
+        font-weight: 600;
+      }
+
+      .type {
+        color: #595959;
+      }
+
+      .required {
+        color: #ED744A;
+        font-weight: 500;
+      }
+    }
+
+    .desc {
+      color: #8c8c8c;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+  }
+}
+
+.empty-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 40px 0;
+
+  img {
+    width: 200px;
+    height: 200px;
+  }
+
+  .title {
+    color: #262626;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 24px;
+  }
+
+  .btn {
+    margin-top: 24px;
+  }
 }
 </style>
 
 <template>
   <div class="node-list-popup">
+    <div class="tabs-box">
+      <div :class="['tab-item', {active: active == 1}]" @click="tabChange(1)"><svg-icon name="base-node-type"/> 基础功能</div>
+      <div :class="['tab-item', {active: active == 2}]" @click="tabChange(2)"><svg-icon name="mcp-node-type"/> MCP</div>
+    </div>
     <div class="node-list-popup-content">
-      <template v-for="group in allGroupNodes"  :key="group.key">
-        <div class="node-list" v-if="!group.hidden">
-          <div class="node-type">{{ group.name }}</div>
-          <div class="node-flex-box">
-            <template v-for="node in group.nodes" :key="node.type">
-              <div
-                class="node-item"
-                @click="handleAddNode(node)"
-                v-if="!node.hidden"
-              >
-                <img :src="node.properties.node_icon" :alt="node.properties.node_name" />
-                <div class="node-name">{{ node.properties.node_name }}</div>
+      <template v-if="active == 1">
+        <template v-for="group in allGroupNodes"  :key="group.key">
+          <div class="node-list" v-if="!group.hidden">
+            <div class="node-type">{{ group.name }}</div>
+            <div class="node-flex-box">
+              <template v-for="node in group.nodes" :key="node.type">
+                <div
+                  class="node-item"
+                  @click="handleAddNode(node)"
+                  v-if="!node.hidden"
+                >
+                  <img :src="node.properties.node_icon" :alt="node.properties.node_name" />
+                  <div class="node-name">{{ node.properties.node_name }}</div>
+                </div>
+              </template>
+
+            </div>
+          </div>
+        </template>
+      </template>
+      <div v-else class="mcp-box">
+        <div class="search-box">
+          <a-input-search v-model:value.trim="mcpKeyword" allowClear placeholder="请输入名称查询"/>
+        </div>
+        <div v-if="showMcpNodes.length" class="mcp-list">
+          <div v-for="(item, j) in showMcpNodes" :key="j" class="mcp-item">
+            <a-popover placement="right" >
+              <template #content>
+                <div class="mcp-info-pop">
+                  <div class="info">
+                    <img class="avatar" :src="item.avatar"/>
+                    <div class="name">{{ item.name }}</div>
+                  </div>
+                  <div>{{ item.url }}</div>
+                  <div class="extra">可用工具：{{ item.tools.length }}</div>
+                </div>
+              </template>
+              <div class="mcp-info" @click="item.expand = !item.expand">
+                <img class="avatar" :src="item.avatar"/>
+                <div class="info">
+                  <span class="name">{{ item.name }}</span>
+                  <span class="total">
+                    {{ item.tools.length }} <DownOutlined v-if="item.expand"/> <RightOutlined v-else/>
+                  </span>
+                </div>
               </div>
-            </template>
-            
+            </a-popover>
+            <div v-show="item.expand" class="mcp-tools">
+              <a-popover v-for="(tool, i) in item.tools" :key="i" placement="right">
+                <template #content>
+                  <div class="params-box">
+                    <div class="param-item">
+                      <div class="field"><span class="name">{{ tool.name }}</span></div>
+                      <div class="desc">{{ tool.description }}</div>
+                    </div>
+                    <div v-for="(field, key) in tool.inputSchema.properties" :key="key" class="param-item">
+                      <div class="field">
+                        <span class="name">{{ key }}</span>
+                        <span class="type">{{ field.type }}</span>
+                        <span v-if="tool.inputSchema.required.includes(key)" class="required">必填</span>
+                      </div>
+                      <div class="desc">{{ field.description }}</div>
+                    </div>
+                  </div>
+                </template>
+                <div class="mcp-tool-item" @click="addMcpNode(item, tool)">{{ tool.name }}</div>
+              </a-popover>
+            </div>
           </div>
         </div>
-      </template>
-      
+        <div v-else class="empty-box">
+            <img style="height: 200px;" src="@/assets/empty.png"/>
+            <div>暂无可用MCP插件</div>
+            <a @click="handleOpenAddMcp">去添加<RightOutlined/></a>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import {ref, onMounted, computed} from 'vue';
+import {RightOutlined, DownOutlined} from '@ant-design/icons-vue';
 import { generateUniqueId } from '@/utils/index'
-import { getAllGroupNodes } from './node-list'
+import {getAllGroupNodes, getAllMcpNodes, getMcpNode} from './node-list'
 
 const emit = defineEmits(['addNode'])
 
@@ -91,6 +341,26 @@ const props = defineProps({
 })
 
 const allGroupNodes = getAllGroupNodes(props.type)
+const allMcpNodes = ref([])
+const active = ref(1)
+const mcpKeyword = ref('')
+
+onMounted(() => {
+  getAllMcpNodes().then(res => {
+    allMcpNodes.value = res
+  })
+})
+
+const showMcpNodes = computed(() => {
+  if (mcpKeyword.value) {
+    return allMcpNodes.value.filter(item => {
+      let info = item.description + item.name
+      return info.indexOf(mcpKeyword.value) > -1
+    })
+  } else {
+    return allMcpNodes.value
+  }
+})
 
 let nodeNameMap = {}
 const handleAddNode = (node) => {
@@ -104,5 +374,17 @@ const handleAddNode = (node) => {
     nodeNameMap[node.type] = 1
   }
   emit('addNode', node)
+}
+
+const addMcpNode = (mcp, tool) => {
+  handleAddNode(getMcpNode(mcp, tool))
+}
+
+function tabChange(key) {
+  active.value = key
+}
+
+function handleOpenAddMcp() {
+  window.open('/#/robot/list?active=3&mcp=2', '_blank')
 }
 </script>

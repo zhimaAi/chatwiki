@@ -3,15 +3,16 @@
 package common
 
 import (
+	"sort"
+
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
-	"sort"
 )
 
 func RerankData(adminUserId int, openid, appType string, robot msql.Params, req *adaptor.ZhimaRerankReq) ([]msql.Params, error) {
 	modelConfigId, useModel := cast.ToInt(robot[`rerank_model_config_id`]), robot[`rerank_use_model`]
-	handler, err := GetModelCallHandler(modelConfigId, useModel)
+	handler, err := GetModelCallHandler(modelConfigId, useModel, robot)
 	if err != nil {
 		return nil, err
 	}

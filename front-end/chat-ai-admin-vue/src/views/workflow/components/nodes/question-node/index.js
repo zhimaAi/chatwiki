@@ -57,7 +57,7 @@ class VueHtmlNodeModel extends BaseVueNodeModel {
         id: nodeSortKey + '-anchor_left',
         type: 'left',
         nodeId: id
-      },
+      }
       // {
       //   x: x + width / 2,
       //   y: y - height / 2 + 24,
@@ -71,13 +71,10 @@ class VueHtmlNodeModel extends BaseVueNodeModel {
     let y0 = y - height / 2
 
     for (let i = 0; i < anchorListPos.length; i++) {
-      let { offsetTop, offsetHeight } = anchorListPos[i]
-      
-
       defaultAnchor.push({
         id: anchorListPos[i].id,
         x: x + width / 2,
-        y: y0 + offsetTop + offsetHeight / 2,
+        y: (y0 + 132) + i * 32 ,
         type: 'right'
       })
     }
@@ -85,7 +82,7 @@ class VueHtmlNodeModel extends BaseVueNodeModel {
     defaultAnchor.push({
       id: nodeSortKey + '-anchor_right',
       x: x + width / 2,
-      y: y0 + 428 + (anchorListPos.length * 34) - 16,
+      y: height / 2 + y - 28,
       type: 'right',
       nodeId: id
     })

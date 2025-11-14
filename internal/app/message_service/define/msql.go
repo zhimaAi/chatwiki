@@ -2,4 +2,6 @@
 
 package define
 
-const Postgres = `postgres`
+import "chatwiki/internal/pkg/lib_define"
+
+const Postgres = lib_define.Postgres

@@ -45,7 +45,7 @@ export default {
   data() {
     return {
       observer: null,
-      menus: [{ name: '删除', key: 'delete', color: '#fb363f' }],
+      menus: [],
       formState: {
         content: '',
         height: 88
@@ -77,7 +77,7 @@ export default {
     }
   },
 
-  beforeDestroy() {
+  beforeUnmount() {
     // 组件销毁时断开观察
     if (this.observer) {
       this.observer.disconnect()

@@ -113,6 +113,15 @@ export default {
           }
         },
         {
+          path: '/robot/config/invoke-logs',
+          name: 'invokeLogs',
+          component: () => import('@/views/robot/robot-config/invoke-logs/index.vue'),
+          meta: {
+            title: '调用日志',
+            isCustomPage: true
+          }
+        },
+        {
           path: '/robot/config/unknown_issue',
           name: 'unknownIssue',
           component: () => import('@/views/robot/robot-config/unknown_issue/unknow-index.vue'),

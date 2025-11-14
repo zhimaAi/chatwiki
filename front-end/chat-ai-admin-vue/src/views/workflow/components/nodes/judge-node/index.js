@@ -1,7 +1,5 @@
-import { h as flh } from '@logicflow/core'
 import { BaseVueNodeView, BaseVueNodeModel } from '../base-node.js'
 import VueNode from './index.vue'
-import { getJudgeNodeAnchor } from '../../util.js'
 
 class VueHtmlNode extends BaseVueNodeView {
   constructor(props) {
@@ -15,7 +13,7 @@ class VueHtmlNodeModel extends BaseVueNodeModel {
   setAttributes() {
     const sourceRule01 = {
       message: '只允许从右边的锚点连出',
-      validate: (sourceNode, targetNode, sourceAnchor, targetAnchor) => {
+      validate: (sourceNode, targetNode, sourceAnchor) => {
         if (sourceNode.id == targetNode.id) {
           return false
         }
@@ -43,16 +41,10 @@ class VueHtmlNodeModel extends BaseVueNodeModel {
     this.targetRules = [targetRule01]
   }
 
-  getAnchorPos() {
-    let anchorListPos = getJudgeNodeAnchor(this.properties)
-
-    return anchorListPos
-  }
-
   getDefaultAnchor() {
     // 定义锚点位置
-    const { id, x, y, width, height, isHovered, isSelected } = this
-    const { nodeSortKey } = this.properties
+    const { id, x, y, width, height } = this
+    const { nodeSortKey, anchorList } = this.properties
 
     let defaultAnchor = [
       {
@@ -71,20 +63,20 @@ class VueHtmlNodeModel extends BaseVueNodeModel {
       // },
     ]
 
-    let anchorListPos = this.getAnchorPos()
+    if(anchorList){
+      for (let i = 0; i < anchorList.length; i++) {
+        let { offsetTop, offsetHeight } = anchorList[i]
+        let y0 = y - height / 2
 
-    for (let i = 0; i < anchorListPos.length; i++) {
-      let { offsetTop, offsetHeight } = anchorListPos[i]
-      let y0 = y - height / 2
-
-      defaultAnchor.push({
-        id: anchorListPos[i].id,
-        x: x + width / 2,
-        y: y0 + offsetTop + offsetHeight / 2,
-        type: 'right',
-      })
+        defaultAnchor.push({
+          id: anchorList[i].id,
+          x: x + width / 2,
+          y: y0 + offsetTop + offsetHeight / 2,
+          type: 'right',
+        })
+      }
     }
-
+    
     return defaultAnchor
   }
 }

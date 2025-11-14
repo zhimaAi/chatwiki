@@ -582,7 +582,7 @@ export default {
 };
 </script>
 <style lang="less">
-.j-mention-at {
+.mention-input-warpper .j-mention-at {
   border-radius: 4px;
   padding: 1px 4px;
   background: #f2f4f5;

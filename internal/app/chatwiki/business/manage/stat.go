@@ -18,6 +18,7 @@ import (
 	"github.com/syyongx/php2go"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
+	"github.com/zhimaAi/go_tools/tool"
 )
 
 func GetActiveModels(c *gin.Context) {
@@ -303,4 +304,106 @@ func StatAiTipAnalyse(c *gin.Context) {
 		return
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
+}
+
+func WorkflowLogs(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	startDate := strings.TrimSpace(c.DefaultQuery(`start_date`, time.Now().Format(`2006-01-02`)))
+	openid := strings.TrimSpace(c.Query(`openid`))
+	question := strings.TrimSpace(c.Query(`question`))
+	page := max(1, cast.ToInt(c.DefaultQuery(`page`, `1`)))
+	size := max(1, cast.ToInt(c.DefaultQuery(`size`, `10`)))
+	robotId := cast.ToInt(c.Query(`robot_id`))
+	endDate := strings.TrimSpace(c.DefaultQuery(`end_date`, time.Now().Format(`2006-01-02`)))
+	if len(startDate) == 0 || len(endDate) == 0 {
+		startDate = time.Now().AddDate(0, 0, -7).Format(`2006-01-02`)
+		endDate = time.Now().Format(`2006-01-02`)
+	}
+	checkRet := common.CheckDataRangeDay(startDate, endDate, 365)
+	if !checkRet {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `date_range_max`, 365))))
+		return
+	}
+	_, checkErr := common.CheckWorkflowRobotById(cast.ToString(userId), cast.ToString(robotId), common.GetLang(c))
+	if checkErr != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, checkErr))
+		return
+	}
+	startDateT, err := time.ParseInLocation(`2006-01-02`, startDate, time.Local)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `start_date`))))
+		return
+	}
+	endDateT, err := time.ParseInLocation(`2006-01-02`, endDate, time.Local)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `end_date`))))
+		return
+	}
+	m := msql.Model(`work_flow_logs`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`robot_id`, cast.ToString(robotId)).
+		Field(`id,openid,question,node_logs,version_id,create_time`)
+	m.Where(`create_time`, `>=`, cast.ToString(startDateT.Unix()))
+	m.Where(`create_time`, `<=`, cast.ToString(endDateT.Unix()+86399))
+	if openid != `` {
+		m.Where(`openid`, openid)
+	}
+	if question != `` {
+		m.Where(`question`, `like`, `%`+question+`%`)
+	}
+	list, total, err := m.Order(`id desc`).Paginate(page, size)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	versionIds := make([]string, 0)
+	for _, item := range list {
+		versionId := cast.ToString(item[`version_id`])
+		if versionId == `` {
+			continue
+		}
+		if !php2go.InArray(versionId, versionIds) {
+			versionIds = append(versionIds, cast.ToString(item[`version_id`]))
+		}
+	}
+	if len(versionIds) > 0 {
+		versionInfos, err := msql.Model(`work_flow_version`, define.Postgres).Where(`id`, `in`, strings.Join(versionIds, `,`)).Field(`id,version`).Select()
+		if err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+			return
+		}
+		for key, item := range list {
+			for _, versionInfo := range versionInfos {
+				if cast.ToString(item[`version_id`]) == cast.ToString(versionInfo[`id`]) {
+					list[key][`version`] = versionInfo[`version`]
+				}
+			}
+			//耗时
+			durationMills := 0
+			totalToken := 0
+			nodeLogs := make([]define.NodeLogs, 0)
+			dErr := tool.JsonDecode(item[`node_logs`], &nodeLogs)
+			if dErr != nil {
+				logs.Error(dErr.Error())
+			} else {
+				for key, nodeLog := range nodeLogs {
+					durationMills += cast.ToInt(nodeLog.UseTime)
+					if len(nodeLogs) != key+1 {
+						totalToken += cast.ToInt(nodeLog.Output.LlmResult.PromptToken) + cast.ToInt(nodeLog.Output.LlmResult.CompletionToken)
+					}
+				}
+			}
+			list[key][`duration_mills`] = cast.ToString(durationMills)
+			list[key][`total_token`] = cast.ToString(totalToken)
+		}
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{
+		`list`:  list,
+		`total`: total,
+		`page`:  page,
+		`size`:  size,
+	}, nil))
 }

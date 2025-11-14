@@ -1,73 +1,254 @@
 <style lang="less" scoped>
-.knowledge-base-node {
-  .node-desc {
-    line-height: 22px;
-    font-size: 14px;
-    font-weight: 400;
-    color: var(--wf-color-text-2);
+.ai-dialogue-node {
+  .field-list {
+    .field-item {
+      display: flex;
+      margin-bottom: 8px;
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+    .field-item-label {
+      width: 60px;
+      line-height: 22px;
+      margin-right: 8px;
+      font-size: 14px;
+      font-weight: 400;
+      color: #262626;
+      text-align: right;
+    }
+    .field-item-content {
+      flex: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .library-item {
+      display: flex;
+      align-items: center;
+      line-height: 16px;
+      padding: 3px 4px;
+      border-radius: 4px;
+      border: 1px solid #d9d9d9;
+      color: #595959;
+      background: #fff;
+    }
+    .field-value {
+      display: flex;
+      align-items: center;
+      line-height: 16px;
+      padding: 3px 4px;
+      border-radius: 4px;
+      font-size: 12px;
+      border: 1px solid #d9d9d9;
+      color: #595959;
+      background: #fff;
+
+      &.is-required .field-key::before{
+        content: '*';
+        color: #FB363F;
+        display: inline-block;
+        margin-right: 2px;
+      }
+
+      .field-type {
+        padding: 1px 8px;
+        margin-left: 4px;
+        border-radius: 4px;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 400;
+        background: #e4e6eb;
+      }
+    }
   }
 }
 </style>
 
 <template>
   <node-common
-    :title="properties.node_name"
+    :title="props.properties.node_name"
     :menus="menus"
-    :icon-name="properties.node_icon_name"
-    :isSelected="isSelected"
-    :isHovered="isHovered"
-    :node-key="properties.node_key"
-    :node_type="properties.node_type"
-    @handleMenu="handleMenu"
+    :icon-name="props.properties.node_icon_name"
+    :isSelected="props.isSelected"
+    :isHovered="props.isHovered"
+    :node-key="props.properties.node_key"
+    :node_type="props.properties.node_type"
+    style="width: 420px;"
   >
-    <div class="knowledge-base-node">
-      <div class="node-desc">
-        从指定知识库中检索相关的分段，点击召回设置可以规定检索数据的条数和相似度阈值
+    <div class="ai-dialogue-node">
+      <div class="field-list">
+        <div class="field-item">
+          <div class="field-item-label">用户问题</div>
+          <div class="field-item-content">
+            <div class="field-value">
+              <user-question-text ref="questionTextRef" :value="formState.question_value" />
+            </div>
+          </div>
+        </div>
+
+        <div class="field-item">
+          <div class="field-item-label">输出字段</div>
+          <div class="field-item-content">
+            <div class="field-value is-required">
+              <span class="field-key">知识库引用</span>
+              <span class="field-type">string</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-item">
+          <div class="field-item-label">知识库</div>
+          <div class="field-item-content">
+            <div class="library-item" v-for="item in selectedLibraryRows" :key="item.id">{{ item.library_name }}</div>
+          </div>
+        </div>
       </div>
-      <FormBlock @setData="handleSetData" :properties="properties" />
     </div>
   </node-common>
 </template>
 
-<script>
+<script setup>
+import { ref, reactive, watch, onMounted, inject, nextTick, onBeforeUnmount, computed } from 'vue'
 import NodeCommon from '../base-node.vue'
-import FormBlock from './form-block.vue'
-export default {
-  name: 'KnowledgeBaseNode',
-  components: {
-    NodeCommon,
-    FormBlock
-  },
-  inject: ['getNode', 'getGraph', 'setData'],
-  props: {
-    properties: {
-      type: Object,
-      default() {
-        return {}
-      }
-    },
-    isSelected: { type: Boolean, default: false },
-    isHovered: { type: Boolean, default: false }
-  },
-  data() {
-    return {
-      menus: [{ name: '删除', key: 'delete', color: '#fb363f' }]
-    }
-  },
-  methods: {
-    handleMenu(item) {
-      if (item.key === 'delete') {
-        let node = this.getNode()
+import UserQuestionText from '../user-question-text.vue'
+import { getLibraryList } from '@/api/library/index'
 
-        this.getGraph().deleteNode(node.id)
-      }
-    },
-    handleSetData(data) {
-      this.setData({
-        ...data
-      })
-    }
+const props = defineProps({
+  properties: {
+    type: Object,
+    default: () => ({})
   },
-  mounted() {}
+  isSelected: { type: Boolean, default: false },
+  isHovered: { type: Boolean, default: false }
+})
+
+const setData = inject('setData')
+const graphModel = inject('getGraph')
+const getNode = inject('getNode')
+const resetSize = inject('resetSize')
+
+// --- Store ---
+
+// --- State ---
+const questionTextRef = ref(null)
+const menus = ref([])
+const formState = reactive({
+  library_ids: [],
+  rerank_status: 0,
+  rerank_use_model: undefined,
+  rerank_model_config_id: void 0,
+  top_k: 5,
+  similarity: 0.5,
+  search_type: 1,
+  question_value: []
+})
+
+const variableOptions = ref([])
+
+function formatQuestionValue(val) {
+  if (val) {
+    let lists = val.split('.')
+    let str1 = lists[0]
+    let str2 = lists.filter((item, index) => index > 0).join('.')
+    return [str1, str2]
+  }
+  return ['global', 'question']
 }
+
+const reset = () => {
+  const dataRaw = props.properties.dataRaw || props.properties.node_params || '{}'
+  let libs = {}
+  try {
+    libs = JSON.parse(dataRaw).libs || {}
+  } catch (e) {
+    libs = {}
+  }
+
+  getVlaueVariableList()
+
+  libs = JSON.parse(JSON.stringify(libs))
+
+  for (let key in libs) {
+    if (key == 'library_ids') {
+      formState[key] = libs[key] ? libs[key].split(',') : []
+    } else if (key == 'question_value') {
+      formState.question_value = formatQuestionValue(libs['question_value'])
+    } else {
+      formState[key] = libs[key]
+    }
+  }
+
+  nextTick(() => {
+    resetSize()
+  })
+}
+
+const update = () => {
+  const data = JSON.stringify({
+    libs: {
+      ...formState,
+      rerank_model_config_id: formState.rerank_model_config_id
+        ? +formState.rerank_model_config_id
+        : void 0,
+      question_value: formState.question_value.join('.'),
+      library_ids: formState.library_ids.join(',')
+    }
+  })
+
+  setData({
+    ...props.node,
+    ...formState,
+    node_params: data
+  })
+}
+
+const libraryList = ref([])
+const selectedLibraryRows = computed(() => {
+  return libraryList.value.filter((item) => {
+    return formState.library_ids.includes(item.id)
+  })
+})
+// 获取知识库
+const getList = async () => {
+  const res = await getLibraryList({ type: '' })
+  if (res) {
+    libraryList.value = res.data || []
+
+    nextTick(() => {
+      resetSize()
+    })
+  }
+}
+
+const getVlaueVariableList = () => {
+  let list = getNode().getAllParentVariable()
+
+  variableOptions.value = list
+}
+
+const onUpatateNodeName = () => {
+  getVlaueVariableList()
+
+  update()
+
+  questionTextRef.value.refresh()
+}
+
+watch(() => props.properties, reset, { deep: true })
+
+onMounted(() => {
+  getList()
+
+  reset()
+  const mode = graphModel()
+
+  mode.eventCenter.on('custom:setNodeName', onUpatateNodeName)
+})
+
+onBeforeUnmount(() => {
+  const mode = graphModel()
+
+  mode.eventCenter.off('custom:setNodeName', onUpatateNodeName)
+})
 </script>

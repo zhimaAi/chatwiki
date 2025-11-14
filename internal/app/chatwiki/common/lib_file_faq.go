@@ -275,14 +275,15 @@ func ExportFAQFileAllQA(list []msql.Params, ext, source string) (string, error) 
 		filepath := fileSavePath + `/` + md[:2] + `/` + md[2:] + `.docx`
 		return filepath, doc.Save(filepath)
 	} else {
-		fields := tool.Fields{{Field: "question", Header: "问题"}, {Field: "similar_questions", Header: "相似问法"}, {Field: "answer", Header: "答案"}}
+		fields := tool.Fields{{Field: "group_name", Header: "问答分组"}, {Field: "question", Header: "问题"}, {Field: "similar_questions", Header: "相似问法"}, {Field: "answer", Header: "答案"}}
 		data := make([]map[string]any, len(list))
 		for idx, params := range list {
 			for _, imgUrl := range DisposeStringList(params[`images`]) {
 				params[`answer`] += fmt.Sprintf("\r\n{{!!%s!!}}", imgUrl)
 			}
 			data[idx] = map[string]any{
-				`question`: params[`question`], `answer`: params[`answer`],
+				`group_name`: params[`group_name`],
+				`question`:   params[`question`], `answer`: params[`answer`],
 				`similar_questions`: strings.Join(DisposeStringList(params[`similar_questions`]), "\r\n"),
 			}
 		}

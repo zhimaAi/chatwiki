@@ -387,26 +387,26 @@ export function convertTime(input) {
 
 export function formateDepartmentData(data, level = 0) {
   if (!Array.isArray(data)) return data;
-  
+
   return data.map(item => {
     // 创建新对象，避免修改原数据
     const newItem = { ...item };
-    
+
     // 添加 level 字段
     newItem.level = level;
-    
+
     // 添加 key 和 title
     newItem.key = newItem.id;
     newItem.title = newItem.department_name;
-    
+
     // 处理 children 和 user_data
     newItem.children = [];
-    
+
     // 如果有子部门，递归处理，层级+1
     if (item.children && Array.isArray(item.children)) {
       newItem.children = formateDepartmentData(item.children, level + 1);
     }
-    
+
     // 添加用户数据到 children
     // if (item.user_data && Array.isArray(item.user_data)) {
     //   const users = item.user_data.map(user => ({
@@ -423,7 +423,7 @@ export function formateDepartmentData(data, level = 0) {
     //   }));
     //   newItem.children = [...newItem.children, ...users];
     // }
-    
+
     return newItem;
   });
 }
@@ -433,20 +433,20 @@ export function formateDepartmentCascaderData(data, level = 0, path) {
   return data.map(item => {
     // 创建新对象，避免修改原数据
     const newItem = { ...item };
-    
+
     // 添加 level 字段
     newItem.level = level;
-    
+
     // 添加 key 和 title
     newItem.key = newItem.id;
     newItem.title = newItem.department_name;
     newItem.label = newItem.department_name
     newItem.value = newItem.key
     newItem.path = path ? [...path, item.id] : [item.id];
-    
+
     // 处理 children 和 user_data
     newItem.children = [];
-    
+
     // 如果有子部门，递归处理，层级+1
     if (item.children && Array.isArray(item.children)) {
       newItem.children = formateDepartmentCascaderData(item.children, level + 1, [...newItem.path]);
@@ -455,6 +455,28 @@ export function formateDepartmentCascaderData(data, level = 0, path) {
   });
 }
 
+export function jsonDecode(json, nullVal = null) {
+  try {
+    return JSON.parse(json)
+  } catch (e) {
+    return nullVal
+  }
+}
+
+
+export function base64ToFile(base64, filename) {
+  const arr = base64.split(',');
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+
+  return new File([u8arr], filename, { type: mime });
+}
 
 export function getDateRangePresets() {
   return [
@@ -516,4 +538,38 @@ export function formatSeparatorsNo(data, defaultValue) {
   } else {
     return data.split(',').map(item => +item)
   }
+}
+
+export function timeNowGapFormat(timestamp = null) {
+  if (timestamp == null) timestamp = Number(new Date());
+  timestamp = parseInt(timestamp);
+  // 判断用户输入的时间戳是秒还是毫秒,一般前端js获取的时间戳是毫秒(13位),后端传过来的为秒(10位)
+  if (timestamp.toString().length == 10) timestamp *= 1000;
+  var timer = new Date().getTime() - timestamp;
+  timer = parseInt(timer / 1000);
+  // 如果小于1分钟,则返回"刚刚",其他以此类推
+  let tips = "";
+  switch (true) {
+    case timer < 10:
+      tips = "刚刚";
+      break;
+    case timer >= 10 && timer < 60:
+      tips = timer + "秒前";
+      break;
+    case timer >= 60 && timer < 3600:
+      tips = parseInt(timer / 60) + "分钟前";
+      break;
+    case timer >= 3600 && timer < 86400:
+      tips = parseInt(timer / 3600) + "小时前";
+      break;
+    case timer >= 86400 && timer < 2592000:
+      tips = parseInt(timer / 86400) + "天前";
+      break;
+    case timer >= 2592000 && timer < 365 * 86400:
+      tips = parseInt(timer / (86400 * 30)) + "个月前";
+      break;
+    case timer >= 86400:
+      tips = filters.getToDate(timestamp, "monthTime");
+  }
+  return tips;
 }

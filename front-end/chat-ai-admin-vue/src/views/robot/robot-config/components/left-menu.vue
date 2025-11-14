@@ -201,6 +201,19 @@ const baseItems = [
     title: '导出记录',
     path: '/robot/config/export-record',
     menuIn: ['0', '1']
+  },
+  {
+    key: 'invoke-logs',
+    id: 'invoke-logs',
+    icon: () =>
+      h(SvgIcon, {
+        name: 'doc-file',
+        class: 'menu-icon'
+      }),
+    label: '调用日志',
+    title: '调用日志',
+    path: '/robot/config/invoke-logs',
+    menuIn: ['1']
   }
 ]
 

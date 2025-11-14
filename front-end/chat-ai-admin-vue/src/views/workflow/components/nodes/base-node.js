@@ -14,7 +14,7 @@ function transformArray(arr, parent) {
 
     let value = ''
     let original_value = ''
-    
+
     if(node_type == 1){
       original_value = `global.${text}`
     }else{
@@ -40,7 +40,7 @@ function transformArray(arr, parent) {
       typ: item.typ,
       children: children || [],
     }
-    
+
     // 递归处理子节点
     if (data.children && data.children.length > 0) {
       data.children = transformArray(data.children, data)
@@ -69,7 +69,32 @@ export class BaseVueNodeView extends HtmlNode {
       provide: () => ({
         getNode: () => props.model,
         getGraph: () => props.graphModel,
+        resetSize: () => {
+          if (this.r && this.r.el){
+            // 获取高度
+            let  height = this.r.el.clientHeight
+            let  width = this.r.el.clientWidth
+            props.model.properties = {
+              ...props.model.properties,
+              width: width,
+              height: height,
+            }
+
+            props.model._width = width
+            props.model._height = height
+
+            // 视图变化  边的线位置更新
+            props.model.refreshBranch() 
+
+            props.graphModel.eventCenter.emit('custom:setData',  props.model)
+          }
+        },
+        updateAnchorList: (anchorList) => {
+          props.model.properties.anchorList = anchorList
+        },
         setData: (data) => {
+          data.dataRaw = data.node_params;
+          
           nextTick(() => {
             props.model.properties = {
               ...props.model.properties,
@@ -77,7 +102,7 @@ export class BaseVueNodeView extends HtmlNode {
             }
             // 获取高度
             let height = null
-      
+
             if (this.r && this.r.el){
               height = this.r.el.clientHeight
             }
@@ -92,13 +117,15 @@ export class BaseVueNodeView extends HtmlNode {
           props.model.properties.node_name = title;
 
           props.graphModel.eventCenter.emit('custom:setNodeName',  {
-            node_name: title, 
+            node_name: title,
             node_id: props.model.id,
             node_type: props.model.type
           })
         }
       }),
-      mounted: () => {},
+      mounted: () => {
+        // console.log('vue node mounted')
+      },
     })
   }
 
@@ -261,9 +288,16 @@ export class BaseVueNodeModel extends HtmlNodeModel {
   initNodeData(data) {
     this.width = data.properties.width
     this.height = data.properties.height
+    // 实现锚点的常显、常隐以及其他动作
+    // this.isShowAnchor = true;
 
     super.initNodeData(data)
   }
+
+  // 实现锚点的常显、常隐以及其他动作
+  // setIsShowAnchor( ){
+  //   this.isShowAnchor = true
+  // }
 
   getAnchorLineStyle() {
     const style = super.getAnchorLineStyle()
@@ -291,7 +325,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         all_global: [],
       }
     }
-    
+
     let node_params = JSON.parse(startNode.properties.node_params)
 
     let data = {
@@ -299,7 +333,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
       diy_global: node_params.start.diy_global,
       all_global: [...node_params.start.sys_global, ...node_params.start.diy_global],
     }
-  
+
     return data
   }
 
@@ -318,7 +352,8 @@ export class BaseVueNodeModel extends HtmlNodeModel {
       'specify-reply-node',
       'problem-optimization-node',
       'select-data-node',
-      'code-run-node'
+      'code-run-node',
+      'mcp-node'
     ]
 
     let startNode = nodes.find((node) => node.type === 'start-node')
@@ -345,7 +380,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         traverseParents(node.incoming.edges);
       }
     };
-    
+
     // 获取所有父节点
     traverseParents(edges);
 
@@ -359,7 +394,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
       }
 
       let node_params = JSON.parse(node.properties.node_params)
-  
+
       let obj = {
         label: node.properties.node_name,
         value: node.id,
@@ -434,6 +469,15 @@ export class BaseVueNodeModel extends HtmlNodeModel {
           label: '问题优化结果',
         }]
       }
+      
+      if(node.type === 'mcp-node'){
+        obj.children = [{
+          key: 'special.mcp_reply_content',
+          typ: 'string',
+          name: 'text',
+          label: '工具生成的内容',
+        }]
+      }
 
 
       obj.children.forEach(variable => {
@@ -443,7 +487,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
       })
 
       obj.children = transformArray(obj.children, null)
-      
+
       variableArr.push(obj)
     }
 

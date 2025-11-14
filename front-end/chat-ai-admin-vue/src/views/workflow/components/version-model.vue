@@ -38,7 +38,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import { workFlowNextVersion, workFlowPublishVersion } from '@/api/robot/index'
 import { message } from 'ant-design-vue'
 import { useRoute } from 'vue-router'

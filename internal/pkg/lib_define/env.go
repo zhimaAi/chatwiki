@@ -8,6 +8,8 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
+var IsDev bool
+
 const ElectronPath = `front-end/chat-ai-electron/`
 
 func GetElectronVersion() (version string) {

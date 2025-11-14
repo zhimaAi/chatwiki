@@ -1,0 +1,140 @@
+.mt16 {
+  margin-top: 16px;
+}
+.mt12 {
+  margin-top: 12px;
+}
+.mt8 {
+  margin-top: 8px;
+}
+.question-icon {
+  color: #8c8c8c;
+}
+.form-tip {
+  margin-top: 2px;
+  color: #8c8c8c;
+  font-size: 14px;
+  line-height: 22px;
+}
+.diy-form-item {
+  .form-label {
+    color: #262626;
+    font-size: 14px;
+    line-height: 22px;
+    font-weight: 400;
+  }
+  .form-content {
+    color: #595959;
+    font-size: 14px;
+    line-height: 22px;
+    margin-top: 4px;
+  }
+}
+::v-deep(.ant-form-item) {
+  margin-bottom: 12px;
+}
+::v-deep(.ant-form-item-label) {
+  padding: 0 0 4px;
+  label {
+    color: #262626;
+  }
+}
+.line-height-22 {
+  line-height: 22px;
+  ::v-deep(.ant-form-item-control-input) {
+    min-height: 22px;
+  }
+}
+.array-form-box {
+  margin-bottom: 12px;
+}
+.array-form-box ::v-deep(.ant-form-item) {
+  margin-bottom: 4px;
+}
+.flex-block-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.flex1 {
+  flex: 1;
+}
+.btn-hover-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease-in;
+  &:hover {
+    background: #e4e6eb;
+  }
+}
+.gray-block {
+  border-radius: 6px;
+  background: var(--09, #f2f4f7);
+  padding: 12px;
+  .gray-block-title {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #262626;
+    line-height: 22px;
+    font-weight: 600;
+  }
+  .icon {
+    cursor: grab;
+  }
+}
+
+.field-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #595959;
+  .field-type {
+    width: fit-content;
+    padding: 1px 8px;
+    border-radius: 6px;
+    border: 1px solid #00000026;
+    background: var(--10, #fff);
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+  }
+}
+
+.options-item {
+  margin-top: 12px;
+  height: 22px;
+  line-height: 22px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  .option-label {
+    color: var(--wf-color-text-1);
+    font-size: 14px;
+    &::before {
+      content: '*';
+      color: #fb363f;
+      display: inline-block;
+      margin-right: 2px;
+    }
+  }
+  .option-type {
+    height: 22px;
+    width: fit-content;
+    padding: 0 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    background-color: #fff;
+    color: var(--wf-color-text-3);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+  }
+}

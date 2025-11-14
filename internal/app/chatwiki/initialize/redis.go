@@ -4,6 +4,7 @@ package initialize
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_define"
 	"context"
 
 	"github.com/go-redis/redis/v8"
@@ -18,4 +19,5 @@ func initRedis() {
 		logs.Error(err.Error())
 		panic(`Redis Ping Error`)
 	}
+	lib_define.Redis = define.Redis //pkg
 }

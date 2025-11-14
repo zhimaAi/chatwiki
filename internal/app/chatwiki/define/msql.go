@@ -2,7 +2,9 @@
 
 package define
 
-const Postgres = `postgres`
+import "chatwiki/internal/pkg/lib_define"
+
+const Postgres = lib_define.Postgres
 
 const (
 	DefaultRoleRoot  = "所有者"
@@ -97,6 +99,16 @@ const (
 
 const (
 	OpenLibraryDefault = `default`
+)
+
+const (
+	McpServerPublished = 1
+	McpServerDraft     = 0
+)
+
+const (
+	McpClientTypeSse  = 1
+	McpClientTypeHttp = 2
 )
 
 const DefaultLibDocBanner = `/upload/default/open_doc_home_default_banner.png`

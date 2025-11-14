@@ -544,7 +544,7 @@ const getFileInfo = async () => {
         ...formData,
         separators_no: res.data.normal_chunk_default_separators_no,
         chunk_size: +res.data.normal_chunk_default_chunk_size,
-        not_merged_text: data.normal_chunk_default_not_merged_text == 'true',
+        not_merged_text: res.data.normal_chunk_default_not_merged_text == 'true',
         chunk_overlap: +res.data.normal_chunk_default_chunk_overlap,
         chunk_type: +res.data.default_chunk_type,
         semantic_chunk_size: +res.data.semantic_chunk_default_chunk_size,

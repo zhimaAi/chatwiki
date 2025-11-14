@@ -7,8 +7,10 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_define"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mark3labs/mcp-go/mcp"
 	"net/http"
 	"net/url"
 	"strings"
@@ -42,6 +44,7 @@ const (
 	NodeTypeFormUpdate       = 15 //数据表单更新
 	NodeTypeFormSelect       = 16 //数据表单查询
 	NodeTypeCodeRun          = 17 //代码运行
+	NodeTypeMcp              = 20 //MCP
 )
 
 var NodeTypes = [...]int{
@@ -64,6 +67,7 @@ var NodeTypes = [...]int{
 	NodeTypeFormUpdate,
 	NodeTypeFormSelect,
 	NodeTypeCodeRun,
+	NodeTypeMcp,
 }
 
 type NodeAdapter interface {
@@ -125,6 +129,8 @@ func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, ms
 		return &FormSelectNode{params: nodeParams.FormSelect, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeCodeRun:
 		return &CodeRunNode{params: nodeParams.CodeRun, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeMcp:
+		return &McpNode{params: nodeParams.Mcp, nextNodeKey: info[`next_node_key`]}, info, nil
 	default:
 		return nil, info, errors.New(`不支持的节点类型:` + info[`node_type`])
 	}
@@ -227,6 +233,8 @@ func (n *CateNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 		nextNodeKey = n.nextNodeKey
 		return
 	}
+	output[`llm_result.completion_token`] = common.SimpleField{Key: `llm_result.completion_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &chatResp.CompletionToken}}}
+	output[`llm_result.prompt_token`] = common.SimpleField{Key: `llm_result.prompt_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &chatResp.PromptToken}}}
 	number, err := cast.ToIntE(chatResp.Result)
 	if err != nil || number < 0 || number > len(n.params.Categorys) {
 		flow.Logs(`llm返回超出预期:` + chatResp.Result)
@@ -425,6 +433,9 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 	llmTime := int(requestTime)
 	output[`special.llm_request_time`] = common.SimpleField{Key: `special.llm_request_time`, Typ: common.TypNumber, Vals: []common.Val{{Number: &llmTime}}}
 	output[`special.llm_reply_content`] = common.SimpleField{Key: `special.llm_reply_content`, Typ: common.TypString, Vals: []common.Val{{String: &chatResp.Result}}}
+	output[`special.mcp_reply_content`] = common.SimpleField{Key: `special.mcp_reply_content`, Typ: common.TypString, Vals: []common.Val{{String: &chatResp.Result}}}
+	output[`llm_result.completion_token`] = common.SimpleField{Key: `llm_result.completion_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &chatResp.CompletionToken}}}
+	output[`llm_result.prompt_token`] = common.SimpleField{Key: `llm_result.prompt_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &chatResp.PromptToken}}}
 	nextNodeKey = n.nextNodeKey
 	return
 }
@@ -546,6 +557,8 @@ func (n *QuestionOptimizeNode) Running(flow *WorkFlow) (output common.SimpleFiel
 	llmTime := int(requestTime)
 	output[`special.question_optimize_request_time`] = common.SimpleField{Key: `special.question_optimize_request_time`, Typ: common.TypNumber, Vals: []common.Val{{Number: &llmTime}}}
 	output[`special.question_optimize_reply_content`] = common.SimpleField{Key: `special.question_optimize_reply_content`, Typ: common.TypString, Vals: []common.Val{{String: &chatResp.Result}}}
+	output[`llm_result.completion_token`] = common.SimpleField{Key: `llm_result.completion_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &chatResp.CompletionToken}}}
+	output[`llm_result.prompt_token`] = common.SimpleField{Key: `llm_result.prompt_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &chatResp.PromptToken}}}
 	nextNodeKey = n.nextNodeKey
 	return
 }
@@ -638,6 +651,8 @@ func (n *ParamsExtractorNode) Running(flow *WorkFlow) (outputs common.SimpleFiel
 
 	llmTime := int(requestTime)
 	outputs[`special.params_extractor_request_time`] = common.SimpleField{Key: `special.params_extractor_request_time`, Typ: common.TypNumber, Vals: []common.Val{{Number: &llmTime}}}
+	outputs[`llm_result.completion_token`] = common.SimpleField{Key: `llm_result.completion_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &chatResp.CompletionToken}}}
+	outputs[`llm_result.prompt_token`] = common.SimpleField{Key: `llm_result.prompt_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &chatResp.PromptToken}}}
 	nextNodeKey = n.nextNodeKey
 	return
 }
@@ -860,6 +875,73 @@ func (n *CodeRunNode) Running(flow *WorkFlow) (output common.SimpleFields, nextN
 		return //结果解析异常
 	}
 	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+type McpNode struct {
+	params      McpNodeParams
+	nextNodeKey string
+}
+
+func (n *McpNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	flow.Logs(`执行MCP逻辑...`)
+
+	for s, a := range n.params.Arguments {
+		n.params.Arguments[s] = flow.VariableReplace(cast.ToString(a))
+	}
+
+	// 从数据库获取配置
+	provider, err := msql.Model(`mcp_provider`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(flow.params.AdminUserId)).
+		Where(`id`, cast.ToString(n.params.ProviderId)).
+		Find()
+	if err != nil {
+		return nil, "", err
+	}
+
+	// 获取工具
+	var toolList []mcp.Tool
+	err = json.Unmarshal([]byte(provider[`tools`]), &toolList)
+	if err != nil {
+		return nil, "", err
+	}
+	var selectedTool mcp.Tool
+	found := false
+	for _, t := range toolList {
+		if t.Name == n.params.ToolName {
+			selectedTool = t
+			found = true
+		}
+	}
+	if !found {
+		return nil, "", errors.New("没有找到对应的工具")
+	}
+
+	// 超时配置
+	timeout := time.Duration(cast.ToUint(provider["request_timeout"])) * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	// 初始化mcp客户端
+	mcpClient, err := common.NewMcpClient(ctx, cast.ToInt(provider[`client_type`]), provider[`url`], provider[`headers`])
+	if err != nil {
+		return nil, "", fmt.Errorf("mcp客户端初始化失败: %v", err.Error())
+	}
+	result, err := common.CallTool(ctx, mcpClient, selectedTool, n.params.Arguments)
+	if err != nil {
+		return nil, "", fmt.Errorf("调用mcp工具出错: %v", err.Error())
+	}
+
+	// 构建 output
+	output = common.SimpleFields{
+		`special.mcp_reply_content`: common.SimpleField{
+			Key:  `special.mcp_reply_content`,
+			Typ:  common.TypString,
+			Vals: []common.Val{{String: &result}},
+		},
+	}
+
 	nextNodeKey = n.nextNodeKey
 	return
 }

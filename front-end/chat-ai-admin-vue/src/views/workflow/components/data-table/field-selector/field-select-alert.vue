@@ -159,7 +159,7 @@ const handleOk = () => {
 }
 
 const loading = ref(false)
-const getList = (selectedRowKeys) => {
+const getList = () => {
   loading.value = true
   dataTableStore.getFormFieldList({ form_id: state.formId})
     .then((list) => {

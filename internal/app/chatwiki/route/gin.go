@@ -17,6 +17,7 @@ func init() {
 	Route = make(map[string]map[string]lib_web.Action)
 	Route[http.MethodGet] = make(map[string]lib_web.Action)
 	Route[http.MethodPost] = make(map[string]lib_web.Action)
+	Route[http.MethodDelete] = make(map[string]lib_web.Action)
 	Route[lib_web.NoMethod] = make(map[string]lib_web.Action)
 	Route[lib_web.NoRoute] = make(map[string]lib_web.Action)
 	//step2:define route
@@ -216,6 +217,12 @@ func init() {
 	Route[http.MethodGet][`/manage/stats/token/appChart`] = manage.StatTokenAppChart
 	Route[http.MethodGet][`/manage/stats/analyse`] = manage.StatAnalyse
 	Route[http.MethodGet][`/manage/stats/statAiTipAnalyse`] = manage.StatAiTipAnalyse
+	/* token limit */
+	Route[http.MethodPost][`/manage/token/limit/create`] = manage.TokenLimitCreate
+	Route[http.MethodPost][`/manage/token/limit/list`] = manage.TokenLimitList
+	Route[http.MethodPost][`/manage/token/limit/switch`] = manage.TokenLimitSwitch
+
+	Route[http.MethodGet][`/manage/stats/workflowLogs`] = manage.WorkflowLogs
 	/*debug API*/
 	Route[http.MethodPost][`/manage/getDialogueList`] = manage.GetDialogueList
 	Route[http.MethodPost][`/manage/libraryRecallTest`] = manage.LibraryRecallTest
@@ -343,6 +350,26 @@ func init() {
 	Route[http.MethodPost][`/manage/statLibrarySort`] = manage.StatLibrarySort
 	Route[http.MethodPost][`/manage/statLibraryDataRobotDetail`] = manage.StatLibraryDataRobotDetail
 	Route[http.MethodPost][`/manage/statLibraryRobotDetail`] = manage.StatLibraryRobotDetail
+	/* MCP Server */
+	Route[http.MethodGet][`/manage/getMcpServerList`] = manage.GetMcpServerList
+	Route[http.MethodPost][`/manage/saveMcpServer`] = manage.SaveMcpServer
+	Route[http.MethodPost][`/manage/updateMcpServerPublishStatus`] = manage.UpdateMcpServerPublishStatus
+	Route[http.MethodPost][`/manage/deleteMcpServer`] = manage.DeleteMcpServer
+	Route[http.MethodPost][`/manage/saveMcpTool`] = manage.SaveMcpTool
+	Route[http.MethodPost][`/manage/editMcpTool`] = manage.EditMcpTool
+	Route[http.MethodPost][`/manage/deleteMcpTool`] = manage.DeleteMcpTool
+	/* stat library tip */
+	Route[http.MethodPost][`/manage/statLibraryTotal`] = manage.StatLibraryTotal
+	Route[http.MethodPost][`/manage/statLibraryDataSort`] = manage.StatLibraryDataSort
+	Route[http.MethodPost][`/manage/statLibrarySort`] = manage.StatLibrarySort
+	Route[http.MethodPost][`/manage/statLibraryDataRobotDetail`] = manage.StatLibraryDataRobotDetail
+	Route[http.MethodPost][`/manage/statLibraryRobotDetail`] = manage.StatLibraryRobotDetail
+	/* MCP Provider */
+	Route[http.MethodGet][`/manage/getMcpProviderList`] = manage.GetMcpProviderList
+	Route[http.MethodGet][`/manage/getMcpProviderDetail`] = manage.GetMcpProviderDetail
+	Route[http.MethodPost][`/manage/saveMcpProvider`] = manage.SaveMcpProvider
+	Route[http.MethodPost][`/manage/authMcpProvider`] = manage.AuthMcpProvider
+	Route[http.MethodPost][`/manage/deleteMcpProvider`] = manage.DeleteMcpProvider
 }
 
 func noAuthFuns(route map[string]lib_web.Action, path string, handlerFunc lib_web.Action) map[string]lib_web.Action {
