@@ -49,14 +49,14 @@ class VueHtmlNodeModel extends BaseVueNodeModel {
     let defaultAnchor = [
       {
         x: x - width / 2,
-        y: y - height / 2 + 24,
+        y: y - height / 2 + 26,
         id: nodeSortKey + '-anchor_left',
         type: 'left',
         nodeId: id,
       },
       {
         x: x + width / 2,
-        y: y - height / 2 + 24,
+        y: y - height / 2 + 26,
         id: nodeSortKey + '-anchor_right',
         type: 'right',
         nodeId: id,

@@ -173,7 +173,7 @@
 import { computed, inject, ref, watch, reactive, onMounted } from 'vue'
 import { PlusOutlined, DownOutlined } from '@ant-design/icons-vue'
 import { FIELD_TYPE_RULES, getFilterRulesByType } from '@/constants/database'
-import AtInput from '../nodes/at-input/at-input.vue'
+import AtInput from '../at-input/at-input.vue'
 
 const emit = defineEmits(['change', 'changeType'])
 

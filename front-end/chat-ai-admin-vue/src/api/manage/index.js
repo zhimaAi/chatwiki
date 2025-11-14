@@ -194,3 +194,24 @@ export const tokenAppChart = (params = {}) => {
     params: params
   })
 }
+
+export const tokenLimitList = (data = {}) => {
+  return request.post({
+    url: '/manage/token/limit/list',
+    data: data
+  })
+}
+
+export const tokenLimitCreate = (data = {}) => {
+  return request.post({
+    url: '/manage/token/limit/create',
+    data: data
+  })
+}
+
+export const tokenLimitSwitch = (data = {}) => {
+  return request.post({
+    url: '/manage/token/limit/switch',
+    data: data
+  })
+}

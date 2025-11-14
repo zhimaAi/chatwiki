@@ -19,6 +19,7 @@
     :node-key="properties.node_key"
     :node_type="properties.node_type"
     @handleMenu="handleMenu"
+    style="width: 420px; height: 94px;"
   >
     <div class="end-node">
       <div class="node-desc">触发该节点结束调用,并返回流程执行结果</div>
@@ -31,7 +32,7 @@ import NodeCommon from '../base-node.vue'
 
 export default {
   name: 'EndNode',
-  inject: ['getNode', 'getGraph', 'setData'],
+  inject: ['getNode', 'getGraph', 'setData', 'resetSize'],
   components: {
     NodeCommon
   },
@@ -47,17 +48,18 @@ export default {
   },
   data() {
     return {
-      menus: [{ name: '删除', key: 'delete', color: '#fb363f' }]
+      menus: []
     }
   },
+  mounted() {
+    this.$nextTick(() => {
+      this.resetSize()
+    })
+  },
   computed: {},
-
   methods: {
-    handleMenu(item) {
-      if (item.key === 'delete') {
-        let node = this.getNode()
-        this.getGraph().deleteNode(node.id)
-      }
+    handleMenu() {
+      
     }
   }
 }

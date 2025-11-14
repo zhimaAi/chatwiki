@@ -5,10 +5,10 @@ package business
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/wechat"
-	wechatCommon "chatwiki/internal/app/chatwiki/wechat/common"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
+	"chatwiki/internal/pkg/wechat"
+	wechatCommon "chatwiki/internal/pkg/wechat/common"
 	"fmt"
 	"strings"
 	"time"

@@ -191,7 +191,7 @@
           :key="item.value"
           @click="onMenuClick(item)"
         >
-          <a-tooltip placement="bottom" v-if="menuTooltip">
+          <a-tooltip placement="bottom" v-if="sidebarHide">
             <template #title>
               <span>{{ item.label }}</span>
             </template>
@@ -217,16 +217,12 @@ const route = useRoute()
 const activeMenuKey = computed(() => route.path.split('/')[3])
 const sidebarHide = ref(true)
 
-const menuTooltip = ref(false)
 
 const handleTooltipShow = ref(true)
 function onHandleClick() {
   sidebarHide.value = !sidebarHide.value
   handleTooltipShow.value = false
   globalStore.setHideLayoutTopAndBottom(sidebarHide.value)
-  setTimeout(() => {
-    menuTooltip.value = sidebarHide.value
-  }, 250)
 }
 
 const props = defineProps({
@@ -238,7 +234,7 @@ const props = defineProps({
 
 const menus = [
   {
-    label: '工作量编排',
+    label: '工作流编排',
     value: 'workflow',
     path: '/robot/config/workflow',
     iconName: 'workflow'
@@ -297,6 +293,12 @@ const menus = [
     value: 'export-record',
     path: '/robot/config/export-record',
     iconName: 'export-record'
+  },
+  {
+    label: '调用日志',
+    value: 'invoke-logs',
+    path: '/robot/config/invoke-logs',
+    iconName: 'doc-file'
   }
 ]
 

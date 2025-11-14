@@ -4,7 +4,9 @@ package initialize
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_define"
 	"flag"
+
 	"github.com/zhimaAi/go_tools/logs"
 )
 
@@ -13,6 +15,7 @@ const usage = `false is pro,true is dev,default run dev`
 func Initialize() {
 	//get run env
 	flag.BoolVar(&define.IsDev, `IsDev`, true, usage)
+	lib_define.IsDev = define.IsDev //pkg
 	flag.Parse()
 	if define.IsDev {
 		logs.SetTerminal(true)

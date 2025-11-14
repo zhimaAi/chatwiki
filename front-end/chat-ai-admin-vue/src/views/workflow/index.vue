@@ -35,6 +35,7 @@
 <template>
   <div class="workflow-page">
     <PageHeader
+      ref="pageHeaderRef"
       @edit="handleEdit"
       @save="handleSave"
       @release="handleRelease"
@@ -53,6 +54,7 @@
           ref="workflowCanvasRef"
           @selectedNode="handleSelectedNode"
           @deleteNode="handleDeleteNode"
+          @runTest="handleRunTest"
         />
       </div>
     </div>
@@ -63,7 +65,9 @@
 </template>
 
 <script setup>
-import { getNodeList, saveNodes, workFlowVersions } from '@/api/robot/index'
+import { duplicateRemoval, removeRepeat } from '@/utils/index'
+import { getModelConfigOption } from '@/api/model/index'
+import { getNodeList, saveNodes } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
 import { generateUniqueId } from '@/utils/index'
 import { onMounted, ref, onUnmounted } from 'vue'
@@ -78,9 +82,6 @@ import { getNodeTypes } from './components/node-list'
 import VersionModel from './components/version-model.vue'
 import PublishDetail from './components/publish-detail.vue'
 
-import { duplicateRemoval, removeRepeat } from '@/utils/index'
-import { getModelConfigOption } from '@/api/model/index'
-
 const route = useRoute()
 const robot_key = ref(route.query.robot_key)
 
@@ -90,66 +91,71 @@ const workflowCanvasRef = ref(null)
 const robotStore = useRobotStore()
 
 const currentVersion = ref('')
+const pageHeaderRef = ref(null)
 
 // const nodes = []
 const nodeTypes = getNodeTypes()
 
-function getNode(list) {
+function setWorkflowData(list) {
   list = list || []
   let nodes = []
   let edges = []
 
-    list.forEach((item) => {
-      // 边数据处理
-      if (item.node_type == 0) {
-        let edge = JSON.parse(item.node_info_json)
+  list.forEach((item) => {
+    // 边数据处理
+    if (item.node_type == 0) {
+      let edge = JSON.parse(item.node_info_json)
 
-        edges.push(edge)
-      } else {
-        if(item.node_type == 1){
-          let node_params = JSON.parse(item.node_params)
-          
-          if(!node_params.start){
-            node_params.start = []
-          }
+      edges.push(edge)
+    } else {
+      const type = nodeTypes[item.node_type]
 
-          item.node_params = JSON.stringify(node_params)
+      item.type = type
+      // 节点处理
+      if(item.node_type == 1){
+        let node_params = JSON.parse(item.node_params)
+        
+        if(!node_params.start){
+          node_params.start = []
         }
-        // 节点数据处理
-        let node = JSON.parse(item.node_info_json)
 
-        if (item.node_type != 0) {
-          node.type = nodeTypes[item.node_type]
-          node.id = item.node_key || generateUniqueId(node.type)
-          node.x = node.x || 0
-          node.y = node.y || 0
-        }
+        item.node_params = JSON.stringify(node_params)
+      }
+      // 节点数据处理
+      let node = JSON.parse(item.node_info_json)
+
+      if (item.node_type != 0) {
+        node.type = nodeTypes[item.node_type]
+        node.id = item.node_key || generateUniqueId(node.type)
+        node.x = node.x || 0
+        node.y = node.y || 0
+      }
 
         if(item.node_type == -1){
           item.node_params = node.dataRaw
         }
 
-        if (!node.nodeSortKey) {
-          item.nodeSortKey = node.id.substring(0, 8) + node.id.substring(node.id.length - 8)
-        } else {
-          item.nodeSortKey = node.nodeSortKey
-        }
-
-        item.dataRaw = node.dataRaw || item.node_params
-
-        // 删除不要的参数
-        delete item.node_info_json
-
-        // 设置 properties
-        node.properties = item
-        node.properties.width = node.width
-        node.properties.height = node.height
-
-        nodes.push(node)
+      if (!node.nodeSortKey) {
+        item.nodeSortKey = node.id.substring(0, 8) + node.id.substring(node.id.length - 8)
+      } else {
+        item.nodeSortKey = node.nodeSortKey
       }
-    })
 
-  setWorkflowData({ nodes: nodes, edges: edges })
+      item.dataRaw = node.dataRaw || item.node_params
+
+      // 删除不要的参数
+      delete item.node_info_json
+
+      // 设置 properties
+      node.properties = item
+      node.properties.width = node.width
+      node.properties.height = node.height
+
+      nodes.push(node)
+    }
+  })
+
+  setCanvasData({ nodes: nodes, edges: edges })
 }
 
 const toAddRobot = (val) => {
@@ -157,7 +163,7 @@ const toAddRobot = (val) => {
   addRobotAlertRef.value.open(val, true)
 }
 
-const setWorkflowData = (data) => {
+const setCanvasData = (data) => {
   workflowCanvasRef.value.setData(data)
 }
 
@@ -261,7 +267,6 @@ const getCanvasData = () => {
 
 const handleSave = (type) => {
   let list = getCanvasData()
-
   saveNodes({
     robot_key: robot_key.value,
     data_type: 1,
@@ -366,19 +371,17 @@ const handleRelease = async () => {
 }
 
 // 选择节点
-let selectedNode = ref(null)
+const selectedNode = ref(null)
 const handleSelectedNode = (data) => {
   selectedNode.value = data
   // 结束节点不支持编辑
   if (data.properties.node_sub_type == 51) {
     return
   }
-
 }
-
 // 删除节点
 const handleDeleteNode = () => {
-  
+
 }
 
 const getModelList = async () => {
@@ -410,6 +413,7 @@ const getModelList = async () => {
         children.push({
           name: ele,
           deployment_name: item.model_config.deployment_name,
+          show_model_name: item.model_config.show_model_name,
           id: item.model_config.id,
           model_define: item.model_info.model_define
         })
@@ -420,7 +424,8 @@ const getModelList = async () => {
         model_define: item.model_info.model_define,
         icon: item.model_info.model_icon_url,
         children: children,
-        deployment_name: item.model_config.deployment_name
+        deployment_name: item.model_config.deployment_name,
+        show_model_name: item.model_config.show_model_name,
       }
     })
 
@@ -440,7 +445,6 @@ const getGlobal = () => {
   if(start_node.length > 0){
     start_node_params.value = start_node[0].node_params.start
   }
-  console.log(start_node_params.value,'==')
 }
 
 const publishDetailRef = ref(null)
@@ -456,15 +460,20 @@ const setVersion = (data) => {
   currentVersion.value = ''
   clearInterval(timer)
   startTimer()
-  getNode(data)
+  setWorkflowData(data)
   handleSave('automatic')
 }
 
 const handlePreviewVersion = (data, version) => {
   currentVersion.value = version
   clearInterval(timer)
-  getNode(data)
+  setWorkflowData(data)
 }
+// 运行测试
+const handleRunTest = () => {
+  pageHeaderRef.value.openRunTest()
+}
+
 
 
 onMounted(async () => {
@@ -473,7 +482,7 @@ onMounted(async () => {
     robot_key: robot_key.value,
     data_type: 1
   })
-  getNode(res.data)
+  setWorkflowData(res.data)
   startTimer()
   if(route.query.show_tips){
     message.info('按住Shift 滚动鼠标可左右移动画布，按住Ctrl 滚动鼠标可放大缩小画布', 6)

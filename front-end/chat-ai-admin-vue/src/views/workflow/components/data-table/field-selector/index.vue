@@ -116,7 +116,7 @@
 import { ref, reactive, watch, inject, onMounted } from 'vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import FieldSelectAlert from './field-select-alert.vue'
-import AtInput from '../../nodes/at-input/at-input.vue'
+import AtInput from '../../at-input/at-input.vue'
 
 const emit = defineEmits(['change'])
 

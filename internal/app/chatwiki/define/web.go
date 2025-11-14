@@ -2,7 +2,9 @@
 
 package define
 
-import "net/http"
+import (
+	"net/http"
+)
 
 var WebService *http.Server
 

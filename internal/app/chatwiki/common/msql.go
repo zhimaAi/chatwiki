@@ -1187,3 +1187,35 @@ func DeleteLibraryFileDataIndex(dataIdList, vectorType string) error {
 	}
 	return err
 }
+
+type TokenAppLimitConfigCacheBuildHandler struct {
+	AdminUserId  int
+	TokenAppType string
+	RobotId      int
+}
+
+func (h *TokenAppLimitConfigCacheBuildHandler) GetCacheKey() string {
+	return fmt.Sprintf(`token.app.limit.config.%d.%s.%d`, h.AdminUserId, h.TokenAppType, h.RobotId)
+}
+func (h *TokenAppLimitConfigCacheBuildHandler) GetCacheData() (any, error) {
+	return msql.Model(`llm_token_app_limit`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(h.AdminUserId)).
+		Where(`token_app_type`, h.TokenAppType).Where(`robot_id`, cast.ToString(h.RobotId)).Find()
+}
+
+type TokenAppUseCacheBuildHandler struct {
+	AdminUserId  int
+	TokenAppType string
+	RobotId      int
+	DateYmd      string
+}
+
+func (h *TokenAppUseCacheBuildHandler) GetCacheKey() string {
+	return fmt.Sprintf(`token.app.use.incr.%s.%d.%s.%d`, h.DateYmd, h.AdminUserId, h.TokenAppType, h.RobotId)
+}
+func (h *TokenAppUseCacheBuildHandler) GetCacheData() (any, error) {
+	if h.DateYmd == `` {
+		return GetTokenAppLimitUse(h.AdminUserId, h.RobotId, h.TokenAppType)
+	}
+	return GetTokenAppUseByDate(h.AdminUserId, h.RobotId, h.TokenAppType, h.DateYmd)
+}

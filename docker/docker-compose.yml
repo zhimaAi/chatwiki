@@ -145,7 +145,7 @@ services:
       context: .
       dockerfile: DockerfileGoCore
     container_name: chatwiki_go_core_service
-    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/go_core_service:20251103
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/go_core_service:20251110
     volumes:
       - ../:/var/www/chatwiki/
       - ../volumes/nginx_logs:/var/log/nginx/

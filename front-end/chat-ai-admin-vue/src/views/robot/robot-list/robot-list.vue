@@ -356,6 +356,12 @@
                   <span>工作流</span>
                 </span>
               </a-menu-item>
+              <a-menu-item @click.prevent="toAddThirdMcp">
+                <span class="create-action">
+                  <img class="icon" :src="DEFAULT_MCP_AVATAR" alt="" />
+                  <span>外部MCP</span>
+                </span>
+              </a-menu-item>
               <a-menu-item @click="toImportCsl">
                 <span class="create-action">
                   <img class="icon" :src="DEFAULT_IMPORT_CSL_AVATAR" alt="">
@@ -367,7 +373,9 @@
         </a-dropdown>
       </div>
     </div>
-    <div class="list-group-box">
+
+    <McpPanel v-if="activeKey == 3" ref="mcpPanelRef"/>
+    <div v-else class="list-group-box">
       <div class="group-list-box" :class="{ 'hide-group': isHideGroup }">
         <cu-scroll style="padding-right: 16px">
           <div class="group-head-box" v-if="!isHideGroup">
@@ -511,11 +519,12 @@
     <AddGroup ref="addGroupRef" @ok="initData" />
     <EditGroup ref="editGroupRef" @ok="initData" />
     <ImportCslAlert ref="importCslAlertRef" @ok="handleImportOk" />
+    <ThirdMcpStore ref="thirdMcpRef" @ok="thirdMcpUpdate"/>
   </div>
 </template>
 
 <script setup>
-import { DEFAULT_ROBOT_AVATAR, DEFAULT_WORKFLOW_AVATAR, DEFAULT_IMPORT_CSL_AVATAR } from '@/constants/index.js'
+import { DEFAULT_ROBOT_AVATAR, DEFAULT_WORKFLOW_AVATAR, DEFAULT_IMPORT_CSL_AVATAR, DEFAULT_MCP_AVATAR } from '@/constants/index.js'
 import { usePermissionStore } from '@/stores/modules/permission'
 import {
   getRobotList,
@@ -525,6 +534,7 @@ import {
   deleteRobotGroup
 } from '@/api/robot/index.js'
 import { ref, onMounted, createVNode, computed } from 'vue'
+import {useRoute} from 'vue-router'
 import {
   ExclamationCircleOutlined,
   PlusOutlined,
@@ -542,6 +552,11 @@ import { getRobotPermission } from '@/utils/permission'
 import AddGroup from '@/views/robot/robot-list/components/add-group.vue'
 import EditGroup from '@/views/robot/robot-list/components/edit-group.vue'
 import { useOpenUrlWithToken } from '@/hooks/web'
+import McpBox from "@/views/robot/robot-list/components/mcp-box.vue";
+import McpPanel from "@/views/robot/robot-list/components/mcp-panel.vue";
+import ThirdMcpStore from "@/views/robot/robot-list/components/third-mcp-store.vue";
+
+const route = useRoute()
 
 const tabs = ref([
   {
@@ -555,6 +570,10 @@ const tabs = ref([
   {
     title: '工作流 (0)',
     value: '1'
+  },
+  {
+    title: 'MCP插件',
+    value: '3'
   }
 ])
 
@@ -564,6 +583,7 @@ let { role_permission, role_type } = permissionStore
 const robotCreate = computed(() => role_type == 1 || role_permission.includes('RobotCreate'))
 
 
+const mcpPanelRef = ref(null)
 const activeKey = ref('2')
 
 const group_id = ref('')
@@ -623,6 +643,10 @@ const getList = () => {
         {
           title: '工作流 (' + workflowNumber + ')',
           value: '1'
+        },
+        {
+          title: 'MCP插件',
+          value: '3'
         }
       ]
       robotList.value = res.data
@@ -632,10 +656,15 @@ const getList = () => {
 
 const addRobotAlertRef = ref(null)
 const importCslAlertRef = ref(null)
+const thirdMcpRef = ref(null)
 const toAddRobot = (val) => {
   // router.push({ name: 'addRobot' })
   addRobotAlertRef.value.open(val)
   addRobotAlertRef.value.setGroupId(group_id.value)
+}
+
+const toAddThirdMcp = () => {
+  thirdMcpRef.value.show()
 }
 
 const toImportCsl = () => {
@@ -852,7 +881,14 @@ const handleDelGroup = (item) => {
   })
 }
 
+const thirdMcpUpdate = () => {
+  if (mcpPanelRef.value) {
+    mcpPanelRef.value.update()
+  }
+}
+
 onMounted(() => {
+  activeKey.value = route.query.active || '2'
   getList()
   getGroupList()
 })

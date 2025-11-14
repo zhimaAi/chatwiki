@@ -1,3 +1,6 @@
+import {getTMcpProviders} from "@/api/robot/thirdMcp.js";
+import {jsonDecode} from "@/utils/index.js";
+
 const defaultRowData = {
   node_key: '',
   next_node_key: ''
@@ -109,8 +112,8 @@ export const nodeList = [
     id: '',
     groupKey: 'large-model-capability',
     type: 'ai-dialogue-node',
-    width: 568,
-    height: 684,
+    width: 420,
+    height: 154,
     properties: {
       ...getRowData(),
       node_type: 6,
@@ -135,8 +138,8 @@ export const nodeList = [
     id: '',
     groupKey: 'large-model-capability',
     type: 'problem-optimization-node',
-    width: 568,
-    height: 614,
+    width: 420,
+    height: 154,
     properties: {
       ...getRowData(),
       node_type: 11,
@@ -163,7 +166,7 @@ export const nodeList = [
     groupKey: 'end',
     type: 'end-node',
     width: 420,
-    height: 82,
+    height: 94,
     properties: {
       ...getRowData(),
       node_type: 7,
@@ -195,8 +198,8 @@ export const nodeList = [
     id: '',
     groupKey: 'processing-logic',
     type: 'variable-assignment-node',
-    width: 568,
-    height: 170,
+    width: 420,
+    height: 94,
     properties: {
       ...getRowData(),
       node_type: 8,
@@ -217,8 +220,8 @@ export const nodeList = [
     id: '',
     groupKey: 'knowledge-retrieval',
     type: 'knowledge-base-node',
-    width: 568,
-    height: 386,
+    width: 420,
+    height: 154,
     properties: {
       ...getRowData(),
       node_type: 5,
@@ -245,7 +248,7 @@ export const nodeList = [
     groupKey: 'large-model-capability',
     type: 'question-node',
     width: 568,
-    height: 538,
+    height: 138,
     properties: {
       ...getRowData(),
       node_type: 3,
@@ -275,8 +278,8 @@ export const nodeList = [
     id: '',
     groupKey: 'processing-logic',
     type: 'judge-node',
-    width: 668,
-    height: 364,
+    width: 420,
+    height: 144,
     properties: {
       ...getRowData(),
       node_type: 2,
@@ -352,8 +355,8 @@ export const nodeList = [
     id: '',
     groupKey: 'database-operation',
     type: 'add-data-node',
-    width: 568,
-    height: 328,
+    width: 420,
+    height: 124,
     properties: {
       ...getRowData(),
       node_type: 13,
@@ -372,8 +375,8 @@ export const nodeList = [
     id: '',
     groupKey: 'database-operation',
     type: 'delete-data-node',
-    width: 568,
-    height: 302,
+    width: 420,
+    height: 124,
     properties: {
       ...getRowData(),
       node_type: 14,
@@ -395,8 +398,8 @@ export const nodeList = [
     id: '',
     groupKey: 'database-operation',
     type: 'update-data-node',
-    width: 568,
-    height: 406,
+    width: 420,
+    height: 124,
     properties: {
       ...getRowData(),
       node_type: 15,
@@ -419,8 +422,8 @@ export const nodeList = [
     id: '',
     groupKey: 'database-operation',
     type: 'select-data-node',
-    width: 568,
-    height: 868,
+    width: 420,
+    height: 124,
     properties: {
       ...getRowData(),
       node_type: 16,
@@ -482,8 +485,8 @@ export const nodeList = [
     id: '',
     groupKey: 'external-service',
     type: 'code-run-node',
-    width: 568,
-    height: 820,
+    width: 420,
+    height: 154,
     properties: {
       ...getRowData(),
       node_type: 17,
@@ -510,6 +513,27 @@ export const nodeList = [
         }
       })
     }
+  },
+  {
+    id: '',
+    groupKey: 'mcp-tool',
+    type: 'mcp-node',
+    width: 320,
+    height: 320,
+    properties: {
+      ...getRowData(),
+      node_type: 20,
+      node_icon: getNodeIconUrl('mcp-node'),
+      node_icon_name: 'mcp-node',
+      node_params: JSON.stringify({
+        mcp: {
+          provider_id: '',
+          tool_name: '',
+          arguments: {},
+          tag_map: {},
+        }
+      })
+    }
   }
 ]
 
@@ -523,14 +547,14 @@ export const getAllGroupNodes = (type) => {
 
     nodesGroupMap[group.key] = group;
   })
-  
+
   // 将节点按groupKey分组
   nodeList.forEach(node => {
     // 当type不等于'node'时，过滤掉explain-node节点
     if (node.type === 'explain-node' && type === 'node') {
       return
     }
-    
+
     if (node.groupKey && nodesGroupMap[node.groupKey]) {
       nodesGroupMap[node.groupKey].nodes.push(node)
     }
@@ -546,6 +570,40 @@ export const getAllGroupNodes = (type) => {
   // 转换成数组
   let nodesGroupArr = Object.values(nodesGroupMap)
   return JSON.parse(JSON.stringify(nodesGroupArr))
+}
+
+export const getAllMcpNodes = async () => {
+  const {data} = await getTMcpProviders({has_auth: 1})
+  data.forEach(item => {
+    item.expand = false
+    item.tools = jsonDecode(item.tools, [])
+  })
+  return data
+}
+
+export const getMcpNode = (mcp, tool) => {
+  return  {
+    id: '',
+    groupKey: 'mcp-tool',
+    type: 'mcp-node',
+    width: 320,
+    height: 320,
+    properties: {
+      ...getRowData(),
+      node_type: 20,
+      node_name: mcp.name,
+      node_icon: mcp.avatar,
+      node_icon_name: '',
+      node_params: JSON.stringify({
+        mcp: {
+          provider_id: Number(mcp.id),
+          tool_name: tool.name,
+          arguments: {},
+          tag_map: {},
+        }
+      })
+    }
+  }
 }
 
 export const getNodesMap = () => {
@@ -565,5 +623,5 @@ export const getNodeTypes = () => {
     nodeTypes[node.properties.node_type] = node.type
   })
 
-  return nodeTypes  
+  return nodeTypes
 }

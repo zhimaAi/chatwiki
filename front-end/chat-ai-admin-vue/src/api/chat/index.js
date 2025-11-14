@@ -61,3 +61,7 @@ export const getAnswerSource = (params) => {
 export const questionGuide = (data) => {
   return request.post({ url: '/chat/questionGuide', data })
 }
+
+export const workflowLogs = (params) => {
+  return request.get({ url: '/manage/stats/workflowLogs', params })
+}

@@ -1,54 +1,78 @@
 <style lang="less" scoped>
-.node-box {
-  a{
-    position: relative;
-  }
-  .node-desc {
-    line-height: 22px;
-    font-size: 14px;
-    font-weight: 400;
-    color: var(--wf-color-text-2);
-  }
+@import '../form-block.less';
 
-  .node-box-content {
-    margin-top: 16px;
-    overflow: hidden;
-    border-radius: 6px;
-    background: #f2f4f7;
-  }
-  .node-box-title {
+.node-box {
+  .condition-box {
     display: flex;
     align-items: center;
-    height: 48px;
-    padding: 0 12px;
-
-    .input-icon {
-      width: 16px;
-      height: 16px;
+    .condition-left-box {
       margin-right: 4px;
     }
-
-    .text {
-      font-weight: 600;
-      font-size: 14px;
-      color: #262626;
+    .connection-text {
+      display: inline-block;
+      height: 18px;
+      line-height: 18px;
+      padding: 0 8px;
+      font-size: 12px;
+      font-weight: 400;
+      border-radius: 4px;
+      color: #595959;
+      background: #e4e6eb;
     }
-  }
-
-  .setting-label {
-    line-height: 22px;
-    padding: 0 12px;
-    margin-bottom: 8px;
-    font-size: 14px;
-    color: #262626;
-    .tip {
-      color: #8c8c8c;
+    .condition-line {
+      position: relative;
+      height: 100%;
+      width: 24px;
+      margin-right: 4px;
+      &::after {
+        content: '';
+        position: absolute;
+        width: 24px;
+        top: 12px;
+        bottom: 12px;
+        border: 1px solid #d9d9d9;
+        border-right: 0;
+        border-radius: 2px;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+      }
     }
-  }
 
-  .setting-box {
-    padding: 0 12px;
-    margin-bottom: 12px;
+    .field-items {
+      .field-item {
+        display: flex;
+        align-items: center;
+        min-height: 24px;
+        line-height: 16px;
+        padding: 2px 4px;
+        margin-bottom: 2px;
+        border-radius: 4px;
+        border: 1px solid #d9d9d9;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .field-name,
+        .field-value {
+          line-height: 16px;
+          font-size: 12px;
+          font-weight: 400;
+          color: #595959;
+        }
+        .field-rule {
+          height: 18px;
+          line-height: 18px;
+          padding: 0 8px;
+          margin: 0 4px;
+          font-size: 12px;
+          font-weight: 400;
+          border-radius: 4px;
+          color: #595959;
+          background: #e4e6eb;
+        }
+      }
+    }
   }
 }
 </style>
@@ -56,49 +80,57 @@
 <template>
   <node-common
     :title="props.properties.node_name"
-    :menus="menus"
     :icon-name="properties.node_icon_name"
     :isSelected="isSelected"
     :isHovered="isHovered"
     :node-key="properties.node_key"
     :node_type="properties.node_type"
-    @handleMenu="handleMenu"
   >
     <div class="node-box">
-      <div class="node-desc">删除指定数据表中符合条件的数据，可以在数据库中维护数据表 <a target="_blank" href="/#/database/list">去管理</a></div>
-
-      <div class="node-box-content">
-        <div class="node-box-title">
-          <img class="input-icon" src="../../../../../assets/img/workflow/input.svg" alt="" />
-          <span class="text">输入</span>
+      <div class="static-field-list">
+        <div class="static-field-item">
+          <div class="static-field-item-label">数据表</div>
+          <div class="static-field-item-content">
+            <div class="static-field-value">
+              {{ state.formData.form_name || '--' }}
+            </div>
+          </div>
         </div>
 
-        <div class="setting-label">
-          <span>数据表</span>
-        </div>
-
-        <div class="setting-box">
-          <DataTableSelect
-            :options="state.tableList"
-            :title="state.formData.form_name"
-            :description="state.formData.form_description"
-            v-model:value="state.formData.form_id"
-            @change="onSelectTable"
-          />
-        </div>
-
-        <div class="setting-label">
-          <span>删除条件</span>
-        </div>
-
-        <div class="setting-box">
-          <QueryConditionFilter
-            :disabled="!state.formData.form_id"
-            :where="state.formData.where"
-            :field-options="state.fieldList"
-            :type="state.formData.typ"
-            @change="onConditionChagne"
-          />
+        <div class="static-field-item" style="align-items: center">
+          <div class="static-field-item-label">删除条件</div>
+          <div class="static-field-item-content">
+            <span class="static-field-value" v-if="state.formData.where.length == 0">--</span>
+            <div class="condition-box">
+              <div class="condition-left-box" v-if="state.formData.where.length > 1">
+                <span class="connection-text">{{ state.formData.typ == 1 ? '且' : '或' }}</span>
+              </div>
+              <div class="condition-line" v-if="state.formData.where.length > 1"></div>
+              <div class="condition-body">
+                <div class="field-items">
+                  <div class="field-item" v-for="item in state.formData.where" :key="item.id">
+                    <span class="field-name">{{ item.field_name }}</span>
+                    <span class="field-rule">{{ getRuleLabel(item.field_type, item.rule) }}</span>
+                    <span class="field-value">
+                      <AtText
+                        :options="atInputOptions"
+                        :default-value="item.rule_value1"
+                        :defaultSelectedList="item.atTags"
+                      />
+                      <template v-if="item.rule_value2">
+                        <span>-</span>
+                        <AtText
+                          :options="atInputOptions"
+                          :default-value="item.rule_value2"
+                          :defaultSelectedList="item.atTags2"
+                        />
+                      </template>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -106,11 +138,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, inject, toRaw, onMounted } from 'vue'
-import NodeCommon from '../base-node.vue'
-import DataTableSelect from '../../data-table/database-selector/index.vue'
-import QueryConditionFilter from '../../data-table/query-condition-filter.vue'
+import { getFilterRuleLabel } from '@/constants/database'
 import { useDataTableStore } from '@/stores/modules/data-table'
+import { ref, reactive, watch, onMounted, nextTick, inject,  toRaw } from 'vue'
+import NodeCommon from '../base-node.vue'
+import AtText from '../../at-input/at-text.vue'
 
 const props = defineProps({
   properties: {
@@ -121,20 +153,11 @@ const props = defineProps({
   isHovered: { type: Boolean, default: false }
 })
 
-const getNode = inject('getNode')
-const getGraph = inject('getGraph')
+const resetSize = inject('resetSize')
 const setData = inject('setData')
+const getNode = inject('getNode')
 
 const dataTableStore = useDataTableStore()
-
-const menus = ref([{ name: '删除', key: 'delete', color: '#fb363f' }])
-
-const handleMenu = (item) => {
-  if (item.key === 'delete') {
-    let node = getNode()
-    getGraph().deleteNode(node.id)
-  }
-}
 
 let node_params = {}
 
@@ -150,33 +173,20 @@ const state = reactive({
   fieldList: []
 })
 
-const onConditionChagne = ({type, list}) => {
-  state.formData.typ = type
-  state.formData.where = list
+const atInputOptions = ref([])
 
-  update()
-}
+const getAtInputOptions = () => {
+  let options = getNode().getAllParentVariable()
 
-const onSelectTable = (value, record) => {
-  if (record) {
-    state.formData.form_name = record.name
-    state.formData.form_description = record.description
-    // state.formData.form_id = record.id
-    getFieldList(record.id)
-  } else {
-    state.formData.form_name = ''
-    state.formData.form_description = ''
-    // state.formData.form_id = ''
-    state.formData.where = []
-  }
-
-  update()
+  atInputOptions.value = options || []
 }
 
 const init = () => {
   let dataRaw = props.properties.dataRaw || props.properties.node_params || '{}'
-
+  
   node_params = JSON.parse(dataRaw)
+
+  getAtInputOptions()
 
   let where = whereDataConditions(node_params.form_delete.where || [])
 
@@ -187,8 +197,11 @@ const init = () => {
   if (state.formData.form_id) {
     getFieldList(state.formData.form_id)
   }
-
   update()
+
+  nextTick(() => {
+    resetSize()
+  })
 }
 
 const update = () => {
@@ -199,8 +212,24 @@ const update = () => {
   node_params.form_delete = form
 
   setData({
+    ...props.node,
     node_params: JSON.stringify(node_params)
   })
+}
+
+const whereDataFormatter = (where) => {
+  let conditions = []
+
+  where.forEach((item) => {
+    let data = JSON.parse(JSON.stringify(item))
+
+    data.form_field_id = data.form_field_id * 1
+    data.rule = item.field_type + '_' + item.rule
+
+    conditions.push(data)
+  })
+
+  return conditions
 }
 
 const whereDataConditions = (where) => {
@@ -223,43 +252,37 @@ const whereDataConditions = (where) => {
   return conditions
 }
 
-const whereDataFormatter = (where) => {
-  let conditions = []
-
-  where.forEach((item) => {
-    let data = JSON.parse(JSON.stringify(item))
-
-    data.form_field_id = data.form_field_id * 1
-    data.rule = item.field_type + '_' + item.rule
-
-    conditions.push(data)
-  })
-
-  return conditions
-}
-
-const getTableList = async () => {
-  const list = await dataTableStore.getFormList()
-  if (list) {
-    state.tableList = list
-  }
-}
-
 const getFieldList = async (form_id) => {
-  dataTableStore.getFormFieldList({ form_id: form_id })
+  dataTableStore
+    .getFormFieldList({ form_id: form_id })
     .then((list) => {
-
-      list.forEach(item => {
+      list.forEach((item) => {
         item.id = item.id * 1
       })
 
       state.fieldList = list
+
+      nextTick(() => {
+        resetSize()
+      })
     })
     .catch(() => {})
 }
 
+const getRuleLabel = (field_type, rule) => {
+  return getFilterRuleLabel(rule, field_type)
+}
+
+watch(
+  () => props.properties.dataRaw,
+  (newVal, oldVal) => {
+    if (newVal !== oldVal) {
+      init()
+    }
+  }
+)
+
 onMounted(() => {
-  getTableList()
   init()
 })
 </script>

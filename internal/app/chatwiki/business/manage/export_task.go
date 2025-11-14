@@ -68,5 +68,6 @@ func DownloadExportFile(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
+
 	c.FileAttachment(common.GetFileByLink(info[`file_url`]), info[`file_name`])
 }

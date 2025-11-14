@@ -5,8 +5,10 @@ package work_flow
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mark3labs/mcp-go/mcp"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -379,6 +381,13 @@ type CodeRunNodeParams struct {
 	Exception string               `json:"exception"`
 }
 
+type McpNodeParams struct {
+	ProviderId uint           `json:"provider_id"`
+	ToolName   string         `json:"tool_name"`
+	Arguments  map[string]any `json:"arguments"`
+	Output     string         `json:"output"`
+}
+
 /************************************/
 
 type NodeParams struct {
@@ -398,6 +407,7 @@ type NodeParams struct {
 	FormUpdate       FormUpdateNodeParams       `json:"form_update"`
 	FormSelect       FormSelectNodeParams       `json:"form_select"`
 	CodeRun          CodeRunNodeParams          `json:"code_run"`
+	Mcp              McpNodeParams              `json:"mcp"`
 }
 
 func DisposeNodeParams(nodeType int, nodeParams string) NodeParams {
@@ -518,7 +528,10 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 				variables = append(variables, variable)
 			}
 		}
+	case NodeTypeMcp:
+		variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, `special.mcp_reply_content`))
 	}
+
 	return variables
 }
 
@@ -772,7 +785,13 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 					return
 				}
 			}
+		case NodeTypeMcp:
+			if variable, ok := CheckVariablePlaceholder(node.NodeParams.Mcp.ToolName, variables); !ok {
+				err = errors.New(node.NodeName + `节点MCP工具变量不存在:` + variable)
+				return
+			}
 		}
+
 	}
 	var libraryArr []string
 	//采集使用的模型id集合
@@ -854,6 +873,8 @@ func (node *WorkFlowNode) Verify(adminUserId int) error {
 		err = node.NodeParams.FormSelect.Verify(adminUserId)
 	case NodeTypeCodeRun:
 		err = node.NodeParams.CodeRun.Verify()
+	case NodeTypeMcp:
+		err = node.NodeParams.Mcp.Verify(adminUserId)
 	}
 	if err != nil {
 		return errors.New(node.NodeName + `节点:` + err.Error())
@@ -1271,5 +1292,48 @@ func (params *CodeRunNodeParams) Verify() error {
 	if len(params.Exception) == 0 || !common.IsMd5Str(params.Exception) {
 		return errors.New(`异常处理:下一个节点未指定或格式错误`)
 	}
+	return nil
+}
+
+func (params *McpNodeParams) Verify(adminUserId int) error {
+	info, err := msql.Model(`mcp_provider`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, cast.ToString(params.ProviderId)).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	if len(info) == 0 {
+		return errors.New(`请选择mcp工具`)
+	}
+	if cast.ToInt(info[`has_auth`]) != 1 {
+		return errors.New(`请先授权mcp工具`)
+	}
+	var tools []mcp.Tool
+	err = json.Unmarshal([]byte(info[`tools`]), &tools)
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	if len(tools) == 0 {
+		return errors.New(`未找到可用工具`)
+	}
+
+	var mcpTool *mcp.Tool
+	for _, t := range tools {
+		if t.Name == params.ToolName {
+			mcpTool = &t
+			break
+		}
+	}
+	if mcpTool == nil {
+		return errors.New(`匹配到工具`)
+	}
+
+	if err := common.ValidateMcpToolArguments(*mcpTool, params.Arguments); err != nil {
+		return err
+	}
+
 	return nil
 }

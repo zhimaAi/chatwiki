@@ -93,10 +93,16 @@ strong {
 .zm-line1 {
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: pre-wrap;
+  white-space: nowrap;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
   line-clamp: 1;
   cursor: pointer;
+}
+
+.zm-alert-info.ant-alert-info {
+  border-color: #99BFFD;
+  background: #E9F1FE;
+  color: #3a4559;
 }

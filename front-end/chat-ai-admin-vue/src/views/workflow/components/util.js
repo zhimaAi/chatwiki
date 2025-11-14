@@ -1,51 +1,9 @@
-export function getJudgeNodeAnchor(node) {
-  let baseTop = 84 // 根据设计稿计算得到
-  let anchors = []
-  let itemLen = 0
-  let termLen = 0
-  if (node.term && node.term.length) {
-    termLen = node.term.length
-    node.term.forEach((item, index) => {
-      itemLen += item.terms.length
-      let needDis = 0
-      if (index > 0) {
-        let lens = 2
-        for (let i = 0; i < index; i++) {
-          lens += node.term[i].terms.length
-        }
-        needDis = 46 * lens + 106 * (index - 1)
-        if(index > 3){
-          needDis = needDis + 10
-        }
-      }
-      anchors.push({
-        id: node.nodeSortKey + '-anchor_' + index,
-        offsetHeight: 38,
-        offsetTop: baseTop + needDis
-      })
-    })
-  }
-
-  anchors.push({
-    id: node.nodeSortKey + '-anchor_right',
-    offsetHeight: 38,
-    offsetTop: 225 + 42 * itemLen +  116 * (termLen - 1)
-  })
-
-  return anchors
-}
-
+import { getNodeTypes } from './node-list.js'
 export function getQuestionNodeAnchor(node) {
-  let baseTop = 388 // 根据设计稿计算得到
-  if (node.showMoreBtn) {
-    baseTop = baseTop + 144
-  }
   if (node.categorys && node.categorys.length) {
     return node.categorys.map((item, index) => {
       return {
         id: node.nodeSortKey + '-anchor_' + index,
-        offsetHeight: 38,
-        offsetTop: baseTop + 36 * index
       }
     })
   }
@@ -151,25 +109,7 @@ export function getSystemVariable() {
 export const haveOutKeyNode = ['http-node', 'code-run-node']
 
 
-const nodeTypeMaps = {
-  1: 'start-node',
-  2: 'judge-node',
-  3: 'question-node',
-  4: 'http-node',
-  5: 'knowledge-base-node',
-  6: 'ai-dialogue-node',
-  7: 'end-node',
-  8: 'variable-assignment-node',
-  9: 'specify-reply-node',
-  // 10: '',
-  11: 'problem-optimization-node',
-  12: 'parameter-extraction-node',
-  13: 'data-node',
-  14: 'data-node',
-  15: 'data-node',
-  16: 'data-node',
-  17: 'code-run-node'
-}
+const nodeTypeMaps = getNodeTypes()
 
 export function getImageUrl(node_type) {
   let name = nodeTypeMaps[node_type]

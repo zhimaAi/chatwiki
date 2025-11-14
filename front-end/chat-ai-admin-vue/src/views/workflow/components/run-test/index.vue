@@ -1,136 +1,141 @@
 <template>
   <div>
-    <a-button @click="handleOpenTestModal" style="background-color: #00ad3a" type="primary"
+    <!-- <a-button @click="handleOpenTestModal" style="background-color: #00ad3a" type="primary"
       ><CaretRightOutlined />运行测试</a-button
-    >
+    > -->
     <a-modal
-      v-model:open="open"
+      v-model:open="show"
       title="运行测试"
       :footer="null"
-      :width="720"
+      :width="820"
       wrapClassName="no-padding-modal"
       :bodyStyle="{ 'max-height': '600px', 'padding-right': '24px', 'overflow-y': 'auto' }"
     >
-      <div class="test-model-box">
-        <div class="top-title">开始节点参数</div>
-        <a-form
-          :model="formState"
-          ref="formRef"
-          :label-col="{ span: 7 }"
-          :wrapper-col="{ span: 17 }"
-          autocomplete="off"
-        >
-          <a-form-item name="question" :rules="[{ required: true, message: '请输入question!' }]">
-            <template #label>
-              <a-flex :gap="4">question <a-tag style="margin: 0">string</a-tag> </a-flex>
-            </template>
-            <a-input placeholder="请输入" v-model:value="formState.question" />
-          </a-form-item>
-          <a-form-item name="openid" :rules="[{ required: true, message: '请输入openid!' }]">
-            <template #label>
-              <a-flex :gap="4">openid <a-tag style="margin: 0">string</a-tag> </a-flex>
-            </template>
-            <a-input placeholder="请输入" v-model:value="formState.openid" />
-          </a-form-item>
-
-          <a-form-item
-            :name="['globalState', item.key]"
-            v-for="item in diy_global"
-            :key="item.key"
-            :rules="[{ required: item.required, message: `请输入${item.key}` }]"
+      <div class="flex-content-box">
+        <div class="test-model-box">
+          <div class="top-title">开始节点参数</div>
+          <a-form
+            :model="formState"
+            ref="formRef"
+            layout="vertical"
+            :wrapper-col="{ span: 24 }"
+            autocomplete="off"
           >
-            <template #label>
-              <a-flex :gap="4">{{ item.key }} <a-tag style="margin: 0">{{ item.typ }}</a-tag> </a-flex>
-            </template>
-            <template v-if="item.typ == 'string'">
-              <a-input placeholder="请输入" v-model:value="formState.globalState[item.key]" />
-            </template>
-            <template v-if="item.typ == 'number'">
-              <a-input-number
-                style="width: 100%"
-                placeholder="请输入"
-                v-model:value="formState.globalState[item.key]"
-              />
-            </template>
-            <template v-if="item.typ == 'array<string>'">
-              <div class="input-list-box">
-                <div
-                  class="input-list-item"
-                  v-for="(input, i) in formState.globalState[item.key]"
-                  :key="item.key"
-                >
-                  <a-form-item-rest
-                    ><a-input placeholder="请输入" v-model:value="input.value"
-                  /></a-form-item-rest>
+            <a-form-item name="question" :rules="[{ required: true, message: '请输入question!' }]">
+              <template #label>
+                <a-flex :gap="4">question <a-tag style="margin: 0">string</a-tag> </a-flex>
+              </template>
+              <a-input placeholder="请输入" v-model:value="formState.question" />
+            </a-form-item>
+            <a-form-item name="openid" :rules="[{ required: true, message: '请输入openid!' }]">
+              <template #label>
+                <a-flex :gap="4">openid <a-tag style="margin: 0">string</a-tag> </a-flex>
+              </template>
+              <a-input placeholder="请输入" v-model:value="formState.openid" />
+            </a-form-item>
 
-                  <CloseCircleOutlined
-                    v-if="formState.globalState[item.key].length > 1"
-                    @click="handleDelItem(item.key, i)"
-                  />
+            <a-form-item
+              :name="['globalState', item.key]"
+              v-for="item in diy_global"
+              :key="item.key"
+              :rules="[{ required: item.required, message: `请输入${item.key}` }]"
+            >
+              <template #label>
+                <a-flex :gap="4"
+                  >{{ item.key }} <a-tag style="margin: 0">{{ item.typ }}</a-tag>
+                </a-flex>
+              </template>
+              <template v-if="item.typ == 'string'">
+                <a-input placeholder="请输入" v-model:value="formState.globalState[item.key]" />
+              </template>
+              <template v-if="item.typ == 'number'">
+                <a-input-number
+                  style="width: 100%"
+                  placeholder="请输入"
+                  v-model:value="formState.globalState[item.key]"
+                />
+              </template>
+              <template v-if="item.typ == 'array<string>'">
+                <div class="input-list-box">
+                  <div
+                    class="input-list-item"
+                    v-for="(input, i) in formState.globalState[item.key]" :key="i"
+                  >
+                    <a-form-item-rest
+                      ><a-input placeholder="请输入" v-model:value="input.value"
+                    /></a-form-item-rest>
+
+                    <CloseCircleOutlined
+                      v-if="formState.globalState[item.key].length > 1"
+                      @click="handleDelItem(item.key, i)"
+                    />
+                  </div>
+                  <div class="add-btn-box">
+                    <a-button @click="handleAddItem(item.key)" block type="dashed">添加</a-button>
+                  </div>
                 </div>
-                <div class="add-btn-box">
-                  <a-button @click="handleAddItem(item.key)" block type="dashed">添加</a-button>
-                </div>
+              </template>
+            </a-form-item>
+          </a-form>
+
+          <div class="result-list-box loading-box" v-if="loading">
+            <a-spin v-if="loading" tip="测试结果生成中..." />
+          </div>
+
+          <div class="result-list-box" v-if="resultList.length > 0">
+            <div
+              class="list-item-block"
+              :class="{ active: currentNodeKey == item.node_key }"
+              v-for="(item, index) in resultList"
+              @click="handleChangeNodeKey(item)"
+              :key="index"
+            >
+              <div class="status-block">
+                <CheckCircleFilled v-if="item.is_success" style="color: #138b1b" />
+                <CloseCircleFilled v-else style="color: #d81e06" />
               </div>
-            </template>
-          </a-form-item>
-
-          <!-- <a-form-item name="global">
-            <template #label>
-              <a-flex :gap="4"
-                >global
+              <div class="icon-name-box">
+                <img :src="item.node_icon" alt="" />
+                <div class="node-name">{{ item.node_name }}</div>
+              </div>
+              <div class="time-tag" v-if="item.is_success">{{ item.use_time }}ms</div>
+              <div class="right-active-icon"><RightCircleOutlined /></div>
+              <!-- <div class="out-put-box" v-if="item.is_success">
                 <a-tooltip>
-                  <template #title>
-                    <div class="tooltip-content">
-                      {{ golbalTips }}
-                    </div>
-                  </template>
-                  <QuestionCircleOutlined />
+                  <template #title>{{ item.output }}</template>
+                  <div class="out-text-box">{{ item.output }}</div>
                 </a-tooltip>
-
-                <a-tag style="margin: 0">string</a-tag>
-              </a-flex>
-            </template>
-            <a-textarea
-              v-model:value="formState.global"
-              placeholder="请输入"
-              :auto-size="{ minRows: 4, maxRows: 8 }"
-            />
-          </a-form-item> -->
-        </a-form>
-
-        <div class="result-list-box loading-box" v-if="loading">
-          <a-spin v-if="loading" tip="测试结果生成中..." />
-        </div>
-
-        <div class="result-list-box" v-if="resultList.length > 0">
-          <div class="list-item-block" v-for="(item, index) in resultList" :key="index">
-            <div class="status-block">
-              <CheckCircleFilled v-if="item.is_success" style="color: #138b1b" />
-              <CloseCircleFilled v-else style="color: #d81e06" />
-            </div>
-            <div class="icon-name-box">
-              <img :src="item.node_icon" alt="" />
-              <div class="node-name">{{ item.node_name }}</div>
-            </div>
-            <div class="time-tag" v-if="item.is_success">{{ item.use_time }}ms</div>
-            <div class="out-put-box" v-if="item.is_success">
-              <a-tooltip>
-                <template #title>{{ item.output }}</template>
-                <div class="out-text-box">{{ item.output }}</div>
-              </a-tooltip>
+              </div> -->
             </div>
           </div>
-        </div>
 
-        <div class="save-btn-box">
-          <a-button
-            :loading="loading"
-            @click="handleSubmit"
-            style="background-color: #00ad3a"
-            type="primary"
-            ><CaretRightOutlined />运行测试</a-button
-          >
+          <div class="save-btn-box">
+            <a-button
+              :loading="loading"
+              @click="handleSubmit"
+              style="background-color: #00ad3a"
+              type="primary"
+              ><CaretRightOutlined />运行测试</a-button
+            >
+          </div>
+        </div>
+        <div class="preview-box">
+          <template v-if="cuttentItem">
+            <div class="preview-title">
+              <div class="title-text">日志详情</div>
+              <div class="icon-name-box">
+                <img :src="cuttentItem.node_icon" alt="" />
+                <div class="node-name">{{ cuttentItem.node_name }}</div>
+              </div>
+              <div class="time-tag" v-if="cuttentItem.is_success">{{ cuttentItem.use_time }}ms</div>
+            </div>
+            <div class="preview-content-block">
+              <div class="title-block">运行日志<CopyOutlined @click="handleCopy" /></div>
+              <div class="preview-code-box">
+                <vue-json-pretty :data="cuttentItem.output" />
+              </div>
+            </div>
+          </template>
         </div>
       </div>
     </a-modal>
@@ -143,20 +148,23 @@ import {
   CheckCircleFilled,
   CloseCircleFilled,
   CloseCircleOutlined,
-  QuestionCircleOutlined
+  RightCircleOutlined,
+  CopyOutlined
 } from '@ant-design/icons-vue'
+import VueJsonPretty from 'vue-json-pretty'
+import 'vue-json-pretty/lib/styles.css'
 import { reactive, ref, computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { callWorkFlow } from '@/api/robot/index'
-// import { workflowApiPost } from '@/api/workflow/index'
 import { getImageUrl } from '../util'
 import { message } from 'ant-design-vue'
+import { copyText } from '@/utils/index'
 const props = defineProps({
   lf: {
     type: Object
   },
   start_node_params: {
-    default: {},
+    default: () => {},
     type: Object
   }
 })
@@ -165,21 +173,29 @@ const diy_global = computed(() => {
   return props.start_node_params.diy_global || []
 })
 
-const golbalTips = `自定义全局变量（json格式）
-示例：
-  {
-    "str": "字符串",
-    "num": 1,
-    "arr": [
-      "a",
-      "b"
-    ]
-  }`
+// const golbalTips = `自定义全局变量（json格式）
+// 示例：
+//   {
+//     "str": "字符串",
+//     "num": 1,
+//     "arr": [
+//       "a",
+//       "b"
+//     ]
+//   }`
 const emit = defineEmits(['save', 'getGlobal'])
 const query = useRoute().query
 
-const open = ref(false)
+const show = ref(false)
+const currentNodeKey = ref('')
 const resultList = ref([])
+
+const cuttentItem = computed(() => {
+  if (!currentNodeKey.value) {
+    return null
+  }
+  return resultList.value.filter((item) => item.node_key == currentNodeKey.value)[0]
+})
 
 const loading = ref(false)
 
@@ -192,7 +208,6 @@ const formState = reactive({
   globalState: {}
 })
 
-
 const handleOpenTestModal = () => {
   emit('save', 'automatic')
   let localData = localStorage.getItem('workflow_run_test_data') || '{}'
@@ -201,13 +216,14 @@ const handleOpenTestModal = () => {
   formState.openid = localData.openid || ''
   formState.global = localData.global || ''
   resultList.value = []
+  currentNodeKey.value = ''
   emit('getGlobal')
   nextTick(() => {
     diy_global.value.forEach((item) => {
       formState.globalState[item.key] = setGlobalDefaultVal(item)
     })
     try {
-      let global = JSON.parse(localData.global)
+      let global = localData.global ? JSON.parse(localData.global) : {}
       for (let key in formState.globalState) {
         if (global[key]) {
           if (Array.isArray(global[key])) {
@@ -226,7 +242,7 @@ const handleOpenTestModal = () => {
       console.log(error)
     }
   })
-  open.value = true
+  show.value = true
 }
 
 function setGlobalDefaultVal(item) {
@@ -306,12 +322,34 @@ const formateData = (data) => {
       node_icon: getImageUrl(item.node_type)
     }
   })
+  currentNodeKey.value = resultList.value[0]?.node_key
 }
+
+const handleChangeNodeKey = (item) => {
+  currentNodeKey.value = item.node_key
+}
+
+const handleCopy = () => {
+  copyText(JSON.stringify(cuttentItem.value.output))
+  message.success('复制成功')
+}
+
+const  open = () => {
+  handleOpenTestModal()
+}
+
+defineExpose({
+  open
+})
 </script>
 
 <style lang="less" scoped>
+.flex-content-box {
+  display: flex;
+}
 .test-model-box {
-  margin: 24px 0;
+  flex: 1;
+  margin: 24px 24px 0 0;
   .top-title {
     font-weight: 600;
     margin-bottom: 16px;
@@ -338,22 +376,44 @@ const formateData = (data) => {
   border-radius: 6px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 16px;
+  padding: 8px;
   .list-item-block {
     display: flex;
     align-items: center;
     overflow: hidden;
     gap: 8px;
+    padding: 8px;
+    color: #333;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    .right-active-icon {
+      margin-left: auto;
+      color: #2475fc;
+      opacity: 0;
+    }
+    &:hover {
+      background: #f2f4f7;
+      .right-active-icon {
+        opacity: 1;
+      }
+    }
+    &.active {
+      color: #2475fc;
+      background: #e6efff;
+      .right-active-icon {
+        opacity: 0;
+      }
+    }
     .status-block {
       font-size: 20px;
     }
     .icon-name-box {
       display: flex;
+      align-items: center;
       gap: 8px;
       font-size: 14px;
       font-weight: 600;
-      color: #333;
       img {
         width: 24px;
         height: 24px;
@@ -394,6 +454,66 @@ const formateData = (data) => {
   .input-list-item {
     display: flex;
     gap: 8px;
+  }
+}
+
+.preview-box {
+  flex: 1;
+  border-left: 1px solid #d9d9d9;
+  padding: 16px;
+  padding-right: 0;
+  .preview-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    .title-text {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .icon-name-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      margin-left: 12px;
+      img {
+        width: 16px;
+        height: 16px;
+      }
+    }
+    .time-tag {
+      width: fit-content;
+      border-radius: 4px;
+      height: 22px;
+      background: #d2f1dc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      font-size: 12px;
+    }
+  }
+  .preview-content-block {
+    margin-top: 16px;
+    .title-block {
+      font-size: 15px;
+      color: #262626;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      .anticon-copy {
+        cursor: pointer;
+        &:hover {
+          color: #2475fc;
+        }
+      }
+    }
+    .preview-code-box {
+      margin-top: 16px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #d9d9d9;
+    }
   }
 }
 </style>

@@ -98,7 +98,7 @@ export default {
   },
   data() {
     return {
-      menus: [{ name: '删除', key: 'delete', color: '#fb363f' }],
+      menus: [],
     }
   },
   methods: {

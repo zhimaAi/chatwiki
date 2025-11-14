@@ -138,18 +138,18 @@
         </div>
         <a-button class="save-draft" @click="handleSave">保存草稿</a-button>
         <a-button type="primary" :loading="props.saveLoading"  class="publish-robot" @click="handleRelease">发布机器人</a-button>
-        <RunTest :start_node_params="start_node_params" @getGlobal="getGlobal" @save="handleSave" />
       </template>
       <a-tooltip title="历史发布详情">
         <a-button @click="getVersionRecord()"><ClockCircleOutlined /></a-button>
       </a-tooltip>
     </div>
+    <RunTest ref="runTestRef" :start_node_params="start_node_params" @getGlobal="getGlobal" @save="handleSave" />
   </div>
 </template>
 
 <script setup>
-import { LeftOutlined, ExclamationCircleFilled, CheckCircleFilled, ClockCircleOutlined } from '@ant-design/icons-vue'
-import { computed } from 'vue'
+import { ExclamationCircleFilled, CheckCircleFilled, ClockCircleOutlined } from '@ant-design/icons-vue'
+import { ref,  computed } from 'vue'
 // front-end\chat-ai-admin-vue\src\views\robot\robot-config\components\top-header.vue
 import TopHeader from '@/views/robot/robot-config/components/top-header.vue'
 import { useRouter } from 'vue-router'
@@ -176,7 +176,7 @@ const props = defineProps({
     type: Boolean
   },
   start_node_params: {
-    default: {},
+    default: () => ({}),
     type: Object
   },
   currentVersion:{
@@ -184,6 +184,8 @@ const props = defineProps({
     type: String
   }
 })
+
+const runTestRef = ref(null)
 
 const onBack = () => {
   router.push('/')
@@ -208,5 +210,13 @@ const getGlobal = () => {
 const getVersionRecord = () => {
   emit('getVersionRecord')
 }
+
+const openRunTest = () => {
+  runTestRef.value.open()
+}
+
+defineExpose({
+  openRunTest
+})
 
 </script>

@@ -38,7 +38,6 @@
                     placeholder="请输入参数KEY"
                   ></a-input>
                 </a-form-item-rest>
-
                 <at-input 
                 inputStyle="overflow-y: hidden; overflow-x: scroll; height: 32px;" 
                 :ref="(el) => setAtInputRef(el, 'headers', index)"
@@ -297,7 +296,6 @@ const getVlaueVariableList = () => {
   list.forEach((item) => {
     item.tags = item.tags || []
   })
-  
   variableOptions.value = list
 }
 

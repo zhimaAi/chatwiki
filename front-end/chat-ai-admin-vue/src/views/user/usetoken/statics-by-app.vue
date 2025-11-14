@@ -79,7 +79,7 @@ const searchState = reactive({
 
 const pager = reactive({
   page: 1,
-  size: 100,
+  size: 20,
   total: 0
 })
 

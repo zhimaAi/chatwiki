@@ -53,6 +53,7 @@ type WorkFlow struct {
 	runLogs     []string
 	running     bool
 	isFinish    bool
+	VersionId   int
 }
 
 func (flow *WorkFlow) Logs(format string, a ...any) {
@@ -85,6 +86,8 @@ func (flow *WorkFlow) Running() (err error) {
 	flow.Logs(`进行工作流...`)
 	if flow.params.Draft.IsDraft {
 		flow.Logs(`使用草稿调试...`)
+	} else {
+		flow.VersionId = flow.getLastVersionId()
 	}
 	for {
 		var nodeInfo msql.Params
@@ -136,6 +139,18 @@ flowExit:
 	return
 }
 
+func (flow *WorkFlow) getLastVersionId() int {
+	versionId, err := msql.Model(`work_flow_version`, define.Postgres).
+		Where(`robot_id`, cast.ToString(flow.params.Robot[`id`])).
+		Where(`admin_user_id`, cast.ToString(flow.params.AdminUserId)).
+		Order(`id desc`).Limit(1).Value(`id`)
+	if err != nil {
+		logs.Error(err.Error())
+		return 0
+	}
+	return cast.ToInt(versionId)
+}
+
 func (flow *WorkFlow) Ending() {
 	flow.Logs(`保存工作流运行日志...`)
 	_, err := msql.Model(`work_flow_logs`, define.Postgres).Insert(msql.Datas{
@@ -146,6 +161,9 @@ func (flow *WorkFlow) Ending() {
 		`run_logs`:      tool.JsonEncodeNoError(flow.runLogs),
 		`create_time`:   flow.StartTime, //这里放开始时间
 		`update_time`:   flow.EndTime,   //这里放结束时间
+		`node_logs`:     tool.JsonEncodeNoError(flow.nodeLogs),
+		`version_id`:    flow.VersionId,
+		`question`:      flow.global[`question`].GetVal(common.TypString),
 	})
 	if err != nil {
 		logs.Error(err.Error())
@@ -270,7 +288,7 @@ func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monit
 		return
 	}
 
-	var replyContentNodes = []string{`special.llm_reply_content`, `special.question_optimize_reply_content`}
+	var replyContentNodes = []string{`special.llm_reply_content`, `special.question_optimize_reply_content`, `special.mcp_reply_content`}
 	for _, nodeKey := range replyContentNodes {
 		content = cast.ToString(flow.output[nodeKey].GetVal(common.TypString))
 		if len(content) > 0 {

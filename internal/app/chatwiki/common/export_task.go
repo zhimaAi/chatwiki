@@ -4,8 +4,8 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/wechat/common"
 	"chatwiki/internal/pkg/lib_define"
+	"chatwiki/internal/pkg/wechat/common"
 	"errors"
 	"fmt"
 	"os"
@@ -190,20 +190,21 @@ func RunLibFileDocExport(params map[string]any) (string, string, error) {
 		data := make([]msql.Params, 0)
 		// 查询QA列表
 		for {
-			m := msql.Model("chat_ai_library_file_data", define.Postgres).
-				Where("library_id", cast.ToString(libraryId)).
-				Where("admin_user_id", cast.ToString(adminUserId)).
-				Where(`delete_time`, `0`).
-				Where(`id`, `>`, cast.ToString(id)).
-				Field("id,question,similar_questions,answer,images")
+			m := msql.Model("chat_ai_library_file_data", define.Postgres).Alias(`d`).
+				Join(`chat_ai_library_group g`, `d.group_id = g.id`, `left`).
+				Where("d.library_id", cast.ToString(libraryId)).
+				Where("d.admin_user_id", cast.ToString(adminUserId)).
+				Where(`d.delete_time`, `0`).
+				Where(`d.id`, `>`, cast.ToString(id)).
+				Field("d.id,d.question,d.similar_questions,d.answer,d.images,g.group_name")
 			if len(dataIds) > 0 {
-				m.Where(`id`, `in`, dataIds)
+				m.Where(`d.id`, `in`, dataIds)
 			}
 			if groupId >= 0 {
-				m.Where(`group_id`, cast.ToString(groupId))
+				m.Where(`d.group_id`, cast.ToString(groupId))
 			}
 			// 分页查询
-			list, err := m.Order("id ASC").Limit(pageSize).Select()
+			list, err := m.Order("d.id ASC").Limit(pageSize).Select()
 			if err != nil {
 				logs.Error(err.Error())
 				return ``, ``, err

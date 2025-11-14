@@ -7,6 +7,7 @@ import { getErrorMsg } from './errorMsg'
 
 // 全局错误提示
 let isGlobalError = false
+let showReqError = true
 function showGlobalErrorMsg(msg) {
   if (isGlobalError) {
     return
@@ -62,7 +63,7 @@ const defaultResponseInterceptors = (response) => {
   } else if (response.data.code === SUCCESS_CODE) {
     return response.data
   } else {
-    showErrorMsg(response?.data?.message)
+    showReqError && showErrorMsg(response?.data?.message)
 
     if (response?.data?.code === 401) {
       const userStore = useUserStore()
@@ -120,5 +121,10 @@ const responseError = (error) => {
 
   return Promise.reject(error)
 }
+
+export const setShowReqError = status => {
+  showReqError = status
+}
+
 
 export { defaultResponseInterceptors, defaultRequestInterceptors, responseInterceptorsCatch }

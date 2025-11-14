@@ -4,10 +4,20 @@
   width: 100%;
   height: 100%;
 }
+/* 针对节点内容的foreignObject添加阴影 */
+
+
 .logic-flow-container {
   width: 100%;
   height: 100%;
   overflow: hidden;
+
+  .lf-node-content foreignObject {
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2)); /* 阴影效果 */
+    /* 如需外边框，可补充stroke相关样式（但foreignObject本身已有stroke="#000"） */
+    /* stroke: #000; */
+    /* stroke-width: 2; */
+  }
 
   /* 自定义锚点样式 */
   .custom-anchor {
@@ -34,6 +44,7 @@
   }
 
   .lf-mini-map {
+    position: fixed !important;
     padding: 6px;
     border: none;
     border-radius: 8px;
@@ -49,8 +60,21 @@
     <div ref="containerRef" class="logic-flow-container"></div>
     <TeleportContainer :flow-id="flowId" />
 
-    <FloatAddBtn :lf="lf" v-if="lf" @addNode="onCustomAddNode" />
-    <CustomControl :lf="lf" v-if="lf" />
+    <!-- <FloatAddBtn :lf="lf" v-if="lf" @addNode="onCustomAddNode" /> -->
+    <CustomControl :lf="lf" v-if="lf" @runTest="handleRunTest" @addNode="onCustomAddNode" />
+
+    <NodeFormDrawer
+      ref="nodeFormDrawerRef"
+      v-model:open="nodeFormDrawerShow"
+      :destroyOnClose="true"
+      :node-id="selectedNode.id"
+      :node="selectedNode.properties"
+      :node-type="selectedNode.type"
+      :lf="lf"
+      @update-node="handleNodeChange"
+      @change-title="handleChangeNodeName"
+      v-if="selectedNode"
+    />
   </div>
 </template>
 
@@ -58,8 +82,9 @@
 import '@logicflow/core/lib/style/index.css'
 import '@logicflow/extension/lib/style/index.css'
 import { onMounted, ref } from 'vue'
-import FloatAddBtn from './float-add-btn.vue'
+// import FloatAddBtn from './float-add-btn.vue'
 import CustomControl from './custom-control/index.vue'
+import NodeFormDrawer from './node-form-drawer/index.vue'
 import { generateUniqueId } from '@/utils/index'
 import LogicFlow from '@logicflow/core'
 import { DndPanel, MiniMap } from '@logicflow/extension'
@@ -85,11 +110,15 @@ import updateDataNode from './nodes/update-data-node/index.js'
 import deleteDataNode from './nodes/delete-data-node/index.js'
 import selectDataNode from './nodes/select-data-node/index.js'
 import codeRunNode from './nodes/code-run-node/index.js'
+import mcpNode from "./nodes/mcp-node/index.js";
 import { ContextPad } from './plugins/context-pad/index.js'
 
-const emit = defineEmits(['selectedNode', 'deleteNode'])
+const emit = defineEmits(['selectNode', 'deleteNode', 'runTest', 'blankClick'])
 
 let lf = null
+const nodeFormDrawerRef = ref(null)
+const nodeFormDrawerShow = ref(false)
+const selectedNode = ref(null)
 const containerRef = ref(null)
 const TeleportContainer = getTeleport()
 const flowId = ref('')
@@ -99,9 +128,9 @@ const canvasData = {
 }
 
 const miniMapOptions = {
-  width: 200,
-  height: 160,
-  bottomPosition: 76,
+  width: 160,
+  height: 140,
+  bottomPosition: 24,
   rightPosition: 16
 }
 
@@ -121,6 +150,7 @@ function initLogicFlow() {
       edgeSelectedOutline: true, // 边被选中时是否显示边的外框
       nodeSelectedOutline: true, // 节点被选中时是否显示节点的外框
       hoverOutline: true, // 鼠标hover节点时是否显示节点的外框
+      hideAnchors: false, // 是否隐藏锚点
       background: {
         backgroundColor: '#f0f2f5'
       },
@@ -150,6 +180,7 @@ function initLogicFlow() {
     register(deleteDataNode, lf)
     register(selectDataNode, lf)
     register(codeRunNode, lf)
+    register(mcpNode, lf)
 
     lf.setDefaultEdgeType('custom-edge')
 
@@ -179,14 +210,21 @@ function initLogicFlow() {
     lf.on('custom:addNode', ({ data, model, anchorData }) => {
       onCustomAddNode(data, model, anchorData)
     })
+
     // 点击节点
     lf.on('node:click', ({ data }) => {
-      emit('selectedNode', JSON.parse(JSON.stringify(data)))
+      handleSelectedNode(data)
+    })
+
+    // 画布单击
+    lf.on('blank:click', () => {
+      handleBlankClick()
     })
 
     // 节点删除
     lf.on('node:delete', ({ data }) => {
-      emit('deleteNode', JSON.parse(JSON.stringify(data)))
+      let dataRaw = JSON.parse(JSON.stringify(data));
+      handleDeleteNode(dataRaw)
     })
 
     // 更新数据
@@ -231,7 +269,7 @@ function initLogicFlow() {
       { passive: false }
     ) // passive: false 允许调用 preventDefault()
 
-    // lf.extension.miniMap.show()
+    lf.extension.miniMap.show()
   }
 }
 
@@ -315,11 +353,13 @@ const onCustomAddNode = (data, model, anchorData) => {
 }
 
 const updateNode = (data) => {
-  data.properties.height = data.height
+  if (data.height) {
+    data.properties.height = data.height
+  }
 
   let node = lf.getNodeModelById(data.id)
 
-  node.height = data.height
+  node.height = data.properties.height || data.height || node.height
   node.properties = data.properties
 
   if (data.properties.node_type == 2 && data.properties.node_sub_type == 21) {
@@ -339,6 +379,68 @@ const updateNode = (data) => {
   }
 
   node.refreshBranch()
+}
+
+const noShowDrawerNode = ['explain-node', 'end-node']
+// 选择节点
+const handleSelectedNode = (data) => {
+  console.log('----handleSelectedNode', data)
+  const node = JSON.parse(JSON.stringify(data))
+  node.properties.dataRaw =  node.properties.dataRaw || node.properties.node_params
+  
+  emit('selectNode', node)
+
+  
+  // 结束节点不支持编辑
+  if(noShowDrawerNode.includes(data.type)){
+    return
+  }
+
+  selectedNode.value = node
+  nodeFormDrawerShow.value = true
+}
+
+const handleNodeChange = (data) => {
+  selectedNode.value.properties = data
+
+  console.log('---handleNodeChange', selectedNode.value)
+  // 更新节点
+  updateNode(JSON.parse(JSON.stringify(selectedNode.value)))
+}
+
+const handleChangeNodeName = (node_name) => {
+  selectedNode.value.properties.node_name = node_name;
+  console.log('---handleChangeNodeName', selectedNode.value)
+  // 先更新数据
+  updateNode(JSON.parse(JSON.stringify(selectedNode.value)))
+  // 在发送事件之前，确保数据已经更新
+  lf.graphModel.eventCenter.emit('custom:setNodeName',  {
+    node_name: node_name, 
+    node_id: selectedNode.value.id,
+    node_type: selectedNode.value.type
+  })
+}
+
+const handleDeleteNode = (data) => {
+  emit('deleteNode', data)
+
+  if(selectedNode.value && data.id === selectedNode.value.id) {
+    nodeFormDrawerShow.value = false
+    setTimeout(() => {
+      selectedNode.value = null
+    }, 350)
+  }
+}
+
+const handleRunTest = () => {
+  emit('runTest')
+}
+
+const handleBlankClick = () => {
+  emit('blankClick')
+  if(nodeFormDrawerShow.value) {
+    nodeFormDrawerShow.value = false
+  }
 }
 
 onMounted(() => {
