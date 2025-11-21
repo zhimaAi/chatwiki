@@ -106,3 +106,7 @@ strong {
   background: #E9F1FE;
   color: #3a4559;
 }
+
+.remove-model-padding .ant-modal .ant-modal-content {
+  padding: 0;
+}

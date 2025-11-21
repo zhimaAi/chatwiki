@@ -6,12 +6,14 @@
       v-model:selectedKeys="selectedKeys"
       mode="horizontal"
       @click="handleChangeMenu"
-    />
+    >
+      <template #title> 11 </template>
+    </a-menu>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, h } from 'vue'
 
 const emit = defineEmits(['change', 'update:value'])
 const props = defineProps({
@@ -39,8 +41,11 @@ const items = ref([
   {
     key: 'WeChatOfficialAccount',
     id: 'WeChatOfficialAccount',
-    label: '微信公众号',
-    title: '微信公众号'
+    label: h('div', { class: 'tag-text-box' }, [
+      h('span', {}, '微信公众号'),
+      h('span', { class: 'text-xs' }, '支持未认证')
+    ])
+    // title: '微信公众号'
   },
   {
     key: 'WeChatMiniProgram',
@@ -53,6 +58,12 @@ const items = ref([
     id: 'WeChatCustomerService',
     label: '微信客服',
     title: '微信客服'
+  },
+  {
+    key: 'FeishuRobot',
+    id: 'FeishuRobot',
+    label: '飞书机器人',
+    title: '飞书机器人'
   }
 ])
 
@@ -79,6 +90,23 @@ const handleChangeMenu = ({ item }) => {
 
     ::v-deep(.ant-menu-item-selected .menu-icon) {
       color: #2475fc;
+    }
+  }
+
+  ::v-deep(.tag-text-box) {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    .text-xs {
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      height: 18px;
+      width: fit-content;
+      border-radius: 6px;
+      background: #fb363f;
+      color: #ffffff;
+      font-size: 12px;
     }
   }
 }

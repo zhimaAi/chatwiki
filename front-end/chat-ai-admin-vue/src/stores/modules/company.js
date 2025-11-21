@@ -3,6 +3,12 @@ import { getCompany } from '@/api/user'
 const defaultAvatar = 'https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/favicon.ico'
 const topNavigateDefaultData = [
   {
+    id: 'explore',
+    name: '探索',
+    open: true,
+    isDisabled: true,
+  },
+  {
     id: 'robot',
     name: '机器人',
     open: true,

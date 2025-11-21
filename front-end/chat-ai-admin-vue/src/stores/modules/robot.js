@@ -97,6 +97,8 @@ export const useRobotStore = defineStore('robot', () => {
     sensitive_words_switch: 0,
     question_guide_num: '',
     start_node_key: '',
+    draft_save_type: 'handle',
+    draft_save_time: '',
     unknown_summary_status: 1,
     unknown_summary_similarity: '',
     unknown_summary_use_model: '',
@@ -108,6 +110,9 @@ export const useRobotStore = defineStore('robot', () => {
     },
     prompt_role_type: '0',
     enable_thinking: 0,
+    wechat_not_verify_hand_get_reply: '正在思考中，请稍后点击下方蓝字\r\n获取回复👇👇👇',
+    wechat_not_verify_hand_get_word: '👉👉点我获取回复👈👈',
+    wechat_not_verify_hand_get_next: '内容较多，点此查看下文'
   })
 
   // WebApp配置
@@ -206,12 +211,19 @@ export const useRobotStore = defineStore('robot', () => {
 
     robotInfo.start_node_key = data.start_node_key
 
+    robotInfo.draft_save_type = data.draft_save_type
+    robotInfo.draft_save_time = data.draft_save_time
+
     robotInfo.default_library_id = data.default_library_id
 
     robotInfo.unknown_summary_status = data.unknown_summary_status
     robotInfo.unknown_summary_similarity = data.unknown_summary_similarity
     robotInfo.unknown_summary_use_model = data.unknown_summary_use_model
     robotInfo.unknown_summary_model_config_id = data.unknown_summary_model_config_id
+
+    robotInfo.wechat_not_verify_hand_get_reply = data.wechat_not_verify_hand_get_reply
+    robotInfo.wechat_not_verify_hand_get_word = data.wechat_not_verify_hand_get_word
+    robotInfo.wechat_not_verify_hand_get_next = data.wechat_not_verify_hand_get_next
 
     if (data.cache_config) {
       let parsedCacheConfig = {};
@@ -270,9 +282,9 @@ export const useRobotStore = defineStore('robot', () => {
     quickCommandLists.value = data || []
   }
 
-  const draftSaveTime = ref({})
   const setDrafSaveTime = (data) => {
-    draftSaveTime.value = data
+    robotInfo.draft_save_type = data.draft_save_type
+    robotInfo.draft_save_time = data.draft_save_time
   }
 
   const modelList = ref([])
@@ -295,6 +307,28 @@ export const useRobotStore = defineStore('robot', () => {
     })
   }
 
+  // 关键词回复开关（能力开关）
+  const keywordReplySwitchStatus = ref('0')
+  const setKeywordReplySwitchStatus = (val) => {
+    keywordReplySwitchStatus.value = String(val ?? '0')
+  }
+
+  // 关键词回复AI回复开关（能力开关）
+  const keywordReplyAiReplyStatus = ref('0')
+  const setKeywordReplyAiReplyStatus = (val) => {
+    keywordReplyAiReplyStatus.value = String(val ?? '0')
+  }
+
+  const subscribeReplySwitchStatus = ref('0')
+  const setSubscribeReplySwitchStatus = (val) => {
+    subscribeReplySwitchStatus.value = String(val ?? '0')
+  }
+
+  const subscribeReplyAiReplyStatus = ref('0')
+  const setSubscribeReplyAiReplyStatus = (val) => {
+    subscribeReplyAiReplyStatus.value = String(val ?? '0')
+  }
+
   return {
     robotInfo,
     getRobot,
@@ -302,7 +336,6 @@ export const useRobotStore = defineStore('robot', () => {
     external_config_pc,
     quickCommandLists,
     setQuickCommand,
-    draftSaveTime,
     setDrafSaveTime,
     modelList,
     setModelList,
@@ -310,5 +343,13 @@ export const useRobotStore = defineStore('robot', () => {
     getRobotLists,
     robotGroupList,
     getGroupList,
+    keywordReplySwitchStatus,
+    setKeywordReplySwitchStatus,
+    keywordReplyAiReplyStatus,
+    setKeywordReplyAiReplyStatus,
+    subscribeReplySwitchStatus,
+    setSubscribeReplySwitchStatus,
+    subscribeReplyAiReplyStatus,
+    setSubscribeReplyAiReplyStatus,
   }
 })

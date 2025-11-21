@@ -20,11 +20,12 @@ export class ContextPad {
       properties: {},
       isSelected: false,
       isHovered:false,
-      onClickItem: (item) => {
+      onClickItem: ({node, event}) => {
         this.hideMenu()
-
+        
         lf.graphModel.eventCenter.emit('custom:addNode', {
-          data: item,
+          node: node,
+          event: event,
           model: this._activeData,
           anchorData: this._activeAnchorData,
         })

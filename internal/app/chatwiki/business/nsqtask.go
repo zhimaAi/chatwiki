@@ -176,9 +176,14 @@ func ConvertVector(msg string, _ ...string) error {
 		return nil
 	}
 
+	var embeddingKey = `embedding`
+	if common.GetVectorDims(embedding) == 2000 {
+		embeddingKey = `embedding2000` //固定2000维度向量的文档
+	}
+
 	_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`id`, cast.ToString(id)).Update(msql.Datas{
 		`status`:      define.VectorStatusConverted,
-		`embedding`:   embedding,
+		embeddingKey:  embedding,
 		`errmsg`:      `success`,
 		`update_time`: tool.Time2Int(),
 	})

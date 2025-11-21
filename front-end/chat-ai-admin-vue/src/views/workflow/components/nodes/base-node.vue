@@ -125,7 +125,7 @@ export default {
     },
     handleDelete(){
       let node = this.getNode()
-      this.getGraph().deleteNode(node.id)
+      this.getGraph().eventCenter.emit('custom:node:delete', node)
     },
     // 点击菜单以外的地方，隐藏菜单
     documentClick(e) {

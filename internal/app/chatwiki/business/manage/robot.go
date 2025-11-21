@@ -173,7 +173,7 @@ func SaveRobot(c *gin.Context) {
 
 	mixtureQaDirectReplySwitch := cast.ToBool(c.DefaultPostForm(`mixture_qa_direct_reply_switch`, `true`))
 	mixtureQaDirectReplyScore := cast.ToFloat32(c.DefaultPostForm(`mixture_qa_direct_reply_score`, `0.9`))
-	answerSourceSwitch := cast.ToBool(c.DefaultPostForm(`answer_source_switch`, `true`))
+	answerSourceSwitch := cast.ToBool(c.DefaultPostForm(`answer_source_switch`, `false`))
 
 	enableQuestionOptimize := cast.ToBool(c.DefaultPostForm(`enable_question_optimize`, `false`))
 	optimizeQuestionModelConfigId := cast.ToInt(c.DefaultPostForm(`optimize_question_model_config_id`, "0"))

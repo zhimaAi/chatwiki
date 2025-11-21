@@ -5,6 +5,7 @@ package lib_redis
 import (
 	"context"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -16,6 +17,52 @@ import (
 type CacheBuildHandler interface {
 	GetCacheKey() string
 	GetCacheData() (any, error)
+}
+
+func GetOne(cache *redis.Client, handler CacheBuildHandler, result any) error {
+	cacheKey := handler.GetCacheKey()
+	if len(cacheKey) == 0 {
+		return errors.New(`cache key is empty`)
+	}
+	jsonStr, err := cache.Get(context.Background(), cacheKey).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		logs.Error(err.Error())
+		return err
+	}
+	if len(jsonStr) == 0 { //cache not created
+		return nil
+	}
+	if jsonStr == `-1` { //no data
+		return nil
+	}
+	return tool.JsonDecodeUseNumber(jsonStr, result)
+}
+
+func SetOne(cache *redis.Client, handler CacheBuildHandler, ttl time.Duration) error {
+	cacheKey := handler.GetCacheKey()
+	if len(cacheKey) == 0 {
+		return errors.New(`cache key is empty`)
+	}
+	var jsonStr string
+	data, err := handler.GetCacheData()
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	jsonStr, err = tool.JsonEncode(data)
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	if data == nil || len(jsonStr) == 0 || jsonStr == `{}` || jsonStr == `[]` { //no data
+		jsonStr = `-1`
+	}
+	_, err = cache.Set(context.Background(), cacheKey, jsonStr, ttl).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		logs.Error(err.Error())
+		return err
+	}
+	return nil
 }
 
 func GetCacheWithBuild(cache *redis.Client, handler CacheBuildHandler, result any, ttl time.Duration) error {
@@ -134,4 +181,30 @@ func UnLock(cache *redis.Client, key string) {
 	if err != nil {
 		logs.Error(err.Error())
 	}
+}
+
+// 返回锁内容
+func AddValueLock(cache *redis.Client, key, value string, ttl time.Duration) (res bool, values string, lockTTl float64) {
+	if value == "" {
+		value = strconv.Itoa(int(time.Now().Unix()))
+	}
+
+	lockTtl := 0 * time.Minute
+	ok, err := cache.SetNX(context.Background(), key, value, ttl).Result()
+	if err != nil {
+		logs.Error(err.Error())
+		return false, "", 0
+	}
+	lockTtl, _ = cache.TTL(context.Background(), key).Result()
+
+	if !ok { //获取失败，看下是不是自己的
+		cacheRes, _ := cache.Get(context.Background(), key).Result()
+		if cacheRes == value { //是自己的，认为获取锁成功，
+			ok = true
+		} else {
+			return false, cacheRes, lockTtl.Seconds()
+		}
+	}
+
+	return ok, value, lockTtl.Seconds()
 }

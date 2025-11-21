@@ -360,3 +360,38 @@ export const workFlowVersionDetail = (data = {}) => {
     data: data
   })
 }
+
+export const getDraftKey = (params = {}) => {
+  return request.get({
+    url: '/manage/getDraftKey',
+    params: params
+  })
+}
+
+export const getAdminConfig = (params = {}) => {
+  return request.get({
+    url: '/manage/getAdminConfig',
+    params: params
+  })
+}
+
+export const saveDraftExTime = (data = {}) => {
+  return request.post({
+    url: '/manage/saveDraftExTime',
+    data: data
+  })
+}
+
+export const refreshAccountVerify   = (data = {}) => {
+  return request.post({
+    url: '/manage/refreshAccountVerify',
+    data: data
+  })
+}
+
+export const setWechatNotVerifyConfig = (data = {}) => {
+  return request.post({
+    url: '/manage/setWechatNotVerifyConfig',
+    data: data
+  })
+}

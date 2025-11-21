@@ -3,7 +3,9 @@
 package wechat
 
 import (
+	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_define"
+	"chatwiki/internal/pkg/wechat/feishu_robot"
 	"chatwiki/internal/pkg/wechat/mini_program"
 	"chatwiki/internal/pkg/wechat/official_account"
 	"chatwiki/internal/pkg/wechat/wechat_kefu"
@@ -11,17 +13,22 @@ import (
 	"net/http"
 
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/response"
+	openresponse "github.com/ArtisanCloud/PowerWeChat/v3/src/openPlatform/authorizer/miniProgram/account/response"
 	"github.com/zhimaAi/go_tools/msql"
 )
 
 type ApplicationInterface interface {
-	SendText(customer, content string) (int, error)
+	SendText(customer, content string, push *define.PushMessage) (int, error)
 	GetToken(refresh bool) (*response.ResponseGetToken, int, error)
 	SendMsgOnEvent(code, content string) (int, error)
 	GetCustomerInfo(customer string) (map[string]any, int, error)
 	UploadTempImage(filePath string) (string, int, error)
-	SendImage(customer, filePath string) (int, error)
-	GetFileByMedia(mediaId string) ([]byte, http.Header, int, error)
+	SendImage(customer, filePath string, push *define.PushMessage) (int, error)
+	GetFileByMedia(mediaId string, push *define.PushMessage) ([]byte, http.Header, int, error)
+	SendUrl(customer, url, title string, push *define.PushMessage) (int, error)                                               // 发送链接
+	SendMiniProgramPage(customer, appid, title, pagePath, localThumbURL string, push *define.PushMessage) (int, error)        // 发送小程序卡片
+	SendImageTextLink(customer, url, title, description, localThumbURL, picurl string, push *define.PushMessage) (int, error) // 发送图文链接
+	GetAccountBasicInfo() (*openresponse.ResponseGetBasicInfo, int, error)
 }
 
 func GetApplication(appInfo msql.Params) (ApplicationInterface, error) {
@@ -35,6 +42,8 @@ func GetApplication(appInfo msql.Params) (ApplicationInterface, error) {
 		return &mini_program.Application{AppID: appInfo[`app_id`], Secret: appInfo[`app_secret`]}, nil
 	case lib_define.AppWechatKefu:
 		return &wechat_kefu.Application{AppID: appInfo[`app_id`], Secret: appInfo[`app_secret`]}, nil
+	case lib_define.FeiShuRobot:
+		return &feishu_robot.Application{AppID: appInfo[`app_id`], Secret: appInfo[`app_secret`]}, nil
 	}
 	return nil, errors.New(`app type not support`)
 }

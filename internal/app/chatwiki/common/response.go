@@ -29,6 +29,16 @@ func FmtOk(c *gin.Context, data interface{}) {
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
 
+func FmtBridgeResponse(c *gin.Context, data any, httpStatus int, err error) {
+	if httpStatus == -1 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+	} else if httpStatus == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(data, nil))
+	} else {
+		c.String(httpStatus, lib_web.FmtJsonWithCode(httpStatus, struct{}{}, err))
+	}
+}
+
 type response struct {
 	Object    string `json:"object"`
 	Message   string `json:"message"`

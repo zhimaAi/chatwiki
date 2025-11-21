@@ -249,6 +249,8 @@ func init() {
 	Route[http.MethodPost][`/manage/saveWechatApp`] = manage.SaveWechatApp
 	Route[http.MethodGet][`/manage/getWechatAppInfo`] = manage.GetWechatAppInfo
 	Route[http.MethodPost][`/manage/deleteWechatApp`] = manage.DeleteWechatApp
+	Route[http.MethodPost][`/manage/refreshAccountVerify`] = manage.RefreshAccountVerify
+	Route[http.MethodPost][`/manage/setWechatNotVerifyConfig`] = manage.SetWechatNotVerifyConfig
 	/*Fast Command API*/
 	Route[http.MethodGet][`/manage/getFastCommandList`] = manage.GetFastCommandList
 	Route[http.MethodPost][`/manage/saveFastCommand`] = manage.SaveFastCommand
@@ -261,6 +263,22 @@ func init() {
 	noAuthFuns(Route[http.MethodPost], `/open/chatMessage`, business.ChatMessages)
 	noAuthFuns(Route[http.MethodPost], `/v1/chat/completions`, business.Completions)
 	noAuthFuns(Route[http.MethodGet], `/open/getRobotInfo`, business.GetRobotInfo)
+	noAuthFuns(Route[http.MethodGet], `/open/library/getLibraryList`, business.OpenGetLibraryList)
+	noAuthFuns(Route[http.MethodGet], `/open/getModelConfigOption`, business.OpenGetModelConfigOption)
+	noAuthFuns(Route[http.MethodPost], `/open/library/createLibraryGeneral`, business.OpenCreateLibraryGeneral)
+	noAuthFuns(Route[http.MethodPost], `/open/library/createLibraryQA`, business.OpenCreateLibraryQA)
+	noAuthFuns(Route[http.MethodPost], `/open/library/editLibrary`, business.OpenEditLibrary)
+	noAuthFuns(Route[http.MethodPost], `/open/library/editLibraryQA`, business.OpenEditLibraryQA)
+	noAuthFuns(Route[http.MethodPost], `/open/library/deleteLibrary`, business.OpenDeleteLibrary)
+	noAuthFuns(Route[http.MethodPost], `/open/library/getLibFileList`, business.OpenGetLibFileList)
+	noAuthFuns(Route[http.MethodPost], `/open/library/getParagraphList`, business.OpenGetParagraphList)
+	noAuthFuns(Route[http.MethodPost], `/open/library/getLibraryGeneralParagraphList`, business.OpenGetLibraryGeneralParagraphList)
+	noAuthFuns(Route[http.MethodPost], `/open/library/addLibraryFileQA`, business.OpenAddLibraryFileQA)
+	noAuthFuns(Route[http.MethodPost], `/open/library/addLibraryFileGeneralLocal`, business.OpenAddLibraryFileGeneralLocal)
+	noAuthFuns(Route[http.MethodPost], `/open/library/batchAddLibraryQa`, business.OpenBatchAddLibraryQa)
+	noAuthFuns(Route[http.MethodPost], `/open/library/editGeneralParagraph`, business.OpenEditGeneralParagraph)
+	noAuthFuns(Route[http.MethodPost], `/open/library/editQAParagraph`, business.OpenEditQAParagraph)
+	noAuthFuns(Route[http.MethodGet], `/open/getSeparatorsList`, business.OpenGetSeparatorsList)
 
 	//register client side route
 	RegClientSideRoute()
@@ -284,6 +302,9 @@ func init() {
 	/*work_flow API*/
 	Route[http.MethodGet][`/manage/getNodeList`] = manage.GetNodeList
 	Route[http.MethodPost][`/manage/saveNodes`] = manage.SaveNodes
+	Route[http.MethodGet][`/manage/getDraftKey`] = manage.GetDraftKey
+	Route[http.MethodGet][`/manage/getAdminConfig`] = manage.GetAdminConfig
+	Route[http.MethodPost][`/manage/saveDraftExTime`] = manage.SaveDraftExTime
 	Route[http.MethodPost][`/manage/testCodeRun`] = manage.TestCodeRun
 	Route[http.MethodPost][`/manage/workFlowPublishVersion`] = manage.WorkFlowPublishVersion
 	Route[http.MethodPost][`/manage/workFlowNextVersion`] = manage.WorkFlowNextVersion
@@ -364,6 +385,9 @@ func init() {
 	Route[http.MethodPost][`/manage/statLibrarySort`] = manage.StatLibrarySort
 	Route[http.MethodPost][`/manage/statLibraryDataRobotDetail`] = manage.StatLibraryDataRobotDetail
 	Route[http.MethodPost][`/manage/statLibraryRobotDetail`] = manage.StatLibraryRobotDetail
+
+	//register ability route
+	RegAbilityRoute()
 	/* MCP Provider */
 	Route[http.MethodGet][`/manage/getMcpProviderList`] = manage.GetMcpProviderList
 	Route[http.MethodGet][`/manage/getMcpProviderDetail`] = manage.GetMcpProviderDetail

@@ -5,6 +5,7 @@ package manage
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/middlewares"
 	"chatwiki/internal/pkg/lib_redis"
 	"fmt"
 	"net/http"
@@ -264,6 +265,14 @@ func SaveLibDoc(c *gin.Context) {
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
+	//add file params
+	req := BridgeAddLibraryFileReq{}
+	err := common.RequestParamsBind(&req, c)
+	if err != nil {
+		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
+		return
+	}
+	req.DocType = c.DefaultPostForm(`doc_type`, cast.ToString(define.DocTypeLocal))
 	//get params
 	libraryKey := cast.ToString(c.PostForm(`library_key`))
 	libraryId := cast.ToInt(common.ParseLibraryKey(libraryKey))
@@ -340,7 +349,7 @@ func SaveLibDoc(c *gin.Context) {
 			}
 		}
 		//common save
-		fileIds, err := addLibFile(c, adminUserId, libraryId, cast.ToInt(info[`type`]))
+		fileIds, err := addLibFile(c, adminUserId, libraryId, cast.ToInt(info[`type`]), nil, &req)
 		if err != nil {
 			logs.Error(err.Error())
 			common.FmtError(c, `sys_err`)
@@ -602,6 +611,14 @@ func UploadLibDoc(c *gin.Context) {
 		common.FmtError(c, `auth_no_permission`)
 		return
 	}
+	//add file params
+	req := BridgeAddLibraryFileReq{}
+	err := common.RequestParamsBind(&req, c)
+	if err != nil {
+		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
+		return
+	}
+	req.DocType = c.DefaultPostForm(`doc_type`, cast.ToString(define.DocTypeLocal))
 	//get params
 	libraryKey := cast.ToString(c.PostForm(`library_key`))
 	libraryId := cast.ToInt(common.ParseLibraryKey(libraryKey))
@@ -633,7 +650,7 @@ func UploadLibDoc(c *gin.Context) {
 		}
 	}
 	//common save
-	fileIds, err := addLibFile(c, adminUserId, libraryId, cast.ToInt(info[`type`]))
+	fileIds, err := addLibFile(c, adminUserId, libraryId, cast.ToInt(info[`type`]), nil, &req)
 	if err != nil {
 		logs.Error(err.Error())
 		common.FmtError(c, `sys_err`)
@@ -1007,6 +1024,15 @@ func checkIsPartner(c *gin.Context, libraryId, rights int) bool {
 	//adminUserId := GetAdminUserId(c)
 	//info, _ := common.GetLibraryInfo(libraryId, adminUserId)
 	partnerInfo := common.GetPartnerInfo(userId, libraryId)
+	// check user operate rights creator admin rights
+	if len(partnerInfo) > 0 && cast.ToInt(partnerInfo[`operate_rights`]) >= rights {
+		return true
+	}
+	return false
+}
+
+func checkIsPartner2(loginUserId, libraryId, rights int) bool {
+	partnerInfo := common.GetPartnerInfo(loginUserId, libraryId)
 	// check user operate rights creator admin rights
 	if len(partnerInfo) > 0 && cast.ToInt(partnerInfo[`operate_rights`]) >= rights {
 		return true

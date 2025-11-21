@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
@@ -107,8 +108,7 @@ func LlmLogRequest(
 	}
 
 	// record request logs
-	_, err = msql.Model(`llm_request_logs`, define.Postgres).Insert(data)
-	if err != nil {
+	if err = SaveLlmRequestLogs(data); err != nil {
 		logs.Error(err.Error())
 		return err
 	}
@@ -116,14 +116,6 @@ func LlmLogRequest(
 	if _type == `LLM` && len(robot) > 0 {
 		err = statDailyRequestCount(adminUserId, robot, appType)
 		if err != nil {
-			logs.Error(err.Error())
-			return err
-		}
-		if err = statDailyActiveUser(adminUserId, robot, appType); err != nil {
-			logs.Error(err.Error())
-			return err
-		}
-		if err = statDailyNewUser(adminUserId, robot, appType, openid); err != nil {
 			logs.Error(err.Error())
 			return err
 		}
@@ -349,22 +341,20 @@ func GetTokenAppLimitUse(adminUserId, robotId int, tokenAppType string) (int64, 
 	return cast.ToInt64(useToken), nil
 }
 
-func statDailyActiveUser(adminUserId int, robot msql.Params, appType string) error {
-	now := time.Now()
-	todayStartTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	count, err := msql.Model(`llm_request_logs`, define.Postgres).
+func statDailyActiveUser(adminUserId, robotId int, appType string) error {
+	count, err := msql.Model(`chat_ai_session`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
-		Where(`source_robot_id`, robot[`id`]).
+		Where(`robot_id`, cast.ToString(robotId)).
 		Where(`app_type`, appType).
-		Where(`create_time`, `>=`, cast.ToString(todayStartTime.Unix())).
-		Value(`count(distinct concat(app_type, '-', openid))`)
+		Where(`create_time`, `>=`, cast.ToString(tool.GetTimestamp(0))).
+		Value(`count(distinct openid)`)
 	if err != nil {
 		return err
 	}
 
 	row, err := msql.Model(`llm_request_daily_stats`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
-		Where(`robot_id`, robot[`id`]).
+		Where(`robot_id`, cast.ToString(robotId)).
 		Where(`app_type`, appType).
 		Where(`date`, time.Now().Format(`2006-01-02`)).
 		Where(`type`, cast.ToString(StatsTypeDailyActiveUser)).
@@ -375,7 +365,7 @@ func statDailyActiveUser(adminUserId int, robot msql.Params, appType string) err
 	if len(row) == 0 {
 		_, err = msql.Model(`llm_request_daily_stats`, define.Postgres).Insert(msql.Datas{
 			`admin_user_id`: adminUserId,
-			`robot_id`:      robot[`id`],
+			`robot_id`:      robotId,
 			`app_type`:      appType,
 			`date`:          time.Now().Format(`2006-01-02`),
 			`type`:          StatsTypeDailyActiveUser,
@@ -398,61 +388,34 @@ func statDailyActiveUser(adminUserId int, robot msql.Params, appType string) err
 	return nil
 }
 
-func statDailyNewUser(adminUserId int, robot msql.Params, appType, openid string) error {
-	now := time.Now()
-	todayStartTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	count, err := msql.Model(`llm_request_logs`, define.Postgres).
+func statDailyNewUser(adminUserId, robotId int, appType, openid string) error {
+	oldUser, err := msql.Model(`chat_ai_session`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
-		Where(`source_robot_id`, robot[`id`]).
+		Where(`robot_id`, cast.ToString(robotId)).
 		Where(`app_type`, appType).
-		Where(`create_time`, `<`, cast.ToString(todayStartTime.Unix())).
-		Count()
+		Where(`openid`, openid).
+		Where(`create_time`, `<`, cast.ToString(tool.GetTimestamp(0))).
+		Field(`id`).Find()
 	if err != nil {
 		logs.Error(err.Error())
 		return err
 	}
-	if count > 0 {
+	if len(oldUser) > 0 {
 		return nil
 	}
 
-	ctx := context.Background()
-	key := fmt.Sprintf(`daily_new_user_%d_%s_%s_%s`, adminUserId, robot[`id`], appType, tool.Date(`Ymd`))
-	exists, err := define.Redis.Exists(ctx, key).Result()
-	if err != nil {
+	key := fmt.Sprintf(`daily_new_user_%d_%d_%s_%s`, adminUserId, robotId, appType, tool.Date(`Ymd`))
+	_, err = define.Redis.SAdd(context.Background(), key, openid).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
 		logs.Error(err.Error())
-		return nil
+		return err
 	}
-	if exists == 0 {
-		rows, err := msql.Model(`llm_request_logs`, define.Postgres).
-			Where(`admin_user_id`, cast.ToString(adminUserId)).
-			Where(`source_robot_id`, robot[`id`]).
-			Where(`app_type`, appType).
-			Where(`create_time`, `>=`, cast.ToString(todayStartTime.Unix())).
-			Field(`openid`).
-			Select()
-		var openidList []interface{}
-		for _, row := range rows {
-			openidList = append(openidList, row[`openid`])
-		}
-		_, err = define.Redis.SAdd(ctx, key, openidList...).Result()
-		if err != nil {
-			logs.Error(err.Error())
-			return err
-		}
-		_, err = define.Redis.Expire(ctx, key, 24*time.Hour).Result()
-		if err != nil {
-			logs.Error(err.Error())
-			return err
-		}
-	} else {
-		_, err = define.Redis.SAdd(ctx, key, openid).Result()
-		if err != nil {
-			logs.Error(err.Error())
-			return err
-		}
+	_, err = define.Redis.Expire(context.Background(), key, 24*time.Hour).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		logs.Error(err.Error())
+		return err
 	}
-
-	newUserCount, err := define.Redis.SCard(ctx, key).Result()
+	newUserCount, err := define.Redis.SCard(context.Background(), key).Result()
 	if err != nil {
 		logs.Error(err.Error())
 		return err
@@ -460,7 +423,7 @@ func statDailyNewUser(adminUserId int, robot msql.Params, appType, openid string
 
 	row, err := msql.Model(`llm_request_daily_stats`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
-		Where(`robot_id`, robot[`id`]).
+		Where(`robot_id`, cast.ToString(robotId)).
 		Where(`app_type`, appType).
 		Where(`date`, time.Now().Format(`2006-01-02`)).
 		Where(`type`, cast.ToString(StatsTypeDailyNewUser)).
@@ -468,7 +431,7 @@ func statDailyNewUser(adminUserId int, robot msql.Params, appType, openid string
 	if len(row) == 0 {
 		_, err = msql.Model(`llm_request_daily_stats`, define.Postgres).Insert(msql.Datas{
 			`admin_user_id`: cast.ToString(adminUserId),
-			`robot_id`:      robot[`id`],
+			`robot_id`:      robotId,
 			`app_type`:      appType,
 			`date`:          time.Now().Format(`2006-01-02`),
 			`type`:          cast.ToString(StatsTypeDailyNewUser),
@@ -482,7 +445,7 @@ func statDailyNewUser(adminUserId int, robot msql.Params, appType, openid string
 	} else {
 		_, err = msql.Model(`llm_request_daily_stats`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(adminUserId)).
-			Where(`robot_id`, robot[`id`]).
+			Where(`robot_id`, cast.ToString(robotId)).
 			Where(`app_type`, appType).
 			Where(`date`, time.Now().Format(`2006-01-02`)).
 			Where(`type`, cast.ToString(StatsTypeDailyNewUser)).

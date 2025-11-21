@@ -3,6 +3,11 @@
 package common
 
 import (
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/casbin"
+	"chatwiki/internal/pkg/lib_define"
+	"chatwiki/internal/pkg/lib_redis"
 	"context"
 	"encoding/json"
 	"errors"
@@ -12,20 +17,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
-
 	"github.com/gin-contrib/sse"
 	"github.com/go-redis/redis/v8"
+	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
-
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/pkg/casbin"
-	"chatwiki/internal/pkg/lib_redis"
 )
 
 func ToStringMap(data msql.Datas, adds ...any) msql.Params {
@@ -46,7 +45,7 @@ func ToStringMap(data msql.Datas, adds ...any) msql.Params {
 type RobotCacheBuildHandler struct{ RobotKey string }
 
 func (h *RobotCacheBuildHandler) GetCacheKey() string {
-	return fmt.Sprintf(`chatwiki.robot_info.%s`, h.RobotKey)
+	return fmt.Sprintf(lib_define.RedisPrefixRobotInfo, h.RobotKey)
 }
 func (h *RobotCacheBuildHandler) GetCacheData() (any, error) {
 	return msql.Model(`chat_ai_robot`, define.Postgres).Where(`robot_key`, h.RobotKey).Find()
@@ -236,20 +235,7 @@ func GetMatchLibraryParagraphByVectorSimilarity(adminUserId int, robot msql.Para
 					logs.Error(err.Error())
 					return
 				}
-				embeddingArr := strings.Split(embedding, ",")
-				subList, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
-					Alias("a").
-					Join(`chat_ai_library_file_data_index b`, `a.id=b.data_id`, `left`).
-					Where(`a.delete_time`, `0`).
-					Where(`a.library_id`, `in`, libraryIds).
-					Where(`b.status`, cast.ToString(define.VectorStatusConverted)).
-					Where("vector_dims(b.embedding)", cast.ToString(len(embeddingArr))).
-					Field(`a.*`).
-					Field(fmt.Sprintf(`max(1-(b.embedding<=>'%s')) as similarity`, embedding)).
-					Order(`similarity desc`).
-					Group(`a.id`).
-					Limit(size).
-					Select()
+				subList, err := VectorRecall(libraryIds, embedding, size)
 				if err != nil {
 					logs.Error(err.Error())
 					return
@@ -802,7 +788,7 @@ type WechatAppCacheBuildHandler struct {
 }
 
 func (h *WechatAppCacheBuildHandler) GetCacheKey() string {
-	return fmt.Sprintf(`chatwiki.app_info.%s.%s`, h.Field, h.Value)
+	return fmt.Sprintf(lib_define.RedisPrefixAppInfo, h.Field, h.Value)
 }
 func (h *WechatAppCacheBuildHandler) GetCacheData() (any, error) {
 	return msql.Model(`chat_ai_wechat_app`, define.Postgres).Where(h.Field, h.Value).Find()
@@ -1218,4 +1204,18 @@ func (h *TokenAppUseCacheBuildHandler) GetCacheData() (any, error) {
 		return GetTokenAppLimitUse(h.AdminUserId, h.RobotId, h.TokenAppType)
 	}
 	return GetTokenAppUseByDate(h.AdminUserId, h.RobotId, h.TokenAppType, h.DateYmd)
+}
+
+// 获取配置
+func GetAdminConfig(UserId int) map[string]string {
+	m := msql.Model(``, define.Postgres)
+	list, _ := m.Table(`admin_user_config`).Where(`admin_user_id`, cast.ToString(UserId)).Select()
+
+	if len(list) == 0 { //如果没有配置，给一下默认配置
+		defaultList := make(map[string]string)
+		defaultList["draft_exptime"] = "10"
+		return defaultList
+	}
+
+	return list[0]
 }

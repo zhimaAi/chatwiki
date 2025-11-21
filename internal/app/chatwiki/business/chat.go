@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"regexp"
 	"sort"
@@ -497,6 +498,266 @@ func getChatRequestParam(c *gin.Context) *define.ChatRequestParam {
 	}
 }
 
+func OnlyReceivedMessageReply(params *define.ChatRequestParam) (msql.Params, error) {
+	monitor := common.NewMonitor(params)
+	message, err := OnlyReceivedMessageReplyHandle(params, monitor)
+	if len(message) > 0 {
+		monitor.Save(err)
+	}
+	return message, err
+}
+
+// getMsgTypeByReceivedMessageType 不清楚为啥数据库中存的是int类型，这里做兼容
+func getMsgTypeByReceivedMessageType(ReceivedMessageType string) int {
+	switch ReceivedMessageType {
+	case lib_define.MsgTypeText:
+		return define.MsgTypeText
+	case lib_define.MsgTypeImage:
+		return define.MsgTypeImage
+	case lib_define.MsgTypeVoice:
+		return define.MsgTypeVoice
+	case lib_define.MsgTypeVideo:
+		return define.MsgTypeVideo
+	case lib_define.MsgTypeShortVideo:
+		return define.MsgTypeShortVideo
+	case lib_define.MsgTypeMinirogrampage:
+		return define.MsgTypeMinirogrampage
+	case lib_define.MsgTypeLocation:
+		return define.MsgTypeLocation
+	case lib_define.MsgTypeLink:
+		return define.MsgTypeLink
+	case lib_define.MsgTypeEvent:
+		return define.MsgTypeEvent
+	}
+	return define.MsgTypeOther
+}
+
+func OnlyReceivedMessageReplyHandle(params *define.ChatRequestParam, monitor *common.Monitor) (msql.Params, error) {
+	var err error
+	dialogueId := params.DialogueId
+	sessionId, err := common.GetSessionId(params, dialogueId)
+	customer, err := common.GetCustomerInfo(params.Openid, params.AdminUserId)
+	//msgType := getMsgTypeByReceivedMessageType(params.ReceivedMessageType)
+	msgType := define.MsgTypeText
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, err
+	}
+	var receivedMessageJson string
+	if len(params.ReceivedMessage) > 0 {
+		//回复内容
+		receivedMessageJson = tool.JsonEncodeNoError(params.ReceivedMessage)
+	}
+
+	//显示内容
+	showContent, isName := lib_define.MsgTypeNameMap[params.ReceivedMessageType]
+	if !isName {
+		showContent = `未知`
+	}
+	showContent = `收到【` + showContent + `】类型的消息`
+	//展示图片消息
+	if params.ReceivedMessageType == lib_define.MsgTypeImage && params.MediaIdToOssUrl != `` {
+		msgType = define.MsgTypeImage
+		showContent = params.MediaIdToOssUrl
+	}
+
+	message := msql.Datas{
+		`admin_user_id`:             params.AdminUserId,
+		`robot_id`:                  params.Robot[`id`],
+		`openid`:                    params.Openid,
+		`dialogue_id`:               dialogueId,
+		`session_id`:                sessionId,
+		`is_customer`:               define.MsgFromCustomer,
+		`msg_type`:                  msgType,
+		`content`:                   showContent,
+		`received_message_type`:     params.ReceivedMessageType,
+		`received_message`:          receivedMessageJson,
+		`media_id_to_oss_url`:       params.MediaIdToOssUrl,
+		`thumb_media_id_to_oss_url`: params.ThumbMediaIdToOssUrl,
+		`menu_json`:                 ``,
+		`quote_file`:                `[]`,
+		`create_time`:               tool.Time2Int(),
+		`update_time`:               tool.Time2Int(),
+	}
+	if len(customer) > 0 {
+		message[`nickname`] = customer[`nickname`]
+		message[`name`] = customer[`name`]
+		message[`avatar`] = customer[`avatar`]
+	}
+	lastChat := msql.Datas{
+		`last_chat_time`:    message[`create_time`],
+		`last_chat_message`: common.MbSubstr(cast.ToString(message[`content`]), 0, 1000),
+	}
+	id, err := msql.Model(`chat_ai_message`, define.Postgres).Insert(message, `id`)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, err
+	}
+	common.UpLastChat(dialogueId, sessionId, lastChat, define.MsgFromCustomer)
+	//websocket notify
+	common.ReceiverChangeNotify(params.AdminUserId, `c_message`, common.ToStringMap(message, `id`, id))
+
+	debugLog := make([]any, 0) //debug log
+	defer func() {
+		monitor.DebugLog = debugLog //记录监控数据
+	}()
+
+	var receivedMessageReplyList []common.ReplyContent
+	//收到消息回复处理
+	receivedMessageReplyList, _ = buildReceivedMessageReply(params, params.ReceivedMessageType, &debugLog)
+
+	if len(receivedMessageReplyList) == 0 {
+		logs.Error(`received message reply list is empty`)
+		return msql.Params{}, nil
+	}
+	var (
+		content, menuJson, reasoningContent string
+		requestTime                         int64
+		chatResp                            = adaptor.ZhimaChatCompletionResponse{}
+		llmStartTime                        = time.Now()
+	)
+
+	//记录监控数据
+	monitor.LlmCallTime = time.Now().Sub(llmStartTime).Milliseconds()
+	monitor.RequestTime, monitor.Error = requestTime, err
+
+	if *params.IsClose { //client break
+		return nil, errors.New(`client break`)
+	}
+
+	quoteFile, _ := make([]msql.Params, 0), map[string]struct{}{}
+	var quoteFileForSave = make([]msql.Params, len(quoteFile))
+	quoteFileJson, _ := tool.JsonEncode(quoteFileForSave)
+
+	message = msql.Datas{
+		`admin_user_id`:          params.AdminUserId,
+		`robot_id`:               params.Robot[`id`],
+		`openid`:                 params.Openid,
+		`dialogue_id`:            dialogueId,
+		`session_id`:             sessionId,
+		`is_customer`:            define.MsgFromRobot,
+		`request_time`:           requestTime,
+		`recall_time`:            monitor.LibUseTime.RecallTime,
+		`msg_type`:               define.MsgTypeText,
+		`content`:                content,
+		`reasoning_content`:      reasoningContent,
+		`is_valid_function_call`: chatResp.IsValidFunctionCall,
+		`menu_json`:              menuJson,
+		`quote_file`:             quoteFileJson,
+		`create_time`:            tool.Time2Int(),
+		`update_time`:            tool.Time2Int(),
+	}
+	if len(params.Robot) > 0 {
+		message[`nickname`] = `` //none
+		message[`name`] = params.Robot[`robot_name`]
+		message[`avatar`] = params.Robot[`robot_avatar`]
+	}
+	if len(receivedMessageReplyList) > 0 {
+		//回复内容
+		receivedMessageReplyListJson := tool.JsonEncodeNoError(receivedMessageReplyList)
+		message[`reply_content_list`] = receivedMessageReplyListJson
+	}
+
+	lastChat = msql.Datas{
+		`last_chat_time`:    message[`create_time`],
+		`last_chat_message`: common.MbSubstr(cast.ToString(message[`content`]), 0, 1000),
+	}
+	id, err = msql.Model(`chat_ai_message`, define.Postgres).Insert(message, `id`)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, err
+	}
+	common.UpLastChat(dialogueId, sessionId, lastChat, define.MsgFromRobot)
+	//websocket notify
+	common.ReceiverChangeNotify(params.AdminUserId, `ai_message`, common.ToStringMap(message, `id`, id))
+
+	message["prompt_tokens"] = chatResp.PromptToken
+	message["completion_tokens"] = chatResp.CompletionToken
+	message["use_model"] = params.Robot["use_model"]
+	return common.ToStringMap(message, `id`, id), nil
+}
+
+// SubscribeReplyHandle 关注后回复处理
+func SubscribeReplyHandle(params *define.ChatRequestParam, subscribeScene string) (msql.Params, error) {
+	var err error
+	dialogueId := params.DialogueId
+	sessionId, err := common.GetSessionId(params, dialogueId)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, err
+	}
+
+	//显示内容
+	var subscribeReplyList []common.ReplyContent
+	//收到消息回复处理
+	subscribeReplyList, _ = buildSubscribeReply(params, subscribeScene)
+
+	if len(subscribeReplyList) == 0 {
+		logs.Error(`subscribe reply list is empty`)
+		return msql.Params{}, nil
+	}
+	var (
+		content, menuJson, reasoningContent string
+		requestTime                         int64
+		chatResp                            = adaptor.ZhimaChatCompletionResponse{}
+	)
+
+	if *params.IsClose { //client break
+		return nil, errors.New(`client break`)
+	}
+
+	quoteFile, _ := make([]msql.Params, 0), map[string]struct{}{}
+	var quoteFileForSave = make([]msql.Params, len(quoteFile))
+	quoteFileJson, _ := tool.JsonEncode(quoteFileForSave)
+
+	message := msql.Datas{
+		`admin_user_id`:          params.AdminUserId,
+		`robot_id`:               params.Robot[`id`],
+		`openid`:                 params.Openid,
+		`dialogue_id`:            dialogueId,
+		`session_id`:             sessionId,
+		`is_customer`:            define.MsgFromRobot,
+		`request_time`:           requestTime,
+		`recall_time`:            tool.Time2Int(),
+		`msg_type`:               define.MsgTypeText,
+		`content`:                content,
+		`reasoning_content`:      reasoningContent,
+		`is_valid_function_call`: chatResp.IsValidFunctionCall,
+		`menu_json`:              menuJson,
+		`quote_file`:             quoteFileJson,
+		`create_time`:            tool.Time2Int(),
+		`update_time`:            tool.Time2Int(),
+	}
+	if len(params.Robot) > 0 {
+		message[`nickname`] = `` //none
+		message[`name`] = params.Robot[`robot_name`]
+		message[`avatar`] = params.Robot[`robot_avatar`]
+	}
+	if len(subscribeReplyList) > 0 {
+		//回复内容
+		subscribeReplyListJson := tool.JsonEncodeNoError(subscribeReplyList)
+		message[`reply_content_list`] = subscribeReplyListJson
+	}
+
+	lastChat := msql.Datas{
+		`last_chat_time`:    message[`create_time`],
+		`last_chat_message`: common.MbSubstr(cast.ToString(message[`content`]), 0, 1000),
+	}
+	id, err := msql.Model(`chat_ai_message`, define.Postgres).Insert(message, `id`)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, err
+	}
+	common.UpLastChat(dialogueId, sessionId, lastChat, define.MsgFromRobot)
+	//websocket notify
+	common.ReceiverChangeNotify(params.AdminUserId, `ai_message`, common.ToStringMap(message, `id`, id))
+
+	message["prompt_tokens"] = chatResp.PromptToken
+	message["completion_tokens"] = chatResp.CompletionToken
+	message["use_model"] = params.Robot["use_model"]
+	return common.ToStringMap(message, `id`, id), nil
+}
+
 func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream chan sse.Event) (msql.Params, error) {
 	monitor := common.NewMonitor(params)
 	message, err := doChatRequest(params, useStream, chanStream, monitor)
@@ -606,11 +867,37 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		hitCache        bool
 		answerMessageId = ""
 	)
-	if cast.ToInt(params.Robot[`application_type`]) == define.ApplicationTypeFlow {
+
+	var keywordSkipAI bool
+	var replyContentList []common.ReplyContent
+	var keywordReplyList []common.ReplyContent
+	//默认不跳过
+	keywordSkipAI = false
+	//关键词检测处理
+	keywordReplyList, keywordSkipAI, err = buildKeywordReplyMessage(params, &debugLog)
+	if len(keywordReplyList) > 0 {
+		replyContentList = append(replyContentList, keywordReplyList...)
+	}
+
+	if !keywordSkipAI {
+		//收到消息回复处理
+		receivedMessageReplyList, _ := buildReceivedMessageReply(params, lib_define.MsgTypeText, &debugLog)
+		if len(receivedMessageReplyList) > 0 {
+			replyContentList = append(replyContentList, receivedMessageReplyList...)
+		}
+	}
+
+	//构造发送给ai的请求消息参数 messages
+	if keywordSkipAI {
+		//跳过ai回复 不需要构造发送给ai的请求消息参数
+
+	} else if cast.ToInt(params.Robot[`application_type`]) == define.ApplicationTypeFlow {
 		//nothing to do
 	} else if cast.ToInt(params.Robot[`chat_type`]) == define.ChatTypeDirect {
+		//直连模式 不考虑知识库
 		messages, list, err = buildDirectChatRequestMessage(params, id, dialogueId, &debugLog)
 	} else {
+		//混合模式 和 仅知识库模式
 		if showQuoteFile {
 			chanStream <- sse.Event{Event: `start_quote_file`, Data: tool.Time2Int()}
 			startQuoteFile = true
@@ -694,19 +981,24 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	}
 	quoteFileJson, _ := tool.JsonEncode(quoteFileForSave)
 	var functionTools []adaptor.FunctionTool
-	if len(params.Robot[`form_ids`]) > 0 {
-		formIdList := strings.Split(params.Robot[`form_ids`], `,`)
-		functionTools, err = common.BuildFunctionTools(formIdList, params.AdminUserId)
-		if err != nil {
-			logs.Error(err.Error())
-			chanStream <- sse.Event{Event: `error`, Data: i18n.Show(params.Lang, `sys_err`)}
-			return nil, err
+	var workFlowFuncCall []adaptor.FunctionTool
+	var needRunWorkFlow = false
+	if !keywordSkipAI { //非关键词跳过ai
+		//构建 工作流
+		if len(params.Robot[`form_ids`]) > 0 {
+			formIdList := strings.Split(params.Robot[`form_ids`], `,`)
+			functionTools, err = common.BuildFunctionTools(formIdList, params.AdminUserId)
+			if err != nil {
+				logs.Error(err.Error())
+				chanStream <- sse.Event{Event: `error`, Data: i18n.Show(params.Lang, `sys_err`)}
+				return nil, err
+			}
 		}
-	}
-	//聊天机器人支持关联工作流
-	workFlowFuncCall, needRunWorkFlow := work_flow.BuildFunctionTools(params.Robot)
-	if needRunWorkFlow {
-		functionTools = append(functionTools, workFlowFuncCall...)
+		//聊天机器人支持关联工作流
+		workFlowFuncCall, needRunWorkFlow = work_flow.BuildFunctionTools(params.Robot)
+		if needRunWorkFlow {
+			functionTools = append(functionTools, workFlowFuncCall...)
+		}
 	}
 
 	var (
@@ -716,8 +1008,17 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		llmStartTime                        = time.Now()
 		saveRobotChatCache                  bool
 	)
+
+	//关键词处理
+
 	msgType := define.MsgTypeText
-	if cast.ToInt(params.Robot[`application_type`]) == define.ApplicationTypeFlow {
+	if len(replyContentList) > 0 {
+		chanStream <- sse.Event{Event: `reply_content_list`, Data: replyContentList}
+	}
+
+	if len(keywordReplyList) > 0 && keywordSkipAI {
+		//关键词直接回复 跳过ai处理
+	} else if cast.ToInt(params.Robot[`application_type`]) == define.ApplicationTypeFlow {
 		workFlowParams := &work_flow.WorkFlowParams{ChatRequestParam: params, CurMsgId: int(id), DialogueId: dialogueId, SessionId: sessionId}
 		content, requestTime, monitor.LibUseTime, list, err = work_flow.CallWorkFlow(workFlowParams, &debugLog, monitor)
 		if err != nil {
@@ -958,6 +1259,11 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	monitor.LlmCallTime = time.Now().Sub(llmStartTime).Milliseconds()
 	monitor.RequestTime, monitor.Error = requestTime, err
 
+	//未认证公众号的消息特殊处理
+	if params.AppType == lib_define.AppOfficeAccount && params.PassiveId > 0 {
+		PassiveReplyLogNotify(params.PassiveId, params.Question, content)
+	}
+
 	if *params.IsClose { //client break
 		return nil, errors.New(`client break`)
 	}
@@ -1041,6 +1347,12 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		message[`name`] = params.Robot[`robot_name`]
 		message[`avatar`] = params.Robot[`robot_avatar`]
 	}
+	if len(replyContentList) > 0 {
+		//关键词回复 触发内容
+		replyContentListJson := tool.JsonEncodeNoError(replyContentList)
+		message[`reply_content_list`] = replyContentListJson
+	}
+
 	lastChat = msql.Datas{
 		`last_chat_time`:    message[`create_time`],
 		`last_chat_message`: common.MbSubstr(cast.ToString(message[`content`]), 0, 1000),
@@ -1171,6 +1483,527 @@ func buildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 		*debugLog = append(*debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
 	}
 	return messages, list, libUseTime, nil
+}
+
+// GetRandomSliceReply 从回复内容列表中随机选择指定数量的条目
+// 如果请求数量大于列表总数，则返回全部内容
+// 如果请求数量小于等于0，则返回空列表
+func GetRandomSliceReply(replyList []common.ReplyContent, num int) []common.ReplyContent {
+	// 边界条件检查
+	if len(replyList) == 0 || num <= 0 {
+		return []common.ReplyContent{}
+	}
+
+	// 如果请求数量大于总数，则返回全部
+	if num >= len(replyList) {
+		return replyList
+	}
+
+	// 创建结果切片
+	result := make([]common.ReplyContent, 0, num)
+
+	// 创建索引切片并随机打乱
+	indexes := make([]int, len(replyList))
+	for i := range indexes {
+		indexes[i] = i
+	}
+
+	// Fisher-Yates shuffle 算法随机打乱索引
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for i := len(indexes) - 1; i > 0; i-- {
+		j := r.Intn(i + 1)
+		indexes[i], indexes[j] = indexes[j], indexes[i]
+	}
+
+	// 取前num个元素
+	for i := 0; i < num; i++ {
+		result = append(result, replyList[indexes[i]])
+	}
+
+	return result
+}
+
+// buildKeywordReplyMessage 构建关键词回复消息
+func buildKeywordReplyMessage(params *define.ChatRequestParam, debugLog *[]any) ([]common.ReplyContent, bool, error) {
+	//part0:init messages
+	var replyList []common.ReplyContent
+	//判断是否关键词跳过ai回复
+	var keywordSkipAI = false
+
+	//判断开关
+	robotId := cast.ToInt(params.Robot[`id`])
+	adminUserId := cast.ToInt(params.Robot[`admin_user_id`])
+	//关键词回复
+	robotAbilityConfig := common.GetRobotAbilityConfigByAbilityType(adminUserId, robotId, common.RobotAbilityAutoReply)
+	if len(robotAbilityConfig) == 0 {
+		//关键词回复没开启
+		return replyList, false, nil
+	}
+
+	//获取所有关键词缓存
+	robotKeywordReplyList, err := common.GetRobotKeywordReplyListByRobotId(robotId)
+	if err != nil {
+		return replyList, false, err
+	}
+
+	//关键词回复是否跳过ai
+	keywordSkipAI = cast.ToInt(robotAbilityConfig[`ai_reply_status`]) != define.SwitchOn
+
+	//问题判断
+	question := strings.TrimSpace(params.Question)
+
+	//循环判断  构造消息
+	for _, robotKeywordReply := range robotKeywordReplyList {
+		//判断关键词
+		if robotKeywordReply.SwitchStatus != define.SwitchOn {
+			continue
+		}
+		keywordFlag := false
+		// 精确匹配 FullKeyword
+		for _, keyword := range robotKeywordReply.FullKeyword {
+			if question == keyword {
+				//匹配成功 构造消息
+				keywordFlag = true
+				break
+			}
+		}
+
+		// 包含匹配 HalfKeyword
+		for _, keyword := range robotKeywordReply.HalfKeyword {
+			if strings.Contains(question, keyword) {
+				//匹配成功 构造消息
+				keywordFlag = true
+				break
+			}
+		}
+
+		if keywordFlag {
+			//匹配成功 判断回复类型
+			if robotKeywordReply.ReplyNum == 0 {
+				replyList = append(replyList, robotKeywordReply.ReplyContent...)
+			} else {
+				//随机选择 ReplyNum 条
+				//数组中随机切取 ReplyNum 条
+				selectReplyList := GetRandomSliceReply(robotKeywordReply.ReplyContent, robotKeywordReply.ReplyNum)
+				if len(selectReplyList) > 0 {
+					replyList = append(replyList, selectReplyList...)
+				}
+			}
+		}
+	}
+	//判断是否继续ai
+	if len(replyList) == 0 {
+		//没有匹配到关键词 继续ai
+		return replyList, false, nil
+	}
+	//循环replyList标记来源
+	for i := range replyList {
+		//标记来源
+		replyList[i].SendSource = common.RobotAbilityKeywordReply
+	}
+	//返回消息
+	return replyList, keywordSkipAI, nil
+}
+
+// buildSubscribeReply 构建关注后回复消息
+func buildSubscribeReply(params *define.ChatRequestParam, subscribeScene string) ([]common.ReplyContent, error) {
+	//part0:init messages
+	var replyList []common.ReplyContent
+	//判断开关
+	robotId := cast.ToInt(params.Robot[`id`])
+	adminUserId := cast.ToInt(params.Robot[`admin_user_id`])
+	appid := cast.ToString(params.AppInfo[`appid`]) // 从 params.AppInfo 获取 appid
+	//关键词回复
+	robotAbilityConfig := common.GetRobotAbilityConfigByAbilityType(adminUserId, robotId, common.RobotAbilitySubscribeReply)
+	if len(robotAbilityConfig) == 0 {
+		//关键词回复没开启
+		return replyList, nil
+	}
+
+	// 1. 获取今天是星期几的int值
+	// time.Weekday：Sunday=0, Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5, Saturday=6
+	weekday := cast.ToInt(time.Now().Weekday())
+	//获取所有关键词缓存
+	subscribeReplyList, err := common.GetRobotSubscribeReplyListByAppid(robotId, appid, define.RuleTypeSubscribeSource)
+	if err != nil {
+
+		return replyList, err
+	}
+
+	needCheck := true
+
+	//来源检测
+	for _, subscribeReply := range subscribeReplyList {
+		//判断关键词
+		if subscribeReply.SwitchStatus != define.SwitchOn {
+			continue
+		}
+		if subscribeReply.RuleType != define.RuleTypeSubscribeSource {
+			//不是来源的
+			continue
+		}
+		//检测来源
+		if !tool.InArrayString(subscribeScene, subscribeReply.SubscribeSource) {
+			//不在指定来源中
+			continue
+		}
+		//匹配到消息 则跳过 消息检测
+		needCheck = false
+		//匹配成功 构造消息
+		if subscribeReply.ReplyNum == 0 {
+			replyList = append(replyList, subscribeReply.ReplyContent...)
+		} else {
+			//随机选择 ReplyNum 条
+			//数组中随机切取 ReplyNum 条
+			selectReplyList := GetRandomSliceReply(subscribeReply.ReplyContent, subscribeReply.ReplyNum)
+			if len(selectReplyList) > 0 {
+				replyList = append(replyList, selectReplyList...)
+			}
+		}
+		break
+	}
+
+	if needCheck && len(replyList) == 0 {
+		//时间检测
+		subscribeReplyList, err = common.GetRobotSubscribeReplyListByAppid(robotId, appid, define.RuleTypeSubscribeDuration)
+		if err != nil {
+
+			return replyList, err
+		}
+
+		//循环判断  构造消息
+		for _, subscribeReply := range subscribeReplyList {
+			//判断关键词
+			if subscribeReply.SwitchStatus != define.SwitchOn {
+				continue
+			}
+			if subscribeReply.RuleType != define.RuleTypeSubscribeDuration {
+				//不是时间规则
+				continue
+			}
+			//时间规则 且 开启
+			checkFlag := false
+			switch subscribeReply.DurationType {
+			case common.DurationTypeWeek:
+				// 周
+				for _, day := range subscribeReply.WeekDuration {
+					if day == weekday {
+						checkFlag = true
+						break
+					}
+				}
+				break
+			case common.DurationTypeDay:
+				// 每天
+				checkFlag = true
+				break
+			case common.DurationTypeTimeRange:
+				// 时间范围
+				checkFlag = isTodayInDateRange(subscribeReply.StartDay, subscribeReply.EndDay)
+				break
+			default:
+				// 默认
+				break
+			}
+			//判断是否继续
+			if !checkFlag {
+				continue
+			}
+			//对比时间 不在范围的跳过
+			if !nowInHHmmRangeSimple(subscribeReply.StartDuration, subscribeReply.EndDuration) {
+				continue
+			}
+			//匹配到消息 则跳过 消息检测
+			needCheck = false
+			//判断时间间隔
+			if subscribeReply.ReplyInterval > 0 {
+				//判断时间间隔
+				var lastTime int
+				lastTime, err = common.GetReceivedMessageReplyLastTime(robotId, subscribeReply.ID, params.Openid)
+				if err != nil {
+					continue
+				}
+				nextTime := lastTime + subscribeReply.ReplyInterval
+				if nextTime > tool.Time2Int() {
+					//时间间隔内中 不满足
+					break
+				}
+				// 设置时间间隔
+				err = common.SetReceivedMessageReplyLastTime(robotId, subscribeReply.ID, tool.Time2Int(), params.Openid)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			//匹配成功 构造消息
+			if subscribeReply.ReplyNum == 0 {
+				replyList = append(replyList, subscribeReply.ReplyContent...)
+			} else {
+				//随机选择 ReplyNum 条
+				//数组中随机切取 ReplyNum 条
+				selectReplyList := GetRandomSliceReply(subscribeReply.ReplyContent, subscribeReply.ReplyNum)
+				if len(selectReplyList) > 0 {
+					replyList = append(replyList, selectReplyList...)
+				}
+			}
+			break
+		}
+	}
+
+	if needCheck && len(replyList) == 0 {
+		//按默认关注开启判断
+		subscribeReplyList, err = common.GetRobotSubscribeReplyListByAppid(robotId, appid, define.RuleTypeSubscribeDefault)
+		if err != nil {
+
+			return replyList, err
+		}
+		for _, subscribeReply := range subscribeReplyList {
+			if subscribeReply.SwitchStatus != define.SwitchOn {
+				continue
+			}
+			if subscribeReply.RuleType != define.RuleTypeSubscribeDefault {
+				//不是默认类型
+				continue
+			}
+
+			//匹配成功 构造消息
+			if subscribeReply.ReplyNum == 0 {
+				replyList = append(replyList, subscribeReply.ReplyContent...)
+			} else {
+				//随机选择 ReplyNum 条
+				//数组中随机切取 ReplyNum 条
+				selectReplyList := GetRandomSliceReply(subscribeReply.ReplyContent, subscribeReply.ReplyNum)
+				if len(selectReplyList) > 0 {
+					replyList = append(replyList, selectReplyList...)
+				}
+			}
+		}
+	}
+
+	//判断是否继续ai
+	if len(replyList) == 0 {
+		//没有匹配到关键词 继续ai
+		return replyList, nil
+	}
+	//循环replyList标记来源
+	for i := range replyList {
+		//标记来源
+		replyList[i].SendSource = common.RobotAbilitySubscribeReply
+	}
+	//返回消息
+	return replyList, nil
+}
+
+func buildReceivedMessageReply(params *define.ChatRequestParam, messageType string, debugLog *[]any) ([]common.ReplyContent, error) {
+	//part0:init messages
+	var replyList []common.ReplyContent
+	//判断开关
+	robotId := cast.ToInt(params.Robot[`id`])
+	adminUserId := cast.ToInt(params.Robot[`admin_user_id`])
+	//关键词回复
+	robotAbilityConfig := common.GetRobotAbilityConfigByAbilityType(adminUserId, robotId, common.RobotAbilityAutoReply)
+	if len(robotAbilityConfig) == 0 {
+		//关键词回复没开启
+		return replyList, nil
+	}
+
+	// 1. 获取今天是星期几的int值
+	// time.Weekday：Sunday=0, Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5, Saturday=6
+	weekday := cast.ToInt(time.Now().Weekday())
+	//获取所有关键词缓存
+	receivedMessageRuleList, err := common.GetRobotReceivedMessageReplyListByRobotId(robotId, common.RuleTypeDuration)
+	if err != nil {
+
+		return replyList, err
+	}
+
+	messageTypeCheck := true
+	//循环判断  构造消息
+	for _, receivedMessageRule := range receivedMessageRuleList {
+		//判断关键词
+		if receivedMessageRule.SwitchStatus != define.SwitchOn {
+			continue
+		}
+		if receivedMessageRule.RuleType != common.RuleTypeDuration {
+			//不是时间规则
+			continue
+		}
+		//时间规则 且 开启
+		checkFlag := false
+		switch receivedMessageRule.DurationType {
+		case common.DurationTypeWeek:
+			// 周
+			for _, day := range receivedMessageRule.WeekDuration {
+				if day == weekday {
+					checkFlag = true
+					break
+				}
+			}
+			break
+		case common.DurationTypeDay:
+			// 每天
+			checkFlag = true
+			break
+		case common.DurationTypeTimeRange:
+			// 时间范围
+			checkFlag = isTodayInDateRange(receivedMessageRule.StartDay, receivedMessageRule.EndDay)
+			break
+		default:
+			// 默认
+			break
+		}
+		//判断是否继续
+		if !checkFlag {
+			continue
+		}
+		//对比时间 不在范围的跳过
+		if !nowInHHmmRangeSimple(receivedMessageRule.StartDuration, receivedMessageRule.EndDuration) {
+			continue
+		}
+		//匹配到消息 则跳过 消息检测
+		messageTypeCheck = false
+		//判断时间间隔
+		if receivedMessageRule.ReplyInterval > 0 {
+			//判断时间间隔
+			var lastTime int
+			lastTime, err = common.GetReceivedMessageReplyLastTime(robotId, receivedMessageRule.ID, params.Openid)
+			if err != nil {
+				continue
+			}
+			nextTime := lastTime + receivedMessageRule.ReplyInterval
+			if nextTime > tool.Time2Int() {
+				//时间间隔内中 不满足
+				break
+			}
+			// 设置时间间隔
+			err = common.SetReceivedMessageReplyLastTime(robotId, receivedMessageRule.ID, tool.Time2Int(), params.Openid)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		//匹配成功 构造消息
+		if receivedMessageRule.ReplyNum == 0 {
+			replyList = append(replyList, receivedMessageRule.ReplyContent...)
+		} else {
+			//随机选择 ReplyNum 条
+			//数组中随机切取 ReplyNum 条
+			selectReplyList := GetRandomSliceReply(receivedMessageRule.ReplyContent, receivedMessageRule.ReplyNum)
+			if len(selectReplyList) > 0 {
+				replyList = append(replyList, selectReplyList...)
+			}
+		}
+		break
+	}
+
+	if messageTypeCheck && len(replyList) == 0 {
+		//按消息类型判断
+		receivedMessageRuleList, err = common.GetRobotReceivedMessageReplyListByRobotId(robotId, common.RuleTypeMessageType)
+		if err != nil {
+
+			return replyList, err
+		}
+		for _, receivedMessageRule := range receivedMessageRuleList {
+			if receivedMessageRule.SwitchStatus != define.SwitchOn {
+				continue
+			}
+			if receivedMessageRule.RuleType != common.RuleTypeMessageType {
+				//不是指定消息类型
+				continue
+			}
+			checkFlag := false
+			switch receivedMessageRule.MessageType {
+			case common.MessageTypeAll:
+				checkFlag = true
+				break
+			case common.MessageTypeSpecify:
+				//指定消息类型
+				for _, msgType := range receivedMessageRule.SpecifyMessageType {
+					if messageType == msgType {
+						checkFlag = true
+						break
+					}
+				}
+				break
+			default:
+				// 默认
+				break
+			}
+			//判断是否继续
+			if !checkFlag {
+				continue
+			}
+			//判断时间间隔
+			if receivedMessageRule.ReplyInterval > 0 {
+				//判断时间间隔
+				var lastTime int
+				lastTime, err = common.GetReceivedMessageReplyLastTime(robotId, receivedMessageRule.ID, params.Openid)
+				if err != nil {
+					continue
+				}
+				nextTime := lastTime + receivedMessageRule.ReplyInterval
+				if nextTime > tool.Time2Int() {
+					//时间间隔内中 不满足
+					break
+				}
+				// 设置时间间隔
+				err = common.SetReceivedMessageReplyLastTime(robotId, receivedMessageRule.ID, tool.Time2Int(), params.Openid)
+				if err != nil {
+					return nil, err
+				}
+			}
+			//匹配成功 构造消息
+			if receivedMessageRule.ReplyNum == 0 {
+				replyList = append(replyList, receivedMessageRule.ReplyContent...)
+			} else {
+				//随机选择 ReplyNum 条
+				//数组中随机切取 ReplyNum 条
+				selectReplyList := GetRandomSliceReply(receivedMessageRule.ReplyContent, receivedMessageRule.ReplyNum)
+				if len(selectReplyList) > 0 {
+					replyList = append(replyList, selectReplyList...)
+				}
+			}
+
+			break
+		}
+	}
+
+	//判断是否继续ai
+	if len(replyList) == 0 {
+		//没有匹配到关键词 继续ai
+		return replyList, nil
+	}
+	//循环replyList标记来源
+	for i := range replyList {
+		//标记来源
+		replyList[i].SendSource = common.RobotAbilityReceivedMessageReply
+	}
+	//返回消息
+	return replyList, nil
+}
+
+// 简洁但健壮版（推荐用于通用场景）
+func isTodayInDateRange(start, end string) bool {
+	today := time.Now()
+	sd, _ := time.Parse("2006-01-02", start)
+	ed, _ := time.Parse("2006-01-02", end)
+	today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, sd.Location())
+	return !today.Before(sd) && !today.After(ed)
+}
+
+func nowInHHmmRangeSimple(start, end string) bool {
+	now := time.Now()
+	loc := now.Location()
+
+	// 解析HH:mm到临时时间（日期会被忽略）
+	startTime, _ := time.Parse("15:04", start)
+	endTime, _ := time.Parse("15:04", end)
+
+	// 构造今天的起止时间（只取时分）
+	startT := time.Date(now.Year(), now.Month(), now.Day(), startTime.Hour(), startTime.Minute(), 0, 0, loc)
+	endT := time.Date(now.Year(), now.Month(), now.Day(), endTime.Hour(), endTime.Minute(), 0, 0, loc)
+
+	return !now.Before(startT) && !now.After(endT)
 }
 
 func buildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int64, dialogueId int, debugLog *[]any) ([]adaptor.ZhimaChatCompletionMessage, []msql.Params, error) {

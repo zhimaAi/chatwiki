@@ -73,6 +73,12 @@ func AdminLogin(c *gin.Context) {
 	data["user_roles"] = info["user_roles"]
 	data["avatar"] = info["avatar"]
 	data["nick_name"] = info["nick_name"]
+
+	roleInfo, err := msql.Model(define.TableRole, define.Postgres).Where("id", info["user_roles"]).Find()
+	if cast.ToInt(roleInfo["role_type"]) != 0 {
+		data["role_type"] = roleInfo["role_type"]
+	}
+
 	common.FmtOk(c, data)
 }
 

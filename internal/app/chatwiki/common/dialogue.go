@@ -84,6 +84,15 @@ func GetSessionId(params *define.ChatRequestParam, dialogueId int) (int, error) 
 	if err != nil && !errors.Is(err, redis.Nil) {
 		logs.Error(err.Error())
 	}
+	//日活用户数统计+日新增用户数统计
+	go func() {
+		if err = statDailyActiveUser(params.AdminUserId, cast.ToInt(params.Robot[`id`]), params.AppType); err != nil {
+			logs.Error(err.Error())
+		}
+		if err = statDailyNewUser(params.AdminUserId, cast.ToInt(params.Robot[`id`]), params.AppType, params.Openid); err != nil {
+			logs.Error(err.Error())
+		}
+	}()
 	//create new receiver
 	createNewReceiver(params, id)
 	return int(id), nil

@@ -5,6 +5,7 @@ package business
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
@@ -209,4 +211,37 @@ func UpdateLibraryFileData() {
 		total += len(rows)
 	}
 	logs.Debug("结束更新文档分段数据,共:%v", total)
+}
+
+func DeleteLlmRequestLogs() {
+	endTime := tool.GetTimestamp(tool.GetYmdBeforeDay(7)) - 1
+	m := msql.Model(common.GetLlmRequestLogsTableName(endTime), define.Postgres)
+	info, err := m.Where(`create_time`, `<=`, cast.ToString(endTime)).
+		Field(`min(id) minid,max(id) maxid`).Find()
+	if err != nil {
+		var sqlerr *pq.Error
+		if errors.As(err, &sqlerr) && sqlerr.Code == `42P01` {
+			return //表不存在,不报错了
+		}
+		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
+		return
+	}
+	minId, maxId := cast.ToInt(info[`minid`]), cast.ToInt(info[`maxid`])
+	if minId <= 0 || maxId <= 0 {
+		return //没有可以清理的数据
+	}
+	var size = 1000 //每一批次数
+	for i := 0; ; i++ {
+		start, end := minId+i*size, min(maxId, minId+(i+1)*size)
+		affect, err := m.Where(`id`, `>=`, cast.ToString(start)).
+			Where(`id`, `<=`, cast.ToString(end)).Delete()
+		if err != nil {
+			logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
+			return
+		}
+		logs.Debug(`清理结果:第%d轮(%d~%d),affect(%d)`, i+1, start, end, affect)
+		if end >= maxId {
+			break //处理完毕,结束循环
+		}
+	}
 }

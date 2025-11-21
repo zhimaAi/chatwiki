@@ -40,6 +40,7 @@ import EmbedWebsite from './components/embed-website.vue'
 import WeChatOfficialAccount from './components/wechat-official-account.vue'
 import WeChatMiniProgram from './components/wechat-mini-program.vue'
 import WeChatCustomerService from './components/wechat-customer-service.vue'
+import FeishuRobot from './components/feishu-robot.vue'
 
 const robotStore = useRobotStore()
 
@@ -51,7 +52,8 @@ const tabComponents = {
   EmbedWebsite,
   WeChatOfficialAccount,
   WeChatMiniProgram,
-  WeChatCustomerService
+  WeChatCustomerService,
+  FeishuRobot
 }
 
 const activeLocalKey = '/robot/config/external-services/activeKey'

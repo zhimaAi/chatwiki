@@ -86,11 +86,12 @@ const formState = reactive({})
 
 function show(info = null) {
   Object.assign(formState, info || formStateStruct)
+  avatarData.value = null
+  formState.headers = []
   if (info) {
     providerId.value = info.id
     formState.provider_id = info.id
     let headers = JSON.parse(info.headers)
-    formState.headers = []
     for (let key in headers) {
       formState.headers.push({key, value: headers[key]})
     }

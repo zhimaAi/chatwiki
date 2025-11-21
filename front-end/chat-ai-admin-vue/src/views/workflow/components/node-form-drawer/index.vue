@@ -49,7 +49,7 @@
  */
 
 import { ref, computed, provide } from 'vue'
-import StartNodeForm from './start-node-form.vue'
+import StartNodeForm from './start-node-form/index.vue'
 import ProblemOptimizationForm from './problem-optimization-form.vue'
 import AiDialogueNodeFrom from './ai-dialogue-node-from.vue'
 import AddDataForm from './add-data-form.vue'
@@ -145,7 +145,9 @@ const changeTitle = (title) => {
 
 const deleteNode = () => {
   show.value = false
-  getGraph().deleteNode(props.nodeId)
+  let node = getNode()
+  
+  getGraph().eventCenter.emit('custom:node:delete', node)
 }
 
 // 使用provide提供lf对象给子组件

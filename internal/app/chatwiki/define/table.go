@@ -48,9 +48,17 @@ const (
 )
 
 const (
-	MsgTypeText  = 1
-	MsgTypeMenu  = 2
-	MsgTypeImage = 3
+	MsgTypeText           = 1
+	MsgTypeMenu           = 2
+	MsgTypeImage          = 3
+	MsgTypeVoice          = 4
+	MsgTypeVideo          = 5
+	MsgTypeShortVideo     = 6
+	MsgTypeMinirogrampage = 7
+	MsgTypeLocation       = 8
+	MsgTypeLink           = 9
+	MsgTypeEvent          = 10
+	MsgTypeOther          = 99
 )
 
 const (
@@ -123,9 +131,9 @@ const (
 )
 
 const (
-	ChatTypeLibrary = 1
-	ChatTypeDirect  = 2
-	ChatTypeMixture = 3
+	ChatTypeLibrary = 1 //仅知识库模式
+	ChatTypeDirect  = 2 //直连模式
+	ChatTypeMixture = 3 //混合模式
 )
 
 const (

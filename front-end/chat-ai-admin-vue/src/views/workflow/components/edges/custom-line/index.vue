@@ -20,7 +20,7 @@
 </style>
 
 <template>
-  <div class="custom-line-popup" v-show="isSelected">
+  <div class="custom-line-popup" v-show="isDeleteConfirmShow">
     <button class="delete-btn" @click.stop="handleDelete">删 除</button>
   </div>
 </template>
@@ -40,13 +40,32 @@ export default {
     isSelected: { type: Boolean, default: false },
     isHovered: { type: Boolean, default: false },
   },
+  data() {
+    return {
+      isDeleteConfirmShow: false,
+    }
+  },
+  watch: {
+    isSelected(newVal) {
+      if (newVal) {
+        let graphModel = this.getGraphModel()
+        let selectedElements = graphModel.getSelectElements(true);
+
+        if(selectedElements.nodes.length === 0 && selectedElements.edges.length === 1) {
+          this.isDeleteConfirmShow = true;
+        }
+      } else {
+        this.isDeleteConfirmShow = false;
+      }
+    }
+  },
   methods: {
     handleDelete() {
       const graphModel = this.getGraphModel()
       const model = this.getModel()
 
-      graphModel.deleteEdgeById(model.id)
-
+      graphModel.eventCenter.emit('custom:edge:delete', model)
+      
       this.$emit('delete')
     },
   },

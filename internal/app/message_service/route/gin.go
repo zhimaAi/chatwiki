@@ -26,4 +26,6 @@ func init() {
 	Route[http.MethodPost][`/push_pwd/:app_type/:access_key`] = business.PushPwd
 	Route[http.MethodGet][`/push_pwd/wechat_kefu`] = business.WechatKefu
 	Route[http.MethodPost][`/push_pwd/wechat_kefu`] = business.WechatKefu
+
+	Route[http.MethodPost][`/push_pwd/feishu_robot/:access_key`] = business.FeishuPush
 }

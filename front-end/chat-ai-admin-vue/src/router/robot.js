@@ -50,11 +50,65 @@ export default {
           }
         },
         {
+          path: '/robot/ability/subscribe-reply',
+          name: 'subscribeReply',
+          component: () => import('@/views/robot/robot-config/subscribe-reply/index.vue'),
+          meta: {
+            title: '关注后回复',
+            isCustomPage: true
+          }
+        },
+        {
+          path: '/robot/ability/subscribe-reply/add-rule',
+          name: 'subscribeReplyAddRule',
+          component: () => import('@/views/robot/robot-config/subscribe-reply/add-rule.vue'),
+          meta: {
+            title: '新增规则',
+            isCustomPage: true
+          }
+        },
+        {
+          path: '/robot/config/function-center',
+          name: 'functionCenter',
+          component: () => import('@/views/robot/robot-config/function-center/index.vue'),
+          meta: {
+            title: '功能中心',
+            isCustomPage: true
+          }
+        },
+        {
           path: '/robot/config/external-services',
           name: 'externalServices',
           component: () => import('@/views/robot/robot-config/external-service/index.vue'),
           meta: {
             title: '对外服务',
+            isCustomPage: true
+          }
+        },
+        {
+          path: '/robot/ability/auto-reply',
+          name: 'autoReply',
+          component: () => import('@/views/robot/robot-config/auto-reply/index.vue'),
+          meta: {
+            title: '关键词回复',
+            isCustomPage: true
+          }
+        },
+        {
+          path: '/robot/ability/auto-reply/add-rule',
+          name: 'addRule',
+          component: () => import('@/views/robot/robot-config/auto-reply/add-rule.vue'),
+          meta: {
+            title: '新增规则',
+            isCustomPage: true
+          }
+        },
+        {
+          path: '/robot/ability/auto-reply/add-reply',
+          name: 'addReply',
+          component: () => import('@/views/robot/robot-config/auto-reply/add-reply.vue'),
+          meta: {
+            title: '新增回复',
             isCustomPage: true
           }
         },

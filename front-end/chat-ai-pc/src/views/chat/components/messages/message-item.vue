@@ -396,6 +396,100 @@
     background-color: #d9d9d9;
   }
 }
+
+.reply-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.reply-url .url-link {
+  color: #2475fc;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+  text-decoration: none;
+}
+
+.reply-url .url-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reply-card .card-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reply-card .card-title-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.reply-card .card-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.reply-card .card-title {
+  color: #595959;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 22px;
+}
+
+.reply-imageText .imageText-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reply-imageText .imageText-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.reply-imageText .imageText-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.reply-imageText .imageText-title {
+  color: #595959;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 22px;
+}
+
+.reply-imageText .imageText-desc {
+  color: #8c8c8c;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.reply-item {
+  width: fit-content;
+  border-radius: 4px 16px 16px 16px;
+  padding: 16px 12px;
+  background: #fff;
+}
+
+.reply-image .msg-img {
+  max-width: 500px;
+}
 </style>
 
 <template>
@@ -404,6 +498,44 @@
       <img class="avatar" :src="props.msg.avatar" />
     </div>
     <div class="message-item-body">
+      <template v-if="parseReplyList(props.msg.reply_content_list).length">
+        <div class="reply-list">
+          <template v-for="(rc, idx) in parseReplyList(props.msg.reply_content_list)" :key="idx">
+            <div v-if="(rc.reply_type || rc.type) === 'text'" class="reply-item reply-text">
+              <div class="message-content" v-html="rc.description"></div>
+            </div>
+            <div v-else-if="(rc.reply_type || rc.type) === 'image'" class="reply-item reply-image">
+              <div class="message-content">
+                <img v-viewer class="msg-img" :src="rc.pic || rc.thumb_url" />
+              </div>
+            </div>
+            <div v-else-if="(rc.reply_type || rc.type) === 'url'" class="reply-item reply-url">
+              <div class="url-row">
+                <a class="url-link" :href="rc.url" target="_blank">{{ rc.url }}</a>
+              </div>
+            </div>
+            <div v-else-if="(rc.reply_type || rc.type) === 'card'" class="reply-item reply-card">
+              <div class="card-row">
+                <img v-if="rc.thumb_url" :src="rc.thumb_url" class="card-thumb" />
+                <div class="card-title-box">
+                  <svg-icon class="think-icon" name="applet"></svg-icon>
+                  <span class="card-title">{{ rc.title }}</span>
+                </div>
+              </div>
+            </div>
+            <div v-else-if="(rc.reply_type || rc.type) === 'imageText'" class="reply-item reply-imageText">
+              <a class="imageText-row" :href="rc.url" target="_blank">
+                <img v-if="rc.thumb_url" :src="rc.thumb_url" class="imageText-thumb" />
+                <div class="imageText-text">
+                  <div class="imageText-title">{{ rc.title }}</div>
+                  <div class="imageText-desc">{{ rc.description }}</div>
+                </div>
+              </a>
+            </div>
+          </template>
+        </div>
+      </template>
+
       <div class="label-flex-block">
         <!-- 检索知识库 -->
         <div
@@ -462,7 +594,7 @@
         </div>
       </div>
 
-      <div class="message-content">
+      <div class="message-content" v-if="!(props.msg.msg_type == 1 && props.msg.content == '')">
         <div class="thinking-content" v-if="props.msg.show_reasoning">
           <cherry-markdown :content="props.msg.reasoning_content" />
         </div>
@@ -486,7 +618,12 @@
                 </span>
               </div>
             </div>
-            <div v-if="props.msg.is_customer == 1" v-html="props.msg.content"></div>
+            <template v-if="props.msg.is_customer == 1">
+              <template v-if="props.msg.received_message_type == 'image' && props.msg.media_id_to_oss_url">
+                <img v-viewer class="msg-img" :src="props.msg.media_id_to_oss_url" />
+              </template>
+              <div v-else v-html="props.msg.content"></div>
+            </template>
             <cherry-markdown :content="props.msg.content" v-else />
             <div class="operation" v-if="isShowCopy">
               <div @click="handleCopy" class="copy-block">
@@ -641,6 +778,7 @@
           <img v-viewer class="msg-img" :src="props.msg.content" />
         </template>
       </div>
+
     </div>
     <quote-modal ref="quoteModalRef"></quote-modal>
   </div>
@@ -836,6 +974,17 @@ const toggleReasonProcess = () => {
 }
 const toggleQuoteFiel = () => {
   props.msg.show_quote_file = !props.msg.show_quote_file
+}
+
+function parseReplyList(val) {
+  try {
+    if (!val) return []
+    if (Array.isArray(val)) return val
+    if (typeof val === 'string') return JSON.parse(val || '[]')
+    return []
+  } catch (_e) {
+    return []
+  }
 }
 onMounted(() => {
   startLoadingAnimation()
