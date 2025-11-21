@@ -78,3 +78,24 @@ export const DERAULT_ROBOT_PROMPT = `回答要求：
 3、请使用中文回答`
 
 export const OPEN_BOC_BASE_URL = '/open-doc'
+
+/**
+ * 关键词回复：类型标签映射与筛选项
+ * - REPLY_TYPE_LABEL_MAP: 组件内展示的中文标签
+ * - REPLY_TYPE_OPTIONS: 下拉筛选项（value 使用前端类型标识）
+ */
+export const REPLY_TYPE_LABEL_MAP = {
+  text: '文本',
+  imageText: '图文链接',
+  image: '图片',
+  card: '小程序',
+  url: '链接'
+}
+
+export const REPLY_TYPE_OPTIONS = [
+  { label: REPLY_TYPE_LABEL_MAP.imageText, value: 'imageText' },
+  { label: REPLY_TYPE_LABEL_MAP.text, value: 'text' },
+  { label: REPLY_TYPE_LABEL_MAP.url, value: 'url' },
+  { label: REPLY_TYPE_LABEL_MAP.image, value: 'image' },
+  { label: REPLY_TYPE_LABEL_MAP.card, value: 'card' }
+]

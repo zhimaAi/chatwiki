@@ -61,6 +61,7 @@ const formState = reactive({})
 
 function show(info = null) {
   Object.assign(formState, info || formStateStruct)
+  avatarData.value = null
   visible.value = true
 }
 

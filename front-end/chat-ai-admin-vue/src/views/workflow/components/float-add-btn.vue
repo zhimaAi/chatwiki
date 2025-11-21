@@ -8,6 +8,10 @@
   cursor: pointer;
   z-index: 100;
 }
+.add-node-btn.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
 .node-list-fix {
   position: absolute;
   left: 78px;
@@ -20,6 +24,7 @@
   <div>
     <img
       class="add-node-btn"
+      :class="{'disabled': isLockedByOther}"
       src="../../../assets//img/workflow/add-node-btn.svg"
       @click="showMenu"
     />
@@ -39,6 +44,10 @@ export default {
       type: Object,
       required: true,
     },
+    isLockedByOther: {
+      type: Boolean,
+      default: false
+    }
   },
   data() {
     return {
@@ -53,6 +62,7 @@ export default {
   },
   methods: {
     showMenu() {
+      if (this.isLockedByOther) return
       this.isShowMenu = !this.isShowMenu
     },
     // 点击菜单以外的地方，隐藏菜单

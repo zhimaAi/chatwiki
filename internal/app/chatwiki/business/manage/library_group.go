@@ -6,9 +6,9 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/app/chatwiki/middlewares"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"unicode/utf8"
@@ -21,65 +21,23 @@ import (
 )
 
 func GetLibraryGroup(c *gin.Context) {
-	var userId int
-	if userId = GetAdminUserId(c); userId == 0 {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	libraryId := cast.ToInt(c.Query(`library_id`))
-	groupType := cast.ToInt(c.DefaultQuery(`group_type`, `0`))
-	if libraryId <= 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+	userId := getLoginUserId(c)
+	if userId <= 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
-	info, err := common.GetLibraryInfo(libraryId, userId)
+	req := BridgeGetLibraryGroupReq{}
+	err := common.RequestParamsBind(&req, c)
 	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
-	if len(info) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-		return
-	}
-	m := msql.Model(`chat_ai_library_group`, define.Postgres)
-	wheres := [][]string{{`admin_user_id`, cast.ToString(userId)}, {`library_id`, cast.ToString(libraryId)}}
-	list, err := m.Where2(wheres).Where(`group_type`, cast.ToString(groupType)).Field(`id,group_name`).Order(`sort desc`).Select()
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	list = append([]msql.Params{{`id`: `0`, `group_name`: `未分组`}}, list...)
-
-	switch groupType {
-	case define.LibraryGroupTypeQA:
-		//统计数据
-		stats, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
-			Where2(wheres).Where(`isolated`, `false`).Where(`delete_time`, `0`).
-			Group(`group_id`).ColumnObj(`COUNT(1) AS total`, `group_id`)
-		if err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
-		for i, params := range list {
-			list[i][`total`] = cast.ToString(cast.ToInt(stats[params[`id`]]))
-		}
-	case define.LibraryGroupTypeFile:
-		//统计数据
-		stats, err := msql.Model(`chat_ai_library_file`, define.Postgres).
-			Where2(wheres).Where(`delete_time`, `0`).
-			Group(`group_id`).ColumnObj(`COUNT(1) AS total`, `group_id`)
-		if err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
-		for i, params := range list {
-			list[i][`total`] = cast.ToString(cast.ToInt(stats[params[`id`]]))
-		}
-	}
-	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
+	list, httpStatus, err := BridgeGetLibraryGroup(adminUserId, userId, common.GetLang(c), &req)
+	common.FmtBridgeResponse(c, list, httpStatus, err)
 }
 
 func SaveLibraryGroup(c *gin.Context) {
@@ -201,64 +159,19 @@ func GetLibraryListGroup(c *gin.Context) {
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	typ := cast.ToString(c.Query(`type`))
-	m := msql.Model(`chat_ai_library_list_group`, define.Postgres)
-	wheres := [][]string{{`admin_user_id`, cast.ToString(adminUserId)}}
-	list, err := m.Where2(wheres).Field(`id,group_name`).Order(`sort desc`).Select()
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	list = append([]msql.Params{{`id`: `0`, `group_name`: `未分组`}}, list...)
 	userId := getLoginUserId(c)
 	if userId <= 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
-	userInfo, err := msql.Model(define.TableUser, define.Postgres).
-		Alias(`u`).
-		Join(`role r`, `u.user_roles::integer=r.id`, `left`).
-		Where(`u.id`, cast.ToString(userId)).
-		Field(`u.*,r.role_type`).
-		Find()
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+	req := BridgeLibraryListGroupReq{}
+	if err := c.ShouldBindQuery(&req); err != nil {
+		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
-	if len(userInfo) == 0 {
-		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
-		return
-	}
-	//check permission
-	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot}) {
-		managedRobotIdList := []string{`0`}
-		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeLibrary)
-		for _, permission := range permissionData {
-			managedRobotIdList = append(managedRobotIdList, cast.ToString(permission[`object_id`]))
-		}
-		//wheres = append(wheres, []string{`id`, `in`, strings.Join(managedRobotIdList, `,`)})
-	}
-	if typ == "" {
-		typ = fmt.Sprintf(`%v,%v`, define.GeneralLibraryType, define.QALibraryType)
-	} else {
-		typ = fmt.Sprintf(`%v`, cast.ToInt(typ))
-	}
-	//统计数据
-	stats, err := msql.Model(`chat_ai_library`, define.Postgres).
-		Where2(wheres).
-		Where(`type`, `in`, typ).
-		Group(`group_id`).ColumnObj(`COUNT(1) AS total`, `group_id`)
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	for i, params := range list {
-		list[i][`total`] = cast.ToString(cast.ToInt(stats[params[`id`]]))
-	}
-	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
+	list, httpStatus, err := BridgeGetLibraryListGroup(adminUserId, userId, common.GetLang(c), &req)
+	common.FmtBridgeResponse(c, list, httpStatus, err)
+	return
 }
 
 func SaveLibraryListGroup(c *gin.Context) {

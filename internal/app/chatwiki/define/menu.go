@@ -19,6 +19,11 @@ var Menus = []Menu{
 	// 	},
 	// },
 	{
+		Name:     "探索",
+		UniKey:   "AbilityCenter",
+		Children: []*Menu{},
+	},
+	{
 		Name:   "机器人管理",
 		UniKey: "Robot",
 		Children: []*Menu{

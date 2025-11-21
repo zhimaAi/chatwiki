@@ -12,12 +12,15 @@ export interface Message {
   robot_avatar: string
   dialogue_id: number
   openid: string
+  received_message_type?: string
+  media_id_to_oss_url?: string
   msg_type: number | string
   is_customer: number
   loading: boolean
   isWelcome: boolean
   menu_json: any
   quote_file: any
+  reply_content_list?: any
   id: number
   uid: string
   avatar: string
@@ -267,6 +270,9 @@ export const useChatStore = defineStore('chat', () => {
       if (msg.quote_file && typeof msg.quote_file === 'string') {
         msg.quote_file = JSON.parse(msg.quote_file)
       }
+      if (msg.reply_content_list && typeof msg.reply_content_list === 'string') {
+        try { msg.reply_content_list = JSON.parse(msg.reply_content_list) } catch (_) { msg.reply_content_list = [] }
+      }
       messageList.value.push(msg)
     }
   }
@@ -346,6 +352,9 @@ export const useChatStore = defineStore('chat', () => {
       }
       messageList.value[msgIndex].id = content.id
       messageList.value[msgIndex].msg_type = content.msg_type // 更新真实的msg_type
+      if (content.reply_content_list !== undefined) {
+        messageList.value[msgIndex].reply_content_list = content.reply_content_list
+      }
       if (content.quote_file && typeof content.quote_file === 'string') {
         messageList.value[msgIndex].quote_file = JSON.parse(content.quote_file)
       }
@@ -632,6 +641,9 @@ export const useChatStore = defineStore('chat', () => {
 
         if (item.quote_file) {
           item.quote_file = JSON.parse(item.quote_file) || []
+        }
+        if (item.reply_content_list) {
+          try { item.reply_content_list = JSON.parse(item.reply_content_list) } catch (_) { item.reply_content_list = [] }
         }
       })
 

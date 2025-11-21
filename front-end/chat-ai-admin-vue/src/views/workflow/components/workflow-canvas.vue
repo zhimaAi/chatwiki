@@ -11,12 +11,21 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-
+  .lf-drag-able{
+    cursor: grab !important;
+  }
+  .lf-dragging{
+    cursor: grabbing !important;
+  }
   .lf-node-content foreignObject {
     filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2)); /* 阴影效果 */
     /* 如需外边框，可补充stroke相关样式（但foreignObject本身已有stroke="#000"） */
     /* stroke: #000; */
     /* stroke-width: 2; */
+  }
+
+  .lf-edge-selected foreignObject{
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2)); /* 阴影效果 */
   }
 
   /* 自定义锚点样式 */
@@ -53,6 +62,12 @@
     z-index: 100;
   }
 }
+.dont-show-again-checkbox {
+ position: absolute;
+ bottom: 26px;
+ left: 24px;
+ font-size: 12px;
+}
 </style>
 
 <template>
@@ -60,8 +75,7 @@
     <div ref="containerRef" class="logic-flow-container"></div>
     <TeleportContainer :flow-id="flowId" />
 
-    <!-- <FloatAddBtn :lf="lf" v-if="lf" @addNode="onCustomAddNode" /> -->
-    <CustomControl :lf="lf" v-if="lf" @runTest="handleRunTest" @addNode="onCustomAddNode" />
+    <CustomControl :lf="lf" v-if="lf" @runTest="handleRunTest" @addNode="onCustomAddNode" @zoom-change="handleZoomChange" />
 
     <NodeFormDrawer
       ref="nodeFormDrawerRef"
@@ -81,13 +95,14 @@
 <script setup>
 import '@logicflow/core/lib/style/index.css'
 import '@logicflow/extension/lib/style/index.css'
-import { onMounted, ref } from 'vue'
-// import FloatAddBtn from './float-add-btn.vue'
+import { onMounted, ref, onUnmounted, h } from 'vue'
+import { useStorage } from '@/hooks/web/useStorage'
+import { Modal, Checkbox } from 'ant-design-vue'
 import CustomControl from './custom-control/index.vue'
 import NodeFormDrawer from './node-form-drawer/index.vue'
 import { generateUniqueId } from '@/utils/index'
 import LogicFlow from '@logicflow/core'
-import { DndPanel, MiniMap } from '@logicflow/extension'
+import { DndPanel, MiniMap, SelectionSelect } from '@logicflow/extension'
 import { register, getTeleport } from '@logicflow/vue-node-registry'
 import { getNodesMap } from './node-list'
 import customEdge from './edges/custom-line/index.js'
@@ -112,16 +127,23 @@ import selectDataNode from './nodes/select-data-node/index.js'
 import codeRunNode from './nodes/code-run-node/index.js'
 import mcpNode from "./nodes/mcp-node/index.js";
 import { ContextPad } from './plugins/context-pad/index.js'
+import { CanvasHistory } from './plugins/canvas-history/index.js'
+import { CustomKeyboard } from './plugins/custom-keyboard/index.js'
 
-const emit = defineEmits(['selectNode', 'deleteNode', 'runTest', 'blankClick'])
+const emit = defineEmits(['selectNode', 'onDeleteNode', 'onDeleteEdge', 'runTest', 'blankClick'])
 
 let lf = null
+const { setStorage, getStorage } = useStorage();
+const DONT_SHOW_DELETE_CONFIRM_KEY = 'dont_show_delete_node_confirm';
+const dontShowDeleteConfirm = ref(getStorage(DONT_SHOW_DELETE_CONFIRM_KEY) || false);
 const nodeFormDrawerRef = ref(null)
 const nodeFormDrawerShow = ref(false)
 const selectedNode = ref(null)
 const containerRef = ref(null)
 const TeleportContainer = getTeleport()
 const flowId = ref('')
+const selectedElements = ref([]) // 用于存储当前“选中元素”
+
 
 const canvasData = {
   nodes: []
@@ -134,6 +156,17 @@ const miniMapOptions = {
   rightPosition: 16
 }
 
+const selectionSelectOptions = {
+  exclusiveMode: false,
+}
+
+const handleZoomChange = (value) => {
+  // zoom.value = value
+  if (lf) {
+    lf.zoom(value)
+  }
+}
+
 function initLogicFlow() {
   if (containerRef.value) {
     lf = new LogicFlow({
@@ -144,6 +177,8 @@ function initLogicFlow() {
       edgeTextEdit: false,
       textEdit: false,
       grid: false,
+      stopMoveGraph: false,
+      stopZoomGraph: true,
       adjustEdge: false, // 允许调整边
       adjustEdgeStartAndEnd: false, // 是否允许拖动边的端点来调整连线
       adjustNodePosition: true, // 是否允许拖动节点
@@ -154,9 +189,32 @@ function initLogicFlow() {
       background: {
         backgroundColor: '#f0f2f5'
       },
-      plugins: [DndPanel, MiniMap, ContextPad],
+      plugins: [DndPanel, MiniMap, ContextPad, SelectionSelect, CanvasHistory, CustomKeyboard],
       pluginsOptions: {
-        miniMap: miniMapOptions
+        miniMap: miniMapOptions,
+        selectionSelect: selectionSelectOptions,
+        canvasHistory: {
+          maxHistorySize: 100
+        }
+      },
+      // history: false, // 关闭历史记录功能会导致小地图无法更新
+      keyboard: {
+        enabled: false,
+        shortcuts: [{
+          keys: [ // 屏蔽自带的ctrl + z, ctrl + y, ctrl + c
+            "cmd + z", 
+            "ctrl + z", 
+            "cmd + y", 
+            "ctrl + y", 
+            "cmd + c", 
+            "ctrl + c", 
+            'cmd + v', 
+            'ctrl + v'
+          ],
+          callback: () => {
+            // 自定义逻辑
+          },
+        }],
       }
     })
 
@@ -206,9 +264,18 @@ function initLogicFlow() {
       node.setZIndex(dragNodeZIndex)
     })
 
+    lf.on('node:add', () => {
+      // console.log('node:add', data)
+    })
+    
     // 添加自定义节点事件
-    lf.on('custom:addNode', ({ data, model, anchorData }) => {
-      onCustomAddNode(data, model, anchorData)
+    lf.on('custom:addNode', (options) => {
+      onCustomAddNode(options)
+    })
+
+    // 元素点击
+    lf.on('element:click', (e) => {
+      selectedElements.value = [e.data]
     })
 
     // 点击节点
@@ -221,10 +288,30 @@ function initLogicFlow() {
       handleBlankClick()
     })
 
+    // 选区框选后触发
+    lf.on('selection:selected', (e) => {
+      let items = []
+
+      e.elements.forEach((element) => {
+        let data = lf.getDataById(element.id);
+        if(element.BaseType === 'node' || element.BaseType === 'edge'){
+          items.push(data)
+        }
+      })
+
+      selectedElements.value = items
+    })
+
     // 节点删除
     lf.on('node:delete', ({ data }) => {
       let dataRaw = JSON.parse(JSON.stringify(data));
-      handleDeleteNode(dataRaw)
+      onDeleteNode(dataRaw)
+    })
+
+    // 边删除
+    lf.on('edge:delete', ({ data }) => {
+      let dataRaw = JSON.parse(JSON.stringify(data));
+      onDeleteEdge(dataRaw)
     })
 
     // 更新数据
@@ -237,39 +324,47 @@ function initLogicFlow() {
     //   console.log(data)
     // })
 
+    // 自定义节点删除
+    lf.on('custom:node:delete', (node) => {
+      handleDeleteNode(node)
+    })
+
+    // 自定义边删除
+    lf.on('custom:edge:delete', (edge) => {
+      handleDeleteEdge(edge)
+    })
+
+    // 自定义键盘删除
+    lf.on('custom:keyoard:delete', () => {
+      handleKeyoardDelete()
+    })
+
+    // 监听批量粘贴事件
+    lf.on('custom:paste', handleBatchPaste)
+    // 监听历史记录状态变化
+    // lf.extension.canvasHistory.onHistoryChange((state) => {
+      // console.log('可撤销:', state.canUndo)
+      // console.log('可重做:', state.canRedo)
+      // console.log('历史记录数:', state.historySize)
+      // console.log('重做记录数:', state.redoSize)
+      // console.log('操作日志:', state)
+      // 撤销或重做操作后，清空选中元素
+      // selectedElements.value = []
+    // })
+
     lf.render(canvasData)
 
     lf.setZoomMiniSize(0.01)
 
     lf.setZoomMaxSize(8)
 
-    // 监听 wheel 事件
-    lf.container.addEventListener(
-      'wheel',
-      (e) => {
-        // 检测是否按下 Shift 键
-        if (e.shiftKey) {
-          // 阻止默认行为（避免页面垂直滚动）
-          e.preventDefault()
+    // 确保容器可以接收键盘事件
+    lf.container.setAttribute('tabindex', '0')
+    lf.container.style.outline = 'none'
 
-          // 获取当前画布的 transform 状态
-          const transform = lf.getTransform()
-          let SCALE_X = transform.SCALE_X
-          let SCALE_Y = transform.SCALE_Y
-          // 根据滚轮方向调整 x 坐标（deltaY 用于判断滚轮方向）
-          // console.log(e.deltaY)
-          // 设置新的 transform
-          if (e.deltaY > 0) {
-            lf.translate(-100 * SCALE_X, 100 * SCALE_Y)
-          } else {
-            lf.translate(100 * SCALE_X, -100 * SCALE_Y)
-          }
-        }
-      },
-      { passive: false }
-    ) // passive: false 允许调用 preventDefault()
+    // lf.extension.miniMap.show()
 
-    lf.extension.miniMap.show()
+    lf.container.focus()
   }
 }
 
@@ -295,34 +390,82 @@ const setData = (data) => {
       node.properties.height = nodeCongfig.height
     }
   })
+
   lf.clearData()
 
   lf.graphModel.graphDataToModel(data)
   lf.graphModel.translateCenter()
+  lf.extension.miniMap.show()
+
+  const history = lf.extension.canvasHistory
+  if (history) {
+    history.setInitialState(data)
+  }
 }
 
 // 自定义添加节点
-const onCustomAddNode = (data, model, anchorData) => {
-  data.id = generateUniqueId(data.type)
+let nodeNameMap = {}
+const createNodeInfo = (options) => {
+  const data = options.node || options;
+  const anchorData = options.anchorData; // 来自右键菜单添加
+  const dropEvent = options.event;
+
+
+  data.id = data.id || generateUniqueId(data.type)
   data.nodeSortKey = data.id.substring(0, 8) + data.id.substring(data.id.length - 8)
+
+  // 如果不是复制粘贴的节点，则处理节点名称递增
+  if (!options.isCopy) {
+    // 同一类型的节点多次添加时，从第二次添加开始，默认名称后面加上序号
+    if(nodeNameMap[data.type]){
+      nodeNameMap[data.type] = nodeNameMap[data.type] + 1
+      data.properties.node_name = data.properties.node_name + nodeNameMap[data.type]
+    }else{
+      nodeNameMap[data.type] = 1
+    }
+  }
 
   data.properties.width = data.width
   data.properties.height = data.height
   data.properties.nodeSortKey = data.nodeSortKey
 
-  if (anchorData) {
-    data.x = anchorData.x + data.width + 100
-    data.y = anchorData.y + data.height / 2 - 24
-  } else {
-    const { transformModel } = lf.graphModel
-    const point = transformModel.HtmlPointToCanvasPoint([
-      lf.graphModel.width / 2,
-      lf.graphModel.height / 2
-    ])
-
-    data.x = point[0]
-    data.y = point[1]
+  // 核心改动：判断坐标来源
+  if (dropEvent) {
+    // === 拖拽添加 ===
+    const { transformModel } = lf.graphModel;
+    // 1. 将浏览器视口坐标(clientX, clientY)转换为相对于画布容器的坐标
+    const { left, top } = containerRef.value.getBoundingClientRect();
+    const [canvasX, canvasY] = transformModel.HtmlPointToCanvasPoint([
+      dropEvent.clientX - left,
+      dropEvent.clientY - top
+    ]);
+    // 2. LogicFlow默认(x, y)为中心点，需减去宽高一半将其校正为左上角
+    data.x = canvasX + data.width / 2;
+    data.y = canvasY + data.height / 2;
+  } else if(!data.x && !data.y) { // 只有在没有预设坐标时才计算位置
+    if (anchorData) {
+    // === 从锚点添加 ===
+      data.x = anchorData.x + data.width + 100;
+      data.y = anchorData.y + data.height / 2 - 24;
+    } else {
+      // === 默认（点击）添加，放在画布中心 ===
+      const { transformModel } = lf.graphModel;
+      const point = transformModel.HtmlPointToCanvasPoint([
+        lf.graphModel.width / 2,
+        lf.graphModel.height / 2
+      ]);
+      data.x = point[0];
+      data.y = point[1];
+    }
   }
+  return data;
+}
+
+const onCustomAddNode = (options) => {
+  const nodeData = createNodeInfo(options);
+  const model = options.model; // 来自右键菜单添加
+  const anchorData = options.anchorData; // 来自右键菜单添加
+
   // 情况选中状态
   let zIndex = 0
   lf.graphModel.nodes.forEach((node) => {
@@ -333,7 +476,7 @@ const onCustomAddNode = (data, model, anchorData) => {
 
   zIndex = zIndex + 1
 
-  let node = lf.addNode(data)
+  let node = lf.addNode(nodeData)
 
   if (anchorData) {
     lf.graphModel.addEdge({
@@ -350,6 +493,42 @@ const onCustomAddNode = (data, model, anchorData) => {
   node.setZIndex(zIndex)
   lf.graphModel.clearSelectElements()
   node.setSelected(true)
+}
+
+const handleBatchPaste = ({ originalNodes, basePoint, pasteBasePoint }) => {
+  const history = lf.extension.canvasHistory;
+
+  if (history) {
+    history.beginTransaction();
+  };
+
+  try {
+    const nodesToCreate = originalNodes.map(nodeData => {
+      const deltaX = nodeData.x - basePoint.x;
+      const deltaY = nodeData.y - basePoint.y;
+
+      // 关键：这里要创建一个新的对象，而不是修改剪贴板里的原始数据
+      const newNodeData = JSON.parse(JSON.stringify(nodeData));
+      newNodeData.x = pasteBasePoint.x + deltaX;
+      newNodeData.y = pasteBasePoint.y + deltaY;
+      
+      // 调用核心函数生成最终节点信息
+      return createNodeInfo({ node: newNodeData, isCopy: true });
+    });
+
+    const { nodes: newNodes } = lf.addElements({ nodes: nodesToCreate });
+    lf.clearSelectElements();
+    newNodes.forEach(node => {
+      node.setSelected(true);
+    });
+
+    // selectedElements.value = newNodes
+
+  } finally {
+    if (history) {
+      history.commitTransaction('paste');
+    }
+  }
 }
 
 const updateNode = (data) => {
@@ -381,16 +560,142 @@ const updateNode = (data) => {
   node.refreshBranch()
 }
 
+function isNode(data){
+  let node = lf.getNodeModelById(data.id)
+  return node
+}
+
+function isEdge(data){
+  let edge = lf.getEdgeModelById(data.id)
+  return edge
+}
+
+const handleDeleteNode = (node) => {
+  // 将右键点击的节点设置为当前唯一选中的元素
+  if (node && node.id) {
+    selectedElements.value = [node]
+  }
+
+  // 统一调用删除处理函数
+  deleteSelectedElements()
+}
+
+const handleDeleteEdge = (data) => {
+  // 将右键点击的边设置为当前唯一选中的元素
+  if (data && data.id) {
+    selectedElements.value = [data]
+  }
+
+  // 统一调用删除处理函数
+  deleteSelectedElements()
+}
+
+const handleKeyoardDelete = () => {
+  let selectElements = lf.getSelectElements(true)
+
+  selectedElements.value = [...selectElements.nodes, ...selectElements.edges]
+
+  // 统一调用删除处理函数
+  deleteSelectedElements()
+}
+
+// 处理删除选中元素
+const deleteSelectedElements = () => {
+  if (selectedElements.value.length === 0) {
+    return
+  }
+
+  // 过滤掉不能删除的开始节点
+  const elementsToDelete = selectedElements.value.filter((el) => {
+    if (isNode(el)) {
+      return el.type !== 'start-node'
+    }
+    return true // 边可以删除
+  })
+
+  if (elementsToDelete.length === 0) {
+    selectedElements.value = [] // 清空无效选择
+    return
+  }
+
+  // 定义核心删除逻辑，用于复用
+  const performDelete = () => {
+    const history = lf.extension.canvasHistory
+
+    // 1. 操作前：生成一个 "即将删除" 的快照，并用它替换掉最后一条历史记录
+    if (history) {
+      history.replaceLastState('replace-before-delete')
+    }
+
+    // 2. 执行所有删除操作
+    elementsToDelete.forEach((el) => {
+      if (isNode(el)) {
+        lf.deleteNode(el.id)
+      } else if (isEdge(el)) {
+        lf.deleteEdge(el.id)
+      }
+    })
+
+    // 3. 操作后：保存一次最终状态
+    if (history) {
+      history.saveCurrentState('delete')
+    }
+
+    // 4. 清空选中状态
+    selectedElements.value = []
+    lf.clearSelectElements()
+  }
+
+  // 判断是否需要弹窗
+  // 条件：当选中元素大于1个，或者选中元素为1个且是节点时，需要弹窗确认
+  if (dontShowDeleteConfirm.value) {
+    performDelete();
+    return;
+  }
+  
+  if (elementsToDelete.length > 1 || (elementsToDelete.length === 1 && isNode(elementsToDelete[0]))) {
+    const title = elementsToDelete.length > 1 ? '批量删除' : '删除节点'
+    const content = `确定要删除选中的 ${elementsToDelete.length} 个元素吗？`
+    let checkboxChecked = false
+
+    Modal.confirm({
+      title: title,
+      content: h('div', {}, [
+        h('p', content),
+        h(Checkbox, {
+          class: 'dont-show-again-checkbox',
+          onChange: (e) => {
+            checkboxChecked = e.target.checked
+          }
+        },
+        () => '不再提示')
+      ]),
+      onOk: () => {
+        if(checkboxChecked){
+          dontShowDeleteConfirm.value = true;
+          setStorage(DONT_SHOW_DELETE_CONFIRM_KEY, true);
+        }
+        performDelete()
+      },
+      onCancel: () => {
+        // 如果取消删除，不清空选择，以便用户继续操作
+      }
+    })
+  } else {
+    // 如果只选中1个边，则直接删除，不弹窗
+    performDelete()
+  }
+}
+
 const noShowDrawerNode = ['explain-node', 'end-node']
 // 选择节点
 const handleSelectedNode = (data) => {
-  console.log('----handleSelectedNode', data)
   const node = JSON.parse(JSON.stringify(data))
+
   node.properties.dataRaw =  node.properties.dataRaw || node.properties.node_params
   
   emit('selectNode', node)
 
-  
   // 结束节点不支持编辑
   if(noShowDrawerNode.includes(data.type)){
     return
@@ -403,14 +708,13 @@ const handleSelectedNode = (data) => {
 const handleNodeChange = (data) => {
   selectedNode.value.properties = data
 
-  console.log('---handleNodeChange', selectedNode.value)
   // 更新节点
   updateNode(JSON.parse(JSON.stringify(selectedNode.value)))
 }
 
 const handleChangeNodeName = (node_name) => {
   selectedNode.value.properties.node_name = node_name;
-  console.log('---handleChangeNodeName', selectedNode.value)
+
   // 先更新数据
   updateNode(JSON.parse(JSON.stringify(selectedNode.value)))
   // 在发送事件之前，确保数据已经更新
@@ -421,8 +725,8 @@ const handleChangeNodeName = (node_name) => {
   })
 }
 
-const handleDeleteNode = (data) => {
-  emit('deleteNode', data)
+const onDeleteNode = (data) => {
+  emit('onDeleteNode', data)
 
   if(selectedNode.value && data.id === selectedNode.value.id) {
     nodeFormDrawerShow.value = false
@@ -432,19 +736,34 @@ const handleDeleteNode = (data) => {
   }
 }
 
+const onDeleteEdge = (data) => {
+  emit('onDeleteEdge', data)
+}
+
 const handleRunTest = () => {
   emit('runTest')
 }
 
 const handleBlankClick = () => {
   emit('blankClick')
-  if(nodeFormDrawerShow.value) {
+  if (nodeFormDrawerShow.value) {
     nodeFormDrawerShow.value = false
+  }
+  // 清空“选中元素”
+  if (selectedElements.value.length > 0) {
+    selectedElements.value = []
+    lf.clearSelectElements()
   }
 }
 
 onMounted(() => {
   initLogicFlow()
+})
+
+onUnmounted(() => {
+  if (lf) {
+    lf.destroy()
+  }
 })
 
 defineExpose({

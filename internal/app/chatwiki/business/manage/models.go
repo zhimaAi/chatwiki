@@ -6,10 +6,10 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/app/chatwiki/middlewares"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -274,44 +274,24 @@ func EditModelConfig(c *gin.Context) {
 }
 
 func GetModelConfigOption(c *gin.Context) {
-	var userId int
-	if userId = GetAdminUserId(c); userId == 0 {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	modelType := strings.TrimSpace(c.Query(`model_type`))
-	if len(modelType) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+	userId := getLoginUserId(c)
+	if userId <= 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
-	configs, err := msql.Model(`chat_ai_model_config`, define.Postgres).
-		Where(`admin_user_id`, cast.ToString(userId)).Order(`id desc`).Select()
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+	req := BridgeGetModelConfigOptionReq{}
+	if err := c.ShouldBindQuery(&req); err != nil {
+		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
-	list := make([]map[string]any, 0)
-	for _, config := range configs {
-		if tool.InArrayString(modelType, strings.Split(config[`model_types`], `,`)) {
-			modelInfo, ok := common.GetModelInfoByDefine(config[`model_define`])
-			if !ok {
-				continue
-			}
-			choosableThinking := make(map[string]bool)
-			if cast.ToInt(config[`thinking_type`]) == 2 { //可选设置在配置上的
-				for _, modelName := range modelInfo.LlmModelList {
-					choosableThinking[fmt.Sprintf(`%s#%s`, config[`id`], modelName)] = true
-				}
-				choosableThinking[fmt.Sprintf(`%s#%s`, config[`id`], config[`show_model_name`])] = true //兼容
-			} else { //可选设置在模型上的
-				for _, modelName := range modelInfo.ChoosableThinkingModels {
-					choosableThinking[fmt.Sprintf(`%s#%s`, config[`id`], modelName)] = true
-				}
-			}
-			list = append(list, map[string]any{`model_config`: config, `model_info`: modelInfo, `choosable_thinking`: choosableThinking})
-		}
-	}
-	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
+	req.ModelType = strings.TrimSpace(c.Query(`model_type`))
+	list, httpStatus, err := BridgeGetModelConfigOption(adminUserId, adminUserId, common.GetLang(c), &req)
+	common.FmtBridgeResponse(c, list, httpStatus, err)
+	return
 }
 
 func configurationTest(config msql.Params, modelInfo common.ModelInfo) error {

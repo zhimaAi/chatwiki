@@ -1,14 +1,17 @@
 <style lang="less" scoped>
 .wechat-app-item {
-  width: 325px;
-  height: 74px;
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  border-radius: 2px;
-  border: 1px solid #d9d9d9;
+  width: 355px;
+  height: fit-content;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #e4e6eb;
   overflow: hidden;
   cursor: pointer;
+  position: relative;
+  .app-info-block {
+    display: flex;
+    align-items: center;
+  }
 
   &:hover {
     box-shadow:
@@ -18,7 +21,6 @@
   }
 
   .item-body {
-    flex: 1;
     display: flex;
     align-items: center;
     overflow: hidden;
@@ -29,10 +31,11 @@
   }
   .app-avatar {
     display: block;
-    width: 40px;
-    height: 40px;
-    border-radius: 2px;
-    margin-right: 8px;
+    width: 62px;
+    height: 62px;
+    border-radius: 16px;
+    margin-right: 12px;
+    border: 1px solid var(--07, #f0f0f0);
   }
 
   .app-name,
@@ -44,8 +47,8 @@
   }
 
   .app-name {
-    line-height: 22px;
-    font-size: 14px;
+    line-height: 24px;
+    font-size: 16px;
     font-weight: 600;
     color: #262626;
   }
@@ -55,20 +58,49 @@
     font-size: 12px;
     font-weight: 400;
     color: #8c8c8c;
+    margin-top: 4px;
   }
 
-  .item-right {
+  .ext-info-list {
+    margin-top: 12px;
     display: flex;
-    gap: 8px;
+    flex-wrap: wrap;
+    color: #595959;
+    line-height: 22px;
+    font-size: 14px;
+    .status-block {
+      display: flex;
+      align-items: center;
+      border-radius: 6px;
+      padding: 0 6px;
+      font-size: 14px;
+      line-height: 22px;
+      gap: 2px;
+      &.status-success {
+        background: #cafce4;
+        color: #21a665;
+      }
+      &.status-warning {
+        background: #fae4dc;
+        color: #ed744a;
+      }
+    }
   }
-  .action-btn {
-    color: #8c8c8c;
-  }
-  .edit-btn:hover {
-    color: #2475fc;
-  }
-  .delete-btn:hover {
-    color: #fb363f;
+
+  .btn-wrapper-box {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    right: 24px;
+    bottom: 20px;
+    transition: all 0.2s ease-in-out;
+    &:hover {
+      background: #e4e6eb;
+    }
   }
 }
 </style>
@@ -82,22 +114,56 @@
         <div class="app-desc">Appid：{{ item.app_id }}</div>
       </div>
     </div>
-    <div class="item-right">
-      <span class="action-btn edit-btn" @click="handleEdit"><svg-icon name="edit"></svg-icon></span>
-      <span class="action-btn delete-btn" @click="handleDelete"
-        ><svg-icon name="delete"></svg-icon
-      ></span>
-    </div>
+    <template v-if="showExtTypeList.includes(props.app_type)">
+      <div class="ext-info-list">
+        <div class="ext-content">{{ item.wechat_reply_type }}</div>
+      </div>
+      <div class="ext-info-list">
+        <div class="status-block status-success" v-if="item.account_is_verify == 'true'">
+          <CheckCircleFilled />
+          已认证
+        </div>
+        <a-flex :gap="8" v-else>
+          <div class="status-block status-warning">
+            <ExclamationCircleFilled />
+            未认证
+          </div>
+          <a @click="handleRefresh">刷新状态</a>
+        </a-flex>
+      </div>
+    </template>
+
+    <a-dropdown>
+      <div class="btn-wrapper-box">
+        <EllipsisOutlined />
+      </div>
+      <template #overlay>
+        <a-menu>
+          <a-menu-item @click="handleEdit">
+            <a>编 辑</a>
+          </a-menu-item>
+          <a-menu-item @click="handleDelete">
+            <a style="color: #fb363f">删 除</a>
+          </a-menu-item>
+        </a-menu>
+      </template>
+    </a-dropdown>
   </div>
 </template>
 
 <script setup>
-const emit = defineEmits(['edit', 'delete'])
+import { CheckCircleFilled, ExclamationCircleFilled, EllipsisOutlined } from '@ant-design/icons-vue'
+const emit = defineEmits(['edit', 'delete', 'refresh'])
+const showExtTypeList = ['mini_program', 'official_account']
 
 const props = defineProps({
   item: {
     type: Object,
     default: () => ({})
+  },
+  app_type: {
+    type: String,
+    default: ''
   }
 })
 
@@ -107,5 +173,9 @@ function handleEdit() {
 
 function handleDelete() {
   emit('delete', { ...props.item })
+}
+
+function handleRefresh() {
+  emit('refresh', { ...props.item })
 }
 </script>

@@ -1,0 +1,20 @@
+# 自动检测文本文件并进行标准化
+* text=auto
+
+# 强制使用 LF（对需要统一行尾的脚本）
+*.go        text eol=lf
+*.mod      text eol=lf
+*.md      text eol=lf
+*.conf    text eol=lf
+*.yml     text eol=lf
+*.json    text eol=lf
+*.txt      text eol=lf
+*.ini     text eol=lf
+
+# 二进制文件（不进行任何转换）
+*.png       binary
+*.jpg       binary
+*.pdf       binary
+*.zip       binary
+
+build/      binary

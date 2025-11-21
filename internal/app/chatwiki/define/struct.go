@@ -53,16 +53,21 @@ type ChatBaseParam struct {
 
 type ChatRequestParam struct {
 	*ChatBaseParam
-	Error          error
-	Lang           string
-	Question       string
-	MsgId          string
-	OpenApiContent string
-	DialogueId     int
-	Prompt         string
-	LibraryIds     string
-	IsClose        *bool
-	WorkFlowGlobal map[string]any
+	Error                error
+	Lang                 string
+	Question             string
+	MsgId                string
+	PassiveId      			   int64
+	ReceivedMessageType  string
+	ReceivedMessage      map[string]any
+	MediaIdToOssUrl      string
+	ThumbMediaIdToOssUrl string
+	OpenApiContent       string
+	DialogueId           int
+	Prompt               string
+	LibraryIds           string
+	IsClose              *bool
+	WorkFlowGlobal       map[string]any
 }
 
 type DocSplitItem struct {

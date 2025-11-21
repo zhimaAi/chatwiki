@@ -3,7 +3,6 @@
     <a-menu class="left-menu" :selectedKeys="selectedKeys" @click="handleChangeMenu">
       <router-link
         class="default-color"
-        tag="a"
         :target="item.target || '_self'"
         :to="{ path: item.path, query: item.query || query }"
         v-for="item in items"
@@ -18,12 +17,15 @@
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
+import { ref, h, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import SvgIcon from '@/components/svg-icon/index.vue'
 import { getRobotPermission } from '@/utils/permission'
+import { getRobotAbilityList } from '@/api/explore'
+import { useRobotStore } from '@/stores/modules/robot'
 const emit = defineEmits(['changeMenu'])
 const route = useRoute()
+const robotStore = useRobotStore()
 const props = defineProps({
   robotInfo: {
     type: Object,
@@ -33,6 +35,17 @@ const props = defineProps({
 
 const query = route.query
 const selectedKeys = computed(() => {
+  // 没有自动回复菜单就让功能中心高亮，否则就让自动回复高亮
+  const autoReplyMenu = items.value.find((i) => i.id === 'auto-reply')
+  if (route.path.split('/')[3] === 'auto-reply' && !autoReplyMenu) {
+    return ['function-center']
+  }
+
+  // 没有订阅回复菜单就让功能中心高亮，否则就让订阅回复高亮
+  const subscribeReplyMenu = items.value.find((i) => i.id === 'subscribe-reply')
+  if (route.path.split('/')[3] === 'subscribe-reply' && !subscribeReplyMenu) {
+    return ['function-center']
+  }
   return [route.path.split('/')[3]]
 })
 
@@ -88,6 +101,19 @@ const baseItems = [
     title: '工作流',
     path: '/robot/config/skill-config',
     menuIn: ['0']
+  },
+  {
+    key: 'function-center',
+    id: 'function-center',
+    icon: () =>
+      h(SvgIcon, {
+        name: 'function-center',
+        class: 'menu-icon'
+      }),
+    label: '功能中心',
+    title: '功能中心',
+    path: '/robot/config/function-center',
+    menuIn: ['0', '1']
   },
   {
     key: 'external-services',
@@ -217,12 +243,136 @@ const baseItems = [
   }
 ]
 
+const autoReplyMenu = ref(null)
+const subscribeReplyMenu = ref(null)
+
+async function refreshAbilityMenu () {
+  try {
+    const rid = props.robotInfo?.id || query.id
+    if (!rid) return
+    const res = await getRobotAbilityList({ robot_id: rid })
+    const data = res?.data || []
+
+    // 关键词回复
+    const autoItem = (data || []).find((it) => it?.ability_type === 'robot_auto_reply')
+    if (autoItem) {
+      const sw = autoItem?.robot_config?.switch_status ?? autoItem?.user_config?.switch_status ?? '0'
+      const ai_reply_status = autoItem?.robot_config?.ai_reply_status ?? autoItem?.user_config?.ai_reply_status ?? '0'
+      robotStore.setKeywordReplySwitchStatus(String(sw))
+      robotStore.setKeywordReplyAiReplyStatus(String(ai_reply_status))
+    } else {
+      robotStore.setKeywordReplySwitchStatus('0')
+      robotStore.setKeywordReplyAiReplyStatus('0')
+    }
+    const hit = (data || []).find(
+      (it) =>
+        it?.ability_type === 'robot_auto_reply' &&
+        it?.robot_config?.fixed_menu === '1' &&
+        it?.robot_config?.switch_status === '1'
+    )
+    if (hit) {
+      autoReplyMenu.value = {
+        key: 'auto-reply',
+        id: 'auto-reply',
+        icon: () =>
+          h(SvgIcon, {
+            name: 'auto-reply',
+            class: 'menu-icon'
+          }),
+        label: hit?.menu?.name,
+        title: hit?.menu?.name,
+        path: hit?.menu?.path || '/robot/ability/auto-reply',
+        menuIn: ['0', '1']
+      }
+    } else {
+      autoReplyMenu.value = null
+    }
+
+    // 关注后回复
+    const subItem = (data || []).find((it) => it?.ability_type === 'robot_subscribe_reply')
+    if (subItem) {
+      const sw_sub = subItem?.robot_config?.switch_status ?? subItem?.user_config?.switch_status ?? '0'
+      const ai_reply_statu_sub = subItem?.robot_config?.ai_reply_status ?? subItem?.user_config?.ai_reply_status ?? '0'
+      robotStore.setSubscribeReplySwitchStatus(String(sw_sub))
+      robotStore.setSubscribeReplyAiReplyStatus(String(ai_reply_statu_sub))
+    } else {
+      robotStore.setSubscribeReplySwitchStatus('0')
+      robotStore.setSubscribeReplyAiReplyStatus('0')
+    }
+    const hitSub = (data || []).find(
+      (it) =>
+        it?.ability_type === 'robot_subscribe_reply' &&
+        it?.robot_config?.fixed_menu === '1'
+        && it?.robot_config?.switch_status === '1'
+    )
+    if (hitSub) {
+      subscribeReplyMenu.value = {
+        key: 'subscribe-reply',
+        id: 'subscribe-reply',
+        icon: () =>
+          h(SvgIcon, {
+            name: 'subscribe-reply',
+            class: 'menu-icon'
+          }),
+        label: hit?.menu?.name,
+        title: hit?.menu?.name,
+        path: hitSub?.menu?.path || '/robot/ability/subscribe-reply',
+        menuIn: ['0', '1']
+      }
+    } else {
+      subscribeReplyMenu.value = null
+    }
+  } catch (e) {
+    console.warn('refreshAbilityMenu failed', e)
+  }
+}
+
+function abilityUpdatedHandler (e) {
+  const rid = props.robotInfo?.id || query.id
+  const incoming = e?.detail?.robotId
+  if (!incoming || !rid || String(incoming) !== String(rid)) return
+  refreshAbilityMenu()
+}
+
+onMounted(() => {
+  refreshAbilityMenu()
+  window.addEventListener('robotAbilityUpdated', abilityUpdatedHandler)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('robotAbilityUpdated', abilityUpdatedHandler)
+})
+
 const items = computed(() => {
   let lists = baseItems
   if (getRobotPermission(query.id) == 1) {
-    return lists.filter((item) => item.id == 'external-services')
+    lists = lists.filter((item) => item.id == 'external-services')
+  } else {
+    lists = lists.filter((item) => item.menuIn.includes(props.robotInfo?.application_type))
   }
-  return lists.filter((item) => item.menuIn.includes(props.robotInfo?.application_type))
+  if (autoReplyMenu.value) {
+    const idx = lists.findIndex((i) => i.id === 'function-center')
+    const arr = [...lists]
+    if (idx >= 0) {
+      arr.splice(idx + 1, 0, autoReplyMenu.value)
+      return arr
+    }
+    arr.push(autoReplyMenu.value)
+    return arr
+  }
+
+  if (subscribeReplyMenu.value) {
+    const idx = lists.findIndex((i) => i.id === 'function-center')
+    const arr = [...lists]
+    if (idx >= 0) {
+      arr.splice(idx + 1, 0, subscribeReplyMenu.value)
+      return arr
+    }
+    arr.push(subscribeReplyMenu.value)
+    return arr
+  }
+  
+  return lists
 })
 
 const handleChangeMenu = ({ item }) => {

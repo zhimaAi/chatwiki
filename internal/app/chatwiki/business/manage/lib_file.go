@@ -3,6 +3,7 @@
 package manage
 
 import (
+	"chatwiki/internal/app/chatwiki/middlewares"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,113 +33,27 @@ import (
 )
 
 func GetLibFileList(c *gin.Context) {
-	var userId int
-	if userId = GetAdminUserId(c); userId == 0 {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	libraryId := cast.ToInt(c.Query(`library_id`))
-	if libraryId <= 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+	userId := getLoginUserId(c)
+	if userId <= 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
-	info, err := common.GetLibraryInfo(libraryId, userId)
+	req := BridgeGetLibFileListReq{}
+	err := common.RequestParamsBind(&req, c)
 	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
-	if len(info) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-		return
-	}
-	wheres := [][]string{
-		{`admin_user_id`, cast.ToString(userId)}, {`library_id`, cast.ToString(libraryId)}, {`delete_time`, `0`},
-	}
-	status := cast.ToString(c.Query(`status`))
-	page := max(1, cast.ToInt(c.Query(`page`)))
-	size := max(1, cast.ToInt(c.Query(`size`)))
-	sortField := cast.ToString(c.Query(`sort_field`))
-	sortType := cast.ToString(c.Query(`sort_type`))
-	// groupId := cast.ToInt(c.Query(`group_id`))
-	// 全部时给一个默认值
-	groupId := cast.ToInt(c.DefaultQuery(`group_id`, `-1`))
-	m := msql.Model(`chat_ai_library_file`, define.Postgres).
-		Alias(`f`).
-		Join(`chat_ai_library_file_data d`, `f.id=d.file_id`, `left`).
-		Where(`f.admin_user_id`, cast.ToString(userId)).
-		Where(`f.library_id`, cast.ToString(libraryId)).
-		Where(`f.delete_time`, `0`).
-		Group(`f.id`).
-		Field(`f.*, count(d.id) as paragraph_count`).
-		Field(`count(case when d.graph_status = 3 then 1 else null end) as graph_err_count`).
-		Field(`
-			COALESCE(
-    			(SELECT graph_err_msg FROM chat_ai_library_file_data WHERE file_id = f.id AND graph_err_msg <> '' LIMIT 1),
-    			'no error'
-  			) AS graph_err_msg
-		`).
-		Field(`COALESCE((SELECT SUM(yesterday_hits) FROM chat_ai_library_file_data WHERE file_id = f.id), 0) as yesterday_hits`).
-		Field(`COALESCE((SELECT SUM(today_hits) FROM chat_ai_library_file_data WHERE file_id = f.id), 0) as today_hits`).
-		Field(`COALESCE((SELECT SUM(total_hits) FROM chat_ai_library_file_data WHERE file_id = f.id), 0) as total_hits`)
-	fileName := strings.TrimSpace(c.Query(`file_name`))
-	if len(fileName) > 0 {
-		m.Where(`file_name`, `like`, fileName)
-		wheres = append(wheres, []string{`file_name`, `like`, fileName})
-	}
-	if status != "" {
-		m.Where(`f.status`, `in`, status)
-		// wheres = append(wheres, []string{`status`,`in`, status})
-	}
-	if groupId >= 0 {
-		m.Where(`f.group_id`, cast.ToString(groupId))
-		wheres = append(wheres, []string{`f.group_id`, cast.ToString(groupId)})
-	}
-	sortFields := []string{`yesterday_hits`, `today_hits`, `total_hits`}
-	if tool.InArray(sortField, sortFields) {
-		m.Order(sortField + ` ` + sortType)
-	} else {
-		m.Order(`id desc`)
-	}
-	list, total, err := m.Paginate(page, size)
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	countData, err := getLibFileCount(wheres)
-	var graphEntityCountRes *neo4j.EagerResult
-	var idList []string
-	for _, item := range list {
-		idList = append(idList, cast.ToString(item[`id`]))
-	}
-	if len(idList) > 0 && common.GetNeo4jStatus(userId) {
-		graphEntityCountRes, err = common.NewGraphDB(userId).GetEntityCount(idList)
-		if err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
-	}
-	libFileIds := make([]string, 0)
-	for _, item := range list {
-		libFileIds = append(libFileIds, item[`id`])
-		item[`graph_entity_count`] = `0`
-		if graphEntityCountRes == nil {
-			continue
-		}
-		for _, record := range graphEntityCountRes.Records {
-			fileId, exists1 := record.Get("file_id")
-			count, exists2 := record.Get("count")
-			if exists1 && exists2 && fileId == cast.ToInt64(item[`id`]) {
-				item[`graph_entity_count`] = cast.ToString(count)
-			}
-		}
-	}
-	data := map[string]any{`info`: info, `list`: list, `count_data`: countData, `total`: total, `page`: page, `size`: size}
-	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
+	req.GroupId = c.DefaultQuery(`group_id`, `-1`)
+	data, httpStatus, err := BridgeGetLibFileList(adminUserId, userId, common.GetLang(c), &req)
+	common.FmtBridgeResponse(c, data, httpStatus, err)
 }
 
-func getLibFileCount(wheres [][]string) (data map[string]int, err error) {
+func GetLibFileCount(wheres [][]string) (data map[string]int, err error) {
 	m := msql.Model(`chat_ai_library_file`, define.Postgres).Alias(`f`).
 		Group(`status`).
 		Field(`status,count(id) as count`)
@@ -165,28 +80,28 @@ func getLibFileCount(wheres [][]string) (data map[string]int, err error) {
 	return data, err
 }
 
-func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, error) {
+func addLibFile(c *gin.Context, userId, libraryId, libraryType int, chunkParam *define.ChunkParam, addFileParam *BridgeAddLibraryFileReq) ([]int64, error) {
 	m := msql.Model(`chat_ai_library_file`, define.Postgres)
 
 	//get params
-	docType := cast.ToInt(c.DefaultPostForm(`doc_type`, cast.ToString(define.DocTypeLocal)))
-	docUrls := strings.TrimSpace(c.PostForm(`urls`))
-	fileName := strings.TrimSpace(c.PostForm(`file_name`))
-	content := strings.TrimSpace(c.PostForm(`content`))
-	title := strings.TrimSpace(c.PostForm(`title`))
-	isQaDoc := cast.ToInt(c.PostForm(`is_qa_doc`))
-	qaIndexType := cast.ToInt(c.PostForm(`qa_index_type`))
-	docAutoRenewFrequency := cast.ToInt(c.PostForm(`doc_auto_renew_frequency`))
-	docAutoRenewMinute := cast.ToInt(c.PostForm(`doc_auto_renew_minute`))
-	answerLable := strings.TrimSpace(c.PostForm(`answer_lable`))
-	answerColumn := strings.TrimSpace(c.PostForm(`answer_column`))
-	questionLable := strings.TrimSpace(c.PostForm(`question_lable`))
-	questionColumn := strings.TrimSpace(c.PostForm(`question_column`))
-	similarColumn := strings.TrimSpace(c.PostForm(`similar_column`))
-	similarLabel := strings.TrimSpace(c.PostForm(`similar_label`))
-	pdfParseType := cast.ToInt(c.PostForm(`pdf_parse_type`))
+	docType := cast.ToInt(addFileParam.DocType)
+	docUrls := strings.TrimSpace(addFileParam.Urls)
+	fileName := strings.TrimSpace(addFileParam.FileName)
+	content := strings.TrimSpace(addFileParam.Content)
+	title := strings.TrimSpace(addFileParam.Title)
+	isQaDoc := cast.ToInt(addFileParam.IsQaDoc)
+	qaIndexType := cast.ToInt(addFileParam.QaIndexType)
+	docAutoRenewFrequency := cast.ToInt(addFileParam.DocAutoRenewFrequency)
+	docAutoRenewMinute := cast.ToInt(addFileParam.DocAutoRenewMinute)
+	answerLable := strings.TrimSpace(addFileParam.AnswerLable)
+	answerColumn := strings.TrimSpace(addFileParam.AnswerColumn)
+	questionLable := strings.TrimSpace(addFileParam.QuestionLable)
+	questionColumn := strings.TrimSpace(addFileParam.QuestionColumn)
+	similarColumn := strings.TrimSpace(addFileParam.SimilarColumn)
+	similarLabel := strings.TrimSpace(addFileParam.SimilarLabel)
+	pdfParseType := cast.ToInt(addFileParam.PdfParseType)
 	// 问答知识库（libraryType == define.QALibraryType groupId是chat_ai_library_file 和 chat_ai_library_file_data 的group_id字段；
-	groupId := max(0, cast.ToInt(c.PostForm(`group_id`)))
+	groupId := max(0, cast.ToInt(addFileParam.GroupId))
 	//document uploaded
 	var libraryFiles []*define.UploadInfo
 	switch docType {
@@ -383,31 +298,8 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 				autoSplit = true
 			}
 			splitParams.FileExt = uploadInfo.Ext
-			splitParams.ChunkType = cast.ToInt(libraryInfo[`chunk_type`])
-			if splitParams.ChunkType == define.ChunkTypeNormal {
-				splitParams.SeparatorsNo = cast.ToString(libraryInfo[`normal_chunk_default_separators_no`])
-				splitParams.ChunkSize = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_size`])
-				splitParams.ChunkOverlap = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_overlap`])
-				splitParams.NotMergedText = cast.ToBool(libraryInfo[`normal_chunk_default_not_merged_text`])
-			} else if splitParams.ChunkType == define.ChunkTypeSemantic {
-				splitParams.SemanticChunkSize = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_size`])
-				splitParams.SemanticChunkOverlap = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_overlap`])
-				splitParams.SemanticChunkThreshold = cast.ToInt(libraryInfo[`semantic_chunk_default_threshold`])
-			} else if splitParams.ChunkType == define.ChunkTypeAi {
-				splitParams.AiChunkModel = cast.ToString(libraryInfo[`ai_chunk_model`])
-				splitParams.AiChunkModelConfigId = cast.ToInt(libraryInfo[`ai_chunk_model_config_id`])
-				splitParams.AiChunkPrumpt = cast.ToString(libraryInfo[`ai_chunk_prumpt`])
-				splitParams.AiChunkSize = cast.ToInt(libraryInfo[`ai_chunk_size`])
-				splitParams.AiChunkNew = !isTableFile
-				splitParams.AiChunkTaskId = uuid.New().String()
-			} else if splitParams.ChunkType == define.ChunkTypeFatherSon {
-				splitParams.FatherChunkParagraphType = cast.ToInt(libraryInfo[`father_chunk_paragraph_type`])
-				splitParams.FatherChunkSeparatorsNo = libraryInfo[`father_chunk_separators_no`]
-				splitParams.FatherChunkChunkSize = cast.ToInt(libraryInfo[`father_chunk_chunk_size`])
-				splitParams.SonChunkSeparatorsNo = libraryInfo[`son_chunk_separators_no`]
-				splitParams.SonChunkChunkSize = cast.ToInt(libraryInfo[`son_chunk_chunk_size`])
-				splitParams.NotMergedText = true //父子分段不合并较小分段
-			}
+			//set chunk param
+			setChunkParam(chunkParam, &splitParams, libraryInfo, isTableFile)
 			splitParams.SemanticChunkModelConfigId = cast.ToInt(libraryInfo[`model_config_id`])
 			splitParams.SemanticChunkUseModel = libraryInfo[`use_model`]
 		case define.QALibraryType:
@@ -469,34 +361,83 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int) ([]int64, er
 	return fileIds, nil
 }
 
-func AddLibraryFile(c *gin.Context) {
-	var userId int
-	if userId = GetAdminUserId(c); userId == 0 {
+func setChunkParam(chunkParam *define.ChunkParam, splitParams *define.SplitParams, libraryInfo msql.Params,
+	isTableFile bool) {
+	if chunkParam == nil || cast.ToInt(chunkParam.SetChunk) == 0 {
+		splitParams.ChunkType = cast.ToInt(libraryInfo[`chunk_type`])
+		if splitParams.ChunkType == define.ChunkTypeNormal {
+			splitParams.SeparatorsNo = cast.ToString(libraryInfo[`normal_chunk_default_separators_no`])
+			splitParams.ChunkSize = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_size`])
+			splitParams.ChunkOverlap = cast.ToInt(libraryInfo[`normal_chunk_default_chunk_overlap`])
+			splitParams.NotMergedText = cast.ToBool(libraryInfo[`normal_chunk_default_not_merged_text`])
+		} else if splitParams.ChunkType == define.ChunkTypeSemantic {
+			splitParams.SemanticChunkSize = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_size`])
+			splitParams.SemanticChunkOverlap = cast.ToInt(libraryInfo[`semantic_chunk_default_chunk_overlap`])
+			splitParams.SemanticChunkThreshold = cast.ToInt(libraryInfo[`semantic_chunk_default_threshold`])
+		} else if splitParams.ChunkType == define.ChunkTypeAi {
+			splitParams.AiChunkModel = cast.ToString(libraryInfo[`ai_chunk_model`])
+			splitParams.AiChunkModelConfigId = cast.ToInt(libraryInfo[`ai_chunk_model_config_id`])
+			splitParams.AiChunkPrumpt = cast.ToString(libraryInfo[`ai_chunk_prumpt`])
+			splitParams.AiChunkSize = cast.ToInt(libraryInfo[`ai_chunk_size`])
+			splitParams.AiChunkNew = !isTableFile
+			splitParams.AiChunkTaskId = uuid.New().String()
+		} else if splitParams.ChunkType == define.ChunkTypeFatherSon {
+			splitParams.FatherChunkParagraphType = cast.ToInt(libraryInfo[`father_chunk_paragraph_type`])
+			splitParams.FatherChunkSeparatorsNo = libraryInfo[`father_chunk_separators_no`]
+			splitParams.FatherChunkChunkSize = cast.ToInt(libraryInfo[`father_chunk_chunk_size`])
+			splitParams.SonChunkSeparatorsNo = libraryInfo[`son_chunk_separators_no`]
+			splitParams.SonChunkChunkSize = cast.ToInt(libraryInfo[`son_chunk_chunk_size`])
+			splitParams.NotMergedText = true //父子分段不合并较小分段
+		}
 		return
 	}
-	libraryId := cast.ToInt(c.PostForm(`library_id`))
-	if libraryId <= 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
-		return
+	//lib file chunk custom
+	splitParams.ChunkType = cast.ToInt(chunkParam.ChunkType)
+	if splitParams.ChunkType == define.ChunkTypeNormal {
+		splitParams.SeparatorsNo = chunkParam.NormalChunkDefaultSeparatorsNo
+		splitParams.ChunkSize = cast.ToInt(chunkParam.NormalChunkDefaultChunkSize)
+		splitParams.ChunkOverlap = cast.ToInt(chunkParam.NormalChunkDefaultChunkOverlap)
+		splitParams.NotMergedText = cast.ToBool(chunkParam.NormalChunkDefaultNotMergedText)
+	} else if splitParams.ChunkType == define.ChunkTypeSemantic {
+		splitParams.SemanticChunkSize = cast.ToInt(chunkParam.SemanticChunkDefaultChunkSize)
+		splitParams.SemanticChunkOverlap = cast.ToInt(chunkParam.SemanticChunkDefaultChunkOverlap)
+		splitParams.SemanticChunkThreshold = cast.ToInt(chunkParam.SemanticChunkDefaultThreshold)
+	} else if splitParams.ChunkType == define.ChunkTypeAi {
+		splitParams.AiChunkModel = cast.ToString(chunkParam.AiChunkModel)
+		splitParams.AiChunkModelConfigId = cast.ToInt(chunkParam.AiChunkModelConfigId)
+		splitParams.AiChunkPrumpt = cast.ToString(chunkParam.AiChunkPrumpt)
+		splitParams.AiChunkSize = cast.ToInt(chunkParam.AiChunkSize)
+		splitParams.AiChunkNew = !isTableFile
+		splitParams.AiChunkTaskId = uuid.New().String()
+	} else if splitParams.ChunkType == define.ChunkTypeFatherSon {
+		splitParams.FatherChunkParagraphType = cast.ToInt(chunkParam.FatherChunkParagraphType)
+		splitParams.FatherChunkSeparatorsNo = chunkParam.FatherChunkSeparatorsNo
+		splitParams.FatherChunkChunkSize = cast.ToInt(chunkParam.FatherChunkChunkSize)
+		splitParams.SonChunkSeparatorsNo = chunkParam.SonChunkSeparatorsNo
+		splitParams.SonChunkChunkSize = cast.ToInt(chunkParam.SonChunkChunkSize)
+		splitParams.NotMergedText = true //父子分段不合并较小分段
 	}
-	info, err := common.GetLibraryInfo(libraryId, userId)
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	if len(info) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-		return
-	}
-	//common save
-	fileIds, err := addLibFile(c, userId, libraryId, cast.ToInt(info[`type`]))
-	if err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
-		return
-	}
+}
 
-	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`file_ids`: fileIds}, nil))
+func AddLibraryFile(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	userId := getLoginUserId(c)
+	if userId <= 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+	req := BridgeAddLibraryFileReq{}
+	err := common.RequestParamsBind(&req, c)
+	if err != nil {
+		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
+		return
+	}
+	req.DocType = c.DefaultPostForm(`doc_type`, cast.ToString(define.DocTypeLocal))
+	data, httpStatus, err := BridgeAddLibraryFile(adminUserId, userId, common.GetLang(c), &req, nil, c)
+	common.FmtBridgeResponse(c, data, httpStatus, err)
 }
 
 func DelLibraryFile(c *gin.Context) {

@@ -71,8 +71,8 @@ export const nodeList = [
     type: 'start-node',
     x: 0,
     y: 0,
-    width: 568,
-    height: 322,
+    width: 420,
+    height: 102,
     hidden: true,
     properties: {
       ...getRowData(),
@@ -93,7 +93,7 @@ export const nodeList = [
     groupKey: 'execute-action',
     type: 'specify-reply-node',
     width: 420,
-    height: 312,
+    height: 94,
     properties: {
       ...getRowData(),
       node_type: 9,
@@ -113,7 +113,7 @@ export const nodeList = [
     groupKey: 'large-model-capability',
     type: 'ai-dialogue-node',
     width: 420,
-    height: 154,
+    height: 162,
     properties: {
       ...getRowData(),
       node_type: 6,
@@ -181,7 +181,7 @@ export const nodeList = [
     groupKey: 'other',
     type: 'explain-node',
     width: 420,
-    height: 152,
+    height: 160,
     properties: {
       ...getRowData(),
       node_type: -1,
@@ -221,7 +221,7 @@ export const nodeList = [
     groupKey: 'knowledge-retrieval',
     type: 'knowledge-base-node',
     width: 420,
-    height: 154,
+    height: 160,
     properties: {
       ...getRowData(),
       node_type: 5,
@@ -247,8 +247,8 @@ export const nodeList = [
     id: '',
     groupKey: 'large-model-capability',
     type: 'question-node',
-    width: 568,
-    height: 138,
+    width: 420,
+    height: 192,
     properties: {
       ...getRowData(),
       node_type: 3,
@@ -279,7 +279,7 @@ export const nodeList = [
     groupKey: 'processing-logic',
     type: 'judge-node',
     width: 420,
-    height: 144,
+    height: 152,
     properties: {
       ...getRowData(),
       node_type: 2,
@@ -309,7 +309,7 @@ export const nodeList = [
     groupKey: 'external-service',
     type: 'http-node',
     width: 568,
-    height: 820,
+    height: 216,
     properties: {
       ...getRowData(),
       node_type: 4,
@@ -399,7 +399,7 @@ export const nodeList = [
     groupKey: 'database-operation',
     type: 'update-data-node',
     width: 420,
-    height: 124,
+    height: 154,
     properties: {
       ...getRowData(),
       node_type: 15,
@@ -423,7 +423,7 @@ export const nodeList = [
     groupKey: 'database-operation',
     type: 'select-data-node',
     width: 420,
-    height: 124,
+    height: 154,
     properties: {
       ...getRowData(),
       node_type: 16,
@@ -448,8 +448,8 @@ export const nodeList = [
     id: '',
     groupKey: 'large-model-capability',
     type: 'parameter-extraction-node',
-    width: 568,
-    height: 645,
+    width: 420,
+    height: 158,
     properties: {
       ...getRowData(),
       node_type: 12,
@@ -486,7 +486,7 @@ export const nodeList = [
     groupKey: 'external-service',
     type: 'code-run-node',
     width: 420,
-    height: 154,
+    height: 160,
     properties: {
       ...getRowData(),
       node_type: 17,
@@ -519,7 +519,7 @@ export const nodeList = [
     groupKey: 'mcp-tool',
     type: 'mcp-node',
     width: 320,
-    height: 320,
+    height: 94,
     properties: {
       ...getRowData(),
       node_type: 20,
@@ -587,7 +587,7 @@ export const getMcpNode = (mcp, tool) => {
     groupKey: 'mcp-tool',
     type: 'mcp-node',
     width: 320,
-    height: 320,
+    height: 94,
     properties: {
       ...getRowData(),
       node_type: 20,

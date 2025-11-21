@@ -103,6 +103,9 @@ func SaveNodes(c *gin.Context) {
 	}
 	//format check
 	robotKey := strings.TrimSpace(c.PostForm(`robot_key`))
+	draftSaveType := strings.TrimSpace(c.PostForm(`draft_save_type`))
+	lastUpdateTime := strings.TrimSpace(c.PostForm(`draft_save_time`))
+	reCoverSave := strings.TrimSpace(c.PostForm(`re_cover_save`))
 	if !common.CheckRobotKey(robotKey) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `robot_key`))))
 		return
@@ -118,6 +121,46 @@ func SaveNodes(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
+
+	//获取编辑锁内容
+	lockEditKey := fmt.Sprintf("draft_lock:user_id:%s,robot:%s,", userId, robotKey)
+	lockKeyMd5 := tool.MD5(lockEditKey)
+
+	filtered := make(map[string]any)
+	filtered["login_user_id"] = getLoginUserId(c)
+	filtered["robot_key"] = robotKey
+	filtered["remote_addr"] = lib_web.GetClientIP(c)
+	filtered["user_agent"] = c.Request.UserAgent()
+	lockValue, _ := tool.JsonEncode(filtered)
+
+	lockRes, err := define.Redis.Get(context.Background(), lockKeyMd5).Result()
+	if lockRes != "" && lockRes != lockValue { //有编辑锁，且锁不是自己的
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_draft_edit_permission`))))
+		return
+	}
+
+	//重新设置一下锁的时间
+	corpConfig := common.GetAdminConfig(userId)
+	draft_exptime := cast.ToInt(corpConfig["draft_exptime"])
+	_, _ = define.Redis.SetEX(context.Background(), lockKeyMd5, lockValue, time.Duration(draft_exptime)*time.Minute).Result()
+
+	if cast.ToInt(reCoverSave) == 0 { //需要验证
+		//获取一下库内的草稿信息
+		flowInfo, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`robot_key`, robotKey).Find()
+		if err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		dbDraftSaveTime := cast.ToInt(flowInfo["draft_save_time"])
+		//如果库里面记录了草稿保存时间，且 保存时间大于提交上来的最后保存时间，判定为此次保存是落后版本
+		if dbDraftSaveTime != 0 && dbDraftSaveTime > cast.ToInt(lastUpdateTime) {
+			c.String(http.StatusOK, lib_web.FmtJson(map[string]int{
+				"behind_draft": 1,
+			}, errors.New(i18n.Show(common.GetLang(c), `behind_draft`))))
+			return
+		}
+	}
+
 	dataType := cast.ToUint(c.DefaultPostForm(`data_type`, cast.ToString(define.DataTypeDraft)))
 	if !tool.InArray(dataType, []uint{define.DataTypeDraft, define.DataTypeRelease}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `data_type`))))
@@ -204,6 +247,16 @@ func SaveNodes(c *gin.Context) {
 			return
 		}
 	}
+
+	//保存上次编辑人信息
+	_, err = msql.Model(`chat_ai_robot`, define.Postgres).Where(`robot_key`, robotKey).Update(msql.Datas{
+		`last_edit_ip`:         lib_web.GetClientIP(c),
+		`last_edit_user_agent`: c.Request.UserAgent(),
+		`draft_save_type`:      draftSaveType,
+		`draft_save_time`:      tool.Time2Int(),
+		`update_time`:          tool.Time2Int(),
+	})
+
 	_ = m.Commit()
 	//clear cached data
 	for _, nodeKey := range clearNodeKeys {
@@ -306,7 +359,7 @@ func WorkFlowVersions(c *gin.Context) {
 	robotId := cast.ToInt(robot[`id`])
 	versions, err := msql.Model(`work_flow_version`, define.Postgres).
 		Where(`robot_id`, cast.ToString(robotId)).
-		Where(`admin_user_id`, cast.ToString(userId)).Field(`id as version_id,version,version_desc,create_time,update_time`).Order(`id desc`).Select()
+		Where(`admin_user_id`, cast.ToString(userId)).Field(`id as version_id,version,version_desc,create_time,update_time,last_edit_ip,last_edit_user_agent`).Order(`id desc`).Select()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -375,6 +428,23 @@ func WorkFlowPublishVersion(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `desc`))))
 		return
 	}
+
+	//获取编辑锁内容
+	lockEditKey := fmt.Sprintf("draft_lock:user_id:%s,robot:%s,", userId, robotKey)
+	filtered := make(map[string]any)
+	filtered["login_user_id"] = getLoginUserId(c)
+	filtered["robot_key"] = robotKey
+	filtered["remote_addr"] = lib_web.GetClientIP(c)
+	filtered["user_agent"] = c.Request.UserAgent()
+	lockValue, _ := tool.JsonEncode(filtered)
+
+	lockKeyMd5 := tool.MD5(lockEditKey)
+
+	lockRes, err := define.Redis.Get(context.Background(), lockKeyMd5).Result()
+	if lockRes != lockValue { //没有编辑锁
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_draft_edit_permission`))))
+	}
+
 	robot, err := common.CheckRobotKey2(robotKey, common.GetLang(c))
 	if err != nil {
 		logs.Error(err.Error())
@@ -421,12 +491,14 @@ func WorkFlowPublishVersion(c *gin.Context) {
 	_ = m.Begin()
 	m.Reset()
 	versionId, versionErr := m.Table(`work_flow_version`).Insert(map[string]any{
-		"robot_id":      robotId,
-		"admin_user_id": userId,
-		"version":       version,
-		"version_desc":  versionDesc,
-		"create_time":   time.Now().Unix(),
-		"update_time":   time.Now().Unix(),
+		"robot_id":             robotId,
+		"admin_user_id":        userId,
+		"version":              version,
+		"version_desc":         versionDesc,
+		"create_time":          time.Now().Unix(),
+		"update_time":          time.Now().Unix(),
+		`last_edit_ip`:         lib_web.GetClientIP(c),
+		`last_edit_user_agent`: c.Request.UserAgent(),
 	}, `id`)
 	if versionErr != nil {
 		_ = m.Rollback()
@@ -495,6 +567,8 @@ func WorkFlowPublishVersion(c *gin.Context) {
 		`library_ids`:                libraryIds,
 		`work_flow_model_config_ids`: fmt.Sprintf(`{%s}`, modelConfigIds),
 		`update_time`:                tool.Time2Int(),
+		`last_edit_ip`:               lib_web.GetClientIP(c),
+		`last_edit_user_agent`:       c.Request.UserAgent(),
 	})
 	if err != nil {
 		_ = m.Rollback()
@@ -511,4 +585,122 @@ func WorkFlowPublishVersion(c *gin.Context) {
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
 	lib_redis.UnLock(define.Redis, lockKey) //unlock
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}
+
+// 获取企业配置
+func GetAdminConfig(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	config := common.GetAdminConfig(userId)
+
+	c.String(http.StatusOK, lib_web.FmtJson(config, nil))
+}
+
+// 设置草稿箱编辑锁过期时间
+func SaveDraftExTime(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	draft_exptime := cast.ToInt(strings.TrimSpace(c.PostForm(`draft_exptime`)))
+
+	if draft_exptime < 10 || draft_exptime > 60 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `draft_exptime_exceed_limit`))))
+		return
+	}
+
+	m := msql.Model(``, define.Postgres)
+
+	list, _ := m.Table(`admin_user_config`).Where(`admin_user_id`, cast.ToString(userId)).Select()
+
+	if len(list) == 0 { //没有配置
+		_, err := m.Table(`admin_user_config`).Insert(map[string]any{
+			"admin_user_id": userId,
+			"create_time":   time.Now().Unix(),
+			"update_time":   time.Now().Unix(),
+			`draft_exptime`: draft_exptime,
+		}, `id`)
+
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+	} else {
+		_, err := m.Table(`admin_user_config`).Where(`admin_user_id`, cast.ToString(userId)).Update(msql.Datas{
+			`draft_exptime`: draft_exptime,
+			`update_time`:   tool.Time2Int(),
+		})
+
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+	}
+
+	list, _ = m.Table(`admin_user_config`).Where(`admin_user_id`, cast.ToString(userId)).Select()
+	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
+	return
+
+}
+
+// 获取草稿箱编辑锁
+func GetDraftKey(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+
+	robotKey := strings.TrimSpace(c.Query(`robot_key`))
+	if !common.CheckRobotKey(robotKey) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `robot_key`))))
+		return
+	}
+
+	lockKey := fmt.Sprintf("draft_lock:user_id:%s,robot:%s,", userId, robotKey)
+	lockKeyMd5 := tool.MD5(lockKey)
+
+	filtered := make(map[string]any)
+	filtered["login_user_id"] = getLoginUserId(c)
+	filtered["robot_key"] = robotKey
+	filtered["remote_addr"] = lib_web.GetClientIP(c)
+	filtered["user_agent"] = c.Request.UserAgent()
+	lockValue, _ := tool.JsonEncode(filtered)
+
+	logs.Error("锁内容：" + lockKey + "，锁结果：" + lockValue)
+	corpConfig := common.GetAdminConfig(userId)
+	draft_exptime := cast.ToInt(corpConfig["draft_exptime"])
+	lockRes, lockVal, lockTtl := lib_redis.AddValueLock(define.Redis, lockKeyMd5, lockValue, time.Duration(draft_exptime)*time.Minute)
+
+	logs.Error("写锁内容：" + lockVal)
+
+	filtered["lock_res"] = lockRes
+	filtered["lock_ttl"] = lockTtl
+	filtered["lockKey"] = lockKey
+	filtered["lockValue"] = lockValue
+	filtered["lockVal"] = lockVal
+	filtered["Header"] = c.Request.Header
+	filtered["is_self"] = lockVal == lockValue
+
+	//获取锁失败，看下是谁锁的
+	if !lockRes && lockVal != lockValue {
+		lockValueMap := make(map[string]any)
+		err := tool.JsonDecode(lockVal, &lockValueMap)
+		if err == nil {
+			filtered["remote_addr"] = lockValueMap["remote_addr"]
+			filtered["user_agent"] = lockValueMap["user_agent"]
+			filtered["login_user_id"] = lockValueMap["login_user_id"]
+		}
+	}
+
+	loginUser, err := msql.Model(define.TableUser, define.Postgres).Where(`id`, cast.ToString(filtered["login_user_id"])).Field("id,user_name").Find()
+	if err == nil {
+		filtered["login_user_name"] = loginUser["user_name"]
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(filtered, nil))
+
 }

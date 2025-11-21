@@ -224,6 +224,109 @@
     line-height: 20px;
   }
 }
+
+.reply-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.reply-url .url-link {
+  color: #2475fc;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+  text-decoration: none;
+}
+
+.reply-url .url-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reply-card .card-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reply-card .card-title-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.reply-card .card-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.reply-card .card-title {
+  color: #595959;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 22px;
+}
+
+.reply-imageText .imageText-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reply-imageText .imageText-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.reply-imageText .imageText-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.reply-imageText .imageText-title {
+  color: #595959;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 22px;
+}
+
+.reply-imageText .imageText-desc {
+  color: #8c8c8c;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.reply-item {
+  width: fit-content;
+  border-radius: 4px 16px 16px 16px;
+  padding: 16px 12px;
+  background: #fff;
+}
+
+.reply-item .message-content {
+  padding: 0;
+  color: #1a1a1a;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.reply-image .msg-img {
+  max-width: 500px;
+}
 </style>
 
 <template>
@@ -247,7 +350,13 @@
               <span>{{ item.name }}</span>
             </div>
             <div class="item-body">
-              <div class="message-content">{{ item.content }}</div>
+              <!-- 收到消息类型处理，目前只处理了image 后续有其他的在这里添加 -->
+              <template v-if="item.received_message_type == 'image' && item.media_id_to_oss_url">
+                <div class="message-content">
+                  <img v-viewer class="msg-img" :src="item.media_id_to_oss_url" alt="" />
+                </div>
+              </template>
+              <div v-else class="message-content">{{ item.content }}</div>
             </div>
           </div>
           <div class="user-avatar-box">
@@ -267,7 +376,44 @@
               <span>{{ formatDisplayChatTime(item.create_time) }}</span>
               <span>{{ item.name }}</span>
             </div>
-            <div class="item-body">
+            <template v-if="parseReplyList(item.reply_content_list).length">
+              <div class="reply-list">
+                <template v-for="(rc, idx) in parseReplyList(item.reply_content_list)" :key="idx">
+                  <div v-if="(rc.reply_type || rc.type) === 'text'" class="reply-item reply-text">
+                    <div class="message-content" v-html="rc.description"></div>
+                  </div>
+                  <div v-else-if="(rc.reply_type || rc.type) === 'image'" class="reply-item reply-image">
+                    <div class="message-content">
+                      <img v-viewer class="msg-img" :src="rc.pic || rc.thumb_url" />
+                    </div>
+                  </div>
+                  <div v-else-if="(rc.reply_type || rc.type) === 'url'" class="reply-item reply-url">
+                    <div class="url-row">
+                      <a class="url-link" :href="rc.url" target="_blank">{{ rc.url }}</a>
+                    </div>
+                  </div>
+                  <div v-else-if="(rc.reply_type || rc.type) === 'card'" class="reply-item reply-card">
+                    <div class="card-row">
+                      <img v-if="rc.thumb_url" :src="rc.thumb_url" class="card-thumb" />
+                      <div class="card-title-box">
+                        <svg-icon class="think-icon" name="applet"></svg-icon>
+                        <span class="card-title">{{ rc.title }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else-if="(rc.reply_type || rc.type) === 'imageText'" class="reply-item reply-imageText">
+                    <a class="imageText-row" :href="rc.url" target="_blank">
+                      <img v-if="rc.thumb_url" :src="rc.thumb_url" class="imageText-thumb" />
+                      <div class="imageText-text">
+                        <div class="imageText-title">{{ rc.title }}</div>
+                        <div class="imageText-desc">{{ rc.description }}</div>
+                      </div>
+                    </a>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <div class="item-body" v-if="!(item.msg_type == 1 && item.content == '')">
               <template v-if="item.msg_type == 1">
                 <div class="message-content" v-viewer>
                   <cherry-markdown :content="item.content"></cherry-markdown>
@@ -458,6 +604,17 @@ function scrollToMessage(id, direction) {
 function resetScroll() {
   scrollOption.scrollTop = 0
   scrollOption.scrollDirection = ''
+}
+
+function parseReplyList(val) {
+  try {
+    if (!val) return []
+    if (Array.isArray(val)) return val
+    if (typeof val === 'string') return JSON.parse(val || '[]')
+    return []
+  } catch (_e) {
+    return []
+  }
 }
 
 defineExpose({

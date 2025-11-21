@@ -3,6 +3,7 @@
 package official_account
 
 import (
+	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/wechat/common"
 	"context"
@@ -12,8 +13,10 @@ import (
 
 	"github.com/ArtisanCloud/PowerLibs/v3/object"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/messages"
+	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/power"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/response"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount"
+	openresponse "github.com/ArtisanCloud/PowerWeChat/v3/src/openPlatform/authorizer/miniProgram/account/response"
 )
 
 type Application struct {
@@ -21,15 +24,89 @@ type Application struct {
 	Secret string
 }
 
+func (a *Application) SendImageTextLink(customer, url, title, description, localThumbURL, picurl string, push *define.PushMessage) (int, error) {
+	jsonStr, err := messages.NewLink(&power.HashMap{
+		`url`:         url,
+		`title`:       title,
+		`description`: description,
+	}).TransformForJsonRequest(&object.HashMap{`touser`: customer}, true)
+	if err != nil {
+		return 0, err
+	}
+	app, err := a.GetApp()
+	if err != nil {
+		return 0, err
+	}
+	resp, err := app.CustomerService.Send(context.Background(), jsonStr)
+	if err != nil {
+		return 0, err
+	}
+	if resp.ErrCode != 0 {
+		return resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return 0, nil
+}
+
+func (a *Application) SendMiniProgramPage(customer, appid, title, pagePath, localThumbURL string, push *define.PushMessage) (int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return 0, err
+	}
+	mediaId, errCode, err := a.UploadTempImage(localThumbURL)
+	if err != nil {
+		return errCode, err
+	}
+	jsonStr, err := messages.NewMiniProgramPage(&power.HashMap{
+		`appid`:          appid,
+		`title`:          title,
+		`pagepath`:       pagePath,
+		"thumb_media_id": mediaId,
+	}).TransformForJsonRequest(&object.HashMap{`touser`: customer}, true)
+	if err != nil {
+		return 0, err
+	}
+
+	resp, err := app.CustomerService.Send(context.Background(), jsonStr)
+	if err != nil {
+		return 0, err
+	}
+	if resp.ErrCode != 0 {
+		return resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return 0, nil
+}
+
+func (a *Application) SendUrl(customer, url, title string, push *define.PushMessage) (int, error) {
+	content := "<a href='" + url + "'>" + title + "</a>"
+	jsonStr, err := messages.NewText(content).
+		TransformForJsonRequest(&object.HashMap{`touser`: customer}, true)
+	if err != nil {
+		return 0, err
+	}
+	app, err := a.GetApp()
+	if err != nil {
+		return 0, err
+	}
+	resp, err := app.CustomerService.Send(context.Background(), jsonStr)
+	if err != nil {
+		return 0, err
+	}
+	if resp.ErrCode != 0 {
+		return resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return 0, nil
+}
+
 func (a *Application) GetApp() (*officialAccount.OfficialAccount, error) {
 	config := &officialAccount.UserConfig{
 		AppID: a.AppID, Secret: a.Secret,
 		HttpDebug: false, Debug: lib_define.IsDev,
+		Cache: common.GetWechatCache(),
 	}
 	return officialAccount.NewOfficialAccount(config)
 }
 
-func (a *Application) SendText(customer, content string) (int, error) {
+func (a *Application) SendText(customer, content string, push *define.PushMessage) (int, error) {
 	jsonStr, err := messages.NewText(content).
 		TransformForJsonRequest(&object.HashMap{`touser`: customer}, true)
 	if err != nil {
@@ -87,7 +164,7 @@ func (a *Application) UploadTempImage(filePath string) (string, int, error) {
 	return resp.MediaID, 0, nil
 }
 
-func (a *Application) SendImage(customer, filePath string) (int, error) {
+func (a *Application) SendImage(customer, filePath string, push *define.PushMessage) (int, error) {
 	app, err := a.GetApp()
 	if err != nil {
 		return 0, err
@@ -111,7 +188,7 @@ func (a *Application) SendImage(customer, filePath string) (int, error) {
 	return 0, nil
 }
 
-func (a *Application) GetFileByMedia(mediaId string) ([]byte, http.Header, int, error) {
+func (a *Application) GetFileByMedia(mediaId string, push *define.PushMessage) ([]byte, http.Header, int, error) {
 	app, err := a.GetApp()
 	if err != nil {
 		return nil, nil, 0, err
@@ -126,4 +203,34 @@ func (a *Application) GetFileByMedia(mediaId string) ([]byte, http.Header, int, 
 		return nil, nil, temp.ErrCode, errors.New(temp.ErrMsg)
 	}
 	return bytes, resp.Header, 0, nil
+}
+
+// GetSubscribeScene 获取用户关注场景
+func (a *Application) GetSubscribeScene(openid string) (string, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return ``, err
+	}
+	resp, err := app.User.Get(context.Background(), openid, define.LangZhCn)
+	if err != nil {
+		return ``, err
+	}
+	return resp.SubscribeScene, nil
+}
+
+func (a *Application) GetAccountBasicInfo() (*openresponse.ResponseGetBasicInfo, int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return nil, 0, err
+	}
+	resp := &openresponse.ResponseGetBasicInfo{}
+	_, err = app.Base.BaseClient.HttpPostJson(context.Background(),
+		`cgi-bin/account/getaccountbasicinfo`, nil, nil, nil, resp)
+	if err != nil {
+		return nil, 0, err
+	}
+	if resp.ErrCode != 0 {
+		return nil, resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return resp, 0, nil
 }

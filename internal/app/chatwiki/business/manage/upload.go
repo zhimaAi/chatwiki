@@ -22,14 +22,14 @@ func Upload(c *gin.Context) {
 		return
 	}
 	category := strings.TrimSpace(c.PostForm(`category`))
-	if !tool.InArrayString(category, []string{`library_file`, `app_avatar`, `robot_avatar`, `icon`, `library_image`, `library_doc_image`}) {
+	if !tool.InArrayString(category, []string{`library_file`, `app_avatar`, `received_message_images`, `robot_avatar`, `icon`, `library_image`, `library_doc_image`}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `category`))))
 		return
 	}
 	fileHeader, _ := c.FormFile(`file`)
 	allowExts := define.ImageAllowExt
 	filesize := define.ImageLimitSize
-	if tool.InArray(category, []string{`library_image`}) {
+	if tool.InArray(category, []string{`library_image`, `received_message_images`}) {
 		filesize = define.LibImageLimitSize
 	}
 	if tool.InArray(category, []string{`library_doc_image`}) {

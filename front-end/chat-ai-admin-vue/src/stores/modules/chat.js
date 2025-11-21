@@ -183,6 +183,9 @@ export const useChatStore = defineStore('chat', () => {
     if (msg.quote_file && typeof msg.quote_file === 'string') {
       msg.quote_file = JSON.parse(msg.quote_file)
     }
+    if (msg.reply_content_list && typeof msg.reply_content_list === 'string') {
+      try { msg.reply_content_list = JSON.parse(msg.reply_content_list) } catch (_) { msg.reply_content_list = [] }
+    }
 
     messageList.value.push(msg)
 
@@ -269,6 +272,9 @@ export const useChatStore = defineStore('chat', () => {
       messageList.value[msgIndex].id = content.id
 
       messageList.value[msgIndex].content = content.content
+      if (content.reply_content_list !== undefined && typeof content.reply_content_list === 'string') {
+        messageList.value[msgIndex].reply_content_list = JSON.parse(content.reply_content_list)
+      }
       if (content.quote_file && typeof content.quote_file === 'string') {
         messageList.value[msgIndex].quote_file = JSON.parse(content.quote_file)
       }
@@ -592,6 +598,10 @@ export const useChatStore = defineStore('chat', () => {
 
         if (item.quote_file) {
           item.quote_file = JSON.parse(item.quote_file)
+        }
+
+        if (item.reply_content_list && typeof item.reply_content_list === 'string') {
+          try { item.reply_content_list = JSON.parse(item.reply_content_list) } catch (_) { item.reply_content_list = [] }
         }
       })
 

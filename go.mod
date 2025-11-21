@@ -4,20 +4,20 @@ go 1.23.4
 
 require (
 	github.com/88250/lute v1.7.6
-	github.com/ArtisanCloud/PowerLibs/v3 v3.2.2
-	github.com/ArtisanCloud/PowerWeChat/v3 v3.2.18
+	github.com/ArtisanCloud/PowerLibs/v3 v3.2.5
+	github.com/ArtisanCloud/PowerWeChat/v3 v3.2.38
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/Unknwon/goconfig v1.0.0
 	github.com/ZeroHawkeye/wordZero v1.3.9
-	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.7
+	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.12
 	github.com/alibabacloud-go/docmind-api-20220711 v1.4.5
-	github.com/alibabacloud-go/tea v1.3.9
+	github.com/alibabacloud-go/tea v1.3.12
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.7
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 	github.com/aliyun/credentials-go v1.4.6
 	github.com/antchfx/xmlquery v1.4.4
 	github.com/beego/i18n v0.0.0-20161101132742-e9308947f407
-	github.com/beevik/etree v1.4.0
+	github.com/beevik/etree v1.4.1
 	github.com/caarlos0/env/v11 v11.1.0
 	github.com/casbin/casbin/v2 v2.89.0
 	github.com/casbin/gorm-adapter/v3 v3.24.0
@@ -36,14 +36,15 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/grokify/html-strip-tags-go v0.1.0
 	github.com/jinzhu/now v1.1.5
+	github.com/larksuite/oapi-sdk-go/v3 v3.4.25
 	github.com/lib/pq v1.10.9
 	github.com/mark3labs/mcp-go v0.42.0
 	github.com/neo4j/neo4j-go-driver/v5 v5.28.0
 	github.com/pdfcpu/pdfcpu v0.9.1
-	github.com/pkg/sftp v1.13.9 // indirect
 	github.com/pkoukk/tiktoken-go v0.1.7
 	github.com/playwright-community/playwright-go v0.5200.0
 	github.com/pressly/goose/v3 v3.20.0
+	github.com/redis/go-redis/v9 v9.16.0
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/spf13/cast v1.7.1
 	github.com/syyongx/php2go v0.9.8
@@ -55,9 +56,7 @@ require (
 	github.com/zhimaAi/pdf v0.0.0-20240423033113-08880067bc13
 	gitlab.com/golang-commonmark/markdown v0.0.0-20211110145824-bf3e522c626a
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.40.0 // indirect
 	golang.org/x/image v0.25.0
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gorm.io/driver/postgres v1.5.7
 	gorm.io/gorm v1.25.8
 )
@@ -139,14 +138,13 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/redis/go-redis/v9 v9.5.2 // indirect
+	github.com/pkg/sftp v1.13.9 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/richardlehane/mscfb v1.0.4 // indirect
 	github.com/richardlehane/msoleps v1.0.4 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sethvargo/go-retry v0.2.4 // indirect
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e // indirect
-	github.com/smartystreets/goconvey v1.8.1 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.1210 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/hunyuan v1.0.1200 // indirect
 	github.com/tiendc/go-deepcopy v1.6.1 // indirect
@@ -166,6 +164,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
+	golang.org/x/crypto v0.40.0 // indirect
 	golang.org/x/net v0.42.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect

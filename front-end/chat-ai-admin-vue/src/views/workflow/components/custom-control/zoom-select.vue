@@ -10,9 +10,16 @@
     width: 80px;
     height: 32px;
     border-radius: 6px;
-    font-size: 14px;
-    color: #595959;
     transition: all 0.2s;
+    .zoom-select-input{
+      width: 100%;
+      height: 100%;
+      border: none;
+      outline: none;
+      text-align: center;
+      font-size: 14px;
+      color: #595959;
+    }
   }
 
   .zoom-select-options {
@@ -60,7 +67,9 @@
 
 <template>
   <div class="zoom-select">
-    <div class="zoom-select-label" @click="showMenu">{{ title }}</div>
+    <div class="zoom-select-label" @click.stop="">
+      <input class="zoom-select-input" type="text" v-model="currentValue" @input="handleInput" @focus="showMenu" @blur="handleBlur">
+    </div>
     <div class="zoom-select-options" v-show="isShowMenu">
       <div
         class="zoom-select-option"
@@ -71,7 +80,7 @@
         {{ item.label }}
       </div>
       <div class="option-line"></div>
-      <div class="zoom-select-option" @click="handleMenu({ label: '5%', value: 5 })">全览</div>
+      <div class="zoom-select-option" @click="handleMenu({ value: 5 })">全览</div>
     </div>
   </div>
 </template>
@@ -80,41 +89,37 @@
 export default {
   name: 'NodeCommon',
   props: {
-    title: {
-      type: String,
-      default: '',
+    modelValue: {
+      type: Number,
+      default: 100,
     },
   },
   data() {
     return {
       isShowMenu: false,
+      currentValue: `${this.modelValue}%`,
+      previousValue: this.modelValue,
+      debounceTimer: null,
       menus: [
-        {
-          label: '10%',
-          value: 10,
-        },
-        {
-          label: '50%',
-          value: 50,
-        },
-        {
-          label: '100%',
-          value: 100,
-        },
-        {
-          label: '150%',
-          value: 150,
-        },
-        {
-          label: '200%',
-          value: 200,
-        },
-        {
-          label: '400%',
-          value: 400,
-        },
+        { label: '10%', value: 10 },
+        { label: '50%', value: 50 },
+        { label: '80%', value: 80 },
+        { label: '100%', value: 100 },
+        { label: '150%', value: 150 },
+        { label: '200%', value: 200 },
+        { label: '400%', value: 400 },
       ],
     }
+  },
+  watch: {
+    modelValue(newValue) {
+      // 当 modelValue 从外部（如父组件）改变时，更新输入框的显示
+      // 检查以避免在内部输入时发生不必要的循环更新
+      if (newValue !== parseInt(this.currentValue.replace(/[^\d]/g, ''), 10)) {
+        this.currentValue = `${newValue}%`
+        this.previousValue = newValue
+      }
+    },
   },
   mounted() {
     document.addEventListener('click', this.documentClick)
@@ -124,12 +129,62 @@ export default {
   },
   methods: {
     handleMenu(item) {
-      this.$emit('change', item)
+      this.$emit('update:modelValue', item.value)
+      this.$emit('zoom-change', item.value)
+      this.isShowMenu = false
     },
     showMenu() {
       this.isShowMenu = !this.isShowMenu
     },
-    // 点击菜单以外的地方，隐藏菜单
+    handleInput() {
+      clearTimeout(this.debounceTimer)
+      this.debounceTimer = setTimeout(() => {
+        // 提取有效数字
+        const inputText = this.currentValue.replace('%', '').trim()
+        const numberPart = parseInt(inputText.replace(/[^\d]/g, ''), 10)
+        
+        if (!inputText) {
+          // 空白输入时，显示当前有效值
+          this.currentValue = `${this.previousValue}%`
+          return
+        }
+        
+        if (isNaN(numberPart)) {
+          // 无有效数字，立即恢复显示
+          this.currentValue = `${this.previousValue}%`
+          return
+        }
+        
+        // 数字超出范围时，自动修正
+        let validValue = numberPart
+        if (validValue > 800) validValue = 800
+        if (validValue < 1) validValue = 1
+        
+        // 即时显示修正后的值
+        this.currentValue = `${validValue}%`
+        
+        // 发射事件
+        this.previousValue = validValue  // 更新记忆值
+        this.$emit('update:modelValue', validValue)
+        this.$emit('zoom-change', validValue)
+      }, 300)
+    },
+    handleBlur() {
+      clearTimeout(this.debounceTimer)
+      
+      const numberPart = parseInt(this.currentValue.replace(/[^\d]/g, ''), 10)
+      
+      // 尝试使用最终输入值
+      if (!isNaN(numberPart) && numberPart >= 1 && numberPart <= 800) {
+        this.$emit('update:modelValue', numberPart)
+        this.$emit('zoom-change', numberPart)
+        this.currentValue = `${numberPart}%`
+        this.previousValue = numberPart
+      } else {
+        // 恢复显示为记忆的有效值
+        this.currentValue = `${this.previousValue}%`
+      }
+    },
     documentClick(e) {
       if (this.isShowMenu) {
         const menus = this.$el.querySelector('.zoom-select-options')

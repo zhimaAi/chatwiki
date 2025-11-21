@@ -8,14 +8,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/xuri/excelize/v2"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	netURL "net/url"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/xuri/excelize/v2"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-shiori/go-readability"
@@ -186,4 +188,54 @@ func SaveUrlPage(userId int, url, saveDir string) (*define.UploadInfo, error) {
 	}
 
 	return &define.UploadInfo{Name: MbSubstr(article.Title, 0, 100), Size: int64(len(article.Content)), Ext: "html", Link: link, Online: true, DocUrl: url}, nil
+}
+
+func SaveImageByMedia(fileData []byte, fileHeader http.Header, userId int, saveDir string, allowExt []string) (*define.UploadInfo, error) {
+	if len(fileData) == 0 {
+		return nil, errors.New("file data is empty")
+	}
+
+	// Get content type from header
+	contentType := fileHeader.Get("Content-Type")
+	if contentType == "" {
+		return nil, errors.New("content type is empty")
+	}
+
+	// Determine file extension based on content type
+	var ext string
+	switch contentType {
+	case "image/jpeg":
+		ext = "jpg"
+	case "image/png":
+		ext = "png"
+	case "image/gif":
+		ext = "gif"
+	case "image/webp":
+		ext = "webp"
+	default:
+		// Try to extract extension from content type
+		mediaType, _, _ := mime.ParseMediaType(contentType)
+		exts, _ := mime.ExtensionsByType(mediaType)
+		if len(exts) > 0 {
+			ext = strings.TrimPrefix(exts[0], ".")
+		} else {
+			ext = "jpg" // default to jpg
+		}
+	}
+
+	// Check if extension is allowed
+	if !tool.InArrayString(ext, allowExt) {
+		return nil, errors.New(ext + " not allow")
+	}
+
+	content := string(fileData)
+	md5Hash := tool.MD5(content)
+	objectKey := fmt.Sprintf("chat_ai/%d/%s/%s/%s.%s", userId, saveDir, tool.Date("Ym"), md5Hash, ext)
+	link, err := WriteFileByString(objectKey, content)
+	if err != nil {
+		return nil, err
+	}
+
+	fileName := fmt.Sprintf("media_%s.%s", tool.Date("YmdHis"), ext)
+	return &define.UploadInfo{Name: fileName, Size: int64(len(fileData)), Ext: ext, Link: link}, nil
 }

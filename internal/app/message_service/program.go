@@ -3,6 +3,7 @@
 package message_service
 
 import (
+	"chatwiki/internal/app/message_service/common"
 	"chatwiki/internal/app/message_service/define"
 	"chatwiki/internal/app/message_service/initialize"
 	"chatwiki/internal/pkg/lib_web"
@@ -28,6 +29,8 @@ func Run() {
 			logs.Error(err.Error())
 		}
 	}()
+	//subscribe
+	go common.PassiveSubscribeCall()
 }
 
 func Stop() {

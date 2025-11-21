@@ -3,6 +3,7 @@
 package wechat_kefu
 
 import (
+	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/wechat/common"
 	"context"
@@ -12,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/response"
+	openresponse "github.com/ArtisanCloud/PowerWeChat/v3/src/openPlatform/authorizer/miniProgram/account/response"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/work"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/work/accountService/message/request"
 	"github.com/zhimaAi/go_tools/tool"
@@ -22,16 +24,106 @@ type Application struct {
 	Secret string
 }
 
+func (a *Application) SendImageTextLink(customer, url, title, description, localThumbURL, picurl string, push *define.PushMessage) (int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return 0, err
+	}
+	externalUserid, openKfid := common.GetExternalUserInfo(customer)
+	if len(externalUserid) == 0 || len(openKfid) == 0 {
+		return 0, errors.New(`customer not exist`)
+	}
+
+	mediaId, errCode, err := a.UploadTempImage(localThumbURL)
+	if err != nil {
+		return errCode, err
+	}
+	options := &request.RequestAccountServiceSendMsg{
+		ToUser: externalUserid, OpenKfid: openKfid, MsgType: `link`,
+		Link: &request.RequestAccountServiceMsgLink{
+			Title:        title,
+			Desc:         description,
+			Url:          url,
+			ThumbMediaID: mediaId},
+	}
+	resp, err := app.AccountServiceMessage.SendMsg(context.Background(), options)
+	if err != nil {
+		return 0, err
+	}
+	if resp.ErrCode != 0 {
+		return resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return 0, nil
+}
+
+func (a *Application) SendMiniProgramPage(customer, appid, title, pagePath, localThumbURL string, push *define.PushMessage) (int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return 0, err
+	}
+	externalUserid, openKfid := common.GetExternalUserInfo(customer)
+	if len(externalUserid) == 0 || len(openKfid) == 0 {
+		return 0, errors.New(`customer not exist`)
+	}
+
+	mediaId, errCode, err := a.UploadTempImage(localThumbURL)
+	if err != nil {
+		return errCode, err
+	}
+	options := &request.RequestAccountServiceSendMsg{
+		ToUser: externalUserid, OpenKfid: openKfid, MsgType: `miniprogram`,
+		MiniProgram: &request.RequestAccountServiceMsgMiniProgram{
+			Title:        title,
+			AppID:        appid,
+			PagePath:     pagePath,
+			ThumbMediaID: mediaId},
+	}
+	resp, err := app.AccountServiceMessage.SendMsg(context.Background(), options)
+	if err != nil {
+		return 0, err
+	}
+	if resp.ErrCode != 0 {
+		return resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return 0, nil
+}
+
+func (a *Application) SendUrl(customer, url, title string, push *define.PushMessage) (int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return 0, err
+	}
+	externalUserid, openKfid := common.GetExternalUserInfo(customer)
+	if len(externalUserid) == 0 || len(openKfid) == 0 {
+		return 0, errors.New(`customer not exist`)
+	}
+	//replace the blue interactive content
+	content := "<a href='" + url + "'>" + title + "</a>"
+	options := &request.RequestAccountServiceSendMsg{
+		ToUser: externalUserid, OpenKfid: openKfid, MsgType: `text`,
+		Text: &request.RequestAccountServiceMsgText{Content: content},
+	}
+	resp, err := app.AccountServiceMessage.SendMsg(context.Background(), options)
+	if err != nil {
+		return 0, err
+	}
+	if resp.ErrCode != 0 {
+		return resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return 0, nil
+}
+
 func (a *Application) GetApp() (*work.Work, error) {
 	config := &work.UserConfig{
 		CorpID: a.AppID, Secret: a.Secret,
 		OAuth:     work.OAuth{Callback: `https://xxx.xxx`},
 		HttpDebug: false, Debug: lib_define.IsDev,
+		Cache: common.GetWechatCache(),
 	}
 	return work.NewWork(config)
 }
 
-func (a *Application) SendText(customer, content string) (int, error) {
+func (a *Application) SendText(customer, content string, push *define.PushMessage) (int, error) {
 	app, err := a.GetApp()
 	if err != nil {
 		return 0, err
@@ -131,7 +223,7 @@ func (a *Application) UploadTempImage(filePath string) (string, int, error) {
 	return resp.MediaID, 0, nil
 }
 
-func (a *Application) SendImage(customer, filePath string) (int, error) {
+func (a *Application) SendImage(customer, filePath string, push *define.PushMessage) (int, error) {
 	app, err := a.GetApp()
 	if err != nil {
 		return 0, err
@@ -158,7 +250,7 @@ func (a *Application) SendImage(customer, filePath string) (int, error) {
 	return 0, nil
 }
 
-func (a *Application) GetFileByMedia(mediaId string) ([]byte, http.Header, int, error) {
+func (a *Application) GetFileByMedia(mediaId string, push *define.PushMessage) ([]byte, http.Header, int, error) {
 	app, err := a.GetApp()
 	if err != nil {
 		return nil, nil, 0, err
@@ -173,4 +265,8 @@ func (a *Application) GetFileByMedia(mediaId string) ([]byte, http.Header, int, 
 		return nil, nil, temp.ErrCode, errors.New(temp.ErrMsg)
 	}
 	return bytes, resp.Header, 0, nil
+}
+
+func (a *Application) GetAccountBasicInfo() (*openresponse.ResponseGetBasicInfo, int, error) {
+	return nil, 0, errors.New(`not supported`)
 }

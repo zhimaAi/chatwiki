@@ -127,6 +127,15 @@ const getActiveMenu = () => {}
 
 const baseNavs = [
   {
+    id: 0,
+    key: 'explore',
+    label: 'explore',
+    title: '探索',
+    icon: 'nav-explore',
+    path: '/explore/index',
+    permission: ['ExploreManage']
+  },
+  {
     id: 1,
     key: 'robot',
     label: 'robot',

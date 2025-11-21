@@ -110,7 +110,9 @@ export const useChatMonitorStore = defineStore('chatMonitor', {
       if (msg.quote_file && typeof msg.quote_file === 'string') {
         msg.quote_file = JSON.parse(msg.quote_file)
       }
-
+      if (msg.reply_content_list && typeof msg.reply_content_list === 'string') {
+        try { msg.reply_content_list = JSON.parse(msg.reply_content_list) } catch (_) { msg.reply_content_list = [] }
+      }
       this.messageList.push(msg)
 
       emitter.emit('onAddMessage', msg)
@@ -240,8 +242,12 @@ export const useChatMonitorStore = defineStore('chatMonitor', {
             }
 
 
-            if (list[i].quote_file && typeof list[i].menu_json === 'string') {
+            if (list[i].quote_file && typeof list[i].quote_file === 'string') {
               list[i].quote_file = JSON.parse(list[i].quote_file)
+            }
+
+            if (list[i].reply_content_list && typeof list[i].reply_content_list === 'string') {
+              try { list[i].reply_content_list = JSON.parse(list[i].reply_content_list) } catch (_) { list[i].reply_content_list = [] }
             }
 
             list[i].dispayTime = formatDisplayChatTime(list[i].create_time)

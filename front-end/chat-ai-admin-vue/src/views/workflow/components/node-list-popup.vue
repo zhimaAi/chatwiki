@@ -6,11 +6,13 @@
   width: 444px;
   max-height: 80vh;
   overflow: hidden;
+  border-radius: 6px 6px 0 0;
+  box-shadow: 0 4px 16px 0 #0000001a;
   .tabs-box {
     display: flex;
     align-items: center;
     border-radius: 6px;
-    background: #F3F3F3;
+    background: #f3f3f3;
 
     .tab-item {
       display: flex;
@@ -26,7 +28,7 @@
         color: #2475fc;
         font-weight: 600;
         border-radius: 9px 9px 0 0;
-        background: #FFF;
+        background: #fff;
       }
     }
   }
@@ -94,7 +96,7 @@
         border-radius: 6px;
         cursor: pointer;
         &:hover {
-          background: #E4E6EB;
+          background: #e4e6eb;
         }
 
         .avatar {
@@ -127,14 +129,14 @@
 
       .mcp-tools {
         margin-left: 28px;
-        border-left: 1px solid #D9D9D9;
+        border-left: 1px solid #d9d9d9;
       }
       .mcp-tool-item {
         padding: 2px 8px;
         border-radius: 6px;
         cursor: pointer;
         &:hover {
-          background: #E4E6EB;
+          background: #e4e6eb;
         }
       }
     }
@@ -178,7 +180,7 @@
     max-width: 500px;
 
     &:first-child {
-      border-bottom: 1px solid #E4E6EB;
+      border-bottom: 1px solid #e4e6eb;
       padding-bottom: 16px;
     }
     &:not(:last-child) {
@@ -201,7 +203,7 @@
       }
 
       .required {
-        color: #ED744A;
+        color: #ed744a;
         font-weight: 500;
       }
     }
@@ -241,41 +243,44 @@
 <template>
   <div class="node-list-popup">
     <div class="tabs-box">
-      <div :class="['tab-item', {active: active == 1}]" @click="tabChange(1)"><svg-icon name="base-node-type"/> 基础功能</div>
-      <div :class="['tab-item', {active: active == 2}]" @click="tabChange(2)"><svg-icon name="mcp-node-type"/> MCP</div>
+      <div :class="['tab-item', { active: active == 1 }]" @click="tabChange(1)">
+        <svg-icon name="base-node-type" /> 基础功能
+      </div>
+      <div :class="['tab-item', { active: active == 2 }]" @click="tabChange(2)">
+        <svg-icon name="mcp-node-type" /> MCP
+      </div>
     </div>
     <div class="node-list-popup-content">
       <template v-if="active == 1">
-        <template v-for="group in allGroupNodes"  :key="group.key">
+        <template v-for="group in allGroupNodes" :key="group.key">
           <div class="node-list" v-if="!group.hidden">
             <div class="node-type">{{ group.name }}</div>
             <div class="node-flex-box">
               <template v-for="node in group.nodes" :key="node.type">
                 <div
                   class="node-item"
-                  @click="handleAddNode(node)"
+                  @mousedown="handleMouseDownOnNode($event, node)"
                   v-if="!node.hidden"
                 >
                   <img :src="node.properties.node_icon" :alt="node.properties.node_name" />
                   <div class="node-name">{{ node.properties.node_name }}</div>
                 </div>
               </template>
-
             </div>
           </div>
         </template>
       </template>
       <div v-else class="mcp-box">
         <div class="search-box">
-          <a-input-search v-model:value.trim="mcpKeyword" allowClear placeholder="请输入名称查询"/>
+          <a-input-search v-model:value.trim="mcpKeyword" allowClear placeholder="请输入名称查询" />
         </div>
         <div v-if="showMcpNodes.length" class="mcp-list">
           <div v-for="(item, j) in showMcpNodes" :key="j" class="mcp-item">
-            <a-popover placement="right" >
+            <a-popover placement="right">
               <template #content>
                 <div class="mcp-info-pop">
                   <div class="info">
-                    <img class="avatar" :src="item.avatar"/>
+                    <img class="avatar" :src="item.avatar" />
                     <div class="name">{{ item.name }}</div>
                   </div>
                   <div>{{ item.url }}</div>
@@ -283,11 +288,12 @@
                 </div>
               </template>
               <div class="mcp-info" @click="item.expand = !item.expand">
-                <img class="avatar" :src="item.avatar"/>
+                <img class="avatar" :src="item.avatar" />
                 <div class="info">
                   <span class="name">{{ item.name }}</span>
                   <span class="total">
-                    {{ item.tools.length }} <DownOutlined v-if="item.expand"/> <RightOutlined v-else/>
+                    {{ item.tools.length }} <DownOutlined v-if="item.expand" />
+                    <RightOutlined v-else />
                   </span>
                 </div>
               </div>
@@ -297,28 +303,36 @@
                 <template #content>
                   <div class="params-box">
                     <div class="param-item">
-                      <div class="field"><span class="name">{{ tool.name }}</span></div>
+                      <div class="field">
+                        <span class="name">{{ tool.name }}</span>
+                      </div>
                       <div class="desc">{{ tool.description }}</div>
                     </div>
-                    <div v-for="(field, key) in tool.inputSchema.properties" :key="key" class="param-item">
+                    <div
+                      v-for="(field, key) in tool.inputSchema.properties"
+                      :key="key"
+                      class="param-item"
+                    >
                       <div class="field">
                         <span class="name">{{ key }}</span>
                         <span class="type">{{ field.type }}</span>
-                        <span v-if="tool.inputSchema.required.includes(key)" class="required">必填</span>
+                        <span v-if="tool.inputSchema.required.includes(key)" class="required"
+                          >必填</span
+                        >
                       </div>
                       <div class="desc">{{ field.description }}</div>
                     </div>
                   </div>
                 </template>
-                <div class="mcp-tool-item" @click="addMcpNode(item, tool)">{{ tool.name }}</div>
+                <div class="mcp-tool-item" @mousedown="addMcpNode($event, item, tool)">{{ tool.name }}</div>
               </a-popover>
             </div>
           </div>
         </div>
         <div v-else class="empty-box">
-            <img style="height: 200px;" src="@/assets/empty.png"/>
-            <div>暂无可用MCP插件</div>
-            <a @click="handleOpenAddMcp">去添加<RightOutlined/></a>
+          <img style="height: 200px" src="@/assets/empty.png" />
+          <div>暂无可用MCP插件</div>
+          <a @click="handleOpenAddMcp">去添加<RightOutlined /></a>
         </div>
       </div>
     </div>
@@ -326,12 +340,11 @@
 </template>
 
 <script setup>
-import {ref, onMounted, computed} from 'vue';
-import {RightOutlined, DownOutlined} from '@ant-design/icons-vue';
-import { generateUniqueId } from '@/utils/index'
-import {getAllGroupNodes, getAllMcpNodes, getMcpNode} from './node-list'
+import { ref, onMounted, computed } from 'vue'
+import { RightOutlined, DownOutlined } from '@ant-design/icons-vue'
+import { getAllGroupNodes, getAllMcpNodes, getMcpNode } from './node-list'
 
-const emit = defineEmits(['addNode'])
+const emit = defineEmits(['addNode', 'mouseMove'])
 
 const props = defineProps({
   type: {
@@ -346,14 +359,14 @@ const active = ref(1)
 const mcpKeyword = ref('')
 
 onMounted(() => {
-  getAllMcpNodes().then(res => {
+  getAllMcpNodes().then((res) => {
     allMcpNodes.value = res
   })
 })
 
 const showMcpNodes = computed(() => {
   if (mcpKeyword.value) {
-    return allMcpNodes.value.filter(item => {
+    return allMcpNodes.value.filter((item) => {
       let info = item.description + item.name
       return info.indexOf(mcpKeyword.value) > -1
     })
@@ -362,22 +375,72 @@ const showMcpNodes = computed(() => {
   }
 })
 
-let nodeNameMap = {}
-const handleAddNode = (node) => {
-  node = JSON.parse(JSON.stringify(node))
-  node.id = generateUniqueId(node.type)
-  // 同一类型的节点多次添加时，从第二次添加开始，默认名称后面加上序号
-  if(nodeNameMap[node.type]){
-    nodeNameMap[node.type] = nodeNameMap[node.type] + 1
-    node.properties.node_name = node.properties.node_name + nodeNameMap[node.type]
-  }else{
-    nodeNameMap[node.type] = 1
+const handleMouseDownOnNode = (event, node) => {
+  // 阻止默认行为，例如文本选择
+  event.preventDefault()
+
+  let isDragged = false
+  const startX = event.clientX
+  const startY = event.clientY
+
+  // 复制节点数据，为之后创建节点做准备
+  const nodeData = JSON.parse(JSON.stringify(node))
+
+  // 创建一个临时的、跟随鼠标的预览元素
+  const ghost = document.createElement('div')
+  ghost.classList.add('node-item-ghost')
+  ghost.innerHTML = event.currentTarget.innerHTML // 复制外观
+
+  document.body.appendChild(ghost)
+
+  const moveGhost = (e) => {
+    ghost.style.left = `${e.clientX + 5}px`
+    ghost.style.top = `${e.clientY + 5}px`
   }
-  emit('addNode', node)
+
+  moveGhost(event)
+
+  const onMouseMove = (e) => {
+    if (
+      !isDragged &&
+      (Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5)
+    ) {
+      isDragged = true
+    }
+    moveGhost(e)
+    emit('mouseMove')
+  }
+
+  const onMouseUp = (e) => {
+    // 清理
+    document.body.removeChild(ghost)
+    window.removeEventListener('mousemove', onMouseMove)
+    window.removeEventListener('mouseup', onMouseUp)
+
+    if (isDragged) {
+      // 如果拖动了，发出事件，通知画布创建节点
+      // 传递节点数据和鼠标抬起时的事件对象（包含坐标）
+      emit('addNode', { node: nodeData, event: e })
+    } else {
+      // 如果没有拖动，执行原有的 click 逻辑
+      handleAddNode(nodeData)
+    }
+  }
+
+  window.addEventListener('mousemove', onMouseMove)
+  window.addEventListener('mouseup', onMouseUp, { once: true })
 }
 
-const addMcpNode = (mcp, tool) => {
-  handleAddNode(getMcpNode(mcp, tool))
+const handleAddNode = (node) => {
+  node = JSON.parse(JSON.stringify(node))
+
+  emit('addNode', { node })
+}
+
+const addMcpNode = (event, mcp, tool) => {
+  let node = getMcpNode(mcp, tool);
+
+  handleMouseDownOnNode(event, node)
 }
 
 function tabChange(key) {
@@ -388,3 +451,26 @@ function handleOpenAddMcp() {
   window.open('/#/robot/list?active=3&mcp=2', '_blank')
 }
 </script>
+
+<style lang="less">
+.node-item-ghost {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  width: 200px;
+  gap: 8px;
+  padding: 0 16px;
+  border-radius: 6px;
+  opacity: 0.7;
+  background-color: #fff;
+  box-shadow: 0 4px 16px 0 #0000001a;
+
+  img {
+    width: 20px;
+    height: 20px;
+  }
+}
+</style>

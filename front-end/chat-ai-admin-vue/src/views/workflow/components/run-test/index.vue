@@ -166,7 +166,8 @@ const props = defineProps({
   start_node_params: {
     default: () => {},
     type: Object
-  }
+  },
+  isLockedByOther: { type: Boolean, default: false }
 })
 
 const diy_global = computed(() => {
@@ -209,6 +210,10 @@ const formState = reactive({
 })
 
 const handleOpenTestModal = () => {
+  if (props.isLockedByOther) {
+    message.warning('当前已有其他用户在编辑中，无法运行测试')
+    return
+  }
   emit('save', 'automatic')
   let localData = localStorage.getItem('workflow_run_test_data') || '{}'
   localData = JSON.parse(localData)

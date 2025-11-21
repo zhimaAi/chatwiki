@@ -3,8 +3,8 @@
     v-model:open="open"
     placement="right"
     width="400px"
-    headerStyle="display:none;"
-    bodyStyle="padding:0;"
+    :headerStyle="{display: 'none'}"
+    :bodyStyle="{padding: 0}"
   >
     <div v-if="checking" class="checking-box">
       <div class="cont">

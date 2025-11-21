@@ -13,9 +13,11 @@
       <WechatAppItem
         v-for="item in list"
         :key="item.id"
+        app_type="mini_program"
         :item="item"
         @edit="handleEdit"
         @delete="handleDelete"
+        @refresh="handleRefresh"
       />
     </div>
     <AddWechatAppAlert ref="addAppAlertRef" @ok="onSaveSuccess" />
@@ -26,7 +28,7 @@
 import { ref, inject, onMounted, createVNode } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
-import { getWechatAppList, deleteWechatApp } from '@/api/robot'
+import { getWechatAppList, deleteWechatApp, refreshAccountVerify } from '@/api/robot'
 import WechatAppItem from './wechat-app-item.vue'
 import AddWechatApp from './add-wechat-app.vue'
 import AddWechatAppAlert from './add-wechat-mini-program-alert.vue'
@@ -102,6 +104,15 @@ const handleDelete = (item) => {
 const handleEdit = (item) => {
   item.wechat_ip = robotInfo.wechat_ip
   addAppAlertRef.value.open({ ...item })
+}
+
+const handleRefresh = (item) => {
+  refreshAccountVerify({
+    id: item.id
+  }).then(() => {
+    message.success('刷新成功')
+    getList()
+  })
 }
 
 const onSaveSuccess = () => {

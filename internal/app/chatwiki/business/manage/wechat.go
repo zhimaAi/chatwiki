@@ -48,6 +48,20 @@ func GetWechatAppList(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+	for i, appInfo := range list {
+		accountIsVerify := lib_define.WechatAccountIsVerify(appInfo[`account_customer_type`])
+		list[i][`account_is_verify`] = cast.ToString(accountIsVerify)
+		if appInfo[`app_type`] == lib_define.AppOfficeAccount && !accountIsVerify {
+			list[i][`wechat_reply_type`] = fmt.Sprintf(`%s秒内未生成答案则用户手动获取回复`, define.Config.WebService[`wechat_wait`])
+		} else {
+			list[i][`wechat_reply_type`] = `系统自动回复消息`
+		}
+		if appInfo[`account_customer_type`] == `-1` && tool.InArrayString(appInfo[`app_type`], []string{lib_define.AppOfficeAccount, lib_define.AppMini}) {
+			go func() {
+				_ = common.RefreshAccountVerify(appInfo) //异步把默认值刷新一下
+			}()
+		}
+	}
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 }
 
@@ -134,8 +148,18 @@ func SaveWechatApp(c *gin.Context) {
 		`app_secret`:  appSecret,
 		`update_time`: tool.Time2Int(),
 	}
+
+	if appType == lib_define.FeiShuRobot {
+		data[`encrypt_key`] = strings.TrimSpace(c.PostForm(`encrypt_key`))
+		data[`verification_token`] = strings.TrimSpace(c.PostForm(`verification_token`))
+	}
+
 	if len(appAvatar) > 0 {
 		data[`app_avatar`] = appAvatar
+	}
+	//微信应用认证类型
+	if basic, _, err := app.GetAccountBasicInfo(); err == nil {
+		data[`account_customer_type`] = basic.CustomerType
 	}
 	m := msql.Model(`chat_ai_wechat_app`, define.Postgres)
 	if id > 0 {
@@ -181,6 +205,7 @@ func SaveWechatApp(c *gin.Context) {
 		}
 		appInfo[`push_token`] = lib_define.SignToken
 		appInfo[`push_aeskey`] = lib_define.AesKey
+		appInfo[`account_is_verify`] = cast.ToString(lib_define.WechatAccountIsVerify(appInfo[`account_customer_type`]))
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(appInfo, err))
 }
@@ -212,6 +237,7 @@ func GetWechatAppInfo(c *gin.Context) {
 	}
 	appInfo[`push_token`] = lib_define.SignToken
 	appInfo[`push_aeskey`] = lib_define.AesKey
+	appInfo[`account_is_verify`] = cast.ToString(lib_define.WechatAccountIsVerify(appInfo[`account_customer_type`]))
 	c.String(http.StatusOK, lib_web.FmtJson(appInfo, nil))
 }
 
@@ -247,4 +273,77 @@ func DeleteWechatApp(c *gin.Context) {
 	lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `app_id`, Value: appInfo[`app_id`]})
 	lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `access_key`, Value: appInfo[`access_key`]})
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}
+
+func RefreshAccountVerify(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	id := cast.ToInt(c.PostForm(`id`))
+	if id <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	appInfo, err := common.GetWechatAppInfo(`id`, cast.ToString(id))
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(appInfo) == 0 || cast.ToInt(appInfo[`admin_user_id`]) != userId {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	err = common.RefreshAccountVerify(appInfo)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}
+
+func SetWechatNotVerifyConfig(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	//get params
+	id := cast.ToInt64(c.PostForm(`id`))
+	wechatNotVerifyHandGetReply := strings.TrimSpace(c.PostForm(`wechat_not_verify_hand_get_reply`))
+	wechatNotVerifyHandGetWord := strings.TrimSpace(c.PostForm(`wechat_not_verify_hand_get_word`))
+	wechatNotVerifyHandGetNext := strings.TrimSpace(c.PostForm(`wechat_not_verify_hand_get_next`))
+	//check required
+	if id <= 0 || len(wechatNotVerifyHandGetReply) == 0 || len(wechatNotVerifyHandGetWord) == 0 || len(wechatNotVerifyHandGetNext) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	//data check
+	m := msql.Model(`chat_ai_robot`, define.Postgres)
+	robotKey, err := m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(adminUserId)).Value(`robot_key`)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(robotKey) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	//database dispose
+	data := msql.Datas{
+		`wechat_not_verify_hand_get_reply`: common.MbSubstr(wechatNotVerifyHandGetReply, 0, 100),
+		`wechat_not_verify_hand_get_word`:  common.MbSubstr(wechatNotVerifyHandGetWord, 0, 100),
+		`wechat_not_verify_hand_get_next`:  common.MbSubstr(wechatNotVerifyHandGetNext, 0, 100),
+		`update_time`:                      tool.Time2Int(),
+	}
+	if _, err = m.Where(`id`, cast.ToString(id)).Update(data); err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	//clear cached data
+	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
+	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
 }

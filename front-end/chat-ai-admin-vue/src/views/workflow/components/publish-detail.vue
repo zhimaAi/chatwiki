@@ -1,13 +1,32 @@
 <template>
   <div>
-    <a-drawer v-model:open="open" title="发布详情" placement="right" :width="400">
+    <a-drawer v-model:open="open" title="发布详情" placement="right" :width="400" :bodyStyle="{ padding: '12px 24px' }">
       <div class="version-detail">
-        <div class="version-list" @click="handlePreviewVersion('')">
+        <div class="version-list" @click="handlePreviewVersion('')" v-if="robotInfo.draft_save_time && robotInfo.draft_save_time != 0">
           <div class="version-header">
-            <div class="version-title">当前版本</div>
+            <div class="version-title">当前最新草稿</div>
           </div>
-          <div class="version-desc" v-if="draftSaveTime && draftSaveTime.time">
-            最近保存于{{ draftSaveTime.time }}
+          <div class="version-desc flex-center">
+            最近保存于{{ formatTime(robotInfo.draft_save_time, 'MM/DD HH:mm:ss') }}
+            <div class="version-file-box">
+              <a-popover placement="topRight" :overlay-style="{
+                'max-width': '372px'
+              }">
+                <template #content>
+                  <div class="version-text">
+                    IP：{{ currentIp || '--' }}
+                  </div>
+                  <div class="version-text">
+                    User Agent：{{ currentUA || '--' }}
+                  </div>
+                </template>
+                <svg-icon
+                  class="file-icon"
+                  name="file-icon"
+                  style="font-size: 14px; color: #333"
+                ></svg-icon>
+              </a-popover>
+            </div>
           </div>
         </div>
         <div
@@ -19,7 +38,28 @@
           <div class="version-header">
             <div class="version-title">
               v{{ item.version }}
-              <span class="time-text">{{ formatTime(item.create_time) }}</span>
+              <span class="time-text flex-center">
+                {{ formatTime(item.create_time) }}
+                <div class="version-file-box">
+                  <a-popover placement="topRight" :overlay-style="{
+                    'max-width': '372px'
+                  }">
+                    <template #content>
+                      <div class="version-text">
+                        IP：{{ item.last_edit_ip || '--' }}
+                      </div>
+                      <div class="version-text">
+                        User Agent：{{ item.last_edit_user_agent || '--' }}
+                      </div>
+                    </template>
+                    <svg-icon
+                      class="file-icon"
+                      name="file-icon"
+                      style="font-size: 14px; color: #333"
+                    ></svg-icon>
+                  </a-popover>
+                </div>
+              </span>
             </div>
             <a-dropdown>
               <div class="hover-btn-box" @click.stop="">
@@ -28,7 +68,7 @@
 
               <template #overlay>
                 <a-menu>
-                  <a-menu-item @click="setVersion(item)"> 恢复到此版本 </a-menu-item>
+                  <a-menu-item :disabled="props.isLockedByOther" @click="setVersion(item)"> 恢复到此版本 </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -44,7 +84,7 @@
 
 <script setup>
 import { ref, h, computed } from 'vue'
-import { workFlowVersions, workFlowVersionDetail, getNodeList } from '@/api/robot/index'
+import { workFlowVersions, workFlowVersionDetail, getNodeList, getDraftKey } from '@/api/robot/index'
 import { message, Modal } from 'ant-design-vue'
 import { EllipsisOutlined } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
@@ -52,18 +92,31 @@ import { useRobotStore } from '@/stores/modules/robot'
 import { useRoute } from 'vue-router'
 const query = useRoute().query
 const open = ref(false)
+const currentIp = ref('')
+const currentUA = ref('')
 
 const emit = defineEmits(['setVersion', 'preview'])
-
+const props = defineProps({
+  isLockedByOther: { type: Boolean, default: false }
+})
 const robotStore = useRobotStore()
-const draftSaveTime = computed(() => {
-  return robotStore.draftSaveTime
+const robotInfo = computed(() => {
+  return robotStore.robotInfo
 })
 
 const list = ref([])
 const showDrawer = () => {
   open.value = true
   getDetailList()
+  // 获取当前客户端信息
+  getDraftKey({
+    robot_key: query.robot_key
+  }).then((res) => {
+    // const res = {"msg":"success","res":0,"data":{"is_self":true,"lock_res":true,"lock_ttl":955,"remote_addr":"171.83.17.34","robot_key":"yw5BnxX80G","staff_id":3432,"user_agent":"Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36"}}
+    const data = res?.data || {}
+    currentIp.value = data.remote_addr || ''
+    currentUA.value = data.user_agent || ''
+  })
 }
 
 const getDetailList = () => {
@@ -90,7 +143,9 @@ const setVersion = (item) => {
       }).then((res) => {
         emit('setVersion', res.data)
         open.value = false
-        message.success('设置成功')
+        if (res.res == 0) {
+          message.success('设置成功')
+        }
       })
     },
     onCancel() {}
@@ -98,6 +153,10 @@ const setVersion = (item) => {
 }
 
 const handlePreviewVersion = (version) => {
+  // if (props.isLockedByOther) {
+  //   message.warning('当前已有其他用户在编辑中，无法预览')
+  //   return
+  // }
   if (version == '') {
     getNodeList({
       robot_key: query.robot_key,
@@ -117,11 +176,11 @@ const handlePreviewVersion = (version) => {
   }
 }
 
-function formatTime(time) {
+function formatTime(time, formatType = 'YYYY-MM-DD HH:mm:ss') {
   if (time <= 0) {
     return '--'
   }
-  return dayjs(time * 1000).format('YYYY-MM-DD HH:mm:ss')
+  return dayjs(time * 1000).format(formatType)
 }
 
 defineExpose({
@@ -146,11 +205,11 @@ defineExpose({
 .version-detail {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   .version-list {
     padding: 8px 16px;
-    border-radius: 4px;
-    background-color: #f2f2f2;
+    border-radius: 6px;
+    background-color: #F2F4F7;
     cursor: pointer;
     .version-header {
       display: flex;
@@ -158,11 +217,32 @@ defineExpose({
       justify-content: space-between;
       color: #000;
       font-weight: 600;
+      margin-bottom: 8px;
       .time-text {
         color: #8c8c8c;
         margin-left: 12px;
       }
     }
   }
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+}
+
+.version-file-box {
+  margin-left: 8px;
+}
+
+.version-title {
+  display: flex;
+  align-items: center;
+}
+
+.version-desc {
+  // 保持返回的格式
+  white-space: pre-wrap;
+  color: #595959;
 }
 </style>

@@ -6,5 +6,3 @@ var IsDev bool
 var Env string
 
 const AppRoot = `internal/app/message_service/`
-const UploadDir = AppRoot + `upload/`
-const LocalUploadPrefix = `/upload/`

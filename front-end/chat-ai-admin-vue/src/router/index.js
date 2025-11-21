@@ -2,6 +2,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import BlankLayout from '../layouts/BlankLayout.vue'
 import user from './user'
 import robot from './robot'
+import explore from './explore'
 import library from './library'
 import authority from './authority'
 import database from './database'
@@ -41,6 +42,7 @@ const routes = [
   },
   user,
   robot,
+  explore,
   library,
   librarySearch,
   ...publicLibrary,

@@ -67,7 +67,7 @@
           <div class="action-btn zoom-btn" @click="handleReduce">
             <svg-icon name="minus" size="16" />
           </div>
-          <zoom-select :title="zoomSelectTitle" @change="zoomSelectChagne" />
+          <zoom-select v-model="zoom" @zoom-change="chagneZoom" />
           <div class="action-btn zoom-btn" @click="handleAmplify">
             <svg-icon name="plus" size="16" />
           </div>
@@ -92,7 +92,7 @@
       </div>
 
       <div class="node-list-fix"  ref="nodeListRef" v-show="isShowMenu">
-        <NodeListPopup @addNode="handleAddNode" type="float-btn" />
+        <NodeListPopup @addNode="handleAddNode" type="float-btn" @mouseMove="handleMouseMove" />
       </div>
     </div>
   </div>
@@ -104,7 +104,7 @@ import ZoomSelect from './zoom-select.vue'
 import { PlusOutlined, CaretRightOutlined } from '@ant-design/icons-vue'
 import NodeListPopup from '../node-list-popup.vue'
 
-const emit = defineEmits(['runTest', 'addNode'])
+const emit = defineEmits(['runTest', 'addNode', 'zoom-change'])
 
 const props = defineProps({
   lf: {
@@ -119,40 +119,38 @@ const { eventCenter } = props.lf.graphModel
 const zoom = ref(100)
 
 const setZoom = () => {
-  props.lf.zoom(zoom.value / 100)
+  let value = zoom.value / 100
+  props.lf.zoom(value)
+
+  emit('zoom-change', value)
 }
 
-const zoomSelectTitle = ref('100%')
 
-const zoomSelectChagne = ({ label, value }) => {
-  zoomSelectTitle.value = label
+const chagneZoom = (value) => {
   zoom.value = value
-
   setZoom()
 }
 
 const handleReduce = () => {
   // 四舍五入到整数
-  let value = (zoom.value = Math.floor(zoom.value / 2))
+  let value = zoom.value - 10;
 
   if (value < 1) {
     value = 1
   }
 
   zoom.value = value
-  zoomSelectTitle.value = `${value}%`
   setZoom()
 }
 
 const handleAmplify = () => {
-  let value = zoom.value * 2
+  let value = zoom.value + 10;
 
   if (value > 800) {
     value = 800
   }
 
   zoom.value = value
-  zoomSelectTitle.value = `${value}%`
   setZoom()
 }
 
@@ -162,7 +160,6 @@ const nodeListRef = ref(null)
 const onGraphTransform = (args) => {
   let value = Math.floor(args.transform.SCALE_X * 100)
   zoom.value = value
-  zoomSelectTitle.value = `${value}%`
 }
 
 // let miniMap = null
@@ -201,6 +198,12 @@ const documentClick = (e) =>  {
     if (!menus.contains(e.target)) {
       isShowMenu.value = false
     }
+  }
+}
+
+const handleMouseMove = () => {
+  if(isShowMenu.value) {
+    isShowMenu.value = false
   }
 }
 

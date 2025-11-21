@@ -42,10 +42,12 @@ import { ref } from 'vue'
 import { workFlowNextVersion, workFlowPublishVersion } from '@/api/robot/index'
 import { message } from 'ant-design-vue'
 import { useRoute } from 'vue-router'
+import { useRobotStore } from '@/stores/modules/robot'
+
 const query = useRoute().query
 const open = ref(false)
 let node_list = ''
-
+const robotStore = useRobotStore()
 const value1 = ref('')
 const value2 = ref('')
 const value3 = ref('')
@@ -68,9 +70,18 @@ const handleOk = () => {
     robot_key: query.robot_key,
     node_list,
     version: `${value1.value}.${value2.value}.${value3.value}`,
-    version_desc: version_desc.value
+    version_desc: version_desc.value,
+    draft_save_type: 'automatic',
+    draft_save_time: +robotStore.robotInfo.draft_save_time || 0
   })
-    .then((res) => {
+    .then(async(res) => {
+      // 刷新并同步最新草稿时间戳
+      await robotStore.getRobot(query.id)
+      const ts = +robotStore.robotInfo.draft_save_time || 0
+      robotStore.setDrafSaveTime({
+        draft_save_type: 'automatic',
+        draft_save_time: ts
+      })
       open.value = false
       if (res && res.res == 0) {
         message.success('发布成功')
