@@ -20,7 +20,7 @@ var LibDocFileAllowExt = []string{`md`}
 var QALibFileAllowExt = []string{`docx`, `xlsx`, `csv`}
 var VideoAllowExt = []string{`mp4`}
 var AudioAllowExt = []string{`mp3`}
-var FAQLibFileAllowExt = []string{`md`,`docx`,`txt`}
+var FAQLibFileAllowExt = []string{`md`, `docx`, `txt`}
 
 func IsTableFile(ext string) bool {
 	ext = strings.ToLower(ext)

@@ -12,6 +12,7 @@ import chatMonitor from './chat-monitor'
 import noPermission from './no-permission'
 import AiExtractFaq from './ai-extract-faq'
 import triggerStatics from './trigger-statics'
+import plugins from './plugins'
 
 const routes = [
   {
@@ -52,6 +53,7 @@ const routes = [
   chatMonitor,
   AiExtractFaq,
   triggerStatics,
+  plugins,
 ]
 
 if (import.meta.env.DEV) {

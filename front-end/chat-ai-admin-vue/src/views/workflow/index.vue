@@ -385,7 +385,12 @@ function getNode (list) {
     // 边数据处理
     if (item.node_type == 0) {
       let edge = JSON.parse(item.node_info_json)
-
+      
+      if(edge.type == 'custom-edge'){
+        edge.pointsList = [];
+        edge.type = 'custom-bezier-edge'
+      }
+      
       edges.push(edge)
     } else {
       const type = nodeTypes[item.node_type]

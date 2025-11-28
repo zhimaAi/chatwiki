@@ -25,10 +25,14 @@ import (
 // UnifiedMessageType 统一MsgType
 func UnifiedMessageType(msgType string) string {
 	switch msgType {
+	case lib_define.DingTalkMsgTypeImage:
+		msgType = lib_define.MsgTypeImage
+		break
 	case lib_define.FeShuMsgTypeAudio:
 		msgType = lib_define.MsgTypeVoice
 		break
 	case lib_define.FeShuMsgTypeMedia:
+	case lib_define.DingTalkMsgTypeVideo:
 		msgType = lib_define.MsgTypeVideo
 		break
 	}
@@ -76,7 +80,7 @@ func AppPush(msg string, _ ...string) error {
 	if appInfo[`app_type`] == lib_define.AppWechatKefu { //external_userid integrates with open_kfid
 		openid = wechatCommon.GetWechatKefuOpenid(cast.ToInt(robot[`admin_user_id`]), message)
 	}
-	push := &define.PushMessage{
+	push := &lib_define.PushMessage{
 		MsgRaw:      msg,
 		Message:     message,
 		AdminUserId: cast.ToInt(robot[`admin_user_id`]),
@@ -156,7 +160,7 @@ func BuildSendMenu(menuJsonStr string) (string, error) {
 	return content, nil
 }
 
-func SendWelcome(push *define.PushMessage) {
+func SendWelcome(push *lib_define.PushMessage) {
 	if push.Robot == nil && len(push.Robot[`welcomes`]) == 0 {
 		return
 	}
@@ -185,7 +189,7 @@ func SendWelcome(push *define.PushMessage) {
 }
 
 // SendSubscribeReply 订阅回复
-func SendSubscribeReply(push *define.PushMessage) {
+func SendSubscribeReply(push *lib_define.PushMessage) {
 	if len(push.AppInfo) == 0 || push.AppInfo[`app_type`] != lib_define.AppOfficeAccount {
 		//不是公众号的关注回复
 		return
@@ -233,7 +237,7 @@ func SendSubscribeReply(push *define.PushMessage) {
 	return
 }
 
-func SendReply(push *define.PushMessage) {
+func SendReply(push *lib_define.PushMessage) {
 	app, err := wechat.GetApplication(push.AppInfo)
 	if err != nil {
 		logs.Error(`msg:%s,err:%s`, push.MsgRaw, err.Error())
@@ -287,7 +291,7 @@ func SendReply(push *define.PushMessage) {
 	return
 }
 
-func SendReplyMessageHandle(push *define.PushMessage, message msql.Params, app wechat.ApplicationInterface, err error) bool {
+func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, app wechat.ApplicationInterface, err error) bool {
 	//判断是否有关键词回复
 	KeywordReplyHandle(push, message, app)
 
@@ -324,7 +328,7 @@ func SendReplyMessageHandle(push *define.PushMessage, message msql.Params, app w
 }
 
 // KeywordReplyHandle 关键词回复处理
-func KeywordReplyHandle(push *define.PushMessage, message msql.Params, app wechat.ApplicationInterface) {
+func KeywordReplyHandle(push *lib_define.PushMessage, message msql.Params, app wechat.ApplicationInterface) {
 	keywordReplyListJson, isKeyword := message[`reply_content_list`]
 	if isKeyword {
 		var replyContent []common.ReplyContent
@@ -394,7 +398,7 @@ func KeywordReplyHandle(push *define.PushMessage, message msql.Params, app wecha
 }
 
 // SendReceivedMessageReply 发送收到消息的回复
-func SendReceivedMessageReply(push *define.PushMessage) {
+func SendReceivedMessageReply(push *lib_define.PushMessage) {
 	app, err := wechat.GetApplication(push.AppInfo)
 	if err != nil {
 		logs.Error(`msg:%s,err:%s`, push.MsgRaw, err.Error())
@@ -450,7 +454,7 @@ func SendReceivedMessageReply(push *define.PushMessage) {
 }
 
 // ThumbMediaIdToOssUrl 缩略图处理
-func ThumbMediaIdToOssUrl(push *define.PushMessage, app wechat.ApplicationInterface, params *define.ChatRequestParam) {
+func ThumbMediaIdToOssUrl(push *lib_define.PushMessage, app wechat.ApplicationInterface, params *define.ChatRequestParam) {
 	thumbMediaId := cast.ToString(push.Message[`ThumbMediaId`])
 	if thumbMediaId != `` {
 		thumbMedia, h, _, err := app.GetFileByMedia(thumbMediaId, push)
@@ -469,12 +473,17 @@ func ThumbMediaIdToOssUrl(push *define.PushMessage, app wechat.ApplicationInterf
 }
 
 // ImageMediaIdToOssUrl 图片消息处理
-func ImageMediaIdToOssUrl(push *define.PushMessage, receivedMessageType string, app wechat.ApplicationInterface, params *define.ChatRequestParam) {
+func ImageMediaIdToOssUrl(push *lib_define.PushMessage, receivedMessageType string, app wechat.ApplicationInterface, params *define.ChatRequestParam) {
 	mediaId := cast.ToString(push.Message[`MediaId`])
 	if push.AppInfo[`app_type`] == lib_define.FeiShuRobot && receivedMessageType == lib_define.MsgTypeImage {
 		content := feishu_robot.FeiShuImgMsgContent{}
 		_ = tool.JsonDecodeUseNumber(cast.ToString(push.Message[`Content`]), &content)
 		mediaId = content.ImageKey
+	}
+	if push.AppInfo[`app_type`] == lib_define.DingTalkRobot && receivedMessageType == lib_define.MsgTypeImage {
+		msgContent := lib_define.DingtalkImgContent{}
+		_ = tool.JsonDecode(cast.ToString(push.Message["Content"]), &msgContent)
+		mediaId = msgContent.DownloadCode
 	}
 	if receivedMessageType == lib_define.MsgTypeImage && mediaId != `` {
 		media, h, _, err := app.GetFileByMedia(mediaId, push)

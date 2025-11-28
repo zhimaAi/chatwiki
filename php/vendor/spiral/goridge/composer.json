@@ -1,0 +1,94 @@
+{
+    "name": "spiral/goridge",
+    "type": "goridge",
+    "description": "High-performance PHP-to-Golang RPC bridge",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Anton Titov (wolfy-j)",
+            "email": "wolfy-j@spiralscout.com"
+        },
+        {
+            "name": "Valery Piashchynski",
+            "homepage": "https://github.com/rustatian"
+        },
+        {
+            "name": "Aleksei Gagarin (roxblnfk)",
+            "homepage": "https://github.com/roxblnfk"
+        },
+        {
+            "name": "Pavel Buchnev (butschster)",
+            "email": "pavel.buchnev@spiralscout.com"
+        },
+        {
+            "name": "Maksim Smakouz (msmakouz)",
+            "email": "maksim.smakouz@spiralscout.com"
+        },
+        {
+            "name": "RoadRunner Community",
+            "homepage": "https://github.com/roadrunner-server/roadrunner/graphs/contributors"
+        }
+    ],
+    "homepage": "https://spiral.dev/",
+    "support": {
+        "docs": "https://docs.roadrunner.dev",
+        "issues": "https://github.com/roadrunner-server/roadrunner/issues",
+        "chat": "https://discord.gg/V6EK4he"
+    },
+    "require": {
+        "php": ">=8.1",
+        "ext-json": "*",
+        "ext-sockets": "*",
+        "spiral/roadrunner": "^2023 || ^2024.1 || ^2025.1"
+    },
+    "require-dev": {
+        "google/protobuf": "^3.22 || ^4.0",
+        "infection/infection": "^0.29.0",
+        "jetbrains/phpstorm-attributes": "^1.0",
+        "phpunit/phpunit": "^10.5.45",
+        "rybakit/msgpack": "^0.7",
+        "spiral/code-style": "*",
+        "vimeo/psalm": "^6.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Spiral\\Goridge\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Spiral\\Goridge\\Tests\\": "tests/Goridge"
+        }
+    },
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/roadrunner-server"
+        }
+    ],
+    "suggest": {
+        "ext-msgpack": "MessagePack codec support",
+        "ext-protobuf": "Protobuf codec support",
+        "rybakit/msgpack": "(^0.7) MessagePack codec support",
+        "google/protobuf": "(^3.0) Protobuf codec support"
+    },
+    "scripts": {
+        "test": "phpunit --no-coverage --colors=always",
+        "test-cover": "phpunit --coverage-clover=coverage.xml",
+        "test-static": "psalm --no-cache",
+        "test-mutations": "infection",
+        "cs:diff": "php-cs-fixer fix --dry-run -v --diff --show-progress dots",
+        "cs:fix": "php-cs-fixer fix -v",
+        "psalm": "psalm",
+        "psalm:baseline": "psalm --set-baseline=psalm-baseline.xml"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "infection/extension-installer": true,
+            "composer/package-versions-deprecated": true
+        },
+        "sort-packages": true
+    }
+}

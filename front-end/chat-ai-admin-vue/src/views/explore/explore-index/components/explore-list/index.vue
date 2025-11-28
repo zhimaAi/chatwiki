@@ -7,7 +7,7 @@
 }
 .list-item-wrapper {
   padding: 8px;
-  width: 33.3333%;
+  width: 25%;
 }
 .list-item {
   position: relative;
@@ -149,7 +149,7 @@
 @media screen and (min-width: 1920px) {
   .list-box {
     .list-item-wrapper {
-      width: 25%;
+      width: 20%;
     }
   }
 }
@@ -177,7 +177,7 @@
         </div>
         <div class="item-body">
           <div class="explore-desc">{{ item.explore_intro || item.introduction }}</div>
-          
+
           <span class="support-box">
             <span v-for="ch in item.support_channels_list" :key="ch" class="support-item">
               <svg-icon name="support" class="icon" />

@@ -5,14 +5,17 @@ package work_flow
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_web"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mark3labs/mcp-go/mcp"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/zhimaAi/go_tools/curl"
 
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
@@ -388,6 +391,13 @@ type McpNodeParams struct {
 	Output     string         `json:"output"`
 }
 
+type PluginNodeParams struct {
+	Name   string                 `json:"name"`
+	Type   string                 `json:"type"`
+	Params map[string]interface{} `json:"params"`
+	Output string                 `json:"output"`
+}
+
 /************************************/
 
 type NodeParams struct {
@@ -408,6 +418,7 @@ type NodeParams struct {
 	FormSelect       FormSelectNodeParams       `json:"form_select"`
 	CodeRun          CodeRunNodeParams          `json:"code_run"`
 	Mcp              McpNodeParams              `json:"mcp"`
+	Plugin           PluginNodeParams           `json:"plugin"`
 }
 
 func DisposeNodeParams(nodeType int, nodeParams string) NodeParams {
@@ -530,6 +541,8 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 		}
 	case NodeTypeMcp:
 		variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, `special.mcp_reply_content`))
+	case NodeTypePlugin:
+		variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, `special.plugin_reply_output`))
 	}
 
 	return variables
@@ -790,6 +803,15 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 				err = errors.New(node.NodeName + `节点MCP工具变量不存在:` + variable)
 				return
 			}
+		case NodeTypePlugin:
+			if variable, ok := CheckVariablePlaceholder(node.NodeParams.Plugin.Name, variables); !ok {
+				err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+				return
+			}
+			if variable, ok := CheckVariablePlaceholder(node.NodeParams.Plugin.Type, variables); !ok {
+				err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+				return
+			}
 		}
 
 	}
@@ -875,6 +897,8 @@ func (node *WorkFlowNode) Verify(adminUserId int) error {
 		err = node.NodeParams.CodeRun.Verify()
 	case NodeTypeMcp:
 		err = node.NodeParams.Mcp.Verify(adminUserId)
+	case NodeTypePlugin:
+		err = node.NodeParams.Plugin.Verify(adminUserId)
 	}
 	if err != nil {
 		return errors.New(node.NodeName + `节点:` + err.Error())
@@ -1333,6 +1357,65 @@ func (params *McpNodeParams) Verify(adminUserId int) error {
 
 	if err := common.ValidateMcpToolArguments(*mcpTool, params.Arguments); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (param *PluginNodeParams) Verify(adminUserId int) error {
+	u := define.Config.Plugin[`endpoint`] + "/manage/plugin/local-plugins/run"
+
+	if param.Type == `notice` {
+		resp := &lib_web.Response{}
+		request := curl.Post(u).Header(`admin_user_id`, cast.ToString(adminUserId))
+		request.Param("name", param.Name)
+		request.Param("action", "default/get-schema")
+		request.Param("params", "{}")
+		err := request.ToJSON(resp)
+		if err != nil {
+			return err
+		}
+		if resp.Res != 0 {
+			return errors.New(resp.Msg)
+		}
+
+		// 验证 schema
+		schema, ok := resp.Data.(map[string]any)
+		if !ok {
+			return errors.New("invalid schema format")
+		}
+
+		for key, raw := range schema {
+			rule, _ := raw.(map[string]any)
+			req, _ := rule["required"].(bool)
+			typ, _ := rule["type"].(string)
+			val, exists := param.Params[key]
+			if req && !exists {
+				return fmt.Errorf("missing required field: %s", key)
+			}
+			if !exists {
+				continue
+			}
+
+			switch typ {
+			case "string":
+				if _, ok := val.(string); !ok {
+					return fmt.Errorf("field %s must be string", key)
+				}
+			case "number":
+				if _, ok := val.(float64); !ok {
+					return fmt.Errorf("field %s must be number", key)
+				}
+			case "boolean":
+				if _, ok := val.(bool); !ok {
+					return fmt.Errorf("field %s must be boolean", key)
+				}
+			default:
+				return fmt.Errorf("unknown type for field %s: %s", key, typ)
+			}
+		}
+	} else {
+		// todo
 	}
 
 	return nil

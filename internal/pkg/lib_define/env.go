@@ -12,6 +12,8 @@ var IsDev bool
 
 const ElectronPath = `front-end/chat-ai-electron/`
 
+const LangZhCn = `zh-CN`
+
 func GetElectronVersion() (version string) {
 	version = `0.0.0`
 	content, err := tool.ReadFile(ElectronPath + `package.json`)

@@ -75,7 +75,7 @@
     <div ref="containerRef" class="logic-flow-container"></div>
     <TeleportContainer :flow-id="flowId" />
 
-    <CustomControl :lf="lf" v-if="lf" @runTest="handleRunTest" @addNode="onCustomAddNode" @zoom-change="handleZoomChange" />
+    <CustomControl :lf="lf" v-if="lf" @runTest="handleRunTest" @addNode="onCustomAddNode" @zoomChange="handleZoomChange" @autoLayout="handleAutoLayout" />
 
     <NodeFormDrawer
       ref="nodeFormDrawerRef"
@@ -103,9 +103,12 @@ import NodeFormDrawer from './node-form-drawer/index.vue'
 import { generateUniqueId } from '@/utils/index'
 import LogicFlow from '@logicflow/core'
 import { DndPanel, MiniMap, SelectionSelect } from '@logicflow/extension'
+import { Dagre } from "@logicflow/layout";
 import { register, getTeleport } from '@logicflow/vue-node-registry'
 import { getNodesMap } from './node-list'
-import customEdge from './edges/custom-line/index.js'
+import customLineEdge from './edges/custom-line/index.js'
+// 贝塞尔曲线
+import customBezierEdge from './edges/custom-bezier/index.js'
 import startNode from './nodes/start-node/index.js'
 import questionNode from './nodes/question-node/index.js'
 import actionNode from './nodes/action-node/index.js'
@@ -126,6 +129,7 @@ import deleteDataNode from './nodes/delete-data-node/index.js'
 import selectDataNode from './nodes/select-data-node/index.js'
 import codeRunNode from './nodes/code-run-node/index.js'
 import mcpNode from "./nodes/mcp-node/index.js";
+import zmPluginsNode from "./nodes/zm-plugins-node/index.js";
 import { ContextPad } from './plugins/context-pad/index.js'
 import { CanvasHistory } from './plugins/canvas-history/index.js'
 import { CustomKeyboard } from './plugins/custom-keyboard/index.js'
@@ -189,7 +193,15 @@ function initLogicFlow() {
       background: {
         backgroundColor: '#f0f2f5'
       },
-      plugins: [DndPanel, MiniMap, ContextPad, SelectionSelect, CanvasHistory, CustomKeyboard],
+      plugins: [
+        DndPanel, 
+        MiniMap, 
+        ContextPad, 
+        SelectionSelect, 
+        CanvasHistory, 
+        CustomKeyboard, 
+        Dagre
+      ],
       pluginsOptions: {
         miniMap: miniMapOptions,
         selectionSelect: selectionSelectOptions,
@@ -202,13 +214,13 @@ function initLogicFlow() {
         enabled: false,
         shortcuts: [{
           keys: [ // 屏蔽自带的ctrl + z, ctrl + y, ctrl + c
-            "cmd + z", 
-            "ctrl + z", 
-            "cmd + y", 
-            "ctrl + y", 
-            "cmd + c", 
-            "ctrl + c", 
-            'cmd + v', 
+            "cmd + z",
+            "ctrl + z",
+            "cmd + y",
+            "ctrl + y",
+            "cmd + c",
+            "ctrl + c",
+            'cmd + v',
             'ctrl + v'
           ],
           callback: () => {
@@ -218,7 +230,8 @@ function initLogicFlow() {
       }
     })
 
-    register(customEdge, lf)
+    register(customLineEdge, lf)
+    register(customBezierEdge, lf)
     register(startNode, lf)
     register(questionNode, lf)
     register(actionNode, lf)
@@ -239,8 +252,10 @@ function initLogicFlow() {
     register(selectDataNode, lf)
     register(codeRunNode, lf)
     register(mcpNode, lf)
+    register(zmPluginsNode, lf)
 
-    lf.setDefaultEdgeType('custom-edge')
+    // lf.setDefaultEdgeType('custom-edge')
+    lf.setDefaultEdgeType('custom-bezier-edge')
 
     lf.on('graph:rendered', ({ graphModel }) => {
       flowId.value = graphModel.flowId
@@ -264,10 +279,44 @@ function initLogicFlow() {
       node.setZIndex(dragNodeZIndex)
     })
 
+    // 节点拖拽时动态调整边的offset
+    lf.on('node:drag', ({ data }) => {
+      const nodeId = data.id;
+      // 获取与当前节点相连的所有边
+      const relatedEdges = lf.graphModel.getNodeEdges(nodeId);
+      // console.log(relatedEdges,'relatedEdges');
+      
+      relatedEdges.forEach(edge => {
+        // 只处理目标边类型（如自定义贝塞尔边）
+        if (edge.type === 'custom-bezier-edge') {
+          // 获取边的起点和终点坐标
+          const { startPoint, endPoint } = edge;
+          
+          // 计算边的长度（勾股定理）
+          const dx = endPoint.x - startPoint.x;
+          const dy = endPoint.y - startPoint.y;
+          const length = Math.sqrt(dx * dx + dy * dy);
+          
+          // 计算新的offset（同上）
+          const baseOffset = 10;
+          const scale = 0.3;
+          let newOffset = baseOffset + length * scale;
+          const minOffset = 10;
+          const maxOffset = 1000;
+          newOffset = Math.round(newOffset)       
+          newOffset = Math.max(minOffset, Math.min(newOffset, maxOffset));          
+
+          edge.setProperties({
+            offset: newOffset,
+          });
+        }
+      });
+    });
+
     lf.on('node:add', () => {
       // console.log('node:add', data)
     })
-    
+
     // 添加自定义节点事件
     lf.on('custom:addNode', (options) => {
       onCustomAddNode(options)
@@ -361,9 +410,6 @@ function initLogicFlow() {
     // 确保容器可以接收键盘事件
     lf.container.setAttribute('tabindex', '0')
     lf.container.style.outline = 'none'
-
-    // lf.extension.miniMap.show()
-
     lf.container.focus()
   }
 }
@@ -480,7 +526,7 @@ const onCustomAddNode = (options) => {
 
   if (anchorData) {
     lf.graphModel.addEdge({
-      type: 'custom-edge',
+      type: 'custom-bezier-edge',
       sourceNodeId: model.id,
       targetNodeId: node.id,
       sourceAnchorId: anchorData.id,
@@ -493,6 +539,25 @@ const onCustomAddNode = (options) => {
   node.setZIndex(zIndex)
   lf.graphModel.clearSelectElements()
   node.setSelected(true)
+}
+
+const handleAutoLayout = () => {
+  lf.extension.dagre.layout({
+    rankdir: 'LR',   // 从左到右的布局方向
+    align: 'UL',     // 上左对齐
+    ranker: 'tight-tree',
+    // nodesep: 100,     // 节点间距
+    // ranksep: 100      // 层级间距
+  });
+  // 然后适配视图
+  lf.fitView();
+
+  // 获取当前画布数据并重置画布，次操作用来解决自动布局后设置节点宽高不生效的问题
+  const graphData = lf.getGraphRawData();
+  lf.clearSelectElements()
+  lf.clearData()
+
+  lf.graphModel.graphDataToModel(graphData)
 }
 
 const handleBatchPaste = ({ originalNodes, basePoint, pasteBasePoint }) => {
@@ -511,7 +576,7 @@ const handleBatchPaste = ({ originalNodes, basePoint, pasteBasePoint }) => {
       const newNodeData = JSON.parse(JSON.stringify(nodeData));
       newNodeData.x = pasteBasePoint.x + deltaX;
       newNodeData.y = pasteBasePoint.y + deltaY;
-      
+
       // 调用核心函数生成最终节点信息
       return createNodeInfo({ node: newNodeData, isCopy: true });
     });
@@ -652,7 +717,7 @@ const deleteSelectedElements = () => {
     performDelete();
     return;
   }
-  
+
   if (elementsToDelete.length > 1 || (elementsToDelete.length === 1 && isNode(elementsToDelete[0]))) {
     const title = elementsToDelete.length > 1 ? '批量删除' : '删除节点'
     const content = `确定要删除选中的 ${elementsToDelete.length} 个元素吗？`
@@ -693,7 +758,7 @@ const handleSelectedNode = (data) => {
   const node = JSON.parse(JSON.stringify(data))
 
   node.properties.dataRaw =  node.properties.dataRaw || node.properties.node_params
-  
+
   emit('selectNode', node)
 
   // 结束节点不支持编辑
@@ -719,7 +784,7 @@ const handleChangeNodeName = (node_name) => {
   updateNode(JSON.parse(JSON.stringify(selectedNode.value)))
   // 在发送事件之前，确保数据已经更新
   lf.graphModel.eventCenter.emit('custom:setNodeName',  {
-    node_name: node_name, 
+    node_name: node_name,
     node_id: selectedNode.value.id,
     node_type: selectedNode.value.type
   })

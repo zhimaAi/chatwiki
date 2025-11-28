@@ -9,7 +9,7 @@
       <div class="node-header">
         <div class="node-header-left">
           <span class="node-icon" v-if="iconUrl || iconName">
-            <img :src="iconUrl || getImggeUrl(iconName)" alt="" />
+            <img :src="iconUrl || getImgUrl(iconName)" alt="" />
           </span>
           <span class="node-title">{{ title }}</span>
           <!-- <a-input
@@ -53,6 +53,8 @@
 </template>
 
 <script>
+import { getImageUrl } from '../util.js'
+
 export default {
   name: 'NodeCommon',
   inject: ['setTitle',  'getNode',  'getGraph'],
@@ -140,9 +142,8 @@ export default {
         }
       }
     },
-    getImggeUrl(name) {
-      let url = new URL(`../../../../assets/svg/${name}.svg`, import.meta.url)
-      return url.href
+    getImgUrl() {
+      return getImageUrl(this.node_type)
     },
     updateTitle(newValue) {
       this.setTitle(newValue)

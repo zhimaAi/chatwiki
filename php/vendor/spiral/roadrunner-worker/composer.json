@@ -1,0 +1,84 @@
+{
+    "name": "spiral/roadrunner-worker",
+    "type": "library",
+    "description": "RoadRunner: PHP worker",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Anton Titov (wolfy-j)",
+            "email": "wolfy-j@spiralscout.com"
+        },
+        {
+            "name": "Valery Piashchynski",
+            "homepage": "https://github.com/rustatian"
+        },
+        {
+            "name": "Aleksei Gagarin (roxblnfk)",
+            "homepage": "https://github.com/roxblnfk"
+        },
+        {
+            "name": "Pavel Buchnev (butschster)",
+            "email": "pavel.buchnev@spiralscout.com"
+        },
+        {
+            "name": "Maksim Smakouz (msmakouz)",
+            "email": "maksim.smakouz@spiralscout.com"
+        },
+        {
+            "name": "RoadRunner Community",
+            "homepage": "https://github.com/roadrunner-server/roadrunner/graphs/contributors"
+        }
+    ],
+    "homepage": "https://spiral.dev/",
+    "support": {
+        "docs": "https://docs.roadrunner.dev",
+        "issues": "https://github.com/roadrunner-server/roadrunner/issues",
+        "chat": "https://discord.gg/V6EK4he"
+    },
+    "require": {
+        "php": ">=8.1",
+        "ext-json": "*",
+        "ext-sockets": "*",
+        "psr/log": "^2.0 || ^3.0",
+        "spiral/goridge": "^4.1.0",
+        "spiral/roadrunner": "^2023.1 || ^2024.1 || ^2025.1",
+        "composer-runtime-api": "^2.0"
+    },
+    "require-dev": {
+        "buggregator/trap": "^1.13",
+        "jetbrains/phpstorm-attributes": "^1.0",
+        "phpunit/phpunit": "^10.5.45",
+        "spiral/code-style": "^2.2",
+        "vimeo/psalm": "^6.0"
+    },
+    "scripts": {
+        "cs:diff": "php-cs-fixer fix --dry-run -v --diff --show-progress dots",
+        "cs:fix": "php-cs-fixer fix -v",
+        "test": "phpunit",
+        "psalm": "psalm"
+    },
+    "autoload": {
+        "psr-4": {
+            "Spiral\\RoadRunner\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Spiral\\RoadRunner\\Tests\\Worker\\": "tests"
+        }
+    },
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/roadrunner-server"
+        }
+    ],
+    "suggest": {
+        "spiral/roadrunner-cli": "Provides RoadRunner installation and management CLI tools"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

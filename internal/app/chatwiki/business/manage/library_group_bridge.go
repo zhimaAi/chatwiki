@@ -24,7 +24,7 @@ func BridgeGetLibraryGroup(adminUserId, userId int, lang string, req *BridgeGetL
 	if libraryId <= 0 {
 		return nil, -1, errors.New(i18n.Show(lang, `param_lack`))
 	}
-	info, err := common.GetLibraryInfo(libraryId, userId)
+	info, err := common.GetLibraryInfo(libraryId, adminUserId)
 	if err != nil {
 		logs.Error(err.Error())
 		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))

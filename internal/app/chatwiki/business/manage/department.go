@@ -168,7 +168,7 @@ func DeleteDepartment(c *gin.Context) {
 			defaultDepartmentId = cast.ToInt(departmentInfo[`id`])
 		}
 		// delete department member
-		_, err = departmentMbember.Where(`department_id`, `in`, strings.Join(delIds,`,`)).Update(msql.Datas{
+		_, err = departmentMbember.Where(`department_id`, `in`, strings.Join(delIds, `,`)).Update(msql.Datas{
 			`department_id`: defaultDepartmentId,
 			`update_time`:   tool.Time2Int(),
 		})

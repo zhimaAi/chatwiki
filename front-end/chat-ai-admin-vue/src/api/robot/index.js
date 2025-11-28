@@ -66,6 +66,13 @@ export const editExternalConfig = (data = {}) => {
   })
 }
 
+export const robotBindWxApp = (data = {}) => {
+  return request.post({
+    url: '/manage/robotRelateOfficialAccount',
+    data: data
+  })
+}
+
 export const getWechatAppList = ({ robot_id, app_type, app_name }) => {
   return request.get({
     url: '/manage/getWechatAppList',
@@ -91,6 +98,13 @@ export const deleteWechatApp = ({ id }) => {
   return request.post({
     url: '/manage/deleteWechatApp',
     data: { id }
+  })
+}
+
+export const sortWechatApp = (data= {}) => {
+  return request.post({
+    url: '/manage/sortWechatApp',
+    data
   })
 }
 

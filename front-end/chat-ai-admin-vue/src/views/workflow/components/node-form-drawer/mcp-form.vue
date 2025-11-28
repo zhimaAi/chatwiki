@@ -221,7 +221,7 @@ function update() {
   for (let key in formState.params) {
     let value = formState.params[key].value
     let field = state.toolInfo.inputSchema.properties[key] || {}
-    
+
     if(field.type == 'string'){
       value = String(value)
     }else if(['number', 'integer'].includes(field.type)){
@@ -247,7 +247,7 @@ const loadProvider = () => {
   }).then((res) => {
     state.mcpInfo = res?.data || {}
 
-    let tools = jsonDecode(state.mcpInfo?.tools, {})
+    let tools = jsonDecode(state.mcpInfo?.tools, [])
 
     state.toolInfo = tools.find((item) => item.name == nodeParams.mcp.tool_name)
 

@@ -1,0 +1,14 @@
+<?php
+
+/**
+ * @param mixed $value
+ * @return string
+ */
+function msgpack_pack(mixed $value): string {}
+
+/**
+ * @param string $str
+ * @param null|array|string|object $object
+ * @return mixed
+ */
+function msgpack_unpack(string $str, $object = null): mixed {}

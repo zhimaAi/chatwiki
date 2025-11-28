@@ -160,6 +160,14 @@ let baseMenu = [
     svgActive: 'prompt-icon',
     permissionKey: 'PromptTemplateManage'
   },
+  {
+    name: '公众号管理',
+    key: 'officialAccount',
+    path: '/user/official-account',
+    svg: 'wx-app-icon',
+    svgActive: 'wx-app-icon',
+    permissionKey: 'OfficialAccountMange'
+  },
 ]
 
 const menus = computed(() => {

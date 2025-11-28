@@ -256,10 +256,10 @@ func BridgeCreateLibrary(adminUserId, loginUserId int, lang string, req *BridgeC
 	if len(libraryName) == 0 || !tool.InArrayInt(typ, define.LibraryTypes[:]) {
 		return nil, -1, errors.New(i18n.Show(lang, `param_lack`))
 	}
-	if cast.ToInt(modelConfigId) == 0 {
+	if typ != define.OpenLibraryType && cast.ToInt(modelConfigId) == 0 {
 		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `model_config_id`))
 	}
-	if useModel == `` {
+	if typ != define.OpenLibraryType && useModel == `` {
 		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `use_model`))
 	}
 	chunkParam := define.ChunkParam{
@@ -602,7 +602,7 @@ func BridgeEditLibrary(adminUserId, loginUserId int, lang string, req *BridgeEdi
 }
 
 func ValidateChunkParam(adminUserId int, chunkParam *define.ChunkParam, typ string, lang string) error {
-	if cast.ToInt(typ) == define.QALibraryType {
+	if cast.ToInt(typ) == define.QALibraryType || cast.ToInt(typ) == define.OpenLibraryType {
 		return nil
 	}
 	chunkType := cast.ToInt(chunkParam.ChunkType)

@@ -219,7 +219,7 @@
           padding: '16px'
         }"
         overlay-class-name="popover-material"
-        @visible-change="visibleChange"
+        @onOpenChange="visibleChange"
       >
         <template #title>
           <div style="display:flex;align-items:center;gap:8px;" >

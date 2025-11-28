@@ -1,0 +1,133 @@
+<template>
+  <a-modal
+    v-model:open="open"
+    :title="statusInput.title"
+    :ok-text="statusInput.text"
+    :confirm-loading="installing"
+    @ok="install"
+  >
+    <div class="plugin-box">
+      <div class="base-info">
+        <img class="avatar" :src="plug.icon"/>
+        <div class="info">
+          <div class="head">
+            <span class="name zm-line1">
+              {{ plug.title }}
+              <span v-if="local" class="version-tag">v{{ local.version }} → v{{ plug.latest_version }}</span>
+              <span v-else class="version-tag">v{{ plug.latest_version }}</span>
+            </span>
+          </div>
+          <div class="source">{{ plug.author }}</div>
+        </div>
+      </div>
+      <div class="desc zm-line2">{{ plug.description }}</div>
+    </div>
+  </a-modal>
+</template>
+
+<script setup>
+import {ref, computed} from 'vue';
+import {message} from 'ant-design-vue';
+import {downloadPlugin} from "@/api/plugins/index.js";
+
+const emit = defineEmits(['ok'])
+const open = ref(false)
+const installing = ref(false)
+const plug = ref({})
+const version = ref({})
+const local = ref(null)
+
+const statusInput = computed(() => {
+  if (!local.value) {
+    return {
+      title: '安装插件',
+      text: '安装',
+    }
+  } else {
+    return {
+      title: '更新插件',
+      text: '更新',
+    }
+  }
+})
+
+function show(p, v, l = null) {
+  plug.value = p
+  version.value = v
+  local.value = l
+  open.value = true
+}
+
+function install() {
+  installing.value = true
+  downloadPlugin({
+    url: version.value.download_url,
+    version_id: version.value.id
+  }).then(() => {
+    emit('ok')
+    open.value = false
+    message.success(statusInput.value.text + '完成')
+  }).finally(() => {
+    installing.value = false
+  })
+}
+
+defineExpose({
+  show,
+})
+</script>
+
+<style scoped lang="less">
+.plugin-box {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  border-radius: 12px;
+  border: 1px solid #E4E6EB;
+
+  .base-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .avatar {
+      width: 62px;
+      height: 62px;
+      border-radius: 16px;
+      border: 1px solid #F0F0F0;
+    }
+
+    .head {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .name {
+      color: #262626;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .source {
+      color: #8C8C8C;
+      font-size: 12px;
+      font-weight: 400;
+    }
+  }
+
+  .desc {
+    color: #595959;
+    font-size: 14px;
+    font-weight: 400;
+  }
+}
+
+.version-tag {
+  color: #ED744A;
+  font-size: 16px;
+  font-weight: 600;
+}
+</style>

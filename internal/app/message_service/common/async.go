@@ -13,9 +13,9 @@ import (
 
 func getTopic(msgType string) string {
 	if msgType == `event` {
-		return lib_define.PushEvent
+		return lib_define.AppPushEvent
 	} else {
-		return lib_define.PushMessage
+		return lib_define.AppPushMessage
 	}
 }
 

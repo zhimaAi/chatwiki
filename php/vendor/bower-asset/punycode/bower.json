@@ -1,0 +1,14 @@
+{
+	"name": "punycode",
+	"version": "1.4.1",
+	"main": "punycode.js",
+	"ignore": [
+		"coverage",
+		"tests",
+		".*",
+		"component.json",
+		"Gruntfile.js",
+		"node_modules",
+		"package.json"
+	]
+}

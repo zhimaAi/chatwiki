@@ -47,6 +47,7 @@ func Run() {
 			logs.Error(err.Error())
 		}
 	}()
+
 	//consumer start
 	StartConsumer()
 
@@ -65,9 +66,9 @@ func StartConsumer() {
 	common.RunTask(define.ConvertVectorTopic, define.ConvertVectorChannel, 2, business.ConvertVector)
 	common.RunTask(define.ConvertGraphTopic, define.ConvertGraphChannel, 10, business.ConvertGraph)
 	common.RunTask(define.CrawlArticleTopic, define.CrawlArticleChannel, 2, business.CrawlArticle)
-	common.RunTask(lib_define.PushMessage, lib_define.PushChannel, 10, business.AppPush)
+	common.RunTask(lib_define.AppPushMessage, lib_define.AppPushChannel, 10, business.AppPush)
 
-	common.RunTask(lib_define.PushEvent, lib_define.PushChannel, 5, business.AppPush)
+	common.RunTask(lib_define.AppPushEvent, lib_define.AppPushChannel, 5, business.AppPush)
 	common.RunTask(define.ExportTaskTopic, define.ExportTaskChannel, 5, business.ExportTask)
 	common.RunTask(define.ExtractFaqFilesTopic, define.ExtractFaqFilesChannel, 5, business.ExtractFaqFiles)
 }

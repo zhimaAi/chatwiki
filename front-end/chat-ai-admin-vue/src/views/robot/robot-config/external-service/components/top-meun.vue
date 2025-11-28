@@ -64,6 +64,12 @@ const items = ref([
     id: 'FeishuRobot',
     label: '飞书机器人',
     title: '飞书机器人'
+  },
+  {
+    key: 'DingDingRobot',
+    id: 'DingDingRobot',
+    label: '钉钉机器人',
+    title: '钉钉机器人'
   }
 ])
 

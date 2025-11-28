@@ -80,7 +80,7 @@
         {{ item.label }}
       </div>
       <div class="option-line"></div>
-      <div class="zoom-select-option" @click="handleMenu({ value: 5 })">全览</div>
+      <div class="zoom-select-option" @click="handleFitView()">全览</div>
     </div>
   </div>
 </template>
@@ -135,6 +135,10 @@ export default {
     },
     showMenu() {
       this.isShowMenu = !this.isShowMenu
+    },
+    handleFitView() {
+      this.isShowMenu = false
+      this.$emit('fitView')
     },
     handleInput() {
       clearTimeout(this.debounceTimer)

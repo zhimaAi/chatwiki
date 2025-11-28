@@ -1,0 +1,5 @@
+{
+  "require": {
+    "spiral/goridge": "^4.0"
+  }
+}

@@ -128,6 +128,7 @@ func GetCompany(c *gin.Context) {
 		return
 	}
 	data[`neo4j_status`] = cast.ToString(common.GetNeo4jStatus(cast.ToInt(data[`parent_id`])))
+	data[`wechat_ip`] = define.Config.WebService[`wechat_ip`]
 	common.FmtOk(c, data)
 }
 

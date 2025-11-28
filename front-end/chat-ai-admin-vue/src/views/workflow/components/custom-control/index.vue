@@ -6,7 +6,7 @@
   bottom: 24px;
   z-index: 100;
 
-  .custom-control-body{
+  .custom-control-body {
     position: relative;
   }
   .custom-control {
@@ -50,7 +50,7 @@
     }
   }
 
-  .node-list-fix{
+  .node-list-fix {
     position: absolute;
     bottom: 48px;
     left: 50%;
@@ -67,7 +67,7 @@
           <div class="action-btn zoom-btn" @click="handleReduce">
             <svg-icon name="minus" size="16" />
           </div>
-          <zoom-select v-model="zoom" @zoom-change="chagneZoom" />
+          <zoom-select v-model="zoom" @zoom-change="chagneZoom" @fitView="handleFitView" />
           <div class="action-btn zoom-btn" @click="handleAmplify">
             <svg-icon name="plus" size="16" />
           </div>
@@ -76,7 +76,7 @@
         <i class="control-line"></i>
 
         <div class="control-item">
-          <a-button type="primary" @click.stop="isShowMenu  = true">
+          <a-button type="primary" @click.stop="isShowMenu = true">
             <template #icon>
               <PlusOutlined />
             </template>
@@ -85,13 +85,19 @@
         </div>
 
         <div class="control-item">
-          <a-button @click="handleRunTest" style="background-color: #00ad3a" type="primary"
-            ><CaretRightOutlined />运行测试</a-button
-          >
+          <a-button @click="handleRunTest" style="background-color: #00ad3a" type="primary">
+            <CaretRightOutlined /><span>运行测试</span>
+          </a-button>
+        </div>
+
+        <div class="control-item">
+          <a-button @click="handleAutoLayout" type="default">
+            <PartitionOutlined /><span>整理画布</span>
+          </a-button>
         </div>
       </div>
 
-      <div class="node-list-fix"  ref="nodeListRef" v-show="isShowMenu">
+      <div class="node-list-fix" ref="nodeListRef" v-show="isShowMenu">
         <NodeListPopup @addNode="handleAddNode" type="float-btn" @mouseMove="handleMouseMove" />
       </div>
     </div>
@@ -101,10 +107,10 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import ZoomSelect from './zoom-select.vue'
-import { PlusOutlined, CaretRightOutlined } from '@ant-design/icons-vue'
+import { PlusOutlined, CaretRightOutlined, PartitionOutlined } from '@ant-design/icons-vue'
 import NodeListPopup from '../node-list-popup.vue'
 
-const emit = defineEmits(['runTest', 'addNode', 'zoom-change'])
+const emit = defineEmits(['runTest', 'addNode', 'zoomChange', 'autoLayout'])
 
 const props = defineProps({
   lf: {
@@ -118,13 +124,16 @@ const { eventCenter } = props.lf.graphModel
 
 const zoom = ref(100)
 
+const handleFitView = () => {
+  props.lf.fitView()
+}
+
 const setZoom = () => {
   let value = zoom.value / 100
   props.lf.zoom(value)
 
-  emit('zoom-change', value)
+  emit('zoomChange', value)
 }
-
 
 const chagneZoom = (value) => {
   zoom.value = value
@@ -133,7 +142,7 @@ const chagneZoom = (value) => {
 
 const handleReduce = () => {
   // 四舍五入到整数
-  let value = zoom.value - 10;
+  let value = zoom.value - 10
 
   if (value < 1) {
     value = 1
@@ -144,7 +153,7 @@ const handleReduce = () => {
 }
 
 const handleAmplify = () => {
-  let value = zoom.value + 10;
+  let value = zoom.value + 10
 
   if (value > 800) {
     value = 800
@@ -192,9 +201,13 @@ const handleRunTest = () => {
   emit('runTest')
 }
 
-const documentClick = (e) =>  {
+const handleAutoLayout = () => {
+  emit('autoLayout')
+}
+
+const documentClick = (e) => {
   if (isShowMenu.value) {
-    const menus = nodeListRef.value;
+    const menus = nodeListRef.value
     if (!menus.contains(e.target)) {
       isShowMenu.value = false
     }
@@ -202,7 +215,7 @@ const documentClick = (e) =>  {
 }
 
 const handleMouseMove = () => {
-  if(isShowMenu.value) {
+  if (isShowMenu.value) {
     isShowMenu.value = false
   }
 }
