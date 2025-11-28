@@ -6,15 +6,17 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_define"
+	"chatwiki/internal/pkg/lib_web"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mark3labs/mcp-go/mcp"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/mark3labs/mcp-go/mcp"
 
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/curl"
@@ -45,6 +47,7 @@ const (
 	NodeTypeFormSelect       = 16 //数据表单查询
 	NodeTypeCodeRun          = 17 //代码运行
 	NodeTypeMcp              = 20 //MCP
+	NodeTypePlugin           = 21 //插件
 )
 
 var NodeTypes = [...]int{
@@ -68,6 +71,7 @@ var NodeTypes = [...]int{
 	NodeTypeFormSelect,
 	NodeTypeCodeRun,
 	NodeTypeMcp,
+	NodeTypePlugin,
 }
 
 type NodeAdapter interface {
@@ -131,6 +135,8 @@ func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, ms
 		return &CodeRunNode{params: nodeParams.CodeRun, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeMcp:
 		return &McpNode{params: nodeParams.Mcp, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypePlugin:
+		return &PluginNode{params: nodeParams.Plugin, nextNodeKey: info[`next_node_key`]}, info, nil
 	default:
 		return nil, info, errors.New(`不支持的节点类型:` + info[`node_type`])
 	}
@@ -434,6 +440,7 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 	output[`special.llm_request_time`] = common.SimpleField{Key: `special.llm_request_time`, Typ: common.TypNumber, Vals: []common.Val{{Number: &llmTime}}}
 	output[`special.llm_reply_content`] = common.SimpleField{Key: `special.llm_reply_content`, Typ: common.TypString, Vals: []common.Val{{String: &chatResp.Result}}}
 	output[`special.mcp_reply_content`] = common.SimpleField{Key: `special.mcp_reply_content`, Typ: common.TypString, Vals: []common.Val{{String: &chatResp.Result}}}
+	output[`special.plugin_reply_content`] = common.SimpleField{Key: `special.plugin_reply_content`, Typ: common.TypString, Vals: []common.Val{{String: &chatResp.Result}}}
 	output[`llm_result.completion_token`] = common.SimpleField{Key: `llm_result.completion_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &chatResp.CompletionToken}}}
 	output[`llm_result.prompt_token`] = common.SimpleField{Key: `llm_result.prompt_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &chatResp.PromptToken}}}
 	nextNodeKey = n.nextNodeKey
@@ -944,4 +951,52 @@ func (n *McpNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+type PluginNode struct {
+	params      PluginNodeParams
+	nextNodeKey string
+}
+
+func (n *PluginNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, _ error) {
+	u := define.Config.Plugin[`endpoint`] + "/manage/plugin/local-plugins/run"
+
+	if n.params.Type == `notice` {
+		resp := &lib_web.Response{}
+		request := curl.Post(u).Header(`admin_user_id`, cast.ToString(flow.params.AdminUserId))
+		request.Param("name", n.params.Name)
+		request.Param("action", "default/send-message")
+		params, err := json.Marshal(n.params.Params)
+		if err != nil {
+			return nil, "", err
+		}
+		request.Param("params", string(params))
+		err = request.ToJSON(resp)
+		if err != nil {
+			return nil, "", err
+		}
+		if resp.Res != 0 {
+			return nil, "", errors.New(resp.Msg)
+		}
+		// 构建 output
+		b, err := json.Marshal(resp.Data)
+		if err != nil {
+			return nil, "", err
+		}
+		jsonStr := string(b)
+		output = common.SimpleFields{
+			`special.plugin_reply_content`: common.SimpleField{
+				Key: `special.plugin_reply_content`,
+				Typ: common.TypString,
+				Vals: []common.Val{
+					{String: &jsonStr},
+				},
+			},
+		}
+
+		nextNodeKey = n.nextNodeKey
+		return
+	} else {
+		return nil, "", errors.New("暂不支持的插件类型")
+	}
 }

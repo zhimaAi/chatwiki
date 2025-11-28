@@ -99,4 +99,9 @@ func initConfig() {
 		logs.Error(err.Error())
 		panic(`读取配置user_domain_service出错`)
 	}
+	define.Config.Plugin, err = config.GetSection("plugin")
+	if err != nil {
+		logs.Error(err.Error())
+		panic(`读取配置plugin出错`)
+	}
 }

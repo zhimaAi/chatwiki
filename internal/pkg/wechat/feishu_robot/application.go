@@ -3,7 +3,6 @@
 package feishu_robot
 
 import (
-	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_define"
 	"context"
 	"encoding/json"
@@ -122,7 +121,7 @@ func (a *Application) GetApp() (*lark.Client, error) {
 	return lark.NewClient(a.AppID, a.Secret), nil
 }
 
-func (a *Application) getReceiveInfo(push *define.PushMessage) (receiveIdType string, receiveId string) {
+func (a *Application) getReceiveInfo(push *lib_define.PushMessage) (receiveIdType string, receiveId string) {
 	receiveIdType = "open_id"
 	receiveId = cast.ToString(push.Message["FromUserName"])
 	if push.Message["SessionType"] == "group" { //群聊消息
@@ -168,7 +167,7 @@ func (a *Application) SendContent(msgType, content, receiveIdType, receiveId str
 	return 1, nil
 }
 
-func (a *Application) SendText(customer, content string, push *define.PushMessage) (int, error) {
+func (a *Application) SendText(customer, content string, push *lib_define.PushMessage) (int, error) {
 	// 获取接收者信息
 	receiveIdType, receiveId := a.getReceiveInfo(push)
 	// 获取基础消息信息
@@ -183,7 +182,7 @@ func (a *Application) SendText(customer, content string, push *define.PushMessag
 	return a.SendContent("text", contentStr, receiveIdType, receiveId)
 }
 
-func (a *Application) getTextBaseContent(push *define.PushMessage) string {
+func (a *Application) getTextBaseContent(push *lib_define.PushMessage) string {
 	// 客户发送的数据
 	replyContent := ""
 	msgType := strings.ToLower(cast.ToString(push.Message[`MsgType`]))
@@ -250,7 +249,7 @@ func (a *Application) UploadTempImage(filePath string) (string, int, error) {
 
 }
 
-func (a *Application) SendImage(customer, filePath string, push *define.PushMessage) (int, error) {
+func (a *Application) SendImage(customer, filePath string, push *lib_define.PushMessage) (int, error) {
 	imageKey, _, err := a.UploadTempImage(filePath)
 
 	if imageKey == "" {
@@ -268,7 +267,7 @@ func (a *Application) SendImage(customer, filePath string, push *define.PushMess
 	return a.SendContent("image", contentStr, receiveIdType, receiveId)
 }
 
-func (a *Application) SendUrl(customer, url, title string, push *define.PushMessage) (int, error) {
+func (a *Application) SendUrl(customer, url, title string, push *lib_define.PushMessage) (int, error) {
 	// 获取接收者信息
 	receiveIdType, receiveId := a.getReceiveInfo(push)
 	// 获取基础消息信息
@@ -283,7 +282,7 @@ func (a *Application) SendUrl(customer, url, title string, push *define.PushMess
 	return a.SendContent("text", contentStr, receiveIdType, receiveId)
 }
 
-func (a *Application) SendMiniProgramPage(customer, appid, title, pagePath, localThumbURL string, push *define.PushMessage) (int, error) {
+func (a *Application) SendMiniProgramPage(customer, appid, title, pagePath, localThumbURL string, push *lib_define.PushMessage) (int, error) {
 
 	imageKey, _, err := a.UploadTempImage(localThumbURL)
 
@@ -337,7 +336,7 @@ func (a *Application) SendMiniProgramPage(customer, appid, title, pagePath, loca
 	return a.SendContent("post", contentStr, receiveIdType, receiveId)
 }
 
-func (a *Application) SendImageTextLink(customer, url, title, description, localThumbURL, picurl string, push *define.PushMessage) (int, error) {
+func (a *Application) SendImageTextLink(customer, url, title, description, localThumbURL, picurl string, push *lib_define.PushMessage) (int, error) {
 	imageKey, _, err := a.UploadTempImage(localThumbURL)
 
 	if imageKey == "" {
@@ -392,7 +391,7 @@ func (a *Application) GetAccountBasicInfo() (*openresponse.ResponseGetBasicInfo,
 	return nil, 0, errors.New(`not supported`)
 }
 
-func (a *Application) GetFileByMedia(mediaId string, push *define.PushMessage) ([]byte, http.Header, int, error) {
+func (a *Application) GetFileByMedia(mediaId string, push *lib_define.PushMessage) ([]byte, http.Header, int, error) {
 	app, err := a.GetApp()
 	if err != nil {
 		return nil, nil, 0, err

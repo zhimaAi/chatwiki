@@ -3,7 +3,7 @@
     <div class="explore-page-body">
       <div class="list-toolbar">
         <div class="toolbar-box">
-          <ListTabs :tabs="tabs" v-model:value="activeKey" @change="onChangeTab" />
+          <MainTab/>
         </div>
       </div>
 
@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import { getRobotList } from '@/api/robot/index.js'
@@ -36,32 +36,25 @@ import {
   saveUserAbility
 } from '@/api/explore'
 import ExploreList from './components/explore-list/index.vue'
-import ListTabs from '@/components/cu-tabs/list-tabs.vue'
+import MainTab from "@/views/explore/components/main-tab.vue";
 
-const tabs = ref([
-  {
-    title: '功能',
-    value: '1'
-  },
-  // {
-  //   title: '插件',
-  //   value: '2'
-  // }
-])
-
-const activeKey = ref('1')
+const LIBRARY_NORMAL_AVATAR = new URL('@/assets/svg/default-explore.svg', import.meta.url).href
+// 顶部页签暂不使用
 
 const list = ref([])
 const enableTipOpen = ref(false)
 const enableTipDontRemind = ref(false)
 const DONT_REMIND_KEY = 'explore_enable_tip_suppress_until'
 const router = useRouter()
-const updateTabNumber = () => {
-  tabs.value = [
-    { title: '功能', value: '1' },
-    // { title: '插件', value: '2' }
-  ]
-}
+
+onMounted(() => {
+  if (localStorage.getItem('zm:explore:active') > 1) {
+    router.push({path: '/plugins/index'})
+  } else {
+    getList()
+  }
+})
+
 
 let allList = ref([])
 const getList = () => {
@@ -75,14 +68,7 @@ const getList = () => {
     }))
     list.value = data
     allList.value = res?.data || []
-    updateTabNumber()
   })
-}
-
-getList()
-
-const onChangeTab = () => {
-  getList()
 }
 
 const handleSwitchChange = (item, checked) => {
@@ -196,7 +182,7 @@ watch(enableTipOpen, (v, ov) => {
 }
 
 .explore-page-body {
-  margin-top: 18px;
+  margin-top: 16px;
   flex: 1;
   overflow: hidden;
   display: flex;

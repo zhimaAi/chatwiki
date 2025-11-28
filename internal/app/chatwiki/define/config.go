@@ -14,4 +14,5 @@ type ConfigParam struct {
 	Nsqd              map[string]string
 	OssConfig         map[string]string
 	UserDomainService map[string]string
+	Plugin            map[string]string
 }

@@ -133,16 +133,16 @@
       </div>
     </template>
 
-    <a-dropdown>
+    <a-dropdown v-if="showMenu && showMenu.length">
       <div class="btn-wrapper-box">
         <EllipsisOutlined />
       </div>
       <template #overlay>
         <a-menu>
-          <a-menu-item @click="handleEdit">
+          <a-menu-item v-if="showMenu.includes('edit')" @click="handleEdit">
             <a>编 辑</a>
           </a-menu-item>
-          <a-menu-item @click="handleDelete">
+          <a-menu-item v-if="showMenu.includes('del')" @click="handleDelete">
             <a style="color: #fb363f">删 除</a>
           </a-menu-item>
         </a-menu>
@@ -164,6 +164,10 @@ const props = defineProps({
   app_type: {
     type: String,
     default: ''
+  },
+  showMenu: {
+    type: Array,
+    default: ['edit', 'del']
   }
 })
 

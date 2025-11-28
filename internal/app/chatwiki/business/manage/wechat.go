@@ -37,6 +37,10 @@ func GetWechatAppList(c *gin.Context) {
 	appType := strings.TrimSpace(c.Query(`app_type`))
 	if len(appType) > 0 {
 		m.Where(`app_type`, appType)
+		// 公众号根据排序字段来排序
+		if appType == lib_define.AppOfficeAccount {
+			m.Order(`sort asc`)
+		}
 	}
 	appName := strings.TrimSpace(c.Query(`app_name`))
 	if len(appName) > 0 {
@@ -63,6 +67,112 @@ func GetWechatAppList(c *gin.Context) {
 		}
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
+}
+
+// RobotRelateOfficialAccount 机器人关联公众账号
+func RobotRelateOfficialAccount(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	// 获取参数
+	robotId := cast.ToInt(c.PostForm(`robot_id`))
+	appIdList := strings.TrimSpace(c.PostForm(`app_id_list`))
+
+	// 获取机器人信息
+	robot, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`id`, cast.ToString(robotId)).
+		Where(`admin_user_id`, cast.ToString(userId)).Field(`id,robot_key`).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(robot) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+
+	// 获取该机器人关联过的配置
+	oldAppInfoList, err := msql.Model(`chat_ai_wechat_app`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`robot_id`, cast.ToString(robotId)).
+		Where(`app_type`, lib_define.AppOfficeAccount).
+		Select()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	var shouldDelIdList []string
+	for _, appInfo := range oldAppInfoList {
+		shouldDelIdList = append(shouldDelIdList, appInfo[`id`])
+	}
+
+	// 获取需要添加的配置
+	shouldAddAppInfoList, err := msql.Model(`chat_ai_wechat_app`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`app_id`, `in`, appIdList).
+		Select()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	var shouldAddIdList []string
+	for _, appInfo := range shouldAddAppInfoList {
+		if cast.ToInt(appInfo[`robot_id`]) != robotId {
+			old, err := msql.Model(`chat_ai_robot`, define.Postgres).
+				Where(`id`, cast.ToString(appInfo[`robot_id`])).
+				Where(`admin_user_id`, cast.ToString(userId)).
+				Field(`id,robot_name`).
+				Find()
+			if err != nil {
+				logs.Error(err.Error())
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+				return
+			}
+			if len(old) > 0 {
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `official_has_bind`, appInfo[`app_name`], old[`robot_name`]))))
+				return
+			}
+		}
+		shouldAddIdList = append(shouldAddIdList, appInfo[`id`])
+	}
+
+	// 先清空旧记录
+	if len(shouldDelIdList) > 0 {
+		_, err = msql.Model(`chat_ai_wechat_app`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(userId)).
+			Where(`id`, `in`, strings.Join(shouldDelIdList, ",")).
+			Where(`app_type`, lib_define.AppOfficeAccount).
+			Update(msql.Datas{`robot_id`: 0, `robot_key`: robot[`robot_key`]})
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+	}
+
+	// 再更新记录
+	if len(shouldAddIdList) > 0 {
+		_, err = msql.Model(`chat_ai_wechat_app`, define.Postgres).
+			Where(`id`, `in`, strings.Join(shouldAddIdList, `,`)).
+			Update(msql.Datas{`robot_id`: robotId, `robot_key`: robot[`robot_key`]})
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+	}
+
+	// 清缓存
+	for _, appInfo := range append(oldAppInfoList, shouldAddAppInfoList...) {
+		lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `id`, Value: appInfo[`id`]})
+		lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `app_id`, Value: appInfo[`app_id`]})
+		lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `access_key`, Value: appInfo[`access_key`]})
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
 func SaveWechatApp(c *gin.Context) {
@@ -106,7 +216,7 @@ func SaveWechatApp(c *gin.Context) {
 		appAvatar = define.LocalUploadPrefix + fmt.Sprintf(`default/%s_avatar.png`, appType)
 	}
 	//check required
-	if id < 0 || robotId <= 0 || len(appName) == 0 || len(appId) == 0 || len(appSecret) == 0 || len(appType) == 0 {
+	if id < 0 || len(appName) == 0 || len(appId) == 0 || len(appSecret) == 0 || len(appType) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
@@ -114,18 +224,7 @@ func SaveWechatApp(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `app_type`))))
 		return
 	}
-	//data check
-	robot, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`id`, cast.ToString(robotId)).
-		Where(`admin_user_id`, cast.ToString(userId)).Field(`id,robot_key`).Find()
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	if len(robot) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-		return
-	}
+
 	//get token verification
 	app, err := wechat.GetApplication(msql.Params{`app_type`: appType, `app_id`: appId, `app_secret`: appSecret})
 	if err != nil {
@@ -149,6 +248,34 @@ func SaveWechatApp(c *gin.Context) {
 		`update_time`: tool.Time2Int(),
 	}
 
+	// 公众号类型不需要和机器人强绑定，其它类型需要和机器人直接关联
+	if appType != lib_define.AppOfficeAccount {
+		robot, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`id`, cast.ToString(robotId)).
+			Where(`admin_user_id`, cast.ToString(userId)).Field(`id,robot_key`).Find()
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		if len(robot) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+			return
+		}
+		data[`robot_key`] = robot[`robot_key`]
+	}
+	// 公众号类型的appid应该全局唯一
+	if appType == lib_define.AppOfficeAccount && id == 0 {
+		count, err := msql.Model(`chat_ai_wechat_app`, define.Postgres).Where(`app_id`, appId).Where(`app_type`, appType).Count()
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		if count > 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `app_id_exist`))))
+			return
+		}
+	}
 	if appType == lib_define.FeiShuRobot {
 		data[`encrypt_key`] = strings.TrimSpace(c.PostForm(`encrypt_key`))
 		data[`verification_token`] = strings.TrimSpace(c.PostForm(`verification_token`))
@@ -179,7 +306,6 @@ func SaveWechatApp(c *gin.Context) {
 		}
 		data[`admin_user_id`] = userId
 		data[`robot_id`] = robotId
-		data[`robot_key`] = robot[`robot_key`]
 		data[`app_id`] = appId
 		data[`access_key`] = accessKey
 		data[`app_type`] = appType
@@ -208,6 +334,33 @@ func SaveWechatApp(c *gin.Context) {
 		appInfo[`account_is_verify`] = cast.ToString(lib_define.WechatAccountIsVerify(appInfo[`account_customer_type`]))
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(appInfo, err))
+}
+
+func SortWechatApp(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	idList := strings.Split(c.PostForm(`id_list`), ",")
+	if len(idList) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	sort := 0
+	for _, id := range idList {
+		id = strings.TrimSpace(id)
+		if id == "" {
+			continue
+		}
+		_, err := msql.Model(`chat_ai_wechat_app`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).Where(`id`, id).Update(msql.Datas{`sort`: sort})
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		sort++
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
 func GetWechatAppInfo(c *gin.Context) {

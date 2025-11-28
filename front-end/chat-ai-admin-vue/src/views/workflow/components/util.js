@@ -1,4 +1,4 @@
-import { getNodeTypes } from './node-list.js'
+import { getNodeTypes, getNodesMap } from './node-list.js'
 export function getQuestionNodeAnchor(node) {
   if (node.categorys && node.categorys.length) {
     return node.categorys.map((item, index) => {
@@ -10,14 +10,14 @@ export function getQuestionNodeAnchor(node) {
 
   return []
 }
-
+// 已废弃
 export function getKnowledgeBaseNodeHeight(node) {
   let libs = JSON.parse(node.properties.node_params).libs
   let linLen = libs.library_ids.split(',').length
   return 416 + linLen * 72
 }
 
-
+// 已废弃
 export function getNodeWidth(node) {
   let widths = {
     'start-node': 420,
@@ -33,7 +33,7 @@ export function getNodeWidth(node) {
 
   return widths[node.type] || 568
 }
-
+// 已废弃
 export function getNodeHeight(node) {
   if (node.type == 'start-node') {
     return 274
@@ -110,9 +110,29 @@ export const haveOutKeyNode = ['http-node', 'code-run-node']
 
 
 const nodeTypeMaps = getNodeTypes()
+const nodesMap = getNodesMap()
+
+export function getNodeIconByType(type){
+  if (!type) {
+    return ''
+  }
+
+  let node = nodesMap[type]
+
+  if (!node) {
+    return ''
+  }
+
+  return node.properties.node_icon;
+}
 
 export function getImageUrl(node_type) {
-  let name = nodeTypeMaps[node_type]
-  let url = new URL(`../../../assets/svg/${name}.svg`, import.meta.url)
-  return url.href
+
+  let type = nodeTypeMaps[node_type]
+
+  if (!type) {
+    return ''
+  }
+  
+  return getNodeIconByType(type);
 }

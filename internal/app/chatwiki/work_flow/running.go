@@ -279,7 +279,7 @@ func BaseCallWorkFlow(params *WorkFlowParams) (flow *WorkFlow, nodeLogs []common
 	return
 }
 
-func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monitor) (content string, requestTime int64, libUseTime common.LibUseTime, list []msql.Params, err error) {
+func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monitor, isSwitchManual *bool) (content string, requestTime int64, libUseTime common.LibUseTime, list []msql.Params, err error) {
 	flow, _, err := BaseCallWorkFlow(params)
 	if flow != nil && len(flow.nodeLogs) > 0 {
 		monitor.NodeLogs = flow.nodeLogs //记录监控数据
@@ -288,7 +288,7 @@ func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monit
 		return
 	}
 
-	var replyContentNodes = []string{`special.llm_reply_content`, `special.question_optimize_reply_content`, `special.mcp_reply_content`}
+	var replyContentNodes = []string{`special.llm_reply_content`, `special.question_optimize_reply_content`, `special.mcp_reply_content`, `special.plugin_reply_content`}
 	for _, nodeKey := range replyContentNodes {
 		content = cast.ToString(flow.output[nodeKey].GetVal(common.TypString))
 		if len(content) > 0 {
@@ -305,6 +305,9 @@ func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monit
 		list = append(list, val.Params)
 	}
 	*debugLog = append(*debugLog, flow.output[`special.llm_debug_log`].GetVals()...)
+	if cast.ToBool(flow.output[`special.is_switch_manual`].GetVal()) {
+		*isSwitchManual = true
+	}
 	return
 }
 

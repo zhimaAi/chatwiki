@@ -65,6 +65,7 @@ import QuestionNodeForm from './question-node-form.vue'
 import JudgeNodeForm from './judge-node-form.vue'
 import SpecifyReplyNodeForm from './specify-reply-form.vue'
 import McpForm from './mcp-form.vue'
+import ZmPluginsNodeForm from "./zm-plugins-node-form.vue";
 
 // 预定义所有可能的表单组件
 const formComponents = {
@@ -83,7 +84,8 @@ const formComponents = {
   'question-node': QuestionNodeForm,
   'judge-node': JudgeNodeForm,
   'specify-reply-node': SpecifyReplyNodeForm,
-  'mcp-node': McpForm
+  'mcp-node': McpForm,
+  'zm-plugins-node': ZmPluginsNodeForm
   // 其他表单组件可以在这里添加
   // 'problem-optimization-node': defineAsyncComponent(() => import('./problem-optimization-form.vue')),
 }

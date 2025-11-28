@@ -81,15 +81,21 @@
     }
   }
 
-  .mcp-box {
+  .node-box {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
     padding: 8px;
+    overflow: hidden;
 
     .search-box {
       margin: 0 8px 8px;
     }
 
-    .mcp-list {
-      .mcp-info {
+    .node-list {
+      flex: 1;
+      overflow-y: auto;
+      .node-info {
         display: flex;
         align-items: center;
         padding: 4px 8px;
@@ -127,11 +133,11 @@
         }
       }
 
-      .mcp-tools {
+      .node-tools {
         margin-left: 28px;
         border-left: 1px solid #d9d9d9;
       }
-      .mcp-tool-item {
+      .node-tool-item {
         padding: 2px 8px;
         border-radius: 6px;
         cursor: pointer;
@@ -140,10 +146,16 @@
         }
       }
     }
+
+    .more-link {
+      padding: 8px 16px 0;
+      border-top: 1px solid #F0F0F0;
+      color: #2475FC;
+    }
   }
 }
 
-.mcp-info-pop {
+.node-info-pop {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -246,6 +258,9 @@
       <div :class="['tab-item', { active: active == 1 }]" @click="tabChange(1)">
         <svg-icon name="base-node-type" /> 基础功能
       </div>
+      <div :class="['tab-item', {active: active == 3}]" @click="tabChange(3)">
+        <svg-icon name="plugin-node-type"/> 插件
+      </div>
       <div :class="['tab-item', { active: active == 2 }]" @click="tabChange(2)">
         <svg-icon name="mcp-node-type" /> MCP
       </div>
@@ -270,15 +285,15 @@
           </div>
         </template>
       </template>
-      <div v-else class="mcp-box">
+      <div v-else-if="active == 2" class="node-box">
         <div class="search-box">
           <a-input-search v-model:value.trim="mcpKeyword" allowClear placeholder="请输入名称查询" />
         </div>
-        <div v-if="showMcpNodes.length" class="mcp-list">
-          <div v-for="(item, j) in showMcpNodes" :key="j" class="mcp-item">
+        <div v-if="showMcpNodes.length" class="node-list">
+          <div v-for="(item, j) in showMcpNodes" :key="j" class="node-item">
             <a-popover placement="right">
               <template #content>
-                <div class="mcp-info-pop">
+                <div class="node-info-pop">
                   <div class="info">
                     <img class="avatar" :src="item.avatar" />
                     <div class="name">{{ item.name }}</div>
@@ -287,13 +302,12 @@
                   <div class="extra">可用工具：{{ item.tools.length }}</div>
                 </div>
               </template>
-              <div class="mcp-info" @click="item.expand = !item.expand">
+              <div class="node-info" @click="item.expand = !item.expand">
                 <img class="avatar" :src="item.avatar" />
                 <div class="info">
                   <span class="name">{{ item.name }}</span>
                   <span class="total">
-                    {{ item.tools.length }} <DownOutlined v-if="item.expand" />
-                    <RightOutlined v-else />
+                    {{ item.tools.length }} <DownOutlined v-if="item.expand"/> <RightOutlined v-else/>
                   </span>
                 </div>
               </div>
@@ -316,7 +330,7 @@
                       <div class="field">
                         <span class="name">{{ key }}</span>
                         <span class="type">{{ field.type }}</span>
-                        <span v-if="tool.inputSchema.required.includes(key)" class="required"
+                        <span v-if="tool.inputSchema.required && tool.inputSchema.required.includes(key)" class="required"
                           >必填</span
                         >
                       </div>
@@ -324,7 +338,7 @@
                     </div>
                   </div>
                 </template>
-                <div class="mcp-tool-item" @mousedown="addMcpNode($event, item, tool)">{{ tool.name }}</div>
+                <div class="node-tool-item" @mousedown="addMcpNode($event, item, tool)">{{ tool.name }}</div>
               </a-popover>
             </div>
           </div>
@@ -335,6 +349,28 @@
           <a @click="handleOpenAddMcp">去添加<RightOutlined /></a>
         </div>
       </div>
+      <div v-else-if="active == 3" class="node-box">
+        <template v-if="allPluginNodes.length">
+          <div class="node-list">
+            <div v-for="node in allPluginNodes"
+                 @click="handleAddNode(node)"
+                 :key="node.type"
+                 class="node-item"
+            >
+              <div class="node-info">
+                <img class="avatar" :src="node.properties.node_icon"/>
+                <div class="info"><span class="name">{{ node.properties.node_name }}</span></div>
+              </div>
+            </div>
+          </div>
+          <a class="more-link" href="/#/plugins/index?active=2" target="_blank">更多插件 <RightOutlined/></a>
+        </template>
+        <div v-else class="empty-box">
+          <img style="height: 200px;" src="@/assets/empty.png"/>
+          <div>暂无可用插件</div>
+          <a href="/#/plugins/index?active=2" target="_blank">去添加<RightOutlined/></a>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -342,7 +378,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { RightOutlined, DownOutlined } from '@ant-design/icons-vue'
-import { getAllGroupNodes, getAllMcpNodes, getMcpNode } from './node-list'
+import { getAllGroupNodes, getAllPluginNodes, getAllMcpNodes, getMcpNode } from './node-list'
 
 const emit = defineEmits(['addNode', 'mouseMove'])
 
@@ -354,6 +390,7 @@ const props = defineProps({
 })
 
 const allGroupNodes = getAllGroupNodes(props.type)
+const allPluginNodes = ref([])
 const allMcpNodes = ref([])
 const active = ref(1)
 const mcpKeyword = ref('')
@@ -361,6 +398,9 @@ const mcpKeyword = ref('')
 onMounted(() => {
   getAllMcpNodes().then((res) => {
     allMcpNodes.value = res
+  })
+  getAllPluginNodes().then(res => {
+    allPluginNodes.value = res
   })
 })
 

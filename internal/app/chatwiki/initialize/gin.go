@@ -4,6 +4,7 @@ package initialize
 
 import (
 	"chatwiki/internal/app/chatwiki/business"
+	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/middlewares"
 	"chatwiki/internal/app/chatwiki/route"
@@ -12,6 +13,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/cast"
+
+	"net/http/httputil"
+	"net/url"
 )
 
 // go:embed static/*
@@ -32,8 +37,17 @@ func initGin() {
 
 		// Register MCP endpoints with Bearer Token auth and dynamic tool loading
 		mcpAuth := business.MCPAuthMiddleware()
-		handler.POST(`/mcp`, mcpAuth, business.HandleMCPRequest)
-		handler.GET(`/mcp`, mcpAuth, business.HandleMCPRequest)
-		handler.DELETE(`/mcp`, mcpAuth, business.HandleMCPRequest)
+		handler.Any(`/mcp`, mcpAuth, business.HandleMCPRequest)
+
+		// Proxy Plugin Api
+		target, _ := url.Parse(define.Config.Plugin[`endpoint`])
+		proxy := httputil.NewSingleHostReverseProxy(target)
+		handler.Any("/manage/plugin/*path", middlewares.CasbinAuth(), func(c *gin.Context) {
+			adminUserId := common.GetLoginUserId(c)
+			c.Request.Header.Set("admin_user_id", cast.ToString(adminUserId))
+			c.Request.URL.Scheme = target.Scheme
+			c.Request.URL.Host = target.Host
+			proxy.ServeHTTP(c.Writer, c.Request)
+		})
 	}
 }

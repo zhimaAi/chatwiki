@@ -4,7 +4,6 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/message_service/common"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/wechat"
 
@@ -32,8 +31,8 @@ func RefreshAccountVerify(appInfo msql.Params) error {
 		return err
 	}
 	//clear cached data
-	lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `id`, Value: appInfo[`id`]})
-	lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `app_id`, Value: appInfo[`app_id`]})
-	lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `access_key`, Value: appInfo[`access_key`]})
+	lib_redis.DelCacheData(define.Redis, &WechatAppCacheBuildHandler{Field: `id`, Value: appInfo[`id`]})
+	lib_redis.DelCacheData(define.Redis, &WechatAppCacheBuildHandler{Field: `app_id`, Value: appInfo[`app_id`]})
+	lib_redis.DelCacheData(define.Redis, &WechatAppCacheBuildHandler{Field: `access_key`, Value: appInfo[`access_key`]})
 	return nil
 }

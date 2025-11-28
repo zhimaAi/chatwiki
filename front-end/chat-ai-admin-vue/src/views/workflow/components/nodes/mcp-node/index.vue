@@ -65,7 +65,7 @@ export default {
         provider_id: this.nodeParams?.mcp.provider_id || ''
       }).then(res => {
         this.mcpInfo = res?.data || {}
-        let tools = jsonDecode(this.mcpInfo?.tools, {})
+        let tools = jsonDecode(this.mcpInfo?.tools, [])
         this.toolInfo = tools.find(item => item.name == this.nodeParams?.mcp.tool_name)
       })
     },

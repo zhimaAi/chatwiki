@@ -111,6 +111,15 @@ export default {
             activeMenu: '/user'
           }
         },
+        {
+          path: '/user/official-account',
+          name: 'userOfficialAccount',
+          component: () => import('../views/user/official-account/index.vue'),
+          meta: {
+            title: '公众号管理',
+            activeMenu: '/user'
+          }
+        },
       ]
     }
   ]

@@ -101,6 +101,16 @@ strong {
   cursor: pointer;
 }
 
+.zm-line2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
 .zm-alert-info.ant-alert-info {
   border-color: #99BFFD;
   background: #E9F1FE;
@@ -109,4 +119,15 @@ strong {
 
 .remove-model-padding .ant-modal .ant-modal-content {
   padding: 0;
+}
+.zm-pointer {
+  cursor: pointer;
+}
+
+.zm-link-pointer {
+  cursor: pointer;
+}
+
+.zm-link-pointer:hover {
+  color: #2475fc;
 }

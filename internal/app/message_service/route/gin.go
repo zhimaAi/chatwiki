@@ -28,4 +28,7 @@ func init() {
 	Route[http.MethodPost][`/push_pwd/wechat_kefu`] = business.WechatKefu
 
 	Route[http.MethodPost][`/push_pwd/feishu_robot/:access_key`] = business.FeishuPush
+
+	//钉钉机器人
+	Route[http.MethodPost][`/push_pwd/dingtalk_robot/:access_key`] = business.DingTalkPush
 }

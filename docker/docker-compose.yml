@@ -214,6 +214,19 @@ services:
     environment:
       TZ: ${TIMEZONE}
 
+  chatwiki_plugin:
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/plugin:1.0
+    container_name: chatwiki_plugin
+    networks:
+      - chatwiki_network
+    volumes:
+      - ../:/var/www/chatwiki/
+    working_dir: /var/www/chatwiki
+    command: ./build/plugin --IsDev=false
+    restart: always
+    environment:
+      TZ: ${TIMEZONE}
+
 networks:
   chatwiki_network:
     driver: bridge

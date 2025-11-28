@@ -1,5 +1,6 @@
 import {getTMcpProviders} from "@/api/robot/thirdMcp.js";
 import {jsonDecode} from "@/utils/index.js";
+import {getInstallPlugins} from "@/api/plugins/index.js";
 
 const defaultRowData = {
   node_key: '',
@@ -248,7 +249,7 @@ export const nodeList = [
     groupKey: 'large-model-capability',
     type: 'question-node',
     width: 420,
-    height: 192,
+    height: 184,
     properties: {
       ...getRowData(),
       node_type: 3,
@@ -534,6 +535,28 @@ export const nodeList = [
         }
       })
     }
+  },
+  {
+    id: '',
+    groupKey: 'plugins',
+    type: 'zm-plugins-node',
+    width: 320,
+    height: 320,
+    properties: {
+      ...getRowData(),
+      node_type: 21,
+      node_name: '',
+      node_icon: '',
+      node_icon_name: '',
+      node_params: JSON.stringify({
+        plugin: {
+          name: "",
+          type: "",
+          params: {},
+          tag_map: {}
+        }
+      })
+    }
   }
 ]
 
@@ -570,6 +593,42 @@ export const getAllGroupNodes = (type) => {
   // 转换成数组
   let nodesGroupArr = Object.values(nodesGroupMap)
   return JSON.parse(JSON.stringify(nodesGroupArr))
+}
+
+export const getAllPluginNodes = async () => {
+  let {data} = await getInstallPlugins()
+  data = Array.isArray(data) ? data : []
+  let plugin
+  data = data.map(item => {
+    plugin = {
+      ...item.remote,
+      local: item.local,
+    }
+    return {
+      id: '',
+      groupKey: 'plugins',
+      type: 'zm-plugins-node',
+      width: 320,
+      height: 320,
+      properties: {
+        ...getRowData(),
+        node_type: 21,
+        node_name: plugin.title,
+        node_icon: plugin.icon,
+        node_icon_name: '',
+        node_desc: plugin.description,
+        node_params: JSON.stringify({
+          plugin: {
+            name: plugin.name,
+            type: plugin.type,
+            params: {},
+            tag_map: {},
+          }
+        }),
+      },
+    }
+  })
+  return data
 }
 
 export const getAllMcpNodes = async () => {

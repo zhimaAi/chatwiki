@@ -11,8 +11,8 @@ class VueHtmlNode extends BaseVueNodeView {
 
 class VueHtmlNodeModel extends BaseVueNodeModel {
   setAttributes() {
-    this.width = 568
-    this.height = 322
+    // this.width = 420
+    // this.height = 102
     
     const sourceRule01 = {
       message: '只允许从右边的锚点连出',

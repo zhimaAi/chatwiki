@@ -1,0 +1,20 @@
+checks:
+    php: true
+
+filter:
+    paths:
+        - "src/*"
+
+tools:
+    php_code_coverage:
+        enabled: true
+
+build:
+    nodes:
+        analysis:
+            environment:
+                php: 7.4.12
+
+            tests:
+                override:
+                    - php-scrutinizer-run

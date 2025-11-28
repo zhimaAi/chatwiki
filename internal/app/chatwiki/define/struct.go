@@ -57,17 +57,19 @@ type ChatRequestParam struct {
 	Lang                 string
 	Question             string
 	MsgId                string
-	PassiveId      			   int64
+	PassiveId            int64
 	ReceivedMessageType  string
 	ReceivedMessage      map[string]any
 	MediaIdToOssUrl      string
 	ThumbMediaIdToOssUrl string
 	OpenApiContent       string
+	WechatappAppid       string
 	DialogueId           int
 	Prompt               string
 	LibraryIds           string
 	IsClose              *bool
 	WorkFlowGlobal       map[string]any
+	QuoteLib             bool
 }
 
 type DocSplitItem struct {
@@ -228,6 +230,12 @@ func (m SimilarityResult) Swap(i, j int) {
 type CommonQuestion struct {
 	Question string `json:"question"`
 	Answer   string `json:"answer"`
+}
+
+type RobotDefaultAppConfig struct {
+	Name      string `json:"name"`
+	Id        int    `json:"id"`
+	AutoReply int    `json:"auto_reply"`
 }
 
 type UploadFormFile struct {

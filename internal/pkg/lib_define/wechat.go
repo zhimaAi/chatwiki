@@ -27,6 +27,7 @@ const AppOfficeAccount = `official_account`
 const AppMini = `mini_program`
 const AppWechatKefu = `wechat_kefu`
 const FeiShuRobot = `feishu_robot`
+const DingTalkRobot = `dingtalk_robot`
 
 const AppYunH5 = `yun_h5`
 const AppYunPc = `yun_pc`
@@ -37,6 +38,7 @@ var AppTypeList = []string{
 	AppMini,
 	AppWechatKefu,
 	FeiShuRobot,
+	DingTalkRobot,
 }
 
 const PwdSetType = 1
@@ -79,6 +81,12 @@ const (
 	FeShuMsgTypeShareChat   = `share_chat`
 	FeShuMsgTypeShareUser   = `share_user`
 	FeShuMsgTypeSystem      = `system`
+
+	DingTalkMsgTypeImage    = `picture`
+	DingTalkMsgTypeAudio    = `audio`
+	DingTalkMsgTypeVideo    = `video`
+	DingTalkMsgTypeFile     = `file`
+	DingTalkMsgTypeRichText = `richText`
 )
 
 var MsgTypeNameMap = map[string]string{
@@ -105,6 +113,9 @@ var MsgTypeNameMap = map[string]string{
 	EventEnterSession:         `进入会话`,
 	EventUserEnterTempsession: `临时会话`,
 	EventSubscribe:            `关注`,
+
+	DingTalkMsgTypeImage:    `图片`,
+	DingTalkMsgTypeRichText: `富文本`,
 }
 
 /*

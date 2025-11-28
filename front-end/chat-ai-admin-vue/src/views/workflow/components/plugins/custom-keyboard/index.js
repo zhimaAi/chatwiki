@@ -62,6 +62,9 @@ class CustomKeyboard {
       e.preventDefault()
       const { transformModel } = this.lf.graphModel
       const [canvasX, canvasY] = transformModel.HtmlPointToCanvasPoint([e.clientX, e.clientY])
+      const transform = this.lf.getTransform()
+      
+      this.zoom = transform.SCALE_X
 
       if (e.deltaY < 0) {
         // 放大

@@ -97,19 +97,23 @@ export class CanvasHistory {
       this.lf.clearSelectElements()
       this.lf.clearData()
 
+      this.lf.graphModel.graphDataToModel({
+        nodes: state.nodes || [],
+        edges: state.edges || [],
+      })
       // 恢复节点
-      if (state.nodes && state.nodes.length > 0) {
-        state.nodes.forEach(node => {
-          this.lf.addNode(node)
-        })
-      }
+      // if (state.nodes && state.nodes.length > 0) {
+      //   state.nodes.forEach(node => {
+      //     this.lf.addNode(node)
+      //   })
+      // }
 
       // 恢复连线
-      if (state.edges && state.edges.length > 0) {
-        state.edges.forEach(edge => {
-          this.lf.addEdge(edge)
-        })
-      }
+      // if (state.edges && state.edges.length > 0) {
+      //   state.edges.forEach(edge => {
+      //     this.lf.addEdge(edge)
+      //   })
+      // }
 
       // 恢复选中状态
       if (state.selectedElementIds && state.selectedElementIds.length > 0) {

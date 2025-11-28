@@ -17,27 +17,31 @@
     <a-alert banner>
       <template #message> 支持接入未认证公众号，<a @click="handleShowDemoModal">查看效果示例</a> </template>
     </a-alert>
-    <div class="add-btn-block">
-      <a-button @click="showAddAlert" :icon="createVNode(PlusOutlined)" type="primary"
-        >绑定公众号</a-button
-      >
-      <a-button @click="handleAddUnverified" :icon="createVNode(SettingOutlined)"
-        >未认证公众号回复设置</a-button
-      >
-    </div>
-    <div class="wechat-app-list">
-      <!-- <AddWechatApp label="绑定公众号" @click="showAddAlert" /> -->
-      <WechatAppItem
-        v-for="item in list"
-        :key="item.id"
-        :item="item"
-        app_type="official_account"
-        @edit="handleEdit"
-        @delete="handleDelete"
-        @refresh="handleRefresh"
-      />
-    </div>
-    <AddWechatOfficialAccountAlert ref="addAppAlertRef" @ok="onSaveSuccess" />
+    <LoadingBox v-if="loading"/>
+    <template v-else-if="list.length">
+      <div class="add-btn-block">
+        <a-button @click="showAddAlert" type="primary">关联公众号</a-button>
+        <a-button @click="handleAddUnverified" :icon="createVNode(SettingOutlined)">未认证公众号回复设置</a-button>
+      </div>
+      <div class="wechat-app-list">
+        <WechatAppItem
+          v-for="item in list"
+          :key="item.id"
+          :item="item"
+          :showMenu="['del']"
+          app_type="official_account"
+          @delete="handleDelete"
+          @refresh="handleRefresh"
+        />
+      </div>
+    </template>
+    <EmptyBox v-else style="margin-top: 20vh;" title="暂未关联公众号">
+      <template #desc>
+        <a-button @click="showAddAlert" type="primary">关联公众号</a-button>
+      </template>
+    </EmptyBox>
+
+    <SelectWechatApp ref="selectAppRef" @change="getList" />
     <AddUnverifiedAlert ref="addUnverifiedAlertRef" />
     <DemoPreviewModal ref="demoPreviewModalRef" />
   </div>
@@ -47,17 +51,23 @@
 import { ref, inject, onMounted, createVNode } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { ExclamationCircleOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons-vue'
-import { getWechatAppList, deleteWechatApp, refreshAccountVerify } from '@/api/robot'
+import {getWechatAppList, deleteWechatApp, refreshAccountVerify, robotBindWxApp} from '@/api/robot'
 import WechatAppItem from './wechat-app-item.vue'
-import AddWechatApp from './add-wechat-app.vue'
-import AddWechatOfficialAccountAlert from './add-wechat-official-account-alert.vue'
 import AddUnverifiedAlert from './add-unverified-alert.vue'
 import DemoPreviewModal from './demo-preview-modal.vue'
+import SelectWechatApp from "@/views/robot/robot-config/external-service/components/select-wechat-app.vue";
+import LoadingBox from "@/components/common/loading-box.vue";
+import EmptyBox from "@/components/common/empty-box.vue";
 
 const { robotInfo } = inject('robotInfo')
 
-const addAppAlertRef = ref()
+const selectAppRef = ref()
+const loading = ref(true)
 const list = ref([])
+
+onMounted(() => {
+  getList()
+})
 
 const getList = () => {
   getWechatAppList({
@@ -66,65 +76,13 @@ const getList = () => {
     app_name: ''
   }).then((res) => {
     list.value = res.data
+  }).finally(() => {
+    loading.value = false
   })
 }
 
 const showAddAlert = () => {
-  addAppAlertRef.value.open()
-}
-
-const handleDelete = (item) => {
-  let secondsToGo = 3
-
-  const modal = Modal.confirm({
-    title: `确定移除${item.app_name}吗?`,
-    icon: createVNode(ExclamationCircleOutlined),
-    content: '移除后，机器人无法继续回复用户消息。',
-    okText: secondsToGo + ' 确 定',
-    okType: 'danger',
-    cancelText: '取消',
-    okButtonProps: {
-      disabled: true
-    },
-    onOk() {
-      deleteWechatApp({
-        id: item.id
-      }).then(() => {
-        getList()
-
-        message.success('删除成功')
-      })
-    },
-    onCancel() {}
-  })
-
-  let interval = setInterval(() => {
-    if (secondsToGo == 1) {
-      modal.update({
-        okText: '确定',
-        okButtonProps: {
-          disabled: false
-        }
-      })
-
-      clearInterval(interval)
-      interval = undefined
-    } else {
-      secondsToGo -= 1
-
-      modal.update({
-        okText: secondsToGo + ' 确 定',
-        okButtonProps: {
-          disabled: true
-        }
-      })
-    }
-  }, 1000)
-}
-
-const handleEdit = (item) => {
-  item.wechat_ip = robotInfo.wechat_ip
-  addAppAlertRef.value.open({ ...item })
+  selectAppRef.value.open(robotInfo, list.value.map(i => i.app_id))
 }
 
 const handleRefresh = (item) => {
@@ -133,6 +91,27 @@ const handleRefresh = (item) => {
   }).then(() => {
     message.success('刷新成功')
     getList()
+  })
+}
+
+const handleDelete = (item) => {
+  const modal = Modal.confirm({
+    title: `确定移除${item.app_name}吗?`,
+    icon: createVNode(ExclamationCircleOutlined),
+    content: '移除后，机器人无法继续回复用户消息。',
+    okText: '确定',
+    cancelText: '取消',
+    onOk() {
+      let row = list.value.filter(i => i.app_id != item.app_id)
+      let ids = row.map(i => i.app_id).toString()
+      robotBindWxApp({
+        robot_id: robotInfo.id,
+        app_id_list: ids
+      }).then(() => {
+        getList()
+        message.success('删除成功')
+      })
+    },
   })
 }
 
@@ -146,12 +125,4 @@ const demoPreviewModalRef = ref(null)
 const handleShowDemoModal = () => {
   demoPreviewModalRef.value.show()
 }
-
-const onSaveSuccess = () => {
-  getList()
-}
-
-onMounted(() => {
-  getList()
-})
 </script>

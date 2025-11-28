@@ -1,0 +1,58 @@
+{
+    "name": "yiisoft/yii2-httpclient",
+    "description": "HTTP client extension for the Yii framework",
+    "keywords": ["yii2", "http", "httpclient", "curl"],
+    "type": "yii2-extension",
+    "license": "BSD-3-Clause",
+    "support": {
+        "issues": "https://github.com/yiisoft/yii2-httpclient/issues",
+        "forum": "https://www.yiiframework.com/forum/",
+        "wiki": "https://www.yiiframework.com/wiki/",
+        "irc": "ircs://irc.libera.chat:6697/yii",
+        "source": "https://github.com/yiisoft/yii2-httpclient"
+    },
+    "authors": [
+        {
+            "name": "Paul Klimov",
+            "email": "klimov.paul@gmail.com"
+        }
+    ],
+    "require": {
+        "yiisoft/yii2": "~2.0.13",
+        "paragonie/random_compat": ">=1"
+    },
+    "require-dev": {
+        "cweagans/composer-patches": "^1.7",
+        "phpunit/phpunit": "4.8.34"
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://asset-packagist.org"
+        }
+    ],
+    "config": {
+        "allow-plugins": {
+            "cweagans/composer-patches": true,
+            "yiisoft/yii2-composer": true
+        }
+    },
+    "autoload": {
+        "psr-4": { "yii\\httpclient\\": "src" }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "2.0.x-dev"
+        },
+        "composer-exit-on-patch-failure": true,
+        "patches": {
+            "phpunit/phpunit-mock-objects": {
+                "Fix PHP 7 and 8 compatibility": "https://yiisoft.github.io/phpunit-patches/phpunit_mock_objects.patch"
+            },
+            "phpunit/phpunit": {
+                "Fix PHP 7 compatibility": "https://yiisoft.github.io/phpunit-patches/phpunit_php7.patch",
+                "Fix PHP 8 compatibility": "https://yiisoft.github.io/phpunit-patches/phpunit_php8.patch"
+            }
+        }
+    }
+}

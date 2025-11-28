@@ -1,14 +1,14 @@
 <style lang="less" scoped>
 .add-wechat-app {
-  width: 325px;
-  height: 74px;
+  width: 355px;
+  height: 112px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
-  border-radius: 2px;
+  border-radius: 12px;
+  border: 1px solid #e4e6eb;
   font-size: 14px;
-  border: 1px solid #d9d9d9;
   color: #595959;
   cursor: pointer;
   transition: all 0.2s;

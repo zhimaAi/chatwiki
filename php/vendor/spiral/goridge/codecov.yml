@@ -1,0 +1,16 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 50%
+        informational: true
+    patch:
+      default:
+        target: auto
+        threshold: 50%
+        informational: true
+ignore:
+  - resource
+  - examples
+  - tests

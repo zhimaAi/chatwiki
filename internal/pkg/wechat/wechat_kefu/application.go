@@ -3,7 +3,6 @@
 package wechat_kefu
 
 import (
-	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/wechat/common"
 	"context"
@@ -24,7 +23,7 @@ type Application struct {
 	Secret string
 }
 
-func (a *Application) SendImageTextLink(customer, url, title, description, localThumbURL, picurl string, push *define.PushMessage) (int, error) {
+func (a *Application) SendImageTextLink(customer, url, title, description, localThumbURL, picurl string, push *lib_define.PushMessage) (int, error) {
 	app, err := a.GetApp()
 	if err != nil {
 		return 0, err
@@ -56,7 +55,7 @@ func (a *Application) SendImageTextLink(customer, url, title, description, local
 	return 0, nil
 }
 
-func (a *Application) SendMiniProgramPage(customer, appid, title, pagePath, localThumbURL string, push *define.PushMessage) (int, error) {
+func (a *Application) SendMiniProgramPage(customer, appid, title, pagePath, localThumbURL string, push *lib_define.PushMessage) (int, error) {
 	app, err := a.GetApp()
 	if err != nil {
 		return 0, err
@@ -88,7 +87,7 @@ func (a *Application) SendMiniProgramPage(customer, appid, title, pagePath, loca
 	return 0, nil
 }
 
-func (a *Application) SendUrl(customer, url, title string, push *define.PushMessage) (int, error) {
+func (a *Application) SendUrl(customer, url, title string, push *lib_define.PushMessage) (int, error) {
 	app, err := a.GetApp()
 	if err != nil {
 		return 0, err
@@ -123,7 +122,7 @@ func (a *Application) GetApp() (*work.Work, error) {
 	return work.NewWork(config)
 }
 
-func (a *Application) SendText(customer, content string, push *define.PushMessage) (int, error) {
+func (a *Application) SendText(customer, content string, push *lib_define.PushMessage) (int, error) {
 	app, err := a.GetApp()
 	if err != nil {
 		return 0, err
@@ -223,7 +222,7 @@ func (a *Application) UploadTempImage(filePath string) (string, int, error) {
 	return resp.MediaID, 0, nil
 }
 
-func (a *Application) SendImage(customer, filePath string, push *define.PushMessage) (int, error) {
+func (a *Application) SendImage(customer, filePath string, push *lib_define.PushMessage) (int, error) {
 	app, err := a.GetApp()
 	if err != nil {
 		return 0, err
@@ -250,7 +249,7 @@ func (a *Application) SendImage(customer, filePath string, push *define.PushMess
 	return 0, nil
 }
 
-func (a *Application) GetFileByMedia(mediaId string, push *define.PushMessage) ([]byte, http.Header, int, error) {
+func (a *Application) GetFileByMedia(mediaId string, push *lib_define.PushMessage) ([]byte, http.Header, int, error) {
 	app, err := a.GetApp()
 	if err != nil {
 		return nil, nil, 0, err

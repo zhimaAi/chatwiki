@@ -3,6 +3,13 @@
 package business
 
 import (
+	"chatwiki/internal/app/chatwiki/common"
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/app/chatwiki/work_flow"
+	"chatwiki/internal/pkg/lib_define"
+	"chatwiki/internal/pkg/lib_redis"
+	"chatwiki/internal/pkg/lib_web"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,14 +20,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"chatwiki/internal/app/chatwiki/common"
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/app/chatwiki/work_flow"
-	"chatwiki/internal/pkg/lib_define"
-	"chatwiki/internal/pkg/lib_redis"
-	"chatwiki/internal/pkg/lib_web"
 
 	"github.com/gin-contrib/sse"
 	"github.com/gin-gonic/gin"
@@ -778,6 +777,8 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		chanStream <- sse.Event{Event: `error`, Data: err.Error()}
 		return nil, err
 	}
+	//close open_api receiver
+	CloseReceiverFromAppOpenApi(params)
 	//get dialogue_id and session_id
 	var err error
 	dialogueId := params.DialogueId
@@ -852,6 +853,18 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	chanStream <- sse.Event{Event: `c_message`, Data: common.ToStringMap(message, `id`, id)}
 	//websocket notify
 	common.ReceiverChangeNotify(params.AdminUserId, `c_message`, common.ToStringMap(message, `id`, id))
+	//manual_reply_pause_robot_reply
+	if IsManualReplyPauseRobotReply(params, sessionId, chanStream) {
+		return nil, nil
+	}
+	//keyword_switch_manual
+	if msg, ok := IsKeywordSwitchManual(params, sessionId, dialogueId, chanStream); ok {
+		return msg, nil
+	}
+	//intention_switch_manual
+	if msg, ok := IsIntentionSwitchManual(params, sessionId, dialogueId, monitor, chanStream); ok {
+		return msg, nil
+	}
 	isBackground := len(params.Customer) > 0 && cast.ToInt(params.Customer[`is_background`]) > 0
 	//obtain the data required for gpt
 	chanStream <- sse.Event{Event: `robot`, Data: params.Robot}
@@ -898,6 +911,10 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		messages, list, err = buildDirectChatRequestMessage(params, id, dialogueId, &debugLog)
 	} else {
 		//混合模式 和 仅知识库模式
+		//repetition_switch_manual
+		if msg, ok := IsRepetitionSwitchManual(params, sessionId, dialogueId, id, chanStream); ok {
+			return msg, nil
+		}
 		if showQuoteFile {
 			chanStream <- sse.Event{Event: `start_quote_file`, Data: tool.Time2Int()}
 			startQuoteFile = true
@@ -911,6 +928,10 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 			chanStream <- sse.Event{Event: `recall_time`, Data: monitor.LibUseTime.RecallTime}
 			if !isBackground && len(list) == 0 { //未知问题统计
 				common.SaveUnknownIssueRecord(params.AdminUserId, params.Robot, params.Question)
+			}
+			//unknown_switch_manual
+			if msg, ok := IsUnknownSwitchManual(params, sessionId, dialogueId, list, chanStream); ok {
+				return msg, nil
 			}
 		}
 	}
@@ -1007,6 +1028,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		chatResp                            = adaptor.ZhimaChatCompletionResponse{}
 		llmStartTime                        = time.Now()
 		saveRobotChatCache                  bool
+		isSwitchManual                      bool
 	)
 
 	//关键词处理
@@ -1020,7 +1042,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 		//关键词直接回复 跳过ai处理
 	} else if cast.ToInt(params.Robot[`application_type`]) == define.ApplicationTypeFlow {
 		workFlowParams := &work_flow.WorkFlowParams{ChatRequestParam: params, CurMsgId: int(id), DialogueId: dialogueId, SessionId: sessionId}
-		content, requestTime, monitor.LibUseTime, list, err = work_flow.CallWorkFlow(workFlowParams, &debugLog, monitor)
+		content, requestTime, monitor.LibUseTime, list, err = work_flow.CallWorkFlow(workFlowParams, &debugLog, monitor, &isSwitchManual)
 		if err != nil {
 			sendDefaultUnknownQuestionPrompt(params, err.Error(), chanStream, &content)
 			debugLog = append(debugLog, map[string]string{`type`: `cur_question`, `content`: params.Question})
@@ -1244,7 +1266,7 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 			chanStream <- sse.Event{Event: `sending`, Data: content}
 		} else { //组装工作流请求参数,并执行工作流
 			workFlowParams := work_flow.BuildWorkFlowParams(*params, workFlowRobot, workFlowGlobal, int(id), dialogueId, sessionId)
-			content, requestTime, _, _, err = work_flow.CallWorkFlow(workFlowParams, &debugLog, monitor)
+			content, requestTime, _, _, err = work_flow.CallWorkFlow(workFlowParams, &debugLog, monitor, &isSwitchManual)
 			if err == nil {
 				chanStream <- sse.Event{Event: `request_time`, Data: requestTime}
 				chanStream <- sse.Event{Event: `sending`, Data: content}
@@ -1399,9 +1421,10 @@ func doChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	message["prompt_tokens"] = chatResp.PromptToken
 	message["completion_tokens"] = chatResp.CompletionToken
 	message["use_model"] = params.Robot["use_model"]
+	AdditionQuoteLib(params, list, &message) //quote_lib
 	chanStream <- sse.Event{Event: `data`, Data: message}
 	chanStream <- sse.Event{Event: `finish`, Data: tool.Time2Int()}
-	return common.ToStringMap(message, `id`, id), nil
+	return common.ToStringMap(message, `id`, id, `is_switch_manual`, isSwitchManual), nil
 }
 
 func sendDefaultUnknownQuestionPrompt(params *define.ChatRequestParam, errmsg string, chanStream chan sse.Event, content *string) {

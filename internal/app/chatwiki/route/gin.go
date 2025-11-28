@@ -247,6 +247,8 @@ func init() {
 	/*WeChat API*/
 	Route[http.MethodGet][`/manage/getWechatAppList`] = manage.GetWechatAppList
 	Route[http.MethodPost][`/manage/saveWechatApp`] = manage.SaveWechatApp
+	Route[http.MethodPost][`/manage/sortWechatApp`] = manage.SortWechatApp
+	Route[http.MethodPost][`/manage/robotRelateOfficialAccount`] = manage.RobotRelateOfficialAccount
 	Route[http.MethodGet][`/manage/getWechatAppInfo`] = manage.GetWechatAppInfo
 	Route[http.MethodPost][`/manage/deleteWechatApp`] = manage.DeleteWechatApp
 	Route[http.MethodPost][`/manage/refreshAccountVerify`] = manage.RefreshAccountVerify

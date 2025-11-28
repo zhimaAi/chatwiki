@@ -4,7 +4,8 @@ package business
 
 import (
 	"bytes"
-	"errors"
+	"chatwiki/internal/app/user_domain_service/define"
+	"chatwiki/internal/pkg/lib_web"
 	"fmt"
 	"net/http"
 	"os"
@@ -16,11 +17,6 @@ import (
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/tool"
-
-	"chatwiki/internal/app/chatwiki/common"
-	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/app/user_domain_service/define"
-	"chatwiki/internal/pkg/lib_web"
 )
 
 type SaveCertReq struct {
@@ -38,7 +34,7 @@ func SaveCert(c *gin.Context) {
 		isRobot bool
 	)
 	if err = c.ShouldBind(&req); err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_err`, err.Error()))))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	if req.Upstream == "" {
@@ -51,24 +47,24 @@ func SaveCert(c *gin.Context) {
 	}
 	if err = writeConf(req.Url, req.Upstream, true, isRobot); err != nil {
 		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `写入配置文件失败`))))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 
 	if err = writeCert(req.Url, req.SslCertificate, req.SslCertificateKey); err != nil {
 		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `写入配置文件失败`))))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	if output, code, err := reloadNginx(); err != nil {
 		logs.Error("output:%s,code:%d,err:%s", output, code, err.Error())
 		_ = deleteFile(req.Url)
 		reloadNginx()
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `Nginx配置文件启动失败,请检查后再试`+err.Error()))))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 
-	common.FmtOk(c, nil)
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
 type SaveConfReq struct {
@@ -84,7 +80,7 @@ func SaveConf(c *gin.Context) {
 		isRobot bool
 	)
 	if err = c.ShouldBind(&req); err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_err`, err.Error()))))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	if req.Upstream == "" {
@@ -97,18 +93,18 @@ func SaveConf(c *gin.Context) {
 	}
 	if err = writeConf(req.Url, req.Upstream, false, isRobot); err != nil {
 		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `写入配置文件失败`))))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	if output, code, err := reloadNginx(); err != nil {
 		logs.Error("output:%s,code:%d,err:%s", output, code, err.Error())
 		_ = deleteFile(req.Url)
 		reloadNginx()
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `Nginx配置文件启动失败,请检查后再试`+err.Error()))))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 
-	common.FmtOk(c, nil)
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
 func writeConf(domain, upstream string, isHttps, isRobot bool) error {
