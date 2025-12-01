@@ -70,7 +70,7 @@
 <script setup>
 import NodeFormLayout from './node-form-layout.vue'
 import NodeFormHeader from './node-form-header.vue'
-import { ref,  onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { CloseCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import AtInput from '../at-input/at-input.vue'
 
@@ -96,6 +96,19 @@ const options = ref([])
 function getOptions() {
   const nodeModel = props.lf.getNodeModelById(props.nodeId)
   if (nodeModel) {
+    let loop_parent_key = nodeModel.properties.loop_parent_key
+    if (loop_parent_key) {
+      const gropModel = props.lf.getNodeModelById(loop_parent_key)
+      if (gropModel) {
+        options.value = gropModel.properties.intermediate_params.map((item) => {
+          return {
+            label: item.key,
+            value: loop_parent_key + '.' + item.key
+          }
+        })
+        return
+      }
+    }
     let globalVariable = nodeModel.getGlobalVariable()
     let diy_global = globalVariable.diy_global || []
     diy_global.forEach((item) => {

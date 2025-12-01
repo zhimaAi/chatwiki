@@ -389,7 +389,9 @@ const props = defineProps({
   }
 })
 
-const allGroupNodes = getAllGroupNodes(props.type)
+const allGroupNodes = computed(()=>{
+  return getAllGroupNodes(props.type)
+})
 const allPluginNodes = ref([])
 const allMcpNodes = ref([])
 const active = ref(1)

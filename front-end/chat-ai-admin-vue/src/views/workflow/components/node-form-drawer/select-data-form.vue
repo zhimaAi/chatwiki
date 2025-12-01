@@ -188,7 +188,7 @@ const outputFields = computed(() => {
     {
       title: 'output_list',
       key: 'output_list',
-      type: 'Array(Object)',
+      type: 'array<object>',
       children: fields
     }, {
       title: 'row_num',

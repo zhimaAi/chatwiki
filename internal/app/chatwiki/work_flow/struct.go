@@ -391,6 +391,14 @@ type McpNodeParams struct {
 	Output     string         `json:"output"`
 }
 
+type LoopNodeParams struct {
+	LoopType           string             `json:"loop_type"`           //array : loop from array ,number : loop from number.Get the loop count
+	LoopArrays         []common.LoopField `json:"loop_arrays"`         //Set when LoopType equals 'array'
+	LoopNumber         common.MixedInt    `json:"loop_number"`         //Set when LoopType equals 'number'
+	IntermediateParams []common.LoopField `json:"intermediate_params"` //intermediate_params
+	Output             []common.LoopField `json:"output"`              //
+}
+
 type PluginNodeParams struct {
 	Name   string                 `json:"name"`
 	Type   string                 `json:"type"`
@@ -418,6 +426,7 @@ type NodeParams struct {
 	FormSelect       FormSelectNodeParams       `json:"form_select"`
 	CodeRun          CodeRunNodeParams          `json:"code_run"`
 	Mcp              McpNodeParams              `json:"mcp"`
+	Loop             LoopNodeParams             `json:"loop"`
 	Plugin           PluginNodeParams           `json:"plugin"`
 }
 
@@ -490,12 +499,13 @@ func DisposeNodeParams(nodeType int, nodeParams string) NodeParams {
 }
 
 type WorkFlowNode struct {
-	NodeType     common.MixedInt `json:"node_type"`
-	NodeName     string          `json:"node_name"`
-	NodeKey      string          `json:"node_key"`
-	NodeParams   NodeParams      `json:"node_params"`
-	NodeInfoJson map[string]any  `json:"node_info_json"`
-	NextNodeKey  string          `json:"next_node_key"`
+	NodeType      common.MixedInt `json:"node_type"`
+	NodeName      string          `json:"node_name"`
+	NodeKey       string          `json:"node_key"`
+	NodeParams    NodeParams      `json:"node_params"`
+	NodeInfoJson  map[string]any  `json:"node_info_json"`
+	NextNodeKey   string          `json:"next_node_key"`
+	LoopParentKey string          `json:"loop_parent_key"`
 }
 
 func (node *WorkFlowNode) GetVariables(last ...bool) []string {
@@ -541,6 +551,23 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 		}
 	case NodeTypeMcp:
 		variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, `special.mcp_reply_content`))
+	case NodeTypeLoop:
+		loopOutput := node.NodeParams.Loop.Output
+		formatOutput := make(common.RecurveFields, 0)
+		for _, loopField := range loopOutput {
+			formatRecurveField := common.RecurveField{}
+			err := tool.JsonDecode(tool.JsonEncodeNoError(loopField), &formatRecurveField)
+			if err != nil {
+				logs.Error(`node type loop field decode ` + err.Error())
+			}
+			formatOutput = append(formatOutput, formatRecurveField)
+		}
+		for variable := range common.SimplifyFields(formatOutput) {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+				variables = append(variables, variable)
+			}
+		}
 	case NodeTypePlugin:
 		variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, `special.plugin_reply_output`))
 	}
@@ -609,6 +636,15 @@ func CheckVariablePlaceholder(content string, variables []string) (string, bool)
 	return ``, true
 }
 
+func CheckVariablePlaceholderExist(content string) bool {
+	for _, item := range regexp.MustCompile(`【(([a-f0-9]{32}\.)?[a-zA-Z_][a-zA-Z0-9_\-.]*)】`).FindAllStringSubmatch(content, -1) {
+		if len(item) > 1 {
+			return true
+		}
+	}
+	return false
+}
+
 func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey, modelConfigIds, libraryIds string, err error) {
 	startNodeCount, finishNodeCount := 0, 0
 	fromNodes := make(FromNodes)
@@ -655,165 +691,18 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 		if tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeRemark, NodeTypeEdges, NodeTypeStart}) {
 			continue
 		}
+		if node.LoopParentKey != `` {
+			continue
+		}
 		if _, ok := fromNodes[node.NodeKey]; !ok {
 			err = errors.New(`工作流存在游离节点:` + node.NodeName)
 			return
 		}
 		//校验选择的变量必须存在
-		variables := fromNodes.GetVariableList(node.NodeKey)
-		switch node.NodeType {
-		case NodeTypeTerm:
-			for _, param := range node.NodeParams.Term {
-				for _, term := range param.Terms {
-					if !tool.InArrayString(term.Variable, variables) {
-						err = errors.New(node.NodeName + `节点选择的变量不存在:` + term.Variable)
-						return
-					}
-				}
-			}
-		case NodeTypeCurl:
-			for _, param := range node.NodeParams.Curl.Headers {
-				if variable, ok := CheckVariablePlaceholder(param.Value, variables); !ok {
-					err = errors.New(node.NodeName + `节点Headers变量不存在:` + variable)
-					return
-				}
-			}
-			for _, param := range node.NodeParams.Curl.Params {
-				if variable, ok := CheckVariablePlaceholder(param.Value, variables); !ok {
-					err = errors.New(node.NodeName + `节点Params变量不存在:` + variable)
-					return
-				}
-			}
-			switch node.NodeParams.Curl.Type {
-			case TypeUrlencoded:
-				for _, param := range node.NodeParams.Curl.Body {
-					if variable, ok := CheckVariablePlaceholder(param.Value, variables); !ok {
-						err = errors.New(node.NodeName + `节点Body变量不存在:` + variable)
-						return
-					}
-				}
-			case TypeJsonBody:
-				if variable, ok := CheckVariablePlaceholder(node.NodeParams.Curl.BodyRaw, variables); !ok {
-					err = errors.New(node.NodeName + `节点JsonBody变量不存在:` + variable)
-					return
-				}
-			}
-		//case NodeTypeCate:
-		//	if variable, ok := CheckVariablePlaceholder(node.NodeParams.Cate.Prompt, variables); !ok {
-		//		err = errors.New(node.NodeName + `节点提示词变量不存在:` + variable)
-		//		return
-		//	}
-		case NodeTypeLlm:
-			if variable, ok := CheckVariablePlaceholder(node.NodeParams.Llm.Prompt, variables); !ok {
-				err = errors.New(node.NodeName + `节点提示词变量不存在:` + variable)
-				return
-			}
-			if len(node.NodeParams.Llm.LibsNodeKey) > 0 {
-				variable := fmt.Sprintf(`%s.%s`, node.NodeParams.Llm.LibsNodeKey, `special.lib_paragraph_list`)
-				if !tool.InArrayString(variable, variables) {
-					err = errors.New(node.NodeName + `节点的知识库引用选择的不是上级检索知识库节点`)
-					return
-				}
-			}
-		case NodeTypeAssign:
-			for i, param := range node.NodeParams.Assign {
-				if !tool.InArrayString(param.Variable, variables) { //自定义变量不存在
-					err = errors.New(node.NodeName + `自定义全局变量不存在:` + param.Variable)
-					return
-				}
-				if variable, ok := CheckVariablePlaceholder(param.Value, variables); !ok {
-					err = errors.New(node.NodeName + fmt.Sprintf(`第%d行:变量不存在:`, i+1) + variable)
-					return
-				}
-			}
-		case NodeTypeReply:
-			if variable, ok := CheckVariablePlaceholder(node.NodeParams.Reply.Content, variables); !ok {
-				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
-				return
-			}
-		case NodeTypeQuestionOptimize:
-			if variable, ok := CheckVariablePlaceholder(node.NodeParams.QuestionOptimize.Prompt, variables); !ok {
-				err = errors.New(node.NodeName + `节点对话背景变量不存在:` + variable)
-				return
-			}
-			if !tool.InArrayString(node.NodeParams.QuestionOptimize.QuestionValue, variables) {
-				err = errors.New(node.NodeName + `节点问题变量不存在:` + node.NodeParams.QuestionOptimize.QuestionValue)
-				return
-			}
-		case NodeTypeParamsExtractor:
-			if !tool.InArrayString(node.NodeParams.ParamsExtractor.QuestionValue, variables) {
-				err = errors.New(node.NodeName + `节点问题变量不存在:` + node.NodeParams.QuestionOptimize.QuestionValue)
-				return
-			}
-		case NodeTypeFormInsert:
-			for _, field := range node.NodeParams.FormInsert.Datas {
-				if variable, ok := CheckVariablePlaceholder(field.Value, variables); !ok {
-					err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
-					return
-				}
-			}
-		case NodeTypeFormDelete:
-			for _, field := range node.NodeParams.FormDelete.Where {
-				if variable, ok := CheckVariablePlaceholder(field.RuleValue1, variables); !ok {
-					err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
-					return
-				}
-				if variable, ok := CheckVariablePlaceholder(field.RuleValue2, variables); !ok {
-					err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
-					return
-				}
-			}
-		case NodeTypeFormUpdate:
-			for _, field := range node.NodeParams.FormUpdate.Where {
-				if variable, ok := CheckVariablePlaceholder(field.RuleValue1, variables); !ok {
-					err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
-					return
-				}
-				if variable, ok := CheckVariablePlaceholder(field.RuleValue2, variables); !ok {
-					err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
-					return
-				}
-			}
-			for _, field := range node.NodeParams.FormUpdate.Datas {
-				if variable, ok := CheckVariablePlaceholder(field.Value, variables); !ok {
-					err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
-					return
-				}
-			}
-		case NodeTypeFormSelect:
-			for _, field := range node.NodeParams.FormSelect.Where {
-				if variable, ok := CheckVariablePlaceholder(field.RuleValue1, variables); !ok {
-					err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
-					return
-				}
-				if variable, ok := CheckVariablePlaceholder(field.RuleValue2, variables); !ok {
-					err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
-					return
-				}
-			}
-		case NodeTypeCodeRun:
-			for _, param := range node.NodeParams.CodeRun.Params {
-				if !tool.InArrayString(param.Variable, variables) {
-					err = errors.New(node.NodeName + `节点选择的变量不存在:` + param.Variable)
-					return
-				}
-			}
-		case NodeTypeMcp:
-			if variable, ok := CheckVariablePlaceholder(node.NodeParams.Mcp.ToolName, variables); !ok {
-				err = errors.New(node.NodeName + `节点MCP工具变量不存在:` + variable)
-				return
-			}
-		case NodeTypePlugin:
-			if variable, ok := CheckVariablePlaceholder(node.NodeParams.Plugin.Name, variables); !ok {
-				err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
-				return
-			}
-			if variable, ok := CheckVariablePlaceholder(node.NodeParams.Plugin.Type, variables); !ok {
-				err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
-				return
-			}
+		err = verifyNode(adminUserId, node, fromNodes, nodeList)
+		if err != nil {
+			return
 		}
-
 	}
 	var libraryArr []string
 	//采集使用的模型id集合
@@ -845,6 +734,204 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 	return
 }
 
+func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeList []WorkFlowNode) (err error) {
+	variables := fromNodes.GetVariableList(node.NodeKey)
+	switch node.NodeType {
+	case NodeTypeTerm:
+		for _, param := range node.NodeParams.Term {
+			for _, term := range param.Terms {
+				if !tool.InArrayString(term.Variable, variables) {
+					err = errors.New(node.NodeName + `节点选择的变量不存在:` + term.Variable)
+					return
+				}
+			}
+		}
+	case NodeTypeCurl:
+		for _, param := range node.NodeParams.Curl.Headers {
+			if variable, ok := CheckVariablePlaceholder(param.Value, variables); !ok {
+				err = errors.New(node.NodeName + `节点Headers变量不存在:` + variable)
+				return
+			}
+		}
+		for _, param := range node.NodeParams.Curl.Params {
+			if variable, ok := CheckVariablePlaceholder(param.Value, variables); !ok {
+				err = errors.New(node.NodeName + `节点Params变量不存在:` + variable)
+				return
+			}
+		}
+		switch node.NodeParams.Curl.Type {
+		case TypeUrlencoded:
+			for _, param := range node.NodeParams.Curl.Body {
+				if variable, ok := CheckVariablePlaceholder(param.Value, variables); !ok {
+					err = errors.New(node.NodeName + `节点Body变量不存在:` + variable)
+					return
+				}
+			}
+		case TypeJsonBody:
+			if variable, ok := CheckVariablePlaceholder(node.NodeParams.Curl.BodyRaw, variables); !ok {
+				err = errors.New(node.NodeName + `节点JsonBody变量不存在:` + variable)
+				return
+			}
+		}
+	//case NodeTypeCate:
+	//	if variable, ok := CheckVariablePlaceholder(node.NodeParams.Cate.Prompt, variables); !ok {
+	//		err = errors.New(node.NodeName + `节点提示词变量不存在:` + variable)
+	//		return
+	//	}
+	case NodeTypeLlm:
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.Llm.Prompt, variables); !ok {
+			err = errors.New(node.NodeName + `节点提示词变量不存在:` + variable)
+			return
+		}
+		if len(node.NodeParams.Llm.LibsNodeKey) > 0 {
+			variable := fmt.Sprintf(`%s.%s`, node.NodeParams.Llm.LibsNodeKey, `special.lib_paragraph_list`)
+			if !tool.InArrayString(variable, variables) {
+				err = errors.New(node.NodeName + `节点的知识库引用选择的不是上级检索知识库节点`)
+				return
+			}
+		}
+	case NodeTypeAssign:
+		for i, param := range node.NodeParams.Assign {
+			if !tool.InArrayString(param.Variable, variables) { //自定义变量不存在
+				err = errors.New(node.NodeName + `自定义全局变量不存在:` + param.Variable)
+				return
+			}
+			if variable, ok := CheckVariablePlaceholder(param.Value, variables); !ok {
+				err = errors.New(node.NodeName + fmt.Sprintf(`第%d行:变量不存在:`, i+1) + variable)
+				return
+			}
+		}
+	case NodeTypeReply:
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.Reply.Content, variables); !ok {
+			err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+			return
+		}
+	case NodeTypeQuestionOptimize:
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.QuestionOptimize.Prompt, variables); !ok {
+			err = errors.New(node.NodeName + `节点对话背景变量不存在:` + variable)
+			return
+		}
+		if !tool.InArrayString(node.NodeParams.QuestionOptimize.QuestionValue, variables) {
+			err = errors.New(node.NodeName + `节点问题变量不存在:` + node.NodeParams.QuestionOptimize.QuestionValue)
+			return
+		}
+	case NodeTypeParamsExtractor:
+		if !tool.InArrayString(node.NodeParams.ParamsExtractor.QuestionValue, variables) {
+			err = errors.New(node.NodeName + `节点问题变量不存在:` + node.NodeParams.QuestionOptimize.QuestionValue)
+			return
+		}
+	case NodeTypeFormInsert:
+		for _, field := range node.NodeParams.FormInsert.Datas {
+			if variable, ok := CheckVariablePlaceholder(field.Value, variables); !ok {
+				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				return
+			}
+		}
+	case NodeTypeFormDelete:
+		for _, field := range node.NodeParams.FormDelete.Where {
+			if variable, ok := CheckVariablePlaceholder(field.RuleValue1, variables); !ok {
+				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				return
+			}
+			if variable, ok := CheckVariablePlaceholder(field.RuleValue2, variables); !ok {
+				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				return
+			}
+		}
+	case NodeTypeFormUpdate:
+		for _, field := range node.NodeParams.FormUpdate.Where {
+			if variable, ok := CheckVariablePlaceholder(field.RuleValue1, variables); !ok {
+				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				return
+			}
+			if variable, ok := CheckVariablePlaceholder(field.RuleValue2, variables); !ok {
+				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				return
+			}
+		}
+		for _, field := range node.NodeParams.FormUpdate.Datas {
+			if variable, ok := CheckVariablePlaceholder(field.Value, variables); !ok {
+				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				return
+			}
+		}
+	case NodeTypeFormSelect:
+		for _, field := range node.NodeParams.FormSelect.Where {
+			if variable, ok := CheckVariablePlaceholder(field.RuleValue1, variables); !ok {
+				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				return
+			}
+			if variable, ok := CheckVariablePlaceholder(field.RuleValue2, variables); !ok {
+				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				return
+			}
+		}
+	case NodeTypeCodeRun:
+		for _, param := range node.NodeParams.CodeRun.Params {
+			if !tool.InArrayString(param.Variable, variables) {
+				err = errors.New(node.NodeName + `节点选择的变量不存在:` + param.Variable)
+				return
+			}
+		}
+	case NodeTypeMcp:
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.Mcp.ToolName, variables); !ok {
+			err = errors.New(node.NodeName + `节点MCP工具变量不存在:` + variable)
+			return
+		}
+	case NodeTypePlugin:
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.Plugin.Name, variables); !ok {
+			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+			return
+		}
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.Plugin.Type, variables); !ok {
+			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+			return
+		}
+	case NodeTypeLoop:
+		//verify loop arrays
+		if node.NodeParams.Loop.LoopType == common.LoopTypeArray {
+			if len(node.NodeParams.Loop.LoopArrays) == 0 {
+				err = errors.New(fmt.Sprintf(`%s未添加循环数组`, node.NodeName))
+				return
+			}
+			//验证对前置节点的引用
+			bFind := VerityLoopParams(node.NodeParams.Loop.LoopArrays, nodeList)
+			if !bFind {
+				err = errors.New(fmt.Sprintf(`%s未找到循环数组引用的节点输出<array>参数`, node.NodeName))
+				return
+			}
+		} else if node.NodeParams.Loop.LoopNumber.Int() <= 0 {
+			err = errors.New(fmt.Sprintf(`%s循环次数必须大于0`, node.NodeName))
+			return
+		}
+		//验证中间变量初始值是否存在
+		bFind := VerityLoopParams(node.NodeParams.Loop.IntermediateParams, nodeList)
+		if !bFind {
+			err = errors.New(fmt.Sprintf(`%s未找到中间变量的引用`, node.NodeName))
+			return
+		}
+		//child node
+		childNodes := make([]WorkFlowNode, 0)
+		for _, vNode := range nodeList {
+			if vNode.LoopParentKey == node.NodeKey {
+				childNodes = append(childNodes, vNode)
+			}
+		}
+		//验证输出是否来自于中间变量
+		bFind = VerityLoopParams(node.NodeParams.Loop.Output, []WorkFlowNode{node})
+		if !bFind {
+			err = errors.New(fmt.Sprintf(`%s输出节点中未找到引用的中间变量参数`, node.NodeName))
+			return
+		}
+		//验证子节点
+		_, _, _, err = VerityLoopWorkflowNodes(adminUserId, node, childNodes)
+		if err != nil {
+			return
+		}
+	}
+	return nil
+}
+
 func (node *WorkFlowNode) Verify(adminUserId int) error {
 	if !tool.InArrayInt(node.NodeType.Int(), NodeTypes[:]) {
 		return errors.New(`节点类型参数错误:` + cast.ToString(node.NodeType))
@@ -858,7 +945,7 @@ func (node *WorkFlowNode) Verify(adminUserId int) error {
 	if len(node.NextNodeKey) > 0 && !common.IsMd5Str(node.NextNodeKey) {
 		return errors.New(`节点NextNodeKey参数格式错误:` + node.NodeName)
 	}
-	if len(node.NextNodeKey) == 0 && !tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeRemark, NodeTypeEdges, NodeTypeFinish, NodeTypeManual}) {
+	if len(node.NextNodeKey) == 0 && node.LoopParentKey == `` && !tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeRemark, NodeTypeEdges, NodeTypeFinish, NodeTypeManual, NodeTypeLoopEnd}) {
 		return errors.New(`节点没有指定下一个节点:` + node.NodeName)
 	}
 	var err error
@@ -876,7 +963,7 @@ func (node *WorkFlowNode) Verify(adminUserId int) error {
 	case NodeTypeLlm:
 		err = node.NodeParams.Llm.Verify(adminUserId)
 	case NodeTypeAssign:
-		err = node.NodeParams.Assign.Verify()
+		err = node.NodeParams.Assign.Verify(node)
 	case NodeTypeReply:
 		err = node.NodeParams.Reply.Verify()
 	case NodeTypeManual:
@@ -897,6 +984,8 @@ func (node *WorkFlowNode) Verify(adminUserId int) error {
 		err = node.NodeParams.CodeRun.Verify()
 	case NodeTypeMcp:
 		err = node.NodeParams.Mcp.Verify(adminUserId)
+	case NodeTypeLoop:
+		err = node.NodeParams.Loop.Verify(node.NodeName)
 	case NodeTypePlugin:
 		err = node.NodeParams.Plugin.Verify(adminUserId)
 	}
@@ -1089,7 +1178,7 @@ func (params *LlmNodeParams) Verify(adminUserId int) error {
 	return nil
 }
 
-func (params *AssignNodeParams) Verify() error {
+func (params *AssignNodeParams) Verify(node *WorkFlowNode) error {
 	if params == nil || len(*params) == 0 {
 		return errors.New(`配置参数不能为空`)
 	}
@@ -1097,7 +1186,7 @@ func (params *AssignNodeParams) Verify() error {
 		if len(param.Variable) == 0 {
 			return errors.New(fmt.Sprintf(`第%d行:请选择变量`, i+1))
 		}
-		if !strings.HasPrefix(param.Variable, `global.`) || !common.IsVariableNames(param.Variable) {
+		if node.LoopParentKey == `` && (!strings.HasPrefix(param.Variable, `global.`) || !common.IsVariableNames(param.Variable)) {
 			return errors.New(fmt.Sprintf(`第%d行:变量格式错误`, i+1))
 		}
 		if tool.InArrayString(param.Variable, SysGlobalVariables()) {
@@ -1362,6 +1451,151 @@ func (params *McpNodeParams) Verify(adminUserId int) error {
 	return nil
 }
 
+func (params *LoopNodeParams) Verify(nodeName string) error {
+	if !tool.InArray(params.LoopType, []string{common.LoopTypeArray, common.LoopTypeNumber}) {
+		return errors.New(nodeName + `循环类型错误`)
+	}
+	if params.LoopType == common.LoopTypeArray {
+		if len(params.LoopArrays) == 0 {
+			return errors.New(nodeName + `循环数组不能为空`)
+		}
+	} else {
+		if params.LoopNumber <= 0 {
+			return errors.New(nodeName + `循环数字必须大于0`)
+		}
+	}
+	return nil
+}
+
+// VerityLoopParams 验证输出或者循环参数
+func VerityLoopParams(fields []common.LoopField, nodeList []WorkFlowNode) bool {
+	for _, field := range fields {
+		if field.Value == `` {
+			continue
+		}
+		if field.Value != `` && CheckVariablePlaceholderExist(field.Value) && FindNodeByUseKey(nodeList, field.Value) == nil {
+			fmt.Println(fmt.Sprintf(`从节点找%s `, field.Value))
+			return false
+		}
+	}
+	return true
+}
+
+func VerityLoopWorkflowNodes(adminUserId int, loopNode WorkFlowNode, nodeList []WorkFlowNode) (startNodeKey, modelConfigIds, libraryIds string, err error) {
+	startNodeCount, finishNodeCount := 0, 0
+	fromNodes := make(FromNodes)
+	allowNodeTypes := []int{
+		NodeTypeRemark,
+		NodeTypeTerm,
+		NodeTypeCate,
+		NodeTypeCurl,
+		NodeTypeLibs,
+		NodeTypeLlm,
+		NodeTypeFinish,
+		NodeTypeAssign,
+		NodeTypeReply,
+		NodeTypeQuestionOptimize,
+		NodeTypeParamsExtractor,
+		NodeTypeFormInsert,
+		NodeTypeFormDelete,
+		NodeTypeFormUpdate,
+		NodeTypeFormSelect,
+		NodeTypeCodeRun,
+		NodeTypeMcp,
+		NodeTypeLoopEnd,
+		NodeTypeLoopStart,
+		NodeTypePlugin,
+	}
+	for i, node := range nodeList {
+		if !tool.InArrayInt(node.NodeType.Int(), allowNodeTypes) {
+			err = errors.New(fmt.Sprintf(`循环节点的子节点类型错误 %d`, node.NodeType))
+			return
+		}
+		//node base verify
+		if err = node.Verify(adminUserId); err != nil {
+			return
+		}
+		//start node
+		if node.NodeType == NodeTypeLoopStart {
+			startNodeKey = node.NodeKey
+			startNodeCount++
+		}
+		if node.NodeType.Int() != NodeTypeLoopEnd {
+			fromNodes.AddRelation(&nodeList[i], node.NextNodeKey)
+		}
+		if node.NodeType == NodeTypeTerm {
+			for _, param := range node.NodeParams.Term {
+				fromNodes.AddRelation(&nodeList[i], param.NextNodeKey)
+			}
+		}
+		if node.NodeType == NodeTypeCate {
+			for _, category := range node.NodeParams.Cate.Categorys {
+				fromNodes.AddRelation(&nodeList[i], category.NextNodeKey)
+			}
+		}
+		if node.NodeType == NodeTypeCodeRun {
+			fromNodes.AddRelation(&nodeList[i], node.NodeParams.CodeRun.Exception)
+		}
+		if node.NextNodeKey == loopNode.NodeKey {
+			finishNodeCount++
+		}
+	}
+	if startNodeCount != 1 {
+		err = errors.New(`循环节点仅能有一个入口节点`)
+		return
+	}
+	if finishNodeCount == 0 {
+		//err = errors.New(`工作流必须存在一个终止循环或出口节点`)
+		//return
+	}
+	for _, node := range nodeList {
+		//remark node continue
+		skipNodeTypes := []int{
+			NodeTypeRemark,
+			NodeTypeLoopStart,
+		}
+		if tool.InArrayInt(node.NodeType.Int(), skipNodeTypes) {
+			continue
+		}
+		if _, ok := fromNodes[node.NodeKey]; !ok {
+			err = errors.New(`循环节点中存在游离节点:` + node.NodeName)
+			return
+		}
+		//暂时不进行验证 循环节点单独执行会缺少前面所有节点的输入，代码难处理
+		//err = verifyNode(adminUserId, node, fromNodes, make([]WorkFlowNode, 0))
+		//if err != nil {
+		//	return
+		//}
+	}
+	var libraryArr []string
+	//采集使用的模型id集合
+	for _, node := range nodeList {
+		var modelConfigId int
+		switch node.NodeType {
+		case NodeTypeCate:
+			modelConfigId = node.NodeParams.Cate.ModelConfigId.Int()
+		case NodeTypeLibs:
+			modelConfigId = node.NodeParams.Libs.RerankModelConfigId.Int()
+			if node.NodeParams.Libs.LibraryIds != "" {
+				libraryArr = append(libraryArr, strings.Split(node.NodeParams.Libs.LibraryIds, `,`)...)
+			}
+		case NodeTypeLlm:
+			modelConfigId = node.NodeParams.Llm.ModelConfigId.Int()
+		case NodeTypeQuestionOptimize:
+			modelConfigId = node.NodeParams.QuestionOptimize.ModelConfigId.Int()
+		case NodeTypeParamsExtractor:
+			modelConfigId = node.NodeParams.ParamsExtractor.ModelConfigId.Int()
+		}
+		if modelConfigId > 0 {
+			if len(modelConfigIds) > 0 {
+				modelConfigIds += `,`
+			}
+			modelConfigIds += cast.ToString(modelConfigId)
+		}
+	}
+	libraryIds = strings.Join(libraryArr, `,`)
+	return
+}
 func (param *PluginNodeParams) Verify(adminUserId int) error {
 	u := define.Config.Plugin[`endpoint`] + "/manage/plugin/local-plugins/run"
 

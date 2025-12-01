@@ -65,6 +65,7 @@ import QuestionNodeForm from './question-node-form.vue'
 import JudgeNodeForm from './judge-node-form.vue'
 import SpecifyReplyNodeForm from './specify-reply-form.vue'
 import McpForm from './mcp-form.vue'
+import CustomGroupNodeForm from './custom-group-node/custom-group-node-form.vue'
 import ZmPluginsNodeForm from "./zm-plugins-node-form.vue";
 
 // 预定义所有可能的表单组件
@@ -85,6 +86,7 @@ const formComponents = {
   'judge-node': JudgeNodeForm,
   'specify-reply-node': SpecifyReplyNodeForm,
   'mcp-node': McpForm,
+  'custom-group': CustomGroupNodeForm,
   'zm-plugins-node': ZmPluginsNodeForm
   // 其他表单组件可以在这里添加
   // 'problem-optimization-node': defineAsyncComponent(() => import('./problem-optimization-form.vue')),
@@ -126,8 +128,14 @@ const close = () => {
 }
 
 const width = computed(() => {
-  let arr = ['delete-data-node', 'update-data-node', 'select-data-node', 'judge-node']
-  return arr.includes(props.nodeType) ? 600 : 480
+  let widthMap = {
+    'delete-data-node': 600,
+    'update-data-node': 600,
+    'select-data-node': 600,
+    'judge-node': 600,
+    'custom-group': 568,
+  }
+  return widthMap[props.nodeType] || 480
 })
 const getNode = () => {
   return props.lf.getNodeModelById(props.nodeId)

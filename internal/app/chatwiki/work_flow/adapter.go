@@ -48,6 +48,9 @@ const (
 	NodeTypeCodeRun          = 17 //代码运行
 	NodeTypeMcp              = 20 //MCP
 	NodeTypePlugin           = 21 //插件
+	NodeTypeLoop             = 25 //循环节点
+	NodeTypeLoopEnd          = 26 //终止循环节点
+	NodeTypeLoopStart        = 27 //开始循环节点
 )
 
 var NodeTypes = [...]int{
@@ -71,6 +74,9 @@ var NodeTypes = [...]int{
 	NodeTypeFormSelect,
 	NodeTypeCodeRun,
 	NodeTypeMcp,
+	NodeTypeLoop,
+	NodeTypeLoopEnd,
+	NodeTypeLoopStart,
 	NodeTypePlugin,
 }
 
@@ -135,6 +141,12 @@ func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, ms
 		return &CodeRunNode{params: nodeParams.CodeRun, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeMcp:
 		return &McpNode{params: nodeParams.Mcp, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeLoop:
+		return &LoopNode{params: nodeParams.Loop, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeLoopEnd:
+		return &LoopEndNode{nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeLoopStart:
+		return &LoopStartNode{nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypePlugin:
 		return &PluginNode{params: nodeParams.Plugin, nextNodeKey: info[`next_node_key`]}, info, nil
 	default:
@@ -463,6 +475,7 @@ type AssignNode struct {
 
 func (n *AssignNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
 	flow.Logs(`执行赋值分支逻辑...`)
+	output = common.SimpleFields{}
 	for _, param := range n.params {
 		variable, _ := strings.CutPrefix(param.Variable, `global.`)
 		field, ok := flow.global[variable]
@@ -478,10 +491,36 @@ func (n *AssignNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNo
 			data = temp
 		}
 		flow.global[variable] = field.SetVals(data) //给自定义全局变量赋值
+		output[`global_set.`+variable] = flow.global[variable]
 	}
 	flow.Logs(`当前global值:%s`, tool.JsonEncodeNoError(flow.global))
+	//中间变量的处理
+	n.Intermediate(flow, output)
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *AssignNode) Intermediate(flow *WorkFlow, output common.SimpleFields) {
+	if flow.LoopIntermediate.Params == nil {
+		return
+	}
+	for loopKey, loopParam := range *flow.LoopIntermediate.Params {
+		for _, param := range n.params {
+			if param.Variable == flow.LoopIntermediate.LoopNodeKey+`.`+loopParam.Key {
+				//变量替换 支持数组等
+				var data any = flow.VariableReplace(param.Value)
+				if tool.InArrayString(loopParam.Typ, common.TypArrays[:]) {
+					var temp []any //数组类型特殊处理
+					for _, item := range strings.Split(cast.ToString(data), `、`) {
+						temp = append(temp, item)
+					}
+					data = temp
+				}
+				(*flow.LoopIntermediate.Params)[loopKey].SimpleField = loopParam.SimpleField.SetVals(data)
+				output[`loop_intermediate_set.`+loopParam.Key] = (*flow.LoopIntermediate.Params)[loopKey].SimpleField
+			}
+		}
+	}
 }
 
 type ReplyNode struct {
@@ -949,6 +988,36 @@ func (n *McpNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 		},
 	}
 
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+type LoopNode struct {
+	params      LoopNodeParams
+	nextNodeKey string
+}
+
+func (n *LoopNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+type LoopEndNode struct {
+	nextNodeKey string
+}
+
+func (n *LoopEndNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+type LoopStartNode struct {
+	params      StartNodeParams
+	nextNodeKey string
+}
+
+func (n *LoopStartNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	flow.Logs(`执行开始节点逻辑...`)
 	nextNodeKey = n.nextNodeKey
 	return
 }

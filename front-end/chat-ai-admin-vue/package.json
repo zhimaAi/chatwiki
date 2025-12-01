@@ -46,6 +46,7 @@
     "crypto-js": "^4.2.0",
     "dayjs": "^1.11.11",
     "echarts": "^5.5.1",
+    "elkjs": "^0.11.0",
     "emoji-mart-vue-fast": "^15.0.5",
     "file-saver": "^2.0.5",
     "highlight.js": "^11.9.0",

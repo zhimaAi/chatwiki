@@ -28,32 +28,39 @@ type Draft struct {
 
 type WorkFlowParams struct {
 	*define.ChatRequestParam
-	RealRobot  msql.Params
-	CurMsgId   int
-	DialogueId int
-	SessionId  int
-	Draft      Draft
+	RealRobot         msql.Params
+	CurMsgId          int
+	DialogueId        int
+	SessionId         int
+	Draft             Draft
+	IsTestLoopNodeRun bool
+}
+
+type LoopIntermediate struct {
+	LoopNodeKey string
+	Params      *[]common.LoopField
 }
 
 type WorkFlow struct {
-	params      *WorkFlowParams
-	nodeLogs    []common.NodeLog
-	StartTime   int
-	EndTime     int
-	context     context.Context
-	cancel      context.CancelFunc
-	ticker      *time.Ticker //流程超时
-	isTimeout   bool
-	global      common.SimpleFields
-	output      common.SimpleFields
-	outputs     map[string]common.SimpleFields
-	curNodeKey  string
-	runNodeKeys []string
-	curNode     NodeAdapter
-	runLogs     []string
-	running     bool
-	isFinish    bool
-	VersionId   int
+	params           *WorkFlowParams
+	nodeLogs         []common.NodeLog
+	StartTime        int
+	EndTime          int
+	context          context.Context
+	cancel           context.CancelFunc
+	ticker           *time.Ticker //流程超时
+	isTimeout        bool
+	global           common.SimpleFields
+	output           common.SimpleFields
+	outputs          map[string]common.SimpleFields
+	curNodeKey       string
+	runNodeKeys      []string
+	curNode          NodeAdapter
+	runLogs          []string
+	running          bool
+	isFinish         bool
+	VersionId        int
+	LoopIntermediate LoopIntermediate //中间变量 目前只用于循环节点，在变量赋值中使用
 }
 
 func (flow *WorkFlow) Logs(format string, a ...any) {
@@ -108,7 +115,11 @@ func (flow *WorkFlow) Running() (err error) {
 			NodeName:  nodeInfo[`node_name`],
 			NodeType:  cast.ToInt(nodeInfo[`node_type`]),
 		}
-		flow.output, nextNodeKey, err = flow.curNode.Running(flow)
+		if cast.ToInt(nodeInfo[`node_type`]) == NodeTypeLoop {
+			flow.output, nextNodeKey, err = LoopNodeRunning(nodeInfo, flow)
+		} else {
+			flow.output, nextNodeKey, err = flow.curNode.Running(flow)
+		}
 		flow.outputs[flow.curNodeKey] = flow.output //记录每个节点输出的变量
 		nodeLog.EndTime = time.Now().UnixMilli()
 		nodeLog.Output = common.GetFieldsObject(common.GetRecurveFields(flow.output))
@@ -242,8 +253,14 @@ func RunningWorkFlow(params *WorkFlowParams, startNodeKey string) (*WorkFlow, er
 		flow.isTimeout = true
 		flow.cancel()
 	}(flow)
-	err := flow.Running() //运行流程
-	if err == nil {       //额外的校验逻辑
+	var err error
+	//循环节点单独运行测试时变量注入
+	if flow.params.IsTestLoopNodeRun {
+		err = FlowRunningLoopTest(flow)
+	} else {
+		err = flow.Running() //运行流程
+	}
+	if err == nil { //额外的校验逻辑
 		if flow.isTimeout {
 			err = errors.New(`工作流执行超时`)
 		} else if !flow.isFinish {

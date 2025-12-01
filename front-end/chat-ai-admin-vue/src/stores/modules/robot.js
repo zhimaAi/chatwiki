@@ -99,6 +99,8 @@ export const useRobotStore = defineStore('robot', () => {
     start_node_key: '',
     draft_save_type: 'handle',
     draft_save_time: '',
+    isLockedByOther: false,
+    loop_save_canvas_status: 0,
     unknown_summary_status: 1,
     unknown_summary_similarity: '',
     unknown_summary_use_model: '',
@@ -287,6 +289,10 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.draft_save_time = data.draft_save_time
   }
 
+  const setIsLockedByOther = (val) => {
+    robotInfo.isLockedByOther = val
+  }
+
   const modelList = ref([])
 
   const setModelList = (data) => {
@@ -347,6 +353,7 @@ export const useRobotStore = defineStore('robot', () => {
     setKeywordReplySwitchStatus,
     keywordReplyAiReplyStatus,
     setKeywordReplyAiReplyStatus,
+    setIsLockedByOther,
     subscribeReplySwitchStatus,
     setSubscribeReplySwitchStatus,
     subscribeReplyAiReplyStatus,

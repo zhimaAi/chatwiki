@@ -29,6 +29,11 @@ const (
 	TypArrParams = `array<params>`
 )
 
+const (
+	LoopTypeArray  = `array`
+	LoopTypeNumber = `number`
+)
+
 var TypScalars = [...]string{
 	TypString,
 	TypNumber,
@@ -360,4 +365,33 @@ func ValidateWorkFlowVersion(ver string) bool {
 		}
 	}
 	return true
+}
+
+type LoopField struct {
+	SimpleField
+	Value string `json:"value"` //node_key.key
+}
+
+func (loopField *LoopField) ParseValue() (string, string) {
+	params := strings.SplitN(loopField.Value, `.`, 2)
+	if len(params) != 2 {
+		return ``, ``
+	}
+	return params[0], params[1]
+}
+
+func (loopField *LoopField) NodeKey() (nodeKey string) {
+	nodeKey, _ = loopField.ParseValue()
+	return
+}
+
+func (loopField *LoopField) ChooseKey() (key string) {
+	_, key = loopField.ParseValue()
+	return
+}
+
+type LoopTestParams struct {
+	NodeKey  string      `json:"node_key"`
+	NodeName string      `json:"node_name"`
+	Field    SimpleField `json:"field"`
 }

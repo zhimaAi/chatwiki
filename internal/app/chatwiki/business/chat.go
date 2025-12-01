@@ -484,6 +484,8 @@ func getChatRequestParam(c *gin.Context) *define.ChatRequestParam {
 	isClose := false
 	workFlowGlobal := make(map[string]any)
 	_ = tool.JsonDecodeUseNumber(c.DefaultPostForm(`global`, `{}`), &workFlowGlobal)
+	loopTestParams := make([]any, 0)
+	_ = tool.JsonDecodeUseNumber(c.DefaultPostForm(`loop_test_params`, `[]`), &loopTestParams)
 	return &define.ChatRequestParam{
 		ChatBaseParam:  chatBaseParam,
 		Error:          err,
@@ -494,6 +496,7 @@ func getChatRequestParam(c *gin.Context) *define.ChatRequestParam {
 		LibraryIds:     strings.TrimSpace(c.PostForm(`library_ids`)),
 		IsClose:        &isClose,
 		WorkFlowGlobal: workFlowGlobal,
+		LoopTestParams: loopTestParams,
 	}
 }
 
@@ -2119,12 +2122,13 @@ func CallWorkFlow(c *gin.Context) {
 		nodeList := make([]work_flow.WorkFlowNode, 0)
 		for _, params := range workFlowParams.Draft.NodeMaps {
 			node := work_flow.WorkFlowNode{
-				NodeType:     common.MixedInt(cast.ToInt(params[`node_type`])),
-				NodeName:     params[`node_name`],
-				NodeKey:      params[`node_key`],
-				NodeParams:   work_flow.NodeParams{},
-				NodeInfoJson: make(map[string]any),
-				NextNodeKey:  params[`next_node_key`],
+				NodeType:      common.MixedInt(cast.ToInt(params[`node_type`])),
+				NodeName:      params[`node_name`],
+				NodeKey:       params[`node_key`],
+				NodeParams:    work_flow.NodeParams{},
+				NodeInfoJson:  make(map[string]any),
+				NextNodeKey:   params[`next_node_key`],
+				LoopParentKey: params[`loop_parent_key`],
 			}
 			_ = tool.JsonDecodeUseNumber(params[`node_params`], &node.NodeParams)
 			_ = tool.JsonDecodeUseNumber(params[`node_info_json`], &node.NodeInfoJson)
@@ -2137,4 +2141,179 @@ func CallWorkFlow(c *gin.Context) {
 	}
 	_, nodeLogs, err := work_flow.BaseCallWorkFlow(workFlowParams)
 	c.String(http.StatusOK, lib_web.FmtJson(nodeLogs, err))
+}
+
+func CallLoopWorkFlow(c *gin.Context) {
+	chatRequestParam := getChatRequestParam(c)
+	if chatRequestParam.Error != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, chatRequestParam.Error))
+		return
+	}
+	dialogueId, sessionId, err := GetDialogueSession(chatRequestParam)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	workFlowParams := &work_flow.WorkFlowParams{
+		ChatRequestParam:  chatRequestParam,
+		DialogueId:        dialogueId,
+		SessionId:         sessionId,
+		Draft:             work_flow.Draft{IsDraft: true},
+		IsTestLoopNodeRun: true,
+	}
+	loopNodeKey := c.PostForm(`loop_node_key`)
+	if loopNodeKey == `` {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(chatRequestParam.Lang, `param_invalid`, `loop_node_key`))))
+		return
+	}
+	loopNodeInfo, err := msql.Model(`work_flow_node`, define.Postgres).
+		Where(`admin_user_id`, chatRequestParam.Robot[`admin_user_id`]).
+		Where(`robot_id`, chatRequestParam.Robot[`id`]).
+		Where(`node_key`, loopNodeKey).
+		Where(`data_type`, cast.ToString(define.DataTypeDraft)).Find()
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	if cast.ToInt(loopNodeInfo[`node_type`]) != work_flow.NodeTypeLoop {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(chatRequestParam.Lang, `no_data`))))
+		return
+	}
+	//build loop node
+	loopWorkFlowNode := work_flow.WorkFlowNode{
+		NodeType:     common.MixedInt(cast.ToInt(loopNodeInfo[`node_type`])),
+		NodeName:     loopNodeInfo[`node_name`],
+		NodeKey:      loopNodeInfo[`node_key`],
+		NodeParams:   work_flow.NodeParams{},
+		NodeInfoJson: make(map[string]any),
+	}
+	_ = tool.JsonDecodeUseNumber(loopNodeInfo[`node_params`], &loopWorkFlowNode.NodeParams)
+	_ = tool.JsonDecodeUseNumber(loopNodeInfo[`node_info_json`], &loopWorkFlowNode.NodeInfoJson)
+	//query child node
+	workFlowParams.Draft.NodeMaps, err = msql.Model(`work_flow_node`, define.Postgres).
+		Where(`admin_user_id`, chatRequestParam.Robot[`admin_user_id`]).
+		Where(`robot_id`, chatRequestParam.Robot[`id`]).
+		Where(`loop_parent_key`, loopNodeKey).
+		Where(`data_type`, cast.ToString(define.DataTypeDraft)).ColumnMap(`*`, `node_key`)
+	nodeList := make([]work_flow.WorkFlowNode, 0)
+	//build child node
+	for _, params := range workFlowParams.Draft.NodeMaps {
+		node := work_flow.WorkFlowNode{
+			NodeType:      common.MixedInt(cast.ToInt(params[`node_type`])),
+			NodeName:      params[`node_name`],
+			NodeKey:       params[`node_key`],
+			NodeParams:    work_flow.NodeParams{},
+			NodeInfoJson:  make(map[string]any),
+			NextNodeKey:   params[`next_node_key`],
+			LoopParentKey: params[`loop_parent_key`],
+		}
+		_ = tool.JsonDecodeUseNumber(params[`node_params`], &node.NodeParams)
+		_ = tool.JsonDecodeUseNumber(params[`node_info_json`], &node.NodeInfoJson)
+		nodeList = append(nodeList, node)
+	}
+	workFlowParams.Draft.NodeMaps[loopNodeKey] = loopNodeInfo
+	if workFlowParams.Draft.StartNodeKey, _, _, err = work_flow.VerityLoopWorkflowNodes(chatRequestParam.AdminUserId, loopWorkFlowNode, nodeList); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	_, nodeLogs, err := work_flow.BaseCallWorkFlow(workFlowParams)
+	c.String(http.StatusOK, lib_web.FmtJson(nodeLogs, err))
+}
+
+func CallLoopWorkFlowParams(c *gin.Context) {
+	chatBaseParam, err := common.CheckChatRequest(c)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	if len(chatBaseParam.Robot) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	loopNodeKey := c.PostForm(`loop_node_key`)
+	if loopNodeKey == `` {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `loop_node_key`))))
+		return
+	}
+	var loopNode *work_flow.WorkFlowNode
+	nodeMaps, err := msql.Model(`work_flow_node`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(chatBaseParam.AdminUserId)).
+		Where(`robot_id`, chatBaseParam.Robot[`id`]).
+		Where(`data_type`, cast.ToString(define.DataTypeDraft)).ColumnMap(`*`, `node_key`)
+	nodeList := make([]work_flow.WorkFlowNode, 0)
+	for _, params := range nodeMaps {
+		node := work_flow.WorkFlowNode{
+			NodeType:      common.MixedInt(cast.ToInt(params[`node_type`])),
+			NodeName:      params[`node_name`],
+			NodeKey:       params[`node_key`],
+			NodeParams:    work_flow.NodeParams{},
+			NodeInfoJson:  make(map[string]any),
+			NextNodeKey:   params[`next_node_key`],
+			LoopParentKey: params[`loop_parent_key`],
+		}
+		_ = tool.JsonDecodeUseNumber(params[`node_params`], &node.NodeParams)
+		if node.NodeKey == loopNodeKey {
+			loopNode = &node
+		}
+		nodeList = append(nodeList, node)
+	}
+	if loopNode == nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	//循环数组
+	loopTestParams := make([]common.LoopTestParams, 0)
+	if loopNode.NodeParams.Loop.LoopType == common.LoopTypeArray {
+		for _, loopField := range loopNode.NodeParams.Loop.LoopArrays {
+			findNode := work_flow.FindNodeByUseKey(nodeList, loopField.Value)
+			if findNode == nil {
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+				return
+			}
+			loopTestParams = append(loopTestParams, common.LoopTestParams{
+				NodeKey:  findNode.NodeKey,
+				NodeName: findNode.NodeName,
+				Field: common.SimpleField{
+					Sys:      false,
+					Key:      loopField.Value,
+					Typ:      loopField.Typ,
+					Vals:     make([]common.Val, 0),
+					Required: true,
+				},
+			})
+		}
+	}
+	childNodes := make([]work_flow.WorkFlowNode, 0)
+	for _, node := range nodeList {
+		if node.LoopParentKey == loopNode.NodeKey {
+			childNodes = append(childNodes, node)
+		}
+	}
+	//中间变量
+	for _, intermediateField := range loopNode.NodeParams.Loop.IntermediateParams {
+		if intermediateField.Key == `` {
+			continue
+		}
+		isUse := work_flow.FindKeyIsUse(childNodes, loopNode.NodeKey+`.`+intermediateField.Key)
+		if !isUse {
+			continue
+		}
+		loopTestParams = append(loopTestParams, common.LoopTestParams{
+			NodeKey:  loopNode.NodeKey,
+			NodeName: loopNode.NodeName,
+			Field: common.SimpleField{
+				Sys:      false,
+				Key:      intermediateField.Key,
+				Typ:      intermediateField.Typ,
+				Vals:     make([]common.Val, 0),
+				Required: false,
+			},
+		})
+	}
+	//是否需要问题
+	isNeedQuestion := work_flow.FindKeyIsUse(childNodes, `global.question`)
+	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{
+		`loop_test_params`: loopTestParams,
+		`is_need_question`: isNeedQuestion,
+	}, err))
 }

@@ -236,6 +236,8 @@ func init() {
 	noAuthFuns(Route[http.MethodPost], `/chat/welcome`, business.ChatWelcome)
 	noAuthFuns(Route[http.MethodPost], `/chat/request`, business.ChatRequest)
 	noAuthFuns(Route[http.MethodPost], `/chat/callWorkFlow`, business.CallWorkFlow)
+	noAuthFuns(Route[http.MethodPost], `/chat/callLoopWorkFlow`, business.CallLoopWorkFlow)
+	noAuthFuns(Route[http.MethodPost], `/chat/callLoopWorkFlowParams`, business.CallLoopWorkFlowParams)
 	noAuthFuns(Route[http.MethodPost], `/chat/checkChatRequestPermission`, business.CheckChatRequestPermission)
 	noAuthFuns(Route[http.MethodPost], `/chat/questionGuide`, business.ChatQuestionGuide)
 	/*model API*/

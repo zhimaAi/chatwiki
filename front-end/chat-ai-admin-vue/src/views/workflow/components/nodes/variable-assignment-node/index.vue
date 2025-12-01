@@ -135,7 +135,6 @@ const formState = reactive({
   list: []
 })
 
-const options = ref([])
 const valueOptions = ref([])
 
 const reset = () => {
@@ -149,7 +148,7 @@ const reset = () => {
   }
 
   getVlaueVariableList()
-  getOptions()
+
 
   fields.forEach((item) => {
     item.tags = item.tags || []
@@ -158,7 +157,7 @@ const reset = () => {
   formState.list = fields
 
   nextTick(() => {
-    resetSize()
+    update()
   })
 }
 
@@ -178,16 +177,6 @@ function getKeyValue(val) {
     return val.split('.')[1]
   }
   return ''
-}
-
-const getOptions = () => {
-  let globalVariable = getNode().getGlobalVariable()
-  let diy_global = globalVariable.diy_global || []
-  diy_global.forEach((item) => {
-    item.label = item.key
-    item.value = 'global.' + item.key
-  })
-  options.value = diy_global || []
 }
 const getVlaueVariableList = () => {
   let list = getNode().getAllParentVariable()

@@ -357,7 +357,8 @@ export class BaseVueNodeModel extends HtmlNodeModel {
       'problem-optimization-node',
       'select-data-node',
       'code-run-node',
-      'mcp-node'
+      'mcp-node',
+      'custom-group'
     ]
 
     let startNode = nodes.find((node) => node.type === 'start-node')
@@ -391,6 +392,17 @@ export class BaseVueNodeModel extends HtmlNodeModel {
     // 取出输出的变量
     let variableArr = []
 
+    if(this.properties.loop_parent_key){
+      // 如果当前节点在分组里面的话  需要获取到分组的变量
+      let groupNodes = nodes.find((node) => node.id == this.properties.loop_parent_key)
+      if(groupNodes){
+        let hasNode = parentNodes.filter(item => item.id == this.properties.loop_parent_key).length > 0
+        if(!hasNode){
+          parentNodes.push(groupNodes)
+        }
+      }
+    }
+
     for (const node of parentNodes) {
       // 如果节点类型既不是http-node也不是start-node，则跳过当前循环
       if (!nodeWhiteList.includes(node.type)) {
@@ -405,7 +417,8 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         node_id: node.id,
         node_type: node.properties.node_type,
         typ: 'node',
-        children: []
+        children: [],
+        loop_parent_key: node.properties.loop_parent_key,
       }
 
       if(node.type === 'http-node'){
@@ -424,10 +437,26 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         obj.children = [...node_params.start.diy_global, ...node_params.start.sys_global]
       }
 
+      if(node.type === 'custom-group'){
+        let loop_parent_key = this.properties.loop_parent_key   // 当前节点的父节点
+        if(loop_parent_key == node.id){
+          // 代表的是当前这个节点在循环节点中
+
+        obj.children = [
+          ...(node_params.loop?.intermediate_params || []),
+          ...(node_params.loop?.loop_arrays || [])
+        ]
+        
+        }else{
+          // 代表当前节点不在循环节点中
+          obj.children = node_params.loop.output
+        }
+      }
+
       if(node.type === 'select-data-node'){
         obj.children = [{
           key: 'output_list',
-          typ: 'Array(Object)',
+          typ: 'array<object>',
           name: 'output_list',
           label: 'output_list'
         },{

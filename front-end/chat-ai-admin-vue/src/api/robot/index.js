@@ -409,3 +409,17 @@ export const setWechatNotVerifyConfig = (data = {}) => {
     data: data
   })
 }
+
+export const callLoopWorkFlowParams = (data = {}) => {
+  return request.post({
+    url: '/chat/callLoopWorkFlowParams',
+    data: data
+  })
+}
+
+export const callLoopWorkFlow = (data = {}) => {
+  return request.post({
+    url: '/chat/callLoopWorkFlow',
+    data: data
+  })
+}

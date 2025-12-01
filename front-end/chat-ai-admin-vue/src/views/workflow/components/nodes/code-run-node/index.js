@@ -24,6 +24,19 @@ class VueHtmlNodeModel extends BaseVueNodeModel {
         return sourceAnchor.type === 'right' && !sourceAnchorIds.includes(sourceAnchorId)
       },
     }
+    const sourceRule02 = {
+      message: '分组里面的节点只能连接当前分组里面的节点,分组外面的节点只能连接分组外面的节点',
+      validate: (sourceNode, targetNode, sourceAnchor, targetAnchor) => {
+        if(sourceNode.properties.loop_parent_key){
+          return sourceNode.properties.loop_parent_key === targetNode.properties.loop_parent_key
+        }else{
+          if(targetNode.properties.loop_parent_key){
+            return false
+          }
+        }
+        return true
+      },
+    }
     // sourceRules - 当节点作为边的起始节点（source）时的校验规则
     this.sourceRules = [sourceRule01]
 
