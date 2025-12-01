@@ -1,0 +1,240 @@
+{
+    "nodes": [
+        {
+            "id": "2d7c6b5e0d3d61c305731a2c9d190cec",
+            "type": "start-node",
+            "x": 0,
+            "y": -52,
+            "properties": {
+                "data_type": "1",
+                "id": "56295",
+                "loop_parent_key": "",
+                "next_node_key": "7e54bc28d9efe55d278b1a95653f51f0",
+                "node_key": "2d7c6b5e0d3d61c305731a2c9d190cec",
+                "node_name": "流程开始",
+                "node_params": "{\"start\":{\"sys_global\":[{\"key\":\"question\",\"typ\":\"string\",\"required\":true,\"desc\":\"用户消息\"},{\"key\":\"openid\",\"typ\":\"string\",\"required\":true,\"desc\":\"用户openid\"}],\"diy_global\":[]},\"term\":[],\"cate\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"categorys\":[]},\"curl\":{\"method\":\"\",\"rawurl\":\"\",\"headers\":[],\"params\":[],\"type\":0,\"body\":[],\"body_raw\":\"\",\"timeout\":0,\"output\":[]},\"libs\":{\"library_ids\":\"\",\"search_type\":0,\"top_k\":0,\"similarity\":0,\"rerank_status\":0,\"rerank_model_config_id\":0,\"rerank_use_model\":\"\",\"question_value\":\"\"},\"llm\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\",\"libs_node_key\":\"\"},\"assign\":[],\"reply\":{\"content\":\"\"},\"manual\":{\"switch_type\":0,\"switch_staff\":\"\",\"switch_content\":\"\"},\"question_optimize\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\"},\"params_extractor\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\",\"output\":[]},\"form_insert\":{\"form_id\":0,\"datas\":[]},\"form_delete\":{\"form_id\":0,\"typ\":0,\"where\":[]},\"form_update\":{\"form_id\":0,\"typ\":0,\"where\":[],\"datas\":[]},\"form_select\":{\"form_id\":0,\"typ\":0,\"where\":[],\"fields\":[],\"order\":[],\"limit\":0},\"code_run\":{\"params\":[],\"main_func\":\"\",\"timeout\":0,\"output\":[],\"exception\":\"\"},\"mcp\":{\"provider_id\":0,\"tool_name\":\"\",\"arguments\":null,\"output\":\"\"},\"loop\":{\"loop_type\":\"\",\"loop_arrays\":null,\"loop_number\":0,\"intermediate_params\":null,\"output\":null},\"plugin\":{\"name\":\"\",\"type\":\"\",\"params\":null,\"output\":\"\"}}",
+                "node_type": "1",
+                "type": "start-node",
+                "nodeSortKey": "2d7c6b5e9d190cec",
+                "dataRaw": "{\"start\":{\"sys_global\":[{\"key\":\"question\",\"typ\":\"string\",\"required\":true,\"desc\":\"用户消息\"},{\"key\":\"openid\",\"typ\":\"string\",\"required\":true,\"desc\":\"用户openid\"}],\"diy_global\":[]},\"term\":[],\"cate\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"categorys\":[]},\"curl\":{\"method\":\"\",\"rawurl\":\"\",\"headers\":[],\"params\":[],\"type\":0,\"body\":[],\"body_raw\":\"\",\"timeout\":0,\"output\":[]},\"libs\":{\"library_ids\":\"\",\"search_type\":0,\"top_k\":0,\"similarity\":0,\"rerank_status\":0,\"rerank_model_config_id\":0,\"rerank_use_model\":\"\",\"question_value\":\"\"},\"llm\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\",\"libs_node_key\":\"\"},\"assign\":[],\"reply\":{\"content\":\"\"},\"manual\":{\"switch_type\":0,\"switch_staff\":\"\",\"switch_content\":\"\"},\"question_optimize\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\"},\"params_extractor\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\",\"output\":[]},\"form_insert\":{\"form_id\":0,\"datas\":[]},\"form_delete\":{\"form_id\":0,\"typ\":0,\"where\":[]},\"form_update\":{\"form_id\":0,\"typ\":0,\"where\":[],\"datas\":[]},\"form_select\":{\"form_id\":0,\"typ\":0,\"where\":[],\"fields\":[],\"order\":[],\"limit\":0},\"code_run\":{\"params\":[],\"main_func\":\"\",\"timeout\":0,\"output\":[],\"exception\":\"\"},\"mcp\":{\"provider_id\":0,\"tool_name\":\"\",\"arguments\":null,\"output\":\"\"},\"loop\":{\"loop_type\":\"\",\"loop_arrays\":null,\"loop_number\":0,\"intermediate_params\":null,\"output\":null},\"plugin\":{\"name\":\"\",\"type\":\"\",\"params\":null,\"output\":\"\"}}",
+                "width": 420,
+                "height": 102,
+                "node_icon_name": "start-node"
+            }
+        },
+        {
+            "id": "7e54bc28d9efe55d278b1a95653f51f0",
+            "type": "update-data-node",
+            "x": 500,
+            "y": -78,
+            "properties": {
+                "data_type": "1",
+                "id": "56296",
+                "loop_parent_key": "",
+                "next_node_key": "2aa76f5690bd0bf042d09a35cc14598e",
+                "node_key": "7e54bc28d9efe55d278b1a95653f51f0",
+                "node_name": "更新数据2",
+                "node_params": "{\"form_update\":{\"form_name\":\"\",\"form_description\":\"\",\"form_id\":\"\",\"typ\":1,\"datas\":[],\"where\":[]}}",
+                "node_type": "15",
+                "type": "update-data-node",
+                "nodeSortKey": "7e54bc28653f51f0",
+                "dataRaw": "{\"form_update\":{\"form_name\":\"\",\"form_description\":\"\",\"form_id\":\"\",\"typ\":1,\"datas\":[],\"where\":[]}}",
+                "width": 420,
+                "height": 154,
+                "node_icon_name": "data-node"
+            }
+        },
+        {
+            "id": "2aa76f5690bd0bf042d09a35cc14598e",
+            "type": "custom-group",
+            "x": 869.25,
+            "y": 250,
+            "properties": {
+                "data_type": "1",
+                "id": "56297",
+                "loop_parent_key": "",
+                "next_node_key": "b1339a278b70696eb2928898cacfd59f",
+                "node_key": "2aa76f5690bd0bf042d09a35cc14598e",
+                "node_name": "循环",
+                "node_params": "{\"loop\":{\"loop_type\":\"array\",\"loop_number\":\"\",\"loop_arrays\":[],\"intermediate_params\":[],\"output\":[]}}",
+                "node_type": "25",
+                "type": "custom-group",
+                "nodeSortKey": "2aa76f56cc14598e",
+                "dataRaw": "{\"loop\":{\"loop_type\":\"array\",\"loop_number\":\"\",\"loop_arrays\":[],\"intermediate_params\":[],\"output\":[]}}",
+                "width": 1336,
+                "height": 406,
+                "node_icon_name": "custom-group-node",
+                "isCollapsed": false,
+                "transformWithContainer": true,
+                "loop_type": "array",
+                "loop_number": "",
+                "loop_arrays": [],
+                "intermediate_params": [],
+                "output": [],
+                "children": [
+                    "6aca67d79aa66cedd08baeca1a589be2"
+                ]
+            },
+            "children": [
+                "6aca67d79aa66cedd08baeca1a589be2"
+            ]
+        },
+        {
+            "id": "6aca67d79aa66cedd08baeca1a589be2",
+            "type": "group-start-node",
+            "x": 627,
+            "y": 270,
+            "properties": {
+                "data_type": "1",
+                "id": "56298",
+                "loop_parent_key": "2aa76f5690bd0bf042d09a35cc14598e",
+                "next_node_key": "",
+                "node_key": "6aca67d79aa66cedd08baeca1a589be2",
+                "node_name": "循环开始",
+                "node_params": "{\"start\":{\"sys_global\":[],\"diy_global\":[]},\"term\":[],\"cate\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"categorys\":[]},\"curl\":{\"method\":\"\",\"rawurl\":\"\",\"headers\":[],\"params\":[],\"type\":0,\"body\":[],\"body_raw\":\"\",\"timeout\":0,\"output\":[]},\"libs\":{\"library_ids\":\"\",\"search_type\":0,\"top_k\":0,\"similarity\":0,\"rerank_status\":0,\"rerank_model_config_id\":0,\"rerank_use_model\":\"\",\"question_value\":\"\"},\"llm\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\",\"libs_node_key\":\"\"},\"assign\":[],\"reply\":{\"content\":\"\"},\"manual\":{\"switch_type\":0,\"switch_staff\":\"\",\"switch_content\":\"\"},\"question_optimize\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\"},\"params_extractor\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\",\"output\":[]},\"form_insert\":{\"form_id\":0,\"datas\":[]},\"form_delete\":{\"form_id\":0,\"typ\":0,\"where\":[]},\"form_update\":{\"form_id\":0,\"typ\":0,\"where\":[],\"datas\":[]},\"form_select\":{\"form_id\":0,\"typ\":0,\"where\":[],\"fields\":[],\"order\":[],\"limit\":0},\"code_run\":{\"params\":[],\"main_func\":\"\",\"timeout\":0,\"output\":[],\"exception\":\"\"},\"mcp\":{\"provider_id\":0,\"tool_name\":\"\",\"arguments\":null,\"output\":\"\"},\"loop\":{\"loop_type\":\"\",\"loop_arrays\":null,\"loop_number\":0,\"intermediate_params\":null,\"output\":null},\"plugin\":{\"name\":\"\",\"type\":\"\",\"params\":null,\"output\":\"\"}}",
+                "node_type": "27",
+                "type": "group-start-node",
+                "nodeSortKey": "6aca67d71a589be2",
+                "dataRaw": "{\"start\":{\"sys_global\":[],\"diy_global\":[]},\"term\":[],\"cate\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"categorys\":[]},\"curl\":{\"method\":\"\",\"rawurl\":\"\",\"headers\":[],\"params\":[],\"type\":0,\"body\":[],\"body_raw\":\"\",\"timeout\":0,\"output\":[]},\"libs\":{\"library_ids\":\"\",\"search_type\":0,\"top_k\":0,\"similarity\":0,\"rerank_status\":0,\"rerank_model_config_id\":0,\"rerank_use_model\":\"\",\"question_value\":\"\"},\"llm\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\",\"libs_node_key\":\"\"},\"assign\":[],\"reply\":{\"content\":\"\"},\"manual\":{\"switch_type\":0,\"switch_staff\":\"\",\"switch_content\":\"\"},\"question_optimize\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\"},\"params_extractor\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\",\"output\":[]},\"form_insert\":{\"form_id\":0,\"datas\":[]},\"form_delete\":{\"form_id\":0,\"typ\":0,\"where\":[]},\"form_update\":{\"form_id\":0,\"typ\":0,\"where\":[],\"datas\":[]},\"form_select\":{\"form_id\":0,\"typ\":0,\"where\":[],\"fields\":[],\"order\":[],\"limit\":0},\"code_run\":{\"params\":[],\"main_func\":\"\",\"timeout\":0,\"output\":[],\"exception\":\"\"},\"mcp\":{\"provider_id\":0,\"tool_name\":\"\",\"arguments\":null,\"output\":\"\"},\"loop\":{\"loop_type\":\"\",\"loop_arrays\":null,\"loop_number\":0,\"intermediate_params\":null,\"output\":null},\"plugin\":{\"name\":\"\",\"type\":\"\",\"params\":null,\"output\":\"\"}}",
+                "width": 200,
+                "height": 72,
+                "node_icon_name": "start-node"
+            }
+        },
+        {
+            "id": "b1339a278b70696eb2928898cacfd59f",
+            "type": "end-node",
+            "x": 1912,
+            "y": -42,
+            "properties": {
+                "data_type": "1",
+                "id": "56299",
+                "loop_parent_key": "",
+                "next_node_key": "",
+                "node_key": "b1339a278b70696eb2928898cacfd59f",
+                "node_name": "结束流程",
+                "node_params": "{\"start\":{\"sys_global\":[],\"diy_global\":[]},\"term\":[],\"cate\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"categorys\":[]},\"curl\":{\"method\":\"\",\"rawurl\":\"\",\"headers\":[],\"params\":[],\"type\":0,\"body\":[],\"body_raw\":\"\",\"timeout\":0,\"output\":[]},\"libs\":{\"library_ids\":\"\",\"search_type\":0,\"top_k\":0,\"similarity\":0,\"rerank_status\":0,\"rerank_model_config_id\":0,\"rerank_use_model\":\"\",\"question_value\":\"\"},\"llm\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\",\"libs_node_key\":\"\"},\"assign\":[],\"reply\":{\"content\":\"\"},\"manual\":{\"switch_type\":0,\"switch_staff\":\"\",\"switch_content\":\"\"},\"question_optimize\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\"},\"params_extractor\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\",\"output\":[]},\"form_insert\":{\"form_id\":0,\"datas\":[]},\"form_delete\":{\"form_id\":0,\"typ\":0,\"where\":[]},\"form_update\":{\"form_id\":0,\"typ\":0,\"where\":[],\"datas\":[]},\"form_select\":{\"form_id\":0,\"typ\":0,\"where\":[],\"fields\":[],\"order\":[],\"limit\":0},\"code_run\":{\"params\":[],\"main_func\":\"\",\"timeout\":0,\"output\":[],\"exception\":\"\"},\"mcp\":{\"provider_id\":0,\"tool_name\":\"\",\"arguments\":null,\"output\":\"\"},\"loop\":{\"loop_type\":\"\",\"loop_arrays\":null,\"loop_number\":0,\"intermediate_params\":null,\"output\":null},\"plugin\":{\"name\":\"\",\"type\":\"\",\"params\":null,\"output\":\"\"}}",
+                "node_type": "7",
+                "type": "end-node",
+                "nodeSortKey": "b1339a27cacfd59f",
+                "dataRaw": "{\"start\":{\"sys_global\":[],\"diy_global\":[]},\"term\":[],\"cate\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"categorys\":[]},\"curl\":{\"method\":\"\",\"rawurl\":\"\",\"headers\":[],\"params\":[],\"type\":0,\"body\":[],\"body_raw\":\"\",\"timeout\":0,\"output\":[]},\"libs\":{\"library_ids\":\"\",\"search_type\":0,\"top_k\":0,\"similarity\":0,\"rerank_status\":0,\"rerank_model_config_id\":0,\"rerank_use_model\":\"\",\"question_value\":\"\"},\"llm\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\",\"libs_node_key\":\"\"},\"assign\":[],\"reply\":{\"content\":\"\"},\"manual\":{\"switch_type\":0,\"switch_staff\":\"\",\"switch_content\":\"\"},\"question_optimize\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\"},\"params_extractor\":{\"model_config_id\":0,\"use_model\":\"\",\"context_pair\":0,\"enable_thinking\":false,\"temperature\":0,\"max_token\":0,\"prompt\":\"\",\"question_value\":\"\",\"output\":[]},\"form_insert\":{\"form_id\":0,\"datas\":[]},\"form_delete\":{\"form_id\":0,\"typ\":0,\"where\":[]},\"form_update\":{\"form_id\":0,\"typ\":0,\"where\":[],\"datas\":[]},\"form_select\":{\"form_id\":0,\"typ\":0,\"where\":[],\"fields\":[],\"order\":[],\"limit\":0},\"code_run\":{\"params\":[],\"main_func\":\"\",\"timeout\":0,\"output\":[],\"exception\":\"\"},\"mcp\":{\"provider_id\":0,\"tool_name\":\"\",\"arguments\":null,\"output\":\"\"},\"loop\":{\"loop_type\":\"\",\"loop_arrays\":null,\"loop_number\":0,\"intermediate_params\":null,\"output\":null},\"plugin\":{\"name\":\"\",\"type\":\"\",\"params\":null,\"output\":\"\"}}",
+                "width": 420,
+                "height": 94,
+                "node_icon_name": "end-node"
+            }
+        }
+    ],
+    "edges": [
+        {
+            "id": "50ddfc6b2b4d02d5eda05b82352527ec",
+            "type": "custom-bezier-edge",
+            "properties": {
+                "offset": 109
+            },
+            "sourceNodeId": "2d7c6b5e0d3d61c305731a2c9d190cec",
+            "targetNodeId": "7e54bc28d9efe55d278b1a95653f51f0",
+            "sourceAnchorId": "2d7c6b5e9d190cec-anchor_right",
+            "targetAnchorId": "7e54bc28653f51f0-anchor_left",
+            "startPoint": {
+                "x": 210,
+                "y": -78
+            },
+            "endPoint": {
+                "x": 290,
+                "y": -131
+            },
+            "pointsList": [
+                {
+                    "x": 210,
+                    "y": -78
+                },
+                {
+                    "x": 319,
+                    "y": -78
+                },
+                {
+                    "x": 181,
+                    "y": -131
+                },
+                {
+                    "x": 290,
+                    "y": -131
+                }
+            ]
+        },
+        {
+            "id": "aaed151d666439f892aa14705759488b",
+            "type": "custom-bezier-edge",
+            "properties": {
+                "offset": 175
+            },
+            "sourceNodeId": "7e54bc28d9efe55d278b1a95653f51f0",
+            "targetNodeId": "2aa76f5690bd0bf042d09a35cc14598e",
+            "sourceAnchorId": "7e54bc28653f51f0-anchor_right",
+            "targetAnchorId": "2aa76f56cc14598e-anchor_left",
+            "startPoint": {
+                "x": 710,
+                "y": -130
+            },
+            "endPoint": {
+                "x": 201.25,
+                "y": 75
+            },
+            "pointsList": [
+                {
+                    "x": 710,
+                    "y": -130
+                },
+                {
+                    "x": 885,
+                    "y": -130
+                },
+                {
+                    "x": 26.25,
+                    "y": 75
+                },
+                {
+                    "x": 201.25,
+                    "y": 75
+                }
+            ]
+        },
+        {
+            "id": "7c54fc266288b816bf039e6b2b96fdb0",
+            "type": "custom-bezier-edge",
+            "properties": {
+                "offset": 75
+            },
+            "sourceNodeId": "2aa76f5690bd0bf042d09a35cc14598e",
+            "targetNodeId": "b1339a278b70696eb2928898cacfd59f",
+            "sourceAnchorId": "2aa76f56cc14598e-anchor_right",
+            "targetAnchorId": "b1339a27cacfd59f-anchor_left",
+            "startPoint": {
+                "x": 1537.25,
+                "y": 75
+            },
+            "endPoint": {
+                "x": 1702,
+                "y": -65
+            },
+            "pointsList": [
+                {
+                    "x": 1537.25,
+                    "y": 75
+                },
+                {
+                    "x": 1612.25,
+                    "y": 75
+                },
+                {
+                    "x": 1627,
+                    "y": -65
+                },
+                {
+                    "x": 1702,
+                    "y": -65
+                }
+            ]
+        }
+    ]
+}

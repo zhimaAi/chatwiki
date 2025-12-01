@@ -111,7 +111,6 @@
       </div>
     </div>
   </NodeFormLayout>
-  
 </template>
 
 <script setup>
@@ -125,6 +124,14 @@ const props = defineProps({
   node: {
     type: Object,
     default: () => ({})
+  },
+  nodeId: {
+    type: String,
+    default: ''
+  },
+  lf: {
+    type: Object,
+    default: null
   }
 })
 
@@ -142,8 +149,29 @@ const variableOptions = ref([])
 
 function getOptions() {
   let list = getNode().getAllParentVariable()
+  const nodeModel = props.lf.getNodeModelById(props.nodeId)
+  let loop_parent_key = nodeModel.properties.loop_parent_key
+  let result = handleOptions(list)
+  if (loop_parent_key) {
+    list = list.filter((item) => item.node_type != '25')
+    result = handleOptions(list)
+    const gropModel = props.lf.getNodeModelById(loop_parent_key)
+    if (gropModel) {
+      result = [
+        ...result,
+        {
+          label: gropModel.properties.node_name,
+          node_id: gropModel.id,
+          node_type: gropModel.properties.node_type,
+          typ: 'node',
+          value: gropModel.id,
+          children: handleIntermediateOption(gropModel.properties.intermediate_params, gropModel)
+        }
+      ]
+    }
+  }
 
-  variableOptions.value = handleOptions(list)
+  variableOptions.value = result
 }
 
 // 递归处理Options
@@ -165,6 +193,31 @@ function handleOptions(options) {
   })
 
   return options
+}
+
+function handleIntermediateOption(options, gropModel) {
+  let result = []
+
+  if (options && options.length) {
+    options.forEach((item) => {
+      if (item.key) {
+        result.push({
+          id: gropModel.id,
+          key: item.key,
+          value: item.key,
+          label: item.key,
+          node_id: gropModel.id,
+          node_name: gropModel.properties.node_name,
+          node_type: gropModel.properties.node_type,
+          original_value: gropModel.id + '.' + item.key,
+          text: item.key,
+          typ: item.typ
+        })
+      }
+    })
+  }
+
+  return result
 }
 
 const onDropdownVisibleChange = (visible) => {
@@ -249,7 +302,7 @@ const update = () => {
     term,
     node_params: JSON.stringify({
       term: term
-    }),
+    })
   })
 }
 
@@ -413,7 +466,7 @@ watch(
 onMounted(() => {
   getOptions()
 
-  init();
+  init()
 })
 </script>
 
@@ -455,7 +508,7 @@ onMounted(() => {
       display: flex;
       gap: 4px;
 
-      .btn-hover-wrap{
+      .btn-hover-wrap {
         width: 28px;
       }
     }

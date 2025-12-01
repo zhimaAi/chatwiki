@@ -80,7 +80,7 @@
 import { getNodeList, saveNodes, getDraftKey } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
 import { generateUniqueId, duplicateRemoval, removeRepeat } from '@/utils/index'
-import { onMounted, ref, onUnmounted, watch } from 'vue'
+import { onMounted, ref, onUnmounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
@@ -105,6 +105,17 @@ const robotStore = useRobotStore()
 const currentVersion = ref('')
 const currentVersionData = ref('')
 const pageHeaderRef = ref(null)
+
+const loop_save_canvas_status = computed(()=>{
+  return robotStore.robotInfo.loop_save_canvas_status
+})
+
+watch(loop_save_canvas_status, (val) => {
+  // 在循环节点里面打开 运行测试 保存一下草稿
+  if(val > 0){
+    handleSave('automatic')
+  }
+})
 
 // const nodes = []
 const nodeTypes = getNodeTypes()
@@ -340,10 +351,12 @@ async function checkEditLock () {
     lockRemoteAddr.value = data.remote_addr || ''
     lockUserAgent.value = data.user_agent || ''
     loginUserName.value = data.login_user_name || ''
+    robotStore.setIsLockedByOther(isLockedByOther.value)
     updateAutoSaveTimer()
   } catch (e) {
     // 接口异常时默认不锁定，避免阻断编辑
     isLockedByOther.value = false
+    robotStore.setIsLockedByOther(isLockedByOther.value)
   }
 }
 
@@ -357,6 +370,7 @@ async function acquireEditLock () {
       lockRemoteAddr.value = ''
       lockUserAgent.value = ''
       loginUserName.value = ''
+      robotStore.setIsLockedByOther(isLockedByOther.value)
       return true
     }
     // 他人占用
@@ -364,10 +378,12 @@ async function acquireEditLock () {
     lockRemoteAddr.value = data.remote_addr || ''
     lockUserAgent.value = data.user_agent || ''
     loginUserName.value = data.login_user_name || ''
+    robotStore.setIsLockedByOther(isLockedByOther.value)
     return false
   } catch (e) {
     // 异常时默认允许进入编辑（可根据需要改为严格模式）
     isLockedByOther.value = false
+    robotStore.setIsLockedByOther(isLockedByOther.value)
     return true
   }
 }
@@ -431,11 +447,12 @@ function getNode (list) {
       // 删除不要的参数
       delete item.node_info_json
 
+      node.loop_parent_key = item.loop_parent_key // 父节点id
+
       // 设置 properties
       node.properties = item
       node.properties.width = node.width
       node.properties.height = node.height
-
       nodes.push(node)
     }
   })
@@ -503,7 +520,6 @@ const getCanvasData = () => {
     // 关联next_node_key
     obj.next_node_key = edgeMap[obj.nodeSortKey + '-anchor_right'] || ''
     obj.prev_node_key = edgeMap[obj.nodeSortKey + '-anchor_left'] || ''
-
 
     let node_params = JSON.parse(obj.node_params)
     if (obj.node_type == 2) {
@@ -799,20 +815,24 @@ const handleRelease = async () => {
       // 跳过
       continue
     }
+    if(!node.loop_parent_key){
+      // 分组里面的不用校验
+      if (node.node_type == 1) {
+        if (node.next_node_key == '') {
+          errorNodes.push(node)
+        }
+      } else if (node.node_type == 7 || node.node_type == 3) {
+        if (node.prev_node_key == '') {
+          errorNodes.push(node)
+        }
+      } else {
+        if (node.next_node_key == '' || node.prev_node_key == '') {
+          errorNodes.push(node)
+        }
+      }
 
-    if (node.node_type == 1) {
-      if (node.next_node_key == '') {
-        errorNodes.push(node)
-      }
-    } else if (node.node_type == 7 || node.node_type == 3) {
-      if (node.prev_node_key == '') {
-        errorNodes.push(node)
-      }
-    } else {
-      if (node.next_node_key == '' || node.prev_node_key == '') {
-        errorNodes.push(node)
-      }
     }
+
   }
 
   if (errorNodes.length > 0) {

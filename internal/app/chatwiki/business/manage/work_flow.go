@@ -209,17 +209,18 @@ func SaveNodes(c *gin.Context) {
 	}
 	for _, node := range nodeList {
 		_, err = m.Insert(msql.Datas{
-			`admin_user_id`:  userId,
-			`data_type`:      dataType,
-			`robot_id`:       robot[`id`],
-			`node_type`:      node.NodeType,
-			`node_name`:      node.NodeName,
-			`node_key`:       node.NodeKey,
-			`node_params`:    tool.JsonEncodeNoError(node.NodeParams),
-			`node_info_json`: tool.JsonEncodeNoError(node.NodeInfoJson),
-			`next_node_key`:  node.NextNodeKey,
-			`create_time`:    tool.Time2Int(),
-			`update_time`:    tool.Time2Int(),
+			`admin_user_id`:   userId,
+			`data_type`:       dataType,
+			`robot_id`:        robot[`id`],
+			`node_type`:       node.NodeType,
+			`node_name`:       node.NodeName,
+			`node_key`:        node.NodeKey,
+			`node_params`:     tool.JsonEncodeNoError(node.NodeParams),
+			`node_info_json`:  tool.JsonEncodeNoError(node.NodeInfoJson),
+			`next_node_key`:   node.NextNodeKey,
+			`loop_parent_key`: node.LoopParentKey,
+			`create_time`:     tool.Time2Int(),
+			`update_time`:     tool.Time2Int(),
 		})
 		if err != nil {
 			_ = m.Rollback()

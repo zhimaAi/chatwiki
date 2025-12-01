@@ -19,7 +19,6 @@ export class CanvasHistory {
     const graphData = this.lf.getGraphData()
     const selectElements = this.lf.getSelectElements(true)
     let selectedElementIds = [...selectElements.nodes, ...selectElements.edges].map(item => item.id)
-
     return {
       nodes: JSON.parse(JSON.stringify(graphData.nodes || [])),
       edges: JSON.parse(JSON.stringify(graphData.edges || [])),
@@ -96,6 +95,11 @@ export class CanvasHistory {
       // 清空当前画布
       this.lf.clearSelectElements()
       this.lf.clearData()
+
+      state.nodes.forEach(item => {
+        item.width = item.properties.width
+        item.height = item.properties.height
+      })
 
       this.lf.graphModel.graphDataToModel({
         nodes: state.nodes || [],

@@ -70,6 +70,7 @@ type ChatRequestParam struct {
 	IsClose              *bool
 	WorkFlowGlobal       map[string]any
 	QuoteLib             bool
+	LoopTestParams       []any
 }
 
 type DocSplitItem struct {

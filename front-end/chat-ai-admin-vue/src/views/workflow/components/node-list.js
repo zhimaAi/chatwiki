@@ -91,6 +91,24 @@ export const nodeList = [
   },
   {
     id: '',
+    groupKey: 'start',
+    type: 'group-start-node',
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 42,
+    hidden: true,
+    properties: {
+      ...getRowData(),
+      node_type: 27,
+      node_name: '循环开始',
+      node_icon: getNodeIconUrl('start-node'),
+      node_icon_name: 'start-node',
+      node_params: JSON.stringify({})
+    }
+  },
+  {
+    id: '',
     groupKey: 'execute-action',
     type: 'specify-reply-node',
     width: 420,
@@ -179,6 +197,21 @@ export const nodeList = [
   },
   {
     id: '',
+    groupKey: 'end',
+    type: 'terminate-node',
+    width: 420,
+    height: 94,
+    properties: {
+      ...getRowData(),
+      node_type: 26,
+      node_name: '终止循环',
+      node_icon: getNodeIconUrl('end-node'),
+      node_icon_name: 'end-node',
+      node_params: JSON.stringify({})
+    }
+  },
+  {
+    id: '',
     groupKey: 'other',
     type: 'explain-node',
     width: 420,
@@ -214,6 +247,29 @@ export const nodeList = [
             value: ''
           }
         ]
+      })
+    }
+  },
+  {
+    id: '',
+    groupKey: 'processing-logic',
+    type: 'custom-group',
+    width: 600,
+    height: 300,
+    properties: {
+      ...getRowData(),
+      node_type: 25,
+      node_name: '循环',
+      node_icon: getNodeIconUrl('custom-group-node'),
+      node_icon_name: 'custom-group-node',
+      node_params: JSON.stringify({
+        loop:{
+          loop_type: 'array',
+          loop_arrays: [],
+          loop_number: '',
+          intermediate_params: [],
+          output: [],
+        }
       })
     }
   },
@@ -546,7 +602,7 @@ export const nodeList = [
       ...getRowData(),
       node_type: 21,
       node_name: '',
-      node_icon: '',
+      node_icon: 'https://xkf-upload.oss-cn-hangzhou.aliyuncs.com/dev/p/chat_wiki_plugin/1/0/202511/56/364f850087bd429286e8c1bfa87f2a.jpg',
       node_icon_name: '',
       node_params: JSON.stringify({
         plugin: {
@@ -577,7 +633,15 @@ export const getAllGroupNodes = (type) => {
     if (node.type === 'explain-node' && type === 'node') {
       return
     }
-
+    if (type == 'loop-node'){
+      if(node.type == 'custom-group' || node.type == 'end-node') {
+        return
+      }
+    } else {
+      if (node.type == 'terminate-node') {
+        return
+      }
+    }
     if (node.groupKey && nodesGroupMap[node.groupKey]) {
       nodesGroupMap[node.groupKey].nodes.push(node)
     }

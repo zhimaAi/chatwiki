@@ -6,7 +6,6 @@
 }
 /* 针对节点内容的foreignObject添加阴影 */
 
-
 .logic-flow-container {
   width: 100%;
   height: 100%;
@@ -95,14 +94,14 @@
 <script setup>
 import '@logicflow/core/lib/style/index.css'
 import '@logicflow/extension/lib/style/index.css'
-import { onMounted, ref, onUnmounted, h } from 'vue'
+import { onMounted, ref, onUnmounted, h, nextTick } from 'vue'
 import { useStorage } from '@/hooks/web/useStorage'
-import { Modal, Checkbox } from 'ant-design-vue'
+import { Modal, Checkbox, message } from 'ant-design-vue'
 import CustomControl from './custom-control/index.vue'
 import NodeFormDrawer from './node-form-drawer/index.vue'
 import { generateUniqueId } from '@/utils/index'
 import LogicFlow from '@logicflow/core'
-import { DndPanel, MiniMap, SelectionSelect } from '@logicflow/extension'
+import { DndPanel, MiniMap, SelectionSelect, DynamicGroup } from '@logicflow/extension'
 import { Dagre } from "@logicflow/layout";
 import { register, getTeleport } from '@logicflow/vue-node-registry'
 import { getNodesMap } from './node-list'
@@ -133,6 +132,9 @@ import zmPluginsNode from "./nodes/zm-plugins-node/index.js";
 import { ContextPad } from './plugins/context-pad/index.js'
 import { CanvasHistory } from './plugins/canvas-history/index.js'
 import { CustomKeyboard } from './plugins/custom-keyboard/index.js'
+import customGroupNode from './nodes/custom-group-node/index.js'
+import groupStartNode from './nodes/group-start-node/index.js'
+import terminateMode from './nodes/terminate-node/index.js'
 
 const emit = defineEmits(['selectNode', 'onDeleteNode', 'onDeleteEdge', 'runTest', 'blankClick'])
 
@@ -150,7 +152,8 @@ const selectedElements = ref([]) // 用于存储当前“选中元素”
 
 
 const canvasData = {
-  nodes: []
+  nodes: [
+  ]
 }
 
 const miniMapOptions = {
@@ -200,6 +203,7 @@ function initLogicFlow() {
         SelectionSelect, 
         CanvasHistory, 
         CustomKeyboard, 
+        DynamicGroup,
         Dagre
       ],
       pluginsOptions: {
@@ -240,6 +244,7 @@ function initLogicFlow() {
     register(aiDialogueNode, lf)
     register(knowledgeBaseNode, lf)
     register(endNode, lf)
+    register(terminateMode, lf)
     register(explainNode, lf)
     register(judgeNode, lf)
     register(variableAssignmentNode, lf)
@@ -254,6 +259,10 @@ function initLogicFlow() {
     register(mcpNode, lf)
     register(zmPluginsNode, lf)
 
+    register(customGroupNode, lf)
+    register(groupStartNode, lf)
+    register(terminateMode, lf)
+
     // lf.setDefaultEdgeType('custom-edge')
     lf.setDefaultEdgeType('custom-bezier-edge')
 
@@ -263,20 +272,48 @@ function initLogicFlow() {
 
     // 设置托拽节点时的zIndex
     let dragNodeZIndex = 1
+    let nodeChildren = []
 
     lf.on('node:dragstart', ({ data }) => {
       let node = lf.graphModel.getElement(data.id)
-
       dragNodeZIndex = node.zIndex
-
-      node.setZIndex(999999)
+      nodeChildren = []
+      let nodeGroup = lf.graphModel.dynamicGroup.getGroupByNodeId(data.id)
+      if(nodeGroup){
+        nodeGroup.properties.width = nodeGroup._width
+        nodeGroup.properties.height = nodeGroup._height
+      }else{
+        if(!node.properties.loop_parent_key){
+          // 如果是非分组路面的节点  禁止拖到分组里面去
+          node.properties.disabled_add_group = true
+        }
+      }
+      if(data.type == 'custom-group'){
+        nodeChildren = node.children || []
+        nodeChildren.forEach(item => {
+          let nodeModel = lf.getNodeModelById(item);
+          nodeModel.setZIndex(99)
+        })
+      }else{
+        node.setZIndex(999999)
+      }
+      node.refreshBranch()
     })
 
     // 恢复托拽节点的zIndex
     lf.on('node:drop', ({ data }) => {
       let node = lf.graphModel.getElement(data.id)
-
+      let nodeGroup = lf.graphModel.dynamicGroup.getGroupByNodeId(data.id)
+      if(nodeGroup){
+        nodeGroup.refreshBranch()
+      }
       node.setZIndex(dragNodeZIndex)
+      if(nodeChildren.length){
+        nodeChildren.forEach(item => {
+          let nodeModel = lf.getNodeModelById(item);
+          nodeModel.setZIndex(1)
+        })
+      }
     })
 
     // 节点拖拽时动态调整边的offset
@@ -322,6 +359,22 @@ function initLogicFlow() {
       onCustomAddNode(options)
     })
 
+    lf.on('custom:addGroupNode', ({data, group_id}) => {
+      onCustomAddGroupNode(data ,group_id)
+    })
+
+    lf.on('group:add-node', ({ data, childId }) => {
+      const childModel = lf.getNodeModelById(childId);
+      const groupModel = lf.getNodeModelById(data.id);
+      if(!childModel.properties.loop_parent_key){
+        // 移除
+        console.log('移除')
+        // groupModel.removeChild(childId);
+      }
+      // 可以在这里执行自定义逻辑，比如更新UI状态
+      // updateGroupInfo(data.id, childId, 'add')
+    })
+    
     // 元素点击
     lf.on('element:click', (e) => {
       selectedElements.value = [e.data]
@@ -447,6 +500,21 @@ const setData = (data) => {
   if (history) {
     history.setInitialState(data)
   }
+  handleSetNodeToGroup(data.nodes) // 给节点增加绑定关系
+}
+
+const handleSetNodeToGroup = (nodes)=>{
+  nextTick(()=>{
+    nodes.forEach((node) => {
+    if(node.loop_parent_key){
+        const groupModel = lf.getNodeModelById(node.loop_parent_key);
+        if(groupModel){
+          groupModel.addChild(node.id)
+          lf.graphModel.dynamicGroup.sendNodeToFront(groupModel);
+        }
+      }
+    })
+  })
 }
 
 // 自定义添加节点
@@ -493,6 +561,12 @@ const createNodeInfo = (options) => {
     // === 从锚点添加 ===
       data.x = anchorData.x + data.width + 100;
       data.y = anchorData.y + data.height / 2 - 24;
+      let nodeGroup = lf.graphModel.dynamicGroup.getGroupByNodeId(anchorData.nodeId)
+      if(!nodeGroup){
+        data.properties.disabled_add_group = true
+      }else{
+        data.properties.loop_parent_key = nodeGroup.id
+      }
     } else {
       // === 默认（点击）添加，放在画布中心 ===
       const { transformModel } = lf.graphModel;
@@ -502,6 +576,7 @@ const createNodeInfo = (options) => {
       ]);
       data.x = point[0];
       data.y = point[1];
+      data.properties.disabled_add_group = true // 从底部按钮添加的 禁止添加进入分组
     }
   }
   return data;
@@ -524,6 +599,26 @@ const onCustomAddNode = (options) => {
 
   let node = lf.addNode(nodeData)
 
+  if (node.type == 'custom-group') {
+    setTimeout(() => {
+      onCustomAddGroupNode(
+        {
+          node: {
+            type: 'group-start-node',
+            with: 200,
+            properties: {
+              node_type: 27,
+              node_name: '循环开始',
+              node_icon_name: 'start-node',
+              node_params: JSON.stringify({})
+            }
+          }
+        },
+        node.id
+      )
+    }, 100)
+  }
+
   if (anchorData) {
     lf.graphModel.addEdge({
       type: 'custom-bezier-edge',
@@ -535,13 +630,63 @@ const onCustomAddNode = (options) => {
         y: anchorData.y
       }
     })
+    let nodeGroup = lf.graphModel.dynamicGroup.getGroupByNodeId(anchorData.nodeId)
+    if(nodeGroup && nodeGroup.id){
+      const groupModel = lf.getNodeModelById(nodeGroup.id);
+      groupModel.addChild(node.id);
+      lf.graphModel.dynamicGroup.sendNodeToFront(groupModel);
+      if(node.x - node.width / 3 > groupModel.x + groupModel._width / 2){
+        let offsetDis = groupModel._width + 310 + node.width
+        groupModel.properties.width = offsetDis
+        groupModel._width = offsetDis
+        groupModel.width = offsetDis
+        groupModel.x = groupModel.x + (310 + node.width) / 2
+      }
+    }
   }
   node.setZIndex(zIndex)
   lf.graphModel.clearSelectElements()
   node.setSelected(true)
 }
 
+const onCustomAddGroupNode = (options, group_id) => {
+  const data = options.node || options;
+  data.id = generateUniqueId(data.type)
+  data.nodeSortKey = data.id.substring(0, 8) + data.id.substring(data.id.length - 8)
+
+  data.properties.width = data.width
+  data.properties.height = data.height
+  data.properties.nodeSortKey = data.nodeSortKey
+  data.properties.loop_parent_key = group_id  // 父节点的id
+  const groupModel = lf.getNodeModelById(group_id);
+
+  data.x = groupModel.x 
+  data.y = groupModel.y 
+  // 情况选中状态
+  let zIndex = 0
+  lf.graphModel.nodes.forEach((node) => {
+    if (node.zIndex > zIndex) {
+      zIndex = node.zIndex
+    }
+  })
+
+  zIndex = zIndex + 99
+
+  let node = lf.addNode(data)
+
+  groupModel.addChild(node.id);
+  node.setZIndex(zIndex)
+  lf.graphModel.clearSelectElements()
+  lf.graphModel.dynamicGroup.sendNodeToFront(groupModel);
+  // node.setSelected(true)
+}
+
 const handleAutoLayout = () => {
+  let nodes = getData().nodes
+  let gruopNodes = nodes.filter(item => item.type == 'custom-group')
+  if(gruopNodes && gruopNodes.length){
+    return message.warn('存在循环节点，暂不支持整理')
+  }
   lf.extension.dagre.layout({
     rankdir: 'LR',   // 从左到右的布局方向
     align: 'UL',     // 上左对齐
@@ -673,7 +818,7 @@ const deleteSelectedElements = () => {
   // 过滤掉不能删除的开始节点
   const elementsToDelete = selectedElements.value.filter((el) => {
     if (isNode(el)) {
-      return el.type !== 'start-node'
+      return !['start-node', 'group-start-node'].includes(el.type)
     }
     return true // 边可以删除
   })
@@ -752,7 +897,7 @@ const deleteSelectedElements = () => {
   }
 }
 
-const noShowDrawerNode = ['explain-node', 'end-node']
+const noShowDrawerNode = ['explain-node', 'end-node', 'group-start-node', 'terminate-node']
 // 选择节点
 const handleSelectedNode = (data) => {
   const node = JSON.parse(JSON.stringify(data))
@@ -762,7 +907,7 @@ const handleSelectedNode = (data) => {
   emit('selectNode', node)
 
   // 结束节点不支持编辑
-  if(noShowDrawerNode.includes(data.type)){
+  if (noShowDrawerNode.includes(data.type)) {
     return
   }
 
@@ -779,7 +924,6 @@ const handleNodeChange = (data) => {
 
 const handleChangeNodeName = (node_name) => {
   selectedNode.value.properties.node_name = node_name;
-
   // 先更新数据
   updateNode(JSON.parse(JSON.stringify(selectedNode.value)))
   // 在发送事件之前，确保数据已经更新
@@ -793,7 +937,7 @@ const handleChangeNodeName = (node_name) => {
 const onDeleteNode = (data) => {
   emit('onDeleteNode', data)
 
-  if(selectedNode.value && data.id === selectedNode.value.id) {
+  if (selectedNode.value && data.id === selectedNode.value.id) {
     nodeFormDrawerShow.value = false
     setTimeout(() => {
       selectedNode.value = null
