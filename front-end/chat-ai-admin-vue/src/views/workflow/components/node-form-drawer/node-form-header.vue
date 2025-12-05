@@ -87,6 +87,7 @@
         <a-input class="node-name-input" v-model:value="localTitle" placeholder="请输入节点名称" @change.stop="handleTitleChange" />
       </div>
       <div class="title-right">
+        <slot name="runBtn"></slot>
         <a-dropdown v-if="!hideMenus">
           <div class="action-btn delete-btn" @click.prevent>
             <svg-icon name="point-h" class="btn-icon"></svg-icon>

@@ -24,6 +24,7 @@ type KeywordReplyRequest struct {
 	HalfKeyword  string `form:"half_keyword" json:"half_keyword"`
 	ReplyContent string `form:"reply_content" json:"reply_content"`
 	ReplyNum     int    `form:"reply_num" json:"reply_num"`
+	ForcedEnable int    `form:"forced_enable" json:"forced_enable"`
 }
 
 // SwitchStatusRequest 开关状态请求结构
@@ -153,7 +154,14 @@ func SaveRobotKeywordReply(c *gin.Context) {
 		common.FmtError(c, `sys_err`)
 		return
 	}
-
+	if req.ForcedEnable != 0 {
+		err = common.UpdateRobotKeywordReplySwitchStatus(cast.ToInt(id), req.RobotID, req.ForcedEnable)
+		if err != nil {
+			logs.Error("UpdateRobotKeywordReplySwitchStatus error: %s", err.Error())
+			common.FmtError(c, `sys_err`)
+			return
+		}
+	}
 	common.FmtOk(c, map[string]interface{}{"id": id})
 }
 
@@ -270,6 +278,8 @@ func GetRobotKeywordReply(c *gin.Context) {
 	if ruleInfo["reply_content"] != "" {
 		_ = tool.JsonDecodeUseNumber(ruleInfo["reply_content"], &replyContent)
 	}
+	// 格式化智能菜单消息
+	replyContent = common.FormatReplyListToDb(replyContent, common.RobotAbilityReceivedMessageReply)
 
 	result := map[string]interface{}{
 		"id":            ruleInfo["id"],
@@ -348,6 +358,8 @@ func GetRobotKeywordReplyList(c *gin.Context) {
 		if item["reply_content"] != "" {
 			_ = tool.JsonDecodeUseNumber(item["reply_content"], &replyContent)
 		}
+		// 格式化智能菜单消息
+		replyContent = common.FormatReplyListToDb(replyContent, common.RobotAbilityKeywordReply)
 
 		result = append(result, map[string]interface{}{
 			"id":            item["id"],

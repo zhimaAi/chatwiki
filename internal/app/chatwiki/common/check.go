@@ -25,7 +25,7 @@ import (
 
 var InvalidLibraryImageError = errors.New("invalid library image")
 
-func CheckChatRequest(c *gin.Context) (*define.ChatBaseParam, error) {
+func CheckChatRequest(c *gin.Context, compatibilityXkf ...bool) (*define.ChatBaseParam, error) {
 	//source check
 	appType := strings.TrimSpace(c.GetHeader(`App-Type`))
 	if len(appType) == 0 {
@@ -46,8 +46,14 @@ func CheckChatRequest(c *gin.Context) (*define.ChatBaseParam, error) {
 	if len(openid) == 0 {
 		openid = strings.TrimSpace(c.Query(`openid`))
 	}
-	if !IsChatOpenid(openid) {
-		return nil, errors.New(i18n.Show(GetLang(c), `param_invalid`, `openid`))
+	if len(compatibilityXkf) > 0 && compatibilityXkf[0] {
+		if !IsXkfOpenid(openid) {
+			return nil, errors.New(i18n.Show(GetLang(c), `param_invalid`, `openid`))
+		}
+	} else {
+		if !IsChatOpenid(openid) {
+			return nil, errors.New(i18n.Show(GetLang(c), `param_invalid`, `openid`))
+		}
 	}
 	//data check
 	robot, err := GetRobotInfo(robotKey)
@@ -64,7 +70,8 @@ func CheckChatRequest(c *gin.Context) (*define.ChatBaseParam, error) {
 		logs.Error(err.Error())
 		return nil, errors.New(i18n.Show(GetLang(c), `sys_err`))
 	}
-	return &define.ChatBaseParam{AppType: appType, Openid: openid, AdminUserId: adminUserId, Robot: robot, Customer: customer}, nil
+	relUserId := cast.ToInt(strings.TrimSpace(c.PostForm(`rel_user_id`)))
+	return &define.ChatBaseParam{AppType: appType, Openid: openid, AdminUserId: adminUserId, Robot: robot, Customer: customer, RelUserId: relUserId}, nil
 
 }
 
@@ -117,6 +124,14 @@ func CheckRobotKey(robotKey string) bool {
 
 func IsChatOpenid(openid string) bool {
 	ok, err := regexp.MatchString(`^[a-zA-Z0-9_\-]{1,78}$`, openid)
+	if err == nil && ok {
+		return true
+	}
+	return false
+}
+
+func IsXkfOpenid(openid string) bool {
+	ok, err := regexp.MatchString(`^[a-zA-Z0-9_\-]{1,78}(\.\d+){0,2}$`, openid)
 	if err == nil && ok {
 		return true
 	}

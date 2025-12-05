@@ -6,6 +6,7 @@
   margin: 0 auto;
 
   .message-item-body {
+    overflow: hidden;
     flex: 1;
     padding-left: 10px;
   }
@@ -500,7 +501,7 @@
 }
 
 .reply-item {
-  width: fit-content;
+  margin-right: 50px;
   border-radius: 4px 16px 16px 16px;
   padding: 16px 12px;
   background: #fff;
@@ -517,6 +518,40 @@
 
 .reply-image .msg-img {
   max-width: 500px;
+}
+
+.reply-smartMenu {
+  color: #1a1a1a;
+  .smart-menu-box {
+    .card-title {
+      white-space: pre-wrap;
+      align-self: stretch;
+      font-size: 14px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 20px;
+      margin-bottom: 14px;
+    }
+    .card-text {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      .reply-line {
+        line-height: 22px;
+        .line-text {
+          color: #3a4559;
+        }
+        .empty-line {
+          height: 22px;
+        }
+        .link {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+      }
+    }
+  }
 }
 </style>
 
@@ -559,6 +594,24 @@
                   <div class="imageText-desc">{{ rc.description }}</div>
                 </div>
               </a>
+            </div>
+            <div v-else-if="(rc.reply_type || rc.type) === 'smartMenu'" class="reply-item reply-smartMenu">
+              <div class="smart-menu-box">
+                <div class="card-title" v-if="rc.smart_menu && rc.smart_menu.menu_description">{{ rc.smart_menu.menu_description }}</div>
+                <div class="card-text">
+                  <div v-for="(line, li) in buildMenuLines(rc.smart_menu?.menu_content || [])" :key="li">
+                    <div class="reply-line" @click="onSmartReplyLineClick($event)">
+                      <span class="line-text" v-if="line.kind === 'text'">{{ line.text }}</span>
+                      <div v-else-if="line.kind === 'newline'" class="empty-line"></div>
+                      <span v-else-if="line.kind === 'html'" v-html="line.html"></span>
+                      <a v-else-if="line.kind === 'keyword'" href="javascript:;" class="link" @click.prevent="onClickSmartMenuKeyword(line.text)">
+                        <div v-if="line.serial_no">{{ line.serial_no }}</div>
+                        {{ line.text }}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </template>
         </div>
@@ -1029,6 +1082,43 @@ function parseReplyList(val) {
   } catch (_e) {
     return []
   }
+}
+
+type SmartMenuLine =
+  | { kind: 'text'; text: string }
+  | { kind: 'newline' }
+  | { kind: 'html'; html: string }
+  | { kind: 'keyword'; text: string; serial_no?: string }
+
+function buildMenuLines(menu_content: Array<Record<string, any>> | undefined | null): SmartMenuLine[] {
+  const out: SmartMenuLine[] = []
+  ;(Array.isArray(menu_content) ? menu_content : []).forEach((mc) => {
+    const t = String(mc?.menu_type || '')
+    const txt = String(mc?.content || '')
+    if (t === '0') {
+      if (txt === '') { out.push({ kind: 'newline' }) }
+      else if (/<a[\s\S]*?<\/a>/.test(txt)) {
+        const sanitized = /href\s*=\s*['"]\s*#\s*['"]/i.test(txt)
+          ? txt.replace(/href\s*=\s*['"]\s*#\s*['"]/ig, 'href="javascript:;"')
+          : txt.replace(/href=/ig, 'target="_blank" href=')
+        out.push({ kind: 'html', html: sanitized })
+      } else { out.push({ kind: 'text', text: txt }) }
+    } else if (t === '1') { out.push({ kind: 'keyword', text: txt, serial_no: mc?.serial_no || '' }) }
+  })
+  return out.slice(0, 20)
+}
+
+function onSmartReplyLineClick(e: any) {
+  const a = (e.target && (e.target.closest && e.target.closest('a'))) || null
+  if (!a) return
+  const href = String(a.getAttribute('href') || '')
+  if (href === '#' || href === 'javascript:;') { e.preventDefault(); }
+}
+
+function onClickSmartMenuKeyword(text: string) {
+  const t = String(text || '').trim()
+  if (!t) return
+  emit('sendTextMessage', t)
 }
 
 onMounted(() => {

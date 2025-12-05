@@ -71,6 +71,15 @@
     color: #262626;
   }
 }
+
+.window-size-box{
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 14px;
+}
+
 </style>
 
 <template>
@@ -186,6 +195,31 @@
                   <a-select-option value="en-US">English</a-select-option>
                 </a-select>
               </a-form-item>
+              <a-form-item class="form-item" label="网址打开方式" name="open_type" required>
+                <a-radio-group v-model:value="formState.open_type">
+                  <a-radio :value="1">新标签页打开</a-radio>
+                  <a-radio :value="2">新窗口弹窗打开
+                    <a-tooltip title="仅管控PC端新窗口打开,移动端依然用新标签页打开">
+                      <template #title>prompt text</template>
+                      <QuestionCircleOutlined />
+                    </a-tooltip>
+                  </a-radio>
+                </a-radio-group>
+                <a-form-item-rest v-if="formState.open_type == 2">
+                  <div class="window-size-box">
+                    <a-flex align="center" :gap="8">
+                      <div>弹窗高度</div>
+                      <a-input-number  v-model:value="formState.window_height" :min="500" :max="2000" />
+                      PX
+                    </a-flex>
+                    <a-flex align="center" :gap="8">
+                      <div>弹窗宽度</div>
+                      <a-input-number  v-model:value="formState.window_width" :min="500" :max="2000" />
+                      PX
+                    </a-flex>
+                  </div>
+                </a-form-item-rest>
+              </a-form-item>
             </a-form>
           </div>
         </card-box>
@@ -233,7 +267,10 @@ const formState = reactive({
   pageTitle: external_config_h5.value.pageTitle,
   navbarShow: external_config_h5.value.navbarShow,
   lang: external_config_h5.value.lang,
-  pageStyle: external_config_h5.value.pageStyle
+  pageStyle: external_config_h5.value.pageStyle,
+  open_type: external_config_h5.value.open_type,
+  window_width: external_config_h5.value.window_width,
+  window_height: external_config_h5.value.window_height,
 })
 
 const pc_src = computed(() => {
@@ -335,6 +372,9 @@ const saveForm = () => {
     .validate()
     .then(() => {
       let formData = { ...toRaw(formState) }
+
+      formData.window_width = +formData.window_width || 1200
+      formData.window_height = +formData.window_height || 650
 
       formData.accessRestrictionsType = accessRestrictionsType.value
 

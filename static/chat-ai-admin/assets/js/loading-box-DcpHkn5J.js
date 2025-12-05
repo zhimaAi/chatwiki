@@ -1,1 +1,0 @@
-import{b as e}from"../../index-OnalErht.js";import{ah as a}from"./ui-antd-BgeWxFcI.js";import{Y as c,_ as n,k as s}from"./vue-chunks-Ci-XTWEs.js";const t={},r={class:"loading-box"};function _(i,p){const o=a;return n(),c("div",r,[s(o)])}const l=e(t,[["render",_],["__scopeId","data-v-6717ae46"]]);export{l as L};

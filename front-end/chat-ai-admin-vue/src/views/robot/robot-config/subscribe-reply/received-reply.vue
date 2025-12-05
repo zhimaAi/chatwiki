@@ -1,16 +1,12 @@
 <template>
   <div class="user-model-page">
-    <div class="page-title">关注后自动回复</div>
-    <div class="switch-block">
-      <a-switch
-        @change="keyWordReplySwitchChange"
-        :checked="keywordReplyStatus"
-        checked-children="开"
-        un-checked-children="关"
-      />
-      <span class="switch-desc">
-        开启后，用户关注公众号后，回复指定的内容，<span style="color: #FF4D4F;">该功能仅支持公众号内回复</span>
-      </span>
+    <!-- <div class="page-title">关注后自动回复</div> -->
+    <div class="breadcrumb-wrap">
+      <svg-icon @click="goBack" name="back" style="font-size: 20px;" />
+      <div @click="goBack" class="breadcrumb-title">关注后回复</div>
+      <!-- 关注后回复开关，开关后面的提示：开启后，用户关注公众号后，回复指定的内容，该功能仅支持公众号内回复 -->
+       <a-switch v-model:checked="enabled_status" :checkedValue="'1'" :un-checkedValue="'0'" checked-children="开" un-checked-children="关" @change="handleSwitchChange" />
+       <span class="switch-tip">开启后，用户关注公众号后，回复指定的内容，该功能仅支持公众号内回复</span>
     </div>
     <!-- 公众号列表 -->
     <div class="mp-list-block">
@@ -42,9 +38,9 @@
           <template #icon>
             <PlusOutlined />
           </template>
-          {{ rule_type === 'subscribe_reply_default' ? '新增回复' : '增加时段回复' }}
+          {{ rule_type === 'subscribe_reply_duration' ? '增加时段回复' : '新增回复' }}
         </a-button>
-        <!-- 回复内容：下拉选择 图文  文本  图片  小程序 和链接 -->
+        <!-- 回复内容：text：文本，image：图片，voice：语音，video：视频 -->
         <div class="search-item">
           <a-select
             v-model="reply_type"
@@ -161,41 +157,45 @@
     </div>
 
     <div v-if="rule_type === 'subscribe_reply_default'" class="reply-editor">
-      <div class="reply-editor-item">
+      <div class="reply-editor-item" v-for="(rule, ri) in defaultRules" :key="rule.id">
         <div class="switch-box">
-          <div class="nav-box">关注后自动回复：</div>
+          <div class="nav-box">关注后自动回复（优先级：{{ rule.priority_num }}）</div>
           <a-switch
-            :checked="switch_status"
+            :checked="rule.switch_status"
             :checkedValue="'1'"
             :un-checkedValue="'0'"
             checked-children="开"
             un-checked-children="关"
-            @change="handleSwitchChange"
+            @change="(val) => handleRuleSwitchChange(ri, val)"
           />
         </div>
-        <div class="content-box">
-          <div class="nav-box">回复内容：</div>
-          <div class="item-box">
-            <MultiReply v-for="(it, idx) in replyList" :key="idx" v-model:value="replyList[idx]" :reply_index="idx"
-              @change="onContentChange" @del="onDelItem" />
-            <a-button type="dashed" style="width: 694px;" :disabled="replyList.length >= 5" @click="addReplyItem">
-              <template #icon>
-                <PlusOutlined />
-              </template>
-              添加回复内容({{replyList.length}}/5)
-            </a-button>
+        <transition name="collapse">
+        <div class="reply-main" v-show="rule.switch_status === '1'">
+          <div class="content-box">
+            <div class="nav-box">回复内容：</div>
+            <div class="item-box">
+              <MultiReply v-for="(it, idx) in rule.replyList" :key="idx" ref="replyRefs" v-model:value="rule.replyList[idx]" :reply_index="idx"
+                @change="(payload) => onRuleContentChange(ri, payload)" @del="(index) => onRuleDelItem(ri, index)" />
+              <a-button type="dashed" style="width: 694px;" :disabled="rule.replyList.length >= 5" @click="() => addRuleReplyItem(ri)">
+                <template #icon>
+                  <PlusOutlined />
+                </template>
+                添加回复内容({{rule.replyList.length}}/5)
+              </a-button>
+            </div>
+          </div>
+          <div class="method-box">
+            <div class="nav-box">回复方式：</div>
+            <a-radio-group v-model:value="rule.reply_num">
+              <a-radio :value="0">全部回复</a-radio>
+              <a-radio :value="1">随机回复一条</a-radio>
+            </a-radio-group>
+          </div>
+          <div style="margin-top: 8px;">
+            <a-button type="primary" @click="onSaveRule(ri)">保存</a-button>
           </div>
         </div>
-        <div class="method-box">
-          <div class="nav-box">回复方式：</div>
-          <a-radio-group v-model:value="reply_num">
-            <a-radio value="0">全部回复</a-radio>
-            <a-radio value="1">随机回复一条</a-radio>
-          </a-radio-group>
-        </div>
-        <div style="margin-top: 16px;">
-          <a-button type="primary" @click="onSaveDefault">保存</a-button>
-        </div>
+        </transition>
       </div>
     </div>
   </div>
@@ -206,25 +206,20 @@ import { reactive, ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import MultiReply from '@/components/replay-card/multi-reply.vue'
 import { QuestionCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
-import { saveRobotAbilitySwitchStatus, getRobotSubscribeReplyList, updateRobotSubscribeReplyPriorityNum, updateRobotSubscribeReplySwitchStatus, deleteRobotSubscribeReply, saveRobotSubscribeReply } from '@/api/explore/index.js'
-import { REPLY_TYPE_OPTIONS, REPLY_TYPE_LABEL_MAP } from '@/constants/index'
-import { useRobotStore } from '@/stores/modules/robot'
+import { getRobotSubscribeReplyList, updateRobotSubscribeReplyPriorityNum, updateRobotSubscribeReplySwitchStatus, deleteRobotSubscribeReply, saveRobotSubscribeReply, getSpecifyAbilityConfig, saveUserAbility } from '@/api/explore/index.js'
+import { getWechatAppList } from '@/api/robot'
+import { REPLY_TYPE_OPTIONS, REPLY_TYPE_LABEL_MAP, SUBSCRIBE_SOURCE_OPTIONS } from '@/constants/index'
 import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
 
-const robotStore = useRobotStore()
-
-// 来自左侧菜单的能力开关（关键词回复）
-const keywordReplyStatus = computed(() => robotStore.subscribeReplySwitchStatus === '1')
-
+const replyRefs = ref([])
 const query = useRoute().query
+const route = useRoute()
 const router = useRouter()
 
-const rule_type = ref(query.rule_type || 'subscribe_reply_default')
-const replyList = ref([{ type: 'text', description: '' }])
-const reply_num = ref('0')
-const currentRuleId = ref(0)
-const switch_status = ref('0')
+const rule_type = ref(query.subscribe_rule_type || 'subscribe_reply_default')
+const defaultRules = ref([])
+const enabled_status = ref('0')
 
 const mpAccounts = ref([])
 const selectedAppid = ref('')
@@ -244,16 +239,27 @@ function calcVisibleCount () {
   visibleCount.value = Math.max(count, 0)
 }
 
-onMounted(() => {
-  mpAccounts.value = [
-    { id: 'mp-1', appid: 'wx_appid_A', name: '企业公众号A', logo: 'https://dummyimage.com/48x48/2475fc/ffffff&text=A' },
-    { id: 'mp-2', appid: 'wx_appid_B', name: '企业公众号B', logo: 'https://dummyimage.com/48x48/52c41a/ffffff&text=B' },
-    { id: 'mp-3', appid: 'wx_appid_C', name: '企业公众号C', logo: 'https://dummyimage.com/48x48/f5222d/ffffff&text=C' },
-    { id: 'mp-4', appid: 'wx_appid_D', name: '企业公众号D', logo: 'https://dummyimage.com/48x48/13c2c2/ffffff&text=D' },
-    { id: 'mp-5', appid: 'wx_appid_E', name: '企业公众号E', logo: 'https://dummyimage.com/48x48/722ed1/ffffff&text=E' },
-    { id: 'mp-6', appid: 'wx_appid_F', name: '企业公众号F', logo: 'https://dummyimage.com/48x48/fa8c16/ffffff&text=F' },
-  ]
-  selectedAppid.value = mpAccounts.value[0]?.appid || ''
+const getWechatAppListFn = async() => {
+  try {
+    const res = await getWechatAppList({ app_type: 'official_account', app_name: '' })
+    const list = Array.isArray(res?.data) ? res.data : []
+    // 只需要account_is_verify为true的公众号
+    mpAccounts.value = list.filter((it) => it.account_is_verify == 'true').map((it) => ({ id: it.id, appid: it.app_id, name: it.app_name, logo: it.app_avatar }))
+    selectedAppid.value = mpAccounts.value[0]?.appid || ''
+  } catch (_e) {
+    mpAccounts.value = []
+    selectedAppid.value = ''
+  }
+}
+
+onMounted(async () => {
+  try {
+    const res = await getSpecifyAbilityConfig({ ability_type: 'robot_subscribe_reply' })
+    const item = res?.data
+    const status = String(item?.user_config?.switch_status ?? '0')
+    enabled_status.value = status
+  } catch (_) { enabled_status.value = '0' }
+  await getWechatAppListFn()
   nextTick(calcVisibleCount)
   window.addEventListener('resize', calcVisibleCount)
   if (rule_type.value === 'subscribe_reply_default') {
@@ -295,7 +301,6 @@ const reply_type = ref('')
 // const search_keyword = ref('')
 const getTableData = () => {
   const parmas = {
-    robot_id: query.id,
     rule_type: rule_type.value,
     reply_type: reply_type.value || '',
     appid: selectedAppid.value || '',
@@ -367,21 +372,19 @@ async function onPriorityChange (record) {
     return
   }
   try {
-    await updateRobotSubscribeReplyPriorityNum({ id: record.id, robot_id: query.id, priority_num: val, appid: selectedAppid.value || '' })
+    await updateRobotSubscribeReplyPriorityNum({ id: record.id, priority_num: val, appid: selectedAppid.value || '' })
     message.success('优先级已更新')
     getTableData()
   } catch (e) {
-    message.error('更新失败，请稍后重试')
+    // message.error('更新失败，请稍后重试')
   }
 }
 
 const handleAddReply = () => {
   router.push({
-    path: '/robot/ability/subscribe-reply/add-rule',
+    path: '/explore/index/subscribe-reply/add-rule',
     query: {
-      id: query.id,
-      robot_key: query.robot_key,
-      rule_type: rule_type.value,
+      subscribe_rule_type: rule_type.value,
       appid: selectedAppid.value || ''
     }
   })
@@ -389,10 +392,8 @@ const handleAddReply = () => {
 
   const handleEdit = (record) => {
     router.push({
-      path: '/robot/ability/subscribe-reply/add-rule',
+      path: '/explore/index/subscribe-reply/add-rule',
       query: {
-        id: query.id,
-        robot_key: query.robot_key,
         rule_id: record.id,
         appid: selectedAppid.value || ''
       }
@@ -401,30 +402,17 @@ const handleAddReply = () => {
 
   const handleCopy = (record) => {
     router.push({
-      path: '/robot/ability/subscribe-reply/add-rule',
+      path: '/explore/index/subscribe-reply/add-rule',
       query: {
-        id: query.id,
-        robot_key: query.robot_key,
         copy_id: record.id,
         appid: selectedAppid.value || ''
       }
     })
   }
 
-const keyWordReplySwitchChange = (checked) => {
-  const switch_status = checked ? '1' : '0'
-  saveRobotAbilitySwitchStatus({ robot_id: query.id, ability_type: 'robot_subscribe_reply', switch_status }).then((res) => {
-    if (res && res.res == 0) {
-      robotStore.setSubscribeReplySwitchStatus(switch_status)
-      message.success('操作成功')
-      window.dispatchEvent(new CustomEvent('robotAbilityUpdated', { detail: { robotId: query.id } }))
-    }
-  })
-}
-
 const handleReplySwitchChange = (record, checked) => {
   const switch_status = checked
-  updateRobotSubscribeReplySwitchStatus({ id: record.id, robot_id: query.id, switch_status, appid: selectedAppid.value || '' }).then((res) => {
+  updateRobotSubscribeReplySwitchStatus({ id: record.id, switch_status, appid: selectedAppid.value || '' }).then((res) => {
     if (res && res.res == 0) {
       record.switch_status = switch_status
       message.success('操作成功')
@@ -438,7 +426,7 @@ const handleDelete = (record) => {
     title: '确认删除吗？',
     okText: '确认',
     onOk: () => {
-      deleteRobotSubscribeReply({ id: record.id, robot_id: query.id }).then((res) => {
+      deleteRobotSubscribeReply({ id: record.id }).then((res) => {
         if (res && res.res == 0) {
           message.success('删除成功')
           getTableData()
@@ -453,80 +441,98 @@ function serializeReplyContent (list) {
 }
 
 function serializeReplyTypeCodes (list) {
-  const map = { text: '2', image: '4', card: '3', imageText: '1', url: '5' }
+  const map = { text: '2', image: '4', card: '3', imageText: '1', url: '5', smartMenu: '6' }
   return list.map((it) => map[it.type] || '').filter(Boolean)
 }
 
 async function loadDefaultRule () {
   try {
-    const res = await getRobotSubscribeReplyList({ robot_id: query.id, rule_type: 'subscribe_reply_default', appid: selectedAppid.value || '', page: 1, size: 1 })
-    const first = Array.isArray(res?.data?.list) ? res.data.list[0] : null
-    if (!first) {
-      currentRuleId.value = 0
-      replyList.value = [{ type: 'text', description: '' }]
-      reply_num.value = '0'
-      switch_status.value = '0'
-      return
-    }
-    currentRuleId.value = Number(first.id || 0)
-    const list = Array.isArray(first.reply_content) ? first.reply_content : []
-    replyList.value = list.map((rc) => ({
-      type: rc?.type || rc?.reply_type || 'text',
-      description: rc?.description || '',
-      thumb_url: rc?.thumb_url || rc?.pic || '',
-      title: rc?.title || '',
-      url: rc?.url || '',
-      appid: rc?.appid || '',
-      page_path: rc?.page_path || ''
+    const res = await getRobotSubscribeReplyList({ rule_type: 'subscribe_reply_default', appid: selectedAppid.value || '', page: 1, size: 3 })
+    const list = Array.isArray(res?.data?.list) ? res.data.list : []
+    defaultRules.value = list.map((item) => ({
+      id: Number(item.id || 0),
+      priority_num: Number(item.priority_num || 0),
+      switch_status: String(item.switch_status ?? '0'),
+      reply_num: Number(item.reply_num || 0),
+      replyList: (Array.isArray(item.reply_content) ? item.reply_content : []).map((rc) => ({
+        type: rc?.type || rc?.reply_type || 'text',
+        description: rc?.description || '',
+        thumb_url: rc?.thumb_url || rc?.pic || '',
+        title: rc?.title || '',
+        url: rc?.url || '',
+        appid: rc?.appid || '',
+        page_path: rc?.page_path || '',
+        smart_menu_id: rc?.smart_menu_id || '',
+        smart_menu: rc?.smart_menu || {},
+      }))
     }))
-    reply_num.value = String(first.reply_num ?? '0')
-    switch_status.value = String(first.switch_status ?? '0')
+    // 填充至3条数据
+    const need = 3 - defaultRules.value.length
+    if (need > 0) {
+      const start = defaultRules.value.length + 1
+      for (let i = 0; i < need; i++) {
+        defaultRules.value.push({ id: 0, priority_num: start + i, switch_status: '0', reply_num: 0, replyList: [{ type: 'text', description: '' }] })
+      }
+    }
   } catch (e) {
-    message.error('加载默认回复失败')
+    // 接口失败时也保证3条
+    defaultRules.value = [
+      { id: 0, priority_num: 1, switch_status: '0', reply_num: 0, replyList: [{ type: 'text', description: '' }] },
+      { id: 0, priority_num: 2, switch_status: '0', reply_num: 0, replyList: [{ type: 'text', description: '' }] },
+      { id: 0, priority_num: 3, switch_status: '0', reply_num: 0, replyList: [{ type: 'text', description: '' }] }
+    ]
   }
 }
 
-async function onSaveDefault () {
+async function onSaveRule (ri) {
   if (!selectedAppid.value) {
     message.warning('请选择公众号')
     return
   }
-  if (!replyList.value.length) {
-    message.warning('请至少添加一条回复内容')
+  const rule = defaultRules.value[ri]
+  if (!rule || !Array.isArray(rule.replyList) || rule.replyList.length === 0) {
+    message.warning('请完善回复内容')
     return
   }
-  const payload = {
-    robot_id: query.id,
-    appid: selectedAppid.value,
-    rule_type: 'subscribe_reply_default',
-    reply_content: JSON.stringify(serializeReplyContent(replyList.value)),
-    reply_type: serializeReplyTypeCodes(replyList.value),
-    reply_num: Number(reply_num.value) || 0,
-    switch_status: Number(switch_status.value) || 0
+  for (const comp of replyRefs.value) {
+    if (comp && comp.validate) {
+      const ok = await comp.validate()
+      if (!ok) { return }
+    }
   }
-  if (currentRuleId.value) payload.id = currentRuleId.value
   try {
+    const payload = {
+      appid: selectedAppid.value,
+      rule_type: 'subscribe_reply_default',
+      reply_content: JSON.stringify(serializeReplyContent(rule.replyList)),
+      reply_type: serializeReplyTypeCodes(rule.replyList),
+      priority_num: Number(rule.priority_num) || 0,
+      reply_num: Number(rule.reply_num) || 0,
+      switch_status: Number(rule.switch_status) || 0,
+      id: Number(rule.id) || undefined
+    }
     const res = await saveRobotSubscribeReply(payload)
     if (res && res.res == 0) {
       message.success('保存成功')
       loadDefaultRule()
     }
   } catch (e) {
-    message.error('保存失败，请稍后重试')
+    // message.error('保存失败，请稍后重试')
   }
 }
 
-function handleSwitchChange (val) {
+function handleRuleSwitchChange (ri, val) {
   const next = String(val)
-  if (!currentRuleId.value) {
-    switch_status.value = next
-    message.info('请先完善回复内容并保存')
+  const rule = defaultRules.value[ri]
+  if (!rule?.id) {
+    defaultRules.value[ri].switch_status = next
+    message.info('请先保存当前规则')
     return
   }
-  updateRobotSubscribeReplySwitchStatus({ id: currentRuleId.value, robot_id: query.id, switch_status: next, appid: selectedAppid.value || '' })
+  updateRobotSubscribeReplySwitchStatus({ id: rule.id, switch_status: next, appid: selectedAppid.value || '' })
     .then((res) => {
       if (res && res.res == 0) {
-        switch_status.value = next
+        defaultRules.value[ri].switch_status = next
         message.success('操作成功')
       }
     })
@@ -595,22 +601,67 @@ function formatDurationLabel (record) {
   return `${type || ''}：${sd || ''} 至 ${ed || ''}`
 }
 
+const SUBSCRIBE_SOURCE_LABEL_MAP = Object.fromEntries((SUBSCRIBE_SOURCE_OPTIONS || []).map((op) => [String(op.value), op.label]))
+
 function formatMessageType (record) {
   const list = Array.isArray(record?.subscribe_source) ? record.subscribe_source : []
   if (!list.length) return '--'
-  return list.join('、')
+  const labels = list.map((v) => SUBSCRIBE_SOURCE_LABEL_MAP[String(v)] || String(v)).filter(Boolean)
+  return labels.length ? labels.join('、') : '--'
 }
 
-function addReplyItem () {
-  if (replyList.value.length >= 5) return
-  replyList.value.push({ type: 'text', description: '' })
+function addRuleReplyItem (ri) {
+  const list = defaultRules.value[ri]?.replyList || []
+  if (list.length >= 5) return
+  list.push({ type: 'text', description: '' })
 }
-function onContentChange ({ reply_index, ...rest }) {
-  if (reply_index >= 0 && reply_index < replyList.value.length) {
-    replyList.value[reply_index] = rest
+function onRuleContentChange (ri, payload) {
+  const { reply_index, ...rest } = payload
+  const list = defaultRules.value[ri]?.replyList || []
+  if (reply_index >= 0 && reply_index < list.length) {
+    list[reply_index] = rest
   }
 }
-function onDelItem (index) { replyList.value.splice(index, 1) }
+function onRuleDelItem (ri, index) { (defaultRules.value[ri]?.replyList || []).splice(index, 1) }
+
+const goBack = () => {
+  if (route.query.id && route.query.robot_key) {
+    router.push({ path: '/robot/config/function-center', query: { id: route.query.id, robot_key: route.query.robot_key } })
+  } else {
+    router.push({ path: '/explore/index' })
+  }
+}
+
+const handleSwitchChange = (checked) => {
+  const prev = enabled_status.value
+  const next = checked
+  if (next === '0') {
+    Modal.confirm({
+      title: '提示',
+      content: '关闭后，该功能默认关闭不再支持使用，确认关闭？',
+      onOk: () => {
+        saveUserAbility({ ability_type: 'robot_subscribe_reply', switch_status: next }).then((res) => {
+          if (res && res.res == 0) {
+            enabled_status.value = next
+            message.success('操作成功')
+          } else {
+            enabled_status.value = prev
+          }
+        }).catch(() => { enabled_status.value = prev })
+      },
+      onCancel: () => { enabled_status.value = '1' }
+    })
+    return
+  }
+  saveUserAbility({ ability_type: 'robot_subscribe_reply', switch_status: next }).then((res) => {
+    if (res && res.res == 0) {
+      enabled_status.value = next
+      message.success('操作成功')
+    } else {
+      enabled_status.value = prev
+    }
+  }).catch(() => { enabled_status.value = prev })
+}
 </script>
 
 <style lang="less" scoped>
@@ -698,7 +749,8 @@ function onDelItem (index) { replyList.value.splice(index, 1) }
   flex-wrap: wrap;
 }
 .mp-card {
-  width: 160px;
+  cursor: pointer;
+  min-width: 160px;
   padding: 8px 12px;
   border-radius: 8px;
   background: #fff;
@@ -706,6 +758,15 @@ function onDelItem (index) { replyList.value.splice(index, 1) }
   display: inline-flex;
   align-items: center;
   gap: 8px;
+
+  &:hover {
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.selected {
+  border-color: #1890ff;
+  background-color: rgba(24, 144, 255, 0.04);
 }
 .mp-logo {
   width: 24px;
@@ -756,5 +817,51 @@ function onDelItem (index) { replyList.value.splice(index, 1) }
       gap: 8px;
     }
   }
+}
+
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: max-height .2s ease, opacity .2s ease, padding .2s ease;
+}
+.collapse-enter-from,
+.collapse-leave-to {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.collapse-enter-to,
+.collapse-leave-from {
+  max-height: 1000px;
+  opacity: 1;
+}
+.reply-main {
+  overflow: hidden;
+}
+.subManage-breadcrumb {
+  display: flex;
+  align-items: center;
+  color: #000000;
+  font-family: "PingFang SC";
+  font-size: 14px;
+  font-style: normal;
+  line-height: 22px;
+  padding-bottom: 16px;
+}
+
+.breadcrumb-wrap {
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  margin-bottom: 16px;
+}
+.breadcrumb-title {
+  color: #000000;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 28px;
 }
 </style>

@@ -58,7 +58,7 @@ func (p *MultiPool) LoadPhpPlugin(name string, currentVersion string) error {
 	defer p.Mu.Unlock()
 
 	lambdaPool := NewPhpPool(&PhpPoolConfig{
-		IdleTimeout: 60 * time.Second,
+		IdleTimeout: 600 * time.Second,
 		Ctx:         context.Background(),
 		RoadrunnerPoolConfig: &pool.Config{
 			Debug:      false,
@@ -108,7 +108,7 @@ func (p *MultiPool) ExecLambdaPhpPlugin(name string, title string, action string
 	}
 
 	// 构建请求参数
-	req := map[string]interface{}{
+	req := map[string]any{
 		"plugin": name,
 		"action": action,
 		"params": params,

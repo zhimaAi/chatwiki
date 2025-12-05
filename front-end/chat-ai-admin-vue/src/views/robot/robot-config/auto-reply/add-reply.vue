@@ -90,7 +90,7 @@
           回复内容
         </div>
         <div class="item-box">
-          <MultiReply v-for="(it, idx) in replyList" :key="idx" v-model:value="replyList[idx]" :reply_index="idx"
+          <MultiReply v-for="(it, idx) in replyList" :key="idx" ref="replyRefs" v-model:value="replyList[idx]" :reply_index="idx"
             @change="onContentChange" @del="onDelItem" />
           <a-button type="dashed" style="width: 694px;" :disabled="replyList.length >= 5" @click="addReplyItem">
             <template #icon>
@@ -126,7 +126,9 @@ import { message } from 'ant-design-vue'
 import MultiReply from '@/components/replay-card/multi-reply.vue'
 import { getRobotReceivedMessageReply, saveRobotReceivedMessageReply } from '@/api/explore/index.js'
 import dayjs from 'dayjs'
+import { SUBSCRIBE_REPLY_TYPE_OPTIONS } from '@/constants/index'
 
+const replyRefs = ref([])
 const query = useRoute().query
 const ruleId = ref(+query.rule_id || +query['rule-id'] || 0)
 const ruleType = ref(query.rule_type || 'receive_reply_duration')
@@ -154,23 +156,12 @@ const rules = {
   ]
 }
 // 关键词集合
-const messageTypeOptions = [
-  { label: '文本', value: 'text' },
-  { label: '图片', value: 'image' },
-  { label: '音频', value: 'voice' },
-  { label: '视频', value: 'video' }
-]
+const messageTypeOptions = SUBSCRIBE_REPLY_TYPE_OPTIONS
 
 function validateDateRange (_rule, value) {
   if (form.duration_type !== 'time_range') return Promise.resolve()
   const ok = Array.isArray(value) && value.length === 2 && value[0] && value[1]
   return ok ? Promise.resolve() : Promise.reject('请选择起止日期')
-}
-
-function validateMessageTypeList (_rule, value) {
-  if (form.message_type !== '1') return Promise.resolve()
-  const ok = Array.isArray(value) && value.length > 0
-  return ok ? Promise.resolve() : Promise.reject('请至少选择一种指定消息类型')
 }
 
 function validateWeekDay (_rule, value) {
@@ -240,7 +231,7 @@ function serializeReplyContent (list) {
 }
 
 function serializeReplyTypeCodes (list) {
-  const map = { text: '2', image: '4', card: '3', imageText: '1', url: '5' }
+  const map = { text: '2', image: '4', card: '3', imageText: '1', url: '5', smartMenu: '6' }
   return list.map((it) => map[it.type] || '').filter(Boolean)
 }
 
@@ -276,6 +267,13 @@ const onSubmit = () => {
           message.warning('请至少选择一种指定消息类型')
           return
         }
+      }
+    }
+
+    for (const comp of replyRefs.value) {
+      if (comp && comp.validate) {
+        const ok = await comp.validate()
+        if (!ok) { return }
       }
     }
 
@@ -373,7 +371,9 @@ onMounted(async () => {
       title: rc?.title || '',
       url: rc?.url || '',
       appid: rc?.appid || '',
-      page_path: rc?.page_path || ''
+      page_path: rc?.page_path || '',
+      smart_menu_id: rc?.smart_menu_id || '',
+      smart_menu: rc?.smart_menu || {},
     }))
     form.reply_num = String(data?.reply_num ?? form.reply_num)
   }

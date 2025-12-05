@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 )
 
@@ -56,6 +57,7 @@ func SaveUserAbility(c *gin.Context) {
 // GetAbilityList 获取用户功能列表
 func GetAbilityList(c *gin.Context) {
 	// 获取登录用户信息
+	abilityType := cast.ToString(c.Query("ability_type"))
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
@@ -63,7 +65,7 @@ func GetAbilityList(c *gin.Context) {
 	}
 
 	// 获取功能列表
-	list, err := common.GetAbilityList(adminUserId)
+	list, err := common.GetAbilityList(adminUserId, abilityType)
 	if err != nil {
 		logs.Error("GetAbilityList error: %s", err.Error())
 		common.FmtError(c, `sys_err`)
@@ -71,4 +73,35 @@ func GetAbilityList(c *gin.Context) {
 	}
 
 	common.FmtOk(c, list)
+}
+
+// GetSpecifyAbilityConfig 获取用户功能配置
+func GetSpecifyAbilityConfig(c *gin.Context) {
+	// 获取参数
+	abilityType := cast.ToString(c.Query("ability_type"))
+	if abilityType == `` {
+		common.FmtError(c, `param_lack`, `ability_type`)
+		return
+	}
+
+	// 获取登录用户信息
+	adminUserId := GetAdminUserId(c)
+	if adminUserId == 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+
+	// 获取机器人功能列表
+	list, err := common.GetAbilityList(adminUserId, abilityType)
+	if err != nil {
+		logs.Error("GetAbilityList error: %s", err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(list) > 0 {
+		common.FmtOk(c, list[0])
+	} else {
+		logs.Error("无指定机器人功能 error: %s", err.Error())
+		common.FmtError(c, `sys_err`)
+	}
 }

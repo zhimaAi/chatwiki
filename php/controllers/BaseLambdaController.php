@@ -29,4 +29,3 @@ class BaseLambdaController extends \yii\base\Controller
         return ['res' => 1, 'msg' => $msg, 'data' => []];
     }
 }
-

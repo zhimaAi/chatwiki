@@ -19,6 +19,7 @@ return [
                 [
                     'levels' => YII_DEBUG ? ['error', 'warning', 'info'] : ['error', 'warning'],
                     'class' => 'app\components\GoTarget',
+                    // 'class' => \yii\log\FileTarget::class,
                     'exportInterval' => 1,
                     'logVars' => [],
                 ],
@@ -26,7 +27,7 @@ return [
         ],
     ],
     'modules' => [
-        
+
     ],
     'params' => $params,
 ];

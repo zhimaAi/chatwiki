@@ -15,7 +15,7 @@
       </div>
       <div class="ant-upload-text">点击或将文件拖拽到这里上传</div>
       <div class="ant-upload-hint">
-        <p>一次只能上传{{ props.maxCount }}个文档，单个文件不超过100M</p>
+        <p>支持多个文档批量上传，单个文件不超过100M，最多{{ props.maxCount }}个文档</p>
         <p>
           <span>支持文件类型：</span
           ><span class="ant-upload-hint-ext" v-for="ext in fileTypes" :key="ext">.{{ ext }}</span>

@@ -321,6 +321,22 @@ const handleAddRule = () => {
 
 const keyWordReplySwitchChange = (checked) => {
   const switch_status = checked ? '1' : '0'
+  if (switch_status === '0') {
+    Modal.confirm({
+      title: '提示',
+      content: '关闭后，触发了关键词以及收到消息回复都不会再回复指定的内容',
+      onOk: () => {
+        saveRobotAbilitySwitchStatus({ robot_id: query.id, ability_type: 'robot_auto_reply', switch_status }).then((res) => {
+          if (res && res.res == 0) {
+            robotStore.setKeywordReplySwitchStatus(switch_status)
+            message.success('操作成功')
+            window.dispatchEvent(new CustomEvent('robotAbilityUpdated', { detail: { robotId: query.id } }))
+          }
+        })
+      }
+    })
+    return
+  }
   saveRobotAbilitySwitchStatus({ robot_id: query.id, ability_type: 'robot_auto_reply', switch_status }).then((res) => {
     if (res && res.res == 0) {
       robotStore.setKeywordReplySwitchStatus(switch_status)

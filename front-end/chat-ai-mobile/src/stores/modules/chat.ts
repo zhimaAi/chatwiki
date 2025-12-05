@@ -5,7 +5,7 @@ import { editPrompt } from '@/api/robot/index'
 import { getUuid, getOpenid } from '@/utils/index'
 import { useEventBus } from '@/hooks/event/useEventBus'
 import { useIM } from '@/hooks/event/useIM'
-
+import { useUserStore } from '@/stores/modules/user'
 export interface Message {
   name: string
   nickname: string
@@ -84,6 +84,9 @@ export interface ExternalConfigH5 {
   navbarShow: number
   accessRestrictionsType: number
   pageStyle: PageStyle
+  open_type: number
+  window_width: number
+  window_height: number
 }
 
 export const useChatStore = defineStore('chat', () => {
@@ -138,7 +141,10 @@ export const useChatStore = defineStore('chat', () => {
     accessRestrictionsType: 1,
     pageStyle: {
       navbarBackgroundColor: '#2475FC',
-    }
+    },
+    open_type: 1,
+    window_width: 1200,
+    window_height: 650
   })
 
   // 创建对话
@@ -150,6 +156,7 @@ export const useChatStore = defineStore('chat', () => {
       mySSE = null
     }
 
+    
     messageList.value = []
     // 重置聊天记录是否加载完成的状态
     chatMessageLoadCompleted.value = false
@@ -418,7 +425,7 @@ export const useChatStore = defineStore('chat', () => {
       show_reasoning: false,
       event: 'robot',
     }
-
+    const userStore = useUserStore()
     const params = {
       robot_key: robot.robot_key,
       openid: robot.openid,
@@ -426,7 +433,8 @@ export const useChatStore = defineStore('chat', () => {
       // prompt: robot.prompt,
       // library_ids: robot.library_ids,
       dialogue_id: dialogue_id.value,
-      global: data.global
+      global: data.global,
+      rel_user_id: userStore.userInfo ? userStore.userInfo.user_id : '',
     }
 
     sendLock.value = true

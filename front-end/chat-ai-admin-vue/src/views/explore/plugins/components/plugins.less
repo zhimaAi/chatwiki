@@ -20,9 +20,22 @@
     border-radius: 12px;
     border: 1px solid #E4E6EB;
     cursor: pointer;
+    position: relative;
 
     &:hover {
       box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.12);
+    }
+
+    .type-tag {
+      position: absolute;
+      top: 0;
+      right: 0;
+      padding: 1px 8px;
+      border-radius: 0 8px;
+      background: #F2F4F7;
+      font-size: 12px;
+      font-style: normal;
+      font-weight: 400;
     }
 
     .base-info {
@@ -67,7 +80,8 @@
       color: #595959;
       font-size: 14px;
       font-weight: 400;
-      height: 44px;
+      height: 22px;
+      width: 100%;
     }
 
     .action-box {

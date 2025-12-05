@@ -16,7 +16,7 @@
       >
         <a-form-item name="faq_files" :label="null">
           <UploadFilesInput
-            :maxCount="1"
+            :maxCount="10"
             v-model:value="formState.faq_files"
             @change="onFilesChange"
           />
@@ -36,7 +36,7 @@
         <a-form-item label="分块方式">
           <a-radio-group v-model:value="formState.chunk_type">
             <a-radio :value="1">按长度</a-radio>
-            <!-- <a-radio :value="2">按分隔符</a-radio> -->
+            <a-radio :value="2">按分隔符</a-radio>
           </a-radio-group>
           <div class="mt8" v-if="formState.chunk_type == 1">
             <a-input-number
@@ -48,18 +48,28 @@
               style="width: 300px"
             />
           </div>
-          <!-- <div v-if="formState.chunk_type == 2" class="mt8">
+          <div v-if="formState.chunk_type == 2" class="mt8">
             <a-select
               placeholder="请选择"
               style="width: 300px"
-              mode="multiple"
+              mode="tags"
               v-model:value="formState.separators_no"
             >
-              <a-select-option :value="item.no" v-for="item in separatorsOptions" :key="item.no">{{
+              <a-select-option :value="item.no" v-for="item in props.separatorsOptions" :key="item.no">{{
                 item.name
               }}</a-select-option>
             </a-select>
-          </div> -->
+          </div>
+        </a-form-item>
+        <a-form-item label="最大长度" v-if="formState.chunk_type == 2">
+            <a-input-number
+              v-model:value="formState.chunk_size"
+              :min="1"
+              :max="10000"
+              :step="1"
+              placeholder="请输入"
+              style="width: 300px"
+            />
         </a-form-item>
         <a-form-item label="FAQ提取提示词">
           <a-textarea
@@ -74,12 +84,20 @@
 </template>
 
 <script setup>
-import { ref, reactive, nextTick } from 'vue'
-import { getSeparatorsList, addFAQFile, getFAQConfig } from '@/api/library/index'
+import { ref, reactive, nextTick, onMounted } from 'vue'
+import {addFAQFile, getFAQConfig } from '@/api/library/index'
 import UploadFilesInput from './upload-input.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
+import { formatSeparatorsNo } from '@/utils/index'
 import { message } from 'ant-design-vue'
 const emit = defineEmits(['ok'])
+
+const props = defineProps({
+  separatorsOptions: {
+    type: Array,
+    default: () => []
+  },
+})
 
 const defaultPromt = `根据user角色提供的文本，学习和分析它，并整理学习成果：
 - 提出问题并给出每个问题的答案。
@@ -94,7 +112,8 @@ const formState = reactive({
   chunk_model_config_id: '',
   chunk_type: 1,
   chunk_size: 8000,
-  chunk_prompt: defaultPromt
+  chunk_prompt: defaultPromt,
+  separators_no: [12, 11]
 })
 const rules = ref({
   chunk_model_config_id: [
@@ -121,7 +140,8 @@ const show = () => {
       chunk_model_config_id: '',
       chunk_type: 1,
       chunk_size: 8000,
-      chunk_prompt: defaultPromt
+      chunk_prompt: defaultPromt,
+      separators_no: [12, 11]
     }
     formState.faq_files = []
     formState.chunk_model = data.chunk_model
@@ -129,6 +149,7 @@ const show = () => {
     formState.chunk_type = 1
     formState.chunk_size = data.chunk_size || 8000
     formState.chunk_prompt = data.chunk_prompt || defaultPromt
+    formState.separators_no = formatSeparatorsNo(data.separators_no, [12, 11])
     setTimeout(() => {
       if (!formState.chunk_model_config_id && vectorModelList.value.length > 0) {
         if (vectorModelList.value[0].children && vectorModelList.value[0].children.length) {
@@ -163,6 +184,7 @@ const saveForm = () => {
   formData.append('chunk_model', formState.chunk_model)
   formData.append('chunk_model_config_id', formState.chunk_model_config_id)
   formData.append('chunk_prompt', formState.chunk_prompt)
+  formData.append('separators_no', JSON.stringify(formState.separators_no))
   confirmLoading.value = true
   addFAQFile(formData)
     .then((res) => {
@@ -175,16 +197,6 @@ const saveForm = () => {
     })
 }
 
-// 分段标识符列表
-const separatorsOptions = ref([])
-
-const getSeparatorsOptions = () => {
-  getSeparatorsList().then((res) => {
-    separatorsOptions.value = res.data || []
-  })
-}
-
-// getSeparatorsOptions()
 
 const onFilesChange = (files) => {
   formState.faq_files = files
@@ -197,6 +209,8 @@ const onVectorModelLoaded = (list) => {
   nextTick(() => {})
   // handleEdit()
 }
+
+
 
 defineExpose({
   show

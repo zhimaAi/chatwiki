@@ -11,10 +11,13 @@
           <img class="avatar" :src="info.icon"/>
           <div class="info">
             <div class="left">
-              <div class="name zm-line1">{{ info.title }} v{{info.latest_version}}</div>
+              <div class="name zm-line1">{{ info.title }}</div>
               <div class="source">{{ info.author }}</div>
             </div>
             <div class="right">
+              <a v-if="info.help_url" :href="info.help_url" target="_blank">
+                <a-button type="primary" ghost>使用说明</a-button>
+              </a>
               <template v-if="info.local">
                 <a-button v-if="info.has_update" type="primary" @click="install">更 新</a-button>
                 <a-button v-else>已安装</a-button>
@@ -44,6 +47,13 @@
           </div>
         </div>
         <div class="right">
+          <div class="main-block">
+            <div class="main-tit">类别</div>
+            <div class="text-cont flex-center">
+              <img class="cate-icon" :src="info.filter_type_icon"/>
+              {{info.filter_type_title}}
+            </div>
+          </div>
           <div class="main-block">
             <div class="main-tit">版本</div>
             <div class="version-info">
@@ -193,6 +203,12 @@ function install() {
       }
     }
 
+    .right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .desc {
       color: #595959;
       font-size: 14px;
@@ -260,5 +276,16 @@ function install() {
       }
     }
   }
+}
+
+.cate-icon {
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
 }
 </style>

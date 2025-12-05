@@ -679,6 +679,7 @@ func GetRobotInfo(c *gin.Context) {
 		info[`prompt_struct`], _ = common.CheckPromptConfig(define.PromptTypeStruct, info[`prompt_struct`])
 	}
 	//configure external service parameters
+	info[`image_domain`] = define.Config.WebService[`image_domain`]
 	info[`h5_domain`] = define.Config.WebService[`h5_domain`]
 	info[`pc_domain`] = define.Config.WebService[`pc_domain`]
 	info[`prompt_struct_default`] = common.GetDefaultPromptStruct() //提供给前端的默认值

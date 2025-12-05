@@ -22,5 +22,8 @@ const ExportTaskChannel = `chatwiki_export_task_channel`
 const ExtractFaqFilesTopic = `chatwiki_extract_faq_files_topic`
 const ExtractFaqFilesChannel = `chatwiki_extract_faq_files_channel`
 
+const ImportFAQFileTopic = `chatwiki_import_faq_file_topic`
+const ImportFAQFileChannel = `chatwiki_import_faq_file_channel`
+
 var ConsumerHandle *mq.ConsumerHandle
 var ProducerHandle *mq.ProducerHandle

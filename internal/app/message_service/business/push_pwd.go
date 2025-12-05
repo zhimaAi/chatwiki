@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
+	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 )
 
@@ -34,17 +35,7 @@ func PushPwd(c *gin.Context) {
 		c.String(http.StatusOK, lib_define.SUCCESS)
 		return
 	}
-	//inspection robot
-	robot, err := common.GetRobotInfo(appInfo[`robot_key`])
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_define.SUCCESS)
-		return
-	}
-	if len(robot) == 0 {
-		c.String(http.StatusOK, lib_define.SUCCESS)
-		return
-	}
+
 	signature := c.Query(`signature`)
 	timestamp := c.Query(`timestamp`)
 	nonce := c.Query(`nonce`)
@@ -87,10 +78,22 @@ func PushPwd(c *gin.Context) {
 		go common.PushNSQ(message)
 		return
 	}
+
+	var robot msql.Params
+	//获取机器人信息
+	if cast.ToString(appInfo[`robot_key`]) != `` {
+		robot, err = common.GetRobotInfo(appInfo[`robot_key`])
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_define.SUCCESS)
+			return
+		}
+	}
+
 	//未认证公众号的文本消息特殊处理
-	if appType == lib_define.AppOfficeAccount && msgType == lib_define.MsgTypeText && !lib_define.WechatAccountIsVerify(appInfo[`account_customer_type`]) {
+	if len(robot) > 0 && appType == lib_define.AppOfficeAccount && msgType == lib_define.MsgTypeText && !lib_define.WechatAccountIsVerify(appInfo[`account_customer_type`]) {
 		var echo string
-		if logid, serial, ok := common.CheckQueryAiReply(message); ok { //查询AI回复
+		if logid, serial, ok := common.CheckQueryAiReply(message); ok && logid > 0 && serial >= 0 { //查询AI回复
 			echo = common.GetAiReply(robot, message, logid, serial)
 		} else { //普通消息处理
 			echo = common.WaitAiReply(robot, message)

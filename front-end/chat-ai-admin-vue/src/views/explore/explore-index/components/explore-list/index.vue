@@ -192,7 +192,6 @@
               checked-children="开"
               un-checked-children="关"
               class="no-bubble"
-              @click.stop
               @change="(checked)=>handleSwitchChange(item, checked)"
             />
         </div>
@@ -202,7 +201,10 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
 const emit = defineEmits(['switchChange', 'clickItem'])
+
+const router = useRouter()
 
 const props = defineProps({
   list: {
@@ -213,12 +215,17 @@ const props = defineProps({
 
 const handleSwitchChange = (item, checked) => emit('switchChange', item, checked)
 
-const handleClick = (e, item) => {
+const handleClick = async (e, item) => {
   try {
     const target = e?.target
     if (target && typeof target.closest === 'function') {
       const blocker = target.closest('.no-bubble')
       if (blocker) return
+    }
+    // 点击关注后回复跳转
+    if (item.ability_type == 'robot_subscribe_reply') {
+      router.push({ path: '/explore/index/subscribe-reply' })
+      return
     }
   } catch (_) {}
   emit('clickItem', item)

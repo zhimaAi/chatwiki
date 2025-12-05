@@ -102,6 +102,9 @@
     margin-top: 12px;
     color: #7a8699;
   }
+  .no-footer {
+    height: 22px;
+  }
   .fixed-menu-box {
     display: flex;
     align-items: center;
@@ -190,8 +193,9 @@
           </span>
         </div>
 
-        <div class="item-footer">
+        <div class="item-footer" :class="{'no-footer': item.ability_type == 'robot_subscribe_reply'}">
             <a-switch
+              v-if="item.ability_type != 'robot_subscribe_reply'"
               :checked="item.robot_config?.switch_status == '1'"
               checked-children="开"
               un-checked-children="关"
@@ -200,13 +204,18 @@
             />
             <!-- 固定菜单，复选框 -->
             <a-checkbox
+              v-if="item.ability_type != 'robot_subscribe_reply'"
               class="fixed-menu-box no-bubble"
               :checked="item.robot_config?.fixed_menu == '1'"
               @click.stop
               @mousedown.stop
               @change="(e)=>handleFixedMenuChange(item, e?.target?.checked === true)"
             >
-              固定菜单
+              <a-tooltip
+                title="勾选后增加机器人—级菜单固定显示"
+              >
+                固定菜单
+              </a-tooltip>
             </a-checkbox>
         </div>
       </div>

@@ -67,6 +67,7 @@ import SpecifyReplyNodeForm from './specify-reply-form.vue'
 import McpForm from './mcp-form.vue'
 import CustomGroupNodeForm from './custom-group-node/custom-group-node-form.vue'
 import ZmPluginsNodeForm from "./zm-plugins-node-form.vue";
+import {jsonDecode} from "@/utils/index.js";
 
 // 预定义所有可能的表单组件
 const formComponents = {
@@ -128,6 +129,8 @@ const close = () => {
 }
 
 const width = computed(() => {
+  let node_params = jsonDecode(props.node?.node_params)
+  if (node_params?.plugin?.name == 'feishu_bitable') return 600
   let widthMap = {
     'delete-data-node': 600,
     'update-data-node': 600,
@@ -156,7 +159,7 @@ const changeTitle = (title) => {
 const deleteNode = () => {
   show.value = false
   let node = getNode()
-  
+
   getGraph().eventCenter.emit('custom:node:delete', node)
 }
 

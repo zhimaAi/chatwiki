@@ -4,6 +4,7 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_web"
 	"chatwiki/internal/pkg/textsplitter"
 	"context"
 	"errors"
@@ -16,6 +17,7 @@ import (
 	"github.com/ZeroHawkeye/wordZero/pkg/document"
 	"github.com/gin-contrib/sse"
 	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/curl"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
@@ -289,5 +291,86 @@ func ExportFAQFileAllQA(list []msql.Params, ext, source string) (string, error) 
 		}
 		filepath, _, err := tool.ExcelExportPro(data, fields, `FAQ`, fileSavePath)
 		return filepath, err
+	}
+}
+
+func ImportFAQFile(adminUserId, libraryId, fileId int, ids, token string, isSync bool) {
+	if isSync {
+		if message, err := tool.JsonEncode(map[string]any{
+			`admin_user_id`: adminUserId,
+			`token`:         token,
+			`library_id`:    libraryId,
+			`file_id`:       fileId,
+			"ids":           ids,
+		}); err != nil {
+			logs.Error(err.Error())
+		} else if err := AddJobs(define.ImportFAQFileTopic, message); err != nil {
+			logs.Error(err.Error())
+		}
+		return
+	}
+
+	var qaList []msql.Params
+	var err error
+
+	if len(ids) > 0 {
+		// 查询单条QA数据
+		qaList, err = msql.Model("chat_ai_faq_files_data_qa", define.Postgres).
+			Where("id", `in`, cast.ToString(ids)).
+			Where("admin_user_id", cast.ToString(adminUserId)).
+			Select()
+	} else {
+		// 查询文件下所有QA数据
+		qaList, err = msql.Model("chat_ai_faq_files_data_qa", define.Postgres).
+			Where("file_id", cast.ToString(fileId)).
+			Where("admin_user_id", cast.ToString(adminUserId)).
+			Select()
+	}
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	if len(qaList) == 0 {
+		return
+	}
+	var qaIds []string
+	var res lib_web.Response
+	for _, item := range qaList {
+		var imgs []string
+		req := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/addParagraph`, define.Config.WebService[`port`])).Header(`token`, token)
+		req.Param(`library_id`, cast.ToString(libraryId))
+		req.Param(`similar_questions`, `[]`)
+		req.Param(`question`, item[`question`])
+		req.Param(`answer`, item[`answer`])
+		if len(item[`images`]) > 0 {
+			if err = tool.JsonDecodeUseNumber(cast.ToString(item[`images`]), &imgs); err != nil {
+				logs.Error(err.Error())
+				continue
+			}
+			for _, img := range imgs {
+				req.Param(`images`, img)
+			}
+		}
+		if err = req.ToJSON(&res); err != nil {
+			logs.Error(err.Error())
+			continue
+		}
+		if res.Res != define.StatusOK {
+			logs.Error(fmt.Sprintf(`%s`, cast.ToString(res.Msg)))
+			continue
+		}
+		qaIds = append(qaIds, cast.ToString(item[`id`]))
+	}
+	// 更新数据
+	_, err = msql.Model("chat_ai_faq_files_data_qa", define.Postgres).
+		Where("id", `in`, strings.Join(qaIds, `,`)).
+		Where("admin_user_id", cast.ToString(adminUserId)).
+		Update(msql.Datas{
+			"is_import":   define.SwitchOn,
+			`library_id`:  libraryId,
+			"update_time": tool.Time2Int(),
+		})
+	if err != nil {
+		logs.Error(err.Error())
 	}
 }

@@ -211,7 +211,8 @@ export const useChatMonitorStore = defineStore('chatMonitor', {
         robot_key: this.activeChat.robot_key,
         openid: this.activeChat.openid,
         min_id: min_id,
-        size: this.chatMessagePageSize
+        size: this.chatMessagePageSize,
+        rel_user_id: this.activeChat.rel_user_id
       }
 
       return getChatMessage(params)

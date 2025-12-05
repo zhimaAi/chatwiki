@@ -11,6 +11,7 @@
     "dev2": "vite --mode dev2",
     "dev3": "vite --mode dev3",
     "dev4": "vite --mode dev4",
+    "dev:dev7": "vite --host 0.0.0.0 --mode dev7",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "test:unit": "vitest",

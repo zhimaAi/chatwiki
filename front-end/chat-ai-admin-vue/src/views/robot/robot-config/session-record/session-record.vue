@@ -243,6 +243,7 @@ const openNewChat = async (item) => {
     nickname: item.name,
     is_background: 1,
     openid: item.openid,
+    rel_user_id: item.rel_user_id,
     // dialogue_id: item.dialogue_id
   }
 

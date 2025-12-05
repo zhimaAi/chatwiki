@@ -71,6 +71,7 @@ func StartConsumer() {
 	common.RunTask(lib_define.AppPushEvent, lib_define.AppPushChannel, 5, business.AppPush)
 	common.RunTask(define.ExportTaskTopic, define.ExportTaskChannel, 5, business.ExportTask)
 	common.RunTask(define.ExtractFaqFilesTopic, define.ExtractFaqFilesChannel, 5, business.ExtractFaqFiles)
+	common.RunTask(define.ImportFAQFileTopic, define.ImportFAQFileChannel, 5, business.ImportLibFileFaq)
 }
 
 func StartCronTasks() {
@@ -140,6 +141,7 @@ func CreateDefaultUser() (int64, bool, error) {
 	salt := tool.Random(20)
 	id, err := msql.Model(define.TableUser, define.Postgres).Insert(msql.Datas{
 		`user_name`:   define.DefaultUser,
+		`nick_name`:   `admin`,
 		`salt`:        salt,
 		`password`:    tool.MD5(define.DefaultPasswd + salt),
 		`user_type`:   define.UserTypeAdmin,

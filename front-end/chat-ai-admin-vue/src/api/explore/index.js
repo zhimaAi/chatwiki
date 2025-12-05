@@ -184,3 +184,46 @@ export const updateRobotSubscribeReplyPriorityNum = (data) => {
     data: data
   })
 }
+
+export const getSpecifyAbilityConfig = (params = {}) => {
+  return request.get({
+    url: '/manage/ability/getSpecifyAbilityConfig',
+    params: params
+  })
+}
+
+// 智能菜单 APIs
+export const getSmartMenuList = (params = {}) => {
+  return request.get({
+    url: '/manage/ability/getSmartMenuList',
+    params: params
+  })
+}
+
+export const updateSmartMenuSwitchStatus = (data) => {
+  return request.post({
+    url: '/manage/ability/updateSmartMenuSwitchStatus',
+    data: data
+  })
+}
+
+export const deleteSmartMenu = (data) => {
+  return request.post({
+    url: '/manage/ability/deleteSmartMenu',
+    data: data
+  })
+}
+
+export const saveSmartMenu = (data) => {
+  return request.post({
+    url: '/manage/ability/saveSmartMenu',
+    data: data
+  })
+}
+
+export const getSmartMenu = (params = {}) => {
+  return request.get({
+    url: '/manage/ability/getSmartMenu',
+    params: params
+  })
+}

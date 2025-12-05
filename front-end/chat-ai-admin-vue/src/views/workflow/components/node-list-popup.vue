@@ -312,7 +312,7 @@
                 </div>
               </div>
             </a-popover>
-            <div v-show="item.expand" class="mcp-tools">
+            <div v-show="item.expand" class="node-tools">
               <a-popover v-for="(tool, i) in item.tools" :key="i" placement="right">
                 <template #content>
                   <div class="params-box">
@@ -352,16 +352,69 @@
       <div v-else-if="active == 3" class="node-box">
         <template v-if="allPluginNodes.length">
           <div class="node-list">
-            <div v-for="node in allPluginNodes"
-                 @click="handleAddNode(node)"
-                 :key="node.type"
-                 class="node-item"
-            >
-              <div class="node-info">
-                <img class="avatar" :src="node.properties.node_icon"/>
-                <div class="info"><span class="name">{{ node.properties.node_name }}</span></div>
+            <template
+              v-for="node in allPluginNodes"
+              :key="node.type">
+              <div v-if="!isActionsPlugin(node)"
+                   @click="handleAddNode(node)"
+                   class="node-item"
+              >
+                <div class="node-info">
+                  <img class="avatar" :src="node.properties.node_icon"/>
+                  <div class="info"><span class="name">{{ node.properties.node_name }}</span></div>
+                </div>
               </div>
-            </div>
+              <div v-else class="node-item">
+                <a-popover placement="right">
+                  <template #content>
+                    <div class="node-info-pop">
+                      <div class="info">
+                        <img class="avatar" :src="node.properties.node_icon" />
+                        <div class="name">{{ node.properties.node_name }}</div>
+                      </div>
+                      <div>{{ node.properties.node_desc }}</div>
+                      <div class="extra">可用工具：{{ feshuBtPluginActions.length  }}</div>
+                    </div>
+                  </template>
+                  <div class="node-info" @click="node.expand = !node.expand">
+                    <img class="avatar" :src="node.properties.node_icon" />
+                    <div class="info">
+                      <span class="name">{{ node.properties.node_name }}</span>
+                      <span class="total">
+                        {{ feshuBtPluginActions.length }} <DownOutlined v-if="node.expand"/> <RightOutlined v-else/>
+                      </span>
+                    </div>
+                  </div>
+                </a-popover>
+                <div v-show="node.expand" class="node-tools">
+                  <a-popover v-for="action in feshuBtPluginActions" :key="action.name" placement="right">
+                    <template #content>
+                      <div class="params-box">
+                        <div class="param-item">
+                          <div class="field">
+                            <span class="name">{{ action.title }}</span>
+                          </div>
+                          <div class="desc">{{ action.desc }}</div>
+                        </div>
+                        <div
+                          v-for="(field, key) in action.params"
+                          :key="key"
+                          class="param-item"
+                        >
+                          <div class="field">
+                            <span class="name">{{ key }}</span>
+                            <span class="type">{{ field.type }}</span>
+                            <span v-if="field.required" class="required">必填</span>
+                          </div>
+                          <div class="desc">{{ field.desc }}</div>
+                        </div>
+                      </div>
+                    </template>
+                    <div class="node-tool-item" @mousedown="addPluginNode($event, node, action, action.name)">{{ action.title }}</div>
+                  </a-popover>
+                </div>
+              </div>
+            </template>
           </div>
           <a class="more-link" href="/#/plugins/index?active=2" target="_blank">更多插件 <RightOutlined/></a>
         </template>
@@ -378,7 +431,15 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { RightOutlined, DownOutlined } from '@ant-design/icons-vue'
-import { getAllGroupNodes, getAllPluginNodes, getAllMcpNodes, getMcpNode } from './node-list'
+import {
+  getAllGroupNodes,
+  getAllPluginNodes,
+  getAllMcpNodes,
+  getMcpNode,
+  getFeishuActions,
+  getPluginActionNode
+} from './node-list'
+import {jsonDecode} from "@/utils/index.js";
 
 const emit = defineEmits(['addNode', 'mouseMove'])
 
@@ -393,6 +454,7 @@ const allGroupNodes = computed(()=>{
   return getAllGroupNodes(props.type)
 })
 const allPluginNodes = ref([])
+const feshuBtPluginActions = ref([])
 const allMcpNodes = ref([])
 const active = ref(1)
 const mcpKeyword = ref('')
@@ -403,6 +465,7 @@ onMounted(() => {
   })
   getAllPluginNodes().then(res => {
     allPluginNodes.value = res
+    feshuBtPluginActions.value = getFeishuActions()
   })
 })
 
@@ -485,12 +548,22 @@ const addMcpNode = (event, mcp, tool) => {
   handleMouseDownOnNode(event, node)
 }
 
+const addPluginNode = (event, node, action, name) => {
+  node = getPluginActionNode(node, action, name)
+  handleMouseDownOnNode(event, node)
+}
+
 function tabChange(key) {
   active.value = key
 }
 
 function handleOpenAddMcp() {
   window.open('/#/robot/list?active=3&mcp=2', '_blank')
+}
+
+function isActionsPlugin(node) {
+  let node_params = jsonDecode(node?.properties?.node_params, {})
+  return node_params?.plugin?.name == 'feishu_bitable'
 }
 </script>
 

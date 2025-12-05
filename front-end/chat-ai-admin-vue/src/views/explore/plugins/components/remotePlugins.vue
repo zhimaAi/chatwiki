@@ -6,6 +6,7 @@
            @click="linkDetail(item)"
            :key="item.name"
            class="plugin-item">
+        <div class="type-tag">{{item.filter_type_title}}</div>
         <div class="base-info">
           <img class="avatar" :src="item.icon"/>
           <div class="info">
@@ -15,7 +16,7 @@
             <div class="source">{{ item.author }}</div>
           </div>
         </div>
-        <div class="desc zm-line2">{{ item.description }}</div>
+        <div class="desc zm-line1">{{ item.description }}</div>
         <div class="version">版本：v{{ item.latest_version }}</div>
         <div class="action-box">
           <div class="left">
@@ -23,6 +24,10 @@
             {{ item.installed_count || 0 }}
           </div>
           <div class="right">
+            <template v-if="item.help_url">
+              <a @click.stop class="c595959" :href="item.help_url" target="_blank">使用说明</a>
+              <a-divider type="vertical"/>
+            </template>
             <template v-if="item.local">
               <a v-if="item.has_update" @click.stop="install(item)">更新</a>
               <span v-else>已安装</span>
@@ -39,7 +44,7 @@
 </template>
 
 <script setup>
-import {onMounted, ref} from 'vue';
+import {onMounted, ref, watch} from 'vue';
 import {useRouter} from 'vue-router';
 import EmptyBox from "@/components/common/empty-box.vue";
 import {getInstallPlugins, getRemotePlugins} from "@/api/plugins/index.js";
@@ -47,6 +52,12 @@ import LoadingBox from "@/components/common/loading-box.vue";
 import UpdateModal from "./update-modal.vue";
 
 const emit = defineEmits(['installReport'])
+const props = defineProps({
+  filterData: {
+    type: Object,
+    default: null
+  }
+})
 const router = useRouter()
 
 const updateRef = ref(null)
@@ -58,10 +69,22 @@ onMounted(() => {
   loadData()
 })
 
+// watch(() => props.filterData, () => {
+//   loadData()
+// }, {
+//   immediate: true,
+//   deep: true
+// })
+
+function search() {
+  list.value = []
+  loadData()
+}
+
 async function loadData() {
   loading.value = true
   await loadInstalls()
-  getRemotePlugins().then(res => {
+  getRemotePlugins(props.filterData).then(res => {
     let _list = res?.data || []
     _list.forEach(item => {
       let {local, has_update} = localMap.value?.[item.name] || {}
@@ -101,6 +124,10 @@ function linkDetail(item) {
 function install(item) {
   updateRef.value.show(item, item.latest_version_detail, item.local || null)
 }
+
+defineExpose({
+  search,
+})
 </script>
 
 <style scoped lang="less">
@@ -112,5 +139,9 @@ function install(item) {
 
 .mt24 {
   margin-top: 24px;
+}
+
+.c595959 {
+  color: #595959;
 }
 </style>

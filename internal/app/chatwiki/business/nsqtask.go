@@ -759,3 +759,19 @@ EndExtract:
 	common.UpdateLibFileFaqStatus(fileId, adminUserId, status, errMsg)
 	return nil
 }
+
+func ImportLibFileFaq(msg string, _ ...string) error {
+	logs.Debug(`nsq:%s`, msg)
+	data := make(map[string]any)
+	if err := tool.JsonDecode(msg, &data); err != nil {
+		logs.Error(`parsing failure:%s/%s`, msg, err.Error())
+		return nil
+	}
+	adminUserId := cast.ToInt(data[`admin_user_id`])
+	libraryId := cast.ToInt(data[`library_id`])
+	fileId := cast.ToInt(data[`file_id`])
+	ids := cast.ToString(data[`ids`])
+	token := cast.ToString(data[`token`])
+	common.ImportFAQFile(adminUserId, libraryId, fileId, ids, token, false)
+	return nil
+}

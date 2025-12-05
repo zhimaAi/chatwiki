@@ -1197,20 +1197,20 @@
         },
         {
             "name": "spiral/roadrunner",
-            "version": "v2025.1.4",
-            "version_normalized": "2025.1.4.0",
+            "version": "v2025.1.5",
+            "version_normalized": "2025.1.5.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/roadrunner-server/roadrunner.git",
-                "reference": "ff25363b72dd6ab2bd642d741db13b30d52d254f"
+                "reference": "d68bee29eb689c5310f8ede935c95a13bd7cc153"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/roadrunner-server/roadrunner/zipball/ff25363b72dd6ab2bd642d741db13b30d52d254f",
-                "reference": "ff25363b72dd6ab2bd642d741db13b30d52d254f",
+                "url": "https://api.github.com/repos/roadrunner-server/roadrunner/zipball/d68bee29eb689c5310f8ede935c95a13bd7cc153",
+                "reference": "d68bee29eb689c5310f8ede935c95a13bd7cc153",
                 "shasum": ""
             },
-            "time": "2025-10-02T16:43:06+00:00",
+            "time": "2025-11-13T17:24:29+00:00",
             "type": "metapackage",
             "notification-url": "https://packagist.org/downloads/",
             "license": [
@@ -1234,10 +1234,9 @@
             "homepage": "https://roadrunner.dev/",
             "support": {
                 "chat": "https://discord.gg/V6EK4he",
-                "docs": "https://roadrunner.dev/docs",
-                "forum": "https://forum.roadrunner.dev/",
+                "docs": "https://docs.roadrunner.dev/",
                 "issues": "https://github.com/roadrunner-server/roadrunner/issues",
-                "source": "https://github.com/roadrunner-server/roadrunner/tree/v2025.1.4"
+                "source": "https://github.com/roadrunner-server/roadrunner/tree/v2025.1.5"
             },
             "funding": [
                 {
@@ -1337,17 +1336,17 @@
         },
         {
             "name": "symfony/clock",
-            "version": "v7.3.0",
-            "version_normalized": "7.3.0.0",
+            "version": "v7.4.0",
+            "version_normalized": "7.4.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/clock.git",
-                "reference": "b81435fbd6648ea425d1ee96a2d8e68f4ceacd24"
+                "reference": "9169f24776edde469914c1e7a1442a50f7a4e110"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/clock/zipball/b81435fbd6648ea425d1ee96a2d8e68f4ceacd24",
-                "reference": "b81435fbd6648ea425d1ee96a2d8e68f4ceacd24",
+                "url": "https://api.github.com/repos/symfony/clock/zipball/9169f24776edde469914c1e7a1442a50f7a4e110",
+                "reference": "9169f24776edde469914c1e7a1442a50f7a4e110",
                 "shasum": ""
             },
             "require": {
@@ -1358,7 +1357,7 @@
             "provide": {
                 "psr/clock-implementation": "1.0"
             },
-            "time": "2024-09-25T14:21:43+00:00",
+            "time": "2025-11-12T15:39:26+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -1394,7 +1393,7 @@
                 "time"
             ],
             "support": {
-                "source": "https://github.com/symfony/clock/tree/v7.3.0"
+                "source": "https://github.com/symfony/clock/tree/v7.4.0"
             },
             "funding": [
                 {
@@ -1403,6 +1402,10 @@
                 },
                 {
                     "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/nicolas-grekas",
                     "type": "github"
                 },
                 {
@@ -1655,24 +1658,24 @@
         },
         {
             "name": "symfony/translation",
-            "version": "v7.3.4",
-            "version_normalized": "7.3.4.0",
+            "version": "v7.4.0",
+            "version_normalized": "7.4.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/translation.git",
-                "reference": "ec25870502d0c7072d086e8ffba1420c85965174"
+                "reference": "2d01ca0da3f092f91eeedb46f24aa30d2fca8f68"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/translation/zipball/ec25870502d0c7072d086e8ffba1420c85965174",
-                "reference": "ec25870502d0c7072d086e8ffba1420c85965174",
+                "url": "https://api.github.com/repos/symfony/translation/zipball/2d01ca0da3f092f91eeedb46f24aa30d2fca8f68",
+                "reference": "2d01ca0da3f092f91eeedb46f24aa30d2fca8f68",
                 "shasum": ""
             },
             "require": {
                 "php": ">=8.2",
                 "symfony/deprecation-contracts": "^2.5|^3",
                 "symfony/polyfill-mbstring": "~1.0",
-                "symfony/translation-contracts": "^2.5|^3.0"
+                "symfony/translation-contracts": "^2.5.3|^3.3"
             },
             "conflict": {
                 "nikic/php-parser": "<5.0",
@@ -1691,19 +1694,19 @@
             "require-dev": {
                 "nikic/php-parser": "^5.0",
                 "psr/log": "^1|^2|^3",
-                "symfony/config": "^6.4|^7.0",
-                "symfony/console": "^6.4|^7.0",
-                "symfony/dependency-injection": "^6.4|^7.0",
-                "symfony/finder": "^6.4|^7.0",
+                "symfony/config": "^6.4|^7.0|^8.0",
+                "symfony/console": "^6.4|^7.0|^8.0",
+                "symfony/dependency-injection": "^6.4|^7.0|^8.0",
+                "symfony/finder": "^6.4|^7.0|^8.0",
                 "symfony/http-client-contracts": "^2.5|^3.0",
-                "symfony/http-kernel": "^6.4|^7.0",
-                "symfony/intl": "^6.4|^7.0",
+                "symfony/http-kernel": "^6.4|^7.0|^8.0",
+                "symfony/intl": "^6.4|^7.0|^8.0",
                 "symfony/polyfill-intl-icu": "^1.21",
-                "symfony/routing": "^6.4|^7.0",
+                "symfony/routing": "^6.4|^7.0|^8.0",
                 "symfony/service-contracts": "^2.5|^3",
-                "symfony/yaml": "^6.4|^7.0"
+                "symfony/yaml": "^6.4|^7.0|^8.0"
             },
-            "time": "2025-09-07T11:39:36+00:00",
+            "time": "2025-11-27T13:27:24+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -1734,7 +1737,7 @@
             "description": "Provides tools to internationalize your application",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/translation/tree/v7.3.4"
+                "source": "https://github.com/symfony/translation/tree/v7.4.0"
             },
             "funding": [
                 {

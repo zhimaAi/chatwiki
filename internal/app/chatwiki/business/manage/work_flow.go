@@ -123,8 +123,8 @@ func SaveNodes(c *gin.Context) {
 	}
 
 	//获取编辑锁内容
-	lockEditKey := fmt.Sprintf("draft_lock:user_id:%s,robot:%s,", userId, robotKey)
-	lockKeyMd5 := tool.MD5(lockEditKey)
+	lockEditKey := fmt.Sprintf("user_id:%s,robot:%s,", userId, robotKey)
+	lockKeyMd5 := define.LockPreKey + ".draft_lock." + tool.MD5(lockEditKey)
 
 	filtered := make(map[string]any)
 	filtered["login_user_id"] = getLoginUserId(c)
@@ -431,7 +431,7 @@ func WorkFlowPublishVersion(c *gin.Context) {
 	}
 
 	//获取编辑锁内容
-	lockEditKey := fmt.Sprintf("draft_lock:user_id:%s,robot:%s,", userId, robotKey)
+	lockEditKey := fmt.Sprintf("user_id:%s,robot:%s,", userId, robotKey)
 	filtered := make(map[string]any)
 	filtered["login_user_id"] = getLoginUserId(c)
 	filtered["robot_key"] = robotKey
@@ -439,7 +439,7 @@ func WorkFlowPublishVersion(c *gin.Context) {
 	filtered["user_agent"] = c.Request.UserAgent()
 	lockValue, _ := tool.JsonEncode(filtered)
 
-	lockKeyMd5 := tool.MD5(lockEditKey)
+	lockKeyMd5 := define.LockPreKey + ".draft_lock." + tool.MD5(lockEditKey)
 
 	lockRes, err := define.Redis.Get(context.Background(), lockKeyMd5).Result()
 	if lockRes != lockValue { //没有编辑锁
@@ -661,8 +661,8 @@ func GetDraftKey(c *gin.Context) {
 		return
 	}
 
-	lockKey := fmt.Sprintf("draft_lock:user_id:%s,robot:%s,", userId, robotKey)
-	lockKeyMd5 := tool.MD5(lockKey)
+	lockKey := fmt.Sprintf("user_id:%s,robot:%s,", userId, robotKey)
+	lockKeyMd5 := define.LockPreKey + ".draft_lock." + tool.MD5(lockKey)
 
 	filtered := make(map[string]any)
 	filtered["login_user_id"] = getLoginUserId(c)
@@ -671,12 +671,9 @@ func GetDraftKey(c *gin.Context) {
 	filtered["user_agent"] = c.Request.UserAgent()
 	lockValue, _ := tool.JsonEncode(filtered)
 
-	logs.Error("锁内容：" + lockKey + "，锁结果：" + lockValue)
 	corpConfig := common.GetAdminConfig(userId)
 	draft_exptime := cast.ToInt(corpConfig["draft_exptime"])
 	lockRes, lockVal, lockTtl := lib_redis.AddValueLock(define.Redis, lockKeyMd5, lockValue, time.Duration(draft_exptime)*time.Minute)
-
-	logs.Error("写锁内容：" + lockVal)
 
 	filtered["lock_res"] = lockRes
 	filtered["lock_ttl"] = lockTtl

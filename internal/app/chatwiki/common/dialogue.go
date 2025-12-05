@@ -75,6 +75,7 @@ func GetSessionId(params *define.ChatRequestParam, dialogueId int) (int, error) 
 		`last_chat_message`: MbSubstr(params.Question, 0, 1000),
 		`create_time`:       tool.Time2Int(),
 		`update_time`:       tool.Time2Int(),
+		`rel_user_id`:       params.RelUserId,
 	}, `id`)
 	if err != nil {
 		return 0, err

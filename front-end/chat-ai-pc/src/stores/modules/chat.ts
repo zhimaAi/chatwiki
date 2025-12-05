@@ -92,6 +92,9 @@ export interface ExternalConfigPc {
   lang: string
   pageStyle: PageStyle
   floatBtn: FloatBtn
+  open_type: number
+  window_width: number
+  window_height: number
 }
 
 const SDK_STATIC_HOST = window.location.origin
@@ -173,7 +176,10 @@ export const useChatStore = defineStore('chat', () => {
       rightMargin: 32,
       showUnreadCount: 1,
       showNewMessageTip: 1
-    }
+    },
+    open_type: 1,
+    window_width: 1200,
+    window_height: 650
   })
 
   // 创建对话

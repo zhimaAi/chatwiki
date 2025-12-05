@@ -1,5 +1,9 @@
 import request from "@/utils/http/axios/index.js";
 
+export function getPluginTypes(params = {}) {
+  return request.get({url: '/manage/plugin/remote-plugins/typeList', params})
+}
+
 export function getRemotePlugins(params = {}) {
   return request.get({url: '/manage/plugin/remote-plugins/list', params})
 }
@@ -26,6 +30,14 @@ export function closePlugin(data = {}) {
 
 export function getPluginInfo(params = {}) {
   return request.get({url: '/manage/plugin/local-plugins/detail', params})
+}
+
+export function getPluginConfig(params = {}) {
+  return request.get({url: '/manage/plugin/local-plugins/config', params})
+}
+
+export function setPluginConfig(data = {}) {
+  return request.post({url: '/manage/plugin/local-plugins/config', data})
 }
 
 export function runPlugin(data = {}) {

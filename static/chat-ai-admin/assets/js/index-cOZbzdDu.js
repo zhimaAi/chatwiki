@@ -1,0 +1,1 @@
+import{aa as t}from"../../index-CuuB1UbP.js";const s=({file:a,category:r})=>t.post({headers:{"Content-Type":"multipart/form-data"},url:"/manage/upload",data:{file:a,category:r}}),o=({openid:a})=>t.get({url:"/chat/getWsUrl",params:{openid:a,debug:0}});export{o as g,s as u};

@@ -53,6 +53,18 @@ func AppPush(msg string, _ ...string) error {
 	message[`MsgType`] = msgType
 	//统一消息类型结束
 	event := strings.ToLower(cast.ToString(message[`Event`]))
+
+	//关注事件
+	if msgType == lib_define.MsgTypeEvent && tool.InArrayString(event, []string{lib_define.EventSubscribe}) {
+		err := SubscribeEventHandler(message, msg)
+		if err != nil {
+			logs.Error(`关注后回复msg:%s,err:%s`, msg, err.Error())
+			return err
+		}
+
+		return nil
+	}
+
 	// 事件过滤 ？？ 只限制某些事件
 	if msgType == lib_define.MsgTypeEvent && !tool.InArrayString(event, []string{lib_define.EventEnterSession, lib_define.EventUserEnterTempsession}) {
 		return nil
@@ -125,10 +137,6 @@ func AppPush(msg string, _ ...string) error {
 		case lib_define.EventUserEnterTempsession:
 			SendWelcome(push)
 			break
-		case lib_define.EventSubscribe:
-			//订阅回复
-			SendSubscribeReply(push)
-			break
 		}
 		break
 	case lib_define.MsgTypeText:
@@ -188,6 +196,37 @@ func SendWelcome(push *lib_define.PushMessage) {
 	}
 }
 
+// SubscribeEventHandler 关注事件
+func SubscribeEventHandler(message map[string]any, msg string) error {
+	appInfo, err := common.GetWechatAppInfo(`app_id`, cast.ToString(message[`appid`]))
+	if err != nil {
+		logs.Error(`无对应的公众号 msg:%s,err:%s`, msg, err.Error())
+		return nil
+	}
+	if len(appInfo) == 0 {
+		return nil
+	}
+
+	//get parameter
+	openid := strings.TrimSpace(cast.ToString(message[`FromUserName`]))
+	if appInfo[`app_type`] == lib_define.AppWechatKefu { //external_userid integrates with open_kfid
+		openid = wechatCommon.GetWechatKefuOpenid(cast.ToInt(appInfo[`admin_user_id`]), message)
+	}
+	//订阅回复
+	push := &lib_define.PushMessage{
+		MsgRaw:      msg,
+		Message:     message,
+		AdminUserId: cast.ToInt(appInfo[`admin_user_id`]),
+		CreateTime:  cast.ToInt(message[`CreateTime`]),
+		Openid:      openid,
+		Content:     strings.TrimSpace(cast.ToString(message[`Content`])),
+		AppInfo:     appInfo,
+	}
+
+	SendSubscribeReply(push)
+	return nil
+}
+
 // SendSubscribeReply 订阅回复
 func SendSubscribeReply(push *lib_define.PushMessage) {
 	if len(push.AppInfo) == 0 || push.AppInfo[`app_type`] != lib_define.AppOfficeAccount {
@@ -195,7 +234,6 @@ func SendSubscribeReply(push *lib_define.PushMessage) {
 		return
 	}
 	app := &official_account.Application{AppID: push.AppInfo[`app_id`], Secret: push.AppInfo[`app_secret`]}
-	isClose := false
 	params := &define.ChatRequestParam{
 		ChatBaseParam: &define.ChatBaseParam{
 			AppType:     push.AppInfo[`app_type`],
@@ -207,24 +245,25 @@ func SendSubscribeReply(push *lib_define.PushMessage) {
 		},
 		ReceivedMessageType: lib_define.EventSubscribe,
 		Question:            push.Content,
-		DialogueId:          common.GetLastDialogueId(push.AdminUserId, cast.ToInt(push.Robot[`id`]), push.Openid),
-		IsClose:             &isClose,
-	}
-	//specify the language to use based on the content
-	if common.IsContainChinese(push.Content) {
-		params.Lang = define.LangZhCn
 	}
 
+	//关键词回复
+	useAbility := common.CheckUseAbilityByAbilityType(push.AdminUserId, common.RobotAbilitySubscribeReply)
+	if !useAbility {
+		//关键词回复没开启
+		logs.Error(`关键词回复功能没开启 msg:%s,err:%s`, push.MsgRaw)
+		return
+	}
 	//获取关注场景
 	subscribeScene, err := app.GetSubscribeScene(push.Openid)
 	if err != nil {
-		logs.Error(`msg:%s,err:%s`, push.MsgRaw, err.Error())
+		logs.Error(`无法获取关注场景 msg:%s,err:%s`, push.MsgRaw, err.Error())
 		return
 	}
-	//记录收到的消息
-	message, err := SubscribeReplyHandle(params, subscribeScene)
+	//关注回复的消息
+	message, err := common.SubscribeReplyHandle(params, subscribeScene)
 	if err != nil {
-		logs.Error(`msg:%s,err:%s`, push.MsgRaw, err.Error())
+		logs.Error(`无关注回复消息 msg:%s,err:%s`, push.MsgRaw, err.Error())
 		return
 	}
 	//没消息不回复
@@ -233,7 +272,7 @@ func SendSubscribeReply(push *lib_define.PushMessage) {
 	}
 
 	//发送回复的消息
-	SendReplyMessageHandle(push, message, app, err)
+	ReplyContentListHandle(push, message, app)
 	return
 }
 
@@ -293,7 +332,7 @@ func SendReply(push *lib_define.PushMessage) {
 
 func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, app wechat.ApplicationInterface, err error) bool {
 	//判断是否有关键词回复
-	KeywordReplyHandle(push, message, app)
+	ReplyContentListHandle(push, message, app)
 
 	var content string
 	switch cast.ToInt(message[`msg_type`]) {
@@ -327,12 +366,12 @@ func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, a
 	return false
 }
 
-// KeywordReplyHandle 关键词回复处理
-func KeywordReplyHandle(push *lib_define.PushMessage, message msql.Params, app wechat.ApplicationInterface) {
-	keywordReplyListJson, isKeyword := message[`reply_content_list`]
+// ReplyContentListHandle 回复处理
+func ReplyContentListHandle(push *lib_define.PushMessage, message msql.Params, app wechat.ApplicationInterface) {
+	replyContentListJson, isKeyword := message[`reply_content_list`]
 	if isKeyword {
 		var replyContent []common.ReplyContent
-		_ = tool.JsonDecodeUseNumber(keywordReplyListJson, &replyContent)
+		_ = tool.JsonDecodeUseNumber(replyContentListJson, &replyContent)
 		if len(replyContent) > 0 {
 			for _, keywordReply := range replyContent {
 				//有关键词回复的处理
@@ -376,13 +415,19 @@ func KeywordReplyHandle(push *lib_define.PushMessage, message msql.Params, app w
 						logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
 					}
 					break
-				case common.ReplyTypeCard: //图片
+				case common.ReplyTypeCard: //小程序卡片
 					localThumbURL := common.GetFileByLink(keywordReply.ThumbURL)
 					if localThumbURL == `` {
 						logs.Error(`图片不存在，url:%s`, keywordReply.ThumbURL)
 						break
 					}
 					errCode, err := app.SendMiniProgramPage(push.Openid, keywordReply.Appid, keywordReply.Title, keywordReply.PagePath, localThumbURL, push)
+					if err != nil {
+						logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
+					}
+					break
+				case common.ReplyTypeSmartMenu: //智能菜单
+					errCode, err := app.SendSmartMenu(push.Openid, keywordReply.SmartMenu, push)
 					if err != nil {
 						logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
 					}
@@ -438,7 +483,7 @@ func SendReceivedMessageReply(push *lib_define.PushMessage) {
 	ThumbMediaIdToOssUrl(push, app, params)
 
 	//记录收到的消息
-	message, err := OnlyReceivedMessageReply(params)
+	message, err := common.OnlyReceivedMessageReply(params)
 	if err != nil {
 		logs.Error(`msg:%s,err:%s`, push.MsgRaw, err.Error())
 		return

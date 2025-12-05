@@ -75,7 +75,7 @@ func GetSessionRecordList(c *gin.Context) {
 		return
 	}
 	list, err = m.Where(`id`, `in`, strings.Join(sessionIds, `,`)).
-		Field(`id session_id,dialogue_id,last_chat_time,last_chat_message,app_type,app_id,openid`).
+		Field(`id session_id,dialogue_id,last_chat_time,last_chat_message,app_type,app_id,openid,rel_user_id`).
 		Order(`last_chat_time DESC`).Select()
 	if err != nil {
 		logs.Error(err.Error())
@@ -83,8 +83,32 @@ func GetSessionRecordList(c *gin.Context) {
 		return
 	}
 	if len(list) > 0 { //customer info
+		relUserIds := make([]string, 0)
+		for _, one := range list {
+			if cast.ToInt(one[`rel_user_id`]) > 0 && !tool.InArray(one[`rel_user_id`], relUserIds) {
+				relUserIds = append(relUserIds, one[`rel_user_id`])
+			}
+		}
+		userInfoMaps := make(map[string]msql.Params)
+		if len(relUserIds) > 0 {
+			userInfoMaps, err = msql.Model(define.TableUser, define.Postgres).
+				Where(`id`, `in`, strings.Join(relUserIds, `,`)).ColumnMap(`user_name,nick_name,avatar,id,parent_id`, `id`)
+			if err != nil {
+				logs.Error(err.Error())
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+				return
+			}
+			for userId, one := range userInfoMaps {
+				if one[`parent_id`] == userId || one[`id`] == userId {
+					continue
+				}
+				delete(userInfoMaps, userId)
+			}
+		}
 		for i, one := range list {
-			if customer, _ := common.GetCustomerInfo(one[`openid`], userId); len(customer) > 0 {
+			if cast.ToInt(one[`rel_user_id`]) > 0 {
+				common.FillRelUserInfo2(list[i], cast.ToInt(one[`rel_user_id`]), userInfoMaps[one[`rel_user_id`]])
+			} else if customer, _ := common.GetCustomerInfo(one[`openid`], userId); len(customer) > 0 {
 				list[i][`name`] = customer[`name`]
 				list[i][`avatar`] = customer[`avatar`]
 			} else {

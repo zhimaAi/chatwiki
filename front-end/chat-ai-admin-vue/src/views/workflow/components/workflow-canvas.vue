@@ -102,7 +102,8 @@ import NodeFormDrawer from './node-form-drawer/index.vue'
 import { generateUniqueId } from '@/utils/index'
 import LogicFlow from '@logicflow/core'
 import { DndPanel, MiniMap, SelectionSelect, DynamicGroup } from '@logicflow/extension'
-import { Dagre } from "@logicflow/layout";
+import { Elk } from './plugins/elk/elk.js'
+import { GroupAutoResize } from './plugins/group-auto-resize'
 import { register, getTeleport } from '@logicflow/vue-node-registry'
 import { getNodesMap } from './node-list'
 import customLineEdge from './edges/custom-line/index.js'
@@ -204,7 +205,8 @@ function initLogicFlow() {
         CanvasHistory, 
         CustomKeyboard, 
         DynamicGroup,
-        Dagre
+        GroupAutoResize,
+        Elk
       ],
       pluginsOptions: {
         miniMap: miniMapOptions,
@@ -304,16 +306,24 @@ function initLogicFlow() {
     lf.on('node:drop', ({ data }) => {
       let node = lf.graphModel.getElement(data.id)
       let nodeGroup = lf.graphModel.dynamicGroup.getGroupByNodeId(data.id)
+
       if(nodeGroup){
         nodeGroup.refreshBranch()
       }
-      node.setZIndex(dragNodeZIndex)
+      // 拖拽过程中组的子节点可能会丢失，需要重新添加
+      if(data.properties.loop_parent_key && !nodeGroup){
+        const groupModel = lf.getNodeModelById(data.properties.loop_parent_key);
+        groupModel.addChild(data.id)
+      }
+
       if(nodeChildren.length){
         nodeChildren.forEach(item => {
           let nodeModel = lf.getNodeModelById(item);
           nodeModel.setZIndex(1)
         })
       }
+
+      node.setZIndex(dragNodeZIndex)
     })
 
     // 节点拖拽时动态调整边的offset
@@ -321,33 +331,45 @@ function initLogicFlow() {
       const nodeId = data.id;
       // 获取与当前节点相连的所有边
       const relatedEdges = lf.graphModel.getNodeEdges(nodeId);
-      // console.log(relatedEdges,'relatedEdges');
-      
-      relatedEdges.forEach(edge => {
-        // 只处理目标边类型（如自定义贝塞尔边）
-        if (edge.type === 'custom-bezier-edge') {
-          // 获取边的起点和终点坐标
-          const { startPoint, endPoint } = edge;
-          
-          // 计算边的长度（勾股定理）
-          const dx = endPoint.x - startPoint.x;
-          const dy = endPoint.y - startPoint.y;
-          const length = Math.sqrt(dx * dx + dy * dy);
-          
-          // 计算新的offset（同上）
-          const baseOffset = 10;
-          const scale = 0.3;
-          let newOffset = baseOffset + length * scale;
-          const minOffset = 10;
-          const maxOffset = 1000;
-          newOffset = Math.round(newOffset)       
-          newOffset = Math.max(minOffset, Math.min(newOffset, maxOffset));          
+      const nodeGroup = lf.graphModel.dynamicGroup.getGroupByNodeId(data.id)
 
-          edge.setProperties({
-            offset: newOffset,
-          });
+      // 拖拽过程中组的子节点可能会丢失，需要重新添加
+      // if(data.properties.loop_parent_key && !nodeGroup){
+      //   const groupModel = lf.getNodeModelById(data.properties.loop_parent_key);
+      //   groupModel.addChild(data.id)
+      // }
+
+      setTimeout(() => {
+        relatedEdges.forEach(edge => {
+          // 只处理目标边类型（如自定义贝塞尔边）
+          if (edge.type === 'custom-bezier-edge') {
+            // 获取边的起点和终点坐标
+            const { startPoint, endPoint } = edge;
+            
+            // 计算边的长度（勾股定理）
+            const dx = endPoint.x - startPoint.x;
+            const dy = endPoint.y - startPoint.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            
+            // 计算新的offset（同上）
+            const baseOffset = 10;
+            const scale = 0.3;
+            let newOffset = baseOffset + length * scale;
+            const minOffset = 10;
+            const maxOffset = 1000;
+            newOffset = Math.round(newOffset)       
+            newOffset = Math.max(minOffset, Math.min(newOffset, maxOffset));          
+
+            edge.setProperties({
+              offset: newOffset,
+            });
+          }
+        });
+
+        if(nodeGroup){
+          nodeGroup.refreshBranch()
         }
-      });
+      }, 0)
     });
 
     lf.on('node:add', () => {
@@ -363,9 +385,9 @@ function initLogicFlow() {
       onCustomAddGroupNode(data ,group_id)
     })
 
-    lf.on('group:add-node', ({ data, childId }) => {
+    lf.on('group:add-node', ({ childId }) => {
       const childModel = lf.getNodeModelById(childId);
-      const groupModel = lf.getNodeModelById(data.id);
+      // const groupModel = lf.getNodeModelById(data.id);
       if(!childModel.properties.loop_parent_key){
         // 移除
         console.log('移除')
@@ -681,28 +703,36 @@ const onCustomAddGroupNode = (options, group_id) => {
   // node.setSelected(true)
 }
 
-const handleAutoLayout = () => {
-  let nodes = getData().nodes
-  let gruopNodes = nodes.filter(item => item.type == 'custom-group')
-  if(gruopNodes && gruopNodes.length){
-    return message.warn('存在循环节点，暂不支持整理')
+const handleAutoLayout = async () => {
+  const graphData = lf.getGraphRawData()
+  const history = lf.extension.canvasHistory
+
+  // 开始事务，将布局前的状态记录下来
+  if (history) {
+    history.beginTransaction()
   }
-  lf.extension.dagre.layout({
-    rankdir: 'LR',   // 从左到右的布局方向
-    align: 'UL',     // 上左对齐
-    ranker: 'tight-tree',
-    // nodesep: 100,     // 节点间距
-    // ranksep: 100      // 层级间距
-  });
-  // 然后适配视图
-  lf.fitView();
 
-  // 获取当前画布数据并重置画布，次操作用来解决自动布局后设置节点宽高不生效的问题
-  const graphData = lf.getGraphRawData();
-  lf.clearSelectElements()
-  lf.clearData()
+  lf.extension.elk
+    .layout(graphData)
+    .then(() => {
+      // if(graphData.nodes.length > 10){
+      //   lf.fitView(32)
+      // }
 
-  lf.graphModel.graphDataToModel(graphData)
+      // lf.translateCenter();
+
+      // 布局完成后提交事务
+      if (history) {
+        history.commitTransaction('auto-layout')
+      }
+    })
+    .catch((e) => {
+      message.error('布局失败，请检查' + e)
+      // 如果布局失败，回滚事务
+      if (history) {
+        history.rollbackTransaction()
+      }
+    })
 }
 
 const handleBatchPaste = ({ originalNodes, basePoint, pasteBasePoint }) => {

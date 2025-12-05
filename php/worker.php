@@ -47,6 +47,7 @@ if ($rrEnv->getMode() == "lambda") {
             if (!$module) {
                 throw new \Exception("plugin not found: $plugin");
             }
+
             $result = $module->runAction($action, $params);
             $worker->respond(new Payload(json_encode($result)));
         } catch (Throwable $e) {
@@ -67,4 +68,3 @@ if ($rrEnv->getMode() == "lambda") {
 } else {
     throw new \Exception("不支持的模式");
 }
-

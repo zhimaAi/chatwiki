@@ -23,6 +23,11 @@ type Application struct {
 	Secret string
 }
 
+func (a *Application) SendSmartMenu(customer string, smartMenu lib_define.SmartMenu, push *lib_define.PushMessage) (int, error) {
+	content := common.WechatFormatSmartMenu2C(smartMenu)
+	return a.SendText(customer, content, push)
+}
+
 func (a *Application) SendImageTextLink(customer, url, title, description, localThumbURL, picurl string, push *lib_define.PushMessage) (int, error) {
 	app, err := a.GetApp()
 	if err != nil {
@@ -132,6 +137,7 @@ func (a *Application) SendText(customer, content string, push *lib_define.PushMe
 		return 0, errors.New(`customer not exist`)
 	}
 	//replace the blue interactive content
+	content = common.ReplaceDate(content)
 	content = strings.ReplaceAll(content, `weixin://bizmsgmenu?msgmenucontent=`, `weixin://kefumenu?kefumenucontent=`)
 	content = strings.ReplaceAll(content, `&msgmenuid=`, `&kefumenuid=`)
 	options := &request.RequestAccountServiceSendMsg{

@@ -287,6 +287,8 @@ func GetRobotReceivedMessageReply(c *gin.Context) {
 	if ruleInfo["reply_content"] != "" {
 		_ = tool.JsonDecodeUseNumber(ruleInfo["reply_content"], &replyContent)
 	}
+	// 格式化智能菜单消息
+	replyContent = common.FormatReplyListToDb(replyContent, common.RobotAbilityReceivedMessageReply)
 
 	result := map[string]interface{}{
 		"id":                   ruleInfo["id"],
@@ -374,6 +376,8 @@ func GetRobotReceivedMessageReplyList(c *gin.Context) {
 		if item["reply_content"] != "" {
 			_ = tool.JsonDecodeUseNumber(item["reply_content"], &replyContent)
 		}
+		// 格式化智能菜单消息
+		replyContent = common.FormatReplyListToDb(replyContent, common.RobotAbilityReceivedMessageReply)
 
 		result = append(result, map[string]interface{}{
 			"id":                   item["id"],

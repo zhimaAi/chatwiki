@@ -400,10 +400,10 @@ type LoopNodeParams struct {
 }
 
 type PluginNodeParams struct {
-	Name   string                 `json:"name"`
-	Type   string                 `json:"type"`
-	Params map[string]interface{} `json:"params"`
-	Output string                 `json:"output"`
+	Name   string               `json:"name"`
+	Type   string               `json:"type"`
+	Params map[string]any       `json:"params"`
+	Output common.RecurveFields `json:"output_obj"`
 }
 
 /************************************/
@@ -495,6 +495,12 @@ func DisposeNodeParams(nodeType int, nodeParams string) NodeParams {
 	if params.CodeRun.Output == nil {
 		params.CodeRun.Output = make(common.RecurveFields, 0)
 	}
+	if params.Mcp.Arguments == nil {
+		params.Mcp.Arguments = make(map[string]any)
+	}
+	if params.Plugin.Output == nil {
+		params.Plugin.Output = make(common.RecurveFields, 0)
+	}
 	return params
 }
 
@@ -569,7 +575,12 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 			}
 		}
 	case NodeTypePlugin:
-		variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, `special.plugin_reply_output`))
+		for variable := range common.SimplifyFields(node.NodeParams.Plugin.Output) {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+				variables = append(variables, variable)
+			}
+		}
 	}
 
 	return variables
@@ -1648,8 +1659,24 @@ func (param *PluginNodeParams) Verify(adminUserId int) error {
 				return fmt.Errorf("unknown type for field %s: %s", key, typ)
 			}
 		}
-	} else {
-		// todo
+	} else if param.Type == `extension` {
+		resp := &lib_web.Response{}
+		request := curl.Post(u).Header(`admin_user_id`, cast.ToString(adminUserId))
+		request.Param("name", param.Name)
+		request.Param("action", "default/check-schema")
+		params, err := json.Marshal(param.Params)
+		if err != nil {
+			return err
+		}
+		logs.Debug(string(params))
+		err = request.Param("params", string(params)).ToJSON(resp)
+		if err != nil {
+			return err
+		}
+		if resp.Res != 0 {
+			logs.Debug("resp %v", resp.Res)
+			return errors.New(resp.Msg)
+		}
 	}
 
 	return nil

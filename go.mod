@@ -3,6 +3,11 @@ module chatwiki
 go 1.25.0
 
 require (
+	github.com/pkg/sftp v1.13.9 // indirect
+	golang.org/x/crypto v0.41.0 // indirect
+)
+
+require (
 	github.com/88250/lute v1.7.6
 	github.com/ArtisanCloud/PowerLibs/v3 v3.2.5
 	github.com/ArtisanCloud/PowerWeChat/v3 v3.2.38
@@ -147,7 +152,6 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pkg/sftp v1.13.9 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/richardlehane/mscfb v1.0.4 // indirect
@@ -187,7 +191,6 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
-	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.36.0 // indirect

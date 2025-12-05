@@ -50,18 +50,18 @@ export default {
           }
         },
         {
-          path: '/robot/ability/subscribe-reply',
-          name: 'subscribeReply',
-          component: () => import('@/views/robot/robot-config/subscribe-reply/index.vue'),
+          path: '/robot/ability/smart-menu',
+          name: 'smartMenu',
+          component: () => import('@/views/robot/robot-config/smart-menu/index.vue'),
           meta: {
-            title: '关注后回复',
+            title: '智能菜单',
             isCustomPage: true
           }
         },
         {
-          path: '/robot/ability/subscribe-reply/add-rule',
-          name: 'subscribeReplyAddRule',
-          component: () => import('@/views/robot/robot-config/subscribe-reply/add-rule.vue'),
+          path: '/robot/ability/smart-menu/add-rule',
+          name: 'smartMenuAddRule',
+          component: () => import('@/views/robot/robot-config/smart-menu/add-rule.vue'),
           meta: {
             title: '新增规则',
             isCustomPage: true

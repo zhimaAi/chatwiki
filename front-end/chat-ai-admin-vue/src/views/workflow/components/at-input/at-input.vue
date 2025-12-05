@@ -11,16 +11,16 @@
       </div>
     </Teleport>
     <div class="mention-input-warpper" ref="JMentionContainer" >
-      <div 
-      ref="JMention" 
-      :style="[inputStyle]" 
-      class="j-mention" 
-      :class="[{'show-placeholder': localValue.length == 0, }, 'type-'+type]" 
-      contenteditable="plaintext-only" 
-      :placeholder="placeholder" 
+      <div
+      ref="JMention"
+      :style="[inputStyle]"
+      class="j-mention"
+      :class="[{'show-placeholder': localValue.length == 0, }, 'type-'+type]"
+      contenteditable="plaintext-only"
+      :placeholder="placeholder"
       @wheel.stop=""
-      @focus="onFocus" 
-      @input="divInput" 
+      @focus="onFocus"
+      @input="divInput"
       @keydown="dropDownKeydown"
       @click="clickJMention"></div>
         <span class="placeholder" v-if="localValue.length == 0">{{ placeholder }}</span>
@@ -64,7 +64,7 @@ export default {
       default: "请输入",
     },
     defaultValue: {
-      type: String,
+      type: [String, Number],
       default: "",
     },
     options: {
@@ -166,7 +166,7 @@ export default {
         if(this.type === 'textarea'){
           // textarea
           if(node.nodeName === 'BR'){ // 如果是BR节点,直接添加换行
-            textContent = '\n'; 
+            textContent = '\n';
           }else{
             if (node.classList && node.classList.contains('j-mention-at')) {
               textContent = node.dataset.value;
@@ -231,7 +231,7 @@ export default {
       let defaultSelectedList = this.defaultSelectedList || [];
       let treeOptions = getTreeOptions(this.options);
       let selectedList = [...defaultSelectedList, ...treeOptions].filter(item => item && item.value && item.value != '' && item.typ !== 'node');
-  
+
       // 记录已经替换过的的value
       const replacedValues = new Set();
 
@@ -243,12 +243,12 @@ export default {
 
           text = text.replace(/\./g, '/')
 
-          html = html.replace(regex, 
+          html = html.replace(regex,
             `<span class="j-mention-at" data-id="${opt.node_id}" contentEditable="false" data-value="${opt.value}">${text}</span> `
           );
-   
+
           replacedValues.add(opt.value);
-          
+
           this.selectOption(opt, true);
         }
       });
@@ -276,7 +276,7 @@ export default {
         }
         return
       };
-      
+
       const keyCodeList = [13, 38, 40];
       if (!keyCodeList.includes(keyCode)) return;
       event.preventDefault();
@@ -382,7 +382,7 @@ export default {
       if (left + dropdownListRect.width > viewportWidth) {
         left = rect.right - dropdownListRect.width;
       }
-      
+
       // 确保不会超出视口顶部和左部
       if (top < 0) {
         top = 0;
@@ -428,7 +428,7 @@ export default {
       ){
         return;
       }
-        
+
       this.initShowOptionList();
     },
     checkStartWith(text) {
@@ -567,7 +567,7 @@ export default {
 
       this.selectedList.push(opt);
       this.selectedIdSet.add(opt.value);
- 
+
       if (!isInit) {
         this.insertAtCaret(text, dataSet);
         this.initShowOptionList();
@@ -590,7 +590,7 @@ export default {
       } else {
         newLeft = currentLeft + width;
       }
-      
+
       this.positionStyle = `left:${newLeft}px; top:${currentTop}px;`;
     },
   },
@@ -609,8 +609,8 @@ export default {
 </style>
 <style lang="less" scoped>
 .mention-input-warpper {
-  position: relative; 
-  overflow: hidden; 
+  position: relative;
+  overflow: hidden;
   border-radius: 6px;
   padding: 4px 8px;
   border: 1px solid #d9d9d9;
@@ -713,7 +713,7 @@ export default {
     }
   }
 
-  
+
 
   &::-webkit-scrollbar {
     width: 0px;

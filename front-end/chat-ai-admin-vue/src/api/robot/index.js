@@ -423,3 +423,10 @@ export const callLoopWorkFlow = (data = {}) => {
     data: data
   })
 }
+
+export const testCodeRun = (data = {}) => {
+  return request.post({
+    url: '/manage/testCodeRun',
+    data: data
+  })
+}

@@ -1,6 +1,6 @@
 import { HtmlNode, HtmlNodeModel, h as flh } from '@logicflow/core'
 import { createApp, h, nextTick } from 'vue'
-import { generateUniqueId } from '@/utils/index'
+import {generateUniqueId, jsonDecode} from '@/utils/index'
 
 function transformArray(arr, parent) {
   // 使用map处理数组并返回新的数组
@@ -86,7 +86,7 @@ export class BaseVueNodeView extends HtmlNode {
             props.model._height = height
 
             // 视图变化  边的线位置更新
-            props.model.refreshBranch() 
+            props.model.refreshBranch()
 
             props.graphModel.eventCenter.emit('custom:setData',  props.model)
           }
@@ -96,7 +96,7 @@ export class BaseVueNodeView extends HtmlNode {
         },
         setData: (data) => {
           data.dataRaw = data.node_params;
-          
+
           nextTick(() => {
             props.model.properties = {
               ...props.model.properties,
@@ -358,7 +358,8 @@ export class BaseVueNodeModel extends HtmlNodeModel {
       'select-data-node',
       'code-run-node',
       'mcp-node',
-      'custom-group'
+      'custom-group',
+      'zm-plugins-node',
     ]
 
     let startNode = nodes.find((node) => node.type === 'start-node')
@@ -379,8 +380,13 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         visited.add(node.id);
 
         if (nodeWhiteList.includes(node.type)){
-          parentNodes.push(node);
-        };
+          if (node.type === 'zm-plugins-node') {
+            let nodeParams = jsonDecode(node.properties.node_params)
+            nodeParams.plugin.name === 'feishu_bitable' && parentNodes.push(node);
+          } else {
+            parentNodes.push(node);
+          }
+        }
 
         traverseParents(node.incoming.edges);
       }
@@ -425,6 +431,10 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         obj.children = node_params.curl.output
       }
 
+      if(node.type === 'zm-plugins-node'){
+        obj.children = node_params.plugin.output
+      }
+
       if(node.type === 'code-run-node'){
         obj.children = node_params.code_run.output
       }
@@ -446,7 +456,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
           ...(node_params.loop?.intermediate_params || []),
           ...(node_params.loop?.loop_arrays || [])
         ]
-        
+
         }else{
           // 代表当前节点不在循环节点中
           obj.children = node_params.loop.output
@@ -502,7 +512,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
           label: '问题优化结果',
         }]
       }
-      
+
       if(node.type === 'mcp-node'){
         obj.children = [{
           key: 'special.mcp_reply_content',
@@ -512,7 +522,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         }]
       }
 
-
+      obj.children = Array.isArray(obj.children) ?  obj.children : []
       obj.children.forEach(variable => {
         variable.node_id = node.id
         variable.node_name = node.properties.node_name

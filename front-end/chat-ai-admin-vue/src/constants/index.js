@@ -89,7 +89,8 @@ export const REPLY_TYPE_LABEL_MAP = {
   imageText: '图文链接',
   image: '图片',
   card: '小程序',
-  url: '链接'
+  url: '链接',
+  smartMenu: '智能菜单'
 }
 
 export const REPLY_TYPE_OPTIONS = [
@@ -97,5 +98,42 @@ export const REPLY_TYPE_OPTIONS = [
   { label: REPLY_TYPE_LABEL_MAP.text, value: 'text' },
   { label: REPLY_TYPE_LABEL_MAP.url, value: 'url' },
   { label: REPLY_TYPE_LABEL_MAP.image, value: 'image' },
-  { label: REPLY_TYPE_LABEL_MAP.card, value: 'card' }
+  { label: REPLY_TYPE_LABEL_MAP.card, value: 'card' },
+  { label: REPLY_TYPE_LABEL_MAP.smartMenu, value: 'smartMenu' },
+]
+
+/**
+ * 关注后自动回复：类型标签映射与筛选项
+ * - SUBSCRIBE_REPLY_TYPE_LABEL_MAP: 组件内展示的中文标签
+ * - SUBSCRIBE_REPLY_TYPE_OPTIONS: 下拉筛选项（value 使用前端类型标识）
+ */
+export const SUBSCRIBE_REPLY_TYPE_LABEL_MAP = {
+  text: '文本',
+  image: '图片',
+  voice: '音频',
+  video: '视频'
+}
+
+export const SUBSCRIBE_REPLY_TYPE_OPTIONS = [
+  { label: SUBSCRIBE_REPLY_TYPE_LABEL_MAP.text, value: 'text' },
+  { label: SUBSCRIBE_REPLY_TYPE_LABEL_MAP.image, value: 'image' },
+  { label: SUBSCRIBE_REPLY_TYPE_LABEL_MAP.voice, value: 'voice' },
+  { label: SUBSCRIBE_REPLY_TYPE_LABEL_MAP.video, value: 'video' }
+]
+
+// 关注来源选项（用于订阅回复-按来源设置）
+export const SUBSCRIBE_SOURCE_OPTIONS = [
+  { label: '公众号搜索', value: 'ADD_SCENE_SEARCH' },
+  { label: '公众号迁移', value: 'ADD_SCENE_ACCOUNT_MIGRATION' },
+  { label: '名片分享', value: 'ADD_SCENE_PROFILE_CARD' },
+  { label: '扫描二维码', value: 'ADD_SCENE_QR_CODE' },
+  { label: '图文页内名称点击', value: 'ADD_SCENE_PROFILE_LINK' },
+  { label: '图文页右上角菜单', value: 'ADD_SCENE_PROFILE_ITEM' },
+  { label: '支付后关注', value: 'ADD_SCENE_PAID' },
+  { label: '微信广告', value: 'ADD_SCENE_WECHAT_ADVERTISEMENT' },
+  { label: '他人转载', value: 'ADD_SCENE_REPRINT' },
+  { label: '视频号直播', value: 'ADD_SCENE_LIVESTREAM' },
+  { label: '视频号', value: 'ADD_SCENE_CHANNELS' },
+  { label: '小程序关注', value: 'ADD_SCENE_WXA' },
+  { label: '其他', value: 'ADD_SCENE_OTHERS' }
 ]

@@ -96,7 +96,7 @@
 <template>
   <NodeFormLayout>
     <template #header>
-      <NodeFormHeader :title="node.node_name" :desc="info.description">
+      <NodeFormHeader :title="node.node_name" :desc="showDesc">
         <template #node-icon>
           <img v-if="info.icon" class="node-icon" :src="info.icon"/>
           <a-spin v-else size="small"/>
@@ -104,8 +104,16 @@
       </NodeFormHeader>
     </template>
 
-    <div class="mcp-form">
-      <div class="node-options">
+    <FeishuBittableBox
+      v-if="nodeParams?.plugin?.name === 'feishu_bitable'"
+      :node="node"
+      :action="actionInfo"
+      :actionName="nodeParams.plugin.params.business"
+      :params="formState"
+      :variableOptions="variableOptions"
+      @updateVar="getValueVariableList"
+    />
+    <div v-else class="node-options">
         <div class="options-title">
           <div><img src="@/assets/img/workflow/input.svg" class="title-icon" />输入</div>
         </div>
@@ -139,17 +147,17 @@
           <div class="desc">{{ item.description }}</div>
         </div>
       </div>
-    </div>
   </NodeFormLayout>
 </template>
 
 <script setup>
-import { ref, reactive, inject, onMounted } from 'vue'
+import { ref, reactive, inject, onMounted, computed} from 'vue'
 import NodeFormLayout from './node-form-layout.vue'
 import NodeFormHeader from './node-form-header.vue'
 import AtInput from '../at-input/at-input.vue'
 import {getPluginInfo, runPlugin} from "@/api/plugins/index.js";
 import defaultIcon from '@/assets/svg/plugin-node-type.svg'
+import FeishuBittableBox from "./components/feishu-bittable/feishu-bittable-box.vue";
 
 const getNode = inject('getNode')
 const setData = inject('setData')
@@ -163,8 +171,14 @@ const props = defineProps({
 
 const formState = reactive({})
 const info = ref({})
-
+const actionInfo = ref(null)
 const variableOptions = ref([])
+const showDesc = computed(() => {
+  if (actionInfo.value) {
+    return actionInfo.value.desc
+  }
+  return info.value.description
+})
 
 let nodeParams = {}
 
@@ -188,10 +202,16 @@ function loadPluginParams() {
     action: "default/get-schema",
     params: {}
   }).then(res => {
-    Object.assign(formState, res?.data || {})
-    for (let key in formState) {
-      formState[key].value = String(nodeParams?.plugin.params[key] || '')
-      formState[key].tags = nodeParams.tag_map ? nodeParams?.plugin?.tag_map[key] : []
+    let data = res?.data || {}
+    if (nodeParams?.plugin?.name === 'feishu_bitable') {
+      actionInfo.value = data[nodeParams.plugin.params.business]
+      //data = actionInfo.value.params || {}
+    } else {
+      Object.assign(formState, data)
+      for (let key in formState) {
+        formState[key].value = String(nodeParams?.plugin.params[key] || '')
+        formState[key].tags = nodeParams.tag_map ? nodeParams?.plugin?.tag_map[key] : []
+      }
     }
   })
 }

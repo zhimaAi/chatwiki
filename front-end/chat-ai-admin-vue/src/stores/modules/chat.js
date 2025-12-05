@@ -24,6 +24,7 @@ export const useChatStore = defineStore('chat', () => {
 
   // 对话id
   const dialogue_id = ref(0)
+  const rel_user_id = ref()
 
   const openid = ref('')
   // 用户信息
@@ -64,6 +65,8 @@ export const useChatStore = defineStore('chat', () => {
     } else {
       dialogue_id.value = data.dialogue_id
     }
+
+    rel_user_id.value = data.rel_user_id
 
     openid.value = data.openid || getOpenid(16)
 
@@ -561,7 +564,8 @@ export const useChatStore = defineStore('chat', () => {
       openid: user.openid,
       min_id: min_id,
       size: chatMessagePageSize,
-      dialogue_id: dialogue_id.value
+      dialogue_id: dialogue_id.value,
+      rel_user_id: rel_user_id.value
     }
 
     try {

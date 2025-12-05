@@ -46,6 +46,10 @@ const selectedKeys = computed(() => {
   if (route.path.split('/')[3] === 'subscribe-reply' && !subscribeReplyMenu) {
     return ['function-center']
   }
+  const smartMenu = items.value.find((i) => i.id === 'smart-menu')
+  if (route.path.split('/')[3] === 'smart-menu' && !smartMenu) {
+    return ['function-center']
+  }
   return [route.path.split('/')[3]]
 })
 
@@ -245,6 +249,7 @@ const baseItems = [
 
 const autoReplyMenu = ref(null)
 const subscribeReplyMenu = ref(null)
+const smartMenu = ref(null)
 
 async function refreshAbilityMenu () {
   try {
@@ -299,12 +304,13 @@ async function refreshAbilityMenu () {
       robotStore.setSubscribeReplySwitchStatus('0')
       robotStore.setSubscribeReplyAiReplyStatus('0')
     }
-    const hitSub = (data || []).find(
-      (it) =>
-        it?.ability_type === 'robot_subscribe_reply' &&
-        it?.robot_config?.fixed_menu === '1'
-        && it?.robot_config?.switch_status === '1'
-    )
+    const hitSub = false
+    // const hitSub = (data || []).find(
+    //   (it) =>
+    //     it?.ability_type === 'robot_subscribe_reply' &&
+    //     it?.robot_config?.fixed_menu === '1'
+    //     && it?.robot_config?.switch_status === '1'
+    // )
     if (hitSub) {
       subscribeReplyMenu.value = {
         key: 'subscribe-reply',
@@ -314,13 +320,47 @@ async function refreshAbilityMenu () {
             name: 'subscribe-reply',
             class: 'menu-icon'
           }),
-        label: hit?.menu?.name,
-        title: hit?.menu?.name,
-        path: hitSub?.menu?.path || '/robot/ability/subscribe-reply',
+        label: hitSub?.menu?.name,
+        title: hitSub?.menu?.name,
+        path: hitSub?.menu?.path || '/explore/index/subscribe-reply',
         menuIn: ['0', '1']
       }
     } else {
       subscribeReplyMenu.value = null
+    }
+
+    const smartItem = (data || []).find((it) => it?.ability_type === 'robot_smart_menu')
+    if (smartItem) {
+      const sw_smart = smartItem?.robot_config?.switch_status ?? smartItem?.user_config?.switch_status ?? '0'
+      const ai_reply_status_smart = smartItem?.robot_config?.ai_reply_status ?? smartItem?.user_config?.ai_reply_status ?? '0'
+      robotStore.setSmartMenuSwitchStatus(String(sw_smart))
+      robotStore.setSmartMenuAiReplyStatus(String(ai_reply_status_smart))
+    } else {
+      robotStore.setSmartMenuSwitchStatus('0')
+      robotStore.setSmartMenuAiReplyStatus('0')
+    }
+    const hitSmart = (data || []).find(
+      (it) =>
+        it?.ability_type === 'robot_smart_menu' &&
+        it?.robot_config?.fixed_menu === '1' &&
+        it?.robot_config?.switch_status === '1'
+    )
+    if (hitSmart) {
+      smartMenu.value = {
+        key: 'smart-menu',
+        id: 'smart-menu',
+        icon: () =>
+          h(SvgIcon, {
+            name: 'smart-menu',
+            class: 'menu-icon'
+          }),
+        label: hitSmart?.menu?.name,
+        title: hitSmart?.menu?.name,
+        path: hitSmart?.menu?.path || '/robot/ability/smart-menu',
+        menuIn: ['0', '1']
+      }
+    } else {
+      smartMenu.value = null
     }
   } catch (e) {
     console.warn('refreshAbilityMenu failed', e)
@@ -350,29 +390,34 @@ const items = computed(() => {
   } else {
     lists = lists.filter((item) => item.menuIn.includes(props.robotInfo?.application_type))
   }
+  let arr = [...lists]
   if (autoReplyMenu.value) {
-    const idx = lists.findIndex((i) => i.id === 'function-center')
-    const arr = [...lists]
+    const idx = arr.findIndex((i) => i.id === 'function-center')
     if (idx >= 0) {
       arr.splice(idx + 1, 0, autoReplyMenu.value)
-      return arr
+    } else {
+      arr.push(autoReplyMenu.value)
     }
-    arr.push(autoReplyMenu.value)
-    return arr
   }
 
   if (subscribeReplyMenu.value) {
-    const idx = lists.findIndex((i) => i.id === 'function-center')
-    const arr = [...lists]
+    const idx = arr.findIndex((i) => i.id === 'function-center')
     if (idx >= 0) {
       arr.splice(idx + 1, 0, subscribeReplyMenu.value)
-      return arr
+    } else {
+      arr.push(subscribeReplyMenu.value)
     }
-    arr.push(subscribeReplyMenu.value)
-    return arr
+  }
+  if (smartMenu.value) {
+    const idx = arr.findIndex((i) => i.id === 'function-center')
+    if (idx >= 0) {
+      arr.splice(idx + 1, 0, smartMenu.value)
+    } else {
+      arr.push(smartMenu.value)
+    }
   }
   
-  return lists
+  return arr
 })
 
 const handleChangeMenu = ({ item }) => {
@@ -391,6 +436,8 @@ const handleChangeMenu = ({ item }) => {
 .left-menu-box {
   .left-menu {
     border-right: 0 !important;
+    max-height: calc(100vh - 192px);
+    overflow-y: auto;
 
     ::v-deep(.menu-icon) {
       color: #a1a7b3;

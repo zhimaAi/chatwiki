@@ -7,16 +7,15 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_redis"
-	"chatwiki/internal/pkg/lib_web"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
-	"github.com/zhimaAi/go_tools/curl"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
@@ -50,6 +49,9 @@ func AddFAQFile(c *gin.Context) {
 	if err != nil {
 		if err.Error() == `vip_limits` {
 			common.FmtError(c, `vip_limits`)
+			return
+		} else if err.Error() == `chunk_prompt_too_long` {
+			common.FmtError(c, `chunk_prompt_too_long`)
 			return
 		}
 		common.FmtError(c, `sys_err`)
@@ -555,70 +557,7 @@ func ImportParagraph(c *gin.Context) {
 		common.FmtError(c, "param_invalid", "library_id or file_id")
 		return
 	}
-
-	var qaList []msql.Params
-	var err error
-
-	if len(ids) > 0 {
-		// 查询单条QA数据
-		qaList, err = msql.Model("chat_ai_faq_files_data_qa", define.Postgres).
-			Where("id", `in`, cast.ToString(ids)).
-			Where("admin_user_id", cast.ToString(adminUserId)).
-			Select()
-	} else {
-		// 查询文件下所有QA数据
-		qaList, err = msql.Model("chat_ai_faq_files_data_qa", define.Postgres).
-			Where("file_id", cast.ToString(fileId)).
-			Where("admin_user_id", cast.ToString(adminUserId)).
-			Select()
-	}
-
-	if err != nil {
-		common.FmtError(c, "sys_err")
-		return
-	}
-
-	if len(qaList) == 0 {
-		common.FmtError(c, "no_data")
-		return
-	}
-	var qaIds []string
-	var res lib_web.Response
-	for _, item := range qaList {
-		var imgs []string
-		req := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/addParagraph`, define.Config.WebService[`port`])).Header(`token`, c.GetHeader(`token`))
-		req.Param(`library_id`, cast.ToString(libraryId))
-		req.Param(`similar_questions`, `[]`)
-		req.Param(`question`, item[`question`])
-		req.Param(`answer`, item[`answer`])
-		if len(item[`images`]) > 0 {
-			if err = tool.JsonDecodeUseNumber(cast.ToString(item[`images`]), &imgs); err != nil {
-				logs.Error(err.Error())
-				continue
-			}
-			for _, img := range imgs {
-				req.Param(`images`, img)
-			}
-		}
-		if err = req.ToJSON(&res); err != nil {
-			logs.Error(err.Error())
-			continue
-		}
-		if res.Res != define.StatusOK {
-			logs.Error(fmt.Sprintf(`%s`, cast.ToString(res.Msg)))
-			continue
-		}
-		qaIds = append(qaIds, cast.ToString(item[`id`]))
-	}
-	// 更新数据
-	msql.Model("chat_ai_faq_files_data_qa", define.Postgres).
-		Where("id", `in`, strings.Join(qaIds, `,`)).
-		Where("admin_user_id", cast.ToString(adminUserId)).
-		Update(msql.Datas{
-			"is_import":   define.SwitchOn,
-			`library_id`:  libraryId,
-			"update_time": tool.Time2Int(),
-		})
+	common.ImportFAQFile(adminUserId, libraryId, fileId, ids, c.GetHeader(`token`), true)
 	common.FmtOk(c, nil)
 }
 
@@ -635,6 +574,9 @@ func addFAQFile(c *gin.Context, adminUserId int) ([]int64, error) {
 	var (
 		libraryFiles []*define.UploadInfo
 	)
+	if utf8.RuneCountInString(chunkPrompt) > 5000 {
+		return nil, errors.New(`chunk_prompt_too_long`)
+	}
 	// uploaded file
 	libFileAloowExts := define.FAQLibFileAllowExt
 	libraryFiles, _ = common.SaveUploadedFileMulti(c, `faq_files`, define.LibFileLimitSize, adminUserId, `faq_files`, libFileAloowExts)
