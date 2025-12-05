@@ -8,7 +8,6 @@ import (
 )
 
 const SignToken = `chatwiki`
-
 const AesKey = `zVL5R9LBMtdbRiBuUGpcvi86dOBVMVtmgJl8k7iExsL`
 
 var OpenAppid string

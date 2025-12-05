@@ -11,6 +11,7 @@ func RegAbilityRoute() {
 	/*ability API*/
 	Route[http.MethodPost][`/manage/ability/saveUserAbility`] = manage.SaveUserAbility
 	Route[http.MethodGet][`/manage/ability/getAbilityList`] = manage.GetAbilityList
+	Route[http.MethodGet][`/manage/ability/getSpecifyAbilityConfig`] = manage.GetSpecifyAbilityConfig
 
 	/*robot ability API*/
 	Route[http.MethodPost][`/manage/ability/saveRobotAbility`] = manage.SaveRobotAbility
@@ -43,4 +44,10 @@ func RegAbilityRoute() {
 	Route[http.MethodGet][`/manage/ability/getRobotSubscribeReplyList`] = manage.GetRobotSubscribeReplyList
 	Route[http.MethodPost][`/manage/ability/updateRobotSubscribeReplySwitchStatus`] = manage.UpdateRobotSubscribeReplySwitchStatus
 	Route[http.MethodPost][`/manage/ability/updateRobotSubscribeReplyPriorityNum`] = manage.UpdateRobotSubscribeReplyPriorityNum
+
+	/*robot smart menu API*/
+	Route[http.MethodPost][`/manage/ability/saveSmartMenu`] = manage.SaveSmartMenu
+	Route[http.MethodPost][`/manage/ability/deleteSmartMenu`] = manage.DeleteSmartMenu
+	Route[http.MethodGet][`/manage/ability/getSmartMenu`] = manage.GetSmartMenu
+	Route[http.MethodGet][`/manage/ability/getSmartMenuList`] = manage.GetSmartMenuList
 }

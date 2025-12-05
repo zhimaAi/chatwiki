@@ -11,7 +11,10 @@ const external_config_h5_default = {
   lang: 'zh-CN',
   pageStyle: {
     navbarBackgroundColor: '#2475FC'
-  }
+  },
+  open_type: 1, // 1新标签页
+  window_width: 1200,
+  window_height: 650,
 }
 // 嵌入网站配置
 const external_config_pc_default = {
@@ -30,7 +33,10 @@ const external_config_pc_default = {
     rightMargin: 32,
     showUnreadCount: 1,
     showNewMessageTip: 1
-  }
+  },
+  open_type: 1, // 1新标签页
+  window_width: 1200,
+  window_height: 650,
 }
 
 export const useRobotStore = defineStore('robot', () => {
@@ -335,6 +341,16 @@ export const useRobotStore = defineStore('robot', () => {
     subscribeReplyAiReplyStatus.value = String(val ?? '0')
   }
 
+  const smartMenuSwitchStatus = ref('0')
+  const setSmartMenuSwitchStatus = (val) => {
+    smartMenuSwitchStatus.value = String(val ?? '0')
+  }
+
+  const smartMenuAiReplyStatus = ref('0')
+  const setSmartMenuAiReplyStatus = (val) => {
+    smartMenuAiReplyStatus.value = String(val ?? '0')
+  }
+
   return {
     robotInfo,
     getRobot,
@@ -358,5 +374,9 @@ export const useRobotStore = defineStore('robot', () => {
     setSubscribeReplySwitchStatus,
     subscribeReplyAiReplyStatus,
     setSubscribeReplyAiReplyStatus,
+    smartMenuSwitchStatus,
+    setSmartMenuSwitchStatus,
+    smartMenuAiReplyStatus,
+    setSmartMenuAiReplyStatus,
   }
 })

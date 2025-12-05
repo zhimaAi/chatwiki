@@ -28,6 +28,7 @@ type ApplicationInterface interface {
 	SendUrl(customer, url, title string, push *lib_define.PushMessage) (int, error)                                               // 发送链接
 	SendMiniProgramPage(customer, appid, title, pagePath, localThumbURL string, push *lib_define.PushMessage) (int, error)        // 发送小程序卡片
 	SendImageTextLink(customer, url, title, description, localThumbURL, picurl string, push *lib_define.PushMessage) (int, error) // 发送图文链接
+	SendSmartMenu(customer string, smartMenu lib_define.SmartMenu, push *lib_define.PushMessage) (int, error)                     // 发送智能菜单
 	GetAccountBasicInfo() (*openresponse.ResponseGetBasicInfo, int, error)
 }
 

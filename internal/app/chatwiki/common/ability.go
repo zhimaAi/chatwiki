@@ -23,6 +23,7 @@ type Ability struct {
 	Icon                string      `json:"icon" form:"icon"`                                   //功能图标
 	SupportChannelsList []string    `json:"support_channels_list" form:"support_channels_list"` //支持的渠道列表
 	ShowSelect          int         `json:"show_select" form:"show_select"`                     //是否显示选择
+	RobotOnlyShow       int         `json:"robot_only_show" form:"robot_only_show"`             //机器人功能中心中仅显示 这个不展示开关和固定菜单
 	UserConfig          msql.Params `json:"user_config" form:"user_config"`                     //用户开启模块配置
 	RobotConfig         msql.Params `json:"robot_config" form:"robot_config"`                   //模块是robot时候的配置
 	Menu                define.Menu `json:"menu" form:"menu"`                                   //菜单配置
@@ -103,9 +104,9 @@ func CheckUseAbilityByAbilityType(adminUserId int, abilityType string) bool {
 }
 
 // GetAbilityList 功能中心列表
-func GetAbilityList(robotId int) ([]Ability, error) {
+func GetAbilityList(adminUserId int, specifyAbilityType string) ([]Ability, error) {
 	var list []Ability
-	configList, err := GetUserAbility(robotId)
+	configList, err := GetUserAbility(adminUserId)
 	configMap := make(map[string]msql.Params)
 	if err == nil && len(configList) > 0 {
 		for _, userConfig := range configList {
@@ -115,6 +116,9 @@ func GetAbilityList(robotId int) ([]Ability, error) {
 
 	//显示列表能力
 	for _, item := range GetAllAbilityList() {
+		if specifyAbilityType != `` && item.AbilityType != specifyAbilityType {
+			continue
+		}
 		userConfig, isOk := configMap[item.AbilityType]
 		if isOk {
 			//有配置的 直接显示选择

@@ -15,6 +15,7 @@ const (
 	RobotAbilityKeywordReply         = `robot_keyword_reply`          //关键词回复功能
 	RobotAbilityReceivedMessageReply = `robot_received_message_reply` //收到消息回复功能
 	RobotAbilitySubscribeReply       = `robot_subscribe_reply`        //关注后回复功能
+	RobotAbilitySmartMenu            = `robot_smart_menu`             //智能菜单功能
 )
 
 var DefaultRobotConfig = msql.Params{
@@ -25,13 +26,14 @@ var DefaultRobotConfig = msql.Params{
 // RobotAbilityList 机器人能力列表
 var RobotAbilityList = []Ability{
 	{
-		Name:         "自动回复",
-		ModuleType:   RobotModule,           //模块类型
-		AbilityType:  RobotAbilityAutoReply, //全局唯一值 类型
-		Introduction: "用户触发了关键词后，通过设置的关键词回复规则，回复指定的内容",
-		Details:      "查看详情中的信息 前端自己定义",
-		Icon:         "iconfont icon-keyword-reply",
-		ShowSelect:   define.SwitchOn,
+		Name:          "自动回复",
+		ModuleType:    RobotModule,           //模块类型
+		AbilityType:   RobotAbilityAutoReply, //全局唯一值 类型
+		Introduction:  "用户触发了关键词后，通过设置的关键词回复规则，回复指定的内容",
+		Details:       "查看详情中的信息 前端自己定义",
+		Icon:          "iconfont icon-keyword-reply",
+		ShowSelect:    define.SwitchOn,
+		RobotOnlyShow: define.SwitchOff,
 		SupportChannelsList: []string{
 			"公众号",
 			"微信客服",
@@ -56,24 +58,50 @@ var RobotAbilityList = []Ability{
 			},
 		},
 	},
-	//{
-	//	Name:         "关注后回复",
-	//	ModuleType:   RobotModule,                //模块类型
-	//	AbilityType:  RobotAbilitySubscribeReply, //全局唯一值 类型
-	//	Introduction: "关注公众号后，自动给用户回复消息。支持按照时间段以及关注来源设置",
-	//	Details:      "查看详情中的信息 前端自己定义",
-	//	Icon:         "iconfont icon-subscribe-reply",
-	//	ShowSelect:   define.SwitchOn,
-	//	SupportChannelsList: []string{
-	//		"公众号",
-	//	},
-	//	RobotConfig: DefaultRobotConfig,
-	//	Menu: define.Menu{
-	//		Name:   "关注后回复",
-	//		UniKey: "RobotAbilitySubscribeReply",
-	//		Path:   "/robot/ability/subscribe-reply",
-	//	},
-	//},
+	{
+		Name:          "关注后回复",
+		ModuleType:    RobotModule,                //模块类型 //本来应该在公众号模块 但wendy要求在机器人的功能中心中展示
+		AbilityType:   RobotAbilitySubscribeReply, //全局唯一值 类型
+		Introduction:  "关注公众号后，自动给用户回复消息。支持按照时间段以及关注来源设置",
+		Details:       "查看详情中的信息 前端自己定义",
+		Icon:          "iconfont icon-subscribe-reply",
+		ShowSelect:    define.SwitchOn,
+		RobotOnlyShow: define.SwitchOn,
+		SupportChannelsList: []string{
+			"公众号",
+		},
+		RobotConfig: DefaultRobotConfig,
+		Menu: define.Menu{
+			Name:     "关注后回复",
+			UniKey:   "RobotAbilitySubscribeReply",
+			Path:     "/robot/ability/subscribe-reply",
+			Children: []*define.Menu{},
+		},
+	},
+	{
+		Name:          "智能菜单",
+		ModuleType:    RobotModule,           //模块类型
+		AbilityType:   RobotAbilitySmartMenu, //全局唯一值 类型
+		Introduction:  "用户点击菜单后，通过设置的菜单回复规则，回复指定的内容",
+		Details:       "查看详情中的信息 前端自己定义",
+		Icon:          "iconfont icon-smart-menu",
+		ShowSelect:    define.SwitchOn,
+		RobotOnlyShow: define.SwitchOff,
+		SupportChannelsList: []string{
+			"公众号",
+			"微信客服",
+			"WebApp",
+			"飞书",
+			"钉钉",
+		},
+		RobotConfig: DefaultRobotConfig,
+		Menu: define.Menu{
+			Name:     "智能菜单",
+			UniKey:   "RobotAbilitySmartMenu",
+			Path:     "/robot/ability/smart-menu",
+			Children: []*define.Menu{},
+		},
+	},
 }
 
 const (

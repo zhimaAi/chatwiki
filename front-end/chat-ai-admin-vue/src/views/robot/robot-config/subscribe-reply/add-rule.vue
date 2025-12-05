@@ -1,8 +1,8 @@
 <template>
   <div class="subManage-edit">
     <a-breadcrumb class="subManage-breadcrumb">
-      <a-breadcrumb-item><a :href="autoReplyUrl">关注后回复</a></a-breadcrumb-item>
-      <a-breadcrumb-item>{{ ruleType === 'subscribe_reply_default' ? '新增回复' : '增加时段回复' }}</a-breadcrumb-item>
+      <a-breadcrumb-item><a :href="autoReplyUrl">{{ ruleType === 'subscribe_reply_duration' ? '按时段设置' : '按关注来源设置' }}</a></a-breadcrumb-item>
+      <a-breadcrumb-item>新增规则</a-breadcrumb-item>
     </a-breadcrumb>
 
     <div class="main">
@@ -16,6 +16,12 @@
             </a-tooltip>
           </template>
           <a-switch v-model:checked="form.switch_status" checked-children="开" un-checked-children="关" />
+        </a-form-item>
+
+        <a-form-item v-if="ruleType === 'subscribe_reply_source'" name="subscribe_source" label="关注来源" :rules="[{ required: true, message: '请选择关注来源' }]">
+          <a-select v-model:value="form.subscribe_source" mode="multiple" style="width: 480px;" placeholder="请选择关注来源" allowClear showSearch>
+            <a-select-option v-for="op in subscribeSourceOptions" :key="op.value" :value="op.value">{{ op.label }}</a-select-option>
+          </a-select>
         </a-form-item>
 
         <a-form-item  v-if="ruleType === 'subscribe_reply_duration'" name="duration_type" label="选择回复时间">
@@ -66,7 +72,7 @@
         </a-form-item>
 
         <!-- 触发回复间隔时间：秒 -->
-        <a-form-item class="interval-item" name="reply_interval" label="触发回复间隔时间">
+        <a-form-item v-if="ruleType === 'subscribe_reply_duration'" class="interval-item" name="reply_interval" label="触发回复间隔时间">
           <div class="flex-center">
             <a-input-number v-model:value="form.reply_interval" style="width: 60px;" />
             <span class="ml4">秒 在时间间隔内只会触发一次该回复，0秒为无时间间隔限制</span>
@@ -81,8 +87,8 @@
           <svg-icon name="reply-content" style="font-size: 16px;"></svg-icon>
           回复内容
         </div>
-        <div class="item-box">
-          <MultiReply v-for="(it, idx) in replyList" :key="idx" v-model:value="replyList[idx]" :reply_index="idx"
+        <div class="reply-content-box">
+          <MultiReply v-for="(it, idx) in replyList" :key="idx" ref="replyRefs" v-model:value="replyList[idx]" :reply_index="idx"
             @change="onContentChange" @del="onDelItem" />
           <a-button type="dashed" style="width: 694px;" :disabled="replyList.length >= 5" @click="addReplyItem">
             <template #icon>
@@ -117,13 +123,15 @@ import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import MultiReply from '@/components/replay-card/multi-reply.vue'
 import { getRobotSubscribeReply, saveRobotSubscribeReply } from '@/api/explore/index.js'
+import { SUBSCRIBE_SOURCE_OPTIONS } from '@/constants/index.js'
 import dayjs from 'dayjs'
 
+const replyRefs = ref([])
 const query = useRoute().query
 const ruleId = ref(+query.rule_id || +query['rule-id'] || 0)
-const ruleType = ref(query.rule_type || 'subscribe_reply_duration')
+const ruleType = ref(query.subscribe_rule_type || 'subscribe_reply_duration')
 const router = useRouter()
-const autoReplyUrl = computed(() => `/#/robot/ability/subscribe-reply?id=${query.id}&robot_key=${query.robot_key}&rule_type=${ruleType.value}`)
+const autoReplyUrl = computed(() => `/#/explore/index/subscribe-reply?subscribe_rule_type=${ruleType.value}`)
 const formRef = ref(null)
 const form = reactive({
   duration_type: 'day',
@@ -138,7 +146,8 @@ const form = reactive({
   message_type: '0',
   message_type_list: [],
   reply_interval: 0,
-  switch_status: true
+  switch_status: true,
+  subscribe_source: []
 })
 const rules = {
   name: [
@@ -152,6 +161,7 @@ const messageTypeOptions = [
   { label: '音频', value: 'audio' },
   { label: '视频', value: 'video' }
 ]
+const subscribeSourceOptions = SUBSCRIBE_SOURCE_OPTIONS
 
 function validateDateRange (_rule, value) {
   if (form.duration_type !== 'time_range') return Promise.resolve()
@@ -232,7 +242,7 @@ function serializeReplyContent (list) {
 }
 
 function serializeReplyTypeCodes (list) {
-  const map = { text: '2', image: '4', card: '3', imageText: '1', url: '5' }
+  const map = { text: '2', image: '4', card: '3', imageText: '1', url: '5', smartMenu: '6' }
   return list.map((it) => map[it.type] || '').filter(Boolean)
 }
 
@@ -262,12 +272,17 @@ const onSubmit = () => {
       }
     }
 
+    for (const comp of replyRefs.value) {
+      if (comp && comp.validate) {
+        const ok = await comp.validate()
+        if (!ok) { return }
+      }
+    }
+
     const base = {
-      robot_id: query.id,
       appid: query.appid || '',
       switch_status: form.switch_status ? '1' : '0',
       rule_type: ruleType.value,
-      reply_interval: Number(form.reply_interval) || 0,
       reply_content: JSON.stringify(serializeReplyContent(replyList.value)),
       reply_type: serializeReplyTypeCodes(replyList.value),
       reply_num: form.reply_num
@@ -279,13 +294,16 @@ const onSubmit = () => {
         duration_type: form.duration_type,
         start_day: form.start_day,
         end_day: form.end_day,
+        reply_interval: Number(form.reply_interval) || 0,
         week_duration: form.week_duration,
         priority_num: Number(form.priority_num) || 0,
         start_duration: Array.isArray(form.reply_period) ? (form.reply_period[0].toString() || '') : '',
         end_duration: Array.isArray(form.reply_period) ? (form.reply_period[1].toString() || '') : ''
       }
     } else {
-      extra = {}
+      extra = {
+        subscribe_source: Array.isArray(form.subscribe_source) ? form.subscribe_source.join(',') : (form.subscribe_source || '')
+      }
     }
 
     const payload = { ...base, ...extra }
@@ -294,10 +312,9 @@ const onSubmit = () => {
       const res = await saveRobotSubscribeReply(payload)
       if (res && res.res == 0) {
         message.success('保存成功')
-        router.push({ path: '/robot/ability/subscribe-reply', query: { id: query.id, robot_key: query.robot_key, rule_type: ruleType.value } })
+        router.push({ path: '/explore/index/subscribe-reply', query: { subscribe_rule_type: ruleType.value } })
       }
     } catch (e) {
-      message.error('保存失败，请稍后重试')
     }
   })
 }
@@ -306,7 +323,7 @@ const onSubmit = () => {
 onMounted(async () => {
   const copyId = +(query.copy_id || 0)
   const fetchOne = async (rid) => {
-    const res = await getRobotSubscribeReply({ id: rid, robot_id: query.id })
+    const res = await getRobotSubscribeReply({ id: rid })
     const data = res?.data || {}
 
     // rule type
@@ -339,6 +356,17 @@ onMounted(async () => {
 
     // priority
     form.priority_num = Number(data?.priority_num || form.priority_num || 0)
+    const srcRaw = data?.subscribe_source
+    if (Array.isArray(srcRaw)) {
+      form.subscribe_source = srcRaw
+    } else if (typeof srcRaw === 'string') {
+      try {
+        const arr = JSON.parse(srcRaw)
+        form.subscribe_source = Array.isArray(arr) ? arr : (srcRaw ? srcRaw.split(',').filter(Boolean) : [])
+      } catch (_e) {
+        form.subscribe_source = srcRaw ? srcRaw.split(',').filter(Boolean) : []
+      }
+    }
 
     // message type
     
@@ -353,7 +381,9 @@ onMounted(async () => {
       title: rc?.title || '',
       url: rc?.url || '',
       appid: rc?.appid || '',
-      page_path: rc?.page_path || ''
+      page_path: rc?.page_path || '',
+      smart_menu_id: rc?.smart_menu_id || '',
+      smart_menu: rc?.smart_menu || {},
     }))
     form.reply_num = String(data?.reply_num ?? form.reply_num)
   }
@@ -366,7 +396,6 @@ onMounted(async () => {
     if (!ruleId.value) return
     await fetchOne(ruleId.value)
   } catch (e) {
-    message.error('加载规则失败，请稍后重试')
   }
 })
 

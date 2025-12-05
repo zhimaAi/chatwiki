@@ -197,10 +197,9 @@ func BuildLibraryMessagesFromCache(robotKey, messageId string) ([]msql.Params, b
 	return changeListContent(fileData), true, nil
 }
 
-func ResponseMessagesFromCache(robotKey, messageId string, useStream bool, chanStream chan sse.Event) (adaptor.ZhimaChatCompletionResponse, int64, error) {
+func ResponseMessagesFromCache(messageId string, useStream bool, chanStream chan sse.Event) (adaptor.ZhimaChatCompletionResponse, int64, error) {
 	chatResp := adaptor.ZhimaChatCompletionResponse{}
 	requestStartTime := time.Now()
-	// 混合与知识库匹配
 	// 查询chat_ai_message表的数据
 	content, err := msql.Model("chat_ai_message", define.Postgres).
 		Where("id", messageId).
@@ -216,12 +215,9 @@ func ResponseMessagesFromCache(robotKey, messageId string, useStream bool, chanS
 	chanStream <- sse.Event{Event: `request_time`, Data: requestTime}
 	// 如果使用流式输出
 	if useStream {
-		// 将content按字符分割并逐个发送
-		for _, char := range cast.ToString(content) {
-			chanStream <- sse.Event{Event: `sending`, Data: string(char)}
-		}
+		chanStream <- sse.Event{Event: `sending`, Data: content}
 	}
 	chatResp.Result = content
 	// 返回数据
-	return chatResp, int64(requestTime), nil
+	return chatResp, requestTime, nil
 }

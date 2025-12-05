@@ -385,6 +385,7 @@ const handleRecallTest = () => {
   }
   if (formState.rerank_status == 1) {
     parmas.rerank_model_config_id = formState.rerank_model_config_id
+    parmas.rerank_use_model = formState.rerank_use_model
   }
   loading.value = true
   emit('load');

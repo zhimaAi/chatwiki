@@ -299,7 +299,7 @@ func (n *CurlNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 				request.Param(param.Key, flow.VariableReplace(param.Value))
 			}
 		case TypeJsonBody:
-			request.Body(flow.VariableReplace(n.params.BodyRaw)).
+			request.Body(flow.VariableReplaceJson(n.params.BodyRaw)).
 				Header("Content-Type", "application/json")
 		}
 	}
@@ -452,7 +452,6 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 	output[`special.llm_request_time`] = common.SimpleField{Key: `special.llm_request_time`, Typ: common.TypNumber, Vals: []common.Val{{Number: &llmTime}}}
 	output[`special.llm_reply_content`] = common.SimpleField{Key: `special.llm_reply_content`, Typ: common.TypString, Vals: []common.Val{{String: &chatResp.Result}}}
 	output[`special.mcp_reply_content`] = common.SimpleField{Key: `special.mcp_reply_content`, Typ: common.TypString, Vals: []common.Val{{String: &chatResp.Result}}}
-	output[`special.plugin_reply_content`] = common.SimpleField{Key: `special.plugin_reply_content`, Typ: common.TypString, Vals: []common.Val{{String: &chatResp.Result}}}
 	output[`llm_result.completion_token`] = common.SimpleField{Key: `llm_result.completion_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &chatResp.CompletionToken}}}
 	output[`llm_result.prompt_token`] = common.SimpleField{Key: `llm_result.prompt_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &chatResp.PromptToken}}}
 	nextNodeKey = n.nextNodeKey
@@ -1030,6 +1029,35 @@ type PluginNode struct {
 func (n *PluginNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, _ error) {
 	u := define.Config.Plugin[`endpoint`] + "/manage/plugin/local-plugins/run"
 
+	// 处理任意深度的 Map 和 Slice
+	var deepReplace func(val any) any
+	deepReplace = func(val any) any {
+		switch v := val.(type) {
+		case map[string]any: // 如果是 Map，递归处理 Map 的每一个值
+			newMap := make(map[string]any)
+			for k, subVal := range v {
+				newMap[k] = deepReplace(subVal)
+			}
+			return newMap
+		case []any: // 如果是 Slice，递归处理 Slice 的每一个元素
+			newSlice := make([]any, len(v))
+			for i, subVal := range v {
+				newSlice[i] = deepReplace(subVal)
+			}
+			return newSlice
+		case string: // 只有遇到字符串，才真正执行替换
+			return flow.VariableReplace(v)
+		default:
+			// 其他基本类型（int, bool等），转字符串后尝试替换
+			return flow.VariableReplace(cast.ToString(v))
+		}
+	}
+
+	// 对顶层的每个参数调用递归函数
+	for key, value := range n.params.Params {
+		n.params.Params[key] = deepReplace(value)
+	}
+
 	if n.params.Type == `notice` {
 		resp := &lib_web.Response{}
 		request := curl.Post(u).Header(`admin_user_id`, cast.ToString(flow.params.AdminUserId))
@@ -1039,33 +1067,44 @@ func (n *PluginNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNo
 		if err != nil {
 			return nil, "", err
 		}
-		request.Param("params", string(params))
-		err = request.ToJSON(resp)
+		err = request.Param("params", string(params)).ToJSON(resp)
 		if err != nil {
 			return nil, "", err
 		}
 		if resp.Res != 0 {
 			return nil, "", errors.New(resp.Msg)
 		}
-		// 构建 output
-		b, err := json.Marshal(resp.Data)
+
+		result := make(map[string]any)
+		err = request.ToJSON(&result)
+		if err != nil {
+			return
+		}
+		output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
+		nextNodeKey = n.nextNodeKey
+		return
+	} else if n.params.Type == `extension` {
+		result := make(map[string]any)
+		request := curl.Post(u).Header(`admin_user_id`, cast.ToString(flow.params.AdminUserId))
+		request.Param("name", n.params.Name)
+		request.Param("action", "default/exec")
+		params, err := json.Marshal(n.params.Params)
 		if err != nil {
 			return nil, "", err
 		}
-		jsonStr := string(b)
-		output = common.SimpleFields{
-			`special.plugin_reply_content`: common.SimpleField{
-				Key: `special.plugin_reply_content`,
-				Typ: common.TypString,
-				Vals: []common.Val{
-					{String: &jsonStr},
-				},
-			},
+		logs.Debug("request params: %v", string(params))
+		err = request.Param("params", string(params)).ToJSON(&result)
+		if err != nil {
+			return nil, "", err
 		}
-
+		if cast.ToInt(result["res"]) != 0 {
+			return nil, "", errors.New(cast.ToString(result["msg"]))
+		}
+		output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
 		nextNodeKey = n.nextNodeKey
 		return
 	} else {
+		nextNodeKey = n.nextNodeKey
 		return nil, "", errors.New("暂不支持的插件类型")
 	}
 }

@@ -51,6 +51,14 @@
     box-shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.16);
   }
 }
+
+.window-size-box{
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 14px;
+}
 </style>
 
 <template>
@@ -94,6 +102,31 @@
                   <a-select-option value="zh-CN">简体中文</a-select-option>
                   <a-select-option value="en-US">English</a-select-option>
                 </a-select>
+              </a-form-item>
+              <a-form-item class="form-item" label="网址打开方式" name="open_type" required>
+                <a-radio-group v-model:value="formState.open_type">
+                  <a-radio :value="1">新标签页打开</a-radio>
+                  <a-radio :value="2">新窗口弹窗打开
+                    <a-tooltip title="仅管控PC端新窗口打开,移动端依然用新标签页打开">
+                      <template #title>prompt text</template>
+                      <QuestionCircleOutlined />
+                    </a-tooltip>
+                  </a-radio>
+                </a-radio-group>
+                <a-form-item-rest v-if="formState.open_type == 2">
+                  <div class="window-size-box">
+                    <a-flex align="center" :gap="8">
+                      <div>弹窗高度</div>
+                      <a-input-number  v-model:value="formState.window_height" :min="500" :max="2000" />
+                      PX
+                    </a-flex>
+                    <a-flex align="center" :gap="8">
+                      <div>弹窗宽度</div>
+                      <a-input-number  v-model:value="formState.window_width" :min="500" :max="2000" />
+                      PX
+                    </a-flex>
+                  </div>
+                </a-form-item-rest>
               </a-form-item>
             </a-form>
           </div>
@@ -166,7 +199,10 @@ const formState = reactive({
   headImage: external_config_pc.value.headImage,
   lang: external_config_pc.value.lang,
   pageStyle: external_config_pc.value.pageStyle,
-  floatBtn: external_config_pc.value.floatBtn
+  floatBtn: external_config_pc.value.floatBtn,
+  open_type: external_config_pc.value.open_type,
+  window_width: external_config_pc.value.window_width,
+  window_height: external_config_pc.value.window_height,
 })
 
 const previewIframeSrc = computed(() => {
@@ -232,6 +268,8 @@ const formRules = {
 // 保存样式设置
 const saveWebSiteInfo = () => {
   const { id } = robotInfo.value
+  formState.window_width = +formState.window_width || 1200
+  formState.window_height = +formState.window_height || 650
   let formData = { ...toRaw(formState) }
 
   editExternalConfig({

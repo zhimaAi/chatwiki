@@ -6,4 +6,4 @@ var IsDev bool
 var Env string
 
 const AppRoot = `internal/app/plugin/`
-const Version = `2.0.5`
+const Version = `2.0.7`

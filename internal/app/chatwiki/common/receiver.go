@@ -39,6 +39,7 @@ func createNewReceiver(params *define.ChatRequestParam, sessionId int64) {
 		`unread`:            0,
 		`create_time`:       tool.Time2Int(),
 		`update_time`:       tool.Time2Int(),
+		`rel_user_id`:       params.RelUserId,
 	}
 	if len(params.Customer) > 0 {
 		data[`nickname`] = params.Customer[`nickname`]
@@ -48,6 +49,10 @@ func createNewReceiver(params *define.ChatRequestParam, sessionId int64) {
 		data[`nickname`] = `访客XXXX`
 		data[`name`] = `访客XXXX`
 		data[`avatar`] = define.DefaultCustomerAvatar
+	}
+	//获取关联用户信息
+	if params.RelUserId > 0 {
+		FillRelUserInfo(data, params.RelUserId)
 	}
 	m := msql.Model(`chat_ai_receiver`, define.Postgres)
 	id, err := m.Insert(data, `id`)
@@ -70,6 +75,7 @@ func updateReceiver(sessionId int, lastChat msql.Datas, isCustomer int) {
 	if len(info) == 0 {
 		return //no receiver info
 	}
+	lastChat[`rel_user_id`] = cast.ToInt(info[`rel_user_id`])
 	if isCustomer == define.MsgFromCustomer {
 		lastChat[`unread`] = cast.ToInt(info[`unread`]) + 1
 	}
@@ -79,6 +85,11 @@ func updateReceiver(sessionId int, lastChat msql.Datas, isCustomer int) {
 		lastChat[`name`] = customer[`name`]
 		lastChat[`avatar`] = customer[`avatar`]
 	}
+	//获取关联用户信息
+	relUserId := cast.ToInt(lastChat[`rel_user_id`])
+	if relUserId > 0 {
+		FillRelUserInfo(lastChat, relUserId)
+	}
 	if _, err = m.Where(`id`, info[`id`]).Update(lastChat); err != nil {
 		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 	}
@@ -87,6 +98,44 @@ func updateReceiver(sessionId int, lastChat msql.Datas, isCustomer int) {
 	}
 	//websocket notify
 	ReceiverChangeNotify(cast.ToInt(info[`admin_user_id`]), `update`, info)
+}
+
+func FillRelUserInfo(info msql.Datas, relUserId int, relUserInfos ...msql.Params) {
+	if relUserId > 0 {
+		var relUserInfo msql.Params
+		if len(relUserInfos) == 0 {
+			relUserInfo = GetUserInfo(relUserId)
+		} else {
+			relUserInfo = relUserInfos[0]
+		}
+		if len(relUserInfo) > 0 {
+			info[`name`] = relUserInfo[`nick_name`]
+			info[`avatar`] = relUserInfo[`avatar`]
+			info[`nickname`] = relUserInfo[`nick_name`]
+			if info[`avatar`] == `` {
+				info[`avatar`] = `/upload/default/robot_avatar.svg`
+			}
+		}
+	}
+}
+
+func FillRelUserInfo2(info msql.Params, relUserId int, relUserInfos ...msql.Params) {
+	if relUserId > 0 {
+		var relUserInfo msql.Params
+		if len(relUserInfos) == 0 {
+			relUserInfo = GetUserInfo(relUserId)
+		} else {
+			relUserInfo = relUserInfos[0]
+		}
+		if len(relUserInfo) > 0 {
+			info[`name`] = relUserInfo[`nick_name`]
+			info[`avatar`] = relUserInfo[`avatar`]
+			info[`nickname`] = relUserInfo[`nick_name`]
+			if info[`avatar`] == `` {
+				info[`avatar`] = `/upload/default/robot_avatar.svg`
+			}
+		}
+	}
 }
 
 func DeleteReceiver() {

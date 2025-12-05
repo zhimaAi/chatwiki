@@ -422,7 +422,7 @@
                     style="width: 220px"
                     :precision="0"
                     :min="1"
-                    :max="100000"
+                    :max="10000"
                   />
                   字符
                 </a-flex>
@@ -435,7 +435,7 @@
                     style="width: 220px"
                     :precision="0"
                     :min="1"
-                    :max="100000"
+                    :max="5000"
                   />
                   字符
                 </a-flex>

@@ -7,6 +7,14 @@
         desc="运行一段JS代码，将代码return的数据输出到下一节点。一般用于进行数据处理。"
         @close="handleClose"
       >
+        <template #runBtn>
+          <a-tooltip>
+            <template #title>运行测试</template>
+            <div class="action-btn" @click="handleOpenTestModal">
+              <CaretRightOutlined style="color: rgb(0, 173, 58)" />
+            </div>
+          </a-tooltip>
+        </template>
       </NodeFormHeader>
     </template>
     <div class="problem-optimization-form">
@@ -159,6 +167,7 @@
         </a-form>
       </div>
     </div>
+    <RunTest :variableOptions="variableOptions" ref="runTestRef" />
   </NodeFormLayout>
 </template>
 
@@ -170,11 +179,13 @@ import {
   CloseCircleOutlined,
   PlusOutlined,
   PlusCircleOutlined,
-  FullscreenOutlined
+  FullscreenOutlined,
+  CaretRightOutlined
 } from '@ant-design/icons-vue'
 
 import SubKey from './subs-key.vue'
 import CodeEditBox from './code-edit-box.vue'
+import RunTest from './run-test.vue'
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({
@@ -209,6 +220,7 @@ function getOptions() {
 
     variableOptions.value = handleOptions(list)
   }
+  console.log(variableOptions.value, '==')
 }
 
 // 递归处理Options
@@ -465,6 +477,11 @@ const handleClose = () => {
   emit('close')
 }
 
+const runTestRef = ref(null)
+const handleOpenTestModal = () => {
+  runTestRef.value.open(JSON.parse(JSON.stringify(formState)), props.node.loop_parent_key != '')
+}
+
 onMounted(() => {
   init()
 })
@@ -478,6 +495,20 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
+  }
+}
+.action-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease-in;
+  margin-left: 8px;
+  &:hover {
+    background: #e4e6eb;
   }
 }
 

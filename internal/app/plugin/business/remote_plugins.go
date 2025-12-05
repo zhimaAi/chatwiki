@@ -25,7 +25,31 @@ import (
 )
 
 func GetRemotePluginList(c *gin.Context) {
-	resp, err := requestXiaokefu(`kf/ChatWiki/CommonGetPluginList`, nil)
+
+	reqData := map[string]any{
+		"filter_type": c.Query("filter_type"),
+		"title":       c.Query("title"),
+	}
+
+	resp, err := requestXiaokefu(`kf/ChatWiki/CommonGetPluginList`, reqData)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	respData, ok := resp.Data.([]interface{})
+	if !ok {
+		err = errors.New(`invalid data format`)
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(respData, nil))
+}
+
+func GetRemotePluginTypeList(c *gin.Context) {
+
+	resp, err := requestXiaokefu(`kf/ChatWiki/CommonGetPluginTypeList`, nil)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
@@ -168,6 +192,16 @@ func DownloadRemotePlugin(c *gin.Context) {
 			`type`:          manifest.Type,
 			`has_loaded`:    false,
 		})
+	}
+
+	// 重新加载
+	if len(info) > 0 && cast.ToBool(info[`has_loaded`]) {
+		define.PhpPlugin.UnloadPhpPlugin(info[`name`])
+		err = define.PhpPlugin.LoadPhpPlugin(info[`name`], define.Version)
+		if err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+			return
+		}
 	}
 
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))

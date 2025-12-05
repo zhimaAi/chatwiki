@@ -85,10 +85,17 @@ const handleSwitchChange = (item, checked) => {
   const newStatus = checked ? '1' : '0'
   // 如果是关闭二次弹窗提示：提示：弹框提示：关闭后，触发了关键词不会再回复指定内容
   if (newStatus == '0') {
+    let tip = '关闭后，触发了关键词不会再回复指定内容'
+    if (item.ability_type == 'robot_smart_menu') {
+      tip = '关闭后，其他回复智能菜单的规则触发后都不再回复'
+    }
+    if (item.ability_type == 'robot_auto_reply') {
+      tip = '关闭后，触发了关键词以及收到消息回复都不会再回复指定的内容'
+    }
     Modal.confirm({
       title: '确认关闭吗？',
       icon: h(ExclamationCircleOutlined),
-      content: '关闭后，触发了关键词不会再回复指定内容',
+      content: tip,
       onOk: () => {
         saveRobotAbilitySwitchStatus({ robot_id: robotId.value, ability_type: item.ability_type, switch_status: newStatus }).then((res) => {
           if (res && res.res == 0) {
@@ -97,7 +104,9 @@ const handleSwitchChange = (item, checked) => {
               item.robot_config.switch_status = newStatus
             }
             // 通知左侧菜单刷新能力列表（用于动态菜单）
-            window.dispatchEvent(new CustomEvent('robotAbilityUpdated', { detail: { robotId: robotId.value } }))
+            if (item.ability_type != 'robot_subscribe_reply') {
+              window.dispatchEvent(new CustomEvent('robotAbilityUpdated', { detail: { robotId: robotId.value } }))
+            }
           }
         })
       }
@@ -133,6 +142,23 @@ const handleClickItem = (item) => {
   if (item.ability_type == 'robot_auto_reply') {
     url = router.resolve({
       path: '/robot/ability/auto-reply',
+      query: {
+        id: robotId.value,
+        robot_key: route.query.robot_key
+      }
+    })
+  } else if (item.ability_type == 'robot_subscribe_reply') {
+    router.push({
+      path: '/explore/index/subscribe-reply',
+      query: {
+        id: robotId.value,
+        robot_key: route.query.robot_key
+      }
+    })
+    return
+  } else if (item.ability_type == 'robot_smart_menu') {
+    url = router.resolve({
+      path: '/robot/ability/smart-menu',
       query: {
         id: robotId.value,
         robot_key: route.query.robot_key

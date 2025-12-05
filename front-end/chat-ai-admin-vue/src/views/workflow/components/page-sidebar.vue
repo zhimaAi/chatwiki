@@ -259,6 +259,12 @@ const menus = [
     isNewWindowOpen: true
   },
   {
+    label: '功能中心',
+    value: 'function-center',
+    path: '/robot/config/function-center',
+    iconName: 'function-center'
+  },
+  {
     label: '问答反馈',
     value: 'qa-feedbacks',
     path: '/robot/config/qa-feedbacks',

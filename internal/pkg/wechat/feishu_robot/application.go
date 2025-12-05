@@ -4,6 +4,7 @@ package feishu_robot
 
 import (
 	"chatwiki/internal/pkg/lib_define"
+	"chatwiki/internal/pkg/wechat/common"
 	"context"
 	"encoding/json"
 	"errors"
@@ -173,6 +174,7 @@ func (a *Application) SendText(customer, content string, push *lib_define.PushMe
 	// 获取基础消息信息
 	replyContent := a.getTextBaseContent(push)
 	//新发消息
+	content = common.ReplaceDate(content)
 	replyContent += content
 
 	// 创建文本消息内容
@@ -378,6 +380,88 @@ func (a *Application) SendImageTextLink(customer, url, title, description, local
 	// 创建富文本消息内容
 	var postMsg = FeiShuPostMsg{
 		Title:   title,
+		Content: replyContent,
+	}
+	// 创建文本消息内容
+	contentStr, _ := tool.JsonEncode(FeiShuPost{ZhCn: postMsg})
+
+	// 调用通用发送方法
+	return a.SendContent("post", contentStr, receiveIdType, receiveId)
+}
+
+func (a *Application) SendSmartMenu(customer string, smartMenu lib_define.SmartMenu, push *lib_define.PushMessage) (int, error) {
+	// 获取接收者信息
+	receiveIdType, receiveId := a.getReceiveInfo(push)
+	// 获取基础消息信息
+	var replyContent = make([][]map[string]any, 0)
+	description := common.ProcessEscapeSequences(smartMenu.MenuDescription)
+	description = common.ReplaceDate(description)
+	// 按\n切割smartMenu.MenuDescription，然后按行添加
+	descriptionLines := strings.Split(description, "\n")
+
+	// 添加@信息（如果是群聊）
+	if push.Message["SessionType"] == "group" {
+		var firstLine = make([]map[string]any, 0)
+		firstLine = append(firstLine, structToMapAny(FeiShuPostMsgContentAt{
+			Tag:    "at",
+			UserId: cast.ToString(push.Message["FromUserName"]),
+		}))
+		replyContent = append(replyContent, firstLine)
+	}
+
+	// 按行添加菜单描述内容
+	for _, line := range descriptionLines {
+		var lineContent = make([]map[string]any, 0)
+		lineContent = append(lineContent, structToMapAny(FeiShuPostMsgContentText{
+			Tag:  "text",
+			Text: line,
+		}))
+		replyContent = append(replyContent, lineContent)
+	}
+
+	// 遍历菜单内容
+	if len(smartMenu.MenuContent) > 0 {
+		for _, content := range smartMenu.MenuContent {
+			var line = make([]map[string]any, 0)
+			// 判断是普通文本还是链接
+			if content.SerialNo != `` {
+				line = append(line, structToMapAny(FeiShuPostMsgContentText{
+					Tag:  "text",
+					Text: content.SerialNo + ` `,
+				}))
+			}
+
+			//反向解析 a标签 是链接， 还是小程序
+			linkInfo := common.ContentToALabel(content.Content)
+			switch linkInfo.Type {
+			case common.PlainText:
+				line = append(line, structToMapAny(FeiShuPostMsgContentText{
+					Tag:  "text",
+					Text: linkInfo.Text,
+				}))
+				break
+			case common.NormalLink:
+				line = append(line, structToMapAny(FeiShuPostMsgContentUrl{
+					Tag:  "a",
+					Text: linkInfo.Text,
+					Href: linkInfo.URL,
+				}))
+				break
+			case common.MiniProgramLink:
+				line = append(line, structToMapAny(FeiShuPostMsgContentText{
+					Tag:  "text",
+					Text: linkInfo.Text,
+				}))
+				break
+
+			}
+			replyContent = append(replyContent, line)
+		}
+	}
+
+	// 创建富文本消息内容
+	var postMsg = FeiShuPostMsg{
+		Title:   `智能菜单`,
 		Content: replyContent,
 	}
 	// 创建文本消息内容

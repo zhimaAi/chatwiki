@@ -309,7 +309,6 @@
   }
 
   .reply-item {
-    width: fit-content;
     border-radius: 4px 16px 16px 16px;
     padding: 16px 12px;
     background: #fff;
@@ -317,6 +316,40 @@
 
   .reply-image .msg-img {
     max-width: 500px;
+  }
+
+  .reply-smartMenu {
+    color: #1a1a1a;
+    .smart-menu-box {
+      .card-title {
+        white-space: pre-wrap;
+        align-self: stretch;
+        font-size: 14px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: 20px;
+        margin-bottom: 14px;
+      }
+      .card-text {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        .reply-line {
+          line-height: 22px;
+          .line-text {
+            color: #3a4559;
+          }
+          .empty-line {
+            height: 22px;
+          }
+          .link {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          }
+        }
+      }
+    }
   }
 }
 </style>
@@ -381,15 +414,33 @@
                         </div>
                       </div>
                     </div>
-                    <div v-else-if="(rc.reply_type || rc.type) === 'imageText'" class="reply-item reply-imageText">
-                      <a class="imageText-row" :href="rc.url" target="_blank">
-                        <img v-if="rc.thumb_url" :src="rc.thumb_url" class="imageText-thumb" />
-                        <div class="imageText-text">
-                          <div class="imageText-title">{{ rc.title }}</div>
-                          <div class="imageText-desc">{{ rc.description }}</div>
-                        </div>
-                      </a>
+                  <div v-else-if="(rc.reply_type || rc.type) === 'imageText'" class="reply-item reply-imageText">
+                    <a class="imageText-row" :href="rc.url" target="_blank">
+                      <img v-if="rc.thumb_url" :src="rc.thumb_url" class="imageText-thumb" />
+                      <div class="imageText-text">
+                        <div class="imageText-title">{{ rc.title }}</div>
+                        <div class="imageText-desc">{{ rc.description }}</div>
+                      </div>
+                    </a>
+                  </div>
+                  <div v-else-if="(rc.reply_type || rc.type) === 'smartMenu'" class="reply-item reply-smartMenu">
+                    <div class="smart-menu-box">
+                      <div class="card-title" v-if="rc.smart_menu && rc.smart_menu.menu_description">{{ rc.smart_menu.menu_description }}</div>
+                      <div class="card-text">
+                        <template v-for="(line, li) in buildMenuLines(rc.smart_menu?.menu_content || [])" :key="li">
+                          <div class="reply-line" @click="onSmartReplyLineClick($event)">
+                            <span class="line-text" v-if="line.kind === 'text'">{{ line.text }}</span>
+                            <div v-else-if="line.kind === 'newline'" class="empty-line"></div>
+                            <span v-else-if="line.kind === 'html'" v-html="line.html"></span>
+                            <a v-else-if="line.kind === 'keyword'" href="javascript:;" class="link" @click.prevent="onClickSmartMenuKeyword(line.text)">
+                              <div v-if="line.serial_no">{{ line.serial_no }}</div>
+                              {{ line.text }}
+                            </a>
+                          </div>
+                        </template>
+                      </div>
                     </div>
+                  </div>
                   </template>
                 </div>
               </template>
@@ -741,6 +792,37 @@ function parseReplyList(val) {
   } catch (_e) {
     return []
   }
+}
+
+function buildMenuLines(menu_content) {
+  const out = []
+  ;(Array.isArray(menu_content) ? menu_content : []).forEach((mc) => {
+    const t = String(mc?.menu_type || '')
+    const txt = String(mc?.content || '')
+    if (t === '0') {
+      if (txt === '') { out.push({ kind: 'newline' }) }
+      else if (/<a[\s\S]*?<\/a>/.test(txt)) {
+        const sanitized = /href\s*=\s*['"]\s*#\s*['"]/i.test(txt)
+          ? txt.replace(/href\s*=\s*['"]\s*#\s*['"]/ig, 'href="javascript:;"')
+          : txt.replace(/href=/ig, 'target="_blank" href=')
+        out.push({ kind: 'html', html: sanitized })
+      } else { out.push({ kind: 'text', text: txt }) }
+    } else if (t === '1') { out.push({ kind: 'keyword', text: txt, serial_no: mc?.serial_no || '' }) }
+  })
+  return out.slice(0, 20)
+}
+
+function onSmartReplyLineClick(e) {
+  const a = e.target?.closest?.('a')
+  if (!a) return
+  const href = String(a.getAttribute('href') || '')
+  if (href === '#' || href === 'javascript:;') { e.preventDefault(); e.stopPropagation() }
+}
+
+function onClickSmartMenuKeyword(text) {
+  const t = String(text || '').trim()
+  if (!t) return
+  emit('clickMsgMeun', t)
 }
 
 defineExpose({

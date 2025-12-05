@@ -76,7 +76,7 @@ const handleSwitchChange = (item, checked) => {
   if (newStatus === '0') {
     Modal.confirm({
       title: '提示',
-      content: '关闭后，该功能默认关闭不再支持使用，确认关闭？',
+      content: '关闭后，功能中心将不再显示该功能，并无法使用，其他调用的位子也将失效，确认关闭么？',
       onOk: () => {
         saveUserAbility({ ability_type: item.ability_type, switch_status: newStatus }).then((res) => {
           if (res && res.res == 0) {
@@ -104,7 +104,10 @@ const handleSwitchChange = (item, checked) => {
       const now = Date.now()
       if (until <= now) {
         enableTipDontRemind.value = false
-        enableTipOpen.value = true
+        // 如果是关注后回复 不需要提示
+        if (item.ability_type !== 'robot_subscribe_reply') {
+          enableTipOpen.value = true
+        }
       }
     }
   })

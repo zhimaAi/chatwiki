@@ -1,7 +1,7 @@
 {
     "name": "chatwiki/yii2",
     "require": {
-        "php": "^8.4",
+        "php": "^8.3",
         "yiisoft/yii2": "~2.0.0",
         "spiral/roadrunner-worker": "^3.6",
         "spiral/goridge": "^4.2",

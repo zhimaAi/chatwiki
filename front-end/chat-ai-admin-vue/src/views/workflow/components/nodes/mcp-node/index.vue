@@ -10,6 +10,7 @@
     :isSelected="isSelected"
     :isHovered="isHovered"
     :node-key="properties.node_key"
+    style="min-width: 320px;min-height: 94px;"
   >
     <div class="mcp-node">
       MCP插件：
@@ -29,7 +30,7 @@ export default {
   components: {
     NodeCommon,
   },
-  inject: ['getNode', 'getGraph', 'setData'],
+  inject: ['getNode', 'getGraph', 'setData', 'resetSize'],
   props: {
     properties: {
       type: Object,
@@ -58,6 +59,10 @@ export default {
   mounted() {
     this.nodeParams = JSON.parse(this.properties.node_params)
     this.loadProvider()
+
+    this.$nextTick(() => {
+      this.resetSize()
+    })
   },
   methods: {
     loadProvider() {
@@ -67,6 +72,9 @@ export default {
         this.mcpInfo = res?.data || {}
         let tools = jsonDecode(this.mcpInfo?.tools, [])
         this.toolInfo = tools.find(item => item.name == this.nodeParams?.mcp.tool_name)
+        this.$nextTick(() => {
+          this.resetSize()
+        })
       })
     },
     update(data) {

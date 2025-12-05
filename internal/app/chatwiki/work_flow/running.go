@@ -200,6 +200,24 @@ func (flow *WorkFlow) VariableReplace(content string) string {
 	return regexp.MustCompile(`【([a-f0-9]{32}\.)?[a-zA-Z_][a-zA-Z0-9_\-.]*】`).ReplaceAllString(content, ``)
 }
 
+func (flow *WorkFlow) VariableReplaceJson(jsonStr string) string {
+	//优先替换全局变量
+	for key, field := range flow.global {
+		jsonStr = strings.ReplaceAll(jsonStr, fmt.Sprintf(`【global.%s】`, key), strings.ReplaceAll(field.ShowVals(), `"`, `\"`))
+	}
+	//再替换节点输出变量
+	for nodeKey, output := range flow.outputs {
+		for key, field := range output {
+			jsonStr = strings.ReplaceAll(jsonStr, fmt.Sprintf(`【%s.%s】`, nodeKey, key), strings.ReplaceAll(field.ShowVals(), `"`, `\"`))
+		}
+	}
+	//这个变成了旧数据兼容
+	for key, field := range flow.output {
+		jsonStr = strings.ReplaceAll(jsonStr, fmt.Sprintf(`【%s】`, key), strings.ReplaceAll(field.ShowVals(), `"`, `\"`))
+	}
+	return regexp.MustCompile(`【([a-f0-9]{32}\.)?[a-zA-Z_][a-zA-Z0-9_\-.]*】`).ReplaceAllString(jsonStr, ``)
+}
+
 func (flow *WorkFlow) GetVariable(key string) (field common.SimpleField, exist bool) {
 	if strings.HasPrefix(key, `global.`) {
 		realKey := strings.TrimPrefix(key, `global.`)
@@ -305,7 +323,7 @@ func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monit
 		return
 	}
 
-	var replyContentNodes = []string{`special.llm_reply_content`, `special.question_optimize_reply_content`, `special.mcp_reply_content`, `special.plugin_reply_content`}
+	var replyContentNodes = []string{`special.llm_reply_content`, `special.question_optimize_reply_content`, `special.mcp_reply_content`}
 	for _, nodeKey := range replyContentNodes {
 		content = cast.ToString(flow.output[nodeKey].GetVal(common.TypString))
 		if len(content) > 0 {

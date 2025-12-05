@@ -49,6 +49,7 @@ type ChatBaseParam struct {
 	AdminUserId int
 	Robot       msql.Params
 	Customer    msql.Params
+	RelUserId   int
 }
 
 type ChatRequestParam struct {

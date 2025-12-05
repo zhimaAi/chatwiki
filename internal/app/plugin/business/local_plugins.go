@@ -25,8 +25,13 @@ func GetLocalPluginList(c *gin.Context) {
 		return
 	}
 
+	reqData := map[string]any{
+		"filter_type": c.Query("filter_type"),
+		"title":       c.Query("title"),
+	}
+
 	// 获取远程插件列表
-	resp, err := requestXiaokefu(`kf/ChatWiki/CommonGetPluginList`, nil)
+	resp, err := requestXiaokefu(`kf/ChatWiki/CommonGetPluginList`, reqData)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
@@ -251,6 +256,66 @@ func UnloadLocalPlugin(c *gin.Context) {
 		Update(msql.Datas{
 			`update_time`: tool.Time2Int(),
 			`has_loaded`:  false,
+		})
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}
+
+func GetLocalPluginConfig(c *gin.Context) {
+	adminUserId := c.GetHeader(`admin_user_id`)
+	if adminUserId == "" {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(`缺少admin_user_id`)))
+		return
+	}
+
+	var req struct {
+		Name string `form:"name" binding:"required"`
+	}
+
+	if err := c.ShouldBind(&req); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+
+	info, err := msql.Model(`plugin_config`, define.Postgres).
+		Where(`admin_user_id`, adminUserId).
+		Where(`name`, req.Name).
+		Find()
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(info[`data`], nil))
+}
+
+func UpdateLocalPluginConfig(c *gin.Context) {
+	adminUserId := c.GetHeader(`admin_user_id`)
+	if adminUserId == "" {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(`缺少admin_user_id`)))
+		return
+	}
+
+	var req struct {
+		Name string `form:"name" binding:"required"`
+		Data string `form:"data" binding:"required"`
+	}
+
+	if err := c.ShouldBind(&req); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+
+	_, err := msql.Model(`plugin_config`, define.Postgres).
+		Where(`admin_user_id`, adminUserId).
+		Where(`name`, req.Name).
+		Update(msql.Datas{
+			`update_time`: tool.Time2Int(),
+			`data`:        req.Data,
 		})
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))

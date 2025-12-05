@@ -306,17 +306,18 @@ class CustomGroup extends dynamicGroup.view {
 class CustomGroupModel extends dynamicGroup.model {
   initNodeData(data) {
     super.initNodeData(data)
-    this.width = data.width || 800
-    this.height = data.height || 500
+    this.width = data.width || 600
+    this.height = data.height || 420
     this.collapsible = false
-    this.isRestrict = true // 限制拖出去
-    this.autoResize = true // 跟随节点 调整宽度
+    this.isRestrict = false // 限制拖出去
+    this.autoResize = false // 跟随节点 调整宽度
     this.radius = 8
-    this.allowResize = true
-    this.autoExpand = true
+    this.allowResize = false
+    this.autoExpand = false
     this.transformWithContainer = true
     this.allowRotate = true
-    this.stopMoveGraph = true
+    this.stopMoveGraph = false
+    this.autoToFront = false;
     this.properties = {
       ...this.properties,
       transformWithContainer: true, 

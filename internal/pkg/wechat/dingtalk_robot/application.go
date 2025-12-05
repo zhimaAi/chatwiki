@@ -5,9 +5,19 @@ package dingtalk_robot
 import (
 	"bytes"
 	"chatwiki/internal/pkg/lib_define"
+	"chatwiki/internal/pkg/wechat/common"
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"time"
+
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/response"
 	openresponse "github.com/ArtisanCloud/PowerWeChat/v3/src/openPlatform/authorizer/miniProgram/account/response"
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
@@ -18,13 +28,6 @@ import (
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/tool"
-	"io"
-	"mime/multipart"
-	"net/http"
-	"os"
-	"path/filepath"
-	"reflect"
-	"time"
 )
 
 type Application struct {
@@ -98,6 +101,51 @@ func (a *Application) SendMiniProgramPage(customer, appid, title, pagePath, loca
 	//构建消息消息
 	dingtalkMsg, _ := tool.JsonEncode(DingTalkMsgType{MsgKey: "sampleMarkdown", SampleMarkdown: DingtalkSampleMarkdown{
 		Title: title,
+		Text:  markDownText,
+	}})
+
+	return a.SendText("", dingtalkMsg, push)
+}
+
+func (a *Application) SendSmartMenu(customer string, smartMenu lib_define.SmartMenu, push *lib_define.PushMessage) (int, error) {
+	description := common.ProcessEscapeSequences(smartMenu.MenuDescription)
+	description = common.ReplaceDate(description)
+	// 按\n切割smartMenu.MenuDescription，然后按行添加
+	descriptionLines := strings.Split(description, "\n")
+
+	markDownText := ``
+	for _, line := range descriptionLines {
+		markDownText += line + "  \n  "
+	}
+
+	// 遍历菜单内容
+	if len(smartMenu.MenuContent) > 0 {
+		for _, content := range smartMenu.MenuContent {
+			var line = ``
+			// 判断是普通文本还是链接
+			if content.SerialNo != `` {
+				line += content.SerialNo + ` `
+			}
+			//反向解析 a标签 是链接， 还是小程序
+			linkInfo := common.ContentToALabel(content.Content)
+			switch linkInfo.Type {
+			case common.PlainText:
+				line += linkInfo.Text
+				break
+			case common.NormalLink:
+				line += "[" + linkInfo.Text + "](" + linkInfo.URL + ")"
+				break
+			case common.MiniProgramLink:
+				//小程序
+				line += linkInfo.Text
+				break
+			}
+			markDownText += line + "  \n  "
+		}
+	}
+	//构建消息消息
+	dingtalkMsg, _ := tool.JsonEncode(DingTalkMsgType{MsgKey: "sampleMarkdown", SampleMarkdown: DingtalkSampleMarkdown{
+		Title: `智能菜单`,
 		Text:  markDownText,
 	}})
 

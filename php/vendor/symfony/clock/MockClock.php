@@ -54,6 +54,10 @@ final class MockClock implements ClockInterface
 
     public function sleep(float|int $seconds): void
     {
+        if (0 >= $seconds) {
+            return;
+        }
+
         $now = (float) $this->now->format('Uu') + $seconds * 1e6;
         $now = substr_replace(\sprintf('@%07.0F', $now), '.', -6, 0);
         $timezone = $this->now->getTimezone();

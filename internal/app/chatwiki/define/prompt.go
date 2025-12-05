@@ -194,16 +194,20 @@ const CompletionGenerateJsonPrompt = ` ### 角色
 以下是预期输出的结构，你要始终遵循下面结构输出。
 [
     {
-        'key': 'properties1',
+        "key": "properties1",
         "typ": "string",
         "enum": "提供的枚举值",
-        "vals":["提取的相关文本"],
+        "vals": [
+            "提取的相关文本"
+        ]
     },
-   {
-        'key': 'properties2',
+    {
+        "key": "properties2",
         "typ": "array<string>",
         "enum": "",
-        "vals":["提取的相关文本"],
+        "vals": [
+            "提取的相关文本"
+        ]
     }
 ]
 ### 回答

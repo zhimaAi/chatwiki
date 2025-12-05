@@ -28,9 +28,12 @@ func init() {
 	Route[http.MethodPost][`/manage/plugin/local-plugins/destroy`] = business.DestroyLocalPlugin
 	Route[http.MethodPost][`/manage/plugin/local-plugins/load`] = business.LoadLocalPlugin
 	Route[http.MethodPost][`/manage/plugin/local-plugins/unload`] = business.UnloadLocalPlugin
+	Route[http.MethodGet][`/manage/plugin/local-plugins/config`] = business.GetLocalPluginConfig
+	Route[http.MethodPost][`/manage/plugin/local-plugins/config`] = business.UpdateLocalPluginConfig
 	Route[http.MethodPost][`/manage/plugin/local-plugins/run`] = business.RunLocalPluginLambda
 
 	//remote plugins
+	Route[http.MethodGet][`/manage/plugin/remote-plugins/typeList`] = business.GetRemotePluginTypeList
 	Route[http.MethodGet][`/manage/plugin/remote-plugins/list`] = business.GetRemotePluginList
 	Route[http.MethodGet][`/manage/plugin/remote-plugins/detail`] = business.GetRemotePluginDetail
 	Route[http.MethodPost][`/manage/plugin/remote-plugins/download`] = business.DownloadRemotePlugin

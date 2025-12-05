@@ -1,0 +1,490 @@
+<template>
+  <div>
+    <a-drawer
+      v-model:open="open"
+      placement="right"
+      width="400px"
+      :headerStyle="{display: 'none'}"
+      :bodyStyle="{padding: 0}"
+    >
+      <div class="head-box">
+        <div class="base-info-box">
+          <img class="avatar" :src="detail.icon"/>
+          <div class="info-box">
+            <div class="left">
+              <div class="name zm-line1">{{ detail.title }}</div>
+              <div>{{ detail.author }}</div>
+            </div>
+            <div class="right">
+              <CloseOutlined @click="open = false" class="icon"/>
+            </div>
+          </div>
+        </div>
+        <div class="link">{{ detail.description }}</div>
+        <a-popover v-if="configLen > 0" placement="bottom">
+          <template #content>
+            <div class="tools-box">
+              <div v-for="(item, key) in configData" :key="key" class="tool-item">
+                <img class="cover" src="@/assets/img/robot/tool-icon.svg"/>
+                <div class="info">
+                  <div class="tit zm-line1">{{ item.name }}</div>
+                  <div class="btns">
+                    <a-tag v-if="item.is_default" color="#f50">默认</a-tag>
+                    <a v-else @click="setConfigDef(item, key)">设为默认</a>
+                    <a @click="delConfig(item, key)">删除</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+          <a-button type="primary" :icon="h(PlusOutlined)" class="auth-btn" @click="showAddModal">
+            已授权{{ configLen }}个凭证
+          </a-button>
+        </a-popover>
+        <a-button v-else type="primary" class="auth-btn" @click="showAddModal">立即授权</a-button>
+      </div>
+      <div class="body-box">
+        <div v-if="!configLen" class="no-auth-box">
+          <img src="@/assets/no-permission.png"/>
+          <div class="tit">需要授权</div>
+          <div class="desc">授权后，配置将显示在这里</div>
+          <a class="link" @click="showAddModal">立即授权</a>
+        </div>
+        <div v-else class="action-box">
+          <div v-for="(item, i) in actionData" :key="i" class="action-item">
+            <div class="tit">{{ item.title }}</div>
+            <div class="desc">{{ item.desc }}</div>
+            <div class="params">
+              <a-tag
+                v-for="(field, j) in Object.keys(item.params).slice(0, 3)"
+                :key="j"
+                :bordered="false">{{ field }}
+              </a-tag>
+              <a-popover placement="right">
+                <template #content>
+                  <div class="params-box">
+                    <div v-for="(field, key) in item.params" :key="key" class="param-item">
+                      <div class="field">
+                        <span class="name">{{ key }}</span>
+                        <span class="type">{{ field.type }}</span>
+                        <span v-if="field.required" class="required">必填</span>
+                      </div>
+                      <div class="desc">{{ field.desc }}</div>
+                    </div>
+                  </div>
+                </template>
+                <a>参数</a>
+              </a-popover>
+            </div>
+          </div>
+        </div>
+      </div>
+    </a-drawer>
+
+    <a-modal
+      v-model:open="configOpen"
+      :confirm-loading="configSaving"
+      title="API Key授权配置"
+      width="620px"
+      @ok="saveConfig"
+    >
+      <a-alert type="info" show-icon message="配置凭据后，工作流可直接调用此插件"/>
+      <a-form
+        class="mt16"
+        :model="config"
+        :label-col="{ span: 4 }"
+        :wrapper-col="{ span: 20 }"
+      >
+        <a-form-item
+          label="凭证名称"
+          name="name"
+          :rules="[{ required: true, message: '请输入凭证名称!' }]"
+        >
+          <a-input v-model:value.trim="config.name" :maxlength="16" placeholder="请输入凭证名称"/>
+          <div class="tip-desc">仅用于区分多个授权配置的名称，不用于接口调用</div>
+        </a-form-item>
+        <a-form-item
+          label="APP ID"
+          name="appid"
+          :rules="[{ required: true, message: '请输入APP ID!' }]"
+        >
+          <a-input v-model:value.trim="config.appid" placeholder="请输入APP ID"/>
+        </a-form-item>
+        <a-form-item
+          label="APP Secret"
+          name="app_secret"
+          :rules="[{ required: true, message: '请输入APP Secret!' }]"
+        >
+          <a-input v-model:value.trim="config.app_secret" placeholder="请输入APP Secret"/>
+          <div class="tip-desc">如何获取APP ID和APP Secret</div>
+        </a-form-item>
+      </a-form>
+    </a-modal>
+  </div>
+</template>
+
+<script setup>
+import {ref, reactive, h, computed} from 'vue';
+import {EllipsisOutlined, CloseOutlined, PlusOutlined} from '@ant-design/icons-vue';
+import {message, Modal} from 'ant-design-vue';
+import {authTMcpProvider, getTMcpProviderInfo} from "@/api/robot/thirdMcp";
+import {jsonDecode, timeNowGapFormat} from "@/utils/index.js";
+import {setShowReqError} from "@/utils/http/axios/config.js";
+import {getPluginConfig, runPlugin, setPluginConfig} from "@/api/plugins/index.js";
+
+const emit = defineEmits(['del', 'edit', 'auth'])
+
+const open = ref(false)
+const detail = ref({})
+const configData = ref({})
+const actionData = ref({})
+
+const configOpen = ref(false)
+const configSaving = ref(false)
+const config = reactive({})
+
+const configLen = computed(() => {
+  return Object.keys(configData.value).length
+})
+
+function show(info) {
+  detail.value = info
+  loadConfig()
+  loadAction()
+  open.value = true
+}
+
+function hide() {
+  open.value = false
+}
+
+function loadConfig() {
+  getPluginConfig({name: detail.value.name}).then(res => {
+    configData.value = jsonDecode(res?.data, {})
+  })
+}
+
+function loadAction() {
+  runPlugin({
+    name: detail.value.name,
+    action: "default/get-schema",
+    params: {}
+  }).then(res => {
+    let _data = res?.data || {}
+    for (let key in _data) {
+      if (_data[key].type != 'node') delete _data[key]
+    }
+    actionData.value = _data
+  })
+}
+
+function showAddModal() {
+  Object.assign(config, {
+    name: '',
+    appid: '',
+    app_secret: '',
+    is_default: false
+  })
+  // 首次添加设置默认
+  if (!configData.value || !Object.keys(configData.value).length) config.is_default = true
+  configOpen.value = true
+}
+
+function setConfigDef(item, key) {
+  for (let _key in configData.value) {
+    configData.value[_key].is_default = (_key == key)
+  }
+  setPluginConfig({
+    name: detail.value.name,
+    data: JSON.stringify(configData.value)
+  }).then(res => {
+    loadConfig()
+  })
+}
+
+function delConfig(item, key) {
+  Modal.confirm({
+    title: '提示',
+    content: '确认删除该配置？',
+    onOk: () => {
+      delete configData.value[key]
+      setPluginConfig({
+        name: detail.value.name,
+        data: JSON.stringify(configData.value)
+      }).then(res => {
+        loadConfig()
+        message.success('已删除')
+      })
+    }
+  })
+}
+
+function saveConfig() {
+  try {
+    configSaving.value = true
+    if (!config.name) throw '请输入凭证名称'
+    if (configData.value[config.name]) throw '凭证名称已存在'
+    if (!config.appid) throw '请输入APP ID'
+    if (!config.app_secret) throw '请输入APP Secret'
+    setPluginConfig({
+      name: detail.value.name,
+      data: JSON.stringify({
+        ...configData.value,
+        [config.name]: config
+      })
+    }).then(res => {
+      configOpen.value = false
+      loadConfig()
+      message.success('已保存')
+    }).finally(() => {
+      configSaving.value = false
+    })
+  } catch (e) {
+    console.log('Err:', e)
+    configSaving.value = false
+    message.error(e)
+  }
+}
+
+defineExpose({
+  show,
+  hide,
+})
+</script>
+
+<style scoped lang="less">
+.head-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: #595959;
+  font-size: 14px;
+  font-weight: 400;
+  border-bottom: 1px solid #E4E6EB;
+  padding: 24px;
+
+  .base-info-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .avatar {
+      width: 62px;
+      height: 62px;
+      border-radius: 14.59px;
+      flex-shrink: 0;
+      margin-right: 12px;
+    }
+
+    .info-box {
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+
+      .left {
+        max-width: 70%;
+      }
+
+      .right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .icon {
+        cursor: pointer;
+      }
+
+      .name {
+        color: #262626;
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+    }
+  }
+
+  .link {
+    word-break: break-all;
+  }
+
+  .auth-btn {
+    width: 100%;
+  }
+}
+
+.body-box {
+  padding: 24px;
+
+  .main-tit {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #262626;
+    font-size: 14px;
+    font-weight: 600;
+
+    .extra-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .update-time {
+      color: #8c8c8c;
+      font-size: 12px;
+      font-weight: 400;
+    }
+
+    .refresh-btn {
+      font-weight: 400;
+    }
+  }
+}
+
+.tools-box {
+  width: 330px;
+
+  .tool-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+
+    &:first-child {
+      margin-top: 0;
+    }
+
+    .cover {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+
+    .info {
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .tit {
+        max-width: 200px;
+        color: #000000;
+        font-weight: 400;
+      }
+
+      .btns {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+    }
+  }
+}
+
+.action-box {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .action-item {
+    border-bottom: 1px solid #D9D9D9;
+    padding-bottom: 16px;
+    .tit {
+      color: #262626;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .desc {
+      color: #595959;
+      font-size: 14px;
+      font-weight: 400;
+      margin-top: 8px;
+    }
+
+    .params {
+      margin-top: 8px;
+    }
+  }
+}
+
+.params-box {
+  max-height: 80vh;
+  overflow-y: auto;
+
+  .param-item {
+    max-width: 500px;
+
+    &:not(:last-child) {
+      margin-bottom: 16px;
+    }
+
+    .field {
+      color: #262626;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .name {
+        font-weight: 600;
+      }
+
+      .type {
+        color: #595959;
+      }
+
+      .required {
+        color: #ED744A;
+        font-weight: 500;
+      }
+    }
+
+    .desc {
+      color: #8c8c8c;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+  }
+}
+
+.no-auth-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  img {
+    width: 200px;
+    height: 200px
+  }
+
+  .tit {
+    color: #262626;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .desc {
+    color: #8c8c8c;
+    font-size: 14px;
+    font-weight: 400;
+    margin: 8px 0 12px;
+  }
+}
+
+.cFB363F {
+  color: #FB363F;
+}
+
+.tip-desc {
+  color: #8C8C8C;
+  margin-top: 4px;
+}
+
+.mt16 {
+  margin-top: 16px;
+}
+</style>

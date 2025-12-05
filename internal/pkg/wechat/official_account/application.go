@@ -23,6 +23,11 @@ type Application struct {
 	Secret string
 }
 
+func (a *Application) SendSmartMenu(customer string, smartMenu lib_define.SmartMenu, push *lib_define.PushMessage) (int, error) {
+	content := common.WechatFormatSmartMenu2C(smartMenu)
+	return a.SendText(customer, content, push)
+}
+
 func (a *Application) SendImageTextLink(customer, url, title, description, localThumbURL, picurl string, push *lib_define.PushMessage) (int, error) {
 	jsonStr, err := messages.NewLink(&power.HashMap{
 		`url`:         url,
@@ -106,6 +111,7 @@ func (a *Application) GetApp() (*officialAccount.OfficialAccount, error) {
 }
 
 func (a *Application) SendText(customer, content string, push *lib_define.PushMessage) (int, error) {
+	content = common.ReplaceDate(content)
 	jsonStr, err := messages.NewText(content).
 		TransformForJsonRequest(&object.HashMap{`touser`: customer}, true)
 	if err != nil {

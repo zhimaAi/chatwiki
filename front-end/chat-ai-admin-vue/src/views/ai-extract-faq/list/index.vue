@@ -56,8 +56,14 @@
               </div>
             </template>
           </a-table-column>
-          <a-table-column key="chunk_size" title="分块方式" :width="140">
-            <template #default="{ record }"> 按长度：{{ record.chunk_size }} </template>
+          <a-table-column key="chunk_size" title="分块方式" :width="200">
+            <template #default="{ record }">
+              <div v-if="record.chunk_type == 1">按长度：{{ record.chunk_size }}</div>
+              <div v-if="record.chunk_type == 2">
+                <div>按分隔符：{{ record.separators_no_desc }}</div>
+                <div>最大长度：{{ record.chunk_size }}</div>
+              </div>
+            </template>
           </a-table-column>
           <a-table-column key="count" title="总分块数" :width="110">
             <template #default="{ record }">
@@ -70,7 +76,9 @@
           <a-table-column key="fail_count" title="提取失败分块数" :width="140">
             <template #default="{ record }">
               <a-flex :gap="12">
-                <a @click="handleOpenFailDetail(record)" v-if="record.fail_count > 0">{{ record.fail_count }}</a>
+                <a @click="handleOpenFailDetail(record)" v-if="record.fail_count > 0">{{
+                  record.fail_count
+                }}</a>
                 <span v-else>{{ record.fail_count }}</span>
                 <a v-if="record.status == 3 || record.status == 4">
                   <SyncOutlined v-if="record.fail_count > 0" @click="handleReSync(record)" />
@@ -124,12 +132,12 @@
       </div>
     </div>
   </div>
-  <UploadDocument ref="uploadDocumentRef" @ok="onSearch" />
+  <UploadDocument :separatorsOptions="separatorsOptions" ref="uploadDocumentRef" @ok="onSearch" />
   <ImportKnowledgeModal ref="importKnowledgeModalRef" @ok="getList" />
   <FailDetail ref="failDetailRef" />
 </template>
 <script setup>
-import { ref, createVNode, reactive, onUnmounted, computed  } from 'vue'
+import { ref, createVNode, reactive, onUnmounted, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import {
@@ -142,18 +150,24 @@ import {
   ExclamationCircleOutlined,
   UploadOutlined
 } from '@ant-design/icons-vue'
-import { getFAQFileList, deleteFAQFile, renewFAQFileData, getFAQFileInfo } from '@/api/library'
+import {
+  getFAQFileList,
+  deleteFAQFile,
+  renewFAQFileData,
+  getFAQFileInfo,
+  getSeparatorsList
+} from '@/api/library'
 import PageTabs from '@/components/cu-tabs/page-tabs.vue'
 import PageAlert from '@/components/page-alert/page-alert.vue'
 import UploadDocument from './components/upload-document.vue'
 import ImportKnowledgeModal from './components/import-knowledge-modal.vue'
 import FailDetail from './components/fail-detail.vue'
 import dayjs from 'dayjs'
+import { formatSeparatorsNo } from '@/utils/index'
 import { useUserStore } from '@/stores/modules/user'
 import { usePermissionStore } from '@/stores/modules/permission'
 const userStore = useUserStore()
 const router = useRouter()
-
 
 const permissionStore = usePermissionStore()
 let { role_permission, role_type } = permissionStore
@@ -175,7 +189,7 @@ const pageTabs = ref([
   {
     title: '触发次数统计',
     path: '/trigger-statics/list'
-  },
+  }
 ])
 
 const pager = reactive({
@@ -184,9 +198,23 @@ const pager = reactive({
   total: 0
 })
 
-const list = ref([{}])
+const list = ref([])
 
 const loading = ref(false)
+
+function formateSeparatorDesc(data) {
+  if(!Array.isArray(data)){
+    return []
+  }
+  return data.map((item) => {
+    let findItem = separatorsOptions.value.find((it) => it.no === item)
+    if (findItem) {
+      return findItem.name
+    } else {
+      return item
+    }
+  })
+}
 const getList = () => {
   loading.value = false
   getFAQFileList({
@@ -194,11 +222,14 @@ const getList = () => {
   })
     .then((res) => {
       let datas = res.data.list || []
+      console.log(separatorsOptions.value)
       datas = datas.map((item) => {
         let create_time_desc = dayjs(item.create_time * 1000).format('YY-MM-DD HH:mm')
+        let separators_no = formatSeparatorsNo(item.separators_no)
         return {
           ...item,
-          create_time_desc
+          create_time_desc,
+          separators_no_desc: formateSeparatorDesc(separators_no).join('、'),
         }
       })
       pager.total = +res.data.total
@@ -209,8 +240,6 @@ const getList = () => {
       loading.value = false
     })
 }
-
-getList()
 
 const onSearch = () => {
   pager.page = 1
@@ -245,6 +274,8 @@ function startPolling(id) {
       const response = await getFAQFileInfo({ id })
       const updatedItem = response.data
       updatedItem.create_time_desc = dayjs(updatedItem.create_time * 1000).format('YY-MM-DD HH:mm')
+      let separators_no = formatSeparatorsNo(updatedItem.separators_no)
+      updatedItem.separators_no_desc = formateSeparatorDesc(separators_no).join('、')
       // 找到列表中对应的项并更新
       const index = list.value.findIndex((item) => item.id == id)
       if (index !== -1) {
@@ -358,6 +389,20 @@ const handleOpenFailDetail = (record) => {
     ...record
   })
 }
+
+// 分段标识符列表
+const separatorsOptions = ref([])
+
+const fetchSeparatorsOptions = async () => {
+  getSeparatorsList().then((res) => {
+    separatorsOptions.value = res.data || []
+  })
+}
+
+onMounted(async () => {
+  await fetchSeparatorsOptions()
+  getList()
+})
 
 onUnmounted(() => {
   Object.keys(pollingIntervals).forEach((id) => {

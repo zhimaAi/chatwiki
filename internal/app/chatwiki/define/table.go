@@ -48,17 +48,9 @@ const (
 )
 
 const (
-	MsgTypeText           = 1
-	MsgTypeMenu           = 2
-	MsgTypeImage          = 3
-	MsgTypeVoice          = 4
-	MsgTypeVideo          = 5
-	MsgTypeShortVideo     = 6
-	MsgTypeMinirogrampage = 7
-	MsgTypeLocation       = 8
-	MsgTypeLink           = 9
-	MsgTypeEvent          = 10
-	MsgTypeOther          = 99
+	MsgTypeText  = 1
+	MsgTypeMenu  = 2
+	MsgTypeImage = 3
 )
 
 const (

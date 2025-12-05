@@ -24,6 +24,7 @@ import (
 
 var PassiveMenuReg = regexp.MustCompile(`^chatwiki_passive_(\d+)_(\d+)$`)
 var PassiveContentReg = regexp.MustCompile(`^查看问题【(\d+)】回复\((\d+)\):`)
+var PassiveContentRegNew = regexp.MustCompile(`\((\d+)-(\d+)\)$`)
 
 func MbSubstr(s string, start, length int) string {
 	runes := []rune(s)
@@ -37,18 +38,15 @@ func MbSubstr(s string, start, length int) string {
 }
 
 func BuildMsgmenucontent(log msql.Params, serial int, image bool) string {
-	wordLimit := 450 //思考中的...
-	if serial > 0 {
-		wordLimit = 30 //下一段的...
-	}
+	var wordLimit = 30
 	if image {
 		wordLimit = 10 //图片列表...
 	}
 	question := MbSubstr(log[`content`], 0, wordLimit)
 	if utf8.RuneCountInString(log[`content`]) > wordLimit {
-		question += `......` //末尾追加省略号
+		question += `...` //末尾追加省略号
 	}
-	return fmt.Sprintf("查看问题【%s】回复(%d):\r\n ----- 部分问题原文 -----\r\n%s", log[`id`], serial+1, question)
+	return fmt.Sprintf(`%s(%s-%d)`, question, log[`id`], serial+1)
 }
 
 func CheckQueryAiReply(message map[string]any) (int64, int, bool) {
@@ -62,6 +60,10 @@ func CheckQueryAiReply(message map[string]any) (int64, int, bool) {
 	content := cast.ToString(message[`Content`])
 	if len(content) > 0 {
 		result := PassiveContentReg.FindStringSubmatch(content)
+		if len(result) == 3 {
+			return cast.ToInt64(result[1]), cast.ToInt(result[2]) - 1, true
+		}
+		result = PassiveContentRegNew.FindStringSubmatch(content)
 		if len(result) == 3 {
 			return cast.ToInt64(result[1]), cast.ToInt(result[2]) - 1, true
 		}

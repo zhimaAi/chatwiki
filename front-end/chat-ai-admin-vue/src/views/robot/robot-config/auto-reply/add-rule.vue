@@ -94,7 +94,7 @@
           回复内容
         </div>
         <div class="item-box">
-          <MultiReply v-for="(it, idx) in replyList" :key="idx" v-model:value="replyList[idx]" :reply_index="idx"
+          <MultiReply v-for="(it, idx) in replyList" :key="idx" ref="replyRefs" v-model:value="replyList[idx]" :reply_index="idx"
             @change="onContentChange" @del="onDelItem" />
           <a-button type="dashed" style="width: 694px;" :disabled="replyList.length >= 5" @click="addReplyItem">
             <template #icon>
@@ -234,6 +234,7 @@ const removeHalfKeyword = (k) => {
 
 // 回复内容列表
 const replyList = ref([{ type: 'text', description: '' }])
+const replyRefs = ref([])
 const addReplyItem = () => {
   if (replyList.value.length >= 5) {
     message.warning('最多添加5条回复内容')
@@ -289,7 +290,7 @@ function serializeReplyContent (list) {
 }
 
 function serializeReplyTypeCodes (list) {
-  const map = { text: '2', image: '4', card: '3', imageText: '1', url: '5' }
+  const map = { text: '2', image: '4', card: '3', imageText: '1', url: '5', smartMenu: '6' }
   return list.map((it) => map[it.type] || '').filter(Boolean)
 }
 
@@ -302,6 +303,12 @@ const onSubmit = () => {
     if (!replyList.value.length) {
       message.warning('请至少添加一条回复内容')
       return
+    }
+    for (const comp of replyRefs.value) {
+      if (comp && comp.validate) {
+        const ok = await comp.validate()
+        if (!ok) { return }
+      }
     }
     const payload = {
       robot_id: query.id,
@@ -343,7 +350,9 @@ onMounted(async () => {
         title: rc?.title || '',
         url: rc?.url || '',
         appid: rc?.appid || '',
-        page_path: rc?.page_path || ''
+        page_path: rc?.page_path || '',
+        smart_menu_id: rc?.smart_menu_id || '',
+        smart_menu: rc?.smart_menu || {},
       }))
       form.reply_num = data.reply_num
     } catch (e) {
@@ -366,7 +375,9 @@ onMounted(async () => {
       title: rc?.title || '',
       url: rc?.url || '',
       appid: rc?.appid || '',
-      page_path: rc?.page_path || ''
+      page_path: rc?.page_path || '',
+      smart_menu_id: rc?.smart_menu_id || '',
+      smart_menu: rc?.smart_menu || {},
     }))
     form.reply_num = data.reply_num
   } catch (e) {

@@ -111,12 +111,29 @@ docker compose up -d
 - **邮箱：** 您可以发送邮件到 [jarvis@2bai.com.cn](mailto:jarvis@2bai.com.cn)联系我们。
 - **微信：** 使用微信扫码加入ChatWiki技术交流群，添加请备注“chatwiki”
 
-<p align="left"><img src="./imgs/contact-us.png" alt="contact-us"></a></p>
+<p align="left"><img src="./imgs/contact-us.png" alt="contact-us"></p>
 
 ## 📖**更新日志**
 
 ---
 查看完整更新日志请点击👉️👉️[UpdateLog.md](./UpdateLog.md)
+
+**2025/12/05**
+
+1.机器人支持设置对外服务聊天窗口url打开方式<br/>
+2.插件支持分类筛选,支持查看说明<br/>
+3.代码优化:DoChatRequest业务拆分处理<br/>
+4.新功能>探索>关注后自动回复<br/>
+5.新功能>探索>设置智能菜单<br/>
+6.对外服务:用户登录后记录用户的账号/头像<br/>
+7.代码执行节点直接单独运行测试<br/>
+8.新功能>插件>飞书多维表<br/>
+9.文档提取FAQ优化合集<br/>
+10.工作流一键整理优化+循环节点不允许把组内节点拖动到边缘<br/>
+11.公众号关注后回复默认规则排序<br/>
+12.未认证公众号:被动回复触发文案调整<br/>
+13.修复工作流参数提取节点提示词不规范的json示例<br/>
+14.工作流http节点json-body变量替换兼容包含双引号<br/>
 
 **2025/12/01**
 

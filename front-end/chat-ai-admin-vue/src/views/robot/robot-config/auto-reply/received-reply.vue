@@ -2,15 +2,14 @@
   <div class="user-model-page">
     <!-- 关键词回复 开关 -->
     <div class="switch-block">
+      <span class="switch-title">自动回复</span>
       <a-switch
         @change="keyWordReplySwitchChange"
         :checked="keywordReplyStatus"
         checked-children="开"
         un-checked-children="关"
       />
-      <span class="switch-desc">
-        {{ rule_type === 'receive_reply_message_type' ? '开启后，如果消息触发了关键词回复，直接回复设置的内容，无需机器人检索回复' : '开启后，发送指定消息类型的内容自动回复对应的消息内容无需机器人检索回复' }}
-      </span>
+      <span class="switch-desc">开启后，按照关键词回复和收到消息回复规则，回复指定的内容，优先级关键词回复>收到消息回复</span>
     </div>
     <a-alert show-icon>
       <template #message>
@@ -153,7 +152,7 @@ import { reactive, ref, computed } from 'vue'
 import { QuestionCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { saveRobotAbilitySwitchStatus, getRobotReceivedMessageReplyList, updateRobotReceivedMessageReplyPriorityNum, updateRobotReceivedMessageReplySwitchStatus, deleteRobotReceivedMessageReply } from '@/api/explore/index.js'
-import { REPLY_TYPE_OPTIONS, REPLY_TYPE_LABEL_MAP } from '@/constants/index'
+import { REPLY_TYPE_OPTIONS, REPLY_TYPE_LABEL_MAP, SUBSCRIBE_REPLY_TYPE_LABEL_MAP } from '@/constants/index'
 import { useRobotStore } from '@/stores/modules/robot'
 import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
@@ -303,6 +302,22 @@ const handleAddReply = () => {
 
 const keyWordReplySwitchChange = (checked) => {
   const switch_status = checked ? '1' : '0'
+  if (switch_status === '0') {
+    Modal.confirm({
+      title: '提示',
+      content: '关闭后，触发了关键词以及收到消息回复都不会再回复指定的内容',
+      onOk: () => {
+        saveRobotAbilitySwitchStatus({ robot_id: query.id, ability_type: 'robot_auto_reply', switch_status }).then((res) => {
+          if (res && res.res == 0) {
+            robotStore.setKeywordReplySwitchStatus(switch_status)
+            message.success('操作成功')
+            window.dispatchEvent(new CustomEvent('robotAbilityUpdated', { detail: { robotId: query.id } }))
+          }
+        })
+      }
+    })
+    return
+  }
   saveRobotAbilitySwitchStatus({ robot_id: query.id, ability_type: 'robot_auto_reply', switch_status }).then((res) => {
     if (res && res.res == 0) {
       robotStore.setKeywordReplySwitchStatus(switch_status)
@@ -402,7 +417,7 @@ function formatDurationLabel (record) {
 }
 
 function mapMsgLabel (t) {
-  const m = { text: '文本', image: '图片', voice: '音频', video: '视频' }
+  const m = SUBSCRIBE_REPLY_TYPE_LABEL_MAP
   return m[String(t)] || String(t)
 }
 

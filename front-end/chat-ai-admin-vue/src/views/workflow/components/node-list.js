@@ -1,6 +1,6 @@
 import {getTMcpProviders} from "@/api/robot/thirdMcp.js";
 import {jsonDecode} from "@/utils/index.js";
-import {getInstallPlugins} from "@/api/plugins/index.js";
+import {getInstallPlugins, getPluginConfig, runPlugin} from "@/api/plugins/index.js";
 
 const defaultRowData = {
   node_key: '',
@@ -255,7 +255,7 @@ export const nodeList = [
     groupKey: 'processing-logic',
     type: 'custom-group',
     width: 600,
-    height: 300,
+    height: 420,
     properties: {
       ...getRowData(),
       node_type: 25,
@@ -580,6 +580,8 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 20,
+      width: 320,
+      height: 94,
       node_icon: getNodeIconUrl('mcp-node'),
       node_icon_name: 'mcp-node',
       node_params: JSON.stringify({
@@ -597,13 +599,15 @@ export const nodeList = [
     groupKey: 'plugins',
     type: 'zm-plugins-node',
     width: 320,
-    height: 320,
+    height: 154,
     properties: {
       ...getRowData(),
+      width: 320,
+      height: 154,
       node_type: 21,
       node_name: '',
-      node_icon: 'https://xkf-upload.oss-cn-hangzhou.aliyuncs.com/dev/p/chat_wiki_plugin/1/0/202511/56/364f850087bd429286e8c1bfa87f2a.jpg',
-      node_icon_name: '',
+      node_icon: getNodeIconUrl('zm-plugins-node'),
+      node_icon_name: 'zm-plugins-node',
       node_params: JSON.stringify({
         plugin: {
           name: "",
@@ -659,9 +663,28 @@ export const getAllGroupNodes = (type) => {
   return JSON.parse(JSON.stringify(nodesGroupArr))
 }
 
+let FeishuBitTableActions = []
+
 export const getAllPluginNodes = async () => {
   let {data} = await getInstallPlugins()
   data = Array.isArray(data) ? data : []
+  data = data.filter(i => i?.local?.has_loaded)
+  // 是否存在飞书多维表节点，存在则查询多维表方法
+  let feishu = data.find(i => i?.local?.name == 'feishu_bitable')
+  let actions = {}
+  if (feishu) {
+    await runPlugin({
+      name: 'feishu_bitable',
+      action: "default/get-schema",
+      params: {}
+    }).then(res => {
+      actions = res?.data || {}
+      FeishuBitTableActions = []
+      for (let key in actions) {
+        if (actions[key].type == 'node') FeishuBitTableActions.push({...actions[key], name: key})
+      }
+    })
+  }
   let plugin
   data = data.map(item => {
     plugin = {
@@ -673,7 +696,7 @@ export const getAllPluginNodes = async () => {
       groupKey: 'plugins',
       type: 'zm-plugins-node',
       width: 320,
-      height: 320,
+      height: 154,
       properties: {
         ...getRowData(),
         node_type: 21,
@@ -690,9 +713,24 @@ export const getAllPluginNodes = async () => {
           }
         }),
       },
+      expand: false,
     }
   })
   return data
+}
+
+export const getFeishuActions = () => {
+  return FeishuBitTableActions
+}
+
+const _pluginConifgMap = {}
+export const getPluginConifgData = async (name) => {
+  if (!_pluginConifgMap[name]) {
+    await getPluginConfig({name: name}).then(res => {
+      _pluginConifgMap[name] = jsonDecode(res?.data, {})
+    })
+  }
+  return _pluginConifgMap[name]
 }
 
 export const getAllMcpNodes = async () => {
@@ -727,6 +765,60 @@ export const getMcpNode = (mcp, tool) => {
       })
     }
   }
+}
+
+export const pluginActionDefaultArgumentsMap = {
+  create_record: {
+    app_id: '',
+    app_secret: '',
+    app_token: '',
+    table_id: '',
+    fields: [],
+  },
+  delete_record: {
+    app_id: '',
+    app_secret: '',
+    app_token: '',
+    table_id: '',
+    record_id: '',
+    record_tags: []
+  },
+  update_record: {
+    app_id: '',
+    app_secret: '',
+    app_token: '',
+    table_id: '',
+    fields: [],
+    record_id: '',
+    record_tags: [],
+  },
+  search_records: {
+    app_id: '',
+    app_secret: '',
+    app_token: '',
+    table_id: '',
+    field_names: [],
+    filter: {
+      conjunction:'and',
+      conditions: [],
+    },
+    sort: [],
+    page_size: 100
+  }
+}
+
+export const getPluginActionDefaultArguments = (actionName) => {
+  return JSON.parse(JSON.stringify(pluginActionDefaultArgumentsMap[actionName]))
+}
+
+export const getPluginActionNode = (node, action, actionName) => {
+  let params = JSON.parse(node.properties.node_params)
+  params.plugin.params.business = actionName
+  params.plugin.params.arguments = getPluginActionDefaultArguments(actionName)
+  node.properties.node_params = JSON.stringify(params)
+  node.properties.node_name = action.title
+  node.width = 420
+  return node
 }
 
 export const getNodesMap = () => {
