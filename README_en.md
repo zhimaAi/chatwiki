@@ -135,15 +135,8 @@ through the following methods:
 
 ---
 
-This repository is governed by
-the [ChatWiki Open Source License](https://github.com/zhimaAi/chatwiki/blob/main/LICENSE), which is based on the Apache
-License 2.0 but includes some additional restrictions:
+This project is released under the GNU General Public License v3.0.
 
-1. Commercial use as a backend service is allowed, but it cannot be used in a multi-tenant SAAS mode.
-2. Unless you obtain a specific commercial license, you may not remove the copyright information and ChatWiki logo from
-   any commercial service pages.
+You are free to use, modify, and distribute this software in compliance with its terms.
 
-For the complete license, please review
-the [ChatWiki Open Source License](https://github.com/zhimaAi/chatwiki/blob/main/LICENSE). If you need to obtain an
-additional commercial license, please [contact us](#contact-us). 
-
+**For the full license text, please see the [LICENSE](./LICENSE) file or visit the official GNU GPL v3.0 website.**
