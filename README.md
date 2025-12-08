@@ -177,14 +177,9 @@ docker compose up -d
 
 ---
 
-本仓库遵循[ChatWiki Open Source License](https://github.com/zhimaAi/chatwiki/blob/main/LICENSE)
-开源协议。[ChatWiki Open Source License](https://github.com/zhimaAi/chatwiki/blob/main/LICENSE)基于Apache License
-2.0协议，但是有一些额外的限制，包括：
+本项目基于 GNU General Public License v3.0 开源协议发布。
 
-1、允许作为后台服务商用，但是不可用于多租户SAAS模式。
+你可以在遵守该协议条款的前提下，自由地使用、修改和分发本软件。
 
-2、除非您获取特定的商业许可，否则任何形式的商用服务均不可移除ChatWiki页面上的版权信息和ChatWiki logo。
-
-完整协议请查看[ChatWiki Open Source License](https://github.com/zhimaAi/chatwiki/blob/main/LICENSE)
-，需要获取额外的商业许可请[联系我们](#contact-us)
+**完整的许可证文本请查看：[LICENSE](./LICENSE) 文件，或访问 GNU GPL v3.0 官方网站。**
 
