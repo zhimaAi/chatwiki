@@ -102,7 +102,7 @@ docker compose up -d
 
 - 数据库：PostgreSQL16+pgvector+zhparser
 
-## 🏡社区交流&联系我们
+<h2>🏡社区交流&联系我们 <a name="contact-us"></a></h2>
 
 ----
 欢迎联系我们获取帮助，或者提供建议帮助我们改善ChatWiki。您可以通过以下方式联系我们：
@@ -177,9 +177,13 @@ docker compose up -d
 
 ---
 
-本项目基于 GNU General Public License v3.0 开源协议发布。
+本项目遵循[ChatWiki Open Source License](https://github.com/zhimaAi/chatwiki/blob/main/LICENSE)开源协议。[ChatWiki Open Source License](https://github.com/zhimaAi/chatwiki/blob/main/LICENSE)基于Apache License
+2.0协议，但是有一些额外的限制：
+1. ChatWiki 对个人用户免费，包括个人从事的非商业或商业活动。
+2. 任何公司、组织、机构或团队若将 ChatWiki 用于商业目的，均须联系我们获得商业授权。
+3. 在使用 ChatWiki 的前端组件时，您不得移除或修改其中包含的“ChatWiki”标识、商标或版权声明。
 
-你可以在遵守该协议条款的前提下，自由地使用、修改和分发本软件。
 
-**完整的许可证文本请查看：[LICENSE](./LICENSE) 文件，或访问 GNU GPL v3.0 官方网站。**
+
+**完整的许可证文本请查看：[LICENSE](./LICENSE) 文件，需要获取商业授权请[联系我们](#contact-us)**
 
