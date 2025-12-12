@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alibabacloud-go/tea/tea"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
@@ -34,11 +33,17 @@ type WorkFlowParams struct {
 	SessionId         int
 	Draft             Draft
 	IsTestLoopNodeRun bool
+	TriggerParams     TriggerParams //触发器参数
 }
 
 type LoopIntermediate struct {
 	LoopNodeKey string
 	Params      *[]common.LoopField
+}
+
+type TriggerParams struct {
+	TriggerType uint           //触发方式,默认值:TriggerTypeChat
+	TestParams  map[string]any //测试触发器传入参数
 }
 
 type WorkFlow struct {
@@ -167,14 +172,14 @@ func (flow *WorkFlow) Ending() {
 	_, err := msql.Model(`work_flow_logs`, define.Postgres).Insert(msql.Datas{
 		`admin_user_id`: flow.params.AdminUserId,
 		`robot_id`:      flow.params.RealRobot[`id`],
-		`openid`:        flow.global[`openid`].GetVal(common.TypString),
+		`openid`:        cast.ToString(flow.global[`openid`].GetVal(common.TypString)),
 		`run_node_keys`: strings.Join(flow.runNodeKeys, `,`),
 		`run_logs`:      tool.JsonEncodeNoError(flow.runLogs),
 		`create_time`:   flow.StartTime, //这里放开始时间
 		`update_time`:   flow.EndTime,   //这里放结束时间
 		`node_logs`:     tool.JsonEncodeNoError(flow.nodeLogs),
 		`version_id`:    flow.VersionId,
-		`question`:      flow.global[`question`].GetVal(common.TypString),
+		`question`:      cast.ToString(flow.global[`question`].GetVal(common.TypString)),
 	})
 	if err != nil {
 		logs.Error(err.Error())
@@ -239,22 +244,19 @@ func (flow *WorkFlow) GetVariable(key string) (field common.SimpleField, exist b
 }
 
 func SysGlobalVariables() []string { //固定值,runtime时不可变更
-	return []string{`global.question`, `global.openid`}
+	return []string{}
 }
 
 func RunningWorkFlow(params *WorkFlowParams, startNodeKey string) (*WorkFlow, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	flow := &WorkFlow{
-		params:    params,
-		nodeLogs:  make([]common.NodeLog, 0),
-		StartTime: tool.Time2Int(),
-		context:   ctx,
-		cancel:    cancel,
-		ticker:    time.NewTicker(time.Minute * 5), //DIY
-		global: common.SimpleFields{
-			`question`: common.SimpleField{Sys: true, Key: `question`, Desc: tea.String(`用户消息`), Typ: common.TypString, Vals: []common.Val{{String: &params.Question}}},
-			`openid`:   common.SimpleField{Sys: true, Key: `openid`, Desc: tea.String(`用户openid`), Typ: common.TypString, Vals: []common.Val{{String: &params.Openid}}},
-		},
+		params:      params,
+		nodeLogs:    make([]common.NodeLog, 0),
+		StartTime:   tool.Time2Int(),
+		context:     ctx,
+		cancel:      cancel,
+		ticker:      time.NewTicker(time.Minute * 5),      //DIY
+		global:      common.SimpleFields{},                //没有系统全局变量了
 		outputs:     make(map[string]common.SimpleFields), //记录每个节点输出的变量
 		curNodeKey:  startNodeKey,                         //开始节点
 		runNodeKeys: make([]string, 0),
@@ -306,6 +308,9 @@ func BaseCallWorkFlow(params *WorkFlowParams) (flow *WorkFlow, nodeLogs []common
 			err = errors.New(`工作流未发布`)
 			return
 		}
+	}
+	if params.TriggerParams.TriggerType == 0 {
+		params.TriggerParams.TriggerType = TriggerTypeChat //默认会话触发
 	}
 	flow, err = RunningWorkFlow(params, startNodeKey)
 	if flow != nil {

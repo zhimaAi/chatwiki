@@ -25,5 +25,17 @@ const ExtractFaqFilesChannel = `chatwiki_extract_faq_files_channel`
 const ImportFAQFileTopic = `chatwiki_import_faq_file_topic`
 const ImportFAQFileChannel = `chatwiki_import_faq_file_channel`
 
+const OfficialAccountDraftSyncTopic = `chatwiki_official_account_draft_sync_topic`
+const OfficialAccountDraftSyncChannel = `chatwiki_official_account_draft_sync_channel`
+
+const OfficialAccountBatchSendTopic = `chatwiki_official_account_batch_send_topic`
+const OfficialAccountBatchSendChannel = `chatwiki_official_account_batch_send_channel`
+
+const OfficialAccountCommentSyncTopic = `chatwiki_official_account_comment_sync_topic`
+const OfficialAccountCommentSyncChannel = `chatwiki_official_account_comment_sync_channel`
+
+const OfficialAccountCommentAiCheckTopic = `chatwiki_official_account_comment_ai_check_topic`
+const OfficialAccountCommentAiCheckChannel = `chatwiki_official_account_comment_ai_check_channel`
+
 var ConsumerHandle *mq.ConsumerHandle
 var ProducerHandle *mq.ProducerHandle

@@ -67,6 +67,8 @@ import SpecifyReplyNodeForm from './specify-reply-form.vue'
 import McpForm from './mcp-form.vue'
 import CustomGroupNodeForm from './custom-group-node/custom-group-node-form.vue'
 import ZmPluginsNodeForm from "./zm-plugins-node-form.vue";
+import SessionTriggerForm from './session-trigger-form.vue'
+import TimingTriggerForm from './timing-trigger-node/timing-trigger-node-form.vue'
 import {jsonDecode} from "@/utils/index.js";
 
 // 预定义所有可能的表单组件
@@ -88,7 +90,9 @@ const formComponents = {
   'specify-reply-node': SpecifyReplyNodeForm,
   'mcp-node': McpForm,
   'custom-group': CustomGroupNodeForm,
-  'zm-plugins-node': ZmPluginsNodeForm
+  'zm-plugins-node': ZmPluginsNodeForm,
+  'session-trigger-node': SessionTriggerForm,
+  'timing-trigger-node': TimingTriggerForm
   // 其他表单组件可以在这里添加
   // 'problem-optimization-node': defineAsyncComponent(() => import('./problem-optimization-form.vue')),
 }
@@ -137,6 +141,7 @@ const width = computed(() => {
     'select-data-node': 600,
     'judge-node': 600,
     'custom-group': 568,
+    'timing-trigger-node': 420,
   }
   return widthMap[props.nodeType] || 480
 })
@@ -178,15 +183,9 @@ const nodeFormComponent = computed(() => {
   return formComponents[componentName] || null
 })
 
-const changeTimer = ref(null)
-
 const handleChange = (data) => {
-  clearTimeout(changeTimer.value)
-
-  changeTimer.value = setTimeout(() => {
-    data.dataRaw = data.node_params
-    emit('update-node', data)
-  }, 300)
+  data.dataRaw = data.node_params
+  emit('update-node', data)
 }
 
 const handleClose = () => {

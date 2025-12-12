@@ -580,6 +580,7 @@ const saveForm = () => {
   formData.append('is_qa_doc', formState.is_qa_doc)
   formData.append('qa_index_type', formState.qa_index_type)
   formData.append('doc_auto_renew_frequency', formState.doc_auto_renew_frequency)
+  formData.append('is_default', 2)
 
   // “嵌入模型”记住用户上次选择
   setStorage('lastEmbeddedModel', {

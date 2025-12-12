@@ -24,9 +24,13 @@ import (
 )
 
 type PageInfo struct {
-	RawHtml    string `json:"html"`
-	MainHtml   string `json:"main_html"`
-	Screenshot string `json:"screenshot"`
+	RawHtml     string `json:"html"`
+	MainHtml    string `json:"main_html"`
+	Screenshot  string `json:"screenshot"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Image       string `json:"image"`
+	Url         string `json:"url"`
 }
 
 type NeedWaitPageFunc func(page *playwright.Page) error
@@ -48,6 +52,117 @@ async (args) => {
     }
 };
 `
+
+func fetchURLHtml(parsedURL *netURL.URL) (*PageInfo, error) {
+	// check if semaphore is full
+	select {
+	case concurrent <- struct{}{}:
+	default:
+		return nil, TooManyRequestsError
+	}
+	defer func() { <-concurrent }() // release semaphore
+
+	// Create an isolated context
+	acceptDownloads := false
+	//permissions := []string{"clipboard-read", "clipboard-write"}
+
+	// 禁用图片 / 字体可再省流量（可选）
+	permissions := []string{"notifications"} // 只给必要权限
+	userAgent := "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+	context, err := browser.NewContext(playwright.BrowserNewContextOptions{
+		Permissions:     permissions,
+		AcceptDownloads: &acceptDownloads,
+		UserAgent:       &userAgent,
+		// 1 MB 缓存，加快二次访问
+		//StorageStatePath: playwright.String("state.json"), // 事先登录后导出
+		Locale: playwright.String("zh-CN"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("could not create context: %v", err)
+	}
+	// create a new page
+	page, err := context.NewPage()
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create page: %v", err)
+	}
+
+	defer func(page *playwright.Page, context *playwright.BrowserContext) {
+		_ = (*context).Close()
+		_ = (*page).Close()
+	}(&page, &context)
+
+	// 拦截掉 analytics / ad 域名，减少无用请求
+	err = page.Route("**/*.{png,jpg,jpeg,gif,css,woff2,woff}", func(route playwright.Route) {
+		err := route.Abort()
+		if err != nil {
+			return
+		}
+	})
+	if err != nil {
+		return nil, fmt.Errorf("could not intercept request: %v", err)
+	}
+
+	// navigate to url, with timeout 15s
+	if _, err = page.Goto(parsedURL.String(), playwright.PageGotoOptions{
+		//WaitUntil: playwright.WaitUntilStateLoad, // 等待页面加载完成
+		WaitUntil: playwright.WaitUntilStateLoad, // 或 DomContentLoaded 更快
+		Timeout:   playwright.Float(60000),       // 比默认 30 s 短
+	}); err != nil {
+		return nil, fmt.Errorf("could not navigate to url: %v", err)
+	}
+
+	// scroll to bottom to wait all images loaded
+	_, err = page.Evaluate(scroll, map[string]interface{}{"direction": "down", "speed": "fast"})
+	if err != nil {
+		return nil, fmt.Errorf("could not scroll to bottom: %v", err)
+	}
+
+	// wait for element
+	requestHostPath := parsedURL.Host + parsedURL.Path
+	for baseURL, processor := range needWaitPages {
+		matched, _ := regexp.MatchString(baseURL, requestHostPath)
+		if matched {
+			err := processor(&page)
+			if err != nil {
+				return nil, err
+			}
+			break
+		}
+	}
+
+	// save raw html
+	var pageInfo PageInfo
+	pageInfo.RawHtml, err = page.Content()
+	if err != nil {
+		return nil, nil
+	}
+
+	// take screenshot
+	takeScreenshot(&page, &pageInfo)
+
+	//var mainHtml string
+	requestHostPath = parsedURL.Host + parsedURL.Path
+	for baseURL, processor := range specialPageProcessors {
+		matched, _ := regexp.MatchString(baseURL, requestHostPath)
+		if matched {
+			err := processor(&page)
+			if err != nil {
+				return nil, err
+			}
+			break
+		}
+	}
+	pageInfo.Url = parsedURL.String()
+	pageInfo.Title, _ = page.Title()
+	pageInfo.MainHtml, err = page.Content()
+	if err != nil {
+		return nil, err
+	}
+	//获取页面 meta 中的标题、描述、图片
+	pageInfo = extractPageMeta(pageInfo)
+	return &pageInfo, nil
+}
 
 func fetchURLContent(parsedURL *netURL.URL) (*PageInfo, error) {
 	// check if semaphore is full
@@ -127,13 +242,65 @@ func fetchURLContent(parsedURL *netURL.URL) (*PageInfo, error) {
 			break
 		}
 	}
-
+	pageInfo.Url = parsedURL.String()
+	pageInfo.Title, _ = page.Title()
 	pageInfo.MainHtml, err = page.Content()
 	if err != nil {
 		return nil, err
 	}
-
+	//获取页面 meta 中的标题、描述、图片
+	pageInfo = extractPageMeta(pageInfo)
 	return &pageInfo, nil
+}
+
+// 入口：传 page 即可
+func extractPageMeta(pageInfo PageInfo) PageInfo {
+	ogTitle := pickMeta(pageInfo.RawHtml, "og:title")
+	if ogTitle != `` && ogTitle != pageInfo.Title {
+		pageInfo.Title = ogTitle
+	}
+	pageInfo.Description = pickDescription(pageInfo.RawHtml)
+	pageInfo.Image = pickOGImageOrFirstImg(pageInfo.RawHtml, pageInfo.Url)
+	return pageInfo
+}
+
+// 1. 标准 description；2. 退到 og:description
+func pickDescription(html string) string {
+	// <meta name="description" content="...">
+	re := regexp.MustCompile(`(?i)<meta\s+name\s*=\s*["']description["'][^>]*content\s*=\s*["']([^"']+)["']`)
+	if m := re.FindStringSubmatch(html); len(m) > 1 {
+		return strings.TrimSpace(m[1])
+	}
+	// 退到 og:description
+	return pickMeta(html, "og:description")
+}
+
+// 通用抠 meta content
+func pickMeta(html, property string) string {
+	re := regexp.MustCompile(`(?i)<meta\s+property\s*=\s*["']` + regexp.QuoteMeta(property) + `["'][^>]*content\s*=\s*["']([^"']+)["']`)
+	if m := re.FindStringSubmatch(html); len(m) > 1 {
+		return strings.TrimSpace(m[1])
+	}
+	return ""
+}
+
+// 先拿 og:image，没有再找第一张 <img>
+func pickOGImageOrFirstImg(html, pageURL string) string {
+	// 1. og:image
+	if img := pickMeta(html, "og:image"); img != "" {
+		return img
+	}
+	// 2. 第一张 <img>
+	re := regexp.MustCompile(`(?i)<img(?:\s+[^>]*)?\ssrc\s*=\s*["']([^"']+)["']`)
+	if m := re.FindStringSubmatch(html); len(m) > 1 {
+		raw := strings.TrimSpace(m[1])
+		if u, err := netURL.Parse(raw); err == nil && !u.IsAbs() {
+			base, _ := netURL.Parse(pageURL)
+			raw = base.ResolveReference(u).String()
+		}
+		return raw
+	}
+	return ""
 }
 
 func takeScreenshot(page *playwright.Page, pageInfo *PageInfo) {
@@ -186,11 +353,12 @@ func NeedWaitPageForYuque(page *playwright.Page) error {
 }
 
 var specialPageProcessors = map[string]SpecialPageProcessingFunc{
-	"docs.qq.com/doc": PageProcessForTencentDoc,
-	"kdocs.cn":        PageProcessForKDoc,
-	"feishu.cn":       PageProcessForFeishu,
-	"www.jianshu.com": PageProcessForJianshu,
-	"yuque.com":       PageProcessForYuque,
+	"docs.qq.com/doc":     PageProcessForTencentDoc,
+	"kdocs.cn":            PageProcessForKDoc,
+	"feishu.cn":           PageProcessForFeishu,
+	"www.jianshu.com":     PageProcessForJianshu,
+	"yuque.com":           PageProcessForYuque,
+	"mp.weixin.qq.com/s/": PageProcessForWeixin,
 }
 
 // escapeJSContent escapes content for safe JavaScript evaluation
@@ -415,13 +583,26 @@ func PageProcessForYuque(page *playwright.Page) error {
 	}
 	return nil
 }
+func PageProcessForWeixin(page *playwright.Page) error {
+	content, err := (*page).Locator(`#page-content`).InnerHTML()
+	if err != nil {
+		return err
+	}
+	_, err = (*page).Evaluate(fmt.Sprintf("document.body.innerHTML = `%s`", escapeJSContent(content)))
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func GetKDocDownloadUrl(apiURL string) (string, error) {
 	resp, err := http.Get(apiURL)
 	if err != nil {
 		return "", fmt.Errorf("发送 HTTP 请求失败: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		errorBody, readErr := io.ReadAll(resp.Body)

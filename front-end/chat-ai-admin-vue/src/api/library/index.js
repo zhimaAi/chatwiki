@@ -20,7 +20,7 @@ export const getLibrarySearch = (params = {}) => {
 
 export const searchLirary = (data) => {
   const userStore = useUserStore()
-  
+
   return new SSE({
     token: userStore.getToken ?? '',
     url: baseURL + '/manage/libraryAiSummary',
@@ -65,6 +65,17 @@ export const createLibrary = (data) => {
       //'Content-Type': 'multipart/form-data'
     },
     url: '/manage/createLibrary',
+    data,
+  })
+}
+
+
+export const createOfficialLibrary = (data) => {
+  return request.post({
+    headers: {
+      //'Content-Type': 'multipart/form-data'
+    },
+    url: '/manage/createOfficialLibrary',
     data: data
   })
 }

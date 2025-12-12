@@ -13,7 +13,7 @@
       <div class="node-form-content" @mousedown.stop="">
         <a-form ref="formRef" layout="vertical" :model="formState">
           <div class="gray-block">
-            <div class="gray-block-title">输入</div>
+            <div class="gray-block-title">大模型设置</div>
             <a-form-item label="LLM模型" name="use_model">
               <div class="flex-block-item">
                 <ModelSelect
@@ -158,21 +158,7 @@
               </at-input>
               <div class="form-tip">输入 / 插入变量</div>
             </a-form-item>
-            <div class="diy-form-item">
-              <div class="form-label">用户问题</div>
-              <div class="form-content">
-                <a-cascader
-                  v-model:value="formState.question_value"
-                  @dropdownVisibleChange="onDropdownVisibleChange"
-                  style="width: 220px"
-                  :options="variableOptionsSelect"
-                  :allowClear="false"
-                  :displayRender="({ labels }) => labels.join('/')"
-                  :field-names="{ children: 'children' }"
-                  placeholder="请选择"
-                />
-              </div>
-            </div>
+            
             <div class="diy-form-item mt12">
               <div class="form-label">知识库引用</div>
               <div class="form-content">
@@ -193,6 +179,26 @@
               </div>
             </div>
           </div>
+
+           <div class="gray-block mt16">
+            <div class="gray-block-title">输入</div>
+            <div class="diy-form-item question-value-item">
+              <div class="form-label">输入</div>
+              <div class="form-content">
+                <a-cascader
+                  v-model:value="formState.question_value"
+                  @dropdownVisibleChange="onDropdownVisibleChange"
+                  style="width: 220px"
+                  :options="variableOptionsSelect"
+                  :allowClear="false"
+                  :displayRender="({ labels }) => labels.join('/')"
+                  :field-names="{ children: 'children' }"
+                  placeholder="请选择"
+                />
+              </div>
+            </div>
+          </div>
+
           <div class="gray-block mt16">
             <div class="gray-block-title">输出</div>
             <div class="options-item">
@@ -474,7 +480,22 @@ onMounted(() => {
     gap: 4px;
   }
 }
-
+.question-value-item{
+  display: flex;
+  align-items: center;
+  .form-label{
+    margin-right: 8px;
+    &::before {
+      content: '*';
+      color: #fb363f;
+      display: inline-block;
+      margin-right: 2px;
+    }
+  }
+  .form-content{
+    margin-top: 0;
+  }
+}
 .options-item {
   margin-top: 12px;
   height: 22px;

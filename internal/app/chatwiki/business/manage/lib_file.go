@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
@@ -80,7 +81,7 @@ func GetLibFileCount(wheres [][]string) (data map[string]int, err error) {
 	return data, err
 }
 
-func addLibFile(c *gin.Context, userId, libraryId, libraryType int, chunkParam *define.ChunkParam, addFileParam *BridgeAddLibraryFileReq) ([]int64, error) {
+func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, libraryType int, chunkParam *define.ChunkParam, addFileParam *BridgeAddLibraryFileReq) ([]int64, error) {
 	m := msql.Model(`chat_ai_library_file`, define.Postgres)
 
 	//get params
@@ -102,12 +103,14 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int, chunkParam *
 	pdfParseType := cast.ToInt(addFileParam.PdfParseType)
 	// 问答知识库（libraryType == define.QALibraryType groupId是chat_ai_library_file 和 chat_ai_library_file_data 的group_id字段；
 	groupId := max(0, cast.ToInt(addFileParam.GroupId))
+	officialArticleId := strings.TrimSpace(addFileParam.OfficialArticleId)
+	officialArticleUpdateTime := cast.ToInt64(addFileParam.OfficialArticleUpdateTime)
 	//document uploaded
 	var libraryFiles []*define.UploadInfo
 	switch docType {
 	case define.DocTypeDiy: // diy library
 		if libraryType != define.OpenLibraryType {
-			return nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `doc_type`))
+			return nil, errors.New(i18n.Show(lang, `param_invalid`, `doc_type`))
 		}
 		md5Hash := tool.MD5(content)
 		ext := define.LibDocFileAllowExt[0]
@@ -120,11 +123,11 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int, chunkParam *
 			Size: int64(len(content)), Ext: ext, Link: link})
 	case define.DocTypeCustom: // custom library
 		if len(fileName) == 0 || (isQaDoc == define.DocTypeQa && !tool.InArrayInt(qaIndexType, []int{define.QAIndexTypeQuestionAndAnswer, define.QAIndexTypeQuestion})) {
-			return nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))
+			return nil, errors.New(i18n.Show(lang, `param_lack`))
 		}
 		if (libraryType == define.GeneralLibraryType && isQaDoc == define.DocTypeQa) ||
 			(libraryType == define.QALibraryType && isQaDoc != define.DocTypeQa) {
-			return nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `is_qa_doc`))
+			return nil, errors.New(i18n.Show(lang, `param_invalid`, `is_qa_doc`))
 		}
 		libraryFiles = append(libraryFiles, &define.UploadInfo{
 			Name: fileName, Size: 0, Ext: `-`, Custom: true,
@@ -132,10 +135,10 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int, chunkParam *
 		})
 	case define.DocTypeOnline: // online library
 		if len(docUrls) == 0 {
-			return nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))
+			return nil, errors.New(i18n.Show(lang, `param_lack`))
 		}
 		if libraryType == define.QALibraryType {
-			return nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `doc_type`))
+			return nil, errors.New(i18n.Show(lang, `param_invalid`, `doc_type`))
 		}
 
 		type UrlItem struct {
@@ -145,16 +148,16 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int, chunkParam *
 		var urlItems []UrlItem
 		err := json.Unmarshal([]byte(docUrls), &urlItems)
 		if err != nil {
-			return nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `doc_urls`))
+			return nil, errors.New(i18n.Show(lang, `param_invalid`, `doc_urls`))
 		}
 
 		// check url is valid
 		for _, urlItem := range urlItems {
 			if len(urlItem.URL) == 0 {
-				return nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))
+				return nil, errors.New(i18n.Show(lang, `param_lack`))
 			}
 			if _, err := url.Parse(urlItem.URL); err != nil {
-				return nil, errors.New(i18n.Show(common.GetLang(c), `invalid_url`, `url`))
+				return nil, errors.New(i18n.Show(lang, `invalid_url`, `url`))
 			}
 		}
 
@@ -197,12 +200,23 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int, chunkParam *
 		case define.QALibraryType:
 			libFileAloowExts = define.QALibFileAllowExt
 		}
-		libraryFiles, _ = common.SaveUploadedFileMulti(c, `library_files`, define.LibFileLimitSize, userId, `library_file`, libFileAloowExts)
+		libraryFiles, _ = common.SaveUploadedFileMulti(multipartForm, `library_files`, define.LibFileLimitSize, userId, `library_file`, libFileAloowExts)
 		if len(libraryFiles) == 0 {
-			return nil, errors.New(i18n.Show(common.GetLang(c), `upload_empty`))
+			return nil, errors.New(i18n.Show(lang, `upload_empty`))
 		}
+	case define.DocTypeOfficial: // 公众号文章
+		if libraryType != define.OfficialLibraryType {
+			return nil, errors.New(i18n.Show(lang, `param_invalid`, `doc_type`))
+		}
+		md5Hash := tool.MD5(content)
+		objectKey := fmt.Sprintf(`chat_ai/%d/%s/%s/%s.%s`, userId, `library_file`, tool.Date(`Ym`), md5Hash, `html`)
+		link, err := common.WriteFileByString(objectKey, content)
+		if err != nil {
+			return nil, err
+		}
+		libraryFiles = append(libraryFiles, &define.UploadInfo{Name: title, Size: int64(len(content)), Ext: `html`, Link: link})
 	default:
-		return nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `doc_type`))
+		return nil, errors.New(i18n.Show(lang, `param_invalid`, `doc_type`))
 	}
 	libraryInfo, _ := common.GetLibraryInfo(libraryId, userId)
 	//database dispose
@@ -236,31 +250,33 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int, chunkParam *
 			status = define.FileStatusInitial
 		}
 		insData := msql.Datas{
-			`admin_user_id`:        userId,
-			`library_id`:           libraryId,
-			`file_url`:             uploadInfo.Link,
-			`file_name`:            uploadInfo.Name,
-			`status`:               status,
-			`chunk_size`:           512,
-			`chunk_overlap`:        0,
-			`separators_no`:        `12,11`,
-			`enable_extract_image`: true,
-			`pdf_parse_type`:       pdfParseType,
-			`is_qa_doc`:            isQaDoc,
-			`answer_lable`:         answerLable,
-			`answer_column`:        answerColumn,
-			`question_lable`:       questionLable,
-			`question_column`:      questionColumn,
-			`similar_label`:        similarLabel,
-			`similar_column`:       similarColumn,
-			`file_ext`:             uploadInfo.Ext,
-			`file_size`:            uploadInfo.Size,
-			`create_time`:          tool.Time2Int(),
-			`update_time`:          tool.Time2Int(),
-			`is_table_file`:        cast.ToInt(isTableFile),
-			`doc_type`:             uploadInfo.GetDocType(),
-			`doc_url`:              uploadInfo.DocUrl,
-			`group_id`:             groupId,
+			`admin_user_id`:                userId,
+			`library_id`:                   libraryId,
+			`file_url`:                     uploadInfo.Link,
+			`file_name`:                    uploadInfo.Name,
+			`status`:                       status,
+			`chunk_size`:                   512,
+			`chunk_overlap`:                0,
+			`separators_no`:                `12,11`,
+			`enable_extract_image`:         true,
+			`pdf_parse_type`:               pdfParseType,
+			`is_qa_doc`:                    isQaDoc,
+			`answer_lable`:                 answerLable,
+			`answer_column`:                answerColumn,
+			`question_lable`:               questionLable,
+			`question_column`:              questionColumn,
+			`similar_label`:                similarLabel,
+			`similar_column`:               similarColumn,
+			`file_ext`:                     uploadInfo.Ext,
+			`file_size`:                    uploadInfo.Size,
+			`create_time`:                  tool.Time2Int(),
+			`update_time`:                  tool.Time2Int(),
+			`is_table_file`:                cast.ToInt(isTableFile),
+			`doc_type`:                     uploadInfo.GetDocType(),
+			`doc_url`:                      uploadInfo.DocUrl,
+			`group_id`:                     groupId,
+			`official_article_id`:          officialArticleId,
+			`official_article_update_time`: officialArticleUpdateTime,
 		}
 		if define.IsPdfFile(uploadInfo.Ext) {
 			page, err := api.PageCountFile(common.GetFileByLink(uploadInfo.Link))
@@ -270,7 +286,7 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int, chunkParam *
 			}
 			insData[`ocr_pdf_total`] = page
 			if pdfParseType == define.PdfParseTypeOcrAli && page > 1000 {
-				return nil, errors.New(i18n.Show(common.GetLang(c), `exceed_max_pdf_page_count`))
+				return nil, errors.New(i18n.Show(lang, `exceed_max_pdf_page_count`))
 			}
 		}
 		if uploadInfo.Custom {
@@ -281,13 +297,47 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int, chunkParam *
 				insData[`qa_index_type`] = qaIndexType
 			}
 		}
-		fileId, err := m.Insert(insData, `id`)
-		//clear cached data
-		lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: int(fileId)})
-		if err != nil {
-			logs.Error(err.Error())
-			continue
+		var fileId int64
+		var err error
+		if len(officialArticleId) == 0 { // 普通知识库直接插入
+			fileId, err = m.Insert(insData, `id`)
+			//set use guide finish
+			if docType == define.DocTypeLocal && cast.ToInt(libraryInfo[`is_default`]) == define.NotDefault && define.IsPdfFile(uploadInfo.Ext) {
+				_ = common.SetStepFinish(userId, define.StepImportPdf)
+			}
+			if docType == define.DocTypeLocal && cast.ToInt(libraryInfo[`is_default`]) == define.NotDefault && define.IsDocxFile(uploadInfo.Ext) {
+				_ = common.SetStepFinish(userId, define.StepImportWord)
+			}
+			lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: int(fileId)})
+			if err != nil {
+				logs.Error(err.Error())
+				continue
+			}
+		} else { // 公众号知识库需要根据article_id来做更新操作
+			old, err := m.Where(`library_id`, cast.ToString(libraryId)).Where(`official_article_id`, officialArticleId).Find()
+			if err != nil {
+				logs.Error(err.Error())
+				continue
+			}
+			insData[`html_url`] = insData[`doc_url`]
+			if len(old) == 0 {
+				fileId, err = m.Insert(insData, `id`)
+				lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: int(fileId)})
+				if err != nil {
+					logs.Error(err.Error())
+					continue
+				}
+			} else {
+				_, err := m.Where(`id`, old[`id`]).Update(insData)
+				lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: cast.ToInt(old[`id`])})
+				if err != nil {
+					logs.Error(err.Error())
+					continue
+				}
+				fileId = cast.ToInt64(old[`id`])
+			}
 		}
+
 		fileIds = append(fileIds, fileId)
 		if uploadInfo.Custom {
 			continue
@@ -311,6 +361,11 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int, chunkParam *
 			if define.IsMdFile(uploadInfo.Ext) {
 				autoSplit = true
 			}
+		case define.OfficialLibraryType:
+			splitParams.ChunkType = define.ChunkTypeNormal
+			if define.IsMdFile(uploadInfo.Ext) {
+				autoSplit = true
+			}
 		}
 		if define.IsPdfFile(uploadInfo.Ext) && (pdfParseType == define.PdfParseTypeOcr || pdfParseType == define.PdfParseTypeOcrWithImage) {
 			_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
@@ -329,7 +384,7 @@ func addLibFile(c *gin.Context, userId, libraryId, libraryType int, chunkParam *
 			continue
 		}
 		if define.IsPdfFile(uploadInfo.Ext) && pdfParseType == define.PdfParseTypeOcrAli {
-			jobId, err := common.SubmitOdcParserJob(c, userId, uploadInfo.Link)
+			jobId, err := common.SubmitOdcParserJob(lang, userId, uploadInfo.Link)
 			if err != nil {
 				logs.Error(err.Error())
 				_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
@@ -1310,7 +1365,7 @@ func RestudyLibraryFile(c *gin.Context) {
 	}
 
 	if pdfParseType == define.PdfParseTypeOcrAli {
-		jobId, err := common.SubmitOdcParserJob(c, userId, info["file_url"])
+		jobId, err := common.SubmitOdcParserJob(common.GetLang(c), userId, info["file_url"])
 		if err != nil {
 			logs.Error(err.Error())
 			_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(id)).Update(msql.Datas{

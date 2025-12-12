@@ -120,12 +120,14 @@ export default {
   },
   methods: {
     handleMenu(item) {
+      this.isShowMenu = false
       this.$emit('handleMenu', item)
     },
     showMenu() {
       this.isShowMenu = !this.isShowMenu
     },
     handleDelete(){
+      this.isShowMenu = false
       let node = this.getNode()
       this.getGraph().eventCenter.emit('custom:node:delete', node)
     },

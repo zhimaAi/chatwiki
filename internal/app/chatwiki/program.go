@@ -4,10 +4,12 @@ package chatwiki
 
 import (
 	"chatwiki/internal/app/chatwiki/business"
+	"chatwiki/internal/app/chatwiki/business/manage"
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/data/migrations"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/initialize"
+	"chatwiki/internal/app/chatwiki/work_flow"
 	"chatwiki/internal/pkg/casbin"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
@@ -53,12 +55,16 @@ func Run() {
 
 	//cron tasks
 	StartCronTasks()
+	//start delay
+	go business.StartDelayService()
 }
 
 func Stop() {
 	define.ConsumerHandle.Stop()
 	lib_web.Shutdown(define.WebService)
 	define.ProducerHandle.Stop()
+	//stop delay
+	common.StopDelayService()
 }
 
 func StartConsumer() {
@@ -72,6 +78,10 @@ func StartConsumer() {
 	common.RunTask(define.ExportTaskTopic, define.ExportTaskChannel, 5, business.ExportTask)
 	common.RunTask(define.ExtractFaqFilesTopic, define.ExtractFaqFilesChannel, 5, business.ExtractFaqFiles)
 	common.RunTask(define.ImportFAQFileTopic, define.ImportFAQFileChannel, 5, business.ImportLibFileFaq)
+	common.RunTask(define.OfficialAccountDraftSyncTopic, define.OfficialAccountDraftSyncChannel, 5, business.OfficialAccountDraftSync)
+	common.RunTask(define.OfficialAccountBatchSendTopic, define.OfficialAccountBatchSendChannel, 5, business.OfficialAccountBatchSend)
+	common.RunTask(define.OfficialAccountCommentSyncTopic, define.OfficialAccountCommentSyncChannel, 5, business.OfficialAccountCommentSync)
+	common.RunTask(define.OfficialAccountCommentAiCheckTopic, define.OfficialAccountCommentAiCheckChannel, 5, business.OfficialAccountCommentAiCheck)
 }
 
 func StartCronTasks() {
@@ -87,7 +97,13 @@ func StartCronTasks() {
 	_, _ = c.AddFunc("@every 5s", func() { business.CheckAliOcrRequest() })
 	_, _ = c.AddFunc("0 0 * * *", func() { business.UpdateLibraryFileData() })
 	_, _ = c.AddFunc(`2 2 * * *`, business.DeleteLlmRequestLogs)
+	_, _ = c.AddFunc("0 3 * * *", manage.CronSyncOfficialContent)
+	_, _ = c.AddFunc("@every 1m", func() { business.UpdateBatchSendData() })
+	_, _ = c.AddFunc(`*/1 * * * *`, func() { //every minute 00
+		go work_flow.TriggerCronSelectTimeRun()
+	})
 	c.Start()
+	go work_flow.StartLoadCronTriggers()
 	logs.Debug("cron start")
 }
 

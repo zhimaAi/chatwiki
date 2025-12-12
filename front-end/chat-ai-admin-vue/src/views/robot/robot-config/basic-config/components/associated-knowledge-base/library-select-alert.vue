@@ -210,7 +210,7 @@
           <a-spin :spinning="isRefresh" :delay="100">
             <a-checkbox-group :value="state.checkedList" style="width: 100%">
               <div class="list-box" ref="scrollContainer">
-                <div class="list-item-wraapper" v-for="item in options" :key="item.id">
+                <div class="list-item-wraapper" v-for="item in showOptions" :key="item.id">
                   <a-checkbox
                     class="list-item"
                     :value="item.id"
@@ -231,7 +231,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { SearchOutlined, SyncOutlined, RightOutlined, LeftOutlined } from '@ant-design/icons-vue'
 import { getLibraryList, getLibraryListGroup } from '@/api/library/index'
@@ -240,6 +240,12 @@ const robotStore = useRobotStore()
 const { robotInfo } = robotStore
 
 const emit = defineEmits(['change'])
+const props = defineProps({
+  showWxType: {
+    type: Boolean,
+    default: false
+  }
+})
 
 const state = reactive({
   indeterminate: false,
@@ -287,7 +293,7 @@ const open = (checkedList) => {
   group_id.value = ''
   getList()
   getGroupList()
-  
+
   state.checkedList = checkedList
   show.value = true
 }
@@ -304,6 +310,14 @@ const onSearch = () => {
 }
 
 const options = ref([])
+
+const showOptions = computed(() => {
+  if (props.showWxType) {
+    return options.value
+  } else {
+    return options.value.filter(item => item.type != 3)
+  }
+})
 
 const triggerChange = () => {
   emit('change', [...state.checkedList])

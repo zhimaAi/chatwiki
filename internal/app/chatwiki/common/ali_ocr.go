@@ -16,7 +16,6 @@ import (
 	"github.com/alibabacloud-go/docmind-api-20220711/client"
 	"github.com/alibabacloud-go/tea-utils/v2/service"
 	"github.com/aliyun/credentials-go/credentials"
-	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/yuin/goldmark"
 	"github.com/zhimaAi/go_tools/logs"
@@ -56,14 +55,14 @@ func CheckAliOcr(key, secret string) error {
 	return nil
 }
 
-func SubmitOdcParserJob(c *gin.Context, userId int, fileUrl string) (string, error) {
+func SubmitOdcParserJob(lang string, userId int, fileUrl string) (string, error) {
 	company, err := msql.Model(`company`, define.Postgres).Where(`parent_id`, cast.ToString(userId)).Find()
 	if err != nil {
 		return "", err
 	}
 
 	if len(company) == 0 || cast.ToInt(company[`ali_ocr_switch`]) != 1 {
-		return "", errors.New(i18n.Show(GetLang(c), `ali_ocr_not_open`))
+		return "", errors.New(i18n.Show(lang, `ali_ocr_not_open`))
 	}
 
 	config, err := GetOcrConfig(company[`ali_ocr_key`], company[`ali_ocr_secret`])

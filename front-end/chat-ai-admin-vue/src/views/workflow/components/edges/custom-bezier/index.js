@@ -7,6 +7,7 @@ import { generateUniqueId } from '@/utils/index'
 class CustomEdge extends BezierEdge {
   constructor(props) {
     super(props)
+    
     this.isMounted = false
     this.r = vh(VueNode, {
       properties: props.model.getProperties(),

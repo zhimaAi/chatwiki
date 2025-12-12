@@ -12,10 +12,14 @@
     }
 
     .user-name {
+      max-width: 200px;
       line-height: 22px;
       padding: 0 4px;
       font-size: 14px;
       color: #3a4559;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
   }
 }
@@ -37,7 +41,7 @@
     <a-dropdown>
       <div class="user-dropdown-link" @click.prevent>
         <img class="user-avatar" :src="avatar" alt="" />
-        <span class="user-name">{{ user_name }}</span>
+        <span class="user-name">{{ displayUserName }}</span>
         <svg-icon name="arrow-down" style="font-size: 16px; color: #8c8c8c"></svg-icon>
       </div>
       <template #overlay>
@@ -48,7 +52,7 @@
               <span class="menu-name">系统管理</span>
             </a>
           </a-menu-item>
-          <template v-for="item in navs">
+          <template v-for="item in navs" :key="item.id">
             <a-menu-item v-if="checkRole(item.permission)">
               <a class="menu-item" href="javascript:;" @click="handleClickNav(item)">
                 <svg-icon class="menu-icon" :name="item.icon"></svg-icon>
@@ -71,7 +75,7 @@
 
 <script setup>
 // import { useRouter } from 'vue-router'
-import { computed, watch } from 'vue'
+import { computed, } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/modules/user'
@@ -83,6 +87,10 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const { userInfo, avatar, user_name } = storeToRefs(userStore)
+
+const displayUserName = computed(() => {
+  return user_name.value.length > 11 ? user_name.value.substring(0, 11) + '...' : user_name.value
+})
 
 const onLogout = () => {
   userStore.logoutConfirm(true)

@@ -87,3 +87,28 @@ type DingtalkMsgEvent struct {
 	RobotCode string             `json:"robotCode"`
 	Msgtype   string             `json:"msgtype"`
 }
+
+type OfficialAccountCommentAiCheckReq struct {
+	AdminUserId   string `json:"admin_user_id"`
+	CommentId     int    `json:"comment_id"`
+	TaskId        int    `json:"task_id"`
+	MsgDataId     string `json:"msg_data_id"`
+	AccessKey     string `json:"access_key"`
+	CommentRuleId int    `json:"comment_rule_id"`
+	UserCommentId int    `json:"user_comment_id"`
+	CommentText   string `json:"comment_text"`
+}
+
+type OfficialAccountCommentAiCheckRes struct {
+	NeedDelete   bool   `json:"need_delete"`
+	NeedReply    bool   `json:"need_reply"`
+	NeedTop      bool   `json:"need_top"`
+	ReplyContent string `json:"reply_content"`
+}
+
+type OfficialAccountBatchSendRes struct {
+	Errcode   int    `json:"errcode"`
+	Errmsg    string `json:"errmsg"`
+	MsgId     int64  `json:"msg_id"`
+	MsgDataId int64  `json:"msg_data_id"`
+}

@@ -20,6 +20,7 @@
                 <span class="type-tag" v-if="item.type == 0">普通知识库</span>
                 <span class="type-tag" v-if="item.type == 1">对外知识库</span>
                 <span class="type-tag" v-if="item.type == 2">问答知识库</span>
+                <span class="type-tag" v-if="item.type == 3">公众号知识库</span>
                 <a-tooltip v-if="neo4j_status">
                   <template #title
                     >{{ item.graph_switch == 0 ? '未' : '已' }}开启知识图谱生成</template
@@ -65,7 +66,7 @@
         </div>
       </div>
     </div>
-    <LibrarySelectAlert ref="librarySelectAlertRef" @change="onChangeLibrarySelected" />
+    <LibrarySelectAlert ref="librarySelectAlertRef" :showWxType="!!wxAppLibary" @change="onChangeLibrarySelected" />
   </div>
 </template>
 
@@ -84,6 +85,7 @@ import { LIBRARY_NORMAL_AVATAR, LIBRARY_QA_AVATAR } from '@/constants/index'
 import { formatFileSize } from '@/utils/index'
 import { useRobotStore } from '@/stores/modules/robot'
 import { message } from 'ant-design-vue'
+import {getSpecifyAbilityConfig} from "@/api/explore/index.js";
 const neo4j_status = computed(() => {
   return companyStore.companyInfo?.neo4j_status == 'true'
 })
@@ -100,6 +102,7 @@ const formState = reactive({
 })
 
 const libraryList = ref([])
+const wxAppLibary = ref(null)
 
 const librarySelectAlertRef = ref(null)
 const selectedLibraryRows = computed(() => {
@@ -116,6 +119,7 @@ const selectedLibraryRows = computed(() => {
     }
   }
 
+  if (!wxAppLibary.value) lists = lists.filter((item) => item.type != 3)
   return lists
 })
 
@@ -202,7 +206,19 @@ const getList = async () => {
   }
 }
 
+const getWxLb = async () => {
+  // 公众号知识库是否开启
+  await getSpecifyAbilityConfig({ability_type: 'library_ability_official_account'}).then((res) => {
+    let _data = res?.data || {}
+    if (_data?.user_config?.switch_status == 1) {
+      wxAppLibary.value = _data
+    }
+  })
+}
+
+
 onMounted(() => {
+  getWxLb()
   getList()
 })
 </script>

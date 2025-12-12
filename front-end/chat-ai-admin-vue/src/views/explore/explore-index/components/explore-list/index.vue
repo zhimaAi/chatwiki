@@ -222,9 +222,24 @@ const handleClick = async (e, item) => {
       const blocker = target.closest('.no-bubble')
       if (blocker) return
     }
+    // 点击关注后回复跳转、点击自定义菜单跳转
+    if (item.robot_only_show == 1) {
+      router.push({ path: item.menu.path })
+      return
+    }
     // 点击关注后回复跳转
     if (item.ability_type == 'robot_subscribe_reply') {
       router.push({ path: '/explore/index/subscribe-reply' })
+      return
+    }
+    // 点击文章群发
+    if (item.ability_type == 'official_account_batch_send') {
+      router.push({ path: '/explore/index/article-group-send' })
+      return
+    }
+    // 点击Ai评论管理
+    if (item.ability_type == 'official_account_ai_comment') {
+      router.push({ path: '/explore/index/ai-comment-management' })
       return
     }
   } catch (_) {}

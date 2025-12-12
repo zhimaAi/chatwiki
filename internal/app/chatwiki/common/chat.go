@@ -23,7 +23,7 @@ import (
 
 func BuildChatContextPair(openid string, robotId, dialogueId, curMsgId, contextPair int) []map[string]string {
 	contextList := make([]map[string]string, 0)
-	if contextPair <= 0 {
+	if len(openid) == 0 || dialogueId <= 0 || contextPair <= 0 {
 		return contextList //no context required
 	}
 	m := msql.Model(`chat_ai_message`, define.Postgres).Where(`openid`, openid).

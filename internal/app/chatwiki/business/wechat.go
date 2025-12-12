@@ -54,6 +54,17 @@ func AppPush(msg string, _ ...string) error {
 	//统一消息类型结束
 	event := strings.ToLower(cast.ToString(message[`Event`]))
 
+	//菜单点击事件处理
+	if msgType == lib_define.MsgTypeEvent && tool.InArrayString(event, []string{lib_define.EventMenuClick}) {
+		err := MenuClickHandler(message, msg)
+		if err != nil {
+			logs.Error(`菜单点击处理失败msg:%s,err:%s`, msg, err.Error())
+			return err
+		}
+
+		return nil
+	}
+
 	//关注事件
 	if msgType == lib_define.MsgTypeEvent && tool.InArrayString(event, []string{lib_define.EventSubscribe}) {
 		err := SubscribeEventHandler(message, msg)
@@ -194,6 +205,87 @@ func SendWelcome(push *lib_define.PushMessage) {
 		logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errcode, err.Error())
 		return
 	}
+}
+
+// MenuClickHandler 菜单点击事件处理
+func MenuClickHandler(message map[string]any, msg string) error {
+	appInfo, err := common.GetWechatAppInfo(`app_id`, cast.ToString(message[`appid`]))
+	if err != nil {
+		logs.Error(`无对应的公众号 msg:%s,err:%s`, msg, err.Error())
+	}
+	if len(appInfo) == 0 {
+		return nil
+	}
+
+	eventKey := cast.ToString(message[`EventKey`])
+	if tool.IsNumeric(eventKey) {
+		menuInfo, err := common.GetOfficialCustomMenuInfo(cast.ToInt(eventKey))
+		if err != nil {
+			logs.Error(`无发查询到菜单 msg:%s,err:%s`, msg, err.Error())
+			return nil
+		}
+
+		if menuInfo.ID == 0 {
+			logs.Error(`无对应的菜单 msg:%s`, msg)
+			return nil
+		}
+		appAdminUserId := cast.ToInt(appInfo[`admin_user_id`])
+		if menuInfo.AdminUserID != appAdminUserId {
+			logs.Error(`菜单不是对应公众号的菜单 msg:%s`, msg)
+			return nil
+		}
+
+		switch menuInfo.ChooseActItem {
+		case common.OfficialCustomMenuActTypeSendMessage: //发送消息
+			//发送回复消息
+			if len(menuInfo.ActParams.ReplyContent) == 0 {
+				logs.Error(`菜单无回复消息 msg:%s,err:%s`, msg)
+				return nil
+			}
+			var replyList []common.ReplyContent
+			//获取openid
+			openid := strings.TrimSpace(cast.ToString(message[`FromUserName`]))
+			if appInfo[`app_type`] == lib_define.AppWechatKefu { //external_userid integrates with open_kfid
+				openid = wechatCommon.GetWechatKefuOpenid(cast.ToInt(appInfo[`admin_user_id`]), message)
+			}
+			//构建push
+			push := &lib_define.PushMessage{
+				MsgRaw:      msg,
+				Message:     message,
+				AdminUserId: cast.ToInt(appInfo[`admin_user_id`]),
+				CreateTime:  cast.ToInt(message[`CreateTime`]),
+				Openid:      openid,
+				Content:     ``,
+				AppInfo:     appInfo,
+			}
+			//构建app进行推送
+			app, err := wechat.GetApplication(appInfo)
+			if err != nil {
+				logs.Error(`初始化app失败 msg:%s,err:%s`, push.MsgRaw, err.Error())
+				return nil
+			}
+			if menuInfo.ActParams.ReplyNum == 0 {
+				replyList = menuInfo.ActParams.ReplyContent
+			} else {
+				selectReplyList := common.GetRandomSliceReply(menuInfo.ActParams.ReplyContent, menuInfo.ActParams.ReplyNum)
+				if len(selectReplyList) > 0 {
+					replyList = append(replyList, selectReplyList...)
+				}
+			}
+			replyList = common.FormatReplyListToDb(replyList, common.OfficialAbilityCustomMenu)
+			if len(replyList) == 0 {
+				logs.Error(`菜单无回复消息 `)
+				return nil
+			}
+			//发送回复消息
+			SendReplyContentList(push, replyList, app)
+			break
+		case common.OfficialCustomMenuActTypeJumpURL:
+			//跳转链接 不需要处理
+			break
+		}
+	}
+	return nil
 }
 
 // SubscribeEventHandler 关注事件
@@ -372,71 +464,76 @@ func ReplyContentListHandle(push *lib_define.PushMessage, message msql.Params, a
 	if isKeyword {
 		var replyContent []common.ReplyContent
 		_ = tool.JsonDecodeUseNumber(replyContentListJson, &replyContent)
-		if len(replyContent) > 0 {
-			for _, keywordReply := range replyContent {
-				//有关键词回复的处理
-				//兼容类型
-				checkType := keywordReply.ReplyType
-				if checkType == `` && keywordReply.Type != `` {
-					checkType = keywordReply.Type
-				}
-				switch checkType {
-				case common.ReplyTypeImageText: //图文
-					localThumbURL := common.GetFileByLink(keywordReply.ThumbURL)
-					if localThumbURL == `` {
-						logs.Error(`图片不存在，url:%s`, keywordReply.ThumbURL)
-						break
-					}
-					errCode, err := app.SendImageTextLink(push.Openid, keywordReply.URL, keywordReply.Title, keywordReply.Description, localThumbURL, keywordReply.ThumbURL, push)
-					if err != nil {
-						logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
-					}
-					break
-				case common.ReplyTypeText: //文本
-					errCode, err := app.SendText(push.Openid, keywordReply.Description, push)
-					if err != nil {
-						logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
-					}
-					break
-				case common.ReplyTypeUrl: //链接
-					errCode, err := app.SendUrl(push.Openid, keywordReply.URL, keywordReply.Title, push)
-					if err != nil {
-						logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
-					}
-					break
-				case common.ReplyTypeImg: //图片
-					localThumbURL := common.GetFileByLink(keywordReply.ThumbURL)
-					if localThumbURL == `` {
-						logs.Error(`图片不存在，url:%s`, keywordReply.ThumbURL)
-						break
-					}
-					errCode, err := app.SendImage(push.Openid, localThumbURL, push)
-					if err != nil {
-						logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
-					}
-					break
-				case common.ReplyTypeCard: //小程序卡片
-					localThumbURL := common.GetFileByLink(keywordReply.ThumbURL)
-					if localThumbURL == `` {
-						logs.Error(`图片不存在，url:%s`, keywordReply.ThumbURL)
-						break
-					}
-					errCode, err := app.SendMiniProgramPage(push.Openid, keywordReply.Appid, keywordReply.Title, keywordReply.PagePath, localThumbURL, push)
-					if err != nil {
-						logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
-					}
-					break
-				case common.ReplyTypeSmartMenu: //智能菜单
-					errCode, err := app.SendSmartMenu(push.Openid, keywordReply.SmartMenu, push)
-					if err != nil {
-						logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
-					}
-					break
+		SendReplyContentList(push, replyContent, app)
+	}
+}
 
-				default:
-					//其他类型消息 没指定类型的发送兼容
+// SendReplyContentList 发送回复内容列表
+func SendReplyContentList(push *lib_define.PushMessage, replyContent []common.ReplyContent, app wechat.ApplicationInterface) {
+	if len(replyContent) > 0 {
+		for _, keywordReply := range replyContent {
+			//有关键词回复的处理
+			//兼容类型
+			checkType := keywordReply.ReplyType
+			if checkType == `` && keywordReply.Type != `` {
+				checkType = keywordReply.Type
+			}
+			switch checkType {
+			case common.ReplyTypeImageText: //图文
+				localThumbURL := common.GetFileByLink(keywordReply.ThumbURL)
+				if localThumbURL == `` {
+					logs.Error(`图片不存在，url:%s`, keywordReply.ThumbURL)
 					break
 				}
+				errCode, err := app.SendImageTextLink(push.Openid, keywordReply.URL, keywordReply.Title, keywordReply.Description, localThumbURL, keywordReply.ThumbURL, push)
+				if err != nil {
+					logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
+				}
+				break
+			case common.ReplyTypeText: //文本
+				errCode, err := app.SendText(push.Openid, keywordReply.Description, push)
+				if err != nil {
+					logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
+				}
+				break
+			case common.ReplyTypeUrl: //链接
+				errCode, err := app.SendUrl(push.Openid, keywordReply.URL, keywordReply.Title, push)
+				if err != nil {
+					logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
+				}
+				break
+			case common.ReplyTypeImg: //图片
+				localThumbURL := common.GetFileByLink(keywordReply.ThumbURL)
+				if localThumbURL == `` {
+					logs.Error(`图片不存在，url:%s`, keywordReply.ThumbURL)
+					break
+				}
+				errCode, err := app.SendImage(push.Openid, localThumbURL, push)
+				if err != nil {
+					logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
+				}
+				break
+			case common.ReplyTypeCard: //小程序卡片
+				localThumbURL := common.GetFileByLink(keywordReply.ThumbURL)
+				if localThumbURL == `` {
+					logs.Error(`图片不存在，url:%s`, keywordReply.ThumbURL)
+					break
+				}
+				errCode, err := app.SendMiniProgramPage(push.Openid, keywordReply.Appid, keywordReply.Title, keywordReply.PagePath, localThumbURL, push)
+				if err != nil {
+					logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
+				}
+				break
+			case common.ReplyTypeSmartMenu: //智能菜单
+				errCode, err := app.SendSmartMenu(push.Openid, keywordReply.SmartMenu, push)
+				if err != nil {
+					logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
+				}
+				break
+
+			default:
+				//其他类型消息 没指定类型的发送兼容
+				break
 			}
 		}
 	}

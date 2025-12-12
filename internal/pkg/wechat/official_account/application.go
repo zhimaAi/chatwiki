@@ -15,6 +15,9 @@ import (
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/power"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/response"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount"
+	menuRequest "github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount/menu/request"
+	publishRequest "github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount/publish/request"
+	publishresponse "github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount/publish/response"
 	openresponse "github.com/ArtisanCloud/PowerWeChat/v3/src/openPlatform/authorizer/miniProgram/account/response"
 )
 
@@ -210,17 +213,54 @@ func (a *Application) GetFileByMedia(mediaId string, push *lib_define.PushMessag
 	return bytes, resp.Header, 0, nil
 }
 
-// GetSubscribeScene 获取用户关注场景
-func (a *Application) GetSubscribeScene(openid string) (string, error) {
+// GetMenu 获取菜单
+func (a *Application) GetMenu() (*common.ResponseMenuGet, error) {
 	app, err := a.GetApp()
 	if err != nil {
-		return ``, err
+		return nil, err
 	}
-	resp, err := app.User.Get(context.Background(), openid, lib_define.LangZhCn)
+	//resp, err := app.Menu.Get(context.Background())
+	resp := &common.ResponseMenuGet{}
+	_, err = app.Base.BaseClient.HttpGet(context.Background(), "cgi-bin/menu/get", nil, nil, resp)
 	if err != nil {
-		return ``, err
+		return nil, err
 	}
-	return resp.SubscribeScene, nil
+	if resp.ErrCode != 0 {
+		return nil, errors.New(resp.ErrMsg)
+	}
+	return resp, nil
+}
+
+// SetMenu 设置菜单
+func (a *Application) SetMenu(menu menuRequest.RequestMenuCreate) (int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return 0, err
+	}
+	resp, err := app.Menu.Create(context.Background(), menu.Buttons)
+	if err != nil {
+		return 0, err
+	}
+	if resp.ErrCode != 0 {
+		return resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return 0, nil
+}
+
+// DeleteMenu 删除菜单
+func (a *Application) DeleteMenu() (int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return 0, err
+	}
+	resp, err := app.Menu.Delete(context.Background())
+	if err != nil {
+		return 0, err
+	}
+	if resp.ErrCode != 0 {
+		return resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return 0, nil
 }
 
 func (a *Application) GetAccountBasicInfo() (*openresponse.ResponseGetBasicInfo, int, error) {
@@ -238,4 +278,59 @@ func (a *Application) GetAccountBasicInfo() (*openresponse.ResponseGetBasicInfo,
 		return nil, resp.ErrCode, errors.New(resp.ErrMsg)
 	}
 	return resp, 0, nil
+}
+
+// GetSubscribeScene 获取用户关注场景
+func (a *Application) GetSubscribeScene(openid string) (string, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return ``, err
+	}
+	resp, err := app.User.Get(context.Background(), openid, lib_define.LangZhCn)
+	if err != nil {
+		return ``, err
+	}
+	return resp.SubscribeScene, nil
+}
+
+// GetPublishedMessageList 获取已发布的消息列表
+func (a *Application) GetPublishedMessageList(offset, count, notContent int) (*publishresponse.ResponseBatchGet, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := app.Publish.PublishBatchGet(context.Background(), &publishRequest.RequestBatchGet{
+		Offset:    offset,
+		Count:     count,
+		NoContent: notContent,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if resp.ErrCode != 0 {
+		return nil, errors.New(resp.ErrMsg)
+	}
+	return resp, err
+}
+
+// GetPublishedArticle 获取已发布图文信息
+func (a *Application) GetPublishedArticle(articleId string) (*publishresponse.ResponsePublishGetArticle, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := app.Publish.PublishGetArticle(context.Background(), articleId)
+	if err != nil {
+		return nil, err
+	}
+	if resp.ErrCode != 0 {
+		return nil, errors.New(resp.ErrMsg)
+	}
+	return resp, err
+}
+
+func (a *Application) GetAccountClient() (*officialAccount.OfficialAccount, error) {
+	return a.GetApp()
 }

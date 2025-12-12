@@ -278,7 +278,6 @@ class CustomGroup extends dynamicGroup.view {
           const { graphModel, model } = this.props
 
           if (type === 'right' && !anchorIsSelected) {
-            console.log(anchorData, 'anchorData')
             graphModel.eventCenter.emit('custom:showPopupMenu', { anchorData, model })
           }
         }

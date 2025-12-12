@@ -3,19 +3,26 @@
 package business
 
 import (
+	"context"
 	"fmt"
+	"math"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/ArtisanCloud/PowerLibs/v3/object"
+	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/power"
+	"github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount/broadcasting/request"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 
+	"chatwiki/internal/app/chatwiki/business/manage"
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 )
 
@@ -757,6 +764,530 @@ EndExtract:
 		status = define.FAQFileStatusExtractFailed
 	}
 	common.UpdateLibFileFaqStatus(fileId, adminUserId, status, errMsg)
+	return nil
+}
+
+func OfficialAccountDraftSync(msg string, _ ...string) error {
+	logs.Debug(`nsq:%s`, msg)
+
+	data := make(map[string]any)
+	if err := tool.JsonDecode(msg, &data); err != nil {
+		logs.Error(`parsing failure:%s/%s`, msg, err.Error())
+		return err
+	}
+
+	//验证admin_user_id 和 app_id 获取secret
+	appInfo, err := common.GetWechatAppInfo(`access_key`, cast.ToString(data["access_key"]))
+	if err != nil {
+		logs.Error("微信app信息获取失败：" + err.Error())
+	}
+
+	limit := cast.ToInt(data["limit"])
+	admin_user_id := cast.ToInt(data["admin_user_id"])
+
+	//初始化client
+	client, err := common.GetOfficialAccountApp(appInfo["app_id"], appInfo["app_secret"])
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+
+	count := 20 //每轮拉取条数
+	round := math.Ceil(cast.ToFloat64(limit) / cast.ToFloat64(count))
+
+	if limit == 0 { //获取全部的草稿，最多拉取100轮，2千个草稿
+		round = 100
+	}
+
+	m := msql.Model(`wechat_official_account_draft`, define.Postgres)
+	respData := define.OfficialAccountDraftListStruct{}
+
+	for i := 0; i < cast.ToInt(round); i++ {
+		offset := i * count
+		params := &object.HashMap{
+			"offset":     offset,
+			"count":      count,
+			"no_content": 1, //不要草稿内容明细
+		}
+
+		_, err = client.Base.BaseClient.HttpPostJson(context.Background(), "/cgi-bin/draft/batchget", params, nil, nil, &respData)
+
+		//没拉到数据了，退出，
+		if len(respData.Item) == 0 {
+			break
+		}
+
+		//遍历数据结果
+		for _, s := range respData.Item {
+			updateData := msql.Datas{
+				`admin_user_id`:     admin_user_id,
+				`app_id`:            appInfo["app_id"],
+				`update_time`:       time.Now().Unix(),
+				`article_type`:      s.Content.NewsItem[0].ArticleType,
+				`thumb_url`:         s.Content.NewsItem[0].ThumbUrl,
+				`title`:             s.Content.NewsItem[0].Title,
+				`digest`:            s.Content.NewsItem[0].Digest,
+				`draft_create_time`: s.Content.CreateTime,
+				`draft_update_time`: s.Content.UpdateTime,
+			}
+			res, e := m.Where("media_id", s.MediaId).Update(updateData)
+
+			if e != nil {
+				logs.Error("执行错误：" + e.Error())
+			}
+
+			//如果如果更新数据为0，写入数据
+			if res == 0 {
+				updateData[`create_time`] = time.Now().Unix()
+				updateData[`media_id`] = s.MediaId
+				m.Insert(updateData)
+			}
+		}
+	}
+
+	return nil
+}
+
+func OfficialAccountCommentSync(msg string, _ ...string) error {
+
+	taskInfo := define.DelayTaskEvent{}
+	if err := tool.JsonDecodeUseNumber(msg, &taskInfo); err != nil {
+		logs.Error(`task:%s,err:%s`, msg, err.Error())
+		return err
+	}
+
+	//验证任务类型
+	if taskInfo.Type != define.OfficialAccountBatchSendSyncCommentTask {
+		logs.Error("任务类型错误" + cast.ToString(taskInfo.Type))
+		return nil
+	}
+
+	//查询任务详情信息
+	taskData, err := msql.Model(`wechat_official_account_batch_send_task`, define.Postgres).Alias("a").
+		Join("wechat_official_account_draft b", "a.draft_id = b.id ", "inner").
+		Join("chat_ai_wechat_app c", "a.access_key = c.access_key and a.admin_user_id = c.admin_user_id ", "inner").
+		Where(`a.id`, cast.ToString(taskInfo.TaskId)).Where(`a.admin_user_id`, cast.ToString(taskInfo.AdminUserId)).
+		Field(`a.*,b.media_id,c.app_id,c.app_secret`).Find()
+
+	if err != nil {
+		logs.Error("查询任务信息失败：" + err.Error())
+		return err
+	}
+
+	//	获取评论列表
+	client, err := common.GetOfficialAccountApp(taskData["app_id"], taskData["app_secret"])
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+
+	beginIndex := 0
+	pageSize := 50
+
+	maxCommentId := cast.ToInt(taskData["max_comment_id"])
+	newMaxCommentId := cast.ToInt(taskData["max_comment_id"])
+	returnSync := false
+
+	for true {
+		params := &object.HashMap{
+			"msg_data_id": taskData["msg_data_id"],
+			"index":       0,
+			"begin":       beginIndex,
+			"count":       pageSize,
+			"type":        0,
+		}
+		respData := define.OfficialAccountCommentResp{}
+		_, err = client.Base.BaseClient.HttpPostJson(context.Background(), "/cgi-bin/comment/list", params, nil, nil, &respData)
+		if len(respData.Comment) == 0 {
+			break
+		}
+
+		beginIndex += pageSize
+
+		for _, comment := range respData.Comment {
+			//如果当前的评论ID，小于记录的评论ID，则代表拉取过，跳过拉取，
+			if comment.UserCommentId <= maxCommentId {
+				returnSync = true
+				break
+			}
+
+			//更新一下最大评论ID
+			if newMaxCommentId < comment.UserCommentId {
+				newMaxCommentId = comment.UserCommentId
+			}
+
+			updateData := msql.Datas{
+				"admin_user_id":       taskData["admin_user_id"],
+				"update_time":         time.Now().Unix(),
+				"msg_data_id":         taskData["msg_data_id"],
+				"access_key":          taskData["access_key"],
+				"task_id":             taskData["id"],
+				"draft_id":            taskData["draft_id"],
+				"user_comment_id":     comment.UserCommentId,
+				"comment_create_time": comment.CreateTime,
+				"content_text":        comment.Content,
+				"comment_type":        comment.CommentType,
+				"open_id":             comment.Openid,
+				"reply_comment_text":  comment.Reply.Content,
+				"reply_create_time":   comment.Reply.CreateTime,
+			}
+
+			//如果没有获取到文本内容，默认经过AI精选
+			if updateData["content_text"] == "" {
+				updateData["ai_comment_rule_status"] = 1
+			}
+
+			res, err := msql.Model(`wechat_official_comment_list`, define.Postgres).
+				Where(`admin_user_id`, taskData["admin_user_id"]).
+				Where(`msg_data_id`, taskData["msg_data_id"]).
+				Where(`user_comment_id`, cast.ToString(comment.UserCommentId)).Update(updateData)
+			if err != nil {
+				logs.Error("更新数据失败：" + err.Error())
+				continue
+			}
+
+			if res == 0 {
+				updateData["comment_rule_id"] = taskData["comment_rule_id"]
+				updateData["create_time"] = time.Now().Unix()
+
+				_, err := msql.Model(`wechat_official_comment_list`, define.Postgres).Insert(updateData, "id")
+				if err != nil {
+					logs.Error("数据写入失败：" + err.Error())
+					continue
+				}
+			}
+		}
+
+		if returnSync {
+			break
+		}
+	}
+
+	//评论同步完了，更新一下数据
+	msql.Model(`wechat_official_account_batch_send_task`, define.Postgres).Where(`id`, cast.ToString(taskInfo.TaskId)).Where(`admin_user_id`, cast.ToString(taskInfo.AdminUserId)).Update(msql.Datas{
+		`update_time`:            time.Now().Unix(),
+		`last_comment_sync_time`: time.Now().Unix(),
+		`max_comment_id`:         newMaxCommentId,
+	})
+
+	//如果群发规则没开启自动精选评论，退出
+	if cast.ToInt(taskData["ai_comment_status"]) == 0 || !common.CheckUseAbilityByAbilityType(taskInfo.AdminUserId, common.OfficialAccountAbilityAIComment) {
+		logs.Debug("规则，或者账户没开启AI评论精选")
+		return nil
+	}
+
+	commentList, err := msql.Model(`wechat_official_comment_list`, define.Postgres).
+		Where(`admin_user_id`, taskData["admin_user_id"]).
+		Where(`msg_data_id`, taskData["msg_data_id"]).Where(`ai_comment_rule_status`, "0").Select()
+
+	if err != nil {
+		logs.Error("获取待AI精选的评论列表错误：" + err.Error())
+		return err
+	}
+
+	for _, params := range commentList {
+		taskInfo := lib_define.OfficialAccountCommentAiCheckReq{
+			AdminUserId:   params["admin_user_id"],
+			CommentId:     cast.ToInt(params["id"]),
+			TaskId:        cast.ToInt(params["task_id"]),
+			MsgDataId:     params["msg_data_id"],
+			AccessKey:     params["access_key"],
+			CommentRuleId: cast.ToInt(params["comment_rule_id"]),
+			UserCommentId: cast.ToInt(params["user_comment_id"]),
+			CommentText:   params["content_text"],
+		}
+		if err := common.AddJobs(define.OfficialAccountCommentAiCheckTopic, tool.JsonEncodeNoError(taskInfo)); err != nil {
+			logs.Error(`NSQ生产异常,走同步逻辑,错误:%s`, err.Error())
+			_ = OfficialAccountCommentAiCheck(tool.JsonEncodeNoError(taskInfo))
+		}
+	}
+	return nil
+}
+
+func OfficialAccountCommentAiCheck(msg string, _ ...string) error {
+
+	taskInfo := lib_define.OfficialAccountCommentAiCheckReq{}
+
+	if err := tool.JsonDecodeUseNumber(msg, &taskInfo); err != nil {
+		logs.Error(`task:%s,err:%s`, msg, err.Error())
+		return err
+	}
+
+	query := msql.Model(`wechat_official_account_comment_rule`, define.Postgres).Where(`admin_user_id`, cast.ToString(taskInfo.AdminUserId))
+
+	if taskInfo.CommentRuleId == 0 { //默认规则
+		query.Where("is_default", "1")
+	} else {
+		query.Where(`id`, cast.ToString(taskInfo.CommentRuleId))
+	}
+
+	//查询评论规则详情
+	ruleInfo, err := query.Find()
+	if err != nil {
+		logs.Error(`获取评论规则错误：%s`, err.Error())
+		return err
+	}
+
+	//自定义规则，需要开启
+	if cast.ToInt(ruleInfo["is_default"]) == 0 && ruleInfo["switch"] != define.BaseOpen {
+		logs.Error("评论规则未开启")
+		return nil
+	}
+
+	ai_comment_rule_text := []string{} //触发条件
+	ai_comment_result := map[int]int{} //处理结果
+	reply_context := ""
+
+	//开始执行判断逻辑
+	if ruleInfo["delete_comment_switch"] == define.BaseOpen { //自动删除评论判断
+		nodeRule := manage.BridgeDeleteCommentRule{}
+		_ = tool.JsonDecode(ruleInfo["delete_comment_rule"], &nodeRule)
+		hasKeywords := false
+		aiDelete := false
+
+		for _, checkType := range nodeRule.Type {
+			//敏感词检测，且敏感词数大于1
+			if checkType == define.CommentCheckTypeHintKeywords && len(nodeRule.Keywords) > 0 { //敏感词检测
+				for _, keyword := range nodeRule.Keywords {
+					if strings.Contains(taskInfo.CommentText, keyword) { //包含关键词
+						hasKeywords = true
+						ai_comment_rule_text = append(ai_comment_rule_text, "AI自动删评-敏感词触发（"+keyword+"）")
+						break
+					}
+				}
+			}
+
+			//AI检测，且存在提示词
+			if checkType == define.CommentCheckTypeAICheck && nodeRule.Prompt != "" {
+				userPrompt := "我下面给你一段评论内容，评论内容为：'" + taskInfo.CommentText + "'，请充分分析这段文字的意思，要求如下：" + nodeRule.Prompt + "，判断是否需要删除当前评论。"
+				checkRes := getAiCommentCheckRes(taskInfo.AdminUserId, userPrompt, ruleInfo["use_model"], ruleInfo["model_config_id"])
+
+				if checkRes.NeedDelete { //如果需要删除
+					ai_comment_rule_text = append(ai_comment_rule_text, "AI自动删评-AI检测")
+					aiDelete = checkRes.NeedDelete
+				}
+			}
+
+		}
+
+		//只选了一个判断条件，触发敏感词或者AI检测通过之后，就需要删除
+		if len(nodeRule.Type) == 1 && (hasKeywords || aiDelete) {
+			ai_comment_result[define.CommentExecTypeDelete] = define.CommentExecTypeDelete
+		}
+
+		//选了两个条件，需要同时满足，且两个条件都通过
+		if len(nodeRule.Type) == 2 && nodeRule.Condition == 1 && hasKeywords && aiDelete {
+			ai_comment_result[define.CommentExecTypeDelete] = define.CommentExecTypeDelete
+		}
+
+		//选了两个条件，满足任意一个，且有一个通过
+		if len(nodeRule.Type) == 2 && nodeRule.Condition == 2 && (hasKeywords || aiDelete) {
+			ai_comment_result[define.CommentExecTypeDelete] = define.CommentExecTypeDelete
+		}
+	}
+
+	//如果没有删除评论操作，继续判断
+	if _, ok := ai_comment_result[define.CommentExecTypeDelete]; !ok && ruleInfo["reply_comment_switch"] == define.BaseOpen { //自动回复判断
+
+		nodeRule := manage.BridgeReplyCommentRule{}
+		_ = tool.JsonDecode(ruleInfo["reply_comment_rule"], &nodeRule)
+
+		userPrompt := "我下面给你一段评论内容，评论内容为：'" + taskInfo.CommentText + "'，请充分分析这段文字的意思，要求如下：" + nodeRule.CheckReplyPrompt + "，判断是否需要回复当前评论。"
+		checkRes := getAiCommentCheckRes(taskInfo.AdminUserId, userPrompt, ruleInfo["use_model"], ruleInfo["model_config_id"])
+
+		//如果需要回复，且使用固定回复内容
+		if checkRes.NeedReply && nodeRule.ReplyType == 1 {
+			reply_context = nodeRule.ReplyPrompt
+			ai_comment_result[define.CommentExecTypeReply] = define.CommentExecTypeReply
+			ai_comment_rule_text = append(ai_comment_rule_text, "默认回复")
+		}
+
+		//如果需要回复，使用AI回复
+		if checkRes.NeedReply && nodeRule.ReplyType == 2 {
+			userPrompt := "我下面给你一段评论内容，评论内容为：'" + taskInfo.CommentText + "'，请充分分析这段文字的意思，要求如下：" + nodeRule.ReplyPrompt + "，帮我回复这个评论。"
+			checkRes = getAiCommentCheckRes(taskInfo.AdminUserId, userPrompt, ruleInfo["use_model"], ruleInfo["model_config_id"])
+
+			reply_context = checkRes.ReplyContent
+			ai_comment_rule_text = append(ai_comment_rule_text, "AI自动回复")
+			ai_comment_result[define.CommentExecTypeReply] = define.CommentExecTypeReply
+		}
+
+	}
+
+	//如果没有删除评论操作，继续判断
+	if _, ok := ai_comment_result[define.CommentExecTypeDelete]; !ok && ruleInfo["elect_comment_switch"] == define.BaseOpen { //自动精选判断
+		nodeRule := manage.BridgeElectCommentRule{}
+		_ = tool.JsonDecode(ruleInfo["elect_comment_rule"], &nodeRule)
+
+		userPrompt := "我下面给你一段评论内容，评论内容为：'" + taskInfo.CommentText + "'，请充分分析这段文字的意思，要求如下：" + nodeRule.Prompt + "，判断是否需要设置为精选评论。"
+		checkRes := getAiCommentCheckRes(taskInfo.AdminUserId, userPrompt, ruleInfo["use_model"], ruleInfo["model_config_id"])
+
+		if checkRes.NeedTop {
+			ai_comment_result[define.CommentExecTypeTop] = define.CommentExecTypeTop
+			ai_comment_rule_text = append(ai_comment_rule_text, "AI自动精选")
+		}
+	}
+
+	commentResult := []int{}
+
+	updateData := msql.Datas{
+		"update_time":            time.Now().Unix(),
+		"ai_exec_time":           time.Now().Unix(),
+		"ai_comment_rule_status": 1,
+		"comment_rule_id":        ruleInfo["id"],
+		"ai_comment_rule_text":   strings.Join(ai_comment_rule_text, ","),
+	}
+	for key, _ := range ai_comment_result {
+		commentResult = append(commentResult, key)
+		if key == define.CommentExecTypeDelete { //删除评论
+			_, err := manage.BridgeDeleteComment(taskInfo.AccessKey, taskInfo.MsgDataId, 0, taskInfo.UserCommentId)
+			if err == nil {
+				updateData["delete_status"] = 1
+			}
+		}
+
+		if key == define.CommentExecTypeReply && reply_context != "" { //回复评论
+			_, err := manage.BridgeReplyComment(taskInfo.AccessKey, taskInfo.MsgDataId, reply_context, 0, taskInfo.UserCommentId)
+			if err == nil {
+				updateData["reply_comment_text"] = reply_context
+				updateData["reply_create_time"] = time.Now().Unix()
+			}
+		}
+
+		if key == define.CommentExecTypeTop { //置顶评论
+			_, err := manage.BridgeMarkElect(taskInfo.AccessKey, taskInfo.MsgDataId, 0, taskInfo.UserCommentId)
+			if err == nil {
+				updateData["comment_type"] = 1
+			}
+		}
+	}
+
+	updateData["ai_comment_result"] = tool.JsonEncodeNoError(commentResult)
+
+	_, err = msql.Model(`wechat_official_comment_list`, define.Postgres).
+		Where("admin_user_id", taskInfo.AdminUserId).
+		Where("id", cast.ToString(taskInfo.CommentId)).
+		Where("user_comment_id", cast.ToString(taskInfo.UserCommentId)).Update(updateData)
+
+	if err != nil {
+		logs.Error("数据变更失败：" + err.Error())
+	}
+
+	return nil
+}
+
+func getAiCommentCheckRes(AdminUserId, userPrompt, use_model, model_config_id string) lib_define.OfficialAccountCommentAiCheckRes {
+
+	checkRes := lib_define.OfficialAccountCommentAiCheckRes{}
+	messages := []adaptor.ZhimaChatCompletionMessage{
+		{Role: `system`, Content: define.OfficialAccountCommentCheckPrompt},
+		{Role: `user`, Content: userPrompt},
+	}
+
+	chatResp, _, err := common.RequestChat(cast.ToInt(AdminUserId), AdminUserId, nil, lib_define.AppYunPc,
+		cast.ToInt(model_config_id), use_model, messages, nil, 0.5, 2000)
+	if err != nil {
+		logs.Error("AI检测失败：" + err.Error())
+		return checkRes
+	}
+
+	err = tool.JsonDecodeUseNumber(chatResp.Result, &checkRes)
+	if err != nil {
+		logs.Error("AI检测结果解析失败：" + err.Error())
+	}
+
+	return checkRes
+}
+
+func OfficialAccountBatchSend(msg string, _ ...string) error {
+	logs.Debug(`消费者接收消息内容:%s`, msg)
+
+	taskInfo := define.DelayTaskEvent{}
+	if err := tool.JsonDecodeUseNumber(msg, &taskInfo); err != nil {
+		logs.Error(`task:%s,err:%s`, msg, err.Error())
+		return err
+	}
+
+	//验证任务类型
+	if taskInfo.Type != define.OfficialAccountBatchSendDelayTask {
+		logs.Error("任务类型错误" + cast.ToString(taskInfo.Type))
+		return nil
+	}
+
+	if !common.CheckUseAbilityByAbilityType(taskInfo.AdminUserId, common.OfficialAccountAbilityBatchSend) {
+		logs.Debug("账户群发未开启：" + cast.ToString(taskInfo.AdminUserId))
+		return nil
+	}
+
+	//此处执行发送任务动作，需要任务状态是开启的
+	taskData, err := msql.Model(`wechat_official_account_batch_send_task`, define.Postgres).Alias("a").
+		Join("wechat_official_account_draft b", "a.draft_id = b.id ", "inner").
+		Join("chat_ai_wechat_app c", "a.access_key = c.access_key and a.admin_user_id = c.admin_user_id ", "inner").
+		Where(`a.id`, cast.ToString(taskInfo.TaskId)).Where(`a.admin_user_id`, cast.ToString(taskInfo.AdminUserId)).
+		Where(`a.open_status`, define.BaseOpen).
+		Field(`a.*,b.media_id,c.app_id,c.app_secret`).Find()
+
+	if err != nil {
+		logs.Error("查询任务信息失败：" + err.Error())
+		return err
+	}
+
+	if cast.ToInt(taskData["send_status"]) != 0 {
+		logs.Error("任务状态错误：" + cast.ToString(taskData["send_status"]))
+		return err
+	}
+
+	//初始化client
+	client, err := common.GetOfficialAccountApp(taskData["app_id"], taskData["app_secret"])
+	if err != nil {
+		logs.Error("wechatClient初始化失败：" + err.Error())
+		return err
+	}
+
+	//创建发送任务
+	resp := power.HashMap{}
+	res, err := client.Broadcasting.SendNews(context.Background(), taskData["media_id"], &request.Reception{
+		//ToUser: []string{"o0DNE6i3WNEKnFRu7XXEzs9wLMtQ", "o0DNE6kjqc121GkNXSUng71jo5Kc"},
+		//Filter: nil,
+		ToUser: []string{},
+		Filter: &request.Filter{
+			IsToAll: true,
+		},
+	}, &resp)
+
+	if err != nil {
+		logs.Error(err.Error())
+	}
+
+	officialAccountBatchSendRes := lib_define.OfficialAccountBatchSendRes{}
+	_ = tool.JsonDecodeUseNumber(tool.JsonEncodeNoError(res), &officialAccountBatchSendRes)
+
+	if officialAccountBatchSendRes.Errcode != 0 {
+		logs.Error("群发任务执行失败：" + officialAccountBatchSendRes.Errmsg)
+
+		//变更任务状态
+		_, _ = msql.Model(`wechat_official_account_batch_send_task`, define.Postgres).Where(`id`, cast.ToString(taskInfo.TaskId)).Where(`admin_user_id`, cast.ToString(taskInfo.AdminUserId)).Update(msql.Datas{
+			`update_time`: time.Now().Unix(),
+			`send_res`:    tool.JsonEncodeNoError(res),
+			`send_status`: define.BatchSendStatusErr, //发送失败
+		})
+		return nil
+	}
+
+	//变更任务状态
+	_, _ = msql.Model(`wechat_official_account_batch_send_task`, define.Postgres).Where(`id`, cast.ToString(taskInfo.TaskId)).Where(`admin_user_id`, cast.ToString(taskInfo.AdminUserId)).Update(msql.Datas{
+		`update_time`: time.Now().Unix(),
+		`send_status`: define.BatchSendStatusExec,
+		`msg_data_id`: officialAccountBatchSendRes.MsgDataId,
+		`send_msg_id`: officialAccountBatchSendRes.MsgId,
+		`send_res`:    tool.JsonEncodeNoError(res),
+	})
+
+	_, err = manage.BridgeChangeCommentStatus(cast.ToString(taskData["access_key"]), cast.ToString(officialAccountBatchSendRes.MsgDataId), 0, cast.ToInt(taskData["comment_status"]))
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

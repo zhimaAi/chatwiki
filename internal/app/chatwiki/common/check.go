@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/robfig/cron/v3"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
@@ -46,7 +47,9 @@ func CheckChatRequest(c *gin.Context, compatibilityXkf ...bool) (*define.ChatBas
 	if len(openid) == 0 {
 		openid = strings.TrimSpace(c.Query(`openid`))
 	}
-	if len(compatibilityXkf) > 0 && compatibilityXkf[0] {
+	if len(openid) == 0 && c.GetBool(`from_work_flow`) {
+		//来源工作流,不校验openid为空
+	} else if len(compatibilityXkf) > 0 && compatibilityXkf[0] {
 		if !IsXkfOpenid(openid) {
 			return nil, errors.New(i18n.Show(GetLang(c), `param_invalid`, `openid`))
 		}
@@ -472,6 +475,18 @@ func CheckDataRangeDay(startDate, endDate string, maxDayNum int) bool {
 	}
 	days := int(end.Sub(start).Hours()/24) + 1
 	if days > maxDayNum {
+		return false
+	}
+	return true
+}
+
+func CheckLinuxCrontab(cronExpr string) bool {
+	parser := cron.NewParser(
+		cron.SecondOptional | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor,
+	)
+	_, err := parser.Parse(cronExpr)
+	if err != nil {
+		logs.Error(err.Error())
 		return false
 	}
 	return true

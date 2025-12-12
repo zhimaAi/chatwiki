@@ -277,24 +277,33 @@
 import { PlusOutlined, CloseCircleOutlined, UploadOutlined, CloseOutlined, EllipsisOutlined } from '@ant-design/icons-vue'
 import emojiDataJson from 'emoji-mart-vue-fast/data/all.json'
 import "emoji-mart-vue-fast/css/emoji-mart.css"
-import { ref, reactive, watch, nextTick, computed } from 'vue'
+import { ref, reactive, watch, nextTick, onMounted, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { uploadFile } from '@/api/app'
 import { Picker, EmojiIndex } from 'emoji-mart-vue-fast/src'
 import { useRoute } from 'vue-router'
-import { getSmartMenuList, deleteSmartMenu } from '@/api/explore/index.js'
+import { getSmartMenuList, deleteSmartMenu, getSpecifyAbilityConfig, getRobotSpecifyAbilityConfig } from '@/api/explore/index.js'
 import { getRobotList } from '@/api/robot/index.js'
 import dayjs from 'dayjs'
 import { DEFAULT_ROBOT_AVATAR } from '@/constants/index'
-import { useRobotStore } from '@/stores/modules/robot'
-const robotStore = useRobotStore()
+const route = useRoute()
 
+const user_smart_configs = ref(['exploreSubscribeReply', 'exploreCustomMenu'])
 // 智能菜单回复是否开启
-const show_smart = computed(() => robotStore.smartMenuSwitchStatus == '1')
+const user_show_smart = ref(false)
+const robot_show_smart = ref(false)
+
+const show_smart = computed(() => {
+  if (user_smart_configs.value.includes(route.name)) {
+    return user_show_smart.value
+  } else {
+    return robot_show_smart.value
+  }
+})
 
 const props = defineProps({
   value: { type: Object, default: () => ({ type: 'text', description: '' }) },
-  reply_index: { type: Number, default: 0 },
+  reply_index: { type: Number, default: 0 }
 })
 const emit = defineEmits(['update:value', 'change', 'del'])
 
@@ -310,11 +319,29 @@ const smartPreview = reactive({ id: '', title: '', update_time: 0, avatar_url: '
 const smartChooseOpen = ref(false)
 const smartList = ref([])
 const selectedSmartId = ref('')
-const isSubscribeMode = ref(useRoute().path.indexOf('subscribe-reply') > -1)
 const robotOptions = ref([])
 const selectedRobotId = ref('')
 const defaultAvatar = DEFAULT_ROBOT_AVATAR
 const query = useRoute().query
+const isSubscribeMode = computed(() => !robot_show_smart.value && user_smart_configs.value.includes(route.name))
+const pendingSmartValue = ref(null)
+const smartInitLoading = ref(true)
+
+function initRobotShowSmart (robot_id) {
+  const rid = String(robot_id || '')
+  if (!rid) { robot_show_smart.value = false; return Promise.resolve() }
+  return getRobotSpecifyAbilityConfig({ ability_type: 'robot_smart_menu', robot_id: rid }).then((res) => {
+    const st = res?.data?.robot_config?.switch_status
+    robot_show_smart.value = String(st || '0') == '1'
+  })
+}
+
+function initUserShowSmart () {
+  getSpecifyAbilityConfig({ ability_type: 'robot_smart_menu' }).then((res) => {
+    const st = res?.data?.user_config?.switch_status
+    user_show_smart.value = String(st || '0') == '1'
+  })
+}
 
 let isUploading = false
 const emojiIndex = new EmojiIndex(emojiDataJson)
@@ -616,23 +643,35 @@ function onDrop (e) {
 // initialize from value
 watch(() => props.value, (val) => {
   const t = val?.type || 'text'
-  activeTab.value = (!show_smart.value && t === 'smartMenu') ? 'text' : t
+  if (t === 'smartMenu') {
+    if (show_smart.value && !smartInitLoading.value) {
+      activeTab.value = 'smartMenu'
+    } else {
+      activeTab.value = 'text'
+    }
+  } else {
+    activeTab.value = t
+  }
   if (t === 'imageText') Object.assign(imageText, val)
   else if (t === 'text') Object.assign(text, { description: val?.description || '' })
   else if (t === 'image') Object.assign(image, { thumb_url: val?.thumb_url || '' })
   else if (t === 'url') Object.assign(urlCard, { title: val?.title || '', url: val?.url || '' })
   else if (t === 'card') Object.assign(miniCard, val)
-  else if (t === 'smartMenu' && show_smart.value) {
-    smartPreview.id = String(val?.smart_menu_id || '');
-    if (smartPreview.id && val?.smart_menu?.id) {
-      const data = val.smart_menu || {};
-      smartPreview.title = data.menu_title || data.menu_name || '';
-      smartPreview.update_time = Number(data.update_time || data.create_time || 0);
-      smartPreview.avatar_url = data.avatar_url || '';
-      smartPreview.menu_description = data.menu_description || '';
-      smartPreview.lines = buildMenuLines(Array.isArray(data.menu_content) ? data.menu_content : [])
+  else if (t === 'smartMenu') {
+    if (show_smart.value) {
+      smartPreview.id = String(val?.smart_menu_id || '')
+      if (smartPreview.id && val?.smart_menu?.id) {
+        const data = val.smart_menu || {}
+        smartPreview.title = data.menu_title || data.menu_name || ''
+        smartPreview.update_time = Number(data.update_time || data.create_time || 0)
+        smartPreview.avatar_url = data.avatar_url || ''
+        smartPreview.menu_description = data.menu_description || ''
+        smartPreview.lines = buildMenuLines(Array.isArray(data.menu_content) ? data.menu_content : [])
+      }
+      selectedSmartId.value = String(smartPreview.id || '')
+    } else {
+      pendingSmartValue.value = val
     }
-    selectedSmartId.value = String(smartPreview.id || '')
   }
 }, { immediate: true })
 
@@ -833,6 +872,36 @@ async function validate () {
   }
   return true
 }
+
+onMounted(async () => {
+  try {
+    if (user_smart_configs.value.includes(route.name)) {
+      await initUserShowSmart()
+    } else {
+      await initRobotShowSmart(route.query.id)
+    }
+  } finally {
+    smartInitLoading.value = false
+  }
+})
+
+watch(() => show_smart.value, (v) => {
+  if (v && pendingSmartValue.value) {
+    const val = pendingSmartValue.value
+    activeTab.value = 'smartMenu'
+    smartPreview.id = String(val?.smart_menu_id || '')
+    if (smartPreview.id && val?.smart_menu?.id) {
+      const data = val.smart_menu || {}
+      smartPreview.title = data.menu_title || data.menu_name || ''
+      smartPreview.update_time = Number(data.update_time || data.create_time || 0)
+      smartPreview.avatar_url = data.avatar_url || ''
+      smartPreview.menu_description = data.menu_description || ''
+      smartPreview.lines = buildMenuLines(Array.isArray(data.menu_content) ? data.menu_content : [])
+    }
+    selectedSmartId.value = String(smartPreview.id || '')
+    pendingSmartValue.value = null
+  }
+})
 
 defineExpose({ validate })
 </script>

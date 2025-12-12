@@ -104,49 +104,63 @@
       </NodeFormHeader>
     </template>
 
-    <FeishuBittableBox
-      v-if="nodeParams?.plugin?.name === 'feishu_bitable'"
-      :node="node"
-      :action="actionInfo"
-      :actionName="nodeParams.plugin.params.business"
-      :params="formState"
-      :variableOptions="variableOptions"
-      @updateVar="getValueVariableList"
-    />
+    <!--方法插件-->
+    <template v-if="pluginHasAction(nodeParams?.plugin?.name)">
+      <!--自定义渲染-->
+      <component
+        v-if="pluginCompMap[nodeParams.plugin.name]"
+        :is="pluginCompMap[nodeParams.plugin.name]"
+        :node="node"
+        :action="actionInfo"
+        :actionName="nodeParams.plugin.params.business"
+        :variableOptions="variableOptions"
+        @updateVar="getValueVariableList"
+      />
+      <!--默认渲染-->
+      <PluginFormRender
+        v-else
+        :node="node"
+        :params="actionInfo.params"
+        :output="actionInfo.output"
+        :variableOptions="variableOptions"
+        @updateVar="getValueVariableList"
+      />
+    </template>
+    <!--独立插件-->
     <div v-else class="node-options">
-        <div class="options-title">
-          <div><img src="@/assets/img/workflow/input.svg" class="title-icon" />输入</div>
-        </div>
-        <div v-for="(item, key) in formState"
-             :key="key"
-             :class="['options-item', {'is-required': item.required}]">
-          <div class="options-item-tit">
-            <div class="option-label">{{ key }}</div>
-            <div class="option-type">{{ item.type }}</div>
-          </div>
-          <div>
-            <AtInput
-              type="textarea"
-              inputStyle="height: 64px;"
-              :options="variableOptions"
-              :defaultSelectedList="item.tags"
-              :defaultValue="item.value"
-              ref="atInputRef"
-              @open="getValueVariableList"
-              @change="(text, selectedList) => changeValue(item, text, selectedList)"
-              placeholder="请输入内容，键入“/”可以插入变量"
-            >
-              <template #option="{ label, payload }">
-                <div class="field-list-item">
-                  <div class="field-label">{{ label }}</div>
-                  <div class="field-type">{{ payload.typ }}</div>
-                </div>
-              </template>
-            </AtInput>
-          </div>
-          <div class="desc">{{ item.description }}</div>
-        </div>
+      <div class="options-title">
+        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>输入</div>
       </div>
+      <div v-for="(item, key) in formState"
+           :key="key"
+           :class="['options-item', {'is-required': item.required}]">
+        <div class="options-item-tit">
+          <div class="option-label">{{ key }}</div>
+          <div class="option-type">{{ item.type }}</div>
+        </div>
+        <div>
+          <AtInput
+            type="textarea"
+            inputStyle="height: 64px;"
+            :options="variableOptions"
+            :defaultSelectedList="item.tags"
+            :defaultValue="item.value"
+            ref="atInputRef"
+            @open="getValueVariableList"
+            @change="(text, selectedList) => changeValue(item, text, selectedList)"
+            placeholder="请输入内容，键入“/”可以插入变量"
+          >
+            <template #option="{ label, payload }">
+              <div class="field-list-item">
+                <div class="field-label">{{ label }}</div>
+                <div class="field-type">{{ payload.typ }}</div>
+              </div>
+            </template>
+          </AtInput>
+        </div>
+        <div class="desc">{{ item.description }}</div>
+      </div>
+    </div>
   </NodeFormLayout>
 </template>
 
@@ -158,6 +172,9 @@ import AtInput from '../at-input/at-input.vue'
 import {getPluginInfo, runPlugin} from "@/api/plugins/index.js";
 import defaultIcon from '@/assets/svg/plugin-node-type.svg'
 import FeishuBittableBox from "./components/feishu-bittable/feishu-bittable-box.vue";
+import OfficialAccountBox from "./components/official-account-profile/official-account-box.vue";
+import {pluginHasAction} from "@/constants/plugin.js";
+import PluginFormRender from "@/views/workflow/components/node-form-drawer/components/pluginFormRender.vue";
 
 const getNode = inject('getNode')
 const setData = inject('setData')
@@ -168,6 +185,11 @@ const props = defineProps({
     default: () => ({})
   }
 })
+
+const pluginCompMap = {
+  feishu_bitable: FeishuBittableBox,
+  official_account_profile: OfficialAccountBox,
+}
 
 const formState = reactive({})
 const info = ref({})
@@ -203,14 +225,13 @@ function loadPluginParams() {
     params: {}
   }).then(res => {
     let data = res?.data || {}
-    if (nodeParams?.plugin?.name === 'feishu_bitable') {
+    if (pluginHasAction(nodeParams?.plugin?.name)) {
       actionInfo.value = data[nodeParams.plugin.params.business]
-      //data = actionInfo.value.params || {}
     } else {
       Object.assign(formState, data)
       for (let key in formState) {
         formState[key].value = String(nodeParams?.plugin.params[key] || '')
-        formState[key].tags = nodeParams.tag_map ? nodeParams?.plugin?.tag_map[key] : []
+        formState[key].tags = nodeParams?.plugin?.tag_map?.[key] || []
       }
     }
   })

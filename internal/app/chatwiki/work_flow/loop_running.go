@@ -174,7 +174,7 @@ func (flowLoop *WorkFlowLoop) getLoopInFields() []*common.SimpleField {
 						return flowLoop.inFieldAppend(loopArray.Key, outField)
 					}
 				}
-			} else {                                   //非开始节点
+			} else { //非开始节点
 				if outNodeKey != loopArray.NodeKey() { //非指定的循环数组输出 下一个
 					continue
 				}
@@ -415,9 +415,7 @@ func (flowLoop *WorkFlowLoop) testFillParams(flowL *WorkFlow) {
 		workFlowGlobal = workFlowGlobal.ExtractionData(flowL.params.WorkFlowGlobal)
 	}
 	for key, field := range common.SimplifyFields(workFlowGlobal) {
-		if _, ok := flowL.global[key]; !ok {
-			flowL.global[key] = field //给全局变量赋值,不能覆盖系统级参数
-		}
+		flowL.global[key] = field
 	}
 	if len(flowL.params.LoopTestParams) > 0 {
 		for _, field := range flowL.params.LoopTestParams {

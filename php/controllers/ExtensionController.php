@@ -6,6 +6,7 @@ namespace app\controllers;
 
 use LogicException;
 use yii\httpclient\Client;
+use yii\httpclient\Exception;
 use yii\httpclient\Response;
 
 abstract class ExtensionController extends BaseLambdaController
@@ -166,6 +167,7 @@ abstract class ExtensionController extends BaseLambdaController
 
     /**
      * HTTP 封装
+     * @throws Exception
      */
     public function sendRequest(string $method, string $url, array $query, array $body, array $headers): Response
     {

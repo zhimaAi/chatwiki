@@ -7,9 +7,11 @@
         v-for="item in menus"
         :key="item.key"
       >
-        <a-menu-item :icon="item.icon" :path="item.path" :key="item.key" v-if="!item.hidden">{{
-          item.label
-        }}</a-menu-item>
+        <a-menu-item :icon="item.icon" :path="item.path" :key="item.key" v-if="!item.hidden">
+          {{item.label}}
+          <span v-if="item.syncStatus == 2" class="sync-tag run">同步中</span>
+          <span v-else-if="item.syncStatus == 3" class="sync-tag fail">同步失败</span>
+        </a-menu-item>
       </router-link>
     </a-menu>
   </div>
@@ -41,7 +43,12 @@ const selectedKeys = computed(() => {
   return [route.path.split('/')[3]]
 })
 
+const librarySyncStatus = computed(() => {
+  return libraryStore.sync_official_content_status
+})
+
 const menus = computed(() => {
+
   let lists = [
     {
       key: 'knowledge-document',
@@ -59,7 +66,8 @@ const menus = computed(() => {
         ]),
       label: libraryStore.type == 2 ? '知识管理' : '知识库文档' ,
       title: '知识库文档',
-      path: '/library/details/knowledge-document'
+      path: '/library/details/knowledge-document',
+      syncStatus: Number(librarySyncStatus.value)
     },
     {
       key: 'knowledge-graph',
@@ -246,6 +254,21 @@ const handleChangeMenu = ({ item }) => {
     ::v-deep(.ant-menu-item-selected .menu-icon-active) {
       display: block;
     }
+  }
+}
+
+.sync-tag {
+  width: 100%;
+  background: rgba(0,0,0,0.5);
+  color: #FFF;
+  font-size: 10px;
+  border-radius: 12px;
+  padding: 2px 6px;
+  &.run {
+    background: #2475FC;
+  }
+  &.fail {
+    background: #FB363F;
   }
 }
 </style>

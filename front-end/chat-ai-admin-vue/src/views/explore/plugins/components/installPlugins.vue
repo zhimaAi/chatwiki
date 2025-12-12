@@ -1,8 +1,8 @@
 <template>
   <div class="_plugin-box">
     <LoadingBox v-if="loading"/>
-    <div v-else-if="list.length" class="plugin-list">
-      <div v-for="item in list"
+    <div v-else-if="allList.length" class="plugin-list">
+      <div v-for="item in allList"
            @click="linkDetail(item)"
            :key="item.name"
            class="plugin-item">
@@ -23,14 +23,14 @@
             <a-switch v-model:checked="item.local.has_loaded" @change="openChange(item)"/>
           </div>
           <div class="right">
-            <span class="zm-link-pointer" @click.stop="delPlugin(item)">删除</span>
+            <span v-if="item.local.type != 'trigger'" class="zm-link-pointer" @click.stop="delPlugin(item)">删除</span>
             <template v-if="item.help_url">
               <a-divider type="vertical"/>
               <a @click.stop class="c595959" :href="item.help_url" target="_blank">使用说明</a>
             </template>
-            <template v-if="item.name == 'feishu_bitable'">
+            <template v-if="showConifgPlugins.includes(item.name)">
               <a-divider type="vertical"/>
-              <a @click.stop="showFeishuConfig(item)">配置</a>
+              <a @click.stop="showConfigModal(item)">配置</a>
             </template>
             <template v-if="item.has_update">
               <a-divider type="vertical"/>
@@ -42,7 +42,7 @@
     </div>
     <EmptyBox v-else title="暂未安装插件">
       <template #desc>
-        <div>更多功能可到 <a>探索>插件广场</a> 中去添加</div>
+        <div>更多功能可到 <a  @click="emit('tabChange', 3)">探索>插件广场</a> 中去添加</div>
         <div class="text-center mt24">
           <a-button class="btn" type="primary" @click="emit('tabChange', 3)">去添加</a-button>
         </div>
@@ -51,19 +51,21 @@
 
     <UpdateModal ref="updateRef" @ok="loadData"/>
     <FeishuConfigBox ref="feishuRef"/>
+    <ConfigBox ref="configRef"/>
   </div>
 </template>
 
 <script setup>
-import {onMounted, ref, watch, h} from 'vue';
+import {onMounted, ref, watch, h, computed} from 'vue';
 import {useRouter} from 'vue-router';
 import {message, Modal} from 'ant-design-vue';
 import EmptyBox from "@/components/common/empty-box.vue";
 import UpdateModal from "./update-modal.vue";
 import LoadingBox from "@/components/common/loading-box.vue";
-import {closePlugin, getInstallPlugins, getPluginConfig, openPlugin, uninstallPlugin} from "@/api/plugins/index.js";
+import {closePlugin, getInstallPlugins, getPluginConfig, openPlugin, uninstallPlugin, triggerSwitch, triggerConfigList} from "@/api/plugins/index.js";
 import {jsonDecode} from "@/utils/index.js";
 import FeishuConfigBox from "@/views/explore/plugins/components/feishu-config-box.vue";
+import ConfigBox from "@/views/explore/plugins/components/config-box.vue";
 
 const emit = defineEmits(['installReport', 'tabChange'])
 const props = defineProps({
@@ -76,8 +78,10 @@ const router = useRouter()
 
 const updateRef = ref(null)
 const feishuRef = ref(null)
+const configRef = ref(null)
 const loading = ref(true)
 const list = ref([])
+const showConifgPlugins = ['feishu_bitable', 'official_account_profile']
 
 onMounted(() => {
   loadData()
@@ -95,7 +99,30 @@ function search() {
   loadData()
 }
 
+const triggerList = ref([])
+
+const allList = computed(()=>{
+  if(props.filterData.filter_type == 0 || props.filterData.filter_type == 5){
+    return [...triggerList.value, ...list.value]
+  }
+
+  return list.value
+})
+
+
 function loadData() {
+  triggerConfigList(props.filterData).then(res=>{
+    let _list = res?.data || []
+    _list = _list.map(item => {
+      return {
+        ...item.remote,
+        local: item.local,
+        has_update: item.remote?.latest_version != item.local?.version,
+        installing: false
+      }
+    })
+    triggerList.value = _list
+  })
   loading.value = true
   getInstallPlugins(props.filterData).then(res => {
     let _list = res?.data || []
@@ -123,13 +150,33 @@ async function openChange(item) {
       okText: '确定',
       cancelText: '取消',
       onOk: () => {
-        closePlugin({name: item.name}).then(() => {
-          message.success('已关闭')
-        }).catch(cancel)
+        if(item.local.type == 'trigger'){
+          triggerSwitch({
+            id: item.trigger_config_id,
+            switch_status: 0
+          }).then(() => {
+            message.success('已关闭')
+          }).catch(cancel)
+        }else{
+          closePlugin({name: item.name}).then(() => {
+            message.success('已关闭')
+          }).catch(cancel)
+        }
       },
-      onCancel: cancel
+      onCancel(){
+        cancel()
+      }
     })
   } else {
+    if(item.local.type == 'trigger'){
+      triggerSwitch({
+        id: item.trigger_config_id,
+        switch_status: 1
+      }).then(()=>{
+        message.success('已开启')
+      })
+      return
+    }
     if (item.name == 'feishu_bitable') {
       let {data} = await getPluginConfig({name: item.name})
       data = jsonDecode(data, {})
@@ -172,12 +219,23 @@ function delPlugin(item) {
 }
 
 function linkDetail(item) {
+  if(item.local.type == 'trigger'){
+    return
+  }
   router.push({
     path: '/plugins/detail',
     query: {
       name: item.name
     }
   })
+}
+
+function showConfigModal(item) {
+  if (item.name === 'feishu_bitable') {
+    showFeishuConfig(item)
+  } else {
+    configRef.value.show(item)
+  }
 }
 
 function update(item) {

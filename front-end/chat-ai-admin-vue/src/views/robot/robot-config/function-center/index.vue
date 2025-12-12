@@ -104,7 +104,7 @@ const handleSwitchChange = (item, checked) => {
               item.robot_config.switch_status = newStatus
             }
             // 通知左侧菜单刷新能力列表（用于动态菜单）
-            if (item.ability_type != 'robot_subscribe_reply') {
+            if (item.robot_only_show != 1) {
               window.dispatchEvent(new CustomEvent('robotAbilityUpdated', { detail: { robotId: robotId.value } }))
             }
           }
@@ -139,31 +139,23 @@ const handleFixedMenuChange = (item, checked) => {
 
 const handleClickItem = (item) => {
   let url
-  if (item.ability_type == 'robot_auto_reply') {
+  if (item.robot_only_show != 1) {
     url = router.resolve({
-      path: '/robot/ability/auto-reply',
+      path: item.menu.path,
       query: {
         id: robotId.value,
         robot_key: route.query.robot_key
       }
     })
-  } else if (item.ability_type == 'robot_subscribe_reply') {
+  } else {
     router.push({
-      path: '/explore/index/subscribe-reply',
+      path: item.menu.path,
       query: {
         id: robotId.value,
         robot_key: route.query.robot_key
       }
     })
     return
-  } else if (item.ability_type == 'robot_smart_menu') {
-    url = router.resolve({
-      path: '/robot/ability/smart-menu',
-      query: {
-        id: robotId.value,
-        robot_key: route.query.robot_key
-      }
-    })
   }
   window.open(url.href, '_blank')
 }

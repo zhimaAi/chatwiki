@@ -14,6 +14,10 @@ const router = useRouter()
 const active = ref(localStorage.getItem('zm:explore:active') || '1')
 const tabs = ref([
   {
+    title: '模板广场',
+    value: '4'
+  },
+  {
     title: '功能',
     value: '1'
   },
@@ -43,6 +47,9 @@ function change(val){
     case 3:
       router.push({path: '/plugins/index', query: {active: val}})
       break
+    case 4:
+      router.push({path: '/templates/index'})
+      break
 
   }
 }
@@ -50,7 +57,8 @@ function change(val){
 function loadInstallPlugins() {
   getInstallPlugins().then(res => {
     let _list = res?.data || []
-    tabs.value[1].title = `插件(${_list.length})`
+    let plugin = tabs.value.find(i => i.value == 2)
+    plugin.title = `插件(${_list.length})`
     localStorage.setItem('zm:explore:plugins:count', _list.length)
   })
 }

@@ -107,4 +107,9 @@ func initConfig() {
 		logs.Error(err.Error())
 		panic(`读取配置plugin出错`)
 	}
+	define.Config.Xiaokefu, err = config.GetSection("xiaokefu")
+	if err != nil {
+		logs.Error(err.Error())
+		panic(`读取配置xiaokefu出错`)
+	}
 }

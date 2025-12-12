@@ -59,7 +59,7 @@
 
 <script setup>
 import { ref, reactive, watch, onMounted, inject, nextTick, computed } from 'vue'
-import NodeListPopup from '../../node-list-popup.vue'
+import NodeListPopup from '../../node-list-popup/index.vue'
 import { CaretRightOutlined, PlusCircleOutlined } from '@ant-design/icons-vue'
 import RunTest from './components/run-test.vue'
 import BorderLine from './components/border-line.vue'

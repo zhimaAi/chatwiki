@@ -53,6 +53,7 @@
 </template>
 
 <script setup>
+import { getUuid } from '@/utils/index'
 import { ref, reactive, watch, onMounted, inject, nextTick, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
 import NodeCommon from '../base-node.vue'
@@ -87,13 +88,7 @@ const formState = reactive({
   prompt: '',
   question_value: [],
   enable_thinking: false,
-  categorys: [
-    {
-      category: '',
-      next_node_key: '',
-      key: Math.random() * 10000
-    }
-  ]
+  categorys: []
 })
 
 function formatQuestionValue(val) {
@@ -128,7 +123,6 @@ const reset = () => {
         let items = cate.categorys.map((item) => {
           return {
             ...item,
-            key: Math.random() * 10000
           }
         })
         formState[key] = items
@@ -137,7 +131,7 @@ const reset = () => {
           {
             category: '',
             next_node_key: '',
-            key: Math.random() * 10000
+            key: getUuid(16)
           }
         ]
       }
@@ -157,15 +151,15 @@ const reset = () => {
 }
 
 const update = () => {
+  const model_config_id = formState.model_config_id  ? +formState.model_config_id : formState.model_config_id;
   const data = JSON.stringify({
     cate: {
       ...formState,
-      model_config_id: formState.model_config_id
-        ? +formState.model_config_id
-        : formState.model_config_id
+      question_value: formState.question_value.join('.'),
+      model_config_id: model_config_id
     }
   })
-
+  
   setData({
     ...props.node,
     ...formState,
@@ -173,8 +167,14 @@ const update = () => {
   })
 }
 
-// --- Watchers and Lifecycle Hooks ---
-watch(() => props.properties, reset, { deep: true })
+watch(() => props.properties, (newVal, oldVal) => {
+  const newDataRaw = newVal.dataRaw || newVal.node_params || '{}'
+  const oldDataRaw = oldVal.dataRaw || oldVal.node_params || '{}'
+  
+  if(newDataRaw != oldDataRaw) { 
+    reset()
+  }
+}, { deep: true })
 
 onMounted(() => {
   reset()

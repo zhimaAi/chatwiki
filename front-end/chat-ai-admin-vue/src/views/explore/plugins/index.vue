@@ -95,7 +95,7 @@ function updateTab() {
 <style scoped lang="less">
 ._container {
   height: 100%;
-  padding: 16px 24px 0;
+  padding: 16px 24px 0 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;

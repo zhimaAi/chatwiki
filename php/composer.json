@@ -8,14 +8,9 @@
         "yiisoft/yii2-httpclient": "^2.0",
       "ext-curl": "*",
         "guzzlehttp/guzzle": "^7.10",
-        "nesbot/carbon": "^3.10"
+        "nesbot/carbon": "^3.10",
+        "league/html-to-markdown": "^5.1"
     },
-    "repositories": [
-        {
-            "type": "composer",
-            "url": "https://asset-packagist.org"
-        }
-    ],
     "config": {
         "allow-plugins": {
             "yiisoft/yii2-composer": true

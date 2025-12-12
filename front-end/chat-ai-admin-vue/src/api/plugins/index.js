@@ -16,6 +16,10 @@ export function getInstallPlugins(params = {}) {
   return request.get({url: '/manage/plugin/local-plugins/list', params})
 }
 
+export function triggerConfigList(params = {}) {
+  return request.get({url: '/manage/triggerConfigList', params})
+}
+
 export function uninstallPlugin(data = {}) {
   return request.post({url: '/manage/plugin/local-plugins/destroy', data})
 }
@@ -42,4 +46,9 @@ export function setPluginConfig(data = {}) {
 
 export function runPlugin(data = {}) {
   return request.post({url: '/manage/plugin/local-plugins/run', data})
+}
+
+
+export function triggerSwitch(data = {}) {
+  return request.post({url: '/manage/triggerSwitch', data})
 }

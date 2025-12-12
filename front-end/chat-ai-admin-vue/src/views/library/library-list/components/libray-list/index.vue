@@ -31,8 +31,34 @@
     .library-icon {
       width: 52px;
       height: 52px;
-      border-radius: 14px;
       overflow: hidden;
+      position: relative;
+      > img {
+        width: 100%;
+        height: 100%;
+        border-radius: 14px;
+      }
+
+      .sync-tag {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 18px;
+        background: rgba(0,0,0,0.5);
+        color: #FFF;
+        font-size: 10px;
+        border-radius: 0 0 14px 14px;
+        &.run {
+          background: #2475FC;
+        }
+        &.fail {
+          background: #FB363F;
+        }
+      }
     }
 
     .library-info-content{
@@ -162,16 +188,23 @@
 
 <template>
   <div class="list-box">
-    <div class="list-item-wrapper" v-for="item in props.list" :key="item.id">
+    <div v-if="props.list.length" class="list-item-wrapper" v-for="item in props.list" :key="item.id">
       <div class="list-item" @click.stop="toEdit(item)">
         <div class="library-info">
-          <img class="library-icon" :src="item.avatar" alt="" />
+          <div class="library-icon">
+            <img :src="item.avatar"/>
+            <template v-if="item.type == 3">
+              <span v-if="item.sync_official_content_status == 2" class="sync-tag run">同步中</span>
+              <span v-else-if="item.sync_official_content_status == 3" class="sync-tag fail">同步失败</span>
+            </template>
+          </div>
           <div class="library-info-content">
             <div class="library-title">{{ item.library_name }}</div>
             <div class="library-type">
               <span class="type-tag" v-if="item.type == 0">普通知识库</span>
               <span class="type-tag" v-if="item.type == 1">对外知识库</span>
               <span class="type-tag" v-if="item.type == 2">问答知识库</span>
+              <span class="type-tag" v-if="item.type == 3">公众号知识库</span>
               <a-tooltip v-if="neo4j_status">
                 <template #title>{{ item.graph_switch == 0 ? '未' : '已' }}开启知识图谱生成</template>
                 <span class="type-tag graph-tag" :class="{ 'gray-tag': item.graph_switch == 0 }"
@@ -182,7 +215,7 @@
           </div>
         </div>
         <div class="item-body">
-          
+
           <div class="library-desc">{{ item.library_intro }}</div>
         </div>
 
@@ -214,9 +247,10 @@
           </div>
         </div>
 
-        
+
       </div>
     </div>
+    <EmptyBox v-else style="margin-top: 80px;"/>
   </div>
 </template>
 
@@ -225,6 +259,7 @@ import { computed } from 'vue'
 const emit = defineEmits(['add', 'edit', 'delete', 'openEditGroupModal'])
 
 import { useCompanyStore } from '@/stores/modules/company'
+import EmptyBox from "@/components/common/empty-box.vue";
 const companyStore = useCompanyStore()
 const neo4j_status = computed(()=>{
   return companyStore.companyInfo?.neo4j_status == 'true'

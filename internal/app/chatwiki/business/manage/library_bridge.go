@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
@@ -39,11 +40,23 @@ func BridgeGetLibraryList(adminUserId, userId int, lang string, req *BridgeLibra
 	}
 	typ := cast.ToString(req.Type)
 	showOpenDocs := cast.ToInt(req.ShowOpenDocs)
+
+	hasEnabledOfficialAccount, err := common.CheckHasEnabledOfficialAccount(adminUserId)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
+	}
+
 	if typ == "" {
-		typ = fmt.Sprintf(`%v,%v`, define.GeneralLibraryType, define.QALibraryType)
+		if hasEnabledOfficialAccount {
+			typ = fmt.Sprintf(`%v,%v,%v`, define.GeneralLibraryType, define.QALibraryType, define.OfficialLibraryType)
+		} else {
+			typ = fmt.Sprintf(`%v,%v`, define.GeneralLibraryType, define.QALibraryType)
+		}
 	} else if !tool.InArrayInt(cast.ToInt(typ), define.LibraryTypes[:]) {
 		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `type`))
 	}
+
 	if showOpenDocs == define.SwitchOn {
 		m.Where(fmt.Sprintf(`(type in (%v) or (type=%v and use_model_switch = %v))`, typ, define.OpenLibraryType, define.SwitchOn))
 	} else {
@@ -77,7 +90,7 @@ func BridgeGetLibraryList(adminUserId, userId int, lang string, req *BridgeLibra
 		}
 	}
 	list, err := m.
-		Field(`id,type,access_rights,avatar,library_name,library_intro,avatar,graph_switch,graph_model_config_id,model_config_id,use_model,graph_use_model,create_time,group_id`).
+		Field(`id,type,access_rights,avatar,library_name,library_intro,avatar,graph_switch,graph_model_config_id,model_config_id,use_model,graph_use_model,create_time,group_id,official_app_id,sync_official_history_type,enable_cron_sync_official_content,sync_official_content_status,sync_official_content_last_err_msg`).
 		Order(`id desc`).
 		Select()
 	if err != nil {
@@ -217,6 +230,7 @@ type BridgeCreateLibraryReq struct {
 	FatherChunkChunkSize             string `form:"father_chunk_chunk_size"`
 	SonChunkSeparatorsNo             string `form:"son_chunk_separators_no"`
 	SonChunkChunkSize                string `form:"son_chunk_chunk_size"`
+	IsDefault                        string `form:"is_default"`
 }
 
 func BridgeCreateLibrary(adminUserId, loginUserId int, lang string, req *BridgeCreateLibraryReq) (map[string]any, int, error) {
@@ -253,6 +267,10 @@ func BridgeCreateLibrary(adminUserId, loginUserId int, lang string, req *BridgeC
 	fatherChunkChunkSize := cast.ToInt(req.FatherChunkChunkSize)
 	sonChunkSeparatorsNo := strings.TrimSpace(req.SonChunkSeparatorsNo)
 	sonChunkChunkSize := cast.ToInt(req.SonChunkChunkSize)
+	isDefault := cast.ToInt(req.IsDefault)
+	if !tool.InArrayInt(isDefault, []int{define.IsDefault, define.NotDefault}) {
+		isDefault = define.IsDefault
+	}
 	if len(libraryName) == 0 || !tool.InArrayInt(typ, define.LibraryTypes[:]) {
 		return nil, -1, errors.New(i18n.Show(lang, `param_lack`))
 	}
@@ -349,6 +367,7 @@ func BridgeCreateLibrary(adminUserId, loginUserId int, lang string, req *BridgeC
 		`father_chunk_chunk_size`:              fatherChunkChunkSize,
 		`son_chunk_separators_no`:              sonChunkSeparatorsNo,
 		`son_chunk_chunk_size`:                 sonChunkChunkSize,
+		`is_default`:                           isDefault,
 	}
 	if len(avatar) > 0 {
 		data[`avatar`] = avatar
@@ -357,6 +376,10 @@ func BridgeCreateLibrary(adminUserId, loginUserId int, lang string, req *BridgeC
 	if err != nil {
 		logs.Error(err.Error())
 		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
+	}
+	//set use guide finish
+	if isDefault == define.NotDefault {
+		_ = common.SetStepFinish(adminUserId, define.StepCreateLibrary)
 	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.LibraryCacheBuildHandler{LibraryId: int(libraryId)})
@@ -419,9 +442,11 @@ type BridgeEditLibraryReq struct {
 	SonChunkChunkSize                string `form:"son_chunk_chunk_size"`
 	StatisticsSet                    string `form:"statistics_set"`
 	IconTemplateConfigId             string `form:"icon_template_config_id"`
+	SyncOfficialHistoryType          string `form:"sync_official_history_type"`
+	EnableCronSyncOfficialContent    string `form:"enable_cron_sync_official_content"`
 }
 
-func BridgeEditLibrary(adminUserId, loginUserId int, lang string, req *BridgeEditLibraryReq) (map[string]any, int, error) {
+func BridgeEditLibrary(c *gin.Context, adminUserId, loginUserId int, lang string, req *BridgeEditLibraryReq) (map[string]any, int, error) {
 	id := cast.ToInt(req.Id)
 	libraryName := strings.TrimSpace(req.LibraryName)
 	libraryIntro := strings.TrimSpace(req.LibraryIntro)
@@ -457,6 +482,8 @@ func BridgeEditLibrary(adminUserId, loginUserId int, lang string, req *BridgeEdi
 	fatherChunkChunkSize := cast.ToInt(req.FatherChunkChunkSize)
 	sonChunkSeparatorsNo := strings.TrimSpace(req.SonChunkSeparatorsNo)
 	sonChunkChunkSize := cast.ToInt(req.SonChunkChunkSize)
+	syncOfficialHistoryType := cast.ToInt(req.SyncOfficialHistoryType)
+	enableCronSyncOfficialContent := cast.ToBool(req.EnableCronSyncOfficialContent)
 	if id <= 0 || len(libraryName) == 0 {
 		return nil, -1, errors.New(i18n.Show(lang, `param_lack`))
 	}
@@ -494,6 +521,9 @@ func BridgeEditLibrary(adminUserId, loginUserId int, lang string, req *BridgeEdi
 	}
 	if graphSwitch == 1 && len(graphUseModel) == 0 {
 		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `graph_use_model`))
+	}
+	if !tool.InArrayInt(syncOfficialHistoryType, define.SyncOfficialHistoryTypeList[:]) {
+		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `sync_official_history_type`))
 	}
 	chunkParam := define.ChunkParam{
 		ChunkType:                        req.ChunkType,
@@ -572,6 +602,8 @@ func BridgeEditLibrary(adminUserId, loginUserId int, lang string, req *BridgeEdi
 		`father_chunk_chunk_size`:              fatherChunkChunkSize,
 		`son_chunk_separators_no`:              sonChunkSeparatorsNo,
 		`son_chunk_chunk_size`:                 sonChunkChunkSize,
+		`sync_official_history_type`:           syncOfficialHistoryType,
+		`enable_cron_sync_official_content`:    enableCronSyncOfficialContent,
 	}
 	if len(avatar) > 0 {
 		data[`avatar`] = avatar
@@ -594,6 +626,10 @@ func BridgeEditLibrary(adminUserId, loginUserId int, lang string, req *BridgeEdi
 	// QA 切换索引方式
 	if cast.ToInt(info[`type`]) == define.QALibraryType && qaIndexType != cast.ToInt(info[`qa_index_type`]) {
 		go common.EmbeddingNewQAVector(id, cast.ToInt(info[`admin_user_id`]), qaIndexType)
+	}
+	// 更新历史发布内容
+	if cast.ToInt(info[`type`]) == define.OfficialLibraryType && cast.ToInt(info[`sync_official_history_type`]) < syncOfficialHistoryType {
+		go SyncOfficialLibrary(common.GetLang(c), id)
 	}
 
 	//clear cached data

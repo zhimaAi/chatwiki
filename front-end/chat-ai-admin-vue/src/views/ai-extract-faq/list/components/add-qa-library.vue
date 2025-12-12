@@ -250,6 +250,7 @@ const saveForm = () => {
   formData.append('ai_chunk_model', formState.ai_chunk_model)
   formData.append('ai_chunk_model_config_id', formState.ai_chunk_model_config_id)
   formData.append('ai_chunk_prumpt', formState.ai_chunk_prumpt)
+  formData.append('is_default', 2)
 
   createLibrary(formData).then((res) => {
     message.success('创建成功')

@@ -78,6 +78,7 @@
         </a-form>
         <LibrarySelectAlert
           ref="librarySelectAlertRef"
+          :showWxType="!!wxAppLibary"
           @close="getList"
           @change="onChangeLibrarySelected"
         />
@@ -85,7 +86,7 @@
       </div>
     </div>
   </NodeFormLayout>
-  
+
 </template>
 
 <script setup>
@@ -96,6 +97,7 @@ import { CloseCircleOutlined, PlusOutlined, SettingOutlined } from '@ant-design/
 import { getLibraryList } from '@/api/library/index'
 import LibrarySelectAlert from '../nodes/knowledge-base-node/library-select-alert.vue'
 import RecallSettingsAlert from '../nodes/knowledge-base-node//recall-settings-alert.vue'
+import {getSpecifyAbilityConfig} from "@/api/explore/index.js";
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({
@@ -157,7 +159,7 @@ function formatQuestionValue(val) {
 }
 
 const formRef = ref()
-
+const wxAppLibary = ref(null)
 const formState = reactive({
   library_ids: [],
   rerank_status: 0,
@@ -205,6 +207,14 @@ const init = () => {
         formState[key] = libs[key]
       }
     }
+
+    // 公众号知识库是否开启
+    getSpecifyAbilityConfig({ability_type: 'library_ability_official_account'}).then((res) => {
+      let _data = res?.data || {}
+      if (_data?.user_config?.switch_status == 1) {
+        wxAppLibary.value = _data
+      }
+    })
   } catch (error) {
     console.log(error)
   }
@@ -214,7 +224,11 @@ const libraryList = ref([])
 const librarySelectAlertRef = ref(null)
 const selectedLibraryRows = computed(() => {
   return libraryList.value.filter((item) => {
-    return formState.library_ids.includes(item.id)
+    if (!wxAppLibary.value) {
+      return formState.library_ids.includes(item.id) && item.type != 3
+    } else {
+      return formState.library_ids.includes(item.id)
+    }
   })
 })
 

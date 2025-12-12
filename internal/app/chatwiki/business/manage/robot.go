@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/app/chatwiki/work_flow"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
@@ -189,7 +190,11 @@ func SaveRobot(c *gin.Context) {
 	cacaheConfig := strings.TrimSpace(c.DefaultPostForm(`cache_config`, `{"cache_switch":1,"valid_time":86400}`))
 	groupId := cast.ToInt(c.PostForm(`group_id`))
 	promptRoleType := cast.ToInt(c.PostForm(`prompt_role_type`))
-
+	opTypeRelationLibrary := cast.ToInt(c.PostForm(`op_type_relation_library`))
+	isDefault := cast.ToInt(c.DefaultPostForm(`is_default`, `1`))
+	if !tool.InArrayInt(isDefault, []int{define.IsDefault, define.NotDefault}) {
+		isDefault = define.IsDefault
+	}
 	//set default value
 	if id == 0 {
 		robotAvatar = define.LocalUploadPrefix + `default/robot_avatar.svg`
@@ -463,6 +468,9 @@ func SaveRobot(c *gin.Context) {
 
 	if id > 0 {
 		_, err = m.Where(`id`, cast.ToString(id)).Update(data)
+		if err == nil && opTypeRelationLibrary > 0 && isDefault == define.NotDefault {
+			_ = common.SetStepFinish(userId, define.StepRelationLibrary)
+		}
 	} else {
 		for i := 0; i < 5; i++ {
 			tempKey := tool.Random(10)
@@ -482,10 +490,14 @@ func SaveRobot(c *gin.Context) {
 		data[`create_time`] = data[`update_time`]
 		data[`creator`] = loginUserId
 		data[`group_id`] = groupId
+		data[`is_default`] = isDefault
 		id, err = m.Insert(data, `id`)
 		// add robot api key
 
 		if err == nil {
+			if isDefault == define.NotDefault {
+				_ = common.SetStepFinish(userId, define.StepCreateRobot)
+			}
 			addDefaultApiKey(c, robotKey)
 			// _ = AddUserMangedData(loginUserId, `managed_robot_list`, id)
 			go AddDefaultPermissionManage(userId, loginUserId, int(id), define.ObjectTypeRobot)
@@ -526,6 +538,7 @@ func AddFlowRobot(c *gin.Context) {
 	groupId := cast.ToInt(c.PostForm(`group_id`))
 	robotIntro := strings.TrimSpace(c.PostForm(`robot_intro`))
 	robotAvatar := strings.TrimSpace(c.DefaultPostForm(`avatar_from_template`, define.LocalUploadPrefix+`default/workflow_avatar.svg`))
+	isDefault := cast.ToInt(c.DefaultPostForm(`is_default`, cast.ToString(define.IsDefault)))
 	//check required
 	if len(robotName) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
@@ -581,6 +594,7 @@ func AddFlowRobot(c *gin.Context) {
 	loginUserId := getLoginUserId(c)
 	data[`robot_key`] = robotKey
 	data[`creator`] = loginUserId
+	data[`is_default`] = isDefault
 	id, err := m.Insert(data, `id`)
 	// add robot api key
 	if err == nil {
@@ -736,6 +750,7 @@ func DeleteRobot(c *gin.Context) {
 		if err != nil {
 			logs.Error(err.Error())
 		}
+		work_flow.DeleteRobotFollow(userId, id)
 	}()
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }

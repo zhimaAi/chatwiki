@@ -153,7 +153,7 @@ func OpenEditLibrary(c *gin.Context) {
 	}
 	req.FileAvatar, _ = c.FormFile(`avatar`)
 	req.Type = cast.ToString(define.GeneralLibraryType)
-	list, httpStatus, err := manage.BridgeEditLibrary(adminUserId, adminUserId, common.GetLang(c), &req)
+	list, httpStatus, err := manage.BridgeEditLibrary(c, adminUserId, adminUserId, common.GetLang(c), &req)
 	common.FmtBridgeResponse(c, list, httpStatus, err)
 }
 
@@ -170,7 +170,7 @@ func OpenEditLibraryQA(c *gin.Context) {
 	}
 	req.FileAvatar, _ = c.FormFile(`avatar`)
 	req.Type = cast.ToString(define.QALibraryType)
-	list, httpStatus, err := manage.BridgeEditLibrary(adminUserId, adminUserId, common.GetLang(c), &req)
+	list, httpStatus, err := manage.BridgeEditLibrary(c, adminUserId, adminUserId, common.GetLang(c), &req)
 	common.FmtBridgeResponse(c, list, httpStatus, err)
 }
 

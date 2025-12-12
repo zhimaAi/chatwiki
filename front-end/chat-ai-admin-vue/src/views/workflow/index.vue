@@ -77,6 +77,7 @@
 </template>
 
 <script setup>
+import { useWorkflowStore } from '@/stores/modules/workflow'
 import { getNodeList, saveNodes, getDraftKey } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
 import { generateUniqueId, duplicateRemoval, removeRepeat } from '@/utils/index'
@@ -100,7 +101,11 @@ const robot_key = ref(route.query.robot_key)
 const addRobotAlertRef = ref(null)
 const workflowCanvasRef = ref(null)
 
+const workflowStore = useWorkflowStore()
 const robotStore = useRobotStore()
+
+// 触发器列表
+const triggerList = computed(() => workflowStore.triggerList)
 
 const currentVersion = ref('')
 const currentVersionData = ref('')
@@ -412,16 +417,7 @@ function getNode (list) {
       const type = nodeTypes[item.node_type]
 
       item.type = type
-      // 节点处理
-      if (item.node_type == 1) {
-        let node_params = JSON.parse(item.node_params)
-
-        if (!node_params.start) {
-          node_params.start = []
-        }
-
-        item.node_params = JSON.stringify(node_params)
-      }
+      
       // 节点数据处理
       let node = JSON.parse(item.node_info_json)
 
@@ -489,7 +485,6 @@ const getCanvasData = () => {
     obj.node_info_json = node_info_json
 
     list.push(obj)
-
     if (item.sourceAnchorId) {
       edgeMap[item.sourceAnchorId] = item.targetNodeId
     }
@@ -522,6 +517,12 @@ const getCanvasData = () => {
     obj.prev_node_key = edgeMap[obj.nodeSortKey + '-anchor_left'] || ''
 
     let node_params = JSON.parse(obj.node_params)
+    
+    // 开始节点
+    if (obj.node_type == 1) { 
+      
+    }
+
     if (obj.node_type == 2) {
       // 判断分支
       if (node_params.term && node_params.term.length > 0) {
@@ -549,15 +550,9 @@ const getCanvasData = () => {
       }
     }
 
-    // for (let key in node_params) {
-    // for (let key2 in node_params[key]) {
-    //   node_params[key][key2] = obj[key2] || ''
-    // }
-    // }
-
-    // obj.node_params = JSON.stringify(node_params)
     obj.node_params = node_params
 
+    // 删除无用字段
     delete obj.dataRaw
 
     list.push(obj)
@@ -1030,15 +1025,44 @@ const handleRunTest = () => {
   pageHeaderRef.value.openRunTest()
 }
 
-onMounted(async () => {
-  // 记录当前工作流的打开页面计数
-  incrementOpenTabs()
+// 头部“编辑”按钮
+const handleClickEdit = async () => {
+  if (isLockedByOther.value) {
+    message.warning('当前已有其他用户在编辑中，无法编辑')
+    return
+  }
+  const ok = await acquireEditLock()
+  if (ok) {
+    isEditing.value = true
+    autoSaveEnabled.value = true
+    // 重新记录快照并启动无改动监控
+    lastChangeHash = computeCanvasHash()
+    lastChangeTs = Date.now()
+    startChangeMonitor()
+    updateAutoSaveTimer()
+    message.success('已进入编辑模式')
+    toAddRobot(1)
+  }
+}
+
+const init = async () => { 
   await getModelList()
+  await workflowStore.getTriggerList();
+
   const res = await getNodeList({
     robot_key: robot_key.value,
     data_type: 1
   })
+
   getNode(res.data)
+}
+
+onMounted(async () => {
+  // 记录当前工作流的打开页面计数
+  incrementOpenTabs()
+  
+  await init()
+  
   // 初次进入：若存在草稿记录则默认查看模式，需要点击编辑按钮进入编辑
   await checkEditLock()
   if (isLockedByOther.value) {
@@ -1085,23 +1109,5 @@ onMounted(async () => {
     message.info('按住Shift 滚动鼠标可左右移动画布，按住Ctrl 滚动鼠标可放大缩小画布', 6)
   }
 })
-// 头部“编辑”按钮
-const handleClickEdit = async () => {
-  if (isLockedByOther.value) {
-    message.warning('当前已有其他用户在编辑中，无法编辑')
-    return
-  }
-  const ok = await acquireEditLock()
-  if (ok) {
-    isEditing.value = true
-    autoSaveEnabled.value = true
-    // 重新记录快照并启动无改动监控
-    lastChangeHash = computeCanvasHash()
-    lastChangeTs = Date.now()
-    startChangeMonitor()
-    updateAutoSaveTimer()
-    message.success('已进入编辑模式')
-    toAddRobot(1)
-  }
-}
+
 </script>

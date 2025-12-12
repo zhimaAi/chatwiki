@@ -16,6 +16,7 @@ const (
 	RobotAbilityReceivedMessageReply = `robot_received_message_reply` //收到消息回复功能
 	RobotAbilitySubscribeReply       = `robot_subscribe_reply`        //关注后回复功能
 	RobotAbilitySmartMenu            = `robot_smart_menu`             //智能菜单功能
+	OfficialAbilityCustomMenu        = `official_custom_menu`         //自定义菜单功能
 )
 
 var DefaultRobotConfig = msql.Params{
@@ -74,7 +75,27 @@ var RobotAbilityList = []Ability{
 		Menu: define.Menu{
 			Name:     "关注后回复",
 			UniKey:   "RobotAbilitySubscribeReply",
-			Path:     "/robot/ability/subscribe-reply",
+			Path:     "/explore/index/subscribe-reply",
+			Children: []*define.Menu{},
+		},
+	},
+	{
+		Name:          "自定义菜单",
+		ModuleType:    RobotModule,               //模块类型 //本来应该在公众号模块 但wendy要求在机器人的功能中心中展示
+		AbilityType:   OfficialAbilityCustomMenu, //全局唯一值 类型
+		Introduction:  "支特对公众号菜单自定义，多公众号可单独设置",
+		Details:       "查看详情中的信息 前端自己定义",
+		Icon:          "iconfont icon-official-custom-menu",
+		ShowSelect:    define.SwitchOn,
+		RobotOnlyShow: define.SwitchOn,
+		SupportChannelsList: []string{
+			"公众号",
+		},
+		RobotConfig: DefaultRobotConfig,
+		Menu: define.Menu{
+			Name:     "自定义菜单",
+			UniKey:   "OfficialAbilityCustomMenu",
+			Path:     "/explore/index/custom-menu",
 			Children: []*define.Menu{},
 		},
 	},
@@ -196,7 +217,7 @@ func GetRobotAbilityList(robotId int, adminUserId int, specifyAbilityType string
 	}
 
 	//显示列表能力
-	for _, item := range RobotAbilityList {
+	for _, item := range GetAllAbilityList() {
 		if specifyAbilityType != `` && item.AbilityType != specifyAbilityType {
 			continue
 		}

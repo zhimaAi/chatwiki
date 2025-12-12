@@ -1,4 +1,5 @@
 // Copyright © 2016- 2024 Sesame Network Technology all right reserved
+
 package manage
 
 import (
@@ -44,7 +45,7 @@ func SaveUserAbility(c *gin.Context) {
 	}
 
 	// 保存用户功能开关状态
-	err = common.SaveUserAbility(adminUserId, req.AbilityType, req.SwitchStatus)
+	_, err = common.SaveUserAbility(adminUserId, req.AbilityType, req.SwitchStatus)
 	if err != nil {
 		logs.Error("SaveUserAbility error: %s", err.Error())
 		common.FmtError(c, `sys_err`)
@@ -101,7 +102,7 @@ func GetSpecifyAbilityConfig(c *gin.Context) {
 	if len(list) > 0 {
 		common.FmtOk(c, list[0])
 	} else {
-		logs.Error("无指定机器人功能 error: %s", err.Error())
+		logs.Error("无指定机器人功能 error")
 		common.FmtError(c, `sys_err`)
 	}
 }

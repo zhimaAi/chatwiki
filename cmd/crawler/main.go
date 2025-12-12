@@ -5,14 +5,15 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/caarlos0/env/v11"
-	"github.com/gin-gonic/gin"
-	"github.com/playwright-community/playwright-go"
 	"log"
 	"net/http"
 	netURL "net/url"
 	"sync"
 	"time"
+
+	"github.com/caarlos0/env/v11"
+	"github.com/gin-gonic/gin"
+	"github.com/playwright-community/playwright-go"
 )
 
 var (
@@ -72,6 +73,7 @@ func main() {
 		})
 	})
 	router.POST("/content", handleContentRequest)
+	router.POST("/html", handleHtmlRequest)
 	s := &http.Server{
 		Addr:           ":3800",
 		Handler:        router,
@@ -84,6 +86,51 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// handleHtmlRequest handles the html request
+func handleHtmlRequest(c *gin.Context) {
+	// check params
+	var request struct {
+		URL string `json:"url"`
+	}
+	if err := c.BindJSON(&request); err != nil {
+		log.Println(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid params"})
+		return
+	}
+
+	// parse url
+	parsedURL, err := netURL.Parse(request.URL)
+	if err != nil || parsedURL == nil {
+		log.Println(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid URL"})
+		return
+	}
+
+	// open browser
+	err = openNoCheckBrowser()
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// get page content
+	pageInfo, err := fetchURLHtml(parsedURL)
+	if err != nil {
+		log.Println(err)
+		if errors.Is(err, TooManyRequestsError) {
+			c.JSON(http.StatusTooManyRequests, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	//c.String(http.StatusOK, pageInfo.RawHtml)
+	c.JSON(http.StatusOK, pageInfo)
+	return
 }
 
 // handleContentRequest handles the content request
@@ -146,6 +193,42 @@ func openBrowser() error {
 
 		headless := true
 		browser, err = pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{Headless: &headless})
+		if err != nil {
+			return fmt.Errorf("could not launch browser: %v", err)
+		}
+		browserActive = true
+	}
+	return nil
+}
+
+func openNoCheckBrowser() error {
+	browserMu.Lock()
+	defer browserMu.Unlock()
+	browserLastActiveTime = time.Now()
+
+	if !browserActive {
+		var err error
+		pw, err = playwright.Run()
+		if err != nil {
+			return fmt.Errorf("could not start playwright: %v", err)
+		}
+
+		headless := true
+		browser, err = pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
+			Headless: &headless, // 无头模式
+			Args: []string{
+				"--disable-blink-features=AutomationControlled", // 去自动化检测
+				"--no-sandbox",
+				"--disable-setuid-sandbox",
+				"--disable-dev-shm-usage",
+				"--disable-accelerated-2d-canvas",
+				"--no-first-run",
+				"--no-default-browser-check",
+				"--disable-background-timer-throttling",
+				"--disable-backgrounding-occluded-windows",
+				"--disable-renderer-backgrounding",
+			},
+		})
 		if err != nil {
 			return fmt.Errorf("could not launch browser: %v", err)
 		}

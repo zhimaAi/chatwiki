@@ -486,7 +486,7 @@ func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size,
 
 	ids, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`library_id`, `in`, libraryIds).
 		Where(fmt.Sprintf(`to_tsvector('zhima_zh_parser',upper(content))@@to_tsquery('zhima_zh_parser',upper('%s'))`, strings.Join(queryTokens, " | "))).
-		Limit(500).ColumnArr(`id`)
+		Limit(5000).ColumnArr(`id`)
 	if err != nil {
 		return list, err
 	}
@@ -1214,6 +1214,8 @@ func GetAdminConfig(UserId int) map[string]string {
 	if len(list) == 0 { //如果没有配置，给一下默认配置
 		defaultList := make(map[string]string)
 		defaultList["draft_exptime"] = "10"
+		defaultList["comment_pull_days"] = "7"
+		defaultList["comment_pull_limit"] = "10"
 		return defaultList
 	}
 

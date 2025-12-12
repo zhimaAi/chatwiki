@@ -98,7 +98,7 @@
       <a-spin :spinning="isRefresh" :delay="100">
         <a-checkbox-group v-model:value="state.checkedList" style="width: 100%">
           <div class="list-box" ref="scrollContainer">
-            <div class="list-item-wraapper" v-for="item in options" :key="item.id">
+            <div class="list-item-wraapper" v-for="item in showOptions" :key="item.id">
               <a-checkbox class="list-item" :value="item.id">
                 <div class="library-name">{{ item.library_name }}</div>
                 <div class="library-desc">{{ item.library_intro }}</div>
@@ -112,12 +112,18 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { SearchOutlined, SyncOutlined } from '@ant-design/icons-vue'
 import { getLibraryList } from '@/api/library/index'
 
 const emit = defineEmits(['change', 'close'])
+const props = defineProps({
+  showWxType: {
+    type: Boolean,
+    default: false
+  }
+})
 
 const state = reactive({
   indeterminate: false,
@@ -146,6 +152,14 @@ const onSearch = () => {
 }
 
 const options = ref([])
+
+const showOptions = computed(() => {
+  if (props.showWxType) {
+    return options.value
+  } else {
+    return options.value.filter(item => item.type != 3)
+  }
+})
 
 const triggerChange = () => {
   emit('change', [...state.checkedList])

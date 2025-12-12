@@ -124,6 +124,13 @@ func AddModelConfig(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+	//set use guide finish
+	if tool.InArrayString(common.Llm, modelInfo.SupportedType) {
+		_ = common.SetStepFinish(userId, define.StepSetLlm)
+	}
+	if tool.InArrayString(common.TextEmbedding, modelInfo.SupportedType) {
+		_ = common.SetStepFinish(userId, define.StepSetEmbedding)
+	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.ModelConfigCacheBuildHandler{ModelConfigId: int(modelId)})
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))

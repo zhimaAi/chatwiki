@@ -21,6 +21,7 @@ const (
 	TableChatAiRobotApikey = "chat_ai_robot_apikey"
 	TableRule              = "casbin_rule"
 	TableChatAiWechatApp   = "chat_ai_wechat_app"
+	TableUseGuideProcess   = "use_guide_process"
 )
 
 const (
@@ -35,6 +36,11 @@ const (
 )
 
 const (
+	BaseOpen  = "1"
+	BaseClose = "0"
+)
+
+const (
 	RobotManage      = `RobotManage`
 	LibraryManage    = `LibraryManage`
 	SystemManage     = `SystemManage`
@@ -42,15 +48,17 @@ const (
 )
 
 const (
-	GeneralLibraryType = 0
-	QALibraryType      = 2
-	OpenLibraryType    = 1
+	GeneralLibraryType  = 0
+	QALibraryType       = 2
+	OpenLibraryType     = 1
+	OfficialLibraryType = 3
 )
 
 var LibraryTypes = [...]int{
-	GeneralLibraryType, //0普通知识库
-	QALibraryType,      //2问答知识库
-	OpenLibraryType,    //1对外知识库
+	GeneralLibraryType,  //0普通知识库
+	QALibraryType,       //2问答知识库
+	OpenLibraryType,     //1对外知识库
+	OfficialLibraryType, //3公众号知识库
 }
 
 const (
@@ -111,4 +119,61 @@ const (
 	McpClientTypeHttp = 2
 )
 
+// 1指定事件,2指定时间,3手动执行
+const (
+	RunTypeEvent = 1
+	RunTypeCron  = 2
+	RunTypeHand  = 3
+)
+
+// 1 删除评论,2 回复评论,3置顶评论
+const (
+	CommentExecTypeDelete = 1
+	CommentExecTypeReply  = 2
+	CommentExecTypeTop    = 3
+)
+
+var CommentExecTypeMap = map[int]string{
+	CommentExecTypeDelete: "自动删除",
+	CommentExecTypeReply:  "自动回复",
+	CommentExecTypeTop:    "自动精选",
+}
+
+const (
+	CommentCheckTypeHintKeywords = 1
+	CommentCheckTypeAICheck      = 2
+)
+
+const (
+	BatchSendStatusDelete = -1
+	BatchSendStatusWait   = 0
+	BatchSendStatusExec   = 1
+	BatchSendStatusSucc   = 2
+	BatchSendStatusErr    = 3
+)
 const DefaultLibDocBanner = `/upload/default/open_doc_home_default_banner.png`
+
+const (
+	SyncOfficialHistoryTypeHalfYear  = 1
+	SyncOfficialHistoryTypeOneYear   = 2
+	SyncOfficialHistoryTypeThreeYear = 3
+	SyncOfficialHistoryTypeAll       = 10
+)
+
+var SyncOfficialHistoryTypeList = [...]int{
+	SyncOfficialHistoryTypeHalfYear,
+	SyncOfficialHistoryTypeOneYear,
+	SyncOfficialHistoryTypeThreeYear,
+	SyncOfficialHistoryTypeAll,
+}
+
+const (
+	SyncOfficialContentStatusNotStart = 1
+	SyncOfficialContentStatusWorking  = 2
+	SyncOfficialContentStatusFailed   = 3
+)
+
+const (
+	IsDefault  = 1 //library and robot is default
+	NotDefault = 2 //library and robot is not default
+)

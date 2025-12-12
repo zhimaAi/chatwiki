@@ -11,6 +11,7 @@ import (
 
 // FindKeyIsUse 寻找key是否在传入的节点中使用
 func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
+	var isNeedOpenid bool
 	for _, node := range nodeList {
 		switch node.NodeType {
 		case NodeTypeTerm:
@@ -48,6 +49,21 @@ func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 			if strings.Contains(node.NodeParams.Cate.Prompt, findKey) {
 				return true
 			}
+			if node.NodeParams.Cate.QuestionValue == findKey {
+				return true
+			}
+			if findKey == `global.question` && len(node.NodeParams.Cate.QuestionValue) == 0 {
+				return true //为空的时候使用默认值,所有被使用
+			}
+			isNeedOpenid = true //此节点存在隐藏的openid参数调用
+		case NodeTypeLibs:
+			if node.NodeParams.Libs.QuestionValue == findKey {
+				return true
+			}
+			if findKey == `global.question` && len(node.NodeParams.Libs.QuestionValue) == 0 {
+				return true //为空的时候使用默认值,所有被使用
+			}
+			isNeedOpenid = true //此节点存在隐藏的openid参数调用
 		case NodeTypeLlm:
 			if strings.Contains(node.NodeParams.Llm.Prompt, findKey) {
 				return true
@@ -55,6 +71,10 @@ func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 			if node.NodeParams.Llm.QuestionValue == findKey {
 				return true
 			}
+			if findKey == `global.question` && len(node.NodeParams.Llm.QuestionValue) == 0 {
+				return true //为空的时候使用默认值,所有被使用
+			}
+			isNeedOpenid = true //此节点存在隐藏的openid参数调用
 			if len(node.NodeParams.Llm.LibsNodeKey) > 0 {
 				variable := fmt.Sprintf(`%s.%s`, node.NodeParams.Llm.LibsNodeKey, `special.lib_paragraph_list`)
 				if variable == findKey {
@@ -81,10 +101,18 @@ func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 			if node.NodeParams.QuestionOptimize.QuestionValue == findKey {
 				return true
 			}
+			if findKey == `global.question` && len(node.NodeParams.QuestionOptimize.QuestionValue) == 0 {
+				return true //为空的时候使用默认值,所有被使用
+			}
+			isNeedOpenid = true //此节点存在隐藏的openid参数调用
 		case NodeTypeParamsExtractor:
 			if node.NodeParams.ParamsExtractor.QuestionValue == findKey {
 				return true
 			}
+			if findKey == `global.question` && len(node.NodeParams.ParamsExtractor.QuestionValue) == 0 {
+				return true //为空的时候使用默认值,所有被使用
+			}
+			isNeedOpenid = true //此节点存在隐藏的openid参数调用
 		case NodeTypeFormInsert:
 			for _, field := range node.NodeParams.FormInsert.Datas {
 				if strings.Contains(field.Value, findKey) {
@@ -146,6 +174,9 @@ func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 			}
 		}
 	}
+	if findKey == `global.openid` && isNeedOpenid {
+		return true //存在隐藏的openid参数调用
+	}
 	return false
 }
 
@@ -153,11 +184,7 @@ func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 func FindNodeByUseKey(nodeList []WorkFlowNode, findKey string) *WorkFlowNode {
 	findKey = strings.TrimPrefix(findKey, `【`)
 	findKey = strings.TrimSuffix(findKey, `】`)
-	fmt.Println(fmt.Sprintf(`开始查找节点 %s`, findKey))
 	for _, node := range nodeList {
-		if node.NodeType == NodeTypeStart && (findKey == `global.question` || node.NodeKey == `global.openid`) {
-			return &node
-		}
 		keys := node.GetVariables()
 		if tool.InArray(findKey, keys) {
 			return &node

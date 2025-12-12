@@ -3,6 +3,7 @@
 package business
 
 import (
+	"chatwiki/internal/app/chatwiki/business/manage"
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"errors"
@@ -244,4 +245,69 @@ func DeleteLlmRequestLogs() {
 			break //处理完毕,结束循环
 		}
 	}
+}
+
+func UpdateBatchSendData() {
+
+	list, err := msql.Model("wechat_official_account_batch_send_task", define.Postgres).
+		Where(`send_status`, cast.ToString(define.BatchSendStatusExec)).Select()
+	if err != nil {
+		logs.Error("任务列表查询错误:" + err.Error())
+		return
+	}
+
+	for _, params := range list {
+		res, err := manage.BridgeGetSendStatus(params["access_key"], params["send_msg_id"])
+		if err != nil {
+			logs.Error("查询错误：" + err.Error())
+		}
+
+		if res != nil && res.MsgStatus == "SEND_SUCCESS" {
+			msql.Model("wechat_official_account_batch_send_task", define.Postgres).Where(`id`, params["id"]).Update(msql.Datas{
+				`update_time`: time.Now().Unix(),
+				`send_status`: define.BatchSendStatusSucc,
+			})
+		}
+	}
+
+	//	获取发送成功的任务，继续刷新评论
+	succList, err := msql.Model("wechat_official_account_batch_send_task", define.Postgres).
+		Where(`send_status`, cast.ToString(define.BatchSendStatusSucc)).Where(`comment_status`, define.BaseOpen).Select()
+	if err != nil {
+		logs.Error("任务列表查询错误:" + err.Error())
+		return
+	}
+
+	for _, task := range succList {
+		adminConfig := common.GetAdminConfig(cast.ToInt(task["admin_user_id"]))
+
+		sendTime := cast.ToInt(task["send_time"])
+		if sendTime == 0 {
+			sendTime = cast.ToInt(task["create_time"])
+		}
+		//如果超过拉取评论时间，
+		if int(time.Now().Unix())-sendTime > cast.ToInt(adminConfig["comment_pull_days"])*86400 {
+			continue
+		}
+
+		timeLimit := 60
+		if define.IsDev {
+			timeLimit = 10
+		}
+
+		//未到同步评论时间间隔
+		if (cast.ToInt(task["last_comment_sync_time"]) + (cast.ToInt(adminConfig["comment_pull_limit"])-1)*timeLimit) > int(time.Now().Unix()) {
+			logs.Debug("未到同步时间，下次同步时间为：" + cast.ToString(cast.ToInt(task["last_comment_sync_time"])+cast.ToInt(adminConfig["comment_pull_limit"])*timeLimit))
+			continue
+		}
+
+		delayTime := int64(5)
+		common.AddDelayTask(define.DelayTaskEvent{
+			BaseDelayTask: define.BaseDelayTask{Type: define.OfficialAccountBatchSendSyncCommentTask},
+			AdminUserId:   cast.ToInt(task["admin_user_id"]),
+			TaskId:        cast.ToInt(task["id"]),
+		}, delayTime)
+
+	}
+
 }

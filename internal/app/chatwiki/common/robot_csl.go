@@ -202,6 +202,7 @@ func (libraryCsl *LibraryCsl) Import(adminUserId, userId int, cslIdMaps *CslIdMa
 			libraryData[key] = val
 		}
 	}
+	libraryData[`is_default`] = cast.ToString(define.NotDefault)
 	code, err := RequestChatWiki(`/manage/createLibrary`, http.MethodPost, token, libraryData)
 	if err != nil {
 		return err

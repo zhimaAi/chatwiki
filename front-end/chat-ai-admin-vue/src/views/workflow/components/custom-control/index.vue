@@ -76,7 +76,7 @@
         <i class="control-line"></i>
 
         <div class="control-item">
-          <a-button type="primary" @click.stop="isShowMenu = true">
+          <a-button type="primary" @click.stop="handleShowNodeList">
             <template #icon>
               <PlusOutlined />
             </template>
@@ -96,9 +96,9 @@
           </a-button>
         </div>
       </div>
-
+      <!-- 使用 v-show 保证拖拽添加节点时，NodeListPopup 组件不会被销毁，确保 addNode 事件能正常触发 -->
       <div class="node-list-fix" ref="nodeListRef" v-show="isShowMenu">
-        <NodeListPopup @addNode="handleAddNode" type="float-btn" @mouseMove="handleMouseMove" />
+        <NodeListPopup @addNode="handleAddNode" type="float-btn" @mouseMove="handleMouseMove" v-model:active="nodeListTabActive" />
       </div>
     </div>
   </div>
@@ -108,7 +108,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import ZoomSelect from './zoom-select.vue'
 import { PlusOutlined, CaretRightOutlined, PartitionOutlined } from '@ant-design/icons-vue'
-import NodeListPopup from '../node-list-popup.vue'
+import NodeListPopup from '../node-list-popup/index.vue'
 
 const emit = defineEmits(['runTest', 'addNode', 'zoomChange', 'autoLayout'])
 
@@ -163,12 +163,18 @@ const handleAmplify = () => {
   setZoom()
 }
 
-const isShowMenu = ref(false)
-const nodeListRef = ref(null)
-
 const onGraphTransform = (args) => {
   let value = Math.floor(args.transform.SCALE_X * 100)
   zoom.value = value
+}
+
+const isShowMenu = ref(false)
+const nodeListRef = ref(null)
+const nodeListTabActive = ref(1)
+
+const handleShowNodeList = () => {
+  nodeListTabActive.value = 1
+  isShowMenu.value = true
 }
 
 // let miniMap = null
@@ -225,13 +231,20 @@ const handleAddNode = (node) => {
   isShowMenu.value = false
 }
 
+const showTriggerLit = () => {
+  nodeListTabActive.value = 4
+  isShowMenu.value = true
+}
+
 onMounted(() => {
   document.addEventListener('click', documentClick)
   eventCenter.on('graph:transform', onGraphTransform)
+  eventCenter.on('custom:showTriggerLit', showTriggerLit)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', documentClick)
   eventCenter.off('graph:transform', onGraphTransform)
+  eventCenter.off('custom:showTriggerLit', showTriggerLit)
 })
 </script>

@@ -124,7 +124,18 @@
             </a-form-item>
             <div class="diy-form-item">
               <div class="form-label">用户问题</div>
-              <div class="form-content">流程开始>用户问题</div>
+              <div class="form-content">
+                <a-cascader
+                  v-model:value="formState.question_value"
+                  @dropdownVisibleChange="onDropdownVisibleChange"
+                  style="width: 220px"
+                  :options="variableOptionsSelect"
+                  :allowClear="false"
+                  :displayRender="({ labels }) => labels.join('/')"
+                  :field-names="{ children: 'children' }"
+                  placeholder="请选择"
+                />
+              </div>
             </div>
           </div>
           <div class="gray-block mt16">
@@ -172,9 +183,10 @@
 </template>
 
 <script setup>
+import { getUuid } from '@/utils/index'
 import NodeFormLayout from './node-form-layout.vue'
 import NodeFormHeader from './node-form-header.vue'
-import { ref, reactive, watch, computed, onMounted, h } from 'vue'
+import { ref, reactive, watch, computed, onMounted, h, inject  } from 'vue'
 import {
   CloseCircleOutlined,
   QuestionCircleOutlined,
@@ -201,6 +213,8 @@ const props = defineProps({
   }
 })
 
+const getNode = inject('getNode')
+
 const robotStore = useRobotStore()
 const modelList = computed(() => {
   return robotStore.modelList
@@ -222,23 +236,63 @@ const formState = reactive({
   max_token: 0,
   context_pair: 0,
   prompt: '',
+  question_value: '',
   enable_thinking: false,
-  categorys: [
-    {
-      category: '',
-      next_node_key: '',
-      key: Math.random() * 10000
-    }
-  ]
+  categorys: []
 })
 
+const variableOptionsSelect = ref([])
+
+function getOptions() {
+  let list = getNode().getAllParentVariable()
+
+  variableOptionsSelect.value = handleOptions(list)
+}
+
+// 递归处理Options
+function handleOptions(options) {
+  options.forEach((item) => {
+    if (item.typ == 'node') {
+      if (item.node_type == 1) {
+        item.value = 'global'
+      } else {
+        item.value = item.node_id
+      }
+    } else {
+      item.value = item.key
+    }
+
+    if (item.children && item.children.length > 0) {
+      item.children = handleOptions(item.children)
+    }
+  })
+
+  return options
+}
+
+const onDropdownVisibleChange = (visible) => {
+  if (!visible) {
+    getOptions()
+  }
+}
+
+function formatQuestionValue(val) {
+  if (val ) {
+    let lists = val.split('.')
+    let str1 = lists[0]
+    let str2 = lists.filter((item, index) => index > 0).join('.')
+    return [str1, str2]
+  }
+  return ['global', 'question']
+}
+
 const update = () => {
+  const model_config_id = formState.model_config_id ? +formState.model_config_id : formState.model_config_id;
   const data = JSON.stringify({
     cate: {
       ...formState,
-      model_config_id: formState.model_config_id
-        ? +formState.model_config_id
-        : formState.model_config_id
+      question_value: formState.question_value.join('.'),
+      model_config_id: model_config_id
     }
   })
 
@@ -250,19 +304,22 @@ const update = () => {
 }
 
 const init = () => {
+  getOptions()
+
   try {
     let dataRaw = props.node.dataRaw || props.node.node_params || '{}'
     let cate = JSON.parse(dataRaw).cate || {}
 
     cate = JSON.parse(JSON.stringify(cate))
-
+    
     for (let key in cate) {
-      if (key == 'categorys') {
+      if(key === 'question_value'){
+      formState.question_value = formatQuestionValue(cate['question_value'])
+    }else if (key == 'categorys') {
         if (cate.categorys && cate.categorys.length > 0) {
           let items = cate.categorys.map((item) => {
             return {
               ...item,
-              key: Math.random() * 10000
             }
           })
           formState[key] = items
@@ -271,7 +328,7 @@ const init = () => {
             {
               category: '',
               next_node_key: '',
-              key: Math.random() * 10000
+              key: getUuid(16)
             }
           ]
         }
@@ -301,7 +358,7 @@ const handleAddcategory = () => {
   formState.categorys.push({
     category: '',
     next_node_key: '',
-    key: Math.random() * 10000
+    key: getUuid(16)
   })
 }
 

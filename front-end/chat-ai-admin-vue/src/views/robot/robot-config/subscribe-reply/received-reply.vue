@@ -638,7 +638,7 @@ const handleSwitchChange = (checked) => {
   if (next === '0') {
     Modal.confirm({
       title: '提示',
-      content: '关闭后，该功能默认关闭不再支持使用，确认关闭？',
+      content: '关闭后，该功能默认关闭不再支持使用，所有的公众号菜单都会停用，确认关闭？',
       onOk: () => {
         saveUserAbility({ ability_type: 'robot_subscribe_reply', switch_status: next }).then((res) => {
           if (res && res.res == 0) {

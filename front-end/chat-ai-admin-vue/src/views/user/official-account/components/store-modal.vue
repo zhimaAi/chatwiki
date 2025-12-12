@@ -56,8 +56,8 @@
 
     .config-items {
       position: absolute;
-      right: 61px;
-      top: 124px;
+      right: 122px;
+      top: 180px;
       width: 432px;
 
       .config-item {
@@ -111,7 +111,7 @@
     <div class="add-wechat-app-alert" v-if="step === 1">
       <a-alert
         class="tip-alert"
-        message="进入微信公众号后台（mp.weixin.qq.com），在【设置与开发-基本配置】获取开发者信息。"
+        message="进入微信公众号后台（https://developers.weixin.qq.com/console/product），左上角“我的业务和服务”选择”服务号“后在【基础信息中】获取开发者信息。"
         type="info"
         show-icon
       />
@@ -153,7 +153,7 @@
     <div class="add-wechat-app-alert" v-if="step === 2">
       <a-alert
         class="tip-alert"
-        message="进入微信公众号后台（mp.weixin.qq.com），在【设置与开发-基本配置】中配置并启用服务器配置。请按照下图配置"
+        message="进入微信公众号后台（https://developers.weixin.qq.com/console/product），在【基础信息-域名与消息推送配置-消息推送】中配置并启用服务器配置。请按照下图配置"
         type="info"
         show-icon
       />
@@ -300,7 +300,7 @@ const handleCopy = (text) => {
 }
 
 const copyIp = () => {
-  handleCopy()
+  handleCopy(formState.wechat_ip)
 }
 
 const open = async (data = null) => {

@@ -66,6 +66,8 @@ const (
 	EventEnterSession         = `enter_session`
 	EventUserEnterTempsession = `user_enter_tempsession`
 	EventSubscribe            = `subscribe`
+
+	EventMenuClick = `click`
 )
 
 const (
@@ -165,6 +167,13 @@ var SubscribeSceneNameMap = map[string]string{
 	SubscribeSceneAddSceneWxa:                 `小程序关注`,
 	SubscribeSceneAddSceneOthers:              `其他`,
 }
+
+// 处理微信菜单类型 click view miniprogram
+const (
+	MenuButtonTypeClick       = `click`
+	MenuButtonTypeView        = `view`
+	MenuButtonTypeMiniprogram = `miniprogram`
+)
 
 // WechatAccountIsVerify 根据认证类型判断是否认证
 func WechatAccountIsVerify(accountCustomerType any) bool {

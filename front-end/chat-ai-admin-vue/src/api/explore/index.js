@@ -192,6 +192,13 @@ export const getSpecifyAbilityConfig = (params = {}) => {
   })
 }
 
+export const getRobotSpecifyAbilityConfig = (params = {}) => {
+  return request.get({
+    url: '/manage/ability/getRobotSpecifyAbilityConfig',
+    params: params
+  })
+}
+
 // 智能菜单 APIs
 export const getSmartMenuList = (params = {}) => {
   return request.get({
@@ -224,6 +231,38 @@ export const saveSmartMenu = (data) => {
 export const getSmartMenu = (params = {}) => {
   return request.get({
     url: '/manage/ability/getSmartMenu',
+    params: params
+  })
+}
+
+// 保存自定义菜单
+export const saveCustomMenu = (data) => {
+  return request.post({
+    url: '/manage/ability/saveCustomMenu',
+    data: data
+  })
+}
+
+// 关闭单个自定义菜单
+export const closeWxMenu = (data) => {
+  return request.post({
+    url: '/manage/ability/closeWxMenu',
+    data: data
+  })
+}
+
+// 获取自定义菜单列表
+export const getCustomMenuList = (params = {}) => {
+  return request.get({
+    url: '/manage/ability/getCustomMenuList',
+    params: params
+  })
+}
+
+// 同步微信菜单到展示
+export const syncWxMenuToShow = (params = {}) => {
+  return request.get({
+    url: '/manage/ability/syncWxMenuToShow',
     params: params
   })
 }

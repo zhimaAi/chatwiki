@@ -210,7 +210,8 @@ func LoadLocalPlugin(c *gin.Context) {
 	}
 
 	// 加载插件
-	err = define.PhpPlugin.LoadPhpPlugin(req.Name, define.Version)
+	initPhpConfig := []string{"CRAWLER_HOST=" + define.Config.WebService[`crawler`]}
+	err = define.PhpPlugin.LoadPhpPlugin(req.Name, define.Version, initPhpConfig)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return

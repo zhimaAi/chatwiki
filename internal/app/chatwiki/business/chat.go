@@ -377,6 +377,39 @@ func ChatRequest(c *gin.Context) {
 	}
 }
 
+func ChatRequestNotStream(c *gin.Context) {
+	//preinitialize:c.Stream can close body,future get c.PostForm exception
+	_ = c.Request.ParseMultipartForm(define.DefaultMultipartMemory)
+	c.Header(`Connection`, `keep-alive`)
+	if define.IsDev {
+		c.Header(`Access-Control-Allow-Origin`, `*`)
+	}
+	params := getChatRequestParam(c)
+	// Execute non-streaming chat request
+	chanStream := make(chan sse.Event)
+	go func() {
+		for range chanStream {
+			// Consume stream events to prevent blocking
+		}
+	}()
+	out, err := DoChatRequest(params, false, chanStream)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	robotInfo, err := common.GetRobotInfo(c.PostForm(`robot_key`))
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if cast.ToInt(robotInfo[`is_default`]) == define.NotDefault {
+		_ = common.SetStepFinish(cast.ToInt(robotInfo[`admin_user_id`]), define.StepTestRobot)
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(out, nil))
+}
+
 type QuestionGuideMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
@@ -485,6 +518,7 @@ func getChatRequestParam(c *gin.Context) *define.ChatRequestParam {
 	_ = tool.JsonDecodeUseNumber(c.DefaultPostForm(`global`, `{}`), &workFlowGlobal)
 	loopTestParams := make([]any, 0)
 	_ = tool.JsonDecodeUseNumber(c.DefaultPostForm(`loop_test_params`, `[]`), &loopTestParams)
+
 	return &define.ChatRequestParam{
 		ChatBaseParam:  chatBaseParam,
 		Error:          err,
@@ -505,6 +539,9 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 }
 
 func GetDialogueSession(params *define.ChatRequestParam) (int, int, error) {
+	if len(params.Openid) == 0 {
+		return 0, 0, nil //来源工作流,openid为空,不生成对话id,会话id
+	}
 	var err error
 	dialogueId := params.DialogueId
 	if dialogueId > 0 {
@@ -532,13 +569,10 @@ func GetDialogueSession(params *define.ChatRequestParam) (int, int, error) {
 }
 
 func CallWorkFlow(c *gin.Context) {
+	c.Set(`from_work_flow`, true) //设置标志位,不校验openid为空
 	chatRequestParam := getChatRequestParam(c)
 	if chatRequestParam.Error != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, chatRequestParam.Error))
-		return
-	}
-	if len(chatRequestParam.Question) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(chatRequestParam.Lang, `question_empty`))))
 		return
 	}
 	dialogueId, sessionId, err := GetDialogueSession(chatRequestParam)
@@ -582,6 +616,7 @@ func CallWorkFlow(c *gin.Context) {
 }
 
 func CallLoopWorkFlow(c *gin.Context) {
+	c.Set(`from_work_flow`, true) //设置标志位,不校验openid为空
 	chatRequestParam := getChatRequestParam(c)
 	if chatRequestParam.Error != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, chatRequestParam.Error))
@@ -659,6 +694,7 @@ func CallLoopWorkFlow(c *gin.Context) {
 }
 
 func CallLoopWorkFlowParams(c *gin.Context) {
+	c.Set(`from_work_flow`, true) //设置标志位,不校验openid为空
 	chatBaseParam, err := common.CheckChatRequest(c)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
@@ -748,10 +784,9 @@ func CallLoopWorkFlowParams(c *gin.Context) {
 			},
 		})
 	}
-	//是否需要问题
-	isNeedQuestion := work_flow.FindKeyIsUse(childNodes, `global.question`)
 	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{
 		`loop_test_params`: loopTestParams,
-		`is_need_question`: isNeedQuestion,
+		`is_need_question`: work_flow.FindKeyIsUse(childNodes, `global.question`), //是否需要question
+		`is_need_openid`:   work_flow.FindKeyIsUse(childNodes, `global.openid`),   //是否需要openid
 	}, err))
 }

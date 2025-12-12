@@ -220,6 +220,31 @@
             <div class="form-item-tip">请上传知识库封面，建议尺寸为100*100px.大小不超过100kb</div>
           </a-form-item>
 
+          <temmplate v-if="isWxLibrary">
+            <a-form-item label="历史发布获取时间">
+              <a-select v-model:value="formState.sync_official_history_type" @change="handleEdit">
+                <a-select-option :value="10">全部</a-select-option>
+                <a-select-option :value="1">半年内</a-select-option>
+                <a-select-option :value="2">一年内</a-select-option>
+                <a-select-option :value="3">三年以内</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item>
+              <template #label>
+                <a-tooltip title="每天3:00获取最新发布内容">
+                  每天获取最新发布
+                  <QuestionCircleOutlined style="cursor: pointer; margin-left: 2px"/>
+                </a-tooltip>
+              </template>
+              <a-switch
+                v-model:checked="formState.enable_cron_sync_official_content"
+                @change="handleEdit"
+                checked-children="开"
+                un-checked-children="关"></a-switch>
+            </a-form-item>
+          </temmplate>
+
+
           <a-form-item label="嵌入模型" v-bind="validateInfos.use_model">
             <div class="card-box" v-if="false">
               <div
@@ -701,7 +726,11 @@ const formState = reactive({
   father_chunk_separators_no: [],
   father_chunk_chunk_size: 1024,
   son_chunk_separators_no: [],
-  son_chunk_chunk_size: 512
+  son_chunk_chunk_size: 512,
+
+  sync_official_history_type: 2,
+  enable_cron_sync_official_content: true,
+  app_id_list: '',
 })
 const currentModelDefine = ref('')
 const isActive = ref(0)
@@ -732,6 +761,7 @@ getSeparatorsList().then((res) => {
 })
 
 const isQaLibrary = ref(true)
+const isWxLibrary = ref(false)
 const getInfo = () => {
   getLibraryInfo({ id: query.id }).then((res) => {
     libraryInfo.value = res.data
@@ -769,6 +799,11 @@ const getInfo = () => {
     formState.father_chunk_chunk_size = +res.data.father_chunk_chunk_size || 1024
     formState.son_chunk_separators_no = formatSeparatorsNo(res.data.son_chunk_separators_no, [8, 10])
     formState.son_chunk_chunk_size = +res.data.son_chunk_chunk_size || 512
+    formState.sync_official_history_type = Number(res.data.sync_official_history_type)
+    formState.enable_cron_sync_official_content = (res.data.enable_cron_sync_official_content === 'true')
+    formState.app_id_list = res.data.official_app_id || ''
+
+    isWxLibrary.value = res.data.type == 3
     isQaLibrary.value = res.data.type == 2
   })
 }
@@ -954,6 +989,9 @@ const handleEdit = (callback = null) => {
     son_chunk_separators_no: JSON.stringify(formState.son_chunk_separators_no),
     son_chunk_chunk_size: formState.son_chunk_chunk_size,
     group_id: formState.group_id,
+    app_id_list: formState.app_id_list,
+    sync_official_history_type: formState.sync_official_history_type,
+    enable_cron_sync_official_content:  Number(formState.enable_cron_sync_official_content),
     id: rotue.query.id
   }
   if (oldModelDefineList.indexOf(currentModelDefine.value) > -1) {

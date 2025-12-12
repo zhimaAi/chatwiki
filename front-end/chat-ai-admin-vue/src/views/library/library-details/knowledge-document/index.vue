@@ -1,5 +1,5 @@
 <template>
-  <KnowledgeDocument v-if="type == 0" />
+  <KnowledgeDocument v-if="type == 0 || type == 3" :type="type"/>
   <QaKnowledgeDocument v-if="type == 2" />
 </template>
 
