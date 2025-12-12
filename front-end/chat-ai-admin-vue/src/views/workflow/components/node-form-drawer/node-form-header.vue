@@ -118,6 +118,7 @@ import { CloseOutlined } from '@ant-design/icons-vue'
 const changeTitle = inject('changeTitle')
 const deleteNode = inject('deleteNode')
 const close = inject('close')
+const emit = defineEmits(['changeTitle', 'deleteNode', 'close'])
 
 const props = defineProps({
   iconName: {
@@ -155,11 +156,13 @@ const handleTitleChange = () => {
   }
   chagneTimer = setTimeout(() => {
     changeTitle(localTitle.value)
+    emit('changeTitle')
   }, 250)
 }
 
 const handleDeleteNode = () => {
   deleteNode()
+  emit('deleteNode')
 }
 
 const handleClose = () => {

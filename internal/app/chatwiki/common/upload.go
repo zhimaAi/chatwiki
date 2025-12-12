@@ -19,7 +19,6 @@ import (
 
 	"github.com/xuri/excelize/v2"
 
-	"github.com/gin-gonic/gin"
 	"github.com/go-shiori/go-readability"
 	"github.com/zhimaAi/go_tools/curl"
 	"github.com/zhimaAi/go_tools/tool"
@@ -109,13 +108,13 @@ func ReadUploadedFile(fileHeader *multipart.FileHeader, limitSize int, allowExt 
 	return &define.UploadInfo{Name: fileHeader.Filename, Size: fileHeader.Size, Ext: ext, Columns: content}, nil
 }
 
-func SaveUploadedFileMulti(c *gin.Context, name string, limitSize, userId int, saveDir string, allowExt []string) ([]*define.UploadInfo, []string) {
+func SaveUploadedFileMulti(multipartForm *multipart.Form, name string, limitSize, userId int, saveDir string, allowExt []string) ([]*define.UploadInfo, []string) {
 	uploadInfos := make([]*define.UploadInfo, 0)
 	uploadErrors := make([]string, 0)
-	if c.Request.MultipartForm == nil || len(c.Request.MultipartForm.File) == 0 {
+	if multipartForm == nil || len(multipartForm.File) == 0 {
 		return uploadInfos, uploadErrors
 	}
-	for _, fileHeader := range c.Request.MultipartForm.File[name] {
+	for _, fileHeader := range multipartForm.File[name] {
 		uploadInfo, err := SaveUploadedFile(fileHeader, limitSize, userId, saveDir, allowExt)
 		if err != nil {
 			uploadErrors = append(uploadErrors, err.Error())

@@ -159,7 +159,7 @@
         <span v-else>{{ formState.rerank_use_model }}</span>
       </div>
     </div>
-    <LibrarySelectAlert ref="librarySelectAlertRef" @change="onChangeLibrarySelected" />
+    <LibrarySelectAlert ref="librarySelectAlertRef" @change="onChangeLibrarySelected" :showWxType="!!wxAppLibary"/>
     <RecallSettingsAlert ref="recallSettingsAlertRef" @change="onChangeRecallSettings" />
     <NoOpenGraphModal :list="noOpenLibraryList" @refreshList="getList" ref="noOpenGraphModalRef" />
   </edit-box>
@@ -179,6 +179,7 @@ import NoOpenGraphModal from './no-open-graph-modal.vue'
 const { getStorage, removeStorage } = useStorage('localStorage')
 
 import { useCompanyStore } from '@/stores/modules/company'
+import {getSpecifyAbilityConfig} from "@/api/explore/index.js";
 const companyStore = useCompanyStore()
 const neo4j_status = computed(()=>{
   return companyStore.companyInfo?.neo4j_status == 'true'
@@ -201,9 +202,14 @@ const formState = reactive({
 // 知识库
 const libraryList = ref([])
 const librarySelectAlertRef = ref(null)
+const wxAppLibary = ref(null)
 const selectedLibraryRows = computed(() => {
   return libraryList.value.filter((item) => {
-    return formState.library_ids.includes(item.id)
+    if (!wxAppLibary.value) {
+      return formState.library_ids.includes(item.id) && item.type != 3
+    } else {
+      return formState.library_ids.includes(item.id)
+    }
   })
 })
 
@@ -257,6 +263,7 @@ const onSave = () => {
   let formData = { ...toRaw(formState) }
 
   formData.library_ids = formData.library_ids.join(',')
+  formData.op_type_relation_library = 1
 
   updateRobotInfo({ ...formData })
 }
@@ -267,6 +274,16 @@ const getList = async () => {
   if (res) {
     libraryList.value = res.data || []
   }
+}
+
+const loadWxLbStatus = () => {
+  // 公众号知识库是否开启
+  getSpecifyAbilityConfig({ability_type: 'library_ability_official_account'}).then((res) => {
+    let _data = res?.data || {}
+    if (_data?.user_config?.switch_status == 1) {
+      wxAppLibary.value = _data
+    }
+  })
 }
 
 // 显示未关联知识库提示
@@ -299,6 +316,7 @@ const toLibraryDetail = (item) => {
 }
 
 onMounted(() => {
+  loadWxLbStatus()
   getList()
 })
 </script>

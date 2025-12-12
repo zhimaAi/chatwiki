@@ -10,18 +10,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/cast"
-	"github.com/zhimaAi/go_tools/curl"
-	"github.com/zhimaAi/go_tools/logs"
-	"github.com/zhimaAi/go_tools/msql"
-	"github.com/zhimaAi/go_tools/tool"
 	"io"
 	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/curl"
+	"github.com/zhimaAi/go_tools/logs"
+	"github.com/zhimaAi/go_tools/msql"
+	"github.com/zhimaAi/go_tools/tool"
 )
 
 func GetRemotePluginList(c *gin.Context) {
@@ -197,7 +198,8 @@ func DownloadRemotePlugin(c *gin.Context) {
 	// 重新加载
 	if len(info) > 0 && cast.ToBool(info[`has_loaded`]) {
 		define.PhpPlugin.UnloadPhpPlugin(info[`name`])
-		err = define.PhpPlugin.LoadPhpPlugin(info[`name`], define.Version)
+		initPhpConfig := []string{"CRAWLER_HOST=" + define.Config.WebService[`crawler`]}
+		err = define.PhpPlugin.LoadPhpPlugin(info[`name`], define.Version, initPhpConfig)
 		if err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			return

@@ -36,6 +36,7 @@ func init() {
 	/*admin API*/
 	noAuthFuns(Route[http.MethodPost], `/manage/login`, manage.AdminLogin)
 	Route[http.MethodGet][`/manage/checkLogin`] = manage.CheckLogin
+	Route[http.MethodGet][`/manage/useGuideProcess`] = manage.UseGuideProcess
 	/* permission API*/
 	noAuthFuns(Route[http.MethodGet], "/manage/getMenu", manage.GetMenu)
 	noAuthFuns(Route[http.MethodGet], "/manage/checkPermission", manage.CheckPermission)
@@ -92,6 +93,7 @@ func init() {
 	Route[http.MethodGet][`/manage/getLibraryList`] = manage.GetLibraryList
 	Route[http.MethodGet][`/manage/getLibraryInfo`] = manage.GetLibraryInfo
 	Route[http.MethodPost][`/manage/createLibrary`] = manage.CreateLibrary
+	Route[http.MethodPost][`/manage/createOfficialLibrary`] = manage.CreateOfficialLibrary
 	Route[http.MethodPost][`/manage/deleteLibrary`] = manage.DeleteLibrary
 	Route[http.MethodPost][`/manage/editLibrary`] = manage.EditLibrary
 	Route[http.MethodGet][`/manage/getLibraryRobotInfo`] = manage.GetLibraryRobotInfo
@@ -235,6 +237,7 @@ func init() {
 	noAuthFuns(Route[http.MethodPost], `/chat/message/delFeedback`, business.DelChatMessageFeedback)
 	noAuthFuns(Route[http.MethodPost], `/chat/welcome`, business.ChatWelcome)
 	noAuthFuns(Route[http.MethodPost], `/chat/request`, business.ChatRequest)
+	noAuthFuns(Route[http.MethodPost], `/chat/requestNotStream`, business.ChatRequestNotStream)
 	noAuthFuns(Route[http.MethodPost], `/chat/callWorkFlow`, business.CallWorkFlow)
 	noAuthFuns(Route[http.MethodPost], `/chat/callLoopWorkFlow`, business.CallLoopWorkFlow)
 	noAuthFuns(Route[http.MethodPost], `/chat/callLoopWorkFlowParams`, business.CallLoopWorkFlowParams)
@@ -304,6 +307,8 @@ func init() {
 	Route[http.MethodPost][`/manage/uploadCertificate`] = manage.UploadCertificate
 	Route[http.MethodPost][`/manage/uploadCheckFile`] = manage.UploadCheckFile
 	/*work_flow API*/
+	Route[http.MethodGet][`/manage/getTriggerConfigList`] = manage.GetTriggerConfigList
+	Route[http.MethodGet][`/manage/triggerConfigList`] = manage.TriggerConfigList
 	Route[http.MethodGet][`/manage/getNodeList`] = manage.GetNodeList
 	Route[http.MethodPost][`/manage/saveNodes`] = manage.SaveNodes
 	Route[http.MethodGet][`/manage/getDraftKey`] = manage.GetDraftKey
@@ -398,6 +403,14 @@ func init() {
 	Route[http.MethodPost][`/manage/saveMcpProvider`] = manage.SaveMcpProvider
 	Route[http.MethodPost][`/manage/authMcpProvider`] = manage.AuthMcpProvider
 	Route[http.MethodPost][`/manage/deleteMcpProvider`] = manage.DeleteMcpProvider
+
+	/* trigger */
+	RegTriggerRoute()
+
+	/* Template */
+	Route[http.MethodGet][`/manage/getRobotTemplateCategoryList`] = manage.GetRobotTemplateCategoryList
+	Route[http.MethodGet][`/manage/getRobotTemplateList`] = manage.GetRobotTemplateList
+	Route[http.MethodPost][`/manage/useRobotTemplate`] = manage.UseRobotTemplate
 }
 
 func noAuthFuns(route map[string]lib_web.Action, path string, handlerFunc lib_web.Action) map[string]lib_web.Action {

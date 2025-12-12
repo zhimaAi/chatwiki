@@ -1,6 +1,6 @@
 <template>
   <div class="admin-logo-wrapper">
-    <div>
+    <div @click="handleLogoClick">
       <img class="admin-logo" :src="imgUrl" alt="logo" />
     </div>
     <div v-if="name" class="system-name">{{ name }}</div>
@@ -19,6 +19,11 @@ const companyStore = useCompanyStore()
 const name = computed(() => {
   return companyStore.name
 })
+
+const handleLogoClick = () => {
+  window.location.href = '/#/robot/list'
+}
+
 </script>
 
 <style lang="less" scoped>
@@ -30,6 +35,7 @@ const name = computed(() => {
   display: block;
   line-height: 1;
   height: 28px;
+  cursor: pointer;
 }
 .system-name{
   margin-top: -2px;

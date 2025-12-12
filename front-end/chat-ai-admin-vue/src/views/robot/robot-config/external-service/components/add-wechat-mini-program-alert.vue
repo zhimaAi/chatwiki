@@ -45,13 +45,13 @@
 
     .config-items {
       position: absolute;
-      right: 10px;
-      top: 133px;
+      right: 82px;
+      top: 186px;
       width: 432px;
       .config-item {
         display: flex;
         height: 24px;
-        margin-bottom: 19px;
+        margin-bottom: 10px;
         background-color: #fff;
         box-shadow:
           0 1px 10px 0 #0000000d,
@@ -84,6 +84,10 @@
         }
       }
     }
+
+    .config-preview-img {
+      width: 100%;
+    }
   }
 }
 </style>
@@ -102,7 +106,7 @@
     <div class="add-wechat-app-alert" v-if="step === 1">
       <a-alert
         class="tip-alert"
-        message="进入微信小程序后台（mp.weixin.qq.com），在【开发-开发管理-开发设置】中获取开发者信息"
+        message="进入微信公众号后台（https://developers.weixin.qq.com/console/product），左上角“我的业务和服务”选择”小程序“后在【基础信息中】获取开发者信息"
         type="info"
         show-icon
       />
@@ -148,7 +152,7 @@
     <div class="add-wechat-app-alert" v-if="step === 2">
       <a-alert
         class="tip-alert"
-        message="进入微信小程序后台（mp.weixin.qq.com），在【开发-开发管理-开发设置】中配置并启用消息推送。请按照下图配置。"
+        message="进入微信公众号后台（https://developers.weixin.qq.com/console/product），在【基础信息-域名与消息推送配置-消息推送】中配置并启用服务器配置。请按照下图配置"
         type="info"
         show-icon
       />

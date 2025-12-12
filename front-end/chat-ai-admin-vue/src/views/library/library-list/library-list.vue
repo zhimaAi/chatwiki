@@ -41,6 +41,12 @@
                     <span>问答知识库</span>
                   </span>
                 </a-menu-item>
+                <a-menu-item v-if="wxAppLibary" @click.prevent="handleAdd(3)">
+                  <span class="create-action">
+                    <img class="icon" src="@/assets/svg/library_ability_official_account.svg" alt="" />
+                    <span>公众号知识库</span>
+                  </span>
+                </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
@@ -138,6 +144,13 @@
     <AddLibraryModel ref="addLibraryModelRef" />
     <AddGroup ref="addGroupRef" @ok="onChangeTab" />
     <EditGroup ref="editGroupRef" @ok="onChangeTab" />
+    <SelectWechatApp
+      ref="wxAppRef"
+      title="添加知识库"
+      okText="下一步"
+      :disabled-app-ids="wxAppids"
+      @ok="showWxLibraryModel"
+    />
   </div>
 </template>
 
@@ -158,7 +171,6 @@ import { LIBRARY_NORMAL_AVATAR, LIBRARY_QA_AVATAR } from '@/constants/index'
 import {
   ExclamationCircleOutlined,
   PlusOutlined,
-  SearchOutlined,
   EllipsisOutlined,
   LeftOutlined,
   RightOutlined
@@ -173,6 +185,8 @@ import { getLibraryPermission } from '@/utils/permission'
 import AddGroup from '@/views/library/library-list/components/add-group.vue'
 import EditGroup from '@/views/library/library-list/components/edit-group.vue'
 import Draggable from 'vuedraggable'
+import {getSpecifyAbilityConfig, getAbilityList} from "@/api/explore/index.js";
+import SelectWechatApp from "@/components/common/select-wechat-app.vue";
 
 const router = useRouter()
 
@@ -216,6 +230,9 @@ const libraryCreate = computed(() => role_type == 1 || role_permission.includes(
 
 const addLibraryModelRef = ref(null)
 const addLibrayPopup = ref(null)
+const wxAppRef = ref(null)
+const wxAppLibary = ref(null)
+const wxAppids = ref([])
 const activeKey = ref('all')
 
 const group_id = ref('')
@@ -258,25 +275,48 @@ const getGroupList = () => {
 }
 getGroupList()
 const handleAdd = (type) => {
-  // addLibrayPopup.value.show(type)
-  toAdd(type)
+  if (type == 3) {
+    wxAppRef.value.open()
+  } else {
+    toAdd(type)
+  }
 }
 
 const toAdd = (val) => {
   addLibraryModelRef.value.show({ type: val, group_id: group_id.value })
 }
 
+const showWxLibraryModel = (ids, rows) => {
+  if (!rows.length) return message.warning('请选择公众号')
+  wxAppRef.value.close()
+  addLibraryModelRef.value.show({ type: 3, group_id: group_id.value, wx_app_ids: ids})
+}
+
 const list = ref([])
-const updateTabNumber = (data) => {
+const updateTabNumber = async (data) => {
+  // 公众号知识库是否开启
+  await getSpecifyAbilityConfig({ability_type: 'library_ability_official_account'}).then((res) => {
+    let _data = res?.data || {}
+    if (_data?.user_config?.switch_status == 1) {
+      wxAppLibary.value = _data
+    }
+  })
+
   let all = 0
   let normal = 0
   let qa = 0
+  let wx = 0
+  wxAppids.value = []
   data.forEach((item) => {
     if (item.type == 0) {
       normal += 1
     }
     if (item.type == 2) {
       qa += 1
+    }
+    if (item.type == 3) {
+      wx += 1
+      wxAppids.value.push(item.official_app_id)
     }
     all += 1
   })
@@ -295,6 +335,12 @@ const updateTabNumber = (data) => {
       value: '2'
     }
   ]
+  if (wxAppLibary.value) {
+    tabs.value.push({
+      title: '公众号知识库 (' + wx + ')',
+      value: '3'
+    })
+  }
 }
 
 let allList = ref([])

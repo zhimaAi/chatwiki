@@ -1,11 +1,11 @@
 <style lang="less" scoped></style>
 
 <template>
-  <PopupMenu @addNode="handleAddNode" :type="type" />
+  <PopupMenu @addNode="handleAddNode" :type="type" v-model:active="nodeListTabActive" />
 </template>
 
 <script>
-import PopupMenu from '../../node-list-popup.vue'
+import PopupMenu from '../../node-list-popup/index.vue'
 
 export default {
   name: 'QuestionNode',
@@ -24,7 +24,8 @@ export default {
   },
   data() {
     return {
-      type: 'node'
+      type: 'node',
+      nodeListTabActive: 1,
     }
   },
   mounted() {
@@ -40,6 +41,7 @@ export default {
       }
     },
     handleAddNode(item) {
+      console.log(item)
       this.$emit('click-item', item)
     },
   },

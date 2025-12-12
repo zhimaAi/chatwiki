@@ -9,3 +9,5 @@ import (
 var Redis *redis.Client
 
 const LockPreKey = `chatwiki.op_lock.`
+
+const DelayZset = `chatwiki.delay.zset` // 存储延时的zset

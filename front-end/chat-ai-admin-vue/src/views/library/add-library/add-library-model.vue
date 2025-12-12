@@ -164,27 +164,42 @@
     width="620px"
   >
     <div class="form-box">
-      <a-form layout="vertical">
-        <a-form-item ref="name" label="知识库名称" v-bind="validateInfos.library_name">
-          <a-input
-            v-model:value="formState.library_name"
-            placeholder="请输入知识库名称，最多20个字"
-            :maxlength="20"
-          />
-        </a-form-item>
+      <a-form layout="vertical" ref="formRef" :model="formState">
+        <template v-if="formState.type != 3">
+          <a-form-item ref="name"  name="library_name" label="知识库名称" :rules="[{ required: true, message: '请输入库名称', trigger: 'change' }]">
+            <a-input
+              v-model:value="formState.library_name"
+              placeholder="请输入知识库名称，最多20个字"
+              :maxlength="20"
+            />
+          </a-form-item>
 
-        <a-form-item label="知识库简介" v-bind="validateInfos.library_intro">
-          <a-textarea
-            :maxlength="1000"
-            v-model:value="formState.library_intro"
-            placeholder="请输入知识库介绍"
-          />
-        </a-form-item>
+          <a-form-item label="知识库简介">
+            <a-textarea
+              :maxlength="1000"
+              v-model:value="formState.library_intro"
+              placeholder="请输入知识库介绍"
+            />
+          </a-form-item>
 
-        <a-form-item ref="name" label="知识库封面" v-bind="validateInfos.avatar">
-          <AvatarInput v-model:value="formState.avatar" @change="onAvatarChange" />
-          <div class="form-item-tip">请上传知识库封面，建议尺寸为100*100px.大小不超过100kb</div>
-        </a-form-item>
+          <a-form-item ref="name" label="知识库封面">
+            <AvatarInput v-model:value="formState.avatar" @change="onAvatarChange" />
+            <div class="form-item-tip">请上传知识库封面，建议尺寸为100*100px.大小不超过100kb</div>
+          </a-form-item>
+        </template>
+        <template v-else>
+          <a-form-item label="历史发布内容获取时间段">
+            <a-select v-model:value="formState.sync_official_history_type">
+              <a-select-option :value="10">全部</a-select-option>
+              <a-select-option :value="1">半年内</a-select-option>
+              <a-select-option :value="2">一年内</a-select-option>
+              <a-select-option :value="3">三年以内</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="每天3:00获取最新发布内容">
+            <a-switch v-model:checked="formState.enable_cron_sync_official_content" checked-children="开" un-checked-children="关"></a-switch>
+          </a-form-item>
+        </template>
         <div class="hight-set-text" @click="isHide = !isHide">
           <CaretRightOutlined v-if="isHide" />
           <CaretDownOutlined v-else />
@@ -241,7 +256,7 @@
             </div>
           </div>
         </a-form-item>
-        <div v-show="!isHide && formState.type == 0">
+        <div v-show="!isHide && (formState.type == 0 || formState.type == 3)">
           <a-form-item label="分段方式" required>
             <div class="form-alert-tip">
               提示：语义分段更适合没有排版过的文章，即没有明显换行符号的文本，否则更推荐使用普通分段
@@ -568,7 +583,7 @@
 import { reactive, ref, onMounted, computed, nextTick } from 'vue'
 import { Form, message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
-import { createLibrary, getSeparatorsList } from '@/api/library/index'
+import {createLibrary, createOfficialLibrary, getSeparatorsList} from '@/api/library/index'
 import AvatarInput from './components/avatar-input.vue'
 import { LIBRARY_NORMAL_AVATAR, LIBRARY_QA_AVATAR } from '@/constants/index'
 import { transformUrlData } from '@/utils/validate.js'
@@ -591,12 +606,12 @@ message.config({
   duration: 2
 })
 
+const formRef = ref(null)
 const isHide = ref(true)
 
 const router = useRouter()
 const visible = ref(false)
 
-const useForm = Form.useForm
 const saveLoading = ref(false)
 const default_ai_chunk_prumpt =
   '你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。'
@@ -632,20 +647,17 @@ const formState = reactive({
   ai_chunk_model: '', // ai大模型分段模型名称
   ai_chunk_model_config_id: '', // ai大模型分段模型配置id
   ai_chunk_prumpt: default_ai_chunk_prumpt, // ai大模型分段提示词设置
-  qa_index_type: 1,
   group_id: 0,
   father_chunk_paragraph_type: 2,
   father_chunk_separators_no: [],
   father_chunk_chunk_size: 1024,
   son_chunk_separators_no: [],
-  son_chunk_chunk_size: 512
-})
+  son_chunk_chunk_size: 512,
 
-const rules = reactive({
-  library_name: [{ required: true, message: '请输入库名称', trigger: 'change' }]
+  sync_official_history_type: 2,
+  enable_cron_sync_official_content: true,
+  app_id_list: '',
 })
-
-const { validate, validateInfos } = useForm(formState, rules)
 
 const onAvatarChange = (data) => {
   formState.avatar = data.imageUrl
@@ -752,7 +764,7 @@ const handleCancel = () => {
 }
 
 const handleOk = () => {
-  validate()
+  formRef.value.validate()
     .then(() => {
       saveForm()
     })
@@ -820,23 +832,31 @@ const saveForm = () => {
   formData.append('son_chunk_chunk_size', formState.son_chunk_chunk_size)
 
   formData.append('group_id', formState.group_id)
-
+  formData.append('is_default', 2)
+  let request = createLibrary
+  if (formState.type == 3) {
+    request = createOfficialLibrary
+    formData.append('app_id_list', formState.app_id_list)
+    formData.append('sync_official_history_type', formState.sync_official_history_type)
+    formData.append('enable_cron_sync_official_content', Number(formState.enable_cron_sync_official_content))
+  }
   saveLoading.value = true
-
-  createLibrary(formData)
+  request(formData)
     .then((res) => {
       message.success('创建成功')
       visible.value = false
 
       let path = '/library/details/knowledge-document'
-      let query = {
-        id: res.data.id
-      }
-
-      if (formState.doc_type == 3) {
-        path = '/library/preview'
-        query = {
-          id: res.data.file_ids[0]
+      let query
+      if (formState.type == 3) {
+        query = {id: res?.data?.[0]}
+      } else {
+        query = {id: res?.data?.id}
+        if (formState.doc_type == 3) {
+          path = '/library/preview'
+          query = {
+            id: res.data.file_ids[0]
+          }
         }
       }
 
@@ -852,10 +872,11 @@ const saveForm = () => {
     })
 }
 
-const show = ({ type, group_id }) => {
-  console.log(type)
+const show = ({ type, group_id, wx_app_ids }) => {
   formState.type = type
-  if (type == 0) {
+  if (type == 3) {
+    formState.app_id_list = wx_app_ids
+  } else if (type == 0) {
     formState.avatar = LIBRARY_NORMAL_AVATAR
     formState.avatar_file = LIBRARY_NORMAL_AVATAR
   } else {

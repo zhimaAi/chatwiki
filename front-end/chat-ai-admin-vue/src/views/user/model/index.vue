@@ -409,9 +409,12 @@ import BuyRecord from './components/buy-record.vue'
 import kefuModal from './components/kefu-modal.vue'
 import dayjs from 'dayjs'
 import { formatPriceWithCommas } from '@/utils/index'
+import { useRoute } from 'vue-router'
 
+const query = useRoute().query
+console.log(query)
 const { t } = useI18n()
-const activeTab = ref(1)
+const activeTab = ref(+query.activeTab >= 0 ? +query.activeTab : 1)
 
 const onChangeTab = () => {}
 // 获取模型列表

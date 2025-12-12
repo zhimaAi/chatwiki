@@ -25,6 +25,19 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
+func GetTriggerConfigList(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	list, err := work_flow.GetTriggerConfigList(adminUserId, common.GetLang(c))
+	if err != nil {
+		common.FmtError(c, err.Error())
+		return
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
+}
+
 func GetNodeList(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
@@ -268,6 +281,28 @@ func SaveNodes(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
+func VerifyTriggerCronConfig(node *work_flow.WorkFlowNode, lang string) error {
+	for _, trigger := range node.NodeParams.Start.TriggerList {
+		cronConfig := trigger.TriggerCronConfig
+		if cronConfig.Type == work_flow.CronTypeSelectTime {
+			if len(strings.Split(cronConfig.HourMinute, `:`)) != 2 {
+				return errors.New(i18n.Show(lang, `param_err`, `trigger_cron_config`))
+			}
+			if cronConfig.EveryType == work_flow.EveryTypeWeek && !tool.InArrayString(cronConfig.WeekNumber, []string{`0`, `1`, `2`, `3`, `4`, `5`, `6`}) {
+				return errors.New(i18n.Show(lang, `param_err`, `trigger_cron_config`))
+			}
+			if cronConfig.EveryType == work_flow.EveryTypeMonth && !tool.InArrayString(cronConfig.MonthDay, []string{`1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`, `11`, `12`, `13`, `14`, `15`, `16`, `17`, `18`, `19`, `20`, `21`, `22`, `23`, `24`, `25`, `26`, `27`, `28`, `29`, `30`, `31`}) {
+				return errors.New(i18n.Show(lang, `param_err`, `trigger_cron_config`))
+			}
+		} else if cronConfig.Type == work_flow.CronTypeCrontab {
+			if cronConfig.LinuxCrontab == `` || !common.CheckLinuxCrontab(cronConfig.LinuxCrontab) {
+				return errors.New(i18n.Show(lang, `linux_crontab_err`))
+			}
+		}
+	}
+	return nil
+}
+
 func deleteWorkFlowByRobotId(robotId int) error {
 	_, err := msql.Model(`work_flow_node`, define.Postgres).Where(`robot_id`, cast.ToString(robotId)).Delete()
 	if err != nil {
@@ -479,6 +514,18 @@ func WorkFlowPublishVersion(c *gin.Context) {
 		lib_redis.UnLock(define.Redis, lockKey) //unlock
 		return
 	}
+	//trigger verify
+	for _, node := range nodeList {
+		if node.NodeType != work_flow.NodeTypeStart {
+			continue
+		}
+		err := VerifyTriggerCronConfig(&node, common.GetLang(c))
+		if err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+			lib_redis.UnLock(define.Redis, lockKey) //unlock
+			return
+		}
+	}
 	nodeKeys, err := msql.Model(`work_flow_node`, define.Postgres).Where(`robot_id`, robot[`id`]).Where(`data_type`, cast.ToString(dataType)).ColumnArr(`node_key`)
 	if err != nil {
 		logs.Error(err.Error())
@@ -488,6 +535,7 @@ func WorkFlowPublishVersion(c *gin.Context) {
 	}
 	clearNodeKeys = append(clearNodeKeys, nodeKeys...)
 	//start
+	startNode := work_flow.WorkFlowNode{}
 	m := msql.Model(``, define.Postgres)
 	_ = m.Begin()
 	m.Reset()
@@ -519,6 +567,9 @@ func WorkFlowPublishVersion(c *gin.Context) {
 	}
 	for _, node := range nodeList {
 		m.Reset()
+		if node.NodeType == work_flow.NodeTypeStart {
+			startNode = node
+		}
 		_, err = m.Table(`work_flow_node`).Insert(msql.Datas{
 			`admin_user_id`:  userId,
 			`data_type`:      dataType,
@@ -579,6 +630,11 @@ func WorkFlowPublishVersion(c *gin.Context) {
 		return
 	}
 	_ = m.Commit()
+	//trigger save
+	err = work_flow.SaveTriggerConfig(robot, &startNode, common.GetLang(c))
+	if err != nil {
+		logs.Error(err.Error())
+	}
 	//clear cached data
 	for _, nodeKey := range clearNodeKeys {
 		lib_redis.DelCacheData(define.Redis, &common.NodeCacheBuildHandler{RobotId: cast.ToUint(robot[`id`]), DataType: define.DataTypeRelease, NodeKey: nodeKey})
@@ -701,4 +757,66 @@ func GetDraftKey(c *gin.Context) {
 
 	c.String(http.StatusOK, lib_web.FmtJson(filtered, nil))
 
+}
+
+func TriggerConfigList(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	title := strings.TrimSpace(c.Query(`title`))
+	triggerList, err := work_flow.TriggerList(adminUserId, common.GetLang(c))
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	result := make([]map[string]any, 0)
+	for _, trigger := range triggerList {
+		manifest := map[string]any{
+			`name`:       `trigger_` + trigger[`trigger_type`],
+			`version`:    `1.0.0`,
+			`type`:       `trigger`,
+			`compatible`: ``,
+			`resource`:   ``,
+		}
+		if cast.ToInt(trigger[`switch_status`]) > 0 {
+			manifest[`has_loaded`] = true
+		} else {
+			manifest[`has_loaded`] = false
+		}
+		boolShow := true
+		if title != `` {
+			boolShow = false
+			if strings.Contains(trigger[`name`], title) {
+				boolShow = true
+			}
+			if strings.Contains(`触发器`, title) {
+				boolShow = true
+			}
+			if strings.Contains(trigger[`author`], title) {
+				boolShow = true
+			}
+			if strings.Contains(trigger[`intro`], title) {
+				boolShow = true
+			}
+		}
+		if boolShow {
+			result = append(result, map[string]any{
+				`local`: manifest,
+				`remote`: map[string]any{
+					`title`:             trigger[`name`],
+					`author`:            trigger[`author`],
+					`icon`:              `/public/trigger_cron_icon.svg`,
+					`latest_version`:    `1.0.0`,
+					`filter_type_title`: `触发器`,
+					`description`:       trigger[`intro`],
+					`trigger_config_id`: trigger[`id`],
+					`trigger_type`:      trigger[`trigger_type`],
+				},
+			})
+		}
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(result, nil))
+	return
 }

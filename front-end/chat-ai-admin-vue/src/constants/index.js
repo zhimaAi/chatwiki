@@ -63,6 +63,8 @@ export const DEFAULT_ROBOT_AVATAR = '/upload/default/robot_avatar.svg'
 export const DEFAULT_WORKFLOW_AVATAR = '/upload/default/workflow_avatar.svg'
 // 默认的MCP头像
 export const DEFAULT_MCP_AVATAR = '/upload/default/mcp_avatar.svg'
+// 默认模板头像
+export const DEFAULT_TEMPLATE_AVATAR = '/upload/default/template_avatar.svg'
 // 默认的导入csl头像
 export const DEFAULT_IMPORT_CSL_AVATAR = new URL('@/assets/img/import_csl_avatar.svg', import.meta.url).href
 

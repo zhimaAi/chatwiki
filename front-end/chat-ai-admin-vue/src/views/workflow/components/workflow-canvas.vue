@@ -105,37 +105,14 @@ import { DndPanel, MiniMap, SelectionSelect, DynamicGroup } from '@logicflow/ext
 import { Elk } from './plugins/elk/elk.js'
 import { GroupAutoResize } from './plugins/group-auto-resize'
 import { register, getTeleport } from '@logicflow/vue-node-registry'
-import { getNodesMap } from './node-list'
+import { getNodesMap, createTriggerNode } from './node-list'
 import customLineEdge from './edges/custom-line/index.js'
 // 贝塞尔曲线
 import customBezierEdge from './edges/custom-bezier/index.js'
-import startNode from './nodes/start-node/index.js'
-import questionNode from './nodes/question-node/index.js'
-import actionNode from './nodes/action-node/index.js'
-import qaNode from './nodes/qa-node/index.js'
-import aiDialogueNode from './nodes/ai-dialogue-node'
-import httpNode from './nodes/http-node/index.js'
-import knowledgeBaseNode from './nodes/knowledge-base-node/index.js'
-import endNode from './nodes/end-node/index.js'
-import explainNode from './nodes/explain-node/index.js'
-import variableAssignmentNode from './nodes/variable-assignment-node/index.js'
-import judgeNode from './nodes/judge-node/index.js'
-import specifyReplyNode from './nodes/specify-reply-node/index.js'
-import parameterExtractionNode from './nodes/parameter-extraction-node/index'
-import problemOptimizationNode from './nodes/problem-optimization-node/index.js'
-import addDataNode from './nodes/add-data-node/index.js'
-import updateDataNode from './nodes/update-data-node/index.js'
-import deleteDataNode from './nodes/delete-data-node/index.js'
-import selectDataNode from './nodes/select-data-node/index.js'
-import codeRunNode from './nodes/code-run-node/index.js'
-import mcpNode from "./nodes/mcp-node/index.js";
-import zmPluginsNode from "./nodes/zm-plugins-node/index.js";
 import { ContextPad } from './plugins/context-pad/index.js'
 import { CanvasHistory } from './plugins/canvas-history/index.js'
 import { CustomKeyboard } from './plugins/custom-keyboard/index.js'
-import customGroupNode from './nodes/custom-group-node/index.js'
-import groupStartNode from './nodes/group-start-node/index.js'
-import terminateMode from './nodes/terminate-node/index.js'
+import registerCustomNodes from './nodes/index.js'
 
 const emit = defineEmits(['selectNode', 'onDeleteNode', 'onDeleteEdge', 'runTest', 'blankClick'])
 
@@ -236,34 +213,10 @@ function initLogicFlow() {
       }
     })
 
+    registerCustomNodes(lf)
     register(customLineEdge, lf)
     register(customBezierEdge, lf)
-    register(startNode, lf)
-    register(questionNode, lf)
-    register(actionNode, lf)
-    register(httpNode, lf)
-    register(qaNode, lf)
-    register(aiDialogueNode, lf)
-    register(knowledgeBaseNode, lf)
-    register(endNode, lf)
-    register(terminateMode, lf)
-    register(explainNode, lf)
-    register(judgeNode, lf)
-    register(variableAssignmentNode, lf)
-    register(specifyReplyNode, lf)
-    register(parameterExtractionNode, lf)
-    register(problemOptimizationNode, lf)
-    register(addDataNode, lf)
-    register(updateDataNode, lf)
-    register(deleteDataNode, lf)
-    register(selectDataNode, lf)
-    register(codeRunNode, lf)
-    register(mcpNode, lf)
-    register(zmPluginsNode, lf)
-
-    register(customGroupNode, lf)
-    register(groupStartNode, lf)
-    register(terminateMode, lf)
+    
 
     // lf.setDefaultEdgeType('custom-edge')
     lf.setDefaultEdgeType('custom-bezier-edge')
@@ -489,13 +442,85 @@ function initLogicFlow() {
   }
 }
 
+
+const createTriggerElements= (startNode) => {
+  const nodesMap = getNodesMap()
+  const node_params = JSON.parse(startNode.properties.node_params)
+  const { trigger_list } = node_params.start;
+
+  const triggerNodes = []
+  const triggerEdges = []
+  let offsetTop = 0;
+
+  trigger_list.forEach((item, index) => {
+    const type = `trigger_${item.trigger_type}`
+    const nodeId = generateUniqueId(type)
+    const nodeCongfig = nodesMap[type]
+    const nodeSortKey = nodeId.substring(0, 8) + nodeId.substring(nodeId.length - 8)
+    const edgeId = generateUniqueId(type)
+    // const icon = item.trigger_icon ? item.trigger_icon : nodeCongfig.properties.node_icon
+    const triggerNode = createTriggerNode(item)
+
+    triggerNode.id = nodeId
+    triggerNode.x = startNode.x - 600
+    triggerNode.y = startNode.y + offsetTop
+    triggerNode.properties.node_key = nodeId
+    triggerNode.properties.nodeSortKey = nodeSortKey
+
+    const edge = {
+      id: edgeId,
+      sourceNodeId: nodeId,
+      targetNodeId: startNode.id,
+      properties: {
+        isTriggerEdge: true,
+      }
+    }
+
+    offsetTop += nodeCongfig.height + 50
+
+    triggerNodes.push(triggerNode)
+    triggerEdges.push(edge)
+  })
+  
+  return {
+    nodes: triggerNodes,
+    edges: triggerEdges,
+  };
+}
+
 const getData = () => {
-  let data = lf.getGraphRawData()
-  return data
+  const data = JSON.parse(JSON.stringify(lf.getGraphRawData()))
+  const nodes = []
+  const edges = []
+  const triggers = []
+
+  data.edges.forEach(edge => {
+    if(!edge.properties.isTriggerEdge){
+      edges.push(edge)
+    }
+  })
+
+  data.nodes.forEach(node => {
+    if(node.properties.isTriggerNode){
+      triggers.push(node)
+    }else{
+      nodes.push(node)
+    }
+  })
+
+  data.nodes = nodes;
+  data.edges = edges;
+  data.triggers = triggers;
+
+  return data;
 }
 
 const setData = (data) => {
-  let nodesMap = getNodesMap()
+  const nodesMap = getNodesMap()
+  let triggerElements = {
+    nodes: [],
+    edges: [],
+  }
 
   data.nodes.forEach((node) => {
     // 设置开始节点的宽高
@@ -510,18 +535,29 @@ const setData = (data) => {
     if (!node.properties.height) {
       node.properties.height = nodeCongfig.height
     }
+    // 处理开始节点的触发器
+    if (node.type == 'start-node') {
+      triggerElements = createTriggerElements(node)
+    }
   })
 
-  lf.clearData()
+  data.nodes.unshift(...triggerElements.nodes)
 
+  lf.clearData()
   lf.graphModel.graphDataToModel(data)
   lf.graphModel.translateCenter()
   lf.extension.miniMap.show()
+
+  // 添加触发器边, 调用addEdge来产生边这样就不用计算边的位置了
+  triggerElements.edges.forEach(edge => {
+    lf.graphModel.addEdge(edge)
+  })
 
   const history = lf.extension.canvasHistory
   if (history) {
     history.setInitialState(data)
   }
+
   handleSetNodeToGroup(data.nodes) // 给节点增加绑定关系
 }
 
@@ -541,6 +577,20 @@ const handleSetNodeToGroup = (nodes)=>{
 
 // 自定义添加节点
 let nodeNameMap = {}
+// 生成trigger节点位置
+const getTriggerNodePosition = () => { 
+  // 获取开始节点的位置
+  const { nodes } = lf.graphModel
+  const startNode = nodes.find((node) => node.type === 'start-node')
+
+  const x = startNode.x - 600
+  const y = startNode.y
+
+  return {
+    x,
+    y
+  }
+}
 const createNodeInfo = (options) => {
   const data = options.node || options;
   const anchorData = options.anchorData; // 来自右键菜单添加
@@ -590,15 +640,23 @@ const createNodeInfo = (options) => {
         data.properties.loop_parent_key = nodeGroup.id
       }
     } else {
-      // === 默认（点击）添加，放在画布中心 ===
-      const { transformModel } = lf.graphModel;
-      const point = transformModel.HtmlPointToCanvasPoint([
-        lf.graphModel.width / 2,
-        lf.graphModel.height / 2
-      ]);
-      data.x = point[0];
-      data.y = point[1];
-      data.properties.disabled_add_group = true // 从底部按钮添加的 禁止添加进入分组
+      // 触发器放到开始节点左边
+      if(options.isTriggerNode){
+        let pos = getTriggerNodePosition()
+        data.x = pos.x;
+        data.y = pos.y;
+        data.properties.disabled_add_group = true
+      }else{
+        // === 默认（点击）添加，放在画布中心 ===
+        const { transformModel } = lf.graphModel;
+        const point = transformModel.HtmlPointToCanvasPoint([
+          lf.graphModel.width / 2,
+          lf.graphModel.height / 2
+        ]);
+        data.x = point[0];
+        data.y = point[1];
+        data.properties.disabled_add_group = true // 从底部按钮添加的 禁止添加进入分组
+      }
     }
   }
   return data;
@@ -610,14 +668,22 @@ const onCustomAddNode = (options) => {
   const anchorData = options.anchorData; // 来自右键菜单添加
 
   // 情况选中状态
+  let hasSessionNode = false
   let zIndex = 0
   lf.graphModel.nodes.forEach((node) => {
+    console.log(node,'node--')
     if (node.zIndex > zIndex) {
       zIndex = node.zIndex
+    }
+    if(!hasSessionNode && node.type == 'session-trigger-node'){
+      hasSessionNode = true
     }
   })
 
   zIndex = zIndex + 1
+  if(hasSessionNode && nodeData.type == 'session-trigger-node'){
+    return message.error('请勿添加多个会话触发器')
+  }
 
   let node = lf.addNode(nodeData)
 
@@ -641,6 +707,23 @@ const onCustomAddNode = (options) => {
     }, 100)
   }
 
+  if(options.isTriggerNode){
+    const { nodes } = lf.graphModel
+    const startNode = nodes.find((node) => node.type === 'start-node')
+
+    let edge = {
+      type: 'custom-bezier-edge',
+      sourceNodeId: nodeData.id,
+      targetNodeId: startNode.id,
+      properties: {
+        isTriggerEdge: true,
+      }
+    }
+
+    lf.graphModel.addEdge(edge)
+    lf.graphModel.eventCenter.emit("custom:trigger-add", nodeData);
+  }
+
   if (anchorData) {
     lf.graphModel.addEdge({
       type: 'custom-bezier-edge',
@@ -652,6 +735,7 @@ const onCustomAddNode = (options) => {
         y: anchorData.y
       }
     })
+
     let nodeGroup = lf.graphModel.dynamicGroup.getGroupByNodeId(anchorData.nodeId)
     if(nodeGroup && nodeGroup.id){
       const groupModel = lf.getNodeModelById(nodeGroup.id);
@@ -810,6 +894,14 @@ function isEdge(data){
   return edge
 }
 
+function getTriggerNodes(){
+  const { nodes } = lf.getGraphData()
+
+  let triggerNodes = nodes.filter((node) => node.properties.isTriggerNode)
+
+  return triggerNodes;
+}
+
 const handleDeleteNode = (node) => {
   // 将右键点击的节点设置为当前唯一选中的元素
   if (node && node.id) {
@@ -858,6 +950,18 @@ const deleteSelectedElements = () => {
     return
   }
 
+  // 限制删除触发器
+  const deletetTriggerNodes = selectedElements.value.filter((el) => el.properties.isTriggerNode === true)
+
+  if (deletetTriggerNodes.length > 0) {
+    // 必须保留一个触发器
+    const triggerNodes = getTriggerNodes();
+    if (triggerNodes.length - deletetTriggerNodes.length < 1) {
+      message.error('请至少保留一个触发器！');
+      return;
+    }
+  }
+
   // 定义核心删除逻辑，用于复用
   const performDelete = () => {
     const history = lf.extension.canvasHistory
@@ -868,13 +972,24 @@ const deleteSelectedElements = () => {
     }
 
     // 2. 执行所有删除操作
+    let isTriggerNode = false;
+
     elementsToDelete.forEach((el) => {
       if (isNode(el)) {
+        if(el.properties.isTriggerNode){
+          isTriggerNode = true;
+        }
+
         lf.deleteNode(el.id)
       } else if (isEdge(el)) {
         lf.deleteEdge(el.id)
       }
     })
+
+    // 更新一下触发器的数据
+    if (isTriggerNode) {
+      lf.graphModel.eventCenter.emit("custom:trigger-change", null);
+    }
 
     // 3. 操作后：保存一次最终状态
     if (history) {
@@ -1000,7 +1115,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (lf) {
+  if (lf && lf.destroy) {
     lf.destroy()
   }
 })

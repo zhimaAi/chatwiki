@@ -43,6 +43,8 @@ class VueHtmlNodeModel extends BaseVueNodeModel {
     // sourceRules - 当节点作为边的起始节点（source）时的校验规则
     this.sourceRules = [sourceRule01, sourceRule02]
 
+    // targetRules - 当节点作为边的目标节点（target）时的校验规则
+    const allowedNodeTypes = ['session-trigger-node']
     const targetRule01 = {
       message: '只允许连接左边的锚点',
       validate: (sourceNode, targetNode, sourceAnchor, targetAnchor) => {
@@ -50,7 +52,7 @@ class VueHtmlNodeModel extends BaseVueNodeModel {
           return false
         }
 
-        return targetAnchor.type === 'left'
+        return targetAnchor.type === 'left' || allowedNodeTypes.includes(sourceNode.type)
       },
     }
     // targetRules - 当节点作为边的目标节点（target）时的校验规则
@@ -63,6 +65,15 @@ class VueHtmlNodeModel extends BaseVueNodeModel {
     const { nodeSortKey } = this.properties
 
     return [
+      {
+        x: x - width / 2,
+        y: y - height / 2 + 25,
+        id: nodeSortKey + '-anchor_left',
+        type: 'anchor_left',
+        isHovered,
+        isSelected,
+        nodeId: id,
+      },
       {
         x: x + width / 2,
         y: y - height / 2 + 25,

@@ -13,7 +13,10 @@ export const saveRobot = (data = {}, application_type = 0) => {
       'Content-Type': 'multipart/form-data'
     },
     url: application_type == 0 ? '/manage/saveRobot' : '/manage/addFlowRobot',
-    data: data
+    data: {
+      ...data,
+      is_default: 2
+    }
   })
 }
 
@@ -393,6 +396,214 @@ export const saveDraftExTime = (data = {}) => {
   return request.post({
     url: '/manage/saveDraftExTime',
     data: data
+  })
+}
+
+// 同步草稿到系统
+export const syncOfficialDraftList = (params = {}) => {
+  return request.get({
+    url: '/manage/officialAccount/getSyncDraftList',
+    params
+  })
+}
+
+// 获取草稿分组列表
+export const getOfficialDraftGroupList = (params = {}) => {
+  return request.get({
+    url: '/manage/officialAccount/draftGroupList',
+    params
+  })
+}
+
+// 新增/重命名草稿分组
+export const saveOfficialDraftGroup = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/saveDraftGroup',
+    data
+  })
+}
+
+// 删除草稿分组
+export const deleteOfficialDraftGroup = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/deleteDraftGroup',
+    data
+  })
+}
+
+// 批量移动草稿到分组
+export const moveOfficialDraftGroup = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/moveDraftGroup',
+    data
+  })
+}
+
+// 获取草稿列表
+export const getOfficialDraftList = (params = {}) => {
+  return request.get({
+    url: '/manage/officialAccount/draftList',
+    params
+  })
+}
+
+// 创建群发任务
+export const createBatchSendTask = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/createBatchSendTask',
+    data: data
+  })
+}
+
+// 群发任务列表
+export const getBatchSendTaskList = (params = {}) => {
+  return request.get({
+    url: '/manage/officialAccount/batchSendTaskList',
+    params: params
+  })
+}
+
+// 设置群发任务置顶状态
+export const setBatchSendTaskTopStatus = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/setBatchSendTaskTopStatus',
+    data: data
+  })
+}
+
+// 删除群发任务
+export const deleteBatchSendTask = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/deleteBatchSendTask',
+    data: data
+  })
+}
+
+// 设置群发任务开启状态
+export const setBatchSendTaskEnableStatus = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/setBatchSendTaskOpenStatus',
+    data: data
+  })
+}
+
+// 群发任务设置评论规则
+export const setBatchSendTaskCommentRule = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/changeBatchTaskCommentRule',
+    data: data
+  })
+}
+
+// 群发任务设置评论规则开启状态
+export const setBatchSendTaskCommentRuleStatus = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/changeBatchTaskCommentRuleStatus',
+    data: data
+  })
+}
+
+// 变更文章评论开启状态
+export const changeCommentStatus = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/changeCommentStatus',
+    data: data
+  })
+}
+
+// 评论标记为精选
+export const markElectComment = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/markElect',
+    data: data
+  })
+}
+
+// 取消标记精选评论
+export const unMarkElectComment = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/unMarkElect',
+    data: data
+  })
+}
+
+// 回复评论
+export const replyComment = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/replyComment',
+    data: data
+  })
+}
+
+// 删除评论
+export const deleteComment = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/deleteComment',
+    data: data
+  })
+}
+
+// 删除回复
+export const deleteCommentReply = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/deleteCommentReply',
+    data: data
+  })
+}
+
+// 保存评论规则
+export const saveCommentRule = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/saveCommentRule',
+    data: data
+  })
+}
+
+// 删除评论规则
+export const deleteCommentRule = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/deleteCommentRule',
+    data: data
+  })
+}
+
+// 变更规则状态
+export const changeCommentRuleStatus = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/changeCommentRuleStatus',
+    data: data
+  })
+}
+
+// 获取评论列表
+export const getCommentList = (params = {}) => {
+  return request.get({
+    url: '/manage/officialAccount/getCommentList',
+    params: params
+  })
+}
+
+// 评论规则列表
+export const getCommentRuleList = (params = {}) => {
+  return request.get({
+    url: '/manage/officialAccount/getCommentRuleList',
+    params: params
+  })
+}
+
+// 获取单个评论规则
+export const getCommentRuleInfo = (params = {}) => {
+  return request.get({
+    url: '/manage/officialAccount/getCommentRuleInfo',
+    params: params
+  })
+}
+
+// 测试校验ai精选
+export const checkCommentAi = (params = {}) => {
+  return request.get({
+    url: '/manage/officialAccount/checkCommentAi',
+    params: params
   })
 }
 

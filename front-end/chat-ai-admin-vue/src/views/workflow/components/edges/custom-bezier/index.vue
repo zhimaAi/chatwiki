@@ -53,8 +53,16 @@ export default {
   watch: {
     isSelected(newVal) {
       if (newVal) {
-        let graphModel = this.getGraphModel()
-        let selectedElements = graphModel.getSelectElements(true);
+        const graphModel = this.getGraphModel()
+        const model = this.getModel()
+        const sourceNode = graphModel.getNodeModelById(model.sourceNodeId)
+   
+        if(sourceNode.properties.isTriggerNode){
+          this.isDeleteConfirmShow = false;
+          return
+        }
+
+        const selectedElements = graphModel.getSelectElements(true);
 
         if(selectedElements.nodes.length === 0 && selectedElements.edges.length === 1) {
           this.isDeleteConfirmShow = true;

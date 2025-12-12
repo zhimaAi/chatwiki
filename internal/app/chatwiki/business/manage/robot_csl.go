@@ -358,6 +358,7 @@ func ApplyFlowRobot(adminUserId int, robot msql.Params, nodes []msql.Params, csl
 		`robot_name`:           robot[`robot_name`],
 		`robot_intro`:          robot[`robot_intro`],
 		`avatar_from_template`: robot[`robot_avatar`],
+		`is_default`:           cast.ToString(define.NotDefault),
 	}
 	code, err := common.RequestChatWiki(`/manage/addFlowRobot`, http.MethodPost, token, flowRobot)
 	if err != nil {

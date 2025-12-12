@@ -327,6 +327,29 @@ export function formatPriceWithCommas(price) {
   return formattedPrice;
 }
 
+export function addNoReferrerMeta () {
+  const id = 'chatwiki-referrer-meta'
+  const key = '__chatwiki_ref_meta_count__'
+  window[key] = (window[key] || 0) + 1
+  if (!document.getElementById(id)) {
+    const meta = document.createElement('meta')
+    meta.name = 'referrer'
+    meta.content = 'no-referrer'
+    meta.id = id
+    document.head.appendChild(meta)
+  }
+}
+
+export function removeNoReferrerMeta () {
+  const id = 'chatwiki-referrer-meta'
+  const key = '__chatwiki_ref_meta_count__'
+  window[key] = Math.max((window[key] || 1) - 1, 0)
+  if ((window[key] || 0) === 0) {
+    const el = document.getElementById(id)
+    if (el) el.remove()
+  }
+}
+
 // 格式化显示时间
 export function formatDisplayChatTime(time) {
   time = time * 1000

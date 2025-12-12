@@ -259,3 +259,43 @@ type SplitFaqParams struct {
 	FileExt            string `json:"file_ext"`
 	ExtractType        int    `json:"extract_type"`
 }
+
+type OfficialAccountDraftListStruct struct {
+	Item []struct {
+		Content struct {
+			CreateTime int `json:"create_time"`
+			NewsItem   []struct {
+				ArticleType              string `json:"article_type"`
+				NeedOpenCofansCanComment int    `json:"need_open_cofans_can_comment"`
+				ThumbUrl                 string `json:"thumb_url"`
+				Title                    string `json:"title"`
+				Digest                   string `json:"digest"`
+			} `json:"news_item"`
+			UpdateTime int `json:"update_time"`
+		} `json:"content"`
+		MediaId    string `json:"media_id"`
+		UpdateTime int    `json:"update_time"`
+	} `json:"item"`
+	ItemCount  int `json:"item_count"`
+	TotalCount int `json:"total_count"`
+}
+
+type OfficialAccountComment struct {
+	CommentType int    `json:"comment_type"`
+	Content     string `json:"content"`
+	CreateTime  int    `json:"create_time"`
+	Openid      string `json:"openid"`
+	Reply       struct {
+		Content    string `json:"content"`
+		CreateTime int    `json:"create_time"`
+	} `json:"reply"`
+	UserCommentId int `json:"user_comment_id"`
+}
+
+type OfficialAccountCommentResp struct {
+	Comment    []OfficialAccountComment `json:"comment"`
+	CommentCnt int                      `json:"comment_cnt"`
+	Errcode    int                      `json:"errcode"`
+	Errmsg     string                   `json:"errmsg"`
+	Total      int                      `json:"total"`
+}

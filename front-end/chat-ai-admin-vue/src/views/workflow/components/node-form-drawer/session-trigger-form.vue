@@ -1,0 +1,209 @@
+<template>
+  <NodeFormLayout>
+    <template #header>
+      <NodeFormHeader
+        :title="node.node_name"
+        :iconName="node.node_icon_name"
+        @changeTitle="handleTitleChange"
+        @deleteNode="handleDeleteNode"
+        desc="chatwiki对外服务，用户发起会话时触发工作流"
+      >
+      </NodeFormHeader>
+    </template>
+
+    <div class="variable-node">
+      <div class="node-form-content">
+        <div class="gray-block">
+          <div class="output-label">
+            <img src="@/assets/img/workflow/output.svg" alt="" class="output-label-icon" />
+            <span class="output-label-text">输出</span>
+            <span class="output-desc">（输出参数已自动映射到开始节点）</span>
+          </div>
+          <div class="field-items">
+            <div class="field-item" v-for="(item, index) in list" :key="index">
+              <div class="field-name-box">
+                <span class="field-name">{{item.key}}</"></span>
+              </div>
+              <div class="field-value-box">
+                <a-select
+                  style="width: 200px"
+                  placeholder="请输入选择变量"
+                  v-model:value="item.variable"
+                  allowClear
+                  @dropdownVisibleChange="dropdownVisibleChange"
+                  @change="update"
+                >
+                  <a-select-option :disabled="selectedValues.includes(opt.value)" :value="opt.value" v-for="opt in options" :key="opt.key">
+                    <span>{{ opt.label }}</span>
+                  </a-select-option>
+                </a-select>
+              </div>
+              <div class="field-desc">
+                {{ item.desc }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </NodeFormLayout>
+</template>
+
+<script setup>
+import { ref, onMounted, inject, computed, nextTick } from 'vue'
+import NodeFormLayout from './node-form-layout.vue'
+import NodeFormHeader from './node-form-header.vue'
+
+const emit = defineEmits(['update-node'])
+const props = defineProps({
+  lf: {
+    type: Object,
+    default: null
+  },
+  nodeId: {
+    type: String,
+    default: ''
+  },
+  node: {
+    type: Object,
+    default: () => ({})
+  }
+})
+
+const getNode = inject('getNode')
+const getGraph = inject('getGraph')
+
+const list = ref([])
+const options = ref([])
+
+const selectedValues = computed(() => { 
+  return list.value.map(item => item.variable)
+})
+
+
+function getOptions() {
+  const nodeModel = getNode()
+
+  if (nodeModel) {
+    let globalVariable = nodeModel.getGlobalVariable()
+    let diy_global = globalVariable.diy_global || []
+    diy_global.forEach((item) => {
+      item.label = item.key
+      item.value = 'global.' + item.key
+    })
+
+    options.value = diy_global || []
+  }
+}
+
+function dropdownVisibleChange(visible) {
+  if (visible) {
+    getOptions()
+  }
+}
+
+const handleTitleChange = () => { 
+  setTimeout(() => {
+    getGraph().eventCenter.emit('custom:trigger-change',  {...props.node})
+  }, 10)
+}
+
+const handleDeleteNode = () => {
+  setTimeout(() => {
+    getGraph().eventCenter.emit('custom:trigger-change', null)
+  }, 10)
+}
+
+const update = () => {
+  let node_params = JSON.parse(props.node.node_params)
+
+  node_params.trigger.outputs = [...list.value]
+
+  let data = {...props.node, node_params: JSON.stringify(node_params)}
+
+  emit('update-node', data)
+  
+  setTimeout(() => {
+    getGraph().eventCenter.emit('custom:trigger-change', data)
+  }, 10)
+}
+
+const init = () => {
+  getOptions();
+
+  try {
+    let dataRaw = props.node.dataRaw || props.node.node_params || '{}'
+    
+    dataRaw = JSON.parse(dataRaw)
+
+    const trigger = dataRaw.trigger || {
+      outputs: []
+    }
+
+
+    list.value = trigger.outputs.map((item) => {
+      item.tags = item.tags || []
+
+      return item
+    })
+    
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+onMounted(() => {
+  init()
+})
+</script>
+
+<style lang="less" scoped>
+@import './form-block.less';
+.variable-node {
+  .field-items {
+    .field-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .field-name-box {
+      width: auto;
+      margin-right: 8px;
+    }
+
+    .field-value-box {
+      flex: 1;
+      margin-right: 8px;
+      
+      .field-value{
+        display: inline-flex;
+        line-height: 20px;
+        padding: 1px 8px;
+        border-radius: 6px;
+        overflow: hidden;
+        background: #FFF;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+      }
+
+      .value-arrow{
+        font-size: 16px;
+        padding: 1px 4px;
+        margin-right: 4px;
+        border-radius: 4px;
+        background: #E4E6EB;
+      }
+    }
+
+    .field-desc{
+      line-height: 22px;
+      font-size: 14px;
+      color: #595959;
+      text-align: left;
+    }
+  }
+}
+</style>

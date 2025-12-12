@@ -115,6 +115,9 @@ const updateRobotInfo = (val) => {
   if (val.robot_avatar) {
     newState.robot_avatar = new File([val.robot_avatar], val.robot_avatar.name)
   }
+  if(!newState.op_type_relation_library && formState.op_type_relation_library){
+    delete formState.op_type_relation_library
+  }
   Object.assign(formState, newState)
 
   saveForm()

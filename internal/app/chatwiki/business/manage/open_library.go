@@ -349,7 +349,7 @@ func SaveLibDoc(c *gin.Context) {
 			}
 		}
 		//common save
-		fileIds, err := addLibFile(c, adminUserId, libraryId, cast.ToInt(info[`type`]), nil, &req)
+		fileIds, err := addLibFile(c.Request.MultipartForm, common.GetLang(c), adminUserId, libraryId, cast.ToInt(info[`type`]), nil, &req)
 		if err != nil {
 			logs.Error(err.Error())
 			common.FmtError(c, `sys_err`)
@@ -650,7 +650,7 @@ func UploadLibDoc(c *gin.Context) {
 		}
 	}
 	//common save
-	fileIds, err := addLibFile(c, adminUserId, libraryId, cast.ToInt(info[`type`]), nil, &req)
+	fileIds, err := addLibFile(c.Request.MultipartForm, common.GetLang(c), adminUserId, libraryId, cast.ToInt(info[`type`]), nil, &req)
 	if err != nil {
 		logs.Error(err.Error())
 		common.FmtError(c, `sys_err`)

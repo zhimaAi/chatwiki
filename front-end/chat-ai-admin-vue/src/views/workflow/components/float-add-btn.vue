@@ -35,7 +35,7 @@
 </template>
 
 <script>
-import NodeListPopup from './node-list-popup.vue'
+import NodeListPopup from './node-list-popup/index.vue'
 export default {
   name: 'float-add-btn',
   components: { NodeListPopup },

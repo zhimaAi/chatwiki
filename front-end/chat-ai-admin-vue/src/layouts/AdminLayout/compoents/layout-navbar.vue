@@ -50,6 +50,10 @@
 <template>
   <div class="navbar-wrapper">
     <div class="navbar">
+      <div class="nav-menu" v-if="role_type == 1" :class="{active: activeMenu == 'guide'}" @click="handleToGuide">
+        <svg-icon class="nav-icon" name="guide"></svg-icon>
+         <span class="nav-name">新手指引 ({{ total_process }}%)</span>
+      </div>
       <template v-for="item in navs">
         <template v-if="checkRole(item.permission)" :key="item.key">
           <div
@@ -102,13 +106,26 @@
 </template>
 
 <script setup>
-import { computed, watch, ref } from 'vue'
+import { computed, watch, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { DownOutlined, CheckOutlined } from '@ant-design/icons-vue'
 import { checkRole } from '@/utils/permission'
 import { getRobotList, robotAutoAdd } from '@/api/robot/index.js'
+import { useGuideStore } from '@/stores/modules/guide'
 import { useCompanyStore } from '@/stores/modules/company'
+import { usePermissionStore } from '@/stores/modules/permission'
 const companyStore = useCompanyStore()
+const guideStore = useGuideStore()
+
+const permissionStore = usePermissionStore()
+
+const role_type = computed(() => {
+  return permissionStore.role_type
+})
+
+const total_process = computed(() => {
+  return +guideStore.total_process
+})
 
 const router = useRouter()
 const roure = useRoute()
@@ -210,8 +227,14 @@ const navs = computed(() => {
 })
 
 const handleClickNav = (item) => {
+  guideStore.getUseGuideProcess()
   router.push(item.path)
   // window.open(`/#${item.path}`, "_blank", "noopener") // 建议添加 noopener 防止安全漏洞
+}
+
+const handleToGuide = () => {
+  guideStore.getUseGuideProcess()
+  router.push('/guide')
 }
 
 const handleChangeRobotmenuItem = (type, item) => {
@@ -273,4 +296,8 @@ watch(
     immediate: true
   }
 )
+
+onMounted(()=>{
+  guideStore.getUseGuideProcess()
+})
 </script>

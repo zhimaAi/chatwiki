@@ -13,7 +13,7 @@ const ImageAvatarLimitSize = 1024 * 1024   //1m
 const LibFileLimitSize = 100 * 1024 * 1024 //100MB
 const LibImageLimitSize = 2 * 1024 * 1024  // 2M
 
-var ImageAllowExt = []string{`heic`, `gif`, `jpg`, `jpeg`, `png`, `swf`, `bmp`, `webp`}
+var ImageAllowExt = []string{`heic`, `gif`, `jfif`, `jpg`, `jpeg`, `jpe`, `png`, `swf`, `bmp`, `webp`}
 var LibFileAllowExt = []string{`pdf`, `docx`, `ofd`, `txt`, `md`, `xlsx`, `csv`, `html`}
 var FormFileAllowExt = []string{`json`, `xlsx`, `csv`}
 var LibDocFileAllowExt = []string{`md`}

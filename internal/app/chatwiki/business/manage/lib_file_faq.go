@@ -579,7 +579,7 @@ func addFAQFile(c *gin.Context, adminUserId int) ([]int64, error) {
 	}
 	// uploaded file
 	libFileAloowExts := define.FAQLibFileAllowExt
-	libraryFiles, _ = common.SaveUploadedFileMulti(c, `faq_files`, define.LibFileLimitSize, adminUserId, `faq_files`, libFileAloowExts)
+	libraryFiles, _ = common.SaveUploadedFileMulti(c.Request.MultipartForm, `faq_files`, define.LibFileLimitSize, adminUserId, `faq_files`, libFileAloowExts)
 	if len(libraryFiles) == 0 {
 		return nil, errors.New(i18n.Show(common.GetLang(c), `upload_empty`))
 	}

@@ -129,10 +129,11 @@ const (
 )
 
 const (
-	DocTypeLocal  = 1
-	DocTypeOnline = 2
-	DocTypeCustom = 3
-	DocTypeDiy    = 4
+	DocTypeLocal    = 1
+	DocTypeOnline   = 2
+	DocTypeCustom   = 3
+	DocTypeDiy      = 4
+	DocTypeOfficial = 5
 )
 
 const (

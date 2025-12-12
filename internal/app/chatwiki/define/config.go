@@ -15,4 +15,5 @@ type ConfigParam struct {
 	OssConfig         map[string]string
 	UserDomainService map[string]string
 	Plugin            map[string]string
+	Xiaokefu          map[string]string
 }

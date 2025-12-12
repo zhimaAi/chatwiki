@@ -6,7 +6,7 @@
       :defaultExpandAll="true"
       :height="224"
       :tree-data="props.treeData"
-      :fieldNames="{children: 'subs'}"
+      :fieldNames="{children: 'subs', key: 'cu_key'}"
     >
       <template #switcherIcon="{ switcherCls }">
         <span :class="switcherCls">
@@ -20,8 +20,9 @@
 
       <template #title="{ dataRef }">
         <div class="field-item">
-          <span class="field-name">{{ dataRef.key }}</span>
+          <span class="field-key">{{ dataRef.key }}</span>
           <span class="field-type">{{ dataRef.typ }}</span>
+          <span class="field-name">{{ dataRef.name }}</span>
         </div>
       </template>
     </a-tree>
@@ -68,19 +69,35 @@ const selectedKeys = ref([])
   .field-item{
     display: flex;
     align-items: center;
-    .field-name{
-      line-height: 22px;
+    .field-key{
+      color: #262626;
+      text-align: right;
       font-size: 14px;
-      color: rgb(38, 38, 38);
+      font-style: normal;
+      font-weight: 400;
+      line-height: 22px;
+    }
+    .field-name{
+      color: #595959;
+      font-size: 14px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 22px;
     }
     .field-type{
-      height: 22px;
-      line-height: 20px;
-      padding: 0 8px;
-      margin-left: 8px;
+      display: flex;
+      padding: 1px 8px;
+      align-items: center;
+      gap: 4px;
       border-radius: 6px;
-      background: #FFFFFF;
-      border: 1px solid rgba(0, 0, 0, 0.15);
+      border: 1px solid #00000026;
+      background: #FFF;
+      color: #595959;
+      font-size: 12px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 20px;
+      margin: 0 12px 0 8px;
     }
   }
 }

@@ -13,6 +13,8 @@ import noPermission from './no-permission'
 import AiExtractFaq from './ai-extract-faq'
 import triggerStatics from './trigger-statics'
 import plugins from './plugins'
+import templates from './templates'
+import guide from './guide'
 
 const routes = [
   {
@@ -42,6 +44,7 @@ const routes = [
     }
   },
   user,
+  guide,
   robot,
   explore,
   library,
@@ -54,6 +57,7 @@ const routes = [
   AiExtractFaq,
   triggerStatics,
   plugins,
+  templates,
 ]
 
 if (import.meta.env.DEV) {

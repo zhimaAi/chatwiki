@@ -1,0 +1,25 @@
+// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+
+package common
+
+import (
+	"chatwiki/internal/app/chatwiki/define"
+	"fmt"
+
+	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/msql"
+)
+
+type TriggerConfigCacheBuildHandler struct {
+	AdminUserId int
+	TriggerType string
+}
+
+func (h TriggerConfigCacheBuildHandler) GetCacheKey() string {
+	return fmt.Sprintf(`chatwiki.trigger.config.%d.%s`, h.AdminUserId, h.TriggerType)
+}
+func (h TriggerConfigCacheBuildHandler) GetCacheData() (any, error) {
+	return msql.Model(`trigger_config`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(h.AdminUserId)).
+		Where(`trigger_type`, h.TriggerType).Find()
+}

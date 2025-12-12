@@ -1,4 +1,13 @@
 <style lang="less" scoped>
+.add-trigger-box{
+  margin-bottom: 16px;
+  .add-trigger-desc{
+    line-height: 22px;
+    margin-top: 4px;
+    font-size: 14px;
+    color: #595959;
+  }
+}
 .start-node {
   position: relative;
 
@@ -6,7 +15,6 @@
     background: #f2f4f7;
     border-radius: 6px;
     padding: 12px;
-    margin-top: 16px;
     .options-title {
       color: var(--wf-color-text-1);
       display: flex;
@@ -106,25 +114,17 @@
     </template>
 
     <div class="start-node-form">
+      <div class="add-trigger-box">
+        <a-button type="primary" ghost @click.stop="handleAddTrigger">
+          <template #icon>
+            <PlusOutlined />
+          </template>
+          <span>添加触发器</span>
+        </a-button>
+        <div class="add-trigger-desc">添加触发器后支持定时或者外部事件触发工作流</div>
+      </div>
       <div class="node-form-content">
         <div class="start-node">
-          <div class="start-node-options">
-            <div class="options-title">
-              <div><img src="@/assets/img/workflow/output.svg" alt="" class="title-icon" />输出</div>
-            </div>
-            <div
-              class="options-item"
-              :class="{ 'is-required': item.required }"
-              v-for="item in sys_global"
-              :key="item.key"
-            >
-              <div class="options-item-body">
-                <div class="option-label">{{ item.key }}</div>
-                <div class="option-type">{{ item.typ }}</div>
-              </div>
-            </div>
-          </div>
-
           <div class="start-node-options">
             <div class="options-title">
               <div>
@@ -221,6 +221,7 @@
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
 import { QuestionCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
+import  {message } from 'ant-design-vue'
 
 const typOptions = [
   {
@@ -239,6 +240,7 @@ const typOptions = [
 
 export default {
   emits: ['close', 'update-node'],
+  inject: ['getGraph'],
   components: {
     NodeFormLayout,
     NodeFormHeader,
@@ -259,6 +261,7 @@ export default {
     return {
       sys_global: [],
       diy_global: [],
+      trigger_list:[],
       show: false,
       typOptions: [...typOptions],
       formState: {
@@ -291,6 +294,7 @@ export default {
     let node_params = JSON.parse(this.node.node_params)
     this.sys_global = node_params.start.sys_global
     this.diy_global = node_params.start.diy_global
+    this.trigger_list = node_params.start.trigger_list
   },
   methods: {
     update() {
@@ -304,6 +308,19 @@ export default {
       }
 
       this.$emit('update-node', data)
+    },
+    handleAddTrigger(){
+      this.getGraph().eventCenter.emit('custom:showTriggerLit')
+    },
+    getTriggerVariables(){
+      let variables = {}
+      this.trigger_list.forEach(item => {
+        item.outputs.forEach(output => {
+          variables[output.variable] = {...output}
+        })
+      })
+
+      return variables;
     },
     handleAdd(){
       this.formState = {
@@ -322,6 +339,15 @@ export default {
       this.show = true
     },
     handleDel(index){
+      this.getTriggerVariables()
+      // 判断是不是被触发器关联的变量
+      let triggerVariableMap = this.getTriggerVariables()
+      let field = this.diy_global[index]
+
+      if(triggerVariableMap['global.' + field.key]){
+        return message.error('该变量被触发器关联，请先解除关联')
+      }
+ 
       this.diy_global.splice(index, 1)
       this.update()
     },

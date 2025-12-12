@@ -261,7 +261,7 @@
                     </a-menu-item>
                   </a-menu>
                 </template>
-                <a-button type="primary">
+                <a-button v-if="type != 3" type="primary">
                   <template #icon>
                     <PlusOutlined />
                   </template>
@@ -688,6 +688,10 @@ const ali_ocr_switch = computed(() => {
 })
 
 const props = defineProps({
+  type: {
+    type: [Number, String],
+    default: () => 2
+  },
   library_id: {
     type: [Number, String],
     default: () => ''
@@ -943,6 +947,12 @@ const columnsDefault = [
     width: 260
   },
   {
+    title: '文章更新时间',
+    dataIndex: 'official_article_update_time',
+    key: 'official_article_update_time',
+    width: 220
+  },
+  {
     title: '合计',
     dataIndex: 'total_hits',
     key: 'total_hits',
@@ -1123,6 +1133,9 @@ const getData = () => {
       } else {
         columns.value = columnsDefault
       }
+      if (props.type != 3) {
+        columns.value = columns.value.filter(i => i.key != 'official_article_update_time')
+      }
 
       let list = res.data.list || []
       let countData = res.data.count_data || {}
@@ -1141,6 +1154,7 @@ const getData = () => {
         }
         item.file_size_str = formatFileSize(item.file_size)
         item.update_time = dayjs(item.update_time * 1000).format('YYYY-MM-DD HH:mm')
+        item.official_article_update_time = dayjs(item.official_article_update_time * 1000).format('YYYY-MM-DD HH:mm')
         item.doc_last_renew_time_desc =
           item.doc_last_renew_time > 0
             ? dayjs(item.doc_last_renew_time * 1000).format('YYYY-MM-DD HH:mm')

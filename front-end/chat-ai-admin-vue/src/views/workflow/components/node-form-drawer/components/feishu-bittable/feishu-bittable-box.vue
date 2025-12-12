@@ -64,7 +64,6 @@
 
 <script setup>
 import {ref, reactive, onMounted, watch, computed, inject, nextTick} from 'vue'
-import {getPluginActionDefaultArguments, getPluginConifgData} from "@/views/workflow/components/node-list.js";
 import {QuestionCircleOutlined} from '@ant-design/icons-vue';
 import AtInput from "@/views/workflow/components/at-input/at-input.vue";
 import {runPlugin} from "@/api/plugins/index.js";
@@ -74,6 +73,7 @@ import FeishuDelData from "./feishu-del-data.vue";
 import FeishuSearchData from "./feishu-search-data.vue";
 import OutputFields from "@/views/workflow/components/feishu-table/output-fields.vue";
 import {ShowFieldTypes} from "@/constants/feishu-table.js";
+import {getPluginActionDefaultArguments, pluginOutputToTree, getPluginConifgData} from "@/constants/plugin.js";
 
 const emit = defineEmits(['updateVar'])
 const props = defineProps({
@@ -86,9 +86,6 @@ const props = defineProps({
   },
   actionName: {
     type: String,
-  },
-  params: {
-    type: Object,
   },
   variableOptions: {
     type: Array,
@@ -329,49 +326,7 @@ function update(val = null) {
 
 
 function outputFormat() {
-  outputData.value = convertToTree(props.action.output)
-}
-
-function convertToTree(obj) {
-  function randomKey() {
-    return Math.random() * 10000;
-  }
-
-  function walk(key, value) {
-    const node = {
-      key,
-      title: key,
-      typ: "object",
-      subs: [],
-      cu_key: randomKey()
-    };
-
-    // 如果 value 有 type，优先使用
-    if (value.type) {
-      node.typ = value.type;
-    } else if (value.properties) {
-      node.typ = "object";
-    }
-
-    if (value.type === "array<object>") {
-      // 如果是对象数组
-      node.subs = Object.entries(value.items.properties).map(([k, v]) =>
-        walk(k, v)
-      );
-    } else if (value.properties && typeof value.properties === "object") {
-      // 如果包含 properties，则递归处理
-      node.subs = Object.entries(value.properties).map(([k, v]) =>
-        walk(k, v)
-      );
-    } else {
-      // 无 properties 且是基础类型，则 subs 留空
-      node.subs = [];
-    }
-
-    return node;
-  }
-
-  return Object.entries(obj).map(([key, value]) => walk(key, value));
+  outputData.value = pluginOutputToTree(props.action.output)
 }
 </script>
 

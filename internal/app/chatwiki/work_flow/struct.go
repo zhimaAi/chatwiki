@@ -26,8 +26,9 @@ import (
 /************************************/
 
 type StartNodeParams struct {
-	SysGlobal []StartNodeParam `json:"sys_global"`
-	DiyGlobal []StartNodeParam `json:"diy_global"`
+	SysGlobal   []StartNodeParam `json:"sys_global"` //废弃字段
+	DiyGlobal   []StartNodeParam `json:"diy_global"`
+	TriggerList []TriggerConfig  `json:"trigger_list"`
 }
 
 type StartNodeParam struct {
@@ -162,7 +163,8 @@ type Category struct {
 
 type CateNodeParams struct {
 	LlmBaseParams
-	Categorys []Category `json:"categorys"`
+	Categorys     []Category `json:"categorys"`
+	QuestionValue string     `json:"question_value"`
 }
 
 /************************************/
@@ -433,16 +435,19 @@ type NodeParams struct {
 func DisposeNodeParams(nodeType int, nodeParams string) NodeParams {
 	params := NodeParams{}
 	_ = tool.JsonDecodeUseNumber(nodeParams, &params)
-	if nodeType == NodeTypeStart {
-		params.Start.SysGlobal = []StartNodeParam{
-			{Key: `question`, Typ: common.TypString, Required: true, Desc: `用户消息`},
-			{Key: `openid`, Typ: common.TypString, Required: true, Desc: `用户openid`},
-		}
-	} else {
-		params.Start.SysGlobal = make([]StartNodeParam, 0)
-	}
+	params.Start.SysGlobal = make([]StartNodeParam, 0) //废弃字段
 	if params.Start.DiyGlobal == nil {
 		params.Start.DiyGlobal = make([]StartNodeParam, 0)
+	}
+	if params.Start.TriggerList == nil {
+		params.Start.TriggerList = make([]TriggerConfig, 0)
+	}
+	if nodeType == NodeTypeStart && len(params.Start.TriggerList) == 0 { //默认值处理
+		chatTrigger := GetTriggerChatConfig()
+		params.Start.TriggerList = []TriggerConfig{chatTrigger}
+		for _, output := range chatTrigger.Outputs {
+			params.Start.DiyGlobal = append(params.Start.DiyGlobal, output.StartNodeParam)
+		}
 	}
 	if params.Term == nil {
 		params.Term = make(TermNodeParams, 0)
@@ -757,6 +762,11 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 				}
 			}
 		}
+	case NodeTypeCate:
+		if len(node.NodeParams.Cate.QuestionValue) > 0 && !tool.InArrayString(node.NodeParams.Cate.QuestionValue, variables) {
+			err = errors.New(node.NodeName + `节点问题变量不存在:` + node.NodeParams.Cate.QuestionValue)
+			return
+		}
 	case NodeTypeCurl:
 		for _, param := range node.NodeParams.Curl.Headers {
 			if variable, ok := CheckVariablePlaceholder(param.Value, variables); !ok {
@@ -784,11 +794,11 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 				return
 			}
 		}
-	//case NodeTypeCate:
-	//	if variable, ok := CheckVariablePlaceholder(node.NodeParams.Cate.Prompt, variables); !ok {
-	//		err = errors.New(node.NodeName + `节点提示词变量不存在:` + variable)
-	//		return
-	//	}
+	case NodeTypeLibs:
+		if len(node.NodeParams.Libs.QuestionValue) > 0 && !tool.InArrayString(node.NodeParams.Libs.QuestionValue, variables) {
+			err = errors.New(node.NodeName + `节点问题变量不存在:` + node.NodeParams.Libs.QuestionValue)
+			return
+		}
 	case NodeTypeLlm:
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.Llm.Prompt, variables); !ok {
 			err = errors.New(node.NodeName + `节点提示词变量不存在:` + variable)
@@ -800,6 +810,10 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 				err = errors.New(node.NodeName + `节点的知识库引用选择的不是上级检索知识库节点`)
 				return
 			}
+		}
+		if len(node.NodeParams.Llm.QuestionValue) > 0 && !tool.InArrayString(node.NodeParams.Llm.QuestionValue, variables) {
+			err = errors.New(node.NodeName + `节点问题变量不存在:` + node.NodeParams.Llm.QuestionValue)
+			return
 		}
 	case NodeTypeAssign:
 		for i, param := range node.NodeParams.Assign {
@@ -828,7 +842,7 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 		}
 	case NodeTypeParamsExtractor:
 		if !tool.InArrayString(node.NodeParams.ParamsExtractor.QuestionValue, variables) {
-			err = errors.New(node.NodeName + `节点问题变量不存在:` + node.NodeParams.QuestionOptimize.QuestionValue)
+			err = errors.New(node.NodeName + `节点问题变量不存在:` + node.NodeParams.ParamsExtractor.QuestionValue)
 			return
 		}
 	case NodeTypeFormInsert:
@@ -1022,6 +1036,18 @@ func (params *StartNodeParams) Verify() error {
 			return errors.New(fmt.Sprintf(`自定义全局变量名重复定义:%s`, item.Key))
 		}
 		maps[item.Key] = struct{}{}
+	}
+	//触发器参数校验
+	if len(params.TriggerList) == 0 {
+		return errors.New(`工作流至少添加一个触发器`)
+	}
+	for i, trigger := range params.TriggerList {
+		for _, output := range trigger.Outputs {
+			key, _ := strings.CutPrefix(output.Variable, `global.`)
+			if _, ok := maps[key]; !ok {
+				return errors.New(fmt.Sprintf(`第%d个触发器(%s)的输出变量%s(%s)映射配置错误`, i+1, trigger.TriggerName, output.Key, output.Desc))
+			}
+		}
 	}
 	return nil
 }

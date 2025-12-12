@@ -1,6 +1,7 @@
 import { HtmlNode, HtmlNodeModel, h as flh } from '@logicflow/core'
 import { createApp, h, nextTick } from 'vue'
 import {generateUniqueId, jsonDecode} from '@/utils/index'
+import {HasOutputPluginNames} from "@/constants/plugin.js";
 
 function transformArray(arr, parent) {
   // 使用map处理数组并返回新的数组
@@ -382,7 +383,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         if (nodeWhiteList.includes(node.type)){
           if (node.type === 'zm-plugins-node') {
             let nodeParams = jsonDecode(node.properties.node_params)
-            nodeParams.plugin.name === 'feishu_bitable' && parentNodes.push(node);
+            HasOutputPluginNames.includes(nodeParams.plugin.name) && parentNodes.push(node);
           } else {
             parentNodes.push(node);
           }
@@ -432,7 +433,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
       }
 
       if(node.type === 'zm-plugins-node'){
-        obj.children = node_params.plugin.output
+        obj.children = node_params.plugin.output || node_params.plugin.output_obj
       }
 
       if(node.type === 'code-run-node'){
@@ -535,6 +536,14 @@ export class BaseVueNodeModel extends HtmlNodeModel {
     }
 
     return variableArr;
+  }
+
+  getTriggerNodes(){
+    const { nodes } = this.graphModel
+
+    let triggerNodes = nodes.filter((node) => node.properties.isTriggerNode)
+
+    return triggerNodes;
   }
 
   refreshBranch() {

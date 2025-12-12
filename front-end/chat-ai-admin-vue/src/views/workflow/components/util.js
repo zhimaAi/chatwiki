@@ -10,75 +10,7 @@ export function getQuestionNodeAnchor(node) {
 
   return []
 }
-// 已废弃
-export function getKnowledgeBaseNodeHeight(node) {
-  let libs = JSON.parse(node.properties.node_params).libs
-  let linLen = libs.library_ids.split(',').length
-  return 416 + linLen * 72
-}
 
-// 已废弃
-export function getNodeWidth(node) {
-  let widths = {
-    'start-node': 420,
-    'judge-node': 668,
-    'http-node': 568,
-    'question-node': 568,
-    'ai-dialogue-node': 568,
-    'knowledge-base-node': 568,
-    'end-node': 420,
-    'specify-reply-node': 420,
-    'code-run-node': 568,
-  }
-
-  return widths[node.type] || 568
-}
-// 已废弃
-export function getNodeHeight(node) {
-  if (node.type == 'start-node') {
-    return 274
-  }
-
-  if (node.type == 'message-node') {
-    return 800
-  }
-
-  if (node.type == 'knowledge-base-node') {
-    return getKnowledgeBaseNodeHeight(node)
-  }
-
-  if (node.type == 'question-node') {
-    return 502
-  }
-
-  if (node.type == 'ai-dialogue-node') {
-    return 684
-  }
-
-  if (node.type == 'problem-optimization-node') {
-    return 628
-  }
-
-  if (node.type == 'parameter-extraction-node') {
-    return 645
-  }
-
-  if (node.type == 'end-node') {
-    return 86
-  }
-
-  if (node.type == 'variable-assignment-node') {
-    return 130
-  }
-
-  if (node.type == 'specify-reply-node') {
-    return 312
-  }
-  if (node.type == 'explain-node') {
-    return 152
-  }
-  return 800
-}
 
 export function getTargetUserOptions() {
   let options = [

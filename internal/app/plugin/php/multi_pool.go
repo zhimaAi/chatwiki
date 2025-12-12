@@ -43,7 +43,7 @@ func NewPhpPluginPool(phpPath string) *MultiPool {
 
 // LoadPhpPlugin 加载php插件
 // currentVersion 当前主版本号，如: "2.0.4"
-func (p *MultiPool) LoadPhpPlugin(name string, currentVersion string) error {
+func (p *MultiPool) LoadPhpPlugin(name string, currentVersion string, config []string) error {
 	manifest, err := GetPluginManifest(name)
 	if err != nil {
 		return err
@@ -57,6 +57,7 @@ func (p *MultiPool) LoadPhpPlugin(name string, currentVersion string) error {
 	p.Mu.Lock()
 	defer p.Mu.Unlock()
 
+	config = append(config, "RR_MODE="+LambdaMode)
 	lambdaPool := NewPhpPool(&PhpPoolConfig{
 		IdleTimeout: 600 * time.Second,
 		Ctx:         context.Background(),
@@ -72,7 +73,7 @@ func (p *MultiPool) LoadPhpPlugin(name string, currentVersion string) error {
 				MaxWorkers: 3,
 			},
 		},
-		EnvVars:   []string{"RR_MODE=" + LambdaMode},
+		EnvVars:   config,
 		QueueSize: 100,
 	})
 	p.PluginWorkerMap[name] = &PhpPoolWrap{

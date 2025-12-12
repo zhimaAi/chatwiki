@@ -99,12 +99,9 @@ func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, ms
 	if len(info) == 0 {
 		return nil, info, errors.New(`节点信息不存在:` + nodeKey)
 	}
-	nodeParams := NodeParams{}
-	if err = tool.JsonDecodeUseNumber(info[`node_params`], &nodeParams); err != nil {
-		logs.Error(err.Error())
-		return nil, info, fmt.Errorf(`node_params err:%s/%s`, info[`node_params`], err.Error())
-	}
-	switch cast.ToInt(info[`node_type`]) {
+	nodeType := cast.ToInt(info[`node_type`])
+	nodeParams := DisposeNodeParams(nodeType, info[`node_params`])
+	switch nodeType {
 	case NodeTypeStart:
 		return &StartNode{params: nodeParams.Start, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeTerm:
@@ -170,8 +167,20 @@ func (n *StartNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNod
 		workFlowGlobal = workFlowGlobal.ExtractionData(flow.params.WorkFlowGlobal)
 	}
 	for key, field := range common.SimplifyFields(workFlowGlobal) {
-		if _, ok := flow.global[key]; !ok {
-			flow.global[key] = field //给全局变量赋值,不能覆盖系统级参数
+		flow.global[key] = field
+	}
+	if !flow.params.Draft.IsDraft { //触发器逻辑(非草稿调试场景)
+		var findTrigger bool
+		for i, trigger := range n.params.TriggerList {
+			if trigger.TriggerSwitch && trigger.TriggerType == flow.params.TriggerParams.TriggerType {
+				findTrigger = true
+				flow.Logs(`选择使用触发器(%d):%s`, i+1, trigger.TriggerName)
+				trigger.SetGlobalValue(flow) //从触发器填充变量值
+			}
+		}
+		if !findTrigger { //没有开启的触发器
+			err = errors.New(`当前场景没有对应开启的触发器`)
+			return
 		}
 	}
 	output = make(common.SimpleFields) //init
@@ -225,7 +234,8 @@ func (n *CateNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: prompt}})
 	//part2:context_qa
-	contextList := common.BuildChatContextPair(flow.params.Openid, cast.ToInt(flow.params.Robot[`id`]),
+	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
+	contextList := common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
 		flow.params.DialogueId, flow.params.CurMsgId, n.params.ContextPair.Int())
 	for i := range contextList {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
@@ -233,12 +243,17 @@ func (n *CateNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]}})
 	}
 	//part3:cur_question
-	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: flow.params.Question})
-	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: flow.params.Question}})
+	var question = cast.ToString(flow.global[`question`].GetVal(common.TypString))
+	field, exist := flow.GetVariable(n.params.QuestionValue)
+	if exist {
+		question = field.ShowVals()
+	}
+	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: question})
+	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: question}})
 	//request chat
 	flow.params.Robot[`enable_thinking`] = cast.ToString(cast.ToUint(n.params.EnableThinking))
 	chatResp, requestTime, err := common.RequestChat(
-		flow.params.AdminUserId, flow.params.Openid, flow.params.Robot, flow.params.AppType,
+		flow.params.AdminUserId, openid, flow.params.Robot, flow.params.AppType,
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
 	)
 	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
@@ -347,13 +362,14 @@ func (n *LibsNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	robot[`rerank_model_config_id`] = cast.ToString(n.params.RerankModelConfigId)
 	robot[`rerank_use_model`] = n.params.RerankUseModel
 	//start call
-	var question = flow.params.Question
+	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
+	var question = cast.ToString(flow.global[`question`].GetVal(common.TypString))
 	field, exist := flow.GetVariable(n.params.QuestionValue)
 	if exist {
 		question = field.ShowVals()
 	}
 	list, libUseTime, err := common.GetMatchLibraryParagraphList(
-		flow.params.Openid, flow.params.AppType, question, []string{},
+		openid, flow.params.AppType, question, []string{},
 		n.params.LibraryIds, n.params.TopK.Int(), n.params.Similarity, n.params.SearchType.Int(), robot,
 	)
 	isBackground := len(flow.params.Customer) > 0 && cast.ToInt(flow.params.Customer[`is_background`]) > 0
@@ -406,7 +422,8 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: prompt}})
 	}
 	//part2:context_qa
-	contextList := common.BuildChatContextPair(flow.params.Openid, cast.ToInt(flow.params.Robot[`id`]),
+	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
+	contextList := common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
 		flow.params.DialogueId, flow.params.CurMsgId, n.params.ContextPair.Int())
 	for i := range contextList {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
@@ -414,7 +431,7 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]}})
 	}
 	//part3:question,prompt+question
-	var question = flow.params.Question
+	var question = cast.ToString(flow.global[`question`].GetVal(common.TypString))
 	field, exist := flow.GetVariable(n.params.QuestionValue)
 	if exist {
 		question = field.ShowVals()
@@ -432,7 +449,7 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 	//request chat
 	flow.params.Robot[`enable_thinking`] = cast.ToString(cast.ToUint(n.params.EnableThinking))
 	chatResp, requestTime, err := common.RequestChat(
-		flow.params.AdminUserId, flow.params.Openid, flow.params.Robot, flow.params.AppType,
+		flow.params.AdminUserId, openid, flow.params.Robot, flow.params.AppType,
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
 	)
 	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
@@ -565,7 +582,8 @@ func (n *QuestionOptimizeNode) Running(flow *WorkFlow) (output common.SimpleFiel
 	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: prompt}})
 	//part3:context_qa
-	contextList := common.BuildChatContextPair(flow.params.Openid, cast.ToInt(flow.params.Robot[`id`]),
+	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
+	contextList := common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
 		flow.params.DialogueId, flow.params.CurMsgId, n.params.ContextPair.Int())
 	for i := range contextList {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
@@ -573,7 +591,7 @@ func (n *QuestionOptimizeNode) Running(flow *WorkFlow) (output common.SimpleFiel
 		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]}})
 	}
 	//part4:cur_question
-	var question = flow.params.Question
+	var question = cast.ToString(flow.global[`question`].GetVal(common.TypString))
 	field, exist := flow.GetVariable(n.params.QuestionValue)
 	if exist {
 		question = field.ShowVals()
@@ -585,7 +603,7 @@ func (n *QuestionOptimizeNode) Running(flow *WorkFlow) (output common.SimpleFiel
 	//request chat
 	flow.params.Robot[`enable_thinking`] = cast.ToString(cast.ToUint(n.params.EnableThinking))
 	chatResp, requestTime, err := common.RequestChat(
-		flow.params.AdminUserId, flow.params.Openid, flow.params.Robot, flow.params.AppType,
+		flow.params.AdminUserId, openid, flow.params.Robot, flow.params.AppType,
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
 	)
 	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
@@ -629,7 +647,8 @@ func (n *ParamsExtractorNode) Running(flow *WorkFlow) (outputs common.SimpleFiel
 	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: prompt}})
 	//part3:context_qa
-	contextList := common.BuildChatContextPair(flow.params.Openid, cast.ToInt(flow.params.Robot[`id`]),
+	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
+	contextList := common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
 		flow.params.DialogueId, flow.params.CurMsgId, n.params.ContextPair.Int())
 	for i := range contextList {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
@@ -637,7 +656,7 @@ func (n *ParamsExtractorNode) Running(flow *WorkFlow) (outputs common.SimpleFiel
 		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `context_qa`, `question`: contextList[i][`question`], `answer`: contextList[i][`answer`]}})
 	}
 	//part4:cur_question
-	var question = flow.params.Question
+	var question = cast.ToString(flow.global[`question`].GetVal(common.TypString))
 	field, exist := flow.GetVariable(n.params.QuestionValue)
 	if exist {
 		question = field.ShowVals()
@@ -649,7 +668,7 @@ func (n *ParamsExtractorNode) Running(flow *WorkFlow) (outputs common.SimpleFiel
 	//request chat
 	flow.params.Robot[`enable_thinking`] = cast.ToString(cast.ToUint(n.params.EnableThinking))
 	chatResp, requestTime, err := common.RequestChat(
-		flow.params.AdminUserId, flow.params.Openid, flow.params.Robot, flow.params.AppType,
+		flow.params.AdminUserId, openid, flow.params.Robot, flow.params.AppType,
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
 	)
 	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
@@ -1092,7 +1111,6 @@ func (n *PluginNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNo
 		if err != nil {
 			return nil, "", err
 		}
-		logs.Debug("request params: %v", string(params))
 		err = request.Param("params", string(params)).ToJSON(&result)
 		if err != nil {
 			return nil, "", err

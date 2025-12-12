@@ -3,13 +3,13 @@
     <div class="explore-page-body">
       <div class="list-toolbar">
         <div class="toolbar-box">
-          <MainTab/>
+          <MainTab ref="tabRef"/>
         </div>
       </div>
 
       <div class="list-group-box">
         <cu-scroll style="padding-right: 16px; flex: 1">
-          <ExploreList :list="list" @switchChange="handleSwitchChange" @clickItem="goToFunctionCenter" />
+          <ExploreList :list="list" @switchChange="handleSwitchChange" @clickItem="handleClick" />
         </cu-scroll>
       </div>
     </div>
@@ -38,9 +38,9 @@ import {
 import ExploreList from './components/explore-list/index.vue'
 import MainTab from "@/views/explore/components/main-tab.vue";
 
-const LIBRARY_NORMAL_AVATAR = new URL('@/assets/svg/default-explore.svg', import.meta.url).href
 // 顶部页签暂不使用
 
+const tabRef = ref(null)
 const list = ref([])
 const enableTipOpen = ref(false)
 const enableTipDontRemind = ref(false)
@@ -48,8 +48,9 @@ const DONT_REMIND_KEY = 'explore_enable_tip_suppress_until'
 const router = useRouter()
 
 onMounted(() => {
-  if (localStorage.getItem('zm:explore:active') > 1) {
-    router.push({path: '/plugins/index'})
+  let _active = localStorage.getItem('zm:explore:active')
+  if (_active > 1) {
+    tabRef.value.change(_active)
   } else {
     getList()
   }
@@ -74,9 +75,13 @@ const getList = () => {
 const handleSwitchChange = (item, checked) => {
   const newStatus = checked ? '1' : '0'
   if (newStatus === '0') {
+    const contMap = {
+      'robot_auto_reply': '关闭后，该功能默认关闭不再支持使用，所有的公众号菜单都会停用，确认关闭？',
+      'library_ability_official_account': '关闭后，知识库模块将不再显示公众号知识库模块，历史已导入的文章将无法引用，确认关闭？',
+    }
     Modal.confirm({
       title: '提示',
-      content: '关闭后，功能中心将不再显示该功能，并无法使用，其他调用的位子也将失效，确认关闭么？',
+      content: contMap[item.ability_type] || '关闭后，该功能默认关闭不再支持使用，所有的公众号菜单都会停用，确认关闭？',
       onOk: () => {
         saveUserAbility({ ability_type: item.ability_type, switch_status: newStatus }).then((res) => {
           if (res && res.res == 0) {
@@ -100,17 +105,36 @@ const handleSwitchChange = (item, checked) => {
       } else if (item.robot_config) {
         item.robot_config.switch_status = newStatus
       }
+      if (item.ability_type === 'library_ability_official_account') return
       const until = Number(localStorage.getItem(DONT_REMIND_KEY) || 0)
       const now = Date.now()
       if (until <= now) {
         enableTipDontRemind.value = false
-        // 如果是关注后回复 不需要提示
-        if (item.ability_type !== 'robot_subscribe_reply') {
+        // 如果是关注后回复、自定义菜单 不需要提示
+        if (item.robot_only_show != 1) {
           enableTipOpen.value = true
         }
       }
     }
   })
+}
+
+const handleClick = (item) => {
+  switch (item.ability_type) {
+    case 'library_ability_official_account':
+      // eslint-disable-next-line no-case-declarations
+      const url = router.resolve({ path: '/library/list', query: { active: 3 }})
+      window.open(url.href, '_blank')
+      break
+    case 'robot_auto_reply':
+      goToFunctionCenter()
+      break
+    default:
+      if (item.module_type === 'robot' && item.robot_only_show == 0) {
+        goToFunctionCenter()
+      }
+      break
+  }
 }
 
 const applyDontRemindIfChecked = () => {
@@ -185,6 +209,7 @@ watch(enableTipOpen, (v, ov) => {
 }
 
 .explore-page-body {
+  padding: 0 24px;
   margin-top: 16px;
   flex: 1;
   overflow: hidden;

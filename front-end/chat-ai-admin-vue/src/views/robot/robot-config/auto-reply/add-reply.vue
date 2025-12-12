@@ -90,7 +90,7 @@
           回复内容
         </div>
         <div class="item-box">
-          <MultiReply v-for="(it, idx) in replyList" :key="idx" ref="replyRefs" v-model:value="replyList[idx]" :reply_index="idx"
+          <MultiReply v-for="(it, idx) in replyList" :key="idx" ref="replyRefs" v-model:value="replyList[idx]" :reply_index="idx" 
             @change="onContentChange" @del="onDelItem" />
           <a-button type="dashed" style="width: 694px;" :disabled="replyList.length >= 5" @click="addReplyItem">
             <template #icon>

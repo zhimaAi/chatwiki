@@ -193,9 +193,9 @@
           </span>
         </div>
 
-        <div class="item-footer" :class="{'no-footer': item.ability_type == 'robot_subscribe_reply'}">
+        <div class="item-footer" :class="{'no-footer': item.robot_only_show == 1}">
             <a-switch
-              v-if="item.ability_type != 'robot_subscribe_reply'"
+              v-if="item.robot_only_show != 1"
               :checked="item.robot_config?.switch_status == '1'"
               checked-children="开"
               un-checked-children="关"
@@ -204,7 +204,7 @@
             />
             <!-- 固定菜单，复选框 -->
             <a-checkbox
-              v-if="item.ability_type != 'robot_subscribe_reply'"
+              v-if="item.robot_only_show != 1"
               class="fixed-menu-box no-bubble"
               :checked="item.robot_config?.fixed_menu == '1'"
               @click.stop

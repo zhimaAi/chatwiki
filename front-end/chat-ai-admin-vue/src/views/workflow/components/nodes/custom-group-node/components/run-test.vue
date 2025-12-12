@@ -9,7 +9,6 @@
       :footer="null"
       :width="820"
       wrapClassName="no-padding-modal"
-      :bodyStyle="{ 'max-height': '600px', 'padding-right': '24px', 'overflow-y': 'auto' }"
     >
       <div class="flex-content-box">
         <div class="test-model-box">
@@ -31,7 +30,7 @@
               </template>
               <a-input placeholder="请输入" v-model:value="formState.question" />
             </a-form-item>
-            <a-form-item name="openid" :rules="[{ required: true, message: '请输入openid!' }]">
+            <a-form-item name="openid" :rules="[{ required: true, message: '请输入openid!' }]" v-if="is_need_openid ">
               <template #label>
                 <a-flex :gap="4">openid <a-tag style="margin: 0">string</a-tag> </a-flex>
               </template>
@@ -209,28 +208,33 @@ const handleOpenTestModal = async () => {
   await nextTick()
 
   let localData = localStorage.getItem('workflow_loop_run_test_data') || '{}'
+
   localData = JSON.parse(localData)
+
   formState.question = localData.question || ''
   formState.openid = localData.openid || ''
   formState.global = localData.global || ''
+  
   resultList.value = []
   currentNodeKey.value = ''
   setTimeout(() => {
     getFieldLists()
-  }, 400)
+  }, 1000)
   show.value = true
 }
 
 const loop_test_params = ref([])
 const is_need_question = ref(false)
+const is_need_openid = ref(false)
 
 const getFieldLists = () => {
   callLoopWorkFlowParams({
     robot_key: formState.robot_key,
     loop_node_key: props.loop_node_key,
-    openid: 1
   }).then((res) => {
     is_need_question.value = res.data.is_need_question
+    is_need_openid.value = res.data.is_need_openid
+    
     if (!is_need_question.value) {
       formState.question = ''
     }
@@ -341,10 +345,14 @@ defineExpose({
 <style lang="less" scoped>
 .flex-content-box {
   display: flex;
+  max-height: 600px;
+  overflow: hidden;
 }
 .test-model-box {
   flex: 1;
-  margin: 24px 24px 0 0;
+  margin: 24px 0 0 0;
+  padding-right: 16px;
+  overflow-y: auto;
   .top-title {
     font-weight: 600;
     margin-bottom: 16px;
@@ -456,7 +464,7 @@ defineExpose({
   flex: 1;
   border-left: 1px solid #d9d9d9;
   padding: 16px;
-  padding-right: 0;
+  overflow-y: auto;
   .preview-title {
     display: flex;
     align-items: center;

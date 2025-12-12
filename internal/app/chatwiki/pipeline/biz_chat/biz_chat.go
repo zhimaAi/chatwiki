@@ -97,6 +97,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	request.Pipe(CheckChanStream)      //检查流式输出的管道
 	request.Pipe(StreamPing)           //给前端推送ping
 	request.Pipe(CheckParams)          //请求参数检查
+	request.Pipe(FilterLibrary)        //过滤知识库
 	request.Pipe(CloseOpenApiReceiver) //close open_api receiver
 	request.Pipe(GetDialogueId)        //校验对话或创建对话
 	request.Pipe(GetSessionId)         //获取会话ID

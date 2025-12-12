@@ -63,7 +63,7 @@ class CustomKeyboard {
       const { transformModel } = this.lf.graphModel
       const [canvasX, canvasY] = transformModel.HtmlPointToCanvasPoint([e.clientX, e.clientY])
       const transform = this.lf.getTransform()
-      
+
       this.zoom = transform.SCALE_X
 
       if (e.deltaY < 0) {
@@ -108,7 +108,11 @@ class CustomKeyboard {
 
         // 过滤掉开始节点和分组节点
         const validNodes = selectedElements.nodes.filter(
-          (node) => node.type !== 'start-node' && node.type !== 'custom-group'
+          (node) => {
+            return node.type !== 'start-node'
+              && node.type !== 'custom-group'
+              && node.properties.isTriggerNode != true
+          }
         )
 
         if (validNodes.length > 0) {
@@ -125,7 +129,7 @@ class CustomKeyboard {
             node.properties.next_node_key = '';
             node.properties.nodeSortKey = '';
             node.properties.node_key = '';
-            
+
             if (!node.width && node.properties.width) {
               node.width = node.properties.width
             }

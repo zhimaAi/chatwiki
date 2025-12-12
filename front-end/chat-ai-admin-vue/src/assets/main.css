@@ -90,10 +90,17 @@ strong {
 .no-padding-modal .ant-modal .ant-modal-footer{
   padding-right: 24px;
 }
+
+.zm-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+}
+
 .zm-line1 {
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
@@ -130,4 +137,18 @@ strong {
 
 .zm-link-pointer:hover {
   color: #2475fc;
+}
+
+
+/**不显示滚动条**/
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+  /* Chrome Safari */
+}
+
+.hide-scrollbar {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE 10+ */
 }

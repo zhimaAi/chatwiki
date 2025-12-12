@@ -1,6 +1,7 @@
 import {getTMcpProviders} from "@/api/robot/thirdMcp.js";
 import {jsonDecode} from "@/utils/index.js";
 import {getInstallPlugins, getPluginConfig, runPlugin} from "@/api/plugins/index.js";
+import {getPluginActionDefaultArguments, pluginHasAction} from "@/constants/plugin.js";
 
 const defaultRowData = {
   node_key: '',
@@ -66,6 +67,78 @@ export const nodesGroup = [
 ]
 
 export const nodeList = [
+  {
+    id: '',
+    groupKey: 'start',
+    type: 'trigger_1',
+    x: -600,
+    y: 0,
+    width: 420,
+    height: 102,
+    hidden: true,
+    properties: {
+      ...getRowData(),
+      componentKey: 'session-trigger-node',
+      isTriggerNode: true,
+      node_type: 1,
+      node_name: '',
+      node_icon: getNodeIconUrl('session-trigger-node'),
+      node_icon_name: 'session-trigger-node',
+      node_params: JSON.stringify({
+        trigger: {
+          outputs: [],
+        }
+      })
+    }
+  },
+  {
+    id: '',
+    groupKey: 'start',
+    type: 'trigger_2',
+    x: -600,
+    y: 0,
+    width: 420,
+    height: 102,
+    hidden: true,
+    properties: {
+      ...getRowData(),
+      componentKey: 'session-trigger-node',
+      isTriggerNode: true,
+      node_type: 2,
+      node_name: '',
+      node_icon: getNodeIconUrl('session-trigger-node'),
+      node_icon_name: 'session-trigger-node',
+      node_params: JSON.stringify({
+        trigger: {
+          outputs: [],
+        }
+      })
+    }
+  },
+  {
+    id: '',
+    groupKey: 'start',
+    type: 'trigger_3',
+    x: -600,
+    y: 0,
+    width: 420,
+    height: 102,
+    hidden: true,
+    properties: {
+      ...getRowData(),
+      componentKey: 'timing-trigger-node',
+      isTriggerNode: true,
+      node_type: 2,
+      node_name: '',
+      node_icon: getNodeIconUrl('timing-trigger-node'),
+      node_icon_name: 'timing-trigger-node',
+      node_params: JSON.stringify({
+        trigger: {
+          outputs: [],
+        }
+      })
+    }
+  },
   {
     id: '',
     groupKey: 'start',
@@ -136,7 +209,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 6,
-      node_name: 'AI对话',
+      node_name: '大模型',
       node_icon: getNodeIconUrl('ai-dialogue-node'),
       node_icon_name: 'ai-dialogue-node',
       node_params: JSON.stringify({
@@ -321,6 +394,7 @@ export const nodeList = [
           max_token: 2000,
           prompt: '',
           enable_thinking: false,
+          question_value: 'global.question',
           categorys: [
             {
               category: '',
@@ -663,28 +737,17 @@ export const getAllGroupNodes = (type) => {
   return JSON.parse(JSON.stringify(nodesGroupArr))
 }
 
-let FeishuBitTableActions = []
+export const PluginActionMap = {}
+
+export const getPluginActions = (name) => {
+  return PluginActionMap[name] || []
+}
 
 export const getAllPluginNodes = async () => {
   let {data} = await getInstallPlugins()
   data = Array.isArray(data) ? data : []
   data = data.filter(i => i?.local?.has_loaded)
-  // 是否存在飞书多维表节点，存在则查询多维表方法
-  let feishu = data.find(i => i?.local?.name == 'feishu_bitable')
-  let actions = {}
-  if (feishu) {
-    await runPlugin({
-      name: 'feishu_bitable',
-      action: "default/get-schema",
-      params: {}
-    }).then(res => {
-      actions = res?.data || {}
-      FeishuBitTableActions = []
-      for (let key in actions) {
-        if (actions[key].type == 'node') FeishuBitTableActions.push({...actions[key], name: key})
-      }
-    })
-  }
+  await loadPluginActions(data)
   let plugin
   data = data.map(item => {
     plugin = {
@@ -714,23 +777,30 @@ export const getAllPluginNodes = async () => {
         }),
       },
       expand: false,
+      plugin_name: plugin.name,
     }
   })
   return data
 }
 
-export const getFeishuActions = () => {
-  return FeishuBitTableActions
-}
-
-const _pluginConifgMap = {}
-export const getPluginConifgData = async (name) => {
-  if (!_pluginConifgMap[name]) {
-    await getPluginConfig({name: name}).then(res => {
-      _pluginConifgMap[name] = jsonDecode(res?.data, {})
-    })
+export const loadPluginActions = async (plugins) => {
+  let name, actions
+  for (let plugin of plugins) {
+    name = plugin?.local?.name || ''
+    if (pluginHasAction(name)) {
+      await runPlugin({
+        name: name,
+        action: "default/get-schema",
+        params: {}
+      }).then(res => {
+        actions = res?.data || {}
+        PluginActionMap[name] = []
+        for (let key in actions) {
+          if (actions[key].type == 'node') PluginActionMap[name].push({...actions[key], name: key})
+        }
+      })
+    }
   }
-  return _pluginConifgMap[name]
 }
 
 export const getAllMcpNodes = async () => {
@@ -767,54 +837,17 @@ export const getMcpNode = (mcp, tool) => {
   }
 }
 
-export const pluginActionDefaultArgumentsMap = {
-  create_record: {
-    app_id: '',
-    app_secret: '',
-    app_token: '',
-    table_id: '',
-    fields: [],
-  },
-  delete_record: {
-    app_id: '',
-    app_secret: '',
-    app_token: '',
-    table_id: '',
-    record_id: '',
-    record_tags: []
-  },
-  update_record: {
-    app_id: '',
-    app_secret: '',
-    app_token: '',
-    table_id: '',
-    fields: [],
-    record_id: '',
-    record_tags: [],
-  },
-  search_records: {
-    app_id: '',
-    app_secret: '',
-    app_token: '',
-    table_id: '',
-    field_names: [],
-    filter: {
-      conjunction:'and',
-      conditions: [],
-    },
-    sort: [],
-    page_size: 100
-  }
-}
-
-export const getPluginActionDefaultArguments = (actionName) => {
-  return JSON.parse(JSON.stringify(pluginActionDefaultArgumentsMap[actionName]))
-}
-
 export const getPluginActionNode = (node, action, actionName) => {
   let params = JSON.parse(node.properties.node_params)
+  let pluginName = params.plugin?.name
+  let argsJson = getPluginActionDefaultArguments(pluginName, actionName)
+  if (argsJson === '{}' && action?.params) {
+    argsJson = JSON.stringify(Object.fromEntries(
+      Object.keys(action.params).map(key => [key, ''])
+    ))
+  }
+  params.plugin.params.arguments = argsJson
   params.plugin.params.business = actionName
-  params.plugin.params.arguments = getPluginActionDefaultArguments(actionName)
   node.properties.node_params = JSON.stringify(params)
   node.properties.node_name = action.title
   node.width = 420
@@ -839,4 +872,36 @@ export const getNodeTypes = () => {
   })
 
   return nodeTypes
+}
+
+export const createTriggerNode = (item) => {
+  const nodesMap = getNodesMap()
+  const type = `trigger_${item.trigger_type}`
+  const nodeCongfig = nodesMap[type]
+  const icon = item.trigger_icon ? item.trigger_icon : nodeCongfig.properties.node_icon
+  const node = {
+    type: nodeCongfig.properties.componentKey,
+    x: 0, 
+    y: 0, 
+    id: '',
+    width: nodeCongfig.width,
+    height: nodeCongfig.height,
+    properties: {
+      ...nodeCongfig.properties,
+      node_icon: icon,
+      isTriggerNode: true,
+      width: nodeCongfig.width,
+      height: nodeCongfig.height,
+      node_key: '',
+      nodeSortKey: '',
+      node_name: item.trigger_name,
+      node_params: JSON.stringify({
+        trigger: {
+          ...item
+        }
+      })
+    }
+  }
+
+  return JSON.parse(JSON.stringify(node))
 }

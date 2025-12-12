@@ -6,10 +6,11 @@ import (
 	"chatwiki/internal/app/plugin/define"
 	"chatwiki/internal/app/plugin/initialize"
 	"chatwiki/internal/pkg/lib_web"
+	"net/http"
+
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
-	"net/http"
 )
 
 func Run() {
@@ -31,7 +32,8 @@ func Run() {
 		panic(err)
 	}
 	for _, dbPlugin := range dbPluginList {
-		err = define.PhpPlugin.LoadPhpPlugin(dbPlugin[`name`], define.Version)
+		initPhpConfig := []string{"CRAWLER_HOST=" + define.Config.WebService[`crawler`]}
+		err = define.PhpPlugin.LoadPhpPlugin(dbPlugin[`name`], define.Version, initPhpConfig)
 		if err != nil {
 			logs.Error(err.Error())
 			_, err = msql.Model(`plugin_config`, define.Postgres).Where(`id`, cast.ToString(dbPlugin[`id`])).Update(msql.Datas{

@@ -8,6 +8,7 @@ import (
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/pipeline"
 	"errors"
+	"strings"
 
 	"github.com/gin-contrib/sse"
 	"github.com/spf13/cast"
@@ -41,6 +42,40 @@ func CheckParams(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 		out.Error = errors.New(i18n.Show(in.params.Lang, `question_empty`))
 		in.Stream(sse.Event{Event: `error`, Data: out.Error.Error()})
 		return pipeline.PipeStop
+	}
+	return pipeline.PipeContinue
+}
+
+func FilterLibrary(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	if len(in.params.LibraryIds) > 0 {
+		libraryIdList := strings.Split(in.params.LibraryIds, ",")
+		hasEnabledOfficialAccount, err := common.CheckHasEnabledOfficialAccount(cast.ToInt(in.params.AdminUserId))
+		if err != nil {
+			out.Error = in.params.Error
+			in.Stream(sse.Event{Event: `error`, Data: out.Error.Error()})
+			return pipeline.PipeStop
+		}
+		filteredLibIdList := libraryIdList
+
+		// 如果关闭了公众号知识库，需要移除公众号类库
+		if !hasEnabledOfficialAccount {
+			libIds, err := msql.Model(`chat_ai_library`, define.Postgres).
+				Where(`admin_user_id`, cast.ToString(in.params.AdminUserId)).
+				Where(`type`, cast.ToString(define.OfficialLibraryType)).
+				ColumnArr(`id`)
+			if err != nil {
+				out.Error = in.params.Error
+				in.Stream(sse.Event{Event: `error`, Data: out.Error.Error()})
+				return pipeline.PipeStop
+			}
+			filteredLibIdList = []string{}
+			for _, libId := range libraryIdList {
+				if !tool.InArrayString(libId, libIds) {
+					filteredLibIdList = append(filteredLibIdList, libId)
+				}
+			}
+		}
+		in.params.LibraryIds = strings.Join(filteredLibIdList, ",")
 	}
 	return pipeline.PipeContinue
 }

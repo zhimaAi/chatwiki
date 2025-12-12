@@ -128,25 +128,27 @@ func BridgeGetLibFileList(adminUserId, loginUserId int, lang string, req *Bridge
 }
 
 type BridgeAddLibraryFileReq struct {
-	LibraryId             string `form:"library_id"`
-	LibraryKey            string `form:"library_key"`
-	DocType               string `form:"doc_type"`
-	Urls                  string `form:"urls"`
-	FileName              string `form:"file_name"`
-	Content               string `form:"content"`
-	Title                 string `form:"title"`
-	IsQaDoc               string `form:"is_qa_doc"`
-	QaIndexType           string `form:"qa_index_type"`
-	DocAutoRenewFrequency string `form:"doc_auto_renew_frequency"`
-	DocAutoRenewMinute    string `form:"doc_auto_renew_minute"`
-	AnswerLable           string `form:"answer_lable"`
-	AnswerColumn          string `form:"answer_column"`
-	QuestionLable         string `form:"question_lable"`
-	QuestionColumn        string `form:"question_column"`
-	SimilarColumn         string `form:"similar_column"`
-	SimilarLabel          string `form:"similar_label"`
-	PdfParseType          string `form:"pdf_parse_type"`
-	GroupId               string `form:"group_id"`
+	LibraryId                 string `form:"library_id"`
+	LibraryKey                string `form:"library_key"`
+	DocType                   string `form:"doc_type"`
+	Urls                      string `form:"urls"`
+	FileName                  string `form:"file_name"`
+	Content                   string `form:"content"`
+	Title                     string `form:"title"`
+	IsQaDoc                   string `form:"is_qa_doc"`
+	QaIndexType               string `form:"qa_index_type"`
+	DocAutoRenewFrequency     string `form:"doc_auto_renew_frequency"`
+	DocAutoRenewMinute        string `form:"doc_auto_renew_minute"`
+	AnswerLable               string `form:"answer_lable"`
+	AnswerColumn              string `form:"answer_column"`
+	QuestionLable             string `form:"question_lable"`
+	QuestionColumn            string `form:"question_column"`
+	SimilarColumn             string `form:"similar_column"`
+	SimilarLabel              string `form:"similar_label"`
+	PdfParseType              string `form:"pdf_parse_type"`
+	GroupId                   string `form:"group_id"`
+	OfficialArticleId         string `form:"official_article_id"`
+	OfficialArticleUpdateTime int64  `form:"official_article_update_time"`
 }
 
 func BridgeAddLibraryFile(adminUserId, loginUserId int, lang string, req *BridgeAddLibraryFileReq, chunkParam *define.ChunkParam, c *gin.Context) (map[string]any, int, error) {
@@ -169,7 +171,7 @@ func BridgeAddLibraryFile(adminUserId, loginUserId int, lang string, req *Bridge
 		}
 	}
 	//common save
-	fileIds, err := addLibFile(c, adminUserId, libraryId, cast.ToInt(info[`type`]), chunkParam, req)
+	fileIds, err := addLibFile(c.Request.MultipartForm, common.GetLang(c), adminUserId, libraryId, cast.ToInt(info[`type`]), chunkParam, req)
 	if err != nil {
 		return nil, -1, err
 	}

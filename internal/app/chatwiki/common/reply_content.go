@@ -17,7 +17,7 @@ type ReplyContent struct {
 	Type            string               `json:"type" form:"type"`
 	Pic             string               `json:"pic,omitempty" form:"pic,omitempty"`
 	SmartMenuId     string               `json:"smart_menu_id" form:"smart_menu_id"`
-	SmartMenu       lib_define.SmartMenu `json:"smart_menu" form:"smart_menu"` //智能菜单 输出时候传递
+	SmartMenu       lib_define.SmartMenu `json:"smart_menu,omitempty" form:"smart_menu"` //智能菜单 输出时候传递
 	SendSource      string               `json:"send_source" form:"send_source"`
 }
 

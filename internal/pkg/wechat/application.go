@@ -13,6 +13,8 @@ import (
 	"net/http"
 
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/response"
+	"github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount"
+	publishresponse "github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount/publish/response"
 	openresponse "github.com/ArtisanCloud/PowerWeChat/v3/src/openPlatform/authorizer/miniProgram/account/response"
 	"github.com/zhimaAi/go_tools/msql"
 )
@@ -30,6 +32,14 @@ type ApplicationInterface interface {
 	SendImageTextLink(customer, url, title, description, localThumbURL, picurl string, push *lib_define.PushMessage) (int, error) // 发送图文链接
 	SendSmartMenu(customer string, smartMenu lib_define.SmartMenu, push *lib_define.PushMessage) (int, error)                     // 发送智能菜单
 	GetAccountBasicInfo() (*openresponse.ResponseGetBasicInfo, int, error)
+}
+
+// OfficialAccountInterface 专门用于公众号的方法
+type OfficialAccountInterface interface {
+	GetSubscribeScene(openid string) (string, error)
+	GetPublishedMessageList(offset, count, noContent int) (*publishresponse.ResponseBatchGet, error)
+	GetPublishedArticle(articleId string) (*publishresponse.ResponsePublishGetArticle, error)
+	GetAccountClient() (*officialAccount.OfficialAccount, error)
 }
 
 func GetApplication(appInfo msql.Params) (ApplicationInterface, error) {

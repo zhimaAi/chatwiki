@@ -9,7 +9,6 @@
       :footer="null"
       :width="820"
       wrapClassName="no-padding-modal"
-      :bodyStyle="{ 'max-height': '600px', 'padding-right': '24px', 'overflow-y': 'auto' }"
     >
       <div class="flex-content-box">
         <div class="test-model-box">
@@ -21,19 +20,6 @@
             :wrapper-col="{ span: 24 }"
             autocomplete="off"
           >
-            <a-form-item name="question" :rules="[{ required: true, message: '请输入question!' }]">
-              <template #label>
-                <a-flex :gap="4">question <a-tag style="margin: 0">string</a-tag> </a-flex>
-              </template>
-              <a-input placeholder="请输入" v-model:value="formState.question" />
-            </a-form-item>
-            <a-form-item name="openid" :rules="[{ required: true, message: '请输入openid!' }]">
-              <template #label>
-                <a-flex :gap="4">openid <a-tag style="margin: 0">string</a-tag> </a-flex>
-              </template>
-              <a-input placeholder="请输入" v-model:value="formState.openid" />
-            </a-form-item>
-
             <a-form-item
               :name="['globalState', item.key]"
               v-for="item in diy_global"
@@ -203,8 +189,6 @@ const loading = ref(false)
 const formState = reactive({
   is_draft: true,
   robot_key: query.robot_key,
-  question: '',
-  openid: '',
   global: '',
   globalState: {}
 })
@@ -217,8 +201,8 @@ const handleOpenTestModal = () => {
   emit('save', 'automatic')
   let localData = localStorage.getItem('workflow_run_test_data') || '{}'
   localData = JSON.parse(localData)
-  formState.question = localData.question || ''
-  formState.openid = localData.openid || ''
+  // formState.question = localData.question || ''
+  // formState.openid = localData.openid || ''
   formState.global = localData.global || ''
   resultList.value = []
   currentNodeKey.value = ''
@@ -351,10 +335,14 @@ defineExpose({
 <style lang="less" scoped>
 .flex-content-box {
   display: flex;
+  max-height: 600px;
+  overflow: hidden;
 }
 .test-model-box {
   flex: 1;
-  margin: 24px 24px 0 0;
+  margin: 24px 0 0 0;
+  overflow-y: auto;
+  padding-right: 16px;
   .top-title {
     font-weight: 600;
     margin-bottom: 16px;
@@ -464,9 +452,9 @@ defineExpose({
 
 .preview-box {
   flex: 1;
+  overflow-y: auto;
   border-left: 1px solid #d9d9d9;
   padding: 16px;
-  padding-right: 0;
   .preview-title {
     display: flex;
     align-items: center;
