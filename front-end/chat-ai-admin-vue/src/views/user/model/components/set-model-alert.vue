@@ -111,6 +111,7 @@ const formItems = ref([])
 const modelNames = ['ollama', 'xinference', 'openaiAgent']
 
 const open = (data, record) => {
+  console.log(data, '==')
   formRules.value = {}
   formState.value = {}
   formItems.value = []
@@ -128,6 +129,9 @@ const open = (data, record) => {
   let formItemsTemp = []
 
   config_params.unshift('id')
+  if(!config_params.includes('config_name')){
+    config_params.unshift('config_name')
+  }
 
   if (record) {
     if (history_config_params && history_config_params.length > 0) {
@@ -199,6 +203,10 @@ const open = (data, record) => {
     }
   }
 
+  if(!formStateTemp.config_name){
+    formStateTemp.config_name = data.model_name
+  }
+
   formRules.value = formRulesTemp
   formState.value = formStateTemp
   formItems.value = formItemsTemp
@@ -251,12 +259,12 @@ const saveAddModel = () => {
   confirmLoading.value = true
 
   addModelConfig(data)
-    .then(() => {
+    .then((res) => {
       confirmLoading.value = false
       show.value = false
       message.success(t('common.saveSuccess'))
 
-      emit('ok')
+      emit('ok', res.data)
     })
     .catch(() => {
       confirmLoading.value = false

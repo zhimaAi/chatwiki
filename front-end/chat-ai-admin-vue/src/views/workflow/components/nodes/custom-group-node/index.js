@@ -305,8 +305,12 @@ class CustomGroup extends dynamicGroup.view {
 class CustomGroupModel extends dynamicGroup.model {
   initNodeData(data) {
     super.initNodeData(data)
+    this.DEFAULT_TOP_Z_INDEX = Number.MAX_SAFE_INTEGER // 永远不会触发重置
+    this.DEFAULT_BOTTOM_Z_INDEX = 1
+    this.topGroupZIndex = 1
     this.width = data.width || 600
     this.height = data.height || 420
+    this.zIndex = 1
     this.collapsible = false
     this.isRestrict = false // 限制拖出去
     this.autoResize = false // 跟随节点 调整宽度
@@ -321,6 +325,13 @@ class CustomGroupModel extends dynamicGroup.model {
       ...this.properties,
       transformWithContainer: true, 
     }
+  }
+
+  setSelected(isSelected){
+    super.setSelected(isSelected)
+    // setTimeout(() => {
+    //   this.setZIndex(this.zIndex < 0 ? 1 : this.zIndex)
+    // }, 50);
   }
 
   // 自定义分组样式

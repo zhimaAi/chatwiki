@@ -36,7 +36,7 @@ const setText = () => {
   for (const item of modelList.value) {
       if (item.children) {
         for (const child of item.children) {
-          if (props.useModel == child.name && props.modelConfigId == child.id) {
+          if (props.useModel == child.name && props.modelConfigId == item.id) {
             text.value = child.show_model_name || child.deployment_name ||  child.name;
             return // Exit loops once found
           }

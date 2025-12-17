@@ -123,10 +123,10 @@ export const useChatMonitorStore = defineStore('chatMonitor', {
       data.displayName = data.name || data.nickname
       data.come_from = JSON.parse(data.come_from)
 
-      let item = this.receiverList.find((item) => item.session_id == data.session_id)
+       let index = this.receiverList.findIndex((item) => item.session_id == data.session_id);
 
-      if (item) {
-        Object.assign(item, data)
+      if (index !== -1) {
+        this.receiverList.splice(index, 1, data);
       }else{
         if(this.selectedRobotId == '' || this.selectedRobotId == data.robot_id) {
           this.receiverList.unshift(data)
@@ -148,40 +148,53 @@ export const useChatMonitorStore = defineStore('chatMonitor', {
       this.receiverList.splice(index, 1)
     },
     async getRobotList(params) {
-      return getRobotList(params).then((res) => {
+      try {
+        const res = await getRobotList(params)
         this.robotList = res.data || []
         return res
-      })
+      } catch (err) {
+        console.error('Failed to get robot list:', err)
+        throw err
+      }
     },
-    async getReceiverList (params) {
+    async getReceiverList(params) {
       if (params?.page) {
-        this.receiverListPage.page = params?.page
+        this.receiverListPage.page = params.page
       } else {
         this.receiverListPage.page++
       }
 
-      return getReceiverList({ ...this.receiverListPage, robot_id: this.selectedRobotId, ...params }).then(
-        (res) => {
-          let list = res.data.list || []
+      const queryParams = { ...this.receiverListPage, robot_id: this.selectedRobotId, ...params }
 
-          for (let i = 0; i < list.length; i++) {
-            list[i].displayName = list[i].name || list[i].nickname
+      try {
+        const res = await getReceiverList(queryParams)
+        let list = res.data.list || []
 
-            if (list[i].come_from) {
+        for (let i = 0; i < list.length; i++) {
+          list[i].displayName = list[i].name || list[i].nickname
+          if (list[i].come_from) {
+            try {
               list[i].come_from = JSON.parse(list[i].come_from)
+            } catch (e) {
+              console.error('Failed to parse come_from:', e)
             }
           }
-
-
-          if (this.receiverListPage.page == 1) {
-            this.receiverList = list
-          } else {
-            this.receiverList = this.receiverList.concat(list)
-          }
-
-          return res
         }
-      )
+
+        if (this.receiverListPage.page === 1) {
+          this.receiverList = list
+        } else {
+          this.receiverList = this.receiverList.concat(list)
+        }
+
+        return res
+      } catch (err) {
+        console.error('Failed to get receiver list:', err)
+        if (this.receiverListPage.page > 1) {
+          this.receiverListPage.page--
+        }
+        throw err
+      }
     },
     changeRobot(params) {
       this.activeChat = null

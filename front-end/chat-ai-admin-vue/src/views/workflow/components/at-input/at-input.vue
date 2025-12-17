@@ -201,7 +201,7 @@ export default {
       let htmlStr = jMention.innerHTML;
       let text = this.getText(htmlStr);
 
-      this.localValue = text;
+      this.localValue = text
 
       let selectedListMap = {};
 
@@ -213,7 +213,7 @@ export default {
 
       let mySelectedList = Object.values(selectedListMap);
 
-      this.$emit("change", text, mySelectedList);
+      this.$emit("change", text.trim(), mySelectedList);
     },
     refresh(){
       this.selectedList = [];

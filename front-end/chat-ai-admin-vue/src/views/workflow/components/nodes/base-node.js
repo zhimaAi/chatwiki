@@ -361,6 +361,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
       'mcp-node',
       'custom-group',
       'zm-plugins-node',
+      'batch-group',
     ]
 
     let startNode = nodes.find((node) => node.type === 'start-node')
@@ -461,6 +462,21 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         }else{
           // 代表当前节点不在循环节点中
           obj.children = node_params.loop.output
+        }
+      }
+
+      if(node.type === 'batch-group'){
+        let loop_parent_key = this.properties.loop_parent_key   // 当前节点的父节点
+        if(loop_parent_key == node.id){
+          // 代表的是当前这个节点在批量执行节点中
+
+        obj.children = [
+          ...(node_params.batch?.batch_arrays || [])
+        ]
+
+        }else{
+          // 代表当前节点不在批量执行节点中
+          obj.children = node_params.batch.output
         }
       }
 

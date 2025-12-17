@@ -182,6 +182,24 @@ export const nodeList = [
   },
   {
     id: '',
+    groupKey: 'start',
+    type: 'group-start-node',
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 42,
+    hidden: true,
+    properties: {
+      ...getRowData(),
+      node_type: 31,
+      node_name: '批量执行开始',
+      node_icon: getNodeIconUrl('start-node'),
+      node_icon_name: 'start-node',
+      node_params: JSON.stringify({})
+    }
+  },
+  {
+    id: '',
     groupKey: 'execute-action',
     type: 'specify-reply-node',
     width: 420,
@@ -341,6 +359,28 @@ export const nodeList = [
           loop_arrays: [],
           loop_number: '',
           intermediate_params: [],
+          output: [],
+        }
+      })
+    }
+  },
+  {
+    id: '',
+    groupKey: 'processing-logic',
+    type: 'batch-group',
+    width: 600,
+    height: 420,
+    properties: {
+      ...getRowData(),
+      node_type: 30,
+      node_name: '批量执行',
+      node_icon: getNodeIconUrl('batch-group-node'),
+      node_icon_name: 'batch-group-node',
+      node_params: JSON.stringify({
+        batch:{
+          chan_number: 10,
+          max_run_number: 500,
+          batch_arrays: [],
           output: [],
         }
       })
@@ -695,7 +735,7 @@ export const nodeList = [
 ]
 
 // 获取分组和节点
-export const getAllGroupNodes = (type) => {
+export const getAllGroupNodes = ({excludedNodeTypes}) => {
   const nodesGroupMap = {}
 
   // 初始化所有组
@@ -707,19 +747,21 @@ export const getAllGroupNodes = (type) => {
 
   // 将节点按groupKey分组
   nodeList.forEach(node => {
+    // 过滤掉excludedNodeTypes中的节点类型
+    if (excludedNodeTypes.includes(node.type)) return
     // 当type不等于'node'时，过滤掉explain-node节点
-    if (node.type === 'explain-node' && type === 'node') {
-      return
-    }
-    if (type == 'loop-node'){
-      if(node.type == 'custom-group' || node.type == 'end-node') {
-        return
-      }
-    } else {
-      if (node.type == 'terminate-node') {
-        return
-      }
-    }
+    // if (node.type === 'explain-node' && type === 'node') {
+    //   return
+    // }
+    // if (type == 'loop-node'){
+    //   if(node.type == 'custom-group' || node.type == 'end-node') {
+    //     return
+    //   }
+    // } else {
+    //   if (node.type == 'terminate-node') {
+    //     return
+    //   }
+    // }
     if (node.groupKey && nodesGroupMap[node.groupKey]) {
       nodesGroupMap[node.groupKey].nodes.push(node)
     }
@@ -838,15 +880,16 @@ export const getMcpNode = (mcp, tool) => {
 }
 
 export const getPluginActionNode = (node, action, actionName) => {
+  node = JSON.parse(JSON.stringify(node))
   let params = JSON.parse(node.properties.node_params)
   let pluginName = params.plugin?.name
-  let argsJson = getPluginActionDefaultArguments(pluginName, actionName)
-  if (argsJson === '{}' && action?.params) {
-    argsJson = JSON.stringify(Object.fromEntries(
+  let args = getPluginActionDefaultArguments(pluginName, actionName)
+  if ((!args || !Object.keys(args)) && action?.params) {
+    args = Object.fromEntries(
       Object.keys(action.params).map(key => [key, ''])
-    ))
+    )
   }
-  params.plugin.params.arguments = argsJson
+  params.plugin.params.arguments = args
   params.plugin.params.business = actionName
   node.properties.node_params = JSON.stringify(params)
   node.properties.node_name = action.title
@@ -881,8 +924,8 @@ export const createTriggerNode = (item) => {
   const icon = item.trigger_icon ? item.trigger_icon : nodeCongfig.properties.node_icon
   const node = {
     type: nodeCongfig.properties.componentKey,
-    x: 0, 
-    y: 0, 
+    x: 0,
+    y: 0,
     id: '',
     width: nodeCongfig.width,
     height: nodeCongfig.height,

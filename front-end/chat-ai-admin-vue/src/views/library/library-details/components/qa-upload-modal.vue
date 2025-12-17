@@ -137,7 +137,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useLibraryStore } from '@/stores/modules/library'
 const libraryStore = useLibraryStore()
 const { qa_index_type } = libraryStore
-console.log(qa_index_type,'qa_index_type==')
+
 const router = useRouter()
 const rotue = useRoute()
 const query = rotue.query

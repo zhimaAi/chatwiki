@@ -1109,7 +1109,6 @@ const handlePreview = (record, params = {}) => {
 
 const getData = () => {
   let params = toRaw(queryParams)
-  console.log(params,'===')
   if (params.status == 0) {
     params.status = ''
   }

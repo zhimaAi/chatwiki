@@ -63,9 +63,7 @@
 </template>
 
 <script setup>
-import {ref, reactive, onMounted, watch, computed, inject, nextTick} from 'vue'
-import {QuestionCircleOutlined} from '@ant-design/icons-vue';
-import AtInput from "@/views/workflow/components/at-input/at-input.vue";
+import {ref, reactive, onMounted, computed, inject, nextTick} from 'vue'
 import {runPlugin} from "@/api/plugins/index.js";
 import FeishuInsertData from "./feishu-insert-data.vue";
 import FeishuUpdateData from "./feishu-update-data.vue";
@@ -73,7 +71,7 @@ import FeishuDelData from "./feishu-del-data.vue";
 import FeishuSearchData from "./feishu-search-data.vue";
 import OutputFields from "@/views/workflow/components/feishu-table/output-fields.vue";
 import {ShowFieldTypes} from "@/constants/feishu-table.js";
-import {getPluginActionDefaultArguments, pluginOutputToTree, getPluginConifgData} from "@/constants/plugin.js";
+import {getPluginActionDefaultArguments, pluginOutputToTree, getPluginConfigData} from "@/constants/plugin.js";
 
 const emit = defineEmits(['updateVar'])
 const props = defineProps({
@@ -99,8 +97,7 @@ const actionComponentMap = {
   update_record: FeishuUpdateData,
   delete_record: FeishuDelData,
 }
-const plginName = 'feishu_bitable'
-
+const pluginName = 'feishu_bitable'
 
 const childRef = ref(null)
 const configData = ref({})
@@ -120,7 +117,6 @@ const currentConfig = computed(() => {
 })
 const outputData = ref([])
 
-
 onMounted(() => {
   init()
 })
@@ -132,7 +128,7 @@ async function init() {
 }
 
 async function loadConfig() {
-  await getPluginConifgData(plginName).then(res => {
+  await getPluginConfigData(pluginName).then(res => {
     configData.value = res || {}
     for (let name in configData.value) {
       if (configData.value[name].is_default) {
@@ -213,6 +209,7 @@ function paramsFormat(val) {
         break
       case 'fields':
         for (let item of val.fields) {
+          if (item?.atTags?.length) continue
           if (item.value != '') {
             if (['DateTime', 'Number', 'Rating', 'Progress', 'Currency'].includes(item.ui_type)) {
               item.value = Number(item.value)

@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package manage
 
@@ -847,6 +847,12 @@ func GenerateSimilarQuestions(c *gin.Context) {
 	library, err := common.GetLibraryInfo(libraryId, userId)
 	if len(library) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+
+	// check conf
+	if !common.CheckModelIsValid(userId, modelConfigId, useModel, common.Llm) {
+		common.FmtError(c, `param_invalid`, `use_model`)
 		return
 	}
 

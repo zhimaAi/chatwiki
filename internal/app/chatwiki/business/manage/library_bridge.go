@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package manage
 
@@ -305,13 +305,7 @@ func BridgeCreateLibrary(adminUserId, loginUserId int, lang string, req *BridgeC
 		return nil, -1, err
 	}
 	if summaryModelConfigId > 0 {
-		summaryConfig, err := common.GetModelConfigInfo(summaryModelConfigId, adminUserId)
-		if err != nil {
-			logs.Error(err.Error())
-			return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
-		}
-		modelInfo, _ := common.GetModelInfoByDefine(summaryConfig[`model_define`])
-		if !tool.InArrayString(aiSummaryModel, modelInfo.LlmModelList) && !common.IsMultiConfModel(summaryConfig["model_define"]) {
+		if ok := common.CheckModelIsValid(adminUserId, summaryModelConfigId, aiSummaryModel, common.Llm); !ok {
 			return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `ai_summary_model`))
 		}
 	}
@@ -489,30 +483,15 @@ func BridgeEditLibrary(c *gin.Context, adminUserId, loginUserId int, lang string
 	}
 	if cast.ToInt(typ) != define.OpenLibraryType {
 		//check model_config_id and use_model
-		config, err := common.GetModelConfigInfo(modelConfigId, adminUserId)
-		if err != nil {
-			logs.Error(err.Error())
-			return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
-		}
-		modelInfo, _ := common.GetModelInfoByDefine(config[`model_define`])
-		if !tool.InArrayString(useModel, modelInfo.VectorModelList) && !common.IsMultiConfModel(config["model_define"]) {
+		if ok := common.CheckModelIsValid(adminUserId, modelConfigId, useModel, common.TextEmbedding); !ok {
 			return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `use_model`))
-		}
-		if len(config) == 0 || !tool.InArrayString(common.TextEmbedding, strings.Split(config[`model_types`], `,`)) {
-			return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `model_config_id`))
 		}
 	}
 	if useModelSwitch == define.SwitchOn && (modelConfigId == 0 || useModel == "") {
 		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `use_model`))
 	}
 	if summaryModelConfigId > 0 {
-		summaryConfig, err := common.GetModelConfigInfo(summaryModelConfigId, adminUserId)
-		if err != nil {
-			logs.Error(err.Error())
-			return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
-		}
-		modelInfo, _ := common.GetModelInfoByDefine(summaryConfig[`model_define`])
-		if !tool.InArrayString(aiSummaryModel, modelInfo.LlmModelList) && !common.IsMultiConfModel(summaryConfig["model_define"]) {
+		if ok := common.CheckModelIsValid(adminUserId, summaryModelConfigId, aiSummaryModel, common.Llm); !ok {
 			return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `ai_summary_model`))
 		}
 	}

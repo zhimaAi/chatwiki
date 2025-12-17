@@ -18,6 +18,18 @@ const modelFieldConfig = {
   id: {
     hidden: true
   },
+  config_name: {
+    ...inputDefaultConfig,
+    label: '配置名称',
+    placeholder: '请输入配置的别名，仅用作展示',
+    rules: [
+      {
+        required: true,
+        message: '请输入配置名称',
+        trigger: 'change'
+      }
+    ]
+  },
   model_types: {
     ...radioDefaultConfig,
     key: 'model_types',

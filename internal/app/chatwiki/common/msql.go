@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package common
 
@@ -730,7 +730,7 @@ func GetDialogueInfo(dialogueId, adminUserId, robotId int, openid string) (msql.
 type ModelConfigCacheBuildHandler struct{ ModelConfigId int }
 
 func (h *ModelConfigCacheBuildHandler) GetCacheKey() string {
-	return fmt.Sprintf(`chatwiki.model_config.%d`, h.ModelConfigId)
+	return fmt.Sprintf(`chatwiki.model_config.v20251210.%d`, h.ModelConfigId)
 }
 func (h *ModelConfigCacheBuildHandler) GetCacheData() (any, error) {
 	return msql.Model(`chat_ai_model_config`, define.Postgres).Where(`id`, cast.ToString(h.ModelConfigId)).Find()
@@ -745,41 +745,64 @@ func GetModelConfigInfo(modelId, adminUserId int) (msql.Params, error) {
 	return result, err
 }
 
+type ModelListCacheBuildHandler struct{ ModelConfigId int }
+
+func (h *ModelListCacheBuildHandler) GetCacheKey() string {
+	return fmt.Sprintf(`chatwiki.model_list.%d`, h.ModelConfigId)
+}
+func (h *ModelListCacheBuildHandler) GetCacheData() (any, error) {
+	return msql.Model(`chat_ai_model_list`, define.Postgres).
+		Where(`model_config_id`, cast.ToString(h.ModelConfigId)).Order(`id`).Select()
+}
+
+func GetModelListInfo(modelConfigId int) ([]msql.Params, error) {
+	result := make([]msql.Params, 0)
+	err := lib_redis.GetCacheWithBuild(define.Redis, &ModelListCacheBuildHandler{ModelConfigId: modelConfigId}, &result, time.Hour*12)
+	return result, err
+}
+
 func GetDefaultLlmConfig(adminUserId int) (int, string, bool) {
 	configs, err := msql.Model(`chat_ai_model_config`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id desc`).Select()
 	if err != nil {
 		return 0, ``, false
 	}
+	sort.Slice(configs, func(i, j int) bool {
+		return tool.InArrayString(configs[i][`model_define`], []string{ModelChatWiki}) //优先选取的模型
+	})
 	for _, config := range configs {
 		if !tool.InArrayString(Llm, strings.Split(config[`model_types`], `,`)) {
 			continue
 		}
-		modelInfo, ok := GetModelInfoByDefine(config[`model_define`])
-		if ok && len(modelInfo.LlmModelList) > 0 {
-			return cast.ToInt(config[`id`]), modelInfo.LlmModelList[0], true
+		if modelInfo, ok := GetModelInfoByConfig(adminUserId, cast.ToInt(config[`id`])); ok {
+			if models := modelInfo.GetLlmModelList(); len(models) > 0 {
+				return cast.ToInt(config[`id`]), models[0], true
+			}
 		}
 	}
 	return 0, ``, false
 }
 
-func GetDefaultEmbeddingConfig(adminUserId int) msql.Params {
+func GetDefaultEmbeddingConfig(adminUserId int) (int, string, bool) {
 	configs, err := msql.Model(`chat_ai_model_config`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id desc`).Select()
 	if err != nil {
-		return nil
+		return 0, ``, false
 	}
+	sort.Slice(configs, func(i, j int) bool {
+		return tool.InArrayString(configs[i][`model_define`], []string{ModelChatWiki}) //优先选取的模型
+	})
 	for _, config := range configs {
 		if !tool.InArrayString(TextEmbedding, strings.Split(config[`model_types`], `,`)) {
 			continue
 		}
-		modelInfo, ok := GetModelInfoByDefine(config[`model_define`])
-		if ok && len(modelInfo.VectorModelList) > 0 {
-			config[`vector_model`] = modelInfo.VectorModelList[0]
-			return config
+		if modelInfo, ok := GetModelInfoByConfig(adminUserId, cast.ToInt(config[`id`])); ok {
+			if models := modelInfo.GetVectorModelList(); len(models) > 0 {
+				return cast.ToInt(config[`id`]), models[0], true
+			}
 		}
 	}
-	return nil
+	return 0, ``, false
 }
 
 type WechatAppCacheBuildHandler struct {

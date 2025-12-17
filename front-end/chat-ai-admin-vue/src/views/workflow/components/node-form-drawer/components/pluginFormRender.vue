@@ -67,6 +67,10 @@ const props = defineProps({
   },
   variableOptions: {
     type: Array,
+  },
+  keepFormatField: {
+    type: Array,
+    default: () => ([])
   }
 })
 const setData = inject('setData')
@@ -99,12 +103,16 @@ watch(formState, (newVal) => {
 watch(() => props.params, (newVal) => {
   Object.assign(formState, JSON.parse(JSON.stringify(newVal || '{}')))
   let _args = nodeParams?.plugin?.params?.arguments || {}
+  let val
   for (let key in formState) {
     // 1、是否已设置值 2、是否存在默认值
-    formState[key].value = _args[key] ? String(_args[key]) : (Object.hasOwn(formState[key], 'default') ? formState[key].default : '')
-    if (formState[key].value === 'null') {
-      formState[key].value = null
+    val = _args[key] || ''
+    if (!val && Object.hasOwn(formState[key], 'default')) {
+      val = formState[key].default
     }
+    if (!props.keepFormatField.includes(key)) val = String(val)
+    if (val === 'null') val = null
+    formState[key].value = val
     formState[key].tags = _args?.tag_map?.[key] || []
   }
 }, {
@@ -177,90 +185,5 @@ function update() {
 </script>
 
 <style lang="less">
-.node-options {
-  background: #f2f4f7;
-  border-radius: 6px;
-  padding: 12px;
-  margin-top: 16px;
-
-  &:first-child {
-    margin-top: 0;
-  }
-
-  .options-title {
-    color: var(--wf-color-text-1);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-weight: 600;
-    height: 22px;;
-    line-height: 22px;
-    font-size: 14px;
-
-    .title-icon {
-      width: 16px;
-      height: 16px;
-      vertical-align: -3px;
-      margin-right: 8px;;
-    }
-
-    .acton-box {
-      font-weight: 400;
-    }
-  }
-
-  .options-item {
-    display: flex;
-    flex-direction: column;
-    margin-top: 12px;
-    line-height: 22px;
-    gap: 4px;
-
-    .options-item-tit {
-      display: flex;
-      align-items: center;
-    }
-
-    .option-label {
-      color: var(--wf-color-text-1);
-      font-size: 14px;
-      margin-right: 8px;
-    }
-
-    .desc {
-      color: var(--wf-color-text-2);
-    }
-
-
-    &.is-required .option-label::before {
-      content: '*';
-      color: #FB363F;
-      display: inline-block;
-      margin-right: 2px;
-    }
-
-    .option-type {
-      height: 22px;
-      line-height: 18px;
-      padding: 0 8px;
-      border-radius: 6px;
-      border: 1px solid rgba(0, 0, 0, 0.15);
-      background-color: #fff;
-      color: var(--wf-color-text-3);
-      font-size: 12px;
-    }
-
-    .item-actions-box {
-      display: flex;
-      align-items: center;
-
-      .action-btn {
-        margin-left: 12px;
-        font-size: 16px;
-        color: #595959;
-        cursor: pointer;
-      }
-    }
-  }
-}
+@import "node-options";
 </style>

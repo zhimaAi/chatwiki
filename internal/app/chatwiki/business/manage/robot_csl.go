@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package manage
 
@@ -356,6 +356,7 @@ func ApplyChatRobot(robot msql.Params, cslIdMaps *common.CslIdMaps, models *comm
 func ApplyFlowRobot(adminUserId int, robot msql.Params, nodes []msql.Params, cslIdMaps *common.CslIdMaps, models *common.DefaultModelParams, token string) (msql.Params, error) {
 	flowRobot := map[string]string{
 		`robot_name`:           robot[`robot_name`],
+		`en_name`:              tool.Random(50),
 		`robot_intro`:          robot[`robot_intro`],
 		`avatar_from_template`: robot[`robot_avatar`],
 		`is_default`:           cast.ToString(define.NotDefault),

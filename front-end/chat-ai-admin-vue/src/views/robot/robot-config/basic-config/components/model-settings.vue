@@ -8,10 +8,7 @@
     <div class="setting-info-block">
       <div class="set-item w-100">
         LLM模型：
-        <span class="set-item-content" v-if="formState.use_model_icon && formState.use_model_name">
-          <img :src="formState.use_model_icon" class="model-icon" />{{ formState.use_model_name }} {{ formState.use_model }}
-        </span>
-        <span v-else>{{ formState.use_model }}</span>
+        <span>{{ getModelName }}</span>
       </div>
       <div class="set-item">
         温度：
@@ -30,7 +27,13 @@
         <span>{{ formState.think_switch == 1 ? '开' : '关' }}</span>
       </div>
     </div>
-    <a-modal v-model:open="isEdit" :width="672" title="模型设置" @ok="handleSave">
+    <a-modal
+      v-model:open="isEdit"
+      :width="672"
+      title="模型设置"
+      @cancel="handleCancel"
+      @ok="handleSave"
+    >
       <div class="form-box">
         <a-row :gutter="[32, 24]">
           <a-col v-bind="grid">
@@ -40,13 +43,10 @@
               </div>
               <div class="form-item-body">
                 <!-- 自定义选择器 -->
-                <CustomSelector
-                  v-model="formState.use_model"
-                  placeholder="请选择LLM模型"
-                  label-key="use_model_name"
-                  value-key="value"
-                  :modelType="'LLM'"
-                  :model-config-id="formState.model_config_id"
+                <ModelSelect
+                  modelType="LLM"
+                  v-model:modeName="formState.use_model"
+                  v-model:modeId="formState.model_config_id"
                   @change="handleModelChange"
                   @loaded="onVectorModelLoaded"
                 />
@@ -55,12 +55,12 @@
           </a-col>
 
           <a-col v-bind="grid">
-            <div class="form-item" style="display: flex; align-items: center;">
+            <div class="form-item" style="display: flex; align-items: center">
               <div class="form-item-label mb12">
                 <span>提示词所属角色：&nbsp;</span>
               </div>
               <div>
-                <a-radio-group v-model:value="formState.prompt_role_type" >
+                <a-radio-group v-model:value="formState.prompt_role_type">
                   <a-radio value="0">系统角色（System）</a-radio>
                   <a-radio value="1">用户角色（User）</a-radio>
                 </a-radio-group>
@@ -167,9 +167,7 @@
                 <span>深度思考&nbsp;</span>
                 <a-tooltip>
                   <template #title>
-                    <span
-                      >开启时，调用大模型时会指定走深度思考模式</span
-                    >
+                    <span>开启时，调用大模型时会指定走深度思考模式</span>
                   </template>
                   <QuestionCircleOutlined class="question-icon" />
                 </a-tooltip>
@@ -210,49 +208,42 @@
 
 <script setup>
 import { getModelConfigOption } from '@/api/model/index'
-import { ref, reactive, inject, toRaw, watchEffect, onMounted, onBeforeUnmount, computed } from 'vue'
+import {
+  ref,
+  reactive,
+  inject,
+  toRaw,
+  watchEffect,
+  onMounted,
+  onBeforeUnmount,
+  computed
+} from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import EditBox from './edit-box.vue'
-import { duplicateRemoval, removeRepeat } from '@/utils/index'
-import CustomSelector from '@/components/custom-selector/index.vue'
+import ModelSelect from '@/components/model-select/model-select.vue'
+import { getModelNameText } from '@/components/model-select/index.js'
 
-const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent', 'doubao']
-const modelShowModelName = ['doubao']
-const oldModelDefineList = ['azure']
 const grid = reactive({ sm: 24, md: 24, lg: 12, xl: 24, xxl: 24 })
 // 获取LLM模型
 const modelList = ref([])
 
 const isEdit = ref(false)
-const { robotInfo, updateRobotInfo } = inject('robotInfo')
+const { robotInfo, updateRobotInfo, getRobot } = inject('robotInfo')
 const formState = reactive({
   use_model: undefined,
-  use_model_icon: '', // 新增图标字段
-  use_model_name: '', // 新增系统名称
   model_config_id: '',
   temperature: 0,
   max_token: 0,
   context_pair: 0,
   think_switch: 1,
   prompt_role_type: '0',
-  enable_thinking: 0,
+  enable_thinking: 0
 })
-const currentModelDefine = ref('')
-const oldModelDefine = ref('')
-const currentUseModel = ref('')
-let num = 0
 // 处理选择事件
-const handleModelChange = (item) => {
-  formState.use_model = modelDefine.includes(item.rawData.model_define) && item.rawData.deployment_name 
-    ? item.rawData.show_model_name || item.rawData.deployment_name 
-    : item.rawData.name
-  formState.use_model_icon = item.icon
-  formState.use_model_name = item.use_model_name
-  formState.model_config_id = item.rawData.id
-  currentModelDefine.value = item.rawData.model_define
-  if(formState.use_model && formState.use_model.toLowerCase().includes('deepseek-r1')){
+const handleModelChange = () => {
+  if (formState.use_model && formState.use_model.toLowerCase().includes('deepseek-r1')) {
     formState.prompt_role_type = '1'
-  }else{
+  } else {
     formState.prompt_role_type = '0'
   }
 }
@@ -262,61 +253,29 @@ const onVectorModelLoaded = (list, choosable_thinking_map) => {
   choosable_thinking.value = choosable_thinking_map
 }
 
-const show_enable_thinking = computed(()=>{
-  if(!formState.model_config_id){
+const show_enable_thinking = computed(() => {
+  if (!formState.model_config_id) {
     return false
   }
   let key = formState.model_config_id + '#' + formState.use_model
   return choosable_thinking.value[key]
 })
 
-// 新增自定义选择器逻辑
-const showOptions = ref(false)
-const clickOutsideHandler = (e) => {
-  if (!e.target.closest('.custom-select')) {
-    showOptions.value = false
-  }
-}
-
-// 事件监听
-onMounted(() => {
-  // 首次进入初始化回显数据
-  if (modelDefine.indexOf(currentModelDefine.value) > -1) {
-    formState.use_model = currentUseModel.value
-  } else {
-    formState.use_model = robotInfo.use_model
-  }
-
-  document.addEventListener('click', clickOutsideHandler)
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('click', clickOutsideHandler)
-})
-
 const handleSave = () => {
-  // 初始化条件
-  currentUseModel.value = formState.use_model
-
   let params = { ...toRaw(formState) }
-  if (oldModelDefineList.indexOf(currentModelDefine.value) > -1) {
-    // 传给后端的是默认，渲染的是真实名称
-    params.use_model = '默认'
-  }
-
   updateRobotInfo(params)
   isEdit.value = false
 }
 
+const handleCancel = () => {
+  getRobot(robotInfo.id).then((res) => {
+    formState.model_config_id = res.data.model_config_id
+    formState.use_model = res.data.use_model
+  })
+}
+
 const handleEdit = (val) => {
-  if (!val) {
-    // 修改选择的是取消按钮，初始化条件数据
-    currentModelDefine.value = oldModelDefine.value
-  }
-  if (modelDefine.indexOf(currentModelDefine.value) > -1) {
-    formState.use_model = currentUseModel.value
-  } else {
-    formState.use_model = robotInfo.use_model
-  }
+  formState.use_model = robotInfo.use_model
   formState.model_config_id = robotInfo.model_config_id
   formState.temperature = robotInfo.temperature
   formState.max_token = robotInfo.max_token
@@ -328,6 +287,7 @@ const handleEdit = (val) => {
 }
 
 watchEffect(() => {
+  formState.use_model = robotInfo.use_model
   formState.model_config_id = robotInfo.model_config_id
   formState.temperature = robotInfo.temperature
   formState.max_token = robotInfo.max_token
@@ -337,94 +297,9 @@ watchEffect(() => {
   formState.enable_thinking = robotInfo.enable_thinking
 })
 
-function uniqueArr(arr, arr1, key) {
-  const keyVals = new Set(arr.map((item) => item.model_define))
-  arr1.filter((obj) => {
-    let val = obj[key]
-    if (keyVals.has(val)) {
-      arr.filter((obj1) => {
-        if (obj1.model_define == val) {
-          obj1.children = removeRepeat(obj1.children, obj.children)
-          return false
-        }
-      })
-    }
-  })
-  return arr
-}
-
-const getModelList = () => {
-  getModelConfigOption({
-    model_type: 'LLM'
-  }).then((res) => {
-    currentUseModel.value = robotInfo.use_model
-    let list = res.data || []
-    let children = []
-
-    modelList.value = list.map((item) => {
-      children = []
-      for (let i = 0; i < item.model_info.llm_model_list.length; i++) {
-        const ele = item.model_info.llm_model_list[i]
-        if (
-          modelDefine.indexOf(item.model_info.model_define) > -1 &&
-          robotInfo.model_config_id == item.model_config.id
-        ) {
-          currentUseModel.value = item.model_config.show_model_name || item.model_config.deployment_name
-          currentModelDefine.value = item.model_info.model_define
-          oldModelDefine.value = item.model_info.model_define
-        }
-        children.push({
-          name: ele,
-          deployment_name: item.model_config.deployment_name,
-          show_model_name: modelShowModelName.includes(item.model_info.model_define) ? item.model_config.show_model_name : '',
-          id: item.model_config.id,
-          model_define: item.model_info.model_define,
-          icon: item.model_info.model_icon_url, // 添加图标字段
-          use_model_name: item.model_info.model_name // 添加系统名称字段
-        })
-      }
-      return {
-        id: item.model_config.id,
-        name: item.model_info.model_name,
-        model_define: item.model_info.model_define,
-        icon: item.model_info.model_icon_url,
-        children: children,
-        deployment_name: item.model_config.deployment_name
-      }
-    })
-
-    // 如果modelList存在两个相同model_define情况就合并到一个对象的children中去
-    modelList.value = uniqueArr(
-      duplicateRemoval(modelList.value, 'model_define'),
-      modelList.value,
-      'model_define'
-    )
-
-    // 初始化当前图标
-    if (robotInfo.use_model && robotInfo.model_config_id) {
-      modelList.value.some(group => 
-        group.children.some(child => {
-          const childName = modelDefine.includes(child.model_define) && child.deployment_name 
-            ? child.deployment_name 
-            : child.name;
-          if (modelDefine.includes(child.model_define) && child.deployment_name && child.id === robotInfo.model_config_id) {
-            formState.use_model_icon = child.icon;
-            formState.use_model_name = child.use_model_name;
-            formState.use_model = child.show_model_name || child.deployment_name
-            return true;
-          }
-          if (childName === robotInfo.use_model && child.id === robotInfo.model_config_id) {
-            formState.use_model_icon = child.icon;
-            formState.use_model_name = child.use_model_name;
-            return true;
-          }
-        })
-      );
-    }
-  })
-}
-
-getModelList()
+const getModelName = computed(() => {
+  return getModelNameText(formState.model_config_id, formState.use_model)
+})
 </script>
 
 <style lang="less" scoped>

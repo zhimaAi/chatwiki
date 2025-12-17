@@ -179,7 +179,7 @@ const initScroll = () => {
   })
 }
 
-const getData = async (params) => {
+const getData = async (params = {}) => {
   if (loading.value || finished.value) {
     scrollController.finishPullUp()
     return

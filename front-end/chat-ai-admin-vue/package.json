@@ -16,6 +16,7 @@
     "dev8": "vite --host 0.0.0.0 --mode dev8",
     "dev9": "vite --host 0.0.0.0 --mode dev9",
     "build": "vite build",
+    "buildm": "NODE_OPTIONS='--max-old-space-size=4096' vite build",
     "build:test": "vite build --mode test",
     "preview": "vite preview",
     "test:unit": "vitest",

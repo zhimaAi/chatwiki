@@ -8,9 +8,9 @@
           <div class="title-text">{{ props.properties.node_name }}</div>
         </div>
         <div class="btn-block">
-          <a-popover :title="null" trigger="click" v-model:open="isShowMenu" placement="right">
+          <a-popover :title="null" trigger="click" v-model:open="isShowMenu" :arrow="false" placement="right">
             <template #content>
-              <NodeListPopup @addNode="handleAddNode" type="loop-node" />
+              <NodeListPopup style="height: 550px;" :excludedNodeTypes="excludedNodeTypes" @addNode="handleAddNode" type="loop-node" />
             </template>
             <a-tooltip title="新建内部节点">
               <div class="btn-item" @click.stop="handleClick">
@@ -86,6 +86,7 @@ const getNode = inject('getNode')
 const addNode = inject('addNode')
 const setData = inject('setData')
 const resetSize = inject('resetSize')
+const excludedNodeTypes = ref(['custom-group', 'batch-group', 'end-node'])
 
 const isShowMenu = ref(false)
 

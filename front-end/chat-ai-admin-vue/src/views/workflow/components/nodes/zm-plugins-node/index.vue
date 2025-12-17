@@ -151,7 +151,10 @@ export default {
       if (this.isFeishuTbPlugin) return
       let data = JSON.parse(JSON.stringify(this.pluginData))
       const customHandleFunc = {
-        official_account_profile: this.officialAccountHandle
+        official_account_profile: this.officialAccountHandle,
+        official_batch_tag: this.officialTagHandle,
+        official_send_template_message: this.officialTemplateHandle,
+        official_article: this.officialArticleHandle,
       }
       if (customHandleFunc[this.pluginName] ) {
         customHandleFunc[this.pluginName](data)
@@ -180,16 +183,79 @@ export default {
       delete data?.[this.business]?.params.app_id
       delete data?.[this.business]?.params.app_secret
       if (data?.[this.business]?.params) {
-        // 为了让app_name显示在前面
-        data[this.business].params = {
-          app_name: {
-            type: 'string',
-            name: '公众号名称',
-          },
-          ...data[this.business].params
+        if (this.business === 'getTagFans') {
+          delete data?.[this.business]?.params.tagid
+          // 为了让app_name显示在前面
+          data[this.business].params = {
+            app_name: {
+              type: 'string',
+              name: '公众号名称',
+            },
+            tag_name: {
+              type: 'string',
+              name: '标签名称',
+            },
+            ...data[this.business].params
+          }
+        } else {
+          // 为了让app_name显示在前面
+          data[this.business].params = {
+            app_name: {
+              type: 'string',
+              name: '公众号名称',
+            },
+            ...data[this.business].params
+          }
         }
       }
       this.defaultHandle(data)
+    },
+    officialTemplateHandle() {
+      let args = this.nodeParams?.plugin?.params?.arguments || {}
+      let tag_map = this.nodeParams?.plugin?.params?.arguments?.tag_map || {}
+      this.formState = {
+        app_name: {type: 'string', name: '公众号名称', value: args.app_name, tags: []},
+        template_name: {type: 'string', name: '模板名称', value: args.template_name, tags: []},
+        touser: {type: 'string', name: '接收者', value: args.touser, tags: tag_map.touser || []},
+      }
+      switch (args.link_type) {
+        case 0:
+          this.formState.link_type = {type: 'string', name: '模板跳转', value: '不跳转', tags: []}
+          break
+        case 1:
+          this.formState.link_type = {type: 'string', name: '模板跳转', value: '跳转链接', tags: []}
+          this.formState.url = {type: 'string', name: '跳转链接', value: args.url, tags: tag_map.url || []}
+          break
+        case 2:
+          this.formState.link_type = {type: 'string', name: '模板跳转', value: '跳转小程序', tags: []}
+          this.formState.miniprogram_app = {type: 'string', name: '小程序APPID', ...args.miniprogram.appid }
+          this.formState.miniprogram_path = {type: 'string', name: '小程序路径', ...args.miniprogram.pagepath }
+          break
+      }
+      this.updateSize()
+    },
+    officialTagHandle() {
+      let args = this.nodeParams?.plugin?.params?.arguments || {}
+      let tag_map = this.nodeParams?.plugin?.params?.arguments?.tag_map || {}
+      this.formState = {
+        app_name: {type: 'string', name: '公众号名称', value: args.app_name, tags: []},
+        openid_list: {type: 'string', name: '粉丝openid列表', value: args.openid_list, tags: []},
+      }
+      if (args.tag_type == 1) {
+        this.formState.tag_name = {type: 'string', name: '标签名称', value: args.tag_name, tags: []}
+      } else {
+        this.formState.tagid = {type: 'string', name: '标签名称', value: args.tagid, tags: tag_map.tagid || []}
+      }
+      this.updateSize()
+    },
+    officialArticleHandle() {
+      let args = this.nodeParams?.plugin?.params?.arguments || {}
+      let tag_map = this.nodeParams?.plugin?.params?.arguments?.tag_map || {}
+      this.formState = {
+        url: {type: 'string', name: '', value: args.url, tags: tag_map.url || []},
+        number: {type: 'string', name: '', value: args.number, tags: tag_map.number || []},
+      }
+      this.updateSize()
     },
     updateSize() {
       this.$nextTick(() => {

@@ -129,8 +129,14 @@
           </div>
         </a-form-item>
 
-        <a-form-item  ref="name" label="应用名称" v-bind="validateInfos.robot_name">
-          <a-input v-model:value="formState.robot_name" placeholder="请输入应用名称" />
+        <a-form-item required v-if="formState.application_type != 0" ref="en_name" label="工作流名称" v-bind="validateInfos.en_name">
+          <a-input v-model:value="formState.en_name" :maxLength="50" placeholder="请输入" />
+          <div class="form-item-tip">只能输入英文数字和字符"_"、"."、"-"，最多不超过50个字符</div>
+        </a-form-item>
+
+        <a-form-item  ref="name" :label="formState.application_type == 0 ? '应用名称' : '备注名' " v-bind="validateInfos.robot_name">
+          <a-input v-model:value="formState.robot_name" :maxLength="20" placeholder="请输入" />
+          <div  v-if="formState.application_type != 0"  class="form-item-tip">仅用作后台显示，不超过20个字</div>
         </a-form-item>
 
         <a-form-item  ref="group_id" label="分组" v-bind="validateInfos.group_id">
@@ -193,6 +199,7 @@ const groupLists = ref([])
 
 const formState = reactive({
   robot_name: '',
+  en_name: '',
   robot_intro: '',
   robot_avatar: undefined,
   robot_avatar_url: '',
@@ -236,6 +243,8 @@ const rules = reactive({
       message: '最多20个字',
       trigger: 'change'
     }
+  ],
+  en_name:[
   ]
 })
 
@@ -248,6 +257,7 @@ const onAvatarChange = (data) => {
 const saveForm = () => {
   let formData = {
     robot_name: formState.robot_name,
+    en_name: formState.en_name,
     robot_intro: formState.robot_intro,
     robot_avatar: formState.robot_avatar || default_avatar,
     group_id: formState.group_id || '0'
@@ -345,16 +355,43 @@ const open = async (type, is_edit) => {
     formState.robot_avatar = ''
     formState.robot_avatar_url = default_avatar
     formState.robot_name = ''
+    formState.en_name = ''
     formState.robot_intro = ''
     formState.application_type = type
     show.value = true
 
     if (isEdit.value && robotInfo.value) {
       formState.robot_name = robotInfo.value.robot_name
+      formState.en_name = robotInfo.value.en_name
       formState.robot_intro = robotInfo.value.robot_intro
       formState.robot_avatar_url = robotInfo.value.robot_avatar_url
     }
   }
+  if(type == 0) {
+    rules.en_name = []
+  }else{
+  rules.en_name = [
+    {
+      required: true,
+      message: '请输入工作流名称',
+      trigger: 'change'
+    },
+    {
+      validator: async (rule, value, callback) => { 
+        if(!value){
+          return Promise.resolve()
+        }
+        //只能输入英文数字和字符“_”、“”、“_”
+        if (!/^[a-zA-Z0-9_\.\-]+$/.test(value)) {
+           return Promise.reject('只能输入英文数字和字符"_"、"."、"-"')
+        }else{
+          return Promise.resolve()
+        }
+      },
+    }
+  ]
+  }
+
 }
 
 const setGroupId = (id) => {
@@ -372,6 +409,11 @@ const onCancel = () => {
 }
 
 const handleSave = () => {
+  if(!isEdit.value && formState.application_type != 0){
+    if(!formState.robot_name){
+      formState.robot_name = formState.en_name
+    }
+  }
   validate()
     .then(() => {
       saveForm()

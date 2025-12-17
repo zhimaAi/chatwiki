@@ -31,7 +31,7 @@
       </div>
       <div class="opt-block" v-else>
         <span class="tip-text"
-          >当前类型：{{ prompt_type == 1 ? '结构化提示词' : '自定义提示词' }}</span
+          >当前类型：{{ currentPromptType == 1 ? '结构化提示词' : '自定义提示词' }}</span
         >
         <a-button size="small" @click="handleEdit">修改</a-button>
       </div>
@@ -241,7 +241,7 @@
   </div>
 </template>
 <script setup>
-import { ref, reactive, inject, toRaw, watch, h } from 'vue'
+import { ref, reactive, computed, inject, toRaw, watch, h } from 'vue'
 import {
   PlusOutlined,
   CloseCircleOutlined,
@@ -327,6 +327,7 @@ const checkStringContains = (str, searchStr) => {
 }
 
 const prompt_type = ref(robotInfo.prompt_type)
+const currentPromptType = computed(() => robotInfo.prompt_type)
 
 watch(
   () => robotInfo,

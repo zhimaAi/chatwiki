@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package common
 
@@ -171,10 +171,10 @@ func AddDefaultLibrary(token, robotName, libraryIds, robotKey string, adminUserI
 		`type`:                               cast.ToString(define.QALibraryType),
 	}
 
-	modelConfig := GetDefaultEmbeddingConfig(adminUserId)
-	if len(modelConfig) > 0 {
-		libraryData[`use_model`] = modelConfig[`vector_model`]
-		libraryData[`model_config_id`] = modelConfig[`id`]
+	modelConfigId, useModel, exist := GetDefaultEmbeddingConfig(adminUserId)
+	if exist {
+		libraryData[`use_model`] = useModel
+		libraryData[`model_config_id`] = cast.ToString(modelConfigId)
 	}
 
 	var (

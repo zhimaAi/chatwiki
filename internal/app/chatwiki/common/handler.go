@@ -1,15 +1,11 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package common
 
 import (
-	"errors"
-	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
-	"strings"
-
-	"github.com/zhimaAi/go_tools/msql"
 )
 
 func GetAzureHandler(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
@@ -19,7 +15,7 @@ func GetAzureHandler(modelInfo ModelInfo, config msql.Params, useModel string) (
 			EndPoint:   config[`api_endpoint`],
 			APIVersion: config[`api_version`],
 			APIKey:     config[`api_key`],
-			Model:      config[`deployment_name`],
+			Model:      useModel,
 		},
 		config: config,
 	}
@@ -29,10 +25,9 @@ func GetAzureHandler(modelInfo ModelInfo, config msql.Params, useModel string) (
 func GetClaudeHandler(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
-			Corp:       `claude`,
-			APIKey:     config[`api_key`],
-			APIVersion: config[`api_version`],
-			Model:      useModel,
+			Corp:   `claude`,
+			APIKey: config[`api_key`],
+			Model:  useModel,
 		},
 		config: config,
 	}
@@ -64,23 +59,13 @@ func GetYiyanHandler(modelInfo ModelInfo, config msql.Params, useModel string) (
 	return handler, nil
 }
 
-func CheckYiyanFancCall(modelInfo ModelInfo, config msql.Params, useModel string) error {
-	if config[`secret_key`] == "" {
-		useModel = strings.ToLower(useModel)
-	}
-	if tool.InArrayString(useModel, modelInfo.SupportedFunctionCallList) {
-		return nil
-	}
-	return errors.New(`model is not support`)
-}
-
 func GetTongyiHandler(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:              `ali`,
 			APIKey:            config[`api_key`],
 			Model:             useModel,
-			ChoosableThinking: tool.InArrayString(useModel, modelInfo.ChoosableThinkingModels),
+			ChoosableThinking: tool.InArrayString(useModel, modelInfo.GetChoosableThinkingModels()),
 		},
 		config: config,
 	}
@@ -114,9 +99,6 @@ func GetCohereHandle(modelInfo ModelInfo, config msql.Params, useModel string) (
 }
 
 func GetOllamaHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
-	if useModel == "默认" && cast.ToString(config["deployment_name"]) != "" {
-		useModel = cast.ToString(config["deployment_name"])
-	}
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:     `ollama`,
@@ -232,7 +214,7 @@ func GetOpenAIAgentHandle(modelInfo ModelInfo, config msql.Params, useModel stri
 			APIKey:     config[`api_key`],
 			EndPoint:   config[`api_endpoint`],
 			APIVersion: config["api_version"],
-			Model:      config[`deployment_name`],
+			Model:      useModel,
 		},
 		config: config,
 	}
@@ -274,8 +256,8 @@ func GetDoubaoHandle(modelInfo ModelInfo, config msql.Params, useModel string) (
 			APIKey:            config[`api_key`],
 			SecretKey:         config[`secret_key`],
 			Region:            config[`region`],
-			Model:             config[`deployment_name`],
-			ChoosableThinking: cast.ToUint(config[`thinking_type`]) == 2, //深度思考选项:0不支持,1支持,2可选
+			Model:             useModel,
+			ChoosableThinking: tool.InArrayString(useModel, modelInfo.GetChoosableThinkingModels()),
 		},
 		config: config,
 	}
@@ -302,7 +284,7 @@ func GetSiliconFlow(modelInfo ModelInfo, config msql.Params, useModel string) (*
 			APIKey:            config[`api_key`],
 			APIVersion:        `v1`,
 			Model:             useModel,
-			ChoosableThinking: tool.InArrayString(useModel, modelInfo.ChoosableThinkingModels),
+			ChoosableThinking: tool.InArrayString(useModel, modelInfo.GetChoosableThinkingModels()),
 		},
 		config: config,
 	}

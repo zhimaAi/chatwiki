@@ -93,6 +93,7 @@ import { getNodeTypes } from './components/node-list'
 import VersionModel from './components/version-model.vue'
 import PublishDetail from './components/publish-detail.vue'
 import { getModelConfigOption } from '@/api/model/index'
+import { getModelOptionsList } from '@/components/model-select/index.js'
 
 const route = useRoute()
 const query = route.query
@@ -892,51 +893,12 @@ const onDeleteNode = () => {
 }
 
 const getModelList = async () => {
-  let uniqueArr = (arr, arr1, key) => {
-    const keyVals = new Set(arr.map((item) => item.model_define))
-    arr1.filter((obj) => {
-      let val = obj[key]
-      if (keyVals.has(val)) {
-        arr.filter((obj1) => {
-          if (obj1.model_define == val) {
-            obj1.children = removeRepeat(obj1.children, obj.children)
-            return false
-          }
-        })
-      }
-    })
-    return arr
-  }
   return getModelConfigOption({
     model_type: 'LLM'
   }).then((res) => {
     let list = res.data || []
-    let children = []
-    let modelList = []
-    modelList = list.map((item) => {
-      children = []
-      for (let i = 0; i < item.model_info.llm_model_list.length; i++) {
-        const ele = item.model_info.llm_model_list[i]
-        children.push({
-          name: ele,
-          deployment_name: item.model_config.deployment_name,
-          id: item.model_config.id,
-          model_define: item.model_info.model_define
-        })
-      }
-      return {
-        id: item.model_config.id,
-        name: item.model_info.model_name,
-        model_define: item.model_info.model_define,
-        icon: item.model_info.model_icon_url,
-        children: children,
-        deployment_name: item.model_config.deployment_name
-      }
-    })
-
-    // 如果modelList存在两个相同model_define情况就合并到一个对象的children中去
-    modelList = uniqueArr(duplicateRemoval(modelList, 'model_define'), modelList, 'model_define')
-    robotStore.setModelList(modelList)
+    let { newList  } = getModelOptionsList(list)
+    robotStore.setModelList(newList)
   })
 }
 

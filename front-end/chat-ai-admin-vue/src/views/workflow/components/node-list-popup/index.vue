@@ -2,9 +2,8 @@
 .node-list-popup {
   display: flex;
   flex-direction: column;
-  height: 620px;
-  width: 444px;
-  max-height: 80vh;
+  height: 100%;
+  width: 100%;
   overflow: hidden;
   border-radius: 6px 6px 0 0;
   box-shadow: 0 4px 16px 0 #0000001a;
@@ -367,16 +366,8 @@
                   <div class="info"><span class="name">{{ node.properties.node_name }}</span></div>
                 </div>
               </div>
-              <div v-else class="node-item">
-                <template v-if="getPluginActions(node.plugin_name).length === 1">
-                  <div class="node-info" @mousedown="addFirstAction($event, node)">
-                    <img class="avatar" :src="node.properties.node_icon" />
-                    <div class="info">
-                      <span class="name">{{ node.properties.node_name }}</span>
-                    </div>
-                  </div>
-                </template>
-                <template v-else>
+              <template v-else>
+                <div v-if="getPluginActions(node.plugin_name).length > 1" class="node-item">
                   <a-popover placement="right">
                     <template #content>
                       <div class="node-info-pop">
@@ -393,8 +384,8 @@
                       <div class="info">
                         <span class="name">{{ node.properties.node_name }}</span>
                         <span class="total">
-                          {{ getPluginActions(node.plugin_name).length }} <DownOutlined v-if="node.expand"/> <RightOutlined v-else/>
-                        </span>
+                        {{ getPluginActions(node.plugin_name).length }} <DownOutlined v-if="node.expand"/> <RightOutlined v-else/>
+                      </span>
                       </div>
                     </div>
                   </a-popover>
@@ -425,8 +416,20 @@
                       <div class="node-tool-item" @mousedown="addPluginNode($event, node, action, action.name)">{{ action.title }}</div>
                     </a-popover>
                   </div>
+                </div>
+                <!--仅存在一个方法时-->
+                <template v-else>
+                  <div v-for="action in getPluginActions(node.plugin_name)"
+                       @click="addPluginNode(null, node, action, action.name)"
+                       class="node-item"
+                  >
+                    <div class="node-info">
+                      <img class="avatar" :src="node.properties.node_icon"/>
+                      <div class="info"><span class="name">{{ node.properties.node_name }}</span></div>
+                    </div>
+                  </div>
                 </template>
-              </div>
+              </template>
             </template>
           </div>
           <a class="more-link" href="/#/plugins/index?active=2" target="_blank">更多插件 <RightOutlined/></a>
@@ -469,7 +472,11 @@ const props = defineProps({
   active: {
     type: Number,
     default: 1
-  }
+  },
+  excludedNodeTypes: {
+    type: Array,
+    default: () => []
+  },
 })
 
 const tabActive = ref(props.active)
@@ -478,12 +485,17 @@ watch(() => props.active, (newVal) => {
   tabActive.value = newVal
 })
 
-const allGroupNodes = computed(()=>{
-  return getAllGroupNodes(props.type)
-})
+const allGroupNodes = ref([])
 const allPluginNodes = ref([])
 const allMcpNodes = ref([])
 const mcpKeyword = ref('')
+
+watch(() => props.excludedNodeTypes, () => {
+  allGroupNodes.value = getAllGroupNodes({excludedNodeTypes: props.excludedNodeTypes})
+}, {
+  immediate: true
+})
+
 
 onMounted(() => {
   getAllMcpNodes().then((res) => {
@@ -579,14 +591,10 @@ const handleAddTrigger = (node) => {
 
 const addPluginNode = (event, node, action, name) => {
   node = getPluginActionNode(node, action, name)
-  handleMouseDownOnNode(event, node)
-}
-
-const addFirstAction = (event, node) => {
-  const actions = getPluginActions(node.plugin_name)
-  const action = actions[0]
-  if (action) {
-    addPluginNode(event, node, action, action.name)
+  if (event) {
+    handleMouseDownOnNode(event, node)
+  } else {
+    emit('addNode', { node })
   }
 }
 

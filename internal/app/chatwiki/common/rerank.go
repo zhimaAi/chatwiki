@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package common
 
@@ -12,7 +12,7 @@ import (
 
 func RerankData(adminUserId int, openid, appType string, robot msql.Params, req *adaptor.ZhimaRerankReq) ([]msql.Params, error) {
 	modelConfigId, useModel := cast.ToInt(robot[`rerank_model_config_id`]), robot[`rerank_use_model`]
-	handler, err := GetModelCallHandler(modelConfigId, useModel, robot)
+	handler, err := GetModelCallHandler(adminUserId, modelConfigId, useModel, robot)
 	if err != nil {
 		return nil, err
 	}

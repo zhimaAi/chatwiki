@@ -81,7 +81,12 @@ const feishuRef = ref(null)
 const configRef = ref(null)
 const loading = ref(true)
 const list = ref([])
-const showConifgPlugins = ['feishu_bitable', 'official_account_profile']
+const showConifgPlugins = [
+  'feishu_bitable',
+  'official_account_profile',
+  'official_batch_tag',
+  'official_send_template_message',
+]
 
 onMounted(() => {
   loadData()

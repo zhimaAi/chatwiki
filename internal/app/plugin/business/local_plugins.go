@@ -1,4 +1,4 @@
-// Copyright © 2016- 2025 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package business
 
@@ -249,8 +249,6 @@ func UnloadLocalPlugin(c *gin.Context) {
 		return
 	}
 
-	define.PhpPlugin.UnloadPhpPlugin(req.Name)
-
 	_, err := msql.Model(`plugin_config`, define.Postgres).
 		Where(`admin_user_id`, adminUserId).
 		Where(`name`, req.Name).
@@ -327,6 +325,12 @@ func UpdateLocalPluginConfig(c *gin.Context) {
 }
 
 func RunLocalPluginLambda(c *gin.Context) {
+	adminUserId := c.GetHeader(`admin_user_id`)
+	if adminUserId == "" {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(`缺少admin_user_id`)))
+		return
+	}
+
 	var req struct {
 		Name   string         `form:"name" binding:"required"`
 		Action string         `form:"action" binding:"required"`
@@ -345,6 +349,20 @@ func RunLocalPluginLambda(c *gin.Context) {
 	manifest, err := php.GetPluginManifest(req.Name)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+
+	info, err := msql.Model(`plugin_config`, define.Postgres).
+		Where(`admin_user_id`, adminUserId).
+		Where(`name`, req.Name).
+		Where(`has_loaded`, `true`).
+		Find()
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	if len(info) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(`插件未加载`)))
 		return
 	}
 

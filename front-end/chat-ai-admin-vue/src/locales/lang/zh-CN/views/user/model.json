@@ -24,5 +24,6 @@
   "app_id": "appid",
   "region": "地区",
   "show_model_name": "模型名称",
-  "thinking_type": "深度思考"
+  "thinking_type": "深度思考",
+  "config_name": "配置名称"
 }

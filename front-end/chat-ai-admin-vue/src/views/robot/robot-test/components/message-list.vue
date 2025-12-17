@@ -14,6 +14,10 @@
   }
 }
 
+.markdown-content{
+  white-space: normal;
+}
+
 .msg-img {
   width: auto;
   height: auto;
@@ -532,7 +536,8 @@
                 </template>
 
                 <template v-if="item.msg_type == 2">
-                  <div class="message-content" v-html="item.menu_json.content"></div>
+                  <cherry-markdown class="markdown-content" :content="item.menu_json.content" v-if="item.isWelcome"></cherry-markdown>
+                  <div class="message-content" v-html="item.menu_json.content" v-else></div>
                   <div class="message-menus">
                     <div
                       class="menu-item"

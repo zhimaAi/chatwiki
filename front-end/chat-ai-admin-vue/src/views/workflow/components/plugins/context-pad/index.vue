@@ -1,7 +1,7 @@
 <style lang="less" scoped></style>
 
 <template>
-  <PopupMenu @addNode="handleAddNode" :type="type" v-model:active="nodeListTabActive" />
+  <PopupMenu @addNode="handleAddNode" :type="type" :excludedNodeTypes="excludedNodeTypes" v-model:active="nodeListTabActive" />
 </template>
 
 <script>
@@ -25,6 +25,7 @@ export default {
   data() {
     return {
       type: 'node',
+      excludedNodeTypes: [],
       nodeListTabActive: 1,
     }
   },
@@ -34,14 +35,22 @@ export default {
   },
   methods: {
     onShowPopupMenu(data){
-      if(data.model.properties.loop_parent_key){
-        this.type = 'loop-node'
+      const {type, loop_parent_key} = data.model.properties
+
+      if(loop_parent_key){
+        let excludedNodeTypes = ['custom-group', 'batch-group', 'end-node'];
+        let parentNode = this.getGraph().getNodeModelById(loop_parent_key)
+
+        if(parentNode.type == 'batch-group'){
+          excludedNodeTypes.push('terminate-node')
+        }
+
+        this.excludedNodeTypes = excludedNodeTypes;
       }else{
-        this.type = 'node'
+        this.excludedNodeTypes = ['explain-node', 'terminate-node']
       }
     },
     handleAddNode(item) {
-      console.log(item)
       this.$emit('click-item', item)
     },
   },

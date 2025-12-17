@@ -48,6 +48,7 @@ export const useRobotStore = defineStore('robot', () => {
     app_id: -1, // webapp:-1
     app_id_embed: -2, // 嵌入网站:-2
     robot_name: '',
+    en_name: '',
     robot_intro: '',
     robot_avatar: undefined,
     robot_avatar_url: '',
@@ -166,6 +167,7 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.fast_command_switch = data.fast_command_switch
     robotInfo.yunpc_fast_command_switch = data.yunpc_fast_command_switch
     robotInfo.robot_name = data.robot_name
+    robotInfo.en_name = data.en_name
     robotInfo.robot_intro = data.robot_intro
     robotInfo.robot_avatar_url = data.robot_avatar
     robotInfo.use_model = data.use_model

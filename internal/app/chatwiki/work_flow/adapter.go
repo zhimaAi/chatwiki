@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package work_flow
 
@@ -51,6 +51,8 @@ const (
 	NodeTypeLoop             = 25 //循环节点
 	NodeTypeLoopEnd          = 26 //终止循环节点
 	NodeTypeLoopStart        = 27 //开始循环节点
+	NodeTypeBatch            = 30 //批处理
+	NodeTypeBatchStart       = 31 //批处理开始
 )
 
 var NodeTypes = [...]int{
@@ -78,6 +80,8 @@ var NodeTypes = [...]int{
 	NodeTypeLoopEnd,
 	NodeTypeLoopStart,
 	NodeTypePlugin,
+	NodeTypeBatch,
+	NodeTypeBatchStart,
 }
 
 type NodeAdapter interface {
@@ -144,6 +148,10 @@ func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, ms
 		return &LoopEndNode{nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeLoopStart:
 		return &LoopStartNode{nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeBatchStart:
+		return &BatchStartNode{nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeBatch:
+		return &BatchNode{params: nodeParams.Batch, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypePlugin:
 		return &PluginNode{params: nodeParams.Plugin, nextNodeKey: info[`next_node_key`]}, info, nil
 	default:
@@ -1125,4 +1133,25 @@ func (n *PluginNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNo
 		nextNodeKey = n.nextNodeKey
 		return nil, "", errors.New("暂不支持的插件类型")
 	}
+}
+
+type BatchStartNode struct {
+	params      StartNodeParams
+	nextNodeKey string
+}
+
+func (n *BatchStartNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	flow.Logs(`执行批处理开始节点逻辑...`)
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+type BatchNode struct {
+	params      BatchNodeParams
+	nextNodeKey string
+}
+
+func (n *BatchNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	nextNodeKey = n.nextNodeKey
+	return
 }

@@ -128,10 +128,10 @@
           <CloseCircleOutlined />
         </span>
         <div class="library-name">
-          <a-tooltip v-if="neo4j_status">
+          <!-- <a-tooltip v-if="neo4j_status">
             <template #title>{{ item.graph_switch == 0 ? '未' : '已' }}开启知识图谱生成</template>
             <div class="graph-tag" :class="{ active: item.graph_switch == 1 }">Graph</div>
-          </a-tooltip>
+          </a-tooltip> -->
           <div class="library-name-text">{{ item.library_name }}</div>
         </div>
         <div class="library-intro">{{ item.library_intro }}</div>
@@ -156,7 +156,7 @@
       <div class="set-item">
         Rerank模型：
         <span v-if="formState.rerank_status == 0">关</span>
-        <span v-else>{{ formState.rerank_use_model }}</span>
+        <span v-else>{{ getModelName }}</span>
       </div>
     </div>
     <LibrarySelectAlert ref="librarySelectAlertRef" @change="onChangeLibrarySelected" :showWxType="!!wxAppLibary"/>
@@ -175,6 +175,7 @@ import EditBox from '../edit-box.vue'
 import LibrarySelectAlert from './library-select-alert.vue'
 import RecallSettingsAlert from './recall-settings-alert.vue'
 import NoOpenGraphModal from './no-open-graph-modal.vue'
+import { getModelNameText } from '@/components/model-select/index.js'
 
 const { getStorage, removeStorage } = useStorage('localStorage')
 
@@ -314,6 +315,10 @@ watchEffect(() => {
 const toLibraryDetail = (item) => {
   window.open(`#/library/details/knowledge-document?id=${item.id}`)
 }
+
+const getModelName = computed(() => {
+  return getModelNameText(formState.rerank_model_config_id, formState.rerank_use_model, 'RERANK')
+})
 
 onMounted(() => {
   loadWxLbStatus()

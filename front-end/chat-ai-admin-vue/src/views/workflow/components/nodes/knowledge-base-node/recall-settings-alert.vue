@@ -221,28 +221,12 @@
             />
           </div>
           <div class="form-item-body">
-            <a-select
-              v-model:value="formState.rerank_use_model"
-              placeholder="请选择Rerank模型"
-              @change="handleChangeRerankModel"
+            <ModelSelect
+              modelType="RERANK"
+              v-model:modeName="formState.rerank_use_model"
+              v-model:modeId="formState.rerank_model_config_id"
               style="width: 320px"
-            >
-              <a-select-opt-group v-for="item in rerankModelList" :key="item.id">
-                <template #label>
-                  <a-flex align="center" :gap="8">
-                    <img class="model-icon" :src="item.icon" alt="" />{{ item.name }}
-                  </a-flex>
-                </template>
-                <a-select-option
-                  :value="val"
-                  :rerank_model_config_id="item.id"
-                  v-for="val in item.children"
-                  :key="val"
-                >
-                  <span>{{ val }}</span>
-                </a-select-option>
-              </a-select-opt-group>
-            </a-select>
+            />
           </div>
         </div>
       </div>
@@ -255,6 +239,7 @@ import { getModelConfigOption } from '@/api/model/index'
 import { reactive, ref, toRaw } from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import ModelSelect from '@/components/model-select/model-select.vue'
 
 const emit = defineEmits(['change'])
 
@@ -290,8 +275,6 @@ const formState = reactive({
 const show = ref(false)
 
 const open = (data) => {
-  getList()
-
   formState.rerank_status = data.rerank_status || 0
   formState.rerank_use_model = data.rerank_use_model || undefined
   formState.rerank_model_config_id = data.rerank_model_config_id || ''
@@ -299,10 +282,6 @@ const open = (data) => {
   formState.similarity = data.similarity
   formState.search_type = data.search_type
   show.value = true
-}
-
-const handleChangeRerankModel = (val, option) => {
-  formState.rerank_model_config_id = option.rerank_model_config_id
 }
 
 const handleSelectRetrievalMode = (val) => {
@@ -328,26 +307,6 @@ const handleSave = () => {
 
 const triggerChange = () => {
   emit('change', toRaw(formState))
-}
-
-// 获取rerank模型列表
-const rerankModelList = ref([])
-
-const getList = () => {
-  getModelConfigOption({
-    model_type: 'RERANK'
-  }).then((res) => {
-    let list = res.data || []
-
-    rerankModelList.value = list.map((item) => {
-      return {
-        id: item.model_config.id,
-        name: item.model_info.model_name,
-        icon: item.model_info.model_icon_url,
-        children: item.model_info.rerank_model_list
-      }
-    })
-  })
 }
 
 defineExpose({

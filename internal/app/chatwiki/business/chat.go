@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package business
 
@@ -212,18 +212,8 @@ func AddChatMessageFeedback(c *gin.Context) {
 		return
 	}
 
-	// add corp name field to robot info
-	var corpName string
-	for _, modelInfo := range common.GetModelList() {
-		if len(modelConfig[`model_define`]) == 0 || modelInfo.ModelDefine == modelConfig[`model_define`] {
-			corpName = modelInfo.ModelName
-		}
-	}
 	robotInfo := chatBaseParam.Robot
-	robotInfo[`corp_name`] = corpName
-	if len(modelConfig[`deployment_name`]) > 0 {
-		robotInfo[`use_model`] = modelConfig[`deployment_name`]
-	}
+	robotInfo[`corp_name`] = common.GetModelNameByDefine(modelConfig[`model_define`])
 	robotJson, err := tool.JsonEncode(robotInfo)
 	if err != nil {
 		logs.Error(err.Error())
@@ -518,18 +508,20 @@ func getChatRequestParam(c *gin.Context) *define.ChatRequestParam {
 	_ = tool.JsonDecodeUseNumber(c.DefaultPostForm(`global`, `{}`), &workFlowGlobal)
 	loopTestParams := make([]any, 0)
 	_ = tool.JsonDecodeUseNumber(c.DefaultPostForm(`loop_test_params`, `[]`), &loopTestParams)
-
+	batchTestParams := make([]any, 0)
+	_ = tool.JsonDecodeUseNumber(c.DefaultPostForm(`batch_test_params`, `[]`), &batchTestParams)
 	return &define.ChatRequestParam{
-		ChatBaseParam:  chatBaseParam,
-		Error:          err,
-		Lang:           common.GetLang(c),
-		Question:       strings.TrimSpace(c.PostForm(`question`)),
-		DialogueId:     cast.ToInt(c.PostForm(`dialogue_id`)),
-		Prompt:         strings.TrimSpace(c.PostForm(`prompt`)),
-		LibraryIds:     strings.TrimSpace(c.PostForm(`library_ids`)),
-		IsClose:        &isClose,
-		WorkFlowGlobal: workFlowGlobal,
-		LoopTestParams: loopTestParams,
+		ChatBaseParam:   chatBaseParam,
+		Error:           err,
+		Lang:            common.GetLang(c),
+		Question:        strings.TrimSpace(c.PostForm(`question`)),
+		DialogueId:      cast.ToInt(c.PostForm(`dialogue_id`)),
+		Prompt:          strings.TrimSpace(c.PostForm(`prompt`)),
+		LibraryIds:      strings.TrimSpace(c.PostForm(`library_ids`)),
+		IsClose:         &isClose,
+		WorkFlowGlobal:  workFlowGlobal,
+		LoopTestParams:  loopTestParams,
+		BatchTestParams: batchTestParams,
 	}
 }
 
@@ -685,7 +677,85 @@ func CallLoopWorkFlow(c *gin.Context) {
 		nodeList = append(nodeList, node)
 	}
 	workFlowParams.Draft.NodeMaps[loopNodeKey] = loopNodeInfo
-	if workFlowParams.Draft.StartNodeKey, _, _, err = work_flow.VerityLoopWorkflowNodes(chatRequestParam.AdminUserId, loopWorkFlowNode, nodeList); err != nil {
+	if workFlowParams.Draft.StartNodeKey, _, _, err = work_flow.VerityLoopWorkflowNodes(chatRequestParam.AdminUserId, loopWorkFlowNode, nodeList, work_flow.LoopAllowNodeTypes, `循环节点`); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	_, nodeLogs, err := work_flow.BaseCallWorkFlow(workFlowParams)
+	c.String(http.StatusOK, lib_web.FmtJson(nodeLogs, err))
+}
+
+func CallBatchWorkFlow(c *gin.Context) {
+	c.Set(`from_work_flow`, true) //设置标志位,不校验openid为空
+	chatRequestParam := getChatRequestParam(c)
+	if chatRequestParam.Error != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, chatRequestParam.Error))
+		return
+	}
+	dialogueId, sessionId, err := GetDialogueSession(chatRequestParam)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	workFlowParams := &work_flow.WorkFlowParams{
+		ChatRequestParam:   chatRequestParam,
+		DialogueId:         dialogueId,
+		SessionId:          sessionId,
+		Draft:              work_flow.Draft{IsDraft: true},
+		IsTestBatchNodeRun: true,
+	}
+	batchNodeKey := c.PostForm(`batch_node_key`)
+	if batchNodeKey == `` {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(chatRequestParam.Lang, `param_invalid`, `loop_node_key`))))
+		return
+	}
+	batchNodeInfo, err := msql.Model(`work_flow_node`, define.Postgres).
+		Where(`admin_user_id`, chatRequestParam.Robot[`admin_user_id`]).
+		Where(`robot_id`, chatRequestParam.Robot[`id`]).
+		Where(`node_key`, batchNodeKey).
+		Where(`data_type`, cast.ToString(define.DataTypeDraft)).Find()
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	if cast.ToInt(batchNodeInfo[`node_type`]) != work_flow.NodeTypeBatch {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(chatRequestParam.Lang, `no_data`))))
+		return
+	}
+	//build batch node
+	batchWorkFlowNode := work_flow.WorkFlowNode{
+		NodeType:     common.MixedInt(cast.ToInt(batchNodeInfo[`node_type`])),
+		NodeName:     batchNodeInfo[`node_name`],
+		NodeKey:      batchNodeInfo[`node_key`],
+		NodeParams:   work_flow.NodeParams{},
+		NodeInfoJson: make(map[string]any),
+	}
+	_ = tool.JsonDecodeUseNumber(batchNodeInfo[`node_params`], &batchWorkFlowNode.NodeParams)
+	_ = tool.JsonDecodeUseNumber(batchNodeInfo[`node_info_json`], &batchWorkFlowNode.NodeInfoJson)
+	//query child node
+	workFlowParams.Draft.NodeMaps, err = msql.Model(`work_flow_node`, define.Postgres).
+		Where(`admin_user_id`, chatRequestParam.Robot[`admin_user_id`]).
+		Where(`robot_id`, chatRequestParam.Robot[`id`]).
+		Where(`loop_parent_key`, batchNodeKey).
+		Where(`data_type`, cast.ToString(define.DataTypeDraft)).ColumnMap(`*`, `node_key`)
+	nodeList := make([]work_flow.WorkFlowNode, 0)
+	//build child node
+	for _, params := range workFlowParams.Draft.NodeMaps {
+		node := work_flow.WorkFlowNode{
+			NodeType:      common.MixedInt(cast.ToInt(params[`node_type`])),
+			NodeName:      params[`node_name`],
+			NodeKey:       params[`node_key`],
+			NodeParams:    work_flow.NodeParams{},
+			NodeInfoJson:  make(map[string]any),
+			NextNodeKey:   params[`next_node_key`],
+			LoopParentKey: params[`loop_parent_key`],
+		}
+		_ = tool.JsonDecodeUseNumber(params[`node_params`], &node.NodeParams)
+		_ = tool.JsonDecodeUseNumber(params[`node_info_json`], &node.NodeInfoJson)
+		nodeList = append(nodeList, node)
+	}
+	workFlowParams.Draft.NodeMaps[batchNodeKey] = batchNodeInfo
+	if workFlowParams.Draft.StartNodeKey, _, _, err = work_flow.VerityLoopWorkflowNodes(chatRequestParam.AdminUserId, batchWorkFlowNode, nodeList, work_flow.BatchAllowNodeTypes, `批处理`); err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
@@ -786,6 +856,81 @@ func CallLoopWorkFlowParams(c *gin.Context) {
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{
 		`loop_test_params`: loopTestParams,
+		`is_need_question`: work_flow.FindKeyIsUse(childNodes, `global.question`), //是否需要question
+		`is_need_openid`:   work_flow.FindKeyIsUse(childNodes, `global.openid`),   //是否需要openid
+	}, err))
+}
+
+func CallBatchWorkFlowParams(c *gin.Context) {
+	c.Set(`from_work_flow`, true) //设置标志位,不校验openid为空
+	chatBaseParam, err := common.CheckChatRequest(c)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	if len(chatBaseParam.Robot) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	batchNodeKey := c.PostForm(`batch_node_key`)
+	if batchNodeKey == `` {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `batch_node_key`))))
+		return
+	}
+	var batchNode *work_flow.WorkFlowNode
+	nodeMaps, err := msql.Model(`work_flow_node`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(chatBaseParam.AdminUserId)).
+		Where(`robot_id`, chatBaseParam.Robot[`id`]).
+		Where(`data_type`, cast.ToString(define.DataTypeDraft)).ColumnMap(`*`, `node_key`)
+	nodeList := make([]work_flow.WorkFlowNode, 0)
+	for _, params := range nodeMaps {
+		node := work_flow.WorkFlowNode{
+			NodeType:      common.MixedInt(cast.ToInt(params[`node_type`])),
+			NodeName:      params[`node_name`],
+			NodeKey:       params[`node_key`],
+			NodeParams:    work_flow.NodeParams{},
+			NodeInfoJson:  make(map[string]any),
+			NextNodeKey:   params[`next_node_key`],
+			LoopParentKey: params[`loop_parent_key`],
+		}
+		_ = tool.JsonDecodeUseNumber(params[`node_params`], &node.NodeParams)
+		if node.NodeKey == batchNodeKey {
+			batchNode = &node
+		}
+		nodeList = append(nodeList, node)
+	}
+	if batchNode == nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	//循环数组
+	batchTestParams := make([]common.BatchTestParams, 0)
+	for _, batchField := range batchNode.NodeParams.Batch.BatchArrays {
+		findNode := work_flow.FindNodeByUseKey(nodeList, batchField.Value)
+		if findNode == nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+			return
+		}
+		batchTestParams = append(batchTestParams, common.BatchTestParams{
+			NodeKey:  findNode.NodeKey,
+			NodeName: findNode.NodeName,
+			Field: common.SimpleField{
+				Sys:      false,
+				Key:      batchField.Value,
+				Typ:      batchField.Typ,
+				Vals:     make([]common.Val, 0),
+				Required: true,
+			},
+		})
+	}
+	childNodes := make([]work_flow.WorkFlowNode, 0)
+	for _, node := range nodeList {
+		if node.LoopParentKey == batchNode.NodeKey {
+			childNodes = append(childNodes, node)
+		}
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{
+		`loop_test_params`: batchTestParams,
 		`is_need_question`: work_flow.FindKeyIsUse(childNodes, `global.question`), //是否需要question
 		`is_need_openid`:   work_flow.FindKeyIsUse(childNodes, `global.openid`),   //是否需要openid
 	}, err))

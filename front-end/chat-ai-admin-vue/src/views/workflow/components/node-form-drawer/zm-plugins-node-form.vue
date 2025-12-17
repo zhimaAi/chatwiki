@@ -170,11 +170,13 @@ import NodeFormLayout from './node-form-layout.vue'
 import NodeFormHeader from './node-form-header.vue'
 import AtInput from '../at-input/at-input.vue'
 import {getPluginInfo, runPlugin} from "@/api/plugins/index.js";
-import defaultIcon from '@/assets/svg/plugin-node-type.svg'
 import FeishuBittableBox from "./components/feishu-bittable/feishu-bittable-box.vue";
-import OfficialAccountBox from "./components/official-account-profile/official-account-box.vue";
+import OfficialAccountBox from "./components/official-account/official-account-box.vue";
+import OfficialTemplateBox from "./components/official-account/official-template-box.vue";
+import OfficialTagBox from "./components/official-account/official-tag-box.vue";
 import {pluginHasAction} from "@/constants/plugin.js";
-import PluginFormRender from "@/views/workflow/components/node-form-drawer/components/pluginFormRender.vue";
+import PluginFormRender from "./components/pluginFormRender.vue";
+import {sortObjectKeys} from "@/utils/index.js";
 
 const getNode = inject('getNode')
 const setData = inject('setData')
@@ -189,6 +191,12 @@ const props = defineProps({
 const pluginCompMap = {
   feishu_bitable: FeishuBittableBox,
   official_account_profile: OfficialAccountBox,
+  official_batch_tag: OfficialTagBox,
+  official_send_template_message: OfficialTemplateBox,
+}
+
+const customFieldsSortMap = {
+  'official_article:get_official_article': ['url', 'number']
 }
 
 const formState = reactive({})
@@ -225,8 +233,14 @@ function loadPluginParams() {
     params: {}
   }).then(res => {
     let data = res?.data || {}
-    if (pluginHasAction(nodeParams?.plugin?.name)) {
-      actionInfo.value = data[nodeParams.plugin.params.business]
+    const pName = nodeParams?.plugin?.name
+    if (pluginHasAction(pName)) {
+      const business = nodeParams.plugin.params.business
+      actionInfo.value = data[business]
+      let sortFields = customFieldsSortMap[`${pName}:${business}`]
+      if (Array.isArray(sortFields)) {
+        actionInfo.value.params = sortObjectKeys(actionInfo.value.params, sortFields)
+      }
     } else {
       Object.assign(formState, data)
       for (let key in formState) {

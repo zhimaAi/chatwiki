@@ -398,7 +398,6 @@
               </div>
             </div>
           </a-space> -->
-
           <template v-if="formState.is_qa_doc == 1">
             <div class="sub-setting-item-name">文件切分</div>
             <!-- 表格类型的QA文档 -->
@@ -824,10 +823,6 @@
                 <div class="form-item" style="margin-bottom: 16px">
                   <div class="form-item-label-box">
                     <div class="form-item-label">提示词设置：</div>
-                    <!-- <div class="ai-generate" @click="handleAIGenerate">
-                      <svg-icon name="ai-generate" style="font-size: 14px;"></svg-icon>
-                      <div class="ai-generate-text">AI自动生成</div>
-                    </div> -->
                   </div>
                   <div class="form-item-body">
                     <a-textarea

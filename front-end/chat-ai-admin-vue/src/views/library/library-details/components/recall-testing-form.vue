@@ -247,28 +247,13 @@
           />
         </div>
         <div class="form-item-body">
-          <a-select
-            v-model:value="formState.rerank_use_model"
-            placeholder="请选择Rerank模型"
-            @change="handleChangeRerankModel"
+          <ModelSelect
+            modelType="RERANK"
+            v-model:modeName="formState.rerank_use_model"
+            v-model:modeId="formState.rerank_model_config_id"
             style="width: 320px"
-          >
-            <a-select-opt-group v-for="item in rerankModelList" :key="item.id">
-              <template #label>
-                <a-flex align="center" :gap="8">
-                  <img class="model-icon" :src="item.icon" alt="" />{{ item.name }}
-                </a-flex>
-              </template>
-              <a-select-option
-                :value="val"
-                :rerank_model_config_id="item.id"
-                v-for="val in item.children"
-                :key="val"
-              >
-                <span>{{ val }}</span>
-              </a-select-option>
-            </a-select-opt-group>
-          </a-select>
+            placeholder="请选择Rerank模型"
+          />
         </div>
       </div>
     </div>
@@ -281,6 +266,7 @@ import { reactive, ref, toRaw, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { QuestionCircleOutlined, DownOutlined, UpOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import ModelSelect from '@/components/model-select/model-select.vue'
 import { libraryRecallTest } from '@/api/library'
 const route = useRoute()
 const loading = ref(false)
@@ -400,26 +386,6 @@ const handleRecallTest = () => {
       loading.value = false
     })
 }
-// 获取rerank模型列表
-const rerankModelList = ref([])
-
-const getList = () => {
-  getModelConfigOption({
-    model_type: 'RERANK'
-  }).then((res) => {
-    let list = res.data || []
-
-    rerankModelList.value = list.map((item) => {
-      return {
-        id: item.model_config.id,
-        name: item.model_info.model_name,
-        icon: item.model_info.model_icon_url,
-        children: item.model_info.rerank_model_list
-      }
-    })
-  })
-}
-getList()
 defineExpose({
   open
 })

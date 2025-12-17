@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package work_flow
 
@@ -222,29 +222,9 @@ func (params *LlmBaseParams) Verify(adminUserId int) error {
 		return errors.New(`请选择使用的LLM模型`)
 	}
 	//check model_config_id and use_model
-	config, err := common.GetModelConfigInfo(params.ModelConfigId.Int(), adminUserId)
-	if err != nil {
-		logs.Error(err.Error())
-		return err
-	}
-	if len(config) == 0 || !tool.InArrayString(common.Llm, strings.Split(config[`model_types`], `,`)) {
-		return errors.New(`使用的LLM服务商选择错误`)
-	}
-	modelInfo, _ := common.GetModelInfoByDefine(config[`model_define`])
-	if !tool.InArrayString(params.UseModel, modelInfo.LlmModelList) && !common.IsMultiConfModel(config[`model_define`]) {
+	if ok := common.CheckModelIsValid(adminUserId, params.ModelConfigId.Int(), params.UseModel, common.Llm); !ok {
 		return errors.New(`使用的LLM模型选择错误`)
 	}
-	////check function call
-	//if modelInfo.SupportedFunctionCallList == nil {
-	//	return errors.New(`LLM模型不支持FunctionCall`)
-	//}
-	//if modelInfo.CheckFancCallRequest != nil {
-	//	if err = modelInfo.CheckFancCallRequest(modelInfo, config, params.UseModel); err != nil {
-	//		return errors.New(`LLM模型不支持FunctionCall`)
-	//	}
-	//} else if !tool.InArrayString(params.UseModel, modelInfo.SupportedFunctionCallList) {
-	//	return errors.New(`LLM模型不支持FunctionCall`)
-	//}
 	if params.ContextPair < 0 || params.ContextPair > 50 {
 		return errors.New(`上下文数量范围0~50`)
 	}
@@ -401,11 +381,63 @@ type LoopNodeParams struct {
 	Output             []common.LoopField `json:"output"`              //
 }
 
+type BatchNodeParams struct {
+	BatchArrays  []common.LoopField `json:"batch_arrays"`
+	ChanNumber   common.MixedInt    `json:"chan_number"`
+	MaxRunNumber common.MixedInt    `json:"max_run_number"`
+	Output       []common.LoopField `json:"output"`
+}
+
 type PluginNodeParams struct {
 	Name   string               `json:"name"`
 	Type   string               `json:"type"`
 	Params map[string]any       `json:"params"`
 	Output common.RecurveFields `json:"output_obj"`
+}
+
+var LoopAllowNodeTypes = []int{
+	NodeTypeRemark,
+	NodeTypeTerm,
+	NodeTypeCate,
+	NodeTypeCurl,
+	NodeTypeLibs,
+	NodeTypeLlm,
+	NodeTypeFinish,
+	NodeTypeAssign,
+	NodeTypeReply,
+	NodeTypeQuestionOptimize,
+	NodeTypeParamsExtractor,
+	NodeTypeFormInsert,
+	NodeTypeFormDelete,
+	NodeTypeFormUpdate,
+	NodeTypeFormSelect,
+	NodeTypeCodeRun,
+	NodeTypeMcp,
+	NodeTypeLoopEnd,
+	NodeTypeLoopStart,
+	NodeTypePlugin,
+}
+
+var BatchAllowNodeTypes = []int{
+	NodeTypeRemark,
+	NodeTypeTerm,
+	NodeTypeCate,
+	NodeTypeCurl,
+	NodeTypeLibs,
+	NodeTypeLlm,
+	NodeTypeFinish,
+	NodeTypeAssign,
+	NodeTypeReply,
+	NodeTypeQuestionOptimize,
+	NodeTypeParamsExtractor,
+	NodeTypeFormInsert,
+	NodeTypeFormDelete,
+	NodeTypeFormUpdate,
+	NodeTypeFormSelect,
+	NodeTypeCodeRun,
+	NodeTypeMcp,
+	NodeTypeBatchStart,
+	NodeTypePlugin,
 }
 
 /************************************/
@@ -430,6 +462,7 @@ type NodeParams struct {
 	Mcp              McpNodeParams              `json:"mcp"`
 	Loop             LoopNodeParams             `json:"loop"`
 	Plugin           PluginNodeParams           `json:"plugin"`
+	Batch            BatchNodeParams            `json:"batch"`
 }
 
 func DisposeNodeParams(nodeType int, nodeParams string) NodeParams {
@@ -568,6 +601,23 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 		for _, loopField := range loopOutput {
 			formatRecurveField := common.RecurveField{}
 			err := tool.JsonDecode(tool.JsonEncodeNoError(loopField), &formatRecurveField)
+			if err != nil {
+				logs.Error(`node type loop field decode ` + err.Error())
+			}
+			formatOutput = append(formatOutput, formatRecurveField)
+		}
+		for variable := range common.SimplifyFields(formatOutput) {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+				variables = append(variables, variable)
+			}
+		}
+	case NodeTypeBatch:
+		batchOutput := node.NodeParams.Batch.Output
+		formatOutput := make(common.RecurveFields, 0)
+		for _, batchField := range batchOutput {
+			formatRecurveField := common.RecurveField{}
+			err := tool.JsonDecode(tool.JsonEncodeNoError(batchField), &formatRecurveField)
 			if err != nil {
 				logs.Error(`node type loop field decode ` + err.Error())
 			}
@@ -949,7 +999,35 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 			return
 		}
 		//验证子节点
-		_, _, _, err = VerityLoopWorkflowNodes(adminUserId, node, childNodes)
+		_, _, _, err = VerityLoopWorkflowNodes(adminUserId, node, childNodes, LoopAllowNodeTypes, `循环节点`)
+		if err != nil {
+			return
+		}
+	case NodeTypeBatch:
+		if len(node.NodeParams.Batch.BatchArrays) == 0 {
+			err = errors.New(fmt.Sprintf(`%s未添加执行数组`, node.NodeName))
+			return
+		}
+		//验证执行数组的初始值是否存在
+		bFind := VerityLoopParams(node.NodeParams.Batch.BatchArrays, nodeList)
+		if !bFind {
+			err = errors.New(fmt.Sprintf(`未找到【%s】执行数组引用的变量`, node.NodeName))
+			return
+		}
+		childNodes := make([]WorkFlowNode, 0)
+		for _, vNode := range nodeList {
+			if vNode.LoopParentKey == node.NodeKey {
+				childNodes = append(childNodes, vNode)
+			}
+		}
+		//验证输出值是否存在
+		bFind = VerityLoopParams(node.NodeParams.Batch.Output, childNodes)
+		if !bFind {
+			err = errors.New(fmt.Sprintf(`未找到【%s】的输出中引用的子节点输出`, node.NodeName))
+			return
+		}
+		//验证子节点
+		_, _, _, err = VerityLoopWorkflowNodes(adminUserId, node, childNodes, BatchAllowNodeTypes, `批处理`)
 		if err != nil {
 			return
 		}
@@ -1013,6 +1091,8 @@ func (node *WorkFlowNode) Verify(adminUserId int) error {
 		err = node.NodeParams.Loop.Verify(node.NodeName)
 	case NodeTypePlugin:
 		err = node.NodeParams.Plugin.Verify(adminUserId)
+	case NodeTypeBatch:
+		err = node.NodeParams.Batch.Verify(node.NodeName)
 	}
 	if err != nil {
 		return errors.New(node.NodeName + `节点:` + err.Error())
@@ -1183,16 +1263,7 @@ func (params *LibsNodeParams) Verify(adminUserId int) error {
 		if params.RerankModelConfigId <= 0 || len(params.RerankUseModel) == 0 {
 			return errors.New(`请选择使用的Rerank模型`)
 		}
-		config, err := common.GetModelConfigInfo(params.RerankModelConfigId.Int(), adminUserId)
-		if err != nil {
-			logs.Error(err.Error())
-			return err
-		}
-		if len(config) == 0 || !tool.InArrayString(common.Rerank, strings.Split(config[`model_types`], `,`)) {
-			return errors.New(`使用的Rerank服务商选择错误`)
-		}
-		modelInfo, _ := common.GetModelInfoByDefine(config[`model_define`])
-		if !tool.InArrayString(params.RerankUseModel, modelInfo.RerankModelList) {
+		if ok := common.CheckModelIsValid(adminUserId, params.RerankModelConfigId.Int(), params.RerankUseModel, common.Rerank); !ok {
 			return errors.New(`使用的Rerank模型选择错误`)
 		}
 	}
@@ -1518,34 +1589,12 @@ func VerityLoopParams(fields []common.LoopField, nodeList []WorkFlowNode) bool {
 	return true
 }
 
-func VerityLoopWorkflowNodes(adminUserId int, loopNode WorkFlowNode, nodeList []WorkFlowNode) (startNodeKey, modelConfigIds, libraryIds string, err error) {
+func VerityLoopWorkflowNodes(adminUserId int, loopNode WorkFlowNode, nodeList []WorkFlowNode, allowNodeTypes []int, nodeTypeDesc string) (startNodeKey, modelConfigIds, libraryIds string, err error) {
 	startNodeCount, finishNodeCount := 0, 0
 	fromNodes := make(FromNodes)
-	allowNodeTypes := []int{
-		NodeTypeRemark,
-		NodeTypeTerm,
-		NodeTypeCate,
-		NodeTypeCurl,
-		NodeTypeLibs,
-		NodeTypeLlm,
-		NodeTypeFinish,
-		NodeTypeAssign,
-		NodeTypeReply,
-		NodeTypeQuestionOptimize,
-		NodeTypeParamsExtractor,
-		NodeTypeFormInsert,
-		NodeTypeFormDelete,
-		NodeTypeFormUpdate,
-		NodeTypeFormSelect,
-		NodeTypeCodeRun,
-		NodeTypeMcp,
-		NodeTypeLoopEnd,
-		NodeTypeLoopStart,
-		NodeTypePlugin,
-	}
 	for i, node := range nodeList {
 		if !tool.InArrayInt(node.NodeType.Int(), allowNodeTypes) {
-			err = errors.New(fmt.Sprintf(`循环节点的子节点类型错误 %d`, node.NodeType))
+			err = errors.New(fmt.Sprintf(nodeTypeDesc+`的子节点类型错误 %d`, node.NodeType))
 			return
 		}
 		//node base verify
@@ -1553,7 +1602,7 @@ func VerityLoopWorkflowNodes(adminUserId int, loopNode WorkFlowNode, nodeList []
 			return
 		}
 		//start node
-		if node.NodeType == NodeTypeLoopStart {
+		if tool.InArray(node.NodeType.Int(), []int{NodeTypeLoopStart, NodeTypeBatchStart}) {
 			startNodeKey = node.NodeKey
 			startNodeCount++
 		}
@@ -1578,7 +1627,7 @@ func VerityLoopWorkflowNodes(adminUserId int, loopNode WorkFlowNode, nodeList []
 		}
 	}
 	if startNodeCount != 1 {
-		err = errors.New(`循环节点仅能有一个入口节点`)
+		err = errors.New(nodeTypeDesc + `仅能有一个入口节点`)
 		return
 	}
 	if finishNodeCount == 0 {
@@ -1590,12 +1639,13 @@ func VerityLoopWorkflowNodes(adminUserId int, loopNode WorkFlowNode, nodeList []
 		skipNodeTypes := []int{
 			NodeTypeRemark,
 			NodeTypeLoopStart,
+			NodeTypeBatchStart,
 		}
 		if tool.InArrayInt(node.NodeType.Int(), skipNodeTypes) {
 			continue
 		}
 		if _, ok := fromNodes[node.NodeKey]; !ok {
-			err = errors.New(`循环节点中存在游离节点:` + node.NodeName)
+			err = errors.New(nodeTypeDesc + `中存在游离节点:` + node.NodeName)
 			return
 		}
 		//暂时不进行验证 循环节点单独执行会缺少前面所有节点的输入，代码难处理
@@ -1694,8 +1744,10 @@ func (param *PluginNodeParams) Verify(adminUserId int) error {
 		if err != nil {
 			return err
 		}
-		logs.Debug(string(params))
-		err = request.Param("params", string(params)).ToJSON(resp)
+		//插件验证前替换占位符
+		paramsStr := regexp.MustCompile(`【([a-f0-9]{32}\.)?[a-zA-Z_][a-zA-Z0-9_\-.]*】`).ReplaceAllString(string(params), `0`)
+		//logs.Debug(paramsStr)
+		err = request.Param("params", paramsStr).ToJSON(resp)
 		if err != nil {
 			return err
 		}
@@ -1705,5 +1757,18 @@ func (param *PluginNodeParams) Verify(adminUserId int) error {
 		}
 	}
 
+	return nil
+}
+
+func (params *BatchNodeParams) Verify(nodeName string) error {
+	if len(params.BatchArrays) == 0 {
+		return errors.New(fmt.Sprintf(`【%s】执行数组不能为空`, nodeName))
+	}
+	if params.ChanNumber.Int() < 1 || params.ChanNumber.Int() > 10 {
+		return errors.New(fmt.Sprintf(`【%s】执行并发数错误(1-10)`, nodeName))
+	}
+	if params.MaxRunNumber.Int() < 1 || params.MaxRunNumber.Int() > 500 {
+		return errors.New(fmt.Sprintf(`【%s】执行最大运行数错误(1-500)`, nodeName))
+	}
 	return nil
 }

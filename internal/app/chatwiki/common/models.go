@@ -1,12 +1,14 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_define"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -30,28 +32,72 @@ type BeforeFunc func(info ModelInfo, config msql.Params, useModel string) error
 type AfterFunc func(config msql.Params, useModel string, promptToken, completionToken int, robot msql.Params)
 
 type ModelInfo struct {
-	ModelDefine               string        `json:"model_define"`
-	ModelName                 string        `json:"model_name"`
-	ModelIconUrl              string        `json:"model_icon_url"`
-	Introduce                 string        `json:"introduce"`
-	IsOffline                 bool          `json:"is_offline"`
-	SupportList               []string      `json:"support_list"`
-	SupportedType             []string      `json:"supported_type"`
-	SupportedFunctionCallList []string      `json:"supported_function_call_list"`
-	ConfigParams              []string      `json:"config_params"`
-	HistoryConfigParams       []string      `json:"history_config_params"`
-	ConfigList                []msql.Params `json:"config_list"`
-	ApiVersions               []string      `json:"api_versions"`
-	LlmModelList              []string      `json:"llm_model_list"`
-	ChoosableThinkingModels   []string      `json:"choosable_thinking_models"`
-	NetworkSearchModelList    []string      `json:"network_search_model_list"`
-	VectorModelList           []string      `json:"vector_model_list"`
-	RerankModelList           []string      `json:"rerank_model_list"`
-	HelpLinks                 string        `json:"help_links"`
-	CallHandlerFunc           HandlerFunc   `json:"-"`
-	CheckAllowRequest         BeforeFunc    `json:"-"`
-	CheckFancCallRequest      BeforeFunc    `json:"-"`
-	TokenUseReport            AfterFunc     `json:"-"`
+	ModelDefine            string           `json:"model_define"`
+	ModelName              string           `json:"model_name"`
+	ModelIconUrl           string           `json:"model_icon_url"`
+	Introduce              string           `json:"introduce"`
+	SupportList            []string         `json:"support_list"`
+	SupportedType          []string         `json:"supported_type"`
+	ConfigParams           []string         `json:"config_params"`
+	HistoryConfigParams    []string         `json:"history_config_params"`
+	ApiVersions            []string         `json:"api_versions"`
+	NetworkSearchModelList []string         `json:"network_search_model_list"`
+	HelpLinks              string           `json:"help_links"`
+	CallHandlerFunc        HandlerFunc      `json:"-"`
+	CheckAllowRequest      BeforeFunc       `json:"-"`
+	TokenUseReport         AfterFunc        `json:"-"`
+	ConfigInfo             msql.Params      `json:"config_info"`
+	UseModelConfigs        []UseModelConfig `json:"use_model_configs"`
+}
+
+func (modelInfo *ModelInfo) SetUseModelConfigs(useModelList []msql.Params) {
+	useModels := make([]UseModelConfig, len(useModelList))
+	for idx, params := range useModelList {
+		useModels[idx] = LoadUseModelConfig(params, modelInfo.ModelDefine)
+	}
+	modelInfo.UseModelConfigs = useModels
+}
+
+func (modelInfo *ModelInfo) GetModelList(modelType string, functionCall, choosableThinking bool) []string {
+	models := make([]string, 0)
+	for _, useModel := range modelInfo.UseModelConfigs {
+		if useModel.ModelType != modelType {
+			continue
+		}
+		if modelType == Llm && functionCall && !cast.ToBool(useModel.FunctionCall) {
+			continue //获取支持function call,不支持的跳过
+		}
+		if modelType == Llm && choosableThinking && useModel.ThinkingType != 2 { //深度思考选项:0不支持,1支持,2可选
+			continue //获取支持配置可选Thinking,不支持的跳过
+		}
+		models = append(models, useModel.UseModelName)
+	}
+	return models
+}
+
+// GetFunctionCallModels 获取支持function call模型列表
+func (modelInfo *ModelInfo) GetFunctionCallModels() []string {
+	return modelInfo.GetModelList(Llm, true, false)
+}
+
+// GetChoosableThinkingModels 获取支持配置可选Thinking的模型列表
+func (modelInfo *ModelInfo) GetChoosableThinkingModels() []string {
+	return modelInfo.GetModelList(Llm, false, true)
+}
+
+// GetLlmModelList 获取大语言模型列表
+func (modelInfo *ModelInfo) GetLlmModelList() []string {
+	return modelInfo.GetModelList(Llm, false, false)
+}
+
+// GetVectorModelList 获取嵌入模型列表
+func (modelInfo *ModelInfo) GetVectorModelList() []string {
+	return modelInfo.GetModelList(TextEmbedding, false, false)
+}
+
+// GetRerankModelList 获取重排序模型列表
+func (modelInfo *ModelInfo) GetRerankModelList() []string {
+	return modelInfo.GetModelList(Rerank, false, false)
 }
 
 const (
@@ -85,15 +131,70 @@ const (
 	TextEmbedding = `TEXT EMBEDDING`
 	Speech2Text   = `SPEECH2TEXT`
 	Tts           = `TTS`
-	Rerank        = "RERANK"
+	Rerank        = `RERANK`
+	Image         = `IMAGE`
 	MaxContent    = 10000
 )
 
-func GetModelList() []ModelInfo {
+// GetModelNameByDefine 获取指定模型的服务商名称
+func GetModelNameByDefine(modelDefine string) string {
+	if modelConfig, exist := GetModelConfigByDefine(modelDefine); exist {
+		return modelConfig.ModelName
+	}
+	return fmt.Sprintf(`未知(%s)`, modelDefine)
+}
+
+// GetModelConfigByDefine 获取指定模型的基础定义
+func GetModelConfigByDefine(modelDefine string) (modelConfig ModelInfo, exist bool) {
+	for _, info := range GetModelConfigList() {
+		if info.ModelDefine == modelDefine {
+			return info, true
+		}
+	}
+	return
+}
+
+// GetModelInfoByConfig 获取用户配置的模型完整信息
+func GetModelInfoByConfig(adminUserId, modelConfigId int) (_ ModelInfo, exist bool) {
+	config, err := GetModelConfigInfo(modelConfigId, adminUserId)
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	if len(config) == 0 {
+		return
+	}
+	modelConfig, exist := GetModelConfigByDefine(config[`model_define`])
+	if !exist {
+		return
+	}
+	modelInfo := modelConfig //拷贝一个新的
+	//填充配置信息
+	modelInfo.ConfigInfo = config
+	//新旧数据兼容处理
+	historyConfigParams := make([]string, 0)
+	for _, item := range modelInfo.HistoryConfigParams {
+		if data, ok := config[item]; ok && len(data) > 0 {
+			historyConfigParams = append(historyConfigParams, item)
+		}
+	}
+	modelInfo.HistoryConfigParams = historyConfigParams
+	//填充可使用模型数据
+	if config[`model_define`] != ModelChatWiki {
+		if useModelList, err := GetModelListInfo(modelConfigId); err != nil {
+			logs.Error(err.Error())
+		} else {
+			modelInfo.SetUseModelConfigs(useModelList)
+		}
+	}
+	return modelInfo, true
+}
+
+// GetModelConfigList 获取全部模型的基础定义
+func GetModelConfigList() []ModelInfo {
 	//模型过滤处理
 	list := make([]ModelInfo, 0)
-	for _, info := range modelList {
-		if tool.InArrayString(info.ModelDefine, []string{}) {
+	for _, info := range modelConfigList {
+		if !define.IsDev && tool.InArrayString(info.ModelDefine, []string{}) {
 			continue
 		}
 		list = append(list, info)
@@ -108,79 +209,37 @@ func GetModelList() []ModelInfo {
 		if info.SupportedType == nil {
 			list[i].SupportedType = make([]string, 0)
 		}
-		if info.SupportedFunctionCallList == nil {
-			list[i].SupportedFunctionCallList = make([]string, 0)
-		}
 		if info.ConfigParams == nil {
 			list[i].ConfigParams = make([]string, 0)
 		}
 		if info.HistoryConfigParams == nil {
 			list[i].HistoryConfigParams = make([]string, 0)
 		}
-		if info.ConfigList == nil {
-			list[i].ConfigList = make([]msql.Params, 0)
-		}
 		if info.ApiVersions == nil {
 			list[i].ApiVersions = make([]string, 0)
-		}
-		if info.LlmModelList == nil {
-			list[i].LlmModelList = make([]string, 0)
-		}
-		if info.ChoosableThinkingModels == nil {
-			list[i].ChoosableThinkingModels = make([]string, 0)
 		}
 		if info.NetworkSearchModelList == nil {
 			list[i].NetworkSearchModelList = make([]string, 0)
 		}
-		if info.VectorModelList == nil {
-			list[i].VectorModelList = make([]string, 0)
+		if info.ConfigInfo == nil {
+			list[i].ConfigInfo = make(msql.Params, 0)
 		}
-		if info.RerankModelList == nil {
-			list[i].RerankModelList = make([]string, 0)
+		if info.UseModelConfigs == nil {
+			list[i].UseModelConfigs = make([]UseModelConfig, 0)
 		}
 	}
 	return list
 }
 
-var modelList = [...]ModelInfo{
+var modelConfigList = [...]ModelInfo{
 	{
-		ModelDefine:   ModelOpenAI,
-		ModelName:     `OpenAI`,
-		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelOpenAI + `.png`,
-		Introduce:     `基于OpenAI官方提供的API`,
-		SupportList:   []string{Llm, TextEmbedding},
-		SupportedType: []string{Llm, TextEmbedding},
-		SupportedFunctionCallList: []string{
-			`gpt-4o`,
-			`gpt-4o-mini`,
-			`gpt-4-turbo`,
-			`gpt-4-turbo-2024-04-09`,
-			`gpt-4-turbo-preview`,
-		},
-		ConfigParams: []string{`api_key`},
-		LlmModelList: []string{
-			`gpt-4o`,
-			`gpt-4o-mini`,
-			`gpt-4-turbo`,
-			`gpt-4-turbo-2024-04-09`,
-			`gpt-4-turbo-preview`,
-			`gpt-4-0125-preview`,
-			`gpt-4-1106-preview`,
-			`gpt-4-vision-preview`,
-			`gpt-4-1106-vision-preview`,
-			`gpt-4`,
-			`gpt-4-0613`,
-			`gpt-4-32k`,
-			`gpt-4-32k-0613`,
-			`gpt-3.5-turbo-0125`,
-			`gpt-3.5-turbo`,
-			`gpt-3.5-turbo-1106`,
-		},
-		VectorModelList: []string{
-			`text-embedding-3-large`,
-			`text-embedding-3-small`,
-			`text-embedding-ada-002`,
-		},
+		ModelDefine:     ModelOpenAI,
+		ModelName:       `OpenAI`,
+		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelOpenAI + `.png`,
+		Introduce:       `基于OpenAI官方提供的API`,
+		SupportList:     []string{Llm, TextEmbedding},
+		SupportedType:   []string{Llm, TextEmbedding},
+		ConfigParams:    []string{`api_key`},
 		HelpLinks:       `https://openai.com/`,
 		CallHandlerFunc: GetOpenAIHandle,
 	},
@@ -191,10 +250,8 @@ var modelList = [...]ModelInfo{
 		Introduce:       `支持添加其他兼容OpenAi API的模型服务商，比如api2d、oneapi等`,
 		SupportList:     []string{Llm, TextEmbedding},
 		SupportedType:   []string{Llm, TextEmbedding},
-		ConfigParams:    []string{`model_type`, `deployment_name`, `api_endpoint`, `api_key`, `api_version`},
+		ConfigParams:    []string{`api_endpoint`, `api_key`, `api_version`},
 		ApiVersions:     []string{"v1", `v3`},
-		LlmModelList:    []string{"默认"},
-		VectorModelList: []string{"默认"},
 		HelpLinks:       `https://openai.com/`,
 		CallHandlerFunc: GetOpenAIAgentHandle,
 	},
@@ -205,7 +262,7 @@ var modelList = [...]ModelInfo{
 		Introduce:     `Microsoft Azure提供的OpenAI API服务`,
 		SupportList:   []string{Llm, TextEmbedding, Speech2Text, Tts},
 		SupportedType: []string{Llm, TextEmbedding},
-		ConfigParams:  []string{`model_type`, `deployment_name`, `api_endpoint`, `api_key`, `api_version`},
+		ConfigParams:  []string{`api_endpoint`, `api_key`, `api_version`},
 		ApiVersions: []string{
 			`2023-05-15`,
 			`2023-06-01-preview`,
@@ -216,90 +273,40 @@ var modelList = [...]ModelInfo{
 			`2024-05-01-preview`,
 			`2024-02-01`,
 		},
-		LlmModelList:    []string{`默认`},
-		VectorModelList: []string{`默认`},
 		HelpLinks:       `https://azure.microsoft.com/en-us/products/ai-services/openai-service`,
 		CallHandlerFunc: GetAzureHandler,
 	},
 	{
-		ModelDefine:   ModelAnthropicClaude,
-		ModelName:     `Anthropic Claude`,
-		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelAnthropicClaude + `.png`,
-		Introduce:     `Anthropic出品的Claude模型`,
-		SupportList:   []string{Llm},
-		SupportedType: []string{Llm},
-		ConfigParams:  []string{`api_key`, `api_version`},
-		ApiVersions:   []string{`2023-06-01`},
-		LlmModelList: []string{
-			`claude-3-opus-20240229`,
-			`claude-3-sonnet-20240229`,
-			`claude-3-haiku-20240307`,
-			`claude-3-5-sonnet-20240620`,
-		},
-		VectorModelList: []string{`voyage-2`, `voyage-large-2`, `voyage-code-2`},
+		ModelDefine:     ModelAnthropicClaude,
+		ModelName:       `Anthropic Claude`,
+		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelAnthropicClaude + `.png`,
+		Introduce:       `Anthropic出品的Claude模型`,
+		SupportList:     []string{Llm},
+		SupportedType:   []string{Llm},
+		ConfigParams:    []string{`api_key`},
 		HelpLinks:       `https://claude.ai/`,
 		CallHandlerFunc: GetClaudeHandler,
 	},
 	{
-		ModelDefine:   ModelGoogleGemini,
-		ModelName:     `Google Gemini`,
-		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelGoogleGemini + `.png`,
-		Introduce:     `基于Google提供的Gemini API`,
-		SupportList:   []string{Llm, TextEmbedding},
-		SupportedType: []string{Llm, TextEmbedding},
-		ConfigParams:  []string{`api_key`},
-		LlmModelList: []string{
-			`gemini-1.0-pro`,
-			`gemini-1.5-flash`,
-			`gemini-1.5-pro`,
-			`gemini-pro`,
-			`gemini-pro-vision`,
-		},
-		VectorModelList: []string{
-			`text-embedding-004`,
-			`embedding-001`,
-		},
+		ModelDefine:     ModelGoogleGemini,
+		ModelName:       `Google Gemini`,
+		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelGoogleGemini + `.png`,
+		Introduce:       `基于Google提供的Gemini API`,
+		SupportList:     []string{Llm, TextEmbedding},
+		SupportedType:   []string{Llm, TextEmbedding},
+		ConfigParams:    []string{`api_key`},
 		HelpLinks:       `https://ai.google.dev/`,
 		CallHandlerFunc: GetGeminiHandler,
 	},
 	{
-		ModelDefine:   ModelBaiduYiyan,
-		ModelName:     `文心一言`,
-		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelBaiduYiyan + `.png`,
-		Introduce:     `基于百度千帆大模型平台提供的文心一言API`,
-		SupportList:   []string{Llm, TextEmbedding},
-		SupportedType: []string{Llm, TextEmbedding},
-		SupportedFunctionCallList: []string{
-			//v2 chat
-			`ernie-x1-turbo-32k`,
-			`deepseek-v3`,
-			`deepseek-r1-250528`,
-			`deepseek-r1`,
-			//v1 chat
-			`ERNIE-4.0-8K`,
-			`ERNIE-4.0-Turbo-8K`,
-			`ERNIE-3.5-8K`,
-		},
+		ModelDefine:         ModelBaiduYiyan,
+		ModelName:           `文心一言`,
+		ModelIconUrl:        define.LocalUploadPrefix + `model_icon/` + ModelBaiduYiyan + `.png`,
+		Introduce:           `基于百度千帆大模型平台提供的文心一言API`,
+		SupportList:         []string{Llm, TextEmbedding},
+		SupportedType:       []string{Llm, TextEmbedding},
 		ConfigParams:        []string{`api_key`},
 		HistoryConfigParams: []string{`secret_key`},
-		LlmModelList: []string{
-			// v2 chat
-			`ernie-4.5-turbo-32k`,
-			`ernie-4.5-turbo-128k`,
-			`ernie-4.0-8k`,
-			`ernie-speed-128k`,
-			`ernie-x1-turbo-32k`,
-			`deepseek-v3`,
-			`deepseek-r1-250528`,
-			`deepseek-r1`,
-			//v1 chat
-			`ERNIE-4.0-8K`,
-			`ERNIE-4.0-Turbo-8K`,
-			`ERNIE-4.0-8K-Preview`,
-			`ERNIE-4.0-8K-Latest`,
-			`ERNIE-3.5-8K`,
-			`ERNIE-3.5-128K`,
-		},
 		NetworkSearchModelList: []string{
 			`ernie-4.5-turbo-32k`,
 			`ernie-4.5-turbo-128k`,
@@ -308,15 +315,8 @@ var modelList = [...]ModelInfo{
 			`deepseek-v3`,
 			`deepseek-r1`,
 		},
-		VectorModelList: []string{
-			`embedding-v1`,
-			`bge-large-zh`,
-			`bge-large-en`,
-			`tao-8k`,
-		},
-		HelpLinks:            `https://cloud.baidu.com/`,
-		CallHandlerFunc:      GetYiyanHandler,
-		CheckFancCallRequest: CheckYiyanFancCall,
+		HelpLinks:       `https://cloud.baidu.com/`,
+		CallHandlerFunc: GetYiyanHandler,
 	},
 	{
 		ModelDefine:   ModelAliyunTongyi,
@@ -325,33 +325,7 @@ var modelList = [...]ModelInfo{
 		Introduce:     `基于阿里云提供的通义千问API`,
 		SupportList:   []string{Llm, TextEmbedding, Tts, Rerank},
 		SupportedType: []string{Llm, TextEmbedding, Rerank},
-		SupportedFunctionCallList: []string{
-			`qwen-plus`,
-			`qwen-turbo`,
-			`qwen3-235b-a22b`,
-			`qwen-max`,
-			`qwen-long`,
-			`deepseek-v3`,
-			`deepseek-r1`,
-			`deepseek-r1-0528`,
-		},
-		ConfigParams: []string{`api_key`},
-		LlmModelList: []string{
-			`qwen-plus`,
-			`qwen-turbo`,
-			`qwen3-235b-a22b`,
-			`qwen-max`,
-			`qwen-long`,
-			`deepseek-v3`,
-			`deepseek-r1`,
-			`deepseek-r1-0528`,
-			`Moonshot-Kimi-K2-Instruct`,
-		},
-		ChoosableThinkingModels: []string{
-			`qwen-plus`,
-			`qwen-turbo`,
-			`qwen3-235b-a22b`,
-		},
+		ConfigParams:  []string{`api_key`},
 		NetworkSearchModelList: []string{
 			`qwen-plus`,
 			`qwen-turbo`,
@@ -359,67 +333,28 @@ var modelList = [...]ModelInfo{
 			`qwen-max`,
 			`Moonshot-Kimi-K2-Instruct`,
 		},
-		VectorModelList: []string{
-			`text-embedding-v4`,
-			`text-embedding-v3`,
-			`text-embedding-v2`,
-			`text-embedding-v1`,
-		},
-		RerankModelList: []string{
-			`gte-rerank-v2`,
-		},
 		HelpLinks:       `https://dashscope.aliyun.com/?spm=a2c4g.11186623.nav-dropdown-menu-0.142.6d1b46c1EeV28g&scm=20140722.X_data-37f0c4e3bf04683d35bc._.V_1`,
 		CallHandlerFunc: GetTongyiHandler,
 	},
 	{
-		ModelDefine:   ModelBaai,
-		ModelName:     `BGE`,
-		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelBaai + `.png`,
-		Introduce:     `由北京智源人工智能研究院研发的本地模型，包含bge-rerank-base、bge-m3模型，支持嵌入和rerank。使用bge系列模型，无需消耗token，但是本地模型运行需要硬件支持，请确保服务器有足够的内存（至少8G内存）和用于计算的GPU`,
-		SupportList:   []string{TextEmbedding, Rerank},
-		SupportedType: []string{TextEmbedding, Rerank},
-		ConfigParams:  []string{`api_endpoint`},
-		VectorModelList: []string{
-			"bge-m3",
-		},
-		RerankModelList: []string{
-			`bge-reranker-base-onnx-o4`,
-			"bge-m3",
-		},
+		ModelDefine:     ModelBaai,
+		ModelName:       `BGE`,
+		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelBaai + `.png`,
+		Introduce:       `由北京智源人工智能研究院研发的本地模型，包含bge-rerank-base、bge-m3模型，支持嵌入和rerank。使用bge系列模型，无需消耗token，但是本地模型运行需要硬件支持，请确保服务器有足够的内存（至少8G内存）和用于计算的GPU`,
+		SupportList:     []string{TextEmbedding, Rerank},
+		SupportedType:   []string{TextEmbedding, Rerank},
+		ConfigParams:    []string{`api_endpoint`},
 		HelpLinks:       `https://www.baidu.com/`,
 		CallHandlerFunc: GetBaaiHandle,
 	},
 	{
-		ModelDefine:   ModelCohere,
-		ModelName:     `Cohere`,
-		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelCohere + `.png`,
-		Introduce:     `cohere提供的模型，包含Command、Command R、Command R+等`,
-		SupportList:   []string{Llm, TextEmbedding, Rerank},
-		SupportedType: []string{Llm, TextEmbedding, Rerank},
-		ConfigParams:  []string{`api_key`},
-		LlmModelList: []string{
-			`command-r-plus`,
-			`command-r`,
-			`command`,
-			`command-nightly`,
-			`command-light`,
-			`command-light-nightly`,
-		},
-		VectorModelList: []string{
-			`embed-english-v3.0`,
-			`embed-english-light-v3.0`,
-			`embed-multilingual-v3.0`,
-			`embed-multilingual-light-v3.0`,
-			`embed-english-v2.0`,
-			`embed-english-light-v2.0`,
-			`embed-multilingual-v2.0`,
-		},
-		RerankModelList: []string{
-			"rerank-english-v3.0",
-			"rerank-multilingual-v3.0",
-			"rerank-english-v2.0",
-			"rerank-multilingual-v2.0",
-		},
+		ModelDefine:     ModelCohere,
+		ModelName:       `Cohere`,
+		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelCohere + `.png`,
+		Introduce:       `cohere提供的模型，包含Command、Command R、Command R+等`,
+		SupportList:     []string{Llm, TextEmbedding, Rerank},
+		SupportedType:   []string{Llm, TextEmbedding, Rerank},
+		ConfigParams:    []string{`api_key`},
 		HelpLinks:       `https://cohere.com/`,
 		CallHandlerFunc: GetCohereHandle,
 	},
@@ -430,9 +365,7 @@ var modelList = [...]ModelInfo{
 		Introduce:       `Ollama是一个轻量级的简单易用的本地大模型运行框架,通过Ollama可以在本地服务器构建和运营大语言模型(比如Llama3等).ChatWiki支持使用Ollama部署LLM的型和Text Embedding模型`,
 		SupportList:     []string{Llm, TextEmbedding},
 		SupportedType:   []string{Llm, TextEmbedding},
-		ConfigParams:    []string{`model_type`, `deployment_name`, `api_endpoint`},
-		LlmModelList:    []string{"默认"},
-		VectorModelList: []string{"默认"},
+		ConfigParams:    []string{`api_endpoint`},
 		HelpLinks:       `https://www.ollama.com/`,
 		CallHandlerFunc: GetOllamaHandle,
 	},
@@ -441,278 +374,162 @@ var modelList = [...]ModelInfo{
 		ModelName:       `xorbitsai inference`,
 		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelXnference + `.png`,
 		Introduce:       `Xorbits Inference(Xinference)是一个开源平台,用于简化各种AI模型的运行和集成,借助Xinference,您可以使用任何开源LLM,嵌入模型和多模态模型在本地服务器中部署`,
-		IsOffline:       true,
 		SupportList:     []string{Llm, TextEmbedding, Rerank},
 		SupportedType:   []string{Llm, TextEmbedding, Rerank},
-		ConfigParams:    []string{`model_type`, `deployment_name`, `api_version`, `api_endpoint`},
+		ConfigParams:    []string{`api_version`, `api_endpoint`},
 		ApiVersions:     []string{"v1"},
-		LlmModelList:    []string{"默认"},
-		VectorModelList: []string{"默认"},
-		RerankModelList: []string{"默认"},
 		HelpLinks:       `https://baidu.com/`,
 		CallHandlerFunc: GetXinferenceHandle,
 	},
 	{
-		ModelDefine:               ModelDeepseek,
-		ModelName:                 `DeepSeek`,
-		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelDeepseek + `.png`,
-		Introduce:                 `由DeepSeek提供的大模型API`,
-		SupportList:               []string{Llm},
-		SupportedType:             []string{Llm},
-		SupportedFunctionCallList: []string{`deepseek-chat`},
-		ConfigParams:              []string{`api_key`},
-		LlmModelList: []string{
-			`deepseek-chat`,
-			`deepseek-reasoner`,
-		},
+		ModelDefine:     ModelDeepseek,
+		ModelName:       `DeepSeek`,
+		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelDeepseek + `.png`,
+		Introduce:       `由DeepSeek提供的大模型API`,
+		SupportList:     []string{Llm},
+		SupportedType:   []string{Llm},
+		ConfigParams:    []string{`api_key`},
 		HelpLinks:       `https://www.deepseek.com/`,
 		CallHandlerFunc: GetDeepseekHandle,
 	},
 	{
-		ModelDefine:   ModelJina,
-		ModelName:     `Jina`,
-		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelJina + `.png`,
-		Introduce:     `有Jina提供的嵌入和Rerank模型，`,
-		SupportList:   []string{TextEmbedding, Rerank},
-		SupportedType: []string{TextEmbedding, Rerank},
-		ConfigParams:  []string{`api_key`},
-		VectorModelList: []string{
-			`jina-embeddings-v2-base-en`,
-			`jina-embeddings-v2-base-zh`,
-			`jina-embeddings-v2-base-de`,
-			`jina-embeddings-v2-base-es`,
-			`jina-colbert-v1-en`,
-			`jina-embeddings-v2-base-code`,
-		},
-		RerankModelList: []string{
-			"jina-reranker-v1-base-en",
-			"jina-reranker-v1-turbo-en",
-			"jina-reranker-v1-tiny-en",
-			"jina-colbert-v1-en",
-		},
+		ModelDefine:     ModelJina,
+		ModelName:       `Jina`,
+		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelJina + `.png`,
+		Introduce:       `有Jina提供的嵌入和Rerank模型，`,
+		SupportList:     []string{TextEmbedding, Rerank},
+		SupportedType:   []string{TextEmbedding, Rerank},
+		ConfigParams:    []string{`api_key`},
 		HelpLinks:       `https://jina.ai/`,
 		CallHandlerFunc: GetJinaHandle,
 	},
 	{
-		ModelDefine:               ModelLingYiWanWu,
-		ModelName:                 `零一万物`,
-		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelLingYiWanWu + `.png`,
-		Introduce:                 `基于零一万物提供的零一大模型API`,
-		SupportList:               []string{Llm},
-		SupportedType:             []string{Llm},
-		SupportedFunctionCallList: []string{`yi-large-fc`},
-		ConfigParams:              []string{`api_key`},
-		LlmModelList: []string{
-			`yi-large`,
-			`yi-large-fc`,
-		},
+		ModelDefine:     ModelLingYiWanWu,
+		ModelName:       `零一万物`,
+		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelLingYiWanWu + `.png`,
+		Introduce:       `基于零一万物提供的零一大模型API`,
+		SupportList:     []string{Llm},
+		SupportedType:   []string{Llm},
+		ConfigParams:    []string{`api_key`},
 		HelpLinks:       `https://platform.lingyiwanwu.com/`,
 		CallHandlerFunc: GetLingYiWanWuHandle,
 	},
 	{
-		ModelDefine:               ModelMoonShot,
-		ModelName:                 `月之暗面`,
-		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelMoonShot + `.png`,
-		Introduce:                 `基于月之暗面提供的Kimi API`,
-		SupportList:               []string{Llm},
-		SupportedType:             []string{Llm},
-		SupportedFunctionCallList: []string{`moonshot-v1-8k`},
-		ConfigParams:              []string{`api_key`},
-		LlmModelList: []string{
-			`moonshot-v1-8k`,
-		},
+		ModelDefine:     ModelMoonShot,
+		ModelName:       `月之暗面`,
+		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelMoonShot + `.png`,
+		Introduce:       `基于月之暗面提供的Kimi API`,
+		SupportList:     []string{Llm},
+		SupportedType:   []string{Llm},
+		ConfigParams:    []string{`api_key`},
 		HelpLinks:       `https://www.moonshot.cn/`,
 		CallHandlerFunc: GetMoonShotHandle,
 	},
 	{
-		ModelDefine:   ModelSpark,
-		ModelName:     `讯飞星火`,
-		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelSpark + `.png`,
-		Introduce:     `基于科大讯飞提供的讯飞星火大模型API`,
-		SupportList:   []string{Llm},
-		SupportedType: []string{Llm},
-		ConfigParams:  []string{`app_id`, `api_key`, `secret_key`},
-		LlmModelList: []string{
-			`Spark Lite`,
-			`Spark V2.0`,
-			`Spark Pro`,
-			`Spark Max`,
-			`Spark4.0 Ultra`,
-		},
+		ModelDefine:     ModelSpark,
+		ModelName:       `讯飞星火`,
+		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelSpark + `.png`,
+		Introduce:       `基于科大讯飞提供的讯飞星火大模型API`,
+		SupportList:     []string{Llm},
+		SupportedType:   []string{Llm},
+		ConfigParams:    []string{`app_id`, `api_key`, `secret_key`},
 		HelpLinks:       `https://xinghuo.xfyun.cn/sparkapi`,
 		CallHandlerFunc: GetSparkHandle,
 	},
 	{
-		ModelDefine:   ModelHunyuan,
-		ModelName:     `腾讯混元`,
-		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelHunyuan + `.png`,
-		Introduce:     `hunyuan`,
-		SupportList:   []string{Llm, TextEmbedding},
-		SupportedType: []string{Llm, TextEmbedding},
-		ConfigParams:  []string{`api_key`, `secret_key`},
-		LlmModelList: []string{
-			`hunyuan-lite`,
-			`hunyuan-functioncall`,
-			`hunyuan-standard`,
-			`hunyuan-standard-256K`,
-			`hunyuan-pro`,
-		},
-		VectorModelList: []string{
-			`默认`,
-		},
+		ModelDefine:     ModelHunyuan,
+		ModelName:       `腾讯混元`,
+		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelHunyuan + `.png`,
+		Introduce:       `腾讯混元大模型由腾讯公司全链路自研`,
+		SupportList:     []string{Llm, TextEmbedding},
+		SupportedType:   []string{Llm, TextEmbedding},
+		ConfigParams:    []string{`api_key`, `secret_key`},
 		HelpLinks:       `https://cloud.tencent.com/product/hunyuan`,
 		CallHandlerFunc: GetHunyuanHandle,
 	},
 	{
-		ModelDefine:   ModelDoubao,
-		ModelName:     `火山引擎`,
-		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelDoubao + `.png`,
-		Introduce:     `基于火山引擎提供的豆包大模型API`,
-		SupportList:   []string{Llm, TextEmbedding},
-		SupportedType: []string{Llm, TextEmbedding},
-		ConfigParams:  []string{`model_type`, `deployment_name`, `show_model_name`, `api_key`, `thinking_type`, `region`},
-		HistoryConfigParams: []string{
-			`secret_key`,
-		},
-		LlmModelList:    []string{`默认`},
-		VectorModelList: []string{`默认`},
-		HelpLinks:       `https://www.volcengine.com/product/doubao`,
-		CallHandlerFunc: GetDoubaoHandle,
+		ModelDefine:         ModelDoubao,
+		ModelName:           `火山引擎`,
+		ModelIconUrl:        define.LocalUploadPrefix + `model_icon/` + ModelDoubao + `.png`,
+		Introduce:           `基于火山引擎提供的豆包大模型API`,
+		SupportList:         []string{Llm, TextEmbedding, Image},
+		SupportedType:       []string{Llm, TextEmbedding, Image},
+		ConfigParams:        []string{`api_key`, `region`},
+		HistoryConfigParams: []string{`secret_key`},
+		HelpLinks:           `https://www.volcengine.com/product/doubao`,
+		CallHandlerFunc:     GetDoubaoHandle,
 	},
 	{
-		ModelDefine:               ModelBaichuan,
-		ModelName:                 `百川智能`,
-		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelBaichuan + `.png`,
-		Introduce:                 `基于百川智能提供的百川大模型API`,
-		SupportList:               []string{Llm, TextEmbedding},
-		SupportedType:             []string{Llm, TextEmbedding},
-		SupportedFunctionCallList: []string{`Baichuan4`, `Baichuan3-Turbo`, `Baichuan3-Turbo-128k`, `Baichuan2-Turbo`, `Baichuan2-Turbo-192k`},
-		ConfigParams:              []string{`api_key`},
-		LlmModelList: []string{
-			`Baichuan4`,
-			`Baichuan3-Turbo`,
-			`Baichuan3-Turbo-128k`,
-			`Baichuan2-Turbo`,
-			`Baichuan2-Turbo-192k`,
-		},
-		VectorModelList: []string{
-			`Baichuan-Text-Embedding`,
-		},
+		ModelDefine:     ModelBaichuan,
+		ModelName:       `百川智能`,
+		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelBaichuan + `.png`,
+		Introduce:       `基于百川智能提供的百川大模型API`,
+		SupportList:     []string{Llm, TextEmbedding},
+		SupportedType:   []string{Llm, TextEmbedding},
+		ConfigParams:    []string{`api_key`},
 		HelpLinks:       `https://platform.baichuan-ai.com`,
 		CallHandlerFunc: GetBaichuanHandle,
 	},
 	{
-		ModelDefine:               ModelZhipu,
-		ModelName:                 `智谱`,
-		ModelIconUrl:              define.LocalUploadPrefix + `model_icon/` + ModelZhipu + `.png`,
-		Introduce:                 `领先的认知大模型AI开放平台`,
-		SupportList:               []string{Llm, TextEmbedding},
-		SupportedType:             []string{Llm, TextEmbedding},
-		SupportedFunctionCallList: []string{`glm-4-0520`, `glm-4`, `glm-4-air`, `glm-4-airx`, `glm-4-flash`},
-		ConfigParams:              []string{`api_key`},
-		LlmModelList: []string{
-			`glm-4-0520`,
-			`glm-4`,
-			`glm-4-air`,
-			`glm-4-airx`,
-			`glm-4-flash`,
-		},
-		VectorModelList: []string{
-			`embedding-2`,
-		},
+		ModelDefine:     ModelZhipu,
+		ModelName:       `智谱`,
+		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelZhipu + `.png`,
+		Introduce:       `领先的认知大模型AI开放平台`,
+		SupportList:     []string{Llm, TextEmbedding},
+		SupportedType:   []string{Llm, TextEmbedding},
+		ConfigParams:    []string{`api_key`},
 		HelpLinks:       `https://open.bigmodel.cn/`,
 		CallHandlerFunc: GetZhipuHandle,
 	},
 	{
-		ModelDefine:   ModelMinimax,
-		ModelName:     `minimax`,
-		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelMinimax + `.png`,
-		Introduce:     `MiniMax 成立于 2021 年 12 月，是领先的通用人工智能科技公司，致力于与用户共创智能。MiniMax 自主研发多模态、万亿参数的 MoE 大模型，并基于大模型推出海螺AI、星野等原生应用。MiniMax API 开放平台提供安全、灵活、可靠的 API 服务，助力企业和开发者快速搭建 AI 应用。`,
-		SupportList:   []string{Llm},
-		SupportedType: []string{Llm},
-		ConfigParams:  []string{`api_key`},
-		LlmModelList: []string{
-			`abab6.5s-chat`,
-			`abab6.5g-chat`,
-			`abab6.5t-chat`,
-			`abab5.5s-chat`,
-			`abab5.5-chat`,
-		},
+		ModelDefine:     ModelMinimax,
+		ModelName:       `minimax`,
+		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelMinimax + `.png`,
+		Introduce:       `MiniMax 成立于 2021 年 12 月，是领先的通用人工智能科技公司，致力于与用户共创智能。MiniMax 自主研发多模态、万亿参数的 MoE 大模型，并基于大模型推出海螺AI、星野等原生应用。MiniMax API 开放平台提供安全、灵活、可靠的 API 服务，助力企业和开发者快速搭建 AI 应用。`,
+		SupportList:     []string{Llm, Tts},
+		SupportedType:   []string{Llm, Tts},
+		ConfigParams:    []string{`api_key`},
 		HelpLinks:       `https://www.minimaxi.com/`,
 		CallHandlerFunc: GetMinimaxHandle,
 	},
 	{
-		ModelDefine:   ModelSiliconFlow,
-		ModelName:     `硅基流动`,
-		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelSiliconFlow + `.png`,
-		Introduce:     `支持通义千问，mata-lama，google-gemma，bge-m3等开源模型，可以免部署、低成本使用`,
-		SupportList:   []string{Llm, TextEmbedding, Rerank},
-		SupportedType: []string{Llm, TextEmbedding, Rerank},
-		SupportedFunctionCallList: []string{
-			`deepseek-ai/DeepSeek-R1`,
-			`Pro/deepseek-ai/DeepSeek-R1`,
-			`deepseek-ai/DeepSeek-V3`,
-			`Pro/deepseek-ai/DeepSeek-V3`,
-			`Pro/moonshotai/Kimi-K2-Instruct`,
-			`Qwen/Qwen3-235B-A22B`,
-		},
-		ConfigParams: []string{`api_key`},
-		LlmModelList: []string{
-			`deepseek-ai/DeepSeek-R1`,
-			`Pro/deepseek-ai/DeepSeek-R1`,
-			`deepseek-ai/DeepSeek-V3`,
-			`Pro/deepseek-ai/DeepSeek-V3`,
-			`Pro/moonshotai/Kimi-K2-Instruct`,
-			`baidu/ERNIE-4.5-300B-A47B`,
-			`Qwen/Qwen3-235B-A22B`,
-		},
-		ChoosableThinkingModels: []string{
-			`Qwen/Qwen3-235B-A22B`,
-		},
-		VectorModelList: []string{
-			`Qwen/Qwen3-Embedding-8B`,
-			`Qwen/Qwen3-Embedding-4B`,
-			`Qwen/Qwen3-Embedding-0.6B`,
-			`BAAI/bge-m3`,
-			`Pro/BAAI/bge-m3`,
-		},
-		RerankModelList: []string{
-			`Qwen/Qwen3-Reranker-8B`,
-			`Qwen/Qwen3-Reranker-4B`,
-			`Qwen/Qwen3-Reranker-0.6B`,
-			`BAAI/bge-reranker-v2-m3`,
-			`Pro/BAAI/bge-reranker-v2-m3`,
-		},
+		ModelDefine:     ModelSiliconFlow,
+		ModelName:       `硅基流动`,
+		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelSiliconFlow + `.png`,
+		Introduce:       `支持通义千问，mata-lama，google-gemma，bge-m3等开源模型，可以免部署、低成本使用`,
+		SupportList:     []string{Llm, TextEmbedding, Rerank},
+		SupportedType:   []string{Llm, TextEmbedding, Rerank},
+		ConfigParams:    []string{`api_key`},
 		HelpLinks:       `https://siliconflow.cn/zh-cn/`,
 		CallHandlerFunc: GetSiliconFlow,
 	},
 }
 
-func GetModelInfoByDefine(modelDefine string) (ModelInfo, bool) {
-	for _, info := range GetModelList() {
-		if info.ModelDefine == modelDefine {
-			return info, true
+func CompatibleUseModelOldData(config msql.Params, useModel string) string {
+	if len(config[`deployment_name`]) > 0 && tool.InArrayString(useModel, []string{`默认`, config[`show_model_name`]}) {
+		useModel = config[`deployment_name`]
+	}
+	return useModel
+}
+
+func GetModelCallHandler(adminUserId, modelConfigId int, useModel string, robot msql.Params) (*ModelCallHandler, error) {
+	modelInfo, ok := GetModelInfoByConfig(adminUserId, modelConfigId)
+	if !ok {
+		return nil, errors.New(`模型配置ID参数错误`)
+	}
+	//校验使用的模型是否有效
+	var isValid bool
+	useModel = CompatibleUseModelOldData(modelInfo.ConfigInfo, useModel) //兼容旧数据
+	for i := range modelInfo.UseModelConfigs {
+		if modelInfo.UseModelConfigs[i].UseModelName == useModel {
+			isValid = true
+			break
 		}
 	}
-	return ModelInfo{}, false
-}
-
-func IsMultiConfModel(defineName string) bool {
-	return tool.InArrayString(defineName, []string{ModelAzureOpenAI, ModelOllama, ModelXnference, ModelOpenAIAgent, ModelDoubao})
-}
-
-func GetModelCallHandler(modelConfigId int, useModel string, robot msql.Params) (*ModelCallHandler, error) {
-	if modelConfigId <= 0 {
-		return nil, errors.New(`model config id is empty`)
+	if !isValid {
+		return nil, fmt.Errorf(`model(%s) not config`, useModel)
 	}
-	config, err := GetModelConfigInfo(modelConfigId, 0)
-	if err != nil {
-		logs.Error(err.Error())
-		return nil, err
-	}
-	if len(config) == 0 {
-		return nil, errors.New(`model config is empty`)
-	}
+	config := modelInfo.ConfigInfo
 	//check token limit
 	robotId := 0
 	if len(robot) > 0 {
@@ -721,12 +538,8 @@ func GetModelCallHandler(modelConfigId int, useModel string, robot msql.Params) 
 	if !TokenAppAllowUse(cast.ToInt(config[`admin_user_id`]), robotId, GetTokenAppType(robot)) {
 		return nil, errors.New(`token usage exceeded`)
 	}
-	modelInfo, ok := GetModelInfoByDefine(config[`model_define`])
-	if !ok {
-		return nil, errors.New(`model define invalid`)
-	}
 	if modelInfo.CheckAllowRequest != nil { //check allow request
-		if err = modelInfo.CheckAllowRequest(modelInfo, config, useModel); err != nil {
+		if err := modelInfo.CheckAllowRequest(modelInfo, config, useModel); err != nil {
 			return nil, err
 		}
 	}
@@ -739,7 +552,7 @@ func GetModelCallHandler(modelConfigId int, useModel string, robot msql.Params) 
 }
 
 func GetVector2000(adminUserId int, openid string, robot msql.Params, library msql.Params, file msql.Params, modelConfigId int, useModel, input string) (string, error) {
-	handler, err := GetModelCallHandler(modelConfigId, useModel, robot)
+	handler, err := GetModelCallHandler(adminUserId, modelConfigId, useModel, robot)
 	if err != nil {
 		return ``, err
 	}
@@ -754,7 +567,7 @@ func GetVector2000(adminUserId int, openid string, robot msql.Params, library ms
 }
 
 func RequestChatStream(adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, chanStream chan sse.Event, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
-	handler, err := GetModelCallHandler(modelConfigId, useModel, robot)
+	handler, err := GetModelCallHandler(adminUserId, modelConfigId, useModel, robot)
 	if err != nil {
 		return adaptor.ZhimaChatCompletionResponse{}, 0, err
 	}
@@ -766,7 +579,7 @@ func RequestChatStream(adminUserId int, openid string, robot msql.Params, appTyp
 }
 
 func RequestSearchStream(adminUserId int, modelConfigId int, useModel string, library msql.Params, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, chanStream chan sse.Event, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
-	handler, err := GetModelCallHandler(modelConfigId, useModel, nil)
+	handler, err := GetModelCallHandler(adminUserId, modelConfigId, useModel, nil)
 	if err != nil {
 		return adaptor.ZhimaChatCompletionResponse{}, 0, err
 	}
@@ -778,7 +591,7 @@ func RequestSearchStream(adminUserId int, modelConfigId int, useModel string, li
 }
 
 func RequestChat(adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
-	handler, err := GetModelCallHandler(modelConfigId, useModel, robot)
+	handler, err := GetModelCallHandler(adminUserId, modelConfigId, useModel, robot)
 	if err != nil {
 		return adaptor.ZhimaChatCompletionResponse{}, 0, err
 	}
@@ -1052,20 +865,20 @@ func (h *ModelCallHandler) RequestChat(
 }
 
 func CheckModelIsValid(userId, modelConfigId int, useModel, modelType string) bool {
-	config, err := GetModelConfigInfo(modelConfigId, userId)
-	if err != nil {
-		logs.Error(err.Error())
+	modelInfo, exist := GetModelInfoByConfig(userId, modelConfigId)
+	if !exist {
 		return false
 	}
-	modelInfo, _ := GetModelInfoByDefine(config[`model_define`])
-	modelList := modelInfo.LlmModelList
-	if modelType == TextEmbedding {
-		modelList = modelInfo.VectorModelList
+	useModel = CompatibleUseModelOldData(modelInfo.ConfigInfo, useModel) //兼容旧数据
+	switch modelType {
+	case Llm:
+		return tool.InArrayString(useModel, modelInfo.GetLlmModelList())
+	case TextEmbedding:
+		return tool.InArrayString(useModel, modelInfo.GetVectorModelList())
+	case Rerank:
+		return tool.InArrayString(useModel, modelInfo.GetRerankModelList())
 	}
-	if !tool.InArrayString(useModel, modelList) && !IsMultiConfModel(config["model_define"]) {
-		return false
-	}
-	return true
+	return false
 }
 
 func CheckModelIsDeepSeek(model string) bool {
@@ -1075,26 +888,50 @@ func CheckModelIsDeepSeek(model string) bool {
 }
 
 func CheckSupportFuncCall(adminUserId, modelConfigId int, useModel string) error {
-	config, err := GetModelConfigInfo(modelConfigId, adminUserId)
-	if err != nil {
-		return err
-	}
-	if len(config) == 0 || !tool.InArrayString(Llm, strings.Split(config[`model_types`], `,`)) {
+	modelInfo, exist := GetModelInfoByConfig(adminUserId, modelConfigId)
+	if !exist {
 		return errors.New(`模型配置ID参数错误`)
 	}
-	modelInfo, _ := GetModelInfoByDefine(config[`model_define`])
-	if !tool.InArrayString(useModel, modelInfo.LlmModelList) && !IsMultiConfModel(config["model_define"]) {
+	useModel = CompatibleUseModelOldData(modelInfo.ConfigInfo, useModel) //兼容旧数据
+	if !tool.InArrayString(useModel, modelInfo.GetLlmModelList()) {
 		return errors.New(`使用模型名称参数错误`)
 	}
-	if len(modelInfo.SupportedFunctionCallList) == 0 {
-		return errors.New(`模型服务商不支持func call`)
-	}
-	if modelInfo.CheckFancCallRequest != nil {
-		if err = modelInfo.CheckFancCallRequest(modelInfo, config, useModel); err != nil {
-			return errors.New(`使用模型不支持func call`)
-		}
-	} else if !tool.InArrayString(useModel, modelInfo.SupportedFunctionCallList) {
+	if !tool.InArrayString(useModel, modelInfo.GetFunctionCallModels()) {
 		return errors.New(`使用模型不支持func call`)
 	}
 	return nil
+}
+
+func GetModelConfigOption(adminUserId int, modelType, lang string) ([]ModelInfo, error) {
+	if len(modelType) == 0 {
+		return nil, errors.New(i18n.Show(lang, `param_lack`))
+	}
+	configs, err := msql.Model(`chat_ai_model_config`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id desc`).Select()
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, errors.New(i18n.Show(lang, `sys_err`))
+	}
+	list := make([]ModelInfo, 0)
+	for _, config := range configs {
+		if tool.InArrayString(modelType, strings.Split(config[`model_types`], `,`)) {
+			modelInfo, ok := GetModelInfoByConfig(adminUserId, cast.ToInt(config[`id`]))
+			if !ok {
+				continue
+			}
+			//过滤掉非当前检索的模型列表
+			useModels := make([]UseModelConfig, 0)
+			for _, useModel := range modelInfo.UseModelConfigs {
+				if useModel.ModelType == modelType {
+					useModels = append(useModels, useModel)
+				}
+			}
+			if len(useModels) == 0 {
+				continue //过滤掉空数据模型服务商
+			}
+			modelInfo.UseModelConfigs = useModels
+			list = append(list, modelInfo)
+		}
+	}
+	return list, nil
 }

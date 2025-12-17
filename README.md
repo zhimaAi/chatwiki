@@ -118,6 +118,22 @@ docker compose up -d
 ---
 查看完整更新日志请点击👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2025/12/17**
+
+1.【STD】探索>模板广场>上架模板添加默认头像<br/>
+2.【STD】聊天机器人:转人工客服,增加转人工客服设置<br/>
+3.工作流增加英文名称,调用工作流传递的tool_name取工作流的英文名称<br/>
+4.前端小优化合集<br/>
+5.公众号模板消息，公众号打标签插件<br/>
+6.修复导入或使用模板创建工作流时未处理英文名称问题<br/>
+7.修复团队成员创建知识库分组后无法看见问题<br/>
+8.修复循环节点循环数组未引用到全局变量数据问题<br/>
+9.新增插件:探索>插件广场>公众号文章<br/>
+10.工作流:新增批量执行节点<br/>
+11.工作流新增节点时,节点选择窗居中展示<br/>
+12.对外接口api的qa_lists参数错误信息输出<br/>
+13.模型管理:模型配置调整,支持自定义模型<br/>
+
 **2025/12/12**
 
 1.绑定公众号流程优化(文案+示例图)<br/>
@@ -152,23 +168,17 @@ docker compose up -d
 13.修复工作流参数提取节点提示词不规范的json示例<br/>
 14.工作流http节点json-body变量替换兼容包含双引号<br/>
 
-**2025/12/01**
-
-1.工作流新增循环节点<br/>
-2.工作流判断分支选择变量问题修复<br/>
-3.【STD】支持在线购买积分<br/>
-
 ## 协议
 
 ---
 
-本项目遵循[ChatWiki Open Source License](https://github.com/zhimaAi/chatwiki/blob/main/LICENSE)开源协议。[ChatWiki Open Source License](https://github.com/zhimaAi/chatwiki/blob/main/LICENSE)基于Apache License
+本项目遵循[ChatWiki Open Source License](https://github.com/zhimaAi/chatwiki/blob/main/LICENSE)
+开源协议。[ChatWiki Open Source License](https://github.com/zhimaAi/chatwiki/blob/main/LICENSE)基于Apache License
 2.0协议，但是有一些额外的限制：
+
 1. ChatWiki 对个人用户免费，包括个人从事的非商业或商业活动。
 2. 任何公司、组织、机构或团队若将 ChatWiki 用于商业目的，均须联系我们获得商业授权。
 3. 在使用 ChatWiki 的前端组件时，您不得移除或修改其中包含的“ChatWiki”标识、商标或版权声明。
-
-
 
 **完整的许可证文本请查看：[LICENSE](./LICENSE) 文件，需要获取商业授权请[联系我们](#contact-us)**
 

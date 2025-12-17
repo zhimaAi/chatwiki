@@ -24,14 +24,10 @@
                 <div class="form-label required">选择模型：</div>
                 <div class="form-content">
                   <!-- 自定义选择器 -->
-                  <CustomSelector
-                    v-model="formState.use_model"
-                    label-key="use_model_name"
-                    value-key="value"
-                    :modelType="'LLM'"
-                    :model-config-id="formState.model_config_id"
-                    @change="handleModelChange"
-                    @loaded="onVectorModelLoaded"
+                  <ModelSelect
+                    modelType="LLM"
+                    v-model:modeName="formState.use_model"
+                    v-model:modeId="formState.model_config_id"
                   />
                 </div>
               </div>
@@ -105,7 +101,7 @@
 import { ref, reactive, nextTick, watch, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { generateAiPrompt } from '@/api/library'
-import CustomSelector from '@/components/custom-selector/index.vue'
+import ModelSelect from '@/components/model-select/model-select.vue'
 import MarkdownIt from 'markdown-it';
 import { useLibraryStore } from '@/stores/modules/library'
 
@@ -202,62 +198,6 @@ const handleGenerate = async () => {
     showResult.value = true
   } finally {
     generating.value = false
-  }
-}
-
-// 处理选择事件
-const handleModelChange = (item) => {
-  formState.use_model = modelDefine.includes(item.rawData.model_define) && item.rawData.deployment_name 
-    ? item.rawData.deployment_name
-    : item.rawData.name
-  formState.use_model_icon = item.icon
-  formState.use_model_name = item.use_model_name
-  formState.model_config_id = item.rawData.id
-  currentModelDefine.value = item.rawData.model_define
-}
-
-const vectorModelList = ref([])
-const onVectorModelLoaded = (list) => {
-  vectorModelList.value = list
-
-  nextTick(() => {
-    if (!formState.ai_chunk_model || !Number(formState.ai_chunk_model_config_id)) {
-      setDefaultModel()
-    }
-  })
-}
-
-const setDefaultModel = () => {
-  if (vectorModelList.value.length > 0) {
-    // 遍历查找chatwiki模型
-    let modelConfig = null
-    let model = null
-
-    // 云版默认选中qwen-max
-    for (let item of vectorModelList.value) {
-      if (item.model_define === 'tongyi') {
-        modelConfig = item
-        for (let child of modelConfig.children) {
-          if (child.name === 'qwen-max') {
-            model = child
-            break
-          }
-        }
-        break
-      }
-    }
-
-    if (!modelConfig) {
-      modelConfig = vectorModelList.value[0]
-      model = modelConfig.children[0]
-    }
-
-    if (modelConfig && model) {
-      formState.use_model = model.name
-      formState.model_config_id = model.model_config_id
-      formState.ai_chunk_model = model.name
-      formState.ai_chunk_model_config_id = model.model_config_id
-    }
   }
 }
 

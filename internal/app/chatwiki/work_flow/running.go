@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package work_flow
 
@@ -27,13 +27,14 @@ type Draft struct {
 
 type WorkFlowParams struct {
 	*define.ChatRequestParam
-	RealRobot         msql.Params
-	CurMsgId          int
-	DialogueId        int
-	SessionId         int
-	Draft             Draft
-	IsTestLoopNodeRun bool
-	TriggerParams     TriggerParams //触发器参数
+	RealRobot          msql.Params
+	CurMsgId           int
+	DialogueId         int
+	SessionId          int
+	Draft              Draft
+	IsTestLoopNodeRun  bool
+	TriggerParams      TriggerParams //触发器参数
+	IsTestBatchNodeRun bool
 }
 
 type LoopIntermediate struct {
@@ -122,6 +123,8 @@ func (flow *WorkFlow) Running() (err error) {
 		}
 		if cast.ToInt(nodeInfo[`node_type`]) == NodeTypeLoop {
 			flow.output, nextNodeKey, err = LoopNodeRunning(nodeInfo, flow)
+		} else if cast.ToInt(nodeInfo[`node_type`]) == NodeTypeBatch {
+			flow.output, nextNodeKey, err = BatchNodeRunning(nodeInfo, flow)
 		} else {
 			flow.output, nextNodeKey, err = flow.curNode.Running(flow)
 		}
@@ -277,6 +280,8 @@ func RunningWorkFlow(params *WorkFlowParams, startNodeKey string) (*WorkFlow, er
 	//循环节点单独运行测试时变量注入
 	if flow.params.IsTestLoopNodeRun {
 		err = FlowRunningLoopTest(flow)
+	} else if flow.params.IsTestBatchNodeRun {
+		err = FlowRunningBatchTest(flow)
 	} else {
 		err = flow.Running() //运行流程
 	}
@@ -362,7 +367,7 @@ func BuildFunctionTools(robot msql.Params) ([]adaptor.FunctionTool, bool) {
 	m := msql.Model(`chat_ai_robot`, define.Postgres)
 	list, err := m.Where(`application_type`, cast.ToString(define.ApplicationTypeFlow)).Where(`start_node_key`, `<>`, ``).
 		Where(`admin_user_id`, robot[`admin_user_id`]).Where(`id`, `in`, robot[`work_flow_ids`]).
-		Field(`id,robot_key,robot_name,robot_intro,start_node_key`).Select()
+		Field(`id,robot_key,robot_name,robot_intro,start_node_key,en_name`).Select()
 	if err != nil {
 		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 	}
@@ -383,8 +388,12 @@ func BuildFunctionTools(robot msql.Params) ([]adaptor.FunctionTool, bool) {
 				}
 			}
 		}
+		name := fmt.Sprintf(`work_flow_#_%s`, item[`robot_key`])
+		if len(item[`en_name`]) > 0 {
+			name = item[`en_name`]
+		}
 		functionTools = append(functionTools, adaptor.FunctionTool{
-			Name:        fmt.Sprintf(`work_flow_%s`, item[`robot_key`]),
+			Name:        name,
 			Description: fmt.Sprintf(`%s(%s)`, item[`robot_name`], item[`robot_intro`]),
 			Parameters: adaptor.Parameters{
 				Type:       `object`,
@@ -396,9 +405,9 @@ func BuildFunctionTools(robot msql.Params) ([]adaptor.FunctionTool, bool) {
 	return functionTools, len(functionTools) > 0
 }
 
-func ChooseWorkFlowRobot(functionTools []adaptor.FunctionToolCall) (_ msql.Params, global map[string]any) {
+func ChooseWorkFlowRobot(adminUserId string, functionTools []adaptor.FunctionToolCall) (_ msql.Params, global map[string]any) {
 	for _, functionTool := range functionTools {
-		robotKey, ok := common.IsWorkFlowFuncCall(functionTool.Name)
+		robotKey, ok := common.IsWorkFlowFuncCall(adminUserId, functionTool.Name)
 		if !ok {
 			continue
 		}

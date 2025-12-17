@@ -24,5 +24,6 @@
   "app_id": "appid",
   "region": "region",
   "show_model_name": "Model name",
-  "thinking_type": "Deepseek"
+  "thinking_type": "Deepseek",
+  "config_name": "Config name"
 }
