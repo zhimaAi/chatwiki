@@ -26,6 +26,7 @@ import customGroupNode from './custom-group-node/index.js'
 import groupStartNode from './group-start-node/index.js'
 import terminateMode from './terminate-node/index.js'
 import timingTriggerNode from './timing-trigger-node/index.js'
+import batchGroupNode from './batch-group-node/index.js'
 
 
 
@@ -56,4 +57,5 @@ export default function registerCustomNodes(lf) {
   register(customGroupNode, lf)
   register(groupStartNode, lf)
   register(timingTriggerNode, lf)
+  register(batchGroupNode, lf)
 }

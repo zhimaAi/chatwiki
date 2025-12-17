@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package common
 
@@ -580,28 +580,31 @@ func GetDefaultModelParams(adminUserId int) (params *DefaultModelParams, err err
 		return tool.InArrayString(configs[i][`model_define`], []string{ModelChatWiki}) //优先选取的模型
 	})
 	for _, config := range configs {
-		modelInfo, ok := GetModelInfoByDefine(config[`model_define`])
+		modelInfo, ok := GetModelInfoByConfig(adminUserId, cast.ToInt(config[`id`]))
 		if !ok {
 			continue
 		}
-		if params.LlmModelConfigId == 0 &&
-			tool.InArrayString(Llm, strings.Split(config[`model_types`], `,`)) && len(modelInfo.LlmModelList) > 0 {
-			params.LlmModelConfigId = cast.ToInt(config[`id`])
-			params.LlmUseModel = modelInfo.LlmModelList[0]
-			//优先使用支持func call的
-			if len(modelInfo.SupportedFunctionCallList) > 0 {
-				params.LlmUseModel = modelInfo.SupportedFunctionCallList[0]
+		if params.LlmModelConfigId == 0 && tool.InArrayString(Llm, strings.Split(config[`model_types`], `,`)) {
+			if models := modelInfo.GetLlmModelList(); len(models) > 0 {
+				params.LlmModelConfigId = cast.ToInt(config[`id`])
+				params.LlmUseModel = models[0]
+				//优先使用支持func call的
+				if models = modelInfo.GetFunctionCallModels(); len(models) > 0 {
+					params.LlmUseModel = models[0]
+				}
 			}
 		}
-		if params.VectorModelConfigId == 0 &&
-			tool.InArrayString(TextEmbedding, strings.Split(config[`model_types`], `,`)) && len(modelInfo.VectorModelList) > 0 {
-			params.VectorModelConfigId = cast.ToInt(config[`id`])
-			params.VectorUseModel = modelInfo.VectorModelList[0]
+		if params.VectorModelConfigId == 0 && tool.InArrayString(TextEmbedding, strings.Split(config[`model_types`], `,`)) {
+			if models := modelInfo.GetVectorModelList(); len(models) > 0 {
+				params.VectorModelConfigId = cast.ToInt(config[`id`])
+				params.VectorUseModel = models[0]
+			}
 		}
-		if params.RerankModelConfigId == 0 &&
-			tool.InArrayString(Rerank, strings.Split(config[`model_types`], `,`)) && len(modelInfo.RerankModelList) > 0 {
-			params.RerankModelConfigId = cast.ToInt(config[`id`])
-			params.RerankUseModel = modelInfo.RerankModelList[0]
+		if params.RerankModelConfigId == 0 && tool.InArrayString(Rerank, strings.Split(config[`model_types`], `,`)) {
+			if models := modelInfo.GetRerankModelList(); len(models) > 0 {
+				params.RerankModelConfigId = cast.ToInt(config[`id`])
+				params.RerankUseModel = models[0]
+			}
 		}
 	}
 	if params.LlmModelConfigId == 0 {

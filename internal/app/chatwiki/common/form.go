@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package common
 
@@ -430,7 +430,7 @@ func BuildFunctionTools(formIdList []string, adminUserId int) ([]adaptor.Functio
 }
 
 func SaveFormData(adminUserId, robotId int, functionToolCall adaptor.FunctionToolCall) error {
-	if _, ok := IsWorkFlowFuncCall(functionToolCall.Name); ok {
+	if _, ok := IsWorkFlowFuncCall(cast.ToString(adminUserId), functionToolCall.Name); ok {
 		return nil
 	}
 	robot, err := msql.Model(`chat_ai_robot`, define.Postgres).

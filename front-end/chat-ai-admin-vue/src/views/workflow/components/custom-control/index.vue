@@ -54,6 +54,8 @@
     position: absolute;
     bottom: 48px;
     left: 50%;
+    height: 550px;
+    width: 444px;
     transform: translateX(-50%);
   }
 }
@@ -98,7 +100,7 @@
       </div>
       <!-- 使用 v-show 保证拖拽添加节点时，NodeListPopup 组件不会被销毁，确保 addNode 事件能正常触发 -->
       <div class="node-list-fix" ref="nodeListRef" v-show="isShowMenu">
-        <NodeListPopup @addNode="handleAddNode" type="float-btn" @mouseMove="handleMouseMove" v-model:active="nodeListTabActive" />
+        <NodeListPopup :excludedNodeTypes="excludedNodeTypes" @addNode="handleAddNode" type="float-btn" @mouseMove="handleMouseMove" v-model:active="nodeListTabActive" />
       </div>
     </div>
   </div>
@@ -119,6 +121,8 @@ const props = defineProps({
     required: true
   }
 })
+
+const excludedNodeTypes = ref(['terminate-node'])
 
 const { eventCenter } = props.lf.graphModel
 

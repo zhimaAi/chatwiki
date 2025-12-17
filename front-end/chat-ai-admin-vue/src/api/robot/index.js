@@ -641,3 +641,17 @@ export const testCodeRun = (data = {}) => {
     data: data
   })
 }
+
+export const callBatchWorkFlowParams = (data = {}) => {
+  return request.post({
+    url: '/chat/callBatchWorkFlowParams',
+    data: data
+  })
+}
+
+export const callBatchWorkFlow = (data = {}) => {
+  return request.post({
+    url: '/chat/callBatchWorkFlow',
+    data: data
+  })
+}

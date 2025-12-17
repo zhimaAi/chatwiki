@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package biz_chat
 
@@ -138,7 +138,7 @@ func CheckReplyByChatCache(in *ChatInParam, out *ChatOutParam) pipeline.PipeResu
 // DoRelationWorkFlow 聊天机器人支持关联工作流
 func DoRelationWorkFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if out.Error == nil && in.needRunWorkFlow {
-		workFlowRobot, workFlowGlobal := work_flow.ChooseWorkFlowRobot(out.chatResp.FunctionToolCalls)
+		workFlowRobot, workFlowGlobal := work_flow.ChooseWorkFlowRobot(cast.ToString(in.params.AdminUserId), out.chatResp.FunctionToolCalls)
 		if len(workFlowRobot) == 0 { //大模型没有返回需要调用的工作流
 			if in.waitChooseWorkFlow {
 				DisposeUnknownQuestionPrompt(in, out) //未知问题(已关联工作流场景)

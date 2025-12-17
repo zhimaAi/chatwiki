@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package route
 
@@ -240,15 +240,20 @@ func init() {
 	noAuthFuns(Route[http.MethodPost], `/chat/requestNotStream`, business.ChatRequestNotStream)
 	noAuthFuns(Route[http.MethodPost], `/chat/callWorkFlow`, business.CallWorkFlow)
 	noAuthFuns(Route[http.MethodPost], `/chat/callLoopWorkFlow`, business.CallLoopWorkFlow)
+	noAuthFuns(Route[http.MethodPost], `/chat/callBatchWorkFlow`, business.CallBatchWorkFlow)
 	noAuthFuns(Route[http.MethodPost], `/chat/callLoopWorkFlowParams`, business.CallLoopWorkFlowParams)
+	noAuthFuns(Route[http.MethodPost], `/chat/callBatchWorkFlowParams`, business.CallBatchWorkFlowParams)
 	noAuthFuns(Route[http.MethodPost], `/chat/checkChatRequestPermission`, business.CheckChatRequestPermission)
 	noAuthFuns(Route[http.MethodPost], `/chat/questionGuide`, business.ChatQuestionGuide)
 	/*model API*/
 	Route[http.MethodGet][`/manage/getModelConfigList`] = manage.GetModelConfigList
+	noAuthFuns(Route[http.MethodGet], `/manage/showModelConfigList`, manage.ShowModelConfigList)
 	Route[http.MethodPost][`/manage/addModelConfig`] = manage.AddModelConfig
 	Route[http.MethodPost][`/manage/delModelConfig`] = manage.DelModelConfig
 	Route[http.MethodPost][`/manage/editModelConfig`] = manage.EditModelConfig
 	Route[http.MethodGet][`/manage/getModelConfigOption`] = manage.GetModelConfigOption
+	Route[http.MethodPost][`/manage/saveUseModelConfig`] = manage.SaveUseModelConfig
+	Route[http.MethodPost][`/manage/delUseModelConfig`] = manage.DelUseModelConfig
 	/*WeChat API*/
 	Route[http.MethodGet][`/manage/getWechatAppList`] = manage.GetWechatAppList
 	Route[http.MethodPost][`/manage/saveWechatApp`] = manage.SaveWechatApp

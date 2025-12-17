@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package common
 
@@ -73,14 +73,8 @@ func LlmLogRequest(
 		logs.Error(err.Error())
 		return err
 	}
-	var corpName string
-	for _, modelInfo := range GetModelList() {
-		if len(config[`model_define`]) == 0 || modelInfo.ModelDefine == config[`model_define`] {
-			corpName = modelInfo.ModelName
-			break
-		}
-	}
 
+	corpName := GetModelNameByDefine(config[`model_define`])
 	data := msql.Datas{
 		`admin_user_id`:    adminUserId,
 		`openid`:           openid,

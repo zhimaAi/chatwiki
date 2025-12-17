@@ -2,10 +2,24 @@ import {getPluginConfig} from "@/api/plugins/index.js";
 import {jsonDecode} from "@/utils/index.js";
 
 // 方法插件
-export const HasActionPluginNames = ['feishu_bitable', 'official_account_profile', 'web_content_extraction']
+export const HasActionPluginNames = [
+  'feishu_bitable',
+  'official_account_profile',
+  'official_batch_tag',
+  'official_send_template_message',
+  'web_content_extraction',
+  'official_article',
+]
 
 // 存在输出内容的插件
-export const HasOutputPluginNames = ['feishu_bitable', 'official_account_profile', 'web_content_extraction']
+export const HasOutputPluginNames = [
+  'feishu_bitable',
+  'official_account_profile',
+  'official_batch_tag',
+  'official_send_template_message',
+  'web_content_extraction',
+  'official_article',
+]
 
 // 插件方法默认参数（非特殊处理无需在此添加-将通过action params 自动获取）
 export const PluginActionDefaultArgumentsMap = {
@@ -77,7 +91,7 @@ export const pluginHasAction = (name) => {
 
 // 获取插件方法默认参数
 export const getPluginActionDefaultArguments = (pluginName, actionName) => {
-  return JSON.parse(JSON.stringify(PluginActionDefaultArgumentsMap?.[pluginName]?.[actionName] || '{}'))
+  return JSON.parse(JSON.stringify(PluginActionDefaultArgumentsMap?.[pluginName]?.[actionName] || {}))
 }
 
 export function pluginOutputToTree(obj) {
@@ -103,14 +117,14 @@ export function pluginOutputToTree(obj) {
       node.typ = "object";
     }
 
-    if (value.type === "array<object>") {
-      // 如果是对象数组
-      node.subs = Object.entries(value.items.properties).map(([k, v]) =>
-        walk(k, v)
-      );
-    } else if (value.properties && typeof value.properties === "object") {
+    if (value.properties && typeof value.properties === "object") {
       // 如果包含 properties，则递归处理
       node.subs = Object.entries(value.properties).map(([k, v]) =>
+        walk(k, v)
+      );
+    } else if (value.type === "array<object>") {
+      // 如果是对象数组
+      node.subs = Object.entries(value.items.properties).map(([k, v]) =>
         walk(k, v)
       );
     } else {
@@ -125,12 +139,12 @@ export function pluginOutputToTree(obj) {
 }
 
 // 插件配置
-const _pluginConifgMap = {}
-export const getPluginConifgData = async (name) => {
-  if (!_pluginConifgMap[name]) {
+const _pluginConfigMap = {}
+export const getPluginConfigData = async (name) => {
+  if (!_pluginConfigMap[name]) {
     await getPluginConfig({name: name}).then(res => {
-      _pluginConifgMap[name] = jsonDecode(res?.data, {})
+      _pluginConfigMap[name] = jsonDecode(res?.data, {})
     })
   }
-  return _pluginConifgMap[name]
+  return _pluginConfigMap[name]
 }

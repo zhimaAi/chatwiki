@@ -3,6 +3,10 @@
   display: flex;
   margin: 45px 12px;
 
+  .markdown-content{
+    white-space: normal !important;
+  }
+
   .message-item-body {
     overflow: hidden;
     flex: 1;
@@ -650,7 +654,7 @@
         </div>
       </div>
 
-      <div class="message-content" v-if="!(props.msg.msg_type == 1 && props.msg.content == '')">
+      <div class="message-content" :data-msg-type="props.msg.msg_type" v-if="!(props.msg.msg_type == 1 && props.msg.content == '')">
         <div class="thinking-content" v-if="props.msg.show_reasoning">
           <cherry-markdown :content="props.msg.reasoning_content" />
         </div>
@@ -814,7 +818,8 @@
         </template>
 
         <template v-else-if="props.msg.msg_type == 2">
-          <div class="text-message" v-html="escapeHTML(props.msg.menu_json.content)"></div>
+          <cherry-markdown class="text-message markdown-content" :content="props.msg.menu_json.content" v-if="props.msg.isWelcome" />
+          <div class="text-message" v-html="escapeHTML(props.msg.menu_json.content)" v-else></div>
           <div
             class="question-list"
             v-if="props.msg.menu_json && props.msg.menu_json.question.length"

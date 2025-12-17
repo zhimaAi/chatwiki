@@ -1,15 +1,26 @@
 <template>
   <a-select
-    v-model:value="selectMode"
+    :value="value"
     :placeholder="placeholder"
     @change="handleChangeModel"
     style="width: 100%"
+    :allowClear="true"
+    class="modal-seclet-new"
   >
+    <template #clearIcon>
+      <div class="model-show-block" v-if="selectItem">
+        <img class="icon" :src="selectItem.model_icon_url" alt="" />
+        <div class="name-text">
+          {{ selectItem.config_name || selectItem.model_name }}
+          {{ selectChildItem.show_model_name || selectChildItem.use_model_name }}
+        </div>
+      </div>
+    </template>
     <a-select-opt-group v-for="item in modelList" :key="item.key">
       <template #label>
         <a-flex align="center" :gap="6">
-          <img class="model-icon" :src="item.icon" alt="" />
-          <span>{{ item.name }}</span>
+          <img class="model-icon" :src="item.model_icon_url" alt="" />
+          <span>{{ item.config_name || item.model_name }}</span>
         </a-flex>
       </template>
       <a-select-option
@@ -19,45 +30,25 @@
         :modelName="sub.name"
         :key="sub.key"
       >
-        {{ sub.label }}
+        {{ sub.show_model_name || sub.name }}
       </a-select-option>
     </a-select-opt-group>
   </a-select>
 </template>
 
 <script setup>
-import { duplicateRemoval, removeRepeat } from '@/utils/index'
 import { getModelConfigOption } from '@/api/model/index'
-import { ref, onMounted, watch } from 'vue'
-
-function uniqueArr(arr, arr1, key) {
-  const keyVals = new Set(arr.map((item) => item.model_define))
-  arr1.filter((obj) => {
-    let val = obj[key]
-    if (keyVals.has(val)) {
-      arr.filter((obj1) => {
-        if (obj1.model_define == val) {
-          obj1.children = removeRepeat(obj1.children, obj.children)
-          return false
-        }
-      })
-    }
-  })
-  return arr
-}
+import { ref, onMounted, watch, computed } from 'vue'
+import { getModelOptionsList } from '@/components/model-select/index.js'
 
 const emit = defineEmits(['change', 'update:modeName', 'update:modeId', 'loaded'])
 const props = defineProps({
   modelType: {
     type: String,
     validator: (value) => {
-      return ['TEXT EMBEDDING', 'RERAN', 'LLM'].includes(value)
+      return ['TEXT EMBEDDING', 'RERANK', 'LLM'].includes(value)
     },
     required: true
-  },
-  isOffline: {
-    type: Boolean,
-    default: false
   },
   modeName: {
     type: [String, Number],
@@ -73,116 +64,62 @@ const props = defineProps({
   }
 })
 
-const selectMode = ref()
+const value = ref()
 
-watch([() => props.modeId, () => props.modeName], ([newModeId, newModeName]) => {
-  if (!newModeId || !newModeName) {
-    return
+watch(
+  [() => props.modeId, () => props.modeName],
+  ([newModeId, newModeName]) => {
+    if (!newModeId || !newModeName) {
+      value.value = undefined
+    } else {
+      value.value = newModeId + '-' + newModeName
+    }
+  },
+  {
+    immediate: true
   }
-  selectMode.value = newModeId + '-' + newModeName
-})
+)
 
 const modelList = ref([])
-const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent', 'doubao']
-const modelShowModelName = ['doubao']
 
+const selectItem = computed(() => {
+  if (props.modeId) {
+    return modelList.value.find((item) => item.key == props.modeId)
+  }
+  return {}
+})
+
+const selectChildItem = computed(() => {
+  if (selectItem.value.children && selectItem.value.children.length) {
+    return selectItem.value.children.find((item) => item.use_model_name == props.modeName)
+  }
+  return {}
+})
 
 const handleChangeModel = (val, option) => {
+  if (!option) {
+    return
+  }
   emit('update:modeName', option.modelName)
   emit('update:modeId', option.modelId)
   emit('change', val, option)
 }
-let choosable_thinking = {}
 const getModelList = () => {
   getModelConfigOption({
-    model_type: props.modelType,
-    is_offline: props.isOffline // 0 1 区分线上线下
+    model_type: props.modelType
   }).then((res) => {
     let list = res.data || []
-    let newList = list.map((item) => {
-      let { model_define, deployment_name, id } = item.model_config
-      choosable_thinking = {
-        ...choosable_thinking,
-        ...item.choosable_thinking
-      }
-      let key = `${model_define}-${deployment_name || ''}-${id}`
-
-      let subModelList = []
-      let children = []
-
-      if (props.modelType == 'TEXT EMBEDDING') {
-        subModelList = item.model_info.vector_model_list
-      } else if (props.modelType == 'RERANK') {
-        subModelList = item.model_info.rerank_model_list
-      } else if (props.modelType == 'LLM') {
-        subModelList = item.model_info.llm_model_list
-      }
-
-
-
-      for (let i = 0; i < subModelList.length; i++) {
-        let ele = subModelList[i]
-        let label = ele
-        let value = id + '-' + ele // 这里的值使用父级id加子模型名称的方式来避免重复（因为有多个叫’默认的模型‘）
-        // 部分模型显示的模型名称要特殊处理
-        if (
-          modelDefine.indexOf(item.model_config.model_define) > -1 &&
-          item.model_config.deployment_name
-        ) {
-          if(modelShowModelName.includes(item.model_config.model_define)){
-            // 优先显示show_model_name字段
-            label = item.model_config.show_model_name || item.model_config.deployment_name
-          }else{
-            label = item.model_config.deployment_name
-          }
-        }
-
-        children.push({
-          key: id + '_' + ele,
-          label: label,
-          name: ele,
-          deployment_name: deployment_name,
-          model_config_id: id,
-          model_define: model_define,
-          value: value,
-        })
-      }
-
-      return {
-        key: key,
-        model_define: model_define,
-        children: children,
-        model_config_id: id,
-        deployment_name: deployment_name,
-        name: item.model_info.model_name,
-        icon: item.model_info.model_icon_url,
-      }
-    })
-
-    // 如果modelList存在两个相同model_define情况就合并到一个对象的children中去
-    newList = uniqueArr(duplicateRemoval(newList, 'model_define'), newList, 'model_define')
-
-    if (newList.length === 0) {
-      selectMode.value = '无可用模型'
-    }
-
-    modelList.value = [...newList]
-    emit('loaded', JSON.parse(JSON.stringify(newList)), choosable_thinking)
+    let { newList, choosableThinking } = getModelOptionsList(list)
+    modelList.value = newList
+    emit('loaded', modelList.value, choosableThinking)
   })
 }
-
-watch(
-  () => props.isOffline,
-  () => {
-    getModelList()
-  }
-)
 
 onMounted(() => {
   getModelList(false)
 
   if (props.modeId && props.modeName) {
-    selectMode.value = props.modeId + '-' + props.modeName
+    value.value = props.modeId + '-' + props.modeName
   }
 })
 </script>
@@ -190,5 +127,47 @@ onMounted(() => {
 <style lang="less" scoped>
 .model-icon {
   width: 18px;
+}
+.modal-seclet-new.ant-select {
+  &::v-deep(.ant-select-selection-item) {
+    opacity: 0;
+    position: relative;
+    z-index: 9;
+  }
+  &::v-deep(.ant-select-clear) {
+    opacity: 1 !important;
+    width: fit-content;
+    height: 22px;
+    left: 12px;
+    top: 5px;
+    margin: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    text-align: left;
+    background: unset;
+    font-size: 14px;
+    padding: 0 12px;
+    .model-show-block {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      .icon {
+        height: 100%;
+        width: auto;
+      }
+      .name-text {
+        flex: 1;
+        font-size: 14px;
+        line-height: 22px;
+        color: #000;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
 }
 </style>

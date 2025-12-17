@@ -60,7 +60,7 @@ class Elk {
       }
 
       // 分组节点特殊处理
-      if (item.type === 'custom-group') {
+      if (item.children && item.children.length > 0) {
         // 对于分组节点，设置初始宽高，ELK会根据子节点自动调整
         // node.width = item.properties.width || 800
         // node.height = item.properties.height || 400
@@ -70,13 +70,6 @@ class Elk {
           'elk.nodeSize.minimum': `[600, 420]`,
           'elk.spacing.nodeNode': 100, // 设置组内同层节点间距
           'elk.layered.spacing.nodeNodeBetweenLayers': 120, // 设置组内跨层间距
-        }
-      } else if (item.type === 'group-start-node' || item.type === 'group-end-node') {
-        // 嵌套节点设置固定大小
-        node.width = item.properties.width || 200
-        node.height = item.properties.height || 80
-        node.layoutOptions = {
-          'elk.nodeSize.constraints': 'FIXED'
         }
       } else {
         // 普通节点

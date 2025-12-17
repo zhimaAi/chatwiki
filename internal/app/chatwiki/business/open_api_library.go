@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package business
 
@@ -10,6 +10,7 @@ import (
 	"chatwiki/internal/app/chatwiki/middlewares"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -25,19 +26,9 @@ func OpenGetLibraryList(c *gin.Context) {
 	if adminUserId == 0 {
 		return
 	}
-	//models
-	reqM := manage.BridgeGetModelConfigOptionReq{
-		ModelType: common.TextEmbedding,
-	}
-	models, httpStatus, err := manage.BridgeGetModelConfigOption(adminUserId, adminUserId, common.GetLang(c), &reqM)
-	if httpStatus != 0 {
-		common.FmtBridgeResponse(c, models, httpStatus, err)
-		return
-	}
 	//library list
 	reqL := manage.BridgeLibraryListReq{}
-	err = common.RequestParamsBind(&reqL, c)
-	if err != nil {
+	if err := common.RequestParamsBind(&reqL, c); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(reqL, err, common.GetLang(c)).Error())
 		return
 	}
@@ -61,16 +52,8 @@ func OpenGetLibraryList(c *gin.Context) {
 	//fill model info
 	returnData := make([]map[string]any, 0)
 	for _, library := range libraryList {
-		library[`model_define`] = ``
-		for _, model := range models {
-			modelConfig, ok := model[`model_config`].(msql.Params)
-			if !ok {
-				break
-			}
-			if cast.ToInt(library[`model_config_id`]) == cast.ToInt(modelConfig[`id`]) {
-				library[`model_define`] = modelConfig[`model_define`]
-			}
-		}
+		config, _ := common.GetModelConfigInfo(cast.ToInt(library[`model_config_id`]), adminUserId)
+		library[`model_define`] = config[`model_define`] //补充模型服务商定义名
 		//take params
 		returnData = append(returnData, common.TakeParamsFromMap(library, `id`, `avatar`, `type`, `library_intro`, `library_name`,
 			`file_size`, `file_total`, `model_config_id`, `model_define`, `use_model`, `group_id`))
@@ -86,28 +69,9 @@ func OpenGetModelConfigOption(c *gin.Context) {
 	if adminUserId == 0 {
 		return
 	}
-	req := manage.BridgeGetModelConfigOptionReq{}
-	err := common.RequestParamsBind(&req, c)
-	if err != nil {
-		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
-		return
-	}
-	req.ModelType = strings.TrimSpace(c.Query(`model_type`))
-	list, httpStatus, err := manage.BridgeGetModelConfigOption(adminUserId, adminUserId, common.GetLang(c), &req)
-	if httpStatus != 0 {
-		common.FmtBridgeResponse(c, list, httpStatus, err)
-		return
-	}
-	returnData := make([]map[string]any, 0)
-	for _, modelInfo := range list {
-		configM := common.TakeParamsFromMap(modelInfo[`model_config`], `id`, `model_define`)
-		infoM := common.TakeParamsFromMap(modelInfo[`model_info`], `vector_model_list`, `llm_model_list`)
-		returnData = append(returnData, map[string]any{
-			`model_config`: configM,
-			`model_info`:   infoM,
-		})
-	}
-	common.FmtBridgeResponse(c, returnData, httpStatus, err)
+	modelType := strings.TrimSpace(c.Query(`model_type`))
+	list, err := common.GetModelConfigOption(adminUserId, modelType, common.GetLang(c))
+	c.String(http.StatusOK, lib_web.FmtJson(list, err))
 }
 
 func OpenCreateLibraryGeneral(c *gin.Context) {
@@ -412,10 +376,12 @@ func OpenBatchAddLibraryQa(c *gin.Context) {
 		return
 	}
 	//batch save
+	qaLists := c.PostForm(`qa_lists`)
 	batchAddLibraryQaItems := make([]BatchAddLibraryQaItem, 0)
-	err = tool.JsonDecode(c.PostForm(`qa_lists`), &batchAddLibraryQaItems)
+	err = tool.JsonDecode(qaLists, &batchAddLibraryQaItems)
 	if err != nil {
-		common.FmtError(c, `param_err`, `qa_lists`)
+		err = fmt.Errorf(`qa_lists:%s,err:%s`, qaLists, err)
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	resultList := make([]string, 0)

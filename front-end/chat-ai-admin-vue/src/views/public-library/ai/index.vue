@@ -30,15 +30,11 @@
             :rules="[{ required: true, message: '请选择嵌入模型' }]"
             v-if="formState.use_model_switch == 1"
           >
-            <!-- 自定义选择器 -->
-            <CustomSelector
-              v-model="formState.use_model"
+            <ModelSelect
+              modelType="TEXT EMBEDDING"
               placeholder="请选择嵌入模型"
-              label-key="use_model_name"
-              value-key="value"
-              :modelType="'TEXT EMBEDDING'"
-              :model-config-id="formState.model_config_id"
-              @change="handleModelChange"
+              v-model:modeName="formState.use_model"
+              v-model:modeId="formState.model_config_id"
             />
           </a-form-item>
 
@@ -61,15 +57,10 @@
             :rules="[{ required: true, message: '请选择总结模型' }]"
             v-if="formState.ai_summary == 1"
           >
-            <!-- 自定义选择器 -->
-            <CustomSelector
-              v-model="formState.ai_summary_model"
-              placeholder="请选择总结模型"
-              label-key="summary_model_name"
-              value-key="value"
-              :modelType="'LLM'"
-              :model-config-id="formState.summary_model_config_id"
-              @change="handleModelChange2"
+            <ModelSelect
+              modelType="LLM"
+              v-model:modeName="formState.ai_summary_model"
+              v-model:modeId="formState.summary_model_config_id"
             />
           </a-form-item>
 
@@ -89,7 +80,7 @@ import { ref, reactive, computed, onMounted, toRaw } from 'vue'
 import { InfoCircleOutlined } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import ConfigPageMenu from '../components/config-page-menu.vue'
-import CustomSelector from '@/components/custom-selector/index.vue'
+import ModelSelect from '@/components/model-select/model-select.vue'
 import { usePublicLibraryStore } from '@/stores/modules/public-library'
 
 const libraryStore = usePublicLibraryStore()
@@ -107,61 +98,10 @@ const formState = reactive({
   access_rights: '',
   model_config_id: '',
   use_model: '',
-  use_model_icon: '', // 新增图标字段
-  use_model_name: '', // 新增系统名称
   use_model_switch: '',
   statistics_set: '',
-  summary_model_icon: '', // 新增图标字段
-  summary_model_name: '', // 新增系统名称
   summary_model_config_id: ''
 })
-
-const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
-const oldModelDefineList = ['azure']
-const currentModelDefine = ref('')
-const currentModelDefine2 = ref('')
-
-// 处理选择事件
-const handleModelChange = (item) => {
-  formState.use_model = modelDefine.includes(item.rawData.model_define) && item.rawData.deployment_name 
-    ? item.rawData.deployment_name 
-    : item.rawData.name
-  formState.use_model_icon = item.icon
-  formState.use_model_name = item.use_model_name
-  formState.model_config_id = item.rawData.id
-  currentModelDefine.value = item.rawData.model_define
-}
-
-// 处理选择事件
-const handleModelChange2 = (item) => {
-  formState.ai_summary_model = modelDefine.includes(item.rawData.model_define) && item.rawData.deployment_name 
-    ? item.rawData.deployment_name 
-    : item.rawData.name
-  formState.summary_model_icon = item.icon
-  formState.summary_model_name = item.summary_model_name
-  formState.summary_model_config_id = item.rawData.id
-  currentModelDefine2.value = item.rawData.model_define
-}
-
-// const handleChangeModel = (val, option) => {
-//   const self = option.current_obj
-//   formState.use_model =
-//     modelDefine.indexOf(self.model_define) > -1 && self.deployment_name
-//       ? self.deployment_name
-//       : self.name
-//   currentModelDefine.value = self.model_define
-//   formState.model_config_id = self.id || option.model_config_id
-// }
-
-// const handleChangeModel2 = (val, option) => {
-//   const self = option.current_obj
-//   formState.ai_summary_model =
-//     modelDefine.indexOf(self.model_define) > -1 && self.deployment_name
-//       ? self.deployment_name
-//       : self.name
-//   currentModelDefine2.value = self.model_define
-//   formState.summary_model_config_id = self.id || option.model_config_id
-// }
 
 const handleSubmit = async () => {
   try {
@@ -189,16 +129,6 @@ const handleSubmit = async () => {
 const saveData = () => {
   let data = {
     ...toRaw(formState)
-  }
-
-  if (oldModelDefineList.indexOf(currentModelDefine.value) > -1) {
-    // 传给后端的是默认，渲染的是真实名称
-    data.use_model = '默认'
-  }
-
-  if (oldModelDefineList.indexOf(currentModelDefine2.value) > -1) {
-    // 传给后端的是默认，渲染的是真实名称
-    data.ai_summary_model = '默认'
   }
 
   loading.value = true

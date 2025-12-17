@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package chatwiki
 
@@ -13,15 +13,12 @@ import (
 	"chatwiki/internal/pkg/casbin"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
-	"database/sql"
 	"embed"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"strings"
 
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/pressly/goose/v3"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cast"
@@ -111,23 +108,15 @@ func StartCronTasks() {
 var embedMigrations embed.FS
 
 func PostgresTable() {
-	conn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		define.Config.Postgres["host"], define.Config.Postgres["port"],
-		define.Config.Postgres["user"], define.Config.Postgres["password"],
-		define.Config.Postgres["dbname"], define.Config.Postgres["sslmode"])
-
-	db, err := sql.Open("postgres", conn)
+	db, err := msql.GetDB(define.Postgres)
 	if err != nil {
 		panic(err)
 	}
-
 	goose.SetBaseFS(embedMigrations)
-
-	if err := goose.SetDialect("postgres"); err != nil {
+	if err = goose.SetDialect(`postgres`); err != nil {
 		panic(err)
 	}
-
-	if err := goose.Up(db, "data/migrations", goose.WithAllowMissing()); err != nil {
+	if err = goose.Up(db, `data/migrations`, goose.WithAllowMissing()); err != nil {
 		panic(err)
 	}
 
@@ -221,19 +210,18 @@ func InitDefaultRole() {
 }
 
 func CreateDefaultBaaiModel(userId int64) {
-	modelInfo, ok := common.GetModelInfoByDefine(common.ModelBaai)
-	if !ok {
-		logs.Error(`modelInfo not found`)
+	modelConfig, exist := common.GetModelConfigByDefine(common.ModelBaai)
+	if !exist {
+		logs.Error(`modelConfig not found`)
 		return
 	}
 	_, err := msql.Model("chat_ai_model_config", define.Postgres).Insert(msql.Datas{
-		`admin_user_id`:   userId,
-		`model_define`:    common.ModelBaai,
-		`model_types`:     strings.Join(modelInfo.SupportedType, `,`),
-		`api_endpoint`:    "http://host.docker.internal:50001",
-		`deployment_name`: "",
-		`create_time`:     tool.Time2Int(),
-		`update_time`:     tool.Time2Int(),
+		`admin_user_id`: userId,
+		`model_define`:  common.ModelBaai,
+		`model_types`:   strings.Join(modelConfig.SupportedType, `,`),
+		`api_endpoint`:  "http://host.docker.internal:50001",
+		`create_time`:   tool.Time2Int(),
+		`update_time`:   tool.Time2Int(),
 	})
 	if err != nil {
 		logs.Error("baai model create err:%s", err.Error())

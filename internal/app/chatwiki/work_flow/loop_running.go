@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package work_flow
 
@@ -167,14 +167,23 @@ func (flowLoop *WorkFlowLoop) getLoopInFields() []*common.SimpleField {
 		return loopInFields
 	}
 	for _, loopArray := range flowLoop.LoopNodeParams.LoopArrays {
-		for outNodeKey, nodeOutputs := range flowLoop.Flow.outputs {
-			if loopArray.NodeKey() == `global` { //开始节点
-				for outKey, outField := range nodeOutputs {
-					if outField.Typ == loopArray.Typ && outKey == loopArray.Value {
-						return flowLoop.inFieldAppend(loopArray.Key, outField)
+		if loopArray.NodeKey() == `global` { //全局变量
+			for globalKey, globalVal := range flowLoop.Flow.global {
+				if globalKey == loopArray.ChooseKey() {
+					return flowLoop.inFieldAppend(loopArray.Key, globalVal)
+				}
+			}
+			if flowLoop.Flow.params.IsTestLoopNodeRun {
+				for _, nodeOutputs := range flowLoop.Flow.outputs {
+					for outKey, outField := range nodeOutputs {
+						if outField.Typ == loopArray.Typ && outKey == loopArray.Value {
+							return flowLoop.inFieldAppend(loopArray.Key, outField)
+						}
 					}
 				}
-			} else { //非开始节点
+			}
+		} else {
+			for outNodeKey, nodeOutputs := range flowLoop.Flow.outputs {
 				if outNodeKey != loopArray.NodeKey() { //非指定的循环数组输出 下一个
 					continue
 				}

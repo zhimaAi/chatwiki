@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package common
 
@@ -8,7 +8,6 @@ import (
 	"chatwiki/internal/pkg/lib_redis"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/spf13/cast"
@@ -177,25 +176,15 @@ func getModelProcess(adminUserId int) (define.GuideProcess, error) {
 	return modelProcess, nil
 }
 
-func checkSetModel(adminUserId int) (setLlm bool, setText bool, err error) {
-	m := msql.Model(`chat_ai_model_config`, define.Postgres).
-		Where(`admin_user_id`, cast.ToString(adminUserId))
-	configs, err := m.Order(`id desc`).Select()
-	if err != nil {
-		logs.Error(err.Error())
-		return
+func checkSetModel(adminUserId int) (setLlm bool, setText bool, _ error) {
+	m := msql.Model(`chat_ai_model_list`, define.Postgres)
+	if id, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`model_type`, Llm).Value(`id`); err == nil && cast.ToUint(id) > 0 {
+		setLlm = true
 	}
-	if len(configs) == 0 {
-		return
-	}
-	for _, config := range configs {
-		modelTypes := strings.Split(config[`model_types`], `,`)
-		if tool.InArrayString(`LLM`, modelTypes) {
-			setLlm = true
-		}
-		if tool.InArrayString(`TEXT EMBEDDING`, modelTypes) {
-			setText = true
-		}
+	if id, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`model_type`, TextEmbedding).Value(`id`); err == nil && cast.ToUint(id) > 0 {
+		setText = true
 	}
 	return
 }

@@ -68,7 +68,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, toRaw, provide } from 'vue'
+import { reactive, ref, toRaw, provide, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { message } from 'ant-design-vue'
 import BasicConfig from './components/basic-config.vue'
@@ -87,6 +87,7 @@ import CommonProblem from './components/common-problem.vue'
 import DisplayAitations from './components/display-aitations.vue'
 import { saveRobot, getRobotList } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useModelStore } from '@/stores/modules/model'
 import ShowLike from './components/show-like.vue'
 import rolePermission from './role-permission.vue'
 import Skill from './components/skill/index.vue'
@@ -99,6 +100,8 @@ const scrollBox = ref(null)
 
 const { robotInfo } = storeToRefs(robotStore)
 const { getRobot } = robotStore
+
+const modelStore = useModelStore()
 
 const scrollBoxToBottom = () => {
   scrollBox.value.scrollTop = scrollBox.value.scrollHeight
@@ -128,7 +131,6 @@ const getWorkFlowRobotList = ()=>{
     workFlowRobotList.value = res.data || []
   })
 }
-getWorkFlowRobotList()
 
 provide('robotInfo', {
   robotInfo: formState,
@@ -191,6 +193,13 @@ const saveForm = () => {
 const handleTabChange = () => {
   localStorage.setItem(activeLocalKey, activeKey.value)
 }
+
+
+onMounted(()=>{
+  getWorkFlowRobotList()
+  modelStore.getAllmodelList()
+})
+
 </script>
 
 <style lang="less" scoped>

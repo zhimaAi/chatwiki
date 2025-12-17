@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package manage
 
@@ -310,36 +310,14 @@ func SaveRobot(c *gin.Context) {
 		robotAvatar = uploadInfo.Link
 	}
 	//check model_config_id and use_model
-	config, err := common.GetModelConfigInfo(modelConfigId, userId)
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	if len(config) == 0 || !tool.InArrayString(common.Llm, strings.Split(config[`model_types`], `,`)) {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_config_id`))))
-		return
-	}
-	modelInfo, _ := common.GetModelInfoByDefine(config[`model_define`])
-	if !tool.InArrayString(useModel, modelInfo.LlmModelList) && !common.IsMultiConfModel(config["model_define"]) {
+	if ok := common.CheckModelIsValid(userId, modelConfigId, useModel, common.Llm); !ok {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `use_model`))))
 		return
 	}
 
 	//check optimize_question_model_config_id and optimize_question_use_model
 	if optimizeQuestionModelConfigId > 0 {
-		optimizeConfig, err := common.GetModelConfigInfo(optimizeQuestionModelConfigId, userId)
-		if err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
-		if len(optimizeConfig) == 0 || !tool.InArrayString(common.Llm, strings.Split(optimizeConfig[`model_types`], `,`)) {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `optimize_question_model_config_id`))))
-			return
-		}
-		optimizeModelInfo, _ := common.GetModelInfoByDefine(optimizeConfig[`model_define`])
-		if !tool.InArrayString(optimizeQuestionUseModel, optimizeModelInfo.LlmModelList) && !common.IsMultiConfModel(optimizeConfig["model_define"]) {
+		if ok := common.CheckModelIsValid(userId, optimizeQuestionModelConfigId, optimizeQuestionUseModel, common.Llm); !ok {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `optimize_question_use_model`))))
 			return
 		}
@@ -379,18 +357,7 @@ func SaveRobot(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 			return
 		}
-		config, err := common.GetModelConfigInfo(rerankModelConfigId, userId)
-		if err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
-		if len(config) == 0 || !tool.InArrayString(common.Rerank, strings.Split(config[`model_types`], `,`)) {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `rerank_model_config_id`))))
-			return
-		}
-		modelInfo, _ := common.GetModelInfoByDefine(config[`model_define`])
-		if !tool.InArrayString(rerankUseModel, modelInfo.RerankModelList) {
+		if ok := common.CheckModelIsValid(userId, rerankModelConfigId, rerankUseModel, common.Rerank); !ok {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `rerank_use_model`))))
 			return
 		}
@@ -535,6 +502,11 @@ func AddFlowRobot(c *gin.Context) {
 	}
 	//get params
 	robotName := strings.TrimSpace(c.PostForm(`robot_name`))
+	enName := strings.TrimSpace(c.PostForm(`en_name`))
+	if !common.CheckEnName(cast.ToString(userId), enName, `0`) {
+		common.FmtError(c, `param_err`, "en_name")
+		return
+	}
 	groupId := cast.ToInt(c.PostForm(`group_id`))
 	robotIntro := strings.TrimSpace(c.PostForm(`robot_intro`))
 	robotAvatar := strings.TrimSpace(c.DefaultPostForm(`avatar_from_template`, define.LocalUploadPrefix+`default/workflow_avatar.svg`))
@@ -578,6 +550,7 @@ func AddFlowRobot(c *gin.Context) {
 		`update_time`:             tool.Time2Int(),
 		`welcomes`:                welcomes,
 		`unknown_question_prompt`: unknownQuestionPrompt,
+		`en_name`:                 enName,
 	}
 	for i := 0; i < 5; i++ {
 		tempKey := tool.Random(10)
@@ -933,6 +906,11 @@ func EditBaseInfo(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
+	robotInfo, err := common.GetRobotInfo(robotKey)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
 	//headImg uploaded
 	fileHeader, _ := c.FormFile(`robot_avatar`)
 	uploadInfo, err := common.SaveUploadedFile(fileHeader, define.ImageLimitSize, userId, `robot_avatar`, define.ImageAllowExt)
@@ -945,6 +923,14 @@ func EditBaseInfo(c *gin.Context) {
 		`robot_intro`: robotIntro,
 		`group_id`:    groupId,
 		`update_time`: tool.Time2Int(),
+	}
+	if cast.ToInt(robotInfo[`application_type`]) == define.ApplicationTypeFlow {
+		enName := strings.TrimSpace(c.PostForm(`en_name`))
+		if !common.CheckEnName(cast.ToString(userId), enName, cast.ToString(id)) {
+			common.FmtError(c, `param_err`, "en_name")
+			return
+		}
+		data[`en_name`] = enName
 	}
 	if len(robotAvatar) > 0 {
 		data[`robot_avatar`] = robotAvatar
@@ -1042,18 +1028,7 @@ func SetUnknownIssueSummary(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 			return
 		}
-		config, err := common.GetModelConfigInfo(unknownSummaryModelConfigId, adminUserId)
-		if err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
-		if len(config) == 0 || !tool.InArrayString(common.TextEmbedding, strings.Split(config[`model_types`], `,`)) {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `unknown_summary_model_config_id`))))
-			return
-		}
-		modelInfo, _ := common.GetModelInfoByDefine(config[`model_define`])
-		if !tool.InArrayString(unknownSummaryUseModel, modelInfo.VectorModelList) {
+		if ok := common.CheckModelIsValid(adminUserId, unknownSummaryModelConfigId, unknownSummaryUseModel, common.TextEmbedding); !ok {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `unknown_summary_use_model`))))
 			return
 		}

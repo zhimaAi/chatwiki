@@ -205,12 +205,12 @@
               <span class="type-tag" v-if="item.type == 1">对外知识库</span>
               <span class="type-tag" v-if="item.type == 2">问答知识库</span>
               <span class="type-tag" v-if="item.type == 3">公众号知识库</span>
-              <a-tooltip v-if="neo4j_status">
+              <!-- <a-tooltip v-if="neo4j_status">
                 <template #title>{{ item.graph_switch == 0 ? '未' : '已' }}开启知识图谱生成</template>
                 <span class="type-tag graph-tag" :class="{ 'gray-tag': item.graph_switch == 0 }"
                   >Graph</span
                 >
-              </a-tooltip>
+              </a-tooltip> -->
             </div>
           </div>
         </div>

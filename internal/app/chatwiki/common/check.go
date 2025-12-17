@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package common
 
@@ -330,10 +330,22 @@ func CheckUserLogin(loginSwitch, expireTime int) bool {
 	return false
 }
 
-func IsWorkFlowFuncCall(name string) (string, bool) {
-	match := regexp.MustCompile(`^work_flow_([a-zA-Z0-9]{10})$`).FindStringSubmatch(name)
+func IsWorkFlowFuncCall(adminUserId string, name string) (string, bool) {
+	match := regexp.MustCompile(`^work_flow_#_([a-zA-Z0-9]{10})$`).FindStringSubmatch(name)
 	if len(match) == 2 {
 		return match[1], true
+	}
+	match = regexp.MustCompile(`^(` + WorkFlowEnNameRegex + `)$`).FindStringSubmatch(name)
+	if len(match) == 2 {
+		robotKey, err := msql.Model(`chat_ai_robot`, define.Postgres).
+			Where(`en_name`, match[1]).
+			Where(`admin_user_id`, adminUserId).
+			Value(`robot_key`)
+		if err != nil {
+			logs.Error(err.Error())
+			return ``, false
+		}
+		return robotKey, true
 	}
 	return ``, false
 }

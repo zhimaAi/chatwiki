@@ -35,7 +35,7 @@
       align-items: flex-start;
       flex-basis: calc((100% - 320px));
     }
-    
+
     .model-item-left-top {
       display: flex;
       justify-content: center;
@@ -43,12 +43,12 @@
       margin-bottom: 10px;
     }
 
-    .line{
-        display: inline-block;
-        width: 2px;
-        height: 15px;
-        background-color: #DEDEDE;
-        margin: 5px 15px;
+    .line {
+      display: inline-block;
+      width: 2px;
+      height: 15px;
+      background-color: #dedede;
+      margin: 5px 15px;
     }
 
     .model-item-right {
@@ -75,7 +75,7 @@
 
     .model-name {
       color: #000000;
-      font-family: "PingFang SC";
+      font-family: 'PingFang SC';
       font-size: 16px;
       font-style: normal;
       font-weight: 600;
@@ -153,8 +153,7 @@
 
 <template>
   <div class="model-list">
-    <div class="model-item" v-for="item in props.list"
-      :key="item.model_define">
+    <div class="model-item" v-for="item in props.list" :key="item.model_define">
       <div class="model-item-left">
         <div class="model-item-left-top">
           <img class="model-logo" :src="item.model_icon_url" alt="" />
@@ -163,10 +162,21 @@
           <div class="model-tags">
             <div v-for="(tag, index) in item.support_list" :key="index">
               <a-tooltip>
-                <template #title v-if="tag == 'LLM'">大语言模型，添加机器人时需要选择一个大语言模型。用户的提问将交由大语言模型，结合知识库给出答案。</template>
-                <template #title v-else-if="tag == 'TEXT EMBEDDING'">嵌入模型，添加知识库时需要选择嵌入模型，用于将知识库分段向量化。用户提问时也会将问题生成向量，通过比对向量相似度的方式四配跟提问语义相近的知识库分段。向量检索具备很好的语义分析能力。</template>
-                <template #title v-else-if="tag == 'RERANK'">重排序模型,通过重排序模型,将从知识库中检索出来的分段进行重新排序。再将重排序的结果前top-K传递个大语言模型生成答案。重排序有助于优化检索结果，提高大语言模型回答的准确性。</template>
-                <span class="tag" v-if="tag != 'SPEECH2TEXT' && tag != 'TTS'" >{{ tag }}</span>
+                <template #title v-if="tag == 'LLM'"
+                  >大语言模型，添加机器人时需要选择一个大语言模型。用户的提问将交由大语言模型，结合知识库给出答案。</template
+                >
+                <template #title v-else-if="tag == 'TEXT EMBEDDING'"
+                  >嵌入模型，添加知识库时需要选择嵌入模型，用于将知识库分段向量化。用户提问时也会将问题生成向量，通过比对向量相似度的方式四配跟提问语义相近的知识库分段。向量检索具备很好的语义分析能力。</template
+                >
+                <template #title v-else-if="tag == 'RERANK'"
+                  >重排序模型,通过重排序模型,将从知识库中检索出来的分段进行重新排序。再将重排序的结果前top-K传递个大语言模型生成答案。重排序有助于优化检索结果，提高大语言模型回答的准确性。</template
+                >
+                <template #title v-else-if="tag == 'SPEECH2TEXT'"
+                  >一种用于将音视频中的语音转化为文字的技术解决方案</template
+                >
+                <template #title v-else-if="tag == 'TTS'">语音合成模型</template>
+                <template #title v-else-if="tag == 'IMAGE'">图像生成模型</template>
+                <span class="tag">{{ tag }}</span>
               </a-tooltip>
             </div>
           </div>
@@ -176,31 +186,17 @@
         </div>
       </div>
       <div class="model-item-right">
-        <a-button v-show="props.type == 1" :class="{'btn-red': item.listType == 1 && props.type == 1}" @click="handleDel(item)">{{item.listType == 1 && props.type == 1 ? '移除配置' : '删除'}}</a-button>
-        <a-button v-if="props.type == 2 && item.model_define != 'azure'" class="add-btn" @click="handleSee(item)">查看模型</a-button>
-        <a-button :disabled="item.listType == 1" v-if="props.type == 2" class="add-btn" @click="handleAdd(item)">添加配置</a-button>
-        <template v-if="item.listType == 1 && props.type == 1">
-          <template v-if="modelDefine.indexOf(item.model_define) > -1">
-            <a-button class="add-btn"  @click="handleSee(item)">{{ t('views.user.model.modelConfigButton') }}（{{ item.config_list.length}}）</a-button>
-            <a-button class="add-btn" @click="handleNew(item)">{{ t('views.user.model.addModelButton') }}</a-button>
-          </template>
-          <template v-else>
-            <a-button class="add-btn" @click="handleEdit(item)">{{ t('views.user.model.editModelButton') }}</a-button>
-            <a-button class="add-btn" @click="handleSee(item)">{{ t('views.user.model.viewModelButton') }}</a-button>
-          </template>
-        </template>
+        <a-button v-if="item.model_define != 'azure'" class="add-btn" @click="handleSee(item)"
+          >查看模型</a-button
+        >
+        <a-button class="add-btn" @click="handleAdd(item)">添加配置</a-button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import {
-  SettingOutlined,
-  PlusOutlined,
-  EyeOutlined,
-  FormOutlined
-} from '@ant-design/icons-vue'
+import { SettingOutlined, PlusOutlined, EyeOutlined, FormOutlined } from '@ant-design/icons-vue'
 import { toRaw } from 'vue'
 import { useI18n } from '@/hooks/web/useI18n'
 

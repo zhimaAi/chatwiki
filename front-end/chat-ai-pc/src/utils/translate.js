@@ -25,7 +25,7 @@ let wordDictionary = {
 export function translate(text) {
   const chatStore = useChatStore()
   let lang = chatStore.externalConfigPC.lang
-  console.log('lang', chatStore.externalConfigPC)
+
   if (lang == 'en-US') {
     return wordDictionary[text] || text
   }

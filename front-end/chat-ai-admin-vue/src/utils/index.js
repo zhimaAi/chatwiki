@@ -596,3 +596,23 @@ export function timeNowGapFormat(timestamp = null) {
   }
   return tips;
 }
+
+export function sortObjectKeys(obj, sort = []) {
+  const result = {};
+
+  // 1. 按 sort 指定顺序添加
+  sort.forEach(key => {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      result[key] = obj[key];
+    }
+  });
+
+  // 2. 添加剩余未排序 key（保持原始顺序）
+  Object.keys(obj).forEach(key => {
+    if (!result.hasOwnProperty(key)) {
+      result[key] = obj[key];
+    }
+  });
+
+  return result;
+}

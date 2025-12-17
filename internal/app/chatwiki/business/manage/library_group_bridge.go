@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package manage
 
@@ -33,7 +33,7 @@ func BridgeGetLibraryGroup(adminUserId, userId int, lang string, req *BridgeGetL
 		return nil, -1, errors.New(i18n.Show(lang, `no_data`))
 	}
 	m := msql.Model(`chat_ai_library_group`, define.Postgres)
-	wheres := [][]string{{`admin_user_id`, cast.ToString(userId)}, {`library_id`, cast.ToString(libraryId)}}
+	wheres := [][]string{{`admin_user_id`, cast.ToString(adminUserId)}, {`library_id`, cast.ToString(libraryId)}}
 	list, err := m.Where2(wheres).Where(`group_type`, cast.ToString(groupType)).Field(`id,group_name`).Order(`sort desc`).Select()
 	if err != nil {
 		logs.Error(err.Error())

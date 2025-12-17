@@ -31,3 +31,15 @@ export const getSelfModelBuylog = (params) => {
 export const getSelfModelConfigs = (params) => {
   return request.get({ url: '/manage/getSelfModelConfigs', params })
 }
+
+export const showModelConfigList = () => {
+  return request.get({ url: '/manage/showModelConfigList' })
+}
+
+export const saveUseModelConfig = (data) => {
+  return request.post({ url: '/manage/saveUseModelConfig', data })
+}
+
+export const delUseModelConfig = (data) => {
+  return request.post({ url: '/manage/delUseModelConfig', data })
+}

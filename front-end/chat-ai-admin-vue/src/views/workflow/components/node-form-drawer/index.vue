@@ -69,6 +69,7 @@ import CustomGroupNodeForm from './custom-group-node/custom-group-node-form.vue'
 import ZmPluginsNodeForm from "./zm-plugins-node-form.vue";
 import SessionTriggerForm from './session-trigger-form.vue'
 import TimingTriggerForm from './timing-trigger-node/timing-trigger-node-form.vue'
+import BatchGroupForm from './batch-group-form/index.vue'
 import {jsonDecode} from "@/utils/index.js";
 
 // 预定义所有可能的表单组件
@@ -90,6 +91,7 @@ const formComponents = {
   'specify-reply-node': SpecifyReplyNodeForm,
   'mcp-node': McpForm,
   'custom-group': CustomGroupNodeForm,
+  'batch-group': BatchGroupForm,
   'zm-plugins-node': ZmPluginsNodeForm,
   'session-trigger-node': SessionTriggerForm,
   'timing-trigger-node': TimingTriggerForm

@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package manage
 
@@ -147,19 +147,8 @@ func LibraryAiSummary(c *gin.Context) {
 	}
 
 	//check model_config_id and use_model
-	config, err := common.GetModelConfigInfo(modelConfigId, userId)
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	modelInfo, _ := common.GetModelInfoByDefine(config[`model_define`])
-	if !tool.InArrayString(useModel, modelInfo.LlmModelList) && !common.IsMultiConfModel(config["model_define"]) {
+	if ok := common.CheckModelIsValid(userId, modelConfigId, useModel, common.Llm); !ok {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `use_model`))))
-		return
-	}
-	if len(config) == 0 || !tool.InArrayString(common.Llm, strings.Split(config[`model_types`], `,`)) {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_config_id`))))
 		return
 	}
 

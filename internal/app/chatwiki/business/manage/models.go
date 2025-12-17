@@ -1,4 +1,4 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package manage
 
@@ -6,7 +6,6 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/app/chatwiki/middlewares"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
@@ -18,16 +17,15 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
-	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
 func GetModelConfigList(c *gin.Context) {
-	var userId int
-	if userId = GetAdminUserId(c); userId == 0 {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
 	m := msql.Model(`chat_ai_model_config`, define.Postgres).
-		Where(`admin_user_id`, cast.ToString(userId))
+		Where(`admin_user_id`, cast.ToString(adminUserId))
 	modelDefine := strings.TrimSpace(c.Query(`model_define`))
 	if len(modelDefine) > 0 {
 		m.Where(`model_define`, modelDefine)
@@ -39,25 +37,29 @@ func GetModelConfigList(c *gin.Context) {
 		return
 	}
 	list := make([]common.ModelInfo, 0)
-	for _, info := range common.GetModelList() {
-		if len(modelDefine) == 0 || info.ModelDefine == modelDefine {
-			info.ConfigList = make([]msql.Params, 0)
-			list = append(list, info)
+	for _, modelConfig := range common.GetModelConfigList() {
+		if len(modelDefine) > 0 && modelConfig.ModelDefine != modelDefine {
+			continue //存在检索的时候,不符合跳过
+		}
+		for _, config := range configs {
+			if modelConfig.ModelDefine != config[`model_define`] {
+				continue //模型服务商不一致,跳过
+			}
+			modelInfo, _ := common.GetModelInfoByConfig(adminUserId, cast.ToInt(config[`id`]))
+			list = append(list, modelInfo)
 		}
 	}
-	for _, config := range configs {
-		for i := range list {
-			if list[i].ModelDefine == config[`model_define`] {
-				historyConfigParams := make([]string, 0)
-				for _, item := range list[i].HistoryConfigParams {
-					if data, ok := config[item]; ok && len(data) > 0 {
-						historyConfigParams = append(historyConfigParams, item)
-					}
-				}
-				list[i].HistoryConfigParams = historyConfigParams
-				list[i].ConfigList = append(list[i].ConfigList, config)
-			}
+	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
+}
+
+func ShowModelConfigList(c *gin.Context) {
+	list := make([]common.ModelInfo, 0)
+	for _, modelConfig := range common.GetModelConfigList() {
+		if modelConfig.ModelDefine == common.ModelChatWiki {
+			continue
 		}
+		modelConfig.UseModelConfigs = common.GetDefaultUseModel(modelConfig.ModelDefine) //填充默认的模型列表
+		list = append(list, modelConfig)
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 }
@@ -72,68 +74,48 @@ func AddModelConfig(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	modelInfo, ok := common.GetModelInfoByDefine(modelDefine)
-	if !ok {
+	modelConfig, exist := common.GetModelConfigByDefine(modelDefine)
+	if !exist {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_define`))))
 		return
 	}
 	data := msql.Datas{
 		`admin_user_id`: userId,
 		`model_define`:  modelDefine,
-		`model_types`:   strings.Join(modelInfo.SupportedType, `,`),
+		`model_types`:   strings.Join(modelConfig.SupportedType, `,`),
 		`create_time`:   tool.Time2Int(),
 		`update_time`:   tool.Time2Int(),
+		`config_name`:   strings.TrimSpace(c.PostForm(`config_name`)),
 	}
-	for _, field := range modelInfo.ConfigParams {
+	for _, field := range modelConfig.ConfigParams {
 		value := strings.TrimSpace(c.PostForm(field))
-		if len(value) == 0 && field != `show_model_name` {
+		if len(value) == 0 {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, field))))
 			return
 		}
-		if field == `model_type` { //special handling parameters
-			if !tool.InArrayString(value, modelInfo.SupportedType) {
-				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_type`))))
-				return
-			}
-			data[`model_types`] = value
-		} else {
-			if field == `api_version` && !tool.InArrayString(value, modelInfo.ApiVersions) {
-				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, field))))
-				return
-			}
-			data[field] = value
+		if field == `api_version` && !tool.InArrayString(value, modelConfig.ApiVersions) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, field))))
+			return
 		}
+		data[field] = value
 	}
 	//configuration test
-	config := msql.Params{}
-	for k, v := range data {
-		if str, ok := v.(string); ok {
-			config[k] = str
-		}
-	}
-	err := configurationTest(config, modelInfo)
-	if err != nil {
+	if err := configurationTest(common.ToStringMap(data), modelConfig); err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
-
 	//database dispose
-	modelId, err := msql.Model(`chat_ai_model_config`, define.Postgres).Insert(data, `id`)
+	id, err := msql.Model(`chat_ai_model_config`, define.Postgres).Insert(data, `id`)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	//set use guide finish
-	if tool.InArrayString(common.Llm, modelInfo.SupportedType) {
-		_ = common.SetStepFinish(userId, define.StepSetLlm)
-	}
-	if tool.InArrayString(common.TextEmbedding, modelInfo.SupportedType) {
-		_ = common.SetStepFinish(userId, define.StepSetEmbedding)
-	}
+	//添加默认的可使用模型
+	common.AutoAddDefaultUseModel(userId, int(id), modelDefine)
 	//clear cached data
-	lib_redis.DelCacheData(define.Redis, &common.ModelConfigCacheBuildHandler{ModelConfigId: int(modelId)})
-	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+	lib_redis.DelCacheData(define.Redis, &common.ModelConfigCacheBuildHandler{ModelConfigId: int(id)})
+	c.String(http.StatusOK, lib_web.FmtJson(id, nil))
 }
 
 func DelModelConfig(c *gin.Context) {
@@ -215,68 +197,48 @@ func EditModelConfig(c *gin.Context) {
 	if userId = GetAdminUserId(c); userId == 0 {
 		return
 	}
-	//get config info
 	id := cast.ToInt(c.PostForm(`id`))
-	if id <= 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+	modelInfo, exist := common.GetModelInfoByConfig(userId, id)
+	if !exist {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(`模型配置ID参数错误`)))
 		return
 	}
-	info, err := common.GetModelConfigInfo(id, userId)
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
+	data := msql.Datas{
+		`model_types`: strings.Join(modelInfo.SupportedType, `,`),
+		`update_time`: tool.Time2Int(),
+		`config_name`: strings.TrimSpace(c.PostForm(`config_name`)),
 	}
-	if len(info) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-		return
-	}
-	//get model define
-	modelInfo, ok := common.GetModelInfoByDefine(info[`model_define`])
-	if !ok {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	//database dispose
-	data := msql.Datas{`model_types`: strings.Join(modelInfo.SupportedType, `,`), `update_time`: tool.Time2Int()}
 	for _, field := range modelInfo.ConfigParams {
-		if field == `model_type` { //special handling parameters
-			data[`model_types`] = info[`model_types`]
-		} else {
-			value := strings.TrimSpace(c.PostForm(field))
-			if len(value) == 0 && field != `show_model_name` {
-				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, field))))
-				return
-			}
-			if field == `api_version` && !tool.InArrayString(value, modelInfo.ApiVersions) {
-				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, field))))
-				return
-			}
-			data[field] = value
-			info[field] = value
+		value := strings.TrimSpace(c.PostForm(field))
+		if len(value) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, field))))
+			return
 		}
+		if field == `api_version` && !tool.InArrayString(value, modelInfo.ApiVersions) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, field))))
+			return
+		}
+		data[field] = value
 	}
+	info := modelInfo.ConfigInfo
 	if tool.InArrayString(info[`model_define`], []string{common.ModelBaiduYiyan, common.ModelDoubao}) {
 		secretKey := strings.TrimSpace(c.PostForm(`secret_key`))
 		data[`secret_key`] = secretKey
-		info[`secret_key`] = secretKey
 	}
-	err = configurationTest(info, modelInfo)
-	if err != nil {
+	//configuration test
+	if err := configurationTest(common.ToStringMap(data, `model_define`, info[`model_define`]), modelInfo); err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
-
-	_, err = msql.Model(`chat_ai_model_config`, define.Postgres).Where(`id`, cast.ToString(id)).Update(data)
+	//database dispose
+	_, err := msql.Model(`chat_ai_model_config`, define.Postgres).Where(`id`, cast.ToString(id)).Update(data)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.ModelConfigCacheBuildHandler{ModelConfigId: id})
-
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
@@ -285,64 +247,25 @@ func GetModelConfigOption(c *gin.Context) {
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	userId := getLoginUserId(c)
-	if userId <= 0 {
-		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
-		return
-	}
-	req := BridgeGetModelConfigOptionReq{}
-	if err := c.ShouldBindQuery(&req); err != nil {
-		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
-		return
-	}
-	req.ModelType = strings.TrimSpace(c.Query(`model_type`))
-	list, httpStatus, err := BridgeGetModelConfigOption(adminUserId, adminUserId, common.GetLang(c), &req)
-	common.FmtBridgeResponse(c, list, httpStatus, err)
-	return
+	modelType := strings.TrimSpace(c.Query(`model_type`))
+	list, err := common.GetModelConfigOption(adminUserId, modelType, common.GetLang(c))
+	c.String(http.StatusOK, lib_web.FmtJson(list, err))
 }
 
 func configurationTest(config msql.Params, modelInfo common.ModelInfo) error {
-	modelInfo, ok := common.GetModelInfoByDefine(config[`model_define`])
-	if !ok {
-		return errors.New(`model define invalid`)
+	if modelInfo.ModelDefine == common.ModelChatWiki {
+		return errors.New(`自有模型ChatWiki禁止操作`)
 	}
-
-	if strings.Contains(config[`model_types`], `LLM`) {
-		handler, err := modelInfo.CallHandlerFunc(modelInfo, config, modelInfo.LlmModelList[0])
-		if err != nil {
-			return err
-		}
-		client := &adaptor.Adaptor{}
-		if handler.Meta.ChoosableThinking {
-			handler.Meta.EnabledThinking = false //这里直接指定
-		}
-		client.Init(handler.Meta)
-
-		var messages []adaptor.ZhimaChatCompletionMessage
-		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: `configuration test`})
-		req := adaptor.ZhimaChatCompletionRequest{
-			Messages:    messages,
-			MaxToken:    100,
-			Temperature: 0.1,
-		}
-		r, err := client.CreateChatCompletion(req)
-		if err != nil {
-			return err
-		}
-		logs.Info(r.Result)
-	} else if strings.Contains(config[`model_types`], `TEXT EMBEDDING`) {
-		handler, err := modelInfo.CallHandlerFunc(modelInfo, config, modelInfo.VectorModelList[0])
-		if err != nil {
-			return err
-		}
-		client := &adaptor.Adaptor{}
-		client.Init(handler.Meta)
-
-		req := adaptor.ZhimaEmbeddingRequest{Input: `configuration test`}
-		_, err = client.CreateEmbeddings(req)
-		if err != nil {
-			return err
-		}
+	//优先选取默认的模型进行参数测试
+	useModels := append(common.GetDefaultUseModel(modelInfo.ModelDefine), modelInfo.UseModelConfigs...)
+	if len(useModels) == 0 {
+		return nil //没有获取到模型的,不校验
 	}
-	return nil
+	//调用模型测试
+	modelInfo.ConfigInfo = config //替换成当前提交的参数
+	handler, err := modelInfo.CallHandlerFunc(modelInfo, modelInfo.ConfigInfo, useModels[0].UseModelName)
+	if err != nil {
+		return err
+	}
+	return common.ConfigurationTest(handler.Meta, useModels[0].ModelType)
 }

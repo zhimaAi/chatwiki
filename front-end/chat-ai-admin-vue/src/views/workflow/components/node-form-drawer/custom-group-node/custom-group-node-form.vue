@@ -456,7 +456,6 @@ const update = () => {
 
   emit('update-node', {
     ...props.node,
-    ...formState,
     node_params: data
   })
 }
@@ -536,7 +535,6 @@ const onDelLoopArrays = (index) => {
 }
 
 const handleLoopArrChange = (val, item) => {
-  console.log(val)
   if (val && val.length) {
     let filterItem1 = loopArraysOptions.value.filter((it) => it.value == val[0])[0].children
     if (filterItem1 && filterItem1.length) {

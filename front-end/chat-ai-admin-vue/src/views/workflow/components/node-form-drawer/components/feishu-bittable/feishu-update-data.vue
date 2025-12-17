@@ -155,7 +155,7 @@ function init(nodeParams = null) {
   dataItems.value = []
   if (Array.isArray(nodeParams?.plugin?.params?.arguments?.fields) && nodeParams.plugin.params.arguments.fields.length) {
     nodeParams.plugin.params.arguments.fields.map(item => {
-      item.value = item.value.toString()
+      item.value = item.value ? item.value.toString() : ""
     })
     dataItems.value = nodeParams.plugin.params.arguments.fields
   }

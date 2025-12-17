@@ -112,7 +112,7 @@ watch(
   () => {
     let cache_config = robotInfo.cache_config || {}
     cache_config = JSON.parse(JSON.stringify(cache_config))
-    console.log(robotInfo.cache_config, '==')
+
     formState.cache_switch = cache_config.cache_switch
     formState.valid_time = cache_config.valid_time
     // 判断 cache_config.valid_time 能不能整除24 能的话 state.unix = h 否则 state.unix = m

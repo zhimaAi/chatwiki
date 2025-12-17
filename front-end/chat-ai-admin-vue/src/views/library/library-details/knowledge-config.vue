@@ -220,30 +220,28 @@
             <div class="form-item-tip">请上传知识库封面，建议尺寸为100*100px.大小不超过100kb</div>
           </a-form-item>
 
-          <temmplate v-if="isWxLibrary">
-            <a-form-item label="历史发布获取时间">
-              <a-select v-model:value="formState.sync_official_history_type" @change="handleEdit">
-                <a-select-option :value="10">全部</a-select-option>
-                <a-select-option :value="1">半年内</a-select-option>
-                <a-select-option :value="2">一年内</a-select-option>
-                <a-select-option :value="3">三年以内</a-select-option>
-              </a-select>
-            </a-form-item>
-            <a-form-item>
-              <template #label>
-                <a-tooltip title="每天3:00获取最新发布内容">
-                  每天获取最新发布
-                  <QuestionCircleOutlined style="cursor: pointer; margin-left: 2px"/>
-                </a-tooltip>
-              </template>
-              <a-switch
-                v-model:checked="formState.enable_cron_sync_official_content"
-                @change="handleEdit"
-                checked-children="开"
-                un-checked-children="关"></a-switch>
-            </a-form-item>
-          </temmplate>
-
+          <a-form-item label="历史发布获取时间" v-if="isWxLibrary">
+            <a-select v-model:value="formState.sync_official_history_type" @change="handleEdit">
+              <a-select-option :value="10">全部</a-select-option>
+              <a-select-option :value="1">半年内</a-select-option>
+              <a-select-option :value="2">一年内</a-select-option>
+              <a-select-option :value="3">三年以内</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item v-if="isWxLibrary">
+            <template #label>
+              <a-tooltip title="每天3:00获取最新发布内容">
+                每天获取最新发布
+                <QuestionCircleOutlined style="cursor: pointer; margin-left: 2px" />
+              </a-tooltip>
+            </template>
+            <a-switch
+              v-model:checked="formState.enable_cron_sync_official_content"
+              @change="handleEdit"
+              checked-children="开"
+              un-checked-children="关"
+            ></a-switch>
+          </a-form-item>
 
           <a-form-item label="嵌入模型" v-bind="validateInfos.use_model">
             <div class="card-box" v-if="false">
@@ -272,44 +270,13 @@
               </div>
             </div>
             <!-- 自定义选择器 -->
-            <CustomSelector
-              v-model="formState.use_model"
-              label-key="use_model_name"
-              value-key="value"
-              :modelType="'TEXT EMBEDDING'"
-              :model-config-id="formState.model_config_id"
-              @change="handleModelChange"
-              @loaded="onVectorModelLoaded"
+            <ModelSelect
+              modelType="TEXT EMBEDDING"
+              v-model:modeName="formState.use_model"
+              v-model:modeId="formState.model_config_id"
+              style="width: 472px"
+              @change="onChangeModel"
             />
-            <!-- <a-select
-              @change="handleChangeModel"
-              v-model:value="formState.use_model"
-              placeholder="请选择嵌入模型"
-            >
-              <a-select-opt-group v-for="item in modelList" :key="item.id">
-                <template #label>
-                  <a-flex align="center" :gap="6">
-                    <img class="model-icon" :src="item.icon" alt="" />{{ item.name }}
-                  </a-flex>
-                </template>
-                <a-select-option
-                  :value="
-                    modelDefine.indexOf(item.model_define) > -1 && val.deployment_name
-                      ? val.deployment_name
-                      : val.name + val.id
-                  "
-                  :model_config_id="item.id"
-                  :current_obj="val"
-                  v-for="val in item.children"
-                  :key="val.name + val.id"
-                >
-                  <span v-if="modelDefine.indexOf(item.model_define) > -1 && val.deployment_name">{{
-                    val.deployment_name
-                  }}</span>
-                  <span v-else>{{ val.name }}</span>
-                </a-select-option>
-              </a-select-opt-group>
-            </a-select> -->
           </a-form-item>
           <a-form-item label="生成知识图谱" v-show="neo4j_status">
             <a-switch
@@ -325,7 +292,7 @@
               modelType="LLM"
               v-model:modeName="formState.graph_use_model"
               v-model:modeId="formState.graph_model_config_id"
-              style="width: 300px"
+              style="width: 472px"
               @change="onChangeModel"
               @loaded="onVectorModelLoaded"
             />
@@ -586,7 +553,10 @@
             <template v-if="formState.chunk_type == 4 && !isQaLibrary">
               <div class="main-title-block">父块（用作上下文）</div>
               <a-form-item label="分段类型">
-                <a-radio-group @change="handleEdit" v-model:value="formState.father_chunk_paragraph_type">
+                <a-radio-group
+                  @change="handleEdit"
+                  v-model:value="formState.father_chunk_paragraph_type"
+                >
                   <a-radio :value="1"
                     >全文
                     <a-tooltip
@@ -679,7 +649,6 @@ import { LIBRARY_OPEN_AVATAR } from '@/constants/index'
 import AvatarInput from '@/views/library/add-library/components/avatar-input.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import OpenGrapgModal from './components/open-grapg-modal.vue'
-import CustomSelector from '@/components/custom-selector/index.vue'
 import { useCompanyStore } from '@/stores/modules/company'
 import { formatSeparatorsNo } from '@/utils/index'
 
@@ -699,8 +668,6 @@ const formState = reactive({
   library_name: '',
   library_intro: '',
   use_model: '',
-  use_model_icon: '', // 新增图标字段
-  use_model_name: '', // 新增系统名称
   is_offline: '',
   model_config_id: '',
   avatar: defaultAvatar,
@@ -730,23 +697,14 @@ const formState = reactive({
 
   sync_official_history_type: 2,
   enable_cron_sync_official_content: true,
-  app_id_list: '',
+  app_id_list: ''
 })
-const currentModelDefine = ref('')
 const isActive = ref(0)
 
 const libraryInfo = ref({})
 
 // 处理选择事件
 const handleModelChange = (item) => {
-  formState.use_model =
-    modelDefine.includes(item.rawData.model_define) && item.rawData.deployment_name
-      ? item.rawData.deployment_name
-      : item.rawData.name
-  formState.use_model_icon = item.icon
-  formState.use_model_name = item.use_model_name
-  formState.model_config_id = item.rawData.id
-  currentModelDefine.value = item.rawData.model_define
   handleEdit()
 }
 
@@ -783,7 +741,10 @@ const getInfo = () => {
     formState.graph_use_model = res.data.graph_use_model
 
     formState.chunk_type = +res.data.chunk_type
-    formState.normal_chunk_default_separators_no = formatSeparatorsNo( res.data.normal_chunk_default_separators_no, [12, 11])
+    formState.normal_chunk_default_separators_no = formatSeparatorsNo(
+      res.data.normal_chunk_default_separators_no,
+      [12, 11]
+    )
     formState.normal_chunk_default_chunk_size = res.data.normal_chunk_default_chunk_size
     formState.normal_chunk_default_not_merged_text = res.data.normal_chunk_default_not_merged_text
     formState.normal_chunk_default_chunk_overlap = res.data.normal_chunk_default_chunk_overlap
@@ -795,12 +756,19 @@ const getInfo = () => {
     formState.ai_chunk_model_config_id = res.data.ai_chunk_model_config_id
     formState.ai_chunk_prumpt = res.data.ai_chunk_prumpt || defaultAiChunkPrumpt
     formState.father_chunk_paragraph_type = +res.data.father_chunk_paragraph_type || 2
-    formState.father_chunk_separators_no = formatSeparatorsNo(res.data.father_chunk_separators_no, [12, 11])
+    formState.father_chunk_separators_no = formatSeparatorsNo(
+      res.data.father_chunk_separators_no,
+      [12, 11]
+    )
     formState.father_chunk_chunk_size = +res.data.father_chunk_chunk_size || 1024
-    formState.son_chunk_separators_no = formatSeparatorsNo(res.data.son_chunk_separators_no, [8, 10])
+    formState.son_chunk_separators_no = formatSeparatorsNo(
+      res.data.son_chunk_separators_no,
+      [8, 10]
+    )
     formState.son_chunk_chunk_size = +res.data.son_chunk_chunk_size || 512
     formState.sync_official_history_type = Number(res.data.sync_official_history_type)
-    formState.enable_cron_sync_official_content = (res.data.enable_cron_sync_official_content === 'true')
+    formState.enable_cron_sync_official_content =
+      res.data.enable_cron_sync_official_content === 'true'
     formState.app_id_list = res.data.official_app_id || ''
 
     isWxLibrary.value = res.data.type == 3
@@ -834,17 +802,6 @@ const rules = reactive({
 
 const { validateInfos } = useForm(formState, rules)
 
-const handleChangeModel = (val, option) => {
-  const self = option.current_obj
-  formState.use_model =
-    modelDefine.indexOf(self.model_define) > -1 && self.deployment_name
-      ? self.deployment_name
-      : self.name
-  currentModelDefine.value = self.model_define
-  formState.model_config_id = self.id || option.model_config_id
-  handleEdit()
-}
-
 const onAvatarChange = (data) => {
   formState.avatar = data.imageUrl
   formState.avatar_file = data.file
@@ -854,9 +811,6 @@ const onAvatarChange = (data) => {
 const handleSelectLibrary = () => {
   return false
 }
-
-const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
-const oldModelDefineList = ['azure']
 
 const onChangeModel = () => {
   handleEdit()
@@ -972,7 +926,9 @@ const handleEdit = (callback = null) => {
     graph_model_config_id: formState.graph_model_config_id,
     graph_use_model: formState.graph_use_model,
     chunk_type: formState.chunk_type,
-    normal_chunk_default_separators_no: JSON.stringify(formState.normal_chunk_default_separators_no),
+    normal_chunk_default_separators_no: JSON.stringify(
+      formState.normal_chunk_default_separators_no
+    ),
     normal_chunk_default_chunk_size: formState.normal_chunk_default_chunk_size,
     normal_chunk_default_chunk_overlap: formState.normal_chunk_default_chunk_overlap,
     normal_chunk_default_not_merged_text: formState.normal_chunk_default_not_merged_text,
@@ -991,12 +947,8 @@ const handleEdit = (callback = null) => {
     group_id: formState.group_id,
     app_id_list: formState.app_id_list,
     sync_official_history_type: formState.sync_official_history_type,
-    enable_cron_sync_official_content:  Number(formState.enable_cron_sync_official_content),
+    enable_cron_sync_official_content: Number(formState.enable_cron_sync_official_content),
     id: rotue.query.id
-  }
-  if (oldModelDefineList.indexOf(currentModelDefine.value) > -1) {
-    // 传给后端的是默认，渲染的是真实名称
-    data.use_model = '默认'
   }
   if (formState.avatar_file) {
     data.avatar = formState.avatar_file

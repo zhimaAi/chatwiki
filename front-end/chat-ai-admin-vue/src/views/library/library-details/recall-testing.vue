@@ -33,9 +33,17 @@
               {{ item.similarity }}
             </span>
           </div>
-          <div class="content-box" v-if="item.question">Q：{{ item.question }}</div>
-          <div class="content-box" v-if="item.answer">A：{{ item.answer }}</div>
-          <div class="content-box" v-html="item.content"></div>
+          <template v-if="libraryType == 2">
+            <div class="content-box" v-if="item.question">问题：{{ item.question }}</div>
+            <div class="content-box similar-questions-box" v-if="item.similar_questions && item.similar_questions.length">
+              <span>相似问法：</span>
+              <ul class="similar-questions-list">
+                <li v-for="(value, index) in item.similar_questions" :key="index">{{ value }}</li>
+              </ul>
+            </div>
+            <div class="content-box" v-if="item.answer">答案：{{ item.answer }}</div>
+          </template>
+          <div class="content-box" v-html="item.content" v-else></div>
         </div>
       </cu-scroll>
       <div v-if="loading" class="loading-box"><a-spin /></div>
@@ -43,19 +51,30 @@
   </div>
 </template>
 <script setup>
-import { reactive, ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
-import { libraryRecallTest } from '@/api/library'
+import { useLibraryStore } from '@/stores/modules/library'
 import { LinkOutlined } from '@ant-design/icons-vue'
 import RrcallTestingForm from './components/recall-testing-form.vue'
+
 const route = useRoute()
 const router = useRouter()
+const libraryStore = useLibraryStore()
 const isEmpty = ref(false)
 const loading = ref(false)
 const lists = ref([])
-const handleRecallTest = (data) => {
+
+const libraryType = computed(() => libraryStore.type)
+
+const handleRecallTest = (data = []) => {
   loading.value = false;
+
+  data.forEach((item) => {
+    if(item.similar_questions){
+      item.similar_questions = JSON.parse(item.similar_questions)
+    } 
+  })
+
   lists.value = data || []
 }
 const handleLoading = () => {
@@ -155,6 +174,15 @@ const handlePreview = (record) => {
         margin-top: 8px;
         white-space: pre-wrap;
         word-wrap: break-word;
+      }
+      .similar-questions-box {
+        display: flex;
+        .similar-questions-list{
+          list-style: none;
+          margin: 0;
+          padding-left: 0;
+          flex: 1;
+        }
       }
     }
   }

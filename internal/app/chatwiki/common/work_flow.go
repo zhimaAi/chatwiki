@@ -1,8 +1,9 @@
-// Copyright © 2016- 2024 Sesame Network Technology all right reserved
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package common
 
 import (
+	"chatwiki/internal/app/chatwiki/define"
 	"errors"
 	"fmt"
 	"regexp"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 )
@@ -394,4 +396,30 @@ type LoopTestParams struct {
 	NodeKey  string      `json:"node_key"`
 	NodeName string      `json:"node_name"`
 	Field    SimpleField `json:"field"`
+}
+
+type BatchTestParams struct {
+	NodeKey  string      `json:"node_key"`
+	NodeName string      `json:"node_name"`
+	Field    SimpleField `json:"field"`
+}
+
+const WorkFlowEnNameRegex = `[a-zA-Z0-9_\-\.]{1,50}`
+
+func CheckEnName(adminUserId, enName string, id string) bool {
+	re := regexp.MustCompile(`^` + WorkFlowEnNameRegex + `$`)
+	if !re.MatchString(enName) {
+		return false
+	}
+	id, err := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`admin_user_id`, adminUserId).
+		Where(`en_name`, enName).Where(`id`, `!=`, id).Value(`id`)
+	if err != nil {
+		logs.Error(err.Error())
+		return false
+	}
+	if len(id) == 0 {
+		return true
+	}
+	return false
 }

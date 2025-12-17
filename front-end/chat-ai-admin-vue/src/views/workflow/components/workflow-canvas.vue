@@ -171,6 +171,7 @@ function initLogicFlow() {
       nodeSelectedOutline: true, // 节点被选中时是否显示节点的外框
       hoverOutline: true, // 鼠标hover节点时是否显示节点的外框
       hideAnchors: false, // 是否隐藏锚点
+      overlapMode: 0, // 元素重合的堆叠模式, 默认模式：0，节点层级优先，该模式下连线在下、节点在上、选中元素临时置
       background: {
         backgroundColor: '#f0f2f5'
       },
@@ -226,14 +227,17 @@ function initLogicFlow() {
     })
 
     // 设置托拽节点时的zIndex
-    let dragNodeZIndex = 1
+    let dragNodeZIndexMap = {}
     let nodeChildren = []
 
     lf.on('node:dragstart', ({ data }) => {
       let node = lf.graphModel.getElement(data.id)
-      dragNodeZIndex = node.zIndex
+      dragNodeZIndexMap[node.id] = node.zIndex
+ 
       nodeChildren = []
+
       let nodeGroup = lf.graphModel.dynamicGroup.getGroupByNodeId(data.id)
+
       if(nodeGroup){
         nodeGroup.properties.width = nodeGroup._width
         nodeGroup.properties.height = nodeGroup._height
@@ -243,15 +247,21 @@ function initLogicFlow() {
           node.properties.disabled_add_group = true
         }
       }
-      if(data.type == 'custom-group'){
-        nodeChildren = node.children || []
-        nodeChildren.forEach(item => {
+
+      // 判断是不是组
+      if(data.children && data.children.length > 0){
+        nodeChildren = data.children || []
+        
+        nodeChildren.forEach((item, index) => {
           let nodeModel = lf.getNodeModelById(item);
+
+          dragNodeZIndexMap[nodeModel.id] = nodeModel.zIndex;
           nodeModel.setZIndex(99)
         })
       }else{
         node.setZIndex(999999)
       }
+
       node.refreshBranch()
     })
 
@@ -269,14 +279,14 @@ function initLogicFlow() {
         groupModel.addChild(data.id)
       }
 
-      if(nodeChildren.length){
-        nodeChildren.forEach(item => {
+      node.setZIndex(dragNodeZIndexMap[node.id])
+
+      if(data.children && data.children.length){
+        data.children.forEach(item => {
           let nodeModel = lf.getNodeModelById(item);
-          nodeModel.setZIndex(1)
+          nodeModel.setZIndex(dragNodeZIndexMap[nodeModel.id])
         })
       }
-
-      node.setZIndex(dragNodeZIndex)
     })
 
     // 节点拖拽时动态调整边的offset
@@ -343,7 +353,7 @@ function initLogicFlow() {
       // const groupModel = lf.getNodeModelById(data.id);
       if(!childModel.properties.loop_parent_key){
         // 移除
-        console.log('移除')
+        // console.log('移除')
         // groupModel.removeChild(childId);
       }
       // 可以在这里执行自定义逻辑，比如更新UI状态
@@ -591,6 +601,73 @@ const getTriggerNodePosition = () => {
     y
   }
 }
+
+// 调整组大小以适应节点
+const resizeGroup = (groupModel, node) => {
+  // 计算节点的边界
+  const nodeLeftBoundary = node.x - node.width / 2;
+  const nodeRightBoundary = node.x + node.width / 2;
+  const nodeTopBoundary = node.y - node.height / 2;
+  const nodeBottomBoundary = node.y + node.height / 2;
+  
+  // 计算组的边界
+  const groupLeftBoundary = groupModel.x - groupModel._width / 2;
+  const groupRightBoundary = groupModel.x + groupModel._width / 2;
+  const groupTopBoundary = groupModel.y - groupModel._height / 2;
+  const groupBottomBoundary = groupModel.y + groupModel._height / 2;
+  
+  let needResize = false;
+  let newWidth = groupModel._width;
+  let newHeight = groupModel._height;
+  let deltaX = 0;
+  let deltaY = 0;
+  
+  // 检查右边界
+  if(nodeRightBoundary > groupRightBoundary - 20){
+    const extraWidth = nodeRightBoundary - groupRightBoundary + 50;
+    newWidth += extraWidth;
+    deltaX += extraWidth / 2;
+    needResize = true;
+  }
+  
+  // 检查左边界
+  if(nodeLeftBoundary < groupLeftBoundary + 20){
+    const extraWidth = groupLeftBoundary - nodeLeftBoundary + 50;
+    newWidth += extraWidth;
+    deltaX -= extraWidth / 2;
+    needResize = true;
+  }
+  
+  // 检查下边界
+  if(nodeBottomBoundary > groupBottomBoundary - 20){
+    const extraHeight = nodeBottomBoundary - groupBottomBoundary + 50;
+    newHeight += extraHeight;
+    deltaY += extraHeight / 2;
+    needResize = true;
+  }
+  
+  // 检查上边界
+  if(nodeTopBoundary < groupTopBoundary + 20){
+    const extraHeight = groupTopBoundary - nodeTopBoundary + 50;
+    newHeight += extraHeight;
+    deltaY -= extraHeight / 2;
+    needResize = true;
+  }
+  
+  // 如果需要调整大小，则更新组的尺寸和位置
+  if(needResize){
+    groupModel.properties.width = newWidth;
+    groupModel.properties.height = newHeight;
+    groupModel._width = newWidth;
+    groupModel._height = newHeight;
+    groupModel.width = newWidth;
+    groupModel.height = newHeight;
+    groupModel.x += deltaX;
+    groupModel.y += deltaY;
+  }
+};
+
+
 const createNodeInfo = (options) => {
   const data = options.node || options;
   const anchorData = options.anchorData; // 来自右键菜单添加
@@ -599,6 +676,16 @@ const createNodeInfo = (options) => {
 
   data.id = data.id || generateUniqueId(data.type)
   data.nodeSortKey = data.id.substring(0, 8) + data.id.substring(data.id.length - 8)
+  
+  // 处理节点的group绑定关系
+  if(anchorData){
+    let nodeGroup = lf.graphModel.dynamicGroup.getGroupByNodeId(anchorData.nodeId)
+    if(!nodeGroup){
+      data.properties.disabled_add_group = true
+    }else{
+      data.properties.loop_parent_key = nodeGroup.id
+    }
+  }
 
   // 如果不是复制粘贴的节点，则处理节点名称递增
   if (!options.isCopy) {
@@ -633,12 +720,6 @@ const createNodeInfo = (options) => {
     // === 从锚点添加 ===
       data.x = anchorData.x + data.width + 100;
       data.y = anchorData.y + data.height / 2 - 24;
-      let nodeGroup = lf.graphModel.dynamicGroup.getGroupByNodeId(anchorData.nodeId)
-      if(!nodeGroup){
-        data.properties.disabled_add_group = true
-      }else{
-        data.properties.loop_parent_key = nodeGroup.id
-      }
     } else {
       // 触发器放到开始节点左边
       if(options.isTriggerNode){
@@ -662,6 +743,48 @@ const createNodeInfo = (options) => {
   return data;
 }
 
+const onAddLoopGroup = (options) => {
+  setTimeout(() => {
+    onCustomAddGroupNode(
+      {
+        node: {
+          type: 'group-start-node',
+          with: 200,
+          properties: {
+            node_type: 27,
+            node_name: '循环开始',
+            node_icon_name: 'start-node',
+            node_params: JSON.stringify({})
+          }
+        }
+      },
+      options.id
+    )
+
+  }, 100)
+}
+
+const onAddBatchGroup = (options) => {
+  setTimeout(() => {
+    onCustomAddGroupNode(
+      {
+        node: {
+          type: 'group-start-node',
+          with: 200,
+          properties: {
+            node_type: 31,
+            node_name: '批量执行开始',
+            node_icon_name: 'start-node',
+            node_params: JSON.stringify({})
+          }
+        }
+      },
+      options.id
+    )
+
+  }, 100)
+}
+
 const onCustomAddNode = (options) => {
   const nodeData = createNodeInfo(options);
   const model = options.model; // 来自右键菜单添加
@@ -671,7 +794,6 @@ const onCustomAddNode = (options) => {
   let hasSessionNode = false
   let zIndex = 0
   lf.graphModel.nodes.forEach((node) => {
-    console.log(node,'node--')
     if (node.zIndex > zIndex) {
       zIndex = node.zIndex
     }
@@ -685,26 +807,17 @@ const onCustomAddNode = (options) => {
     return message.error('请勿添加多个会话触发器')
   }
 
+  nodeData.zIndex = zIndex
+  nodeData.groupZindex = zIndex
+
   let node = lf.addNode(nodeData)
 
   if (node.type == 'custom-group') {
-    setTimeout(() => {
-      onCustomAddGroupNode(
-        {
-          node: {
-            type: 'group-start-node',
-            with: 200,
-            properties: {
-              node_type: 27,
-              node_name: '循环开始',
-              node_icon_name: 'start-node',
-              node_params: JSON.stringify({})
-            }
-          }
-        },
-        node.id
-      )
-    }, 100)
+    onAddLoopGroup(node)
+  }
+
+  if(node.type == 'batch-group'){
+    onAddBatchGroup(node)
   }
 
   if(options.isTriggerNode){
@@ -725,32 +838,40 @@ const onCustomAddNode = (options) => {
   }
 
   if (anchorData) {
+    let targetAnchor = node.anchors.find((anchor) => anchor.type === 'left')
+
     lf.graphModel.addEdge({
       type: 'custom-bezier-edge',
       sourceNodeId: model.id,
       targetNodeId: node.id,
       sourceAnchorId: anchorData.id,
+      targetAnchorId: targetAnchor.id,
       startPoint: {
         x: anchorData.x,
         y: anchorData.y
+      },
+      endPoint: {
+        x: targetAnchor.x,
+        y: targetAnchor.y
       }
     })
 
-    let nodeGroup = lf.graphModel.dynamicGroup.getGroupByNodeId(anchorData.nodeId)
+    // 获取锚点节点的分组
+    const nodeGroup = lf.graphModel.dynamicGroup.getGroupByNodeId(anchorData.nodeId)
+    // 如果有分组，则将节点添加到分组中并且调整分组大小和位置
     if(nodeGroup && nodeGroup.id){
       const groupModel = lf.getNodeModelById(nodeGroup.id);
+
       groupModel.addChild(node.id);
+      
+      resizeGroup(groupModel, node);
+      
       lf.graphModel.dynamicGroup.sendNodeToFront(groupModel);
-      if(node.x - node.width / 3 > groupModel.x + groupModel._width / 2){
-        let offsetDis = groupModel._width + 310 + node.width
-        groupModel.properties.width = offsetDis
-        groupModel._width = offsetDis
-        groupModel.width = offsetDis
-        groupModel.x = groupModel.x + (310 + node.width) / 2
-      }
     }
   }
+
   node.setZIndex(zIndex)
+
   lf.graphModel.clearSelectElements()
   node.setSelected(true)
 }
