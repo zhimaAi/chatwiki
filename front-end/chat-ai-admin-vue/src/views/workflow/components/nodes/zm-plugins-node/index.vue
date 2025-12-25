@@ -41,6 +41,13 @@
         :valueOptions="valueOptions"
         @updateSize="updateSize"
       />
+      <OfficialSendMessageRender
+        v-if="isOfficialSendMessagePlugin"
+        :nodeParams="nodeParams"
+        :business="business"
+        :valueOptions="valueOptions"
+        @updateSize="updateSize"
+      />
       <template v-else>
         <div v-for="(item, key) in formState" :key="key">
           <span class="label">{{ item.name || key }}：</span>
@@ -59,6 +66,7 @@ import NodeCommon from '../base-node.vue'
 import {getPluginInfo, runPlugin} from "@/api/plugins/index.js";
 import {pluginHasAction} from "@/constants/plugin.js";
 import FeishuTableRender from "./components/feishu-table-render.vue";
+import OfficialSendMessageRender from "./components/official-send-message-render.vue";
 import AtText from "@/views/workflow/components/at-input/at-text.vue";
 
 export default {
@@ -66,6 +74,7 @@ export default {
   components: {
     AtText,
     FeishuTableRender,
+    OfficialSendMessageRender,
     NodeCommon,
   },
   inject: ['getNode', 'getGraph', 'setData', 'resetSize'],
@@ -107,6 +116,9 @@ export default {
     },
     isFeishuTbPlugin() {
       return this.pluginName === 'feishu_bitable'
+    },
+    isOfficialSendMessagePlugin() {
+      return this.pluginName === 'official_send_message'
     }
   },
   watch: {
@@ -140,6 +152,7 @@ export default {
         action: "default/get-schema",
         params: {}
       }).then(res => {
+        console.log('res?.data', res?.data)
         this.pluginData = res?.data || {}
         this.formStateFormat()
       })
@@ -148,13 +161,14 @@ export default {
       this.nodeParams = JSON.parse(this.properties.node_params)
     },
     formStateFormat() {
-      if (this.isFeishuTbPlugin) return
+      if (this.isFeishuTbPlugin || this.isOfficialSendMessagePlugin) return
       let data = JSON.parse(JSON.stringify(this.pluginData))
       const customHandleFunc = {
         official_account_profile: this.officialAccountHandle,
         official_batch_tag: this.officialTagHandle,
         official_send_template_message: this.officialTemplateHandle,
         official_article: this.officialArticleHandle,
+        official_draft: this.officialDraftHandle,
       }
       if (customHandleFunc[this.pluginName] ) {
         customHandleFunc[this.pluginName](data)
@@ -184,19 +198,21 @@ export default {
       delete data?.[this.business]?.params.app_secret
       if (data?.[this.business]?.params) {
         if (this.business === 'getTagFans') {
-          delete data?.[this.business]?.params.tagid
-          // 为了让app_name显示在前面
-          data[this.business].params = {
-            app_name: {
-              type: 'string',
-              name: '公众号名称',
-            },
-            tag_name: {
-              type: 'string',
-              name: '标签名称',
-            },
-            ...data[this.business].params
+          let args = this.nodeParams?.plugin?.params?.arguments || {}
+          let tag_map = this.nodeParams?.plugin?.params?.arguments?.tag_map || {}
+          this.formState = {
+            app_name: {type: 'string', name: '公众号名称', value: args.app_name, tags: []},
           }
+          if (args.tag_type == 1) {
+            this.formState.tag_name = {type: 'string', name: '标签名称', value: args.tag_name, tags: []}
+          } else if (tag_map?.tagid?.length) {
+            this.formState.tagid = {type: 'string', name: '标签名称', value: args.tagid, tags: tag_map.tagid || []}
+          } else {
+            this.formState.tagid = {type: 'string', name: '标签ID', value: args.tagid, tags: []}
+          }
+          this.formState.next_openid = {type: 'string', name: '上批尾用户openid', value: args.next_openid, tags: tag_map.next_openid || []}
+          this.updateSize()
+          return
         } else {
           // 为了让app_name显示在前面
           data[this.business].params = {
@@ -254,6 +270,32 @@ export default {
       this.formState = {
         url: {type: 'string', name: '', value: args.url, tags: tag_map.url || []},
         number: {type: 'string', name: '', value: args.number, tags: tag_map.number || []},
+      }
+      this.updateSize()
+    },
+    officialDraftHandle() {
+      let args = this.nodeParams?.plugin?.params?.arguments || {}
+      let tag_map = this.nodeParams?.plugin?.params?.arguments?.tag_map || {}
+      let article_type_text = !args.article_type ? '--' : args.article_type == 'news' ? '图文消息' : '图片消息'
+      switch (this.business) {
+        case 'add_draft':
+          this.formState = {
+            app_name: {type: 'string', name: '公众号名称', value: args.app_name, tags: []},
+            article_type: {type: 'string', name: '文章类型', value: article_type_text, tags: []},
+          }
+          break
+        case 'update_draft':
+        case 'publish_draft':
+        case 'delete_draft':
+        case 'preview_message':
+          this.formState = {
+            app_name: {type: 'string', name: '公众号名称', value: args.app_name, tags: []},
+            media_id: {type: 'string', name: '文章ID', value: args.media_id, tags: tag_map.media_id || []},
+          }
+          if (this.business === 'preview_message') {
+            this.formState.account = {type: 'string', name: '接收用户', value: args.account, tags: tag_map.account || []}
+          }
+          break
       }
       this.updateSize()
     },

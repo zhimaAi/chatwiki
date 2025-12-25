@@ -1,23 +1,21 @@
 <style scoped>
 .text-input {
-  max-height: 10em;
-  line-height: 1.2em;
-  height: 1.5em;
+  line-height: 22px;
+  height: 22px;
+  width: 100%;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 400;
+  color: rgb(26, 26, 26);
   overflow: hidden;
   white-space: pre-wrap; /* 保持内容的换行，并允许自动换行 */
   resize: none;
   border: none;
-  width: 100%;
-  margin: 0 45px 0 12px;
-  color: rgb(26, 26, 26);
-  font-size: 16px;
-  font-weight: 400;
   background: none;
-
   transition: height 0.1s ease-in-out;
 
   &::placeholder {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 400;
     color: rgb(191, 191, 191);
   }
@@ -53,7 +51,6 @@
   <textarea
     :style="{height: inputHeight}"
     class="text-input"
-    rows="1"
     ref="textareaRef"
     :focus="focus"
     :value="props.value"
@@ -85,7 +82,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:value', 'change', 'focus', 'blur', 'enter', 'shiftEnter'])
 
-const inputHeight = ref("1.5em")
+const inputHeight = ref("22px")
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 
@@ -136,6 +133,7 @@ function updateValue(event: Event) {
   emit('change', target.value)
   
   inputHeight.value = calcTextareaHeight(textareaRef.value).height // 调整高度
+
   if (target) {
     if (parseInt(inputHeight.value) >= 160) {
       target.style.overflow = 'auto'
@@ -150,7 +148,7 @@ watch(
   () => {
     if (!props.value && textareaRef.value) {
       // 消息清空后输入框回到最初的高度
-      inputHeight.value = '1.5em'
+      inputHeight.value = '22px'
       // 回车后输入框失去焦点
       // textareaRef.value.blur()
     }

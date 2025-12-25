@@ -13,8 +13,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alibabacloud-go/tea/tea"
 	"github.com/gin-contrib/sse"
 	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/curl"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
@@ -25,6 +27,8 @@ type ModelCallHandler struct {
 	modelInfo *ModelInfo
 	adaptor.Meta
 	config msql.Params
+	//传入useModel对应的各类型模型信息
+	CurModelMap map[string]UseModelConfig
 }
 
 type HandlerFunc func(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error)
@@ -518,15 +522,14 @@ func GetModelCallHandler(adminUserId, modelConfigId int, useModel string, robot 
 		return nil, errors.New(`模型配置ID参数错误`)
 	}
 	//校验使用的模型是否有效
-	var isValid bool
+	curModelMap := make(map[string]UseModelConfig)
 	useModel = CompatibleUseModelOldData(modelInfo.ConfigInfo, useModel) //兼容旧数据
 	for i := range modelInfo.UseModelConfigs {
 		if modelInfo.UseModelConfigs[i].UseModelName == useModel {
-			isValid = true
-			break
+			curModelMap[modelInfo.UseModelConfigs[i].ModelType] = modelInfo.UseModelConfigs[i]
 		}
 	}
-	if !isValid {
+	if len(curModelMap) == 0 {
 		return nil, fmt.Errorf(`model(%s) not config`, useModel)
 	}
 	config := modelInfo.ConfigInfo
@@ -548,6 +551,7 @@ func GetModelCallHandler(adminUserId, modelConfigId int, useModel string, robot 
 		return nil, err
 	}
 	handler.modelInfo = &modelInfo //save quote
+	handler.CurModelMap = curModelMap
 	return handler, nil
 }
 
@@ -698,6 +702,9 @@ func (h *ModelCallHandler) RequestChatStream(
 	if h.Meta.ChoosableThinking && len(robot) > 0 && cast.ToBool(robot[`enable_thinking`]) {
 		h.Meta.EnabledThinking = true
 	}
+	if h.CurModelMap[Llm].InputImage > 0 && len(robot) > 0 && cast.ToBool(robot[`question_multiple_switch`]) {
+		messages = ConvertQuestionMultiple(messages) //转换成多模态输入结构
+	}
 	client.Init(h.Meta)
 	req := adaptor.ZhimaChatCompletionRequest{
 		Messages:      messages,
@@ -825,6 +832,9 @@ func (h *ModelCallHandler) RequestChat(
 	if h.Meta.ChoosableThinking && len(robot) > 0 && cast.ToBool(robot[`enable_thinking`]) {
 		h.Meta.EnabledThinking = true
 	}
+	if h.CurModelMap[Llm].InputImage > 0 && len(robot) > 0 && cast.ToBool(robot[`question_multiple_switch`]) {
+		messages = ConvertQuestionMultiple(messages) //转换成多模态输入结构
+	}
 	client.Init(h.Meta)
 	req := adaptor.ZhimaChatCompletionRequest{
 		Messages:      messages,
@@ -934,4 +944,165 @@ func GetModelConfigOption(adminUserId int, modelType, lang string) ([]ModelInfo,
 		}
 	}
 	return list, nil
+}
+
+func (h *ModelCallHandler) RequestImageGenerate(adminUserId int, openid, appType string, robot msql.Params, params *adaptor.ZhimaImageGenerationReq) (*adaptor.ZhimaImageGenerationResp, error) {
+	client := &adaptor.Adaptor{}
+	client.Init(h.Meta)
+	params.Stream = false
+	params.ResponseFormat = tea.String(`b64_json`)
+	formatImageGenerateParams(params, h.Meta.Model, h.modelInfo.UseModelConfigs)
+	res, err := client.CreateImageGenerate(params)
+	if err != nil {
+		return nil, err
+	}
+	if len(res.Datas) == 0 {
+		return res, errors.New(`image generate empty`)
+	}
+	datas := make([]*adaptor.ImageGenerationData, 0)
+	for _, data := range res.Datas {
+		fileData, err := tool.Base64Decode(data.B64Json)
+		if err != nil {
+			logs.Error(`image generate base64 decode failed : %s`, err.Error())
+			continue
+		}
+		objectKey := fmt.Sprintf(`chat_ai/%d/%s/%s/%s.%s`, adminUserId, `image_generation`, tool.Date(`Ym`), tool.MD5(fileData), data.Ext)
+		fileLink, err := WriteFileByString(objectKey, fileData)
+		if err != nil {
+			logs.Error(`image generate save file failed : %s`, err.Error())
+			continue
+		}
+		data.Url = fileLink
+		if !IsUrl(fileLink) {
+			data.Url = define.Config.WebService[`image_domain`] + fileLink
+		}
+		data.B64Json = ``
+		datas = append(datas, data)
+	}
+	res.Datas = datas
+	err = LlmLogRequest(Image, adminUserId, openid, robot, msql.Params{}, h.config, appType,
+		msql.Params{}, h.Meta.Model, res.InputToken, res.OutputToken, params, res)
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	return res, nil
+}
+
+func (h *ModelCallHandler) RequestImageGenerateStream(
+	adminUserId int,
+	openid string,
+	robot msql.Params,
+	appType string,
+	params *adaptor.ZhimaImageGenerationReq,
+	chanStream chan sse.Event,
+) (*adaptor.ZhimaImageGenerationResp, int64, error) {
+	client := &adaptor.Adaptor{}
+	client.Init(h.Meta)
+	params.Stream = true
+	params.ResponseFormat = tea.String(`b64_json`)
+	formatImageGenerateParams(params, h.Meta.Model, h.modelInfo.UseModelConfigs)
+	stream, err := client.CreateImageGenerateStream(params)
+	if err != nil {
+		return &adaptor.ZhimaImageGenerationResp{}, 0, err
+	}
+	defer func(stream *adaptor.ZhimaImageGenerationStreamRes) {
+		_ = stream.Close()
+	}(stream)
+
+	var totalResponse = &adaptor.ZhimaImageGenerationResp{}
+	requestTime := int64(0)
+	requestStartTime := time.Now()
+
+	for {
+		response, err := stream.Read()
+		if requestTime == 0 {
+			requestTime = time.Now().Sub(requestStartTime).Milliseconds()
+			chanStream <- sse.Event{Event: `request_time`, Data: requestTime}
+		}
+		if err != nil {
+			logs.Error(`image generate failed:` + err.Error())
+			continue
+		}
+
+		totalResponse.InputToken += response.InputToken
+		totalResponse.OutputToken += response.OutputToken
+
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return &adaptor.ZhimaImageGenerationResp{}, 0, err
+		}
+		if len(response.Datas) > 0 {
+			totalResponse.Datas = append(totalResponse.Datas, response.Datas...)
+		}
+		chanStream <- sse.Event{Event: `sending`, Data: response.Datas}
+	}
+
+	//go func() {
+	library := msql.Params{}
+	if appType == "" && openid == "" {
+		library, robot = robot, library
+	}
+	err = LlmLogRequest(Image, adminUserId, openid, robot, library, h.config, appType, msql.Params{}, h.Meta.Model, totalResponse.InputToken, totalResponse.OutputToken, params, totalResponse)
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	//}()
+	return totalResponse, requestTime, nil
+}
+
+func RequestImageGenerate(adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, params *adaptor.ZhimaImageGenerationReq) (*adaptor.ZhimaImageGenerationResp, error) {
+	handler, err := GetModelCallHandler(adminUserId, modelConfigId, useModel, robot)
+	if err != nil {
+		return &adaptor.ZhimaImageGenerationResp{}, err
+	}
+	params.Stream = false
+	res, err := handler.RequestImageGenerate(adminUserId, openid, appType, robot, params)
+	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
+		handler.modelInfo.TokenUseReport(handler.config, useModel, res.InputToken, res.OutputToken, robot)
+	}
+	return res, err
+}
+
+func formatImageGenerateParams(params *adaptor.ZhimaImageGenerationReq, useModel string, useModelConfigs []UseModelConfig) {
+	if len(*params.Image) > 0 && len(useModelConfigs) > 0 {
+		for _, modelConfig := range useModelConfigs {
+			if modelConfig.UseModelName != useModel {
+				continue
+			}
+			imageGenerate := ImageGeneration{}
+			err := tool.JsonDecode(modelConfig.ImageGeneration, &imageGenerate)
+			if err != nil {
+				logs.Error(err.Error())
+				break
+			}
+			if modelConfig.InputImage != 1 {
+				*params.Image = []string{}
+				break
+			}
+			imageInputsMax := cast.ToInt(imageGenerate.ImageInputsImageMax)
+			if imageInputsMax > 0 && len(*params.Image) > imageInputsMax {
+				*params.Image = (*params.Image)[0:imageInputsMax]
+			}
+			if *params.Image != nil && len(*params.Image) > 0 {
+				base64s := make([]string, 0)
+				for _, imageUrl := range *params.Image {
+					ext := GetUrlExt(imageUrl)
+					if ext == `` {
+						logs.Warning(`get url ext failed: %s`, imageUrl)
+						continue
+					}
+					data, err := curl.Get(imageUrl).String()
+					if err != nil {
+						logs.Error(`get image(%s) failed: %s`, imageUrl, err.Error())
+						continue
+					}
+					base64s = append(base64s, fmt.Sprintf(`data:image/%s;base64,%s`, ext, tool.Base64Encode(data)))
+				}
+				*params.Image = base64s
+			}
+			break
+		}
+	}
 }

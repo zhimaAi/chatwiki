@@ -9,29 +9,50 @@ import { REQUEST_TIMEOUT } from '@/constants'
 
 export const PATH_URL = import.meta.env.VITE_BASE_API_URL
 
-const abortControllerMap = new Map()
+const pending = new Map()
+const CancelToken = axios.CancelToken
+
+const removePending = (config) => {
+  const key = `${config.url}&${config.method}`
+  if (pending.has(key)) {
+    const cancel = pending.get(key)
+    cancel(key)
+    pending.delete(key)
+  }
+}
 
 const axiosInstance = axios.create({
   timeout: REQUEST_TIMEOUT,
   baseURL: PATH_URL
 })
 
-axiosInstance.interceptors.request.use((res) => {
-  const controller = new AbortController()
-  const url = res.url || ''
-  res.signal = controller.signal
-  abortControllerMap.set(url, controller)
-  return res
+axiosInstance.interceptors.request.use((config) => {
+  if (config.cancelToken) {
+    removePending(config) // 取消之前的请求
+    config.cancelToken = new CancelToken((c) => {
+      const key = `${config.url}&${config.method}`
+      pending.set(key, c)
+    })
+  }
+  return config
 })
 
 axiosInstance.interceptors.response.use(
   (res) => {
-    const url = res.config.url || ''
-    abortControllerMap.delete(url)
+    // 在响应成功后，从 pending 中移除请求
+    removePending(res.config)
     // 这里不能做任何处理，否则后面的 interceptors 拿不到完整的上下文了
     return res
   },
   (error) => {
+    if (axios.isCancel(error)) {
+      console.log('Request canceled', error.message)
+    } else {
+      // 在响应失败后，也从 pending 中移除请求
+      if (error.config) {
+        removePending(error.config)
+      }
+    }
     return Promise.reject(error)
   }
 )
@@ -58,18 +79,19 @@ const service = {
     })
   },
   cancelRequest: (url) => {
-    const urlList = Array.isArray(url) ? url : [url]
-    for (const _url of urlList) {
-      abortControllerMap.get(_url)?.abort()
-      abortControllerMap.delete(_url)
+    for (const [key, cancel] of pending) {
+      const urlList = Array.isArray(url) ? url : [url]
+      if (urlList.some((_url) => key.startsWith(_url))) {
+        cancel(`Request canceled: ${key}`)
+        pending.delete(key)
+      }
     }
   },
   cancelAllRequest() {
-    // eslint-disable-next-line no-unused-vars
-    for (const [_, controller] of abortControllerMap) {
-      controller.abort()
+    for (const [key, cancel] of pending) {
+      cancel(`All requests canceled`)
+      pending.delete(key)
     }
-    abortControllerMap.clear()
   }
 }
 

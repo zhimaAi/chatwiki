@@ -160,6 +160,28 @@
               </div>
             </div>
           </a-col>
+          
+          <a-col v-bind="grid">
+            <div class="form-item justify-between">
+              <div class="form-item-label">
+                <span>多模态输入&nbsp;</span>
+                <a-tooltip>
+                  <template #title>
+                    <span>开启时，调用大模型时会指定走深度思考模式</span>
+                  </template>
+                  <QuestionCircleOutlined class="question-icon" />
+                </a-tooltip>
+              </div>
+              <CuTooltip title="当前选择的模型不支持多模态输入" :disabled="!disableMultimodalInput">
+                <a-switch
+                  v-model:checked="formState.question_multiple_switch"
+                  :checkedValue="1"
+                  :unCheckedValue="0"
+                  :disabled="disableMultimodalInput"
+                />
+              </CuTooltip>
+            </div>
+          </a-col>
 
           <a-col v-bind="grid" v-if="show_enable_thinking">
             <div class="form-item justify-between">
@@ -207,21 +229,19 @@
 </template>
 
 <script setup>
-import { getModelConfigOption } from '@/api/model/index'
 import {
   ref,
   reactive,
   inject,
   toRaw,
   watchEffect,
-  onMounted,
-  onBeforeUnmount,
   computed
 } from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import EditBox from './edit-box.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { getModelNameText } from '@/components/model-select/index.js'
+import CuTooltip from '@/components/cu-tooltip/index.vue'
 
 const grid = reactive({ sm: 24, md: 24, lg: 12, xl: 24, xxl: 24 })
 // 获取LLM模型
@@ -237,10 +257,24 @@ const formState = reactive({
   context_pair: 0,
   think_switch: 1,
   prompt_role_type: '0',
-  enable_thinking: 0
+  enable_thinking: 0,
+  question_multiple_switch: 1,
 })
+
+const disableMultimodalInput = ref(false)
+
 // 处理选择事件
-const handleModelChange = () => {
+const handleModelChange = (val, data) => {
+  const attr = data.attrs
+
+  formState.question_multiple_switch = Number(attr.input_image) || 0;
+
+  if (attr && attr.input_image == 1) {
+    disableMultimodalInput.value = false
+  } else {
+    disableMultimodalInput.value = true
+  }
+
   if (formState.use_model && formState.use_model.toLowerCase().includes('deepseek-r1')) {
     formState.prompt_role_type = '1'
   } else {
@@ -283,6 +317,7 @@ const handleEdit = (val) => {
   formState.think_switch = Number(robotInfo.think_switch)
   formState.prompt_role_type = robotInfo.prompt_role_type
   formState.enable_thinking = robotInfo.enable_thinking
+  formState.question_multiple_switch = Number(robotInfo.question_multiple_switch) || 0
   isEdit.value = val
 }
 
@@ -295,6 +330,7 @@ watchEffect(() => {
   formState.think_switch = Number(robotInfo.think_switch)
   formState.prompt_role_type = robotInfo.prompt_role_type
   formState.enable_thinking = robotInfo.enable_thinking
+  formState.question_multiple_switch = Number(robotInfo.question_multiple_switch) || 0
 })
 
 const getModelName = computed(() => {

@@ -44,6 +44,46 @@
           </template>
         </a-table-column>
         <a-table-column
+          v-if="model_type == 'IMAGE'"
+          :width="140"
+          key="image_sizes_desc"
+          title="图片比例支持"
+          data-index="image_sizes_desc"
+        >
+        </a-table-column>
+        <a-table-column
+          v-if="model_type == 'IMAGE'"
+          :width="160"
+          key="image_max"
+          title="生成图片最大数量"
+          data-index="image_max"
+        >
+        </a-table-column>
+        <a-table-column
+          v-if="model_type == 'IMAGE'"
+          :width="140"
+          key="image_watermark"
+          title="支持图片水印"
+          data-index="image_watermark"
+        >
+          <template #default="{ record }">
+            <span v-if="record.image_watermark == 1">支持</span>
+            <span v-if="record.image_watermark == 0">不支持</span>
+          </template>
+        </a-table-column>
+        <a-table-column
+          v-if="model_type == 'IMAGE'"
+          :width="160"
+          key="image_optimize_prompt"
+          title="支持自动优化提示词"
+          data-index="image_optimize_prompt"
+        >
+          <template #default="{ record }">
+            <span v-if="record.image_optimize_prompt == 1">支持</span>
+            <span v-if="record.image_optimize_prompt == 0">不支持</span>
+          </template>
+        </a-table-column>
+        <a-table-column
           v-if="model_type == 'LLM'"
           :width="140"
           key="thinking_type"
@@ -114,6 +154,7 @@
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue'
 import { KeyOutlined } from '@ant-design/icons-vue'
+import { getSizeOptions } from '@/views/workflow/components/util.js'
 const props = defineProps({
   currentModalItem: {
     type: Object,
@@ -124,11 +165,12 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['addModel', 'delModel', 'editConfig', 'delConfig'])
-
+const sizeOptions = getSizeOptions()
 let model_type_maps = {
   LLM: '大语言模型',
   'TEXT EMBEDDING': '嵌入模型',
-  RERANK: '重排序模型'
+  RERANK: '重排序模型',
+  IMAGE: '图片生成模型'
 }
 
 let input_map = {
@@ -174,6 +216,15 @@ const use_model_configs = computed(() => {
   return props.currentModalItem.use_model_configs || []
 })
 
+function getSizeDesc(image_sizes) {
+  console.log(image_sizes,'=')
+  if (image_sizes) {
+    let list = image_sizes.split(',')
+    return list.map((item) => sizeOptions.find((it) => it.value == item).label).join(',')
+  }
+  return ''
+}
+
 const tableData = computed(() => {
   let list = use_model_configs.value.filter((item) => item.model_type == model_type.value)
   return list.map((item) => {
@@ -189,10 +240,21 @@ const tableData = computed(() => {
         output_desc.push(output_map[key])
       }
     }
+    let image_generation_info = item.image_generation ? JSON.parse(item.image_generation) : {}
+    let image_sizes_desc = ''
+    if (item.image_generation) {
+      image_sizes_desc = getSizeDesc(image_generation_info.image_sizes)
+    }
+
     return {
       ...item,
       input_desc: input_desc.join(','),
-      output_desc: output_desc.join(',')
+      output_desc: output_desc.join(','),
+      image_generation_info,
+      image_sizes_desc,
+      image_max: image_generation_info.image_max,
+      image_optimize_prompt: image_generation_info.image_optimize_prompt,
+      image_watermark: image_generation_info.image_watermark
     }
   })
 })
@@ -211,6 +273,10 @@ const typeOptions = computed(() => {
     {
       label: `重排序模型（${use_model_configs.value.filter((item) => item.model_type == 'RERANK').length}）`,
       value: 'RERANK'
+    },
+    {
+      label: `图片生成模型（${use_model_configs.value.filter((item) => item.model_type == 'IMAGE').length}）`,
+      value: 'IMAGE'
     }
   ]
 })

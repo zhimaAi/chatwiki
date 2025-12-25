@@ -44,7 +44,7 @@ func SaveUseModelConfig(c *gin.Context) {
 	}
 	useModel := common.LoadUseModelConfig(params, modelInfo.ModelDefine)
 	//参数校验
-	if !tool.InArrayString(useModel.ModelType, []string{common.Llm, common.TextEmbedding, common.Rerank}) {
+	if !tool.InArrayString(useModel.ModelType, []string{common.Llm, common.TextEmbedding, common.Rerank, common.Image}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_type`))))
 		return
 	}
@@ -55,13 +55,46 @@ func SaveUseModelConfig(c *gin.Context) {
 	if len(useModel.ShowModelName) == 0 {
 		useModel.ShowModelName = useModel.UseModelName //填充默认值
 	}
-	if !tool.InArrayInt(int(useModel.ThinkingType), []int{0, 1, 2}) { //深度思考选项:0不支持,1支持,2可选
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `thinking_type`))))
-		return
-	}
-	if len(useModel.VectorDimensionList) > 0 && !common.CheckIds(useModel.VectorDimensionList) {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `vector_dimension_list`))))
-		return
+	if useModel.ModelType != common.Image {
+		if !tool.InArrayInt(int(useModel.ThinkingType), []int{0, 1, 2}) { //深度思考选项:0不支持,1支持,2可选
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `thinking_type`))))
+			return
+		}
+		if len(useModel.VectorDimensionList) > 0 && !common.CheckIds(useModel.VectorDimensionList) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `vector_dimension_list`))))
+			return
+		}
+	} else {
+		if modelInfo.ModelDefine != common.ModelDoubao {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_define`))))
+			return
+		}
+		imageGeneration := common.ImageGeneration{}
+		err := tool.JsonDecode(useModel.ImageGeneration, &imageGeneration)
+		if err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `image_generation`))))
+			return
+		}
+		if common.CheckArrayInArray(strings.Split(imageGeneration.ImageSizes, `,`), define.ImageSizes) >= 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `image_sizes`))))
+			return
+		}
+		if cast.ToInt(imageGeneration.ImageMax) < 1 || cast.ToInt(imageGeneration.ImageMax) > 15 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `image_max`))))
+			return
+		}
+		if useModel.InputImage > 0 && (cast.ToInt(imageGeneration.ImageInputsImageMax) < 1 || cast.ToInt(imageGeneration.ImageInputsImageMax) > 15) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `image_inputs_image_max`))))
+			return
+		}
+		if !tool.InArray(imageGeneration.ImageWatermark, []string{`1`, `0`}) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `image_watermark`))))
+			return
+		}
+		if !tool.InArray(imageGeneration.ImageOptimizePrompt, []string{`1`, `0`}) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `image_optimize_prompt`))))
+			return
+		}
 	}
 	//调用模型测试
 	handler, err := modelInfo.CallHandlerFunc(modelInfo, modelInfo.ConfigInfo, useModel.UseModelName)

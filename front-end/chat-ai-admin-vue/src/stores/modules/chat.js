@@ -50,7 +50,8 @@ export const useChatStore = defineStore('chat', () => {
     welcomes: { reasoning_content: '', content: '', question: [] },
     enable_question_guide: false,
     enable_common_question: false,
-    common_question_list: []
+    common_question_list: [],
+    question_multiple_switch: 0,
   })
 
   // 存储聊天记录必备的数据
@@ -137,6 +138,8 @@ export const useChatStore = defineStore('chat', () => {
       robot.enable_question_guide = robotInfo.enable_question_guide == 'true'
       robot.enable_common_question = robotInfo.enable_common_question == 'true'
       robot.common_question_list = robotInfo.common_question_list
+      robot.question_multiple_switch = Number(robotInfo.question_multiple_switch) || 0
+      
       if (robotInfo.welcomes) {
         robot.welcomes = JSON.parse(robotInfo.welcomes)
       }
@@ -220,7 +223,7 @@ export const useChatStore = defineStore('chat', () => {
     msg.loading = false
     msg.avatar = user.avatar
     msg.openid = user.openid
-    msg.msg_type = 1
+    msg.msg_type = msg.msg_type || 1
     msg.is_customer = 1
     messageList.value.push(msg)
   }
@@ -538,6 +541,10 @@ export const useChatStore = defineStore('chat', () => {
 
   // 打开对话
   const openChat = async (data) => {
+    if (mySSE) {
+      mySSE.abort()
+      mySSE = null
+    }
     let res = await createChat(data)
 
     return res
@@ -559,17 +566,21 @@ export const useChatStore = defineStore('chat', () => {
       min_id = list[0].id
     }
 
+    const request_dialogue_id = dialogue_id.value;
     let params = {
       robot_key: robot.robot_key,
       openid: user.openid,
       min_id: min_id,
       size: chatMessagePageSize,
-      dialogue_id: dialogue_id.value,
+      dialogue_id: request_dialogue_id,
       rel_user_id: rel_user_id.value
     }
 
     try {
       const res = await getChatMessage(params)
+      if (dialogue_id.value !== request_dialogue_id) {
+        return Promise.resolve(null);
+      }
       const list = res.data.list || []
       const _customer = res?.data?.customer || {}
       const newRobot = res.data.robot

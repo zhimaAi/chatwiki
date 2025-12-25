@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alibabacloud-go/tea/tea"
 	"github.com/mark3labs/mcp-go/mcp"
 
 	"github.com/spf13/cast"
@@ -53,6 +54,7 @@ const (
 	NodeTypeLoopStart        = 27 //开始循环节点
 	NodeTypeBatch            = 30 //批处理
 	NodeTypeBatchStart       = 31 //批处理开始
+	NodeTypeImageGeneration  = 33 //图片生成
 )
 
 var NodeTypes = [...]int{
@@ -82,6 +84,7 @@ var NodeTypes = [...]int{
 	NodeTypePlugin,
 	NodeTypeBatch,
 	NodeTypeBatchStart,
+	NodeTypeImageGeneration,
 }
 
 type NodeAdapter interface {
@@ -154,6 +157,8 @@ func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, ms
 		return &BatchNode{params: nodeParams.Batch, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypePlugin:
 		return &PluginNode{params: nodeParams.Plugin, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeImageGeneration:
+		return &ImageGeneration{params: nodeParams.ImageGeneration, nextNodeKey: info[`next_node_key`]}, info, nil
 	default:
 		return nil, info, errors.New(`不支持的节点类型:` + info[`node_type`])
 	}
@@ -177,7 +182,9 @@ func (n *StartNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNod
 	for key, field := range common.SimplifyFields(workFlowGlobal) {
 		flow.global[key] = field
 	}
-	if !flow.params.Draft.IsDraft { //触发器逻辑(非草稿调试场景)
+	if flow.params.Draft.IsDraft { //草稿调试场景
+		flow.params.Robot[`question_multiple_switch`] = cast.ToString(cast.ToUint(flow.params.Draft.QuestionMultipleSwitch))
+	} else { //触发器逻辑
 		var findTrigger bool
 		for i, trigger := range n.params.TriggerList {
 			if trigger.TriggerSwitch && trigger.TriggerType == flow.params.TriggerParams.TriggerType {
@@ -1152,6 +1159,68 @@ type BatchNode struct {
 }
 
 func (n *BatchNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+type ImageGeneration struct {
+	params      ImageGenerationParams
+	nextNodeKey string
+}
+
+func (n *ImageGeneration) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	flow.Logs(`执行图片生成逻辑...`)
+	output = common.SimpleFields{}
+	var optimizePromptMode *string
+	if n.params.ImageOptimizePrompt == `1` {
+		optimizePromptMode = tea.String(`standard`)
+	}
+	var images = make([]string, 0)
+	if len(n.params.InputImages) > 0 {
+		for _, image := range n.params.InputImages {
+			images = append(images, flow.VariableReplace(image))
+		}
+	}
+	res, err := common.RequestImageGenerate(flow.params.AdminUserId, flow.params.Openid, flow.params.Robot, flow.params.AppType,
+		cast.ToInt(n.params.ModelConfigId), n.params.UseModel, &adaptor.ZhimaImageGenerationReq{
+			Prompt:                    flow.VariableReplace(n.params.Prompt),
+			Size:                      &n.params.Size,
+			Image:                     &images,
+			SequentialImageGeneration: tea.String(`auto`),
+			MaxImages:                 cast.ToInt(n.params.ImageNum),
+			Stream:                    false,
+			ResponseFormat:            tea.String(`b64_json`),
+			Watermark:                 tea.Bool(n.params.ImageWatermark == `1`),
+			OptimizePromptMode:        optimizePromptMode,
+		})
+	if err != nil {
+		output[`msg`] = common.SimpleField{
+			Key:  "msg",
+			Typ:  common.TypString,
+			Vals: []common.Val{{String: tea.String(err.Error())}},
+		}
+		nextNodeKey = n.nextNodeKey
+		return //结果解析异常
+	} else {
+		output[`msg`] = common.SimpleField{
+			Key:  "msg",
+			Typ:  common.TypString,
+			Vals: []common.Val{{String: tea.String(`success`)}},
+		}
+		if res == nil {
+			logs.Info(`image generation res is empty %#v`, res)
+			return
+		}
+		for i := 0; i < len(res.Datas); i++ {
+			letter := 'a' + rune(i)
+			key := fmt.Sprintf(`picture_url_%c`, letter)
+			output[key] = common.SimpleField{
+				Key:  key,
+				Typ:  common.TypString,
+				Vals: []common.Val{{String: tea.String(res.Datas[i].Url)}},
+			}
+		}
+	}
 	nextNodeKey = n.nextNodeKey
 	return
 }

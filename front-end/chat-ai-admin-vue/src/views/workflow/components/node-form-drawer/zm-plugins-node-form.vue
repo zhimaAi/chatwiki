@@ -174,9 +174,11 @@ import FeishuBittableBox from "./components/feishu-bittable/feishu-bittable-box.
 import OfficialAccountBox from "./components/official-account/official-account-box.vue";
 import OfficialTemplateBox from "./components/official-account/official-template-box.vue";
 import OfficialTagBox from "./components/official-account/official-tag-box.vue";
+import OfficialSendMessageBox from "./components/official-send-message/official-send-message-box.vue";
 import {pluginHasAction} from "@/constants/plugin.js";
 import PluginFormRender from "./components/pluginFormRender.vue";
 import {sortObjectKeys} from "@/utils/index.js";
+import OfficialDraftBox from "./components/official-draft/official-draft-box.vue";
 
 const getNode = inject('getNode')
 const setData = inject('setData')
@@ -193,6 +195,8 @@ const pluginCompMap = {
   official_account_profile: OfficialAccountBox,
   official_batch_tag: OfficialTagBox,
   official_send_template_message: OfficialTemplateBox,
+  official_send_message: OfficialSendMessageBox,
+  official_draft: OfficialDraftBox,
 }
 
 const customFieldsSortMap = {

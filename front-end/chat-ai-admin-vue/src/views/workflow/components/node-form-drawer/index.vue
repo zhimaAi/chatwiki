@@ -69,8 +69,10 @@ import CustomGroupNodeForm from './custom-group-node/custom-group-node-form.vue'
 import ZmPluginsNodeForm from "./zm-plugins-node-form.vue";
 import SessionTriggerForm from './session-trigger-form.vue'
 import TimingTriggerForm from './timing-trigger-node/timing-trigger-node-form.vue'
+import OfficialTriggerNodeForm from './official-trigger-node/official-trigger-node-form.vue'
 import BatchGroupForm from './batch-group-form/index.vue'
 import {jsonDecode} from "@/utils/index.js";
+import ImageGenerationNodeForm from './image-generation-node-form/index.vue'
 
 // 预定义所有可能的表单组件
 const formComponents = {
@@ -94,7 +96,10 @@ const formComponents = {
   'batch-group': BatchGroupForm,
   'zm-plugins-node': ZmPluginsNodeForm,
   'session-trigger-node': SessionTriggerForm,
-  'timing-trigger-node': TimingTriggerForm
+  'timing-trigger-node': TimingTriggerForm,
+  'official-trigger-node': OfficialTriggerNodeForm,
+  'image-generation-node': ImageGenerationNodeForm
+
   // 其他表单组件可以在这里添加
   // 'problem-optimization-node': defineAsyncComponent(() => import('./problem-optimization-form.vue')),
 }
@@ -137,13 +142,15 @@ const close = () => {
 const width = computed(() => {
   let node_params = jsonDecode(props.node?.node_params)
   if (node_params?.plugin?.name == 'feishu_bitable') return 600
+  if (node_params?.plugin?.name == 'official_send_message') return 600
   let widthMap = {
     'delete-data-node': 600,
     'update-data-node': 600,
     'select-data-node': 600,
     'judge-node': 600,
-    'custom-group': 568,
+    'custom-group': 640,
     'timing-trigger-node': 420,
+    'batch-group': 640,
   }
   return widthMap[props.nodeType] || 480
 })

@@ -41,6 +41,7 @@
     <div v-else class="empty-box">
       <img src="@/assets/empty.png"/>
       <div class="title">暂未添加外部MCP插件</div>
+      <div class="desc-box"><div class="link" @click="goMcpSquare">更多MCP？去MCP广场</div></div>
       <a-button @click="showMcpModal" class="btn" type="primary">立即添加</a-button>
     </div>
 
@@ -56,12 +57,16 @@ import {EllipsisOutlined} from '@ant-design/icons-vue';
 import ThirdMcpDetail from "@/views/robot/robot-list/components/third-mcp-detail.vue";
 import ThirdMcpStore from "@/views/robot/robot-list/components/third-mcp-store.vue";
 import {delTMcpProvider, getTMcpProviders} from "@/api/robot/thirdMcp.js";
-import {jsonDecode, timeNowGapFormat} from "@/utils/index.js";
+import { jsonDecode, timeNowGapFormat } from "@/utils/index.js";
+import { useRouter } from "vue-router";
+
+const router = useRouter()
 
 const mcpDetailRef = ref(null)
 const mcpStoreRef = ref(null)
 const loading = ref(true)
 const list = ref([])
+const emit = defineEmits(['listLoaded'])
 
 onMounted(() => {
   init()
@@ -85,6 +90,7 @@ function loadData() {
       item.up_time_text = timeNowGapFormat(item.update_time)
     })
     list.value = _list
+    emit('listLoaded', list.value.length)
   }).finally(() => {
     loading.value = false
   })
@@ -100,6 +106,13 @@ function showMcpModal() {
 
 function editApp(item) {
   mcpStoreRef.value.show(item)
+}
+
+function goMcpSquare () {
+  const url = router.resolve({
+    path: '/mcp/index'
+  }).href
+  window.open(url, '_blank')
 }
 
 function delApp(item) {
@@ -200,7 +213,6 @@ defineExpose({
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 40px 0;
 
     img {
       width: 200px;
@@ -210,8 +222,34 @@ defineExpose({
     .title {
       color: #262626;
       font-size: 16px;
+      font-style: normal;
       font-weight: 600;
       line-height: 24px;
+    }
+
+    .desc-box {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #8c8c8c;
+      font-size: 14px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 22px;
+
+      .link {
+        cursor: pointer;
+        color: #2475fc;
+        font-size: 14px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: 22px;
+
+        &:hover {
+          opacity: 0.8;
+        }
+      }
     }
 
     .btn {

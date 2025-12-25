@@ -130,6 +130,12 @@
               </div>
               <div class="time-tag" v-if="cuttentItem.is_success">{{ cuttentItem.use_time }}ms</div>
             </div>
+            <div class="preview-content-block" v-if="currentImageList.length > 0">
+              <div class="title-block">生成图像日志</div>
+              <div class="preview-img-box">
+                <ImageLogs :currentImageList="currentImageList" />
+              </div>
+            </div>
             <div class="preview-content-block">
               <div class="title-block">运行日志<CopyOutlined @click="handleCopy" /></div>
               <div class="preview-code-box">
@@ -160,6 +166,7 @@ import { callLoopWorkFlow, callLoopWorkFlowParams } from '@/api/robot/index'
 import { getImageUrl } from '../../../util'
 import { message } from 'ant-design-vue'
 import { copyText } from '@/utils/index'
+import ImageLogs from '@/views/workflow/components/image-logs/index.vue'
 const robotStore = useRobotStore()
 
 const isLockedByOther = computed(() => {
@@ -187,6 +194,19 @@ const cuttentItem = computed(() => {
     return null
   }
   return resultList.value.filter((item) => item.node_key == currentNodeKey.value)[0]
+})
+
+const currentImageList = computed(()=>{
+  let list = []
+  if(cuttentItem.value && cuttentItem.value.node_type == 33){
+    let output = cuttentItem.value.output
+    for(let key in output){
+      if(key.includes('picture_url_')){
+        list.push(output[key])
+      }
+    }
+  }
+  return list
 })
 
 const loading = ref(false)

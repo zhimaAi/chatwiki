@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/work_flow"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/pipeline"
 	"strings"
 	"time"
@@ -14,6 +15,22 @@ import (
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
+
+// CheckSkipCallLlm 检查是否跳过llm调用
+func CheckSkipCallLlm(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	if len(in.params.AppInfo) > 0 && len(in.params.ReceivedMessageType) > 0 && in.params.ReceivedMessageType != lib_define.MsgTypeText {
+		switch in.params.ReceivedMessageType {
+		case lib_define.MsgTypeText:
+			return pipeline.PipeContinue
+		case lib_define.MsgTypeImage:
+			if cast.ToBool(in.params.Robot[`question_multiple_switch`]) {
+				return pipeline.PipeContinue
+			}
+		}
+		return pipeline.PipeStop
+	}
+	return pipeline.PipeContinue
+}
 
 // BuildOpenApiContent 开放接口自定义上下文处理
 func BuildOpenApiContent(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {

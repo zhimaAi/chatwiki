@@ -40,7 +40,17 @@
           </a-select>
         </div>
       </div>
+      <FeishuBatchBox
+        v-if="BatchActions.includes(actionName)"
+        ref="childRef"
+        :variableOptions="variableOptions"
+        :actionName="actionName"
+        :action="action"
+        @updateVar="emit('updateVar')"
+        @update="update"
+      />
       <component
+        v-else
         ref="childRef"
         :is="actionComponentMap[actionName]"
         :tableId="formState.table_id"
@@ -70,7 +80,8 @@ import FeishuUpdateData from "./feishu-update-data.vue";
 import FeishuDelData from "./feishu-del-data.vue";
 import FeishuSearchData from "./feishu-search-data.vue";
 import OutputFields from "@/views/workflow/components/feishu-table/output-fields.vue";
-import {ShowFieldTypes} from "@/constants/feishu-table.js";
+import {BatchActions, ShowFieldTypes} from "@/constants/feishu-table.js";
+import FeishuBatchBox from "./feishu-batch-box.vue";
 import {getPluginActionDefaultArguments, pluginOutputToTree, getPluginConfigData} from "@/constants/plugin.js";
 
 const emit = defineEmits(['updateVar'])
@@ -191,7 +202,7 @@ function loadFields() {
 
 function paramsFormat(val) {
   if (!val) {
-    return getPluginActionDefaultArguments(props.actionName)
+    return getPluginActionDefaultArguments(pluginName, props.actionName)
   }
   val = JSON.parse(JSON.stringify(val))
   for (let key in val) {
@@ -315,6 +326,7 @@ function update(val = null) {
       app_secret: currentConfig.value.app_secret,
     }
   })
+  console.log('nodeParams', nodeParams)
   setData({
     ...props.node,
     node_params: JSON.stringify(nodeParams)

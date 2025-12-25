@@ -18,7 +18,7 @@ import (
 )
 
 func SaveUnknownIssueRecord(adminUserId int, robot msql.Params, question string) {
-	question = strings.TrimSpace(question)
+	question = GetFirstQuestionByInput(question) //多模态输入特殊处理
 	m := msql.Model(`chat_ai_unknown_issue_stats`, define.Postgres)
 	id, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`robot_id`, robot[`id`]).
 		Where(`stats_day`, cast.ToString(tool.GetYmd(0))).Where(`question`, question).Value(`id`)

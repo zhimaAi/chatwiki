@@ -56,3 +56,31 @@ export function getModelNameText(model_config_id, use_model_name, model_type = '
   }
   return ''
 }
+
+export function getCurrentModelConfig(model_config_id, use_model_name, model_type = 'LLM') {
+  if (!model_config_id || !use_model_name) {
+    return null
+  }
+  let modelStore = useModelStore()
+  if (modelStore.allModelList.length == 0) {
+    return null
+  }
+  let allModelList = modelStore.allModelList
+  allModelList = allModelList.map((item) => {
+    return {
+      ...item,
+      use_model_configs: item.use_model_configs.filter((it) => it.model_type == model_type)
+    }
+  })
+
+  let findConfig = allModelList.find((item) => item.config_info.id == model_config_id)
+  let findModel = null
+  if (findConfig) {
+    findModel = findConfig.use_model_configs.find((item) => item.use_model_name == use_model_name)
+  }
+  if (findModel) {
+    console.log(findModel, '===')
+    return findModel
+  }
+  return null
+}

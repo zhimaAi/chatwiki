@@ -300,6 +300,7 @@
   }
 }
 .toolbar-box {
+  position: relative;
   padding-right: 32px;
 }
 .mr-16 {
@@ -313,6 +314,35 @@
       .list-item-wrapper {
         width: 20%;
       }
+    }
+  }
+}
+
+.desc-box {
+  width: 200px;
+  position: absolute;
+  bottom: -29px;
+  left: -35px;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #8c8c8c;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 22px;
+
+  .link {
+    cursor: pointer;
+    color: #2475fc;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 22px;
+
+    &:hover {
+      opacity: 0.8;
     }
   }
 }
@@ -334,7 +364,7 @@
       <div class="toolbar-box">
         <ListTabs :tabs="tabs" @change="getGroupList" v-model:value="activeKey" />
       </div>
-      <div class="toolbar-box">
+      <div class="toolbar-box" style="text-align: right;">
         <a-dropdown v-if="robotCreate">
           <a-button type="primary" @click.prevent="">
             <template #icon>
@@ -371,6 +401,7 @@
             </a-menu>
           </template>
         </a-dropdown>
+        <div v-if="robotCreate && activeKey == '3'" class="desc-box"><div class="link" @click="goMcpSquare">更多MCP？去MCP广场</div></div>
       </div>
     </div>
 
@@ -555,6 +586,8 @@ import { useOpenUrlWithToken } from '@/hooks/web'
 import McpBox from "@/views/robot/robot-list/components/mcp-box.vue";
 import McpPanel from "@/views/robot/robot-list/components/mcp-panel.vue";
 import ThirdMcpStore from "@/views/robot/robot-list/components/third-mcp-store.vue";
+import { useRouter } from 'vue-router'
+const router = useRouter()
 
 const route = useRoute()
 
@@ -613,6 +646,13 @@ const filterRobotList = computed(() => {
 const initData = () => {
   getList()
   getGroupList()
+}
+
+function goMcpSquare () {
+  const url = router.resolve({
+    path: '/mcp/index'
+  }).href
+  window.open(url, '_blank')
 }
 
 const getList = () => {

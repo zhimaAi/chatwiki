@@ -39,6 +39,8 @@
     "@neo4j-nvl/base": "^0.3.8",
     "@neo4j-nvl/interaction-handlers": "^0.3.8",
     "@simonwep/pickr": "^1.9.1",
+    "@wangeditor/editor": "^5.1.23",
+    "@wangeditor/editor-for-vue": "^5.1.12",
     "ant-design-vue": "^4.1.2",
     "axios": "^1.6.8",
     "cherry-markdown": "^0.9.1",

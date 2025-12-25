@@ -174,7 +174,7 @@
           <div class="content-box">
             <div class="nav-box">回复内容：</div>
             <div class="item-box">
-              <MultiReply v-for="(it, idx) in rule.replyList" :key="idx" ref="replyRefs" v-model:value="rule.replyList[idx]" :reply_index="idx"
+              <MultiReply v-for="(it, idx) in rule.replyList" :key="idx" :ref="el => setRuleReplyRef(ri, idx, el)" v-model:value="rule.replyList[idx]" :reply_index="idx"
                 @change="(payload) => onRuleContentChange(ri, payload)" @del="(index) => onRuleDelItem(ri, index)" />
               <a-button type="dashed" style="width: 694px;" :disabled="rule.replyList.length >= 5" @click="() => addRuleReplyItem(ri)">
                 <template #icon>
@@ -213,6 +213,7 @@ import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
 
 const replyRefs = ref([])
+const ruleReplyRefs = ref({})
 const query = useRoute().query
 const route = useRoute()
 const router = useRouter()
@@ -494,7 +495,8 @@ async function onSaveRule (ri) {
     message.warning('请完善回复内容')
     return
   }
-  for (const comp of replyRefs.value) {
+  const arr = Array.isArray(ruleReplyRefs.value[ri]) ? ruleReplyRefs.value[ri].filter(Boolean) : []
+  for (const comp of arr) {
     if (comp && comp.validate) {
       const ok = await comp.validate()
       if (!ok) { return }
@@ -623,6 +625,13 @@ function onRuleContentChange (ri, payload) {
   }
 }
 function onRuleDelItem (ri, index) { (defaultRules.value[ri]?.replyList || []).splice(index, 1) }
+
+function setRuleReplyRef (ri, idx, el) {
+  const map = ruleReplyRefs.value
+  const arr = Array.isArray(map[ri]) ? map[ri] : []
+  arr[idx] = el
+  map[ri] = arr
+}
 
 const goBack = () => {
   if (route.query.id && route.query.robot_key) {
@@ -853,15 +862,24 @@ const handleSwitchChange = (checked) => {
   width: fit-content;
   display: flex;
   align-items: center;
-  gap: 10px;
   cursor: pointer;
   margin-bottom: 16px;
 }
 .breadcrumb-title {
-  color: #000000;
-  font-size: 20px;
+  margin: 0 12px 0 2px;
+  color: #262626;
+  font-size: 16px;
   font-style: normal;
   font-weight: 600;
-  line-height: 28px;
+  line-height: 24px;
+}
+
+.switch-tip {
+  margin-left: 4px;
+  color: #8c8c8c;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 22px;
 }
 </style>

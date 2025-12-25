@@ -19,6 +19,7 @@ import { registGlobalComponent } from './components'
 
 import FloatingVue from 'floating-vue'
 import 'floating-vue/dist/style.css'
+import 'tippy.js/dist/tippy.css'
 import './event/index'
 // 创建实例
 const setupAll = async () => {

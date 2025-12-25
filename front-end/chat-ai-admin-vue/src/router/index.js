@@ -13,6 +13,7 @@ import noPermission from './no-permission'
 import AiExtractFaq from './ai-extract-faq'
 import triggerStatics from './trigger-statics'
 import plugins from './plugins'
+import mcp from './mcp'
 import templates from './templates'
 import guide from './guide'
 
@@ -57,6 +58,7 @@ const routes = [
   AiExtractFaq,
   triggerStatics,
   plugins,
+  mcp,
   templates,
 ]
 

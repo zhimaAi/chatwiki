@@ -24,6 +24,7 @@ func createNewReceiver(params *define.ChatRequestParam, sessionId int64) {
 	for _, item := range GetChannelList(params.ChatBaseParam.AdminUserId, cast.ToUint(params.ChatBaseParam.Robot[`id`])) {
 		channels[fmt.Sprintf(`%s_%s`, item.AppType, item.AppId)] = item.AppName
 	}
+	question := GetFirstQuestionByInput(params.Question) //多模态输入特殊处理
 	appName := channels[fmt.Sprintf(`%s_%s`, params.ChatBaseParam.AppType, appId)]
 	data := msql.Datas{
 		`admin_user_id`:     params.ChatBaseParam.AdminUserId,
@@ -32,7 +33,7 @@ func createNewReceiver(params *define.ChatRequestParam, sessionId int64) {
 		`openid`:            params.ChatBaseParam.Openid,
 		`session_id`:        sessionId,
 		`last_chat_time`:    tool.Time2Int(),
-		`last_chat_message`: MbSubstr(params.Question, 0, 1000),
+		`last_chat_message`: MbSubstr(question, 0, 1000),
 		`app_type`:          params.ChatBaseParam.AppType,
 		`app_id`:            appId,
 		`come_from`:         tool.JsonEncodeNoError(map[string]string{`robot_name`: params.ChatBaseParam.Robot[`robot_name`], `app_name`: appName}),

@@ -101,7 +101,7 @@
       </div>
     </div>
 
-    <a-modal v-model:open="replyModalOpen" title="编辑菜单标题回复内容" :width="720" @ok="onReplyModalOk"
+    <a-modal v-model:open="replyModalOpen" :title="`${replyForm.rule_id ? '编辑' : '添加'}菜单标题回复内容`" :width="720" @ok="onReplyModalOk"
       @cancel="onReplyModalCancel">
       <a-form :model="replyForm" layout="vertical" class="reply-modal-form">
         <a-form-item label="规则名" name="rule_name" :rules="[{ required: true, message: '请输入规则名' }]">

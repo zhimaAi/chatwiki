@@ -66,6 +66,11 @@ const (
 	EventEnterSession         = `enter_session`
 	EventUserEnterTempsession = `user_enter_tempsession`
 	EventSubscribe            = `subscribe`
+	EventUnSubscribe          = `unsubscribe`
+	EventClick                = `click`
+	EventView                 = `view`
+	EventScan                 = `scan`
+	EventViewMiniprogram      = `view_miniprogram`
 
 	EventMenuClick = `click`
 )

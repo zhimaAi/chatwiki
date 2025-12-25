@@ -129,13 +129,17 @@
           />
         </div>
 
-        <div style="margin-top: 30px" class="chat-box-footer">
-          <MessageInput v-model:value="message" @send="onSendMesage" :loading="sendLock" />
+        <div style="padding-top: 30px" class="chat-box-footer">
+          <MessageInput
+            v-model:value="message"
+            v-model:fileList="fileList"
+            :loading="sendLoading"
+            :showUpload="robotInfo.question_multiple_switch == 1"
+            @send="onSendMesage" />
         </div>
       </div>
       <!-- right -->
       <div>
-        <!-- v-if="isRobotInfo && robotInfo.application_type != 1" -->
         <RobotTestRight
           v-if="false"
           @promptChange="onPromptChange"
@@ -152,7 +156,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, onUnmounted, createVNode, toRaw } from 'vue'
+import { generateRandomId } from '@/utils/index'
+import { ref, computed, onMounted, watch, onUnmounted, createVNode, toRaw } from 'vue'
 import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useEventBus } from '@/hooks/event/useEventBus'
@@ -176,13 +181,16 @@ const query = rotue.query
 
 const robotStore = useRobotStore()
 
-const { getRobot, robotInfo } = robotStore
+const { getRobot } = robotStore
+
+const robotInfo = computed(() => robotStore.robotInfo)
 const emitter = useEventBus()
 const chatStore = useChatStore()
 const userStore = useUserStore()
 // 是否允许自动滚动到底部
 let isAllowedScrollToBottom = true
 const message = ref('')
+const fileList = ref([])
 const messageListRef = ref(null)
 
 const {
@@ -198,13 +206,22 @@ const { messageList, sendLock, myChatList, robot, dialogue_id } = storeToRefs(ch
 
 const route = useRoute()
 const isRobotInfo = ref(false)
+const checkChatRequestPermissionLoding = ref(false)
+const sendLoading = computed(() => sendLock.value || checkChatRequestPermissionLoding.value)
 
 const onSendMesage = async () => {
-  if (!message.value) {
+  if (sendLoading.value){
+    return
+  }
+
+  if (!message.value && !fileList.value.length) {
     return showErrorMsg('请输入消息内容')
   }
 
-  //检查是否含有敏感词
+  checkChatRequestPermissionLoding.value = true
+
+  try {
+    //检查是否含有敏感词
   let result = await checkChatRequestPermission({
     robot_key: robot.value.robot_key,
     openid: robot.value.openid,
@@ -212,17 +229,61 @@ const onSendMesage = async () => {
     form_ids: robot.value.form_ids,
     dialogue_id: dialogue_id.value,
   })
+
+  checkChatRequestPermissionLoding.value = false
+
   if(result.data && result.data.words){
     return antMessage.error(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)
   }
-  isAllowedScrollToBottom = true
 
+  let msg_type = 1;
+  let msg = message.value;
+
+  if(robotInfo.value.question_multiple_switch == 1){
+    let messageList = []
+
+    msg_type = 99;
+
+    if(message.value){
+      messageList = [{
+        type: "text",
+        uid: generateRandomId(16),
+        text: message.value
+      }]
+    }
+
+    if(fileList.value.length){
+      fileList.value.map((file) => {
+        messageList.push({
+          uid: file.uid,
+          type: 'image_url',
+          image_url: {
+            url: file.url
+          }
+        })
+      })
+    }
+
+    msg = JSON.stringify(messageList)
+  }
+  
+  
+  
+
+  isAllowedScrollToBottom = true
+  
   sendMessage({
-    message: message.value,
-    global: JSON.stringify(query)
+    message: msg,
+    global: JSON.stringify(query),
+    msg_type: msg_type
   })
 
   message.value = ''
+  fileList.value = []
+  }catch(err){
+    checkChatRequestPermissionLoding.value = false
+  }
+  
 }
 
 const openNewChat = async () => {

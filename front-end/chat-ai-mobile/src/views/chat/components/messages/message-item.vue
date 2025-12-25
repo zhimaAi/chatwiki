@@ -864,6 +864,10 @@
         <template v-else-if="props.msg.msg_type == 3">
           <img v-viewer class="msg-img" :src="props.msg.content" />
         </template>
+
+        <template v-else-if="props.msg.msg_type == 99">
+          <MultipleMessage :message="props.msg.content" />
+        </template>
       </div>
 
       <div v-if="props.msg.msg_type == 1">
@@ -885,6 +889,7 @@
 </template>
 
 <script setup lang="ts">
+import { translate } from '@/utils/translate.js'
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import type { Message } from '@/stores/modules/chat'
@@ -894,7 +899,7 @@ import GuessYouWant from './guess-you-want.vue'
 import { showToast } from 'vant'
 import useClipboard from 'vue-clipboard3'
 import QuoteModal from '../quote-modal/index.vue'
-import { translate } from '@/utils/translate.js'
+import MultipleMessage from './multiple-message.vue'
 
 interface praiseParams {
   ai_message_id: string

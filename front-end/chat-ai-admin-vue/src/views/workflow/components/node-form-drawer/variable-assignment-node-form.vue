@@ -99,13 +99,18 @@ function getOptions() {
     let loop_parent_key = nodeModel.properties.loop_parent_key
     if (loop_parent_key) {
       const gropModel = props.lf.getNodeModelById(loop_parent_key)
+      
       if (gropModel) {
-        options.value = gropModel.properties.intermediate_params.map((item) => {
+        let dataRaw = gropModel.properties.dataRaw || gropModel.properties.node_params || '{}'
+        let loop = JSON.parse(dataRaw).loop || {}
+
+        options.value =loop.intermediate_params.map((item) => {
           return {
             label: item.key,
             value: loop_parent_key + '.' + item.key
           }
         })
+        
         return
       }
     }

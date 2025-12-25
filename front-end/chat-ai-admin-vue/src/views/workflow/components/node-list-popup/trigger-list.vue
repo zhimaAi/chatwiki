@@ -21,6 +21,26 @@
         border-radius: 4px;
         margin-right: 8px;
       }
+      .right-icon {
+        margin-left: auto;
+        color: #8c8c8c;
+        font-size: 12px;
+        font-weight: 400;
+      }
+    }
+  }
+  .sub-menu-list {
+    margin-left: 34px;
+    border-left: 1px solid #d9d9d9;
+    padding-left: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    .sub-item {
+      height: 26px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
     }
   }
   .empty-box {
@@ -47,6 +67,19 @@
             <div class="info">
               <span class="name">{{ item.trigger_name }}</span>
             </div>
+            <div class="right-icon" v-if="item.subMenus && item.subMenus.length">
+              <DownOutlined v-if="item.expend" /> <RightOutlined v-else />
+            </div>
+          </div>
+          <div class="sub-menu-list" v-if="item.expend && item.subMenus && item.subMenus.length">
+            <div
+              class="sub-item"
+              @click.stop="handleSubClick(item, sub)"
+              v-for="sub in item.subMenus"
+              :key="sub.value"
+            >
+              {{ sub.title }}
+            </div>
           </div>
         </div>
       </div>
@@ -69,11 +102,12 @@
 import { createTriggerNode } from '../node-list'
 import { ref, computed } from 'vue'
 import { useWorkflowStore } from '@/stores/modules/workflow'
-import { RightOutlined } from '@ant-design/icons-vue'
+import { RightOutlined, DownOutlined } from '@ant-design/icons-vue'
 
 const emit = defineEmits(['add'])
 
 const workflowStore = useWorkflowStore()
+const triggerOfficialList = computed(() => workflowStore.triggerOfficialList)
 
 // 触发器列表
 const keyword = ref('')
@@ -86,7 +120,22 @@ const triggerList = computed(() => {
 })
 
 const handleAddNode = (item) => {
+  if (item.subMenus && item.subMenus.length) {
+    item.expend = !item.expend
+    return
+  }
   let node = createTriggerNode(item)
+  emit('add', node)
+}
+
+const handleSubClick = (item, sub) => {
+  if (item.trigger_type == 4) {
+    item.trigger_official_config.msg_type = sub.value
+    console.log(triggerOfficialList.value, sub)
+    item.outputs = triggerOfficialList.value.find((item) => item.msg_type == sub.value).fields
+  }
+  let node = createTriggerNode(item)
+
   emit('add', node)
 }
 </script>

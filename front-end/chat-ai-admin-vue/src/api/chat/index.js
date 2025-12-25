@@ -11,7 +11,7 @@ export const sendAiMessage = (data) => {
 }
 
 export const chatWelcome = (data) => {
-  return request.post({ url: '/chat/welcome', data })
+  return request.post({ url: '/chat/welcome', data, cancelToken: true})
 }
 
 export const getDialogueList = (data) => {
@@ -19,7 +19,7 @@ export const getDialogueList = (data) => {
 }
 
 export const getChatMessage = (data) => {
-  return request.post({ url: '/chat/message', data })
+  return request.post({ url: '/chat/message', data, cancelToken: true })
 }
 
 // 获取会话记录列表

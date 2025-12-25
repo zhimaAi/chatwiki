@@ -5,6 +5,7 @@ package business
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/work_flow"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/wechat"
@@ -17,9 +18,11 @@ import (
 
 	"github.com/gin-contrib/sse"
 	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/curl"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
 // UnifiedMessageType 统一MsgType
@@ -54,6 +57,8 @@ func AppPush(msg string, _ ...string) error {
 	//统一消息类型结束
 	event := strings.ToLower(cast.ToString(message[`Event`]))
 
+	//点击菜单 关注取关 私信消息 扫描带参数二维码事件
+	go work_flow.StartOfficial(message)
 	//菜单点击事件处理
 	if msgType == lib_define.MsgTypeEvent && tool.InArrayString(event, []string{lib_define.EventMenuClick}) {
 		err := MenuClickHandler(message, msg)
@@ -150,7 +155,7 @@ func AppPush(msg string, _ ...string) error {
 			break
 		}
 		break
-	case lib_define.MsgTypeText:
+	case lib_define.MsgTypeText, lib_define.MsgTypeImage, lib_define.MsgTypeVoice, lib_define.MsgTypeVideo:
 		SendReply(push)
 		break
 	default:
@@ -375,6 +380,9 @@ func SendReply(push *lib_define.PushMessage) {
 		return
 	}
 	isClose := false
+	receivedMessageType := strings.ToLower(cast.ToString(push.Message[`MsgType`]))
+	receivedMessageType = UnifiedMessageType(receivedMessageType)
+
 	params := &define.ChatRequestParam{
 		ChatBaseParam: &define.ChatBaseParam{
 			AppType:     push.AppInfo[`app_type`],
@@ -384,16 +392,40 @@ func SendReply(push *lib_define.PushMessage) {
 			Robot:       push.Robot,
 			Customer:    push.Customer,
 		},
-		Question:   push.Content,
-		MsgId:      cast.ToString(push.Message[`MsgId`]),
-		PassiveId:  cast.ToInt64(push.Message[`passive_id`]),
-		DialogueId: common.GetLastDialogueId(push.AdminUserId, cast.ToInt(push.Robot[`id`]), push.Openid),
-		IsClose:    &isClose,
+		ReceivedMessage:     push.Message,
+		ReceivedMessageType: receivedMessageType,
+		Question:            push.Content,
+		MsgId:               cast.ToString(push.Message[`MsgId`]),
+		PassiveId:           cast.ToInt64(push.Message[`passive_id`]),
+		DialogueId:          common.GetLastDialogueId(push.AdminUserId, cast.ToInt(push.Robot[`id`]), push.Openid),
+		IsClose:             &isClose,
 	}
 	//specify the language to use based on the content
 	if common.IsContainChinese(push.Content) {
 		params.Lang = define.LangZhCn
 	}
+	//下载图片
+	ImageMediaIdToOssUrl(push, receivedMessageType, app, params)
+	//下载缩略图
+	ThumbMediaIdToOssUrl(push, app, params)
+
+	//构建成多模态输入数据格式
+	switch receivedMessageType {
+	case lib_define.MsgTypeImage:
+		push.Content = tool.JsonEncodeNoError(adaptor.QuestionMultiple{
+			{Type: adaptor.TypeImage, ImageUrl: adaptor.ImageUrl{Url: params.MediaIdToOssUrl}},
+		})
+	case lib_define.MsgTypeVoice:
+		push.Content = tool.JsonEncodeNoError(adaptor.QuestionMultiple{
+			{Type: adaptor.TypeAudio, InputAudio: adaptor.InputAudio{Data: params.MediaIdToOssUrl}},
+		})
+	case lib_define.MsgTypeVideo:
+		push.Content = tool.JsonEncodeNoError(adaptor.QuestionMultiple{
+			{Type: adaptor.TypeVideo, VedioUrl: adaptor.VedioUrl{Url: params.MediaIdToOssUrl}},
+		})
+	}
+	params.Question = push.Content //将question替换成多模态输入数据格式
+
 	chanStream := make(chan sse.Event)
 	go func(chanStream chan sse.Event) {
 		for event := range chanStream {
@@ -614,8 +646,41 @@ func ThumbMediaIdToOssUrl(push *lib_define.PushMessage, app wechat.ApplicationIn
 	}
 }
 
+// OfficeAccountImageDownloadPriority 公众号图片下载优先逻辑
+func OfficeAccountImageDownloadPriority(push *lib_define.PushMessage, receivedMessageType string, params *define.ChatRequestParam) (ok bool) {
+	if push.AppInfo[`app_type`] != lib_define.AppOfficeAccount || receivedMessageType != lib_define.MsgTypeImage {
+		return
+	}
+	picUrl := cast.ToString(push.Message[`PicUrl`])
+	if len(picUrl) == 0 || !common.IsUrl(picUrl) {
+		return
+	}
+	request := curl.Get(picUrl)
+	resp, err := request.Response()
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	media, err := request.Bytes()
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	uploadInfo, err := common.SaveImageByMedia(media, resp.Header, push.AdminUserId, `received_message_images`, define.ImageAllowExt)
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	//上传到oss获取链接
+	params.MediaIdToOssUrl = uploadInfo.Link
+	return true
+}
+
 // ImageMediaIdToOssUrl 图片消息处理
 func ImageMediaIdToOssUrl(push *lib_define.PushMessage, receivedMessageType string, app wechat.ApplicationInterface, params *define.ChatRequestParam) {
+	if OfficeAccountImageDownloadPriority(push, receivedMessageType, params) {
+		return //公众号图片下载优先逻辑
+	}
 	mediaId := cast.ToString(push.Message[`MediaId`])
 	if push.AppInfo[`app_type`] == lib_define.FeiShuRobot && receivedMessageType == lib_define.MsgTypeImage {
 		content := feishu_robot.FeiShuImgMsgContent{}

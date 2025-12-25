@@ -3,18 +3,17 @@
 package business
 
 import (
+	"chatwiki/internal/app/chatwiki/common"
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/app/chatwiki/middlewares"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
-
-	"chatwiki/internal/app/chatwiki/common"
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/app/chatwiki/middlewares"
-	"chatwiki/internal/pkg/lib_define"
 
 	"github.com/gin-contrib/sse"
 	"github.com/gin-gonic/gin"
@@ -25,7 +24,7 @@ import (
 
 type (
 	ChatMessagesReq struct {
-		Content  string         `form:"content" json:"content" binding:"required"`
+		Content  any            `form:"content" json:"content" binding:"required"`
 		OpenID   string         `form:"open_id" json:"open_id" binding:"required"`
 		Stream   bool           `form:"stream" json:"stream,omitempty"`
 		Global   map[string]any `form:"global" json:"global"`
@@ -162,7 +161,7 @@ func (r *ChatMessagesReq) buildChatRequestParam(c *gin.Context) (*define.ChatReq
 	return &define.ChatRequestParam{
 		ChatBaseParam:  chatBaseParam,
 		Lang:           common.GetLang(c),
-		Question:       strings.TrimSpace(r.Content),
+		Question:       common.GetQuestionByContent(r.Content),
 		IsClose:        &isClose,
 		WorkFlowGlobal: r.Global,
 	}, nil

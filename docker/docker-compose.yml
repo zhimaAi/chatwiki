@@ -15,7 +15,7 @@ services:
       TZ: ${TIMEZONE}
 
   chatwiki_crawler:
-    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/playwright:v1.44.1-jammy
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/playwright:v1.57.0-noble
     container_name: chatwiki_crawler
     restart: always
     environment:

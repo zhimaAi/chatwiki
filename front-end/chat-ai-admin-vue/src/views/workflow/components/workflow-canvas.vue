@@ -117,6 +117,7 @@ import registerCustomNodes from './nodes/index.js'
 const emit = defineEmits(['selectNode', 'onDeleteNode', 'onDeleteEdge', 'runTest', 'blankClick'])
 
 let lf = null
+const lfRef = ref(null)
 const { setStorage, getStorage } = useStorage();
 const DONT_SHOW_DELETE_CONFIRM_KEY = 'dont_show_delete_node_confirm';
 const dontShowDeleteConfirm = ref(getStorage(DONT_SHOW_DELETE_CONFIRM_KEY) || false);
@@ -213,6 +214,8 @@ function initLogicFlow() {
         }],
       }
     })
+
+    lfRef.value = lf
 
     registerCustomNodes(lf)
     register(customLineEdge, lf)
@@ -1242,6 +1245,7 @@ onUnmounted(() => {
 })
 
 defineExpose({
+  lfRef,
   setData,
   getData,
   updateNode

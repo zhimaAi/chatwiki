@@ -6,7 +6,7 @@
 import {ref, onMounted} from 'vue';
 import {useRouter} from 'vue-router'
 import ListTabs from "@/components/cu-tabs/list-tabs.vue";
-import {getInstallPlugins} from "@/api/plugins/index.js";
+import {getInstallPlugins, triggerConfigList} from "@/api/plugins/index.js";
 
 const emit = defineEmits(['change'])
 
@@ -28,6 +28,10 @@ const tabs = ref([
   {
     title: '插件广场',
     value: '3'
+  },
+  {
+    title: 'MCP广场',
+    value: '5'
   }
 ])
 
@@ -50,16 +54,21 @@ function change(val){
     case 4:
       router.push({path: '/templates/index'})
       break
+    case 5:
+      router.push({path: '/mcp/index'})
+      break
 
   }
 }
 
-function loadInstallPlugins() {
+async function loadInstallPlugins() {
+  let res = await triggerConfigList()
+  let triggerLength = res.data.length
   getInstallPlugins().then(res => {
     let _list = res?.data || []
     let plugin = tabs.value.find(i => i.value == 2)
-    plugin.title = `插件(${_list.length})`
-    localStorage.setItem('zm:explore:plugins:count', _list.length)
+    plugin.title = `插件(${_list.length + triggerLength})`
+    localStorage.setItem('zm:explore:plugins:count', _list.length + triggerLength)
   })
 }
 

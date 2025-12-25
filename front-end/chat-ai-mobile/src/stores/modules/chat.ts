@@ -71,6 +71,7 @@ export interface Robot {
   chat_type: any
   answer_source_switch: boolean
   application_type: string // 机器人类型 0普通 1工作流
+  question_multiple_switch: number
 }
 
 export interface PageStyle {
@@ -130,6 +131,7 @@ export const useChatStore = defineStore('chat', () => {
     chat_type: '',
     answer_source_switch: false,
     application_type: '0',
+    question_multiple_switch: 0
   })
 
   // 样式配置
@@ -211,6 +213,7 @@ export const useChatStore = defineStore('chat', () => {
       robot.chat_type = robotInfo.chat_type;
       robot.answer_source_switch = robotInfo.answer_source_switch == 'true';
       robot.application_type = robotInfo.application_type
+      robot.question_multiple_switch = Number(robotInfo.question_multiple_switch) || 0
       if (robotInfo.common_question_list) {
         robot.common_question_list = JSON.parse(robotInfo.common_question_list)
       }
@@ -309,7 +312,7 @@ export const useChatStore = defineStore('chat', () => {
     msg.loading = false
     msg.avatar = user.avatar
     msg.openid = user.openid
-    msg.msg_type = 1
+    msg.msg_type = msg.msg_type || 1
     msg.is_customer = 1
     messageList.value.push(msg)
   }
@@ -405,7 +408,7 @@ export const useChatStore = defineStore('chat', () => {
   // 发送消息
   const sendLock = ref(false)
 
-  const sendMessage = (data) => {
+  const sendMessage = (data: any) => {
     if (sendLock.value) {
       return
     }
@@ -457,7 +460,7 @@ export const useChatStore = defineStore('chat', () => {
       if (res.event == 'c_message') {
         const data = JSON.parse(res.data)
         // 插入用户的问题到聊天记录
-
+        console.log(data)
         pushUserMessage(data)
       }
 

@@ -6,14 +6,17 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/pipeline"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/gin-contrib/sse"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
 // CheckChanStream 检查流式输出的管道
@@ -42,6 +45,35 @@ func CheckParams(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 		out.Error = errors.New(i18n.Show(in.params.Lang, `question_empty`))
 		in.Stream(sse.Event{Event: `error`, Data: out.Error.Error()})
 		return pipeline.PipeStop
+	}
+	//当输入为多模态时,进行基础的参数校验
+	if questionMultiple, ok := common.ParseInputQuestion(in.params.Question); ok {
+		for idx := range questionMultiple {
+			var imageTotal int
+			switch questionMultiple[idx].Type {
+			case adaptor.TypeText:
+				if len(questionMultiple[idx].Text) == 0 {
+					out.Error = errors.New(i18n.Show(in.params.Lang, `param_invalid`, fmt.Sprintf(`question.%d.text`, idx)))
+				}
+			case adaptor.TypeImage:
+				imageTotal++
+				if len(questionMultiple[idx].ImageUrl.Url) == 0 {
+					out.Error = errors.New(i18n.Show(in.params.Lang, `param_invalid`, fmt.Sprintf(`question.%d.image_url.url`, idx)))
+				}
+			case adaptor.TypeAudio, adaptor.TypeVideo:
+				//current not check
+			default:
+				out.Error = errors.New(i18n.Show(in.params.Lang, `param_invalid`, fmt.Sprintf(`question.%d.type`, idx)))
+			}
+			if out.Error == nil && imageTotal > 10 {
+				out.Error = errors.New(i18n.Show(in.params.Lang, `最多上传10张图片,每张图片不得超过10M`))
+			}
+			if out.Error != nil {
+				in.Stream(sse.Event{Event: `error`, Data: out.Error.Error()})
+				return pipeline.PipeStop
+			}
+		}
+		in.params.Question = tool.JsonEncodeNoError(questionMultiple)
 	}
 	return pipeline.PipeContinue
 }
@@ -144,19 +176,36 @@ func CustomerPush(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 
 // SaveCustomerMsg 保存customer消息
 func SaveCustomerMsg(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	msgType, content := define.MsgTypeText, in.params.Question
+	//微信等应用:放过来的消息类型特殊处理
+	switch in.params.ReceivedMessageType {
+	case lib_define.MsgTypeImage:
+		msgType, content = define.MsgTypeImage, in.params.MediaIdToOssUrl
+	case lib_define.MsgTypeVoice, lib_define.MsgTypeVideo:
+		showContent := lib_define.MsgTypeNameMap[in.params.ReceivedMessageType]
+		msgType, content = define.MsgTypeText, `收到【`+showContent+`】类型的消息`
+	}
+	//当输入为多模态:改变入库的消息类型
+	if questionMultiple, ok := common.ParseInputQuestion(content); ok {
+		msgType, content = define.MsgTypeMixed, tool.JsonEncodeNoError(questionMultiple)
+	}
 	cMessage := msql.Datas{
-		`admin_user_id`: in.params.AdminUserId,
-		`robot_id`:      in.params.Robot[`id`],
-		`openid`:        in.params.Openid,
-		`dialogue_id`:   in.dialogueId,
-		`session_id`:    in.sessionId,
-		`is_customer`:   define.MsgFromCustomer,
-		`msg_type`:      define.MsgTypeText,
-		`content`:       in.params.Question,
-		`menu_json`:     ``,
-		`quote_file`:    `[]`,
-		`create_time`:   tool.Time2Int(),
-		`update_time`:   tool.Time2Int(),
+		`admin_user_id`:             in.params.AdminUserId,
+		`robot_id`:                  in.params.Robot[`id`],
+		`openid`:                    in.params.Openid,
+		`dialogue_id`:               in.dialogueId,
+		`session_id`:                in.sessionId,
+		`is_customer`:               define.MsgFromCustomer,
+		`msg_type`:                  msgType,
+		`content`:                   content,
+		`received_message_type`:     in.params.ReceivedMessageType,
+		`received_message`:          tool.JsonEncodeNoError(in.params.ReceivedMessage),
+		`media_id_to_oss_url`:       in.params.MediaIdToOssUrl,
+		`thumb_media_id_to_oss_url`: in.params.ThumbMediaIdToOssUrl,
+		`menu_json`:                 ``,
+		`quote_file`:                `[]`,
+		`create_time`:               tool.Time2Int(),
+		`update_time`:               tool.Time2Int(),
 	}
 	if len(in.params.Customer) > 0 {
 		cMessage[`nickname`] = in.params.Customer[`nickname`]
@@ -180,9 +229,10 @@ func SaveCustomerMsg(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 
 // UpLastChatByC 更新last_chat
 func UpLastChatByC(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	content := common.GetFirstQuestionByInput(out.cMessage[`content`]) //多模态输入特殊处理
 	lastChat := msql.Datas{
 		`last_chat_time`:    out.cMessage[`create_time`],
-		`last_chat_message`: common.MbSubstr(cast.ToString(out.cMessage[`content`]), 0, 1000),
+		`last_chat_message`: common.MbSubstr(content, 0, 1000),
 		`rel_user_id`:       in.params.RelUserId,
 	}
 	common.UpLastChat(in.dialogueId, in.sessionId, lastChat, define.MsgFromCustomer)

@@ -4,6 +4,8 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"net/url"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -57,4 +59,17 @@ func GetFileByLink(link string) string {
 
 func LinkExists(link string) bool {
 	return len(GetFileByLink(link)) > 0
+}
+
+func GetUrlExt(rawURL string) string { //return jpg jpeg ...
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		logs.Error(`get url ext：%s error:%s`, rawURL, err.Error())
+		return ``
+	}
+	ext := path.Ext(u.Path)
+	if len(ext) > 1 {
+		return strings.ToLower(ext[1:])
+	}
+	return ``
 }

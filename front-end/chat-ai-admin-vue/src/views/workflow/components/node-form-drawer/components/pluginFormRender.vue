@@ -164,7 +164,9 @@ function update() {
   let value
   for (let key in formState) {
     value = formState[key].value
-    if(formState[key].type == 'string'){
+    if (formState[key].tags.length) {
+      //
+    } else if(formState[key].type == 'string'){
       value = String(value)
     } else if(['number', 'integer'].includes(formState[key].type)){
       value = Number(value)

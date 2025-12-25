@@ -143,13 +143,23 @@
       <FastComand v-if="isShortcut" @send="handleSetMessageInputValue"></FastComand>
     </div>
     <div class="chat-page-footer">
-      <MessageInput v-model:value="message" @send="onSendMesage" :loading="sendLock" />
+      <MessageInput
+        v-model:value="message" 
+        v-model:fileList="fileList"
+        :loading="sendLoading"
+        :showUpload="showUpload"
+        @send="onSendMesage" 
+      />
       <div class="technical-support-text">{{ translate('由 ChatWiki 提供软件支持') }}</div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import type { Message } from './types'
+import { getUuid } from '@/utils/index'
+import { translate } from '@/utils/translate.js'
+import { checkChatRequestPermission } from '@/api/robot/index'
 import { postInit } from '@/event/postMessage'
 import { ref, onMounted, onUnmounted, toRaw, computed } from 'vue'
 import { showToast } from 'vant'
@@ -162,8 +172,7 @@ import MessageInput from './components/message-input.vue'
 import MessageList from './components/messages/message-list.vue'
 import MessageItem from './components/messages/message-item.vue'
 import FastComand from './components/fast-comand/index.vue'
-import { translate } from '@/utils/translate.js'
-import { checkChatRequestPermission } from '@/api/robot/index'
+
 
 type MessageListComponent = {  
   scrollToMessage: (id: number | string) => void;
@@ -171,19 +180,27 @@ type MessageListComponent = {
 };  
 
 const isShowBottomBtn = ref(false)
+const checkChatRequestPermissionLoding = ref(false)
+const fileList = ref<any[]>([])
+const message = ref('')
 
 const emitter = useEventBus()
 const { on } = useIM()
 const chatStore = useChatStore()
 
+
 const { sendMessage, onGetChatMessage, $reset, robot, externalConfigPC, openChatWindow, closeChatWindow } = chatStore
 
-const { messageList, sendLock} = storeToRefs(chatStore)
-
-// const isShortcut = ref(robot.yunpc_fast_command_switch == '1' ? true : false)
+const { messageList, sendLock } = storeToRefs(chatStore)
 
 const isShortcut = computed(()=>{
   return robot.yunpc_fast_command_switch == '1' ? true : false
+})
+
+const sendLoading = computed(() => sendLock.value || checkChatRequestPermissionLoding.value)
+
+const showUpload = computed(() => {
+  return robot.question_multiple_switch == 1
 })
 
 // 允许滚动到底部
@@ -254,8 +271,7 @@ const init = async () => {
   SDKInit({robot: toRaw(robot), config: toRaw(externalConfigPC)})
 }
 
-// 发送消息
-const message = ref('')
+
 
 const sendTextMessage = (val: string) => {
   if (!val) {
@@ -267,27 +283,72 @@ const sendTextMessage = (val: string) => {
   })
 }
 
-const onSendMesage = async (content) => {
-  if (!content) {
+const sendMultipleMessage = (messages: any[]) => {
+  if (!messages.length) {
+    return
+  }
+
+  sendMessage({
+    message: JSON.stringify(messages),
+  })
+}
+
+const onSendMesage = async (content:any) => {
+  let text = content.trim()
+
+  if (!text && !fileList.value.length) {
     return showToast('请输入消息内容')
   }
 
   //检查是否含有敏感词
+  checkChatRequestPermissionLoding.value = true
+
   let result = await checkChatRequestPermission({
     from: 'yun_pc',
     robot_key: robot.robot_key,
     openid: robot.openid,
-    question: content
+    question: text
   })
+
+  checkChatRequestPermissionLoding.value = true
+
   if(result.data && result.data.words){
     return showToast(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)
   }
 
   isAllowedScrollToBottom = true
 
-  sendTextMessage(content)
+  if(showUpload.value){
+    let messages: Message[] = [];
+
+    if(text){
+      messages.push({
+        type: "text",
+        uid: getUuid(16),
+        text: text
+      })
+    }
+
+    if(fileList.value.length){
+      fileList.value.map((file: any) => {
+        messages.push({
+          uid: file.uid,
+          type: 'image_url',
+          image_url: {
+            url: file.url
+          }
+        })
+      })
+    }
+
+    sendMultipleMessage(messages)
+  }else{
+    sendTextMessage(text)
+  }
+  
 
   message.value = ''
+  fileList.value = []
 }
 
 // 监听 updateAiMessage 触发消息列表滚动
@@ -311,14 +372,9 @@ const onCloseWindow = () => {
   closeChatWindow()
 }
 
-// const messageInputRef = ref<InstanceType<typeof MessageInput> | null>(null);  
 const handleSetMessageInputValue = (data: any) => {
-  // if(messageInputRef.value){
-    // 直接发出内容
-    onSendMesage(data)
-    // messageInputRef.value.handleSetValue(data)
-  // }
- 
+  // 直接发出内容
+  onSendMesage(data)
 }
 
 onMounted(() => {

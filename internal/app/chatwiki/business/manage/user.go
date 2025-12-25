@@ -150,6 +150,10 @@ func GetLoginUserInfo(c *gin.Context) jwt.MapClaims {
 	return data
 }
 
+func GetUserInfo(userId string) (msql.Params, error) {
+	return msql.Model(define.TableUser, define.Postgres).Where(`id`, userId).Field("id,user_name").Find()
+}
+
 func CheckLogin(c *gin.Context) {
 	token := c.GetHeader(`token`)
 	if len(token) == 0 {

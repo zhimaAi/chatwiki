@@ -43,7 +43,7 @@ func initGin() {
 		target, _ := url.Parse(define.Config.Plugin[`endpoint`])
 		proxy := httputil.NewSingleHostReverseProxy(target)
 		handler.Any("/manage/plugin/*path", middlewares.CasbinAuth(), func(c *gin.Context) {
-			adminUserId := common.GetLoginUserId(c)
+			adminUserId := common.GetAdminUserId(c)
 			c.Request.Header.Set("admin_user_id", cast.ToString(adminUserId))
 			c.Request.URL.Scheme = target.Scheme
 			c.Request.URL.Host = target.Host

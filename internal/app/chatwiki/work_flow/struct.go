@@ -395,6 +395,18 @@ type PluginNodeParams struct {
 	Output common.RecurveFields `json:"output_obj"`
 }
 
+type ImageGenerationParams struct {
+	UseModel            string               `json:"use_model"`
+	ModelConfigId       string               `json:"model_config_id"`
+	Size                string               `json:"size"`
+	ImageNum            string               `json:"image_num"`
+	Prompt              string               `json:"prompt"`
+	InputImages         []string             `json:"input_images"`
+	ImageWatermark      string               `json:"image_watermark"`       //是否添加水印，1添加，0不添加
+	ImageOptimizePrompt string               `json:"image_optimize_prompt"` //是否开启优化提示词，1开启，0不开启
+	Output              common.RecurveFields `json:"output"`
+}
+
 var LoopAllowNodeTypes = []int{
 	NodeTypeRemark,
 	NodeTypeTerm,
@@ -416,6 +428,7 @@ var LoopAllowNodeTypes = []int{
 	NodeTypeLoopEnd,
 	NodeTypeLoopStart,
 	NodeTypePlugin,
+	NodeTypeImageGeneration,
 }
 
 var BatchAllowNodeTypes = []int{
@@ -438,6 +451,7 @@ var BatchAllowNodeTypes = []int{
 	NodeTypeMcp,
 	NodeTypeBatchStart,
 	NodeTypePlugin,
+	NodeTypeImageGeneration,
 }
 
 /************************************/
@@ -463,6 +477,7 @@ type NodeParams struct {
 	Loop             LoopNodeParams             `json:"loop"`
 	Plugin           PluginNodeParams           `json:"plugin"`
 	Batch            BatchNodeParams            `json:"batch"`
+	ImageGeneration  ImageGenerationParams      `json:"image_generation"`
 }
 
 func DisposeNodeParams(nodeType int, nodeParams string) NodeParams {
@@ -480,6 +495,26 @@ func DisposeNodeParams(nodeType int, nodeParams string) NodeParams {
 		params.Start.TriggerList = []TriggerConfig{chatTrigger}
 		for _, output := range chatTrigger.Outputs {
 			params.Start.DiyGlobal = append(params.Start.DiyGlobal, output.StartNodeParam)
+		}
+	}
+	if nodeType == NodeTypeStart { //开始节点触发器输出变量旧数据兼容
+		for i, trigger := range params.Start.TriggerList {
+			outputs, exist := GetTriggerOutputsByType(trigger.TriggerType)
+			if !exist {
+				continue
+			}
+			//采集旧的变量映射数据
+			variableMap := make(map[string]string)
+			for _, output := range trigger.Outputs {
+				variableMap[output.Key] = output.Variable
+			}
+			//将变量映替换到新的配置上
+			for idx, output := range outputs {
+				if variable, ok := variableMap[output.Key]; ok {
+					outputs[idx].Variable = variable
+				}
+			}
+			params.Start.TriggerList[i].Outputs = outputs
 		}
 	}
 	if params.Term == nil {
@@ -636,6 +671,13 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 				variables = append(variables, variable)
 			}
 		}
+	case NodeTypeImageGeneration:
+		for variable := range common.SimplifyFields(node.NodeParams.ImageGeneration.Output) {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+				variables = append(variables, variable)
+			}
+		}
 	}
 
 	return variables
@@ -711,7 +753,7 @@ func CheckVariablePlaceholderExist(content string) bool {
 	return false
 }
 
-func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey, modelConfigIds, libraryIds string, err error) {
+func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey, modelConfigIds, libraryIds string, questionMultipleSwitch bool, err error) {
 	startNodeCount, finishNodeCount := 0, 0
 	fromNodes := make(FromNodes)
 	for i, node := range nodeList {
@@ -723,6 +765,11 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 		}
 		if node.NodeType == NodeTypeStart {
 			startNodeKey = node.NodeKey
+			for _, trigger := range node.NodeParams.Start.TriggerList {
+				if trigger.TriggerType == TriggerTypeChat && trigger.TriggerSwitch && trigger.TriggerChatConfig.QuestionMultipleSwitch {
+					questionMultipleSwitch = true //会话触发器-多模态输入-开启
+				}
+			}
 			startNodeCount++
 		}
 		if !tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeFinish, NodeTypeManual}) {
@@ -1031,6 +1078,17 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 		if err != nil {
 			return
 		}
+	case NodeTypeImageGeneration:
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.ImageGeneration.Prompt, variables); !ok {
+			err = errors.New(node.NodeName + `节点提示词选择的变量不存在:` + variable)
+			return
+		}
+		for _, imageUrl := range node.NodeParams.ImageGeneration.InputImages {
+			if variable, ok := CheckVariablePlaceholder(imageUrl, variables); !ok {
+				err = errors.New(node.NodeName + `节点输入图片选择的变量不存在:` + variable)
+				return
+			}
+		}
 	}
 	return nil
 }
@@ -1093,6 +1151,8 @@ func (node *WorkFlowNode) Verify(adminUserId int) error {
 		err = node.NodeParams.Plugin.Verify(adminUserId)
 	case NodeTypeBatch:
 		err = node.NodeParams.Batch.Verify(node.NodeName)
+	case NodeTypeImageGeneration:
+		err = node.NodeParams.ImageGeneration.Verify(node.NodeName)
 	}
 	if err != nil {
 		return errors.New(node.NodeName + `节点:` + err.Error())
@@ -1109,7 +1169,7 @@ func (params *StartNodeParams) Verify() error {
 		if tool.InArrayString(fmt.Sprintf(`global.%s`, item.Key), SysGlobalVariables()) {
 			return errors.New(fmt.Sprintf(`自定义全局变量与系统变量同名:%s`, item.Key))
 		}
-		if !tool.InArrayString(item.Typ, []string{common.TypString, common.TypNumber, common.TypArrString}) {
+		if !tool.InArrayString(item.Typ, []string{common.TypString, common.TypNumber, common.TypArrString, common.TypArrObject}) {
 			return errors.New(fmt.Sprintf(`自定义全局变量类型不支持:%s`, item.Key))
 		}
 		if _, ok := maps[item.Key]; ok {
@@ -1582,7 +1642,6 @@ func VerityLoopParams(fields []common.LoopField, nodeList []WorkFlowNode) bool {
 			continue
 		}
 		if field.Value != `` && CheckVariablePlaceholderExist(field.Value) && FindNodeByUseKey(nodeList, field.Value) == nil {
-			fmt.Println(fmt.Sprintf(`从节点找%s `, field.Value))
 			return false
 		}
 	}
@@ -1769,6 +1828,16 @@ func (params *BatchNodeParams) Verify(nodeName string) error {
 	}
 	if params.MaxRunNumber.Int() < 1 || params.MaxRunNumber.Int() > 500 {
 		return errors.New(fmt.Sprintf(`【%s】执行最大运行数错误(1-500)`, nodeName))
+	}
+	return nil
+}
+
+func (params *ImageGenerationParams) Verify(nodeName string) error {
+	if cast.ToInt(params.ImageNum) < 0 || cast.ToInt(params.ImageNum) > 15 {
+		return errors.New(fmt.Sprintf(`【%s】图片数量错误(0-15)`, nodeName))
+	}
+	if !tool.InArray(params.Size, define.ImageSizes) {
+		return errors.New(fmt.Sprintf(`【%s】图片尺寸错误`, nodeName))
 	}
 	return nil
 }

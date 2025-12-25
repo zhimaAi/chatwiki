@@ -10,4 +10,7 @@ import (
 func RegTriggerRoute() {
 	Route[http.MethodPost][`/manage/triggerList`] = manage.TriggerList
 	Route[http.MethodPost][`/manage/triggerSwitch`] = manage.TriggerSwitch
+	Route[http.MethodGet][`/manage/triggerConfigList`] = manage.TriggerConfigList
+	Route[http.MethodGet][`/manage/getTriggerConfigList`] = manage.GetTriggerConfigList
+	Route[http.MethodGet][`/manage/getTriggerOfficialMessage`] = manage.GetTriggerOfficialMessage
 }

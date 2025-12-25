@@ -91,7 +91,11 @@ func PushPwd(c *gin.Context) {
 	}
 
 	//未认证公众号的文本消息特殊处理
-	if len(robot) > 0 && appType == lib_define.AppOfficeAccount && msgType == lib_define.MsgTypeText && !lib_define.WechatAccountIsVerify(appInfo[`account_customer_type`]) {
+	msgTypes := []string{lib_define.MsgTypeText}
+	if len(robot) > 0 && cast.ToBool(robot[`question_multiple_switch`]) {
+		msgTypes = append(msgTypes, lib_define.MsgTypeImage)
+	}
+	if len(robot) > 0 && appType == lib_define.AppOfficeAccount && tool.InArrayString(msgType, msgTypes) && !lib_define.WechatAccountIsVerify(appInfo[`account_customer_type`]) {
 		var echo string
 		if logid, serial, ok := common.CheckQueryAiReply(message); ok && logid > 0 && serial >= 0 { //查询AI回复
 			echo = common.GetAiReply(robot, message, logid, serial)

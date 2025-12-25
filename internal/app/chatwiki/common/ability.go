@@ -42,10 +42,9 @@ func GetAllAbilityList() []Ability {
 
 	//机器人模块的功能
 	abilityList = append(abilityList, RobotAbilityList...)
-	abilityList = append(abilityList, LibraryAbilityList...)
 
 	//公众号模块的功能
-	abilityList = append(abilityList, OfficialAccountAbility...)
+	abilityList = append(abilityList, LibraryAbilityList...)
 
 	//默认模块 没赋值的全是默认模块
 	for _, ability := range abilityList {

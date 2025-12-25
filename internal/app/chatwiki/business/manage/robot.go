@@ -163,6 +163,7 @@ func SaveRobot(c *gin.Context) {
 	maxToken := cast.ToInt(c.DefaultPostForm(`max_token`, `2000`))
 	contextPair := cast.ToInt(c.DefaultPostForm(`context_pair`, `6`))
 	enableThinking := cast.ToUint(c.PostForm(`enable_thinking`))
+	questionMultipleSwitch := cast.ToUint(c.PostForm(`question_multiple_switch`))
 	topK := cast.ToInt(c.DefaultPostForm(`top_k`, `5`))
 	similarity := cast.ToFloat32(c.DefaultPostForm(`similarity`, `0.6`))
 	searchType := cast.ToInt(c.DefaultPostForm(`search_type`, `1`))
@@ -402,6 +403,7 @@ func SaveRobot(c *gin.Context) {
 		`max_token`:                             maxToken,
 		`context_pair`:                          contextPair,
 		`enable_thinking`:                       enableThinking,
+		`question_multiple_switch`:              questionMultipleSwitch,
 		`top_k`:                                 topK,
 		`similarity`:                            similarity,
 		`search_type`:                           searchType,
@@ -827,6 +829,9 @@ func RobotCopy(c *gin.Context) {
 	data[`robot_name`] = createNewName(info[`robot_name`])
 	data[`create_time`] = tool.Time2Int()
 	data[`update_time`] = tool.Time2Int()
+	if len(info[`en_name`]) > 0 {
+		data[`en_name`] = tool.Random(50)
+	}
 	newId, err := m.Insert(data, `id`)
 	if err != nil {
 		logs.Error(err.Error())

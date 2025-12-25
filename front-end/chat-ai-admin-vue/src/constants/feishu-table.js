@@ -36,3 +36,19 @@ export function getFieldOperator(type) {
   let arr = FieldTypesOperatorMap[type] || []
   return FeiShuOperator.filter(i => arr.includes(i.key))
 }
+
+export const BatchActions = [
+  'batch_create_record',
+  'batch_delete_record',
+  'batch_get_record',
+  'batch_update_record',
+]
+
+export function getBatchActionParams(params) {
+  const filterKeys = ['app_id', 'app_secret', 'app_token', 'table_id']
+  const formState = {}
+  for (let key in params) {
+    if (!filterKeys.includes(key) && params[key].required) formState[key] = JSON.parse(JSON.stringify(params[key]))
+  }
+  return formState
+}

@@ -506,15 +506,15 @@ func getChatRequestParam(c *gin.Context) *define.ChatRequestParam {
 	isClose := false
 	workFlowGlobal := make(map[string]any)
 	_ = tool.JsonDecodeUseNumber(c.DefaultPostForm(`global`, `{}`), &workFlowGlobal)
-	loopTestParams := make([]any, 0)
-	_ = tool.JsonDecodeUseNumber(c.DefaultPostForm(`loop_test_params`, `[]`), &loopTestParams)
-	batchTestParams := make([]any, 0)
-	_ = tool.JsonDecodeUseNumber(c.DefaultPostForm(`batch_test_params`, `[]`), &batchTestParams)
+	question := strings.TrimSpace(c.PostForm(`question`))
+	openid := strings.TrimSpace(c.PostForm(`openid`))
+	loopTestParams := work_flow.TakeTestParams(question, openid, c.DefaultPostForm(`loop_test_params`, `[]`), &workFlowGlobal)
+	batchTestParams := work_flow.TakeTestParams(question, openid, c.DefaultPostForm(`batch_test_params`, `[]`), &workFlowGlobal)
 	return &define.ChatRequestParam{
 		ChatBaseParam:   chatBaseParam,
 		Error:           err,
 		Lang:            common.GetLang(c),
-		Question:        strings.TrimSpace(c.PostForm(`question`)),
+		Question:        question,
 		DialogueId:      cast.ToInt(c.PostForm(`dialogue_id`)),
 		Prompt:          strings.TrimSpace(c.PostForm(`prompt`)),
 		LibraryIds:      strings.TrimSpace(c.PostForm(`library_ids`)),
@@ -573,11 +573,12 @@ func CallWorkFlow(c *gin.Context) {
 		return
 	}
 	isDraft := cast.ToBool(c.PostForm(`is_draft`))
+	questionMultipleSwitch := cast.ToBool(c.PostForm(`question_multiple_switch`))
 	workFlowParams := &work_flow.WorkFlowParams{
 		ChatRequestParam: chatRequestParam,
 		DialogueId:       dialogueId,
 		SessionId:        sessionId,
-		Draft:            work_flow.Draft{IsDraft: isDraft},
+		Draft:            work_flow.Draft{IsDraft: isDraft, QuestionMultipleSwitch: questionMultipleSwitch},
 	}
 	if isDraft { //运行测试(草稿)
 		workFlowParams.Draft.NodeMaps, err = msql.Model(`work_flow_node`, define.Postgres).
@@ -598,7 +599,7 @@ func CallWorkFlow(c *gin.Context) {
 			_ = tool.JsonDecodeUseNumber(params[`node_info_json`], &node.NodeInfoJson)
 			nodeList = append(nodeList, node)
 		}
-		if workFlowParams.Draft.StartNodeKey, _, _, err = work_flow.VerifyWorkFlowNodes(nodeList, chatRequestParam.AdminUserId); err != nil {
+		if workFlowParams.Draft.StartNodeKey, _, _, _, err = work_flow.VerifyWorkFlowNodes(nodeList, chatRequestParam.AdminUserId); err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			return
 		}

@@ -362,6 +362,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
       'custom-group',
       'zm-plugins-node',
       'batch-group',
+      'image-generation-node'
     ]
 
     let startNode = nodes.find((node) => node.type === 'start-node')
@@ -537,6 +538,22 @@ export class BaseVueNodeModel extends HtmlNodeModel {
           name: 'text',
           label: '工具生成的内容',
         }]
+      }
+      if(node.type === 'image-generation-node'){
+        let image_num = node_params.image_generation.image_num 
+        if(image_num > 0){
+          let list = []
+          for (let i = 0; i < +image_num; i++) {
+            let letter = String.fromCharCode('a'.charCodeAt(0) + i)
+            list.push({
+              key: `picture_url_${letter}`,
+              typ: 'string',
+              name: `picture_url_${letter}`,
+              label: `picture_url_${letter}`,
+            })
+          }
+          obj.children = list
+        }
       }
 
       obj.children = Array.isArray(obj.children) ?  obj.children : []

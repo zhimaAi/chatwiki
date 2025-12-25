@@ -5,7 +5,7 @@
       <div :class="['tab-item', {active: active == 2}]" @click="tabChange(2)">外部MCP</div>
     </div>
     <McpBox v-if="active == 1" ref="mcpRef"/>
-    <ThirdMcpBox v-else ref="mcpRef"/>
+    <ThirdMcpBox v-else ref="mcpRef" @listLoaded="onThirdListLoaded"/>
   </div>
 </template>
 
@@ -19,6 +19,7 @@ const route = useRoute()
 
 const mcpRef = ref(null)
 const active = ref(Number(localStorage.getItem('zm:chatwiki:mcp:active') || 1))
+const emit = defineEmits(['thirdMcpListEmpty'])
 
 onMounted(() => {
   if (route.query.mcp > 0) {
@@ -35,6 +36,10 @@ function update() {
   if (active.value == 2) {
     mcpRef.value.update()
   }
+}
+
+function onThirdListLoaded(len) {
+  emit('thirdMcpListEmpty', len === 0)
 }
 
 defineExpose({

@@ -156,7 +156,7 @@
 
 <script setup>
 import { ref, createVNode, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import {
   getLibraryList,
@@ -189,6 +189,7 @@ import {getSpecifyAbilityConfig, getAbilityList} from "@/api/explore/index.js";
 import SelectWechatApp from "@/components/common/select-wechat-app.vue";
 
 const router = useRouter()
+const route = useRoute()
 
 const pageTabs = ref([
   {
@@ -233,7 +234,7 @@ const addLibrayPopup = ref(null)
 const wxAppRef = ref(null)
 const wxAppLibary = ref(null)
 const wxAppids = ref([])
-const activeKey = ref('all')
+const activeKey = ref(String(route.query?.active || 'all'))
 
 const group_id = ref('')
 

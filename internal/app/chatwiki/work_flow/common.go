@@ -3,9 +3,12 @@
 package work_flow
 
 import (
+	"chatwiki/internal/app/chatwiki/common"
 	"fmt"
 	"strings"
 
+	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/tool"
 )
 
@@ -172,6 +175,15 @@ func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 					return true
 				}
 			}
+		case NodeTypeImageGeneration:
+			for _, param := range node.NodeParams.ImageGeneration.InputImages {
+				if strings.Contains(param, findKey) {
+					return true
+				}
+			}
+			if strings.Contains(node.NodeParams.ImageGeneration.Prompt, findKey) {
+				return true
+			}
 		}
 	}
 	if findKey == `global.openid` && isNeedOpenid {
@@ -191,4 +203,152 @@ func FindNodeByUseKey(nodeList []WorkFlowNode, findKey string) *WorkFlowNode {
 		}
 	}
 	return nil
+}
+
+// TakeTestParams 提取测试参数到全局变量
+func TakeTestParams(question, openid, value string, workFlow *map[string]any) []any {
+	takeData := make([]any, 0)
+	testParamData := make([]TestFillVal, 0)
+	err := tool.JsonDecodeUseNumber(value, &testParamData)
+	if err != nil {
+		logs.Error(`TakeTestParams err:%s`, err.Error())
+		return takeData
+	}
+	if len(testParamData) == 0 {
+		return takeData
+	}
+	(*workFlow)[`question`] = cast.ToString(question)
+	(*workFlow)[`openid`] = cast.ToString(openid)
+	for _, testParam := range testParamData {
+		takeData = append(takeData, testParam)
+		if !strings.HasPrefix(testParam.Field.Key, `global`) {
+			continue
+		}
+		globalKey := strings.TrimPrefix(testParam.Field.Key, `global.`)
+		if strings.Contains(testParam.Field.Typ, `array`) {
+			anys, ok := testParam.Field.Vals.([]any)
+			if !ok {
+				anys = make([]any, 0)
+			}
+			(*workFlow)[globalKey] = anys
+		} else {
+			(*workFlow)[globalKey] = cast.ToString(testParam.Field.Vals)
+		}
+	}
+	return takeData
+}
+
+// fillTestParamsToRunningParams 提取测试参数至运行时output和global变量
+func fillTestParamsToRunningParams(flowL *WorkFlow, params []any) {
+	flowL.Logs(`执行批处理节点测试，参数注入...`)
+	testParams := make([]TestFillVal, 0)
+	for _, field := range params { //从配置参数组装
+		fieldParse := TestFillVal{}
+		err := tool.JsonDecode(tool.JsonEncodeNoError(field), &fieldParse)
+		if err != nil {
+			logs.Error(err.Error())
+			continue
+		}
+		testParams = append(testParams, fieldParse)
+	}
+	desc := ``
+	workFlowGlobal := common.RecurveFields{}
+	workFlowGlobal = append(workFlowGlobal, common.RecurveField{SimpleField: common.SimpleField{Key: `question`, Desc: &desc, Typ: common.TypString}})
+	workFlowGlobal = append(workFlowGlobal, common.RecurveField{SimpleField: common.SimpleField{Key: `openid`, Desc: &desc, Typ: common.TypString}})
+	for _, fieldParse := range testParams { //从配置参数组装
+		if strings.HasPrefix(fieldParse.Field.Key, `global`) {
+			field := common.SimpleField{Key: strings.TrimPrefix(fieldParse.Field.Key, `global.`), Desc: &desc, Typ: fieldParse.Field.Typ}
+			workFlowGlobal = append(workFlowGlobal, common.RecurveField{SimpleField: field})
+		}
+	}
+	if len(flowL.params.WorkFlowGlobal) > 0 { //传入参数数据提取
+		workFlowGlobal = workFlowGlobal.ExtractionData(flowL.params.WorkFlowGlobal)
+	}
+	for key, field := range common.SimplifyFields(workFlowGlobal) {
+		flowL.global[key] = field
+	}
+	if len(testParams) > 0 {
+		for _, fieldParse := range testParams {
+			parseVals, ok := fieldParse.Field.Vals.([]any)
+			if !ok {
+				parseVals = make([]any, 0)
+			}
+			vals := make([]common.Val, 0)
+			switch fieldParse.Field.Typ {
+			case common.TypArrFloat:
+				for _, val := range parseVals {
+					fl := cast.ToFloat64(val)
+					vals = append(vals, common.Val{
+						Float: &fl,
+					})
+				}
+			case common.TypArrObject:
+				for _, val := range parseVals {
+					object := make(map[string]any)
+					_ = tool.JsonDecode(cast.ToString(val), &object)
+					vals = append(vals, common.Val{Object: object})
+				}
+			case common.TypArrBoole:
+				for _, val := range parseVals {
+					bl := cast.ToBool(val)
+					vals = append(vals, common.Val{
+						Boole: &bl,
+					})
+				}
+			case common.TypArrNumber:
+				for _, val := range parseVals {
+					il := cast.ToInt(val)
+					vals = append(vals, common.Val{
+						Number: &il,
+					})
+				}
+			case common.TypArrString:
+				for _, val := range parseVals {
+					sl := cast.ToString(val)
+					vals = append(vals, common.Val{
+						String: &sl,
+					})
+				}
+			case common.TypString:
+				val := cast.ToString(fieldParse.Field.Vals)
+				vals = append(vals, common.Val{
+					String: &val,
+				})
+			case common.TypNumber:
+				val := cast.ToInt(fieldParse.Field.Vals)
+				vals = append(vals, common.Val{
+					Number: &val,
+				})
+			case common.TypBoole:
+				val := cast.ToBool(fieldParse.Field.Vals)
+				vals = append(vals, common.Val{
+					Boole: &val,
+				})
+			case common.TypObject:
+				val := make(map[string]any)
+				_ = tool.JsonDecode(cast.ToString(fieldParse.Field.Vals), &val)
+				vals = append(vals, common.Val{
+					Object: &val,
+				})
+			case common.TypFloat:
+				val := cast.ToFloat64(fieldParse.Field.Vals)
+				vals = append(vals, common.Val{
+					Float: &val,
+				})
+			}
+			if _, ok := flowL.outputs[fieldParse.NodeKey]; !ok {
+				flowL.outputs[fieldParse.NodeKey] = make(common.SimpleFields)
+			}
+			fieldKey := fieldParse.Field.Key
+			if !strings.HasPrefix(fieldKey, `global`) {
+				fieldKey = strings.Replace(fieldKey, fieldParse.NodeKey+`.`, ``, 1)
+			}
+			flowL.outputs[fieldParse.NodeKey][fieldKey] = common.SimpleField{
+				Key:  fieldKey,
+				Typ:  fieldParse.Field.Typ,
+				Vals: vals,
+			}
+		}
+	}
+	flowL.Logs(`执行循环节点测试，outputs初始化完成，%s %s`, "\n", tool.JsonEncodeNoError(flowL.outputs))
 }
