@@ -142,6 +142,30 @@ export const nodeList = [
   {
     id: '',
     groupKey: 'start',
+    type: 'trigger_4',
+    x: -600,
+    y: 0,
+    width: 420,
+    height: 172,
+    hidden: true,
+    properties: {
+      ...getRowData(),
+      componentKey: 'official-trigger-node',
+      isTriggerNode: true,
+      node_type: 2,
+      node_name: '',
+      node_icon: getNodeIconUrl('official-trigger-node'),
+      node_icon_name: 'official-trigger-node',
+      node_params: JSON.stringify({
+        trigger: {
+          outputs: [],
+        }
+      })
+    }
+  },
+  {
+    id: '',
+    groupKey: 'start',
     type: 'start-node',
     x: 0,
     y: 0,
@@ -654,6 +678,33 @@ export const nodeList = [
   },
   {
     id: '',
+    groupKey: 'large-model-capability',
+    type: 'image-generation-node',
+    width: 420,
+    height: 184,
+    properties: {
+      ...getRowData(),
+      node_type: 33,
+      node_name: '图片生成',
+      node_icon: getNodeIconUrl('image-generation-node'),
+      node_icon_name: 'image-generation-node',
+      node_params: JSON.stringify({
+        image_generation: {
+          model_config_id: void 0,
+          use_model: '',
+          size: void 0,
+          image_num: '1',
+          prompt: '',
+          prompt_tags: [],
+          input_images: [],
+          image_watermark: '1',
+          image_optimize_prompt: '1'
+        }
+      })
+    }
+  },
+  {
+    id: '',
     groupKey: 'external-service',
     type: 'code-run-node',
     width: 420,
@@ -722,6 +773,7 @@ export const nodeList = [
       node_name: '',
       node_icon: getNodeIconUrl('zm-plugins-node'),
       node_icon_name: 'zm-plugins-node',
+      plugin_name: '',
       node_params: JSON.stringify({
         plugin: {
           name: "",
@@ -893,6 +945,7 @@ export const getPluginActionNode = (node, action, actionName) => {
   params.plugin.params.business = actionName
   node.properties.node_params = JSON.stringify(params)
   node.properties.node_name = action.title
+  node.properties.plugin_name = `${pluginName}.${actionName}`
   node.width = 420
   return node
 }

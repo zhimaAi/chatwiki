@@ -584,7 +584,7 @@ func PageProcessForYuque(page *playwright.Page) error {
 	return nil
 }
 func PageProcessForWeixin(page *playwright.Page) error {
-	content, err := (*page).Locator(`#page-content`).InnerHTML()
+	content, err := (*page).Locator(`#page-content.rich_media_area_primary`).InnerHTML()
 	if err != nil {
 		return err
 	}

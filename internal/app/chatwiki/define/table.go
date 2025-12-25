@@ -48,6 +48,7 @@ const (
 )
 
 const (
+	MsgTypeMixed = 99 //多模态输入内容
 	MsgTypeText  = 1
 	MsgTypeMenu  = 2
 	MsgTypeImage = 3

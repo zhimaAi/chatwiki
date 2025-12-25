@@ -144,6 +144,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 
 	//call_llm
 	callLlm := pipeline.NewPipeline(in, out)
+	callLlm.Pipe(CheckSkipCallLlm)      //检查是否跳过llm调用
 	callLlm.Pipe(CheckKeywordSkipAi)    //检查是否跳过AI回复
 	callLlm.Pipe(BuildOpenApiContent)   //开放接口自定义上下文处理
 	callLlm.Pipe(BuildFunctionTools)    //构建function tool
@@ -160,12 +161,14 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 
 	//work_flow
 	workFlow := pipeline.NewPipeline(in, out)
+	workFlow.Pipe(CheckSkipCallLlm)      //检查是否跳过llm调用
 	workFlow.Pipe(CheckReplyByChatCache) //检查回复来自聊天缓存
 	workFlow.Pipe(DoRelationWorkFlow)    //聊天机器人支持关联工作流
 	workFlow.Process()                   //忽略错误,继续向下执行
 
 	//ending
 	ending := pipeline.NewPipeline(in, out)
+	ending.Pipe(CheckSaveRobotMsg)         //检查是否需要保存AI消息
 	ending.Pipe(SetMonitorFromLlm)         //记录llm的监控数据
 	ending.Pipe(OfficeAccountPassiveReply) //未认证公众号的消息特殊处理
 	ending.Pipe(DisposeClientBreak)        //处理客户端断开逻辑

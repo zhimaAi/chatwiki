@@ -90,12 +90,31 @@
         </div>
       </div>
     </template>
+    <template v-else-if="BatchActions.includes(business)">
+      <div v-for="(item, key) in batchActionParam" :key="key">
+        <span class="label">{{ item.name }}：</span>
+        <div v-if="actionState[key]" class="field-box">
+          <a-tag>
+            <at-text
+              class="batch-render-at"
+              :options="valueOptions"
+              :defaultSelectedList="actionState?.tag_map[key] || []"
+              :defaultValue="actionState[key].toString()"
+            />
+          </a-tag>
+        </div>
+        <div v-else>
+          <a-tag>--</a-tag>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <script>
-import {FeiShuOperatorMap} from "@/constants/feishu-table.js";
+import {BatchActions, FeiShuOperatorMap, getBatchActionParams} from "@/constants/feishu-table.js";
 import AtText from "@/views/workflow/components/at-input/at-text.vue";
+import {runPlugin} from "@/api/plugins/index.js";
 
 export default {
   name: "feishu-table-render",
@@ -113,11 +132,16 @@ export default {
   },
   data() {
     return {
+      BatchActions,
+      batchActionParam: {},
       operatorMap: FeiShuOperatorMap(),
       actionState: {},
     }
   },
-  mounted() {
+  async mounted() {
+    if (BatchActions.includes(this.business)) {
+      await this.initParams()
+    }
     this.dataFormat()
   },
   watch: {
@@ -130,6 +154,16 @@ export default {
     }
   },
   methods: {
+    async initParams() {
+      await runPlugin({
+        name: 'feishu_bitable',
+        action: "default/get-schema",
+        params: {}
+      }).then(res => {
+        let data = res?.data || {}
+        this.batchActionParam = getBatchActionParams(data[this.business]?.params || {})
+      })
+    },
     dataFormat() {
       let arg = this.nodeParams?.plugin?.params?.arguments || {}
       let {config_name, table_name} = this.nodeParams?.plugin?.params || {}
@@ -138,7 +172,6 @@ export default {
         config_name,
         table_name,
       }
-      console.log(arg)
     }
   }
 }
@@ -194,5 +227,15 @@ export default {
       height: 16px;
     }
   }
+}
+
+.batch-render-at {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 </style>

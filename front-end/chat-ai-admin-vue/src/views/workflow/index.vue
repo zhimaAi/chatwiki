@@ -41,6 +41,7 @@
       @release="handleRelease"
       @getGlobal="getGlobal"
       @getVersionRecord="getVersionRecord"
+      :lf="lf"
       :currentVersion="currentVersionData"
       :start_node_params="start_node_params"
       :saveLoading="saveLoading"
@@ -94,16 +95,62 @@ import VersionModel from './components/version-model.vue'
 import PublishDetail from './components/publish-detail.vue'
 import { getModelConfigOption } from '@/api/model/index'
 import { getModelOptionsList } from '@/components/model-select/index.js'
+import { useModelStore } from '@/stores/modules/model'
+
+const modelStore = useModelStore()
 
 const route = useRoute()
 const query = route.query
 const robot_key = ref(route.query.robot_key)
+
+// 唯一标识与 user_agent 组装
+const UNI_STORAGE_KEY = 'wf_uni_identifier'
+const getUniIdentifier = () => {
+  try {
+    let id = localStorage.getItem(UNI_STORAGE_KEY)
+    if (!id) {
+      id = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+      localStorage.setItem(UNI_STORAGE_KEY, id)
+    }
+    return id
+  } catch (e) {
+    return `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+  }
+}
+const buildUserAgent = () => {
+  try {
+    const ua = navigator.userAgent || ''
+    const platform = navigator.platform || ''
+    let os = 'Unknown'
+    if (/Windows/i.test(ua)) os = 'Windows'
+    else if (/Macintosh|Mac OS X/i.test(ua)) os = 'MacOS'
+    else if (/Linux/i.test(ua)) os = 'Linux'
+    else if (/Android/i.test(ua)) os = 'Android'
+    else if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS'
+    let browser = 'Unknown'
+    let version = ''
+    const m = ua.match(/Edg\/([\d\.]+)/) || ua.match(/Chrome\/([\d\.]+)/) || ua.match(/Firefox\/([\d\.]+)/) || ua.match(/Version\/([\d\.]+).*Safari/)
+    if (m) {
+      if (ua.includes('Edg/')) browser = 'Edge'
+      else if (ua.includes('Chrome/')) browser = 'Chrome'
+      else if (ua.includes('Firefox/')) browser = 'Firefox'
+      else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari'
+      version = m[1]
+    }
+    return `platform=${platform}; os=${os}; browser=${browser}/${version}; ua=${ua}`
+  } catch (e) {
+    return 'ua=unknown'
+  }
+}
 
 const addRobotAlertRef = ref(null)
 const workflowCanvasRef = ref(null)
 
 const workflowStore = useWorkflowStore()
 const robotStore = useRobotStore()
+const lf = computed(() => {
+  return workflowCanvasRef.value?.lfRef
+})
 
 // 触发器列表
 const triggerList = computed(() => workflowStore.triggerList)
@@ -348,7 +395,7 @@ function stopInactivityWatcher () {
 // 编辑锁，根据规范调用后端接口
 async function checkEditLock () {
   try {
-    const res = await getDraftKey({ robot_key: robot_key.value })
+    const res = await getDraftKey({ robot_key: robot_key.value, uni_identifier: getUniIdentifier(), user_agent: buildUserAgent() })
     // const res = {"msg":"success","res":0,"data":{"is_self":true,"lock_res":true,"lock_ttl":955,"remote_addr":"171.83.17.34","robot_key":"yw5BnxX80G","staff_id":3432,"user_agent":"Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36"}}
     const data = res?.data || {}
     // lock_res 表示是否成功获取到编辑锁；is_self 表示是否为自己
@@ -368,7 +415,7 @@ async function checkEditLock () {
 
 async function acquireEditLock () {
   try {
-    const res = await getDraftKey({ robot_key: robot_key.value })
+    const res = await getDraftKey({ robot_key: robot_key.value, uni_identifier: getUniIdentifier(), user_agent: buildUserAgent() })
     // const res = {"msg":"success","res":0,"data":{"is_self":true,"lock_res":true,"lock_ttl":955,"remote_addr":"171.83.17.34","robot_key":"yw5BnxX80G","staff_id":3432,"user_agent":"Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36"}}
     const data = res?.data || {}
     if (data.lock_res) {
@@ -584,7 +631,9 @@ const handleSave = async (type) => {
       node_list: JSON.stringify(list),
       draft_save_type: 'handle',
       draft_save_time: clientDraftTs,
-      re_cover_save: 0
+      re_cover_save: 0,
+      uni_identifier: getUniIdentifier(),
+      user_agent: buildUserAgent()
     }
     const result = await confirmOverrideAndSave(basePayload, false)
     if (result.saved) {
@@ -602,7 +651,9 @@ const handleSave = async (type) => {
       data_type: 1,
       node_list: JSON.stringify(list),
       draft_save_type: 'automatic',
-      draft_save_time: +robotStore.robotInfo.draft_save_time || 0
+      draft_save_time: +robotStore.robotInfo.draft_save_time || 0,
+      uni_identifier: getUniIdentifier(),
+      user_agent: buildUserAgent()
     })
     await robotStore.getRobot(query.id)
     const ts = +robotStore.robotInfo.draft_save_time || dayjs().unix()
@@ -625,7 +676,8 @@ const BEHIND_MODAL_TEXT = '当前草稿已经不是最新的草稿版本，保�
 
 async function confirmOverrideAndSave (basePayload, isAuto) {
   try {
-    const res = await saveNodes(basePayload)
+     const payload = { ...basePayload, uni_identifier: getUniIdentifier(), user_agent: buildUserAgent() }
+    const res = await saveNodes(payload)
     const behind = res?.data?.behind_draft == 1 || res?.behind_draft == 1
     if (!behind) {
       // 正常保存成功后刷新服务端草稿时间戳
@@ -660,7 +712,7 @@ async function confirmOverrideAndSave (basePayload, isAuto) {
         okText: '确 定',
         cancelText: '取 消',
         async onOk () {
-          const forcePayload = { ...basePayload, re_cover_save: 1 }
+          const forcePayload = { ...basePayload, re_cover_save: 1, uni_identifier: getUniIdentifier(), user_agent: buildUserAgent() }
           const res2 = await saveNodes(forcePayload)
           if (res2 && res2.res == 0 || !res2?.data?.behind_draft) {
             await robotStore.getRobot(query.id)
@@ -714,7 +766,7 @@ async function confirmOverrideAndSave (basePayload, isAuto) {
         okText: '确 定',
         cancelText: '取 消',
         async onOk () {
-          const forcePayload = { ...basePayload, re_cover_save: 1 }
+          const forcePayload = { ...basePayload, re_cover_save: 1, uni_identifier: getUniIdentifier(), user_agent: buildUserAgent() }
           const res2 = await saveNodes(forcePayload)
           if (res2 && res2.res == 0 || !res2?.data?.behind_draft) {
             await robotStore.getRobot(query.id)
@@ -761,7 +813,8 @@ async function handleAutoSaveWithConflictCheck () {
     node_list: JSON.stringify(list),
     draft_save_type: 'automatic',
     draft_save_time: clientDraftTs,
-    re_cover_save: 0
+    re_cover_save: 0,
+    uni_identifier: getUniIdentifier()
   }
   await confirmOverrideAndSave(basePayload, true)
 }
@@ -845,7 +898,9 @@ const handleRelease = async () => {
       data_type: 1,
       node_list: JSON.stringify(list),
       draft_save_type: 'handle',
-      draft_save_time: +robotStore.robotInfo.draft_save_time || 0
+      draft_save_time: +robotStore.robotInfo.draft_save_time || 0,
+      uni_identifier: getUniIdentifier(),
+      user_agent: buildUserAgent()
     })
     // 保存后刷新服务端草稿时间戳
     await robotStore.getRobot(query.id)
@@ -934,7 +989,9 @@ const setVersion = (data) => {
     data_type: 1,
     node_list: JSON.stringify(currentDraft),
     draft_save_type: 'handle',
-    draft_save_time: +robotStore.robotInfo.draft_save_time || 0
+    draft_save_time: +robotStore.robotInfo.draft_save_time || 0,
+    uni_identifier: getUniIdentifier(),
+    user_agent: buildUserAgent()
   }).then(() => {
     // 刷新草稿时间戳
     robotStore.getRobot(query.id).then(() => {
@@ -965,7 +1022,9 @@ const handlePreviewVersion = async (data, version) => {
         data_type: 1,
         node_list: JSON.stringify(currentDraft),
         draft_save_type: 'automatic',
-        draft_save_time: +robotStore.robotInfo.draft_save_time || 0
+        draft_save_time: +robotStore.robotInfo.draft_save_time || 0,
+        uni_identifier: getUniIdentifier(),
+        user_agent: buildUserAgent()
       })
       // 更新本地草稿时间，保持发布详情“最近保存于”显示
       await robotStore.getRobot(query.id)
@@ -1010,6 +1069,8 @@ const handleClickEdit = async () => {
 const init = async () => { 
   await getModelList()
   await workflowStore.getTriggerList();
+  workflowStore.getTriggerOfficialMsg(robot_key.value)
+  await modelStore.getAllmodelList()
 
   const res = await getNodeList({
     robot_key: robot_key.value,

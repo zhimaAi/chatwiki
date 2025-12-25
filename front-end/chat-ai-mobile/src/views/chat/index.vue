@@ -161,8 +161,24 @@
       <FastComand v-if="isShortcut" @send="handleSetMessageInputValue"></FastComand>
     </div>
     <div class="chat-page-footer">
-      <MessageInput v-if="isMobileDevice" ref="messageInputRef" @showLogin="onShowLogin" @send="onSendMesage" :loading="sendLock" />
-      <MessageInputPc v-else  ref="messageInputRef" @showLogin="onShowLogin" @send="onSendMesage" :loading="sendLock"></MessageInputPc>
+      <MessageInput
+        v-if="isMobileDevice" 
+        ref="messageInputRef" 
+        :show-upload="showUpload"
+        v-model:value="message"
+        v-model:fileList="fileList"
+        @showLogin="onShowLogin" 
+        @send="onSendMesage" 
+        :loading="sendLoading" />
+      <MessageInputPc
+        v-else  
+        ref="messageInputRef" 
+        v-model:value="message"
+        v-model:fileList="fileList"
+        :show-upload="showUpload"
+        @showLogin="onShowLogin" 
+        @send="onSendMesage" 
+        :loading="sendLoading" />
 
       <div class="technical-support-text">{{ translate('由 ChatWiki 提供软件支持') }} </div>
     </div>
@@ -173,12 +189,19 @@
 </template>
 
 <script setup lang="ts">
+import type { Message } from './types'
+import { translate } from '@/utils/translate.js'
+import { getUuid } from '@/utils/index.js'
+import { checkChatRequestPermission } from '@/api/robot/index'
+import { useRoute } from 'vue-router'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { showToast } from 'vant'
+import { showToast, showConfirmDialog } from 'vant'
 import { storeToRefs } from 'pinia'
+import { useWindowWidth } from './useWindowWidth';
 import { useEventBus } from '@/hooks/event/useEventBus'
 import { useIM } from '@/hooks/event/useIM'
 import { useChatStore } from '@/stores/modules/chat'
+import { useUserStore } from '@/stores/modules/user'
 import CuNavbar from '@/components/cu-navbar/index.vue'
 import MessageInput from './components/message-input.vue'
 import MessageList from './components/messages/message-list.vue'
@@ -186,12 +209,8 @@ import MessageItem from './components/messages/message-item.vue'
 import FastComand from './components/fast-comand/index.vue'
 import LogOut from './components/log-out.vue'
 import LoginModal from './components/login-modal.vue'
-import { useUserStore } from '@/stores/modules/user'
-import { showConfirmDialog } from 'vant';
 import MessageInputPc from './components/message-input-pc.vue'
-import { useRoute } from 'vue-router'
-import { useWindowWidth } from './useWindowWidth';
-import { translate } from '@/utils/translate.js'
+
 
 const { windowWidth } = useWindowWidth();
 const route = useRoute()
@@ -222,6 +241,11 @@ const chatStore = useChatStore()
 const { sendMessage, onGetChatMessage, $reset, robot } = chatStore
 
 const { messageList, sendLock, externalConfigH5 } = storeToRefs(chatStore)
+const fileList = ref([])
+const message = ref('')
+const checkChatRequestPermissionLoding = ref(false)
+const sendLoading = computed(() => sendLock.value || checkChatRequestPermissionLoding.value)
+const showUpload = computed(() => robot.question_multiple_switch == 1)
 
 
 const isShortcut = computed(()=>{
@@ -271,7 +295,6 @@ const onTrigger = () => {
     isScrolled.value = false
   } else {
     // 触发退出操作
-    console.log('退出登录')
     showConfirmDialog({
       title: '温馨提示',
       message: '是否退出本系统？',
@@ -299,7 +322,6 @@ const onScrollStart = async () => {
 // 监听滚动到底部
 const onScrollEnd = () => {
   isShowBottomBtn.value = false
-  // console.log('滚动到底部')
 }
 
 const init = async () => {
@@ -314,7 +336,7 @@ const init = async () => {
 
 const sendTextMessage = (val: string) => {
   if (!val) {
-    return showToast('请输入消息内容')
+    return
   }
 
   let query = route.query || {}
@@ -325,14 +347,81 @@ const sendTextMessage = (val: string) => {
   })
 }
 
-const onSendMesage = async (message) => {
-  if (!message) {
+const sendMultipleMessage = (messages: any[]) => {
+  if (!messages.length) {
+    return
+  }
+
+  let query = route.query || {}
+
+  sendMessage({
+    message: JSON.stringify(messages),
+    global: JSON.stringify(query)
+  })
+}
+
+const onSendMesage = async () => {
+  if (sendLoading.value){
+    return
+  }
+
+  let text = message.value.trim()
+
+  if (!text && !fileList.value.length) {
     return showToast('请输入消息内容')
   }
 
-  isAllowedScrollToBottom = true
+  checkChatRequestPermissionLoding.value = true
 
-  sendTextMessage(message)
+  try{
+    //检查是否含有敏感词
+    let result = await checkChatRequestPermission({
+      robot_key: robot.robot_key,
+      openid: robot.openid,
+      question: text
+    })
+
+    checkChatRequestPermissionLoding.value = false
+
+    if (result.data && result.data.words) {
+      return showToast(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)
+    }
+
+    isAllowedScrollToBottom = true
+
+    if(showUpload.value){
+      let messages: Message[] = [];
+
+      if(text){
+        messages.push({
+          type: "text",
+          uid: getUuid(16),
+          text: text
+        })
+      }
+
+      if(fileList.value.length){
+        fileList.value.map((file: any) => {
+          messages.push({
+            uid: file.uid,
+            type: 'image_url',
+            image_url: {
+              url: file.url
+            }
+          })
+        })
+      }
+
+      sendMultipleMessage(messages)
+    }else{
+      sendTextMessage(text)
+    }
+
+    message.value = ''
+    fileList.value = []
+  }catch(err){
+    checkChatRequestPermissionLoding.value = false
+  }
 }
 
 // 监听 updateAiMessage 触发消息列表滚动
@@ -354,14 +443,14 @@ function setChatPageHeight() {
   }, 20)
 }
 
-const messageInputRef = ref<InstanceType<typeof MessageInput> | null>(null);  
 const handleSetMessageInputValue = (data: any) => {
-  // if(messageInputRef.value){
-    // 直接发出内容
-    onSendMesage(data)
-    // messageInputRef.value.handleSetValue(data)
-  // }
- 
+    if (!data) {
+      return
+    }
+
+    isAllowedScrollToBottom = true
+
+    sendTextMessage(data)
 }
 
 const onShowLogin = () => {
@@ -370,12 +459,46 @@ const onShowLogin = () => {
   }
 }
 
+const checkLogin = async () => {
+   //检查是否含有敏感词
+    let result = await checkChatRequestPermission({
+      robot_key: robot.robot_key,
+      openid: robot.openid,
+      question: ''
+    })
+
+    checkChatRequestPermissionLoding.value = false
+
+    // 未登录
+    if (result.data?.code == 10002) {
+      // 弹出登录
+      showToast('请登录账号')
+      onShowLogin()
+      userStore.setLoginStatus(false)
+      return false
+    }
+
+    // 有权限的账号登录后才可访问
+    if (result.data?.code == 10003) {
+      // 弹出登录
+      showToast('当前账号无访问权限')
+      onShowLogin()
+      userStore.setLoginStatus(false)
+      return false
+    }
+
+    userStore.setLoginStatus(true)
+
+    if (result.data && result.data.words) {
+      return showToast(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)
+    }
+
+}
+
 onMounted(async() => {
   // 获取登录信息，如果没有登录则立即弹出登录
   // 后端说这个地方不用/manage/checkLogin接口获取用户信息来判断是否登录，直接调下面的接口，关键词传空字符串就行
-  if (messageInputRef.value) {
-    messageInputRef.value.sendMessage()
-  }
+  await checkLogin()
 
   init()
   // 获取对话记录

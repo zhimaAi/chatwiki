@@ -111,20 +111,23 @@
   color: #262626;
 }
 .lock-tip {
+  padding: 6px 85px;
   background:#FFEBCC;
   position: absolute;
-  height: 40px;
+  min-height: 40px;
   width: 100%;
   top: 56px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: 14px;
   color: #000000;
 
   .lock-info {
+    font-size: 12px;
     color: #8c8c8c;
   }
 }
@@ -159,7 +162,7 @@
 </style>
 
 <template>
-  <div class="page-header">
+  <div class="page-header" :data-lf="lf">
     <!-- <div class="header-left">
       <div class="back-btn" @click="onBack"><LeftOutlined /></div>
     </div> -->
@@ -262,13 +265,13 @@
       <div>当前已有用户正在编辑中，无法编辑保存草稿或发布工作流</div>
       <div class="lock-info">（{{ '用户：' + loginUserName || '--' }}  {{ 'IP：' + lockRemoteAddr || '--' }}  {{ 'User Agent：' + lockUserAgent || '--' }}）</div>
     </div>
-    <RunTest ref="runTestRef" :start_node_params="start_node_params" @getGlobal="getGlobal" @save="handleSave" :isLockedByOther="isLockedByOther" />
+    <RunTest ref="runTestRef" :lf="lf" :start_node_params="start_node_params" @getGlobal="getGlobal" @save="handleSave" :isLockedByOther="isLockedByOther" />
   </div>
 </template>
 
 <script setup>
 import { ExclamationCircleFilled, CheckCircleFilled, ClockCircleOutlined, EditOutlined } from '@ant-design/icons-vue'
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, h } from 'vue'
 import dayjs from 'dayjs'
 // front-end\chat-ai-admin-vue\src\views\robot\robot-config\components\top-header.vue
 import TopHeader from '@/views/robot/robot-config/components/top-header.vue'
@@ -276,7 +279,8 @@ import RunTest from './run-test/index.vue'
 import { useRobotStore } from '@/stores/modules/robot'
 import { useUserStore } from '@/stores/modules/user'
 import { saveDraftExTime, getAdminConfig } from '@/api/robot/index'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
+import { useEventBus } from '@/hooks/event/useEventBus.js'
 const robotStore = useRobotStore()
 const robotInfo = computed(() => {
   return robotStore.robotInfo
@@ -286,6 +290,7 @@ const robotInfo = computed(() => {
 
 const emit = defineEmits(['save', 'release', 'edit', 'getGlobal', 'getVersionRecord'])
 const props = defineProps({
+  lf: { default: () => null, type: Object },
   saveLoading: {
     default: false,
     type: Boolean
@@ -360,10 +365,54 @@ const onEdit = () => {
 }
 
 const handleSave = (type = "handle") => {
+  const bus = useEventBus()
+  let hasError = false
+  const details = []
+  const onErr = (payload) => {
+    hasError = true
+    const comp = payload?.component || '未命名组件'
+    const type = payload?.typeDisplay || payload?.type || ''
+    const errs = Array.isArray(payload?.errors) ? payload.errors : []
+    errs.forEach(e => {
+      details.push(`【${comp}${type ? ' - ' + type : ''}】字段「${e.field_name}」：${e.message}`)
+    })
+  }
+  bus.on && bus.on('workflow:validate:error', onErr)
+  bus.emit && bus.emit('workflow:validate', { action: 'save' })
+  bus.off && bus.off('workflow:validate:error', onErr)
+  if (hasError) {
+    Modal.warning({
+      title: '表单未完成',
+      content: details.length ? h('div', details.map(d => h('div', d))) : '请完善必填项后再保存'
+    })
+    return
+  }
   emit('save', type)
 }
 
 const handleRelease = () => {
+  const bus = useEventBus()
+  let hasError = false
+  const details = []
+  const onErr = (payload) => {
+    hasError = true
+    const comp = payload?.component || '未命名组件'
+    const type = payload?.typeDisplay || payload?.type || ''
+    const errs = Array.isArray(payload?.errors) ? payload.errors : []
+    errs.forEach(e => {
+      details.push(`【${comp}${type ? ' - ' + type : ''}】字段「${e.field_name}」：${e.message}`)
+    })
+  }
+  bus.on && bus.on('workflow:validate:error', onErr)
+  bus.emit && bus.emit('workflow:validate', { action: 'release' })
+  bus.off && bus.off('workflow:validate:error', onErr)
+  if (hasError) {
+    Modal.warning({
+      title: '表单未完成',
+      content: details.length ? h('div', details.map(d => h('div', d))) : '请完善必填项后再发布'
+    })
+    return
+  }
   emit('release')
 }
 

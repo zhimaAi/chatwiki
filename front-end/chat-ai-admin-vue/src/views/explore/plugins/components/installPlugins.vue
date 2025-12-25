@@ -5,7 +5,9 @@
       <div v-for="item in allList"
            @click="linkDetail(item)"
            :key="item.name"
-           class="plugin-item">
+           class="plugin-item"
+           :class="{'trigger-plugin-item': item.local.type == 'trigger'}"
+           >
         <div class="type-tag">{{item.filter_type_title}}</div>
         <div class="base-info">
           <img class="avatar" :src="item.icon"/>
@@ -16,7 +18,9 @@
             <div class="source">{{ item.author }}</div>
           </div>
         </div>
-        <div class="desc zm-line1">{{ item.description }}</div>
+        <a-tooltip :title="getTooltipTitle(item.description, item)" placement="top">
+          <div class="desc zm-line1" :ref="el => setDescRef(el, item)">{{ item.description }}</div>
+        </a-tooltip>
         <div class="version">版本：v{{ item.local.version }} <span v-if="item.has_update" class="tag">有更新</span></div>
         <div class="action-box">
           <div class="left" @click.stop="">
@@ -86,11 +90,23 @@ const showConifgPlugins = [
   'official_account_profile',
   'official_batch_tag',
   'official_send_template_message',
+  'official_send_message',
 ]
 
 onMounted(() => {
   loadData()
 })
+
+// 获取 tooltip 标题
+function getTooltipTitle(text, record) {
+  if (!text) return null
+  const canvas = document.createElement('canvas')
+  const context = canvas.getContext('2d')
+  context.font = '14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+  const textWidth = context.measureText(text).width
+  const maxWidth = record?.title_width || 120
+  return textWidth > maxWidth ? text : null
+}
 
 // watch(() => props.filterData, () => {
 //   loadData()
@@ -245,6 +261,12 @@ function showConfigModal(item) {
 
 function update(item) {
   updateRef.value.show(item, item.latest_version_detail, item.local)
+}
+
+function setDescRef(el, item) {
+  if (el && item) {
+    item.title_width = el.offsetWidth
+  }
 }
 
 defineExpose({

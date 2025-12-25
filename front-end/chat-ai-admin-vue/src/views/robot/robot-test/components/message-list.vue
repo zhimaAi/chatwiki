@@ -19,10 +19,10 @@
 }
 
 .msg-img {
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
+  max-width: 300px;
+  max-height: 300px;
 }
 
 .message-list {
@@ -368,6 +368,7 @@
             class="message-item user-message"
             :id="'msg-' + item.uid"
             v-if="item.is_customer == 1"
+            :data-msg_type="item.msg_type"
           >
             <div class="itme-left">
               <img class="user-avatar" :src="item.avatar" />
@@ -375,12 +376,19 @@
             <div class="itme-right">
               <div class="item-body">
                 <!-- 收到消息类型处理，目前只处理了image 后续有其他的在这里添加 -->
-                <template v-if="item.received_message_type == 'image' && item.media_id_to_oss_url">
+                <template v-if="item.msg_type == 3">
                   <div class="message-content">
                     <img v-viewer class="msg-img" :src="item.media_id_to_oss_url" alt="" />
                   </div>
                 </template>
-                <div class="message-content">{{ item.content }}</div>
+                <template v-else-if="item.msg_type == 99">
+                  <div class="message-content">
+                    <MultipleMessage :message="item.content" />
+                  </div>
+                </template>
+                <template v-else>
+                  <TextMessage class="message-content" :message="item.content" />
+                </template>
               </div>
             </div>
           </div>
@@ -590,9 +598,12 @@
 
 <script setup>
 import { ref, nextTick, toRaw, computed } from 'vue'
-import { QuestionCircleOutlined, LoadingOutlined, InfoCircleOutlined } from '@ant-design/icons-vue'
+import { LoadingOutlined, InfoCircleOutlined } from '@ant-design/icons-vue'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import GuessYouWant from './guess-you-want.vue'
+import TextMessage from './messages/text-message.vue'
+import MultipleMessage from './messages/multiple-message.vue'
+
 
 const emit = defineEmits([
   'clickMsgMeun',

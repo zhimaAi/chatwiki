@@ -10,7 +10,7 @@
         un-checked-children="关"
         @change="onAbilitySwitchChange"
       />
-      <span class="switch-desc">开启后，公众号显示自定义菜单；关闭后，粉丝将无法看到菜单。</span>
+      <span class="switch-tip">开启后，公众号显示自定义菜单；关闭后，粉丝将无法看到菜单。</span>
     </div>
     <a-alert>
       <template #message>
@@ -259,7 +259,9 @@ onMounted(async () => {
   initAppMenuSwitch()
   nextTick(calcVisibleCount)
   window.addEventListener('resize', calcVisibleCount)
-  loadMenuList()
+  if (selectedAppid.value) {
+    loadMenuList()
+  }
 })
 onUnmounted(() => { window.removeEventListener('resize', calcVisibleCount) })
 
@@ -267,7 +269,9 @@ function selectMp (mp) {
   selectedAppid.value = mp.appid
   expanded.value = true
   initAppMenuSwitch()
-  loadMenuList()
+  if (selectedAppid.value) {
+    loadMenuList()
+  }
 }
 
 const abilitySwitchChecked = ref(false)
@@ -1008,20 +1012,22 @@ watch(() => activeRootIndex.value, () => {
   width: fit-content;
   display: flex;
   align-items: center;
-  gap: 10px;
   cursor: pointer;
   margin-bottom: 16px;
 }
 
 .breadcrumb-title {
-  color: #000000;
-  font-size: 20px;
+  margin: 0 12px 0 2px;
+  color: #262626;
+  font-size: 16px;
   font-style: normal;
   font-weight: 600;
-  line-height: 28px;
+  line-height: 24px;
 }
 
-.switch-desc {
+.switch-tip {
+  margin-left: 4px;
+  color: #8c8c8c;
   font-size: 14px;
   font-style: normal;
   font-weight: 400;

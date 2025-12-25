@@ -60,46 +60,6 @@ var RobotAbilityList = []Ability{
 		},
 	},
 	{
-		Name:          "关注后回复",
-		ModuleType:    RobotModule,                //模块类型 //本来应该在公众号模块 但wendy要求在机器人的功能中心中展示
-		AbilityType:   RobotAbilitySubscribeReply, //全局唯一值 类型
-		Introduction:  "关注公众号后，自动给用户回复消息。支持按照时间段以及关注来源设置",
-		Details:       "查看详情中的信息 前端自己定义",
-		Icon:          "iconfont icon-subscribe-reply",
-		ShowSelect:    define.SwitchOn,
-		RobotOnlyShow: define.SwitchOn,
-		SupportChannelsList: []string{
-			"公众号",
-		},
-		RobotConfig: DefaultRobotConfig,
-		Menu: define.Menu{
-			Name:     "关注后回复",
-			UniKey:   "RobotAbilitySubscribeReply",
-			Path:     "/explore/index/subscribe-reply",
-			Children: []*define.Menu{},
-		},
-	},
-	{
-		Name:          "自定义菜单",
-		ModuleType:    RobotModule,               //模块类型 //本来应该在公众号模块 但wendy要求在机器人的功能中心中展示
-		AbilityType:   OfficialAbilityCustomMenu, //全局唯一值 类型
-		Introduction:  "支特对公众号菜单自定义，多公众号可单独设置",
-		Details:       "查看详情中的信息 前端自己定义",
-		Icon:          "iconfont icon-official-custom-menu",
-		ShowSelect:    define.SwitchOn,
-		RobotOnlyShow: define.SwitchOn,
-		SupportChannelsList: []string{
-			"公众号",
-		},
-		RobotConfig: DefaultRobotConfig,
-		Menu: define.Menu{
-			Name:     "自定义菜单",
-			UniKey:   "OfficialAbilityCustomMenu",
-			Path:     "/explore/index/custom-menu",
-			Children: []*define.Menu{},
-		},
-	},
-	{
 		Name:          "智能菜单",
 		ModuleType:    RobotModule,           //模块类型
 		AbilityType:   RobotAbilitySmartMenu, //全局唯一值 类型
@@ -120,6 +80,46 @@ var RobotAbilityList = []Ability{
 			Name:     "智能菜单",
 			UniKey:   "RobotAbilitySmartMenu",
 			Path:     "/robot/ability/smart-menu",
+			Children: []*define.Menu{},
+		},
+	},
+	{
+		Name:          "公众号关注后回复",
+		ModuleType:    RobotModule,                //模块类型 //本来应该在公众号模块 但wendy要求在机器人的功能中心中展示
+		AbilityType:   RobotAbilitySubscribeReply, //全局唯一值 类型
+		Introduction:  "关注公众号后，自动给用户回复消息。支持按照时间段以及关注来源设置",
+		Details:       "查看详情中的信息 前端自己定义",
+		Icon:          "iconfont icon-subscribe-reply",
+		ShowSelect:    define.SwitchOn,
+		RobotOnlyShow: define.SwitchOn,
+		SupportChannelsList: []string{
+			"公众号",
+		},
+		RobotConfig: DefaultRobotConfig,
+		Menu: define.Menu{
+			Name:     "关注后回复",
+			UniKey:   "RobotAbilitySubscribeReply",
+			Path:     "/explore/index/subscribe-reply",
+			Children: []*define.Menu{},
+		},
+	},
+	{
+		Name:          "公众号自定义菜单",
+		ModuleType:    RobotModule,               //模块类型 //本来应该在公众号模块 但wendy要求在机器人的功能中心中展示
+		AbilityType:   OfficialAbilityCustomMenu, //全局唯一值 类型
+		Introduction:  "支特对公众号菜单自定义，多公众号可单独设置",
+		Details:       "查看详情中的信息 前端自己定义",
+		Icon:          "iconfont icon-official-custom-menu",
+		ShowSelect:    define.SwitchOn,
+		RobotOnlyShow: define.SwitchOn,
+		SupportChannelsList: []string{
+			"公众号",
+		},
+		RobotConfig: DefaultRobotConfig,
+		Menu: define.Menu{
+			Name:     "自定义菜单",
+			UniKey:   "OfficialAbilityCustomMenu",
+			Path:     "/explore/index/custom-menu",
 			Children: []*define.Menu{},
 		},
 	},

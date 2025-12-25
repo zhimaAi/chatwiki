@@ -616,3 +616,15 @@ export function sortObjectKeys(obj, sort = []) {
 
   return result;
 }
+
+export const getTreeOptions = (options) => {
+  let result = [];
+  options.forEach((opt) => {
+    if (opt.children && opt.children.length > 0) {
+      result.push(...getTreeOptions(opt.children));
+    } else {
+      result.push(opt);
+    }
+  });
+  return result;
+}

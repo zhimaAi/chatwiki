@@ -43,7 +43,7 @@
           </div>
           <div class="main-block">
             <div class="main-tit">使用说明</div>
-            <pre class="text-cont" v-html="info.introduction"></pre>
+            <pre class="text-cont" v-viewer v-html="info.introduction"></pre>
           </div>
         </div>
         <div class="right">
@@ -135,6 +135,7 @@ function install() {
 ._plugin-detail-cont .text-cont {
     img {
       max-width: 640px;
+      cursor: pointer;
     }
 }
 </style>
@@ -268,6 +269,7 @@ function install() {
 
         img {
           max-width: 620px !important;
+          cursor: pointer;
         }
       }
 

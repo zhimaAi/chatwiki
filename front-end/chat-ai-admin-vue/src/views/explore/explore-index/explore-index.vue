@@ -126,12 +126,9 @@ const handleClick = (item) => {
       const url = router.resolve({ path: '/library/list', query: { active: 3 }})
       window.open(url.href, '_blank')
       break
-    case 'robot_auto_reply':
-      goToFunctionCenter()
-      break
     default:
       if (item.module_type === 'robot' && item.robot_only_show == 0) {
-        goToFunctionCenter()
+        goToFunctionCenter(item)
       }
       break
   }
@@ -149,7 +146,7 @@ const onCancelTip = () => {
   enableTipOpen.value = false
 }
 
-const goToFunctionCenter = async () => {
+const goToFunctionCenter = async (item) => {
   applyDontRemindIfChecked()
   enableTipOpen.value = false
   const rid = localStorage.getItem('last_local_robot_id')
@@ -166,6 +163,11 @@ const goToFunctionCenter = async () => {
     }
     toDetailRobot = toDetailRobot || lists[0]
     const { id, robot_key } = toDetailRobot
+    if (item.menu?.path) {
+      const url = router.resolve({ path: item.menu.path, query: { id, robot_key } })
+      window.open(url.href, '_blank')
+      return
+    }
     const url = router.resolve({ path: '/robot/config/function-center', query: { id, robot_key } })
     window.open(url.href, '_blank')
   } catch (e) {
@@ -209,7 +211,7 @@ watch(enableTipOpen, (v, ov) => {
 }
 
 .explore-page-body {
-  padding: 0 24px;
+  padding: 0;
   margin-top: 16px;
   flex: 1;
   overflow: hidden;

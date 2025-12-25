@@ -119,6 +119,8 @@ func SaveNodes(c *gin.Context) {
 	draftSaveType := strings.TrimSpace(c.PostForm(`draft_save_type`))
 	lastUpdateTime := strings.TrimSpace(c.PostForm(`draft_save_time`))
 	reCoverSave := strings.TrimSpace(c.PostForm(`re_cover_save`))
+	uniIdentifier := strings.TrimSpace(c.PostForm(`uni_identifier`))
+	realUserAgent := strings.TrimSpace(c.PostForm(`user_agent`))
 	if !common.CheckRobotKey(robotKey) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `robot_key`))))
 		return
@@ -143,12 +145,21 @@ func SaveNodes(c *gin.Context) {
 	filtered["login_user_id"] = getLoginUserId(c)
 	filtered["robot_key"] = robotKey
 	filtered["remote_addr"] = lib_web.GetClientIP(c)
-	filtered["user_agent"] = c.Request.UserAgent()
+	filtered["uni_identifier"] = uniIdentifier
 	lockValue, _ := tool.JsonEncode(filtered)
 
 	lockRes, err := define.Redis.Get(context.Background(), lockKeyMd5).Result()
 	if lockRes != "" && lockRes != lockValue { //有编辑锁，且锁不是自己的
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_draft_edit_permission`))))
+		redisValueMap := make(map[string]any)
+		_ = tool.JsonDecodeUseNumber(lockRes, &redisValueMap)
+
+		userInfo, err := GetUserInfo(cast.ToString(redisValueMap["login_user_id"]))
+		staffUserName := "未知用户"
+		if err == nil && userInfo["user_name"] != "" {
+			staffUserName = userInfo["user_name"]
+		}
+
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_draft_edit_permission`, staffUserName, redisValueMap["remote_addr"]))))
 		return
 	}
 
@@ -193,10 +204,11 @@ func SaveNodes(c *gin.Context) {
 		return
 	}
 	var startNodeKey, modelConfigIds, libraryIds string
+	var questionMultipleSwitch bool
 	clearNodeKeys := make([]string, 0)
 	m := msql.Model(`work_flow_node`, define.Postgres)
 	if dataType == define.DataTypeRelease {
-		if startNodeKey, modelConfigIds, libraryIds, err = work_flow.VerifyWorkFlowNodes(nodeList, userId); err != nil {
+		if startNodeKey, modelConfigIds, libraryIds, questionMultipleSwitch, err = work_flow.VerifyWorkFlowNodes(nodeList, userId); err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			lib_redis.UnLock(define.Redis, lockKey) //unlock
 			return
@@ -252,6 +264,7 @@ func SaveNodes(c *gin.Context) {
 			`library_ids`:                libraryIds,
 			`work_flow_model_config_ids`: fmt.Sprintf(`{%s}`, modelConfigIds),
 			`update_time`:                tool.Time2Int(),
+			`question_multiple_switch`:   cast.ToUint(questionMultipleSwitch),
 		})
 		if err != nil {
 			_ = m.Rollback()
@@ -263,9 +276,14 @@ func SaveNodes(c *gin.Context) {
 	}
 
 	//保存上次编辑人信息
+	userInfo, err := GetUserInfo(cast.ToString(getLoginUserId(c)))
+	editUserName := "未知用户"
+	if err == nil && userInfo["user_name"] != "" {
+		editUserName = userInfo["user_name"]
+	}
 	_, err = msql.Model(`chat_ai_robot`, define.Postgres).Where(`robot_key`, robotKey).Update(msql.Datas{
 		`last_edit_ip`:         lib_web.GetClientIP(c),
-		`last_edit_user_agent`: c.Request.UserAgent(),
+		`last_edit_user_agent`: fmt.Sprintf("编辑人：%s，%s", editUserName, realUserAgent),
 		`draft_save_type`:      draftSaveType,
 		`draft_save_time`:      tool.Time2Int(),
 		`update_time`:          tool.Time2Int(),
@@ -281,24 +299,60 @@ func SaveNodes(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
-func VerifyTriggerCronConfig(node *work_flow.WorkFlowNode, lang string) error {
+func VerifyTriggerCronConfig(adminUserId string, node *work_flow.WorkFlowNode, lang string) error {
 	for _, trigger := range node.NodeParams.Start.TriggerList {
-		cronConfig := trigger.TriggerCronConfig
-		if cronConfig.Type == work_flow.CronTypeSelectTime {
-			if len(strings.Split(cronConfig.HourMinute, `:`)) != 2 {
-				return errors.New(i18n.Show(lang, `param_err`, `trigger_cron_config`))
-			}
-			if cronConfig.EveryType == work_flow.EveryTypeWeek && !tool.InArrayString(cronConfig.WeekNumber, []string{`0`, `1`, `2`, `3`, `4`, `5`, `6`}) {
-				return errors.New(i18n.Show(lang, `param_err`, `trigger_cron_config`))
-			}
-			if cronConfig.EveryType == work_flow.EveryTypeMonth && !tool.InArrayString(cronConfig.MonthDay, []string{`1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`, `11`, `12`, `13`, `14`, `15`, `16`, `17`, `18`, `19`, `20`, `21`, `22`, `23`, `24`, `25`, `26`, `27`, `28`, `29`, `30`, `31`}) {
-				return errors.New(i18n.Show(lang, `param_err`, `trigger_cron_config`))
-			}
-		} else if cronConfig.Type == work_flow.CronTypeCrontab {
-			if cronConfig.LinuxCrontab == `` || !common.CheckLinuxCrontab(cronConfig.LinuxCrontab) {
-				return errors.New(i18n.Show(lang, `linux_crontab_err`))
-			}
+		var err error
+		switch trigger.TriggerType {
+		case work_flow.TriggerTypeCron:
+			err = verifyTriggerCronConfig(trigger.TriggerCronConfig, lang)
+		case work_flow.TriggerTypeOfficial:
+			err = verifyTriggerOfficialConfig(adminUserId, trigger.TriggerOfficialConfig, lang)
 		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func verifyTriggerCronConfig(cronConfig work_flow.TriggerCronConfig, lang string) error {
+	if cronConfig.Type == work_flow.CronTypeSelectTime {
+		if len(strings.Split(cronConfig.HourMinute, `:`)) != 2 {
+			return errors.New(i18n.Show(lang, `param_err`, `trigger_cron_config`))
+		}
+		if cronConfig.EveryType == work_flow.EveryTypeWeek && tool.InArrayString(cronConfig.WeekNumber, []string{`0`, `1`, `2`, `3`, `4`, `5`, `6`}) {
+			return errors.New(i18n.Show(lang, `param_err`, `trigger_cron_config`))
+		}
+		if cronConfig.EveryType == work_flow.EveryTypeMonth && tool.InArrayString(cronConfig.MonthDay, []string{`1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`, `11`, `12`, `13`, `14`, `15`, `16`, `17`, `18`, `19`, `20`, `21`, `22`, `23`, `24`, `25`, `26`, `27`, `28`, `29`, `30`, `31`}) {
+			return errors.New(i18n.Show(lang, `param_err`, `trigger_cron_config`))
+		}
+	} else if cronConfig.Type == work_flow.CronTypeCrontab {
+		if cronConfig.LinuxCrontab == `` || !common.CheckLinuxCrontab(cronConfig.LinuxCrontab) {
+			return errors.New(i18n.Show(lang, `linux_crontab_err`))
+		}
+	}
+	return nil
+}
+
+func verifyTriggerOfficialConfig(adminUserId string, officialConfig work_flow.TriggerOfficialConfig, lang string) error {
+	appidList, err := msql.Model(`chat_ai_wechat_app`, define.Postgres).
+		Where(`admin_user_id`, adminUserId).Where(`app_type`, `official_account`).ColumnArr(`app_id`)
+	if err != nil {
+		return errors.New(i18n.Show(lang, `sys_err`))
+	}
+	chooseAppidList := strings.Split(officialConfig.AppIds, `,`)
+	for _, appid := range chooseAppidList {
+		if !tool.InArray(appid, appidList) {
+			return errors.New(i18n.Show(lang, `param_err`, `trigger_official_config`))
+		}
+	}
+	if !tool.InArray(officialConfig.MsgType, []string{
+		define.TriggerOfficialMessage,
+		define.TriggerOfficialSubscribeUnScribe,
+		define.TriggerOfficialMenuClick,
+		define.TriggerOfficialQrCodeScan,
+	}) {
+		return errors.New(i18n.Show(lang, `param_err`, `trigger_official_config`))
 	}
 	return nil
 }
@@ -460,6 +514,8 @@ func WorkFlowPublishVersion(c *gin.Context) {
 	robotKey := strings.TrimSpace(c.PostForm(`robot_key`))
 	version := strings.TrimSpace(c.PostForm(`version`))
 	versionDesc := strings.TrimSpace(c.PostForm(`version_desc`))
+	uniIdentifier := strings.TrimSpace(c.PostForm(`uni_identifier`))
+	realUserAgent := strings.TrimSpace(c.PostForm(`user_agent`))
 	if utf8.RuneCountInString(versionDesc) > 500 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `desc`))))
 		return
@@ -471,14 +527,23 @@ func WorkFlowPublishVersion(c *gin.Context) {
 	filtered["login_user_id"] = getLoginUserId(c)
 	filtered["robot_key"] = robotKey
 	filtered["remote_addr"] = lib_web.GetClientIP(c)
-	filtered["user_agent"] = c.Request.UserAgent()
+	filtered["uni_identifier"] = uniIdentifier
 	lockValue, _ := tool.JsonEncode(filtered)
 
 	lockKeyMd5 := define.LockPreKey + ".draft_lock." + tool.MD5(lockEditKey)
 
 	lockRes, err := define.Redis.Get(context.Background(), lockKeyMd5).Result()
-	if lockRes != lockValue { //没有编辑锁
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_draft_edit_permission`))))
+	if lockRes != "" && lockRes != lockValue { //没有编辑锁
+		redisValueMap := make(map[string]any)
+		_ = tool.JsonDecodeUseNumber(lockRes, &redisValueMap)
+
+		userInfo, err := GetUserInfo(cast.ToString(redisValueMap["login_user_id"]))
+		staffUserName := "未知用户"
+		if err == nil && userInfo["user_name"] != "" {
+			staffUserName = userInfo["user_name"]
+		}
+
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_draft_edit_permission`, staffUserName, redisValueMap["remote_addr"]))))
 	}
 
 	robot, err := common.CheckRobotKey2(robotKey, common.GetLang(c))
@@ -508,8 +573,9 @@ func WorkFlowPublishVersion(c *gin.Context) {
 		return
 	}
 	var startNodeKey, modelConfigIds, libraryIds string
+	var questionMultipleSwitch bool
 	clearNodeKeys := make([]string, 0)
-	if startNodeKey, modelConfigIds, libraryIds, err = work_flow.VerifyWorkFlowNodes(nodeList, userId); err != nil {
+	if startNodeKey, modelConfigIds, libraryIds, questionMultipleSwitch, err = work_flow.VerifyWorkFlowNodes(nodeList, userId); err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		lib_redis.UnLock(define.Redis, lockKey) //unlock
 		return
@@ -519,7 +585,7 @@ func WorkFlowPublishVersion(c *gin.Context) {
 		if node.NodeType != work_flow.NodeTypeStart {
 			continue
 		}
-		err := VerifyTriggerCronConfig(&node, common.GetLang(c))
+		err := VerifyTriggerCronConfig(cast.ToString(userId), &node, common.GetLang(c))
 		if err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			lib_redis.UnLock(define.Redis, lockKey) //unlock
@@ -538,6 +604,12 @@ func WorkFlowPublishVersion(c *gin.Context) {
 	startNode := work_flow.WorkFlowNode{}
 	m := msql.Model(``, define.Postgres)
 	_ = m.Begin()
+	userInfo, err := GetUserInfo(cast.ToString(getLoginUserId(c)))
+	editUserName := "未知用户"
+	if err == nil && userInfo["user_name"] != "" {
+		editUserName = userInfo["user_name"]
+	}
+
 	m.Reset()
 	versionId, versionErr := m.Table(`work_flow_version`).Insert(map[string]any{
 		"robot_id":             robotId,
@@ -547,7 +619,7 @@ func WorkFlowPublishVersion(c *gin.Context) {
 		"create_time":          time.Now().Unix(),
 		"update_time":          time.Now().Unix(),
 		`last_edit_ip`:         lib_web.GetClientIP(c),
-		`last_edit_user_agent`: c.Request.UserAgent(),
+		`last_edit_user_agent`: fmt.Sprintf("编辑人：%s，%s", editUserName, realUserAgent),
 	}, `id`)
 	if versionErr != nil {
 		_ = m.Rollback()
@@ -619,8 +691,9 @@ func WorkFlowPublishVersion(c *gin.Context) {
 		`library_ids`:                libraryIds,
 		`work_flow_model_config_ids`: fmt.Sprintf(`{%s}`, modelConfigIds),
 		`update_time`:                tool.Time2Int(),
+		`question_multiple_switch`:   cast.ToUint(questionMultipleSwitch),
 		`last_edit_ip`:               lib_web.GetClientIP(c),
-		`last_edit_user_agent`:       c.Request.UserAgent(),
+		`last_edit_user_agent`:       fmt.Sprintf("编辑人：%s，%s", editUserName, realUserAgent),
 	})
 	if err != nil {
 		_ = m.Rollback()
@@ -712,6 +785,7 @@ func GetDraftKey(c *gin.Context) {
 	}
 
 	robotKey := strings.TrimSpace(c.Query(`robot_key`))
+	uniIdentifier := strings.TrimSpace(c.Query(`uni_identifier`))
 	if !common.CheckRobotKey(robotKey) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `robot_key`))))
 		return
@@ -724,7 +798,7 @@ func GetDraftKey(c *gin.Context) {
 	filtered["login_user_id"] = getLoginUserId(c)
 	filtered["robot_key"] = robotKey
 	filtered["remote_addr"] = lib_web.GetClientIP(c)
-	filtered["user_agent"] = c.Request.UserAgent()
+	filtered["uni_identifier"] = uniIdentifier
 	lockValue, _ := tool.JsonEncode(filtered)
 
 	corpConfig := common.GetAdminConfig(userId)
@@ -745,12 +819,15 @@ func GetDraftKey(c *gin.Context) {
 		err := tool.JsonDecode(lockVal, &lockValueMap)
 		if err == nil {
 			filtered["remote_addr"] = lockValueMap["remote_addr"]
-			filtered["user_agent"] = lockValueMap["user_agent"]
 			filtered["login_user_id"] = lockValueMap["login_user_id"]
 		}
 	}
 
-	loginUser, err := msql.Model(define.TableUser, define.Postgres).Where(`id`, cast.ToString(filtered["login_user_id"])).Field("id,user_name").Find()
+	//查一下当前草稿最后编辑人是谁
+	flowInfo, _ := msql.Model(`chat_ai_robot`, define.Postgres).Where(`robot_key`, robotKey).Find()
+	filtered["user_agent"] = flowInfo["last_edit_user_agent"]
+
+	loginUser, err := GetUserInfo(cast.ToString(filtered["login_user_id"]))
 	if err == nil {
 		filtered["login_user_name"] = loginUser["user_name"]
 	}
@@ -807,7 +884,7 @@ func TriggerConfigList(c *gin.Context) {
 				`remote`: map[string]any{
 					`title`:             trigger[`name`],
 					`author`:            trigger[`author`],
-					`icon`:              `/public/trigger_cron_icon.svg`,
+					`icon`:              trigger[`icon`],
 					`latest_version`:    `1.0.0`,
 					`filter_type_title`: `触发器`,
 					`description`:       trigger[`intro`],

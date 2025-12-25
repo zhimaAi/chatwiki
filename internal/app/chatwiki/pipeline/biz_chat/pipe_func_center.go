@@ -12,6 +12,9 @@ import (
 
 // CheckKeywordReply 关键词检测处理
 func CheckKeywordReply(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	if len(in.params.AppInfo) > 0 && len(in.params.ReceivedMessageType) > 0 && in.params.ReceivedMessageType != lib_define.MsgTypeText {
+		return pipeline.PipeContinue //微信应用等,非文本消息跳过关键词回复逻辑
+	}
 	var keywordReplyList []common.ReplyContent
 	keywordReplyList, in.keywordSkipAI, _ = common.BuildKeywordReplyMessage(in.params)
 	if len(keywordReplyList) > 0 {

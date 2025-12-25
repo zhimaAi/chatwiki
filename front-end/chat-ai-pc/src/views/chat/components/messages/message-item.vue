@@ -23,10 +23,10 @@
   }
 
   .msg-img {
-    width: auto;
-    height: auto;
-    max-width: 100%;
-    max-height: 100%;
+    width: 100%;
+    height: 100%;
+    max-width: 260px;
+    max-height: 260px;
   }
 
   .message-content {
@@ -50,6 +50,14 @@
     white-space: pre-wrap;
     word-break: break-all;
     max-width: 100%;
+  }
+
+  .multiple-message-item{
+    display: inline-block;
+    padding: 12px;
+    border-radius: 16px 4px 16px 16px;
+    color: #f5f9ff;
+    background-color: #2475fc;
   }
 
   &.robot-message-item {
@@ -838,6 +846,12 @@
         <template v-else-if="props.msg.msg_type == 3">
           <img v-viewer class="msg-img" :src="props.msg.content" />
         </template>
+
+        <template v-else-if="props.msg.msg_type == 99">
+          <div class="multiple-message-item">
+            <MultipleMessage :message="props.msg.content" />
+          </div>
+        </template>
       </div>
 
     </div>
@@ -855,6 +869,9 @@ import { showToast } from 'vant'
 import useClipboard from 'vue-clipboard3'
 import QuoteModal from '../quote-modal/index.vue'
 import { translate } from '@/utils/translate.js'
+import MultipleMessage from './multiple-message.vue'
+
+
 interface praiseParams {
   ai_message_id: string
   type: number

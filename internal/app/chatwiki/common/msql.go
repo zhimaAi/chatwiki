@@ -587,8 +587,9 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 	if len(libraryIds) == 0 {
 		return result, libUseTime, nil
 	}
+	question = GetFirstQuestionByInput(question) //多模态输入特殊处理
 	if len(question) == 0 {
-		return nil, libUseTime, errors.New(`question cannot be empty`)
+		return result, libUseTime, nil
 	}
 
 	fetchSize := 4 * size
@@ -894,6 +895,10 @@ func GetLastDialogueId(adminUserId, robotId int, openid string) int {
 }
 
 func GetOptimizedQuestions(param *define.ChatRequestParam, contextList []map[string]string) ([]string, error) {
+	question := GetFirstQuestionByInput(param.Question) //多模态输入特殊处理
+	if len(question) == 0 {
+		return []string{}, nil //输入没有文本内容时,跳过问题优化
+	}
 	histories := ""
 	for _, item := range contextList {
 		histories += "Q: " + item[`question`] + "\n"
@@ -912,7 +917,7 @@ func GetOptimizedQuestions(param *define.ChatRequestParam, contextList []map[str
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: item[`question`]})
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: item[`answer`]})
 	}
-	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: param.Question})
+	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: question})
 
 	modelConfigId := cast.ToInt(param.Robot[`model_config_id`])
 	useModel := param.Robot[`use_model`]

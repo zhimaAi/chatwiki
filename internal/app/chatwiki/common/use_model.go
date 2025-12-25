@@ -6,7 +6,9 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_redis"
 	"fmt"
+	"strings"
 
+	"github.com/alibabacloud-go/tea/tea"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
@@ -23,30 +25,39 @@ type DefaultUseModelConfig struct {
 }
 
 type ModelInputSupport struct {
-	InputText     uint `json:"input_text"`     //文本
-	InputVoice    uint `json:"input_voice"`    //语音
-	InputImage    uint `json:"input_image"`    //图片
-	InputVideo    uint `json:"input_video"`    //视频
-	InputDocument uint `json:"input_document"` //文档
+	InputText     uint `json:"input_text,omitzero"`     //文本
+	InputVoice    uint `json:"input_voice,omitzero"`    //语音
+	InputImage    uint `json:"input_image,omitzero"`    //图片
+	InputVideo    uint `json:"input_video,omitzero"`    //视频
+	InputDocument uint `json:"input_document,omitzero"` //文档
 }
 
 type ModelOutputSupport struct {
-	OutputText  uint `json:"output_text"`  //文本
-	OutputVoice uint `json:"output_voice"` //语音
-	OutputImage uint `json:"output_image"` //图片
-	OutputVideo uint `json:"output_video"` //视频
+	OutputText  uint `json:"output_text,omitzero"`  //文本
+	OutputVoice uint `json:"output_voice,omitzero"` //语音
+	OutputImage uint `json:"output_image,omitzero"` //图片
+	OutputVideo uint `json:"output_video,omitzero"` //视频
+}
+
+type ImageGeneration struct {
+	ImageSizes          string `json:"image_sizes"`            //支持的图片比例
+	ImageMax            string `json:"image_max"`              //最大生成图片数量
+	ImageWatermark      string `json:"image_watermark"`        //是否添加水印，1添加，0不添加
+	ImageOptimizePrompt string `json:"image_optimize_prompt"`  //是否开启优化提示词，1开启，0不开启
+	ImageInputsImageMax string `json:"image_inputs_image_max"` //输入图片时最多输入几张图片
 }
 
 type UseModelConfig struct {
-	Id                  uint   `json:"id"`
-	ModelType           string `json:"model_type"`
-	UseModelName        string `json:"use_model_name"`
-	ShowModelName       string `json:"show_model_name"`
-	ThinkingType        uint   `json:"thinking_type"` //深度思考选项:0不支持,1支持,2可选
-	FunctionCall        uint   `json:"function_call"` //是否支持function call
+	Id                  uint   `json:"id,omitzero"`
+	ModelType           string `json:"model_type,omitzero"`
+	UseModelName        string `json:"use_model_name,omitzero"`
+	ShowModelName       string `json:"show_model_name,omitzero"`
+	ThinkingType        uint   `json:"thinking_type,omitzero"` //深度思考选项:0不支持,1支持,2可选
+	FunctionCall        uint   `json:"function_call,omitzero"` //是否支持function call
 	ModelInputSupport          //支持的输入类型
 	ModelOutputSupport         //支持的输出类型
-	VectorDimensionList string `json:"vector_dimension_list"` //向量维度列表(英文逗号分割)
+	VectorDimensionList string `json:"vector_dimension_list,omitzero"` //向量维度列表(英文逗号分割)
+	ImageGeneration     string `json:"image_generation,omitzero"`      //图片生成配置
 }
 
 func (useModel *UseModelConfig) ToDatas() (data msql.Datas, err error) {
@@ -144,6 +155,16 @@ func LoadUseModelConfig(params msql.Params, modelSupplier string) UseModelConfig
 			InputText: cast.ToUint(cast.ToBool(params[`input_text`])),
 		}
 	}
+	if useModel.ModelType == Image {
+		useModel.ImageGeneration = cast.ToString(params[`image_generation`])
+		if useModel.ImageGeneration == `` {
+			useModel.ImageGeneration = `{}`
+		}
+		useModel.ModelInputSupport = ModelInputSupport{
+			InputText:  cast.ToUint(cast.ToBool(params[`input_text`])),
+			InputImage: cast.ToUint(cast.ToBool(params[`input_image`])),
+		}
+	}
 	return useModel
 }
 
@@ -192,6 +213,14 @@ func ConfigurationTest(meta adaptor.Meta, modelType string) (err error) {
 	case Rerank:
 		req := &adaptor.ZhimaRerankReq{Passages: []string{`0不等于1`, `0小于1`}, Query: `0和1的关系`, TopK: 1}
 		_, err = client.CreateRerank(req)
+	case Image:
+		req := &adaptor.ZhimaImageGenerationReq{Size: tea.String("2k"), ResponseFormat: tea.String("b64_json")}
+		_, err = client.CreateImageGenerate(req)
+		if err != nil {
+			if strings.Contains(err.Error(), `prompt cannot be empty`) {
+				err = nil
+			}
+		}
 	default:
 		return fmt.Errorf(`not support model_type :%s`, modelType)
 	}

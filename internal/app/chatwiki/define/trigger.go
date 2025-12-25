@@ -3,3 +3,10 @@
 package define
 
 const FromInherited = `inherited`
+
+const (
+	TriggerOfficialSubscribeUnScribe = `subscribe_unsubscribe`
+	TriggerOfficialMessage           = `message`
+	TriggerOfficialQrCodeScan        = `qrcode_scan`
+	TriggerOfficialMenuClick         = `menu_click`
+)

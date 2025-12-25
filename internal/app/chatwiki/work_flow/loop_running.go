@@ -173,15 +173,6 @@ func (flowLoop *WorkFlowLoop) getLoopInFields() []*common.SimpleField {
 					return flowLoop.inFieldAppend(loopArray.Key, globalVal)
 				}
 			}
-			if flowLoop.Flow.params.IsTestLoopNodeRun {
-				for _, nodeOutputs := range flowLoop.Flow.outputs {
-					for outKey, outField := range nodeOutputs {
-						if outField.Typ == loopArray.Typ && outKey == loopArray.Value {
-							return flowLoop.inFieldAppend(loopArray.Key, outField)
-						}
-					}
-				}
-			}
 		} else {
 			for outNodeKey, nodeOutputs := range flowLoop.Flow.outputs {
 				if outNodeKey != loopArray.NodeKey() { //非指定的循环数组输出 下一个
@@ -403,11 +394,11 @@ type TestFillVal struct {
 	NodeKey  string `json:"node_key"`
 	NodeName string `json:"node_name"`
 	Field    struct {
-		Sys      bool     `json:"sys"`
-		Key      string   `json:"key"`
-		Typ      string   `json:"typ"`
-		Required bool     `json:"required"`
-		Vals     []string `json:"Vals"`
+		Sys      bool   `json:"sys"`
+		Key      string `json:"key"`
+		Typ      string `json:"typ"`
+		Required bool   `json:"required"`
+		Vals     any    `json:"Vals"`
 	} `json:"field"`
 }
 
@@ -415,76 +406,7 @@ func (flowLoop *WorkFlowLoop) testFillParams(flowL *WorkFlow) {
 	if !flowLoop.Flow.params.IsTestLoopNodeRun {
 		return
 	}
-
-	flowL.Logs(`执行循环节点测试，参数注入逻辑...`)
-	flowL.Logs(`全局变量 %s`, tool.JsonEncodeNoError(flowL.params.WorkFlowGlobal))
-	flowL.Logs(`前置变量 %s`, tool.JsonEncodeNoError(flowL.params.LoopTestParams))
-	workFlowGlobal := common.RecurveFields{}
-	if len(flowL.params.WorkFlowGlobal) > 0 { //传入参数数据提取
-		workFlowGlobal = workFlowGlobal.ExtractionData(flowL.params.WorkFlowGlobal)
-	}
-	for key, field := range common.SimplifyFields(workFlowGlobal) {
-		flowL.global[key] = field
-	}
-	if len(flowL.params.LoopTestParams) > 0 {
-		for _, field := range flowL.params.LoopTestParams {
-			fieldParse := TestFillVal{}
-			err := tool.JsonDecode(tool.JsonEncodeNoError(field), &fieldParse)
-			if err != nil {
-				logs.Error(err.Error())
-				continue
-			}
-			vals := make([]common.Val, 0)
-			switch fieldParse.Field.Typ {
-			case common.TypArrFloat:
-				for _, val := range fieldParse.Field.Vals {
-					fl := cast.ToFloat64(val)
-					vals = append(vals, common.Val{
-						Float: &fl,
-					})
-				}
-			case common.TypArrObject:
-				for _, val := range fieldParse.Field.Vals {
-					object := make(map[string]any)
-					_ = tool.JsonDecode(cast.ToString(val), &object)
-					vals = append(vals, common.Val{Object: object})
-				}
-			case common.TypArrBoole:
-				for _, val := range fieldParse.Field.Vals {
-					bl := cast.ToBool(val)
-					vals = append(vals, common.Val{
-						Boole: &bl,
-					})
-				}
-			case common.TypArrNumber:
-				for _, val := range fieldParse.Field.Vals {
-					il := cast.ToInt(val)
-					vals = append(vals, common.Val{
-						Number: &il,
-					})
-				}
-			case common.TypArrString:
-				for _, val := range fieldParse.Field.Vals {
-					vals = append(vals, common.Val{
-						String: &val,
-					})
-				}
-			}
-			if _, ok := flowL.outputs[fieldParse.NodeKey]; !ok {
-				flowL.outputs[fieldParse.NodeKey] = make(common.SimpleFields)
-			}
-			fieldKey := fieldParse.Field.Key
-			if !strings.HasPrefix(fieldKey, `global`) {
-				fieldKey = strings.Replace(fieldKey, fieldParse.NodeKey+`.`, ``, 1)
-			}
-			flowL.outputs[fieldParse.NodeKey][fieldKey] = common.SimpleField{
-				Key:  fieldKey,
-				Typ:  fieldParse.Field.Typ,
-				Vals: vals,
-			}
-		}
-	}
-	flowL.Logs(`执行循环节点测试，outputs初始化完成，%s %s`, "\n", tool.JsonEncodeNoError(flowL.outputs))
+	fillTestParamsToRunningParams(flowL, flowL.params.LoopTestParams)
 }
 
 // 注入循环参数

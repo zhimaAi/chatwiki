@@ -67,6 +67,7 @@ export interface Robot {
   app_id: number,
   is_sending: boolean,
   feedback_switch: boolean,
+  question_multiple_switch: number,
   chat_type: any
   answer_source_switch: boolean
   application_type: string
@@ -155,6 +156,7 @@ export const useChatStore = defineStore('chat', () => {
     app_id: -2, // webapp:-1,嵌入网站:-2
     is_sending: false, // 是否在发送中
     feedback_switch: false,
+    question_multiple_switch: 0,
     chat_type: '',
     answer_source_switch: false,
     application_type: '0'
@@ -238,6 +240,7 @@ export const useChatStore = defineStore('chat', () => {
       robot.library_ids = robotInfo.library_ids
       robot.yunpc_fast_command_switch = robotInfo.yunpc_fast_command_switch
       robot.feedback_switch = robotInfo.feedback_switch == '1';
+      robot.question_multiple_switch = robotInfo.question_multiple_switch;
 
       robot.chat_type = robotInfo.chat_type;
       robot.answer_source_switch = robotInfo.answer_source_switch == 'true';
@@ -360,7 +363,7 @@ export const useChatStore = defineStore('chat', () => {
     msg.loading = false
     msg.avatar = user.avatar
     msg.openid = user.openid
-    msg.msg_type = 1
+    msg.msg_type = msg.msg_type
     msg.is_customer = 1
     messageList.value.push(msg)
   }

@@ -248,6 +248,10 @@ const typeOptions = computed(() => {
     {
       label: `重排序模型（${selfLists.value.filter((item) => item.model_type == 'RERANK').length}）`,
       value: 'RERANK'
+    },
+    {
+      label: `图片生成模型（${selfLists.value.filter((item) => item.model_type == 'IMAGE').length}）`,
+      value: 'IMAGE'
     }
   ]
 })
@@ -280,7 +284,8 @@ let model_supplier_maps = {
 let model_type_maps = {
   LLM: '大语言模型',
   'TEXT EMBEDDING': '嵌入模型',
-  RERANK: '重排序模型'
+  RERANK: '重排序模型',
+  IMAGE: '图片生成模型'
 }
 
 let input_map = {

@@ -211,7 +211,7 @@
 
 <script setup>
 import { uploadFile } from '@/api/app'
-import { reactive, defineProps, toRaw, watch, computed } from 'vue'
+import { reactive, toRaw, watch, computed } from 'vue'
 import { MessageOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import CardBox from './card-box.vue'
 import CuUpload from '@/components/cu-upload/cu-upload.vue'

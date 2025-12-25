@@ -31,7 +31,7 @@ type CrawlerPage struct {
 	Screenshot string `json:"screenshot"`
 }
 
-func SaveUploadedFile(fileHeader *multipart.FileHeader, limitSize, userId int, saveDir string, allowExt []string) (*define.UploadInfo, error) {
+func SaveUploadedFile(fileHeader *multipart.FileHeader, limitSize int, identity any, saveDir string, allowExt []string) (*define.UploadInfo, error) {
 	if fileHeader == nil {
 		return nil, errors.New(`file header is nil`)
 	}
@@ -55,7 +55,7 @@ func SaveUploadedFile(fileHeader *multipart.FileHeader, limitSize, userId int, s
 	}
 	content := string(bs)
 	md5Hash := tool.MD5(content)
-	objectKey := fmt.Sprintf(`chat_ai/%d/%s/%s/%s.%s`, userId, saveDir, tool.Date(`Ym`), md5Hash, ext)
+	objectKey := fmt.Sprintf(`chat_ai/%v/%s/%s/%s.%s`, identity, saveDir, tool.Date(`Ym`), md5Hash, ext)
 	link, err := WriteFileByString(objectKey, content)
 	if err != nil {
 		return nil, err

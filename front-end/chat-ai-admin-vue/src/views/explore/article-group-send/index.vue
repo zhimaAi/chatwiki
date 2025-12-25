@@ -14,15 +14,19 @@
       un-checked-children="关"
       @change="onAbilitySwitchChange"
     />
-    <span class="switch-desc">开启后，用户可以在文章管理中群发文章给公众号用户，该群发支持使用AI评论精选功能自动删评，回复，精选评论。</span>
+    <span class="switch-tip">开启后，用户可以在文章管理中群发文章给公众号用户，该群发支持使用AI评论精选功能自动删评，回复，精选评论。</span>
   </div>
 
     <div v-if="loadingApps" class="loading-box"><a-spin /></div>
     <template v-else>
-      <div class="empty-box" v-if="accountList.length === 0">
-        <img src="@/assets/empty-icon.png" />
-        <div class="title">暂未绑定公众号</div>
-        <a-button type="primary" @click="toBindMp">去绑定公众号</a-button>
+      <div class="empty-wrap" v-if="accountList.length === 0">
+        <ListEmpty size="180">
+          <div class="empty-default">暂未绑定公众号</div>
+          <div class="empty-sub">请选到系统设置>公众号管理绑定公众号</div>
+        </ListEmpty>
+        <div class="empty-actions">
+          <a-button type="primary" @click="toBindMp">去绑定公众号</a-button>
+        </div>
       </div>
       <template v-else>
         <div class="mp-list-block">
@@ -86,6 +90,7 @@ import { message, Modal } from 'ant-design-vue'
 import { getSpecifyAbilityConfig, saveUserAbility } from '@/api/explore'
 import { getWechatAppList } from '@/api/robot'
 import { ExclamationCircleFilled } from '@ant-design/icons-vue'
+import ListEmpty from '@/views/robot/robot-config/function-center/components/list-empty.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -101,7 +106,12 @@ const getActiveByRoute = () => {
 }
 
 const goBack = () => {
-  router.back()
+  // 如果有浏览器记录，就返回上一页
+  if (router.options.history.state.back) {
+    router.back()
+  } else {
+    router.push({ path: '/explore/index' })
+  }
 }
 
 const activeKey = ref(getActiveByRoute())
@@ -286,7 +296,7 @@ const onCancelBannerTip = () => {
 }
 .user-model-page {
   width: 100%;
-  height: 100%;
+  height: auto;
   background-color: #fff;
   display: flex;
   flex-direction: column;
@@ -297,19 +307,21 @@ const onCancelBannerTip = () => {
     width: fit-content;
     display: flex;
     align-items: center;
-    gap: 10px;
     cursor: pointer;
     margin: 0 48px 16px;
   }
   .breadcrumb-title {
-    color: #000000;
-    font-size: 20px;
+    margin: 0 12px 0 2px;
+    color: #262626;
+    font-size: 16px;
     font-style: normal;
     font-weight: 600;
-    line-height: 28px;
+    line-height: 24px;
   }
 
-  .switch-desc {
+  .switch-tip {
+    margin-left: 4px;
+    color: #8c8c8c;
     font-size: 14px;
     font-style: normal;
     font-weight: 400;
@@ -359,20 +371,31 @@ const onCancelBannerTip = () => {
   padding: 48px 0;
 }
 
-.empty-box {
+.empty-wrap {
+  margin-top: 100px;
+  height: calc(100% - 32px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 0;
-  text-align: center;
-
-  .title {
-    margin: 16px 0;
+  gap: 12px;
+  .empty-default {
     font-size: 16px;
+    font-style: normal;
     font-weight: 600;
-    color: #262626;
+    line-height: 24px;
   }
+  .empty-sub {
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 22px;
+  }
+}
+.empty-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .mp-list-block {

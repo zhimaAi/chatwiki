@@ -17,6 +17,14 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
+// CheckSaveRobotMsg 检查是否需要保存AI消息
+func CheckSaveRobotMsg(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	if len(out.content) == 0 && len(out.replyContentList) == 0 {
+		return pipeline.PipeStop //跳过llm并且没有其他回复内容,不需要保存AI消息
+	}
+	return pipeline.PipeContinue
+}
+
 // SetMonitorFromLlm 记录llm的监控数据
 func SetMonitorFromLlm(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if !in.llmStartTime.IsZero() { //未设置llmStartTime的跳过

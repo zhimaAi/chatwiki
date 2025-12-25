@@ -6,7 +6,17 @@ import { useLocaleStoreWithOut } from '@/stores/modules/locale'
 const request = (option) => {
   const userStore = useUserStore()
   const localeStore = useLocaleStoreWithOut()
-  const { url, method, params, data, headers, responseType, withToken } = option
+  const {
+    url,
+    method,
+    params,
+    data,
+    headers,
+    responseType,
+    withToken,
+    onUploadProgress,
+    cancelToken
+  } = option
 
   const currentLocale = localeStore.getCurrentLocale
 
@@ -30,7 +40,9 @@ const request = (option) => {
     responseType: responseType,
     headers: {
       ...defaultHeaders
-    }
+    },
+    onUploadProgress,
+    cancelToken
   })
 }
 

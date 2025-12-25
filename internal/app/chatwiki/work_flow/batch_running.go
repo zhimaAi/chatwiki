@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"runtime/debug"
-	"strings"
 	"sync"
 	"time"
 
@@ -105,11 +104,6 @@ func NewWorkFlowBatch(nodeKey string, node msql.Params, flow *WorkFlow) (*WorkFl
 }
 
 func (flowBatch *WorkFlowBatch) ForRunning() (nextNodeKey string, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			logs.Debug(`报错了 %s`, debug.Stack())
-		}
-	}()
 	nextNodeKey = ``
 	flowBatch.testFillParams(flowBatch.MainFlow)
 	batchDatas := flowBatch.getBatchDatas()
@@ -138,53 +132,32 @@ func (flowBatch *WorkFlowBatch) ForRunning() (nextNodeKey string, err error) {
 				return
 			}
 			flowL := &WorkFlow{}
-			flowBatch.MainFlow.Logs(`执行批处理 本次传入参数%s%s`, "\n", tool.JsonEncodeNoError(*data))
 			flowL, err := flowBatch.batchNodeRunning(data)
 			if err != nil {
 				flowBatch.MainFlow.Logs(`批处理节点运行错误: %s`, err)
 			} else {
-				logs.Debug(`到这里了1`)
 				flowBatch.FlowLs = append(flowBatch.FlowLs, flowL)
 			}
 		}(inField)
 	}
 	wg.Wait()
 	close(cTask)
-	logs.Debug(`到这里了2`)
 	//take result
 	flowBatch.TakeChildOutputs()
-	logs.Debug(`收集完参数`)
 	nextNodeKey = flowBatch.BatchNode[`next_node_key`]
-	logs.Debug(`完了？？？`)
 	return
 }
 
-func (flowBatch *WorkFlowBatch) pushTask(batchDatas []*common.SimpleField, c chan *common.SimpleField) {
-	defer func() {
-		if r := recover(); r != nil {
-			logs.Debug(`报错了 %s`, debug.Stack())
-		}
-	}()
-	for _, inField := range batchDatas {
-		if flowBatch.MainFlow.isTimeout {
-			flowBatch.MainFlow.Logs(`已超时`)
-			break
-		}
-		c <- inField
-	}
-}
-
 func (flowBatch *WorkFlowBatch) getBatchDatas() []*common.SimpleField {
-	logs.Debug(`传入的初始数据 %s`, tool.JsonEncodeNoError(flowBatch.MainFlow.outputs))
 	for _, batchArray := range flowBatch.BatchNodeParams.BatchArrays {
-		for outNodeKey, nodeOutputs := range flowBatch.MainFlow.outputs {
-			if batchArray.NodeKey() == `global` { //开始节点
-				for outKey, outField := range nodeOutputs {
-					if outField.Typ == batchArray.Typ && outKey == batchArray.Value {
-						return flowBatch.inFieldAppend(batchArray.Key, outField)
-					}
+		if batchArray.NodeKey() == `global` { //开始节点
+			for globalKey, globalVal := range flowBatch.MainFlow.global {
+				if globalKey == batchArray.ChooseKey() {
+					return flowBatch.inFieldAppend(batchArray.Key, globalVal)
 				}
-			} else { //非开始节点
+			}
+		} else { //非开始节点
+			for outNodeKey, nodeOutputs := range flowBatch.MainFlow.outputs {
 				if outNodeKey != batchArray.NodeKey() {
 					continue
 				}
@@ -295,16 +268,17 @@ func (flowBatch *WorkFlowBatch) TakeChildOutputs() {
 func (flowBatch *WorkFlowBatch) batchNodeRunning(dataField *common.SimpleField) (flowL *WorkFlow, err error) {
 	//new flow
 	flowL = &WorkFlow{
-		params:      flowBatch.MainFlow.params,    //inherit params
-		nodeLogs:    make([]common.NodeLog, 0),    //node logs
-		StartTime:   tool.Time2Int(),              //start time
-		context:     flowBatch.MainFlow.context,   //inherit context
-		global:      flowBatch.MainFlow.global,    //继承自所属工作流
-		outputs:     flowBatch.MainFlow.outputs,   //继承所有节点的输出 所有对outputs的修改都会反应到主工作流
-		runNodeKeys: make([]string, 0),            //self run node keys
-		runLogs:     make([]string, 0),            //self  logs
-		VersionId:   flowBatch.MainFlow.VersionId, //inherit version id
+		params:      flowBatch.MainFlow.params,            //inherit params
+		nodeLogs:    make([]common.NodeLog, 0),            //node logs
+		StartTime:   tool.Time2Int(),                      //start time
+		context:     flowBatch.MainFlow.context,           //inherit context
+		global:      flowBatch.MainFlow.global,            //继承自所属工作流
+		outputs:     make(map[string]common.SimpleFields), //深度拷贝主流程的输出
+		runNodeKeys: make([]string, 0),                    //self run node keys
+		runLogs:     make([]string, 0),                    //self  logs
+		VersionId:   flowBatch.MainFlow.VersionId,         //inherit version id
 	}
+	flowBatch.copyOutputs(flowL.outputs)
 	//批处理本次参数注入
 	flowBatch.fillBatchInField(flowL, dataField)
 	//找到入口子节点
@@ -343,7 +317,6 @@ func (flowBatch *WorkFlowBatch) batchNodeRunning(dataField *common.SimpleField) 
 			break
 		} else {
 			flowL.output, nextNodeKey, err = flowL.curNode.Running(flowL)
-			logs.Debug(`开始记录结果 %v`, flowL.outputs)
 			flowL.outputs[flowL.curNodeKey] = flowL.output //记录每个节点输出的变量
 		}
 		//运行参数处理
@@ -375,80 +348,23 @@ flowExit:
 	return
 }
 
+func (flowBatch *WorkFlowBatch) copyOutputs(outputs map[string]common.SimpleFields) {
+	if len(flowBatch.MainFlow.outputs) == 0 {
+		return
+	}
+	for nodeKey, simpleFields := range flowBatch.MainFlow.outputs {
+		outputs[nodeKey] = common.SimpleFields{}
+		for key, field := range simpleFields {
+			outputs[nodeKey][key] = field
+		}
+	}
+}
+
 func (flowBatch *WorkFlowBatch) testFillParams(flowL *WorkFlow) {
 	if !flowBatch.MainFlow.params.IsTestBatchNodeRun {
 		return
 	}
-
-	flowL.Logs(`执行批处理节点测试，参数注入逻辑...`)
-	flowL.Logs(`全局变量 %s`, tool.JsonEncodeNoError(flowL.params.WorkFlowGlobal))
-	flowL.Logs(`前置变量 %s`, tool.JsonEncodeNoError(flowL.params.BatchTestParams))
-	workFlowGlobal := common.RecurveFields{}
-	if len(flowL.params.WorkFlowGlobal) > 0 { //传入参数数据提取
-		workFlowGlobal = workFlowGlobal.ExtractionData(flowL.params.WorkFlowGlobal)
-	}
-	for key, field := range common.SimplifyFields(workFlowGlobal) {
-		flowL.global[key] = field
-	}
-	if len(flowL.params.BatchTestParams) > 0 {
-		for _, field := range flowL.params.BatchTestParams {
-			fieldParse := TestFillVal{}
-			err := tool.JsonDecode(tool.JsonEncodeNoError(field), &fieldParse)
-			if err != nil {
-				logs.Error(err.Error())
-				continue
-			}
-			vals := make([]common.Val, 0)
-			switch fieldParse.Field.Typ {
-			case common.TypArrFloat:
-				for _, val := range fieldParse.Field.Vals {
-					fl := cast.ToFloat64(val)
-					vals = append(vals, common.Val{
-						Float: &fl,
-					})
-				}
-			case common.TypArrObject:
-				for _, val := range fieldParse.Field.Vals {
-					object := make(map[string]any)
-					_ = tool.JsonDecode(cast.ToString(val), &object)
-					vals = append(vals, common.Val{Object: object})
-				}
-			case common.TypArrBoole:
-				for _, val := range fieldParse.Field.Vals {
-					bl := cast.ToBool(val)
-					vals = append(vals, common.Val{
-						Boole: &bl,
-					})
-				}
-			case common.TypArrNumber:
-				for _, val := range fieldParse.Field.Vals {
-					il := cast.ToInt(val)
-					vals = append(vals, common.Val{
-						Number: &il,
-					})
-				}
-			case common.TypArrString:
-				for _, val := range fieldParse.Field.Vals {
-					vals = append(vals, common.Val{
-						String: &val,
-					})
-				}
-			}
-			if _, ok := flowL.outputs[fieldParse.NodeKey]; !ok {
-				flowL.outputs[fieldParse.NodeKey] = make(common.SimpleFields)
-			}
-			fieldKey := fieldParse.Field.Key
-			if !strings.HasPrefix(fieldKey, `global`) {
-				fieldKey = strings.Replace(fieldKey, fieldParse.NodeKey+`.`, ``, 1)
-			}
-			flowL.outputs[fieldParse.NodeKey][fieldKey] = common.SimpleField{
-				Key:  fieldKey,
-				Typ:  fieldParse.Field.Typ,
-				Vals: vals,
-			}
-		}
-	}
-	flowL.Logs(`执行循环节点测试，outputs初始化完成，%s %s`, "\n", tool.JsonEncodeNoError(flowL.outputs))
+	fillTestParamsToRunningParams(flowL, flowL.params.BatchTestParams)
 }
 
 // fill batch data

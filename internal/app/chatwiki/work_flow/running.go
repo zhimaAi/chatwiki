@@ -23,6 +23,8 @@ type Draft struct {
 	IsDraft      bool
 	NodeMaps     map[string]msql.Params
 	StartNodeKey string
+	//由前端传入,是否启用多模态输入
+	QuestionMultipleSwitch bool
 }
 
 type WorkFlowParams struct {

@@ -236,6 +236,10 @@ const typOptions = [
     lable: 'array<string>',
     value: 'array<string>'
   },
+  {
+    lable: 'array<object>',
+    value: 'array<object>'
+  },
 ]
 
 export default {

@@ -25,6 +25,11 @@ return [
                 ],
             ],
         ],
+        'cache' => [
+            'class' => 'yii\caching\FileCache',
+            'cachePath' => '@runtime/cache',   // 缓存目录，默认就是这个
+            'keyPrefix' => 'php_plugin_',             // 避免多项目冲突
+        ],
     ],
     'modules' => [
 

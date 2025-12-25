@@ -1,7 +1,7 @@
 import request from '@/utils/http/axios'
 
 // 公共的上传文件
-export const uploadFile = ({ file, category }) => {
+export const uploadFile = ({ file, category }, onUploadProgress) => {
   return request.post({
     headers: {
       'Content-Type': 'multipart/form-data'
@@ -10,7 +10,8 @@ export const uploadFile = ({ file, category }) => {
     data: {
       file,
       category
-    }
+    },
+    onUploadProgress
   })
 }
 

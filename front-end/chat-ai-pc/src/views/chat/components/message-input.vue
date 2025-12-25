@@ -1,106 +1,229 @@
 <style lang="less" scoped>
 .message-input-box {
-  width: 100%;
-  margin-bottom: 0px;
+  margin: 12px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.08);
+  transition: all 0.2s;
+  background: #fff;
+
+  &.is-focus {
+    border: 1px solid #2475fc;
+  }
 
   .message-input-body {
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-end;
   }
 
   .message-input {
     position: relative;
-    z-index: 2;
+    flex: 1;
+    padding: 4px 4px 4px 0;
+    overflow: hidden;
+  }
+
+  
+
+  .message-action{
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    flex: 1;
-    min-height: 60px;
-    max-width: 738px;
-    min-width: 350px;
-    border-radius: 16px;
-    border: 1px solid #ddd;
-    background: #fff;
-    box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.08);
-    transition: all 0.2s;
-    padding: 10px 0;
-    margin: 0 12px;
-
-    .send-btn {
-      position: absolute;
-      bottom: 13px;
-      right: 10px;
-      font-size: 32px;
-      color: #b3b3b3;
-      transition: all 0.2s;
-    }
     
-    .send-btn-active {
-      color: #2475fc;
+    .send-btn {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      margin: 0;
+      font-size: 32px;
+      border: none;
+      outline: none;
+      background: none;
+      transition: all 0.2s;
       cursor: pointer;
+      color: #2475fc;
+
+      &:hover {
+          opacity: 0.8;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+      }
     }
 
-    &.is-focus {
-      border: 1px solid #2475fc;
+    .file-action{
+      position: relative;
+      display: flex;
+      align-items: center;
+      height: 32px;
+      padding: 0 8px;
+      margin-right: 8px;
+      border-radius: 32px;
+      border: 1px solid #F0F0F0;
+
+      .line{
+        width: 1px;
+        height: 14px;
+        margin: 0 8px;
+        background: #D9D9D9;
+      }
+
+      .action-btn{
+        width: 16px;
+        height: 16px;
+        font-size: 16px;
+        color: #595959;
+        cursor: pointer;
+        &:hover{
+          color: #2475FC;
+        }
+      }
+
+      .show-file{
+        color: #2475FC;
+      }
+
+      .hide-file{
+        color: #595959;
+      }
+
+      .file-number{
+        position: absolute;
+        left: 16px;
+        top: -8px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #f00;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 400;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &.big{
+          width: auto;
+          padding: 0 4px;
+          border-radius: 12px;
+        }
+      }
     }
   }
 }
 </style>
 
 <template>
-  <div class="message-input-box">
+  <div class="message-input-box" :class="{ 'is-focus': isFocus }">
+    <FileToolbar :file-list="props.fileList" @delete="deleteFile" v-if="props.fileList.length > 0 && showFiletoolbar" />
     <div class="message-input-body">
-      <div class="message-input" :class="{ 'is-focus':  isFocus }">
-        <AutoSizeTextarea :value="value" @change="onChange" @focus="onFocus" @blur="onBlur" @enter="sendMessage" />
-        <svg-icon :name="isSendBtn ? 'paper-airplane-new-active' : 'paper-airplane-new'" :class="{'send-btn-active': isSendBtn}" class="send-btn" @click="sendMessage" />
+      <div class="message-input">
+        <AutoSizeTextarea
+          :value="value"
+          @change="onChange"
+          @focus="onFocus"
+          @blur="onBlur"
+          @enter="sendMessage"
+        />
+      </div>
+      <div class="message-action">
+        <div class="file-action" v-if="props.showUpload">
+          <span class="file-number" :class="{ big: fileList.length > 9 }" v-if="fileList.length > 0">{{ fileList.length }}</span>
+          <svg-icon class="action-btn select-file" name="circularNeedle" @click="openFileDialog"></svg-icon>
+          <i class="line"></i>
+          <Tippy :content="showFiletoolbar ? '隐藏图片' : '显示图片'" placement="top">
+            <svg-icon class="action-btn show-file" name="eye-open" v-if="showFiletoolbar" @click="showFiletoolbar = false"></svg-icon>
+            <svg-icon class="action-btn hide-file" name="eye-close" v-else @click="showFiletoolbar = true"></svg-icon>
+          </Tippy>
+        </div>
+
+        <button class="send-btn" @click="sendMessage" :disabled="disabled">
+          <svg-icon name="paper-airplane-new-active" />
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, toRefs, computed } from 'vue'
+import { useUpload } from '@/hooks/web/useUpload.js'
+import { useChatStore } from '@/stores/modules/chat'
 import AutoSizeTextarea from './auto-size-textarea.vue'
+import FileToolbar from './file-toolbar.vue'
+import { Tippy } from 'vue-tippy'
+
+
+const emit = defineEmits(['update:value', 'send', 'update:fileList'])
 
 const props = defineProps({
   value: {
     type: String,
     default: ''
-  }
+  },
+  loading: {
+    type: Boolean,
+    default: false
+  },
+  fileList: {
+    type: Array,
+    default: () => []
+  },
+  showUpload: {
+    type: Boolean,
+    default: false
+  },
 })
+
+const chatStore = useChatStore()
+
+const { robot } = chatStore
 
 const isFocus = ref(false)
+const { fileList } = toRefs(props)
+const showFiletoolbar = ref(true)
 
-const isSendBtn = ref(false)
-
-const emit = defineEmits(['update:value', 'send'])
-
-const onChange = ((val: string) => {
-  // 会有延迟
-  if (val.trim()) {
-    isSendBtn.value = true
-  } else {
-    isSendBtn.value = false
+const { openFileDialog } = useUpload({
+  limit: 10,
+  maxSize: 10,
+  category: 'chat_image',
+  fileList: fileList,
+  multiple: true,
+  accept: 'image/bmp,image/jpeg,image/png,image/tiff,image/heic,image/gif,image/webp',
+  extraData: {
+    robot_key: robot.robot_key,
+    openid: robot.openid
   }
-  emit('update:value', val)
 })
 
-const sendMessage = () => {
-  if (props.value.trim()) {
-    isSendBtn.value = false
-    emit('send', props.value)
+const deleteFile = (index) => {
+  const newFileList = props.fileList.filter((_, i) => i !== index);
+  emit('update:fileList', newFileList);
+}
+
+const disabled = computed(() => {
+  if(props.fileList.length > 0){
+    return false
   }
+
+  return props.loading || props.value.trim().length === 0
+})
+
+const onChange = (val: string) => {
+  emit('update:value', val)
 }
 
-const onFocus = (event) => {
+const sendMessage = () => {
+  emit('send', props.value)
+}
+
+const onFocus = () => {
   isFocus.value = true
-  event.target.parentNode.style.borderColor = "#2475FC"
 }
 
-const onBlur = (event) => {
+const onBlur = () => {
   isFocus.value = false
-  event.target.parentNode.style.borderColor = "#DDD"
 }
-
 </script>

@@ -113,7 +113,10 @@
                   </div>
                 </div>
               </div>
-
+              <!-- 多模态 -->
+              <div v-else-if="message.msg_type == 99" class="multiple-content">
+                <MultipleMessage :message="message.content" />
+              </div>
               <!-- 参考文件 -->
               <div class="answer-reference-box" v-if="message.quote_file && message.quote_file.length">
                 <div class="answer-reference-label">回答参考</div>
@@ -142,6 +145,7 @@ import { storeToRefs } from 'pinia'
 import { useChatMonitorStore } from '@/stores/modules/chat-monitor.js'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import ChatMessageScroll from './chat-message-scroll.vue'
+import MultipleMessage from '@/views/robot/robot-test/components/messages/multiple-message.vue'
 
 const emit = defineEmits([
   'openLibrary'
@@ -364,6 +368,10 @@ defineExpose({
         margin-bottom: 0;
       }
     }
+  }
+
+  .multiple-content{
+    padding: 12px 16px;
   }
 }
 

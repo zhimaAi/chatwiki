@@ -41,6 +41,9 @@
       <div class="options-item is-required">
         <div class="options-item-tit">
           <div class="option-label">公众号标签</div>
+          <a-tooltip title="同步最新的公众号标签">
+            <a @click="syncTags">同步 <a-spin v-if="syncing" size="small"/></a>
+          </a-tooltip>
         </div>
         <div class="tag-box">
           <a-select
@@ -101,6 +104,7 @@ import {getWechatAppList} from "@/api/robot/index.js";
 import PluginFormRender from "../pluginFormRender.vue";
 import {runPlugin} from "@/api/plugins/index.js";
 import {jsonDecode, sortObjectKeys} from "@/utils/index.js";
+import {message} from 'ant-design-vue'
 
 const emit = defineEmits(['updateVar'])
 const props = defineProps({
@@ -122,6 +126,11 @@ const props = defineProps({
 const apps = ref([])
 const tags = ref([])
 const params = ref({})
+const syncing = ref(false)
+const config = ref({
+  app_id: '',
+  app_secret: '',
+})
 
 onMounted(() => {
   loadWxApps()
@@ -132,7 +141,8 @@ onMounted(() => {
       let args = node_params?.plugin?.params?.arguments || {}
       const {app_id, app_secret} = args
       if (app_id && app_secret) {
-        loadTags(app_id, app_secret)
+        config.value = {app_id, app_secret}
+        loadTags()
       }
     }
   }
@@ -180,19 +190,30 @@ function loadWxApps() {
   })
 }
 
-function loadTags(app_id, app_secret) {
-  runPlugin({
+function syncTags() {
+  if (!config.value.app_secret || !config.value.app_id) {
+    return message.warning('请先选择公众号')
+  }
+  if (syncing.value) return
+  syncing.value = true
+  loadTags().then(() => {
+    message.success('同步完成')
+  }).finally(() => {
+    syncing.value = false
+  })
+}
+
+function loadTags() {
+  return runPlugin({
     name: 'official_account_profile',
     action: "default/exec",
     params: JSON.stringify({
       business: 'getTags',
-      arguments: {
-        app_id: app_id,
-        app_secret: app_secret,
-      }
+      arguments:  config.value
     })
   }).then(res => {
     tags.value = res?.data?.tags || []
+    return res
   })
 }
 
@@ -200,7 +221,11 @@ function appChange(state, option) {
   state.app_secret.value = option.secret
   state.app_name.value = option.name
   if (props.actionName === 'getTagFans') {
-    loadTags(option.key, option.secret)
+    config.value = {
+      app_id: option.key,
+      app_secret:  option.secret
+    }
+    loadTags()
   }
 }
 

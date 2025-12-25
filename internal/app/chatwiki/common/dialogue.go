@@ -29,6 +29,7 @@ func GetDialogueId(chatBaseParam *define.ChatBaseParam, question string) (int, e
 			return cast.ToInt(dialogueId), nil //use the old first
 		}
 	}
+	question = GetFirstQuestionByInput(question) //多模态输入特殊处理
 	id, err := m.Insert(msql.Datas{
 		`admin_user_id`: chatBaseParam.AdminUserId,
 		`robot_id`:      chatBaseParam.Robot[`id`],
@@ -64,6 +65,7 @@ func GetSessionId(params *define.ChatRequestParam, dialogueId int) (int, error) 
 	if params.ChatBaseParam != nil && len(params.AppInfo) > 0 {
 		appId = params.AppInfo[`app_id`]
 	}
+	question := GetFirstQuestionByInput(params.Question) //多模态输入特殊处理
 	id, err := msql.Model(`chat_ai_session`, define.Postgres).Insert(msql.Datas{
 		`admin_user_id`:     params.ChatBaseParam.AdminUserId,
 		`app_type`:          params.ChatBaseParam.AppType,
@@ -72,7 +74,7 @@ func GetSessionId(params *define.ChatRequestParam, dialogueId int) (int, error) 
 		`robot_id`:          params.ChatBaseParam.Robot[`id`],
 		`openid`:            params.ChatBaseParam.Openid,
 		`last_chat_time`:    tool.Time2Int(),
-		`last_chat_message`: MbSubstr(params.Question, 0, 1000),
+		`last_chat_message`: MbSubstr(question, 0, 1000),
 		`create_time`:       tool.Time2Int(),
 		`update_time`:       tool.Time2Int(),
 		`rel_user_id`:       params.RelUserId,

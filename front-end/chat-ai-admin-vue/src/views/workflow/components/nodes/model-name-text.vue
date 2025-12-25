@@ -1,6 +1,4 @@
-<style lang="less" scoped>
-
-</style>
+<style lang="less" scoped></style>
 
 <template>
   <span>{{ text }}</span>
@@ -9,7 +7,8 @@
 <script setup>
 import { storeToRefs } from 'pinia'
 import { ref, watch } from 'vue'
-import { useRobotStore } from '@/stores/modules/robot'
+import { useModelStore } from '@/stores/modules/model'
+import { getModelOptionsList } from '@/components/model-select/index.js'
 
 const props = defineProps({
   useModel: {
@@ -22,8 +21,10 @@ const props = defineProps({
   }
 })
 
-const robotStore = useRobotStore()
-const { modelList } = storeToRefs(robotStore)
+const modelStore = useModelStore()
+const { allModelList } = storeToRefs(modelStore)
+
+let modelList = getModelOptionsList(allModelList.value).newList
 
 const text = ref('')
 
@@ -33,21 +34,25 @@ const setText = () => {
     return
   }
 
-  for (const item of modelList.value) {
-      if (item.children) {
-        for (const child of item.children) {
-          if (props.useModel == child.name && props.modelConfigId == item.id) {
-            text.value = child.show_model_name || child.deployment_name ||  child.name;
-            return // Exit loops once found
-          }
+  for (const item of modelList) {
+    if (item.children) {
+      for (const child of item.children) {
+        if (props.useModel == child.name && props.modelConfigId == item.id) {
+          text.value = child.show_model_name || child.deployment_name || child.name
+          return // Exit loops once found
         }
       }
     }
+  }
 }
 
-watch(() => [props.useModel, props.modelConfigId], () => {
-  setText()
-}, {
-  immediate: true
-})
+watch(
+  () => [props.useModel, props.modelConfigId],
+  () => {
+    setText()
+  },
+  {
+    immediate: true
+  }
+)
 </script>

@@ -18,7 +18,7 @@
         un-checked-children="关"
         @change="onAbilitySwitchChange"
       />
-      <span class="switch-desc">开启后，可设置规则对系统内发布的群发使用AI自动精选功能，自动删评，回复，精选评论。</span>
+      <span class="switch-tip">开启后，可设置规则对系统内发布的群发使用AI自动精选功能，自动删评，回复，精选评论。</span>
     </template>
   </div>
 
@@ -84,7 +84,12 @@ const getActiveByRoute = () => {
 }
 
 const goBack = () => {
-  router.back()
+  // 如果有浏览器记录，就返回上一页
+  if (router.options.history.state.back) {
+    router.back()
+  } else {
+    router.push({ path: '/explore/index' })
+  }
 }
 
 const goToArticleGroupSend = () => {
@@ -231,19 +236,21 @@ const onCancelBannerTip = () => {
     width: fit-content;
     display: flex;
     align-items: center;
-    gap: 10px;
     cursor: pointer;
     margin: 0 48px 16px;
   }
   .breadcrumb-title {
-    color: #000000;
-    font-size: 20px;
+    margin: 0 12px 0 2px;
+    color: #262626;
+    font-size: 16px;
     font-style: normal;
     font-weight: 600;
-    line-height: 28px;
+    line-height: 24px;
   }
 
-  .switch-desc {
+  .switch-tip {
+    margin-left: 4px;
+    color: #8c8c8c;
     font-size: 14px;
     font-style: normal;
     font-weight: 400;

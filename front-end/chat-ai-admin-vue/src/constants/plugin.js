@@ -9,6 +9,8 @@ export const HasActionPluginNames = [
   'official_send_template_message',
   'web_content_extraction',
   'official_article',
+  'official_send_message',
+  'official_draft'
 ]
 
 // 存在输出内容的插件
@@ -19,6 +21,8 @@ export const HasOutputPluginNames = [
   'official_send_template_message',
   'web_content_extraction',
   'official_article',
+  'official_send_message',
+  'official_draft'
 ]
 
 // 插件方法默认参数（非特殊处理无需在此添加-将通过action params 自动获取）

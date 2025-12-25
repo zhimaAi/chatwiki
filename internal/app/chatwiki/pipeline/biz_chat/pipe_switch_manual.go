@@ -3,6 +3,7 @@
 package biz_chat
 
 import (
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/pipeline"
 )
 
@@ -26,6 +27,9 @@ func CheckKeywordSwitchManual(in *ChatInParam, out *ChatOutParam) pipeline.PipeR
 
 // CheckIntentionSwitchManual 根据用户意图转人工
 func CheckIntentionSwitchManual(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	if len(in.params.AppInfo) > 0 && len(in.params.ReceivedMessageType) > 0 && in.params.ReceivedMessageType != lib_define.MsgTypeText {
+		return pipeline.PipeContinue //微信应用等,非文本消息跳过用户意图转人工逻辑
+	}
 	if msg, ok := IsIntentionSwitchManual(in.params, in.sessionId, in.dialogueId, in.monitor, in.chanStream); ok {
 		out.AiMessage = msg
 		return pipeline.PipeStop

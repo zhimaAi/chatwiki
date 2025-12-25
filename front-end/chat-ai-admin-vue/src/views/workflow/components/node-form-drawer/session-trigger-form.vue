@@ -13,6 +13,32 @@
 
     <div class="variable-node">
       <div class="node-form-content">
+        <div class="gray-block multi-modal-box">
+          <div class="output-label">
+            <img src="@/assets/img/workflow/output.svg" alt="" class="output-label-icon" />
+            <span class="output-label-text">多模态输入</span>
+            &nbsp;&nbsp;
+            <a-switch
+              v-model:checked="formState.question_multiple_switch"
+              @change="onChangeQuestionMultipleqSwitch"
+            />
+          </div>
+          <div class="multi-modal-input">
+            <div>开启后，支持用户输入文字+图片消息。用户输入的文字消息依然会作为question变量输出，还会额外增加一个变量question_multiple, question_multiple是一个对象数组，包含用户输入的文字和图片消息示例如下：</div>
+<pre><code>"question_multiple":[
+  {
+    "type":"text",
+    "text":"这是什么"
+  },{
+    "type":"image_url",
+    "image_url":{
+      "url":"这里是图片的ur"
+    }
+  }
+]
+</code></pre>
+          </div>
+        </div>
         <div class="gray-block">
           <div class="output-label">
             <img src="@/assets/img/workflow/output.svg" alt="" class="output-label-icon" />
@@ -50,7 +76,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, inject, computed, nextTick } from 'vue'
+import { ref, reactive, onMounted, inject, computed } from 'vue'
 import NodeFormLayout from './node-form-layout.vue'
 import NodeFormHeader from './node-form-header.vue'
 
@@ -75,11 +101,17 @@ const getGraph = inject('getGraph')
 
 const list = ref([])
 const options = ref([])
+const formState = reactive({
+  question_multiple_switch: false
+})
 
 const selectedValues = computed(() => { 
   return list.value.map(item => item.variable)
 })
 
+const onChangeQuestionMultipleqSwitch = (val) => {
+  update()
+}
 
 function getOptions() {
   const nodeModel = getNode()
@@ -118,6 +150,7 @@ const update = () => {
   let node_params = JSON.parse(props.node.node_params)
 
   node_params.trigger.outputs = [...list.value]
+  node_params.trigger.chat_config = {...formState}
 
   let data = {...props.node, node_params: JSON.stringify(node_params)}
 
@@ -137,9 +170,13 @@ const init = () => {
     dataRaw = JSON.parse(dataRaw)
 
     const trigger = dataRaw.trigger || {
-      outputs: []
+      outputs: [],
+      chat_config: {
+        question_multiple_switch: false
+      }
     }
 
+    formState.question_multiple_switch = trigger.chat_config.question_multiple_switch
 
     list.value = trigger.outputs.map((item) => {
       item.tags = item.tags || []
@@ -160,6 +197,9 @@ onMounted(() => {
 <style lang="less" scoped>
 @import './form-block.less';
 .variable-node {
+  .multi-modal-box{
+    margin-bottom: 8px;
+  }
   .field-items {
     .field-item {
       display: flex;

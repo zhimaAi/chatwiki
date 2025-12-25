@@ -61,7 +61,7 @@ func init() {
 	Route[http.MethodPost][`/manage/checkAliOcr`] = manage.CheckAliOcr
 
 	/*robot API*/
-	Route[http.MethodPost][`/manage/upload`] = manage.Upload
+	noAuthFuns(Route[http.MethodPost], `/manage/upload`, manage.Upload)
 	Route[http.MethodGet][`/manage/getRobotList`] = manage.GetRobotList
 	Route[http.MethodPost][`/manage/saveRobot`] = manage.SaveRobot
 	Route[http.MethodPost][`/manage/robotAutoAdd`] = manage.RobotAutoAdd
@@ -312,8 +312,6 @@ func init() {
 	Route[http.MethodPost][`/manage/uploadCertificate`] = manage.UploadCertificate
 	Route[http.MethodPost][`/manage/uploadCheckFile`] = manage.UploadCheckFile
 	/*work_flow API*/
-	Route[http.MethodGet][`/manage/getTriggerConfigList`] = manage.GetTriggerConfigList
-	Route[http.MethodGet][`/manage/triggerConfigList`] = manage.TriggerConfigList
 	Route[http.MethodGet][`/manage/getNodeList`] = manage.GetNodeList
 	Route[http.MethodPost][`/manage/saveNodes`] = manage.SaveNodes
 	Route[http.MethodGet][`/manage/getDraftKey`] = manage.GetDraftKey
@@ -411,6 +409,10 @@ func init() {
 
 	/* trigger */
 	RegTriggerRoute()
+
+	/** mcp square */
+	Route[http.MethodGet][`/manage/getMcpSquareTypeList`] = manage.GetMcpSquareTypeList
+	Route[http.MethodGet][`/manage/getMcpSquareList`] = manage.GetMcpSquareList
 
 	/* Template */
 	Route[http.MethodGet][`/manage/getRobotTemplateCategoryList`] = manage.GetRobotTemplateCategoryList

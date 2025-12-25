@@ -29,6 +29,9 @@
       <div class="options-item is-required">
         <div class="options-item-tit">
           <div class="option-label">公众号模板</div>
+          <a-tooltip title="同步最新的公众号模板">
+            <a @click="syncTemplates">同步 <a-spin v-if="syncing" size="small"/></a>
+          </a-tooltip>
         </div>
         <div>
           <a-select
@@ -216,6 +219,8 @@ import {getWechatAppList} from "@/api/robot/index.js";
 import {runPlugin} from "@/api/plugins/index.js";
 import {pluginOutputToTree} from "@/constants/plugin.js";
 import OutputFields from "@/views/workflow/components/feishu-table/output-fields.vue";
+import {message} from 'ant-design-vue';
+
 
 const emit = defineEmits(['updateVar'])
 const props = defineProps({
@@ -238,6 +243,7 @@ const setData = inject('setData')
 const pluginName = 'official_send_template_message'
 const outputData = ref([])
 const apps = ref([])
+const syncing = ref(false)
 const templates = ref([])
 const formState = reactive({
   app_id: undefined,
@@ -362,8 +368,21 @@ function templateChange(_, option) {
   formState.data = parseWxTemplateToObj(content)
 }
 
+function syncTemplates() {
+  if (!formState.app_secret || !formState.app_id) {
+    return message.warning('请先选择公众号')
+  }
+  if (syncing.value) return
+  syncing.value = true
+  loadTemplates().then(() => {
+    message.success('同步完成')
+  }).finally(() => {
+    syncing.value = false
+  })
+}
+
 function loadTemplates() {
-  runPlugin({
+  return runPlugin({
     name: pluginName,
     action: "default/exec",
     params: JSON.stringify({
@@ -375,6 +394,7 @@ function loadTemplates() {
     })
   }).then(res => {
     templates.value = res?.data?.template_list || []
+    return
   })
 }
 

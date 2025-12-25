@@ -395,6 +395,14 @@ function useTemplate(item) {
       margin-top: 20px;
     }
   }
+  
+  .trigger-plugin-item {
+    cursor: auto;
+    
+    &:hover {
+      box-shadow: none;
+    }
+  }
 }
 
 .mr8 {

@@ -28,11 +28,11 @@ func BuildChatContextPair(openid string, robotId, dialogueId, curMsgId, contextP
 	}
 	m := msql.Model(`chat_ai_message`, define.Postgres).Where(`openid`, openid).
 		Where(`robot_id`, cast.ToString(robotId)).Where(`dialogue_id`, cast.ToString(dialogueId)).
-		Where(`msg_type`, cast.ToString(define.MsgTypeText))
+		Where(`is_valid_function_call = false`)
 	if curMsgId > 0 { //兼容调试运行获取上下文
 		m.Where(`id`, `<`, cast.ToString(curMsgId))
 	}
-	list, err := m.Order(`id desc`).Field(`id,content,is_customer,is_valid_function_call`).Limit(contextPair * 4).Select()
+	list, err := m.Order(`id desc`).Field(`id,content,is_customer`).Limit(contextPair * 4).Select()
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -42,17 +42,6 @@ func BuildChatContextPair(openid string, robotId, dialogueId, curMsgId, contextP
 	//reverse
 	for i, j := 0, len(list)-1; i < j; i, j = i+1, j-1 {
 		list[i], list[j] = list[j], list[i]
-	}
-	//remove the record before the function call
-	for index := len(list) - 1; index >= 0; index-- {
-		if cast.ToBool(list[index][`is_valid_function_call`]) {
-			if index == len(list)-1 {
-				list = []msql.Params{}
-			} else {
-				list = list[index+1:]
-			}
-			break
-		}
 	}
 	//foreach
 	for i := 0; i < len(list)-1; i++ {
@@ -65,7 +54,6 @@ func BuildChatContextPair(openid string, robotId, dialogueId, curMsgId, contextP
 	if len(contextList) > contextPair {
 		contextList = contextList[len(contextList)-contextPair:]
 	}
-
 	return contextList
 }
 
@@ -143,6 +131,10 @@ func BuildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 	messages := make([]adaptor.ZhimaChatCompletionMessage, 0)
 	//part1:prompt
 	roleType := define.PromptRoleTypeMap[cast.ToInt(params.Robot[`prompt_role_type`])]
+	if cast.ToBool(params.Robot[`question_multiple_switch`]) {
+		//调用多模态时,忽略用户设置的提示词放在user里面,固定放在system里面
+		roleType = define.PromptRoleTypeMap[define.PromptRoleTypeSystem]
+	}
 	prompt, libraryContent := FormatSystemPrompt(params.Prompt, list)
 	if roleType == define.PromptRoleUser {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: libraryContent})
@@ -179,6 +171,10 @@ func BuildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 	//part1:prompt
 	prompt, _ := FormatSystemPrompt(params.Prompt, nil)
 	roleType := define.PromptRoleTypeMap[cast.ToInt(params.Robot[`prompt_role_type`])]
+	if cast.ToBool(params.Robot[`question_multiple_switch`]) {
+		//调用多模态时,忽略用户设置的提示词放在user里面,固定放在system里面
+		roleType = define.PromptRoleTypeMap[define.PromptRoleTypeSystem]
+	}
 	if roleType != define.PromptRoleUser {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: roleType, Content: prompt})
 		*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: prompt})
@@ -350,7 +346,7 @@ func BuildKeywordReplyMessage(params *define.ChatRequestParam) ([]ReplyContent, 
 	keywordSkipAI = cast.ToInt(robotAbilityConfig[`ai_reply_status`]) != define.SwitchOn
 
 	//问题判断
-	question := strings.TrimSpace(params.Question)
+	question := GetFirstQuestionByInput(params.Question) //多模态输入特殊处理
 
 	//循环判断  构造消息
 	for _, robotKeywordReply := range robotKeywordReplyList {

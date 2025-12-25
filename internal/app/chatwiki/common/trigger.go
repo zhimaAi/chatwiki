@@ -23,3 +23,18 @@ func (h TriggerConfigCacheBuildHandler) GetCacheData() (any, error) {
 		Where(`admin_user_id`, cast.ToString(h.AdminUserId)).
 		Where(`trigger_type`, h.TriggerType).Find()
 }
+
+type TriggerOfficialCacheBuildHandler struct {
+	AppId   string
+	MsgType string
+}
+
+func (h TriggerOfficialCacheBuildHandler) GetCacheKey() string {
+	return fmt.Sprintf(define.RedisPrefixOfficialTrigger, h.AppId, h.MsgType)
+}
+
+func (h TriggerOfficialCacheBuildHandler) GetCacheData() (any, error) {
+	return msql.Model(`work_flow_trigger`, define.Postgres).
+		Where(`find_key`, fmt.Sprintf(`%s.%s`, h.AppId, h.MsgType)).
+		Select()
+}

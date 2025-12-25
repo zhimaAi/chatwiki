@@ -41,7 +41,7 @@
                   v-model:value="formState.globalState[item.key]"
                 />
               </template>
-              <template v-if="item.typ == 'array<string>'">
+              <template v-if="item.typ.includes('array')">
                 <div class="input-list-box">
                   <div
                     class="input-list-item"
@@ -115,6 +115,12 @@
               </div>
               <div class="time-tag" v-if="cuttentItem.is_success">{{ cuttentItem.use_time }}ms</div>
             </div>
+            <div class="preview-content-block" v-if="currentImageList.length > 0">
+              <div class="title-block">生成图像日志</div>
+              <div class="preview-img-box">
+                <ImageLogs :currentImageList="currentImageList" />
+              </div>
+            </div>
             <div class="preview-content-block">
               <div class="title-block">运行日志<CopyOutlined @click="handleCopy" /></div>
               <div class="preview-code-box">
@@ -129,6 +135,7 @@
 </template>
 
 <script setup>
+import { isJsonString } from '@/utils/index'
 import {
   CaretRightOutlined,
   CheckCircleFilled,
@@ -145,6 +152,7 @@ import { callWorkFlow } from '@/api/robot/index'
 import { getImageUrl } from '../util'
 import { message } from 'ant-design-vue'
 import { copyText } from '@/utils/index'
+import ImageLogs from '@/views/workflow/components/image-logs/index.vue'
 const props = defineProps({
   lf: {
     type: Object
@@ -184,6 +192,19 @@ const cuttentItem = computed(() => {
   return resultList.value.filter((item) => item.node_key == currentNodeKey.value)[0]
 })
 
+const currentImageList = computed(()=>{
+  let list = []
+  if(cuttentItem.value && cuttentItem.value.node_type == 33){
+    let output = cuttentItem.value.output
+    for(let key in output){
+      if(key.includes('picture_url_')){
+        list.push(output[key])
+      }
+    }
+  }
+  return list
+})
+
 const loading = ref(false)
 
 const formState = reactive({
@@ -194,6 +215,7 @@ const formState = reactive({
 })
 
 const handleOpenTestModal = () => {
+  getQuestionMultipleSwitchStatus()
   if (props.isLockedByOther) {
     message.warning('当前已有其他用户在编辑中，无法运行测试')
     return
@@ -201,6 +223,7 @@ const handleOpenTestModal = () => {
   emit('save', 'automatic')
   let localData = localStorage.getItem('workflow_run_test_data') || '{}'
   localData = JSON.parse(localData)
+  
   // formState.question = localData.question || ''
   // formState.openid = localData.openid || ''
   formState.global = localData.global || ''
@@ -217,8 +240,10 @@ const handleOpenTestModal = () => {
         if (global[key]) {
           if (Array.isArray(global[key])) {
             formState.globalState[key] = global[key].map((item) => {
+              // 处理数组元素，将对象转换为字符串
+              let value = typeof item === 'object' ? JSON.stringify(item) : item
               return {
-                value: item,
+                value: value,
                 key: Math.random() * 1000
               }
             })
@@ -255,12 +280,41 @@ function getGlobalDefaultVal() {
     if (item.typ == 'number') {
       result[item.key] = formState.globalState[item.key] ? +formState.globalState[item.key] : ''
     }
-    if (item.typ == 'array<string>') {
-      let list = formState.globalState[item.key].map((it) => it.value).filter((it) => it)
+
+    if (item.typ.includes('array')) {
+      let list = formState.globalState[item.key].map((it) => {
+        it.value = it.value.trim()
+
+        if (isJsonString(it.value)) {
+          return JSON.parse(it.value)
+        } else {
+          return it.value
+        }
+      }).filter((it) => it)
+
       result[item.key] = list
+    }
+
+    if(item.typ === 'object'){
+      if(isJsonString(item.value)){
+        result[item.key] = JSON.parse(item.value)
+      }
     }
   })
   return JSON.stringify(result)
+}
+
+function getQuestionMultipleSwitchStatus() {
+  const graphData = props.lf.getGraphData();
+  const sessionTriggerNode = graphData.nodes.find((node) => node.type === 'session-trigger-node')
+
+  if(sessionTriggerNode){
+    const node_params = JSON.parse(sessionTriggerNode.properties.node_params || '{}')
+    const data = node_params.trigger || {}
+
+    return data.chat_config ? data.chat_config.question_multiple_switch : false
+  }
+  
 }
 
 const handleDelItem = (key, index) => {
@@ -278,14 +332,21 @@ const formRef = ref(null)
 const handleSubmit = () => {
   formRef.value.validate().then(() => {
     let postData = { ...formState }
+    const question_multiple_switch = getQuestionMultipleSwitchStatus()
 
     postData.global = getGlobalDefaultVal()
+    
     delete postData.globalState
+
     loading.value = true
     resultList.value = []
+  
+
     localStorage.setItem('workflow_run_test_data', JSON.stringify({ ...postData }))
+    
     callWorkFlow({
-      ...postData
+      ...postData,
+      question_multiple_switch
     })
       .then((res) => {
         message.success('测试结果生成完成')

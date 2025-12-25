@@ -72,11 +72,12 @@
               每天 {{ formState.hour_minute }}
             </div>
             <div class="option-label" v-if="formState.every_type == 'week'">
-              每周 {{ week_number_map[formState.week_number] }}
+              每周 {{ week_number_map[formState.week_number] }} {{ formState.hour_minute }}
             </div>
             <div class="option-label" v-if="formState.every_type == 'month'">
               每月
               <span v-if="formState.month_day">{{ formState.month_day }}号</span>
+              {{ formState.hour_minute }}
             </div>
           </div>
         </div>
@@ -147,7 +148,6 @@ const reset = () => {
   let cron_config = node_params.trigger.cron_config || {}
 
   Object.assign(formState, cron_config)
-
 
   nextTick(() => {
     resetSize()

@@ -29,6 +29,7 @@
         :modelId="sub.model_config_id"
         :modelName="sub.name"
         :key="sub.key"
+        v-bind:attrs="sub"
       >
         {{ sub.show_model_name || sub.name }}
       </a-select-option>
@@ -46,7 +47,7 @@ const props = defineProps({
   modelType: {
     type: String,
     validator: (value) => {
-      return ['TEXT EMBEDDING', 'RERANK', 'LLM'].includes(value)
+      return ['TEXT EMBEDDING', 'RERANK', 'LLM', 'IMAGE'].includes(value)
     },
     required: true
   },

@@ -1,17 +1,35 @@
 <template>
   <div class="left-menu-box">
-    <a-menu class="left-menu" :selectedKeys="selectedKeys" @click="handleChangeMenu">
-      <router-link
-        class="default-color"
-        :target="item.target || '_self'"
-        :to="{ path: item.path, query: item.query || query }"
-        v-for="item in items"
-        :key="item.key"
-      >
-        <a-menu-item :icon="item.icon" :path="item.path" :key="item.key">{{
-          item.label
-        }}</a-menu-item>
-      </router-link>
+    <a-menu class="left-menu" mode="inline" :selectedKeys="selectedKeys" :openKeys="openKeys" @click="handleChangeMenu">
+      <template v-for="item in items" :key="item.key">
+        <a-sub-menu v-if="item.children && item.children.length" :key="item.key" :icon="item.icon" :class="{'submenu-selected': isTopActive(item)}">
+          <template #title>
+            <router-link
+              class="default-color"
+              :to="{ path: item.path, query: item.query || query }"
+              :target="item.target || '_self'"
+              @click.stop
+            >{{ item.label }}</router-link>
+          </template>
+          <router-link
+            class="default-color"
+            v-for="child in item.children"
+            :key="child.key"
+            :to="{ path: child.path, query: child.query || query }"
+            :target="child.target || '_self'"
+          >
+            <a-menu-item :icon="child.icon" :path="child.path" :key="child.key">{{ child.label }}</a-menu-item>
+          </router-link>
+        </a-sub-menu>
+        <router-link
+          v-else
+          class="default-color"
+          :target="item.target || '_self'"
+          :to="{ path: item.path, query: item.query || query }"
+        >
+          <a-menu-item :icon="item.icon" :path="item.path" :key="item.key">{{ item.label }}</a-menu-item>
+        </router-link>
+      </template>
     </a-menu>
   </div>
 </template>
@@ -35,18 +53,18 @@ const props = defineProps({
 
 const query = route.query
 const selectedKeys = computed(() => {
-  // 没有自动回复菜单就让功能中心高亮，否则就让自动回复高亮
-  const autoReplyMenu = items.value.find((i) => i.id === 'auto-reply')
+  const functionCenter = items.value.find((i) => i.id === 'function-center')
+  const children = functionCenter?.children || []
+  const autoReplyMenu = children.find((i) => i.id === 'auto-reply')
   if (route.path.split('/')[3] === 'auto-reply' && !autoReplyMenu) {
     return ['function-center']
   }
 
-  // 没有订阅回复菜单就让功能中心高亮，否则就让订阅回复高亮
-  const subscribeReplyMenu = items.value.find((i) => i.id === 'subscribe-reply')
+  const subscribeReplyMenu = children.find((i) => i.id === 'subscribe-reply')
   if (route.path.split('/')[3] === 'subscribe-reply' && !subscribeReplyMenu) {
     return ['function-center']
   }
-  const smartMenu = items.value.find((i) => i.id === 'smart-menu')
+  const smartMenu = children.find((i) => i.id === 'smart-menu')
   if (route.path.split('/')[3] === 'smart-menu' && !smartMenu) {
     return ['function-center']
   }
@@ -272,8 +290,7 @@ async function refreshAbilityMenu () {
     const hit = (data || []).find(
       (it) =>
         it?.ability_type === 'robot_auto_reply' &&
-        it?.robot_config?.fixed_menu === '1' &&
-        it?.robot_config?.switch_status === '1'
+        it?.robot_config?.fixed_menu === '1'
     )
     if (hit) {
       autoReplyMenu.value = {
@@ -342,8 +359,7 @@ async function refreshAbilityMenu () {
     const hitSmart = (data || []).find(
       (it) =>
         it?.ability_type === 'robot_smart_menu' &&
-        it?.robot_config?.fixed_menu === '1' &&
-        it?.robot_config?.switch_status === '1'
+        it?.robot_config?.fixed_menu === '1'
     )
     if (hitSmart) {
       smartMenu.value = {
@@ -390,35 +406,28 @@ const items = computed(() => {
   } else {
     lists = lists.filter((item) => item.menuIn.includes(props.robotInfo?.application_type))
   }
-  let arr = [...lists]
-  if (autoReplyMenu.value) {
-    const idx = arr.findIndex((i) => i.id === 'function-center')
-    if (idx >= 0) {
-      arr.splice(idx + 1, 0, autoReplyMenu.value)
-    } else {
-      arr.push(autoReplyMenu.value)
-    }
+  const arr = [...lists]
+  const idx = arr.findIndex((i) => i.id === 'function-center')
+  if (idx >= 0) {
+    const children = []
+    if (autoReplyMenu.value) children.push(autoReplyMenu.value)
+    if (subscribeReplyMenu.value) children.push(subscribeReplyMenu.value)
+    if (smartMenu.value) children.push(smartMenu.value)
+    arr[idx] = { ...arr[idx], children }
   }
-
-  if (subscribeReplyMenu.value) {
-    const idx = arr.findIndex((i) => i.id === 'function-center')
-    if (idx >= 0) {
-      arr.splice(idx + 1, 0, subscribeReplyMenu.value)
-    } else {
-      arr.push(subscribeReplyMenu.value)
-    }
-  }
-  if (smartMenu.value) {
-    const idx = arr.findIndex((i) => i.id === 'function-center')
-    if (idx >= 0) {
-      arr.splice(idx + 1, 0, smartMenu.value)
-    } else {
-      arr.push(smartMenu.value)
-    }
-  }
-  
   return arr
 })
+
+const openKeys = computed(() => {
+  const fc = items.value.find((i) => i.id === 'function-center')
+  const hasChildren = fc && Array.isArray(fc.children) && fc.children.length > 0
+  if (!hasChildren) return []
+  return ['function-center']
+})
+
+const isTopActive = (item) => {
+  return route.path.split('/')[3] === item.id
+}
 
 const handleChangeMenu = ({ item }) => {
   if (selectedKeys.value.includes(item.id)) {
@@ -438,6 +447,12 @@ const handleChangeMenu = ({ item }) => {
     border-right: 0 !important;
     max-height: calc(100vh - 192px);
     overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    &::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
 
     ::v-deep(.menu-icon) {
       color: #a1a7b3;
@@ -446,6 +461,15 @@ const handleChangeMenu = ({ item }) => {
     }
 
     ::v-deep(.ant-menu-item-selected .menu-icon) {
+      color: #2475fc;
+    }
+    ::v-deep(.submenu-selected > .ant-menu-submenu-title) {
+      color: #2475fc;
+    }
+    ::v-deep(.submenu-selected > .ant-menu-submenu-title .menu-icon) {
+      color: #2475fc;
+    }
+    ::v-deep(.ant-menu-submenu-selected >.ant-menu-submenu-title .menu-icon) {
       color: #2475fc;
     }
   }

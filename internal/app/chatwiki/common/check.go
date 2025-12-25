@@ -503,3 +503,12 @@ func CheckLinuxCrontab(cronExpr string) bool {
 	}
 	return true
 }
+
+func CheckArrayInArray[T comparable](sArr []T, tArr []T) int {
+	for sKey, sVal := range sArr {
+		if !tool.InArray(sVal, tArr) {
+			return sKey
+		}
+	}
+	return -1
+}

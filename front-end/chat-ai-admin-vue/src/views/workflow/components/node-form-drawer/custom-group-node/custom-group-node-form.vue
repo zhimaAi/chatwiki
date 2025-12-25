@@ -75,8 +75,8 @@
                           readonly
                         ></a-input>
                         <a-cascader
-                          @change="(val) => handleLoopArrChange(val, item)"
                           v-model:value="item.value"
+                          @change="(val, selectedOptions) => handleLoopArrChange(val, item, selectedOptions)"
                           @dropdownVisibleChange="onDropdownVisibleChange"
                           style="width: 50%"
                           :options="loopArraysOptions"
@@ -334,30 +334,36 @@ const getVlaueVariableList = () => {
 
 function getOptions() {
   let list = getNode().getAllParentVariable()
-  list = handleOptions(list)
 
+  list = handleOptions(list)
+  list = list.filter((item) => item.group_node_key != item.loop_parent_key).filter((item) => item.node_id != item.group_node_key)
+  
   loopArraysOptions.value = filterArrayFields(list)
-  // outputArrarysOptions.value = list.filter((item) => item.group_node_key == item.loop_parent_key)
 }
 
 function filterArrayFields(list) {
-  // 只要数组变量 且 分组以外的变量
-  let result = []
-  list.forEach((item) => {
-    let children = []
-    if (item.children && item.children.length > 0) {
-      children = item.children.filter((it) => it.typ.toLowerCase().includes('array'))
+  const filterNodes = (nodes) => {
+    if (!nodes || nodes.length === 0) {
+      return [];
     }
-    if (children.length > 0) {
-      result.push({
-        ...item,
-        children
-      })
-    }
-  })
-  return result
-    .filter((item) => item.group_node_key != item.loop_parent_key)
-    .filter((item) => item.node_id != item.group_node_key)
+
+    return nodes.map(node => {
+      // 递归过滤子节点
+      const filteredChildren = filterNodes(node.children);
+
+      // 检查当前节点是否包含 'array' 类型，或者其子节点过滤后是否还有内容
+      if (node.typ.includes('array') || (filteredChildren && filteredChildren.length > 0)) {
+        return {
+          ...node,
+          children: filteredChildren
+        };
+      }
+
+      return null;
+    }).filter(Boolean); // 过滤掉 null 值
+  };
+
+  return filterNodes(list);
 }
 
 const onDropdownVisibleChange = (visible) => {
@@ -400,7 +406,7 @@ const formState = reactive({
 const outputOptions = computed(() => {
   let list = formState.intermediate_params
   let childList = []
-
+  
   list.forEach((item) => {
     if (item.key) {
       childList.push({
@@ -456,6 +462,7 @@ const update = () => {
 
   emit('update-node', {
     ...props.node,
+    ...formState,
     node_params: data
   })
 }
@@ -534,13 +541,10 @@ const onDelLoopArrays = (index) => {
   formState.loop_arrays.splice(index, 1)
 }
 
-const handleLoopArrChange = (val, item) => {
-  if (val && val.length) {
-    let filterItem1 = loopArraysOptions.value.filter((it) => it.value == val[0])[0].children
-    if (filterItem1 && filterItem1.length) {
-      item.typ = filterItem1.filter((it) => it.value == val[1])[0].typ
-    }
-  } else {
+const handleLoopArrChange = (val, item, selectedOptions) => {
+  if(selectedOptions){
+    item.typ = selectedOptions[selectedOptions.length - 1].typ 
+  }else{
     item.typ = ''
   }
 }

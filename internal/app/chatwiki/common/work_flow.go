@@ -170,17 +170,23 @@ func (field SimpleField) ShowVals(specifyTyp ...string) string {
 		_, libraryContent := FormatSystemPrompt(``, list)
 		return libraryContent
 	}
-	//标准的变量值,统一格式输出
-	temp := make([]string, 0)
+	//获取字段的vals值
 	typ := field.Typ
 	if len(specifyTyp) > 0 && len(specifyTyp[0]) > 0 {
 		typ = specifyTyp[0] //指定类型
 	}
-	for _, v := range field.GetVals(specifyTyp...) {
-		show := fmt.Sprintf(`%v`, v)
-		if tool.InArrayString(typ, []string{TypObject, TypParams, TypArrObject, TypArrParams}) {
-			show = tool.JsonEncodeNoError(v) //复杂类型json形式输出
+	vals := field.GetVals(typ)
+	//复杂类型json形式输出
+	if len(vals) > 0 && tool.InArrayString(typ, []string{TypObject, TypParams, TypArrObject, TypArrParams}) {
+		if tool.InArrayString(typ, TypArrays[:]) {
+			return tool.JsonEncodeNoError(vals)
 		}
+		return tool.JsonEncodeNoError(vals[0])
+	}
+	//标准的变量值,统一格式输出
+	temp := make([]string, 0)
+	for _, v := range vals {
+		show := fmt.Sprintf(`%v`, v)
 		if len(show) > 0 { //filter empty
 			temp = append(temp, show)
 		}

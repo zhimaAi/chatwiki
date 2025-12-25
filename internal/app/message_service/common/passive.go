@@ -111,7 +111,7 @@ func WaitAiReply(robot msql.Params, message map[string]any) string {
 		`app_id`:        appid,
 		`msgid`:         msgid,
 		`openid`:        message[`FromUserName`],
-		`content`:       message[`Content`],
+		`content`:       cast.ToString(message[`Content`]),
 		`create_time`:   tool.Time2Int(),
 		`update_time`:   tool.Time2Int(),
 	}, `id`)

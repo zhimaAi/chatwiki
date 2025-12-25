@@ -157,6 +157,9 @@ function getOptions() {
     result = handleOptions(list)
     const gropModel = props.lf.getNodeModelById(loop_parent_key)
     if (gropModel) {
+      let dataRaw = gropModel.properties.dataRaw || gropModel.properties.node_params || '{}'
+      let loop = JSON.parse(dataRaw).loop || {}
+
       result = [
         ...result,
         {
@@ -165,7 +168,7 @@ function getOptions() {
           node_type: gropModel.properties.node_type,
           typ: 'node',
           value: gropModel.id,
-          children: handleIntermediateOption(gropModel.properties.intermediate_params, gropModel)
+          children: handleIntermediateOption(loop.intermediate_params, gropModel)
         }
       ]
     }
