@@ -23,7 +23,7 @@
       @input="divInput"
       @keydown="dropDownKeydown"
       @click="clickJMention"></div>
-        <span class="placeholder" v-if="localValue.length == 0">{{ placeholder }}</span>
+        <div class="placeholder" v-if="localValue.length == 0">{{ placeholder }}</div>
     </div>
   </div>
 </template>
@@ -676,7 +676,6 @@ export default {
     color: #bfbfbf;
     pointer-events: none;
     user-select: none;
-    white-space: nowrap;
   }
 .dropdown-list {
   position: fixed;

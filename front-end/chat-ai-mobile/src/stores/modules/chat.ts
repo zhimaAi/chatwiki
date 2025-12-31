@@ -2,7 +2,7 @@ import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { sendAiMessage, chatWelcome, getDialogueList, getChatMessage, questionGuide, getFastCommandList, addFeedback, delFeedback } from '@/api/chat'
 import { editPrompt } from '@/api/robot/index'
-import { getUuid, getOpenid } from '@/utils/index'
+import { getUuid, getOpenid, extractVoiceInfo, removeVoiceFormat } from '@/utils/index'
 import { useEventBus } from '@/hooks/event/useEventBus'
 import { useIM } from '@/hooks/event/useIM'
 import { useUserStore } from '@/stores/modules/user'
@@ -34,6 +34,7 @@ export interface Message {
   show_reasoning: boolean
   quote_loading: boolean
   show_quote_file: boolean
+  voice_content: any
 }
 
 export interface Chat {
@@ -342,6 +343,9 @@ export const useChatStore = defineStore('chat', () => {
 
       const oldText = messageList.value[msgIndex].content
       messageList.value[msgIndex].content = oldText + content
+
+      messageList.value[msgIndex].voice_content = extractVoiceInfo(messageList.value[msgIndex].content)
+      messageList.value[msgIndex].content = removeVoiceFormat(messageList.value[msgIndex].content)
     }
 
     if(type == 'start_quote_file'){
@@ -357,11 +361,17 @@ export const useChatStore = defineStore('chat', () => {
     if (type == 'ai_message') {
       if (content.menu_json && content.msg_type == 2) {
         const menu_json = JSON.parse(content.menu_json)
-        messageList.value[msgIndex].content = menu_json.content
+        // messageList.value[msgIndex].content = menu_json.content
         messageList.value[msgIndex].menu_json = menu_json
       }
       messageList.value[msgIndex].id = content.id
       messageList.value[msgIndex].msg_type = content.msg_type // 更新真实的msg_type
+
+      messageList.value[msgIndex].content = content.content
+      // 提取语音消息
+      messageList.value[msgIndex].voice_content = extractVoiceInfo(messageList.value[msgIndex].content)
+      messageList.value[msgIndex].content = removeVoiceFormat(messageList.value[msgIndex].content)
+
       if (content.reply_content_list !== undefined) {
         messageList.value[msgIndex].reply_content_list = content.reply_content_list
       }
@@ -656,6 +666,10 @@ export const useChatStore = defineStore('chat', () => {
         if (item.reply_content_list) {
           try { item.reply_content_list = JSON.parse(item.reply_content_list) } catch (_) { item.reply_content_list = [] }
         }
+
+        item.voice_content = extractVoiceInfo(item.content)
+        item.content = removeVoiceFormat(item.content)
+
       })
 
       messageList.value = [...list, ...messageList.value]

@@ -481,6 +481,10 @@
                 </div>
               </template>
             </div>
+            <!-- 语音消息 -->
+            <div v-if="item.voice_content && item.voice_content.length">
+              <VoiceMessage :voice_content="item.voice_content" />
+            </div>
           </div>
         </div>
       </template>
@@ -494,6 +498,7 @@
 import { ref, nextTick } from 'vue'
 import { formatDisplayChatTime } from '@/utils/index'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
+import VoiceMessage from '@/views/robot/robot-test/components/voice-message.vue'
 
 const emit = defineEmits(['scroll', 'scrollStart', 'scrollEnd'])
 

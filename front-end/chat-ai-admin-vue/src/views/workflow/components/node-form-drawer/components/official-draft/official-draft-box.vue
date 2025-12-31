@@ -19,6 +19,7 @@ const compMap = {
   delete_draft: OfficialDraftOperate,
   publish_draft: OfficialDraftOperate,
   preview_message: OfficialDraftOperate,
+  get_draft: OfficialDraftOperate,
 }
 const emit = defineEmits(['updateVar'])
 const props = defineProps({
@@ -38,6 +39,6 @@ const props = defineProps({
 })
 
 const currentComp = computed(() => {
-  return compMap[props.actionName]
+  return compMap[props.actionName] || OfficialDraftOperate
 })
 </script>

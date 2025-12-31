@@ -1,7 +1,14 @@
 <template>
   <a-button v-if="searchSets" @click="showDrawer" :icon="h(SettingOutlined)">搜索设置</a-button>
-  <a-drawer v-model:open="open" class="custom-class" root-class-name="root-class-name" title="搜索设置" width="472"
-    placement="right" @after-open-change="afterOpenChange">
+  <a-drawer
+    v-model:open="open"
+    class="custom-class"
+    root-class-name="root-class-name"
+    title="搜索设置"
+    width="472"
+    placement="right"
+    @after-open-change="afterOpenChange"
+  >
     <div class="prompt-form">
       <div class="prompt-form-label">模型设置</div>
 
@@ -10,97 +17,127 @@
           <a-flex align="center">
             <span>AI智能总结</span>
             <a-tooltip>
-              <template #title>开启后，搜索知识库时，由大模型自动总结文档，并给出总结后的结果</template>
+              <template #title
+                >开启后，搜索知识库时，由大模型自动总结文档，并给出总结后的结果</template
+              >
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
-            <a-switch style="margin-left: 24px;" @change="handleChangeModel" v-model:checked="formState.summary_switch" :checkedValue="1" :unCheckedValue="0" checked-children="开" un-checked-children="关" />
+            <a-switch
+              style="margin-left: 24px"
+              @change="onSave"
+              v-model:checked="formState.summary_switch"
+              :checkedValue="1"
+              :unCheckedValue="0"
+              checked-children="开"
+              un-checked-children="关"
+            />
           </a-flex>
         </div>
       </div>
       <div v-show="formState.summary_switch == 1">
-
-
-
-      <div class="prompt-form-item">
-        <div class="prompt-form-item-label">
-          <span style="color: red;">* </span><span>模型选择</span>
-        </div>
-        <ModelSelect
-          modelType="LLM"
-          v-model:modeName="formState.use_model"
-          v-model:modeId="formState.model_config_id"
-          style="width: 100%;"
-          @loaded="onVectorModelLoaded"
-          @change="handleChangeModel"
-        />
-      </div>
-
-      <div class="prompt-form-item">
-        <div class="prompt-form-item-label">
-          <span style="color: red;">* </span><span>提示词</span>
-        </div>
-        <a-radio-group v-model:value="formState.prompt_type" @change="handlePromptTypeChange">
-          <a-radio value="0">默认提示词</a-radio>
-          <a-radio value="1">自定义提示词</a-radio>
-        </a-radio-group>
-        <div class="prompt-form-item-content">
-          <div class="prompt-form-item-tip" v-if="formState.prompt_type == '0'">将提交的内容进行智能总结,不要随意发挥</div>
-          <a-textarea
-            v-else
-            @blur="onSave"
-            :maxLength="500"
-            style="height: 80px;"
-            v-model:value="formState.prompt"
-            placeholder="请输入自定义提示词"
+        <div class="prompt-form-item">
+          <div class="prompt-form-item-label">
+            <span style="color: red">* </span><span>模型选择</span>
+          </div>
+          <ModelSelect
+            modelType="LLM"
+            v-model:modeName="formState.use_model"
+            v-model:modeId="formState.model_config_id"
+            style="width: 100%"
+            @loaded="onVectorModelLoaded"
+            @change="handleChangeModel"
           />
         </div>
-      </div>
 
-      <div class="prompt-form-item">
-        <div class="prompt-form-item-label">
-          <span>温度</span>
-          <a-tooltip>
-            <template #title>温度越低，回答越严谨。温度越高，回答越发散。</template>
-            <QuestionCircleOutlined class="question-icon" />
-          </a-tooltip>
-        </div>
-        <div class="form-item-body">
-          <div class="number-box">
-            <div class="number-slider-box">
-              <a-slider @blur="onSave" class="custom-slider" v-model:value="formState.temperature" :min="0" :max="2"
-                :step="0.1" />
+        <div class="prompt-form-item">
+          <div class="prompt-form-item-label">
+            <span style="color: red">* </span><span>提示词</span>
+          </div>
+          <a-radio-group v-model:value="formState.prompt_type" @change="handlePromptTypeChange">
+            <a-radio value="0">默认提示词</a-radio>
+            <a-radio value="1">自定义提示词</a-radio>
+          </a-radio-group>
+          <div class="prompt-form-item-content">
+            <div class="prompt-form-item-tip" v-if="formState.prompt_type == '0'">
+              将提交的内容进行智能总结,不要随意发挥
             </div>
-            <div class="number-input-box">
-              <a-input-number @blur="onSave" v-model:value="formState.temperature" :min="0" :max="2" :step="0.1" />
+            <a-textarea
+              v-else
+              @blur="onSave"
+              :maxLength="500"
+              style="height: 80px"
+              v-model:value="formState.prompt"
+              placeholder="请输入自定义提示词"
+            />
+          </div>
+        </div>
+
+        <div class="prompt-form-item">
+          <div class="prompt-form-item-label">
+            <span>温度</span>
+            <a-tooltip>
+              <template #title>温度越低，回答越严谨。温度越高，回答越发散。</template>
+              <QuestionCircleOutlined class="question-icon" />
+            </a-tooltip>
+          </div>
+          <div class="form-item-body">
+            <div class="number-box">
+              <div class="number-slider-box">
+                <a-slider
+                  @blur="onSave"
+                  class="custom-slider"
+                  v-model:value="formState.temperature"
+                  :min="0"
+                  :max="2"
+                  :step="0.1"
+                />
+              </div>
+              <div class="number-input-box">
+                <a-input-number
+                  @blur="onSave"
+                  v-model:value="formState.temperature"
+                  :min="0"
+                  :max="2"
+                  :step="0.1"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="prompt-form-item">
+          <div class="prompt-form-item-label">
+            <span>最大token</span>
+            <a-tooltip>
+              <template #title>
+                <div>问题+答案的最大token数，如果出现回答被截断，可调高此值</div>
+              </template>
+              <QuestionCircleOutlined class="question-icon" />
+            </a-tooltip>
+          </div>
+          <div class="form-item-body">
+            <div class="number-box">
+              <div class="number-slider-box">
+                <a-slider
+                  @blur="onSave"
+                  class="custom-slider"
+                  v-model:value="formState.max_token"
+                  :min="0"
+                  :max="100 * 1024"
+                />
+              </div>
+              <div class="number-input-box">
+                <a-input-number
+                  @blur="onSave"
+                  v-model:value="formState.max_token"
+                  :min="0"
+                  :max="100 * 1024"
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      <div class="prompt-form-item">
-        <div class="prompt-form-item-label">
-          <span>最大token</span>
-          <a-tooltip>
-            <template #title>
-              <div>问题+答案的最大token数，如果出现回答被截断，可调高此值</div>
-            </template>
-            <QuestionCircleOutlined class="question-icon" />
-          </a-tooltip>
-        </div>
-        <div class="form-item-body">
-          <div class="number-box">
-            <div class="number-slider-box">
-              <a-slider @blur="onSave" class="custom-slider" v-model:value="formState.max_token" :min="0"
-                :max="100 * 1024" />
-            </div>
-            <div class="number-input-box">
-              <a-input-number @blur="onSave" v-model:value="formState.max_token" :min="0" :max="100 * 1024" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-     </div> 
 
       <!-- <div class="prompt-form-item">
         <div class="prompt-form-item-label">
@@ -140,15 +177,27 @@
           </div>
           <div class="form-item-body">
             <div class="retrieval-mode-items">
-              <div class="retrieval-mode-item" :class="{ active: formState.search_type == item.value }"
-                v-for="item in retrievalModeList" :key="item.value" @click="handleSelectRetrievalMode(item.value)">
-                <svg-icon class="check-arrow" name="check-arrow-filled"
-                  v-if="formState.search_type == item.value"></svg-icon>
+              <div
+                class="retrieval-mode-item"
+                :class="{ active: formState.search_type == item.value }"
+                v-for="item in retrievalModeList"
+                :key="item.value"
+                @click="handleSelectRetrievalMode(item.value)"
+              >
+                <svg-icon
+                  class="check-arrow"
+                  name="check-arrow-filled"
+                  v-if="formState.search_type == item.value"
+                ></svg-icon>
 
                 <div class="retrieval-mode-title">
                   <svg-icon :name="item.iconName" class="title-icon"></svg-icon>
                   <span class="title-text">{{ item.title }}</span>
-                  <svg-icon class="recommendation-icon" name="recommendation" v-if="item.isRecommendation"></svg-icon>
+                  <svg-icon
+                    class="recommendation-icon"
+                    name="recommendation"
+                    v-if="item.isRecommendation"
+                  ></svg-icon>
                 </div>
 
                 <div class="retrieval-mode-desc">
@@ -159,21 +208,33 @@
           </div>
         </div>
 
+        <div class="form-item" v-if="formState.search_type == 1">
+          <WeightSelect @save="debouncedHandleWeightChange" v-model:rrf_weight="formState.rrf_weight" />
+        </div>
+
         <div class="form-item">
           <div class="form-item-label">
             <span>Top K&nbsp;</span>
             <a-tooltip>
-              <template #title>最多从知识库中召回分段数，最低为1，最高为10。召回分段数越多，消耗的token也会越多。</template>
+              <template #title
+                >最多从知识库中召回分段数，最低为1，最高为10。召回分段数越多，消耗的token也会越多。</template
+              >
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
           </div>
           <div class="form-item-body">
             <div class="number-box">
               <div class="number-slider-box">
-                <a-slider @blur="onSave" class="custom-slider" v-model:value="formState.top_k" :min="1" :max="10" />
+                <a-slider
+                  @blur="onSave"
+                  class="custom-slider"
+                  v-model:value="formState.top_k"
+                  :min="1"
+                  :max="500"
+                />
               </div>
               <div class="number-input-box">
-                <a-input-number @blur="onSave" v-model:value="formState.top_k" :min="1" :max="10" />
+                <a-input-number @blur="onSave" v-model:value="formState.top_k" :min="1" :max="500" />
               </div>
             </div>
           </div>
@@ -183,18 +244,32 @@
           <div class="form-item-label">
             <span>相似度阈值&nbsp;</span>
             <a-tooltip>
-              <template #title>召回时，只会召回相似度大于阈值的文本分段。取值范围：0~1，阈值越大回答的越准确，建议不超过0.9</template>
+              <template #title
+                >召回时，只会召回相似度大于阈值的文本分段。取值范围：0~1，阈值越大回答的越准确，建议不超过0.9</template
+              >
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
           </div>
           <div class="form-item-body">
             <div class="number-box">
               <div class="number-slider-box">
-                <a-slider @blur="onSave" class="custom-slider" v-model:value="formState.similarity" :min="0" :max="1"
-                  :step="0.01" />
+                <a-slider
+                  @blur="onSave"
+                  class="custom-slider"
+                  v-model:value="formState.similarity"
+                  :min="0"
+                  :max="1"
+                  :step="0.01"
+                />
               </div>
               <div class="number-input-box">
-                <a-input-number @blur="onSave" v-model:value="formState.similarity" :min="0" :max="1" :step="0.01" />
+                <a-input-number
+                  @blur="onSave"
+                  v-model:value="formState.similarity"
+                  :min="0"
+                  :max="1"
+                  :step="0.01"
+                />
               </div>
             </div>
           </div>
@@ -204,12 +279,21 @@
           <div class="form-item-label">
             <span>Rerank模型&nbsp;</span>
             <a-tooltip>
-              <template #title>召回时，只会召回相似度大于阈值的文本分段。取值范围：0~1，阈值越大回答的越准确，建议不超过0.9</template>
+              <template #title
+                >召回时，只会召回相似度大于阈值的文本分段。取值范围：0~1，阈值越大回答的越准确，建议不超过0.9</template
+              >
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
 
-            <a-switch @change="onSave" style="float: right" :checkedValue="1" :unCheckedValue="0"
-              v-model:checked="formState.rerank_status" checked-children="开" un-checked-children="关" />
+            <a-switch
+              @change="onSave"
+              style="float: right"
+              :checkedValue="1"
+              :unCheckedValue="0"
+              v-model:checked="formState.rerank_status"
+              checked-children="开"
+              un-checked-children="关"
+            />
           </div>
           <div class="form-item-body" v-if="formState.rerank_status == 1">
             <ModelSelect
@@ -224,35 +308,39 @@
         </div>
       </div>
     </div>
-    <a-modal v-model:open="modalOpen" @cancel="handleClose" title="请输入自定义提示词" @ok="handleOk">
-
-      <a-textarea v-model:value="promptVal" placeholder="请输入" style="min-height: 300px;" allow-clear />
+    <a-modal
+      v-model:open="modalOpen"
+      @cancel="handleClose"
+      title="请输入自定义提示词"
+      @ok="handleOk"
+    >
+      <a-textarea
+        v-model:value="promptVal"
+        placeholder="请输入"
+        style="min-height: 300px"
+        allow-clear
+      />
     </a-modal>
   </a-drawer>
 </template>
 <script lang="ts" setup>
 import { getModelConfigOption } from '@/api/model/index'
-import { ref, h, reactive, onMounted, toRaw, watch, computed  } from 'vue';
+import { ref, h, reactive, onMounted, toRaw, watch, computed } from 'vue'
 import { SettingOutlined } from '@ant-design/icons-vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { saveLibrarySearch } from '@/api/library'
 import { message } from 'ant-design-vue'
+import WeightSelect from '@/components/weight-select/index.vue'
+import { useSearchLiraryStore } from '@/stores/modules/search-lirary'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { usePermissionStore } from '@/stores/modules/permission'
 
 let { role_permission, role_type } = usePermissionStore()
 const searchSets = computed(() => role_type == 1 || role_permission.includes('SearchSets'))
 
-const props = defineProps({
-  librarySearchData: {
-    type: Object,
-    default: null
-  },
-  defaultLibrarySearchData: {
-    type: Object,
-    default: null
-  }
-})
+const searchLiraryStore = useSearchLiraryStore()
+
+const { getLibrarySearchFn } = searchLiraryStore
 
 const retrievalModeList = ref([
   {
@@ -282,7 +370,7 @@ const retrievalModeList = ref([
   }
 ])
 
-const open = ref(false);
+const open = ref(false)
 
 const formState = reactive({
   use_model: '',
@@ -300,18 +388,17 @@ const formState = reactive({
   rerank_use_model: void 0,
   rerank_model_config_id: void 0,
   summary_switch: 0,
+  rrf_weight: {}
 })
 
-const handleChangeModel = (val, option) => {
-  formState.use_model = option.modelName
-  formState.model_config_id = option.modelId
+const handleChangeModel = () => {
   onSave()
 }
 
 const vectorModelList = ref([])
 const onVectorModelLoaded = (list) => {
   vectorModelList.value = list
-  if (!props.librarySearchData?.model_config_id || !props.librarySearchData?.use_model) {
+  if (!formState.model_config_id || !formState.use_model) {
     if (vectorModelList.value.length > 0) {
       let modelConfig = vectorModelList.value[0]
       if (modelConfig) {
@@ -320,21 +407,11 @@ const onVectorModelLoaded = (list) => {
         formState.model_config_id = model.model_config_id
       }
     }
-  } else {
-    formState.use_model = props.librarySearchData?.use_model + '$$'
-    formState.model_config_id = props.librarySearchData?.model_config_id + '$$'
-    formState.use_model = formState.use_model.split('$$')[0]
-    formState.model_config_id = props.librarySearchData?.model_config_id.split('$$')[0]
   }
 }
 
 const handleSelectRetrievalMode = (val) => {
   formState.search_type = val
-  onSave()
-}
-
-const handleChangeRerankModel = (val, option) => {
-  formState.rerank_model_config_id = option.rerank_model_config_id
   onSave()
 }
 
@@ -348,16 +425,35 @@ const updateLibraryInfo = (val) => {
   newState.similarity = parseFloat(newState.similarity)
   newState.top_k = parseFloat(newState.size)
   newState.summary_switch = +newState.summary_switch
-  
+
   if (newState.rerank_use_model === '') {
     // 这里是因为服务端可能会返回个空字符串，我这里改成undefined才有placeholder
     newState.rerank_use_model = void 0
   }
-
+  newState.rrf_weight = newState.rrf_weight ? JSON.parse(newState.rrf_weight) : newState.rrf_weight
   Object.keys(newState).forEach((key) => {
     formState[key] = newState[key]
   })
 }
+
+// 防抖函数实现
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+
+const handleWeightChange = () => {
+  onSave();
+}
+
+const debouncedHandleWeightChange = debounce(handleWeightChange, 500); // 500ms 延迟
 
 const onSave = () => {
   let params = { ...formState }
@@ -365,6 +461,7 @@ const onSave = () => {
   if (!params.prompt && formState.prompt_type == '1') {
     return message.error('请输入自定义提示词')
   }
+  params.rrf_weight = JSON.stringify(formState.rrf_weight)
 
   if (formState.search_type == 3 || formState.search_type == 4) {
     // 当选择“知识图谱检索”和“全文检索”类型时，不显示“相似度阈值”设置项。
@@ -384,7 +481,7 @@ const onSave = () => {
 const modalOpen = ref(false)
 const promptVal = ref('')
 const handlePromptTypeChange = () => {
-  if(formState.prompt_type == '1'){
+  if (formState.prompt_type == '1') {
     promptVal.value = formState.prompt
     modalOpen.value = true
   } else {
@@ -393,11 +490,11 @@ const handlePromptTypeChange = () => {
 }
 
 const handleOk = () => {
-  if(!promptVal.value) {
+  if (!promptVal.value) {
     return message.error('请输入提示语')
   } else {
     formState.prompt = promptVal.value
-    modalOpen.value =false
+    modalOpen.value = false
     onSave()
   }
 }
@@ -409,28 +506,19 @@ const handleClose = () => {
 
 const afterOpenChange = (bool) => {
   // console.log('open', bool);
-};
+}
 
-const showDrawer = () => {
-  open.value = true;
-};
+const showDrawer = async () => {
+  let res = await getLibrarySearchFn()
+  updateLibraryInfo(res.data)
+  open.value = true
+}
 
-watch(
-  () => props.librarySearchData,
-  val => {
-    if (props.librarySearchData?.id) {
-      updateLibraryInfo({ ...toRaw(props.librarySearchData) })
-    }
-  },
-);
-
-onMounted(() => {
-})
+onMounted(() => {})
 </script>
 
 <style lang="less" scoped>
 .prompt-form {
-
   .prompt-form-item {
     margin: 24px 0;
 

@@ -4,6 +4,7 @@ package work_flow
 
 import (
 	"chatwiki/internal/app/chatwiki/common"
+	"chatwiki/internal/app/chatwiki/define"
 	"fmt"
 	"strings"
 
@@ -173,6 +174,14 @@ func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 			for _, field := range node.NodeParams.Loop.Output {
 				if field.Value == findKey {
 					return true
+				}
+			}
+		case NodeTypeFinish:
+			if node.NodeParams.Finish.OutType == define.FinishNodeOutTypeMessage {
+				for _, field := range node.NodeParams.Finish.Messages {
+					if strings.Contains(field.Content, findKey) {
+						return true
+					}
 				}
 			}
 		case NodeTypeImageGeneration:

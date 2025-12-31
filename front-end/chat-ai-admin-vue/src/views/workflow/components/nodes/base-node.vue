@@ -272,6 +272,7 @@ export default {
     height: 100%;
     border-radius: 8px;
     border: 1px solid #2475fc;
+    pointer-events: none;
   }
 }
 .node-common.isSelected {
@@ -284,6 +285,7 @@ export default {
     height: 100%;
     border-radius: 8px;
     border: 2px solid #2475fc;
+    pointer-events: none;
   }
 }
 

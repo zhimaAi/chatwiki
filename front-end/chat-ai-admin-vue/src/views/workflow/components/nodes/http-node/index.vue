@@ -26,9 +26,9 @@
     }
     .field-list-item {
       display: flex;
-      flex: 1;
-      gap: 4px;
       align-items: center;
+      gap: 4px;
+      width: 200px;
       line-height: 16px;
       padding: 3px 4px;
       border-radius: 4px;
@@ -49,10 +49,14 @@
       }
 
       .field-text{
+        max-width: 100px;
         font-size: 12px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
       }
       .field-text2{
-        flex: 1;
+        max-width: 100px;
         font-size: 12px;
         overflow: hidden;
         white-space: nowrap;

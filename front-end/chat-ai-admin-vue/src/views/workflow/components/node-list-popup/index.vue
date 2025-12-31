@@ -609,7 +609,7 @@ function handleOpenAddMcp() {
 
 function isActionsPlugin(node) {
   let node_params = jsonDecode(node?.properties?.node_params, {})
-  return pluginHasAction(node_params?.plugin?.name)
+  return pluginHasAction(node_params?.plugin?.name) || node_params?.plugin?.multiNode
 }
 </script>
 

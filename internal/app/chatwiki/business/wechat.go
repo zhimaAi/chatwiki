@@ -13,6 +13,7 @@ import (
 	"chatwiki/internal/pkg/wechat/feishu_robot"
 	"chatwiki/internal/pkg/wechat/official_account"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -450,11 +451,11 @@ func SendReply(push *lib_define.PushMessage) {
 	}
 
 	//发送回复的消息
-	SendReplyMessageHandle(push, message, app, err)
+	SendReplyMessageHandle(push, message, app, err, params)
 	return
 }
 
-func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, app wechat.ApplicationInterface, err error) bool {
+func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, app wechat.ApplicationInterface, err error, params *define.ChatRequestParam) bool {
 	//判断是否有关键词回复
 	ReplyContentListHandle(push, message, app)
 
@@ -472,7 +473,7 @@ func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, a
 	if len(content) == 0 {
 		return true
 	}
-	text, images := common.GetImgInMessage(content, true)
+	text, images, voices := common.GetMessageInMessage(content, true)
 	if len(text) > 0 {
 		errcode, err := app.SendText(push.Openid, text, push)
 		if err != nil {
@@ -482,6 +483,21 @@ func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, a
 	if len(images) > 0 {
 		for _, image := range images {
 			errcode, err := app.SendImage(push.Openid, image, push)
+			if err != nil {
+				logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errcode, err.Error())
+			}
+		}
+	}
+	if len(voices) > 0 && tool.InArray(params.AppType, []string{lib_define.AppWechatKefu, lib_define.AppOfficeAccount}) {
+		for _, voice := range voices {
+			ext := strings.ToLower(filepath.Ext(voice))
+			if !tool.InArray(ext, []string{`mp3`, `amr`}) {
+				logs.Warning(`voice is not mp3 or amr ,%s`, voice)
+			}
+			if params.AppType == lib_define.AppWechatKefu && ext == `.mp3` {
+				voice = common.Mp3ToAmr(params.AdminUserId, voice)
+			}
+			errcode, err := app.SendVoice(push.Openid, voice, push)
 			if err != nil {
 				logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errcode, err.Error())
 			}
@@ -623,7 +639,7 @@ func SendReceivedMessageReply(push *lib_define.PushMessage) {
 	}
 
 	//发送回复的消息
-	SendReplyMessageHandle(push, message, app, err)
+	SendReplyMessageHandle(push, message, app, err, params)
 	return
 }
 

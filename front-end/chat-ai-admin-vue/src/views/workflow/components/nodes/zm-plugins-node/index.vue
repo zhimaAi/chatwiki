@@ -33,7 +33,15 @@
     :node-key="properties.node_key"
     style="min-width: 320px;min-height: 157px;"
   >
-    <div class="ding-group-node">
+    <div v-if="isMultiNode" class="ding-group-node">
+      <DynamicRender
+        :nodeParams="nodeParams"
+        :business="business"
+        :valueOptions="valueOptions"
+        @updateSize="updateSize"
+      />
+    </div>
+    <div v-else class="ding-group-node">
       <FeishuTableRender
         v-if="isFeishuTbPlugin"
         :nodeParams="nodeParams"
@@ -52,7 +60,7 @@
         <div v-for="(item, key) in formState" :key="key">
           <span class="label">{{ item.name || key }}：</span>
           <a-tag v-if="item.value">
-            <at-text :options="valueOptions" :defaultSelectedList="item.tags" :defaultValue="item.value"/>
+            <at-text :options="valueOptions" :defaultSelectedList="item.tags" :defaultValue="item.value" ref="atTextRef" />
           </a-tag>
           <a-tag v-else>--</a-tag>
         </div>
@@ -67,7 +75,10 @@ import {getPluginInfo, runPlugin} from "@/api/plugins/index.js";
 import {pluginHasAction} from "@/constants/plugin.js";
 import FeishuTableRender from "./components/feishu-table-render.vue";
 import OfficialSendMessageRender from "./components/official-send-message-render.vue";
+import DynamicRender from "./components/dynamic-render.vue";
 import AtText from "@/views/workflow/components/at-input/at-text.vue";
+import { pluginOutputToTree } from "@/constants/plugin.js";
+import { haveOutKeyNode } from '@/views/workflow/components/util.js'
 
 export default {
   name: 'QuestionNode',
@@ -75,7 +86,8 @@ export default {
     AtText,
     FeishuTableRender,
     OfficialSendMessageRender,
-    NodeCommon,
+    DynamicRender,
+    NodeCommon
   },
   inject: ['getNode', 'getGraph', 'setData', 'resetSize'],
   props: {
@@ -90,6 +102,7 @@ export default {
   },
   data() {
     return {
+      atTextRef: null,
       menus: [{name: '删除', key: 'delete', color: '#fb363f'}],
       formState: {
         // app_id: {
@@ -100,12 +113,19 @@ export default {
       },
       nodeParams: {},
       info: {},
+      isMultiNode: false,
       pluginData: {},
       valueOptions: []
     }
   },
   mounted() {
+    const graphModel = this.getGraph()
+    graphModel.eventCenter.on('custom:setNodeName', this.onUpatateNodeName)
     this.init()
+  },
+  onBeforeUnmount() {
+    const graphModel = this.getGraph()
+    graphModel.eventCenter.off('custom:setNodeName', this.onUpatateNodeName)
   },
   computed: {
     pluginName() {
@@ -133,28 +153,91 @@ export default {
     }
   },
   methods: {
-    init() {
+    onUpatateNodeName(data) {
+      if (!haveOutKeyNode.includes(data.node_type)) {
+        return
+      }
+
+      this.valueOptions = this.getNode().getAllParentVariable() || []
+
+      const patchTags = (tags) => {
+        if (!Array.isArray(tags) || tags.length === 0) {
+          return
+        }
+
+        tags.forEach((tag) => {
+          if (tag && tag.node_id == data.node_id) {
+            if (tag.label) {
+              let arr = tag.label.split('/')
+              arr[0] = data.node_name
+              tag.label = arr.join('/')
+            }
+            tag.node_name = data.node_name
+          }
+        })
+      }
+
+      if (this.formState && typeof this.formState === 'object') {
+        Object.keys(this.formState).forEach((key) => {
+          patchTags(this.formState[key]?.tags)
+        })
+      }
+
+      const tagMaps = []
+
+      if (this.nodeParams?.plugin?.tag_map) {
+        tagMaps.push(this.nodeParams.plugin.tag_map)
+      }
+      if (this.nodeParams?.plugin?.params?.arguments?.tag_map) {
+        tagMaps.push(this.nodeParams.plugin.params.arguments.tag_map)
+      }
+
+      tagMaps.forEach((tagMap) => {
+        if (!tagMap || typeof tagMap !== 'object') {
+          return
+        }
+        Object.keys(tagMap).forEach((k) => {
+          patchTags(tagMap[k])
+        })
+      })
+
+      this.$nextTick(() => {
+        const atTextRef = this.$refs.atTextRef
+        const refList = Array.isArray(atTextRef) ? atTextRef : atTextRef ? [atTextRef] : []
+        refList.forEach((ref) => {
+          ref && ref.refresh && ref.refresh()
+        })
+
+        this.setData({
+          node_params: JSON.stringify(this.nodeParams)
+        })
+
+        this.updateSize()
+      })
+    },
+    async init() {
       this.valueOptions = this.getNode().getAllParentVariable()
       this.nodeParamsFormat()
-      this.loadPluginParams()
-      this.loadPluginInfo()
+      await this.loadPluginInfo()
+      await this.loadPluginParams()
       this.updateSize()
     },
     loadPluginInfo() {
-      getPluginInfo({name: this.pluginName}).then(res => {
+      return getPluginInfo({name: this.pluginName}).then(res => {
         let data = res?.data || {}
         this.info = data.remote
+        this.isMultiNode = data?.local?.multiNode || false
       })
     },
     loadPluginParams() {
-      runPlugin({
+      return runPlugin({
         name: this.pluginName,
         action: "default/get-schema",
         params: {}
       }).then(res => {
-        console.log('res?.data', res?.data)
         this.pluginData = res?.data || {}
         this.formStateFormat()
+        this.update(this.pluginData)
       })
     },
     nodeParamsFormat() {
@@ -177,14 +260,61 @@ export default {
       }
       this.updateSize()
     },
+    update (data) {
+      if (typeof data === 'string') {
+        data = JSON.parse(data)
+      }
+      const nodeParams = JSON.parse(this.properties.node_params)
+      const schemaAction = (this.business && data?.[this.business]) ? data[this.business] : data
+      const isAction = pluginHasAction(this.pluginName) || this.isMultiNode
+
+      const oldArgs = isAction
+        ? (nodeParams?.plugin?.params?.arguments || {})
+        : (nodeParams?.plugin?.params || {})
+
+      const updatedArgs = { ...oldArgs }
+      for (const key in (this.formState || {})) {
+        const meta = this.formState[key] || {}
+        const isDefaultableField = meta?.enum_component || meta?.radio_component
+        const def = meta?.enum_default
+        if (isDefaultableField && (updatedArgs[key] == null || String(updatedArgs[key]).trim() === '')) {
+          if (def != null && def !== '') {
+            updatedArgs[key] = def
+          }
+        }
+      }
+
+      nodeParams.plugin = nodeParams.plugin || {}
+      nodeParams.plugin.params = nodeParams.plugin.params || {}
+      if (isAction) {
+        nodeParams.plugin.params.arguments = {
+          ...oldArgs,
+          ...updatedArgs,
+          tag_map: oldArgs.tag_map || {}
+        }
+      } else {
+        nodeParams.plugin.params = {
+          ...nodeParams.plugin.params,
+          ...updatedArgs
+        }
+      }
+      nodeParams.plugin.output_obj = pluginOutputToTree(schemaAction?.output || {})
+      const newNodeParamsStr = JSON.stringify(nodeParams)
+      if (this.properties.node_params !== newNodeParamsStr) {
+        this.setData({
+          ...this.properties,
+          node_params: newNodeParamsStr
+        })
+      }
+    },
     defaultHandle(data) {
       let args, tag_map
-      if (pluginHasAction(this.pluginName)) {
+      if (pluginHasAction(this.pluginName) || this.isMultiNode) {
         this.formState = data?.[this.business]?.params || {}
         args = this.nodeParams?.plugin?.params?.arguments || {}
         tag_map = this.nodeParams?.plugin?.params?.arguments?.tag_map || {}
       } else {
-        args = this.nodeParams?.plugin?.params
+        args = this.nodeParams?.plugin?.params || {}
         tag_map = this.nodeParams?.plugin?.tag_map || {}
         this.formState = data
       }
@@ -192,6 +322,93 @@ export default {
         this.formState[key].value = String(args[key] || '')
         this.formState[key].tags = tag_map[key] || []
       }
+      if (this.isMultiNode) {
+        this.ensureMultiNodeRendering()
+      }
+    },
+    ensureMultiNodeRendering() {
+      const current = this.nodeParams?.plugin?.params?.rendering
+      if (Array.isArray(current) && current.length) {
+        const tag_map = this.nodeParams?.plugin?.params?.arguments?.tag_map || this.nodeParams?.plugin?.tag_map || {}
+        let changed = false
+        const list = current.map((item) => {
+          const key = item?.key
+          const originTags = Array.isArray(item?.tags) ? item.tags : []
+          if (originTags.length) return item
+
+          const nextTags = Array.isArray(tag_map?.[key])
+            ? tag_map[key]
+            : Array.isArray(this.formState?.[key]?.tags)
+              ? this.formState[key].tags
+              : []
+
+          if (nextTags.length) {
+            changed = true
+            return { ...item, tags: nextTags }
+          }
+          return item
+        })
+
+        if (changed) {
+          const nodeParams = JSON.parse(this.properties.node_params)
+          nodeParams.plugin = nodeParams.plugin || {}
+          nodeParams.plugin.params = nodeParams.plugin.params || {}
+          nodeParams.plugin.params.rendering = list
+
+          if (this.nodeParams?.plugin?.params) {
+            this.nodeParams.plugin.params.rendering = list
+          }
+
+          this.setData({
+            ...this.properties,
+            node_params: JSON.stringify(nodeParams)
+          })
+        }
+        return
+      }
+
+      const keys = Object.keys(this.formState || {})
+        .filter((key) => key !== 'app_secret')
+        .filter((key) => !this.formState?.[key]?.hide_official_component)
+        .sort((a, b) => (+(this.formState?.[a]?.sort_num || 0)) - (+(this.formState?.[b]?.sort_num || 0)))
+
+      const args = this.nodeParams?.plugin?.params?.arguments || {}
+
+      const list = keys.map((key) => {
+        const meta = this.formState?.[key] || {}
+        let label = meta?.name || key
+        let value = String(meta?.value ?? '')
+        const tags = Array.isArray(meta?.tags) ? meta.tags : []
+
+        if (key === 'app_id') {
+          label = '公众号名称'
+          value = String(args.app_name ?? this.formState?.app_name?.value ?? '')
+        }
+
+        if (meta?.enum_component || meta?.radio_component) {
+          const opt = (meta?.enum || []).find((e) => String(e?.value) === value) || (meta?.enum || []).find((e) => String(e?.value) === meta?.enum_default)
+          if (opt && opt.name) {
+            value = String(opt.name)
+          }
+        }
+
+        return { label, value, tags, key }
+      })
+      if (!list.length) return
+
+      const nodeParams = JSON.parse(this.properties.node_params)
+      nodeParams.plugin = nodeParams.plugin || {}
+      nodeParams.plugin.params = nodeParams.plugin.params || {}
+      nodeParams.plugin.params.rendering = list
+
+      if (this.nodeParams?.plugin?.params) {
+        this.nodeParams.plugin.params.rendering = list
+      }
+
+      this.setData({
+        ...this.properties,
+        node_params: JSON.stringify(nodeParams)
+      })
     },
     officialAccountHandle(data) {
       delete data?.[this.business]?.params.app_id
@@ -288,6 +505,8 @@ export default {
         case 'publish_draft':
         case 'delete_draft':
         case 'preview_message':
+        case 'get_draft':
+        default:
           this.formState = {
             app_name: {type: 'string', name: '公众号名称', value: args.app_name, tags: []},
             media_id: {type: 'string', name: '文章ID', value: args.media_id, tags: tag_map.media_id || []},

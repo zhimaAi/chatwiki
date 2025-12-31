@@ -65,57 +65,5 @@ defineExpose({
 </script>
 
 <style scoped lang="less">
-.options-item {
-  display: flex;
-  flex-direction: column;
-  margin-top: 12px;
-  line-height: 22px;
-  gap: 4px;
-
-  .options-item-tit {
-    display: flex;
-    align-items: center;
-  }
-
-  .option-label {
-    color: var(--wf-color-text-1);
-    font-size: 14px;
-    margin-right: 8px;
-  }
-
-  .desc {
-    color: var(--wf-color-text-2);
-  }
-
-
-  &.is-required .option-label::before {
-    content: '*';
-    color: #FB363F;
-    display: inline-block;
-    margin-right: 2px;
-  }
-
-  .option-type {
-    height: 22px;
-    line-height: 18px;
-    padding: 0 8px;
-    border-radius: 6px;
-    border: 1px solid rgba(0, 0, 0, 0.15);
-    background-color: #fff;
-    color: var(--wf-color-text-3);
-    font-size: 12px;
-  }
-
-  .item-actions-box {
-    display: flex;
-    align-items: center;
-
-    .action-btn {
-      margin-left: 12px;
-      font-size: 16px;
-      color: #595959;
-      cursor: pointer;
-    }
-  }
-}
+@import "common";
 </style>

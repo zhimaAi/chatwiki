@@ -67,7 +67,7 @@
       border-radius: 4px 16px 16px 16px;
     }
     .hover-copy-tool-block {
-      bottom: -35px;
+      bottom: -26px;
       left: 8px;
     }
     .reply-item {
@@ -545,6 +545,7 @@
 <template>
   <div class="message-item" :class="messageItemClasses" :id="'msg-' + msg.uid">
     <div class="message-item-left">
+      <!-- {{ props.msg }} -->
       <img class="avatar" :src="props.msg.avatar" />
     </div>
     <div class="message-item-body">
@@ -853,7 +854,10 @@
           </div>
         </template>
       </div>
-
+        <!-- 语音消息 -->
+      <div :style="{'margin-top': props.msg.content == '' ? '-24px' : ''}" v-if="props.msg.voice_content && props.msg.voice_content.length">
+        <VoiceMessage :voice_content="props.msg.voice_content" />
+      </div>
     </div>
     <quote-modal ref="quoteModalRef"></quote-modal>
   </div>
@@ -869,6 +873,7 @@ import { showToast } from 'vant'
 import useClipboard from 'vue-clipboard3'
 import QuoteModal from '../quote-modal/index.vue'
 import { translate } from '@/utils/translate.js'
+import VoiceMessage from './voice-message.vue'
 import MultipleMessage from './multiple-message.vue'
 
 

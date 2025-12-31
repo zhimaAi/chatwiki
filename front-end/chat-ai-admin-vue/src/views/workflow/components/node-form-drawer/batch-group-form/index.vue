@@ -7,6 +7,14 @@
         desc="通过设定批量运行次数和逻辑，运行批处理体内的任务"
         @close="handleClose"
       >
+        <template #runBtn>
+          <a-tooltip>
+            <template #title>运行测试</template>
+            <div class="action-btn" @click="handleOpenTestModal">
+              <CaretRightOutlined style="color: rgb(0, 173, 58)" />
+            </div>
+          </a-tooltip>
+        </template>
       </NodeFormHeader>
     </template>
     <div class="problem-optimization-form">
@@ -180,6 +188,7 @@
         </a-form>
       </div>
     </div>
+    <RunTest :batch_node_key="nodeId" ref="runTestRef" />
   </NodeFormLayout>
 </template>
 
@@ -187,12 +196,15 @@
 import { generateRandomId } from '@/utils/index'
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
-import { ref, reactive, watch, h, onMounted, inject, computed } from 'vue'
+import RunTest from '../../nodes/batch-group-node/components/run-test.vue'
+import { ref, reactive, watch, h, onMounted, inject } from 'vue'
 import {
   CloseCircleOutlined,
   PlusOutlined,
-  QuestionCircleOutlined
+  QuestionCircleOutlined,
+  CaretRightOutlined
 } from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({
@@ -213,6 +225,7 @@ const props = defineProps({
 const getNode = inject('getNode')
 const batchArraysOptions = ref([])
 const outputArrarysOptions = ref([])
+const runTestRef = ref(null)
 
 
 // 递归处理Options
@@ -375,6 +388,16 @@ const handleClose = () => {
   emit('close')
 }
 
+const handleOpenTestModal = () => {
+  let data = formState.batch_arrays[0]
+
+  if (data && data.key && data.typ && data.value) {
+    runTestRef.value?.open()
+  } else {
+    message.error('请填写执行数组')
+  }
+}
+
 const init = () => {
   try {
     let dataRaw = props.node.dataRaw || props.node.node_params || '{}'
@@ -497,6 +520,21 @@ onMounted(() => {
 .at-input-flex1 {
   flex: 1;
   overflow: hidden;
+}
+
+.action-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease-in;
+  margin-left: 8px;
+  &:hover {
+    background: #e4e6eb;
+  }
 }
 
 .output-box {

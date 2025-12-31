@@ -167,7 +167,7 @@ onMounted(() => {
 })
 
 watch(() => props.action, () => {
-  outputData.value = pluginOutputToTree(JSON.parse(JSON.stringify(props.action.output || '{}')))
+  outputData.value = pluginOutputToTree(JSON.parse(JSON.stringify(props.action?.output || '{}')))
 }, {
   deep: true,
   immediate: true

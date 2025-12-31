@@ -38,6 +38,7 @@
                 :options="trigger_options"
                 v-model:value="formState.msg_type"
                 style="width: 100%"
+                :showArrow="false"
                 disabled
               >
               </a-select>

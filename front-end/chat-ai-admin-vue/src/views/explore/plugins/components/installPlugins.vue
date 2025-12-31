@@ -91,6 +91,7 @@ const showConifgPlugins = [
   'official_batch_tag',
   'official_send_template_message',
   'official_send_message',
+  'official_intelligent_api'
 ]
 
 onMounted(() => {

@@ -67,6 +67,7 @@ func init() {
 	Route[http.MethodPost][`/manage/robotAutoAdd`] = manage.RobotAutoAdd
 	Route[http.MethodPost][`/manage/addFlowRobot`] = manage.AddFlowRobot
 	Route[http.MethodPost][`/manage/editExternalConfig`] = manage.EditExternalConfig
+	Route[http.MethodGet][`/manage/getDefaultRrfWeight`] = manage.GetDefaultRrfWeight
 	Route[http.MethodGet][`/manage/getRobotInfo`] = manage.GetRobotInfo
 	Route[http.MethodPost][`/manage/deleteRobot`] = manage.DeleteRobot
 	Route[http.MethodGet][`/manage/createPromptByAi`] = manage.CreatePromptByAi
@@ -254,6 +255,7 @@ func init() {
 	Route[http.MethodGet][`/manage/getModelConfigOption`] = manage.GetModelConfigOption
 	Route[http.MethodPost][`/manage/saveUseModelConfig`] = manage.SaveUseModelConfig
 	Route[http.MethodPost][`/manage/delUseModelConfig`] = manage.DelUseModelConfig
+	Route[http.MethodGet][`/manage/getMiniMaxVoiceList`] = manage.GetMiniMaxVoiceList
 	/*WeChat API*/
 	Route[http.MethodGet][`/manage/getWechatAppList`] = manage.GetWechatAppList
 	Route[http.MethodPost][`/manage/saveWechatApp`] = manage.SaveWechatApp

@@ -250,7 +250,6 @@ const add = (department_id) => {
 }
 
 const edit = (data) => {
-  console.log(data, '==')
   modalTitle.value = '编辑团队成员'
   formState.user_name = data.user_name
   formState.nick_name = data.nick_name

@@ -853,8 +853,8 @@ github.com/yusufpapurcu/wmi v1.2.4 h1:zFUKzehAFReQwLys1b/iSMl+JQGSCSjtVqQn9bBrPo
 github.com/yusufpapurcu/wmi v1.2.4/go.mod h1:SBZ9tNy3G9/m5Oi98Zks0QjeHVDvuK0qfxQmPyzfmi0=
 github.com/zhimaAi/go_tools v0.0.0-20250925081513-2ba58ff32b01 h1:r9J5w0mITG8VtnmAc5dMq16q8G3cgwbTCBiazHqcoaQ=
 github.com/zhimaAi/go_tools v0.0.0-20250925081513-2ba58ff32b01/go.mod h1:FA/9RzUvw7iCYU0/w3bZKVNYSnBl33q23Rrymht4BKU=
-github.com/zhimaAi/llm_adaptor v0.0.0-20251224094616-e0d6979243e5 h1:MumJaqNqu7vl3BNDqYdVjBDdT1NrAKaCQl3Acmucwds=
-github.com/zhimaAi/llm_adaptor v0.0.0-20251224094616-e0d6979243e5/go.mod h1:inW3/VktYH2ORF21glEc8lBv1kmKH8iJmW2sIN9S97w=
+github.com/zhimaAi/llm_adaptor v0.0.0-20251226020203-ca6b30149b90 h1:KZ/OgOlr9WStKcqgnlwW5W+vkI4ETZ59tWEyMCUjh6E=
+github.com/zhimaAi/llm_adaptor v0.0.0-20251226020203-ca6b30149b90/go.mod h1:inW3/VktYH2ORF21glEc8lBv1kmKH8iJmW2sIN9S97w=
 github.com/zhimaAi/pdf v0.0.0-20240423033113-08880067bc13 h1:kcKmKktJVQ3jORjMQ+c9k8YLEXquKV93IE1Py6IINb4=
 github.com/zhimaAi/pdf v0.0.0-20240423033113-08880067bc13/go.mod h1:zULDifjL+NqvjoryV4hzQpU5kPF0B1e1/qIBoIJtGWg=
 gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 h1:K+bMSIx9A7mLES1rtG+qKduLIXq40DAzYHtb0XuCukA=

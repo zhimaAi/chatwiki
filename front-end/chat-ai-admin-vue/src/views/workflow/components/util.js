@@ -85,7 +85,7 @@ export function getSizeOptions() {
       value: '2304x1728'
     },
     {
-      label: '3:4(2304x1728)',
+      label: '3:4(1728x2304)',
       value: '1728x2304'
     },
     {

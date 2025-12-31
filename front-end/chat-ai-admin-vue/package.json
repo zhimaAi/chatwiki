@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
+    "@bany/curl-to-json": "^1.2.8",
     "@better-scroll/core": "^2.5.1",
     "@better-scroll/mouse-wheel": "^2.5.1",
     "@better-scroll/nested-scroll": "^2.5.1",

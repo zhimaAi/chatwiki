@@ -118,3 +118,35 @@ export function escapeHTML(unsafeText: string) {
     }
   })
 }
+
+interface VoiceInfo {
+  extra: string;
+  voice: string;
+}
+
+export function extractVoiceInfo(text: any) {
+  const voiceRE = /!voice\[([a-zA-Z0-9:,]*)\]\((\S+?)(?:\s+".*?")?\)/g
+  const voiceInfos: VoiceInfo[] = [] // 明确指定数组类型
+  let match
+
+  while ((match = voiceRE.exec(text)) !== null) {
+    voiceInfos.push({
+      extra: match[1] || '',
+      voice: match[2]
+    })
+  }
+  return voiceInfos
+}
+
+// 检测并移除语音格式消息
+export const removeVoiceFormat = (content) => {
+  if (!content || typeof content !== 'string') {
+    return content;
+  }
+  
+  // 匹配 !voice[](https://xiaokefu.com.cn/statis/voi.mp3) 格式的正则表达式
+  const voiceRegex = /!voice\[\]\([^)]+\)/g;
+  
+  // 将匹配到的语音格式内容替换为空字符串
+  return content.replace(voiceRegex, '');
+};

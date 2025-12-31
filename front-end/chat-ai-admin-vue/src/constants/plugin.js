@@ -144,8 +144,8 @@ export function pluginOutputToTree(obj) {
 
 // 插件配置
 const _pluginConfigMap = {}
-export const getPluginConfigData = async (name) => {
-  if (!_pluginConfigMap[name]) {
+export const getPluginConfigData = async (name, refresh=false) => {
+  if (!_pluginConfigMap[name] || refresh) {
     await getPluginConfig({name: name}).then(res => {
       _pluginConfigMap[name] = jsonDecode(res?.data, {})
     })

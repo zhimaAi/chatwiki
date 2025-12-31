@@ -102,7 +102,8 @@ export default {
         this.resetSize()
       })
     },
-    onUpatateNodeName(data) {
+    onUpatateNodeName (data) {
+      if (!this.formState.content) return
       if (!haveOutKeyNode.includes(data.node_type)) {
         return
       }

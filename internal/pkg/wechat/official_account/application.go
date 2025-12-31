@@ -334,3 +334,42 @@ func (a *Application) GetPublishedArticle(articleId string) (*publishresponse.Re
 func (a *Application) GetAccountClient() (*officialAccount.OfficialAccount, error) {
 	return a.GetApp()
 }
+
+func (a *Application) SendVoice(customer, filePath string, push *lib_define.PushMessage) (int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return 0, err
+	}
+	mediaId, errCode, err := a.UploadTempVoice(filePath)
+	if err != nil {
+		return errCode, err
+	}
+	jsonStr, err := messages.NewVoice(mediaId, nil).
+		TransformForJsonRequest(&object.HashMap{`touser`: customer}, true)
+	if err != nil {
+		return 0, err
+	}
+	resp, err := app.CustomerService.Send(context.Background(), jsonStr)
+	if err != nil {
+		return 0, err
+	}
+	if resp.ErrCode != 0 {
+		return resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return 0, nil
+}
+
+func (a *Application) UploadTempVoice(filePath string) (string, int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return ``, 0, err
+	}
+	resp, err := app.Media.UploadVoice(context.Background(), filePath)
+	if err != nil {
+		return ``, 0, err
+	}
+	if resp.ErrCode != 0 {
+		return ``, resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return resp.MediaID, 0, nil
+}

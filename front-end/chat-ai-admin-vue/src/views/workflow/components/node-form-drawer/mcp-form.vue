@@ -1,95 +1,10 @@
 <style lang="less" scoped>
+@import "./components/node-options";
 .node-icon{
   display: block;
   width: 20px;
   height: 20px;
   border-radius: 6px;
-}
-.node-options {
-  background: #f2f4f7;
-  border-radius: 6px;
-  padding: 12px;
-  margin-top: 16px;
-
-  &:first-child {
-    margin-top: 0;
-  }
-
-  .options-title {
-    color: var(--wf-color-text-1);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-weight: 600;
-    height: 22px;;
-    line-height: 22px;
-    font-size: 14px;
-
-    .title-icon {
-      width: 16px;
-      height: 16px;
-      vertical-align: -3px;
-      margin-right: 8px;;
-    }
-
-    .acton-box {
-      font-weight: 400;
-    }
-  }
-
-  .options-item {
-    display: flex;
-    flex-direction: column;
-    margin-top: 12px;
-    line-height: 22px;
-    gap: 4px;
-
-    .options-item-tit {
-      display: flex;
-      align-items: center;
-    }
-
-    .option-label {
-      color: var(--wf-color-text-1);
-      font-size: 14px;
-      margin-right: 8px;
-    }
-
-    .desc {
-      color: var(--wf-color-text-2);
-    }
-
-
-    &.is-required .option-label::before {
-      content: '*';
-      color: #FB363F;
-      display: inline-block;
-      margin-right: 2px;
-    }
-
-    .option-type {
-      height: 22px;
-      line-height: 18px;
-      padding: 0 8px;
-      border-radius: 6px;
-      border: 1px solid rgba(0, 0, 0, 0.15);
-      background-color: #fff;
-      color: var(--wf-color-text-3);
-      font-size: 12px;
-    }
-
-    .item-actions-box {
-      display: flex;
-      align-items: center;
-
-      .action-btn {
-        margin-left: 12px;
-        font-size: 16px;
-        color: #595959;
-        cursor: pointer;
-      }
-    }
-  }
 }
 </style>
 

@@ -147,6 +147,10 @@
           </div>
         </div>
 
+      <div class="form-item" v-if="formState.search_type == 1">
+        <WeightSelect v-model:rrf_weight="formState.rrf_weight" />
+      </div>
+
         <div class="form-item">
           <div class="form-item-label">
             <span>Top K&nbsp;</span>
@@ -164,11 +168,11 @@
                   class="custom-slider"
                   v-model:value="formState.top_k"
                   :min="1"
-                  :max="10"
+                  :max="500"
                 />
               </div>
               <div class="number-input-box">
-                <a-input-number v-model:value="formState.top_k" :min="1" :max="10" />
+                <a-input-number v-model:value="formState.top_k" :min="1" :max="500" />
               </div>
             </div>
           </div>
@@ -233,6 +237,7 @@
 <script setup>
 import { reactive, ref, toRaw } from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
+import WeightSelect from '@/components/weight-select/index.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { message } from 'ant-design-vue'
 
@@ -270,12 +275,14 @@ const formState = reactive({
   rerank_status: 0,
   rerank_use_model: undefined,
   rerank_model_config_id: undefined,
-  search_type: 1
+  search_type: 1,
+  rrf_weight: {}
 })
 
 const show = ref(false)
 
 const open = (data) => {
+  console.log(data, '==')
 
   formState.rerank_status = data.rerank_status || 0
   formState.rerank_use_model = data.rerank_use_model || undefined
@@ -283,6 +290,7 @@ const open = (data) => {
   formState.top_k = data.top_k
   formState.similarity = data.similarity
   formState.search_type = data.search_type
+  formState.rrf_weight = data.rrf_weight
   show.value = true
 }
 

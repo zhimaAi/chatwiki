@@ -111,7 +111,6 @@ const formItems = ref([])
 const modelNames = ['ollama', 'xinference', 'openaiAgent']
 
 const open = (data, record) => {
-  console.log(data, '==')
   formRules.value = {}
   formState.value = {}
   formItems.value = []

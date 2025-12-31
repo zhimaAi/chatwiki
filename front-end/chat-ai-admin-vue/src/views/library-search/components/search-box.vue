@@ -2,7 +2,7 @@
   <div class="search-box-warpper">
     <div class="search-box-content">
       <div class="search-set-box">
-        <SearchDrawer :librarySearchData="librarySearchDataRef" />
+        <SearchDrawer />
       </div>
       <div class="search-content" v-if="!isSearch">
         <div class="search-label">知识搜索</div>
@@ -218,6 +218,7 @@ const handleRecallTest = (searchObj) => {
     question: message.value,
     id: props.library_ids.join(','),
     recall_type: 1,
+    rrf_weight: searchObj.rrf_weight,
   }
   if (searchObj.rerank_status) {
     parmas.rerank_status = searchObj.rerank_status
@@ -246,84 +247,9 @@ const handleRecallTest = (searchObj) => {
     })
 }
 
-const modelList = ref([])
-
-function uniqueArr(arr, arr1, key) {
-  const keyVals = new Set(arr.map((item) => item.model_define))
-  arr1.filter((obj) => {
-    let val = obj[key]
-    if (keyVals.has(val)) {
-      arr.filter((obj1) => {
-        if (obj1.model_define == val) {
-          obj1.children = removeRepeat(obj1.children, obj.children)
-          return false
-        }
-      })
-    }
-  })
-  return arr
-}
-
-const getModelList = async() => {
-  await getModelConfigOption({
-    model_type: 'LLM'
-  }).then((res) => {
-    let list = res.data || []
-    let children = []
-
-    modelList.value = list.map((item) => {
-      children = []
-      for (let i = 0; i < item.model_info.llm_model_list.length; i++) {
-        const ele = item.model_info.llm_model_list[i]
-        children.push({
-          name: ele,
-          deployment_name: item.model_config.deployment_name,
-          model_config_id: item.model_config.id,
-          model_define: item.model_info.model_define
-        })
-      }
-      return {
-        model_config_id: item.model_config.id,
-        name: item.model_info.model_name,
-        model_define: item.model_info.model_define,
-        icon: item.model_info.model_icon_url,
-        children: children,
-        deployment_name: item.model_config.deployment_name
-      }
-    })
-
-    // 如果modelList存在两个相同model_define情况就合并到一个对象的children中去
-    modelList.value = uniqueArr(
-      duplicateRemoval(modelList.value, 'model_define'),
-      modelList.value,
-      'model_define'
-    )
-  })
-}
 
 onMounted(async () => {
-  await getModelList()
-  setTimeout(() => {
-    librarySearchDataRef.value = props.librarySearchData
-    console.log(props.librarySearchData, 'props.librarySearchData')
-    if (!librarySearchDataRef.value?.model_config_id || !librarySearchDataRef.value?.use_model) {
-      if (modelList.value.length > 0) {
-        let modelConfig = modelList.value[0]
-        if (modelConfig) {
-          let model = modelConfig.children[0]
-          formState.use_model = model.name
-          formState.model_config_id = model.model_config_id
-        }
-      }
-    } else {
-      formState.use_model = librarySearchDataRef.value?.use_model + '$$'
-      formState.model_config_id = librarySearchDataRef.value?.model_config_id + '$$'
-      formState.use_model = formState.use_model.split('$$')[0]
-      formState.model_config_id = librarySearchDataRef.value?.model_config_id.split('$$')[0]
-    }
 
-  }, 500)
-  
 
 })
 

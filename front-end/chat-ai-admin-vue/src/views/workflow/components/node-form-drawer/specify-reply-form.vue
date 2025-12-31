@@ -176,7 +176,8 @@ export default {
     graphModel.eventCenter.off('custom:setNodeName', this.onUpatateNodeName)
   },
   methods: {
-    onUpatateNodeName(data) {
+    onUpatateNodeName (data) {
+      if (!this.$refs[`atInputRef`]) return
       if(!haveOutKeyNode.includes(data.node_type)){
         return
       }

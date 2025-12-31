@@ -32,6 +32,7 @@ type ApplicationInterface interface {
 	SendImageTextLink(customer, url, title, description, localThumbURL, picurl string, push *lib_define.PushMessage) (int, error) // 发送图文链接
 	SendSmartMenu(customer string, smartMenu lib_define.SmartMenu, push *lib_define.PushMessage) (int, error)                     // 发送智能菜单
 	GetAccountBasicInfo() (*openresponse.ResponseGetBasicInfo, int, error)
+	SendVoice(customer, filePath string, push *lib_define.PushMessage) (int, error)
 }
 
 // OfficialAccountInterface 专门用于公众号的方法

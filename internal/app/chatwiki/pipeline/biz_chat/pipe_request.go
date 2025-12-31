@@ -11,9 +11,11 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/gin-contrib/sse"
 	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
@@ -25,6 +27,25 @@ func CheckChanStream(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 		out.Error = errors.New(`channel stream is nil`)
 		return pipeline.PipeStop
 	}
+	return pipeline.PipeContinue
+}
+
+// SseKeepAlive 流式输出保活
+func SseKeepAlive(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	go func() {
+		defer func() { //防止:send on closed channel
+			if r := recover(); r != nil {
+				logs.Error(`Recovered in SseKeepAlive:%v`, r)
+			}
+		}()
+		for {
+			time.Sleep(3 * time.Second)
+			if in.chanStreamClosed {
+				return //已关闭,不推送了
+			}
+			in.Stream(sse.Event{Event: `keep-alive`, Data: tool.Date()})
+		}
+	}()
 	return pipeline.PipeContinue
 }
 

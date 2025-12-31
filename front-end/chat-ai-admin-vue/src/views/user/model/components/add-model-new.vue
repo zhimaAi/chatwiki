@@ -19,6 +19,7 @@
               >嵌入模型</a-radio
             >
             <a-radio v-if="supported_type.includes('RERANK')" value="RERANK">重排序模型</a-radio>
+            <a-radio v-if="supported_type.includes('TTS')" value="TTS">语音模型</a-radio>
             <a-radio v-if="supported_type.includes('IMAGE')" value="IMAGE">图片生成模型</a-radio>
           </a-radio-group>
         </a-form-item>
@@ -139,6 +140,9 @@
             <a-checkbox v-model:checked="formState.input_video">视频</a-checkbox>
             <a-checkbox v-model:checked="formState.input_document">文档</a-checkbox>
           </a-flex>
+          <a-flex :gap="8" v-else-if="formState.model_type == 'TTS'">
+            <a-checkbox v-model:checked="formState.input_text">文本</a-checkbox>
+          </a-flex>
           <a-flex :gap="8" align="center" v-else>
             <a-checkbox v-model:checked="formState.input_text">文本</a-checkbox>
             <a-checkbox v-model:checked="formState.input_image">图片</a-checkbox>
@@ -161,6 +165,11 @@
             <a-checkbox v-model:checked="formState.output_voice">语音</a-checkbox>
             <a-checkbox v-model:checked="formState.output_image">图片</a-checkbox>
             <a-checkbox v-model:checked="formState.output_video">视频</a-checkbox>
+          </a-flex>
+        </a-form-item>
+        <a-form-item label="支持输出类型" required v-else-if="formState.model_type == 'TTS'">
+          <a-flex :gap="8">
+            <a-checkbox v-model:checked="formState.output_voice">语音</a-checkbox>
           </a-flex>
         </a-form-item>
       </a-form>
@@ -306,6 +315,9 @@ const handleTypeChange = () => {
   formState.output_voice = false
   formState.output_image = false
   formState.output_video = false
+  if (formState.model_type == 'TTS') {
+    formState.output_voice = true
+  }
 }
 
 function resetData() {

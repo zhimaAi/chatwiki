@@ -83,6 +83,7 @@
               <!-- 文本消息 -->
               <div v-if="message.msg_type == 1" class="text-content">
                 <cherry-markdown
+                  style="text-align: left;"
                   :content="message.content"
                   v-if="message.is_customer == 0"
                 ></cherry-markdown>
@@ -132,6 +133,9 @@
                 </div>
               </div>
             </div>
+            <div v-if="message.voice_content && message.voice_content.length">
+              <VoiceMessage :voice_content="message.voice_content" />
+            </div>
           </div>
         </div>
       </div>
@@ -146,7 +150,7 @@ import { useChatMonitorStore } from '@/stores/modules/chat-monitor.js'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import ChatMessageScroll from './chat-message-scroll.vue'
 import MultipleMessage from '@/views/robot/robot-test/components/messages/multiple-message.vue'
-
+import VoiceMessage from '@/views/robot/robot-test/components/voice-message.vue'
 const emit = defineEmits([
   'openLibrary'
 ])
@@ -280,6 +284,9 @@ defineExpose({
     }
     .message-info {
       flex-direction: row-reverse;
+    }
+    .message-content{
+      text-align: right;
     }
   }
 }

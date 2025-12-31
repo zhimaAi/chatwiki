@@ -275,3 +275,45 @@ func (a *Application) GetFileByMedia(mediaId string, push *lib_define.PushMessag
 func (a *Application) GetAccountBasicInfo() (*openresponse.ResponseGetBasicInfo, int, error) {
 	return nil, 0, errors.New(`not supported`)
 }
+
+func (a *Application) UploadTempVoice(filePath string) (string, int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return ``, 0, err
+	}
+	resp, err := app.Media.UploadTempVoice(context.Background(), filePath, nil)
+	if err != nil {
+		return ``, 0, err
+	}
+	if resp.ErrCode != 0 {
+		return ``, resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return resp.MediaID, 0, nil
+}
+
+func (a *Application) SendVoice(customer, filePath string, push *lib_define.PushMessage) (int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return 0, err
+	}
+	externalUserid, openKfid := common.GetExternalUserInfo(customer)
+	if len(externalUserid) == 0 || len(openKfid) == 0 {
+		return 0, errors.New(`customer not exist`)
+	}
+	mediaId, errCode, err := a.UploadTempVoice(filePath)
+	if err != nil {
+		return errCode, err
+	}
+	options := &request.RequestAccountServiceSendMsg{
+		ToUser: externalUserid, OpenKfid: openKfid, MsgType: `voice`,
+		Voice: &request.RequestAccountServiceMsgVoice{MediaID: mediaId},
+	}
+	resp, err := app.AccountServiceMessage.SendMsg(context.Background(), options)
+	if err != nil {
+		return 0, err
+	}
+	if resp.ErrCode != 0 {
+		return resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return 0, nil
+}

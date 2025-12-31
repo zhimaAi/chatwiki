@@ -36,6 +36,7 @@ func SaveLibrarySearch(c *gin.Context) {
 	topK := cast.ToInt(c.DefaultPostForm(`size`, `200`))
 	similarity := cast.ToFloat32(c.DefaultPostForm(`similarity`, `0.6`))
 	searchType := cast.ToInt(c.DefaultPostForm(`search_type`, `1`))
+	rrfWeight := strings.TrimSpace(c.PostForm(`rrf_weight`))
 	rerankStatus := cast.ToInt(c.PostForm(`rerank_status`))
 	rerankModelConfigID := cast.ToInt(c.PostForm(`rerank_model_config_id`))
 	rerankUseModel := strings.TrimSpace(c.PostForm(`rerank_use_model`))
@@ -44,6 +45,14 @@ func SaveLibrarySearch(c *gin.Context) {
 	summarySwitch := cast.ToInt(c.PostForm(`summary_switch`))
 	if len(prompt) == 0 && cast.ToInt(promptType) != 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `prompt`))))
+		return
+	}
+	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText, define.SearchTypeGraph}) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
+		return
+	}
+	if err := common.CheckRrfWeight(rrfWeight, common.GetLang(c)); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	m := msql.Model(`user_search_config`, define.Postgres)
@@ -60,7 +69,8 @@ func SaveLibrarySearch(c *gin.Context) {
 		"context_pair":           contextPair,
 		"size":                   topK,
 		"similarity":             similarity,
-		"search_type":            searchType,
+		`search_type`:            searchType,
+		`rrf_weight`:             rrfWeight,
 		"rerank_status":          rerankStatus,
 		"rerank_model_config_id": rerankModelConfigID,
 		"rerank_use_model":       rerankUseModel,
@@ -101,6 +111,9 @@ func GetLibrarySearch(c *gin.Context) {
 		common.FmtError(c, err.Error())
 		return
 	}
+	if len(data) > 0 && len(data[`rrf_weight`]) == 0 { //填充默认值
+		data[`rrf_weight`] = tool.JsonEncodeNoError(common.GetDefaultRrfWeight(userId))
+	}
 	common.FmtOk(c, data)
 }
 
@@ -138,9 +151,7 @@ func LibraryAiSummary(c *gin.Context) {
 	if len(prompt) == 0 {
 		prompt = define.PromptLibAiSummary
 	}
-	if size > 10 {
-		size = 10
-	}
+	size = min(500, size) //召回条数提高的500条
 	if searchType != define.SearchTypeMixed && searchType != define.SearchTypeVector && searchType != define.SearchTypeFullText && searchType != define.SearchTypeGraph {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
 		return
@@ -153,7 +164,8 @@ func LibraryAiSummary(c *gin.Context) {
 	}
 
 	robot := msql.Params{
-		`recall_type`: recallType,
+		`recall_type`:   recallType,
+		`admin_user_id`: cast.ToString(userId),
 	}
 	for _, libraryId := range strings.Split(libraryIds, `,`) {
 		info, err := common.GetLibraryInfo(cast.ToInt(libraryId), userId)

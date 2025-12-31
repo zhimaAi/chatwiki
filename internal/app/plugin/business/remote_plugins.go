@@ -191,21 +191,21 @@ func DownloadRemotePlugin(c *gin.Context) {
 			`admin_user_id`: adminUserId,
 			`name`:          manifest.Name,
 			`type`:          manifest.Type,
-			`has_loaded`:    false,
+			`has_loaded`:    true, //修改为下载后自动启用
 		})
 	}
 
 	// 重新加载
 	if len(info) > 0 && cast.ToBool(info[`has_loaded`]) {
 		define.PhpPlugin.UnloadPhpPlugin(info[`name`])
-		initPhpConfig := []string{"CRAWLER_HOST=" + define.Config.WebService[`crawler`]}
-		err = define.PhpPlugin.LoadPhpPlugin(info[`name`], define.Version, initPhpConfig)
-		if err != nil {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
-			return
-		}
 	}
-
+	//默认启用 并加载
+	initPhpConfig := []string{"CRAWLER_HOST=" + define.Config.WebService[`crawler`]}
+	err = define.PhpPlugin.LoadPhpPlugin(manifest.Name, define.Version, initPhpConfig)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 

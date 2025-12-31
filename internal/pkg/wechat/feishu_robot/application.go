@@ -501,3 +501,7 @@ func (a *Application) GetFileByMedia(mediaId string, push *lib_define.PushMessag
 	bytes := resp.RawBody
 	return bytes, resp.Header, 0, nil
 }
+
+func (a *Application) SendVoice(customer, filePath string, push *lib_define.PushMessage) (int, error) {
+	return 0, errors.New(`miniprogram not supported voice `)
+}

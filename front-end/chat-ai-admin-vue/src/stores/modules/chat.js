@@ -10,7 +10,7 @@ import {
   getSessionChannelList
 } from '@/api/chat'
 import { editPrompt } from '@/api/robot/index'
-import { getUuid, getOpenid, devLog } from '@/utils/index'
+import { getUuid, getOpenid, devLog, extractVoiceInfo, removeVoiceFormat } from '@/utils/index'
 import { useEventBus } from '@/hooks/event/useEventBus'
 import { useIM } from '@/hooks/event/useIM'
 import { DEFAULT_USER_AVATAR } from '@/constants/index'
@@ -254,6 +254,8 @@ export const useChatStore = defineStore('chat', () => {
       let oldText = messageList.value[msgIndex].content || ''
       // console.log('sending', content.length, content)
       messageList.value[msgIndex].content = oldText + content
+      messageList.value[msgIndex].voice_content = extractVoiceInfo(messageList.value[msgIndex].content)
+      messageList.value[msgIndex].content = removeVoiceFormat(messageList.value[msgIndex].content)
     }
 
     if(type == 'start_quote_file'){
@@ -278,6 +280,9 @@ export const useChatStore = defineStore('chat', () => {
       messageList.value[msgIndex].id = content.id
 
       messageList.value[msgIndex].content = content.content
+      // 提取语音消息
+      messageList.value[msgIndex].voice_content = extractVoiceInfo(messageList.value[msgIndex].content)
+      messageList.value[msgIndex].content = removeVoiceFormat(messageList.value[msgIndex].content)
       if (content.reply_content_list !== undefined && typeof content.reply_content_list === 'string') {
         messageList.value[msgIndex].reply_content_list = JSON.parse(content.reply_content_list)
       }
@@ -358,6 +363,7 @@ export const useChatStore = defineStore('chat', () => {
       reasoning_status: false,
       quote_loading: false,
       show_quote_file: true,
+      voice_content: [],
     }
     let params = {
       robot_key: robot.robot_key,
@@ -618,6 +624,10 @@ export const useChatStore = defineStore('chat', () => {
         if (item.reply_content_list && typeof item.reply_content_list === 'string') {
           try { item.reply_content_list = JSON.parse(item.reply_content_list) } catch (_) { item.reply_content_list = [] }
         }
+
+        item.voice_content = extractVoiceInfo(item.content)
+        item.content = removeVoiceFormat(item.content)
+
       })
 
       messageList.value = [...list, ...messageList.value]

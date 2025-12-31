@@ -1166,7 +1166,7 @@ const deleteSelectedElements = () => {
   }
 }
 
-const noShowDrawerNode = ['explain-node', 'end-node', 'group-start-node', 'terminate-node']
+const noShowDrawerNode = ['group-start-node', 'terminate-node']
 // 选择节点
 const handleSelectedNode = (data) => {
   const node = JSON.parse(JSON.stringify(data))

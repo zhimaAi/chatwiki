@@ -227,6 +227,20 @@ services:
     environment:
       TZ: ${TIMEZONE}
 
+  chatwiki_file_transfer:
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/file_transfer:20251223
+    container_name: chatwiki_file_transfer
+    networks:
+      - chatwiki_network
+    working_dir: /app
+    command: ./file_transfer
+    tty: true
+    restart: unless-stopped
+    environment:
+      TZ: ${TIMEZONE}
+    ports:
+      - ${FILE_TRANSFER_SERVICE_PORT}:8080
+
 networks:
   chatwiki_network:
     driver: bridge

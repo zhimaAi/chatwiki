@@ -165,6 +165,14 @@ func LoadUseModelConfig(params msql.Params, modelSupplier string) UseModelConfig
 			InputImage: cast.ToUint(cast.ToBool(params[`input_image`])),
 		}
 	}
+	if useModel.ModelType == Tts {
+		useModel.ModelInputSupport = ModelInputSupport{
+			InputText: cast.ToUint(cast.ToBool(params[`input_text`])),
+		}
+		useModel.ModelOutputSupport = ModelOutputSupport{
+			OutputVoice: cast.ToUint(cast.ToBool(params[`output_voice`])),
+		}
+	}
 	return useModel
 }
 

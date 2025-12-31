@@ -512,3 +512,27 @@ func CheckArrayInArray[T comparable](sArr []T, tArr []T) int {
 	}
 	return -1
 }
+
+func GetVoiceInMessage(message string, getLocalPath bool) (string, []string) {
+	voiceRE := regexp.MustCompile(`!voice\[([a-zA-Z0-9:,]*)\]\((\S+?)(?:\s+".*?")?\)`)
+	voices := voiceRE.FindAllStringSubmatch(message, -1)
+	out := make([]string, len(voices))
+	for i := range out {
+		out[i] = voices[i][2]
+		if getLocalPath {
+			out[i] = GetFileByLink(out[i])
+		} else {
+			if !IsUrl(out[i]) {
+				out[i] = define.Config.WebService["api_domain"] + out[i]
+			}
+		}
+	}
+	message = voiceRE.ReplaceAllString(message, "")
+	return message, out
+}
+
+func GetMessageInMessage(message string, getLocalPath bool) (msg string, imgs []string, voices []string) {
+	msg, voices = GetVoiceInMessage(message, getLocalPath)
+	msg, imgs = GetImgInMessage(msg, getLocalPath)
+	return
+}

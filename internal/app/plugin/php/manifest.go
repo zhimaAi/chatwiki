@@ -21,6 +21,7 @@ type PluginManifest struct {
 	Version    string   `json:"version"`
 	Type       string   `json:"type"`
 	Compatible string   `json:"compatible"`
+	MultiNode  bool     `json:"multiNode"` // 是否支持多节点运行，默认为单节点运行，即不支持多节点运行，如果为 true 则支持多节点运行，即支持多节点运行，此时需要配置
 	Resource   Resource `json:"resource"`
 	HasLoaded  bool     `json:"has_loaded"` // 是否已加载
 }

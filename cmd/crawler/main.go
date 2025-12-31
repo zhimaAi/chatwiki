@@ -192,7 +192,21 @@ func openBrowser() error {
 		}
 
 		headless := true
-		browser, err = pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{Headless: &headless})
+		//proxyServer := ""
+		browser, err = pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
+			Headless: &headless,
+			Args: []string{
+				"--disable-blink-features=AutomationControlled", // 去自动化检测
+				"--lang=zh-CN",
+				"--disable-features=InterestCohort",
+			},
+			IgnoreDefaultArgs: []string{
+				"--enable-automation",
+			},
+			//Proxy: &playwright.Proxy{
+			//	Server: proxyServer,
+			//},
+		})
 		if err != nil {
 			return fmt.Errorf("could not launch browser: %v", err)
 		}
@@ -214,8 +228,14 @@ func openNoCheckBrowser() error {
 		}
 
 		headless := true
+		// HTTP 代理配置
+		//proxyServer := ""
+
 		browser, err = pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
 			Headless: &headless, // 无头模式
+			//Proxy: &playwright.Proxy{
+			//	Server: proxyServer,
+			//},
 			Args: []string{
 				"--disable-blink-features=AutomationControlled", // 去自动化检测
 				"--no-sandbox",

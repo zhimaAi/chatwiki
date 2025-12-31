@@ -575,3 +575,11 @@ export const statLibraryRobotDetail = (data) => {
     data: data
   })
 }
+
+
+export const getDefaultRrfWeight = (params) => {
+  return request.get({
+    url: '/manage/getDefaultRrfWeight',
+    params: params
+  })
+}

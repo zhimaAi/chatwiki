@@ -428,8 +428,8 @@ func LibDocSearch(lang string, libraryId int, search string, library msql.Params
 
 	//RRF sort
 	list = (&RRF{}).
-		Add(DataSource{List: vectorList, Key: `id`, Fixed: 59}).
-		Add(DataSource{List: searchList, Key: `id`, Fixed: 60}).Sort()
+		Add(DataSource{List: vectorList, Key: `id`, Fixed: 50, Weight: 70}).
+		Add(DataSource{List: searchList, Key: `id`, Fixed: 50, Weight: 30}).Sort()
 
 	// quoteFile
 	summary = append(summary, adaptor.ZhimaChatCompletionMessage{

@@ -150,7 +150,7 @@ const baseNavs = [
     title: '探索',
     icon: 'nav-explore',
     path: '/explore/index',
-    permission: ['ExploreManage']
+    permission: ['AbilityCenter']
   },
   {
     id: 1,

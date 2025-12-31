@@ -38,7 +38,7 @@
                     <a-cascader
                       v-model:value="item.variable"
                       @dropdownVisibleChange="onDropdownVisibleChange"
-                      style="width: 400px"
+                      style="width: 400px; max-width: calc(100% - 190px);"
                       :options="variableOptions"
                       :allowClear="false"
                       :displayRender="({ labels }) => labels.join('/')"
@@ -182,6 +182,7 @@ import {
   FullscreenOutlined,
   CaretRightOutlined
 } from '@ant-design/icons-vue'
+import { Modal } from 'ant-design-vue'
 
 import SubKey from './subs-key.vue'
 import CodeEditBox from './code-edit-box.vue'
@@ -266,7 +267,15 @@ const formState = reactive({
 })
 
 const resetTemp = () => {
-  formState.main_func = defaultCode
+  Modal.confirm({
+    title: '确认还原为模板？',
+    content: '还原后即被覆盖，不能撤销',
+    okText: '确认',
+    cancelText: '取消',
+    onOk: () => {
+      formState.main_func = defaultCode
+    }
+  })
 }
 
 let specialNodeList = [

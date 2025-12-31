@@ -49,6 +49,11 @@ export interface FetchEventSourceInit extends RequestInit {
      */
     openWhenHidden?: boolean;
 
+    /**
+     * If true, will retry the request on error. Defaults to false.
+     */
+    retryOnError?: boolean;
+
     /** The Fetch function to use. Defaults to window.fetch */
     fetch?: typeof fetch;
 }
@@ -61,6 +66,7 @@ export function fetchEventSource(input: RequestInfo, {
     onclose,
     onerror,
     openWhenHidden,
+    retryOnError = false,
     fetch: inputFetch,
     ...rest
 }: FetchEventSourceInit) {
@@ -126,7 +132,7 @@ export function fetchEventSource(input: RequestInfo, {
                 dispose();
                 resolve();
             } catch (err) {
-                if (!curRequestController.signal.aborted) {
+                if (!curRequestController.signal.aborted && retryOnError) {
                     // if we haven't aborted the request ourselves:
                     try {
                         // check if we need to retry:

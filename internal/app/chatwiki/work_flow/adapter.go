@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -55,6 +56,8 @@ const (
 	NodeTypeBatch            = 30 //批处理
 	NodeTypeBatchStart       = 31 //批处理开始
 	NodeTypeImageGeneration  = 33 //图片生成
+	NodeTypeTextToAudio      = 38 //语音合成
+	NodeTypeVoiceClone       = 39 //声音复刻
 )
 
 var NodeTypes = [...]int{
@@ -85,6 +88,8 @@ var NodeTypes = [...]int{
 	NodeTypeBatch,
 	NodeTypeBatchStart,
 	NodeTypeImageGeneration,
+	NodeTypeTextToAudio,
+	NodeTypeVoiceClone,
 }
 
 type NodeAdapter interface {
@@ -122,7 +127,7 @@ func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, ms
 	case NodeTypeLlm:
 		return &LlmNode{params: nodeParams.Llm, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeFinish:
-		return &FinishNode{}, info, nil
+		return &FinishNode{params: nodeParams.Finish}, info, nil
 	case NodeTypeAssign:
 		return &AssignNode{params: nodeParams.Assign, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeReply:
@@ -159,6 +164,10 @@ func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, ms
 		return &PluginNode{params: nodeParams.Plugin, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeImageGeneration:
 		return &ImageGeneration{params: nodeParams.ImageGeneration, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeTextToAudio:
+		return &TextToAudioNode{params: nodeParams.TextToAudio, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeVoiceClone:
+		return &VoiceCloneNode{params: nodeParams.VoiceClone, nextNodeKey: info[`next_node_key`]}, info, nil
 	default:
 		return nil, info, errors.New(`不支持的节点类型:` + info[`node_type`])
 	}
@@ -371,6 +380,7 @@ func (n *LibsNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	robot := flow.params.Robot
 	robot[`library_ids`] = n.params.LibraryIds
 	robot[`search_type`] = cast.ToString(n.params.SearchType)
+	robot[`rrf_weight`] = n.params.RrfWeight
 	robot[`top_k`] = cast.ToString(n.params.TopK)
 	robot[`similarity`] = cast.ToString(n.params.Similarity)
 	robot[`rerank_status`] = cast.ToString(n.params.RerankStatus)
@@ -490,12 +500,30 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 	return
 }
 
-type FinishNode struct{}
+type FinishNode struct {
+	params FinishNodeParams
+}
 
 func (n *FinishNode) Running(flow *WorkFlow) (output common.SimpleFields, _ string, _ error) {
 	flow.Logs(`执行结束节点逻辑...`)
 	flow.isFinish = true
-	output = flow.output
+	if n.params.OutType == define.FinishNodeOutTypeMessage && len(n.params.Messages) > 0 {
+		if len(n.params.Messages) == 1 && n.params.Messages[0].Type == `text` && n.params.Messages[0].Content == `` {
+			output = flow.output
+			return
+		}
+		output = common.SimpleFields{}
+		for idx, message := range n.params.Messages {
+			content := flow.VariableReplace(message.Content)
+			if content == `` {
+				continue
+			}
+			key := fmt.Sprintf(define.FinishReplyPrefixKey+`%s_%d`, message.Type, idx+1)
+			output[key] = common.SimpleField{Key: key, Typ: common.TypString, Vals: []common.Val{{String: &content}}}
+		}
+	} else {
+		output = flow.output
+	}
 	return
 }
 
@@ -1221,6 +1249,229 @@ func (n *ImageGeneration) Running(flow *WorkFlow) (output common.SimpleFields, n
 			}
 		}
 	}
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+// TextToAudioNode 语音合成
+type TextToAudioNode struct {
+	params      TextToAudioNodeParams
+	nextNodeKey string
+}
+
+func (n *TextToAudioNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, _ error) {
+	flow.Logs(`执行语音合成逻辑...`)
+
+	// 替换变量
+	text := flow.VariableReplace(n.params.Arguments.Text)
+	voiceId := flow.VariableReplace(n.params.Arguments.VoiceSetting.VoiceId)
+
+	// 构建参数
+	params := make(map[string]any)
+	params[`model`] = n.params.Arguments.UseModel
+	params[`text`] = text
+	params[`output_format`] = n.params.Arguments.OutputFormat
+
+	// 构建voice_setting
+	voiceSetting := make(map[string]any)
+	voiceSetting[`voice_id`] = voiceId
+	if n.params.Arguments.VoiceSetting.Speed > 0 {
+		voiceSetting[`speed`] = float64(n.params.Arguments.VoiceSetting.Speed) / 50.0 // 转换为0.5-2.0范围
+	}
+	if n.params.Arguments.VoiceSetting.Vol > 0 {
+		voiceSetting[`vol`] = n.params.Arguments.VoiceSetting.Vol
+	}
+	if n.params.Arguments.VoiceSetting.Pitch != 0 {
+		voiceSetting[`pitch`] = n.params.Arguments.VoiceSetting.Pitch
+	}
+	if len(n.params.Arguments.VoiceSetting.Emotion) > 0 {
+		voiceSetting[`emotion`] = flow.VariableReplace(n.params.Arguments.VoiceSetting.Emotion)
+	}
+	params[`voice_setting`] = voiceSetting
+
+	// 构建audio_setting
+	if n.params.Arguments.AudioSetting.SampleRate > 0 || n.params.Arguments.AudioSetting.Bitrate > 0 ||
+		len(n.params.Arguments.AudioSetting.Format) > 0 || n.params.Arguments.AudioSetting.Channel > 0 {
+		audioSetting := make(map[string]any)
+		if n.params.Arguments.AudioSetting.SampleRate > 0 {
+			audioSetting[`sample_rate`] = n.params.Arguments.AudioSetting.SampleRate
+		}
+		if n.params.Arguments.AudioSetting.Bitrate > 0 {
+			audioSetting[`bitrate`] = n.params.Arguments.AudioSetting.Bitrate
+		}
+		if len(n.params.Arguments.AudioSetting.Format) > 0 {
+			audioSetting[`format`] = flow.VariableReplace(n.params.Arguments.AudioSetting.Format)
+		}
+		if n.params.Arguments.AudioSetting.Channel > 0 {
+			audioSetting[`channel`] = n.params.Arguments.AudioSetting.Channel
+		}
+		params[`audio_setting`] = audioSetting
+	}
+	voiceModify := make(map[string]any)
+	voiceModify[`pitch`] = n.params.Arguments.VoiceModify.Intensity
+	voiceModify[`speed`] = n.params.Arguments.VoiceModify.Pitch
+	voiceModify[`volume`] = n.params.Arguments.VoiceModify.Timbre
+	if len(n.params.Arguments.VoiceModify.SoundEffects) > 0 {
+		voiceModify[`sound_effects`] = n.params.Arguments.VoiceModify.SoundEffects
+	}
+
+	// 调用API
+	result, err := common.TtsSpeechT2A(flow.params.AdminUserId, n.params.Arguments.ModelId, n.params.Arguments.UseModel, params)
+	if err != nil {
+		flow.Logs(`语音合成失败: %v`, err)
+		return nil, "", err
+	}
+
+	flow.Logs(`语音合成成功`)
+
+	// 构建输出
+	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+// VoiceCloneNode 声音复刻
+type VoiceCloneNode struct {
+	params      VoiceCloneNodeParams
+	nextNodeKey string
+}
+
+func (n *VoiceCloneNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, _ error) {
+	flow.Logs(`执行声音复刻逻辑...`)
+
+	// 获取模型配置
+	config, err := msql.Model(`chat_ai_model_config`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(flow.params.AdminUserId)).
+		Where(`model_define`, common.ModelMinimax).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, "", errors.New(`获取模型配置失败`)
+	}
+	if len(config) == 0 {
+		return nil, "", errors.New(`没有配置MiniMax模型`)
+	}
+
+	// 替换变量
+	fileUrl := flow.VariableReplace(n.params.Arguments.FileUrl)
+	voiceId := flow.VariableReplace(n.params.Arguments.VoiceId)
+
+	// 下载文件到临时位置
+	tempDir := `/tmp/voice_clone_` + tool.Random(8)
+	if err = tool.MkDirAll(tempDir); err != nil {
+		return nil, "", fmt.Errorf(`创建临时目录失败: %v`, err)
+	}
+	defer func() {
+		_ = os.RemoveAll(tempDir)
+	}()
+
+	// 下载复刻音频文件
+	cloneAudioPath := tempDir + `/clone_audio.mp3`
+	if err = common.DownloadFile(fileUrl, cloneAudioPath); err != nil {
+		return nil, "", fmt.Errorf(`下载复刻音频失败: %v`, err)
+	}
+
+	// 上传复刻音频获取file_id
+	flow.Logs(`上传复刻音频...`)
+	uploadResult, err := common.TtsUploadVoiceFile(flow.params.AdminUserId, cast.ToInt(config["id"]), "voice_clone", cloneAudioPath)
+	if err != nil {
+		return nil, "", fmt.Errorf(`上传复刻音频失败: %v`, err)
+	}
+
+	var cloneFileID int64
+	if fileInfo, ok := uploadResult[`file`].(map[string]any); ok {
+		if fileID, ok := fileInfo[`file_id`].(float64); ok {
+			cloneFileID = int64(fileID)
+		}
+	}
+	if cloneFileID <= 0 {
+		return nil, "", errors.New(`获取复刻音频file_id失败`)
+	}
+
+	flow.Logs(`复刻音频上传成功，file_id: %d`, cloneFileID)
+
+	// 处理示例音频（可选）
+	var promptFileID int64
+	if len(n.params.Arguments.ClonePrompt.PromptAudioUrl) > 0 || len(n.params.Arguments.ClonePrompt.PromptText) > 0 {
+		promptAudioUrl := flow.VariableReplace(n.params.Arguments.ClonePrompt.PromptAudioUrl)
+		promptText := flow.VariableReplace(n.params.Arguments.ClonePrompt.PromptText)
+
+		if len(promptAudioUrl) > 0 && len(promptText) > 0 {
+			// 下载示例音频文件
+			promptAudioPath := tempDir + `/prompt_audio.mp3`
+			if err = common.DownloadFile(promptAudioUrl, promptAudioPath); err != nil {
+				return nil, "", fmt.Errorf(`下载示例音频失败: %v`, err)
+			}
+
+			// 上传示例音频获取file_id
+			flow.Logs(`上传示例音频...`)
+			promptUploadResult, err := common.TtsUploadVoiceFile(flow.params.AdminUserId, cast.ToInt(config["id"]), "prompt_audio", promptAudioPath)
+			if err != nil {
+				return nil, "", fmt.Errorf(`上传示例音频失败: %v`, err)
+			}
+
+			if fileInfo, ok := promptUploadResult[`file`].(map[string]any); ok {
+				if fileID, ok := fileInfo[`file_id`].(float64); ok {
+					promptFileID = int64(fileID)
+				}
+			}
+			if promptFileID <= 0 {
+				return nil, "", errors.New(`获取示例音频file_id失败`)
+			}
+			flow.Logs(`示例音频上传成功，file_id: %d`, promptFileID)
+		}
+	}
+
+	// 构建参数
+	params := make(map[string]any)
+	params[`file_id`] = cloneFileID
+	params[`voice_id`] = voiceId
+
+	// 构建clone_prompt（可选）
+	if promptFileID > 0 && len(n.params.Arguments.ClonePrompt.PromptText) > 0 {
+		clonePrompt := make(map[string]any)
+		clonePrompt[`prompt_audio`] = promptFileID
+		clonePrompt[`prompt_text`] = flow.VariableReplace(n.params.Arguments.ClonePrompt.PromptText)
+		params[`clone_prompt`] = clonePrompt
+	}
+
+	// 添加试听参数（可选）
+	if len(n.params.Arguments.Text) > 0 {
+		params[`text`] = flow.VariableReplace(n.params.Arguments.Text)
+	}
+
+	// 添加模型参数（可选）
+	if len(n.params.Arguments.Model) > 0 {
+		params[`model`] = flow.VariableReplace(n.params.Arguments.Model)
+	}
+
+	// 添加语言增强参数（可选）
+	if len(n.params.Arguments.LanguageBoost) > 0 {
+		params[`language_boost`] = flow.VariableReplace(n.params.Arguments.LanguageBoost)
+	}
+
+	// 添加降噪参数（可选）
+	if n.params.Arguments.NeedNoiseReduction {
+		params[`need_noise_reduction`] = true
+	}
+
+	// 添加音量归一化参数（可选）
+	if n.params.Arguments.NeedVolumeNormalization {
+		params[`need_volume_normalization`] = true
+	}
+
+	// 调用复刻API
+	flow.Logs(`开始音色复刻...`)
+	result, err := common.TtsCloneVoice(flow.params.AdminUserId, cast.ToInt(config["id"]), params)
+	if err != nil {
+		flow.Logs(`音色复刻失败: %v`, err)
+		return nil, "", err
+	}
+
+	flow.Logs(`音色复刻成功`)
+
+	// 构建输出
+	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
 	nextNodeKey = n.nextNodeKey
 	return
 }
