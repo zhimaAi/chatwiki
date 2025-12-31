@@ -229,6 +229,9 @@ services:
 
   chatwiki_file_transfer:
     image: registry.cn-hangzhou.aliyuncs.com/chatwiki/file_transfer:20251223
+    container_name: chatwiki_file_transfer
+    networks:
+      - chatwiki_network
     working_dir: /app
     command: ./file_transfer
     tty: true
@@ -237,11 +240,6 @@ services:
       TZ: ${TIMEZONE}
     ports:
       - ${FILE_TRANSFER_SERVICE_PORT}:8080
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 1G
 
 networks:
   chatwiki_network:
