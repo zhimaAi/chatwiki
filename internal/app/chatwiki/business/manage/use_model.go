@@ -44,7 +44,7 @@ func SaveUseModelConfig(c *gin.Context) {
 	}
 	useModel := common.LoadUseModelConfig(params, modelInfo.ModelDefine)
 	//参数校验
-	if !tool.InArrayString(useModel.ModelType, []string{common.Llm, common.TextEmbedding, common.Rerank, common.Image}) {
+	if !tool.InArrayString(useModel.ModelType, []string{common.Llm, common.TextEmbedding, common.Rerank, common.Image, common.Tts}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_type`))))
 		return
 	}
@@ -55,16 +55,7 @@ func SaveUseModelConfig(c *gin.Context) {
 	if len(useModel.ShowModelName) == 0 {
 		useModel.ShowModelName = useModel.UseModelName //填充默认值
 	}
-	if useModel.ModelType != common.Image {
-		if !tool.InArrayInt(int(useModel.ThinkingType), []int{0, 1, 2}) { //深度思考选项:0不支持,1支持,2可选
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `thinking_type`))))
-			return
-		}
-		if len(useModel.VectorDimensionList) > 0 && !common.CheckIds(useModel.VectorDimensionList) {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `vector_dimension_list`))))
-			return
-		}
-	} else {
+	if useModel.ModelType == common.Image {
 		if modelInfo.ModelDefine != common.ModelDoubao {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_define`))))
 			return
@@ -95,20 +86,39 @@ func SaveUseModelConfig(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `image_optimize_prompt`))))
 			return
 		}
+	} else if useModel.ModelType == common.Tts {
+		if modelInfo.ModelDefine != common.ModelMinimax {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_define`))))
+			return
+		}
+	} else {
+		if !tool.InArrayInt(int(useModel.ThinkingType), []int{0, 1, 2}) { //深度思考选项:0不支持,1支持,2可选
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `thinking_type`))))
+			return
+		}
+		if len(useModel.VectorDimensionList) > 0 && !common.CheckIds(useModel.VectorDimensionList) {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `vector_dimension_list`))))
+			return
+		}
 	}
 	//调用模型测试
-	handler, err := modelInfo.CallHandlerFunc(modelInfo, modelInfo.ConfigInfo, useModel.UseModelName)
-	if err != nil {
+	if useModel.ModelType != common.Tts { // 语音tts模型暂时不做测试
+		handler, err := modelInfo.CallHandlerFunc(modelInfo, modelInfo.ConfigInfo, useModel.UseModelName)
+		if err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+			return
+		}
+		if err = common.ConfigurationTest(handler.Meta, useModel.ModelType); err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+			return
+		}
+		//保存数据
+		err = useModel.ToSave(adminUserId, modelConfigId)
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
-		return
-	}
-	if err = common.ConfigurationTest(handler.Meta, useModel.ModelType); err != nil {
+	} else {
+		err := useModel.ToSave(adminUserId, modelConfigId)
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
-		return
 	}
-	//保存数据
-	err = useModel.ToSave(adminUserId, modelConfigId)
-	c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 }
 
 func DelUseModelConfig(c *gin.Context) {
@@ -141,4 +151,37 @@ func DelUseModelConfig(c *gin.Context) {
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.ModelListCacheBuildHandler{ModelConfigId: cast.ToInt(info[`model_config_id`])})
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}
+
+func GetMiniMaxVoiceList(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+
+	// 获取模型配置
+	config, err := msql.Model(`chat_ai_model_config`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`model_define`, common.ModelMinimax).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(config) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `minimax_model_not_exist`))))
+		return
+	}
+
+	// 调用MiniMax API获取音色列表
+	result, err := common.TtsGetVoiceList(adminUserId, cast.ToInt(config[`id`]))
+	if err != nil {
+		logs.Error(`获取MiniMax音色列表失败: %v`, err)
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+
+	// 返回结果
+	c.String(http.StatusOK, lib_web.FmtJson(result, nil))
 }

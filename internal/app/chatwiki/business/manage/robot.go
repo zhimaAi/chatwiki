@@ -167,6 +167,7 @@ func SaveRobot(c *gin.Context) {
 	topK := cast.ToInt(c.DefaultPostForm(`top_k`, `5`))
 	similarity := cast.ToFloat32(c.DefaultPostForm(`similarity`, `0.6`))
 	searchType := cast.ToInt(c.DefaultPostForm(`search_type`, `1`))
+	rrfWeight := strings.TrimSpace(c.PostForm(`rrf_weight`))
 	chatType := cast.ToInt(c.DefaultPostForm(`chat_type`, `1`))
 	unknownQuestionPrompt := strings.TrimSpace(c.DefaultPostForm(`unknown_question_prompt`, `{"content":"哎呀，这个问题我暂时还不太清楚呢～（对手指）"}`))
 
@@ -230,6 +231,13 @@ func SaveRobot(c *gin.Context) {
 	}
 	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText, define.SearchTypeGraph}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
+		return
+	}
+	if id == 0 && len(rrfWeight) == 0 { //新建的时候填充默认值
+		rrfWeight = tool.JsonEncodeNoError(common.GetDefaultRrfWeight(userId))
+	}
+	if err = common.CheckRrfWeight(rrfWeight, common.GetLang(c)); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	if questionGuideNum < 1 || questionGuideNum > 10 {
@@ -407,6 +415,7 @@ func SaveRobot(c *gin.Context) {
 		`top_k`:                                 topK,
 		`similarity`:                            similarity,
 		`search_type`:                           searchType,
+		`rrf_weight`:                            rrfWeight,
 		`chat_type`:                             chatType,
 		`library_qa_direct_reply_switch`:        libraryQaDirectReplySwitch,
 		`library_qa_direct_reply_score`:         libraryQaDirectReplyScore,
@@ -635,6 +644,15 @@ func EditExternalConfig(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
+// GetDefaultRrfWeight 获取默认的RRF算法权重配置
+func GetDefaultRrfWeight(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(common.GetDefaultRrfWeight(adminUserId), nil))
+}
+
 func GetRobotInfo(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
@@ -660,6 +678,9 @@ func GetRobotInfo(c *gin.Context) {
 	if cast.ToInt(info[`default_library_id`]) <= 0 && cast.ToInt(info[`application_type`]) == define.ApplicationTypeChat {
 		_, _ = common.AddDefaultLibrary(c.GetHeader(`token`), info[`robot_name`], info[`library_ids`], info[`robot_key`], userId)
 		info, _ = common.GetRobotInfo(info[`robot_key`])
+	}
+	if len(info[`rrf_weight`]) == 0 { //填充默认值
+		info[`rrf_weight`] = tool.JsonEncodeNoError(common.GetDefaultRrfWeight(userId))
 	}
 	if len(info[`prompt_struct`]) == 0 {
 		info[`prompt_struct`] = tool.JsonEncodeNoError(common.GetEmptyPromptStruct()) //旧数据默认给空值

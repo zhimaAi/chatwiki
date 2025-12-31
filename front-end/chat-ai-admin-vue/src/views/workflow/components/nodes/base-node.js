@@ -362,6 +362,8 @@ export class BaseVueNodeModel extends HtmlNodeModel {
       'custom-group',
       'zm-plugins-node',
       'batch-group',
+      'voice-synthesis-node',
+      'voice-clone-node',
       'image-generation-node'
     ]
 
@@ -385,7 +387,9 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         if (nodeWhiteList.includes(node.type)){
           if (node.type === 'zm-plugins-node') {
             let nodeParams = jsonDecode(node.properties.node_params)
-            HasOutputPluginNames.includes(nodeParams.plugin.name) && parentNodes.push(node);
+            if (HasOutputPluginNames.includes(nodeParams.plugin.name) || nodeParams.plugin?.output_obj.length) {
+              parentNodes.push(node);
+            }
           } else {
             parentNodes.push(node);
           }
@@ -432,6 +436,14 @@ export class BaseVueNodeModel extends HtmlNodeModel {
 
       if(node.type === 'http-node'){
         obj.children = node_params.curl.output
+      }
+
+      if(node.type === 'voice-synthesis-node'){
+        obj.children = node_params.text_to_audio.output
+      }
+
+      if(node.type === 'voice-clone-node'){
+        obj.children = node_params.voice_clone.output
       }
 
       if(node.type === 'zm-plugins-node'){
@@ -540,7 +552,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         }]
       }
       if(node.type === 'image-generation-node'){
-        let image_num = node_params.image_generation.image_num 
+        let image_num = node_params.image_generation.image_num
         if(image_num > 0){
           let list = []
           for (let i = 0; i < +image_num; i++) {

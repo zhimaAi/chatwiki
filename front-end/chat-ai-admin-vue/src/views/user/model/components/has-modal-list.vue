@@ -277,6 +277,10 @@ const typeOptions = computed(() => {
     {
       label: `图片生成模型（${use_model_configs.value.filter((item) => item.model_type == 'IMAGE').length}）`,
       value: 'IMAGE'
+    },
+    {
+      label: `语音合成模型（${use_model_configs.value.filter((item) => item.model_type == 'TTS').length}）`,
+      value: 'TTS'
     }
   ]
 })

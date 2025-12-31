@@ -324,7 +324,8 @@ func LibraryRecallTest(c *gin.Context) {
 	question := strings.TrimSpace(c.PostForm(`question`))
 	size := cast.ToInt(c.PostForm(`size`))
 	similarity := cast.ToFloat64(c.PostForm(`similarity`))
-	searchType := cast.ToInt(c.PostForm(`search_type`))
+	searchType := cast.ToInt(c.DefaultPostForm(`search_type`, `1`))
+	rrfWeight := strings.TrimSpace(c.PostForm(`rrf_weight`))
 	rerankModelConfigID := cast.ToInt(c.PostForm(`rerank_model_config_id`))
 	rerankUseModel := strings.TrimSpace(c.PostForm(`rerank_use_model`))
 	rerankStatus := strings.TrimSpace(c.DefaultPostForm(`rerank_status`, `1`))
@@ -333,8 +334,12 @@ func LibraryRecallTest(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	if searchType != define.SearchTypeMixed && searchType != define.SearchTypeVector && searchType != define.SearchTypeFullText && searchType != define.SearchTypeGraph {
+	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText, define.SearchTypeGraph}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
+		return
+	}
+	if err := common.CheckRrfWeight(rrfWeight, common.GetLang(c)); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	if modelConfigId > 0 || useModel != "" {
@@ -346,6 +351,7 @@ func LibraryRecallTest(c *gin.Context) {
 	}
 	robot := msql.Params{
 		`recall_type`:   recallType,
+		`rrf_weight`:    rrfWeight,
 		`admin_user_id`: cast.ToString(userId),
 	}
 	for _, libraryId := range strings.Split(libraryIds, `,`) {

@@ -4,10 +4,57 @@
       <span class="label">配置：</span>
       <a-tag>{{ actionState?.config_name || '--' }}</a-tag>
     </div>
-    <div><span class="label">数据表：</span>
-      <a-tag>{{ actionState?.table_name || '--' }}</a-tag>
+    <div v-if="!['create_bitable', 'create_tables'].includes(business)">
+      <span class="label">数据表：</span>
+      <a-tag>
+        <at-text
+          v-if="actionState?.tag_map?.table_id && actionState?.tag_map?.table_id.length"
+          class="batch-render-at"
+          :options="valueOptions"
+          :defaultSelectedList="actionState.tag_map.table_id"
+          :defaultValue="actionState?.table_id"
+        />
+        <template v-else>{{actionState?.table_name || actionState?.table_id || '--'}}</template>
+      </a-tag>
     </div>
-    <template v-if="business == 'create_record'">
+    <div v-if="business == 'create_bitable'">
+      <span class="label">多维表名称：</span>
+      <a-tag>
+        <at-text
+          class="batch-render-at"
+          :options="valueOptions"
+          :defaultSelectedList="actionState?.tag_map?.name || []"
+          :defaultValue="actionState?.name || '--'"
+        />
+      </a-tag>
+    </div>
+    <template v-else-if="business == 'create_tables'">
+      <div>
+        <span class="label">数据表名称：</span>
+        <a-tag>
+          <at-text
+            class="batch-render-at"
+            :options="valueOptions"
+            :defaultSelectedList="actionState?.tag_map?.name || []"
+            :defaultValue="actionState?.name || '--'"
+          />
+        </a-tag>
+      </div>
+    </template>
+    <template v-else-if="business == 'create_views'">
+      <div>
+        <span class="label">视图名称：</span>
+        <a-tag>
+          <at-text
+            class="batch-render-at"
+            :options="valueOptions"
+            :defaultSelectedList="actionState?.tag_map?.view_name || []"
+            :defaultValue="actionState?.view_name || '--'"
+          />
+        </a-tag>
+      </div>
+    </template>
+    <template v-else-if="business == 'create_record'">
       <div>
         <span class="label">插入数据：</span>
         <div v-if="Array.isArray(actionState.fields)" class="field-box">

@@ -197,7 +197,8 @@ const formState = reactive({
   rerank_model_config_id: '',
   top_k: 0,
   similarity: 0,
-  search_type: 1
+  search_type: 1,
+  rrf_weight: {}
 })
 
 // 知识库
@@ -246,12 +247,14 @@ const handleOpenRecallSettingsAlert = () => {
 const noOpenGraphModalRef = ref(null)
 
 const onChangeRecallSettings = (data) => {
+  console.log(data, '==')
   formState.rerank_status = data.rerank_status
   formState.rerank_use_model = data.rerank_use_model
   formState.rerank_model_config_id = data.rerank_model_config_id
   formState.top_k = data.top_k
   formState.similarity = data.similarity
   formState.search_type = data.search_type
+  formState.rrf_weight = data.rrf_weight
   if (data.search_type == 1 || data.search_type == 4) {
     if (noOpenLibraryList.value.length > 0) {
       noOpenGraphModalRef.value.show()
@@ -265,6 +268,7 @@ const onSave = () => {
 
   formData.library_ids = formData.library_ids.join(',')
   formData.op_type_relation_library = 1
+  formData.rrf_weight = JSON.stringify(formData.rrf_weight)
 
   updateRobotInfo({ ...formData })
 }
@@ -310,6 +314,7 @@ watchEffect(() => {
   formState.top_k = robotInfo.top_k
   formState.similarity = robotInfo.similarity
   formState.search_type = robotInfo.search_type
+  formState.rrf_weight = robotInfo.rrf_weight
 })
 
 const toLibraryDetail = (item) => {

@@ -14,20 +14,16 @@ export default class SSE {
   controller = new AbortController()
 
   constructor(opt = { url: '', data: {} }) {
-    this.socketMsgQueue = []
-
     this.opt = { ...this.opt, ...opt }
 
     this.open()
   }
 
   open() {
-    const that = this
-
     let formdata = new FormData()
 
-    for (let key in that.opt.data) {
-      formdata.append(key, that.opt.data[key])
+    for (let key in this.opt.data) {
+      formdata.append(key, this.opt.data[key])
     }
 
     let headersData = {
@@ -44,46 +40,49 @@ export default class SSE {
     fetchEventSource(this.opt.url, {
       method: 'POST',
       headers: headersData,
-      signal: that.controller.signal,
+      signal: this.controller.signal,
       // 允许在页面隐藏时继续接收消息(开启后不再触发自动重连的问题)
       openWhenHidden: true,
       body: formdata,
-      async onopen(response) {
+      onopen: async(response) => {
         if (response.ok && response.headers.get('content-type') === EventStreamContentType) {
-          if (typeof that.onOpen === 'function') {
-            that.onOpen()
+          if (typeof this.onOpen === 'function') {
+            this.onOpen()
           }
           return // everything's good
-        } else if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-          // client-side errors are usually non-retriable:
-          throw new Error('连接出错')
-        } else {
-          throw new Error('连接出错')
+        }
+        
+        throw new Error(`连接失败: ${response.status} ${response.statusText}`);
+      },
+      onmessage: (res) => {
+        if (typeof this.onMessage === 'function') {
+          this.onMessage(res)
         }
       },
-      onmessage (res) {
-        if (typeof that.onMessage === 'function') {
-          that.onMessage(res)
+      onclose: () => {
+        if (typeof this.onClose === 'function') {
+          this.onClose()
         }
+
+        this.abort();
       },
-      onclose() {
-        if (typeof that.onClose === 'function') {
-          that.onClose()
-        }
-        that.controller.abort()
-      },
-      onerror(err) {
+      onerror: (err) => {
         console.log(err)
         // 可以在这里添加错误处理逻辑
-        if (typeof that.onError === 'function') {
-          that.onError(err)
+        if (typeof this.onError === 'function') {
+          this.onError(err)
         }
+
+        this.abort();
         throw err
       }
     })
   }
 
   abort = () => {
-    this.controller.abort()
+    // 增加判断，避免重复 abort 报错
+    if (!this.controller.signal.aborted) {
+      this.controller.abort()
+    }
   }
 }

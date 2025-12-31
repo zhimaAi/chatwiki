@@ -9,9 +9,10 @@ import (
 )
 
 type DataSource struct {
-	List  []msql.Params
-	Key   string
-	Fixed int
+	List   []msql.Params
+	Key    string
+	Fixed  uint
+	Weight uint
 }
 
 type RRF struct {
@@ -51,7 +52,7 @@ func (r *RRF) Sort() []msql.Params {
 	rrfMap := make(map[string]float64)
 	for i := range r.dataSources {
 		for j := range r.dataSources[i].List {
-			score := 1 / float64(j+1+r.dataSources[i].Fixed)
+			score := float64(r.dataSources[i].Weight) / float64(j+1+int(r.dataSources[i].Fixed))
 			rrfMap[r.dataSources[i].List[j][r.dataSources[i].Key]] += score
 		}
 	}

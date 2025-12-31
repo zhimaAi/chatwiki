@@ -13,7 +13,12 @@
       <div class="node-form-content">
         <a-form ref="formRef" layout="vertical" :model="formState">
           <div class="gray-block">
-            <div class="gray-block-title">输入</div>
+            <div class="gray-block-title  export-curl-title">
+            <span> 输入</span>
+            <a-button ghost type="primary" size="small" @click="showParseModal">
+              <CodeOutlined /> 导入cURL
+            </a-button>
+            </div>
 
             <a-form-item
               label="请求地址"
@@ -281,6 +286,10 @@
         </a-form>
       </div>
     </div>
+    <ParseCurlModal 
+      ref="parseCurlModalRef" 
+      @parse="handleParseResult" 
+    />
   </NodeFormLayout>
   
 </template>
@@ -289,9 +298,10 @@
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
 import { ref, reactive, watch, h, onMounted } from 'vue'
-import { CloseCircleOutlined, PlusOutlined, PlusCircleOutlined } from '@ant-design/icons-vue'
+import { CloseCircleOutlined, PlusOutlined, PlusCircleOutlined, CodeOutlined } from '@ant-design/icons-vue'
 import AtInput from '../../at-input/at-input.vue'
 import SubKey from './subs-key.vue'
+import ParseCurlModal from './parse-curl-modal.vue'
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({
@@ -371,6 +381,86 @@ const formState = reactive({
     }
   ]
 })
+
+const parseCurlModalRef = ref()
+
+const showParseModal = () => {
+  parseCurlModalRef.value.show()
+}
+
+const handleParseResult = (parsedData) => {
+  // 将解析结果填充到表单
+  let headers = [{
+    key: '',
+    value: ''
+  }]
+  let params = [{
+    key: '',
+    value: ''
+  }]
+  let body = []
+  let body_raw = ''
+  let isJson = false
+
+  formState.method = parsedData.method
+  formState.rawurl = parsedData.url
+  // 处理value
+  function handleValue(value) {
+    if (typeof value == 'string') {
+      return value
+    }
+    return JSON.stringify(value)
+  }
+
+  if(parsedData.header && typeof parsedData.header == 'object') {
+    headers = Object.keys(parsedData.header).map((key) => {
+      if(key.toLowerCase() == 'content-type' && parsedData.header[key].indexOf('application/json') !== -1) {
+        isJson = true
+      }
+
+      return {
+        key: key,
+        value: handleValue(parsedData.header[key]),
+        cu_key: Math.random() * 10000
+      }
+    })
+
+    headers = headers.filter(item => item.key.toLowerCase() !== 'content-type')
+  }
+  
+  if(parsedData.data && typeof parsedData.data == 'object') {
+    body = Object.keys(parsedData.data).map((key) => {
+      return {
+        key: key,
+        value: handleValue(parsedData.data[key]),
+        cu_key: Math.random() * 10000
+      }
+    })
+
+    body_raw = JSON.stringify(parsedData.data)
+  }
+
+  if(parsedData.params && typeof parsedData.params == 'object') {
+    params = Object.keys(parsedData.params).map((key) => {
+      return {
+        key: key,
+        value: handleValue(parsedData.params[key]),
+        cu_key: Math.random() * 10000
+      }
+    })
+  }
+
+  if(isJson) {
+    formState.type = 2
+    formState.body_raw = body_raw
+  }else {
+    formState.type = 1
+    formState.body = body
+  }
+
+  formState.headers = headers
+  formState.params = params
+}
 
 function recursionData(data) {
   data.forEach((item) => {
@@ -556,6 +646,11 @@ onMounted(() => {
 
 <style lang="less" scoped>
 @import '../form-block.less';
+.export-curl-title{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 .at-input-flex1 {
   flex: 1;
   overflow: hidden;

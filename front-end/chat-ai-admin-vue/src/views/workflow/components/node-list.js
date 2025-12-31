@@ -307,7 +307,12 @@ export const nodeList = [
       node_name: '结束流程',
       node_icon: getNodeIconUrl('end-node'),
       node_icon_name: 'end-node',
-      node_params: JSON.stringify({})
+      node_params: JSON.stringify({
+        finish:{
+          out_type: 'message',
+          messages: []
+        }
+      })
     }
   },
   {
@@ -783,7 +788,50 @@ export const nodeList = [
         }
       })
     }
-  }
+  },
+  {
+    id: '',
+    groupKey: 'large-model-capability',
+    type: 'voice-synthesis-node',
+    width: 420,
+    height: 158,
+    properties: {
+      ...getRowData(),
+      node_type: 38,
+      node_name: '语音合成',
+      node_icon: getNodeIconUrl('voice-synthesis-node'),
+      node_icon_name: 'voice-synthesis-node',
+      node_params: JSON.stringify({
+        text_to_audio: {
+          model_config_id: void 0,
+          voice_type: 'all',
+          arguments: {},
+          output: []
+        }
+      })
+    }
+  },
+  {
+    id: '',
+    groupKey: 'large-model-capability',
+    type: 'voice-clone-node',
+    width: 420,
+    height: 158,
+    properties: {
+      ...getRowData(),
+      node_type: 39,
+      node_name: '声音复刻',
+      node_icon: getNodeIconUrl('voice-clone-node'),
+      node_icon_name: 'voice-clone-node',
+      node_params: JSON.stringify({
+        voice_clone: {
+          model_config_id: void 0,
+          arguments: {},
+          output: []
+        }
+      })
+    }
+  },
 ]
 
 // 获取分组和节点
@@ -861,10 +909,12 @@ export const getAllPluginNodes = async () => {
         node_icon: plugin.icon,
         node_icon_name: '',
         node_desc: plugin.description,
+        multiNode: plugin?.local?.multiNode || false,
         node_params: JSON.stringify({
           plugin: {
             name: plugin.name,
             type: plugin.type,
+            multiNode: plugin?.local?.multiNode || false,
             params: {},
             tag_map: {},
           }
@@ -881,7 +931,8 @@ export const loadPluginActions = async (plugins) => {
   let name, actions
   for (let plugin of plugins) {
     name = plugin?.local?.name || ''
-    if (pluginHasAction(name)) {
+    const isMultiNode = plugin?.local?.multiNode || false
+    if (pluginHasAction(name) || isMultiNode) {
       await runPlugin({
         name: name,
         action: "default/get-schema",

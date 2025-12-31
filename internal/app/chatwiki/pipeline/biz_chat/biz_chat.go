@@ -35,6 +35,7 @@ type ChatInParam struct {
 	exitChat           bool //直接退出标志位
 	saveRobotChatCache bool
 	isSwitchManual     bool
+	chanStreamClosed   bool
 }
 
 // Stream 给前端推送数据流事件
@@ -87,6 +88,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 			in.monitor.DebugLog = out.debugLog
 			in.monitor.Save(out.Error) //记录监控数据
 		}
+		in.chanStreamClosed = true //先标记chan关闭
 		if in.chanStream != nil {
 			defer close(in.chanStream) //关闭sse管道
 		}
@@ -95,6 +97,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	//request
 	request := pipeline.NewPipeline(in, out)
 	request.Pipe(CheckChanStream)      //检查流式输出的管道
+	request.Pipe(SseKeepAlive)         //流式输出保活
 	request.Pipe(StreamPing)           //给前端推送ping
 	request.Pipe(CheckParams)          //请求参数检查
 	request.Pipe(FilterLibrary)        //过滤知识库

@@ -552,24 +552,27 @@ func GetMatchFileParagraphIdsByFullTextSearch(question, fileIds string) ([]strin
 	return ids, nil
 }
 
-func GetMatchLibraryParagraphByMergeRerank(openid, appType, question string, size int, vectorList, searchList, graphList []msql.Params, robot msql.Params) ([]msql.Params, error) {
+func GetMatchLibraryParagraphByMergeRerank(openid, appType, question string, list []msql.Params, robot msql.Params) ([]msql.Params, error) {
 	if len(robot) == 0 || cast.ToInt(robot[`rerank_status`]) == 0 {
 		return nil, nil //not rerank config
 	}
-	//merge all list
-	list := append(append(vectorList, searchList...), graphList...)
 	if len(list) == 0 {
 		return nil, nil
 	}
-	//remove duplication
-	list = SliceMsqlParamsUnique(list, `id`)
-	//sort by similarity
-	sort.Slice(list, func(i, j int) bool {
-		return cast.ToFloat64(list[i][`similarity`]) > cast.ToFloat64(list[j][`similarity`])
-	})
 	// Rerank resorted
 	chunks := make([]string, 0)
 	for _, one := range list {
+		if cast.ToInt(one[`type`]) != define.ParagraphTypeNormal {
+			var similarQuestions []string
+			if err := tool.JsonDecode(one[`similar_questions`], &similarQuestions); err != nil {
+				logs.Error(err.Error())
+			}
+			var similar string
+			if len(similarQuestions) > 0 {
+				similar = fmt.Sprintf("\n相似问法：%s", strings.Join(similarQuestions, `/`))
+			}
+			one[`content`] = fmt.Sprintf("问题:%s%s\n答案:%s", one[`question`], similar, one[`answer`])
+		}
 		chunks = append(chunks, one[`content`])
 	}
 	rerankReq := &adaptor.ZhimaRerankReq{
@@ -577,7 +580,7 @@ func GetMatchLibraryParagraphByMergeRerank(openid, appType, question string, siz
 		Query:    question,
 		Passages: chunks,
 		Data:     list,
-		TopK:     size,
+		TopK:     min(500, len(list)),
 	}
 	return RerankData(cast.ToInt(robot[`admin_user_id`]), openid, appType, robot, rerankReq)
 }
@@ -616,12 +619,7 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 	}
 	libUseTime.RecallTime = time.Now().Sub(temp).Milliseconds()
 
-	//由于存在问题优化,导致召回的内容会出现重复的
-	vectorList = SliceMsqlParamsUnique(vectorList, `id`)
-	searchList = SliceMsqlParamsUnique(searchList, `id`)
-	graphList = SliceMsqlParamsUnique(graphList, `id`)
-
-	// Sort retrieved content by similarity score after question optimization
+	//由于存在问题优化,需要根据相似度再次排序
 	sort.Slice(vectorList, func(i, j int) bool {
 		return cast.ToFloat64(vectorList[i][`similarity`]) > cast.ToFloat64(vectorList[j][`similarity`])
 	})
@@ -632,23 +630,32 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 		return cast.ToFloat64(graphList[i][`similarity`]) > cast.ToFloat64(graphList[j][`similarity`])
 	})
 
+	//由于存在问题优化,导致召回的内容会出现重复的
+	vectorList = SliceMsqlParamsUnique(vectorList, `id`)
+	searchList = SliceMsqlParamsUnique(searchList, `id`)
+	graphList = SliceMsqlParamsUnique(graphList, `id`)
+
+	//RRF sort
+	weights := ParseRrfWeight(adminUserId, robot[`rrf_weight`])
+	list := (&RRF{}).
+		Add(DataSource{List: vectorList, Key: `id`, Fixed: 50, Weight: weights.Vector}).
+		Add(DataSource{List: searchList, Key: `id`, Fixed: 50, Weight: weights.Search}).
+		Add(DataSource{List: graphList, Key: `id`, Fixed: 50, Weight: weights.Graph}).Sort()
+
+	//由于存在问题优化和4倍召回,需要截取一下
+	if len(list) > size {
+		list = list[:size]
+	}
+
+	//rerank 重排逻辑
 	temp = time.Now()
-	rerankList, err := GetMatchLibraryParagraphByMergeRerank(openid, appType, question, fetchSize, vectorList, searchList, graphList, robot)
+	rerankList, err := GetMatchLibraryParagraphByMergeRerank(openid, appType, question, list, robot)
 	libUseTime.RerankTime = time.Now().Sub(temp).Milliseconds()
 	if err != nil {
 		logs.Error(err.Error())
 	}
-
-	//RRF sort
-	list := (&RRF{}).
-		Add(DataSource{List: vectorList, Key: `id`, Fixed: 59}).
-		Add(DataSource{List: searchList, Key: `id`, Fixed: 60}).
-		Add(DataSource{List: graphList, Key: `id`, Fixed: 60}).
-		Add(DataSource{List: rerankList, Key: `id`, Fixed: 58}).Sort()
-	if cast.ToInt(robot[`recall_type`]) == define.SwitchOn {
-		sort.Slice(list, func(i, j int) bool {
-			return cast.ToFloat64(list[i][`similarity`]) > cast.ToFloat64(list[j][`similarity`])
-		})
+	if len(rerankList) > 0 {
+		list = rerankList
 	}
 
 	//父子分段-替换成对应的父分段内容+去重

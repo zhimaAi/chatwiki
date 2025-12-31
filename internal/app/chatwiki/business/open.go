@@ -34,8 +34,10 @@ type (
 		MessageId      string               `json:"message_id"`
 		ConversationId string               `json:"conversation_id"`
 		CreateAt       int64                `json:"create_at"`
+		RawAnswer      string               `json:"raw_answer,omitempty"`
 		Answer         string               `json:"answer"`
 		Image          []string             `json:"image,omitempty"`
+		Voice          []string             `json:"voice,omitempty"`
 		MetaData       ChatMessagesMetaData `json:"metadata,omitempty"`
 	}
 	ChatMessagesMetaData struct {
@@ -106,14 +108,16 @@ func ChatMessages(c *gin.Context) {
 			ConversationId: common.BuildMessageId("dialogueId", cast.ToString(message["dialogue_id"]), cast.ToInt(message["create_time"])),
 			CreateAt:       cast.ToInt64(message["create_time"]),
 			Answer:         message["content"],
+			RawAnswer:      message["content"],
 			MetaData: ChatMessagesMetaData{Usage: Usage{
 				PromptTokens:     cast.ToInt(message["prompt_tokens"]),
 				CompletionTokens: cast.ToInt(message["completion_tokens"]),
 			}},
 		}
-		msg, imgs := common.GetImgInMessage(res.Answer, false)
-		if len(imgs) > 0 {
+		msg, imgs, voices := common.GetMessageInMessage(res.Answer, false)
+		if len(imgs) > 0 || len(voices) > 0 {
 			res.Image = imgs
+			res.Voice = voices
 			res.Answer = msg
 		}
 		common.FmtOk(c, res)

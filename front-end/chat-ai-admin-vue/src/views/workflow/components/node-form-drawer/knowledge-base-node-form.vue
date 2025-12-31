@@ -98,6 +98,12 @@ import { getLibraryList } from '@/api/library/index'
 import LibrarySelectAlert from '../nodes/knowledge-base-node/library-select-alert.vue'
 import RecallSettingsAlert from '../nodes/knowledge-base-node//recall-settings-alert.vue'
 import {getSpecifyAbilityConfig} from "@/api/explore/index.js";
+import { useRobotStore } from '@/stores/modules/robot'
+const robotStore = useRobotStore()
+
+const rrf_weight = computed(()=>{
+  return robotStore.robotInfo.rrf_weight
+})
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({
@@ -168,7 +174,8 @@ const formState = reactive({
   top_k: 5,
   similarity: 0.5,
   search_type: 1,
-  question_value: ''
+  question_value: '',
+  rrf_weight: {}
 })
 
 const update = () => {
@@ -179,13 +186,13 @@ const update = () => {
         ? +formState.rerank_model_config_id
         : void 0,
       question_value: formState.question_value.join('.'),
-      library_ids: formState.library_ids.join(',')
+      library_ids: formState.library_ids.join(','),
+      rrf_weight: JSON.stringify(formState.rrf_weight)
     }
   })
 
   emit('update-node', {
     ...props.node,
-    ...formState,
     node_params: data
   })
 }
@@ -198,14 +205,21 @@ const init = () => {
     getOptions()
 
     libs = JSON.parse(JSON.stringify(libs))
+    console.log(libs, '=libs')
     for (let key in libs) {
       if (key == 'library_ids') {
         formState[key] = libs[key] ? libs[key].split(',') : []
       } else if (key == 'question_value') {
         formState.question_value = formatQuestionValue(libs['question_value'])
+      }else if(key == 'rrf_weight') {
+        formState.rrf_weight = libs[key] ? JSON.parse(libs[key]) : libs[key]
       } else {
         formState[key] = libs[key]
       }
+    }
+    if(!libs.rrf_weight){
+      //  没有值 则去默认值
+      formState.rrf_weight = rrf_weight.value
     }
 
     // 公众号知识库是否开启
@@ -261,6 +275,7 @@ const onChangeRecallSettings = (data) => {
   formState.top_k = data.top_k
   formState.similarity = data.similarity
   formState.search_type = data.search_type
+  formState.rrf_weight = data.rrf_weight
 }
 
 // 获取知识库

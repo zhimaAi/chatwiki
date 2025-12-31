@@ -53,7 +53,8 @@ abstract class ExtensionController extends BaseLambdaController
 
                 // 必填校验
                 if ($required && ($val === null || $val === '')) {
-                    throw new LogicException("缺少必填参数: {$field}");
+                    $required_tip = $rules['required_tip'] ?? "缺少必填参数: {$field}";
+                    throw new LogicException($required_tip);
                 }
 
                 // 选填且为空，跳过
@@ -216,7 +217,7 @@ abstract class ExtensionController extends BaseLambdaController
      * HTTP 封装
      * @throws Exception
      */
-    public function sendRequest(string $method, string $url, array $query, array $body, array $headers): Response
+    public function sendRequest(string $method, string $url, array $query,  $body, array $headers,$customizeOptions=[]): Response
     {
         // 拼接 Query 参数
         if (!empty($query)) {
@@ -227,9 +228,9 @@ abstract class ExtensionController extends BaseLambdaController
         $request = $client->createRequest()
             ->setMethod($method)
             ->setUrl($url)
-            ->setOptions([
+            ->setOptions(array_merge([
                 'timeout' => 15, // 默认超时
-            ]);
+            ],$customizeOptions));
 
         // GET 请求不带 Body
         if (!empty($body) && strtoupper($method) !== 'GET') {
@@ -261,6 +262,12 @@ abstract class ExtensionController extends BaseLambdaController
                     $request->setData($normalData);
                 }
                 
+            }elseif(stripos($contentType, 'application/x-www-form-urlencoded') && is_array($body)){
+                $request->addHeaders($headers);
+                $request->setData($body);
+            }elseif (stripos($contentType, 'text/plain') !== false){
+                $request->addHeaders($headers);
+                $request->setContent($body);
             } else {
                 // 默认使用 JSON 格式
                 $request->addHeaders($headers);
@@ -270,7 +277,6 @@ abstract class ExtensionController extends BaseLambdaController
             // GET 请求或空 body 时设置 headers
             $request->addHeaders($headers);
         }
-
         return $request->send();
     }
 

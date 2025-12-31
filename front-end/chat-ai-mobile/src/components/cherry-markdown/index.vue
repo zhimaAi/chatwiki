@@ -32,6 +32,7 @@
     max-height: 100%;
     display: block;
     margin-top: 8px;
+    min-height: 100px;
   }
 }
 </style>

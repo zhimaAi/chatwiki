@@ -188,6 +188,10 @@
         </div>
       </div>
 
+      <div class="form-item" v-if="formState.search_type == 1">
+        <WeightSelect v-model:rrf_weight="formState.rrf_weight" />
+      </div>
+
       <div class="form-item">
         <div class="form-item-label">
           <span>Top K&nbsp;</span>
@@ -201,10 +205,10 @@
         <div class="form-item-body">
           <div class="number-box">
             <div class="number-slider-box">
-              <a-slider class="custom-slider" v-model:value="formState.size" :min="1" :max="10" />
+              <a-slider class="custom-slider" v-model:value="formState.size" :min="1" :max="500" />
             </div>
             <div class="number-input-box">
-              <a-input-number v-model:value="formState.size" :min="1" :max="10" />
+              <a-input-number v-model:value="formState.size" :min="1" :max="500" />
             </div>
           </div>
         </div>
@@ -262,12 +266,15 @@
 
 <script setup>
 import { getModelConfigOption } from '@/api/model/index'
-import { reactive, ref, toRaw, computed } from 'vue'
+import { reactive, ref, toRaw, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { QuestionCircleOutlined, DownOutlined, UpOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
-import { libraryRecallTest } from '@/api/library'
+import { libraryRecallTest, getDefaultRrfWeight } from '@/api/library'
+import WeightSelect from '@/components/weight-select/index.vue'
+
+
 const route = useRoute()
 const loading = ref(false)
 
@@ -313,7 +320,12 @@ const formState = reactive({
   question: '',
   similarity: 0.6,
   size: 5,
-  id: route.query.id
+  id: route.query.id,
+  rrf_weight: {
+    vector: 0,
+    search: 0,
+    graph: 0,
+  }
 })
 
 const showRetrievalModeList = computed(()=>{
@@ -367,7 +379,8 @@ const handleRecallTest = () => {
     question: formState.question,
     size: formState.size,
     similarity: formState.similarity,
-    search_type: formState.search_type
+    search_type: formState.search_type,
+    rrf_weight: JSON.stringify(formState.rrf_weight),
   }
   if (formState.rerank_status == 1) {
     parmas.rerank_model_config_id = formState.rerank_model_config_id
@@ -386,6 +399,16 @@ const handleRecallTest = () => {
       loading.value = false
     })
 }
+
+onMounted(() => {
+  getDefaultRrfWeight().then((res) => {
+    formState.rrf_weight = res.data || {
+      vector: 0,
+      search: 0,
+      graph: 0
+    }
+  })
+})
 defineExpose({
   open
 })

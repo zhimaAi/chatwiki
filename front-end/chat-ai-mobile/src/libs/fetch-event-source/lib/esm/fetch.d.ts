@@ -7,6 +7,7 @@ export interface FetchEventSourceInit extends RequestInit {
     onclose?: () => void;
     onerror?: (err: any) => number | null | undefined | void;
     openWhenHidden?: boolean;
+    retryOnError?: boolean;
     fetch?: typeof fetch;
 }
-export declare function fetchEventSource(input: RequestInfo, { signal: inputSignal, headers: inputHeaders, onopen: inputOnOpen, onmessage, onclose, onerror, openWhenHidden, fetch: inputFetch, ...rest }: FetchEventSourceInit): Promise<void>;
+export declare function fetchEventSource(input: RequestInfo, { signal: inputSignal, headers: inputHeaders, onopen: inputOnOpen, onmessage, onclose, onerror, openWhenHidden, retryOnError, fetch: inputFetch, ...rest }: FetchEventSourceInit): Promise<void>;

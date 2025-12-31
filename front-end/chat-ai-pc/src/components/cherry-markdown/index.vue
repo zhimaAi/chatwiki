@@ -25,6 +25,7 @@
     max-height: 100%;
     display: block;
     margin-top: 8px;
+    min-height: 100px;
   }
   p:last-child {
     margin-bottom: 0 !important;

@@ -53,11 +53,12 @@ export default class SSE {
           if (typeof this.onOpen === 'function') {
             this.onOpen()
           }
-        } else if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-          throw new Error('连接出错')
-        } else {
-          throw new Error('连接出错')
+
+          return
         }
+
+        console.error(`连接失败: ${response.status} ${response.statusText}`)
+        throw new Error(`连接失败: ${response.status} ${response.statusText}`);
       },
       onmessage: (event: EventSourceMessage) => {
         // 明确指定事件类型为MessageEvent
@@ -69,19 +70,26 @@ export default class SSE {
         if (typeof this.onClose === 'function') {
           this.onClose()
         }
-        this.controller.abort()
+        
+        this.abort()
       },
       onerror: (error: any) => {
+        console.log(error)
         // 明确指定错误类型为any
         if (typeof this.onError === 'function') {
           this.onError(error)
         }
-        // throw error;
+
+        this.abort();
+        throw error;
       }
     })
   }
 
-  abort() {
-    this.controller.abort()
+  abort = () => {
+    // 增加判断，避免重复 abort 报错
+    if (!this.controller.signal.aborted) {
+        this.controller.abort()
+    }
   }
 }

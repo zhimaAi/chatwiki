@@ -1,1 +1,0 @@
-import{b as e}from"../../index-ZzVqUZIR.js";import{ah as c}from"./ui-antd-BJtyvQX6.js";import{Y as n,_ as s,k as t}from"./vue-chunks-yZ4gwLzA.js";const a={},r={class:"loading-box"};function _(i,p){const o=c;return s(),n("div",r,[t(o)])}const l=e(a,[["render",_],["__scopeId","data-v-6634c4be"]]);export{l as L};

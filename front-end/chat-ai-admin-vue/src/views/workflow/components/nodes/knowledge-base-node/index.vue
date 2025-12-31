@@ -113,6 +113,12 @@ import { ref, reactive, watch, onMounted, inject, nextTick, onBeforeUnmount, com
 import NodeCommon from '../base-node.vue'
 import UserQuestionText from '../user-question-text.vue'
 import { getLibraryList } from '@/api/library/index'
+import { useRobotStore } from '@/stores/modules/robot'
+const robotStore = useRobotStore()
+
+const rrf_weight = computed(()=>{
+  return robotStore.robotInfo.rrf_weight
+})
 
 const props = defineProps({
   properties: {
@@ -141,7 +147,8 @@ const formState = reactive({
   top_k: 5,
   similarity: 0.5,
   search_type: 1,
-  question_value: []
+  question_value: [],
+  rrf_weight: {}
 })
 
 const variableOptions = ref([])
@@ -174,10 +181,16 @@ const reset = () => {
       formState[key] = libs[key] ? libs[key].split(',') : []
     } else if (key == 'question_value') {
       formState.question_value = formatQuestionValue(libs['question_value'])
+    }else if(key == 'rrf_weight') {
+      formState.rrf_weight = libs[key] ? JSON.parse(libs[key]) : libs[key]
     } else {
       formState[key] = libs[key]
     }
   }
+    if(!libs.rrf_weight){
+      //  没有值 则去默认值
+      formState.rrf_weight = rrf_weight.value
+    }
 
   nextTick(() => {
     resetSize()
@@ -192,13 +205,13 @@ const update = () => {
         ? +formState.rerank_model_config_id
         : void 0,
       question_value: formState.question_value.join('.'),
-      library_ids: formState.library_ids.join(',')
+      library_ids: formState.library_ids.join(','),
+      rrf_weight: JSON.stringify(formState.rrf_weight)
     }
   })
 
   setData({
     ...props.node,
-    ...formState,
     node_params: data
   })
 }

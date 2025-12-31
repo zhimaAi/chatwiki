@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { getRobotList } from '@/api/robot'
-import { getUuid, formatDisplayChatTime } from '@/utils/index'
+import { getUuid, formatDisplayChatTime, extractVoiceInfo, removeVoiceFormat } from '@/utils/index'
 import { useIM } from '@/hooks/event/useIM'
 import { useUserStore } from '@/stores/modules/user'
 import { useEventBus } from '@/hooks/event/useEventBus'
@@ -113,6 +113,10 @@ export const useChatMonitorStore = defineStore('chatMonitor', {
       if (msg.reply_content_list && typeof msg.reply_content_list === 'string') {
         try { msg.reply_content_list = JSON.parse(msg.reply_content_list) } catch (_) { msg.reply_content_list = [] }
       }
+
+      msg.voice_content = extractVoiceInfo(msg.content)
+      msg.content = removeVoiceFormat(msg.content)
+
       this.messageList.push(msg)
 
       emitter.emit('onAddMessage', msg)
@@ -265,6 +269,8 @@ export const useChatMonitorStore = defineStore('chatMonitor', {
             }
 
             list[i].dispayTime = formatDisplayChatTime(list[i].create_time)
+            list[i].voice_content = extractVoiceInfo(list[i].content)
+            list[i].content = removeVoiceFormat(list[i].content)
           }
 
           this.messageList = [...list, ...this.messageList]

@@ -122,7 +122,12 @@ export const useRobotStore = defineStore('robot', () => {
     enable_thinking: 0,
     wechat_not_verify_hand_get_reply: '正在思考中，请稍后点击下方蓝字\r\n获取回复👇👇👇',
     wechat_not_verify_hand_get_word: '👉👉点我获取回复👈👈',
-    wechat_not_verify_hand_get_next: '内容较多，点此查看下文'
+    wechat_not_verify_hand_get_next: '内容较多，点此查看下文',
+    rrf_weight:{
+      vector: 0,
+      search: 0,
+      graph: 0,
+    }
   })
 
   // WebApp配置
@@ -268,7 +273,9 @@ export const useRobotStore = defineStore('robot', () => {
       external_config_pc.headImage = robotInfo.robot_avatar_url
     }
 
-
+    if(data.rrf_weight != ''){
+      robotInfo.rrf_weight = JSON.parse(data.rrf_weight)
+    }
   }
 
   const getRobot = async (id) => {

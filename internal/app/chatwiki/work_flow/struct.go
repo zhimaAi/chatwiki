@@ -197,6 +197,7 @@ type CurlNodeParams struct {
 type LibsNodeParams struct {
 	LibraryIds          string          `json:"library_ids"`
 	SearchType          common.MixedInt `json:"search_type"`
+	RrfWeight           string          `json:"rrf_weight"`
 	TopK                common.MixedInt `json:"top_k"`
 	Similarity          float64         `json:"similarity"`
 	RerankStatus        uint            `json:"rerank_status"`
@@ -407,6 +408,79 @@ type ImageGenerationParams struct {
 	Output              common.RecurveFields `json:"output"`
 }
 
+type TextToAudioNodeParams struct {
+	ModelId       int    `json:"model_id"`
+	ModelConfigId int    `json:"model_config_id"`
+	UseModel      string `json:"use_model"`
+	VoiceType     string `json:"voice_type"` //希望查询音色类型，可用选项: system, voice_cloning, voice_generation, all
+	Arguments     struct {
+		Text          string `json:"text"`
+		ModelId       int    `json:"model_id"`
+		UseModel      string `json:"use_model"`
+		ModelConfigId int    `json:"model_config_id"`
+		VoiceSetting  struct {
+			VoiceId           string  `json:"voice_id"`           // 音色编号
+			VoiceName         string  `json:"voice_name"`         // 冗余
+			Speed             float32 `json:"speed"`              // 语速
+			Vol               int     `json:"vol"`                // 音量
+			Pitch             int     `json:"pitch"`              // 语调
+			Emotion           string  `json:"emotion"`            // 情绪
+			TextNormalization bool    `json:"text_normalization"` // 中英文规范化
+		} `json:"voice_setting"` // 声音设置
+		AudioSetting struct {
+			SampleRate int    `json:"sample_rate"` // 采样率
+			Bitrate    int    `json:"bitrate"`     // 比特率
+			Format     string `json:"format"`      // 格式
+			Channel    int    `json:"channel"`     // 声道数
+			ForceCbr   bool   `json:"force_cbr"`   // 恒定比特率
+		} `json:"audio_setting"` // 音频设置
+		VoiceModify struct {
+			Pitch        int    `json:"pitch"`         // 音高调整
+			Intensity    int    `json:"intensity"`     // 强度调整（力量感/柔和）
+			Timbre       int    `json:"timbre"`        // 音色调整
+			SoundEffects string `json:"sound_effects"` // 音效设置
+		} `json:"voice_modify"` // 音调调整
+		LanguageBoost  string `json:"language_boost"` // 小语种识别能力
+		OutputFormat   string `json:"output_format"`
+		SubtitleEnable bool   `json:"subtitle_enable"`
+		AigcWatermark  any    `json:"aigc_watermark"`
+		TagMap         any    `json:"tag_map"`
+	} `json:"arguments"`
+	Output common.RecurveFields `json:"output"`
+}
+
+type VoiceCloneNodeParams struct {
+	ModelConfigId int `json:"model_config_id"`
+	Arguments     struct {
+		ModelConfigId any    `json:"model_config_id"`
+		ModelId       any    `json:"model_id"`
+		FileUrl       string `json:"file_url"` //待复刻音频的url，要上传后转成file_id传给minimax
+		VoiceId       string `json:"voice_id"` //克隆音色的 voice_id
+		ClonePrompt   struct {
+			PromptAudioUrl string `json:"prompt_audio_url"` //示例音频的url，要上传后转成file_id传给minimax
+			PromptText     string `json:"prompt_text"`      //示例音频的对应文本，需确保和音频内容一致，句末需有标点符号做结尾
+		} `json:"clone_prompt"` //音色复刻示例音频，提供本参数将有助于增强语音合成的音色相似度和稳定性
+		Text                    string `json:"text"`                      //复刻试听参数，限制 1000 字符以内
+		LanguageBoost           string `json:"language_boost"`            //是否增强对指定的小语种和方言的识别能力
+		Model                   string `json:"model"`                     //复刻试听参数
+		NeedNoiseReduction      bool   `json:"need_noise_reduction"`      //开启降噪
+		NeedVolumeNormalization bool   `json:"need_volume_normalization"` //是否开启音量归一化
+		AigcWatermark           any    `json:"aigc_watermark"`            //是否在合成试听音频的末尾添加音频节奏标识，默认值为 false
+		TagMap                  any    `json:"tag_map"`
+	} `json:"arguments"`
+	Output common.RecurveFields `json:"output"`
+}
+
+type Message struct {
+	Type    string `json:"type"`    //text image voice
+	Content string `json:"content"` //content
+}
+
+type FinishNodeParams struct {
+	OutType  string    `json:"out_type"` //variable返回变量，message返回消息
+	Messages []Message `json:"messages"` //具体的消息
+}
+
 var LoopAllowNodeTypes = []int{
 	NodeTypeRemark,
 	NodeTypeTerm,
@@ -429,6 +503,8 @@ var LoopAllowNodeTypes = []int{
 	NodeTypeLoopStart,
 	NodeTypePlugin,
 	NodeTypeImageGeneration,
+	NodeTypeTextToAudio,
+	NodeTypeVoiceClone,
 }
 
 var BatchAllowNodeTypes = []int{
@@ -452,6 +528,8 @@ var BatchAllowNodeTypes = []int{
 	NodeTypeBatchStart,
 	NodeTypePlugin,
 	NodeTypeImageGeneration,
+	NodeTypeTextToAudio,
+	NodeTypeVoiceClone,
 }
 
 /************************************/
@@ -477,7 +555,26 @@ type NodeParams struct {
 	Loop             LoopNodeParams             `json:"loop"`
 	Plugin           PluginNodeParams           `json:"plugin"`
 	Batch            BatchNodeParams            `json:"batch"`
+	Finish           FinishNodeParams           `json:"finish"`
 	ImageGeneration  ImageGenerationParams      `json:"image_generation"`
+	TextToAudio      TextToAudioNodeParams      `json:"text_to_audio"`
+	VoiceClone       VoiceCloneNodeParams       `json:"voice_clone"`
+}
+
+func FillDiyGlobalBlanks(output TriggerOutputParam, start *StartNodeParams) {
+	if len(output.Variable) == 0 {
+		return //未配置变量映射
+	}
+	key, found := strings.CutPrefix(output.Variable, `global.`)
+	if !found {
+		return //映射错误的,不管
+	}
+	for _, param := range start.DiyGlobal {
+		if param.Key == key {
+			return //已存在的变量直接跳过
+		}
+	}
+	start.DiyGlobal = append(start.DiyGlobal, output.StartNodeParam)
 }
 
 func DisposeNodeParams(nodeType int, nodeParams string) NodeParams {
@@ -515,6 +612,10 @@ func DisposeNodeParams(nodeType int, nodeParams string) NodeParams {
 				}
 			}
 			params.Start.TriggerList[i].Outputs = outputs
+			//补充开始节点自定义全局变量
+			for _, output := range outputs {
+				FillDiyGlobalBlanks(output, &params.Start)
+			}
 		}
 	}
 	if params.Term == nil {
@@ -574,6 +675,7 @@ func DisposeNodeParams(nodeType int, nodeParams string) NodeParams {
 	if params.Plugin.Output == nil {
 		params.Plugin.Output = make(common.RecurveFields, 0)
 	}
+
 	return params
 }
 
@@ -673,6 +775,20 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 		}
 	case NodeTypeImageGeneration:
 		for variable := range common.SimplifyFields(node.NodeParams.ImageGeneration.Output) {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+				variables = append(variables, variable)
+			}
+		}
+	case NodeTypeTextToAudio:
+		for variable := range common.SimplifyFields(node.NodeParams.TextToAudio.Output) {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+				variables = append(variables, variable)
+			}
+		}
+	case NodeTypeVoiceClone:
+		for variable := range common.SimplifyFields(node.NodeParams.VoiceClone.Output) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
 			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
 				variables = append(variables, variable)
@@ -1009,6 +1125,37 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
 			return
 		}
+	case NodeTypeTextToAudio:
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.TextToAudio.Arguments.Text, variables); !ok {
+			err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
+			return
+		}
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.TextToAudio.Arguments.VoiceSetting.VoiceId, variables); !ok {
+			err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
+			return
+		}
+	case NodeTypeVoiceClone:
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.VoiceClone.Arguments.FileUrl, variables); !ok {
+			err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
+			return
+		}
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.VoiceClone.Arguments.VoiceId, variables); !ok {
+			err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
+			return
+		}
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.VoiceClone.Arguments.ClonePrompt.PromptAudioUrl, variables); !ok {
+			err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
+			return
+		}
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.VoiceClone.Arguments.ClonePrompt.PromptText, variables); !ok {
+			err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
+			return
+		}
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.VoiceClone.Arguments.Text, variables); !ok {
+			err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
+			return
+		}
+
 	case NodeTypeLoop:
 		//verify loop arrays
 		if node.NodeParams.Loop.LoopType == common.LoopTypeArray {
@@ -1078,6 +1225,16 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 		if err != nil {
 			return
 		}
+	case NodeTypeFinish:
+		if node.NodeParams.Finish.OutType == define.FinishNodeOutTypeMessage {
+			for _, field := range node.NodeParams.Finish.Messages {
+				if variable, ok := CheckVariablePlaceholder(field.Content, variables); !ok {
+					err = errors.New(node.NodeName + fmt.Sprintf(`变量(%s)不存在:`, variable))
+					return
+				}
+			}
+		}
+
 	case NodeTypeImageGeneration:
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.ImageGeneration.Prompt, variables); !ok {
 			err = errors.New(node.NodeName + `节点提示词选择的变量不存在:` + variable)
@@ -1151,9 +1308,16 @@ func (node *WorkFlowNode) Verify(adminUserId int) error {
 		err = node.NodeParams.Plugin.Verify(adminUserId)
 	case NodeTypeBatch:
 		err = node.NodeParams.Batch.Verify(node.NodeName)
+	case NodeTypeFinish:
+		err = node.NodeParams.Finish.Verify(node.NodeName)
 	case NodeTypeImageGeneration:
 		err = node.NodeParams.ImageGeneration.Verify(node.NodeName)
+	case NodeTypeTextToAudio:
+		err = node.NodeParams.TextToAudio.Verify()
+	case NodeTypeVoiceClone:
+		err = node.NodeParams.VoiceClone.Verify(adminUserId)
 	}
+
 	if err != nil {
 		return errors.New(node.NodeName + `节点:` + err.Error())
 	}
@@ -1183,6 +1347,9 @@ func (params *StartNodeParams) Verify() error {
 	}
 	for i, trigger := range params.TriggerList {
 		for _, output := range trigger.Outputs {
+			if len(output.Variable) == 0 {
+				continue //触发器输出支持不配置变量映射
+			}
 			key, _ := strings.CutPrefix(output.Variable, `global.`)
 			if _, ok := maps[key]; !ok {
 				return errors.New(fmt.Sprintf(`第%d个触发器(%s)的输出变量%s(%s)映射配置错误`, i+1, trigger.TriggerName, output.Key, output.Desc))
@@ -1313,8 +1480,11 @@ func (params *LibsNodeParams) Verify(adminUserId int) error {
 	if !tool.InArrayInt(params.SearchType.Int(), []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText}) {
 		return errors.New(`知识库检索模式参数错误`)
 	}
-	if params.TopK <= 0 || params.TopK > 10 {
-		return errors.New(`知识库检索TopK范围1~10`)
+	if err := common.CheckRrfWeight(params.RrfWeight, define.LangZhCn); err != nil {
+		return err
+	}
+	if params.TopK <= 0 || params.TopK > 500 {
+		return errors.New(`知识库检索TopK范围1~500`)
 	}
 	if params.Similarity < 0 || params.Similarity > 1 {
 		return errors.New(`知识库检索相似度阈值0~1`)
@@ -1832,6 +2002,13 @@ func (params *BatchNodeParams) Verify(nodeName string) error {
 	return nil
 }
 
+func (params *FinishNodeParams) Verify(nodeName string) error {
+	if len(params.OutType) > 0 && !tool.InArray(params.OutType, []string{define.FinishNodeOutTypeMessage, define.FinishNodeOutTypeVariable}) {
+		return errors.New(fmt.Sprintf(`【%s】输出类型错误`, nodeName))
+	}
+	return nil
+}
+
 func (params *ImageGenerationParams) Verify(nodeName string) error {
 	if cast.ToInt(params.ImageNum) < 0 || cast.ToInt(params.ImageNum) > 15 {
 		return errors.New(fmt.Sprintf(`【%s】图片数量错误(0-15)`, nodeName))
@@ -1839,5 +2016,116 @@ func (params *ImageGenerationParams) Verify(nodeName string) error {
 	if !tool.InArray(params.Size, define.ImageSizes) {
 		return errors.New(fmt.Sprintf(`【%s】图片尺寸错误`, nodeName))
 	}
+	return nil
+}
+
+func (params *TextToAudioNodeParams) Verify() error {
+	if params.Arguments.ModelId <= 0 {
+		return errors.New(`请选择模型配置`)
+	}
+
+	validVoiceTypes := []string{"system", "voice_cloning", "voice_generation", "all"}
+	if len(params.VoiceType) > 0 && !tool.InArrayString(params.VoiceType, validVoiceTypes) {
+		return errors.New(`voiceType参数错误，可选值: system, voice_cloning, voice_generation, all`)
+	}
+
+	// 验证Text，最大10000字符
+	if len(params.Arguments.Text) == 0 {
+		return errors.New(`text内容不能为空`)
+	}
+	if len(params.Arguments.Text) > 10000 {
+		return errors.New(`text内容长度不能超过10000字符`)
+	}
+
+	// 验证VoiceSetting
+	voiceSetting := params.Arguments.VoiceSetting
+	if len(voiceSetting.VoiceId) == 0 {
+		return errors.New(`voice_setting.voice_id不能为空`)
+	}
+
+	// 验证Speed - 建议范围[0.5, 2.0]
+	if voiceSetting.Speed < 0 || voiceSetting.Speed > 100 {
+		return errors.New(`voice_setting.speed取值范围建议0.5~2.0`)
+	}
+
+	// 验证Vol - 音量范围
+	if voiceSetting.Vol < 0 || voiceSetting.Vol > 100 {
+		return errors.New(`voice_setting.vol取值范围0~100`)
+	}
+
+	// 验证Pitch - 音调范围
+	if voiceSetting.Pitch < -100 || voiceSetting.Pitch > 100 {
+		return errors.New(`voice_setting.pitch取值范围-100~100`)
+	}
+
+	// 验证AudioSetting - 音频设置
+	audioSetting := params.Arguments.AudioSetting
+	// 验证SampleRate - 采样率
+	if audioSetting.SampleRate > 0 {
+		validSampleRates := []int{8000, 16000, 22050, 24000, 32000, 44100}
+		if !tool.InArrayInt(audioSetting.SampleRate, validSampleRates) {
+			return errors.New(`audio_setting.sample_rate必须是以下值之一: 8000, 16000, 22050, 24000, 32000, 44100`)
+		}
+	}
+
+	// 验证Bitrate - 比特率
+	if audioSetting.Bitrate > 0 {
+		validBitrates := []int{32000, 64000, 128000, 256000}
+		if !tool.InArrayInt(audioSetting.Bitrate, validBitrates) {
+			return errors.New(`audio_setting.bitrate必须是以下值之一: 32000, 64000, 128000, 256000`)
+		}
+	}
+
+	// 验证Format - 音频格式
+	if len(audioSetting.Format) > 0 {
+		validFormats := []string{"mp3", "pcm", "flac", "wav"}
+		if !tool.InArrayString(audioSetting.Format, validFormats) {
+			return errors.New(`audio_setting.format必须是以下值之一: mp3, pcm, flac, wav`)
+		}
+	}
+
+	// 验证Channel - 声道数
+	if audioSetting.Channel > 0 {
+		if audioSetting.Channel != 1 && audioSetting.Channel != 2 {
+			return errors.New(`audio_setting.channel必须是1(单声道)或2(双声道)`)
+		}
+	}
+
+	// 验证LanguageBoost
+	if len(params.Arguments.LanguageBoost) > 0 {
+		validLanguageBoosts := []string{"auto", "Chinese", "English", "Japanese", "Korean", "French", "German", "Spanish", "Russian", "Arabic"}
+		if !tool.InArrayString(params.Arguments.LanguageBoost, validLanguageBoosts) {
+			return errors.New(`language_boost参数错误`)
+		}
+	}
+
+	return nil
+}
+
+func (param *VoiceCloneNodeParams) Verify(adminUserId int) error {
+	if len(param.Arguments.FileUrl) == 0 {
+		return errors.New(`file_url不能为空`)
+	}
+	// 验证VoiceId - MiniMax要求：长度8-256，首字符为字母，允许数字字母-_，末位不可为-_
+	if len(param.Arguments.VoiceId) == 0 {
+		return errors.New(`voice_id不能为空`)
+	}
+
+	// 验证ClonePrompt - 可选参数，但如果提供则需要完整
+	if len(param.Arguments.ClonePrompt.PromptAudioUrl) > 0 || len(param.Arguments.ClonePrompt.PromptText) > 0 {
+		// 如果提供了示例音频URL，验证格式
+		if len(param.Arguments.ClonePrompt.PromptAudioUrl) == 0 {
+			return errors.New(`提供了prompt_text则prompt_audio_url不能为空`)
+		}
+		if _, err := url.Parse(param.Arguments.ClonePrompt.PromptAudioUrl); err != nil {
+			return errors.New(`clone_prompt.prompt_audio_url格式错误`)
+		}
+
+		// 如果提供了示例音频，验证文本
+		if len(param.Arguments.ClonePrompt.PromptText) == 0 {
+			return errors.New(`提供了prompt_audio_url则prompt_text不能为空`)
+		}
+	}
+
 	return nil
 }

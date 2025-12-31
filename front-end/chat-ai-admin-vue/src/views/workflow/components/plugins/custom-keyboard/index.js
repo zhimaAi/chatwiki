@@ -87,7 +87,7 @@ class CustomKeyboard {
    * @param {KeyboardEvent} e - 键盘事件对象
    */
   keydownListener = (e) => {
-    const key = e.key.toLowerCase()
+    const key = e?.key?.toLowerCase()
     const {
       graphModel: { eventCenter }
     } = this.lf

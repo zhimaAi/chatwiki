@@ -28,6 +28,7 @@
         :value="sub.value"
         :modelId="sub.model_config_id"
         :modelName="sub.name"
+        :useConfigId="sub.id"
         :key="sub.key"
         v-bind:attrs="sub"
       >
@@ -42,12 +43,12 @@ import { getModelConfigOption } from '@/api/model/index'
 import { ref, onMounted, watch, computed } from 'vue'
 import { getModelOptionsList } from '@/components/model-select/index.js'
 
-const emit = defineEmits(['change', 'update:modeName', 'update:modeId', 'loaded'])
+const emit = defineEmits(['change', 'update:modeName', 'update:modeId', 'update:useConfigId', 'loaded'])
 const props = defineProps({
   modelType: {
     type: String,
     validator: (value) => {
-      return ['TEXT EMBEDDING', 'RERANK', 'LLM', 'IMAGE'].includes(value)
+      return ['TEXT EMBEDDING', 'RERANK', 'LLM', 'IMAGE', 'TTS'].includes(value)
     },
     required: true
   },
@@ -56,6 +57,10 @@ const props = defineProps({
     default: ''
   },
   modeId: {
+    type: [String, Number],
+    default: ''
+  },
+  useConfigId: {
     type: [String, Number],
     default: ''
   },
@@ -103,6 +108,7 @@ const handleChangeModel = (val, option) => {
   }
   emit('update:modeName', option.modelName)
   emit('update:modeId', option.modelId)
+  emit('update:useConfigId', option.useConfigId)
   emit('change', val, option)
 }
 const getModelList = () => {
@@ -110,7 +116,7 @@ const getModelList = () => {
     model_type: props.modelType
   }).then((res) => {
     let list = res.data || []
-    let { newList, choosableThinking } = getModelOptionsList(list)
+    let { newList, choosableThinking } = getModelOptionsList(list, props.modeIdType)
     modelList.value = newList
     emit('loaded', modelList.value, choosableThinking)
   })

@@ -52,6 +52,213 @@ async (args) => {
     }
 };
 `
+const NoCheckJs = `
+// 将模拟的 chrome 对象赋值给 window.chrome
+Object.defineProperty(window, 'chrome', {
+    value: {},
+    writable: true,
+    enumerable: true,
+    configurable: true
+});
+
+// 定义模拟的 chrome.runtime 对象
+window.chrome.runtime = {
+    id: "some_extension_id",
+    getURL: () => "chrome-extension://" + window.chrome.runtime.id + "/path",
+    onMessage: {
+        addListener: (callback) => {},
+        removeListener: (callback) => {}
+    },
+    sendMessage: (message, callback) => {
+        if (callback) {
+            callback({ message: "response" });
+        }
+        return Promise.resolve({ message: "response" });
+    }
+};
+
+// 定义模拟的 chrome.storage 对象
+window.chrome.storage = {
+    local: {
+        get: (keys, callback) => {
+            if (callback) {
+                callback({});
+            }
+            return Promise.resolve({});
+        },
+        set: (items, callback) => {
+            if (callback) {
+                callback();
+            }
+            return Promise.resolve();
+        },
+        remove: (keys, callback) => {
+            if (callback) {
+                callback();
+            }
+            return Promise.resolve();
+        }
+    },
+    sync: {
+        get: (keys, callback) => {
+            if (callback) {
+                callback({});
+            }
+            return Promise.resolve({});
+        },
+        set: (items, callback) => {
+            if (callback) {
+                callback();
+            }
+            return Promise.resolve();
+        },
+        remove: (keys, callback) => {
+            if (callback) {
+                callback();
+            }
+            return Promise.resolve();
+        }
+    }
+};
+
+// 定义模拟的 chrome.tabs 对象
+window.chrome.tabs = {
+    query: (queryInfo, callback) => {
+        if (callback) {
+            callback([]);
+        }
+        return Promise.resolve([]);
+    },
+    create: (createProperties, callback) => {
+        if (callback) {
+            callback({ id: 1 });
+        }
+        return Promise.resolve({ id: 1 });
+    },
+    remove: (tabId, callback) => {
+        if (callback) {
+            callback();
+        }
+        return Promise.resolve();
+    },
+    sendMessage: (tabId, message, callback) => {
+        if (callback) {
+            callback({ message: "response" });
+        }
+        return Promise.resolve({ message: "response" });
+    }
+};
+
+// 定义模拟的 chrome.extension 对象
+window.chrome.extension = {
+    getBackgroundPage: () => window,
+    getURL: () => "chrome-extension://" + window.chrome.runtime.id + "/path",
+    id: window.chrome.runtime.id,
+    isAllowedIncognitoAccess: () => true,
+    onConnect: {
+        addListener: (callback) => {},
+        removeListener: (callback) => {}
+    },
+    onMessage: window.chrome.runtime.onMessage,
+    sendMessage: window.chrome.runtime.sendMessage
+};
+
+// 锁定 window.chrome 对象，防止修改
+Object.defineProperty(window, 'chrome', {
+    value: window.chrome,
+    writable: false,
+    enumerable: true,
+    configurable: true
+});
+
+
+// 1. 保存原生 PluginArray 原型
+const nativePluginArrayProto = PluginArray.prototype;
+
+// 2. 创建自定义类继承原生原型
+class CustomPluginArray extends Array {
+  constructor(plugins) {
+	super(...plugins);
+	Object.setPrototypeOf(this, nativePluginArrayProto); // 绑定原生原型链
+  }
+}
+
+//CustomPluginArray.prototype.toString = function() {
+//	return '[object Plugin]';
+//};
+
+// 定义一个模拟的 Plugin 对象
+function MockPlugin(name, description) {
+    this.name = name;
+    this.description = description;
+    this.filename = "filename";
+    this.length = 1;
+    this[0] = {
+        type: "application/pdf",
+        suffixes: "pdf",
+        description: description,
+        enabledPlugin: this
+    };
+    this.toString = function() {
+        return '[object Plugin]';
+    };
+}
+
+// 创建模拟插件
+const plugin1 = new MockPlugin("PDF Viewer", "Portable Document Format");
+const plugin2 = new MockPlugin("Flash Player", "Shockwave Flash");
+// 3. 重定义 navigator.plugins
+Object.defineProperty(navigator, 'plugins', {
+  get: () => {
+	// 模拟插件数据（示例配置）
+	const fakePlugins = [
+	 plugin1,
+	  plugin2
+	];
+	return new CustomPluginArray(fakePlugins);
+  },
+  configurable: false,
+  enumerable: true
+});
+
+Object.defineProperty(navigator, 'languages', {
+    get: () => ['zh-CN', 'zh'],
+});
+const originalQuery = window.navigator.permissions.query;
+window.navigator.permissions.query = (parameters) => (
+  parameters.name === 'notifications' ?
+    Promise.resolve({ state: Notification.permission }) :
+    originalQuery(parameters)
+);
+
+const getParameter = WebGLRenderingContext.getParameter;
+WebGLRenderingContext.prototype.getParameter = function(parameter) {
+  // UNMASKED_VENDOR_WEBGL
+  if (parameter === 37445) {
+    return 'Intel Open Source Technology Center';
+  }
+  // UNMASKED_RENDERER_WEBGL
+  if (parameter === 37446) {
+    return 'Mesa DRI Intel(R) Ivybridge Mobile ';
+  }
+
+  return getParameter(parameter);
+};
+
+// store the existing descriptor
+const elementDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight');
+
+// redefine the property with a patched descriptor
+Object.defineProperty(HTMLDivElement.prototype, 'offsetHeight', {
+  ...elementDescriptor,
+  get: function() {
+    if (this.id === 'modernizr') {
+        return 1;
+    }
+    return elementDescriptor.get.apply(this);
+  },
+});
+`
 
 func fetchURLHtml(parsedURL *netURL.URL) (*PageInfo, error) {
 	// check if semaphore is full
@@ -182,6 +389,7 @@ func fetchURLContent(parsedURL *netURL.URL) (*PageInfo, error) {
 		AcceptDownloads: &acceptDownloads,
 		UserAgent:       &userAgent,
 	})
+
 	if err != nil {
 		return nil, fmt.Errorf("could not create context: %v", err)
 	}
@@ -196,6 +404,12 @@ func fetchURLContent(parsedURL *netURL.URL) (*PageInfo, error) {
 		_ = (*page).Close()
 	}(&page, &context)
 
+	errCheck := page.AddInitScript(playwright.Script{
+		Content: playwright.String(NoCheckJs),
+	})
+	if errCheck != nil {
+		return nil, fmt.Errorf("不能打开加入js: %v", err)
+	}
 	// navigate to url, with timeout 15s
 	if _, err = page.Goto(parsedURL.String(), playwright.PageGotoOptions{WaitUntil: playwright.WaitUntilStateLoad}); err != nil {
 		return nil, fmt.Errorf("could not navigate to url: %v", err)

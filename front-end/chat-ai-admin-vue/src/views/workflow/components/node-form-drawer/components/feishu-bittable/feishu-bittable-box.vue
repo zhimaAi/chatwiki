@@ -6,40 +6,88 @@
     <div class="node-options">
       <div class="options-title">
         <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>输入</div>
-        <a-select v-model:value="currentConfigName" @change="configChange">
+        <a-select
+          v-if="Object.keys(configData).length"
+          v-model:value="currentConfigName"
+          @change="configChange">
           <a-select-option v-for="item in configData" :key="item.name" :value="item.name">
             {{ item.name }}
           </a-select-option>
         </a-select>
+        <a-button v-else @click="showConfigModal">未授权 <DownOutlined/></a-button>
       </div>
-      <div class="options-item is-required">
-        <div class="options-item-tit">
-          <div class="option-label">多维表</div>
+      <template v-if="'create_bitable' != actionName">
+        <div class="options-item is-required">
+          <div class="options-item-tit">
+            <div class="option-label">多维表</div>
+          </div>
+          <div class="min-input">
+            <AtInput
+              type="textarea"
+              inputStyle="height: 33px;"
+              :options="variableOptions"
+              :defaultSelectedList="formState.tag_map?.app_token || []"
+              :defaultValue="formState.app_token"
+              ref="atInputRef"
+              @open="emit('updateVar')"
+              @change="(val, tags) => changeValue('app_token', val, tags)"
+              placeholder="请输入文档url，键入“/”可以插入变量"
+            >
+              <template #option="{ label, payload }">
+                <div class="field-list-item">
+                  <div class="field-label">{{ label }}</div>
+                  <div class="field-type">{{ payload.typ }}</div>
+                </div>
+              </template>
+            </AtInput>
+          </div>
+          <div class="desc">多维表格的唯一标识符，支持输入文档 url</div>
         </div>
-        <div>
-          <a-input v-model:value="formState.app_token" placeholder="请输入文档url" @blur="tokenChange"/>
+        <div v-if="'create_tables' != actionName" class="options-item is-required">
+          <div class="options-item-tit">
+            <div class="option-label">选择数据表</div>
+          </div>
+          <div class="flex-center min-input">
+            <a-select v-model:value="formState.table_set_type" @change="tableSetChange" style="width: 112px;flex-shrink: 0;">
+              <a-select-option value="1">选择数据表</a-select-option>
+              <a-select-option value="2">插入变量</a-select-option>
+            </a-select>
+            <a-select
+              v-if="formState.table_set_type == 1"
+              v-model:value="formState.table_id"
+              @change="tableChange"
+              :placeholder="formState.app_token ? '请选择数据表' : '请先输入多维表文档url'"
+              style="width: 100%;">
+              <a-select-option
+                v-for="item in tables"
+                :key="item.table_id"
+                :value="item.table_id">
+                {{ item.name }}
+              </a-select-option>
+            </a-select>
+            <AtInput
+              v-else
+              type="textarea"
+              inputStyle="height: 33px;"
+              :options="variableOptions"
+              :defaultSelectedList="formState.tag_map?.table_id || []"
+              :defaultValue="formState.table_id"
+              ref="atInputRef"
+              @open="emit('updateVar')"
+              @change="(val, tags) => changeValue('table_id', val, tags)"
+              placeholder="请输入表格id，键入“/”可以插入变量"
+            >
+              <template #option="{ label, payload }">
+                <div class="field-list-item">
+                  <div class="field-label">{{ label }}</div>
+                  <div class="field-type">{{ payload.typ }}</div>
+                </div>
+              </template>
+            </AtInput>
+          </div>
+          <div class="desc">输入表格id，table_id  例如：tblz2wmlWiB1JGxS</div>
         </div>
-        <div class="desc">多维表格的唯一标识符，支持输入文档 url</div>
-      </div>
-      <div class="options-item is-required">
-        <div class="options-item-tit">
-          <div class="option-label">选择数据表</div>
-        </div>
-        <div>
-          <a-select
-            v-model:value="formState.table_id"
-            @change="tableChange"
-            :placeholder="formState.app_token ? '请选择数据表' : '请先输入多维表文档url'"
-            style="width: 100%;">
-            <a-select-option
-              v-for="item in tables"
-              :key="item.table_id"
-              :value="item.table_id">
-              {{ item.name }}
-            </a-select-option>
-          </a-select>
-        </div>
-      </div>
+      </template>
       <FeishuBatchBox
         v-if="BatchActions.includes(actionName)"
         ref="childRef"
@@ -69,6 +117,8 @@
         <OutputFields :tree-data="outputData"/>
       </div>
     </div>
+
+    <FeishuConfigModal ref="configModalRef" @change="loadConfig(true)"/>
   </div>
 </template>
 
@@ -83,6 +133,13 @@ import OutputFields from "@/views/workflow/components/feishu-table/output-fields
 import {BatchActions, ShowFieldTypes} from "@/constants/feishu-table.js";
 import FeishuBatchBox from "./feishu-batch-box.vue";
 import {getPluginActionDefaultArguments, pluginOutputToTree, getPluginConfigData} from "@/constants/plugin.js";
+import {DownOutlined} from '@ant-design/icons-vue';
+import FeishuConfigModal from "@/views/explore/plugins/components/feishu-config-modal.vue";
+import FeishuCreateBitable from "./feishu-create-bitable.vue";
+import FeishuCreateTable from "./feishu-create-table.vue";
+import FeishuCreateView from "./feishu-create-view.vue";
+import AtInput from "@/views/workflow/components/at-input/at-input.vue";
+import {isValidURL} from "@/utils/validate.js";
 
 const emit = defineEmits(['updateVar'])
 const props = defineProps({
@@ -107,15 +164,21 @@ const actionComponentMap = {
   create_record: FeishuInsertData,
   update_record: FeishuUpdateData,
   delete_record: FeishuDelData,
+  create_bitable: FeishuCreateBitable,
+  create_tables: FeishuCreateTable,
+  create_views: FeishuCreateView,
 }
 const pluginName = 'feishu_bitable'
 
 const childRef = ref(null)
+const configModalRef = ref(null)
 const configData = ref({})
 const currentConfigName = ref(null)
 const formState = reactive({
   app_token: '',
   table_id: undefined,
+  tag_map: {},
+  table_set_type: '1',
 })
 const loading = ref(false)
 const loadingF = ref(false)
@@ -138,8 +201,12 @@ async function init() {
   outputFormat()
 }
 
-async function loadConfig() {
-  await getPluginConfigData(pluginName).then(res => {
+function showConfigModal() {
+  configModalRef.value.show(configData.value)
+}
+
+async function loadConfig(refresh=false) {
+  await getPluginConfigData(pluginName, refresh).then(res => {
     configData.value = res || {}
     for (let name in configData.value) {
       if (configData.value[name].is_default) {
@@ -153,6 +220,12 @@ async function loadConfig() {
 
 function loadTables() {
   loading.value = true
+  tableData.value = {}
+  tables.value = []
+  if (!isValidURL(formState.app_token)) {
+    loading.value = false
+    return Promise.resolve(null)
+  }
   return runPlugin({
     name: 'feishu_bitable',
     action: "default/exec",
@@ -179,6 +252,11 @@ function loadTables() {
 
 function loadFields() {
   loadingF.value = true
+  fields.value = []
+  if (!isValidURL(formState.app_token) || !formState.table_id || formState.tag_map?.table_id?.length) {
+    loadingF.value = false
+    return Promise.resolve(null)
+  }
   return runPlugin({
     name: 'feishu_bitable',
     action: "default/exec",
@@ -251,12 +329,22 @@ function paramsFormat(val) {
         break
     }
   }
+  if (val.tag_map) {
+    formState.tag_map = {
+      ...val.tag_map,
+      app_token: formState?.tag_map?.app_token || [],
+      table_id: formState?.tag_map?.table_id || [],
+    }
+  }
+  //delete val.tag_map
   return val
 }
 
 function nodeParamsAssign() {
   let nodeParams = JSON.parse(props.node.node_params)
   let arg = nodeParams?.plugin?.params?.arguments || {}
+  if (arg.table_set_type) formState.table_set_type = arg.table_set_type
+  if (arg.tag_map) formState.tag_map = arg.tag_map
   if (arg.app_token) formState.app_token = arg.app_token
   if (arg.table_id) formState.table_id = arg.table_id
   if (arg.app_id && arg.app_secret) {
@@ -267,11 +355,34 @@ function nodeParamsAssign() {
       }
     }
   }
+  compInit(nodeParams)
   if (formState.app_token) {
     loadTables()
   }
   if (formState.table_id) {
     loadFields().then(() => compInit(nodeParams))
+  }
+}
+
+function tableSetChange() {
+  if (formState.table_set_type == 1) {
+    formState.table_id = tables.value?.[0]?.table_id || undefined
+    formState.tag_map.table_id = []
+  } else {
+    formState.table_id = ''
+  }
+  tableChange()
+}
+
+function changeValue(field, val, tags) {
+  formState[field] = val
+  formState.tag_map[field] = tags
+  if (field === 'app_token') {
+    tokenChange()
+  } else if (field === 'table_id') {
+    tableChange()
+  } else {
+    update()
   }
 }
 
@@ -291,7 +402,7 @@ function tokenChange() {
   fields.value = []
   formState.table_id = undefined
   if (formState.app_token) {
-    loadTables().then(res => compInit())
+    loadTables().then(() => compInit())
   } else {
     compInit()
   }
@@ -311,6 +422,9 @@ function compInit(nodeParams=null) {
 }
 
 function update(val = null) {
+  if (!val && childRef.value.update) {
+    return childRef.value.update()
+  }
   let nodeParams = JSON.parse(props.node.node_params)
   let table = tables.value.find(i => i.table_id == formState.table_id)
   //let params = nodeParams?.plugin?.params || {}
@@ -326,13 +440,11 @@ function update(val = null) {
       app_secret: currentConfig.value.app_secret,
     }
   })
-  console.log('nodeParams', nodeParams)
   setData({
     ...props.node,
     node_params: JSON.stringify(nodeParams)
   })
 }
-
 
 function outputFormat() {
   outputData.value = pluginOutputToTree(props.action.output)
@@ -340,6 +452,7 @@ function outputFormat() {
 </script>
 
 <style scoped lang="less">
+@import "common";
 .loading-box {
   width: 100%;
   height: 100%;
@@ -383,59 +496,10 @@ function outputFormat() {
       font-weight: 400;
     }
   }
+}
 
-  .options-item {
-    display: flex;
-    flex-direction: column;
-    margin-top: 12px;
-    line-height: 22px;
-    gap: 4px;
-
-    .options-item-tit {
-      display: flex;
-      align-items: center;
-    }
-
-    .option-label {
-      color: var(--wf-color-text-1);
-      font-size: 14px;
-      margin-right: 8px;
-    }
-
-    .desc {
-      color: var(--wf-color-text-2);
-    }
-
-
-    &.is-required .option-label::before {
-      content: '*';
-      color: #FB363F;
-      display: inline-block;
-      margin-right: 2px;
-    }
-
-    .option-type {
-      height: 22px;
-      line-height: 18px;
-      padding: 0 8px;
-      border-radius: 6px;
-      border: 1px solid rgba(0, 0, 0, 0.15);
-      background-color: #fff;
-      color: var(--wf-color-text-3);
-      font-size: 12px;
-    }
-
-    .item-actions-box {
-      display: flex;
-      align-items: center;
-
-      .action-btn {
-        margin-left: 12px;
-        font-size: 16px;
-        color: #595959;
-        cursor: pointer;
-      }
-    }
-  }
+.flex-center {
+  display: flex;
+  align-items: center;
 }
 </style>

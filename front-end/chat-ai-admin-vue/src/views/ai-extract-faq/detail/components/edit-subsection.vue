@@ -106,7 +106,6 @@ const saveForm = () => {
 }
 
 const show = (data) => {
-  console.log(data, '==')
   formState.question = data.question
   formState.answer = data.answer
   formState.id = data.id

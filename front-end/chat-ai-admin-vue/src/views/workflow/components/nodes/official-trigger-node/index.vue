@@ -66,7 +66,7 @@
   >
     <div class="start-node">
       <div class="start-node-options">
-        <div class="options-title">触发节点</div>
+        <div class="options-title">触发事件</div>
         <div class="options-list">
           <div class="options-item">
             <div class="option-label">{{ msg_type_map[formState.msg_type] }}</div>

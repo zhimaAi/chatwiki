@@ -159,18 +159,33 @@ function getOptions() {
     if (gropModel) {
       let dataRaw = gropModel.properties.dataRaw || gropModel.properties.node_params || '{}'
       let loop = JSON.parse(dataRaw).loop || {}
+      const intermediateChildren = handleIntermediateOption(loop.intermediate_params, gropModel)
+      const existing = result.find((item) => (item.node_id || item.value) == gropModel.id)
 
-      result = [
-        ...result,
-        {
+      // 修复重复数据问题，判断是否已存在该父分组
+      // - 已存在：把中间变量 intermediateChildren 合并进原节点的 children （并按 original_value/value/key 去重）
+      // - 不存在：才 push 新节点
+      if (existing) {
+        const merged = []
+        const seen = new Set();
+        [...(existing.children || []), ...intermediateChildren].forEach((child) => {
+          const key = child.original_value || child.value || child.key
+          if (!seen.has(key)) {
+            seen.add(key)
+            merged.push(child)
+          }
+        })
+        existing.children = merged
+      } else {
+        result.push({
           label: gropModel.properties.node_name,
           node_id: gropModel.id,
           node_type: gropModel.properties.node_type,
           typ: 'node',
           value: gropModel.id,
-          children: handleIntermediateOption(loop.intermediate_params, gropModel)
-        }
-      ]
+          children: intermediateChildren
+        })
+      }
     }
   }
 

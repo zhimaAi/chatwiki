@@ -10,6 +10,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -23,6 +25,12 @@ import (
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
+type SupplierHandler struct {
+	modelInfo *ModelInfo
+	adaptor.Meta
+	config msql.Params
+}
+
 type ModelCallHandler struct {
 	modelInfo *ModelInfo
 	adaptor.Meta
@@ -32,26 +40,28 @@ type ModelCallHandler struct {
 }
 
 type HandlerFunc func(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error)
+type SupplierHandlerFunc func(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error)
 type BeforeFunc func(info ModelInfo, config msql.Params, useModel string) error
 type AfterFunc func(config msql.Params, useModel string, promptToken, completionToken int, robot msql.Params)
 
 type ModelInfo struct {
-	ModelDefine            string           `json:"model_define"`
-	ModelName              string           `json:"model_name"`
-	ModelIconUrl           string           `json:"model_icon_url"`
-	Introduce              string           `json:"introduce"`
-	SupportList            []string         `json:"support_list"`
-	SupportedType          []string         `json:"supported_type"`
-	ConfigParams           []string         `json:"config_params"`
-	HistoryConfigParams    []string         `json:"history_config_params"`
-	ApiVersions            []string         `json:"api_versions"`
-	NetworkSearchModelList []string         `json:"network_search_model_list"`
-	HelpLinks              string           `json:"help_links"`
-	CallHandlerFunc        HandlerFunc      `json:"-"`
-	CheckAllowRequest      BeforeFunc       `json:"-"`
-	TokenUseReport         AfterFunc        `json:"-"`
-	ConfigInfo             msql.Params      `json:"config_info"`
-	UseModelConfigs        []UseModelConfig `json:"use_model_configs"`
+	ModelDefine             string              `json:"model_define"`
+	ModelName               string              `json:"model_name"`
+	ModelIconUrl            string              `json:"model_icon_url"`
+	Introduce               string              `json:"introduce"`
+	SupportList             []string            `json:"support_list"`
+	SupportedType           []string            `json:"supported_type"`
+	ConfigParams            []string            `json:"config_params"`
+	HistoryConfigParams     []string            `json:"history_config_params"`
+	ApiVersions             []string            `json:"api_versions"`
+	NetworkSearchModelList  []string            `json:"network_search_model_list"`
+	HelpLinks               string              `json:"help_links"`
+	CallHandlerFunc         HandlerFunc         `json:"-"`
+	CallSupplierhandlerFunc SupplierHandlerFunc `json:"-"`
+	CheckAllowRequest       BeforeFunc          `json:"-"`
+	TokenUseReport          AfterFunc           `json:"-"`
+	ConfigInfo              msql.Params         `json:"config_info"`
+	UseModelConfigs         []UseModelConfig    `json:"use_model_configs"`
 }
 
 func (modelInfo *ModelInfo) SetUseModelConfigs(useModelList []msql.Params) {
@@ -237,27 +247,29 @@ func GetModelConfigList() []ModelInfo {
 
 var modelConfigList = [...]ModelInfo{
 	{
-		ModelDefine:     ModelOpenAI,
-		ModelName:       `OpenAI`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelOpenAI + `.png`,
-		Introduce:       `基于OpenAI官方提供的API`,
-		SupportList:     []string{Llm, TextEmbedding},
-		SupportedType:   []string{Llm, TextEmbedding},
-		ConfigParams:    []string{`api_key`},
-		HelpLinks:       `https://openai.com/`,
-		CallHandlerFunc: GetOpenAIHandle,
+		ModelDefine:             ModelOpenAI,
+		ModelName:               `OpenAI`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelOpenAI + `.png`,
+		Introduce:               `基于OpenAI官方提供的API`,
+		SupportList:             []string{Llm, TextEmbedding},
+		SupportedType:           []string{Llm, TextEmbedding},
+		ConfigParams:            []string{`api_key`},
+		HelpLinks:               `https://openai.com/`,
+		CallHandlerFunc:         GetOpenAIHandle,
+		CallSupplierhandlerFunc: GetOpenAISupplierHandle,
 	},
 	{
-		ModelDefine:     ModelOpenAIAgent,
-		ModelName:       `其他兼容OpenAI API的模型服务商`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelOpenAI + `.png`,
-		Introduce:       `支持添加其他兼容OpenAi API的模型服务商，比如api2d、oneapi等`,
-		SupportList:     []string{Llm, TextEmbedding},
-		SupportedType:   []string{Llm, TextEmbedding},
-		ConfigParams:    []string{`api_endpoint`, `api_key`, `api_version`},
-		ApiVersions:     []string{"v1", `v3`},
-		HelpLinks:       `https://openai.com/`,
-		CallHandlerFunc: GetOpenAIAgentHandle,
+		ModelDefine:             ModelOpenAIAgent,
+		ModelName:               `其他兼容OpenAI API的模型服务商`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelOpenAI + `.png`,
+		Introduce:               `支持添加其他兼容OpenAi API的模型服务商，比如api2d、oneapi等`,
+		SupportList:             []string{Llm, TextEmbedding},
+		SupportedType:           []string{Llm, TextEmbedding},
+		ConfigParams:            []string{`api_endpoint`, `api_key`, `api_version`},
+		ApiVersions:             []string{"v1", `v3`},
+		HelpLinks:               `https://openai.com/`,
+		CallHandlerFunc:         GetOpenAIAgentHandle,
+		CallSupplierhandlerFunc: GetOpenAIAgentSupplierHandle,
 	},
 	{
 		ModelDefine:   ModelAzureOpenAI,
@@ -277,30 +289,33 @@ var modelConfigList = [...]ModelInfo{
 			`2024-05-01-preview`,
 			`2024-02-01`,
 		},
-		HelpLinks:       `https://azure.microsoft.com/en-us/products/ai-services/openai-service`,
-		CallHandlerFunc: GetAzureHandler,
+		HelpLinks:               `https://azure.microsoft.com/en-us/products/ai-services/openai-service`,
+		CallHandlerFunc:         GetAzureHandler,
+		CallSupplierhandlerFunc: GetAzureSupplierHandler,
 	},
 	{
-		ModelDefine:     ModelAnthropicClaude,
-		ModelName:       `Anthropic Claude`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelAnthropicClaude + `.png`,
-		Introduce:       `Anthropic出品的Claude模型`,
-		SupportList:     []string{Llm},
-		SupportedType:   []string{Llm},
-		ConfigParams:    []string{`api_key`},
-		HelpLinks:       `https://claude.ai/`,
-		CallHandlerFunc: GetClaudeHandler,
+		ModelDefine:             ModelAnthropicClaude,
+		ModelName:               `Anthropic Claude`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelAnthropicClaude + `.png`,
+		Introduce:               `Anthropic出品的Claude模型`,
+		SupportList:             []string{Llm},
+		SupportedType:           []string{Llm},
+		ConfigParams:            []string{`api_key`},
+		HelpLinks:               `https://claude.ai/`,
+		CallHandlerFunc:         GetClaudeHandler,
+		CallSupplierhandlerFunc: GetClaudeSupplierHandler,
 	},
 	{
-		ModelDefine:     ModelGoogleGemini,
-		ModelName:       `Google Gemini`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelGoogleGemini + `.png`,
-		Introduce:       `基于Google提供的Gemini API`,
-		SupportList:     []string{Llm, TextEmbedding},
-		SupportedType:   []string{Llm, TextEmbedding},
-		ConfigParams:    []string{`api_key`},
-		HelpLinks:       `https://ai.google.dev/`,
-		CallHandlerFunc: GetGeminiHandler,
+		ModelDefine:             ModelGoogleGemini,
+		ModelName:               `Google Gemini`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelGoogleGemini + `.png`,
+		Introduce:               `基于Google提供的Gemini API`,
+		SupportList:             []string{Llm, TextEmbedding},
+		SupportedType:           []string{Llm, TextEmbedding},
+		ConfigParams:            []string{`api_key`},
+		HelpLinks:               `https://ai.google.dev/`,
+		CallHandlerFunc:         GetGeminiHandler,
+		CallSupplierhandlerFunc: GetGeminiSupplierHandler,
 	},
 	{
 		ModelDefine:         ModelBaiduYiyan,
@@ -319,8 +334,9 @@ var modelConfigList = [...]ModelInfo{
 			`deepseek-v3`,
 			`deepseek-r1`,
 		},
-		HelpLinks:       `https://cloud.baidu.com/`,
-		CallHandlerFunc: GetYiyanHandler,
+		HelpLinks:               `https://cloud.baidu.com/`,
+		CallHandlerFunc:         GetYiyanHandler,
+		CallSupplierhandlerFunc: GetYiyanSupplierHandler,
 	},
 	{
 		ModelDefine:   ModelAliyunTongyi,
@@ -337,175 +353,191 @@ var modelConfigList = [...]ModelInfo{
 			`qwen-max`,
 			`Moonshot-Kimi-K2-Instruct`,
 		},
-		HelpLinks:       `https://dashscope.aliyun.com/?spm=a2c4g.11186623.nav-dropdown-menu-0.142.6d1b46c1EeV28g&scm=20140722.X_data-37f0c4e3bf04683d35bc._.V_1`,
-		CallHandlerFunc: GetTongyiHandler,
+		HelpLinks:               `https://dashscope.aliyun.com/?spm=a2c4g.11186623.nav-dropdown-menu-0.142.6d1b46c1EeV28g&scm=20140722.X_data-37f0c4e3bf04683d35bc._.V_1`,
+		CallHandlerFunc:         GetTongyiHandler,
+		CallSupplierhandlerFunc: GetTongyiSupplierHandler,
 	},
 	{
-		ModelDefine:     ModelBaai,
-		ModelName:       `BGE`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelBaai + `.png`,
-		Introduce:       `由北京智源人工智能研究院研发的本地模型，包含bge-rerank-base、bge-m3模型，支持嵌入和rerank。使用bge系列模型，无需消耗token，但是本地模型运行需要硬件支持，请确保服务器有足够的内存（至少8G内存）和用于计算的GPU`,
-		SupportList:     []string{TextEmbedding, Rerank},
-		SupportedType:   []string{TextEmbedding, Rerank},
-		ConfigParams:    []string{`api_endpoint`},
-		HelpLinks:       `https://www.baidu.com/`,
-		CallHandlerFunc: GetBaaiHandle,
+		ModelDefine:             ModelBaai,
+		ModelName:               `BGE`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelBaai + `.png`,
+		Introduce:               `由北京智源人工智能研究院研发的本地模型，包含bge-rerank-base、bge-m3模型，支持嵌入和rerank。使用bge系列模型，无需消耗token，但是本地模型运行需要硬件支持，请确保服务器有足够的内存（至少8G内存）和用于计算的GPU`,
+		SupportList:             []string{TextEmbedding, Rerank},
+		SupportedType:           []string{TextEmbedding, Rerank},
+		ConfigParams:            []string{`api_endpoint`},
+		HelpLinks:               `https://www.baidu.com/`,
+		CallHandlerFunc:         GetBaaiHandle,
+		CallSupplierhandlerFunc: GetBaaiSupplierHandle,
 	},
 	{
-		ModelDefine:     ModelCohere,
-		ModelName:       `Cohere`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelCohere + `.png`,
-		Introduce:       `cohere提供的模型，包含Command、Command R、Command R+等`,
-		SupportList:     []string{Llm, TextEmbedding, Rerank},
-		SupportedType:   []string{Llm, TextEmbedding, Rerank},
-		ConfigParams:    []string{`api_key`},
-		HelpLinks:       `https://cohere.com/`,
-		CallHandlerFunc: GetCohereHandle,
+		ModelDefine:             ModelCohere,
+		ModelName:               `Cohere`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelCohere + `.png`,
+		Introduce:               `cohere提供的模型，包含Command、Command R、Command R+等`,
+		SupportList:             []string{Llm, TextEmbedding, Rerank},
+		SupportedType:           []string{Llm, TextEmbedding, Rerank},
+		ConfigParams:            []string{`api_key`},
+		HelpLinks:               `https://cohere.com/`,
+		CallHandlerFunc:         GetCohereHandle,
+		CallSupplierhandlerFunc: GetCohereSupplierHandle,
 	},
 	{
-		ModelDefine:     ModelOllama,
-		ModelName:       `Ollama`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelOllama + `.png`,
-		Introduce:       `Ollama是一个轻量级的简单易用的本地大模型运行框架,通过Ollama可以在本地服务器构建和运营大语言模型(比如Llama3等).ChatWiki支持使用Ollama部署LLM的型和Text Embedding模型`,
-		SupportList:     []string{Llm, TextEmbedding},
-		SupportedType:   []string{Llm, TextEmbedding},
-		ConfigParams:    []string{`api_endpoint`},
-		HelpLinks:       `https://www.ollama.com/`,
-		CallHandlerFunc: GetOllamaHandle,
+		ModelDefine:             ModelOllama,
+		ModelName:               `Ollama`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelOllama + `.png`,
+		Introduce:               `Ollama是一个轻量级的简单易用的本地大模型运行框架,通过Ollama可以在本地服务器构建和运营大语言模型(比如Llama3等).ChatWiki支持使用Ollama部署LLM的型和Text Embedding模型`,
+		SupportList:             []string{Llm, TextEmbedding},
+		SupportedType:           []string{Llm, TextEmbedding},
+		ConfigParams:            []string{`api_endpoint`},
+		HelpLinks:               `https://www.ollama.com/`,
+		CallHandlerFunc:         GetOllamaHandle,
+		CallSupplierhandlerFunc: GetOllamaSupplierHandle,
 	},
 	{
-		ModelDefine:     ModelXnference,
-		ModelName:       `xorbitsai inference`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelXnference + `.png`,
-		Introduce:       `Xorbits Inference(Xinference)是一个开源平台,用于简化各种AI模型的运行和集成,借助Xinference,您可以使用任何开源LLM,嵌入模型和多模态模型在本地服务器中部署`,
-		SupportList:     []string{Llm, TextEmbedding, Rerank},
-		SupportedType:   []string{Llm, TextEmbedding, Rerank},
-		ConfigParams:    []string{`api_version`, `api_endpoint`},
-		ApiVersions:     []string{"v1"},
-		HelpLinks:       `https://baidu.com/`,
-		CallHandlerFunc: GetXinferenceHandle,
+		ModelDefine:             ModelXnference,
+		ModelName:               `xorbitsai inference`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelXnference + `.png`,
+		Introduce:               `Xorbits Inference(Xinference)是一个开源平台,用于简化各种AI模型的运行和集成,借助Xinference,您可以使用任何开源LLM,嵌入模型和多模态模型在本地服务器中部署`,
+		SupportList:             []string{Llm, TextEmbedding, Rerank},
+		SupportedType:           []string{Llm, TextEmbedding, Rerank},
+		ConfigParams:            []string{`api_version`, `api_endpoint`},
+		ApiVersions:             []string{"v1"},
+		HelpLinks:               `https://baidu.com/`,
+		CallHandlerFunc:         GetXinferenceHandle,
+		CallSupplierhandlerFunc: GetXinferenceSupplierHandle,
 	},
 	{
-		ModelDefine:     ModelDeepseek,
-		ModelName:       `DeepSeek`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelDeepseek + `.png`,
-		Introduce:       `由DeepSeek提供的大模型API`,
-		SupportList:     []string{Llm},
-		SupportedType:   []string{Llm},
-		ConfigParams:    []string{`api_key`},
-		HelpLinks:       `https://www.deepseek.com/`,
-		CallHandlerFunc: GetDeepseekHandle,
+		ModelDefine:             ModelDeepseek,
+		ModelName:               `DeepSeek`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelDeepseek + `.png`,
+		Introduce:               `由DeepSeek提供的大模型API`,
+		SupportList:             []string{Llm},
+		SupportedType:           []string{Llm},
+		ConfigParams:            []string{`api_key`},
+		HelpLinks:               `https://www.deepseek.com/`,
+		CallHandlerFunc:         GetDeepseekHandle,
+		CallSupplierhandlerFunc: GetDeepseekSupplierHandle,
 	},
 	{
-		ModelDefine:     ModelJina,
-		ModelName:       `Jina`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelJina + `.png`,
-		Introduce:       `有Jina提供的嵌入和Rerank模型，`,
-		SupportList:     []string{TextEmbedding, Rerank},
-		SupportedType:   []string{TextEmbedding, Rerank},
-		ConfigParams:    []string{`api_key`},
-		HelpLinks:       `https://jina.ai/`,
-		CallHandlerFunc: GetJinaHandle,
+		ModelDefine:             ModelJina,
+		ModelName:               `Jina`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelJina + `.png`,
+		Introduce:               `有Jina提供的嵌入和Rerank模型，`,
+		SupportList:             []string{TextEmbedding, Rerank},
+		SupportedType:           []string{TextEmbedding, Rerank},
+		ConfigParams:            []string{`api_key`},
+		HelpLinks:               `https://jina.ai/`,
+		CallHandlerFunc:         GetJinaHandle,
+		CallSupplierhandlerFunc: GetJinaSupplierHandle,
 	},
 	{
-		ModelDefine:     ModelLingYiWanWu,
-		ModelName:       `零一万物`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelLingYiWanWu + `.png`,
-		Introduce:       `基于零一万物提供的零一大模型API`,
-		SupportList:     []string{Llm},
-		SupportedType:   []string{Llm},
-		ConfigParams:    []string{`api_key`},
-		HelpLinks:       `https://platform.lingyiwanwu.com/`,
-		CallHandlerFunc: GetLingYiWanWuHandle,
+		ModelDefine:             ModelLingYiWanWu,
+		ModelName:               `零一万物`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelLingYiWanWu + `.png`,
+		Introduce:               `基于零一万物提供的零一大模型API`,
+		SupportList:             []string{Llm},
+		SupportedType:           []string{Llm},
+		ConfigParams:            []string{`api_key`},
+		HelpLinks:               `https://platform.lingyiwanwu.com/`,
+		CallHandlerFunc:         GetLingYiWanWuHandle,
+		CallSupplierhandlerFunc: GetLingYiWanWuSupplierHandle,
 	},
 	{
-		ModelDefine:     ModelMoonShot,
-		ModelName:       `月之暗面`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelMoonShot + `.png`,
-		Introduce:       `基于月之暗面提供的Kimi API`,
-		SupportList:     []string{Llm},
-		SupportedType:   []string{Llm},
-		ConfigParams:    []string{`api_key`},
-		HelpLinks:       `https://www.moonshot.cn/`,
-		CallHandlerFunc: GetMoonShotHandle,
+		ModelDefine:             ModelMoonShot,
+		ModelName:               `月之暗面`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelMoonShot + `.png`,
+		Introduce:               `基于月之暗面提供的Kimi API`,
+		SupportList:             []string{Llm},
+		SupportedType:           []string{Llm},
+		ConfigParams:            []string{`api_key`},
+		HelpLinks:               `https://www.moonshot.cn/`,
+		CallHandlerFunc:         GetMoonShotHandle,
+		CallSupplierhandlerFunc: GetMoonShotSupplierHandle,
 	},
 	{
-		ModelDefine:     ModelSpark,
-		ModelName:       `讯飞星火`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelSpark + `.png`,
-		Introduce:       `基于科大讯飞提供的讯飞星火大模型API`,
-		SupportList:     []string{Llm},
-		SupportedType:   []string{Llm},
-		ConfigParams:    []string{`app_id`, `api_key`, `secret_key`},
-		HelpLinks:       `https://xinghuo.xfyun.cn/sparkapi`,
-		CallHandlerFunc: GetSparkHandle,
+		ModelDefine:             ModelSpark,
+		ModelName:               `讯飞星火`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelSpark + `.png`,
+		Introduce:               `基于科大讯飞提供的讯飞星火大模型API`,
+		SupportList:             []string{Llm},
+		SupportedType:           []string{Llm},
+		ConfigParams:            []string{`app_id`, `api_key`, `secret_key`},
+		HelpLinks:               `https://xinghuo.xfyun.cn/sparkapi`,
+		CallHandlerFunc:         GetSparkHandle,
+		CallSupplierhandlerFunc: GetSparkSupplierHandle,
 	},
 	{
-		ModelDefine:     ModelHunyuan,
-		ModelName:       `腾讯混元`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelHunyuan + `.png`,
-		Introduce:       `腾讯混元大模型由腾讯公司全链路自研`,
-		SupportList:     []string{Llm, TextEmbedding},
-		SupportedType:   []string{Llm, TextEmbedding},
-		ConfigParams:    []string{`api_key`, `secret_key`},
-		HelpLinks:       `https://cloud.tencent.com/product/hunyuan`,
-		CallHandlerFunc: GetHunyuanHandle,
+		ModelDefine:             ModelHunyuan,
+		ModelName:               `腾讯混元`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelHunyuan + `.png`,
+		Introduce:               `腾讯混元大模型由腾讯公司全链路自研`,
+		SupportList:             []string{Llm, TextEmbedding},
+		SupportedType:           []string{Llm, TextEmbedding},
+		ConfigParams:            []string{`api_key`, `secret_key`},
+		HelpLinks:               `https://cloud.tencent.com/product/hunyuan`,
+		CallHandlerFunc:         GetHunyuanHandle,
+		CallSupplierhandlerFunc: GetHunyuanSupplierHandle,
 	},
 	{
-		ModelDefine:         ModelDoubao,
-		ModelName:           `火山引擎`,
-		ModelIconUrl:        define.LocalUploadPrefix + `model_icon/` + ModelDoubao + `.png`,
-		Introduce:           `基于火山引擎提供的豆包大模型API`,
-		SupportList:         []string{Llm, TextEmbedding, Image},
-		SupportedType:       []string{Llm, TextEmbedding, Image},
-		ConfigParams:        []string{`api_key`, `region`},
-		HistoryConfigParams: []string{`secret_key`},
-		HelpLinks:           `https://www.volcengine.com/product/doubao`,
-		CallHandlerFunc:     GetDoubaoHandle,
+		ModelDefine:             ModelDoubao,
+		ModelName:               `火山引擎`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelDoubao + `.png`,
+		Introduce:               `基于火山引擎提供的豆包大模型API`,
+		SupportList:             []string{Llm, TextEmbedding, Image},
+		SupportedType:           []string{Llm, TextEmbedding, Image},
+		ConfigParams:            []string{`api_key`, `region`},
+		HistoryConfigParams:     []string{`secret_key`},
+		HelpLinks:               `https://www.volcengine.com/product/doubao`,
+		CallHandlerFunc:         GetDoubaoHandle,
+		CallSupplierhandlerFunc: GetDoubaoSupplierHandle,
 	},
 	{
-		ModelDefine:     ModelBaichuan,
-		ModelName:       `百川智能`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelBaichuan + `.png`,
-		Introduce:       `基于百川智能提供的百川大模型API`,
-		SupportList:     []string{Llm, TextEmbedding},
-		SupportedType:   []string{Llm, TextEmbedding},
-		ConfigParams:    []string{`api_key`},
-		HelpLinks:       `https://platform.baichuan-ai.com`,
-		CallHandlerFunc: GetBaichuanHandle,
+		ModelDefine:             ModelBaichuan,
+		ModelName:               `百川智能`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelBaichuan + `.png`,
+		Introduce:               `基于百川智能提供的百川大模型API`,
+		SupportList:             []string{Llm, TextEmbedding},
+		SupportedType:           []string{Llm, TextEmbedding},
+		ConfigParams:            []string{`api_key`},
+		HelpLinks:               `https://platform.baichuan-ai.com`,
+		CallHandlerFunc:         GetBaichuanHandle,
+		CallSupplierhandlerFunc: GetBaichuanSupplierHandle,
 	},
 	{
-		ModelDefine:     ModelZhipu,
-		ModelName:       `智谱`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelZhipu + `.png`,
-		Introduce:       `领先的认知大模型AI开放平台`,
-		SupportList:     []string{Llm, TextEmbedding},
-		SupportedType:   []string{Llm, TextEmbedding},
-		ConfigParams:    []string{`api_key`},
-		HelpLinks:       `https://open.bigmodel.cn/`,
-		CallHandlerFunc: GetZhipuHandle,
+		ModelDefine:             ModelZhipu,
+		ModelName:               `智谱`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelZhipu + `.png`,
+		Introduce:               `领先的认知大模型AI开放平台`,
+		SupportList:             []string{Llm, TextEmbedding},
+		SupportedType:           []string{Llm, TextEmbedding},
+		ConfigParams:            []string{`api_key`},
+		HelpLinks:               `https://open.bigmodel.cn/`,
+		CallHandlerFunc:         GetZhipuHandle,
+		CallSupplierhandlerFunc: GetZhipuSupplierHandle,
 	},
 	{
-		ModelDefine:     ModelMinimax,
-		ModelName:       `minimax`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelMinimax + `.png`,
-		Introduce:       `MiniMax 成立于 2021 年 12 月，是领先的通用人工智能科技公司，致力于与用户共创智能。MiniMax 自主研发多模态、万亿参数的 MoE 大模型，并基于大模型推出海螺AI、星野等原生应用。MiniMax API 开放平台提供安全、灵活、可靠的 API 服务，助力企业和开发者快速搭建 AI 应用。`,
-		SupportList:     []string{Llm, Tts},
-		SupportedType:   []string{Llm, Tts},
-		ConfigParams:    []string{`api_key`},
-		HelpLinks:       `https://www.minimaxi.com/`,
-		CallHandlerFunc: GetMinimaxHandle,
+		ModelDefine:             ModelMinimax,
+		ModelName:               `minimax`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelMinimax + `.png`,
+		Introduce:               `MiniMax 成立于 2021 年 12 月，是领先的通用人工智能科技公司，致力于与用户共创智能。MiniMax 自主研发多模态、万亿参数的 MoE 大模型，并基于大模型推出海螺AI、星野等原生应用。MiniMax API 开放平台提供安全、灵活、可靠的 API 服务，助力企业和开发者快速搭建 AI 应用。`,
+		SupportList:             []string{Llm, Tts},
+		SupportedType:           []string{Llm, Tts},
+		ConfigParams:            []string{`api_key`},
+		HelpLinks:               `https://www.minimaxi.com/`,
+		CallHandlerFunc:         GetMinimaxHandle,
+		CallSupplierhandlerFunc: GetMinimaxSupplierHandle,
 	},
 	{
-		ModelDefine:     ModelSiliconFlow,
-		ModelName:       `硅基流动`,
-		ModelIconUrl:    define.LocalUploadPrefix + `model_icon/` + ModelSiliconFlow + `.png`,
-		Introduce:       `支持通义千问，mata-lama，google-gemma，bge-m3等开源模型，可以免部署、低成本使用`,
-		SupportList:     []string{Llm, TextEmbedding, Rerank},
-		SupportedType:   []string{Llm, TextEmbedding, Rerank},
-		ConfigParams:    []string{`api_key`},
-		HelpLinks:       `https://siliconflow.cn/zh-cn/`,
-		CallHandlerFunc: GetSiliconFlow,
+		ModelDefine:             ModelSiliconFlow,
+		ModelName:               `硅基流动`,
+		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelSiliconFlow + `.png`,
+		Introduce:               `支持通义千问，mata-lama，google-gemma，bge-m3等开源模型，可以免部署、低成本使用`,
+		SupportList:             []string{Llm, TextEmbedding, Rerank},
+		SupportedType:           []string{Llm, TextEmbedding, Rerank},
+		ConfigParams:            []string{`api_key`},
+		HelpLinks:               `https://siliconflow.cn/zh-cn/`,
+		CallHandlerFunc:         GetSiliconFlowHandle,
+		CallSupplierhandlerFunc: GetSiliconFlowSupplierHandle,
 	},
 }
 
@@ -514,6 +546,21 @@ func CompatibleUseModelOldData(config msql.Params, useModel string) string {
 		useModel = config[`deployment_name`]
 	}
 	return useModel
+}
+
+func GetSupplierCallHandler(adminUserId, modelConfigId int) (*SupplierHandler, error) {
+	modelInfo, ok := GetModelInfoByConfig(adminUserId, modelConfigId)
+	if !ok {
+		return nil, errors.New(`模型配置ID参数错误`)
+	}
+	config := modelInfo.ConfigInfo
+	logs.Debug("modelInfo", modelInfo)
+	handler, err := modelInfo.CallSupplierhandlerFunc(modelInfo, config)
+	if err != nil {
+		return nil, err
+	}
+	handler.modelInfo = &modelInfo //save quote
+	return handler, nil
 }
 
 func GetModelCallHandler(adminUserId, modelConfigId int, useModel string, robot msql.Params) (*ModelCallHandler, error) {
@@ -1105,4 +1152,207 @@ func formatImageGenerateParams(params *adaptor.ZhimaImageGenerationReq, useModel
 			break
 		}
 	}
+}
+
+func (h *SupplierHandler) TtsGetVoiceList(adminUserId int) ([]map[string]any, error) {
+	if h.modelInfo.ModelDefine != ModelMinimax {
+		return nil, fmt.Errorf("model not support")
+	}
+	url := "https://api.minimaxi.com/v1/get_voice"
+
+	var result map[string]any
+	var voiceList []map[string]any
+	request := curl.Post(url).
+		Header("Authorization", "Bearer "+h.APIKey).
+		Header("Content-Type", "application/json").
+		Param(`voice_type`, `all`)
+
+	if err := request.ToJSON(&result); err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+
+	// 检查响应状态
+	if baseResp, ok := result["base_resp"].(map[string]any); ok {
+		if statusCode, ok := baseResp["status_code"].(float64); ok {
+			if statusCode != 0 {
+				statusMsg, _ := baseResp["status_msg"].(string)
+				return nil, fmt.Errorf("API error: %s", statusMsg)
+			}
+		}
+	}
+
+	if systemVoice, ok := result["system_voice"].([]any); ok {
+		for _, v := range systemVoice {
+			if voiceMap, ok := v.(map[string]any); ok {
+				voiceMap["type"] = "system"
+				voiceList = append(voiceList, voiceMap)
+			}
+		}
+	}
+	if voiceCloning, ok := result["voice_cloning"].([]any); ok {
+		for _, v := range voiceCloning {
+			if voiceMap, ok := v.(map[string]any); ok {
+				voiceMap["type"] = "voice_cloning"
+				voiceList = append(voiceList, voiceMap)
+			}
+		}
+	}
+	if voiceGeneration, ok := result["voice_generation"].([]any); ok {
+		for _, v := range voiceGeneration {
+			if voiceMap, ok := v.(map[string]any); ok {
+				voiceMap["type"] = "voice_generation"
+				voiceList = append(voiceList, voiceMap)
+			}
+		}
+	}
+
+	return voiceList, nil
+}
+
+func (h *SupplierHandler) TtsUploadVoiceFile(purpose, filePath string) (map[string]any, error) {
+	if h.modelInfo.ModelDefine != ModelMinimax {
+		return nil, fmt.Errorf("model not support")
+	}
+
+	url := "https://api.minimaxi.com/v1/files/upload"
+
+	// 验证文件是否存在
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return nil, errors.New("file not found: " + filePath)
+	}
+
+	// 检查文件大小
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file info: %w", err)
+	}
+	if fileInfo.Size() > 20*1024*1024 { // 20MB
+		return nil, errors.New("file size exceeds 20MB limit")
+	}
+
+	var result map[string]any
+	request := curl.Post(url).
+		Header("Authorization", "Bearer "+h.APIKey).
+		PostFile("file", filePath).
+		Param("purpose", purpose)
+
+	if resp, err := request.Response(); err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	} else if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP error: %d", resp.StatusCode)
+	}
+
+	if err := request.ToJSON(&result); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	// 检查响应状态
+	if baseResp, ok := result["base_resp"].(map[string]any); ok {
+		if statusCode, ok := baseResp["status_code"].(float64); ok {
+			if statusCode != 0 {
+				statusMsg, _ := baseResp["status_msg"].(string)
+				return nil, fmt.Errorf("API error: %s", statusMsg)
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func (h *SupplierHandler) TtsCloneVoice(params map[string]any) (map[string]any, error) {
+	if h.modelInfo.ModelDefine != ModelMinimax {
+		return nil, fmt.Errorf("model not support")
+	}
+
+	url := "https://api.minimaxi.com/v1/voice_clone"
+
+	var result map[string]any
+	request := curl.Post(url).
+		Header("Authorization", "Bearer "+h.APIKey).
+		Header("Content-Type", "application/json")
+
+	request, err := request.JSONBody(params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request body: %w", err)
+	}
+	if err = request.ToJSON(&result); err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+
+	// 检查响应状态
+	if baseResp, ok := result["base_resp"].(map[string]any); ok {
+		if statusCode, ok := baseResp["status_code"].(float64); ok {
+			if statusCode != 0 {
+				statusMsg, _ := baseResp["status_msg"].(string)
+				return nil, fmt.Errorf("API error: %s", statusMsg)
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func (h *ModelCallHandler) TtsSpeechT2A(params map[string]any) (map[string]any, error) {
+	if h.modelInfo.ModelDefine != ModelMinimax {
+		return nil, fmt.Errorf("model not support")
+	}
+
+	url := "https://api.minimaxi.com/v1/t2a_v2"
+
+	var result map[string]any
+	request := curl.Post(url).
+		Header("Authorization", "Bearer "+h.APIKey).
+		Header("Content-Type", "application/json")
+
+	request, err := request.JSONBody(params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request body: %w", err)
+	}
+	if err := request.ToJSON(&result); err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+
+	// 检查响应状态
+	if baseResp, ok := result["base_resp"].(map[string]any); ok {
+		if statusCode, ok := baseResp["status_code"].(float64); ok {
+			if statusCode != 0 {
+				statusMsg, _ := baseResp["status_msg"].(string)
+				return nil, fmt.Errorf("API error: %s", statusMsg)
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func TtsGetVoiceList(adminUserId, modelConfigId int) ([]map[string]any, error) {
+	handler, err := GetSupplierCallHandler(adminUserId, modelConfigId)
+	if err != nil {
+		return nil, err
+	}
+	return handler.TtsGetVoiceList(adminUserId)
+}
+
+func TtsUploadVoiceFile(adminUserId, modelConfigId int, perpose, filePath string) (map[string]any, error) {
+	handler, err := GetSupplierCallHandler(adminUserId, modelConfigId)
+	if err != nil {
+		return nil, err
+	}
+	return handler.TtsUploadVoiceFile(perpose, filePath)
+}
+
+func TtsCloneVoice(adminUserId, modelConfigId int, params map[string]any) (map[string]any, error) {
+	handler, err := GetSupplierCallHandler(adminUserId, modelConfigId)
+	if err != nil {
+		return nil, err
+	}
+	return handler.TtsCloneVoice(params)
+}
+
+func TtsSpeechT2A(adminUserId, modelConfigId int, useModel string, params map[string]any) (map[string]any, error) {
+	handler, err := GetModelCallHandler(adminUserId, modelConfigId, useModel, nil)
+	if err != nil {
+		return nil, err
+	}
+	return handler.TtsSpeechT2A(params)
 }

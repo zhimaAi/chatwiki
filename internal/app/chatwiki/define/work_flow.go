@@ -12,3 +12,10 @@ type NodeLogs struct {
 	} `json:"output"`
 	UseTime any `json:"use_time"`
 }
+
+const (
+	FinishNodeOutTypeVariable = "variable"
+	FinishNodeOutTypeMessage  = "message"
+)
+
+const FinishReplyPrefixKey = `special.finish_reply_content_`

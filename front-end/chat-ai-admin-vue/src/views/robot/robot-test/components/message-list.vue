@@ -576,6 +576,10 @@
                   </div>
                 </div>
               </div>
+              <!-- 语音消息 -->
+              <div v-if="item.voice_content && item.voice_content.length">
+                <VoiceMessage :voice_content="item.voice_content" />
+              </div>
               <GuessYouWant
                 v-if="
                   ((item.guess_you_want && item.guess_you_want.length) ||
@@ -601,6 +605,7 @@ import { ref, nextTick, toRaw, computed } from 'vue'
 import { LoadingOutlined, InfoCircleOutlined } from '@ant-design/icons-vue'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import GuessYouWant from './guess-you-want.vue'
+import VoiceMessage from './voice-message.vue'
 import TextMessage from './messages/text-message.vue'
 import MultipleMessage from './messages/multiple-message.vue'
 

@@ -106,7 +106,7 @@
       left: -5px;
     }
     .hover-copy-tool-block {
-      bottom: -35px;
+      bottom: -26px;
       left: 8px;
     }
   }
@@ -883,6 +883,10 @@
           @sendTextMessage="sendTextMessage"
         />
       </div>
+      <!-- 语音消息 -->
+      <div :style="{'margin-top': props.msg.content == '' ? '-24px' : ''}" v-if="props.msg.voice_content && props.msg.voice_content.length">
+        <VoiceMessage :voice_content="props.msg.voice_content" />
+      </div>
     </div>
     <quote-modal ref="quoteModalRef"></quote-modal>
   </div>
@@ -899,6 +903,7 @@ import GuessYouWant from './guess-you-want.vue'
 import { showToast } from 'vant'
 import useClipboard from 'vue-clipboard3'
 import QuoteModal from '../quote-modal/index.vue'
+import VoiceMessage from './voice-message.vue'
 import MultipleMessage from './multiple-message.vue'
 
 interface praiseParams {

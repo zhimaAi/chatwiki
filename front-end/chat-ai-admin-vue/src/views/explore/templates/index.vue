@@ -20,7 +20,7 @@
             @click="selectCate(cate)"
           >
             <div>{{ cate.name }}</div>
-            <span v-if="cate.template_count > 0" class="count">{{ cate.template_count }}</span>
+            <span class="count">{{ cate.template_count || 0}}</span>
           </div>
         </div>
       </div>
@@ -395,10 +395,10 @@ function useTemplate(item) {
       margin-top: 20px;
     }
   }
-  
+
   .trigger-plugin-item {
     cursor: auto;
-    
+
     &:hover {
       box-shadow: none;
     }

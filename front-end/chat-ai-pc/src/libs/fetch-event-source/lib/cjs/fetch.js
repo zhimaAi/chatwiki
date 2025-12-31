@@ -17,7 +17,7 @@ exports.EventStreamContentType = 'text/event-stream';
 const DefaultRetryInterval = 1000;
 const LastEventId = 'last-event-id';
 function fetchEventSource(input, _a) {
-    var { signal: inputSignal, headers: inputHeaders, onopen: inputOnOpen, onmessage, onclose, onerror, openWhenHidden, fetch: inputFetch } = _a, rest = __rest(_a, ["signal", "headers", "onopen", "onmessage", "onclose", "onerror", "openWhenHidden", "fetch"]);
+    var { signal: inputSignal, headers: inputHeaders, onopen: inputOnOpen, onmessage, onclose, onerror, openWhenHidden, retryOnError = false, fetch: inputFetch } = _a, rest = __rest(_a, ["signal", "headers", "onopen", "onmessage", "onclose", "onerror", "openWhenHidden", "retryOnError", "fetch"]);
     return new Promise((resolve, reject) => {
         const headers = Object.assign({}, inputHeaders);
         if (!headers.accept) {
@@ -52,7 +52,7 @@ function fetchEventSource(input, _a) {
             try {
                 const response = await fetch(input, Object.assign(Object.assign({}, rest), { headers, signal: curRequestController.signal }));
                 await onopen(response);
-                await parse_1.getBytes(response.body, parse_1.getLines(parse_1.getMessages(id => {
+                await (0, parse_1.getBytes)(response.body, (0, parse_1.getLines)((0, parse_1.getMessages)(id => {
                     if (id) {
                         headers[LastEventId] = id;
                     }
@@ -67,7 +67,7 @@ function fetchEventSource(input, _a) {
                 resolve();
             }
             catch (err) {
-                if (!curRequestController.signal.aborted) {
+                if (!curRequestController.signal.aborted && retryOnError) {
                     try {
                         const interval = (_a = onerror === null || onerror === void 0 ? void 0 : onerror(err)) !== null && _a !== void 0 ? _a : retryInterval;
                         window.clearTimeout(retryTimer);

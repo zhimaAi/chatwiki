@@ -5,9 +5,11 @@ package work_flow
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_define"
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -336,12 +338,7 @@ func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monit
 	}
 
 	var replyContentNodes = []string{`special.llm_reply_content`, `special.question_optimize_reply_content`, `special.mcp_reply_content`}
-	for _, nodeKey := range replyContentNodes {
-		content = cast.ToString(flow.output[nodeKey].GetVal(common.TypString))
-		if len(content) > 0 {
-			break
-		}
-	}
+	content = TakeOutputReply(replyContentNodes, flow)
 	if len(content) == 0 {
 		err = errors.New(`工作流没有可以回复的内容返回`)
 		return
@@ -429,4 +426,69 @@ func ChooseWorkFlowRobot(adminUserId string, functionTools []adaptor.FunctionToo
 func BuildWorkFlowParams(params define.ChatRequestParam, workFlowRobot msql.Params, workFlowGlobal map[string]any, curMsgId, dialogueId, sessionId int) *WorkFlowParams {
 	params.WorkFlowGlobal = workFlowGlobal
 	return &WorkFlowParams{ChatRequestParam: &params, RealRobot: workFlowRobot, CurMsgId: curMsgId, DialogueId: dialogueId, SessionId: sessionId}
+}
+
+func TakeOutputReply(replyContentNodes []string, flow *WorkFlow) string {
+	if len(flow.output) <= 0 {
+		return ``
+	}
+	//take finish node messages
+	outputSlice := make([]string, 1000)
+	for outputKey, _ := range flow.output {
+		if !strings.HasPrefix(outputKey, define.FinishReplyPrefixKey) {
+			continue
+		}
+		params := strings.Split(strings.TrimPrefix(outputKey, define.FinishReplyPrefixKey), `_`)
+		if len(params) != 2 {
+			logs.Warning(`finish node output message format error：%s`, outputKey)
+			continue
+		}
+		//定义的第几个输出
+		messageIdx := cast.ToInt(params[1]) - 1
+		takeContent := cast.ToString(flow.output[outputKey].GetVal(common.TypString))
+		if len(takeContent) == 0 {
+			logs.Warning(`finish node output message is empty：%s，%s`, outputKey, takeContent)
+			continue
+		}
+		if params[0] == lib_define.MsgTypeText {
+			outputSlice[cast.ToInt(cast.ToString(messageIdx)+`0`)] = takeContent
+		} else if params[0] == lib_define.MsgTypeImage {
+			urls := common.TakeUrls(&takeContent)
+			if len(urls) > 0 {
+				for idx, url := range urls {
+					outputSlice[cast.ToInt(cast.ToString(messageIdx)+cast.ToString(idx))] = fmt.Sprintf(`![%s](%s)`, url, url)
+				}
+			}
+		} else if params[0] == lib_define.MsgTypeVoice {
+			urls := common.TakeUrls(&takeContent)
+			if len(urls) > 0 {
+				for idx, url := range urls {
+					ext := filepath.Ext(url)
+					if strings.ToLower(ext) != `.mp3` {
+						logs.Warning(`finish node output voice url is not mp3`)
+						continue
+					}
+					outputSlice[cast.ToInt(cast.ToString(messageIdx)+cast.ToString(idx))] = fmt.Sprintf(`!voice[](%s)`, url)
+				}
+			}
+		}
+	}
+	contents := make([]string, 0)
+	for _, content := range outputSlice {
+		if len(content) > 0 {
+			contents = append(contents, content)
+		}
+	}
+	if len(contents) > 0 {
+		return strings.Join(contents, "\n")
+	}
+	//take any one
+	content := ``
+	for _, fieldsKey := range replyContentNodes {
+		content = cast.ToString(flow.output[fieldsKey].GetVal(common.TypString))
+		if len(content) > 0 {
+			return content
+		}
+	}
+	return ``
 }

@@ -81,45 +81,7 @@
       </div>
     </a-drawer>
 
-    <a-modal
-      v-model:open="configOpen"
-      :confirm-loading="configSaving"
-      title="API Key授权配置"
-      width="620px"
-      @ok="saveConfig"
-    >
-      <a-alert type="info" show-icon message="配置凭据后，工作流可直接调用此插件"/>
-      <a-form
-        class="mt16"
-        :model="config"
-        :label-col="{ span: 4 }"
-        :wrapper-col="{ span: 20 }"
-      >
-        <a-form-item
-          label="凭证名称"
-          name="name"
-          :rules="[{ required: true, message: '请输入凭证名称!' }]"
-        >
-          <a-input v-model:value.trim="config.name" :maxlength="16" placeholder="请输入凭证名称"/>
-          <div class="tip-desc">仅用于区分多个授权配置的名称，不用于接口调用</div>
-        </a-form-item>
-        <a-form-item
-          label="APP ID"
-          name="appid"
-          :rules="[{ required: true, message: '请输入APP ID!' }]"
-        >
-          <a-input v-model:value.trim="config.appid" placeholder="请输入APP ID"/>
-        </a-form-item>
-        <a-form-item
-          label="APP Secret"
-          name="app_secret"
-          :rules="[{ required: true, message: '请输入APP Secret!' }]"
-        >
-          <a-input v-model:value.trim="config.app_secret" placeholder="请输入APP Secret"/>
-          <div class="tip-desc">如何获取APP ID和APP Secret</div>
-        </a-form-item>
-      </a-form>
-    </a-modal>
+    <FeishuConfigModal ref="configModalRef" @change="loadConfig"/>
   </div>
 </template>
 
@@ -131,17 +93,15 @@ import {authTMcpProvider, getTMcpProviderInfo} from "@/api/robot/thirdMcp";
 import {jsonDecode, timeNowGapFormat} from "@/utils/index.js";
 import {setShowReqError} from "@/utils/http/axios/config.js";
 import {getPluginConfig, runPlugin, setPluginConfig} from "@/api/plugins/index.js";
+import FeishuConfigModal from "@/views/explore/plugins/components/feishu-config-modal.vue";
 
 const emit = defineEmits(['del', 'edit', 'auth'])
 
+const configModalRef = ref(null)
 const open = ref(false)
 const detail = ref({})
 const configData = ref({})
 const actionData = ref({})
-
-const configOpen = ref(false)
-const configSaving = ref(false)
-const config = reactive({})
 
 const configLen = computed(() => {
   return Object.keys(configData.value).length
@@ -179,15 +139,7 @@ function loadAction() {
 }
 
 function showAddModal() {
-  Object.assign(config, {
-    name: '',
-    appid: '',
-    app_secret: '',
-    is_default: false
-  })
-  // 首次添加设置默认
-  if (!configData.value || !Object.keys(configData.value).length) config.is_default = true
-  configOpen.value = true
+  configModalRef.value.show(configData.value)
 }
 
 function setConfigDef(item, key) {
@@ -217,33 +169,6 @@ function delConfig(item, key) {
       })
     }
   })
-}
-
-function saveConfig() {
-  try {
-    configSaving.value = true
-    if (!config.name) throw '请输入凭证名称'
-    if (configData.value[config.name]) throw '凭证名称已存在'
-    if (!config.appid) throw '请输入APP ID'
-    if (!config.app_secret) throw '请输入APP Secret'
-    setPluginConfig({
-      name: detail.value.name,
-      data: JSON.stringify({
-        ...configData.value,
-        [config.name]: config
-      })
-    }).then(res => {
-      configOpen.value = false
-      loadConfig()
-      message.success('已保存')
-    }).finally(() => {
-      configSaving.value = false
-    })
-  } catch (e) {
-    console.log('Err:', e)
-    configSaving.value = false
-    message.error(e)
-  }
 }
 
 defineExpose({
@@ -473,18 +398,5 @@ defineExpose({
     font-weight: 400;
     margin: 8px 0 12px;
   }
-}
-
-.cFB363F {
-  color: #FB363F;
-}
-
-.tip-desc {
-  color: #8C8C8C;
-  margin-top: 4px;
-}
-
-.mt16 {
-  margin-top: 16px;
 }
 </style>

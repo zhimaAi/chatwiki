@@ -71,8 +71,12 @@ import SessionTriggerForm from './session-trigger-form.vue'
 import TimingTriggerForm from './timing-trigger-node/timing-trigger-node-form.vue'
 import OfficialTriggerNodeForm from './official-trigger-node/official-trigger-node-form.vue'
 import BatchGroupForm from './batch-group-form/index.vue'
+import EndNodeForm from './end-node-form/index.vue'
 import {jsonDecode} from "@/utils/index.js";
+import VoiceCloneForm from "./voice-clone-form.vue";
+import VoiceSynthesisForm from "./voice-synthesis-form.vue";
 import ImageGenerationNodeForm from './image-generation-node-form/index.vue'
+import ExplainNodeForm from './explain-node-form/index.vue'
 
 // 预定义所有可能的表单组件
 const formComponents = {
@@ -97,8 +101,12 @@ const formComponents = {
   'zm-plugins-node': ZmPluginsNodeForm,
   'session-trigger-node': SessionTriggerForm,
   'timing-trigger-node': TimingTriggerForm,
+  'end-node': EndNodeForm,
   'official-trigger-node': OfficialTriggerNodeForm,
-  'image-generation-node': ImageGenerationNodeForm
+  'image-generation-node': ImageGenerationNodeForm,
+  'voice-clone-node': VoiceCloneForm,
+  'voice-synthesis-node': VoiceSynthesisForm,
+  'explain-node': ExplainNodeForm,
 
   // 其他表单组件可以在这里添加
   // 'problem-optimization-node': defineAsyncComponent(() => import('./problem-optimization-form.vue')),

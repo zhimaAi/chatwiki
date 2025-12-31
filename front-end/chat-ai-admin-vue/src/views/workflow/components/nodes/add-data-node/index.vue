@@ -29,6 +29,7 @@
                   :options="atInputOptions"
                   :default-value="item.value"
                   :defaultSelectedList="item.atTags"
+                  ref="atInputRef"
                 />
               </span>
 
@@ -44,9 +45,10 @@
 </template>
 
 <script setup>
-import { ref, inject, onMounted, reactive, nextTick, watch, toRaw } from 'vue'
+import { ref, inject, onMounted, reactive, nextTick, watch, toRaw, onUnmounted } from 'vue'
 import NodeCommon from '../base-node.vue'
 import AtText from '../../at-input/at-text.vue'
+import { haveOutKeyNode } from '@/views/workflow/components/util.js'
 
 const props = defineProps({
   properties: {
@@ -60,6 +62,8 @@ const props = defineProps({
 const setData = inject('setData')
 const resetSize = inject('resetSize')
 const getNode = inject('getNode')
+const getGraph = inject('getGraph')
+const atInputRef = ref(null)
 
 let node_params = {}
 
@@ -116,8 +120,45 @@ watch(
 )
 
 onMounted(() => {
+  const graphModel = getGraph()
+  graphModel.eventCenter.on('custom:setNodeName', onUpatateNodeName)
   init()
 })
+
+onUnmounted(() => {
+  const graphModel = getGraph()
+  graphModel.eventCenter.off('custom:setNodeName', onUpatateNodeName)
+})
+
+const onUpatateNodeName = (data) => {
+  if (!state.formData.datas || state.formData.datas.length == 0) {
+    return
+  }
+  if (!haveOutKeyNode.includes(data.node_type)) {
+    return
+  }
+
+  getAtInputOptions()
+
+  state.formData.datas.forEach((item) => {
+    if (item.atTags && item.atTags.length > 0) {
+      item.atTags.forEach((tag) => {
+        if (tag.node_id == data.node_id) {
+          let arr = tag.label.split('/')
+          arr[0] = data.node_name
+          tag.label = arr.join('/')
+          tag.node_name = data.node_name
+        }
+      })
+    }
+  })
+
+  update()
+  nextTick(() => {
+    atInputRef.value.map(item => item.refresh())
+    resetSize()
+  })
+}
 </script>
 
 <style lang="less" scoped>

@@ -1,95 +1,10 @@
 <style lang="less" scoped>
+@import "./components/node-options";
 .node-icon{
   display: block;
   width: 20px;
   height: 20px;
   border-radius: 6px;
-}
-.node-options {
-  background: #f2f4f7;
-  border-radius: 6px;
-  padding: 12px;
-  margin-top: 16px;
-
-  &:first-child {
-    margin-top: 0;
-  }
-
-  .options-title {
-    color: var(--wf-color-text-1);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-weight: 600;
-    height: 22px;;
-    line-height: 22px;
-    font-size: 14px;
-
-    .title-icon {
-      width: 16px;
-      height: 16px;
-      vertical-align: -3px;
-      margin-right: 8px;;
-    }
-
-    .acton-box {
-      font-weight: 400;
-    }
-  }
-
-  .options-item {
-    display: flex;
-    flex-direction: column;
-    margin-top: 12px;
-    line-height: 22px;
-    gap: 4px;
-
-    .options-item-tit {
-      display: flex;
-      align-items: center;
-    }
-
-    .option-label {
-      color: var(--wf-color-text-1);
-      font-size: 14px;
-      margin-right: 8px;
-    }
-
-    .desc {
-      color: var(--wf-color-text-2);
-    }
-
-
-    &.is-required .option-label::before {
-      content: '*';
-      color: #FB363F;
-      display: inline-block;
-      margin-right: 2px;
-    }
-
-    .option-type {
-      height: 22px;
-      line-height: 18px;
-      padding: 0 8px;
-      border-radius: 6px;
-      border: 1px solid rgba(0, 0, 0, 0.15);
-      background-color: #fff;
-      color: var(--wf-color-text-3);
-      font-size: 12px;
-    }
-
-    .item-actions-box {
-      display: flex;
-      align-items: center;
-
-      .action-btn {
-        margin-left: 12px;
-        font-size: 16px;
-        color: #595959;
-        cursor: pointer;
-      }
-    }
-  }
 }
 </style>
 
@@ -104,8 +19,20 @@
       </NodeFormHeader>
     </template>
 
+    <!-- 根据params动态渲染的组件 -->
+    <template v-if="actionInfo?.common_template">
+      <!--自定义渲染-->
+      <DynamicApiBox
+        :node="node"
+        :action="actionInfo"
+        :actionName="nodeParams.plugin.params.business"
+        :variableOptions="variableOptions"
+        @updateVar="getValueVariableList"
+      />
+    </template>
+
     <!--方法插件-->
-    <template v-if="pluginHasAction(nodeParams?.plugin?.name)">
+    <template v-else-if="pluginHasAction(nodeParams?.plugin?.name)">
       <!--自定义渲染-->
       <component
         v-if="pluginCompMap[nodeParams.plugin.name]"
@@ -179,6 +106,7 @@ import {pluginHasAction} from "@/constants/plugin.js";
 import PluginFormRender from "./components/pluginFormRender.vue";
 import {sortObjectKeys} from "@/utils/index.js";
 import OfficialDraftBox from "./components/official-draft/official-draft-box.vue";
+import DynamicApiBox from "./components/dynamic-api/dynamic-api-box.vue";
 
 const getNode = inject('getNode')
 const setData = inject('setData')
@@ -196,7 +124,7 @@ const pluginCompMap = {
   official_batch_tag: OfficialTagBox,
   official_send_template_message: OfficialTemplateBox,
   official_send_message: OfficialSendMessageBox,
-  official_draft: OfficialDraftBox,
+  official_draft: OfficialDraftBox
 }
 
 const customFieldsSortMap = {
@@ -207,6 +135,8 @@ const formState = reactive({})
 const info = ref({})
 const actionInfo = ref(null)
 const variableOptions = ref([])
+const isMultiNode = ref(false)
+const remoteInfo = ref({})  // 用于临时存储info需要的数据
 const showDesc = computed(() => {
   if (actionInfo.value) {
     return actionInfo.value.desc
@@ -216,29 +146,31 @@ const showDesc = computed(() => {
 
 let nodeParams = {}
 
-function init() {
+async function init() {
   getValueVariableList();
   nodeParams = JSON.parse(props.node.node_params)
-  loadPluginParams()
-  loadPluginInfo()
+  await loadPluginInfo()
+  await loadPluginParams()
 }
 
 function loadPluginInfo() {
-  getPluginInfo({name: nodeParams?.plugin?.name}).then(res => {
+  return getPluginInfo({name: nodeParams?.plugin?.name}).then(res => {
     let data = res?.data || {}
-    info.value = data.remote
+    remoteInfo.value = data.remote // 用于临时存储info需要的数据
+    isMultiNode.value = data?.local?.multiNode || false
   })
 }
 
 function loadPluginParams() {
-  runPlugin({
+  return runPlugin({
     name: nodeParams?.plugin?.name || '',
     action: "default/get-schema",
     params: {}
   }).then(res => {
     let data = res?.data || {}
+    info.value = remoteInfo.value // info会导致页面开始渲染，等loadPluginParams有数据再渲染
     const pName = nodeParams?.plugin?.name
-    if (pluginHasAction(pName)) {
+    if (pluginHasAction(pName) || isMultiNode.value) {
       const business = nodeParams.plugin.params.business
       actionInfo.value = data[business]
       let sortFields = customFieldsSortMap[`${pName}:${business}`]

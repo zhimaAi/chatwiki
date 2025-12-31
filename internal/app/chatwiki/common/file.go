@@ -4,12 +4,14 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"fmt"
 	"net/url"
 	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/curl"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/tool"
 )
@@ -72,4 +74,46 @@ func GetUrlExt(rawURL string) string { //return jpg jpeg ...
 		return strings.ToLower(ext[1:])
 	}
 	return ``
+}
+
+func Mp3ToAmr(adminUserId int, mp3Url string) (amr string) {
+	domain := define.Config.WebService[`file_transfer`]
+	locFile := ``
+	if IsUrl(mp3Url) { //download
+		temFile := `static/public/download/` + tool.MD5(mp3Url) + strings.ToLower(filepath.Ext(mp3Url))
+		if tool.IsFile(temFile) {
+			locFile = temFile //local exist
+		} else {
+			if err := DownloadFile(mp3Url, temFile); err != nil {
+				logs.Error(err.Error())
+			}
+		}
+	} else if strings.HasPrefix(mp3Url, define.LocalUploadPrefix) {
+		locFile = define.UploadDir + mp3Url[len(define.LocalUploadPrefix):]
+		if !tool.IsFile(locFile) {
+			locFile = ``
+		}
+	} else if strings.HasPrefix(mp3Url, `/public/export/`) {
+		locFile = `static` + mp3Url
+		if !tool.IsFile(locFile) {
+			locFile = ``
+		}
+	}
+	if locFile == `` {
+		logs.Warning(`not found local file from link %s`, mp3Url)
+		return
+	}
+	request := curl.Post(domain+`/convert`).PostFile(`mp3`, locFile)
+	resp, err := request.Bytes()
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	key := fmt.Sprintf("chat_ai/%d/%s/%s/%s%s", adminUserId, "mp3_to_amr", tool.Date("Ym"), tool.MD5(string(resp)), `.amr`)
+	amr, err = WriteFileByString(key, string(resp))
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	return amr
 }
