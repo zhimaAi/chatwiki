@@ -1,0 +1,13 @@
+{
+  "model_management": "Model Management",
+  "token_usage": "Token Usage",
+  "team_management": "Team Management",
+  "account_settings": "Account Settings",
+  "aliyun_ocr": "Aliyun OCR",
+  "enterprise_settings": "Enterprise Settings",
+  "custom_domain": "Custom Domain",
+  "client_download": "Client Download",
+  "sensitive_word_management": "Sensitive Word Management",
+  "prompt_template_library": "Prompt Template Library",
+  "official_account_management": "Official Account Management"
+}

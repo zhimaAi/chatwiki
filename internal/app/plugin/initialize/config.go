@@ -4,8 +4,9 @@ package initialize
 
 import (
 	"chatwiki/internal/app/plugin/define"
-	"github.com/zhimaAi/go_tools/logs"
 	"runtime"
+
+	"github.com/zhimaAi/go_tools/logs"
 
 	"github.com/Unknwon/goconfig"
 	"github.com/zhimaAi/go_tools/tool"
@@ -51,5 +52,10 @@ func initConfig() {
 	define.Config.RpcService, err = config.GetSection(`rpcservice`)
 	if err != nil {
 		panic(`read config rpcservice error`)
+	}
+	define.DefaultPhpEnv = []string{
+		"CRAWLER_HOST=" + define.Config.WebService[`crawler`],
+		"WECHAT_ARTICLE_CRAWLER_HOST=" + define.Config.WebService[`wechat_article_crawler_host`],
+		"WECHAT_ARTICLE_CRAWLER_API_TOKEN=" + define.Config.WebService[`wechat_article_crawler_api_token`],
 	}
 }

@@ -78,6 +78,7 @@ const handleSwitchChange = (item, checked) => {
     const contMap = {
       'robot_auto_reply': '关闭后，该功能默认关闭不再支持使用，所有的公众号菜单都会停用，确认关闭？',
       'library_ability_official_account': '关闭后，知识库模块将不再显示公众号知识库模块，历史已导入的文章将无法引用，确认关闭？',
+      'robot_payment': '关闭后，设置的收费策略将失效，确认关闭？',
     }
     Modal.confirm({
       title: '提示',

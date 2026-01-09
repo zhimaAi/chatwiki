@@ -17,11 +17,11 @@
             v-for="item in level.options"
             :key="item.value"
             :class="{ 'active': isActive(item, levelIndex) }"
-            @click="handleSelect(item, levelIndex)"
+            @click="handleSelect(item, levelIndex, $event)"
           >
             <div class="item-content">
               <span class="item-label">{{ item.label }}</span>
-              <span class="item-icon" v-if="hasChildren(item)">
+              <span class="item-icon" @click="handleRightClick" v-if="hasChildren(item)">
                 <svg viewBox="0 0 1024 1024" width="12" height="12">
                   <path d="M765.7 486.8L314.9 134.7c-5.3-4.1-12.9-0.4-12.9 6.3v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1c16.4-12.8 16.4-37.6 0-50.4z" fill="currentColor"></path>
                 </svg>
@@ -81,7 +81,8 @@ export default {
       // 当前选中的选项路径
       selectedPath: [],
       // 子菜单展开方向
-      expandDirection: 'right' // 'left' or 'right'
+      expandDirection: 'right', // 'left' or 'right'
+      isClickRight: false,
     };
   },
   watch: {
@@ -242,9 +243,13 @@ export default {
         }
       }
     },
+    handleRightClick(){
+      // 判断当前点击的是不是右边的按钮
+      this.isClickRight = true
+    },
     
     // 处理选择
-    handleSelect(item, levelIndex) {
+    handleSelect(item, levelIndex, e) {
       // 在有子节点的情况下，判断下一次展开的方向
       if (this.hasChildren(item)) {
         this.checkDirection();
@@ -274,10 +279,11 @@ export default {
       this.$emit('select', item, this.selectedPath, levelIndex);
       
       // 如果允许选择任意一级，或者是叶子节点，发送change事件
-      if (this.checkAnyLevel || !this.hasChildren(item)) {
+      if ((this.checkAnyLevel && !this.isClickRight && levelIndex > 0) || !this.hasChildren(item)) {
         this.$emit('change', item[this.valueKey], this.selectedValuePath, this.selectedPath);
         this.$emit('input', this.checkAnyLevel ? this.selectedValuePath : item[this.valueKey]);
       }
+      this.isClickRight = false
     },
     
     // 判断是否是激活项
@@ -435,8 +441,9 @@ export default {
     }
     
     .item-icon {
-      margin-left: 8px;
+      width: 24px;
       color: rgba(0, 0, 0, 0.45);
+      text-align: right;
     }
   }
   

@@ -14,7 +14,7 @@
               <div class="content-text">{{item.question}}</div>
               <div class="content-text">{{item.answer}}</div>
               <div class="img-box">
-                <img v-for="img in item.images" :src="img" alt="" v-viewer />
+                <img v-for="(img,index) in item.images" :key="index" :src="img" alt="" v-viewer />
               </div>
             </div>
           </div>

@@ -5,11 +5,11 @@
         <template #icon>
           <PlusOutlined />
         </template>
-        添加角色
+        {{ t('add_role_btn') }}
       </a-button>
       <a-input-search
         v-model:value="requestParams.search"
-        placeholder="输入角色名称"
+        :placeholder="t('search_placeholder')"
         style="width: 288px"
         @search="onSearch"
       />
@@ -27,26 +27,26 @@
         }"
         @change="onTableChange"
       >
-        <a-table-column title="角色" data-index="name" width="157px">
+        <a-table-column :title="t('column_role')" data-index="name" width="157px">
           <template #default="{ record }">{{ record.name }}</template>
         </a-table-column>
-        <a-table-column title="备注" data-index="mark" width="480px">
+        <a-table-column :title="t('column_remark')" data-index="mark" width="480px">
           <template #default="{ record }">{{ record.mark }}</template>
         </a-table-column>
-        <a-table-column title="最近修改时间" data-index="update_time" width="150px">
+        <a-table-column :title="t('column_update_time')" data-index="update_time" width="150px">
           <template #default="{ record }">{{ record.update_time }}</template>
         </a-table-column>
-        <a-table-column title="最近修改人" data-index="operate_name" width="130px">
+        <a-table-column :title="t('column_operate_name')" data-index="operate_name" width="130px">
           <template #default="{ record }">{{ record.operate_name }}</template>
         </a-table-column>
-        <a-table-column title="创建人" data-index="create_name" width="130px">
+        <a-table-column :title="t('column_create_name')" data-index="create_name" width="130px">
           <template #default="{ record }">{{ record.create_name }}</template>
         </a-table-column>
-        <a-table-column title="操作" data-index="action" width="178px">
+        <a-table-column :title="t('column_action')" data-index="action" width="178px">
           <template #default="{ record }">
             <a-flex :gap="16" class="action-box">
-              <a-button type="link" @click="handleEdit(record)">编辑</a-button>
-              <a-button type="link" @click="handleDelete(record)" :disabled="record.role_type <= 3 && record.role_type > 0">删除</a-button>
+              <a-button type="link" @click="handleEdit(record)">{{ t('btn_edit') }}</a-button>
+              <a-button type="link" @click="handleDelete(record)" :disabled="record.role_type <= 3 && record.role_type > 0">{{ t('btn_delete') }}</a-button>
             </a-flex>
           </template>
         </a-table-column>
@@ -62,6 +62,9 @@ import { Modal, message } from 'ant-design-vue'
 import { getRoleList, delRole } from '@/api/manage/index.js'
 import AddRole from './components/add-role.vue'
 import dayjs from 'dayjs'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.manage.role-permissions')
 const keyword = ref('')
 const requestParams = reactive({
   page: 1,
@@ -108,15 +111,15 @@ const handleEdit = (record) => {
 const handleDelete = (record) => {
   // 删除用户
   Modal.confirm({
-    title: '提示?',
+    title: t('confirm_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确认删除该角色',
-    okText: '确认',
+    content: t('confirm_content'),
+    okText: t('ok_text'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('cancel_text'),
     onOk: () => {
       delRole({ id: record.id }).then((res) => {
-        message.success('删除成功')
+        message.success(t('delete_success'))
         getData()
       })
     },

@@ -7,3 +7,4 @@ import (
 )
 
 var PhpPlugin *php.MultiPool
+var DefaultPhpEnv []string

@@ -22,6 +22,7 @@ export interface Message {
   quote_file: any
   reply_content_list?: any
   id: number
+  message_id: string
   uid: string
   avatar: string
   name: string
@@ -364,7 +365,7 @@ export const useChatStore = defineStore('chat', () => {
     msg.loading = false
     msg.avatar = user.avatar
     msg.openid = user.openid
-    msg.msg_type = msg.msg_type
+    msg.msg_type = msg.msg_type || 1
     msg.is_customer = 1
     messageList.value.push(msg)
   }

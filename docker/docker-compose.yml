@@ -226,6 +226,11 @@ services:
     restart: always
     environment:
       TZ: ${TIMEZONE}
+    logging:
+      options:
+        mode: non-blocking
+        max-size: "50m"
+        max-file: "10"
 
   chatwiki_file_transfer:
     image: registry.cn-hangzhou.aliyuncs.com/chatwiki/file_transfer:20251223
@@ -240,6 +245,27 @@ services:
       TZ: ${TIMEZONE}
     ports:
       - ${FILE_TRANSFER_SERVICE_PORT}:8080
+
+  chatwiki_wechat_article_crawler:
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/wechat-article-crawler:0.1
+    container_name: chatwiki_wechat_article_crawler
+    networks:
+      - chatwiki_network
+    restart: unless-stopped
+    ports:
+      - ${WECHAT_ARTICLE_CRAWLER_PORT}:8000
+    environment:
+      TZ: ${TIMEZONE}
+      API_TOKEN: ${WECHAT_ARTICLE_CRAWLER_API_TOKEN}
+      SOCKS_PROXY_HOST: ${WECHAT_ARTICLE_CRAWLER_SOCKS_PROXY_HOST}
+      SOCKS_PROXY_PORT: ${WECHAT_ARTICLE_CRAWLER_SOCKS_PROXY_PORT}
+      SOCKS_PROXY_USERNAME: ${WECHAT_ARTICLE_CRAWLER_SOCKS_PROXY_USERNAME}
+      SOCKS_PROXY_PASSWORD: ${WECHAT_ARTICLE_CRAWLER_SOCKS_PROXY_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
 
 networks:
   chatwiki_network:

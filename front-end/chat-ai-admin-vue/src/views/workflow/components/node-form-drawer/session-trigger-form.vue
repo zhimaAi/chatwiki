@@ -24,8 +24,11 @@
             />
           </div>
           <div class="multi-modal-input">
-            <div>开启后，支持用户输入文字+图片消息。用户输入的文字消息依然会作为question变量输出，还会额外增加一个变量question_multiple, question_multiple是一个对象数组，包含用户输入的文字和图片消息示例如下：</div>
-<pre><code>"question_multiple":[
+            <div style="color: #8c8c8c;">开启后，支持用户输入文字+图片消息。用户输入的文字消息依然会作为question变量输出，还会额外增加一个变量question_multiple
+              <a-tooltip placement="left">
+                <template #title>
+                  <div>question_multiple是一个对象数组，包含用户输入的文字和图片消息示例如下：</div>
+              <pre><code>"question_multiple":[
   {
     "type":"text",
     "text":"这是什么"
@@ -36,7 +39,11 @@
     }
   }
 ]
-</code></pre>
+              </code></pre>
+                </template>
+                <QuestionCircleOutlined />
+              </a-tooltip> 
+            </div>
           </div>
         </div>
         <div class="gray-block">
@@ -48,7 +55,11 @@
           <div class="field-items">
             <div class="field-item" v-for="(item, index) in list" :key="index">
               <div class="field-name-box">
-                <span class="field-name">{{item.key}}</"></span>
+                <span class="field-name">{{item.key}}</span>
+                <a-tooltip>
+                  <template #title>{{ item.desc }}</template>
+                  <QuestionCircleOutlined />
+                </a-tooltip>
               </div>
               <div class="field-value-box">
                 <a-select
@@ -64,9 +75,9 @@
                   </a-select-option>
                 </a-select>
               </div>
-              <div class="field-desc">
+              <!-- <div class="field-desc">
                 {{ item.desc }}
-              </div>
+              </div> -->
             </div>
           </div>
         </div>
@@ -77,6 +88,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, inject, computed } from 'vue'
+import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import NodeFormLayout from './node-form-layout.vue'
 import NodeFormHeader from './node-form-header.vue'
 
@@ -205,6 +217,7 @@ onMounted(() => {
       display: flex;
       align-items: center;
       margin-bottom: 8px;
+      justify-content: space-between;
       &:last-child {
         margin-bottom: 0;
       }
@@ -213,10 +226,12 @@ onMounted(() => {
     .field-name-box {
       width: auto;
       margin-right: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .field-value-box {
-      flex: 1;
       margin-right: 8px;
       
       .field-value{

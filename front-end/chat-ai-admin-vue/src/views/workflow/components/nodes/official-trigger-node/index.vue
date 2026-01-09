@@ -55,6 +55,7 @@
 
 <template>
   <node-common
+    :properties="properties"
     :title="properties.node_name"
     :icon-url="properties.node_icon"
     :icon-name="properties.node_icon_name"
@@ -74,7 +75,7 @@
         </div>
       </div>
       <div class="start-node-options">
-        <div class="options-title">公众号</div>
+        <div class="options-title" @click="test">公众号</div>
         <div class="options-list">
           <div class="options-item" v-for="item in selectAppItems.slice(0, 1)" :key="item.app_id">
             <div class="option-label">{{ item.app_name }}</div>
@@ -149,7 +150,7 @@ const formState = reactive({
 })
 
 const selectAppItems = computed(() => {
-  return formState.app_ids.map((item) => officialList.value.find((it) => it.app_id == item))
+  return formState.app_ids.map((item) => officialList.value.find((it) => it.app_id == item)).filter(Boolean)
 })
 
 const outputs = ref([])
@@ -165,7 +166,7 @@ const reset = () => {
 
   let node_params = JSON.parse(props.properties.node_params)
 
-  outputs.value = node_params.trigger.outputs
+  outputs.value = node_params.trigger.outputs || []
 
   let trigger_official_config = node_params.trigger.trigger_official_config
 
@@ -177,6 +178,11 @@ const reset = () => {
   nextTick(() => {
     resetSize()
   })
+}
+
+const test = ()=>{
+  let aa = officialList.value.find((it) => it.app_id == 'sdwdw')
+  console.log(selectAppItems.value,aa, '==')
 }
 
 onMounted(() => {

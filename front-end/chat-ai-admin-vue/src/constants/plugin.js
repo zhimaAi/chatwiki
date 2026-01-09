@@ -106,6 +106,7 @@ export function pluginOutputToTree(obj) {
   function walk(key, value) {
     const node = {
       key,
+      tip: value.tip || '',
       name: value.name || '',
       desc: value.desc || '',
       title: key,

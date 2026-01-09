@@ -1,0 +1,11 @@
+{
+  "role_name_label": "Role Name",
+  "role_name_placeholder": "Please enter role name",
+  "role_name_required": "Please enter role name",
+  "role_mark_label": "Role Remark",
+  "role_mark_placeholder": "Please enter role remark",
+  "role_permission_label": "Role Permissions",
+  "add_role_title": "Add Role",
+  "edit_role_title": "Edit Role",
+  "save_success": "Save Successfully"
+}

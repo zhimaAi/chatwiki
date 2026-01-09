@@ -15,8 +15,7 @@ const createI18nOptions = async () => {
   setHtmlPageLang(locale.lang)
 
   localeStore.setCurrentLocale({
-    lang: locale.lang
-    // elLocale: elLocal
+    lang: locale.lang || 'zh-CN',
   })
 
   return {
@@ -28,15 +27,17 @@ const createI18nOptions = async () => {
     },
     availableLocales: localeMap.map((v) => v.lang),
     sync: true,
-    silentTranslationWarn: true,
-    missingWarn: false,
-    silentFallbackWarn: true
+    silentTranslationWarn: import.meta.env.PROD,
+    missingWarn: !import.meta.env.PROD,
+    silentFallbackWarn: import.meta.env.PROD
   }
 }
 
 export const setupI18n = async (app) => {
-  const options = await createI18nOptions()
+  if (i18n) return i18n
 
+  const options = await createI18nOptions()
+  
   i18n = createI18n(options)
   app.use(i18n)
 }

@@ -7,6 +7,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/app/chatwiki/work_flow"
+	"chatwiki/internal/app/plugin/php"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
@@ -92,6 +93,42 @@ func GetNodeList(c *gin.Context) {
 		GetNodeList(c)
 		return
 	}
+
+	pluginName := []string{}
+	for _, node := range list {
+		nodeType := cast.ToInt(node[`node_type`])
+		if nodeType == work_flow.NodeTypePlugin { //获取引用插件列表
+			nodeParams := work_flow.DisposeNodeParams(nodeType, node[`node_params`])
+			pluginName = append(pluginName, nodeParams.Plugin.Name)
+		}
+	}
+
+	remotePlugin := []define.RemotePluginStruct{}
+	remotePluginMap := make(map[string]define.RemotePluginStruct)
+	localPluginMap := make(map[string]string)
+
+	//如果存在插件引用，查询一下插件状态
+	if len(pluginName) > 0 {
+		reqData := map[string]any{
+			"name": strings.Join(pluginName, ","),
+		}
+		// 获取远程插件列表
+		resp, _ := requestXiaokefu(`kf/ChatWiki/CommonGetPluginList`, reqData)
+		err := tool.JsonDecodeUseNumber(tool.JsonEncodeNoError(resp.Data), &remotePlugin)
+		if err == nil {
+			for _, pluginStruct := range remotePlugin {
+				remotePluginMap[pluginStruct.Name] = pluginStruct
+			}
+		}
+
+		//查询本地插件信息
+		pluginList, _ := msql.Model(`plugin_config`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(userId)).Where(`name`, `in`, strings.Join(pluginName, `,`)).Select()
+		for _, params := range pluginList {
+			localPluginMap[params[`name`]] = params[`has_loaded`]
+		}
+	}
+
 	filtered := make([]msql.Params, 0)
 	for i, node := range list {
 		nodeType := cast.ToInt(node[`node_type`])
@@ -99,6 +136,19 @@ func GetNodeList(c *gin.Context) {
 			logs.Error(`节点类型非法:%s`, node[`node_type`])
 			continue
 		}
+
+		if nodeType == work_flow.NodeTypePlugin { //获取引用插件列表
+			nodeParams := work_flow.DisposeNodeParams(nodeType, node[`node_params`])
+			manifest, _ := php.GetPluginManifest(nodeParams.Plugin.Name)
+
+			list[i][`has_loaded`] = localPluginMap[nodeParams.Plugin.Name]
+			list[i][`plugin_name`] = nodeParams.Plugin.Name
+			list[i][`plugin_version`] = manifest.Version
+			list[i][`remote_plugin_version`] = remotePluginMap[nodeParams.Plugin.Name].LatestVersion
+			list[i][`latest_version_detail_url`] = remotePluginMap[nodeParams.Plugin.Name].LatestVersionDetail.DownloadUrl
+			list[i][`latest_version_detail_id`] = remotePluginMap[nodeParams.Plugin.Name].LatestVersionDetail.Id
+		}
+
 		delete(list[i], `admin_user_id`)
 		delete(list[i], `robot_id`)
 		delete(list[i], `create_time`)

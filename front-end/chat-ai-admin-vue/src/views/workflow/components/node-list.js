@@ -1,6 +1,6 @@
 import {getTMcpProviders} from "@/api/robot/thirdMcp.js";
 import {jsonDecode} from "@/utils/index.js";
-import {getInstallPlugins, getPluginConfig, runPlugin} from "@/api/plugins/index.js";
+import {getInstallPlugins, runPlugin} from "@/api/plugins/index.js";
 import {getPluginActionDefaultArguments, pluginHasAction} from "@/constants/plugin.js";
 
 const defaultRowData = {
@@ -84,6 +84,7 @@ export const nodeList = [
       node_name: '',
       node_icon: getNodeIconUrl('session-trigger-node'),
       node_icon_name: 'session-trigger-node',
+      node_header_bg_color: 'linear-gradient(180deg, #FFF7F0 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         trigger: {
           outputs: [],
@@ -108,6 +109,7 @@ export const nodeList = [
       node_name: '',
       node_icon: getNodeIconUrl('session-trigger-node'),
       node_icon_name: 'session-trigger-node',
+      node_header_bg_color: 'linear-gradient(180deg, #FFF7F0 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         trigger: {
           outputs: [],
@@ -132,6 +134,7 @@ export const nodeList = [
       node_name: '',
       node_icon: getNodeIconUrl('timing-trigger-node'),
       node_icon_name: 'timing-trigger-node',
+      node_header_bg_color: 'linear-gradient(180deg, #FFF7F0 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         trigger: {
           outputs: [],
@@ -156,6 +159,7 @@ export const nodeList = [
       node_name: '',
       node_icon: getNodeIconUrl('official-trigger-node'),
       node_icon_name: 'official-trigger-node',
+      node_header_bg_color: 'linear-gradient(180deg, #FFF7F0 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         trigger: {
           outputs: [],
@@ -178,6 +182,7 @@ export const nodeList = [
       node_name: '流程开始',
       node_icon: getNodeIconUrl('start-node'),
       node_icon_name: 'start-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0FFF8 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         start: {
           sys_global: [],
@@ -201,6 +206,7 @@ export const nodeList = [
       node_name: '循环开始',
       node_icon: getNodeIconUrl('start-node'),
       node_icon_name: 'start-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0FFF8 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({})
     }
   },
@@ -219,6 +225,7 @@ export const nodeList = [
       node_name: '批量执行开始',
       node_icon: getNodeIconUrl('start-node'),
       node_icon_name: 'start-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0FFF8 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({})
     }
   },
@@ -227,13 +234,14 @@ export const nodeList = [
     groupKey: 'execute-action',
     type: 'specify-reply-node',
     width: 420,
-    height: 94,
+    height: 130,
     properties: {
       ...getRowData(),
       node_type: 9,
       node_name: '指定回复',
       node_icon: getNodeIconUrl('specify-reply-node'),
       node_icon_name: 'specify-reply-node',
+      node_header_bg_color: 'linear-gradient(180deg, #FFF7F0 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         reply: {
           content: '',
@@ -254,6 +262,7 @@ export const nodeList = [
       node_name: '大模型',
       node_icon: getNodeIconUrl('ai-dialogue-node'),
       node_icon_name: 'ai-dialogue-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         llm: {
           model_config_id: void 0,
@@ -280,6 +289,7 @@ export const nodeList = [
       node_name: '问题优化',
       node_icon: getNodeIconUrl('problem-optimization-node'),
       node_icon_name: 'problem-optimization-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         question_optimize: {
           model_config_id: void 0,
@@ -307,6 +317,7 @@ export const nodeList = [
       node_name: '结束流程',
       node_icon: getNodeIconUrl('end-node'),
       node_icon_name: 'end-node',
+      node_header_bg_color: 'linear-gradient(180deg, #FFF0F7 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         finish:{
           out_type: 'message',
@@ -327,6 +338,7 @@ export const nodeList = [
       node_name: '终止循环',
       node_icon: getNodeIconUrl('end-node'),
       node_icon_name: 'end-node',
+      node_header_bg_color: 'linear-gradient(180deg, #FFF0F7 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({})
     }
   },
@@ -360,6 +372,7 @@ export const nodeList = [
       node_name: '变量赋值',
       node_icon: getNodeIconUrl('variable-assignment-node'),
       node_icon_name: 'variable-assignment-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         assign: [
           {
@@ -382,6 +395,7 @@ export const nodeList = [
       node_name: '循环',
       node_icon: getNodeIconUrl('custom-group-node'),
       node_icon_name: 'custom-group-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         loop:{
           loop_type: 'array',
@@ -405,6 +419,7 @@ export const nodeList = [
       node_name: '批量执行',
       node_icon: getNodeIconUrl('batch-group-node'),
       node_icon_name: 'batch-group-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         batch:{
           chan_number: 10,
@@ -427,6 +442,7 @@ export const nodeList = [
       node_name: '检索知识库',
       node_icon: getNodeIconUrl('knowledge-base-node'),
       node_icon_name: 'knowledge-base-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0FFFF 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         libs: {
           library_ids: '',
@@ -444,6 +460,43 @@ export const nodeList = [
   },
   {
     id: '',
+    groupKey: 'knowledge-retrieval',
+    type: 'import-library-node',
+    width: 420,
+    height: 160,
+    properties: {
+      ...getRowData(),
+      node_type: 40,
+      node_name: '导入知识库',
+      node_icon: getNodeIconUrl('knowledge-base-node'),
+      node_icon_name: 'knowledge-base-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0FFFF 2%, rgba(229, 239, 255, 0) 100%)',
+      node_params: JSON.stringify({
+        library_import: {
+          library_group_id: '0',
+          library_id: '',
+          import_type: 'content',
+          normal_url: '',
+          normal_title: '',
+          normal_content: '',
+          normal_url_repeat_op: 'import',
+          qa_question: '',
+          qa_answer: '',
+          qa_images_variable: '',
+          qa_similar_question_variable: '',
+          qa_repeat_op: 'import',
+          outputs: [
+            {
+              key: 'msg',
+              typ: 'string'
+            }
+          ]
+        }
+      })
+    }
+  },
+  {
+    id: '',
     groupKey: 'large-model-capability',
     type: 'question-node',
     width: 420,
@@ -454,6 +507,7 @@ export const nodeList = [
       node_name: '问题分类',
       node_icon: getNodeIconUrl('question-node'),
       node_icon_name: 'question-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         cate: {
           model_config_id: void 0,
@@ -486,6 +540,7 @@ export const nodeList = [
       node_name: '判断分支',
       node_icon: getNodeIconUrl('judge-node'),
       node_icon_name: 'judge-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         term: [
           {
@@ -506,6 +561,60 @@ export const nodeList = [
   },
   {
     id: '',
+    groupKey: 'processing-logic',
+    type: 'json-node',
+    width: 420,
+    height: 152,
+    properties: {
+      ...getRowData(),
+      node_type: 36,
+      node_name: 'JSON 序列化',
+      node_icon: getNodeIconUrl('json-node'),
+      node_icon_name: 'json-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
+      node_params: JSON.stringify({
+        json_encode:{
+          input_variable: '',
+          output: [
+            {
+              key: '',
+              typ: 'string',
+              subs: []
+            }
+          ]
+        }
+      })
+    }
+  },
+  {
+    id: '',
+    groupKey: 'processing-logic',
+    type: 'json-reverse-node',
+    width: 420,
+    height: 152,
+    properties: {
+      ...getRowData(),
+      node_type: 37,
+      node_name: 'JSON 反序列化',
+      node_icon: getNodeIconUrl('json-reverse-node'),
+      node_icon_name: 'json-reverse-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
+      node_params: JSON.stringify({
+        json_decode:{
+          input_variable: '',
+          output: [
+            {
+              key: '',
+              typ: 'object',
+              subs: []
+            }
+          ]
+        }
+      })
+    }
+  },
+  {
+    id: '',
     groupKey: 'external-service',
     type: 'http-node',
     width: 568,
@@ -516,6 +625,7 @@ export const nodeList = [
       node_name: 'http请求',
       node_icon: getNodeIconUrl('http-node'),
       node_icon_name: 'http-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F7F0FF 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         curl: {
           method: 'POST',
@@ -562,6 +672,7 @@ export const nodeList = [
       node_type: 13,
       node_name: '新增数据',
       node_icon: getNodeIconUrl('data-node'),
+      node_header_bg_color: 'linear-gradient(180deg, #FFF0F7 2%, rgba(229, 239, 255, 0) 100%)',
       node_icon_name: 'data-node',
       node_params: JSON.stringify({
         form_insert: {
@@ -583,6 +694,7 @@ export const nodeList = [
       node_name: '删除数据',
       node_icon: getNodeIconUrl('data-node'),
       node_icon_name: 'data-node',
+      node_header_bg_color: 'linear-gradient(180deg, #FFF0F7 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         form_delete: {
           form_name: '',
@@ -606,6 +718,7 @@ export const nodeList = [
       node_name: '更新数据',
       node_icon: getNodeIconUrl('data-node'),
       node_icon_name: 'data-node',
+      node_header_bg_color: 'linear-gradient(180deg, #FFF0F7 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         form_update: {
           form_name: '',
@@ -630,6 +743,7 @@ export const nodeList = [
       node_name: '查询数据',
       node_icon: getNodeIconUrl('data-node'),
       node_icon_name: 'data-node',
+      node_header_bg_color: 'linear-gradient(180deg, #FFF0F7 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         form_select: {
           form_name: '',
@@ -656,6 +770,7 @@ export const nodeList = [
       node_name: '参数提取器',
       node_icon: getNodeIconUrl('parameter-extraction-node'),
       node_icon_name: 'parameter-extraction-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         params_extractor: {
           model_config_id: void 0,
@@ -693,6 +808,7 @@ export const nodeList = [
       node_name: '图片生成',
       node_icon: getNodeIconUrl('image-generation-node'),
       node_icon_name: 'image-generation-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         image_generation: {
           model_config_id: void 0,
@@ -720,6 +836,7 @@ export const nodeList = [
       node_name: '代码运行',
       node_icon: getNodeIconUrl('code-run-node'),
       node_icon_name: 'code-run-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F7F0FF 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         code_run: {
           main_func: '',
@@ -754,6 +871,7 @@ export const nodeList = [
       height: 94,
       node_icon: getNodeIconUrl('mcp-node'),
       node_icon_name: 'mcp-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         mcp: {
           provider_id: '',
@@ -778,6 +896,7 @@ export const nodeList = [
       node_name: '',
       node_icon: getNodeIconUrl('zm-plugins-node'),
       node_icon_name: 'zm-plugins-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0FFF8 2%, rgba(229, 239, 255, 0) 100%)',
       plugin_name: '',
       node_params: JSON.stringify({
         plugin: {
@@ -801,6 +920,7 @@ export const nodeList = [
       node_name: '语音合成',
       node_icon: getNodeIconUrl('voice-synthesis-node'),
       node_icon_name: 'voice-synthesis-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         text_to_audio: {
           model_config_id: void 0,
@@ -823,6 +943,7 @@ export const nodeList = [
       node_name: '声音复刻',
       node_icon: getNodeIconUrl('voice-clone-node'),
       node_icon_name: 'voice-clone-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         voice_clone: {
           model_config_id: void 0,
@@ -887,6 +1008,9 @@ export const getPluginActions = (name) => {
 
 export const getAllPluginNodes = async () => {
   let {data} = await getInstallPlugins()
+  const nodesMap = getNodesMap()
+  const nodeCongfig = nodesMap['zm-plugins-node']
+  
   data = Array.isArray(data) ? data : []
   data = data.filter(i => i?.local?.has_loaded)
   await loadPluginActions(data)
@@ -896,6 +1020,9 @@ export const getAllPluginNodes = async () => {
       ...item.remote,
       local: item.local,
     }
+
+    const node_header_bg_color = item.node_header_bg_color ? item.node_header_bg_color : nodeCongfig.properties.node_header_bg_color
+    
     return {
       id: '',
       groupKey: 'plugins',
@@ -909,6 +1036,7 @@ export const getAllPluginNodes = async () => {
         node_icon: plugin.icon,
         node_icon_name: '',
         node_desc: plugin.description,
+        node_header_bg_color: node_header_bg_color,
         multiNode: plugin?.local?.multiNode || false,
         node_params: JSON.stringify({
           plugin: {
@@ -943,6 +1071,7 @@ export const loadPluginActions = async (plugins) => {
         for (let key in actions) {
           if (actions[key].type == 'node') PluginActionMap[name].push({...actions[key], name: key})
         }
+        PluginActionMap[name].sort((a, b) => (+(a.sort_num || 0)) - (+(b.sort_num || 0)))
       })
     }
   }
@@ -958,6 +1087,11 @@ export const getAllMcpNodes = async () => {
 }
 
 export const getMcpNode = (mcp, tool) => {
+  const nodesMap = getNodesMap()
+  const nodeCongfig = nodesMap['mcp-node']
+  console.log('nodeCongfig', nodeCongfig)
+  const node_header_bg_color = mcp.node_header_bg_color ? mcp.node_header_bg_color : nodeCongfig.properties.node_header_bg_color
+
   return  {
     id: '',
     groupKey: 'mcp-tool',
@@ -967,9 +1101,10 @@ export const getMcpNode = (mcp, tool) => {
     properties: {
       ...getRowData(),
       node_type: 20,
-      node_name: mcp.name,
+      node_name: tool.name || mcp.name,
       node_icon: mcp.avatar,
       node_icon_name: '',
+      node_header_bg_color: node_header_bg_color,
       node_params: JSON.stringify({
         mcp: {
           provider_id: Number(mcp.id),
@@ -1026,6 +1161,8 @@ export const createTriggerNode = (item) => {
   const type = `trigger_${item.trigger_type}`
   const nodeCongfig = nodesMap[type]
   const icon = item.trigger_icon ? item.trigger_icon : nodeCongfig.properties.node_icon
+  const node_header_bg_color = item.node_header_bg_color ? item.node_header_bg_color : nodeCongfig.properties.node_header_bg_color
+  
   const node = {
     type: nodeCongfig.properties.componentKey,
     x: 0,
@@ -1042,6 +1179,7 @@ export const createTriggerNode = (item) => {
       node_key: '',
       nodeSortKey: '',
       node_name: item.trigger_name,
+      node_header_bg_color: node_header_bg_color,
       node_params: JSON.stringify({
         trigger: {
           ...item

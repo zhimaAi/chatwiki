@@ -1,0 +1,10 @@
+{
+  "group_name_label": "分组名称",
+  "group_name_placeholder": "请输入，最多10个字",
+  "group_name_required": "请输入分组名称",
+  "group_desc_label": "分组描述",
+  "group_desc_placeholder": "请输入",
+  "create_group": "新建分组",
+  "edit_group": "编辑分组",
+  "operation_success": "操作成功"
+}

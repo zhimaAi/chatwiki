@@ -3,17 +3,17 @@
     <a-modal v-model:open="open" :title="modalTitle" @ok="handleOk" :width="620">
       <div class="form-modal-box">
         <div class="form-item">
-          <div class="form-label">敏感词<span>(一行一个，最多1000个敏感词)</span></div>
+          <div class="form-label">{{ t('sensitive_words_label') }}<span>{{ t('sensitive_words_tip') }}</span></div>
           <div class="form-content">
-            <a-textarea v-model:value="words" placeholder="请输入敏感词" style="height: 160px" />
+            <a-textarea v-model:value="words" :placeholder="t('placeholder')" style="height: 160px" />
           </div>
         </div>
         <div class="form-item">
-          <div class="form-label">生效机器人</div>
+          <div class="form-label">{{ t('effective_robots') }}</div>
           <div class="form-content">
             <a-radio-group v-model:value="trigger_type">
-              <a-radio :value="0">所有机器人</a-radio>
-              <a-radio :value="1">指定机器人</a-radio>
+              <a-radio :value="0">{{ t('all_robots') }}</a-radio>
+              <a-radio :value="1">{{ t('specific_robots') }}</a-radio>
             </a-radio-group>
             <div class="robot-list" v-if="trigger_type == 1">
               <div class="checked-item" v-for="item in props.robotList" :key="item.id">
@@ -35,6 +35,9 @@
 import { ref } from 'vue'
 import { saveSensitiveWords } from '@/api/robot'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.sensitive-words.components.add-sensitive-modal')
 
 const emit = defineEmits(['ok'])
 
@@ -46,7 +49,7 @@ const props = defineProps({
 })
 
 const open = ref(false)
-const modalTitle = ref('添加敏感词')
+const modalTitle = ref(t('title_add'))
 
 const id = ref('')
 const words = ref('')
@@ -54,6 +57,7 @@ const trigger_type = ref(0)
 const robot_ids = ref([])
 const show = (data) => {
   open.value = true
+  modalTitle.value = data.id ? t('title_edit') : t('title_add')
   id.value = data.id || ''
   words.value = data.words || ''
   trigger_type.value = +data.trigger_type || 0
@@ -70,10 +74,10 @@ const handleClickItem = (item) => {
 
 const handleOk = () => {
   if (!words.value) {
-    return message.error('请输入敏感词')
+    return message.error(t('error_no_words'))
   }
   if (trigger_type.value == 1 && robot_ids.value.length == 0) {
-    return message.error('请选择机器人')
+    return message.error(t('error_no_robot'))
   }
   saveSensitiveWords({
     id: id.value,
@@ -81,7 +85,7 @@ const handleOk = () => {
     trigger_type: trigger_type.value,
     robot_ids: robot_ids.value.join(',')
   }).then((res) => {
-    message.success(id.value ? '修改成功' : '添加成功')
+    message.success(id.value ? t('success_edit') : t('success_add'))
     open.value = false
     emit('ok')
   })

@@ -88,12 +88,20 @@
             v-if="currentModelConfig.input_image == 1 || currentModelConfig.input_text == 1"
           >
             <div class="gray-block-title"><img src="@/assets/svg/input.svg" alt="" />输入</div>
-            <a-form-item label="提示词" name="use_model" v-if="currentModelConfig.input_text == 1">
+            <a-form-item name="use_model" v-if="currentModelConfig.input_text == 1">
+              <template #label>
+                <div style="width: 409px" class="flex-between-box">
+                  <div>提示词</div>
+                  <div class="btn-hover-wrap" @click="handleOpenFullAtModal">
+                    <FullscreenOutlined />
+                  </div>
+                </div>
+              </template>
               <at-input
                 :options="valueOptions"
                 :defaultSelectedList="formState.prompt_tags"
                 :defaultValue="formState.prompt"
-                ref="atInputRef"
+                ref="promptInputRef"
                 placeholder="请输入消息内容，键入“/”可以插入变量"
                 input-style="height: 76px"
                 type="textarea"
@@ -160,6 +168,18 @@
         </a-form>
       </div>
     </div>
+    <FullAtInput
+      :options="valueOptions"
+      :defaultSelectedList="formState.prompt_tags"
+      :defaultValue="formState.prompt"
+      placeholder="请输入消息内容，键入“/”可以插入变量"
+      input-style="height: 76px"
+      type="textarea"
+      @open="showAtList"
+      @change="(text, selectedList) => changeValue(text, selectedList)"
+      @ok="handleRefreshAtInput"
+      ref="fullAtInputRef"
+    />
   </NodeFormLayout>
 </template>
 
@@ -171,15 +191,15 @@ import { ref, reactive, watch, computed, onMounted, h, inject } from 'vue'
 import {
   CloseCircleOutlined,
   QuestionCircleOutlined,
-  UpOutlined,
-  DownOutlined,
-  PlusOutlined
+  PlusOutlined,
+  FullscreenOutlined
 } from '@ant-design/icons-vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import AtInput from '../../at-input/at-input.vue'
 import { getCurrentModelConfig } from '@/components/model-select/index.js'
 import { getSizeOptions } from '@/views/workflow/components/util.js'
 import { message } from 'ant-design-vue'
+import FullAtInput from '../../at-input/full-at-input.vue'
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({
@@ -240,6 +260,17 @@ const formState = reactive({
   image_watermark: '1',
   image_optimize_prompt: '1'
 })
+
+const promptInputRef = ref(null)
+const fullAtInputRef = ref(null)
+
+const handleRefreshAtInput = () => {
+  promptInputRef.value.refresh()
+}
+
+const handleOpenFullAtModal = () => {
+  fullAtInputRef.value.show()
+}
 
 const outputImggeList = computed(() => {
   let list = []
@@ -428,6 +459,24 @@ onMounted(() => {
 
 <style lang="less" scoped>
 @import '../form-block.less';
+.flex-between-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.btn-hover-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease-in;
+  &:hover {
+    background: #e4e6eb;
+  }
+}
 .model-setting-form {
   display: flex;
   align-items: center;

@@ -78,6 +78,9 @@
     overflow-y: auto;
     .fragment-item {
       margin-top: 8px;
+      &.fragment-father-son-item{
+        margin: 0;
+      }
     }
   }
 }
@@ -174,7 +177,6 @@
       <div class="page-right">
         <div class="document-fragment-preview">
           <div class="preview-header">
-            {{ formData.chunk_type }}
             <span class="label-text">分段预览</span>
             <span class="fragment-number">共{{ documentFragmentTotal }}个分段</span>
           </div>
@@ -183,6 +185,7 @@
           <div class="preview-box" ref="previewBoxRef">
             <div
               class="fragment-item"
+              :class="{'fragment-father-son-item': formData.chunk_type == 4}"
               v-for="(item, index) in documentFragmentList"
               :key="index"
             >
@@ -196,6 +199,7 @@
                 :question="item.question"
                 :answer="item.answer"
                 :images="item.images"
+                :isNeedDashedLine="getIsNeedDashedLine(item, index)"
                 :similar_question_list="item.similar_question_list"
                 @delete="handleDeleteFragment(index)"
                 @edit="handleEditFragment(item, index)"
@@ -460,7 +464,6 @@ const getDocumentFragment = (type) => {
       delete params.ai_chunk_task_id
     }
   }
-  console.log(params,'===xxx=')
   let fun = getLibFileSplit
   if(type ==  'create'){
     fun = getLibFileSplitPreview
@@ -743,6 +746,22 @@ const handleScrollToErrorDom = (index) => {
 }
 const goBack = () => {
   router.back()
+}
+
+function getIsNeedDashedLine(item, index) {
+  if(formData.chunk_type != 4){
+    return false
+  }
+  if(index == 0){
+    return false
+  }
+  let preItem = documentFragmentList.value[index - 1]
+  if(item.father_chunk_paragraph_number == preItem.father_chunk_paragraph_number){
+    return true
+  }
+
+  return false
+
 }
 
 // 组件卸载时清理

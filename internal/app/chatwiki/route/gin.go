@@ -157,10 +157,6 @@ func init() {
 	Route[http.MethodPost][`/manage/cancelOcrPdf`] = manage.CancelOcrPdf
 	Route[http.MethodGet][`/manage/createExportLibFileTask`] = manage.CreateExportLibFileTask
 	Route[http.MethodGet][`/manage/downloadLibraryFile`] = manage.DownloadLibraryFile
-	/*libFile Collection API*/
-	Route[http.MethodGet][`/manage/getLibFileRecycleList`] = manage.GetLibFileRecycleList
-	Route[http.MethodPost][`/manage/delRecycleLibraryFile`] = manage.DelRecycleLibraryFile
-	Route[http.MethodPost][`/manage/restoreRecycleLibraryFile`] = manage.RestoreRecycleLibraryFile
 	/*paragraph API*/
 	Route[http.MethodGet][`/manage/getSeparatorsList`] = manage.GetSeparatorsList
 	Route[http.MethodGet][`/manage/getLibFileSplit`] = manage.GetLibFileSplit
@@ -420,6 +416,7 @@ func init() {
 	Route[http.MethodGet][`/manage/getRobotTemplateCategoryList`] = manage.GetRobotTemplateCategoryList
 	Route[http.MethodGet][`/manage/getRobotTemplateList`] = manage.GetRobotTemplateList
 	Route[http.MethodPost][`/manage/useRobotTemplate`] = manage.UseRobotTemplate
+	Route[http.MethodGet][`/manage/commonGetRobotTemplateDetail`] = manage.CommonGetRobotTemplateDetail
 }
 
 func noAuthFuns(route map[string]lib_web.Action, path string, handlerFunc lib_web.Action) map[string]lib_web.Action {

@@ -1,0 +1,10 @@
+{
+  "llm_tooltip": "Large Language Model (LLM). When adding a robot, you need to select a Large Language Model. User questions will be processed by the LLM, which combines knowledge base to provide answers.",
+  "embedding_tooltip": "Embedding Model. When adding a knowledge base, you need to select an embedding model to vectorize knowledge base segments. When users ask questions, the questions will also be converted into vectors. By comparing vector similarity, knowledge base segments semantically similar to the question are matched. Vector retrieval has excellent semantic analysis capabilities.",
+  "rerank_tooltip": "Rerank Model. The rerank model reorders the segments retrieved from the knowledge base. Then the top-K results from reranking are passed to the Large Language Model to generate answers. Reranking helps optimize retrieval results and improves the accuracy of LLM responses.",
+  "speech2text_tooltip": "A technical solution for converting speech in audio and video into text",
+  "tts_tooltip": "Text-to-Speech Model",
+  "image_tooltip": "Image Generation Model",
+  "view_model": "View Model",
+  "add_config": "Add Configuration"
+}

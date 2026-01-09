@@ -1,7 +1,7 @@
 <template>
   <div class="custom-group-content">
     <BorderLine :isHovered="isHovered" :isSelected="isSelected" />
-    <div class="header-box">
+    <div class="header-box" :style="{ background: properties.node_header_bg_color }">
       <div class="top-block">
         <div class="title-block">
           <img src="@/assets/svg/batch-group-node.svg" alt="" />
@@ -48,7 +48,10 @@
         </div>
       </div>
     </div>
-    <div class="node-content"></div>
+    
+    <div class="node-body">
+      <div class="node-content"></div>
+    </div>
     <RunTest ref="runTestRef" :batch_node_key="batch_node_key" />
   </div>
 </template>
@@ -197,7 +200,6 @@ onMounted(() => {
   background: #fff;
   display: flex;
   flex-direction: column;
-  padding: 16px;
   border-radius: 8px;
   // border: 1px solid #fff;
   &.isHovered {
@@ -217,8 +219,8 @@ onMounted(() => {
     // }
   }
   .header-box {
-    height: 78px;
     overflow: hidden;
+    padding: 16px;
 
     .top-block {
       display: flex;
@@ -296,9 +298,14 @@ onMounted(() => {
     }
   }
 
-  .node-content {
+  .node-body{
     flex: 1;
     border-radius: 6px;
+    padding: 0 16px 16px;
+  }
+  .node-content {
+    width: 100%;
+    height: 100%;
     background: #f2f4f7;
   }
 }

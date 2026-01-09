@@ -5,11 +5,18 @@
     > -->
     <a-modal
       v-model:open="show"
-      title="运行测试"
       :footer="null"
       :width="820"
       wrapClassName="no-padding-modal"
     >
+      <template #title>
+        <div class="modal-title-block">运行测试
+          <div class="run-detail" v-if="resultList.length">
+            <span>总耗时：{{ formatTime(use_mills)}}</span>
+            <span>token消耗：{{ use_token }} Tokens</span>
+          </div>
+        </div>
+      </template>
       <div class="flex-content-box">
         <div class="test-model-box">
           <div class="top-title">开始节点参数</div>
@@ -32,12 +39,12 @@
                 </a-flex>
               </template>
               <template v-if="item.typ == 'string'">
-                <a-input placeholder="请输入" v-model:value="formState.globalState[item.key]" />
+                <a-input :placeholder="getDefaultPlaceholder(item)" v-model:value="formState.globalState[item.key]" />
               </template>
               <template v-if="item.typ == 'number'">
                 <a-input-number
                   style="width: 100%"
-                  placeholder="请输入"
+                  :placeholder="getDefaultPlaceholder(item)"
                   v-model:value="formState.globalState[item.key]"
                 />
               </template>
@@ -48,7 +55,7 @@
                     v-for="(input, i) in formState.globalState[item.key]" :key="i"
                   >
                     <a-form-item-rest
-                      ><a-input placeholder="请输入" v-model:value="input.value"
+                      ><a-input :placeholder="getDefaultPlaceholder(item)" v-model:value="input.value"
                     /></a-form-item-rest>
 
                     <CloseCircleOutlined
@@ -149,10 +156,16 @@ import 'vue-json-pretty/lib/styles.css'
 import { reactive, ref, computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { callWorkFlow } from '@/api/robot/index'
-import { getImageUrl } from '../util'
+import { getImageUrl, formatTime } from '../util'
 import { message } from 'ant-design-vue'
 import { copyText } from '@/utils/index'
 import ImageLogs from '@/views/workflow/components/image-logs/index.vue'
+const DEFAULT_SUGGEST_MAP = {
+  openid: '38fjp8344ru43',
+  question: '你好',
+  question_multiple: '{"type":"text", "text":"这是什么"}',
+  conversationid: '12345'
+}
 const props = defineProps({
   lf: {
     type: Object
@@ -275,15 +288,22 @@ function getGlobalDefaultVal() {
   let result = {}
   diy_global.value.forEach((item) => {
     if (item.typ == 'string') {
-      result[item.key] = formState.globalState[item.key]
+      const v = (formState.globalState[item.key] || '').trim()
+      result[item.key] = v ? v : (DEFAULT_SUGGEST_MAP[item.key] ?? '')
     }
     if (item.typ == 'number') {
-      result[item.key] = formState.globalState[item.key] ? +formState.globalState[item.key] : ''
+      const raw = formState.globalState[item.key]
+      if (raw !== '' && raw != null) {
+        result[item.key] = +raw
+      } else {
+        const def = DEFAULT_SUGGEST_MAP[item.key]
+        result[item.key] = def != null && def !== '' && !isNaN(Number(def)) ? Number(def) : ''
+      }
     }
 
     if (item.typ.includes('array')) {
       let list = formState.globalState[item.key].map((it) => {
-        it.value = it.value.trim()
+        it.value = typeof it.value == 'string' ? it.value.trim() : it.value
 
         if (isJsonString(it.value)) {
           return JSON.parse(it.value)
@@ -291,6 +311,15 @@ function getGlobalDefaultVal() {
           return it.value
         }
       }).filter((it) => it)
+
+      if ((!Array.isArray(list) || list.length === 0) && DEFAULT_SUGGEST_MAP[item.key]) {
+        const def = DEFAULT_SUGGEST_MAP[item.key]
+        if (isJsonString(def)) {
+          list = [JSON.parse(def)]
+        } else {
+          list = [def]
+        }
+      }
 
       result[item.key] = list
     }
@@ -329,6 +358,9 @@ const handleAddItem = (key) => {
 
 const formRef = ref(null)
 
+const use_token = ref(0)
+const use_mills = ref(0)
+
 const handleSubmit = () => {
   formRef.value.validate().then(() => {
     let postData = { ...formState }
@@ -342,7 +374,10 @@ const handleSubmit = () => {
     resultList.value = []
   
 
-    localStorage.setItem('workflow_run_test_data', JSON.stringify({ ...postData }))
+    const overrides = buildStorageOverrides()
+    if (Object.keys(overrides).length) {
+      localStorage.setItem('workflow_run_test_data', JSON.stringify({ global: JSON.stringify(overrides) }))
+    }
     
     callWorkFlow({
       ...postData,
@@ -350,12 +385,16 @@ const handleSubmit = () => {
     })
       .then((res) => {
         message.success('测试结果生成完成')
-        formateData(res.data || [])
+        let node_logs = res.data.node_logs || []
+        use_token.value = res.data.use_token
+        use_mills.value = res.data.use_mills
+        formateData(node_logs)
       })
       .catch((res) => {
         resultList.value = []
-        if (res.data && res.data.length) {
-          formateData(res.data)
+        let node_logs = res.data.node_logs || []
+        if (node_logs && node_logs.length) {
+          formateData(node_logs)
         }
       })
       .finally(() => {
@@ -386,6 +425,68 @@ const handleCopy = () => {
 
 const  open = () => {
   handleOpenTestModal()
+}
+
+function getDefaultPlaceholder(item) {
+  const def = DEFAULT_SUGGEST_MAP[item.key]
+  return def ? `${def}` : '请输入'
+}
+
+function parseJSONMaybe(str) {
+  try {
+    return JSON.parse(str)
+  } catch {
+    return null
+  }
+}
+
+function deepEqual(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
+function buildStorageOverrides() {
+  const overrides = {}
+  diy_global.value.forEach((item) => {
+    const key = item.key
+    if (item.typ === 'string') {
+      const v = String(formState.globalState[key] || '').trim()
+      if (!v) return
+      const def = DEFAULT_SUGGEST_MAP[key]
+      if (def != null && v === String(def)) return
+      overrides[key] = v
+      return
+    }
+    if (item.typ === 'number') {
+      const raw = formState.globalState[key]
+      if (raw === '' || raw == null) return
+      const val = +raw
+      const def = DEFAULT_SUGGEST_MAP[key]
+      if (def != null && !isNaN(Number(def)) && val === Number(def)) return
+      overrides[key] = val
+      return
+    }
+    if (item.typ.includes('array')) {
+      const list = Array.isArray(formState.globalState[key]) ? formState.globalState[key] : []
+      const typed = list
+        .map(it => String(it?.value || '').trim())
+        .filter(s => s)
+        .map(s => {
+          const o = parseJSONMaybe(s)
+          return o != null ? o : s
+        })
+      if (!typed.length) return
+      let defList = []
+      const def = DEFAULT_SUGGEST_MAP[key]
+      if (def != null) {
+        const o = parseJSONMaybe(String(def))
+        defList = o != null ? [o] : [String(def)]
+      }
+      if (defList.length && deepEqual(typed, defList)) return
+      overrides[key] = typed
+      return
+    }
+  })
+  return overrides
 }
 
 defineExpose({
@@ -563,11 +664,38 @@ defineExpose({
       }
     }
     .preview-code-box {
+      width: fit-content;
       margin-top: 16px;
       padding: 8px;
       border-radius: 8px;
       border: 1px solid #d9d9d9;
+
+      &::v-deep(.vjs-tree) {
+        width: fit-content;
+      }
+
+      &::v-deep(.vjs-tree-node) {
+        width: calc(100% + 16px);
+        padding-right: 16px;
+      }
     }
+  }
+}
+
+
+.modal-title-block{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  .run-detail{
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #BFFBD7;
+    padding: 4px 16px;
+    font-size: 14px;
+    color: #595959;
+    border-radius: 8px;
   }
 }
 </style>

@@ -649,10 +649,69 @@ export const removeVoiceFormat = (content) => {
   if (!content || typeof content !== 'string') {
     return content;
   }
-  
+
   // 匹配 !voice[](https://xiaokefu.com.cn/statis/voi.mp3) 格式的正则表达式
   const voiceRegex = /!voice\[\]\([^)]+\)/g;
-  
+
   // 将匹配到的语音格式内容替换为空字符串
   return content.replace(voiceRegex, '');
 };
+
+export const setDescRef = (el, item) => {
+  if (el && item) {
+    item.title_width = el.offsetWidth
+  }
+}
+
+// 获取 tooltip 标题
+export const getTooltipTitle = (text, record, size, lines, difference) => {
+  if (!text) return null
+  if (!record || !record.title_width) return null
+  const canvas = document.createElement('canvas')
+  const context = canvas.getContext('2d')
+  context.font = `${size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`
+  const textWidth = context.measureText(text).width
+  const maxWidth = (record.title_width * lines) - difference // lines行显示
+  return textWidth > maxWidth ? text : null
+}
+export function canvasToFile(canvas, fileName = 'image.png', mimeType = 'image/png', quality = 0.92) {
+  return new Promise(resolve => {
+    canvas.toBlob(blob => {
+      const file = new File([blob], fileName, {
+        type: mimeType,
+        lastModified: Date.now()
+      })
+      resolve(file)
+    }, mimeType, quality)
+  })
+}
+
+/**
+ * 支持下拉刷新和上滑加载的通用滚动处理函数
+ * @param {Event} event - 滚动事件
+ * @param {Function} onReachBottom - 到达底部时触发的函数（加载更多）
+ * @param {Function} onReachTop - 到达顶部时触发的函数（下拉加载）
+ * @param {number} [threshold=5] - 触发阈值（像素）
+ */
+export function listScrollPullLoad(event, onReachBottom, onReachTop=null, threshold = 5) {
+  const target = event.target;
+  const {
+    scrollTop,
+    scrollHeight,
+    clientHeight,
+    scrollLeft,
+    offsetWidth,
+    scrollWidth
+  } = target;
+
+  // 到达底部：上滑加载更多
+  if (scrollTop + clientHeight >= scrollHeight - threshold &&
+    scrollLeft + offsetWidth >= scrollWidth - threshold) {
+    onReachBottom && onReachBottom();
+  }
+
+  // 到达顶部：下拉刷新
+  if (scrollTop <= threshold && scrollLeft <= threshold) {
+    onReachTop && onReachTop();
+  }
+}

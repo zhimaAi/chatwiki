@@ -147,6 +147,8 @@
               :msg="item"
               :prevMsg="messageList[index-1]"
               @sendTextMessage="sendTextMessage"
+              @toggleReasonProcess="handleToggleReasonProcess"
+              @toggleQuoteFiel="handleToggleQuoteFiel"
             />
           </template>
         </MessageList>
@@ -254,6 +256,7 @@ const isShortcut = computed(()=>{
 
 // 允许滚动到底部
 let isAllowedScrollToBottom = true
+let lastScrollTop = 0
 const messageListRef = ref<null | MessageListComponent>(null)
 
 const scrollToMessageById = (id: number | string) => {
@@ -283,6 +286,12 @@ const onScroll = (event) => {
     // 不是在底部了，显示回到底部按钮
     isShowBottomBtn.value = true
   }
+
+  if (lastScrollTop && lastScrollTop - event.scrollTop > 0) {
+    isAllowedScrollToBottom = false;
+  }
+
+  lastScrollTop = event.scrollTop
 
   // 滚动页面就收起
   isScrolled.value = true
@@ -426,9 +435,9 @@ const onSendMesage = async () => {
 
 // 监听 updateAiMessage 触发消息列表滚动
 const onUpdateAiMessage = (msg) => {
-  if(msg.event === 'reasoning_content'){
-    return
-  }
+  // if(msg.event === 'reasoning_content'){
+  //   return
+  // }
 
   if (messageListRef.value) {
     handleMessageListScrollToBottom()
@@ -493,6 +502,27 @@ const checkLogin = async () => {
       return showToast(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)
     }
 
+}
+
+const handleToggleReasonProcess = (msgId: number) => {
+  const msg = messageList.value.find(m => {
+    let id = m.message_id || m.id
+    return id == msgId
+  })
+  
+  if (msg) {
+    msg.show_reasoning = !msg.show_reasoning
+  }
+}
+
+const handleToggleQuoteFiel = (msgId: number) => {
+  const msg = messageList.value.find(m => {
+    let id = m.message_id || m.id
+    return id == msgId
+  })
+  if (msg) {
+    msg.show_quote_file = !msg.show_quote_file
+  }
 }
 
 onMounted(async() => {

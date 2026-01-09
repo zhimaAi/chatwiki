@@ -1,0 +1,14 @@
+{
+  "title": "AI 生成提示词",
+  "use_prompt": "使用该提示",
+  "placeholder": "请输入AI 生成提示词例如：创建一个电商行业售后客服",
+  "generating": "生成中...",
+  "generate": "生成",
+  "quick_generate": "快捷生成：",
+  "generating_tip": "正在生成中...",
+  "empty_description": "在上方输入框输入要求，点击生成提示词",
+  "input_prompt_error": "请输入AI 生成提示词",
+  "generate_first_error": "请先生成提示词",
+  "quick_tag_ecommerce": "创建一个电商行业售后客服",
+  "quick_tag_education": "创建一个英语教育机构官网售前机器人"
+}

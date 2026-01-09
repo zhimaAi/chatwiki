@@ -49,7 +49,7 @@
           <a-menu-item>
             <a class="menu-item" href="javascript:;" @click="toSystem">
               <svg-icon class="menu-icon" name="system-setting"></svg-icon>
-              <span class="menu-name">系统管理</span>
+              <span class="menu-name">{{ t('layout.navbar.system_manage') }}</span>
             </a>
           </a-menu-item>
           <template v-for="item in navs" :key="item.id">
@@ -60,11 +60,13 @@
               </a>
             </a-menu-item>
           </template>
-
+          <a-menu-item>
+            <LocaleDropdown />
+          </a-menu-item>
           <a-menu-item>
             <a class="menu-item" href="javascript:;" @click="onLogout">
               <svg-icon class="menu-icon" name="logout"></svg-icon>
-              <span class="menu-name">退出登录</span>
+              <span class="menu-name">{{ t('layout.navbar.logout') }}</span>
             </a>
           </a-menu-item>
         </a-menu>
@@ -74,16 +76,18 @@
 </template>
 
 <script setup>
-// import { useRouter } from 'vue-router'
-import { computed, } from 'vue'
+import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
 import { useUserStore } from '@/stores/modules/user'
 import { useCompanyStore } from '@/stores/modules/company'
 import { checkRole } from '@/utils/permission'
+import LocaleDropdown from './locale-dropdown.vue'
+
+const { t } = useI18n()
 const companyStore = useCompanyStore()
 const router = useRouter()
-// const router = useRouter()
 const userStore = useUserStore()
 
 const { userInfo, avatar, user_name } = storeToRefs(userStore)
@@ -97,18 +101,15 @@ const onLogout = () => {
 }
 
 const toSystem = () => {
-  // router.push({
-  //   path: '/user/model',
-  // })
-  window.open(`/#/user/model`, "_blank", "noopener") // 建议添加 noopener 防止安全漏洞
+  window.open(`/#/user/model`, "_blank", "noopener")
 }
 
-const baseNavs = [
+const baseNavs = computed(() => [
   {
     id: 1,
     key: 'robot',
     label: 'robot',
-    title: '应用',
+    title: t('layout.navbar.application'),
     icon: 'nav-robot',
     path: '/robot/list',
     permission: ['RobotManage']
@@ -117,7 +118,7 @@ const baseNavs = [
     id: 2,
     key: 'library',
     label: 'library',
-    title: '知识库',
+    title: t('layout.navbar.knowledge_base'),
     icon: 'nav-library',
     path: '/library/list',
     permission: ['LibraryManage']
@@ -126,7 +127,7 @@ const baseNavs = [
     id: 3,
     key: 'PublicLibrary',
     label: 'PublicLibrary',
-    title: '文档',
+    title: t('layout.navbar.document'),
     icon: 'nav-doc',
     path: '/public-library/list',
     permission: ['OpenLibDocManage']
@@ -135,7 +136,7 @@ const baseNavs = [
     id: 4,
     key: 'library-search',
     label: 'library-search',
-    title: '搜索',
+    title: t('layout.navbar.search'),
     icon: 'search',
     path: '/library-search/index',
     permission: ['SearchManage']
@@ -144,23 +145,23 @@ const baseNavs = [
     id: 5,
     key: 'chat-monitor',
     label: 'chat-monitor',
-    title: '会话',
+    title: t('layout.navbar.session'),
     icon: 'nav-chat',
     path: '/chat-monitor/index',
     permission: ['ChatSessionManage']
   },
-]
+])
 
 const top_navigate = computed(() => {
   return companyStore.top_navigate
 })
 
 const navs = computed(() => {
-  const closeList = top_navigate.value.filter(item => !item.open); // 获取所有关闭的菜单项
+  const closeList = top_navigate.value.filter(item => !item.open);
 
   return closeList
-    .map(item => baseNavs.find(nav => nav.key === item.id)) // 查找匹配的菜单项
-    .filter(Boolean); // 过滤掉未找到的菜单项（undefined）
+    .map(item => baseNavs.value.find(nav => nav.key === item.id))
+    .filter(Boolean);
 });
 
 const handleClickNav = item => {

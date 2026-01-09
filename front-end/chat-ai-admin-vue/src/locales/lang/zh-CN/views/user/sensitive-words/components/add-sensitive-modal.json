@@ -1,0 +1,14 @@
+{
+  "title_add": "添加敏感词",
+  "title_edit": "编辑敏感词",
+  "sensitive_words_label": "敏感词",
+  "sensitive_words_tip": "(一行一个，最多1000个敏感词)",
+  "placeholder": "请输入敏感词",
+  "effective_robots": "生效机器人",
+  "all_robots": "所有机器人",
+  "specific_robots": "指定机器人",
+  "error_no_words": "请输入敏感词",
+  "error_no_robot": "请选择机器人",
+  "success_add": "添加成功",
+  "success_edit": "修改成功"
+}

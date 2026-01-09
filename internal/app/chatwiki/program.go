@@ -99,6 +99,7 @@ func StartCronTasks() {
 	_, _ = c.AddFunc(`*/1 * * * *`, func() { //every minute 00
 		go work_flow.TriggerCronSelectTimeRun()
 	})
+	_, _ = c.AddFunc(`1 0 * * *`, func() { business.CheckRobotPaymentDurationAuthCode() })
 	c.Start()
 	go work_flow.StartLoadCronTriggers()
 	logs.Debug("cron start")

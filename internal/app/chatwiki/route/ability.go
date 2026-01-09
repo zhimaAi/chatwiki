@@ -86,4 +86,15 @@ func RegAbilityRoute() {
 	Route[http.MethodGet][`/manage/officialAccount/getCommentRuleInfo`] = manage.GetCommentRuleInfo
 	Route[http.MethodGet][`/manage/officialAccount/getCommentList`] = manage.GetCommentList
 
+	/** Robot Payment */
+	Route[http.MethodGet][`/manage/robotPayment/getPaymentSetting`] = manage.GetPaymentSetting
+	Route[http.MethodPost][`/manage/robotPayment/savePaymentSetting`] = manage.SavePaymentSetting
+	Route[http.MethodPost][`/manage/robotPayment/copyPaymentSetting`] = manage.CopyPaymentSetting
+	Route[http.MethodGet][`/manage/robotPayment/getAuthCodeList`] = manage.GetAuthCodeList
+	Route[http.MethodPost][`/manage/robotPayment/addAuthCode`] = manage.AddAuthCode
+	Route[http.MethodPost][`/manage/robotPayment/deleteAuthCode`] = manage.DeleteAuthCode
+	Route[http.MethodGet][`/manage/robotPayment/getAuthCodeStats`] = manage.GetAuthCodeStats
+	Route[http.MethodGet][`/manage/robotPayment/getAuthCodeManager`] = manage.GetAuthCodeManager
+	Route[http.MethodPost][`/manage/robotPayment/addAuthCodeManager`] = manage.AddAuthCodeManager
+	Route[http.MethodPost][`/manage/robotPayment/deleteAuthCodeManager`] = manage.DeleteAuthCodeManager
 }

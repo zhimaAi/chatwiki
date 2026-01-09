@@ -3,7 +3,7 @@
     <div class="search-block">
       <a-input
         v-model:value="searchState.search"
-        placeholder="搜索名称"
+        :placeholder="t('quota.search_placeholder')"
         style="width: 220px"
         @change="onSearch"
       >
@@ -14,7 +14,7 @@
     </div>
     <div class="list-box">
       <a-table :data-source="tableData" :loading="loading" :pagination="false" sticky>
-        <a-table-column title="类型" data-index="token_app_type" :width="120">
+        <a-table-column :title="t('quota.type')" data-index="token_app_type" :width="120">
           <template #default="{ record }">
             <a-flex :gap="4" align="center">
               <a-avatar
@@ -34,38 +34,38 @@
             </a-flex>
           </template>
         </a-table-column>
-        <a-table-column title="应用名称" data-index="robot_name" :width="160"> </a-table-column>
-        <a-table-column title="今日消耗(k)" data-index="today_use_token" :width="130">
+        <a-table-column :title="t('quota.app_name')" data-index="robot_name" :width="160"> </a-table-column>
+        <a-table-column :title="t('quota.today_consumption')" data-index="today_use_token" :width="130">
           <template #default="{ record }">{{ formatNum(record.today_use_token) }}</template>
         </a-table-column>
-        <a-table-column title="Token限额(k)" data-index="amount" :width="120">
+        <a-table-column :title="t('quota.token_limit')" data-index="amount" :width="120">
           <template #default="{ record }">{{
             record.is_config == 1 && record.switch_status == 1 ? formatNum(record.max_token) : '-'
           }}</template>
         </a-table-column>
-        <a-table-column title="已消耗(k)" data-index="amount2" :width="120">
+        <a-table-column :title="t('quota.consumed')" data-index="amount2" :width="120">
           <template #default="{ record }">{{
             record.switch_status == 1 ? formatNum(record.use_token) : '-'
           }}</template>
         </a-table-column>
-        <a-table-column title="剩余(k)" data-index="amount3" :width="120">
+        <a-table-column :title="t('quota.remaining')" data-index="amount3" :width="120">
           <template #default="{ record }">{{
             record.switch_status == 1 ? formatNum(record.max_token - record.use_token) : '-'
           }}</template>
         </a-table-column>
-        <a-table-column title="备注" data-index="description" :width="200" :ellipsis="true">
+        <a-table-column :title="t('quota.remark')" data-index="description" :width="200" :ellipsis="true">
           <template #default="{ record }">{{ record.description || '--' }}</template>
         </a-table-column>
-        <a-table-column title="操作" data-index="action" :width="120">
+        <a-table-column :title="t('quota.action')" data-index="action" :width="120">
           <template #default="{ record }">
             <a-flex align="center" :gap="8">
               <a-switch
                 @change="handleChangeSwitch(record)"
                 :checked="record.switch_status == 1"
-                checked-children="开"
-                un-checked-children="关"
+                :checked-children="t('quota.switch_on')"
+                :un-checked-children="t('quota.switch_off')"
               />
-              <a v-if="record.switch_status == 1" @click="handleOpenModal(record, true)">设置</a>
+              <a v-if="record.switch_status == 1" @click="handleOpenModal(record, true)">{{ t('quota.setting') }}</a>
             </a-flex>
           </template>
         </a-table-column>
@@ -82,16 +82,20 @@ import { DEFAULT_ROBOT_AVATAR, DEFAULT_WORKFLOW_AVATAR } from '@/constants/index
 import TokenQuotaModal from './components/token-quota-modal.vue'
 import { tokenLimitList, tokenLimitCreate, tokenLimitSwitch } from '@/api/manage/index.js'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.usetoken')
+
 const searchState = reactive({
   search: ''
 })
 
 const tableData = ref([])
 
-let token_app_type_map = {
-  chatwiki_robot: '机器人',
-  workflow: '工作流',
-  other: '其他'
+const token_app_type_map = {
+  chatwiki_robot: t('robot'),
+  workflow: t('workflow'),
+  other: t('other')
 }
 
 const loading = ref(false)
@@ -135,7 +139,7 @@ const handleSetSwitch = () => {
     token_app_type: tempRecord.token_app_type,
     switch_status: tempRecord.switch_status == 1 ? 0 : 1
   }).then((res) => {
-    message.success(`${tempRecord.switch_status == 1 ? '关闭' : '开启'}成功`)
+    message.success(`${tempRecord.switch_status == 1 ? t('quota.close_success') : t('quota.open_success')}`)
     getData()
   })
 }

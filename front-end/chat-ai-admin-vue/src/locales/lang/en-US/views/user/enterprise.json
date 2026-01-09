@@ -3,5 +3,14 @@
   "notSetTip": "Not set (system name will be displayed after the logo in the upper left corner, login window, website title)",
   "systemName": "System Name",
   "SetSystemName": "Set system name",
-  "enterName": "Please enter the system name"
+  "enterName": "Please enter the system name",
+  "topNavigationSettings": "Top Navigation Settings",
+  "sort": "Sort",
+  "sortTip": "Long press the icon and drag to adjust the order",
+  "showInTop": "Show at top",
+  "showInTopTip": "After closing, it will not be displayed in the top navigation bar. You can still find it in the dropdown menu by clicking the account in the upper right corner",
+  "on": "On",
+  "off": "Off",
+  "saveSuccess": "Saved successfully",
+  "change": "Change"
 }

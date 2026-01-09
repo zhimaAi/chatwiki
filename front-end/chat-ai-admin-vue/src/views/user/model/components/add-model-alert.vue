@@ -12,7 +12,7 @@
 </style>
 
 <template>
-  <a-modal class="add-model-alert" v-model:open="show" title="添加文心一言" @ok="handleOk">
+  <a-modal class="add-model-alert" v-model:open="show" :title="t('title')" @ok="handleOk">
     <div class="form-wrapper">
       <img class="model-logo" src="@/assets/img/user/model/anthropicc.png" alt="" />
 
@@ -21,22 +21,22 @@
           <a-form-item>
             <template #label>
               <div>
-                <span style="padding-right: 16px">API Key：</span>
-                <a href="#">如何获取?</a>
+                <span style="padding-right: 16px">{{ t('api_key_label') }}</span>
+                <a href="#">{{ t('how_to_get') }}</a>
               </div>
             </template>
 
-            <a-input v-model:value="formState.api_key" placeholder="请输入您的API Key" />
+            <a-input v-model:value="formState.api_key" :placeholder="t('api_key_placeholder')" />
           </a-form-item>
 
           <a-form-item>
             <template #label>
               <div>
-                <span>Secret Key：</span>
+                <span>{{ t('secret_key_label') }}</span>
               </div>
             </template>
 
-            <a-input v-model:value="formState.api_key" placeholder="请输入您的Secret Key" />
+            <a-input v-model:value="formState.api_key" :placeholder="t('secret_key_placeholder')" />
           </a-form-item>
         </a-form>
       </div>
@@ -45,6 +45,9 @@
 </template>
 <script setup>
 import { ref, reactive } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.model.components.add-model-alert')
 
 const show = ref(false)
 const formState = reactive({

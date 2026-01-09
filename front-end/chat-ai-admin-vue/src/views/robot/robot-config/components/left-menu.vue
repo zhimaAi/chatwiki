@@ -68,6 +68,10 @@ const selectedKeys = computed(() => {
   if (route.path.split('/')[3] === 'smart-menu' && !smartMenu) {
     return ['function-center']
   }
+  const paymentMenu = children.find((i) => i.id === 'payment')
+  if (route.path.split('/')[3] === 'payment' && !paymentMenu) {
+    return ['function-center']
+  }
   return [route.path.split('/')[3]]
 })
 
@@ -124,19 +128,19 @@ const baseItems = [
     path: '/robot/config/skill-config',
     menuIn: ['0']
   },
-  {
-    key: 'function-center',
-    id: 'function-center',
-    icon: () =>
-      h(SvgIcon, {
-        name: 'function-center',
-        class: 'menu-icon'
-      }),
-    label: '功能中心',
-    title: '功能中心',
-    path: '/robot/config/function-center',
-    menuIn: ['0', '1']
-  },
+  // {
+  //   key: 'function-center',
+  //   id: 'function-center',
+  //   icon: () =>
+  //     h(SvgIcon, {
+  //       name: 'function-center',
+  //       class: 'menu-icon'
+  //     }),
+  //   label: '功能中心',
+  //   title: '功能中心',
+  //   path: '/robot/config/function-center',
+  //   menuIn: ['0', '1']
+  // },
   {
     key: 'external-services',
     id: 'external-services',
@@ -211,19 +215,19 @@ const baseItems = [
     path: '/robot/config/api-key-manage',
     menuIn: ['0', '1']
   },
-  {
-    key: 'unknown_issue',
-    id: 'unknown_issue',
-    icon: () =>
-      h(SvgIcon, {
-        name: 'unknown-issue',
-        class: 'menu-icon'
-      }),
-    label: '未知问题',
-    title: '未知问题',
-    path: '/robot/config/unknown_issue',
-    menuIn: ['0', '1']
-  },
+  // {
+  //   key: 'unknown_issue',
+  //   id: 'unknown_issue',
+  //   icon: () =>
+  //     h(SvgIcon, {
+  //       name: 'unknown-issue',
+  //       class: 'menu-icon'
+  //     }),
+  //   label: '未知问题',
+  //   title: '未知问题',
+  //   path: '/robot/config/unknown_issue',
+  //   menuIn: ['0', '1']
+  // },
   {
     key: 'statistical_analysis',
     id: 'statistical_analysis',
@@ -268,6 +272,7 @@ const baseItems = [
 const autoReplyMenu = ref(null)
 const subscribeReplyMenu = ref(null)
 const smartMenu = ref(null)
+const paymentMenu = ref(null)
 
 async function refreshAbilityMenu () {
   try {
@@ -378,6 +383,39 @@ async function refreshAbilityMenu () {
     } else {
       smartMenu.value = null
     }
+
+    const paymentItem = (data || []).find((it) => it?.ability_type === 'robot_payment')
+    if (paymentItem) {
+      const sw_payment = paymentItem?.robot_config?.switch_status ?? paymentItem?.user_config?.switch_status ?? '0'
+      const ai_reply_status_payment = paymentItem?.robot_config?.ai_reply_status ?? paymentItem?.user_config?.ai_reply_status ?? '0'
+      robotStore.setPaymentSwitchStatus(String(sw_payment))
+      robotStore.setPaymentAiReplyStatus(String(ai_reply_status_payment))
+    } else {
+      robotStore.setPaymentSwitchStatus('0')
+      robotStore.setPaymentAiReplyStatus('0')
+    }
+    const hitPayment = (data || []).find(
+      (it) =>
+        it?.ability_type === 'robot_payment' &&
+        it?.robot_config?.fixed_menu === '1'
+    )
+    if (hitPayment) {
+      paymentMenu.value = {
+        key: 'payment',
+        id: 'payment',
+        icon: () =>
+          h(SvgIcon, {
+            name: 'payment',
+            class: 'menu-icon'
+          }),
+        label: hitPayment?.menu?.name,
+        title: hitPayment?.menu?.name,
+        path: hitPayment?.menu?.path || '/robot/ability/payment',
+        menuIn: ['0', '1']
+      }
+    } else {
+      paymentMenu.value = null
+    }
   } catch (e) {
     console.warn('refreshAbilityMenu failed', e)
   }
@@ -413,6 +451,7 @@ const items = computed(() => {
     if (autoReplyMenu.value) children.push(autoReplyMenu.value)
     if (subscribeReplyMenu.value) children.push(subscribeReplyMenu.value)
     if (smartMenu.value) children.push(smartMenu.value)
+    if (paymentMenu.value) children.push(paymentMenu.value)
     arr[idx] = { ...arr[idx], children }
   }
   return arr

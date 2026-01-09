@@ -262,7 +262,7 @@ func RunningWorkFlow(params *WorkFlowParams, startNodeKey string) (*WorkFlow, er
 		StartTime:   tool.Time2Int(),
 		context:     ctx,
 		cancel:      cancel,
-		ticker:      time.NewTicker(time.Minute * 5),      //DIY
+		ticker:      time.NewTicker(time.Minute * 60),     //DIY
 		global:      common.SimpleFields{},                //没有系统全局变量了
 		outputs:     make(map[string]common.SimpleFields), //记录每个节点输出的变量
 		curNodeKey:  startNodeKey,                         //开始节点

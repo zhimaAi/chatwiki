@@ -42,7 +42,7 @@ export default class SSE {
     fetchEventSource(this.opt.url, {
       method: 'POST',
       headers: {
-        'App-Type': 'yun_pc',
+        'App-Type': 'yun_h5',
       },
       signal: this.controller.signal,
       // 允许在页面隐藏时继续接收消息(开启后不再触发自动重连的问题)
@@ -74,6 +74,7 @@ export default class SSE {
         this.abort()
       },
       onerror: (error: any) => {
+        console.log(error)
         // 明确指定错误类型为any
         if (typeof this.onError === 'function') {
           this.onError(error)

@@ -196,38 +196,41 @@ func LoadLocalPlugin(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
-	info, err := msql.Model(`plugin_config`, define.Postgres).
-		Where(`admin_user_id`, adminUserId).
-		Where(`name`, req.Name).
-		Find()
-	if err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
-		return
-	}
-	if len(info) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New("no data")))
-		return
-	}
+	Name := strings.Split(req.Name, ",")
 
-	// 加载插件
-	initPhpConfig := []string{"CRAWLER_HOST=" + define.Config.WebService[`crawler`]}
-	err = define.PhpPlugin.LoadPhpPlugin(req.Name, define.Version, initPhpConfig)
-	if err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
-		return
-	}
+	for _, name := range Name {
+		info, err := msql.Model(`plugin_config`, define.Postgres).
+			Where(`admin_user_id`, adminUserId).
+			Where(`name`, name).
+			Find()
+		if err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+			return
+		}
+		if len(info) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New("no data")))
+			return
+		}
 
-	// 更新数据库记录
-	_, err = msql.Model(`plugin_config`, define.Postgres).
-		Where(`admin_user_id`, adminUserId).
-		Where(`name`, req.Name).
-		Update(msql.Datas{
-			`update_time`: tool.Time2Int(),
-			`has_loaded`:  true,
-		})
-	if err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
-		return
+		// 加载插件
+		err = define.PhpPlugin.LoadPhpPlugin(name, define.Version, define.DefaultPhpEnv)
+		if err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+			return
+		}
+
+		// 更新数据库记录
+		_, err = msql.Model(`plugin_config`, define.Postgres).
+			Where(`admin_user_id`, adminUserId).
+			Where(`name`, name).
+			Update(msql.Datas{
+				`update_time`: tool.Time2Int(),
+				`has_loaded`:  true,
+			})
+		if err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+			return
+		}
 	}
 
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))

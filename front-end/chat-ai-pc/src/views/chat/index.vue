@@ -129,6 +129,8 @@
               :msg="item"
               :prevMsg="messageList[index-1]"
               @sendTextMessage="sendTextMessage"
+              @toggleReasonProcess="handleToggleReasonProcess"
+              @toggleQuoteFiel="handleToggleQuoteFiel"
             />
           </template>
         </MessageList>
@@ -205,6 +207,7 @@ const showUpload = computed(() => {
 
 // 允许滚动到底部
 let isAllowedScrollToBottom = true
+let lastScrollTop = 0;
 const messageListRef = ref<null | MessageListComponent>(null);  
 
 const scrollToMessageById = (id: number | string) => {
@@ -226,6 +229,12 @@ const onScroll = (event) => {
     // 不是在底部了，显示回到底部按钮
     isShowBottomBtn.value = true
   }
+
+  if (lastScrollTop - event.scrollTop > 0) {
+    isAllowedScrollToBottom = false;
+  }
+
+  lastScrollTop = event.scrollTop
 }
 
 // 滚动到顶部
@@ -375,6 +384,27 @@ const onCloseWindow = () => {
 const handleSetMessageInputValue = (data: any) => {
   // 直接发出内容
   onSendMesage(data)
+}
+
+const handleToggleReasonProcess = (msgId: number) => {
+  const msg = messageList.value.find(m => {
+    let id = m.message_id || m.id
+    return id == msgId
+  })
+  
+  if (msg) {
+    msg.show_reasoning = !msg.show_reasoning
+  }
+}
+
+const handleToggleQuoteFiel = (msgId: number) => {
+  const msg = messageList.value.find(m => {
+    let id = m.message_id || m.id
+    return id == msgId
+  })
+  if (msg) {
+    msg.show_quote_file = !msg.show_quote_file
+  }
 }
 
 onMounted(() => {

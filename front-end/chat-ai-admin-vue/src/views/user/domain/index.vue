@@ -38,7 +38,7 @@
 <template>
   <div class="domain-page">
     <div class="page-container">
-      <div class="page-title">自定义域名设置</div>
+      <div class="page-title">{{ t('page_title') }}</div>
 
       <div class="domain-tips">
         <a-alert type="info" show-icon>
@@ -49,11 +49,11 @@
           </template>
           <template #description>
             <div class="tip-text">
-              <div>将域名解析到部署服务器，可以通过自由域名访问对外文档和对外服务web APP。</div>
+              <div>{{ t('domain_tip_1') }}</div>
               <!-- <div>
                 1、域名解析请参考帮助文档，目前只支持阿里云备案的域名，将域名cname到wiki.aishipinhao.com。
               </div> -->
-              <div>1、如需使用https,请在添加域名后，上传证书文件，包括公钥和私钥(ky文件)。</div>
+              <div>{{ t('domain_tip_2') }}</div>
             </div>
           </template>
         </a-alert>
@@ -61,7 +61,7 @@
 
       <div class="list-action-box">
         <div>
-          <a-button type="primary" @click="handleAddDomain">添加自定义域名</a-button>
+          <a-button type="primary" @click="handleAddDomain">{{ t('add_domain_btn') }}</a-button>
         </div>
       </div>
 
@@ -72,14 +72,14 @@
               <span>{{ record.url }}</span>
             </template>
             <template v-else-if="column.key === 'is_upload'">
-              <span> {{ record.is_upload ? '已上传' : '未上传' }}</span>
+              <span> {{ record.is_upload ? t('certificate_uploaded') : t('certificate_not_uploaded') }}</span>
             </template>
             <template v-else-if="column.key === 'action'">
               <span class="action-box">
-                <a class="action-btn" @click="handleUploadSSL(record)">上传证书</a>
-                <a class="action-btn" @click="handleUploadValidationFile(record)">上传验证文件</a>
-                <a class="action-btn" @click="handleEditDomain(record)">编辑</a>
-                <a class="action-btn" @click="handleDelDomain(record)">删除</a>
+                <a class="action-btn" @click="handleUploadSSL(record)">{{ t('upload_certificate') }}</a>
+                <a class="action-btn" @click="handleUploadValidationFile(record)">{{ t('upload_validation_file') }}</a>
+                <a class="action-btn" @click="handleEditDomain(record)">{{ t('edit') }}</a>
+                <a class="action-btn" @click="handleDelDomain(record)">{{ t('delete') }}</a>
               </span>
             </template>
           </template>
@@ -118,23 +118,26 @@ import { message, Modal } from 'ant-design-vue'
 import AddDomainModal from './components/add-domain-modal .vue'
 import UploadSSL from './components/upload-ssl.vue'
 import UploadValidationFile from './components/upload-validation-file.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.domain.index')
 
 const addDomainModalRef = ref(null)
 const confirmLoading = ref(false)
 const columns = [
   {
-    title: '域名',
+    title: t('table_column_domain'),
     dataIndex: 'url',
     key: 'url'
   },
   {
-    title: '证书',
+    title: t('table_column_certificate'),
     dataIndex: 'is_upload',
     key: 'is_upload',
     width: 300
   },
   {
-    title: '操作',
+    title: t('table_column_action'),
     key: 'action'
   }
 ]
@@ -173,7 +176,7 @@ const handleSaveDomain = (formData) => {
 
   saveDomain({ url: url, id: formData.id || undefined })
     .then(() => {
-      message.success('保存成功')
+      message.success(t('save_success'))
       confirmLoading.value = false
       addDomainModalRef.value.close()
       getList()
@@ -185,12 +188,12 @@ const handleSaveDomain = (formData) => {
 
 const handleDelDomain = (record) => {
   Modal.confirm({
-    title: '删除',
+    title: t('delete_confirm_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确定要删除吗？',
+    content: t('delete_confirm_content'),
     onOk() {
       deleteDomain({ id: record.id }).then(() => {
-        message.success('删除成功')
+        message.success(t('delete_success'))
         getList()
       })
     },
@@ -218,7 +221,7 @@ const handleUploadSSLConfirm = (record) => {
     .then(() => {
       uploadSSLLoading.value = false
       uploadSSLRef.value.close()
-      message.success('上传成功')
+      message.success(t('upload_success'))
       getList()
     })
     .catch(() => {
@@ -240,7 +243,7 @@ const saveValidationFile = (record) => {
       uploadValidationFileLoading.value = false
       uploadValidationFileRef.value.close()
 
-      message.success('上传成功')
+      message.success(t('upload_success'))
 
       getList()
     })

@@ -446,7 +446,8 @@ class CustomGroupModel extends dynamicGroup.model {
       'code-run-node',
       'mcp-node',
       'custom-group',
-      'batch-group',
+      'image-generation-node',
+      'zm-plugins-node'
     ]
 
     let startNode = nodes.find((node) => node.type === 'start-node')
@@ -526,10 +527,6 @@ class CustomGroupModel extends dynamicGroup.model {
         obj.children = node_params.loop.output
       }
 
-      if (node.type === 'batch-group') {
-        obj.children = node_params.batch.output
-      }
-
       if (node.type === 'select-data-node') {
         obj.children = [
           {
@@ -601,6 +598,39 @@ class CustomGroupModel extends dynamicGroup.model {
           }
         ]
       }
+      if(node.type === 'image-generation-node'){
+        let image_num = node_params.image_generation.image_num 
+        if(image_num > 0){
+          let list = []
+          for (let i = 0; i < +image_num; i++) {
+            let letter = String.fromCharCode('a'.charCodeAt(0) + i)
+            list.push({
+              key: `picture_url_${letter}`,
+              typ: 'string',
+              name: `picture_url_${letter}`,
+              label: `picture_url_${letter}`,
+            })
+          }
+          obj.children = list
+        }
+      }
+
+      if (node.type === 'zm-plugins-node') {
+        let output = node_params.plugin.output_obj ? JSON.parse(JSON.stringify(node_params.plugin.output_obj)) : []
+        
+        const loop = (arr) => {
+          arr.forEach((item) => {
+            item.name = item.key || ''
+            if (item.subs && item.subs.length > 0) {
+              loop(item.subs)
+            }
+          })
+        }
+
+        loop(output)
+
+        obj.children = output || []
+      }
 
       obj.children.forEach((variable) => {
         variable.node_id = node.id
@@ -615,6 +645,7 @@ class CustomGroupModel extends dynamicGroup.model {
 
     return variableArr
   }
+  
   refreshBranch() {
     // 更新节点连接边的path
     this.incoming.edges.forEach((edge) => {

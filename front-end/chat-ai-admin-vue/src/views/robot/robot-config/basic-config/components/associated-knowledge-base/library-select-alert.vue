@@ -1,7 +1,10 @@
+<style lang="less">
+.correlation-library-modal.ant-modal-wrap .ant-modal-content {
+  padding: 0;
+}
+</style>
 <style lang="less" scoped>
 .library-checkbox-box {
-  padding-top: 16px;
-
   .list-tools {
     display: flex;
     justify-content: space-between;
@@ -11,53 +14,22 @@
   }
   .list-group-box {
     display: flex;
-    gap: 16px;
-    height: 388px;
+    height: 608px;
     overflow: hidden;
   }
 
   .group-list-box {
-    width: 256px;
-    border: 1px solid #d9d9d9;
-    border-radius: 6px;
-    margin-top: 8px;
-    padding: 16px;
-    padding-right: 0;
+    width: 248px;
+    border-right: 1px solid #d9d9d9;
     position: relative;
-    &.hide-group {
-      width: 0;
-      padding: 0;
-      border-left: 0;
-      border-top: 0;
-      border-bottom: 0;
-    }
-    .hide-group-box {
-      position: absolute;
-      right: -8px;
-      top: 40%;
-      height: 50px;
-      width: 13px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #e5e5ea;
-      color: #8c8c8c;
-      cursor: pointer;
-      opacity: 0.78;
-      &:hover {
-        opacity: 1;
-      }
-    }
-    .head-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 4px;
+    padding: 24px 0 0 16px;
+    .main-title-block {
+      color: #262626;
       font-size: 16px;
       font-weight: 600;
-      color: #262626;
-      margin-bottom: 8px;
+      line-height: 24px;
+      padding-left: 8px;
+      padding-bottom: 24px;
     }
 
     .classify-box {
@@ -65,12 +37,11 @@
       overflow: hidden;
       font-size: 14px;
       .classify-item {
-        height: 32px;
-        padding: 0 8px;
+        height: 40px;
+        padding: 0 16px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-top: 4px;
         cursor: pointer;
         border-radius: 6px;
         color: #595959;
@@ -95,95 +66,114 @@
       }
     }
   }
-
-  .list-box {
+  .list-item-box {
+    flex: 1;
+    height: 100%;
+    overflow: hidden;
+    padding-top: 24px;
+    .alert-box {
+      width: 600px;
+      padding-left: 16px;
+    }
+    .btn-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+      margin-bottom: 8px;
+      padding-left: 16px;
+    }
+  }
+  .library-list-item {
+    min-height: 97px;
+    padding: 24px 12px;
+    border-radius: 6px;
     display: flex;
-    flex-flow: row wrap;
-    height: 388px;
-    width: 100%;
-    overflow-y: auto;
-    align-content: flex-start;
-    margin: 0 -8px;
-
-    .list-item-wraapper {
-      padding: 8px;
-      width: 50%;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    &:hover {
+      background: var(--09, #f2f4f7);
     }
-
-    .list-item {
-      width: 100%;
-      padding: 14px 12px;
-      border: 1px solid #f0f0f0;
-      border-radius: 2px;
-
-      &:hover {
-        cursor: pointer;
-        box-shadow: 0 4px 16px 0 #1b3a6929;
-      }
-
-      .library-name {
-        line-height: 22px;
-        font-size: 14px;
-        font-weight: 600;
-        color: #262626;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-      }
-
-      .library-desc {
-        line-height: 20px;
-        margin-top: 2px;
-        font-size: 12px;
-        font-weight: 400;
-        color: #8c8c8c;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
+    .avatar-box {
+      width: 48px;
+      height: 48px;
+      img {
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
       }
     }
-
-    .list-item :deep(span:last-child) {
+    .info-content-box {
       flex: 1;
-      overflow: hidden;
+      .title-info-block {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #262626;
+        font-weight: 600;
+        line-height: 22px;
+        .type-tag {
+          height: 18px;
+          line-height: 16px;
+          padding: 0 4px;
+          font-size: 12px;
+          font-weight: 400;
+          border-radius: 6px;
+          color: #2475fc;
+          border: 1px solid #99bffd;
+          &.gray-tag {
+            border: 1px solid var(--06, #d9d9d9);
+            color: #8c8c8c;
+          }
+        }
+      }
+      .desc-info-block {
+        color: #8c8c8c;
+        font-size: 14px;
+        line-height: 22px;
+        font-weight: 400;
+        margin-top: 4px;
+      }
     }
+  }
+  .footer-box {
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid var(--06, #d9d9d9);
+    padding: 0 24px;
   }
 }
 </style>
 
 <template>
-  <a-modal width="946px" v-model:open="show" title="关联知识库" @ok="saveCheckedList">
+  <a-modal
+    :width="916"
+    v-model:open="show"
+    wrapClassName="correlation-library-modal"
+    :title="null"
+    :footer="null"
+  >
     <div class="library-checkbox-box">
-      <a-alert
-        message="请选择关联知识库，机器人会根据知识库内上传的文档回复用户的提问。每个机器人最多关联5个知识库"
-        type="info"
-      />
-      <div class="list-tools">
-        <div>
-          <a-input
-            style="width: 282px"
-            v-model:value="searchKeyword"
-            placeholder="请输入知识库名称搜索"
-            @change="onSearch"
-          >
-            <template #suffix>
-              <SearchOutlined style="color: rgba(0, 0, 0, 0.25)" />
-            </template>
-          </a-input>
-        </div>
-        <div>
-          <a-button style="margin-right: 8px" @click="onRefresh"> <SyncOutlined /> 刷新 </a-button>
-          <a-button type="primary" ghost @click="openAddLibrary">新建知识库</a-button>
-        </div>
-      </div>
       <div class="list-group-box">
-        <div class="group-list-box" :class="{ 'hide-group': isHideGroup }">
-          <cu-scroll style="padding-right: 16px;">
-            <div class="group-head-box" v-if="!isHideGroup">
-              <div class="head-title">
-                <div>知识库分组</div>
-              </div>
-            </div>
+        <div class="group-list-box">
+          <div class="main-title-block">关联知识库</div>
+          <div style="margin-bottom: 16px">
+            <a-input
+              style="width: 216px"
+              v-model:value="searchKeyword"
+              placeholder="请输入知识库名称搜索"
+              @change="onSearch"
+            >
+              <template #suffix>
+                <SearchOutlined style="color: rgba(0, 0, 0, 0.25)" />
+              </template>
+            </a-input>
+          </div>
+          <cu-scroll style="padding-right: 16px; height: 480px">
             <div class="classify-box">
               <div
                 class="classify-item"
@@ -199,31 +189,58 @@
               </div>
             </div>
           </cu-scroll>
-          <a-tooltip placement="right" :title="isHideGroup ? '展开分组' : '收起分组'">
-            <div class="hide-group-box" @click="handleChangeHideGroup">
-              <LeftOutlined v-if="!isHideGroup" />
-              <RightOutlined v-else />
-            </div>
-          </a-tooltip>
         </div>
-        <div style="flex: 1; overflow: hidden">
+        <div class="list-item-box">
+          <div class="alert-box">
+            <a-alert
+              class="zm-alert-info"
+              message="请选择关联知识库，机器人会根据知识库内上传的文档回复用户的提问。每个机器人最多关联5个知识库"
+              type="info"
+            />
+          </div>
+          <div class="btn-box">
+            <a-button @click="onRefresh"> <SyncOutlined /> 刷新 </a-button>
+            <a-button type="primary" ghost @click="openAddLibrary">新建知识库</a-button>
+          </div>
           <a-spin :spinning="isRefresh" :delay="100">
-            <a-checkbox-group :value="state.checkedList" style="width: 100%">
-              <div class="list-box" ref="scrollContainer">
-                <div class="list-item-wraapper" v-for="item in showOptions" :key="item.id">
+            <cu-scroll style="padding: 0 16px; height: 414px">
+              <div
+                class="library-list-item"
+                @click="handleChangeChecked(item)"
+                v-for="item in showOptions"
+                :key="item.id"
+              >
+                <div class="avatar-box">
+                  <img :src="item.avatar" alt="" />
+                </div>
+                <div class="info-content-box">
+                  <div class="title-info-block">
+                    {{ item.library_name }}
+                    <span class="type-tag" :class="{ 'gray-tag': item.graph_switch == 0 }"
+                      >Graph</span
+                    >
+                    <span class="type-tag" v-if="item.type == 0">普通知识库</span>
+                    <span class="type-tag" v-if="item.type == 1">对外知识库</span>
+                    <span class="type-tag" v-if="item.type == 2">问答知识库</span>
+                    <span class="type-tag" v-if="item.type == 3">公众号知识库</span>
+                  </div>
+                  <div class="desc-info-block">{{ item.library_intro }}</div>
+                </div>
+                <div class="check-block">
                   <a-checkbox
-                    class="list-item"
-                    :value="item.id"
-                    @change="handleChangeChecked"
                     :disabled="robotInfo.default_library_id == item.id"
-                  >
-                    <div class="library-name">{{ item.library_name }}</div>
-                    <div class="library-desc">{{ item.library_intro }}</div>
-                  </a-checkbox>
+                    :checked="state.checkedList.includes(item.id)"
+                  ></a-checkbox>
                 </div>
               </div>
-            </a-checkbox-group>
+            </cu-scroll>
           </a-spin>
+          <div class="footer-box">
+            <a-button @click="show = false">取消</a-button>
+            <a-button type="primary" @click="saveCheckedList">
+              ({{ state.checkedList.length }}) 确定</a-button
+            >
+          </div>
         </div>
       </div>
     </div>
@@ -254,13 +271,7 @@ const state = reactive({
 })
 
 const group_id = ref('')
-let hideGroupLocalKey = 'library-list-hide-group-key'
-const isHideGroup = ref(localStorage.getItem(hideGroupLocalKey) == 1)
 
-const handleChangeHideGroup = () => {
-  isHideGroup.value = !isHideGroup.value
-  localStorage.setItem(hideGroupLocalKey, isHideGroup.value ? 1 : 0)
-}
 const groupLists = ref([])
 
 const getGroupList = () => {
@@ -315,7 +326,7 @@ const showOptions = computed(() => {
   if (props.showWxType) {
     return options.value
   } else {
-    return options.value.filter(item => item.type != 3)
+    return options.value.filter((item) => item.type != 3)
   }
 })
 
@@ -324,29 +335,33 @@ const triggerChange = () => {
 }
 
 const getList = async () => {
+  isRefresh.value = true
   const res = await getLibraryList({
     library_name: searchKeyword.value,
     type: '',
     show_open_docs: 1
   })
+  isRefresh.value = false
   if (res) {
     let list = res.data || []
-    if(group_id.value != ''){
-      list = list.filter(item => item.group_id == group_id.value)
+    if (group_id.value != '') {
+      list = list.filter((item) => item.group_id == group_id.value)
     }
     options.value = list
   }
 }
 
 const handleChangeChecked = (e) => {
-  let value = e.target.value
-  if(state.checkedList.includes(value)){
-    state.checkedList = state.checkedList.filter(item => item != value)
-  }else{
+  let value = e.id
+  if (robotInfo.default_library_id == value) {
+    return
+  }
+  if (state.checkedList.includes(value)) {
+    state.checkedList = state.checkedList.filter((item) => item != value)
+  } else {
     state.checkedList.push(value)
   }
 }
-
 
 const isRefresh = ref(false)
 const onRefresh = async () => {

@@ -1,0 +1,8 @@
+{
+  "add_title": "Add Custom Domain",
+  "edit_title": "Edit Custom Domain",
+  "domain_label": "Configure Domain:",
+  "domain_placeholder": "Please enter domain",
+  "domain_tip": "Only need to fill in the domain part, e.g., kf.xxx.com. You can choose http or https protocol according to your needs",
+  "url_required": "Please enter domain"
+}

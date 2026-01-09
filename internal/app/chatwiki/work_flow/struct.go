@@ -408,6 +408,16 @@ type ImageGenerationParams struct {
 	Output              common.RecurveFields `json:"output"`
 }
 
+type JsonEncodeParams struct {
+	InputVariable string               `json:"input_variable"`
+	Outputs       common.RecurveFields `json:"output"`
+}
+
+type JsonDecodeParams struct {
+	InputVariable string               `json:"input_variable"`
+	Outputs       common.RecurveFields `json:"output"`
+}
+
 type TextToAudioNodeParams struct {
 	ModelId       int    `json:"model_id"`
 	ModelConfigId int    `json:"model_config_id"`
@@ -471,6 +481,22 @@ type VoiceCloneNodeParams struct {
 	Output common.RecurveFields `json:"output"`
 }
 
+type LibraryImportParams struct {
+	ImportType                string               `json:"import_type"`                  //content 导入内容，url 导入url
+	LibraryId                 string               `json:"library_id"`                   //知识库id 不能为空
+	LibraryGroupId            string               `json:"library_group_id"`             //知识库分组id 0表示未分组
+	NormalUrl                 string               `json:"normal_url"`                   //普通知识库：文档url
+	NormalTitle               string               `json:"normal_title"`                 //普通知识库：文档标题
+	NormalContent             string               `json:"normal_content"`               //普通知识库：文档内容
+	NormalUrlRepeatOp         string               `json:"normal_url_repeat_op"`         //普通知识库：url重复时的操作 import 依然导入，not import 不导入，update 更新内容
+	QaQuestion                string               `json:"qa_question"`                  //问答知识库：分段问题
+	QaAnswer                  string               `json:"qa_answer"`                    //问答知识库：分段答案
+	QaImagesVariable          string               `json:"qa_images_variable"`           //问答知识库：答案附图 array<string>
+	QaSimilarQuestionVariable string               `json:"qa_similar_question_variable"` //问答知识库：相似问法 array<string>
+	QaRepeatOp                string               `json:"qa_repeat_op"`                 //问答知识库：问题重复时的操作 import 依然导入，not import 不导入，update 更新内容
+	Outputs                   common.RecurveFields `json:"outputs"`                      //输出固定一个msg string
+}
+
 type Message struct {
 	Type    string `json:"type"`    //text image voice
 	Content string `json:"content"` //content
@@ -503,8 +529,11 @@ var LoopAllowNodeTypes = []int{
 	NodeTypeLoopStart,
 	NodeTypePlugin,
 	NodeTypeImageGeneration,
+	NodeTypeJsonEncode,
+	NodeTypeJsonDecode,
 	NodeTypeTextToAudio,
 	NodeTypeVoiceClone,
+	NodeTypeLibraryImport,
 }
 
 var BatchAllowNodeTypes = []int{
@@ -528,8 +557,11 @@ var BatchAllowNodeTypes = []int{
 	NodeTypeBatchStart,
 	NodeTypePlugin,
 	NodeTypeImageGeneration,
+	NodeTypeJsonEncode,
+	NodeTypeJsonDecode,
 	NodeTypeTextToAudio,
 	NodeTypeVoiceClone,
+	NodeTypeLibraryImport,
 }
 
 /************************************/
@@ -557,8 +589,11 @@ type NodeParams struct {
 	Batch            BatchNodeParams            `json:"batch"`
 	Finish           FinishNodeParams           `json:"finish"`
 	ImageGeneration  ImageGenerationParams      `json:"image_generation"`
+	JsonEncode       JsonEncodeParams           `json:"json_encode"`
+	JsonDecode       JsonDecodeParams           `json:"json_decode"`
 	TextToAudio      TextToAudioNodeParams      `json:"text_to_audio"`
 	VoiceClone       VoiceCloneNodeParams       `json:"voice_clone"`
+	LibraryImport    LibraryImportParams        `json:"library_import"`
 }
 
 func FillDiyGlobalBlanks(output TriggerOutputParam, start *StartNodeParams) {
@@ -599,6 +634,18 @@ func DisposeNodeParams(nodeType int, nodeParams string) NodeParams {
 			outputs, exist := GetTriggerOutputsByType(trigger.TriggerType)
 			if !exist {
 				continue
+			}
+			if trigger.TriggerType == TriggerTypeOfficial {
+				switch trigger.TriggerOfficialConfig.MsgType {
+				case define.TriggerOfficialMessage:
+					outputs = GetMessage()
+				case define.TriggerOfficialQrCodeScan:
+					outputs = GetQrcodeScan()
+				case define.TriggerOfficialSubscribeUnScribe:
+					outputs = GetSubscribeUnsubscribe()
+				case define.TriggerOfficialMenuClick:
+					outputs = GetMenuClick()
+				}
 			}
 			//采集旧的变量映射数据
 			variableMap := make(map[string]string)
@@ -780,6 +827,22 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 				variables = append(variables, variable)
 			}
 		}
+	case NodeTypeJsonEncode:
+		for variable := range common.SimplifyFields(node.NodeParams.JsonEncode.Outputs) {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+				variables = append(variables, variable)
+			}
+		}
+	case NodeTypeJsonDecode:
+		simpleFields := make(common.SimpleFields)
+		node.NodeParams.JsonDecode.Outputs.SimplifyFieldsDeep(&simpleFields, ``)
+		for variable := range simpleFields {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+				variables = append(variables, variable)
+			}
+		}
 	case NodeTypeTextToAudio:
 		for variable := range common.SimplifyFields(node.NodeParams.TextToAudio.Output) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
@@ -789,6 +852,13 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 		}
 	case NodeTypeVoiceClone:
 		for variable := range common.SimplifyFields(node.NodeParams.VoiceClone.Output) {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+				variables = append(variables, variable)
+			}
+		}
+	case NodeTypeLibraryImport:
+		for variable := range common.SimplifyFields(node.NodeParams.LibraryImport.Outputs) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
 			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
 				variables = append(variables, variable)
@@ -867,6 +937,32 @@ func CheckVariablePlaceholderExist(content string) bool {
 		}
 	}
 	return false
+}
+
+func GetVariablePlaceholders(content string) []string {
+	variables := make([]string, 0)
+	for _, item := range regexp.MustCompile(`【(([a-f0-9]{32}\.)?[a-zA-Z_][a-zA-Z0-9_\-.]*)】`).FindAllStringSubmatch(content, -1) {
+		if len(item) > 1 && !tool.InArrayString(item[1], variables) {
+			variables = append(variables, item[1])
+		}
+	}
+	return variables
+}
+
+func GetFirstVariable(content string) string {
+	variables := GetVariablePlaceholders(content)
+	variable := ``
+	for _, v := range variables {
+		if len(v) > 0 {
+			variable = v
+			break
+		}
+	}
+	return variable
+}
+
+func RemoveVariablePlaceholders(content string) string {
+	return regexp.MustCompile(`【(([a-f0-9]{32}\.)?[a-zA-Z_][a-zA-Z0-9_\-.]*)】`).ReplaceAllString(content, "")
 }
 
 func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey, modelConfigIds, libraryIds string, questionMultipleSwitch bool, err error) {
@@ -1246,6 +1342,40 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 				return
 			}
 		}
+	case NodeTypeJsonEncode:
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.JsonEncode.InputVariable, variables); !ok {
+			err = errors.New(node.NodeName + `节点选择的输入变量不存在:` + variable)
+			return
+		}
+	case NodeTypeJsonDecode:
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.JsonDecode.InputVariable, variables); !ok {
+			err = errors.New(node.NodeName + `节点选择的输入变量不存在:` + variable)
+			return
+		}
+	case NodeTypeLibraryImport:
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.LibraryImport.NormalTitle, variables); !ok {
+			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+			return
+		}
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.LibraryImport.NormalUrl, variables); !ok {
+			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+			return
+		}
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.LibraryImport.NormalContent, variables); !ok {
+			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+			return
+		}
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.LibraryImport.QaQuestion, variables); !ok {
+			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+			return
+		}
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.LibraryImport.QaAnswer, variables); !ok {
+			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+			return
+		}
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.LibraryImport.QaSimilarQuestionVariable, variables); !ok {
+			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+		}
 	}
 	return nil
 }
@@ -1312,10 +1442,16 @@ func (node *WorkFlowNode) Verify(adminUserId int) error {
 		err = node.NodeParams.Finish.Verify(node.NodeName)
 	case NodeTypeImageGeneration:
 		err = node.NodeParams.ImageGeneration.Verify(node.NodeName)
+	case NodeTypeJsonEncode:
+		err = node.NodeParams.JsonEncode.Verify(node.NodeName)
+	case NodeTypeJsonDecode:
+		err = node.NodeParams.JsonDecode.Verify(node.NodeName)
 	case NodeTypeTextToAudio:
 		err = node.NodeParams.TextToAudio.Verify()
 	case NodeTypeVoiceClone:
 		err = node.NodeParams.VoiceClone.Verify(adminUserId)
+	case NodeTypeLibraryImport:
+		err = node.NodeParams.LibraryImport.Verify(adminUserId)
 	}
 
 	if err != nil {
@@ -2019,6 +2155,20 @@ func (params *ImageGenerationParams) Verify(nodeName string) error {
 	return nil
 }
 
+func (params *JsonEncodeParams) Verify(nodeName string) error {
+	if len(params.InputVariable) == 0 {
+		return errors.New(fmt.Sprintf(`【%s】缺少输入`, nodeName))
+	}
+	return nil
+}
+
+func (params *JsonDecodeParams) Verify(nodeName string) error {
+	if len(params.InputVariable) == 0 {
+		return errors.New(fmt.Sprintf(`【%s】缺少输入`, nodeName))
+	}
+	return nil
+}
+
 func (params *TextToAudioNodeParams) Verify() error {
 	if params.Arguments.ModelId <= 0 {
 		return errors.New(`请选择模型配置`)
@@ -2127,5 +2277,47 @@ func (param *VoiceCloneNodeParams) Verify(adminUserId int) error {
 		}
 	}
 
+	return nil
+}
+
+func (param *LibraryImportParams) Verify(adminUserId int) error {
+	if cast.ToInt(param.LibraryId) == 0 {
+		return errors.New(`请选择导入的知识库`)
+	}
+	libraryInfo, err := common.GetLibraryInfo(cast.ToInt(param.LibraryId), adminUserId)
+	if err != nil {
+		logs.Error(err.Error())
+		return errors.New(`获取知识库明细失败`)
+	}
+	if len(libraryInfo) == 0 {
+		return errors.New(`知识库不存在`)
+	}
+	if cast.ToInt(param.LibraryGroupId) > 0 {
+		libraryGroupInfo, sqlErr := msql.Model(`chat_ai_library_group`, define.Postgres).
+			Where(`library_id`, cast.ToString(param.LibraryId)).
+			Where(`id`, param.LibraryGroupId).Find()
+		if sqlErr != nil {
+			logs.Error(sqlErr.Error())
+			return errors.New(`获取知识库分组明细失败`)
+		}
+		if len(libraryGroupInfo) == 0 {
+			return errors.New(`知识库分组不存在`)
+		}
+	}
+	if cast.ToInt(libraryInfo[`type`]) == define.GeneralLibraryType {
+		if param.ImportType == define.LibraryImportContent {
+			if param.NormalTitle == `` || param.NormalContent == `` {
+				return errors.New(`请填写导入内容和标题`)
+			}
+		} else if param.ImportType == define.LibraryImportUrl {
+			if param.NormalUrl == `` {
+				return errors.New(`请填写导入的URL`)
+			}
+		}
+	} else if cast.ToInt(libraryInfo[`type`]) == define.QALibraryType {
+		if param.QaQuestion == `` || param.QaAnswer == `` {
+			return errors.New(`请填写导入的问题和答案`)
+		}
+	}
 	return nil
 }

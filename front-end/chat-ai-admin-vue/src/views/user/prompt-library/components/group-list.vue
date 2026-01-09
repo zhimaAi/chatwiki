@@ -1,7 +1,7 @@
 <template>
   <div class="group-wrapper">
     <div>
-      <a-button @click="handldOpenAddModal({})" :icon="h(PlusOutlined)" block>添加分组</a-button>
+      <a-button @click="handldOpenAddModal({})" :icon="h(PlusOutlined)" block>{{ t('add_group') }}</a-button>
     </div>
     <div class="group-box">
       <div
@@ -26,10 +26,10 @@
             <template #overlay>
               <a-menu>
                 <a-menu-item>
-                  <div @click="handldOpenAddModal(item)">编 辑</div>
+                  <div @click="handldOpenAddModal(item)">{{ t('edit') }}</div>
                 </a-menu-item>
                 <a-menu-item>
-                  <div style="color: #fb363f" @click="handleDelGroup(item)">删 除</div>
+                  <div style="color: #fb363f" @click="handleDelGroup(item)">{{ t('delete') }}</div>
                 </a-menu-item>
               </a-menu>
             </template>
@@ -52,6 +52,9 @@ import { getPromptLibraryGroup, deletePromptLibraryGroup } from '@/api/user/inde
 import { Modal, message } from 'ant-design-vue'
 import AddGroup from './add-group.vue'
 import { ref, h } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.prompt-library.components.group-list')
 
 const emit = defineEmits(['change', 'load'])
 
@@ -62,11 +65,11 @@ const getGroupList = () => {
     groupList.value = [
       {
         id: -1,
-        group_name: '全部'
+        group_name: t('all')
       },
       {
         id: 0,
-        group_name: '默认分组'
+        group_name: t('default_group')
       },
       ...res.data
     ]
@@ -90,19 +93,19 @@ const handldOpenAddModal = (data) => {
 
 const handleDelGroup = (item) => {
   Modal.confirm({
-    title: '删除确认',
+    title: t('delete_confirm'),
     icon: h(ExclamationCircleOutlined),
-    content: `确定要删除分组【${item.group_name}】吗？`,
-    okText: '删除',
+    content: t('delete_confirm_content', { name: item.group_name }),
+    okText: t('delete'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('cancel'),
     onOk() {
       deletePromptLibraryGroup({ id: item.id }).then((res) => {
         if (item.id == groupId.value) {
           handleChangeGroup(groupList.value[0])
         }
         getGroupList()
-        message.success('删除成功')
+        message.success(t('delete_success'))
       })
     },
     onCancel() {}

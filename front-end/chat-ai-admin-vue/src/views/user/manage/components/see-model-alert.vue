@@ -8,7 +8,7 @@
     @cancel="handleClose"
   >
     <div class="form-wrapper" v-if="object_type == 1">
-      <div class="select">已选择({{ checkedList.length }})</div>
+      <div class="select">{{ t('selected_count', { count: checkedList.length }) }}</div>
       <a-table
         :data-source="dataList"
         :pagination="false"
@@ -16,7 +16,7 @@
         row-key="id"
         :row-selection="{ selectedRowKeys: checkedList, onChange: onSelectChange }"
       >
-        <a-table-column title="机器人" data-index="robot_name" :width="350">
+        <a-table-column :title="t('robot')" data-index="robot_name" :width="350">
           <template #default="{ record }">
             <div class="tools-wrapper">
               <img class="model-logo" :src="record.robot_avatar" alt="" />
@@ -24,12 +24,12 @@
             </div>
           </template>
         </a-table-column>
-        <a-table-column title="权限" data-index="operate_rights" :width="350">
+        <a-table-column :title="t('permission')" data-index="operate_rights" :width="350">
           <template #default="{ record }">
             <a-radio-group v-model:value="record.operate_rights">
-              <a-radio value="4">管理</a-radio>
-              <a-radio value="2">编辑</a-radio>
-              <a-radio value="1">查看</a-radio>
+              <a-radio value="4">{{ t('manage') }}</a-radio>
+              <a-radio value="2">{{ t('edit') }}</a-radio>
+              <a-radio value="1">{{ t('view') }}</a-radio>
             </a-radio-group>
           </template>
         </a-table-column>
@@ -44,7 +44,7 @@
         </a-segmented>
       </div>
       <template v-if="tabs == 1">
-        <div class="select">已选择({{ checkedList.length }})</div>
+        <div class="select">{{ t('selected_count', { count: checkedList.length }) }}</div>
         <a-table
           :data-source="dataList"
           :pagination="false"
@@ -52,19 +52,19 @@
           row-key="id"
           :row-selection="{ selectedRowKeys: checkedList, onChange: onSelectChange }"
         >
-          <a-table-column title="知识库" data-index="library_name" :width="350">
+          <a-table-column :title="t('knowledge_base')" data-index="library_name" :width="350">
             <template #default="{ record }">
               <div class="tools-wrapper">
                 <div class="item-name">{{ record.library_name }}</div>
               </div>
             </template>
           </a-table-column>
-          <a-table-column title="权限" data-index="operate_rights" :width="350">
+          <a-table-column :title="t('permission')" data-index="operate_rights" :width="350">
             <template #default="{ record }">
               <a-radio-group v-model:value="record.operate_rights">
-                <a-radio value="4">管理</a-radio>
-                <a-radio value="2">编辑</a-radio>
-                <a-radio value="1">查看</a-radio>
+                <a-radio value="4">{{ t('manage') }}</a-radio>
+                <a-radio value="2">{{ t('edit') }}</a-radio>
+                <a-radio value="1">{{ t('view') }}</a-radio>
               </a-radio-group>
             </template>
           </a-table-column>
@@ -72,19 +72,19 @@
       </template>
       <template v-else>
         <a-table :data-source="departLists" :pagination="false" :scroll="{ y: 500 }" row-key="id">
-          <a-table-column title="知识库" data-index="name" :width="350">
+          <a-table-column :title="t('knowledge_base')" data-index="name" :width="350">
             <template #default="{ record }">
               <div class="tools-wrapper">
                 <div class="item-name">{{ record.name }}</div>
               </div>
             </template>
           </a-table-column>
-          <a-table-column title="权限" data-index="operate_rights" :width="350">
+          <a-table-column :title="t('permission')" data-index="operate_rights" :width="350">
             <template #default="{ record }">
               <a-radio-group v-model:value="record.operate_rights" disabled>
-                <a-radio value="4">管理</a-radio>
-                <a-radio value="2">编辑</a-radio>
-                <a-radio value="1">查看</a-radio>
+                <a-radio value="4">{{ t('manage') }}</a-radio>
+                <a-radio value="2">{{ t('edit') }}</a-radio>
+                <a-radio value="1">{{ t('view') }}</a-radio>
               </a-radio-group>
             </template>
           </a-table-column>
@@ -92,7 +92,7 @@
       </template>
     </div>
     <div class="form-wrapper" v-else-if="object_type == 3">
-      <div class="select">已选择({{ checkedList.length }})</div>
+      <div class="select">{{ t('selected_count', { count: checkedList.length }) }}</div>
 
       <a-table
         :data-source="dataList"
@@ -101,19 +101,19 @@
         row-key="id"
         :row-selection="{ selectedRowKeys: checkedList, onChange: onSelectChange }"
       >
-        <a-table-column title="数据库" data-index="name" :width="350">
+        <a-table-column :title="t('database')" data-index="name" :width="350">
           <template #default="{ record }">
             <div class="tools-wrapper">
               <div class="item-name">{{ record.name }}</div>
             </div>
           </template>
         </a-table-column>
-        <a-table-column title="权限" data-index="operate_rights" :width="350">
+        <a-table-column :title="t('permission')" data-index="operate_rights" :width="350">
           <template #default="{ record }">
             <a-radio-group v-model:value="record.operate_rights">
-              <a-radio value="4">管理</a-radio>
-              <a-radio value="2">编辑</a-radio>
-              <a-radio value="1">查看</a-radio>
+              <a-radio value="4">{{ t('manage') }}</a-radio>
+              <a-radio value="2">{{ t('edit') }}</a-radio>
+              <a-radio value="1">{{ t('view') }}</a-radio>
             </a-radio-group>
           </template>
         </a-table-column>
@@ -122,9 +122,12 @@
   </a-modal>
 </template>
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { getPermissionManageList, batchSavePermissionManage } from '@/api/department/index.js'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.manage.components.see-model-alert')
 const emit = defineEmits(['save', 'ok'])
 const props = defineProps({
   robotList: {
@@ -159,21 +162,26 @@ const onSelectChange = (selectedRowKeys) => {
 }
 
 const tabs = ref(1)
-const baseOption = [
+const baseOption = computed(() => [
   {
     value: 2,
     payload: {
-      title: '部门知识库'
+      title: t('department_knowledge_base')
     }
   },
   {
     value: 1,
     payload: {
-      title: '成员知识库'
+      title: t('member_knowledge_base')
     }
   }
-]
-const tabOption = ref(baseOption)
+])
+const tabOption = ref(baseOption.value)
+
+// 监听 baseOption 的变化，当语言切换时更新 tabOption
+watch(baseOption, (newVal) => {
+  tabOption.value = newVal
+}, { immediate: true })
 
 let currentRecord = null
 const object_type = ref(1) // 1:机器人 2:知识库 3:数据库
@@ -196,7 +204,7 @@ const open = async (key, status, record) => {
   record.managed_form_list = record.managed_form_list || []
   let list = []
   if (key == 1) {
-    currentTitle.value = '添加成员管理的机器人'
+    currentTitle.value = t('add_member_robot')
     list = props.robotList
     list.forEach((item) => {
       let filterItem = record.managed_robot_list.filter((it) => it.id == item.id)
@@ -208,12 +216,12 @@ const open = async (key, status, record) => {
     })
     // 编辑
     if (status && status == 'edit') {
-      currentTitle.value = '编辑成员管理的机器人'
+      currentTitle.value = t('edit_member_robot')
       checkedList.value = formatId(record.managed_robot_list)
     }
   } else if (key == 2) {
     console.log(record, '==')
-    currentTitle.value = '添加成员管理的知识库'
+    currentTitle.value = t('add_member_knowledge')
     // if (record.departments && record.departments.length) {
     //   depratmentIds = record.departments.map((item) => item.id)
     //   getDepartmentList()
@@ -229,11 +237,11 @@ const open = async (key, status, record) => {
     })
     // 编辑
     if (status && status == 'edit') {
-      currentTitle.value = '编辑成员管理的知识库'
+      currentTitle.value = t('edit_member_knowledge')
       checkedList.value = formatId(record.managed_library_list)
     }
   } else if (key == 3) {
-    currentTitle.value = '添加成员管理的数据库'
+    currentTitle.value = t('add_member_database')
 
     list = props.formList
     list.forEach((item) => {
@@ -247,7 +255,7 @@ const open = async (key, status, record) => {
 
     // 编辑
     if (status && status == 'edit') {
-      currentTitle.value = '编辑成员管理的数据库'
+      currentTitle.value = t('edit_member_database')
       checkedList.value = formatId(record.managed_form_list)
     }
   }
@@ -281,13 +289,13 @@ const handleBatchOpen = (key, ids) => {
   identity_id.value = ids
   let list = []
   if (key == 1) {
-    currentTitle.value = '批量修改成员管理的机器人'
+    currentTitle.value = t('batch_update_member_robot')
     list = props.robotList
   } else if (key == 2) {
-    currentTitle.value = '批量修改成员管理的知识库'
+    currentTitle.value = t('batch_update_member_knowledge')
     list = props.libraryList
   } else if (key == 3) {
-    currentTitle.value = '批量修改成员管理的数据库'
+    currentTitle.value = t('batch_update_member_database')
     list = props.formList
   }
   list.forEach((item) => {
@@ -310,32 +318,39 @@ const handleDepartmentOpen = (key, treeParmas, datas) => {
 
   identity_id.value = treeParmas.id
 
-  tabOption.value = [
+  // 创建响应式的 tab 选项
+  const dynamicTabOption = computed(() => [
     {
       value: 2,
       payload: {
-        title: identity_type.value == 1 ? '部门知识库' : '上级知识库'
+        title: identity_type.value == 1 ? t('department_knowledge_base') : t('superior_knowledge_base')
       }
     },
     {
       value: 1,
       payload: {
-        title: identity_type.value == 1 ? '成员知识库' : '部门知识库'
+        title: identity_type.value == 1 ? t('member_knowledge_base') : t('department_knowledge_base')
       }
     }
-  ]
+ ])
+  tabOption.value = dynamicTabOption.value
+  
+  // 监听动态选项的变化
+  watch(dynamicTabOption, (newVal) => {
+    tabOption.value = newVal
+  }, { immediate: true })
   tabs.value = 1
   object_type.value = key
 
   let list = []
   if (key == 1) {
-    currentTitle.value = `添加${identity_type == 1 ? '成员' : '部门'}管理的机器人`
+    currentTitle.value = t('add_member_robot')
     list = props.robotList
   } else if (key == 2) {
-    currentTitle.value = `添加${identity_type == 1 ? '成员' : '部门'}管理的知识库`
+    currentTitle.value = t('add_member_knowledge')
     list = props.libraryList
   } else if (key == 3) {
-    currentTitle.value = `添加${identity_type == 1 ? '成员' : '部门'}管理的数据库`
+    currentTitle.value = t('add_member_database')
     list = props.formList
   }
   list.forEach((item) => {
@@ -371,7 +386,7 @@ const handleOk = () => {
   parmas.object_array = JSON.stringify(object_array)
   batchSavePermissionManage(parmas).then((res) => {
     show.value = false
-    message.success('保存成功')
+    message.success(t('save_success'))
     emit('ok')
   })
 }

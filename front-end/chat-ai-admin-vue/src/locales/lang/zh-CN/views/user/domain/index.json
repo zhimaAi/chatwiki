@@ -1,0 +1,20 @@
+{
+  "page_title": "自定义域名设置",
+  "domain_tip_1": "将域名解析到部署服务器，可以通过自由域名访问对外文档和对外服务web APP。",
+  "domain_tip_2": "1、如需使用https,请在添加域名后，上传证书文件，包括公钥和私钥(ky文件)。",
+  "add_domain_btn": "添加自定义域名",
+  "table_column_domain": "域名",
+  "table_column_certificate": "证书",
+  "table_column_action": "操作",
+  "certificate_uploaded": "已上传",
+  "certificate_not_uploaded": "未上传",
+  "upload_certificate": "上传证书",
+  "upload_validation_file": "上传验证文件",
+  "edit": "编辑",
+  "delete": "删除",
+  "save_success": "保存成功",
+  "delete_confirm_title": "删除",
+  "delete_confirm_content": "确定要删除吗？",
+  "delete_success": "删除成功",
+  "upload_success": "上传成功"
+}

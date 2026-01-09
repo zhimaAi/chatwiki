@@ -96,6 +96,7 @@ strong {
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-box-orient: vertical;
+  word-break: break-all;
 }
 
 .zm-line1 {
@@ -106,6 +107,7 @@ strong {
   -webkit-line-clamp: 1;
   line-clamp: 1;
   cursor: pointer;
+  word-break: break-all;
 }
 
 .zm-line2 {
@@ -116,6 +118,7 @@ strong {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
+  word-break: break-all;
 }
 
 .zm-alert-info.ant-alert-info {
@@ -139,6 +142,9 @@ strong {
   color: #2475fc;
 }
 
+.c595959 {
+  color: #595959;
+}
 
 /**不显示滚动条**/
 .hide-scrollbar::-webkit-scrollbar {

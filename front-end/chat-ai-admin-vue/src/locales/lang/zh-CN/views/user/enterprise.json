@@ -3,5 +3,14 @@
   "notSetTip": "未设置（系统名称将会显示在左上角logo后面、登录窗口、网站标题上）",
   "systemName": "系统名称",
   "SetSystemName": "设置系统名称",
-  "enterName": "请输入系统名称"
+  "enterName": "请输入系统名称",
+  "topNavigationSettings": "顶部导航设置",
+  "sort": "排序",
+  "sortTip": "长按图标拖动调整排序",
+  "showInTop": "是否在顶部显示",
+  "showInTopTip": "关闭后，将不显示在顶部导航栏。你依然可以点击右上角账号，在下拉菜单里面找到",
+  "on": "开",
+  "off": "关",
+  "saveSuccess": "保存成功",
+  "change": "修改"
 }

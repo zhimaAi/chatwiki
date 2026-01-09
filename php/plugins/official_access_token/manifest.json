@@ -1,0 +1,12 @@
+{
+  "name": "official_access_token",
+  "title": "获取公众号access_token",
+  "type": "extension",
+  "version": "1.0.0",
+  "compatible": ">=2.0.7,<2.1.0",
+  "multiNode": true,
+  "resource": {
+    "memory": 256,
+    "permission": []
+  }
+}

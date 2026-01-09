@@ -1,0 +1,7 @@
+{
+  "title": "上传验证文件",
+  "file_name_label": "文件名（含文件后缀，比如 mzkAzOpb6L.txt）",
+  "file_content_label": "文件内容",
+  "file_name_required": "请输入文件名",
+  "file_content_required": "请输入文件内容"
+}

@@ -4,15 +4,15 @@
  -->
 
 <template>
-  <div class="login-box">
+  <div class="login-box" :class="['lang-' + lang]">
     <div class="header">
       <div class="header-left">
         <div class="logo">
           <LayoutLogo />
         </div>
-        <div class="header-item" style="width: 50px;" @click="toHome">{{ t('views.user.login.home') }}</div>
-        <div class="header-item">{{ t('views.user.login.helpDocument') }}</div>
-        <div class="header-item">{{ t('views.user.login.githubUrl') }}</div>
+        <div class="header-item" @click="toHome">{{ t('home') }}</div>
+        <div class="header-item">{{ t('helpDocument') }}</div>
+        <div class="header-item">{{ t('githubUrl') }}</div>
       </div>
       <div class="header-right">
         <LocaleDropdown />
@@ -25,7 +25,7 @@
         <div class="sign-in-content">
           <!-- Sign In Form Column -->
           <div class="col-form">
-            <h2 class="login-title">{{ t('views.user.login.accountLogin') }}</h2>
+            <h2 class="login-title">{{ t('accountLogin') }}</h2>
 
             <!-- Sign In Form -->
             <a-form
@@ -39,18 +39,18 @@
               <a-form-item
                 name="username"
                 class="usernames"
-                :rules="[{ required: true, message: t('views.user.login.pleaseNumber') }]"
+                :rules="[{ required: true, message: t('pleaseNumber') }]"
               >
-                <a-input class="login-item login-username" v-model:value="formState.username" autocomplete="off" :placeholder="t('views.user.login.pleaseNumber')">
+                <a-input class="login-item login-username" v-model:value="formState.username" autocomplete="off" :placeholder="t('pleaseNumber')">
                   <template #prefix><UserOutlined style="color: rgba(0, 0, 0, 0.25)" /></template>
                 </a-input>
               </a-form-item>
 
               <a-form-item
                 name="password"
-                :rules="[{ required: true, message: t('views.user.login.pleasePassword') }]"
+                :rules="[{ required: true, message: t('pleasePassword') }]"
               >
-                <a-input-password class="login-item login-password" v-model:value="formState.password" autocomplete="off" type="password" :placeholder="t('views.user.login.pleasePassword')">
+                <a-input-password class="login-item login-password" v-model:value="formState.password" autocomplete="off" type="password" :placeholder="t('pleasePassword')">
                   <template #prefix><LockOutlined style="color: rgba(0, 0, 0, 0.25)" /></template>
                 </a-input-password>
               </a-form-item>
@@ -60,7 +60,7 @@
               </a-form-item> -->
 
               <a-form-item>
-                <a-button class="login-btn" type="primary" block html-type="submit">{{ t('views.user.login.login') }}</a-button>
+                <a-button class="login-btn" type="primary" block html-type="submit">{{ t('login') }}</a-button>
               </a-form-item>
             </a-form>
             <!-- / Sign In Form -->
@@ -77,14 +77,14 @@
         
         <!-- Instructions -->
         <div class="instructions-box">
-          <div class="instructions-item one-deployment">{{ t('views.user.login.oneDeployment') }}</div>
-          <div class="instructions-item out-the-box">{{ t('views.user.login.outTheBox') }}</div>
-          <div class="instructions-item safe-controllable">{{ t('views.user.login.safeControllable') }}</div>
+          <div class="instructions-item one-deployment">{{ t('oneDeployment') }}</div>
+          <div class="instructions-item out-the-box">{{ t('outTheBox') }}</div>
+          <div class="instructions-item safe-controllable">{{ t('safeControllable') }}</div>
         </div>
 
         <div class="profession-box">
-          <div class="profession-title"><span class="profession-title-stress">{{ t('views.user.login.professionTitleOne') }}</span>{{ t('views.user.login.professionTitleTwo') }}</div>
-          <div class="profession-info">{{ t('views.user.login.professionInfo') }}</div>
+          <div class="profession-title"><span class="profession-title-stress">{{ t('professionTitleOne') }}</span>{{ t('professionTitleTwo') }}</div>
+          <div class="profession-info">{{ t('professionInfo') }}</div>
           <div class="profession-item-box">
             <div class="profession-item" v-for="item in profession" :key="item.id">
               <div class="profession-item-top">
@@ -104,7 +104,7 @@
 
         <div class="ai-model-box">
           <div class="ai-content">
-            <div class="ai-model-title">{{ t('views.user.login.aiModelTitleOne') }}<span class="ai-model-title-stress">{{ t('views.user.login.aiModelTitleTwo') }}</span>{{ t('views.user.login.aiModelTitleThree') }}</div>
+            <div class="ai-model-title">{{ t('aiModelTitleOne') }}<span class="ai-model-title-stress">{{ t('aiModelTitleTwo') }}</span>{{ t('aiModelTitleThree') }}</div>
             <div class="ai-model-item-box">
               <div class="ai-model-item" v-for="item in aiModel" :key="item.id">
                 <svg-icon :class="{'ai-model-item-svg-gemini': item.icon == 'gemini', 'ai-model-item-svg-anthrop': item.icon == 'anthrop'}" class="ai-model-item-svg" :name="item.icon"></svg-icon>
@@ -115,7 +115,7 @@
         </div>
 
         <div class="open-source-box">
-          <div class="open-source-title">{{ t('views.user.login.openSourceTitle') }}</div>
+          <div class="open-source-title">{{ t('openSourceTitle') }}</div>
           <div class="open-source-item-box">
             <div class="open-source-item" v-for="item in openSource" :key="item.id">
               <div class="open-source-item-title">{{ item.title }}</div>
@@ -138,13 +138,14 @@
           <div class="copyright-text" @click="toChatWiki">  ChatWiki</div>
         </div>
         <div class="footer-line"></div>
-        <div class="copyright-text" @click="toXiaokefu">{{ t('views.user.login.copyrightTextTwo') }}</div>
+        <div class="copyright-text" @click="toXiaokefu">{{ t('copyrightTextTwo') }}</div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { useLocaleStore } from '@/stores/modules/locale'
 import { useI18n } from '@/hooks/web/useI18n'
 import { reactive, computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
@@ -154,66 +155,69 @@ import { useUserStore } from '@/stores/modules/user'
 import { UserOutlined, LockOutlined } from '@ant-design/icons-vue';
 import { useCompanyStore } from '@/stores/modules/company'
 
+const localeStore = useLocaleStore()
+const lang = computed(() => localeStore.getCurrentLocale.lang)
+
 const companyStore = useCompanyStore()
 !companyStore.name && companyStore.getCompanyInfo();
 const companyName = companyStore.name || 'ChatWiki'
 
-const { t } = useI18n()
+const { t } = useI18n('views.login.login')
 
-const selectedKeys = ref(['2']);
+// const selectedKeys = ref(['2']);
 
-const profession = reactive([
+const profession = computed(() => [
   {
-    title: t('views.user.login.professionOneTitle'),
-    info: t('views.user.login.professionOneInfo'),
+    title: t('professionOneTitle'),
+    info: t('professionOneInfo'),
     id: 1,
     icon: 'finance'
   },
   {
-    title: t('views.user.login.professionTwoTitle'),
-    info: t('views.user.login.professionTwoInfo'),
+    title: t('professionTwoTitle'),
+    info: t('professionTwoInfo'),
     id: 2,
     icon: 'government'
   },
   {
-    title: t('views.user.login.professionThreeTitle'),
-    info: t('views.user.login.professionThreeInfo'),
+    title: t('professionThreeTitle'),
+    info: t('professionThreeInfo'),
     id: 3,
     icon: 'law'
   },
   {
-    title: t('views.user.login.professionFourTitle'),
-    info: t('views.user.login.professionFourInfo'),
+    title: t('professionFourTitle'),
+    info: t('professionFourInfo'),
     id: 4,
     icon: 'medical-treatment'
   },
   {
-    title: t('views.user.login.professionFiveTitle'),
-    info: t('views.user.login.professionFiveInfo'),
+    title: t('professionFiveTitle'),
+    info: t('professionFiveInfo'),
     id: 5,
     icon: 'manufacture'
   },
   {
-    title: t('views.user.login.professionSixTitle'),
-    info: t('views.user.login.professionSixInfo'),
+    title: t('professionSixTitle'),
+    info: t('professionSixInfo'),
     id: 6,
     icon: 'source-energy'
   },
   {
-    title: t('views.user.login.professionSevenTitle'),
-    info: t('views.user.login.professionSevenInfo'),
+    title: t('professionSevenTitle'),
+    info: t('professionSevenInfo'),
     id: 7,
     icon: 'retail'
   },
   {
-    title: t('views.user.login.professionEightTitle'),
-    info: t('views.user.login.professionEightInfo'),
+    title: t('professionEightTitle'),
+    info: t('professionEightInfo'),
     id: 8,
     icon: 'unit'
   }
 ])
 
-const aiModel = reactive([
+const aiModel = computed(() => [
   {
     title: 'OpenAI',
     id: 1,
@@ -235,47 +239,47 @@ const aiModel = reactive([
     icon: 'anthrop'
   },
   {
-    title: '文心一言',
+    title: t('aiModelWenxinyiyan'),
     id: 5,
     icon: 'wenxinyiyan'
   },
   {
-    title: '月之暗面',
+    title: t('aiModelYuezhianmian'),
     id: 6,
     icon: 'yuezhianmian'
   },
   {
-    title: '通义千问',
+    title: t('aiModelTongyiqianwen'),
     id: 7,
     icon: 'tongyiqianwen'
   },
   {
-    title: '讯飞星火',
+    title: t('aiModelXunfeixinghuo'),
     id: 8,
     icon: 'xunfeixinghuo'
   },
   {
-    title: '火山引擎',
+    title: t('aiModelHuoshanyinqin'),
     id: 9,
     icon: 'huoshanyinqin'
   },
   {
-    title: '百川智能',
+    title: t('aiModelBaichuan'),
     id: 10,
     icon: 'baichuan'
   },
   {
-    title: '零一万物',
+    title: t('aiModelLingyiwanwu'),
     id: 11,
     icon: 'lingyiwanwu'
   },
   {
-    title: '智谱AI',
+    title: t('aiModelZhipuai'),
     id: 12,
     icon: 'zhipuai'
   },
   {
-    title: '腾讯混元',
+    title: t('aiModelTengxunhunyuan'),
     id: 13,
     icon: 'tengxunhunyuan'
   },
@@ -296,99 +300,99 @@ const aiModel = reactive([
   }
 ])
 
-const openSource = reactive([
+const openSource = computed(() => [
   {
-    title: t('views.user.login.sourceOneTitle'),
+    title: t('sourceOneTitle'),
     id: 1,
     icon: 'out-the-box',
-    info: t('views.user.login.sourceOneInfo'),
+    info: t('sourceOneInfo'),
     list: [
       {
-        title: t('views.user.login.sourceOneListOneTitle'),
+        title: t('sourceOneListOneTitle'),
         icon: 'login-success',
         listId: '1-1'
       },
       {
-        title: t('views.user.login.sourceOneListTwoTitle'),
+        title: t('sourceOneListTwoTitle'),
         icon: 'login-success',
         listId: '1-2'
       },
       {
-        title: t('views.user.login.sourceOneListThreeTitle'),
+        title: t('sourceOneListThreeTitle'),
         icon: 'login-success',
         listId: '1-3'
       }
     ]
   },
   {
-    title: t('views.user.login.sourceTwoTitle'),
+    title: t('sourceTwoTitle'),
     id: 2,
     icon: 'data-security',
-    info: t('views.user.login.sourceTwoInfo'),
+    info: t('sourceTwoInfo'),
     list: [
       {
-        title: t('views.user.login.sourceTwoListOneTitle'),
+        title: t('sourceTwoListOneTitle'),
         icon: 'login-success',
         listId: '2-1'
       },
       {
-        title: t('views.user.login.sourceTwoListTwoTitle'),
+        title: t('sourceTwoListTwoTitle'),
         icon: 'login-success',
         listId: '2-2'
       },
       {
-        title: t('views.user.login.sourceTwoListThreeTitle'),
+        title: t('sourceTwoListThreeTitle'),
         icon: 'login-success',
         listId: '2-3'
       }
     ]
   },
   {
-    title: t('views.user.login.sourceThreeTitle'),
+    title: t('sourceThreeTitle'),
     id: 3,
     icon: 'multimode-box',
-    info: t('views.user.login.sourceThreeInfo'),
+    info: t('sourceThreeInfo'),
     list: [
       {
-        title: t('views.user.login.sourceThreeListOneTitle'),
+        title: t('sourceThreeListOneTitle'),
         icon: 'login-success',
         listId: '3-1'
       },
       {
-        title: t('views.user.login.sourceThreeListTwoTitle'),
+        title: t('sourceThreeListTwoTitle'),
         icon: 'login-success',
         listId: '3-2'
       },
       {
-        title: t('views.user.login.sourceThreeListThreeTitle'),
+        title: t('sourceThreeListThreeTitle'),
         icon: 'login-success',
         listId: '3-3'
       },
       {
-        title: t('views.user.login.sourceThreeListFourTitle'),
+        title: t('sourceThreeListFourTitle'),
         icon: 'login-success',
         listId: '3-4'
       },
       {
-        title: t('views.user.login.sourceThreeListFiveTitle'),
+        title: t('sourceThreeListFiveTitle'),
         icon: 'login-success',
         listId: '3-5'
       }
     ]
   },
   {
-    title: t('views.user.login.sourceFourTitle'),
+    title: t('sourceFourTitle'),
     id: 4,
     icon: 'more-compatible',
-    info: t('views.user.login.sourceFourInfo'),
+    info: t('sourceFourInfo'),
     list: [
       {
-        title: t('views.user.login.sourceFourListOneTitle'),
+        title: t('sourceFourListOneTitle'),
         icon: 'login-success',
         listId: '4-1'
       },
       {
-        title: t('views.user.login.sourceFourListTwoTitle'),
+        title: t('sourceFourListTwoTitle'),
         icon: 'login-success',
         listId: '4-2'
       }
@@ -592,7 +596,8 @@ body {
       font-style: normal;
       font-weight: 400;
       cursor: pointer;
-      width: 100px;
+      width: auto;
+      padding: 0 16px;
       display: flex;      
       justify-content: center;
       align-items: center;
@@ -721,7 +726,7 @@ body {
   display: flex;
   flex-direction: column;
   flex-basis: calc((100% - 60px)/ 4);
-  height: 217px;
+  height: 230px;
   width: 250px;
   background: #fff;
   border-radius: 16px;
@@ -855,7 +860,6 @@ body {
 .open-source-box{
   // width: 100%;
   width: 1200px;
-  height: 680px;
 
   .open-source-title {
     padding: 60px 0 2px;
@@ -870,9 +874,6 @@ body {
 
   .open-source-item-box {
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: space-between;
     background-color: #fff;
     padding: 30px;
 
@@ -889,14 +890,14 @@ body {
 
     .open-source-item {
       position: relative;
+      flex: 1;
+      min-height: 488px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      flex-basis: calc((100%)/ 4);
-      height: 488px;
       background: #fff;
-      padding: 24px;
+      padding: 24px 24px 138px 24px;
       border-top: 1px solid #EDEFF2;
       border-left: 1px solid #EDEFF2;
       border-bottom: 1px solid #EDEFF2;
@@ -1002,6 +1003,29 @@ body {
     border-right: 2px solid #DCDCDC;
     height: 15px;
     margin: 0 10px;
+  }
+}
+
+.login-box.lang-en-US {
+  .open-source-item-box{
+    flex-flow: column;
+    padding: 0;
+    margin: 30px 0 60px 0;
+    border: 1px solid #EDEFF2;
+    border-radius: 16px;
+    overflow: hidden;
+
+    .open-source-item{
+      min-height: 200px;
+      padding-bottom: 50px;
+      border: none;
+      border-radius: 0;
+      border-bottom: 1px solid #EDEFF2;
+    }
+
+    .open-source-item:last-child {
+      border: none;
+    }
   }
 }
 </style>

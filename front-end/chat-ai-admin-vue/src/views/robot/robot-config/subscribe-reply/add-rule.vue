@@ -472,10 +472,10 @@ onMounted(async () => {
 .btn-container {
   position: fixed;
   bottom: 0;
-  right: 16px;
+  right: 0;
   display: flex;
-  width: calc(100% - 270px);
-  padding: 16px 1055px 16px 32px;
+  width: 100%;
+  padding: 16px 32px;
   align-items: center;
   border-radius: 0 0 2px 2px;
   background: #FFF;

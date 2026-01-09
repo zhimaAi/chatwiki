@@ -58,7 +58,7 @@ func GetDialogueList(c *gin.Context) {
 }
 
 func GetAnswerSource(c *gin.Context) {
-	chatBaseParam, err := common.CheckChatRequest(c)
+	chatBaseParam, err := common.CheckChatRequest(c, true)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return

@@ -90,10 +90,19 @@ func DownloadRemotePlugin(c *gin.Context) {
 		return
 	}
 	var req struct {
+		DownloadData string `form:"download_data" binding:"required"`
+	}
+	if err := c.ShouldBind(&req); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+
+	var DownloadPlugin []struct {
 		URL       string `form:"url" binding:"required"`
 		VersionId int    `form:"version_id" binding:"required"`
 	}
-	if err := c.ShouldBind(&req); err != nil {
+	err := tool.JsonDecodeUseNumber(req.DownloadData, &DownloadPlugin)
+	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
@@ -112,99 +121,101 @@ func DownloadRemotePlugin(c *gin.Context) {
 		}
 	}(tmpDir) // 清理临时目录
 
-	// 下载压缩包
-	zipPath := filepath.Join(tmpDir, "plugin.zip")
-	if err := downloadFile(req.URL, zipPath); err != nil {
-		logs.Error(fmt.Sprintf("下载插件失败: %v", err))
-		c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf("下载插件失败: %w", err)))
-		return
-	}
+	for _, node := range DownloadPlugin {
 
-	// 解压到临时目录
-	extractDir := filepath.Join(tmpDir, "extracted")
-	if err := os.MkdirAll(extractDir, 0755); err != nil {
-		logs.Error(fmt.Sprintf("创建解压目录失败: %v", err))
-		c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf("创建解压目录失败: %w", err)))
-		return
-	}
-
-	if err := unzipFile(zipPath, extractDir); err != nil {
-		logs.Error(fmt.Sprintf("解压插件失败: %v", err))
-		c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf("解压插件失败: %w", err)))
-		return
-	}
-
-	// 读取 manifest.json
-	manifestPath := filepath.Join(extractDir, "manifest.json")
-	manifest, err := readManifest(manifestPath)
-	if err != nil {
-		logs.Error(fmt.Sprintf("读取 manifest.json 失败: %v", err))
-		c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf("读取 manifest.json 失败: %w", err)))
-		return
-	}
-
-	// 获取工作目录
-	workDir, err := os.Getwd()
-	if err != nil {
-		logs.Error(fmt.Sprintf("获取工作目录失败: %v", err))
-		c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf("获取工作目录失败: %w", err)))
-		return
-	}
-
-	// 目标目录
-	targetDir := filepath.Join(workDir, "php", "plugins", manifest.Name)
-
-	// 如果目标目录已存在，先删除
-	if tool.IsDir(targetDir) {
-		if err := os.RemoveAll(targetDir); err != nil {
-			logs.Error(fmt.Sprintf("删除已存在的插件目录失败: %v", err))
-			c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf("删除已存在的插件目录失败: %w", err)))
+		// 下载压缩包
+		zipPath := filepath.Join(tmpDir, "plugin.zip")
+		if err := downloadFile(node.URL, zipPath); err != nil {
+			logs.Error(fmt.Sprintf("下载插件失败: %v", err))
+			c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf("下载插件失败: %w", err)))
 			return
 		}
-	}
 
-	// 拷贝解压后的目录到目标位置
-	if err := copyDirectory(extractDir, targetDir); err != nil {
-		logs.Error(fmt.Sprintf("拷贝插件目录失败: %v", err))
-		c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf("拷贝插件目录失败: %w", err)))
-		return
-	}
+		// 解压到临时目录
+		extractDir := filepath.Join(tmpDir, "extracted")
+		if err := os.MkdirAll(extractDir, 0755); err != nil {
+			logs.Error(fmt.Sprintf("创建解压目录失败: %v", err))
+			c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf("创建解压目录失败: %w", err)))
+			return
+		}
 
-	// 增加安装次数
-	if err := increaseInstallCount(req.VersionId); err != nil {
-		logs.Error(fmt.Sprintf("增加安装次数失败: %v", err))
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
-		return
-	}
+		if err := unzipFile(zipPath, extractDir); err != nil {
+			logs.Error(fmt.Sprintf("解压插件失败: %v", err))
+			c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf("解压插件失败: %w", err)))
+			return
+		}
 
-	// 增加数据库记录
-	info, err := msql.Model(`plugin_config`, define.Postgres).Where(`admin_user_id`, adminUserId).Where(`name`, manifest.Name).Find()
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
-		return
-	}
-	if len(info) == 0 {
-		_, err = msql.Model(`plugin_config`, define.Postgres).Insert(msql.Datas{
-			`create_time`:   tool.Time2Int(),
-			`update_time`:   tool.Time2Int(),
-			`admin_user_id`: adminUserId,
-			`name`:          manifest.Name,
-			`type`:          manifest.Type,
-			`has_loaded`:    true, //修改为下载后自动启用
-		})
-	}
+		// 读取 manifest.json
+		manifestPath := filepath.Join(extractDir, "manifest.json")
+		manifest, err := readManifest(manifestPath)
+		if err != nil {
+			logs.Error(fmt.Sprintf("读取 manifest.json 失败: %v", err))
+			c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf("读取 manifest.json 失败: %w", err)))
+			return
+		}
 
-	// 重新加载
-	if len(info) > 0 && cast.ToBool(info[`has_loaded`]) {
-		define.PhpPlugin.UnloadPhpPlugin(info[`name`])
-	}
-	//默认启用 并加载
-	initPhpConfig := []string{"CRAWLER_HOST=" + define.Config.WebService[`crawler`]}
-	err = define.PhpPlugin.LoadPhpPlugin(manifest.Name, define.Version, initPhpConfig)
-	if err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
-		return
+		// 获取工作目录
+		workDir, err := os.Getwd()
+		if err != nil {
+			logs.Error(fmt.Sprintf("获取工作目录失败: %v", err))
+			c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf("获取工作目录失败: %w", err)))
+			return
+		}
+
+		// 目标目录
+		targetDir := filepath.Join(workDir, "php", "plugins", manifest.Name)
+
+		// 如果目标目录已存在，先删除
+		if tool.IsDir(targetDir) {
+			if err := os.RemoveAll(targetDir); err != nil {
+				logs.Error(fmt.Sprintf("删除已存在的插件目录失败: %v", err))
+				c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf("删除已存在的插件目录失败: %w", err)))
+				return
+			}
+		}
+
+		// 拷贝解压后的目录到目标位置
+		if err := copyDirectory(extractDir, targetDir); err != nil {
+			logs.Error(fmt.Sprintf("拷贝插件目录失败: %v", err))
+			c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf("拷贝插件目录失败: %w", err)))
+			return
+		}
+
+		// 增加安装次数
+		if err := increaseInstallCount(node.VersionId); err != nil {
+			logs.Error(fmt.Sprintf("增加安装次数失败: %v", err))
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+			return
+		}
+
+		// 增加数据库记录
+		info, err := msql.Model(`plugin_config`, define.Postgres).Where(`admin_user_id`, adminUserId).Where(`name`, manifest.Name).Find()
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+			return
+		}
+		if len(info) == 0 {
+			_, err = msql.Model(`plugin_config`, define.Postgres).Insert(msql.Datas{
+				`create_time`:   tool.Time2Int(),
+				`update_time`:   tool.Time2Int(),
+				`admin_user_id`: adminUserId,
+				`name`:          manifest.Name,
+				`type`:          manifest.Type,
+				`has_loaded`:    true, //修改为下载后自动启用
+			})
+		}
+
+		// 重新加载
+		if len(info) > 0 && cast.ToBool(info[`has_loaded`]) {
+			define.PhpPlugin.UnloadPhpPlugin(info[`name`])
+		}
+		//默认启用 并加载
+		err = define.PhpPlugin.LoadPhpPlugin(manifest.Name, define.Version, define.DefaultPhpEnv)
+		if err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+			return
+		}
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }

@@ -74,23 +74,24 @@ import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { SettingFilled, AppstoreFilled } from '@ant-design/icons-vue'
 import { usePermissionStore } from '@/stores/modules/permission'
+import { useI18n } from '@/hooks/web/useI18n'
 
+const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
-// createVNode('div', { style: 'color:red;' }, content),
 
 const permissionStore = usePermissionStore()
 
-let baseMenu = [
+const baseMenu = computed(() => [
   {
-    name: '模型管理',
+    name: t('views.user.left-menus.model_management'),
     key: 'model',
     path: '/user/model',
     icon: AppstoreFilled,
     permissionKey: 'ModelManage'
   },
   {
-    name: 'Token使用',
+    name: t('views.user.left-menus.token_usage'),
     key: 'usetoken',
     path: '/user/usetoken',
     svg: 'use-token',
@@ -98,7 +99,7 @@ let baseMenu = [
     permissionKey: 'TokenManage'
   },
   {
-    name: '团队管理',
+    name: t('views.user.left-menus.team_management'),
     key: 'manage',
     path: '/user/manage',
     svg: 'team-manage-active',
@@ -106,14 +107,14 @@ let baseMenu = [
     permissionKey: 'TeamManage'
   },
   {
-    name: '账号设置',
+    name: t('views.user.left-menus.account_settings'),
     key: 'account',
     path: '/user/account',
     icon: SettingFilled,
     haspermise: true
   },
   {
-    name: '阿里云OCR',
+    name: t('views.user.left-menus.aliyun_ocr'),
     key: 'enterprise',
     path: '/user/aliocr',
     svg: 'ali-ocr',
@@ -121,7 +122,7 @@ let baseMenu = [
     permissionKey: 'AliyunOCRManage'
   },
   {
-    name: '企业设置',
+    name: t('views.user.left-menus.enterprise_settings'),
     key: 'enterprise',
     path: '/user/enterprise',
     svg: 'enterprise',
@@ -129,7 +130,7 @@ let baseMenu = [
     permissionKey: 'CompanyManage'
   },
   {
-    name: '自定义域名',
+    name: t('views.user.left-menus.custom_domain'),
     key: 'domain',
     path: '/user/domain',
     svg: 'network',
@@ -137,7 +138,7 @@ let baseMenu = [
     permissionKey: 'UserDomainManage'
   },
   {
-    name: '客户端下载',
+    name: t('views.user.left-menus.client_download'),
     key: 'clientDownload',
     path: '/user/clientDownload',
     svg: 'client',
@@ -145,7 +146,7 @@ let baseMenu = [
     permissionKey: 'ClientSideManage'
   },
   {
-    name: '敏感词管理',
+    name: t('views.user.left-menus.sensitive_word_management'),
     key: 'sensitiveWords',
     path: '/user/sensitive-words',
     svg: 'sensitive-icon',
@@ -153,7 +154,7 @@ let baseMenu = [
     permissionKey: 'SensitiveWordManage'
   },
   {
-    name: '提示词模板库',
+    name: t('views.user.left-menus.prompt_template_library'),
     key: 'promptLibrary',
     path: '/user/prompt-library',
     svg: 'prompt-icon',
@@ -161,18 +162,18 @@ let baseMenu = [
     permissionKey: 'PromptTemplateManage'
   },
   {
-    name: '公众号管理',
+    name: t('views.user.left-menus.official_account_management'),
     key: 'officialAccount',
     path: '/user/official-account',
     svg: 'wx-app-icon',
     svgActive: 'wx-app-icon',
     permissionKey: 'OfficialAccountMange'
   },
-]
+])
 
 const menus = computed(() => {
   let { role_permission, role_type } = permissionStore
-  return baseMenu.filter((item) => role_type == 1 || item.haspermise || role_permission.includes(item.permissionKey))
+  return baseMenu.value.filter((item) => role_type == 1 || item.haspermise || role_permission.includes(item.permissionKey))
 })
 
 const activeMenu = computed(() => {

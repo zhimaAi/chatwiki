@@ -57,6 +57,7 @@
 
 <template>
   <node-common
+    :properties="properties"
     :title="props.properties.node_name"
     :menus="menus"
     :icon-name="props.properties.node_icon_name"

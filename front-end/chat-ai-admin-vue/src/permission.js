@@ -4,6 +4,8 @@ import { usePermissionStoreWithOut } from '@/stores/modules/permission'
 import { useCompanyStore } from '@/stores/modules/company'
 import { NO_REDIRECT_WHITE_LIST } from '@/constants'
 import { checkSystemPermisission } from '@/utils/permission.js'
+import { useLocaleStoreWithOut } from '@/stores/modules/locale'
+import { useLocale } from '@/hooks/web/useLocale'
 
 function toLogin(to, from, next) {
   if (to.path === '/login') {
@@ -31,6 +33,24 @@ function setTitle(to, companyInfo) {
 
 
 router.beforeEach(async (to, from, next) => {
+  // 处理 URL 中的 lang 参数
+  if (to.query.lang) {
+    const localeStore = useLocaleStoreWithOut()
+    const { changeLocale } = useLocale()
+    
+    const validLocales = localeStore.getLocaleMap.map(v => v.lang)
+    
+    if (validLocales.includes(to.query.lang)) {
+      await changeLocale(to.query.lang)
+      
+      // 移除 URL 中的 lang 参数
+      const query = { ...to.query }
+      delete query.lang
+      next({ path: to.path, query })
+      return
+    }
+  }
+
   const companyStore = useCompanyStore()
   const { companyInfo, getCompanyInfo } = companyStore
   if (!companyInfo) {

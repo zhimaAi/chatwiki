@@ -49,13 +49,22 @@
           <div class="output-label">
             <img src="@/assets/svg/output.svg" alt="" class="output-label-icon" />
             <span class="output-label-text">输出</span>
-            <a class="ml8" href="https://developers.weixin.qq.com/doc/subscription/guide/product/message/Receiving_standard_messages.html" target="_blank">查看官方接口文档</a>
+            <a
+              class="ml8"
+              href="https://developers.weixin.qq.com/doc/subscription/guide/product/message/Receiving_standard_messages.html"
+              target="_blank"
+              >查看官方接口文档</a
+            >
           </div>
           <div class="field-items">
             <!-- <div class="field-items-label">文本消息</div> -->
             <div class="field-item" v-for="(item, index) in list" :key="index">
               <div class="field-name-box">
                 <span class="field-name">{{ item.key }}</span>
+                <a-tooltip>
+                  <template #title>{{ item.desc }}</template>
+                  <QuestionCircleOutlined />
+                </a-tooltip>
               </div>
               <div class="field-value-box">
                 <a-select
@@ -72,9 +81,6 @@
                   </a-select-option>
                 </a-select>
               </div>
-              <div class="field-desc">
-                {{ item.desc }}
-              </div>
             </div>
           </div>
         </div>
@@ -88,7 +94,7 @@
 import { ref, onMounted, inject, computed, reactive } from 'vue'
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
-import { PlusOutlined, CloseCircleFilled } from '@ant-design/icons-vue'
+import { PlusOutlined, CloseCircleFilled, QuestionCircleOutlined } from '@ant-design/icons-vue'
 import SelectWechatApp from '@/components/common/select-wechat-app.vue'
 import { useWorkflowStore } from '@/stores/modules/workflow'
 const workflowStore = useWorkflowStore()
@@ -140,7 +146,7 @@ const formState = reactive({
 })
 
 const selectAppItems = computed(() => {
-  return formState.app_ids.map((item) => officialList.value.find((it) => it.app_id == item))
+  return formState.app_ids.map((item) => officialList.value.find((it) => it.app_id == item)).filter(Boolean)
 })
 
 const list = ref([])
@@ -325,6 +331,7 @@ onMounted(() => {
       display: flex;
       align-items: center;
       margin-bottom: 8px;
+      justify-content: space-between;
       &:last-child {
         margin-bottom: 0;
       }
@@ -333,10 +340,12 @@ onMounted(() => {
     .field-name-box {
       width: auto;
       margin-right: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .field-value-box {
-      flex: 1;
       margin-right: 8px;
 
       .field-value {

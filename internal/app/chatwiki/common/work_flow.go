@@ -224,6 +224,44 @@ func SimplifyFields(recurveFields RecurveFields) SimpleFields {
 	return simpleFields
 }
 
+func (fields RecurveFields) SimplifyFieldsDeep(simpleFields *SimpleFields, prefix string) {
+	for _, field := range fields {
+		if field.Typ != TypObject {
+			field.SimpleField.Key = prefix + field.SimpleField.Key
+			(*simpleFields)[field.SimpleField.Key] = field.SimpleField
+		} else {
+			(*simpleFields)[prefix+field.Key] = SimpleField{
+				Key: prefix + field.Key,
+				Typ: field.Typ,
+			}
+			if len(field.Subs) > 0 {
+				field.Subs.SimplifyFieldsDeep(simpleFields, prefix+field.Key+`.`)
+			}
+		}
+	}
+}
+
+func (fields RecurveFields) SimplifyFieldsDeepExtract(simpleFields *SimpleFields, prefix string, data map[string]any) {
+	for _, field := range fields {
+		if field.Typ != TypObject {
+			field.SimpleField = field.SimpleField.SetVals(data[field.Key])
+			field.SimpleField.Key = prefix + field.SimpleField.Key
+			(*simpleFields)[field.SimpleField.Key] = field.SimpleField
+		} else {
+			(*simpleFields)[prefix+field.Key] = SimpleField{
+				Key:  prefix + field.Key,
+				Typ:  field.Typ,
+				Vals: []Val{{Object: data[field.Key]}},
+			}
+			if len(field.Subs) > 0 {
+				if subResult, ok := data[field.Key].(map[string]any); ok {
+					field.Subs.SimplifyFieldsDeepExtract(simpleFields, prefix+field.Key+`.`, subResult)
+				}
+			}
+		}
+	}
+}
+
 func GetRecurveFields(simpleFields SimpleFields) RecurveFields {
 	fieldMap := make(map[string]RecurveField)
 	for key, field := range simpleFields {
@@ -428,4 +466,34 @@ func CheckEnName(adminUserId, enName string, id string) bool {
 		return true
 	}
 	return false
+}
+
+func TakeWorkFlowTestUseToken(flowOutputs []NodeLog) (int, int64) {
+	if len(flowOutputs) == 0 {
+		return 0, 0
+	}
+	token := 0
+	type outputs struct {
+		StartTime int64 `json:"start_time"`
+		EndTime   int64 `json:"end_time"`
+		Output    struct {
+			LlmResult struct {
+				CompletionToken int `json:"completion_token"`
+				PromptToken     int `json:"prompt_token"`
+			} `json:"llm_result,omitempty"`
+		} `json:"output"`
+	}
+	nodeOutputs := make([]outputs, 0)
+	err := tool.JsonDecode(tool.JsonEncodeNoError(flowOutputs), &nodeOutputs)
+	if err != nil {
+		logs.Error(err.Error())
+		return 0, 0
+	}
+	var useMills int64 = 0
+	for _, nodeOutPut := range nodeOutputs {
+		token += nodeOutPut.Output.LlmResult.CompletionToken
+		token += nodeOutPut.Output.LlmResult.PromptToken
+		useMills += nodeOutPut.EndTime - nodeOutPut.StartTime
+	}
+	return token, useMills
 }

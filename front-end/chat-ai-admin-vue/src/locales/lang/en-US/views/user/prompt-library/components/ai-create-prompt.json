@@ -1,0 +1,14 @@
+{
+  "title": "AI Generate Prompt",
+  "use_prompt": "Use This Prompt",
+  "placeholder": "Enter AI prompt requirements, e.g., create an e-commerce after-sales customer service",
+  "generating": "Generating...",
+  "generate": "Generate",
+  "quick_generate": "Quick Generate:",
+  "generating_tip": "Generating...",
+  "empty_description": "Enter requirements in the input box above and click Generate",
+  "input_prompt_error": "Please enter AI prompt requirements",
+  "generate_first_error": "Please generate prompt first",
+  "quick_tag_ecommerce": "Create an e-commerce after-sales customer service",
+  "quick_tag_education": "Create a pre-sales robot for an English education institution official website"
+}

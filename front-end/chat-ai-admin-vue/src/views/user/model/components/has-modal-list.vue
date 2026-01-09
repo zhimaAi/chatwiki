@@ -4,22 +4,22 @@
       <div class="left-block">
         <KeyOutlined />
         <template v-if="['baai', 'ollama', 'xinference'].includes(config_info.model_define)">
-          API endpoint：<template v-if="config_info.api_endpoint"
+          {{ t('views.user.model.api_endpoint_label') }}<template v-if="config_info.api_endpoint"
             >{{ config_info.api_endpoint.slice(0, 30)
             }}{{ config_info.api_endpoint.length > 30 ? '...' : '' }}</template
           >
         </template>
         <template v-else>
-          API Key：<template v-if="config_info.api_key"
+          {{ t('views.user.model.api_key_label') }}<template v-if="config_info.api_key"
             >{{ config_info.api_key.slice(0, 30) }}
             {{ config_info.api_key.length > 30 ? '...' : '' }}</template
           >
         </template>
       </div>
       <div class="btn-box">
-        <a-button @click="handleAddModel()">添加模型</a-button>
-        <a-button @click="handleEditConfig">修改配置</a-button>
-        <a-button @click="handleDelconfig">移除配置</a-button>
+        <a-button @click="handleAddModel()">{{ t('views.user.model.add_model_btn') }}</a-button>
+        <a-button @click="handleEditConfig">{{ t('views.user.model.edit_config_btn') }}</a-button>
+        <a-button @click="handleDelconfig">{{ t('views.user.model.remove_config_btn') }}</a-button>
       </div>
     </div>
     <div class="tab-box">
@@ -30,7 +30,7 @@
         <a-table-column
           :width="140"
           key="show_model_name"
-          title="模型名称"
+          :title="t('views.user.model.show_model_name')"
           data-index="show_model_name"
         />
         <a-table-column
@@ -47,7 +47,7 @@
           v-if="model_type == 'IMAGE'"
           :width="140"
           key="image_sizes_desc"
-          title="图片比例支持"
+          :title="t('views.user.model.image_sizes_support')"
           data-index="image_sizes_desc"
         >
         </a-table-column>
@@ -55,7 +55,7 @@
           v-if="model_type == 'IMAGE'"
           :width="160"
           key="image_max"
-          title="生成图片最大数量"
+          :title="t('views.user.model.max_image_count')"
           data-index="image_max"
         >
         </a-table-column>
@@ -63,37 +63,37 @@
           v-if="model_type == 'IMAGE'"
           :width="140"
           key="image_watermark"
-          title="支持图片水印"
+          :title="t('views.user.model.support_watermark')"
           data-index="image_watermark"
         >
           <template #default="{ record }">
-            <span v-if="record.image_watermark == 1">支持</span>
-            <span v-if="record.image_watermark == 0">不支持</span>
+            <span v-if="record.image_watermark == 1">{{ t('views.user.model.supported') }}</span>
+            <span v-if="record.image_watermark == 0">{{ t('views.user.model.not_supported') }}</span>
           </template>
         </a-table-column>
         <a-table-column
           v-if="model_type == 'IMAGE'"
           :width="160"
           key="image_optimize_prompt"
-          title="支持自动优化提示词"
+          :title="t('views.user.model.support_optimize_prompt')"
           data-index="image_optimize_prompt"
         >
           <template #default="{ record }">
-            <span v-if="record.image_optimize_prompt == 1">支持</span>
-            <span v-if="record.image_optimize_prompt == 0">不支持</span>
+            <span v-if="record.image_optimize_prompt == 1">{{ t('views.user.model.supported') }}</span>
+            <span v-if="record.image_optimize_prompt == 0">{{ t('views.user.model.not_supported') }}</span>
           </template>
         </a-table-column>
         <a-table-column
           v-if="model_type == 'LLM'"
           :width="140"
           key="thinking_type"
-          title="深度思考"
+          :title="t('views.user.model.thinking_type')"
           data-index="thinking_type"
         >
           <template #default="{ record }">
-            <span v-if="record.thinking_type == 0">不支持</span>
-            <span v-if="record.thinking_type == 1">支持</span>
-            <span v-if="record.thinking_type == 2">可选</span>
+            <span v-if="record.thinking_type == 0">{{ t('views.user.model.not_supported') }}</span>
+            <span v-if="record.thinking_type == 1">{{ t('views.user.model.supported') }}</span>
+            <span v-if="record.thinking_type == 2">{{ t('views.user.model.optional') }}</span>
           </template>
         </a-table-column>
 
@@ -101,12 +101,12 @@
           v-if="model_type == 'LLM'"
           :width="140"
           key="function_call"
-          title="工具调用"
+          :title="t('views.user.model.tool_call')"
           data-index="function_call"
         >
           <template #default="{ record }">
-            <span v-if="record.function_call == 0">不支持</span>
-            <span v-if="record.function_call == 1">支持</span>
+            <span v-if="record.function_call == 0">{{ t('views.user.model.not_supported') }}</span>
+            <span v-if="record.function_call == 1">{{ t('views.user.model.supported') }}</span>
           </template>
         </a-table-column>
 
@@ -114,14 +114,14 @@
           :width="120"
           v-if="model_type == 'TEXT EMBEDDING'"
           key="vector_dimension_list"
-          title="向量维度"
+          :title="t('views.user.model.vector_dimension')"
           data-index="vector_dimension_list"
         />
         <a-table-column
           v-if="model_type != 'RERANK'"
           :width="140"
           key="input_desc"
-          title="输入"
+          :title="t('views.user.model.input')"
           data-index="input_desc"
         >
           <template #default="{ record }">
@@ -132,18 +132,18 @@
           v-if="model_type == 'LLM'"
           :width="140"
           key="output_desc"
-          title="输出"
+          :title="t('views.user.model.output')"
           data-index="output_desc"
         >
           <template #default="{ record }">
             {{ record.output_desc }}
           </template>
         </a-table-column>
-        <a-table-column key="action" title="操作" :width="120" fixed="right">
+        <a-table-column key="action" :title="t('views.user.model.operate')" :width="120" fixed="right">
           <template #default="{ record }">
-            <a @click="handleAddModel(record)">编辑</a>
+            <a @click="handleAddModel(record)">{{ t('views.user.model.edit') }}</a>
             <a-divider type="vertical" />
-            <a @click="hadnleDelModel(record)">删除</a>
+            <a @click="hadnleDelModel(record)">{{ t('views.user.model.delete') }}</a>
           </template>
         </a-table-column>
       </a-table>
@@ -153,8 +153,12 @@
 
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { KeyOutlined } from '@ant-design/icons-vue'
 import { getSizeOptions } from '@/views/workflow/components/util.js'
+
+const { t } = useI18n()
+
 const props = defineProps({
   currentModalItem: {
     type: Object,
@@ -167,25 +171,25 @@ const props = defineProps({
 const emit = defineEmits(['addModel', 'delModel', 'editConfig', 'delConfig'])
 const sizeOptions = getSizeOptions()
 let model_type_maps = {
-  LLM: '大语言模型',
-  'TEXT EMBEDDING': '嵌入模型',
-  RERANK: '重排序模型',
-  IMAGE: '图片生成模型'
+  LLM: t('views.user.model.llm_model'),
+  'TEXT EMBEDDING': t('views.user.model.embedding_model'),
+  RERANK: t('views.user.model.rerank_model'),
+  IMAGE: t('views.user.model.image_generation_model')
 }
 
 let input_map = {
-  input_text: '文本',
-  input_voice: '语音',
-  input_image: '图片',
-  input_video: '视频',
-  input_document: '文档'
+  input_text: t('views.user.model.text'),
+  input_voice: t('views.user.model.voice'),
+  input_image: t('views.user.model.image'),
+  input_video: t('views.user.model.video'),
+  input_document: t('views.user.model.document')
 }
 
 let output_map = {
-  output_text: '文本',
-  output_voice: '语音',
-  output_image: '图片',
-  output_video: '视频'
+  output_text: t('views.user.model.text'),
+  output_voice: t('views.user.model.voice'),
+  output_image: t('views.user.model.image'),
+  output_video: t('views.user.model.video')
 }
 
 const model_type = ref('LLM')
@@ -202,10 +206,10 @@ console.log(config_info.value, '==')
 
 const model_name = computed(() => {
   if (config_info.value.model_define == 'doubao') {
-    return '接入点id'
+    return t('views.user.model.endpoint_id')
   }
   if (config_info.value.model_define == 'azure') {
-    return '部署名称'
+    return t('views.user.model.deployment_name_label')
   }
   return 'model'
 })
@@ -263,23 +267,23 @@ const tableData = computed(() => {
 const typeOptions = computed(() => {
   return [
     {
-      label: `大语言模型（${use_model_configs.value.filter((item) => item.model_type == 'LLM').length}）`,
+      label: `${t('views.user.model.llm_model')}（${use_model_configs.value.filter((item) => item.model_type == 'LLM').length}）`,
       value: 'LLM'
     },
     {
-      label: `嵌入模型（${use_model_configs.value.filter((item) => item.model_type == 'TEXT EMBEDDING').length}）`,
+      label: `${t('views.user.model.embedding_model')}（${use_model_configs.value.filter((item) => item.model_type == 'TEXT EMBEDDING').length}）`,
       value: 'TEXT EMBEDDING'
     },
     {
-      label: `重排序模型（${use_model_configs.value.filter((item) => item.model_type == 'RERANK').length}）`,
+      label: `${t('views.user.model.rerank_model')}（${use_model_configs.value.filter((item) => item.model_type == 'RERANK').length}）`,
       value: 'RERANK'
     },
     {
-      label: `图片生成模型（${use_model_configs.value.filter((item) => item.model_type == 'IMAGE').length}）`,
+      label: `${t('views.user.model.image_generation_model')}（${use_model_configs.value.filter((item) => item.model_type == 'IMAGE').length}）`,
       value: 'IMAGE'
     },
     {
-      label: `语音合成模型（${use_model_configs.value.filter((item) => item.model_type == 'TTS').length}）`,
+      label: `${t('views.user.model.tts_model')}（${use_model_configs.value.filter((item) => item.model_type == 'TTS').length}）`,
       value: 'TTS'
     }
   ]

@@ -1,0 +1,13 @@
+{
+  "model_management": "模型管理",
+  "token_usage": "Token使用",
+  "team_management": "团队管理",
+  "account_settings": "账号设置",
+  "aliyun_ocr": "阿里云OCR",
+  "enterprise_settings": "企业设置",
+  "custom_domain": "自定义域名",
+  "client_download": "客户端下载",
+  "sensitive_word_management": "敏感词管理",
+  "prompt_template_library": "提示词模板库",
+  "official_account_management": "公众号管理"
+}

@@ -1,13 +1,13 @@
 <template>
   <div class="team-members-pages">
     <a-flex justify="flex-end">
-      <div class="total"><div class="label total-label">共计：</div><div class="total-num">{{ requestParams.total }}条</div></div>
+      <div class="total"><div class="label total-label">{{ t('total_label') }}</div><div class="total-num">{{ requestParams.total }}{{ t('count_unit') }}</div></div>
       <div class="set-model">
-        <div class="label set-model-label">选择模型：</div>
+        <div class="label set-model-label">{{ t('select_model_label') }}</div>
         <div class="set-model-body">
           <a-select
             v-model:value="requestParams.use_model"
-            placeholder="全部模型"
+            :placeholder="t('all_models')"
             @change="handleChangeModel"
             :style="{'width': '200px'}"
           >
@@ -20,10 +20,10 @@
 
       <div class="set-date">
         <div class="label set-date-label">
-          <span>统计日期：</span>
+          <span>{{ t('statistics_date_label') }}</span>
         </div>
         <div class="set-date-body">
-          <DateSelect 
+          <DateSelect
             @dateChange="onDateChange"
             :key="datekey"
           ></DateSelect>
@@ -31,7 +31,7 @@
       </div>
 
       <div class="set-reset">
-        <a-button @click="onReset">重置</a-button>
+        <a-button @click="onReset">{{ t('reset_btn') }}</a-button>
       </div>
     </a-flex>
     <div class="list-box">
@@ -47,7 +47,7 @@
         } : false"
         @change="onTableChange"
       >
-        <a-table-column title="模型名称" data-index="model" width="300px">
+        <a-table-column :title="t('model_name')" data-index="model" width="300px">
           <template #default="{ record }">
             <div class="user-box">
               <div class="name-info">
@@ -56,13 +56,13 @@
             </div>
           </template>
         </a-table-column>
-        <a-table-column title="类型" data-index="IP" width="190px">
+        <a-table-column :title="t('type')" data-index="IP" width="190px">
           <template #default="{ record }">{{ record.type }}</template>
         </a-table-column>
-        <a-table-column title="Token消耗(k)" data-index="amount" width="190px">
+        <a-table-column :title="t('token_consumption')" data-index="amount" width="190px">
           <template #default="{ record }">{{ record.amount }}</template>
         </a-table-column>
-        <a-table-column title="日期" data-index="date" width="190px">
+        <a-table-column :title="t('date')" data-index="date" width="190px">
           <template #default="{ record }">{{ record.date }}</template>
         </a-table-column>
       </a-table>
@@ -71,19 +71,22 @@
 </template>
 <script setup>
 import { ref, reactive, onMounted  } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import { getTokenStats } from '@/api/manage/index.js'
 import dayjs from 'dayjs'
 import { getTokenModels } from '@/api/model/index'
 import DateSelect from './components/date.vue'
 
+const { t } = useI18n('views.user.usetoken')
+
 const datekey = ref(Date.now())
 
-const modelList = ref(['全部模型'])
+const modelList = ref([t('all_models')])
 const requestParams = reactive({
   page: 1,
   size: 10,
   total: 0,
-  use_model: '全部模型',
+  use_model: t('all_models'),
   start_date: '',
   end_date: ''
 })
@@ -96,7 +99,7 @@ const onDateChange = (date) => {
 
 const onReset = () => {
   // 重置
-  requestParams.use_model = '全部模型'
+  requestParams.use_model = t('all_models')
   requestParams.start_date = ''
   requestParams.end_date = ''
 
@@ -134,7 +137,7 @@ const getData = () => {
   }
 
   // 全部模型不传参数到后端
-  if (requestParams.use_model != '全部模型') {
+  if (requestParams.use_model != t('all_models')) {
     parmas.model = requestParams.use_model
   }
 
@@ -156,7 +159,7 @@ const handleChangeModel = (val) => {
 
 const getModelList = () => {
   getTokenModels({}).then((res) => {
-    modelList.value = [...['全部模型'], ...res.data] || ['全部模型']
+    modelList.value = [...[t('all_models')], ...res.data] || [t('all_models')]
   })
 }
 

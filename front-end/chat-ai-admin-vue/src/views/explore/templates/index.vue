@@ -24,7 +24,7 @@
           </div>
         </div>
       </div>
-      <div class="right-box">
+      <div class="right-box" @scroll="loadMore">
         <div class="filter-box">
           <a-input
             v-model:value.trim="filterData.keyword"
@@ -42,11 +42,13 @@
           </div>
         </div>
         <div class="_plugin-box">
-          <LoadingBox v-if="loading"/>
-          <div v-else-if="list.length" class="plugin-list">
-            <div v-for="item in list"
-                 :key="item.id"
-                 class="plugin-item">
+          <div v-if="list.length" class="plugin-list">
+            <router-link
+              v-for="item in list"
+              class="plugin-item"
+              :key="item.id"
+              :to="`/templates/detail?key=${item.robot_id}`" target="_blank"
+            >
               <div class="base-info">
                 <img class="avatar" :src="item.avatar || DEFAULT_TEMPLATE_AVATAR"/>
                 <div class="info">
@@ -55,31 +57,29 @@
                   </div>
                   <div class="source">
                     <img class="author-avatar" :src="item.account_avatar"/>
-                    {{ item.author }}
+                    <span class="zm-line1">{{ item.author }}</span>
                   </div>
                 </div>
               </div>
-              <div class="desc zm-line">{{ item.description }}</div>
+              <a-tooltip :title="getTooltipTitle(item.description, item, 14, 2.5, 60)" placement="top">
+                <div class="desc zm-line" :ref="el => setDescRef(el, item)">{{ item.description }}</div>
+              </a-tooltip>
               <div class="action-box">
                 <div class="left">
                   <TeamOutlined/>
                   {{ item.use_count || 0 }}
                 </div>
                 <div class="right">
-                  <a @click="useTemplate(item)">
-                    <svg-icon name="icon-rocket"/>
-                    使用模板</a>
+                  <a @click.stop.prevent="useTemplate(item)"><svg-icon name="icon-rocket"/> 使用模板</a>
                 </div>
               </div>
-            </div>
+            </router-link>
           </div>
           <EmptyBox v-else title="暂无可用插件"/>
+          <LoadingBox v-if="loading"/>
         </div>
       </div>
     </div>
-
-    <ReleaseModal/>
-    <ApplyModal/>
   </div>
 </template>
 
@@ -92,17 +92,17 @@ import MainTab from "@/views/explore/components/main-tab.vue";
 import EmptyBox from "@/components/common/empty-box.vue";
 import LoadingBox from "@/components/common/loading-box.vue";
 import UpdateModal from "@/views/explore/plugins/components/update-modal.vue";
-import ReleaseModal from "@/views/explore/templates/components/release-modal.vue";
-import ApplyModal from "@/views/explore/templates/components/apply-modal.vue";
 import {getTemplateCates, getTemplates, useRobotTemplate} from "@/api/explore/template.js";
 import {DEFAULT_TEMPLATE_AVATAR} from "@/constants/index.js";
 import {useCompanyStore} from "@/stores/modules/company.js";
+import { setDescRef, getTooltipTitle, listScrollPullLoad } from '@/utils/index'
 
 const route = useRoute()
 const router = useRouter()
 const tabRef = ref(null)
 const active = ref(localStorage.getItem('zm:explore:active') || '4')
 const loading = ref(true)
+const finished = ref(false)
 const list = ref([])
 const cates = ref([])
 const allCateCount = ref(0)
@@ -153,19 +153,26 @@ async function loadData() {
   if (filterData.category) params.category_id = filterData.category?.id
   getTemplates(params).then(res => {
     let _list = res?.data?.data || []
-    _list.forEach(item => {
-
-    })
-    list.value = _list
+    if (!_list.length || _list.length < pagination.pageSize) {
+      finished.value = true
+    }
+    list.value.push(..._list)
+    pagination.current += 1
     pagination.total = Number(res?.data?.total || 0)
   }).finally(() => {
     loading.value = false
   })
 }
 
+function loadMore(e) {
+  if (loading.value || finished.value) return
+  listScrollPullLoad(e, loadData)
+}
+
 function search() {
   pagination.current = 1
   pagination.total = 0
+  list.value = []
   loadData()
 }
 
@@ -210,6 +217,7 @@ function useTemplate(item) {
     })
   }
 }
+
 </script>
 
 <style scoped lang="less">
@@ -317,7 +325,7 @@ function useTemplate(item) {
 
   .plugin-item {
     flex: 0 0 calc((100% - 3 * 16px) / 4);
-    min-width: 320px;
+    //min-width: 200px;
     padding: 24px;
     display: flex;
     flex-direction: column;

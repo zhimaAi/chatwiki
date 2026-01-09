@@ -176,8 +176,9 @@
           </div>
         </div>
         <div class="item-body">
-          <div class="explore-desc">{{ item.explore_intro || item.introduction }}</div>
-
+          <a-tooltip :title="getTooltipTitle(item.explore_intro, item, 14, 2, 12)" placement="top">
+            <div class="explore-desc" :ref="el => setDescRef(el, item)">{{ item.explore_intro }}</div>
+          </a-tooltip>
           <span class="support-box">
             <span v-for="ch in item.support_channels_list" :key="ch" class="support-item">
               <svg-icon name="support" class="icon" />
@@ -201,6 +202,7 @@
 </template>
 
 <script setup>
+import { setDescRef, getTooltipTitle } from '@/utils/index'
 import { useRouter } from 'vue-router'
 const emit = defineEmits(['switchChange', 'clickItem'])
 
@@ -230,4 +232,5 @@ const handleClick = async (e, item) => {
   } catch (_) {}
   emit('clickItem', item)
 }
+
 </script>

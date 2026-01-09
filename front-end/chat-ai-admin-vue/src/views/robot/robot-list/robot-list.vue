@@ -490,7 +490,9 @@
                     </div>
                   </div>
                 </div>
-                <div class="robot-desc">{{ item.robot_intro }}</div>
+                <a-tooltip :title="getTooltipTitle(item.robot_intro, item, 14, 2, 10)" placement="top">
+                  <div class="robot-desc" :ref="el => setDescRef(el, item)">{{ item.robot_intro }}</div>
+                </a-tooltip>
                 <div class="robot-action" @click.stop>
                   <!-- <div class="robot-action-item" @click="toEditRobot(item)"><svg-icon class="action-icon" name="jibenpeizhi" /></div> -->
                   <!-- <div class="robot-action-item" @click="toTestPage(item)"><svg-icon class="action-icon" name="cmd" /></div> -->
@@ -587,6 +589,7 @@ import McpBox from "@/views/robot/robot-list/components/mcp-box.vue";
 import McpPanel from "@/views/robot/robot-list/components/mcp-panel.vue";
 import ThirdMcpStore from "@/views/robot/robot-list/components/third-mcp-store.vue";
 import { useRouter } from 'vue-router'
+import { setDescRef, getTooltipTitle } from '@/utils/index'
 const router = useRouter()
 
 const route = useRoute()

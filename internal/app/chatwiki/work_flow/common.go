@@ -193,6 +193,36 @@ func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 			if strings.Contains(node.NodeParams.ImageGeneration.Prompt, findKey) {
 				return true
 			}
+		case NodeTypeJsonEncode:
+			if strings.Contains(node.NodeParams.JsonEncode.InputVariable, findKey) {
+				return true
+			}
+		case NodeTypeJsonDecode:
+			if strings.Contains(node.NodeParams.JsonDecode.InputVariable, findKey) {
+				return true
+			}
+		case NodeTypeLibraryImport:
+			if strings.Contains(node.NodeParams.LibraryImport.NormalContent, findKey) {
+				return true
+			}
+			if strings.Contains(node.NodeParams.LibraryImport.NormalTitle, findKey) {
+				return true
+			}
+			if strings.Contains(node.NodeParams.LibraryImport.NormalUrl, findKey) {
+				return true
+			}
+			if strings.Contains(node.NodeParams.LibraryImport.QaQuestion, findKey) {
+				return true
+			}
+			if strings.Contains(node.NodeParams.LibraryImport.QaAnswer, findKey) {
+				return true
+			}
+			if strings.Contains(node.NodeParams.LibraryImport.QaImagesVariable, findKey) {
+				return true
+			}
+			if strings.Contains(node.NodeParams.LibraryImport.QaSimilarQuestionVariable, findKey) {
+				return true
+			}
 		}
 	}
 	if findKey == `global.openid` && isNeedOpenid {
@@ -239,7 +269,19 @@ func TakeTestParams(question, openid, value string, workFlow *map[string]any) []
 			if !ok {
 				anys = make([]any, 0)
 			}
-			(*workFlow)[globalKey] = anys
+			if testParam.Field.Typ == common.TypArrObject {
+				vals := make([]any, 0)
+				for _, anyVal := range anys {
+					anyMap := make(map[string]any)
+					_ = tool.JsonDecode(cast.ToString(anyVal), &anyMap)
+					var anyVal any
+					anyVal = anyMap
+					vals = append(vals, anyVal)
+				}
+				(*workFlow)[globalKey] = vals
+			} else {
+				(*workFlow)[globalKey] = anys
+			}
 		} else {
 			(*workFlow)[globalKey] = cast.ToString(testParam.Field.Vals)
 		}

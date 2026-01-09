@@ -23,66 +23,64 @@
     padding: 0 16px 0 16px;
 
     .library-item {
-      position: relative;
       width: 336px;
       padding: 14px 16px;
-      border-radius: 2px;
-      border: 1px solid #d8dde5;
+      border-radius: 6px;
+      border: 1px solid #d9d9d9;
       background-color: #fff;
       cursor: pointer;
+      display: flex;
+      align-items: center;
 
-      .library-name {
-        width: 100%;
-        line-height: 22px;
-        font-size: 14px;
-        font-weight: 600;
-        color: #262626;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-      .library-name-text {
-        max-width: 240px;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-      }
-      .graph-tag {
-        width: 42px;
-        height: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid #00000026;
-        background: #0000000a;
-        border-radius: 6px;
-        font-size: 12px;
-        line-height: 16px;
-        color: #bfbfbf;
-        &.active {
-          border: 1px solid #99bffd;
-          color: #2475fc;
-          background: #fff;
+      gap: 12px;
+      .library-avatar {
+        img {
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
         }
       }
-
-      .library-intro {
-        width: 100%;
-        line-height: 20px;
-        font-size: 12px;
-        color: #8c8c8c;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-      }
-
-      .close-btn {
-        position: absolute;
-        top: 0;
-        right: 6px;
-        font-size: 16px;
-        color: #8c8c8c;
-        cursor: pointer;
+      .info-content-box {
+        flex: 1;
+        .library-title-block {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          .type-tag {
+            height: 18px;
+            line-height: 16px;
+            padding: 0 4px;
+            font-size: 12px;
+            font-weight: 400;
+            border-radius: 6px;
+            color: #2475fc;
+            border: 1px solid #99bffd;
+            &.gray-tag {
+              border: 1px solid var(--06, #d9d9d9);
+              color: #8c8c8c;
+            }
+          }
+        }
+        .title-text {
+          max-width: 150px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 14px;
+          color: #262626;
+          font-weight: 600;
+          line-height: 22px;
+        }
+        .desc-info-block {
+          color: #8c8c8c;
+          margin-top: 2px;
+          font-size: 12px;
+          line-height: 20px;
+          width: 212px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
       }
     }
   }
@@ -93,7 +91,7 @@
     gap: 16px;
     color: #595959;
     line-height: 22px;
-    .set-item{
+    .set-item {
       display: flex;
       align-items: center;
     }
@@ -124,17 +122,23 @@
         :key="item.id"
         @click="toLibraryDetail(item)"
       >
-        <span v-if="item.id != robotInfo.default_library_id" class="close-btn" @click.stop="handleRemoveCheckedLibrary(item)">
-          <CloseCircleOutlined />
-        </span>
-        <div class="library-name">
-          <!-- <a-tooltip v-if="neo4j_status">
-            <template #title>{{ item.graph_switch == 0 ? '未' : '已' }}开启知识图谱生成</template>
-            <div class="graph-tag" :class="{ active: item.graph_switch == 1 }">Graph</div>
-          </a-tooltip> -->
-          <div class="library-name-text">{{ item.library_name }}</div>
+        <div class="library-avatar">
+          <img :src="item.avatar" alt="" />
         </div>
-        <div class="library-intro">{{ item.library_intro }}</div>
+        <div class="info-content-box">
+          <div class="library-title-block">
+            <div class="title-text">{{ item.library_name }}</div>
+            <!-- <a-tooltip v-if="neo4j_status">
+              <template #title>{{ item.graph_switch == 0 ? '未' : '已' }}开启知识图谱生成</template>
+              <div class="graph-tag" :class="{ active: item.graph_switch == 1 }">Graph</div>
+            </a-tooltip>
+            <span class="type-tag" :class="{ 'gray-tag': item.graph_switch == 0 }">Graph</span> -->
+          </div>
+          <div class="desc-info-block">{{ item.library_intro }}</div>
+        </div>
+        <div class="close-btn" v-if="item.id != robotInfo.default_library_id" @click.stop="handleRemoveCheckedLibrary(item)">
+          <CloseCircleOutlined />
+        </div>
       </div>
     </div>
     <div class="setting-info-block">
@@ -159,7 +163,11 @@
         <span v-else>{{ getModelName }}</span>
       </div>
     </div>
-    <LibrarySelectAlert ref="librarySelectAlertRef" @change="onChangeLibrarySelected" :showWxType="!!wxAppLibary"/>
+    <LibrarySelectAlert
+      ref="librarySelectAlertRef"
+      @change="onChangeLibrarySelected"
+      :showWxType="!!wxAppLibary"
+    />
     <RecallSettingsAlert ref="recallSettingsAlertRef" @change="onChangeRecallSettings" />
     <NoOpenGraphModal :list="noOpenLibraryList" @refreshList="getList" ref="noOpenGraphModalRef" />
   </edit-box>
@@ -180,9 +188,9 @@ import { getModelNameText } from '@/components/model-select/index.js'
 const { getStorage, removeStorage } = useStorage('localStorage')
 
 import { useCompanyStore } from '@/stores/modules/company'
-import {getSpecifyAbilityConfig} from "@/api/explore/index.js";
+import { getSpecifyAbilityConfig } from '@/api/explore/index.js'
 const companyStore = useCompanyStore()
-const neo4j_status = computed(()=>{
+const neo4j_status = computed(() => {
   return companyStore.companyInfo?.neo4j_status == 'true'
 })
 
@@ -247,7 +255,6 @@ const handleOpenRecallSettingsAlert = () => {
 const noOpenGraphModalRef = ref(null)
 
 const onChangeRecallSettings = (data) => {
-  console.log(data, '==')
   formState.rerank_status = data.rerank_status
   formState.rerank_use_model = data.rerank_use_model
   formState.rerank_model_config_id = data.rerank_model_config_id
@@ -283,7 +290,7 @@ const getList = async () => {
 
 const loadWxLbStatus = () => {
   // 公众号知识库是否开启
-  getSpecifyAbilityConfig({ability_type: 'library_ability_official_account'}).then((res) => {
+  getSpecifyAbilityConfig({ ability_type: 'library_ability_official_account' }).then((res) => {
     let _data = res?.data || {}
     if (_data?.user_config?.switch_status == 1) {
       wxAppLibary.value = _data
@@ -314,7 +321,7 @@ watchEffect(() => {
   formState.top_k = robotInfo.top_k
   formState.similarity = robotInfo.similarity
   formState.search_type = robotInfo.search_type
-  formState.rrf_weight = robotInfo.rrf_weight
+  formState.rrf_weight = robotInfo.rrf_weight != '' ? JSON.parse(robotInfo.rrf_weight) : {vector: 0, search: 0, graph: 0}
 })
 
 const toLibraryDetail = (item) => {

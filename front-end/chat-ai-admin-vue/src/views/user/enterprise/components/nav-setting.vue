@@ -3,15 +3,15 @@
     <div class="custom-table">
       <div class="t-head">
         <div class="td">
-          <span style="padding-left: 22px">排序</span>
-          <a-tooltip title="长按图标拖动调整排序">
+          <span style="padding-left: 22px">{{ t('sort') }}</span>
+          <a-tooltip :title="t('sortTip')">
             <QuestionCircleOutlined style="margin-left: 4px" />
           </a-tooltip>
         </div>
         <div class="td">
-          是否在顶部显示
+          {{ t('showInTop') }}
           <a-tooltip
-            title="关闭后，将不显示在顶部导航栏。你依然可以点击右上角账号，在下拉菜单里面找到"
+            :title="t('showInTopTip')"
           >
             <QuestionCircleOutlined style="margin-left: 4px" />
           </a-tooltip>
@@ -44,8 +44,8 @@
                   :disabled="element.isDisabled"
                   @change="handleSave"
                   v-model:checked="element.open"
-                  checked-children="开"
-                  un-checked-children="关"
+                  :checked-children="t('on')"
+                  :un-checked-children="t('off')"
                 />
               </div>
             </div>
@@ -64,6 +64,9 @@ import draggable from 'vuedraggable'
 import { saveTopNavigate } from '@/api/user/index.js'
 import { QuestionCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import { useCompanyStore } from '@/stores/modules/company'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.enterprise')
 const companyStore = useCompanyStore()
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE
 
@@ -104,7 +107,7 @@ const handleSave = () => {
     id: companyStore.id,
     top_navigate: JSON.stringify(navMenuList.value)
   }).then((res) => {
-    message.success('保存成功')
+    message.success(t('saveSuccess'))
     emit('handleGetCompany')
   })
 }

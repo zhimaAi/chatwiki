@@ -5,11 +5,19 @@
     > -->
     <a-modal
       v-model:open="show"
-      title="运行测试"
       :footer="null"
       :width="820"
       wrapClassName="no-padding-modal"
     >
+
+      <template #title>
+        <div class="modal-title-block">运行测试
+          <div class="run-detail" v-if="resultList.length">
+            <span>总耗时：{{ formatTime(use_mills) }}</span>
+            <span>token消耗：{{ use_token }} Tokens</span>
+          </div>
+        </div>
+      </template>
       <div class="flex-content-box">
         <div class="test-model-box">
           <div class="top-title">开始节点参数</div>
@@ -163,7 +171,7 @@ import 'vue-json-pretty/lib/styles.css'
 import { reactive, ref, computed, nextTick } from 'vue'
 import { useRobotStore } from '@/stores/modules/robot'
 import { callLoopWorkFlow, callLoopWorkFlowParams } from '@/api/robot/index'
-import { getImageUrl } from '../../../util'
+import { getImageUrl, formatTime } from '../../../util'
 import { message } from 'ant-design-vue'
 import { copyText } from '@/utils/index'
 import ImageLogs from '@/views/workflow/components/image-logs/index.vue'
@@ -294,6 +302,9 @@ const handleAddItem = (item) => {
 
 const formRef = ref(null)
 
+const use_token = ref(0)
+const use_mills = ref(0)
+
 const handleSubmit = () => {
   formRef.value.validate().then(() => {
     let postData = { ...formState, loop_node_key: props.loop_node_key }
@@ -315,12 +326,17 @@ const handleSubmit = () => {
     })
       .then((res) => {
         message.success('测试结果生成完成')
-        formateData(res.data || [])
+
+        let node_logs = res.data.node_logs || []
+        use_token.value = res.data.use_token
+        use_mills.value = res.data.use_mills
+        formateData(node_logs)
       })
       .catch((res) => {
         resultList.value = []
-        if (res.data && res.data.length) {
-          formateData(res.data)
+        let node_logs = res.data.node_logs || []
+        if (node_logs && node_logs.length) {
+          formateData(node_logs)
         }
       })
       .finally(() => {
@@ -532,11 +548,37 @@ defineExpose({
       }
     }
     .preview-code-box {
+      width: fit-content;
       margin-top: 16px;
       padding: 8px;
       border-radius: 8px;
       border: 1px solid #d9d9d9;
+
+      &::v-deep(.vjs-tree) {
+        width: fit-content;
+      }
+
+      &::v-deep(.vjs-tree-node) {
+        width: calc(100% + 16px);
+        padding-right: 16px;
+      }
     }
   }
 }
+.modal-title-block{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  .run-detail{
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #BFFBD7;
+    padding: 4px 16px;
+    font-size: 14px;
+    color: #595959;
+    border-radius: 8px;
+  }
+}
+
 </style>

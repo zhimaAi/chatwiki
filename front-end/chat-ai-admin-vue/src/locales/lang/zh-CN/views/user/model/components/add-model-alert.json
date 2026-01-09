@@ -1,0 +1,8 @@
+{
+  "title": "添加文心一言",
+  "api_key_label": "API Key：",
+  "how_to_get": "如何获取?",
+  "api_key_placeholder": "请输入您的API Key",
+  "secret_key_label": "Secret Key：",
+  "secret_key_placeholder": "请输入您的Secret Key"
+}

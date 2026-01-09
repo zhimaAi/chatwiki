@@ -78,9 +78,9 @@
             </div>
             <div class="output-box">
               <div class="output-block">
-                <div class="output-item">参数Key</div>
-                <div class="output-item">类型</div>
-                <div class="output-item" style="flex: 1">参数值</div>
+                <div class="output-item" style="width: 25%">参数Key</div>
+                <div class="output-item" style="width: 30%">类型</div>
+                <div class="output-item" style="width: 45%">参数值</div>
               </div>
               <div class="array-form-box">
                 <div
@@ -103,7 +103,7 @@
                           readonly
                         ></a-input>
                         <a-cascader
-                          @change="(val) => handleBatchArrChange(val, item)"
+                          @change="(val, selectedOptions) => handleBatchArrChange(val, item, selectedOptions)"
                           v-model:value="item.value"
                           @dropdownVisibleChange="onBatchArrVisibleChange"
                           style="width: 45%"
@@ -133,9 +133,9 @@
 
             <div class="output-box">
               <div class="output-block">
-                <div class="output-item">参数Key</div>
-                <div class="output-item" style="margin-left: 4px">类型</div>
-                <div class="output-item" style="width: 38%">参数值</div>
+               <div class="output-item" style="width: 23%">参数Key</div>
+                <div class="output-item" style="width: 27%">类型</div>
+                <div class="output-item" style="width: 45%">参数值</div>
               </div>
               <div class="array-form-box">
                 <div
@@ -252,29 +252,36 @@ function handleOptions(options) {
 
 function getOptions() {
   let list = getNode().getAllParentVariable()
+
   list = handleOptions(list)
+  list = list.filter((item) => item.group_node_key != item.loop_parent_key).filter((item) => item.node_id != item.group_node_key)
 
   batchArraysOptions.value = filterArrayFields(list)
 }
 
 function filterArrayFields(list) {
-  // 只要数组变量 且 分组以外的变量
-  let result = []
-  list.forEach((item) => {
-    let children = []
-    if (item.children && item.children.length > 0) {
-      children = item.children.filter((it) => it.typ.toLowerCase().includes('array'))
+  const filterNodes = (nodes) => {
+    if (!nodes || nodes.length === 0) {
+      return [];
     }
-    if (children.length > 0) {
-      result.push({
-        ...item,
-        children
-      })
-    }
-  })
-  return result
-    .filter((item) => item.group_node_key != item.loop_parent_key)
-    .filter((item) => item.node_id != item.group_node_key)
+
+    return nodes.map(node => {
+      // 递归过滤子节点
+      const filteredChildren = filterNodes(node.children);
+
+      // 检查当前节点是否包含 'array' 类型，或者其子节点过滤后是否还有内容
+      if (node.typ.includes('array') || (filteredChildren && filteredChildren.length > 0)) {
+        return {
+          ...node,
+          children: filteredChildren
+        };
+      }
+
+      return null;
+    }).filter(Boolean); // 过滤掉 null 值
+  };
+
+  return filterNodes(list);
 }
 
 const getOutputOptions = () => {
@@ -349,13 +356,10 @@ const onBatchArrVisibleChange = (visible) => {
   }
 } 
 
-const handleBatchArrChange = (val, item) => {
-  if (val && val.length) {
-    let filterItem1 = batchArraysOptions.value.filter((it) => it.value == val[0])[0].children
-    if (filterItem1 && filterItem1.length) {
-      item.typ = filterItem1.filter((it) => it.value == val[1])[0].typ
-    }
-  } else {
+const handleBatchArrChange = (val, item, selectedOptions) => {
+  if(selectedOptions){
+    item.typ = selectedOptions[selectedOptions.length - 1].typ 
+  }else{
     item.typ = ''
   }
 }

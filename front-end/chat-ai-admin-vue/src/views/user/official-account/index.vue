@@ -3,6 +3,7 @@
   padding: 24px;
   height: 100%;
   width: 100%;
+  overflow-y: auto;
 
   .page-title {
     display: flex;
@@ -69,8 +70,8 @@
 <template>
   <div class="_container">
     <div class="page-title">
-      <span>公众号管理</span>
-      <a-button @click="showAddModal" :icon="createVNode(PlusOutlined)" type="primary">绑定公众号</a-button>
+      <span>{{ t('title') }}</span>
+      <a-button @click="showAddModal" :icon="createVNode(PlusOutlined)" type="primary">{{ t('bind_btn') }}</a-button>
     </div>
     <div v-if="loading" class="loading-box">
       <a-spin/>
@@ -98,8 +99,8 @@
     </template>
     <div v-else class="empty-box">
       <img src="@/assets/empty.png"/>
-      <div class="title">暂未绑定公众号</div>
-      <a-button @click="showAddModal" class="btn" type="primary">立即绑定</a-button>
+      <div class="title">{{ t('empty_title') }}</div>
+      <a-button @click="showAddModal" class="btn" type="primary">{{ t('bind_now_btn') }}</a-button>
     </div>
 
     <StoreModal ref="storeRef" @ok="getList"/>
@@ -114,6 +115,9 @@ import {ExclamationCircleOutlined, PlusOutlined} from '@ant-design/icons-vue'
 import {getWechatAppList, deleteWechatApp, refreshAccountVerify, sortWechatApp} from '@/api/robot'
 import WechatAppItem from './components/wechat-app-item.vue'
 import StoreModal from './components/store-modal.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.official-account.index')
 
 const storeRef = ref()
 const list = ref([])
@@ -142,9 +146,9 @@ const handleDelete = (item) => {
   let secondsToGo = 3
 
   const modal = Modal.confirm({
-    title: `确定移除${item.app_name}吗?`,
+    title: t('confirm_remove', { app_name: item.app_name }),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '移除后，机器人已关联绑定或其他已配置该公众号的功能都会失效',
+    content: t('remove_warning'),
     okText: secondsToGo + ' 确 定',
     okType: 'danger',
     cancelText: '取消',
@@ -154,7 +158,7 @@ const handleDelete = (item) => {
     onOk() {
       deleteWechatApp({id: item.id}).then(() => {
         getList()
-        message.success('删除成功')
+        message.success(t('delete_success'))
       })
     },
     onCancel() {
@@ -193,7 +197,7 @@ const handleRefresh = (item) => {
   refreshAccountVerify({
     id: item.id
   }).then(() => {
-    message.success('刷新成功')
+    message.success(t('refresh_success'))
     getList()
   })
 }
@@ -204,7 +208,7 @@ const onDragEnd = () => {
     filter_sort.push(item.id)
   })
   sortWechatApp({id_list: filter_sort.toString()}).then((res) => {
-    message.success('排序成功')
+    message.success(t('sort_success'))
   })
 }
 </script>

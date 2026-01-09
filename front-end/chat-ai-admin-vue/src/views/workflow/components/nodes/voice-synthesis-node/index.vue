@@ -1,5 +1,6 @@
 <template>
   <node-common
+    :properties="properties"
     :title="properties.node_name"
     :icon-name="properties.node_icon_name"
     :isSelected="isSelected"

@@ -110,3 +110,69 @@ export function getSizeOptions() {
     }
   ]
 }
+
+
+export const formatSpacialKey = (value) => {
+  if(typeof value != 'string'){
+    return []
+  }
+  let specialNodeList = [
+    'special.lib_paragraph_list',
+    'special.llm_reply_content',
+    'specify-reply-node'
+  ]
+
+  let result = []
+  let specialKey = ''
+  for (let i = 0; i < specialNodeList.length; i++) {
+    if (value.indexOf(specialNodeList[i]) > -1) {
+      specialKey = specialNodeList[i]
+      break
+    }
+  }
+
+  if (specialKey != '') {
+    let arr = value.split('.')
+    result = [arr[0], specialKey]
+  } else {
+    result= value.split('.')
+  }
+  return result
+}
+
+export function formatTime(milliseconds) {
+  if(!milliseconds){
+    return 0
+  }
+  if (milliseconds < 1000) {
+    // 小于1秒，返回毫秒
+    return `${milliseconds}ms`;
+  } else if (milliseconds < 60000) {
+    // 大于等于1秒但小于1分钟，返回秒和毫秒
+    const seconds = Math.floor(milliseconds / 1000);
+    const remainingMs = milliseconds % 1000;
+    if (remainingMs > 0) {
+      return `${seconds}s${remainingMs}ms`;
+    } else {
+      return `${seconds}s`;
+    }
+  } else {
+    // 大于等于1分钟，返回分、秒和毫秒
+    const minutes = Math.floor(milliseconds / 60000);
+    const remainingMsAfterMinutes = milliseconds % 60000;
+    const seconds = Math.floor(remainingMsAfterMinutes / 1000);
+    const remainingMs = remainingMsAfterMinutes % 1000;
+    
+    let result = `${minutes}m`;
+    if (seconds > 0 || remainingMs > 0) {
+      if (seconds > 0) {
+        result += `${seconds}s`;
+      }
+      if (remainingMs > 0) {
+        result += `${remainingMs}ms`;
+      }
+    }
+    
+    return result;
+  }
+}

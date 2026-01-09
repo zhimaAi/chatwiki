@@ -16,16 +16,16 @@
         >
           <a-form-item
             name="title"
-            label="提示词标题"
-            :rules="[{ required: true, message: '请输入提示词标题' }]"
+            :label="t('title_label')"
+            :rules="[{ required: true, message: t('title_required') }]"
           >
             <a-input
               v-model:value="formState.title"
-              placeholder="请输入提示词标题"
+              :placeholder="t('title_placeholder')"
               :maxLength="10"
             ></a-input>
           </a-form-item>
-          <a-form-item name="group_id" label="分组">
+          <a-form-item name="group_id" :label="t('group_label')">
             <a-select v-model:value="formState.group_id" style="width: 100%">
               <a-select-option v-for="item in props.groupList" :value="item.id">{{
                 item.group_name
@@ -34,22 +34,22 @@
           </a-form-item>
           <a-form-item
             name="prompt"
-            label="提示词"
+            :label="t('prompt_label')"
             v-if="formState.prompt_type == 0"
-            :rules="[{ required: true, message: '请输入提示词' }]"
+            :rules="[{ required: true, message: t('prompt_required') }]"
           >
             <a-textarea
               style="height: 280px"
               v-model:value="formState.prompt"
-              placeholder="请输入"
+              :placeholder="t('prompt_placeholder')"
             />
           </a-form-item>
           <div class="prompt-list-box" v-else>
             <div class="header-box">
-              <div class="header-left">提示词</div>
+              <div class="header-left">{{ t('prompt_section_title') }}</div>
               <div class="ai-mark-box" @click="onShowAiCreateModal">
                 <svg-icon name="ai-mark" />
-                AI自动生成
+                {{ t('ai_auto_generate') }}
               </div>
             </div>
             <!-- 角色 -->
@@ -153,7 +153,7 @@
                     :bordered="false"
                     style="width: 100%"
                     v-model:value="item.subject"
-                    placeholder="请输入主题"
+                    :placeholder="t('enter_subject')"
                   ></a-input>
                 </div>
                 <div class="btn-wrapper-box">
@@ -167,12 +167,12 @@
                   style="height: 80px"
                   :bordered="false"
                   v-model:value="item.describe"
-                  placeholder="请输入"
+                  :placeholder="t('prompt_placeholder')"
                 />
               </div>
             </div>
             <div class="add-theme-block">
-              <a-button @click="handleAddTheme" block :icon="h(PlusOutlined)">添加主题</a-button>
+              <a-button @click="handleAddTheme" block :icon="h(PlusOutlined)">{{ t('add_theme') }}</a-button>
             </div>
           </div>
         </a-form>
@@ -189,6 +189,9 @@ import { CloseCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { savePromptLibraryItems } from '@/api/user/index.js'
 import { message } from 'ant-design-vue'
 import AiCreatePrompt from './ai-create-prompt.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.prompt-library.components.add-diy-prompt')
 const emit = defineEmits(['ok'])
 const props = defineProps({
   groupList: {
@@ -196,40 +199,38 @@ const props = defineProps({
     default: () => []
   }
 })
-
 let placeholderMap = {
-  role: '请输入，告知大模型要扮演的身份、职责、沟通风格等，比如“你扮演一名经验丰富的电商行业售后客服AI助手，具备良好的沟通能力和解决问题的能力。”',
-  task: '请输入，比如“根据提供的知识库资料，找到对应的售后知识（每个知识点之间使用⧼-split_line-⧽进行分割），快速准确回答用户的问题。”',
-  constraints:
-    '请输入对大模型在回复时的要求，比如“你的回答应该使用自然的对话方式，简单直接地回答，不要解释你的答案；当用户问题没有找到相关知识点时，直接告诉用户问题暂时无法回答，不能胡编乱造，否则你将受到惩罚。”',
-  output: '请输入对大模型输出格式的要求，比如“请使用markdown格式输出”',
-  tone: '请告知语言风格要求，比如“专业而不失亲切，适当使用emoji增强可读性”',
-  skill: '请输入'
+  role: t('role_placeholder'),
+  task: t('task_placeholder'),
+  constraints: t('constraints_placeholder'),
+  output: t('output_placeholder'),
+  tone: t('tone_placeholder'),
+  skill: t('skill_placeholder')
 }
 
 let prompt_struct_default = {
   role: {
-    subject: '角色',
+    subject: t('role_subject'),
     describe: ''
   },
   task: {
-    subject: '任务',
+    subject: t('task_subject'),
     describe: ''
   },
   constraints: {
-    subject: '要求',
+    subject: t('constraints_subject'),
     describe: ''
   },
   skill: {
-    subject: '技能',
+    subject: t('skill_subject'),
     describe: ''
   },
   output: {
-    subject: '输出格式',
+    subject: t('output_subject'),
     describe: ''
   },
   tone: {
-    subject: '风格语气',
+    subject: t('tone_subject'),
     describe: ''
   },
   custom: []
@@ -256,7 +257,9 @@ const show = (data = {}, type) => {
   formState.prompt_type = data.prompt_type
   formState.prompt = data.prompt || ''
   formState.prompt_struct = data.prompt_struct || JSON.parse(JSON.stringify(prompt_struct_default))
-  modalTitle.value = `${data.id ? '编辑' : '新建'}${data.prompt_type == 0 ? '自定义' : '结构化'}提示词`
+  const action = data.id ? 'edit' : 'create'
+  const promptType = data.prompt_type == 0 ? 'custom' : 'structured'
+  modalTitle.value = t(`${action}_${promptType}_prompt`)
   open.value = true
 }
 
@@ -274,7 +277,7 @@ const handleOk = () => {
       ...parmas
     }).then(() => {
       emit('ok')
-      message.success(`${modalTitle.value}成功`)
+      message.success(t('operation_success'))
       open.value = false
     })
   })

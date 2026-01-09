@@ -207,7 +207,7 @@ const formState = reactive({
 
 const previewIframeSrc = computed(() => {
   let { pc_domain, robot_key } = robotInfo.value
-  return `${pc_domain}/web/#/chat?robot_key=${robot_key}&language=zh-CN`
+  return `${pc_domain}/web/#/chat?robot_key=${robot_key}&language=${formState.lang || 'zh-CN'}`
 })
 
 watch(formState, (val) => {

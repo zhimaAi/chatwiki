@@ -82,7 +82,7 @@ import { useWorkflowStore } from '@/stores/modules/workflow'
 import { getNodeList, saveNodes, getDraftKey } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
 import { generateUniqueId, duplicateRemoval, removeRepeat } from '@/utils/index'
-import { onMounted, ref, onUnmounted, watch, computed } from 'vue'
+import { onMounted, ref, onUnmounted, watch, computed, h} from 'vue'
 import { useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
@@ -96,6 +96,7 @@ import PublishDetail from './components/publish-detail.vue'
 import { getModelConfigOption } from '@/api/model/index'
 import { getModelOptionsList } from '@/components/model-select/index.js'
 import { useModelStore } from '@/stores/modules/model'
+import {downloadPlugin, openPlugin} from "@/api/plugins/index.js";
 
 const modelStore = useModelStore()
 
@@ -201,7 +202,7 @@ function incrementOpenTabs () {
   try {
     const n = parseInt(localStorage.getItem(getOpenTabsKey()) || '0', 10) || 0
     localStorage.setItem(getOpenTabsKey(), String(n + 1))
-  } catch (e) { 
+  } catch (e) {
     console.warn('incrementOpenTabs error', e)
   }
 }
@@ -454,18 +455,18 @@ function getNode (list) {
     // 边数据处理
     if (item.node_type == 0) {
       let edge = JSON.parse(item.node_info_json)
-      
+
       if(edge.type == 'custom-edge'){
         edge.pointsList = [];
         edge.type = 'custom-bezier-edge'
       }
-      
+
       edges.push(edge)
     } else {
       const type = nodeTypes[item.node_type]
 
       item.type = type
-      
+
       // 节点数据处理
       let node = JSON.parse(item.node_info_json)
 
@@ -565,10 +566,10 @@ const getCanvasData = () => {
     obj.prev_node_key = edgeMap[obj.nodeSortKey + '-anchor_left'] || ''
 
     let node_params = JSON.parse(obj.node_params)
-    
+
     // 开始节点
-    if (obj.node_type == 1) { 
-      
+    if (obj.node_type == 1) {
+
     }
 
     if (obj.node_type == 2) {
@@ -1066,11 +1067,60 @@ const handleClickEdit = async () => {
   }
 }
 
-const init = async () => { 
+const checkNodePluginStatus = (nds) => {
+  nds = Array.isArray(nds) ? nds : []
+  let closeNds = []
+  let updateNds = []
+  nds.forEach(nd => {
+    if (nd.node_type == 21) {
+      if (nd.has_loaded === "" || nd.plugin_version !== nd.remote_plugin_version) {
+        updateNds.push(nd)
+      } else if (nd.has_loaded === "false") {
+        closeNds.push(nd)
+      }
+    }
+  })
+  if (closeNds.length || updateNds.length) {
+    let names = [...new Set([...closeNds.map(i => i.node_name), ...updateNds.map(i => i.node_name)])]
+    const titleStyle = {
+      'font-weight': 500,
+      'margin-top': '8px',
+      'margin-bottom': '4px',
+    }
+    const nameStyle = {'color': '#8c8c8c'}
+    Modal.confirm({
+      title: '工作流异常修复',
+      content: h('div', {}, [
+        h('div', {style: titleStyle}, '以下插件状态异常，是否自动安装插件并开启？'),
+        h('div', {style: nameStyle}, names.join('、'))
+      ]),
+      onOk: async () => {
+        const tasks = []
+        if (closeNds.length) tasks.push(openPlugin({name: closeNds.map(i => i.plugin_name).toString()}))
+        if (updateNds.length) {
+          tasks.push(downloadPlugin({
+            download_data: JSON.stringify(updateNds.map(i => ({
+              url: i.latest_version_detail_url,
+              version_id: i.latest_version_detail_id
+            })))
+          }))
+        }
+        await Promise.all(tasks)
+        message.success('操作完成，即将重新加载...')
+        setTimeout(() => {
+          window.location.reload()
+        }, 1200)
+      }
+    })
+  }
+}
+
+const init = async () => {
   await getModelList()
   await workflowStore.getTriggerList();
   workflowStore.getTriggerOfficialMsg(robot_key.value)
   await modelStore.getAllmodelList()
+  workflowStore.getAllLibraryList();
 
   const res = await getNodeList({
     robot_key: robot_key.value,
@@ -1078,14 +1128,15 @@ const init = async () => {
   })
 
   getNode(res.data)
+  checkNodePluginStatus(res.data)
 }
 
 onMounted(async () => {
   // 记录当前工作流的打开页面计数
   incrementOpenTabs()
-  
+
   await init()
-  
+
   // 初次进入：若存在草稿记录则默认查看模式，需要点击编辑按钮进入编辑
   await checkEditLock()
   if (isLockedByOther.value) {

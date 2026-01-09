@@ -1,0 +1,8 @@
+{
+  "add_title": "添加自定义域名",
+  "edit_title": "修改自定义域名",
+  "domain_label": "配置域名：",
+  "domain_placeholder": "请输入配置域名",
+  "domain_tip": "配置域名只需要填写域名部分,比如kf.xxx.com.您可以根据需求选择http或https协议",
+  "url_required": "请输入配置域名"
+}

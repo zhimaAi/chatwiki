@@ -642,11 +642,6 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 		Add(DataSource{List: searchList, Key: `id`, Fixed: 50, Weight: weights.Search}).
 		Add(DataSource{List: graphList, Key: `id`, Fixed: 50, Weight: weights.Graph}).Sort()
 
-	//由于存在问题优化和4倍召回,需要截取一下
-	if len(list) > size {
-		list = list[:size]
-	}
-
 	//rerank 重排逻辑
 	temp = time.Now()
 	rerankList, err := GetMatchLibraryParagraphByMergeRerank(openid, appType, question, list, robot)
@@ -656,6 +651,11 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 	}
 	if len(rerankList) > 0 {
 		list = rerankList
+	}
+
+	//由于存在问题优化和4倍召回,需要截取一下
+	if len(list) > size {
+		list = list[:size]
 	}
 
 	//父子分段-替换成对应的父分段内容+去重

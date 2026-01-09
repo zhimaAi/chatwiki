@@ -19,3 +19,14 @@ const (
 )
 
 const FinishReplyPrefixKey = `special.finish_reply_content_`
+
+const (
+	LibraryImportContent = `content` //按内容导入
+	LibraryImportUrl     = `url`     //按url导入
+)
+
+const (
+	LibraryImportRepeatNotImport = `not import` //重复时继续导入
+	LibraryImportRepeatUpdate    = `update`     //重复时更新
+	LibraryImportRepeatImport    = `import`     //url存在时继续导入
+)

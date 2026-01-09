@@ -1,0 +1,15 @@
+{
+  "title": "敏感词管理",
+  "add_btn": "添加敏感词",
+  "all_robots": "所有机器人",
+  "edit": "编辑",
+  "delete": "删除",
+  "delete_confirm": "删除确认",
+  "delete_confirm_content": "确定要删除敏感词[{words}]吗？",
+  "delete_success": "删除成功",
+  "cancel": "取消",
+  "sensitive_words": "敏感词",
+  "effective_robots": "生效机器人",
+  "enable_status": "是否启用",
+  "action": "操作"
+}

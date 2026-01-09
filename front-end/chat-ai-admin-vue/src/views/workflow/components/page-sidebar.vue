@@ -184,22 +184,19 @@
 
     <div class="sidebar-container">
       <div class="sidebar-menus">
-        <div
-          class="sidebar-menu"
-          :class="{ active: activeMenuKey == item.value }"
-          v-for="item in menus"
-          :key="item.value"
-          @click="onMenuClick(item)"
-        >
-          <a-tooltip placement="bottom" v-if="sidebarHide">
-            <template #title>
-              <span>{{ item.label }}</span>
-            </template>
-            <svg-icon :name="item.iconName" class="menu-icon" size="16"></svg-icon>
-          </a-tooltip>
-          <svg-icon :name="item.iconName" class="menu-icon" size="16" v-else></svg-icon>
-          <span class="menu-name">{{ item.label }}</span>
-        </div>
+        <template v-for="item in menus" :key="item.value">
+          <cu-tooltip :disabled="!sidebarHide" :title="item.label" placement="bottom">
+            <div
+              class="sidebar-menu"
+              :class="{ active: activeMenuKey == item.value }"
+              @click="onMenuClick(item)"
+            >
+              <svg-icon :name="item.iconName" class="menu-icon" size="16"></svg-icon>
+              <span class="menu-name">{{ item.label }}</span>
+           </div>
+          </cu-tooltip>
+        </template>
+        
       </div>
     </div>
   </div>
@@ -209,6 +206,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGlobalStore } from '@/stores/modules/global'
+import CuTooltip from '@/components/cu-tooltip/index.vue'
 
 const globalStore = useGlobalStore()
 
@@ -258,12 +256,12 @@ const menus = [
     iconName: 'liaotianceshi',
     isNewWindowOpen: true
   },
-  {
-    label: '功能中心',
-    value: 'function-center',
-    path: '/robot/config/function-center',
-    iconName: 'function-center'
-  },
+  // {
+  //   label: '功能中心',
+  //   value: 'function-center',
+  //   path: '/robot/config/function-center',
+  //   iconName: 'function-center'
+  // },
   {
     label: '问答反馈',
     value: 'qa-feedbacks',
@@ -282,12 +280,12 @@ const menus = [
     path: '/robot/config/api-key-manage',
     iconName: 'duiwaifuwu'
   },
-  {
-    label: '未知问题',
-    value: 'unknown_issue',
-    path: '/robot/config/unknown_issue',
-    iconName: 'unknown-issue'
-  },
+  // {
+  //   label: '未知问题',
+  //   value: 'unknown_issue',
+  //   path: '/robot/config/unknown_issue',
+  //   iconName: 'unknown-issue'
+  // },
   {
     label: '统计分析',
     value: 'statistical_analysis',

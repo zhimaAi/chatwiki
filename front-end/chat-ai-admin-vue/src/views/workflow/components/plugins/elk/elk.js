@@ -150,15 +150,15 @@ class Elk {
         originalNode.properties.height = elkNode.height
 
         // 递归子节点，传入当前 elkNode 作为 parent
-        if (elkNode.children) {
+        if (elkNode.children && elkNode.children.length > 0) {
           updateNodePositions(elkNode.children, elkNode, actualX, actualY)
         }
       }
     }
-
+    
     // 更新所有节点位置
     updateNodePositions(newElkGraph.children)
-
+ 
     // 9. 更新边路径
     edges.forEach((edge) => {
       const originalEdge = edgeMap.get(edge.id) // 获取原始边数据
@@ -296,11 +296,22 @@ class Elk {
         }
       }
     })
-
+    
     this.lf.clearSelectElements()
     this.lf.clearData()
     this.lf.graphModel.graphDataToModel(originalGraphData)
+
     this.fitView(originalGraphData.nodes)
+
+    originalGraphData.nodes.forEach(node => {
+      // 将组的zIndex设为-9999，确保它在所有节点的下方
+      if(node.children && node.children.length){
+        let groupNode = this.lf.graphModel.getElement(node.id)
+        if(groupNode){
+          groupNode.setZIndex(-9999)
+        }
+      }
+    })
   }
   /**
  * 计算并应用最佳视图

@@ -172,7 +172,7 @@ function initLogicFlow() {
       nodeSelectedOutline: true, // 节点被选中时是否显示节点的外框
       hoverOutline: true, // 鼠标hover节点时是否显示节点的外框
       hideAnchors: false, // 是否隐藏锚点
-      overlapMode: 0, // 元素重合的堆叠模式, 默认模式：0，节点层级优先，该模式下连线在下、节点在上、选中元素临时置
+      // overlapMode: 0, // 元素重合的堆叠模式, 默认模式：0，节点层级优先，该模式下连线在下、节点在上、选中元素临时置
       background: {
         backgroundColor: '#f0f2f5'
       },
@@ -236,7 +236,7 @@ function initLogicFlow() {
     lf.on('node:dragstart', ({ data }) => {
       let node = lf.graphModel.getElement(data.id)
       dragNodeZIndexMap[node.id] = node.zIndex
- 
+
       nodeChildren = []
 
       let nodeGroup = lf.graphModel.dynamicGroup.getGroupByNodeId(data.id)
@@ -253,13 +253,14 @@ function initLogicFlow() {
 
       // 判断是不是组
       if(data.children && data.children.length > 0){
+        node.setZIndex(-9999)
         nodeChildren = data.children || []
-        
-        nodeChildren.forEach((item, index) => {
+
+        nodeChildren.forEach((item) => {
           let nodeModel = lf.getNodeModelById(item);
 
           dragNodeZIndexMap[nodeModel.id] = nodeModel.zIndex;
-          nodeModel.setZIndex(99)
+          nodeModel.setZIndex(999999)
         })
       }else{
         node.setZIndex(999999)
@@ -273,23 +274,23 @@ function initLogicFlow() {
       let node = lf.graphModel.getElement(data.id)
       let nodeGroup = lf.graphModel.dynamicGroup.getGroupByNodeId(data.id)
 
-      if(nodeGroup){
-        nodeGroup.refreshBranch()
-      }
       // 拖拽过程中组的子节点可能会丢失，需要重新添加
       if(data.properties.loop_parent_key && !nodeGroup){
         const groupModel = lf.getNodeModelById(data.properties.loop_parent_key);
         groupModel.addChild(data.id)
       }
 
-      node.setZIndex(dragNodeZIndexMap[node.id])
-
       if(data.children && data.children.length){
+        node.setZIndex(-9999)
         data.children.forEach(item => {
           let nodeModel = lf.getNodeModelById(item);
           nodeModel.setZIndex(dragNodeZIndexMap[nodeModel.id])
         })
+      }else{
+        node.setZIndex(dragNodeZIndexMap[node.id])
       }
+
+      node.refreshBranch()
     })
 
     // 节点拖拽时动态调整边的offset
@@ -447,11 +448,6 @@ function initLogicFlow() {
     lf.setZoomMiniSize(0.01)
 
     lf.setZoomMaxSize(8)
-
-    // 确保容器可以接收键盘事件
-    lf.container.setAttribute('tabindex', '0')
-    lf.container.style.outline = 'none'
-    lf.container.focus()
   }
 }
 
@@ -465,7 +461,7 @@ const createTriggerElements= (startNode) => {
   const triggerEdges = []
   let offsetTop = 0;
 
-  trigger_list.forEach((item, index) => {
+  trigger_list.forEach((item) => {
     const type = `trigger_${item.trigger_type}`
     const nodeId = generateUniqueId(type)
     const nodeCongfig = nodesMap[type]
@@ -538,8 +534,10 @@ const setData = (data) => {
   data.nodes.forEach((node) => {
     // 设置开始节点的宽高
     let nodeCongfig = nodesMap[node.type]
-
     node.properties.node_icon_name = nodeCongfig.properties.node_icon_name
+    if(!node.properties.node_header_bg_color) {
+      node.properties.node_header_bg_color = nodeCongfig.properties.node_header_bg_color || '#fff'
+    }
 
     if (!node.properties.width) {
       node.properties.width = nodeCongfig.width
@@ -795,23 +793,26 @@ const onCustomAddNode = (options) => {
 
   // 情况选中状态
   let hasSessionNode = false
-  let zIndex = 0
+  // let zIndex = 0
+
   lf.graphModel.nodes.forEach((node) => {
-    if (node.zIndex > zIndex) {
-      zIndex = node.zIndex
-    }
+    // if (node.zIndex > zIndex) {
+    //   zIndex = node.zIndex
+    // }
+
     if(!hasSessionNode && node.type == 'session-trigger-node'){
       hasSessionNode = true
     }
   })
 
-  zIndex = zIndex + 1
+  // zIndex = zIndex + 1
+
   if(hasSessionNode && nodeData.type == 'session-trigger-node'){
     return message.error('请勿添加多个会话触发器')
   }
 
-  nodeData.zIndex = zIndex
-  nodeData.groupZindex = zIndex
+  // nodeData.zIndex = zIndex
+  // nodeData.groupZindex = zIndex
 
   let node = lf.addNode(nodeData)
 
@@ -873,7 +874,7 @@ const onCustomAddNode = (options) => {
     }
   }
 
-  node.setZIndex(zIndex)
+  // node.setZIndex(zIndex)
 
   lf.graphModel.clearSelectElements()
   node.setSelected(true)

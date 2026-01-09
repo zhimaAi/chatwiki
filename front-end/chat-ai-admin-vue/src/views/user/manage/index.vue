@@ -35,6 +35,6 @@ import RolePermissions from './role-permissions.vue'
 const activeTab = ref(1)
 
 const onChangeTab = () => {
-  console.log(activeTab.value)
+  // console.log(activeTab.value)
 }
 </script>

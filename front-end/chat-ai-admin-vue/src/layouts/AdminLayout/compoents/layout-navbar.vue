@@ -50,12 +50,8 @@
 <template>
   <div class="navbar-wrapper">
     <div class="navbar">
-      <div class="nav-menu" v-if="role_type == 1" :class="{active: activeMenu == 'guide'}" @click="handleToGuide">
-        <svg-icon class="nav-icon" name="guide"></svg-icon>
-         <span class="nav-name">新手指引 ({{ total_process }}%)</span>
-      </div>
-      <template v-for="item in navs">
-        <template v-if="checkRole(item.permission)" :key="item.key">
+      <template v-for="item in navs" :key="item.key">
+        <template v-if="checkRole(item.permission)">
           <div
             class="nav-menu"
             v-if="item.key === 'robot'"
@@ -72,7 +68,7 @@
                       class="robot-ment-item"
                       :class="{ 'robot-active-item': activeRobotMenu == 'robot_detail' }"
                     >
-                      <CheckOutlined class="anticon-check" /> 进入机器人详情
+                      <CheckOutlined class="anticon-check" /> {{ t('enter_robot_detail') }}
                     </div>
                   </a-menu-item>
                   <a-menu-item key="2" @click="handleChangeRobotmenuItem('robot_list', item)">
@@ -80,7 +76,7 @@
                       class="robot-ment-item"
                       :class="{ 'robot-active-item': activeRobotMenu == 'robot_list' }"
                     >
-                      <CheckOutlined /> 进入机器人管理
+                      <CheckOutlined /> {{ t('enter_robot_manage') }}
                     </div>
                   </a-menu-item>
                 </a-menu>
@@ -106,26 +102,18 @@
 </template>
 
 <script setup>
-import { computed, watch, ref, onMounted } from 'vue'
+import { computed, watch, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { DownOutlined, CheckOutlined } from '@ant-design/icons-vue'
 import { checkRole } from '@/utils/permission'
-import { getRobotList, robotAutoAdd } from '@/api/robot/index.js'
+import { getRobotList } from '@/api/robot/index.js'
 import { useGuideStore } from '@/stores/modules/guide'
 import { useCompanyStore } from '@/stores/modules/company'
 import { usePermissionStore } from '@/stores/modules/permission'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('layout.navbar')
 const companyStore = useCompanyStore()
-const guideStore = useGuideStore()
-
-const permissionStore = usePermissionStore()
-
-const role_type = computed(() => {
-  return permissionStore.role_type
-})
-
-const total_process = computed(() => {
-  return +guideStore.total_process
-})
 
 const router = useRouter()
 const roure = useRoute()
@@ -142,12 +130,12 @@ const activeRobotMenu = ref(localStorage.getItem('local__robot_menu_key') || 'ro
 
 const getActiveMenu = () => {}
 
-const baseNavs = [
+const baseNavs = computed(() => [
   {
     id: 0,
     key: 'explore',
     label: 'explore',
-    title: '探索',
+    title: t('explore'),
     icon: 'nav-explore',
     path: '/explore/index',
     permission: ['AbilityCenter']
@@ -156,7 +144,7 @@ const baseNavs = [
     id: 1,
     key: 'robot',
     label: 'robot',
-    title: '机器人',
+    title: t('robot'),
     icon: 'nav-robot',
     path: '/robot/list',
     permission: ['RobotManage']
@@ -165,7 +153,7 @@ const baseNavs = [
     id: 2,
     key: 'library',
     label: 'library',
-    title: '知识库',
+    title: t('knowledge_base'),
     icon: 'nav-library',
     path: '/library/list',
     permission: ['LibraryManage']
@@ -174,7 +162,7 @@ const baseNavs = [
     id: 3,
     key: 'PublicLibrary',
     label: 'PublicLibrary',
-    title: '文档',
+    title: t('document'),
     icon: 'nav-doc',
     path: '/public-library/list',
     permission: ['OpenLibDocManage']
@@ -183,7 +171,7 @@ const baseNavs = [
     id: 4,
     key: 'library-search',
     label: 'library-search',
-    title: '搜索',
+    title: t('search'),
     icon: 'search',
     path: '/library-search/index',
     permission: ['SearchManage']
@@ -192,7 +180,7 @@ const baseNavs = [
     id: 5,
     key: 'chat-monitor',
     label: 'chat-monitor',
-    title: '会话',
+    title: t('session'),
     icon: 'nav-chat',
     path: '/chat-monitor/index',
     permission: ['ChatSessionManage']
@@ -201,7 +189,7 @@ const baseNavs = [
   //   id: 6,
   //   key: 'user',
   //   label: 'user',
-  //   title: '系统管理',
+  //   title: t('system_manage'),
   //   path: '/user/model',
   //   permission: [
   //     'ModelManage',
@@ -212,29 +200,23 @@ const baseNavs = [
   //     'ClientSideManage'
   //   ]
   // }
-]
+])
 
 const top_navigate = computed(() => {
   return companyStore.top_navigate
 })
 
 const navs = computed(() => {
-  const openList = top_navigate.value.filter((item) => item.open) // 获取所有打开的菜单项
+  const openList = top_navigate.value.filter((item) => item.open)
 
   return openList
-    .map((item) => baseNavs.find((nav) => nav.key === item.id)) // 查找匹配的菜单项
-    .filter(Boolean) // 过滤掉未找到的菜单项（undefined）
+    .map((item) => baseNavs.value.find((nav) => nav.key === item.id))
+    .filter(Boolean)
 })
 
 const handleClickNav = (item) => {
-  guideStore.getUseGuideProcess()
   router.push(item.path)
   // window.open(`/#${item.path}`, "_blank", "noopener") // 建议添加 noopener 防止安全漏洞
-}
-
-const handleToGuide = () => {
-  guideStore.getUseGuideProcess()
-  router.push('/guide')
 }
 
 const handleChangeRobotmenuItem = (type, item) => {
@@ -296,8 +278,4 @@ watch(
     immediate: true
   }
 )
-
-onMounted(()=>{
-  guideStore.getUseGuideProcess()
-})
 </script>

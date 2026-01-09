@@ -506,7 +506,7 @@
                 </div>
               </div>
 
-              <div class="item-body" v-if="!(item.msg_type == 1 && item.content == '')">
+              <div class="item-body">
                 <div
                   class="file-items"
                   v-if="item.show_quote_file && item.quote_file && item.quote_file.length > 0"
@@ -524,7 +524,7 @@
                     </a>
                   </div>
                 </div>
-                <div class="thinking-content" v-if="item.show_reasoning">
+                <div class="thinking-content" v-if="item.show_reasoning && item.reasoning_content">
                   <cherry-markdown :content="item.reasoning_content"></cherry-markdown>
                 </div>
                 <template v-if="item.msg_type == 1">

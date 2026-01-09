@@ -1,0 +1,20 @@
+{
+  "page_title": "Custom Domain Settings",
+  "domain_tip_1": "Point your domain to the deployment server to access public documents and web APP via your custom domain.",
+  "domain_tip_2": "1. If you need to use HTTPS, please upload certificate files (public key and private key) after adding the domain.",
+  "add_domain_btn": "Add Custom Domain",
+  "table_column_domain": "Domain",
+  "table_column_certificate": "Certificate",
+  "table_column_action": "Action",
+  "certificate_uploaded": "Uploaded",
+  "certificate_not_uploaded": "Not Uploaded",
+  "upload_certificate": "Upload Certificate",
+  "upload_validation_file": "Upload Validation File",
+  "edit": "Edit",
+  "delete": "Delete",
+  "save_success": "Saved Successfully",
+  "delete_confirm_title": "Delete",
+  "delete_confirm_content": "Are you sure you want to delete?",
+  "delete_success": "Deleted Successfully",
+  "upload_success": "Uploaded Successfully"
+}

@@ -217,3 +217,343 @@ func StartOfficial(message map[string]any) {
 
 	return
 }
+
+func GetMessage() []TriggerOutputParam {
+	fields := make([]TriggerOutputParam, 0)
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "appid",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "公众号id",
+		},
+		Variable: "global.appid",
+	})
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "ToUserName",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "开发者微信号",
+		},
+		Variable: "global.ToUserName",
+	})
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "FromUserName",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "发送方账号（一个OpenID）",
+		},
+		Variable: "global.FromUserName",
+	})
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "CreateTime",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "消息创建时间（整型）",
+		},
+		Variable: "global.CreateTime",
+	})
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "MsgType",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "消息类型，文本为text，图片为image",
+		},
+		Variable: "global.MsgType",
+	})
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "Content",
+			Typ:      common.TypString,
+			Required: false,
+			Desc:     "文本消息内容，MsgType=text时存在",
+		},
+		Variable: "global.Content",
+	})
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "PicUrl",
+			Typ:      common.TypString,
+			Required: false,
+			Desc:     "图片链接（由系统生成），MsgType=image时存在",
+		},
+		Variable: "global.PicUrl",
+	})
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "MediaId",
+			Typ:      common.TypString,
+			Required: false,
+			Desc:     "图片消息媒体id，可以调用获取临时素材接口拉取数据",
+		},
+		Variable: "global.MediaId",
+	})
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "MsgId",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "消息id，64位整型",
+		},
+		Variable: "global.MsgId",
+	})
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "MsgDataId",
+			Typ:      common.TypString,
+			Required: false,
+			Desc:     "消息的数据ID（消息如果来自文章时才有）",
+		},
+		Variable: "global.MsgDataId",
+	})
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "Idx",
+			Typ:      common.TypString,
+			Required: false,
+			Desc:     "多图文时第几篇文章，从1开始（消息如果来自文章时才有）",
+		},
+		Variable: "global.Idx",
+	})
+	return fields
+}
+func GetMenuClick() []TriggerOutputParam {
+	fields := make([]TriggerOutputParam, 0)
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "appid",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "公众号id",
+		},
+		Variable: "global.appid",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "ToUserName",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "开发者微信号",
+		},
+		Variable: "global.ToUserName",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "FromUserName",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "发送方账号（一个OpenID）",
+		},
+		Variable: "global.FromUserName",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "CreateTime",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "消息创建时间（整型）",
+		},
+		Variable: "global.CreateTime",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "MsgType",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "消息类型，event",
+		},
+		Variable: "global.MsgType",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "Event",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "事件类型，CLICK",
+		},
+		Variable: "global.Event",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "EventKey",
+			Typ:      common.TypString,
+			Required: false,
+			Desc:     "事件KEY值，与自定义菜单接口中KEY值对应",
+		},
+		Variable: "global.EventKey",
+	})
+
+	return fields
+}
+func GetSubscribeUnsubscribe() []TriggerOutputParam {
+	fields := make([]TriggerOutputParam, 0)
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "appid",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "公众号id",
+		},
+		Variable: "global.appid",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "ToUserName",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "开发者微信号",
+		},
+		Variable: "global.ToUserName",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "FromUserName",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "发送方账号（一个OpenID）",
+		},
+		Variable: "global.FromUserName",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "CreateTime",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "消息创建时间（整型）",
+		},
+		Variable: "global.CreateTime",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "MsgType",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "消息类型，event",
+		},
+		Variable: "global.MsgType",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "Event",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "事件类型，subscribe(订阅)、unsubscribe(取消订阅)",
+		},
+		Variable: "global.Event",
+	})
+
+	// EventKey 对于关注/取消关注事件通常是空的，但保留字段
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "EventKey",
+			Typ:      common.TypString,
+			Required: false,
+			Desc:     "事件KEY值，对于关注/取消关注事件通常为空",
+		},
+		Variable: "global.EventKey",
+	})
+
+	return fields
+}
+func GetQrcodeScan() []TriggerOutputParam {
+	fields := make([]TriggerOutputParam, 0)
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "appid",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "公众号id",
+		},
+		Variable: "global.appid",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "ToUserName",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "开发者微信号",
+		},
+		Variable: "global.ToUserName",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "FromUserName",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "发送方账号（一个OpenID）",
+		},
+		Variable: "global.FromUserName",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "CreateTime",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "消息创建时间 （整型）",
+		},
+		Variable: "global.CreateTime",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "MsgType",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "消息类型，event",
+		},
+		Variable: "global.MsgType",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "Event",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "事件类型，用户未关注时为subscribe， 用户已关注时为SCAN",
+		},
+		Variable: "global.Event",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "EventKey",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "事件KEY值，qrscene_为前缀，后面为二维码的场景值ID",
+		},
+		Variable: "global.EventKey",
+	})
+
+	fields = append(fields, TriggerOutputParam{
+		StartNodeParam: StartNodeParam{
+			Key:      "Ticket",
+			Typ:      common.TypString,
+			Required: true,
+			Desc:     "二维码的ticket，可用来换取二维码图片",
+		},
+		Variable: "global.Ticket",
+	})
+
+	return fields
+}

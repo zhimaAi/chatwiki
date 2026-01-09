@@ -68,6 +68,24 @@ export default {
           }
         },
         {
+          path: '/robot/ability/payment-guide',
+          name: 'appChargingGuide',
+          component: () => import('@/views/robot/robot-config/payment/guide.vue'),
+          meta: {
+            title: '应用收费',
+            isCustomPage: true
+          }
+        },
+        {
+          path: '/robot/ability/payment',
+          name: 'appChargingIndex',
+          component: () => import('@/views/robot/robot-config/payment/index.vue'),
+          meta: {
+            title: '应用收费',
+            isCustomPage: true
+          }
+        },
+        {
           path: '/robot/config/function-center',
           name: 'functionCenter',
           component: () => import('@/views/robot/robot-config/function-center/index.vue'),

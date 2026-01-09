@@ -3,7 +3,12 @@
 package manage
 
 import (
+	"chatwiki/internal/app/chatwiki/common"
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/app/chatwiki/middlewares"
+	"chatwiki/internal/pkg/lib_redis"
+	"chatwiki/internal/pkg/lib_web"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,19 +23,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/spf13/cast"
 	"github.com/syyongx/php2go"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
-
-	"chatwiki/internal/app/chatwiki/common"
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/pkg/lib_redis"
-	"chatwiki/internal/pkg/lib_web"
 )
 
 func GetLibFileList(c *gin.Context) {
@@ -517,10 +515,7 @@ func DelLibraryFile(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 			return
 		}
-		_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(id)).Update(msql.Datas{
-			`delete_time`: tool.Time2Int(),
-			`update_time`: tool.Time2Int(),
-		})
+		_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(id)).Delete()
 		if err != nil {
 			logs.Error(err.Error())
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -543,20 +538,14 @@ func DelLibraryFile(c *gin.Context) {
 
 		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
 			Where(`id`, `in`, strings.Join(dataIdList, `,`)).
-			Update(msql.Datas{
-				`delete_time`: tool.Time2Int(),
-				`update_time`: tool.Time2Int(),
-			})
+			Delete()
 		if err != nil {
 			logs.Error(err.Error())
 			continue
 		}
 		_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
 			Where(`data_id`, `in`, strings.Join(dataIdList, `,`)).
-			Update(msql.Datas{
-				`delete_time`: tool.Time2Int(),
-				`update_time`: tool.Time2Int(),
-			})
+			Delete()
 		if err != nil {
 			logs.Error(err.Error())
 		}
@@ -1774,216 +1763,4 @@ func DownloadLibraryFile(c *gin.Context) {
 		return
 	}
 	c.FileAttachment(common.GetFileByLink(filePath), fileName)
-}
-
-// GetLibFileRecycleList 获取文档回收站列表
-func GetLibFileRecycleList(c *gin.Context) {
-	var adminUserId int
-	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
-		return
-	}
-	libraryId := cast.ToInt(c.Query(`library_id`))
-	if libraryId <= 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
-		return
-	}
-	info, err := common.GetLibraryInfo(libraryId, adminUserId)
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	if len(info) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-		return
-	}
-
-	page := max(1, cast.ToInt(c.Query(`page`)))
-	size := max(1, cast.ToInt(c.Query(`size`)))
-
-	// 构建查询
-	m := msql.Model(`chat_ai_library_file`, define.Postgres).
-		Alias(`f`).
-		Join(`chat_ai_library_file_data d`, `f.id=d.file_id`, `left`).
-		Where(`f.admin_user_id`, cast.ToString(adminUserId)).
-		Where(`f.library_id`, cast.ToString(libraryId)).
-		Where(`f.delete_time`, `>`, `0`).
-		Group(`f.id`).
-		Field(`f.*, count(d.id) as paragraph_count`).
-		Field(`count(case when d.graph_status = 3 then 1 else null end) as graph_err_count`).
-		Field(`
-			COALESCE(
-				(SELECT graph_err_msg FROM chat_ai_library_file_data WHERE file_id = f.id AND graph_err_msg <> '' LIMIT 1),
-				'no error'
-			) AS graph_err_msg
-		`)
-
-	// 文件名搜索
-	fileName := strings.TrimSpace(c.Query(`file_name`))
-	if len(fileName) > 0 {
-		m.Where(`file_name`, `like`, fileName)
-	}
-
-	// 分页查询
-	list, total, err := m.Order(`delete_time desc`).Paginate(page, size)
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-
-	// 获取图谱实体数量
-	var graphEntityCountRes *neo4j.EagerResult
-	var idList []string
-	for _, item := range list {
-		idList = append(idList, cast.ToString(item[`id`]))
-	}
-	if len(idList) > 0 && common.GetNeo4jStatus(adminUserId) {
-		graphEntityCountRes, err = common.NewGraphDB(adminUserId).GetEntityCount(idList)
-		if err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
-	}
-
-	// 填充图谱实体数量
-	for _, item := range list {
-		item[`graph_entity_count`] = `0`
-		if graphEntityCountRes == nil {
-			continue
-		}
-		for _, record := range graphEntityCountRes.Records {
-			fileId, exists1 := record.Get("file_id")
-			count, exists2 := record.Get("count")
-			if exists1 && exists2 && fileId == cast.ToInt64(item[`id`]) {
-				item[`graph_entity_count`] = cast.ToString(count)
-			}
-		}
-	}
-
-	data := map[string]any{
-		`list`:  list,
-		`total`: total,
-		`page`:  page,
-		`size`:  size,
-	}
-	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
-}
-
-// 删除回收站文件
-func DelRecycleLibraryFile(c *gin.Context) {
-	var adminUserId int
-	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
-		return
-	}
-	ids := cast.ToString(c.PostForm(`id`))
-	for _, id := range strings.Split(ids, `,`) {
-		id := cast.ToInt(id)
-		if id <= 0 {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
-			return
-		}
-		_, err := msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(id)).Delete()
-		if err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
-		//clear cached data
-		lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: id})
-		//dispose relation data
-		dataIdList, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
-			Where(`file_id`, cast.ToString(id)).
-			Where(`category_id`, `0`).
-			ColumnArr(`id`)
-		if err != nil {
-			logs.Error(err.Error())
-			continue
-		}
-		if len(dataIdList) == 0 {
-			continue
-		}
-
-		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
-			Where(`file_id`, cast.ToString(id)).Delete()
-		if err != nil {
-			logs.Error(err.Error())
-			continue
-		}
-		_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
-			Where(`file_id`, cast.ToString(id)).
-			Delete()
-		if err != nil {
-			logs.Error(err.Error())
-		}
-		if common.GetNeo4jStatus(adminUserId) {
-			for _, dataId := range dataIdList {
-				err = common.NewGraphDB(adminUserId).DeleteByData(cast.ToInt(dataId))
-				if err != nil {
-					logs.Error(err.Error())
-				}
-			}
-		}
-	}
-	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
-}
-
-// 恢复回收站文件
-func RestoreRecycleLibraryFile(c *gin.Context) {
-	var adminUserId int
-	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
-		return
-	}
-	ids := cast.ToString(c.PostForm(`id`))
-	m := msql.Model(`chat_ai_library_file`, define.Postgres)
-	for _, id := range strings.Split(ids, `,`) {
-		id := cast.ToInt(id)
-		if id <= 0 {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
-			return
-		}
-		// 获取文件信息
-		info, err := m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(adminUserId)).Find()
-		if err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
-		if len(info) == 0 {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-			return
-		}
-		// 恢复文件
-		_, err = m.Where(`id`, cast.ToString(id)).Update(msql.Datas{
-			`delete_time`: 0,
-			`update_time`: tool.Time2Int(),
-		})
-		if err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
-		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
-			Where(`file_id`, cast.ToString(id)).Update(msql.Datas{
-			`delete_time`: 0,
-			`isolated`:    false,
-			`update_time`: tool.Time2Int(),
-		})
-		if err != nil {
-			logs.Error(err.Error())
-			continue
-		}
-		_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
-			Where(`file_id`, cast.ToString(id)).Update(msql.Datas{
-			`delete_time`: 0,
-			`update_time`: tool.Time2Int(),
-		})
-		if err != nil {
-			logs.Error(err.Error())
-		}
-		// 清除缓存
-		lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: id})
-	}
-	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }

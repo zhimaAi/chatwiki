@@ -73,6 +73,7 @@ type ChatRequestParam struct {
 	QuoteLib             bool
 	LoopTestParams       []any
 	BatchTestParams      []any
+	HeaderToken          string
 }
 
 type DocSplitItem struct {
@@ -299,4 +300,73 @@ type OfficialAccountCommentResp struct {
 	Errcode    int                      `json:"errcode"`
 	Errmsg     string                   `json:"errmsg"`
 	Total      int                      `json:"total"`
+}
+
+type RobotPaymentCountPackage struct {
+	Id    int     `json:"id"`
+	Name  string  `json:"name"`
+	Count int     `json:"count"`
+	Price float32 `json:"price"`
+}
+type RobotPaymentDurationPackage struct {
+	Id       int     `json:"id"`
+	Name     string  `json:"name"`
+	Duration int     `json:"duration"`
+	Count    int     `json:"count"`
+	Price    float32 `json:"price"`
+}
+
+// 远程插件
+type RemotePluginStruct struct {
+	Author              string `json:"author"`
+	CreateTime          string `json:"create_time"`
+	Description         string `json:"description"`
+	Enabled             string `json:"enabled"`
+	FilterType          string `json:"filter_type"`
+	FilterTypeTitle     string `json:"filter_type_title"`
+	HelpUrl             string `json:"help_url"`
+	Icon                string `json:"icon"`
+	Id                  string `json:"id"`
+	Images              string `json:"images"`
+	InstalledCount      string `json:"installed_count"`
+	Introduction        string `json:"introduction"`
+	LatestCompatible    string `json:"latest_compatible"`
+	LatestVersion       string `json:"latest_version"`
+	LatestVersionDetail struct {
+		Compatible         string `json:"compatible"`
+		CreateTime         string `json:"create_time"`
+		DownloadUrl        string `json:"download_url"`
+		Enabled            string `json:"enabled"`
+		Id                 string `json:"id"`
+		InstalledCount     string `json:"installed_count"`
+		Memory             string `json:"memory"`
+		Name               string `json:"name"`
+		Permission         string `json:"permission"`
+		Remark             string `json:"remark"`
+		UpdateTime         string `json:"update_time"`
+		UpgradeDescription string `json:"upgrade_description"`
+		Version            string `json:"version"`
+	} `json:"latest_version_detail"`
+	LatestVersionHistory []struct {
+		Compatible         string `json:"compatible"`
+		CreateTime         string `json:"create_time"`
+		DownloadUrl        string `json:"download_url"`
+		Enabled            string `json:"enabled"`
+		Id                 string `json:"id"`
+		InstalledCount     string `json:"installed_count"`
+		Memory             string `json:"memory"`
+		Name               string `json:"name"`
+		Permission         string `json:"permission"`
+		Remark             string `json:"remark"`
+		UpdateTime         string `json:"update_time"`
+		UpgradeDescription string `json:"upgrade_description"`
+		Version            string `json:"version"`
+	} `json:"latest_version_history"`
+	Name       string `json:"name"`
+	Overview   string `json:"overview"`
+	Remark     string `json:"remark"`
+	Sort       string `json:"sort"`
+	Title      string `json:"title"`
+	Type       string `json:"type"`
+	UpdateTime string `json:"update_time"`
 }
