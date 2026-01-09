@@ -29,8 +29,11 @@ import timingTriggerNode from './timing-trigger-node/index.js'
 import officialTriggerNode from './official-trigger-node/index.js'
 import batchGroupNode from './batch-group-node/index.js'
 import imageGenerationNode from './image-generation-node/index.js'
+import jsonNode from './json-node/index.js'
+import jsonReverseNode from './json-reverse-node/index.js'
 import voiceSynthesisNode from "./voice-synthesis-node/index.js";
 import voiceCloneNode from "./voice-clone-node/index.js";
+import importLibraryNode from './import-library-node/index.js'
 
 
 
@@ -64,6 +67,9 @@ export default function registerCustomNodes(lf) {
   register(officialTriggerNode, lf)
   register(batchGroupNode, lf)
   register(imageGenerationNode, lf)
+  register(jsonNode, lf)
+  register(jsonReverseNode, lf)
   register(voiceSynthesisNode, lf)
   register(voiceCloneNode, lf)
+  register(importLibraryNode, lf)
 }

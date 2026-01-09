@@ -1,10 +1,10 @@
 <template>
   <div class="user-model-page">
     <div class="page-title">
-      敏感词管理
+      {{ t('title') }}
       <div class="add-block">
         <a-button type="primary" @click="openAddModal()" :icon="createVNode(PlusOutlined)"
-          >添加敏感词</a-button
+          >{{ t('add_btn') }}</a-button
         >
       </div>
     </div>
@@ -33,7 +33,7 @@
                 <div v-else class="text-over-box">{{ record.words_desc }}</div>
               </template>
               <template v-if="column.key === 'robot_name_desc'">
-                <div v-if="record.trigger_type == 0">所有机器人</div>
+                <div v-if="record.trigger_type == 0">{{ t('all_robots') }}</div>
                 <template v-else>
                   <a-tooltip v-if="record.robot_name_desc.length > 20" :overlayStyle="{'max-width': '500px'}">
                     <template #title>{{ record.robot_name_desc }}</template>
@@ -46,14 +46,12 @@
                 <a-switch
                   @change="handleChangeStatus(record)"
                   :checked="record.status == 1"
-                  checked-children="开"
-                  un-checked-children="关"
                 />
               </template>
               <template v-if="column.key === 'action'">
                 <a-flex :gap="12" style="white-space: nowrap">
-                  <a @click="openAddModal(record)">编辑</a>
-                  <a @click="handleDel(record)">删除</a>
+                  <a @click="openAddModal(record)">{{ t('edit') }}</a>
+                  <a @click="handleDel(record)">{{ t('delete') }}</a>
                 </a-flex>
               </template>
             </template>
@@ -78,6 +76,9 @@ import { useRoute } from 'vue-router'
 import { reactive, ref, createVNode } from 'vue'
 import AddaddSensitiveModal from './components/add-sensitive-modal.vue'
 import { Modal, message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.sensitive-words.index')
 const query = useRoute().query
 
 const tableData = ref([])
@@ -127,15 +128,15 @@ const handleChangeStatus = (record) => {
 
 const handleDel = (record) => {
   Modal.confirm({
-    title: '删除确认',
+    title: t('delete_confirm'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: `确定要删除敏感词[${record.words_desc}]吗？`,
-    okText: '删除',
+    content: t('delete_confirm_content', { words: record.words_desc }),
+    okText: t('delete'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('cancel'),
     onOk() {
       deleteSensitiveWords({ id: record.id }).then((res) => {
-        message.success('删除成功')
+        message.success(t('delete_success'))
         getList()
       })
     },
@@ -156,27 +157,27 @@ getRobotList().then((res) => {
 
 const columns = [
   {
-    title: '敏感词',
+    title: t('sensitive_words'),
     dataIndex: 'words_desc',
     key: 'words_desc',
     ellipsis: true,
     width: 300
   },
   {
-    title: '生效机器人',
+    title: t('effective_robots'),
     dataIndex: 'robot_name_desc',
     key: 'robot_name_desc',
     ellipsis: true,
     width: 300
   },
   {
-    title: '是否启用',
+    title: t('enable_status'),
     key: 'status',
     dataIndex: 'status',
     width: 150
   },
   {
-    title: '操作',
+    title: t('action'),
     key: 'action',
     width: 120
   }

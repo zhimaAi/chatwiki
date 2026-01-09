@@ -1,23 +1,23 @@
 <template>
   <a-modal v-model:open="open" :title="modalTitle" @ok="handleOk" :width="540">
     <a-form layout="vertical" style="margin-top: 16px">
-      <a-form-item label="token限额" v-bind="validateInfos.max_token">
+      <a-form-item :label="t('token_limit')" v-bind="validateInfos.max_token">
         <a-input-number
           v-model:value="formState.max_token"
           style="width: 60%"
           :min="0.001"
           :precision="3"
-          placeholder="请输入"
+          :placeholder="t('please_input')"
         >
           <template #addonAfter> k </template>
         </a-input-number>
       </a-form-item>
-      <a-form-item label="备注" v-bind="validateInfos.description">
+      <a-form-item :label="t('remark')" v-bind="validateInfos.description">
         <a-textarea
           :maxLength="500"
           style="height: 80px"
           v-model:value="formState.description"
-          placeholder="请输入"
+          :placeholder="t('please_input')"
         />
       </a-form-item>
     </a-form>
@@ -28,9 +28,13 @@
 import { reactive, ref } from 'vue'
 import { Form, message } from 'ant-design-vue'
 import { tokenLimitCreate } from '@/api/manage/index.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.usetoken.modal')
+
 const emit = defineEmits(['ok'])
 const open = ref(false)
-const modalTitle = ref('token限额')
+const modalTitle = ref(t('token_limit'))
 const formState = reactive({
   max_token: '',
   description: '',
@@ -60,7 +64,7 @@ const formRules = reactive({
   max_token: [
     {
       required: true,
-      message: '请输入token限额',
+      message: t('please_input_token_limit'),
       trigger: 'blur'
     }
   ]
@@ -71,7 +75,7 @@ const handleOk = () => {
   validate().then((res) => {
     tokenLimitCreate({ ...formState, max_token: (formState.max_token * 1000).toFixed(3) }).then(
       (res) => {
-        message.success('修改成功')
+        message.success(t('modify_success'))
         open.value = false
         emit('ok')
       }

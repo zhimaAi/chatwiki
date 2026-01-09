@@ -37,35 +37,35 @@
 
 <template>
   <div class="enterprise-set">
-    <div class="page-title">{{ t('views.user.enterprise.enterpriseSettings') }}</div>
+    <div class="page-title">{{ t('enterpriseSettings') }}</div>
     <div class="enterprise-box">
       <a-flex align="center">
-        <div class="content-label">{{ t('views.user.enterprise.systemName') }}：</div>
+        <div class="content-label">{{ t('systemName') }}：</div>
         <div class="content-name">
           <span v-if="name">{{ name }}</span>
-          <span v-else class="gray-text">{{ t('views.user.enterprise.notSetTip') }}</span>
+          <span v-else class="gray-text">{{ t('notSetTip') }}</span>
         </div>
-        <a class="edit-btn" @click="openCompanyModal">{{ t('common.change') }}</a>
+        <a class="edit-btn" @click="openCompanyModal">{{ t('change') }}</a>
       </a-flex>
     </div>
     <a-divider></a-divider>
     <div class="enterprise-box">
       <a-flex>
-        <div class="content-label" style="line-height: 32px">顶部导航设置：</div>
+        <div class="content-label" style="line-height: 32px">{{ t('topNavigationSettings') }}：</div>
         <NavSetting @handleGetCompany="handleGetCompany" />
       </a-flex>
     </div>
     <a-modal
       v-model:open="open"
-      :title="t('views.user.enterprise.SetSystemName')"
+      :title="t('SetSystemName')"
       @ok="handleSetCompany"
     >
       <a-form class="form-box">
-        <a-form-item :label="t('views.user.enterprise.systemName')">
+        <a-form-item :label="t('systemName')">
           <a-input
             :maxlength="15"
             v-model:value="formState.name"
-            :placeholder="t('views.user.enterprise.enterName')"
+            :placeholder="t('enterName')"
           />
         </a-form-item>
       </a-form>
@@ -82,7 +82,7 @@ import { useI18n } from '@/hooks/web/useI18n'
 import { message } from 'ant-design-vue'
 import NavSetting from './components/nav-setting.vue'
 
-const { t } = useI18n()
+const { t } = useI18n('views.user.enterprise')
 
 const companyStore = useCompanyStore()
 const { companyInfo } = companyStore

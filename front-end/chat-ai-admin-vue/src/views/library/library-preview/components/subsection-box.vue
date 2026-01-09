@@ -6,6 +6,7 @@
     </div>
     <div
       class="list-item"
+      :class="{'fragment-father-son-item': props.detailsInfo.chunk_type == 4, 'dashed-line': getIsNeedDashedLine(item, index), 'mt8': props.detailsInfo.chunk_type == 4 && !getIsNeedDashedLine(item, index)}"
       v-for="(item, index) in props.paragraphLists"
       :key="item.id"
       @click.stop="handleToTargetPage(item, index, $event)"
@@ -731,6 +732,21 @@ const handleClickOutside = (event) => {
   }
 };
 
+function getIsNeedDashedLine(item, index) {
+  if(props.detailsInfo.chunk_type != 4){
+    return false
+  }
+  if(index == 0){
+    return false
+  }
+  let preItem = props.paragraphLists[index - 1]
+  if(item.father_chunk_paragraph_number == preItem.father_chunk_paragraph_number){
+    return true
+  }
+
+  return false
+
+}
 
 function textToHighlight(fullText, highlightText, options = {}) {
   if (!highlightText || !fullText) return fullText;
@@ -823,6 +839,16 @@ defineExpose({ handleOpenEditModal })
     width: 100%;
     background: #fff;
     border-radius: 6px;
+    &.fragment-father-son-item{
+      margin: 0;
+      border-radius: 0;
+    }
+    &.dashed-line{
+      border-top: 2px dashed #d9d9d9;
+    }
+    &.mt8{
+      margin-top: 8px;
+    }
     .top-block {
       padding: 16px 16px 0;
       display: flex;

@@ -1,0 +1,10 @@
+{
+  "add_group": "添加分组",
+  "all": "全部",
+  "default_group": "默认分组",
+  "delete_confirm": "删除确认",
+  "delete_confirm_content": "确定要删除分组【{name}】吗？",
+  "delete": "删除",
+  "cancel": "取消",
+  "delete_success": "删除成功"
+}

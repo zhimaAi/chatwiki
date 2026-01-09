@@ -2,13 +2,13 @@
   <div>
     <a-modal
       v-model:open="open"
-      title="AI 生成提示词"
+      :title="t('title')"
       wrapClassName="no-padding-modal"
       :bodyStyle="{ 'max-height': '600px', 'overflow-y': 'auto' }"
       :width="746"
     >
       <template #footer>
-        <a-button type="primary" :loading="confirmLoading" @click="handleOk">使用该提示</a-button>
+        <a-button type="primary" :loading="confirmLoading" @click="handleOk">{{ t('use_prompt') }}</a-button>
       </template>
 
       <div class="ai-create-box">
@@ -27,29 +27,31 @@
             v-model:value="demand"
             auto-size
             size="large"
-            placeholder="请输入AI 生成提示词例如：创建一个电商行业售后客服"
+            :placeholder="t('placeholder')"
           ></a-textarea>
           <div class="btn-box" :class="{ 'disabed-status': isLoading }" @click="handleCreatePrompt">
             <LoadingOutlined v-if="isLoading" />
             <svg-icon name="ai-mark" />
-            <span v-if="isLoading">生成中...</span>
-            <span v-else>生成</span>
+            <span v-if="isLoading">{{ t('generating') }}</span>
+            <span v-else>{{ t('generate') }}</span>
           </div>
         </div>
         <div class="quick-tags-box">
-          <div class="quick-label">快捷生成：</div>
-          <a-tag
+          <div class="quick-label">{{ t('quick_generate') }}</div>
+          <div class="quick-tags-content">
+            <a-tag
             v-for="item in quickData"
             :key="item.title"
             @click="handleQuickMark(item.title)"
             color="blue"
             >{{ item.title }}</a-tag
           >
+          </div>
         </div>
         <div class="ai-list-box">
           <template v-if="isLoading">
             <div class="loading-box">
-              <a-spin tip="正在生成中..."></a-spin>
+              <a-spin :tip="t('generating_tip')"></a-spin>
             </div>
           </template>
           <template v-else>
@@ -141,6 +143,9 @@ import { message } from 'ant-design-vue'
 import { LoadingOutlined } from '@ant-design/icons-vue'
 import { useRoute } from 'vue-router'
 import { Empty } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.prompt-library.components.ai-create-prompt')
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE
 const open = ref(false)
 const confirmLoading = ref(false)
@@ -153,19 +158,19 @@ const isLoading = ref(false)
 
 const quickData = [
   {
-    title: '创建一个电商行业售后客服'
+    title: t('quick_tag_ecommerce')
   },
   {
-    title: '创建一个英语教育机构官网售前机器人'
+    title: t('quick_tag_education')
   }
 ]
 
-const description = ref('在上方输入框输入要求，点击生成提示词')
+const description = ref(t('empty_description'))
 const show = () => {
   hasData.value = false
   formState.promptStruct = defaultData
   demand.value = ''
-  description.value = '在上方输入框输入要求，点击生成提示词'
+  description.value = t('empty_description')
   open.value = true
 }
 const hasData = ref(false)
@@ -206,10 +211,10 @@ const handleQuickMark = (title) => {
 }
 const handleCreatePrompt = () => {
   if (!demand.value) {
-    return message.error('请输入AI 生成提示词')
+    return message.error(t('input_prompt_error'))
   }
   if (isLoading.value) {
-    return message.error('正在生成中...')
+    return message.error(t('generating_tip'))
   }
   isLoading.value = true
   createPromptByLlm({
@@ -238,7 +243,7 @@ const onVectorModelLoaded = (list) => {
 }
 const handleOk = () => {
   if (!hasData.value) {
-    return message.error('请先生成提示词')
+    return message.error(t('generate_first_error'))
   }
   emit('handleAiSave', formState.promptStruct)
   open.value = false
@@ -322,8 +327,15 @@ defineExpose({
   align-items: center;
   margin-top: 12px;
   .quick-label {
+    padding-right: 8px;
     color: #333;
     font-weight: 500;
+  }
+  .quick-tags-content{
+    flex: 1;
+    display: flex;
+    gap: 8px;
+    flex-flow: row wrap;
   }
   .ant-tag {
     cursor: pointer;

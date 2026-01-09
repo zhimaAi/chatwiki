@@ -11,17 +11,17 @@
 <template>
   <a-modal
     v-model:open="show"
-    title="上传证书"
+    :title="t('title')"
     @ok="handleOk"
     :confirmLoading="props.confirmLoading"
   >
     <div class="upload-ssl-form">
       <a-form ref="formRef" :model="formState" :rules="rules" autocomplete="off" layout="vertical">
-        <a-form-item label="文件名（含文件后缀，比如 mzkAzOpb6L.txt）" name="file_name">
+        <a-form-item :label="t('file_name_label')" name="file_name">
           <a-input v-model:value="formState.file_name" />
         </a-form-item>
 
-        <a-form-item label="文件内容" name="file_content">
+        <a-form-item :label="t('file_content_label')" name="file_content">
           <a-textarea :rows="5" v-model:value="formState.file_content" />
         </a-form-item>
       </a-form>
@@ -31,8 +31,11 @@
 
 <script setup>
 import { ref, reactive, toRaw } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
 const emit = defineEmits(['ok'])
+
+const { t } = useI18n('views.user.domain.components.upload-validation-file')
 
 const props = defineProps({
   confirmLoading: {
@@ -50,8 +53,8 @@ const formState = reactive({
 })
 
 const rules = {
-  file_name: [{ required: true, message: '请输入文件名' }],
-  file_content: [{ required: true, message: '请输入文件内容' }]
+  file_name: [{ required: true, message: t('file_name_required') }],
+  file_content: [{ required: true, message: t('file_content_required') }]
 }
 
 const show = ref(false)

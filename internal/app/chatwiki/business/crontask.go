@@ -311,3 +311,68 @@ func UpdateBatchSendData() {
 	}
 
 }
+
+// CheckRobotPaymentDurationAuthCode 检查应用收费时长套餐
+func CheckRobotPaymentDurationAuthCode() {
+	logs.Debug(`开始检查应用收费时长套餐`)
+	robotIdList, err := msql.Model(`robot_payment_setting`, define.Postgres).
+		Group(`robot_id`).
+		ColumnArr(`robot_id`)
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+
+	for _, robotId := range robotIdList {
+		exchangeOpenIdList, err := msql.Model(`robot_payment_auth_code`, define.Postgres).
+			Where(`robot_id`, robotId).
+			Group(`exchanger_openid`).
+			ColumnArr(`exchanger_openid`)
+		if err != nil {
+			logs.Error(err.Error())
+			return
+		}
+		for _, exchangeOpenId := range exchangeOpenIdList {
+			authCodeItem, err := msql.Model(`robot_payment_auth_code`, define.Postgres).
+				Where(`robot_id`, cast.ToString(robotId)).
+				Where(`exchanger_openid`, exchangeOpenId).
+				Where(`package_type`, cast.ToString(define.RobotPaymentPackageTypeDuration)).
+				Where(`usage_status`, cast.ToString(define.RobotPaymentAuthCodeUsageStatusExchanged)).
+				Order(`id asc`).
+				Find()
+			if err != nil {
+				logs.Error(err.Error())
+				return
+			}
+			if len(authCodeItem) == 0 {
+				continue
+			}
+			packageDuration := cast.ToInt(authCodeItem[`package_duration`])
+			usedDuration := cast.ToInt(authCodeItem[`used_duration`])
+
+			data := msql.Datas{
+				`update_time`: tool.Time2Int(),
+			}
+			usedDuration += 1
+			if usedDuration < packageDuration {
+				data[`used_duration`] = usedDuration
+			} else if usedDuration == packageDuration {
+				data[`used_duration`] = usedDuration
+				data[`use_time`] = tool.Time2Int()
+				data[`use_date`] = time.Now().Format(`2006-01-02`)
+				data[`usage_status`] = define.RobotPaymentAuthCodeUsageStatusUsed
+			} else {
+				data[`use_time`] = tool.Time2Int()
+				data[`use_date`] = time.Now().Format(`2006-01-02`)
+				data[`usage_status`] = define.RobotPaymentAuthCodeUsageStatusUsed
+			}
+
+			_, err = msql.Model(`robot_payment_auth_code`, define.Postgres).
+				Where(`id`, authCodeItem[`id`]).
+				Update(data)
+			if err != nil {
+				logs.Error(err.Error())
+			}
+		}
+	}
+}

@@ -1,0 +1,11 @@
+{
+  "title": "Official Account Management",
+  "bind_btn": "Bind Official Account",
+  "empty_title": "No Official Account Bound",
+  "bind_now_btn": "Bind Now",
+  "confirm_remove": "Are you sure you want to remove {app_name}?",
+  "remove_warning": "After removal, robots that have associated bindings or other functions configured with this official account will become invalid",
+  "delete_success": "Deleted successfully",
+  "refresh_success": "Refreshed successfully",
+  "sort_success": "Sorted successfully"
+}

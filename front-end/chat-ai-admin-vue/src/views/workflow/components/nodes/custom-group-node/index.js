@@ -458,7 +458,10 @@ class CustomGroupModel extends dynamicGroup.model {
       'mcp-node',
       'custom-group',
       'image-generation-node',
-      'zm-plugins-node'
+      'zm-plugins-node',
+      'import-library-node',
+      'json-node',
+      'json-reverse-node',
     ]
 
     let startNode = nodes.find((node) => node.type === 'start-node')
@@ -536,6 +539,18 @@ class CustomGroupModel extends dynamicGroup.model {
 
       if (node.type === 'custom-group') {
         obj.children = node_params.loop.output
+      }
+
+      if(node.type === 'import-library-node'){
+        obj.children = node_params.library_import.outputs
+      }
+      
+      if(node.type === 'json-node'){
+        obj.children = node_params.json_encode.output
+      }
+
+      if(node.type === 'json-reverse-node'){
+        obj.children = node_params.json_decode.output
       }
 
       if (node.type === 'select-data-node') {

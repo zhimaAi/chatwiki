@@ -54,6 +54,7 @@
     "emoji-mart-vue-fast": "^15.0.5",
     "file-saver": "^2.0.5",
     "highlight.js": "^11.9.0",
+    "html2canvas": "^1.4.1",
     "js-cookie": "^1.0.5",
     "markdown-it": "^14.1.0",
     "pinia": "^2.1.7",

@@ -4,33 +4,33 @@
       <div class="form-box">
         <div class="avatar-box">
           <AvatarInput v-model:value="formState.avatar_url" @change="onAvatarChange" />
-          <div class="tip">点击替换，建议尺寸为100*100px，大小不超过100kb</div>
+          <div class="tip">{{ t('click_to_replace_tip') }}</div>
         </div>
         <a-form layout="vertical" autocomplete="off">
           <div class="flex-item-box">
-            <a-form-item label="成员昵称" v-bind="validateInfos.nick_name">
+            <a-form-item :label="t('member_nickname')" v-bind="validateInfos.nick_name">
               <a-input
                 :maxlength="100"
                 type="text"
-                placeholder="请输入昵称"
+                :placeholder="t('input_nickname')"
                 v-model:value="formState.nick_name"
               ></a-input>
             </a-form-item>
-            <a-form-item label="登录账号" v-bind="validateInfos.user_name">
+            <a-form-item :label="t('login_account')" v-bind="validateInfos.user_name">
               <a-input
                 :disabled="formState.id != ''"
                 type="text"
-                placeholder="账号只能为字母、数字、“-”、“_”,“.”的组合"
+                :placeholder="t('account_format_tip')"
                 v-model:value="formState.user_name"
               ></a-input>
             </a-form-item>
           </div>
           <div class="flex-item-box">
-            <a-form-item label="成员角色" v-bind="validateInfos.user_roles">
+            <a-form-item :label="t('member_role')" v-bind="validateInfos.user_roles">
               <a-select
                 v-model:value="formState.user_roles"
                 style="width: 100%"
-                placeholder="请选择成员角色"
+                :placeholder="t('select_member_role')"
               >
                 <a-select-option v-for="item in roleLists" :key="item.id" :value="item.id">{{
                   item.name
@@ -38,7 +38,7 @@
               </a-select>
             </a-form-item>
             <a-form-item
-              label="选择部门"
+              :label="t('select_department')"
               v-bind="validateInfos.department_ids"
               name="department_ids"
             >
@@ -47,7 +47,7 @@
                 show-search
                 style="width: 100%"
                 :dropdown-style="{ maxHeight: '400px', overflow: 'auto' }"
-                placeholder="请选择"
+                :placeholder="t('please_select')"
                 allow-clear
                 multiple
                 tree-default-expand-all
@@ -61,28 +61,28 @@
             </a-form-item>
           </div>
           <div class="flex-item-box">
-            <a-form-item label="登录密码" v-bind="validateInfos.password" v-if="!formState.id">
+            <a-form-item :label="t('login_password')" v-bind="validateInfos.password" v-if="!formState.id">
               <a-input-password
                 v-model:value="formState.password"
-                placeholder="密码必须包含字母、数字或者字符中的两种，6-32位"
+                :placeholder="t('password_format_tip')"
               />
             </a-form-item>
             <a-form-item
-              label="确认密码"
+              :label="t('confirm_password')"
               v-bind="validateInfos.check_password"
               v-if="!formState.id"
             >
               <a-input-password
                 v-model:value="formState.check_password"
-                placeholder="请重新输入密码"
+                :placeholder="t('reinput_password')"
               />
             </a-form-item>
           </div>
           <div class="flex-item-box">
-            <a-form-item label="过期时间" v-bind="validateInfos.expire_time" required>
+            <a-form-item :label="t('expire_time')" v-bind="validateInfos.expire_time" required>
               <a-radio-group v-model:value="formState.expire_time_type">
-                <a-radio :value="0">永久有效</a-radio>
-                <a-radio :value="1">指定时间</a-radio>
+                <a-radio :value="0">{{ t('permanent_valid') }}</a-radio>
+                <a-radio :value="1">{{ t('specify_time') }}</a-radio>
               </a-radio-group>
               <div style="margin-top: 4px" v-if="formState.expire_time_type == 1">
                 <a-date-picker
@@ -111,11 +111,14 @@ import defaultAvatar from '@/assets/img/role_avatar.png'
 import { getDepartmentList } from '@/api/department/index.js'
 import { formateDepartmentCascaderData } from '@/utils/index.js'
 import dayjs from 'dayjs'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.manage.add-team-members')
 const emit = defineEmits(['ok'])
 
 const useForm = Form.useForm
 const show = ref(false)
-const modalTitle = ref('添加团队成员')
+const modalTitle = ref(t('add_team_member'))
 const formState = reactive({
   user_name: '',
   nick_name: '',
@@ -153,13 +156,13 @@ getRoleList({
 const formRules = reactive({
   user_name: [
     {
-      message: '请输入登录账号',
+      message: t('please_input_login_account'),
       required: true
     },
     {
       validator: async (rule, value) => {
         if (!/^[a-zA-Z0-9_.-]+$/.test(value) && value) {
-          return Promise.reject('账号只能为字母、数字、“-”、“_”,“.”的组合')
+          return Promise.reject(t('account_format_tip'))
         }
         return Promise.resolve()
       }
@@ -167,31 +170,31 @@ const formRules = reactive({
   ],
   nick_name: [
     {
-      message: '请输入昵称',
+      message: t('input_nickname'),
       required: true
     }
   ],
   avatar_url: [
     {
-      message: '请上传头像',
+      message: t('please_upload_avatar'),
       required: true
     }
   ],
   user_roles: [
     {
-      message: '请选择成员角色',
+      message: t('please_select_member_role'),
       required: true
     }
   ],
   password: [
     {
-      message: '请输入登录密码',
+      message: t('please_input_login_password'),
       required: true
     },
     {
       validator: async (rule, value) => {
         if (!validatePassword(value) && value) {
-          return Promise.reject('密码必须包含字母、数字或者字符中的两种，6-32位')
+          return Promise.reject(t('password_format_tip'))
         }
         return Promise.resolve()
       }
@@ -199,13 +202,13 @@ const formRules = reactive({
   ],
   check_password: [
     {
-      message: '请输入确认密码',
+      message: t('please_input_confirm_password'),
       required: true
     },
     {
       validator: async (rule, value) => {
         if (value != formState.password && value) {
-          return Promise.reject('两次输入的密码不一致')
+          return Promise.reject(t('passwords_not_match'))
         }
         return Promise.resolve()
       }
@@ -215,7 +218,7 @@ const formRules = reactive({
     {
       validator: async (rule, value) => {
         if (formState.expire_time_type == 1 && !value) {
-          return Promise.reject('请选择指定日期')
+          return Promise.reject(t('please_select_specify_date'))
         }
         return Promise.resolve()
       }
@@ -223,7 +226,7 @@ const formRules = reactive({
   ],
   department_ids: [
     {
-      message: '请选择部门',
+      message: t('please_select_department'),
       required: true
     }
   ]
@@ -232,7 +235,7 @@ const formRules = reactive({
 const { resetFields, validate, validateInfos } = useForm(formState, formRules)
 
 const add = (department_id) => {
-  modalTitle.value = '添加团队成员'
+  modalTitle.value = t('add_team_member')
   show.value = true
   resetFields()
   formState.user_name = ''
@@ -250,7 +253,7 @@ const add = (department_id) => {
 }
 
 const edit = (data) => {
-  modalTitle.value = '编辑团队成员'
+  modalTitle.value = t('edit_team_member')
   formState.user_name = data.user_name
   formState.nick_name = data.nick_name
   formState.avatar_url = data.avatar || defaultAvatar
@@ -320,7 +323,7 @@ const handleOk = () => {
     saveLoading.value = true
     saveUser(formData)
       .then((res) => {
-        message.success(`${modalTitle.value}成功`)
+        message.success(`${modalTitle.value}${t('success')}`)
         show.value = false
         emit('ok')
       })

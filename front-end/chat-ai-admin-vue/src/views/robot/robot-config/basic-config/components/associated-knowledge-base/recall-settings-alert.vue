@@ -282,7 +282,6 @@ const formState = reactive({
 const show = ref(false)
 
 const open = (data) => {
-  console.log(data, '==')
 
   formState.rerank_status = data.rerank_status || 0
   formState.rerank_use_model = data.rerank_use_model || undefined

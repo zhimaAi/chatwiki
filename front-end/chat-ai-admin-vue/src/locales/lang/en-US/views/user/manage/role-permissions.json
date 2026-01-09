@@ -1,0 +1,17 @@
+{
+  "add_role_btn": "Add Role",
+  "search_placeholder": "Enter role name",
+  "column_role": "Role",
+  "column_remark": "Remark",
+  "column_update_time": "Last Update Time",
+  "column_operate_name": "Last Modified By",
+  "column_create_name": "Creator",
+  "column_action": "Action",
+  "btn_edit": "Edit",
+  "btn_delete": "Delete",
+  "confirm_title": "Notice",
+  "confirm_content": "Are you sure to delete this role",
+  "ok_text": "Confirm",
+  "cancel_text": "Cancel",
+  "delete_success": "Deleted Successfully"
+}

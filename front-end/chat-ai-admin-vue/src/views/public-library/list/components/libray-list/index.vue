@@ -152,7 +152,9 @@
           </div>
         </div>
         <div class="item-body">
-          <div class="library-desc">{{ item.library_intro }}</div>
+          <a-tooltip :title="getTooltipTitle(item.library_intro, item, 14, 2, 0)" placement="top">
+            <div class="library-desc" :ref="el => setDescRef(el, item)">{{ item.library_intro }}</div>
+          </a-tooltip>
         </div>
 
         <div class="item-footer">
@@ -189,6 +191,7 @@
 </template>
 
 <script setup>
+import { setDescRef, getTooltipTitle } from '@/utils/index'
 
 const emit = defineEmits(['add', 'edit', 'delete'])
 

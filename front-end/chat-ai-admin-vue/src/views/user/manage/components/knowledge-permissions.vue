@@ -1,24 +1,20 @@
 <template>
   <div class="main-content-box">
     <a-radio-group v-model:value="object_type" @change="handleChange">
-      <a-radio-button value="2">知识库</a-radio-button>
-      <a-radio-button value="1">机器人</a-radio-button>
-      <a-radio-button value="3">数据库</a-radio-button>
+      <a-radio-button value="2">{{ t('knowledge_base') }}</a-radio-button>
+      <a-radio-button value="1">{{ t('robot') }}</a-radio-button>
+      <a-radio-button value="3">{{ t('database') }}</a-radio-button>
     </a-radio-group>
     <div style="margin-top: 12px">
       <a-button type="primary" @click="addManage">
-        <span v-if="object_type == 2">添加知识库权限</span>
-        <span v-if="object_type == 1">添加机器人权限</span>
-        <span v-if="object_type == 3">添加数据库权限</span>
+        {{ addButtonText }}
       </a-button>
     </div>
     <div class="list-content">
       <a-table :columns="columns" :data-source="tableData" :pagination="false">
         <template #headerCell="{ column }">
           <template v-if="column.key === 'name'">
-            <span v-if="object_type == 2">知识库</span>
-            <span v-if="object_type == 1">机器人</span>
-            <span v-if="object_type == 3">数据库</span>
+            {{ typeName }}
           </template>
         </template>
         <template #bodyCell="{ column, record }">
@@ -37,9 +33,9 @@
                   <div class="role-menu" @click="handleChangeStatus(record, 4)">
                     <div class="menu-header">
                       <UserOutlined />
-                      <span class="title">管理</span>
+                      <span class="title">{{ t('manage') }}</span>
                     </div>
-                    <div class="desc">可编辑，可删除，可查看</div>
+                    <div class="desc">{{ t('manage_desc') }}</div>
                     <div class="check-box" v-if="record.operate_rights == 4">
                       <CheckOutlined />
                     </div>
@@ -47,9 +43,9 @@
                   <div class="role-menu" @click="handleChangeStatus(record, 2)">
                     <div class="menu-header">
                       <EditOutlined />
-                      <span class="title">编辑</span>
+                      <span class="title">{{ t('edit') }}</span>
                     </div>
-                    <div class="desc">可编辑，可查看</div>
+                    <div class="desc">{{ t('edit_desc') }}</div>
                     <div class="check-box" v-if="record.operate_rights == 2">
                       <CheckOutlined />
                     </div>
@@ -57,9 +53,9 @@
                   <div class="role-menu" @click="handleChangeStatus(record, 1)">
                     <div class="menu-header">
                       <EyeOutlined />
-                      <span class="title">查看</span>
+                      <span class="title">{{ t('view') }}</span>
                     </div>
-                    <div class="desc">仅查看</div>
+                    <div class="desc">{{ t('view_desc') }}</div>
                     <div class="check-box" v-if="record.operate_rights == 1">
                       <CheckOutlined />
                     </div>
@@ -67,15 +63,13 @@
                 </div>
               </template>
               <div class="hover-btn-box">
-                <span v-if="record.operate_rights == 4">管理</span>
-                <span v-if="record.operate_rights == 2">编辑</span>
-                <span v-if="record.operate_rights == 1">查看</span>
+                {{ t(roleText[record.operate_rights]) }}
                 <DownOutlined />
               </div>
             </a-popover>
           </template>
           <template v-if="column.key === 'action'">
-            <a @click="handleDel(record)">删除</a>
+            <a @click="handleDel(record)">{{ t('delete') }}</a>
           </template>
         </template>
       </a-table>
@@ -92,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, createVNode } from 'vue'
+import { ref, reactive, watch, createVNode, computed } from 'vue'
 import {
   PlusOutlined,
   UserOutlined,
@@ -112,9 +106,49 @@ import {
   deletePermissionManage
 } from '@/api/department/index.js'
 import { message, Modal } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.manage.components.knowledge-permissions')
 
 const object_type = ref('2')
 const tableData = ref([])
+
+// 动态类型名称
+const typeName = computed(() => {
+  const typeMap = {
+    '2': 'knowledge_base',
+    '1': 'robot',
+    '3': 'database'
+  }
+  return t(typeMap[object_type.value] || 'knowledge_base')
+})
+
+const addButtonText = computed(() => {
+  const addMap = {
+    '2': 'add_knowledge_base_permission',
+    '1': 'add_robot_permission',
+    '3': 'add_database_permission'
+  }
+  return t(addMap[object_type.value] || 'add_knowledge_base_permission')
+})
+
+const roleText = computed(() => {
+  const roleMap = {
+    '4': 'manage',
+    '2': 'edit',
+    '1': 'view'
+  }
+  return roleMap
+})
+
+const roleDesc = computed(() => {
+  const descMap = {
+    '4': 'manage_desc',
+    '2': 'edit_desc',
+    '1': 'view_desc'
+  }
+  return descMap
+})
 
 const props = defineProps({
   treeParmas: {
@@ -153,13 +187,14 @@ const handleChange = () => {
 }
 
 const handleChangeStatus = (record, operate_rights) => {
-  let right_str = operate_rights == 4 ? '管理' : operate_rights == 2 ? '编辑' : '查看'
+  const roleKey = roleText[operate_rights]
+  const roleName = t(roleKey)
   Modal.confirm({
-    title: '提示?',
+    title: t('prompt'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确认修改该数据权限为' + '【' + right_str + '】',
-    okText: '确认',
-    cancelText: '取消',
+    content: t('confirm_modify_permission', { role: roleName }),
+    okText: t('confirm'),
+    cancelText: t('cancel'),
     onOk: () => {
       let data = [
         {
@@ -174,7 +209,7 @@ const handleChangeStatus = (record, operate_rights) => {
         identity_type: 2,
         object_array: JSON.stringify(data)
       }).then((res) => {
-        message.success('修改成功')
+        message.success(t('modify_success'))
         getData()
       })
     },
@@ -184,12 +219,12 @@ const handleChangeStatus = (record, operate_rights) => {
 
 const handleDel = (record) => {
   Modal.confirm({
-    title: '提示?',
+    title: t('prompt'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确认删除该条数据',
-    okText: '确认',
+    content: t('confirm_delete_data'),
+    okText: t('confirm'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('cancel'),
     onOk: () => {
       deletePermissionManage({
         identity_id: record.identity_id,
@@ -197,7 +232,7 @@ const handleDel = (record) => {
         object_id: record.object_id,
         object_type: record.object_type
       }).then((res) => {
-        message.success('删除成功')
+        message.success(t('delete_success'))
         getData()
       })
     },
@@ -238,7 +273,7 @@ const getForm = async () => {
 const seeModelAlertRef = ref(null)
 const addManage = async () => {
   if (!props.treeParmas.id) {
-    return message.error('请先选择部门')
+    return message.error(t('select_department_first'))
   }
   let key = object_type.value
   if (key == 1) {
@@ -252,18 +287,18 @@ const addManage = async () => {
   seeModelAlertRef.value.handleDepartmentOpen(key, props.treeParmas, tableData.value)
 }
 
-const columns = ref([
+const columns = computed(() => [
   {
     dataIndex: 'name',
     key: 'name'
   },
   {
-    title: '权限',
+    title: t('permission'),
     dataIndex: 'role',
     key: 'role'
   },
   {
-    title: '操作',
+    title: t('action'),
     dataIndex: 'action',
     key: 'action',
     width: 80

@@ -22,7 +22,7 @@ import (
 
 // GetRobotTemplateCategoryList 获取模板分类列表
 func GetRobotTemplateCategoryList(c *gin.Context) {
-	resp, err := requestXiaokefu(`kf/ChatWiki/CommonGetRobotTemplateCategoryList`, nil)
+	resp, err := requestXiaokefu(`kf/ChatWiki/CommonGetRobotTemplateCategoryList`, map[string]any{`switch`: 1})
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
@@ -109,6 +109,22 @@ func UseRobotTemplate(c *gin.Context) {
 		return
 	}
 
+	//获取模版最新信息
+	body := make(map[string]any)
+	body[`template_id`] = templateId
+	respTemplateInfo, infoErr := requestXiaokefu(`kf/ChatWiki/CommonGetRobotTemplateDetail`, body)
+	if infoErr != nil {
+		logs.Error(infoErr.Error())
+		common.FmtError(c, infoErr.Error())
+		return
+	}
+	templateInfo, ok := respTemplateInfo.Data.(map[string]any)
+	if ok {
+		//更新Csl中的机器人信息
+		robotCsl.Robot[`robot_name`] = cast.ToString(templateInfo[`name`])
+		robotCsl.Robot[`robot_intro`] = cast.ToString(templateInfo[`description`])
+		robotCsl.Robot[`robot_avatar`] = cast.ToString(templateInfo[`avatar`])
+	}
 	// 增加使用次数
 	_, err = requestXiaokefu("kf/ChatWiki/CommonUseTemplate", map[string]any{`template_id`: templateId})
 	if err != nil {
@@ -153,6 +169,9 @@ func requestXiaokefu(api string, data map[string]any) (lib_web.Response, error) 
 		return lib_web.Response{}, fmt.Errorf(`SYSTEM ERROR:%d`, resp.StatusCode)
 	}
 	code := lib_web.Response{}
+	// 获取响应体
+	//returnBody, returnErr := ioutil.ReadAll(resp.Body)
+	//logs.Error(fmt.Sprintf(`结果：%v ,错误:%v`, string(returnBody), returnErr))
 	if err = request.ToJSON(&code); err != nil {
 		return lib_web.Response{}, err
 	}
@@ -160,4 +179,30 @@ func requestXiaokefu(api string, data map[string]any) (lib_web.Response, error) 
 		return code, errors.New(code.Msg)
 	}
 	return code, nil
+}
+
+// CommonGetRobotTemplateDetail 获取机器人模板详情
+func CommonGetRobotTemplateDetail(c *gin.Context) {
+	adminUserId := GetAdminUserId(c)
+	if adminUserId == 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+
+	robotId := cast.ToInt(c.Query(`robot_id`))
+	if robotId <= 0 {
+		common.FmtError(c, `param_err`, `robot_id`)
+		return
+	}
+
+	body := make(map[string]any)
+	body[`robot_id`] = robotId
+	resp, err := requestXiaokefu(`kf/ChatWiki/CommonGetRobotTemplateDetail`, body)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, err.Error())
+		return
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(resp.Data, nil))
 }

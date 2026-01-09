@@ -1,0 +1,8 @@
+{
+  "title": "Add Ernie Bot",
+  "api_key_label": "API Key：",
+  "how_to_get": "How to get?",
+  "api_key_placeholder": "Please enter your API Key",
+  "secret_key_label": "Secret Key：",
+  "secret_key_placeholder": "Please enter your Secret Key"
+}

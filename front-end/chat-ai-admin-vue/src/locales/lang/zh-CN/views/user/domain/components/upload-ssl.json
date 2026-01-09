@@ -1,0 +1,8 @@
+{
+  "title": "上传证书",
+  "domain_label": "域名：",
+  "certificate_file_label": "证书文件(.crt或.pem)",
+  "private_key_label": "私钥文件(.key)",
+  "certificate_required": "请输入证书文件(.crt或.pem)",
+  "private_key_required": "请输入私钥文件(.key)"
+}

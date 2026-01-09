@@ -1,48 +1,41 @@
 <style lang="less" scoped>
-.locale-dropdown {
-  .dropdown-link {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    height: 32px;
-    padding: 0 16px;
-    border-radius: 16px;
-    border: 1px solid #c3cbd9;
-    .lang-icon {
-      width: 16px;
-    }
-    .lang-name {
-      line-height: 22px;
-      padding: 0 5px;
-      font-size: 14px;
-      color: #3a4559;
-    }
+.dropdown-link {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 2px 8px;
+  .lang-icon {
+    width: 16px;
+  }
+  .lang-name {
+    line-height: 22px;
+    padding: 0 5px;
+    font-size: 14px;
+    color: #3a4559;
   }
 }
 </style>
 
 <template>
-  <div class="locale-dropdown">
-    <a-dropdown>
-      <div class="dropdown-link" @click.prevent>
-        <img class="lang-icon" src="../../../assets/img/lang.png" alt="" />
-        <span class="lang-name">{{ selectedLocale.name }}</span
-        ><svg-icon name="arrow-down" style="font-size: 16px; color: #8c8c8c"></svg-icon>
-      </div>
-      <template #overlay>
-        <a-menu @click="setLang">
-          <a-menu-item v-for="item in langMap" :key="item.lang">
-            <a href="javascript:;">{{ item.name }}</a>
-          </a-menu-item>
-        </a-menu>
-      </template>
-    </a-dropdown>
-  </div>
+  <a-dropdown placement="left">
+    <div class="dropdown-link" @click.prevent>
+      <img class="lang-icon" src="../../../assets/img/lang.png" alt="" />
+      <span class="lang-name">{{ selectedLocale.name }}</span>
+      <RightOutlined />
+    </div>
+    <template #overlay>
+      <a-menu @click="setLang">
+        <a-menu-item v-for="item in langMap" :key="item.lang">
+          <a href="javascript:;">{{ item.name }}</a>
+        </a-menu-item>
+      </a-menu>
+    </template>
+  </a-dropdown>
 </template>
 
 <script setup>
 import { computed, unref } from 'vue'
+import { RightOutlined } from '@ant-design/icons-vue';
 import { useLocaleStore } from '@/stores/modules/locale'
 import { useLocale } from '@/hooks/web/useLocale'
 
@@ -58,9 +51,9 @@ const setLang = ({ key }) => {
 
   const { changeLocale } = useLocale()
 
-  changeLocale(key)
-
-  // 需要重新加载页面让整个语言多初始化
-  // window.location.reload()
+  changeLocale(key).then(() => {
+    // 刷新页面
+    window.location.reload()
+  })
 }
 </script>

@@ -26,16 +26,19 @@ type ChatInParam struct {
 	answerMessageId string
 	llmStartTime    time.Time //llm请求开始时间
 	//标志位
-	needRunWorkFlow    bool
-	waitChooseWorkFlow bool
-	showQuoteFile      bool
-	startQuoteFile     bool
-	hitCache           bool
-	keywordSkipAI      bool
-	exitChat           bool //直接退出标志位
-	saveRobotChatCache bool
-	isSwitchManual     bool
-	chanStreamClosed   bool
+	needRunWorkFlow          bool
+	waitChooseWorkFlow       bool
+	showQuoteFile            bool
+	startQuoteFile           bool
+	hitCache                 bool
+	keywordSkipAI            bool
+	exitChat                 bool //直接退出标志位
+	saveRobotChatCache       bool
+	isSwitchManual           bool
+	chanStreamClosed         bool
+	robotAbilityPayment      bool
+	isPaymentManager         bool //是否为应用收费管理员
+	paymentSkipAIAndWorkflow bool //应用收费忽略AI和工作流
 }
 
 // Stream 给前端推送数据流事件
@@ -96,18 +99,20 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 
 	//request
 	request := pipeline.NewPipeline(in, out)
-	request.Pipe(CheckChanStream)      //检查流式输出的管道
-	request.Pipe(SseKeepAlive)         //流式输出保活
-	request.Pipe(StreamPing)           //给前端推送ping
-	request.Pipe(CheckParams)          //请求参数检查
-	request.Pipe(FilterLibrary)        //过滤知识库
-	request.Pipe(CloseOpenApiReceiver) //close open_api receiver
-	request.Pipe(GetDialogueId)        //校验对话或创建对话
-	request.Pipe(GetSessionId)         //获取会话ID
-	request.Pipe(CustomerPush)         //推送customer信息
-	request.Pipe(SaveCustomerMsg)      //保存customer消息
-	request.Pipe(UpLastChatByC)        //更新last_chat
-	request.Pipe(WebsocketNotifyByC)   //接待变更通知
+	request.Pipe(CheckChanStream)        //检查流式输出的管道
+	request.Pipe(SseKeepAlive)           //流式输出保活
+	request.Pipe(StreamPing)             //给前端推送ping
+	request.Pipe(CheckParams)            //请求参数检查
+	request.Pipe(FilterLibrary)          //过滤知识库
+	request.Pipe(CloseOpenApiReceiver)   //close open_api receiver
+	request.Pipe(GetDialogueId)          //校验对话或创建对话
+	request.Pipe(GetSessionId)           //获取会话ID
+	request.Pipe(CustomerPush)           //推送customer信息
+	request.Pipe(SaveCustomerMsg)        //保存customer消息
+	request.Pipe(UpLastChatByC)          //更新last_chat
+	request.Pipe(WebsocketNotifyByC)     //接待变更通知
+	request.Pipe(SetRobotAbilityPayment) //设置机器人应用收费开关标志
+	request.Pipe(CheckPaymentManager)    //设置当前会话是否是授权码管理员
 	request.Process()
 	if out.Error != nil {
 		return //出错后终止逻辑
@@ -129,17 +134,24 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 
 	//func_center
 	funcCenter := pipeline.NewPipeline(in, out)
-	funcCenter.Pipe(CheckKeywordReply)         //关键词检测处理
-	funcCenter.Pipe(CheckReceivedMessageReply) //收到消息回复处理
-	funcCenter.Pipe(PushReplyContentList)      //推送回复内容列表
-	funcCenter.Process()                       //忽略错误,继续向下执行
+	funcCenter.Pipe(CheckKeywordReply)              //关键词检测处理
+	funcCenter.Pipe(SetRobotPaymentAuthCodeManager) //设置授权码管理员
+	funcCenter.Pipe(GetRobotPaymentAuthCodePackage) //管理员获取授权码套餐
+	funcCenter.Pipe(GetRobotPaymentAuthCodeContent) //管理员获取授权码
+	funcCenter.Pipe(ExchangeRobotPaymentAuthCode)   //兑换授权码
+	funcCenter.Pipe(QueryRobotPaymentAuthCodeRight) //查看授权码权益
+	funcCenter.Pipe(CheckReceivedMessageReply)      //收到消息回复处理
+	funcCenter.Pipe(PushReplyContentList)           //推送回复内容列表
+	funcCenter.Process()                            //忽略错误,继续向下执行
 
 	//recall+context
 	recall := pipeline.NewPipeline(in, out)
-	recall.Pipe(CheckKeywordSkipAi)     //检查是否跳过AI回复
-	recall.Pipe(CheckWorkFlowRobot)     //检查工作流机器人
-	recall.Pipe(CheckChatTypeDirect)    //直连模式逻辑
-	recall.Pipe(CheckChatTypeNotDirect) //混合模式和仅知识库模式
+	recall.Pipe(CheckKeywordSkipAi)            //检查是否跳过AI回复
+	recall.Pipe(CheckPaymentSkipAiAndWorkflow) //检查是否跳过AI和工作流回复
+	recall.Pipe(CheckReplyByChatCache)         //检查回复来自聊天缓存
+	recall.Pipe(CheckWorkFlowRobot)            //检查工作流机器人
+	recall.Pipe(CheckChatTypeDirect)           //直连模式逻辑
+	recall.Pipe(CheckChatTypeNotDirect)        //混合模式和仅知识库模式
 	recall.Process()
 	if in.exitChat || out.Error != nil {
 		return //出错或转人工终止逻辑
@@ -147,16 +159,18 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 
 	//call_llm
 	callLlm := pipeline.NewPipeline(in, out)
-	callLlm.Pipe(CheckSkipCallLlm)      //检查是否跳过llm调用
-	callLlm.Pipe(CheckKeywordSkipAi)    //检查是否跳过AI回复
-	callLlm.Pipe(BuildOpenApiContent)   //开放接口自定义上下文处理
-	callLlm.Pipe(BuildFunctionTools)    //构建function tool
-	callLlm.Pipe(SetLlmStartTime)       //设置llm请求开始时间
-	callLlm.Pipe(DoApplicationTypeFlow) //工作流机器人逻辑
-	callLlm.Pipe(DoChatByChatCache)     //通过聊天缓存获取相应内容
-	callLlm.Pipe(DoChatTypeDirect)      //直连模式聊天逻辑
-	callLlm.Pipe(DoChatTypeMixture)     //混合模式聊天逻辑
-	callLlm.Pipe(DoChatTypeLibrary)     //仅知识库模式聊天逻辑
+	callLlm.Pipe(CheckSkipCallLlm)              //检查是否跳过llm调用
+	callLlm.Pipe(CheckKeywordSkipAi)            //检查是否跳过AI回复
+	callLlm.Pipe(CheckPaymentSkipAiAndWorkflow) //检查是否跳过AI和工作流回复
+	callLlm.Pipe(BuildOpenApiContent)           //开放接口自定义上下文处理
+	callLlm.Pipe(BuildFunctionTools)            //构建function tool
+	callLlm.Pipe(SetLlmStartTime)               //设置llm请求开始时间
+	callLlm.Pipe(CheckRobotPaymentAuthCode)     //消耗授权码次数
+	callLlm.Pipe(DoApplicationTypeFlow)         //工作流机器人逻辑
+	callLlm.Pipe(DoChatByChatCache)             //通过聊天缓存获取相应内容
+	callLlm.Pipe(DoChatTypeDirect)              //直连模式聊天逻辑
+	callLlm.Pipe(DoChatTypeMixture)             //混合模式聊天逻辑
+	callLlm.Pipe(DoChatTypeLibrary)             //仅知识库模式聊天逻辑
 	callLlm.Process()
 	if in.exitChat {
 		return //非AI出错后终止逻辑
@@ -164,10 +178,10 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 
 	//work_flow
 	workFlow := pipeline.NewPipeline(in, out)
-	workFlow.Pipe(CheckSkipCallLlm)      //检查是否跳过llm调用
-	workFlow.Pipe(CheckReplyByChatCache) //检查回复来自聊天缓存
-	workFlow.Pipe(DoRelationWorkFlow)    //聊天机器人支持关联工作流
-	workFlow.Process()                   //忽略错误,继续向下执行
+	workFlow.Pipe(CheckSkipCallLlm)              //检查是否跳过llm调用
+	workFlow.Pipe(CheckPaymentSkipAiAndWorkflow) //检查是否跳过AI和工作流回复
+	workFlow.Pipe(DoRelationWorkFlow)            //聊天机器人支持关联工作流
+	workFlow.Process()                           //忽略错误,继续向下执行
 
 	//ending
 	ending := pipeline.NewPipeline(in, out)

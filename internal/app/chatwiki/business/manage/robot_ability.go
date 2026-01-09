@@ -318,7 +318,7 @@ func GetRobotSpecifyAbilityConfig(c *gin.Context) {
 	if len(list) > 0 {
 		common.FmtOk(c, list[0])
 	} else {
-		logs.Error("无指定机器人功能 error: %s", err.Error())
+		logs.Error("无指定机器人功能")
 		common.FmtError(c, `sys_err`)
 	}
 }

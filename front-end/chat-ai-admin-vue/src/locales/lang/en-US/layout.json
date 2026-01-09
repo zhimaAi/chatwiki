@@ -17,6 +17,20 @@
 
     "home": "Home"
   },
+  "navbar": {
+    "new_user_guide": "New User Guide",
+    "enter_robot_detail": "Enter Robot Details",
+    "enter_robot_manage": "Enter Robot Management",
+    "explore": "Explore",
+    "robot": "Application",
+    "knowledge_base": "Knowledge Base",
+    "document": "Document",
+    "search": "Search",
+    "session": "Session",
+    "system_manage": "System Management",
+    "application": "Application",
+    "logout": "Logout"
+  },
   "multipleTab": {
     "reload": "Refresh current",
     "close": "Close current",

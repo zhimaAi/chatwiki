@@ -8,7 +8,7 @@
     class="modal-seclet-new"
   >
     <template #clearIcon>
-      <div class="model-show-block" v-if="selectItem">
+      <div class="model-show-block" v-if="selectItem && selectChildItem">
         <img class="icon" :src="selectItem.model_icon_url" alt="" />
         <div class="name-text">
           {{ selectItem.config_name || selectItem.model_name }}

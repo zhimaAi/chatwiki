@@ -46,7 +46,7 @@
                   <span v-if="modelConfig.model_define == 'doubao' && item.key == 'deployment_name'"
                     >接入点ID</span
                   >
-                  <span v-else>{{ t('views.user.model.' + item.key) }}</span>
+                  <span v-else>{{ t(item.key) }}</span>
                 </div>
               </template>
               <template v-if="item.componentType == 'radio'">
@@ -76,7 +76,7 @@
               <template v-if="item.componentType == 'input'">
                 <a-input v-model:value="formState[item.key]" :placeholder="item.placeholder" />
                 <a :href="item.help_links" target="_blank" v-if="item.key == 'api_key'">{{
-                  t('views.user.model.getApikeyText')
+                  t('getApikeyText')
                 }}</a>
               </template>
             </a-form-item>
@@ -93,7 +93,7 @@ import { getModelFieldConfig } from '../model-config'
 import { Form, message } from 'ant-design-vue'
 import { addModelConfig, editModelConfig } from '@/api/model/index'
 
-const { t } = useI18n()
+const { t } = useI18n('views.user.model')
 const emit = defineEmits(['ok'])
 const useForm = Form.useForm
 

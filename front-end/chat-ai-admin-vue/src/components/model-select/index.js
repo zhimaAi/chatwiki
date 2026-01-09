@@ -79,7 +79,6 @@ export function getCurrentModelConfig(model_config_id, use_model_name, model_typ
     findModel = findConfig.use_model_configs.find((item) => item.use_model_name == use_model_name)
   }
   if (findModel) {
-    console.log(findModel, '===')
     return findModel
   }
   return null

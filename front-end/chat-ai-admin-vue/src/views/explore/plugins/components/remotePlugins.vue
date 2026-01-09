@@ -16,7 +16,9 @@
             <div class="source">{{ item.author }}</div>
           </div>
         </div>
-        <div class="desc zm-line1">{{ item.description }}</div>
+        <a-tooltip :title="getTooltipTitle(item.description, item, 14, 1, 0)" placement="top">
+          <div class="desc zm-line1" :ref="el => setDescRef(el, item)">{{ item.description }}</div>
+        </a-tooltip>
         <div class="version">版本：v{{ item.latest_version }}</div>
         <div class="action-box">
           <div class="left">
@@ -50,6 +52,7 @@ import EmptyBox from "@/components/common/empty-box.vue";
 import {getInstallPlugins, getRemotePlugins} from "@/api/plugins/index.js";
 import LoadingBox from "@/components/common/loading-box.vue";
 import UpdateModal from "./update-modal.vue";
+import { setDescRef, getTooltipTitle } from '@/utils/index'
 
 const emit = defineEmits(['installReport'])
 const props = defineProps({

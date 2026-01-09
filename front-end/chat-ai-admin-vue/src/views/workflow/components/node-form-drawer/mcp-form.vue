@@ -39,7 +39,7 @@
             <!--          <a-input v-model:value="item.value" @change="update" placeholder="键入/插入变量"/>-->
             <AtInput
               type="textarea"
-              inputStyle="height: 64px;"
+              inputStyle="min-height: 32px;"
               :options="variableOptions"
               :defaultSelectedList="item.tags"
               :defaultValue="item.value"
@@ -81,7 +81,7 @@
 <script setup>
 import { jsonDecode } from '@/utils/index'
 import { getTMcpProviderInfo } from '@/api/robot/thirdMcp.js'
-import { ref, reactive, inject, onMounted } from 'vue'
+import { ref, reactive, inject, onMounted, computed } from 'vue'
 import NodeFormLayout from './node-form-layout.vue'
 import NodeFormHeader from './node-form-header.vue'
 import AtInput from '../at-input/at-input.vue'
@@ -106,12 +106,15 @@ const formState = reactive({
 
 const variableOptions = ref([])
 
-let nodeParams = {}
+const nodeParams = reactive({
+  mcp: {}
+})
 
 function init() {
   getValueVariableList();
 
-  nodeParams = JSON.parse(props.node.node_params)
+  const np = JSON.parse(props.node.node_params)
+  Object.assign(nodeParams, np)
 
   loadProvider()
 }

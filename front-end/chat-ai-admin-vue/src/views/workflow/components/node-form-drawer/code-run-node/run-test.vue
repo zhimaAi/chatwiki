@@ -532,10 +532,20 @@ defineExpose({
       }
     }
     .preview-code-box {
+      width: fit-content;
       margin-top: 16px;
       padding: 8px;
       border-radius: 8px;
       border: 1px solid #d9d9d9;
+
+      &::v-deep(.vjs-tree) {
+        width: fit-content;
+      }
+
+      &::v-deep(.vjs-tree-node) {
+        width: calc(100% + 16px);
+        padding-right: 16px;
+      }
     }
   }
 }

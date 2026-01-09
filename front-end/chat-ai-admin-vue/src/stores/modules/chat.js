@@ -237,7 +237,7 @@ export const useChatStore = defineStore('chat', () => {
   // 更新AI的消息到列表
   const updateAiMessage = (type, content, uid) => {
     let msgIndex = messageList.value.findIndex((item) => item.uid == uid)
-
+    console.log(type, content)
     if (type == 'reasoning_content') {
       let oldText = messageList.value[msgIndex].reasoning_content || ''
       messageList.value[msgIndex].reasoning_content = oldText + content

@@ -103,7 +103,7 @@ func IsOnLine(c *gin.Context) {
 }
 
 func ChatMessage(c *gin.Context) {
-	chatBaseParam, err := common.CheckChatRequest(c)
+	chatBaseParam, err := common.CheckChatRequest(c, true)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
@@ -567,6 +567,10 @@ func CallWorkFlow(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, chatRequestParam.Error))
 		return
 	}
+	chatRequestParam.HeaderToken = c.GetHeader(`token`)
+	if len(chatRequestParam.HeaderToken) == 0 {
+		chatRequestParam.HeaderToken = c.Query(`token`)
+	}
 	dialogueId, sessionId, err := GetDialogueSession(chatRequestParam)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
@@ -605,7 +609,12 @@ func CallWorkFlow(c *gin.Context) {
 		}
 	}
 	_, nodeLogs, err := work_flow.BaseCallWorkFlow(workFlowParams)
-	c.String(http.StatusOK, lib_web.FmtJson(nodeLogs, err))
+	useToken, useMills := common.TakeWorkFlowTestUseToken(nodeLogs)
+	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{
+		`node_logs`: nodeLogs,
+		`use_token`: useToken,
+		`use_mills`: useMills,
+	}, err))
 }
 
 func CallLoopWorkFlow(c *gin.Context) {
@@ -614,6 +623,10 @@ func CallLoopWorkFlow(c *gin.Context) {
 	if chatRequestParam.Error != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, chatRequestParam.Error))
 		return
+	}
+	chatRequestParam.HeaderToken = c.GetHeader(`token`)
+	if len(chatRequestParam.HeaderToken) == 0 {
+		chatRequestParam.HeaderToken = c.Query(`token`)
 	}
 	dialogueId, sessionId, err := GetDialogueSession(chatRequestParam)
 	if err != nil {
@@ -683,7 +696,12 @@ func CallLoopWorkFlow(c *gin.Context) {
 		return
 	}
 	_, nodeLogs, err := work_flow.BaseCallWorkFlow(workFlowParams)
-	c.String(http.StatusOK, lib_web.FmtJson(nodeLogs, err))
+	useToken, useMills := common.TakeWorkFlowTestUseToken(nodeLogs)
+	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{
+		`node_logs`: nodeLogs,
+		`use_token`: useToken,
+		`use_mills`: useMills,
+	}, err))
 }
 
 func CallBatchWorkFlow(c *gin.Context) {
@@ -692,6 +710,10 @@ func CallBatchWorkFlow(c *gin.Context) {
 	if chatRequestParam.Error != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, chatRequestParam.Error))
 		return
+	}
+	chatRequestParam.HeaderToken = c.GetHeader(`token`)
+	if len(chatRequestParam.HeaderToken) == 0 {
+		chatRequestParam.HeaderToken = c.Query(`token`)
 	}
 	dialogueId, sessionId, err := GetDialogueSession(chatRequestParam)
 	if err != nil {
@@ -761,7 +783,12 @@ func CallBatchWorkFlow(c *gin.Context) {
 		return
 	}
 	_, nodeLogs, err := work_flow.BaseCallWorkFlow(workFlowParams)
-	c.String(http.StatusOK, lib_web.FmtJson(nodeLogs, err))
+	useToken, useMills := common.TakeWorkFlowTestUseToken(nodeLogs)
+	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{
+		`node_logs`: nodeLogs,
+		`use_token`: useToken,
+		`use_mills`: useMills,
+	}, err))
 }
 
 func CallLoopWorkFlowParams(c *gin.Context) {

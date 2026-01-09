@@ -61,8 +61,10 @@ function show(p, v, l = null) {
 function install() {
   installing.value = true
   downloadPlugin({
-    url: version.value.download_url,
-    version_id: version.value.id
+    download_data: JSON.stringify([{
+      url: version.value.download_url,
+      version_id: version.value.id
+    }])
   }).then(() => {
     emit('ok')
     open.value = false

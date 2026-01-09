@@ -12,6 +12,7 @@ import (
 
 const (
 	RobotAbilityAutoReply            = `robot_auto_reply`             //自动回复功能 包含关键词回复 和 收到消息回复
+	RobotAbilityPayment              = `robot_payment`                //应用收费
 	RobotAbilityKeywordReply         = `robot_keyword_reply`          //关键词回复功能
 	RobotAbilityReceivedMessageReply = `robot_received_message_reply` //收到消息回复功能
 	RobotAbilitySubscribeReply       = `robot_subscribe_reply`        //关注后回复功能
@@ -20,8 +21,11 @@ const (
 )
 
 var DefaultRobotConfig = msql.Params{
-	"switch_status": cast.ToString(define.SwitchOff), //开启状态
-	"fixed_menu":    cast.ToString(define.SwitchOff), //固定菜单
+	"switch_status":   cast.ToString(define.SwitchOff), //开启状态
+	"fixed_menu":      cast.ToString(define.SwitchOff), //固定菜单
+	"show_select":     cast.ToString(define.SwitchOn),  //是否显示选择
+	"robot_only_show": cast.ToString(define.SwitchOff), //机器人功能中心中仅显示 这个不展示开关和固定菜单
+
 }
 
 // RobotAbilityList 机器人能力列表
@@ -57,6 +61,26 @@ var RobotAbilityList = []Ability{
 					UniKey: "RobotAbilityReceivedMessageReply",
 				},
 			},
+		},
+	},
+	{
+		Name:          "应用收费",
+		ModuleType:    RobotModule,         //模块类型
+		AbilityType:   RobotAbilityPayment, //全局唯一值 类型
+		Introduction:  "支持为用户设置收费策略，用户在付费后才能使用对应功能，实现AI能力变现",
+		Details:       "查看详情中的信息 前端自己定义",
+		Icon:          "iconfont icon-keyword-payment",
+		ShowSelect:    define.SwitchOn,
+		RobotOnlyShow: define.SwitchOff,
+		SupportChannelsList: []string{
+			"公众号",
+		},
+		RobotConfig: DefaultRobotConfig,
+		Menu: define.Menu{
+			Name:     "应用收费",
+			UniKey:   "RobotAbilityPayment",
+			Path:     "/robot/ability/payment",
+			Children: []*define.Menu{},
 		},
 	},
 	{
@@ -221,15 +245,24 @@ func GetRobotAbilityList(robotId int, adminUserId int, specifyAbilityType string
 		if specifyAbilityType != `` && item.AbilityType != specifyAbilityType {
 			continue
 		}
-		userConfig, isUserOk := userConfigMap[item.AbilityType]
-		if !isUserOk {
-			//用户没有配置的
-			continue
-		}
-		item.UserConfig = userConfig
-		if userConfig["switch_status"] != cast.ToString(define.SwitchOn) {
-			//用户关闭配置的
-			continue
+		if specifyAbilityType == `` { //非指定的显示
+			userConfig, isUserOk := userConfigMap[item.AbilityType]
+			if !isUserOk {
+				//用户没有配置的
+				continue
+			}
+			item.UserConfig = userConfig
+			if userConfig["switch_status"] != cast.ToString(define.SwitchOn) {
+				//用户关闭配置的
+				continue
+			}
+		} else { //指定配置显示
+			userConfig, isUserOk := userConfigMap[item.AbilityType]
+			if isUserOk {
+				item.UserConfig = userConfig
+			} else {
+				item.UserConfig = DefaultRobotConfig //默认关闭
+			}
 		}
 		robotConfig, isOk := robotConfigMap[item.AbilityType]
 		if isOk {

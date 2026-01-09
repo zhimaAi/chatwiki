@@ -14,15 +14,15 @@
         @change="handleCascaderChange"
         v-model:value="cascaderValue"
         :options="options"
-        placeholder="全部应用"
+        :placeholder="t('views.user.usetoken.all_apps')"
       />
     </div>
     <div class="list-box">
-      <div class="main-title">使用趋势（单位：千）</div>
+      <div class="main-title">{{ t('views.user.usetoken.usage_trend') }}</div>
       <LineChart :options="lineChartData" />
       <div class="main-title">
-        明细数据（单位：千）
-        <div style="margin-left: auto"><a-button @click="handleExport">导出</a-button></div>
+        {{ t('views.user.usetoken.detail_data') }}
+        <div style="margin-left: auto"><a-button @click="handleExport">{{ t('views.user.usetoken.export') }}</a-button></div>
       </div>
       <a-table
         style="margin-top: 16px"
@@ -37,20 +37,20 @@
         }"
         @change="onTableChange"
       >
-        <a-table-column title="类型" data-index="token_app_type_desc" :width="100">
+        <a-table-column :title="t('views.user.usetoken.type')" data-index="token_app_type_desc" :width="100">
           <template #default="{ record }">{{ record.token_app_type_desc }}</template>
         </a-table-column>
-        <a-table-column title="应用名称" data-index="robot_name" :width="140"> </a-table-column>
-        <a-table-column title="合计消耗(k)" data-index="total_token_desc" :width="140">
+        <a-table-column :title="t('views.user.usetoken.app_name')" data-index="robot_name" :width="140"> </a-table-column>
+        <a-table-column :title="t('views.user.usetoken.total_consumption') + '(k)'" data-index="total_token_desc" :width="140">
           <template #default="{ record }">{{ record.total_token_desc }}</template>
         </a-table-column>
-        <a-table-column title="输入(k)" data-index="prompt_token_desc" :width="140">
+        <a-table-column :title="t('views.user.usetoken.input') + '(k)'" data-index="prompt_token_desc" :width="140">
           <template #default="{ record }">{{ record.prompt_token_desc }}</template>
         </a-table-column>
-        <a-table-column title="输出(k)" data-index="completion_token_desc" :width="140">
+        <a-table-column :title="t('views.user.usetoken.output') + '(k)'" data-index="completion_token_desc" :width="140">
           <template #default="{ record }">{{ record.completion_token_desc }}</template>
         </a-table-column>
-        <a-table-column title="日期" data-index="date" :width="140">
+        <a-table-column :title="t('views.user.usetoken.date')" data-index="date" :width="140">
           <template #default="{ record }">{{ record.date }}</template>
         </a-table-column>
       </a-table>
@@ -60,11 +60,14 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import dayjs from 'dayjs'
 import { getRobotList } from '@/api/robot/index.js'
 import { tokenApp, tokenAppChart } from '@/api/manage/index.js'
 import LineChart from './components/line-chart.vue'
 import { getDateRangePresets, tableToExcel } from '@/utils/index'
+
+const { t } = useI18n()
 const dateRangePresets = getDateRangePresets()
 
 const dates = ref([dayjs().subtract(7, 'day'), dayjs()])
@@ -99,9 +102,9 @@ const onTableChange = (pagination) => {
 }
 
 let token_app_type_map = {
-  chatwiki_robot: '机器人',
-  workflow: '工作流',
-  other: '其他'
+  chatwiki_robot: t('views.user.usetoken.robot'),
+  workflow: t('views.user.usetoken.workflow'),
+  other: t('views.user.usetoken.other')
 }
 
 const getAppList = () => {
@@ -145,7 +148,7 @@ const handleExport = () => {
       }
     })
 
-    let headers = '类型,应用名称,合计消耗(k),输入(k),输出(k),日期\n'
+    let headers = `${t('views.user.usetoken.type')},${t('views.user.usetoken.app_name')},${t('views.user.usetoken.total_consumption')}(k),${t('views.user.usetoken.input')}(k),${t('views.user.usetoken.output')}(k),${t('views.user.usetoken.date')}\n`
     let fieds = [
       'token_app_type_desc',
       'robot_name',
@@ -154,7 +157,7 @@ const handleExport = () => {
       'completion_token_desc',
       'date'
     ]
-    tableToExcel(headers, lsit, fieds, '明细数据-' + dayjs().format('YYYY-MM-DD HH:mm:ss'))
+    tableToExcel(headers, lsit, fieds, t('views.user.usetoken.detail_data_prefix') + dayjs().format('YYYY-MM-DD HH:mm:ss'))
   })
 }
 
@@ -222,7 +225,7 @@ onMounted(() => {
     let workflowRobot = robotLists.filter((item) => item.application_type == 1)
     options.value = [
       {
-        label: '机器人',
+        label: t('views.user.usetoken.robot'),
         value: 'chatwiki_robot',
         children: chatRobot.map((item) => {
           return {
@@ -232,7 +235,7 @@ onMounted(() => {
         })
       },
       {
-        label: '工作流',
+        label: t('views.user.usetoken.workflow'),
         value: 'workflow',
         children: workflowRobot.map((item) => {
           return {
@@ -242,7 +245,7 @@ onMounted(() => {
         })
       },
       {
-        label: '其他',
+        label: t('views.user.usetoken.other'),
         value: 'other'
       }
     ]

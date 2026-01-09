@@ -6,7 +6,11 @@
 <script setup>
 import * as echarts from 'echarts'
 import { ref, onMounted, watch, onBeforeUnmount, nextTick } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 // import dayjs from 'dayjs'
+
+const { t } = useI18n('views.user.usetoken')
+
 const props = defineProps({
   options: {
     // 柱形图x轴数据
@@ -41,7 +45,7 @@ const updateChat = () => {
         color: '#262626',
         fontSize: '14px'
       },
-      data: ['输入', '输出', '合计'],
+      data: [t('input'), t('output'), t('total')],
       itemHeight: 6, //圆心
       itemWidth: 6, //折线
 
@@ -92,7 +96,7 @@ const updateChat = () => {
     },
     series: [
       {
-        name: '输入',
+        name: t('input'),
         type: 'line',
         showSymbol: false,
         data: props.options.series.map((item) => item.prompt_token),
@@ -100,7 +104,7 @@ const updateChat = () => {
         color: '#2475fc'
       },
       {
-        name: '输出',
+        name: t('output'),
         type: 'line',
         showSymbol: false,
         data: props.options.series.map((item) => item.completion_token),
@@ -108,7 +112,7 @@ const updateChat = () => {
         color: '#646161'
       },
       {
-        name: '合计',
+        name: t('total'),
         type: 'line',
         showSymbol: false,
         data: props.options.series.map((item) => item.total_token),

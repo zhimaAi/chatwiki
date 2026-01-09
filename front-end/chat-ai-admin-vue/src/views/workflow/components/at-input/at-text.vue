@@ -1,5 +1,5 @@
 <template>
-  <span  ref="JMention"  class="j-mention"  :class="['type-'+type]" ></span>
+  <span ref="JMention"  class="j-mention"  :class="['type-'+type]" ></span>
 </template>
 
 <script>
@@ -19,7 +19,7 @@ const getTreeOptions = (options) => {
 export default {
   name: "JMention",
   inject: [],
-  emits: ["input", 'change', "update:selectedList", "focus", 'open'],
+  emits: ["input", 'change', "update:selectedList", "focus", 'open', 'resize'],
   props: {
     type: {
       type: String,
@@ -180,7 +180,7 @@ export default {
           text = text.replace(/\./g, '/')
 
           html = html.replace(regex,
-            `<span class="j-mention-at" data-id="${opt.node_id}" contentEditable="false" data-value="${opt.value}">${text}</span> `
+            `<span class="j-mention-at" data-id="${opt.node_id}" contentEditable="false" data-value="${opt.value}">${text}</span>`
           );
 
           replacedValues.add(opt.value);
@@ -191,6 +191,10 @@ export default {
 
       JMention.innerHTML = html;
       this.localValue = this.defaultValue;
+
+      this.$nextTick(() => {
+        this.$emit('resize');
+      })
     },
     initShowOptionList() {
       this.showOptions = this.options.filter((opt) => {
@@ -200,37 +204,6 @@ export default {
         if (this.canRepeat) return true;
         return !this.selectedIdSet.has(opt.id + "");
       });
-    },
-    dropDownKeydown(event) {
-      const { keyCode } = event;
-      if (!this.showDropdown) {
-        // 阻止enter键的默认行为
-        if (keyCode === 13 && this.type === 'input') {
-          event.preventDefault();
-          event.stopPropagation();
-          return;
-        }
-        return
-      };
-
-      const keyCodeList = [13, 38, 40];
-      if (!keyCodeList.includes(keyCode)) return;
-      event.preventDefault();
-      event.stopPropagation();
-
-      if (keyCode === 13) {
-        return;
-      }
-
-      const map = {
-        38: -1,
-        40: 1,
-      };
-      this.chooseIndex += map[keyCode] || 0;
-      this.chooseIndex = Math.max(
-        0,
-        Math.min(this.chooseIndex, this.showOptions.length - 1)
-      );
     },
     getLastChar(len = 1) {
       const selection = window.getSelection();
@@ -372,48 +345,7 @@ export default {
       return list.length > 0;
     },
     updateValue() {
-      if(this.timer){
-        clearTimeout(this.timer);
-        this.timer = null;
-      }
-
-      this.timer = setTimeout(() => {
-        this.onChange();
-      }, 100);
-    },
-    clickJMention() {
-      this.showDropdown = false;
-      this.showAtList = false;
-    },
-    async divInput(e) {
-      this.updateValue();
-      const lastChar = this.getLastChar();
-      if (e.inputType === "deleteContentBackward" && !this.atText) {
-        this.showDropdown = false;
-        this.showAtList = false;
-      }
-      if (lastChar === "/") {
-        this.showDropdown = true;
-        this.atText = "";
-      } else {
-        const text = this.getLastAtText();
-        this.atText = text;
-        const isExistStartWith = this.checkStartWith(text);
-        if (text) {
-          this.showDropdown = isExistStartWith;
-        }
-      }
-      // this.updateSelectedList();
-      if (!this.showDropdown) {
-        return;
-      }
-      const { x, y } = await this.getCaretPosition();
-      this.showDropdown = true;
-      this.positionStyle = "";
-      this.positionStyle += `left:${x}px;`;
-      this.positionStyle += `top:${y}px;`;
-      this.chooseIndex = 0;
-      this.showAtList = true;
+      this.onChange();
     },
     insertAtCaret(text, dataSet) {
       let len = this.atText.length + 1;
@@ -450,10 +382,10 @@ export default {
         span.style = this.atTextStyle;
         span.textContent = `${text}`;
 
-        const tmp = document.createElement("span");
-        tmp.contentEditable = true;
-        tmp.innerHTML += "&nbsp;";
-        tmp.classList.add("at-space");
+        // const tmp = document.createElement("span");
+        // tmp.contentEditable = true;
+        // tmp.innerHTML += "&nbsp;";
+        // tmp.classList.add("at-space");
 
         for (const key in dataSet) {
           span.dataset[key] = dataSet[key];
@@ -469,8 +401,8 @@ export default {
         let nextNode = span.nextSibling;
         if (!nextNode) {
           // 如果 span 元素后面没有兄弟节点，创建一个新的文本节点
-          nextNode = document.createTextNode("");
-          tmp.parentNode.appendChild(nextNode);
+          // nextNode = document.createTextNode("");
+          // tmp.parentNode.appendChild(nextNode);
         }
         range.setStart(nextNode, 1);
         range.setEnd(nextNode, 1);

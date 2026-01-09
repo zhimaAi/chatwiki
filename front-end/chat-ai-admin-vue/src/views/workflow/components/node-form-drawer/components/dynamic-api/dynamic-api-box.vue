@@ -8,20 +8,24 @@
         <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>输入</div>
       </div>
       <div
-        v-for="item in paramList"
+        v-for="item in displayParamList"
         :key="item.key"
         class="options-item"
         :class="{'is-required': item.meta?.required}"
       >
-        <div class="options-item-tit">
+      <div class="options-item-tit">
           <div class="option-label">{{ item.meta?.name || item.key }}
-            <a-tooltip title="同步最新的标签" v-if="item.meta?.tag_component">
+            <a-tooltip title="同步最新的标签" v-if="item.meta?.tag_component" :overlayStyle="{ maxWidth: '800px' }">
               <a @click="syncFieldTags(item.key, item.meta)">同步 <a-spin v-if="syncingTags[item.key]" size="small" /></a>
             </a-tooltip>
-            <a-tooltip v-if="item.meta?.tip" :title="item.meta?.tip">
+            <a-tooltip v-if="item.meta?.tip" :overlayStyle="{ maxWidth: '800px' }">
+              <template #title>
+                <div class="tip-content">{{ item.meta?.tip }}</div>
+              </template>
               <QuestionCircleOutlined />
             </a-tooltip>
           </div>
+          <div class="option-type">{{ item.meta?.type || 'string' }}</div>
         </div>
         <div v-if="item.meta?.select_official_component">
           <a-select
@@ -77,7 +81,65 @@
           <div class="desc">{{ item.meta?.desc }}</div>
           <div v-if="errors[item.key]" class="desc" style="color:#FB363F;">{{ errors[item.key] }}</div>
         </div>
-        <div v-else-if="item.meta?.tag_component">
+        <div v-else-if="item.meta?.date_range_begin_component">
+          <div class="tag-box">
+            <a-select
+              v-model:value="dateRangeTypes[item.meta?.begin_date_key]"
+              @change="(val) => dateRangeTypeChange(item.meta, val)"
+              style="width: 120px; padding-right: 4px;"
+            >
+              <a-select-option :value="1">选择日期</a-select-option>
+              <a-select-option :value="2">插入变量</a-select-option>
+            </a-select>
+            <a-range-picker
+              v-if="dateRangeTypes[item.meta?.begin_date_key] == 1"
+              :value="getRangeValue(item.meta)"
+              format="YYYY-MM-DD"
+              style="width: 100%;"
+              @calendarChange="(dates) => onDateRangeCalendarChange(item.meta, dates)"
+              @change="(dates, dateStrings) => onDateRangeChange(item.meta, dates, dateStrings)"
+              :disabled-date="(current) => getDisabledDateForRange(item.meta, current)"
+            />
+            <template v-else>
+              <AtInput
+                inputStyle="height: 33px; width: 214px;"
+                :options="variableOptions"
+                :defaultSelectedList="formState[(item.meta?.begin_date_key || '') + '_tags'] || []"
+                :defaultValue="formState[item.meta?.begin_date_key] || ''"
+                @open="emit('updateVar')"
+                @change="(text, selectedList) => onChangeDynamic(item.meta?.begin_date_key, text, selectedList)"
+                placeholder="请输入开始日期，键入“/”可以插入变量"
+              >
+                <template #option="{ label, payload }">
+                  <div class="field-list-item">
+                    <div class="field-label">{{ label }}</div>
+                    <div class="field-type">{{ payload.typ }}</div>
+                  </div>
+                </template>
+              </AtInput>
+              <div class="date-range-separator">-</div>
+              <AtInput
+                inputStyle="height: 33px; width: 214px;"
+                :options="variableOptions"
+                :defaultSelectedList="formState[(item.meta?.end_date_key || '') + '_tags'] || []"
+                :defaultValue="formState[item.meta?.end_date_key] || ''"
+                @open="emit('updateVar')"
+                @change="(text, selectedList) => onChangeDynamic(item.meta?.end_date_key, text, selectedList)"
+                placeholder="请输入结束日期，键入“/”可以插入变量"
+              >
+                <template #option="{ label, payload }">
+                  <div class="field-list-item">
+                    <div class="field-label">{{ label }}</div>
+                    <div class="field-type">{{ payload.typ }}</div>
+                  </div>
+                </template>
+              </AtInput>
+            </template>
+          </div>
+          <div class="desc">{{ item.meta?.desc }}</div>
+          <div v-if="errors[item.key]" class="desc" style="color:#FB363F;">{{ errors[item.key] }}</div>
+        </div>
+        <div v-else-if="item.meta?.tag_component && showTagComponents">
           <div class="tag-box">
             <a-select
               v-model:value="tagTypes[item.key]"
@@ -164,8 +226,8 @@
 
 <script setup>
 import { QuestionCircleOutlined } from '@ant-design/icons-vue';
-import {ref, reactive, onMounted, computed, inject} from 'vue'
-import OutputFields from "@/views/workflow/components/feishu-table/output-fields.vue";
+import {ref, reactive, onMounted, computed, inject, watch} from 'vue'
+import OutputFields from "./output-fields.vue";
 import {pluginOutputToTree} from "@/constants/plugin.js";
 import {getWechatAppList} from "@/api/robot/index.js";
 import { useEventBus } from '@/hooks/event/useEventBus.js'
@@ -173,6 +235,7 @@ import AtInput from '@/views/workflow/components/at-input/at-input.vue'
 import { isValidURL } from '@/utils/validate.js'
 import { runPlugin } from '@/api/plugins/index.js'
 import { message } from 'ant-design-vue'
+import dayjs from 'dayjs'
 
 const emit = defineEmits(['updateVar'])
 const props = defineProps({
@@ -220,6 +283,46 @@ const outputData = ref([])
 const tagLists = reactive({})
 const tagTypes = reactive({})
 const syncingTags = reactive({})
+const dateRangeTypes = reactive({})
+const dateAnchors = reactive({})
+
+const showTagComponents = computed(() => {
+  const hasTag = paramList.value.some((it) => it.meta?.tag_component)
+  if (!hasTag) return false
+  return paramList.value.some((it) => {
+    const meta = it.meta || {}
+    const enumList = Array.isArray(meta.enum) ? meta.enum : []
+    if (!(meta.enum_component || meta.radio_component) || enumList.length === 0) return false
+    const selected = String(formState[it.key] ?? '')
+    const opt = enumList.find((e) => String(e?.value) === selected)
+    const related = opt?.related_tags
+    return related === true || related === 1 || related === 'true' || related === '1'
+  })
+})
+
+const displayParamList = computed(() => {
+  return (paramList.value || [])
+    .filter((it) => !(it.meta?.tag_component && !showTagComponents.value))
+})
+
+watch(showTagComponents, (val) => {
+  if (!val) {
+    let changed = false
+    paramList.value.forEach((it) => {
+      if (it.meta?.tag_component) {
+        if (formState[it.key]) {
+          formState[it.key] = ''
+          changed = true
+        }
+        if (Array.isArray(formState[it.key + '_tags']) && formState[it.key + '_tags'].length) {
+          formState[it.key + '_tags'] = []
+          changed = true
+        }
+      }
+    })
+    if (changed) update()
+  }
+})
 
 onMounted(() => {
   init()
@@ -260,6 +363,17 @@ function nodeParamsAssign() {
     formState[it.key] = it.key !== 'app_id' ? String(arg[it.key] || '').trim() : arg[it.key]
     const tagMap = arg?.tag_map || {}
     formState[it.key + '_tags'] = Array.isArray(tagMap[it.key]) ? tagMap[it.key] : []
+    if (it.meta?.date_range_begin_component) {
+      const endKey = it.meta?.end_date_key
+      const typeKey = it.meta?.date_type_key
+      formState[endKey] = String(arg[endKey] || '').trim()
+      formState[endKey + '_tags'] = Array.isArray(tagMap[endKey]) ? tagMap[endKey] : []
+      const typeVal = arg[typeKey]
+      dateRangeTypes[it.meta?.begin_date_key] =
+        typeof dateRangeTypes[it.meta?.begin_date_key] === 'number'
+          ? dateRangeTypes[it.meta?.begin_date_key]
+          : (typeVal == null ? 1 : Number(typeVal) || 1)
+    }
   })
   if (arg.app_secret) formState.app_secret = String(arg.app_secret)
   if (arg.app_name) formState.app_name = String(arg.app_name)
@@ -319,7 +433,9 @@ function onChangeDynamic (key, text, selectedList) {
 }
 
 function buildRendering () {
-  return paramList.value.map((it) => {
+  return paramList.value
+    .filter((it) => !(it.meta?.tag_component && !showTagComponents.value))
+    .map((it) => {
     let label = it.meta?.name || it.key
     let value = String(formState[it.key] ?? '')
 
@@ -340,6 +456,22 @@ function buildRendering () {
         value = String(opt.name)
       }
     }
+    if (it.meta?.date_range_begin_component) {
+      const beginKey = it.meta?.begin_date_key
+      const endKey = it.meta?.end_date_key
+      const beginVal = String(formState[beginKey] || '')
+      const endVal = String(formState[endKey] || '')
+      const beginTags = Array.isArray(formState[beginKey + '_tags']) ? formState[beginKey + '_tags'] : []
+      const endTags = Array.isArray(formState[endKey + '_tags']) ? formState[endKey + '_tags'] : []
+      value = [beginVal, endVal].filter(Boolean).join(' ~ ')
+      const mergedTags = [...beginTags, ...endTags]
+      return {
+        label,
+        value,
+        key: it.key,
+        tags: mergedTags
+      }
+    }
     return {
       label,
       value,
@@ -352,9 +484,17 @@ function buildRendering () {
 function buildTagMap() {
   const tagMap = {}
   paramList.value.forEach((it) => {
+    if (it.meta?.tag_component && !showTagComponents.value) return
     const tags = Array.isArray(formState[it.key + '_tags']) ? formState[it.key + '_tags'] : []
     if (tags.length) {
       tagMap[it.key] = tags
+    }
+    if (it.meta?.date_range_begin_component) {
+      const endKey = it.meta?.end_date_key
+      const endTags = Array.isArray(formState[endKey + '_tags']) ? formState[endKey + '_tags'] : []
+      if (endTags.length) {
+        tagMap[endKey] = endTags
+      }
     }
   })
   return tagMap
@@ -363,7 +503,15 @@ function buildTagMap() {
 function buildArguments() {
   const args = {}
   paramList.value.forEach(it => {
+    if (it.meta?.tag_component && !showTagComponents.value) return
     args[it.key] = String(formState[it.key] || '')
+    if (it.meta?.date_range_begin_component) {
+      const endKey = it.meta?.end_date_key
+      const typeKey = it.meta?.date_type_key
+      args[endKey] = String(formState[endKey] || '')
+      const typeVal = dateRangeTypes[it.meta?.begin_date_key] || 1
+      args[typeKey] = String(typeVal)
+    }
   })
   if (formState.app_secret) {
     args.app_secret = String(formState.app_secret || '')
@@ -409,6 +557,65 @@ function validateAll () {
         errors[key] = msg
         result.ok = false
         result.errors.push({ field_name: meta.name || key, message: msg })
+      }
+      return
+    }
+    if (meta.date_range_begin_component) {
+      const beginKey = meta.begin_date_key
+      const endKey = meta.end_date_key
+      const beginVal = String(formState[beginKey] || '').trim()
+      const endVal = String(formState[endKey] || '').trim()
+      const beginTags = Array.isArray(formState[beginKey + '_tags']) ? formState[beginKey + '_tags'] : []
+      const endTags = Array.isArray(formState[endKey + '_tags']) ? formState[endKey + '_tags'] : []
+      if (meta.required && (!beginVal && beginTags.length === 0 || !endVal && endTags.length === 0)) {
+        const msg = meta.error || '请选择起止时间'
+        errors[key] = msg
+        result.ok = false
+        result.errors.push({ field_name: meta.name || key, message: msg })
+        return
+      }
+      const typeVal = dateRangeTypes[beginKey]
+      if (typeVal === 2) {
+        // 插入变量模式：仅校验纯文本输入的格式为 YYYY-MM-DD；引用变量不校验格式
+        const isValidDateStr = (str) => {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return false
+          const d = dayjs(str)
+          return d.isValid()
+        }
+        if (beginVal && beginTags.length === 0 && !isValidDateStr(beginVal)) {
+          const msg = meta.error || '开始日期格式需为YYYY-MM-DD'
+          errors[key] = msg
+          result.ok = false
+          result.errors.push({ field_name: meta.name || key, message: msg })
+          return
+        }
+        if (endVal && endTags.length === 0 && !isValidDateStr(endVal)) {
+          const msg = meta.error || '结束日期格式需为YYYY-MM-DD'
+          errors[key] = msg
+          result.ok = false
+          result.errors.push({ field_name: meta.name || key, message: msg })
+          return
+        }
+      }
+      if (beginVal && endVal) {
+        const b = dayjs(beginVal)
+        const e = dayjs(endVal)
+        if (e.isBefore(b)) {
+          const msg = meta.error || '结束时间不能早于开始时间'
+          errors[key] = msg
+          result.ok = false
+          result.errors.push({ field_name: meta.name || key, message: msg })
+          return
+        }
+        const interval = e.diff(b, 'day')
+        const allowedDays = Number(meta.date_range_max_interval || 0)
+        if (allowedDays > 0 && (interval + 1) > allowedDays) {
+          const msg = meta.error || `时间跨度不能超过${allowedDays}天`
+          errors[key] = msg
+          result.ok = false
+          result.errors.push({ field_name: meta.name || key, message: msg })
+          return
+        }
       }
       return
     }
@@ -487,6 +694,65 @@ function syncFieldTags(fieldKey, meta) {
 
 const filterOption = (input, option) => {
   return option.name.toLowerCase().indexOf(input.toLowerCase()) >= 0
+}
+
+function dateRangeTypeChange(meta, val) {
+  dateRangeTypes[meta.begin_date_key] = val
+  const typeKey = meta?.date_type_key
+  if (typeKey) {
+    formState[typeKey] = String(val)
+  }
+  const beginKey = meta.begin_date_key
+  const endKey = meta.end_date_key
+  if (val === 1) {
+    formState[beginKey] = ''
+    formState[endKey] = ''
+    formState[beginKey + '_tags'] = []
+    formState[endKey + '_tags'] = []
+    dateAnchors[beginKey] = null
+  } else if (val === 2) {
+    formState[beginKey] = ''
+    formState[endKey] = ''
+    dateAnchors[beginKey] = null
+  }
+  update()
+}
+
+function getRangeValue(meta) {
+  const b = formState[meta.begin_date_key]
+  const e = formState[meta.end_date_key]
+  return [b ? dayjs(b) : null, e ? dayjs(e) : null]
+}
+
+function onDateRangeCalendarChange(meta, dates) {
+  const key = meta.begin_date_key
+  if (Array.isArray(dates) && dates[0]) {
+    dateAnchors[key] = dates[0]
+  } else {
+    dateAnchors[key] = null
+  }
+}
+
+function onDateRangeChange(meta, dates, dateStrings) {
+  formState[meta.begin_date_key] = dateStrings[0] || ''
+  formState[meta.end_date_key] = dateStrings[1] || ''
+  if ((!dateStrings[0] && !dateStrings[1])) {
+    dateAnchors[meta.begin_date_key] = null
+  }
+  update()
+}
+
+function getDisabledDateForRange(meta, current) {
+  if (!current) return false
+  const endMax = meta.end_date_max ? dayjs(meta.end_date_max) : null
+  if (endMax && current.isAfter(endMax, 'day')) return true
+  const anchor = dateAnchors[meta.begin_date_key]
+  const maxInterval = Number(meta.date_range_max_interval || 0)
+  if (anchor && maxInterval > 0) {
+    const limit = dayjs(anchor).add(maxInterval - 1, 'day')
+    return current.isAfter(limit, 'day')
+  }
+  return false
 }
 </script>
 
@@ -595,5 +861,13 @@ const filterOption = (input, option) => {
   :deep(.mention-input-warpper) {
     height: 33px;
   }
+}
+
+.date-range-separator {
+  padding: 0 6px;
+}
+
+.tip-content {
+  white-space: pre-wrap;
 }
 </style>

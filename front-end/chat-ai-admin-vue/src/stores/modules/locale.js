@@ -6,9 +6,10 @@ import { useStorage } from '@/hooks/web/useStorage'
 
 const { getStorage, setStorage } = useStorage('localStorage')
 
-const elLocaleMap = {
+const antvLocaleMap = {
   'zh-CN': zhCn,
-  en: en
+  'en-US': en,
+  'en': en  // 兼容旧版本
 }
 
 export const useLocaleStore = defineStore('locales', {
@@ -16,7 +17,7 @@ export const useLocaleStore = defineStore('locales', {
     return {
       currentLocale: {
         lang: getStorage('lang') || 'zh-CN',
-        elLocale: elLocaleMap[getStorage('lang') || 'zh-CN']
+        antvLocale: antvLocaleMap[getStorage('lang') || 'zh-CN']
       },
       // 多语言
       localeMap: [
@@ -46,7 +47,7 @@ export const useLocaleStore = defineStore('locales', {
     setCurrentLocale(localeMap) {
       // this.locale = Object.assign(this.locale, localeMap)
       this.currentLocale.lang = localeMap?.lang
-      this.currentLocale.elLocale = elLocaleMap[localeMap?.lang]
+      this.currentLocale.antvLocale = antvLocaleMap[localeMap?.lang]
       setStorage('lang', localeMap?.lang)
     }
   }

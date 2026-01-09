@@ -265,3 +265,38 @@ func WebsocketNotifyByC(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult 
 	common.ReceiverChangeNotify(in.params.AdminUserId, `c_message`, out.cMessage)
 	return pipeline.PipeContinue
 }
+
+// SetRobotAbilityPayment SetRobotAbilityPayment
+func SetRobotAbilityPayment(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	robotAbilityConfig := common.GetRobotAbilityConfigByAbilityType(in.params.AdminUserId, cast.ToInt(in.params.Robot[`id`]), common.RobotAbilityPayment)
+	if len(robotAbilityConfig) != 0 {
+		if len(in.params.AppInfo) > 0 &&
+			len(in.params.ReceivedMessageType) > 0 &&
+			in.params.ReceivedMessageType == lib_define.MsgTypeText &&
+			tool.InArrayString(in.params.AppInfo[`app_type`], []string{lib_define.AppOfficeAccount, lib_define.AppMini, lib_define.AppWechatKefu}) {
+			in.robotAbilityPayment = true
+		}
+	}
+	return pipeline.PipeContinue
+}
+
+// CheckPaymentManager 设置当前会话是否是授权码管理员
+func CheckPaymentManager(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	if !in.robotAbilityPayment {
+		return pipeline.PipeContinue
+	}
+	info, err := msql.Model(`robot_payment_auth_code_manager`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(in.params.AdminUserId)).
+		Where(`robot_id`, in.params.Robot[`id`]).
+		Where(`manager_openid`, in.params.Openid).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		return pipeline.PipeContinue
+	}
+	if len(info) == 0 {
+		return pipeline.PipeContinue
+	}
+	in.isPaymentManager = true
+	return pipeline.PipeContinue
+}

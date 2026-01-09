@@ -21,6 +21,7 @@
 
 <template>
   <node-common
+    :properties="properties"
     :title="properties.node_name"
     :menus="menus"
     :icon-name="properties.node_icon_name"

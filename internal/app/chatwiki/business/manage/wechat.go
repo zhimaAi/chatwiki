@@ -224,6 +224,19 @@ func SaveWechatApp(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `app_type`))))
 		return
 	}
+	//official account access quantity limit
+	if appType == lib_define.AppOfficeAccount && id == 0 {
+		count, err := msql.Model(`chat_ai_wechat_app`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).Where(`app_type`, appType).Count()
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		if count >= 10 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(`当前版本最多支持绑定10个公众号`)))
+			return
+		}
+	}
 
 	//get token verification
 	app, err := wechat.GetApplication(msql.Params{`app_type`: appType, `app_id`: appId, `app_secret`: appSecret})

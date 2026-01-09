@@ -17,6 +17,20 @@
 
     "home": "首页"
   },
+  "navbar": {
+    "new_user_guide": "新手指引",
+    "enter_robot_detail": "进入机器人详情",
+    "enter_robot_manage": "进入机器人管理",
+    "explore": "探索",
+    "robot": "机器人",
+    "knowledge_base": "知识库",
+    "document": "文档",
+    "search": "搜索",
+    "session": "会话",
+    "system_manage": "系统管理",
+    "application": "应用",
+    "logout": "退出登录"
+  },
   "multipleTab": {
     "reload": "重新加载",
     "close": "关闭标签页",

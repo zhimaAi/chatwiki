@@ -536,3 +536,10 @@ func GetMessageInMessage(message string, getLocalPath bool) (msg string, imgs []
 	msg, imgs = GetImgInMessage(msg, getLocalPath)
 	return
 }
+
+func GetUrls(s string) []string {
+	urlRegex := `(https?)://[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)`
+	re := regexp.MustCompile(urlRegex)
+	urls := re.FindAllString(s, -1)
+	return urls
+}

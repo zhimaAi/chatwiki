@@ -1,0 +1,11 @@
+{
+  "role_name_label": "角色名称",
+  "role_name_placeholder": "请输入角色名称",
+  "role_name_required": "请输入角色名称",
+  "role_mark_label": "角色备注",
+  "role_mark_placeholder": "请输入角色备注",
+  "role_permission_label": "角色权限",
+  "add_role_title": "添加角色",
+  "edit_role_title": "编辑角色",
+  "save_success": "保存成功"
+}

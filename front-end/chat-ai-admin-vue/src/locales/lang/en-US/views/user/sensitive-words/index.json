@@ -1,0 +1,15 @@
+{
+  "title": "Sensitive Words Management",
+  "add_btn": "Add Sensitive Word",
+  "all_robots": "All Application",
+  "edit": "Edit",
+  "delete": "Delete",
+  "delete_confirm": "Delete Confirmation",
+  "delete_confirm_content": "Are you sure you want to delete the sensitive word [{words}]?",
+  "delete_success": "Deleted successfully",
+  "cancel": "Cancel",
+  "sensitive_words": "Sensitive Words",
+  "effective_robots": "Effective Application",
+  "enable_status": "Enable Status",
+  "action": "Action"
+}

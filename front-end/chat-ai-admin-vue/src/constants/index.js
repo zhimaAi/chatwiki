@@ -11,7 +11,7 @@ export const CONTENT_TYPE = 'application/x-www-form-urlencoded;charset=UTF-8'
 /**
  * 请求超时时间
  */
-export const REQUEST_TIMEOUT = 10 * 60 * 1000
+export const REQUEST_TIMEOUT = 60 * 60 * 1000
 
 /**
  * 刷新Token时间

@@ -34,7 +34,7 @@
         justify-content: center;
         align-items: center;
         position: absolute;
-        width: 260px;
+        width: auto;
         bottom: 24px;
         left: 50%;
         margin-left: -130px;
@@ -72,6 +72,9 @@
     font-size: 14px;
     line-height: 22px;
     color: #262626;
+    .need-login {
+      margin-right: 4px;
+    }
   }
 }
 </style>
@@ -79,13 +82,13 @@
 <template>
   <div class="client-download-page">
     <div class="login-required-switch" v-if="role_type != '3'">
-      <span>需要登录：</span>
+      <span class="need-login">{{ t('need_login') }}</span>
       <a-switch v-model:checked="loginRequired" @change="handleLoginRequiredSwitch" />
     </div>
-    <h3 class="page-title">客户端下载</h3>
+    <h3 class="page-title">{{ t('client_download') }}</h3>
     <div class="page-body">
       <div class="app-info">
-        <div class="app-name">ChatWiki电脑客户端</div>
+        <div class="app-name">{{ t('chat_wiki_pc_client') }}</div>
         <div class="banner">
           <img src="../../../assets/img/user/client-download/client-download-pic.png" alt="" />
           <div class="download-btn" @click="handleDownApp" :class="{ disabled: disabled }">
@@ -100,7 +103,7 @@
 <script setup>
 import { ref } from 'vue'
 import { downloadFile } from '../../../utils/index.js'
-import { useI18n } from '../../../hooks/web/useI18n.js'
+import { useI18n } from '@/hooks/web/useI18n'
 import { message } from 'ant-design-vue'
 import { usePermissionStore } from '@/stores/modules/permission'
 import { WindowsFilled } from '@ant-design/icons-vue'
@@ -109,7 +112,7 @@ import { getClientSideLoginSwitch, setClientSideLoginSwitch, clientSideDownload 
 const permissionStore = usePermissionStore()
 
 let { role_type } = permissionStore
-const { t } = useI18n()
+const { t } = useI18n('views.user.client-download.index')
 const loginRequired = ref(false)
 
 const handleLoginRequiredSwitch = () => {
@@ -121,14 +124,14 @@ const handleLoginRequiredSwitch = () => {
 }
 
 const downloadLink = ref('')
-const downloadBtnText = ref('Windows下载')
+const downloadBtnText = ref(t('windows_download'))
 const disabled = ref(false)
 let timer = null
 
 const getDownloadLink = () => {
   return clientSideDownload({ domain: '' }).then((res) => {
     if (!res.data.file_url) {
-      downloadBtnText.value = '打包中...'
+      downloadBtnText.value = t('packaging')
       disabled.value = true
       // 3秒后重新获取下载链接
       timer = setTimeout(() => {
@@ -136,7 +139,7 @@ const getDownloadLink = () => {
       }, 5000)
     } else {
       disabled.value = false
-      downloadBtnText.value = 'Windows下载'
+      downloadBtnText.value = t('windows_download')
       downloadLink.value = res.data.file_url
       clearTimeout(timer)
       timer = null
@@ -155,7 +158,7 @@ const handleDownApp = () => {
     if (res.data.file_url) {
       downloadFile('', res.data.file_url)
     } else {
-      message.error('下载文件还没有准备好')
+      message.error(t('download_not_ready'))
     }
   })
 }

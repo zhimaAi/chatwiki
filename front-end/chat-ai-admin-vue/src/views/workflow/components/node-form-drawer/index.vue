@@ -77,6 +77,9 @@ import VoiceCloneForm from "./voice-clone-form.vue";
 import VoiceSynthesisForm from "./voice-synthesis-form.vue";
 import ImageGenerationNodeForm from './image-generation-node-form/index.vue'
 import ExplainNodeForm from './explain-node-form/index.vue'
+import ImportLibraryNodeForm from './import-library-node-form/index.vue'
+import JsonNodeForm from './json-node-form/index.vue'
+import JsonReverseNodeForm from './json-reverse-node-form/index.vue'
 
 // 预定义所有可能的表单组件
 const formComponents = {
@@ -107,6 +110,9 @@ const formComponents = {
   'voice-clone-node': VoiceCloneForm,
   'voice-synthesis-node': VoiceSynthesisForm,
   'explain-node': ExplainNodeForm,
+  'import-library-node': ImportLibraryNodeForm,
+  'json-node': JsonNodeForm,
+  'json-reverse-node': JsonReverseNodeForm,
 
   // 其他表单组件可以在这里添加
   // 'problem-optimization-node': defineAsyncComponent(() => import('./problem-optimization-form.vue')),
@@ -151,6 +157,26 @@ const width = computed(() => {
   let node_params = jsonDecode(props.node?.node_params)
   if (node_params?.plugin?.name == 'feishu_bitable') return 600
   if (node_params?.plugin?.name == 'official_send_message') return 600
+  const hasDateRange = (() => {
+    const p = node_params?.plugin?.params
+    if (!p) return false
+    const metaParams = p?.params
+    if (metaParams && typeof metaParams === 'object') {
+      for (const k in metaParams) {
+        const v = metaParams[k]
+        if (v && v.date_range_begin_component) return true
+      }
+    }
+    const args = p?.arguments
+    if (args && typeof args === 'object') {
+      const keys = Object.keys(args || {})
+      if (keys.includes('date_type') || (keys.includes('begin_date') && keys.includes('end_date'))) {
+        return true
+      }
+    }
+    return false
+  })()
+  if (hasDateRange) return 640
   let widthMap = {
     'delete-data-node': 600,
     'update-data-node': 600,

@@ -21,25 +21,25 @@
                 <template #icon>
                   <PlusOutlined />
                 </template>
-                添加团队成员
+                {{ t('add_team_member') }}
               </a-button>
               <a-dropdown v-if="false">
-                <a-button>批量修改权限</a-button>
+                <a-button>{{ t('batch_modify_permissions') }}</a-button>
                 <template #overlay>
                   <a-menu>
-                    <a-menu-item @click="handleBatchAdd(1)"> 修改机器人 </a-menu-item>
-                    <a-menu-item @click="handleBatchAdd(2)"> 修改知识库 </a-menu-item>
-                    <a-menu-item @click="handleBatchAdd(3)"> 修改数据库 </a-menu-item>
+                    <a-menu-item @click="handleBatchAdd(1)"> {{ t('modify_robot') }} </a-menu-item>
+                    <a-menu-item @click="handleBatchAdd(2)"> {{ t('modify_knowledge_base') }} </a-menu-item>
+                    <a-menu-item @click="handleBatchAdd(3)"> {{ t('modify_database') }} </a-menu-item>
                   </a-menu>
                 </template>
               </a-dropdown>
 
-              <a-button @click="handleBatchDepart">批量修改部门</a-button>
+              <a-button @click="handleBatchDepart">{{ t('batch_modify_department') }}</a-button>
             </a-flex>
 
             <a-input-search
               v-model:value="requestParams.search"
-              placeholder="输入成员账号或昵称搜索"
+              :placeholder="t('search_placeholder')"
               style="width: 288px"
               @search="onSearch"
             />
@@ -65,7 +65,7 @@
               }"
               @change="onTableChange"
             >
-              <a-table-column title="成员名称" data-index="user_name" width="190px">
+              <a-table-column :title="t('member_name')" data-index="user_name" width="190px">
                 <template #default="{ record }">
                   <div class="user-box">
                     <img :src="record.avatar || defaultAvatar" alt="" />
@@ -92,12 +92,12 @@
                   </div>
                 </template>
               </a-table-column>
-              <a-table-column title="角色" data-index="role_name" width="100px">
+              <a-table-column :title="t('role')" data-index="role_name" width="100px">
                 <template #default="{ record }">{{ record.role_name }}</template>
               </a-table-column>
 
               <a-table-column data-index="departments" width="200px">
-                <template #title> 部门 </template>
+                <template #title> {{ t('department') }} </template>
                 <template #default="{ record }">
                   <div
                     v-if="record.departments && record.departments.length == 0"
@@ -122,20 +122,20 @@
 
               <a-table-column v-if="false" data-index="managed_robot_list" width="200px">
                 <template #title>
-                  管理的机器人
+                  {{ t('managed_robots') }}
                   <a-tooltip>
                     <template #title
-                      >所有者和管理员可以创建和管理全部机器人，成员只能管理分配的机器人。</template
+                      >{{ t('managed_robots_tooltip') }}</template
                     >
                     <QuestionCircleOutlined />
                   </a-tooltip>
                 </template>
                 <template #default="{ record }">
                   <div v-if="record.role_type == 1" class="list-content">
-                    <div>全部</div>
+                    <div>{{ t('all') }}</div>
                   </div>
                   <div v-else-if="!record.managed_robot_list" class="list-content">
-                    <div class="list-highlight" @click="addManage(1, record)">添加</div>
+                    <div class="list-highlight" @click="addManage(1, record)">{{ t('add') }}</div>
                   </div>
                   <div v-else class="list-preview list-content">
                     <a-tooltip>
@@ -156,20 +156,20 @@
               </a-table-column>
               <a-table-column v-if="false" data-index="managed_library_list" width="200px">
                 <template #title>
-                  管理的知识库
+                  {{ t('managed_knowledge_bases') }}
                   <a-tooltip>
                     <template #title
-                      >所有者和管理员可以创建和管理全部知识库，成员只能管理分配的知识库。</template
+                      >{{ t('managed_knowledge_bases_tooltip') }}</template
                     >
                     <QuestionCircleOutlined />
                   </a-tooltip>
                 </template>
                 <template #default="{ record }">
                   <div v-if="record.role_type == 1" class="list-content">
-                    <div>全部</div>
+                    <div>{{ t('all') }}</div>
                   </div>
                   <div v-else-if="!record.managed_library_list" class="list-content">
-                    <div class="list-highlight" @click="addManage(2, record)">添加</div>
+                    <div class="list-highlight" @click="addManage(2, record)">{{ t('add') }}</div>
                   </div>
                   <div v-else class="list-preview list-content">
                     <a-tooltip>
@@ -190,20 +190,20 @@
               </a-table-column>
               <a-table-column v-if="false" data-index="managed_form_list" width="200px">
                 <template #title>
-                  管理的数据库
+                  {{ t('managed_databases') }}
                   <a-tooltip>
                     <template #title
-                      >所有者和管理员可以创建和管理全部数据库，成员只能管理分配的数据库。</template
+                      >{{ t('managed_databases_tooltip') }}</template
                     >
                     <QuestionCircleOutlined />
                   </a-tooltip>
                 </template>
                 <template #default="{ record }">
                   <div v-if="record.role_type == 1" class="list-content">
-                    <div>全部</div>
+                    <div>{{ t('all') }}</div>
                   </div>
                   <div v-else-if="!record.managed_form_list" class="list-content">
-                    <div class="list-highlight" @click="addManage(3, record)">添加</div>
+                    <div class="list-highlight" @click="addManage(3, record)">{{ t('add') }}</div>
                   </div>
                   <div v-else class="list-preview list-content">
                     <a-tooltip>
@@ -223,43 +223,43 @@
                 </template>
               </a-table-column>
 
-              <a-table-column title="状态" data-index="expire_status" width="120px">
+              <a-table-column :title="t('status')" data-index="expire_status" width="120px">
                 <template #default="{ record }">
                   <div class="status-block green" v-if="record.expire_status == 1">
-                    <CheckCircleFilled />生效中
+                    <CheckCircleFilled />{{ t('active') }}
                   </div>
                   <div class="status-block yellow" v-if="record.expire_status == 0">
-                    <ExclamationCircleFilled />已过期
+                    <ExclamationCircleFilled />{{ t('expired') }}
                   </div>
                 </template>
               </a-table-column>
-              <a-table-column title="过期时间" data-index="expire_time_desc" width="130px">
+              <a-table-column :title="t('expiry_time')" data-index="expire_time_desc" width="130px">
                 <template #default="{ record }">{{ record.expire_time_desc }}</template>
               </a-table-column>
 
-              <a-table-column title="登录" data-index="login_switch" width="90px" fixed="right">
+              <a-table-column :title="t('login')" data-index="login_switch" width="90px" fixed="right">
                 <template #default="{ record }">
                   <a-switch
                     @change="handleSwichLogin(record)"
                     :checked="record.login_switch == '1'"
                     :disabled="record.role_type == '1'"
-                    checked-children="开"
-                    un-checked-children="关"
+                    :checked-children="t('on')"
+                    :un-checked-children="t('off')"
                   />
                 </template>
               </a-table-column>
 
-              <a-table-column title="操作" data-index="action" width="176px" fixed="right">
+              <a-table-column :title="t('actions')" data-index="action" width="176px" fixed="right">
                 <template #default="{ record }">
                   <a-flex :gap="16" v-if="record.role_type == '1'">
-                    <span class="disabled">编辑</span>
-                    <span class="disabled">重置密码</span>
-                    <span class="disabled">删除</span>
+                    <span class="disabled">{{ t('edit') }}</span>
+                    <span class="disabled">{{ t('reset_password') }}</span>
+                    <span class="disabled">{{ t('delete') }}</span>
                   </a-flex>
                   <a-flex :gap="16" v-else>
-                    <a @click="handleEdit(record)">编辑</a>
-                    <a @click="handleReSetPassword(record)">重置密码</a>
-                    <a @click="handleDelete(record)">删除</a>
+                    <a @click="handleEdit(record)">{{ t('edit') }}</a>
+                    <a @click="handleReSetPassword(record)">{{ t('reset_password') }}</a>
+                    <a @click="handleDelete(record)">{{ t('delete') }}</a>
                   </a-flex>
                 </template>
               </a-table-column>
@@ -290,7 +290,7 @@
 import { getRobotList } from '@/api/robot/index.js'
 import { getLibraryList } from '@/api/library/index.js'
 import { getFormList } from '@/api/database/index.js'
-import { ref, reactive, createVNode } from 'vue'
+import { ref, reactive, createVNode, computed } from 'vue'
 import {
   PlusOutlined,
   ExclamationCircleOutlined,
@@ -308,23 +308,26 @@ import defaultAvatar from '@/assets/img/role_avatar.png'
 import DepartmentTree from './components/department-tree.vue'
 import KnowledgePermissions from './components/knowledge-permissions.vue'
 import BatchEditDepartment from './components/batch-edit-department.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.manage.team-members')
 
 const tabs = ref(1)
 
-const tabOption = [
+const tabOption = computed(() => [
   {
     value: 1,
     payload: {
-      title: '团队成员'
+      title: t('team_members')
     }
   },
   // {
   //   value: 2,
   //   payload: {
-  //     title: '知识库权限'
+  //     title: t('knowledge_base_permissions')
   //   }
   // }
-]
+])
 
 const requestParams = reactive({
   page: 1,
@@ -388,7 +391,7 @@ const getData = () => {
 
         item.expire_time_desc =
           item.expire_time == '0'
-            ? '永久有效'
+            ? t('permanent')
             : dayjs(item.expire_time * 1000).format('YYYY-MM-DD HH:mm')
 
         item.expire_status = 0
@@ -444,7 +447,7 @@ const handleSwichLogin = (record) => {
   loginSwitch({
     user_id: record.id
   }).then((res) => {
-    message.success(record.login_switch == 1 ? '关闭成功' : '开启成功')
+    message.success(record.login_switch == 1 ? t('login_disabled_success') : t('login_enabled_success'))
     getData()
   })
 }
@@ -466,15 +469,15 @@ const handleReSetPassword = (record) => {
 const handleDelete = (record) => {
   // 删除用户
   Modal.confirm({
-    title: '提示?',
+    title: t('confirm_delete_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确认删除该用户',
-    okText: '确认',
+    content: t('confirm_delete_content'),
+    okText: t('confirm'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('cancel'),
     onOk: () => {
       delUser({ id: record.id }).then((res) => {
-        message.success('删除成功')
+        message.success(t('delete_success'))
         getData()
       })
     },
@@ -521,7 +524,7 @@ const handleBatchAdd = async (key) => {
   })
   state.selectedRowKeys = selectList
   if (state.selectedRowKeys.length == 0) {
-    return message.error('请选择要修改的成员')
+    return message.error(t('please_select_members'))
   }
   if (key == 1) {
     await getList()
@@ -536,7 +539,7 @@ const handleBatchAdd = async (key) => {
 const batchEditDepartmentRef = ref(null)
 const handleBatchDepart = () => {
   if (state.selectedRowKeys.length == 0) {
-    return message.error('请选择要修改的成员')
+    return message.error(t('please_select_members'))
   }
   batchEditDepartmentRef.value.show(state.selectedRowKeys.join(','))
 }

@@ -20,14 +20,17 @@ import (
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/tool"
+	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
 type (
 	ChatMessagesReq struct {
-		Content  any            `form:"content" json:"content" binding:"required"`
-		OpenID   string         `form:"open_id" json:"open_id" binding:"required"`
-		Stream   bool           `form:"stream" json:"stream,omitempty"`
-		Global   map[string]any `form:"global" json:"global"`
+		Content  any                                  `form:"content" json:"content" binding:"required"`
+		Messages []adaptor.ZhimaChatCompletionMessage `form:"messages" json:"messages"`
+		OpenID   string                               `form:"open_id" json:"open_id" binding:"required"`
+		Stream   bool                                 `form:"stream" json:"stream,omitempty"`
+		QuoteLib bool                                 `form:"quote_lib" json:"quote_lib,omitempty"`
+		Global   map[string]any                       `form:"global" json:"global"`
 		RobotKey string
 	}
 	ChatMessagesRes struct {
@@ -39,6 +42,11 @@ type (
 		Image          []string             `json:"image,omitempty"`
 		Voice          []string             `json:"voice,omitempty"`
 		MetaData       ChatMessagesMetaData `json:"metadata,omitempty"`
+		QuoteLib       any                  `json:"quote_lib,omitempty"`
+		QuoteFile      any                  `json:"quote_file,omitempty"`
+		IsSwitchManual *bool                `json:"is_switch_manual,omitempty"`
+		//功能中心-自动回复:(关键词回复+收到消息回复)
+		ReplyContentList []common.ReplyContent `json:"reply_content_list,omitempty"`
 	}
 	ChatMessagesMetaData struct {
 		Usage Usage `json:"usage,omitempty"`
@@ -120,6 +128,24 @@ func ChatMessages(c *gin.Context) {
 			res.Voice = voices
 			res.Answer = msg
 		}
+		if params.QuoteLib {
+			_ = tool.JsonDecodeUseNumber(message[`quote_lib`], &res.QuoteLib)
+			_ = tool.JsonDecodeUseNumber(message[`quote_file`], &res.QuoteFile)
+		}
+		if isSwitchManual := cast.ToBool(message[`is_switch_manual`]); isSwitchManual {
+			res.IsSwitchManual = &isSwitchManual
+		}
+		if len(message[`reply_content_list`]) > 0 { //返回功能中心自动回复内容
+			_ = tool.JsonDecodeUseNumber(message[`reply_content_list`], &res.ReplyContentList)
+			for i, item := range res.ReplyContentList {
+				if len(item.ThumbURL) > 0 && !common.IsUrl(item.ThumbURL) {
+					res.ReplyContentList[i].ThumbURL = define.Config.WebService[`image_domain`] + item.ThumbURL
+				}
+				if len(item.Pic) > 0 && !common.IsUrl(item.Pic) {
+					res.ReplyContentList[i].Pic = define.Config.WebService[`image_domain`] + item.Pic
+				}
+			}
+		}
 		common.FmtOk(c, res)
 	}
 }
@@ -139,8 +165,14 @@ func (r *ChatMessagesReq) buildChatRequestParam(c *gin.Context) (*define.ChatReq
 		return nil, fmt.Errorf(`no_data`)
 	}
 	adminUserId := cast.ToInt(robot[`admin_user_id`])
-	if !common.IsChatOpenid(r.OpenID) {
-		return nil, fmt.Errorf(i18n.Show(common.GetLang(c), `param_invalid`, `openid`))
+	if len(c.GetString(`wechatapp_appid`)) > 0 {
+		if !common.IsXkfOpenid(r.OpenID) {
+			return nil, fmt.Errorf(i18n.Show(common.GetLang(c), `param_invalid`, `openid`))
+		}
+	} else {
+		if !common.IsChatOpenid(r.OpenID) {
+			return nil, fmt.Errorf(i18n.Show(common.GetLang(c), `param_invalid`, `openid`))
+		}
 	}
 	customer, err := common.GetCustomerInfo(r.OpenID, adminUserId)
 	if err != nil {
@@ -166,8 +198,11 @@ func (r *ChatMessagesReq) buildChatRequestParam(c *gin.Context) (*define.ChatReq
 		ChatBaseParam:  chatBaseParam,
 		Lang:           common.GetLang(c),
 		Question:       common.GetQuestionByContent(r.Content),
+		OpenApiContent: tool.JsonEncodeNoError(r.Messages),
+		WechatappAppid: c.GetString(`wechatapp_appid`),
 		IsClose:        &isClose,
 		WorkFlowGlobal: r.Global,
+		QuoteLib:       r.QuoteLib,
 	}, nil
 }
 

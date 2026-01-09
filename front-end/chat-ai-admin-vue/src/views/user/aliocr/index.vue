@@ -1,43 +1,43 @@
 <template>
   <div class="aliocr-main">
-    <div class="aliocr-title">阿里云OCR</div>
+    <div class="aliocr-title">{{ t('title') }}</div>
     <div class="aliocr-switch-box">
       <div class="aliocr-switch-nav-box">
         <svg-icon name="ali-ocr" style="font-size: 24px; color: #FF5915"></svg-icon>
-        <div class="aliocr-switch-nav-title">阿里云OCR</div>
+        <div class="aliocr-switch-nav-title">{{ t('switch_title') }}</div>
       </div>
-      <div class="aliocr-info">开启后，Pdf文档解析支持阿里云OCR解析，结果更精准，高效</div>
+      <div class="aliocr-info">{{ t('switch_info') }}</div>
       <div class="aliocr-switch-btn-box">
         <a-switch
           @change="onChangeSwitch"
           v-model:checked="aliocrSwitch"
-          checked-children="开"
-          un-checked-children="关"
+          :checked-children="t('switch_on')"
+          :un-checked-children="t('switch_off')"
           :checkedValue="true"
           :unCheckedValue="false"
         />
       </div>
     </div>
-    <a-spin tip="加载中..." :spinning="spinning">
+    <a-spin :tip="t('loading')" :spinning="spinning">
       <div class="aliocr-config-box">
         <div class="aliocr-config-nav">
           <SettingOutlined style="font-size: 16px;" />
-          <div class="aliocr-config-nav-title">接入配置</div>
+          <div class="aliocr-config-nav-title">{{ t('config_title') }}</div>
           <div class="aliocr-config-nav-line"></div>
-          <div class="alicor-config-nav-url" @click="onGoUrl('https://www.aliyun.com/product/ai/docmind?spm=5176.28536895.J_kUfM_yzYYqU72woCZLHoY.6.28bd586cZUeowZ')">如何接入?</div>
+          <div class="alicor-config-nav-url" @click="onGoUrl('https://www.aliyun.com/product/ai/docmind?spm=5176.28536895.J_kUfM_yzYYqU72woCZLHoY.6.28bd586cZUeowZ')">{{ t('config_help_link') }}</div>
         </div>
         <div class="aliocr-config-form">
           <div class="aliocr-config-form-item">
-            <div class="aliocr-config-form-label">Accesskey ID</div>
-            <a-input v-model:value="formState.ali_ocr_key" placeholder="请输入" />
+            <div class="aliocr-config-form-label">{{ t('accesskey_id_label') }}</div>
+            <a-input v-model:value="formState.ali_ocr_key" :placeholder="t('accesskey_id_placeholder')" />
           </div>
           <div class="aliocr-config-form-item">
-            <div class="aliocr-config-form-label">Accesskey Secret</div>
-            <a-input v-model:value="formState.ali_ocr_secret" placeholder="请输入" />
+            <div class="aliocr-config-form-label">{{ t('accesskey_secret_label') }}</div>
+            <a-input v-model:value="formState.ali_ocr_secret" :placeholder="t('accesskey_secret_placeholder')" />
           </div>
           <div class="aliocr-config-form-item">
-            <div class="aliocr-config-form-label">配置完成后，点击 <div class="alicor-config-nav-url" @click="handleTest">调用测试</div> </div>
-            <a-button type="primary" @click="handleSave">保存</a-button>
+            <div class="aliocr-config-form-label">{{ t('after_config') }} <div class="alicor-config-nav-url" @click="handleTest">{{ t('test_btn') }}</div> </div>
+            <a-button type="primary" @click="handleSave">{{ t('save_btn') }}</a-button>
           </div>
         </div>
       </div>
@@ -51,6 +51,9 @@ import { useCompanyStore } from '@/stores/modules/company'
 import { checkAliOcr, saveAliOcr } from '@/api/user/index.js'
 import { message, Modal } from 'ant-design-vue'
 import { SettingOutlined, ExclamationCircleOutlined } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.aliocr.index')
 
 const aliocrSwitch = ref(false)
 const formState = reactive({
@@ -66,10 +69,10 @@ const handleGetCompany = async() => {
 
 function checkFormState() {
   if (!formState.ali_ocr_key) {
-    return '请输入Accesskey ID'
+    return t('accesskey_id_required')
   }
   if (!formState.ali_ocr_secret) {
-    return '请输入Accesskey Secret'
+    return t('accesskey_secret_required')
   }
 }
 
@@ -79,10 +82,10 @@ const onChangeSwitch = (check) => {
     if (errMsg) {
       aliocrSwitch.value = !aliocrSwitch.value
       Modal.confirm({
-        title: `接入阿里云OCR配置`,
+        title: t('modal_title'),
         icon: createVNode(ExclamationCircleOutlined),
-        content: `开启前请先接入阿里云OCR`,
-        okText: '知道了',
+        content: t('modal_content'),
+        okText: t('modal_ok'),
         cancelText: null,
         okCancel: false,
         onOk() {
@@ -106,7 +109,7 @@ const handleTest = () => {
   checkAliOcr({
     ...formState
   }).then((res) => {
-    message.success('测试通过')
+    message.success(t('test_success'))
   }).finally(() => {
     spinning.value = false
   })
@@ -122,7 +125,7 @@ const handleSave = () => {
     ali_ocr_switch: aliocrSwitch.value ? 1 : 2,
     ...formState
   }).then((res) => {
-    message.success('保存成功')
+    message.success(t('save_success'))
     handleGetCompany()
   }).finally(() => {
     spinning.value = false

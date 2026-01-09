@@ -11,18 +11,18 @@
 <template>
   <a-modal
     v-model:open="show"
-    title="上传证书"
+    :title="t('title')"
     @ok="handleOk"
     :confirmLoading="props.confirmLoading"
   >
     <div class="upload-ssl-form">
-      <div class="domain">域名：{{ domain }}</div>
+      <div class="domain">{{ t('domain_label') }}{{ domain }}</div>
       <a-form ref="formRef" :model="formState" :rules="rules" autocomplete="off" layout="vertical">
-        <a-form-item label="证书文件(.crt或.pem)" name="ssl_certificate">
+        <a-form-item :label="t('certificate_file_label')" name="ssl_certificate">
           <a-textarea :rows="5" v-model:value="formState.ssl_certificate" />
         </a-form-item>
 
-        <a-form-item label="私钥文件(.key)" name="ssl_certificate_key">
+        <a-form-item :label="t('private_key_label')" name="ssl_certificate_key">
           <a-textarea :rows="5" v-model:value="formState.ssl_certificate_key" />
         </a-form-item>
       </a-form>
@@ -32,8 +32,11 @@
 
 <script setup>
 import { ref, reactive, toRaw } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
 const emit = defineEmits(['ok'])
+
+const { t } = useI18n('views.user.domain.components.upload-ssl')
 
 const props = defineProps({
   confirmLoading: {
@@ -52,8 +55,8 @@ const formState = reactive({
 })
 
 const rules = {
-  ssl_certificate: [{ required: true, message: '请输入证书文件(.crt或.pem)' }],
-  ssl_certificate_key: [{ required: true, message: '请输入私钥文件(.key)' }]
+  ssl_certificate: [{ required: true, message: t('certificate_required') }],
+  ssl_certificate_key: [{ required: true, message: t('private_key_required') }]
 }
 
 const show = ref(false)

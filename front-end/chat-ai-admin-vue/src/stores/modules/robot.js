@@ -219,7 +219,7 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.enable_common_question = data.enable_common_question
     robotInfo.common_question_list = data.common_question_list
     robotInfo.answer_source_switch = data.answer_source_switch
-    robotInfo.feedback_switch = +data.feedback_switch 
+    robotInfo.feedback_switch = +data.feedback_switch
     robotInfo.application_type = data.application_type
     robotInfo.sensitive_words_switch = +data.sensitive_words_switch
     robotInfo.question_guide_num = +data.question_guide_num
@@ -241,6 +241,7 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.wechat_not_verify_hand_get_reply = data.wechat_not_verify_hand_get_reply
     robotInfo.wechat_not_verify_hand_get_word = data.wechat_not_verify_hand_get_word
     robotInfo.wechat_not_verify_hand_get_next = data.wechat_not_verify_hand_get_next
+    robotInfo.rrf_weight = data.rrf_weight
 
     if (data.cache_config) {
       let parsedCacheConfig = {};
@@ -273,9 +274,6 @@ export const useRobotStore = defineStore('robot', () => {
       external_config_pc.headImage = robotInfo.robot_avatar_url
     }
 
-    if(data.rrf_weight != ''){
-      robotInfo.rrf_weight = JSON.parse(data.rrf_weight)
-    }
   }
 
   const getRobot = async (id) => {
@@ -362,6 +360,16 @@ export const useRobotStore = defineStore('robot', () => {
     smartMenuAiReplyStatus.value = String(val ?? '0')
   }
 
+  const paymentSwitchStatus = ref('0')
+  const setPaymentSwitchStatus = (val) => {
+    paymentSwitchStatus.value = String(val ?? '0')
+  }
+
+  const paymentAiReplyStatus = ref('0')
+  const setPaymentAiReplyStatus = (val) => {
+    paymentAiReplyStatus.value = String(val ?? '0')
+  }
+
   return {
     robotInfo,
     getRobot,
@@ -389,5 +397,9 @@ export const useRobotStore = defineStore('robot', () => {
     setSmartMenuSwitchStatus,
     smartMenuAiReplyStatus,
     setSmartMenuAiReplyStatus,
+    paymentSwitchStatus,
+    setPaymentSwitchStatus,
+    paymentAiReplyStatus,
+    setPaymentAiReplyStatus,
   }
 })

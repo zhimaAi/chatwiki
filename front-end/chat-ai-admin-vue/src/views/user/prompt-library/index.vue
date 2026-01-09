@@ -1,10 +1,10 @@
 <template>
   <div class="user-model-page">
     <div class="page-title">
-      提示词模板库
+      {{ t('page_title') }}
       <a-divider type="vertical" />
       <div class="desc">
-        添加提示词模板，在应用配置和工作流的AI对话节点，可以从提示词模板库选择提示词并应用
+        {{ t('page_desc') }}
       </div>
     </div>
     <div class="list-wrapper">
@@ -18,21 +18,21 @@
           <div class="content-box">
             <div class="btn-block">
               <a-dropdown>
-                <a-button type="primary" :icon="createVNode(PlusOutlined)">提示词</a-button>
+                <a-button type="primary" :icon="createVNode(PlusOutlined)">{{ t('prompt_btn') }}</a-button>
                 <template #overlay>
                   <a-menu>
                     <a-menu-item>
-                      <div @click="handleAddWord(1)">添加结构化提示词</div>
+                      <div @click="handleAddWord(1)">{{ t('add_structured_prompt') }}</div>
                     </a-menu-item>
                     <a-menu-item>
-                      <div @click="handleAddWord(0)">添加自定义提示词</div>
+                      <div @click="handleAddWord(0)">{{ t('add_custom_prompt') }}</div>
                     </a-menu-item>
                   </a-menu>
                 </template>
               </a-dropdown>
 
               <a-button @click="handleAllExpend" :icon="createVNode(DatabaseOutlined)"
-                >{{ hideStatus ? '全部展开' : '全部收起' }}
+                >{{ hideStatus ? t('expand_all') : t('collapse_all') }}
               </a-button>
             </div>
             <div class="loading-box" v-if="isLoading">
@@ -42,15 +42,15 @@
               <div class="prompt-list" v-for="item in lists" :key="item.id">
                 <div class="prompt-header">
                   <div class="prompt-title">
-                    <div class="prompt-type diy" v-if="item.prompt_type == 0">自定义</div>
-                    <div class="prompt-type" v-if="item.prompt_type == 1">结构化</div>
+                    <div class="prompt-type diy" v-if="item.prompt_type == 0">{{ t('diy_type') }}</div>
+                    <div class="prompt-type" v-if="item.prompt_type == 1">{{ t('structured_type') }}</div>
                     <div class="title">{{ item.title }}</div>
                     <a-divider type="vertical" />
                     <div>{{ getGroupName(item.group_id) }}</div>
                   </div>
                   <div class="right-btn-box">
                     <!-- <UpOutlined /> -->
-                    <a-tooltip :title="item.isHide ? '展开' : '收起'">
+                    <a-tooltip :title="item.isHide ? t('expand') : t('collapse')">
                       <div class="hover-btn-box" @click="handleHide(item)">
                         <DownOutlined v-if="item.isHide" />
                         <UpOutlined v-else />
@@ -63,13 +63,13 @@
                       <template #overlay>
                         <a-menu>
                           <a-menu-item>
-                            <div @click="handleEditWord(item, 'copy')">复制</div>
+                            <div @click="handleEditWord(item, 'copy')">{{ t('copy') }}</div>
                           </a-menu-item>
                           <a-menu-item>
-                            <div @click="handleOpenGroup(item)">修改分组</div>
+                            <div @click="handleOpenGroup(item)">{{ t('modify_group') }}</div>
                           </a-menu-item>
                           <a-menu-item>
-                            <div @click="handleDel(item)">删除</div>
+                            <div @click="handleDel(item)">{{ t('delete') }}</div>
                           </a-menu-item>
                         </a-menu>
                       </template>
@@ -149,11 +149,11 @@
       </div>
     </div>
     <AddDiyPrompt :groupList="groupLists" @ok="getLists" ref="addDiyPromptRef" />
-    <a-modal v-model:open="moveGroupModal" title="修改分组" @ok="handleMoveGroup">
+    <a-modal v-model:open="moveGroupModal" :title="t('move_group_title')" @ok="handleMoveGroup">
       <div class="move-group-box">
-        <div class="label-text">修改分组为</div>
+        <div class="label-text">{{ t('move_group_label') }}</div>
         <a-select v-model:value="currentItem.group_id" style="width: 100%">
-          <a-select-option v-for="item in groupLists" :value="item.id">{{
+          <a-select-option v-for="item in groupLists" :value="item.id" :key="item.id">{{
             item.group_name
           }}</a-select-option>
         </a-select>
@@ -181,6 +181,9 @@ import { reactive, ref, createVNode } from 'vue'
 import { Modal, message } from 'ant-design-vue'
 import GroupList from './components/group-list.vue'
 import AddDiyPrompt from './components/add-diy-prompt.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.prompt-library.index')
 
 let group_id = -1
 const handleChangeGroup = (item) => {
@@ -255,15 +258,15 @@ const handleAllExpend = () => {
 
 const handleDel = (record) => {
   Modal.confirm({
-    title: '删除确认',
+    title: t('delete_confirm_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: `确定要删除提示词[${record.title}]吗？`,
-    okText: '删除',
+    content: t('delete_confirm_content', { title: record.title }),
+    okText: t('delete'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('cancel'),
     onOk() {
-      deletePromptLibraryItems({ id: record.id }).then((res) => {
-        message.success('删除成功')
+      deletePromptLibraryItems({ id: record.id }).then(() => {
+        message.success(t('delete_success'))
         getLists()
       })
     },
@@ -284,13 +287,13 @@ const handleOpenGroup = (item) => {
 }
 const handleMoveGroup = () => {
   if (currentItem.id < 0) {
-    return message.error('请选择要移动的分组')
+    return message.error(t('select_group_error'))
   }
   movePromptLibraryItems({
     id: currentItem.id,
     group_id: currentItem.group_id
   }).then(() => {
-    message.success('移动成功')
+    message.success(t('move_success'))
     moveGroupModal.value = false
     getLists()
   })

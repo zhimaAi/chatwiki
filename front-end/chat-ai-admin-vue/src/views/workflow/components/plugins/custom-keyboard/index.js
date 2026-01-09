@@ -100,9 +100,13 @@ class CustomKeyboard {
       // Ctrl + C: 复制节点
       if (key === 'c') {
         if (!isCanvas) return
-        e.preventDefault()
+        
         let selectedElements = this.lf.getSelectElements(true)
         selectedElements = JSON.parse(JSON.stringify(selectedElements))
+
+        if(selectedElements.nodes.length === 0) return
+
+        // e.preventDefault()
         // 去掉边的信息
         selectedElements.edges = []
 
@@ -153,7 +157,10 @@ class CustomKeyboard {
       // Ctrl + V: 粘贴节点
       if (key === 'v') {
         if (!isCanvas) return
-        e.preventDefault()
+        if (!this.clipboard || this.clipboard.nodes.length === 0) return
+
+        // e.preventDefault()
+
         if (this.clipboard && this.clipboard.nodes.length > 0) {
           const pasteBasePoint = {
             x: this.clipboard.basePoint.x + this.basePointX,

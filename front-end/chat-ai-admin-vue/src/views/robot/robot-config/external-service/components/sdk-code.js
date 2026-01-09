@@ -1,4 +1,4 @@
-export function getSdkCode({ pc_domain, robot_key }) {
+export function getSdkCode({ pc_domain, robot_key, language = 'zh-CN' }) {
   var text = `<script>
   (function (z, h, i, m, a, j, s) {
     z[m] = z[m] || function () {
@@ -11,7 +11,7 @@ export function getSdkCode({ pc_domain, robot_key }) {
       "data-json",
       JSON.stringify({
         robot_key: "${robot_key}",
-        language: "zh-CN",
+        language: "${language}",
       })
     );
     j.id = "ai_chat_js";

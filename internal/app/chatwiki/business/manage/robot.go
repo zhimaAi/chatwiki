@@ -149,6 +149,7 @@ func SaveRobot(c *gin.Context) {
 	//get params
 	id := cast.ToInt64(c.PostForm(`id`))
 	robotName := strings.TrimSpace(c.PostForm(`robot_name`))
+	checkName := cast.ToInt(c.PostForm(`check_name`))
 	robotIntro := strings.TrimSpace(c.PostForm(`robot_intro`))
 	robotAvatar := strings.TrimSpace(c.DefaultPostForm(`avatar_from_template`, ``))
 	promptType := cast.ToInt(c.DefaultPostForm(`prompt_type`, `1`))
@@ -216,6 +217,16 @@ func SaveRobot(c *gin.Context) {
 	if id < 0 || len(robotName) == 0 || len(welcomes) == 0 || modelConfigId <= 0 || len(useModel) == 0 || maxToken < 0 || topK <= 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
+	}
+	if checkName != 0 {
+		//检测机器人名称 取最大值加一
+		RobotCount, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).
+			Where(`robot_name`, `like`, robotName+`%`).Count(`id`)
+		if err == nil {
+			if RobotCount > 0 {
+				robotName = robotName + `_` + cast.ToString(RobotCount+1)
+			}
+		}
 	}
 	if promptStruct, err = common.CheckPromptConfig(promptType, promptStruct); err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
@@ -513,6 +524,7 @@ func AddFlowRobot(c *gin.Context) {
 	}
 	//get params
 	robotName := strings.TrimSpace(c.PostForm(`robot_name`))
+	checkName := cast.ToInt(c.PostForm(`check_name`))
 	enName := strings.TrimSpace(c.PostForm(`en_name`))
 	if !common.CheckEnName(cast.ToString(userId), enName, `0`) {
 		common.FmtError(c, `param_err`, "en_name")
@@ -526,6 +538,16 @@ func AddFlowRobot(c *gin.Context) {
 	if len(robotName) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
+	}
+	if checkName != 0 {
+		//检测机器人名称 取最大值加一
+		RobotCount, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).
+			Where(`robot_name`, `like`, robotName+`%`).Count(`id`)
+		if err == nil {
+			if RobotCount > 0 {
+				robotName = robotName + `_` + cast.ToString(RobotCount+1)
+			}
+		}
 	}
 	//data check
 	var robotKey string

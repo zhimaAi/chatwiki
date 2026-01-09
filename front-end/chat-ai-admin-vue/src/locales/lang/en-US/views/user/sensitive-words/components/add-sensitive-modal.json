@@ -1,0 +1,14 @@
+{
+  "title_add": "Add Sensitive Word",
+  "title_edit": "Edit Sensitive Word",
+  "sensitive_words_label": "Sensitive Words",
+  "sensitive_words_tip": "(One per line, max 1000 words)",
+  "placeholder": "Please enter sensitive words",
+  "effective_robots": "Effective Application",
+  "all_robots": "All Application",
+  "specific_robots": "Specific Application",
+  "error_no_words": "Please enter sensitive words",
+  "error_no_robot": "Please select a robot",
+  "success_add": "Added successfully",
+  "success_edit": "Updated successfully"
+}

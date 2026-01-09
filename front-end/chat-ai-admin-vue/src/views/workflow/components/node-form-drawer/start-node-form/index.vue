@@ -54,12 +54,20 @@
         margin-right: 8px;
       }
       
+      .option-label::before{
+        content: '*';
+        color: #FB363F;
+        display: inline-block;
+        margin-right: 2px;
+        opacity: 0;
+      }
 
       &.is-required .option-label::before{
         content: '*';
         color: #FB363F;
         display: inline-block;
         margin-right: 2px;
+        opacity: 1;
       }
       .option-type{
         height: 22px;
@@ -319,7 +327,8 @@ export default {
     getTriggerVariables(){
       let variables = {}
       this.trigger_list.forEach(item => {
-        item.outputs.forEach(output => {
+        let outputs = item.outputs || []
+        outputs.forEach(output => {
           variables[output.variable] = {...output}
         })
       })

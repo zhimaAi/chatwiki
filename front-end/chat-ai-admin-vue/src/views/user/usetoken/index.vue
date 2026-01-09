@@ -3,9 +3,9 @@
     <!-- <div class="page-title">Token使用</div> -->
     <div class="tabs-box">
       <a-tabs v-model:activeKey="activeKey">
-        <a-tab-pane :key="1" tab="按应用统计"></a-tab-pane>
-        <a-tab-pane :key="2" tab="按模型统计"></a-tab-pane>
-        <a-tab-pane v-if="role_type == 1 || role_type == 2" :key="3" tab="Token限额"></a-tab-pane>
+        <a-tab-pane :key="1" :tab="t('views.user.usetoken.tabByApp')"></a-tab-pane>
+        <a-tab-pane :key="2" :tab="t('views.user.usetoken.tabByModel')"></a-tab-pane>
+        <a-tab-pane v-if="role_type == 1 || role_type == 2" :key="3" :tab="t('views.user.usetoken.tabTokenQuota')"></a-tab-pane>
       </a-tabs>
     </div>
 
@@ -20,10 +20,13 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import StaticsByApp from './statics-by-app.vue'
 import UseToken from './use-token.vue'
 import QuotaToken from './quota-token.vue'
 import { usePermissionStore } from '@/stores/modules/permission'
+
+const { t } = useI18n()
 const permissionStore = usePermissionStore()
 const role_type = computed(() => permissionStore.role_type)
 

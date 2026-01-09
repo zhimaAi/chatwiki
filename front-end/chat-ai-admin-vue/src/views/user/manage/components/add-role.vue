@@ -3,19 +3,19 @@
     <a-modal v-model:open="show" :title="modalTitle" @ok="handleOk" width="746px">
       <div class="form-box">
         <a-form layout="vertical">
-          <a-form-item label="角色名称" v-bind="validateInfos.name">
+          <a-form-item :label="t('role_name_label')" v-bind="validateInfos.name">
             <a-input
               type="text"
               :maxlength="100"
               :disabled="formState.role_type > 0"
-              placeholder="请输入角色名称"
+              :placeholder="t('role_name_placeholder')"
               v-model:value="formState.name"
             ></a-input>
           </a-form-item>
-          <a-form-item label="角色备注">
-            <a-textarea v-model:value="formState.mark" placeholder="请输入角色备注" />
+          <a-form-item :label="t('role_mark_label')">
+            <a-textarea v-model:value="formState.mark" :placeholder="t('role_mark_placeholder')" />
           </a-form-item>
-          <a-form-item label="角色权限">
+          <a-form-item :label="t('role_permission_label')">
             <div class="role-check-box" v-for="item in menuOptions" :key="item.uni_key">
               <a-flex class="title-boock" justify="space-between">
                 <div class="title-row">{{ item.name }}</div>
@@ -63,13 +63,17 @@
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import { Form, message } from 'ant-design-vue'
 import { getRole, getMenu, saveRole } from '@/api/manage/index.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.manage.components.add-role')
+
 const emit = defineEmits(['ok'])
 const useForm = Form.useForm
 
 const menuOptions = ref([])
 const robotChecked = ref({})
 const show = ref(false)
-const modalTitle = ref('添加角色')
+const modalTitle = ref(t('add_role_title'))
 const id = ref('')
 const formState = reactive({
   name: '',
@@ -80,7 +84,7 @@ const formState = reactive({
 const formRules = reactive({
   name: [
     {
-      message: '请输入角色名称',
+      message: t('role_name_required'),
       required: true
     }
   ]
@@ -107,7 +111,7 @@ const getMenuData = async () => {
 
 const add = async () => {
   await getMenuData()
-  modalTitle.value = '添加角色'
+  modalTitle.value = t('add_role_title')
   id.value = ''
   show.value = true
   formState.name = ''
@@ -116,7 +120,7 @@ const add = async () => {
 }
 
 const edit = (record) => {
-  modalTitle.value = '编辑角色'
+  modalTitle.value = t('edit_role_title')
   id.value = record.id
   getRole({ id: record.id }).then((res) => {
     let data = res.data
@@ -177,7 +181,7 @@ const handleOk = () => {
 
     saveRole(parmas).then((res) => {
       show.value = false
-      message.success('保存成功')
+      message.success(t('save_success'))
       emit('ok')
     })
   })

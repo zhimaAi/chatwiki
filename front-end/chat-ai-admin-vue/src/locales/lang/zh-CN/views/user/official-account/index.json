@@ -1,0 +1,11 @@
+{
+  "title": "公众号管理",
+  "bind_btn": "绑定公众号",
+  "empty_title": "暂未绑定公众号",
+  "bind_now_btn": "立即绑定",
+  "confirm_remove": "确定移除{app_name}吗?",
+  "remove_warning": "移除后，机器人已关联绑定或其他已配置该公众号的功能都会失效",
+  "delete_success": "删除成功",
+  "refresh_success": "刷新成功",
+  "sort_success": "排序成功"
+}

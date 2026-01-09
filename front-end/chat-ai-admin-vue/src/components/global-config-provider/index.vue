@@ -1,5 +1,5 @@
 <template>
-  <ConfigProvider v-bind="$props" :locale="currentLocale.elLocale" :theme="theme">
+  <ConfigProvider v-bind="$props" :locale="currentLocale.antvLocale" :theme="theme">
     <slot />
   </ConfigProvider>
 </template>

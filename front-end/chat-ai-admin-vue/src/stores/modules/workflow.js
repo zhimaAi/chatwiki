@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
 import { getTriggerConfigList, getTriggerOfficialMessage } from '@/api/trigger/index'
-
+import { getLibraryList } from '@/api/library/index'
 export const useWorkflowStore = defineStore('workflow', () => {
   const triggerList = ref([])
   const officialList = ref([])
   const triggerOfficialList = ref([])
+  const libraryLists = ref([])
 
   const getTriggerList = async (isRefresh) => {
     try {
@@ -52,11 +53,20 @@ export const useWorkflowStore = defineStore('workflow', () => {
     })
   }
 
+
+  const getAllLibraryList = () => {
+    getLibraryList().then((res) => {
+      libraryLists.value = res.data
+    })
+  }
+
   return {
     triggerList,
     getTriggerList,
     officialList,
     getTriggerOfficialMsg,
     triggerOfficialList,
+    getAllLibraryList,
+    libraryLists,
   }
 })

@@ -26,6 +26,7 @@
 
 <template>
   <node-common
+    :properties="properties"
     :title="properties.node_name"
     :iconUrl="info.icon"
     :isSelected="isSelected"

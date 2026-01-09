@@ -1,0 +1,10 @@
+{
+  "add_group": "Add Group",
+  "all": "All",
+  "default_group": "Default Group",
+  "delete_confirm": "Delete Confirmation",
+  "delete_confirm_content": "Are you sure you want to delete the group 【{name}】?",
+  "delete": "Delete",
+  "cancel": "Cancel",
+  "delete_success": "Delete successful"
+}

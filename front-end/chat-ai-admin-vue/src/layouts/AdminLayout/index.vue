@@ -67,6 +67,7 @@
       <div class="layout-header">
         <div class="header-left">
           <LayoutLogo />
+          <BeginnerGuideTag />
         </div>
         <div class="header-body">
           <Layoutnavbar />
@@ -108,19 +109,18 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useGlobalStore } from '@/stores/modules/global'
 import { useUserStore } from '@/stores/modules/user'
 import LayoutLogo from './compoents/layout-logo.vue'
 import Layoutnavbar from './compoents/layout-navbar.vue'
 import LayoutBreadcrumb from './compoents/layout-breadcrumb.vue'
 import LayoutFooter from './compoents/layout-footer.vue'
 import UserDropdown from './compoents/user-dropdown.vue'
-// import LocaleDropdown from './compoents/locale-dropdown.vue'
+import LocaleDropdown from './compoents/locale-dropdown.vue'
 import ResetPassword from './compoents/reset-password.vue'
-import { useGlobalStore } from '@/stores/modules/global'
+import BeginnerGuideTag from './compoents/beginner-guide-tag.vue'
+
 const globalStore = useGlobalStore()
-
-
-
 const route = useRoute()
 const userStore = useUserStore()
 

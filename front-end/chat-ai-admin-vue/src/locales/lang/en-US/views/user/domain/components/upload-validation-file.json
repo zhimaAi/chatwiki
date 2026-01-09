@@ -1,0 +1,7 @@
+{
+  "title": "Upload Validation File",
+  "file_name_label": "File name (including extension, e.g., mzkAzOpb6L.txt)",
+  "file_content_label": "File content",
+  "file_name_required": "Please enter file name",
+  "file_content_required": "Please enter file content"
+}

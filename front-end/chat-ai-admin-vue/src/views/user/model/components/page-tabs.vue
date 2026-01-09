@@ -45,7 +45,7 @@
 import { ref } from 'vue'
 import { useI18n } from '@/hooks/web/useI18n'
 
-const { t } = useI18n()
+const { t } = useI18n('views.user.model')
 
 const emit = defineEmits(['update:value', 'change'])
 
@@ -58,13 +58,18 @@ const props = defineProps({
 const tabs = ref([
   {
     value: 1,
-    title: t('views.user.model.modelsHaveBeenAdded'),
-    langKey: 'views.user.model.modelsHaveBeenAdded'
+    title: t('modelsHaveBeenAdded'),
+    langKey: 'modelsHaveBeenAdded'
   },
   {
     value: 0,
-    title: t('views.user.model.canAddAModel'),
-    langKey: 'views.user.model.canAddAModel'
+    title: t('canAddAModel'),
+    langKey: 'canAddAModel'
+  },
+  {
+    value: 2,
+    title: t('beginnerGuide'),
+    langKey: 'beginnerGuide'
   }
 ])
 

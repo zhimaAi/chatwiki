@@ -1,5 +1,6 @@
 <template>
   <node-common
+    :properties="properties"
     :title="properties.node_name"
     :icon-name="properties.node_icon_name"
     :isSelected="isSelected"
@@ -13,14 +14,15 @@
           <div class="static-field-item-label">消息内容</div>
           <div class="static-field-item-content">
             <div class="static-field-value">
-              <at-text
+              <AtText
                 :options="valueOptions"
                 :defaultSelectedList="formState.content_tags"
                 :defaultValue="formState.content"
                 ref="atInputRef"
+                class="text-input"
+                @resize="onInputResize"
                 v-if="formState.content.length > 0"
               />
-              <span v-else>--</span>
             </div>
           </div>
         </div>
@@ -75,7 +77,6 @@ export default {
   mounted() {
     const graphModel = this.getGraph()
     graphModel.eventCenter.on('custom:setNodeName', this.onUpatateNodeName)
-
     this.init()
   },
   onBeforeUnmount() {
@@ -102,6 +103,11 @@ export default {
         this.resetSize()
       })
     },
+    onInputResize() {
+      this.$nextTick(() => {
+        this.resetSize()
+      })
+    },
     onUpatateNodeName (data) {
       if (!this.formState.content) return
       if (!haveOutKeyNode.includes(data.node_type)) {
@@ -124,7 +130,7 @@ export default {
 
         this.$refs[`atInputRef`].refresh()
 
-        this.update()
+        // this.update()
       })
     },
     getValueOptions() {
@@ -141,17 +147,6 @@ export default {
         node_params: JSON.stringify(node_params)
       })
     },
-    showAtList(val) {
-      if (val) {
-        this.getValueOptions()
-      }
-    },
-    changeValue(text, selectedList) {
-      this.formState.content_tags = selectedList
-      this.formState.content = text
-
-      this.update()
-    }
   }
 }
 </script>
@@ -162,14 +157,16 @@ export default {
   position: relative;
   z-index: 2;
   .static-field-value{
-    height: auto;
-    line-height: 16px;
-    font-size: 12px;
+    width: 100%;
+    height: 58px;
+    line-height: 18px;
+    font-size: 13px;
     word-break: break-all;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     white-space: pre-wrap;
   }

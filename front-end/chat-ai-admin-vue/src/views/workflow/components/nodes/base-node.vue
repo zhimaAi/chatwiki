@@ -6,7 +6,7 @@
     :data-node-type="node_type"
   >
     <div class="node-common" :class="{ isHovered: isHovered, isSelected: isSelected }">
-      <div class="node-header">
+      <div class="node-header" :style="{ background: properties.node_header_bg_color || 'none' }">
         <div class="node-header-left">
           <span class="node-icon" v-if="iconUrl || iconName">
             <img :src="iconUrl || getImgUrl(iconName)" alt="" />
@@ -59,6 +59,12 @@ export default {
   name: 'NodeCommon',
   inject: ['setTitle',  'getNode',  'getGraph'],
   props: {
+    properties: {
+      type: Object,
+      default() {
+        return {}
+      }
+    },
     iconUrl: {
       type: String,
       default: ''
@@ -104,7 +110,8 @@ export default {
   data() {
     return {
       isShowMenu: false,
-      localMenus: []
+      localMenus: [],
+      node_header_bg_color: ''
     }
   },
   computed: {
@@ -158,7 +165,6 @@ export default {
 .node-common {
   position: relative;
   width: 100%;
-  padding: 16px;
   border-radius: 8px;
   background: #fff;
   box-sizing: border-box;
@@ -168,8 +174,8 @@ export default {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 24px;
-    margin-bottom: 16px;
+    padding: 16px 16px 16px 16px;
+    border-radius: 8px 8px 0 0;
   }
   .node-title {
     height: 24px;
@@ -259,6 +265,10 @@ export default {
   }
   .node-title-input:hover {
     border-width: 1px;
+  }
+
+  .node-body{
+    padding: 0 16px 16px 16px;
   }
 }
 

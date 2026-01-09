@@ -5,6 +5,7 @@
       <div class="dropdown-list" ref="dropdownList" v-if="showDropdown" :style="positionStyle">
         <CascadePanel
           :options="showOptions"
+          :checkAnyLevel="checkAnyLevel"
           @change="onSelectOption"
           @direction-change="handleDirectionChange"
         />
@@ -18,12 +19,11 @@
       :class="[{'show-placeholder': localValue.length == 0, }, 'type-'+type]"
       contenteditable="plaintext-only"
       :placeholder="placeholder"
-      @wheel.stop=""
       @focus="onFocus"
-      @input="divInput"
-      @keydown="dropDownKeydown"
-      @click="clickJMention"></div>
-        <div class="placeholder" v-if="localValue.length == 0">{{ placeholder }}</div>
+      @input="debouncedUpdate"
+      @click="clickJMention"
+      @blur="handleBlur"></div>
+        <span class="placeholder" v-if="localValue.length == 0">{{ placeholder }}</span>
     </div>
   </div>
 </template>
@@ -86,15 +86,17 @@ export default {
     inputStyle: {
       type: String,
       default: "",
+    },
+    checkAnyLevel:{
+      type: Boolean,
+      default: false
     }
   },
   data() {
     return {
       timer: null,
       showDropdown: false,
-      showAtList: false,
       positionStyle: "",
-      chooseIndex: 0,
       selectedList: [],
       selectedIdSet: new Set(),
       showOptions: [],
@@ -104,12 +106,11 @@ export default {
   },
   watch: {
     defaultValue(val){
-      if(val != this.localValue){
+      if(val.trim() != this.localValue.trim()){
         this.refresh()
       }
     },
-    chooseIndex() {},
-    showAtList(val){
+    showDropdown(val){
       this.onOpen(val);
     },
     options(){
@@ -148,7 +149,6 @@ export default {
     },
     hideDropdownMenus() {
       this.showDropdown = false;
-      this.showAtList = false;
     },
     onFocus(){
       this.$emit("focus");
@@ -198,6 +198,9 @@ export default {
     },
     onChange(){
       const jMention = this.$refs.JMention;
+      
+      if(!jMention) return;
+
       let htmlStr = jMention.innerHTML;
       let text = this.getText(htmlStr);
 
@@ -244,7 +247,7 @@ export default {
           text = text.replace(/\./g, '/')
 
           html = html.replace(regex,
-            `<span class="j-mention-at" data-id="${opt.node_id}" contentEditable="false" data-value="${opt.value}">${text}</span> `
+            `<span class="j-mention-at" data-id="${opt.node_id}" contentEditable="false" data-value="${opt.value}">${text}</span>`
           );
 
           replacedValues.add(opt.value);
@@ -264,37 +267,6 @@ export default {
         if (this.canRepeat) return true;
         return !this.selectedIdSet.has(opt.id + "");
       });
-    },
-    dropDownKeydown(event) {
-      const { keyCode } = event;
-      if (!this.showDropdown) {
-        // 阻止enter键的默认行为
-        if (keyCode === 13 && this.type === 'input') {
-          event.preventDefault();
-          event.stopPropagation();
-          return;
-        }
-        return
-      };
-
-      const keyCodeList = [13, 38, 40];
-      if (!keyCodeList.includes(keyCode)) return;
-      event.preventDefault();
-      event.stopPropagation();
-
-      if (keyCode === 13) {
-        return;
-      }
-
-      const map = {
-        38: -1,
-        40: 1,
-      };
-      this.chooseIndex += map[keyCode] || 0;
-      this.chooseIndex = Math.max(
-        0,
-        Math.min(this.chooseIndex, this.showOptions.length - 1)
-      );
     },
     getLastChar(len = 1) {
       const selection = window.getSelection();
@@ -438,46 +410,69 @@ export default {
       return list.length > 0;
     },
     updateValue() {
-      if(this.timer){
-        clearTimeout(this.timer);
-        this.timer = null;
-      }
-
-      this.timer = setTimeout(() => {
-        this.onChange();
-      }, 100);
+      this.onChange();
     },
     clickJMention() {
-      this.showDropdown = false;
-      this.showAtList = false;
-    },
-    async divInput(e) {
-      this.updateValue();
-      const lastChar = this.getLastChar();
-      if (e.inputType === "deleteContentBackward" && !this.atText) {
+      if(this.showDropdown){
         this.showDropdown = false;
-        this.showAtList = false;
       }
-      if (lastChar === "/") {
-        this.showDropdown = true;
-        this.atText = "";
+    },
+    debouncedUpdate(e) {
+      // 1. 优先处理下拉菜单的UI逻辑，这需要实时响应
+      this.handleDropdownLogic(e);
+
+      // 2. 将数据更新操作放入防抖函数中
+      // 清除上一个计时器
+      if (this.timer) {
+        clearTimeout(this.timer);
+      }
+      // 设置一个新的计时器，在用户停止输入200ms后执行 updateValue
+      this.timer = setTimeout(() => {
+        this.updateValue();
+      }, 350);
+    },
+    handleBlur() {
+      // 当输入框失焦时，为了确保数据最终被同步，立即执行一次 updateValue
+      // 同时清除可能存在的防抖计时器，避免重复执行
+      if (this.timer) {
+        clearTimeout(this.timer);
+      }
+      this.updateValue();
+    },
+    async handleDropdownLogic(e) {
+      // 获取光标前的最后一个字符。此操作依赖于当前的DOM状态，应在任何DOM修改前执行。
+      const lastChar = this.getLastChar();
+
+      // --- 场景1: 用户执行删除操作 ---
+      if (e.inputType === "deleteContentBackward" && !this.atText) {
+        if(lastChar != '/'){
+          this.showDropdown = false;
+        }
       } else {
-        const text = this.getLastAtText();
-        this.atText = text;
-        const isExistStartWith = this.checkStartWith(text);
-        if (text) {
-          this.showDropdown = isExistStartWith;
+        // --- 场景2: 用户输入'/'，触发提及功能 ---
+        if (lastChar === "/") {
+          this.showDropdown = true;
+          this.atText = "";
+        } else {
+          // --- 场景3: 用户在'/'后输入文本，进行筛选 ---
+          const text = this.getLastAtText();
+          this.atText = text;
+          const isExistStartWith = this.checkStartWith(text);
+          if (text) {
+            this.showDropdown = isExistStartWith;
+          }
         }
       }
-      // this.updateSelectedList();
+
+      // 如果不显示下拉菜单，则提前退出定位逻辑
       if (!this.showDropdown) {
         return;
       }
+
+      // --- 定位并最终显示下拉菜单 ---
       const { top, left } = await this.getCaretPosition();
       this.showDropdown = true;
       this.positionStyle = `left:${left}px; top:${top}px;`;
-      this.chooseIndex = 0;
-      this.showAtList = true;
     },
     insertAtCaret(text, dataSet) {
       let len = this.atText.length + 1;
@@ -505,7 +500,8 @@ export default {
       }
 
       if (prevCharNode.nodeType === Node.TEXT_NODE) {
-        prevCharNode.replaceData(prevCharOffset, len, " ");
+        // 将触发词替换为空字符串，而不是空格，以避免在span后留下多余的空格
+        prevCharNode.replaceData(prevCharOffset, len, "");
 
         // 创建 span 标签
         const span = document.createElement("span");
@@ -514,10 +510,10 @@ export default {
         span.style = this.atTextStyle;
         span.textContent = `${text}`;
 
-        const tmp = document.createElement("span");
-        tmp.contentEditable = true;
-        tmp.innerHTML += "&nbsp;";
-        tmp.classList.add("at-space");
+        // const tmp = document.createElement("span");
+        // tmp.contentEditable = true;
+        // tmp.innerHTML += "&nbsp;";
+        // tmp.classList.add("at-space");
 
         for (const key in dataSet) {
           span.dataset[key] = dataSet[key];
@@ -530,14 +526,10 @@ export default {
         // newRange.insertNode(tmp);
 
         // 将光标移动到 span 元素外部
-        let nextNode = span.nextSibling;
-        if (!nextNode) {
-          // 如果 span 元素后面没有兄弟节点，创建一个新的文本节点
-          nextNode = document.createTextNode("");
-          tmp.parentNode.appendChild(nextNode);
-        }
-        range.setStart(nextNode, 1);
-        range.setEnd(nextNode, 1);
+        // 将光标移动到 span 元素之后
+        range.setStartAfter(span);
+        range.setEndAfter(span);
+
         selection.removeAllRanges();
         selection.addRange(range);
       }
@@ -551,7 +543,6 @@ export default {
       if (!opt) return;
       // 处理用户选择逻辑
       this.showDropdown = false;
-      this.showAtList = false;
 
       let text = opt.node_name + '.' + opt.text;
 
@@ -571,6 +562,7 @@ export default {
       if (!isInit) {
         this.insertAtCaret(text, dataSet);
         this.initShowOptionList();
+        // 在插入提及内容后，立即更新值以确保数据同步
         this.updateValue();
       }
     },

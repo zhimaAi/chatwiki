@@ -1,0 +1,17 @@
+{
+  "add_role_btn": "添加角色",
+  "search_placeholder": "输入角色名称",
+  "column_role": "角色",
+  "column_remark": "备注",
+  "column_update_time": "最近修改时间",
+  "column_operate_name": "最近修改人",
+  "column_create_name": "创建人",
+  "column_action": "操作",
+  "btn_edit": "编辑",
+  "btn_delete": "删除",
+  "confirm_title": "提示?",
+  "confirm_content": "确认删除该角色",
+  "ok_text": "确认",
+  "cancel_text": "取消",
+  "delete_success": "删除成功"
+}

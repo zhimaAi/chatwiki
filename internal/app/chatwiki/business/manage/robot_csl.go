@@ -293,6 +293,7 @@ func ApplyRobotCsl(adminUserId, userId int, token string, robotCsl *common.Robot
 
 func ApplyChatRobot(robot msql.Params, cslIdMaps *common.CslIdMaps, models *common.DefaultModelParams, token string) (msql.Params, error) {
 	chatRobot := make(map[string]string)
+	chatRobot[`check_name`] = `1`
 	for key, val := range robot {
 		switch key {
 		case `id`, `admin_user_id`, `robot_key`, `application_type`, `work_flow_ids`, `default_library_id`, `default_app_config`, `start_node_key`, `work_flow_model_config_ids`, `creator`:
@@ -359,6 +360,7 @@ func ApplyFlowRobot(adminUserId int, robot msql.Params, nodes []msql.Params, csl
 		`en_name`:              tool.Random(50),
 		`robot_intro`:          robot[`robot_intro`],
 		`avatar_from_template`: robot[`robot_avatar`],
+		`check_name`:           `1`,
 		`is_default`:           cast.ToString(define.NotDefault),
 	}
 	code, err := common.RequestChatWiki(`/manage/addFlowRobot`, http.MethodPost, token, flowRobot)

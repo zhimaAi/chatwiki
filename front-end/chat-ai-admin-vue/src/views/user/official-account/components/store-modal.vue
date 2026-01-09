@@ -103,15 +103,15 @@
 <template>
   <a-modal width="1168px" v-model:open="show" :title="title" @cancel="handleCancel">
     <template #footer>
-      <a-button key="back" @click="handleCancel" v-if="step === 1">取 消</a-button>
-      <a-button key="submit" type="primary" :loading="loading" @click="handleSave" v-if="step === 1">保存并进入下一步
+      <a-button key="back" @click="handleCancel" v-if="step === 1">{{ t('cancel_btn') }}</a-button>
+      <a-button key="submit" type="primary" :loading="loading" @click="handleSave" v-if="step === 1">{{ t('save_and_next_btn') }}
       </a-button>
-      <a-button key="submit" type="primary" :loading="loading" @click="handleOk" v-if="step === 2">已完成配置</a-button>
+      <a-button key="submit" type="primary" :loading="loading" @click="handleOk" v-if="step === 2">{{ t('config_done_btn') }}</a-button>
     </template>
     <div class="add-wechat-app-alert" v-if="step === 1">
       <a-alert
         class="tip-alert"
-        message="进入微信公众号后台（https://developers.weixin.qq.com/console/product），左上角“我的业务和服务”选择”服务号“后在【基础信息中】获取开发者信息。"
+        :message="t('step1_alert_msg')"
         type="info"
         show-icon
       />
@@ -119,28 +119,28 @@
       <div class="alert-body">
         <div class="form-box">
           <a-form ref="formRef" layout="vertical" :model="formState" :rules="formRules">
-            <a-form-item label="公众号头像/名称" name="app_name">
+            <a-form-item :label="t('app_name_label')" name="app_name">
               <PageTitleInput
                 :autoUpload="false"
                 v-model:avatar="formState.app_avatar_url"
                 v-model:value.trim="formState.app_name"
-                placeholder="请输入您的公众号名称"
+                :placeholder="t('app_name_placeholder')"
                 @changeAvatar="onChangeAvatar"
               />
             </a-form-item>
-            <a-form-item label="AppId" name="app_id">
-              <a-input v-model:value.trim="formState.app_id" :disabled="formState.id > 0" placeholder="请输入您的AppId"/>
+            <a-form-item :label="t('app_id_label')" name="app_id">
+              <a-input v-model:value.trim="formState.app_id" :disabled="formState.id > 0" :placeholder="t('app_id_placeholder')"/>
             </a-form-item>
-            <a-form-item label="AppSecret" name="app_secret">
+            <a-form-item :label="t('app_secret_label')" name="app_secret">
               <a-input
                 v-model:value.trim="formState.app_secret"
-                placeholder="请输入您的AppSecret"
+                :placeholder="t('app_secret_placeholder')"
               />
             </a-form-item>
-            <a-form-item label="将以下IP添加到公众号IP白名单中" required>
+            <a-form-item :label="t('ip_whitelist_label')" required>
               <div class="my-ip">
                 <span class="ip-text">{{formState.wechat_ip}}</span>
-                <a class="copy-btn" @click="copyIp">复 制</a>
+                <a class="copy-btn" @click="copyIp">{{ t('copy_btn') }}</a>
               </div>
             </a-form-item>
           </a-form>
@@ -153,7 +153,7 @@
     <div class="add-wechat-app-alert" v-if="step === 2">
       <a-alert
         class="tip-alert"
-        message="进入微信公众号后台（https://developers.weixin.qq.com/console/product），在【基础信息-域名与消息推送配置-消息推送】中配置并启用服务器配置。请按照下图配置"
+        :message="t('step2_alert_msg')"
         type="info"
         show-icon
       />
@@ -161,17 +161,17 @@
         <div class="config-items">
           <div class="config-item">
             <span class="config-value">{{ step2Info.push_url }}</span>
-            <span class="copy-btn" @click="handleCopy(step2Info.push_url)">复制</span>
+            <span class="copy-btn" @click="handleCopy(step2Info.push_url)">{{ t('copy_text') }}</span>
           </div>
 
           <div class="config-item">
             <span class="config-value">{{ step2Info.push_token }}</span>
-            <span class="copy-btn" @click="handleCopy(step2Info.push_token)">复制</span>
+            <span class="copy-btn" @click="handleCopy(step2Info.push_token)">{{ t('copy_text') }}</span>
           </div>
 
           <div class="config-item">
             <span class="config-value">{{ step2Info.push_aeskey }}</span>
-            <span class="copy-btn" @click="handleCopy(step2Info.push_aeskey)">复制</span>
+            <span class="copy-btn" @click="handleCopy(step2Info.push_aeskey)">{{ t('copy_text') }}</span>
           </div>
         </div>
         <img class="config-preview-img" src="@/assets/img/robot/config_preview_01.png"/>
@@ -186,7 +186,10 @@ import {ref, reactive, computed, toRaw} from 'vue'
 import {copyText} from '@/utils/index'
 import {message} from 'ant-design-vue'
 import PageTitleInput from './page-title-input.vue'
-import {useCompanyStore} from "@/stores/modules/company.js";
+import {useCompanyStore} from "@/stores/modules/company.js"
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.official-account.components.store-modal')
 
 const emit = defineEmits(['ok'])
 const defaultAvatar = '/upload/default/official_account_avatar.png'
@@ -211,14 +214,14 @@ const formRules = {
   app_name: [
     {
       required: true,
-      message: '请输入您的公众号名称',
+      message: t('app_name_required'),
       trigger: 'change'
     },
     {
       trigger: 'change',
       validator: () => {
         if (!formState.app_avatar_url) {
-          return Promise.reject('请上传公众号头像')
+          return Promise.reject(t('avatar_required'))
         } else {
           return Promise.resolve()
         }
@@ -228,22 +231,22 @@ const formRules = {
   app_id: [
     {
       required: true,
-      message: '请输入您的AppId',
+      message: t('app_id_required'),
       trigger: 'change'
     }
   ],
   app_secret: [
     {
       required: true,
-      message: '请输入您的AppSecret',
+      message: t('app_secret_required'),
       trigger: 'change'
     }
   ]
 }
 
 const title = computed(() => {
-  let text = !formState.id ? '添加微信公众号' : '编辑微信公众号'
-  let text2 = step.value == 1 ? '-填写公众号开发信息' : '-服务器配置'
+  let text = !formState.id ? t('add_official_account') : t('edit_official_account')
+  let text2 = step.value == 1 ? t('fill_dev_info') : t('server_config')
 
   return text + text2
 })
@@ -267,7 +270,7 @@ const submitForm = () => {
   saveWechatApp(data).then((res) => {
     Object.assign(step2Info, res.data)
     step.value = 2
-    message.success('保存成功')
+    message.success(t('save_success'))
 
     emit('ok')
   })
@@ -296,7 +299,7 @@ const handleCancel = () => {
 
 const handleCopy = (text) => {
   copyText(text)
-  message.success('复制成功')
+  message.success(t('copy_success'))
 }
 
 const copyIp = () => {

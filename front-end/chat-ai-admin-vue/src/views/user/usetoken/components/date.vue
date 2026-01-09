@@ -15,6 +15,9 @@
 <script setup>
 import dayjs from 'dayjs';
 import { ref, onMounted, reactive } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.usetoken')
 
 const props = defineProps({
   dateType: {
@@ -33,21 +36,21 @@ const emit = defineEmits(['dateChange'])
 
 let tagDateArr = reactive([
   {
-    label: '今日',
+    label: t('date.today'),
     value: false,
     key: 2,
     start_date: dayjs(),
     end_date: dayjs(),
   },
   {
-    label: '昨日',
+    label: t('date.yesterday'),
     value: false,
     key: 3,
     start_date: dayjs().subtract(1, 'day'),
     end_date: dayjs().subtract(1, 'day'),
   },
   {
-    label: '近七日',
+    label: t('date.last_seven_days'),
     value: true,
     key: 4,
     start_date: dayjs().subtract(6, 'day'),

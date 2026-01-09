@@ -2,92 +2,92 @@
   <div>
     <a-modal
       v-model:open="open"
-      :title="`${formState.id ? '编辑' : '添加'}模型`"
+      :title="`${formState.id ? t('edit') : t('add')}${t('model')}`"
       :width="700"
       @ok="handleOk"
       :confirmLoading="isLoading"
     >
       <a-form class="form-box" ref="formRef" layout="vertical" :model="formState">
-        <a-form-item name="model_type" label="模型类型" required>
+        <a-form-item name="model_type" :label="t('model_type')" required>
           <a-radio-group
             @change="handleTypeChange"
             v-model:value="formState.model_type"
             name="radioGroup"
           >
-            <a-radio v-if="supported_type.includes('LLM')" value="LLM">大语言模型</a-radio>
+            <a-radio v-if="supported_type.includes('LLM')" value="LLM">{{ t('llm') }}</a-radio>
             <a-radio v-if="supported_type.includes('TEXT EMBEDDING')" value="TEXT EMBEDDING"
-              >嵌入模型</a-radio
+              >{{ t('embedding') }}</a-radio
             >
-            <a-radio v-if="supported_type.includes('RERANK')" value="RERANK">重排序模型</a-radio>
-            <a-radio v-if="supported_type.includes('TTS')" value="TTS">语音模型</a-radio>
-            <a-radio v-if="supported_type.includes('IMAGE')" value="IMAGE">图片生成模型</a-radio>
+            <a-radio v-if="supported_type.includes('RERANK')" value="RERANK">{{ t('rerank') }}</a-radio>
+            <a-radio v-if="supported_type.includes('TTS')" value="TTS">{{ t('tts') }}</a-radio>
+            <a-radio v-if="supported_type.includes('IMAGE')" value="IMAGE">{{ t('image') }}</a-radio>
           </a-radio-group>
         </a-form-item>
         <a-form-item
           name="use_model_name"
           :label="model_name"
-          :rules="[{ required: true, message: `请输入${model_name}` }]"
+          :rules="[{ required: true, message: `${t('please_enter')}${model_name}` }]"
         >
           <a-input
             v-model:value="formState.use_model_name"
             @blur="handleModelNameBlur"
-            placeholder="请输入，为调用模型时参数"
+            :placeholder="t('model_name_placeholder')"
           />
         </a-form-item>
         <a-form-item
           name="show_model_name"
-          label="模型名称"
-          :rules="[{ required: true, message: '请输入模型名称' }]"
+          :label="t('show_model_name')"
+          :rules="[{ required: true, message: `${t('please_enter')}${t('show_model_name')}` }]"
         >
           <a-input
             v-model:value="formState.show_model_name"
             :maxLength="50"
-            placeholder="请输入模型名称，仅后台展示用"
+            :placeholder="t('show_model_name_placeholder')"
           />
         </a-form-item>
         <a-form-item
           name="vector_dimension_list"
-          label="向量维度"
+          :label="t('vector_dimension')"
           v-if="formState.model_type == 'TEXT EMBEDDING'"
         >
           <a-input
             v-model:value="formState.vector_dimension_list"
-            placeholder="请输入支持的向量维度，多个向量维度用英文逗号分割"
+            :placeholder="t('vector_dimension_placeholder')"
           />
-          <div class="form-tip">向量维度必须为正整数，比如1024</div>
+          <div class="form-tip">{{ t('vector_dimension_tip') }}</div>
         </a-form-item>
         <a-form-item
           name="thinking_type"
-          label="深度思考"
+          :label="t('thinking_type')"
           required
           v-if="
             showThinkTypeList.includes(model_info.model_define) && formState.model_type == 'LLM'
           "
         >
           <a-radio-group class="thiing-radio-box" v-model:value="formState.thinking_type">
-            <a-radio value="1">支持（类似deepseek r1这种只支持思考模式的模型）</a-radio>
+            <a-radio value="1">{{ t('thinking_type_supported') }}</a-radio>
             <a-radio value="2"
-              >可选（比如doubao 1.6，可以通过接口控制是否启用深度思考模式）</a-radio
+              >{{ t('thinking_type_optional') }}</a-radio
             >
-            <a-radio value="0">不支持（比如deepseek v3，模型本身不支持深度思考模式）</a-radio>
+            <a-radio value="0">{{ t('thinking_type_not_supported') }}</a-radio>
           </a-radio-group>
         </a-form-item>
         <a-form-item
           name="function_call"
-          label="工具调用"
+          :label="t('function_call')"
           required
           v-if="formState.model_type == 'LLM'"
         >
           <a-radio-group v-model:value="formState.function_call">
-            <a-radio value="1">支持</a-radio>
-            <a-radio value="0">不支持</a-radio>
+            <a-radio value="1">{{ t('supported') }}</a-radio>
+            <a-radio value="0">{{ t('not_supported') }}</a-radio>
           </a-radio-group>
         </a-form-item>
         <a-form-item
           name="image_sizes"
-          label="图片比列支持"
+          :label="t('image_sizes')"
           required
-          :rules="[{ required: true, message: '请选择图片比列支持' }]"
+          :rules="[{ required: true, message: `${t('please_select')}${t('image_sizes')}` }]"
           v-if="formState.model_type == 'IMAGE'"
         >
           <a-checkbox-group
@@ -99,8 +99,8 @@
         </a-form-item>
         <a-form-item
           name="image_max"
-          label="生成图片最大数量"
-          :rules="[{ required: true, message: '请输入生成图片最大数量' }]"
+          :label="t('image_max')"
+          :rules="[{ required: true, message: `${t('please_enter')}${t('image_max')}` }]"
           v-if="formState.model_type == 'IMAGE'"
         >
           <a-input-number
@@ -112,42 +112,42 @@
         </a-form-item>
         <a-form-item
           name="image_watermark"
-          label="支持图片水印"
+          :label="t('image_watermark')"
           v-if="formState.model_type == 'IMAGE'"
         >
           <a-switch
             v-model:checked="formState.image_watermark"
-            checked-children="开"
-            un-checked-children="关"
+            :checked-children="t('on')"
+            :un-checked-children="t('off')"
           />
         </a-form-item>
         <a-form-item
           name="image_optimize_prompt"
-          label="支持自动优化提示词"
+          :label="t('image_optimize_prompt')"
           v-if="formState.model_type == 'IMAGE'"
         >
           <a-switch
             v-model:checked="formState.image_optimize_prompt"
-            checked-children="开"
-            un-checked-children="关"
+            :checked-children="t('on')"
+            :un-checked-children="t('off')"
           />
         </a-form-item>
-        <a-form-item label="支持输入类型" required v-if="formState.model_type != 'RERANK'">
+        <a-form-item :label="t('support_input_type')" required v-if="formState.model_type != 'RERANK'">
           <a-flex :gap="8" v-if="formState.model_type == 'LLM'">
-            <a-checkbox v-model:checked="formState.input_text">文本</a-checkbox>
-            <a-checkbox v-model:checked="formState.input_voice">语音</a-checkbox>
-            <a-checkbox v-model:checked="formState.input_image">图片</a-checkbox>
-            <a-checkbox v-model:checked="formState.input_video">视频</a-checkbox>
-            <a-checkbox v-model:checked="formState.input_document">文档</a-checkbox>
+            <a-checkbox v-model:checked="formState.input_text">{{ t('text') }}</a-checkbox>
+            <a-checkbox v-model:checked="formState.input_voice">{{ t('voice') }}</a-checkbox>
+            <a-checkbox v-model:checked="formState.input_image">{{ t('image_type') }}</a-checkbox>
+            <a-checkbox v-model:checked="formState.input_video">{{ t('video') }}</a-checkbox>
+            <a-checkbox v-model:checked="formState.input_document">{{ t('document') }}</a-checkbox>
           </a-flex>
           <a-flex :gap="8" v-else-if="formState.model_type == 'TTS'">
-            <a-checkbox v-model:checked="formState.input_text">文本</a-checkbox>
+            <a-checkbox v-model:checked="formState.input_text">{{ t('text') }}</a-checkbox>
           </a-flex>
           <a-flex :gap="8" align="center" v-else>
-            <a-checkbox v-model:checked="formState.input_text">文本</a-checkbox>
-            <a-checkbox v-model:checked="formState.input_image">图片</a-checkbox>
+            <a-checkbox v-model:checked="formState.input_text">{{ t('text') }}</a-checkbox>
+            <a-checkbox v-model:checked="formState.input_image">{{ t('image_type') }}</a-checkbox>
             <a-flex align="center" :gap="4" v-if="formState.model_type == 'IMAGE'">
-              最多
+              {{ t('max') }}
               <a-input-number
                 style="width: 120p"
                 v-model:value="formState.image_inputs_image_max"
@@ -155,21 +155,21 @@
                 :min="1"
                 :max="4"
               />
-              张图
+              {{ t('images_count') }}
             </a-flex>
           </a-flex>
         </a-form-item>
-        <a-form-item label="支持输出类型" required v-if="formState.model_type == 'LLM'">
+        <a-form-item :label="t('support_output_type')" required v-if="formState.model_type == 'LLM'">
           <a-flex :gap="8">
-            <a-checkbox v-model:checked="formState.output_text">文本</a-checkbox>
-            <a-checkbox v-model:checked="formState.output_voice">语音</a-checkbox>
-            <a-checkbox v-model:checked="formState.output_image">图片</a-checkbox>
-            <a-checkbox v-model:checked="formState.output_video">视频</a-checkbox>
+            <a-checkbox v-model:checked="formState.output_text">{{ t('text') }}</a-checkbox>
+            <a-checkbox v-model:checked="formState.output_voice">{{ t('voice') }}</a-checkbox>
+            <a-checkbox v-model:checked="formState.output_image">{{ t('image_type') }}</a-checkbox>
+            <a-checkbox v-model:checked="formState.output_video">{{ t('video') }}</a-checkbox>
           </a-flex>
         </a-form-item>
-        <a-form-item label="支持输出类型" required v-else-if="formState.model_type == 'TTS'">
+        <a-form-item :label="t('support_output_type')" required v-else-if="formState.model_type == 'TTS'">
           <a-flex :gap="8">
-            <a-checkbox v-model:checked="formState.output_voice">语音</a-checkbox>
+            <a-checkbox v-model:checked="formState.output_voice">{{ t('voice') }}</a-checkbox>
           </a-flex>
         </a-form-item>
       </a-form>
@@ -179,10 +179,13 @@
 
 <script setup>
 import { ref, h, reactive, computed } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import {} from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { saveUseModelConfig } from '@/api/model/index'
 import { getSizeOptions } from '@/views/workflow/components/util.js'
+
+const { t } = useI18n('views.user.model.components.add-model-new')
 const open = ref(false)
 
 const emit = defineEmits('ok')
@@ -222,10 +225,10 @@ const supported_type = ref([])
 
 const model_name = computed(() => {
   if (model_info.value.model_define == 'doubao') {
-    return '接入点id'
+    return t('endpoint_id')
   }
   if (model_info.value.model_define == 'azure') {
-    return '部署名称'
+    return t('deployment_name_label')
   }
   return 'model'
 })
@@ -296,7 +299,7 @@ const handleOk = () => {
       ...parmas
     })
       .then(() => {
-        message.success(`保存成功`)
+        message.success(t('save_success'))
         emit('ok')
         open.value = false
       })

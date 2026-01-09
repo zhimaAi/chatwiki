@@ -33,3 +33,4 @@ stats.html
 *.tsbuildinfo
 
 .kilocode/*
+.comate/*

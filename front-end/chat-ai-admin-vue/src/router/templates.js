@@ -19,5 +19,19 @@ export default {
         }
       }
     },
+    {
+      path: '/templates/detail',
+      name: 'templatesDetail',
+      component: () => import('../views/explore/templates/detail.vue'),
+      meta: {
+        title: '模板详情',
+        hideTitle: true,
+        activeMenu: 'explore',
+        bgColor: '#ffffff',
+        pageStyle: {
+          'padding': 0,
+        }
+      }
+    },
   ]
 }

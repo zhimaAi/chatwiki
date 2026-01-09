@@ -1,0 +1,10 @@
+{
+  "group_name_label": "Group Name",
+  "group_name_placeholder": "Enter, max 10 characters",
+  "group_name_required": "Please enter group name",
+  "group_desc_label": "Group Description",
+  "group_desc_placeholder": "Please enter",
+  "create_group": "Create Group",
+  "edit_group": "Edit Group",
+  "operation_success": "Operation successful"
+}

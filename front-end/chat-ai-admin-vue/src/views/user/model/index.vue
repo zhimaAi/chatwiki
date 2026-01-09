@@ -5,14 +5,13 @@
       <div class="alert-content-box" v-if="activeTab == 0">
         <a-alert show-icon>
           <template #message>
-            <div class="title">使用说明</div>
+            <div class="title">{{ t('views.user.model.usage_title') }}</div>
             <div>
-              1、模型主要分为嵌入模型（TEXT
-              EMBEDDING）和大模型（LLM），嵌入模型用于将上传知识库的文本内容进行向量化便于后续检索，大模型用于将检索到的相关知识进行理解后返回答案。
+              {{ t('views.user.model.usage_point_1') }}
             </div>
-            <div>2、配置模型时尽量选择同时支持LLM和TEXT EMBEDDING的模型，否则要配置多个模型。</div>
+            <div>{{ t('views.user.model.usage_point_2') }}</div>
             <div>
-              3、国内模型厂商一般都需要认证后才可使用，所以在配置模型前，确保在模型服务厂商那里已认证，否则配置模型时会提示配置参数错误。
+              {{ t('views.user.model.usage_point_3') }}
             </div>
           </template>
         </a-alert>
@@ -35,36 +34,36 @@
           <div v-if="currentDefine == 'chatwiki'" class="chatwiki-model-box">
             <div class="statics-block">
               <div class="statics-item">
-                <div class="title">剩余积分</div>
+                <div class="title">{{ t('views.user.model.remaining_points') }}</div>
                 <div class="num">{{ formatPriceWithCommas(staticsData.all_surplus) }}</div>
               </div>
               <div class="statics-item">
-                <div class="title">累计已使用</div>
+                <div class="title">{{ t('views.user.model.total_used') }}</div>
                 <div class="num">{{ formatPriceWithCommas(staticsData.all_use) }}</div>
               </div>
               <div class="statics-item">
-                <div class="title">最近过期时间</div>
+                <div class="title">{{ t('views.user.model.nearest_expiry') }}</div>
                 <div class="num">{{ staticsData.min_expiretime }}</div>
               </div>
               <div class="btn-block">
-                <a-button type="primary" @click="openBuyPointsModal" block>购买资源包</a-button>
-                <a-button @click="handleShowBuyRecord" block>购买记录</a-button>
+                <a-button type="primary" @click="openBuyPointsModal" block>{{ t('views.user.model.buy_resource_pack') }}</a-button>
+                <a-button @click="handleShowBuyRecord" block>{{ t('views.user.model.buy_record') }}</a-button>
               </div>
             </div>
             <div class="search-block">
               <a-segmented v-model:value="model_type" :options="typeOptions" />
               <div class="search-item">
-                <span>模型供应商：</span>
+                <span>{{ t('views.user.model.model_supplier') }}：</span>
                 <a-select
                   allowClear
                   @change="getSelfList"
                   v-model:value="searchState.model_supplier"
-                  placeholder="请选择模型供应商"
+                  :placeholder="t('views.user.model.select_model_supplier')"
                   style="width: 172px"
                 >
-                  <a-select-option value="tongyi">通义千问</a-select-option>
-                  <a-select-option value="deepseek">DeepSeek</a-select-option>
-                  <a-select-option value="doubao">豆包</a-select-option>
+                  <a-select-option value="tongyi">{{ t('views.user.model.tongyi') }}</a-select-option>
+                  <a-select-option value="deepseek">{{ t('views.user.model.deepseek') }}</a-select-option>
+                  <a-select-option value="doubao">{{ t('views.user.model.doubao') }}</a-select-option>
                 </a-select>
               </div>
             </div>
@@ -73,13 +72,13 @@
                 <a-table-column
                   key="uni_model_name"
                   :width="140"
-                  title="模型"
+                  :title="t('views.user.model.model')"
                   data-index="uni_model_name"
                 />
                 <a-table-column
                   :width="140"
                   key="model_supplier_desc"
-                  title="模型服务商"
+                  :title="t('views.user.model.model_provider')"
                   data-index="model_supplier_desc"
                 >
                 </a-table-column>
@@ -87,39 +86,39 @@
                   v-if="model_type == 'LLM'"
                   :width="140"
                   key="thinking_type"
-                  title="深度思考"
+                  :title="t('views.user.model.deep_thinking')"
                   data-index="thinking_type"
                 >
                   <template #default="{ record }">
-                    <span v-if="record.thinking_type == 0">不支持</span>
-                    <span v-if="record.thinking_type == 1">支持</span>
-                    <span v-if="record.thinking_type == 2">可选</span>
+                    <span v-if="record.thinking_type == 0">{{ t('views.user.model.not_supported') }}</span>
+                    <span v-if="record.thinking_type == 1">{{ t('views.user.model.supported') }}</span>
+                    <span v-if="record.thinking_type == 2">{{ t('views.user.model.optional') }}</span>
                   </template>
                 </a-table-column>
                 <a-table-column
                   v-if="model_type == 'LLM'"
                   :width="140"
                   key="function_call"
-                  title="工具调用"
+                  :title="t('views.user.model.tool_call')"
                   data-index="function_call"
                 >
                   <template #default="{ record }">
-                    <span v-if="record.function_call == 0">不支持</span>
-                    <span v-if="record.function_call == 1">支持</span>
+                    <span v-if="record.function_call == 0">{{ t('views.user.model.not_supported') }}</span>
+                    <span v-if="record.function_call == 1">{{ t('views.user.model.supported') }}</span>
                   </template>
                 </a-table-column>
                 <a-table-column
                   :width="120"
                   v-if="model_type == 'TEXT EMBEDDING'"
                   key="vector_dimension_list"
-                  title="向量维度"
+                  :title="t('views.user.model.vector_dimension')"
                   data-index="vector_dimension_list"
                 />
                 <a-table-column
                   v-if="model_type != 'RERANK'"
                   :width="100"
                   key="input_desc"
-                  title="输入"
+                  :title="t('views.user.model.input')"
                   data-index="input_desc"
                 >
                   <template #default="{ record }">
@@ -130,15 +129,15 @@
                   v-if="model_type == 'LLM'"
                   :width="100"
                   key="output_desc"
-                  title="输出"
+                  :title="t('views.user.model.output')"
                   data-index="output_desc"
                 >
                   <template #default="{ record }">
                     {{ record.output_desc }}
                   </template>
                 </a-table-column>
-                <a-table-column :width="130" key="price" title="价格" data-index="price">
-                  <template #default="{ record }"> {{ record.price }}积分/千Token</template>
+                <a-table-column :width="130" key="price" :title="t('views.user.model.price')" data-index="price">
+                  <template #default="{ record }"> {{ record.price }}{{ t('views.user.model.points_per_token') }}</template>
                 </a-table-column>
               </a-table>
             </div>
@@ -154,7 +153,10 @@
           </template>
         </div>
       </div>
-
+      <!-- 新手指引 -->
+       <div class="guide-box" v-if="activeTab == 2">
+        <BeginnerGuide></BeginnerGuide>
+       </div>
       <ModelList
         :list="canAddModelList"
         :type="2"
@@ -205,6 +207,7 @@ import { formatPriceWithCommas } from '@/utils/index'
 import { useUserStore } from '@/stores/modules/user'
 import HasModalList from './components/has-modal-list.vue'
 import AddModelNew from './components/add-model-new.vue'
+import BeginnerGuide from '@/components/beginner-guide/index.vue'
 import { useRoute } from 'vue-router'
 
 const query = useRoute().query
@@ -238,23 +241,23 @@ const filterSelfLists = computed(() => {
 const typeOptions = computed(() => {
   return [
     {
-      label: `大语言模型（${selfLists.value.filter((item) => item.model_type == 'LLM').length}）`,
+      label: `${t('views.user.model.llm_model')}（${selfLists.value.filter((item) => item.model_type == 'LLM').length}）`,
       value: 'LLM'
     },
     {
-      label: `嵌入模型（${selfLists.value.filter((item) => item.model_type == 'TEXT EMBEDDING').length}）`,
+      label: `${t('views.user.model.embedding_model')}（${selfLists.value.filter((item) => item.model_type == 'TEXT EMBEDDING').length}）`,
       value: 'TEXT EMBEDDING'
     },
     {
-      label: `重排序模型（${selfLists.value.filter((item) => item.model_type == 'RERANK').length}）`,
+      label: `${t('views.user.model.rerank_model')}（${selfLists.value.filter((item) => item.model_type == 'RERANK').length}）`,
       value: 'RERANK'
     },
     {
-      label: `图片生成模型（${selfLists.value.filter((item) => item.model_type == 'IMAGE').length}）`,
+      label: `${t('views.user.model.image_generation_model')}（${selfLists.value.filter((item) => item.model_type == 'IMAGE').length}）`,
       value: 'IMAGE'
     },
     {
-      label: `语音合成模型（${selfLists.value.filter((item) => item.model_type == 'TTS').length}）`,
+      label: `${t('views.user.model.tts_model')}（${selfLists.value.filter((item) => item.model_type == 'TTS').length}）`,
       value: 'TTS'
     }
   ]
@@ -280,31 +283,31 @@ const handleShowBuyRecord = () => {
   getLogs()
   buyRecordRef.value.show()
 }
-let model_supplier_maps = {
-  tongyi: '通义千问',
-  deepseek: 'DeepSeek',
-  doubao: '豆包'
+const model_supplier_maps = {
+  tongyi: t('views.user.model.tongyi'),
+  deepseek: t('views.user.model.deepseek'),
+  doubao: t('views.user.model.doubao')
 }
-let model_type_maps = {
-  LLM: '大语言模型',
-  'TEXT EMBEDDING': '嵌入模型',
-  RERANK: '重排序模型',
-  IMAGE: '图片生成模型'
-}
-
-let input_map = {
-  input_text: '文本',
-  input_voice: '语音',
-  input_image: '图片',
-  input_video: '视频',
-  input_document: '文档'
+const model_type_maps = {
+  LLM: t('views.user.model.llm_model'),
+  'TEXT EMBEDDING': t('views.user.model.embedding_model'),
+  RERANK: t('views.user.model.rerank_model'),
+  IMAGE: t('views.user.model.image_generation_model')
 }
 
-let output_map = {
-  output_text: '文本',
-  output_voice: '语音',
-  output_image: '图片',
-  output_video: '视频'
+const input_map = {
+  input_text: t('views.user.model.text'),
+  input_voice: t('views.user.model.voice'),
+  input_image: t('views.user.model.image'),
+  input_video: t('views.user.model.video'),
+  input_document: t('views.user.model.document')
+}
+
+const output_map = {
+  output_text: t('views.user.model.text'),
+  output_voice: t('views.user.model.voice'),
+  output_image: t('views.user.model.image'),
+  output_video: t('views.user.model.video')
 }
 
 const getSelfList = () => {
@@ -382,12 +385,12 @@ const handleOpenAddModelNew = (data, record) => {
 
 const handleDelModelNew = (record) => {
   Modal.confirm({
-    title: '删除模型确认',
+    title: t('views.user.model.delete_model_confirm'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: `确认删除【${record.show_model_name}】这个模型吗?`,
+    content: t('views.user.model.confirm_delete_model', { name: record.show_model_name }),
     onOk() {
       delUseModelConfig({ id: record.id }).then(() => {
-        message.success('删除成功')
+        message.success(t('views.user.model.delete_success'))
         getModelList()
         getCanAddModelList()
       })
@@ -638,5 +641,10 @@ const handleBuyPoints = ({ points }) => {
       line-height: 22px;
     }
   }
+}
+.guide-box{
+  // width: 100%;
+  // height: 100%;
+  // overflow-y: auto;
 }
 </style>

@@ -56,8 +56,12 @@ const (
 	NodeTypeBatch            = 30 //批处理
 	NodeTypeBatchStart       = 31 //批处理开始
 	NodeTypeImageGeneration  = 33 //图片生成
-	NodeTypeTextToAudio      = 38 //语音合成
-	NodeTypeVoiceClone       = 39 //声音复刻
+	NodeTypeJsonEncode       = 36 //json序列化
+	NodeTypeJsonDecode       = 37 //json反序列化
+
+	NodeTypeTextToAudio   = 38 //语音合成
+	NodeTypeVoiceClone    = 39 //声音复刻
+	NodeTypeLibraryImport = 40 //知识库导入
 )
 
 var NodeTypes = [...]int{
@@ -88,8 +92,11 @@ var NodeTypes = [...]int{
 	NodeTypeBatch,
 	NodeTypeBatchStart,
 	NodeTypeImageGeneration,
+	NodeTypeJsonEncode,
+	NodeTypeJsonDecode,
 	NodeTypeTextToAudio,
 	NodeTypeVoiceClone,
+	NodeTypeLibraryImport,
 }
 
 type NodeAdapter interface {
@@ -164,10 +171,16 @@ func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, ms
 		return &PluginNode{params: nodeParams.Plugin, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeImageGeneration:
 		return &ImageGeneration{params: nodeParams.ImageGeneration, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeJsonEncode:
+		return &JsonEncode{params: nodeParams.JsonEncode, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeJsonDecode:
+		return &JsonDecode{params: nodeParams.JsonDecode, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeTextToAudio:
 		return &TextToAudioNode{params: nodeParams.TextToAudio, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeVoiceClone:
 		return &VoiceCloneNode{params: nodeParams.VoiceClone, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeLibraryImport:
+		return &LibraryImport{params: nodeParams.LibraryImport, nextNodeKey: info[`next_node_key`]}, info, nil
 	default:
 		return nil, info, errors.New(`不支持的节点类型:` + info[`node_type`])
 	}
@@ -1253,6 +1266,110 @@ func (n *ImageGeneration) Running(flow *WorkFlow) (output common.SimpleFields, n
 	return
 }
 
+type JsonEncode struct {
+	params      JsonEncodeParams
+	nextNodeKey string
+}
+
+func (n *JsonEncode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	flow.Logs(`执行JSON序列化逻辑...`)
+	variable := GetFirstVariable(n.params.InputVariable)
+	if variable == `` {
+		nextNodeKey = n.nextNodeKey
+		return
+	}
+	output = common.SimpleFields{}
+	field, exist := flow.GetVariable(variable)
+	if !exist || len(n.params.Outputs) == 0 {
+		flow.Logs(`变量%s不存在或输出为空`, variable)
+	} else {
+		out := n.params.Outputs[0]
+		if tool.InArray(field.Typ, []string{common.TypObject, common.TypParams}) {
+			vals := field.GetVals()
+			if len(vals) == 0 {
+				nextNodeKey = n.nextNodeKey
+				return
+			}
+			output[out.Key] = common.SimpleField{
+				Key:  out.Key,
+				Typ:  common.TypString,
+				Vals: []common.Val{{String: tea.String(tool.JsonEncodeNoError(vals[0]))}},
+			}
+		} else if tool.InArray(field.Typ, []string{common.TypArrString, common.TypArrFloat, common.TypArrObject,
+			common.TypArrNumber, common.TypArrParams, common.TypArrBoole,
+		}) {
+			output[out.Key] = common.SimpleField{
+				Key:  out.Key,
+				Typ:  common.TypString,
+				Vals: []common.Val{{String: tea.String(tool.JsonEncodeNoError(field.GetVals()))}},
+			}
+		} else {
+			output[out.Key] = common.SimpleField{
+				Key:  out.Key,
+				Typ:  common.TypString,
+				Vals: []common.Val{{String: tea.String(``)}},
+			}
+		}
+	}
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+type JsonDecode struct {
+	params      JsonDecodeParams
+	nextNodeKey string
+}
+
+func (n *JsonDecode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	flow.Logs(`执行JSON反序列化逻辑...`)
+	output = common.SimpleFields{}
+	variable := n.params.InputVariable
+	if variable == `` {
+		nextNodeKey = n.nextNodeKey
+		return
+	}
+	field, exist := flow.GetVariable(variable)
+	if !exist {
+		flow.Logs(`变量%s不存在`, variable)
+	} else {
+		vals := field.GetVals()
+		if len(vals) == 0 {
+			nextNodeKey = n.nextNodeKey
+			return
+		}
+		data := ``
+		if tool.InArray(field.Typ, []string{common.TypObject, common.TypParams}) {
+			data = tool.JsonEncodeNoError(vals[0])
+		} else if field.Typ == common.TypString {
+			data = cast.ToString(vals[0])
+		} else {
+			nextNodeKey = n.nextNodeKey
+			return
+		}
+		if data != `` {
+			result := make(map[string]any)
+			err := tool.JsonDecode(data, &result)
+			if err != nil {
+				flow.Logs(`json反序列化失败:%s,%s`, data, err.Error())
+			} else if len(n.params.Outputs) == 1 {
+				resOutput := n.params.Outputs[0]
+				var resVal any
+				resVal = result
+				output[resOutput.Key] = common.SimpleField{
+					Key:  resOutput.Key,
+					Typ:  common.TypObject,
+					Vals: []common.Val{{Object: resVal}},
+				}
+				if len(resOutput.Subs) > 0 {
+					resOutput.Subs.SimplifyFieldsDeepExtract(&output, resOutput.Key+`.`, result) //提取数据
+				}
+			}
+		}
+	}
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
 // TextToAudioNode 语音合成
 type TextToAudioNode struct {
 	params      TextToAudioNodeParams
@@ -1473,5 +1590,291 @@ func (n *VoiceCloneNode) Running(flow *WorkFlow) (output common.SimpleFields, ne
 	// 构建输出
 	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
 	nextNodeKey = n.nextNodeKey
+	return
+}
+
+type LibraryImport struct {
+	params      LibraryImportParams
+	nextNodeKey string
+}
+
+func (n *LibraryImport) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	flow.Logs(`执行知识库导入逻辑...`)
+	output = common.SimpleFields{}
+	libraryInfo, err := common.GetLibraryInfo(cast.ToInt(n.params.LibraryId), flow.params.AdminUserId)
+	if err != nil {
+		return
+	}
+	if len(libraryInfo) == 0 {
+		return
+	}
+	msg, ok := n.toImport(flow, libraryInfo)
+	if ok {
+		output[`msg`] = common.SimpleField{
+			Key:  `msg`,
+			Typ:  common.TypString,
+			Vals: []common.Val{{String: tea.String(`ok`)}},
+		}
+	} else {
+		output[`msg`] = common.SimpleField{
+			Key:  `msg`,
+			Typ:  common.TypString,
+			Vals: []common.Val{{String: tea.String(msg)}},
+		}
+	}
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+func (n *LibraryImport) toImport(flow *WorkFlow, libraryInfo msql.Params) (msg string, ok bool) {
+	token := flow.params.HeaderToken
+	if token == `` {
+		info, err := msql.Model(define.TableUser, define.Postgres).
+			Where(`id`, cast.ToString(flow.params.AdminUserId)).
+			Field(`id,user_name,parent_id`).Find()
+		if err != nil {
+			logs.Error(err.Error())
+			msg = `获取账号信息失败`
+			return
+		}
+		if len(info) == 0 {
+			msg = `获取账号信息失败`
+			return
+		}
+		jwtToken, err := common.GetToken(info[`id`], info[`user_name`], info["parent_id"])
+		if err != nil {
+			logs.Error(err.Error())
+			msg = `获取token失败`
+			return
+		}
+		token = cast.ToString(jwtToken[`token`])
+	}
+	if cast.ToInt(libraryInfo[`type`]) == define.GeneralLibraryType {
+		if n.params.ImportType == define.LibraryImportContent {
+			msg, ok = n.toImportFile(flow, token, libraryInfo)
+		} else if n.params.ImportType == define.LibraryImportUrl {
+			normalUrl := flow.VariableReplace(n.params.NormalUrl)
+			if len(normalUrl) == 0 {
+				msg = `导入的URL为空`
+				return
+			}
+			urlInfo, err := msql.Model(`chat_ai_library_file`, define.Postgres).
+				Where(`library_id`, libraryInfo[`id`]).Where(`doc_url`, normalUrl).Find()
+			if err != nil {
+				logs.Error(fmt.Sprintf(`获取文档信息失败 %s`, err.Error()))
+				msg = `获取文档信息失败`
+				return
+			}
+			if n.params.NormalUrlRepeatOp == define.LibraryImportRepeatImport {
+				msg, ok = n.toImportUrl(token, normalUrl)
+			} else if n.params.NormalUrlRepeatOp == define.LibraryImportRepeatNotImport {
+				if len(urlInfo) > 0 {
+					msg = fmt.Sprintf(`导入的URL（%s）已存在,指定不导入，本次不导入`, normalUrl)
+					ok = true
+				} else {
+					msg, ok = n.toImportUrl(token, normalUrl)
+				}
+			} else if n.params.NormalUrlRepeatOp == define.LibraryImportRepeatUpdate {
+				msg, ok = n.toUpdateUrl(token, urlInfo)
+			}
+		}
+	} else if cast.ToInt(libraryInfo[`type`]) == define.QALibraryType {
+		question := flow.VariableReplace(n.params.QaQuestion)
+		answer := flow.VariableReplace(n.params.QaAnswer)
+		if question == `` || answer == `` {
+			msg = `导入问题或答案为空`
+			return
+		}
+		var images []any
+		images = []any{}
+		imageVariables := GetVariablePlaceholders(n.params.QaImagesVariable)
+		for _, imageVariable := range imageVariables {
+			imageField, exist := flow.GetVariable(imageVariable)
+			if exist {
+				images = append(images, imageField.GetVals()...)
+			}
+		}
+		sourceUrls := common.GetUrls(n.params.QaImagesVariable)
+		for _, sourceUrl := range sourceUrls {
+			images = append(images, sourceUrl)
+		}
+		imagesNew := make([]any, 0)
+		for _, image := range images {
+			if common.IsUrl(cast.ToString(image)) {
+				imagesNew = append(imagesNew, image)
+			}
+		}
+		var similars []any
+		similars = []any{}
+		similarVariables := GetVariablePlaceholders(n.params.QaSimilarQuestionVariable)
+		for _, similarVariable := range similarVariables {
+			similarField, exist := flow.GetVariable(similarVariable)
+			if exist {
+				similars = append(similars, similarField.GetVals()...)
+			}
+		}
+		similarReplace := RemoveVariablePlaceholders(n.params.QaSimilarQuestionVariable)
+		if len(similarReplace) > 0 {
+			similars = append(similars, similarReplace)
+		}
+		qaInfo, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+			Where(`library_id`, libraryInfo[`id`]).Where(`question`, n.params.QaQuestion).Find()
+		if err != nil {
+			logs.Error(fmt.Sprintf(`获取问答信息失败 %s`, err.Error()))
+			msg = `获取问答信息失败`
+			return
+		}
+		if n.params.QaRepeatOp == define.LibraryImportRepeatImport {
+			msg, ok = n.toImportQa(token, question, answer, imagesNew, similars, nil)
+		} else if n.params.QaRepeatOp == define.LibraryImportRepeatNotImport {
+			if len(qaInfo) > 0 {
+				msg = fmt.Sprintf(`导入的问答（%s）已存在,指定不导入，本次不导入`, question)
+				ok = true
+			} else {
+				msg, ok = n.toImportQa(token, question, answer, imagesNew, similars, nil)
+			}
+		} else if n.params.QaRepeatOp == define.LibraryImportRepeatUpdate {
+			if len(qaInfo) > 0 {
+				msg, ok = n.toImportQa(token, question, answer, imagesNew, similars, qaInfo)
+			} else {
+				msg, ok = n.toImportQa(token, question, answer, imagesNew, similars, nil)
+			}
+		}
+	} else {
+		msg = `不支持的导入知识库类型`
+	}
+	return
+}
+
+func (n *LibraryImport) toImportFile(flow *WorkFlow, token string, libraryInfo msql.Params) (msg string, ok bool) {
+	content := flow.VariableReplace(n.params.NormalContent)
+	if len(content) == 0 {
+		msg = `导入的内容为空`
+		return
+	}
+	title := flow.VariableReplace(n.params.NormalTitle)
+	fileName := define.UploadDir + `work_flow/library_import/` + title + `.txt`
+	err := tool.WriteFile(fileName, content)
+	if err != nil {
+		logs.Error(`创建文件 %s 失败: %v\n`, fileName, err)
+		msg = `创建文件失败`
+		return
+	}
+	defer func() {
+		err := os.Remove(fileName)
+		if err != nil {
+			logs.Error(`删除文件 %s 失败: %v\n`, fileName, err)
+		}
+	}()
+	var res lib_web.Response
+	err = curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/addLibraryFile`, define.Config.WebService[`port`])).
+		Header(`Token`, token).
+		Param(`library_id`, libraryInfo[`id`]).
+		Param(`group_id`, n.params.LibraryGroupId).
+		PostFile(`library_files`, fileName).ToJSON(&res)
+	if err != nil {
+		logs.Error(`创建文档请求失败: %s %v\n`, res.Msg, err)
+		msg = `创建文档请求失败`
+		return
+	}
+	if cast.ToInt(res.Res) != define.StatusOK {
+		logs.Error(fmt.Sprintf(`创建文档失败:%s(%v)`, res.Msg, err))
+		msg = `创建文档失败`
+		return
+	} else {
+		fileIds := cast.ToSlice(cast.ToStringMap(res.Data)[`file_ids`])
+		if len(fileIds) == 0 || cast.ToInt64(fileIds[0]) <= 0 {
+			logs.Error(fmt.Sprintf(`创建默认自定义文档失败:%s`, tool.JsonEncodeNoError(res)))
+			msg = `创建默认自定义文档失败`
+			return
+		} else {
+			ok = true
+		}
+	}
+	return
+}
+
+func (n *LibraryImport) toImportQa(token, question, answer string, images []any, similars []any, qaInfo msql.Params) (msg string, ok bool) {
+	var res lib_web.Response
+	req := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/editParagraph`, define.Config.WebService[`port`])).
+		Header(`Token`, token).
+		Param(`question`, question).
+		Param(`answer`, answer).
+		Param(`library_id`, n.params.LibraryId)
+	if len(images) > 0 {
+		for _, item := range images {
+			req.Param(`images`, cast.ToString(item))
+		}
+	}
+	if len(qaInfo) > 0 {
+		req.Param(`id`, qaInfo[`id`])
+	}
+	if len(similars) > 0 {
+		req.Param(`similar_questions`, cast.ToString(tool.JsonEncodeNoError(similars)))
+	} else {
+		req.Param(`similar_questions`, `[]`)
+	}
+	err := req.Param(`group_id`, n.params.LibraryGroupId).ToJSON(&res)
+	if err != nil {
+		logs.Error(fmt.Sprintf(`导入问答对请求失败:%s(%v)`, res.Msg, err))
+		msg = `导入问答对请求失败`
+		return
+	}
+	if cast.ToInt(res.Res) != define.StatusOK {
+		logs.Error(fmt.Sprintf(`创建默认自定义文档失败:%s(%v)`, res.Msg, err))
+		msg = `创建默认自定义文档失败`
+	} else {
+		ok = true
+	}
+	return
+}
+
+func (n *LibraryImport) toUpdateUrl(token string, urlInfo msql.Params) (msg string, ok bool) {
+	var res lib_web.Response
+	err := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/manualCrawl`, define.Config.WebService[`port`])).
+		Header(`Token`, token).
+		Param(`id`, urlInfo[`id`]).
+		ToJSON(&res)
+	if err != nil {
+		msg = fmt.Sprintf(`更新url失败:%s(%v)`, res.Msg, err)
+		return
+	}
+	if cast.ToInt(res.Res) != define.StatusOK {
+		logs.Error(fmt.Sprintf(`更新失败:%s(%v)`, res.Msg, err))
+		msg = `更新url失败`
+	} else {
+		msg = `更新url成功`
+		ok = true
+	}
+	return
+}
+
+func (n *LibraryImport) toImportUrl(token, normalUrl string) (msg string, ok bool) {
+	var res lib_web.Response
+	err := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/addLibraryFile`, define.Config.WebService[`port`])).
+		Header(`Token`, token).
+		Param(`urls`, tool.JsonEncodeNoError([]map[string]string{{`url`: normalUrl}})).
+		Param(`doc_auto_renew_frequency`, `1`).
+		Param(`doc_auto_renew_minute`, `120`).
+		Param(`doc_type`, `2`).
+		Param(`library_id`, n.params.LibraryId).
+		Param(`group_id`, n.params.LibraryGroupId).ToJSON(&res)
+	if err != nil {
+		logs.Error(fmt.Sprintf(`导入请求失败:%s(%v)`, res.Msg, err))
+		msg = `导入请求失败`
+		return
+	}
+	if cast.ToInt(res.Res) != define.StatusOK {
+		logs.Error(fmt.Sprintf(`导入失败:%s(%v)`, res.Msg, err))
+		msg = `导入失败`
+	} else {
+		fileIds := cast.ToSlice(cast.ToStringMap(res.Data)[`file_ids`])
+		if len(fileIds) == 0 || cast.ToInt64(fileIds[0]) <= 0 {
+			logs.Error(fmt.Sprintf(`导入失败:%s`, tool.JsonEncodeNoError(res)))
+			msg = `导入未成功`
+		} else {
+			ok = true
+		}
+	}
 	return
 }

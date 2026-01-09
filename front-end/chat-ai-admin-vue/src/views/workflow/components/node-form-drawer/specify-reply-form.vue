@@ -71,7 +71,7 @@
               </div>
             </div>
             <div class="form-item-body">
-              <at-input
+              <AtInput
                 inputStyle="height: 100px;"
                 :options="valueOptions"
                 :defaultSelectedList="formState.content_tags"
@@ -143,7 +143,9 @@ export default {
   computed: {},
   watch:  {
     formState(){
-      this.update()
+      this.$nextTick(() => {
+        this.update()
+      })
     }
   },
   mounted() {

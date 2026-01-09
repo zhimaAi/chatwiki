@@ -1,0 +1,8 @@
+{
+  "title": "Upload Certificate",
+  "domain_label": "Domain:",
+  "certificate_file_label": "Certificate file (.crt or .pem)",
+  "private_key_label": "Private key file (.key)",
+  "certificate_required": "Please enter certificate file (.crt or .pem)",
+  "private_key_required": "Please enter private key file (.key)"
+}

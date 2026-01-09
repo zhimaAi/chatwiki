@@ -663,7 +663,7 @@
         </div>
       </div>
 
-      <div class="message-content" :data-msg-type="props.msg.msg_type" v-if="!(props.msg.msg_type == 1 && props.msg.content == '')">
+      <div class="message-content" :data-msg-type="props.msg.msg_type">
         <div class="thinking-content" v-if="props.msg.show_reasoning">
           <cherry-markdown :content="props.msg.reasoning_content" />
         </div>
@@ -885,7 +885,7 @@ interface praiseParams {
 
 const { toClipboard } = useClipboard()
 
-const emit = defineEmits(['sendTextMessage'])
+const emit = defineEmits(['sendTextMessage', 'toggleReasonProcess', 'toggleQuoteFiel'])
 const chatStore = useChatStore()
 const { robot, onAddFeedback, onDelFeedback } = chatStore
 const externalConfigPC = computed(() => chatStore.externalConfigPC)
@@ -917,6 +917,7 @@ const props = defineProps({
 const isTrampleClick = ref(false)
 const isPraiseActive = ref(props.msg.feedback_type == '1' ? true : false)
 const isTrampleActive = ref(props.msg.feedback_type == '2' ? true : false)
+const msgId = computed(() => props.msg.message_id || props.msg.id)
 
 const isShowCopy = computed(() => {
   // 最后一条消息 机器人的消息 消息类型为1 不是正在发送
@@ -1041,8 +1042,7 @@ const sendTextMessage = (text: string) => {
 }
 const quoteModalRef = ref<any>(null)
 const handleToLink = (item: any) => {
-  quoteModalRef.value &&
-    quoteModalRef.value.showPopup({
+    quoteModalRef.value?.showPopup({
       message_id: item.message_id || props.msg.id,
       file_id: item.id,
       robot_key: robot.robot_key,
@@ -1053,10 +1053,11 @@ const handleToLink = (item: any) => {
 }
 
 const toggleReasonProcess = () => {
-  props.msg.show_reasoning = !props.msg.show_reasoning
+  emit('toggleReasonProcess', msgId.value)
 }
+
 const toggleQuoteFiel = () => {
-  props.msg.show_quote_file = !props.msg.show_quote_file
+  emit('toggleQuoteFiel', msgId.value)
 }
 
 function parseReplyList(val) {

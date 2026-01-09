@@ -65,7 +65,7 @@ export const useCompanyStore = defineStore('company', {
       if (!res) {
         return Promise.reject(res)
       }
-      
+
       this.setCompanyInfo(res.data)
 
       return res

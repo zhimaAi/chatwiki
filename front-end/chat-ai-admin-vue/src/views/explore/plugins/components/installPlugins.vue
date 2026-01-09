@@ -32,7 +32,7 @@
               <a-divider type="vertical"/>
               <a @click.stop class="c595959" :href="item.help_url" target="_blank">使用说明</a>
             </template>
-            <template v-if="showConifgPlugins.includes(item.name)">
+            <template v-if="showConifgPlugins.includes(item.name) || item.local.multiNode">
               <a-divider type="vertical"/>
               <a @click.stop="showConfigModal(item)">配置</a>
             </template>
@@ -91,7 +91,9 @@ const showConifgPlugins = [
   'official_batch_tag',
   'official_send_template_message',
   'official_send_message',
-  'official_intelligent_api'
+  'official_intelligent_api',
+  'official_account_batch_send',
+  'official_account_comment'
 ]
 
 onMounted(() => {

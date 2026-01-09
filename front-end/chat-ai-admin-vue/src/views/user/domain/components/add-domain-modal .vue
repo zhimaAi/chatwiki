@@ -24,7 +24,7 @@
   <a-modal v-model:open="show" :title="title" @ok="handleOk" :confirmLoading="props.confirmLoading">
     <div class="add-domain-form">
       <div class="form-item">
-        <div class="form-label">配置域名：</div>
+        <div class="form-label">{{ t('domain_label') }}</div>
         <div class="form-input-box">
           <a-input-group compact style="width: 100%">
             <a-select v-model:value="form.protocol" style="width: 20%">
@@ -35,14 +35,14 @@
             <a-input
               v-model:value="form.url"
               style="width: 80%"
-              placeholder="请输入配置域名"
+              :placeholder="t('domain_placeholder')"
               @blur="onUrlBlur"
             />
           </a-input-group>
         </div>
       </div>
       <div class="form-tip">
-        配置域名只需要填写域名部分,比如kf.xxx.com.您可以根据需求选择http或https协议
+        {{ t('domain_tip') }}
       </div>
     </div>
   </a-modal>
@@ -51,6 +51,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
 const props = defineProps({
   confirmLoading: {
@@ -68,9 +69,11 @@ function handleUrl(url) {
   return url
 }
 
+const { t } = useI18n('views.user.domain.components.add-domain-modal')
+
 const emit = defineEmits(['ok'])
 const show = ref(false)
-const title = ref('添加自定义域名')
+const title = ref(t('add_title'))
 const protocolList = ref([
   {
     label: 'http',
@@ -109,7 +112,7 @@ const onUrlBlur = () => {
 
 const handleOk = () => {
   if (!form.url) {
-    return message.error('请输入配置域名')
+    return message.error(t('url_required'))
   }
 
   form.url = handleUrl(form.url)
@@ -122,12 +125,12 @@ const open = (record) => {
     form.url = record.url
     form.protocol = record.protocol
     form.id = record.id
-    title.value = '修改自定义域名'
+    title.value = t('edit_title')
   } else {
     form.id = null
     form.url = ''
     form.protocol = 'http:'
-    title.value = '添加自定义域名'
+    title.value = t('add_title')
   }
 
   show.value = true

@@ -177,3 +177,17 @@ const (
 	IsDefault  = 1 //library and robot is default
 	NotDefault = 2 //library and robot is not default
 )
+
+var (
+	RobotPaymentAuthCodeUsageStatusPending   = 1 // 未使用
+	RobotPaymentAuthCodeUsageStatusExchanged = 2 // 已兑换
+	RobotPaymentAuthCodeUsageStatusUsed      = 3 // 已使用
+	RobotPaymentPackageTypeCount             = 1
+	RobotPaymentPackageTypeDuration          = 2
+)
+
+const (
+	RobotPaymentAuthCodePrefix             = "GLY##"
+	RobotPaymentAuthCodeSuffix             = "##GLY"
+	RobotPaymentAuthCodeManagerCachePrefix = "robot_payment_auth_code_manager_"
+)

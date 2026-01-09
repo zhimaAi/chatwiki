@@ -3,6 +3,12 @@
   padding: 16px;
   border-radius: 2px;
   background-color: #ffffff;
+  &.mt8{
+    margin-top: 8px;
+  }
+  &.dashed-line{
+    border-top: 2px dashed #d9d9d9;
+  }
 
   .fragment-header {
     display: flex;
@@ -55,7 +61,7 @@
 </style>
 
 <template>
-  <div class="document-fragment">
+  <div class="document-fragment" :class="{'dashed-line': props.isNeedDashedLine, 'mt8': props.chunk_type == 4 && !props.isNeedDashedLine}">
     <div class="fragment-header">
       <div class="fragment-info">
         <span class="fragment-number">#<span v-if="props.chunk_type == 4">{{ props.father_chunk_paragraph_number }}-</span>{{ props.number }}</span>
@@ -137,6 +143,10 @@ const props = defineProps({
   currentData: {
     type: Object,
     default: () => {}
+  },
+  isNeedDashedLine:{
+    type: Boolean,
+    default: false
   }
 })
 

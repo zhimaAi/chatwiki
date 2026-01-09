@@ -19,6 +19,7 @@ func GetAuthorizationToken(robotKey string) string {
 }
 
 func ParseAuthorizationToken(c *gin.Context) (msql.Params, error) {
+	c.Set(`wechatapp_appid`, strings.TrimSpace(c.Query(`wechatapp_appid`)))
 	// get user info
 	headers := c.GetHeader(`Authorization`)
 	parts := strings.SplitN(headers, " ", 2)

@@ -364,7 +364,10 @@ export class BaseVueNodeModel extends HtmlNodeModel {
       'batch-group',
       'voice-synthesis-node',
       'voice-clone-node',
-      'image-generation-node'
+      'image-generation-node',
+      'import-library-node',
+      'json-node',
+      'json-reverse-node',
     ]
 
     let startNode = nodes.find((node) => node.type === 'start-node')
@@ -458,6 +461,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         obj.children = node_params.params_extractor.output
       }
 
+
       if(node.type === 'start-node'){
         obj.children = [...node_params.start.diy_global, ...node_params.start.sys_global]
       }
@@ -493,6 +497,18 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         }
       }
 
+      if(node.type === 'import-library-node'){
+        obj.children = node_params.library_import.outputs
+      }
+
+      if(node.type === 'json-node'){
+        obj.children = node_params.json_encode.output
+      }
+
+      if(node.type === 'json-reverse-node'){
+        obj.children = node_params.json_decode.output
+      }
+      
       if(node.type === 'select-data-node'){
         obj.children = [{
           key: 'output_list',

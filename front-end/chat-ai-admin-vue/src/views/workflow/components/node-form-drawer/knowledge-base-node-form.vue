@@ -86,7 +86,6 @@
       </div>
     </div>
   </NodeFormLayout>
-
 </template>
 
 <script setup>
@@ -95,14 +94,21 @@ import NodeFormHeader from './node-form-header.vue'
 import { ref, reactive, watch, computed, onMounted, h, toRaw } from 'vue'
 import { CloseCircleOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons-vue'
 import { getLibraryList } from '@/api/library/index'
-import LibrarySelectAlert from '../nodes/knowledge-base-node/library-select-alert.vue'
+import LibrarySelectAlert from './components/library-select-alert.vue'
 import RecallSettingsAlert from '../nodes/knowledge-base-node//recall-settings-alert.vue'
-import {getSpecifyAbilityConfig} from "@/api/explore/index.js";
+import { getSpecifyAbilityConfig } from '@/api/explore/index.js'
 import { useRobotStore } from '@/stores/modules/robot'
 const robotStore = useRobotStore()
 
-const rrf_weight = computed(()=>{
-  return robotStore.robotInfo.rrf_weight
+const rrf_weight = computed(() => {
+  if (robotStore.robotInfo.rrf_weight) {
+    return JSON.parse(robotStore.robotInfo.rrf_weight)
+  }
+  return {
+    vector: 0,
+    search: 0,
+    graph: 0
+  }
 })
 
 const emit = defineEmits(['update-node'])
@@ -211,19 +217,19 @@ const init = () => {
         formState[key] = libs[key] ? libs[key].split(',') : []
       } else if (key == 'question_value') {
         formState.question_value = formatQuestionValue(libs['question_value'])
-      }else if(key == 'rrf_weight') {
+      } else if (key == 'rrf_weight') {
         formState.rrf_weight = libs[key] ? JSON.parse(libs[key]) : libs[key]
       } else {
         formState[key] = libs[key]
       }
     }
-    if(!libs.rrf_weight){
+    if (!libs.rrf_weight) {
       //  没有值 则去默认值
       formState.rrf_weight = rrf_weight.value
     }
 
     // 公众号知识库是否开启
-    getSpecifyAbilityConfig({ability_type: 'library_ability_official_account'}).then((res) => {
+    getSpecifyAbilityConfig({ ability_type: 'library_ability_official_account' }).then((res) => {
       let _data = res?.data || {}
       if (_data?.user_config?.switch_status == 1) {
         wxAppLibary.value = _data

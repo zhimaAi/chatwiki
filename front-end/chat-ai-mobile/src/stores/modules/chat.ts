@@ -22,6 +22,7 @@ export interface Message {
   quote_file: any
   reply_content_list?: any
   id: number
+  message_id: string
   uid: string
   avatar: string
   content: string
