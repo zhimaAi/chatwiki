@@ -43,7 +43,7 @@
           </div>
           <div class="desc">多维表格的唯一标识符，支持输入文档 url</div>
         </div>
-        <div v-if="'create_tables' != actionName" class="options-item is-required">
+        <div v-if="!['table_add_members', 'update_advanced', 'roles_list', 'create_tables'].includes(actionName)" class="options-item is-required">
           <div class="options-item-tit">
             <div class="option-label">选择数据表</div>
           </div>
@@ -104,6 +104,10 @@
         :tableId="formState.table_id"
         :fields="fields"
         :variableOptions="variableOptions"
+        :config="{
+           ...currentConfig,
+           ...formState
+        }"
         @update="update"
         @updateVar="emit('updateVar')"
       />
@@ -140,6 +144,9 @@ import FeishuCreateTable from "./feishu-create-table.vue";
 import FeishuCreateView from "./feishu-create-view.vue";
 import AtInput from "@/views/workflow/components/at-input/at-input.vue";
 import {isValidURL} from "@/utils/validate.js";
+import {jsonDecode} from "@/utils/index.js";
+import FeishuAddMembers from "./feishu-add-members.vue";
+import FeishuUpdateAdvanced from "./feishu-update-advanced.vue";
 
 const emit = defineEmits(['updateVar'])
 const props = defineProps({
@@ -167,6 +174,8 @@ const actionComponentMap = {
   create_bitable: FeishuCreateBitable,
   create_tables: FeishuCreateTable,
   create_views: FeishuCreateView,
+  table_add_members: FeishuAddMembers,
+  update_advanced: FeishuUpdateAdvanced,
 }
 const pluginName = 'feishu_bitable'
 
@@ -327,6 +336,14 @@ function paramsFormat(val) {
           }
         })
         break
+      case 'input_type_map':
+        // 查询条件的json输入
+        for (let f in val[key]) {
+          if (val[key][f] == 2) {
+            val[f] = jsonDecode(val[`${f}_json`], f == 'filter' ? {} : [])
+          }
+        }
+        break
     }
   }
   if (val.tag_map) {
@@ -336,7 +353,9 @@ function paramsFormat(val) {
       table_id: formState?.tag_map?.table_id || [],
     }
   }
-  //delete val.tag_map
+  delete val.field_names_json
+  delete val.filter_json
+  delete val.sort_json
   return val
 }
 
@@ -356,7 +375,8 @@ function nodeParamsAssign() {
     }
   }
   compInit(nodeParams)
-  if (formState.app_token) {
+  if (formState.app_token
+    && !['table_add_members', 'update_advanced'].includes(props.actionName)) {
     loadTables()
   }
   if (formState.table_id) {
@@ -417,7 +437,7 @@ function tableChange() {
 
 function compInit(nodeParams=null) {
   nextTick(() => {
-    childRef.value && childRef.value.init(nodeParams)
+    typeof childRef.value?.init === "function" && childRef.value.init(nodeParams)
   })
 }
 

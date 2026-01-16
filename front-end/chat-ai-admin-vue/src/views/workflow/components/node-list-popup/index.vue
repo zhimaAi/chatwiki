@@ -266,6 +266,9 @@
       <div v-if="props.type == 'float-btn'" :class="['tab-item', { active: props.active == 4 }]" @click="tabChange(4)">
         <svg-icon name="mcp-node-type" /> <span>触发器</span>
       </div>
+      <div :class="['tab-item', { active: tabActive == 5 }]" @click="tabChange(5)">
+        <svg-icon name="workflow" /> <span>工作流</span>
+      </div>
     </div>
     <div class="node-list-popup-content">
       <template v-if="tabActive == 1">
@@ -443,6 +446,9 @@
       <div  v-else-if="tabActive == 4" class="node-box">
         <TriggerList @add="handleAddTrigger" />
       </div>
+      <div v-else-if="tabActive == 5" class="node-box">
+        <WorkflowList @add="handleAddWorkflow"/>
+      </div>
     </div>
   </div>
 </template>
@@ -461,6 +467,7 @@ import {
 } from '../node-list'
 import {jsonDecode} from "@/utils/index.js";
 import {pluginHasAction} from "@/constants/plugin.js";
+import WorkflowList from "@/views/workflow/components/node-list-popup/workflow-list.vue";
 
 const emit = defineEmits(['addNode', 'addTrigger', 'mouseMove', 'update:active'])
 
@@ -587,6 +594,10 @@ const addMcpNode = (event, mcp, tool) => {
 
 const handleAddTrigger = (node) => {
   emit('addNode', { node, isTriggerNode: true })
+}
+
+const handleAddWorkflow = (node) => {
+  emit('addNode', { node })
 }
 
 const addPluginNode = (event, node, action, name) => {

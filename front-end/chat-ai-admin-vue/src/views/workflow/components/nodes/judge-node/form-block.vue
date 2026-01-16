@@ -107,6 +107,7 @@ import {
   PlusOutlined,
   HolderOutlined,
 } from '@ant-design/icons-vue'
+import { specialNodeList } from '@/views/workflow/components/util.js'
 
 const props = defineProps({
   properties: {
@@ -162,9 +163,6 @@ const onDropdownVisibleChange = (visible) => {
   }
 }
 
-
-// 特殊节点列表
-let specialNodeList = ['special.lib_paragraph_list', 'special.llm_reply_content', 'specify-reply-node']
 
 let lock = false
 

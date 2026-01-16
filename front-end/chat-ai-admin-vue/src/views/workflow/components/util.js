@@ -39,6 +39,30 @@ export function getSystemVariable() {
 
 export const haveOutKeyNode = ['http-node', 'code-run-node']
 
+export const allParentVariableNodeWhiteList = [
+  'start-node',
+  'http-node',
+  'parameter-extraction-node',
+  'knowledge-base-node',
+  'ai-dialogue-node',
+  'specify-reply-node',
+  'immediately-reply-node',
+  'problem-optimization-node',
+  'select-data-node',
+  'code-run-node',
+  'mcp-node',
+  'custom-group',
+  'zm-plugins-node',
+  'zm-workflow-node',
+  'batch-group',
+  'voice-synthesis-node',
+  'voice-clone-node',
+  'image-generation-node',
+  'import-library-node',
+  'json-node',
+  'json-reverse-node',
+]
+
 const nodeTypeMaps = getNodeTypes()
 const nodesMap = getNodesMap()
 
@@ -111,16 +135,17 @@ export function getSizeOptions() {
   ]
 }
 
+export const specialNodeList = [
+  'special.lib_paragraph_list',
+  'special.llm_reply_content',
+  'specify-reply-node',
+  'immediately-reply-node'
+]
 
 export const formatSpacialKey = (value) => {
   if(typeof value != 'string'){
     return []
   }
-  let specialNodeList = [
-    'special.lib_paragraph_list',
-    'special.llm_reply_content',
-    'specify-reply-node'
-  ]
 
   let result = []
   let specialKey = ''

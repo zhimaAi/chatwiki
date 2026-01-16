@@ -256,6 +256,9 @@
         cursor: pointer;
         color: #595959;
         transition: all 0.2s;
+        &.drag-btn {
+          cursor: move;
+        }
       }
       .robot-action-item:hover {
         background: #e4e6eb;
@@ -350,8 +353,8 @@
 
 <template>
   <div class="robot-page">
-    <h3 class="page-title">应用</h3>
-    <page-alert class="mb-16" title="使用说明">
+<!--    <h3 class="page-title">应用</h3>-->
+    <page-alert class="mt16" title="使用说明">
       <div>
         <p>
           1、应用包括两种类型：聊天机器人、工作流。聊天机器人适合新手用户，关联知识库后只需简单配置，即可创建一个基于私有知识库的问答机器人。工作流适合高级用户，利用系统预制节点自定义任务流程，适合解决复杂任务。
@@ -360,9 +363,9 @@
       </div>
     </page-alert>
 
-    <div class="list-toolbar">
+    <div class="list-toolbar mt16">
       <div class="toolbar-box">
-        <ListTabs :tabs="tabs" @change="getGroupList" v-model:value="activeKey" />
+        <ListTabs :tabs="tabs" @change="initData" v-model:value="activeKey" />
       </div>
       <div class="toolbar-box" style="text-align: right;">
         <a-dropdown v-if="robotCreate">
@@ -469,81 +472,94 @@
         </a-tooltip>
       </div>
       <div class="robot-scroll-box">
+        <div class="empty-box" v-if="filterRobotList.length == 0">
+          <a-empty></a-empty>
+        </div>
         <cu-scroll style="padding-right: 16px">
-          <div class="list-box">
-            <div class="empty-box" v-if="filterRobotList.length == 0">
-              <a-empty></a-empty>
-            </div>
-            <div
-              class="list-item-wrapper"
-              v-for="item in filterRobotList"
-              :key="item.id"
-              @click="toEditRobot(item)"
-            >
-              <div class="list-item">
-                <div class="robot-info">
-                  <img class="robot-avatar" :src="item.robot_avatar" alt="" />
-                  <div class="robot-info-content">
-                    <div class="robot-name">{{ item.robot_name }}</div>
-                    <div class="robot-type-tag">
-                      {{ item.application_type == 0 ? '聊天机器人' : '工作流' }}
+          <draggable
+            v-model="filterRobotList"
+            handle=".drag-btn"
+            item-key="id"
+            :disabled="moving"
+            class="list-box"
+            @end="onDragEnd"
+          >
+            <template #item="{ element: item, index }">
+              <div
+                class="list-item-wrapper"
+                :key="item.id"
+                @click="toEditRobot(item)"
+              >
+                <div class="list-item">
+                  <div class="robot-info">
+                    <img class="robot-avatar" :src="item.robot_avatar" alt="" />
+                    <div class="robot-info-content">
+                      <div class="robot-name">{{ item.robot_name }}</div>
+                      <div class="robot-type-tag">
+                        {{ item.application_type == 0 ? '聊天机器人' : '工作流' }}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <a-tooltip :title="getTooltipTitle(item.robot_intro, item, 14, 2, 10)" placement="top">
-                  <div class="robot-desc" :ref="el => setDescRef(el, item)">{{ item.robot_intro }}</div>
-                </a-tooltip>
-                <div class="robot-action" @click.stop>
-                  <!-- <div class="robot-action-item" @click="toEditRobot(item)"><svg-icon class="action-icon" name="jibenpeizhi" /></div> -->
-                  <!-- <div class="robot-action-item" @click="toTestPage(item)"><svg-icon class="action-icon" name="cmd" /></div> -->
-                  <a-tooltip title="聊天测试">
-                    <div class="robot-action-item" @click.stop="toTestPage(item)">
-                      <svg-icon class="action-icon" name="chat"></svg-icon>
-                    </div>
+                  <a-tooltip :title="getTooltipTitle(item.robot_intro, item, 14, 2, 10)" placement="top">
+                    <div class="robot-desc" :ref="el => setDescRef(el, item)">{{ item.robot_intro }}</div>
                   </a-tooltip>
-                  <a-tooltip title="会话记录">
-                    <div class="robot-action-item" @click.stop="toSessionRecordPage(item)">
-                      <svg-icon class="action-icon" name="session"></svg-icon>
-                    </div>
-                  </a-tooltip>
-                  <a-tooltip title="统计分析">
-                    <div class="robot-action-item" @click.stop="toAnalysisPage(item)">
-                      <svg-icon class="action-icon" name="analysis"></svg-icon>
-                    </div>
-                  </a-tooltip>
+                  <div class="robot-action" @click.stop>
+                    <!-- <div class="robot-action-item" @click="toEditRobot(item)"><svg-icon class="action-icon" name="jibenpeizhi" /></div> -->
+                    <!-- <div class="robot-action-item" @click="toTestPage(item)"><svg-icon class="action-icon" name="cmd" /></div> -->
+                    <a-tooltip title="长按拖动排序">
+                      <div class="robot-action-item drag-btn" @click.stop>
+                        <svg-icon class="action-icon" name="dragv2"></svg-icon>
+                      </div>
+                    </a-tooltip>
+                    <a-tooltip title="聊天测试">
+                      <div class="robot-action-item" @click.stop="toTestPage(item)">
+                        <svg-icon class="action-icon" name="chat"></svg-icon>
+                      </div>
+                    </a-tooltip>
+                    <a-tooltip title="会话记录">
+                      <div class="robot-action-item" @click.stop="toSessionRecordPage(item)">
+                        <svg-icon class="action-icon" name="session"></svg-icon>
+                      </div>
+                    </a-tooltip>
+                    <a-tooltip title="统计分析">
+                      <div class="robot-action-item" @click.stop="toAnalysisPage(item)">
+                        <svg-icon class="action-icon" name="analysis"></svg-icon>
+                      </div>
+                    </a-tooltip>
 
-                  <a-dropdown>
-                    <div class="robot-action-item" @click.stop>
-                      <svg-icon class="action-icon" name="point-h"></svg-icon>
-                    </div>
-                    <template #overlay>
-                      <a-menu>
-                        <a-menu-item>
-                          <a
-                            class="delete-text-color"
-                            href="javascript:;"
-                            @click="handleDelete(item)"
+                    <a-dropdown>
+                      <div class="robot-action-item" @click.stop>
+                        <svg-icon class="action-icon" name="point-h"></svg-icon>
+                      </div>
+                      <template #overlay>
+                        <a-menu>
+                          <a-menu-item>
+                            <a
+                              class="delete-text-color"
+                              href="javascript:;"
+                              @click="handleDelete(item)"
                             >删 除</a
-                          >
-                        </a-menu-item>
-                        <a-menu-item>
-                          <div @click.stop="openEditGroupModal(item)">修改分组</div>
-                        </a-menu-item>
-                        <a-menu-item>
-                          <a class="copy-text-color" href="javascript:;" @click="handleCopy(item)"
+                            >
+                          </a-menu-item>
+                          <a-menu-item>
+                            <div @click.stop="openEditGroupModal(item)">修改分组</div>
+                          </a-menu-item>
+                          <a-menu-item>
+                            <a class="copy-text-color" href="javascript:;" @click="handleCopy(item)"
                             >复 制</a
-                          >
-                        </a-menu-item>
-                        <a-menu-item @click="handleExportCsl(item)">
-                          <span>导出为csl</span>
-                        </a-menu-item>
-                      </a-menu>
-                    </template>
-                  </a-dropdown>
+                            >
+                          </a-menu-item>
+                          <a-menu-item @click="handleExportCsl(item)">
+                            <span>导出为csl</span>
+                          </a-menu-item>
+                        </a-menu>
+                      </template>
+                    </a-dropdown>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </template>
+          </draggable>
         </cu-scroll>
       </div>
     </div>
@@ -559,12 +575,14 @@
 <script setup>
 import { DEFAULT_ROBOT_AVATAR, DEFAULT_WORKFLOW_AVATAR, DEFAULT_IMPORT_CSL_AVATAR, DEFAULT_MCP_AVATAR } from '@/constants/index.js'
 import { usePermissionStore } from '@/stores/modules/permission'
+import draggable from 'vuedraggable'
 import {
   getRobotList,
   deleteRobot,
   robotCopy,
   getRobotGroupList,
-  deleteRobotGroup
+  deleteRobotGroup,
+  moveRobotSort,
 } from '@/api/robot/index.js'
 import { ref, onMounted, createVNode, computed } from 'vue'
 import {useRoute} from 'vue-router'
@@ -625,6 +643,8 @@ const activeKey = ref('2')
 const group_id = ref('')
 
 const robotList = ref([])
+const filterRobotList = ref([])
+const moving = ref(false)
 
 let hideGroupLocalKey = 'robot-list-hide-group-key'
 
@@ -635,20 +655,20 @@ const handleChangeHideGroup = () => {
   localStorage.setItem(hideGroupLocalKey, isHideGroup.value ? 1 : 0)
 }
 
-const filterRobotList = computed(() => {
+const initData = () => {
+  getList()
+  getGroupList()
+}
+
+const filterRobotInit = () => {
   let lists = robotList.value
   if (group_id.value != '') {
     lists = lists.filter((item) => item.group_id == group_id.value)
   }
-  if (activeKey.value == 2) {
-    return lists
+  if (activeKey.value != 2) {
+    lists = lists.filter((item) => item.application_type == activeKey.value)
   }
-  return lists.filter((item) => item.application_type == activeKey.value)
-})
-
-const initData = () => {
-  getList()
-  getGroupList()
+  filterRobotList.value = lists
 }
 
 function goMcpSquare () {
@@ -693,6 +713,7 @@ const getList = () => {
         }
       ]
       robotList.value = res.data
+      filterRobotInit()
     })
     .catch(() => {})
 }
@@ -930,9 +951,23 @@ const thirdMcpUpdate = () => {
   }
 }
 
+const onDragEnd = (e) => {
+  if (e.newIndex === e.oldIndex) return
+  moving.value = true
+  let params = {
+    move_robot_id: filterRobotList.value[e.newIndex].id,
+    to_robot_id: 0
+  }
+  if (e.newIndex > 0) params.to_robot_id = filterRobotList.value[e.newIndex - 1].id
+  moveRobotSort(params).then(res => {
+    message.success('操作完成')
+  }).finally(() => {
+    moving.value = false
+  })
+}
+
 onMounted(() => {
   activeKey.value = route.query.active || '2'
-  getList()
-  getGroupList()
+  initData()
 })
 </script>

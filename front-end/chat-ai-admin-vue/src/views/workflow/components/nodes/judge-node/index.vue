@@ -185,6 +185,7 @@
 import { ref, reactive, watch, inject, onMounted, nextTick } from 'vue'
 import NodeCommon from '../base-node.vue'
 import userQuestionText  from '../user-question-text.vue'
+import { specialNodeList } from '@/views/workflow/components/util.js'
 
 const props = defineProps({
   properties: {
@@ -198,13 +199,6 @@ const props = defineProps({
 const resetSize = inject('resetSize')
 const getNode = inject('getNode')
 const updateAnchorList = inject('updateAnchorList')
-
-// 特殊节点列表
-let specialNodeList = [
-  'special.lib_paragraph_list',
-  'special.llm_reply_content',
-  'specify-reply-node'
-]
 
 const formState = reactive({
   term: []

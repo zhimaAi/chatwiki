@@ -128,19 +128,19 @@ const baseItems = [
     path: '/robot/config/skill-config',
     menuIn: ['0']
   },
-  // {
-  //   key: 'function-center',
-  //   id: 'function-center',
-  //   icon: () =>
-  //     h(SvgIcon, {
-  //       name: 'function-center',
-  //       class: 'menu-icon'
-  //     }),
-  //   label: '功能中心',
-  //   title: '功能中心',
-  //   path: '/robot/config/function-center',
-  //   menuIn: ['0', '1']
-  // },
+  {
+    key: 'function-center',
+    id: 'function-center',
+    icon: () =>
+      h(SvgIcon, {
+        name: 'function-center',
+        class: 'menu-icon'
+      }),
+    label: '功能中心',
+    title: '功能中心',
+    path: '/robot/config/function-center',
+    menuIn: ['0', '1']
+  },
   {
     key: 'external-services',
     id: 'external-services',
@@ -215,19 +215,19 @@ const baseItems = [
     path: '/robot/config/api-key-manage',
     menuIn: ['0', '1']
   },
-  // {
-  //   key: 'unknown_issue',
-  //   id: 'unknown_issue',
-  //   icon: () =>
-  //     h(SvgIcon, {
-  //       name: 'unknown-issue',
-  //       class: 'menu-icon'
-  //     }),
-  //   label: '未知问题',
-  //   title: '未知问题',
-  //   path: '/robot/config/unknown_issue',
-  //   menuIn: ['0', '1']
-  // },
+  {
+    key: 'unknown_issue',
+    id: 'unknown_issue',
+    icon: () =>
+      h(SvgIcon, {
+        name: 'unknown-issue',
+        class: 'menu-icon'
+      }),
+    label: '未知问题',
+    title: '未知问题',
+    path: '/robot/config/unknown_issue',
+    menuIn: ['0', '1']
+  },
   {
     key: 'statistical_analysis',
     id: 'statistical_analysis',

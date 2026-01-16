@@ -135,6 +135,7 @@ const (
 	DocTypeCustom   = 3
 	DocTypeDiy      = 4
 	DocTypeOfficial = 5
+	DocTypeFeishu   = 6
 )
 
 const (

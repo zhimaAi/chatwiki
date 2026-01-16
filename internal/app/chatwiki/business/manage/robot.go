@@ -31,8 +31,8 @@ func GetRobotList(c *gin.Context) {
 	}
 
 	m := msql.Model(`chat_ai_robot`, define.Postgres).
-		Field(`id,robot_name,robot_intro,robot_avatar,robot_key,application_type,creator,start_node_key,group_id`).
-		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id desc`)
+		Field(`id,robot_name,robot_intro,robot_avatar,robot_key,application_type,creator,start_node_key,group_id,sort_num,is_top`).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`is_top desc, sort_num desc ,id desc`)
 
 	applicationType := cast.ToInt(c.DefaultQuery(`application_type`, `-1`))
 	if applicationType >= 0 { //按应用类型筛选
@@ -395,6 +395,7 @@ func SaveRobot(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, "mixture_qa_direct_reply_score"))))
 		return
 	}
+	maxSortNum, _ := GetMaxRobotNum(userId)
 
 	//check common_questions
 	commonQuestionList, err = common.CheckCommonQuestionJson(c, commonQuestionList)
@@ -446,6 +447,8 @@ func SaveRobot(c *gin.Context) {
 		`sensitive_words_switch`:                sensitiveWordsSwitch,
 		`cache_config`:                          cacaheConfig,
 		`prompt_role_type`:                      promptRoleType,
+		`is_top`:                                0,
+		`sort_num`:                              maxSortNum + 1,
 		`update_time`:                           tool.Time2Int(),
 	}
 	if len(robotAvatar) > 0 {
@@ -568,6 +571,7 @@ func AddFlowRobot(c *gin.Context) {
 	if err == nil && uploadInfo != nil {
 		robotAvatar = uploadInfo.Link
 	}
+	maxSortNum, _ := GetMaxRobotNum(userId)
 	//format check
 	welcomes, _ := common.CheckMenuJson(i18n.Show(common.GetLang(c), `default_welcomes`))
 	unknownQuestionPrompt, _ := common.CheckMenuJson(``)
@@ -583,6 +587,8 @@ func AddFlowRobot(c *gin.Context) {
 		`update_time`:             tool.Time2Int(),
 		`welcomes`:                welcomes,
 		`unknown_question_prompt`: unknownQuestionPrompt,
+		`is_top`:                  0,
+		`sort_num`:                maxSortNum + 1,
 		`en_name`:                 enName,
 	}
 	for i := 0; i < 5; i++ {
@@ -1189,5 +1195,37 @@ func RelationLibrary(c *gin.Context) {
 	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotInfo[`robot_key`]})
+	common.FmtOk(c, nil)
+}
+
+func CleanRobotChatCache(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	id := strings.TrimSpace(c.PostForm(`id`))
+	if len(id) == 0 {
+		common.FmtError(c, `param_lack`, `id`)
+		return
+	}
+	robotKey := strings.TrimSpace(c.PostForm(`robot_key`))
+	if len(robotKey) == 0 {
+		common.FmtError(c, `param_lack`, `robot_key`)
+		return
+	}
+
+	robotInfo, _ := msql.Model(`chat_ai_robot`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, cast.ToString(id)).Field(`robot_key`).Find()
+	if len(robotInfo) == 0 {
+		common.FmtError(c, `no_data`)
+		return
+	}
+	if robotInfo[`robot_key`] != robotKey {
+		common.FmtError(c, `robot_key_not_match`)
+		return
+	}
+
+	//clear cached data
+	_ = common.CleanRobotMessageCache(id, robotKey)
 	common.FmtOk(c, nil)
 }

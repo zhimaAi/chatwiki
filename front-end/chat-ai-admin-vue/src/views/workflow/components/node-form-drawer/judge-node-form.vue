@@ -119,6 +119,7 @@ import draggable from 'vuedraggable'
 import NodeFormLayout from './node-form-layout.vue'
 import NodeFormHeader from './node-form-header.vue'
 import { CloseCircleOutlined, PlusOutlined, HolderOutlined } from '@ant-design/icons-vue'
+import { specialNodeList } from '@/views/workflow/components/util.js'
 
 const props = defineProps({
   node: {
@@ -243,13 +244,6 @@ const onDropdownVisibleChange = (visible) => {
     getOptions()
   }
 }
-
-// 特殊节点列表
-let specialNodeList = [
-  'special.lib_paragraph_list',
-  'special.llm_reply_content',
-  'specify-reply-node'
-]
 
 const init = () => {
   try {

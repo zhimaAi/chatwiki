@@ -12,7 +12,7 @@
     align-items: center;
     height: var(--layout-header-height);
     padding: 0 16px;
-    border-bottom: 1px solid #D9D9D9;
+    border-bottom: 1px solid #f2f4f7;
 
     .header-left {
       display: flex;
@@ -99,9 +99,9 @@
         </div>
       </template>
     </div>
-    <div class="layout-footer-wrapper" v-if="!hideLayoutTopAndBottom">
+    <!-- <div class="layout-footer-wrapper" v-if="!hideLayoutTopAndBottom">
       <LayoutFooter />
-    </div>
+    </div> -->
     <ResetPassword v-if="showResetModal"></ResetPassword>
   </div>
 </template>

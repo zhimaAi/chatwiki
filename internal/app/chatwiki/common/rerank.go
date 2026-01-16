@@ -21,7 +21,7 @@ func RerankData(adminUserId int, openid, appType string, robot msql.Params, req 
 		return nil, err
 	}
 	if handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
-		handler.modelInfo.TokenUseReport(handler.config, useModel, res.InputToken, res.OutputToken, robot)
+		handler.modelInfo.TokenUseReport(handler.config, useModel, res.InputToken, res.OutputToken, robot, 0)
 	}
 	sort.Slice(res.Data, func(i, j int) bool {
 		return res.Data[i].RelevanceScore > res.Data[j].RelevanceScore

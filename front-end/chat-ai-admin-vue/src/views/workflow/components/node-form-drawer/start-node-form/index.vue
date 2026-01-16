@@ -230,6 +230,8 @@ import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
 import { QuestionCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import  {message } from 'ant-design-vue'
+import { useWorkflowStore } from '@/stores/modules/workflow'
+const workflowStore = useWorkflowStore()
 
 const typOptions = [
   {
@@ -241,8 +243,16 @@ const typOptions = [
     value: 'number'
   },
   {
+    lable: 'boole',
+    value: 'boole'
+  },
+  {
     lable: 'array<string>',
     value: 'array<string>'
+  },
+  {
+    lable: 'array<number>',
+    value: 'array<number>'
   },
   {
     lable: 'array<object>',
@@ -322,6 +332,7 @@ export default {
       this.$emit('update-node', data)
     },
     handleAddTrigger(){
+      workflowStore.getTriggerList(this.$route.query.robot_key, true);
       this.getGraph().eventCenter.emit('custom:showTriggerLit')
     },
     getTriggerVariables(){

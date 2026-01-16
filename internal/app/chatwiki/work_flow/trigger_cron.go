@@ -85,29 +85,29 @@ func TriggerCronSelectTimeRun() {
 			continue
 		}
 		if !triggerConfig.TriggerSwitch {
-			logs.Debug(LogTriggerPrefix + ` not switch`)
+			//logs.Debug(LogTriggerPrefix + ` not switch`)
 			continue
 		}
 		if triggerConfig.TriggerType != TriggerTypeCron {
-			logs.Debug(LogTriggerPrefix + ` is not cron`)
+			//logs.Debug(LogTriggerPrefix + ` is not cron`)
 			continue
 		}
 		if triggerConfig.TriggerCronConfig.Type != CronTypeSelectTime {
-			logs.Debug(LogTriggerPrefix + ` is not select time`)
+			//logs.Debug(LogTriggerPrefix + ` is not select time`)
 			continue
 		}
 		if triggerConfig.TriggerCronConfig.HourMinute != fmt.Sprintf(`%02d:%02d`, t.Hour(), t.Minute()) {
-			logs.Debug(LogTriggerPrefix + ` not time ` + triggerConfig.TriggerCronConfig.HourMinute + ` ` + fmt.Sprintf(`%02d:%02d`, t.Hour(), t.Minute()))
+			//logs.Debug(LogTriggerPrefix + ` not time ` + triggerConfig.TriggerCronConfig.HourMinute + ` ` + fmt.Sprintf(`%02d:%02d`, t.Hour(), t.Minute()))
 			continue
 		}
 		if triggerConfig.TriggerCronConfig.EveryType == EveryTypeWeek {
 			if cast.ToInt(triggerConfig.TriggerCronConfig.WeekNumber) != cast.ToInt(t.Weekday()) {
-				logs.Debug(LogTriggerPrefix + ` not week ` + cast.ToString(cast.ToInt(triggerConfig.TriggerCronConfig.WeekNumber)) + ` ` + cast.ToString(cast.ToInt(t.Weekday())))
+				//logs.Debug(LogTriggerPrefix + ` not week ` + cast.ToString(cast.ToInt(triggerConfig.TriggerCronConfig.WeekNumber)) + ` ` + cast.ToString(cast.ToInt(t.Weekday())))
 				continue
 			}
 		} else if triggerConfig.TriggerCronConfig.EveryType == EveryTypeMonth {
 			if cast.ToInt(triggerConfig.TriggerCronConfig.MonthDay) != cast.ToInt(t.Day()) {
-				logs.Debug(LogTriggerPrefix + ` not month day ` + cast.ToString(cast.ToInt(triggerConfig.TriggerCronConfig.MonthDay)) + ` ` + cast.ToString(cast.ToInt(t.Day())))
+				//logs.Debug(LogTriggerPrefix + ` not month day ` + cast.ToString(cast.ToInt(triggerConfig.TriggerCronConfig.MonthDay)) + ` ` + cast.ToString(cast.ToInt(t.Day())))
 				continue
 			}
 		}

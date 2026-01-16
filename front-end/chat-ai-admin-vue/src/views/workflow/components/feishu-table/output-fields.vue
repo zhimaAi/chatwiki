@@ -21,6 +21,12 @@
       <template #title="{ dataRef }">
         <div class="field-item">
           <span class="field-key">{{ dataRef.key }}</span>
+          <a-tooltip v-if="dataRef.tip" :overlayStyle="{ maxWidth: '800px' }">
+            <template #title>
+              <div class="tip-content">{{ dataRef.tip }}</div>
+            </template>
+            <QuestionCircleOutlined style="margin-left: 4px;" />
+          </a-tooltip>
           <span class="field-type">{{ dataRef.typ }}</span>
           <span class="field-name">{{ dataRef.name }}</span>
         </div>
@@ -30,6 +36,7 @@
 </template>
 
 <script setup>
+import { QuestionCircleOutlined } from '@ant-design/icons-vue';
 import { ref } from 'vue'
 // const expandedKeys = ref(['0-0-0'])
 
@@ -100,5 +107,9 @@ const selectedKeys = ref([])
       margin: 0 12px 0 8px;
     }
   }
+}
+
+.tip-content {
+  white-space: pre-wrap;
 }
 </style>

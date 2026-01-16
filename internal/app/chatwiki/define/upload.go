@@ -22,6 +22,18 @@ var QALibFileAllowExt = []string{`docx`, `xlsx`, `csv`}
 var VideoAllowExt = []string{`mp4`}
 var AudioAllowExt = []string{`mp3`}
 var FAQLibFileAllowExt = []string{`md`, `docx`, `txt`}
+var AllExt = make([]string, 0)
+
+func init() {
+	AllExt = append(AllExt, ImageAllowExt...)
+	AllExt = append(AllExt, LibFileAllowExt...)
+	AllExt = append(AllExt, FormFileAllowExt...)
+	AllExt = append(AllExt, LibDocFileAllowExt...)
+	AllExt = append(AllExt, QALibFileAllowExt...)
+	AllExt = append(AllExt, VideoAllowExt...)
+	AllExt = append(AllExt, AudioAllowExt...)
+	AllExt = append(AllExt, FAQLibFileAllowExt...)
+}
 
 func IsTableFile(ext string) bool {
 	ext = strings.ToLower(ext)

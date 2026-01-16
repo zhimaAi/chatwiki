@@ -5,11 +5,11 @@
   cursor: pointer;
   padding: 2px 8px;
   .lang-icon {
-    width: 16px;
+    font-size: 16px;
   }
   .lang-name {
     line-height: 22px;
-    padding: 0 5px;
+    padding: 0 8px;
     font-size: 14px;
     color: #3a4559;
   }
@@ -19,7 +19,7 @@
 <template>
   <a-dropdown placement="left">
     <div class="dropdown-link" @click.prevent>
-      <img class="lang-icon" src="../../../assets/img/lang.png" alt="" />
+      <svg-icon class="lang-icon" name="lang"></svg-icon>
       <span class="lang-name">{{ selectedLocale.name }}</span>
       <RightOutlined />
     </div>

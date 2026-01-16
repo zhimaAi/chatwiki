@@ -55,7 +55,7 @@
     bottom: 48px;
     left: 50%;
     height: 550px;
-    width: 444px;
+    width: 484px;
     transform: translateX(-50%);
   }
 }

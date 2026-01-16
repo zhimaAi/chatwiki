@@ -13,6 +13,7 @@ import explainNode from './explain-node/index.js'
 import variableAssignmentNode from './variable-assignment-node/index.js'
 import judgeNode from './judge-node/index.js'
 import specifyReplyNode from './specify-reply-node/index.js'
+import immediatelyReplyNode from './immediately-reply-node/index.js'
 import parameterExtractionNode from './parameter-extraction-node/index'
 import problemOptimizationNode from './problem-optimization-node/index.js'
 import addDataNode from './add-data-node/index.js'
@@ -33,7 +34,9 @@ import jsonNode from './json-node/index.js'
 import jsonReverseNode from './json-reverse-node/index.js'
 import voiceSynthesisNode from "./voice-synthesis-node/index.js";
 import voiceCloneNode from "./voice-clone-node/index.js";
+import webhookTriggerNode from './webhook-trigger-node/index.js'
 import importLibraryNode from './import-library-node/index.js'
+import zmWorkflowNode from "./zm-workflow-node/index.js";
 
 
 
@@ -52,6 +55,7 @@ export default function registerCustomNodes(lf) {
   register(judgeNode, lf)
   register(variableAssignmentNode, lf)
   register(specifyReplyNode, lf)
+  register(immediatelyReplyNode, lf)
   register(parameterExtractionNode, lf)
   register(problemOptimizationNode, lf)
   register(addDataNode, lf)
@@ -71,5 +75,7 @@ export default function registerCustomNodes(lf) {
   register(jsonReverseNode, lf)
   register(voiceSynthesisNode, lf)
   register(voiceCloneNode, lf)
+  register(webhookTriggerNode, lf)
   register(importLibraryNode, lf)
+  register(zmWorkflowNode, lf)
 }

@@ -53,6 +53,7 @@
         </div>
       </div>
     </a-drawer>
+    <PluginConfigBox ref="pluginConfigRef" @auth="emit('auth')" />
   </div>
 </template>
 
@@ -62,17 +63,18 @@ import {EllipsisOutlined, CloseOutlined, PlusOutlined} from '@ant-design/icons-v
 import {message, Modal} from 'ant-design-vue';
 import {jsonDecode, timeNowGapFormat} from "@/utils/index.js";
 import {getPluginConfig, runPlugin, setPluginConfig} from "@/api/plugins/index.js";
+import PluginConfigBox from "./plugin-config-box.vue";
 
 const emit = defineEmits(['del', 'edit', 'auth'])
 
 const open = ref(false)
 const detail = ref({})
 const actionData = ref({})
+const pluginConfigRef = ref(null)
 
 function show(info) {
   detail.value = info
   loadAction()
-  open.value = true
 }
 
 function hide() {
@@ -86,10 +88,17 @@ function loadAction() {
     params: {}
   }).then(res => {
     let _data = res?.data || {}
+    const usePluginConfig = Object.values(_data || {}).some(v => v && v.use_plugin_config === true)
+    if (usePluginConfig) {
+      pluginConfigRef.value && pluginConfigRef.value.show(detail.value, _data)
+      open.value = false
+      return
+    }
     for (let key in _data) {
       if (_data[key].type != 'node') delete _data[key]
     }
     actionData.value = _data
+    open.value = true
   })
 }
 

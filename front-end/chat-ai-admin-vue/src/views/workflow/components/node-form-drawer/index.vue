@@ -64,6 +64,7 @@ import SelectDataForm from './select-data-form.vue'
 import QuestionNodeForm from './question-node-form.vue'
 import JudgeNodeForm from './judge-node-form.vue'
 import SpecifyReplyNodeForm from './specify-reply-form.vue'
+import ImmediatelyReplyNodeForm from './immediately-reply-form.vue'
 import McpForm from './mcp-form.vue'
 import CustomGroupNodeForm from './custom-group-node/custom-group-node-form.vue'
 import ZmPluginsNodeForm from "./zm-plugins-node-form.vue";
@@ -77,9 +78,11 @@ import VoiceCloneForm from "./voice-clone-form.vue";
 import VoiceSynthesisForm from "./voice-synthesis-form.vue";
 import ImageGenerationNodeForm from './image-generation-node-form/index.vue'
 import ExplainNodeForm from './explain-node-form/index.vue'
+import WebhookTriggerNodeForm from './webhook-trigger-node-form/index.vue'
 import ImportLibraryNodeForm from './import-library-node-form/index.vue'
 import JsonNodeForm from './json-node-form/index.vue'
 import JsonReverseNodeForm from './json-reverse-node-form/index.vue'
+import ZmWorkflowNodeForm from "./zm-workflow-node-form.vue";
 
 // 预定义所有可能的表单组件
 const formComponents = {
@@ -98,6 +101,7 @@ const formComponents = {
   'question-node': QuestionNodeForm,
   'judge-node': JudgeNodeForm,
   'specify-reply-node': SpecifyReplyNodeForm,
+  'immediately-reply-node': ImmediatelyReplyNodeForm,
   'mcp-node': McpForm,
   'custom-group': CustomGroupNodeForm,
   'batch-group': BatchGroupForm,
@@ -110,9 +114,11 @@ const formComponents = {
   'voice-clone-node': VoiceCloneForm,
   'voice-synthesis-node': VoiceSynthesisForm,
   'explain-node': ExplainNodeForm,
+  'webhook-trigger-node': WebhookTriggerNodeForm,
   'import-library-node': ImportLibraryNodeForm,
   'json-node': JsonNodeForm,
   'json-reverse-node': JsonReverseNodeForm,
+  'zm-workflow-node': ZmWorkflowNodeForm,
 
   // 其他表单组件可以在这里添加
   // 'problem-optimization-node': defineAsyncComponent(() => import('./problem-optimization-form.vue')),
@@ -185,6 +191,8 @@ const width = computed(() => {
     'custom-group': 640,
     'timing-trigger-node': 420,
     'batch-group': 640,
+    'webhook-trigger-node': 620,
+    'end-node': 650,
   }
   return widthMap[props.nodeType] || 480
 })

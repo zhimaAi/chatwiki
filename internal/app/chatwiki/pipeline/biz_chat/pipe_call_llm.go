@@ -64,10 +64,19 @@ func SetLlmStartTime(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	return pipeline.PipeContinue
 }
 
+// BuildImmediatelyReplyHandle 构建立即回复输出句柄
+func BuildImmediatelyReplyHandle(in *ChatInParam, out *ChatOutParam) func(replyContent common.ReplyContent) {
+	return func(replyContent common.ReplyContent) {
+		out.replyContentList = append(out.replyContentList, replyContent)
+		in.Stream(sse.Event{Event: `reply_content_list`, Data: out.replyContentList})
+	}
+}
+
 // DoApplicationTypeFlow 工作流机器人逻辑
 func DoApplicationTypeFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if cast.ToInt(in.params.Robot[`application_type`]) == define.ApplicationTypeFlow {
 		workFlowParams := &work_flow.WorkFlowParams{ChatRequestParam: in.params, CurMsgId: int(out.cMsgId), DialogueId: in.dialogueId, SessionId: in.sessionId}
+		workFlowParams.ImmediatelyReplyHandle = BuildImmediatelyReplyHandle(in, out)
 		out.content, out.requestTime, in.monitor.LibUseTime, out.list, out.Error = work_flow.CallWorkFlow(workFlowParams, &out.debugLog, in.monitor, &in.isSwitchManual)
 		if out.Error != nil {
 			in.exitChat = true //直接退出标志位
@@ -165,6 +174,7 @@ func DoRelationWorkFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult 
 			in.Stream(sse.Event{Event: `sending`, Data: out.content})
 		} else { //组装工作流请求参数,并执行工作流
 			workFlowParams := work_flow.BuildWorkFlowParams(*in.params, workFlowRobot, workFlowGlobal, int(out.cMsgId), in.dialogueId, in.sessionId)
+			workFlowParams.ImmediatelyReplyHandle = BuildImmediatelyReplyHandle(in, out)
 			out.content, out.requestTime, _, _, out.Error = work_flow.CallWorkFlow(workFlowParams, &out.debugLog, in.monitor, &in.isSwitchManual)
 			if out.Error == nil {
 				in.Stream(sse.Event{Event: `request_time`, Data: out.requestTime})

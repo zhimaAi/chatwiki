@@ -221,3 +221,23 @@ func ResponseMessagesFromCache(messageId string, useStream bool, chanStream chan
 	// 返回数据
 	return chatResp, requestTime, nil
 }
+
+func CleanRobotMessageCache(id, robotKey string) error {
+	// 构建缓存key，包含robotKey和question的MD5
+	r := RobotMessagesCacheBuildHandler{RobotKey: robotKey}
+	allQuestionCacheKey := fmt.Sprintf(`%s.%s`, r.GetCacheKey(), `*`)
+	// logs.Info("删除缓存key: %s", allQuestionCacheKey)
+	iter := define.Redis.Scan(context.Background(), 0, allQuestionCacheKey, 0).Iterator()
+	for iter.Next(context.Background()) {
+		// logs.Info("拿到key:%s", iter.Val())
+		parts := strings.Split(iter.Val(), ".")
+		lastPart := parts[len(parts)-1]
+		if IsMd5Str(lastPart) {
+			// 使用Redis Del操作删除缓存
+			if err := define.Redis.Del(context.Background(), iter.Val()).Err(); err != nil {
+				logs.Error("删除缓存失败: %s, %v", iter.Val(), err)
+			}
+		}
+	}
+	return nil
+}

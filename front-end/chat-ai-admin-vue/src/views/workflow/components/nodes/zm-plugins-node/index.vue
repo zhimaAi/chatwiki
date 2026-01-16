@@ -283,10 +283,25 @@ export default {
             updatedArgs[key] = def
           }
         }
+        const v = meta?.setting_cache_component
+        const isCache = v === true || v === 1 || v === 'true' || v === '1'
+        if (isCache) {
+          const val = String(meta?.value ?? '')
+          if (val !== '') {
+            updatedArgs[key] = val
+          } else {
+            const cacheVal = localStorage.getItem(this.getCacheKey(key))
+            if (cacheVal != null) {
+              updatedArgs[key] = String(cacheVal)
+            }
+          }
+        }
       }
 
       nodeParams.plugin = nodeParams.plugin || {}
       nodeParams.plugin.params = nodeParams.plugin.params || {}
+      nodeParams.plugin.params.use_plugin_config = schemaAction?.use_plugin_config || false
+
       if (isAction) {
         nodeParams.plugin.params.arguments = {
           ...oldArgs,
@@ -322,10 +337,39 @@ export default {
       for (let key in this.formState) {
         this.formState[key].value = String(args[key] || '')
         this.formState[key].tags = tag_map[key] || []
+        const v = this.formState[key]?.setting_cache_component
+        const enabled = v === true || v === 1 || v === 'true' || v === '1'
+        if (enabled) {
+          const cur = String(this.formState[key].value || '').trim()
+          if (!cur) {
+            const cacheVal = localStorage.getItem(this.getCacheKey(key))
+            if (cacheVal != null) {
+              this.formState[key].value = String(cacheVal)
+            }
+          }
+        }
       }
       if (this.isMultiNode) {
         this.ensureMultiNodeRendering()
       }
+    },
+    getCacheKey(fieldKey) {
+      let id = ''
+      let robotKey = ''
+      const hash = typeof window !== 'undefined' ? String(window.location.hash || '') : ''
+      if (hash.includes('?')) {
+        const query = hash.split('?')[1] || ''
+        query.split('&').forEach((pair) => {
+          const [k, v] = pair.split('=')
+          if (k === 'id') id = decodeURIComponent(v || '')
+          if (k === 'robot_key') robotKey = decodeURIComponent(v || '')
+        })
+      }
+      if (!id) {
+        id = String(localStorage.getItem('last_local_robot_id') || '')
+      }
+      const wfId = id || robotKey || ''
+      return `${wfId}:${this.pluginName}:${fieldKey}`
     },
     ensureMultiNodeRendering() {
       const current = this.nodeParams?.plugin?.params?.rendering
@@ -371,6 +415,17 @@ export default {
       const keys = Object.keys(this.formState || {})
         .filter((key) => key !== 'app_secret')
         .filter((key) => !this.formState?.[key]?.hide_official_component)
+        .filter((key) => !this.formState?.[key]?.advanced_settings)
+        .filter((key) => {
+          const v = this.formState?.[key]?.plugin_config_component
+          const enabled = v === true || v === 1 || v === 'true' || v === '1'
+          return !enabled
+        })
+        .filter((key) => {
+          const v = this.formState?.[key]?.setting_cache_component
+          const enabled = v === true || v === 1 || v === 'true' || v === '1'
+          return !enabled
+        })
         .sort((a, b) => (+(this.formState?.[a]?.sort_num || 0)) - (+(this.formState?.[b]?.sort_num || 0)))
 
       const args = this.nodeParams?.plugin?.params?.arguments || {}

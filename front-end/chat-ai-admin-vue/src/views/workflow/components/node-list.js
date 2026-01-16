@@ -170,6 +170,31 @@ export const nodeList = [
   {
     id: '',
     groupKey: 'start',
+    type: 'trigger_5',
+    x: -600,
+    y: 0,
+    width: 420,
+    height: 102,
+    hidden: true,
+    properties: {
+      ...getRowData(),
+      componentKey: 'webhook-trigger-node',
+      isTriggerNode: true,
+      node_type: 5,
+      node_name: '',
+      node_icon: getNodeIconUrl('webhook-trigger-node'),
+      node_icon_name: 'webhook-trigger-node',
+      node_params: JSON.stringify({
+        trigger: {
+          outputs: [],
+        }
+      })
+    }
+  },
+
+  {
+    id: '',
+    groupKey: 'start',
     type: 'start-node',
     x: 0,
     y: 0,
@@ -244,6 +269,27 @@ export const nodeList = [
       node_header_bg_color: 'linear-gradient(180deg, #FFF7F0 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         reply: {
+          content: '',
+          content_tags: []
+        }
+      })
+    }
+  },
+  {
+    id: '',
+    groupKey: 'execute-action',
+    type: 'immediately-reply-node',
+    width: 420,
+    height: 130,
+    properties: {
+      ...getRowData(),
+      node_type: 42,
+      node_name: '立即回复',
+      node_icon: getNodeIconUrl('specify-reply-node'),
+      node_icon_name: 'specify-reply-node',
+      node_header_bg_color: 'linear-gradient(180deg, #FFF7F0 2%, rgba(229, 239, 255, 0) 100%)',
+      node_params: JSON.stringify({
+        immediately_reply: {
           content: '',
           content_tags: []
         }
@@ -651,12 +697,7 @@ export const nodeList = [
           ],
           body_raw: '',
           timeout: 30,
-          output: [
-            {
-              key: '',
-              typ: ''
-            }
-          ]
+          output: []
         }
       })
     }
@@ -953,6 +994,32 @@ export const nodeList = [
       })
     }
   },
+  {
+    id: '',
+    groupKey: 'workflows',
+    type: 'zm-workflow-node',
+    width: 420,
+    height: 154,
+    properties: {
+      ...getRowData(),
+      width: 320,
+      height: 154,
+      node_type: 41,
+      node_name: '',
+      node_icon: getNodeIconUrl('zm-workflow-node'),
+      node_icon_name: 'zm-workflow-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0FFF8 2%, rgba(229, 239, 255, 0) 100%)',
+      plugin_name: '',
+      node_params: JSON.stringify({
+        workflow: {
+          name: "",
+          robot_id: 0,
+          params: {},
+          output: []
+        }
+      })
+    }
+  },
 ]
 
 // 获取分组和节点
@@ -1010,7 +1077,7 @@ export const getAllPluginNodes = async () => {
   let {data} = await getInstallPlugins()
   const nodesMap = getNodesMap()
   const nodeCongfig = nodesMap['zm-plugins-node']
-  
+
   data = Array.isArray(data) ? data : []
   data = data.filter(i => i?.local?.has_loaded)
   await loadPluginActions(data)
@@ -1022,7 +1089,7 @@ export const getAllPluginNodes = async () => {
     }
 
     const node_header_bg_color = item.node_header_bg_color ? item.node_header_bg_color : nodeCongfig.properties.node_header_bg_color
-    
+
     return {
       id: '',
       groupKey: 'plugins',
@@ -1089,7 +1156,6 @@ export const getAllMcpNodes = async () => {
 export const getMcpNode = (mcp, tool) => {
   const nodesMap = getNodesMap()
   const nodeCongfig = nodesMap['mcp-node']
-  console.log('nodeCongfig', nodeCongfig)
   const node_header_bg_color = mcp.node_header_bg_color ? mcp.node_header_bg_color : nodeCongfig.properties.node_header_bg_color
 
   return  {
@@ -1162,7 +1228,7 @@ export const createTriggerNode = (item) => {
   const nodeCongfig = nodesMap[type]
   const icon = item.trigger_icon ? item.trigger_icon : nodeCongfig.properties.node_icon
   const node_header_bg_color = item.node_header_bg_color ? item.node_header_bg_color : nodeCongfig.properties.node_header_bg_color
-  
+
   const node = {
     type: nodeCongfig.properties.componentKey,
     x: 0,
@@ -1183,6 +1249,49 @@ export const createTriggerNode = (item) => {
       node_params: JSON.stringify({
         trigger: {
           ...item
+        }
+      })
+    }
+  }
+
+  return JSON.parse(JSON.stringify(node))
+}
+
+
+export const createWorkflowNode = (item) => {
+  const nodesMap = getNodesMap()
+  const nodeCongfig = nodesMap['zm-workflow-node']
+  const icon = item.robot_avatar ? item.robot_avatar : nodeCongfig.properties.node_icon
+  const node_header_bg_color = item.node_header_bg_color ? item.node_header_bg_color : nodeCongfig.properties.node_header_bg_color
+
+  const node = {
+    type: 'zm-workflow-node',
+    x: 0,
+    y: 0,
+    id: '',
+    width: nodeCongfig.width,
+    height: nodeCongfig.height,
+    properties: {
+      ...nodeCongfig.properties,
+      node_icon: icon,
+      width: nodeCongfig.width,
+      height: nodeCongfig.height,
+      node_key: '',
+      nodeSortKey: '',
+      node_name: item.robot_name,
+      node_header_bg_color: node_header_bg_color,
+      node_params: JSON.stringify({
+        workflow: {
+          robot_info: item,
+          robot_id: Number(item.id),
+          output: [
+            {
+              "sys": false,
+              "key": "data",
+              "desc": "工作流回复内容",
+              "typ": "string"
+            }
+          ]
         }
       })
     }

@@ -2,6 +2,7 @@ import { HtmlNode, HtmlNodeModel, h as flh } from '@logicflow/core'
 import { createApp, h, nextTick } from 'vue'
 import {generateUniqueId, jsonDecode} from '@/utils/index'
 import {HasOutputPluginNames} from "@/constants/plugin.js";
+import { allParentVariableNodeWhiteList } from '../util.js'
 
 function transformArray(arr, parent) {
   // 使用map处理数组并返回新的数组
@@ -347,28 +348,6 @@ export class BaseVueNodeModel extends HtmlNodeModel {
     const visited = new Set();
     const edges = this.incoming.edges;
     const { nodes } = this.graphModel
-    // 节点白名单
-    const nodeWhiteList = [
-      'start-node',
-      'http-node',
-      'parameter-extraction-node',
-      'knowledge-base-node',
-      'ai-dialogue-node',
-      'specify-reply-node',
-      'problem-optimization-node',
-      'select-data-node',
-      'code-run-node',
-      'mcp-node',
-      'custom-group',
-      'zm-plugins-node',
-      'batch-group',
-      'voice-synthesis-node',
-      'voice-clone-node',
-      'image-generation-node',
-      'import-library-node',
-      'json-node',
-      'json-reverse-node',
-    ]
 
     let startNode = nodes.find((node) => node.type === 'start-node')
     // 插入起始节点(起始节点必传)
@@ -387,7 +366,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
 
         visited.add(node.id);
 
-        if (nodeWhiteList.includes(node.type)){
+        if (allParentVariableNodeWhiteList.includes(node.type)){
           if (node.type === 'zm-plugins-node') {
             let nodeParams = jsonDecode(node.properties.node_params)
             if (HasOutputPluginNames.includes(nodeParams.plugin.name) || nodeParams.plugin?.output_obj.length) {
@@ -421,7 +400,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
 
     for (const node of parentNodes) {
       // 如果节点类型既不是http-node也不是start-node，则跳过当前循环
-      if (!nodeWhiteList.includes(node.type)) {
+      if (!allParentVariableNodeWhiteList.includes(node.type)) {
         continue;
       }
 
@@ -439,6 +418,10 @@ export class BaseVueNodeModel extends HtmlNodeModel {
 
       if(node.type === 'http-node'){
         obj.children = node_params.curl.output
+      }
+
+      if(node.type === 'zm-workflow-node'){
+        obj.children = node_params.workflow.output
       }
 
       if(node.type === 'voice-synthesis-node'){
@@ -508,7 +491,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
       if(node.type === 'json-reverse-node'){
         obj.children = node_params.json_decode.output
       }
-      
+
       if(node.type === 'select-data-node'){
         obj.children = [{
           key: 'output_list',
@@ -548,6 +531,17 @@ export class BaseVueNodeModel extends HtmlNodeModel {
           name: '消息内容',
           label: '消息内容',
         }]
+      }
+
+      if (node.type === 'immediately-reply-node') {
+        obj.children = [
+          {
+            key: 'special.llm_reply_content',
+            typ: 'string',
+            name: '消息内容',
+            label: '消息内容'
+          }
+        ]
       }
 
       if(node.type === 'problem-optimization-node'){

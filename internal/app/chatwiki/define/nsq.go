@@ -16,6 +16,9 @@ const ConvertGraphChannel = `convert_graph_channel`
 const CrawlArticleTopic = `chatwiki_crawl_article_topic`
 const CrawlArticleChannel = `chatwiki_crawl_article_channel`
 
+const CrawlFeishuDocTopic = `chatwiki_crawl_feishu_doc_topic`
+const CrawlFeishuDocChannel = `chatwiki_crawl_feishu_doc_channel`
+
 const ExportTaskTopic = `chatwiki_export_task_topic`
 const ExportTaskChannel = `chatwiki_export_task_channel`
 

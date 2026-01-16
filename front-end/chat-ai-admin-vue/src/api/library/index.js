@@ -583,3 +583,7 @@ export const getDefaultRrfWeight = (params) => {
     params: params
   })
 }
+
+export const getFeishuDocFileList = (data= {}) => {
+  return request.post({url: '/manage/getFeishuDocFileList', data})
+}

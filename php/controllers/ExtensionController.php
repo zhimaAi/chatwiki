@@ -262,7 +262,7 @@ abstract class ExtensionController extends BaseLambdaController
                     $request->setData($normalData);
                 }
                 
-            }elseif(stripos($contentType, 'application/x-www-form-urlencoded') && is_array($body)){
+            }elseif(stripos($contentType, 'application/x-www-form-urlencoded')!==false && is_array($body)){
                 $request->addHeaders($headers);
                 $request->setData($body);
             }elseif (stripos($contentType, 'text/plain') !== false){

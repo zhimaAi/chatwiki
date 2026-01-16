@@ -259,6 +259,15 @@
                         <div class="desc">自定义一个空文档，手动添加内容</div>
                       </div>
                     </a-menu-item>
+                    <a-menu-item :key="4" v-if="libraryInfo.type == 0">
+                      <div class="dropdown-btn-menu">
+                        <a-flex class="title-block" :gap="4">
+                          <svg-icon name="feishu-doc"></svg-icon>
+                          <div class="title">飞书知识库</div>
+                        </a-flex>
+                        <div class="desc">在线获取飞书知识库下docx格式云文档内容</div>
+                      </div>
+                    </a-menu-item>
                   </a-menu>
                 </template>
                 <a-button v-if="type != 3" type="primary">
@@ -620,6 +629,7 @@
     <EditOnlineDoc @ok="getData" ref="editOnlineDocRef" />
     <AddGroup group_type="1" ref="addGroupRef" @ok="initData" />
     <EditGroup :libraryId="libraryId" :sense="1" ref="editGroupRef" @ok="initData" />
+    <AddFeishuDocument ref="feishuRef" :libraryId="libraryId" @ok="initData"/>
   </div>
 </template>
 
@@ -673,6 +683,7 @@ import { useCompanyStore } from '@/stores/modules/company'
 import AddGroup from './qa-knowledge-document/components/add-group.vue'
 import EditGroup from './qa-knowledge-document/components/edit-group.vue'
 import Draggable from 'vuedraggable'
+import AddFeishuDocument from "./components/add-feishu-document.vue";
 
 const { setStorage } = useStorage('localStorage')
 
@@ -750,6 +761,7 @@ const query = rotue.query
 const isLoading = ref(false)
 const guideLearningTipsRef = ref(null)
 const openGrapgModalRef = ref(null)
+const feishuRef = ref(null)
 const createGraphSwitch = ref(false)
 const libraryInfo = ref({
   library_intro: '',
@@ -1203,6 +1215,9 @@ const handleMenuClick = (e) => {
   if (key == 3) {
     addCustomDocumentRef.value.add()
   }
+  if (key == 4) {
+    feishuRef.value.show()
+  }
 }
 const addUrlState = reactive({
   open: false,
@@ -1546,7 +1561,25 @@ onMounted(() => {
   if (width && width >= minGroupBoxWidth && width <= maxGroupBoxWidth) {
     groupBoxWidth.value = width
   }
+  checkFeishuCallback()
 })
+
+const checkFeishuCallback = () => {
+  const {
+    user_access_token,
+    feishu_app_id,
+    feishu_app_secret,
+    ...other
+  } = query
+  if (user_access_token && feishu_app_id && feishu_app_secret) {
+    router.replace({query: other})
+    feishuRef.value.show({
+      user_access_token,
+      feishu_app_id,
+      feishu_app_secret,
+    })
+  }
+}
 
 let isResizing = false
 let startX = 0

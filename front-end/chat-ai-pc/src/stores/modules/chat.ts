@@ -380,6 +380,12 @@ export const useChatStore = defineStore('chat', () => {
   const updateAiMessage = (type: string, content: any, uid: string) => {
     const msgIndex = messageList.value.findIndex((item) => item.uid == uid)
 
+    if (type == 'reply_content_list') {
+      if (content !== undefined && typeof content === 'string') {
+        messageList.value[msgIndex].reply_content_list = JSON.parse(content)
+      }
+    }
+
     if (type == 'reasoning_content') {
       const oldText = messageList.value[msgIndex].reasoning_content
       messageList.value[msgIndex].reasoning_content = oldText + content
@@ -458,6 +464,7 @@ export const useChatStore = defineStore('chat', () => {
       id: '',
       content: '',
       reasoning_content: '',
+      reply_content_list: [],
       uid: getUuid(32),
       avatar: robot.robot_avatar,
       msg_type: 1,
@@ -508,6 +515,11 @@ export const useChatStore = defineStore('chat', () => {
         if (isNewChat.value) {
           isNewChat.value = false
         }
+      }
+
+      // 更新功能中心回复
+      if (res.event == 'reply_content_list') {
+        updateAiMessage('reply_content_list', res.data, aiMsg.uid)
       }
 
       // 更新机器人深度思考的内容

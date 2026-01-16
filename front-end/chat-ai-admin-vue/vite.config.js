@@ -35,7 +35,7 @@ export default defineConfig((opt) => {
   // eslint-disable-next-line no-unused-vars
   const env = loadEnv(mode, process.cwd(), '')
   const base = command === 'serve' ? '/' : '/'
-
+  console.log(typeof env.VITE_USE_BUNDLE_ANALYZER)
   return {
     plugins: [
       vue(),
@@ -63,10 +63,10 @@ export default defineConfig((opt) => {
     ],
     resolve: {
       alias: [
-        {
-          find: 'vue-i18n',
-          replacement: 'vue-i18n/dist/vue-i18n.cjs.js'
-        },
+        // {
+        //   find: 'vue-i18n',
+        //   replacement: 'vue-i18n/dist/vue-i18n.cjs.js'
+        // },
         {
           find: /@\//,
           replacement: `${pathResolve('src')}/`
@@ -93,10 +93,11 @@ export default defineConfig((opt) => {
       emptyOutDir: true,
       assetsDir: 'assets',
       sourcemap: env.VITE_SOURCEMAP === 'true',
+      reportCompressedSize: false,
       rollupOptions: {
         // external: ['moment', 'video.js', 'jspdf', 'xlsx'],
         external: [],
-        plugins: [globals, env.VITE_USE_BUNDLE_ANALYZER === 'true' ? visualizer() : undefined],
+        plugins: [globals, env.VITE_USE_BUNDLE_ANALYZER === 'true' ? visualizer({open: true}) : undefined],
         output: {
           // 自定义chunkFileName生成规则
           chunkFileNames: 'assets/js/[name]-[hash].js',
@@ -124,8 +125,23 @@ export default defineConfig((opt) => {
             // 图表库
             'charts': ['echarts'],
             // 工具库
-           'utils': ['axios', 'dayjs', 'crypto-js', 'qs', 'js-cookie', 'file-saver'],
-            'vue-pdf-embed': ['vue-pdf-embed']
+            'utils': ['axios', 'dayjs', 'crypto-js', 'qs', 'js-cookie', 'file-saver'],
+            'vue-pdf-embed': ['vue-pdf-embed'],
+            'elkjs': ['elkjs'],
+            'neo4j': [
+              '@neo4j-nvl/base',
+              '@neo4j-nvl/interaction-handlers',
+              '@neo4j-nvl/layout-workers'
+            ],
+            // 编辑器库 - 单独分块！
+            'wange-ditor': ['@wangeditor/editor', '@wangeditor/editor-for-vue'],
+            'editor-cherry': ['cherry-markdown'],
+            'editor-code': [
+              'codemirror',
+              'codemirror-editor-vue3',
+              'markdown-it'
+            ],
+            'other': ['html2canvas', 'v-viewer']
           }
         }
       },

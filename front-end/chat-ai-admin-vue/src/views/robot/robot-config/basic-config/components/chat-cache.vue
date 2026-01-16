@@ -13,7 +13,10 @@
   .switch-item {
     position: absolute;
     right: 16px;
-    top: calc(50% - 8px);
+    top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 }
 </style>
@@ -52,21 +55,25 @@
         </a-input-group>
       </div>
     </div>
-
-    <a-switch
-      @change="handleEdit"
-      class="switch-item"
-      :checkedValue="1"
-      :unCheckedValue="0"
-      v-model:checked="formState.cache_switch"
-      checked-children="开"
-      un-checked-children="关"
-    />
+    <div class="switch-item">
+      <a-button @click="handleCleanCache" size="small">清空缓存</a-button>
+      <a-switch
+        @change="handleEdit"
+        :checkedValue="1"
+        :unCheckedValue="0"
+        v-model:checked="formState.cache_switch"
+        checked-children="开"
+        un-checked-children="关"
+      />
+    </div>
   </edit-box>
 </template>
 <script setup>
-import { ref, reactive, inject, toRaw, watchEffect, watch } from 'vue'
+import { ref, reactive, inject, toRaw, watchEffect, watch, createVNode } from 'vue'
 import EditBox from './edit-box.vue'
+import { cleanRobotChatCache } from '@/api/robot/index'
+import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
+import { message, Modal } from 'ant-design-vue'
 
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
 
@@ -106,6 +113,22 @@ const handleChangeUnix = () => {
     state.mValue = parseInt(state.hValue * 60)
   }
   // onSave()
+}
+
+const handleCleanCache = () => {
+  Modal.confirm({
+    title: '确定清空缓存?',
+    icon: createVNode(ExclamationCircleOutlined),
+    content: '确定操作清空缓存吗？',
+    onOk() {
+      cleanRobotChatCache({
+        id: robotInfo.id,
+        robot_key: robotInfo.robot_key
+      }).then((res) => {
+        message.success('清空成功')
+      })
+    }
+  })
 }
 watch(
   () => robotInfo.cache_config,

@@ -4,7 +4,7 @@
       <span class="label">配置：</span>
       <a-tag>{{ actionState?.config_name || '--' }}</a-tag>
     </div>
-    <div v-if="!['create_bitable', 'create_tables'].includes(business)">
+    <div v-if="!['create_bitable', 'create_tables', 'table_add_members', 'update_advanced', 'roles_list'].includes(business)">
       <span class="label">数据表：</span>
       <a-tag>
         <at-text
@@ -135,6 +135,59 @@
         <div v-else>
           <a-tag>--</a-tag>
         </div>
+      </div>
+    </template>
+    <template v-else-if="business == 'update_advanced'">
+      <div>
+        <span class="label">多维表名称：</span>
+        <a-tag v-if="actionState.name">
+          <at-text :options="valueOptions" :defaultSelectedList="actionState?.tag_map?.name || []" :defaultValue="actionState.name"/>
+        </a-tag>
+        <a-tag v-else>--</a-tag>
+      </div>
+      <div>
+        <span class="label">高级权限：</span>
+        <a-tag>{{actionState.is_advanced == 0 ? '不设置' : actionState.is_advanced == 1 ? '开启' : '关闭'}}</a-tag>
+      </div>
+    </template>
+    <template v-else-if="business == 'table_add_members'">
+      <div>
+        <span class="label">多维表：</span>
+        <a-tag>
+          <at-text
+            class="batch-render-at"
+            :options="valueOptions"
+            :defaultSelectedList="actionState?.tag_map?.app_token || []"
+            :defaultValue="actionState?.app_token || '--'"
+          />
+        </a-tag>
+      </div>
+      <div>
+        <span class="label">协作者角色：</span>
+        <a-tag v-if="actionState.role_id">
+          <at-text :options="valueOptions" :defaultSelectedList="actionState?.tag_map?.role_id || []" :defaultValue="actionState.role_id"/>
+        </a-tag>
+        <a-tag v-else>--</a-tag>
+      </div>
+      <div>
+        <span class="label">协作者ID：</span>
+        <a-tag v-if="actionState.member_id">
+          <at-text :options="valueOptions" :defaultSelectedList="actionState?.tag_map?.member_id || []" :defaultValue="actionState.member_id"/>
+        </a-tag>
+        <a-tag v-else>--</a-tag>
+      </div>
+    </template>
+    <template v-else-if="business == 'roles_list'">
+      <div>
+        <span class="label">多维表：</span>
+        <a-tag>
+          <at-text
+            class="batch-render-at"
+            :options="valueOptions"
+            :defaultSelectedList="actionState?.tag_map?.app_token || []"
+            :defaultValue="actionState?.app_token || '--'"
+          />
+        </a-tag>
       </div>
     </template>
     <template v-else-if="BatchActions.includes(business)">

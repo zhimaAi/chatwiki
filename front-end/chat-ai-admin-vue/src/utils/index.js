@@ -715,3 +715,10 @@ export function listScrollPullLoad(event, onReachBottom, onReachTop=null, thresh
     onReachTop && onReachTop();
   }
 }
+
+export function strToBase64(str) {
+  const bytes = new TextEncoder().encode(str)
+  let binary = ''
+  bytes.forEach(b => binary += String.fromCharCode(b))
+  return btoa(binary)
+}

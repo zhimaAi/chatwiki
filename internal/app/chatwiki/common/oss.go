@@ -103,3 +103,11 @@ func PutObjectFromString(objectKey, content string) (string, error) {
 	}
 	return "https://" + define.Config.OssConfig[`bucket`] + "." + define.Config.OssConfig[`endpoint`] + "/" + objectKey, nil
 }
+
+func GetUrlPath(urlStr string) string {
+	parsedUrl, err := url.Parse(urlStr)
+	if err != nil {
+		return ``
+	}
+	return parsedUrl.Path
+}

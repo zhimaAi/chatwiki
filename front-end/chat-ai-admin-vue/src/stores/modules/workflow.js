@@ -8,10 +8,10 @@ export const useWorkflowStore = defineStore('workflow', () => {
   const triggerOfficialList = ref([])
   const libraryLists = ref([])
 
-  const getTriggerList = async (isRefresh) => {
+  const getTriggerList = async (robot_key, isRefresh) => {
     try {
       if (triggerList.value.length === 0 || isRefresh) {
-        const res = await getTriggerConfigList()
+        const res = await getTriggerConfigList({ robot_key })
         triggerList.value = res.data.map((item) => {
           item.subMenus = []
           item.expend = false
@@ -44,7 +44,6 @@ export const useWorkflowStore = defineStore('workflow', () => {
       console.log(error)
     }
   }
-
 
   const getTriggerOfficialMsg = (robot_key) => {
     getTriggerOfficialMessage({ robot_key }).then((res) => {

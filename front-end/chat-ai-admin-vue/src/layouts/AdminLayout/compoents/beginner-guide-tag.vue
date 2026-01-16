@@ -45,7 +45,7 @@
   <div class="beginner-guide-tag" v-if="role_type == 1 && total_process != 100" @click="handleToGuide">
     <span class="red-dot"></span>
     <svg-icon class="nav-icon" name="guide"></svg-icon>
-    <span class="nav-name">新手指引 ({{ total_process }}%)</span>
+    <span class="nav-name">新手指引</span>
   </div>
 </template>
 

@@ -7,6 +7,14 @@
         desc="发起一个http请求，实现与第三方系统数据交互"
         @close="handleClose"
       >
+        <template #runBtn>
+          <a-tooltip>
+            <template #title>运行测试</template>
+            <div class="run-test-btn" @click="handleOpenTestModal">
+              <CaretRightOutlined style="color: rgb(0, 173, 58)" />
+            </div>
+          </a-tooltip>
+        </template>
       </NodeFormHeader>
     </template>
     <div class="problem-optimization-form">
@@ -228,9 +236,57 @@
               </div>
             </a-form-item>
           </div>
+          <div class="gray-block mt16">
+            <div class="gray-block-title">鉴权
+              <a-tooltip>
+                <template #title>鉴权参数：导出模板CSL文件，或者上架模板时，自动清空参数值</template>
+                <QuestionCircleOutlined />
+              </a-tooltip>
+            </div>
+
+            <div class="output-box">
+              <div class="output-block">
+                <div class="output-item" style="width: 124px">Key</div>
+                <div class="output-item" style="width: 124px">Value</div>
+                <div class="output-item" style="width: 124px">Add To</div>
+              </div>
+              <div class="array-form-box" @mousedown.stop="">
+                <div class="form-item-list" v-for="(item, index) in formState.http_auth" :key="index">
+                  <a-form-item :label="null">
+                    <div class="flex-block-item" style="gap: 12px">
+                      <a-input
+                        style="width: 124px"
+                        v-model:value="item.key"
+                        placeholder="请输入"
+                      ></a-input>
+                      <a-form-item-rest>
+                        <a-input
+                          style="width: 124px"
+                          v-model:value="item.value"
+                          placeholder="请输入"
+                        ></a-input>
+                        <a-select v-model:value="item.add_to" style="width: 124px">
+                          <a-select-option value="HEADERS">HEADERS</a-select-option>
+                          <a-select-option value="PARAMS">PARAMS</a-select-option>
+                          <a-select-option value="BODY">BODY</a-select-option>
+                        </a-select>
+                      </a-form-item-rest>
+                      <div class="btn-hover-wrap" @click="handleDelAuthentication(index)">
+                        <CloseCircleOutlined />
+                      </div>
+                    </div>
+                  </a-form-item>
+                </div>
+                <a-button @click="handleOpenAuthenticationModal" :icon="h(PlusOutlined)" block type="dashed">添加参数</a-button>
+              </div>
+            </div>
+          </div>
 
           <div class="gray-block mt16">
-            <div class="gray-block-title" @click="test">输出 (输出字段提取)</div>
+            <div class="gray-block-title output-title" @click="test">
+              <span>输出 (输出字段提取)</span>
+              <a-button type="primary" size="small" @click="handleOpenTestModal">自动提取输出参数</a-button>
+            </div>
             <div class="output-box">
               <div class="output-block">
                 <div class="output-item">参数Key</div>
@@ -290,6 +346,8 @@
       ref="parseCurlModalRef" 
       @parse="handleParseResult" 
     />
+    <AddAuthenticationModal @ok="handleSaveAuthentication" ref="addAuthenticationModalRef" />
+    <RunTest ref="runTestRef" :node_key="nodeId" @autoExtract="handleAutoExtract" />
   </NodeFormLayout>
   
 </template>
@@ -297,11 +355,16 @@
 <script setup>
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
-import { ref, reactive, watch, h, onMounted } from 'vue'
-import { CloseCircleOutlined, PlusOutlined, PlusCircleOutlined, CodeOutlined } from '@ant-design/icons-vue'
+import { ref, reactive, watch, h, onMounted, inject } from 'vue'
+import { CloseCircleOutlined, PlusOutlined, PlusCircleOutlined, CodeOutlined, QuestionCircleOutlined, CaretRightOutlined, } from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
 import AtInput from '../../at-input/at-input.vue'
 import SubKey from './subs-key.vue'
 import ParseCurlModal from './parse-curl-modal.vue'
+import { getUuid } from '@/utils/index'
+import AddAuthenticationModal from './add-authentication-modal.vue'
+import RunTest from './run-test.vue'
+
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({
@@ -319,38 +382,11 @@ const props = defineProps({
   }
 })
 
+const handleAutoSaveDraft = inject('handleAutoSaveDraft')
+
 const variableOptions = ref([])
-
 const atInputRefs = reactive({})
-const setAtInputRef = (el, name, index) => {
-  if (el) {
-    let key = `at_input_${name}_${index}`
-    atInputRefs[key] = el
-  }
-}
-
-const changeValue = (type, text, selectedList, item) => {
-  if (type == 'body_raw') {
-    formState.body_raw = text
-    formState.body_raw_tags = selectedList
-  } else {
-    item.tags = selectedList
-    item.value = text
-  }
-}
-
-const getVlaueVariableList = () => {
-  const nodeModel = props.lf.getNodeModelById(props.nodeId)
-  if (nodeModel) {
-    let list = nodeModel.getAllParentVariable()
-    list.forEach((item) => {
-      item.tags = item.tags || []
-    })
-
-    variableOptions.value = list
-  }
-}
-
+const runTestRef = ref(null)
 const formRef = ref()
 
 const formState = reactive({
@@ -373,13 +409,8 @@ const formState = reactive({
   body_raw: '',
   body_raw_tags: [],
   timeout: 30,
-  output: [
-    {
-      key: '',
-      typ: '',
-      subs: []
-    }
-  ]
+  output: [],
+  http_auth:[],
 })
 
 const parseCurlModalRef = ref()
@@ -421,7 +452,7 @@ const handleParseResult = (parsedData) => {
       return {
         key: key,
         value: handleValue(parsedData.header[key]),
-        cu_key: Math.random() * 10000
+        cu_key: getUuid(16)
       }
     })
 
@@ -433,7 +464,7 @@ const handleParseResult = (parsedData) => {
       return {
         key: key,
         value: handleValue(parsedData.data[key]),
-        cu_key: Math.random() * 10000
+        cu_key: getUuid(16)
       }
     })
 
@@ -445,7 +476,7 @@ const handleParseResult = (parsedData) => {
       return {
         key: key,
         value: handleValue(parsedData.params[key]),
-        cu_key: Math.random() * 10000
+        cu_key: getUuid(16)
       }
     })
   }
@@ -464,7 +495,7 @@ const handleParseResult = (parsedData) => {
 
 function recursionData(data) {
   data.forEach((item) => {
-    item.cu_key = Math.random() * 10000
+    item.cu_key = getUuid(16)
     if (item.subs && item.subs.length) {
       recursionData(item.subs)
     } else {
@@ -473,6 +504,95 @@ function recursionData(data) {
   })
   return data
 }
+
+function getFieldDefaultValue(item) {
+  if(item.typ.includes('array')) {
+    return []
+  }
+
+  return null
+}
+
+const handleOpenTestModal = async () => {
+  let data = JSON.parse(JSON.stringify(formState))
+  
+  await handleAutoSaveDraft()
+  
+  let fields = []
+
+  data.headers.forEach((item) => {
+    if(item.tags && item.tags.length){
+      fields = fields.concat(item.tags)
+    }
+  })
+
+  data.params.forEach((item) => {
+    if(item.tags && item.tags.length){
+      fields = fields.concat(item.tags)
+    }
+  })
+
+  if(formState.type == 1) {
+    data.body.forEach((item) => {
+    if(item.tags && item.tags.length){
+        fields = fields.concat(item.tags)
+      }
+    })
+  }else if(formState.type == 2) {
+    if(data.body_raw_tags.length){
+      fields = fields.concat(data.body_raw_tags)
+    }
+  }
+
+  fields = fields.map(item => ({
+    node_key: item.node_id,
+    field: {
+      key: item.original_value,
+      label: item.label,
+      typ: item.typ,
+      Vals: getFieldDefaultValue(item),
+      required: false,
+      sys:false,
+    }
+  }))
+
+  runTestRef.value?.open(fields)
+}
+
+const handleAutoExtract = (fields) => {
+  formState.output = fields
+  message.success('自动提取成功')
+}
+
+const setAtInputRef = (el, name, index) => {
+  if (el) {
+    let key = `at_input_${name}_${index}`
+    atInputRefs[key] = el
+  }
+}
+
+const changeValue = (type, text, selectedList, item) => {
+  if (type == 'body_raw') {
+    formState.body_raw = text
+    formState.body_raw_tags = selectedList
+  } else {
+    item.tags = selectedList
+    item.value = text
+  }
+}
+
+const getVlaueVariableList = () => {
+  const nodeModel = props.lf.getNodeModelById(props.nodeId)
+  if (nodeModel) {
+    let list = nodeModel.getAllParentVariable()
+    list.forEach((item) => {
+      item.tags = item.tags || []
+    })
+
+    variableOptions.value = list
+  }
+}
+
 
 const update = () => {
   const data = JSON.stringify({
@@ -503,7 +623,7 @@ const init = () => {
           formState[key] = curl[key].map((item) => {
             return {
               ...item,
-              cu_key: Math.random() * 10000
+              cu_key: getUuid(16)
             }
           })
         } else {
@@ -517,6 +637,7 @@ const init = () => {
       }
       formState[key] = curl[key]
     }
+    formState.http_auth = curl.http_auth || []
   } catch (error) {
     console.log(error)
   }
@@ -534,7 +655,7 @@ const handleAddHeader = () => {
   formState.headers.push({
     key: '',
     value: '',
-    cu_key: Math.random() * 10000
+    cu_key: getUuid(16)
   })
 }
 
@@ -546,7 +667,7 @@ const handleAddParams = () => {
   formState.params.push({
     key: '',
     value: '',
-    cu_key: Math.random() * 10000
+    cu_key: getUuid(16)
   })
 }
 
@@ -558,7 +679,7 @@ const handleAddBody = () => {
   formState.body.push({
     key: '',
     value: '',
-    cu_key: Math.random() * 10000
+    cu_key: getUuid(16)
   })
 }
 
@@ -571,7 +692,7 @@ const handleAddOutPut = () => {
     key: '',
     typ: 'string',
     subs: [],
-    cu_key: Math.random() * 10000
+    cu_key: getUuid(16)
   })
 }
 
@@ -584,11 +705,15 @@ const onTypeChange = (data) => {
 }
 
 const onAddSubs = (index) => {
+  if(!formState.output[index].subs || !Array.isArray(formState.output[index].subs)){
+    formState.output[index].subs = []
+  }
+
   formState.output[index].subs.push({
     key: '',
     value: '',
     subs: [],
-    cu_key: Math.random() * 10000
+    cu_key: getUuid(16)
   })
 }
 
@@ -635,6 +760,27 @@ const typOptions = [
   }
 ]
 
+
+const addAuthenticationModalRef = ref(null)
+const handleOpenAuthenticationModal = () => {
+  addAuthenticationModalRef.value.show()
+}
+
+const handleSaveAuthentication = (list) => {
+  let data = list.map(item => {
+    return {
+      key: item.auth_key,
+      value: item.auth_value,
+      add_to: item.auth_value_addto
+    }
+  })
+  formState.http_auth = [...formState.http_auth, ...data]
+}
+
+const handleDelAuthentication = (index) => {
+  formState.http_auth.splice(index, 1)
+}
+
 const handleClose = () => {
   emit('close')
 }
@@ -646,6 +792,27 @@ onMounted(() => {
 
 <style lang="less" scoped>
 @import '../form-block.less';
+.run-test-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease-in;
+  margin-left: 8px;
+  &:hover {
+    background: #e4e6eb;
+  }
+}
+
+.output-title{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .export-curl-title{
   display: flex;
   align-items: center;

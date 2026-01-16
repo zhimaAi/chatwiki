@@ -237,7 +237,13 @@ export const useChatStore = defineStore('chat', () => {
   // 更新AI的消息到列表
   const updateAiMessage = (type, content, uid) => {
     let msgIndex = messageList.value.findIndex((item) => item.uid == uid)
-    console.log(type, content)
+
+    if (type == 'reply_content_list') {
+      if (content !== undefined && typeof content === 'string') {
+        messageList.value[msgIndex].reply_content_list = JSON.parse(content)
+      }
+    }
+
     if (type == 'reasoning_content') {
       let oldText = messageList.value[msgIndex].reasoning_content || ''
       messageList.value[msgIndex].reasoning_content = oldText + content
@@ -412,6 +418,11 @@ export const useChatStore = defineStore('chat', () => {
 
           isNewChat.value = false
         }
+      }
+
+      // 更新功能中心回复
+      if (res.event == 'reply_content_list') {
+        updateAiMessage('reply_content_list', res.data, aiMsg.uid)
       }
 
       // 更新机器人深度思考的内容

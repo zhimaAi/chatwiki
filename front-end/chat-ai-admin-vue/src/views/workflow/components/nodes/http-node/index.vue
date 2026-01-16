@@ -220,13 +220,7 @@ const formState = reactive({
   body_raw: '',
   body_raw_tags: [],
   timeout: 30,
-  output: [
-    {
-      key: '',
-      typ: '',
-      subs: []
-    }
-  ]
+  output: []
 })
 
 function recursionData(data) {

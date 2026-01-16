@@ -27,9 +27,20 @@ export const getRobotInfo = ({ id }) => {
   })
 }
 
+export const getRobotStartNode = (params) => {
+  return request.get({url: '/manage/getStartNode', params})
+}
+
 export const updateFastCommandSwitch = (data = {}) => {
   return request.post({
     url: '/manage/updateFastCommandSwitch',
+    data: data
+  })
+}
+
+export const moveRobotSort = (data = {}) => {
+  return request.post({
+    url: '/manage/moveRobotSort',
     data: data
   })
 }
@@ -652,6 +663,33 @@ export const callBatchWorkFlowParams = (data = {}) => {
 export const callBatchWorkFlow = (data = {}) => {
   return request.post({
     url: '/chat/callBatchWorkFlow',
+    data: data
+  })
+}
+
+export const getHttpAuthConfig = (params = {}) => {
+  return request.get({
+    url: '/manage/getHttpAuthConfig',
+    params: params
+  })
+}
+
+export const saveHttpAuthConfig = (data = {}) => {
+  return request.post({
+    url: '/manage/saveHttpAuthConfig',
+    data: data
+  })
+}
+
+export const cleanRobotChatCache = (data = {}) => {
+  return request.post({
+    url: '/manage/cleanRobotChatCache',
+    data: data
+  })
+}
+export const callWorkFlowHttpTest = (data = {}) => {
+  return request.post({
+    url: '/chat/callWorkFlowHttpTest',
     data: data
   })
 }

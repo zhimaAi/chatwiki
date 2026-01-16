@@ -39,6 +39,9 @@ type WorkFlowParams struct {
 	IsTestLoopNodeRun  bool
 	TriggerParams      TriggerParams //触发器参数
 	IsTestBatchNodeRun bool
+	IsFromWorkflow     bool //是否来自工作流
+	//立即回复输出句柄
+	ImmediatelyReplyHandle func(replyContent common.ReplyContent)
 }
 
 type LoopIntermediate struct {
@@ -47,8 +50,9 @@ type LoopIntermediate struct {
 }
 
 type TriggerParams struct {
-	TriggerType uint           //触发方式,默认值:TriggerTypeChat
-	TestParams  map[string]any //测试触发器传入参数
+	TriggerType    uint                 //触发方式,默认值:TriggerTypeChat
+	TestParams     map[string]any       //测试触发器传入参数
+	TriggerOutputs []TriggerOutputParam //自己构建的trigger outputs
 }
 
 type WorkFlow struct {
@@ -337,8 +341,7 @@ func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monit
 		return
 	}
 
-	var replyContentNodes = []string{`special.llm_reply_content`, `special.question_optimize_reply_content`, `special.mcp_reply_content`}
-	content = TakeOutputReply(replyContentNodes, flow)
+	content = TakeOutputReply(flow)
 	if len(content) == 0 {
 		err = errors.New(`工作流没有可以回复的内容返回`)
 		return
@@ -428,7 +431,7 @@ func BuildWorkFlowParams(params define.ChatRequestParam, workFlowRobot msql.Para
 	return &WorkFlowParams{ChatRequestParam: &params, RealRobot: workFlowRobot, CurMsgId: curMsgId, DialogueId: dialogueId, SessionId: sessionId}
 }
 
-func TakeOutputReply(replyContentNodes []string, flow *WorkFlow) string {
+func TakeOutputReply(flow *WorkFlow) string {
 	if len(flow.output) <= 0 {
 		return ``
 	}
@@ -483,6 +486,7 @@ func TakeOutputReply(replyContentNodes []string, flow *WorkFlow) string {
 		return strings.Join(contents, "\n")
 	}
 	//take any one
+	var replyContentNodes = []string{`special.llm_reply_content`, `special.question_optimize_reply_content`, `special.mcp_reply_content`}
 	content := ``
 	for _, fieldsKey := range replyContentNodes {
 		content = cast.ToString(flow.output[fieldsKey].GetVal(common.TypString))
@@ -491,4 +495,38 @@ func TakeOutputReply(replyContentNodes []string, flow *WorkFlow) string {
 		}
 	}
 	return ``
+}
+
+func CallHttpTest(workFlowParams *WorkFlowParams, curlNode *WorkFlowNode) (map[string]any, error) {
+	flow := &WorkFlow{
+		params:      workFlowParams,
+		nodeLogs:    make([]common.NodeLog, 0),
+		outputs:     make(map[string]common.SimpleFields),
+		runNodeKeys: make([]string, 0),
+		runLogs:     make([]string, 0),
+		global:      map[string]common.SimpleField{},
+	}
+	curlNodeRun := CurlNode{
+		params:      curlNode.NodeParams.Curl,
+		nextNodeKey: "",
+	}
+	fillTestParamsToRunningParams(flow, workFlowParams.TestParams)
+	output, _, err := curlNodeRun.Running(flow)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, err
+	}
+	httpResultJson := curlNodeRun.GetHttpResultJson()
+	data := make(map[string]any)
+	err = tool.JsonDecode(*httpResultJson, &data)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, err
+	}
+	recursiveFields := common.GetRecursiveFieldsFromMap(data)
+	return map[string]any{
+		`output`: output,
+		`result`: data,
+		`fields`: recursiveFields,
+	}, nil
 }
