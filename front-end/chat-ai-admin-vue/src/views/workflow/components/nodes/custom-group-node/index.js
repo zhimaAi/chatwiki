@@ -2,6 +2,7 @@ import { h as flh } from '@logicflow/core'
 import { dynamicGroup } from '@logicflow/extension'
 import { createApp, h, nextTick } from 'vue'
 import CustomGroupComponent from './index.vue'
+import { allParentVariableNodeWhiteList } from '../../util.js'
 
 function transformArray(arr, parent) {
   // 使用map处理数组并返回新的数组
@@ -444,25 +445,6 @@ class CustomGroupModel extends dynamicGroup.model {
     const visited = new Set()
     const edges = this.incoming.edges
     const { nodes } = this.graphModel
-    // 节点白名单
-    const nodeWhiteList = [
-      'start-node',
-      'http-node',
-      'parameter-extraction-node',
-      'knowledge-base-node',
-      'ai-dialogue-node',
-      'specify-reply-node',
-      'problem-optimization-node',
-      'select-data-node',
-      'code-run-node',
-      'mcp-node',
-      'custom-group',
-      'image-generation-node',
-      'zm-plugins-node',
-      'import-library-node',
-      'json-node',
-      'json-reverse-node',
-    ]
 
     let startNode = nodes.find((node) => node.type === 'start-node')
     // 插入起始节点(起始节点必传)
@@ -481,7 +463,7 @@ class CustomGroupModel extends dynamicGroup.model {
 
         visited.add(node.id)
 
-        if (nodeWhiteList.includes(node.type)) {
+        if (allParentVariableNodeWhiteList.includes(node.type)) {
           parentNodes.push(node)
         }
 
@@ -504,7 +486,7 @@ class CustomGroupModel extends dynamicGroup.model {
 
     for (const node of parentNodes) {
       // 如果节点类型既不是http-node也不是start-node，则跳过当前循环
-      if (!nodeWhiteList.includes(node.type)) {
+      if (!allParentVariableNodeWhiteList.includes(node.type)) {
         continue
       }
 
@@ -593,6 +575,17 @@ class CustomGroupModel extends dynamicGroup.model {
       }
 
       if (node.type === 'specify-reply-node') {
+        obj.children = [
+          {
+            key: 'special.llm_reply_content',
+            typ: 'string',
+            name: '消息内容',
+            label: '消息内容'
+          }
+        ]
+      }
+
+      if (node.type === 'immediately-reply-node') {
         obj.children = [
           {
             key: 'special.llm_reply_content',

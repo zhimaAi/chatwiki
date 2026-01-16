@@ -3,214 +3,117 @@
     <div v-if="loadingF || loading" class="loading-box">
       <a-spin/>
     </div>
+    <div class="node-options" v-if="hasCacheSetting">
+      <div class="options-title">
+        <div><img src="@/assets/img/workflow/setting-icon.svg" class="title-icon"/>设置</div>
+        <div class="acton-box" v-if="clickUrl">
+          <a :href="clickUrl" target="_blank" rel="noopener noreferrer">{{ clickTitle || clickUrl }}</a>
+        </div>
+      </div>
+      <FieldList
+        :items="cacheParamList"
+        :formState="formState"
+        :errors="errors"
+        :apps="apps"
+        :variableOptions="variableOptions"
+        :tagTypes="tagTypes"
+        :tagLists="tagLists"
+        :showTagComponents="showTagComponents"
+        :sortedEnum="sortedEnum"
+        :appChange="appChange"
+        :onFieldChange="onFieldChange"
+        :update="update"
+        :onChangeDynamic="onChangeDynamic"
+        :filterOption="filterOption"
+        :tagTypeChange="tagTypeChange"
+        :tagChange="tagChange"
+        :syncFieldTags="syncFieldTags"
+        :syncingTags="syncingTags"
+        :dateRangeTypes="dateRangeTypes"
+        :dateRangeTypeChange="dateRangeTypeChange"
+        :getRangeValue="getRangeValue"
+        :onDateRangeCalendarChange="onDateRangeCalendarChange"
+        :onDateRangeChange="onDateRangeChange"
+        :getDisabledDateForRange="getDisabledDateForRange"
+        :onToggleAdvanced="settingsShowChange"
+        :onOpenVar="() => emit('updateVar')"
+      />
+    </div>
     <div class="node-options">
       <div class="options-title">
         <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>输入</div>
-      </div>
-      <div
-        v-for="item in displayParamList"
-        :key="item.key"
-        class="options-item"
-        :class="{'is-required': item.meta?.required}"
-      >
-      <div class="options-item-tit">
-          <div class="option-label">{{ item.meta?.name || item.key }}
-            <a-tooltip title="同步最新的标签" v-if="item.meta?.tag_component" :overlayStyle="{ maxWidth: '800px' }">
-              <a @click="syncFieldTags(item.key, item.meta)">同步 <a-spin v-if="syncingTags[item.key]" size="small" /></a>
-            </a-tooltip>
-            <a-tooltip v-if="item.meta?.tip" :overlayStyle="{ maxWidth: '800px' }">
-              <template #title>
-                <div class="tip-content">{{ item.meta?.tip }}</div>
-              </template>
-              <QuestionCircleOutlined />
-            </a-tooltip>
-          </div>
-          <div class="option-type">{{ item.meta?.type || 'string' }}</div>
-        </div>
-        <div v-if="item.meta?.select_official_component">
+        <template v-if="hasPluginConfigComponent">
           <a-select
-            v-model:value="formState.app_id"
-            placeholder="请选择公众号"
-            style="width: 100%;"
-            @change="(value, option) => appChange(value, option)"
+            v-if="Object.keys(configData).length"
+            v-model:value="currentConfigName"
+            @change="configChange"
+            style="min-width: 160px"
           >
-            <a-select-option
-              v-for="app in apps"
-              :key="app.app_id"
-              :value="app.app_id"
-              :name="app.app_name"
-              :app_secret="app.app_secret"
-            >
-              {{ app.app_name }}
+            <a-select-option v-for="(item, name) in configData" :key="name" :value="name">
+              {{ item.name || name }}
             </a-select-option>
           </a-select>
-          <div class="desc">{{ item.meta?.desc }}</div>
-          <div v-if="errors[item.key]" class="desc" style="color:#FB363F;">{{ errors[item.key] }}</div>
-        </div>
-        <div v-else-if="item.meta?.enum_component">
-          <a-select
-            v-model:value="formState[item.key]"
-            :placeholder="item.meta?.required ? '请选择' : '请选择（非必填）'"
-            style="width: 100%;"
-            @change="update"
-          >
-            <a-select-option
-              v-for="opt in (sortedEnum(item.meta?.enum) || [])"
-              :key="opt.value"
-              :value="opt.value"
-            >
-              {{ opt.name }}
-            </a-select-option>
-          </a-select>
-          <div class="desc">{{ item.meta?.desc }}</div>
-          <div v-if="errors[item.key]" class="desc" style="color:#FB363F;">{{ errors[item.key] }}</div>
-        </div>
-        <div v-else-if="item.meta?.radio_component">
-          <a-radio-group
-            v-model:value="formState[item.key]"
-            @change="update"
-          >
-            <a-radio
-              v-for="opt in (sortedEnum(item.meta?.enum) || [])"
-              :key="opt.value"
-              :value="opt.value"
-            >
-              {{ opt.name }}
-            </a-radio>
-          </a-radio-group>
-          <div class="desc">{{ item.meta?.desc }}</div>
-          <div v-if="errors[item.key]" class="desc" style="color:#FB363F;">{{ errors[item.key] }}</div>
-        </div>
-        <div v-else-if="item.meta?.date_range_begin_component">
-          <div class="tag-box">
-            <a-select
-              v-model:value="dateRangeTypes[item.meta?.begin_date_key]"
-              @change="(val) => dateRangeTypeChange(item.meta, val)"
-              style="width: 120px; padding-right: 4px;"
-            >
-              <a-select-option :value="1">选择日期</a-select-option>
-              <a-select-option :value="2">插入变量</a-select-option>
-            </a-select>
-            <a-range-picker
-              v-if="dateRangeTypes[item.meta?.begin_date_key] == 1"
-              :value="getRangeValue(item.meta)"
-              format="YYYY-MM-DD"
-              style="width: 100%;"
-              @calendarChange="(dates) => onDateRangeCalendarChange(item.meta, dates)"
-              @change="(dates, dateStrings) => onDateRangeChange(item.meta, dates, dateStrings)"
-              :disabled-date="(current) => getDisabledDateForRange(item.meta, current)"
-            />
-            <template v-else>
-              <AtInput
-                inputStyle="height: 33px; width: 214px;"
-                :options="variableOptions"
-                :defaultSelectedList="formState[(item.meta?.begin_date_key || '') + '_tags'] || []"
-                :defaultValue="formState[item.meta?.begin_date_key] || ''"
-                @open="emit('updateVar')"
-                @change="(text, selectedList) => onChangeDynamic(item.meta?.begin_date_key, text, selectedList)"
-                placeholder="请输入开始日期，键入“/”可以插入变量"
-              >
-                <template #option="{ label, payload }">
-                  <div class="field-list-item">
-                    <div class="field-label">{{ label }}</div>
-                    <div class="field-type">{{ payload.typ }}</div>
-                  </div>
-                </template>
-              </AtInput>
-              <div class="date-range-separator">-</div>
-              <AtInput
-                inputStyle="height: 33px; width: 214px;"
-                :options="variableOptions"
-                :defaultSelectedList="formState[(item.meta?.end_date_key || '') + '_tags'] || []"
-                :defaultValue="formState[item.meta?.end_date_key] || ''"
-                @open="emit('updateVar')"
-                @change="(text, selectedList) => onChangeDynamic(item.meta?.end_date_key, text, selectedList)"
-                placeholder="请输入结束日期，键入“/”可以插入变量"
-              >
-                <template #option="{ label, payload }">
-                  <div class="field-list-item">
-                    <div class="field-label">{{ label }}</div>
-                    <div class="field-type">{{ payload.typ }}</div>
-                  </div>
-                </template>
-              </AtInput>
-            </template>
-          </div>
-          <div class="desc">{{ item.meta?.desc }}</div>
-          <div v-if="errors[item.key]" class="desc" style="color:#FB363F;">{{ errors[item.key] }}</div>
-        </div>
-        <div v-else-if="item.meta?.tag_component && showTagComponents">
-          <div class="tag-box">
-            <a-select
-              v-model:value="tagTypes[item.key]"
-              @change="(val) => tagTypeChange(item.key, val, item.meta)"
-              style="width: 120px;"
-            >
-              <a-select-option :value="1">选择标签</a-select-option>
-              <a-select-option :value="2">插入变量</a-select-option>
-            </a-select>
-            <a-select
-              v-if="tagTypes[item.key] == 1"
-              v-model:value="formState[item.key]"
-              placeholder="请选择标签"
-              style="width: 100%;"
-              @change="(val, opt) => tagChange(item.key, val, opt)"
-              show-search
-              :filter-option="filterOption"
-            >
-              <a-select-option
-                v-for="t in (tagLists[item.key] || [])"
-                :key="t.id"
-                :value="t.id"
-                :name="t.name"
-              >
-                {{ t.name }}
-              </a-select-option>
-            </a-select>
-            <AtInput
-              v-else
-              type="textarea"
-              inputStyle="height: 33px;"
-              :options="variableOptions"
-              :defaultSelectedList="formState[item.key + '_tags'] || []"
-              :defaultValue="formState[item.key] || ''"
-              @open="emit('updateVar')"
-              @change="(text, selectedList) => onChangeDynamic(item.key, text, selectedList)"
-              placeholder="请输入内容，键入“/”可以插入变量"
-            >
-              <template #option="{ label, payload }">
-                <div class="field-list-item">
-                  <div class="field-label">{{ label }}</div>
-                  <div class="field-type">{{ payload.typ }}</div>
-                </div>
-              </template>
-            </AtInput>
-          </div>
-          <div class="desc">{{ item.meta?.desc }}</div>
-          <div v-if="errors[item.key]" class="desc" style="color:#FB363F;">{{ errors[item.key] }}</div>
-        </div>
-        <div v-else>
-          <AtInput
-            :type="item.meta?.in === 'body' ? 'textarea' : undefined"
-            :inputStyle="item.meta?.in === 'body' ? 'height: 64px;' : undefined"
-            :options="variableOptions"
-            :defaultSelectedList="formState[item.key + '_tags'] || []"
-            :defaultValue="formState[item.key] || ''"
-            @open="emit('updateVar')"
-            @change="(text, selectedList) => onChangeDynamic(item.key, text, selectedList)"
-            placeholder="请输入内容，键入“/”可以插入变量"
-          >
-            <template #option="{ label, payload }">
-              <div class="field-list-item">
-                <div class="field-label">{{ label }}</div>
-                <div class="field-type">{{ payload.typ }}</div>
-              </div>
-            </template>
-          </AtInput>
-          <div class="desc">{{ item.meta?.desc }}</div>
-          <div v-if="errors[item.key]" class="desc" style="color:#FB363F;">{{ errors[item.key] }}</div>
-        </div>
+          <a-button v-else @click="showConfigModal">未授权 <DownOutlined/></a-button>
+        </template>
       </div>
+      <FieldList
+        :items="displayParamList"
+        :formState="formState"
+        :errors="errors"
+        :apps="apps"
+        :variableOptions="variableOptions"
+        :tagTypes="tagTypes"
+        :tagLists="tagLists"
+        :showTagComponents="showTagComponents"
+        :sortedEnum="sortedEnum"
+        :appChange="appChange"
+        :onFieldChange="onFieldChange"
+        :update="update"
+        :onChangeDynamic="onChangeDynamic"
+        :filterOption="filterOption"
+        :tagTypeChange="tagTypeChange"
+        :tagChange="tagChange"
+        :syncFieldTags="syncFieldTags"
+        :syncingTags="syncingTags"
+        :dateRangeTypes="dateRangeTypes"
+        :dateRangeTypeChange="dateRangeTypeChange"
+        :getRangeValue="getRangeValue"
+        :onDateRangeCalendarChange="onDateRangeCalendarChange"
+        :onDateRangeChange="onDateRangeChange"
+        :getDisabledDateForRange="getDisabledDateForRange"
+        :onToggleAdvanced="settingsShowChange"
+        :onOpenVar="() => emit('updateVar')"
+      />
+      <template v-if="hasAdvancedSetting && settingsOpen">
+        <FieldList
+          :items="advancedParamList"
+          :formState="formState"
+          :errors="errors"
+          :apps="apps"
+          :variableOptions="variableOptions"
+          :tagTypes="tagTypes"
+          :tagLists="tagLists"
+          :showTagComponents="showTagComponents"
+          :sortedEnum="sortedEnum"
+          :appChange="appChange"
+          :onFieldChange="onFieldChange"
+          :update="update"
+          :onChangeDynamic="onChangeDynamic"
+          :filterOption="filterOption"
+          :tagTypeChange="tagTypeChange"
+          :tagChange="tagChange"
+          :syncFieldTags="syncFieldTags"
+          :syncingTags="syncingTags"
+          :dateRangeTypes="dateRangeTypes"
+          :dateRangeTypeChange="dateRangeTypeChange"
+          :getRangeValue="getRangeValue"
+          :onDateRangeCalendarChange="onDateRangeCalendarChange"
+          :onDateRangeChange="onDateRangeChange"
+          :getDisabledDateForRange="getDisabledDateForRange"
+          :onToggleAdvanced="settingsShowChange"
+          :onOpenVar="() => emit('updateVar')"
+        />
+      </template>
     </div>
 
     <div class="node-options">
@@ -221,21 +124,25 @@
         <OutputFields :tree-data="outputData"/>
       </div>
     </div>
+    
+    <PluginConfigModal ref="configModalRef" @change="loadConfig(true)"/>
   </div>
 </template>
 
 <script setup>
-import { QuestionCircleOutlined } from '@ant-design/icons-vue';
 import {ref, reactive, onMounted, computed, inject, watch} from 'vue'
+import { DownOutlined } from '@ant-design/icons-vue'
 import OutputFields from "./output-fields.vue";
-import {pluginOutputToTree} from "@/constants/plugin.js";
+import FieldList from "./field-list.vue";
+import {pluginOutputToTree, getPluginConfigData} from "@/constants/plugin.js";
 import {getWechatAppList} from "@/api/robot/index.js";
 import { useEventBus } from '@/hooks/event/useEventBus.js'
-import AtInput from '@/views/workflow/components/at-input/at-input.vue'
 import { isValidURL } from '@/utils/validate.js'
 import { runPlugin } from '@/api/plugins/index.js'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
+import { useRoute } from 'vue-router'
+import PluginConfigModal from "@/views/explore/plugins/components/plugin-config-modal.vue";
 
 const emit = defineEmits(['updateVar'])
 const props = defineProps({
@@ -255,6 +162,17 @@ const props = defineProps({
 })
 
 const setData = inject('setData')
+const route = useRoute()
+let pluginNameForCache = ''
+const hasCacheSetting = computed(() => {
+  return (paramList.value || []).some((it) => {
+    const v = it.meta?.setting_cache_component
+    return v === true || v === 1 || v === 'true' || v === '1'
+  })
+})
+const clickUrl = computed(() => String(formState.click_url || '').trim())
+const clickTitle = computed(() => String(formState.click_title || '').trim())
+
 const paramsMap = computed(() => props.action?.params || {})
 const hasOfficial = computed(() => !!(paramsMap.value.app_id && paramsMap.value.app_secret))
 const paramList = computed(() => {
@@ -286,13 +204,18 @@ const syncingTags = reactive({})
 const dateRangeTypes = reactive({})
 const dateAnchors = reactive({})
 
+const configModalRef = ref(null)
+const configData = ref({})
+const currentConfigName = ref(null)
+const settingsOpen = ref(false)
+
 const showTagComponents = computed(() => {
   const hasTag = paramList.value.some((it) => it.meta?.tag_component)
   if (!hasTag) return false
   return paramList.value.some((it) => {
     const meta = it.meta || {}
     const enumList = Array.isArray(meta.enum) ? meta.enum : []
-    if (!(meta.enum_component || meta.radio_component) || enumList.length === 0) return false
+    if (!(meta.enum_component || meta.radio_component || meta.switch_component) || enumList.length === 0) return false
     const selected = String(formState[it.key] ?? '')
     const opt = enumList.find((e) => String(e?.value) === selected)
     const related = opt?.related_tags
@@ -300,9 +223,50 @@ const showTagComponents = computed(() => {
   })
 })
 
+const hasPluginConfigComponent = computed(() => {
+  return (paramList.value || []).some((it) => {
+    const v = it.meta?.plugin_config_component
+    return v === true || v === 1 || v === 'true' || v === '1'
+  })
+})
+const hasAdvancedSetting = computed(() => {
+  const useAdv = props.action?.use_advanced_settings
+  const anyAdvField = (paramList.value || []).some((it) => {
+    const v = it.meta?.advanced_settings
+    return v === true || v === 1 || v === 'true' || v === '1'
+  })
+  return (useAdv === true || useAdv === 1 || useAdv === 'true' || useAdv === '1') || anyAdvField
+})
+
 const displayParamList = computed(() => {
+  const isCacheField = (meta) => {
+    const v = meta?.setting_cache_component
+    return v === true || v === 1 || v === 'true' || v === '1'
+  }
   return (paramList.value || [])
     .filter((it) => !(it.meta?.tag_component && !showTagComponents.value))
+    .filter((it) => !(it.meta?.plugin_config_component))
+    .filter((it) => {
+      const v = it.meta?.advanced_settings
+      const isAdv = v === true || v === 1 || v === 'true' || v === '1'
+      return !isAdv
+    })
+    .filter((it) => !isCacheField(it.meta))
+})
+const cacheParamList = computed(() => {
+  return (paramList.value || []).filter((it) => {
+    const v = it.meta?.setting_cache_component
+    return v === true || v === 1 || v === 'true' || v === '1'
+  })
+})
+const advancedParamList = computed(() => {
+  return (paramList.value || []).filter((it) => {
+    const v = it.meta?.advanced_settings
+    const isAdv = v === true || v === 1 || v === 'true' || v === '1'
+    const pc = it.meta?.plugin_config_component
+    const isPc = pc === true || pc === 1 || pc === 'true' || pc === '1'
+    return isAdv && !isPc
+  })
 })
 
 watch(showTagComponents, (val) => {
@@ -337,9 +301,12 @@ async function init() {
     await loadWxApps()
   }
   nodeParamsAssign()
+  if (hasPluginConfigComponent.value) {
+    await loadConfig()
+  }
   paramList.value.forEach(async it => {
     const def = String(it.meta?.enum_default || '').trim()
-    if ((it.meta?.radio_component || it.meta?.enum_component) && !String(formState[it.key] || '').trim() && def) {
+    if ((it.meta?.radio_component || it.meta?.enum_component || it.meta?.switch_component) && !String(formState[it.key] || '').trim() && def) {
       formState[it.key] = def
     }
     if (it.meta?.tag_component) {
@@ -347,6 +314,7 @@ async function init() {
       await loadFieldTags(it.key, it.meta?.query_tag_service)
     }
   })
+  loadCacheForEmptyFields()
   outputFormat()
 }
 
@@ -358,6 +326,7 @@ function loadWxApps() {
 
 function nodeParamsAssign() {
   let nodeParams = JSON.parse(props.node.node_params)
+  pluginNameForCache = nodeParams?.plugin?.name || ''
   let arg = nodeParams?.plugin?.params?.arguments || {}
   paramList.value.forEach(it => {
     formState[it.key] = it.key !== 'app_id' ? String(arg[it.key] || '').trim() : arg[it.key]
@@ -411,19 +380,26 @@ function onWorkflowValidate() {
 function update(val = null) {
   let nodeParams = JSON.parse(props.node.node_params)
   nodeParams.plugin.output_obj = outputData.value
+  const args = buildArguments()
+  injectConfigArgs(args)
   Object.assign(nodeParams.plugin.params, {
     arguments: {
-      ...buildArguments(),
+      ...args,
       tag_map: {
         ...buildTagMap()
       }
     },
     rendering: buildRendering()
   })
+  if (hasPluginConfigComponent.value) {
+    nodeParams.plugin.params.config_name = currentConfigName.value || ''
+  }
+  nodeParams.plugin.params.use_plugin_config = !!hasPluginConfigComponent.value
   setData({
     ...props.node,
     node_params: JSON.stringify(nodeParams)
   })
+  storeAllToCache()
 }
 
 function onChangeDynamic (key, text, selectedList) {
@@ -432,9 +408,69 @@ function onChangeDynamic (key, text, selectedList) {
   update()
 }
 
+function onFieldChange (key, value) {
+  formState[key] = value
+  update()
+}
+
+function sanitizeStr(s) {
+  return String(s || '').replace(/`/g, '').trim()
+}
+function buildCacheKey(fieldKey) {
+  const wfId = String(route.query.id || '')
+  return `${wfId}:${pluginNameForCache}:${fieldKey}`
+}
+function loadCacheForEmptyFields() {
+  if (!hasCacheSetting.value) return
+  let url = ''
+  let title = ''
+  for (const it of (paramList.value || [])) {
+    const v = it.meta?.setting_cache_component
+    const enabled = v === true || v === 1 || v === 'true' || v === '1'
+    if (!enabled) continue
+    if (!url) {
+      const u = sanitizeStr(it.meta?.click_url)
+      const t = sanitizeStr(it.meta?.click_title)
+      if (u) {
+        url = u
+        title = t
+      }
+    }
+    const k = it.key
+    const cur = String(formState[k] == null ? '' : formState[k]).trim()
+    if (!cur) {
+      const cache = localStorage.getItem(buildCacheKey(k))
+      if (cache != null) {
+        formState[k] = it.key === 'app_id' ? cache : String(cache)
+      }
+    }
+  }
+  if (url) formState.click_url = url
+  if (title) formState.click_title = title
+}
+function storeAllToCache() {
+  if (!hasCacheSetting.value) return
+  paramList.value.forEach((it) => {
+    const cfg = it.meta?.setting_cache_component
+    const enabled = cfg === true || cfg === 1 || cfg === 'true' || cfg === '1'
+    if (!enabled) return
+    const k = it.key
+    const val = String(formState[k] == null ? '' : formState[k])
+    localStorage.setItem(buildCacheKey(k), val)
+  })
+}
+
 function buildRendering () {
   return paramList.value
-    .filter((it) => !(it.meta?.tag_component && !showTagComponents.value))
+    .filter((it) => {
+      if (it.meta?.tag_component && !showTagComponents.value) return false
+      const v = it.meta?.setting_cache_component
+      const isCache = v === true || v === 1 || v === 'true' || v === '1'
+      if (isCache) return false
+      if (it.meta?.plugin_config_component) return false
+      if (it.meta?.advanced_settings) return false
+      return true
+    })
     .map((it) => {
     let label = it.meta?.name || it.key
     let value = String(formState[it.key] ?? '')
@@ -444,7 +480,7 @@ function buildRendering () {
       label = '公众号名称'
       value = String(formState.app_name ?? '')
     }
-    if (it.meta?.enum_component || it.meta?.radio_component) {
+    if (it.meta?.enum_component || it.meta?.radio_component || it.meta?.switch_component) {
       const opt = (it.meta?.enum || []).find((e) => String(e?.value) === value)
       if (opt && opt.name) {
         value = String(opt.name)
@@ -484,6 +520,7 @@ function buildRendering () {
 function buildTagMap() {
   const tagMap = {}
   paramList.value.forEach((it) => {
+    if (it.meta?.plugin_config_component) return
     if (it.meta?.tag_component && !showTagComponents.value) return
     const tags = Array.isArray(formState[it.key + '_tags']) ? formState[it.key + '_tags'] : []
     if (tags.length) {
@@ -503,6 +540,7 @@ function buildTagMap() {
 function buildArguments() {
   const args = {}
   paramList.value.forEach(it => {
+    if (it.meta?.plugin_config_component) return
     if (it.meta?.tag_component && !showTagComponents.value) return
     args[it.key] = String(formState[it.key] || '')
     if (it.meta?.date_range_begin_component) {
@@ -536,6 +574,9 @@ function validateAll () {
     const raw = formState[key]
     const val = String(raw == null ? '' : raw).trim()
     const tags = Array.isArray(formState[key + '_tags']) ? formState[key + '_tags'] : []
+    if (meta.plugin_config_component) {
+      return
+    }
     if (meta.select_official_component) {
       if (meta.required && !val) {
         const msg = meta.error || '请选择公众号'
@@ -545,7 +586,7 @@ function validateAll () {
       }
       return
     }
-    if (meta.enum_component || meta.radio_component) {
+    if (meta.enum_component || meta.radio_component || meta.switch_component) {
       const enums = (meta.enum || []).map(it => String(it.value))
       if (meta.required && !val) {
         const msg = meta.error || '请选择'
@@ -753,6 +794,52 @@ function getDisabledDateForRange(meta, current) {
     return current.isAfter(limit, 'day')
   }
   return false
+}
+
+function loadConfig(refresh=false) {
+  return getPluginConfigData(pluginNameForCache, refresh).then(res => {
+    configData.value = res || {}
+    const names = Object.keys(configData.value)
+    const defName = names.find((n) => configData.value[n]?.is_default)
+    let wantName = null
+    try {
+      const nodeParams = JSON.parse(props.node.node_params)
+      wantName = nodeParams?.plugin?.params?.config_name || ''
+    } catch (e) {}
+    if (wantName && names.includes(wantName)) {
+      currentConfigName.value = wantName
+    } else {
+      currentConfigName.value = defName || names[0] || null
+    }
+  })
+}
+function showConfigModal() {
+  const schemaData = { [props.actionName || 'default']: props.action || {} }
+  configModalRef.value && configModalRef.value.show(configData.value, pluginNameForCache, schemaData)
+}
+function configChange() {
+  update()
+}
+function settingsShowChange() {
+  settingsOpen.value = !settingsOpen.value
+}
+
+function injectConfigArgs(args) {
+  try {
+    const cfgName = currentConfigName.value || ''
+    const cfg = cfgName ? (configData.value?.[cfgName] || {}) : {}
+    if (!cfg || Object.keys(cfg).length === 0) return
+    paramList.value.forEach((it) => {
+      const meta = it.meta || {}
+      const isCfgField = meta.plugin_config_component === true || meta.plugin_config_component === 1 || meta.plugin_config_component === 'true' || meta.plugin_config_component === '1'
+      if (!isCfgField) return
+      const k = it.key
+      const v = cfg[k]
+      if (v != null) {
+        args[k] = sanitizeStr(v)
+      }
+    })
+  } catch (e) {}
 }
 </script>
 

@@ -103,6 +103,9 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 	groupId := max(0, cast.ToInt(addFileParam.GroupId))
 	officialArticleId := strings.TrimSpace(addFileParam.OfficialArticleId)
 	officialArticleUpdateTime := cast.ToInt64(addFileParam.OfficialArticleUpdateTime)
+	feishuDocumentIdList := strings.TrimSpace(addFileParam.FeishuDocumentIdList)
+	feishuAppId := strings.TrimSpace(addFileParam.FeishuAppId)
+	feishuAppSecret := strings.TrimSpace(addFileParam.FeishuAppSecret)
 	//document uploaded
 	var libraryFiles []*define.UploadInfo
 	switch docType {
@@ -213,6 +216,142 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 			return nil, err
 		}
 		libraryFiles = append(libraryFiles, &define.UploadInfo{Name: title, Size: int64(len(content)), Ext: `html`, Link: link})
+	case define.DocTypeFeishu: // 飞书知识库
+		if libraryType != define.GeneralLibraryType {
+			return nil, errors.New(i18n.Show(lang, `param_invalid`, `doc_type`))
+		}
+		if strings.TrimSpace(feishuDocumentIdList) == "" || len(feishuAppId) == 0 || len(feishuAppSecret) == 0 {
+			return nil, errors.New(i18n.Show(lang, `param_lack`))
+		}
+		// feishu_document_id 去重
+		feishuDocumentIdSet := make(map[string]struct{})
+		for _, rawId := range strings.Split(feishuDocumentIdList, ",") {
+			docId := strings.TrimSpace(rawId)
+			if docId == "" {
+				continue
+			}
+			feishuDocumentIdSet[docId] = struct{}{}
+		}
+		if len(feishuDocumentIdSet) == 0 {
+			return nil, errors.New(i18n.Show(lang, `param_lack`))
+		}
+
+		existRows, existErr := msql.Model(`chat_ai_library_file`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(userId)).
+			Where(`library_id`, cast.ToString(libraryId)).
+			Where(`doc_type`, cast.ToString(define.DocTypeFeishu)).
+			Where(`delete_time`, `0`).
+			Field(`id,feishu_document_id`).
+			Select()
+		if existErr != nil {
+			logs.Error(existErr.Error())
+			return nil, existErr
+		}
+		existIdMap := make(map[string]int64, len(existRows))
+		for _, row := range existRows {
+			docId := strings.TrimSpace(row[`feishu_document_id`])
+			if docId == "" {
+				continue
+			}
+			existIdMap[docId] = cast.ToInt64(row[`id`])
+		}
+
+		// save document and push to nsq
+		var fileIds []int64
+		for feishuDocumentId := range feishuDocumentIdSet {
+			// 已存在则更新并复用（同一个知识库同一个feishu_document_id只保留一条）
+			if existId, ok := existIdMap[feishuDocumentId]; ok && existId > 0 {
+				_, updateErr := msql.Model(`chat_ai_library_file`, define.Postgres).
+					Where(`id`, cast.ToString(existId)).
+					Update(msql.Datas{
+						`status`:             define.FileStatusWaitCrawl,
+						`update_time`:        tool.Time2Int(),
+						`is_table_file`:      cast.ToInt(false),
+						`group_id`:           groupId,
+						`feishu_app_id`:      feishuAppId,
+						`feishu_app_secret`:  feishuAppSecret,
+						`feishu_document_id`: feishuDocumentId,
+					})
+				if updateErr != nil {
+					logs.Error(updateErr.Error())
+					continue
+				}
+				lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: int(existId)})
+				fileIds = append(fileIds, existId)
+				if message, err := tool.JsonEncode(map[string]any{`file_id`: existId, `admin_user_id`: userId}); err != nil {
+					logs.Error(err.Error())
+				} else if err := common.AddJobs(define.CrawlFeishuDocTopic, message); err != nil {
+					logs.Error(err.Error())
+				}
+				continue
+			}
+			insData := msql.Datas{
+				`admin_user_id`:      userId,
+				`library_id`:         libraryId,
+				`status`:             define.FileStatusWaitCrawl,
+				`create_time`:        tool.Time2Int(),
+				`update_time`:        tool.Time2Int(),
+				`is_table_file`:      cast.ToInt(false),
+				`doc_type`:           define.DocTypeFeishu,
+				`group_id`:           groupId,
+				`feishu_app_id`:      feishuAppId,
+				`feishu_app_secret`:  feishuAppSecret,
+				`feishu_document_id`: feishuDocumentId,
+			}
+
+			fileId, insertErr := m.Insert(insData, `id`)
+			if insertErr != nil {
+				// 可能并发/历史数据导致唯一约束冲突：补查存在则更新复用，否则记录错误
+				old, findErr := msql.Model(`chat_ai_library_file`, define.Postgres).
+					Where(`admin_user_id`, cast.ToString(userId)).
+					Where(`library_id`, cast.ToString(libraryId)).
+					Where(`doc_type`, cast.ToString(define.DocTypeFeishu)).
+					Where(`feishu_document_id`, feishuDocumentId).
+					Where(`delete_time`, `0`).
+					Find()
+				if findErr != nil {
+					logs.Error(findErr.Error())
+					continue
+				}
+				if len(old) > 0 {
+					existId := cast.ToInt64(old[`id`])
+					existIdMap[feishuDocumentId] = existId
+					_, updateErr := msql.Model(`chat_ai_library_file`, define.Postgres).
+						Where(`id`, cast.ToString(existId)).
+						Update(msql.Datas{
+							`status`:             define.FileStatusWaitCrawl,
+							`update_time`:        tool.Time2Int(),
+							`is_table_file`:      cast.ToInt(false),
+							`group_id`:           groupId,
+							`feishu_app_id`:      feishuAppId,
+							`feishu_app_secret`:  feishuAppSecret,
+							`feishu_document_id`: feishuDocumentId,
+						})
+					if updateErr != nil {
+						logs.Error(updateErr.Error())
+						continue
+					}
+					lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: int(existId)})
+					fileIds = append(fileIds, existId)
+					if message, err := tool.JsonEncode(map[string]any{`file_id`: existId, `admin_user_id`: userId}); err != nil {
+						logs.Error(err.Error())
+					} else if err := common.AddJobs(define.CrawlFeishuDocTopic, message); err != nil {
+						logs.Error(err.Error())
+					}
+					continue
+				}
+				logs.Error(insertErr.Error())
+				continue
+			}
+			existIdMap[feishuDocumentId] = fileId
+			fileIds = append(fileIds, fileId)
+			if message, err := tool.JsonEncode(map[string]any{`file_id`: fileId, `admin_user_id`: userId}); err != nil {
+				logs.Error(err.Error())
+			} else if err := common.AddJobs(define.CrawlFeishuDocTopic, message); err != nil {
+				logs.Error(err.Error())
+			}
+		}
+		return fileIds, nil
 	default:
 		return nil, errors.New(i18n.Show(lang, `param_invalid`, `doc_type`))
 	}
@@ -297,21 +436,7 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 		}
 		var fileId int64
 		var err error
-		if len(officialArticleId) == 0 { // 普通知识库直接插入
-			fileId, err = m.Insert(insData, `id`)
-			//set use guide finish
-			if docType == define.DocTypeLocal && cast.ToInt(libraryInfo[`is_default`]) == define.NotDefault && define.IsPdfFile(uploadInfo.Ext) {
-				_ = common.SetStepFinish(userId, define.StepImportPdf)
-			}
-			if docType == define.DocTypeLocal && cast.ToInt(libraryInfo[`is_default`]) == define.NotDefault && define.IsDocxFile(uploadInfo.Ext) {
-				_ = common.SetStepFinish(userId, define.StepImportWord)
-			}
-			lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: int(fileId)})
-			if err != nil {
-				logs.Error(err.Error())
-				continue
-			}
-		} else { // 公众号知识库需要根据article_id来做更新操作
+		if len(officialArticleId) > 0 { // 公众号知识库需要根据article_id来做更新操作
 			old, err := m.Where(`library_id`, cast.ToString(libraryId)).Where(`official_article_id`, officialArticleId).Find()
 			if err != nil {
 				logs.Error(err.Error())
@@ -320,20 +445,25 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 			insData[`html_url`] = insData[`doc_url`]
 			if len(old) == 0 {
 				fileId, err = m.Insert(insData, `id`)
-				lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: int(fileId)})
-				if err != nil {
-					logs.Error(err.Error())
-					continue
-				}
 			} else {
-				_, err := m.Where(`id`, old[`id`]).Update(insData)
-				lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: cast.ToInt(old[`id`])})
-				if err != nil {
-					logs.Error(err.Error())
-					continue
-				}
+				_, err = m.Where(`id`, old[`id`]).Update(insData)
 				fileId = cast.ToInt64(old[`id`])
 			}
+		} else { // 普通知识库直接插入
+			fileId, err = m.Insert(insData, `id`)
+			//set use guide finish
+			if docType == define.DocTypeLocal && cast.ToInt(libraryInfo[`is_default`]) == define.NotDefault && define.IsPdfFile(uploadInfo.Ext) {
+				_ = common.SetStepFinish(userId, define.StepImportPdf)
+			}
+			if docType == define.DocTypeLocal && cast.ToInt(libraryInfo[`is_default`]) == define.NotDefault && define.IsDocxFile(uploadInfo.Ext) {
+				_ = common.SetStepFinish(userId, define.StepImportWord)
+			}
+		}
+
+		lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: int(fileId)})
+		if err != nil {
+			logs.Error(err.Error())
+			continue
 		}
 
 		fileIds = append(fileIds, fileId)

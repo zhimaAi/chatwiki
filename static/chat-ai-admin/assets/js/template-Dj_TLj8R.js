@@ -1,1 +1,0 @@
-import{a7 as t}from"../../index-C1Xsov4S.js";const o=(e={})=>t.get({url:"/manage/getRobotTemplateCategoryList",params:e}),r=(e={})=>t.get({url:"/manage/getRobotTemplateList",params:e}),s=(e={})=>t.get({url:"/manage/commonGetRobotTemplateDetail",params:e}),m=(e={})=>t.post({url:"/manage/useRobotTemplate",data:e});export{r as a,s as b,o as g,m as u};

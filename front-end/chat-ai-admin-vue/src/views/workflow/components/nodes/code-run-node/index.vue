@@ -136,7 +136,7 @@ import { ref, reactive, watch, onMounted, inject, nextTick, onBeforeUnmount } fr
 import NodeCommon from '../base-node.vue'
 import { ArrowRightOutlined } from '@ant-design/icons-vue'
 import UserQuestionText from '../user-question-text.vue'
-import { haveOutKeyNode } from '@/views/workflow/components/util.js'
+import { haveOutKeyNode, specialNodeList } from '@/views/workflow/components/util.js'
 
 const props = defineProps({
   properties: {
@@ -181,12 +181,6 @@ const defaultCode = `function main({data1, data2}){
 }`
 
 const variableOptions = ref([])
-
-let specialNodeList = [
-  'special.lib_paragraph_list',
-  'special.llm_reply_content',
-  'specify-reply-node'
-]
 
 function recursionData(data) {
   data.forEach((item) => {

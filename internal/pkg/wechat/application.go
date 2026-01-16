@@ -43,6 +43,14 @@ type OfficialAccountInterface interface {
 	GetAccountClient() (*officialAccount.OfficialAccount, error)
 }
 
+type FeishuInterface interface {
+	GetDocFileList(folderToken string) ([]feishu_robot.FeishuDocFile, error)
+	GetDocFileTree(userAccessToken string, folderToken string) ([]*feishu_robot.FeishuDocFileTree, error)
+	GetDocFileDetail(documentId string) (string, string, error)
+	BuildUserAuthLoginUrl(redirectUri, frontRedirectUrl string) (string, error)
+	GetUserAccessToken(code, redirectUri string) (*feishu_robot.FeishuUserAccessToken, error)
+}
+
 func GetApplication(appInfo msql.Params) (ApplicationInterface, error) {
 	if len(appInfo) == 0 {
 		return nil, errors.New(`app info is empty`)

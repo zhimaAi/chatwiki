@@ -623,8 +623,8 @@ export default {
   position: relative;
   overflow: scroll;
   width: 100%;
-  line-height: 24px;
-  min-height: 24px;
+  line-height: 22px;
+  min-height: 22px;
   outline: none;
   background: #fff;
 

@@ -447,26 +447,33 @@ func (formCsl *FormCsl) Import(adminUserId int, cslIdMaps *CslIdMaps) error {
 			formData[key] = val
 		}
 	}
+
+	tableName := strings.Split(cast.ToString(formData["name"]), "_")
+	realTableName := ""
+	tableSuffix := cast.ToInt(tableName[len(tableName)-1])
+	if tableSuffix > 0 { //如果有后缀
+		realTableName = strings.Join(tableName[:len(tableName)-1], "_")
+	} else {
+		realTableName = strings.Join(tableName, "_")
+	}
+
+	//进行同名表验证
+	dbNameCount, err := msql.Model(`form`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`name`, `like`, realTableName).Count(`id`)
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	if dbNameCount > 0 {
+		formData[`name`] = realTableName + "_" + cast.ToString(dbNameCount+1)
+	}
+
 	newFormId, err := msql.Model(`form`, define.Postgres).Insert(formData, `id`)
 	if err != nil {
 		return err
 	}
 	cslIdMaps.Forms[oldFormId] = int(newFormId)
-	//数据表的行数据
-	for _, formEntry := range formCsl.FormEntry {
-		oldFormEntryId := cast.ToInt(formEntry[`id`])
-		formEntryData := msql.Datas{`admin_user_id`: adminUserId, `form_id`: newFormId}
-		for key, val := range formEntry {
-			if !tool.InArrayString(key, []string{`id`, `admin_user_id`, `form_id`}) {
-				formEntryData[key] = val
-			}
-		}
-		newFormEntryId, err := msql.Model(`form_entry`, define.Postgres).Insert(formEntryData, `id`)
-		if err != nil {
-			return err
-		}
-		cslIdMaps.FormEntrys[oldFormEntryId] = int(newFormEntryId)
-	}
+	//新表名
+	cslIdMaps.FormsName[int(newFormId)] = cast.ToString(formData[`name`])
 	//数据表的字段信息
 	for _, formField := range formCsl.FormField {
 		oldFormFieldId := cast.ToInt(formField[`id`])
@@ -482,21 +489,41 @@ func (formCsl *FormCsl) Import(adminUserId int, cslIdMaps *CslIdMaps) error {
 		}
 		cslIdMaps.FormFields[oldFormFieldId] = int(newFormFieldId)
 	}
-	//数据表的key-val
-	for _, formFieldValue := range formCsl.FormFieldValue {
-		formEntryId := cslIdMaps.FormEntrys[cast.ToInt(formFieldValue[`form_entry_id`])]
-		formFieldId := cslIdMaps.FormFields[cast.ToInt(formFieldValue[`form_field_id`])]
-		formFieldValueData := msql.Datas{`admin_user_id`: adminUserId, `form_entry_id`: formEntryId, `form_field_id`: formFieldId}
-		for key, val := range formFieldValue {
-			if !tool.InArrayString(key, []string{`id`, `admin_user_id`, `form_entry_id`, `form_field_id`}) {
-				formFieldValueData[key] = val
-			}
-		}
-		_, err = msql.Model(`form_field_value`, define.Postgres).Insert(formFieldValueData, `id`)
-		if err != nil {
-			return err
-		}
-	}
+
+	//原始数据先不写入，后续做成选项
+
+	//数据表的行数据
+	//
+	//for _, formEntry := range formCsl.FormEntry {
+	//	oldFormEntryId := cast.ToInt(formEntry[`id`])
+	//	formEntryData := msql.Datas{`admin_user_id`: adminUserId, `form_id`: newFormId}
+	//	for key, val := range formEntry {
+	//		if !tool.InArrayString(key, []string{`id`, `admin_user_id`, `form_id`}) {
+	//			formEntryData[key] = val
+	//		}
+	//	}
+	//	newFormEntryId, err := msql.Model(`form_entry`, define.Postgres).Insert(formEntryData, `id`)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	cslIdMaps.FormEntrys[oldFormEntryId] = int(newFormEntryId)
+	//}
+
+	////数据表的key-val
+	//for _, formFieldValue := range formCsl.FormFieldValue {
+	//	formEntryId := cslIdMaps.FormEntrys[cast.ToInt(formFieldValue[`form_entry_id`])]
+	//	formFieldId := cslIdMaps.FormFields[cast.ToInt(formFieldValue[`form_field_id`])]
+	//	formFieldValueData := msql.Datas{`admin_user_id`: adminUserId, `form_entry_id`: formEntryId, `form_field_id`: formFieldId}
+	//	for key, val := range formFieldValue {
+	//		if !tool.InArrayString(key, []string{`id`, `admin_user_id`, `form_entry_id`, `form_field_id`}) {
+	//			formFieldValueData[key] = val
+	//		}
+	//	}
+	//	_, err = msql.Model(`form_field_value`, define.Postgres).Insert(formFieldValueData, `id`)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 	//数据表的分类配置
 	for _, formFilter := range formCsl.FormFilter {
 		oldFormFilterId := cast.ToInt(formFilter[`id`])
@@ -531,16 +558,17 @@ func (formCsl *FormCsl) Import(adminUserId int, cslIdMaps *CslIdMaps) error {
 }
 
 type CslIdMaps struct {
-	Librarys    map[int]int //知识库id(旧=>新)
-	LibFiles    map[int]int //知识库文件id(旧=>新)
-	Category    map[int]int //分段分类(精选)id(旧=>新)
-	LibGroups   map[int]int //知识库分段分组id(旧=>新)
-	FileDocs    map[int]int //对外文档文件id(旧=>新)
-	Forms       map[int]int //数据表id(旧=>新)
-	FormEntrys  map[int]int //数据表行数据id(旧=>新)
-	FormFields  map[int]int //数据表字段id(旧=>新)
-	FormFilters map[int]int //数据表分类id(旧=>新)
-	Workflows   map[int]int //工作流id(旧=>新)
+	Librarys    map[int]int    //知识库id(旧=>新)
+	LibFiles    map[int]int    //知识库文件id(旧=>新)
+	Category    map[int]int    //分段分类(精选)id(旧=>新)
+	LibGroups   map[int]int    //知识库分段分组id(旧=>新)
+	FileDocs    map[int]int    //对外文档文件id(旧=>新)
+	Forms       map[int]int    //数据表id(旧=>新)
+	FormEntrys  map[int]int    //数据表行数据id(旧=>新)
+	FormFields  map[int]int    //数据表字段id(旧=>新)
+	FormFilters map[int]int    //数据表分类id(旧=>新)
+	Workflows   map[int]int    //工作流id(旧=>新)
+	FormsName   map[int]string //数据表名(旧=>新)
 }
 
 func NewCslIdMaps() *CslIdMaps {

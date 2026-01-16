@@ -149,6 +149,9 @@ type BridgeAddLibraryFileReq struct {
 	GroupId                   string `form:"group_id"`
 	OfficialArticleId         string `form:"official_article_id"`
 	OfficialArticleUpdateTime int64  `form:"official_article_update_time"`
+	FeishuDocumentIdList      string `form:"feishu_document_id_list"`
+	FeishuAppId               string `form:"feishu_app_id"`
+	FeishuAppSecret           string `form:"feishu_app_secret"`
 }
 
 func BridgeAddLibraryFile(adminUserId, loginUserId int, lang string, req *BridgeAddLibraryFileReq, chunkParam *define.ChunkParam, c *gin.Context) (map[string]any, int, error) {

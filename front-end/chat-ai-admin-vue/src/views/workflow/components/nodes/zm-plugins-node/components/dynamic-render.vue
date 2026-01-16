@@ -1,5 +1,9 @@
 <template>
   <div class="_main">
+    <div v-if="actionState?.use_plugin_config">
+      <span class="label">配置：</span>
+      <a-tag>{{ actionState?.config_name || '--' }}</a-tag>
+    </div>
     <div v-for="(item, idx) in (actionState?.rendering || [])" :key="item.key || idx">
       <span class="label">{{ item.label }}：</span>
       <a-tag v-if="item.value">

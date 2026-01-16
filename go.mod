@@ -42,7 +42,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/grokify/html-strip-tags-go v0.1.0
 	github.com/jinzhu/now v1.1.5
-	github.com/larksuite/oapi-sdk-go/v3 v3.4.25
+	github.com/larksuite/oapi-sdk-go/v3 v3.5.2
 	github.com/lib/pq v1.10.9
 	github.com/mark3labs/mcp-go v0.42.0
 	github.com/neo4j/neo4j-go-driver/v5 v5.28.0

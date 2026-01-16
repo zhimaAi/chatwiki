@@ -3,20 +3,26 @@
 package feishu_robot
 
 import (
+	"bytes"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/wechat/common"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/response"
 	openresponse "github.com/ArtisanCloud/PowerWeChat/v3/src/openPlatform/authorizer/miniProgram/account/response"
 	lark "github.com/larksuite/oapi-sdk-go/v3"
 	larkcore "github.com/larksuite/oapi-sdk-go/v3/core"
+	larkdocx "github.com/larksuite/oapi-sdk-go/v3/service/docx/v1"
+	larkdrive "github.com/larksuite/oapi-sdk-go/v3/service/drive/v1"
 	larkim "github.com/larksuite/oapi-sdk-go/v3/service/im/v1"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
@@ -26,6 +32,23 @@ import (
 type Application struct {
 	AppID  string
 	Secret string
+}
+
+type FeishuUserAuthLoginState struct {
+	AppId            string `json:"app_id"`
+	AppSecret        string `json:"app_secret"`
+	FrontRedirectUrl string `json:"front_redirect_url"`
+}
+type FeishuUserAccessToken struct {
+	Code                  int    `json:"code"`
+	Error                 string `json:"error"`
+	ErrorDescription      string `json:"error_description"`
+	AccessToken           string `json:"access_token"`
+	ExpiresIn             int    `json:"expires_in"`
+	RefreshToken          string `json:"refresh_token"`
+	RefreshTokenExpiresIn int    `json:"refresh_token_expires_in"`
+	TokenType             string `json:"token_type"`
+	Scope                 string `json:"scope"`
 }
 
 type FeiShuCustomer struct {
@@ -102,6 +125,24 @@ type FeiShuPostMsgContentCodeBlock struct {
 type FeiShuPostMsgContentMd struct {
 	Tag  string `json:"tag"` // md
 	Text string `json:"text"`
+}
+
+type FeishuDocFile struct {
+	Name       string `json:"name"`
+	DocumentId string `json:"document_id"`
+}
+
+// FeishuDocFileTree 飞书文档树形结构
+type FeishuDocFileTree struct {
+	Name         string               `json:"name"`
+	Token        string               `json:"token"`
+	Type         string               `json:"type"`
+	ParentToken  string               `json:"parent_token"`
+	CreatedTime  string               `json:"created_time"`
+	ModifiedTime string               `json:"modified_time"`
+	OwnerID      string               `json:"owner_id"`
+	URL          string               `json:"url"`
+	Children     []*FeishuDocFileTree `json:"children,omitempty"`
 }
 
 func structToMapAny(v interface{}) map[string]any {
@@ -504,4 +545,259 @@ func (a *Application) GetFileByMedia(mediaId string, push *lib_define.PushMessag
 
 func (a *Application) SendVoice(customer, filePath string, push *lib_define.PushMessage) (int, error) {
 	return 0, errors.New(`miniprogram not supported voice `)
+}
+
+// GetDocFileList 获取飞书doc类型文档列表
+func (a *Application) GetDocFileList(userAccessToken string) ([]FeishuDocFile, error) {
+	// 获取应用实例
+	app, err := a.GetApp()
+	if err != nil {
+		return nil, err
+	}
+
+	var allDocFiles []FeishuDocFile
+	pageToken := ""
+	pageSize := 200 // 最大值
+
+	// 循环获取所有文件列表
+	for {
+		reqBuilder := larkdrive.NewListFileReqBuilder()
+		if pageToken != "" {
+			reqBuilder.PageToken(pageToken)
+		}
+		req := reqBuilder.PageSize(pageSize).OrderBy(`EditedTime`).Direction(`DESC`).Build()
+		resp, err := app.Drive.V1.File.List(context.Background(), req, larkcore.WithUserAccessToken(userAccessToken))
+		if err != nil {
+			logs.Error(fmt.Sprintf("获取文件列表失败: %v", err))
+			return nil, err
+		}
+		if !resp.Success() {
+			errMsg := fmt.Sprintf("logId: %s, error response: %s", resp.RequestId(), larkcore.Prettify(resp.CodeError))
+			logs.Error(errMsg)
+			return nil, errors.New(errMsg)
+		}
+		if resp.Data != nil && resp.Data.Files != nil {
+			for _, file := range resp.Data.Files {
+				// 只获取 doc 和 docx 类型的文件
+				if file.Type != nil && (*file.Type == "doc" || *file.Type == "docx") {
+					docFile := FeishuDocFile{
+						DocumentId: *file.Token,
+					}
+					if file.Name != nil {
+						docFile.Name = *file.Name
+					}
+					allDocFiles = append(allDocFiles, docFile)
+				}
+			}
+		}
+
+		// 检查是否还有更多数据
+		if resp.Data.HasMore == nil || !*resp.Data.HasMore {
+			break
+		}
+
+		// 获取下一页的 pageToken
+		if resp.Data.NextPageToken != nil {
+			pageToken = *resp.Data.NextPageToken
+		} else {
+			break
+		}
+	}
+
+	return allDocFiles, nil
+}
+
+// GetDocFileTree 获取飞书文档树形结构（包含文件夹和文档）
+func (a *Application) GetDocFileTree(userAccessToken string, folderToken string) ([]*FeishuDocFileTree, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*FeishuDocFileTree
+	pageToken := ""
+	pageSize := 200
+
+	// 循环获取指定文件夹下的所有文件
+	for {
+		reqBuilder := larkdrive.NewListFileReqBuilder()
+		if pageToken != "" {
+			reqBuilder.PageToken(pageToken)
+		}
+
+		// 如果指定了文件夹token，则获取该文件夹下的文件
+		if folderToken != "" {
+			reqBuilder.FolderToken(folderToken)
+		}
+
+		req := reqBuilder.PageSize(pageSize).OrderBy(`EditedTime`).Direction(`DESC`).Build()
+		resp, err := app.Drive.V1.File.List(context.Background(), req, larkcore.WithUserAccessToken(userAccessToken))
+
+		if err != nil {
+			logs.Error(fmt.Sprintf("获取文件列表失败: %v", err))
+			return nil, err
+		}
+
+		if !resp.Success() {
+			errMsg := fmt.Sprintf("logId: %s, error response: %s", resp.RequestId(), larkcore.Prettify(resp.CodeError))
+			logs.Error(errMsg)
+			return nil, errors.New(errMsg)
+		}
+
+		if resp.Data != nil && resp.Data.Files != nil {
+			for _, file := range resp.Data.Files {
+				if file.Token == nil || file.Type == nil {
+					continue
+				}
+
+				node := &FeishuDocFileTree{
+					Token: *file.Token,
+					Type:  *file.Type,
+				}
+
+				if file.Name != nil {
+					node.Name = *file.Name
+				}
+				if file.ParentToken != nil {
+					node.ParentToken = *file.ParentToken
+				}
+				if file.CreatedTime != nil {
+					node.CreatedTime = *file.CreatedTime
+				}
+				if file.ModifiedTime != nil {
+					node.ModifiedTime = *file.ModifiedTime
+				}
+				if file.OwnerId != nil {
+					node.OwnerID = *file.OwnerId
+				}
+				if file.Url != nil {
+					node.URL = *file.Url
+				}
+
+				// 如果是文件夹，递归获取子文件
+				if *file.Type == "folder" {
+					children, err := a.GetDocFileTree(userAccessToken, *file.Token)
+					if err != nil {
+						logs.Error(fmt.Sprintf("获取文件夹 %s 子文件失败: %v", *file.Token, err))
+						// 继续处理其他文件，不中断
+					} else {
+						node.Children = children
+					}
+				}
+
+				result = append(result, node)
+			}
+		}
+
+		// 检查是否还有更多数据
+		if resp.Data.HasMore == nil || !*resp.Data.HasMore {
+			break
+		}
+
+		// 获取下一页的 pageToken
+		if resp.Data.NextPageToken != nil {
+			pageToken = *resp.Data.NextPageToken
+		} else {
+			break
+		}
+	}
+
+	return result, nil
+}
+
+func (a *Application) BuildUserAuthLoginUrl(redirectUri, frontRedirectUrl string) (string, error) {
+	baseUrl := "https://accounts.feishu.cn/open-apis/authen/v1/authorize"
+	state := tool.Base64Encode(tool.JsonEncodeNoError(FeishuUserAuthLoginState{
+		AppId:            a.AppID,
+		AppSecret:        a.Secret,
+		FrontRedirectUrl: frontRedirectUrl,
+	}))
+	params := url.Values{}
+	params.Add("client_id", a.AppID)
+	params.Add("response_type", "code")
+	params.Add("redirect_uri", redirectUri)
+	params.Add("scope", "space:document:retrieve")
+	params.Add("state", state)
+	return fmt.Sprintf("%s?%s", baseUrl, params.Encode()), nil
+}
+
+func (a *Application) GetUserAccessToken(code, redirectUri string) (*FeishuUserAccessToken, error) {
+	reqData := map[string]string{
+		"grant_type":    "authorization_code",
+		"code":          code,
+		"client_id":     a.AppID,
+		"client_secret": a.Secret,
+		"redirect_uri":  redirectUri,
+	}
+	bodyBytes, _ := json.Marshal(reqData)
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://open.feishu.cn/open-apis/authen/v2/oauth/token", bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			logs.Error(fmt.Sprintf("close body failed: %v", err))
+		}
+	}(resp.Body)
+
+	var result FeishuUserAccessToken
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decode json failed: %w", err)
+	}
+
+	// 飞书 OAuth 接口成功时 code 为 0
+	if result.Code != 0 {
+		return nil, fmt.Errorf("feishu error: %s (desc: %s, code: %d)",
+			result.Error, result.ErrorDescription, result.Code)
+	}
+
+	return &result, nil
+}
+
+// GetDocFileDetail 获取飞书doc文档详情
+func (a *Application) GetDocFileDetail(documentId string) (string, string, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return "", "", err
+	}
+
+	// 先获取文档基本信息
+	req1 := larkdocx.NewGetDocumentReqBuilder().DocumentId(documentId).Build()
+	resp1, err := app.Docx.V1.Document.Get(context.Background(), req1)
+	if err != nil {
+		logs.Error(fmt.Sprintf("获取文档基本信息失败: %v", err))
+		return "", "", err
+	}
+	if !resp1.Success() {
+		errMsg := fmt.Sprintf("logId: %s, error response: %s", resp1.RequestId(), larkcore.Prettify(resp1.CodeError))
+		logs.Error(errMsg)
+		return "", "", errors.New(errMsg)
+	}
+
+	// 再获取文档内容
+	req2 := larkdocx.NewRawContentDocumentReqBuilder().DocumentId(documentId).Build()
+	resp2, err := app.Docx.V1.Document.RawContent(context.Background(), req2)
+	if err != nil {
+		logs.Error(fmt.Sprintf("获取文档内容失败: %v", err))
+		return "", "", err
+	}
+	if !resp2.Success() {
+		errMsg := fmt.Sprintf("logId: %s, error response: %s", resp2.RequestId(), larkcore.Prettify(resp2.CodeError))
+		logs.Error(errMsg)
+		return "", "", errors.New(errMsg)
+	}
+	if resp2.Data != nil && resp2.Data.Content != nil {
+		return *resp1.Data.Document.Title, *resp2.Data.Content, nil
+	}
+
+	return "", "", nil
 }

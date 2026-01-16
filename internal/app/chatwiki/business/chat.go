@@ -510,6 +510,7 @@ func getChatRequestParam(c *gin.Context) *define.ChatRequestParam {
 	openid := strings.TrimSpace(c.PostForm(`openid`))
 	loopTestParams := work_flow.TakeTestParams(question, openid, c.DefaultPostForm(`loop_test_params`, `[]`), &workFlowGlobal)
 	batchTestParams := work_flow.TakeTestParams(question, openid, c.DefaultPostForm(`batch_test_params`, `[]`), &workFlowGlobal)
+	testParams := work_flow.TakeTestParams(question, openid, c.DefaultPostForm(`test_params`, `[]`), &workFlowGlobal)
 	return &define.ChatRequestParam{
 		ChatBaseParam:   chatBaseParam,
 		Error:           err,
@@ -522,6 +523,7 @@ func getChatRequestParam(c *gin.Context) *define.ChatRequestParam {
 		WorkFlowGlobal:  workFlowGlobal,
 		LoopTestParams:  loopTestParams,
 		BatchTestParams: batchTestParams,
+		TestParams:      testParams,
 	}
 }
 
@@ -962,4 +964,55 @@ func CallBatchWorkFlowParams(c *gin.Context) {
 		`is_need_question`: work_flow.FindKeyIsUse(childNodes, `global.question`), //是否需要question
 		`is_need_openid`:   work_flow.FindKeyIsUse(childNodes, `global.openid`),   //是否需要openid
 	}, err))
+}
+
+func CallWorkFlowHttpTest(c *gin.Context) {
+	c.Set(`from_work_flow`, true) //设置标志位,不校验openid为空
+	chatRequestParam := getChatRequestParam(c)
+	if chatRequestParam.Error != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, chatRequestParam.Error))
+		return
+	}
+	chatRequestParam.HeaderToken = c.GetHeader(`token`)
+	if len(chatRequestParam.HeaderToken) == 0 {
+		chatRequestParam.HeaderToken = c.Query(`token`)
+	}
+	workFlowParams := &work_flow.WorkFlowParams{
+		ChatRequestParam: chatRequestParam,
+	}
+	var curlNodeKey = c.PostForm(`curl_node_key`)
+	if curlNodeKey == `` {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `curl_node_key`))))
+		return
+	}
+	var err error
+	workFlowParams.Draft.NodeMaps, err = msql.Model(`work_flow_node`, define.Postgres).
+		Where(`admin_user_id`, chatRequestParam.Robot[`admin_user_id`]).Where(`robot_id`, chatRequestParam.Robot[`id`]).
+		Where(`data_type`, cast.ToString(define.DataTypeDraft)).ColumnMap(`*`, `node_key`)
+	nodeList := make([]work_flow.WorkFlowNode, 0)
+	curlNode := &work_flow.WorkFlowNode{}
+	for _, params := range workFlowParams.Draft.NodeMaps {
+		node := work_flow.WorkFlowNode{
+			NodeType:      common.MixedInt(cast.ToInt(params[`node_type`])),
+			NodeName:      params[`node_name`],
+			NodeKey:       params[`node_key`],
+			NodeParams:    work_flow.NodeParams{},
+			NodeInfoJson:  make(map[string]any),
+			NextNodeKey:   params[`next_node_key`],
+			LoopParentKey: params[`loop_parent_key`],
+		}
+		_ = tool.JsonDecodeUseNumber(params[`node_params`], &node.NodeParams)
+		_ = tool.JsonDecodeUseNumber(params[`node_info_json`], &node.NodeInfoJson)
+		nodeList = append(nodeList, node)
+		if node.NodeKey == curlNodeKey {
+			curlNode = &node
+		}
+	}
+	_, _, _, _, err = work_flow.VerifyWorkFlowNodes(nodeList, chatRequestParam.AdminUserId)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	ret, err := work_flow.CallHttpTest(workFlowParams, curlNode)
+	c.String(http.StatusOK, lib_web.FmtJson(ret, err))
 }

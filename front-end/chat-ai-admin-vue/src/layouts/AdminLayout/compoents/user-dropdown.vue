@@ -6,8 +6,8 @@
     cursor: pointer;
 
     .user-avatar {
-      width: 24px;
-      height: 24px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
     }
 
@@ -41,8 +41,8 @@
     <a-dropdown>
       <div class="user-dropdown-link" @click.prevent>
         <img class="user-avatar" :src="avatar" alt="" />
-        <span class="user-name">{{ displayUserName }}</span>
-        <svg-icon name="arrow-down" style="font-size: 16px; color: #8c8c8c"></svg-icon>
+        <!-- <span class="user-name">{{ displayUserName }}</span>
+        <svg-icon name="arrow-down" style="font-size: 16px; color: #8c8c8c"></svg-icon> -->
       </div>
       <template #overlay>
         <a-menu>

@@ -44,6 +44,9 @@ func initConfig() {
 	if len(define.Config.WebService[`image_domain`]) == 0 {
 		define.Config.WebService[`image_domain`] = fmt.Sprintf(`http://%s:18080`, ip)
 	}
+	if len(define.Config.WebService[`admin_domain`]) == 0 {
+		define.Config.WebService[`admin_domain`] = fmt.Sprintf(`http://%s:18080`, ip)
+	}
 	if len(define.Config.WebService[`h5_domain`]) == 0 {
 		define.Config.WebService[`h5_domain`] = fmt.Sprintf(`http://%s:18081`, ip)
 	}

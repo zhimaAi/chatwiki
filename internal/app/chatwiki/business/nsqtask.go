@@ -3,6 +3,7 @@
 package business
 
 import (
+	"chatwiki/internal/pkg/wechat"
 	"context"
 	"fmt"
 	"math"
@@ -439,7 +440,7 @@ func CheckFileGraphLearned(fileId int) {
 }
 
 func CrawlArticle(msg string, _ ...string) error {
-	logs.Debug(`nsq:%s`, msg)
+	logs.Debug(fmt.Sprintf(`nsq:%s`, msg))
 	data := make(map[string]any)
 	if err := tool.JsonDecode(msg, &data); err != nil {
 		logs.Error(`parsing failure:%s/%s`, msg, err.Error())
@@ -509,6 +510,72 @@ func CrawlArticle(msg string, _ ...string) error {
 	} else if err := common.AddJobs(define.ConvertHtmlTopic, message); err != nil {
 		logs.Error(err.Error())
 	}
+	return nil
+}
+
+func CrawlFeishuDoc(msg string, _ ...string) error {
+	logs.Debug(fmt.Sprintf(`nsq:%s`, msg))
+	data := make(map[string]any)
+	if err := tool.JsonDecode(msg, &data); err != nil {
+		logs.Error(`parsing failure:%s/%s`, msg, err.Error())
+		return nil
+	}
+	fileId := cast.ToInt(cast.ToInt(data[`file_id`]))
+	adminUserId := cast.ToInt(cast.ToInt(data[`admin_user_id`]))
+	if fileId <= 0 || adminUserId <= 0 {
+		logs.Error(`data exception:%s`, msg)
+		return nil
+	}
+
+	// check file id
+	m := msql.Model(`chat_ai_library_file`, define.Postgres)
+	file, err := common.GetLibFileInfo(fileId, cast.ToInt(data[`admin_user_id`]))
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+	if len(file) == 0 {
+		logs.Error(`library not found:%s`, msg)
+		return nil
+	}
+
+	// 获取飞书文档详情
+	app, err := wechat.GetApplication(msql.Params{`app_type`: lib_define.FeiShuRobot, `app_id`: file[`feishu_app_id`], `app_secret`: file[`feishu_app_secret`]})
+	feishuApp, ok := app.(wechat.FeishuInterface)
+	if !ok {
+		logs.Error(`飞书app初始化失败`)
+		return nil
+	}
+	title, content, err := feishuApp.GetDocFileDetail(file[`feishu_document_id`])
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+
+	md5Hash := tool.MD5(content)
+	objectKey := fmt.Sprintf(`chat_ai/%d/%s/%s/%s.%s`, adminUserId, `library_file`, tool.Date(`Ym`), md5Hash, `md`)
+	link, err := common.WriteFileByString(objectKey, content)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+
+	// update file status
+	_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
+		`status`:              define.FileStatusWaitSplit,
+		`file_name`:           title,
+		`file_url`:            link,
+		`file_ext`:            `md`,
+		`file_size`:           len(content),
+		`update_time`:         tool.Time2Int(),
+		`doc_last_renew_time`: tool.Time2Int(),
+	})
+	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: fileId})
+	if err != nil {
+		logs.Error(err.Error())
+		return nil
+	}
+
 	return nil
 }
 

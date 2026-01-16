@@ -7,6 +7,8 @@
 
 .collapse-panel-header {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .collapse-panel-title {
@@ -22,7 +24,7 @@
     border-radius: 6px;
     background: #E4E6EB;
   }
-  
+
   .title-text {
     display: flex;
     align-items: center;
@@ -52,12 +54,15 @@
     <div class="collapse-panel-header" >
       <div class="collapse-panel-title" @click.stop="toggleCollapse">
         <span class="title-text">{{ title }} <template v-if="count">（{{ count }}）</template></span>
-        <svg-icon 
-          name="arrow-down" 
-          class="arrow-icon" 
-          :class="{ 'collapsed': collapsed }" 
+        <svg-icon
+          name="arrow-down"
+          class="arrow-icon"
+          :class="{ 'collapsed': collapsed }"
           style="font-size: 16px;color: #000;"
         ></svg-icon>
+      </div>
+      <div>
+        <slot name="extra"></slot>
       </div>
     </div>
 

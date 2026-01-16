@@ -33,6 +33,7 @@ services:
 
   chatwiki_converter:
     image: registry.cn-hangzhou.aliyuncs.com/chatwiki/converter:1.7
+    privileged: true
     container_name: chatwiki_converter
     restart: always
     environment:
@@ -248,6 +249,7 @@ services:
 
   chatwiki_wechat_article_crawler:
     image: registry.cn-hangzhou.aliyuncs.com/chatwiki/wechat-article-crawler:0.1
+    privileged: true
     container_name: chatwiki_wechat_article_crawler
     networks:
       - chatwiki_network

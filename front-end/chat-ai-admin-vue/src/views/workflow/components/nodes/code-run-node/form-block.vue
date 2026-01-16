@@ -161,7 +161,7 @@ import {
 import SubKey from './subs-key.vue'
 import AtInput from '../at-input/at-input.vue'
 import CodeEditBox from './code-edit-box.vue'
-import { haveOutKeyNode } from '@/views/workflow/components/util.js'
+import { haveOutKeyNode, specialNodeList } from '@/views/workflow/components/util.js'
 
 const graphModel = inject('getGraph')
 const getNode = inject('getNode')
@@ -244,12 +244,6 @@ function recursionData(data) {
   return data
 }
 let lock = false
-// 特殊节点列表
-let specialNodeList = [
-  'special.lib_paragraph_list',
-  'special.llm_reply_content',
-  'specify-reply-node'
-]
 const variableOptions = ref([])
 watch(
   () => props.properties,

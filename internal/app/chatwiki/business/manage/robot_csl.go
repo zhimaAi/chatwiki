@@ -166,6 +166,51 @@ func CreateRobotCsl(id, adminUserId int, simple ...bool) (robotCsl *common.Robot
 			err = sqlErr
 			return
 		}
+
+		// 过滤鉴权信息
+		for i, node := range nodes {
+			filterNodeParams := work_flow.NodeParams{}
+			_ = tool.JsonDecodeUseNumber(node[`node_params`], &filterNodeParams)
+			filterNodeJson := map[string]interface{}{}
+			_ = tool.JsonDecodeUseNumber(node[`node_info_json`], &filterNodeJson)
+
+			switch cast.ToInt(node[`node_type`]) {
+			case work_flow.NodeTypeCurl:
+				// 过滤params
+				if len(filterNodeParams.Curl.HttpAuth) > 0 {
+					for idx := range filterNodeParams.Curl.HttpAuth {
+						filterNodeParams.Curl.HttpAuth[idx].Value = `` // remove value when export to csl
+					}
+					nodes[i][`node_params`] = tool.JsonEncodeNoError(filterNodeParams)
+				}
+
+				// 过滤json
+				dataRaw, ok := filterNodeJson[`dataRaw`]
+				if ok {
+					dataRawMap := map[string]interface{}{}
+					_ = tool.JsonDecodeUseNumber(cast.ToString(dataRaw), &dataRawMap)
+					if curl, ok := dataRawMap[`curl`].(map[string]interface{}); ok {
+						if httpAuth, ok := curl[`http_auth`]; ok {
+							httpAuthList := httpAuth.([]any)
+							for i := range httpAuthList {
+								httpAuthList[i] = map[string]interface{}{
+									`add_to`: httpAuthList[i].(map[string]interface{})[`add_to`],
+									`key`:    httpAuthList[i].(map[string]interface{})[`key`],
+									`value`:  ``, // remove value when export to csl
+								}
+							}
+							httpAuth = httpAuthList
+							curl[`http_auth`] = httpAuth
+							dataRawMap[`curl`] = curl
+							filterNodeJson[`dataRaw`] = tool.JsonEncodeNoError(dataRawMap)
+							nodes[i][`node_info_json`] = tool.JsonEncodeNoError(filterNodeJson)
+						}
+					}
+				}
+
+			}
+		}
+
 		robotCsl.Nodes = nodes
 		for _, node := range nodes {
 			nodeParams := work_flow.NodeParams{}
@@ -249,6 +294,7 @@ func ApplyRobotCsl(adminUserId, userId int, token string, robotCsl *common.Robot
 		}
 	}
 	//开始导入数据表
+	cslIdMaps.FormsName = make(map[int]string)
 	for _, formCsl := range robotCsl.Forms {
 		sqlErr := formCsl.Import(adminUserId, cslIdMaps)
 		if sqlErr != nil {
@@ -380,7 +426,7 @@ func ApplyFlowRobot(adminUserId int, robot msql.Params, nodes []msql.Params, csl
 			switch key {
 			case `id`, `admin_user_id`, `robot_id`, `node_info_json`:
 			case `node_params`:
-				insData[key], insData[`node_info_json`] = ReplaceNodeParams(adminUserId, nodeType, val, node[`node_info_json`], cslIdMaps, models)
+				insData[key], insData[`node_info_json`] = ReplaceNodeParams(adminUserId, nodeType, val, node[`node_info_json`], cslIdMaps, models, newRobot)
 			default:
 				insData[key] = val
 			}
@@ -393,7 +439,7 @@ func ApplyFlowRobot(adminUserId int, robot msql.Params, nodes []msql.Params, csl
 	return newRobot, nil
 }
 
-func ReplaceNodeParams(adminUserId int, nodeType int, nodeParamsStr, nodeInfoStr string, cslIdMaps *common.CslIdMaps, models *common.DefaultModelParams) (string, string) {
+func ReplaceNodeParams(adminUserId int, nodeType int, nodeParamsStr, nodeInfoStr string, cslIdMaps *common.CslIdMaps, models *common.DefaultModelParams, robot msql.Params) (string, string) {
 	nodeParams := work_flow.NodeParams{}
 	if err := tool.JsonDecodeUseNumber(nodeParamsStr, &nodeParams); err != nil {
 		logs.Error(err.Error())
@@ -444,21 +490,41 @@ func ReplaceNodeParams(adminUserId int, nodeType int, nodeParamsStr, nodeInfoStr
 		nodeParams.FormInsert.FormId = common.MixedInt(cslIdMaps.Forms[nodeParams.FormInsert.FormId.Int()])
 		replace[`admin_user_id`] = adminUserId
 		replace[`form_id`] = nodeParams.FormInsert.FormId
+		if cslIdMaps.FormsName[cast.ToInt(nodeParams.FormInsert.FormId)] != "" {
+			replace[`form_name`] = cslIdMaps.FormsName[cast.ToInt(nodeParams.FormInsert.FormId)]
+		}
 	case work_flow.NodeTypeFormDelete:
 		nodeParams.FormDelete.FormId = common.MixedInt(cslIdMaps.Forms[nodeParams.FormDelete.FormId.Int()])
 		replace[`admin_user_id`] = adminUserId
 		replace[`form_id`] = nodeParams.FormDelete.FormId
+		if cslIdMaps.FormsName[cast.ToInt(nodeParams.FormDelete.FormId)] != "" {
+			replace[`form_name`] = cslIdMaps.FormsName[cast.ToInt(nodeParams.FormDelete.FormId)]
+		}
 		nodeParams.FormDelete.Where = ReplaceFormOpWhere(nodeParams.FormDelete.Where, cslIdMaps, &replace)
 	case work_flow.NodeTypeFormUpdate:
 		nodeParams.FormUpdate.FormId = common.MixedInt(cslIdMaps.Forms[nodeParams.FormUpdate.FormId.Int()])
 		replace[`admin_user_id`] = adminUserId
 		replace[`form_id`] = nodeParams.FormUpdate.FormId
+		if cslIdMaps.FormsName[cast.ToInt(nodeParams.FormUpdate.FormId)] != "" {
+			replace[`form_name`] = cslIdMaps.FormsName[cast.ToInt(nodeParams.FormUpdate.FormId)]
+		}
 		nodeParams.FormUpdate.Where = ReplaceFormOpWhere(nodeParams.FormUpdate.Where, cslIdMaps, &replace)
 	case work_flow.NodeTypeFormSelect:
 		nodeParams.FormSelect.FormId = common.MixedInt(cslIdMaps.Forms[nodeParams.FormSelect.FormId.Int()])
 		replace[`admin_user_id`] = adminUserId
 		replace[`form_id`] = nodeParams.FormSelect.FormId
+		if cslIdMaps.FormsName[cast.ToInt(nodeParams.FormSelect.FormId)] != "" {
+			replace[`form_name`] = cslIdMaps.FormsName[cast.ToInt(nodeParams.FormSelect.FormId)]
+		}
 		nodeParams.FormSelect.Where = ReplaceFormOpWhere(nodeParams.FormSelect.Where, cslIdMaps, &replace)
+	case work_flow.NodeTypeStart:
+		if len(nodeParams.Start.TriggerList) > 0 {
+			for triggerKey, trigger := range nodeParams.Start.TriggerList {
+				if trigger.TriggerType == work_flow.TriggerTypeWebHook {
+					nodeParams.Start.TriggerList[triggerKey].TriggerWebHookConfig.Url = work_flow.GetWebHookUrl(cast.ToString(robot[`robot_key`]))
+				}
+			}
+		}
 	}
 	return tool.JsonEncodeNoError(nodeParams), AmendNodeinfojson(nodeInfoStr, replace)
 }

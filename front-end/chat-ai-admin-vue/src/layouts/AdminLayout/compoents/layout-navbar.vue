@@ -9,7 +9,7 @@
   .nav-menu {
     display: flex;
     position: relative;
-    padding: 9px 16px;
+    padding: 5px 12px;
     margin-right: 4px;
     line-height: 22px;
     font-size: 14px;
@@ -18,6 +18,9 @@
     color: #262626;
     cursor: pointer;
     transition: all 0.2s;
+    &:first-child {
+      margin-left: 0;
+    }
     &:hover {
       background: #e4e6eb;
     }

@@ -42,7 +42,7 @@ type ModelCallHandler struct {
 type HandlerFunc func(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error)
 type SupplierHandlerFunc func(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error)
 type BeforeFunc func(info ModelInfo, config msql.Params, useModel string) error
-type AfterFunc func(config msql.Params, useModel string, promptToken, completionToken int, robot msql.Params)
+type AfterFunc func(config msql.Params, useModel string, promptToken, completionToken int, robot msql.Params, imageNum int)
 
 type ModelInfo struct {
 	ModelDefine             string              `json:"model_define"`
@@ -612,7 +612,7 @@ func GetVector2000(adminUserId int, openid string, robot msql.Params, library ms
 		return ``, err
 	}
 	if handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
-		handler.modelInfo.TokenUseReport(handler.config, useModel, res.PromptToken, res.CompletionToken, robot)
+		handler.modelInfo.TokenUseReport(handler.config, useModel, res.PromptToken, res.CompletionToken, robot, 0)
 	}
 	return tool.JsonEncode(res.Result)
 }
@@ -624,7 +624,7 @@ func RequestChatStream(adminUserId int, openid string, robot msql.Params, appTyp
 	}
 	chatResp, requestTime, err := handler.RequestChatStream(adminUserId, openid, robot, appType, messages, functionTools, chanStream, temperature, maxToken)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
-		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken, robot)
+		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken, robot, 0)
 	}
 	return chatResp, requestTime, err
 }
@@ -636,7 +636,7 @@ func RequestSearchStream(adminUserId int, modelConfigId int, useModel string, li
 	}
 	chatResp, requestTime, err := handler.RequestChatStream(adminUserId, "", library, "", messages, functionTools, chanStream, temperature, maxToken)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
-		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken, msql.Params{})
+		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken, msql.Params{}, 0)
 	}
 	return chatResp, requestTime, err
 }
@@ -648,7 +648,7 @@ func RequestChat(adminUserId int, openid string, robot msql.Params, appType stri
 	}
 	chatResp, requestTime, err := handler.RequestChat(adminUserId, openid, robot, appType, messages, functionTools, temperature, maxToken)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
-		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken, robot)
+		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken, robot, 0)
 	}
 	return chatResp, requestTime, err
 }
@@ -1107,7 +1107,7 @@ func RequestImageGenerate(adminUserId int, openid string, robot msql.Params, app
 	params.Stream = false
 	res, err := handler.RequestImageGenerate(adminUserId, openid, appType, robot, params)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
-		handler.modelInfo.TokenUseReport(handler.config, useModel, res.InputToken, res.OutputToken, robot)
+		handler.modelInfo.TokenUseReport(handler.config, useModel, res.InputToken, res.OutputToken, robot, 0)
 	}
 	return res, err
 }

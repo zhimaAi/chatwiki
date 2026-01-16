@@ -223,6 +223,10 @@ func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 			if strings.Contains(node.NodeParams.LibraryImport.QaSimilarQuestionVariable, findKey) {
 				return true
 			}
+		case NodeTypeImmediatelyReply:
+			if strings.Contains(node.NodeParams.ImmediatelyReply.Content, findKey) {
+				return true
+			}
 		}
 	}
 	if findKey == `global.openid` && isNeedOpenid {

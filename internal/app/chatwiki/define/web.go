@@ -16,3 +16,10 @@ const (
 	ErrorCodeNeedLogin              = 10002
 	ErrorCodeNeedNoPermissionLogin  = 10003
 )
+
+const (
+	ContentTypeFormUrl   = `application/x-www-form-urlencoded`
+	ContentTypeJson      = `application/json`
+	ContentTypeMultipart = `multipart/form-data`
+	ContentTypeNode      = `none`
+)

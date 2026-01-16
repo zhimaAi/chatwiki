@@ -174,6 +174,12 @@ type CurlParam struct {
 	Value string `json:"value"`
 }
 
+type CurlAuthParam struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+	AddTo string `json:"add_to"`
+}
+
 const (
 	TypeNone       = 0 //none
 	TypeUrlencoded = 1 //x-www-form-urlencoded
@@ -181,15 +187,16 @@ const (
 )
 
 type CurlNodeParams struct {
-	Method  string               `json:"method"`
-	Rawurl  string               `json:"rawurl"`
-	Headers []CurlParam          `json:"headers"`
-	Params  []CurlParam          `json:"params"`
-	Type    uint                 `json:"type"` //0:none,1:x-www-form-urlencoded,2:application/json
-	Body    []CurlParam          `json:"body"`
-	BodyRaw string               `json:"body_raw"`
-	Timeout uint                 `json:"timeout"`
-	Output  common.RecurveFields `json:"output"`
+	Method   string               `json:"method"`
+	Rawurl   string               `json:"rawurl"`
+	Headers  []CurlParam          `json:"headers"`
+	Params   []CurlParam          `json:"params"`
+	Type     uint                 `json:"type"` //0:none,1:x-www-form-urlencoded,2:application/json
+	Body     []CurlParam          `json:"body"`
+	BodyRaw  string               `json:"body_raw"`
+	Timeout  uint                 `json:"timeout"`
+	Output   common.RecurveFields `json:"output"`
+	HttpAuth []CurlAuthParam      `json:"http_auth"`
 }
 
 /************************************/
@@ -497,15 +504,36 @@ type LibraryImportParams struct {
 	Outputs                   common.RecurveFields `json:"outputs"`                      //输出固定一个msg string
 }
 
+type WorkflowNodeParams struct {
+	RobotId   int `json:"robot_id"`
+	RobotInfo any `json:"robot_info"` // 前端使用的临时数据
+	Params    []struct {
+		StartNodeParam
+		Variable string `json:"variable"` //对应的全部变量
+		Tags     any    `json:"tags"`     // 前端使用的临时数据
+	} `json:"params"`
+	Output    common.RecurveFields `json:"output"`
+	Exception string               `json:"exception"`
+}
+
 type Message struct {
 	Type    string `json:"type"`    //text image voice
 	Content string `json:"content"` //content
 }
 
 type FinishNodeParams struct {
-	OutType  string    `json:"out_type"` //variable返回变量，message返回消息
-	Messages []Message `json:"messages"` //具体的消息
+	OutType  string               `json:"out_type"` //variable返回消息和变量，message返回消息
+	Messages []Message            `json:"messages"` //具体的消息
+	Outputs  common.RecurveFields `json:"outputs"`  //返回的变量
 }
+
+/************************************/
+
+type ImmediatelyReplyNodeParams struct {
+	Content string `json:"content"`
+}
+
+/************************************/
 
 var LoopAllowNodeTypes = []int{
 	NodeTypeRemark,
@@ -534,6 +562,8 @@ var LoopAllowNodeTypes = []int{
 	NodeTypeTextToAudio,
 	NodeTypeVoiceClone,
 	NodeTypeLibraryImport,
+	NodeTypeWorkflow,
+	NodeTypeImmediatelyReply,
 }
 
 var BatchAllowNodeTypes = []int{
@@ -562,6 +592,8 @@ var BatchAllowNodeTypes = []int{
 	NodeTypeTextToAudio,
 	NodeTypeVoiceClone,
 	NodeTypeLibraryImport,
+	NodeTypeWorkflow,
+	NodeTypeImmediatelyReply,
 }
 
 /************************************/
@@ -594,6 +626,8 @@ type NodeParams struct {
 	TextToAudio      TextToAudioNodeParams      `json:"text_to_audio"`
 	VoiceClone       VoiceCloneNodeParams       `json:"voice_clone"`
 	LibraryImport    LibraryImportParams        `json:"library_import"`
+	Workflow         WorkflowNodeParams         `json:"workflow"`
+	ImmediatelyReply ImmediatelyReplyNodeParams `json:"immediately_reply"`
 }
 
 func FillDiyGlobalBlanks(output TriggerOutputParam, start *StartNodeParams) {
@@ -752,7 +786,7 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 		}
 	case NodeTypeLibs:
 		variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, `special.lib_paragraph_list`))
-	case NodeTypeLlm, NodeTypeReply:
+	case NodeTypeLlm, NodeTypeReply, NodeTypeImmediatelyReply:
 		variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, `special.llm_reply_content`))
 	case NodeTypeQuestionOptimize:
 		variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, `special.question_optimize_reply_content`))
@@ -859,6 +893,13 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 		}
 	case NodeTypeLibraryImport:
 		for variable := range common.SimplifyFields(node.NodeParams.LibraryImport.Outputs) {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+				variables = append(variables, variable)
+			}
+		}
+	case NodeTypeWorkflow:
+		for variable := range common.SimplifyFields(node.NodeParams.Workflow.Output) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
 			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
 				variables = append(variables, variable)
@@ -999,6 +1040,9 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 		}
 		if node.NodeType == NodeTypeCodeRun {
 			fromNodes.AddRelation(&nodeList[i], node.NodeParams.CodeRun.Exception)
+		}
+		if node.NodeType == NodeTypeWorkflow {
+			fromNodes.AddRelation(&nodeList[i], node.NodeParams.Workflow.Exception)
 		}
 		if tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeFinish, NodeTypeManual}) {
 			finishNodeCount++
@@ -1251,7 +1295,13 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 			err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
 			return
 		}
-
+	case NodeTypeWorkflow:
+		for _, param := range node.NodeParams.Workflow.Params {
+			if variable, ok := CheckVariablePlaceholder(param.Variable, variables); !ok {
+				err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
+				return
+			}
+		}
 	case NodeTypeLoop:
 		//verify loop arrays
 		if node.NodeParams.Loop.LoopType == common.LoopTypeArray {
@@ -1376,6 +1426,11 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.LibraryImport.QaSimilarQuestionVariable, variables); !ok {
 			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
 		}
+	case NodeTypeImmediatelyReply:
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.ImmediatelyReply.Content, variables); !ok {
+			err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+			return
+		}
 	}
 	return nil
 }
@@ -1452,6 +1507,10 @@ func (node *WorkFlowNode) Verify(adminUserId int) error {
 		err = node.NodeParams.VoiceClone.Verify(adminUserId)
 	case NodeTypeLibraryImport:
 		err = node.NodeParams.LibraryImport.Verify(adminUserId)
+	case NodeTypeWorkflow:
+		err = node.NodeParams.Workflow.Verify(adminUserId)
+	case NodeTypeImmediatelyReply:
+		err = node.NodeParams.ImmediatelyReply.Verify()
 	}
 
 	if err != nil {
@@ -1469,7 +1528,7 @@ func (params *StartNodeParams) Verify() error {
 		if tool.InArrayString(fmt.Sprintf(`global.%s`, item.Key), SysGlobalVariables()) {
 			return errors.New(fmt.Sprintf(`自定义全局变量与系统变量同名:%s`, item.Key))
 		}
-		if !tool.InArrayString(item.Typ, []string{common.TypString, common.TypNumber, common.TypArrString, common.TypArrObject}) {
+		if !tool.InArrayString(item.Typ, []string{common.TypString, common.TypNumber, common.TypArrString, common.TypArrObject, common.TypBoole, common.TypArrNumber}) {
 			return errors.New(fmt.Sprintf(`自定义全局变量类型不支持:%s`, item.Key))
 		}
 		if _, ok := maps[item.Key]; ok {
@@ -1987,6 +2046,9 @@ func VerityLoopWorkflowNodes(adminUserId int, loopNode WorkFlowNode, nodeList []
 		if node.NodeType == NodeTypeCodeRun {
 			fromNodes.AddRelation(&nodeList[i], node.NodeParams.CodeRun.Exception)
 		}
+		if node.NodeType == NodeTypeWorkflow {
+			fromNodes.AddRelation(&nodeList[i], node.NodeParams.Workflow.Exception)
+		}
 		if node.NextNodeKey == loopNode.NodeKey {
 			finishNodeCount++
 		}
@@ -2318,6 +2380,51 @@ func (param *LibraryImportParams) Verify(adminUserId int) error {
 		if param.QaQuestion == `` || param.QaAnswer == `` {
 			return errors.New(`请填写导入的问题和答案`)
 		}
+	}
+	return nil
+}
+
+func (param *WorkflowNodeParams) Verify(adminUserId int) error {
+	if param.RobotId <= 0 {
+		return errors.New(`robot_id不能为空`)
+	}
+	info, err := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, cast.ToString(param.RobotId)).
+		Find()
+	if err != nil {
+		return err
+	}
+	if len(info) == 0 || cast.ToInt(info[`application_type`]) != define.ApplicationTypeFlow {
+		return errors.New("选择的工作流不合法")
+	}
+
+	maps := map[string]struct{}{}
+	for _, item := range param.Params {
+		if !common.IsVariableName(item.Key) {
+			return errors.New(fmt.Sprintf(`自定义全局变量名格式错误:%s`, item.Key))
+		}
+		if tool.InArrayString(fmt.Sprintf(`global.%s`, item.Key), SysGlobalVariables()) {
+			return errors.New(fmt.Sprintf(`自定义全局变量与系统变量同名:%s`, item.Key))
+		}
+		if !tool.InArrayString(item.Typ, []string{common.TypString, common.TypNumber, common.TypArrString, common.TypArrObject}) {
+			return errors.New(fmt.Sprintf(`自定义全局变量类型不支持:%s`, item.Key))
+		}
+		if item.Required && len(item.Variable) == 0 {
+			return errors.New(fmt.Sprintf(`缺少必填参数:%s`, item.Key))
+		}
+		if _, ok := maps[item.Key]; ok {
+			return errors.New(fmt.Sprintf(`自定义全局变量名重复定义:%s`, item.Key))
+		}
+		maps[item.Key] = struct{}{}
+	}
+
+	return nil
+}
+
+func (params *ImmediatelyReplyNodeParams) Verify() error {
+	if len(params.Content) == 0 {
+		return errors.New(`消息内容不能为空`)
 	}
 	return nil
 }

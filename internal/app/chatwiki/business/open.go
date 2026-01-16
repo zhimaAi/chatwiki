@@ -7,6 +7,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/app/chatwiki/middlewares"
+	"chatwiki/internal/app/chatwiki/work_flow"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
@@ -231,4 +232,13 @@ func GetRobotInfo(c *gin.Context) {
 		return
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(robot, nil))
+}
+
+func OpenWorkFlowWebHook(c *gin.Context) {
+	res, err := work_flow.StartWebhook(c)
+	if err != nil {
+		logs.Error(`workflow webhook error:%v`, err)
+		c.String(http.StatusOK, ``)
+	}
+	c.String(http.StatusOK, res)
 }

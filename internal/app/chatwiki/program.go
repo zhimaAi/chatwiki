@@ -69,6 +69,7 @@ func StartConsumer() {
 	common.RunTask(define.ConvertVectorTopic, define.ConvertVectorChannel, 2, business.ConvertVector)
 	common.RunTask(define.ConvertGraphTopic, define.ConvertGraphChannel, 10, business.ConvertGraph)
 	common.RunTask(define.CrawlArticleTopic, define.CrawlArticleChannel, 2, business.CrawlArticle)
+	common.RunTask(define.CrawlFeishuDocTopic, define.CrawlFeishuDocChannel, 2, business.CrawlFeishuDoc)
 	common.RunTask(lib_define.AppPushMessage, lib_define.AppPushChannel, 10, business.AppPush)
 
 	common.RunTask(lib_define.AppPushEvent, lib_define.AppPushChannel, 5, business.AppPush)

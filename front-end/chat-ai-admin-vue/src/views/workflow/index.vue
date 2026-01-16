@@ -82,7 +82,7 @@ import { useWorkflowStore } from '@/stores/modules/workflow'
 import { getNodeList, saveNodes, getDraftKey } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
 import { generateUniqueId, duplicateRemoval, removeRepeat } from '@/utils/index'
-import { onMounted, ref, onUnmounted, watch, computed, h} from 'vue'
+import { onMounted, ref, onUnmounted, watch, computed, h, provide} from 'vue'
 import { useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
@@ -599,6 +599,14 @@ const getCanvasData = () => {
       }
     }
 
+    if (obj.node_type == 41) {
+      // 工作流
+      let exception = edgeMap[obj.nodeSortKey + '-anchor_right_exception']
+      if (exception) {
+        node_params.workflow.exception = exception
+      }
+    }
+
     obj.node_params = node_params
 
     // 删除无用字段
@@ -636,7 +644,9 @@ const handleSave = async (type) => {
       uni_identifier: getUniIdentifier(),
       user_agent: buildUserAgent()
     }
+
     const result = await confirmOverrideAndSave(basePayload, false)
+    console.log('result', 2)
     if (result.saved) {
       message.success('保存成功')
     } else if (!result.behind) {
@@ -1117,7 +1127,7 @@ const checkNodePluginStatus = (nds) => {
 
 const init = async () => {
   await getModelList()
-  await workflowStore.getTriggerList();
+  await workflowStore.getTriggerList(robot_key.value);
   workflowStore.getTriggerOfficialMsg(robot_key.value)
   await modelStore.getAllmodelList()
   workflowStore.getAllLibraryList();
@@ -1130,6 +1140,12 @@ const init = async () => {
   getNode(res.data)
   checkNodePluginStatus(res.data)
 }
+
+const handleAutoSaveDraft = async (type = 'automatic') => {
+  await handleSave(type)
+}
+
+provide('handleAutoSaveDraft', handleAutoSaveDraft)
 
 onMounted(async () => {
   // 记录当前工作流的打开页面计数

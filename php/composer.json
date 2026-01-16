@@ -9,7 +9,8 @@
       "ext-curl": "*",
         "guzzlehttp/guzzle": "^7.10",
         "nesbot/carbon": "^3.10",
-        "league/html-to-markdown": "^5.1"
+        "league/html-to-markdown": "^5.1",
+      "ext-zip": "*"
     },
     "config": {
         "allow-plugins": {

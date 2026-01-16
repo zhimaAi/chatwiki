@@ -58,10 +58,17 @@ const (
 	NodeTypeImageGeneration  = 33 //图片生成
 	NodeTypeJsonEncode       = 36 //json序列化
 	NodeTypeJsonDecode       = 37 //json反序列化
+	NodeTypeTextToAudio      = 38 //语音合成
+	NodeTypeVoiceClone       = 39 //声音复刻
+	NodeTypeLibraryImport    = 40 //知识库导入
+	NodeTypeWorkflow         = 41 //工作流
+	NodeTypeImmediatelyReply = 42 //立即回复
+)
 
-	NodeTypeTextToAudio   = 38 //语音合成
-	NodeTypeVoiceClone    = 39 //声音复刻
-	NodeTypeLibraryImport = 40 //知识库导入
+const (
+	AddToHEADERS = `HEADERS`
+	AddToPARAMS  = `PARAMS`
+	AddToBODY    = `BODY`
 )
 
 var NodeTypes = [...]int{
@@ -97,6 +104,8 @@ var NodeTypes = [...]int{
 	NodeTypeTextToAudio,
 	NodeTypeVoiceClone,
 	NodeTypeLibraryImport,
+	NodeTypeWorkflow,
+	NodeTypeImmediatelyReply,
 }
 
 type NodeAdapter interface {
@@ -181,6 +190,10 @@ func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, ms
 		return &VoiceCloneNode{params: nodeParams.VoiceClone, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeLibraryImport:
 		return &LibraryImport{params: nodeParams.LibraryImport, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeWorkflow:
+		return &WorkflowNode{params: nodeParams.Workflow, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeImmediatelyReply:
+		return &ImmediatelyReplyNode{params: nodeParams.ImmediatelyReply, nextNodeKey: info[`next_node_key`]}, info, nil
 	default:
 		return nil, info, errors.New(`不支持的节点类型:` + info[`node_type`])
 	}
@@ -206,18 +219,22 @@ func (n *StartNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNod
 	}
 	if flow.params.Draft.IsDraft { //草稿调试场景
 		flow.params.Robot[`question_multiple_switch`] = cast.ToString(cast.ToUint(flow.params.Draft.QuestionMultipleSwitch))
-	} else { //触发器逻辑
-		var findTrigger bool
-		for i, trigger := range n.params.TriggerList {
-			if trigger.TriggerSwitch && trigger.TriggerType == flow.params.TriggerParams.TriggerType {
-				findTrigger = true
-				flow.Logs(`选择使用触发器(%d):%s`, i+1, trigger.TriggerName)
-				trigger.SetGlobalValue(flow) //从触发器填充变量值
+	} else {
+		if flow.params.IsFromWorkflow { //工作流调用工作流场景暂时不做任何处理
+
+		} else { //触发器逻辑
+			var findTrigger bool
+			for i, trigger := range n.params.TriggerList {
+				if trigger.TriggerSwitch && trigger.TriggerType == flow.params.TriggerParams.TriggerType {
+					findTrigger = true
+					flow.Logs(`选择使用触发器(%d):%s`, i+1, trigger.TriggerName)
+					trigger.SetGlobalValue(flow) //从触发器填充变量值
+				}
 			}
-		}
-		if !findTrigger { //没有开启的触发器
-			err = errors.New(`当前场景没有对应开启的触发器`)
-			return
+			if !findTrigger { //没有开启的触发器
+				err = errors.New(`当前场景没有对应开启的触发器`)
+				return
+			}
 		}
 	}
 	output = make(common.SimpleFields) //init
@@ -322,8 +339,9 @@ func (n *CateNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 }
 
 type CurlNode struct {
-	params      CurlNodeParams
-	nextNodeKey string
+	params         CurlNodeParams
+	nextNodeKey    string
+	httpResultJson *string
 }
 
 func (n *CurlNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
@@ -334,6 +352,16 @@ func (n *CurlNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 		for _, param := range n.params.Params {
 			params = append(params, fmt.Sprintf(`%s=%s`, url.QueryEscape(param.Key), url.QueryEscape(flow.VariableReplace(param.Value))))
 		}
+
+		// add auth params
+		if len(n.params.HttpAuth) > 0 {
+			for _, authParam := range n.params.HttpAuth {
+				if authParam.AddTo == AddToPARAMS {
+					params = append(params, fmt.Sprintf(`%s=%s`, url.QueryEscape(authParam.Key), url.QueryEscape(flow.VariableReplace(authParam.Value))))
+				}
+			}
+		}
+
 		if strings.Contains(rawurl, `?`) {
 			rawurl += "&" + strings.Join(params, `&`)
 		} else {
@@ -344,16 +372,46 @@ func (n *CurlNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	for _, header := range n.params.Headers {
 		request.Header(header.Key, flow.VariableReplace(header.Value))
 	}
+
+	// add auth params
+	if len(n.params.HttpAuth) > 0 {
+		for _, authParam := range n.params.HttpAuth {
+			if authParam.AddTo == AddToHEADERS {
+				request.Header(authParam.Key, flow.VariableReplace(authParam.Value))
+			}
+		}
+	}
 	if n.params.Method != http.MethodGet && len(n.params.Body) > 0 {
 		switch n.params.Type {
 		case TypeUrlencoded:
 			for _, param := range n.params.Body {
 				request.Param(param.Key, flow.VariableReplace(param.Value))
 			}
+			// add auth params to body
+			if len(n.params.HttpAuth) > 0 {
+				for _, authParam := range n.params.HttpAuth {
+					if authParam.AddTo == AddToBODY {
+						request.Param(authParam.Key, flow.VariableReplace(authParam.Value))
+					}
+				}
+			}
+
 		case TypeJsonBody:
+			// json body can not add auth params
 			request.Body(flow.VariableReplaceJson(n.params.BodyRaw)).
 				Header("Content-Type", "application/json")
+
+		case TypeNone:
+			// add auth params to body
+			if len(n.params.HttpAuth) > 0 {
+				for _, authParam := range n.params.HttpAuth {
+					if authParam.AddTo == AddToBODY {
+						request.Param(authParam.Key, flow.VariableReplace(authParam.Value))
+					}
+				}
+			}
 		}
+
 	}
 	if n.params.Timeout > 0 {
 		timeout := time.Duration(n.params.Timeout) * time.Second
@@ -377,9 +435,14 @@ func (n *CurlNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	if err != nil {
 		return
 	}
+	n.httpResultJson = tea.String(tool.JsonEncodeNoError(result))
 	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *CurlNode) GetHttpResultJson() *string {
+	return n.httpResultJson
 }
 
 type LibsNode struct {
@@ -520,22 +583,76 @@ type FinishNode struct {
 func (n *FinishNode) Running(flow *WorkFlow) (output common.SimpleFields, _ string, _ error) {
 	flow.Logs(`执行结束节点逻辑...`)
 	flow.isFinish = true
+	output = common.SimpleFields{}
 	if n.params.OutType == define.FinishNodeOutTypeMessage && len(n.params.Messages) > 0 {
-		if len(n.params.Messages) == 1 && n.params.Messages[0].Type == `text` && n.params.Messages[0].Content == `` {
-			output = flow.output
-			return
-		}
-		output = common.SimpleFields{}
-		for idx, message := range n.params.Messages {
-			content := flow.VariableReplace(message.Content)
-			if content == `` {
-				continue
+		output = n.getOutPuts(flow)
+	} else if n.params.OutType == define.FinishNodeOutTypeVariable {
+		output = n.getOutPuts(flow)
+		if len(n.params.Outputs) > 0 {
+			output[`special.finish_variables`] = common.SimpleField{
+				Key: `special.finish_variables`,
+				Typ: common.TypString,
+				Vals: []common.Val{
+					{
+						String: tea.String(tool.JsonEncodeNoError(n.getVariables(flow, n.params.Outputs))),
+					},
+				},
 			}
-			key := fmt.Sprintf(define.FinishReplyPrefixKey+`%s_%d`, message.Type, idx+1)
-			output[key] = common.SimpleField{Key: key, Typ: common.TypString, Vals: []common.Val{{String: &content}}}
 		}
 	} else {
 		output = flow.output
+	}
+	return
+}
+func (n *FinishNode) getVariables(flow *WorkFlow, variables common.RecurveFields) map[string]any {
+	var out = make(map[string]any)
+	for _, field := range variables {
+		var val any
+		switch field.Typ {
+		case common.TypString:
+			val = flow.VariableReplace(cast.ToString(field.Desc))
+			out[field.Key] = val
+		case common.TypNumber:
+			val = flow.VariableReplace(cast.ToString(field.Desc))
+			out[field.Key] = cast.ToInt(val)
+		case common.TypBoole:
+			valReplace := flow.VariableReplace(cast.ToString(field.Desc))
+			if strings.ToLower(valReplace) == `true` {
+				val = true
+			} else {
+				val = false
+			}
+			out[field.Key] = val
+		case common.TypFloat:
+			val = flow.VariableReplace(cast.ToString(field.Desc))
+			out[field.Key] = cast.ToFloat64(val)
+		case common.TypObject:
+			if len(field.Subs) > 0 {
+				out[field.Key] = n.getVariables(flow, field.Subs)
+			}
+		case common.TypArrString, common.TypArrNumber, common.TypArrFloat, common.TypArrBoole, common.TypArrObject:
+			variable := GetFirstVariable(cast.ToString(field.Desc))
+			simpleField, _ := flow.GetVariable(variable)
+			anys := simpleField.GetVals()
+			out[field.Key] = anys
+		}
+	}
+	return out
+}
+
+func (n *FinishNode) getOutPuts(flow *WorkFlow) (output common.SimpleFields) {
+	output = common.SimpleFields{}
+	if len(n.params.Messages) == 1 && n.params.Messages[0].Type == `text` && n.params.Messages[0].Content == `` {
+		output = flow.output
+		return
+	}
+	for idx, message := range n.params.Messages {
+		content := flow.VariableReplace(message.Content)
+		if content == `` {
+			continue
+		}
+		key := fmt.Sprintf(define.FinishReplyPrefixKey+`%s_%d`, message.Type, idx+1)
+		output[key] = common.SimpleField{Key: key, Typ: common.TypString, Vals: []common.Val{{String: &content}}}
 	}
 	return
 }
@@ -1876,5 +1993,107 @@ func (n *LibraryImport) toImportUrl(token, normalUrl string) (msg string, ok boo
 			ok = true
 		}
 	}
+	return
+}
+
+// WorkflowNode 工作流作为一个节点
+type WorkflowNode struct {
+	params      WorkflowNodeParams
+	nextNodeKey string
+}
+
+func (n *WorkflowNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, _ error) {
+	nextNodeKey = n.nextNodeKey
+	robotInfo, err := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(flow.params.AdminUserId)).
+		Where(`id`, cast.ToString(n.params.RobotId)).
+		Find()
+	if err != nil {
+		flow.Logs(err.Error())
+		nextNodeKey = n.params.Exception
+		return
+	}
+	if len(robotInfo) == 0 {
+		flow.Logs("机器人不存在")
+		nextNodeKey = n.params.Exception
+		return
+	}
+
+	// 执行下一个工作流
+	subParams := &WorkFlowParams{
+		ChatRequestParam:  flow.params.ChatRequestParam,
+		RealRobot:         robotInfo,
+		IsTestLoopNodeRun: false,
+		TriggerParams:     TriggerParams{},
+		IsFromWorkflow:    true,
+	}
+	subParams.WorkFlowGlobal = make(map[string]any)
+	subParams.Robot = robotInfo
+	subParams.ImmediatelyReplyHandle = nil //不继续套娃(立即回复节点)
+
+	// 变量替换
+	for _, p := range n.params.Params {
+		subParams.WorkFlowGlobal[p.Key] = flow.VariableReplace(p.Variable)
+	}
+	subWorkflow, _, err := BaseCallWorkFlow(subParams)
+	if err != nil {
+		flow.Logs(err.Error())
+		nextNodeKey = n.params.Exception
+		return
+	}
+
+	// 提取出指定回复的内容
+	var replyArr []string
+	var result string
+
+	for key, out := range subWorkflow.outputs {
+		if key == subWorkflow.curNodeKey { // 结束节点特殊处理
+			for specialKey, specialVal := range out {
+				if strings.HasPrefix(specialKey, "special.finish_reply_") {
+					for _, val := range specialVal.Vals {
+						if len(*val.String) > 0 {
+							replyArr = append(replyArr, *val.String)
+						}
+					}
+				}
+			}
+		} else {
+			if contentList, ok := out["special.llm_reply_content"]; ok {
+				for _, val := range contentList.Vals {
+					if len(*val.String) > 0 {
+						replyArr = append(replyArr, *val.String)
+					}
+				}
+			}
+		}
+	}
+	result = strings.Join(replyArr, "\n")
+
+	output = common.SimpleFields{}
+	output[`data`] = common.SimpleField{
+		Key:  `data`,
+		Typ:  common.TypString,
+		Vals: []common.Val{{String: &result}},
+	}
+	return
+}
+
+type ImmediatelyReplyNode struct {
+	params      ImmediatelyReplyNodeParams
+	nextNodeKey string
+}
+
+func (n *ImmediatelyReplyNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	flow.Logs(`执行立即回复逻辑...`)
+	content := flow.VariableReplace(n.params.Content)
+	//立即输出消息
+	if flow.params.ImmediatelyReplyHandle != nil {
+		flow.params.ImmediatelyReplyHandle(ImmediatelyReplyBuildReplyContent(content))
+	}
+	//返回输出变量
+	output = common.SimpleFields{
+		`special.llm_reply_content`: common.SimpleField{Key: `special.llm_reply_content`, Typ: common.TypString, Vals: []common.Val{{String: &content}}},
+	}
+	nextNodeKey = n.nextNodeKey
 	return
 }

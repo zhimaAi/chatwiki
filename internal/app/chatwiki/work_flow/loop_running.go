@@ -268,13 +268,17 @@ func (flowLoop *WorkFlowLoop) TakeChildOutputs() {
 		bFind := false
 		for _, intermediate := range flowLoop.LoopNodeParams.IntermediateParams {
 			if loopOutput.Value == flowLoop.LoopNode[`node_key`]+`.`+intermediate.Key {
-				flowLoop.Outputs[loopOutput.Key] = intermediate.SimpleField
+				flowLoop.Outputs[loopOutput.Key] = common.SimpleField{
+					Key:  loopOutput.Key,
+					Typ:  loopOutput.Typ,
+					Vals: intermediate.SimpleField.Vals,
+				}
 				bFind = true
 			}
 		}
 		if !bFind {
 			flowLoop.Outputs[loopOutput.Key] = common.SimpleField{
-				Key:  loopOutput.ChooseKey(),
+				Key:  loopOutput.Key,
 				Typ:  loopOutput.Typ,
 				Vals: []common.Val{},
 			}

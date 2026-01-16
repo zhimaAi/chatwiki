@@ -187,6 +187,7 @@ import { Modal } from 'ant-design-vue'
 import SubKey from './subs-key.vue'
 import CodeEditBox from './code-edit-box.vue'
 import RunTest from './run-test.vue'
+import { specialNodeList } from '@/views/workflow/components/util.js'
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({
@@ -277,12 +278,6 @@ const resetTemp = () => {
     }
   })
 }
-
-let specialNodeList = [
-  'special.lib_paragraph_list',
-  'special.llm_reply_content',
-  'specify-reply-node'
-]
 
 function recursionData(data) {
   data.forEach((item) => {

@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -496,4 +497,124 @@ func TakeWorkFlowTestUseToken(flowOutputs []NodeLog) (int, int64) {
 		useMills += nodeOutPut.EndTime - nodeOutPut.StartTime
 	}
 	return token, useMills
+}
+
+func GetRecursiveFieldsFromMap(data map[string]any) RecurveFields {
+	defer func() {
+		if r := recover(); r != nil {
+			logs.Error(`%v`, r)
+		}
+	}()
+	recurveFields := make(RecurveFields, 0)
+	if len(data) == 0 {
+		return recurveFields
+	}
+	for mapKey, mapVal := range data {
+		if mapVal == nil {
+			continue
+		}
+		valKind := reflect.TypeOf(mapVal).Kind()
+		if valKind == reflect.Map {
+			if dataMap, ok := mapVal.(map[string]any); ok {
+				recurveField := RecurveField{
+					SimpleField: SimpleField{
+						Key: mapKey,
+						Typ: TypObject,
+					},
+					Subs: GetRecursiveFieldsFromMap(dataMap),
+				}
+				recurveFields = append(recurveFields, recurveField)
+			}
+			continue
+		}
+		switch valKind {
+		case reflect.String:
+			recurveFields = append(recurveFields, RecurveField{
+				SimpleField: SimpleField{Key: mapKey, Typ: TypString},
+			})
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			recurveFields = append(recurveFields, RecurveField{
+				SimpleField: SimpleField{Key: mapKey, Typ: TypNumber},
+			})
+		case reflect.Float32, reflect.Float64:
+			if valKind == reflect.Float64 {
+				if num, ok := mapVal.(float64); ok {
+					// 检查float64是否是整数（小数部分为0）
+					if num == float64(int64(num)) {
+						recurveFields = append(recurveFields, RecurveField{
+							SimpleField: SimpleField{Key: mapKey, Typ: TypNumber},
+						})
+					} else {
+						recurveFields = append(recurveFields, RecurveField{
+							SimpleField: SimpleField{Key: mapKey, Typ: TypFloat},
+						})
+					}
+				}
+			} else {
+				recurveFields = append(recurveFields, RecurveField{
+					SimpleField: SimpleField{Key: mapKey, Typ: TypFloat},
+				})
+			}
+		case reflect.Bool:
+			recurveFields = append(recurveFields, RecurveField{
+				SimpleField: SimpleField{Key: mapKey, Typ: TypBoole},
+			})
+		case reflect.Slice, reflect.Array:
+			arrField := RecurveField{
+				SimpleField: SimpleField{Key: mapKey},
+			}
+			arrVal := reflect.ValueOf(mapVal)
+			if arrVal.Len() == 0 {
+				continue
+			} else {
+				var elemKind reflect.Kind
+				var elemValue any
+				for i := 0; i < arrVal.Len(); i++ {
+					elem := arrVal.Index(i)
+					if elem.IsNil() {
+						continue // 跳过nil元素
+					}
+					// 安全获取元素类型：处理interface{}包装的情况
+					elemKind = elem.Kind()
+					if elemKind == reflect.Interface {
+						// 解包interface{}获取真实类型
+						elemKind = elem.Elem().Kind()
+					}
+					elemValue = elem.Interface()
+					break
+				}
+				switch elemKind {
+				case reflect.String:
+					arrField.Typ = TypArrString
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					arrField.Typ = TypArrNumber
+				case reflect.Float32, reflect.Float64:
+					if elemKind == reflect.Float64 {
+						if num, ok := elemValue.(float64); ok {
+							// 检查float64是否是整数（小数部分为0）
+							if num == float64(int64(num)) {
+								arrField.Typ = TypArrNumber
+							} else {
+								arrField.Typ = TypArrFloat
+							}
+						}
+					} else {
+						arrField.Typ = TypArrFloat
+					}
+				case reflect.Bool:
+					arrField.Typ = TypArrBoole
+				case reflect.Map:
+					arrField.Typ = TypArrObject
+				default:
+					arrField.Typ = TypArrString
+				}
+			}
+			recurveFields = append(recurveFields, arrField)
+		default:
+			continue
+		}
+	}
+	return recurveFields
 }

@@ -66,6 +66,7 @@ func init() {
 	Route[http.MethodPost][`/manage/saveRobot`] = manage.SaveRobot
 	Route[http.MethodPost][`/manage/robotAutoAdd`] = manage.RobotAutoAdd
 	Route[http.MethodPost][`/manage/addFlowRobot`] = manage.AddFlowRobot
+	Route[http.MethodPost][`/manage/moveRobotSort`] = manage.MoveRobotSort
 	Route[http.MethodPost][`/manage/editExternalConfig`] = manage.EditExternalConfig
 	Route[http.MethodGet][`/manage/getDefaultRrfWeight`] = manage.GetDefaultRrfWeight
 	Route[http.MethodGet][`/manage/getRobotInfo`] = manage.GetRobotInfo
@@ -78,6 +79,7 @@ func init() {
 	Route[http.MethodPost][`/manage/relationWorkFlow`] = manage.RelationWorkFlow
 	Route[http.MethodPost][`/manage/setUnknownIssueSummary`] = manage.SetUnknownIssueSummary
 	Route[http.MethodPost][`/manage/relationLibrary`] = manage.RelationLibrary
+	Route[http.MethodPost][`/manage/cleanRobotChatCache`] = manage.CleanRobotChatCache
 
 	/*apiKey API*/
 	Route[http.MethodPost][`/manage/addRobotApikey`] = manage.AddRobotApikey
@@ -157,6 +159,10 @@ func init() {
 	Route[http.MethodPost][`/manage/cancelOcrPdf`] = manage.CancelOcrPdf
 	Route[http.MethodGet][`/manage/createExportLibFileTask`] = manage.CreateExportLibFileTask
 	Route[http.MethodGet][`/manage/downloadLibraryFile`] = manage.DownloadLibraryFile
+	/*Feishu*/
+	Route[http.MethodGet][`/manage/feishuUserAuthLogin/redirect`] = manage.FeishuUserAuthLoginRedirect
+	noAuthFuns(Route[http.MethodGet], `/manage/feishuUserAuthLogin/callback`, manage.FeishuUserAuthLoginCallback)
+	Route[http.MethodPost][`/manage/getFeishuDocFileList`] = manage.GetFeishuDocFileList
 	/*paragraph API*/
 	Route[http.MethodGet][`/manage/getSeparatorsList`] = manage.GetSeparatorsList
 	Route[http.MethodGet][`/manage/getLibFileSplit`] = manage.GetLibFileSplit
@@ -240,6 +246,7 @@ func init() {
 	noAuthFuns(Route[http.MethodPost], `/chat/callBatchWorkFlow`, business.CallBatchWorkFlow)
 	noAuthFuns(Route[http.MethodPost], `/chat/callLoopWorkFlowParams`, business.CallLoopWorkFlowParams)
 	noAuthFuns(Route[http.MethodPost], `/chat/callBatchWorkFlowParams`, business.CallBatchWorkFlowParams)
+	noAuthFuns(Route[http.MethodPost], `/chat/callWorkFlowHttpTest`, business.CallWorkFlowHttpTest)
 	noAuthFuns(Route[http.MethodPost], `/chat/checkChatRequestPermission`, business.CheckChatRequestPermission)
 	noAuthFuns(Route[http.MethodPost], `/chat/questionGuide`, business.ChatQuestionGuide)
 	/*model API*/
@@ -289,7 +296,8 @@ func init() {
 	noAuthFuns(Route[http.MethodPost], `/open/library/editGeneralParagraph`, business.OpenEditGeneralParagraph)
 	noAuthFuns(Route[http.MethodPost], `/open/library/editQAParagraph`, business.OpenEditQAParagraph)
 	noAuthFuns(Route[http.MethodGet], `/open/getSeparatorsList`, business.OpenGetSeparatorsList)
-
+	noAuthFuns(Route[http.MethodPost], `/open/workflow/webhook/:robot_key/:find_key`, business.OpenWorkFlowWebHook)
+	noAuthFuns(Route[http.MethodGet], `/open/workflow/webhook/:robot_key/:find_key`, business.OpenWorkFlowWebHook)
 	//register client side route
 	RegClientSideRoute()
 	/*session API*/
@@ -311,6 +319,7 @@ func init() {
 	Route[http.MethodPost][`/manage/uploadCheckFile`] = manage.UploadCheckFile
 	/*work_flow API*/
 	Route[http.MethodGet][`/manage/getNodeList`] = manage.GetNodeList
+	Route[http.MethodGet][`/manage/getStartNode`] = manage.GetStartNode
 	Route[http.MethodPost][`/manage/saveNodes`] = manage.SaveNodes
 	Route[http.MethodGet][`/manage/getDraftKey`] = manage.GetDraftKey
 	Route[http.MethodGet][`/manage/getAdminConfig`] = manage.GetAdminConfig
@@ -320,6 +329,9 @@ func init() {
 	Route[http.MethodPost][`/manage/workFlowNextVersion`] = manage.WorkFlowNextVersion
 	Route[http.MethodPost][`/manage/workFlowVersions`] = manage.WorkFlowVersions
 	Route[http.MethodPost][`/manage/workFlowVersionDetail`] = manage.WorkFlowVersionDetail
+	Route[http.MethodGet][`/manage/getHttpAuthConfig`] = manage.GetHttpAuthConfig
+	Route[http.MethodPost][`/manage/saveHttpAuthConfig`] = manage.SaveHttpAuthConfig
+
 	/* sensitive words API*/
 	Route[http.MethodGet][`/manage/getSensitiveWordsList`] = manage.GetSensitiveWordsList
 	Route[http.MethodPost][`/manage/saveSensitiveWords`] = manage.SaveSensitiveWords

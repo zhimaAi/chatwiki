@@ -23,6 +23,7 @@ const (
 	TriggerTypeTest     = 2 //测试触发器
 	TriggerTypeCron     = 3 //定时触发器
 	TriggerTypeOfficial = 4 //公众号触发器
+	TriggerTypeWebHook  = 5 //webhook触发器
 )
 
 const (
@@ -60,6 +61,26 @@ type TriggerOfficialConfig struct {
 	AppIds  string `json:"app_ids"` //wx1,wx2
 }
 
+const (
+	WebHookResponseTypeNow             = `now`
+	WebHookResponseTypeMessageVariable = `message_variable`
+)
+
+type TriggerWebHookConfig struct {
+	Url                string               `json:"url"`             //请求地址
+	Method             string               `json:"method"`          //method GET POST
+	SwitchVerify       string               `json:"switch_verify"`   //是否鉴权,1鉴权,0不鉴权
+	SwitchAllowIp      string               `json:"switch_allow_ip"` //是否验证ip 1验证,0不验证
+	AllowIps           string               `json:"allow_ips"`       //ip白名单,多个用逗号分割,最多1000个
+	Params             common.RecurveFields `json:"params"`          //url传参
+	RequestContentType string               `json:"request_content_type"`
+	Form               common.RecurveFields `json:"form"`
+	XForm              common.RecurveFields `json:"x_form"`
+	Json               common.RecurveFields `json:"json"`
+	ResponseType       string               `json:"response_type"` //返回类型 now立刻返回json,message_variable 返回消息和变量
+	ResponseNow        string               `json:"response_now"`  //立刻返回的字符串
+}
+
 type TriggerConfig struct {
 	TriggerType           uint                  `json:"trigger_type"`
 	TriggerName           string                `json:"trigger_name"`
@@ -69,6 +90,7 @@ type TriggerConfig struct {
 	TriggerChatConfig     TriggerChatConfig     `json:"chat_config"`
 	TriggerCronConfig     TriggerCronConfig     `json:"cron_config"`
 	TriggerOfficialConfig TriggerOfficialConfig `json:"trigger_official_config"`
+	TriggerWebHookConfig  TriggerWebHookConfig  `json:"trigger_web_hook_config"`
 }
 
 func (trigger *TriggerConfig) SetGlobalValue(flow *WorkFlow) {
@@ -95,6 +117,9 @@ func (trigger *TriggerConfig) SetGlobalValue(flow *WorkFlow) {
 		assignParams = flow.params.TriggerParams.TestParams
 	case TriggerTypeOfficial: //公众号触发器
 		assignParams = flow.params.TriggerParams.TestParams
+	case TriggerTypeWebHook: //webhook触发器
+		assignParams = flow.params.TriggerParams.TestParams
+		trigger.Outputs = flow.params.TriggerParams.TriggerOutputs
 	case TriggerTypeCron: //定时触发器
 	default:
 		logs.Warning(`触发器:%s[%d]赋值逻辑未处理...`, trigger.TriggerName, trigger.TriggerType)
@@ -122,6 +147,8 @@ func GetTriggerConfigByType(triggerType uint) (TriggerConfig, bool) {
 		return GetTriggerCronConfig(msql.Params{`name`: `定时触发器`, `icon`: `/public/trigger_cron_icon.svg`}), true
 	case TriggerTypeOfficial:
 		return GetTriggerOfficialConfig(msql.Params{`name`: `公众号触发器`, `icon`: `/public/trigger_official_icon.svg`}), true
+	case TriggerTypeWebHook:
+		return GetTriggerOfficialConfig(msql.Params{`name`: `webhook触发器`, `icon`: `/public/trigger_webhook_icon.svg`}), true
 	}
 	return TriggerConfig{}, false
 }
@@ -191,7 +218,23 @@ func GetTriggerOfficialConfig(trigger msql.Params) TriggerConfig {
 	}
 }
 
-func GetTriggerConfigList(adminUserId int, lang string) ([]TriggerConfig, error) {
+func GetTriggerWebHookConfig(trigger msql.Params, robotKey string) TriggerConfig {
+	return TriggerConfig{
+		TriggerType:   TriggerTypeWebHook,
+		TriggerName:   trigger[`name`],
+		TriggerIcon:   trigger[`icon`],
+		TriggerSwitch: true,
+		TriggerWebHookConfig: TriggerWebHookConfig{
+			Url: GetWebHookUrl(robotKey),
+		},
+	}
+}
+
+func GetWebHookUrl(robotKey string) string {
+	return define.Config.WebService["api_domain"] + `/open/workflow/webhook/` + robotKey + `/` + tool.Random(10)
+}
+
+func GetTriggerConfigList(adminUserId int, robotKey, lang string) ([]TriggerConfig, error) {
 	triggerList := make([]TriggerConfig, 0)
 	triggerList = append(triggerList, GetTriggerChatConfig()) //会话触发器
 	if define.IsDev {
@@ -209,6 +252,8 @@ func GetTriggerConfigList(adminUserId int, lang string) ([]TriggerConfig, error)
 			triggerList = append(triggerList, GetTriggerCronConfig(trigger))
 		} else if cast.ToInt(trigger[`trigger_type`]) == TriggerTypeOfficial {
 			triggerList = append(triggerList, GetTriggerOfficialConfig(trigger))
+		} else if cast.ToInt(trigger[`trigger_type`]) == TriggerTypeWebHook {
+			triggerList = append(triggerList, GetTriggerWebHookConfig(trigger, robotKey))
 		}
 	}
 	return triggerList, nil
@@ -230,9 +275,14 @@ func TriggerList(adminUserId int, lang string) ([]msql.Params, error) {
 	}
 	//create official trigger
 	boolCreateOfficial := true
+	boolCreateWebhook := true
 	for _, val := range list {
 		if cast.ToInt(val[`trigger_type`]) == TriggerTypeOfficial {
 			boolCreateOfficial = false
+			break
+		}
+		if cast.ToInt(val[`trigger_type`]) == TriggerTypeWebHook {
+			boolCreateWebhook = false
 			break
 		}
 	}
@@ -244,11 +294,21 @@ func TriggerList(adminUserId int, lang string) ([]msql.Params, error) {
 			return nil, errors.New(i18n.Show(lang, `sys_err`))
 		}
 	}
+	if boolCreateWebhook {
+		TriggerInitWebhook(adminUserId)
+		list, err = msql.Model(`trigger_config`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id asc`).Select()
+		if err != nil {
+			return nil, errors.New(i18n.Show(lang, `sys_err`))
+		}
+	}
 	for key, val := range list {
 		if cast.ToInt(val[`trigger_type`]) == TriggerTypeCron {
 			list[key][`icon`] = `/public/trigger_cron_icon.svg`
 		} else if cast.ToInt(val[`trigger_type`]) == TriggerTypeOfficial {
 			list[key][`icon`] = `/public/trigger_official_icon.svg`
+		} else if cast.ToInt(val[`trigger_type`]) == TriggerTypeWebHook {
+			list[key][`icon`] = `/public/trigger_webhook_icon.svg`
 		}
 	}
 	return list, nil
@@ -277,6 +337,33 @@ func TriggerInitOfficial(adminUserId int) {
 		lib_redis.DelCacheData(define.Redis, common.TriggerConfigCacheBuildHandler{
 			AdminUserId: adminUserId,
 			TriggerType: cast.ToString(TriggerTypeOfficial),
+		})
+	}
+}
+
+func TriggerInitWebhook(adminUserId int) {
+	lockKey := `trigger_init_webhook`
+	if !lib_redis.AddLock(define.Redis, lockKey, time.Second*5) {
+		return
+	}
+	defer lib_redis.UnLock(define.Redis, lockKey)
+	_, err := msql.Model(`trigger_config`, define.Postgres).Insert(msql.Datas{
+		`admin_user_id`: adminUserId,
+		`switch_status`: 1,
+		`name`:          `webhook触发器`,
+		`trigger_type`:  TriggerTypeWebHook,
+		`intro`:         `工作流增加webhook触发器，支持通过http请求触发工作流`,
+		`author`:        `chatwiki`,
+		`from_type`:     define.FromInherited,
+		`create_time`:   time.Now().Unix(),
+		`update_time`:   time.Now().Unix(),
+	})
+	if err != nil {
+		logs.Error(err.Error())
+	} else {
+		lib_redis.DelCacheData(define.Redis, common.TriggerConfigCacheBuildHandler{
+			AdminUserId: adminUserId,
+			TriggerType: cast.ToString(TriggerTypeWebHook),
 		})
 	}
 }
@@ -337,6 +424,8 @@ func SaveTriggerConfig(robot msql.Params, node *WorkFlowNode, lang string) error
 			err = SaveTriggerCronConfig(trigger, robot, lang)
 		case TriggerTypeOfficial:
 			err = SaveTriggerOfficialConfig(robot[`admin_user_id`], trigger, robot, lang)
+		case TriggerTypeWebHook:
+			err = SaveTriggerWebhookConfig(robot[`admin_user_id`], trigger, robot, lang)
 		}
 		if err != nil {
 			logs.Error(LogTriggerPrefix + err.Error())

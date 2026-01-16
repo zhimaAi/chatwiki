@@ -31,7 +31,7 @@ func GetTriggerConfigList(c *gin.Context) {
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	list, err := work_flow.GetTriggerConfigList(adminUserId, common.GetLang(c))
+	list, err := work_flow.GetTriggerConfigList(adminUserId, c.Query(`robot_key`), common.GetLang(c))
 	if err != nil {
 		common.FmtError(c, err.Error())
 		return
@@ -157,6 +157,127 @@ func GetNodeList(c *gin.Context) {
 		filtered = append(filtered, list[i])
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(filtered, nil))
+}
+
+func GetStartNode(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	robotId := cast.ToInt(c.Query(`robot_id`))
+	robot, err := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`id`, cast.ToString(robotId)).
+		Find()
+	if len(robot) == 0 || cast.ToInt(robot[`application_type`]) != define.ApplicationTypeFlow {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	m := msql.Model(`work_flow_node`, define.Postgres)
+	info, err := m.Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`robot_id`, robot[`id`]).
+		Where(`node_key`, robot[`start_node_key`]).
+		Where(`data_type`, cast.ToString(define.DataTypeRelease)).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(info) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(info, nil))
+}
+
+// GetHttpAuthConfig get http node auth config
+func GetHttpAuthConfig(c *gin.Context) {
+	var userId = getLoginUserId(c)
+	if userId == 0 {
+		return
+	}
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+
+	m := msql.Model(`http_node_auth_config`, define.Postgres)
+	list, err := m.Where(`staff_user_id`, cast.ToString(userId)).Where(`admin_user_id`, cast.ToString(adminUserId)).Select()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
+
+}
+
+// SaveHttpAuthConfig save http node auth config
+func SaveHttpAuthConfig(c *gin.Context) {
+	var userId = getLoginUserId(c)
+	if userId == 0 {
+		return
+	}
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+
+	// http_auth_config_list 是前端通过post form传过来的一个json数组，每个元素包含以下字段：auth_key、auth_value、auth_value_addto、auth_remark
+	httpAuthConfigList := c.PostForm(`http_auth_config_list`)
+	var authConfigList []map[string]interface{}
+	tool.JsonDecodeUseNumber(httpAuthConfigList, &authConfigList)
+	if len(authConfigList) > 100 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `the auth config should less then 100`))))
+		return
+	}
+
+	// 首先将http_node_auth_config 表中staff_user_id、admin_user_id 的数据清空，然后循环插入httpAuthConfigList 中的数据
+	m := msql.Model(`http_node_auth_config`, define.Postgres)
+	_, err := m.Where(`staff_user_id`, cast.ToString(userId)).Where(`admin_user_id`, cast.ToString(adminUserId)).Delete()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+
+	if len(authConfigList) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+		return
+	}
+
+	// 循环插入httpAuthConfigList 中的数据
+	currentTime := tool.Time2Int()
+	for _, item := range authConfigList {
+		authKey := strings.TrimSpace(cast.ToString(item[`auth_key`]))
+		if authKey == "" {
+			continue
+		}
+		authRemark := strings.TrimSpace(cast.ToString(item[`auth_remark`]))
+		// 如果auth_remark 大于10个字则跳过
+		if len(authRemark) > 10 {
+			continue
+		}
+
+		_, err = m.Insert(msql.Datas{
+			`staff_user_id`:    userId,
+			`admin_user_id`:    adminUserId,
+			`auth_key`:         authKey,
+			`auth_value`:       strings.TrimSpace(cast.ToString(item[`auth_value`])),
+			`auth_value_addto`: strings.TrimSpace(cast.ToString(item[`auth_value_addto`])),
+			`auth_remark`:      authRemark,
+			`create_time`:      currentTime,
+			`update_time`:      currentTime,
+		})
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
 func SaveNodes(c *gin.Context) {
@@ -357,10 +478,34 @@ func VerifyTriggerCronConfig(adminUserId string, node *work_flow.WorkFlowNode, l
 			err = verifyTriggerCronConfig(trigger.TriggerCronConfig, lang)
 		case work_flow.TriggerTypeOfficial:
 			err = verifyTriggerOfficialConfig(adminUserId, trigger.TriggerOfficialConfig, lang)
+		case work_flow.TriggerTypeWebHook:
+			err = verifyTriggerWebHookConfig(trigger.TriggerWebHookConfig, lang)
 		}
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func verifyTriggerWebHookConfig(triggerWebHookConfig work_flow.TriggerWebHookConfig, lang string) error {
+	if triggerWebHookConfig.Url == `` {
+		return errors.New(i18n.Show(lang, `param_err`, `trigger_web_hook_config.url`))
+	}
+	if !tool.InArray(triggerWebHookConfig.Method, []string{http.MethodGet, http.MethodPost}) {
+		return errors.New(i18n.Show(lang, `param_err`, `trigger_web_hook_config.method`))
+	}
+	if !tool.InArray(triggerWebHookConfig.RequestContentType, []string{define.ContentTypeNode, define.ContentTypeMultipart, define.ContentTypeFormUrl, define.ContentTypeJson}) {
+		return errors.New(i18n.Show(lang, `param_err`, `trigger_web_hook_config.request_content_type`))
+	}
+	if triggerWebHookConfig.ResponseType == `` || !tool.InArray(triggerWebHookConfig.ResponseType, []string{work_flow.WebHookResponseTypeNow, work_flow.WebHookResponseTypeMessageVariable}) {
+		return errors.New(i18n.Show(lang, `param_err`, `trigger_web_hook_config.response_type`))
+	}
+	if cast.ToInt(triggerWebHookConfig.SwitchAllowIp) > 0 && triggerWebHookConfig.AllowIps == `` {
+		return errors.New(i18n.Show(lang, `param_err`, `trigger_web_hook_config.allow_ips`))
+	}
+	if len(strings.Split(triggerWebHookConfig.AllowIps, "\n")) > 1000 {
+		return errors.New(i18n.Show(lang, `param_err`, `trigger_web_hook_config.allow_ips`))
 	}
 	return nil
 }
@@ -757,6 +902,9 @@ func WorkFlowPublishVersion(c *gin.Context) {
 	err = work_flow.SaveTriggerConfig(robot, &startNode, common.GetLang(c))
 	if err != nil {
 		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		lib_redis.UnLock(define.Redis, lockKey) //unlock
+		return
 	}
 	//clear cached data
 	for _, nodeKey := range clearNodeKeys {

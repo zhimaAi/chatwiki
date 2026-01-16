@@ -74,6 +74,7 @@ type ChatRequestParam struct {
 	LoopTestParams       []any
 	BatchTestParams      []any
 	HeaderToken          string
+	TestParams           []any
 }
 
 type DocSplitItem struct {

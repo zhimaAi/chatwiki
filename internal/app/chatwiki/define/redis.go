@@ -14,4 +14,5 @@ const DelayZset = `chatwiki.delay.zset` // 存储延时的zset
 
 const (
 	RedisPrefixOfficialTrigger = `chatwiki.official_trigger.%s.%s`
+	RedisPrefixFindKeyTrigger  = `chatwiki.find_key_trigger.%s.%s`
 )
