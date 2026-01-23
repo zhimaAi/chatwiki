@@ -7,7 +7,8 @@ import {
   getChatMessage,
   questionGuide,
   getSessionRecordList,
-  getSessionChannelList
+  getSessionChannelList,
+  editVariables,
 } from '@/api/chat'
 import { editPrompt } from '@/api/robot/index'
 import { getUuid, getOpenid, devLog, extractVoiceInfo, removeVoiceFormat } from '@/utils/index'
@@ -52,6 +53,14 @@ export const useChatStore = defineStore('chat', () => {
     enable_common_question: false,
     common_question_list: [],
     question_multiple_switch: 0,
+  })
+
+  const chat_variables = ref({
+    need_fill_variable: false,
+    fill_variables: [],
+    wait_variables: [],
+    session_id: 0,
+    dialogue_id: 0,
   })
 
   // 存储聊天记录必备的数据
@@ -116,7 +125,8 @@ export const useChatStore = defineStore('chat', () => {
       nickname: user.nickname,
       name: user.name,
       // avatar: user.avatar || DEFAULT_USER_AVATAR, // lion要求把请求的avatar 干掉
-      is_background: data.is_background || undefined
+      is_background: data.is_background || undefined,
+      dialogue_id: dialogue_id.value,
     })
 
     try {
@@ -143,6 +153,12 @@ export const useChatStore = defineStore('chat', () => {
       if (robotInfo.welcomes) {
         robot.welcomes = JSON.parse(robotInfo.welcomes)
       }
+
+      chat_variables.value = {}
+      
+      setTimeout(()=>{
+        chat_variables.value = res.data.chat_variable || {}
+      })
 
       // 插入欢迎语
       insertWelcomeMsg(res.data.message)
@@ -387,6 +403,13 @@ export const useChatStore = defineStore('chat', () => {
       global: data.global
     }
 
+    let variables_key = `chat_prompt_variables_${robot.robot_key}`
+
+    if(localStorage.getItem(variables_key)){
+      params.chat_prompt_variables = localStorage.getItem(variables_key)
+      localStorage.removeItem(variables_key)
+    }
+
     if (import.meta.env.DEV) {
       params.debug = 0
     }
@@ -482,6 +505,15 @@ export const useChatStore = defineStore('chat', () => {
 
         updateAiMessage('request_time', data, aiMsg.uid)
       }
+      if (res.event == 'chat_prompt_variables') {
+        let data = res.data
+        if(data){
+          data = JSON.parse(data)
+          chat_variables.value.need_fill_variable = data.need_fill_variable
+          chat_variables.value.fill_variables = data.fill_variables || []
+          chat_variables.value.session_id = data.session_id
+        }
+      }
       // 猜你想问
       if (res.event == 'finish') {
         if (robot.enable_question_guide) {
@@ -505,6 +537,18 @@ export const useChatStore = defineStore('chat', () => {
 
       mySSE = null
     }
+  }
+
+  const handleEditVariables = (data) => {
+    editVariables({
+      robot_key: robot.robot_key,
+      openid: robot.openid,
+      dialogue_id: dialogue_id.value,
+      chat_prompt_variables: JSON.stringify(data.chat_prompt_variables),
+      session_id: chat_variables.value.session_id
+    }).then(res=>{
+      chat_variables.value.fill_variables = data.chat_prompt_variables
+    })
   }
 
   // 获取对话记录
@@ -744,6 +788,8 @@ export const useChatStore = defineStore('chat', () => {
     changeRobotPrompt,
     saveRobotPrompt,
     getRecordList,
-    getChannelList
+    getChannelList,
+    chat_variables,
+    handleEditVariables
   }
 })

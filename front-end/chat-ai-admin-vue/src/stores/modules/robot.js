@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { getRobotInfo, getRobotList, getRobotGroupList } from '@/api/robot/index'
+import { getRobotInfo, getRobotList, getRobotGroupList, getChatVariables } from '@/api/robot/index'
 
 // WebApp配置
 const external_config_h5_default = {
@@ -389,6 +389,21 @@ export const useRobotStore = defineStore('robot', () => {
     paymentAiReplyStatus.value = String(val ?? '0')
   }
 
+  const chatVariables = ref([])
+  const fetchChatVariables = ()=>{
+    getChatVariables({
+      robot_key: robotInfo.robot_key
+    }).then(res=>{
+      chatVariables.value = (res.data || []).map(item=>{
+        let options = item.options ? JSON.parse(item.options) : []
+        return {
+          ...item,
+          options,
+        }
+      })
+    })
+  }
+
   return {
     robotInfo,
     getRobot,
@@ -420,5 +435,7 @@ export const useRobotStore = defineStore('robot', () => {
     setPaymentSwitchStatus,
     paymentAiReplyStatus,
     setPaymentAiReplyStatus,
+    fetchChatVariables,
+    chatVariables,
   }
 })

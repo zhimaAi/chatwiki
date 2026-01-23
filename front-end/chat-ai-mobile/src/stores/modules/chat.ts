@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { sendAiMessage, chatWelcome, getDialogueList, getChatMessage, questionGuide, getFastCommandList, addFeedback, delFeedback } from '@/api/chat'
+import { sendAiMessage, chatWelcome, getDialogueList, getChatMessage, questionGuide, getFastCommandList, addFeedback, delFeedback, editVariables } from '@/api/chat'
 import { editPrompt } from '@/api/robot/index'
 import { getUuid, getOpenid, extractVoiceInfo, removeVoiceFormat } from '@/utils/index'
 import { useEventBus } from '@/hooks/event/useEventBus'
@@ -156,6 +156,14 @@ export const useChatStore = defineStore('chat', () => {
     window_height: 650
   })
 
+  const chat_variables = ref<any>({
+    need_fill_variable: false,
+    fill_variables: [],
+    wait_variables: [],
+    session_id: 0,
+    dialogue_id: 0,
+  })
+
   // 创建对话
   const isNewChat = ref(false)
 
@@ -253,6 +261,12 @@ export const useChatStore = defineStore('chat', () => {
       if(faviconLink && externalConfigH5.logo){
         faviconLink.setAttribute('href', externalConfigH5.logo);
       }
+
+      chat_variables.value = {}
+      
+      setTimeout(()=>{
+        chat_variables.value = res.data.chat_variable || {}
+      })
 
       return res
     } catch (e) {
@@ -460,7 +474,7 @@ export const useChatStore = defineStore('chat', () => {
       event: 'robot',
     }
     const userStore = useUserStore()
-    const params = {
+    const params: any = {
       robot_key: robot.robot_key,
       openid: robot.openid,
       question: data.message,
@@ -469,6 +483,13 @@ export const useChatStore = defineStore('chat', () => {
       dialogue_id: dialogue_id.value,
       global: data.global,
       rel_user_id: userStore.userInfo ? userStore.userInfo.user_id : '',
+    }
+
+    let variables_key = `chat_prompt_variables_${robot.robot_key}`
+
+    if(localStorage.getItem(variables_key)){
+      params.chat_prompt_variables = localStorage.getItem(variables_key)
+      localStorage.removeItem(variables_key)
     }
 
     sendLock.value = true
@@ -544,6 +565,18 @@ export const useChatStore = defineStore('chat', () => {
 
         updateAiMessage('debug', data, aiMsg.uid)
       }
+
+      if (res.event == 'chat_prompt_variables') {
+        let data = res.data
+        if(data){
+          data = JSON.parse(data)
+          chat_variables.value.need_fill_variable = data.need_fill_variable
+          chat_variables.value.fill_variables = data.fill_variables || []
+          chat_variables.value.session_id = data.session_id
+          chat_variables.value.dialogue_id = data.dialogue_id
+        }
+      }
+
       if (res.event == 'finish') {
         robot.is_sending = false;
         if (robot.enable_question_guide) {
@@ -567,6 +600,18 @@ export const useChatStore = defineStore('chat', () => {
 
       mySSE = null
     }
+  }
+
+  const handleEditVariables = (data : any) => {
+    editVariables({
+      robot_key: robot.robot_key,
+      openid: robot.openid,
+      dialogue_id: chat_variables.value.dialogue_id,
+      chat_prompt_variables: JSON.stringify(data.chat_prompt_variables),
+      session_id: chat_variables.value.session_id
+    }).then(()=>{
+      chat_variables.value.fill_variables = data.chat_prompt_variables
+    })
   }
 
   // 获取对话记录
@@ -832,5 +877,7 @@ export const useChatStore = defineStore('chat', () => {
     upDataUiStyle,
     getFastCommand,
     updataQuickComand,
+    chat_variables,
+    handleEditVariables,
   }
 })

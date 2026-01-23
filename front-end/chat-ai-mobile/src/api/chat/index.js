@@ -56,3 +56,10 @@ export const addFeedback = (data) => {
 export const delFeedback = (data) => {
   return request.post({ url: '/chat/message/delFeedback', data })
 }
+
+export const editVariables = (data = {}) => {
+  return request.post({
+    url: '/chat/editVariables',
+    data: data
+  })
+}

@@ -204,36 +204,50 @@
         </div>
       </div>
     </div>
-    <div class="diy-prompt-box" v-else>
-      <div class="diy-switch-box" v-if="isEdit">
-        <div class="swich-item">
-          输出markdown：
-          <a-switch
-            size="small"
-            @change="(val) => handleDiyChangeSwitch(val, 'outDiySwitch')"
-            v-model:checked="outDiySwitch"
-            checked-children="开"
-            un-checked-children="关"
-          />
+    <div class="diy-prompt-box" :class="{ 'is-disabled': !isEdit }" v-else>
+      <a-flex align="center" justify="space-between" v-if="isEdit" style="margin: 8px 0">
+        <div style="color: #8c8c8c">
+          键入"/"可以插入变量，用户输入的参数会填充变量作为最终的提示词
         </div>
-        <div class="swich-item">
-          回复图片：
-          <a-switch
-            size="small"
-            @change="(val) => handleDiyChangeSwitch(val, 'imgDiySwitch')"
-            v-model:checked="imgDiySwitch"
-            checked-children="开"
-            un-checked-children="关"
-          />
+        <div class="diy-switch-box">
+          <div class="swich-item">
+            输出markdown：
+            <a-switch
+              @change="(val) => handleDiyChangeSwitch(val, 'outDiySwitch')"
+              v-model:checked="outDiySwitch"
+              checked-children="开"
+              un-checked-children="关"
+            />
+          </div>
+          <div class="swich-item">
+            回复图片：
+            <a-switch
+              @change="(val) => handleDiyChangeSwitch(val, 'imgDiySwitch')"
+              v-model:checked="imgDiySwitch"
+              checked-children="开"
+              un-checked-children="关"
+            />
+          </div>
         </div>
-      </div>
+      </a-flex>
 
-      <a-textarea
-        :bordered="isEdit"
-        v-model:value="formState.prompt"
-        :disabled="!isEdit"
-        placeholder="请输入"
-      />
+      <AtInput
+        type="textarea"
+        inputStyle="height: 126px"
+        :defaultValue="formState.prompt"
+        :options="chatVariables"
+        :disabled="true"
+        :checkAnyLevel="true"
+        ref="atinputRef"
+        @change="(text, selectedList) => changeValue(text, selectedList)"
+      >
+        <template #option="{ label, payload }">
+          <div class="field-list-item">
+            <div class="field-label">{{ label }}</div>
+            <div class="field-type">{{ payload.typ }}</div>
+          </div>
+        </template>
+      </AtInput>
     </div>
     <AiCreatePrompt @handleAiSave="handleAiSave" ref="aiCreatePromptRef" />
     <ImportPrompt @ok="handleSavePrompt" ref="importPromptRef" />
@@ -251,9 +265,11 @@ import {
   DownloadOutlined
 } from '@ant-design/icons-vue'
 import AiCreatePrompt from './ai-create-prompt.vue'
-// front-end\chat-ai-admin-vue\src\components\import-prompt\index.vue
 import ImportPrompt from '@/components/import-prompt/index.vue'
 import UploadPrompt from '@/components/import-prompt/upload-prompt.vue'
+import AtInput from './at-input/index.vue'
+import { useRobotStore } from '@/stores/modules/robot'
+const robotStore = useRobotStore()
 const isEdit = ref(false)
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
 const props = defineProps({
@@ -282,6 +298,37 @@ const imgSwitch = ref(false)
 
 const outDiySwitch = ref(false)
 const imgDiySwitch = ref(false)
+
+const atinputRef = ref(null)
+
+const chatVariables = computed(() => {
+  let list = robotStore.chatVariables
+  return list.map((item) => {
+    let label = item.variable_key + '（' + item.variable_name + '）'
+    let value = `【chat_variable:${item.variable_key}】`
+    return {
+      ...item,
+      label,
+      value
+    }
+  })
+})
+
+watch(
+  () => chatVariables,
+  () => {
+    setTimeout(() => {
+      atinputRef.value && atinputRef.value.refresh()
+    }, 500)
+  },
+  {
+    deep: true
+  }
+)
+
+const changeValue = (text, selectedList) => {
+  formState.prompt = text
+}
 
 const formState = reactive({
   prompt: '',
@@ -429,9 +476,11 @@ const handleImportSkill = () => {
     return work_flow_ids.includes(item.id)
   })
   let skill_str = []
-  skill_str = selectRobotList.map(item => {
-    return `- ${item.robot_name} ${item.robot_intro}`
-  }).join('\n')
+  skill_str = selectRobotList
+    .map((item) => {
+      return `- ${item.robot_name} ${item.robot_intro}`
+    })
+    .join('\n')
   formState.prompt_struct['skill'].describe = skill_str
 }
 
@@ -468,6 +517,7 @@ const handleAiSave = (prompt_struct) => {
 
 const handleEdit = () => {
   // prompt_type.value = robotInfo.prompt_type
+  prompt_type.value == 0 && atinputRef.value && atinputRef.value.refresh()
   isEdit.value = true
 }
 
@@ -647,17 +697,24 @@ const handleSavePrompt = (item) => {
 
 .diy-prompt-box {
   position: relative;
+  &.is-disabled {
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.25);
+      z-index: 1;
+    }
+  }
   .diy-switch-box {
-    font-size: 13px;
-    line-height: 16px;
-    position: absolute;
-    right: 12px;
-    top: 6px;
-    z-index: 9;
-    color: #8c8c8c;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
+    color: #595959;
+    font-size: 14px;
     .swich-item {
       display: flex;
       align-items: center;

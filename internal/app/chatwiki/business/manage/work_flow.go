@@ -139,11 +139,16 @@ func GetNodeList(c *gin.Context) {
 
 		if nodeType == work_flow.NodeTypePlugin { //获取引用插件列表
 			nodeParams := work_flow.DisposeNodeParams(nodeType, node[`node_params`])
-			manifest, _ := php.GetPluginManifest(nodeParams.Plugin.Name)
+			manifest, err := php.GetPluginManifest(nodeParams.Plugin.Name)
+			if err != nil {
+				logs.Error(`获取本地插件安装信息错误:%s`, err.Error())
+				list[i][`plugin_version`] = "0.0.1"
+			} else {
+				list[i][`plugin_version`] = manifest.Version
+			}
 
 			list[i][`has_loaded`] = localPluginMap[nodeParams.Plugin.Name]
 			list[i][`plugin_name`] = nodeParams.Plugin.Name
-			list[i][`plugin_version`] = manifest.Version
 			list[i][`remote_plugin_version`] = remotePluginMap[nodeParams.Plugin.Name].LatestVersion
 			list[i][`latest_version_detail_url`] = remotePluginMap[nodeParams.Plugin.Name].LatestVersionDetail.DownloadUrl
 			list[i][`latest_version_detail_id`] = remotePluginMap[nodeParams.Plugin.Name].LatestVersionDetail.Id

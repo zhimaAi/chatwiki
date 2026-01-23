@@ -74,6 +74,7 @@ type ChatRequestParam struct {
 	LoopTestParams       []any
 	BatchTestParams      []any
 	HeaderToken          string
+	ChatPromptVariables  string
 	TestParams           []any
 }
 

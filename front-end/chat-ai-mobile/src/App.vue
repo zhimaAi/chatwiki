@@ -3,7 +3,9 @@ import { RouterView } from 'vue-router'
 import { reactive } from 'vue'
 const themeVars = reactive({
   popupRoundRadius: '6px',
-  popupCloseIconSize: '18px'
+  popupCloseIconSize: '18px',
+  buttonPrimaryBackground: '#2475fc',
+  buttonPrimaryBorderColor: '#2475fc',
 })
 </script>
 

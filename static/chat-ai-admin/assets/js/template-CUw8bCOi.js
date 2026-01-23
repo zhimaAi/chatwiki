@@ -1,1 +1,0 @@
-import{a5 as t}from"../../index-WMhSApoa.js";const o=(e={})=>t.get({url:"/manage/getRobotTemplateCategoryList",params:e}),r=(e={})=>t.get({url:"/manage/getRobotTemplateList",params:e}),s=(e={})=>t.get({url:"/manage/commonGetRobotTemplateDetail",params:e}),m=(e={})=>t.post({url:"/manage/useRobotTemplate",data:e});export{o as a,r as b,s as g,m as u};

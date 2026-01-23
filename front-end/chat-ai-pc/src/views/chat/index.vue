@@ -106,12 +106,58 @@
     }
   }
 }
+
+
+.form-banner-top{
+  max-width: 736px;
+  width: calc(100% - 24px);
+  margin: 0 auto;
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 2px solid var(--10, #FFF);
+  height: 56px;
+  background: linear-gradient(180deg, #EBF2FF 0%, #FFF 22.78%);
+  box-shadow: 0 4px 24px 0 #00000014;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  .title{
+    font-weight: 600;
+    color: #000000;
+    font-size: 16px;
+  }
+  .edit-block{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #2475fc;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 1px 8px;
+    img{
+      width: 16px;
+      height: 16px;
+    }
+    &:hover{
+      background: var(--07, #E4E6EB);
+      border-radius: 6px;
+    }
+  }
+}
+
 </style>
 
 <template>
   <div class="chat-page">
     <div class="chat-page-header">
       <ChatHeader />
+    </div>
+    <div class="form-banner-top" v-if="isShowFromHeader">
+      <div class="title">表单信息</div>
+      <div class="edit-block" @click="handleEditVariableForm">
+        <img src="@/assets/icons/edit.svg" alt="">编辑
+      </div>
     </div>
     <div class="chat-page-body">
       <div class="messages-list-wrap">
@@ -154,6 +200,7 @@
       />
       <div class="technical-support-text">{{ translate('由 ChatWiki 提供软件支持') }}</div>
     </div>
+    <VariableModal ref="variableModalRef" />
   </div>
 </template>
 
@@ -174,6 +221,7 @@ import MessageInput from './components/message-input.vue'
 import MessageList from './components/messages/message-list.vue'
 import MessageItem from './components/messages/message-item.vue'
 import FastComand from './components/fast-comand/index.vue'
+import VariableModal from './components/variable-modal/index.vue'
 
 
 type MessageListComponent = {  
@@ -194,6 +242,10 @@ const chatStore = useChatStore()
 const { sendMessage, onGetChatMessage, $reset, robot, externalConfigPC, openChatWindow, closeChatWindow } = chatStore
 
 const { messageList, sendLock } = storeToRefs(chatStore)
+
+const isShowFromHeader = computed(()=>{
+  return !chatStore.chat_variables.need_fill_variable && chatStore.chat_variables.fill_variables && chatStore.chat_variables.fill_variables.length
+})
 
 const isShortcut = computed(()=>{
   return robot.yunpc_fast_command_switch == '1' ? true : false
@@ -405,6 +457,14 @@ const handleToggleQuoteFiel = (msgId: number) => {
   if (msg) {
     msg.show_quote_file = !msg.show_quote_file
   }
+}
+
+interface VariableModalRefState {
+  handleEdit: (data?: any) => void
+}
+const variableModalRef = ref<null | VariableModalRefState>(null)
+const handleEditVariableForm = () => {
+  variableModalRef.value?.handleEdit()
 }
 
 onMounted(() => {

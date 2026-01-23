@@ -259,6 +259,7 @@ func init() {
 	noAuthFuns(Route[http.MethodPost], `/chat/callWorkFlowHttpTest`, business.CallWorkFlowHttpTest)
 	noAuthFuns(Route[http.MethodPost], `/chat/checkChatRequestPermission`, business.CheckChatRequestPermission)
 	noAuthFuns(Route[http.MethodPost], `/chat/questionGuide`, business.ChatQuestionGuide)
+	noAuthFuns(Route[http.MethodPost], `/chat/editVariables`, business.ChatEditVariables)
 	/*model API*/
 	Route[http.MethodGet][`/manage/getModelConfigList`] = manage.GetModelConfigList
 	noAuthFuns(Route[http.MethodGet], `/manage/showModelConfigList`, manage.ShowModelConfigList)
@@ -444,6 +445,12 @@ func init() {
 	Route[http.MethodGet][`/manage/getRobotTemplateList`] = manage.GetRobotTemplateList
 	Route[http.MethodPost][`/manage/useRobotTemplate`] = manage.UseRobotTemplate
 	Route[http.MethodGet][`/manage/commonGetRobotTemplateDetail`] = manage.CommonGetRobotTemplateDetail
+
+	/* Chat Variable */
+	Route[http.MethodPost][`/manage/getChatVariables`] = manage.GetChatVariables
+	Route[http.MethodPost][`/manage/createChatVariable`] = manage.CreateChatVariable
+	Route[http.MethodPost][`/manage/deleteChatVariable`] = manage.DeleteChatVariable
+
 }
 
 func noAuthFuns(route map[string]lib_web.Action, path string, handlerFunc lib_web.Action) map[string]lib_web.Action {

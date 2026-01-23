@@ -99,20 +99,21 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 
 	//request
 	request := pipeline.NewPipeline(in, out)
-	request.Pipe(CheckChanStream)        //检查流式输出的管道
-	request.Pipe(SseKeepAlive)           //流式输出保活
-	request.Pipe(StreamPing)             //给前端推送ping
-	request.Pipe(CheckParams)            //请求参数检查
-	request.Pipe(FilterLibrary)          //过滤知识库
-	request.Pipe(CloseOpenApiReceiver)   //close open_api receiver
-	request.Pipe(GetDialogueId)          //校验对话或创建对话
-	request.Pipe(GetSessionId)           //获取会话ID
-	request.Pipe(CustomerPush)           //推送customer信息
-	request.Pipe(SaveCustomerMsg)        //保存customer消息
-	request.Pipe(UpLastChatByC)          //更新last_chat
-	request.Pipe(WebsocketNotifyByC)     //接待变更通知
-	request.Pipe(SetRobotAbilityPayment) //设置机器人应用收费开关标志
-	request.Pipe(CheckPaymentManager)    //设置当前会话是否是授权码管理员
+	request.Pipe(CheckChanStream)          //检查流式输出的管道
+	request.Pipe(SseKeepAlive)             //流式输出保活
+	request.Pipe(StreamPing)               //给前端推送ping
+	request.Pipe(CheckParams)              //请求参数检查
+	request.Pipe(FilterLibrary)            //过滤知识库
+	request.Pipe(CloseOpenApiReceiver)     //close open_api receiver
+	request.Pipe(GetDialogueId)            //校验对话或创建对话
+	request.Pipe(GetSessionId)             //获取会话ID
+	request.Pipe(CustomerPush)             //推送customer信息
+	request.Pipe(UpChatPromptVariablesByC) //保存会话提示词变量
+	request.Pipe(SaveCustomerMsg)          //保存customer消息
+	request.Pipe(UpLastChatByC)            //更新last_chat
+	request.Pipe(WebsocketNotifyByC)       //接待变更通知
+	request.Pipe(SetRobotAbilityPayment)   //设置机器人应用收费开关标志
+	request.Pipe(CheckPaymentManager)      //设置当前会话是否是授权码管理员
 	request.Process()
 	if out.Error != nil {
 		return //出错后终止逻辑

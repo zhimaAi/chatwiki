@@ -75,7 +75,7 @@ func GetSessionRecordList(c *gin.Context) {
 		return
 	}
 	list, err = m.Where(`id`, `in`, strings.Join(sessionIds, `,`)).
-		Field(`id session_id,dialogue_id,last_chat_time,last_chat_message,app_type,app_id,openid,rel_user_id`).
+		Field(`id session_id,dialogue_id,last_chat_time,last_chat_message,app_type,app_id,openid,rel_user_id,chat_prompt_variables`).
 		Order(`last_chat_time DESC`).Select()
 	if err != nil {
 		logs.Error(err.Error())

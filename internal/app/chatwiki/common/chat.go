@@ -86,9 +86,12 @@ func SendDefaultUnknownQuestionPrompt(params *define.ChatRequestParam, errmsg st
 	chanStream <- sse.Event{Event: `sending`, Data: *content}
 }
 
-func BuildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId int64, dialogueId int, debugLog *[]any) ([]adaptor.ZhimaChatCompletionMessage, []msql.Params, LibUseTime, error) {
+func BuildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId int64, dialogueId, sessionId int, debugLog *[]any) ([]adaptor.ZhimaChatCompletionMessage, []msql.Params, LibUseTime, error) {
 	if len(params.Prompt) == 0 { //no custom is used
-		params.Prompt = BuildPromptStruct(cast.ToInt(params.Robot[`prompt_type`]), params.Robot[`prompt`], params.Robot[`prompt_struct`])
+		prompt := params.Robot[`prompt`]
+		promptStruct := params.Robot[`prompt_struct`]
+		ReplaceChatVariables(sessionId, &prompt, &promptStruct)
+		params.Prompt = BuildPromptStruct(cast.ToInt(params.Robot[`prompt_type`]), prompt, promptStruct)
 	}
 	if len(params.LibraryIds) == 0 || !CheckIds(params.LibraryIds) { //no custom is used
 		params.LibraryIds = params.Robot[`library_ids`]
@@ -161,9 +164,12 @@ func BuildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 	return messages, list, libUseTime, nil
 }
 
-func BuildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int64, dialogueId int, debugLog *[]any) ([]adaptor.ZhimaChatCompletionMessage, error) {
+func BuildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int64, dialogueId, sessionId int, debugLog *[]any) ([]adaptor.ZhimaChatCompletionMessage, error) {
 	if len(params.Prompt) == 0 { //no custom is used
-		params.Prompt = BuildPromptStruct(cast.ToInt(params.Robot[`prompt_type`]), params.Robot[`prompt`], params.Robot[`prompt_struct`])
+		prompt := params.Robot[`prompt`]
+		promptStruct := params.Robot[`prompt_struct`]
+		ReplaceChatVariables(sessionId, &prompt, &promptStruct)
+		params.Prompt = BuildPromptStruct(cast.ToInt(params.Robot[`prompt_type`]), prompt, promptStruct)
 	}
 
 	//part0:init messages
