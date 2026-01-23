@@ -708,3 +708,25 @@ export const setWechatConfigSwitch = (data = {}) => {
     data: data
   })
 }
+
+
+export const createChatVariable = (data = {}) => {
+  return request.post({
+    url: '/manage/createChatVariable',
+    data: data
+  })
+}
+
+export const getChatVariables = (data = {}) => {
+  return request.post({
+    url: '/manage/getChatVariables',
+    data: data
+  })
+}
+
+export const deleteChatVariable = (data = {}) => {
+  return request.post({
+    url: '/manage/deleteChatVariable',
+    data: data
+  })
+}

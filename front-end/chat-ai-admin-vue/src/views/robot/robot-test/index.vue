@@ -82,6 +82,37 @@
     background: #f2f4f7;
   }
 }
+
+.form-banner-top{
+  padding: 16px;
+  border-radius: 12px;
+  border: 2px solid var(--10, #FFF);
+  height: 56px;
+  background: linear-gradient(180deg, #EBF2FF 0%, #FFF 22.78%);
+  box-shadow: 0 4px 24px 0 #00000014;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  .title{
+    font-weight: 600;
+    color: #000000;
+    font-size: 16px;
+  }
+  .edit-block{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #2475fc;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 1px 8px;
+    &:hover{
+      background: var(--07, #E4E6EB);
+      border-radius: 6px;
+    }
+  }
+}
+
 </style>
 
 <template>
@@ -116,6 +147,12 @@
       </div>
       <!-- body -->
       <div class="page-body">
+        <div class="form-banner-top" v-if="isShowFromHeader">
+          <div class="title">表单信息</div>
+          <div class="edit-block" @click="handleEditVariableForm">
+            <EditOutlined />编辑
+          </div>
+        </div>
         <div class="chat-box-body">
           <MessageList
             ref="messageListRef"
@@ -152,6 +189,7 @@
     <PromptLogAlert ref="promptLogAlertRef" />
 
     <libraryInfoAlert ref="libraryInfoAlertRef" />
+    <VariableModal ref="variableModalRef" />
   </div>
 </template>
 
@@ -163,7 +201,7 @@ import { storeToRefs } from 'pinia'
 import { useEventBus } from '@/hooks/event/useEventBus'
 import { useChatStore } from '@/stores/modules/chat'
 import { useUserStore } from '@/stores/modules/user'
-import { ExclamationCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
+import { ExclamationCircleOutlined, PlusOutlined, EditOutlined } from '@ant-design/icons-vue'
 import { Modal, message as antMessage } from 'ant-design-vue'
 import { showErrorMsg, showSuccessMsg } from '@/utils/index'
 import MessageList from './components/message-list.vue'
@@ -172,6 +210,7 @@ import RobotTestRight from './components/robot-test-right.vue'
 import MessageInput from './components/message-input.vue'
 import PromptLogAlert from './components/prompt-log-alert.vue'
 import libraryInfoAlert from './components/library-info-alert.vue'
+import VariableModal from './components/variable-modal/index.vue'
 import { saveRobot, checkChatRequestPermission } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
 
@@ -203,6 +242,10 @@ const {
   $reset
 } = chatStore
 const { messageList, sendLock, myChatList, robot, dialogue_id } = storeToRefs(chatStore)
+
+const isShowFromHeader = computed(()=>{
+  return !chatStore.chat_variables.need_fill_variable && chatStore.chat_variables.fill_variables && chatStore.chat_variables.fill_variables.length
+})
 
 const route = useRoute()
 const isRobotInfo = ref(false)
@@ -476,6 +519,11 @@ const libraryInfoAlertRef = ref(null)
 
 const handleOpenLibraryInfo = (files, file) => {
   libraryInfoAlertRef.value.open(files, file)
+}
+
+const variableModalRef = ref(null)
+const handleEditVariableForm = () => {
+  variableModalRef.value.handleEdit()
 }
 
 watch(

@@ -166,7 +166,7 @@ func CheckRobotPaymentAuthCode(in *ChatInParam, out *ChatOutParam) pipeline.Pipe
 // CheckChatTypeDirect 直连模式逻辑
 func CheckChatTypeDirect(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if cast.ToInt(in.params.Robot[`chat_type`]) == define.ChatTypeDirect {
-		out.messages, out.Error = common.BuildDirectChatRequestMessage(in.params, out.cMsgId, in.dialogueId, &out.debugLog)
+		out.messages, out.Error = common.BuildDirectChatRequestMessage(in.params, out.cMsgId, in.dialogueId, in.sessionId, &out.debugLog)
 		if out.Error != nil {
 			in.Stream(sse.Event{Event: `error`, Data: out.Error.Error()})
 		}
@@ -243,7 +243,7 @@ func RecallByChatCache(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 
 // RecallByLibrarys 通过知识库召回分段
 func RecallByLibrarys(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
-	out.messages, out.list, in.monitor.LibUseTime, out.Error = common.BuildLibraryChatRequestMessage(in.params, out.cMsgId, in.dialogueId, &out.debugLog)
+	out.messages, out.list, in.monitor.LibUseTime, out.Error = common.BuildLibraryChatRequestMessage(in.params, out.cMsgId, in.dialogueId, in.sessionId, &out.debugLog)
 	in.Stream(sse.Event{Event: `recall_time`, Data: in.monitor.LibUseTime.RecallTime})
 	if out.Error != nil {
 		in.Stream(sse.Event{Event: `error`, Data: out.Error.Error()})

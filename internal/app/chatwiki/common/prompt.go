@@ -7,6 +7,7 @@ import (
 	"chatwiki/internal/pkg/lib_define"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/cast"
@@ -188,4 +189,59 @@ func CreatePromptByAi(demand string, adminUserId, modelConfigId int, useModel st
 		return ``, fmt.Errorf(`%s`, chatResp.Result)
 	}
 	return promptStruct, nil
+}
+
+func ReplaceChatVariables(sessionId int, prompt *string, promptStruct *string) {
+	chatPromptVariablesStr, err := msql.Model(`chat_ai_session`, define.Postgres).Where(`id`, cast.ToString(sessionId)).Value(`chat_prompt_variables`)
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	if len(chatPromptVariablesStr) == 0 {
+		return
+	}
+	chatPromptVariables := make([]ChatVariable, 0)
+	err = tool.JsonDecode(chatPromptVariablesStr, &chatPromptVariables)
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	re, err := regexp.Compile(`【chat_variable:[a-zA-Z_]+】`)
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	//prompt
+	ReplaceChatVariable(prompt, chatPromptVariables, re)
+	//struct prompt
+	sp := StructPrompt{}
+	if err := tool.JsonDecodeUseNumber(*promptStruct, &sp); err != nil {
+		logs.Error(`promptStruct:%s,err:%v`, promptStruct, err)
+		return
+	}
+	ReplaceChatVariable(&sp.Role.Describe, chatPromptVariables, re)
+	ReplaceChatVariable(&sp.Task.Describe, chatPromptVariables, re)
+	*promptStruct = tool.JsonEncodeNoError(sp)
+}
+
+func ReplaceChatVariable(str *string, chatPromptVariables []ChatVariable, re *regexp.Regexp) {
+	fullMatches := re.FindAllString(*str, -1)
+	replaces := map[string]string{}
+	for _, match := range fullMatches {
+		replaces[match] = ``
+	}
+	for _, item := range chatPromptVariables {
+		if item.VariableType == VariableTypeCheckboxSwitch {
+			if cast.ToInt(item.VariableType) == 1 {
+				replaces[`【chat_variable:`+item.VariableKey+`】`] = `选中`
+			} else {
+				replaces[`【chat_variable:`+item.VariableKey+`】`] = `不选中`
+			}
+		} else {
+			replaces[`【chat_variable:`+item.VariableKey+`】`] = cast.ToString(item.Value)
+		}
+	}
+	for k, v := range replaces {
+		*str = strings.ReplaceAll(*str, k, v)
+	}
 }

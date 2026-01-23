@@ -35,6 +35,10 @@
       </div>
 
       <div class="setting-box">
+        <VariableSetting />
+      </div>
+
+      <div class="setting-box">
         <UnknownProblemPrompt />
       </div>
       <div class="setting-box">
@@ -95,6 +99,7 @@ import ShowLike from './components/show-like.vue'
 import rolePermission from './role-permission.vue'
 import Skill from './components/skill/index.vue'
 import ChatCache from './components/chat-cache.vue'
+import VariableSetting from './components/variable-setting/index.vue'
 import AnswerPrompt from './components/answer-prompt.vue'
 
 const robotStore = useRobotStore()
@@ -103,7 +108,7 @@ const activeLocalKey = '/robot/config/basic-config/activeKey'
 const scrollBox = ref(null)
 
 const { robotInfo } = storeToRefs(robotStore)
-const { getRobot } = robotStore
+const { getRobot, fetchChatVariables } = robotStore
 
 const modelStore = useModelStore()
 
@@ -202,6 +207,7 @@ const handleTabChange = () => {
 onMounted(()=>{
   getWorkFlowRobotList()
   modelStore.getAllmodelList()
+  fetchChatVariables()
 })
 
 </script>

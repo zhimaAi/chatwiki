@@ -260,6 +260,31 @@ func UpLastChatByC(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	return pipeline.PipeContinue
 }
 
+func UpChatPromptVariablesByC(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	if len(in.params.ChatPromptVariables) == 0 {
+		return pipeline.PipeContinue
+	}
+	upData := msql.Datas{
+		`chat_prompt_variables`: in.params.ChatPromptVariables,
+		`rel_user_id`:           in.params.RelUserId,
+	}
+	var fillVariables []map[string]any
+	err := tool.JsonDecode(in.params.ChatPromptVariables, &fillVariables)
+	if err != nil {
+		logs.Error(err.Error())
+		return pipeline.PipeContinue
+	}
+	common.UpChatPromptVariables(in.dialogueId, in.sessionId, upData)
+	in.Stream(sse.Event{Event: `chat_prompt_variables`, Data: map[string]any{
+		`dialogue_id`:        in.dialogueId,
+		`session_id`:         in.sessionId,
+		`need_fill_variable`: false,
+		`fill_variables`:     fillVariables,
+		`wait_variables`:     nil,
+	}})
+	return pipeline.PipeContinue
+}
+
 // WebsocketNotifyByC 接待变更通知
 func WebsocketNotifyByC(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	common.ReceiverChangeNotify(in.params.AdminUserId, `c_message`, out.cMessage)

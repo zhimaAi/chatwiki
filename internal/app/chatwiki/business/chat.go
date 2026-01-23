@@ -3,6 +3,7 @@
 package business
 
 import (
+	"chatwiki/internal/app/chatwiki/business/manage"
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
@@ -313,6 +314,7 @@ func ChatWelcome(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
+	dialogueId := cast.ToInt(c.PostForm(`dialogue_id`))
 	//database dispose
 	saveCustomerInfo(c, chatBaseParam)
 	chatBaseParam.Customer, _ = common.GetCustomerInfo(chatBaseParam.Openid, chatBaseParam.AdminUserId)
@@ -330,9 +332,10 @@ func ChatWelcome(c *gin.Context) {
 		`update_time`:   tool.Time2Int(),
 	}
 	data := map[string]any{
-		`message`:  common.ToStringMap(message),
-		`robot`:    chatBaseParam.Robot,
-		`customer`: chatBaseParam.Customer,
+		`message`:       common.ToStringMap(message),
+		`robot`:         chatBaseParam.Robot,
+		`customer`:      chatBaseParam.Customer,
+		`chat_variable`: manage.GetChatRobotVariables(dialogueId, chatBaseParam),
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
@@ -512,18 +515,19 @@ func getChatRequestParam(c *gin.Context) *define.ChatRequestParam {
 	batchTestParams := work_flow.TakeTestParams(question, openid, c.DefaultPostForm(`batch_test_params`, `[]`), &workFlowGlobal)
 	testParams := work_flow.TakeTestParams(question, openid, c.DefaultPostForm(`test_params`, `[]`), &workFlowGlobal)
 	return &define.ChatRequestParam{
-		ChatBaseParam:   chatBaseParam,
-		Error:           err,
-		Lang:            common.GetLang(c),
-		Question:        question,
-		DialogueId:      cast.ToInt(c.PostForm(`dialogue_id`)),
-		Prompt:          strings.TrimSpace(c.PostForm(`prompt`)),
-		LibraryIds:      strings.TrimSpace(c.PostForm(`library_ids`)),
-		IsClose:         &isClose,
-		WorkFlowGlobal:  workFlowGlobal,
-		LoopTestParams:  loopTestParams,
-		BatchTestParams: batchTestParams,
-		TestParams:      testParams,
+		ChatBaseParam:       chatBaseParam,
+		Error:               err,
+		Lang:                common.GetLang(c),
+		Question:            question,
+		DialogueId:          cast.ToInt(c.PostForm(`dialogue_id`)),
+		Prompt:              strings.TrimSpace(c.PostForm(`prompt`)),
+		LibraryIds:          strings.TrimSpace(c.PostForm(`library_ids`)),
+		IsClose:             &isClose,
+		WorkFlowGlobal:      workFlowGlobal,
+		LoopTestParams:      loopTestParams,
+		BatchTestParams:     batchTestParams,
+		ChatPromptVariables: c.PostForm(`chat_prompt_variables`),
+		TestParams:          testParams,
 	}
 }
 
@@ -1015,4 +1019,35 @@ func CallWorkFlowHttpTest(c *gin.Context) {
 	}
 	ret, err := work_flow.CallHttpTest(workFlowParams, curlNode)
 	c.String(http.StatusOK, lib_web.FmtJson(ret, err))
+}
+
+func ChatEditVariables(c *gin.Context) {
+	_, err := common.CheckChatRequest(c)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	dialogId := cast.ToInt(c.PostForm(`dialogue_id`))
+	if dialogId == 0 {
+		logs.Error(`dialogue_id is empty`)
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_empty`, `dialogue_id`))))
+		return
+	}
+	sessionId := cast.ToInt(c.PostForm(`session_id`))
+	if sessionId == 0 {
+		logs.Error(`session_id is empty`)
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_empty`, `session_id`))))
+		return
+	}
+	chatPromptVariables := cast.ToString(c.PostForm(`chat_prompt_variables`))
+	if len(chatPromptVariables) == 0 {
+		logs.Error(`chat_prompt_variables is empty`)
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_empty`, `chat_prompt_variables`))))
+		return
+	}
+	upData := msql.Datas{
+		`chat_prompt_variables`: chatPromptVariables,
+	}
+	common.UpChatPromptVariables(dialogId, sessionId, upData)
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }

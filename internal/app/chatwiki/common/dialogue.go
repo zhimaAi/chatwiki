@@ -120,3 +120,49 @@ func UpLastChat(dialogueId, sessionId int, lastChat msql.Datas, isCustomer int) 
 	//update receiver
 	updateReceiver(sessionId, lastChat, isCustomer)
 }
+
+func UpChatPromptVariables(dialogueId, sessionId int, upData msql.Datas) {
+	if len(upData) == 0 {
+		return
+	}
+	upData[`update_time`] = tool.Time2Int()
+	_, err := msql.Model(`chat_ai_session`, define.Postgres).
+		Where(`id`, cast.ToString(sessionId)).Update(upData)
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	//update session_id ttl
+	_, err = define.Redis.Expire(context.Background(), SessionCacheKey(dialogueId), GetSessionTtl()).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		logs.Error(err.Error())
+	}
+}
+
+func GetDialogueIdNoCreate(chatBaseParam *define.ChatBaseParam) (int, error) {
+	var isBackground int
+	if len(chatBaseParam.Customer) > 0 && cast.ToInt(chatBaseParam.Customer[`is_background`]) > 0 {
+		isBackground = 1
+	}
+	m := msql.Model(`chat_ai_dialogue`, define.Postgres)
+	if isBackground != 1 { //not background create
+		dialogueId, _ := m.Where(`robot_id`, chatBaseParam.Robot[`id`]).Where(`openid`, chatBaseParam.Openid).
+			Where(`admin_user_id`, cast.ToString(chatBaseParam.AdminUserId)).Order(`id DESC`).Value(`id`)
+		if cast.ToUint(dialogueId) > 0 {
+			return cast.ToInt(dialogueId), nil //use the old first
+		}
+	}
+	return 0, nil
+}
+
+func GetSessionIdNoCreate(dialogueId int) (int, error) {
+	cacheKey := SessionCacheKey(dialogueId)
+	sessionId, err := define.Redis.Get(context.Background(), cacheKey).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return 0, err
+	}
+	if sessionId := cast.ToInt(sessionId); sessionId > 0 {
+		return sessionId, nil
+	}
+	return 0, nil
+}
