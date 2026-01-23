@@ -9,7 +9,7 @@
       @scroll-bottom="onScrollBottom"
     >
       <div class="chat-message-content">
-        <div class="is-loaded" v-if="chatMessageLoadCompleted">没用更多聊天记录了</div>
+        <div class="is-loaded" v-if="chatMessageLoadCompleted">{{ t('no_more_messages') }}</div>
         <div
           v-for="(message, index) in messageList"
           :key="index"
@@ -120,7 +120,7 @@
               </div>
               <!-- 参考文件 -->
               <div class="answer-reference-box" v-if="message.quote_file && message.quote_file.length">
-                <div class="answer-reference-label">回答参考</div>
+                <div class="answer-reference-label">{{ t('answer_reference') }}</div>
                 <div>
                   <div
                     class="list-item"
@@ -145,12 +145,16 @@
 
 <script setup>
 import { ref, nextTick, toRaw } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import { storeToRefs } from 'pinia'
 import { useChatMonitorStore } from '@/stores/modules/chat-monitor.js'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import ChatMessageScroll from './chat-message-scroll.vue'
 import MultipleMessage from '@/views/robot/robot-test/components/messages/multiple-message.vue'
 import VoiceMessage from '@/views/robot/robot-test/components/voice-message.vue'
+
+const { t } = useI18n('views.chat-monitor.components.chat-message')
+
 const emit = defineEmits([
   'openLibrary'
 ])

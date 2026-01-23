@@ -223,6 +223,7 @@
                 un-checked-children="关"
               />
             </a-flex>
+            <a-button v-if="props.type != 3" @click="showMetaModal(1)">元数据 <SettingOutlined/></a-button>
             <div class="tool-item">
               <a-dropdown :trigger="['hover']" overlayClassName="add-dropdown-btn">
                 <template #overlay>
@@ -305,6 +306,13 @@
             }"
             @change="onTableChange"
           >
+            <template #headerCell="{column}">
+              <template v-if="column.key.indexOf('meta_') > -1">
+                <a-tooltip :title="column.title?.length > 8 ? column.title : ''">
+                  <div class="zm-line1">{{column.title}}</div>
+                </a-tooltip>
+              </template>
+            </template>
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'file_name'">
                 <div class="doc-name-td">
@@ -517,6 +525,11 @@
                   </a-dropdown>
                 </a-flex>
               </template>
+              <template v-if="column.key.indexOf('meta_') > -1">
+                <a-tooltip :title="record[column.key].length > 8 ? record[column.key] : ''">
+                  <div class="zm-line1">{{record[column.key]}}</div>
+                </a-tooltip>
+              </template>
             </template>
           </a-table>
         </div>
@@ -630,6 +643,7 @@
     <AddGroup group_type="1" ref="addGroupRef" @ok="initData" />
     <EditGroup :libraryId="libraryId" :sense="1" ref="editGroupRef" @ok="initData" />
     <AddFeishuDocument ref="feishuRef" :libraryId="libraryId" @ok="initData"/>
+    <MetadataManageModal ref="metaRef" :library-id="libraryId" @change="initData"/>
   </div>
 </template>
 
@@ -650,7 +664,8 @@ import {
   SyncOutlined,
   CopyOutlined,
   EllipsisOutlined,
-  LoadingOutlined
+  LoadingOutlined,
+  SettingOutlined,
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import {
@@ -684,6 +699,7 @@ import AddGroup from './qa-knowledge-document/components/add-group.vue'
 import EditGroup from './qa-knowledge-document/components/edit-group.vue'
 import Draggable from 'vuedraggable'
 import AddFeishuDocument from "./components/add-feishu-document.vue";
+import MetadataManageModal from "@/views/library/library-details/components/metadata-manage-modal.vue";
 
 const { setStorage } = useStorage('localStorage')
 
@@ -728,6 +744,13 @@ const filterGroupLists = computed(() => {
 })
 
 const userStore = useUserStore()
+const sourceTypeMap = {
+  1: '本地文档',
+  2: '在线文档',
+  3: '自定义文档',
+  4: '手工新增问答',
+  5: '导入问答'
+}
 const PDF_PARSE_MODE = [
   {
     key: 2,
@@ -997,12 +1020,12 @@ const columnsDefault = [
     key: 'status',
     width: 200
   },
-  {
-    title: '更新时间',
-    dataIndex: 'update_time',
-    key: 'update_time',
-    width: 150
-  },
+  // {
+  //   title: '更新时间',
+  //   dataIndex: 'update_time',
+  //   key: 'update_time',
+  //   width: 150
+  // },
   {
     title: '操作',
     dataIndex: 'action',
@@ -1150,6 +1173,18 @@ const getData = () => {
 
       let list = res.data.list || []
       let countData = res.data.count_data || {}
+      let metaList = list?.[0]?.meta_list || []
+      let metaCols = []
+      metaList.forEach(item => {
+        if (columns.value.findIndex(i => i.dataIndex == item.key) > -1) return
+        metaCols.push({
+          title: item.name,
+          key: `meta_${item.key}`,
+          dataIndex: `meta_${item.key}`,
+          width: 160,
+        })
+      })
+      columns.value.splice(columns.value.length - 1, 0, ...metaCols)
 
       queryParams.total = res.data.total
 
@@ -1170,6 +1205,17 @@ const getData = () => {
           item.doc_last_renew_time > 0
             ? dayjs(item.doc_last_renew_time * 1000).format('YYYY-MM-DD HH:mm')
             : '--'
+        if (Array.isArray(item.meta_list)) {
+          item.meta_list.forEach(i => {
+            if (i.type == 1 && i.value > 0) {
+              i.value = dayjs(i.value * 1000).format('YYYY-MM-DD HH:mm')
+            }
+            if (i.key == 'source') {
+              i.value = sourceTypeMap[i.value]
+            }
+            item[`meta_${i.key}`] = i.value
+          })
+        }
         return item
       })
       needRefresh && timingRefreshStatus()
@@ -1641,6 +1687,13 @@ const handleDragEnd = async () => {
     getGroupLists()
   }
 }
+
+const metaRef = ref(null)
+
+const showMetaModal = (type) => {
+  metaRef.value.show(type == 2)
+}
+
 
 onMounted(() => {
   if (query.page) {

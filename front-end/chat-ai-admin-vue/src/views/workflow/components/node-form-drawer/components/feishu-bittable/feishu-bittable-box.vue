@@ -231,7 +231,7 @@ function loadTables() {
   loading.value = true
   tableData.value = {}
   tables.value = []
-  if (!isValidURL(formState.app_token)) {
+  if (!isValidURL(formState.app_token) || (Array.isArray(formState.tag_map?.app_token) && formState.tag_map.app_token.length)) {
     loading.value = false
     return Promise.resolve(null)
   }
@@ -254,6 +254,14 @@ function loadTables() {
       tableChange()
     }
     return res
+  }).catch(() => {
+    tableData.value = {}
+    tables.value = []
+    if (formState.table_set_type == 1) {
+      formState.table_id = undefined
+    }
+    fields.value = []
+    return null
   }).finally(() => {
     loading.value = false
   })
@@ -261,7 +269,6 @@ function loadTables() {
 
 function loadFields() {
   loadingF.value = true
-  fields.value = []
   if (!isValidURL(formState.app_token) || !formState.table_id || formState.tag_map?.table_id?.length) {
     loadingF.value = false
     return Promise.resolve(null)
@@ -318,7 +325,14 @@ function paramsFormat(val) {
             item.value = (item.value == 'true')
           }
           if ('MultiSelect' === item.ui_type) {
-            item.value = item.value.replace(/，/g, ',').split(',')
+            if (Array.isArray(item.value)) {
+              // 已经是数组，无需处理
+            } else if (typeof item.value === 'string') {
+              const v = item.value.trim()
+              item.value = v ? v.replace(/，/g, ',').split(',') : []
+            } else {
+              item.value = []
+            }
           }
           if ('DateTime' === item.ui_type) {
             if (item.value < 1e11) item.value *= 1000
@@ -384,14 +398,22 @@ function nodeParamsAssign() {
   }
 }
 
-function tableSetChange() {
+function tableSetChange () {
   if (formState.table_set_type == 1) {
     formState.table_id = tables.value?.[0]?.table_id || undefined
     formState.tag_map.table_id = []
+    fields.value = []
+    loadFields().then(() => compInit())
   } else {
     formState.table_id = ''
+    fields.value = []
+    if (props.actionName === 'create_record') {
+      compInit({ plugin: { params: { arguments: { fields: [] } } } })
+    } else {
+      compInit()
+    }
   }
-  tableChange()
+  update({ fields: [] })
 }
 
 function changeValue(field, val, tags) {
@@ -407,59 +429,125 @@ function changeValue(field, val, tags) {
 }
 
 function configChange() {
-  formState.app_token = ''
-  formState.table_id = undefined
-  tableData.value = {}
-  tables.value = []
-  fields.value = []
-  compInit()
-  update()
-}
-
-function tokenChange() {
-  tableData.value = {}
-  tables.value = []
-  fields.value = []
-  formState.table_id = undefined
   if (formState.app_token) {
     loadTables().then(() => compInit())
   } else {
     compInit()
   }
+  if (formState.table_id) {
+    loadFields().then(() => compInit())
+  }
+  update()
+}
+
+function tokenChange() {
+  const prevTableId = formState.table_id
+  fields.value = []
+  loadTables().then(() => {
+    const exists = tables.value.find(i => i.table_id == prevTableId)
+    if (formState.table_set_type == 2) {
+      formState.table_id = prevTableId
+      if (props.actionName === 'create_record') {
+        typeof childRef.value?.clear === 'function' && childRef.value.clear()
+      }
+      if (props.actionName === 'search_records') {
+        typeof childRef.value?.clearSelections === 'function' && childRef.value.clearSelections()
+      }
+      compInit()
+    } else {
+      if (exists) {
+        formState.table_id = prevTableId
+        loadFields().then(() => {
+          if (props.actionName === 'create_record') {
+            typeof childRef.value?.clear === 'function' && childRef.value.clear()
+          } else if (props.actionName !== 'create_tables' && props.actionName !== 'create_views' && props.actionName !== 'create_bitable') {
+            compInit({ plugin: { params: { arguments: { fields: [] } } } })
+          } else {
+            compInit()
+          }
+          if (props.actionName === 'search_records') {
+            typeof childRef.value?.clearSelections === 'function' && childRef.value.clearSelections()
+          }
+        })
+      } else {
+        formState.table_id = undefined
+        if (props.actionName === 'create_record') {
+          typeof childRef.value?.clear === 'function' && childRef.value.clear()
+        } else if (props.actionName !== 'create_tables' && props.actionName !== 'create_views' && props.actionName !== 'create_bitable') {
+          compInit({ plugin: { params: { arguments: { fields: [] } } } })
+        } else {
+          compInit()
+        }
+        if (props.actionName === 'search_records') {
+          typeof childRef.value?.clearSelections === 'function' && childRef.value.clearSelections()
+        }
+      }
+    }
+  }).catch(() => {
+    tables.value = []
+    fields.value = []
+    if (formState.table_set_type == 1) {
+      formState.table_id = undefined
+      if (props.actionName === 'create_record') {
+        typeof childRef.value?.clear === 'function' && childRef.value.clear()
+      } else if (props.actionName !== 'create_tables' && props.actionName !== 'create_views' && props.actionName !== 'create_bitable') {
+        compInit({ plugin: { params: { arguments: { fields: [] } } } })
+      } else {
+        compInit()
+      }
+    } else {
+      // 插入变量模式保持用户输入
+      if (props.actionName === 'create_record') {
+        typeof childRef.value?.clear === 'function' && childRef.value.clear()
+      } else {
+        compInit()
+      }
+    }
+    if (props.actionName === 'search_records') {
+      typeof childRef.value?.clearSelections === 'function' && childRef.value.clearSelections()
+    }
+  })
   update()
 }
 
 function tableChange() {
   fields.value = []
-  loadFields().then(() => compInit())
-  update()
+  loadFields().then(() => {
+    update({ fields: [] })
+    compInit()
+  })
 }
 
 function compInit(nodeParams=null) {
   nextTick(() => {
-    typeof childRef.value?.init === "function" && childRef.value.init(nodeParams)
+    const np = nodeParams ?? JSON.parse(props.node.node_params)
+    typeof childRef.value?.init === "function" && childRef.value.init(np)
   })
 }
 
 function update(val = null) {
-  if (!val && childRef.value.update) {
-    return childRef.value.update()
-  }
   let nodeParams = JSON.parse(props.node.node_params)
   let table = tables.value.find(i => i.table_id == formState.table_id)
-  //let params = nodeParams?.plugin?.params || {}
+  const prevArgs = nodeParams?.plugin?.params?.arguments || {}
+  const nextPart = val ? paramsFormat(val) : {}
+  const mergedTagMap = {
+    ...(prevArgs?.tag_map || {}),
+    ...(nextPart?.tag_map || {}),
+    ...(formState?.tag_map || {})
+  }
+  const mergedArgs = {
+    ...prevArgs,
+    ...nextPart,
+    ...formState,
+    tag_map: mergedTagMap,
+    app_id: currentConfig.value.appid,
+    app_secret: currentConfig.value.app_secret,
+  }
   nodeParams.plugin.output_obj = outputData.value
-  Object.assign(nodeParams.plugin.params, {
-    config_name: currentConfigName.value,
-    table_name: table?.name || '',
-    arguments: {
-      // ...params?.arguments,
-      ...paramsFormat(val),
-      ...formState,
-      app_id: currentConfig.value.appid,
-      app_secret: currentConfig.value.app_secret,
-    }
-  })
+  nodeParams.plugin.params = nodeParams.plugin.params || {}
+  nodeParams.plugin.params.config_name = currentConfigName.value
+  nodeParams.plugin.params.table_name = table?.name || ''
+  nodeParams.plugin.params.arguments = mergedArgs
   setData({
     ...props.node,
     node_params: JSON.stringify(nodeParams)

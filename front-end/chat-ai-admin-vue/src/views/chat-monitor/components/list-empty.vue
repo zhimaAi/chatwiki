@@ -2,21 +2,30 @@
   <div class="no-data">
     <svg-icon name="empty" :style="{'font-size': `${props.size}px`}" />
     <div class="no-data-text">
-      <slot name="default">{{ props.text }}</slot>
+      <slot name="default">{{ displayText }}</slot>
     </div>
   </div>
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
+import { computed } from 'vue'
+
+const { t } = useI18n('views.chat-monitor.components.list-empty')
+
 const props = defineProps({
   text: {
     type: String,
-    default: '暂无数据'
+    default: ''
   },
   size: {
     type: [Number, String],
-    default: 100 
+    default: 100
   }
+});
+
+const displayText = computed(() => {
+  return props.text || t('no_data')
 });
 </script>
 

@@ -3,9 +3,9 @@
     <template #content>
       <div class="icon-selector-container">
         <div class="search-box">
-          <a-input 
-            placeholder="请输入图标名称" 
-            v-model:value="searchValue" 
+          <a-input
+            :placeholder="t('search_placeholder')"
+            v-model:value="searchValue"
             @pressEnter="search"
             allowClear
           >
@@ -16,11 +16,11 @@
         </div>
         <!-- 最近使用 -->
         <div v-if="recentIcons.length > 0 && !searchValue" class="recent-section">
-          <div class="icon-list-label">最近使用</div>
+          <div class="icon-list-label">{{ t('recent_used') }}</div>
           <div class="icon-list">
-            <div 
-              class="icon-item" 
-              v-for="(item, index) in recentIcons" 
+            <div
+              class="icon-item"
+              v-for="(item, index) in recentIcons"
               :key="`recent-${index}`"
               :title="item.keywords.join(', ')"
               @click="selectIcon(item)"
@@ -30,11 +30,11 @@
           </div>
         </div>
         <!-- 列表 -->
-        <div class="icon-list-label">{{ searchValue ? '搜索结果' : '表情与角色' }}</div>
+        <div class="icon-list-label">{{ searchValue ? t('search_result') : t('emoji_and_character') }}</div>
         <div class="icon-list">
-          <div 
-            class="icon-item" 
-            v-for="(item, index) in filteredIcons" 
+          <div
+            class="icon-item"
+            v-for="(item, index) in filteredIcons"
             :key="index"
             :title="item.keywords.join(', ')"
             @click="selectIcon(item)"
@@ -42,7 +42,7 @@
             {{ item.content }}
           </div>
           <div v-if="filteredIcons.length === 0" class="no-result">
-            暂无匹配的图标
+            {{ t('no_matching_icon') }}
           </div>
         </div>
       </div>
@@ -56,6 +56,9 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { SearchOutlined } from '@ant-design/icons-vue'
 import docIcons from '@/config/open-doc/doc-icons'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.public-library.editor.components.icon-selector')
 
 const searchValue = ref('')
 const recentIcons = ref([])
@@ -76,7 +79,7 @@ const loadRecentIcons = () => {
       recentIcons.value = JSON.parse(stored)
     }
   } catch (error) {
-    console.warn('加载最近使用图标失败:', error)
+    console.warn(t('load_recent_failed'), error)
     recentIcons.value = []
   }
 }
@@ -86,7 +89,7 @@ const saveRecentIcons = () => {
   try {
     localStorage.setItem('recent-icons', JSON.stringify(recentIcons.value))
   } catch (error) {
-    console.warn('保存最近使用图标失败:', error)
+    console.warn(t('save_recent_failed'), error)
   }
 }
 
@@ -177,7 +180,6 @@ onMounted(() => {
     flex-wrap: wrap;
     gap: 4px;
     margin-bottom: 8px;
-    max-height: 200px;
 
     .icon-item {
       width: 28px;

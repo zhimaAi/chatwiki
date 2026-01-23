@@ -1,7 +1,7 @@
 <style lang="less" scoped>
 .add-wechat-app {
   width: 355px;
-  height: 112px;
+  min-height: 180px;
   display: flex;
   align-items: center;
   justify-content: center;

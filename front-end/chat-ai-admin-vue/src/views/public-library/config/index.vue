@@ -35,9 +35,12 @@
 <script setup>
 import { reactive, ref, toRaw, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import ConfigPageMenu from '../components/config-page-menu.vue'
 import LibraryForm from './components/library-form.vue'
 import { usePublicLibraryStore } from '@/stores/modules/public-library'
+
+const { t } = useI18n('views.public-library.config.index')
 
 const libraryStore = usePublicLibraryStore()
 
@@ -87,7 +90,7 @@ const submit = async () => {
 
   await libraryStore.saveEditLibrary(data)
 
-  message.success('修改成功')
+  message.success(t('modify_success'))
 }
 
 const getData = () => {

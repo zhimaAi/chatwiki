@@ -1,0 +1,14 @@
+{
+  "syncing": "Syncing",
+  "sync_failed": "Sync failed",
+  "normal_knowledge_base": "Normal Knowledge Base",
+  "external_knowledge_base": "External Knowledge Base",
+  "qa_knowledge_base": "Q&A Knowledge Base",
+  "official_account_knowledge_base": "Official Account Knowledge Base",
+  "delete": "Delete",
+  "modify_group": "Modify Group",
+  "document": "Documents",
+  "size": "Size",
+  "related_app": "Related Apps",
+  "colon": ":"
+}

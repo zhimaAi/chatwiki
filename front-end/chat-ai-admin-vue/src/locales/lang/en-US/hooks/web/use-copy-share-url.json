@@ -1,0 +1,9 @@
+{
+  "prompt": "Tip",
+  "configure_now": "Configure Now",
+  "cancel": "Cancel",
+  "need_custom_domain": "Please configure a custom domain before copying the link. Go to configuration?",
+  "only_public_doc": "Only public documents support link copying. Go to set access permissions?",
+  "copy_success": "Copied successfully",
+  "copy_failed": "Copy failed"
+}

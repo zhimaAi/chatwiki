@@ -127,6 +127,10 @@ func (a *Application) GetApp() (*work.Work, error) {
 	return work.NewWork(config)
 }
 
+func (a *Application) SetTyping(customer, command string) (int, error) {
+	return 0, errors.New(`not supported`)
+}
+
 func (a *Application) SendText(customer, content string, push *lib_define.PushMessage) (int, error) {
 	app, err := a.GetApp()
 	if err != nil {

@@ -165,6 +165,7 @@ import { message, Modal } from 'ant-design-vue'
 import { usePublicLibraryStore } from '@/stores/modules/public-library'
 import { useCopyShareUrl } from '@/hooks/web/useCopyShareUrl'
 import { useStorage } from '@/hooks/web/useStorage'
+import { useI18n } from '@/hooks/web/useI18n'
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import {
   saveDraftLibDoc,
@@ -176,6 +177,8 @@ import {
 } from '@/api/public-library'
 import SideMenus from './components/side-menus.vue'
 import SideDirectory from './components/side-directory.vue'
+
+const { t } = useI18n('views.public-library.index')
 
 const exportMd = (content, filename) => {
   const blob = new Blob([content], {
@@ -218,7 +221,7 @@ const findParentDocInTree = (data, targetId, parent = null) => {
   return null
 }
 
-function createDocName(baseName = '无标题文档', fileList = []) {
+function createDocName(baseName = t('untitled_document'), fileList = []) {
   // 提取所有已存在的文件名（兼容带扩展名的情况）
   const existingNames = new Set(fileList.map((file) => file.title))
 
@@ -273,7 +276,7 @@ const menus = [
   //   permissions: ['4']
   // },
   {
-    name: '首页',
+    name: t('home'),
     key: 'home',
     icon: 'ai',
     path: '/public-library/home',
@@ -386,7 +389,7 @@ const onImportDoc = (treeNode, docFile) => {
   }
 
   saveDraftLibDoc(data).then((res) => {
-    message.success('导入成功')
+    message.success(t('import_success'))
     data.id = res.data.doc_id
     data.sort = res.data.sort
 
@@ -397,7 +400,7 @@ const onImportDoc = (treeNode, docFile) => {
 }
 
 const onAddDoc = (treeNode, isDir) => {
-  let docName = isDir == 1 ? '新建文件夹' :  '无标题文档';
+  let docName = isDir == 1 ? t('new_folder') :  t('untitled_document');
   // let level = treeNode ? treeNode.level + 1 : 0;
   let pid = treeNode ? treeNode.dataRef.id : 0;
   // let iconConfig = iconTemplateConfig.value.levels[level];
@@ -405,12 +408,12 @@ const onAddDoc = (treeNode, isDir) => {
 
   if(isDir == 0){
     if (treeNode) {
-      docName = createDocName('无标题文档', treeNode.dataRef.children)
+      docName = createDocName(t('untitled_document'), treeNode.dataRef.children)
     } else {
-      docName = createDocName('无标题文档', docList.value)
+      docName = createDocName(t('untitled_document'), docList.value)
     }
   }
-  
+
   let data = {
     library_key: libraryKey.value,
     doc_id: '',
@@ -418,7 +421,7 @@ const onAddDoc = (treeNode, isDir) => {
     doc_icon: '',
     pid: pid,
     title: docName,
-    content: '# 无标题文档',
+    content: `# ${t('untitled_document')}`,
     sort: 0,
     is_dir: isDir,
   }
@@ -426,7 +429,7 @@ const onAddDoc = (treeNode, isDir) => {
   let api = isDir == 1 ? saveLibDoc : saveDraftLibDoc
 
   api(data).then((res) => {
-    message.success('添加成功')
+    message.success(t('add_success'))
     data.id = res.data.doc_id
     data.sort = res.data.sort
 
@@ -452,9 +455,9 @@ const onCopyDoc = (treeNode) => {
       sort: 0,
       is_dir: 0,
     }
-  
+
     saveDraftLibDoc(data).then((res) => {
-      message.success('复制成功')
+      message.success(t('copy_success'))
       data.id = res.data.doc_id
       data.sort = res.data.sort
 
@@ -528,15 +531,15 @@ const onSaveName = (treeNode, value) => {
   let api = doc.is_dir == 1 ? saveLibDoc : saveDraftLibDoc
 
   api(data).then(() => {
-    message.success('修改成功')
+    message.success(t('modify_success'))
   })
  }
 
 const onDeleteDoc = (treeNode) => {
   Modal.confirm({
-    title: '删除文档',
+    title: t('delete_document'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: `确定删除文档 ${treeNode.dataRef.title} 吗？`,
+    content: t('confirm_delete_document', { title: treeNode.dataRef.title }),
     onOk() {
       submitDeleteDoc(treeNode)
     },
@@ -552,7 +555,7 @@ const submitDeleteDoc = (treeNode) => {
     library_key: libraryKey.value,
     doc_id: treeNode.dataRef.id
   }).then(() => {
-    message.success('删除成功')
+    message.success(t('delete_success'))
     let parentDoc = findDocInTree(docList.value, handleNodePid)
 
     if (parentDoc) {

@@ -200,11 +200,11 @@
 
             <div class="publish-status" v-if="libraryInfo.access_rights == 0">
               <ExclamationCircleFilled class="status-icon" />
-              <span class="status-name">未公开</span>
+              <span class="status-name">{{ t('not_published') }}</span>
             </div>
             <div class="publish-status  is-publish" v-if="libraryInfo.access_rights == 1">
               <CheckCircleFilled class="status-icon" />
-              <span class="status-name">已公开</span>
+              <span class="status-name">{{ t('published') }}</span>
             </div>
 
             <span class="change-home-preview-style-btn">
@@ -220,23 +220,23 @@
         <div class="edit-user" v-if="editUser.show && editUser.user_name">
           <img class="user-avatar" :src="editUser.avatar" alt="" />
           <span class="user-name">{{ editUser.nick_name || editUser.user_name }}</span>
-          <span class="edit-status-text">编辑中...</span>
+          <span class="edit-status-text">{{ t('editing') }}</span>
         </div>
 
         <div class="action-item">
           <a-button type="primary" :loading="publishLoading" @click="handlePublish" v-if="isEdit">
-            <CheckOutlined /> <span class="action-name">发布</span>
+            <CheckOutlined /> <span class="action-name">{{ t('publish') }}</span>
           </a-button>
           <a-button type="primary" @click="handleHomeEdit" v-else>
             <svg-icon class="action-icon" name="edit" style="font-size: 16px; color: #fff"></svg-icon>
-            <span class="action-name">编辑</span>
+            <span class="action-name">{{ t('edit') }}</span>
           </a-button>
         </div>
 
         <div class="action-item">
           <a-button @click="handleCopyShareUrl">
             <svg-icon class="action-icon" name="link-left" style="font-size: 16px"></svg-icon>
-            <span class="action-name">复制链接</span>
+            <span class="action-name">{{ t('copy_link') }}</span>
           </a-button>
         </div>
 
@@ -244,14 +244,14 @@
           <a-button @click="handleOpenSeoSetting">
             <CheckCircleFilled style="color: #21a665; font-size: 14px" class="status-icon" v-if="isSetSeo" />
             <ExclamationCircleFilled  style="color: #ccc; font-size: 14px" class="status-icon" v-else />
-            <span class="action-name">SEO</span>
+            <span class="action-name">{{ t('seo') }}</span>
           </a-button>
         </div>
 
         <div class="action-item">
           <a-button @click="toSettingPage">
             <svg-icon name="jibenpeizhi" style="font-size: 14px;color: #595959;"></svg-icon>
-            <span class="action-name">设置</span>
+            <span class="action-name">{{ t('settings') }}</span>
           </a-button>
         </div>
       </div>
@@ -283,6 +283,7 @@
 <script setup>
 import { generateUniqueId } from '@/utils/index'
 import { useCopyShareUrl } from '@/hooks/web/useCopyShareUrl'
+import { useI18n } from '@/hooks/web/useI18n'
 import { OPEN_BOC_BASE_URL } from '@/constants/index'
 import {
   saveDraftLibDoc,
@@ -310,6 +311,7 @@ import SeoSetting from '../components/seo-setting.vue'
 import WikiDropdown from '../components/wiki-dropdown.vue'
 import ShortcutSelector from './components/shortcut-selector.vue'
 
+const { t } = useI18n('views.public-library.home.index')
 
 const router = useRouter()
 // 接受isDragging
@@ -328,7 +330,7 @@ const homePreviewStyle = computed(() => {
 })
 
 const homePreviewTip = computed(() => {
-  return homePreviewStyle.value == 'mobile' ? '切换到PC端' : '切换到移动端'
+  return homePreviewStyle.value == 'mobile' ? t('switch_to_pc') : t('switch_to_mobile')
 })
 
 const changeHomePreviewStyle = () => {
@@ -453,7 +455,7 @@ const onSelectAddShortcut = (data) => {
     quick_doc_content: JSON.stringify(shortcutList.value.filter(item => item.doc_id))
   }).then(() => {
     time.value = new Date().getTime()
-    message.success('保存成功')
+    message.success(t('save_success'))
   })
 }
 
@@ -475,7 +477,7 @@ const handleDeleteShorcut = (data) => {
     quick_doc_content: JSON.stringify(shortcutList.value.filter(item => item.doc_id))
   }).then(() => {
     time.value = new Date().getTime()
-    message.success('删除成功')
+    message.success(t('delete_success'))
   })
 }
 
@@ -488,7 +490,7 @@ const handleShortcutSort = (data) => {
     quick_doc_content: JSON.stringify(shortcutList.value.filter(item => item.doc_id))
   }).then(() => {
     // time.value = new Date().getTime()
-    message.success('保存成功')
+    message.success(t('save_success'))
   })
  }
 
@@ -513,7 +515,7 @@ const handleSaveDraft = async () => {
   let res = await saveDraftDoc()
 
   if (res) {
-    message.success('保存成功')
+    message.success(t('save_success'))
   }
 }
 // 发布
@@ -533,7 +535,7 @@ const handlePublish = () => {
     .then((res) => {
       state.doc_id = res.data.doc_id
       publishLoading.value = false
-      message.success('发布成功')
+      message.success(t('publish_success'))
       setHomeEditStatus(false)
 
       time.value = new Date().getTime()
@@ -663,9 +665,9 @@ const handleHomeEdit = async () => {
       let name = user.data.nick_name || user.data.user_name
       editUser.show = true
       Modal.warning({
-        title: name + '正在编辑此文档',
-        content: '需要其他协作者结束编辑并发布后才可以继续编辑',
-        okText: '知道了'
+        title: t('editing_warning_title', { name }),
+        content: t('editing_warning_content'),
+        okText: t('editing_warning_ok')
       })
 
       return
@@ -728,16 +730,16 @@ const handleDeleteQuestionGuide = (data) => {
 
   // 弹窗确认删除
   Modal.confirm({
-    title: '删除问题引导',
-    content: '确定要删除该问题引导吗？',
-    okText: '确定',
-    cancelText: '取消',
+    title: t('delete_question_guide_title'),
+    content: t('delete_question_guide_content'),
+    okText: t('delete_question_guide_ok'),
+    cancelText: t('delete_question_guide_cancel'),
     onOk() {
       deleteQuestionGuide({
         library_key: libraryInfo.value.library_key,
         id: questionGuide.id
       }).then(() => {
-        message.success('删除成功')
+        message.success(t('delete_success'))
         time.value = new Date().getTime()
       })
     }
@@ -753,7 +755,7 @@ const saveBannerImage = (url) => {
 
   saveLibDocBannerImg(data).then(() => {
     time.value = new Date().getTime()
-    message.success('保存成功')
+    message.success(t('save_success'))
   })
 }
 

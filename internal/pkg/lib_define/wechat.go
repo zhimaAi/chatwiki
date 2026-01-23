@@ -186,3 +186,8 @@ func WechatAccountIsVerify(accountCustomerType any) bool {
 	customerType := cast.ToInt(accountCustomerType)
 	return tool.InArrayInt(customerType, []int{-1, 1, 2, 3, 4, 5, 6, 8, 9, 11, 12})
 }
+
+const (
+	CommandTyping       = `Typing`       //Typing表示对用户下发"正在输入"状态
+	CommandCancelTyping = `CancelTyping` //CancelTyping表示取消对用户的"正在输入"状态
+)

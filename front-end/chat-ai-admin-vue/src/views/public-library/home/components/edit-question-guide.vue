@@ -11,10 +11,10 @@
 <template>
   <a-modal
     v-model:open="show"
-    title="编辑问题引导"
+    :title="t('edit_question_guide')"
     @ok="handleOk"
     :confirmLoading="props.confirmLoading"
-    ok-text="保 存"
+    :ok-text="t('save')"
   >
     <div class="upload-ssl-form">
       <a-form ref="formRef" :model="formState" :rules="rules" autocomplete="off" layout="vertical">
@@ -28,6 +28,9 @@
 
 <script setup>
 import { ref, reactive, toRaw } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.public-library.home.components.edit-question-guide')
 
 const emit = defineEmits(['ok'])
 
@@ -45,7 +48,7 @@ const formState = reactive({
 })
 
 const rules = {
-  question: [{ required: true, message: '请输入问题引导' }]
+  question: [{ required: true, message: t('please_input_question_guide') }]
 }
 
 const show = ref(false)

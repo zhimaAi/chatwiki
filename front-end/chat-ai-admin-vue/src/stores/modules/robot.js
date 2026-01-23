@@ -127,7 +127,16 @@ export const useRobotStore = defineStore('robot', () => {
       vector: 0,
       search: 0,
       graph: 0,
-    }
+    },
+    tips_before_answer_content: '思考中、请稍等',
+    tips_before_answer_switch: 'true',
+    show_ai_msg_gzh: 0,
+    show_typing_gzh: 0,
+    show_ai_msg_mini: 0,
+    show_typing_mini: 0,
+    meta_search_switch: 0,
+    meta_search_type: 1,
+    meta_search_condition_list: "",
   })
 
   // WebApp配置
@@ -242,6 +251,16 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.wechat_not_verify_hand_get_word = data.wechat_not_verify_hand_get_word
     robotInfo.wechat_not_verify_hand_get_next = data.wechat_not_verify_hand_get_next
     robotInfo.rrf_weight = data.rrf_weight
+    robotInfo.show_ai_msg_gzh = data.show_ai_msg_gzh
+    robotInfo.show_typing_gzh = data.show_typing_gzh
+    robotInfo.show_ai_msg_mini = data.show_ai_msg_mini
+    robotInfo.show_typing_mini = data.show_typing_mini
+
+    robotInfo.tips_before_answer_content = data.tips_before_answer_content
+    robotInfo.tips_before_answer_switch = data.tips_before_answer_switch
+    robotInfo.meta_search_switch = data.meta_search_switch
+    robotInfo.meta_search_type = data.meta_search_type
+    robotInfo.meta_search_condition_list = data.meta_search_condition_list
 
     if (data.cache_config) {
       let parsedCacheConfig = {};

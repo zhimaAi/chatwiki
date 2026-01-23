@@ -4,10 +4,15 @@
       <div class="setting-box">
         <collapse-panel title="查询条件" :count="state.filter.conditions.length">
           <template #extra>
-            <a-select v-model:value="state.input_type_map.filter" style="width: 130px;" @change="update">
-              <a-select-option :value="1">选择查询条件</a-select-option>
-              <a-select-option :value="2">输入变量</a-select-option>
-            </a-select>
+            <div class="flex-between">
+              <div v-if="state.input_type_map.filter != 1" class="btn-hover-wrap" @click="handleOpenFullAtModal('filter_json')">
+                <FullscreenOutlined/>
+              </div>
+              <a-select v-model:value="state.input_type_map.filter" style="width: 130px;" @change="update">
+                <a-select-option :value="1">选择查询条件</a-select-option>
+                <a-select-option :value="2">输入变量</a-select-option>
+              </a-select>
+            </div>
           </template>
           <template v-if="state.input_type_map.filter != 1">
             <AtInput
@@ -16,7 +21,7 @@
               :options="variableOptions"
               :defaultSelectedList="state.tag_map?.filter_json || []"
               :defaultValue="state.filter_json"
-              ref="atInputRef"
+              :ref="el => atInputRef['filter_json'] = el"
               @open="emit('updateVar')"
               @change="(val, tags) => changeValue('filter_json', val, tags)"
               placeholder="请输入内容，键入“/”可以插入变量"
@@ -44,10 +49,15 @@
       <div class="setting-box" @wheel.stop @touchmove.stop>
         <collapse-panel title="查询字段" :count="state.field_names.length">
           <template #extra>
-            <a-select v-model:value="state.input_type_map.field_names" style="width: 130px;" @change="update">
-              <a-select-option :value="1">选择查询字段</a-select-option>
-              <a-select-option :value="2">输入变量</a-select-option>
-            </a-select>
+            <div class="flex-between">
+              <div v-if="state.input_type_map.field_names != 1" class="btn-hover-wrap" @click="handleOpenFullAtModal('field_names_json')">
+                <FullscreenOutlined/>
+              </div>
+              <a-select v-model:value="state.input_type_map.field_names" style="width: 130px;" @change="update">
+                <a-select-option :value="1">选择查询字段</a-select-option>
+                <a-select-option :value="2">输入变量</a-select-option>
+              </a-select>
+            </div>
           </template>
           <template  v-if="state.input_type_map.field_names != 1">
             <AtInput
@@ -56,7 +66,7 @@
               :options="variableOptions"
               :defaultSelectedList="state.tag_map?.field_names_json || []"
               :defaultValue="state.field_names_json"
-              ref="atInputRef"
+              :ref="el => atInputRef['field_names_json'] = el"
               @open="emit('updateVar')"
               @change="(val, tags) => changeValue('field_names_json', val, tags)"
               placeholder="请输入内容，键入“/”可以插入变量"
@@ -86,10 +96,15 @@
       <div class="setting-box" @wheel.stop @touchmove.stop>
         <collapse-panel title="排序" :count="state.sort.length">
           <template #extra>
-            <a-select v-model:value="state.input_type_map.sort" style="width: 130px;" @change="update">
-              <a-select-option :value="1">选择排序</a-select-option>
-              <a-select-option :value="2">输入变量</a-select-option>
-            </a-select>
+            <div class="flex-between">
+              <div v-if="state.input_type_map.sort != 1" class="btn-hover-wrap" @click="handleOpenFullAtModal('sort_json')">
+                <FullscreenOutlined/>
+              </div>
+              <a-select v-model:value="state.input_type_map.sort" style="width: 130px;" @change="update">
+                <a-select-option :value="1">选择排序</a-select-option>
+                <a-select-option :value="2">输入变量</a-select-option>
+              </a-select>
+            </div>
           </template>
           <template v-if="state.input_type_map.sort != 1">
             <AtInput
@@ -98,7 +113,7 @@
               :options="variableOptions"
               :defaultSelectedList="state.tag_map?.sort_json || []"
               :defaultValue="state.sort_json"
-              ref="atInputRef"
+              :ref="el => atInputRef['sort_json'] = el"
               @open="emit('updateVar')"
               @change="(val, tags) => changeValue('sort_json', val, tags)"
               placeholder="请输入内容，键入“/”可以插入变量"
@@ -136,16 +151,29 @@
           @change="update"/>
       </div>
     </div>
+    <FullAtInput
+      :options="variableOptions"
+      :defaultSelectedList="fullDefaultTags"
+      :defaultValue="fullDefaultValue"
+      placeholder="请输入内容，键入“/”可以插入变量"
+      type="textarea"
+      @open="emit('updateVar')"
+      @change="(val, tags) => changeValueByFull(val, tags)"
+      @ok="handleRefreshAtInput"
+      ref="fullAtInputRef"
+    />
   </div>
 </template>
 
 <script setup>
-import {reactive} from 'vue';
+import {reactive, ref} from 'vue';
 import FieldListSelect from "@/views/workflow/components/feishu-table/field-selector/index.vue";
 import QueryConditionFilter from "@/views/workflow/components/feishu-table/query-condition-filter.vue";
 import SortSelector from "@/views/workflow/components/feishu-table/sort-selector/index.vue";
 import CollapsePanel from "@/views/workflow/components/data-table/collapse-panel.vue";
 import AtInput from "@/views/workflow/components/at-input/at-input.vue";
+import FullAtInput from "@/views/workflow/components/at-input/full-at-input.vue";
+import { FullscreenOutlined } from '@ant-design/icons-vue'
 import {jsonDecode} from "@/utils/index.js";
 
 const emit = defineEmits(['update', 'updateVar'])
@@ -183,6 +211,11 @@ const stateStruct = {
   tag_map: {},
 }
 const state = reactive(JSON.parse(JSON.stringify(stateStruct)))
+const fullAtInputRef = ref(null)
+const atInputRef = ref({})
+const activeField = ref('')
+const fullDefaultValue = ref('')
+const fullDefaultTags = ref([])
 
 function init(nodeParams= null) {
   if (!nodeParams) {
@@ -264,12 +297,45 @@ function changeValue(field, val, tags) {
   update()
 }
 
+function changeValueByFull(val, tags) {
+  const field = activeField.value
+  if (!field) return
+  state[field] = val
+  state.tag_map[field] = tags
+  update()
+}
+
+function handleOpenFullAtModal(field) {
+  activeField.value = field
+  fullDefaultValue.value = state[field] || ''
+  fullDefaultTags.value = state.tag_map?.[field] || []
+  fullAtInputRef.value.show()
+}
+
 function update() {
   emit('update', JSON.parse(JSON.stringify(state)))
 }
 
+function handleRefreshAtInput() {
+  const field = activeField.value
+  const target = atInputRef.value?.[field]
+  target && target.refresh && target.refresh()
+}
+
 defineExpose({
   init,
+  clearSelections() {
+    if (state.input_type_map?.filter == 1) {
+      state.filter.conditions = []
+    }
+    if (state.input_type_map?.field_names == 1) {
+      state.field_names = []
+    }
+    if (state.input_type_map?.sort == 1) {
+      state.sort = []
+    }
+    update()
+  },
 })
 </script>
 
@@ -327,5 +393,17 @@ defineExpose({
     //padding: 0 12px;
     margin-bottom: 12px;
   }
+}
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.btn-hover-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
 }
 </style>

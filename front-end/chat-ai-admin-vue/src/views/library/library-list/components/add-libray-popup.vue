@@ -9,16 +9,16 @@
       @ok="handleOk"
     >
       <div class="add-libray-popup-body">
-        <div class="popup-title">新建知识库</div>
+        <div class="popup-title">{{ t('new_library_title') }}</div>
         <!-- 知识库类型列表 -->
         <div class="libray-type-list">
           <div class="libray-item" @click="handleSelect(0)">
             <div class="libray-item-header">
               <img class="libray-icon" src="../../../../assets/img/library/a.svg" alt="" />
-              <div class="libray-type-name">普通知识库</div>
+              <div class="libray-type-name">{{ t('normal_library_type') }}</div>
             </div>
             <div class="libray-desc">
-              导入文档或网页创建知识库，知识库可以与聊天机器人或工作流关联。用户和机器人聊天时，机器人可以引用知识库内知识回复用户
+              {{ t('normal_library_desc') }}
             </div>
 
             <div class="libray-action">
@@ -29,10 +29,10 @@
           <div class="libray-item" @click="handleSelect(2)">
             <div class="libray-item-header">
               <img class="libray-icon" src="../../../../assets/img/library/q.svg" alt="" />
-              <div class="libray-type-name">问答知识库</div>
+              <div class="libray-type-name">{{ t('qa_library_type') }}</div>
             </div>
             <div class="libray-desc">
-              通过excel或者word导入FAQ问答对构建知识库，适合客服场景或者需要用FAQ问答数据精确回答的场景。用户提问时，如果系统检索到与用户问题匹配度很高的问答对，会直接回复对应的答案。
+              {{ t('qa_library_desc') }}
             </div>
             <div class="libray-action">
               <RightOutlined />
@@ -47,6 +47,9 @@
 <script setup>
 import { ref } from 'vue'
 import { RightOutlined } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.library-list.components.add-libray-popup')
 
 const emit = defineEmits(['ok'])
 

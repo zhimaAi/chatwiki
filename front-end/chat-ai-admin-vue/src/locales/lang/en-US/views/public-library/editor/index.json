@@ -1,0 +1,21 @@
+{
+  "not_public": "Not Public",
+  "published": "Published",
+  "knowledge_search": "Knowledge Search",
+  "publish": "Publish",
+  "edit": "Edit",
+  "copy_link": "Copy Link",
+  "seo": "SEO",
+  "settings": "Settings",
+  "last_update_time": "Last Updated: ",
+  "auto_save_draft": "Auto Save Draft",
+  "editing": "Editing...",
+  "save_draft": "Save Draft",
+  "preview": "Preview",
+  "save_success": "Saved Successfully",
+  "editing_document": "{name} is editing this document",
+  "need_collaborator_finish": "You need other collaborators to finish editing and publish before you can continue editing",
+  "got_it": "Got it",
+  "publish_success": "Published Successfully",
+  "edit_mode_no_search": "Search is not supported in edit mode"
+}

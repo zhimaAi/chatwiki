@@ -66,7 +66,9 @@ type WorkFlow struct {
 	isTimeout        bool
 	global           common.SimpleFields
 	output           common.SimpleFields
+	input            common.SimpleFields
 	outputs          map[string]common.SimpleFields
+	inputs           map[string]common.SimpleFields
 	curNodeKey       string
 	runNodeKeys      []string
 	curNode          NodeAdapter
@@ -121,6 +123,8 @@ func (flow *WorkFlow) Running() (err error) {
 			break //退出
 		}
 		flow.runNodeKeys = append(flow.runNodeKeys, flow.curNodeKey)
+		flow.getNodeInputs()
+		flow.inputs[flow.curNodeKey] = flow.input
 		var nextNodeKey string
 		//节点运行开始
 		nodeLog := common.NodeLog{
@@ -139,6 +143,8 @@ func (flow *WorkFlow) Running() (err error) {
 		flow.outputs[flow.curNodeKey] = flow.output //记录每个节点输出的变量
 		nodeLog.EndTime = time.Now().UnixMilli()
 		nodeLog.Output = common.GetFieldsObject(common.GetRecurveFields(flow.output))
+		nodeLog.Input = common.GetFieldsObject(common.GetRecurveFields(flow.input))
+		nodeLog.NodeOutput = GetNodeOutput(nodeLog.Output)
 		nodeLog.ErrorMsg = fmt.Sprintf(`%v`, err)
 		nodeLog.UseTime = nodeLog.EndTime - nodeLog.StartTime
 		flow.nodeLogs = append(flow.nodeLogs, nodeLog)
@@ -269,6 +275,7 @@ func RunningWorkFlow(params *WorkFlowParams, startNodeKey string) (*WorkFlow, er
 		ticker:      time.NewTicker(time.Minute * 60),     //DIY
 		global:      common.SimpleFields{},                //没有系统全局变量了
 		outputs:     make(map[string]common.SimpleFields), //记录每个节点输出的变量
+		inputs:      make(map[string]common.SimpleFields), //输入参数
 		curNodeKey:  startNodeKey,                         //开始节点
 		runNodeKeys: make([]string, 0),
 		runLogs:     make([]string, 0),
@@ -529,4 +536,74 @@ func CallHttpTest(workFlowParams *WorkFlowParams, curlNode *WorkFlowNode) (map[s
 		`result`: data,
 		`fields`: recursiveFields,
 	}, nil
+}
+
+func (flow *WorkFlow) getNodeInputs() {
+	if flow == nil {
+		return
+	}
+	flow.input = common.SimpleFields{}
+	if flow.curNode.Params() == nil {
+		return
+	}
+	var variables []string
+	ExtractVariables(flow.curNode.Params(), &variables)
+	if len(variables) == 0 {
+		return
+	}
+	var err error
+	for _, variable := range variables {
+		variable = strings.TrimPrefix(variable, `【`)
+		variable = strings.TrimSuffix(variable, `】`)
+		var nodeName string
+		var variableKey string
+		var field common.SimpleField
+		var exist bool
+		if strings.HasPrefix(variable, `global.`) {
+			nodeName = `开始节点`
+			variableKey = strings.TrimPrefix(variable, `global.`)
+			field, exist = flow.global[variableKey]
+			if !exist {
+				continue
+			}
+		} else {
+			params := strings.Split(variable, `.`)
+			if len(params) == 0 {
+				continue
+			}
+			nodeKey := params[0]
+			if len(nodeKey) == 0 {
+				continue
+			}
+			var info msql.Params
+			if flow.params.Draft.IsDraft {
+				info = flow.params.Draft.NodeMaps[nodeKey]
+			} else {
+				info, err = common.GetRobotNode(cast.ToUint(flow.params.Robot[`id`]), nodeKey)
+				if err != nil {
+					logs.Error(err.Error())
+					continue
+				}
+			}
+			if len(info) == 0 {
+				continue
+			}
+			nodeName = cast.ToString(info[`node_name`])
+			variableKey = strings.TrimPrefix(variable, nodeKey+`.`)
+			output := flow.outputs[nodeKey]
+			if len(output) == 0 {
+				continue
+			}
+			field, exist = output[variableKey]
+			if !exist {
+				continue
+			}
+		}
+		flow.input[nodeName+`/`+variableKey] = common.SimpleField{
+			Key:  nodeName + `/` + variableKey,
+			Typ:  field.Typ,
+			Vals: field.Vals,
+		}
+	}
+	return
 }

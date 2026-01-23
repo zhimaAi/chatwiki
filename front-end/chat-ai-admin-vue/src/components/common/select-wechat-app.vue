@@ -8,7 +8,7 @@
     <slot name="alert">
       <a-alert type="info" class="zm-alert-info mt12">
         <template #message>
-          公众号列表数据来源：系统管理>公众号管理。<a @click="linkOfficial">前往编辑公众号、添加公众号</a>
+          {{ t('official_account_list_source') }}<a @click="linkOfficial">{{ t('link_edit_add_official_account') }}</a>
         </template>
       </a-alert>
     </slot>
@@ -18,7 +18,7 @@
         <a-checkbox
           v-model:checked="allChcked"
           :disabled="!selectRows.length"
-          @change="allChckedChange">全选
+          @change="allChckedChange">{{ t('select_all') }}
         </a-checkbox>
       </div>
       <a-checkbox-group v-model:value="selectedKeys">
@@ -32,17 +32,17 @@
               <img class="app-avatar" :src="item.app_avatar" alt=""/>
               <div class="app-info">
                 <div class="app-name">{{ item.app_name }}</div>
-                <div class="app-desc">Appid：{{ item.app_id }}</div>
+                <div class="app-desc">{{ t('appid_label') }}{{ item.app_id }}</div>
               </div>
             </div>
             <div class="ext-info-list">
               <div class="status-block status-success" v-if="item.account_is_verify == 'true'">
                 <CheckCircleFilled/>
-                已认证
+                {{ t('verified') }}
               </div>
               <div v-else class="status-block status-warning">
                 <ExclamationCircleFilled/>
-                未认证
+                {{ t('unverified') }}
               </div>
               <span @click.stop>
                 <a-checkbox :value="item.app_id" :disabled="disabledAppIds.includes(item.app_id)" @change="checkedChange"/>
@@ -52,9 +52,9 @@
         </div>
       </a-checkbox-group>
     </template>
-    <EmptyBox v-else title="暂未绑定公众号">
+    <EmptyBox v-else :title="t('no_official_account_bound')">
       <template #desc>
-        <a-button type="primary" @click="linkOfficial">绑定公众号</a-button>
+        <a-button type="primary" @click="linkOfficial">{{ t('bind_official_account') }}</a-button>
       </template>
     </EmptyBox>
 
@@ -71,22 +71,28 @@ import LoadingBox from "@/components/common/loading-box.vue";
 import EmptyBox from "@/components/common/empty-box.vue";
 import {getWechatAppList} from "@/api/robot/index.js";
 import {usePermissionStore} from "@/stores/modules/permission.js";
+import { useI18n } from '@/hooks/web/useI18n';
+
+const { t } = useI18n('components.common.select-wechat-app');
 
 const emit = defineEmits(['ok'])
 const props = defineProps({
   title: {
     type: String,
-    default: '选择公众号'
+    default: ''
   },
   okText: {
     type: String,
-    default: '确 定'
+    default: ''
   },
   disabledAppIds: {
     type: Array,
     default: () => ([])
   }
 })
+
+const title = computed(() => props.title || t('select_official_account'))
+const okText = computed(() => props.okText || t('confirm_button'))
 const router = useRouter()
 const permissionStore = usePermissionStore()
 
@@ -100,7 +106,7 @@ const selectedKeys = ref([])
 
 // const officialPerm = computed(() => {
 //   let {role_permission, role_type} = permissionStore
-//   return role_type == 1 || role_permission.includes('OfficialAccountMange')
+//   return role_type == 1 || role_permission.includes('OfficialAccountManage')
 // })
 
 const selectRows = computed(() => {

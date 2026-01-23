@@ -2,13 +2,13 @@
   <div bg-color="#f5f9ff" class="library-page">
     <PageTabs class="mb-16" :tabs="pageTabs" active="/library/list"></PageTabs>
 
-    <page-alert class="mb-16 mr-16" title="使用说明">
+    <page-alert class="mb-16 mr-16" :title="t('instruction_title')">
       <div>
         <p>
-          1、知识库可以关联到聊天机器人中使用，创建机器人之前请先创建知识库，然后去机器人设置中关联。
+          {{ t('instruction_content_1') }}
         </p>
         <p>
-          2、知识库支持普通知识库和问答知识库。普通知识库适用于非结构化数据，支持text/doc/pdf/md/html等格式文件，上传后系统会自动分段处理，也支持自定义分段。问答知识库适用于一问一答形式结构化数据，支持通过excel/word批量上传或自定义添加问题和答案。
+          {{ t('instruction_content_2') }}
         </p>
       </div>
     </page-alert>
@@ -25,26 +25,26 @@
               <template #icon>
                 <PlusOutlined />
               </template>
-              新建知识库
+              {{ t('create_library_btn') }}
             </a-button>
             <template #overlay>
               <a-menu>
                 <a-menu-item @click.prevent="handleAdd(0)">
                   <span class="create-action">
                     <img class="icon" :src="LIBRARY_NORMAL_AVATAR" alt="" />
-                    <span>普通知识库</span>
+                    <span>{{ t('normal_library') }}</span>
                   </span>
                 </a-menu-item>
                 <a-menu-item @click.prevent="handleAdd(2)">
                   <span class="create-action">
                     <img class="icon" :src="LIBRARY_QA_AVATAR" alt="" />
-                    <span>问答知识库</span>
+                    <span>{{ t('qa_library') }}</span>
                   </span>
                 </a-menu-item>
                 <a-menu-item v-if="wxAppLibary" @click.prevent="handleAdd(3)">
                   <span class="create-action">
                     <img class="icon" src="@/assets/svg/library_ability_official_account.svg" alt="" />
-                    <span>公众号知识库</span>
+                    <span>{{ t('official_account_library') }}</span>
                   </span>
                 </a-menu-item>
               </a-menu>
@@ -58,8 +58,8 @@
           <cu-scroll style="padding-right: 16px">
             <div class="group-head-box">
               <div class="head-title" v-if="!isHideGroup">
-                <div>知识库分组</div>
-                <a-tooltip title="新建分组">
+                <div>{{ t('library_groups') }}</div>
+                <a-tooltip :title="t('create_group')">
                   <div class="hover-btn-wrap" @click="openGroupModal({})"><PlusOutlined /></div>
                 </a-tooltip>
               </div>
@@ -67,7 +67,7 @@
                 <a-input
                   v-model:value="groupSearchKey"
                   allowClear
-                  placeholder="搜索分组"
+                  :placeholder="t('search_groups')"
                   style="width: 100%"
                 >
                   <template #suffix>
@@ -107,10 +107,10 @@
                           <template #overlay>
                             <a-menu>
                               <a-menu-item>
-                                <div @click.stop="openGroupModal(item)">重命名</div>
+                                <div @click.stop="openGroupModal(item)">{{ t('rename') }}</div>
                               </a-menu-item>
                               <a-menu-item>
-                                <div @click.stop="handleDelGroup(item)">删 除</div>
+                                <div @click.stop="handleDelGroup(item)">{{ t('delete') }}</div>
                               </a-menu-item>
                             </a-menu>
                           </template>
@@ -122,7 +122,7 @@
               </draggable>
             </div>
           </cu-scroll>
-          <a-tooltip placement="right" :title="isHideGroup ? '展开分组' : '收起分组'">
+          <a-tooltip placement="right" :title="isHideGroup ? t('expand_groups') : t('collapse_groups')">
             <div class="hide-group-box" @click="handleChangeHideGroup">
               <LeftOutlined v-if="!isHideGroup" />
               <RightOutlined v-else />
@@ -146,8 +146,8 @@
     <EditGroup ref="editGroupRef" @ok="onChangeTab" />
     <SelectWechatApp
       ref="wxAppRef"
-      title="添加知识库"
-      okText="下一步"
+      :title="t('create_library_btn')"
+      :okText="t('next_step')"
       :disabled-app-ids="wxAppids"
       @ok="showWxLibraryModel"
     />
@@ -187,40 +187,43 @@ import EditGroup from '@/views/library/library-list/components/edit-group.vue'
 import Draggable from 'vuedraggable'
 import {getSpecifyAbilityConfig, getAbilityList} from "@/api/explore/index.js";
 import SelectWechatApp from "@/components/common/select-wechat-app.vue";
+import { useI18n } from '@/hooks/web/useI18n';
+
+const { t } = useI18n('views.library.library-list.library-list');
 
 const router = useRouter()
 const route = useRoute()
 
 const pageTabs = ref([
   {
-    title: '知识库',
+    title: t('library_tab'),
     path: '/library/list'
   },
   {
-    title: '数据库',
+    title: t('database_tab'),
     path: '/database/list'
   },
   {
-    title: '文档提取FAQ',
+    title: t('faq_extraction_tab'),
     path: '/ai-extract-faq/list'
   },
   {
-    title: '触发次数统计',
+    title: t('trigger_statistics_tab'),
     path: '/trigger-statics/list'
   },
 ])
 
 const tabs = ref([
   {
-    title: '全部 (0)',
+    title: t('all_count', { count: 0 }),
     value: 'all'
   },
   {
-    title: '普通知识库 (0)',
+    title: t('normal_count', { count: 0 }),
     value: '0'
   },
   {
-    title: '问答知识库 (0)',
+    title: t('qa_count', { count: 0 }),
     value: '2'
   }
 ])
@@ -260,13 +263,13 @@ const getGroupList = () => {
   }).then((res) => {
     let lists = res.data || []
     let totalNumber = 0
-    // 计算每个分组的机器人数量
+    // Calculate total number for each group
     lists.forEach((group) => {
       totalNumber += +group.total
     })
     groupLists.value = [
       {
-        group_name: '全部',
+        group_name: t('all_tab'),
         total: totalNumber,
         id: ''
       },
@@ -288,14 +291,14 @@ const toAdd = (val) => {
 }
 
 const showWxLibraryModel = (ids, rows) => {
-  if (!rows.length) return message.warning('请选择公众号')
+  if (!rows.length) return message.warning(t('select_official_account'))
   wxAppRef.value.close()
   addLibraryModelRef.value.show({ type: 3, group_id: group_id.value, wx_app_ids: ids})
 }
 
 const list = ref([])
 const updateTabNumber = async (data) => {
-  // 公众号知识库是否开启
+  // Check if official account library is enabled
   await getSpecifyAbilityConfig({ability_type: 'library_ability_official_account'}).then((res) => {
     let _data = res?.data || {}
     if (_data?.user_config?.switch_status == 1) {
@@ -324,21 +327,21 @@ const updateTabNumber = async (data) => {
 
   tabs.value = [
     {
-      title: '全部 (' + all + ')',
+      title: t('all_count', { count: all }),
       value: 'all'
     },
     {
-      title: '普通知识库 (' + normal + ')',
+      title: t('normal_count', { count: normal }),
       value: '0'
     },
     {
-      title: '问答知识库 (' + qa + ')',
+      title: t('qa_count', { count: qa }),
       value: '2'
     }
   ]
   if (wxAppLibary.value) {
     tabs.value.push({
-      title: '公众号知识库 (' + wx + ')',
+      title: t('official_account_count', { count: wx }),
       value: '3'
     })
   }
@@ -405,20 +408,20 @@ const toEdit = (data) => {
 const handleDelete = (data) => {
   let key = getLibraryPermission(data.id)
   if (key != 4) {
-    return message.error('您没有删除该知识库的权限')
+    return message.error(t('no_permission_delete'))
   }
   let secondsToGo = 3
 
   let modal = Modal.confirm({
-    title: `删除${data.library_name}`,
+    title: t('confirm_delete_library_title', { library_name: data.library_name }),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '您确定要删除此知识库吗？',
-    okText: secondsToGo + ' 确 定',
+    content: t('confirm_delete_content'),
+    okText: secondsToGo + ' ' + t('confirm_btn'),
     okType: 'danger',
     okButtonProps: {
       disabled: true
     },
-    cancelText: '取 消',
+    cancelText: t('cancel_btn'),
     onOk() {
       onDelete(data)
     },
@@ -430,7 +433,7 @@ const handleDelete = (data) => {
   let interval = setInterval(() => {
     if (secondsToGo == 1) {
       modal.update({
-        okText: '确 定',
+        okText: t('confirm_btn'),
         okButtonProps: {
           disabled: false
         }
@@ -442,7 +445,7 @@ const handleDelete = (data) => {
       secondsToGo -= 1
 
       modal.update({
-        okText: secondsToGo + ' 确 定',
+        okText: secondsToGo + ' ' + t('confirm_btn'),
         okButtonProps: {
           disabled: true
         }
@@ -453,7 +456,7 @@ const handleDelete = (data) => {
 
 const onDelete = ({ id }) => {
   deleteLibrary({ id }).then(() => {
-    message.success('删除成功')
+    message.success(t('delete_success'))
     getList()
     getGroupList()
   })
@@ -480,17 +483,17 @@ const openEditGroupModal = (item) => {
 
 const handleDelGroup = (item) => {
   Modal.confirm({
-    title: `确认删除分组${item.group_name}`,
+    title: t('confirm_delete_group_title', { group_name: item.group_name }),
     icon: createVNode(ExclamationCircleOutlined),
     content: '',
-    okText: '确认',
+    okText: t('confirm_btn'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('cancel_btn'),
     onOk() {
       deleteLibraryListGroup({
         id: item.id
       }).then(() => {
-        message.success('删除成功')
+        message.success(t('delete_success'))
         getGroupList()
         if (group_id.value == item.id) {
           group_id.value = ''
@@ -505,12 +508,12 @@ const handleDelGroup = (item) => {
 
 const isDragEnabled = ref(false)
 const checkMove = (e) => {
-  // 只允许id>0的项目拖拽
+  // Only allow dragging items with id > 0
   return e.draggedContext.element.id > 0 && e.relatedContext.element.id > 0
 }
 const handleDragEnd = async () => {
   try {
-    // 过滤掉"全部分组"(-1)
+    // Filter out "All Groups" (id <= 0)
     const sortList = groupLists.value
       .filter((item) => item.id > 0)
       .map((item, index) => ({
@@ -518,15 +521,15 @@ const handleDragEnd = async () => {
         sort: groupLists.value.length - index
       }))
 
-    // 调用API保存排序
+    // Call API to save sorting
     await sortLibararyListGroup({
       sort_group: JSON.stringify(sortList)
     })
-    message.success('排序已保存')
+    message.success(t('sort_saved'))
   } catch (error) {
-    console.error('排序保存失败:', error)
-    // 恢复原顺序
-    getGroupLists()
+    console.error(t('sort_failed'), error)
+    // Restore original order
+    getGroupList()
   }
 }
 </script>

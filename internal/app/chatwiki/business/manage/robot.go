@@ -16,6 +16,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
@@ -23,6 +24,92 @@ import (
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 )
+
+type metaSearchCondition struct {
+	Key   string `json:"key"`
+	Type  int    `json:"type"`  // 0 string,1 time,2 number（同 define.LibraryMetaType*）
+	Op    int    `json:"op"`    // define.MetaOp*
+	Value string `json:"value"` // 可为空（为空/不为空操作符）
+}
+
+func validateMetaSearchConfig(lang string, metaSwitch, metaType int, raw string) (int, int, string, error) {
+	// 默认关闭
+	if metaSwitch != define.MetaSearchSwitchOn {
+		return define.MetaSearchSwitchOff, define.MetaSearchTypeAnd, `[]`, nil
+	}
+	// type
+	if metaType == 0 {
+		metaType = define.MetaSearchTypeAnd
+	}
+	if metaType != define.MetaSearchTypeAnd && metaType != define.MetaSearchTypeOr {
+		return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_type`))
+	}
+	// list
+	raw = strings.TrimSpace(raw)
+	if raw == `` {
+		raw = `[]`
+	}
+	conds := make([]metaSearchCondition, 0)
+	if err := tool.JsonDecode(raw, &conds); err != nil {
+		logs.Error(err.Error())
+		return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
+	}
+	if len(conds) > define.MetaSearchMaxConditions {
+		return 0, 0, ``, fmt.Errorf("最多新增%d个条件", define.MetaSearchMaxConditions)
+	}
+
+	for _, c := range conds {
+		c.Key = strings.TrimSpace(c.Key)
+		if c.Key == `` {
+			return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
+		}
+		// key 格式固定：内置 key 或 key_数字
+		if !define.IsBuiltinMetaKey(c.Key) && !common.IsCustomMetaKey(c.Key) {
+			return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
+		}
+		if !define.IsLibraryMetaTypeValid(c.Type) {
+			return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
+		}
+
+		// op 规则
+		switch c.Type {
+		case define.LibraryMetaTypeString:
+			if !tool.InArrayInt(c.Op, []int{define.MetaOpIs, define.MetaOpIsNot, define.MetaOpContains, define.MetaOpNotContains, define.MetaOpEmpty, define.MetaOpNotEmpty}) {
+				return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
+			}
+		case define.LibraryMetaTypeNumber, define.LibraryMetaTypeTime:
+			if !tool.InArrayInt(c.Op, []int{define.MetaOpIs, define.MetaOpIsNot, define.MetaOpEmpty, define.MetaOpNotEmpty, define.MetaOpGt, define.MetaOpEq, define.MetaOpLt, define.MetaOpGte, define.MetaOpLte}) {
+				return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
+			}
+		}
+
+		// value 规则
+		v := strings.TrimSpace(c.Value)
+		needValue := !(c.Op == define.MetaOpEmpty || c.Op == define.MetaOpNotEmpty)
+		if needValue {
+			if v == `` {
+				return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
+			}
+			if utf8.RuneCountInString(v) > 20 {
+				return 0, 0, ``, errors.New(i18n.Show(lang, `meta_condition_value_too_long`, 20))
+			}
+			// number/time 需要是数字输入
+			if c.Type == define.LibraryMetaTypeNumber {
+				if ok, _ := regexp.MatchString(`^-?\d+(\.\d+)?$`, v); !ok {
+					return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
+				}
+			}
+			if c.Type == define.LibraryMetaTypeTime {
+				if ok, _ := regexp.MatchString(`^\d{1,20}$`, v); !ok {
+					return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
+				}
+			}
+		}
+	}
+
+	out := tool.JsonEncodeNoError(conds)
+	return define.MetaSearchSwitchOn, metaType, out, nil
+}
 
 func GetRobotList(c *gin.Context) {
 	var adminUserId int
@@ -194,6 +281,10 @@ func SaveRobot(c *gin.Context) {
 	groupId := cast.ToInt(c.PostForm(`group_id`))
 	promptRoleType := cast.ToInt(c.PostForm(`prompt_role_type`))
 	opTypeRelationLibrary := cast.ToInt(c.PostForm(`op_type_relation_library`))
+	// 元数据
+	metaSearchSwitch := cast.ToInt(c.DefaultPostForm(`meta_search_switch`, `0`))
+	metaSearchType := cast.ToInt(c.DefaultPostForm(`meta_search_type`, cast.ToString(define.MetaSearchTypeAnd)))
+	metaSearchConditionList := strings.TrimSpace(c.DefaultPostForm(`meta_search_condition_list`, `[]`))
 	isDefault := cast.ToInt(c.DefaultPostForm(`is_default`, `1`))
 	if !tool.InArrayInt(isDefault, []int{define.IsDefault, define.NotDefault}) {
 		isDefault = define.IsDefault
@@ -404,6 +495,22 @@ func SaveRobot(c *gin.Context) {
 		return
 	}
 
+	tipsBeforeAnswerSwitch := cast.ToBool(c.DefaultPostForm(`tips_before_answer_switch`, `true`))
+	tipsBeforeAnswerContent := strings.TrimSpace(c.DefaultPostForm(`tips_before_answer_content`, i18n.Show(common.GetLang(c), `thinking_please_wait`))) //`思考中、请稍等`
+
+	// logs.Info(`tipsBeforeAnswerContent: %v`, utf8.RuneCountInString(tipsBeforeAnswerContent))
+	if utf8.RuneCountInString(tipsBeforeAnswerContent) > 10 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `tips_before_answer_content`))))
+		return
+	}
+
+	// check meta search config
+	metaSearchSwitch, metaSearchType, metaSearchConditionList, err = validateMetaSearchConfig(common.GetLang(c), metaSearchSwitch, metaSearchType, metaSearchConditionList)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+
 	//database dispose
 	data := msql.Datas{
 		`robot_name`:                            robotName,
@@ -447,8 +554,13 @@ func SaveRobot(c *gin.Context) {
 		`sensitive_words_switch`:                sensitiveWordsSwitch,
 		`cache_config`:                          cacaheConfig,
 		`prompt_role_type`:                      promptRoleType,
+		`tips_before_answer_switch`:             tipsBeforeAnswerSwitch,
+		`tips_before_answer_content`:            tipsBeforeAnswerContent,
 		`is_top`:                                0,
 		`sort_num`:                              maxSortNum + 1,
+		`meta_search_switch`:                    metaSearchSwitch,
+		`meta_search_type`:                      metaSearchType,
+		`meta_search_condition_list`:            metaSearchConditionList,
 		`update_time`:                           tool.Time2Int(),
 	}
 	if len(robotAvatar) > 0 {
@@ -622,6 +734,156 @@ func AddFlowRobot(c *gin.Context) {
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
 	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
+}
+
+func GetRobotMetaSchemaList(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	id := cast.ToInt(c.Query(`id`))
+	if id <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+
+	robot, err := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`id`, cast.ToString(id)).
+		Where(`admin_user_id`, cast.ToString(userId)).
+		Field(`id,library_ids`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(robot) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+
+	libraryIdsStr := strings.TrimSpace(robot[`library_ids`])
+	if libraryIdsStr == `` {
+		c.String(http.StatusOK, lib_web.FmtJson([]map[string]any{}, nil))
+		return
+	}
+
+	// 按 name 取交集：只有所有知识库都存在的 name 才返回
+	idArr := strings.Split(libraryIdsStr, ",")
+	libIdSet := make(map[string]struct{}, len(idArr))
+	libIds := make([]string, 0, len(idArr))
+	for _, s := range idArr {
+		s = strings.TrimSpace(s)
+		if s == `` {
+			continue
+		}
+		if _, ok := libIdSet[s]; ok {
+			continue
+		}
+		libIdSet[s] = struct{}{}
+		libIds = append(libIds, s)
+	}
+	if len(libIds) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson([]map[string]any{}, nil))
+		return
+	}
+
+	// 去重（内置按 key；自定义按 name）
+	seenBuiltinKey := make(map[string]bool)
+	result := make([]map[string]any, 0, 32)
+
+	// 内置 meta：只保留一份
+	for _, b := range define.BuiltinMetaSchemaList {
+		k := b.Key
+		if !seenBuiltinKey[k] {
+			seenBuiltinKey[k] = true
+			result = append(result, map[string]any{
+				`id`:         0,
+				`name`:       b.Name,
+				`key`:        b.Key,
+				`type`:       b.Type,
+				`is_show`:    1,
+				`is_builtin`: 1,
+			})
+		}
+	}
+
+	// 自定义 meta：按 name 求交集（type 必须一致）
+	customList, err := msql.Model(`library_meta_schema`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`library_id`, `in`, strings.Join(libIds, `,`)).
+		Order(`id asc`).
+		Field(`id,library_id,name,key,type,is_show`).
+		Select()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+
+	type agg struct {
+		count    int
+		typ      int
+		name     string
+		key      string
+		conflict bool
+		seenLib  map[string]struct{}
+	}
+	aggMap := make(map[string]*agg, 64) // name => agg
+	for _, item := range customList {
+		name := strings.TrimSpace(item[`name`])
+		if name == `` {
+			continue
+		}
+		k := strings.TrimSpace(item[`key`])
+		if k == `` || define.IsBuiltinMetaKey(k) {
+			continue
+		}
+		libId := strings.TrimSpace(item[`library_id`])
+		if libId == `` {
+			libId = cast.ToString(item[`library_id`])
+		}
+		typ := cast.ToInt(item[`type`])
+		a, ok := aggMap[name]
+		if !ok {
+			a = &agg{
+				typ:     typ,
+				name:    name,
+				key:     k,
+				seenLib: make(map[string]struct{}, len(libIds)),
+			}
+			aggMap[name] = a
+		}
+		// 同一个库重复 name 不重复计数
+		if _, ok := a.seenLib[libId]; ok {
+			continue
+		}
+		a.seenLib[libId] = struct{}{}
+		a.count++
+		if a.typ != typ {
+			a.conflict = true
+		}
+	}
+
+	for _, a := range aggMap {
+		if a == nil || a.conflict {
+			continue
+		}
+		if a.count != len(libIds) {
+			continue
+		}
+		result = append(result, map[string]any{
+			`id`:         0,
+			`library_id`: 0,
+			`name`:       a.name,
+			`key`:        a.key,
+			`type`:       a.typ,
+			`is_show`:    1,
+			`is_builtin`: 0,
+		})
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(result, nil))
 }
 
 func EditExternalConfig(c *gin.Context) {

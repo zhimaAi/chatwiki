@@ -46,14 +46,16 @@ type LibUseTime struct {
 }
 
 type NodeLog struct {
-	StartTime int64          `json:"start_time"` //millisecond
-	EndTime   int64          `json:"end_time"`   //millisecond
-	NodeKey   string         `json:"node_key"`
-	NodeName  string         `json:"node_name"`
-	NodeType  int            `json:"node_type"`
-	Output    map[string]any `json:"output"`
-	ErrorMsg  string         `json:"error_msg"`
-	UseTime   int64          `json:"use_time"` //millisecond
+	StartTime  int64          `json:"start_time"` //millisecond
+	EndTime    int64          `json:"end_time"`   //millisecond
+	NodeKey    string         `json:"node_key"`
+	NodeName   string         `json:"node_name"`
+	NodeType   int            `json:"node_type"`
+	Output     map[string]any `json:"output"`
+	Input      map[string]any `json:"input"`
+	NodeOutput map[string]any `json:"node_output"`
+	ErrorMsg   string         `json:"error_msg"`
+	UseTime    int64          `json:"use_time"` //millisecond
 }
 
 type Monitor struct {

@@ -1,0 +1,10 @@
+{
+  "title": "SEO设置",
+  "label_title": "标题",
+  "placeholder_title": "请输入页面标题",
+  "label_desc": "描述",
+  "placeholder_desc": "请输入页面描述",
+  "label_keywords": "关键词",
+  "placeholder_keywords": "请输入关键词,多个关键词用英文逗号分隔",
+  "save_success": "保存成功"
+}

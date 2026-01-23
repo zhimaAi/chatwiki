@@ -47,7 +47,7 @@
 import {ref, h, computed} from 'vue';
 import {useRouter} from 'vue-router';
 import {message} from 'ant-design-vue';
-import {PlusOutlined} from '@ant-design/icons-vue';
+import {PlusOutlined, CheckCircleFilled, ExclamationCircleFilled} from '@ant-design/icons-vue';
 import LoadingBox from "@/components/common/loading-box.vue";
 import EmptyBox from "@/components/common/empty-box.vue";
 import {getWechatAppList, robotBindWxApp} from "@/api/robot/index.js";
@@ -65,7 +65,7 @@ const list = ref([])
 
 const officialPerm = computed(() => {
   let {role_permission, role_type} = permissionStore
-  return role_type == 1 || role_permission.includes('OfficialAccountMange')
+  return role_type == 1 || role_permission.includes('OfficialAccountManage')
 })
 
 function open(r, ids) {

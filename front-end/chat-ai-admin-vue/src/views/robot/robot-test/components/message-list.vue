@@ -456,19 +456,24 @@
                   </template>
                 </div>
               </template>
-              <!-- 检索知识库 -->
               <div class="label-flex-block">
+                <div class="thinking-label-wrapper" v-if="tips_before_answer_switch && item.startLoading">
+                  <div class="thinking-label">
+                    <LoadingOutlined class="loading" />
+                    <span class="label-text">{{ tips_before_answer_content }}</span>
+                  </div>
+                </div>
                 <div
                   class="thinking-label-wrapper"
                   :class="{ reasoning_open: item.show_quote_file }"
-                  v-if="item.msg_type == 1 && isShowQuoteFileProgress"
+                  v-if="item.msg_type == 1 && isShowQuoteFileProgress && (!item.startLoading || !tips_before_answer_switch)"
                 >
                   <div class="thinking-label" @click="toggleQuoteFiel(item)">
                     <template v-if="item.quote_loading">
                       <LoadingOutlined class="loading" />
                       <span class="label-text">正在检索知识库...</span>
                     </template>
-                    <template v-else>
+                    <template v-if="!item.quote_loading">
                       <svg-icon class="think-icon" name="quote-file"></svg-icon>
                       <span class="label-text">检索到{{ item.quote_file.length }}个知识库文档</span>
                     </template>
@@ -608,6 +613,16 @@ import GuessYouWant from './guess-you-want.vue'
 import VoiceMessage from './voice-message.vue'
 import TextMessage from './messages/text-message.vue'
 import MultipleMessage from './messages/multiple-message.vue'
+import { useRobotStore } from '@/stores/modules/robot'
+const robotStore = useRobotStore()
+
+const tips_before_answer_content = computed(()=>{
+  return robotStore.robotInfo.tips_before_answer_content
+})
+
+const tips_before_answer_switch = computed(()=>{
+  return robotStore.robotInfo.tips_before_answer_switch == 'true'
+})
 
 
 const emit = defineEmits([

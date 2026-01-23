@@ -90,7 +90,7 @@ func BridgeGetLibraryList(adminUserId, userId int, lang string, req *BridgeLibra
 		}
 	}
 	list, err := m.
-		Field(`id,type,access_rights,avatar,library_name,library_intro,avatar,graph_switch,graph_model_config_id,model_config_id,use_model,graph_use_model,create_time,group_id,official_app_id,sync_official_history_type,enable_cron_sync_official_content,sync_official_content_status,sync_official_content_last_err_msg`).
+		Field(`id,type,access_rights,avatar,library_name,library_intro,avatar,graph_switch,graph_model_config_id,model_config_id,use_model,graph_use_model,create_time,group_id,official_app_id,sync_official_history_type,enable_cron_sync_official_content,sync_official_content_status,sync_official_content_last_err_msg,show_meta_source,show_meta_update_time,show_meta_create_time,show_meta_group`).
 		Order(`id desc`).
 		Select()
 	if err != nil {
@@ -98,7 +98,7 @@ func BridgeGetLibraryList(adminUserId, userId int, lang string, req *BridgeLibra
 		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
 	}
 	if len(list) == 0 {
-		return list, 0, nil
+		return []msql.Params{}, 0, nil
 	}
 	//stats data
 	libraryIds := make([]string, 0)
@@ -138,6 +138,7 @@ func BridgeGetLibraryList(adminUserId, userId int, lang string, req *BridgeLibra
 			params[`robot_nums`] = cast.ToString(len(robotInfo))
 		}
 	}
+
 	return newList, 0, nil
 }
 

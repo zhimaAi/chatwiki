@@ -1,20 +1,18 @@
 <template>
   <div bg-color="#f5f9ff" class="library-page">
-    <div class="page-title">对外文档</div>
+    <div class="page-title">{{ t('page_title') }}</div>
 
-    <page-alert style="margin-bottom: 16px;" title="使用说明">
+    <page-alert style="margin-bottom: 16px;" :title="t('usage_instruction')">
       <div>
-        <p>
-          1、对外文档作为在线文档创作管理工具，创作的文档既可作为知识库关联到机器人使用，也可分享给好友查看。
-        </p>
-        <p>2、支持设置每篇文档的title、description、keyword，提高SEO搜索权重。</p>
+        <p>{{ t('usage_instruction_1') }}</p>
+        <p>{{ t('usage_instruction_2') }}</p>
       </div>
     </page-alert>
-    
+
     <div class="library-page-body">
       <div class="list-toolbar">
         <div class="toolbar-box">
-          <h3 class="list-total">全部 ({{ list.length }})</h3>
+          <h3 class="list-total">{{ t('all') }} ({{ list.length }})</h3>
         </div>
 
         <div class="toolbar-box" v-if="createOpenLibDoc">
@@ -22,7 +20,7 @@
             <template #icon>
               <PlusOutlined />
             </template>
-            新建对外文档
+            {{ t('new_document') }}
           </a-button>
         </div>
       </div>
@@ -45,6 +43,9 @@ import LibraryList from './components/libray-list/index.vue'
 import AddLibraryModel from '../add/add-library-model.vue'
 import PageAlert from '@/components/page-alert/page-alert.vue'
 import { usePermissionStore } from '@/stores/modules/permission'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.public-library.list')
 let { role_permission, role_type } = usePermissionStore()
 const createOpenLibDoc = computed(() => role_type == 1 || role_permission.includes('CreateOpenLibDoc'))
 
@@ -89,15 +90,15 @@ const handleDelete = (data) => {
   let secondsToGo = 3
 
   let modal = Modal.confirm({
-    title: `删除${data.library_name}`,
+    title: t('delete_title', { library_name: data.library_name }),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '您确定要删除此知识库吗？',
-    okText: secondsToGo + ' 确 定',
+    content: t('delete_confirm'),
+    okText: secondsToGo + ' ' + t('confirm'),
     okType: 'danger',
     okButtonProps: {
       disabled: true
     },
-    cancelText: '取 消',
+    cancelText: t('cancel'),
     onOk() {
       onDelete(data)
     },
@@ -109,7 +110,7 @@ const handleDelete = (data) => {
   let interval = setInterval(() => {
     if (secondsToGo == 1) {
       modal.update({
-        okText: '确 定',
+        okText: t('confirm'),
         okButtonProps: {
           disabled: false
         }
@@ -121,7 +122,7 @@ const handleDelete = (data) => {
       secondsToGo -= 1
 
       modal.update({
-        okText: secondsToGo + ' 确 定',
+        okText: secondsToGo + ' ' + t('confirm'),
         okButtonProps: {
           disabled: true
         }
@@ -132,7 +133,7 @@ const handleDelete = (data) => {
 
 const onDelete = ({ id }) => {
   deleteLibrary({ id }).then(() => {
-    message.success('删除成功')
+    message.success(t('delete_success'))
     getList()
   })
 }

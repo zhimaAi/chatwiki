@@ -1,0 +1,9 @@
+{
+  "search_placeholder": "请输入图标名称",
+  "recent_used": "最近使用",
+  "search_result": "搜索结果",
+  "emoji_and_character": "表情与角色",
+  "no_matching_icon": "暂无匹配的图标",
+  "load_recent_failed": "加载最近使用图标失败:",
+  "save_recent_failed": "保存最近使用图标失败:"
+}

@@ -1,0 +1,17 @@
+{
+  "embed": "Embedding",
+  "embed_tooltip": "After enabling embedding, you can associate this knowledge base with bots.",
+  "embed_model": "Embedding Model",
+  "select_embed_model": "Please select embedding model",
+  "ai_summary": "AI Summary",
+  "ai_summary_tooltip": "When enabled, documents are automatically summarized by the AI model during knowledge base search",
+  "summary_model": "Summary Model",
+  "select_summary_model": "Please select summary model",
+  "save": "Save",
+  "confirm_switch_model": "Are you sure you want to switch to model {model}?",
+  "switch_model_warning": "After switching models, documents will be re-vectorized, consuming tokens",
+  "confirm": "Confirm",
+  "cancel": "Cancel",
+  "save_success": "Saved successfully",
+  "form_validation_failed": "Form validation failed"
+}

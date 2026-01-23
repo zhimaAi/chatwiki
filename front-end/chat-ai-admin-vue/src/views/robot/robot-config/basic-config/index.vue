@@ -55,6 +55,9 @@
         <DisplayAitations />
       </div>
       <div class="setting-box">
+        <AnswerPrompt />
+      </div>
+      <div class="setting-box">
         <ShowLike />
       </div>
     </div>
@@ -92,6 +95,7 @@ import ShowLike from './components/show-like.vue'
 import rolePermission from './role-permission.vue'
 import Skill from './components/skill/index.vue'
 import ChatCache from './components/chat-cache.vue'
+import AnswerPrompt from './components/answer-prompt.vue'
 
 const robotStore = useRobotStore()
 const activeLocalKey = '/robot/config/basic-config/activeKey'

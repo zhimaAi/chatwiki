@@ -180,6 +180,9 @@ const formState = reactive({
   top_k: 5,
   similarity: 0.5,
   search_type: 1,
+  meta_search_switch: 0,
+  meta_search_type: 1,
+  meta_search_condition_list: "",
   question_value: '',
   rrf_weight: {}
 })
@@ -271,7 +274,7 @@ const handleOpenSelectLibraryAlert = () => {
 const recallSettingsAlertRef = ref(null)
 
 const handleOpenRecallSettingsAlert = () => {
-  recallSettingsAlertRef.value.open(toRaw(formState))
+  recallSettingsAlertRef.value.open(toRaw(formState), null, formState.library_ids)
 }
 
 const onChangeRecallSettings = (data) => {
@@ -281,6 +284,9 @@ const onChangeRecallSettings = (data) => {
   formState.top_k = data.top_k
   formState.similarity = data.similarity
   formState.search_type = data.search_type
+  formState.meta_search_switch = Number(data.meta_search_switch)
+  formState.meta_search_type = Number(data.meta_search_type)
+  formState.meta_search_condition_list = data.meta_search_condition_list
   formState.rrf_weight = data.rrf_weight
 }
 

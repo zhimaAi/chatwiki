@@ -3,24 +3,24 @@
     <a-modal v-model:open="open" :title="modalTitle" @ok="handleOk" :width="472">
       <div class="form-box">
         <div class="form-item">
-          <div class="form-label">部门名称</div>
+          <div class="form-label">{{ t('department_name') }}</div>
           <div class="form-content">
             <a-input
               :maxLength="10"
               v-model:value="formState.department_name"
-              placeholder="请输入部门名称"
+              :placeholder="t('please_enter_department_name')"
             />
           </div>
         </div>
         <div class="form-item" v-if="!formState.id">
-          <div class="form-label">所属部门</div>
+          <div class="form-label">{{ t('parent_department') }}</div>
           <div class="form-content">
             <a-tree-select
               v-model:value="formState.pid"
               show-search
               style="width: 100%"
               :dropdown-style="{ maxHeight: '400px', overflow: 'auto' }"
-              placeholder="请选择"
+              :placeholder="t('please_select')"
               allow-clear
               tree-default-expand-all
               :tree-data="gData"
@@ -42,6 +42,10 @@ import { ref, reactive } from 'vue'
 import { saveDepartment, getDepartmentList } from '@/api/department/index.js'
 import { formateDepartmentCascaderData } from '@/utils/index.js'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.manage.components.add-department')
+
 const open = ref(false)
 const emit = defineEmits(['ok'])
 const formState = reactive({
@@ -55,7 +59,7 @@ const show = (data) => {
   formState.id = ''
   formState.pid = data.id > 0 ? data.id || '' : void 0
   formState.department_name = ''
-  modalTitle.value = '添加部门'
+  modalTitle.value = t('add_department')
   open.value = true
   getLists()
 }
@@ -64,7 +68,7 @@ const rename = (data) => {
   formState.id = data.id || ''
   formState.pid = data.pid || ''
   formState.department_name = data.title || ''
-  modalTitle.value = '重命名'
+  modalTitle.value = t('rename')
   open.value = true
 }
 const gData = ref([])
@@ -77,15 +81,15 @@ const getLists = () => {
 
 const handleOk = () => {
   if (!formState.department_name) {
-    return message.error('请输入部门名称')
+    return message.error(t('please_enter_department_name'))
   }
   if (!formState.id && !formState.pid) {
-    return message.error('请选择所属部门')
+    return message.error(t('please_select_parent_department'))
   }
   saveDepartment({
     ...formState
   }).then((res) => {
-    message.success('修改成功')
+    message.success(t('modify_success'))
     open.value = false
     emit('ok')
   })

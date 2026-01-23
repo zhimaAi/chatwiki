@@ -51,6 +51,7 @@ export const useCompanyStore = defineStore('company', {
       ali_ocr_switch: '2',
       ali_ocr_key: '',
       ali_ocr_secret: '',
+      is_public_network: '',
       topNavigateDefaultData: topNavigateDefaultData,
       top_navigate: topNavigateDefaultData,
     }
@@ -78,6 +79,7 @@ export const useCompanyStore = defineStore('company', {
       this.ali_ocr_switch = data ? data.ali_ocr_switch : '';
       this.ali_ocr_key = data ? data.ali_ocr_key : '';
       this.ali_ocr_secret = data ? data.ali_ocr_secret : '2';
+      this.is_public_network = data ? data.is_public_network : '';
       if(data && data.top_navigate){
         this.top_navigate = JSON.parse(data.top_navigate) || topNavigateDefaultData
       }else{

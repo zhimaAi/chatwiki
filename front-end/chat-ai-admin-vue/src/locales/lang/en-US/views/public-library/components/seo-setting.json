@@ -1,0 +1,10 @@
+{
+  "title": "SEO Settings",
+  "label_title": "Title",
+  "placeholder_title": "Enter page title",
+  "label_desc": "Description",
+  "placeholder_desc": "Enter page description",
+  "label_keywords": "Keywords",
+  "placeholder_keywords": "Enter keywords, separate multiple keywords with commas",
+  "save_success": "Saved successfully"
+}

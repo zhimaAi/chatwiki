@@ -108,6 +108,13 @@
 .model-icon {
   height: 18px;
 }
+
+.meta-box {
+  border-radius: 6px;
+  background: #F2F4F7;
+  padding: 16px;
+  margin-top: 8px;
+}
 </style>
 
 <template>
@@ -229,6 +236,28 @@
             />
           </div>
         </div>
+
+        <div class="form-item">
+          <div class="form-item-label">
+            <a-tooltip title="元数据过滤是使用元数据属性（例如分组，知识创建时间等）来细化和控制系統内相关信息的检索过程。召回时仅会召回满足要求的知识。">
+              <span>元数据过滤 <QuestionCircleOutlined/></span>
+            </a-tooltip>
+            &nbsp;
+            <a-switch
+              :checkedValue="1"
+              :unCheckedValue="0"
+              v-model:checked="formState.meta_search_switch"
+            />
+          </div>
+          <div class="form-item-body" v-if="formState.meta_search_switch == 1">
+            <MetaFilterBox
+              v-model:rule="formState.meta_search_condition_list"
+              v-model:type="formState.meta_search_type"
+              ref="metaFilterRef"
+              class="meta-box"
+              :meta-data="metaList"/>
+          </div>
+        </div>
       </div>
     </div>
   </a-modal>
@@ -240,6 +269,8 @@ import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import WeightSelect from '@/components/weight-select/index.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { message } from 'ant-design-vue'
+import {getRobotMetaSchemaList} from "@/api/library/index.js";
+import MetaFilterBox from "@/views/robot/robot-config/basic-config/components/meta-filter-box.vue";
 
 const emit = defineEmits(['change'])
 
@@ -276,23 +307,39 @@ const formState = reactive({
   rerank_use_model: undefined,
   rerank_model_config_id: undefined,
   search_type: 1,
+  meta_search_switch: 0,
+  meta_search_type: 1,
+  meta_search_condition_list: "",
   rrf_weight: {}
 })
 
+const metaFilterRef = ref(null)
 const show = ref(false)
+const robotInfo = ref({})
+const metaList = ref([])
 
-const open = (data) => {
-
+const open = (data, r=null) => {
+  robotInfo.value = r
+  getMetaList()
   formState.rerank_status = data.rerank_status || 0
   formState.rerank_use_model = data.rerank_use_model || undefined
   formState.rerank_model_config_id = data.rerank_model_config_id > 0 ? data.rerank_model_config_id : ''
   formState.top_k = data.top_k
   formState.similarity = data.similarity
   formState.search_type = data.search_type
+  formState.meta_search_switch = Number(data.meta_search_switch)
+  formState.meta_search_type = Number(data.meta_search_type)
+  formState.meta_search_condition_list = data.meta_search_condition_list
   formState.rrf_weight = data.rrf_weight
   show.value = true
 }
 
+
+const getMetaList = () => {
+  getRobotMetaSchemaList({id: robotInfo.value.id}).then(res => {
+    metaList.value = res?.data || []
+  })
+}
 
 const handleRerankStatusChange = (val) => {
   if(val == 0){
@@ -316,6 +363,9 @@ const checkRerank = () => {
 const handleSave = () => {
   if (checkRerank()) {
     return message.error('请选择Rerank模型')
+  }
+  if (formState.meta_search_switch == 1 && !metaFilterRef.value.verify()) {
+    return
   }
 
   show.value = false

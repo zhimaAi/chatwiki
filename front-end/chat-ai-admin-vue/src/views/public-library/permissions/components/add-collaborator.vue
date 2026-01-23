@@ -1,7 +1,7 @@
 <template>
   <a-modal
     v-model:open="visible"
-    title="添加协作者"
+    :title="t('title')"
     width="760px"
     :confirmLoading="confirmLoading"
     @ok="handleOk"
@@ -9,17 +9,17 @@
   >
     <div class="form-box">
       <a-form layout="vertical" :model="formState" :rules="rules" ref="formRef">
-        <a-form-item name="permission" label="协作权限">
+        <a-form-item name="permission" :label="t('permission_label')">
           <a-radio-group v-model:value="formState.permission">
-            <a-radio value="4">可管理</a-radio>
-            <a-radio value="2">可编辑</a-radio>
+            <a-radio value="4">{{ t('can_manage') }}</a-radio>
+            <a-radio value="2">{{ t('can_edit') }}</a-radio>
           </a-radio-group>
         </a-form-item>
 
-        <a-form-item name="collaborators" label="协作者">
+        <a-form-item name="collaborators" :label="t('collaborator_label')">
           <div class="collaborator-list-tip">
-            如果协作者没有账号，请先到团队管理中添加账号
-            <RouterLink to="/user/manage" target="_blank">去添加</RouterLink>
+            {{ t('tip_text') }}
+            <RouterLink to="/user/manage" target="_blank">{{ t('go_add') }}</RouterLink>
           </div>
 
           <div class="collaborator-list" ref="listRef">
@@ -46,8 +46,8 @@
                   </div>
                 </div>
               </div>
-              <div v-if="loading" class="loading-more">加载中...</div>
-              <div v-if="noMore" class="no-more">没有更多了</div>
+              <div v-if="loading" class="loading-more">{{ t('loading') }}</div>
+              <div v-if="noMore" class="no-more">{{ t('no_more') }}</div>
             </div>
           </div>
         </a-form-item>
@@ -66,6 +66,9 @@ import MouseWheel from '@better-scroll/mouse-wheel'
 import ScrollBar from '@better-scroll/scroll-bar'
 import Pullup from '@better-scroll/pull-up'
 import defaultAvatar from '@/assets/img/role_avatar.png'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.public-library.permissions.components.add-collaborator')
 
 BScroll.use(Pullup)
 BScroll.use(ScrollBar)
@@ -93,8 +96,8 @@ const formState = reactive({
 
 // 表单验证规则
 const rules = {
-  permission: [{ required: true, message: '请选择协作权限' }],
-  collaborators: [{ required: true, message: '请选择协作者', type: 'array', min: 1 }]
+  permission: [{ required: true, message: t('permission_required') }],
+  collaborators: [{ required: true, message: t('collaborator_required'), type: 'array', min: 1 }]
 }
 
 const onSelectUser = (user) => {
@@ -211,7 +214,7 @@ const handleSave = () => {
       visible.value = false
       confirmLoading.value = false
       emit('ok', data)
-      message.success('添加成功')
+      message.success(t('add_success'))
     })
     .catch(() => {
       confirmLoading.value = false

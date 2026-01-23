@@ -569,6 +569,7 @@
     <EditGroup ref="editGroupRef" @ok="initData" />
     <ImportCslAlert ref="importCslAlertRef" @ok="handleImportOk" />
     <ThirdMcpStore ref="thirdMcpRef" @ok="thirdMcpUpdate"/>
+    <WorkflowExportModal ref="exportRef" @ok="(r, d) => runExportCsl(r, d)"/>
   </div>
 </template>
 
@@ -607,7 +608,9 @@ import McpBox from "@/views/robot/robot-list/components/mcp-box.vue";
 import McpPanel from "@/views/robot/robot-list/components/mcp-panel.vue";
 import ThirdMcpStore from "@/views/robot/robot-list/components/third-mcp-store.vue";
 import { useRouter } from 'vue-router'
-import { setDescRef, getTooltipTitle } from '@/utils/index'
+import { setDescRef, getTooltipTitle, objectToQueryString } from '@/utils/index'
+import WorkflowExportModal from "@/views/robot/robot-list/components/workflow-export-modal.vue";
+
 const router = useRouter()
 
 const route = useRoute()
@@ -637,6 +640,7 @@ let { role_permission, role_type } = permissionStore
 const robotCreate = computed(() => role_type == 1 || role_permission.includes('RobotCreate'))
 
 
+const exportRef = ref(null)
 const mcpPanelRef = ref(null)
 const activeKey = ref('2')
 
@@ -859,8 +863,15 @@ const onCopy = ({ id }) => {
 
 // 导出为csl
 const handleExportCsl = (data) => {
+  exportRef.value.handle(data)
+}
+
+const runExportCsl = (data, params=null) => {
   const { openUrlWithToken } = useOpenUrlWithToken()
-  openUrlWithToken(`/manage/robotExport?id=${data.id}`)
+  params = params || {}
+  params.id = data.id
+  console.log('---', `/manage/robotExport?${objectToQueryString(params)}`)
+  openUrlWithToken(`/manage/robotExport?${objectToQueryString(params)}`)
 }
 
 const toTestPage = (item) => {

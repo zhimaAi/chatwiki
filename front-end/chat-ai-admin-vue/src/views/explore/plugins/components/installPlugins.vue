@@ -55,6 +55,7 @@
 
     <UpdateModal ref="updateRef" @ok="loadData"/>
     <FeishuConfigBox ref="feishuRef"/>
+    <OfficialArticleConfig ref="officialArtRef"/>
     <ConfigBox ref="configRef"/>
   </div>
 </template>
@@ -70,6 +71,7 @@ import {closePlugin, getInstallPlugins, getPluginConfig, openPlugin, uninstallPl
 import {jsonDecode} from "@/utils/index.js";
 import FeishuConfigBox from "@/views/explore/plugins/components/feishu-config-box.vue";
 import ConfigBox from "@/views/explore/plugins/components/config-box.vue";
+import OfficialArticleConfig from "@/views/explore/plugins/components/official-article-config.vue";
 
 const emit = defineEmits(['installReport', 'tabChange'])
 const props = defineProps({
@@ -82,6 +84,7 @@ const router = useRouter()
 
 const updateRef = ref(null)
 const feishuRef = ref(null)
+const officialArtRef = ref(null)
 const configRef = ref(null)
 const loading = ref(true)
 const list = ref([])
@@ -93,7 +96,8 @@ const showConifgPlugins = [
   'official_send_message',
   'official_intelligent_api',
   'official_account_batch_send',
-  'official_account_comment'
+  'official_account_comment',
+  'official_article',
 ]
 
 onMounted(() => {
@@ -257,6 +261,8 @@ function linkDetail(item) {
 function showConfigModal(item) {
   if (item.name === 'feishu_bitable') {
     showFeishuConfig(item)
+  } else if(item.name === 'official_article') {
+    officialArtRef.value.show(item)
   } else {
     configRef.value.show(item)
   }

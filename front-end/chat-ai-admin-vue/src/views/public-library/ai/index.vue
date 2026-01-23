@@ -11,9 +11,9 @@
         >
           <a-form-item>
             <template #label>
-              嵌入&nbsp;
+              {{ t('embed') }}&nbsp;
               <a-tooltip>
-                <template #title>开启嵌入功能后，才能在机器人中关联本知识库。</template>
+                <template #title>{{ t('embed_tooltip') }}</template>
                 <InfoCircleOutlined />
               </a-tooltip>
             </template>
@@ -25,14 +25,14 @@
           </a-form-item>
 
           <a-form-item
-            label="嵌入模型"
+            :label="t('embed_model')"
             name="use_model"
-            :rules="[{ required: true, message: '请选择嵌入模型' }]"
+            :rules="[{ required: true, message: t('select_embed_model') }]"
             v-if="formState.use_model_switch == 1"
           >
             <ModelSelect
               modelType="TEXT EMBEDDING"
-              placeholder="请选择嵌入模型"
+              :placeholder="t('select_embed_model')"
               v-model:modeName="formState.use_model"
               v-model:modeId="formState.model_config_id"
             />
@@ -40,11 +40,9 @@
 
           <a-form-item>
             <template #label>
-              AI智能总结&nbsp;
+              {{ t('ai_summary') }}&nbsp;
               <a-tooltip>
-                <template #title
-                  >开启后，搜索知识库时，由大模型自动总结文档，并给出总结后的结果</template
-                >
+                <template #title>{{ t('ai_summary_tooltip') }}</template>
                 <InfoCircleOutlined />
               </a-tooltip>
             </template>
@@ -52,9 +50,9 @@
           </a-form-item>
 
           <a-form-item
-            label="总结模型"
+            :label="t('summary_model')"
             name="ai_summary_model"
-            :rules="[{ required: true, message: '请选择总结模型' }]"
+            :rules="[{ required: true, message: t('select_summary_model') }]"
             v-if="formState.ai_summary == 1"
           >
             <ModelSelect
@@ -65,7 +63,7 @@
           </a-form-item>
 
           <a-form-item :wrapper-col="{ offset: 4, span: 8 }">
-            <a-button type="primary" :loading="loading" @click="handleSubmit">保存</a-button>
+            <a-button type="primary" :loading="loading" @click="handleSubmit">{{ t('save') }}</a-button>
           </a-form-item>
         </a-form>
       </div>
@@ -82,6 +80,9 @@ import { message, Modal } from 'ant-design-vue'
 import ConfigPageMenu from '../components/config-page-menu.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { usePublicLibraryStore } from '@/stores/modules/public-library'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.public-library.ai.index')
 
 const libraryStore = usePublicLibraryStore()
 
@@ -110,10 +111,10 @@ const handleSubmit = async () => {
     let isChangeModel = oldState.use_model != formState.use_model
     if (isChangeModel) {
       Modal.confirm({
-        title: '确定切换模型为' + formState.use_model + '吗？',
-        content: '切换模型后，文档会重新向量化，会消耗token',
-        okText: '确定',
-        cancelText: '取消',
+        title: t('confirm_switch_model', { model: formState.use_model }),
+        content: t('switch_model_warning'),
+        okText: t('confirm'),
+        cancelText: t('cancel'),
         onOk() {
           saveData()
         }
@@ -122,7 +123,7 @@ const handleSubmit = async () => {
       saveData()
     }
   } catch (error) {
-    console.error('表单验证失败:', error)
+    console.error(t('form_validation_failed'), error)
   }
 }
 
@@ -134,7 +135,7 @@ const saveData = () => {
   loading.value = true
   editLibrary(data)
     .then(() => {
-      message.success('保存成功')
+      message.success(t('save_success'))
       loading.value = false
       oldState = JSON.parse(JSON.stringify(data))
 

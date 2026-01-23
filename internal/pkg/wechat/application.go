@@ -20,6 +20,7 @@ import (
 )
 
 type ApplicationInterface interface {
+	SetTyping(customer, command string) (int, error)
 	SendText(customer, content string, push *lib_define.PushMessage) (int, error)
 	GetToken(refresh bool) (*response.ResponseGetToken, int, error)
 	SendMsgOnEvent(code, content string) (int, error)

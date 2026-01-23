@@ -106,7 +106,7 @@
 </style>
 <template>
   <div class="scroll-wrapper" ref="scrollRef">
-    <list-empty size="140" text="暂无机器人接待中会话" v-if="receiverList.length == 0" />
+    <list-empty size="140" :text="t('no_bot_sessions')" v-if="receiverList.length == 0" />
     <div class="chat-list" v-else>
       <div
         v-for="item in receiverList"
@@ -122,14 +122,14 @@
         <div class="chat-info">
           <div class="nickname">{{ item.displayName }}</div>
           <div class="last-message">{{ item.last_chat_message }}</div>
-          <div class="webapp-source">来自：{{ item.come_from.app_name }}</div>
+          <div class="webapp-source">{{ t('from_prefix') }}{{ item.come_from.app_name }}</div>
         </div>
       </div>
       <div v-if="loading" class="loading-wrapper">
         <a-spin size="small" />
-        <span class="loading-text">加载中...</span>
+        <span class="loading-text">{{ t('loading') }}</span>
       </div>
-      <div v-if="finished" class="finished-text">没有更多了</div>
+      <div v-if="finished" class="finished-text">{{ t('no_more') }}</div>
     </div>
   </div>
 </template>
@@ -141,6 +141,7 @@ import ObserveDOM from '@better-scroll/observe-dom'
 import Pullup from '@better-scroll/pull-up'
 import { storeToRefs } from 'pinia'
 import { useChatMonitorStore } from '@/stores/modules/chat-monitor.js'
+import { useI18n } from '@/hooks/web/useI18n'
 import { ref, onMounted, nextTick, onUnmounted, watch } from 'vue'
 import ListEmpty from './list-empty.vue'
 
@@ -150,6 +151,8 @@ BScroll.use(ObserveDOM)
 BScroll.use(Pullup)
 
 const emit = defineEmits(['switchChat'])
+
+const { t } = useI18n('views.chat-monitor.components.chat-list')
 
 const chatMonitorStore = useChatMonitorStore()
 const { getReceiverList } = chatMonitorStore
@@ -194,7 +197,7 @@ const getData = async (params = {}) => {
       finished.value = true
     }
   } catch (error) {
-    console.error('加载更多数据失败:', error)
+    console.error(t('load_more_failed'), error)
   } finally {
     loading.value = false
     scrollController.finishPullUp()

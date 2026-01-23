@@ -17,6 +17,97 @@ class DefaultController extends ExtensionController
         ];
 
         return [
+            'get_login_url' => [
+                'method' => 'POST',
+                'path' => '/api/get_login_url',
+                'title' => '获取爬虫登录地址',
+                'type' => 'service',
+                'desc' => '获取爬虫登录地址',
+                'params' => [],
+                'output' => $output + [
+                        'data' => [
+                            'type' => 'object',
+                            'desc' => '爬虫登录地址',
+                            'properties' => [
+                                'url' => ['type' => 'string', 'desc' => '爬虫登录地址'],
+                            ],
+                        ],
+                    ],
+            ],
+            'register' => [
+                'method' => 'POST',
+                'path' => '/api/register',
+                'title' => '注册账号',
+                'type' => 'service',
+                'desc' => '注册账号',
+                'params' => [
+                    'username' => ['required' => true, 'in' => 'body', 'type' => 'string', 'name' => '用户名', 'desc' => '用户名'],
+                    'password' => ['required' => false, 'in' => 'body', 'type' => 'string', 'name' => '密码', 'desc' => '密码'],
+                ],
+                'output' => $output + [
+                    'data' => [
+                        'type' => 'object',
+                        'desc' => '用户信息',
+                        'properties' => [
+                            'user' => [
+                                'type' => 'object',
+                                'desc' => '用户信息',
+                                'properties' => [
+                                    'is_admin' => ['type' => 'number', 'desc' => '是否是管理员'],
+                                    'username' => ['type' => 'string', 'desc' => '用户名'],
+                                ]
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+
+            'wechat_qrcode_login' => [
+                'method' => 'POST',
+                'path' => '/api/wechat/qrcode',
+                'title' => '微信扫码登录',
+                'type' => 'service',
+                'desc' => '微信扫码登录',
+                'params' => [
+                    'username' => ['required' => true, 'in' => 'body', 'type' => 'string', 'name' => '用户名', 'desc' => '用户名‘'],
+                ],
+                'output' => $output + [
+                    'data' => [
+                        'type' => 'object',
+                        'desc' => '二维码信息',
+                        'properties' => [
+                            'qrcode_base64' => ['type' => 'string', 'desc' => '二维码base64'],
+                        ],
+                    ]
+                ],
+            ],
+
+            'get_login_status' => [
+                'method' => 'POST',
+                'path' => '/api/wechat/status',
+                'title' => '获取登录状态',
+                'type' => 'service',
+                'desc' => '获取登录状态',
+                'params' => [
+                    'username' => ['required' => true, 'in' => 'body', 'type' => 'string', 'name' => '用户名', 'desc' => '用户名'],
+                ],
+                'output' => $output + [
+                    'data' => [
+                        'type' => 'object',
+                        'desc' => '登录状态',
+                        'properties' => [
+                            'online' => ['type' => 'boole', 'desc' => '是否在线'],
+                            'nickname' => ['type' => 'string', 'desc' => '昵称'],
+                            'headimgurl' => ['type' => 'string', 'desc' => '头像URL'],
+                            'login_time' => ['type' => 'integer', 'desc' => '登录时间'],
+                            'logout_time' => ['type' => 'register', 'desc' => '退出时间'],
+                            'login_duration_seconds' => ['type' => 'integer', 'desc' => '登录时长(秒)'],
+                            'login_duration_text' => ['type' => 'string', 'desc' => '登录时长(文本)'],
+                        ],
+                    ],
+                ],
+            ],
+
             // 获取公众号文章列表
             'get_official_article' => [
                 'method' => 'POST',
@@ -25,6 +116,7 @@ class DefaultController extends ExtensionController
                 'type' => 'node',
                 'desc' => '获取任意公众号的最近及历史文章列表，使用任意一篇文章链接即可',
                 'params' => [
+                    'username' => ['required' => true, 'in' => 'body', 'type' => 'string', 'name' => '用户名', 'desc' => '用户名'],
                     'url' => ['required' => true, 'in' => 'body', 'type' => 'string', 'name' => '公众号文章链接' ,'desc' => '在公众号发布的任何文章的URL，例如: https://mp.weixin.qq.com/s/j4REV58ZPeaLFWSVuiYjSA'],
                     'number' => ['required' => true, 'in' => 'body', 'type' => 'integer', 'name' => '文章数量', 'desc' => '文章列表个数,默认是5', 'default' => 5],
                 ],
@@ -35,16 +127,7 @@ class DefaultController extends ExtensionController
                         'items' => [
                             'type' => 'object',
                             'desc' => '文章信息',
-                            'properties' => [
-                                // 'msgid' => ['type' => 'number', 'desc' => '消息ID'],
-                                // 'aid' => ['type' => 'string', 'desc' => '文章ID'],
-                                // 'title' => ['type' => 'string', 'desc' => '文章标题'],
-                                // 'link' => ['type' => 'string', 'desc' => '文章链接'],
-                                // 'cover' => ['type' => 'string', 'desc' => '文章封面'],
-                                // 'digest' => ['type' => 'string', 'desc' => '简介'],
-                                // 'create_time' => ['type' => 'number', 'desc' => '创建时间(时间戳)'],
-                                // 'update_time' => ['type' => 'number', 'desc' => '更新时间(时间戳)'],
-                            ],
+                            'properties' => [],
                         ],
                     ],
                 ],
@@ -148,6 +231,10 @@ class DefaultController extends ExtensionController
             return $this->error("业务标识不能为空");
         }
 
+        if ($business == "get_login_url") {
+            return $this->success(['url' => getenv('WECHAT_ARTICLE_CRAWLER_HOST')]);
+        }
+
         try {
             // 加载配置
             $schemaMap = $this->getApiSchema();
@@ -184,7 +271,11 @@ class DefaultController extends ExtensionController
 
             // 业务层面的成功判断
             if ($this->checkBusinessSuccess($result)) {
-                return $this->success($result['data']['articles'] ?? []);
+                if ($business == 'get_official_article') {
+                    return $this->success($result['data']['articles'] ?? []);
+                } else {
+                    return $this->success($result['data'] ?? []);
+                }
             }
 
             return $this->error($this->getBusinessErrorMsg($result));
@@ -193,5 +284,4 @@ class DefaultController extends ExtensionController
             return $this->error('执行异常: ' . $e->getMessage());
         }
     }
-
 }

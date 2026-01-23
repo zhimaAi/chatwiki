@@ -513,3 +513,41 @@ func SetWechatNotVerifyConfig(c *gin.Context) {
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
 	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
 }
+
+func SetWechatConfigSwitch(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	//get params
+	id := cast.ToInt64(c.PostForm(`id`))
+	key := strings.TrimSpace(c.PostForm(`key`))
+	val := cast.ToInt(cast.ToBool(c.PostForm(`val`)))
+	//check required
+	if id <= 0 || !tool.InArrayString(key, []string{`show_ai_msg_gzh`, `show_typing_gzh`, `show_ai_msg_mini`, `show_typing_mini`}) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	//data check
+	m := msql.Model(`chat_ai_robot`, define.Postgres)
+	robotKey, err := m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(adminUserId)).Value(`robot_key`)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(robotKey) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	//database dispose
+	data := msql.Datas{key: val, `update_time`: tool.Time2Int()}
+	if _, err = m.Where(`id`, cast.ToString(id)).Update(data); err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	//clear cached data
+	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
+	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
+}

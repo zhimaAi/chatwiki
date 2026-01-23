@@ -37,6 +37,7 @@
       :key="tab.value"
     >
       {{ tab.title }}
+      <slot name="extra" :tab="tab" :key="tab.value"></slot>
     </div>
   </div>
 </template>

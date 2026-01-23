@@ -622,6 +622,12 @@
       </template>
       <!-- 检索知识库 -->
       <div class="label-flex-block">
+        <div class="thinking-label-wrapper" v-if="tips_before_answer_switch && props.msg.startLoading">
+          <div class="thinking-label">
+            <van-loading class="loading" color="#262626" size="16px" type="spinner" />
+            <span class="label-text">{{ tips_before_answer_content }}</span>
+          </div>
+        </div>
         <div
           class="thinking-label-wrapper"
           :class="{ reasoning_open: props.msg.show_quote_file }"
@@ -632,7 +638,7 @@
               <van-loading class="loading" color="#262626" size="16px" type="spinner" />
               <span class="label-text">{{ translate('正在检索知识库...') }}</span>
             </template>
-            <template v-else>
+            <template v-if="!props.msg.quote_loading">
               <svg-icon class="think-icon" name="quote-file"></svg-icon>
               <span class="label-text" v-if="externalConfigH5.lang == 'en-US'"
                 >Found {{ props.msg.quote_file.length }}
@@ -1041,10 +1047,15 @@ const common_question_list = computed(() => robot.common_question_list)
 // 检查是否为用户消息
 const isCustomerMessage = computed(() => props.msg.is_customer == 1)
 
+const tips_before_answer_content = computed(() => robot.tips_before_answer_content)
+const tips_before_answer_switch = computed(() => robot.tips_before_answer_switch)
+
 // 是否显示引用
 const isShowQuoteFileProgress = computed(() => {
-  return (robot.chat_type == 1 || robot.chat_type == 3) && robot.answer_source_switch && robot.application_type == '0'
+  return (robot.chat_type == 1 || robot.chat_type == 3) && robot.answer_source_switch && robot.application_type == '0' && (!props.msg.startLoading || !tips_before_answer_switch.value)
 })
+
+
 
 // 是否为欢迎语
 const isWelcomeMessage = computed(() => props.msg.msg_type == 2)

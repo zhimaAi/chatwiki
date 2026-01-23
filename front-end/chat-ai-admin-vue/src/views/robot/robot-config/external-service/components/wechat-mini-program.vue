@@ -4,10 +4,19 @@
   gap: 24px;
   flex-flow: row wrap;
 }
+.add-btn-block {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
 </style>
 
 <template>
   <div class="">
+    <div class="add-btn-block">
+      <a-button @click="handleShowVerifiedConfig" :icon="createVNode(SettingOutlined)">小程序回复设置</a-button>
+    </div>
     <div class="wechat-app-list">
       <AddWechatApp label="绑定微信小程序" @click="showAddAlert" />
       <WechatAppItem
@@ -21,19 +30,22 @@
       />
     </div>
     <AddWechatAppAlert ref="addAppAlertRef" @ok="onSaveSuccess" />
+     <MiniProgramReplyConfig ref="replyConfigRef" @change="onSaveReplyConfigSuccess" />
   </div>
 </template>
 
 <script setup>
 import { ref, inject, onMounted, createVNode } from 'vue'
 import { message, Modal } from 'ant-design-vue'
-import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
+import { ExclamationCircleOutlined, SettingOutlined } from '@ant-design/icons-vue'
 import { getWechatAppList, deleteWechatApp, refreshAccountVerify } from '@/api/robot'
 import WechatAppItem from './wechat-app-item.vue'
 import AddWechatApp from './add-wechat-app.vue'
 import AddWechatAppAlert from './add-wechat-mini-program-alert.vue'
+import MiniProgramReplyConfig from './mini-program-reply-config.vue'
 
-const { robotInfo } = inject('robotInfo')
+
+const { robotInfo, getRobot } = inject('robotInfo')
 
 const addAppAlertRef = ref()
 const list = ref([])
@@ -117,6 +129,22 @@ const handleRefresh = (item) => {
 
 const onSaveSuccess = () => {
   getList()
+}
+
+const replyConfigRef = ref(null)
+
+const handleShowVerifiedConfig = () => {
+  let config = {
+    robotId: robotInfo.id,
+    aiGenerated: robotInfo.show_ai_msg_mini,
+    typingIndicator: robotInfo.show_typing_mini
+  }
+
+  replyConfigRef.value.open(config)
+}
+
+const onSaveReplyConfigSuccess = () => {
+  getRobot(robotInfo.id)
 }
 
 onMounted(() => {

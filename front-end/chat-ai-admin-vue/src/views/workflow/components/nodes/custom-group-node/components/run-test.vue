@@ -145,7 +145,19 @@
               </div>
             </div>
             <div class="preview-content-block">
-              <div class="title-block">运行日志<CopyOutlined @click="handleCopy" /></div>
+              <div class="title-block">输入<CopyOutlined @click="handleCopy('input')" /></div>
+              <div class="preview-code-box">
+                <vue-json-pretty :data="cuttentItem.input" />
+              </div>
+            </div>
+            <div class="preview-content-block">
+              <div class="title-block">输出<CopyOutlined @click="handleCopy('node_output')" /></div>
+              <div class="preview-code-box">
+                <vue-json-pretty :data="cuttentItem.node_output" />
+              </div>
+            </div>
+            <div class="preview-content-block">
+              <div class="title-block">运行日志<CopyOutlined @click="handleCopy('output')" /></div>
               <div class="preview-code-box">
                 <vue-json-pretty :data="cuttentItem.output" />
               </div>
@@ -360,8 +372,8 @@ const handleChangeNodeKey = (item) => {
   currentNodeKey.value = item.node_key
 }
 
-const handleCopy = () => {
-  copyText(JSON.stringify(cuttentItem.value.output))
+const handleCopy = (key) => {
+  copyText(JSON.stringify(cuttentItem.value[key]))
   message.success('复制成功')
 }
 
@@ -549,6 +561,7 @@ defineExpose({
     }
     .preview-code-box {
       width: fit-content;
+      min-width: 100%;
       margin-top: 16px;
       padding: 8px;
       border-radius: 8px;

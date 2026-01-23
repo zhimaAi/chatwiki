@@ -1,0 +1,14 @@
+{
+  "title": "Add Collaborator",
+  "permission_label": "Collaboration Permission",
+  "can_manage": "Can Manage",
+  "can_edit": "Can Edit",
+  "collaborator_label": "Collaborator",
+  "tip_text": "If the collaborator doesn't have an account, please add the account in team management first",
+  "go_add": "Go Add",
+  "loading": "Loading...",
+  "no_more": "No More",
+  "permission_required": "Please select collaboration permission",
+  "collaborator_required": "Please select collaborator",
+  "add_success": "Added successfully"
+}

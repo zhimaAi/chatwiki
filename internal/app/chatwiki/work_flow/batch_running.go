@@ -274,6 +274,7 @@ func (flowBatch *WorkFlowBatch) batchNodeRunning(dataField *common.SimpleField) 
 		context:     flowBatch.MainFlow.context,           //inherit context
 		global:      flowBatch.MainFlow.global,            //继承自所属工作流
 		outputs:     make(map[string]common.SimpleFields), //深度拷贝主流程的输出
+		inputs:      make(map[string]common.SimpleFields), //输入参数 不继承主流程
 		runNodeKeys: make([]string, 0),                    //self run node keys
 		runLogs:     make([]string, 0),                    //self  logs
 		VersionId:   flowBatch.MainFlow.VersionId,         //inherit version id
@@ -312,6 +313,8 @@ func (flowBatch *WorkFlowBatch) batchNodeRunning(dataField *common.SimpleField) 
 			NodeName:  nodeInfo[`node_name`],
 			NodeType:  cast.ToInt(nodeInfo[`node_type`]),
 		}
+		flowL.getNodeInputs()
+		flowL.inputs[flowL.curNodeKey] = flowL.input
 		if tool.InArray(cast.ToInt(nodeInfo[`node_type`]), []int{NodeTypeLoop, NodeTypeBatch}) {
 			err = errors.New(fmt.Sprintf(`批处理节点中不支持循环节点或者批处理节点 %s`, nodeLog.NodeName))
 			break
@@ -320,8 +323,10 @@ func (flowBatch *WorkFlowBatch) batchNodeRunning(dataField *common.SimpleField) 
 			flowL.outputs[flowL.curNodeKey] = flowL.output //记录每个节点输出的变量
 		}
 		//运行参数处理
+		nodeLog.Input = common.GetFieldsObject(common.GetRecurveFields(flowL.input))
 		nodeLog.EndTime = time.Now().UnixMilli()
 		nodeLog.Output = common.GetFieldsObject(common.GetRecurveFields(flowL.output))
+		nodeLog.NodeOutput = GetNodeOutput(nodeLog.Output)
 		nodeLog.ErrorMsg = fmt.Sprintf(`%v`, err)
 		nodeLog.UseTime = nodeLog.EndTime - nodeLog.StartTime
 		flowL.nodeLogs = append(flowL.nodeLogs, nodeLog)

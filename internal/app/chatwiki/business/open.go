@@ -10,6 +10,7 @@ import (
 	"chatwiki/internal/app/chatwiki/work_flow"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -24,9 +25,20 @@ import (
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
+type MixedContent string
+
+func (m *MixedContent) UnmarshalJSON(data []byte) error {
+	var content string
+	if err := json.Unmarshal(data, &content); err != nil {
+		content = strings.Trim(string(data), `"`)
+	}
+	*m = MixedContent(content)
+	return nil
+}
+
 type (
 	ChatMessagesReq struct {
-		Content  any                                  `form:"content" json:"content" binding:"required"`
+		Content  MixedContent                         `form:"content" json:"content" binding:"required"`
 		Messages []adaptor.ZhimaChatCompletionMessage `form:"messages" json:"messages"`
 		OpenID   string                               `form:"open_id" json:"open_id" binding:"required"`
 		Stream   bool                                 `form:"stream" json:"stream,omitempty"`
@@ -198,7 +210,7 @@ func (r *ChatMessagesReq) buildChatRequestParam(c *gin.Context) (*define.ChatReq
 	return &define.ChatRequestParam{
 		ChatBaseParam:  chatBaseParam,
 		Lang:           common.GetLang(c),
-		Question:       common.GetQuestionByContent(r.Content),
+		Question:       string(r.Content),
 		OpenApiContent: tool.JsonEncodeNoError(r.Messages),
 		WechatappAppid: c.GetString(`wechatapp_appid`),
 		IsClose:        &isClose,

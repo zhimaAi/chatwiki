@@ -296,15 +296,16 @@ func (flowLoop *WorkFlowLoop) loopNodeRunning(loopIndex, maxLoopNumber int, inFi
 	//new flow
 	isLoopEnd = false
 	flowL = &WorkFlow{
-		params:      flowLoop.Flow.params,      //inherit params
-		nodeLogs:    make([]common.NodeLog, 0), //node logs
-		StartTime:   tool.Time2Int(),           //start time
-		context:     flowLoop.Flow.context,     //inherit context
-		global:      flowLoop.Flow.global,      //继承自循环节点所属工作流
-		outputs:     flowLoop.Flow.outputs,     //继承所有节点的输出 所有对outputs的修改都会反应到主工作流
-		runNodeKeys: make([]string, 0),         //self run node keys
-		runLogs:     make([]string, 0),         //self  logs
-		VersionId:   flowLoop.Flow.VersionId,   //inherit version id
+		params:      flowLoop.Flow.params,                 //inherit params
+		nodeLogs:    make([]common.NodeLog, 0),            //node logs
+		StartTime:   tool.Time2Int(),                      //start time
+		context:     flowLoop.Flow.context,                //inherit context
+		global:      flowLoop.Flow.global,                 //继承自循环节点所属工作流
+		outputs:     flowLoop.Flow.outputs,                //继承所有节点的输出 所有对outputs的修改都会反应到主工作流
+		inputs:      make(map[string]common.SimpleFields), //输入参数
+		runNodeKeys: make([]string, 0),                    //self run node keys
+		runLogs:     make([]string, 0),                    //self  logs
+		VersionId:   flowLoop.Flow.VersionId,              //inherit version id
 		LoopIntermediate: LoopIntermediate{
 			LoopNodeKey: flowLoop.LoopNode[`node_key`],
 			Params:      &flowLoop.LoopNodeParams.IntermediateParams,
@@ -346,6 +347,8 @@ func (flowLoop *WorkFlowLoop) loopNodeRunning(loopIndex, maxLoopNumber int, inFi
 			NodeName:  nodeInfo[`node_name`],
 			NodeType:  cast.ToInt(nodeInfo[`node_type`]),
 		}
+		flowL.getNodeInputs()
+		flowL.inputs[flowL.curNodeKey] = flowL.input
 		if cast.ToInt(nodeInfo[`node_type`]) == NodeTypeLoop {
 			err = errors.New(fmt.Sprintf(`循环节点中不支持循环节点 %s`, nodeLog.NodeName))
 			break
@@ -361,6 +364,8 @@ func (flowLoop *WorkFlowLoop) loopNodeRunning(loopIndex, maxLoopNumber int, inFi
 		//运行参数处理
 		nodeLog.EndTime = time.Now().UnixMilli()
 		nodeLog.Output = common.GetFieldsObject(common.GetRecurveFields(flowL.output))
+		nodeLog.Input = common.GetFieldsObject(common.GetRecurveFields(flowL.input))
+		nodeLog.NodeOutput = GetNodeOutput(nodeLog.Output)
 		nodeLog.ErrorMsg = fmt.Sprintf(`%v`, err)
 		nodeLog.UseTime = nodeLog.EndTime - nodeLog.StartTime
 		flowL.nodeLogs = append(flowL.nodeLogs, nodeLog)

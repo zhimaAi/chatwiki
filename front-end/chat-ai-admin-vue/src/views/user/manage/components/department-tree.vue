@@ -1,7 +1,7 @@
 <template>
   <div class="department-tree-search">
     <div class="flex-block">
-      <a-input-search v-model:value="searchValue" placeholder="搜索部门" style="flex: 1" />
+      <a-input-search v-model:value="searchValue" :placeholder="t('search_department')" style="flex: 1" />
       <div class="add-btn-box" @click="openAddModal({})"><PlusOutlined /></div>
     </div>
     <div class="tree-list-box">
@@ -64,17 +64,17 @@
                       key="addDoc"
                       @click.stop.prevent="openAddModal(treeNode)"
                     >
-                      <span class="menu-name">添加子部门</span>
+                      <span class="menu-name">{{ t('add_sub_department') }}</span>
                     </a-menu-item>
                     <a-menu-item key="importDoc" @click.stop.prevent="handleRename(treeNode)">
-                      <span class="menu-name">重命名</span>
+                      <span class="menu-name">{{ t('rename') }}</span>
                     </a-menu-item>
                     <a-menu-item
                       v-if="treeNode.is_default != 1"
                       key="del"
                       @click.stop.prevent="openDel(treeNode)"
                     >
-                      <span class="menu-name" style="color: #fb363f">删 除</span>
+                      <span class="menu-name" style="color: #fb363f">{{ t('delete') }}</span>
                     </a-menu-item>
                   </a-menu>
                 </template>
@@ -97,6 +97,9 @@ import AddDepartment from './add-department.vue'
 import { nextTick, ref, watch } from 'vue'
 import { formateDepartmentData } from '@/utils/index.js'
 import DelDepartment from './del-department.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.manage.components.department-tree')
 
 const emit = defineEmits(['select', 'save', 'refresh'])
 

@@ -25,13 +25,70 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
+func GetRobotDataImportInfo(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	id := cast.ToInt(c.Query(`id`))
+
+	nodes, _ := msql.Model(`work_flow_node`, define.Postgres).Where(`robot_id`, cast.ToString(id)).
+		Where(`data_type`, cast.ToString(define.DataTypeDraft)).Select()
+
+	returnData := make(map[string]interface{})
+	databaseMap := make(map[int]work_flow.ExportBaseFormInfo)
+	libraryIds := []string{}
+	for _, node := range nodes {
+		nodeInfo := work_flow.NodeInfo{}
+		_ = tool.JsonDecodeUseNumber(node[`node_info_json`], &nodeInfo)
+		switch cast.ToInt(node[`node_type`]) {
+		case work_flow.NodeTypeLibs:
+			libraryInfo := work_flow.ExportLibrary{}
+			_ = tool.JsonDecodeUseNumber(nodeInfo.DataRaw, &libraryInfo)
+			libraryIds = append(libraryIds, strings.Split(libraryInfo.Libs.LibraryIds, ",")...)
+		case work_flow.NodeTypeFormInsert:
+			insertInfo := work_flow.ExportFormInsertInfo{}
+			_ = tool.JsonDecodeUseNumber(nodeInfo.DataRaw, &insertInfo)
+			databaseMap[cast.ToInt(insertInfo.FormInsert.FormId)] = insertInfo.FormInsert
+		case work_flow.NodeTypeFormDelete:
+			deleteInfo := work_flow.ExportFormDeleteInfo{}
+			_ = tool.JsonDecodeUseNumber(nodeInfo.DataRaw, &deleteInfo)
+			databaseMap[cast.ToInt(deleteInfo.FormDelete.FormId)] = deleteInfo.FormDelete
+		case work_flow.NodeTypeFormUpdate:
+			updateInfo := work_flow.ExportFormUpdateInfo{}
+			_ = tool.JsonDecodeUseNumber(nodeInfo.DataRaw, &updateInfo)
+			databaseMap[cast.ToInt(updateInfo.FormUpdate.FormId)] = updateInfo.FormUpdate
+		case work_flow.NodeTypeFormSelect:
+			seleteInfo := work_flow.ExportFormSelectInfo{}
+			_ = tool.JsonDecodeUseNumber(nodeInfo.DataRaw, &seleteInfo)
+			databaseMap[cast.ToInt(seleteInfo.FormSelect.FormId)] = seleteInfo.FormSelect
+		}
+	}
+
+	if len(libraryIds) > 0 {
+		returnData["library"], _ = msql.Model(`chat_ai_library`, define.Postgres).Where(`id`, `in`, strings.Join(libraryIds, ",")).Where(`admin_user_id`, cast.ToString(adminUserId)).Field("id,admin_user_id,library_name").Select()
+	} else {
+		returnData["library"] = []interface{}{}
+	}
+
+	databaseList := []work_flow.ExportBaseFormInfo{}
+	for _, info := range databaseMap {
+		databaseList = append(databaseList, info)
+	}
+	returnData["databaseList"] = databaseList
+
+	c.String(http.StatusOK, lib_web.FmtJson(returnData, nil))
+
+}
 func RobotExport(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
 	id := cast.ToInt(c.Query(`id`))
-	robotCsl, err := CreateRobotCsl(id, adminUserId)
+	form_id := cast.ToString(c.Query(`form_id`))
+	library_id := cast.ToString(c.Query(`library_id`))
+	robotCsl, err := CreateRobotCsl(id, adminUserId, form_id, library_id)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
@@ -96,7 +153,7 @@ func RobotImport(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(ApplyRobotCsl(adminUserId, getLoginUserId(c), token, robotCsl)))
 }
 
-func CreateRobotCsl(id, adminUserId int, simple ...bool) (robotCsl *common.RobotCsl, err error) {
+func CreateRobotCsl(id, adminUserId int, form_id, library_id string, simple ...bool) (robotCsl *common.RobotCsl, err error) {
 	robotCsl = common.NewRobotCsl()
 	if id <= 0 {
 		err = errors.New(`机器人ID参数错误`)
@@ -132,7 +189,7 @@ func CreateRobotCsl(id, adminUserId int, simple ...bool) (robotCsl *common.Robot
 	case define.ApplicationTypeChat:
 		if len(robot[`work_flow_ids`]) > 0 {
 			for _, workFlowId := range strings.Split(robot[`work_flow_ids`], `,`) {
-				children, subErr := CreateRobotCsl(cast.ToInt(workFlowId), adminUserId, true)
+				children, subErr := CreateRobotCsl(cast.ToInt(workFlowId), adminUserId, form_id, library_id, true)
 				if subErr == nil {
 					for libraryId := range children.Librarys {
 						robotCsl.Librarys[libraryId] = nil
@@ -166,6 +223,8 @@ func CreateRobotCsl(id, adminUserId int, simple ...bool) (robotCsl *common.Robot
 			err = sqlErr
 			return
 		}
+		//工作流节点配置信息脱密
+		nodes = work_flow.NodesConfDesensitize(nodes)
 
 		// 过滤鉴权信息
 		for i, node := range nodes {
@@ -244,9 +303,20 @@ func CreateRobotCsl(id, adminUserId int, simple ...bool) (robotCsl *common.Robot
 	if len(simple) > 0 && simple[0] {
 		return
 	}
+
+	libraryIdArr := strings.Split(library_id, ",")
+	libraryMap := make(map[string]string)
+	for _, id := range libraryIdArr {
+		libraryMap[id] = id
+	}
 	//处理知识库
 	for libraryId := range robotCsl.Librarys {
-		libraryCsl, sqlErr := common.BuildLibraryCsl(libraryId, adminUserId)
+		importData := false
+		if _, ok := libraryMap[cast.ToString(libraryId)]; ok && len(libraryIdArr) > 0 {
+			importData = true
+		}
+
+		libraryCsl, sqlErr := common.BuildLibraryCsl(libraryId, adminUserId, importData)
 		if sqlErr == nil {
 			robotCsl.Librarys[libraryId] = libraryCsl
 		} else {
@@ -254,8 +324,18 @@ func CreateRobotCsl(id, adminUserId int, simple ...bool) (robotCsl *common.Robot
 		}
 	}
 	//处理表单
+	formIdArr := strings.Split(form_id, ",")
+	formIdMap := make(map[int]string)
+	for _, id := range formIdArr {
+		formIdMap[cast.ToInt(id)] = id
+	}
+
 	for formId := range robotCsl.Forms {
-		formCsl, sqlErr := common.BuildFormCsl(formId, adminUserId)
+		importData := false
+		if _, ok := formIdMap[formId]; ok && len(formIdArr) > 0 {
+			importData = true
+		}
+		formCsl, sqlErr := common.BuildFormCsl(formId, adminUserId, importData)
 		if sqlErr == nil {
 			robotCsl.Forms[formId] = formCsl
 		} else {
@@ -414,6 +494,8 @@ func ApplyFlowRobot(adminUserId int, robot msql.Params, nodes []msql.Params, csl
 		return nil, err
 	}
 	newRobot := cast.ToStringMapString(code.Data)
+	//工作流节点配置信息脱密
+	nodes = work_flow.NodesConfDesensitize(nodes)
 	//工作流节点
 	for _, node := range nodes {
 		nodeType := cast.ToInt(node[`node_type`])
@@ -526,7 +608,7 @@ func ReplaceNodeParams(adminUserId int, nodeType int, nodeParamsStr, nodeInfoStr
 			}
 		}
 	}
-	return tool.JsonEncodeNoError(nodeParams), AmendNodeinfojson(nodeInfoStr, replace)
+	return tool.JsonEncodeNoError(nodeParams), work_flow.AmendNodeinfojson(nodeInfoStr, replace)
 }
 
 func ReplaceFormOpWhere(where []define.FormFilterCondition, cslIdMaps *common.CslIdMaps, replace *map[string]any) []define.FormFilterCondition {
@@ -541,51 +623,4 @@ func ReplaceFormOpWhere(where []define.FormFilterCondition, cslIdMaps *common.Cs
 		(*replace)[fmt.Sprintf(`form_field_id#%d`, oldFormFieldId)] = newFormFieldId
 	}
 	return newWhere
-}
-
-func AmendNodeinfojson(nodeInfoStr string, replace map[string]any) string {
-	if len(replace) == 0 {
-		return nodeInfoStr
-	}
-	nodeInfoJson := make(map[string]any)
-	if err := tool.JsonDecodeUseNumber(nodeInfoStr, &nodeInfoJson); err != nil {
-		logs.Error(err.Error())
-	}
-	if _, ok := nodeInfoJson[`dataRaw`]; !ok {
-		return nodeInfoStr
-	}
-	var dataRaw any
-	if err := tool.JsonDecodeUseNumber(cast.ToString(nodeInfoJson[`dataRaw`]), &dataRaw); err != nil {
-		logs.Error(err.Error())
-	}
-	dataRaw = AmendDataRaw(dataRaw, replace)
-	nodeInfoJson[`dataRaw`] = tool.JsonEncodeNoError(dataRaw)
-	return tool.JsonEncodeNoError(nodeInfoJson)
-}
-
-func AmendDataRaw(dataRaw any, replace map[string]any, keys ...string) any {
-	switch realData := dataRaw.(type) {
-	case []any:
-		newData := make([]interface{}, len(realData))
-		for idx, val := range realData {
-			newData[idx] = AmendDataRaw(val, replace)
-		}
-		return newData
-	case map[string]any:
-		newData := make(map[string]interface{})
-		for key, val := range realData {
-			newData[key] = AmendDataRaw(val, replace, key)
-		}
-		return newData
-	default:
-		if len(keys) > 0 {
-			if newVal, ok := replace[fmt.Sprintf(`%s#%v`, keys[0], realData)]; ok {
-				return newVal //替换成新值
-			}
-			if newVal, ok := replace[keys[0]]; ok {
-				return newVal //替换成新值
-			}
-		}
-		return realData
-	}
 }

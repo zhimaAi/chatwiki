@@ -46,6 +46,9 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { getDocList } from '@/api/public-library'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.public-library.home.components.shortcut-selector')
 
 const emit = defineEmits(['ok'])
 const props = defineProps({
@@ -65,7 +68,7 @@ const oldDocKey = ref(null);
 const oldDocId = ref(null);
 
 const title = computed(() => {
-  return oldDocKey.value ? '修改文档快捷方式' : '添加文档快捷方式'
+  return oldDocKey.value ? t('modify_shortcut') : t('add_shortcut')
 })
 
 const getMyDocList = async (doc) => {

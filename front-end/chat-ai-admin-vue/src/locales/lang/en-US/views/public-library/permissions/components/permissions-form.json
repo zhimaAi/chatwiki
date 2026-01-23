@@ -1,0 +1,12 @@
+{
+  "access_rights": "Access Rights",
+  "private_option": "Private, only linked to apps as app knowledge base",
+  "public_option": "Public, published to internet, accessible to everyone",
+  "copy_link": "Copy Link",
+  "select_domain_placeholder": "Please select custom domain",
+  "copy": "Copy",
+  "add_custom_domain": "Add Custom Domain",
+  "please_select_domain": "Please select custom domain",
+  "copy_success": "Copied successfully",
+  "copy_failed": "Copy failed"
+}

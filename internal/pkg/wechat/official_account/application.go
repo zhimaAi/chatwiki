@@ -10,10 +10,10 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/ArtisanCloud/PowerLibs/v3/object"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/messages"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/power"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/response"
+	response2 "github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/response"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount"
 	menuRequest "github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount/menu/request"
 	publishRequest "github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount/publish/request"
@@ -36,7 +36,7 @@ func (a *Application) SendImageTextLink(customer, url, title, description, local
 		`url`:         url,
 		`title`:       title,
 		`description`: description,
-	}).TransformForJsonRequest(&object.HashMap{`touser`: customer}, true)
+	}).TransformForJsonRequest(gzhBuildSendMsgAppends(customer, push), true)
 	if err != nil {
 		return 0, err
 	}
@@ -68,7 +68,7 @@ func (a *Application) SendMiniProgramPage(customer, appid, title, pagePath, loca
 		`title`:          title,
 		`pagepath`:       pagePath,
 		"thumb_media_id": mediaId,
-	}).TransformForJsonRequest(&object.HashMap{`touser`: customer}, true)
+	}).TransformForJsonRequest(gzhBuildSendMsgAppends(customer, push), true)
 	if err != nil {
 		return 0, err
 	}
@@ -86,7 +86,7 @@ func (a *Application) SendMiniProgramPage(customer, appid, title, pagePath, loca
 func (a *Application) SendUrl(customer, url, title string, push *lib_define.PushMessage) (int, error) {
 	content := "<a href='" + url + "'>" + title + "</a>"
 	jsonStr, err := messages.NewText(content).
-		TransformForJsonRequest(&object.HashMap{`touser`: customer}, true)
+		TransformForJsonRequest(gzhBuildSendMsgAppends(customer, push), true)
 	if err != nil {
 		return 0, err
 	}
@@ -113,10 +113,31 @@ func (a *Application) GetApp() (*officialAccount.OfficialAccount, error) {
 	return officialAccount.NewOfficialAccount(config)
 }
 
+func (a *Application) SetTyping(customer, command string) (int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return 0, err
+	}
+	var resp *response2.ResponseOfficialAccount
+	switch command {
+	case lib_define.CommandCancelTyping:
+		resp, err = app.CustomerService.HideTypingStatusToUser(context.Background(), customer)
+	default:
+		resp, err = app.CustomerService.ShowTypingStatusToUser(context.Background(), customer)
+	}
+	if err != nil {
+		return 0, err
+	}
+	if resp.ErrCode != 0 {
+		return resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return 0, nil
+}
+
 func (a *Application) SendText(customer, content string, push *lib_define.PushMessage) (int, error) {
 	content = common.ReplaceDate(content)
 	jsonStr, err := messages.NewText(content).
-		TransformForJsonRequest(&object.HashMap{`touser`: customer}, true)
+		TransformForJsonRequest(gzhBuildSendMsgAppends(customer, push), true)
 	if err != nil {
 		return 0, err
 	}
@@ -182,7 +203,7 @@ func (a *Application) SendImage(customer, filePath string, push *lib_define.Push
 		return errCode, err
 	}
 	jsonStr, err := messages.NewImage(mediaId, nil).
-		TransformForJsonRequest(&object.HashMap{`touser`: customer}, true)
+		TransformForJsonRequest(gzhBuildSendMsgAppends(customer, push), true)
 	if err != nil {
 		return 0, err
 	}
@@ -345,7 +366,7 @@ func (a *Application) SendVoice(customer, filePath string, push *lib_define.Push
 		return errCode, err
 	}
 	jsonStr, err := messages.NewVoice(mediaId, nil).
-		TransformForJsonRequest(&object.HashMap{`touser`: customer}, true)
+		TransformForJsonRequest(gzhBuildSendMsgAppends(customer, push), true)
 	if err != nil {
 		return 0, err
 	}

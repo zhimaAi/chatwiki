@@ -1,0 +1,6 @@
+{
+  "all_apps": "All Apps",
+  "search_placeholder": "Search customer nickname or openid, press Enter to search",
+  "select_conversation_tip": "Please select a conversation from the left list first",
+  "feature_description": "Through this feature, you can view real-time conversation messages received by the robot and monitor the robot's response effect"
+}

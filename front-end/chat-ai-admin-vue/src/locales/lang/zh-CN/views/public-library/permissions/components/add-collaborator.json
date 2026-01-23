@@ -1,0 +1,14 @@
+{
+  "title": "添加协作者",
+  "permission_label": "协作权限",
+  "can_manage": "可管理",
+  "can_edit": "可编辑",
+  "collaborator_label": "协作者",
+  "tip_text": "如果协作者没有账号，请先到团队管理中添加账号",
+  "go_add": "去添加",
+  "loading": "加载中...",
+  "no_more": "没有更多了",
+  "permission_required": "请选择协作权限",
+  "collaborator_required": "请选择协作者",
+  "add_success": "添加成功"
+}

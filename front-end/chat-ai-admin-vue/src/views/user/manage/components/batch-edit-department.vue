@@ -2,18 +2,18 @@
   <div>
     <a-modal
       v-model:open="open"
-      title="批量修改部门"
+      :title="t('batch_edit_department')"
       @ok="handleOk"
       :confirmLoading="saveLoading"
     >
       <a-form layout="vertical" style="margin-top: 24px;">
-        <a-form-item label="选择部门" v-bind="validateInfos.department_ids">
+        <a-form-item :label="t('select_department')" v-bind="validateInfos.department_ids">
           <a-tree-select
             v-model:value="formState.department_ids"
             show-search
             style="width: 100%"
             :dropdown-style="{ maxHeight: '400px', overflow: 'auto' }"
-            placeholder="请选择"
+            :placeholder="t('please_select')"
             allow-clear
             multiple
             tree-default-expand-all
@@ -35,6 +35,9 @@ import { ref, reactive } from 'vue'
 import { Form, message } from 'ant-design-vue'
 import { getDepartmentList, batchUpdateUserDepartment } from '@/api/department/index.js'
 import { formateDepartmentCascaderData } from '@/utils/index.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.manage.components.batch-edit-department')
 
 const open = ref(false)
 const emit = defineEmits(['ok'])
@@ -48,7 +51,7 @@ const formState = reactive({
 const formRules = reactive({
   department_ids: [
     {
-      message: '请选择部门',
+      message: t('please_select_department'),
       required: true
     }
   ]
@@ -82,7 +85,7 @@ const handleOk = () => {
     saveLoading.value = true
     batchUpdateUserDepartment(formData)
       .then((res) => {
-        message.success(`批量修改部门成功`)
+        message.success(t('batch_edit_department_success'))
         open.value = false
         emit('ok')
       })

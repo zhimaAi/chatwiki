@@ -10,13 +10,23 @@
 import 'cherry-markdown/dist/cherry-markdown.css'
 import '@/assets/md-editor/theme/ant-design.less'
 import Cherry from 'cherry-markdown'
+import { useLocaleStore } from '@/stores/modules/locale'
 import basicConfig from './base-config'
-import { reactive, onMounted, onBeforeUnmount } from 'vue'
+import { reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 
 const emit = defineEmits(['inited', 'input', 'blur'])
 
-let MDEditor = null
+const localeKeysMap = {
+  'en-US': 'en_US',
+  'zh-CN': 'zh_cn'
+}
 
+const localeStore = useLocaleStore()
+const lang = computed(() => localeKeysMap[localeStore.getCurrentLocale.lang])
+
+
+let MDEditor = null
+console.log('lang', lang.value)
 const state = reactive({
   type: 'editor',
   content: ''
@@ -26,6 +36,7 @@ const initPreview = () => {
   MDEditor = new Cherry({
     ...basicConfig,
     id: 'md-editor',
+    locale: lang.value,
     value: state.content,
     editor: {
       defaultModel: 'previewOnly',
@@ -48,12 +59,14 @@ const initPreview = () => {
   })
 
   MDEditor.setTheme('ant-design')
+  MDEditor.setLocale(lang.value);
 }
 
 const initEditor = () => {
   let config = {
     ...basicConfig,
     id: 'md-editor',
+    locale: lang.value,
     value: state.content,
     event: {
       afterInit() {
@@ -71,6 +84,7 @@ const initEditor = () => {
   MDEditor = new Cherry(config)
 
   MDEditor.setTheme('ant-design')
+  MDEditor.setLocale(lang.value);
 }
 
 const setContent = (content, clearStack = false) => {

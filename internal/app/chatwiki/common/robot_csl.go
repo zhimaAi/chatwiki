@@ -85,7 +85,7 @@ type LibraryCsl struct {
 	FileDocs      []msql.Params `json:"file_docs"`      //对外文档文件列表
 }
 
-func BuildLibraryCsl(libraryId, adminUserId int) (libraryCsl *LibraryCsl, err error) {
+func BuildLibraryCsl(libraryId, adminUserId int, importData bool) (libraryCsl *LibraryCsl, err error) {
 	libraryCsl = &LibraryCsl{
 		Library:       make(msql.Params),
 		QuestionGuide: make([]msql.Params, 0),
@@ -108,6 +108,11 @@ func BuildLibraryCsl(libraryId, adminUserId int) (libraryCsl *LibraryCsl, err er
 		return
 	}
 	libraryCsl.Library = library
+
+	if !importData {
+		return
+	}
+
 	//对外文档引导
 	questionGuide, sqlErr := msql.Model(`chat_ai_library_question_guide `, define.Postgres).
 		Where(`library_id`, cast.ToString(libraryId)).Order(`id`).Select()
@@ -202,6 +207,20 @@ func (libraryCsl *LibraryCsl) Import(adminUserId, userId int, cslIdMaps *CslIdMa
 			libraryData[key] = val
 		}
 	}
+
+	base_library_name := libraryData[`library_name`]
+	library_name_arr := strings.Split(libraryData[`library_name`], "_")
+	if cast.ToInt(library_name_arr[len(library_name_arr)-1]) > 0 { //如果最后一位是数字
+		base_library_name = strings.Join(library_name_arr[:len(library_name_arr)-1], "_")
+	}
+
+	libraryLen, _ := msql.Model(`chat_ai_library`, define.Postgres).
+		Where(`library_name`, `like`, base_library_name).Count()
+	if libraryLen > 0 {
+		base_library_name = base_library_name + "_" + cast.ToString(libraryLen)
+	}
+	libraryData[`library_name`] = base_library_name
+
 	libraryData[`is_default`] = cast.ToString(define.NotDefault)
 	code, err := RequestChatWiki(`/manage/createLibrary`, http.MethodPost, token, libraryData)
 	if err != nil {
@@ -358,7 +377,7 @@ type FormCsl struct {
 	FormFilterCondition []msql.Params `json:"form_filter_condition"` //数据表的分类条件
 }
 
-func BuildFormCsl(formId, adminUserId int) (formCsl *FormCsl, err error) {
+func BuildFormCsl(formId, adminUserId int, importData bool) (formCsl *FormCsl, err error) {
 	formCsl = &FormCsl{
 		Form:                make(msql.Params),
 		FormEntry:           make([]msql.Params, 0),
@@ -384,13 +403,15 @@ func BuildFormCsl(formId, adminUserId int) (formCsl *FormCsl, err error) {
 	}
 	formCsl.Form = form
 	//数据表的行数据
-	formEntry, sqlErr := msql.Model(`form_entry`, define.Postgres).
-		Where(`form_id`, cast.ToString(formId)).Where(`delete_time`, `0`).Order(`id`).Select()
-	if sqlErr != nil {
-		err = sqlErr
-		return
+	if importData {
+		formEntry, sqlErr := msql.Model(`form_entry`, define.Postgres).
+			Where(`form_id`, cast.ToString(formId)).Where(`delete_time`, `0`).Order(`id`).Select()
+		if sqlErr != nil {
+			err = sqlErr
+			return
+		}
+		formCsl.FormEntry = formEntry
 	}
-	formCsl.FormEntry = formEntry
 	//数据表的字段信息
 	formField, sqlErr := msql.Model(`form_field`, define.Postgres).
 		Where(`form_id`, cast.ToString(formId)).Order(`id`).Select()
@@ -400,9 +421,9 @@ func BuildFormCsl(formId, adminUserId int) (formCsl *FormCsl, err error) {
 	}
 	formCsl.FormField = formField
 	//数据表的key-val
-	if len(formEntry) > 0 {
+	if len(formCsl.FormEntry) > 0 {
 		formEntryIds := make([]string, 0)
-		for _, item := range formEntry {
+		for _, item := range formCsl.FormEntry {
 			formEntryIds = append(formEntryIds, item[`id`])
 		}
 		formFieldValue, sqlErr := msql.Model(`form_field_value`, define.Postgres).
@@ -490,40 +511,37 @@ func (formCsl *FormCsl) Import(adminUserId int, cslIdMaps *CslIdMaps) error {
 		cslIdMaps.FormFields[oldFormFieldId] = int(newFormFieldId)
 	}
 
-	//原始数据先不写入，后续做成选项
-
 	//数据表的行数据
-	//
-	//for _, formEntry := range formCsl.FormEntry {
-	//	oldFormEntryId := cast.ToInt(formEntry[`id`])
-	//	formEntryData := msql.Datas{`admin_user_id`: adminUserId, `form_id`: newFormId}
-	//	for key, val := range formEntry {
-	//		if !tool.InArrayString(key, []string{`id`, `admin_user_id`, `form_id`}) {
-	//			formEntryData[key] = val
-	//		}
-	//	}
-	//	newFormEntryId, err := msql.Model(`form_entry`, define.Postgres).Insert(formEntryData, `id`)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	cslIdMaps.FormEntrys[oldFormEntryId] = int(newFormEntryId)
-	//}
+	for _, formEntry := range formCsl.FormEntry {
+		oldFormEntryId := cast.ToInt(formEntry[`id`])
+		formEntryData := msql.Datas{`admin_user_id`: adminUserId, `form_id`: newFormId}
+		for key, val := range formEntry {
+			if !tool.InArrayString(key, []string{`id`, `admin_user_id`, `form_id`}) {
+				formEntryData[key] = val
+			}
+		}
+		newFormEntryId, err := msql.Model(`form_entry`, define.Postgres).Insert(formEntryData, `id`)
+		if err != nil {
+			return err
+		}
+		cslIdMaps.FormEntrys[oldFormEntryId] = int(newFormEntryId)
+	}
 
-	////数据表的key-val
-	//for _, formFieldValue := range formCsl.FormFieldValue {
-	//	formEntryId := cslIdMaps.FormEntrys[cast.ToInt(formFieldValue[`form_entry_id`])]
-	//	formFieldId := cslIdMaps.FormFields[cast.ToInt(formFieldValue[`form_field_id`])]
-	//	formFieldValueData := msql.Datas{`admin_user_id`: adminUserId, `form_entry_id`: formEntryId, `form_field_id`: formFieldId}
-	//	for key, val := range formFieldValue {
-	//		if !tool.InArrayString(key, []string{`id`, `admin_user_id`, `form_entry_id`, `form_field_id`}) {
-	//			formFieldValueData[key] = val
-	//		}
-	//	}
-	//	_, err = msql.Model(`form_field_value`, define.Postgres).Insert(formFieldValueData, `id`)
-	//	if err != nil {
-	//		return err
-	//	}
-	//}
+	//数据表的key-val
+	for _, formFieldValue := range formCsl.FormFieldValue {
+		formEntryId := cslIdMaps.FormEntrys[cast.ToInt(formFieldValue[`form_entry_id`])]
+		formFieldId := cslIdMaps.FormFields[cast.ToInt(formFieldValue[`form_field_id`])]
+		formFieldValueData := msql.Datas{`admin_user_id`: adminUserId, `form_entry_id`: formEntryId, `form_field_id`: formFieldId}
+		for key, val := range formFieldValue {
+			if !tool.InArrayString(key, []string{`id`, `admin_user_id`, `form_entry_id`, `form_field_id`}) {
+				formFieldValueData[key] = val
+			}
+		}
+		_, err = msql.Model(`form_field_value`, define.Postgres).Insert(formFieldValueData, `id`)
+		if err != nil {
+			return err
+		}
+	}
 	//数据表的分类配置
 	for _, formFilter := range formCsl.FormFilter {
 		oldFormFilterId := cast.ToInt(formFilter[`id`])

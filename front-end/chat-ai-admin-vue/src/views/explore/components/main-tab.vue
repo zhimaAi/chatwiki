@@ -1,15 +1,20 @@
 <template>
-  <ListTabs :tabs="tabs" v-model:value="active" @change="change" />
+  <ListTabs :tabs="tabs" v-model:value="active" @change="change">
+    <template #extra="{key}">
+      <ExclamationCircleFilled v-if="!isPublicNetwork && key != 1" style="color: #FB363F;"/>
+    </template>
+  </ListTabs>
 </template>
 
 <script setup>
 import {ref, onMounted} from 'vue';
 import {useRouter} from 'vue-router'
+import {ExclamationCircleFilled} from '@ant-design/icons-vue'
 import ListTabs from "@/components/cu-tabs/list-tabs.vue";
 import {getInstallPlugins, triggerConfigList} from "@/api/plugins/index.js";
+import {usePublicNetworkCheck} from "@/composables/usePublicNetworkCheck.js";
 
 const emit = defineEmits(['change'])
-
 const router = useRouter()
 const active = ref(localStorage.getItem('zm:explore:active') || '1')
 const tabs = ref([
@@ -34,6 +39,7 @@ const tabs = ref([
     value: '5'
   }
 ])
+const {isPublicNetwork} = usePublicNetworkCheck()
 
 onMounted(() => {
   loadInstallPlugins()

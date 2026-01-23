@@ -1,0 +1,17 @@
+{
+  "embed": "嵌入",
+  "embed_tooltip": "开启嵌入功能后，才能在机器人中关联本知识库。",
+  "embed_model": "嵌入模型",
+  "select_embed_model": "请选择嵌入模型",
+  "ai_summary": "AI智能总结",
+  "ai_summary_tooltip": "开启后，搜索知识库时，由大模型自动总结文档，并给出总结后的结果",
+  "summary_model": "总结模型",
+  "select_summary_model": "请选择总结模型",
+  "save": "保存",
+  "confirm_switch_model": "确定切换模型为{model}吗？",
+  "switch_model_warning": "切换模型后，文档会重新向量化，会消耗token",
+  "confirm": "确定",
+  "cancel": "取消",
+  "save_success": "保存成功",
+  "form_validation_failed": "表单验证失败"
+}

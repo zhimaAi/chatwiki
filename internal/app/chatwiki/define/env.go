@@ -17,6 +17,7 @@ const AppName = "chatwiki"
 
 // Version 会在编译时通过 -ldflags 注入
 var Version = "V2025-12-09"
+var IsPublicNetWork = 1
 
 func GetTemplatesPath() string {
 	filePath, _ := os.Getwd()

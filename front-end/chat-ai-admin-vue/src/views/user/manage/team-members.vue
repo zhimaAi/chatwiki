@@ -249,7 +249,7 @@
                 </template>
               </a-table-column>
 
-              <a-table-column :title="t('actions')" data-index="action" width="176px" fixed="right">
+              <a-table-column :title="t('actions')" data-index="action" width="240px" fixed="right">
                 <template #default="{ record }">
                   <a-flex :gap="16" v-if="record.role_type == '1'">
                     <span class="disabled">{{ t('edit') }}</span>

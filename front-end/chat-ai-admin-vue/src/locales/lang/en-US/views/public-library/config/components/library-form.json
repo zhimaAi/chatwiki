@@ -1,0 +1,12 @@
+{
+  "knowledge_base_info": "Knowledge Base Info",
+  "knowledge_base_name_label": "Knowledge Base Name",
+  "knowledge_base_name_placeholder": "Enter knowledge base name, max 20 characters",
+  "knowledge_base_intro_label": "Knowledge Base Description",
+  "knowledge_base_intro_placeholder": "Enter knowledge base description",
+  "knowledge_base_cover_label": "Knowledge Base Cover",
+  "knowledge_base_cover_tip": "Upload knowledge base cover, recommended size 100*100px, max 100kb",
+  "save_btn": "Save",
+  "library_name_required": "Please enter library name",
+  "library_intro_required": "Please enter library description"
+}

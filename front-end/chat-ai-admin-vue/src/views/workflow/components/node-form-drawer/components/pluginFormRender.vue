@@ -3,6 +3,7 @@
     <div class="node-options">
       <div class="options-title">
         <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>输入</div>
+        <slot name="input-title-extra"></slot>
       </div>
       <template v-for="(item, key) in formState" :key="key">
         <slot v-if="$slots[key]" :state="formState" :name="key" :item="item" :keyName="key"></slot>
@@ -164,7 +165,7 @@ function update() {
   let value
   for (let key in formState) {
     value = formState[key].value
-    if (formState[key].tags.length) {
+    if (formState[key]?.tags?.length) {
       //
     } else if(formState[key].type == 'string'){
       value = String(value)
@@ -184,6 +185,15 @@ function update() {
     node_params: JSON.stringify(nodeParams)
   })
 }
+
+function setState(d = {}) {
+  Object.assign(formState, d)
+  update()
+}
+
+defineExpose({
+  setState,
+})
 </script>
 
 <style lang="less">

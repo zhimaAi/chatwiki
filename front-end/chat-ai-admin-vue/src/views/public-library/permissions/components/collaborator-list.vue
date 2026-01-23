@@ -3,12 +3,12 @@
     <div class="list-tools-box">
       <div class="list-label">
         <svg-icon name="collaborator"></svg-icon>
-        <span class="label-text">协助权限 ({{ pagination.total }})</span>
+        <span class="label-text">{{ t('collaborator_permissions') }} ({{ pagination.total }})</span>
       </div>
 
       <div class="tools-box-right">
         <a-button type="primary" size="small" @click="handleAdd"
-          ><PlusOutlined /> 添加协助者</a-button
+          ><PlusOutlined /> {{ t('add_collaborator') }}</a-button
         >
       </div>
     </div>
@@ -40,8 +40,8 @@
                 </a>
                 <template #overlay>
                   <a-menu @click="handleRoleChange($event, record)">
-                    <a-menu-item :key="4">可管理</a-menu-item>
-                    <a-menu-item :key="2">可编辑</a-menu-item>
+                    <a-menu-item :key="4">{{ t('can_manage') }}</a-menu-item>
+                    <a-menu-item :key="2">{{ t('can_edit') }}</a-menu-item>
                   </a-menu>
                 </template>
               </a-dropdown>
@@ -56,16 +56,16 @@
           <template v-if="column.key === 'action'">
             <a-space v-if="record.showDelete">
               <a-popconfirm
-                title="确定要移除此协作者吗?"
-                ok-text="确定"
-                cancel-text="取消"
+                :title="t('confirm_remove')"
+                :ok-text="t('confirm')"
+                :cancel-text="t('cancel')"
                 @confirm="handleDel(record)"
               >
-                <a href="#">移除</a>
+                <a href="#">{{ t('remove') }}</a>
               </a-popconfirm>
             </a-space>
             <span v-else>
-              <a-button style="padding: 0" type="link" disabled>移除</a-button>
+              <a-button style="padding: 0" type="link" disabled>{{ t('remove') }}</a-button>
             </span>
           </template>
         </template>
@@ -78,11 +78,14 @@
 <script setup>
 import { getLibDocPartnerList, saveLibDocPartner, deleteLibDocPartner } from '@/api/public-library'
 import { useUserStore } from '@/stores/modules/user'
+import { useI18n } from '@/hooks/web/useI18n'
 import { ref, reactive, onMounted, inject, computed } from 'vue'
 import { PlusOutlined, DownOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import AddCollaborator from './add-collaborator.vue'
 import defaultAvatar from '@/assets/img/role_avatar.png'
+
+const { t } = useI18n('views.public-library.permissions.components.collaborator-list')
 
 const userStore = useUserStore()
 
@@ -90,18 +93,18 @@ const libraryState = inject('libraryState', {})
 const addCollaboratorRef = ref(null)
 const columns = [
   {
-    title: '姓名',
+    title: t('name'),
     key: 'name',
     width: '40%'
   },
   {
-    title: '角色',
+    title: t('role'),
     dataIndex: 'role',
     key: 'role',
     width: '40%'
   },
   {
-    title: '操作',
+    title: t('actions'),
     key: 'action',
     width: '20%'
   }
@@ -109,11 +112,11 @@ const columns = [
 
 const roleMap = {
   4: {
-    label: '可管理',
+    label: t('can_manage'),
     value: '4'
   },
   2: {
-    label: '可编辑',
+    label: t('can_edit'),
     value: '2'
   }
 }
@@ -145,7 +148,7 @@ const saveRole = (record) => {
 
   saveLibDocPartner(data)
     .then(() => {
-      message.success('修改成功')
+      message.success(t('modify_success'))
     })
     .catch(() => {})
 }
@@ -161,7 +164,7 @@ const handleDel = (record) => {
 
   deleteLibDocPartner(data)
     .then(() => {
-      message.success('移除成功')
+      message.success(t('remove_success'))
       getList()
     })
     .catch(() => {})
@@ -200,7 +203,7 @@ const getList = () => {
       }
 
       item.operate_rights = item.operate_rights * 1
-      item.operate_rights_label = '无权限'
+      item.operate_rights_label = t('no_permission')
       if (roleMap[item.operate_rights]) {
         item.operate_rights_label = roleMap[item.operate_rights].label
       }

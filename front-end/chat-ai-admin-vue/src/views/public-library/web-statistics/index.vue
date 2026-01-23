@@ -4,14 +4,14 @@
     <div class="page-container">
       <a-alert
         class="statistics-alert"
-        message="在下方输入百度统计等平台的统计代码，文档公开访问页面会加载这段代码，这样您就可以在百度统计等平台查看页面的统计数据"
+        :message="t('statistics_alert_message')"
         type="info"
         show-icon
       />
       <div class="code-form-box">
         <a-textarea v-model:value="formState.statistics_set" :rows="16" />
         <div class="btn-box">
-          <a-button type="primary" @click="handleSubmit">保存</a-button>
+          <a-button type="primary" @click="handleSubmit">{{ t('save_btn') }}</a-button>
         </div>
       </div>
     </div>
@@ -25,6 +25,9 @@ import { reactive, computed, onMounted, toRaw } from 'vue'
 import { message } from 'ant-design-vue'
 import ConfigPageMenu from '../components/config-page-menu.vue'
 import { usePublicLibraryStore } from '@/stores/modules/public-library'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.public-library.web-statistics.index')
 
 const libraryStore = usePublicLibraryStore()
 
@@ -42,10 +45,10 @@ const handleSubmit = async () => {
 
     if (res.code === 0) {
       libraryStore.getLibraryInfo()
-      message.success('保存成功')
+      message.success(t('save_success'))
     }
   } catch (error) {
-    console.error('保存失败:', error)
+    console.error(t('save_failed'), error)
   }
 }
 

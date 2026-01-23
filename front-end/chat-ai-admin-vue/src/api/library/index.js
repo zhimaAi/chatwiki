@@ -562,6 +562,13 @@ export const statLibrarySort = (data) => {
   })
 }
 
+export const statLibraryGroupSort = (data) => {
+  return request.post({
+    url: '/manage/statLibraryGroupSort',
+    data: data
+  })
+}
+
 export const statLibraryDataRobotDetail = (data) => {
   return request.post({
     url: '/manage/statLibraryDataRobotDetail',
@@ -576,7 +583,6 @@ export const statLibraryRobotDetail = (data) => {
   })
 }
 
-
 export const getDefaultRrfWeight = (params) => {
   return request.get({
     url: '/manage/getDefaultRrfWeight',
@@ -586,4 +592,54 @@ export const getDefaultRrfWeight = (params) => {
 
 export const getFeishuDocFileList = (data= {}) => {
   return request.post({url: '/manage/getFeishuDocFileList', data})
+}
+
+
+export const getLibraryMetaSchemaList = (params) => {
+  return request.get({
+    url: '/manage/getLibraryMetaSchemaList',
+    params: params
+  })
+}
+
+export const getRobotMetaSchemaList = (params) => {
+  return request.get({
+    url: '/manage/getRobotMetaSchemaList',
+    params: params
+  })
+}
+
+export const getLibaryMetaSchemaList = (params) => {
+  return request.get({
+    url: '/manage/getMultiLibraryMetaSchemaList',
+    params: params
+  })
+}
+
+export const saveLibraryMetaSchema = (data) => {
+  return request.post({
+    url: '/manage/saveLibraryMetaSchema',
+    data: data
+  })
+}
+
+export const saveMetadata = (data) => {
+  return request.post({
+    url: '/manage/saveMetadata',
+    data: data
+  })
+}
+
+export const saveQaMetadata = (data) => {
+  return request.post({
+    url: '/manage/saveParagraphMetadata',
+    data: data
+  })
+}
+
+export const delLibraryMetaSchema = (data) => {
+  return request.post({
+    url: '/manage/deleteLibraryMetaSchema',
+    data: data
+  })
 }

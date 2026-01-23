@@ -296,18 +296,18 @@
 
             <div class="publish-status" v-if="libraryInfo.access_rights == 0">
               <ExclamationCircleFilled class="status-icon" />
-              <span class="status-name">未公开</span>
+              <span class="status-name">{{ t('not_public') }}</span>
             </div>
             <div class="publish-status is-publish" v-if="libraryInfo.access_rights == 1">
               <CheckCircleFilled class="status-icon" />
-              <span class="status-name">已公开</span>
+              <span class="status-name">{{ t('published') }}</span>
             </div>
           </div>
         </div>
       </div>
       <div class="toolbar-right">
         <div class="action-item">
-          <a-input placeholder="知识搜索" v-model:value="searchValue" @pressEnter="handleSearch" allowClear>
+          <a-input :placeholder="t('knowledge_search')" v-model:value="searchValue" @pressEnter="handleSearch" allowClear>
             <template #suffix>
               <SearchOutlined style="color: rgba(0, 0, 0, 0.45)" @click="handleSearch" />
             </template>
@@ -316,18 +316,18 @@
 
         <div class="action-item">
           <a-button type="primary" :loading="publishLoading" @click="handlePublish" v-if="isEdit">
-            <CheckOutlined /><span class="action-name">发布</span>
+            <CheckOutlined /><span class="action-name">{{ t('publish') }}</span>
           </a-button>
           <a-button type="primary" @click="handleEdit" v-else>
             <svg-icon class="action-icon" name="edit" style="font-size: 16px; color: #fff"></svg-icon>
-            <span class="action-name">编辑</span>
+            <span class="action-name">{{ t('edit') }}</span>
           </a-button>
         </div>
 
         <div class="action-item">
           <a-button @click="handleCopyShareUrl">
             <svg-icon class="action-icon" name="link-left" style="font-size: 16px"></svg-icon>
-            <span class="action-name">复制链接</span>
+            <span class="action-name">{{ t('copy_link') }}</span>
           </a-button>
         </div>
 
@@ -335,14 +335,14 @@
           <a-button @click="handleOpenSeoSetting">
             <CheckCircleFilled style="color: #21a665; font-size: 14px" class="status-icon actin-icon" v-if="isSetSeo" />
             <ExclamationCircleFilled  style="color: #ccc; font-size: 14px" class="status-icon actin-icon" v-else />
-            <span class="action-name">SEO</span>
+            <span class="action-name">{{ t('seo') }}</span>
           </a-button>
         </div>
 
         <div class="action-item">
           <a-button @click="toSettingPage">
             <svg-icon class="actin-icon" name="jibenpeizhi" style="font-size: 14px; color: #595959"></svg-icon>
-            <span class="action-name">设置</span>
+            <span class="action-name">{{ t('settings') }}</span>
           </a-button>
         </div>
       </div>
@@ -365,27 +365,27 @@
           </div>
         </div>
 
-        <div class="doc-last-update">最近更新时间：{{ state.update_time_str }}</div>
+        <div class="doc-last-update">{{ t('last_update_time') }}{{ state.update_time_str }}</div>
       </div>
       <div class="header-right">
-        <span class="last-save-time">{{ lastSaveTiemDate }} 自动保存草稿</span>
+        <span class="last-save-time">{{ lastSaveTiemDate }} {{ t('auto_save_draft') }}</span>
         <div class="edit-user" v-if="editUser.show && editUser.user_name">
           <i class="line"></i>
           <img class="user-avatar" :src="editUser.avatar" alt="" />
           <span class="user-name">{{ editUser.nick_name || editUser.user_name }}</span>
-          <span class="edit-status-text">编辑中...</span>
+          <span class="edit-status-text">{{ t('editing') }}</span>
         </div>
         <div class="action-box" v-if="isEdit">
           <a-button class="action-btn" @click="handleSaveDraft(true)">
             <svg-icon class="action-icon" name="save-draft" style="font-size: 16px"></svg-icon>
-            <span>存草稿</span>
+            <span>{{ t('save_draft') }}</span>
           </a-button>
         </div>
 
         <div class="action-box" v-if="isEdit">
           <a-button class="action-btn" @click="handlePreview()">
             <svg-icon class="action-icon" name="eye-open" style="font-size: 16px"></svg-icon>
-            <span>预览</span>
+            <span>{{ t('preview') }}</span>
           </a-button>
         </div>
       </div>
@@ -409,12 +409,15 @@ import { usePublicLibraryStore } from '@/stores/modules/public-library'
 import { ref, reactive, watch, computed, nextTick, onBeforeUnmount, onMounted } from 'vue'
 import { CheckOutlined, ExclamationCircleFilled, CheckCircleFilled, SearchOutlined } from '@ant-design/icons-vue'
 import { useCopyShareUrl } from '@/hooks/web/useCopyShareUrl'
+import { useI18n } from '@/hooks/web/useI18n'
 import { message, Modal } from 'ant-design-vue'
 import MdDitor from './components/md-editor.vue'
 import DocTitleInput from './components/doc-title-input.vue'
 import SeoSetting from '../components/seo-setting.vue'
 import WikiDropdown from '../components/wiki-dropdown.vue'
 import IconSelector from './components/icon-selector.vue'
+
+const { t } = useI18n('views.public-library.editor.index')
 
 const autoSaveTime = 1000 * 15
 const emit = defineEmits(['changeDoc'])
@@ -647,7 +650,7 @@ const handleSaveDraft = (showTips) => {
     .then(() => {
       if (showTips) {
         saveDraftLoading.value = false
-        message.success('保存成功')
+        message.success(t('save_success'))
       }
 
       setLastSaveTimeDate()
@@ -682,18 +685,17 @@ const handleEdit = async () => {
     let editStatus = doc.data.edit_user && doc.data.edit_user != 0
 
     if (editStatus && doc.data.edit_user != user_id) {
-      let user = await getEditUser(doc.data.edit_user)
-      let name = user.data.nick_name || user.data.user_name
-      editUser.show = true
-      Modal.warning({
-        title: name + '正在编辑此文档',
-        content: '需要其他协作者结束编辑并发布后才可以继续编辑',
-        okText: '知道了'
-      })
-
-      return
-    }
-
+            let user = await getEditUser(doc.data.edit_user)
+            let name = user.data.nick_name || user.data.user_name
+            editUser.show = true
+            Modal.warning({
+              title: t('editing_document', { name }),
+              content: t('need_collaborator_finish'),
+              okText: t('got_it')
+            })
+    
+            return
+          }
     editUser.show = false
 
     let data = {
@@ -736,7 +738,7 @@ const handlePublish = () => {
   saveLibDoc(data)
     .then(() => {
       publishLoading.value = false
-      message.success('发布成功')
+      message.success(t('publish_success'))
 
       setLastSaveTimeDate()
 
@@ -804,7 +806,7 @@ const handleChangeLibrary = async (data) => {
 }
 
 const handleSearch = () => {
-  message.warn('编辑模式不支持搜索功能')
+  message.warn(t('edit_mode_no_search'))
 }
 
 watch(docId, () => {

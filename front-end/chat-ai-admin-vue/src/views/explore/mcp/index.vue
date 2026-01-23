@@ -5,7 +5,8 @@
         <MainTab ref="tabRef" @change="tabChange"/>
       </div>
     </div>
-    <div class="content" ref="contentRef">
+    <PublicNetworkCheck v-if="!isPublicNetwork"/>
+    <div v-else class="content" ref="contentRef">
       <div class="filter-box">
         <div class="radio-tabs">
           <div @click="filterTypeChange(0)" :class="['radio-tab', {active: filterData.filter_type == 0 }]">
@@ -44,7 +45,10 @@ import {SearchOutlined} from '@ant-design/icons-vue';
 import Square from "./components/square.vue";
 import MainTab from "@/views/explore/components/main-tab.vue";
 import {getMcpSquareTypeList} from "@/api/mcp/index.js";
+import PublicNetworkCheck from "@/components/common/public-network-check.vue";
+import {usePublicNetworkCheck} from "@/composables/usePublicNetworkCheck.js";
 
+const {isPublicNetwork} = usePublicNetworkCheck()
 const route = useRoute()
 const tabRef = ref(null)
 const pluginRef = ref(null)

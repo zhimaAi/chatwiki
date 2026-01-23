@@ -4,6 +4,8 @@ package initialize
 
 import (
 	"chatwiki/internal/app/plugin/define"
+	"chatwiki/internal/pkg/lib_web"
+	"fmt"
 	"runtime"
 
 	"github.com/zhimaAi/go_tools/logs"
@@ -48,6 +50,10 @@ func initConfig() {
 	if err != nil {
 		logs.Error(err.Error())
 		panic(`read config webservice error`)
+	}
+	ip := lib_web.GetPublicIp()
+	if len(define.Config.WebService[`wechat_article_crawler_host`]) == 0 {
+		define.Config.WebService[`wechat_article_crawler_host`] = fmt.Sprintf(`http://%s:18086`, ip)
 	}
 	define.Config.RpcService, err = config.GetSection(`rpcservice`)
 	if err != nil {

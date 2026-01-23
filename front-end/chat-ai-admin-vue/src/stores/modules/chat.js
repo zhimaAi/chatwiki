@@ -254,6 +254,9 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     if (type == 'sending') {
+
+      // 开始生成中
+      messageList.value[msgIndex].startLoading = false
       // 推理结束
       messageList.value[msgIndex].reasoning_status = false
 
@@ -283,6 +286,7 @@ export const useChatStore = defineStore('chat', () => {
         messageList.value[msgIndex].question = menu_json_obj.question
       }
 
+      messageList.value[msgIndex].startLoading = false
       messageList.value[msgIndex].id = content.id
 
       messageList.value[msgIndex].content = content.content
@@ -353,6 +357,7 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     let aiMsg = {
+      startLoading: true, // 对话开始状态
       loading: true,
       id: '',
       content: '',
@@ -387,7 +392,6 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     sendLock.value = true
-
     mySSE = sendAiMessage(params)
 
     mySSE.onMessage = (res) => {

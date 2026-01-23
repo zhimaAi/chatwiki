@@ -1,0 +1,21 @@
+{
+  "not_public": "未公开",
+  "published": "已公开",
+  "knowledge_search": "知识搜索",
+  "publish": "发布",
+  "edit": "编辑",
+  "copy_link": "复制链接",
+  "seo": "SEO",
+  "settings": "设置",
+  "last_update_time": "最近更新时间：",
+  "auto_save_draft": "自动保存草稿",
+  "editing": "编辑中...",
+  "save_draft": "存草稿",
+  "preview": "预览",
+  "save_success": "保存成功",
+  "editing_document": "{name}正在编辑此文档",
+  "need_collaborator_finish": "需要其他协作者结束编辑并发布后才可以继续编辑",
+  "got_it": "知道了",
+  "publish_success": "发布成功",
+  "edit_mode_no_search": "编辑模式不支持搜索功能"
+}

@@ -248,8 +248,8 @@ services:
       - ${FILE_TRANSFER_SERVICE_PORT}:8080
 
   chatwiki_wechat_article_crawler:
-    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/wechat-article-crawler:0.1
     privileged: true
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/wechat_article_crawler:0.2
     container_name: chatwiki_wechat_article_crawler
     networks:
       - chatwiki_network

@@ -67,11 +67,13 @@ func init() {
 	Route[http.MethodPost][`/manage/robotAutoAdd`] = manage.RobotAutoAdd
 	Route[http.MethodPost][`/manage/addFlowRobot`] = manage.AddFlowRobot
 	Route[http.MethodPost][`/manage/moveRobotSort`] = manage.MoveRobotSort
+	Route[http.MethodGet][`/manage/getRobotMetaSchemaList`] = manage.GetRobotMetaSchemaList
 	Route[http.MethodPost][`/manage/editExternalConfig`] = manage.EditExternalConfig
 	Route[http.MethodGet][`/manage/getDefaultRrfWeight`] = manage.GetDefaultRrfWeight
 	Route[http.MethodGet][`/manage/getRobotInfo`] = manage.GetRobotInfo
 	Route[http.MethodPost][`/manage/deleteRobot`] = manage.DeleteRobot
 	Route[http.MethodGet][`/manage/createPromptByAi`] = manage.CreatePromptByAi
+	Route[http.MethodGet][`/manage/robotImportDataInfo`] = manage.GetRobotDataImportInfo
 	Route[http.MethodGet][`/manage/robotExport`] = manage.RobotExport
 	Route[http.MethodPost][`/manage/robotImport`] = manage.RobotImport
 	Route[http.MethodPost][`/manage/robotCopy`] = manage.RobotCopy
@@ -101,6 +103,10 @@ func init() {
 	Route[http.MethodPost][`/manage/editLibrary`] = manage.EditLibrary
 	Route[http.MethodGet][`/manage/getLibraryRobotInfo`] = manage.GetLibraryRobotInfo
 	Route[http.MethodPost][`/manage/relationRobot`] = manage.RelationRobot
+	Route[http.MethodGet][`/manage/getLibraryMetaSchemaList`] = manage.GetLibraryMetaSchemaList
+	Route[http.MethodGet][`/manage/getMultiLibraryMetaSchemaList`] = manage.GetLibraryMultiMetaSchemaList
+	Route[http.MethodPost][`/manage/saveLibraryMetaSchema`] = manage.SaveLibraryMetaSchema
+	Route[http.MethodPost][`/manage/deleteLibraryMetaSchema`] = manage.DeleteLibraryMetaSchema
 
 	/** library search API*/
 	Route[http.MethodPost][`/manage/libraryAiSummary`] = manage.LibraryAiSummary
@@ -159,10 +165,14 @@ func init() {
 	Route[http.MethodPost][`/manage/cancelOcrPdf`] = manage.CancelOcrPdf
 	Route[http.MethodGet][`/manage/createExportLibFileTask`] = manage.CreateExportLibFileTask
 	Route[http.MethodGet][`/manage/downloadLibraryFile`] = manage.DownloadLibraryFile
+	Route[http.MethodPost][`/manage/saveMetadata`] = manage.SaveMetadata
+	Route[http.MethodPost][`/manage/saveParagraphMetadata`] = manage.SaveParagraphMetadata
+
 	/*Feishu*/
 	Route[http.MethodGet][`/manage/feishuUserAuthLogin/redirect`] = manage.FeishuUserAuthLoginRedirect
 	noAuthFuns(Route[http.MethodGet], `/manage/feishuUserAuthLogin/callback`, manage.FeishuUserAuthLoginCallback)
 	Route[http.MethodPost][`/manage/getFeishuDocFileList`] = manage.GetFeishuDocFileList
+
 	/*paragraph API*/
 	Route[http.MethodGet][`/manage/getSeparatorsList`] = manage.GetSeparatorsList
 	Route[http.MethodGet][`/manage/getLibFileSplit`] = manage.GetLibFileSplit
@@ -268,6 +278,7 @@ func init() {
 	Route[http.MethodPost][`/manage/deleteWechatApp`] = manage.DeleteWechatApp
 	Route[http.MethodPost][`/manage/refreshAccountVerify`] = manage.RefreshAccountVerify
 	Route[http.MethodPost][`/manage/setWechatNotVerifyConfig`] = manage.SetWechatNotVerifyConfig
+	Route[http.MethodPost][`/manage/setWechatConfigSwitch`] = manage.SetWechatConfigSwitch
 	/*Fast Command API*/
 	Route[http.MethodGet][`/manage/getFastCommandList`] = manage.GetFastCommandList
 	Route[http.MethodPost][`/manage/saveFastCommand`] = manage.SaveFastCommand
@@ -293,8 +304,10 @@ func init() {
 	noAuthFuns(Route[http.MethodPost], `/open/library/addLibraryFileQA`, business.OpenAddLibraryFileQA)
 	noAuthFuns(Route[http.MethodPost], `/open/library/addLibraryFileGeneralLocal`, business.OpenAddLibraryFileGeneralLocal)
 	noAuthFuns(Route[http.MethodPost], `/open/library/batchAddLibraryQa`, business.OpenBatchAddLibraryQa)
+	noAuthFuns(Route[http.MethodPost], `/open/library/delLibraryGeneralParagraph`, business.OpenDelLibraryGeneralParagraph)
 	noAuthFuns(Route[http.MethodPost], `/open/library/editGeneralParagraph`, business.OpenEditGeneralParagraph)
 	noAuthFuns(Route[http.MethodPost], `/open/library/editQAParagraph`, business.OpenEditQAParagraph)
+	noAuthFuns(Route[http.MethodPost], `/open/library/deleteQAParagraph`, business.OpenDeleteQAParagraph)
 	noAuthFuns(Route[http.MethodGet], `/open/getSeparatorsList`, business.OpenGetSeparatorsList)
 	noAuthFuns(Route[http.MethodPost], `/open/workflow/webhook/:robot_key/:find_key`, business.OpenWorkFlowWebHook)
 	noAuthFuns(Route[http.MethodGet], `/open/workflow/webhook/:robot_key/:find_key`, business.OpenWorkFlowWebHook)
@@ -393,6 +406,7 @@ func init() {
 	Route[http.MethodPost][`/manage/statLibrarySort`] = manage.StatLibrarySort
 	Route[http.MethodPost][`/manage/statLibraryDataRobotDetail`] = manage.StatLibraryDataRobotDetail
 	Route[http.MethodPost][`/manage/statLibraryRobotDetail`] = manage.StatLibraryRobotDetail
+	Route[http.MethodGet][`/manage/statLibraryGroupSort`] = manage.StatLibraryGroupSort
 	/* MCP Server */
 	Route[http.MethodGet][`/manage/getMcpServerList`] = manage.GetMcpServerList
 	Route[http.MethodPost][`/manage/saveMcpServer`] = manage.SaveMcpServer
@@ -407,6 +421,7 @@ func init() {
 	Route[http.MethodPost][`/manage/statLibrarySort`] = manage.StatLibrarySort
 	Route[http.MethodPost][`/manage/statLibraryDataRobotDetail`] = manage.StatLibraryDataRobotDetail
 	Route[http.MethodPost][`/manage/statLibraryRobotDetail`] = manage.StatLibraryRobotDetail
+	Route[http.MethodPost][`/manage/statLibraryGroupSort`] = manage.StatLibraryGroupSort
 
 	//register ability route
 	RegAbilityRoute()

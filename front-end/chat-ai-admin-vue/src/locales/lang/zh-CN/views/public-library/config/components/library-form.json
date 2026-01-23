@@ -1,0 +1,12 @@
+{
+  "knowledge_base_info": "知识库信息",
+  "knowledge_base_name_label": "知识库名称",
+  "knowledge_base_name_placeholder": "请输入知识库名称，最多20个字",
+  "knowledge_base_intro_label": "知识库简介",
+  "knowledge_base_intro_placeholder": "请输入知识库介绍",
+  "knowledge_base_cover_label": "知识库封面",
+  "knowledge_base_cover_tip": "请上传知识库封面，建议尺寸为100*100px.大小不超过100kb",
+  "save_btn": "保存",
+  "library_name_required": "请输入库名称",
+  "library_intro_required": "请输入库简介"
+}

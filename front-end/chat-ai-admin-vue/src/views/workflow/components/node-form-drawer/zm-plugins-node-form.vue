@@ -107,6 +107,7 @@ import PluginFormRender from "./components/pluginFormRender.vue";
 import {sortObjectKeys} from "@/utils/index.js";
 import OfficialDraftBox from "./components/official-draft/official-draft-box.vue";
 import DynamicApiBox from "./components/dynamic-api/dynamic-api-box.vue";
+import OfficialArticleBox from "./components/official-account/official-article-box.vue";
 
 const getNode = inject('getNode')
 const setData = inject('setData')
@@ -124,7 +125,8 @@ const pluginCompMap = {
   official_batch_tag: OfficialTagBox,
   official_send_template_message: OfficialTemplateBox,
   official_send_message: OfficialSendMessageBox,
-  official_draft: OfficialDraftBox
+  official_draft: OfficialDraftBox,
+  official_article: OfficialArticleBox,
 }
 
 const customFieldsSortMap = {
