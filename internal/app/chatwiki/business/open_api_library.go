@@ -477,3 +477,24 @@ func parseToken(c *gin.Context) int {
 	}
 	return cast.ToInt(robot[`admin_user_id`])
 }
+
+func OpenDeleteQAParagraph(c *gin.Context) {
+	adminUserId := parseToken(c)
+	if adminUserId == 0 {
+		return
+	}
+	ids := cast.ToString(c.PostForm(`id`))
+	err := manage.BridgeDeleteParagraph(adminUserId, ids, common.GetLang(c))
+	common.FmtBridgeResponse(c, nil, -1, err)
+}
+
+func OpenDelLibraryGeneralParagraph(c *gin.Context) {
+	adminUserId := parseToken(c)
+	if adminUserId == 0 {
+		return
+	}
+	ids := cast.ToString(c.PostForm(`id`))
+	err := manage.BridgeDelLibraryFile(adminUserId, ids, common.GetLang(c))
+	common.FmtBridgeResponse(c, nil, -1, err)
+	return
+}

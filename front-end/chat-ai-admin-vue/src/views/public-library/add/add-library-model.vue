@@ -12,34 +12,34 @@
 <template>
   <a-modal
     v-model:open="visible"
-    title="添加知识库"
+    :title="t('modal_title')"
     @ok="handleOk"
     :confirmLoading="saveLoading"
     @cancel="handleCancel"
     width="640px"
   >
     <div class="form-box">
-      <a-form :label-col="{ span: 5 }">
-        <a-form-item ref="name" label="知识库名称" v-bind="validateInfos.library_name">
+      <a-form :label-col="{ span: labelColSpan }">
+        <a-form-item ref="name" :label="t('library_name_label')" v-bind="validateInfos.library_name">
           <a-input
             v-model:value="formState.library_name"
             type="text"
-            placeholder="请输入知识库名称，最多20个字"
+            :placeholder="t('library_name_placeholder')"
             :maxlength="20"
           />
         </a-form-item>
 
-        <a-form-item label="知识库简介">
+        <a-form-item :label="t('library_intro_label')">
           <a-textarea
             :maxlength="1000"
             v-model:value="formState.library_intro"
-            placeholder="请输入知识库介绍"
+            :placeholder="t('library_intro_placeholder')"
           />
         </a-form-item>
 
-        <a-form-item ref="name" label="知识库封面" v-bind="validateInfos.avatar">
+        <a-form-item ref="name" :label="t('library_cover_label')" v-bind="validateInfos.avatar">
           <AvatarInput v-model:value="formState.avatar" @change="onAvatarChange" />
-          <div class="form-item-tip">请上传知识库封面，建议尺寸为100*100px.大小不超过100kb</div>
+          <div class="form-item-tip">{{ t('library_cover_tip') }}</div>
         </a-form-item>
       </a-form>
     </div>
@@ -55,6 +55,15 @@ import { Form, message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import { createLibrary } from '@/api/library/index'
 import AvatarInput from './components/avatar-input.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+import { useLocaleStoreWithOut } from '@/stores/modules/locale'
+
+const { t } = useI18n('views.public-library.add.add-library-model')
+const localeStore = useLocaleStoreWithOut()
+
+const labelColSpan = computed(() => {
+  return localeStore.getCurrentLocale.lang === 'zh-CN' ? 5 : 24
+})
 
 // 设置全局默认的duration为（2秒）
 message.config({
@@ -95,7 +104,7 @@ const formState = reactive({
 })
 
 const rules = reactive({
-  library_name: [{ required: true, message: '请输入库名称', trigger: 'change' }]
+  library_name: [{ required: true, message: t('library_name_required'), trigger: 'change' }]
 })
 
 const { validate, validateInfos } = useForm(formState, rules)
@@ -144,7 +153,7 @@ const saveForm = () => {
 
   createLibrary(formData)
     .then((res) => {
-      message.success('创建成功')
+      message.success(t('create_success'))
       library_id = res.data.id
       library_key = res.data.library_key
       toHome(res.data.id)
@@ -155,7 +164,7 @@ const saveForm = () => {
 }
 
 const addDoc = async () => {
-  let docName = '无标题文档'
+  let docName = t('untitled_document')
 
   let data = {
     library_key: library_key,
@@ -163,7 +172,7 @@ const addDoc = async () => {
     doc_type: '4',
     pid: 0,
     title: docName,
-    content: '# 无标题文档',
+    content: t('untitled_document_heading'),
     sort: 0
   }
 

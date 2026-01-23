@@ -14,6 +14,7 @@ import (
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/miniProgram"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/miniProgram/customerServiceMessage/request"
 	openresponse "github.com/ArtisanCloud/PowerWeChat/v3/src/openPlatform/authorizer/miniProgram/account/response"
+	"github.com/zhimaAi/go_tools/tool"
 )
 
 type Application struct {
@@ -31,8 +32,8 @@ func (a *Application) SendImageTextLink(customer, url, title, description, local
 	if err != nil {
 		return 0, err
 	}
-	resp, err := app.CustomerServiceMessage.SendLink(context.Background(),
-		customer, &request.CustomerServiceMsgLink{
+	resp, err := miniCustomMessageSend(app, push, context.Background(),
+		customer, `link`, &request.CustomerServiceMsgLink{
 			Title:       title,
 			Description: description,
 			Url:         url,
@@ -55,8 +56,8 @@ func (a *Application) SendMiniProgramPage(customer, appid, title, pagePath, loca
 	if err != nil {
 		return errCode, err
 	}
-	resp, err := app.CustomerServiceMessage.SendMiniProgramPage(context.Background(),
-		customer, &request.CustomerServiceMsgMpPage{
+	resp, err := miniCustomMessageSend(app, push, context.Background(),
+		customer, `miniprogrampage`, &request.CustomerServiceMsgMpPage{
 			Title:        title,
 			PagePath:     pagePath,
 			ThumbMediaID: mediaId})
@@ -75,8 +76,8 @@ func (a *Application) SendUrl(customer, url, title string, push *lib_define.Push
 		return 0, err
 	}
 	content := "<a href='" + url + "'>" + title + "</a>"
-	resp, err := app.CustomerServiceMessage.SendText(context.Background(),
-		customer, &request.CustomerServiceMsgText{Content: content})
+	resp, err := miniCustomMessageSend(app, push, context.Background(),
+		customer, `text`, &request.CustomerServiceMsgText{Content: content})
 	if err != nil {
 		return 0, err
 	}
@@ -95,14 +96,32 @@ func (a *Application) GetApp() (*miniProgram.MiniProgram, error) {
 	return miniProgram.NewMiniProgram(config)
 }
 
+func (a *Application) SetTyping(customer, command string) (int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return 0, err
+	}
+	if !tool.InArrayString(command, []string{lib_define.CommandTyping, lib_define.CommandCancelTyping}) {
+		command = lib_define.CommandTyping //取默认参数值提交
+	}
+	resp, err := app.CustomerServiceMessage.SetTyping(context.Background(), customer, command)
+	if err != nil {
+		return 0, err
+	}
+	if resp.ErrCode != 0 {
+		return resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return 0, nil
+}
+
 func (a *Application) SendText(customer, content string, push *lib_define.PushMessage) (int, error) {
 	app, err := a.GetApp()
 	if err != nil {
 		return 0, err
 	}
 	content = common.ReplaceDate(content)
-	resp, err := app.CustomerServiceMessage.SendText(context.Background(),
-		customer, &request.CustomerServiceMsgText{Content: content})
+	resp, err := miniCustomMessageSend(app, push, context.Background(),
+		customer, `text`, &request.CustomerServiceMsgText{Content: content})
 	if err != nil {
 		return 0, err
 	}
@@ -159,8 +178,8 @@ func (a *Application) SendImage(customer, filePath string, push *lib_define.Push
 	if err != nil {
 		return errCode, err
 	}
-	resp, err := app.CustomerServiceMessage.SendImage(context.Background(),
-		customer, &request.CustomerServiceMsgImage{MediaID: mediaId})
+	resp, err := miniCustomMessageSend(app, push, context.Background(),
+		customer, `image`, &request.CustomerServiceMsgImage{MediaID: mediaId})
 	if err != nil {
 		return 0, err
 	}

@@ -32,7 +32,9 @@
           </template>
         </a-input>
       </div>
-      <RemotePlugins v-if="active == 3" @installReport="updateTab" :filterData="filterData" ref="pluginRef"/>
+
+      <PublicNetworkCheck v-if="!isPublicNetwork"/>
+      <RemotePlugins v-else-if="active == 3" @installReport="updateTab" :filterData="filterData" ref="pluginRef"/>
       <InstallPlugins v-else @tabChange="showRemote" @installReport="updateTab" :filterData="filterData" ref="pluginRef"/>
     </div>
   </div>
@@ -46,7 +48,10 @@ import RemotePlugins from "./components/remotePlugins.vue";
 import InstallPlugins from "./components/installPlugins.vue";
 import MainTab from "@/views/explore/components/main-tab.vue";
 import {getPluginTypes} from "@/api/plugins/index.js";
+import {usePublicNetworkCheck} from "@/composables/usePublicNetworkCheck.js";
+import PublicNetworkCheck from "@/components/common/public-network-check.vue";
 
+const {isPublicNetwork} = usePublicNetworkCheck()
 const route = useRoute()
 const tabRef = ref(null)
 const pluginRef = ref(null)

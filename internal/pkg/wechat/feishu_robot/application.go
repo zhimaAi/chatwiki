@@ -209,6 +209,10 @@ func (a *Application) SendContent(msgType, content, receiveIdType, receiveId str
 	return 1, nil
 }
 
+func (a *Application) SetTyping(customer, command string) (int, error) {
+	return 0, errors.New(`not supported`)
+}
+
 func (a *Application) SendText(customer, content string, push *lib_define.PushMessage) (int, error) {
 	// 获取接收者信息
 	receiveIdType, receiveId := a.getReceiveInfo(push)

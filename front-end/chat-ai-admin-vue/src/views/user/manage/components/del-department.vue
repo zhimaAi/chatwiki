@@ -3,27 +3,27 @@
     <a-modal v-model:open="open" :title="null" :footer="null" :width="480" :closable="false">
       <div class="del-box">
         <div class="icon-box"><ExclamationCircleFilled /></div>
-        <div class="top-title">删除部门</div>
+        <div class="top-title">{{ t('delete_department') }}</div>
         <div class="content">
-          确认删除部门么？直接删除后，该部门成员归属到默认部门或设置新的部门
+          {{ t('confirm_delete') }}
         </div>
         <div class="footer-btn">
-          <a-button @click="open = false">关闭</a-button>
-          <a-button danger @click="handleDirectDel">直接删除</a-button>
-          <a-button type="primary" @click="handleOpenSetModal">删除并设置</a-button>
+          <a-button @click="open = false">{{ t('close') }}</a-button>
+          <a-button danger @click="handleDirectDel">{{ t('direct_delete') }}</a-button>
+          <a-button type="primary" @click="handleOpenSetModal">{{ t('delete_and_set') }}</a-button>
         </div>
       </div>
     </a-modal>
-    <a-modal v-model:open="setModal" title="设置部门" :width="472" @ok="handleDel">
+    <a-modal v-model:open="setModal" :title="t('set_department')" :width="472" @ok="handleDel">
       <div class="set-box">
-        <div class="set-desc">删除之前请先将之前部门的成员换到其他团队</div>
+        <div class="set-desc">{{ t('delete_before_notice') }}</div>
         <div class="set-item">
-          <div class="set-label">所属部门</div>
+          <div class="set-label">{{ t('belong_department') }}</div>
           <div>
             <a-select
               v-model:value="formState.new_department_id"
               style="width: 100%"
-              placeholder="请选择"
+              :placeholder="t('please_select')"
             >
               <a-select-option v-for="item in departmentLists" :key="item.id" :value="item.id">{{
                 item.department_name
@@ -41,6 +41,9 @@ import { reactive, ref, createVNode } from 'vue'
 import { ExclamationCircleFilled, ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import { getAllDepartment, deleteDepartment } from '@/api/department/index'
 import { message, Modal } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.user.manage.components.del-department')
 
 const open = ref(false)
 const setModal = ref(false)
@@ -61,9 +64,9 @@ const show = (data) => {
   formState.id = data.id
   if (data.children.length == 0) {
     Modal.confirm({
-      title: '提示',
+      title: t('tip'),
       icon: createVNode(ExclamationCircleOutlined),
-      content: '确定删除该部门',
+      content: t('confirm_delete_department'),
       onOk() {
         handleDel()
       }
@@ -100,7 +103,7 @@ const handleDel = () => {
   }).then((res) => {
     setModal.value = false
     open.value = false
-    message.success('删除成功')
+    message.success(t('delete_success'))
     emit('ok', formState.id)
   })
 }

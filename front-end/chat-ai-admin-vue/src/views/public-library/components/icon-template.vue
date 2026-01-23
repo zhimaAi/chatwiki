@@ -1,7 +1,7 @@
 <template>
   <a-modal
     v-model:open="visible"
-    title="图标模板"
+    :title="t('title')"
     :width="760"
     @cancel="handleCancel"
     @ok="handleConfirm"
@@ -39,8 +39,11 @@
 
 <script setup>
 import { onMounted, ref, computed, toRaw } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import {usePublicLibraryStore} from '@/stores/modules/public-library';
 import { getIconTemplateList } from '../../../config/open-doc/icon-template';
+
+const { t } = useI18n('views.public-library.components.icon-template')
 
 const emit = defineEmits(['update:open', 'ok', 'cancel'])
 const publicLibraryStore = usePublicLibraryStore()

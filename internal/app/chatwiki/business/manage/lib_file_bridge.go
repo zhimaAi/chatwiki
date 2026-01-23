@@ -3,6 +3,7 @@
 package manage
 
 import (
+	"chatwiki/internal/pkg/lib_redis"
 	"errors"
 	"strings"
 
@@ -95,6 +96,52 @@ func BridgeGetLibFileList(adminUserId, loginUserId int, lang string, req *Bridge
 		logs.Error(err.Error())
 		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
 	}
+
+	// ====== 元数据及其值（列表也返回）======
+	// 内置 is_show：来自 chat_ai_library
+	libraryShow, _ := msql.Model(`chat_ai_library`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, cast.ToString(libraryId)).
+		Field(`show_meta_source,show_meta_update_time,show_meta_create_time,show_meta_group`).
+		Find()
+
+	// 取该知识库的自定义 schema 列表（前端直接渲染表格）
+	schemaList, err := msql.Model(`library_meta_schema`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`library_id`, cast.ToString(libraryId)).
+		Order(`id asc`).
+		Field(`id,library_id,name,key,type,is_show`).
+		Select()
+	schemaKeyList := make([]string, 0, len(schemaList))
+	schemaMap := make(map[string]msql.Params, len(schemaList))
+	if err == nil {
+		for _, one := range schemaList {
+			k := strings.TrimSpace(one[`key`])
+			if k == `` {
+				continue
+			}
+			// 按 is_show 控制是否返回
+			if cast.ToInt(one[`is_show`]) != define.SwitchOn {
+				continue
+			}
+			schemaKeyList = append(schemaKeyList, k)
+			schemaMap[k] = one
+		}
+	}
+	// 分组 id -> name 映射
+	groupMap := map[int]string{0: `未分组`}
+	groupList, err := msql.Model(`chat_ai_library_group`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`library_id`, cast.ToString(libraryId)).
+		Where(`group_type`, cast.ToString(define.LibraryGroupTypeFile)).
+		Field(`id,group_name`).
+		Select()
+	if err == nil {
+		for _, g := range groupList {
+			groupMap[cast.ToInt(g[`id`])] = g[`group_name`]
+		}
+	}
+
 	countData, err := GetLibFileCount(wheres)
 	var graphEntityCountRes *neo4j.EagerResult
 	var idList []string
@@ -123,7 +170,82 @@ func BridgeGetLibFileList(adminUserId, loginUserId int, lang string, req *Bridge
 			}
 		}
 	}
-	data := map[string]any{`info`: info, `list`: list, `count_data`: countData, `total`: total, `page`: page, `size`: size}
+
+	// 给列表每条记录补齐 group_name/meta_list（内置+自定义）
+	listAny := make([]map[string]any, 0, len(list))
+	for _, item := range list {
+		obj := make(map[string]any, len(item)+4)
+		for k, v := range item {
+			obj[k] = v
+		}
+		gid := cast.ToInt(item[`group_id`])
+		gname, ok := groupMap[gid]
+		if !ok {
+			gname = `未分组`
+		}
+		obj[`group_name`] = gname
+
+		metaMap := make(map[string]any)
+		metaStr := strings.TrimSpace(cast.ToString(item[`metadata`]))
+		if metaStr == `` {
+			metaStr = `{}`
+		}
+		_ = tool.JsonDecode(metaStr, &metaMap)
+
+		// meta_list：前端表格直接渲染（新功能不考虑兼容，不返回 meta_values）
+		metaList := make([]map[string]any, 0, len(define.BuiltinMetaSchemaList)+len(schemaKeyList))
+		builtinValueMap := map[string]any{
+			define.BuiltinMetaKeyUpdateTime: cast.ToInt(item[`update_time`]),
+			define.BuiltinMetaKeyCreateTime: cast.ToInt(item[`create_time`]),
+			define.BuiltinMetaKeySource:     cast.ToInt(item[`doc_type`]),
+			define.BuiltinMetaKeyGroup:      gname,
+		}
+		for _, b := range define.BuiltinMetaSchemaList {
+			isShow := 0
+			switch b.Key {
+			case define.BuiltinMetaKeySource:
+				isShow = cast.ToInt(libraryShow[`show_meta_source`])
+			case define.BuiltinMetaKeyUpdateTime:
+				isShow = cast.ToInt(libraryShow[`show_meta_update_time`])
+			case define.BuiltinMetaKeyCreateTime:
+				isShow = cast.ToInt(libraryShow[`show_meta_create_time`])
+			case define.BuiltinMetaKeyGroup:
+				isShow = cast.ToInt(libraryShow[`show_meta_group`])
+			}
+			if isShow != define.SwitchOn {
+				continue
+			}
+			metaList = append(metaList, map[string]any{
+				`name`:       b.Name,
+				`key`:        b.Key,
+				`type`:       b.Type,
+				`value`:      builtinValueMap[b.Key],
+				`is_show`:    isShow,
+				`is_builtin`: 1,
+			})
+		}
+		for _, k := range schemaKeyList {
+			s := schemaMap[k]
+			val, ok := metaMap[k]
+			if !ok {
+				val = ``
+			}
+			metaList = append(metaList, map[string]any{
+				`id`:         cast.ToInt(s[`id`]),
+				`library_id`: cast.ToInt(s[`library_id`]),
+				`name`:       s[`name`],
+				`key`:        k,
+				`type`:       cast.ToInt(s[`type`]),
+				`value`:      val,
+				`is_show`:    cast.ToInt(s[`is_show`]),
+				`is_builtin`: 0,
+			})
+		}
+		obj[`meta_list`] = metaList
+		listAny = append(listAny, obj)
+	}
+
+	data := map[string]any{`info`: info, `list`: listAny, `count_data`: countData, `total`: total, `page`: page, `size`: size}
 	return data, 0, nil
 }
 
@@ -179,4 +301,72 @@ func BridgeAddLibraryFile(adminUserId, loginUserId int, lang string, req *Bridge
 		return nil, -1, err
 	}
 	return map[string]any{`file_ids`: fileIds}, 0, nil
+}
+
+func BridgeDelLibraryFile(adminUserId int, ids, lang string) error {
+	for _, id := range strings.Split(ids, `,`) {
+		id := cast.ToInt(id)
+		if id <= 0 {
+			return errors.New(i18n.Show(lang, `param_lack`))
+		}
+		info, err := common.GetLibFileInfo(id, adminUserId)
+		if err != nil {
+			logs.Error(err.Error())
+			return errors.New(i18n.Show(lang, `sys_err`))
+		}
+		if len(info) == 0 {
+			return errors.New(i18n.Show(lang, `no_data`))
+		}
+		_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Where(`id`, cast.ToString(id)).Delete()
+		if err != nil {
+			logs.Error(err.Error())
+			return errors.New(i18n.Show(lang, `sys_err`))
+		}
+		//clear cached data
+		lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: id})
+		//dispose relation data
+		dataIdList, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+			Where(`file_id`, cast.ToString(id)).
+			Where(`category_id`, `0`).
+			ColumnArr(`id`)
+		if err != nil {
+			logs.Error(err.Error())
+			continue
+		}
+		if len(dataIdList) == 0 {
+			continue
+		}
+
+		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
+			Where(`id`, `in`, strings.Join(dataIdList, `,`)).
+			Delete()
+		if err != nil {
+			logs.Error(err.Error())
+			continue
+		}
+		_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
+			Where(`data_id`, `in`, strings.Join(dataIdList, `,`)).
+			Delete()
+		if err != nil {
+			logs.Error(err.Error())
+		}
+		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
+			Where(`file_id`, cast.ToString(id)).
+			Update(msql.Datas{`isolated`: true})
+		if err != nil {
+			logs.Error(err.Error())
+		}
+
+		if common.GetNeo4jStatus(adminUserId) {
+			for _, dataId := range dataIdList {
+				err = common.NewGraphDB(adminUserId).DeleteByData(cast.ToInt(dataId))
+				if err != nil {
+					logs.Error(err.Error())
+				}
+			}
+		}
+	}
+	return nil
 }

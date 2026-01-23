@@ -1,0 +1,22 @@
+{
+  "not_published": "未公开",
+  "published": "已公开",
+  "switch_to_pc": "切换到PC端",
+  "switch_to_mobile": "切换到移动端",
+  "editing": "编辑中...",
+  "publish": "发布",
+  "edit": "编辑",
+  "copy_link": "复制链接",
+  "seo": "SEO",
+  "settings": "设置",
+  "save_success": "保存成功",
+  "delete_success": "删除成功",
+  "publish_success": "发布成功",
+  "editing_warning_title": "{name}正在编辑此文档",
+  "editing_warning_content": "需要其他协作者结束编辑并发布后才可以继续编辑",
+  "editing_warning_ok": "知道了",
+  "delete_question_guide_title": "删除问题引导",
+  "delete_question_guide_content": "确定要删除该问题引导吗？",
+  "delete_question_guide_ok": "确定",
+  "delete_question_guide_cancel": "取消"
+}

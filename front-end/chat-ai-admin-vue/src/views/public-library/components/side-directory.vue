@@ -235,14 +235,14 @@
   <div class="side-directory">
     <div class="directory-header">
       <svg-icon name="doc-directory" style="font-size: 16px; color: #595959"></svg-icon>
-      <div class="label-text">文档目录</div>
+      <div class="label-text">{{ t('document_directory') }}</div>
       <div class="action-box">
         <a-dropdown>
           <template #overlay>
             <a-menu>
-              <a-menu-item key="addDir" @click="addDoc(null, 0)"> 添加文档 </a-menu-item>
-              <a-menu-item key="importDoc" @click="importDoc()"> 导入文档 </a-menu-item>
-              <a-menu-item key="addDoc" @click="addDoc(null, 1)"> 添加文件夹 </a-menu-item>
+              <a-menu-item key="addDir" @click="addDoc(null, 0)">{{ t('add_document') }}</a-menu-item>
+              <a-menu-item key="importDoc" @click="importDoc()">{{ t('import_document') }}</a-menu-item>
+              <a-menu-item key="addDoc" @click="addDoc(null, 1)">{{ t('add_folder') }}</a-menu-item>
             </a-menu>
           </template>
           <span class="action-btn">
@@ -251,14 +251,14 @@
         </a-dropdown>
 
         <a-tooltip>
-          <template #title>收起全部文档</template>
+          <template #title>{{ t('collapse_all') }}</template>
           <span class="action-btn" @click="toggleExpandAll(false)">
             <svg-icon name="menu-expand" style="font-size: 16px; color: #595959"></svg-icon>
           </span>
         </a-tooltip>
 
         <a-tooltip>
-          <template #title>图标模板设置</template>
+          <template #title>{{ t('icon_template_settings') }}</template>
           <span class="action-btn" @click="openIconTemplate">
             <svg-icon name="system-setting" style="font-size: 16px; color: #595959"></svg-icon>
           </span>
@@ -290,7 +290,7 @@
               <div class="doc-title">
                 <span class="doc-title-text" v-if="!treeNode.dataRef.isEdit">{{ treeNode.dataRef.title }}</span>
                 <a-input :class="[`rename-input-${treeNode.dataRef.id}`]" name="rename"
-                  :defaultValue="treeNode.dataRef.title" placeholder="请输入标题" @blur="saveName(treeNode)"
+                  :defaultValue="treeNode.dataRef.title" :placeholder="t('please_enter_title')" @blur="saveName(treeNode)"
                   @pressEnter="saveName(treeNode)" v-else />
               </div>
 
@@ -300,13 +300,13 @@
                   <template #overlay>
                     <a-menu>
                       <a-menu-item key="addDir" @click.stop.prevent="addDoc(treeNode, 0)">
-                        <span class="menu-name">添加文档</span>
+                        <span class="menu-name">{{ t('add_document') }}</span>
                       </a-menu-item>
                       <a-menu-item key="importDoc" @click.stop.prevent="importDoc(treeNode)">
-                        <span class="menu-name">导入文档</span>
+                        <span class="menu-name">{{ t('import_document') }}</span>
                       </a-menu-item>
                       <a-menu-item key="addDoc" @click.stop.prevent="addDoc(treeNode, 1)">
-                        <span class="menu-name">添加文件夹</span>
+                        <span class="menu-name">{{ t('add_folder') }}</span>
                       </a-menu-item>
                     </a-menu>
                   </template>
@@ -320,24 +320,24 @@
                     <a-menu>
                       <template v-if="treeNode.dataRef.is_dir == 1">
                         <a-menu-item key="rename" @click.stop.prevent="handleRenameDoc(treeNode)">
-                          <span class="menu-name">重命名</span>
+                          <span class="menu-name">{{ t('rename') }}</span>
                         </a-menu-item>
                         <a-menu-item key="deleteDoc" @click.stop.prevent="handleDeleteDoc(treeNode)">
-                          <span class="menu-name">删除</span>
+                          <span class="menu-name">{{ t('delete') }}</span>
                         </a-menu-item>
                       </template>
                       <template v-else>
                         <a-menu-item key="copyLink" @click.stop.prevent="handleCopyLink(treeNode)">
-                          复制链接<span class="menu-name"></span>
+                          {{ t('copy_link') }}<span class="menu-name"></span>
                         </a-menu-item>
                         <a-menu-item key="copyDoc" @click.stop.prevent="handleCopyDoc(treeNode)">
-                          <span class="menu-name">复制文档</span>
+                          <span class="menu-name">{{ t('copy_document') }}</span>
                         </a-menu-item>
                         <a-menu-item key="exportDoc" @click.stop.prevent="handleExportDoc(treeNode)">
-                          <span class="menu-name">导出文档</span>
+                          <span class="menu-name">{{ t('export_document') }}</span>
                         </a-menu-item>
                         <a-menu-item key="deleteDoc" @click.stop.prevent="handleDeleteDoc(treeNode)">
-                          <span class="menu-name">删除文档</span>
+                          <span class="menu-name">{{ t('delete_document') }}</span>
                         </a-menu-item>
                       </template>
                     </a-menu>
@@ -363,6 +363,9 @@ import { ref, nextTick } from 'vue'
 import { PlusOutlined, CaretDownOutlined, MoreOutlined } from '@ant-design/icons-vue'
 import UploadDoc from './upload-doc.vue'
 import IconTemplate from './icon-template.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.public-library.components.side-directory')
 
 const emit = defineEmits([
   'addDoc',

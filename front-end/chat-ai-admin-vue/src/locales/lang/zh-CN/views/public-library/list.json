@@ -1,0 +1,17 @@
+{
+  "page_title": "对外文档",
+  "usage_instruction": "使用说明",
+  "usage_instruction_1": "1、对外文档作为在线文档创作管理工具，创作的文档既可作为知识库关联到机器人使用，也可分享给好友查看。",
+  "usage_instruction_2": "2、支持设置每篇文档的title、description、keyword，提高SEO搜索权重。",
+  "all": "全部",
+  "new_document": "新建对外文档",
+  "delete_title": "删除{library_name}",
+  "delete_confirm": "您确定要删除此知识库吗？",
+  "confirm": "确 定",
+  "cancel": "取 消",
+  "delete_success": "删除成功",
+  "document_label": "文档：",
+  "size_label": "大小：",
+  "manage_action": "管 理",
+  "delete_action": "删 除"
+}

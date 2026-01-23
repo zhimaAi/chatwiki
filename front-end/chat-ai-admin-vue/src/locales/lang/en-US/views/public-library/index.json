@@ -1,0 +1,12 @@
+{
+  "untitled_document": "Untitled",
+  "new_folder": "New Folder",
+  "import_success": "Imported successfully",
+  "add_success": "Added successfully",
+  "copy_success": "Copied successfully",
+  "modify_success": "Modified successfully",
+  "delete_document": "Delete Document",
+  "confirm_delete_document": "Delete document {title}?",
+  "delete_success": "Deleted successfully",
+  "home": "Home"
+}

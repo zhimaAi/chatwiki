@@ -528,79 +528,60 @@ A: 使用 vue-i18n 的复数语法：
 
 ```markdown
 # Role
-你是一个精通 Vue/React 国际化架构的前端专家。
+你是一个精通 Vue3 国际化架构的前端专家（专注于 Vue3 + TypeScript + Composition API）。
 
 # Context
-我的项目 i18n 目录结构如下（基于 `src/locales/lang`）：
-- `src/locales/lang/zh-CN/`：中文源文件
-- `src/locales/lang/en-US/`：英文目标文件
-- 结构特点：模块化嵌套，JSON 文件路径与源码目录结构存在映射关系。
+我的项目 i18n 目录结构严格遵循**源码目录镜像映射**规则：
+- 源码目录：`src/views/...`
+- i18n 目录：`src/locales/lang/{lang}/views/...`
+- **映射规则**：每一个 Vue 组件文件对应一个同名的 JSON 翻译文件（文件名转换为 kebab-case）。
 
 # Goal
-请分析**当前打开的代码文件**（Active File），提取其中的硬编码中文，并将其抽取到对应的 i18n 模块文件中，并自动重构代码。
+分析**当前打开的代码文件**（Active File），提取其中的硬编码中文，将其抽取到对应的 i18n 模块 JSON 文件中，并自动重构代码。
 
 # Task Workflow
 
-1. **Analyze Path & Namespace (分析路径与命名空间)**:
-   - 获取当前文件的相对路径（例如 `src/views/user/model/components/AddModelAlert.vue`）。
-   - **推导 Full Key Path (完整键路径)**: 
-     - 结合目录结构，推导出完整的 i18n 路径。
-     - 例如：`views.user.model.components.add-model-alert`。
-   - **推导 JSON 存储位置**:
-     - 基于路径的前几层找到对应的 JSON 文件（例如 `locales/lang/{lang}/views/user/model/components/add-model-alert.json`）。
+1.  **Analyze Path & Namespace (分析路径与命名空间)**:
+    - **Step 1: 获取路径**
+      - 识别当前活动文件路径，例如：`src/views/public-library/home/index.vue`
+    - **Step 2: 推导 Namespace (核心)**
+      - 规则：移除 `src/` 前缀和文件后缀；将路径分隔符 `/` 替换为 `.`；确保所有片段均为 kebab-case。
+      - *推导结果*: `views.public-library.home.index`
+    - **Step 3: 定位 JSON 文件**
+      - 规则：`src/locales/lang/{lang}/` + [Namespace转换回路径] + `.json`
+      - *推导结果*: `src/locales/lang/{lang}/views/public-library/home/index.json`
 
-   - 获取当前文件的相对路径（例如 `src/views/library-search/index.vue`）。
-     - **推导 Full Key Path (完整键路径)**: 
-       - 结合目录结构，推导出完整的 i18n 路径。
-       - 例如：`views.library-search.index`。
-     - **推导 JSON 存储位置**:
-       - 基于路径的前几层找到对应的 JSON 文件（例如 `locales/lang/{lang}/views/library-search/index.json`）。
+2.  **Extract & Translate (提取与翻译)**:
+    - 遍历文件提取硬编码中文。
+    - **生成 Key**: 采用 `snake_case` 且优先语义化（如 "提交" -> `submit_btn`）。
+    - **写入 JSON**:
+      - 自动创建不存在的目录或文件。
+      - 向 `zh-CN` 写入中文，向 `en-US` 写入对应的英文翻译。
 
-   - 获取当前文件的相对路径（例如 `src/views/login/login.vue`）。
-     - **推导 Full Key Path (完整键路径)**: 
-       - 结合目录结构，推导出完整的 i18n 路径。
-       - 例如：`views.login.login`。
-     - **推导 JSON 存储位置**:
-       - 基于路径的前几层找到对应的 JSON 文件（例如 `locales/lang/{lang}/views/login/login.json`）。
+3.  **Code Refactor (代码重构)**:
+    - **Import**: 
+      - 必须引入: `import { useI18n } from '@/hooks/web/useI18n'`
+    - **Setup**: 
+      - 使用推导出的 Namespace 初始化: `const { t } = useI18n('views.public-library.home.index')`
+    - **常规处理**: 
+      - 使用 `t('key')` 替换硬编码字符串。
 
-   - 获取当前文件的相对路径（例如 `src/views/public-library/home/index.vue`）。
-     - **推导 Full Key Path (完整键路径)**: 
-       - 结合目录结构，推导出完整的 i18n 路径。
-       - 例如：`views.public-library.home.index`。
-     - **推导 JSON 存储位置**:
-       - 基于路径的前几层找到对应的 JSON 文件（例如 `locales/lang/{lang}/views/public-library/home/index.json`）。
+    - **关键修正 - `defineProps` 处理**:
+      - **禁止**: 在 `defineProps` 内部使用 `t()` (会导致 hoisting error)。
+      - **规则**: 
+        1. 提取中文到 JSON。
+        2. 将 `defineProps` 的 `default` 值修改为**Key 字符串** (例如 `default: 'btn_text'`)。
+        3. 检查 Template 中使用该 Prop 的地方，改为 `{{ t(propName) }}`。
+      - *注意*: 如果 Template 中不便修改，请使用 `computed` 包装 Prop 进行翻译。
 
-2. **Extract & Translate (提取与翻译)**:
-   - 提取硬编码中文。
-   - **JSON 处理**:
-     - 如果目标 JSON 文件不存在，请自动创建。
-     - 同时向 `zh-CN` 和 `en-US` 追加内容。
-     - Key 命名使用 `snake_case` (例如 `submit_btn`)。
-
-3. **Code Refactor (代码重构 - 核心规则)**:
-   - **统一采用命名空间模式 (Namespace Mode)** (不区分层级深度):
-     - **Import**: 必须使用自定义 Hook: `import { useI18n } from '@/hooks/web/useI18n'`。
-     - **Script**: 提取 Key 的前缀路径（通常是文件路径映射）作为 Namespace 传入 Hook。
-       - *示例*: 如果完整 Key 路径是 `views.user.model.components.add-model-alert.title`。
-       - *Namespace*: `views.user.model.components.add-model-alert`。
-       - *写法*: `const { t } = useI18n('views.user.model.components.add-model-alert')`。
-       - **Template**: 直接使用短 Key，例如 `t('title')` (不要使用完整路径)。
-
-       - *示例*: 如果完整 Key 路径是 `views.library-search.index.all`。
-       - *Namespace*: `views.library-search`。
-       - *写法*: `const { t } = useI18n('views.library-search.index')`。
-       - **Template**: 直接使用短 Key，例如 `t('all')` (不要使用完整路径)。
-     
-
-   - **变量处理**:
-     - 如果包含变量 `${name}`，JSON 中保留 `{name}`，代码中使用 `t('key', { name: val })`。
+    - **参数处理**:
+      - 原文 `"搜索 ${val}"` -> 代码 `t('search', { val })`。
 
 # Constraints
-- **强制约束**: 所有 i18n 引入必须来自 `@/hooks/web/useI18n`，**禁止**从 `vue-i18n` 引入。
-- 保持 `zh-CN` 和 `en-US` 结构完全一致。
-- 命名空间字符串应基于文件路径生成（kebab-case 连接）。
-- 英语翻译要简练。
-- 直接生成代码并 Apply，无需确认。
-- 翻译完成后需要再次确认翻译文件路径是否正确。
-- 始终用中文沟通。 
+1.  **强制**：所有 i18n 引入必须来自 `@/hooks/web/useI18n`。
+2.  **强制**：Namespace 必须包含**完整的文件名路径**。
+3.  **强制**：若遇到 `defineProps` 默认值，**切勿**直接包裹 `t()`，必须传递 Key 字符串。
+4.  **强制**：如果当前是 React (.tsx) 文件，请停止操作并提示“仅支持 Vue 文件”。
+5.  **强制**：始终用中文沟通。
+6.  **输出**：直接生成修改后的代码块和 JSON 文件内容，无需啰嗦解释。
 ```

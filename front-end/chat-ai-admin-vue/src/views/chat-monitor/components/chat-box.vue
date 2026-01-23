@@ -34,7 +34,7 @@
     <div class="chat-box-header">
       <div class="nickname">{{ activeChat.name || activeChat.nickname }}</div>
       <div class="chat-source">
-        来自：{{ activeChat.come_from.robot_name }} - {{ activeChat.come_from.app_name }}
+        {{ t('from_source', { robot: activeChat.come_from.robot_name, app: activeChat.come_from.app_name }) }}
       </div>
     </div>
     <div class="chat-box-content">
@@ -49,8 +49,11 @@
 import { ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useChatMonitorStore } from '@/stores/modules/chat-monitor.js'
+import { useI18n } from '@/hooks/web/useI18n'
 import ChatMessage from './chat-message.vue'
 import LibraryInfoAlert from './library-info-alert.vue'
+
+const { t } = useI18n('views.chat-monitor.components.chat-box')
 
 const chatMonitorStore = useChatMonitorStore()
 

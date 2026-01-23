@@ -1,0 +1,9 @@
+{
+  "answer_source": "Answer Source",
+  "id_prefix": "id:",
+  "total_characters": "{count} characters in total",
+  "view_source_document": "View Source Document>",
+  "similarity": "Similarity:",
+  "question_prefix": "Q:",
+  "answer_prefix": "A:"
+}

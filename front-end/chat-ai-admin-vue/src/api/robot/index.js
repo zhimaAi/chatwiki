@@ -693,3 +693,18 @@ export const callWorkFlowHttpTest = (data = {}) => {
     data: data
   })
 }
+
+export const robotImportDataInfo = (params = {}) => {
+  return request.get({
+    url: '/manage/robotImportDataInfo',
+    params: params
+  })
+}
+
+// 公众号回复显示设置
+export const setWechatConfigSwitch = (data = {}) => {
+  return request.post({
+    url: '/manage/setWechatConfigSwitch',
+    data: data
+  })
+}

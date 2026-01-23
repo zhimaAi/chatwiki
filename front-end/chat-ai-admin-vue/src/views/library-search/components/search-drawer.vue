@@ -1,25 +1,23 @@
 <template>
-  <a-button v-if="searchSets" @click="showDrawer" :icon="h(SettingOutlined)">搜索设置</a-button>
+  <a-button v-if="searchSets" @click="showDrawer" :icon="h(SettingOutlined)">{{ t('search_settings') }}</a-button>
   <a-drawer
     v-model:open="open"
     class="custom-class"
     root-class-name="root-class-name"
-    title="搜索设置"
+    :title="t('search_settings')"
     width="472"
     placement="right"
     @after-open-change="afterOpenChange"
   >
     <div class="prompt-form">
-      <div class="prompt-form-label">模型设置</div>
+      <div class="prompt-form-label">{{ t('model_settings') }}</div>
 
       <div class="form-item">
         <div class="form-item-label">
           <a-flex align="center">
-            <span>AI智能总结</span>
+            <span>{{ t('ai_intelligent_summary') }}</span>
             <a-tooltip>
-              <template #title
-                >开启后，搜索知识库时，由大模型自动总结文档，并给出总结后的结果</template
-              >
+              <template #title>{{ t('ai_summary_tooltip') }}</template>
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
             <a-switch
@@ -28,8 +26,8 @@
               v-model:checked="formState.summary_switch"
               :checkedValue="1"
               :unCheckedValue="0"
-              checked-children="开"
-              un-checked-children="关"
+              :checkedChildren="t('on')"
+              :unCheckedChildren="t('off')"
             />
           </a-flex>
         </div>
@@ -37,7 +35,7 @@
       <div v-show="formState.summary_switch == 1">
         <div class="prompt-form-item">
           <div class="prompt-form-item-label">
-            <span style="color: red">* </span><span>模型选择</span>
+            <span style="color: red">* </span><span>{{ t('model_selection') }}</span>
           </div>
           <ModelSelect
             modelType="LLM"
@@ -51,15 +49,15 @@
 
         <div class="prompt-form-item">
           <div class="prompt-form-item-label">
-            <span style="color: red">* </span><span>提示词</span>
+            <span style="color: red">* </span><span>{{ t('prompt') }}</span>
           </div>
           <a-radio-group v-model:value="formState.prompt_type" @change="handlePromptTypeChange">
-            <a-radio value="0">默认提示词</a-radio>
-            <a-radio value="1">自定义提示词</a-radio>
+            <a-radio value="0">{{ t('default_prompt') }}</a-radio>
+            <a-radio value="1">{{ t('custom_prompt') }}</a-radio>
           </a-radio-group>
           <div class="prompt-form-item-content">
             <div class="prompt-form-item-tip" v-if="formState.prompt_type == '0'">
-              将提交的内容进行智能总结,不要随意发挥
+              {{ t('default_prompt_tip') }}
             </div>
             <a-textarea
               v-else
@@ -67,16 +65,16 @@
               :maxLength="500"
               style="height: 80px"
               v-model:value="formState.prompt"
-              placeholder="请输入自定义提示词"
+              :placeholder="t('custom_prompt_placeholder')"
             />
           </div>
         </div>
 
         <div class="prompt-form-item">
           <div class="prompt-form-item-label">
-            <span>温度</span>
+            <span>{{ t('temperature') }}</span>
             <a-tooltip>
-              <template #title>温度越低，回答越严谨。温度越高，回答越发散。</template>
+              <template #title>{{ t('temperature_tooltip') }}</template>
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
           </div>
@@ -107,10 +105,10 @@
 
         <div class="prompt-form-item">
           <div class="prompt-form-item-label">
-            <span>最大token</span>
+            <span>{{ t('max_token') }}</span>
             <a-tooltip>
               <template #title>
-                <div>问题+答案的最大token数，如果出现回答被截断，可调高此值</div>
+                <div>{{ t('max_token_tooltip') }}</div>
               </template>
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
@@ -169,11 +167,11 @@
 
     <div class="recall-settings-box">
       <div class="form-box prompt-form">
-        <div class="prompt-form-label">召回设置</div>
+        <div class="prompt-form-label">{{ t('recall_settings') }}</div>
 
         <div class="form-item is-required">
           <div class="form-item-label">
-            <span>检索模式</span>
+            <span>{{ t('retrieval_mode') }}</span>
           </div>
           <div class="form-item-body">
             <div class="retrieval-mode-items">
@@ -214,11 +212,9 @@
 
         <div class="form-item">
           <div class="form-item-label">
-            <span>Top K&nbsp;</span>
+            <span>{{ t('top_k') }}&nbsp;</span>
             <a-tooltip>
-              <template #title
-                >最多从知识库中召回分段数，最低为1，最高为10。召回分段数越多，消耗的token也会越多。</template
-              >
+              <template #title>{{ t('top_k_tooltip') }}</template>
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
           </div>
@@ -242,11 +238,9 @@
 
         <div class="form-item" v-if="formState.search_type != 3 && formState.search_type != 4">
           <div class="form-item-label">
-            <span>相似度阈值&nbsp;</span>
+            <span>{{ t('similarity_threshold') }}&nbsp;</span>
             <a-tooltip>
-              <template #title
-                >召回时，只会召回相似度大于阈值的文本分段。取值范围：0~1，阈值越大回答的越准确，建议不超过0.9</template
-              >
+              <template #title>{{ t('similarity_threshold_tooltip') }}</template>
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
           </div>
@@ -277,11 +271,9 @@
 
         <div class="form-item">
           <div class="form-item-label">
-            <span>Rerank模型&nbsp;</span>
+            <span>{{ t('rerank_model') }}&nbsp;</span>
             <a-tooltip>
-              <template #title
-                >召回时，只会召回相似度大于阈值的文本分段。取值范围：0~1，阈值越大回答的越准确，建议不超过0.9</template
-              >
+              <template #title>{{ t('rerank_model_tooltip') }}</template>
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
 
@@ -291,8 +283,8 @@
               :checkedValue="1"
               :unCheckedValue="0"
               v-model:checked="formState.rerank_status"
-              checked-children="开"
-              un-checked-children="关"
+              :checkedChildren="t('on')"
+              :unCheckedChildren="t('off')"
             />
           </div>
           <div class="form-item-body" v-if="formState.rerank_status == 1">
@@ -301,7 +293,7 @@
               v-model:modeName="formState.rerank_use_model"
               v-model:modeId="formState.rerank_model_config_id"
               style="width: 100%"
-              placeholder="请选择Rerank模型"
+              :placeholder="t('select_rerank_model')"
               @change="onSave"
             />
           </div>
@@ -311,12 +303,12 @@
     <a-modal
       v-model:open="modalOpen"
       @cancel="handleClose"
-      title="请输入自定义提示词"
+      :title="t('custom_prompt_modal_title')"
       @ok="handleOk"
     >
       <a-textarea
         v-model:value="promptVal"
-        placeholder="请输入"
+        :placeholder="t('please_input')"
         style="min-height: 300px"
         allow-clear
       />
@@ -324,8 +316,7 @@
   </a-drawer>
 </template>
 <script lang="ts" setup>
-import { getModelConfigOption } from '@/api/model/index'
-import { ref, h, reactive, onMounted, toRaw, watch, computed } from 'vue'
+import { ref, h, reactive, onMounted, computed } from 'vue'
 import { SettingOutlined } from '@ant-design/icons-vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { saveLibrarySearch } from '@/api/library'
@@ -334,8 +325,11 @@ import WeightSelect from '@/components/weight-select/index.vue'
 import { useSearchLiraryStore } from '@/stores/modules/search-lirary'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { usePermissionStore } from '@/stores/modules/permission'
+import { useI18n } from '@/hooks/web/useI18n'
 
 let { role_permission, role_type } = usePermissionStore()
+const { t } = useI18n('views.library-search.components.search-drawer')
+
 const searchSets = computed(() => role_type == 1 || role_permission.includes('SearchSets'))
 
 const searchLiraryStore = useSearchLiraryStore()
@@ -345,28 +339,28 @@ const { getLibrarySearchFn } = searchLiraryStore
 const retrievalModeList = ref([
   {
     iconName: 'mix-icon',
-    title: '混合检索',
+    title: t('hybrid_retrieval'),
     value: 1,
     isRecommendation: true,
-    desc: '同时执行三种检索模式，使用RRF算法进行排序，从三种查询结果中选择更匹配用户问题的结果。混合检索兼顾语义相似性与逻辑关联性，通过互补优势提升检索的准确性和生成结果的可信度'
+    desc: t('hybrid_retrieval_desc')
   },
   {
     iconName: 'vector-icon',
-    title: '向量检索',
+    title: t('vector_retrieval'),
     value: 2,
-    desc: '将用户提问转成向量之后与知识库分段匹配相似度，返回相似度高的结果。向量检索擅长语义相似性匹配和大规模非结构化数据处理，但缺乏可解释性和精准关系验证'
+    desc: t('vector_retrieval_desc')
   },
   {
     iconName: 'graph-icon',
-    title: '知识图谱检索',
+    title: t('graph_retrieval'),
     value: 4,
-    desc: '通过关系推理，检索出与用户问题相关联的知识。知识图谱检索擅长精准的实体关系推理和逻辑验证，但对非结构化文本和语义模糊查询支持较弱'
+    desc: t('graph_retrieval_desc')
   },
   {
     iconName: 'search-check-icon',
-    title: '全文检索',
+    title: t('full_text_retrieval'),
     value: 3,
-    desc: '通过分词匹配文档中的词汇，返回包含这些词汇的文本片段'
+    desc: t('full_text_retrieval_desc')
   }
 ])
 
@@ -459,12 +453,12 @@ const onSave = () => {
   let params = { ...formState }
 
   if (!params.prompt && formState.prompt_type == '1') {
-    return message.error('请输入自定义提示词')
+    return message.error(t('enter_custom_prompt'))
   }
   params.rrf_weight = JSON.stringify(formState.rrf_weight)
 
   if (formState.search_type == 3 || formState.search_type == 4) {
-    // 当选择“知识图谱检索”和“全文检索”类型时，不显示“相似度阈值”设置项。
+    // 当选择"知识图谱检索"和"全文检索"类型时，不显示"相似度阈值"设置项。
     delete params.similarity
   }
 
@@ -474,7 +468,7 @@ const onSave = () => {
 
   params.size = params.top_k
   saveLibrarySearch(params).then((res) => {
-    message.success('保存成功')
+    message.success(t('save_success'))
   })
 }
 
@@ -491,7 +485,7 @@ const handlePromptTypeChange = () => {
 
 const handleOk = () => {
   if (!promptVal.value) {
-    return message.error('请输入提示语')
+    return message.error(t('enter_prompt'))
   } else {
     formState.prompt = promptVal.value
     modalOpen.value = false

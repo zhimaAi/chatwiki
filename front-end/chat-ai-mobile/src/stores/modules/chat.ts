@@ -36,6 +36,7 @@ export interface Message {
   quote_loading: boolean
   show_quote_file: boolean
   voice_content: any
+  startLoading: boolean
 }
 
 export interface Chat {
@@ -74,6 +75,8 @@ export interface Robot {
   answer_source_switch: boolean
   application_type: string // 机器人类型 0普通 1工作流
   question_multiple_switch: number
+  tips_before_answer_content: string
+  tips_before_answer_switch: boolean
 }
 
 export interface PageStyle {
@@ -133,7 +136,9 @@ export const useChatStore = defineStore('chat', () => {
     chat_type: '',
     answer_source_switch: false,
     application_type: '0',
-    question_multiple_switch: 0
+    question_multiple_switch: 0,
+    tips_before_answer_content: '思考中、请稍等',
+    tips_before_answer_switch: true,
   })
 
   // 样式配置
@@ -215,6 +220,9 @@ export const useChatStore = defineStore('chat', () => {
       robot.chat_type = robotInfo.chat_type;
       robot.answer_source_switch = robotInfo.answer_source_switch == 'true';
       robot.application_type = robotInfo.application_type
+      robot.tips_before_answer_content = robotInfo.tips_before_answer_content
+      robot.tips_before_answer_switch = robotInfo.tips_before_answer_switch == 'true';
+
       robot.question_multiple_switch = Number(robotInfo.question_multiple_switch) || 0
       if (robotInfo.common_question_list) {
         robot.common_question_list = JSON.parse(robotInfo.common_question_list)
@@ -345,6 +353,9 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     if (type == 'sending') {
+
+      // 开始生成中答案
+      messageList.value[msgIndex].startLoading = false
       // 推理结束
       messageList.value[msgIndex].reasoning_status = false
 
@@ -371,6 +382,7 @@ export const useChatStore = defineStore('chat', () => {
         // messageList.value[msgIndex].content = menu_json.content
         messageList.value[msgIndex].menu_json = menu_json
       }
+      messageList.value[msgIndex].startLoading = false
       messageList.value[msgIndex].id = content.id
       messageList.value[msgIndex].msg_type = content.msg_type // 更新真实的msg_type
 
@@ -431,6 +443,7 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     const aiMsg = {
+      startLoading: true, // // 对话开始状态
       loading: true,
       id: '',
       content: '',

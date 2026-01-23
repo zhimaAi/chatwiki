@@ -61,6 +61,7 @@
           <a-select-option :value="-1">全部知识图谱状态</a-select-option>
           <a-select-option v-for="(i, key) in graphStatusMap" :key="i" :value="key">{{ i }}</a-select-option>
         </a-select>
+        <a-button @click="showMetaModal">修改元数据</a-button>
         <a-dropdown>
           <template #overlay>
             <a-menu>
@@ -278,6 +279,7 @@
       ref="reSegmentationPageRef"
     />
     <SegmentationSettingModal ref="segmentationSettingModalRef" @ok="onSaveModal" />
+    <MetadataManageModal ref="metaRef" :library-id="detailsInfo.library_id" :file-id="route.query.id"/>
   </div>
 </template>
 
@@ -308,12 +310,14 @@ import QaSubsectionBox from './components/qa-subsection-box.vue'
 import SelectStarBox from './components/selct-star-box.vue'
 import { useCompanyStore } from '@/stores/modules/company'
 import SegmentationSettingModal from './components/segmentation-setting-modal.vue'
+import MetadataManageModal from "@/views/library/library-details/components/metadata-manage-modal.vue";
 
 const companyStore = useCompanyStore()
 const neo4j_status = computed(()=>{
   return companyStore.companyInfo?.neo4j_status == 'true'
 })
 
+const metaRef = ref(false)
 const isCollapsed = ref(false)
 const pdfRef = ref(null)
 const pdfLoadedPage = ref(0)
@@ -354,6 +358,7 @@ const is_qa_doc = computed(() => {
   return detailsInfo.value.is_qa_doc == '1'
 })
 const detailsInfo = ref({})
+const metaList = ref([])
 const filterData = reactive({
   status: -1,
   graph_status: -1,
@@ -494,6 +499,7 @@ const getFileInfo = async () => {
       ...res.data,
       graph_switch: res.data.graph_switch == '1' && neo4j_status.value
     }
+    metaList.value = res?.data?.meta_list || []
     let status = res.data.status
     if (status == 1 || status == 2) {
       getParagraphLists()
@@ -1189,6 +1195,10 @@ const handleSaveLibFileSplit = async (documentFragmentList, index) => {
     .finally(() => {
       saveLoading.value = false
     })
+}
+
+function showMetaModal() {
+  metaRef.value.show(true, metaList.value)
 }
 
 onMounted(() => {

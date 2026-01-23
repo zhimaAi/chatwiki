@@ -159,8 +159,8 @@
 
         <div class="item-footer">
           <div class="library-size">
-            <span class="text-item">文档：{{ item.file_total }}</span>
-            <span class="text-item">大小：{{ item.file_size_str }}</span>
+            <span class="text-item">{{ t('document_label') }}{{ item.file_total }}</span>
+            <span class="text-item">{{ t('size_label') }}{{ item.file_size_str }}</span>
           </div>
 
           <div class="action-box" @click.stop>
@@ -171,11 +171,11 @@
               <template #overlay>
                 <a-menu>
                   <a-menu-item>
-                    <a href="javascript:;" @click.stop="toEdit(item)">管 理</a>
+                    <a href="javascript:;" @click.stop="toEdit(item)">{{ t('manage_action') }}</a>
                   </a-menu-item>
                   <a-menu-item>
                     <a class="delete-text-color" href="javascript:;" @click="handleDelete(item)"
-                      >删 除</a
+                      >{{ t('delete_action') }}</a
                     >
                   </a-menu-item>
                 </a-menu>
@@ -192,6 +192,9 @@
 
 <script setup>
 import { setDescRef, getTooltipTitle } from '@/utils/index'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.public-library.list')
 
 const emit = defineEmits(['add', 'edit', 'delete'])
 

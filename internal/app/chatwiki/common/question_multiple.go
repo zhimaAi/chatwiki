@@ -4,7 +4,6 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
-	"strings"
 
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
@@ -72,12 +71,4 @@ func GetFirstQuestionByInput(question string) string {
 		return GetQuestionByQuestionMultiple(questionMultiple)
 	}
 	return question
-}
-
-// GetQuestionByContent 支持用户content为string或者array<object>类型
-func GetQuestionByContent(content any) string {
-	if question, ok := content.(string); ok {
-		return strings.TrimSpace(question)
-	}
-	return tool.JsonEncodeNoError(content)
 }

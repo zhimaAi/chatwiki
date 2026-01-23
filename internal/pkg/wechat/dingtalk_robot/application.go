@@ -185,6 +185,10 @@ func (a *Application) GetApp() (_result *dingtalkrobot_1_0.Client, _err error) {
 	return _result, _err
 }
 
+func (a *Application) SetTyping(customer, command string) (int, error) {
+	return 0, errors.New(`not supported`)
+}
+
 func (a *Application) SendText(customer, content string, push *lib_define.PushMessage) (int, error) {
 	app, err := a.GetApp()
 	if err != nil {

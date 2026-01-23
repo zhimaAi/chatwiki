@@ -2,23 +2,23 @@
   <div>
     <a-modal
       v-model:open="show"
-      title="SEO设置"
+      :title="t('title')"
       @ok="handleOk"
       width="746px"
       :confirmLoading="confirmLoading"
     >
       <div class="seo-setting">
         <a-form :model="formData" layout="vertical">
-          <a-form-item label="标题">
-            <a-input v-model:value="formData.seo_title" placeholder="请输入页面标题" />
+          <a-form-item :label="t('label_title')">
+            <a-input v-model:value="formData.seo_title" :placeholder="t('placeholder_title')" />
           </a-form-item>
-          <a-form-item label="描述">
-            <a-textarea v-model:value="formData.seo_desc" placeholder="请输入页面描述" />
+          <a-form-item :label="t('label_desc')">
+            <a-textarea v-model:value="formData.seo_desc" :placeholder="t('placeholder_desc')" />
           </a-form-item>
-          <a-form-item label="关键词">
+          <a-form-item :label="t('label_keywords')">
             <a-input
               v-model:value="formData.seo_keywords"
-              placeholder="请输入关键词,多个关键词用英文逗号分隔"
+              :placeholder="t('placeholder_keywords')"
             />
           </a-form-item>
         </a-form>
@@ -31,6 +31,9 @@
 import { saveLibDocSeo } from '@/api/public-library/index'
 import { ref, reactive, toRaw } from 'vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.public-library.components.seo-setting')
 
 const emit = defineEmits(['ok'])
 
@@ -54,7 +57,7 @@ const handleOk = () => {
     .then(() => {
       confirmLoading.value = false
       show.value = false
-      message.success('保存成功')
+      message.success(t('save_success'))
       emit('ok', { ...toRaw(formData) })
     })
     .catch(() => {

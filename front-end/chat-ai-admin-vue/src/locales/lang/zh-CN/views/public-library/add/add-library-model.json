@@ -1,0 +1,13 @@
+{
+  "modal_title": "添加知识库",
+  "library_name_label": "知识库名称",
+  "library_name_placeholder": "请输入知识库名称，最多20个字",
+  "library_intro_label": "知识库简介",
+  "library_intro_placeholder": "请输入知识库介绍",
+  "library_cover_label": "知识库封面",
+  "library_cover_tip": "请上传知识库封面，建议尺寸为100*100px.大小不超过100kb",
+  "library_name_required": "请输入库名称",
+  "create_success": "创建成功",
+  "untitled_document": "无标题文档",
+  "untitled_document_heading": "# 无标题文档"
+}

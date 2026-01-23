@@ -1,0 +1,12 @@
+{
+  "untitled_document": "无标题文档",
+  "new_folder": "新建文件夹",
+  "import_success": "导入成功",
+  "add_success": "添加成功",
+  "copy_success": "复制成功",
+  "modify_success": "修改成功",
+  "delete_document": "删除文档",
+  "confirm_delete_document": "确定删除文档 {title} 吗？",
+  "delete_success": "删除成功",
+  "home": "首页"
+}

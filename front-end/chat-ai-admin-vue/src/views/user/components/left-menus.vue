@@ -167,7 +167,7 @@ const baseMenu = computed(() => [
     path: '/user/official-account',
     svg: 'wx-app-icon',
     svgActive: 'wx-app-icon',
-    permissionKey: 'OfficialAccountMange'
+    permissionKey: 'OfficialAccountManage'
   },
 ])
 

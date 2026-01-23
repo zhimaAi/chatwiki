@@ -46,7 +46,7 @@
     <div class="form-box-header">
       <div class="form-box-label">
         <svg-icon name="auth" style="font-size: 14px; color: #333"></svg-icon>
-        <span class="form-box-label-text">访问权限</span>
+        <span class="form-box-label-text">{{ t('access_rights') }}</span>
       </div>
       <div>
         <!-- <a-button type="primary" size="small" style="margin-left: 8px" @click.prevent="onSubmit"
@@ -56,20 +56,20 @@
     </div>
 
     <a-form :label-col="{ span: 4 }" style="width: 750px">
-      <a-form-item label="访问权限">
+      <a-form-item :label="t('access_rights')">
         <a-radio-group v-model:value="formState.access_rights" @change="onSubmit">
-          <a-radio value="0">私有，仅能与应用关联，作为应用知识库</a-radio>
-          <a-radio value="1">公开，发布到互联网，所有人可访问</a-radio>
+          <a-radio value="0">{{ t('private_option') }}</a-radio>
+          <a-radio value="1">{{ t('public_option') }}</a-radio>
         </a-radio-group>
       </a-form-item>
 
-      <a-form-item label="复制链接" v-if="formState.access_rights == 1">
+      <a-form-item :label="t('copy_link')" v-if="formState.access_rights == 1">
         <div class="share-url-box">
           <a-input-group compact style="width: 600px;display: flex;">
             <a-select
               style="width: 250px"
               v-model:value="formState.share_url"
-              placeholder="请选择自定义域名"
+              :placeholder="t('select_domain_placeholder')"
               @change="onSubmit"
             >
               <a-select-option :value="item.url" v-for="item in domainList" :key="item.id">{{
@@ -83,9 +83,9 @@
             />
           </a-input-group>
 
-          <a-button class="copy-btn" @click="copyText">复制</a-button>
+          <a-button class="copy-btn" @click="copyText">{{ t('copy') }}</a-button>
         </div>
-        <div><a href="/#/user/domain">添加自定义域名</a></div>
+        <div><a href="/#/user/domain">{{ t('add_custom_domain') }}</a></div>
       </a-form-item>
     </a-form>
   </div>
@@ -97,6 +97,9 @@ import { getDomainList } from '@/api/user/index'
 import { reactive, ref, onMounted, watch, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { OPEN_BOC_BASE_URL } from '@/constants/index'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.public-library.permissions.components.permissions-form')
 
 const { toClipboard } = useClipboard()
 
@@ -154,7 +157,7 @@ const setFormState = (val) => {
 
 const copyText = async () => {
   if (!formState.share_url) {
-    message.error('请选择自定义域名')
+    message.error(t('please_select_domain'))
 
     return
   }
@@ -163,9 +166,9 @@ const copyText = async () => {
 
   try {
     await toClipboard(text)
-    message.success('复制成功')
+    message.success(t('copy_success'))
   } catch (e) {
-    message.error('复制失败')
+    message.error(t('copy_failed'))
   }
 }
 

@@ -91,7 +91,11 @@ const update = () => {
 }
 
 defineExpose({
-  init
+  init,
+  clear() {
+    dataItems.value = []
+    update()
+  }
 })
 </script>
 

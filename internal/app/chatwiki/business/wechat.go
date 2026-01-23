@@ -374,6 +374,19 @@ func SendSubscribeReply(push *lib_define.PushMessage) {
 	return
 }
 
+// ShowTypingStatusToUser 已认证微信公众号+微信小程序,显示正在输入中
+func ShowTypingStatusToUser(appType string, appInfo, robot msql.Params) (showTyping bool) {
+	switch appType {
+	case lib_define.AppOfficeAccount:
+		if lib_define.WechatAccountIsVerify(appInfo[`account_customer_type`]) {
+			showTyping = cast.ToBool(robot[`show_typing_gzh`])
+		}
+	case lib_define.AppMini:
+		showTyping = cast.ToBool(robot[`show_typing_mini`])
+	}
+	return
+}
+
 func SendReply(push *lib_define.PushMessage) {
 	app, err := wechat.GetApplication(push.AppInfo)
 	if err != nil {
@@ -426,6 +439,13 @@ func SendReply(push *lib_define.PushMessage) {
 		})
 	}
 	params.Question = push.Content //将question替换成多模态输入数据格式
+
+	//已认证微信公众号+微信小程序,显示正在输入中
+	if ShowTypingStatusToUser(params.AppType, params.AppInfo, params.Robot) {
+		if errCode, e := app.SetTyping(push.Openid, lib_define.CommandTyping); e != nil {
+			logs.Error(`customer:%s,errcode:%d,err:%s`, push.Openid, errCode, e.Error())
+		}
+	}
 
 	chanStream := make(chan sse.Event)
 	go func(chanStream chan sse.Event) {

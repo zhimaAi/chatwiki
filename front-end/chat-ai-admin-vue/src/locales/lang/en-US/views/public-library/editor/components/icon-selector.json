@@ -1,0 +1,9 @@
+{
+  "search_placeholder": "Enter icon name",
+  "recent_used": "Recently Used",
+  "search_result": "Search Results",
+  "emoji_and_character": "Emoji & Character",
+  "no_matching_icon": "No matching icons",
+  "load_recent_failed": "Failed to load recent icons:",
+  "save_recent_failed": "Failed to save recent icons:"
+}

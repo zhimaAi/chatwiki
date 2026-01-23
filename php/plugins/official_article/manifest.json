@@ -2,7 +2,7 @@
   "name": "official_article",
   "title": "公众号文章",
   "type": "extension",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "compatible": ">=2.0.7,<2.1.0",
   "resource": {
     "memory": 256,

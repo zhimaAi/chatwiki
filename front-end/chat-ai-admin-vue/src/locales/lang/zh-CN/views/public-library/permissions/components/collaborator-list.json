@@ -1,0 +1,16 @@
+{
+  "collaborator_permissions": "协助权限",
+  "add_collaborator": "添加协助者",
+  "can_manage": "可管理",
+  "can_edit": "可编辑",
+  "confirm_remove": "确定要移除此协作者吗?",
+  "confirm": "确定",
+  "cancel": "取消",
+  "remove": "移除",
+  "name": "姓名",
+  "role": "角色",
+  "actions": "操作",
+  "modify_success": "修改成功",
+  "remove_success": "移除成功",
+  "no_permission": "无权限"
+}

@@ -1,0 +1,15 @@
+{
+  "document_directory": "文档目录",
+  "add_document": "添加文档",
+  "import_document": "导入文档",
+  "add_folder": "添加文件夹",
+  "collapse_all": "收起全部文档",
+  "icon_template_settings": "图标模板设置",
+  "please_enter_title": "请输入标题",
+  "rename": "重命名",
+  "delete": "删除",
+  "copy_link": "复制链接",
+  "copy_document": "复制文档",
+  "export_document": "导出文档",
+  "delete_document": "删除文档"
+}

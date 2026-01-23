@@ -2,22 +2,26 @@
   <div class="no-data">
     <svg-icon name="empty-document" :style="{'font-size': `${props.size}px`, 'color': 'white'}" />
     <div class="no-data-text">
-      <slot name="default">{{ props.text }}</slot>
+      <slot name="default">{{ displayText }}</slot>
     </div>
   </div>
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n';
+import { computed } from 'vue';
+
+const { t } = useI18n('views.library-search.components.list-empty');
+
 const props = defineProps({
-  text: {
-    type: String,
-    default: '暂无数据'
-  },
+  text: String,
   size: {
     type: [Number, String],
     default: 100 
   }
 });
+
+const displayText = computed(() => props.text || t('no_data'));
 </script>
 
 <style lang="less" scoped>

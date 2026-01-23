@@ -20,7 +20,7 @@
       <div class="main-title">触发次数排行榜</div>
       <a-segmented @change="handleChangeType" v-model:value="currentType" :options="options" />
       <a-select
-        v-if="currentType == 1"
+        v-if="currentType == 1 || currentType == 3"
         placeholder="全部知识库"
         allowClear
         @change="onSearch"
@@ -76,6 +76,10 @@
             </template>
           </a-table-column>
 
+          <a-table-column key="group_name" title="知识库分组" :width="120" v-if="currentType == 3">
+            <template #default="{ record }"> {{ record.group_name }} </template>
+          </a-table-column>
+
           <a-table-column key="library_name" title="所属知识库" :width="140">
             <template #default="{ record }">
               {{ record.library_name }}
@@ -114,7 +118,8 @@ import {
   statLibraryDataSort,
   statLibraryTotal,
   getLibraryList,
-  statLibrarySort
+  statLibrarySort,
+  statLibraryGroupSort
 } from '@/api/library'
 import PageTabs from '@/components/cu-tabs/page-tabs.vue'
 import DetailModal from './components/detail-modal.vue'
@@ -164,6 +169,10 @@ const options = [
   {
     label: '按内容',
     value: 1
+  },
+  {
+    label: '按知识库分组',
+    value: 3
   },
   {
     label: '按知识库',
@@ -216,11 +225,32 @@ const getListByLibrary = () => {
     })
 }
 
+const getListByGroup = () => {
+  loading.value = true
+  statLibraryGroupSort({
+    ...searchState,
+    ...pager
+  })
+    .then((res) => {
+      let datas = res.data.list || []
+      datas = datas.map((item) => {
+        return {
+          ...item
+        }
+      })
+      list.value = datas
+      pager.total = +res.data.total
+    })
+    .finally(() => {
+      loading.value = false
+    })
+}
+
 const handleChangeType = () => {
   pager.total = 0
-  if(currentType.value == 1){
+  if (currentType.value == 1) {
     pager.size = 100
-  }else{
+  } else {
     pager.size = 20
   }
   onSearch()
@@ -231,8 +261,13 @@ const onTableChange = (pagination) => {
   pager.size = pagination.pageSize
   if (currentType.value == 1) {
     getContentList()
-  } else {
+  }
+  if (currentType.value == 2) {
     getListByLibrary()
+  }
+
+  if (currentType.value == 3) {
+    getListByGroup()
   }
 }
 
@@ -240,8 +275,13 @@ const onSearch = () => {
   pager.page = 1
   if (currentType.value == 1) {
     getContentList()
-  } else {
+  }
+  if (currentType.value == 2) {
     getListByLibrary()
+  }
+
+  if (currentType.value == 3) {
+    getListByGroup()
   }
 }
 
@@ -262,7 +302,8 @@ const toDetail = (record) => {
       begin_date_ymd: searchState.begin_date_ymd,
       end_date_ymd: searchState.end_date_ymd,
       library_id: record.library_id,
-      data_id: record.data_id
+      data_id: record.data_id,
+      group_id: record.group_id
     },
     currentType.value
   )

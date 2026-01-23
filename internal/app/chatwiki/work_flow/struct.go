@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -202,15 +203,18 @@ type CurlNodeParams struct {
 /************************************/
 
 type LibsNodeParams struct {
-	LibraryIds          string          `json:"library_ids"`
-	SearchType          common.MixedInt `json:"search_type"`
-	RrfWeight           string          `json:"rrf_weight"`
-	TopK                common.MixedInt `json:"top_k"`
-	Similarity          float64         `json:"similarity"`
-	RerankStatus        uint            `json:"rerank_status"`
-	RerankModelConfigId common.MixedInt `json:"rerank_model_config_id"`
-	RerankUseModel      string          `json:"rerank_use_model"`
-	QuestionValue       string          `json:"question_value"`
+	LibraryIds              string          `json:"library_ids"`
+	SearchType              common.MixedInt `json:"search_type"`
+	RrfWeight               string          `json:"rrf_weight"`
+	TopK                    common.MixedInt `json:"top_k"`
+	Similarity              float64         `json:"similarity"`
+	RerankStatus            uint            `json:"rerank_status"`
+	RerankModelConfigId     common.MixedInt `json:"rerank_model_config_id"`
+	RerankUseModel          string          `json:"rerank_use_model"`
+	QuestionValue           string          `json:"question_value"`
+	MetaSearchSwitch        int             `json:"meta_search_switch"`
+	MetaSearchType          int             `json:"meta_search_type"`
+	MetaSearchConditionList string          `json:"meta_search_condition_list"`
 }
 
 /************************************/
@@ -594,6 +598,33 @@ var BatchAllowNodeTypes = []int{
 	NodeTypeLibraryImport,
 	NodeTypeWorkflow,
 	NodeTypeImmediatelyReply,
+}
+
+type ExportLibrary struct {
+	Libs struct {
+		LibraryIds string `json:"library_ids"`
+	} `json:"libs"`
+}
+type ExportBaseFormInfo struct {
+	FormDescription string `json:"form_description"`
+	FormId          any    `json:"form_id"`
+	FormName        string `json:"form_name"`
+}
+type ExportFormDeleteInfo struct {
+	FormDelete ExportBaseFormInfo `json:"form_delete"`
+}
+type ExportFormInsertInfo struct {
+	FormInsert ExportBaseFormInfo `json:"form_insert"`
+}
+type ExportFormUpdateInfo struct {
+	FormUpdate ExportBaseFormInfo `json:"form_update"`
+}
+type ExportFormSelectInfo struct {
+	FormSelect ExportBaseFormInfo `json:"form_select"`
+}
+
+type NodeInfo struct {
+	DataRaw string `json:"dataRaw"`
 }
 
 /************************************/
@@ -2427,4 +2458,54 @@ func (params *ImmediatelyReplyNodeParams) Verify() error {
 		return errors.New(`消息内容不能为空`)
 	}
 	return nil
+}
+
+
+func GetVariablePlaceholders2(content string) []string {
+	variables := make([]string, 0)
+	for _, item := range regexp.MustCompile(`【?(([a-f0-9]{32}\.)?[a-zA-Z_][a-zA-Z0-9_\-.]*)】?`).FindAllStringSubmatch(content, -1) {
+		if len(item) > 1 && !tool.InArrayString(item[1], variables) {
+			if !strings.Contains(item[1], `.`) {
+				continue
+			}
+			variables = append(variables, item[1])
+		}
+	}
+	return variables
+}
+
+func ExtractVariables(data any, result *[]string) {
+	if result == nil {
+		return
+	}
+	if data == nil {
+		return
+	}
+	val := reflect.ValueOf(data)
+	switch val.Kind() {
+	case reflect.String:
+		str := val.String()
+		matches := GetVariablePlaceholders2(str)
+		*result = append(*result, matches...)
+	case reflect.Map:
+		for _, key := range val.MapKeys() {
+			value := val.MapIndex(key)
+			ExtractVariables(value.Interface(), result)
+		}
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < val.Len(); i++ {
+			elem := val.Index(i).Interface()
+			ExtractVariables(elem, result)
+		}
+	case reflect.Struct:
+		for i := 0; i < val.NumField(); i++ {
+			field := val.Field(i)
+			if !field.CanInterface() {
+				continue
+			}
+			ExtractVariables(field.Interface(), result)
+		}
+	default:
+		return
+	}
 }

@@ -629,73 +629,10 @@ func DelLibraryFile(c *gin.Context) {
 		return
 	}
 	ids := cast.ToString(c.PostForm(`id`))
-	for _, id := range strings.Split(ids, `,`) {
-		id := cast.ToInt(id)
-		if id <= 0 {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
-			return
-		}
-		info, err := common.GetLibFileInfo(id, userId)
-		if err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
-		if len(info) == 0 {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-			return
-		}
-		_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(id)).Delete()
-		if err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
-		//clear cached data
-		lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: id})
-		//dispose relation data
-		dataIdList, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
-			Where(`file_id`, cast.ToString(id)).
-			Where(`category_id`, `0`).
-			ColumnArr(`id`)
-		if err != nil {
-			logs.Error(err.Error())
-			continue
-		}
-		if len(dataIdList) == 0 {
-			continue
-		}
 
-		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
-			Where(`id`, `in`, strings.Join(dataIdList, `,`)).
-			Delete()
-		if err != nil {
-			logs.Error(err.Error())
-			continue
-		}
-		_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
-			Where(`data_id`, `in`, strings.Join(dataIdList, `,`)).
-			Delete()
-		if err != nil {
-			logs.Error(err.Error())
-		}
-		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
-			Where(`file_id`, cast.ToString(id)).
-			Update(msql.Datas{`isolated`: true})
-		if err != nil {
-			logs.Error(err.Error())
-		}
-
-		if common.GetNeo4jStatus(userId) {
-			for _, dataId := range dataIdList {
-				err = common.NewGraphDB(userId).DeleteByData(cast.ToInt(dataId))
-				if err != nil {
-					logs.Error(err.Error())
-				}
-			}
-		}
-	}
-	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+	err := BridgeDelLibraryFile(userId, ids, common.GetLang(c))
+	c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+	return
 }
 
 func GetLibFileInfo(c *gin.Context) {
@@ -760,7 +697,103 @@ func GetLibFileInfo(c *gin.Context) {
 	separators, _ := common.GetSeparatorsByNo(info[`separators_no`], common.GetLang(c))
 	info[`separators`] = strings.Join(separators, ", ")
 
-	c.String(http.StatusOK, lib_web.FmtJson(info, nil))
+	// ====== 元数据及其值 ======
+	// 1) 内置元数据值：固定从 chat_ai_library_file 字段映射
+	groupId := cast.ToInt(info[`group_id`])
+	groupName := `未分组`
+	if groupId > 0 {
+		groupInfo, err := msql.Model(`chat_ai_library_group`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(userId)).
+			Where(`library_id`, cast.ToString(cast.ToInt(info[`library_id`]))).
+			Where(`group_type`, cast.ToString(define.LibraryGroupTypeFile)).
+			Where(`id`, cast.ToString(groupId)).
+			Field(`group_name`).
+			Find()
+		if err == nil && len(groupInfo[`group_name`]) > 0 {
+			groupName = groupInfo[`group_name`]
+		}
+	}
+	info[`group_name`] = groupName
+
+	// 2) 自定义元数据值：来自 chat_ai_library_file.metadata(jsonb)
+	metaMap := make(map[string]any)
+	metaStr := strings.TrimSpace(cast.ToString(info[`metadata`]))
+	if metaStr == `` {
+		metaStr = `{}` // 容错
+	}
+	_ = tool.JsonDecode(metaStr, &metaMap)
+
+	// 3) 组装元数据表格行（前端直接渲染）
+	builtinValueMap := map[string]any{
+		define.BuiltinMetaKeyUpdateTime: cast.ToInt(info[`update_time`]),
+		define.BuiltinMetaKeyCreateTime: cast.ToInt(info[`create_time`]),
+		define.BuiltinMetaKeySource:     cast.ToInt(info[`doc_type`]),
+		define.BuiltinMetaKeyGroup:      groupName,
+	}
+
+	// 自定义：只返回已配置的 schema key（避免返回无效/脏key）
+	schemaList, err := msql.Model(`library_meta_schema`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`library_id`, cast.ToString(cast.ToInt(info[`library_id`]))).
+		Order(`id asc`).
+		Select()
+
+	// 4) 生成表格行：数据名/数据类型/数据值
+	metaList := make([]map[string]any, 0, len(define.BuiltinMetaSchemaList)+len(schemaList))
+	// 内置：数据值来自文件字段；is_show 来自 chat_ai_library 的 show_meta_*
+	for _, b := range define.BuiltinMetaSchemaList {
+		isShow := 0
+		switch b.Key {
+		case define.BuiltinMetaKeySource:
+			isShow = cast.ToInt(library[`show_meta_source`])
+		case define.BuiltinMetaKeyUpdateTime:
+			isShow = cast.ToInt(library[`show_meta_update_time`])
+		case define.BuiltinMetaKeyCreateTime:
+			isShow = cast.ToInt(library[`show_meta_create_time`])
+		case define.BuiltinMetaKeyGroup:
+			isShow = cast.ToInt(library[`show_meta_group`])
+		}
+		metaList = append(metaList, map[string]any{
+			`name`:       b.Name,
+			`key`:        b.Key,
+			`type`:       b.Type,
+			`value`:      builtinValueMap[b.Key],
+			`is_show`:    isShow,
+			`is_builtin`: 1,
+		})
+	}
+
+	if err == nil {
+		for _, schema := range schemaList {
+			k := strings.TrimSpace(schema[`key`])
+			if k == `` {
+				continue
+			}
+			val, ok := metaMap[k]
+			if !ok {
+				val = ``
+			}
+			metaList = append(metaList, map[string]any{
+				`id`:         cast.ToInt(schema[`id`]),
+				`library_id`: cast.ToInt(schema[`library_id`]),
+				`name`:       schema[`name`],
+				`key`:        k,
+				`type`:       cast.ToInt(schema[`type`]),
+				`value`:      val,
+				`is_show`:    cast.ToInt(schema[`is_show`]),
+				`is_builtin`: 0,
+			})
+		}
+	}
+	// info 是 msql.Params(map[string]string)，这里组装一个 any-map 返回，避免把 map 赋给 string
+	resp := make(map[string]any, len(info)+4)
+	for k, v := range info {
+		resp[k] = v
+	}
+	resp[`group_name`] = groupName
+	resp[`meta_list`] = metaList
+
+	c.String(http.StatusOK, lib_web.FmtJson(resp, nil))
 }
 
 func GetLibRawFile(c *gin.Context) {
@@ -1893,4 +1926,129 @@ func DownloadLibraryFile(c *gin.Context) {
 		return
 	}
 	c.FileAttachment(common.GetFileByLink(filePath), fileName)
+}
+
+func SaveMetadata(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	fileId := cast.ToInt(c.PostForm(`file_id`))
+	if fileId <= 0 {
+		common.FmtError(c, `param_lack`)
+		return
+	}
+
+	// 批量保存：list=[{"key":"key_1","value":"xxx"},...]
+	listRaw := strings.TrimSpace(c.PostForm(`list`))
+	if listRaw == `` || listRaw == `[]` || listRaw == `null` || listRaw == `{}` {
+		common.FmtError(c, `param_lack`)
+		return
+	}
+	type MetaKV struct {
+		Key   string `json:"key"`
+		Value any    `json:"value"`
+	}
+	reqList := make([]MetaKV, 0)
+	if err := tool.JsonDecodeUseNumber(listRaw, &reqList); err != nil || len(reqList) == 0 {
+		common.FmtError(c, `param_err`)
+		return
+	}
+	updateMap := make(map[string]any, len(reqList))
+	keySet := make(map[string]struct{}, len(reqList))
+	for _, it := range reqList {
+		k := strings.TrimSpace(it.Key)
+		if k == `` {
+			continue
+		}
+		// 内置元数据固定值：不允许修改（直接忽略）
+		if define.IsBuiltinMetaKey(k) {
+			continue
+		}
+		// 统一转字符串存储（与过滤逻辑一致：metadata->>key 再 cast）
+		updateMap[k] = cast.ToString(it.Value)
+		keySet[k] = struct{}{}
+	}
+	if len(updateMap) == 0 {
+		common.FmtOk(c, nil)
+		return
+	}
+
+	fileInfo, err := msql.Model(`chat_ai_library_file`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, cast.ToString(fileId)).
+		Where(`delete_time`, `0`).
+		Field(`id,library_id,metadata`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(fileInfo) == 0 {
+		common.FmtError(c, `no_data`)
+		return
+	}
+	libraryId := cast.ToInt(fileInfo[`library_id`])
+
+	// 校验所有 key 必须存在于该知识库的自定义 meta schema 中
+	keyList := make([]string, 0, len(keySet))
+	for k := range keySet {
+		keyList = append(keyList, k)
+	}
+	okKeys, err := msql.Model(`library_meta_schema`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`library_id`, cast.ToString(libraryId)).
+		Where(`key`, `in`, strings.Join(keyList, `,`)).
+		ColumnArr(`key`)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	okSet := make(map[string]struct{}, len(okKeys))
+	for _, k := range okKeys {
+		okSet[cast.ToString(k)] = struct{}{}
+	}
+	for k := range keySet {
+		if _, ok := okSet[k]; !ok {
+			common.FmtError(c, `param_err`)
+			return
+		}
+	}
+
+	if len(okSet) == 0 {
+		common.FmtError(c, `param_err`)
+		return
+	}
+
+	metaMap := make(map[string]any)
+	metaStr := strings.TrimSpace(cast.ToString(fileInfo[`metadata`]))
+	if metaStr == `` {
+		metaStr = `{}`
+	}
+	_ = tool.JsonDecode(metaStr, &metaMap)
+	for k, v := range updateMap {
+		metaMap[k] = v
+	}
+	metaJson, err := tool.JsonEncode(metaMap)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+
+	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, cast.ToString(fileId)).
+		Update(msql.Datas{`metadata`: metaJson, `update_time`: tool.Time2Int()})
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	// clear cached data
+	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: fileId})
+
+	common.FmtOk(c, nil)
 }

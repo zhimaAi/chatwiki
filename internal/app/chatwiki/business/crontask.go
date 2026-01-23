@@ -8,7 +8,9 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -375,4 +377,22 @@ func CheckRobotPaymentDurationAuthCode() {
 			}
 		}
 	}
+}
+
+func CheckIsPublicNetwork() {
+	client := http.Client{
+		Timeout: 3 * time.Second,
+	}
+	resp, err := client.Head("https://www.baidu.com")
+	if err != nil {
+		define.IsPublicNetWork = 0
+		return
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			logs.Error(err.Error())
+		}
+	}(resp.Body)
+	define.IsPublicNetWork = cast.ToInt(resp.StatusCode == http.StatusOK)
 }

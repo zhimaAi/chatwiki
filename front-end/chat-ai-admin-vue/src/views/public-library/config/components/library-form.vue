@@ -1,5 +1,6 @@
 <style lang="less" scoped>
 .form-box {
+  padding: 16px;
   overflow: hidden;
   border-radius: 6px;
   background: #f2f4f7;
@@ -69,7 +70,6 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
   height: 56px;
 
   .form-box-label {
@@ -100,35 +100,35 @@
           name="book"
           style="font-size: 16px; color: #333"
         ></svg-icon>
-        <span class="form-box-label-text">知识库信息</span>
+        <span class="form-box-label-text">{{ t('knowledge_base_info') }}</span>
       </div>
       <div></div>
     </div>
-    <a-form :label-col="{ span: 6 }" style="width: 600px">
-      <a-form-item ref="name" label="知识库名称" v-bind="validateInfos.library_name">
+    <a-form :label-col="{ span: labelColSpan }" style="width: 600px">
+      <a-form-item ref="name" :label="t('knowledge_base_name_label')" v-bind="validateInfos.library_name">
         <a-input
           v-model:value="formState.library_name"
-          placeholder="请输入知识库名称，最多20个字"
+          :placeholder="t('knowledge_base_name_placeholder')"
           show-count
           :maxlength="20"
         />
       </a-form-item>
 
-      <a-form-item label="知识库简介">
-        <a-textarea v-model:value="formState.library_intro" placeholder="请输入知识库介绍" />
+      <a-form-item :label="t('knowledge_base_intro_label')">
+        <a-textarea v-model:value="formState.library_intro" :placeholder="t('knowledge_base_intro_placeholder')" />
       </a-form-item>
 
-      <a-form-item ref="name" label="知识库封面" v-bind="validateInfos.avatar">
+      <a-form-item ref="name" :label="t('knowledge_base_cover_label')" v-bind="validateInfos.avatar">
         <AvatarInput v-model:value="formState.avatar" @change="onAvatarChange" />
-        <div class="form-item-tip">请上传知识库封面，建议尺寸为100*100px.大小不超过100kb</div>
+        <div class="form-item-tip">{{ t('knowledge_base_cover_tip') }}</div>
       </a-form-item>
-      <a-form-item :wrapper-col="{ offset: 6, span: 8 }">
+      <a-form-item :wrapper-col="{ offset: wrapperColOffset, span: 8 }">
         <a-button
           type="primary"
           style="margin-left: 8px"
           :loading="saveLoading"
           @click.prevent="onSubmit"
-          >保存</a-button
+          >{{ t('save_btn') }}</a-button
         >
       </a-form-item>
     </a-form>
@@ -136,10 +136,29 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, toRaw, watch } from 'vue'
+import { reactive, ref, onMounted, toRaw, watch, computed } from 'vue'
 import { Form, message } from 'ant-design-vue'
 import AvatarInput from '@/views/library/add-library/components/avatar-input.vue'
 import { LIBRARY_OPEN_AVATAR } from '@/constants/index'
+import { useI18n } from '@/hooks/web/useI18n'
+import { useLocaleStoreWithOut } from '@/stores/modules/locale'
+
+const { t } = useI18n('views.public-library.config.components.library-form')
+const localeStore = useLocaleStoreWithOut()
+
+// 根据当前语言设置 label-col 的 span 值
+const labelColSpan = computed(() => {
+  const lang = localeStore.getCurrentLocale.lang
+  // 如果是中文返回 6，否则返回 24
+  return lang === 'zh-CN' ? 6 : 24
+})
+
+// 根据当前语言设置 wrapper-col 的 offset 值
+const wrapperColOffset = computed(() => {
+  const lang = localeStore.getCurrentLocale.lang
+  // 如果是中文返回 6，否则返回 0
+  return lang === 'zh-CN' ? 6 : 0
+})
 
 // 设置全局默认的duration为（2秒）
 message.config({
@@ -179,8 +198,8 @@ const formState = reactive({
 })
 
 const rules = reactive({
-  library_name: [{ required: true, message: '请输入库名称', trigger: 'change' }],
-  library_intro: [{ required: true, message: '请输入库简介', trigger: 'change' }]
+  library_name: [{ required: true, message: t('library_name_required'), trigger: 'change' }],
+  library_intro: [{ required: true, message: t('library_intro_required'), trigger: 'change' }]
   // use_model: [{ required: true, message: '请选择嵌入模型', trigger: 'change' }]
 })
 

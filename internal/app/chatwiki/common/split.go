@@ -89,6 +89,8 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 		list, wordTotal, err = ReadOfd(info[`file_url`], userId)
 	} else if define.IsTxtFile(info[`file_ext`]) || define.IsMdFile(info[`file_ext`]) {
 		list, wordTotal, err = ReadTxt(info[`file_url`])
+	} else if define.IsHtmlFile(info[`file_ext`]) {
+		list, wordTotal, err = ReadHtmlContent(info[`file_url`], userId)
 	} else if define.IsPdfFile(info[`file_ext`]) && splitParams.PdfParseType == define.PdfParseTypeText {
 		list, wordTotal, err = ReadPdf(info[`file_url`], pdfPageNum, lang)
 	} else if define.IsPdfFile(info[`file_ext`]) && (splitParams.PdfParseType == define.PdfParseTypeOcr || splitParams.PdfParseType == define.PdfParseTypeOcrWithImage) && pdfPageNum > 0 {
@@ -897,6 +899,10 @@ func ReplaceBase64Img(content string, userId int) (string, error) {
 	}
 	doc.Find("img").Each(func(index int, item *goquery.Selection) {
 		src, exists := item.Attr("src")
+		if exists && IsUrl(src) {
+			newTag := fmt.Sprintf("<b>{{!!%s!!}}</b>", src)
+			item.ReplaceWithHtml(newTag)
+		}
 		if exists && strings.HasPrefix(src, "data:image") {
 			parts := strings.Split(src, ";")
 			if len(parts) < 2 {

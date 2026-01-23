@@ -1,0 +1,14 @@
+{
+  "delete_department": "删除部门",
+  "confirm_delete": "确认删除部门么？直接删除后，该部门成员归属到默认部门或设置新的部门",
+  "close": "关闭",
+  "direct_delete": "直接删除",
+  "delete_and_set": "删除并设置",
+  "set_department": "设置部门",
+  "delete_before_notice": "删除之前请先将之前部门的成员换到其他团队",
+  "belong_department": "所属部门",
+  "please_select": "请选择",
+  "tip": "提示",
+  "confirm_delete_department": "确定删除该部门",
+  "delete_success": "删除成功"
+}

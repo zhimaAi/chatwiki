@@ -109,6 +109,7 @@ var NodeTypes = [...]int{
 }
 
 type NodeAdapter interface {
+	Params() any
 	Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error)
 }
 
@@ -245,6 +246,10 @@ func (n *StartNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNod
 	return
 }
 
+func (n *StartNode) Params() any {
+	return n.params
+}
+
 type TermNode struct {
 	params      TermNodeParams
 	nextNodeKey string
@@ -260,6 +265,10 @@ func (n *TermNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	}
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *TermNode) Params() any {
+	return n.params
 }
 
 type CateNode struct {
@@ -336,6 +345,10 @@ func (n *CateNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	flow.Logs(`llm判定的分类是:(%s)%s`, chatResp.Result, n.params.Categorys[number-1].Category)
 	nextNodeKey = n.params.Categorys[number-1].NextNodeKey
 	return
+}
+
+func (n *CateNode) Params() any {
+	return n.params
 }
 
 type CurlNode struct {
@@ -445,6 +458,10 @@ func (n *CurlNode) GetHttpResultJson() *string {
 	return n.httpResultJson
 }
 
+func (n *CurlNode) Params() any {
+	return n.params
+}
+
 type LibsNode struct {
 	params      LibsNodeParams
 	nextNodeKey string
@@ -462,6 +479,10 @@ func (n *LibsNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	robot[`rerank_status`] = cast.ToString(n.params.RerankStatus)
 	robot[`rerank_model_config_id`] = cast.ToString(n.params.RerankModelConfigId)
 	robot[`rerank_use_model`] = n.params.RerankUseModel
+	robot[`meta_search_switch`] = cast.ToString(n.params.MetaSearchSwitch)
+	robot[`meta_search_type`] = cast.ToString(n.params.MetaSearchType)
+	robot[`meta_search_condition_list`] = n.params.MetaSearchConditionList
+
 	//start call
 	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
 	var question = cast.ToString(flow.global[`question`].GetVal(common.TypString))
@@ -490,6 +511,10 @@ func (n *LibsNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	}
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *LibsNode) Params() any {
+	return n.params
 }
 
 type LlmNode struct {
@@ -576,6 +601,10 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 	return
 }
 
+func (n *LlmNode) Params() any {
+	return n.params
+}
+
 type FinishNode struct {
 	params FinishNodeParams
 }
@@ -657,6 +686,10 @@ func (n *FinishNode) getOutPuts(flow *WorkFlow) (output common.SimpleFields) {
 	return
 }
 
+func (n *FinishNode) Params() any {
+	return n.params
+}
+
 type AssignNode struct {
 	params      AssignNodeParams
 	nextNodeKey string
@@ -712,6 +745,10 @@ func (n *AssignNode) Intermediate(flow *WorkFlow, output common.SimpleFields) {
 	}
 }
 
+func (n *AssignNode) Params() any {
+	return n.params
+}
+
 type ReplyNode struct {
 	params      ReplyNodeParams
 	nextNodeKey string
@@ -727,6 +764,10 @@ func (n *ReplyNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNod
 	return
 }
 
+func (n *ReplyNode) Params() any {
+	return n.params
+}
+
 type ManualNode struct {
 	params ManualNodeParams
 }
@@ -736,6 +777,10 @@ func (n *ManualNode) Running(flow *WorkFlow) (_ common.SimpleFields, _ string, e
 	flow.isFinish = true
 	err = errors.New(`仅云版支持转人工节点`)
 	return
+}
+
+func (n *ManualNode) Params() any {
+	return n.params
 }
 
 type QuestionOptimizeNode struct {
@@ -797,6 +842,10 @@ func (n *QuestionOptimizeNode) Running(flow *WorkFlow) (output common.SimpleFiel
 	output[`llm_result.prompt_token`] = common.SimpleField{Key: `llm_result.prompt_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &chatResp.PromptToken}}}
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *QuestionOptimizeNode) Params() any {
+	return n.params
 }
 
 type ParamsExtractorNode struct {
@@ -894,6 +943,10 @@ func (n *ParamsExtractorNode) Running(flow *WorkFlow) (outputs common.SimpleFiel
 	return
 }
 
+func (n *ParamsExtractorNode) Params() any {
+	return n.params
+}
+
 type FormInsertNode struct {
 	params      FormInsertNodeParams
 	nextNodeKey string
@@ -914,6 +967,10 @@ func (n *FormInsertNode) Running(flow *WorkFlow) (_ common.SimpleFields, nextNod
 	}
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *FormInsertNode) Params() any {
+	return n.params
 }
 
 type FormDeleteNode struct {
@@ -942,6 +999,10 @@ func (n *FormDeleteNode) Running(flow *WorkFlow) (_ common.SimpleFields, nextNod
 	}
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *FormDeleteNode) Params() any {
+	return n.params
 }
 
 type FormUpdateNode struct {
@@ -986,6 +1047,10 @@ func (n *FormUpdateNode) Running(flow *WorkFlow) (_ common.SimpleFields, nextNod
 	}
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *FormUpdateNode) Params() any {
+	return n.params
 }
 
 type FormSelectNode struct {
@@ -1072,6 +1137,10 @@ func (n *FormSelectNode) Running(flow *WorkFlow) (output common.SimpleFields, ne
 	return
 }
 
+func (n *FormSelectNode) Params() any {
+	return n.params
+}
+
 type CodeRunNode struct {
 	params      CodeRunNodeParams
 	nextNodeKey string
@@ -1114,6 +1183,10 @@ func (n *CodeRunNode) Running(flow *WorkFlow) (output common.SimpleFields, nextN
 	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *CodeRunNode) Params() any {
+	return n.params
 }
 
 type McpNode struct {
@@ -1183,6 +1256,10 @@ func (n *McpNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 	return
 }
 
+func (n *McpNode) Params() any {
+	return n.params
+}
+
 type LoopNode struct {
 	params      LoopNodeParams
 	nextNodeKey string
@@ -1191,6 +1268,10 @@ type LoopNode struct {
 func (n *LoopNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *LoopNode) Params() any {
+	return n.params
 }
 
 type LoopEndNode struct {
@@ -1202,6 +1283,10 @@ func (n *LoopEndNode) Running(flow *WorkFlow) (output common.SimpleFields, nextN
 	return
 }
 
+func (n *LoopEndNode) Params() any {
+	return nil
+}
+
 type LoopStartNode struct {
 	params      StartNodeParams
 	nextNodeKey string
@@ -1211,6 +1296,10 @@ func (n *LoopStartNode) Running(flow *WorkFlow) (output common.SimpleFields, nex
 	flow.Logs(`执行开始节点逻辑...`)
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *LoopStartNode) Params() any {
+	return n.params
 }
 
 type PluginNode struct {
@@ -1300,6 +1389,10 @@ func (n *PluginNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNo
 	}
 }
 
+func (n *PluginNode) Params() any {
+	return n.params
+}
+
 type BatchStartNode struct {
 	params      StartNodeParams
 	nextNodeKey string
@@ -1311,6 +1404,10 @@ func (n *BatchStartNode) Running(flow *WorkFlow) (output common.SimpleFields, ne
 	return
 }
 
+func (n *BatchStartNode) Params() any {
+	return n.params
+}
+
 type BatchNode struct {
 	params      BatchNodeParams
 	nextNodeKey string
@@ -1319,6 +1416,10 @@ type BatchNode struct {
 func (n *BatchNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *BatchNode) Params() any {
+	return n.params
 }
 
 type ImageGeneration struct {
@@ -1383,6 +1484,10 @@ func (n *ImageGeneration) Running(flow *WorkFlow) (output common.SimpleFields, n
 	return
 }
 
+func (n *ImageGeneration) Params() any {
+	return n.params
+}
+
 type JsonEncode struct {
 	params      JsonEncodeParams
 	nextNodeKey string
@@ -1430,6 +1535,10 @@ func (n *JsonEncode) Running(flow *WorkFlow) (output common.SimpleFields, nextNo
 	}
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *JsonEncode) Params() any {
+	return n.params
 }
 
 type JsonDecode struct {
@@ -1485,6 +1594,10 @@ func (n *JsonDecode) Running(flow *WorkFlow) (output common.SimpleFields, nextNo
 	}
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *JsonDecode) Params() any {
+	return n.params
 }
 
 // TextToAudioNode 语音合成
@@ -1562,6 +1675,10 @@ func (n *TextToAudioNode) Running(flow *WorkFlow) (output common.SimpleFields, n
 	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *TextToAudioNode) Params() any {
+	return n.params
 }
 
 // VoiceCloneNode 声音复刻
@@ -1708,6 +1825,10 @@ func (n *VoiceCloneNode) Running(flow *WorkFlow) (output common.SimpleFields, ne
 	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *VoiceCloneNode) Params() any {
+	return n.params
 }
 
 type LibraryImport struct {
@@ -1996,6 +2117,10 @@ func (n *LibraryImport) toImportUrl(token, normalUrl string) (msg string, ok boo
 	return
 }
 
+func (n *LibraryImport) Params() any {
+	return n.params
+}
+
 // WorkflowNode 工作流作为一个节点
 type WorkflowNode struct {
 	params      WorkflowNodeParams
@@ -2083,6 +2208,10 @@ type ImmediatelyReplyNode struct {
 	nextNodeKey string
 }
 
+func (n *WorkflowNode) Params() any {
+	return n.params
+}
+
 func (n *ImmediatelyReplyNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
 	flow.Logs(`执行立即回复逻辑...`)
 	content := flow.VariableReplace(n.params.Content)
@@ -2096,4 +2225,8 @@ func (n *ImmediatelyReplyNode) Running(flow *WorkFlow) (output common.SimpleFiel
 	}
 	nextNodeKey = n.nextNodeKey
 	return
+}
+
+func (n *ImmediatelyReplyNode) Params() any {
+	return n.params
 }

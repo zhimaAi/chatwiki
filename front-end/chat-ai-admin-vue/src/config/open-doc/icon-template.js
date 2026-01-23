@@ -1,13 +1,15 @@
-const iconTemplates = [
+import { useI18n } from '@/hooks/web/useI18n'
+
+const iconTemplatesData = [
   {
     id: 1,
-    name: '模板1',
+    nameKey: 'template_1',
     preview: [
-      { level: 0, text: '一级文档', icon: '📢', color: '' },
-      { level: 0, text: '一级文件夹', icon: '📁', color: '' },
-      { level: 1, text: '二级文档', icon: '📋', color: '' },
-      { level: 1, text: '二级文件夹', icon: '📂', color: '' },
-      { level: 2, text: '三级文档', icon: '📋', color: '' }
+      { level: 0, textKey: 'level_1_doc', icon: '📢', color: '' },
+      { level: 0, textKey: 'level_1_folder', icon: '📁', color: '' },
+      { level: 1, textKey: 'level_2_doc', icon: '📋', color: '' },
+      { level: 1, textKey: 'level_2_folder', icon: '📂', color: '' },
+      { level: 2, textKey: 'level_3_doc', icon: '📋', color: '' }
     ],
     levels: {
       0: { doc_icon: '📢', folder_icon: '📁' },
@@ -17,29 +19,29 @@ const iconTemplates = [
   },
   {
     id: 2,
-    name: '模板2',
+    nameKey: 'template_2',
     preview: [
-      { level: 0, text: '一级文档', icon: '🥇', color: '' },
-      { level: 0, text: '一级文件夹', icon: '📁', color: '' },
-      { level: 1, text: '二级文档', icon: '🥈', color: '' },
-      { level: 1, text: '二级文件夹', icon: '📂', color: '' },
-      { level: 2, text: '三级文档', icon: '🥉', color: '' }
+      { level: 0, textKey: 'level_1_doc', icon: '🥇', color: '' },
+      { level: 0, textKey: 'level_1_folder', icon: '📁', color: '' },
+      { level: 1, textKey: 'level_2_doc', icon: '🥈', color: '' },
+      { level: 1, textKey: 'level_2_folder', icon: '📂', color: '' },
+      { level: 2, textKey: 'level_3_doc', icon: '🥉', color: '' }
     ],
     levels: {
-      0: { doc_icon: '🥇', folder_icon: '📁' },
+      0: { doc_icon: '🥇', folder_icon: '📂' },
       1: { doc_icon: '🥈', folder_icon: '📂' },
       2: { doc_icon: '🥉', folder_icon: '📂' },
     }
   },
   {
     id: 3,
-    name: '模板3',
+    nameKey: 'template_3',
     preview: [
-      { level: 0, text: '一级文档', icon: '📝', color: '' },
-      { level: 0, text: '一级文件夹', icon: '📁', color: '' },
-      { level: 1, text: '二级文档', icon: '📝', color: '' },
-      { level: 1, text: '二级文件夹', icon: '📂', color: '' },
-      { level: 2, text: '三级文档', icon: '📝', color: '' }
+      { level: 0, textKey: 'level_1_doc', icon: '📝', color: '' },
+      { level: 0, textKey: 'level_1_folder', icon: '📁', color: '' },
+      { level: 1, textKey: 'level_2_doc', icon: '📝', color: '' },
+      { level: 1, textKey: 'level_2_folder', icon: '📂', color: '' },
+      { level: 2, textKey: 'level_3_doc', icon: '📝', color: '' }
     ],
     levels: {
       0: { doc_icon: '📝', folder_icon: '📁' },
@@ -50,16 +52,34 @@ const iconTemplates = [
 ]
 
 export function getIconTemplateList() {
-  return JSON.parse(JSON.stringify(iconTemplates))
+  const { t } = useI18n('config.open-doc.icon-template')
+  
+  return iconTemplatesData.map(template => ({
+    ...template,
+    name: t(template.nameKey),
+    preview: template.preview.map(item => ({
+      ...item,
+      text: t(item.textKey)
+    }))
+  }))
 }
 
 export function getIconTemplateById(id) {
-  let template = iconTemplates.find((item) => item.id == id)
+  const { t } = useI18n('config.open-doc.icon-template')
+  
+  let template = iconTemplatesData.find((item) => item.id == id)
   if (!template) {
-    template = iconTemplates[0]
+    template = iconTemplatesData[0]
   }
 
   template = JSON.parse(JSON.stringify(template))
+  
+  // 执行翻译
+  template.name = t(template.nameKey)
+  template.preview = template.preview.map(item => ({
+    ...item,
+    text: t(item.textKey)
+  }))
 
   let icons = template.levels[2]
 

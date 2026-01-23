@@ -6,9 +6,10 @@
       :row-selection="{ selectedRowKeys: state.selectedRowKeys, onChange: onSelectChange }"
       :pagination="false"
       :loading="props.isLoading"
+      :scroll="{x: 1200}"
       @change="tableChange"
     >
-      <a-table-column key="id" data-index="id" :width="1148">
+      <a-table-column key="id" data-index="id" :width="700">
         <template #title>问答（共{{ props.total }}个）</template>
         <template #default="{ record }">
           <div class="qa-list-box" @dblclick="handleOpenEditModal(record)">
@@ -79,7 +80,24 @@
         :sorter="true"
       >
       </a-table-column>
-      <a-table-column title="操作" key="action" data-index="action" :width="120">
+      <a-table-column
+        v-for="meta in metaData"
+        :key="`meta_${meta.key}`"
+        :data-index="`meta_${meta.key}`"
+        :width="160"
+      >
+        <template #title>
+          <a-tooltip :title="meta.name?.length > 8 ? meta.name : '' ">
+            <div class="zm-line1">{{meta.name}}</div>
+          </a-tooltip>
+        </template>
+        <template #default="{record}">
+          <a-tooltip :title="record[`meta_${meta.key}`]?.length > 8 ? record[`meta_${meta.key}`] : '' ">
+            <div class="zm-line1">{{record[`meta_${meta.key}`]}}</div>
+          </a-tooltip>
+        </template>
+      </a-table-column>
+      <a-table-column title="操作" key="action" data-index="action" :width="120" fixed="right">
         <template #default="{ record, index }">
           <div class="right-opration" >
             <div class="hover-btn-box" @click="handleSetCategory(record, 0)" v-if="record.category_id > 0">
@@ -144,6 +162,10 @@ const props = defineProps({
     type: String,
     default: ''
   }
+})
+
+const metaData = computed(() => {
+  return props.paragraphLists?.[0]?.meta_list || []
 })
 
 const state = reactive({
@@ -225,14 +247,14 @@ function textToHighlight(fullText, highlightText, options = {}) {
     regexPattern = new RegExp(escapeRegExp(highlightText), flags);
   }
 
-  return fullText.replace(regexPattern, match => 
+  return fullText.replace(regexPattern, match =>
     `<span class="${highlightClass}">${match}</span>`
   );
 }
 
 /**
  * 转义正则表达式特殊字符
- * @param {string} string 
+ * @param {string} string
  * @returns {string}
  */
 function escapeRegExp(string) {

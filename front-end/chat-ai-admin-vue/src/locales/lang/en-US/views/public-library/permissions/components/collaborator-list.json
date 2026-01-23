@@ -1,0 +1,16 @@
+{
+  "collaborator_permissions": "Collaborator Permissions",
+  "add_collaborator": "Add Collaborator",
+  "can_manage": "Can Manage",
+  "can_edit": "Can Edit",
+  "confirm_remove": "Are you sure you want to remove this collaborator?",
+  "confirm": "Confirm",
+  "cancel": "Cancel",
+  "remove": "Remove",
+  "name": "Name",
+  "role": "Role",
+  "actions": "Actions",
+  "modify_success": "Modified successfully",
+  "remove_success": "Removed successfully",
+  "no_permission": "No permission"
+}

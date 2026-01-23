@@ -1,0 +1,17 @@
+{
+  "page_title": "Public Documents",
+  "usage_instruction": "Usage Instructions",
+  "usage_instruction_1": "1. Public documents serve as an online document creation and management tool. Created documents can be associated with robots as knowledge bases or shared with friends for viewing.",
+  "usage_instruction_2": "2. Supports setting title, description, and keyword for each document to improve SEO search ranking.",
+  "all": "All",
+  "new_document": "New Public Document",
+  "delete_title": "Delete {library_name}",
+  "delete_confirm": "Are you sure you want to delete this knowledge base?",
+  "confirm": "Confirm",
+  "cancel": "Cancel",
+  "delete_success": "Delete Successful",
+  "document_label": "Documents: ",
+  "size_label": "Size: ",
+  "manage_action": "Manage",
+  "delete_action": "Delete"
+}

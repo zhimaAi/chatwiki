@@ -1,17 +1,17 @@
 <template>
   <div class="add-data-sheet">
-    <a-modal v-model:open="open" :title="modalTitle" @ok="handleOk" :width="540">
+    <a-modal v-model:open="open" :title="t(modalTitle)" @ok="handleOk" :width="540">
       <a-form layout="vertical">
-        <a-form-item label="数据表名称" v-bind="validateInfos.name">
-          <a-input :maxLength="64" v-model:value="formState.name" placeholder="请输入数据表名称" />
-          <div class="form-tip">必须以英文字母开头，只能包含小写字母、数字、下划线</div>
+        <a-form-item :label="t('data_table_name_label')" v-bind="validateInfos.name">
+          <a-input :maxLength="64" v-model:value="formState.name" :placeholder="t('data_table_name_placeholder')" />
+          <div class="form-tip">{{ t('data_table_name_tip') }}</div>
         </a-form-item>
-        <a-form-item label="数据表描述" v-bind="validateInfos.description">
+        <a-form-item :label="t('data_table_description_label')" v-bind="validateInfos.description">
           <a-textarea
             :maxLength="500"
             style="height: 80px"
             v-model:value="formState.description"
-            placeholder="请输入数据表主要用途，让大模型更加深入理解此表功能"
+            :placeholder="t('data_table_description_placeholder')"
           />
         </a-form-item>
       </a-form>
@@ -24,10 +24,13 @@ import { reactive, ref } from 'vue'
 import { Form, message } from 'ant-design-vue'
 import { addForm, editForm } from '@/api/database'
 import { useRouter } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.database.database-list.components.add-data-sheet')
 const router = useRouter()
 const emit = defineEmits(['ok'])
 const open = ref(false)
-const modalTitle = ref('新建数据表')
+const modalTitle = ref('create_data_table')
 const formState = reactive({
   name: '',
   description: '',
@@ -39,7 +42,7 @@ const show = (data = {}) => {
   formState.name = data.name || ''
   formState.description = data.description || ''
   formState.id = data.id || ''
-  modalTitle.value = data.id ? '编辑数据表' : '新建数据表'
+  modalTitle.value = data.id ? 'edit_data_table' : 'create_data_table'
 }
 const formRules = reactive({
   name: [
@@ -47,7 +50,7 @@ const formRules = reactive({
       required: true,
       validator: async (rule, value) => {
         if (!/^[a-z][a-z0-9_]*$/.test(value)) {
-          return Promise.reject('必须以英文字母开头，只能包含小写字母、数字、下划线')
+          return Promise.reject(t('name_validation_error'))
         }
         return Promise.resolve()
       }
@@ -56,7 +59,7 @@ const formRules = reactive({
   description: [
     {
       required: true,
-      message: '请输入数据表描述'
+      message: t('description_required_error')
     }
   ]
 })
@@ -66,11 +69,11 @@ const handleOk = () => {
   validate().then((res) => {
     if (formState.id) {
       editForm(formState).then(() => {
-        postCallback('编辑成功')
+        postCallback(t('edit_success'))
       })
     } else {
       addForm(formState).then((res) => {
-        postCallback('创建成功')
+        postCallback(t('create_success'))
         router.push({
           path: '/database/details/field-manage',
           query: {

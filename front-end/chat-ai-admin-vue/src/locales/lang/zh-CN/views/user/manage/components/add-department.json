@@ -1,0 +1,10 @@
+{
+  "department_name": "部门名称",
+  "please_enter_department_name": "请输入部门名称",
+  "parent_department": "所属部门",
+  "please_select": "请选择",
+  "add_department": "添加部门",
+  "rename": "重命名",
+  "please_select_parent_department": "请选择所属部门",
+  "modify_success": "修改成功"
+}

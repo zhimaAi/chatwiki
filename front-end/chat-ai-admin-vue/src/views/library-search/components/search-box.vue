@@ -5,18 +5,18 @@
         <SearchDrawer />
       </div>
       <div class="search-content" v-if="!isSearch">
-        <div class="search-label">知识搜索</div>
-        <div class="search-tip">快速搜索所选择的知识库中内容</div>
+        <div class="search-label">{{ t('knowledge_search') }}</div>
+        <div class="search-tip">{{ t('search_tip') }}</div>
         <div class="search-input-box">
           <!-- <a-input-search
             v-model:value="message"
-            placeholder="输入关键词搜索"
+            :placeholder="t('input_placeholder')"
             style="width: 800px"
             size="large"
             @search="onSearch"
           /> -->
 
-          <a-input class="search-input" @pressEnter="onSearch" v-model:value="message" allow-clear placeholder="输入关键词搜索">
+          <a-input class="search-input" @pressEnter="onSearch" v-model:value="message" allow-clear :placeholder="t('input_placeholder')">
             <template #suffix>
               <div class="search-icon-box" @click="onSearch">
                 <svg-icon class="search-icon" name="search-right"></svg-icon>
@@ -27,7 +27,7 @@
       </div>
       <div class="search-content search-main" v-else>
         <div class="search-input-box">
-          <a-input class="search-input" @pressEnter="onSearch" v-model:value="message" allow-clear placeholder="输入关键词搜索">
+          <a-input class="search-input" @pressEnter="onSearch" v-model:value="message" allow-clear :placeholder="t('input_placeholder')">
             <template #suffix>
               <div class="search-icon-box" @click="onSearch">
                 <svg-icon class="search-icon" name="search-right"></svg-icon>
@@ -37,14 +37,14 @@
         </div>
         <list-empty style="margin-top: 100px;" size="250" v-if="!renderedMarkdown && messageObj.finish && !libraryRecall.length">
           <div>
-            <p style="color: #262626; font-size: 16px; font-weight: 600; line-height: 24px;">暂无任何内容</p>
+            <p style="color: #262626; font-size: 16px; font-weight: 600; line-height: 24px;">{{ t('no_content') }}</p>
           </div>
         </list-empty>
         <div class="search-content-box" v-else>
           <div class="search-tip-box">
             <svg-icon class="nav-icon" name="search-tip"></svg-icon>
-            <span class="tip" v-if="!messageObj.finish">智能回答生成中...</span>
-            <span class="tip complete" v-else>智能回答生成完毕</span>
+            <span class="tip" v-if="!messageObj.finish">{{ t('answer_generating') }}</span>
+            <span class="tip complete" v-else>{{ t('answer_completed') }}</span>
           </div>
 
           <div class="container" v-if="!messageObj.content && !messageObj.finish && !isError">
@@ -62,26 +62,26 @@
           <!-- 智能回答 -->
           <div class="intelligent-answer" v-else>
             <div v-html="renderedMarkdown" v-if="renderedMarkdown"></div>
-            <div v-else>暂无任何内容</div>
+            <div v-else>{{ t('no_content') }}</div>
           </div>
 
           <!-- 相关分段 (3) -->
           <div class="section-box">
             <div class="tips">
-              <div class="tips-text">以上内容由大模型生成</div>
+              <div class="tips-text">{{ t('generated_by_model') }}</div>
               <div class="tips-line"></div>
             </div>
-            <div v-if="libraryRecall.length" class="section-label">相关分段 <div>({{ libraryRecall.length }})</div>
+            <div v-if="libraryRecall.length" class="section-label">{{ t('related_segments') }} <div>({{ libraryRecall.length }})</div>
             </div>
             <div class="section-item" v-for="item in libraryRecall" :key="item.id">
               <div class="section-item-nav">
                 <div class="section-item-nav-left">
                   <svg-icon class="section-item-icon" name="document"></svg-icon>
                   <div class="section-item-label" @click="goToFile(item)">
-                    {{ item.file_name }}<span v-if="!item.file_name">{{ item.library_name }}-精选</span>
+                    {{ item.file_name }}<span v-if="!item.file_name">{{ item.library_name }}-{{ t('selected') }}</span>
                   </div>
                 </div>
-                <div class="section-item-nav-right">相似度：{{ formatNumber(item.similarity) }}</div>
+                <div class="section-item-nav-right">{{ t('similarity') }}{{ formatNumber(item.similarity) }}</div>
               </div>
               <a-tooltip overlayClassName="search-content-tip" placement="top">
                 <template #title>{{ item.content }}</template>
@@ -96,14 +96,15 @@
 </template>
 
 <script setup>
-import { getModelConfigOption } from '@/api/model/index'
 import { ref, watch, reactive, onMounted } from 'vue'
 import SearchDrawer from './search-drawer.vue'
 import { showErrorMsg } from '@/utils/index'
 import { libraryRecallTest } from '@/api/library'
 import ListEmpty from './list-empty.vue'
 import MarkdownIt from 'markdown-it';
-import { duplicateRemoval, removeRepeat } from '@/utils/index'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library-search.components.search-box')
 
 const emit = defineEmits(['search', 'defaultParmas'])
 
@@ -151,11 +152,11 @@ watch(() => props.messageObj.error, (val) => {
 const onSearch = async () => {
 
   if (!props.library_ids.length) {
-    return showErrorMsg('请在左侧的知识库选择项内至少选择一个知识库')
+    return showErrorMsg(t('select_library_error'))
   }
 
   if (!message.value) {
-    return showErrorMsg('请输入消息内容')
+    return showErrorMsg(t('input_message_error'))
   }
 
   emit('search', message.value)

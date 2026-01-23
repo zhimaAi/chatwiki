@@ -47,7 +47,7 @@ const getContentDetail = (data) => {
     begin_date_ymd: data.begin_date_ymd,
     end_date_ymd: data.end_date_ymd,
     library_id: data.library_id,
-    data_id: data.data_id
+    data_id: data.data_id,
   })
     .then((res) => {
       list.value = res.data || []
@@ -61,7 +61,8 @@ const getLibraryDetail = (data) => {
   statLibraryRobotDetail({
     begin_date_ymd: data.begin_date_ymd,
     end_date_ymd: data.end_date_ymd,
-    library_id: data.library_id
+    library_id: data.library_id,
+    group_id: data.group_id
   })
     .then((res) => {
       list.value = res.data || []

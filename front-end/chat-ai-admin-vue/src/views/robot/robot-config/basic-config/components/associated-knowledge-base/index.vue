@@ -206,6 +206,9 @@ const formState = reactive({
   top_k: 0,
   similarity: 0,
   search_type: 1,
+  meta_search_switch: 0,
+  meta_search_type: 1,
+  meta_search_condition_list: "",
   rrf_weight: {}
 })
 
@@ -250,7 +253,7 @@ const handleOpenSelectLibraryAlert = () => {
 const recallSettingsAlertRef = ref(null)
 
 const handleOpenRecallSettingsAlert = () => {
-  recallSettingsAlertRef.value.open(toRaw(formState))
+  recallSettingsAlertRef.value.open(toRaw(formState), robotInfo)
 }
 const noOpenGraphModalRef = ref(null)
 
@@ -261,6 +264,9 @@ const onChangeRecallSettings = (data) => {
   formState.top_k = data.top_k
   formState.similarity = data.similarity
   formState.search_type = data.search_type
+  formState.meta_search_switch = data.meta_search_switch
+  formState.meta_search_type = data.meta_search_type
+  formState.meta_search_condition_list = data.meta_search_condition_list
   formState.rrf_weight = data.rrf_weight
   if (data.search_type == 1 || data.search_type == 4) {
     if (noOpenLibraryList.value.length > 0) {
@@ -321,6 +327,9 @@ watchEffect(() => {
   formState.top_k = robotInfo.top_k
   formState.similarity = robotInfo.similarity
   formState.search_type = robotInfo.search_type
+  formState.meta_search_switch = robotInfo.meta_search_switch
+  formState.meta_search_type = robotInfo.meta_search_type
+  formState.meta_search_condition_list = robotInfo.meta_search_condition_list
   formState.rrf_weight = robotInfo.rrf_weight != '' ? JSON.parse(robotInfo.rrf_weight) : {vector: 0, search: 0, graph: 0}
 })
 

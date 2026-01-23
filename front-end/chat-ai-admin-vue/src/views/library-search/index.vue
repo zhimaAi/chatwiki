@@ -125,8 +125,8 @@
       </div>
       <div class="library-checkbox-box">
         <div class="app-list-box">
-          <a-checkbox v-model:checked="state.checkAll" :indeterminate="state.indeterminate" @change="onCheckAllChange">
-            全选/取消
+        <a-checkbox v-model:checked="state.checkAll" :indeterminate="state.indeterminate" @change="onCheckAllChange">
+            {{ t('select_all') }}
           </a-checkbox>
         </div>
         <a-checkbox-group v-model:value="state.checkedList" @change="onCheckListChange">
@@ -164,6 +164,9 @@ import { formatFileSize } from '@/utils/index'
 import { LIBRARY_NORMAL_AVATAR, LIBRARY_QA_AVATAR } from '@/constants/index'
 import { useSearchStore } from '@/stores/modules/search-lirary'
 import { showErrorMsg } from '@/utils/index'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library-search.index')
 
 const searchStore = useSearchStore()
 
@@ -187,14 +190,14 @@ const librarySearchData = ref(null)
 const activeKey = ref('all')
 const tabs = ref([
   {
-    title: '全部',
+    title: t('all'),
     value: 'all'
   }, {
-    title: '普通',
+    title: t('normal'),
     value: '0'
   },
   {
-    title: '问答',
+    title: t('qa'),
     value: '2'
   }
 ])
@@ -226,7 +229,7 @@ const onSearch = async (keyword) => {
 
   if (!librarySearchData.value.model_config_id || !librarySearchData.value.use_model) {
     isError.value = true
-    return showErrorMsg('请在搜索设置中配置好相应配置后再使用')
+    return showErrorMsg(t('configure_before_use'))
   }
 
   searchBoxRef.value?.handleRecallTest(librarySearchData.value)
@@ -264,30 +267,31 @@ watch(
 
 
 const updateTabNumber = () => {
-  let all = 0
-  let normal = 0
-  let qa = 0
-  plainOptions.value.forEach(item => {
-    if (item.type == 0) {
-      normal += 1
-    }
-    if (item.type == 2) {
-      qa += 1
-    }
-    all += 1
-  })
+  // let all = 0
+  // let normal = 0
+  // let qa = 0
+
+  // plainOptions.value.forEach(item => {
+  //   if (item.type == 0) {
+  //     normal += 1
+  //   }
+  //   if (item.type == 2) {
+  //     qa += 1
+  //   }
+  //   all += 1
+  // })
 
   tabs.value = [
     {
-      title: '全部',
+      title: t('all'),
       value: 'all'
     },
     {
-      title: '普通',
+      title: t('normal'),
       value: '0'
     },
     {
-      title: '问答',
+      title: t('qa'),
       value: '2'
     }
   ]

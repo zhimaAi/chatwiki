@@ -1,0 +1,14 @@
+{
+  "delete_department": "Delete Department",
+  "confirm_delete": "Are you sure you want to delete this department? After deletion, members will be moved to the default department or you can set a new department",
+  "close": "Close",
+  "direct_delete": "Delete Directly",
+  "delete_and_set": "Delete and Set",
+  "set_department": "Set Department",
+  "delete_before_notice": "Please move members to another team before deleting",
+  "belong_department": "Department",
+  "please_select": "Please Select",
+  "tip": "Tip",
+  "confirm_delete_department": "Are you sure you want to delete this department?",
+  "delete_success": "Deleted Successfully"
+}

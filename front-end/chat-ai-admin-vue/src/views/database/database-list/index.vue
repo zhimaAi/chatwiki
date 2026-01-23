@@ -1,19 +1,17 @@
 <template>
   <div class="library-page">
     <PageTabs class="mb-16" :tabs="pageTabs" active="/database/list"></PageTabs>
-    <page-alert style="margin-bottom: 16px" title="使用说明">
+    <page-alert style="margin-bottom: 16px" :title="t('usage_guide.title')">
       <div>
-        <p>
-          1、数据库可以关联到问答机器人，从对话中提取信息存储到指定数据表中，也可以利用数据表中已有数据回复用户咨询。创建机器人之前请先创建知识库，然后去机器人设置中关联。
-        </p>
-        <p>2、支持Excel模版和Json模版导入已有数据，也支持将存储的数据导出Excel表。</p>
+        <p>{{ t('usage_guide.point_1') }}</p>
+        <p>{{ t('usage_guide.point_2') }}</p>
       </div>
     </page-alert>
 
     <div class="library-page-body">
       <div class="list-toolbar">
         <div class="toolbar-box">
-          <h3 class="list-total">全部 ({{ list.length }})</h3>
+          <h3 class="list-total">{{ t('list.all') }} ({{ list.length }})</h3>
         </div>
 
         <div class="toolbar-box">
@@ -21,7 +19,7 @@
             <template #icon>
               <PlusOutlined />
             </template>
-            新建数据库
+            {{ t('list.create_btn') }}
           </a-button>
         </div>
       </div>
@@ -41,8 +39,8 @@
 
             <div class="item-footer">
               <div class="library-size">
-                <span class="text-item">数据数：{{ item.entry_count }}条</span>
-                <span class="text-item">关联应用：{{ item.robot_nums || 0 }}</span>
+                <span class="text-item">{{ t('item.data_count') }}{{ item.entry_count }}{{ t('item.count_unit') }}</span>
+                <span class="text-item">{{ t('item.related_apps') }}{{ item.robot_nums || 0 }}</span>
               </div>
 
               <div class="action-box" @click.stop>
@@ -53,11 +51,11 @@
                   <template #overlay>
                     <a-menu>
                       <a-menu-item>
-                        <a href="javascript:;" @click.stop="toAdd(item)">编 辑</a>
+                        <a href="javascript:;" @click.stop="toAdd(item)">{{ t('item.edit') }}</a>
                       </a-menu-item>
                       <a-menu-item>
                         <a class="delete-text-color" href="javascript:;" @click="handleDelete(item)"
-                          >删 除</a
+                          >{{ t('item.delete') }}</a
                         >
                       </a-menu-item>
                     </a-menu>
@@ -84,23 +82,26 @@ import AddDataSheet from './components/add-data-sheet.vue'
 import PageTabs from '@/components/cu-tabs/page-tabs.vue'
 import PageAlert from '@/components/page-alert/page-alert.vue'
 import { getDatabasePermission } from '@/utils/permission'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.database.database-list.index')
 const router = useRouter()
 
-const pageTabs = ref([
+const pageTabs = computed(() => [
   {
-    title: '知识库',
+    title: t('page_tabs.library'),
     path: '/library/list'
   },
   {
-    title: '数据库',
+    title: t('page_tabs.database'),
     path: '/database/list'
   },
   {
-    title: '文档提取FAQ',
+    title: t('page_tabs.document_extract_faq'),
     path: '/ai-extract-faq/list'
   },
   {
-    title: '触发次数统计',
+    title: t('page_tabs.trigger_statistics'),
     path: '/trigger-statics/list'
   },
 ])
@@ -125,7 +126,7 @@ const toAdd = (data = {}) => {
   if (data.id) {
     let key = getDatabasePermission(data.id)
     if (!(key == 4 || key == 2)) {
-      return message.error('您没有编辑该数据库的权限')
+      return message.error(t('message.no_edit_permission'))
     }
   }
   addDataSheetRef.value.show(data)
@@ -145,20 +146,20 @@ const toEdit = (data) => {
 const handleDelete = (data) => {
   let key = getDatabasePermission(data.id)
   if (key != 4) {
-    return message.error('您没有删除该数据库的权限')
+    return message.error(t('message.no_delete_permission'))
   }
   let secondsToGo = 3
 
   let modal = Modal.confirm({
-    title: `删除确认`,
+    title: t('delete_confirm.title'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: `删除数据表后，表中所有数据将一并被删除，不可恢复。确认删除数据表${data.name}吗?`,
-    okText: secondsToGo + ' 确 定',
+    content: t('delete_confirm.content', { name: data.name }),
+    okText: secondsToGo + ' ' + t('delete_confirm.confirm_btn'),
     okType: 'danger',
     okButtonProps: {
       disabled: true
     },
-    cancelText: '取 消',
+    cancelText: t('delete_confirm.cancel_btn'),
     onOk() {
       onDelete(data)
     },
@@ -168,7 +169,7 @@ const handleDelete = (data) => {
   let interval = setInterval(() => {
     if (secondsToGo == 1) {
       modal.update({
-        okText: '确 定',
+        okText: t('delete_confirm.confirm_btn'),
         okButtonProps: {
           disabled: false
         }
@@ -180,7 +181,7 @@ const handleDelete = (data) => {
       secondsToGo -= 1
 
       modal.update({
-        okText: secondsToGo + ' 确 定',
+        okText: secondsToGo + ' ' + t('delete_confirm.confirm_btn'),
         okButtonProps: {
           disabled: true
         }
@@ -191,7 +192,7 @@ const handleDelete = (data) => {
 
 const onDelete = ({ id }) => {
   delForm({ id }).then(() => {
-    message.success('删除成功')
+    message.success(t('message.delete_success'))
     getList()
   })
 }

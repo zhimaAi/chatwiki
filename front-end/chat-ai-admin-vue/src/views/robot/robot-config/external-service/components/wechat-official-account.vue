@@ -22,6 +22,7 @@
       <div class="add-btn-block">
         <a-button @click="showAddAlert" type="primary">关联公众号</a-button>
         <a-button @click="handleAddUnverified" :icon="createVNode(SettingOutlined)">未认证公众号回复设置</a-button>
+        <a-button @click="handleShowVerifiedConfig" :icon="createVNode(SettingOutlined)">已认证公众号回复设置</a-button>
       </div>
       <div class="wechat-app-list">
         <WechatAppItem
@@ -44,6 +45,7 @@
     <SelectWechatApp ref="selectAppRef" @change="getList" />
     <AddUnverifiedAlert ref="addUnverifiedAlertRef" />
     <DemoPreviewModal ref="demoPreviewModalRef" />
+    <OfficialAccountReplyConfig ref="replyConfigRef" @change="onSaveReplyConfigSuccess" />
   </div>
 </template>
 
@@ -58,8 +60,9 @@ import DemoPreviewModal from './demo-preview-modal.vue'
 import SelectWechatApp from "@/views/robot/robot-config/external-service/components/select-wechat-app.vue";
 import LoadingBox from "@/components/common/loading-box.vue";
 import EmptyBox from "@/components/common/empty-box.vue";
+import OfficialAccountReplyConfig from './official-account-reply-config.vue'
 
-const { robotInfo } = inject('robotInfo')
+const { robotInfo, getRobot } = inject('robotInfo')
 
 const selectAppRef = ref()
 const loading = ref(true)
@@ -119,6 +122,21 @@ const addUnverifiedAlertRef = ref(null)
 
 const handleAddUnverified = () => {
   addUnverifiedAlertRef.value.open()
+}
+
+const replyConfigRef = ref(null)
+const handleShowVerifiedConfig = () => {
+  let config = {
+    robotId: robotInfo.id,
+    aiGenerated: robotInfo.show_ai_msg_gzh,
+    typingIndicator: robotInfo.show_typing_gzh
+  }
+
+  replyConfigRef.value.open(config)
+}
+
+const onSaveReplyConfigSuccess = () => {
+  getRobot(robotInfo.id)
 }
 
 const demoPreviewModalRef = ref(null)

@@ -42,7 +42,7 @@
     <div class="page-left">
       <div class="app-list-box">
         <a-select v-model:value="selectedRobotId" style="width: 100%" @change="onChangeRobot">
-          <a-select-option value="">全部应用</a-select-option>
+          <a-select-option value="">{{ t('all_apps') }}</a-select-option>
           <a-select-option :value="item.id" v-for="item in robotList" :key="item.id">
             <span>{{ item.robot_name }}</span>
           </a-select-option>
@@ -52,7 +52,7 @@
       <div class="search-box">
         <a-input
           v-model:value="keyword"
-          placeholder="搜索客户昵称或openld，按enter搜索"
+          :placeholder="t('search_placeholder')"
           enter-button
           style="width: 100%;"
           @search="onSearch"
@@ -69,8 +69,8 @@
       <ChatBox v-if="activeChat" ref="chatBoxRef" />
       <list-empty style="background: #F2F4F7;" size="250" v-else>
         <div>
-          <p>请在左侧列表先选择会话</p>
-          <p>通过本功能，可以实时查看机器人接待中的会话消息，监控机器人回复效果</p>
+          <p>{{ t('select_conversation_tip') }}</p>
+          <p>{{ t('feature_description') }}</p>
         </div>
       </list-empty>
     </div>
@@ -79,14 +79,15 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import { storeToRefs } from 'pinia'
 import { useEventBus } from '@/hooks/event/useEventBus'
 import { useChatMonitorStore } from '@/stores/modules/chat-monitor.js'
 import ChatList from './components/chat-list .vue'
 import ChatBox from './components/chat-box.vue'
 import ListEmpty from './components/list-empty.vue'
-import { message } from 'ant-design-vue'
 
+const { t } = useI18n('views.chat-monitor')
 const emitter = useEventBus()
 
 const chatMonitorStore = useChatMonitorStore()

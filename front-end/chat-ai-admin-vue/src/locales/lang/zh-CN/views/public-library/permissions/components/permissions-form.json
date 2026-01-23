@@ -1,0 +1,12 @@
+{
+  "access_rights": "访问权限",
+  "private_option": "私有，仅能与应用关联，作为应用知识库",
+  "public_option": "公开，发布到互联网，所有人可访问",
+  "copy_link": "复制链接",
+  "select_domain_placeholder": "请选择自定义域名",
+  "copy": "复制",
+  "add_custom_domain": "添加自定义域名",
+  "please_select_domain": "请选择自定义域名",
+  "copy_success": "复制成功",
+  "copy_failed": "复制失败"
+}

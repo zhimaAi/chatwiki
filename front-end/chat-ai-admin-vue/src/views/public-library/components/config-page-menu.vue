@@ -7,6 +7,9 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.public-library.components.config-page-menu')
 
 const router = useRouter()
 const route = useRoute()
@@ -17,26 +20,26 @@ const current = computed(() => [route.name])
 const menus = ref([
   {
     key: 'PublicLibraryConfig',
-    label: '知识库设置',
-    title: '知识库设置',
+    label: t('knowledge_base_settings'),
+    title: t('knowledge_base_settings'),
     path: '/public-library/config'
   },
   {
     key: 'PublicLibraryPermissions',
-    label: '访问权限',
-    title: '访问权限',
+    label: t('access_permissions'),
+    title: t('access_permissions'),
     path: '/public-library/permissions'
   },
   {
     key: 'PublicLibraryAi',
-    label: '文档AI',
-    title: '文档AI',
+    label: t('document_ai'),
+    title: t('document_ai'),
     path: '/public-library/ai'
   },
   {
     key: 'PublicLibraryWebStatistics',
-    label: '统计设置',
-    title: '统计设置',
+    label: t('statistics_settings'),
+    title: t('statistics_settings'),
     path: '/public-library/web-statistics'
   }
 ])

@@ -101,7 +101,7 @@
   <a-drawer
     class="library-info-alert"
     v-model:open="show"
-    title="答案来源"
+    :title="t('answer_source')"
     placement="right"
     width="746px"
     :closable="false"
@@ -128,20 +128,20 @@
         <div class="document-item" v-for="item in documentList" :key="item.id">
           <div class="document-item-header">
             <div class="left-box">
-              <span class="document-title">id：{{ item.id }}</span>
+              <span class="document-title">{{ t('id_prefix') }}{{ item.id }}</span>
               <span class="document-title" v-if="item.title">{{ item.title }}</span>
-              <span class="document-size"> 共{{ item.word_total }}个字符 </span>
+              <span class="document-size"> {{ t('total_characters', { count: item.word_total }) }} </span>
             </div>
-            <div class="right-box"><a @click="toSource">查看源文档&gt;</a></div>
+            <div class="right-box"><a @click="toSource">{{ t('view_source_document') }}</a></div>
           </div>
 
           <div class="document-item-body">
             <div class="document-similarity">
-              相似度： <svg-icon name="similarity" style="font-size: 16px"></svg-icon
+              {{ t('similarity') }} <svg-icon name="similarity" style="font-size: 16px"></svg-icon
               >{{ item.similarity }}
             </div>
-            <div class="document-content" v-if="item.question">Q：{{ item.question }}</div>
-            <div class="document-content" v-if="item.answer">A：{{ item.answer }}</div>
+            <div class="document-content" v-if="item.question">{{ t('question_prefix') }}{{ item.question }}</div>
+            <div class="document-content" v-if="item.answer">{{ t('answer_prefix') }}{{ item.answer }}</div>
             <div class="document-content">
               {{ item.content }}
             </div>
@@ -159,7 +159,10 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { CloseOutlined } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import { getAnswerSource } from '@/api/chat/index'
+
+const { t } = useI18n('views.chat-monitor.components.library-info-alert')
 
 const router = useRouter()
 

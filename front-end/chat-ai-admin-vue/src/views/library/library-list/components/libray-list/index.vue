@@ -194,17 +194,17 @@
           <div class="library-icon">
             <img :src="item.avatar"/>
             <template v-if="item.type == 3">
-              <span v-if="item.sync_official_content_status == 2" class="sync-tag run">同步中</span>
-              <span v-else-if="item.sync_official_content_status == 3" class="sync-tag fail">同步失败</span>
+              <span v-if="item.sync_official_content_status == 2" class="sync-tag run">{{ t('syncing') }}</span>
+              <span v-else-if="item.sync_official_content_status == 3" class="sync-tag fail">{{ t('sync_failed') }}</span>
             </template>
           </div>
           <div class="library-info-content">
             <div class="library-title">{{ item.library_name }}</div>
             <div class="library-type">
-              <span class="type-tag" v-if="item.type == 0">普通知识库</span>
-              <span class="type-tag" v-if="item.type == 1">对外知识库</span>
-              <span class="type-tag" v-if="item.type == 2">问答知识库</span>
-              <span class="type-tag" v-if="item.type == 3">公众号知识库</span>
+              <span class="type-tag" v-if="item.type == 0">{{ t('normal_knowledge_base') }}</span>
+              <span class="type-tag" v-if="item.type == 1">{{ t('external_knowledge_base') }}</span>
+              <span class="type-tag" v-if="item.type == 2">{{ t('qa_knowledge_base') }}</span>
+              <span class="type-tag" v-if="item.type == 3">{{ t('official_account_knowledge_base') }}</span>
               <!-- <a-tooltip v-if="neo4j_status">
                 <template #title>{{ item.graph_switch == 0 ? '未' : '已' }}开启知识图谱生成</template>
                 <span class="type-tag graph-tag" :class="{ 'gray-tag': item.graph_switch == 0 }"
@@ -222,9 +222,9 @@
 
         <div class="item-footer">
           <div class="library-size">
-            <span class="text-item">文档：{{ item.file_total }}</span>
-            <span class="text-item">大小：{{ item.file_size_str }}</span>
-            <span class="text-item">关联应用：{{ item.robot_nums || 0 }}</span>
+            <span class="text-item">{{ t('document') }}{{ t('colon') }}{{ item.file_total }}</span>
+            <span class="text-item">{{ t('size') }}{{ t('colon') }}{{ item.file_size_str }}</span>
+            <span class="text-item">{{ t('related_app') }}{{ t('colon') }}{{ item.robot_nums || 0 }}</span>
           </div>
 
           <div class="action-box" @click.stop>
@@ -236,11 +236,11 @@
                 <a-menu>
                   <a-menu-item>
                     <a class="delete-text-color" href="javascript:;" @click.stop="handleDelete(item)"
-                      >删 除</a
+                      >{{ t('delete') }}</a
                     >
                   </a-menu-item>
                   <a-menu-item>
-                    <div @click.stop="openEditGroupModal(item)">修改分组</div>
+                    <div @click.stop="openEditGroupModal(item)">{{ t('modify_group') }}</div>
                   </a-menu-item>
                 </a-menu>
               </template>
@@ -258,10 +258,13 @@
 <script setup>
 import { computed } from 'vue'
 import { setDescRef, getTooltipTitle } from '@/utils/index'
+import { useI18n } from '@/hooks/web/useI18n'
 const emit = defineEmits(['add', 'edit', 'delete', 'openEditGroupModal'])
 
 import { useCompanyStore } from '@/stores/modules/company'
 import EmptyBox from "@/components/common/empty-box.vue";
+const { t } = useI18n('views.library.library-list.components.library-list.index')
+
 const companyStore = useCompanyStore()
 const neo4j_status = computed(()=>{
   return companyStore.companyInfo?.neo4j_status == 'true'

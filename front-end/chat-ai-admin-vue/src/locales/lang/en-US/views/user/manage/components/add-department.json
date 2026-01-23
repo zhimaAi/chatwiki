@@ -1,0 +1,10 @@
+{
+  "department_name": "Department Name",
+  "please_enter_department_name": "Please enter department name",
+  "parent_department": "Parent Department",
+  "please_select": "Please select",
+  "add_department": "Add Department",
+  "rename": "Rename",
+  "please_select_parent_department": "Please select parent department",
+  "modify_success": "Modified successfully"
+}

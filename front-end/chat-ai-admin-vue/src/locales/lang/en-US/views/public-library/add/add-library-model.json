@@ -1,0 +1,13 @@
+{
+  "modal_title": "Add Knowledge Base",
+  "library_name_label": "Knowledge Base Name",
+  "library_name_placeholder": "Please enter knowledge base name, max 20 characters",
+  "library_intro_label": "Knowledge Base Introduction",
+  "library_intro_placeholder": "Please enter knowledge base introduction",
+  "library_cover_label": "Knowledge Base Cover",
+  "library_cover_tip": "Please upload knowledge base cover, recommended size 100*100px, size not exceeding 100kb",
+  "library_name_required": "Please enter library name",
+  "create_success": "Created Successfully",
+  "untitled_document": "Untitled Document",
+  "untitled_document_heading": "# Untitled Document"
+}

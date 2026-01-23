@@ -1,0 +1,15 @@
+{
+  "document_directory": "Documents",
+  "add_document": "Add Document",
+  "import_document": "Import",
+  "add_folder": "Add Folder",
+  "collapse_all": "Collapse All",
+  "icon_template_settings": "Icon Settings",
+  "please_enter_title": "Enter title",
+  "rename": "Rename",
+  "delete": "Delete",
+  "copy_link": "Copy Link",
+  "copy_document": "Copy",
+  "export_document": "Export",
+  "delete_document": "Delete Document"
+}

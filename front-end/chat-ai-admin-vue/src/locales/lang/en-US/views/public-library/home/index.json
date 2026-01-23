@@ -1,0 +1,22 @@
+{
+  "not_published": "Not Published",
+  "published": "Published",
+  "switch_to_pc": "Switch to PC",
+  "switch_to_mobile": "Switch to Mobile",
+  "editing": "Editing...",
+  "publish": "Publish",
+  "edit": "Edit",
+  "copy_link": "Copy Link",
+  "seo": "SEO",
+  "settings": "Settings",
+  "save_success": "Saved successfully",
+  "delete_success": "Deleted successfully",
+  "publish_success": "Published successfully",
+  "editing_warning_title": "{name} is editing this document",
+  "editing_warning_content": "Please wait for other collaborators to finish editing and publish before continuing",
+  "editing_warning_ok": "Got it",
+  "delete_question_guide_title": "Delete Question Guide",
+  "delete_question_guide_content": "Are you sure you want to delete this question guide?",
+  "delete_question_guide_ok": "Confirm",
+  "delete_question_guide_cancel": "Cancel"
+}

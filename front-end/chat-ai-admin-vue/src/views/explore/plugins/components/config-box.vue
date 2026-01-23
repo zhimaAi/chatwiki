@@ -21,9 +21,11 @@
           </div>
         </div>
         <div class="link">{{ detail.description }}</div>
+        <slot name="head-extra"></slot>
       </div>
       <div class="body-box">
-        <div class="action-box">
+        <slot name="body">
+          <div class="action-box">
           <div v-for="(item, i) in actionData" :key="i" class="action-item">
             <div class="tit">{{ item.title }}</div>
             <div class="desc">{{ item.desc }}</div>
@@ -51,6 +53,7 @@
             </div>
           </div>
         </div>
+        </slot>
       </div>
     </a-drawer>
     <PluginConfigBox ref="pluginConfigRef" @auth="emit('auth')" />

@@ -477,8 +477,9 @@ func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size,
 	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeFullText}) {
 		return list, nil
 	}
-	question = strings.ReplaceAll(question, `'`, ` `)
-	question = strings.ReplaceAll(strings.ReplaceAll(question, "\r\n", ""), "\n", "")
+	for _, old := range []string{`'`, `"`, "\r", "\n", "\t"} {
+		question = strings.ReplaceAll(question, old, ` `)
+	}
 	queryTokens, err := msql.Model(fmt.Sprintf(`ts_parse('zhparser', '%s')`, question), define.Postgres).ColumnArr(`token`)
 	if err != nil {
 		return nil, err
@@ -501,7 +502,7 @@ func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size,
 		Where(`a.id`, `in`, strings.Join(ids, `,`)).
 		Where(`b.id is not null`).
 		Field(`b.*,a.id as index_id`).
-		Field(fmt.Sprintf(`ts_rank(to_tsvector('zhima_zh_parser',upper(a.content)),to_tsquery('zhima_zh_parser',upper('%s'))) as similarity`, question)).
+		Field(fmt.Sprintf(`ts_rank(to_tsvector('zhima_zh_parser',upper(a.content)),to_tsquery('zhima_zh_parser',upper('%s'))) as similarity`, strings.Join(queryTokens, " | "))).
 		Order(`similarity DESC`).Limit(size).Select()
 }
 
@@ -634,6 +635,17 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 	vectorList = SliceMsqlParamsUnique(vectorList, `id`)
 	searchList = SliceMsqlParamsUnique(searchList, `id`)
 	graphList = SliceMsqlParamsUnique(graphList, `id`)
+
+	// 元数据过滤（按文件维度过滤召回候选）
+	if cast.ToInt(robot[`meta_search_switch`]) == define.MetaSearchSwitchOn {
+		filtered, err := ApplyRobotMetaSearchFilter(adminUserId, libraryIds, robot, vectorList, searchList, graphList)
+		if err != nil {
+			logs.Error(err.Error())
+			// 配置异常时直接中断，避免返回与配置不一致的数据
+			return result, libUseTime, err
+		}
+		vectorList, searchList, graphList = filtered[0], filtered[1], filtered[2]
+	}
 
 	//RRF sort
 	weights := ParseRrfWeight(adminUserId, robot[`rrf_weight`])

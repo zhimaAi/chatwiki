@@ -1,0 +1,9 @@
+{
+  "answer_source": "答案来源",
+  "id_prefix": "id：",
+  "total_characters": "共{count}个字符",
+  "view_source_document": "查看源文档&gt;",
+  "similarity": "相似度：",
+  "question_prefix": "Q：",
+  "answer_prefix": "A："
+}

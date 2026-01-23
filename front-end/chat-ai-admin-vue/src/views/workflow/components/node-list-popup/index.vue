@@ -354,95 +354,98 @@
           <a @click="handleOpenAddMcp">去添加<RightOutlined /></a>
         </div>
       </div>
-      <div v-else-if="tabActive == 3" class="node-box">
-        <template v-if="allPluginNodes.length">
-          <div class="node-list">
-            <template
-              v-for="node in allPluginNodes"
-              :key="node.type">
-              <div v-if="!isActionsPlugin(node)"
-                   @click="handleAddNode(node)"
-                   class="node-item"
-              >
-                <div class="node-info">
-                  <img class="avatar" :src="node.properties.node_icon"/>
-                  <div class="info"><span class="name">{{ node.properties.node_name }}</span></div>
+      <template v-else-if="tabActive == 3">
+        <PublicNetworkCheck v-if="!isPublicNetwork" style="margin: 0;"/>
+        <div v-else class="node-box">
+          <template v-if="allPluginNodes.length">
+            <div class="node-list">
+              <template
+                v-for="node in allPluginNodes"
+                :key="node.type">
+                <div v-if="!isActionsPlugin(node)"
+                     @click="handleAddNode(node)"
+                     class="node-item"
+                >
+                  <div class="node-info">
+                    <img class="avatar" :src="node.properties.node_icon"/>
+                    <div class="info"><span class="name">{{ node.properties.node_name }}</span></div>
+                  </div>
                 </div>
-              </div>
-              <template v-else>
-                <div v-if="getPluginActions(node.plugin_name).length > 1" class="node-item">
-                  <a-popover placement="right">
-                    <template #content>
-                      <div class="node-info-pop">
-                        <div class="info">
-                          <img class="avatar" :src="node.properties.node_icon" />
-                          <div class="name">{{ node.properties.node_name }}</div>
-                        </div>
-                        <div>{{ node.properties.node_desc }}</div>
-                        <div class="extra">可用工具：{{ getPluginActions(node.plugin_name).length  }}</div>
-                      </div>
-                    </template>
-                    <div class="node-info" @click="node.expand = !node.expand">
-                      <img class="avatar" :src="node.properties.node_icon" />
-                      <div class="info">
-                        <span class="name">{{ node.properties.node_name }}</span>
-                        <span class="total">
-                        {{ getPluginActions(node.plugin_name).length }} <DownOutlined v-if="node.expand"/> <RightOutlined v-else/>
-                      </span>
-                      </div>
-                    </div>
-                  </a-popover>
-                  <div v-show="node.expand" class="node-tools">
-                    <a-popover v-for="action in getPluginActions(node.plugin_name)" :key="action.name" placement="right">
+                <template v-else>
+                  <div v-if="getPluginActions(node.plugin_name).length > 1" class="node-item">
+                    <a-popover placement="right">
                       <template #content>
-                        <div class="params-box">
-                          <div class="param-item">
-                            <div class="field">
-                              <span class="name">{{ action.title }}</span>
-                            </div>
-                            <div class="desc">{{ action.desc }}</div>
+                        <div class="node-info-pop">
+                          <div class="info">
+                            <img class="avatar" :src="node.properties.node_icon" />
+                            <div class="name">{{ node.properties.node_name }}</div>
                           </div>
-                          <div
-                            v-for="(field, key) in action.params"
-                            :key="key"
-                            class="param-item"
-                          >
-                            <div class="field">
-                              <span class="name">{{ key }}</span>
-                              <span class="type">{{ field.type }}</span>
-                              <span v-if="field.required" class="required">必填</span>
-                            </div>
-                            <div class="desc">{{ field.desc }}</div>
-                          </div>
+                          <div>{{ node.properties.node_desc }}</div>
+                          <div class="extra">可用工具：{{ getPluginActions(node.plugin_name).length  }}</div>
                         </div>
                       </template>
-                      <div class="node-tool-item" @mousedown="addPluginNode($event, node, action, action.name)">{{ action.title }}</div>
+                      <div class="node-info" @click="node.expand = !node.expand">
+                        <img class="avatar" :src="node.properties.node_icon" />
+                        <div class="info">
+                          <span class="name">{{ node.properties.node_name }}</span>
+                          <span class="total">
+                          {{ getPluginActions(node.plugin_name).length }} <DownOutlined v-if="node.expand"/> <RightOutlined v-else/>
+                        </span>
+                        </div>
+                      </div>
                     </a-popover>
-                  </div>
-                </div>
-                <!--仅存在一个方法时-->
-                <template v-else>
-                  <div v-for="action in getPluginActions(node.plugin_name)"
-                       @click="addPluginNode(null, node, action, action.name)"
-                       class="node-item"
-                  >
-                    <div class="node-info">
-                      <img class="avatar" :src="node.properties.node_icon"/>
-                      <div class="info"><span class="name">{{ node.properties.node_name }}</span></div>
+                    <div v-show="node.expand" class="node-tools">
+                      <a-popover v-for="action in getPluginActions(node.plugin_name)" :key="action.name" placement="right">
+                        <template #content>
+                          <div class="params-box">
+                            <div class="param-item">
+                              <div class="field">
+                                <span class="name">{{ action.title }}</span>
+                              </div>
+                              <div class="desc">{{ action.desc }}</div>
+                            </div>
+                            <div
+                              v-for="(field, key) in action.params"
+                              :key="key"
+                              class="param-item"
+                            >
+                              <div class="field">
+                                <span class="name">{{ key }}</span>
+                                <span class="type">{{ field.type }}</span>
+                                <span v-if="field.required" class="required">必填</span>
+                              </div>
+                              <div class="desc">{{ field.desc }}</div>
+                            </div>
+                          </div>
+                        </template>
+                        <div class="node-tool-item" @mousedown="addPluginNode($event, node, action, action.name)">{{ action.title }}</div>
+                      </a-popover>
                     </div>
                   </div>
+                  <!--仅存在一个方法时-->
+                  <template v-else>
+                    <div v-for="action in getPluginActions(node.plugin_name)"
+                         @click="addPluginNode(null, node, action, action.name)"
+                         class="node-item"
+                    >
+                      <div class="node-info">
+                        <img class="avatar" :src="node.properties.node_icon"/>
+                        <div class="info"><span class="name">{{ node.properties.node_name }}</span></div>
+                      </div>
+                    </div>
+                  </template>
                 </template>
               </template>
-            </template>
+            </div>
+            <a class="more-link" href="/#/plugins/index?active=2" target="_blank">更多插件 <RightOutlined/></a>
+          </template>
+          <div v-else class="empty-box">
+            <img style="height: 200px;" src="@/assets/empty.png"/>
+            <div>暂无可用插件</div>
+            <a href="/#/plugins/index?active=2" target="_blank">去添加<RightOutlined/></a>
           </div>
-          <a class="more-link" href="/#/plugins/index?active=2" target="_blank">更多插件 <RightOutlined/></a>
-        </template>
-        <div v-else class="empty-box">
-          <img style="height: 200px;" src="@/assets/empty.png"/>
-          <div>暂无可用插件</div>
-          <a href="/#/plugins/index?active=2" target="_blank">去添加<RightOutlined/></a>
         </div>
-      </div>
+      </template>
       <div  v-else-if="tabActive == 4" class="node-box">
         <TriggerList @add="handleAddTrigger" />
       </div>
@@ -455,7 +458,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import { RightOutlined, DownOutlined } from '@ant-design/icons-vue'
+import { RightOutlined, DownOutlined, ExclamationCircleFilled } from '@ant-design/icons-vue'
 import TriggerList from './trigger-list.vue'
 import {
   getAllGroupNodes,
@@ -468,6 +471,8 @@ import {
 import {jsonDecode} from "@/utils/index.js";
 import {pluginHasAction} from "@/constants/plugin.js";
 import WorkflowList from "@/views/workflow/components/node-list-popup/workflow-list.vue";
+import {usePublicNetworkCheck} from "@/composables/usePublicNetworkCheck.js";
+import PublicNetworkCheck from "@/components/common/public-network-check.vue";
 
 const emit = defineEmits(['addNode', 'addTrigger', 'mouseMove', 'update:active'])
 
@@ -486,6 +491,7 @@ const props = defineProps({
   },
 })
 
+const {isPublicNetwork} = usePublicNetworkCheck()
 const tabActive = ref(props.active)
 
 watch(() => props.active, (newVal) => {

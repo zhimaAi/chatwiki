@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-shiori/go-readability"
@@ -50,8 +51,73 @@ func GetLibraryList(c *gin.Context) {
 		return
 	}
 	list, httpStatus, err := BridgeGetLibraryList(adminUserId, userId, common.GetLang(c), &req)
-	common.FmtBridgeResponse(c, list, httpStatus, err)
-	return
+	if httpStatus != 0 {
+		common.FmtBridgeResponse(c, list, httpStatus, err)
+		return
+	}
+
+	libIds := make([]string, 0, len(list))
+	for _, one := range list {
+		libIds = append(libIds, one[`id`])
+	}
+	schemaByLib := make(map[string][]msql.Params)
+	if len(libIds) > 0 {
+		schemaList, e := msql.Model(`library_meta_schema`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Where(`library_id`, `in`, strings.Join(libIds, `,`)).
+			Order(`id asc`).
+			Field(`id,library_id,name,key,type,is_show`).
+			Select()
+		if e == nil {
+			for _, s := range schemaList {
+				schemaByLib[s[`library_id`]] = append(schemaByLib[s[`library_id`]], s)
+			}
+		}
+	}
+	out := make([]map[string]any, 0, len(list))
+	for _, params := range list {
+		obj := make(map[string]any, len(params)+1)
+		for k, v := range params {
+			obj[k] = v
+		}
+		metaList := make([]map[string]any, 0, len(define.BuiltinMetaSchemaList)+len(schemaByLib[params[`id`]]))
+		for _, b := range define.BuiltinMetaSchemaList {
+			isShow := 0
+			switch b.Key {
+			case define.BuiltinMetaKeySource:
+				isShow = cast.ToInt(params[`show_meta_source`])
+			case define.BuiltinMetaKeyUpdateTime:
+				isShow = cast.ToInt(params[`show_meta_update_time`])
+			case define.BuiltinMetaKeyCreateTime:
+				isShow = cast.ToInt(params[`show_meta_create_time`])
+			case define.BuiltinMetaKeyGroup:
+				isShow = cast.ToInt(params[`show_meta_group`])
+			}
+			metaList = append(metaList, map[string]any{
+				`name`:       b.Name,
+				`key`:        b.Key,
+				`type`:       b.Type,
+				`value`:      ``,
+				`is_show`:    isShow,
+				`is_builtin`: 1,
+			})
+		}
+		for _, s := range schemaByLib[params[`id`]] {
+			metaList = append(metaList, map[string]any{
+				`id`:         cast.ToInt(s[`id`]),
+				`library_id`: cast.ToInt(s[`library_id`]),
+				`name`:       s[`name`],
+				`key`:        s[`key`],
+				`type`:       cast.ToInt(s[`type`]),
+				`value`:      ``,
+				`is_show`:    cast.ToInt(s[`is_show`]),
+				`is_builtin`: 0,
+			})
+		}
+		obj[`meta_list`] = metaList
+		out = append(out, obj)
+	}
+	common.FmtBridgeResponse(c, out, httpStatus, err)
 }
 
 func GetLibraryInfo(c *gin.Context) {
@@ -580,4 +646,430 @@ func updateSyncOfficialLibraryStatus(libraryId int, status int, errMsg string) {
 	if err != nil {
 		logs.Error(err.Error())
 	}
+}
+
+func GetLibraryMetaSchemaList(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	libraryId := cast.ToInt(c.Query(`library_id`))
+	if libraryId <= 0 {
+		common.FmtError(c, `param_lack`)
+		return
+	}
+	libraryInfo, err := msql.Model(`chat_ai_library`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, cast.ToString(libraryId)).
+		Field(`id,show_meta_source,show_meta_update_time,show_meta_create_time,show_meta_group`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(libraryInfo) == 0 {
+		common.FmtError(c, `no_data`)
+		return
+	}
+
+	// 内置元数据：不落库，只由 chat_ai_library 的开关字段控制展示
+	list := make([]map[string]any, 0, 8)
+	for _, b := range define.BuiltinMetaSchemaList {
+		isShow := 0
+		switch b.Key {
+		case define.BuiltinMetaKeySource:
+			isShow = cast.ToInt(libraryInfo[`show_meta_source`])
+		case define.BuiltinMetaKeyUpdateTime:
+			isShow = cast.ToInt(libraryInfo[`show_meta_update_time`])
+		case define.BuiltinMetaKeyCreateTime:
+			isShow = cast.ToInt(libraryInfo[`show_meta_create_time`])
+		case define.BuiltinMetaKeyGroup:
+			isShow = cast.ToInt(libraryInfo[`show_meta_group`])
+		}
+		list = append(list, map[string]any{
+			`id`:         0,
+			`name`:       b.Name,
+			`key`:        b.Key,
+			`type`:       b.Type,
+			`is_show`:    isShow,
+			`is_builtin`: 1,
+		})
+	}
+
+	// 自定义元数据：来自 library_meta_schema
+	customList, err := msql.Model(`library_meta_schema`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`library_id`, cast.ToString(libraryId)).
+		Order(`id asc`).
+		Select()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	for _, item := range customList {
+		obj := make(map[string]any, len(item)+2)
+		for k, v := range item {
+			obj[k] = v
+		}
+		// 数字化字段：前后端统一用 int
+		obj[`id`] = cast.ToInt(item[`id`])
+		obj[`library_id`] = cast.ToInt(item[`library_id`])
+		obj[`admin_user_id`] = cast.ToInt(item[`admin_user_id`])
+		obj[`type`] = cast.ToInt(item[`type`])
+		obj[`is_show`] = cast.ToInt(item[`is_show`])
+		obj[`create_time`] = cast.ToInt(item[`create_time`])
+		obj[`update_time`] = cast.ToInt(item[`update_time`])
+		obj[`is_builtin`] = 0
+		list = append(list, obj)
+	}
+
+	common.FmtOk(c, list)
+}
+
+// GetLibraryMultiMetaSchemaList 获取一个或多个知识库“共有”的元数据 schema（交集）
+// 入参（GET）：
+// - library_ids: 知识库ID集合（英文逗号分隔），兼容 library_id 单个 id
+// 返回结构与 GetRobotMetaSchemaList 对齐：
+// - 内置元数据：只返回一份（is_show=1）
+// - 自定义元数据：仅返回所有指定知识库都存在的 name（按 name 求交集）
+func GetLibraryMultiMetaSchemaList(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+
+	libraryIdsStr := strings.TrimSpace(c.Query(`library_ids`))
+	if libraryIdsStr == `` {
+		// 兼容单个
+		libraryIdsStr = strings.TrimSpace(c.Query(`library_id`))
+	}
+	if libraryIdsStr == `` {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	if !common.CheckIds(libraryIdsStr) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `library_ids`))))
+		return
+	}
+
+	idArr := strings.Split(libraryIdsStr, ",")
+	// 去重 & 保序不重要：这里只需要数量
+	libIdSet := make(map[string]struct{}, len(idArr))
+	libIds := make([]string, 0, len(idArr))
+	for _, s := range idArr {
+		s = strings.TrimSpace(s)
+		if s == `` {
+			continue
+		}
+		if _, ok := libIdSet[s]; ok {
+			continue
+		}
+		libIdSet[s] = struct{}{}
+		libIds = append(libIds, s)
+	}
+	if len(libIds) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson([]map[string]any{}, nil))
+		return
+	}
+
+	existIds, err := msql.Model(`chat_ai_library`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, `in`, strings.Join(libIds, `,`)).
+		ColumnArr(`id`)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(existIds) != len(libIds) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+
+	// 结果（按 key 去重）
+	seen := make(map[string]bool)
+	result := make([]map[string]any, 0, 32)
+
+	// 内置 meta：只保留一份（与 GetRobotMetaSchemaList 一致）
+	for _, b := range define.BuiltinMetaSchemaList {
+		k := b.Key
+		if seen[k] {
+			continue
+		}
+		seen[k] = true
+		result = append(result, map[string]any{
+			`id`:         0,
+			`name`:       b.Name,
+			`key`:        b.Key,
+			`type`:       b.Type,
+			`is_show`:    1,
+			`is_builtin`: 1,
+		})
+	}
+
+	// 自定义 meta：按 name 求交集（必须每个库都存在；type 必须一致）
+	customList, err := msql.Model(`library_meta_schema`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`library_id`, `in`, strings.Join(libIds, `,`)).
+		Order(`id asc`).
+		Field(`id,library_id,name,key,type,is_show`).
+		Select()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+
+	type agg struct {
+		count    int
+		typ      int
+		name     string
+		key      string
+		conflict bool
+		seenLib  map[string]struct{}
+	}
+	aggMap := make(map[string]*agg, 64) // name => agg
+	for _, item := range customList {
+		name := strings.TrimSpace(item[`name`])
+		if name == `` {
+			continue
+		}
+		k := strings.TrimSpace(item[`key`])
+		if k == `` || define.IsBuiltinMetaKey(k) {
+			continue
+		}
+		libId := strings.TrimSpace(item[`library_id`])
+		if libId == `` {
+			libId = cast.ToString(item[`library_id`])
+		}
+		typ := cast.ToInt(item[`type`])
+		a, ok := aggMap[name]
+		if !ok {
+			a = &agg{
+				typ:     typ,
+				name:    name,
+				key:     k,
+				seenLib: make(map[string]struct{}, len(libIds)),
+			}
+			aggMap[name] = a
+		}
+		// 同一个库重复 name 不重复计数
+		if _, ok := a.seenLib[libId]; ok {
+			continue
+		}
+		a.seenLib[libId] = struct{}{}
+		a.count++
+		if a.typ != typ {
+			a.conflict = true
+		}
+	}
+
+	for _, a := range aggMap {
+		if a == nil {
+			continue
+		}
+		if a.conflict {
+			continue
+		}
+		if a.count != len(libIds) {
+			continue
+		}
+		result = append(result, map[string]any{
+			`id`:         0,
+			`library_id`: 0,
+			`name`:       a.name,
+			`key`:        a.key,
+			`type`:       a.typ,
+			`is_show`:    1,
+			`is_builtin`: 0,
+		})
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(result, nil))
+}
+
+func SaveLibraryMetaSchema(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	libraryId := cast.ToInt(c.PostForm(`library_id`))
+	if libraryId <= 0 {
+		common.FmtError(c, `param_lack`)
+		return
+	}
+
+	// 校验知识库归属
+	libraryInfo, err := msql.Model(`chat_ai_library`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, cast.ToString(libraryId)).
+		Field(`id`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(libraryInfo) == 0 {
+		common.FmtError(c, `no_data`)
+		return
+	}
+
+	// 内置元数据 is_show：更新到 chat_ai_library.show_meta_*
+	// 约定：前端提交内置项时传 key=source/update_time/create_time/group 与 is_show
+	key := strings.TrimSpace(c.PostForm(`key`))
+	isShow := cast.ToInt(c.PostForm(`is_show`))
+	if isShow != 0 && isShow != 1 {
+		common.FmtError(c, `param_err`)
+		return
+	}
+	if define.IsBuiltinMetaKey(key) {
+		update := msql.Datas{`update_time`: tool.Time2Int()}
+		switch key {
+		case define.BuiltinMetaKeySource:
+			update[`show_meta_source`] = isShow
+		case define.BuiltinMetaKeyUpdateTime:
+			update[`show_meta_update_time`] = isShow
+		case define.BuiltinMetaKeyCreateTime:
+			update[`show_meta_create_time`] = isShow
+		case define.BuiltinMetaKeyGroup:
+			update[`show_meta_group`] = isShow
+		}
+		_, err := msql.Model(`chat_ai_library`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Where(`id`, cast.ToString(libraryId)).
+			Update(update)
+		if err != nil {
+			logs.Error(err.Error())
+			common.FmtError(c, `sys_err`)
+			return
+		}
+		common.FmtOk(c, nil)
+		return
+	}
+
+	id := cast.ToInt(c.PostForm(`id`))
+	name := strings.TrimSpace(c.PostForm(`name`))
+	if len(name) == 0 {
+		common.FmtError(c, `param_lack`)
+		return
+	}
+	if utf8.RuneCountInString(name) > 20 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `meta_name_too_long`, 20))))
+		return
+	}
+	typeCode := cast.ToInt(c.PostForm(`type`))
+	if c.PostForm(`type`) == `` {
+		typeCode = define.LibraryMetaTypeString
+	}
+	if !define.IsLibraryMetaTypeValid(typeCode) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `meta_type_invalid`))))
+		return
+	}
+	// isShow 已在上方统一校验过
+
+	now := tool.Time2Int()
+	m := msql.Model(`library_meta_schema`, define.Postgres)
+	data := msql.Datas{
+		`name`:        name,
+		`type`:        typeCode,
+		`is_show`:     isShow,
+		`update_time`: now,
+	}
+
+	if id > 0 {
+		old, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Where(`library_id`, cast.ToString(libraryId)).
+			Where(`id`, cast.ToString(id)).
+			Field(`id,key`).
+			Find()
+		if err != nil {
+			logs.Error(err.Error())
+			common.FmtError(c, `sys_err`)
+			return
+		}
+		if len(old) == 0 {
+			common.FmtError(c, `no_data`)
+			return
+		}
+		// key 不可变：更新时不写 key
+		_, err = m.Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Where(`library_id`, cast.ToString(libraryId)).
+			Where(`id`, cast.ToString(id)).
+			Update(data)
+		if err != nil {
+			logs.Error(err.Error())
+			common.FmtError(c, `sys_err`)
+			return
+		}
+		common.FmtOk(c, id)
+		return
+	}
+
+	// 新增：先插入拿到 id，再把 key 更新成 key_{id}（后续不可变）
+	tempKey := fmt.Sprintf("tmp_%d", time.Now().UnixNano())
+	insertData := msql.Datas{
+		`create_time`:   now,
+		`update_time`:   now,
+		`admin_user_id`: adminUserId,
+		`library_id`:    libraryId,
+		`name`:          name,
+		`key`:           tempKey,
+		`type`:          typeCode,
+		`is_show`:       isShow,
+	}
+	newId, err := m.Insert(insertData, `id`)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	stableKey := fmt.Sprintf("key_%d", newId)
+	_, err = m.Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`library_id`, cast.ToString(libraryId)).
+		Where(`id`, cast.ToString(newId)).
+		Update(msql.Datas{`key`: stableKey})
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	common.FmtOk(c, newId)
+}
+
+func DeleteLibraryMetaSchema(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	id := cast.ToInt(c.PostForm(`id`))
+	if id <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `builtin_meta_cannot_delete`))))
+		return
+	}
+	m := msql.Model(`library_meta_schema`, define.Postgres)
+	item, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, cast.ToString(id)).
+		Field(`id`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(item) == 0 {
+		common.FmtError(c, `no_data`)
+		return
+	}
+	_, err = m.Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, cast.ToString(id)).
+		Delete()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	common.FmtOk(c, nil)
 }

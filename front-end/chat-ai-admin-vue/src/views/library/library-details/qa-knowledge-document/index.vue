@@ -156,10 +156,19 @@
                   </template>
                 </a-input>
               </div>
-              <a-button @click="handleBathDel">批量删除</a-button>
-              <a-button @click="handleOpenMoveModal">批量移动</a-button>
-              <a-button @click="handleOpenFileUploadModal()">批量导入</a-button>
-              <a-button @click="handleSyncDownload()">批量导出</a-button>
+              <a-button @click="showMetaModal(1)">元数据 <SettingOutlined/></a-button>
+              <a-dropdown>
+               <a-button>批量操作 <DownOutlined/></a-button>
+               <template #overlay>
+                 <a-menu>
+                   <a-menu-item key="1"><div @click="handleBathDel">批量删除</div></a-menu-item>
+                   <a-menu-item key="2"><div @click="handleOpenMoveModal">批量移动</div></a-menu-item>
+                   <a-menu-item key="2"><div @click="showMetaModal(2)">修改元数据</div></a-menu-item>
+                 </a-menu>
+               </template>
+              </a-dropdown>
+              <a-button @click="handleOpenFileUploadModal()">导入</a-button>
+              <a-button @click="handleSyncDownload()">导出</a-button>
               <a-button
                 @click="openEditSubscription({})"
                 type="primary"
@@ -234,12 +243,14 @@
       </template>
     </a-result>
   </a-modal>
+  <MetadataManageModal ref="metaRef" :library-id="libraryId" :qa-ids="qaIds" @change="initData"/>
 </template>
 
 <script setup>
 import { reactive, ref, createVNode, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
+import dayjs from 'dayjs'
 import {
   getLibraryGroup,
   reconstructCategoryVector,
@@ -253,20 +264,25 @@ import {
   PlusOutlined,
   ExclamationCircleOutlined,
   EllipsisOutlined,
-  SearchOutlined
+  SearchOutlined,
+  DownOutlined,
+  SettingOutlined,
 } from '@ant-design/icons-vue'
 import SubsectionBox from './components/subsection-box.vue'
 import EditSubscription from '@/views/library/library-preview/components/edit-subsection.vue'
 import QaUploadModal from '../components/qa-upload-modal.vue'
 import AddGroup from './components/add-group.vue'
 import router from '@/router'
+import MetadataManageModal from "@/views/library/library-details/components/metadata-manage-modal.vue";
 
 const subsectionBoxRef = ref(null)
+const metaRef = ref(null)
 const route = useRoute()
 const query = route.query
 const groupSearchKey = ref('')
 const groupLists = ref([])
 const groupId = ref(-1)
+const qaIds = ref([])
 
 const currentGroupItem = computed(() => {
   return groupLists.value.find((item) => item.id == groupId.value) || {}
@@ -294,6 +310,13 @@ const isHiddenGroup = ref(localStorage.getItem('qa_document_group_hide_key') == 
 const total = ref(0)
 const exception_total = ref(0)
 
+const sourceTypeMap = {
+  1: '本地文档',
+  2: '在线文档',
+  3: '自定义文档',
+  4: '手工新增问答',
+  5: '导入问答'
+}
 const listStatusMap = {
   0: '未转换',
   1: '已转换',
@@ -374,6 +397,17 @@ const getParagraphLists = () => {
       item.status_text = listStatusMap[item.status]
       if (item.similar_questions) {
         item.similar_questions = JSON.parse(item.similar_questions)
+      }
+      if (Array.isArray(item.meta_list)) {
+        item.meta_list.forEach(i => {
+          if (i.type == 1 && i.value > 0) {
+            i.value = dayjs(i.value * 1000).format('YYYY-MM-DD HH:mm')
+          }
+          if (i.key == 'source') {
+            i.value = sourceTypeMap[i.value]
+          }
+          item[`meta_${i.key}`] = i.value
+        })
       }
     })
     paragraphLists.value = list
@@ -571,6 +605,15 @@ const toDownloadPage = ()=>{
   })
 }
 
+const showMetaModal = (type) => {
+  if (type == 2) {
+    if (subsectionBoxRef.value.state.selectedRowKeys.length == 0) {
+      return message.error('请选择你要修改的问答')
+    }
+    qaIds.value = subsectionBoxRef.value.state.selectedRowKeys
+  }
+  metaRef.value.show(type == 2)
+}
 </script>
 
 <style lang="less" scoped>

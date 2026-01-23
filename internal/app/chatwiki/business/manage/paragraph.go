@@ -434,6 +434,157 @@ func SaveParagraph(c *gin.Context) {
 	common.FmtBridgeResponse(c, data, httpStatus, err)
 }
 
+// SaveParagraphMetadata 批量保存段落（chat_ai_library_file_data）的自定义元数据
+// 入参（POST）：
+// - ids: 段落ID集合（英文逗号分隔）
+// - list: JSON数组 [{"key":"key_1","value":"xxx"}, ...]（仅允许自定义 key_xxx；内置 key 直接忽略）
+func SaveParagraphMetadata(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	ids := strings.TrimSpace(c.PostForm(`ids`))
+	if !common.CheckIds(ids) {
+		common.FmtError(c, `param_err`)
+		return
+	}
+	listRaw := strings.TrimSpace(c.PostForm(`list`))
+	if listRaw == `` || listRaw == `[]` || listRaw == `null` || listRaw == `{}` {
+		common.FmtError(c, `param_lack`)
+		return
+	}
+	type MetaKV struct {
+		Key   string `json:"key"`
+		Value any    `json:"value"`
+	}
+	reqList := make([]MetaKV, 0)
+	if err := tool.JsonDecodeUseNumber(listRaw, &reqList); err != nil || len(reqList) == 0 {
+		common.FmtError(c, `param_err`)
+		return
+	}
+	updateMap := make(map[string]any, len(reqList))
+	keySet := make(map[string]struct{}, len(reqList))
+	for _, it := range reqList {
+		k := strings.TrimSpace(it.Key)
+		if k == `` {
+			continue
+		}
+		// 内置元数据固定值：不允许修改（直接忽略）
+		if define.IsBuiltinMetaKey(k) {
+			continue
+		}
+		updateMap[k] = cast.ToString(it.Value)
+		keySet[k] = struct{}{}
+	}
+	if len(updateMap) == 0 {
+		common.FmtOk(c, nil)
+		return
+	}
+
+	paras, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, `in`, ids).
+		Where(`delete_time`, `0`).
+		Field(`id,library_id,metadata`).
+		Select()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(paras) == 0 {
+		common.FmtError(c, `no_data`)
+		return
+	}
+
+	// 严格校验：请求 ids 中必须全部存在，否则拒绝部分更新
+	idArr := strings.Split(ids, ",")
+	existSet := make(map[string]struct{}, len(paras))
+	libIdSet := make(map[int]struct{}, len(paras))
+	for _, p := range paras {
+		existSet[p[`id`]] = struct{}{}
+		libIdSet[cast.ToInt(p[`library_id`])] = struct{}{}
+	}
+	for _, idStr := range idArr {
+		if _, ok := existSet[idStr]; !ok {
+			common.FmtError(c, `no_data`)
+			return
+		}
+	}
+
+	// 校验所有 key 必须存在于每个涉及知识库的自定义 meta schema 中
+	libIdList := make([]string, 0, len(libIdSet))
+	for lid := range libIdSet {
+		if lid > 0 {
+			libIdList = append(libIdList, cast.ToString(lid))
+		}
+	}
+	if len(libIdList) > 0 {
+		keyList := make([]string, 0, len(keySet))
+		for k := range keySet {
+			keyList = append(keyList, k)
+		}
+		okRows, err := msql.Model(`library_meta_schema`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Where(`library_id`, `in`, strings.Join(libIdList, `,`)).
+			Where(`key`, `in`, strings.Join(keyList, `,`)).
+			Field(`library_id,key`).
+			Select()
+		if err != nil {
+			logs.Error(err.Error())
+			common.FmtError(c, `sys_err`)
+			return
+		}
+		okSet := make(map[int]map[string]struct{}, len(libIdSet))
+		for _, r := range okRows {
+			lid := cast.ToInt(r[`library_id`])
+			k := strings.TrimSpace(r[`key`])
+			if k == `` || lid <= 0 {
+				continue
+			}
+			if _, ok := okSet[lid]; !ok {
+				okSet[lid] = make(map[string]struct{})
+			}
+			okSet[lid][k] = struct{}{}
+		}
+		for lid := range libIdSet {
+			if len(okSet[lid]) != len(keySet) {
+				common.FmtError(c, `param_err`)
+				return
+			}
+		}
+	}
+
+	// 逐条合并写回（metadata 里只改这些 key）
+	now := tool.Time2Int()
+	m := msql.Model(`chat_ai_library_file_data`, define.Postgres)
+	for _, p := range paras {
+		metaMap := make(map[string]any)
+		metaStr := strings.TrimSpace(cast.ToString(p[`metadata`]))
+		if metaStr == `` {
+			metaStr = `{}`
+		}
+		_ = tool.JsonDecode(metaStr, &metaMap)
+		for k, v := range updateMap {
+			metaMap[k] = v
+		}
+		metaJson, err := tool.JsonEncode(metaMap)
+		if err != nil {
+			logs.Error(err.Error())
+			common.FmtError(c, `sys_err`)
+			return
+		}
+		if _, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Where(`id`, cast.ToString(p[`id`])).
+			Update(msql.Datas{`metadata`: metaJson, `update_time`: now}); err != nil {
+			logs.Error(err.Error())
+			common.FmtError(c, `sys_err`)
+			return
+		}
+	}
+	common.FmtOk(c, nil)
+}
+
 func SetParagraphGroup(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
@@ -733,56 +884,10 @@ func DeleteParagraph(c *gin.Context) {
 		return
 	}
 	ids := cast.ToString(c.PostForm(`id`))
-	if len(ids) <= 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
-		return
-	}
 
-	data, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`id`, `in`, cast.ToString(ids)).Find()
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	if len(data) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-		return
-	}
-
-	if cast.ToInt(data[`category_id`]) > 0 {
-		_, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`id`, `in`, cast.ToString(ids)).Update(msql.Datas{"isolated": true})
-		if err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
-			return
-		}
-	} else {
-		_, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`id`, `in`, cast.ToString(ids)).Delete()
-		if err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
-
-		_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`data_id`, `in`, cast.ToString(ids)).Delete()
-		if err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
-		if common.GetNeo4jStatus(userId) {
-			for _, id := range strings.Split(ids, `,`) {
-				err = common.NewGraphDB(userId).DeleteByData(cast.ToInt(id))
-				if err != nil {
-					logs.Error(err.Error())
-					c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-					return
-				}
-			}
-		}
-	}
-
-	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+	err := BridgeDeleteParagraph(userId, ids, common.GetLang(c))
+	c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+	return
 }
 
 func UpdateParagraphCategory(c *gin.Context) {

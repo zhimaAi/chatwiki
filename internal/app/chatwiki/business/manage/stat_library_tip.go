@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
+	"github.com/zhimaAi/go_tools/msql"
 )
 
 func StatLibraryTotal(c *gin.Context) {
@@ -125,11 +126,18 @@ func StatLibraryRobotDetail(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `library_id`))))
 		return
 	}
+	groupId := strings.TrimSpace(c.DefaultPostForm(`group_id`, `-1`))
 	beginDateYmd, endDateYmd := checkBeginEndDateYmd(c)
 	if beginDateYmd == "" || endDateYmd == "" {
 		return
 	}
-	stat, err := common.StatLibraryRobotDetail(userId, cast.ToInt(libraryId), beginDateYmd, endDateYmd)
+	var stat []msql.Params
+	var err error
+	if cast.ToInt(groupId) != -1 {
+		stat, err = common.StatLibraryRobotGroupDetail(userId, cast.ToInt(libraryId), groupId, beginDateYmd, endDateYmd)
+	} else {
+		stat, err = common.StatLibraryRobotDetail(userId, cast.ToInt(libraryId), beginDateYmd, endDateYmd)
+	}
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -163,4 +171,32 @@ func checkBeginEndDateYmd(c *gin.Context) (string, string) {
 		return ``, ``
 	}
 	return beginDateYmd, endDateYmd
+}
+
+func StatLibraryGroupSort(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	beginDateYmd, endDateYmd := checkBeginEndDateYmd(c)
+	if beginDateYmd == "" || endDateYmd == "" {
+		return
+	}
+	page := cast.ToInt(strings.TrimSpace(c.DefaultPostForm(`page`, `1`)))
+	size := cast.ToInt(strings.TrimSpace(c.DefaultPostForm(`size`, `100`)))
+	libraryId := cast.ToInt(strings.TrimSpace(c.PostForm(`library_id`)))
+	if page < 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `page`))))
+	}
+	if size < 0 || size > 1000 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `size`))))
+	}
+	stat, err := common.StatLibraryGroupDataSort(userId, libraryId, page, size, beginDateYmd, endDateYmd)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(stat, nil))
+	return
 }

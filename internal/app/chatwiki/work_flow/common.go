@@ -407,3 +407,27 @@ func fillTestParamsToRunningParams(flowL *WorkFlow, params []any) {
 	}
 	flowL.Logs(`执行循环节点测试，outputs初始化完成，%s %s`, "\n", tool.JsonEncodeNoError(flowL.outputs))
 }
+
+func GetNodeOutput(output map[string]any) (nodeOutput map[string]any) {
+	nodeOutput = make(map[string]any)
+	filterOutKeys := []string{
+		`llm_result.completion_token`, `llm_result.prompt_token`, `special.llm_debug_log`, `special.lib_use_time`,
+		`special.lib_paragraph_list`, `special.llm_request_time`, `special.question_optimize_debug_log`,
+		`special.question_optimize_request_time`, `special.params_extractor_debug_log`, `special.params_extractor_request_time`,
+	}
+	containsOutKeys := []string{
+		`loop_intermediate_set.`, `global_set.`,
+	}
+	for nodeKey, nodeOutputs := range output {
+		for _, contain := range containsOutKeys {
+			if strings.HasPrefix(nodeKey, contain) {
+				continue
+			}
+		}
+		if tool.InArray(nodeKey, filterOutKeys) {
+			continue
+		}
+		nodeOutput[nodeKey] = nodeOutputs
+	}
+	return
+}
