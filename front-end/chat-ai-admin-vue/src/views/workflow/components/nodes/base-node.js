@@ -420,6 +420,10 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         obj.children = node_params.curl.output
       }
 
+      if(node.type === 'http-tool-node'){
+        obj.children = node_params.curl.output
+      }
+
       if(node.type === 'zm-workflow-node'){
         obj.children = node_params.workflow.output
       }
@@ -442,6 +446,10 @@ export class BaseVueNodeModel extends HtmlNodeModel {
 
       if(node.type === 'parameter-extraction-node'){
         obj.children = node_params.params_extractor.output
+      }
+
+      if(node.type === 'qa-node'){
+        obj.children = node_params.question.outputs
       }
 
 

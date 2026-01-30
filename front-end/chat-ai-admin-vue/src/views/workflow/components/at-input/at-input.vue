@@ -11,7 +11,7 @@
         />
       </div>
     </Teleport>
-    <div class="mention-input-warpper" ref="JMentionContainer" >
+    <div class="mention-input-warpper" :class="{'no-border': !bordered}" ref="JMentionContainer" >
       <div
       ref="JMention"
       :style="[inputStyle]"
@@ -90,6 +90,10 @@ export default {
     checkAnyLevel:{
       type: Boolean,
       default: false
+    },
+    bordered: {
+      type: Boolean,
+      default: true,
     }
   },
   data() {
@@ -198,7 +202,7 @@ export default {
     },
     onChange(){
       const jMention = this.$refs.JMention;
-      
+
       if(!jMention) return;
 
       let htmlStr = jMention.innerHTML;
@@ -607,6 +611,12 @@ export default {
   padding: 4px 8px;
   border: 1px solid #d9d9d9;
   background: #fff;
+  &.no-border{
+    border: none;
+    &:hover {
+      border: none;
+    }
+  }
 
   &:hover {
     border: 1px solid #409eff;
@@ -662,7 +672,7 @@ export default {
     top: 0;
     left: 0;
     right: 0;
-    line-height: 24px;
+    line-height: 22px;
     overflow: hidden;
     padding: 4px 8px;
     color: #bfbfbf;

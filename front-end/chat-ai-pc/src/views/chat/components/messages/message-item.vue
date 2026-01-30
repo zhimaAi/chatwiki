@@ -670,7 +670,7 @@
         </div>
       </div>
 
-      <div class="message-content" :data-msg-type="props.msg.msg_type">
+      <div class="message-content" :data-msg-type="props.msg.msg_type" v-if="isShowMessageBody(props.msg)">
         <div class="thinking-content" v-if="props.msg.show_reasoning">
           <cherry-markdown :content="props.msg.reasoning_content" />
         </div>
@@ -1117,6 +1117,14 @@ function onClickSmartMenuKeyword(text: string) {
   if (!t) return
   emit('sendTextMessage', t)
 }
+
+const isShowMessageBody = (item: any) => {
+  if(parseReplyList(item.reply_content_list).length && item.content == ''){
+    return false
+  }
+  return true
+}
+
 onMounted(() => {
   startLoadingAnimation()
 })

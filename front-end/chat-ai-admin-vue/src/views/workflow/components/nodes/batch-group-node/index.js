@@ -496,6 +496,10 @@ class CustomGroupModel extends dynamicGroup.model {
         obj.children = node_params.curl.output
       }
 
+      if (node.type === 'http-tool-node') {
+        obj.children = node_params.curl.output
+      }
+
       if (node.type === 'code-run-node') {
         obj.children = node_params.code_run.output
       }

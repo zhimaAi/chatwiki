@@ -12,6 +12,7 @@
     "dev6": "vite --mode dev6",
     "dev7": "vite --mode dev7",
     "dev8": "vite --host 0.0.0.0 --mode dev8",
+    "dev12": "vite --host 0.0.0.0 --mode dev12",
     "dev15": "vite --mode dev15",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",

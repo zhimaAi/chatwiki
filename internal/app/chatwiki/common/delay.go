@@ -5,10 +5,11 @@ package common
 import (
 	"chatwiki/internal/app/chatwiki/define"
 	"context"
+	"time"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/tool"
-	"time"
 )
 
 func StopDelayService() {
@@ -24,7 +25,7 @@ func AddDelayTask(task any, seconds int64) {
 	member := &redis.Z{Score: float64(time.Now().Unix() + seconds), Member: taskStr}
 	err = define.Redis.ZAdd(context.Background(), define.DelayZset, member).Err()
 	if err != nil {
-		logs.Error(`ZAdd 错误:%s/%d/%s`, taskStr, member.Score, err.Error())
+		logs.Error(`ZAdd error:%s/%d/%s`, taskStr, member.Score, err.Error())
 	}
 }
 
@@ -36,6 +37,6 @@ func DelDelayTask(task any) {
 	}
 	err = define.Redis.ZRem(context.Background(), define.DelayZset, taskStr).Err()
 	if err != nil {
-		logs.Error(`ZRem 错误:%s/%s`, taskStr, err.Error())
+		logs.Error(`ZRem error:%s/%s`, taskStr, err.Error())
 	}
 }

@@ -27,16 +27,18 @@
 import dayjs from 'dayjs'
 import { ref, onMounted, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
 
-const query = useRoute().query
+
 const router = useRouter()
+const route = useRoute()
+
+const query = route.query
 
 const props = defineProps({
   datekey: {
     type: String,
     default: ''
-  }
+  },
 })
 
 const create_time_type = ref(1)
@@ -117,7 +119,9 @@ onMounted(() => {
     range.value = [dayjs(query.start_date), dayjs(query.end_date)]
     start_time.value = dayjs(query.start_date).format('YYYYMMDD')
     end_time.value = dayjs(query.end_date).format('YYYYMMDD')
+
     search()
+    
     setTimeout(() => {
       router.push({
         path: router.path,

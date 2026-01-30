@@ -8,15 +8,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mark3labs/mcp-go/client"
-	"github.com/mark3labs/mcp-go/client/transport"
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/zhimaAi/go_tools/logs"
 	"io"
 	"net/http"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/client/transport"
+	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/zhimaAi/go_tools/logs"
 )
 
 func DetectMCPTransportType(url string) (int, error) {
@@ -308,12 +309,12 @@ func CallTool(ctx context.Context, c *client.Client, selectedTool mcp.Tool, argu
 
 	normalizedArgs, err := NormalizeArgumentsBySchema(arguments, &selectedTool.InputSchema)
 	if err != nil {
-		return "", fmt.Errorf("参数格式转换错误: %v", err)
+		return "", fmt.Errorf(`parameter format error: %v`, err)
 	}
 
 	// 2. 校验参数合法性
 	if err := ValidateMcpToolArguments(selectedTool, normalizedArgs); err != nil {
-		return "", fmt.Errorf("参数校验失败: %v", err)
+		return "", fmt.Errorf(`parameter verification failed: %v`, err)
 	}
 
 	// 3. 执行调用
@@ -325,7 +326,7 @@ func CallTool(ctx context.Context, c *client.Client, selectedTool mcp.Tool, argu
 	})
 
 	if err != nil {
-		return "", fmt.Errorf("调用mcp工具出错: %v", err.Error())
+		return "", fmt.Errorf(`call the mcp tool error: %v`, err.Error())
 	}
 	//if result.IsError {
 	//	return "", errors.New("调用mcp工具失败")
@@ -345,13 +346,13 @@ func CallTool(ctx context.Context, c *client.Client, selectedTool mcp.Tool, argu
 		case mcp.AudioContent:
 			// TODO: 后续兼容 AudioContent 类型的逻辑
 		default:
-			return "", fmt.Errorf("未知返回类型: %T", content)
+			return "", fmt.Errorf(`unknown return type: %T`, content)
 		}
 	}
 
 FoundContent:
 	if strContent == "" {
-		return "", errors.New("调用mcp工具返回结果中未找到TextContent内容")
+		return "", errors.New(`calling mcp did not return the text content`)
 	}
 
 	return strContent, nil

@@ -195,7 +195,7 @@ func CheckChatTypeNotDirect(in *ChatInParam, out *ChatOutParam) pipeline.PipeRes
 	//处理未知问题统计
 	isBackground := len(in.params.Customer) > 0 && cast.ToInt(in.params.Customer[`is_background`]) > 0
 	if !isBackground && len(out.list) == 0 {
-		common.SaveUnknownIssueRecord(in.params.AdminUserId, in.params.Robot, in.params.Question)
+		common.SaveUnknownIssueRecord(in.params.Lang, in.params.AdminUserId, in.params.Robot, in.params.Question)
 	}
 	//未知问题转人工
 	if msg, ok := IsUnknownSwitchManual(in.params, in.sessionId, in.dialogueId, out.list, in.chanStream); ok {

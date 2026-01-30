@@ -79,23 +79,23 @@ func GetTriggerOfficialMessage(c *gin.Context) {
 	list := []map[string]any{
 		{
 			`msg_type`: define.TriggerOfficialMessage,
-			`desc`:     `私信消息`,
-			`fields`:   work_flow.GetMessage(),
+			`desc`:     i18n.Show(common.GetLang(c), `trigger_gzh_message`),
+			`fields`:   work_flow.GetMessage(common.GetLang(c)),
 		},
 		{
 			`msg_type`: define.TriggerOfficialSubscribeUnScribe,
-			`desc`:     `关注/取关事件`,
-			`fields`:   work_flow.GetSubscribeUnsubscribe(),
+			`desc`:     i18n.Show(common.GetLang(c), `trigger_gzh_subscribe`),
+			`fields`:   work_flow.GetSubscribeUnsubscribe(common.GetLang(c)),
 		},
 		{
 			`msg_type`: define.TriggerOfficialQrCodeScan,
-			`desc`:     `二维码扫描事件`,
-			`fields`:   work_flow.GetQrcodeScan(),
+			`desc`:     i18n.Show(common.GetLang(c), `trigger_gzh_scan`),
+			`fields`:   work_flow.GetQrcodeScan(common.GetLang(c)),
 		},
 		{
 			`msg_type`: define.TriggerOfficialMenuClick,
-			`desc`:     `菜单点击事件`,
-			`fields`:   work_flow.GetMenuClick(),
+			`desc`:     i18n.Show(common.GetLang(c), `trigger_gzh_click`),
+			`fields`:   work_flow.GetMenuClick(common.GetLang(c)),
 		},
 	}
 	robotKey := cast.ToString(c.Query(`robot_key`))

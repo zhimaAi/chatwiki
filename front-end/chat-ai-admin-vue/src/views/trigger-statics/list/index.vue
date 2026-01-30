@@ -6,6 +6,11 @@
         <div class="title">合计触发次数</div>
         <div class="num">{{ tip_total }}</div>
       </div>
+
+      <div class="statics-item unknown-item cursor-pointer" @click="showUnknowQuestionModal">
+        <a class="title">未知问题合计数量&nbsp;<RightOutlined /></a>
+        <div class="num">{{ unknow_question_total }}</div>
+      </div>
     </div>
     <div class="search-box">
       <a-range-picker
@@ -108,9 +113,11 @@
       </div>
     </div>
     <DetailModal ref="detailModalRef" />
+    <UnknowQuestionModal ref="unknowQuestionModalRef" />
   </div>
 </template>
 <script setup>
+import dayjs from 'dayjs'
 import { ref, reactive, onMounted } from 'vue'
 import { RightOutlined } from '@ant-design/icons-vue'
 import { getDateRangePresets } from '@/utils/index'
@@ -119,11 +126,12 @@ import {
   statLibraryTotal,
   getLibraryList,
   statLibrarySort,
+  statUnknowQuestionTotal,
   statLibraryGroupSort
 } from '@/api/library'
 import PageTabs from '@/components/cu-tabs/page-tabs.vue'
 import DetailModal from './components/detail-modal.vue'
-import dayjs from 'dayjs'
+import UnknowQuestionModal from './components/unknow-question-modal.vue'
 
 const dateRangePresets = getDateRangePresets()
 
@@ -147,7 +155,8 @@ const pageTabs = ref([
 ])
 
 const tip_total = ref(0)
-
+const unknow_question_total = ref(0)
+const unknowQuestionModalRef = ref(null)
 const dates = ref([dayjs().startOf('month'), dayjs()])
 const currentType = ref(1)
 
@@ -315,9 +324,27 @@ const getStatics = () => {
   })
 }
 
+const getUnknowTotal = () => {
+  statUnknowQuestionTotal({
+    begin_date_ymd: searchState.begin_date_ymd,
+
+    end_date_ymd: searchState.end_date_ymd,
+  }).then(res => {
+    unknow_question_total.value = res.data.unknow_question_total
+  })
+}
+
+const showUnknowQuestionModal = () => {
+  unknowQuestionModalRef.value.show({
+    begin_date_ymd: searchState.begin_date_ymd,
+    end_date_ymd: searchState.end_date_ymd,
+  })
+}
+
 onMounted(() => {
   onSearch()
   getStatics()
+  getUnknowTotal()
   getLibraryList().then((res) => {
     libraryList.value = res.data
   })

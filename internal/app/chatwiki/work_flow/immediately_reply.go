@@ -6,7 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 )
 
-// ImmediatelyReplyBuildReplyContent 组装立即回复节点的参数成ReplyContent结构
+// ImmediatelyReplyBuildReplyContent Assemble the parameters of the immediate reply node into the ReplyContent structure
 func ImmediatelyReplyBuildReplyContent(content string) common.ReplyContent {
 	return common.ReplyContent{
 		ReplyType:   common.ReplyTypeText,

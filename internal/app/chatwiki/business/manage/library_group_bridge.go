@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_define"
 	"errors"
 
 	"github.com/spf13/cast"
@@ -39,7 +40,7 @@ func BridgeGetLibraryGroup(adminUserId, userId int, lang string, req *BridgeGetL
 		logs.Error(err.Error())
 		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
 	}
-	list = append([]msql.Params{{`id`: `0`, `group_name`: `未分组`}}, list...)
+	list = append([]msql.Params{{`id`: `0`, `group_name`: lib_define.Ungrouped}}, list...)
 
 	switch groupType {
 	case define.LibraryGroupTypeQA:

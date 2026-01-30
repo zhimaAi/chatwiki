@@ -221,7 +221,7 @@ func (r *ChatMessagesReq) buildChatRequestParam(c *gin.Context) (*define.ChatReq
 
 // Completions compatible openai standard api
 func Completions(c *gin.Context) {
-	c.String(http.StatusNotFound, `开源版本不支持!`)
+	c.String(http.StatusNotFound, `The open-source version is not supported !`)
 }
 
 func GetRobotInfo(c *gin.Context) {

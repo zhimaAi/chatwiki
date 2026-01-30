@@ -4,6 +4,7 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_crypto"
 	"chatwiki/internal/pkg/lib_web"
 	"encoding/base64"
@@ -85,7 +86,7 @@ type LibraryCsl struct {
 	FileDocs      []msql.Params `json:"file_docs"`      //对外文档文件列表
 }
 
-func BuildLibraryCsl(libraryId, adminUserId int, importData bool) (libraryCsl *LibraryCsl, err error) {
+func BuildLibraryCsl(lang string, libraryId, adminUserId int, importData bool) (libraryCsl *LibraryCsl, err error) {
 	libraryCsl = &LibraryCsl{
 		Library:       make(msql.Params),
 		QuestionGuide: make([]msql.Params, 0),
@@ -94,7 +95,7 @@ func BuildLibraryCsl(libraryId, adminUserId int, importData bool) (libraryCsl *L
 		FileDocs:      make([]msql.Params, 0),
 	}
 	if libraryId <= 0 {
-		err = errors.New(`知识库ID参数错误`)
+		err = errors.New(i18n.Show(lang, `library_id_param_error`))
 		return
 	}
 	//知识库配置信息
@@ -104,7 +105,7 @@ func BuildLibraryCsl(libraryId, adminUserId int, importData bool) (libraryCsl *L
 		return
 	}
 	if len(library) == 0 {
-		err = errors.New(`知识库信息不存在`)
+		err = errors.New(i18n.Show(lang, `library_info_not_exist`))
 		return
 	}
 	libraryCsl.Library = library
@@ -377,7 +378,7 @@ type FormCsl struct {
 	FormFilterCondition []msql.Params `json:"form_filter_condition"` //数据表的分类条件
 }
 
-func BuildFormCsl(formId, adminUserId int, importData bool) (formCsl *FormCsl, err error) {
+func BuildFormCsl(lang string, formId, adminUserId int, importData bool) (formCsl *FormCsl, err error) {
 	formCsl = &FormCsl{
 		Form:                make(msql.Params),
 		FormEntry:           make([]msql.Params, 0),
@@ -387,7 +388,7 @@ func BuildFormCsl(formId, adminUserId int, importData bool) (formCsl *FormCsl, e
 		FormFilterCondition: make([]msql.Params, 0),
 	}
 	if formId <= 0 {
-		err = errors.New(`数据表ID参数错误`)
+		err = errors.New(i18n.Show(lang, `form_id_param_error`))
 		return
 	}
 	//数据表配置信息
@@ -398,7 +399,7 @@ func BuildFormCsl(formId, adminUserId int, importData bool) (formCsl *FormCsl, e
 		return
 	}
 	if len(form) == 0 {
-		err = errors.New(`数据表信息不存在`)
+		err = errors.New(i18n.Show(lang, `form_info_not_exist`))
 		return
 	}
 	formCsl.Form = form
@@ -614,7 +615,7 @@ type DefaultModelParams struct {
 	RerankUseModel      string `json:"rerank_use_model"`
 }
 
-func GetDefaultModelParams(adminUserId int) (params *DefaultModelParams, err error) {
+func GetDefaultModelParams(lang string, adminUserId int) (params *DefaultModelParams, err error) {
 	params = &DefaultModelParams{}
 	configs, sqlErr := msql.Model(`chat_ai_model_config`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id desc`).Select()
@@ -626,7 +627,7 @@ func GetDefaultModelParams(adminUserId int) (params *DefaultModelParams, err err
 		return tool.InArrayString(configs[i][`model_define`], []string{ModelChatWiki}) //优先选取的模型
 	})
 	for _, config := range configs {
-		modelInfo, ok := GetModelInfoByConfig(adminUserId, cast.ToInt(config[`id`]))
+		modelInfo, ok := GetModelInfoByConfig(lang, adminUserId, cast.ToInt(config[`id`]))
 		if !ok {
 			continue
 		}
@@ -654,10 +655,10 @@ func GetDefaultModelParams(adminUserId int) (params *DefaultModelParams, err err
 		}
 	}
 	if params.LlmModelConfigId == 0 {
-		return nil, errors.New(`请先完成大语言模型服务商配置`)
+		return nil, errors.New(i18n.Show(lang, `llm_model_provider_not_configured`))
 	}
 	if params.VectorModelConfigId == 0 {
-		return nil, errors.New(`请先完成嵌入模型服务商配置`)
+		return nil, errors.New(i18n.Show(lang, `embedding_model_provider_not_configured`))
 	}
 	return
 }

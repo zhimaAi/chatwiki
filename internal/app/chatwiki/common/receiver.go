@@ -4,6 +4,7 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_define"
 	"fmt"
 
 	"github.com/spf13/cast"
@@ -47,8 +48,8 @@ func createNewReceiver(params *define.ChatRequestParam, sessionId int64) {
 		data[`name`] = params.Customer[`name`]
 		data[`avatar`] = params.Customer[`avatar`]
 	} else {
-		data[`nickname`] = `访客XXXX`
-		data[`name`] = `访客XXXX`
+		data[`nickname`] = lib_define.DefaultCustomerName
+		data[`name`] = lib_define.DefaultCustomerName
 		data[`avatar`] = define.DefaultCustomerAvatar
 	}
 	//获取关联用户信息

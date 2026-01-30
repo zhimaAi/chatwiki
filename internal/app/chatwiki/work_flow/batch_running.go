@@ -5,6 +5,7 @@ package work_flow
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"errors"
 	"fmt"
 	"runtime/debug"
@@ -25,11 +26,11 @@ type WorkFlowBatch struct {
 	BatchNode       msql.Params
 }
 
-// FlowRunningBatchTest 批处理节点单独运行测试
+// FlowRunningBatchTest Batch node separate run test
 func FlowRunningBatchTest(flow *WorkFlow) error {
 	defer func() {
 		if r := recover(); r != nil {
-			logs.Debug(`报错了 %s`, debug.Stack())
+			logs.Debug(`Error occurred %s`, debug.Stack())
 		}
 	}()
 	_, childNode, err := GetNodeByKey(flow, cast.ToUint(flow.params.RealRobot[`id`]), flow.curNodeKey)
@@ -51,12 +52,12 @@ func FlowRunningBatchTest(flow *WorkFlow) error {
 		}
 		flow.isFinish = true
 	} else {
-		err = errors.New(`未执行批处理节点`)
+		err = errors.New(i18n.Show(flow.params.Lang, `batch_node_not_executed`))
 	}
 	return err
 }
 
-// BatchNodeRunning 批处理节点运行
+// BatchNodeRunning Batch node running
 func BatchNodeRunning(nodeInfo msql.Params, flow *WorkFlow) (common.SimpleFields, string, error) {
 	workFlowBatch, err := NewWorkFlowBatch(``, nodeInfo, flow)
 	if err != nil {
@@ -86,17 +87,17 @@ func NewWorkFlowBatch(nodeKey string, node msql.Params, flow *WorkFlow) (*WorkFl
 			return flowBatch, err
 		}
 	} else {
-		err = errors.New(`批处理节点配置不能为空`)
+		err = errors.New(i18n.Show(flowBatch.MainFlow.params.Lang, `batch_node_config_empty`))
 		return flowBatch, err
 	}
 	if cast.ToInt(flowBatch.BatchNode[`node_type`]) != NodeTypeBatch {
-		err = errors.New(`错误的批处理节点`)
+		err = errors.New(i18n.Show(flowBatch.MainFlow.params.Lang, `batch_node_invalid`))
 		return flowBatch, err
 	}
 	nodeParams := &NodeParams{}
 	err = tool.JsonDecode(flowBatch.BatchNode[`node_params`], &nodeParams)
 	if err != nil {
-		logs.Error(`节点参数解析错误: %s`, err)
+		logs.Error(`Node parameter parsing error: %s`, err)
 		return flowBatch, err
 	}
 	flowBatch.BatchNodeParams = &nodeParams.Batch
@@ -108,18 +109,18 @@ func (flowBatch *WorkFlowBatch) ForRunning() (nextNodeKey string, err error) {
 	flowBatch.testFillParams(flowBatch.MainFlow)
 	batchDatas := flowBatch.getBatchDatas()
 	if len(batchDatas) == 0 {
-		flowBatch.MainFlow.Logs(`未找到批处理数据`)
-		return nextNodeKey, errors.New(`未找到批处理数据`)
+		flowBatch.MainFlow.Logs(`Batch data not found`)
+		return nextNodeKey, errors.New(i18n.Show(flowBatch.MainFlow.params.Lang, `batch_data_not_found`))
 	}
-	//单独运行测试只允许一次
+	// Only one run allowed for separate testing
 	if flowBatch.MainFlow.params.IsTestBatchNodeRun {
 		batchDatas = []*common.SimpleField{batchDatas[0]}
 	}
 	if len(batchDatas) > flowBatch.BatchNodeParams.MaxRunNumber.Int() {
-		flowBatch.MainFlow.Logs(`批处理传入数据%d，最大执行%d`, len(batchDatas), flowBatch.BatchNodeParams.MaxRunNumber.Int())
+		flowBatch.MainFlow.Logs(`Batch processing incoming data %d, max execution %d`, len(batchDatas), flowBatch.BatchNodeParams.MaxRunNumber.Int())
 		batchDatas = batchDatas[:flowBatch.BatchNodeParams.MaxRunNumber.Int()]
 	}
-	flowBatch.MainFlow.Logs(`开始批处理数据%d次..`, len(batchDatas))
+	flowBatch.MainFlow.Logs(`Start batch processing data %d times..`, len(batchDatas))
 	var wg sync.WaitGroup
 	cTask := make(chan any, flowBatch.BatchNodeParams.ChanNumber.Int())
 	for _, inField := range batchDatas {
@@ -134,7 +135,7 @@ func (flowBatch *WorkFlowBatch) ForRunning() (nextNodeKey string, err error) {
 			flowL := &WorkFlow{}
 			flowL, err := flowBatch.batchNodeRunning(data)
 			if err != nil {
-				flowBatch.MainFlow.Logs(`批处理节点运行错误: %s`, err)
+				flowBatch.MainFlow.Logs(`Batch node running error: %s`, err)
 			} else {
 				flowBatch.FlowLs = append(flowBatch.FlowLs, flowL)
 			}
@@ -150,13 +151,13 @@ func (flowBatch *WorkFlowBatch) ForRunning() (nextNodeKey string, err error) {
 
 func (flowBatch *WorkFlowBatch) getBatchDatas() []*common.SimpleField {
 	for _, batchArray := range flowBatch.BatchNodeParams.BatchArrays {
-		if batchArray.NodeKey() == `global` { //开始节点
+		if batchArray.NodeKey() == `global` { // Start node
 			for globalKey, globalVal := range flowBatch.MainFlow.global {
 				if globalKey == batchArray.ChooseKey() {
 					return flowBatch.inFieldAppend(batchArray.Key, globalVal)
 				}
 			}
-		} else { //非开始节点
+		} else { // Non-start node
 			for outNodeKey, nodeOutputs := range flowBatch.MainFlow.outputs {
 				if outNodeKey != batchArray.NodeKey() {
 					continue
@@ -220,20 +221,19 @@ func (flowBatch *WorkFlowBatch) inFieldAppend(key string, outField common.Simple
 func (flowBatch *WorkFlowBatch) TakeChildOutputs() {
 	completionToken, promptToken := 0, 0
 	for _, flowL := range flowBatch.FlowLs {
-		logs.Debug(`到这里了 11`)
 		//take token
 		for _, nodeLog := range flowL.nodeLogs {
 			nodeOutputTake := NodeOutputTake{}
 			err := tool.JsonDecode(tool.JsonEncodeNoError(nodeLog.Output), &nodeOutputTake)
 			if err != nil {
-				flowBatch.MainFlow.Logs(`异常:批处理节点提取子节点输出参数错误 %s`, err.Error())
+				flowBatch.MainFlow.Logs(`Exception: Batch node extract child node output parameter error %s`, err.Error())
 				continue
 			}
 			completionToken += cast.ToInt(nodeOutputTake.LlmResult.CompletionToken)
 			promptToken += cast.ToInt(nodeOutputTake.LlmResult.PromptToken)
 		}
-		logs.Debug(`上一个工作流的输出 %s`, tool.JsonEncodeNoError(flowL.outputs))
-		logs.Debug(`准备提取的数据 %s`, tool.JsonEncodeNoError(flowBatch.BatchNodeParams.Output))
+		logs.Debug(`Output of previous workflow %s`, tool.JsonEncodeNoError(flowL.outputs))
+		logs.Debug(`Data to be extracted %s`, tool.JsonEncodeNoError(flowBatch.BatchNodeParams.Output))
 		//take result
 		for childNodeKey, childOutput := range flowL.outputs {
 			for _, childOutField := range childOutput {
@@ -245,19 +245,17 @@ func (flowBatch *WorkFlowBatch) TakeChildOutputs() {
 			}
 		}
 	}
-	logs.Debug(`到这里了4`)
 	//batch output
 	for _, outField := range flowBatch.BatchNodeParams.Output {
 		flowBatch.Outputs[outField.Key] = outField.SimpleField
 	}
-	logs.Debug(`到这里了5`)
-	//注入token到结果中
+	// Inject token into result
 	batchNumber := len(flowBatch.FlowLs)
 	flowBatch.Outputs[`llm_result.completion_token`] = common.SimpleField{Key: `llm_result.completion_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &completionToken}}}
 	flowBatch.Outputs[`llm_result.prompt_token`] = common.SimpleField{Key: `llm_result.prompt_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &promptToken}}}
 	flowBatch.Outputs[`batch_result.batch_number`] = common.SimpleField{Key: `batch_result.batch_number`, Typ: common.TypNumber, Vals: []common.Val{{Number: &batchNumber}}}
 
-	//测试输出日志
+	// Test output log
 	if define.IsDev {
 		//for key, log := range childFlowLogs {
 		//	flowBatch.Outputs[key] = common.SimpleField{Key: key, Typ: common.TypArrObject, Vals: []common.Val{{Object: log}}}
@@ -272,24 +270,24 @@ func (flowBatch *WorkFlowBatch) batchNodeRunning(dataField *common.SimpleField) 
 		nodeLogs:    make([]common.NodeLog, 0),            //node logs
 		StartTime:   tool.Time2Int(),                      //start time
 		context:     flowBatch.MainFlow.context,           //inherit context
-		global:      flowBatch.MainFlow.global,            //继承自所属工作流
-		outputs:     make(map[string]common.SimpleFields), //深度拷贝主流程的输出
-		inputs:      make(map[string]common.SimpleFields), //输入参数 不继承主流程
+		global:      flowBatch.MainFlow.global,            // Inherited from the owning workflow
+		outputs:     make(map[string]common.SimpleFields), // Deep copy of main flow outputs
+		inputs:      make(map[string]common.SimpleFields), // Input parameters do not inherit from main flow
 		runNodeKeys: make([]string, 0),                    //self run node keys
 		runLogs:     make([]string, 0),                    //self  logs
 		VersionId:   flowBatch.MainFlow.VersionId,         //inherit version id
 	}
 	flowBatch.copyOutputs(flowL.outputs)
-	//批处理本次参数注入
+	// Batch parameter injection for this run
 	flowBatch.fillBatchInField(flowL, dataField)
-	//找到入口子节点
+	// Find entry child node
 	flowL.curNodeKey, err = flowBatch.FindStartChildNodeKey()
 	if err != nil {
 		flowL.Logs(err.Error())
 		return
 	}
 	if flowL.curNodeKey == `` {
-		err = errors.New(`未找到批处理的开始节点`)
+		err = errors.New(i18n.Show(flowL.params.Lang, `batch_start_node_not_found`))
 		return
 	}
 	for {
@@ -300,13 +298,13 @@ func (flowBatch *WorkFlowBatch) batchNodeRunning(dataField *common.SimpleField) 
 			break
 		}
 		if flowL.curNode == nil {
-			break //退出
+			break // Exit
 		}
-		flowL.Logs(`批处理节点当前运行子节点:%s %s`, flowL.curNodeKey, nodeInfo[`node_name`])
+		flowL.Logs(`Batch node currently running child node:%s %s`, flowL.curNodeKey, nodeInfo[`node_name`])
 		flowL.runNodeKeys = append(flowL.runNodeKeys, flowL.curNodeKey)
 		var nextNodeKey string
 
-		//节点运行开始
+		// Node execution start
 		nodeLog := common.NodeLog{
 			StartTime: time.Now().UnixMilli(),
 			NodeKey:   flowL.curNodeKey,
@@ -316,13 +314,13 @@ func (flowBatch *WorkFlowBatch) batchNodeRunning(dataField *common.SimpleField) 
 		flowL.getNodeInputs()
 		flowL.inputs[flowL.curNodeKey] = flowL.input
 		if tool.InArray(cast.ToInt(nodeInfo[`node_type`]), []int{NodeTypeLoop, NodeTypeBatch}) {
-			err = errors.New(fmt.Sprintf(`批处理节点中不支持循环节点或者批处理节点 %s`, nodeLog.NodeName))
+			err = errors.New(i18n.Show(flowL.params.Lang, `batch_node_not_support_loop_or_batch_node`, nodeLog.NodeName))
 			break
 		} else {
 			flowL.output, nextNodeKey, err = flowL.curNode.Running(flowL)
-			flowL.outputs[flowL.curNodeKey] = flowL.output //记录每个节点输出的变量
+			flowL.outputs[flowL.curNodeKey] = flowL.output // Record output variables of each node
 		}
-		//运行参数处理
+		// Running parameter processing
 		nodeLog.Input = common.GetFieldsObject(common.GetRecurveFields(flowL.input))
 		nodeLog.EndTime = time.Now().UnixMilli()
 		nodeLog.Output = common.GetFieldsObject(common.GetRecurveFields(flowL.output))
@@ -330,26 +328,26 @@ func (flowBatch *WorkFlowBatch) batchNodeRunning(dataField *common.SimpleField) 
 		nodeLog.ErrorMsg = fmt.Sprintf(`%v`, err)
 		nodeLog.UseTime = nodeLog.EndTime - nodeLog.StartTime
 		flowL.nodeLogs = append(flowL.nodeLogs, nodeLog)
-		//节点运行结束
-		flowBatch.MainFlow.Logs(`结果nextNodeKey:%s,err:%v`, nextNodeKey, err)
+		// Node execution end
+		flowBatch.MainFlow.Logs(`Result nextNodeKey:%s,err:%v`, nextNodeKey, err)
 		if len(flowL.output) > 0 {
-			flowBatch.MainFlow.Logs(`输出变量:%s`, tool.JsonEncodeNoError(flowL.output))
+			flowBatch.MainFlow.Logs(`Output variables:%s`, tool.JsonEncodeNoError(flowL.output))
 		}
 		if flowBatch.MainFlow.isTimeout || err != nil || len(nextNodeKey) == 0 {
-			break //结束
+			break // End
 		}
-		//外部中断监听处理
-		logs.Debug(`监听处理 %v`, flowL.context)
+		// External interrupt listener processing
+		logs.Debug(`Listener processing %v`, flowL.context)
 		select {
 		case <-flowL.context.Done():
 			goto flowExit
-		default: //执行下一个节点
+		default: // Execute next node
 			flowL.curNodeKey = nextNodeKey
 		}
 	}
 flowExit:
 	flowL.EndTime = tool.Time2Int()
-	flowL.running = false //运行结束
+	flowL.running = false // Running end
 	return
 }
 

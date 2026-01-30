@@ -88,7 +88,7 @@ const getNode = inject('getNode')
 const addNode = inject('addNode')
 const setData = inject('setData')
 const resetSize = inject('resetSize')
-const excludedNodeTypes = ref(['custom-group', 'batch-group', 'end-node'])
+const excludedNodeTypes = ref(['custom-group', 'batch-group', 'end-node', 'qa-node'])
 
 const isShowMenu = ref(false)
 

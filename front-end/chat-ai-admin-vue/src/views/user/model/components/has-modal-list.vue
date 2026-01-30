@@ -309,6 +309,7 @@ const hadnleDelModel = (record) => {
 .modal-list-box {
   height: 100%;
   overflow: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   .alert-box {
@@ -346,7 +347,9 @@ const hadnleDelModel = (record) => {
     padding-top: 0;
     margin-top: 16px;
     flex: 1;
-    overflow-y: auto;
+    &::v-deep(.ant-table-sticky-scroll) { 
+      display: none;
+    }
   }
 }
 </style>

@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
 	"net/http"
@@ -34,7 +35,7 @@ func GetRobotGroupList(c *gin.Context) {
 		return
 	}
 
-	list = append([]msql.Params{{`id`: `0`, `group_name`: `未分组`}}, list...)
+	list = append([]msql.Params{{`id`: `0`, `group_name`: lib_define.Ungrouped}}, list...)
 	if applicationType >= 0 {
 		wheres = append(wheres, []string{`application_type`, cast.ToString(applicationType)})
 	}

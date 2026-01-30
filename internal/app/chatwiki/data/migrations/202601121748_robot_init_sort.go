@@ -18,7 +18,7 @@ func init() {
 		go func() {
 			err := InitRobotSort()
 			if err != nil {
-				logs.Other(`migration`, `异步处理初始化排序报错:%s`, err.Error())
+				logs.Other(`migration`, `async process init sort error: %s`, err.Error())
 			}
 		}()
 		return nil
@@ -32,10 +32,10 @@ func InitRobotSort() error {
 	list, err := m.Select()
 	//排序处理
 	if err != nil {
-		logs.Other(`migration`, `查询全部机器人排序数据失败:%s`, err.Error())
+		logs.Other(`migration`, `query all robot sort data failed: %s`, err.Error())
 		return err
 	}
-	logs.Other(`migration`, `开始处理机器人排序数据`)
+	logs.Other(`migration`, `start processing robot sort data`)
 	sortNum := 1
 	lastAdminUserId := 0
 	for _, robot := range list {
@@ -47,11 +47,11 @@ func InitRobotSort() error {
 			Where(`id`, robot[`id`]).
 			Update(msql.Datas{`sort_num`: sortNum})
 		if err != nil {
-			logs.Other(`migration`, `更新机器人排序失败:%s`, err.Error())
+			logs.Other(`migration`, `update robot sort failed: %s`, err.Error())
 			return err
 		}
 		sortNum++
 	}
-	logs.Other(`migration`, `完成机器人排序处理`)
+	logs.Other(`migration`, `completed robot sort processing`)
 	return nil
 }

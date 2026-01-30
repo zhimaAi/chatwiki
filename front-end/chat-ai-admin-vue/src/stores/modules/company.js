@@ -21,14 +21,14 @@ const topNavigateDefaultData = [
     isDisabled: true,
   },
   {
-    id: 'PublicLibrary',
+    id: 'PublicLibrary-new',
     name: '文档',
-    open: true
+    open: false
   },
   {
-    id: 'library-search',
+    id: 'library-search-new',
     name: '搜索',
-    open: true
+    open: false
   },
   {
     id: 'chat-monitor',
@@ -81,7 +81,11 @@ export const useCompanyStore = defineStore('company', {
       this.ali_ocr_secret = data ? data.ali_ocr_secret : '2';
       this.is_public_network = data ? data.is_public_network : '';
       if(data && data.top_navigate){
-        this.top_navigate = JSON.parse(data.top_navigate) || topNavigateDefaultData
+        let top_navigate = JSON.parse(data.top_navigate)
+        this.top_navigate = topNavigateDefaultData.map(item => {
+          let findItem =  top_navigate.find(it => it.id == item.id)
+          return findItem ? findItem : item
+        })
       }else{
         this.top_navigate = topNavigateDefaultData
       }

@@ -1,7 +1,6 @@
 <style lang="less" scoped>
 .add-data-form {
   .node-box-content {
-    margin-top: 16px;
     overflow: hidden;
     border-radius: 6px;
     background: #f2f4f7;
@@ -19,7 +18,7 @@
   }
 
   .setting-box {
-    margin-top: 12px;
+
   }
 }
 
@@ -42,6 +41,7 @@
 
   .desc {
     color: var(--wf-color-text-2);
+    word-break: break-all;
   }
 
 
@@ -75,15 +75,22 @@
     }
   }
 }
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mt8 {
+  margin-top: 8px;
+}
 </style>
 
 <template>
   <div class="add-data-form">
     <div class="node-box-content">
-<!--      <div class="setting-label">-->
-<!--        <span>更新数据</span>-->
-<!--        <span class="tip"></span>-->
-<!--      </div>-->
       <div class="options-item is-required">
         <div class="options-item-tit">
           <div class="option-label">record_id</div>
@@ -94,11 +101,11 @@
             type="textarea"
             inputStyle="height: 64px;"
             :options="variableOptions"
-            :defaultSelectedList="state.tags"
-            :defaultValue="state.value"
-            ref="atInputRef"
+            :defaultSelectedList="state.record_tags"
+            :defaultValue="state.record_id"
+            :ref="el => atInputRef['record_id'] = el"
             @open="emit('updateVar')"
-            @change="changeValue"
+            @change="(val, tags) => changeValue('record_id', val, tags)"
             placeholder="请输入内容，键入“/”可以插入变量"
           >
             <template #option="{ label, payload }">
@@ -111,16 +118,44 @@
         </div>
         <div class="desc">待更新的记录ID；示例值："reCWNXZPQv"</div>
       </div>
-
-      <div class="setting-box">
-        <FieldListSelect
-          :showEmptyFieldRow="!tableId"
-          :list="dataItems"
-          :fields="fields"
-          :showAdd="true"
-          :showDelete="true"
-          @change="onChangeFields"
-        />
+      <div class="options-item is-required">
+        <div class="flex-between">
+          <div class="options-item-tit">
+            <div class="option-label">更新数据</div>
+          </div>
+          <div class="flex-between">
+            <FullscreenOutlined v-if="state.input_type_map.fields == 2" class="zm-pointer" @click="showFull('fields')"/>
+            <a-select v-model:value="state.input_type_map.fields" style="width: 130px;" @change="update">
+              <a-select-option :value="1">选择更新数据</a-select-option>
+              <a-select-option :value="2">输入变量</a-select-option>
+            </a-select>
+          </div>
+        </div>
+        <div class="setting-box">
+          <FieldListSelect
+            v-if="state.input_type_map.fields == 1"
+            :showEmptyFieldRow="!tableId"
+            :list="state.fields"
+            :fields="fields"
+            :showAdd="true"
+            :showDelete="true"
+            @change="onChangeFields"
+          />
+          <template v-else>
+            <AtFullInput
+              type="textarea"
+              inputStyle="height: 64px;"
+              :options="variableOptions"
+              :defaultSelectedList="state.tag_map?.fields_json || []"
+              :defaultValue="state.fields_json"
+              :ref="el => atInputRef['fields'] = el"
+              @open="emit('updateVar')"
+              @change="(val, tags) => changeValue('fields_json', val, tags)"
+              placeholder="请输入内容，键入“/”可以插入变量"
+            />
+            <div class="desc">内容示例：[{"field_name":"文本","ui_type":"Text","value":"001"},{"field_name":"日期","ui_type":"DateTime","value":1769077135214},{"field_name":"数字","ui_type":"Number","value":99},{"field_name":"单选","ui_type":"SingleSelect","value":"选项1"},{"field_name":"多选","ui_type":"MultiSelect","value":["类别A","类别B"]},{"field_name":"复选框","ui_type":"Checkbox","value":true}]</div>
+          </template>
+        </div>
       </div>
     </div>
   </div>
@@ -128,7 +163,9 @@
 
 <script setup>
 import { ref, reactive, toRaw } from 'vue'
+import {FullscreenOutlined} from '@ant-design/icons-vue'
 import FieldListSelect from "@/views/workflow/components/feishu-table/field-selector/index.vue";
+import AtFullInput from "@/views/workflow/components/at-input/at-full-input.vue";
 import AtInput from "@/views/workflow/components/at-input/at-input.vue";
 
 const emit = defineEmits(['update', 'updateVar'])
@@ -145,43 +182,68 @@ const props = defineProps({
   },
 })
 
-const dataItems = ref([])
+const atInputRef = ref({})
 const state = reactive({
-  tags: [],
-  value: '',
+  record_id: '',
+  record_tags: [],
+  fields: [],
+  fields_json: "",
+  input_type_map: {
+    fields: 1
+  },
+  tag_map: {
+    fields: []
+  },
 })
 
 function init(nodeParams = null) {
-  dataItems.value = []
-  if (Array.isArray(nodeParams?.plugin?.params?.arguments?.fields) && nodeParams.plugin.params.arguments.fields.length) {
-    nodeParams.plugin.params.arguments.fields.map(item => {
+  state.fields = []
+  if (nodeParams) {
+    let { fields, input_type_map, tag_map} = nodeParams?.plugin?.params?.arguments || {}
+    fields.map(item => {
       item.value = item.value ? item.value.toString() : ""
     })
-    dataItems.value = nodeParams.plugin.params.arguments.fields
+    state.fields = fields
+    state.tag_map = tag_map || {}
+    if (input_type_map){
+      state.input_type_map = input_type_map
+      for (let f in input_type_map) {
+        if (input_type_map[f] == 2 && !state[`${f}_json`]) {
+          let d = JSON.stringify(state[f])
+          state[`${f}_json`] = d
+        }
+      }
+    }
   }
   if (nodeParams && nodeParams?.plugin?.params?.arguments?.record_id) {
-    state.value = nodeParams.plugin.params.arguments.record_id
-    state.tags = nodeParams.plugin.params.arguments.record_tags || []
+    state.record_id = nodeParams.plugin.params.arguments.record_id
+    state.record_tags = nodeParams.plugin.params.arguments.record_tags || []
   }
+  update()
 }
 
 const onChangeFields = (selectedRows) => {
-  dataItems.value = selectedRows
+  state.fields = selectedRows
   update()
 }
 
-function changeValue(val, tags) {
-  state.value = val
-  state.tags = tags
+function changeValue(field, val, tags) {
+  state[field] = val
+  if (field == 'record_id') {
+    state.record_tags = tags
+  } else {
+    state.tag_map[field] = tags
+  }
   update()
 }
 
+function showFull(field) {
+  atInputRef.value[field]?.showFull()
+}
 
 const update = () => {
   emit('update', {
-    record_id: state.value,
-    record_tags: state.tags,
-    fields: toRaw(dataItems.value)
+    ...state
   })
 }
 

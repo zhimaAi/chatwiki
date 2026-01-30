@@ -157,7 +157,7 @@ func StartWebhook(c *gin.Context) (ret string, err error) {
 	if err != nil {
 		return
 	}
-	//testParams 提取传递的参数  triggerOutputs 用于trigger outpus 赋值
+	// testParams extract passed parameters, triggerOutputs used for trigger outputs assignment
 	testParams, triggerOutputs := getRunParams(robotInfo, webhookConfig, c)
 	if webhookConfig.ResponseType == WebHookResponseTypeNow {
 		ret = webhookConfig.ResponseNow
@@ -216,7 +216,7 @@ func runWorkFlow(robotInfo msql.Params, trigger msql.Params, testParams map[stri
 	if err != nil {
 		return
 	}
-	content := TakeOutputReply(flow)
+	content, _ := TakeOutputReply(flow)
 	if variables, ok := flow.output[`special.finish_variables`]; ok {
 		if len(variables.Vals) > 0 {
 			decodeErr := tool.JsonDecode(cast.ToString(*variables.Vals[0].String), &resData)

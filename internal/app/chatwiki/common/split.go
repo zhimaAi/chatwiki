@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/textsplitter"
 	"context"
@@ -1364,13 +1365,13 @@ func ExtractTextImagesPlaceholders(content string) (string, []string) {
 			images = append(images, match[1])
 		}
 	}
-	content = re.ReplaceAllString(content, "[图片占位符]")
+	content = re.ReplaceAllString(content, lib_define.ImagePlaceholder)
 	return content, images
 }
 
 func InTextImagesPlaceholders(content string, images []string) (string, []string, []string) {
 
-	count := strings.Count(content, "[图片占位符]")
+	count := strings.Count(content, lib_define.ImagePlaceholder)
 	imgs := make([]string, 0)
 	for i := 0; i < count; i++ {
 		if len(images) > 0 {
@@ -1378,7 +1379,7 @@ func InTextImagesPlaceholders(content string, images []string) (string, []string
 			images = images[1:]
 		}
 	}
-	content = strings.ReplaceAll(content, "[图片占位符]", "")
+	content = strings.ReplaceAll(content, lib_define.ImagePlaceholder, "")
 	return content, imgs, images
 }
 
@@ -1425,7 +1426,7 @@ func DefaultSplitParams() define.SplitParams {
 }
 
 func AutoSplitLibFile(adminUserId, fileId int, splitParams define.SplitParams) {
-	lang := define.LangZhCn
+	lang := define.LangEnUs
 	list, wordTotal, splitParams, err := GetLibFileSplit(adminUserId, fileId, 0, splitParams, lang)
 	if err != nil {
 		UpdateLibFileData(adminUserId, fileId, msql.Datas{`status`: define.FileStatusException, `errmsg`: err.Error()})
@@ -1528,7 +1529,7 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list d
 			messages := []adaptor.ZhimaChatCompletionMessage{
 				{
 					Role:    `system`,
-					Content: splitParams.AiChunkPrumpt + `\n 严格按照输出示例返回,输出示例:[{"chunk":"段落1"},{"chunk":"段落2"}]`,
+					Content: splitParams.AiChunkPrumpt + define.AiChunkPrumptSuffix,
 				},
 				{
 					Role:    `user`,
@@ -1550,6 +1551,7 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list d
 			}()
 		Retry:
 			chatResp, _, err := RequestChatStream(
+				define.LangEnUs,
 				adminUserId,
 				"",
 				msql.Params{},
@@ -1582,7 +1584,7 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list d
 				lock.Lock()
 				resp := []chunkResult{}
 				if err := tool.JsonDecode(chatResp.Result, &resp); err != nil {
-					docSplitItem.AiChunkErrMsg = fmt.Sprintf(`AI返回格式解析失败:%s`, err.Error())
+					docSplitItem.AiChunkErrMsg = fmt.Sprintf(`ai return format error:%s`, err.Error())
 				} else {
 					docSplitItem.Content = chatResp.Result
 				}
@@ -1617,7 +1619,7 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list d
 		} else {
 			allContents := []chunkResult{}
 			if err := tool.JsonDecode(contentMap[i].Content, &allContents); err != nil {
-				errMsg = fmt.Sprintf(`AI返回格式解析失败:%s`, err.Error())
+				errMsg = fmt.Sprintf(`ai return format error:%s`, err.Error())
 			}
 			for _, item := range allContents {
 				if len(item.Chunk) == 0 {

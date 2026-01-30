@@ -45,7 +45,7 @@ func GetExportTaskList(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	data := map[string]any{`map`: define.ExportSourceList, `list`: list, `total`: total, `page`: page, `size`: size}
+	data := map[string]any{`map`: common.GetExportSourceList(common.GetLang(c)), `list`: list, `total`: total, `page`: page, `size`: size}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
 

@@ -95,7 +95,7 @@
 
       <div class="field-list-row" v-for="(item, index) in state.list" :key="item.field_name">
         <div class="field-list-col field-name-col">{{ item.field_name }}</div>
-        <div class="field-list-col field-type-col">{{ item.ui_type }}</div>
+        <div class="field-list-col field-type-col">{{ item.ui_type || fieldMap[item.field_name]?.ui_type }}</div>
         <div class="field-list-col field-value-col" v-if="showInput">
 <!--          <a-checkbox v-if="item.ui_type === 'Checkbox'" v-model:checked="item.value"/>-->
 <!--          <a-select-->
@@ -143,7 +143,7 @@
 </template>
 
 <script setup>
-import {ref, reactive, watch, inject, onMounted} from 'vue'
+import {ref, reactive, watch, inject, onMounted, computed} from 'vue'
 import {PlusOutlined} from '@ant-design/icons-vue'
 import FieldSelectAlert from './field-select-alert.vue'
 import AtInput from '../../at-input/at-input.vue'
@@ -182,6 +182,12 @@ const getNode = inject('getNode')
 const state = reactive({
   list: [],
   keys: [],
+})
+
+const fieldMap = computed(() => {
+  return Object.fromEntries(
+    props.fields.map(item => [item.field_name, item])
+  )
 })
 
 watch(() => props.list, (newVal) => {

@@ -5,6 +5,7 @@ package work_flow
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_define"
 	"context"
 	"errors"
@@ -25,7 +26,7 @@ type Draft struct {
 	IsDraft      bool
 	NodeMaps     map[string]msql.Params
 	StartNodeKey string
-	//由前端传入,是否启用多模态输入
+	//Passed from the frontend, whether to enable multimodal input
 	QuestionMultipleSwitch bool
 }
 
@@ -37,10 +38,10 @@ type WorkFlowParams struct {
 	SessionId          int
 	Draft              Draft
 	IsTestLoopNodeRun  bool
-	TriggerParams      TriggerParams //触发器参数
+	TriggerParams      TriggerParams //Trigger parameters
 	IsTestBatchNodeRun bool
-	IsFromWorkflow     bool //是否来自工作流
-	//立即回复输出句柄
+	IsFromWorkflow     bool //Whether it comes from workflow
+	//Immediate reply output handler
 	ImmediatelyReplyHandle func(replyContent common.ReplyContent)
 }
 
@@ -50,9 +51,9 @@ type LoopIntermediate struct {
 }
 
 type TriggerParams struct {
-	TriggerType    uint                 //触发方式,默认值:TriggerTypeChat
-	TestParams     map[string]any       //测试触发器传入参数
-	TriggerOutputs []TriggerOutputParam //自己构建的trigger outputs
+	TriggerType    uint                 //Trigger type, default: TriggerTypeChat
+	TestParams     map[string]any       //Test params passed to trigger
+	TriggerOutputs []TriggerOutputParam //Manually built trigger outputs
 }
 
 type WorkFlow struct {
@@ -62,7 +63,7 @@ type WorkFlow struct {
 	EndTime          int
 	context          context.Context
 	cancel           context.CancelFunc
-	ticker           *time.Ticker //流程超时
+	ticker           *time.Ticker //Workflow timeout
 	isTimeout        bool
 	global           common.SimpleFields
 	output           common.SimpleFields
@@ -76,14 +77,15 @@ type WorkFlow struct {
 	running          bool
 	isFinish         bool
 	VersionId        int
-	LoopIntermediate LoopIntermediate //中间变量 目前只用于循环节点，在变量赋值中使用
+	LoopIntermediate LoopIntermediate //Intermediate variable; currently only for loop nodes, used in variable assignment
+	isStorage        bool
 }
 
 func (flow *WorkFlow) Logs(format string, a ...any) {
 	msg := fmt.Sprintf(`[%s] %s`, tool.Date(), fmt.Sprintf(format, a...))
 	flow.runLogs = append(flow.runLogs, msg)
 	if define.IsDev {
-		logs.Debug(fmt.Sprintf(`【%v】`, flow.global[`openid`].GetVal(common.TypString))+format, a...) //debug日志
+		logs.Debug(fmt.Sprintf(`【%v】`, flow.global[`openid`].GetVal(common.TypString))+format, a...) //debug log
 	}
 }
 
@@ -96,37 +98,37 @@ type LlmCallInfo struct {
 }
 
 func (flow *WorkFlow) LlmCallLogs(info LlmCallInfo) {
-	msg := fmt.Sprintf(`[%s] llm调用:%s`, tool.Date(), tool.JsonEncodeNoError(info))
+	msg := fmt.Sprintf(`[%s] llm call:%s`, tool.Date(), tool.JsonEncodeNoError(info))
 	flow.runLogs = append(flow.runLogs, msg)
 	if define.IsDev {
 		jsonStr, _ := tool.JsonEncodeIndent(info, ``, "\t")
-		logs.Debug(fmt.Sprintf("【%v】llm调用:\r\n%s", flow.global[`openid`].GetVal(common.TypString), jsonStr))
+		logs.Debug(fmt.Sprintf("【%v】llm call:\r\n%s", flow.global[`openid`].GetVal(common.TypString), jsonStr))
 	}
 }
 
 func (flow *WorkFlow) Running() (err error) {
 	flow.running = true
-	flow.Logs(`进行工作流...`)
+	flow.Logs(`Running workflow...`)
 	if flow.params.Draft.IsDraft {
-		flow.Logs(`使用草稿调试...`)
+		flow.Logs(`Debugging with draft...`)
 	} else {
 		flow.VersionId = flow.getLastVersionId()
 	}
 	for {
 		var nodeInfo msql.Params
-		flow.Logs(`当前运行节点:%s`, flow.curNodeKey)
+		flow.Logs(`Current running node:%s`, flow.curNodeKey)
 		flow.curNode, nodeInfo, err = GetNodeByKey(flow, cast.ToUint(flow.params.RealRobot[`id`]), flow.curNodeKey)
 		if err != nil {
 			flow.Logs(err.Error())
 		}
 		if flow.curNode == nil {
-			break //退出
+			break //exit
 		}
 		flow.runNodeKeys = append(flow.runNodeKeys, flow.curNodeKey)
 		flow.getNodeInputs()
 		flow.inputs[flow.curNodeKey] = flow.input
 		var nextNodeKey string
-		//节点运行开始
+		//node run start
 		nodeLog := common.NodeLog{
 			StartTime: time.Now().UnixMilli(),
 			NodeKey:   flow.curNodeKey,
@@ -140,7 +142,14 @@ func (flow *WorkFlow) Running() (err error) {
 		} else {
 			flow.output, nextNodeKey, err = flow.curNode.Running(flow)
 		}
-		flow.outputs[flow.curNodeKey] = flow.output //记录每个节点输出的变量
+		flow.outputs[flow.curNodeKey] = flow.output //record variables output by each node
+
+		//add icon
+		if cast.ToInt(nodeInfo[`node_type`]) == NodeTypeHttpTool {
+			nodeParams := flow.curNode.Params().(CurlNodeParams)
+			nodeLog.NodeIcon = nodeParams.ToolInfo.HttpToolAvatar
+		}
+
 		nodeLog.EndTime = time.Now().UnixMilli()
 		nodeLog.Output = common.GetFieldsObject(common.GetRecurveFields(flow.output))
 		nodeLog.Input = common.GetFieldsObject(common.GetRecurveFields(flow.input))
@@ -148,27 +157,27 @@ func (flow *WorkFlow) Running() (err error) {
 		nodeLog.ErrorMsg = fmt.Sprintf(`%v`, err)
 		nodeLog.UseTime = nodeLog.EndTime - nodeLog.StartTime
 		flow.nodeLogs = append(flow.nodeLogs, nodeLog)
-		//节点运行结束
-		flow.Logs(`结果nextNodeKey:%s,err:%v`, nextNodeKey, err)
+		//node run end
+		flow.Logs(`Result nextNodeKey:%s,err:%v`, nextNodeKey, err)
 		if len(flow.output) > 0 {
-			flow.Logs(`输出变量:%s`, tool.JsonEncodeNoError(flow.output))
+			flow.Logs(`Output variables:%s`, tool.JsonEncodeNoError(flow.output))
 		}
-		if flow.isTimeout || err != nil || len(nextNodeKey) == 0 {
-			break //结束
+		if flow.isTimeout || err != nil || len(nextNodeKey) == 0 || flow.isStorage {
+			break //end
 		}
-		//外部中断监听处理
+		//external interruption listener
 		select {
 		case <-flow.context.Done():
-			goto flowExit //特别注意:break不能做到退出for!!!
-		default: //执行下一个节点
+			goto flowExit //note: break cannot exit the for loop!!!
+		default: //run next node
 			flow.curNodeKey = nextNodeKey
 		}
 	}
 flowExit:
-	flow.Logs(`工作流结束...`)
-	flow.cancel() //关闭上下文
+	flow.Logs(`Workflow finished...`)
+	flow.cancel() //close context
 	flow.EndTime = tool.Time2Int()
-	flow.running = false //运行结束
+	flow.running = false //run finished
 	return
 }
 
@@ -185,37 +194,37 @@ func (flow *WorkFlow) getLastVersionId() int {
 }
 
 func (flow *WorkFlow) Ending() {
-	flow.Logs(`保存工作流运行日志...`)
+	flow.Logs(`Saving workflow run logs...`)
 	_, err := msql.Model(`work_flow_logs`, define.Postgres).Insert(msql.Datas{
 		`admin_user_id`: flow.params.AdminUserId,
 		`robot_id`:      flow.params.RealRobot[`id`],
 		`openid`:        cast.ToString(flow.global[`openid`].GetVal(common.TypString)),
 		`run_node_keys`: strings.Join(flow.runNodeKeys, `,`),
 		`run_logs`:      tool.JsonEncodeNoError(flow.runLogs),
-		`create_time`:   flow.StartTime, //这里放开始时间
-		`update_time`:   flow.EndTime,   //这里放结束时间
+		`create_time`:   flow.StartTime, //store start time here
+		`update_time`:   flow.EndTime,   //store end time here
 		`node_logs`:     tool.JsonEncodeNoError(flow.nodeLogs),
 		`version_id`:    flow.VersionId,
 		`question`:      cast.ToString(flow.global[`question`].GetVal(common.TypString)),
 	})
 	if err != nil {
 		logs.Error(err.Error())
-		flow.Logs(`保存工作流日志失败:%s`, err.Error())
+		flow.Logs(`Failed to save workflow logs:%s`, err.Error())
 	}
 }
 
 func (flow *WorkFlow) VariableReplace(content string) string {
-	//优先替换全局变量
+	//Replace global variables first
 	for key, field := range flow.global {
 		content = strings.ReplaceAll(content, fmt.Sprintf(`【global.%s】`, key), field.ShowVals())
 	}
-	//再替换节点输出变量
+	//Then replace node output variables
 	for nodeKey, output := range flow.outputs {
 		for key, field := range output {
 			content = strings.ReplaceAll(content, fmt.Sprintf(`【%s.%s】`, nodeKey, key), field.ShowVals())
 		}
 	}
-	//这个变成了旧数据兼容
+	//Legacy compatibility for old data
 	for key, field := range flow.output {
 		content = strings.ReplaceAll(content, fmt.Sprintf(`【%s】`, key), field.ShowVals())
 	}
@@ -223,17 +232,17 @@ func (flow *WorkFlow) VariableReplace(content string) string {
 }
 
 func (flow *WorkFlow) VariableReplaceJson(jsonStr string) string {
-	//优先替换全局变量
+	//Replace global variables first
 	for key, field := range flow.global {
 		jsonStr = strings.ReplaceAll(jsonStr, fmt.Sprintf(`【global.%s】`, key), strings.ReplaceAll(field.ShowVals(), `"`, `\"`))
 	}
-	//再替换节点输出变量
+	//Then replace node output variables
 	for nodeKey, output := range flow.outputs {
 		for key, field := range output {
 			jsonStr = strings.ReplaceAll(jsonStr, fmt.Sprintf(`【%s.%s】`, nodeKey, key), strings.ReplaceAll(field.ShowVals(), `"`, `\"`))
 		}
 	}
-	//这个变成了旧数据兼容
+	//Legacy compatibility for old data
 	for key, field := range flow.output {
 		jsonStr = strings.ReplaceAll(jsonStr, fmt.Sprintf(`【%s】`, key), strings.ReplaceAll(field.ShowVals(), `"`, `\"`))
 	}
@@ -260,7 +269,7 @@ func (flow *WorkFlow) GetVariable(key string) (field common.SimpleField, exist b
 	return
 }
 
-func SysGlobalVariables() []string { //固定值,runtime时不可变更
+func SysGlobalVariables() []string { //Fixed values, immutable at runtime
 	return []string{}
 }
 
@@ -273,64 +282,73 @@ func RunningWorkFlow(params *WorkFlowParams, startNodeKey string) (*WorkFlow, er
 		context:     ctx,
 		cancel:      cancel,
 		ticker:      time.NewTicker(time.Minute * 60),     //DIY
-		global:      common.SimpleFields{},                //没有系统全局变量了
-		outputs:     make(map[string]common.SimpleFields), //记录每个节点输出的变量
-		inputs:      make(map[string]common.SimpleFields), //输入参数
-		curNodeKey:  startNodeKey,                         //开始节点
+		global:      common.SimpleFields{},                //no system global variables anymore
+		outputs:     make(map[string]common.SimpleFields), //record variables output by each node
+		inputs:      make(map[string]common.SimpleFields), //input parameters
+		curNodeKey:  startNodeKey,                         //start node
 		runNodeKeys: make([]string, 0),
 		runLogs:     make([]string, 0),
+	}
+	var err error
+	err = WorkFlowRestore(flow)
+	if err != nil {
+		return flow, err
 	}
 	go func(flow *WorkFlow) {
 		defer flow.ticker.Stop()
 		select {
 		case <-flow.context.Done():
-			return //流程已结束
+			return //workflow finished
 		case <-flow.ticker.C:
 		}
-		flow.Logs(`工作流执行超时...`)
+		flow.Logs(`Workflow execution timeout...`)
 		flow.isTimeout = true
 		flow.cancel()
 	}(flow)
-	var err error
-	//循环节点单独运行测试时变量注入
+
+	//Inject variables when testing loop node standalone
 	if flow.params.IsTestLoopNodeRun {
 		err = FlowRunningLoopTest(flow)
 	} else if flow.params.IsTestBatchNodeRun {
 		err = FlowRunningBatchTest(flow)
 	} else {
-		err = flow.Running() //运行流程
+		err = flow.Running() //run workflow
 	}
-	if err == nil { //额外的校验逻辑
+	if err == nil { //additional validation logic
 		if flow.isTimeout {
-			err = errors.New(`工作流执行超时`)
+			err = errors.New(i18n.Show(flow.params.Lang, "workflow_execution_timeout"))
 		} else if !flow.isFinish {
-			err = errors.New(`工作流未到结束节点`)
+			err = errors.New(i18n.Show(flow.params.Lang, "workflow_not_reach_end_node"))
 		}
 	}
-	go flow.Ending() //记录runtime日志
-	return flow, err //返回数据
+	if flow.isStorage {
+		SetWorkFlowStorage(flow)
+	} else {
+		go flow.Ending() //record runtime logs
+	}
+	return flow, err //return data
 }
 
 func BaseCallWorkFlow(params *WorkFlowParams) (flow *WorkFlow, nodeLogs []common.NodeLog, err error) {
-	if len(params.RealRobot) == 0 { //未传参时,使用params里面的
+	if len(params.RealRobot) == 0 { //If not provided, use params.Robot
 		params.RealRobot = params.Robot
 	}
 	var startNodeKey string
 	if params.Draft.IsDraft {
 		startNodeKey = params.Draft.StartNodeKey
 		if len(startNodeKey) == 0 {
-			err = errors.New(`没有开始节点数据`)
+			err = errors.New(i18n.Show(flow.params.Lang, "workflow_no_start_node_data"))
 			return
 		}
 	} else {
 		startNodeKey = params.RealRobot[`start_node_key`]
 		if len(startNodeKey) == 0 {
-			err = errors.New(`工作流未发布`)
+			err = errors.New(i18n.Show(flow.params.Lang, "workflow_no_start_node_data"))
 			return
 		}
 	}
 	if params.TriggerParams.TriggerType == 0 {
-		params.TriggerParams.TriggerType = TriggerTypeChat //默认会话触发
+		params.TriggerParams.TriggerType = TriggerTypeChat //default chat trigger
 	}
 	flow, err = RunningWorkFlow(params, startNodeKey)
 	if flow != nil {
@@ -339,18 +357,18 @@ func BaseCallWorkFlow(params *WorkFlowParams) (flow *WorkFlow, nodeLogs []common
 	return
 }
 
-func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monitor, isSwitchManual *bool) (content string, requestTime int64, libUseTime common.LibUseTime, list []msql.Params, err error) {
+func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monitor, isSwitchManual *bool) (content string, requestTime int64, libUseTime common.LibUseTime, list []msql.Params, replyContentList []common.ReplyContent, err error) {
 	flow, _, err := BaseCallWorkFlow(params)
 	if flow != nil && len(flow.nodeLogs) > 0 {
-		monitor.NodeLogs = flow.nodeLogs //记录监控数据
+		monitor.NodeLogs = flow.nodeLogs //record monitoring data
 	}
 	if flow == nil || err != nil {
 		return
 	}
 
-	content = TakeOutputReply(flow)
-	if len(content) == 0 {
-		err = errors.New(`工作流没有可以回复的内容返回`)
+	content, replyContentList = TakeOutputReply(flow)
+	if len(content) == 0 && len(replyContentList) == 0 {
+		err = errors.New(i18n.Show(params.Lang, "workflow_no_reply_content"))
 		return
 	}
 	requestTime = cast.ToInt64(flow.output[`special.llm_request_time`].GetVal(common.TypNumber))
@@ -365,12 +383,12 @@ func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monit
 	return
 }
 
-func BuildFunctionTools(robot msql.Params) ([]adaptor.FunctionTool, bool) {
+func BuildFunctionTools(lang string, robot msql.Params) ([]adaptor.FunctionTool, bool) {
 	if len(robot) == 0 || cast.ToInt(robot[`application_type`]) != define.ApplicationTypeChat || len(robot[`work_flow_ids`]) == 0 {
 		return nil, false
 	}
-	//判断func call能力
-	if err := common.CheckSupportFuncCall(cast.ToInt(robot[`admin_user_id`]), cast.ToInt(robot[`model_config_id`]), robot[`use_model`]); err != nil {
+	//check function call capability
+	if err := common.CheckSupportFuncCall(lang, cast.ToInt(robot[`admin_user_id`]), cast.ToInt(robot[`model_config_id`]), robot[`use_model`]); err != nil {
 		return nil, false
 	}
 	m := msql.Model(`chat_ai_robot`, define.Postgres)
@@ -438,11 +456,20 @@ func BuildWorkFlowParams(params define.ChatRequestParam, workFlowRobot msql.Para
 	return &WorkFlowParams{ChatRequestParam: &params, RealRobot: workFlowRobot, CurMsgId: curMsgId, DialogueId: dialogueId, SessionId: sessionId}
 }
 
-func TakeOutputReply(flow *WorkFlow) string {
+func TakeOutputReply(flow *WorkFlow) (string, []common.ReplyContent) {
+	//add reply content list
+	var replyContentList []common.ReplyContent
 	if len(flow.output) <= 0 {
-		return ``
+		return ``, replyContentList
 	}
-	//take finish node messages
+	replyContentListJson := cast.ToString(flow.output[`special.reply_content_list`].GetVal(common.TypString))
+	if len(replyContentListJson) > 0 {
+		err := tool.JsonDecode(replyContentListJson, &replyContentList)
+		if err != nil {
+			logs.Warning(`output reply content list json error: %s`, err.Error())
+		}
+	}
+	//finish node to string
 	outputSlice := make([]string, 1000)
 	for outputKey, _ := range flow.output {
 		if !strings.HasPrefix(outputKey, define.FinishReplyPrefixKey) {
@@ -450,14 +477,14 @@ func TakeOutputReply(flow *WorkFlow) string {
 		}
 		params := strings.Split(strings.TrimPrefix(outputKey, define.FinishReplyPrefixKey), `_`)
 		if len(params) != 2 {
-			logs.Warning(`finish node output message format error：%s`, outputKey)
+			logs.Warning(`finish node output message format error: %s`, outputKey)
 			continue
 		}
-		//定义的第几个输出
+		// Defined output index
 		messageIdx := cast.ToInt(params[1]) - 1
 		takeContent := cast.ToString(flow.output[outputKey].GetVal(common.TypString))
 		if len(takeContent) == 0 {
-			logs.Warning(`finish node output message is empty：%s，%s`, outputKey, takeContent)
+			logs.Warning(`finish node output message is empty: %s, %s`, outputKey, takeContent)
 			continue
 		}
 		if params[0] == lib_define.MsgTypeText {
@@ -490,18 +517,18 @@ func TakeOutputReply(flow *WorkFlow) string {
 		}
 	}
 	if len(contents) > 0 {
-		return strings.Join(contents, "\n")
+		return strings.Join(contents, "\n"), replyContentList
 	}
-	//take any one
+	//default reply
 	var replyContentNodes = []string{`special.llm_reply_content`, `special.question_optimize_reply_content`, `special.mcp_reply_content`}
 	content := ``
 	for _, fieldsKey := range replyContentNodes {
 		content = cast.ToString(flow.output[fieldsKey].GetVal(common.TypString))
 		if len(content) > 0 {
-			return content
+			return content, replyContentList
 		}
 	}
-	return ``
+	return ``, replyContentList
 }
 
 func CallHttpTest(workFlowParams *WorkFlowParams, curlNode *WorkFlowNode) (map[string]any, error) {
@@ -560,7 +587,7 @@ func (flow *WorkFlow) getNodeInputs() {
 		var field common.SimpleField
 		var exist bool
 		if strings.HasPrefix(variable, `global.`) {
-			nodeName = `开始节点`
+			nodeName = i18n.Show(flow.params.Lang, `start_node`)
 			variableKey = strings.TrimPrefix(variable, `global.`)
 			field, exist = flow.global[variableKey]
 			if !exist {

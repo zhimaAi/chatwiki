@@ -412,7 +412,7 @@ func LibDocSearch(lang string, libraryId int, search string, library msql.Params
 		quoteFile              = make([]msql.Params, 0)
 	)
 	if cast.ToInt(library[`use_model_switch`]) == define.SwitchOn {
-		list, err := GetMatchLibraryParagraphByVectorSimilarity(cast.ToInt(library[`admin_user_id`]), msql.Params{}, "", "", search, cast.ToString(libraryId), fetchSize, similarity, searchType)
+		list, err := GetMatchLibraryParagraphByVectorSimilarity(lang, cast.ToInt(library[`admin_user_id`]), msql.Params{}, "", "", search, cast.ToString(libraryId), fetchSize, similarity, searchType)
 		if err != nil {
 			logs.Error(err.Error())
 			return result, summary, quoteFile, err
@@ -487,6 +487,7 @@ func LibDocAiSummary(lang string, libraryId int, search string, library msql.Par
 	// to ai summary
 	if cast.ToInt(library[`ai_summary`]) == define.SwitchOn {
 		chatResp, requestTime, err := RequestSearchStream(
+			lang,
 			cast.ToInt(library[`admin_user_id`]),
 			cast.ToInt(library[`summary_model_config_id`]),
 			strings.TrimSpace(library[`ai_summary_model`]),

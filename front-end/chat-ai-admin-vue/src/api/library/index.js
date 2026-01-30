@@ -590,6 +590,22 @@ export const getDefaultRrfWeight = (params) => {
   })
 }
 
+// 未知问题统计
+export const statUnknowQuestionTotal = (data) => {
+  return request.post({
+    url: '/manage/statUnknowQuestionTotal',
+    data: data
+  })
+}
+
+// 未知问题统计
+export const statUnknowQuestionRank = (data) => {
+  return request.post({
+    url: '/manage/statUnknowQuestionRank',
+    data: data
+  })
+}
+
 export const getFeishuDocFileList = (data= {}) => {
   return request.post({url: '/manage/getFeishuDocFileList', data})
 }

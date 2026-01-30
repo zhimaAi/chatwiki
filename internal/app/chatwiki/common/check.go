@@ -74,7 +74,8 @@ func CheckChatRequest(c *gin.Context, compatibilityXkf ...bool) (*define.ChatBas
 		return nil, errors.New(i18n.Show(GetLang(c), `sys_err`))
 	}
 	relUserId := cast.ToInt(strings.TrimSpace(c.PostForm(`rel_user_id`)))
-	return &define.ChatBaseParam{AppType: appType, Openid: openid, AdminUserId: adminUserId, Robot: robot, Customer: customer, RelUserId: relUserId}, nil
+	useNewDialogue := cast.ToInt(c.PostForm(`use_new_dialogue`))
+	return &define.ChatBaseParam{AppType: appType, Openid: openid, AdminUserId: adminUserId, Robot: robot, Customer: customer, RelUserId: relUserId, UseNewDialogue: useNewDialogue}, nil
 
 }
 
@@ -83,7 +84,7 @@ func CheckMenuJson(menuJson string) (string, error) {
 	_ = tool.JsonDecodeUseNumber(menuJson, &info)
 	questions := make([]string, 0)
 	for _, question := range info.Question {
-		question := strings.TrimSpace(question)
+		question = strings.TrimSpace(question)
 		if len(question) > 0 {
 			questions = append(questions, question)
 		}

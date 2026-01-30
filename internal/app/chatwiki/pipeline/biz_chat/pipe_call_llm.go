@@ -51,7 +51,7 @@ func BuildFunctionTools(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult 
 	}
 	//聊天机器人支持关联工作流
 	var workFlowFuncCall []adaptor.FunctionTool
-	workFlowFuncCall, in.needRunWorkFlow = work_flow.BuildFunctionTools(in.params.Robot)
+	workFlowFuncCall, in.needRunWorkFlow = work_flow.BuildFunctionTools(in.params.Lang, in.params.Robot)
 	if in.needRunWorkFlow {
 		out.functionTools = append(out.functionTools, workFlowFuncCall...)
 	}
@@ -77,7 +77,13 @@ func DoApplicationTypeFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResu
 	if cast.ToInt(in.params.Robot[`application_type`]) == define.ApplicationTypeFlow {
 		workFlowParams := &work_flow.WorkFlowParams{ChatRequestParam: in.params, CurMsgId: int(out.cMsgId), DialogueId: in.dialogueId, SessionId: in.sessionId}
 		workFlowParams.ImmediatelyReplyHandle = BuildImmediatelyReplyHandle(in, out)
-		out.content, out.requestTime, in.monitor.LibUseTime, out.list, out.Error = work_flow.CallWorkFlow(workFlowParams, &out.debugLog, in.monitor, &in.isSwitchManual)
+		replyContentList := []common.ReplyContent{}
+		out.content, out.requestTime, in.monitor.LibUseTime, out.list, replyContentList, out.Error = work_flow.CallWorkFlow(workFlowParams, &out.debugLog, in.monitor, &in.isSwitchManual)
+		if len(out.replyContentList) == 0 {
+			out.replyContentList = replyContentList
+		} else {
+			out.replyContentList = append(out.replyContentList, replyContentList...)
+		}
 		if out.Error != nil {
 			in.exitChat = true //直接退出标志位
 			out.debugLog = append(out.debugLog, map[string]string{`type`: `cur_question`, `content`: in.params.Question})
@@ -103,7 +109,7 @@ func DoChatByChatCache(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if in.hitCache {
 		out.chatResp, out.requestTime, out.Error = common.ResponseMessagesFromCache(in.answerMessageId, in.useStream, in.chanStream)
 		out.content = out.chatResp.Result
-		in.Stream(sse.Event{Event: `notice`, Data: `内容来源:聊天缓存`})
+		in.Stream(sse.Event{Event: `notice`, Data: `content source: chat cache`})
 		return pipeline.PipeStop
 	}
 	return pipeline.PipeContinue
@@ -175,7 +181,13 @@ func DoRelationWorkFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult 
 		} else { //组装工作流请求参数,并执行工作流
 			workFlowParams := work_flow.BuildWorkFlowParams(*in.params, workFlowRobot, workFlowGlobal, int(out.cMsgId), in.dialogueId, in.sessionId)
 			workFlowParams.ImmediatelyReplyHandle = BuildImmediatelyReplyHandle(in, out)
-			out.content, out.requestTime, _, _, out.Error = work_flow.CallWorkFlow(workFlowParams, &out.debugLog, in.monitor, &in.isSwitchManual)
+			replyContentList := []common.ReplyContent{}
+			out.content, out.requestTime, _, _, replyContentList, out.Error = work_flow.CallWorkFlow(workFlowParams, &out.debugLog, in.monitor, &in.isSwitchManual)
+			if len(out.replyContentList) == 0 {
+				out.replyContentList = replyContentList
+			} else {
+				out.replyContentList = append(out.replyContentList, replyContentList...)
+			}
 			if out.Error == nil {
 				in.Stream(sse.Event{Event: `request_time`, Data: out.requestTime})
 				in.Stream(sse.Event{Event: `sending`, Data: out.content})

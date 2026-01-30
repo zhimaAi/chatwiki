@@ -4,7 +4,9 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_redis"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -52,10 +54,10 @@ type UseModelConfig struct {
 	ModelType           string `json:"model_type,omitzero"`
 	UseModelName        string `json:"use_model_name,omitzero"`
 	ShowModelName       string `json:"show_model_name,omitzero"`
-	ThinkingType        uint   `json:"thinking_type,omitzero"` //深度思考选项:0不支持,1支持,2可选
-	FunctionCall        uint   `json:"function_call,omitzero"` //是否支持function call
-	ModelInputSupport          //支持的输入类型
-	ModelOutputSupport         //支持的输出类型
+	ThinkingType        uint   `json:"thinking_type,omitzero"`         //深度思考选项:0不支持,1支持,2可选
+	FunctionCall        uint   `json:"function_call,omitzero"`         //是否支持function call
+	ModelInputSupport                                                  //支持的输入类型
+	ModelOutputSupport                                                 //支持的输出类型
 	VectorDimensionList string `json:"vector_dimension_list,omitzero"` //向量维度列表(英文逗号分割)
 	ImageGeneration     string `json:"image_generation,omitzero"`      //图片生成配置
 }
@@ -70,14 +72,14 @@ func (useModel *UseModelConfig) ToDatas() (data msql.Datas, err error) {
 	return
 }
 
-func (useModel *UseModelConfig) ToSave(adminUserId, modelConfigId int) error {
+func (useModel *UseModelConfig) ToSave(lang string, adminUserId, modelConfigId int) error {
 	m := msql.Model(`chat_ai_model_list`, define.Postgres)
 	if useModel.Id > 0 { //编辑可用模型
 		id, _ := m.Where(`id`, cast.ToString(useModel.Id)).
 			Where(`admin_user_id`, cast.ToString(adminUserId)).
 			Where(`model_config_id`, cast.ToString(modelConfigId)).Value(`id`)
 		if cast.ToUint(id) == 0 {
-			return fmt.Errorf(`编辑的模型信息不存在(id:%d)`, useModel.Id)
+			return errors.New(i18n.Show(lang, `edit_model_info_not_exist`, useModel.Id))
 		}
 	}
 	data, err := useModel.ToDatas()
@@ -95,7 +97,7 @@ func (useModel *UseModelConfig) ToSave(adminUserId, modelConfigId int) error {
 		return fmt.Errorf(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 	}
 	if cast.ToUint(id) > 0 {
-		return fmt.Errorf(`当前配置下模型%s(%s)已存在`, useModel.UseModelName, useModel.ModelType)
+		return errors.New(i18n.Show(lang, `model_already_exist_under_config`, useModel.UseModelName, useModel.ModelType))
 	}
 	//保存模型数据
 	if useModel.Id == 0 { //新增可用模型
@@ -199,9 +201,9 @@ func GetDefaultUseModel(modelDefine string) (useModels []UseModelConfig) {
 	return
 }
 
-func AutoAddDefaultUseModel(adminUserId, modelConfigId int, modelDefine string) {
+func AutoAddDefaultUseModel(lang string, adminUserId, modelConfigId int, modelDefine string) {
 	for _, useModel := range GetDefaultUseModel(modelDefine) {
-		if err := useModel.ToSave(adminUserId, modelConfigId); err != nil {
+		if err := useModel.ToSave(lang, adminUserId, modelConfigId); err != nil {
 			logs.Error(err.Error())
 		}
 	}
@@ -219,10 +221,10 @@ func ConfigurationTest(meta adaptor.Meta, modelType string) (err error) {
 		req := adaptor.ZhimaEmbeddingRequest{Input: `configuration test`}
 		_, err = client.CreateEmbeddings(req)
 	case Rerank:
-		req := &adaptor.ZhimaRerankReq{Passages: []string{`0不等于1`, `0小于1`}, Query: `0和1的关系`, TopK: 1}
+		req := &adaptor.ZhimaRerankReq{Passages: []string{`chatwiki`, `ChatWiki`}, Query: `ChatWiki?`, TopK: 1}
 		_, err = client.CreateRerank(req)
 	case Image:
-		req := &adaptor.ZhimaImageGenerationReq{Size: tea.String("2k"), ResponseFormat: tea.String("b64_json")}
+		req := &adaptor.ZhimaImageGenerationReq{Prompt: "Generate a test image", Size: tea.String("2k"), ResponseFormat: tea.String("b64_json")}
 		_, err = client.CreateImageGenerate(req)
 		if err != nil {
 			if strings.Contains(err.Error(), `prompt cannot be empty`) {

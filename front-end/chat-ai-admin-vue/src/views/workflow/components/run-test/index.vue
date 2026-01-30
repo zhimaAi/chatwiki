@@ -3,16 +3,12 @@
     <!-- <a-button @click="handleOpenTestModal" style="background-color: #00ad3a" type="primary"
       ><CaretRightOutlined />运行测试</a-button
     > -->
-    <a-modal
-      v-model:open="show"
-      :footer="null"
-      :width="820"
-      wrapClassName="no-padding-modal"
-    >
+    <a-modal v-model:open="show" :footer="null" :width="820" wrapClassName="no-padding-modal">
       <template #title>
-        <div class="modal-title-block">运行测试
+        <div class="modal-title-block">
+          运行测试{{ formState.dialogue_id }}
           <div class="run-detail" v-if="resultList.length">
-            <span>总耗时：{{ formatTime(use_mills)}}</span>
+            <span>总耗时：{{ formatTime(use_mills) }}</span>
             <span>token消耗：{{ use_token }} Tokens</span>
           </div>
         </div>
@@ -27,48 +23,94 @@
             :wrapper-col="{ span: 24 }"
             autocomplete="off"
           >
-            <a-form-item
-              :name="['globalState', item.key]"
-              v-for="item in diy_global"
-              :key="item.key"
-              :rules="[{ required: item.required, message: `请输入${item.key}` }]"
-            >
-              <template #label>
-                <a-flex :gap="4"
-                  >{{ item.key }} <a-tag style="margin: 0">{{ item.typ }}</a-tag>
-                </a-flex>
-              </template>
-              <template v-if="item.typ == 'string'">
-                <a-input :placeholder="getDefaultPlaceholder(item)" v-model:value="formState.globalState[item.key]" />
-              </template>
-              <template v-if="item.typ == 'number'">
-                <a-input-number
-                  style="width: 100%"
-                  :placeholder="getDefaultPlaceholder(item)"
-                  v-model:value="formState.globalState[item.key]"
-                />
-              </template>
-              <template v-if="item.typ.includes('array')">
+            <div v-show="!isShowQuestionForm">
+              <a-form-item
+                :name="['globalState', item.key]"
+                v-for="item in diy_global"
+                :key="item.key"
+                :rules="[{ required: item.required, message: `请输入${item.key}` }]"
+              >
+                <template #label>
+                  <a-flex :gap="4"
+                    >{{ item.key }} <a-tag style="margin: 0">{{ item.typ }}</a-tag>
+                    <a-tooltip :title="item.desc">
+                      <div class="option-desc">{{ item.desc }}</div>
+                    </a-tooltip>
+                  </a-flex>
+                </template>
+                <template v-if="item.typ == 'string'">
+                  <a-input
+                    :placeholder="getDefaultPlaceholder(item)"
+                    v-model:value="formState.globalState[item.key]"
+                  />
+                </template>
+                <template v-if="item.typ == 'number'">
+                  <a-input-number
+                    style="width: 100%"
+                    :placeholder="getDefaultPlaceholder(item)"
+                    v-model:value="formState.globalState[item.key]"
+                  />
+                </template>
+                <template v-if="item.typ.includes('array')">
+                  <div class="input-list-box">
+                    <div
+                      class="input-list-item"
+                      v-for="(input, i) in formState.globalState[item.key]"
+                      :key="i"
+                    >
+                      <a-form-item-rest
+                        ><a-input
+                          :placeholder="getDefaultPlaceholder(item)"
+                          v-model:value="input.value"
+                      /></a-form-item-rest>
+
+                      <CloseCircleOutlined
+                        v-if="formState.globalState[item.key].length > 1"
+                        @click="handleDelItem(item.key, i)"
+                      />
+                    </div>
+                    <div class="add-btn-box">
+                      <a-button @click="handleAddItem(item.key)" block type="dashed">添加</a-button>
+                    </div>
+                  </div>
+                </template>
+              </a-form-item>
+            </div>
+
+            <template v-if="isShowQuestionForm">
+              <a-form-item>
+                <template #label>
+                  <a-flex :gap="4">question <a-tag style="margin: 0">string</a-tag> </a-flex>
+                </template>
+                <a-input placeholder="请输入question" v-model:value="formState.question" />
+              </a-form-item>
+              <a-form-item v-if="question_multiple_switch">
+                <template #label>
+                  <a-flex :gap="4"
+                    >question_multiple <a-tag style="margin: 0">string</a-tag>
+                  </a-flex>
+                </template>
                 <div class="input-list-box">
                   <div
                     class="input-list-item"
-                    v-for="(input, i) in formState.globalState[item.key]" :key="i"
+                    v-for="(input, i) in formState.question_multiple"
+                    :key="i"
                   >
                     <a-form-item-rest
-                      ><a-input :placeholder="getDefaultPlaceholder(item)" v-model:value="input.value"
+                      ><a-input placeholder="请输入" v-model:value="input.value"
                     /></a-form-item-rest>
 
                     <CloseCircleOutlined
-                      v-if="formState.globalState[item.key].length > 1"
-                      @click="handleDelItem(item.key, i)"
+                      v-if="formState.question_multiple.length > 1"
+                      @click="handleDelQuestionItem(i)"
                     />
                   </div>
                   <div class="add-btn-box">
-                    <a-button @click="handleAddItem(item.key)" block type="dashed">添加</a-button>
+                    <a-button @click="handleAddQuetionItem()" block type="dashed">添加</a-button>
                   </div>
                 </div>
-              </template>
-            </a-form-item>
+              </a-form-item>
+            </template>
           </a-form>
 
           <div class="result-list-box loading-box" v-if="loading">
@@ -108,7 +150,7 @@
               @click="handleSubmit"
               style="background-color: #00ad3a"
               type="primary"
-              ><CaretRightOutlined />运行测试</a-button
+              ><CaretRightOutlined />{{ isShowQuestionForm ? '继续测试' : '运行测试' }} </a-button
             >
           </div>
         </div>
@@ -189,8 +231,21 @@ const props = defineProps({
   isLockedByOther: { type: Boolean, default: false }
 })
 
+const isShowQuestionForm = ref(false)
+
 const diy_global = computed(() => {
   return props.start_node_params.diy_global || []
+})
+
+const question_multiple_switch = computed(() => {
+  let trigger_list = props.start_node_params.trigger_list || []
+  let result = false
+  trigger_list.forEach((item) => {
+    if (item.trigger_type == 1) {
+      result = item.chat_config?.question_multiple_switch
+    }
+  })
+  return result
 })
 
 // const golbalTips = `自定义全局变量（json格式）
@@ -217,12 +272,12 @@ const cuttentItem = computed(() => {
   return resultList.value.filter((item) => item.node_key == currentNodeKey.value)[0]
 })
 
-const currentImageList = computed(()=>{
+const currentImageList = computed(() => {
   let list = []
-  if(cuttentItem.value && cuttentItem.value.node_type == 33){
+  if (cuttentItem.value && cuttentItem.value.node_type == 33) {
     let output = cuttentItem.value.output
-    for(let key in output){
-      if(key.includes('picture_url_')){
+    for (let key in output) {
+      if (key.includes('picture_url_')) {
         list.push(output[key])
       }
     }
@@ -236,10 +291,19 @@ const formState = reactive({
   is_draft: true,
   robot_key: query.robot_key,
   global: '',
-  globalState: {}
+  globalState: {},
+  question: '',
+  question_multiple: [
+    {
+      value: ''
+    }
+  ],
+  dialogue_id: '',
+  session_id: ''
 })
 
 const handleOpenTestModal = () => {
+  isShowQuestionForm.value = false
   getQuestionMultipleSwitchStatus()
   if (props.isLockedByOther) {
     message.warning('当前已有其他用户在编辑中，无法运行测试')
@@ -248,14 +312,24 @@ const handleOpenTestModal = () => {
   emit('save', 'automatic')
   let localData = localStorage.getItem('workflow_run_test_data') || '{}'
   localData = JSON.parse(localData)
-  
+
   // formState.question = localData.question || ''
   // formState.openid = localData.openid || ''
   formState.global = localData.global || ''
+  formState.question = ''
+  formState.question_multiple = [
+    {
+      value: ''
+    }
+  ]
+  formState.dialogue_id = ''
+  formState.session_id = ''
+
   resultList.value = []
   currentNodeKey.value = ''
   emit('getGlobal')
   nextTick(() => {
+    console.log(props.start_node_params, '==')
     diy_global.value.forEach((item) => {
       formState.globalState[item.key] = setGlobalDefaultVal(item)
     })
@@ -314,15 +388,17 @@ function getGlobalDefaultVal() {
     }
 
     if (item.typ.includes('array')) {
-      let list = formState.globalState[item.key].map((it) => {
-        it.value = typeof it.value == 'string' ? it.value.trim() : it.value
+      let list = formState.globalState[item.key]
+        .map((it) => {
+          it.value = typeof it.value == 'string' ? it.value.trim() : it.value
 
-        if (isJsonString(it.value)) {
-          return JSON.parse(it.value)
-        } else {
-          return it.value
-        }
-      }).filter((it) => it)
+          if (isJsonString(it.value)) {
+            return JSON.parse(it.value)
+          } else {
+            return it.value
+          }
+        })
+        .filter((it) => it)
 
       if ((!Array.isArray(list) || list.length === 0) && DEFAULT_SUGGEST_MAP[item.key]) {
         const def = DEFAULT_SUGGEST_MAP[item.key]
@@ -336,8 +412,8 @@ function getGlobalDefaultVal() {
       result[item.key] = list
     }
 
-    if(item.typ === 'object'){
-      if(isJsonString(item.value)){
+    if (item.typ === 'object') {
+      if (isJsonString(item.value)) {
         result[item.key] = JSON.parse(item.value)
       }
     }
@@ -346,16 +422,15 @@ function getGlobalDefaultVal() {
 }
 
 function getQuestionMultipleSwitchStatus() {
-  const graphData = props.lf.getGraphData();
+  const graphData = props.lf.getGraphData()
   const sessionTriggerNode = graphData.nodes.find((node) => node.type === 'session-trigger-node')
 
-  if(sessionTriggerNode){
+  if (sessionTriggerNode) {
     const node_params = JSON.parse(sessionTriggerNode.properties.node_params || '{}')
     const data = node_params.trigger || {}
 
     return data.chat_config ? data.chat_config.question_multiple_switch : false
   }
-  
 }
 
 const handleDelItem = (key, index) => {
@@ -365,6 +440,15 @@ const handleAddItem = (key) => {
   formState.globalState[key].push({
     value: '',
     key: Math.random() * 10000
+  })
+}
+
+const handleDelQuestionItem = (index) => {
+  formState.question_multiple.splice(index, 1)
+}
+const handleAddQuetionItem = (key) => {
+  formState.question_multiple.push({
+    value: ''
   })
 }
 
@@ -379,24 +463,29 @@ const handleSubmit = () => {
     const question_multiple_switch = getQuestionMultipleSwitchStatus()
 
     postData.global = getGlobalDefaultVal()
-    
+
     delete postData.globalState
+    let question_multiple = postData.question_multiple.filter(item => item.value)
+    postData.question_multiple = JSON.stringify(question_multiple.map(item => item.value))
 
     loading.value = true
     resultList.value = []
-  
 
     const overrides = buildStorageOverrides()
     if (Object.keys(overrides).length) {
-      localStorage.setItem('workflow_run_test_data', JSON.stringify({ global: JSON.stringify(overrides) }))
+      localStorage.setItem(
+        'workflow_run_test_data',
+        JSON.stringify({ global: JSON.stringify(overrides) })
+      )
     }
-    
+
     callWorkFlow({
       ...postData,
       question_multiple_switch
     })
       .then((res) => {
-        message.success('测试结果生成完成')
+        formState.dialogue_id = res.data.dialog_id
+        formState.session_id = res.data.session_id
         let node_logs = res.data.node_logs || []
         use_token.value = res.data.use_token
         use_mills.value = res.data.use_mills
@@ -404,6 +493,8 @@ const handleSubmit = () => {
       })
       .catch((res) => {
         resultList.value = []
+        isShowQuestionForm.value = false
+
         let node_logs = res.data.node_logs || []
         if (node_logs && node_logs.length) {
           formateData(node_logs)
@@ -416,11 +507,27 @@ const handleSubmit = () => {
 }
 
 const formateData = (data) => {
+  let lastItem = data[data.length - 1]
+  if(lastItem.node_type == 43){
+    // 问答节点
+    isShowQuestionForm.value = true
+    message.success('请继续填写问答参数')
+  }else{
+    message.success('测试结果生成完成')
+    formState.question = ''
+    formState.question_multiple = [{value: ''}]
+    isShowQuestionForm.value = false
+  }
   resultList.value = data.map((item) => {
+    let nodeIcon = getImageUrl(item.node_type)
+    // 如果node_type == 45 就是HTTP工具，node_icon用接口返回的动态数据
+    if (item.node_type == 45) {
+      nodeIcon = item.node_icon || getImageUrl(item.node_type)
+    }
     return {
       ...item,
       is_success: item.error_msg === '<nil>',
-      node_icon: getImageUrl(item.node_type)
+      node_icon: nodeIcon
     }
   })
   currentNodeKey.value = resultList.value[0]?.node_key
@@ -435,7 +542,7 @@ const handleCopy = (key) => {
   message.success('复制成功')
 }
 
-const  open = () => {
+const open = () => {
   handleOpenTestModal()
 }
 
@@ -480,9 +587,9 @@ function buildStorageOverrides() {
     if (item.typ.includes('array')) {
       const list = Array.isArray(formState.globalState[key]) ? formState.globalState[key] : []
       const typed = list
-        .map(it => String(it?.value || '').trim())
-        .filter(s => s)
-        .map(s => {
+        .map((it) => String(it?.value || '').trim())
+        .filter((s) => s)
+        .map((s) => {
           const o = parseJSONMaybe(s)
           return o != null ? o : s
         })
@@ -509,7 +616,7 @@ defineExpose({
 <style lang="less" scoped>
 .flex-content-box {
   display: flex;
-  max-height: 600px;
+  max-height: 70vh;
   overflow: hidden;
 }
 .test-model-box {
@@ -695,20 +802,28 @@ defineExpose({
   }
 }
 
-
-.modal-title-block{
+.modal-title-block {
   display: flex;
   align-items: center;
   gap: 12px;
-  .run-detail{
+  .run-detail {
     display: flex;
     align-items: center;
     gap: 16px;
-    background: #BFFBD7;
+    background: #bffbd7;
     padding: 4px 16px;
     font-size: 14px;
     color: #595959;
     border-radius: 8px;
   }
 }
+
+.option-desc {
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
 </style>

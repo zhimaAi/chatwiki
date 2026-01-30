@@ -5,6 +5,7 @@ package biz_chat
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_define"
 
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/tool"
@@ -14,6 +15,7 @@ import (
 func DoRequestChatUnify(in *ChatInParam, out *ChatOutParam) {
 	if !in.needRunWorkFlow && in.useStream {
 		out.chatResp, out.requestTime, out.Error = common.RequestChatStream(
+			in.params.Lang,
 			in.params.AdminUserId,
 			in.params.Openid,
 			in.params.Robot,
@@ -28,6 +30,7 @@ func DoRequestChatUnify(in *ChatInParam, out *ChatOutParam) {
 		)
 	} else {
 		out.chatResp, out.requestTime, out.Error = common.RequestChat(
+			in.params.Lang,
 			in.params.AdminUserId,
 			in.params.Openid,
 			in.params.Robot,
@@ -56,7 +59,7 @@ func DisposeUnknownQuestionPrompt(in *ChatInParam, out *ChatOutParam) {
 	unknownQuestionPrompt := define.MenuJsonStruct{}
 	_ = tool.JsonDecodeUseNumber(in.params.Robot[`unknown_question_prompt`], &unknownQuestionPrompt)
 	if len(unknownQuestionPrompt.Content) == 0 && len(unknownQuestionPrompt.Question) == 0 {
-		unknownQuestionPrompt.Content = `哎呀，这个问题我暂时还不太清楚呢～（对手指）` //默认值
+		unknownQuestionPrompt.Content = lib_define.DefaultUnknownQuestionPromptContent //默认值
 	}
 	out.msgType = define.MsgTypeMenu
 	out.content = unknownQuestionPrompt.Content

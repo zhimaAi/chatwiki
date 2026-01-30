@@ -184,7 +184,10 @@ const formState = reactive({
   meta_search_type: 1,
   meta_search_condition_list: "",
   question_value: '',
-  rrf_weight: {}
+  rrf_weight: {},
+  recall_neighbor_switch: false,
+  recall_neighbor_before_num:1,
+  recall_neighbor_after_num: 1,
 })
 
 const update = () => {
@@ -196,7 +199,10 @@ const update = () => {
         : void 0,
       question_value: formState.question_value.join('.'),
       library_ids: formState.library_ids.join(','),
-      rrf_weight: JSON.stringify(formState.rrf_weight)
+      rrf_weight: JSON.stringify(formState.rrf_weight),
+      recall_neighbor_switch: formState.recall_neighbor_switch,
+      recall_neighbor_before_num: formState.recall_neighbor_before_num,
+      recall_neighbor_after_num: formState.recall_neighbor_before_num,
     }
   })
 
@@ -214,7 +220,7 @@ const init = () => {
     getOptions()
 
     libs = JSON.parse(JSON.stringify(libs))
-    console.log(libs, '=libs')
+
     for (let key in libs) {
       if (key == 'library_ids') {
         formState[key] = libs[key] ? libs[key].split(',') : []
@@ -226,7 +232,8 @@ const init = () => {
         formState[key] = libs[key]
       }
     }
-    if (!libs.rrf_weight) {
+
+    if (!formState.rrf_weight || Object.keys(formState.rrf_weight).length == 0) {
       //  没有值 则去默认值
       formState.rrf_weight = rrf_weight.value
     }
@@ -288,6 +295,9 @@ const onChangeRecallSettings = (data) => {
   formState.meta_search_type = Number(data.meta_search_type)
   formState.meta_search_condition_list = data.meta_search_condition_list
   formState.rrf_weight = data.rrf_weight
+  formState.recall_neighbor_switch = data.recall_neighbor_switch
+  formState.recall_neighbor_before_num = data.recall_neighbor_before_num
+  formState.recall_neighbor_after_num = data.recall_neighbor_after_num
 }
 
 // 获取知识库

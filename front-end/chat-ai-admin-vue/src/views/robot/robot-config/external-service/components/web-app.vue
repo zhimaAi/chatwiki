@@ -170,6 +170,14 @@
                   <a-radio :value="2">不显示</a-radio>
                 </a-radio-group>
               </a-form-item>
+
+              <a-form-item class="form-item" label="是否显示历史对话和新增对话按钮" name="new_session_btn_show">
+                <a-radio-group v-model:value="formState.new_session_btn_show" name="new_session_btn_show">
+                  <a-radio :value="1">显示</a-radio>
+                  <a-radio :value="2">不显示</a-radio>
+                </a-radio-group>
+              </a-form-item>
+
               <a-form-item class="form-item" label="页面标题" name="pageTitle">
                 <PageTitleInput
                   v-model:avatar="formState.logo"
@@ -271,6 +279,7 @@ const formState = reactive({
   open_type: external_config_h5.value.open_type,
   window_width: external_config_h5.value.window_width,
   window_height: external_config_h5.value.window_height,
+  new_session_btn_show: external_config_h5.value.new_session_btn_show
 })
 
 const pc_src = computed(() => {

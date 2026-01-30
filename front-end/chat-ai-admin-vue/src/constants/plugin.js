@@ -10,7 +10,8 @@ export const HasActionPluginNames = [
   'web_content_extraction',
   'official_article',
   'official_send_message',
-  'official_draft'
+  'official_draft',
+  'http_tool'
 ]
 
 // 存在输出内容的插件
@@ -22,7 +23,8 @@ export const HasOutputPluginNames = [
   'web_content_extraction',
   'official_article',
   'official_send_message',
-  'official_draft'
+  'official_draft',
+  'http_tool'
 ]
 
 // 插件方法默认参数（非特殊处理无需在此添加-将通过action params 自动获取）

@@ -4,6 +4,7 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_define"
 	"fmt"
 	"strings"
 	"time"
@@ -550,7 +551,7 @@ func statLibraryGroupFormatByDataId(sorts []msql.Params, totalTip int) ([]msql.P
 		}
 		for _, groupInfo := range dataGroupInfos {
 			if cast.ToInt(item[`group_id`]) == 0 {
-				sorts[key][`group_name`] = `未分组`
+				sorts[key][`group_name`] = lib_define.Ungrouped
 				break
 			}
 			if item[`group_id`] == groupInfo[`group_id`] {
@@ -559,9 +560,58 @@ func statLibraryGroupFormatByDataId(sorts []msql.Params, totalTip int) ([]msql.P
 			}
 		}
 		if sorts[key][`group_name`] == `` {
-			sorts[key][`group_name`] = `未分组`
+			sorts[key][`group_name`] = lib_define.Ungrouped
 		}
 		sorts[key][`percentage`] = fmt.Sprintf("%.2f", cast.ToFloat64(item[`tip`])/cast.ToFloat64(totalTip)*100)
 	}
 	return sorts, nil
+}
+
+func StatUnknowQuestionTotal(adminUserId, startDay, endDay int) (map[string]any, error) {
+	total, err := msql.Model(`chat_ai_unknown_issue_stats`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`stats_day`, `between`, fmt.Sprintf(`%d,%d`, startDay, endDay)).
+		Count()
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, err
+	}
+	return map[string]any{
+		`unknow_question_total`: cast.ToInt(total),
+	}, nil
+}
+
+func StatUnknowQuestionRank(adminUserId, startDay, endDay int) ([]msql.Params, error) {
+	list, err := msql.Model(`chat_ai_unknown_issue_stats`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`stats_day`, `between`, fmt.Sprintf(`%d,%d`, startDay, endDay)).
+		Group(`robot_id`).
+		Order(`unknow_question_total desc`).
+		Field(`robot_id,Count(robot_id) as unknow_question_total`).
+		Select()
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, err
+	}
+
+	if len(list) == 0 {
+		return list, nil
+	}
+
+	robotInfos, err := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).Field(`id ,robot_name`).
+		ColumnMap(`robot_name`, `id`)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, err
+	}
+
+	return_list := make([]msql.Params, 0)
+	for key, item := range list {
+		if robotInfo, ok := robotInfos[item[`robot_id`]]; ok {
+			list[key][`robot_name`] = robotInfo[`robot_name`]
+			return_list = append(return_list, list[key])
+		}
+	}
+	return return_list, nil
 }

@@ -5,6 +5,7 @@ package manage
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/app/chatwiki/work_flow"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
@@ -88,7 +89,7 @@ func RobotExport(c *gin.Context) {
 	id := cast.ToInt(c.Query(`id`))
 	form_id := cast.ToString(c.Query(`form_id`))
 	library_id := cast.ToString(c.Query(`library_id`))
-	robotCsl, err := CreateRobotCsl(id, adminUserId, form_id, library_id)
+	robotCsl, err := CreateRobotCsl(common.GetLang(c), id, adminUserId, form_id, library_id)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
@@ -123,7 +124,7 @@ func RobotImport(c *gin.Context) {
 	}
 	ext := strings.ToLower(strings.TrimLeft(filepath.Ext(fileHeader.Filename), `.`))
 	if ext != `csl` {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf(`不支持的文件格式:%s`, ext)))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `unsupported_file_format`, ext))))
 		return
 	}
 	reader, err := fileHeader.Open()
@@ -137,7 +138,7 @@ func RobotImport(c *gin.Context) {
 		return
 	}
 	if len(bs) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(`文件内容不能为空`)))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `file_content_empty`))))
 		return
 	}
 	robotCsl, err := common.ParseRobotCsl(string(bs))
@@ -150,17 +151,17 @@ func RobotImport(c *gin.Context) {
 	if len(token) == 0 {
 		token = c.Query(`token`)
 	}
-	c.String(http.StatusOK, lib_web.FmtJson(ApplyRobotCsl(adminUserId, getLoginUserId(c), token, robotCsl)))
+	c.String(http.StatusOK, lib_web.FmtJson(ApplyRobotCsl(common.GetLang(c), adminUserId, getLoginUserId(c), token, robotCsl)))
 }
 
-func CreateRobotCsl(id, adminUserId int, form_id, library_id string, simple ...bool) (robotCsl *common.RobotCsl, err error) {
+func CreateRobotCsl(lang string, id, adminUserId int, form_id, library_id string, simple ...bool) (robotCsl *common.RobotCsl, err error) {
 	robotCsl = common.NewRobotCsl()
 	if id <= 0 {
-		err = errors.New(`机器人ID参数错误`)
+		err = errors.New(i18n.Show(lang, `robot_id_param_error`))
 		return
 	}
 	if adminUserId <= 0 {
-		err = errors.New(`管理员ID参数错误`)
+		err = errors.New(i18n.Show(lang, `admin_user_id_param_error`))
 		return
 	}
 	robot, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`id`, cast.ToString(id)).
@@ -169,7 +170,7 @@ func CreateRobotCsl(id, adminUserId int, form_id, library_id string, simple ...b
 		return
 	}
 	if len(robot) == 0 {
-		err = errors.New(`机器人信息不存在`)
+		err = errors.New(i18n.Show(lang, `robot_info_not_exist`))
 		return
 	}
 	robotCsl.Robot = robot
@@ -189,7 +190,7 @@ func CreateRobotCsl(id, adminUserId int, form_id, library_id string, simple ...b
 	case define.ApplicationTypeChat:
 		if len(robot[`work_flow_ids`]) > 0 {
 			for _, workFlowId := range strings.Split(robot[`work_flow_ids`], `,`) {
-				children, subErr := CreateRobotCsl(cast.ToInt(workFlowId), adminUserId, form_id, library_id, true)
+				children, subErr := CreateRobotCsl(lang, cast.ToInt(workFlowId), adminUserId, form_id, library_id, true)
 				if subErr == nil {
 					for libraryId := range children.Librarys {
 						robotCsl.Librarys[libraryId] = nil
@@ -224,7 +225,7 @@ func CreateRobotCsl(id, adminUserId int, form_id, library_id string, simple ...b
 			return
 		}
 		//工作流节点配置信息脱密
-		nodes = work_flow.NodesConfDesensitize(nodes)
+		nodes = work_flow.NodesConfDesensitize(adminUserId, nodes, lang)
 
 		// 过滤鉴权信息
 		for i, node := range nodes {
@@ -234,7 +235,7 @@ func CreateRobotCsl(id, adminUserId int, form_id, library_id string, simple ...b
 			_ = tool.JsonDecodeUseNumber(node[`node_info_json`], &filterNodeJson)
 
 			switch cast.ToInt(node[`node_type`]) {
-			case work_flow.NodeTypeCurl:
+			case work_flow.NodeTypeCurl, work_flow.NodeTypeHttpTool:
 				// 过滤params
 				if len(filterNodeParams.Curl.HttpAuth) > 0 {
 					for idx := range filterNodeParams.Curl.HttpAuth {
@@ -316,7 +317,7 @@ func CreateRobotCsl(id, adminUserId int, form_id, library_id string, simple ...b
 			importData = true
 		}
 
-		libraryCsl, sqlErr := common.BuildLibraryCsl(libraryId, adminUserId, importData)
+		libraryCsl, sqlErr := common.BuildLibraryCsl(lang, libraryId, adminUserId, importData)
 		if sqlErr == nil {
 			robotCsl.Librarys[libraryId] = libraryCsl
 		} else {
@@ -335,7 +336,7 @@ func CreateRobotCsl(id, adminUserId int, form_id, library_id string, simple ...b
 		if _, ok := formIdMap[formId]; ok && len(formIdArr) > 0 {
 			importData = true
 		}
-		formCsl, sqlErr := common.BuildFormCsl(formId, adminUserId, importData)
+		formCsl, sqlErr := common.BuildFormCsl(lang, formId, adminUserId, importData)
 		if sqlErr == nil {
 			robotCsl.Forms[formId] = formCsl
 		} else {
@@ -345,12 +346,12 @@ func CreateRobotCsl(id, adminUserId int, form_id, library_id string, simple ...b
 	return
 }
 
-func ApplyRobotCsl(adminUserId, userId int, token string, robotCsl *common.RobotCsl) (any, error) {
+func ApplyRobotCsl(lang string, adminUserId, userId int, token string, robotCsl *common.RobotCsl) (any, error) {
 	if robotCsl == nil || len(robotCsl.Robot) == 0 {
-		return nil, errors.New(`机器人信息不存在`)
+		return nil, errors.New(i18n.Show(lang, `robot_info_not_exist`))
 	}
 	//获取默认的模型配置
-	models, err := common.GetDefaultModelParams(adminUserId)
+	models, err := common.GetDefaultModelParams(lang, adminUserId)
 	if err != nil {
 		return nil, err
 	}
@@ -392,7 +393,7 @@ func ApplyRobotCsl(adminUserId, userId int, token string, robotCsl *common.Robot
 		//导入关联工作流
 		workFlowIds := make([]string, 0)
 		for _, workflow := range robotCsl.Workflows {
-			relationWorkflow, sqlErr := ApplyFlowRobot(adminUserId, workflow.Robot, workflow.Nodes, cslIdMaps, models, token)
+			relationWorkflow, sqlErr := ApplyFlowRobot(lang, adminUserId, workflow.Robot, workflow.Nodes, cslIdMaps, models, token)
 			if sqlErr != nil {
 				logs.Error(sqlErr.Error())
 				continue
@@ -403,12 +404,12 @@ func ApplyRobotCsl(adminUserId, userId int, token string, robotCsl *common.Robot
 		if len(workFlowIds) > 0 {
 			up := msql.Datas{`work_flow_ids`: strings.Join(workFlowIds, `,`), `update_time`: tool.Time2Int()}
 			if _, err = msql.Model(`chat_ai_robot`, define.Postgres).Where(`id`, newRobot[`id`]).Update(up); err != nil {
-				return nil, fmt.Errorf(`应用关联工作流操作失败:%s`, err.Error())
+				return nil, errors.New(i18n.Show(lang, `apply_relation_workflow_failed`, err.Error()))
 			}
 			lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: newRobot[`robot_key`]})
 		}
 	case define.ApplicationTypeFlow:
-		newRobot, err = ApplyFlowRobot(adminUserId, robotCsl.Robot, robotCsl.Nodes, cslIdMaps, models, token)
+		newRobot, err = ApplyFlowRobot(lang, adminUserId, robotCsl.Robot, robotCsl.Nodes, cslIdMaps, models, token)
 		if err != nil {
 			return nil, err
 		}
@@ -480,7 +481,7 @@ func ApplyChatRobot(robot msql.Params, cslIdMaps *common.CslIdMaps, models *comm
 	return cast.ToStringMapString(code.Data), nil
 }
 
-func ApplyFlowRobot(adminUserId int, robot msql.Params, nodes []msql.Params, cslIdMaps *common.CslIdMaps, models *common.DefaultModelParams, token string) (msql.Params, error) {
+func ApplyFlowRobot(lang string, adminUserId int, robot msql.Params, nodes []msql.Params, cslIdMaps *common.CslIdMaps, models *common.DefaultModelParams, token string) (msql.Params, error) {
 	flowRobot := map[string]string{
 		`robot_name`:           robot[`robot_name`],
 		`en_name`:              tool.Random(50),
@@ -495,12 +496,12 @@ func ApplyFlowRobot(adminUserId int, robot msql.Params, nodes []msql.Params, csl
 	}
 	newRobot := cast.ToStringMapString(code.Data)
 	//工作流节点配置信息脱密
-	nodes = work_flow.NodesConfDesensitize(nodes)
+	nodes = work_flow.NodesConfDesensitize(adminUserId, nodes, lang)
 	//工作流节点
 	for _, node := range nodes {
 		nodeType := cast.ToInt(node[`node_type`])
 		if !tool.InArrayInt(nodeType, work_flow.NodeTypes[:]) {
-			logs.Error(`节点类型非法:%s`, node[`node_type`])
+			logs.Error(i18n.Show(lang, `node_type_invalid`, node[`node_type`]))
 			continue
 		}
 		insData := msql.Datas{`admin_user_id`: adminUserId, `robot_id`: newRobot[`id`]}

@@ -16,7 +16,7 @@
         :rules="rules"
       >
         <a-form-item name="file_name" label="文件名称">
-          <a-input v-model:value="formState.file_name" placeholder="请输入" />
+          <a-input v-model:value="formState.file_name" placeholder="请输入" :disabled="disableFileName" />
         </a-form-item>
         <a-form-item name="doc_auto_renew_frequency" label="更新频率">
           <a-select v-model:value="formState.doc_auto_renew_frequency" style="width: 100%">
@@ -54,6 +54,7 @@ const formState = reactive({
   doc_auto_renew_frequency: 1,
   doc_auto_renew_minute: ''
 })
+const disableFileName = ref(false)
 const rules = ref({
   file_name: [
     {
@@ -78,6 +79,7 @@ const show = (data) => {
   if (data.doc_auto_renew_minute > 0) {
     formState.doc_auto_renew_minute = convertTime(data.doc_auto_renew_minute)
   }
+  disableFileName.value = !!data.from_update_info
   open.value = true
 }
 const confirmLoading = ref(false)

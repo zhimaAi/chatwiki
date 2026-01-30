@@ -167,7 +167,7 @@ import {
 } from '@/api/library'
 import { formatFileSize } from '@/utils/index'
 import { usePermissionStore } from '@/stores/modules/permission'
-import { LIBRARY_NORMAL_AVATAR, LIBRARY_QA_AVATAR } from '@/constants/index'
+import { LIBRARY_NORMAL_AVATAR, LIBRARY_QA_AVATAR, LIBRARY_OFFICIAL_ACCOUNT_AVATAR } from '@/constants/index'
 import {
   ExclamationCircleOutlined,
   PlusOutlined,
@@ -358,7 +358,13 @@ const getList = () => {
       item.file_size_str = formatFileSize(item.file_size)
 
       if (!item.avatar) {
-        item.avatar = item.type == 0 ? LIBRARY_NORMAL_AVATAR : LIBRARY_QA_AVATAR
+        if (item.type == 0) {
+          item.avatar = LIBRARY_NORMAL_AVATAR
+        } else if (item.type == 2) {
+          item.avatar = LIBRARY_QA_AVATAR
+        } else if (item.type == 3) {
+          item.avatar = LIBRARY_OFFICIAL_ACCOUNT_AVATAR
+        }
       }
     })
     if (group_id.value != '') {

@@ -3,6 +3,7 @@ export default {
   name: 'LibrarySearchLayout',
   component: () => import('../layouts/AdminLayout/index.vue'),
   redirect: '/library-search/index',
+  
   children: [
     {
       path: '/library-search/index',
@@ -12,7 +13,8 @@ export default {
         title: '搜索',
         icon: 'monitor',
         hideTitle: true,
-        isCustomPage: true
+        isCustomPage: true,
+        activeMenu: 'library-search',
       }
     }
   ]

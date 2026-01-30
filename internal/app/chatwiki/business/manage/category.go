@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
 	"encoding/json"
 	"errors"
@@ -35,14 +36,14 @@ func initCategory(adminUserId int) {
 				`update_time`:   tool.Time2Int(),
 			}
 			if t == `a` {
-				data[`name`] = `精选`
+				data[`name`] = lib_define.Choiceness
 			}
 			if _, err := msql.Model(`category`, define.Postgres).Insert(data); err != nil {
 				logs.Error(err.Error())
 			}
 		} else {
 			if t == `a` && len(res[`name`]) == 0 {
-				if _, err := msql.Model(`category`, define.Postgres).Where(`id`, res[`id`]).Update(msql.Datas{`name`: `精选`}); err != nil {
+				if _, err := msql.Model(`category`, define.Postgres).Where(`id`, res[`id`]).Update(msql.Datas{`name`: lib_define.Choiceness}); err != nil {
 					logs.Error(err.Error())
 				}
 			}

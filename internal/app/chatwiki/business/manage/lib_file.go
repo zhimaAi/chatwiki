@@ -7,8 +7,10 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/app/chatwiki/middlewares"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
+	"chatwiki/internal/pkg/thumbnail"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -386,6 +388,21 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 			pdfParseType == define.PdfParseTypeOcrAli) {
 			status = define.FileStatusInitial
 		}
+
+		returnDir := filepath.Join(fmt.Sprintf(`%s/upload/chat_ai/%d/%s/%s`, filepath.Dir(define.AppRoot), userId, `library_file`, tool.Date(`Ym`)))
+		thumbFolderPath := filepath.Join(fmt.Sprintf(`/upload/chat_ai/%d/%s/%s/`, userId, `library_file`, tool.Date(`Ym`)))
+
+		//生成缩略图
+		thumbPath, _, _, genErr := thumbnail.GenerateThumbnail(common.GetFileByLink(uploadInfo.Link), returnDir, thumbFolderPath)
+
+		if genErr != nil {
+			logs.Error("generate thumbnail error：" + genErr.Error())
+		}
+
+		if addFileParam.ThumbPath != "" {
+			thumbPath = addFileParam.ThumbPath
+		}
+
 		insData := msql.Datas{
 			`admin_user_id`:                userId,
 			`library_id`:                   libraryId,
@@ -414,6 +431,7 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 			`group_id`:                     groupId,
 			`official_article_id`:          officialArticleId,
 			`official_article_update_time`: officialArticleUpdateTime,
+			`thumb_path`:                   thumbPath,
 		}
 		if define.IsPdfFile(uploadInfo.Ext) {
 			page, err := api.PageCountFile(common.GetFileByLink(uploadInfo.Link))
@@ -700,7 +718,7 @@ func GetLibFileInfo(c *gin.Context) {
 	// ====== 元数据及其值 ======
 	// 1) 内置元数据值：固定从 chat_ai_library_file 字段映射
 	groupId := cast.ToInt(info[`group_id`])
-	groupName := `未分组`
+	groupName := lib_define.Ungrouped
 	if groupId > 0 {
 		groupInfo, err := msql.Model(`chat_ai_library_group`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(userId)).
@@ -739,9 +757,10 @@ func GetLibFileInfo(c *gin.Context) {
 		Select()
 
 	// 4) 生成表格行：数据名/数据类型/数据值
-	metaList := make([]map[string]any, 0, len(define.BuiltinMetaSchemaList)+len(schemaList))
+	builtinMetaSchemaList := common.GetBuiltinMetaSchemaList(common.GetLang(c))
+	metaList := make([]map[string]any, 0, len(builtinMetaSchemaList)+len(schemaList))
 	// 内置：数据值来自文件字段；is_show 来自 chat_ai_library 的 show_meta_*
-	for _, b := range define.BuiltinMetaSchemaList {
+	for _, b := range builtinMetaSchemaList {
 		isShow := 0
 		switch b.Key {
 		case define.BuiltinMetaKeySource:
@@ -1889,7 +1908,7 @@ func CreateExportLibFileTask(c *gin.Context) {
 		`group_id`:      strings.TrimSpace(c.Query("group_id")),
 		`export_type`:   exportType,
 	}
-	id, err := common.CreateExportTask(uint(adminUserId), 0, define.ExportSourceLibFileDoc, ``, params)
+	id, err := common.CreateExportTask(common.GetLang(c), uint(adminUserId), 0, define.ExportSourceLibFileDoc, ``, params)
 	if err != nil {
 		logs.Error(err.Error())
 		common.FmtError(c, `sys_err`)

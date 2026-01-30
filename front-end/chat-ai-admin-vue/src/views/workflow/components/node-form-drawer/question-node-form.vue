@@ -21,6 +21,7 @@
                   v-model:modeName="formState.use_model"
                   v-model:modeId="formState.model_config_id"
                   @loaded="onVectorModelLoaded"
+                  @change="handleModelChange"
                   style="width: 348px"
                 />
                 <a-button @click="hanldeShowMore"
@@ -29,6 +30,25 @@
                   <UpOutlined v-else />
                 </a-button>
               </div>
+            </a-form-item>
+            <a-form-item name="role" v-if="showMoreBtn">
+              <template #label>
+                <span>提示词所属角色&nbsp;</span>
+                <a-tooltip>
+                  <template #title>
+                    <div>
+                      对接大模型时，会将设置中的提示词拼接在对应的role角色下。
+                      <div>系统角色效果示例：</div>
+                      <div>{"role": "system", "content": "自定义提示词"}</div>
+                    </div>
+                  </template>
+                  <QuestionCircleOutlined class="question-icon" />
+                </a-tooltip>
+              </template>
+              <a-radio-group v-model:value="formState.role">
+                <a-radio :value="1">系统角色（System）</a-radio>
+                <a-radio :value="2">用户角色（User）</a-radio>
+              </a-radio-group>
             </a-form-item>
             <a-form-item name="temperature" v-if="showMoreBtn">
               <template #label>
@@ -238,8 +258,18 @@ const formState = reactive({
   prompt: '',
   question_value: '',
   enable_thinking: false,
-  categorys: []
+  categorys: [],
+  role: 1
 })
+
+
+const handleModelChange = () => {
+  if (formState.use_model && formState.use_model.toLowerCase().includes('deepseek-r1')) {
+    formState.role = 2
+  } else {
+    formState.role = 1
+  }
+}
 
 const variableOptionsSelect = ref([])
 
@@ -336,6 +366,8 @@ const init = () => {
         formState[key] = cate[key]
       }
     }
+
+    formState.role = +cate.role || 1
 
     if (!formState.model_config_id && modelList.value.length > 0) {
       formState.model_config_id = modelList.value[0].id

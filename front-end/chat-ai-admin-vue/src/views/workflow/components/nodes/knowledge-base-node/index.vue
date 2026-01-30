@@ -149,7 +149,10 @@ const formState = reactive({
   similarity: 0.5,
   search_type: 1,
   question_value: [],
-  rrf_weight: {}
+  rrf_weight: {},
+  recall_neighbor_switch: false,
+  recall_neighbor_before_num: 1,
+  recall_neighbor_after_num: 1,
 })
 
 const variableOptions = ref([])
@@ -188,10 +191,11 @@ const reset = () => {
       formState[key] = libs[key]
     }
   }
-    if(!libs.rrf_weight){
-      //  没有值 则去默认值
-      formState.rrf_weight = rrf_weight.value
-    }
+  
+  if (!formState.rrf_weight || Object.keys(formState.rrf_weight).length == 0) {
+    //  没有值 则去默认值
+    formState.rrf_weight = rrf_weight.value
+  }
 
   nextTick(() => {
     resetSize()
@@ -207,7 +211,10 @@ const update = () => {
         : void 0,
       question_value: formState.question_value.join('.'),
       library_ids: formState.library_ids.join(','),
-      rrf_weight: JSON.stringify(formState.rrf_weight)
+      rrf_weight: JSON.stringify(formState.rrf_weight),
+      recall_neighbor_switch: formState.recall_neighbor_switch,
+      recall_neighbor_before_num: formState.recall_neighbor_before_num,
+      recall_neighbor_after_num: formState.recall_neighbor_before_num,
     }
   })
 

@@ -395,6 +395,12 @@
                   <span>外部MCP</span>
                 </span>
               </a-menu-item>
+              <a-menu-item @click.prevent="toAddHttpTool">
+                <span class="create-action">
+                  <img class="icon" :src="DEFAULT_MCP_AVATAR" alt="" />
+                  <span>HTTP工具</span>
+                </span>
+              </a-menu-item>
               <a-menu-item @click="toImportCsl">
                 <span class="create-action">
                   <img class="icon" :src="DEFAULT_IMPORT_CSL_AVATAR" alt="">
@@ -409,6 +415,7 @@
     </div>
 
     <McpPanel v-if="activeKey == 3" ref="mcpPanelRef"/>
+    <HttpToolBox v-else-if="activeKey == 6" ref="httpToolBoxRef" />
     <div v-else class="list-group-box">
       <div class="group-list-box" :class="{ 'hide-group': isHideGroup }">
         <cu-scroll style="padding-right: 16px">
@@ -585,7 +592,7 @@ import {
   deleteRobotGroup,
   moveRobotSort,
 } from '@/api/robot/index.js'
-import { ref, onMounted, createVNode, computed } from 'vue'
+import { ref, onMounted, createVNode, computed, nextTick } from 'vue'
 import {useRoute} from 'vue-router'
 import {
   ExclamationCircleOutlined,
@@ -607,6 +614,7 @@ import { useOpenUrlWithToken } from '@/hooks/web'
 import McpBox from "@/views/robot/robot-list/components/mcp-box.vue";
 import McpPanel from "@/views/robot/robot-list/components/mcp-panel.vue";
 import ThirdMcpStore from "@/views/robot/robot-list/components/third-mcp-store.vue";
+import HttpToolBox from "@/views/robot/robot-list/components/http-tool-box.vue";
 import { useRouter } from 'vue-router'
 import { setDescRef, getTooltipTitle, objectToQueryString } from '@/utils/index'
 import WorkflowExportModal from "@/views/robot/robot-list/components/workflow-export-modal.vue";
@@ -631,6 +639,10 @@ const tabs = ref([
   {
     title: 'MCP插件',
     value: '3'
+  },
+  {
+    title: 'HTTP工具',
+    value: '6'
   }
 ])
 
@@ -643,6 +655,7 @@ const robotCreate = computed(() => role_type == 1 || role_permission.includes('R
 const exportRef = ref(null)
 const mcpPanelRef = ref(null)
 const activeKey = ref('2')
+const httpToolBoxRef = ref(null)
 
 const group_id = ref('')
 
@@ -683,41 +696,45 @@ function goMcpSquare () {
 }
 
 const getList = () => {
-  getRobotList()
+    getRobotList()
     .then((res) => {
-      let allNumber = 0
-      let chatNumber = 0
-      let workflowNumber = 0
+    let allNumber = 0
+    let chatNumber = 0
+    let workflowNumber = 0
 
-      res.data.forEach((item) => {
-        if (item.application_type == 0) {
-          chatNumber++
-        } else {
-          workflowNumber++
-        }
-        allNumber++
-      })
+    res.data.forEach((item) => {
+      if (item.application_type == 0) {
+        chatNumber++
+      } else {
+        workflowNumber++
+      }
+      allNumber++
+    })
 
-      tabs.value = [
-        {
-          title: '全部 (' + allNumber + ')',
-          value: '2'
-        },
-        {
-          title: '聊天机器人 (' + chatNumber + ')',
-          value: '0'
-        },
-        {
-          title: '工作流 (' + workflowNumber + ')',
-          value: '1'
-        },
-        {
-          title: 'MCP插件',
-          value: '3'
-        }
-      ]
-      robotList.value = res.data
-      filterRobotInit()
+    tabs.value = [
+      {
+        title: '全部 (' + allNumber + ')',
+        value: '2'
+      },
+      {
+        title: '聊天机器人 (' + chatNumber + ')',
+        value: '0'
+      },
+      {
+        title: '工作流 (' + workflowNumber + ')',
+        value: '1'
+      },
+      {
+        title: 'MCP插件',
+        value: '3'
+      },
+      {
+        title: 'HTTP工具',
+        value: '6'
+      }
+    ]
+    robotList.value = res.data
+    filterRobotInit()
     })
     .catch(() => {})
 }
@@ -757,6 +774,16 @@ const toEditRobot = ({ id, robot_key, application_type }) => {
     // router.push({ path: '/robot/config/workflow', query: { id: id, robot_key: robot_key  } })
     window.open(`/#/robot/config/workflow?id=${id}&robot_key=${robot_key}`, '_blank', 'noopener') // 建议添加 noopener 防止安全漏洞
   }
+}
+const toAddHttpTool = () => {
+  activeKey.value = '6'
+  nextTick(() => {
+    // 直接调用子组件暴露的方法
+    const httpComp = (typeof httpToolBoxRef.value !== 'undefined') ? httpToolBoxRef.value : null
+    if (httpComp && httpComp.showStore) {
+      httpComp.showStore()
+    }
+  })
 }
 
 const handleDelete = (data) => {

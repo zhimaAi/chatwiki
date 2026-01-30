@@ -422,6 +422,7 @@ function initLogicFlow() {
 
     // 自定义边删除
     lf.on('custom:edge:delete', (edge) => {
+      console.log(edge, '==edge')
       handleDeleteEdge(edge)
     })
 

@@ -34,7 +34,7 @@ func CheckRrfWeight(rrfWeight, lang string) error {
 		return errors.New(i18n.Show(lang, `param_invalid`, `rrf_weight`))
 	}
 	if config.Vector+config.Search+config.Graph != 100 {
-		return errors.New(`RRF算法权重配置之和不是1`)
+		return errors.New(i18n.Show(lang, `rrf_weight_config_sum_invalid`))
 	}
 	return nil
 }

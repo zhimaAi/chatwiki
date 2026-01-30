@@ -47,10 +47,10 @@ func AmendDataRaw(dataRaw any, replace map[string]any, keys ...string) any {
 	default:
 		if len(keys) > 0 {
 			if newVal, ok := replace[fmt.Sprintf(`%s#%v`, keys[0], realData)]; ok {
-				return newVal //替换成新值
+				return newVal //replace with new value
 			}
 			if newVal, ok := replace[keys[0]]; ok {
-				return newVal //替换成新值
+				return newVal //replace with new value
 			}
 		}
 		return realData

@@ -30,24 +30,32 @@ func Init() {
 	zhT := zh.New()
 	enT := en.New()
 	uni = ut.New(zhT, enT)
-}
-func switchTrans(lang string) ut.Translator {
-	var err error
-	trans, _ := uni.GetTranslator(lang)
 
+}
+
+func switchTrans(lang string) ut.Translator {
+	//get locale
+	var locale string
+	switch lang {
+	case define.LangZhCn:
+		locale = `zh`
+	default:
+		locale = `en`
+	}
+	//get trans
+	var err error
+	trans, _ := uni.GetTranslator(locale)
 	//get gin validator
 	validate := binding.Validator.Engine().(*validator.Validate)
 	// check trans
 	switch lang {
-	case "en":
-		err = entranslations.RegisterDefaultTranslations(validate, trans)
 	case define.LangZhCn:
 		err = zhtranslations.RegisterDefaultTranslations(validate, trans)
 	default:
-		err = zhtranslations.RegisterDefaultTranslations(validate, trans)
+		err = entranslations.RegisterDefaultTranslations(validate, trans)
 	}
 	if err != nil {
-		logs.Error("validator register error", zap.Error(err))
+		logs.Error(`validator register error :%v`, zap.Error(err))
 	}
 	return trans
 }

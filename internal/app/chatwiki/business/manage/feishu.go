@@ -43,7 +43,7 @@ func FeishuUserAuthLoginRedirect(c *gin.Context) {
 	}
 	feishuApp, ok := app.(wechat.FeishuInterface)
 	if !ok {
-		logs.Error(`飞书app初始化失败`)
+		logs.Error(`feishu app init failed`)
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
@@ -90,7 +90,7 @@ func FeishuUserAuthLoginCallback(c *gin.Context) {
 	}
 	feishuApp, ok := app.(wechat.FeishuInterface)
 	if !ok {
-		logs.Error(`飞书app初始化失败`)
+		logs.Error(`feishu app init failed`)
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
@@ -130,7 +130,7 @@ func GetFeishuDocFileList(c *gin.Context) {
 
 	feishuApp, ok := app.(wechat.FeishuInterface)
 	if !ok {
-		logs.Error(`飞书app初始化失败`)
+		logs.Error(`feishu app init failed`)
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}

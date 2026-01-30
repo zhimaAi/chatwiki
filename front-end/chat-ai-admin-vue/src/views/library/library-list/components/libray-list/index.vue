@@ -23,20 +23,44 @@
     box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.12);
   }
 
+  .library-type {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    padding: 1px 8px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 10px;
+    position: absolute;
+    right: 0;
+    border-radius: 0 8px;
+    background: var(--09, #F2F4F7);
+
+    .type-box {
+      color: #595959;
+      font-size: 12px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 16px;
+    }
+  }
+
   .library-info {
     position: relative;
     display: flex;
     align-items: center;
 
     .library-icon {
-      width: 52px;
-      height: 52px;
+      width: 48px;
+      height: 48px;
       overflow: hidden;
       position: relative;
       > img {
         width: 100%;
         height: 100%;
-        border-radius: 14px;
+        border-radius: 12px;
       }
 
       .sync-tag {
@@ -80,27 +104,27 @@
     text-overflow: ellipsis;
   }
 
-  .library-type {
-    display: flex;
-    .type-tag {
-      height: 22px;
-      line-height: 20px;
-      padding: 0 8px;
-      font-size: 12px;
-      font-weight: 400;
-      border-radius: 6px;
-      color: rgb(36, 117, 252);
-      border: 1px solid #CDE0FF;
-    }
-    .graph-tag {
-      margin-left: 4px;
-      &.gray-tag {
-        border: 1px solid #00000026;
-        background: #0000000a;
-        color: #bfbfbf;
-      }
-    }
-  }
+  // .library-type {
+  //   display: flex;
+  //   .type-tag {
+  //     height: 22px;
+  //     line-height: 20px;
+  //     padding: 0 8px;
+  //     font-size: 12px;
+  //     font-weight: 400;
+  //     border-radius: 6px;
+  //     color: rgb(36, 117, 252);
+  //     border: 1px solid #CDE0FF;
+  //   }
+  //   .graph-tag {
+  //     margin-left: 4px;
+  //     &.gray-tag {
+  //       border: 1px solid #00000026;
+  //       background: #0000000a;
+  //       color: #bfbfbf;
+  //     }
+  //   }
+  // }
   .item-body{
     margin-top: 12px;
   }
@@ -133,9 +157,16 @@
     color: #7a8699;
 
     .text-item {
+      display: flex;
+      align-items: center;
       margin-right: 12px;
       &:last-child{
         margin-right: 0;
+      }
+
+      .icon {
+        font-size: 14px;
+        margin-right: 4px;
       }
     }
   }
@@ -190,6 +221,12 @@
   <div class="list-box">
     <div v-if="props.list.length" class="list-item-wrapper" v-for="item in props.list" :key="item.id">
       <div class="list-item" @click.stop="toEdit(item)">
+        <div class="library-type">
+          <span class="type-box" v-if="item.type == 0">{{ t('normal_knowledge_base') }}</span>
+          <span class="type-box" v-if="item.type == 1">{{ t('external_knowledge_base') }}</span>
+          <span class="type-box" v-if="item.type == 2">{{ t('qa_knowledge_base') }}</span>
+          <span class="type-box" v-if="item.type == 3">{{ t('official_account_knowledge_base') }}</span>
+        </div>
         <div class="library-info">
           <div class="library-icon">
             <img :src="item.avatar"/>
@@ -200,18 +237,18 @@
           </div>
           <div class="library-info-content">
             <div class="library-title">{{ item.library_name }}</div>
-            <div class="library-type">
+            <!-- <div class="library-type">
               <span class="type-tag" v-if="item.type == 0">{{ t('normal_knowledge_base') }}</span>
               <span class="type-tag" v-if="item.type == 1">{{ t('external_knowledge_base') }}</span>
               <span class="type-tag" v-if="item.type == 2">{{ t('qa_knowledge_base') }}</span>
-              <span class="type-tag" v-if="item.type == 3">{{ t('official_account_knowledge_base') }}</span>
+              <span class="type-tag" v-if="item.type == 3">{{ t('official_account_knowledge_base') }}</span> -->
               <!-- <a-tooltip v-if="neo4j_status">
                 <template #title>{{ item.graph_switch == 0 ? '未' : '已' }}开启知识图谱生成</template>
                 <span class="type-tag graph-tag" :class="{ 'gray-tag': item.graph_switch == 0 }"
                   >Graph</span
                 >
               </a-tooltip> -->
-            </div>
+            <!-- </div> -->
           </div>
         </div>
         <div class="item-body">
@@ -222,9 +259,23 @@
 
         <div class="item-footer">
           <div class="library-size">
-            <span class="text-item">{{ t('document') }}{{ t('colon') }}{{ item.file_total }}</span>
-            <span class="text-item">{{ t('size') }}{{ t('colon') }}{{ item.file_size_str }}</span>
-            <span class="text-item">{{ t('related_app') }}{{ t('colon') }}{{ item.robot_nums || 0 }}</span>
+            <a-tooltip title="文档数量">
+              <span class="text-item">
+                <svg-icon class="icon" name="document-icon"></svg-icon>
+                {{ item.file_total }}
+              </span>
+            </a-tooltip>
+            <a-tooltip title="存储大小">
+              <span class="text-item">
+              <svg-icon class="icon" name="storage-icon"></svg-icon>
+              {{ item.file_size_str }}</span>
+            </a-tooltip>
+            <a-tooltip title="关联应用">
+              <span class="text-item">
+                <svg-icon class="icon" name="relevance-icon"></svg-icon>
+                {{ item.robot_nums || 0 }}
+              </span>
+            </a-tooltip>
           </div>
 
           <div class="action-box" @click.stop>

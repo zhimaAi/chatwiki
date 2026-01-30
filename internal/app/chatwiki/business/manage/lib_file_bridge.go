@@ -3,8 +3,15 @@
 package manage
 
 import (
+	"chatwiki/internal/app/chatwiki/common"
+	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
+	"chatwiki/internal/pkg/thumbnail"
 	"errors"
+	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -13,10 +20,6 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
-
-	"chatwiki/internal/app/chatwiki/common"
-	"chatwiki/internal/app/chatwiki/define"
-	"chatwiki/internal/app/chatwiki/i18n"
 )
 
 type BridgeGetLibFileListReq struct {
@@ -129,7 +132,7 @@ func BridgeGetLibFileList(adminUserId, loginUserId int, lang string, req *Bridge
 		}
 	}
 	// 分组 id -> name 映射
-	groupMap := map[int]string{0: `未分组`}
+	groupMap := map[int]string{0: lib_define.Ungrouped}
 	groupList, err := msql.Model(`chat_ai_library_group`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`library_id`, cast.ToString(libraryId)).
@@ -173,6 +176,7 @@ func BridgeGetLibFileList(adminUserId, loginUserId int, lang string, req *Bridge
 
 	// 给列表每条记录补齐 group_name/meta_list（内置+自定义）
 	listAny := make([]map[string]any, 0, len(list))
+	builtinMetaSchemaList := common.GetBuiltinMetaSchemaList(lang)
 	for _, item := range list {
 		obj := make(map[string]any, len(item)+4)
 		for k, v := range item {
@@ -181,7 +185,7 @@ func BridgeGetLibFileList(adminUserId, loginUserId int, lang string, req *Bridge
 		gid := cast.ToInt(item[`group_id`])
 		gname, ok := groupMap[gid]
 		if !ok {
-			gname = `未分组`
+			gname = lib_define.Ungrouped
 		}
 		obj[`group_name`] = gname
 
@@ -190,17 +194,36 @@ func BridgeGetLibFileList(adminUserId, loginUserId int, lang string, req *Bridge
 		if metaStr == `` {
 			metaStr = `{}`
 		}
+
+		//没有缩略图的，生成一下
+		if cast.ToString(item[`thumb_path`]) == "" {
+			go func(item msql.Params) {
+
+				returnDir := filepath.Join(fmt.Sprintf(`%s/upload/chat_ai/%d/%s/%s`, filepath.Dir(define.AppRoot), adminUserId, `library_file`, tool.Date(`Ym`)))
+				thumbFolderPath := filepath.Join(fmt.Sprintf(`/upload/chat_ai/%d/%s/%s/`, adminUserId, `library_file`, tool.Date(`Ym`)))
+				//生成缩略图
+				thumbPath, _, _, genErr := thumbnail.GenerateThumbnail(common.GetFileByLink(item["file_url"]), returnDir, thumbFolderPath)
+
+				if genErr != nil {
+					logs.Error("generate thumbnail error：" + genErr.Error())
+				} else {
+					msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, item[`id`]).Update(msql.Datas{`thumb_path`: thumbPath})
+				}
+
+			}(item)
+		}
+
 		_ = tool.JsonDecode(metaStr, &metaMap)
 
 		// meta_list：前端表格直接渲染（新功能不考虑兼容，不返回 meta_values）
-		metaList := make([]map[string]any, 0, len(define.BuiltinMetaSchemaList)+len(schemaKeyList))
+		metaList := make([]map[string]any, 0, len(builtinMetaSchemaList)+len(schemaKeyList))
 		builtinValueMap := map[string]any{
 			define.BuiltinMetaKeyUpdateTime: cast.ToInt(item[`update_time`]),
 			define.BuiltinMetaKeyCreateTime: cast.ToInt(item[`create_time`]),
 			define.BuiltinMetaKeySource:     cast.ToInt(item[`doc_type`]),
 			define.BuiltinMetaKeyGroup:      gname,
 		}
-		for _, b := range define.BuiltinMetaSchemaList {
+		for _, b := range builtinMetaSchemaList {
 			isShow := 0
 			switch b.Key {
 			case define.BuiltinMetaKeySource:
@@ -274,6 +297,7 @@ type BridgeAddLibraryFileReq struct {
 	FeishuDocumentIdList      string `form:"feishu_document_id_list"`
 	FeishuAppId               string `form:"feishu_app_id"`
 	FeishuAppSecret           string `form:"feishu_app_secret"`
+	ThumbPath                 string `form:"thumb_path"`
 }
 
 func BridgeAddLibraryFile(adminUserId, loginUserId int, lang string, req *BridgeAddLibraryFileReq, chunkParam *define.ChunkParam, c *gin.Context) (map[string]any, int, error) {

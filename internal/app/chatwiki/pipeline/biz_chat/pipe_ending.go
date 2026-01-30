@@ -38,7 +38,7 @@ func SetMonitorFromLlm(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 // OfficeAccountPassiveReply 未认证公众号的消息特殊处理
 func OfficeAccountPassiveReply(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if in.params.AppType == lib_define.AppOfficeAccount && in.params.PassiveId > 0 {
-		common.PassiveReplyLogNotify(in.params.PassiveId, in.params.Question, out.content)
+		common.PassiveReplyLogNotify(in.params.Lang, in.params.PassiveId, in.params.Question, out.content)
 	}
 	return pipeline.PipeContinue
 }

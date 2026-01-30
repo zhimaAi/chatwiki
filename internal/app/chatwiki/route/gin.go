@@ -259,6 +259,9 @@ func init() {
 	noAuthFuns(Route[http.MethodPost], `/chat/callWorkFlowHttpTest`, business.CallWorkFlowHttpTest)
 	noAuthFuns(Route[http.MethodPost], `/chat/checkChatRequestPermission`, business.CheckChatRequestPermission)
 	noAuthFuns(Route[http.MethodPost], `/chat/questionGuide`, business.ChatQuestionGuide)
+	noAuthFuns(Route[http.MethodPost], `/chat/dialogueList`, business.OpenGetDialogueList)
+	noAuthFuns(Route[http.MethodPost], `/chat/deleteDialogue`, business.OpenDeleteDialogue)
+	noAuthFuns(Route[http.MethodPost], `/chat/editDialogue`, business.OpenEditDialogue)
 	noAuthFuns(Route[http.MethodPost], `/chat/editVariables`, business.ChatEditVariables)
 	/*model API*/
 	Route[http.MethodGet][`/manage/getModelConfigList`] = manage.GetModelConfigList
@@ -408,6 +411,8 @@ func init() {
 	Route[http.MethodPost][`/manage/statLibraryDataRobotDetail`] = manage.StatLibraryDataRobotDetail
 	Route[http.MethodPost][`/manage/statLibraryRobotDetail`] = manage.StatLibraryRobotDetail
 	Route[http.MethodGet][`/manage/statLibraryGroupSort`] = manage.StatLibraryGroupSort
+	Route[http.MethodPost][`/manage/statUnknowQuestionTotal`] = manage.StatUnknowQuestionTotal
+	Route[http.MethodPost][`/manage/statUnknowQuestionRank`] = manage.StatUnknowQuestionRank
 	/* MCP Server */
 	Route[http.MethodGet][`/manage/getMcpServerList`] = manage.GetMcpServerList
 	Route[http.MethodPost][`/manage/saveMcpServer`] = manage.SaveMcpServer
@@ -440,6 +445,16 @@ func init() {
 	Route[http.MethodGet][`/manage/getMcpSquareTypeList`] = manage.GetMcpSquareTypeList
 	Route[http.MethodGet][`/manage/getMcpSquareList`] = manage.GetMcpSquareList
 
+	/*http tools API*/
+	Route[http.MethodPost][`/manage/httpTool/saveHttpTool`] = manage.SaveHttpTool
+	Route[http.MethodPost][`/manage/httpTool/deleteHttpTool`] = manage.DeleteHttpTool
+	Route[http.MethodGet][`/manage/httpTool/getHttpTool`] = manage.GetHttpTool
+	Route[http.MethodGet][`/manage/httpTool/getHttpToolList`] = manage.GetHttpToolList
+	Route[http.MethodPost][`/manage/httpTool/saveHttpToolNode`] = manage.SaveHttpToolNode
+	Route[http.MethodPost][`/manage/httpTool/deleteHttpToolNode`] = manage.DeleteHttpToolNode
+	Route[http.MethodGet][`/manage/httpTool/getHttpToolNode`] = manage.GetHttpToolNode
+	Route[http.MethodGet][`/manage/httpTool/getHttpToolNodeList`] = manage.GetHttpToolNodeList
+
 	/* Template */
 	Route[http.MethodGet][`/manage/getRobotTemplateCategoryList`] = manage.GetRobotTemplateCategoryList
 	Route[http.MethodGet][`/manage/getRobotTemplateList`] = manage.GetRobotTemplateList
@@ -450,7 +465,6 @@ func init() {
 	Route[http.MethodPost][`/manage/getChatVariables`] = manage.GetChatVariables
 	Route[http.MethodPost][`/manage/createChatVariable`] = manage.CreateChatVariable
 	Route[http.MethodPost][`/manage/deleteChatVariable`] = manage.DeleteChatVariable
-
 }
 
 func noAuthFuns(route map[string]lib_web.Action, path string, handlerFunc lib_web.Action) map[string]lib_web.Action {

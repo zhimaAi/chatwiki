@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"errors"
 	"fmt"
@@ -129,7 +130,17 @@ func BridgeGetLibraryList(adminUserId, userId int, lang string, req *BridgeLibra
 				params[`file_size`] = stats[params[`id`]][`file_size`]
 			}
 			if len(params[`avatar`]) == 0 {
-				params[`avatar`] = define.LocalUploadPrefix + `default/library_avatar.png`
+				switch cast.ToInt(params[`type`]) {
+				case 0: //普通知识库
+					params[`avatar`] = define.LocalUploadPrefix + `default/library_avatar.png`
+					break
+				case 2: //问答知识库
+					params[`avatar`] = define.LocalUploadPrefix + `default/library_faq.png`
+					break
+				case 3: //公众号知识库
+					params[`avatar`] = define.LocalUploadPrefix + `default/official_account_avatar.png`
+					break
+				}
 			}
 			robotInfo, err := common.GetLibraryRobotInfo(userId, cast.ToInt(params[`id`]))
 			if err != nil {
@@ -154,7 +165,7 @@ func BridgeGetLibraryListGroup(adminUserId, userId int, lang string, req *Bridge
 		logs.Error(err.Error())
 		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
 	}
-	list = append([]msql.Params{{`id`: `0`, `group_name`: `未分组`}}, list...)
+	list = append([]msql.Params{{`id`: `0`, `group_name`: lib_define.Ungrouped}}, list...)
 	userInfo, err := msql.Model(define.TableUser, define.Postgres).
 		Alias(`u`).
 		Join(`role r`, `u.user_roles::integer=r.id`, `left`).

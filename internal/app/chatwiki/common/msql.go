@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-contrib/sse"
 	"github.com/go-redis/redis/v8"
@@ -97,7 +98,7 @@ func (h *CustomerCacheBuildHandler) GetCacheData() (any, error) {
 			if len(customer[`nickname`]) > 0 {
 				up[`name`] = customer[`nickname`]
 			} else {
-				up[`name`] = `访客` + tool.Random(4)
+				up[`name`] = lib_define.CustomerPrefix + tool.Random(4)
 			}
 		}
 		if len(customer[`avatar`]) == 0 {
@@ -195,7 +196,7 @@ func GetLibFileInfo(fileId, adminUserId int) (msql.Params, error) {
 	return result, err
 }
 
-func GetMatchLibraryParagraphByVectorSimilarity(adminUserId int, robot msql.Params, openid, appType, question string, libraryIds string, size int, similarity float64, searchType int) ([]msql.Params, error) {
+func GetMatchLibraryParagraphByVectorSimilarity(lang string, adminUserId int, robot msql.Params, openid, appType, question string, libraryIds string, size int, similarity float64, searchType int) ([]msql.Params, error) {
 	result := make([]msql.Params, 0)
 	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector}) {
 		return result, nil
@@ -230,7 +231,7 @@ func GetMatchLibraryParagraphByVectorSimilarity(adminUserId int, robot msql.Para
 			wg.Add(1)
 			go func(wg *sync.WaitGroup, adminUserId int, robot msql.Params, openid, appType string, modelConfigId int, useModel, question string, libraryIds string, size int, list *define.SimilarityResult) {
 				defer wg.Done()
-				embedding, err := GetVector2000(adminUserId, openid, robot, msql.Params{}, msql.Params{}, modelConfigId, useModel, question)
+				embedding, err := GetVector2000(lang, adminUserId, openid, robot, msql.Params{}, msql.Params{}, modelConfigId, useModel, question)
 				if err != nil {
 					logs.Error(err.Error())
 					return
@@ -260,7 +261,7 @@ func GetMatchLibraryParagraphByVectorSimilarity(adminUserId int, robot msql.Para
 	return result, nil
 }
 
-func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appType, question string, libraryIds string, size int, searchType int) ([]msql.Params, error) {
+func GetMatchLibraryParagraphByGraphSimilarity(lang string, robot msql.Params, openid, appType, question string, libraryIds string, size int, searchType int) ([]msql.Params, error) {
 	result := make([]msql.Params, 0)
 	if GetNeo4jStatus(cast.ToInt(robot[`admin_user_id`])) || !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeGraph}) {
 		return result, nil
@@ -292,6 +293,7 @@ func GetMatchLibraryParagraphByGraphSimilarity(robot msql.Params, openid, appTyp
 	extractEntitiesPrompt := strings.ReplaceAll(define.PromptDefaultEntityExtract, `{{question}}`, question)
 	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: extractEntitiesPrompt}}
 	chatResp, _, err := RequestChat(
+		lang,
 		cast.ToInt(robot[`admin_user_id`]),
 		openid,
 		robot,
@@ -526,7 +528,7 @@ func GetMatchLibraryDataIdsByLike(content, libraryIds string, size int) ([]strin
 	// 精准搜索
 	ids, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`library_id`, `in`, libraryIds).
 		Where(`delete_time`, `0`).
-		Where(fmt.Sprintf(`content similar to '%%%s%%'`, content)).
+		Where(fmt.Sprintf(`content ILIKE '%%%s%%'`, content)).
 		Limit(size).ColumnArr(`id`)
 	if err != nil {
 		return ids, err
@@ -553,7 +555,7 @@ func GetMatchFileParagraphIdsByFullTextSearch(question, fileIds string) ([]strin
 	return ids, nil
 }
 
-func GetMatchLibraryParagraphByMergeRerank(openid, appType, question string, list []msql.Params, robot msql.Params) ([]msql.Params, error) {
+func GetMatchLibraryParagraphByMergeRerank(lang string, openid, appType, question string, list []msql.Params, robot msql.Params) ([]msql.Params, error) {
 	if len(robot) == 0 || cast.ToInt(robot[`rerank_status`]) == 0 {
 		return nil, nil //not rerank config
 	}
@@ -570,9 +572,9 @@ func GetMatchLibraryParagraphByMergeRerank(openid, appType, question string, lis
 			}
 			var similar string
 			if len(similarQuestions) > 0 {
-				similar = fmt.Sprintf("\n相似问法：%s", strings.Join(similarQuestions, `/`))
+				similar = fmt.Sprintf("\n%s：%s", i18n.Show(lang, `prompt_similar_questions`), strings.Join(similarQuestions, `/`))
 			}
-			one[`content`] = fmt.Sprintf("问题:%s%s\n答案:%s", one[`question`], similar, one[`answer`])
+			one[`content`] = fmt.Sprintf("%s:%s%s\n%s:%s", i18n.Show(lang, `prompt_question`), one[`question`], similar, i18n.Show(lang, `prompt_answer`), one[`answer`])
 		}
 		chunks = append(chunks, one[`content`])
 	}
@@ -583,10 +585,10 @@ func GetMatchLibraryParagraphByMergeRerank(openid, appType, question string, lis
 		Data:     list,
 		TopK:     min(500, len(list)),
 	}
-	return RerankData(cast.ToInt(robot[`admin_user_id`]), openid, appType, robot, rerankReq)
+	return RerankData(lang, cast.ToInt(robot[`admin_user_id`]), openid, appType, robot, rerankReq)
 }
 
-func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQuestions []string, libraryIds string, size int, similarity float64, searchType int, robot msql.Params) (_ []msql.Params, libUseTime LibUseTime, _ error) {
+func GetMatchLibraryParagraphList(lang string, openid, appType, question string, optimizedQuestions []string, libraryIds string, size int, similarity float64, searchType int, robot msql.Params) (_ []msql.Params, libUseTime LibUseTime, _ error) {
 	result := make([]msql.Params, 0)
 	if len(libraryIds) == 0 {
 		return result, libUseTime, nil
@@ -602,12 +604,12 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 
 	temp := time.Now()
 	for _, q := range append(optimizedQuestions, question) {
-		list, err := GetMatchLibraryParagraphByVectorSimilarity(adminUserId, robot, openid, appType, q, libraryIds, fetchSize, similarity, searchType)
+		list, err := GetMatchLibraryParagraphByVectorSimilarity(lang, adminUserId, robot, openid, appType, q, libraryIds, fetchSize, similarity, searchType)
 		if err != nil {
 			logs.Error(err.Error())
 		}
 		vectorList = append(vectorList, changeListContent(list)...)
-		list, err = GetMatchLibraryParagraphByGraphSimilarity(robot, openid, appType, q, libraryIds, fetchSize, searchType)
+		list, err = GetMatchLibraryParagraphByGraphSimilarity(lang, robot, openid, appType, q, libraryIds, fetchSize, searchType)
 		if err != nil {
 			logs.Error(err.Error())
 		}
@@ -656,7 +658,7 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 
 	//rerank 重排逻辑
 	temp = time.Now()
-	rerankList, err := GetMatchLibraryParagraphByMergeRerank(openid, appType, question, list, robot)
+	rerankList, err := GetMatchLibraryParagraphByMergeRerank(lang, openid, appType, question, list, robot)
 	libUseTime.RerankTime = time.Now().Sub(temp).Milliseconds()
 	if err != nil {
 		logs.Error(err.Error())
@@ -672,6 +674,11 @@ func GetMatchLibraryParagraphList(openid, appType, question string, optimizedQue
 
 	//父子分段-替换成对应的父分段内容+去重
 	list = FatherSonChunkReplace(list)
+
+	//召回邻居段落
+	if len(list) <= CallbackNeighborLimit && `true` == cast.ToString(robot[`recall_neighbor_switch`]) {
+		list = RecallNeighborChunkReplace(list, cast.ToInt(robot[`recall_neighbor_before_num`]), cast.ToInt(robot[`recall_neighbor_after_num`]))
+	}
 
 	//return
 	var ids []string
@@ -716,6 +723,103 @@ func FatherSonChunkReplace(list []msql.Params) []msql.Params {
 		}
 		result = append(result, one)
 	}
+	return result
+}
+
+func RecallNeighborChunkReplace(list []msql.Params, beforeNum, afterNum int) []msql.Params {
+	continueMap := make(map[string]struct{})
+	result := make([]msql.Params, len(list))
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+
+	for idx, one := range list {
+		wg.Add(1)
+		go func(index int, item msql.Params) {
+			defer wg.Done()
+
+			mu.Lock()
+			_, shouldSkip := continueMap[item[`library_id`]]
+			mu.Unlock()
+
+			if shouldSkip {
+				result[index] = item
+				return
+			}
+
+			libraryM := msql.Model(`chat_ai_library`, define.Postgres)
+			fileDataM := msql.Model(`chat_ai_library_file_data`, define.Postgres)
+
+			libInfoRet, err := libraryM.Where(`id`, item[`library_id`]).Order(`id`).Find()
+			if err != nil {
+				logs.Error(`sql:%s,err:%s`, libraryM.GetLastSql(), err.Error())
+				result[index] = item
+				return
+			}
+
+			if libInfoRet[`type`] != cast.ToString(define.GeneralLibraryType) {
+				mu.Lock()
+				continueMap[item[`library_id`]] = struct{}{}
+				mu.Unlock()
+				result[index] = item
+				return
+			}
+
+			fileM := msql.Model(`chat_ai_library_file`, define.Postgres)
+			fileInfoRet, err := fileM.Where(`id`, item[`file_id`]).Order(`id`).Find()
+			if err != nil {
+				logs.Error(`sql:%s,err:%s`, fileM.GetLastSql(), err.Error())
+				result[index] = item
+				return
+			}
+
+			if fileInfoRet[`chunk_type`] == cast.ToString(define.ChunkTypeFatherSon) {
+				mu.Lock()
+				continueMap[item[`library_id`]] = struct{}{}
+				mu.Unlock()
+				result[index] = item
+				return
+			}
+
+			if utf8.RuneCountInString(item[`content`]) < 3000 {
+
+				if afterNum > 0 {
+					afterContents, err := fileDataM.Where(`file_id`, item[`file_id`]).Where(`id`, `>`, item[`id`]).
+						Order(`page_num,number`).Limit(afterNum).ColumnArr(`content`)
+					if err != nil {
+						logs.Error(`sql:%s,err:%s`, fileDataM.GetLastSql(), err.Error())
+						result[index] = item
+						return
+					}
+					if len(afterContents) > 0 {
+						item[`content`] = item[`content`] + "\r\n" + "\r\n" + strings.Join(afterContents, "\r\n")
+					}
+				}
+
+				if beforeNum > 0 {
+					beforeContents, err := fileDataM.Where(`file_id`, item[`file_id`]).Where(`id`, `<`, item[`id`]).
+						Order(`page_num,number desc`).Limit(beforeNum).ColumnArr(`content`)
+					if err != nil {
+						logs.Error(`sql:%s,err:%s`, fileDataM.GetLastSql(), err.Error())
+						result[index] = item
+						return
+					}
+					if len(beforeContents) > 0 {
+						for i, j := 0, len(beforeContents)-1; i < j; i, j = i+1, j-1 {
+							beforeContents[i], beforeContents[j] = beforeContents[j], beforeContents[i]
+						}
+						item[`content`] = strings.Join(beforeContents, "\r\n") + "\r\n" + "\r\n" + item[`content`]
+					}
+				}
+
+			}
+
+			result[index] = item
+		}(idx, one)
+	}
+
+	wg.Wait()
+
 	return result
 }
 
@@ -781,7 +885,7 @@ func GetModelListInfo(modelConfigId int) ([]msql.Params, error) {
 	return result, err
 }
 
-func GetDefaultLlmConfig(adminUserId int) (int, string, bool) {
+func GetDefaultLlmConfig(lang string, adminUserId int) (int, string, bool) {
 	configs, err := msql.Model(`chat_ai_model_config`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id desc`).Select()
 	if err != nil {
@@ -794,7 +898,7 @@ func GetDefaultLlmConfig(adminUserId int) (int, string, bool) {
 		if !tool.InArrayString(Llm, strings.Split(config[`model_types`], `,`)) {
 			continue
 		}
-		if modelInfo, ok := GetModelInfoByConfig(adminUserId, cast.ToInt(config[`id`])); ok {
+		if modelInfo, ok := GetModelInfoByConfig(lang, adminUserId, cast.ToInt(config[`id`])); ok {
 			if models := modelInfo.GetLlmModelList(); len(models) > 0 {
 				return cast.ToInt(config[`id`]), models[0], true
 			}
@@ -803,7 +907,7 @@ func GetDefaultLlmConfig(adminUserId int) (int, string, bool) {
 	return 0, ``, false
 }
 
-func GetDefaultEmbeddingConfig(adminUserId int) (int, string, bool) {
+func GetDefaultEmbeddingConfig(lang string, adminUserId int) (int, string, bool) {
 	configs, err := msql.Model(`chat_ai_model_config`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id desc`).Select()
 	if err != nil {
@@ -816,7 +920,7 @@ func GetDefaultEmbeddingConfig(adminUserId int) (int, string, bool) {
 		if !tool.InArrayString(TextEmbedding, strings.Split(config[`model_types`], `,`)) {
 			continue
 		}
-		if modelInfo, ok := GetModelInfoByConfig(adminUserId, cast.ToInt(config[`id`])); ok {
+		if modelInfo, ok := GetModelInfoByConfig(lang, adminUserId, cast.ToInt(config[`id`])); ok {
 			if models := modelInfo.GetVectorModelList(); len(models) > 0 {
 				return cast.ToInt(config[`id`]), models[0], true
 			}
@@ -926,7 +1030,8 @@ func GetOptimizedQuestions(param *define.ChatRequestParam, contextList []map[str
 
 	var prompt string
 	if len(param.Robot[`optimize_question_dialogue_background`]) > 0 {
-		prompt = strings.ReplaceAll(define.PromptDefaultQuestionOptimize, `{{dialogue_background}}`, `# 对话背景：\n`+param.Robot[`optimize_question_dialogue_background`])
+		prompt = strings.ReplaceAll(define.PromptDefaultQuestionOptimize, `{{dialogue_background}}`,
+			fmt.Sprintf(`# %s：\n%s`, i18n.Show(param.Lang, `dialogue_background`), param.Robot[`optimize_question_dialogue_background`]))
 	} else {
 		prompt = strings.ReplaceAll(define.PromptDefaultQuestionOptimize, `{{dialogue_background}}`, ``)
 	}
@@ -946,6 +1051,7 @@ func GetOptimizedQuestions(param *define.ChatRequestParam, contextList []map[str
 	}
 
 	chatResp, _, err := RequestChat(
+		param.Lang,
 		param.AdminUserId,
 		param.Openid,
 		param.Robot,
@@ -1043,14 +1149,14 @@ func GetRobotNode(robotId uint, nodeKey string) (msql.Params, error) {
 	return result, err
 }
 
-func LibraryAiSummary(lang, question, prompt string, optimizedQuestions []string, libraryIds string, size, maxToken int, similarity, temperature float64, searchType int, robot msql.Params, chanStream chan sse.Event, summarySwitch int) error {
+func LibraryAiSummary(lang string, adminUserId int, question, prompt, libraryIds string, size, maxToken int, similarity, temperature float64, searchType int, robot msql.Params, chanStream chan sse.Event, summarySwitch int) error {
 	defer close(chanStream)
 	chanStream <- sse.Event{Event: `ping`, Data: tool.Time2Int()}
 	if summarySwitch == define.SwitchOff {
 		chanStream <- sse.Event{Event: `finish`, Data: tool.Time2Int()}
 		return nil
 	}
-	list, _, err := GetMatchLibraryParagraphList("", "", question, []string{}, libraryIds, size, similarity, searchType, robot)
+	list, _, err := GetMatchLibraryParagraphList(lang, cast.ToString(adminUserId), lib_define.AppYunH5, question, []string{}, libraryIds, size, similarity, searchType, robot)
 	if err != nil {
 		logs.Error(err.Error())
 		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(lang, `sys_err`)}
@@ -1073,7 +1179,7 @@ func LibraryAiSummary(lang, question, prompt string, optimizedQuestions []string
 		},
 	}
 
-	prompt, _ = FormatSystemPrompt("", list)
+	prompt, _ = FormatSystemPrompt(lang, ``, list)
 	for _, item := range list {
 		file, err := GetLibFileInfo(cast.ToInt(item[`file_id`]), cast.ToInt(item[`admin_user_id`]))
 		if err != nil {
@@ -1095,6 +1201,7 @@ func LibraryAiSummary(lang, question, prompt string, optimizedQuestions []string
 	})
 	// to ai summary
 	chatResp, requestTime, err := RequestSearchStream(
+		lang,
 		cast.ToInt(robot[`admin_user_id`]),
 		cast.ToInt(robot[`model_config_id`]),
 		strings.TrimSpace(robot[`use_model`]),

@@ -19,27 +19,27 @@ import (
 )
 
 const (
-	TriggerTypeChat     = 1 //会话触发器
-	TriggerTypeTest     = 2 //测试触发器
-	TriggerTypeCron     = 3 //定时触发器
-	TriggerTypeOfficial = 4 //公众号触发器
-	TriggerTypeWebHook  = 5 //webhook触发器
+	TriggerTypeChat     = 1 // Chat Trigger
+	TriggerTypeTest     = 2 // Test Trigger
+	TriggerTypeCron     = 3 // Cron Trigger
+	TriggerTypeOfficial = 4 // Official Account Trigger
+	TriggerTypeWebHook  = 5 // Webhook Trigger
 )
 
 const (
-	CronTypeSelectTime = `select_time`   //选择触发时间
-	CronTypeCrontab    = `linux_crontab` //linux crontab
+	CronTypeSelectTime = `select_time`   // Select trigger time
+	CronTypeCrontab    = `linux_crontab` // linux crontab
 )
 
 const (
-	EveryTypeDay   = `day`   //每天
-	EveryTypeWeek  = `week`  //每周
-	EveryTypeMonth = `month` //每月
+	EveryTypeDay   = `day`   // Every day
+	EveryTypeWeek  = `week`  // Every week
+	EveryTypeMonth = `month` // Every month
 )
 
 type TriggerOutputParam struct {
 	StartNodeParam
-	Variable string `json:"variable"` //对应的全部变量
+	Variable string `json:"variable"` // Corresponding all variables
 }
 
 type TriggerChatConfig struct {
@@ -47,18 +47,18 @@ type TriggerChatConfig struct {
 }
 
 type TriggerCronConfig struct {
-	Type         string `json:"type"`          //1 选择触发时间,2 linux crontab代码
-	LinuxCrontab string `json:"linux_crontab"` //Type为2时 linux crontab
-	EveryType    string `json:"every_type"`    //Type为1时 day每天 week每周 month每月
-	HourMinute   string `json:"hour_minute"`   //Type为1时 触发的小时分 例如 14:01
-	WeekNumber   string `json:"week_number"`   //Type为1时 everyType为week时 存储每周几 0为周日，1-6周一到周六
-	MonthDay     string `json:"month_day"`     //Type为1时 everyType为month时 存储每月几号 示例：14表示每月14号
+	Type         string `json:"type"`          // 1 Select trigger time, 2 linux crontab code
+	LinuxCrontab string `json:"linux_crontab"` // When Type is 2, linux crontab
+	EveryType    string `json:"every_type"`    // When Type is 1, day/week/month
+	HourMinute   string `json:"hour_minute"`   // When Type is 1, trigger hour/minute e.g. 14:01
+	WeekNumber   string `json:"week_number"`   // When Type is 1 and everyType is week, store day of week (0 for Sunday, 1-6 for Mon-Sat)
+	MonthDay     string `json:"month_day"`     // When Type is 1 and everyType is month, store day of month (e.g., 14 means 14th)
 }
 
 type TriggerOfficialConfig struct {
 	Event   string `json:"event"`
 	MsgType string `json:"msg_type"`
-	AppIds  string `json:"app_ids"` //wx1,wx2
+	AppIds  string `json:"app_ids"` // wx1, wx2
 }
 
 const (
@@ -67,18 +67,18 @@ const (
 )
 
 type TriggerWebHookConfig struct {
-	Url                string               `json:"url"`             //请求地址
-	Method             string               `json:"method"`          //method GET POST
-	SwitchVerify       string               `json:"switch_verify"`   //是否鉴权,1鉴权,0不鉴权
-	SwitchAllowIp      string               `json:"switch_allow_ip"` //是否验证ip 1验证,0不验证
-	AllowIps           string               `json:"allow_ips"`       //ip白名单,多个用逗号分割,最多1000个
-	Params             common.RecurveFields `json:"params"`          //url传参
+	Url                string               `json:"url"`             // Request URL
+	Method             string               `json:"method"`          // Method GET POST
+	SwitchVerify       string               `json:"switch_verify"`   // Whether to authenticate, 1 yes, 0 no
+	SwitchAllowIp      string               `json:"switch_allow_ip"` // Whether to verify IP, 1 yes, 0 no
+	AllowIps           string               `json:"allow_ips"`       // IP whitelist, multiple separated by comma, max 1000
+	Params             common.RecurveFields `json:"params"`          // URL parameters
 	RequestContentType string               `json:"request_content_type"`
 	Form               common.RecurveFields `json:"form"`
 	XForm              common.RecurveFields `json:"x_form"`
 	Json               common.RecurveFields `json:"json"`
-	ResponseType       string               `json:"response_type"` //返回类型 now立刻返回json,message_variable 返回消息和变量
-	ResponseNow        string               `json:"response_now"`  //立刻返回的字符串
+	ResponseType       string               `json:"response_type"` // Return type: now returns json immediately, message_variable returns message and variables
+	ResponseNow        string               `json:"response_now"`  // String returned immediately
 }
 
 type TriggerConfig struct {
@@ -96,36 +96,36 @@ type TriggerConfig struct {
 func (trigger *TriggerConfig) SetGlobalValue(flow *WorkFlow) {
 	defer func() {
 		if err := recover(); err != nil {
-			logs.Error(`触发器执行错误 %s`, err)
-			logs.Debug(`触发器执行错误 %s`, debug.Stack())
+			logs.Error(`trigger run faild %s`, err)
+			logs.Debug(`trigger run faild %s`, debug.Stack())
 		}
 	}()
 	assignParams := make(map[string]any)
 	switch trigger.TriggerType {
-	case TriggerTypeChat: //会话触发器
+	case TriggerTypeChat: // Chat Trigger
 		assignParams[`openid`] = flow.params.Openid
 		assignParams[`question`] = flow.params.Question
 		assignParams[`conversationid`] = flow.params.SessionId
-		//会话触发器开启多模态输入后的处理逻辑
+		// Logic for handling chat trigger when multimodal input is enabled
 		if trigger.TriggerChatConfig.QuestionMultipleSwitch {
 			if questionMultiple, ok := common.ParseInputQuestion(flow.params.Question); ok {
 				assignParams[`question_multiple`] = common.QuestionMultipleAppendImageDomain(questionMultiple)
 				assignParams[`question`] = common.GetQuestionByQuestionMultiple(questionMultiple)
 			}
 		}
-	case TriggerTypeTest: //会话触发器
+	case TriggerTypeTest: // Test Trigger
 		assignParams = flow.params.TriggerParams.TestParams
-	case TriggerTypeOfficial: //公众号触发器
+	case TriggerTypeOfficial: // Official Account Trigger
 		assignParams = flow.params.TriggerParams.TestParams
-	case TriggerTypeWebHook: //webhook触发器
+	case TriggerTypeWebHook: // Webhook Trigger
 		assignParams = flow.params.TriggerParams.TestParams
 		trigger.Outputs = flow.params.TriggerParams.TriggerOutputs
-	case TriggerTypeCron: //定时触发器
+	case TriggerTypeCron: // Cron Trigger
 	default:
-		logs.Warning(`触发器:%s[%d]赋值逻辑未处理...`, trigger.TriggerName, trigger.TriggerType)
+		logs.Warning(`Trigger:%s[%d] assignment logic not handled...`, trigger.TriggerName, trigger.TriggerType)
 		return
 	}
-	if len(assignParams) > 0 { //存在传入参数时,给自定义变量赋值
+	if len(assignParams) > 0 { // When input parameters exist, assign values to custom variables
 		_ = tool.JsonDecodeUseNumber(tool.JsonEncodeNoError(assignParams), &assignParams)
 		for _, output := range trigger.Outputs {
 			key, _ := strings.CutPrefix(output.Variable, `global.`)
@@ -136,57 +136,57 @@ func (trigger *TriggerConfig) SetGlobalValue(flow *WorkFlow) {
 	}
 }
 
-// GetTriggerConfigByType 根据类型获取触发器配置信息
-func GetTriggerConfigByType(triggerType uint) (TriggerConfig, bool) {
+// GetTriggerConfigByType gets trigger config by type
+func GetTriggerConfigByType(triggerType uint, lang string) (TriggerConfig, bool) {
 	switch triggerType {
 	case TriggerTypeChat:
-		return GetTriggerChatConfig(), true
+		return GetTriggerChatConfig(lang), true
 	case TriggerTypeTest:
-		return GetTriggerTestConfig(), true
+		return GetTriggerTestConfig(lang), true
 	case TriggerTypeCron:
-		return GetTriggerCronConfig(msql.Params{`name`: `定时触发器`, `icon`: `/public/trigger_cron_icon.svg`}), true
+		return GetTriggerCronConfig(msql.Params{`name`: i18n.Show(lang, `timed_trigger`), `icon`: `/public/trigger_cron_icon.svg`}), true
 	case TriggerTypeOfficial:
-		return GetTriggerOfficialConfig(msql.Params{`name`: `公众号触发器`, `icon`: `/public/trigger_official_icon.svg`}), true
+		return GetTriggerOfficialConfig(msql.Params{`name`: i18n.Show(lang, `official_account_trigger`), `icon`: `/public/trigger_official_icon.svg`}), true
 	case TriggerTypeWebHook:
-		return GetTriggerOfficialConfig(msql.Params{`name`: `webhook触发器`, `icon`: `/public/trigger_webhook_icon.svg`}), true
+		return GetTriggerOfficialConfig(msql.Params{`name`: i18n.Show(lang, `webhook_trigger`), `icon`: `/public/trigger_webhook_icon.svg`}), true
 	}
 	return TriggerConfig{}, false
 }
 
-// GetTriggerOutputsByType 根据类型获取触发器输出配置
-func GetTriggerOutputsByType(triggerType uint) ([]TriggerOutputParam, bool) {
-	triggerConfig, exist := GetTriggerConfigByType(triggerType)
+// GetTriggerOutputsByType gets trigger output config by type
+func GetTriggerOutputsByType(triggerType uint, lang string) ([]TriggerOutputParam, bool) {
+	triggerConfig, exist := GetTriggerConfigByType(triggerType, lang)
 	if exist {
 		return triggerConfig.Outputs, true
 	}
 	return nil, false
 }
 
-func GetTriggerChatConfig() TriggerConfig {
+func GetTriggerChatConfig(lang string) TriggerConfig {
 	return TriggerConfig{
 		TriggerType:   TriggerTypeChat,
-		TriggerName:   `会话触发器`,
+		TriggerName:   i18n.Show(lang, `chat_trigger`),
 		TriggerIcon:   `/public/trigger_chat_icon.svg`,
 		TriggerSwitch: true,
 		Outputs: []TriggerOutputParam{
-			{StartNodeParam: StartNodeParam{Key: `openid`, Typ: common.TypString, Required: false, Desc: `用户id`}, Variable: `global.openid`},
-			{StartNodeParam: StartNodeParam{Key: `question`, Typ: common.TypString, Required: false, Desc: `用户咨询的问题`}, Variable: `global.question`},
-			{StartNodeParam: StartNodeParam{Key: `question_multiple`, Typ: common.TypArrObject, Required: false, Desc: `多模态输入`}, Variable: `global.question_multiple`},
-			{StartNodeParam: StartNodeParam{Key: `conversationid`, Typ: common.TypNumber, Required: false, Desc: `会话ID`}, Variable: `global.conversationid`},
+			{StartNodeParam: StartNodeParam{Key: `openid`, Typ: common.TypString, Required: false, Desc: i18n.Show(lang, `user_id`)}, Variable: `global.openid`},
+			{StartNodeParam: StartNodeParam{Key: `question`, Typ: common.TypString, Required: false, Desc: i18n.Show(lang, `user_question`)}, Variable: `global.question`},
+			{StartNodeParam: StartNodeParam{Key: `question_multiple`, Typ: common.TypArrObject, Required: false, Desc: i18n.Show(lang, `multi_modal_input`)}, Variable: `global.question_multiple`},
+			{StartNodeParam: StartNodeParam{Key: `conversationid`, Typ: common.TypNumber, Required: false, Desc: i18n.Show(lang, `excel_header_session_id`)}, Variable: `global.conversationid`},
 		},
 	}
 }
 
-func GetTriggerTestConfig() TriggerConfig {
+func GetTriggerTestConfig(lang string) TriggerConfig {
 	return TriggerConfig{
 		TriggerType:   TriggerTypeTest,
-		TriggerName:   `测试触发器`,
+		TriggerName:   i18n.Show(lang, `test_trigger`),
 		TriggerIcon:   `/public/trigger_test_icon.jpeg`,
 		TriggerSwitch: true,
 		Outputs: []TriggerOutputParam{
-			{StartNodeParam: StartNodeParam{Key: `test_str`, Typ: common.TypString, Required: true, Desc: `测试字符串`}, Variable: `global.test_str`},
-			{StartNodeParam: StartNodeParam{Key: `test_num`, Typ: common.TypNumber, Required: true, Desc: `测试数字`}, Variable: `global.test_num`},
-			{StartNodeParam: StartNodeParam{Key: `test_arr`, Typ: common.TypArrString, Required: true, Desc: `测试数组`}, Variable: `global.test_arr`},
+			{StartNodeParam: StartNodeParam{Key: `test_str`, Typ: common.TypString, Required: true, Desc: i18n.Show(lang, `test_string`)}, Variable: `global.test_str`},
+			{StartNodeParam: StartNodeParam{Key: `test_num`, Typ: common.TypNumber, Required: true, Desc: i18n.Show(lang, `test_number`)}, Variable: `global.test_num`},
+			{StartNodeParam: StartNodeParam{Key: `test_arr`, Typ: common.TypArrString, Required: true, Desc: i18n.Show(lang, `test_array`)}, Variable: `global.test_arr`},
 		},
 	}
 }
@@ -236,9 +236,9 @@ func GetWebHookUrl(robotKey string) string {
 
 func GetTriggerConfigList(adminUserId int, robotKey, lang string) ([]TriggerConfig, error) {
 	triggerList := make([]TriggerConfig, 0)
-	triggerList = append(triggerList, GetTriggerChatConfig()) //会话触发器
+	triggerList = append(triggerList, GetTriggerChatConfig(lang)) // Chat Trigger
 	if define.IsDev {
-		triggerList = append(triggerList, GetTriggerTestConfig()) //测试触发器
+		triggerList = append(triggerList, GetTriggerTestConfig(lang)) // Test Trigger
 	}
 	list, err := TriggerList(adminUserId, lang)
 	if err != nil {
@@ -266,7 +266,7 @@ func TriggerList(adminUserId int, lang string) ([]msql.Params, error) {
 		return nil, errors.New(i18n.Show(lang, `sys_err`))
 	}
 	if len(list) == 0 {
-		TriggerInitDefault(adminUserId)
+		TriggerInitDefault(adminUserId, lang)
 		list, err = msql.Model(`trigger_config`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id asc`).Select()
 		if err != nil {
@@ -279,15 +279,15 @@ func TriggerList(adminUserId int, lang string) ([]msql.Params, error) {
 	for _, val := range list {
 		if cast.ToInt(val[`trigger_type`]) == TriggerTypeOfficial {
 			boolCreateOfficial = false
-			break
+			continue
 		}
 		if cast.ToInt(val[`trigger_type`]) == TriggerTypeWebHook {
 			boolCreateWebhook = false
-			break
+			continue
 		}
 	}
 	if boolCreateOfficial {
-		TriggerInitOfficial(adminUserId)
+		TriggerInitOfficial(adminUserId, lang)
 		list, err = msql.Model(`trigger_config`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id asc`).Select()
 		if err != nil {
@@ -295,7 +295,7 @@ func TriggerList(adminUserId int, lang string) ([]msql.Params, error) {
 		}
 	}
 	if boolCreateWebhook {
-		TriggerInitWebhook(adminUserId)
+		TriggerInitWebhook(adminUserId, lang)
 		list, err = msql.Model(`trigger_config`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id asc`).Select()
 		if err != nil {
@@ -314,7 +314,7 @@ func TriggerList(adminUserId int, lang string) ([]msql.Params, error) {
 	return list, nil
 }
 
-func TriggerInitOfficial(adminUserId int) {
+func TriggerInitOfficial(adminUserId int, lang string) {
 	lockKey := `trigger_init_official`
 	if !lib_redis.AddLock(define.Redis, lockKey, time.Second*5) {
 		return
@@ -323,9 +323,9 @@ func TriggerInitOfficial(adminUserId int) {
 	_, err := msql.Model(`trigger_config`, define.Postgres).Insert(msql.Datas{
 		`admin_user_id`: adminUserId,
 		`switch_status`: 1,
-		`name`:          `公众号触发器`,
+		`name`:          i18n.Show(lang, `official_account_trigger`),
 		`trigger_type`:  TriggerTypeOfficial,
-		`intro`:         `安装该插件后，当公众号推送外部事件时，自动触发工作流`,
+		`intro`:         i18n.Show(lang, `official_account_trigger_intro`),
 		`author`:        `chatwiki`,
 		`from_type`:     define.FromInherited,
 		`create_time`:   time.Now().Unix(),
@@ -341,7 +341,7 @@ func TriggerInitOfficial(adminUserId int) {
 	}
 }
 
-func TriggerInitWebhook(adminUserId int) {
+func TriggerInitWebhook(adminUserId int, lang string) {
 	lockKey := `trigger_init_webhook`
 	if !lib_redis.AddLock(define.Redis, lockKey, time.Second*5) {
 		return
@@ -350,9 +350,9 @@ func TriggerInitWebhook(adminUserId int) {
 	_, err := msql.Model(`trigger_config`, define.Postgres).Insert(msql.Datas{
 		`admin_user_id`: adminUserId,
 		`switch_status`: 1,
-		`name`:          `webhook触发器`,
+		`name`:          i18n.Show(lang, `webhook_trigger`),
 		`trigger_type`:  TriggerTypeWebHook,
-		`intro`:         `工作流增加webhook触发器，支持通过http请求触发工作流`,
+		`intro`:         i18n.Show(lang, `webhook_trigger_intro`),
 		`author`:        `chatwiki`,
 		`from_type`:     define.FromInherited,
 		`create_time`:   time.Now().Unix(),
@@ -368,7 +368,7 @@ func TriggerInitWebhook(adminUserId int) {
 	}
 }
 
-func TriggerInitDefault(adminUserId int) {
+func TriggerInitDefault(adminUserId int, lang string) {
 	lockKey := `trigger_init_cron`
 	if !lib_redis.AddLock(define.Redis, lockKey, time.Second*5) {
 		return
@@ -377,9 +377,9 @@ func TriggerInitDefault(adminUserId int) {
 	_, err := msql.Model(`trigger_config`, define.Postgres).Insert(msql.Datas{
 		`admin_user_id`: adminUserId,
 		`switch_status`: 1,
-		`name`:          `定时触发器`,
+		`name`:          i18n.Show(lang, `timed_trigger`),
 		`trigger_type`:  TriggerTypeCron,
-		`intro`:         `安装该插件后，支持在设定的时间自动触发工作流`,
+		`intro`:         i18n.Show(lang, `timed_trigger_intro`),
 		`author`:        `chatwiki`,
 		`from_type`:     define.FromInherited,
 		`create_time`:   time.Now().Unix(),
@@ -395,7 +395,7 @@ func TriggerInitDefault(adminUserId int) {
 	}
 }
 
-// SaveTriggerConfig 触发器保存
+// SaveTriggerConfig Save trigger configuration
 func SaveTriggerConfig(robot msql.Params, node *WorkFlowNode, lang string) error {
 	if len(node.NodeParams.Start.TriggerList) == 0 {
 		return nil

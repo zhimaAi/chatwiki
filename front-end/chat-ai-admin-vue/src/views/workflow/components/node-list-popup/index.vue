@@ -154,6 +154,25 @@
   }
 }
 
+.sub-tabs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 8px;
+  .sub-tab-item {
+    color: #262626;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    &.active {
+      background: #E6F0FF;
+      color: #2475FC;
+      font-weight: 600;
+    }
+  }
+}
 .node-info-pop {
   display: flex;
   flex-direction: column;
@@ -261,7 +280,7 @@
         <svg-icon name="plugin-node-type"/> <span>插件</span>
       </div>
       <div :class="['tab-item', { active: tabActive == 2 }]" @click="tabChange(2)">
-        <svg-icon name="mcp-node-type" /> <span>MCP</span>
+        <svg-icon name="mcp-node-type" /> <span>工具</span>
       </div>
       <div v-if="props.type == 'float-btn'" :class="['tab-item', { active: props.active == 4 }]" @click="tabChange(4)">
         <svg-icon name="mcp-node-type" /> <span>触发器</span>
@@ -291,68 +310,79 @@
         </template>
       </template>
       <div v-else-if="tabActive == 2" class="node-box">
+        <div class="sub-tabs">
+          <div :class="['sub-tab-item', { active: mcpHttpTab == 'MCP' }]" @click="mcpHttpTab = 'MCP'">MCP</div>
+          <div :class="['sub-tab-item', { active: mcpHttpTab == 'HTTP' }]" @click="mcpHttpTab = 'HTTP'">HTTP</div>
+        </div>
         <div class="search-box">
           <a-input-search v-model:value.trim="mcpKeyword" allowClear placeholder="请输入名称查询" />
         </div>
-        <div v-if="showMcpNodes.length" class="node-list">
-          <div v-for="(item, j) in showMcpNodes" :key="j" class="node-item">
-            <a-popover placement="right">
-              <template #content>
-                <div class="node-info-pop">
-                  <div class="info">
-                    <img class="avatar" :src="item.avatar" />
-                    <div class="name">{{ item.name }}</div>
-                  </div>
-                  <div>{{ item.url }}</div>
-                  <div class="extra">可用工具：{{ item.tools.length }}</div>
-                </div>
-              </template>
-              <div class="node-info" @click="item.expand = !item.expand">
-                <img class="avatar" :src="item.avatar" />
-                <div class="info">
-                  <span class="name">{{ item.name }}</span>
-                  <span class="total">
-                    {{ item.tools.length }} <DownOutlined v-if="item.expand"/> <RightOutlined v-else/>
-                  </span>
-                </div>
-              </div>
-            </a-popover>
-            <div v-show="item.expand" class="node-tools">
-              <a-popover v-for="(tool, i) in item.tools" :key="i" placement="right">
+        <template v-if="mcpHttpTab == 'MCP' && showMcpNodes.length">
+          <div class="node-list">
+            <div v-for="(item, j) in showMcpNodes" :key="j" class="node-item">
+              <a-popover placement="right">
                 <template #content>
-                  <div class="params-box">
-                    <div class="param-item">
-                      <div class="field">
-                        <span class="name">{{ tool.name }}</span>
-                      </div>
-                      <div class="desc">{{ tool.description }}</div>
+                  <div class="node-info-pop">
+                    <div class="info">
+                      <img class="avatar" :src="item.avatar" />
+                      <div class="name">{{ item.name }}</div>
                     </div>
-                    <div
-                      v-for="(field, key) in tool.inputSchema.properties"
-                      :key="key"
-                      class="param-item"
-                    >
-                      <div class="field">
-                        <span class="name">{{ key }}</span>
-                        <span class="type">{{ field.type }}</span>
-                        <span v-if="tool.inputSchema.required && tool.inputSchema.required.includes(key)" class="required"
-                          >必填</span
-                        >
-                      </div>
-                      <div class="desc">{{ field.description }}</div>
-                    </div>
+                    <div>{{ item.url }}</div>
+                    <div class="extra">可用工具：{{ item.tools.length }}</div>
                   </div>
                 </template>
-                <div class="node-tool-item" @mousedown="addMcpNode($event, item, tool)">{{ tool.name }}</div>
+                <div class="node-info" @click="item.expand = !item.expand">
+                  <img class="avatar" :src="item.avatar" />
+                  <div class="info">
+                    <span class="name">{{ item.name }}</span>
+                    <span class="total">
+                      {{ item.tools.length }} <DownOutlined v-if="item.expand"/> <RightOutlined v-else/>
+                    </span>
+                  </div>
+                </div>
               </a-popover>
+              <div v-show="item.expand" class="node-tools">
+                <a-popover v-for="(tool, i) in item.tools" :key="i" placement="right">
+                  <template #content>
+                    <div class="params-box">
+                      <div class="param-item">
+                        <div class="field">
+                          <span class="name">{{ tool.name }}</span>
+                        </div>
+                        <div class="desc">{{ tool.description }}</div>
+                      </div>
+                      <div
+                        v-for="(field, key) in tool.inputSchema.properties"
+                        :key="key"
+                        class="param-item"
+                      >
+                        <div class="field">
+                          <span class="name">{{ key }}</span>
+                          <span class="type">{{ field.type }}</span>
+                          <span v-if="tool.inputSchema.required && tool.inputSchema.required.includes(key)" class="required">必填</span>
+                        </div>
+                        <div class="desc">{{ field.description }}</div>
+                      </div>
+                    </div>
+                  </template>
+                  <div class="node-tool-item" @mousedown="addMcpNode($event, item, tool)">{{ tool.name }}</div>
+                </a-popover>
+              </div>
             </div>
           </div>
-        </div>
-        <div v-else class="empty-box">
+          <a class="more-link" @click="handleOpenAddMcp">更多MCP插件 <RightOutlined/></a>
+        </template>
+        <div v-else-if="mcpHttpTab == 'MCP'" class="empty-box">
           <img style="height: 200px" src="@/assets/empty.png" />
           <div>暂无可用MCP插件</div>
           <a @click="handleOpenAddMcp">去添加<RightOutlined /></a>
         </div>
+        <template v-else-if="mcpHttpTab == 'HTTP'">
+          <div class="node-list" style="flex: 1; overflow-y: auto;">
+            <HttpToolList :keyword="mcpKeyword" @add="handleAddHttpToolNode" />
+          </div>
+          <a class="more-link" href="/#/robot/list?active=6" target="_blank">更多HTTP工具 <RightOutlined/></a>
+        </template>
       </div>
       <template v-else-if="tabActive == 3">
         <PublicNetworkCheck v-if="!isPublicNetwork" style="margin: 0;"/>
@@ -471,6 +501,7 @@ import {
 import {jsonDecode} from "@/utils/index.js";
 import {pluginHasAction} from "@/constants/plugin.js";
 import WorkflowList from "@/views/workflow/components/node-list-popup/workflow-list.vue";
+import HttpToolList from "@/views/workflow/components/node-list-popup/http-tool-list.vue";
 import {usePublicNetworkCheck} from "@/composables/usePublicNetworkCheck.js";
 import PublicNetworkCheck from "@/components/common/public-network-check.vue";
 
@@ -493,6 +524,7 @@ const props = defineProps({
 
 const {isPublicNetwork} = usePublicNetworkCheck()
 const tabActive = ref(props.active)
+const mcpHttpTab = ref('MCP')
 
 watch(() => props.active, (newVal) => {
   tabActive.value = newVal
@@ -627,6 +659,10 @@ function handleOpenAddMcp() {
 function isActionsPlugin(node) {
   let node_params = jsonDecode(node?.properties?.node_params, {})
   return pluginHasAction(node_params?.plugin?.name) || node_params?.plugin?.multiNode
+}
+
+function handleAddHttpToolNode(node) {
+  emit('addNode', { node })
 }
 </script>
 

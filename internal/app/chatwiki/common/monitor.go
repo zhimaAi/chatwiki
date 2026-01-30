@@ -51,6 +51,7 @@ type NodeLog struct {
 	NodeKey    string         `json:"node_key"`
 	NodeName   string         `json:"node_name"`
 	NodeType   int            `json:"node_type"`
+	NodeIcon   string         `json:"node_icon"`
 	Output     map[string]any `json:"output"`
 	Input      map[string]any `json:"input"`
 	NodeOutput map[string]any `json:"node_output"`

@@ -5,6 +5,7 @@ const themeVars = reactive({
   popupRoundRadius: '6px',
   popupCloseIconSize: '18px',
   buttonPrimaryBackground: '#2475fc',
+  buttonSmallFontSize: '14px',
   buttonPrimaryBorderColor: '#2475fc',
 })
 </script>

@@ -11,35 +11,35 @@ type Menu struct {
 
 var Menus = []Menu{
 	// {
-	// 	Name:   "发现",
+	// 	Name:   "[[ZM--DiscoveryName--ZM]]",
 	// 	UniKey: "Discovery",
 	// 	Children: []*Menu{
 	// 		{
-	// 			Name:   "发现",
+	// 			Name:   "[[ZM--DiscoveryName--ZM]]",
 	// 			UniKey: "DiscoveryManage",
 	// 		},
 	// 	},
 	// },
 	{
-		Name:   "探索",
+		Name:   "[[ZM--AbilityName--ZM]]",
 		UniKey: "Ability",
 		Children: []*Menu{
 			{
-				Name:   "探索",
+				Name:   "[[ZM--AbilityName--ZM]]",
 				UniKey: "AbilityCenter",
 			},
 		},
 	},
 	{
-		Name:   "机器人管理",
+		Name:   "[[ZM--RobotManageName--ZM]]",
 		UniKey: "Robot",
 		Children: []*Menu{
 			{
-				Name:   "机器人管理",
+				Name:   "[[ZM--RobotManageName--ZM]]",
 				UniKey: "RobotManage",
 				Children: []*Menu{
 					{
-						Name:   "创建机器人",
+						Name:   "[[ZM--RobotCreateName--ZM]]",
 						UniKey: "RobotCreate",
 					},
 				},
@@ -47,35 +47,35 @@ var Menus = []Menu{
 		},
 	},
 	{
-		Name:   "知识库",
+		Name:   "[[ZM--KnowledgeBaseName--ZM]]",
 		UniKey: "library",
 		Children: []*Menu{
 			{
-				Name:   "知识库",
+				Name:   "[[ZM--KnowledgeBaseName--ZM]]",
 				UniKey: "LibraryManage",
 				Children: []*Menu{
 					{
-						Name:   "创建知识库",
+						Name:   "[[ZM--LibraryCreateName--ZM]]",
 						UniKey: "LibraryCreate",
 					},
 				},
 			},
 			{
-				Name:   "数据库",
+				Name:   "[[ZM--DatabaseName--ZM]]",
 				UniKey: "FormManage",
 				Children: []*Menu{
 					{
-						Name:   "创建数据库",
+						Name:   "[[ZM--FormCreateName--ZM]]",
 						UniKey: "FormCreate",
 					},
 				},
 			},
 			{
-				Name:   "文档提取FAQ",
+				Name:   "[[ZM--DocFaqName--ZM]]",
 				UniKey: "DocFaq",
 				Children: []*Menu{
 					{
-						Name:   "上传文档提取",
+						Name:   "[[ZM--UploadDocFaqName--ZM]]",
 						UniKey: "UploadDocFaq",
 					},
 				},
@@ -83,15 +83,15 @@ var Menus = []Menu{
 		},
 	},
 	{
-		Name:   "文档",
+		Name:   "[[ZM--DocumentName--ZM]]",
 		UniKey: "OpenLibDoc",
 		Children: []*Menu{
 			{
-				Name:   "对外文档",
+				Name:   "[[ZM--OpenLibDocName--ZM]]",
 				UniKey: "OpenLibDocManage",
 				Children: []*Menu{
 					{
-						Name:   "新建对外文档",
+						Name:   "[[ZM--CreateOpenLibDocName--ZM]]",
 						UniKey: "CreateOpenLibDoc",
 					},
 				},
@@ -99,15 +99,15 @@ var Menus = []Menu{
 		},
 	},
 	{
-		Name:   "搜索",
+		Name:   "[[ZM--SearchName--ZM]]",
 		UniKey: "Search",
 		Children: []*Menu{
 			{
-				Name:   "搜索",
+				Name:   "[[ZM--SearchName--ZM]]",
 				UniKey: "SearchManage",
 				Children: []*Menu{
 					{
-						Name:   "搜索设置",
+						Name:   "[[ZM--SearchSetsName--ZM]]",
 						UniKey: "SearchSets",
 					},
 				},
@@ -115,55 +115,63 @@ var Menus = []Menu{
 		},
 	},
 	{
-		Name:   "会话",
+		Name:   "[[ZM--ChatSessionName--ZM]]",
 		UniKey: "ChatSession",
 		Children: []*Menu{
 			{
-				Name:   "会话",
+				Name:   "[[ZM--ChatSessionName--ZM]]",
 				UniKey: "ChatSessionManage",
 			},
 		},
 	},
 	{
-		Name:   "系统管理",
+		Name:   "[[ZM--SystemManageName--ZM]]",
 		UniKey: "System",
 		Children: []*Menu{
 			{
-				Name:   "模型管理",
+				Name:   "[[ZM--ModelManageName--ZM]]",
 				UniKey: "ModelManage",
 			},
 			{
-				Name:   "Token使用",
+				Name:   "[[ZM--TokenManageName--ZM]]",
 				UniKey: "TokenManage",
 			},
 			{
-				Name:   "团队管理",
+				Name:   "[[ZM--TeamManageName--ZM]]",
 				UniKey: "TeamManage",
 			},
 			{
-				Name:   "自定义域名",
+				Name:   "[[ZM--UserDomainManageName--ZM]]",
 				UniKey: "UserDomainManage",
 			},
 			// {
-			// 	Name:   "版本信息",
+			// 	Name:   "[[ZM--VersionManageName--ZM]]",
 			// 	UniKey: "VersionManage",
 			// },
 			{
-				Name:   "客户端下载",
+				Name:   "[[ZM--ClientSideManageName--ZM]]",
 				UniKey: "ClientSideManage",
 			},
 			{
-				Name:   "阿里云OCR",
+				Name:   "[[ZM--AliyunOCRManageName--ZM]]",
 				UniKey: "AliyunOCRManage",
 			},
 			{
-				Name:   "敏感词管理",
+				Name:   "[[ZM--SensitiveWordManageName--ZM]]",
 				UniKey: "SensitiveWordManage",
 			},
 			{
-				Name:   "提示词模板库",
+				Name:   "[[ZM--PromptTemplateManageName--ZM]]",
 				UniKey: "PromptTemplateManage",
 			},
+			//{
+			//	Name:   "[[ZM--LogInfoName--ZM]]",
+			//	UniKey: "Logs",
+			//},
+			//{
+			//	Name:   "[[ZM--OfficialAccountManageName--ZM]]",
+			//	UniKey: "OfficialAccountManage",
+			//},
 		},
 	},
 }

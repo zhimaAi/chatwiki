@@ -38,7 +38,7 @@ export default {
       const {type, loop_parent_key} = data.model.properties
 
       if(loop_parent_key){
-        let excludedNodeTypes = ['custom-group', 'batch-group', 'end-node'];
+        let excludedNodeTypes = ['custom-group', 'batch-group', 'end-node', 'qa-node'];
         let parentNode = this.getGraph().getNodeModelById(loop_parent_key)
 
         if(parentNode.type == 'batch-group'){

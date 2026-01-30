@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_define"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -192,7 +193,7 @@ func BridgeGetParagraphList(adminUserId, loginUserId int, lang string, req *Brid
 
 	// (library_id, group_id) -> group_name（仅针对 QA 分组）
 	groupNameMap := make(map[string]string)
-	groupNameMap[`0:0`] = `未分组`
+	groupNameMap[`0:0`] = lib_define.Ungrouped
 	if len(libIds) > 0 {
 		groups, e := msql.Model(`chat_ai_library_group`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(adminUserId)).
@@ -209,6 +210,7 @@ func BridgeGetParagraphList(adminUserId, loginUserId int, lang string, req *Brid
 	}
 
 	var formatedList = make([]map[string]any, 0)
+	builtinMetaSchemaList := common.GetBuiltinMetaSchemaList(lang)
 	for _, item := range list {
 		tempItem := make(map[string]any)
 		for k, v := range item {
@@ -238,7 +240,7 @@ func BridgeGetParagraphList(adminUserId, loginUserId int, lang string, req *Brid
 		gkey := fmt.Sprintf(`%d:%d`, libId, gid)
 		groupName := groupNameMap[gkey]
 		if groupName == `` {
-			groupName = `未分组`
+			groupName = lib_define.Ungrouped
 		}
 		metaStr := strings.TrimSpace(cast.ToString(item[`metadata`]))
 		if metaStr == `` {
@@ -254,8 +256,8 @@ func BridgeGetParagraphList(adminUserId, loginUserId int, lang string, req *Brid
 			define.BuiltinMetaKeyGroup:      groupName,
 		}
 
-		metaList := make([]map[string]any, 0, len(define.BuiltinMetaSchemaList)+len(schemaByLib[libId]))
-		for _, b := range define.BuiltinMetaSchemaList {
+		metaList := make([]map[string]any, 0, len(builtinMetaSchemaList)+len(schemaByLib[libId]))
+		for _, b := range builtinMetaSchemaList {
 			isShow := 0
 			switch b.Key {
 			case define.BuiltinMetaKeySource:

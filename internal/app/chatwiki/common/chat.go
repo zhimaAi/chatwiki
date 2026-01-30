@@ -90,8 +90,8 @@ func BuildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 	if len(params.Prompt) == 0 { //no custom is used
 		prompt := params.Robot[`prompt`]
 		promptStruct := params.Robot[`prompt_struct`]
-		ReplaceChatVariables(sessionId, &prompt, &promptStruct)
-		params.Prompt = BuildPromptStruct(cast.ToInt(params.Robot[`prompt_type`]), prompt, promptStruct)
+		ReplaceChatVariables(params.Lang, sessionId, &prompt, &promptStruct)
+		params.Prompt = BuildPromptStruct(params.Lang, cast.ToInt(params.Robot[`prompt_type`]), prompt, promptStruct)
 	}
 	if len(params.LibraryIds) == 0 || !CheckIds(params.LibraryIds) { //no custom is used
 		params.LibraryIds = params.Robot[`library_ids`]
@@ -115,6 +115,7 @@ func BuildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 
 	//convert match
 	list, libUseTime, err := GetMatchLibraryParagraphList(
+		params.Lang,
 		params.Openid,
 		params.AppType,
 		params.Question,
@@ -138,7 +139,7 @@ func BuildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 		//调用多模态时,忽略用户设置的提示词放在user里面,固定放在system里面
 		roleType = define.PromptRoleTypeMap[define.PromptRoleTypeSystem]
 	}
-	prompt, libraryContent := FormatSystemPrompt(params.Prompt, list)
+	prompt, libraryContent := FormatSystemPrompt(params.Lang, params.Prompt, list)
 	if roleType == define.PromptRoleUser {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: libraryContent})
 		*debugLog = append(*debugLog, map[string]string{`type`: `prompt`, `content`: libraryContent})
@@ -168,14 +169,14 @@ func BuildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 	if len(params.Prompt) == 0 { //no custom is used
 		prompt := params.Robot[`prompt`]
 		promptStruct := params.Robot[`prompt_struct`]
-		ReplaceChatVariables(sessionId, &prompt, &promptStruct)
-		params.Prompt = BuildPromptStruct(cast.ToInt(params.Robot[`prompt_type`]), prompt, promptStruct)
+		ReplaceChatVariables(params.Lang, sessionId, &prompt, &promptStruct)
+		params.Prompt = BuildPromptStruct(params.Lang, cast.ToInt(params.Robot[`prompt_type`]), prompt, promptStruct)
 	}
 
 	//part0:init messages
 	messages := make([]adaptor.ZhimaChatCompletionMessage, 0)
 	//part1:prompt
-	prompt, _ := FormatSystemPrompt(params.Prompt, nil)
+	prompt, _ := FormatSystemPrompt(params.Lang, params.Prompt, nil)
 	roleType := define.PromptRoleTypeMap[cast.ToInt(params.Robot[`prompt_role_type`])]
 	if cast.ToBool(params.Robot[`question_multiple_switch`]) {
 		//调用多模态时,忽略用户设置的提示词放在user里面,固定放在system里面
@@ -830,9 +831,9 @@ func OnlyReceivedMessageReplyHandle(params *define.ChatRequestParam, monitor *Mo
 	//显示内容
 	showContent, isName := lib_define.MsgTypeNameMap[params.ReceivedMessageType]
 	if !isName {
-		showContent = `未知`
+		showContent = i18n.Show(params.Lang, `msg_type_unknown`)
 	}
-	showContent = `收到【` + showContent + `】类型的消息`
+	showContent = i18n.Show(params.Lang, `received_message_type`, showContent)
 	//展示图片消息
 	if params.ReceivedMessageType == lib_define.MsgTypeImage && params.MediaIdToOssUrl != `` {
 		msgType = define.MsgTypeImage

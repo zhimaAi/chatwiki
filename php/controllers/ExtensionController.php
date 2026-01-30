@@ -73,6 +73,132 @@ abstract class ExtensionController extends BaseLambdaController
         return $this->success([]);
     }
 
+
+    /**
+     * 过滤参数
+     * @param array $params
+     * @return array
+     * @author ivan
+     * @updateDate 2026/1/22 11:24
+     */
+    public function actionExportFiltering(array $params)
+    {
+        $business = $params['business'] ?? '';
+        $arguments = $params['arguments'] ?? [];
+        if (empty($business)) {
+            return $this->error("业务标识不能为空");
+        }
+
+        try {
+            // 加载配置
+            $schemaMap = $this->getApiSchema();
+            if (!isset($schemaMap[$business])) {
+                throw new LogicException("未定义的业务接口: [{$business}]");
+            }
+            $config = $schemaMap[$business];
+            $filterFieldData=[];
+            // 遍历参数定义，逐一校验
+            foreach ($config['params'] as $field => $rules) {
+                $val = $arguments[$field] ?? null;
+                $type = $rules['type'] ?? 'string';
+                /**
+                 * plugin_config_component=true
+                 * select_official_component=true
+                 * hide_official_component=true
+                 * setting_cache_component=true
+                 * no_export=true
+                 */
+                $plugin_config_component=$rules['plugin_config_component'] ?? false;
+                $select_official_component=$rules['select_official_component'] ?? false;
+                $setting_cache_component=$rules['setting_cache_component'] ?? false;
+                $dingtalk_user_info_component=$rules['dingtalk_user_info_component'] ?? false;
+                $no_export=$rules['no_export'] ?? false;
+                if ($plugin_config_component || $select_official_component
+                    || $setting_cache_component || $no_export || $dingtalk_user_info_component) {
+                    //需要过滤和替换的参数
+                    // 基础类型过滤
+                    switch ($type) {
+                        case 'integer':
+                            $numVal = 0;
+                            if (isset($rules['min']) && $numVal < $rules['min']) {
+                                $numVal=$rules['min'];
+                            }
+                            $filterFieldData[$field]=$numVal;
+                            break;
+
+                        case 'array':
+                        case 'object':
+                        case 'enum':
+                        case 'boolean':
+                            //不支持 替换
+                            break;
+
+                        case 'json':
+                            // 允许 JSON 字符串或数组/对象
+                            if (is_string($val)) {
+                                if (!json_validate($val)) {
+                                    throw new LogicException("参数 {$field} 必须是有效的 JSON 字符串");
+                                }
+                                $val=json_decode($val, true);
+                                if (is_array($val) ) {
+                                    $filterFieldData[$field]='[]';
+                                }elseif (is_object($val)){
+                                    $filterFieldData[$field]='{}';
+                                }
+                                break;
+                            }else{
+                                //不支持 替换
+                                break;
+                            }
+                        case 'string':
+                        default:
+                            $filterFieldData[$field]='';
+                            break;
+                    }
+                    //关联过滤
+                    self::RelatedFiltering($field,$filterFieldData);
+                }
+                //旧插件 和 关联组件
+                switch ($field){
+                    case 'app_id':
+                    case 'appId':
+                    case 'app_secret':
+                    case 'secret':
+//                    case 'tagid':
+//                    case 'tag_id':
+//                    case 'app_token': //飞书
+                        $filterFieldData[$field]='';
+                        self::RelatedFiltering($field,$filterFieldData);
+                        break;
+                }
+            }
+            return $this->success($filterFieldData);
+        } catch (\Throwable $e) {
+            return $this->error('无效过滤检测: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 关联过滤
+     * @param $field
+     * @param array $filterFieldData
+     * @return void
+     * @author ivan
+     * @updateDate 2026/1/22 18:06
+     */
+    public static function RelatedFiltering($field,array &$filterFieldData)
+    {
+        //旧插件 和 关联组件
+        switch ($field){
+            case 'app_id':
+            case 'appId':
+                $filterFieldData['app_name']='';
+                $filterFieldData['app_secret']=''; //取消配置
+                $filterFieldData['secret']=''; //取消配置
+                break;
+        }
+    }
+
     /**
      * 值校验器
      * @throws Exception

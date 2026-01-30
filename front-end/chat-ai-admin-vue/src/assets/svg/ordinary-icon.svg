@@ -1,0 +1,22 @@
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" class="design-iconfont">
+  <rect width="48" height="48" rx="12.3871" fill="#00BDE7"/>
+  <g clip-path="url(#fgbyaoy3e__clip0_953_13874)" filter="url(#fgbyaoy3e__filter0_d_953_13874)">
+    <path d="M26.0056 11.6133L34.1134 19.871V33.4968C34.1134 35.0935 32.8433 36.3875 31.2757 36.3875H16.6815C15.1139 36.3875 13.8436 35.0924 13.8436 33.4968V14.5039C13.8437 12.9072 15.114 11.6133 16.6816 11.6133H26.0056Z" fill="#EBFBFF"/>
+    <path d="M28.0161 31.4797C28.513 32.0181 29.4193 31.6705 29.4193 30.9412V22.4516H27.8045V28.8813L24.5958 25.403C24.4429 25.2372 24.2264 25.1427 23.9996 25.1427C23.7728 25.1427 23.5565 25.2372 23.4035 25.403L20.1947 28.8813V22.4512H18.5806V30.9412C18.5806 31.6705 19.487 32.0181 19.984 31.4797L24 27.1265L28.0161 31.4797Z" fill="#00BDE7"/>
+    <path d="M34.1159 19.871H28.9889C27.4224 19.871 26.0081 18.4318 26.0081 16.8349V11.6133L34.1159 19.871Z" fill="#C2F2FF"/>
+  </g>
+  <defs>
+    <clipPath id="fgbyaoy3e__clip0_953_13874">
+      <path fill="#fff" transform="translate(11.6129 11.6133)" d="M0 0H24.7742V24.7742H0z"/>
+    </clipPath>
+    <filter id="fgbyaoy3e__filter0_d_953_13874" x="8.32259" y="11.6133" width="31.3548" height="31.3541" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="3.29032"/>
+      <feGaussianBlur stdDeviation="1.64516"/>
+      <feColorMatrix values="0 0 0 0 0.41854 0 0 0 0 0.41854 0 0 0 0 0.41854 0 0 0 0.14 0"/>
+      <feBlend in2="BackgroundImageFix" result="effect1_dropShadow_953_13874"/>
+      <feBlend in="SourceGraphic" in2="effect1_dropShadow_953_13874" result="shape"/>
+    </filter>
+  </defs>
+</svg>

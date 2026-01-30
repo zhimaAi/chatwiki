@@ -5,6 +5,7 @@ package work_flow
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"errors"
 	"fmt"
 	"strings"
@@ -19,12 +20,12 @@ import (
 type WorkFlowLoop struct {
 	Flow           *WorkFlow
 	FlowLs         []*WorkFlow
-	Outputs        common.SimpleFields //循环节点本身的输出
+	Outputs        common.SimpleFields // Output of the loop node itself
 	LoopNodeParams *LoopNodeParams
 	LoopNode       msql.Params
 }
 
-// FlowRunningLoopTest 循环节点单独运行测试
+// FlowRunningLoopTest Loop node individual run test
 func FlowRunningLoopTest(flow *WorkFlow) error {
 	_, childNode, err := GetNodeByKey(flow, cast.ToUint(flow.params.RealRobot[`id`]), flow.curNodeKey)
 	if err != nil {
@@ -39,21 +40,21 @@ func FlowRunningLoopTest(flow *WorkFlow) error {
 		return err
 	}
 	if len(workFlowLoop.FlowLs) > 0 {
-		//替换输出结果 map已经更新了
+		// Replace output result map has been updated
 		//flow.outputs = workFlowLoop.FlowLs[0].outputs
-		//合并输出
+		// Merge output
 		for _, flowL := range workFlowLoop.FlowLs {
 			flow.nodeLogs = append(flow.nodeLogs, flowL.nodeLogs...)
 			flow.runLogs = append(flow.runLogs, flowL.runLogs...)
 		}
 		flow.isFinish = true
 	} else {
-		err = errors.New(`未执行循环节点`)
+		err = errors.New(i18n.Show(flow.params.Lang, "workflow_node_loop_not_executed"))
 	}
 	return err
 }
 
-// LoopNodeRunning 循环节点运行
+// LoopNodeRunning Loop node running
 func LoopNodeRunning(nodeInfo msql.Params, flow *WorkFlow) (common.SimpleFields, string, error) {
 	workFlowLoop, err := NewWorkFlowLoop(``, nodeInfo, flow)
 	if err != nil {
@@ -83,17 +84,17 @@ func NewWorkFlowLoop(nodeKey string, node msql.Params, flow *WorkFlow) (*WorkFlo
 			return flowLoop, err
 		}
 	} else {
-		err = errors.New(`循环节点配置不能为空`)
+		err = errors.New(i18n.Show(flowLoop.Flow.params.Lang, "workflow_node_loop_config_empty"))
 		return flowLoop, err
 	}
 	if cast.ToInt(flowLoop.LoopNode[`node_type`]) != NodeTypeLoop {
-		err = errors.New(`错误的循环节点`)
+		err = errors.New(i18n.Show(flowLoop.Flow.params.Lang, "workflow_node_loop_error"))
 		return flowLoop, err
 	}
 	nodeParams := &NodeParams{}
 	err = tool.JsonDecode(flowLoop.LoopNode[`node_params`], &nodeParams)
 	if err != nil {
-		logs.Error(`节点参数解析错误: %s`, err)
+		logs.Error(`Node parameter parsing error: %s`, err)
 		return flowLoop, err
 	}
 	flowLoop.LoopNodeParams = &nodeParams.Loop
@@ -109,56 +110,56 @@ type NodeOutputTake struct {
 
 func (flowLoop *WorkFlowLoop) ForRunning() (nextNodeKey string, err error) {
 	nextNodeKey = ``
-	//运行测试参数注入
+	// Run test parameter injection
 	flowLoop.testFillParams(flowLoop.Flow)
-	//循环基准
+	// Loop basis
 	loopInFields := flowLoop.getLoopInFields()
 	if len(loopInFields) == 0 {
-		flowLoop.Flow.Logs(`未找到循环次数`)
-		return nextNodeKey, errors.New(`未找到循环次数`)
+		flowLoop.Flow.Logs(`Loop count not found`)
+		return nextNodeKey, errors.New(i18n.Show(flowLoop.Flow.params.Lang, "workflow_node_loop_count_not_found"))
 	}
-	//单独运行测试只允许一次
+	// Individual run test only allows once
 	if flowLoop.Flow.params.IsTestLoopNodeRun {
 		loopInFields = []*common.SimpleField{loopInFields[0]}
 	}
-	flowLoop.Flow.Logs(`开始运行循环节点%d次..`, len(loopInFields))
-	//注入中间变量
-	flowLoop.Flow.Logs(`注入中间变量...`)
+	flowLoop.Flow.Logs(`Start running loop node %d times..`, len(loopInFields))
+	// Inject intermediate variables
+	flowLoop.Flow.Logs(`Injecting intermediate variables...`)
 	flowLoop.initLoopIntermediate()
 loopFor:
 	for loopIndex, inField := range loopInFields {
 		flowL := &WorkFlow{}
 		if inField == nil {
-			flowLoop.Flow.Logs(`进行循环节点执行..第%d次`, loopIndex)
+			flowLoop.Flow.Logs(`Executing loop node.. %dth time`, loopIndex)
 		} else {
-			flowLoop.Flow.Logs(`进行循环节点执行..第%d次..循环参数%s%s`, loopIndex, "\n", tool.JsonEncodeNoError(*inField))
+			flowLoop.Flow.Logs(`Executing loop node.. %dth time.. loop params%s%s`, loopIndex, "\n", tool.JsonEncodeNoError(*inField))
 		}
 		var isLoopEnd bool
 		isLoopEnd, flowL, err = flowLoop.loopNodeRunning(loopIndex, len(loopInFields), inField)
 		flowLoop.FlowLs = append(flowLoop.FlowLs, flowL)
-		//中断处理
+		// Interrupt handling
 		if flowLoop.Flow.isTimeout {
 			break
 		}
 		if isLoopEnd {
-			flowLoop.Flow.Logs(`终止循环节点执行`)
+			flowLoop.Flow.Logs(`Terminate loop node execution`)
 			break
 		}
 		select {
 		case <-flowLoop.Flow.context.Done():
 			break loopFor
-		default: //执行下一次循环
+		default: // Execute next loop
 		}
 	}
-	//注入循环节点输出
+	// Inject loop node output
 	flowLoop.TakeChildOutputs()
 	nextNodeKey = flowLoop.LoopNode[`next_node_key`]
 	return
 }
 
-// 获取循环参数数组
+// Get loop parameter array
 func (flowLoop *WorkFlowLoop) getLoopInFields() []*common.SimpleField {
-	//从外部输出中找到循环数组变量
+	// Find loop array variable from external output
 	if flowLoop.LoopNodeParams.LoopType == common.LoopTypeNumber {
 		loopInFields := make([]*common.SimpleField, 0)
 		for i := 0; i < flowLoop.LoopNodeParams.LoopNumber.Int(); i++ {
@@ -167,7 +168,7 @@ func (flowLoop *WorkFlowLoop) getLoopInFields() []*common.SimpleField {
 		return loopInFields
 	}
 	for _, loopArray := range flowLoop.LoopNodeParams.LoopArrays {
-		if loopArray.NodeKey() == `global` { //全局变量
+		if loopArray.NodeKey() == `global` { // global variable
 			for globalKey, globalVal := range flowLoop.Flow.global {
 				if globalKey == loopArray.ChooseKey() {
 					return flowLoop.inFieldAppend(loopArray.Key, globalVal)
@@ -175,7 +176,7 @@ func (flowLoop *WorkFlowLoop) getLoopInFields() []*common.SimpleField {
 			}
 		} else {
 			for outNodeKey, nodeOutputs := range flowLoop.Flow.outputs {
-				if outNodeKey != loopArray.NodeKey() { //非指定的循环数组输出 下一个
+				if outNodeKey != loopArray.NodeKey() { // Non-specified loop array output, next
 					continue
 				}
 				for _, outField := range nodeOutputs {
@@ -236,34 +237,34 @@ func (flowLoop *WorkFlowLoop) inFieldAppend(key string, outField common.SimpleFi
 
 func (flowLoop *WorkFlowLoop) TakeChildOutputs() {
 	childFlowLogs := make(map[string][]common.NodeLog, 0)
-	//提取token 累加
+	//Extract and accumulate tokens
 	completionToken, promptToken := 0, 0
-	//提取每个节点最后一次的输出 不是最后一轮
+	//Extract the last output of each node (not the last loop round)
 	childOutputs := make(map[string]common.SimpleFields)
 	for index, flowL := range flowLoop.FlowLs {
-		//消耗的token处理
+		//Consumed token handling
 		for _, nodeLog := range flowL.nodeLogs {
 			nodeOutputTake := NodeOutputTake{}
 			err := tool.JsonDecode(tool.JsonEncodeNoError(nodeLog.Output), &nodeOutputTake)
 			if err != nil {
-				flowLoop.Flow.Logs(`异常:循环节点提取子节点输出参数错误 %s`, err.Error())
+				flowLoop.Flow.Logs(`Error: failed to extract child node output params in loop node %s`, err.Error())
 				continue
 			}
 			completionToken += cast.ToInt(nodeOutputTake.LlmResult.CompletionToken)
 			promptToken += cast.ToInt(nodeOutputTake.LlmResult.PromptToken)
 		}
-		//输出处理
+		//Output handling
 		childFlowLogs[`loop_logs.for_`+cast.ToString(index+1)] = flowL.nodeLogs
 		for childNodeKey, childOutput := range flowL.outputs {
 			childOutputs[childNodeKey] = childOutput
 		}
 	}
-	//注入token到结果中
+	//Inject tokens into result
 	flowLoop.Outputs[`llm_result.completion_token`] = common.SimpleField{Key: `llm_result.completion_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &completionToken}}}
 	flowLoop.Outputs[`llm_result.prompt_token`] = common.SimpleField{Key: `llm_result.prompt_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &promptToken}}}
 	loopNumber := len(flowLoop.FlowLs)
 	flowLoop.Outputs[`loop_result.loop_number`] = common.SimpleField{Key: `loop_result.loop_number`, Typ: common.TypNumber, Vals: []common.Val{{Number: &loopNumber}}}
-	//从中间变量提取输出
+	//Extract output from intermediate variables
 	for _, loopOutput := range flowLoop.LoopNodeParams.Output {
 		bFind := false
 		for _, intermediate := range flowLoop.LoopNodeParams.IntermediateParams {
@@ -284,7 +285,7 @@ func (flowLoop *WorkFlowLoop) TakeChildOutputs() {
 			}
 		}
 	}
-	//测试输出日志
+	//Test output logs
 	if define.IsDev {
 		//for key, log := range childFlowLogs {
 		//	flowLoop.Outputs[key] = common.SimpleField{Key: key, Typ: common.TypArrObject, Vals: []common.Val{{Object: log}}}
@@ -300,32 +301,32 @@ func (flowLoop *WorkFlowLoop) loopNodeRunning(loopIndex, maxLoopNumber int, inFi
 		nodeLogs:    make([]common.NodeLog, 0),            //node logs
 		StartTime:   tool.Time2Int(),                      //start time
 		context:     flowLoop.Flow.context,                //inherit context
-		global:      flowLoop.Flow.global,                 //继承自循环节点所属工作流
-		outputs:     flowLoop.Flow.outputs,                //继承所有节点的输出 所有对outputs的修改都会反应到主工作流
-		inputs:      make(map[string]common.SimpleFields), //输入参数
+		global:      flowLoop.Flow.global,                 //inherited from the workflow owning this loop node
+		outputs:     flowLoop.Flow.outputs,                //inherit outputs of all nodes; modifications reflect to parent flow
+		inputs:      make(map[string]common.SimpleFields), //input parameters
 		runNodeKeys: make([]string, 0),                    //self run node keys
 		runLogs:     make([]string, 0),                    //self  logs
 		VersionId:   flowLoop.Flow.VersionId,              //inherit version id
 		LoopIntermediate: LoopIntermediate{
 			LoopNodeKey: flowLoop.LoopNode[`node_key`],
 			Params:      &flowLoop.LoopNodeParams.IntermediateParams,
-		}, //注入中间变量 供变量赋值使用
+		}, //inject intermediate variables for variable assignment
 	}
-	//循环参数注入
+	//Inject loop parameters
 	flowLoop.fillLoopInField(flowL, inField)
-	//将中间变量注入到outputs
+	//Inject intermediate variables into outputs
 	flowLoop.fillLoopIntermediateToOutputs(flowL)
-	//找到入口子节点
+	//Find the entry child node
 	flowL.curNodeKey, err = flowLoop.FindStartChildNodeKey()
 	if err != nil {
 		flowL.Logs(err.Error())
 		return
 	}
 	if flowL.curNodeKey == `` {
-		err = errors.New(`未找到循环节点的入口子节点`)
+		err = errors.New(i18n.Show(flowL.params.Lang, "workflow_node_loop_entry_node_not_found"))
 		return
 	}
-	flowL.Logs(`开始运行循环节点子节点 第%d/%d次`, loopIndex, maxLoopNumber)
+	flowL.Logs(`Start running loop node child nodes %d/%d`, loopIndex, maxLoopNumber)
 	for {
 		var nodeInfo msql.Params
 		flowL.curNode, nodeInfo, err = GetNodeByKey(flowL, cast.ToUint(flowL.params.RealRobot[`id`]), flowL.curNodeKey)
@@ -334,13 +335,13 @@ func (flowLoop *WorkFlowLoop) loopNodeRunning(loopIndex, maxLoopNumber int, inFi
 			break
 		}
 		if flowL.curNode == nil {
-			break //退出
+			break //exit
 		}
-		flowL.Logs(`循环节点当前运行子节点:%s %s`, flowL.curNodeKey, nodeInfo[`node_name`])
+		flowL.Logs(`Loop node currently running child node:%s %s`, flowL.curNodeKey, nodeInfo[`node_name`])
 		flowL.runNodeKeys = append(flowL.runNodeKeys, flowL.curNodeKey)
 		var nextNodeKey string
 
-		//节点运行开始
+		//node run start
 		nodeLog := common.NodeLog{
 			StartTime: time.Now().UnixMilli(),
 			NodeKey:   flowL.curNodeKey,
@@ -350,18 +351,18 @@ func (flowLoop *WorkFlowLoop) loopNodeRunning(loopIndex, maxLoopNumber int, inFi
 		flowL.getNodeInputs()
 		flowL.inputs[flowL.curNodeKey] = flowL.input
 		if cast.ToInt(nodeInfo[`node_type`]) == NodeTypeLoop {
-			err = errors.New(fmt.Sprintf(`循环节点中不支持循环节点 %s`, nodeLog.NodeName))
+			err = errors.New(i18n.Show(flowL.params.Lang, "workflow_node_loop_not_support_nested_loop", nodeLog.NodeName))
 			break
 		} else if cast.ToInt(nodeInfo[`node_type`]) == NodeTypeLoopEnd {
 			isLoopEnd = true
 			flowL.outputs[flowL.curNodeKey] = make(common.SimpleFields)
 		} else {
 			flowL.output, nextNodeKey, err = flowL.curNode.Running(flowL)
-			flowL.outputs[flowL.curNodeKey] = flowL.output //记录每个节点输出的变量
+			flowL.outputs[flowL.curNodeKey] = flowL.output // Record variables output by each node
 		}
-		//将中间变量注入到outputs
+		// Inject intermediate variables into outputs
 		flowLoop.fillLoopIntermediateToOutputs(flowL)
-		//运行参数处理
+		// Running parameter processing
 		nodeLog.EndTime = time.Now().UnixMilli()
 		nodeLog.Output = common.GetFieldsObject(common.GetRecurveFields(flowL.output))
 		nodeLog.Input = common.GetFieldsObject(common.GetRecurveFields(flowL.input))
@@ -369,33 +370,33 @@ func (flowLoop *WorkFlowLoop) loopNodeRunning(loopIndex, maxLoopNumber int, inFi
 		nodeLog.ErrorMsg = fmt.Sprintf(`%v`, err)
 		nodeLog.UseTime = nodeLog.EndTime - nodeLog.StartTime
 		flowL.nodeLogs = append(flowL.nodeLogs, nodeLog)
-		//节点运行结束
-		flowLoop.Flow.Logs(`结果nextNodeKey:%s,err:%v`, nextNodeKey, err)
+		// Node running end
+		flowLoop.Flow.Logs(`Result nextNodeKey:%s,err:%v`, nextNodeKey, err)
 		if len(flowL.output) > 0 {
-			flowLoop.Flow.Logs(`输出变量:%s`, tool.JsonEncodeNoError(flowL.output))
+			flowLoop.Flow.Logs(`Output variables:%s`, tool.JsonEncodeNoError(flowL.output))
 		}
 		if isLoopEnd {
 			break
 		}
 		if flowLoop.Flow.isTimeout || err != nil || len(nextNodeKey) == 0 {
-			break //结束
+			break // End
 		}
 		if nextNodeKey == flowLoop.LoopNode[`node_key`] {
-			flowL.Logs(`循环节点本轮结束`)
+			flowL.Logs(`Loop node round end`)
 			break
 		}
-		//外部中断监听处理
+		// External interrupt listening processing
 		select {
 		case <-flowL.context.Done():
 			goto flowExit
-		default: //执行下一个节点
+		default: // Execute next node
 			flowL.curNodeKey = nextNodeKey
 		}
 	}
 flowExit:
-	flowLoop.Flow.Logs(`循环节点第%d/%d次本次执行结束...`, loopIndex, maxLoopNumber)
+	flowLoop.Flow.Logs(`Loop node %d/%d execution ended...`, loopIndex, maxLoopNumber)
 	flowL.EndTime = tool.Time2Int()
-	flowL.running = false //运行结束
+	flowL.running = false // Running end
 	return
 }
 
@@ -418,7 +419,7 @@ func (flowLoop *WorkFlowLoop) testFillParams(flowL *WorkFlow) {
 	fillTestParamsToRunningParams(flowL, flowL.params.LoopTestParams)
 }
 
-// 注入循环参数
+// Inject loop parameters
 func (flowLoop *WorkFlowLoop) fillLoopInField(flowL *WorkFlow, inField *common.SimpleField) {
 	if inField == nil {
 		return
@@ -429,7 +430,7 @@ func (flowLoop *WorkFlowLoop) fillLoopInField(flowL *WorkFlow, inField *common.S
 	flowL.outputs[flowLoop.LoopNode[`node_key`]][inField.Key] = *inField
 }
 
-// 注入中间变量到outputs 供子节点使用
+// Inject intermediate variables into outputs for child nodes
 func (flowLoop *WorkFlowLoop) fillLoopIntermediateToOutputs(flowL *WorkFlow) {
 	if _, ok := flowL.outputs[flowLoop.LoopNode[`node_key`]]; !ok {
 		flowL.outputs[flowLoop.LoopNode[`node_key`]] = make(common.SimpleFields)
@@ -439,15 +440,15 @@ func (flowLoop *WorkFlowLoop) fillLoopIntermediateToOutputs(flowL *WorkFlow) {
 	}
 }
 
-// 初始化中间变量
+// Initialize intermediate variables
 func (flowLoop *WorkFlowLoop) initLoopIntermediate() {
 	for key, intermediateParam := range flowLoop.LoopNodeParams.IntermediateParams {
 		flowLoop.LoopNodeParams.IntermediateParams[key].Value = flowLoop.Flow.VariableReplace(intermediateParam.Value)
 
-		//变量替换 支持数组等
+		// Variable replacement supports arrays etc.
 		var data any = flowLoop.Flow.VariableReplace(intermediateParam.Value)
 		if tool.InArrayString(intermediateParam.Typ, common.TypArrays[:]) {
-			var temp []any //数组类型特殊处理
+			var temp []any // Special handling for array types
 			for _, item := range strings.Split(cast.ToString(data), `、`) {
 				temp = append(temp, item)
 			}

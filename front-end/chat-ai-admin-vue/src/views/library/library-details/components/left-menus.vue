@@ -56,11 +56,11 @@ const menus = computed(() => {
       icon: () =>
         h('span', {}, [
           h(SvgIcon, {
-            name: 'doc-menu-icon',
+            name: 'knowledge-document-icon',
             class: 'menu-icon'
           }),
           h(SvgIcon, {
-            name: 'doc-active-menu-icon',
+            name: 'knowledge-document-active-icon',
             class: 'menu-icon-active'
           })
         ]),
@@ -76,11 +76,11 @@ const menus = computed(() => {
       icon: () =>
         h('span', {}, [
           h(SvgIcon, {
-            name: 'doc-menu-icon',
+            name: 'knowledge-graph-icon',
             class: 'menu-icon'
           }),
           h(SvgIcon, {
-            name: 'doc-active-menu-icon',
+            name: 'knowledge-graph-active-icon',
             class: 'menu-icon-active'
           })
         ]),
@@ -94,11 +94,11 @@ const menus = computed(() => {
       icon: () =>
         h('span', {}, [
           h(SvgIcon, {
-            name: 'doc-menu-icon',
+            name: 'categary-manage-icon',
             class: 'menu-icon'
           }),
           h(SvgIcon, {
-            name: 'doc-active-menu-icon',
+            name: 'categary-manage-active-icon',
             class: 'menu-icon-active'
           })
         ]),
@@ -112,11 +112,11 @@ const menus = computed(() => {
       icon: () =>
         h('span', {}, [
           h(SvgIcon, {
-            name: 'test-menu-icon',
+            name: 'recall-testing-icon',
             class: 'menu-icon'
           }),
           h(SvgIcon, {
-            name: 'test-active-menu-icon',
+            name: 'recall-testing-active-icon',
             class: 'menu-icon-active'
           })
         ]),
@@ -148,11 +148,11 @@ const menus = computed(() => {
       icon: () =>
         h('span', {}, [
           h(SvgIcon, {
-            name: 'knowledge-config-icon',
+            name: 'related-robots-icon',
             class: 'menu-icon'
           }),
           h(SvgIcon, {
-            name: 'knowledge-config-active-icon',
+            name: 'related-robots-active-icon',
             class: 'menu-icon-active'
           })
         ]),
@@ -167,11 +167,11 @@ const menus = computed(() => {
       icon: () =>
         h('span', {}, [
           h(SvgIcon, {
-            name: 'doc-menu-icon',
+            name: 'import-record-icon',
             class: 'menu-icon'
           }),
           h(SvgIcon, {
-            name: 'doc-active-menu-icon',
+            name: 'import-record-active-icon',
             class: 'menu-icon-active'
           })
         ]),
@@ -185,11 +185,11 @@ const menus = computed(() => {
       icon: () =>
         h('span', {}, [
           h(SvgIcon, {
-            name: 'doc-menu-icon',
+            name: 'export-record-icon',
             class: 'menu-icon'
           }),
           h(SvgIcon, {
-            name: 'doc-active-menu-icon',
+            name: 'export-record-active-icon',
             class: 'menu-icon-active'
           })
         ]),
@@ -204,11 +204,11 @@ const menus = computed(() => {
       icon: () =>
         h('span', {}, [
           h(SvgIcon, {
-            name: 'doc-menu-icon',
+            name: 'recycle-bin-record-icon',
             class: 'menu-icon'
           }),
           h(SvgIcon, {
-            name: 'doc-active-menu-icon',
+            name: 'recycle-bin-record-active-icon',
             class: 'menu-icon-active'
           })
         ]),

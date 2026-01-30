@@ -209,7 +209,10 @@ const formState = reactive({
   meta_search_switch: 0,
   meta_search_type: 1,
   meta_search_condition_list: "",
-  rrf_weight: {}
+  rrf_weight: {},
+  recall_neighbor_switch: false,
+  recall_neighbor_before_num: 1,
+  recall_neighbor_after_num: 1,
 })
 
 // 知识库
@@ -255,6 +258,7 @@ const recallSettingsAlertRef = ref(null)
 const handleOpenRecallSettingsAlert = () => {
   recallSettingsAlertRef.value.open(toRaw(formState), robotInfo)
 }
+
 const noOpenGraphModalRef = ref(null)
 
 const onChangeRecallSettings = (data) => {
@@ -268,6 +272,10 @@ const onChangeRecallSettings = (data) => {
   formState.meta_search_type = data.meta_search_type
   formState.meta_search_condition_list = data.meta_search_condition_list
   formState.rrf_weight = data.rrf_weight
+  formState.recall_neighbor_switch = data.recall_neighbor_switch
+  formState.recall_neighbor_before_num = data.recall_neighbor_before_num
+  formState.recall_neighbor_after_num = data.recall_neighbor_after_num
+
   if (data.search_type == 1 || data.search_type == 4) {
     if (noOpenLibraryList.value.length > 0) {
       noOpenGraphModalRef.value.show()
@@ -331,6 +339,9 @@ watchEffect(() => {
   formState.meta_search_type = robotInfo.meta_search_type
   formState.meta_search_condition_list = robotInfo.meta_search_condition_list
   formState.rrf_weight = robotInfo.rrf_weight != '' ? JSON.parse(robotInfo.rrf_weight) : {vector: 0, search: 0, graph: 0}
+  formState.recall_neighbor_switch = robotInfo.recall_neighbor_switch
+  formState.recall_neighbor_before_num = robotInfo.recall_neighbor_before_num
+  formState.recall_neighbor_after_num = robotInfo.recall_neighbor_after_num
 })
 
 const toLibraryDetail = (item) => {

@@ -17,30 +17,30 @@ const (
 
 var LibraryAbilityList = []Ability{
 	{
-		Name:          "公众号文章群发",
+		Name:          "[[ZM--OfficialAccountBatchSendName--ZM]]",
 		ModuleType:    RobotModule,                     //模块类型
 		AbilityType:   OfficialAccountAbilityBatchSend, //全局唯一值 类型
-		Introduction:  "群发文章给公众号用户，该群发支持使用AI评论精选功能，自动删评，回复，精选评论",
-		Details:       "群发文章给公众号用户，该群发支持使用AI评论精选功能，自动删评，回复，精选评论",
+		Introduction:  "[[ZM--OfficialAccountBatchSendIntro--ZM]]",
+		Details:       "[[ZM--DetailsPlaceholder--ZM]]",
 		Icon:          "iconfont icon-keyword-reply",
 		ShowSelect:    define.SwitchOn,
 		RobotOnlyShow: define.SwitchOn,
 		SupportChannelsList: []string{
-			"公众号",
+			"[[ZM--OfficialAccountChannel--ZM]]",
 		},
 		RobotConfig: DefaultRobotConfig,
 		Menu: define.Menu{
-			Name:   "文章群发",
+			Name:   "[[ZM--ArticleGroupSendName--ZM]]",
 			UniKey: "exploreArticleGroupSend",
 			Path:   "/explore/index/article-group-send",
 			Children: []*define.Menu{
 				{
-					Name:   "群发管理",
+					Name:   "[[ZM--GroupSendName--ZM]]",
 					UniKey: "exploreArticleGroupSendGroupSend",
 					Path:   "/explore/index/article-group-send/group-send",
 				},
 				{
-					Name:   "草稿箱",
+					Name:   "[[ZM--DraftBoxName--ZM]]",
 					UniKey: "exploreArticleGroupSendDraftBox",
 					Path:   "/explore/index/article-group-send/draft-box",
 				},
@@ -48,59 +48,59 @@ var LibraryAbilityList = []Ability{
 		},
 	},
 	{
-		Name:          "公众号AI评论精选  ",
+		Name:          "[[ZM--OfficialAccountAICommentName--ZM]]",
 		ModuleType:    RobotModule,                     //模块类型
 		AbilityType:   OfficialAccountAbilityAIComment, //全局唯一值 类型
-		Introduction:  "对系统内发布的文章群发支持自动删评，回复，精选评论 ",
-		Details:       "对系统内发布的文章群发支持自动删评，回复，精选评论 ",
+		Introduction:  "[[ZM--OfficialAccountAICommentIntro--ZM]]",
+		Details:       "[[ZM--DetailsPlaceholder--ZM]]",
 		Icon:          "iconfont icon-keyword-reply",
 		ShowSelect:    define.SwitchOn,
 		RobotOnlyShow: define.SwitchOn,
 		SupportChannelsList: []string{
-			"公众号",
+			"[[ZM--OfficialAccountChannel--ZM]]",
 		},
 		RobotConfig: DefaultRobotConfig,
 		Menu: define.Menu{
-			Name:   "AI评论管理",
+			Name:   "[[ZM--AICommentManagementName--ZM]]",
 			UniKey: "exploreAiCommentManagement",
 			Path:   "/explore/index/ai-comment-management",
 			Children: []*define.Menu{
 				{
-					Name:   "默认规则'",
+					Name:   "[[ZM--DefaultRuleName--ZM]]",
 					UniKey: "exploreAiCommentManagementDefaultRule",
 					Path:   "/explore/index/ai-comment-management/default-rule",
 				},
 				{
-					Name:   "自定义规则",
+					Name:   "[[ZM--CustomRuleName--ZM]]",
 					UniKey: "exploreAiCommentManagementCustomRule",
 					Path:   "/explore/index/ai-comment-management/custom-rule",
 				},
 				{
-					Name:   "新建自定义规则",
+					Name:   "[[ZM--CreateCustomRuleName--ZM]]",
 					UniKey: "exploreAiCommentManagementCreateCustomRule",
 					Path:   "/explore/index/ai-comment-management/create-custom-rule",
 				},
 				{
-					Name:   "评论处理记录",
+					Name:   "[[ZM--CommentProcessingRecordName--ZM]]",
 					UniKey: "exploreAiCommentManagementCommentProcessingRecord",
 					Path:   "/explore/index/ai-comment-management/comment-processing-record",
 				},
 			},
 		},
 	}, {
-		Name:                 "微信公众号知识库",
+		Name:                 "[[ZM--LibraryAbilityOfficialAccountName--ZM]]",
 		ModuleType:           LibraryModule,                 //模块类型
 		AbilityType:          LibraryAbilityOfficialAccount, //全局唯一值 类型
-		Introduction:         "功能开启后，可以在知识库>公众号知识库模块中绑定微信公众号，自动获取公众号已发布的文章",
-		Details:              "查看详情中的信息 前端自己定义",
+		Introduction:         "[[ZM--LibraryAbilityOfficialAccountIntro--ZM]]",
+		Details:              "[[ZM--DetailsPlaceholder--ZM]]",
 		Icon:                 "iconfont icon-official-account",
 		ShowSelect:           define.SwitchOn,
 		DefaultSelectedValue: define.SwitchOn,
 		SupportChannelsList: []string{
-			"已认证公众号，服务号",
+			"[[ZM--AuthenticatedOfficialAccountChannel--ZM]]",
 		},
 		Menu: define.Menu{
-			Name:     "微信公众号知识库",
+			Name:     "[[ZM--LibraryAbilityOfficialAccountName--ZM]]",
 			UniKey:   "LibraryAbilityOfficialAccount",
 			Path:     "/library/list",
 			Children: []*define.Menu{},

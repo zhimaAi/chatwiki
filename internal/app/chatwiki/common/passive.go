@@ -4,10 +4,12 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/textsplitter"
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/spf13/cast"
@@ -16,18 +18,18 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-func PassiveReplyLogNotify(logid int64, question, answer string) {
+func PassiveReplyLogNotify(lang string, logid int64, question, answer string) {
 	//答案抽取图片,内容按500分段
 	content, images := GetImgInMessage(answer, false)
 	split := textsplitter.NewRecursiveCharacter()
 	split.ChunkSize, split.ChunkOverlap = 500, 0
 	replys, _ := split.SplitText(content)
 	if define.IsDev && question == `debug` { //测试环境调试数据
-		replys = []string{`这是AI回复的第1段`, `这是AI回复的第2段`, `这是AI回复的第3段`, `这是AI回复的第4段`}
-		images = []string{`/upload/model_icon/yiyan.png`, `/upload/model_icon/tongyi.png`, `/upload/model_icon/doubao.png`}
+		replys = []string{`ai_reply_1`, `ai_reply_2`, `ai_reply_3`, `ai_reply_4`}
+		images = []string{`/upload/model_icon/yiyan.png`, `/upload/model_icon/doubao.png`}
 	}
 	if len(images) > 1 {
-		replys = append(replys, ` ----- 查看图片 ----- `)
+		replys = append(replys, fmt.Sprintf(` ----- %s ----- `, i18n.Show(lang, `view_images`)))
 	}
 	//图片兼容非oss链接处理
 	for i, image := range images {

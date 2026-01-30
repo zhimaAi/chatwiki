@@ -55,7 +55,7 @@ func validateMetaSearchConfig(lang string, metaSwitch, metaType int, raw string)
 		return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
 	}
 	if len(conds) > define.MetaSearchMaxConditions {
-		return 0, 0, ``, fmt.Errorf("最多新增%d个条件", define.MetaSearchMaxConditions)
+		return 0, 0, ``, errors.New(i18n.Show(lang, `max_conditions_exceed`, define.MetaSearchMaxConditions))
 	}
 
 	for _, c := range conds {
@@ -241,7 +241,7 @@ func SaveRobot(c *gin.Context) {
 	robotAvatar := strings.TrimSpace(c.DefaultPostForm(`avatar_from_template`, ``))
 	promptType := cast.ToInt(c.DefaultPostForm(`prompt_type`, `1`))
 	prompt := strings.TrimSpace(c.PostForm(`prompt`))
-	promptStruct := strings.TrimSpace(c.DefaultPostForm(`prompt_struct`, common.GetDefaultPromptStruct()))
+	promptStruct := strings.TrimSpace(c.DefaultPostForm(`prompt_struct`, common.GetDefaultPromptStruct(common.GetLang(c))))
 	libraryIds := strings.TrimSpace(c.PostForm(`library_ids`))
 	formIds := strings.TrimSpace(c.PostForm(`form_ids`))
 	welcomes := strings.TrimSpace(c.PostForm(`welcomes`))
@@ -254,10 +254,15 @@ func SaveRobot(c *gin.Context) {
 	questionMultipleSwitch := cast.ToUint(c.PostForm(`question_multiple_switch`))
 	topK := cast.ToInt(c.DefaultPostForm(`top_k`, `5`))
 	similarity := cast.ToFloat32(c.DefaultPostForm(`similarity`, `0.6`))
+	recallNeighborSwitch := cast.ToBool(c.DefaultPostForm(`recall_neighbor_switch`, `false`))
+	recallNeighborBeforeNum := cast.ToInt(c.DefaultPostForm(`recall_neighbor_before_num`, `1`))
+	recallNeighborAfterNum := cast.ToInt(c.DefaultPostForm(`recall_neighbor_after_num`, `1`))
+
 	searchType := cast.ToInt(c.DefaultPostForm(`search_type`, `1`))
 	rrfWeight := strings.TrimSpace(c.PostForm(`rrf_weight`))
 	chatType := cast.ToInt(c.DefaultPostForm(`chat_type`, `1`))
-	unknownQuestionPrompt := strings.TrimSpace(c.DefaultPostForm(`unknown_question_prompt`, `{"content":"哎呀，这个问题我暂时还不太清楚呢～（对手指）"}`))
+	unknownQuestionPromptJson := tool.JsonEncodeNoError(define.MenuJsonStruct{Content: lib_define.DefaultUnknownQuestionPromptContent})
+	unknownQuestionPrompt := strings.TrimSpace(c.DefaultPostForm(`unknown_question_prompt`, unknownQuestionPromptJson))
 
 	libraryQaDirectReplySwitch := cast.ToBool(c.DefaultPostForm(`library_qa_direct_reply_switch`, `true`))
 	libraryQaDirectReplyScore := cast.ToFloat32(c.DefaultPostForm(`library_qa_direct_reply_score`, `0.9`))
@@ -294,7 +299,7 @@ func SaveRobot(c *gin.Context) {
 		robotAvatar = define.LocalUploadPrefix + `default/robot_avatar.svg`
 		if modelConfigId == 0 && len(useModel) == 0 {
 			var existLlm bool
-			modelConfigId, useModel, existLlm = common.GetDefaultLlmConfig(userId)
+			modelConfigId, useModel, existLlm = common.GetDefaultLlmConfig(common.GetLang(c), userId)
 			if !existLlm {
 				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `not_llm_config`))))
 				return
@@ -319,7 +324,7 @@ func SaveRobot(c *gin.Context) {
 			}
 		}
 	}
-	if promptStruct, err = common.CheckPromptConfig(promptType, promptStruct); err != nil {
+	if promptStruct, err = common.CheckPromptConfig(common.GetLang(c), promptType, promptStruct); err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
@@ -331,6 +336,20 @@ func SaveRobot(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `similarity`))))
 		return
 	}
+
+	if recallNeighborSwitch != true && recallNeighborSwitch != false {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `recall_neighbor_switch`))))
+		return
+	}
+	if recallNeighborBeforeNum < 0 || recallNeighborBeforeNum > 5 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `recall_neighbor_before_num`))))
+		return
+	}
+	if recallNeighborAfterNum < 0 || recallNeighborAfterNum > 5 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `recall_neighbor_after_num`))))
+		return
+	}
+
 	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText, define.SearchTypeGraph}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
 		return
@@ -437,7 +456,7 @@ func SaveRobot(c *gin.Context) {
 	//check form
 	if len(formIds) > 0 {
 		//判断func call能力
-		if err = common.CheckSupportFuncCall(userId, modelConfigId, useModel); err != nil {
+		if err = common.CheckSupportFuncCall(common.GetLang(c), userId, modelConfigId, useModel); err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			return
 		}
@@ -499,7 +518,7 @@ func SaveRobot(c *gin.Context) {
 	tipsBeforeAnswerContent := strings.TrimSpace(c.DefaultPostForm(`tips_before_answer_content`, i18n.Show(common.GetLang(c), `thinking_please_wait`))) //`思考中、请稍等`
 
 	// logs.Info(`tipsBeforeAnswerContent: %v`, utf8.RuneCountInString(tipsBeforeAnswerContent))
-	if utf8.RuneCountInString(tipsBeforeAnswerContent) > 10 {
+	if len(tipsBeforeAnswerContent) > 30 && utf8.RuneCountInString(tipsBeforeAnswerContent) > 10 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `tips_before_answer_content`))))
 		return
 	}
@@ -533,6 +552,9 @@ func SaveRobot(c *gin.Context) {
 		`question_multiple_switch`:              questionMultipleSwitch,
 		`top_k`:                                 topK,
 		`similarity`:                            similarity,
+		`recall_neighbor_switch`:                recallNeighborSwitch,
+		`recall_neighbor_before_num`:            recallNeighborBeforeNum,
+		`recall_neighbor_after_num`:             recallNeighborAfterNum,
 		`search_type`:                           searchType,
 		`rrf_weight`:                            rrfWeight,
 		`chat_type`:                             chatType,
@@ -606,7 +628,7 @@ func SaveRobot(c *gin.Context) {
 			// _ = AddUserMangedData(loginUserId, `managed_robot_list`, id)
 			go AddDefaultPermissionManage(userId, loginUserId, int(id), define.ObjectTypeRobot)
 			// add default library
-			_, _ = common.AddDefaultLibrary(c.GetHeader(`token`), robotName, libraryIds, robotKey, userId)
+			_, _ = common.AddDefaultLibrary(common.GetLang(c), c.GetHeader(`token`), robotName, libraryIds, robotKey, userId)
 		}
 	}
 	if err != nil {
@@ -793,7 +815,8 @@ func GetRobotMetaSchemaList(c *gin.Context) {
 	result := make([]map[string]any, 0, 32)
 
 	// 内置 meta：只保留一份
-	for _, b := range define.BuiltinMetaSchemaList {
+	builtinMetaSchemaList := common.GetBuiltinMetaSchemaList(common.GetLang(c))
+	for _, b := range builtinMetaSchemaList {
 		k := b.Key
 		if !seenBuiltinKey[k] {
 			seenBuiltinKey[k] = true
@@ -966,23 +989,23 @@ func GetRobotInfo(c *gin.Context) {
 	}
 	// add default library
 	if cast.ToInt(info[`default_library_id`]) <= 0 && cast.ToInt(info[`application_type`]) == define.ApplicationTypeChat {
-		_, _ = common.AddDefaultLibrary(c.GetHeader(`token`), info[`robot_name`], info[`library_ids`], info[`robot_key`], userId)
+		_, _ = common.AddDefaultLibrary(common.GetLang(c), c.GetHeader(`token`), info[`robot_name`], info[`library_ids`], info[`robot_key`], userId)
 		info, _ = common.GetRobotInfo(info[`robot_key`])
 	}
 	if len(info[`rrf_weight`]) == 0 { //填充默认值
 		info[`rrf_weight`] = tool.JsonEncodeNoError(common.GetDefaultRrfWeight(userId))
 	}
 	if len(info[`prompt_struct`]) == 0 {
-		info[`prompt_struct`] = tool.JsonEncodeNoError(common.GetEmptyPromptStruct()) //旧数据默认给空值
+		info[`prompt_struct`] = tool.JsonEncodeNoError(common.GetEmptyPromptStruct(common.GetLang(c))) //旧数据默认给空值
 	}
 	if cast.ToInt(info[`prompt_type`]) == define.PromptTypeStruct { //用于旧数据格式化
-		info[`prompt_struct`], _ = common.CheckPromptConfig(define.PromptTypeStruct, info[`prompt_struct`])
+		info[`prompt_struct`], _ = common.CheckPromptConfig(common.GetLang(c), define.PromptTypeStruct, info[`prompt_struct`])
 	}
 	//configure external service parameters
 	info[`image_domain`] = define.Config.WebService[`image_domain`]
 	info[`h5_domain`] = define.Config.WebService[`h5_domain`]
 	info[`pc_domain`] = define.Config.WebService[`pc_domain`]
-	info[`prompt_struct_default`] = common.GetDefaultPromptStruct() //提供给前端的默认值
+	info[`prompt_struct_default`] = common.GetDefaultPromptStruct(common.GetLang(c)) //提供给前端的默认值
 	info[`wechat_ip`] = define.Config.WebService[`wechat_ip`]
 	info[`push_wechat_kefu`] = fmt.Sprintf(`%s/push_pwd/wechat_kefu`, define.Config.WebService[`push_domain`])
 	info[`push_token`] = lib_define.SignToken
@@ -1073,12 +1096,12 @@ func CreatePromptByAi(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
-	promptStruct, err := common.CreatePromptByAi(demand, adminUserId, cast.ToInt(info[`model_config_id`]), info[`use_model`])
+	promptStruct, err := common.CreatePromptByAi(common.GetLang(c), demand, adminUserId, cast.ToInt(info[`model_config_id`]), info[`use_model`])
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
-	data := map[string]any{`promptStruct`: promptStruct, `markdown`: common.BuildPromptStruct(define.PromptTypeStruct, ``, promptStruct)}
+	data := map[string]any{`promptStruct`: promptStruct, `markdown`: common.BuildPromptStruct(common.GetLang(c), define.PromptTypeStruct, ``, promptStruct)}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
 
@@ -1303,7 +1326,7 @@ func RelationWorkFlow(c *gin.Context) {
 		workFlowIds = strings.Join(robotIds, `,`)
 	}
 	if len(workFlowIds) > 0 { //判断func call能力
-		if err = common.CheckSupportFuncCall(adminUserId, cast.ToInt(robot[`model_config_id`]), robot[`use_model`]); err != nil {
+		if err = common.CheckSupportFuncCall(common.GetLang(c), adminUserId, cast.ToInt(robot[`model_config_id`]), robot[`use_model`]); err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			return
 		}

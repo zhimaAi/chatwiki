@@ -7,6 +7,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/app/chatwiki/work_flow"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
 	"crypto/rand"
 	"crypto/sha256"
@@ -575,13 +576,13 @@ func simplifyNodeParams(toolData msql.Params) []map[string]interface{} {
 	// 默认参数：content 和 open_id
 	params = append(params, map[string]interface{}{
 		"key":      "content",
-		"desc":     "对话内容",
+		"desc":     lib_define.DialogueContent,
 		"type":     "string",
 		"required": true,
 	})
 	params = append(params, map[string]interface{}{
 		"key":      "open_id",
-		"desc":     "用户请求标识",
+		"desc":     lib_define.UserRequestIdentifier,
 		"type":     "string",
 		"required": true,
 	})

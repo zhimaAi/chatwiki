@@ -278,6 +278,48 @@ export const nodeList = [
   {
     id: '',
     groupKey: 'execute-action',
+    type: 'qa-node',
+    width: 420,
+    height: 130,
+    properties: {
+      ...getRowData(),
+      node_type: 43,
+      node_name: '问答',
+      node_icon: getNodeIconUrl('specify-reply-node'),
+      node_icon_name: 'specify-reply-node',
+      node_header_bg_color: 'linear-gradient(180deg, #FFF7F0 2%, rgba(229, 239, 255, 0) 100%)',
+      node_params: JSON.stringify({
+        question: {
+          answer_type: 'text',
+          answer_text: '',
+          reply_content_list: [
+            {
+              reply_type: 'smartMenu',
+              smart_menu: {
+                menu_description: '',
+                menu_content: []
+              }
+            }
+          ],
+          outputs: [
+            {
+              key: 'question',
+              typ: 'string',
+              subs: []
+            },
+            {
+              key: 'question_multiple',
+              typ: 'array<object>',
+              subs: []
+            }
+          ]
+        }
+      })
+    }
+  },
+  {
+    id: '',
+    groupKey: 'execute-action',
     type: 'immediately-reply-node',
     width: 420,
     height: 130,
@@ -500,6 +542,9 @@ export const nodeList = [
           rerank_use_model: '',
           question_value: 'global.question',
           libs_node_key: void 0,
+          recall_neighbor_switch: false,
+          recall_neighbor_before_num: 1,
+          recall_neighbor_after_num: 1,
         }
       })
     }
@@ -698,6 +743,54 @@ export const nodeList = [
           body_raw: '',
           timeout: 30,
           output: []
+        }
+      })
+    }
+  },
+  {
+    id: '',
+    groupKey: 'http-tool',
+    type: 'http-tool-node',
+    width: 568,
+    height: 216,
+    properties: {
+      ...getRowData(),
+      node_type: 45,
+      node_name: 'http工具',
+      node_icon: getNodeIconUrl('http-node'),
+      node_icon_name: 'http-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F7F0FF 2%, rgba(229, 239, 255, 0) 100%)',
+      node_params: JSON.stringify({
+        curl: {
+          method: 'POST',
+          rawurl: '',
+          headers: [
+            {
+              key: '',
+              value: ''
+            }
+          ],
+          params: [
+            {
+              key: '',
+              value: ''
+            }
+          ],
+          type: 1,
+          body: [
+            {
+              key: '',
+              value: ''
+            }
+          ],
+          body_raw: '',
+          timeout: 30,
+          output: [
+            {
+              key: '',
+              typ: ''
+            }
+          ]
         }
       })
     }
@@ -1178,6 +1271,62 @@ export const getMcpNode = (mcp, tool) => {
           arguments: {},
           tag_map: {},
         }
+      })
+    }
+  }
+}
+
+export const addHttpToolNode = (tool) => {
+  const nodesMap = getNodesMap()
+  const nodeConfig = nodesMap['http-tool-node']
+  const node_header_bg_color = nodeConfig.properties.node_header_bg_color
+  const width = nodeConfig.width
+  const height = nodeConfig.height
+  const method = String(tool.method || '').toUpperCase() || 'GET'
+  const rawurl = String(tool.url || '').replace(/[`"]/g, '').trim()
+  const headers = Array.isArray(tool.headers) ? tool.headers : []
+  // 支持 query/params 两种字段名
+  const params = Array.isArray(tool.params) ? tool.params : (Array.isArray(tool.query) ? tool.query : [])
+  const body = Array.isArray(tool.body) ? tool.body : []
+  const timeout = Number(tool.timeout || 60)
+  const output = Array.isArray(tool.output) ? tool.output : [
+    {
+      key: '',
+      typ: ''
+    }
+  ]
+  const curl = {
+    method,
+    rawurl,
+    headers,
+    params,
+    type: body.length ? 1 : 0,
+    body,
+    body_raw: '',
+    timeout,
+    output
+  }
+  if (Array.isArray(tool.http_auth) && tool.http_auth.length > 0) {
+    curl.http_auth = tool.http_auth
+  }
+  if (tool.http_tool_info && Object.keys(tool.http_tool_info).length > 0) {
+    curl.http_tool_info = tool.http_tool_info
+  }
+  return {
+    id: '',
+    groupKey: 'external-service',
+    type: 'http-tool-node',
+    width,
+    height,
+    properties: {
+      ...getRowData(),
+      node_type: 45,
+      node_name: tool.name || nodeConfig.properties.node_name,
+      node_icon: tool.avatar || nodeConfig.properties.node_icon,
+      node_icon_name: nodeConfig.properties.node_icon_name,
+      node_header_bg_color,
+      node_params: JSON.stringify({
+        curl
       })
     }
   }

@@ -69,7 +69,7 @@
         margin-right: 2px;
         opacity: 1;
       }
-      .option-type{
+      .option-type {
         height: 22px;
         line-height: 18px;
         padding: 0 8px;
@@ -78,6 +78,14 @@
         background-color: #fff;
         color: var(--wf-color-text-3);
         font-size: 12px;
+      }
+      .option-desc {
+        max-width: 90px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-left: 8px;
+        font-size: 14px;
       }
       .item-actions-box{
         display: flex;
@@ -165,6 +173,9 @@
               <div class="options-item-body">
                 <div class="option-label">{{ item.key }}</div>
                 <div class="option-type">{{ item.typ }}</div>
+                <a-tooltip :title="item.desc">
+                  <div class="option-desc">{{ item.desc }}</div>
+                </a-tooltip>
               </div>
               <div class="item-actions-box">
                 <svg-icon

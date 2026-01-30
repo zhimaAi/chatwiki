@@ -22,7 +22,7 @@ func GetDialogueId(chatBaseParam *define.ChatBaseParam, question string) (int, e
 		isBackground = 1
 	}
 	m := msql.Model(`chat_ai_dialogue`, define.Postgres)
-	if isBackground != 1 { //not background create
+	if isBackground != 1 && chatBaseParam.UseNewDialogue == 0 { //not background create
 		dialogueId, _ := m.Where(`robot_id`, chatBaseParam.Robot[`id`]).Where(`openid`, chatBaseParam.Openid).
 			Where(`admin_user_id`, cast.ToString(chatBaseParam.AdminUserId)).Order(`id DESC`).Value(`id`)
 		if cast.ToUint(dialogueId) > 0 {
@@ -156,6 +156,9 @@ func GetDialogueIdNoCreate(chatBaseParam *define.ChatBaseParam) (int, error) {
 }
 
 func GetSessionIdNoCreate(dialogueId int) (int, error) {
+	if dialogueId == 0 {
+		return 0, nil
+	}
 	cacheKey := SessionCacheKey(dialogueId)
 	sessionId, err := define.Redis.Get(context.Background(), cacheKey).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {

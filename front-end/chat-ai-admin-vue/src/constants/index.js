@@ -51,9 +51,11 @@ export const DEFAULT_EN_LOGO = new URL('@/assets/en_logo.svg', import.meta.url).
 export const DEFAULT_ZH_LOGO = new URL('@/assets/zh_cn_logo.svg', import.meta.url).href
 
 // 知识库-普通知识库头像
-export const LIBRARY_NORMAL_AVATAR = '/upload/default/library_normal_avatar.svg'
+export const LIBRARY_NORMAL_AVATAR = new URL('@/assets/svg/ordinary-icon.svg', import.meta.url).href
 // 知识库-问答知识库头像
-export const LIBRARY_QA_AVATAR = '/upload/default/library_qa_avatar.svg'
+export const LIBRARY_QA_AVATAR = new URL('@/assets/svg/faq-icon.svg', import.meta.url).href
+// 知识库-公众号知识库头像
+export const LIBRARY_OFFICIAL_ACCOUNT_AVATAR = new URL('@/assets/svg/accounts-icon.svg', import.meta.url).href
 // 对外文档头像
 export const LIBRARY_OPEN_AVATAR = '/upload/default/library_open_avatar.svg'
 

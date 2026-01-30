@@ -7,6 +7,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/app/chatwiki/middlewares"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
 	"encoding/json"
 	"errors"
@@ -374,7 +375,7 @@ func getLibraryDefaultFile(libraryId, adminUserId int, token string) (int64, err
 		`admin_user_id`: cast.ToString(adminUserId),
 		`library_id`:    cast.ToString(libraryId),
 		`doc_type`:      cast.ToString(define.DocTypeCustom),
-		`file_name`:     `默认自定义文档`,
+		`file_name`:     lib_define.DefaultCustomDocument,
 		`is_qa_doc`:     cast.ToString(define.DocTypeQa),
 		`qa_index_type`: cast.ToString(define.QAIndexTypeQuestionAndAnswer),
 	}
@@ -394,13 +395,13 @@ func getLibraryDefaultFile(libraryId, adminUserId int, token string) (int64, err
 	}
 	var res lib_web.Response
 	if err = request.ToJSON(&res); err != nil || cast.ToInt(res.Res) != define.StatusOK {
-		err = fmt.Errorf(`创建默认自定义文档失败:%s(%v)`, res.Msg, err)
+		err = fmt.Errorf(`create default custom document failed:%s(%v)`, res.Msg, err)
 		logs.Error(err.Error())
 		return 0, err
 	}
 	fileIds := cast.ToSlice(cast.ToStringMap(res.Data)[`file_ids`])
 	if len(fileIds) == 0 || cast.ToInt64(fileIds[0]) <= 0 {
-		err = fmt.Errorf(`创建默认自定义文档失败:%s`, tool.JsonEncodeNoError(res))
+		err = fmt.Errorf(`create default custom document failed:%s`, tool.JsonEncodeNoError(res))
 		logs.Error(err.Error())
 		return 0, err
 	}
@@ -968,6 +969,7 @@ func GenerateSimilarQuestions(c *gin.Context) {
 	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `user`, Content: prompt}}
 
 	chatResp, _, err := common.RequestChat(
+		common.GetLang(c),
 		userId,
 		``,
 		msql.Params{},
@@ -1028,6 +1030,7 @@ func GenerateAiPrompt(c *gin.Context) {
 		},
 	}
 	chatResp, _, err := common.RequestChat(
+		common.GetLang(c),
 		adminUserId,
 		"",
 		msql.Params{},

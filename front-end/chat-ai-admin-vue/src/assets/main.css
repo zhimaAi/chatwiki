@@ -134,11 +134,10 @@ strong {
 .remove-model-padding .ant-modal .ant-modal-content {
   padding: 0;
 }
-.zm-pointer {
-  cursor: pointer;
-}
 
-.zm-link-pointer {
+.cursor-pointer,
+.zm-pointer,
+.zm-link-pointer  {
   cursor: pointer;
 }
 

@@ -4,6 +4,7 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"errors"
 	"fmt"
 	"strings"
@@ -17,7 +18,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-func SaveUnknownIssueRecord(adminUserId int, robot msql.Params, question string) {
+func SaveUnknownIssueRecord(lang string, adminUserId int, robot msql.Params, question string) {
 	question = GetFirstQuestionByInput(question) //多模态输入特殊处理
 	m := msql.Model(`chat_ai_unknown_issue_stats`, define.Postgres)
 	id, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`robot_id`, robot[`id`]).
@@ -39,7 +40,7 @@ func SaveUnknownIssueRecord(adminUserId int, robot msql.Params, question string)
 		if err != nil {
 			var sqlerr *pq.Error
 			if errors.As(err, &sqlerr) && sqlerr.Code == `23505` { //唯一索引约束
-				SaveUnknownIssueRecord(adminUserId, robot, question)
+				SaveUnknownIssueRecord(lang, adminUserId, robot, question)
 				return
 			}
 			logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
@@ -48,7 +49,7 @@ func SaveUnknownIssueRecord(adminUserId int, robot msql.Params, question string)
 		id = cast.ToString(newId)
 		//未知问题总结逻辑异步处理
 		if cast.ToUint(robot[`unknown_summary_status`]) > 0 {
-			go SaveUnknownIssueSummaryRecord(adminUserId, robot, MbSubstr(question, 0, MaxContent))
+			go SaveUnknownIssueSummaryRecord(lang, adminUserId, robot, MbSubstr(question, 0, MaxContent))
 		}
 	}
 	//开始更新数据
@@ -69,8 +70,8 @@ func DisposeStringList(sliceStr string, items ...string) []string {
 	return sliceList
 }
 
-func SaveUnknownIssueSummaryRecord(adminUserId int, robot msql.Params, question string) {
-	embedding, err := GetVector2000(adminUserId, robot[`admin_user_id`], robot, msql.Params{}, msql.Params{},
+func SaveUnknownIssueSummaryRecord(lang string, adminUserId int, robot msql.Params, question string) {
+	embedding, err := GetVector2000(lang, adminUserId, robot[`admin_user_id`], robot, msql.Params{}, msql.Params{},
 		cast.ToInt(robot[`unknown_summary_model_config_id`]), robot[`unknown_summary_use_model`], question)
 	if err != nil {
 		logs.Error(err.Error())
@@ -119,7 +120,7 @@ func SaveUnknownIssueSummaryRecord(adminUserId int, robot msql.Params, question 
 	}
 }
 
-func ExportUnknownIssueSummary(list []msql.Params, ext string) (string, error) {
+func ExportUnknownIssueSummary(lang string, list []msql.Params, ext string) (string, error) {
 	if define.IsDocxFile(ext) {
 		var lineBreak = "\r" //docx的换行符,比较特殊
 		doc := document.New()
@@ -130,15 +131,15 @@ func ExportUnknownIssueSummary(list []msql.Params, ext string) (string, error) {
 			}
 			//问题
 			para := doc.AddParagraph(``)
-			para.AddFormattedText(`问题：`, &document.TextFormat{Bold: true, FontSize: 14})
+			para.AddFormattedText(i18n.Show(lang, `export_question_header`)+`：`, &document.TextFormat{Bold: true, FontSize: 14})
 			para.AddFormattedText(lineBreak+params[`question`], &document.TextFormat{FontSize: 12})
 			//相似问法
-			para.AddFormattedText(lineBreak+`相似问法：`, &document.TextFormat{Bold: true, FontSize: 14})
+			para.AddFormattedText(lineBreak+i18n.Show(lang, `export_similar_questions_header`)+`：`, &document.TextFormat{Bold: true, FontSize: 14})
 			for _, item := range DisposeStringList(params[`unknown_list`]) {
 				para.AddFormattedText(lineBreak+item, &document.TextFormat{FontSize: 12})
 			}
 			//答案
-			para.AddFormattedText(lineBreak+`答案：`, &document.TextFormat{Bold: true, FontSize: 14})
+			para.AddFormattedText(lineBreak+i18n.Show(lang, `export_answer_header`)+`：`, &document.TextFormat{Bold: true, FontSize: 14})
 			para.AddFormattedText(lineBreak+params[`answer`], &document.TextFormat{FontSize: 12})
 			//图片
 			for _, imgUrl := range DisposeStringList(params[`images`]) {
@@ -154,7 +155,11 @@ func ExportUnknownIssueSummary(list []msql.Params, ext string) (string, error) {
 		filepath := `static/public/download/` + md[:2] + `/` + md[2:] + `.docx`
 		return filepath, doc.Save(filepath)
 	} else {
-		fields := tool.Fields{{Field: "question", Header: "问题"}, {Field: "unknown_list", Header: "相似问题"}, {Field: "answer", Header: "答案"}}
+		fields := tool.Fields{
+			{Field: `question`, Header: i18n.Show(lang, `export_question_header`)},
+			{Field: `unknown_list`, Header: i18n.Show(lang, `export_similar_questions_header`)},
+			{Field: `answer`, Header: i18n.Show(lang, `export_answer_header`)},
+		}
 		data := make([]map[string]any, len(list))
 		for idx, params := range list {
 			for _, imgUrl := range DisposeStringList(params[`images`]) {
@@ -165,7 +170,7 @@ func ExportUnknownIssueSummary(list []msql.Params, ext string) (string, error) {
 				`unknown_list`: strings.Join(DisposeStringList(params[`unknown_list`]), "\r\n"),
 			}
 		}
-		filepath, _, err := tool.ExcelExportPro(data, fields, `未知问题总结`, `static/public/download`)
+		filepath, _, err := tool.ExcelExportPro(data, fields, i18n.Show(lang, `export_unknown_issue_summary`), `static/public/download`)
 		return filepath, err
 	}
 }
