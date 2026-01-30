@@ -31,117 +31,117 @@ var DefaultRobotConfig = msql.Params{
 // RobotAbilityList 机器人能力列表
 var RobotAbilityList = []Ability{
 	{
-		Name:          "自动回复",
+		Name:          "[[ZM--AutoReplyName--ZM]]",
 		ModuleType:    RobotModule,           //模块类型
 		AbilityType:   RobotAbilityAutoReply, //全局唯一值 类型
-		Introduction:  "用户触发了关键词后，通过设置的关键词回复规则，回复指定的内容",
-		Details:       "查看详情中的信息 前端自己定义",
+		Introduction:  "[[ZM--AutoReplyIntro--ZM]]",
+		Details:       "[[ZM--DetailsPlaceholder--ZM]]",
 		Icon:          "iconfont icon-keyword-reply",
 		ShowSelect:    define.SwitchOn,
 		RobotOnlyShow: define.SwitchOff,
 		SupportChannelsList: []string{
-			"公众号",
-			"微信客服",
-			"WebApp",
-			"飞书",
-			"钉钉",
+			"[[ZM--OfficialAccountChannel--ZM]]",
+			"[[ZM--WeChatCustomerServiceChannel--ZM]]",
+			"[[ZM--WebAppChannel--ZM]]",
+			"[[ZM--FeiShuChannel--ZM]]",
+			"[[ZM--DingTalkChannel--ZM]]",
 		},
 		RobotConfig: DefaultRobotConfig,
 		Menu: define.Menu{
-			Name:   "自动回复",
+			Name:   "[[ZM--AutoReplyName--ZM]]",
 			UniKey: "RobotAbilityAutoReply",
 			Path:   "/robot/ability/auto-reply",
 			Children: []*define.Menu{
 				{
-					Name:   "关键词回复",
+					Name:   "[[ZM--KeywordReplyName--ZM]]",
 					UniKey: "RobotAbilityKeyWordReply",
 				},
 				{
-					Name:   "收到消息回复",
+					Name:   "[[ZM--ReceivedMessageReplyName--ZM]]",
 					UniKey: "RobotAbilityReceivedMessageReply",
 				},
 			},
 		},
 	},
 	{
-		Name:          "应用收费",
+		Name:          "[[ZM--PaymentName--ZM]]",
 		ModuleType:    RobotModule,         //模块类型
 		AbilityType:   RobotAbilityPayment, //全局唯一值 类型
-		Introduction:  "支持为用户设置收费策略，用户在付费后才能使用对应功能，实现AI能力变现",
-		Details:       "查看详情中的信息 前端自己定义",
+		Introduction:  "[[ZM--PaymentIntro--ZM]]",
+		Details:       "[[ZM--DetailsPlaceholder--ZM]]",
 		Icon:          "iconfont icon-keyword-payment",
 		ShowSelect:    define.SwitchOn,
 		RobotOnlyShow: define.SwitchOff,
 		SupportChannelsList: []string{
-			"公众号",
+			"[[ZM--OfficialAccountChannel--ZM]]",
 		},
 		RobotConfig: DefaultRobotConfig,
 		Menu: define.Menu{
-			Name:     "应用收费",
+			Name:     "[[ZM--PaymentName--ZM]]",
 			UniKey:   "RobotAbilityPayment",
 			Path:     "/robot/ability/payment",
 			Children: []*define.Menu{},
 		},
 	},
 	{
-		Name:          "智能菜单",
+		Name:          "[[ZM--SmartMenuName--ZM]]",
 		ModuleType:    RobotModule,           //模块类型
 		AbilityType:   RobotAbilitySmartMenu, //全局唯一值 类型
-		Introduction:  "用户点击菜单后，通过设置的菜单回复规则，回复指定的内容",
-		Details:       "查看详情中的信息 前端自己定义",
+		Introduction:  "[[ZM--SmartMenuIntro--ZM]]",
+		Details:       "[[ZM--DetailsPlaceholder--ZM]]",
 		Icon:          "iconfont icon-smart-menu",
 		ShowSelect:    define.SwitchOn,
 		RobotOnlyShow: define.SwitchOff,
 		SupportChannelsList: []string{
-			"公众号",
-			"微信客服",
-			"WebApp",
-			"飞书",
-			"钉钉",
+			"[[ZM--OfficialAccountChannel--ZM]]",
+			"[[ZM--WeChatCustomerServiceChannel--ZM]]",
+			"[[ZM--WebAppChannel--ZM]]",
+			"[[ZM--FeiShuChannel--ZM]]",
+			"[[ZM--DingTalkChannel--ZM]]",
 		},
 		RobotConfig: DefaultRobotConfig,
 		Menu: define.Menu{
-			Name:     "智能菜单",
+			Name:     "[[ZM--SmartMenuName--ZM]]",
 			UniKey:   "RobotAbilitySmartMenu",
 			Path:     "/robot/ability/smart-menu",
 			Children: []*define.Menu{},
 		},
 	},
 	{
-		Name:          "公众号关注后回复",
+		Name:          "[[ZM--SubscribeReplyName--ZM]]",
 		ModuleType:    RobotModule,                //模块类型 //本来应该在公众号模块 但wendy要求在机器人的功能中心中展示
 		AbilityType:   RobotAbilitySubscribeReply, //全局唯一值 类型
-		Introduction:  "关注公众号后，自动给用户回复消息。支持按照时间段以及关注来源设置",
-		Details:       "查看详情中的信息 前端自己定义",
+		Introduction:  "[[ZM--SubscribeReplyIntro--ZM]]",
+		Details:       "[[ZM--DetailsPlaceholder--ZM]]",
 		Icon:          "iconfont icon-subscribe-reply",
 		ShowSelect:    define.SwitchOn,
 		RobotOnlyShow: define.SwitchOn,
 		SupportChannelsList: []string{
-			"公众号",
+			"[[ZM--OfficialAccountChannel--ZM]]",
 		},
 		RobotConfig: DefaultRobotConfig,
 		Menu: define.Menu{
-			Name:     "关注后回复",
+			Name:     "[[ZM--SubscribeReplyMenuName--ZM]]",
 			UniKey:   "RobotAbilitySubscribeReply",
 			Path:     "/explore/index/subscribe-reply",
 			Children: []*define.Menu{},
 		},
 	},
 	{
-		Name:          "公众号自定义菜单",
+		Name:          "[[ZM--CustomMenuName--ZM]]",
 		ModuleType:    RobotModule,               //模块类型 //本来应该在公众号模块 但wendy要求在机器人的功能中心中展示
 		AbilityType:   OfficialAbilityCustomMenu, //全局唯一值 类型
-		Introduction:  "支特对公众号菜单自定义，多公众号可单独设置",
-		Details:       "查看详情中的信息 前端自己定义",
+		Introduction:  "[[ZM--CustomMenuIntro--ZM]]",
+		Details:       "[[ZM--DetailsPlaceholder--ZM]]",
 		Icon:          "iconfont icon-official-custom-menu",
 		ShowSelect:    define.SwitchOn,
 		RobotOnlyShow: define.SwitchOn,
 		SupportChannelsList: []string{
-			"公众号",
+			"[[ZM--OfficialAccountChannel--ZM]]",
 		},
 		RobotConfig: DefaultRobotConfig,
 		Menu: define.Menu{
-			Name:     "自定义菜单",
+			Name:     "[[ZM--CustomMenuMenuName--ZM]]",
 			UniKey:   "OfficialAbilityCustomMenu",
 			Path:     "/explore/index/custom-menu",
 			Children: []*define.Menu{},

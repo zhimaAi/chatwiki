@@ -29,13 +29,13 @@ func SaveUseModelConfig(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	modelInfo, exist := common.GetModelInfoByConfig(adminUserId, modelConfigId)
+	modelInfo, exist := common.GetModelInfoByConfig(common.GetLang(c), adminUserId, modelConfigId)
 	if !exist {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(`模型配置ID参数错误`)))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `model_config_id_invalid`))))
 		return
 	}
 	if modelInfo.ModelDefine == common.ModelChatWiki {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(`自有模型ChatWiki禁止操作`)))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `own_model_chatwiki_operation_forbidden`))))
 		return
 	}
 	params := make(msql.Params)
@@ -56,7 +56,7 @@ func SaveUseModelConfig(c *gin.Context) {
 		useModel.ShowModelName = useModel.UseModelName //填充默认值
 	}
 	if useModel.ModelType == common.Image {
-		if modelInfo.ModelDefine != common.ModelDoubao {
+		if !tool.InArrayString(modelInfo.ModelDefine, []string{common.ModelDoubao, common.ModelAliyunTongyi}) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_define`))))
 			return
 		}
@@ -113,10 +113,10 @@ func SaveUseModelConfig(c *gin.Context) {
 			return
 		}
 		//保存数据
-		err = useModel.ToSave(adminUserId, modelConfigId)
+		err = useModel.ToSave(common.GetLang(c), adminUserId, modelConfigId)
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 	} else {
-		err := useModel.ToSave(adminUserId, modelConfigId)
+		err := useModel.ToSave(common.GetLang(c), adminUserId, modelConfigId)
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 	}
 }
@@ -175,9 +175,9 @@ func GetMiniMaxVoiceList(c *gin.Context) {
 	}
 
 	// 调用MiniMax API获取音色列表
-	result, err := common.TtsGetVoiceList(adminUserId, cast.ToInt(config[`id`]))
+	result, err := common.TtsGetVoiceList(common.GetLang(c), adminUserId, cast.ToInt(config[`id`]))
 	if err != nil {
-		logs.Error(`获取MiniMax音色列表失败: %v`, err)
+		logs.Error(`get minimax voice list failed: %v`, err)
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}

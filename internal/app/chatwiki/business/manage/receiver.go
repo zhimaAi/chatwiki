@@ -26,10 +26,17 @@ func GetReceiverList(c *gin.Context) {
 	robotId := cast.ToUint(c.Query(`robot_id`))
 	page := max(1, cast.ToInt(c.Query(`page`)))
 	size := max(1, cast.ToInt(c.Query(`size`)))
+	start_time := cast.ToInt(c.Query(`start_time`))
+	end_time := cast.ToInt(c.Query(`end_time`))
 	m := msql.Model(`chat_ai_receiver`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId))
 	if robotId > 0 {
 		m.Where(`robot_id`, cast.ToString(robotId))
 	}
+
+	if start_time > 0 && end_time > 0 {
+		m.Where(`create_time`, `>=`, cast.ToString(start_time)).Where(`create_time`, `<=`, cast.ToString(end_time))
+	}
+
 	keyword := strings.TrimSpace(c.Query(`keyword`))
 	if len(keyword) > 0 {
 		m.Where(`openid|nickname|name`, `like`, keyword)

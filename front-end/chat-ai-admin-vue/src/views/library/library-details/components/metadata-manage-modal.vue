@@ -280,7 +280,7 @@ defineExpose({
   show,
 })
 </script>
-<style lang="less">
+<style lang="less" scoped>
 .desc {
   color: #8c8c8c;
   font-size: 14px;

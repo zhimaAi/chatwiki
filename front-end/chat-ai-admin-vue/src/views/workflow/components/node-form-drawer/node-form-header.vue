@@ -80,7 +80,8 @@
     <div class="node-title">
       <div class="title-left">
         <slot name="node-icon">
-          <img class="node-icon" :src="nodeIconUrl" v-if="nodeIconUrl">
+          <img class="node-icon" :src="iconUrl" v-if="iconUrl">
+          <img class="node-icon" :src="nodeIconUrl" v-else-if="nodeIconUrl">
         </slot>
       </div>
       <div class="title-conttent">
@@ -122,6 +123,10 @@ const emit = defineEmits(['changeTitle', 'deleteNode', 'close'])
 
 const props = defineProps({
   iconName: {
+    type: String,
+    default: ''
+  },
+  iconUrl: {
     type: String,
     default: ''
   },

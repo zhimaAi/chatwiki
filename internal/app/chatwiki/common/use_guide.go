@@ -25,17 +25,17 @@ func GetUseGuide(adminUserId int, lang string) (*define.GuideData, error) {
 	if len(guideData.ProcessList) == 0 {
 		guideData := define.GuideData{ProcessList: make([]define.GuideProcess, 0)}
 		//model
-		modelProcess, err := getModelProcess(adminUserId)
+		modelProcess, err := getModelProcess(adminUserId, lang)
 		if err != nil {
 			return nil, err
 		}
 		guideData.ProcessList = append(guideData.ProcessList, modelProcess)
 		//library
-		guideData.ProcessList = append(guideData.ProcessList, getCreateLibrary())
+		guideData.ProcessList = append(guideData.ProcessList, getCreateLibrary(lang))
 		//robot
-		guideData.ProcessList = append(guideData.ProcessList, getCreateRobot())
+		guideData.ProcessList = append(guideData.ProcessList, getCreateRobot(lang))
 		//test robot
-		guideData.ProcessList = append(guideData.ProcessList, getTestRobot())
+		guideData.ProcessList = append(guideData.ProcessList, getTestRobot(lang))
 		_, err = msql.Model(define.TableUseGuideProcess, define.Postgres).Insert(msql.Datas{
 			`admin_user_id`:  adminUserId,
 			`use_guide_type`: define.UseTypeGuide,
@@ -79,15 +79,15 @@ func getGuideData(adminUserId int, useGuideType string) (guideData define.GuideD
 	return
 }
 
-func getTestRobot() define.GuideProcess {
+func getTestRobot(lang string) define.GuideProcess {
 	process := define.GuideProcess{
-		Name:     "测试机器人",
+		Name:     i18n.Show(lang, `use_guide_test_robot`),
 		Key:      define.ProcessTypeTestRobot,
 		IsFinish: define.StepIsNotFinish,
 		Steps:    make([]define.GuideStep, 0),
 	}
 	testRobot := define.GuideStep{
-		Name:     "聊天测试",
+		Name:     i18n.Show(lang, `use_guide_chat_test`),
 		Key:      define.StepTestRobot,
 		IsFinish: define.StepIsNotFinish,
 	}
@@ -95,20 +95,20 @@ func getTestRobot() define.GuideProcess {
 	return process
 }
 
-func getCreateRobot() define.GuideProcess {
+func getCreateRobot(lang string) define.GuideProcess {
 	process := define.GuideProcess{
-		Name:     "创建机器人",
+		Name:     i18n.Show(lang, `RobotCreateName`),
 		Key:      define.ProcessTypeCreateRobot,
 		IsFinish: define.StepIsNotFinish,
 		Steps:    make([]define.GuideStep, 0),
 	}
 	createRobot := define.GuideStep{
-		Name:     "创建机器人",
+		Name:     i18n.Show(lang, `RobotCreateName`),
 		Key:      define.StepCreateRobot,
 		IsFinish: define.StepIsNotFinish,
 	}
 	relationLibrary := define.GuideStep{
-		Name:     "关联知识库",
+		Name:     i18n.Show(lang, `use_guide_relation_library`),
 		Key:      define.StepRelationLibrary,
 		IsFinish: define.StepIsNotFinish,
 	}
@@ -116,25 +116,25 @@ func getCreateRobot() define.GuideProcess {
 	return process
 }
 
-func getCreateLibrary() define.GuideProcess {
+func getCreateLibrary(lang string) define.GuideProcess {
 	process := define.GuideProcess{
-		Name:     "创建知识库",
+		Name:     i18n.Show(lang, `LibraryCreateName`),
 		Key:      define.ProcessTypeCreateLibrary,
 		IsFinish: define.StepIsNotFinish,
 		Steps:    make([]define.GuideStep, 0),
 	}
 	createLibrary := define.GuideStep{
-		Name:     "创建知识库",
+		Name:     i18n.Show(lang, `LibraryCreateName`),
 		Key:      define.StepCreateLibrary,
 		IsFinish: define.StepIsNotFinish,
 	}
 	importWord := define.GuideStep{
-		Name:     "普通知识库导入word",
+		Name:     i18n.Show(lang, `use_guide_import_word`),
 		Key:      define.StepImportWord,
 		IsFinish: define.StepIsNotFinish,
 	}
 	importPdf := define.GuideStep{
-		Name:     "普通知识库导入PDF",
+		Name:     i18n.Show(lang, `use_guide_import_pdf`),
 		Key:      define.StepImportPdf,
 		IsFinish: define.StepIsNotFinish,
 	}
@@ -142,9 +142,9 @@ func getCreateLibrary() define.GuideProcess {
 	return process
 }
 
-func getModelProcess(adminUserId int) (define.GuideProcess, error) {
+func getModelProcess(adminUserId int, lang string) (define.GuideProcess, error) {
 	modelProcess := define.GuideProcess{
-		Name:     "模型检测",
+		Name:     i18n.Show(lang, `use_guide_model_check`),
 		Key:      define.ProcessTypeSetModel,
 		IsFinish: define.StepIsNotFinish,
 		Steps:    make([]define.GuideStep, 0),
@@ -154,7 +154,7 @@ func getModelProcess(adminUserId int) (define.GuideProcess, error) {
 		return modelProcess, err
 	}
 	llmSet := define.GuideStep{
-		Name:     "配置大语言模型",
+		Name:     i18n.Show(lang, `use_guide_config_llm`),
 		Key:      define.StepSetLlm,
 		IsFinish: define.StepIsNotFinish,
 	}
@@ -162,7 +162,7 @@ func getModelProcess(adminUserId int) (define.GuideProcess, error) {
 		llmSet.IsFinish = define.StepIsFinish
 	}
 	textSet := define.GuideStep{
-		Name:     "配置嵌入模型",
+		Name:     i18n.Show(lang, `use_guide_config_embedding`),
 		Key:      define.StepSetEmbedding,
 		IsFinish: define.StepIsNotFinish,
 	}

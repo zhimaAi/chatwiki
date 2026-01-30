@@ -5,6 +5,7 @@ package work_flow
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_web"
 	"encoding/json"
 	"errors"
@@ -27,7 +28,7 @@ import (
 /************************************/
 
 type StartNodeParams struct {
-	SysGlobal   []StartNodeParam `json:"sys_global"` //废弃字段
+	SysGlobal   []StartNodeParam `json:"sys_global"` // deprecated field
 	DiyGlobal   []StartNodeParam `json:"diy_global"`
 	TriggerList []TriggerConfig  `json:"trigger_list"`
 }
@@ -62,7 +63,7 @@ var TermTypes = [...]int{
 type TermConfig struct {
 	Variable string `json:"variable"`
 	IsMult   bool   `json:"is_mult"`
-	Type     uint   `json:"type"` //1:等于,2不等于,3包含,4不包含,5为空,6不为空
+	Type     uint   `json:"type"` //1:equals,2:not equals,3:contains,4:not contains,5:is empty,6:not empty
 	Value    string `json:"value"`
 }
 
@@ -198,6 +199,19 @@ type CurlNodeParams struct {
 	Timeout  uint                 `json:"timeout"`
 	Output   common.RecurveFields `json:"output"`
 	HttpAuth []CurlAuthParam      `json:"http_auth"`
+	ToolInfo HttpToolInfo         `json:"http_tool_info"` // HTTP tool info stored in workflow to facilitate importing triggers that add HTTP tool group
+}
+
+type HttpToolInfo struct {
+	HttpToolName            string `json:"http_tool_name"`
+	HttpToolNameEn          string `json:"http_tool_name_en"`
+	HttpToolKey             string `json:"http_tool_key"`
+	HttpToolAvatar          string `json:"http_tool_avatar"`
+	HttpToolDescription     string `json:"http_tool_description"`
+	HttpToolNodeKey         string `json:"http_tool_node_key"`
+	HttpToolNodeName        string `json:"http_tool_node_name"`
+	HttpToolNodeNameEn      string `json:"http_tool_node_name_en"`
+	HttpToolNodeDescription string `json:"http_tool_node_description"`
 }
 
 /************************************/
@@ -215,6 +229,9 @@ type LibsNodeParams struct {
 	MetaSearchSwitch        int             `json:"meta_search_switch"`
 	MetaSearchType          int             `json:"meta_search_type"`
 	MetaSearchConditionList string          `json:"meta_search_condition_list"`
+	RecallNeighborSwitch    bool            `json:"recall_neighbor_switch"`
+	RecallNeighborAfterNum  common.MixedInt `json:"recall_neighbor_after_num"`
+	RecallNeighborBeforeNum common.MixedInt `json:"recall_neighbor_before_num"`
 }
 
 /************************************/
@@ -227,28 +244,34 @@ type LlmBaseParams struct {
 	Temperature    float32         `json:"temperature"`
 	MaxToken       common.MixedInt `json:"max_token"`
 	Prompt         string          `json:"prompt"`
+	Role           int             `json:"role"`
 }
 
-func (params *LlmBaseParams) Verify(adminUserId int) error {
+func (params *LlmBaseParams) Verify(adminUserId int, lang string) error {
 	if params.ModelConfigId <= 0 || len(params.UseModel) == 0 {
-		return errors.New(`请选择使用的LLM模型`)
+		return errors.New(i18n.Show(lang, `llm_model_please_select`))
 	}
 	//check model_config_id and use_model
 	if ok := common.CheckModelIsValid(adminUserId, params.ModelConfigId.Int(), params.UseModel, common.Llm); !ok {
-		return errors.New(`使用的LLM模型选择错误`)
+		return errors.New(i18n.Show(lang, `llm_model_selection_error`))
 	}
 	if params.ContextPair < 0 || params.ContextPair > 50 {
-		return errors.New(`上下文数量范围0~50`)
+		return errors.New(i18n.Show(lang, `llm_context_pair_range_error`))
 	}
 	if params.Temperature < 0 || params.Temperature > 2 {
-		return errors.New(`LLM模型温度取值范围0~2`)
+		return errors.New(i18n.Show(lang, `llm_temperature_range_error`))
 	}
 	if params.MaxToken < 0 {
-		return errors.New(`LLM模型最大token取值错误`)
+		return errors.New(i18n.Show(lang, `llm_max_token_error`))
 	}
 	//if len(params.Prompt) == 0 {
-	//	return errors.New(`提示词内容不能为空`)
+	//	return errors.New(i18n.Show(lang, `llm_prompt_cannot_be_empty`))
 	//}
+
+	if !tool.InArrayInt(params.Role, []int{0, 1, 2}) {
+		return errors.New(i18n.Show(lang, `llm_role_param_error`))
+	}
+
 	return nil
 }
 
@@ -276,7 +299,7 @@ type ReplyNodeParams struct {
 
 /************************************/
 
-const StaffAll = 1 //转接类型:1自动分配,2指定客服,3指定客服组
+const StaffAll = 1 //transfer type: 1 automatic allocation, 2 designated customer service, 3 designated customer service group
 const StaffIds = 2
 const StaffGroup = 3
 
@@ -293,11 +316,11 @@ type QuestionOptimizeNodeParams struct {
 	QuestionValue string `json:"question_value"`
 }
 
-func (params *QuestionOptimizeNodeParams) Verify(adminUserId int) error {
+func (params *QuestionOptimizeNodeParams) Verify(adminUserId int, lang string) error {
 	if len(params.QuestionValue) == 0 {
-		return errors.New(`用户问题不能为空`)
+		return errors.New(i18n.Show(lang, `question_value_cannot_be_empty`))
 	}
-	return params.LlmBaseParams.Verify(adminUserId)
+	return params.LlmBaseParams.Verify(adminUserId, lang)
 }
 
 /************************************/
@@ -308,15 +331,15 @@ type ParamsExtractorNodeParams struct {
 	Output        common.RecurveFields `json:"output"`
 }
 
-func (params *ParamsExtractorNodeParams) Verify(adminUserId int) error {
+func (params *ParamsExtractorNodeParams) Verify(adminUserId int, lang string) error {
 	if len(params.QuestionValue) == 0 {
-		return errors.New(`用户问题不能为空`)
+		return errors.New(i18n.Show(lang, `question_value_cannot_be_empty`))
 	}
-	if err := params.LlmBaseParams.Verify(adminUserId); err != nil {
+	if err := params.LlmBaseParams.Verify(adminUserId, lang); err != nil {
 		return err
 	}
-	//输出字段校验
-	return params.Output.Verify()
+	//output field validation
+	return params.Output.Verify(lang)
 }
 
 /************************************/
@@ -401,10 +424,11 @@ type BatchNodeParams struct {
 }
 
 type PluginNodeParams struct {
-	Name   string               `json:"name"`
-	Type   string               `json:"type"`
-	Params map[string]any       `json:"params"`
-	Output common.RecurveFields `json:"output_obj"`
+	Name         string               `json:"name"`
+	Type         string               `json:"type"`
+	Params       map[string]any       `json:"params"`
+	Output       common.RecurveFields `json:"output_obj"`
+	NoAuthFilter bool                 `json:"no_auth_filter,omitempty"`
 }
 
 type ImageGenerationParams struct {
@@ -414,8 +438,8 @@ type ImageGenerationParams struct {
 	ImageNum            string               `json:"image_num"`
 	Prompt              string               `json:"prompt"`
 	InputImages         []string             `json:"input_images"`
-	ImageWatermark      string               `json:"image_watermark"`       //是否添加水印，1添加，0不添加
-	ImageOptimizePrompt string               `json:"image_optimize_prompt"` //是否开启优化提示词，1开启，0不开启
+	ImageWatermark      string               `json:"image_watermark"`       //whether to add watermark, 1 add, 0 not add
+	ImageOptimizePrompt string               `json:"image_optimize_prompt"` //whether to enable optimized prompt words, 1 enable, 0 disable
 	Output              common.RecurveFields `json:"output"`
 }
 
@@ -433,35 +457,35 @@ type TextToAudioNodeParams struct {
 	ModelId       int    `json:"model_id"`
 	ModelConfigId int    `json:"model_config_id"`
 	UseModel      string `json:"use_model"`
-	VoiceType     string `json:"voice_type"` //希望查询音色类型，可用选项: system, voice_cloning, voice_generation, all
+	VoiceType     string `json:"voice_type"` //desired voice type, options: system, voice_cloning, voice_generation, all
 	Arguments     struct {
 		Text          string `json:"text"`
 		ModelId       int    `json:"model_id"`
 		UseModel      string `json:"use_model"`
 		ModelConfigId int    `json:"model_config_id"`
 		VoiceSetting  struct {
-			VoiceId           string  `json:"voice_id"`           // 音色编号
-			VoiceName         string  `json:"voice_name"`         // 冗余
-			Speed             float32 `json:"speed"`              // 语速
-			Vol               int     `json:"vol"`                // 音量
-			Pitch             int     `json:"pitch"`              // 语调
-			Emotion           string  `json:"emotion"`            // 情绪
-			TextNormalization bool    `json:"text_normalization"` // 中英文规范化
-		} `json:"voice_setting"` // 声音设置
+			VoiceId           string  `json:"voice_id"`           // voice ID
+			VoiceName         string  `json:"voice_name"`         // redundant
+			Speed             float32 `json:"speed"`              // speed
+			Vol               int     `json:"vol"`                // volume
+			Pitch             int     `json:"pitch"`              // pitch
+			Emotion           string  `json:"emotion"`            // emotion
+			TextNormalization bool    `json:"text_normalization"` // text normalization
+		} `json:"voice_setting"` // voice setting
 		AudioSetting struct {
-			SampleRate int    `json:"sample_rate"` // 采样率
-			Bitrate    int    `json:"bitrate"`     // 比特率
-			Format     string `json:"format"`      // 格式
-			Channel    int    `json:"channel"`     // 声道数
-			ForceCbr   bool   `json:"force_cbr"`   // 恒定比特率
-		} `json:"audio_setting"` // 音频设置
+			SampleRate int    `json:"sample_rate"` // sample rate
+			Bitrate    int    `json:"bitrate"`     // bitrate
+			Format     string `json:"format"`      // format
+			Channel    int    `json:"channel"`     // channel
+			ForceCbr   bool   `json:"force_cbr"`   // constant bitrate
+		} `json:"audio_setting"` // audio setting
 		VoiceModify struct {
-			Pitch        int    `json:"pitch"`         // 音高调整
-			Intensity    int    `json:"intensity"`     // 强度调整（力量感/柔和）
-			Timbre       int    `json:"timbre"`        // 音色调整
-			SoundEffects string `json:"sound_effects"` // 音效设置
-		} `json:"voice_modify"` // 音调调整
-		LanguageBoost  string `json:"language_boost"` // 小语种识别能力
+			Pitch        int    `json:"pitch"`         // pitch adjustment
+			Intensity    int    `json:"intensity"`     // intensity adjustment (powerful/soft)
+			Timbre       int    `json:"timbre"`        // timbre adjustment
+			SoundEffects string `json:"sound_effects"` // sound effect setting
+		} `json:"voice_modify"` // pitch adjustment
+		LanguageBoost  string `json:"language_boost"` // minor language recognition capability
 		OutputFormat   string `json:"output_format"`
 		SubtitleEnable bool   `json:"subtitle_enable"`
 		AigcWatermark  any    `json:"aigc_watermark"`
@@ -475,46 +499,46 @@ type VoiceCloneNodeParams struct {
 	Arguments     struct {
 		ModelConfigId any    `json:"model_config_id"`
 		ModelId       any    `json:"model_id"`
-		FileUrl       string `json:"file_url"` //待复刻音频的url，要上传后转成file_id传给minimax
-		VoiceId       string `json:"voice_id"` //克隆音色的 voice_id
+		FileUrl       string `json:"file_url"` //url of the audio to replicate, should be uploaded and converted to file_id to send to minimax
+		VoiceId       string `json:"voice_id"` //voice_id of cloned voice
 		ClonePrompt   struct {
-			PromptAudioUrl string `json:"prompt_audio_url"` //示例音频的url，要上传后转成file_id传给minimax
-			PromptText     string `json:"prompt_text"`      //示例音频的对应文本，需确保和音频内容一致，句末需有标点符号做结尾
-		} `json:"clone_prompt"` //音色复刻示例音频，提供本参数将有助于增强语音合成的音色相似度和稳定性
-		Text                    string `json:"text"`                      //复刻试听参数，限制 1000 字符以内
-		LanguageBoost           string `json:"language_boost"`            //是否增强对指定的小语种和方言的识别能力
-		Model                   string `json:"model"`                     //复刻试听参数
-		NeedNoiseReduction      bool   `json:"need_noise_reduction"`      //开启降噪
-		NeedVolumeNormalization bool   `json:"need_volume_normalization"` //是否开启音量归一化
-		AigcWatermark           any    `json:"aigc_watermark"`            //是否在合成试听音频的末尾添加音频节奏标识，默认值为 false
+			PromptAudioUrl string `json:"prompt_audio_url"` //url of the example audio, should be uploaded and converted to file_id to send to minimax
+			PromptText     string `json:"prompt_text"`      //corresponding text of the example audio, should ensure consistency with audio content, punctuation required at the end of sentences
+		} `json:"clone_prompt"` //voice cloning example audio, providing this parameter will help enhance voice similarity and stability for speech synthesis
+		Text                    string `json:"text"`                      //replication listening parameter, limited to 1000 characters
+		LanguageBoost           string `json:"language_boost"`            //whether to enhance recognition capability for specified minor languages and dialects
+		Model                   string `json:"model"`                     //replication listening parameter
+		NeedNoiseReduction      bool   `json:"need_noise_reduction"`      //enable noise reduction
+		NeedVolumeNormalization bool   `json:"need_volume_normalization"` //enable volume normalization
+		AigcWatermark           any    `json:"aigc_watermark"`            //whether to add audio rhythm marker at the end of synthesized listening audio, default is false
 		TagMap                  any    `json:"tag_map"`
 	} `json:"arguments"`
 	Output common.RecurveFields `json:"output"`
 }
 
 type LibraryImportParams struct {
-	ImportType                string               `json:"import_type"`                  //content 导入内容，url 导入url
-	LibraryId                 string               `json:"library_id"`                   //知识库id 不能为空
-	LibraryGroupId            string               `json:"library_group_id"`             //知识库分组id 0表示未分组
-	NormalUrl                 string               `json:"normal_url"`                   //普通知识库：文档url
-	NormalTitle               string               `json:"normal_title"`                 //普通知识库：文档标题
-	NormalContent             string               `json:"normal_content"`               //普通知识库：文档内容
-	NormalUrlRepeatOp         string               `json:"normal_url_repeat_op"`         //普通知识库：url重复时的操作 import 依然导入，not import 不导入，update 更新内容
-	QaQuestion                string               `json:"qa_question"`                  //问答知识库：分段问题
-	QaAnswer                  string               `json:"qa_answer"`                    //问答知识库：分段答案
-	QaImagesVariable          string               `json:"qa_images_variable"`           //问答知识库：答案附图 array<string>
-	QaSimilarQuestionVariable string               `json:"qa_similar_question_variable"` //问答知识库：相似问法 array<string>
-	QaRepeatOp                string               `json:"qa_repeat_op"`                 //问答知识库：问题重复时的操作 import 依然导入，not import 不导入，update 更新内容
-	Outputs                   common.RecurveFields `json:"outputs"`                      //输出固定一个msg string
+	ImportType                string               `json:"import_type"`                  //content import content, url import url
+	LibraryId                 string               `json:"library_id"`                   //knowledge base id cannot be empty
+	LibraryGroupId            string               `json:"library_group_id"`             //knowledge base group id 0 means ungrouped
+	NormalUrl                 string               `json:"normal_url"`                   //normal knowledge base: document url
+	NormalTitle               string               `json:"normal_title"`                 //normal knowledge base: document title
+	NormalContent             string               `json:"normal_content"`               //normal knowledge base: document content
+	NormalUrlRepeatOp         string               `json:"normal_url_repeat_op"`         //normal knowledge base: operation when url repeats import still import, not import do not import, update update content
+	QaQuestion                string               `json:"qa_question"`                  //Q&A knowledge base: segmented question
+	QaAnswer                  string               `json:"qa_answer"`                    //Q&A knowledge base: segmented answer
+	QaImagesVariable          string               `json:"qa_images_variable"`           //Q&A knowledge base: answer images array<string>
+	QaSimilarQuestionVariable string               `json:"qa_similar_question_variable"` //Q&A knowledge base: similar questions array<string>
+	QaRepeatOp                string               `json:"qa_repeat_op"`                 //Q&A knowledge base: operation when question repeats import still import, not import do not import, update update content
+	Outputs                   common.RecurveFields `json:"outputs"`                      //output fixed msg string
 }
 
 type WorkflowNodeParams struct {
 	RobotId   int `json:"robot_id"`
-	RobotInfo any `json:"robot_info"` // 前端使用的临时数据
+	RobotInfo any `json:"robot_info"` // temporary data used by frontend
 	Params    []struct {
 		StartNodeParam
-		Variable string `json:"variable"` //对应的全部变量
-		Tags     any    `json:"tags"`     // 前端使用的临时数据
+		Variable string `json:"variable"` //corresponding variables
+		Tags     any    `json:"tags"`     // temporary data used by frontend
 	} `json:"params"`
 	Output    common.RecurveFields `json:"output"`
 	Exception string               `json:"exception"`
@@ -526,9 +550,9 @@ type Message struct {
 }
 
 type FinishNodeParams struct {
-	OutType  string               `json:"out_type"` //variable返回消息和变量，message返回消息
-	Messages []Message            `json:"messages"` //具体的消息
-	Outputs  common.RecurveFields `json:"outputs"`  //返回的变量
+	OutType  string               `json:"out_type"` //variable returns message and variable, message returns message
+	Messages []Message            `json:"messages"` //specific messages
+	Outputs  common.RecurveFields `json:"outputs"`  //returned variables
 }
 
 /************************************/
@@ -544,6 +568,7 @@ var LoopAllowNodeTypes = []int{
 	NodeTypeTerm,
 	NodeTypeCate,
 	NodeTypeCurl,
+	NodeTypeHttpTool,
 	NodeTypeLibs,
 	NodeTypeLlm,
 	NodeTypeFinish,
@@ -568,6 +593,7 @@ var LoopAllowNodeTypes = []int{
 	NodeTypeLibraryImport,
 	NodeTypeWorkflow,
 	NodeTypeImmediatelyReply,
+	NodeTypeQuestion,
 }
 
 var BatchAllowNodeTypes = []int{
@@ -575,6 +601,7 @@ var BatchAllowNodeTypes = []int{
 	NodeTypeTerm,
 	NodeTypeCate,
 	NodeTypeCurl,
+	NodeTypeHttpTool,
 	NodeTypeLibs,
 	NodeTypeLlm,
 	NodeTypeFinish,
@@ -598,6 +625,7 @@ var BatchAllowNodeTypes = []int{
 	NodeTypeLibraryImport,
 	NodeTypeWorkflow,
 	NodeTypeImmediatelyReply,
+	NodeTypeQuestion,
 }
 
 type ExportLibrary struct {
@@ -659,72 +687,73 @@ type NodeParams struct {
 	LibraryImport    LibraryImportParams        `json:"library_import"`
 	Workflow         WorkflowNodeParams         `json:"workflow"`
 	ImmediatelyReply ImmediatelyReplyNodeParams `json:"immediately_reply"`
+	Question         QuestionParams             `json:"question"`
 }
 
 func FillDiyGlobalBlanks(output TriggerOutputParam, start *StartNodeParams) {
 	if len(output.Variable) == 0 {
-		return //未配置变量映射
+		return //variable mapping not configured
 	}
 	key, found := strings.CutPrefix(output.Variable, `global.`)
 	if !found {
-		return //映射错误的,不管
+		return //incorrect mapping, ignore
 	}
 	for _, param := range start.DiyGlobal {
 		if param.Key == key {
-			return //已存在的变量直接跳过
+			return //skip existing variables
 		}
 	}
 	start.DiyGlobal = append(start.DiyGlobal, output.StartNodeParam)
 }
 
-func DisposeNodeParams(nodeType int, nodeParams string) NodeParams {
+func DisposeNodeParams(nodeType int, nodeParams, lang string) NodeParams {
 	params := NodeParams{}
 	_ = tool.JsonDecodeUseNumber(nodeParams, &params)
-	params.Start.SysGlobal = make([]StartNodeParam, 0) //废弃字段
+	params.Start.SysGlobal = make([]StartNodeParam, 0) //deprecated field
 	if params.Start.DiyGlobal == nil {
 		params.Start.DiyGlobal = make([]StartNodeParam, 0)
 	}
 	if params.Start.TriggerList == nil {
 		params.Start.TriggerList = make([]TriggerConfig, 0)
 	}
-	if nodeType == NodeTypeStart && len(params.Start.TriggerList) == 0 { //默认值处理
-		chatTrigger := GetTriggerChatConfig()
+	if nodeType == NodeTypeStart && len(params.Start.TriggerList) == 0 { //default value handling
+		chatTrigger := GetTriggerChatConfig(lang)
 		params.Start.TriggerList = []TriggerConfig{chatTrigger}
 		for _, output := range chatTrigger.Outputs {
 			params.Start.DiyGlobal = append(params.Start.DiyGlobal, output.StartNodeParam)
 		}
 	}
-	if nodeType == NodeTypeStart { //开始节点触发器输出变量旧数据兼容
+	if nodeType == NodeTypeStart { //start node trigger output variable old data compatibility
 		for i, trigger := range params.Start.TriggerList {
-			outputs, exist := GetTriggerOutputsByType(trigger.TriggerType)
+			outputs, exist := GetTriggerOutputsByType(trigger.TriggerType, lang)
 			if !exist {
 				continue
 			}
 			if trigger.TriggerType == TriggerTypeOfficial {
 				switch trigger.TriggerOfficialConfig.MsgType {
 				case define.TriggerOfficialMessage:
-					outputs = GetMessage()
+					outputs = GetMessage(lang)
 				case define.TriggerOfficialQrCodeScan:
-					outputs = GetQrcodeScan()
+					outputs = GetQrcodeScan(lang)
 				case define.TriggerOfficialSubscribeUnScribe:
-					outputs = GetSubscribeUnsubscribe()
+					outputs = GetSubscribeUnsubscribe(lang)
 				case define.TriggerOfficialMenuClick:
-					outputs = GetMenuClick()
+					outputs = GetMenuClick(lang)
 				}
 			}
-			//采集旧的变量映射数据
+			//collect old variable mapping data
 			variableMap := make(map[string]string)
 			for _, output := range trigger.Outputs {
 				variableMap[output.Key] = output.Variable
 			}
-			//将变量映替换到新的配置上
+			//replace variable mapping to new configuration
 			for idx, output := range outputs {
 				if variable, ok := variableMap[output.Key]; ok {
 					outputs[idx].Variable = variable
 				}
 			}
 			params.Start.TriggerList[i].Outputs = outputs
-			//补充开始节点自定义全局变量
+			//supplement start node custom global variables
 			for _, output := range outputs {
 				FillDiyGlobalBlanks(output, &params.Start)
 			}
@@ -808,10 +837,10 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 		for _, param := range node.NodeParams.Start.DiyGlobal {
 			variables = append(variables, fmt.Sprintf(`global.%s`, param.Key))
 		}
-	case NodeTypeCurl:
+	case NodeTypeCurl, NodeTypeHttpTool:
 		for variable := range common.SimplifyFields(node.NodeParams.Curl.Output) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
-			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+			if len(last) > 0 && last[0] { //previous node, compatible with old data
 				variables = append(variables, variable)
 			}
 		}
@@ -824,21 +853,21 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 	case NodeTypeParamsExtractor:
 		for variable := range common.SimplifyFields(node.NodeParams.ParamsExtractor.Output) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
-			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+			if len(last) > 0 && last[0] { //previous node, compatible with old data
 				variables = append(variables, variable)
 			}
 		}
 	case NodeTypeFormSelect:
 		for _, variable := range []string{`output_list`, `row_num`} {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
-			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+			if len(last) > 0 && last[0] { //previous node, compatible with old data
 				variables = append(variables, variable)
 			}
 		}
 	case NodeTypeCodeRun:
 		for variable := range common.SimplifyFields(node.NodeParams.CodeRun.Output) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
-			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+			if len(last) > 0 && last[0] { //previous node, compatible with old data
 				variables = append(variables, variable)
 			}
 		}
@@ -857,7 +886,7 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 		}
 		for variable := range common.SimplifyFields(formatOutput) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
-			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+			if len(last) > 0 && last[0] { //previous node, compatible with old data
 				variables = append(variables, variable)
 			}
 		}
@@ -874,28 +903,28 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 		}
 		for variable := range common.SimplifyFields(formatOutput) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
-			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+			if len(last) > 0 && last[0] { //previous node, compatible with old data
 				variables = append(variables, variable)
 			}
 		}
 	case NodeTypePlugin:
 		for variable := range common.SimplifyFields(node.NodeParams.Plugin.Output) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
-			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+			if len(last) > 0 && last[0] { //previous node, compatible with old data
 				variables = append(variables, variable)
 			}
 		}
 	case NodeTypeImageGeneration:
 		for variable := range common.SimplifyFields(node.NodeParams.ImageGeneration.Output) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
-			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+			if len(last) > 0 && last[0] { //previous node, compatible with old data
 				variables = append(variables, variable)
 			}
 		}
 	case NodeTypeJsonEncode:
 		for variable := range common.SimplifyFields(node.NodeParams.JsonEncode.Outputs) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
-			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+			if len(last) > 0 && last[0] { //previous node, compatible with old data
 				variables = append(variables, variable)
 			}
 		}
@@ -904,35 +933,42 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 		node.NodeParams.JsonDecode.Outputs.SimplifyFieldsDeep(&simpleFields, ``)
 		for variable := range simpleFields {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
-			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+			if len(last) > 0 && last[0] { //previous node, compatible with old data
 				variables = append(variables, variable)
 			}
 		}
 	case NodeTypeTextToAudio:
 		for variable := range common.SimplifyFields(node.NodeParams.TextToAudio.Output) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
-			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+			if len(last) > 0 && last[0] { //previous node, compatible with old data
 				variables = append(variables, variable)
 			}
 		}
 	case NodeTypeVoiceClone:
 		for variable := range common.SimplifyFields(node.NodeParams.VoiceClone.Output) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
-			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+			if len(last) > 0 && last[0] { //previous node, compatible with old data
 				variables = append(variables, variable)
 			}
 		}
 	case NodeTypeLibraryImport:
 		for variable := range common.SimplifyFields(node.NodeParams.LibraryImport.Outputs) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
-			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+			if len(last) > 0 && last[0] { //previous node, compatible with old data
 				variables = append(variables, variable)
 			}
 		}
 	case NodeTypeWorkflow:
 		for variable := range common.SimplifyFields(node.NodeParams.Workflow.Output) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
-			if len(last) > 0 && last[0] { //上一个节点,兼容旧数据
+			if len(last) > 0 && last[0] { //previous node, compatible with old data
+				variables = append(variables, variable)
+			}
+		}
+	case NodeTypeQuestion:
+		for variable := range common.SimplifyFields(node.NodeParams.Question.Outputs) {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] {
 				variables = append(variables, variable)
 			}
 		}
@@ -968,19 +1004,19 @@ func (fn *FromNodes) recurveSetFrom(nodeKey string, nodes *[]*WorkFlowNode) {
 }
 
 func (fn *FromNodes) GetVariableList(nodeKey string) []string {
-	//系统全局变量
+	//system global variables
 	variables := SysGlobalVariables()
-	//上一级节点变量
+	//upper level node variables
 	for _, node := range (*fn)[nodeKey] {
 		variables = append(variables, node.GetVariables(true)...)
 	}
-	//递归上上级变量
+	//recursively get upper level variables
 	nodes := make([]*WorkFlowNode, 0)
 	fn.recurveSetFrom(nodeKey, &nodes)
 	for _, node := range nodes {
 		variables = append(variables, node.GetVariables()...)
 	}
-	//去重
+	//deduplicate
 	newVs := make([]string, 0)
 	maps := map[string]struct{}{}
 	for _, variable := range variables {
@@ -1037,11 +1073,11 @@ func RemoveVariablePlaceholders(content string) string {
 	return regexp.MustCompile(`【(([a-f0-9]{32}\.)?[a-zA-Z_][a-zA-Z0-9_\-.]*)】`).ReplaceAllString(content, "")
 }
 
-func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey, modelConfigIds, libraryIds string, questionMultipleSwitch bool, err error) {
+func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int, lang string) (startNodeKey, modelConfigIds, libraryIds string, questionMultipleSwitch bool, err error) {
 	startNodeCount, finishNodeCount := 0, 0
 	fromNodes := make(FromNodes)
 	for i, node := range nodeList {
-		if err = node.Verify(adminUserId); err != nil {
+		if err = node.Verify(adminUserId, lang); err != nil {
 			return
 		}
 		if node.NodeType <= NodeTypeEdges {
@@ -1051,7 +1087,7 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 			startNodeKey = node.NodeKey
 			for _, trigger := range node.NodeParams.Start.TriggerList {
 				if trigger.TriggerType == TriggerTypeChat && trigger.TriggerSwitch && trigger.TriggerChatConfig.QuestionMultipleSwitch {
-					questionMultipleSwitch = true //会话触发器-多模态输入-开启
+					questionMultipleSwitch = true //Conversation Trigger - Multimodal Input - Enabled
 				}
 			}
 			startNodeCount++
@@ -1062,6 +1098,28 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 		if node.NodeType == NodeTypeTerm {
 			for _, param := range node.NodeParams.Term {
 				fromNodes.AddRelation(&nodeList[i], param.NextNodeKey)
+			}
+		}
+		if node.NodeType == NodeTypeQuestion && node.NodeParams.Question.AnswerType == define.QuestionAnswerTypeMenu {
+			if len(node.NodeParams.Question.ReplyContentList) > 0 {
+				for _, reply := range node.NodeParams.Question.ReplyContentList {
+					if len(reply.SmartMenu.MenuContent) > 0 {
+						for _, menu := range reply.SmartMenu.MenuContent {
+							fromNodes.AddRelation(&nodeList[i], menu.NextNodeKey)
+							boolExist := false
+							for _, nodeTemp := range nodeList {
+								if nodeTemp.NodeKey == menu.NextNodeKey {
+									boolExist = true
+									break
+								}
+							}
+							if !boolExist {
+								err = errors.New(i18n.Show(lang, `node_next_node_not_exist`, node.NodeName))
+								return
+							}
+						}
+					}
+				}
 			}
 		}
 		if node.NodeType == NodeTypeCate {
@@ -1080,11 +1138,11 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 		}
 	}
 	if startNodeCount != 1 {
-		err = errors.New(`工作流有且仅有一个开始节点`)
+		err = errors.New(i18n.Show(lang, `workflow_only_one_start_node`))
 		return
 	}
 	if finishNodeCount == 0 {
-		err = errors.New(`工作流必须存在一个结束节点`)
+		err = errors.New(i18n.Show(lang, `workflow_need_finish_node`))
 		return
 	}
 	for _, node := range nodeList {
@@ -1095,17 +1153,17 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 			continue
 		}
 		if _, ok := fromNodes[node.NodeKey]; !ok {
-			err = errors.New(`工作流存在游离节点:` + node.NodeName)
+			err = errors.New(i18n.Show(lang, `workflow_has_isolated_node`, node.NodeName))
 			return
 		}
-		//校验选择的变量必须存在
-		err = verifyNode(adminUserId, node, fromNodes, nodeList)
+		//Verify that the selected variable must exist
+		err = verifyNode(adminUserId, node, fromNodes, nodeList, lang)
 		if err != nil {
 			return
 		}
 	}
 	var libraryArr []string
-	//采集使用的模型id集合
+	//Collect the set of used model IDs
 	for _, node := range nodeList {
 		var modelConfigId int
 		switch node.NodeType {
@@ -1134,33 +1192,33 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int) (startNodeKey
 	return
 }
 
-func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeList []WorkFlowNode) (err error) {
+func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeList []WorkFlowNode, lang string) (err error) {
 	variables := fromNodes.GetVariableList(node.NodeKey)
 	switch node.NodeType {
 	case NodeTypeTerm:
 		for _, param := range node.NodeParams.Term {
 			for _, term := range param.Terms {
 				if !tool.InArrayString(term.Variable, variables) {
-					err = errors.New(node.NodeName + `节点选择的变量不存在:` + term.Variable)
+					err = errors.New(i18n.Show(lang, `workflow_node_variable_not_exist`, node.NodeName, term.Variable))
 					return
 				}
 			}
 		}
 	case NodeTypeCate:
 		if len(node.NodeParams.Cate.QuestionValue) > 0 && !tool.InArrayString(node.NodeParams.Cate.QuestionValue, variables) {
-			err = errors.New(node.NodeName + `节点问题变量不存在:` + node.NodeParams.Cate.QuestionValue)
+			err = errors.New(i18n.Show(lang, `workflow_node_question_variable_not_exist`, node.NodeName, node.NodeParams.Cate.QuestionValue))
 			return
 		}
-	case NodeTypeCurl:
+	case NodeTypeCurl, NodeTypeHttpTool:
 		for _, param := range node.NodeParams.Curl.Headers {
 			if variable, ok := CheckVariablePlaceholder(param.Value, variables); !ok {
-				err = errors.New(node.NodeName + `节点Headers变量不存在:` + variable)
+				err = errors.New(i18n.Show(lang, `workflow_node_headers_variable_not_exist`, node.NodeName, variable))
 				return
 			}
 		}
 		for _, param := range node.NodeParams.Curl.Params {
 			if variable, ok := CheckVariablePlaceholder(param.Value, variables); !ok {
-				err = errors.New(node.NodeName + `节点Params变量不存在:` + variable)
+				err = errors.New(i18n.Show(lang, `workflow_node_params_variable_not_exist`, node.NodeName, variable))
 				return
 			}
 		}
@@ -1168,168 +1226,168 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 		case TypeUrlencoded:
 			for _, param := range node.NodeParams.Curl.Body {
 				if variable, ok := CheckVariablePlaceholder(param.Value, variables); !ok {
-					err = errors.New(node.NodeName + `节点Body变量不存在:` + variable)
+					err = errors.New(i18n.Show(lang, `workflow_node_body_variable_not_exist`, node.NodeName, variable))
 					return
 				}
 			}
 		case TypeJsonBody:
 			if variable, ok := CheckVariablePlaceholder(node.NodeParams.Curl.BodyRaw, variables); !ok {
-				err = errors.New(node.NodeName + `节点JsonBody变量不存在:` + variable)
+				err = errors.New(i18n.Show(lang, `workflow_node_json_body_variable_not_exist`, node.NodeName, variable))
 				return
 			}
 		}
 	case NodeTypeLibs:
 		if len(node.NodeParams.Libs.QuestionValue) > 0 && !tool.InArrayString(node.NodeParams.Libs.QuestionValue, variables) {
-			err = errors.New(node.NodeName + `节点问题变量不存在:` + node.NodeParams.Libs.QuestionValue)
+			err = errors.New(i18n.Show(lang, `workflow_node_question_variable_not_exist`, node.NodeName, node.NodeParams.Libs.QuestionValue))
 			return
 		}
 	case NodeTypeLlm:
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.Llm.Prompt, variables); !ok {
-			err = errors.New(node.NodeName + `节点提示词变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_prompt_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 		if len(node.NodeParams.Llm.LibsNodeKey) > 0 {
 			variable := fmt.Sprintf(`%s.%s`, node.NodeParams.Llm.LibsNodeKey, `special.lib_paragraph_list`)
 			if !tool.InArrayString(variable, variables) {
-				err = errors.New(node.NodeName + `节点的知识库引用选择的不是上级检索知识库节点`)
+				err = errors.New(i18n.Show(lang, `workflow_node_knowledge_base_ref_not_from_parent_node`, node.NodeName))
 				return
 			}
 		}
 		if len(node.NodeParams.Llm.QuestionValue) > 0 && !tool.InArrayString(node.NodeParams.Llm.QuestionValue, variables) {
-			err = errors.New(node.NodeName + `节点问题变量不存在:` + node.NodeParams.Llm.QuestionValue)
+			err = errors.New(i18n.Show(lang, `workflow_node_question_variable_not_exist`, node.NodeName, node.NodeParams.Llm.QuestionValue))
 			return
 		}
 	case NodeTypeAssign:
 		for i, param := range node.NodeParams.Assign {
-			if !tool.InArrayString(param.Variable, variables) { //自定义变量不存在
-				err = errors.New(node.NodeName + `自定义全局变量不存在:` + param.Variable)
+			if !tool.InArrayString(param.Variable, variables) { //Custom variable does not exist
+				err = errors.New(i18n.Show(lang, `workflow_node_custom_global_variable_not_exist`, node.NodeName, param.Variable))
 				return
 			}
 			if variable, ok := CheckVariablePlaceholder(param.Value, variables); !ok {
-				err = errors.New(node.NodeName + fmt.Sprintf(`第%d行:变量不存在:`, i+1) + variable)
+				err = errors.New(i18n.Show(lang, `workflow_node_line_variable_not_exist`, node.NodeName, i+1, variable))
 				return
 			}
 		}
 	case NodeTypeReply:
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.Reply.Content, variables); !ok {
-			err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_insert_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 	case NodeTypeQuestionOptimize:
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.QuestionOptimize.Prompt, variables); !ok {
-			err = errors.New(node.NodeName + `节点对话背景变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_conversation_context_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 		if !tool.InArrayString(node.NodeParams.QuestionOptimize.QuestionValue, variables) {
-			err = errors.New(node.NodeName + `节点问题变量不存在:` + node.NodeParams.QuestionOptimize.QuestionValue)
+			err = errors.New(i18n.Show(lang, `workflow_node_question_variable_not_exist`, node.NodeName, node.NodeParams.QuestionOptimize.QuestionValue))
 			return
 		}
 	case NodeTypeParamsExtractor:
 		if !tool.InArrayString(node.NodeParams.ParamsExtractor.QuestionValue, variables) {
-			err = errors.New(node.NodeName + `节点问题变量不存在:` + node.NodeParams.ParamsExtractor.QuestionValue)
+			err = errors.New(i18n.Show(lang, `workflow_node_question_variable_not_exist`, node.NodeName, node.NodeParams.ParamsExtractor.QuestionValue))
 			return
 		}
 	case NodeTypeFormInsert:
 		for _, field := range node.NodeParams.FormInsert.Datas {
 			if variable, ok := CheckVariablePlaceholder(field.Value, variables); !ok {
-				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				err = errors.New(i18n.Show(lang, `workflow_node_insert_variable_not_exist`, node.NodeName, variable))
 				return
 			}
 		}
 	case NodeTypeFormDelete:
 		for _, field := range node.NodeParams.FormDelete.Where {
 			if variable, ok := CheckVariablePlaceholder(field.RuleValue1, variables); !ok {
-				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				err = errors.New(i18n.Show(lang, `workflow_node_insert_variable_not_exist`, node.NodeName, variable))
 				return
 			}
 			if variable, ok := CheckVariablePlaceholder(field.RuleValue2, variables); !ok {
-				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				err = errors.New(i18n.Show(lang, `workflow_node_insert_variable_not_exist`, node.NodeName, variable))
 				return
 			}
 		}
 	case NodeTypeFormUpdate:
 		for _, field := range node.NodeParams.FormUpdate.Where {
 			if variable, ok := CheckVariablePlaceholder(field.RuleValue1, variables); !ok {
-				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				err = errors.New(i18n.Show(lang, `workflow_node_insert_variable_not_exist`, node.NodeName, variable))
 				return
 			}
 			if variable, ok := CheckVariablePlaceholder(field.RuleValue2, variables); !ok {
-				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				err = errors.New(i18n.Show(lang, `workflow_node_insert_variable_not_exist`, node.NodeName, variable))
 				return
 			}
 		}
 		for _, field := range node.NodeParams.FormUpdate.Datas {
 			if variable, ok := CheckVariablePlaceholder(field.Value, variables); !ok {
-				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				err = errors.New(i18n.Show(lang, `workflow_node_insert_variable_not_exist`, node.NodeName, variable))
 				return
 			}
 		}
 	case NodeTypeFormSelect:
 		for _, field := range node.NodeParams.FormSelect.Where {
 			if variable, ok := CheckVariablePlaceholder(field.RuleValue1, variables); !ok {
-				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				err = errors.New(i18n.Show(lang, `workflow_node_insert_variable_not_exist`, node.NodeName, variable))
 				return
 			}
 			if variable, ok := CheckVariablePlaceholder(field.RuleValue2, variables); !ok {
-				err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+				err = errors.New(i18n.Show(lang, `workflow_node_insert_variable_not_exist`, node.NodeName, variable))
 				return
 			}
 		}
 	case NodeTypeCodeRun:
 		for _, param := range node.NodeParams.CodeRun.Params {
 			if !tool.InArrayString(param.Variable, variables) {
-				err = errors.New(node.NodeName + `节点选择的变量不存在:` + param.Variable)
+				err = errors.New(i18n.Show(lang, `workflow_node_variable_not_exist`, node.NodeName, param.Variable))
 				return
 			}
 		}
 	case NodeTypeMcp:
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.Mcp.ToolName, variables); !ok {
-			err = errors.New(node.NodeName + `节点MCP工具变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_mcp_tool_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 	case NodeTypePlugin:
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.Plugin.Name, variables); !ok {
-			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.Plugin.Type, variables); !ok {
-			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 	case NodeTypeTextToAudio:
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.TextToAudio.Arguments.Text, variables); !ok {
-			err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.TextToAudio.Arguments.VoiceSetting.VoiceId, variables); !ok {
-			err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 	case NodeTypeVoiceClone:
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.VoiceClone.Arguments.FileUrl, variables); !ok {
-			err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.VoiceClone.Arguments.VoiceId, variables); !ok {
-			err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.VoiceClone.Arguments.ClonePrompt.PromptAudioUrl, variables); !ok {
-			err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.VoiceClone.Arguments.ClonePrompt.PromptText, variables); !ok {
-			err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.VoiceClone.Arguments.Text, variables); !ok {
-			err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 	case NodeTypeWorkflow:
 		for _, param := range node.NodeParams.Workflow.Params {
 			if variable, ok := CheckVariablePlaceholder(param.Variable, variables); !ok {
-				err = errors.New(node.NodeName + `节点内容变量不存在:` + variable)
+				err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
 				return
 			}
 		}
@@ -1337,23 +1395,23 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 		//verify loop arrays
 		if node.NodeParams.Loop.LoopType == common.LoopTypeArray {
 			if len(node.NodeParams.Loop.LoopArrays) == 0 {
-				err = errors.New(fmt.Sprintf(`%s未添加循环数组`, node.NodeName))
+				err = errors.New(i18n.Show(lang, `workflow_node_not_add_loop_array`, node.NodeName))
 				return
 			}
-			//验证对前置节点的引用
+			//Verify reference to previous node
 			bFind := VerityLoopParams(node.NodeParams.Loop.LoopArrays, nodeList)
 			if !bFind {
-				err = errors.New(fmt.Sprintf(`%s未找到循环数组引用的节点输出<array>参数`, node.NodeName))
+				err = errors.New(i18n.Show(lang, `workflow_node_loop_array_variable_not_exist`, node.NodeName))
 				return
 			}
 		} else if node.NodeParams.Loop.LoopNumber.Int() <= 0 {
-			err = errors.New(fmt.Sprintf(`%s循环次数必须大于0`, node.NodeName))
+			err = errors.New(i18n.Show(lang, `workflow_node_loop_number_bigger_than_zero`, node.NodeName))
 			return
 		}
-		//验证中间变量初始值是否存在
+		//Verify if intermediate variable initial value exists
 		bFind := VerityLoopParams(node.NodeParams.Loop.IntermediateParams, nodeList)
 		if !bFind {
-			err = errors.New(fmt.Sprintf(`%s未找到中间变量的引用`, node.NodeName))
+			err = errors.New(i18n.Show(lang, `workflow_node_loop_intermediate_not_exist`, node.NodeName))
 			return
 		}
 		//child node
@@ -1363,26 +1421,26 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 				childNodes = append(childNodes, vNode)
 			}
 		}
-		//验证输出是否来自于中间变量
+		//Verify if output comes from intermediate variable
 		bFind = VerityLoopParams(node.NodeParams.Loop.Output, []WorkFlowNode{node})
 		if !bFind {
-			err = errors.New(fmt.Sprintf(`%s输出节点中未找到引用的中间变量参数`, node.NodeName))
+			err = errors.New(i18n.Show(lang, `workflow_node_loop_output_not_exist`, node.NodeName))
 			return
 		}
-		//验证子节点
-		_, _, _, err = VerityLoopWorkflowNodes(adminUserId, node, childNodes, LoopAllowNodeTypes, `循环节点`)
+		//Verify child nodes
+		_, _, _, err = VerityLoopWorkflowNodes(adminUserId, node, childNodes, LoopAllowNodeTypes, i18n.Show(lang, `loop_node`), lang)
 		if err != nil {
 			return
 		}
 	case NodeTypeBatch:
 		if len(node.NodeParams.Batch.BatchArrays) == 0 {
-			err = errors.New(fmt.Sprintf(`%s未添加执行数组`, node.NodeName))
+			err = errors.New(i18n.Show(lang, `workflow_node_batch_array_not_added`, node.NodeName))
 			return
 		}
-		//验证执行数组的初始值是否存在
+		//Verify if execution array initial value exists
 		bFind := VerityLoopParams(node.NodeParams.Batch.BatchArrays, nodeList)
 		if !bFind {
-			err = errors.New(fmt.Sprintf(`未找到【%s】执行数组引用的变量`, node.NodeName))
+			err = errors.New(i18n.Show(lang, `workflow_node_batch_array_variable_not_exist`, node.NodeName))
 			return
 		}
 		childNodes := make([]WorkFlowNode, 0)
@@ -1391,14 +1449,14 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 				childNodes = append(childNodes, vNode)
 			}
 		}
-		//验证输出值是否存在
+		//Verify if output value exists
 		bFind = VerityLoopParams(node.NodeParams.Batch.Output, childNodes)
 		if !bFind {
-			err = errors.New(fmt.Sprintf(`未找到【%s】的输出中引用的子节点输出`, node.NodeName))
+			err = errors.New(i18n.Show(lang, `workflow_node_batch_output_variable_not_exist`, node.NodeName))
 			return
 		}
-		//验证子节点
-		_, _, _, err = VerityLoopWorkflowNodes(adminUserId, node, childNodes, BatchAllowNodeTypes, `批处理`)
+		//Verify child nodes
+		_, _, _, err = VerityLoopWorkflowNodes(adminUserId, node, childNodes, BatchAllowNodeTypes, i18n.Show(lang, `batch_processing`), lang)
 		if err != nil {
 			return
 		}
@@ -1406,7 +1464,7 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 		if node.NodeParams.Finish.OutType == define.FinishNodeOutTypeMessage {
 			for _, field := range node.NodeParams.Finish.Messages {
 				if variable, ok := CheckVariablePlaceholder(field.Content, variables); !ok {
-					err = errors.New(node.NodeName + fmt.Sprintf(`变量(%s)不存在:`, variable))
+					err = errors.New(i18n.Show(lang, `workflow_node_finish_message_variable_not_exist`, node.NodeName, variable))
 					return
 				}
 			}
@@ -1414,248 +1472,267 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 
 	case NodeTypeImageGeneration:
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.ImageGeneration.Prompt, variables); !ok {
-			err = errors.New(node.NodeName + `节点提示词选择的变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_image_generation_prompt_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 		for _, imageUrl := range node.NodeParams.ImageGeneration.InputImages {
 			if variable, ok := CheckVariablePlaceholder(imageUrl, variables); !ok {
-				err = errors.New(node.NodeName + `节点输入图片选择的变量不存在:` + variable)
+				err = errors.New(i18n.Show(lang, `workflow_node_image_generation_input_image_variable_not_exist`, node.NodeName, variable))
 				return
 			}
 		}
 	case NodeTypeJsonEncode:
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.JsonEncode.InputVariable, variables); !ok {
-			err = errors.New(node.NodeName + `节点选择的输入变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 	case NodeTypeJsonDecode:
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.JsonDecode.InputVariable, variables); !ok {
-			err = errors.New(node.NodeName + `节点选择的输入变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 	case NodeTypeLibraryImport:
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.LibraryImport.NormalTitle, variables); !ok {
-			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.LibraryImport.NormalUrl, variables); !ok {
-			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.LibraryImport.NormalContent, variables); !ok {
-			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.LibraryImport.QaQuestion, variables); !ok {
-			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.LibraryImport.QaAnswer, variables); !ok {
-			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
 			return
 		}
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.LibraryImport.QaSimilarQuestionVariable, variables); !ok {
-			err = errors.New(node.NodeName + `节点选择的变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
 		}
 	case NodeTypeImmediatelyReply:
 		if variable, ok := CheckVariablePlaceholder(node.NodeParams.ImmediatelyReply.Content, variables); !ok {
-			err = errors.New(node.NodeName + `节点插入的变量不存在:` + variable)
+			err = errors.New(i18n.Show(lang, `workflow_node_insert_variable_not_exist`, node.NodeName, variable))
 			return
+		}
+	case NodeTypeQuestion:
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.Question.AnswerText, variables); !ok {
+			err = errors.New(i18n.Show(lang, `workflow_node_variable_not_exist`, node.NodeName, variable))
+			return
+		}
+		if len(node.NodeParams.Question.ReplyContentList) > 0 {
+			for _, menu := range node.NodeParams.Question.ReplyContentList {
+				if len(menu.SmartMenu.MenuContent) > 0 {
+					for _, menuContent := range menu.SmartMenu.MenuContent {
+						if variable, ok := CheckVariablePlaceholder(menuContent.Content, variables); !ok {
+							err = errors.New(i18n.Show(lang, `workflow_node_variable_not_exist`, node.NodeName, variable))
+							return
+						}
+					}
+				}
+			}
 		}
 	}
 	return nil
 }
 
-func (node *WorkFlowNode) Verify(adminUserId int) error {
+func (node *WorkFlowNode) Verify(adminUserId int, lang string) error {
 	if !tool.InArrayInt(node.NodeType.Int(), NodeTypes[:]) {
-		return errors.New(`节点类型参数错误:` + cast.ToString(node.NodeType))
+		return errors.New(i18n.Show(lang, `node_type_param_error`, node.NodeType))
 	}
 	if len(node.NodeName) == 0 {
-		return errors.New(`节点名称不能为空:` + node.NodeKey)
+		return errors.New(i18n.Show(lang, `node_name_cannot_be_empty`, node.NodeKey))
 	}
 	if len(node.NodeKey) == 0 || !common.IsMd5Str(node.NodeKey) {
-		return errors.New(`节点NodeKey参数为空或格式错误:` + node.NodeName)
+		return errors.New(i18n.Show(lang, `node_key_param_format_error`, node.NodeName))
 	}
 	if len(node.NextNodeKey) > 0 && !common.IsMd5Str(node.NextNodeKey) {
-		return errors.New(`节点NextNodeKey参数格式错误:` + node.NodeName)
+		return errors.New(i18n.Show(lang, `node_next_node_key_param_format_error`, node.NodeName))
 	}
-	if len(node.NextNodeKey) == 0 && node.LoopParentKey == `` && !tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeRemark, NodeTypeEdges, NodeTypeFinish, NodeTypeManual, NodeTypeLoopEnd}) {
-		return errors.New(`节点没有指定下一个节点:` + node.NodeName)
+	if len(node.NextNodeKey) == 0 && node.LoopParentKey == `` && !tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeRemark, NodeTypeEdges, NodeTypeFinish, NodeTypeManual, NodeTypeLoopEnd, NodeTypeQuestion}) {
+		return errors.New(i18n.Show(lang, `node_not_specify_next_node`, node.NodeName))
 	}
 	var err error
 	switch node.NodeType {
 	case NodeTypeStart:
-		err = node.NodeParams.Start.Verify()
+		err = node.NodeParams.Start.Verify(lang)
 	case NodeTypeTerm:
-		err = node.NodeParams.Term.Verify()
+		err = node.NodeParams.Term.Verify(lang)
 	case NodeTypeCate:
-		err = node.NodeParams.Cate.Verify(adminUserId)
-	case NodeTypeCurl:
-		err = node.NodeParams.Curl.Verify()
+		err = node.NodeParams.Cate.Verify(adminUserId, lang)
+	case NodeTypeCurl, NodeTypeHttpTool:
+		err = node.NodeParams.Curl.Verify(lang)
 	case NodeTypeLibs:
-		err = node.NodeParams.Libs.Verify(adminUserId)
+		err = node.NodeParams.Libs.Verify(adminUserId, lang)
 	case NodeTypeLlm:
-		err = node.NodeParams.Llm.Verify(adminUserId)
+		err = node.NodeParams.Llm.Verify(adminUserId, lang)
 	case NodeTypeAssign:
-		err = node.NodeParams.Assign.Verify(node)
+		err = node.NodeParams.Assign.Verify(node, lang)
 	case NodeTypeReply:
-		err = node.NodeParams.Reply.Verify()
+		err = node.NodeParams.Reply.Verify(lang)
 	case NodeTypeManual:
-		err = node.NodeParams.Manual.Verify(adminUserId)
+		err = node.NodeParams.Manual.Verify(adminUserId, lang)
 	case NodeTypeQuestionOptimize:
-		err = node.NodeParams.QuestionOptimize.Verify(adminUserId)
+		err = node.NodeParams.QuestionOptimize.Verify(adminUserId, lang)
 	case NodeTypeParamsExtractor:
-		err = node.NodeParams.ParamsExtractor.Verify(adminUserId)
+		err = node.NodeParams.ParamsExtractor.Verify(adminUserId, lang)
 	case NodeTypeFormInsert:
-		err = node.NodeParams.FormInsert.Verify(adminUserId)
+		err = node.NodeParams.FormInsert.Verify(adminUserId, lang)
 	case NodeTypeFormDelete:
-		err = node.NodeParams.FormDelete.Verify(adminUserId)
+		err = node.NodeParams.FormDelete.Verify(adminUserId, lang)
 	case NodeTypeFormUpdate:
-		err = node.NodeParams.FormUpdate.Verify(adminUserId)
+		err = node.NodeParams.FormUpdate.Verify(adminUserId, lang)
 	case NodeTypeFormSelect:
-		err = node.NodeParams.FormSelect.Verify(adminUserId)
+		err = node.NodeParams.FormSelect.Verify(adminUserId, lang)
 	case NodeTypeCodeRun:
-		err = node.NodeParams.CodeRun.Verify()
+		err = node.NodeParams.CodeRun.Verify(lang)
 	case NodeTypeMcp:
-		err = node.NodeParams.Mcp.Verify(adminUserId)
+		err = node.NodeParams.Mcp.Verify(adminUserId, lang)
 	case NodeTypeLoop:
-		err = node.NodeParams.Loop.Verify(node.NodeName)
+		err = node.NodeParams.Loop.Verify(node.NodeName, lang)
 	case NodeTypePlugin:
-		err = node.NodeParams.Plugin.Verify(adminUserId)
+		err = node.NodeParams.Plugin.Verify(adminUserId, lang)
 	case NodeTypeBatch:
-		err = node.NodeParams.Batch.Verify(node.NodeName)
+		err = node.NodeParams.Batch.Verify(node.NodeName, lang)
 	case NodeTypeFinish:
-		err = node.NodeParams.Finish.Verify(node.NodeName)
+		err = node.NodeParams.Finish.Verify(node.NodeName, lang)
 	case NodeTypeImageGeneration:
-		err = node.NodeParams.ImageGeneration.Verify(node.NodeName)
+		err = node.NodeParams.ImageGeneration.Verify(node.NodeName, lang)
 	case NodeTypeJsonEncode:
-		err = node.NodeParams.JsonEncode.Verify(node.NodeName)
+		err = node.NodeParams.JsonEncode.Verify(node.NodeName, lang)
 	case NodeTypeJsonDecode:
-		err = node.NodeParams.JsonDecode.Verify(node.NodeName)
+		err = node.NodeParams.JsonDecode.Verify(node.NodeName, lang)
 	case NodeTypeTextToAudio:
-		err = node.NodeParams.TextToAudio.Verify()
+		err = node.NodeParams.TextToAudio.Verify(lang)
 	case NodeTypeVoiceClone:
-		err = node.NodeParams.VoiceClone.Verify(adminUserId)
+		err = node.NodeParams.VoiceClone.Verify(adminUserId, lang)
 	case NodeTypeLibraryImport:
-		err = node.NodeParams.LibraryImport.Verify(adminUserId)
+		err = node.NodeParams.LibraryImport.Verify(adminUserId, lang)
 	case NodeTypeWorkflow:
-		err = node.NodeParams.Workflow.Verify(adminUserId)
+		err = node.NodeParams.Workflow.Verify(adminUserId, lang)
 	case NodeTypeImmediatelyReply:
-		err = node.NodeParams.ImmediatelyReply.Verify()
+		err = node.NodeParams.ImmediatelyReply.Verify(lang)
+	case NodeTypeQuestion:
+		err = node.NodeParams.Question.Verify(node.NodeName, lang)
 	}
 
 	if err != nil {
-		return errors.New(node.NodeName + `节点:` + err.Error())
+		return errors.New(i18n.Show(lang, `node_error_with_detail`, node.NodeName, err.Error()))
 	}
 	return nil
 }
 
-func (params *StartNodeParams) Verify() error {
+func (params *StartNodeParams) Verify(lang string) error {
 	maps := map[string]struct{}{}
 	for _, item := range params.DiyGlobal {
 		if !common.IsVariableName(item.Key) {
-			return errors.New(fmt.Sprintf(`自定义全局变量名格式错误:%s`, item.Key))
+			return errors.New(i18n.Show(lang, `custom_global_variable_name_format_error`, item.Key))
 		}
 		if tool.InArrayString(fmt.Sprintf(`global.%s`, item.Key), SysGlobalVariables()) {
-			return errors.New(fmt.Sprintf(`自定义全局变量与系统变量同名:%s`, item.Key))
+			return errors.New(i18n.Show(lang, `custom_global_variable_conflict_with_system`, item.Key))
 		}
 		if !tool.InArrayString(item.Typ, []string{common.TypString, common.TypNumber, common.TypArrString, common.TypArrObject, common.TypBoole, common.TypArrNumber}) {
-			return errors.New(fmt.Sprintf(`自定义全局变量类型不支持:%s`, item.Key))
+			return errors.New(i18n.Show(lang, `custom_global_variable_type_not_supported`, item.Key))
 		}
 		if _, ok := maps[item.Key]; ok {
-			return errors.New(fmt.Sprintf(`自定义全局变量名重复定义:%s`, item.Key))
+			return errors.New(i18n.Show(lang, `custom_global_variable_duplicate_definition`, item.Key))
 		}
 		maps[item.Key] = struct{}{}
 	}
-	//触发器参数校验
+	//Trigger parameter validation
 	if len(params.TriggerList) == 0 {
-		return errors.New(`工作流至少添加一个触发器`)
+		return errors.New(i18n.Show(lang, `workflow_at_least_one_trigger`))
 	}
 	for i, trigger := range params.TriggerList {
 		for _, output := range trigger.Outputs {
 			if len(output.Variable) == 0 {
-				continue //触发器输出支持不配置变量映射
+				continue //Trigger output supports not configuring variable mapping
 			}
 			key, _ := strings.CutPrefix(output.Variable, `global.`)
 			if _, ok := maps[key]; !ok {
-				return errors.New(fmt.Sprintf(`第%d个触发器(%s)的输出变量%s(%s)映射配置错误`, i+1, trigger.TriggerName, output.Key, output.Desc))
+				return errors.New(i18n.Show(lang, `trigger_output_variable_mapping_error`, i+1, trigger.TriggerName, output.Key, output.Desc))
 			}
 		}
 	}
 	return nil
 }
 
-func (params *TermNodeParams) Verify() error {
+func (params *TermNodeParams) Verify(lang string) error {
 	if params == nil || len(*params) == 0 {
-		return errors.New(`配置参数不能为空`)
+		return errors.New(i18n.Show(lang, `config_params_cannot_be_empty`))
 	}
 	for i, item := range *params {
 		if len(item.Terms) == 0 {
-			return errors.New(fmt.Sprintf(`第%d分支配置为空`, i+1))
+			return errors.New(i18n.Show(lang, `branch_config_empty`, i+1))
 		}
 		for j, term := range item.Terms {
 			if len(term.Variable) == 0 {
-				return errors.New(fmt.Sprintf(`第%d分支的第%d条件:请选择变量`, i+1, j+1))
+				return errors.New(i18n.Show(lang, `branch_condition_variable_select`, i+1, j+1))
 			}
 			if !common.IsVariableNames(term.Variable) {
-				return errors.New(fmt.Sprintf(`第%d分支的第%d条件:变量格式错误`, i+1, j+1))
+				return errors.New(i18n.Show(lang, `branch_condition_variable_format_error`, i+1, j+1))
 			}
-			if term.IsMult { //数组类型的不支持 等于和不等于
+			if term.IsMult { // Array types do not support equal and not equal
 				if !tool.InArrayInt(int(term.Type), TermTypes[2:]) {
-					return errors.New(fmt.Sprintf(`第%d分支的第%d条件:匹配条件错误`, i+1, j+1))
+					return errors.New(i18n.Show(lang, `branch_condition_match_error`, i+1, j+1))
 				}
 			} else {
 				if !tool.InArrayInt(int(term.Type), TermTypes[:]) {
-					return errors.New(fmt.Sprintf(`第%d分支的第%d条件:匹配条件错误`, i+1, j+1))
+					return errors.New(i18n.Show(lang, `branch_condition_match_error`, i+1, j+1))
 				}
 			}
 			if !tool.InArrayInt(int(term.Type), []int{TermTypeEmpty, TermTypeNotEmpty}) && len(term.Value) == 0 {
-				return errors.New(fmt.Sprintf(`第%d分支的第%d条件:请输入匹配值`, i+1, j+1))
+				return errors.New(i18n.Show(lang, `branch_condition_input_match_value`, i+1, j+1))
 			}
 		}
 		if len(item.NextNodeKey) == 0 || !common.IsMd5Str(item.NextNodeKey) {
-			return errors.New(fmt.Sprintf(`第%d分支:下一个节点未指定或格式错误`, i+1))
+			return errors.New(i18n.Show(lang, `branch_next_node_not_specified`, i+1))
 		}
 	}
 	return nil
 }
 
-func (params *CateNodeParams) Verify(adminUserId int) error {
-	if err := params.LlmBaseParams.Verify(adminUserId); err != nil {
+func (params *CateNodeParams) Verify(adminUserId int, lang string) error {
+	if err := params.LlmBaseParams.Verify(adminUserId, lang); err != nil {
 		return err
 	}
 	if len(params.Categorys) == 0 {
-		return errors.New(`分类列表不能为空`)
+		return errors.New(i18n.Show(lang, `cate_category_list_empty`))
 	}
 	for i, category := range params.Categorys {
 		if len(category.Category) == 0 {
-			return errors.New(fmt.Sprintf(`第%d个分类:分类名称为空`, i+1))
+			return errors.New(i18n.Show(lang, `cate_category_name_empty`, i+1))
 		}
 		if len(category.NextNodeKey) == 0 || !common.IsMd5Str(category.NextNodeKey) {
-			return errors.New(fmt.Sprintf(`第%d个分类:下一个节点未指定或格式错误`, i+1))
+			return errors.New(i18n.Show(lang, `cate_next_node_param_error`, i+1))
 		}
 	}
 	return nil
 }
 
-func (params *CurlNodeParams) Verify() error {
+func (params *CurlNodeParams) Verify(lang string) error {
 	if !tool.InArrayString(params.Method, []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete}) {
-		return errors.New(`请求方式参数错误`)
+		return errors.New(i18n.Show(lang, `request_method_param_error`))
 	}
 	if _, err := url.Parse(params.Rawurl); err != nil || len(params.Rawurl) == 0 {
-		return errors.New(`请求链接为空或错误`)
+		return errors.New(i18n.Show(lang, `request_link_empty_or_error`))
 	}
 	for _, header := range params.Headers {
 		if len(header.Key) == 0 || len(header.Value) == 0 {
-			return errors.New(`请求头的键值对不能为空`)
+			return errors.New(i18n.Show(lang, `header_key_value_cannot_be_empty`))
 		}
 		if header.Key == `Content-Type` {
-			return errors.New(`请求头Content-Type不允许被设置`)
+			return errors.New(i18n.Show(lang, `header_content_type_not_allowed`))
 		}
 	}
 	for _, param := range params.Params {
 		if len(param.Key) == 0 || len(param.Value) == 0 {
-			return errors.New(`params的键值对不能为空`)
+			return errors.New(i18n.Show(lang, `params_key_value_cannot_be_empty`))
 		}
 	}
 	if params.Method != http.MethodGet {
@@ -1664,34 +1741,34 @@ func (params *CurlNodeParams) Verify() error {
 		case TypeUrlencoded:
 			for _, param := range params.Body {
 				if len(param.Key) == 0 || len(param.Value) == 0 {
-					return errors.New(`body的键值对不能为空`)
+					return errors.New(i18n.Show(lang, `body_key_value_cannot_be_empty`))
 				}
 			}
 		case TypeJsonBody:
 			if len(params.BodyRaw) == 0 {
-				return errors.New(`JSONBody不能为空`)
+				return errors.New(i18n.Show(lang, `json_body_cannot_be_empty`))
 			}
 			var temp any
 			if err := tool.JsonDecodeUseNumber(params.BodyRaw, &temp); err != nil {
-				return errors.New(`Body不是一个JSON字符串`)
+				return errors.New(i18n.Show(lang, `body_not_json_string`))
 			}
 		default:
-			return errors.New(`body参数类型选择错误`)
+			return errors.New(i18n.Show(lang, `body_param_type_error`))
 		}
 	}
 	if params.Timeout > 60 {
-		return errors.New(`请求超时时间最大值60秒`)
+		return errors.New(i18n.Show(lang, `request_timeout_max_value`))
 	}
-	//输出字段校验
-	return params.Output.Verify()
+	//Output field validation
+	return params.Output.Verify(lang)
 }
 
-func (params *LibsNodeParams) Verify(adminUserId int) error {
+func (params *LibsNodeParams) Verify(adminUserId int, lang string) error {
 	if len(params.LibraryIds) == 0 || !common.CheckIds(params.LibraryIds) {
-		return errors.New(`关联知识库为空或参数错误`)
+		return errors.New(i18n.Show(lang, `related_library_empty_or_param_error`))
 	}
 	if len(params.QuestionValue) == 0 {
-		return errors.New(`用户问题不能为空`)
+		return errors.New(i18n.Show(lang, `question_value_cannot_be_empty`))
 	}
 	for _, libraryId := range strings.Split(params.LibraryIds, `,`) {
 		info, err := common.GetLibraryInfo(cast.ToInt(libraryId), adminUserId)
@@ -1700,80 +1777,80 @@ func (params *LibsNodeParams) Verify(adminUserId int) error {
 			return err
 		}
 		if len(info) == 0 {
-			return errors.New(`关联知识库不存在ID:` + libraryId)
+			return errors.New(i18n.Show(lang, `related_library_not_exist`, libraryId))
 		}
 	}
 	if !tool.InArrayInt(params.SearchType.Int(), []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText}) {
-		return errors.New(`知识库检索模式参数错误`)
+		return errors.New(i18n.Show(lang, `library_search_mode_param_error`))
 	}
-	if err := common.CheckRrfWeight(params.RrfWeight, define.LangZhCn); err != nil {
+	if err := common.CheckRrfWeight(params.RrfWeight, lang); err != nil {
 		return err
 	}
 	if params.TopK <= 0 || params.TopK > 500 {
-		return errors.New(`知识库检索TopK范围1~500`)
+		return errors.New(i18n.Show(lang, `library_search_topk_range`))
 	}
 	if params.Similarity < 0 || params.Similarity > 1 {
-		return errors.New(`知识库检索相似度阈值0~1`)
+		return errors.New(i18n.Show(lang, `library_search_similarity_range`))
 	}
 	if params.RerankStatus > 0 || params.RerankModelConfigId != 0 || len(params.RerankUseModel) > 0 {
 		if params.RerankModelConfigId <= 0 || len(params.RerankUseModel) == 0 {
-			return errors.New(`请选择使用的Rerank模型`)
+			return errors.New(i18n.Show(lang, `rerank_model_please_select`))
 		}
 		if ok := common.CheckModelIsValid(adminUserId, params.RerankModelConfigId.Int(), params.RerankUseModel, common.Rerank); !ok {
-			return errors.New(`使用的Rerank模型选择错误`)
+			return errors.New(i18n.Show(lang, `rerank_model_selection_error`))
 		}
 	}
 	return nil
 }
 
-func (params *LlmNodeParams) Verify(adminUserId int) error {
-	if err := params.LlmBaseParams.Verify(adminUserId); err != nil {
+func (params *LlmNodeParams) Verify(adminUserId int, lang string) error {
+	if err := params.LlmBaseParams.Verify(adminUserId, lang); err != nil {
 		return err
 	}
 	if len(params.Prompt) == 0 {
-		return errors.New(`提示词内容不能为空`)
+		return errors.New(i18n.Show(lang, `llm_prompt_cannot_be_empty`))
 	}
 	if len(params.QuestionValue) == 0 {
-		return errors.New(`用户问题不能为空`)
+		return errors.New(i18n.Show(lang, `question_value_cannot_be_empty`))
 	}
 	if len(params.LibsNodeKey) > 0 && !common.IsMd5Str(params.LibsNodeKey) {
-		return errors.New(`知识库引用节点参数格式错误`)
+		return errors.New(i18n.Show(lang, `knowledge_base_ref_node_param_format_error`))
 	}
 	return nil
 }
 
-func (params *AssignNodeParams) Verify(node *WorkFlowNode) error {
+func (params *AssignNodeParams) Verify(node *WorkFlowNode, lang string) error {
 	if params == nil || len(*params) == 0 {
-		return errors.New(`配置参数不能为空`)
+		return errors.New(i18n.Show(lang, `config_params_cannot_be_empty`))
 	}
 	for i, param := range *params {
 		if len(param.Variable) == 0 {
-			return errors.New(fmt.Sprintf(`第%d行:请选择变量`, i+1))
+			return errors.New(i18n.Show(lang, `line_select_variable`, i+1))
 		}
 		if node.LoopParentKey == `` && (!strings.HasPrefix(param.Variable, `global.`) || !common.IsVariableNames(param.Variable)) {
-			return errors.New(fmt.Sprintf(`第%d行:变量格式错误`, i+1))
+			return errors.New(i18n.Show(lang, `line_variable_format_error`, i+1))
 		}
 		if tool.InArrayString(param.Variable, SysGlobalVariables()) {
-			return errors.New(fmt.Sprintf(`第%d行:系统全局变量禁止被赋值`, i+1))
+			return errors.New(i18n.Show(lang, `line_global_variable_assign_error`, i+1))
 		}
 	}
 	return nil
 }
 
-func (params *ReplyNodeParams) Verify() error {
+func (params *ReplyNodeParams) Verify(lang string) error {
 	if len(params.Content) == 0 {
-		return errors.New(`消息内容不能为空`)
+		return errors.New(i18n.Show(lang, `message_content_cannot_be_empty`))
 	}
 	return nil
 }
 
-func (params *ManualNodeParams) Verify(adminUserId int) error {
-	return errors.New(`仅云版支持转人工节点`)
+func (params *ManualNodeParams) Verify(adminUserId int, lang string) error {
+	return errors.New(i18n.Show(lang, `cloud_version_manual_node_only`))
 }
 
-func checkFormId(adminUserId, formId int) error {
+func checkFormId(adminUserId, formId int, lang string) error {
 	if formId <= 0 {
-		return errors.New(`未选择操作的数据表`)
+		return errors.New(i18n.Show(lang, `workflow_node_db_table_not_selected`))
 	}
 	form, err := msql.Model(`form`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`id`, cast.ToString(formId)).Where(`delete_time`, `0`).Field(`id`).Find()
@@ -1782,14 +1859,14 @@ func checkFormId(adminUserId, formId int) error {
 		return err
 	}
 	if len(form) == 0 {
-		return errors.New(`数据表信息不存在`)
+		return errors.New(i18n.Show(lang, `workflow_node_db_table_info_not_exist`))
 	}
 	return nil
 }
 
-func checkFormDatas(adminUserId, formId int, datas []FormFieldValue) error {
+func checkFormDatas(adminUserId, formId int, datas []FormFieldValue, lang string) error {
 	if len(datas) == 0 {
-		return errors.New(`字段列表不能为空`)
+		return errors.New(i18n.Show(lang, `field_list_cannot_be_empty`))
 	}
 	fields, err := msql.Model(`form_field`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`form_id`, cast.ToString(formId)).ColumnMap(`type,required,description`, `name`)
@@ -1800,29 +1877,29 @@ func checkFormDatas(adminUserId, formId int, datas []FormFieldValue) error {
 	maps := map[string]struct{}{}
 	for i, data := range datas {
 		if len(data.Name) == 0 {
-			return errors.New(fmt.Sprintf(`第%d行:字段名参数不能为空`, i+1))
+			return errors.New(i18n.Show(lang, `line_field_name_param_cannot_be_empty`, i+1))
 		}
 		field, ok := fields[data.Name]
 		if !ok {
-			return errors.New(fmt.Sprintf(`第%d行:字段名%s不存在于数据表`, i+1, data.Name))
+			return errors.New(i18n.Show(lang, `line_field_not_exist_in_table`, i+1, data.Name))
 		}
 		if len(data.Type) == 0 || data.Type != field[`type`] {
-			return errors.New(fmt.Sprintf(`第%d行:字段名%s(%s)类型与数据表不一致`, i+1, data.Name, field[`description`]))
+			return errors.New(i18n.Show(lang, `line_field_type_not_consistent`, i+1, data.Name, field[`description`]))
 		}
 		if len(data.Value) == 0 && cast.ToBool(field[`required`]) {
-			return errors.New(fmt.Sprintf(`第%d行:字段名%s(%s)为必要字段,不能为空`, i+1, data.Name, field[`description`]))
+			return errors.New(i18n.Show(lang, `line_field_required_cannot_be_empty`, i+1, data.Name, field[`description`]))
 		}
 		if _, ok := maps[data.Name]; ok {
-			return errors.New(fmt.Sprintf(`第%d行:字段名%s(%s)重复出现在字段列表`, i+1, data.Name, field[`description`]))
+			return errors.New(i18n.Show(lang, `line_field_duplicate_in_list`, i+1, data.Name, field[`description`]))
 		}
 		maps[data.Name] = struct{}{}
 	}
 	return nil
 }
 
-func checkFormWhere(adminUserId, formId int, where []define.FormFilterCondition) error {
+func checkFormWhere(adminUserId, formId int, where []define.FormFilterCondition, lang string) error {
 	if len(where) == 0 {
-		return errors.New(`条件列表不能为空`)
+		return errors.New(i18n.Show(lang, `condition_list_cannot_be_empty`))
 	}
 	fields, err := msql.Model(`form_field`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`form_id`, cast.ToString(formId)).ColumnMap(`name,type,description`, `id`)
@@ -1830,25 +1907,25 @@ func checkFormWhere(adminUserId, formId int, where []define.FormFilterCondition)
 		logs.Error(err.Error())
 		return err
 	}
-	fields[`0`] = msql.Params{`name`: `id`, `type`: `integer`, `description`: `ID`} //追加一个ID,用于兼容处理
+	fields[`0`] = msql.Params{`name`: `id`, `type`: `integer`, `description`: `ID`} //Append an ID for compatibility processing
 	for i, condition := range where {
-		if condition.FormFieldId < 0 { //特比注意,这里可以等于0
-			return errors.New(fmt.Sprintf(`第%d行:选择字段参数非法`, i+1))
+		if condition.FormFieldId < 0 { //Note: here it can be equal to 0
+			return errors.New(i18n.Show(lang, `line_field_select_param_invalid`, i+1))
 		}
 		field, ok := fields[cast.ToString(condition.FormFieldId)]
 		if !ok {
-			return errors.New(fmt.Sprintf(`第%d行:选择的字段不存在于数据表`, i+1))
+			return errors.New(i18n.Show(lang, `line_field_not_exist_in_table`, i+1))
 		}
 		if err = condition.Check(field[`type`], true); err != nil {
-			return errors.New(fmt.Sprintf(`第%d行:字段名%s(%s)校验错误:%s`, i+1, field[`name`], field[`description`], err.Error()))
+			return errors.New(i18n.Show(lang, `line_field_validation_error`, i+1, field[`name`], field[`description`], err.Error()))
 		}
 	}
 	return nil
 }
 
-func checkFormFields(adminUserId, formId int, Fields []FormFieldTyp) error {
+func checkFormFields(adminUserId, formId int, Fields []FormFieldTyp, lang string) error {
 	if len(Fields) == 0 {
-		return errors.New(`字段列表不能为空`)
+		return errors.New(i18n.Show(lang, `field_list_cannot_be_empty`))
 	}
 	fields, err := msql.Model(`form_field`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`form_id`, cast.ToString(formId)).ColumnMap(`type,description`, `name`)
@@ -1859,120 +1936,120 @@ func checkFormFields(adminUserId, formId int, Fields []FormFieldTyp) error {
 	maps := map[string]struct{}{}
 	for i, data := range Fields {
 		if len(data.Name) == 0 {
-			return errors.New(fmt.Sprintf(`第%d行:字段名参数不能为空`, i+1))
+			return errors.New(i18n.Show(lang, `line_field_name_param_cannot_be_empty`, i+1))
 		}
 		field, ok := fields[data.Name]
 		if !ok {
-			return errors.New(fmt.Sprintf(`第%d行:字段名%s不存在于数据表`, i+1, data.Name))
+			return errors.New(i18n.Show(lang, `line_field_type_not_consistent`, i+1, data.Name, field[`description`]))
 		}
 		if len(data.Type) == 0 || data.Type != field[`type`] {
-			return errors.New(fmt.Sprintf(`第%d行:字段名%s(%s)类型与数据表不一致`, i+1, data.Name, field[`description`]))
+			return errors.New(i18n.Show(lang, `line_field_type_not_consistent`, i+1, data.Name, field[`description`]))
 		}
 		if _, ok := maps[data.Name]; ok {
-			return errors.New(fmt.Sprintf(`第%d行:字段名%s(%s)重复出现在字段列表`, i+1, data.Name, field[`description`]))
+			return errors.New(i18n.Show(lang, `line_field_duplicate_in_list`, i+1, data.Name, field[`description`]))
 		}
 		maps[data.Name] = struct{}{}
 	}
 	return nil
 }
 
-func (params *FormInsertNodeParams) Verify(adminUserId int) error {
-	if err := checkFormId(adminUserId, params.FormId.Int()); err != nil {
+func (params *FormInsertNodeParams) Verify(adminUserId int, lang string) error {
+	if err := checkFormId(adminUserId, params.FormId.Int(), lang); err != nil {
 		return err
 	}
-	if err := checkFormDatas(adminUserId, params.FormId.Int(), params.Datas); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (params *FormDeleteNodeParams) Verify(adminUserId int) error {
-	if err := checkFormId(adminUserId, params.FormId.Int()); err != nil {
-		return err
-	}
-	if !tool.InArrayInt(params.Typ.Int(), []int{1, 2}) {
-		return errors.New(`条件之间关系参数错误`)
-	}
-	if err := checkFormWhere(adminUserId, params.FormId.Int(), params.Where); err != nil {
+	if err := checkFormDatas(adminUserId, params.FormId.Int(), params.Datas, lang); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (params *FormUpdateNodeParams) Verify(adminUserId int) error {
-	if err := checkFormId(adminUserId, params.FormId.Int()); err != nil {
+func (params *FormDeleteNodeParams) Verify(adminUserId int, lang string) error {
+	if err := checkFormId(adminUserId, params.FormId.Int(), lang); err != nil {
 		return err
 	}
 	if !tool.InArrayInt(params.Typ.Int(), []int{1, 2}) {
-		return errors.New(`条件之间关系参数错误`)
+		return errors.New(i18n.Show(lang, `condition_relationship_param_error`))
 	}
-	if err := checkFormWhere(adminUserId, params.FormId.Int(), params.Where); err != nil {
-		return err
-	}
-	if err := checkFormDatas(adminUserId, params.FormId.Int(), params.Datas); err != nil {
+	if err := checkFormWhere(adminUserId, params.FormId.Int(), params.Where, lang); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (params *FormSelectNodeParams) Verify(adminUserId int) error {
-	if err := checkFormId(adminUserId, params.FormId.Int()); err != nil {
+func (params *FormUpdateNodeParams) Verify(adminUserId int, lang string) error {
+	if err := checkFormId(adminUserId, params.FormId.Int(), lang); err != nil {
 		return err
 	}
 	if !tool.InArrayInt(params.Typ.Int(), []int{1, 2}) {
-		return errors.New(`条件之间关系参数错误`)
+		return errors.New(i18n.Show(lang, `condition_relationship_param_error`))
 	}
-	if err := checkFormWhere(adminUserId, params.FormId.Int(), params.Where); err != nil {
+	if err := checkFormWhere(adminUserId, params.FormId.Int(), params.Where, lang); err != nil {
 		return err
 	}
-	if err := checkFormFields(adminUserId, params.FormId.Int(), params.Fields); err != nil {
+	if err := checkFormDatas(adminUserId, params.FormId.Int(), params.Datas, lang); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (params *FormSelectNodeParams) Verify(adminUserId int, lang string) error {
+	if err := checkFormId(adminUserId, params.FormId.Int(), lang); err != nil {
+		return err
+	}
+	if !tool.InArrayInt(params.Typ.Int(), []int{1, 2}) {
+		return errors.New(i18n.Show(lang, `condition_relationship_param_error`))
+	}
+	if err := checkFormWhere(adminUserId, params.FormId.Int(), params.Where, lang); err != nil {
+		return err
+	}
+	if err := checkFormFields(adminUserId, params.FormId.Int(), params.Fields, lang); err != nil {
 		return err
 	}
 	for _, order := range params.Order {
 		if !tool.InArrayString(order.Name, []string{`id`, `create_time`, `update_time`}) {
-			return fmt.Errorf(`不支持%s用于排序操作`, order.Name)
+			return errors.New(i18n.Show(lang, `sort_operation_not_support`, order.Name))
 		}
 	}
 	if params.Limit <= 0 || params.Limit > 1000 {
-		return errors.New(`查询数量范围:1~1000`)
+		return errors.New(i18n.Show(lang, `query_quantity_range`))
 	}
 	return nil
 }
 
-func (params *CodeRunNodeParams) Verify() error {
+func (params *CodeRunNodeParams) Verify(lang string) error {
 	maps := map[string]struct{}{}
 	for idx, param := range params.Params {
 		if !common.IsVariableName(param.Field) {
-			return errors.New(fmt.Sprintf(`自定义输入参数KEY格式错误:%s`, param.Field))
+			return errors.New(i18n.Show(lang, `custom_input_param_key_format_error`, param.Field))
 		}
 		if len(param.Variable) == 0 {
-			return errors.New(fmt.Sprintf(`第%d个自定义输入参数:请选择变量`, idx+1))
+			return errors.New(i18n.Show(lang, `line_custom_input_param_select_variable`, idx+1))
 		}
 		if !common.IsVariableNames(param.Variable) {
-			return errors.New(fmt.Sprintf(`第%d个自定义输入参数:变量格式错误`, idx+1))
+			return errors.New(i18n.Show(lang, `line_custom_input_param_variable_format_error`, idx+1))
 		}
 		if _, ok := maps[param.Field]; ok {
-			return errors.New(fmt.Sprintf(`自定义输入参数KEY重复定义:%s`, param.Field))
+			return errors.New(i18n.Show(lang, `custom_input_param_key_duplicate_definition`, param.Field))
 		}
 		maps[param.Field] = struct{}{}
 	}
 	ok, err := regexp.MatchString(`function\s+main\s*\(.*\)\s*\{`, params.MainFunc)
 	if err != nil || !ok {
-		return errors.New(`JavaScript代码缺少main函数`)
+		return errors.New(i18n.Show(lang, `javascript_code_missing_main_function`))
 	}
 	if params.Timeout < 1 || params.Timeout > 60 {
-		return errors.New(`代码运行超时时间范围1~60秒`)
+		return errors.New(i18n.Show(lang, `code_run_timeout_range`))
 	}
-	if err = params.Output.Verify(); err != nil {
+	if err = params.Output.Verify(lang); err != nil {
 		return err
 	}
 	if len(params.Exception) == 0 || !common.IsMd5Str(params.Exception) {
-		return errors.New(`异常处理:下一个节点未指定或格式错误`)
+		return errors.New(i18n.Show(lang, `exception_handling_next_node_not_specified`))
 	}
 	return nil
 }
 
-func (params *McpNodeParams) Verify(adminUserId int) error {
+func (params *McpNodeParams) Verify(adminUserId int, lang string) error {
 	info, err := msql.Model(`mcp_provider`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`id`, cast.ToString(params.ProviderId)).
@@ -1982,10 +2059,10 @@ func (params *McpNodeParams) Verify(adminUserId int) error {
 		return err
 	}
 	if len(info) == 0 {
-		return errors.New(`请选择mcp工具`)
+		return errors.New(i18n.Show(lang, `please_select_mcp_tool`))
 	}
 	if cast.ToInt(info[`has_auth`]) != 1 {
-		return errors.New(`请先授权mcp工具`)
+		return errors.New(i18n.Show(lang, `please_authorize_mcp_tool_first`))
 	}
 	var tools []mcp.Tool
 	err = json.Unmarshal([]byte(info[`tools`]), &tools)
@@ -1994,7 +2071,7 @@ func (params *McpNodeParams) Verify(adminUserId int) error {
 		return err
 	}
 	if len(tools) == 0 {
-		return errors.New(`未找到可用工具`)
+		return errors.New(i18n.Show(lang, `no_available_tool_found`))
 	}
 
 	var mcpTool *mcp.Tool
@@ -2005,7 +2082,7 @@ func (params *McpNodeParams) Verify(adminUserId int) error {
 		}
 	}
 	if mcpTool == nil {
-		return errors.New(`匹配到工具`)
+		return errors.New(i18n.Show(lang, `mcp_tool_not_matched`))
 	}
 
 	if err := common.ValidateMcpToolArguments(*mcpTool, params.Arguments); err != nil {
@@ -2015,23 +2092,23 @@ func (params *McpNodeParams) Verify(adminUserId int) error {
 	return nil
 }
 
-func (params *LoopNodeParams) Verify(nodeName string) error {
+func (params *LoopNodeParams) Verify(nodeName string, lang string) error {
 	if !tool.InArray(params.LoopType, []string{common.LoopTypeArray, common.LoopTypeNumber}) {
-		return errors.New(nodeName + `循环类型错误`)
+		return errors.New(i18n.Show(lang, `loop_type_error`, nodeName))
 	}
 	if params.LoopType == common.LoopTypeArray {
 		if len(params.LoopArrays) == 0 {
-			return errors.New(nodeName + `循环数组不能为空`)
+			return errors.New(i18n.Show(lang, `loop_array_cannot_be_empty`, nodeName))
 		}
 	} else {
 		if params.LoopNumber <= 0 {
-			return errors.New(nodeName + `循环数字必须大于0`)
+			return errors.New(i18n.Show(lang, `loop_number_must_greater_than_zero`, nodeName))
 		}
 	}
 	return nil
 }
 
-// VerityLoopParams 验证输出或者循环参数
+// VerityLoopParams validates output or loop parameters
 func VerityLoopParams(fields []common.LoopField, nodeList []WorkFlowNode) bool {
 	for _, field := range fields {
 		if field.Value == `` {
@@ -2044,16 +2121,16 @@ func VerityLoopParams(fields []common.LoopField, nodeList []WorkFlowNode) bool {
 	return true
 }
 
-func VerityLoopWorkflowNodes(adminUserId int, loopNode WorkFlowNode, nodeList []WorkFlowNode, allowNodeTypes []int, nodeTypeDesc string) (startNodeKey, modelConfigIds, libraryIds string, err error) {
+func VerityLoopWorkflowNodes(adminUserId int, loopNode WorkFlowNode, nodeList []WorkFlowNode, allowNodeTypes []int, nodeTypeDesc string, lang string) (startNodeKey, modelConfigIds, libraryIds string, err error) {
 	startNodeCount, finishNodeCount := 0, 0
 	fromNodes := make(FromNodes)
 	for i, node := range nodeList {
 		if !tool.InArrayInt(node.NodeType.Int(), allowNodeTypes) {
-			err = errors.New(fmt.Sprintf(nodeTypeDesc+`的子节点类型错误 %d`, node.NodeType))
+			err = errors.New(i18n.Show(lang, `workflow_sub_node_type_error`, nodeTypeDesc, node.NodeType))
 			return
 		}
 		//node base verify
-		if err = node.Verify(adminUserId); err != nil {
+		if err = node.Verify(adminUserId, lang); err != nil {
 			return
 		}
 		//start node
@@ -2085,11 +2162,11 @@ func VerityLoopWorkflowNodes(adminUserId int, loopNode WorkFlowNode, nodeList []
 		}
 	}
 	if startNodeCount != 1 {
-		err = errors.New(nodeTypeDesc + `仅能有一个入口节点`)
+		err = errors.New(i18n.Show(lang, `workflow_subtype_only_one_entry_node`, nodeTypeDesc))
 		return
 	}
 	if finishNodeCount == 0 {
-		//err = errors.New(`工作流必须存在一个终止循环或出口节点`)
+		// err = errors.New(`Workflow must have a termination loop or exit node`)
 		//return
 	}
 	for _, node := range nodeList {
@@ -2103,17 +2180,17 @@ func VerityLoopWorkflowNodes(adminUserId int, loopNode WorkFlowNode, nodeList []
 			continue
 		}
 		if _, ok := fromNodes[node.NodeKey]; !ok {
-			err = errors.New(nodeTypeDesc + `中存在游离节点:` + node.NodeName)
+			err = errors.New(i18n.Show(lang, `workflow_subtype_has_isolated_node`, nodeTypeDesc, node.NodeName))
 			return
 		}
-		//暂时不进行验证 循环节点单独执行会缺少前面所有节点的输入，代码难处理
+		//skip verification temporarily - loop nodes executed separately will lack inputs from all previous nodes, making code difficult to handle
 		//err = verifyNode(adminUserId, node, fromNodes, make([]WorkFlowNode, 0))
 		//if err != nil {
 		//	return
 		//}
 	}
 	var libraryArr []string
-	//采集使用的模型id集合
+	//collect model IDs being used
 	for _, node := range nodeList {
 		var modelConfigId int
 		switch node.NodeType {
@@ -2141,7 +2218,7 @@ func VerityLoopWorkflowNodes(adminUserId int, loopNode WorkFlowNode, nodeList []
 	libraryIds = strings.Join(libraryArr, `,`)
 	return
 }
-func (param *PluginNodeParams) Verify(adminUserId int) error {
+func (param *PluginNodeParams) Verify(adminUserId int, lang string) error {
 	u := define.Config.Plugin[`endpoint`] + "/manage/plugin/local-plugins/run"
 
 	if param.Type == `notice` {
@@ -2158,10 +2235,10 @@ func (param *PluginNodeParams) Verify(adminUserId int) error {
 			return errors.New(resp.Msg)
 		}
 
-		// 验证 schema
+		// Validate schema
 		schema, ok := resp.Data.(map[string]any)
 		if !ok {
-			return errors.New("invalid schema format")
+			return errors.New(i18n.Show(lang, `invalid_schema_format`))
 		}
 
 		for key, raw := range schema {
@@ -2170,7 +2247,7 @@ func (param *PluginNodeParams) Verify(adminUserId int) error {
 			typ, _ := rule["type"].(string)
 			val, exists := param.Params[key]
 			if req && !exists {
-				return fmt.Errorf("missing required field: %s", key)
+				return errors.New(i18n.Show(lang, `missing_required_field`, key))
 			}
 			if !exists {
 				continue
@@ -2179,18 +2256,18 @@ func (param *PluginNodeParams) Verify(adminUserId int) error {
 			switch typ {
 			case "string":
 				if _, ok := val.(string); !ok {
-					return fmt.Errorf("field %s must be string", key)
+					return errors.New(i18n.Show(lang, `field_must_be_string`, key))
 				}
 			case "number":
 				if _, ok := val.(float64); !ok {
-					return fmt.Errorf("field %s must be number", key)
+					return errors.New(i18n.Show(lang, `field_must_be_number`, key))
 				}
 			case "boolean":
 				if _, ok := val.(bool); !ok {
-					return fmt.Errorf("field %s must be boolean", key)
+					return errors.New(i18n.Show(lang, `field_must_be_boolean`, key))
 				}
 			default:
-				return fmt.Errorf("unknown type for field %s: %s", key, typ)
+				return errors.New(i18n.Show(lang, `unknown_type_for_field`, key, typ))
 			}
 		}
 	} else if param.Type == `extension` {
@@ -2202,7 +2279,7 @@ func (param *PluginNodeParams) Verify(adminUserId int) error {
 		if err != nil {
 			return err
 		}
-		//插件验证前替换占位符
+		//replace placeholders before plugin validation
 		paramsStr := regexp.MustCompile(`【([a-f0-9]{32}\.)?[a-zA-Z_][a-zA-Z0-9_\-.]*】`).ReplaceAllString(string(params), `0`)
 		//logs.Debug(paramsStr)
 		err = request.Param("params", paramsStr).ToJSON(resp)
@@ -2218,172 +2295,172 @@ func (param *PluginNodeParams) Verify(adminUserId int) error {
 	return nil
 }
 
-func (params *BatchNodeParams) Verify(nodeName string) error {
+func (params *BatchNodeParams) Verify(nodeName string, lang string) error {
 	if len(params.BatchArrays) == 0 {
-		return errors.New(fmt.Sprintf(`【%s】执行数组不能为空`, nodeName))
+		return errors.New(i18n.Show(lang, `batch_execution_array_cannot_be_empty`, nodeName))
 	}
 	if params.ChanNumber.Int() < 1 || params.ChanNumber.Int() > 10 {
-		return errors.New(fmt.Sprintf(`【%s】执行并发数错误(1-10)`, nodeName))
+		return errors.New(i18n.Show(lang, `batch_concurrent_execution_number_error`, nodeName))
 	}
 	if params.MaxRunNumber.Int() < 1 || params.MaxRunNumber.Int() > 500 {
-		return errors.New(fmt.Sprintf(`【%s】执行最大运行数错误(1-500)`, nodeName))
+		return errors.New(i18n.Show(lang, `batch_max_run_number_error`, nodeName))
 	}
 	return nil
 }
 
-func (params *FinishNodeParams) Verify(nodeName string) error {
+func (params *FinishNodeParams) Verify(nodeName string, lang string) error {
 	if len(params.OutType) > 0 && !tool.InArray(params.OutType, []string{define.FinishNodeOutTypeMessage, define.FinishNodeOutTypeVariable}) {
-		return errors.New(fmt.Sprintf(`【%s】输出类型错误`, nodeName))
+		return errors.New(i18n.Show(lang, `output_type_error`, nodeName))
 	}
 	return nil
 }
 
-func (params *ImageGenerationParams) Verify(nodeName string) error {
+func (params *ImageGenerationParams) Verify(nodeName string, lang string) error {
 	if cast.ToInt(params.ImageNum) < 0 || cast.ToInt(params.ImageNum) > 15 {
-		return errors.New(fmt.Sprintf(`【%s】图片数量错误(0-15)`, nodeName))
+		return errors.New(i18n.Show(lang, `image_number_error`, nodeName))
 	}
 	if !tool.InArray(params.Size, define.ImageSizes) {
-		return errors.New(fmt.Sprintf(`【%s】图片尺寸错误`, nodeName))
+		return errors.New(i18n.Show(lang, `image_size_error`, nodeName))
 	}
 	return nil
 }
 
-func (params *JsonEncodeParams) Verify(nodeName string) error {
+func (params *JsonEncodeParams) Verify(nodeName string, lang string) error {
 	if len(params.InputVariable) == 0 {
-		return errors.New(fmt.Sprintf(`【%s】缺少输入`, nodeName))
+		return errors.New(i18n.Show(lang, `json_encode_input_missing`, nodeName))
 	}
 	return nil
 }
 
-func (params *JsonDecodeParams) Verify(nodeName string) error {
+func (params *JsonDecodeParams) Verify(nodeName string, lang string) error {
 	if len(params.InputVariable) == 0 {
-		return errors.New(fmt.Sprintf(`【%s】缺少输入`, nodeName))
+		return errors.New(i18n.Show(lang, `json_decode_input_missing`, nodeName))
 	}
 	return nil
 }
 
-func (params *TextToAudioNodeParams) Verify() error {
+func (params *TextToAudioNodeParams) Verify(lang string) error {
 	if params.Arguments.ModelId <= 0 {
-		return errors.New(`请选择模型配置`)
+		return errors.New(i18n.Show(lang, `please_select_model_config`))
 	}
 
 	validVoiceTypes := []string{"system", "voice_cloning", "voice_generation", "all"}
 	if len(params.VoiceType) > 0 && !tool.InArrayString(params.VoiceType, validVoiceTypes) {
-		return errors.New(`voiceType参数错误，可选值: system, voice_cloning, voice_generation, all`)
+		return errors.New(i18n.Show(lang, `voice_type_param_error`))
 	}
 
-	// 验证Text，最大10000字符
+	// Validate Text, max 10000 characters
 	if len(params.Arguments.Text) == 0 {
-		return errors.New(`text内容不能为空`)
+		return errors.New(i18n.Show(lang, `text_content_cannot_be_empty`))
 	}
 	if len(params.Arguments.Text) > 10000 {
-		return errors.New(`text内容长度不能超过10000字符`)
+		return errors.New(i18n.Show(lang, `text_content_length_exceed_limit`))
 	}
 
-	// 验证VoiceSetting
+	// Validate VoiceSetting
 	voiceSetting := params.Arguments.VoiceSetting
 	if len(voiceSetting.VoiceId) == 0 {
-		return errors.New(`voice_setting.voice_id不能为空`)
+		return errors.New(i18n.Show(lang, `voice_setting_voice_id_cannot_be_empty`))
 	}
 
-	// 验证Speed - 建议范围[0.5, 2.0]
+	// Validate Speed - recommended range [0.5, 2.0]
 	if voiceSetting.Speed < 0 || voiceSetting.Speed > 100 {
-		return errors.New(`voice_setting.speed取值范围建议0.5~2.0`)
+		return errors.New(i18n.Show(lang, `voice_setting_speed_range_error`))
 	}
 
-	// 验证Vol - 音量范围
+	// Validate Vol - volume range
 	if voiceSetting.Vol < 0 || voiceSetting.Vol > 100 {
-		return errors.New(`voice_setting.vol取值范围0~100`)
+		return errors.New(i18n.Show(lang, `voice_setting_vol_range_error`))
 	}
 
-	// 验证Pitch - 音调范围
+	// Validate Pitch - pitch range
 	if voiceSetting.Pitch < -100 || voiceSetting.Pitch > 100 {
-		return errors.New(`voice_setting.pitch取值范围-100~100`)
+		return errors.New(i18n.Show(lang, `voice_setting_pitch_range_error`))
 	}
 
-	// 验证AudioSetting - 音频设置
+	// Validate AudioSetting - audio settings
 	audioSetting := params.Arguments.AudioSetting
-	// 验证SampleRate - 采样率
+	// Validate SampleRate - sample rate
 	if audioSetting.SampleRate > 0 {
 		validSampleRates := []int{8000, 16000, 22050, 24000, 32000, 44100}
 		if !tool.InArrayInt(audioSetting.SampleRate, validSampleRates) {
-			return errors.New(`audio_setting.sample_rate必须是以下值之一: 8000, 16000, 22050, 24000, 32000, 44100`)
+			return errors.New(i18n.Show(lang, `audio_setting_sample_rate_error`))
 		}
 	}
 
-	// 验证Bitrate - 比特率
+	// Validate Bitrate - bit rate
 	if audioSetting.Bitrate > 0 {
 		validBitrates := []int{32000, 64000, 128000, 256000}
 		if !tool.InArrayInt(audioSetting.Bitrate, validBitrates) {
-			return errors.New(`audio_setting.bitrate必须是以下值之一: 32000, 64000, 128000, 256000`)
+			return errors.New(i18n.Show(lang, `audio_setting_bitrate_error`))
 		}
 	}
 
-	// 验证Format - 音频格式
+	// Validate Format - audio format
 	if len(audioSetting.Format) > 0 {
 		validFormats := []string{"mp3", "pcm", "flac", "wav"}
 		if !tool.InArrayString(audioSetting.Format, validFormats) {
-			return errors.New(`audio_setting.format必须是以下值之一: mp3, pcm, flac, wav`)
+			return errors.New(i18n.Show(lang, `audio_setting_format_error`))
 		}
 	}
 
-	// 验证Channel - 声道数
+	// Validate Channel - channel count
 	if audioSetting.Channel > 0 {
 		if audioSetting.Channel != 1 && audioSetting.Channel != 2 {
-			return errors.New(`audio_setting.channel必须是1(单声道)或2(双声道)`)
+			return errors.New(i18n.Show(lang, `audio_setting_channel_error`))
 		}
 	}
 
-	// 验证LanguageBoost
+	// Validate LanguageBoost
 	if len(params.Arguments.LanguageBoost) > 0 {
 		validLanguageBoosts := []string{"auto", "Chinese", "English", "Japanese", "Korean", "French", "German", "Spanish", "Russian", "Arabic"}
 		if !tool.InArrayString(params.Arguments.LanguageBoost, validLanguageBoosts) {
-			return errors.New(`language_boost参数错误`)
+			return errors.New(i18n.Show(lang, `language_boost_param_error`))
 		}
 	}
 
 	return nil
 }
 
-func (param *VoiceCloneNodeParams) Verify(adminUserId int) error {
+func (param *VoiceCloneNodeParams) Verify(adminUserId int, lang string) error {
 	if len(param.Arguments.FileUrl) == 0 {
-		return errors.New(`file_url不能为空`)
+		return errors.New(i18n.Show(lang, `file_url_cannot_be_empty`))
 	}
-	// 验证VoiceId - MiniMax要求：长度8-256，首字符为字母，允许数字字母-_，末位不可为-_
+	// Validate VoiceId - MiniMax requirement: length 8-256, starts with letter, allows alphanumeric chars, -, _, end cannot be - or _
 	if len(param.Arguments.VoiceId) == 0 {
-		return errors.New(`voice_id不能为空`)
+		return errors.New(i18n.Show(lang, `voice_id_cannot_be_empty`))
 	}
 
-	// 验证ClonePrompt - 可选参数，但如果提供则需要完整
+	// Validate ClonePrompt - optional parameter, but if provided must be complete
 	if len(param.Arguments.ClonePrompt.PromptAudioUrl) > 0 || len(param.Arguments.ClonePrompt.PromptText) > 0 {
-		// 如果提供了示例音频URL，验证格式
+		// If example audio URL is provided, validate format
 		if len(param.Arguments.ClonePrompt.PromptAudioUrl) == 0 {
-			return errors.New(`提供了prompt_text则prompt_audio_url不能为空`)
+			return errors.New(i18n.Show(lang, `prompt_audio_url_cannot_be_empty`))
 		}
 		if _, err := url.Parse(param.Arguments.ClonePrompt.PromptAudioUrl); err != nil {
-			return errors.New(`clone_prompt.prompt_audio_url格式错误`)
+			return errors.New(i18n.Show(lang, `clone_prompt_audio_url_format_error`))
 		}
 
-		// 如果提供了示例音频，验证文本
+		// If example audio is provided, validate text
 		if len(param.Arguments.ClonePrompt.PromptText) == 0 {
-			return errors.New(`提供了prompt_audio_url则prompt_text不能为空`)
+			return errors.New(i18n.Show(lang, `prompt_text_cannot_be_empty`))
 		}
 	}
 
 	return nil
 }
 
-func (param *LibraryImportParams) Verify(adminUserId int) error {
+func (param *LibraryImportParams) Verify(adminUserId int, lang string) error {
 	if cast.ToInt(param.LibraryId) == 0 {
-		return errors.New(`请选择导入的知识库`)
+		return errors.New(i18n.Show(lang, `please_select_library`))
 	}
 	libraryInfo, err := common.GetLibraryInfo(cast.ToInt(param.LibraryId), adminUserId)
 	if err != nil {
 		logs.Error(err.Error())
-		return errors.New(`获取知识库明细失败`)
+		return errors.New(i18n.Show(lang, `get_library_detail_failed`))
 	}
 	if len(libraryInfo) == 0 {
-		return errors.New(`知识库不存在`)
+		return errors.New(i18n.Show(lang, `library_not_exist`))
 	}
 	if cast.ToInt(param.LibraryGroupId) > 0 {
 		libraryGroupInfo, sqlErr := msql.Model(`chat_ai_library_group`, define.Postgres).
@@ -2391,33 +2468,34 @@ func (param *LibraryImportParams) Verify(adminUserId int) error {
 			Where(`id`, param.LibraryGroupId).Find()
 		if sqlErr != nil {
 			logs.Error(sqlErr.Error())
-			return errors.New(`获取知识库分组明细失败`)
+			return errors.New(i18n.Show(lang, `get_library_group_detail_failed`))
 		}
 		if len(libraryGroupInfo) == 0 {
-			return errors.New(`知识库分组不存在`)
+			return errors.New(i18n.Show(lang, `library_group_not_exist`))
 		}
 	}
+
 	if cast.ToInt(libraryInfo[`type`]) == define.GeneralLibraryType {
 		if param.ImportType == define.LibraryImportContent {
 			if param.NormalTitle == `` || param.NormalContent == `` {
-				return errors.New(`请填写导入内容和标题`)
+				return errors.New(i18n.Show(lang, `please_fill_content_and_title`))
 			}
 		} else if param.ImportType == define.LibraryImportUrl {
 			if param.NormalUrl == `` {
-				return errors.New(`请填写导入的URL`)
+				return errors.New(i18n.Show(lang, `please_fill_import_url`))
 			}
 		}
 	} else if cast.ToInt(libraryInfo[`type`]) == define.QALibraryType {
 		if param.QaQuestion == `` || param.QaAnswer == `` {
-			return errors.New(`请填写导入的问题和答案`)
+			return errors.New(i18n.Show(lang, `please_fill_question_and_answer`))
 		}
 	}
 	return nil
 }
 
-func (param *WorkflowNodeParams) Verify(adminUserId int) error {
+func (param *WorkflowNodeParams) Verify(adminUserId int, lang string) error {
 	if param.RobotId <= 0 {
-		return errors.New(`robot_id不能为空`)
+		return errors.New(i18n.Show(lang, `robot_id_cannot_be_empty`))
 	}
 	info, err := msql.Model(`chat_ai_robot`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
@@ -2427,25 +2505,25 @@ func (param *WorkflowNodeParams) Verify(adminUserId int) error {
 		return err
 	}
 	if len(info) == 0 || cast.ToInt(info[`application_type`]) != define.ApplicationTypeFlow {
-		return errors.New("选择的工作流不合法")
+		return errors.New(i18n.Show(lang, `selected_workflow_invalid`))
 	}
 
 	maps := map[string]struct{}{}
 	for _, item := range param.Params {
 		if !common.IsVariableName(item.Key) {
-			return errors.New(fmt.Sprintf(`自定义全局变量名格式错误:%s`, item.Key))
+			return errors.New(i18n.Show(lang, `custom_global_variable_name_format_error`, item.Key))
 		}
 		if tool.InArrayString(fmt.Sprintf(`global.%s`, item.Key), SysGlobalVariables()) {
-			return errors.New(fmt.Sprintf(`自定义全局变量与系统变量同名:%s`, item.Key))
+			return errors.New(i18n.Show(lang, `custom_global_variable_conflict_with_system`, item.Key))
 		}
 		if !tool.InArrayString(item.Typ, []string{common.TypString, common.TypNumber, common.TypArrString, common.TypArrObject}) {
-			return errors.New(fmt.Sprintf(`自定义全局变量类型不支持:%s`, item.Key))
+			return errors.New(i18n.Show(lang, `custom_global_variable_type_not_supported`, item.Key))
 		}
 		if item.Required && len(item.Variable) == 0 {
-			return errors.New(fmt.Sprintf(`缺少必填参数:%s`, item.Key))
+			return errors.New(i18n.Show(lang, `required_param_missing`, item.Key))
 		}
 		if _, ok := maps[item.Key]; ok {
-			return errors.New(fmt.Sprintf(`自定义全局变量名重复定义:%s`, item.Key))
+			return errors.New(i18n.Show(lang, `custom_global_variable_duplicate_definition`, item.Key))
 		}
 		maps[item.Key] = struct{}{}
 	}
@@ -2453,13 +2531,64 @@ func (param *WorkflowNodeParams) Verify(adminUserId int) error {
 	return nil
 }
 
-func (params *ImmediatelyReplyNodeParams) Verify() error {
+func (params *ImmediatelyReplyNodeParams) Verify(lang string) error {
 	if len(params.Content) == 0 {
-		return errors.New(`消息内容不能为空`)
+		return errors.New(i18n.Show(lang, `message_content_cannot_be_empty`))
 	}
 	return nil
 }
 
+type QuestionMenu struct {
+	MenuLabel string `json:"menu_label"`
+}
+
+type ReplyContent struct {
+	ReplyType string    `json:"reply_type"`
+	Type      string    `json:"type" form:"type"`
+	SmartMenu SmartMenu `json:"smart_menu,omitempty" form:"smart_menu"` // Smart menu, passed when outputting
+}
+
+type SmartMenu struct {
+	MenuDescription string             `json:"menu_description"`
+	MenuContent     []SmartMenuContent `json:"menu_content"`
+}
+
+type SmartMenuContent struct {
+	MenuType    string `json:"menu_type"`     // menu type: 0 normal, 1 keyword click menu
+	SerialNo    string `json:"serial_no"`     // serial number
+	Content     string `json:"content"`       // content; if keyword click menu, this is the keyword
+	NextNodeKey string `json:"next_node_key"` // next node
+}
+
+type QuestionParams struct {
+	AnswerType       string               `json:"answer_type"`
+	AnswerText       string               `json:"answer_text"`
+	ReplyContentList []ReplyContent       `json:"reply_content_list"`
+	Outputs          common.RecurveFields `json:"outputs"`
+}
+
+func (params *QuestionParams) Verify(nodeName string, lang string) error {
+	if !tool.InArray(params.AnswerType, []string{define.QuestionAnswerTypeText, define.QuestionAnswerTypeMenu}) {
+		return errors.New(i18n.Show(lang, `node_answer_type_param_error`, nodeName))
+	}
+	if params.AnswerType == define.QuestionAnswerTypeMenu {
+		if len(params.ReplyContentList) == 0 {
+			return errors.New(i18n.Show(lang, `smart_menu_param_error`, nodeName))
+		}
+		replyContent := params.ReplyContentList[0]
+		if replyContent.ReplyType != common.ReplyTypeSmartMenu {
+			return errors.New(i18n.Show(lang, `smart_menu_item_type_error`, nodeName))
+		}
+		if len(replyContent.SmartMenu.MenuContent) == 0 {
+			return errors.New(i18n.Show(lang, `smart_menu_at_least_one`, nodeName))
+		}
+	} else if params.AnswerType == define.QuestionAnswerTypeText {
+		if len(params.AnswerText) == 0 {
+			return errors.New(i18n.Show(lang, `question_content_param_error`, nodeName))
+		}
+	}
+	return nil
+}
 
 func GetVariablePlaceholders2(content string) []string {
 	variables := make([]string, 0)

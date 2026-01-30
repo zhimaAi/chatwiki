@@ -92,7 +92,7 @@
           <div
             v-else
             class="nav-menu"
-            :class="{ active: item.key === rootPath || item.key === activeMenu }"
+            :class="{ active: item.key === rootPath || item.key === activeMenu || item.label == activeMenu  }"
             @click="handleClickNav(item)"
           >
             <svg-icon class="nav-icon" :name="item.icon"></svg-icon>
@@ -163,7 +163,7 @@ const baseNavs = computed(() => [
   },
   {
     id: 3,
-    key: 'PublicLibrary',
+    key: 'PublicLibrary-new',
     label: 'PublicLibrary',
     title: t('document'),
     icon: 'nav-doc',
@@ -172,7 +172,7 @@ const baseNavs = computed(() => [
   },
   {
     id: 4,
-    key: 'library-search',
+    key: 'library-search-new',
     label: 'library-search',
     title: t('search'),
     icon: 'search',

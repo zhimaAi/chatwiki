@@ -167,6 +167,7 @@ func (h *VectorCacheBuildHandler) GetCacheKey() string {
 
 func (h *VectorCacheBuildHandler) GetCacheData() (any, error) {
 	embedding, err := GetVector2000(
+		define.LangEnUs,
 		h.AdminUserId,
 		cast.ToString(h.AdminUserId),
 		msql.Params{},

@@ -1,9 +1,20 @@
 <style lang="less" scoped>
+.chat-between-box{
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+.left-menu-content{
+  // width: 64px;
+  height: 100%;
+  overflow: hidden;
+}
 .chat-page {
   display: flex;
   flex-flow: column nowrap;
   height: 100vh;
-  width: 100vw;
+  flex: 1;
   overflow: hidden;
   background: #f0f2f5;
 
@@ -19,6 +30,19 @@
     .messages-list-wrap {
       flex: 1;
       overflow: hidden;
+    }
+    .open-chat-box{
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      right: 12px;
+      top: 12px;
+      background: #fff;
+      border-radius: 8px;
+      font-size: 24px;
     }
   }
 
@@ -44,8 +68,8 @@
     justify-content: center;
     align-items: center;
     border-radius: 40px;
-    border: 1px solid #FFF;
-    background: #FFF;
+    border: 1px solid #fff;
+    background: #fff;
     box-shadow: 0 4px 16px 0 #0000001f;
     cursor: pointer;
     position: absolute;
@@ -54,38 +78,38 @@
     margin-left: -20px;
     .bottom-btn {
       font-size: 16px;
-      color: #659EFC;
+      color: #659efc;
     }
   }
 
   .bottom-btn-box:hover {
-    border: 1px solid #659DFC;
+    border: 1px solid #659dfc;
   }
 
-    /* 定义进入动画 */
+  /* 定义进入动画 */
   .slide-down-enter-active {
     animation: slide-down-in 0.3s ease-in;
     position: absolute;
     z-index: 1;
   }
-  
+
   /* 定义进入完成后的状态 */
   .slide-down-enter-from {
     transform: translateY(150%);
   }
-  
+
   /* 定义退出动画 */
   .slide-down-leave-active {
     animation: slide-down-out 0.3s ease-out;
     position: absolute;
     z-index: 1;
   }
-  
+
   /* 定义退出完成后的状态 */
   .slide-down-leave-to {
     transform: translateY(150%);
   }
-  
+
   @keyframes slide-down-in {
     from {
       transform: translateY(150%);
@@ -94,7 +118,7 @@
       transform: translateY(0);
     }
   }
-  
+
   @keyframes slide-down-out {
     from {
       transform: translateY(0);
@@ -103,7 +127,6 @@
       transform: translateY(150%);
     }
   }
-  
 }
 
 .log-out {
@@ -160,77 +183,98 @@
 </style>
 
 <template>
-  <div class="chat-page" id="chatPage">
-    <div class="chat-page-header">
-      <CuNavbar
-        :title="externalConfigH5.pageTitle"
-        :background-color="externalConfigH5.pageStyle.navbarBackgroundColor"
-        v-if="externalConfigH5.navbarShow == 1"
+  <div class="chat-between-box">
+    <div class="left-menu-content">
+      <LeftSideBar 
+        @openChat="handleOpenChat" 
+        @openNewChat="openNewChat" 
+        :isMobileDevice="isMobileDevice"
+        v-if="externalConfigH5.new_session_btn_show == 1"
+        ref="leftSideBarRef"
       />
     </div>
-    <div class="form-banner-top" v-if="isShowFromHeader">
-      <div class="title">表单信息</div>
-      <div class="edit-block" @click="handleEditVariableForm">
-        <img src="@/assets/icons/edit.svg" alt="">编辑
+    <div class="chat-page" id="chatPage">
+      <div class="chat-page-header">
+        <CuNavbar
+          :title="externalConfigH5.pageTitle"
+          :background-color="externalConfigH5.pageStyle.navbarBackgroundColor"
+          v-if="externalConfigH5.navbarShow == 1"
+        />
+        <div class="form-banner-top" v-if="isShowFromHeader">
+          <div class="title">表单信息</div>
+          <div class="edit-block" @click="handleEditVariableForm">
+            <img src="@/assets/icons/edit.svg" alt="">编辑
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="chat-page-body">
-      <div class="messages-list-wrap">
-        <MessageList
-          ref="messageListRef"
-          :messages="messageList"
-          @scrollStart="onScrollStart"
-          @scrollEnd="onScrollEnd"
-          @scroll="onScroll"
-        >
-          <template v-for="(item, index) in messageList" :key="item.uid">
-            <MessageItem
-              :index="index"
-              :messageLength="messageList.length"
-              :msg="item"
-              :prevMsg="messageList[index-1]"
-              @sendTextMessage="sendTextMessage"
-              @toggleReasonProcess="handleToggleReasonProcess"
-              @toggleQuoteFiel="handleToggleQuoteFiel"
-            />
-          </template>
-        </MessageList>
-      </div>
-      <transition name="slide-down">
+      <div class="chat-page-body">
+        <div class="open-chat-box" @click="handleShowH5Chat" v-if="isMobileDevice && externalConfigH5.new_session_btn_show == 1">
+          <svg-icon name="new-chat-btn"></svg-icon>
+        </div>
+        <div class="messages-list-wrap">
+          <MessageList
+            ref="messageListRef"
+            :messages="messageList"
+            @scrollStart="onScrollStart"
+            @scrollEnd="onScrollEnd"
+            @scroll="onScroll"
+          >
+            <template v-for="(item, index) in messageList" :key="item.uid">
+              <MessageItem
+                :index="index"
+                :messageLength="messageList.length"
+                :msg="item"
+                :prevMsg="messageList[index - 1]"
+                @sendTextMessage="sendTextMessage"
+                @toggleReasonProcess="handleToggleReasonProcess"
+                @toggleQuoteFiel="handleToggleQuoteFiel"
+              />
+            </template>
+          </MessageList>
+        </div>
+        <transition name="slide-down">
           <div class="bottom-btn-box" @click="onScrollBottom" v-if="isShowBottomBtn">
             <svg-icon name="down-arrow" class="bottom-btn" />
           </div>
-      </transition>
-    </div>
-    <div class="fast-command-wrap">
-      <FastComand v-if="isShortcut" @send="handleSetMessageInputValue"></FastComand>
-    </div>
-    <div class="chat-page-footer">
-      <MessageInput
-        v-if="isMobileDevice" 
-        ref="messageInputRef" 
-        :show-upload="showUpload"
-        v-model:value="message"
-        v-model:fileList="fileList"
-        @showLogin="onShowLogin" 
-        @send="onSendMesage" 
-        :loading="sendLoading" />
-      <MessageInputPc
-        v-else  
-        ref="messageInputRef" 
-        v-model:value="message"
-        v-model:fileList="fileList"
-        :show-upload="showUpload"
-        @showLogin="onShowLogin" 
-        @send="onSendMesage" 
-        :loading="sendLoading" />
+        </transition>
+      </div>
+      <div class="fast-command-wrap">
+        <FastComand v-if="isShortcut" @send="handleSetMessageInputValue"></FastComand>
+      </div>
+      <div class="chat-page-footer">
+        <MessageInput
+          v-if="isMobileDevice"
+          ref="messageInputRef"
+          :show-upload="showUpload"
+          v-model:value="message"
+          v-model:fileList="fileList"
+          @showLogin="onShowLogin"
+          @send="onSendMesage"
+          :loading="sendLoading"
+        />
+        <MessageInputPc
+          v-else
+          ref="messageInputRef"
+          v-model:value="message"
+          v-model:fileList="fileList"
+          :show-upload="showUpload"
+          @showLogin="onShowLogin"
+          @send="onSendMesage"
+          :loading="sendLoading"
+        />
 
-      <div class="technical-support-text">{{ translate('由 ChatWiki 提供软件支持') }} </div>
-    </div>
+        <div class="technical-support-text">{{ translate('由 ChatWiki 提供软件支持') }}</div>
+      </div>
 
-    <LogOut v-if="isShowLogOut && externalConfigH5.accessRestrictionsType > 1" class="log-out" :class="{ 'scrolled': isScrolled }" @click="onTrigger" />
-    <LoginModal ref="loginModalRef" />
-    <VariableModal ref="variableModalRef" />
+      <LogOut
+        v-if="isShowLogOut && externalConfigH5.accessRestrictionsType > 1"
+        class="log-out"
+        :class="{ scrolled: isScrolled }"
+        @click="onTrigger"
+      />
+      <LoginModal ref="loginModalRef" />
+      <VariableModal ref="variableModalRef" />
+    </div>
   </div>
 </template>
 
@@ -243,7 +287,7 @@ import { useRoute } from 'vue-router'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { showToast, showConfirmDialog } from 'vant'
 import { storeToRefs } from 'pinia'
-import { useWindowWidth } from './useWindowWidth';
+import { useWindowWidth } from './useWindowWidth'
 import { useEventBus } from '@/hooks/event/useEventBus'
 import { useIM } from '@/hooks/event/useIM'
 import { useChatStore } from '@/stores/modules/chat'
@@ -256,10 +300,10 @@ import FastComand from './components/fast-comand/index.vue'
 import LogOut from './components/log-out.vue'
 import LoginModal from './components/login-modal.vue'
 import MessageInputPc from './components/message-input-pc.vue'
+import LeftSideBar from '@/views/chat/components/left-side-bar/index.vue'
 import VariableModal from './components/variable-modal/index.vue'
 
-
-const { windowWidth } = useWindowWidth();
+const { windowWidth } = useWindowWidth()
 const route = useRoute()
 
 type MessageListComponent = {
@@ -271,7 +315,11 @@ interface LoginModalRefState {
   show: any
 }
 
-const isMobileDevice = computed(()=>{
+interface LeftSideBarRefState {
+  handleShowH5Chat: any
+}
+
+const isMobileDevice = computed(() => {
   return windowWidth.value <= 500
 })
 
@@ -285,9 +333,9 @@ const emitter = useEventBus()
 const { on } = useIM()
 const chatStore = useChatStore()
 
-const { sendMessage, onGetChatMessage, $reset, robot } = chatStore
+const { sendMessage, getMyChatList, onGetChatMessage, $reset, robot, openChat, createChat } = chatStore
 
-const { messageList, sendLock, externalConfigH5 } = storeToRefs(chatStore)
+const { messageList, sendLock, externalConfigH5, dialogue_id } = storeToRefs(chatStore)
 
 const isShowFromHeader = computed(()=>{
   return !chatStore.chat_variables.need_fill_variable && chatStore.chat_variables.fill_variables && chatStore.chat_variables.fill_variables.length
@@ -299,8 +347,7 @@ const checkChatRequestPermissionLoding = ref(false)
 const sendLoading = computed(() => sendLock.value || checkChatRequestPermissionLoding.value)
 const showUpload = computed(() => robot.question_multiple_switch == 1)
 
-
-const isShortcut = computed(()=>{
+const isShortcut = computed(() => {
   return robot.fast_command_switch == '1' ? true : false
 })
 
@@ -338,7 +385,7 @@ const onScroll = (event) => {
   }
 
   if (lastScrollTop && lastScrollTop - event.scrollTop > 0) {
-    isAllowedScrollToBottom = false;
+    isAllowedScrollToBottom = false
   }
 
   lastScrollTop = event.scrollTop
@@ -356,13 +403,15 @@ const onTrigger = () => {
     // 触发退出操作
     showConfirmDialog({
       title: '温馨提示',
-      message: '是否退出本系统？',
-    }).then(() => {
-      // on close
-      userStore.reset()
-    }) .catch(() => {
-    // on cancel
-    });
+      message: '是否退出本系统？'
+    })
+      .then(() => {
+        // on close
+        userStore.reset()
+      })
+      .catch(() => {
+        // on cancel
+      })
   }
 }
 
@@ -420,7 +469,7 @@ const sendMultipleMessage = (messages: any[]) => {
 }
 
 const onSendMesage = async () => {
-  if (sendLoading.value){
+  if (sendLoading.value) {
     return
   }
 
@@ -432,7 +481,7 @@ const onSendMesage = async () => {
 
   checkChatRequestPermissionLoding.value = true
 
-  try{
+  try {
     //检查是否含有敏感词
     let result = await checkChatRequestPermission({
       robot_key: robot.robot_key,
@@ -448,18 +497,18 @@ const onSendMesage = async () => {
 
     isAllowedScrollToBottom = true
 
-    if(showUpload.value){
-      let messages: Message[] = [];
+    if (showUpload.value) {
+      let messages: Message[] = []
 
-      if(text){
+      if (text) {
         messages.push({
-          type: "text",
+          type: 'text',
           uid: getUuid(16),
           text: text
         })
       }
 
-      if(fileList.value.length){
+      if (fileList.value.length) {
         fileList.value.map((file: any) => {
           messages.push({
             uid: file.uid,
@@ -472,13 +521,13 @@ const onSendMesage = async () => {
       }
 
       sendMultipleMessage(messages)
-    }else{
+    } else {
       sendTextMessage(text)
     }
 
     message.value = ''
     fileList.value = []
-  }catch(err){
+  } catch (err) {
     checkChatRequestPermissionLoding.value = false
   }
 }
@@ -503,13 +552,13 @@ function setChatPageHeight() {
 }
 
 const handleSetMessageInputValue = (data: any) => {
-    if (!data) {
-      return
-    }
+  if (!data) {
+    return
+  }
 
-    isAllowedScrollToBottom = true
+  isAllowedScrollToBottom = true
 
-    sendTextMessage(data)
+  sendTextMessage(data)
 }
 
 const onShowLogin = () => {
@@ -519,54 +568,53 @@ const onShowLogin = () => {
 }
 
 const checkLogin = async () => {
-   //检查是否含有敏感词
-    let result = await checkChatRequestPermission({
-      robot_key: robot.robot_key,
-      openid: robot.openid,
-      question: ''
-    })
+  //检查是否含有敏感词
+  let result = await checkChatRequestPermission({
+    robot_key: robot.robot_key,
+    openid: robot.openid,
+    question: ''
+  })
 
-    checkChatRequestPermissionLoding.value = false
+  checkChatRequestPermissionLoding.value = false
 
-    // 未登录
-    if (result.data?.code == 10002) {
-      // 弹出登录
-      showToast('请登录账号')
-      onShowLogin()
-      userStore.setLoginStatus(false)
-      return false
-    }
+  // 未登录
+  if (result.data?.code == 10002) {
+    // 弹出登录
+    showToast('请登录账号')
+    onShowLogin()
+    userStore.setLoginStatus(false)
+    return false
+  }
 
-    // 有权限的账号登录后才可访问
-    if (result.data?.code == 10003) {
-      // 弹出登录
-      showToast('当前账号无访问权限')
-      onShowLogin()
-      userStore.setLoginStatus(false)
-      return false
-    }
+  // 有权限的账号登录后才可访问
+  if (result.data?.code == 10003) {
+    // 弹出登录
+    showToast('当前账号无访问权限')
+    onShowLogin()
+    userStore.setLoginStatus(false)
+    return false
+  }
 
-    userStore.setLoginStatus(true)
+  userStore.setLoginStatus(true)
 
-    if (result.data && result.data.words) {
-      return showToast(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)
-    }
-
+  if (result.data && result.data.words) {
+    return showToast(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)
+  }
 }
 
 const handleToggleReasonProcess = (msgId: number) => {
-  const msg = messageList.value.find(m => {
+  const msg = messageList.value.find((m) => {
     let id = m.message_id || m.id
     return id == msgId
   })
-  
+
   if (msg) {
     msg.show_reasoning = !msg.show_reasoning
   }
 }
 
 const handleToggleQuoteFiel = (msgId: number) => {
-  const msg = messageList.value.find(m => {
+  const msg = messageList.value.find((m) => {
     let id = m.message_id || m.id
     return id == msgId
   })
@@ -574,6 +622,53 @@ const handleToggleQuoteFiel = (msgId: number) => {
     msg.show_quote_file = !msg.show_quote_file
   }
 }
+
+const handleOpenChat = async (data : any) => {
+  if (dialogue_id.value == data.id) {
+    return
+  }
+
+  isAllowedScrollToBottom = true
+
+  let query = route.query || {}
+
+  let params = {
+    robot_key: query.robot_key,
+    openid: data.openid,
+    dialogue_id: data.id
+  }
+
+  await openChat(params)
+
+  let res = await onGetChatMessage()
+  if (res) {
+    onScrollBottom()
+  }
+}
+
+const openNewChat = async () => {
+  isAllowedScrollToBottom = true
+  message.value = ''
+
+  let data = {
+    openid: '',
+    robot_key: robot.robot_key,
+    avatar: '',
+    name: '',
+    nickname: '',
+    dialogue_id: 0
+  }
+
+  onScrollBottom()
+
+  await createChat(data)
+}
+
+const leftSideBarRef = ref<null | LeftSideBarRefState>(null)
+const handleShowH5Chat = ()=>{
+  leftSideBarRef.value && leftSideBarRef.value.handleShowH5Chat()
+}
+
 
 interface VariableModalRefState {
   handleEdit: (data?: any) => void
@@ -583,14 +678,15 @@ const handleEditVariableForm = () => {
   variableModalRef.value?.handleEdit()
 }
 
-onMounted(async() => {
+
+onMounted(async () => {
   // 获取登录信息，如果没有登录则立即弹出登录
   // 后端说这个地方不用/manage/checkLogin接口获取用户信息来判断是否登录，直接调下面的接口，关键词传空字符串就行
   await checkLogin()
 
   init()
   // 获取对话记录
-  // getMyChatList()
+  getMyChatList()
 
   // 监听 updateAiMessage 触发消息列表滚动
   emitter.on('updateAiMessage', onUpdateAiMessage)

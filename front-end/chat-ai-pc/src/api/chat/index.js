@@ -25,11 +25,19 @@ export const chatWelcome = (data) => {
 }
 
 export const getDialogueList = (data) => {
-  return request.post({ url: '/manage/getDialogueList', data })
+  return request.post({ url: '/chat/dialogueList', data })
+}
+
+export const deleteDialogue = (data) => {
+  return request.post({ url: '/chat/deleteDialogue', data })
 }
 
 export const getChatMessage = (data) => {
   return request.post({ url: '/chat/message', data })
+}
+
+export const editDialogue = (data) => {
+  return request.post({ url: '/chat/editDialogue', data })
 }
 
 // 获取答案来源

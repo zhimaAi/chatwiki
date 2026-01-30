@@ -83,13 +83,13 @@ func GetUnknownIssueSummary(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			return
 		}
-		filepath, err := common.ExportUnknownIssueSummary(list, export)
+		filepath, err := common.ExportUnknownIssueSummary(common.GetLang(c), list, export)
 		if err != nil {
 			logs.Error(err.Error())
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			return
 		}
-		c.FileAttachment(filepath, fmt.Sprintf(`未知问题总结导出%s.%s`, tool.Date(`Y-m-d-H-i-s`), export))
+		c.FileAttachment(filepath, i18n.Show(common.GetLang(c), `unknown_issue_export_filename`, tool.Date(`Y-m-d-H-i-s`), export))
 		return
 	}
 	list, total, err := m.Field(`id,question,unknown_total,unknown_list,trigger_day,answer,images,to_library_id,to_library_name`).
@@ -171,10 +171,10 @@ func UnknownIssueSummaryAnswer(c *gin.Context) {
 			return
 		}
 		if cast.ToUint(robot[`unknown_summary_status`]) == 0 {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(`未知问题总结开关未开启`)))
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `unknown_issue_summary_switch_disabled`))))
 			return
 		}
-		embedding, err := common.GetVector2000(adminUserId, robot[`admin_user_id`], robot, msql.Params{}, msql.Params{},
+		embedding, err := common.GetVector2000(common.GetLang(c), adminUserId, robot[`admin_user_id`], robot, msql.Params{}, msql.Params{},
 			cast.ToInt(robot[`unknown_summary_model_config_id`]), robot[`unknown_summary_use_model`], question)
 		if err != nil {
 			logs.Error(err.Error())

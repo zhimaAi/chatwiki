@@ -212,8 +212,8 @@ func loadUserTools(adminUserId int, serverId int) ([]ToolInfo, error) {
 		toolOptions := []mcp.ToolOption{
 			mcp.WithDescription(cast.ToString(toolData[`robot_intro`])),
 		}
-		toolOptions = append(toolOptions, mcp.WithString(`content`, mcp.Description(`对话内容`), mcp.Required()))
-		toolOptions = append(toolOptions, mcp.WithString(`open_id`, mcp.Description(`用户请求标识`), mcp.Required()))
+		toolOptions = append(toolOptions, mcp.WithString(`content`, mcp.Description(lib_define.DialogueContent), mcp.Required()))
+		toolOptions = append(toolOptions, mcp.WithString(`open_id`, mcp.Description(lib_define.UserRequestIdentifier), mcp.Required()))
 
 		if toolData[`node_params`] != "" {
 			// Parse node_params JSON using work_flow.NodeParams
@@ -332,7 +332,7 @@ func chatMessage(adminUserId int, robotKey string) func(context.Context, mcp.Cal
 		isClose := false
 		chatParams := &define.ChatRequestParam{
 			ChatBaseParam:  chatBaseParam,
-			Lang:           "zh-cn",
+			Lang:           define.LangZhCn,
 			Question:       strings.TrimSpace(content),
 			IsClose:        &isClose,
 			WorkFlowGlobal: global,

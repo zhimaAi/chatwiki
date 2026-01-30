@@ -164,19 +164,19 @@ func CreateDefaultUser() (int64, bool, error) {
 	return id, true, nil
 }
 func CreateDefaultRole(userId int64) {
-	var defaultRole = []string{define.DefaultRoleRoot, define.DefaultRoleAdmin, define.DefaultRoleUser}
+	var defaultRole = []string{lib_define.DefaultRoleRoot, lib_define.DefaultRoleAdmin, lib_define.DefaultRoleUser}
 	for k, role := range defaultRole {
 		_, err := msql.Model(define.TableRole, define.Postgres).Insert(msql.Datas{
 			`name`:        role,
 			"role_type":   k + 1,
-			`create_name`: "系统",
+			`create_name`: lib_define.System,
 			`create_time`: tool.Time2Int(),
 			`update_time`: tool.Time2Int(),
 		})
 		if err != nil {
 			logs.Error(`role create err:%s`, err.Error())
 		}
-		if userId <= 0 || role != define.DefaultRoleRoot {
+		if userId <= 0 || role != lib_define.DefaultRoleRoot {
 			continue
 		}
 	}
@@ -184,9 +184,9 @@ func CreateDefaultRole(userId int64) {
 
 func InitDefaultRole() {
 	rolesMap := map[int]string{
-		define.RoleTypeRoot:  define.DefaultRoleRoot,
-		define.RoleTypeAdmin: define.DefaultRoleAdmin,
-		define.RoleTypeUser:  define.DefaultRoleUser,
+		define.RoleTypeRoot:  lib_define.DefaultRoleRoot,
+		define.RoleTypeAdmin: lib_define.DefaultRoleAdmin,
+		define.RoleTypeUser:  lib_define.DefaultRoleUser,
 	}
 	for roleType, roleName := range rolesMap {
 		row, err := msql.Model(define.TableRole, define.Postgres).Where(`role_type`, cast.ToString(roleType)).Find()
@@ -202,7 +202,7 @@ func InitDefaultRole() {
 		id, err := msql.Model(define.TableRole, define.Postgres).Insert(msql.Datas{
 			`name`:        roleName,
 			`role_type`:   roleType,
-			`create_name`: "系统",
+			`create_name`: lib_define.System,
 			`create_time`: tool.Time2Int(),
 			`update_time`: tool.Time2Int(),
 		}, `id`)
@@ -213,7 +213,7 @@ func InitDefaultRole() {
 }
 
 func CreateDefaultBaaiModel(userId int64) {
-	modelConfig, exist := common.GetModelConfigByDefine(common.ModelBaai)
+	modelConfig, exist := common.GetModelConfigByDefine(define.LangEnUs, common.ModelBaai)
 	if !exist {
 		logs.Error(`modelConfig not found`)
 		return
@@ -243,14 +243,14 @@ func InitRoleRootPermissions() {
 	for _, role := range roles {
 
 		// reset role name
-		if cast.ToInt(role[`role_type`]) == define.RoleTypeRoot && role[`name`] != define.DefaultRoleRoot {
-			_, err = msql.Model(define.TableRole, define.Postgres).Where(`id`, role[`id`]).Update(msql.Datas{`name`: define.DefaultRoleRoot})
+		if cast.ToInt(role[`role_type`]) == define.RoleTypeRoot && role[`name`] != lib_define.DefaultRoleRoot {
+			_, err = msql.Model(define.TableRole, define.Postgres).Where(`id`, role[`id`]).Update(msql.Datas{`name`: lib_define.DefaultRoleRoot})
 			if err != nil {
 				panic(err.Error())
 			}
 		}
-		if cast.ToInt(role[`role_type`]) == define.RoleTypeAdmin && role[`name`] != define.DefaultRoleAdmin {
-			_, err = msql.Model(define.TableRole, define.Postgres).Where(`id`, role[`id`]).Update(msql.Datas{`name`: define.DefaultRoleAdmin})
+		if cast.ToInt(role[`role_type`]) == define.RoleTypeAdmin && role[`name`] != lib_define.DefaultRoleAdmin {
+			_, err = msql.Model(define.TableRole, define.Postgres).Where(`id`, role[`id`]).Update(msql.Datas{`name`: lib_define.DefaultRoleAdmin})
 			if err != nil {
 				panic(err.Error())
 			}
@@ -275,8 +275,8 @@ func InitRoleUserPermissions() {
 	if len(roleInfo) == 0 {
 		panic(`no user role`)
 	}
-	if roleInfo[`name`] != define.DefaultRoleUser {
-		_, err = msql.Model(define.TableRole, define.Postgres).Where(`id`, roleInfo[`id`]).Update(msql.Datas{`name`: define.DefaultRoleUser})
+	if roleInfo[`name`] != lib_define.DefaultRoleUser {
+		_, err = msql.Model(define.TableRole, define.Postgres).Where(`id`, roleInfo[`id`]).Update(msql.Datas{`name`: lib_define.DefaultRoleUser})
 		if err != nil {
 			panic(err.Error())
 		}

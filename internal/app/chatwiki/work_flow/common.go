@@ -13,7 +13,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// FindKeyIsUse 寻找key是否在传入的节点中使用
+// FindKeyIsUse Check if the key is used in the passed nodes
 func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 	var isNeedOpenid bool
 	for _, node := range nodeList {
@@ -26,7 +26,7 @@ func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 					}
 				}
 			}
-		case NodeTypeCurl:
+		case NodeTypeCurl, NodeTypeHttpTool:
 			for _, param := range node.NodeParams.Curl.Headers {
 				if strings.Contains(param.Value, findKey) {
 					return true
@@ -57,17 +57,17 @@ func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 				return true
 			}
 			if findKey == `global.question` && len(node.NodeParams.Cate.QuestionValue) == 0 {
-				return true //为空的时候使用默认值,所有被使用
+				return true // Use default value when empty, so it is used
 			}
-			isNeedOpenid = true //此节点存在隐藏的openid参数调用
+			isNeedOpenid = true // There is a hidden openid parameter call in this node
 		case NodeTypeLibs:
 			if node.NodeParams.Libs.QuestionValue == findKey {
 				return true
 			}
 			if findKey == `global.question` && len(node.NodeParams.Libs.QuestionValue) == 0 {
-				return true //为空的时候使用默认值,所有被使用
+				return true // Use default value when empty, so it is used
 			}
-			isNeedOpenid = true //此节点存在隐藏的openid参数调用
+			isNeedOpenid = true // There is a hidden openid parameter call in this node
 		case NodeTypeLlm:
 			if strings.Contains(node.NodeParams.Llm.Prompt, findKey) {
 				return true
@@ -76,9 +76,9 @@ func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 				return true
 			}
 			if findKey == `global.question` && len(node.NodeParams.Llm.QuestionValue) == 0 {
-				return true //为空的时候使用默认值,所有被使用
+				return true // Use default value when empty, so it is used
 			}
-			isNeedOpenid = true //此节点存在隐藏的openid参数调用
+			isNeedOpenid = true // There is a hidden openid parameter call in this node
 			if len(node.NodeParams.Llm.LibsNodeKey) > 0 {
 				variable := fmt.Sprintf(`%s.%s`, node.NodeParams.Llm.LibsNodeKey, `special.lib_paragraph_list`)
 				if variable == findKey {
@@ -87,7 +87,7 @@ func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 			}
 		case NodeTypeAssign:
 			for _, param := range node.NodeParams.Assign {
-				if param.Variable == findKey { //自定义变量不存在
+				if param.Variable == findKey { // Custom variable definition
 					return true
 				}
 				if param.Value == findKey {
@@ -106,17 +106,17 @@ func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 				return true
 			}
 			if findKey == `global.question` && len(node.NodeParams.QuestionOptimize.QuestionValue) == 0 {
-				return true //为空的时候使用默认值,所有被使用
+				return true // Use default value when empty, so it is used
 			}
-			isNeedOpenid = true //此节点存在隐藏的openid参数调用
+			isNeedOpenid = true // There is a hidden openid parameter call in this node
 		case NodeTypeParamsExtractor:
 			if node.NodeParams.ParamsExtractor.QuestionValue == findKey {
 				return true
 			}
 			if findKey == `global.question` && len(node.NodeParams.ParamsExtractor.QuestionValue) == 0 {
-				return true //为空的时候使用默认值,所有被使用
+				return true // Use default value when empty, so it is used
 			}
-			isNeedOpenid = true //此节点存在隐藏的openid参数调用
+			isNeedOpenid = true // There is a hidden openid parameter call in this node
 		case NodeTypeFormInsert:
 			for _, field := range node.NodeParams.FormInsert.Datas {
 				if strings.Contains(field.Value, findKey) {
@@ -227,15 +227,33 @@ func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 			if strings.Contains(node.NodeParams.ImmediatelyReply.Content, findKey) {
 				return true
 			}
+		case NodeTypeQuestion:
+			if strings.Contains(node.NodeParams.Question.AnswerText, findKey) {
+				return true
+			}
+			if node.NodeParams.Question.AnswerType == define.QuestionAnswerTypeMenu && len(node.NodeParams.Question.ReplyContentList) > 0 {
+				for _, menu := range node.NodeParams.Question.ReplyContentList {
+					if strings.Contains(menu.SmartMenu.MenuDescription, findKey) {
+						return true
+					}
+					if len(menu.SmartMenu.MenuContent) > 0 {
+						for _, menuContent := range menu.SmartMenu.MenuContent {
+							if strings.Contains(menuContent.Content, findKey) {
+								return true
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 	if findKey == `global.openid` && isNeedOpenid {
-		return true //存在隐藏的openid参数调用
+		return true // There is a hidden openid parameter call
 	}
 	return false
 }
 
-// FindNodeByUseKey 寻找key使用的节点
+// FindNodeByUseKey Find the node that uses the key
 func FindNodeByUseKey(nodeList []WorkFlowNode, findKey string) *WorkFlowNode {
 	findKey = strings.TrimPrefix(findKey, `【`)
 	findKey = strings.TrimSuffix(findKey, `】`)
@@ -248,7 +266,7 @@ func FindNodeByUseKey(nodeList []WorkFlowNode, findKey string) *WorkFlowNode {
 	return nil
 }
 
-// TakeTestParams 提取测试参数到全局变量
+// TakeTestParams Extract test parameters to global variables
 func TakeTestParams(question, openid, value string, workFlow *map[string]any) []any {
 	takeData := make([]any, 0)
 	testParamData := make([]TestFillVal, 0)
@@ -293,11 +311,11 @@ func TakeTestParams(question, openid, value string, workFlow *map[string]any) []
 	return takeData
 }
 
-// fillTestParamsToRunningParams 提取测试参数至运行时output和global变量
+// fillTestParamsToRunningParams Extract test parameters to runtime output and global variables
 func fillTestParamsToRunningParams(flowL *WorkFlow, params []any) {
-	flowL.Logs(`执行批处理节点测试，参数注入...`)
+	flowL.Logs(`Executing batch node test, parameter injection...`)
 	testParams := make([]TestFillVal, 0)
-	for _, field := range params { //从配置参数组装
+	for _, field := range params { // Assemble from configuration parameters
 		fieldParse := TestFillVal{}
 		err := tool.JsonDecode(tool.JsonEncodeNoError(field), &fieldParse)
 		if err != nil {
@@ -310,13 +328,13 @@ func fillTestParamsToRunningParams(flowL *WorkFlow, params []any) {
 	workFlowGlobal := common.RecurveFields{}
 	workFlowGlobal = append(workFlowGlobal, common.RecurveField{SimpleField: common.SimpleField{Key: `question`, Desc: &desc, Typ: common.TypString}})
 	workFlowGlobal = append(workFlowGlobal, common.RecurveField{SimpleField: common.SimpleField{Key: `openid`, Desc: &desc, Typ: common.TypString}})
-	for _, fieldParse := range testParams { //从配置参数组装
+	for _, fieldParse := range testParams { // Assemble from configuration parameters
 		if strings.HasPrefix(fieldParse.Field.Key, `global`) {
 			field := common.SimpleField{Key: strings.TrimPrefix(fieldParse.Field.Key, `global.`), Desc: &desc, Typ: fieldParse.Field.Typ}
 			workFlowGlobal = append(workFlowGlobal, common.RecurveField{SimpleField: field})
 		}
 	}
-	if len(flowL.params.WorkFlowGlobal) > 0 { //传入参数数据提取
+	if len(flowL.params.WorkFlowGlobal) > 0 { // Extract passed parameter data
 		workFlowGlobal = workFlowGlobal.ExtractionData(flowL.params.WorkFlowGlobal)
 	}
 	for key, field := range common.SimplifyFields(workFlowGlobal) {
@@ -405,7 +423,7 @@ func fillTestParamsToRunningParams(flowL *WorkFlow, params []any) {
 			}
 		}
 	}
-	flowL.Logs(`执行循环节点测试，outputs初始化完成，%s %s`, "\n", tool.JsonEncodeNoError(flowL.outputs))
+	flowL.Logs(`Executing loop node test, outputs initialization completed, %s %s`, "\n", tool.JsonEncodeNoError(flowL.outputs))
 }
 
 func GetNodeOutput(output map[string]any) (nodeOutput map[string]any) {

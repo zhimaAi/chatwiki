@@ -4,6 +4,7 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_web"
 	"chatwiki/internal/pkg/textsplitter"
 	"context"
@@ -138,7 +139,7 @@ func MultSplitFaqFiles(list define.DocSplitItems, splitParams define.SplitFaqPar
 func ExtractLibFaqFiles(adminUserId int, splitParams define.SplitFaqParams, submitList define.DocSplitItems, results chan define.DocSplitItem) error {
 	defer close(results)
 	if splitParams.ExtractType != define.FAQExtractTypeAI {
-		return errors.New(`提取方式不对`)
+		return fmt.Errorf(`extract_type error : %d`, splitParams.ExtractType)
 	}
 	wg := &sync.WaitGroup{}
 	lock := &sync.Mutex{}
@@ -180,7 +181,7 @@ func ExtractLibFaqFiles(adminUserId int, splitParams define.SplitFaqParams, subm
 			messages := []adaptor.ZhimaChatCompletionMessage{
 				{
 					Role:    `system`,
-					Content: prompt + `\n 如果文本中有[图片占位符]请原样返回,严格按照输出示例返回,输出示例:[{"question":"问题1","answer":"回答1"},{"question":"问题2","answer":"回答2"}]`,
+					Content: prompt + define.ExtractLibFaqFilesPrompt,
 				},
 				{
 					Role:    `user`,
@@ -202,6 +203,7 @@ func ExtractLibFaqFiles(adminUserId int, splitParams define.SplitFaqParams, subm
 			}()
 		Retry:
 			chatResp, _, err := RequestChatStream(
+				define.LangEnUs,
 				adminUserId,
 				"",
 				msql.Params{},
@@ -241,7 +243,7 @@ func ExtractLibFaqFiles(adminUserId int, splitParams define.SplitFaqParams, subm
 	return nil
 }
 
-func ExportFAQFileAllQA(list []msql.Params, ext, source string) (string, error) {
+func ExportFAQFileAllQA(lang string, list []msql.Params, ext, source string) (string, error) {
 	fileSavePath := `static/public/export/` + source
 	if define.IsDocxFile(ext) {
 		var lineBreak = "\r" //docx的换行符,比较特殊
@@ -253,15 +255,15 @@ func ExportFAQFileAllQA(list []msql.Params, ext, source string) (string, error) 
 			}
 			//问题
 			para := doc.AddParagraph(``)
-			para.AddFormattedText(`问题：`, &document.TextFormat{Bold: true, FontSize: 14})
+			para.AddFormattedText(i18n.Show(lang, `faq_question`)+`：`, &document.TextFormat{Bold: true, FontSize: 14})
 			para.AddFormattedText(lineBreak+params[`question`], &document.TextFormat{FontSize: 12})
 			//相似问法
-			para.AddFormattedText(lineBreak+`相似问法：`, &document.TextFormat{Bold: true, FontSize: 14})
+			para.AddFormattedText(lineBreak+i18n.Show(lang, `faq_similar_questions`)+`：`, &document.TextFormat{Bold: true, FontSize: 14})
 			for _, item := range DisposeStringList(params[`similar_questions`]) {
 				para.AddFormattedText(lineBreak+item, &document.TextFormat{FontSize: 12})
 			}
 			//答案
-			para.AddFormattedText(lineBreak+`答案：`, &document.TextFormat{Bold: true, FontSize: 14})
+			para.AddFormattedText(lineBreak+i18n.Show(lang, `faq_answer`)+`：`, &document.TextFormat{Bold: true, FontSize: 14})
 			para.AddFormattedText(lineBreak+params[`answer`], &document.TextFormat{FontSize: 12})
 			//图片
 			for _, imgUrl := range DisposeStringList(params[`images`]) {
@@ -277,7 +279,12 @@ func ExportFAQFileAllQA(list []msql.Params, ext, source string) (string, error) 
 		filepath := fileSavePath + `/` + md[:2] + `/` + md[2:] + `.docx`
 		return filepath, doc.Save(filepath)
 	} else {
-		fields := tool.Fields{{Field: "group_name", Header: "问答分组"}, {Field: "question", Header: "问题"}, {Field: "similar_questions", Header: "相似问法"}, {Field: "answer", Header: "答案"}}
+		fields := tool.Fields{
+			{Field: `group_name`, Header: i18n.Show(lang, `faq_group_name`)},
+			{Field: `question`, Header: i18n.Show(lang, `faq_question`)},
+			{Field: `similar_questions`, Header: i18n.Show(lang, `faq_similar_questions`)},
+			{Field: `answer`, Header: i18n.Show(lang, `faq_answer`)},
+		}
 		data := make([]map[string]any, len(list))
 		for idx, params := range list {
 			for _, imgUrl := range DisposeStringList(params[`images`]) {

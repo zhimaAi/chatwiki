@@ -68,8 +68,6 @@ const PromptDefaultEntityExtract = `请从下面的问题中提取关键实体�
 
 输出示例：["实体1", "实体2", "实体3", "实体4", "实体5"]`
 
-const PromptDefaultReplyMarkdown = `- 请使用markdown格式回答问题。`
-const PromptDefaultAnswerImage = `- 当你选择的知识点中包含图片、链接数据时，你需要在你的答案对应位置输出这些数据，不要改写或忽略这些数据。`
 const PromptDefaultCreatePrompt = `# 角色
 你是一个智能提示词工程师，擅长将用户需求转化为结构化的大模型指令模板。
 # 任务
@@ -230,3 +228,18 @@ const OfficialAccountCommentCheckPrompt = `### 角色
 - 根据我提供的评论内容和需求给出对应的结果，如果是判断类的，以true或者false返回，不需要返回全部的字段，针对需求返回即可
 - 必须严格保持JSON格式。
 `
+
+const ExtractLibFaqFilesPrompt = `\n 如果文本中有[图片占位符]请原样返回,严格按照输出示例返回,输出示例:[{"question":"问题1","answer":"回答1"},{"question":"问题2","answer":"回答2"}]`
+
+const AiChunkPrumptSuffix = `\n 严格按照输出示例返回,输出示例:[{"chunk":"段落1"},{"chunk":"段落2"}]`
+
+const WorkFlowCateNodePrompt = `## 角色
+你是一个超过10年的资深客服，能够准确识别用户的情绪和意图，并将其分类。
+## 任务
+你需要分析用户的对话内容，识别用户意图，判断用户问题属于哪个分类。
+## 分类
+%s
+## 输出格式
+- 返回你认为用户问题归属分类的序号，如果你认为没有合适的分类，返回0。
+- 你只能返回分类的序号或者0，否则你将受到惩罚。
+- 只需要按要求返回，不要附带你的思考过程。`

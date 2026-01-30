@@ -38,13 +38,6 @@ type BuiltinMetaSchema struct {
 	Type int // 同 LibraryMetaType*
 }
 
-var BuiltinMetaSchemaList = []BuiltinMetaSchema{
-	{Name: "来源", Key: BuiltinMetaKeySource, Type: LibraryMetaTypeString},
-	{Name: "更新时间", Key: BuiltinMetaKeyUpdateTime, Type: LibraryMetaTypeTime},
-	{Name: "创建时间", Key: BuiltinMetaKeyCreateTime, Type: LibraryMetaTypeTime},
-	{Name: "分组", Key: BuiltinMetaKeyGroup, Type: LibraryMetaTypeString},
-}
-
 func IsBuiltinMetaKey(key string) bool {
 	switch key {
 	case BuiltinMetaKeySource, BuiltinMetaKeyUpdateTime, BuiltinMetaKeyCreateTime, BuiltinMetaKeyGroup:

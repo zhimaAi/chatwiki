@@ -20,8 +20,8 @@ type SessionChannel struct {
 func GetChannelList(userId int, robotId uint) []SessionChannel {
 	list := []SessionChannel{
 		{AppType: lib_define.AppYunH5, AppName: `WebAPP`},
-		{AppType: lib_define.AppYunPc, AppName: `嵌入网站`},
-		{AppType: lib_define.AppOpenApi, AppName: `开放接口`},
+		{AppType: lib_define.AppYunPc, AppName: lib_define.EmbeddedInTheWebsite},
+		{AppType: lib_define.AppOpenApi, AppName: lib_define.OpenInterface},
 	}
 	//wechat_app
 	if robotId > 0 {

@@ -200,3 +200,45 @@ func StatLibraryGroupSort(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(stat, nil))
 	return
 }
+
+func StatUnknowQuestionTotal(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+
+	startDay, endDay := checkBeginEndDateYmd(c)
+	if startDay == "" || endDay == "" {
+		return
+	}
+
+	stat, err := common.StatUnknowQuestionTotal(userId, cast.ToInt(startDay), cast.ToInt(endDay))
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(stat, nil))
+	return
+}
+
+func StatUnknowQuestionRank(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+
+	startDay, endDay := checkBeginEndDateYmd(c)
+	if startDay == "" || endDay == "" {
+		return
+	}
+
+	stat, err := common.StatUnknowQuestionRank(userId, cast.ToInt(startDay), cast.ToInt(endDay))
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(stat, nil))
+	return
+}

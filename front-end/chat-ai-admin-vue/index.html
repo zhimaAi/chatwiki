@@ -22,5 +22,30 @@
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
+    <script>
+      // 全局图片 error 监听
+      document.addEventListener(
+        'error',
+        (e) => {
+          const target = e.target
+
+          if (!(target instanceof HTMLImageElement)) return
+
+          // 防止无限 retry
+          const maxRetry = 1
+          const retry = Number(target.dataset.retry || 0)
+          if (retry >= maxRetry) return
+
+          target.dataset.retry = retry + 1
+
+          const src = target.src
+          const hasQuery = src.includes('?')
+          const newSrc = src + (hasQuery ? '&' : '?') + 'v=' + Date.now()
+
+          target.src = newSrc
+        },
+        true // ⚠️ 必须是捕获阶段
+      )
+    </script>
   </body>
 </html>

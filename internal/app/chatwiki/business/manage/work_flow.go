@@ -80,7 +80,7 @@ func GetNodeList(c *gin.Context) {
 			`data_type`:     dataType,
 			`robot_id`:      robot[`id`],
 			`node_type`:     work_flow.NodeTypeStart,
-			`node_name`:     `流程开始`,
+			`node_name`:     lib_define.TheProcessBegins,
 			`node_key`:      tool.MD5(time.Now().String() + tool.Random(6)),
 			`create_time`:   tool.Time2Int(),
 			`update_time`:   tool.Time2Int(),
@@ -98,7 +98,7 @@ func GetNodeList(c *gin.Context) {
 	for _, node := range list {
 		nodeType := cast.ToInt(node[`node_type`])
 		if nodeType == work_flow.NodeTypePlugin { //获取引用插件列表
-			nodeParams := work_flow.DisposeNodeParams(nodeType, node[`node_params`])
+			nodeParams := work_flow.DisposeNodeParams(nodeType, node[`node_params`], common.GetLang(c))
 			pluginName = append(pluginName, nodeParams.Plugin.Name)
 		}
 	}
@@ -133,32 +133,44 @@ func GetNodeList(c *gin.Context) {
 	for i, node := range list {
 		nodeType := cast.ToInt(node[`node_type`])
 		if !tool.InArrayInt(nodeType, work_flow.NodeTypes[:]) {
-			logs.Error(`节点类型非法:%s`, node[`node_type`])
+			logs.Error(`invalid node type:%s`, node[`node_type`])
 			continue
 		}
-
+		nodeParams := work_flow.DisposeNodeParams(cast.ToInt(node[`node_type`]), node[`node_params`], common.GetLang(c))
 		if nodeType == work_flow.NodeTypePlugin { //获取引用插件列表
-			nodeParams := work_flow.DisposeNodeParams(nodeType, node[`node_params`])
-			manifest, err := php.GetPluginManifest(nodeParams.Plugin.Name)
-			if err != nil {
-				logs.Error(`获取本地插件安装信息错误:%s`, err.Error())
-				list[i][`plugin_version`] = "0.0.1"
-			} else {
-				list[i][`plugin_version`] = manifest.Version
+			//logs.Debug(`开始处理插件脱敏:%s`, nodeParams.Plugin.Name)
+			manifest, _ := php.GetPluginManifest(nodeParams.Plugin.Name)
+			//logs.Debug(`判断前:%s`, nodeParams.Plugin.Name)
+			if nodeParams.Plugin.NoAuthFilter {
+				//敏感信息脱敏 兼容没安装插件插件的后续脱敏
+				//logs.Debug(`判断后:%s`, nodeParams.Plugin.Name)
+				nodeInfoStr := node[`node_info_json`]
+				nodeParams.Plugin, nodeInfoStr = work_flow.PluginNodeDesensitize(userId, nodeParams.Plugin, nodeInfoStr)
+				list[i][`node_info_json`] = nodeInfoStr
 			}
+			//logs.Debug(`处理完成:%s`, nodeParams.Plugin.Name)
 
 			list[i][`has_loaded`] = localPluginMap[nodeParams.Plugin.Name]
 			list[i][`plugin_name`] = nodeParams.Plugin.Name
+			if manifest != nil {
+				list[i][`plugin_version`] = manifest.Version
+			} else {
+				list[i][`plugin_version`] = `0.0.0`
+			}
 			list[i][`remote_plugin_version`] = remotePluginMap[nodeParams.Plugin.Name].LatestVersion
 			list[i][`latest_version_detail_url`] = remotePluginMap[nodeParams.Plugin.Name].LatestVersionDetail.DownloadUrl
 			list[i][`latest_version_detail_id`] = remotePluginMap[nodeParams.Plugin.Name].LatestVersionDetail.Id
+		}
+		if nodeType == work_flow.NodeTypeHttpTool {
+			nodeParams := work_flow.DisposeNodeParams(nodeType, node[`node_params`], common.GetLang(c))
+			list[i][`node_icon`] = nodeParams.Curl.ToolInfo.HttpToolAvatar
 		}
 
 		delete(list[i], `admin_user_id`)
 		delete(list[i], `robot_id`)
 		delete(list[i], `create_time`)
 		delete(list[i], `update_time`)
-		list[i][`node_params`] = tool.JsonEncodeNoError(work_flow.DisposeNodeParams(cast.ToInt(node[`node_type`]), node[`node_params`]))
+		list[i][`node_params`] = tool.JsonEncodeNoError(nodeParams)
 		filtered = append(filtered, list[i])
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(filtered, nil))
@@ -330,7 +342,7 @@ func SaveNodes(c *gin.Context) {
 		_ = tool.JsonDecodeUseNumber(lockRes, &redisValueMap)
 
 		userInfo, err := GetUserInfo(cast.ToString(redisValueMap["login_user_id"]))
-		staffUserName := "未知用户"
+		staffUserName := lib_define.UnknownUser
 		if err == nil && userInfo["user_name"] != "" {
 			staffUserName = userInfo["user_name"]
 		}
@@ -384,7 +396,7 @@ func SaveNodes(c *gin.Context) {
 	clearNodeKeys := make([]string, 0)
 	m := msql.Model(`work_flow_node`, define.Postgres)
 	if dataType == define.DataTypeRelease {
-		if startNodeKey, modelConfigIds, libraryIds, questionMultipleSwitch, err = work_flow.VerifyWorkFlowNodes(nodeList, userId); err != nil {
+		if startNodeKey, modelConfigIds, libraryIds, questionMultipleSwitch, err = work_flow.VerifyWorkFlowNodes(nodeList, userId, common.GetLang(c)); err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			lib_redis.UnLock(define.Redis, lockKey) //unlock
 			return
@@ -453,13 +465,13 @@ func SaveNodes(c *gin.Context) {
 
 	//保存上次编辑人信息
 	userInfo, err := GetUserInfo(cast.ToString(getLoginUserId(c)))
-	editUserName := "未知用户"
+	editUserName := lib_define.UnknownUser
 	if err == nil && userInfo["user_name"] != "" {
 		editUserName = userInfo["user_name"]
 	}
 	_, err = msql.Model(`chat_ai_robot`, define.Postgres).Where(`robot_key`, robotKey).Update(msql.Datas{
 		`last_edit_ip`:         lib_web.GetClientIP(c),
-		`last_edit_user_agent`: fmt.Sprintf("编辑人：%s，%s", editUserName, realUserAgent),
+		`last_edit_user_agent`: fmt.Sprintf(`editor: %s, %s`, editUserName, realUserAgent),
 		`draft_save_type`:      draftSaveType,
 		`draft_save_time`:      tool.Time2Int(),
 		`update_time`:          tool.Time2Int(),
@@ -691,7 +703,7 @@ func WorkFlowVersionDetail(c *gin.Context) {
 	for i, node := range list {
 		nodeType := cast.ToInt(node[`node_type`])
 		if !tool.InArrayInt(nodeType, work_flow.NodeTypes[:]) {
-			logs.Error(`节点类型非法:%s`, node[`node_type`])
+			logs.Error(`invalid node type:%s`, node[`node_type`])
 			continue
 		}
 		list[i][`data_type`] = cast.ToString(define.DataTypeDraft)
@@ -699,7 +711,7 @@ func WorkFlowVersionDetail(c *gin.Context) {
 		delete(list[i], `robot_id`)
 		delete(list[i], `create_time`)
 		delete(list[i], `update_time`)
-		list[i][`node_params`] = tool.JsonEncodeNoError(work_flow.DisposeNodeParams(cast.ToInt(node[`node_type`]), node[`node_params`]))
+		list[i][`node_params`] = tool.JsonEncodeNoError(work_flow.DisposeNodeParams(cast.ToInt(node[`node_type`]), node[`node_params`], common.GetLang(c)))
 		filtered = append(filtered, list[i])
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(filtered, nil))
@@ -738,7 +750,7 @@ func WorkFlowPublishVersion(c *gin.Context) {
 		_ = tool.JsonDecodeUseNumber(lockRes, &redisValueMap)
 
 		userInfo, err := GetUserInfo(cast.ToString(redisValueMap["login_user_id"]))
-		staffUserName := "未知用户"
+		staffUserName := lib_define.UnknownUser
 		if err == nil && userInfo["user_name"] != "" {
 			staffUserName = userInfo["user_name"]
 		}
@@ -775,7 +787,7 @@ func WorkFlowPublishVersion(c *gin.Context) {
 	var startNodeKey, modelConfigIds, libraryIds string
 	var questionMultipleSwitch bool
 	clearNodeKeys := make([]string, 0)
-	if startNodeKey, modelConfigIds, libraryIds, questionMultipleSwitch, err = work_flow.VerifyWorkFlowNodes(nodeList, userId); err != nil {
+	if startNodeKey, modelConfigIds, libraryIds, questionMultipleSwitch, err = work_flow.VerifyWorkFlowNodes(nodeList, userId, common.GetLang(c)); err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		lib_redis.UnLock(define.Redis, lockKey) //unlock
 		return
@@ -805,7 +817,7 @@ func WorkFlowPublishVersion(c *gin.Context) {
 	m := msql.Model(``, define.Postgres)
 	_ = m.Begin()
 	userInfo, err := GetUserInfo(cast.ToString(getLoginUserId(c)))
-	editUserName := "未知用户"
+	editUserName := lib_define.UnknownUser
 	if err == nil && userInfo["user_name"] != "" {
 		editUserName = userInfo["user_name"]
 	}
@@ -819,7 +831,7 @@ func WorkFlowPublishVersion(c *gin.Context) {
 		"create_time":          time.Now().Unix(),
 		"update_time":          time.Now().Unix(),
 		`last_edit_ip`:         lib_web.GetClientIP(c),
-		`last_edit_user_agent`: fmt.Sprintf("编辑人：%s，%s", editUserName, realUserAgent),
+		`last_edit_user_agent`: fmt.Sprintf(`editor: %s, %s`, editUserName, realUserAgent),
 	}, `id`)
 	if versionErr != nil {
 		_ = m.Rollback()
@@ -893,7 +905,7 @@ func WorkFlowPublishVersion(c *gin.Context) {
 		`update_time`:                tool.Time2Int(),
 		`question_multiple_switch`:   cast.ToUint(questionMultipleSwitch),
 		`last_edit_ip`:               lib_web.GetClientIP(c),
-		`last_edit_user_agent`:       fmt.Sprintf("编辑人：%s，%s", editUserName, realUserAgent),
+		`last_edit_user_agent`:       fmt.Sprintf(`editor: %s, %s`, editUserName, realUserAgent),
 	})
 	if err != nil {
 		_ = m.Rollback()
@@ -1071,7 +1083,7 @@ func TriggerConfigList(c *gin.Context) {
 			if strings.Contains(trigger[`name`], title) {
 				boolShow = true
 			}
-			if strings.Contains(`触发器`, title) {
+			if strings.Contains(lib_define.Trigger, title) {
 				boolShow = true
 			}
 			if strings.Contains(trigger[`author`], title) {
@@ -1089,7 +1101,7 @@ func TriggerConfigList(c *gin.Context) {
 					`author`:            trigger[`author`],
 					`icon`:              trigger[`icon`],
 					`latest_version`:    `1.0.0`,
-					`filter_type_title`: `触发器`,
+					`filter_type_title`: lib_define.Trigger,
 					`description`:       trigger[`intro`],
 					`trigger_config_id`: trigger[`id`],
 					`trigger_type`:      trigger[`trigger_type`],

@@ -7,6 +7,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/middlewares"
 	"chatwiki/internal/pkg/casbin"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"errors"
 	"fmt"
@@ -355,7 +356,7 @@ func formatManagedDataList(managedDataList, dataList []msql.Params) string {
 	if len(managedDataList) > 0 {
 		for _, list := range managedDataList {
 			if cast.ToInt(list[`object_id`]) == define.ObjectTypeAll {
-				result = append(result, msql.Params{"id": cast.ToString(define.ObjectTypeAll), "name": "全部"})
+				result = append(result, msql.Params{"id": cast.ToString(define.ObjectTypeAll), "name": lib_define.All})
 				break
 			}
 			for _, data := range dataList {

@@ -56,6 +56,7 @@ import AddDataForm from './add-data-form.vue'
 import KnowledgeBaseNodeForm from './knowledge-base-node-form.vue'
 import CodeRunNodeForm from './code-run-node/code-run-node-form.vue'
 import HttpNodeForm from './http-node/http-node-form.vue'
+import HttpToolNodeForm from './http-tool-node/http-tool-node-form.vue'
 import DeleteDataForm from './delete-data-form.vue'
 import VariableAssignmentNodeForm from './variable-assignment-node-form.vue'
 import UpdateDataForm from './update-data-form.vue'
@@ -82,6 +83,7 @@ import WebhookTriggerNodeForm from './webhook-trigger-node-form/index.vue'
 import ImportLibraryNodeForm from './import-library-node-form/index.vue'
 import JsonNodeForm from './json-node-form/index.vue'
 import JsonReverseNodeForm from './json-reverse-node-form/index.vue'
+import QaNodeForm from './qa-node-form/index.vue'
 import ZmWorkflowNodeForm from "./zm-workflow-node-form.vue";
 
 // 预定义所有可能的表单组件
@@ -93,6 +95,7 @@ const formComponents = {
   'knowledge-base-node': KnowledgeBaseNodeForm,
   'code-run-node': CodeRunNodeForm,
   'http-node': HttpNodeForm,
+  'http-tool-node': HttpToolNodeForm,
   'delete-data-node': DeleteDataForm,
   'variable-assignment-node': VariableAssignmentNodeForm,
   'update-data-node': UpdateDataForm,
@@ -118,6 +121,7 @@ const formComponents = {
   'import-library-node': ImportLibraryNodeForm,
   'json-node': JsonNodeForm,
   'json-reverse-node': JsonReverseNodeForm,
+  'qa-node': QaNodeForm,
   'zm-workflow-node': ZmWorkflowNodeForm,
 
   // 其他表单组件可以在这里添加

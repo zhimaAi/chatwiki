@@ -56,9 +56,9 @@ func GetWechatAppList(c *gin.Context) {
 		accountIsVerify := lib_define.WechatAccountIsVerify(appInfo[`account_customer_type`])
 		list[i][`account_is_verify`] = cast.ToString(accountIsVerify)
 		if appInfo[`app_type`] == lib_define.AppOfficeAccount && !accountIsVerify {
-			list[i][`wechat_reply_type`] = fmt.Sprintf(`%s秒内未生成答案则用户手动获取回复`, define.Config.WebService[`wechat_wait`])
+			list[i][`wechat_reply_type`] = i18n.Show(common.GetLang(c), `wechat_no_answer_manual_get`, define.Config.WebService[`wechat_wait`])
 		} else {
-			list[i][`wechat_reply_type`] = `系统自动回复消息`
+			list[i][`wechat_reply_type`] = i18n.Show(common.GetLang(c), `system_auto_reply`)
 		}
 		if appInfo[`account_customer_type`] == `-1` && tool.InArrayString(appInfo[`app_type`], []string{lib_define.AppOfficeAccount, lib_define.AppMini}) {
 			go func() {
@@ -145,7 +145,7 @@ func RobotRelateOfficialAccount(c *gin.Context) {
 			Where(`admin_user_id`, cast.ToString(userId)).
 			Where(`id`, `in`, strings.Join(shouldDelIdList, ",")).
 			Where(`app_type`, lib_define.AppOfficeAccount).
-			Update(msql.Datas{`robot_id`: 0, `robot_key`: robot[`robot_key`]})
+			Update(msql.Datas{`robot_id`: 0, `robot_key`: ``})
 		if err != nil {
 			logs.Error(err.Error())
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -233,7 +233,7 @@ func SaveWechatApp(c *gin.Context) {
 			return
 		}
 		if count >= 10 {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(`当前版本最多支持绑定10个公众号`)))
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `max_official_accounts_limit`))))
 			return
 		}
 	}

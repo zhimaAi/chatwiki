@@ -108,7 +108,6 @@
                   <a-radio :value="1">新标签页打开</a-radio>
                   <a-radio :value="2">新窗口弹窗打开
                     <a-tooltip title="仅管控PC端新窗口打开,移动端依然用新标签页打开">
-                      <template #title>prompt text</template>
                       <QuestionCircleOutlined />
                     </a-tooltip>
                   </a-radio>
@@ -127,6 +126,12 @@
                     </a-flex>
                   </div>
                 </a-form-item-rest>
+              </a-form-item>
+              <a-form-item class="form-item" label="是否显示历史对话和新增对话按钮" name="new_session_btn_show" required>
+                <a-radio-group v-model:value="formState.new_session_btn_show" name="new_session_btn_show">
+                  <a-radio :value="1">显示</a-radio>
+                  <a-radio :value="2">不显示</a-radio>
+                </a-radio-group>
               </a-form-item>
             </a-form>
           </div>
@@ -180,6 +185,7 @@ import PageTitleInput from './page-title-input.vue'
 import GradientColorPicker from './gradient-color-picker.vue'
 import QuickInstruction from './quick-instruction.vue'
 import FloatIconSetting from './float-icon-setting.vue'
+import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 
 const robotStore = useRobotStore()
 const { robotInfo, external_config_pc } = storeToRefs(robotStore)
@@ -203,6 +209,7 @@ const formState = reactive({
   open_type: external_config_pc.value.open_type,
   window_width: external_config_pc.value.window_width,
   window_height: external_config_pc.value.window_height,
+  new_session_btn_show: external_config_pc.value.new_session_btn_show
 })
 
 const previewIframeSrc = computed(() => {

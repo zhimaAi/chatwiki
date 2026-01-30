@@ -29,6 +29,7 @@ const StatsTypeDailyAiMsgCount = 6
 var statsMu sync.Mutex
 
 func LlmLogRequest(
+	lang string,
 	_type string,
 	adminUserId int,
 	openid string,
@@ -74,7 +75,7 @@ func LlmLogRequest(
 		return err
 	}
 
-	corpName := GetModelNameByDefine(config[`model_define`])
+	corpName := GetModelNameByDefine(lang, config[`model_define`])
 	data := msql.Datas{
 		`admin_user_id`:    adminUserId,
 		`openid`:           openid,
@@ -424,11 +425,11 @@ func statDailyNewUser(adminUserId, robotId int, appType, openid string) error {
 		Find()
 	if len(row) == 0 {
 		_, err = msql.Model(`llm_request_daily_stats`, define.Postgres).Insert(msql.Datas{
-			`admin_user_id`: cast.ToString(adminUserId),
+			`admin_user_id`: adminUserId,
 			`robot_id`:      robotId,
 			`app_type`:      appType,
 			`date`:          time.Now().Format(`2006-01-02`),
-			`type`:          cast.ToString(StatsTypeDailyNewUser),
+			`type`:          StatsTypeDailyNewUser,
 			`amount`:        newUserCount,
 			`create_time`:   tool.Time2Int(),
 			`update_time`:   tool.Time2Int(),
@@ -456,9 +457,10 @@ func statDailyNewUser(adminUserId, robotId int, appType, openid string) error {
 }
 
 func statDailyRequestCount(adminUserId int, robot msql.Params, appType string) error {
+	robotId := cast.ToInt(robot[`id`])
 	row, err := msql.Model(`llm_request_daily_stats`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
-		Where(`robot_id`, robot[`id`]).
+		Where(`robot_id`, cast.ToString(robotId)).
 		Where(`app_type`, appType).
 		Where(`date`, time.Now().Format(`2006-01-02`)).
 		Where(`type`, cast.ToString(StatsTypeDailyMsgCount)).
@@ -468,12 +470,12 @@ func statDailyRequestCount(adminUserId int, robot msql.Params, appType string) e
 	}
 	if len(row) == 0 {
 		_, err = msql.Model(`llm_request_daily_stats`, define.Postgres).Insert(msql.Datas{
-			`admin_user_id`: cast.ToString(adminUserId),
-			`robot_id`:      robot[`id`],
+			`admin_user_id`: adminUserId,
+			`robot_id`:      robotId,
 			`date`:          time.Now().Format(`2006-01-02`),
 			`app_type`:      appType,
-			`type`:          cast.ToString(StatsTypeDailyMsgCount),
-			`amount`:        "2",
+			`type`:          StatsTypeDailyMsgCount,
+			`amount`:        2,
 			`create_time`:   tool.Time2Int(),
 			`update_time`:   tool.Time2Int(),
 		})
@@ -483,12 +485,12 @@ func statDailyRequestCount(adminUserId int, robot msql.Params, appType string) e
 	} else {
 		_, err = msql.Model(`llm_request_daily_stats`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(adminUserId)).
-			Where(`robot_id`, robot[`id`]).
+			Where(`robot_id`, cast.ToString(robotId)).
 			Where(`app_type`, appType).
 			Where(`date`, time.Now().Format(`2006-01-02`)).
 			Where(`type`, cast.ToString(StatsTypeDailyMsgCount)).
 			Update(msql.Datas{
-				`amount`:      cast.ToString(cast.ToInt(row[`amount`]) + 2),
+				`amount`:      cast.ToInt(row[`amount`]) + 2,
 				`update_time`: tool.Time2Int(),
 			})
 		if err != nil {
@@ -499,9 +501,10 @@ func statDailyRequestCount(adminUserId int, robot msql.Params, appType string) e
 }
 
 func statDailyTokenCount(adminUserId int, robot msql.Params, appType string, promptToken, completionToken int) error {
+	robotId := cast.ToInt(robot[`id`])
 	row, err := msql.Model(`llm_request_daily_stats`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
-		Where(`robot_id`, robot[`id`]).
+		Where(`robot_id`, cast.ToString(robotId)).
 		Where(`app_type`, appType).
 		Where(`date`, time.Now().Format(`2006-01-02`)).
 		Where(`type`, cast.ToString(StatsTypeDailyTokenCount)).
@@ -512,12 +515,12 @@ func statDailyTokenCount(adminUserId int, robot msql.Params, appType string, pro
 	if len(row) == 0 {
 		_, err = msql.Model(`llm_request_daily_stats`, define.Postgres).
 			Insert(msql.Datas{
-				`admin_user_id`: cast.ToString(adminUserId),
-				`robot_id`:      robot[`id`],
+				`admin_user_id`: adminUserId,
+				`robot_id`:      robotId,
 				`date`:          time.Now().Format(`2006-01-02`),
 				`app_type`:      appType,
-				`type`:          cast.ToString(StatsTypeDailyTokenCount),
-				`amount`:        cast.ToString(promptToken + completionToken),
+				`type`:          StatsTypeDailyTokenCount,
+				`amount`:        promptToken + completionToken,
 				`create_time`:   tool.Time2Int(),
 				`update_time`:   tool.Time2Int(),
 			})
@@ -527,12 +530,12 @@ func statDailyTokenCount(adminUserId int, robot msql.Params, appType string, pro
 	} else {
 		_, err = msql.Model(`llm_request_daily_stats`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(adminUserId)).
-			Where(`robot_id`, robot[`id`]).
+			Where(`robot_id`, cast.ToString(robotId)).
 			Where(`app_type`, appType).
 			Where(`date`, time.Now().Format(`2006-01-02`)).
 			Where(`type`, cast.ToString(StatsTypeDailyTokenCount)).
 			Update(msql.Datas{
-				"amount":      cast.ToString(cast.ToInt(row[`amount`]) + promptToken + completionToken),
+				"amount":      cast.ToInt(row[`amount`]) + promptToken + completionToken,
 				"update_time": tool.Time2Int(),
 			})
 		if err != nil {
@@ -543,9 +546,10 @@ func statDailyTokenCount(adminUserId int, robot msql.Params, appType string, pro
 }
 
 func statDailyRequestLibraryTip(adminUserId int, robot msql.Params, appType, statType string) {
+	robotId := cast.ToInt(robot[`id`])
 	row, err := msql.Model(`llm_request_daily_stats`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
-		Where(`robot_id`, robot[`id`]).
+		Where(`robot_id`, cast.ToString(robotId)).
 		Where(`app_type`, appType).
 		Where(`date`, time.Now().Format(`2006-01-02`)).
 		Where(`type`, statType).
@@ -557,7 +561,7 @@ func statDailyRequestLibraryTip(adminUserId int, robot msql.Params, appType, sta
 	if len(row) == 0 {
 		_, err = msql.Model(`llm_request_daily_stats`, define.Postgres).Insert(msql.Datas{
 			`admin_user_id`: cast.ToString(adminUserId),
-			`robot_id`:      robot[`id`],
+			`robot_id`:      robotId,
 			`date`:          time.Now().Format(`2006-01-02`),
 			`app_type`:      appType,
 			`type`:          statType,
@@ -572,7 +576,7 @@ func statDailyRequestLibraryTip(adminUserId int, robot msql.Params, appType, sta
 	} else {
 		_, err = msql.Model(`llm_request_daily_stats`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(adminUserId)).
-			Where(`robot_id`, robot[`id`]).
+			Where(`robot_id`, cast.ToString(robotId)).
 			Where(`app_type`, appType).
 			Where(`date`, time.Now().Format(`2006-01-02`)).
 			Where(`type`, statType).

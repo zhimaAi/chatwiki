@@ -30,3 +30,8 @@ const (
 	LibraryImportRepeatUpdate    = `update`     //重复时更新
 	LibraryImportRepeatImport    = `import`     //url存在时继续导入
 )
+
+const (
+	QuestionAnswerTypeText = `text`
+	QuestionAnswerTypeMenu = `menu`
+)

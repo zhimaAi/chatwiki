@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	netURL "net/url"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -75,13 +76,14 @@ func GetLibraryList(c *gin.Context) {
 		}
 	}
 	out := make([]map[string]any, 0, len(list))
+	builtinMetaSchemaList := common.GetBuiltinMetaSchemaList(common.GetLang(c))
 	for _, params := range list {
 		obj := make(map[string]any, len(params)+1)
 		for k, v := range params {
 			obj[k] = v
 		}
-		metaList := make([]map[string]any, 0, len(define.BuiltinMetaSchemaList)+len(schemaByLib[params[`id`]]))
-		for _, b := range define.BuiltinMetaSchemaList {
+		metaList := make([]map[string]any, 0, len(builtinMetaSchemaList)+len(schemaByLib[params[`id`]]))
+		for _, b := range builtinMetaSchemaList {
 			isShow := 0
 			switch b.Key {
 			case define.BuiltinMetaKeySource:
@@ -457,7 +459,7 @@ func LibraryRecallTest(c *gin.Context) {
 		}
 	}
 
-	list, _, err := common.GetMatchLibraryParagraphList("", "", question, []string{}, libraryIds, size, similarity, searchType, robot)
+	list, _, err := common.GetMatchLibraryParagraphList(common.GetLang(c), cast.ToString(userId), lib_define.AppYunH5, question, []string{}, libraryIds, size, similarity, searchType, robot)
 	for _, item := range list {
 		library, err := common.GetLibraryInfo(cast.ToInt(item[`library_id`]), userId)
 		if err != nil {
@@ -510,7 +512,7 @@ func CronSyncOfficialContent() {
 		return
 	}
 	for _, library := range libraries {
-		SyncOfficialLibrary(define.LangZhCn, cast.ToInt(library[`id`]))
+		SyncOfficialLibrary(define.LangEnUs, cast.ToInt(library[`id`]))
 	}
 }
 
@@ -521,28 +523,28 @@ func SyncOfficialLibrary(lang string, libraryId int) {
 		return
 	}
 	if len(libraryInfo) == 0 {
-		logs.Error("知识库不存在")
+		logs.Error(`library not exist`)
 		return
 	}
 	if cast.ToInt(libraryInfo[`type`]) != define.OfficialLibraryType {
-		logs.Error(`仅支持公众号知识库`)
+		logs.Error(`only support official account library`)
 		return
 	}
 
 	appInfo, err := common.GetWechatAppInfo(`app_id`, libraryInfo[`official_app_id`])
 	if err != nil {
-		updateSyncOfficialLibraryStatus(libraryId, define.SyncOfficialContentStatusFailed, fmt.Sprintf(`查找公众号信息失败: %v`, err.Error()))
+		updateSyncOfficialLibraryStatus(libraryId, define.SyncOfficialContentStatusFailed, fmt.Sprintf(`find official account info failed: %v`, err.Error()))
 		return
 	}
 	app, err := wechat.GetApplication(msql.Params{`app_type`: lib_define.AppOfficeAccount, `app_id`: libraryInfo[`official_app_id`], `app_secret`: appInfo[`app_secret`]})
 	if err != nil {
-		updateSyncOfficialLibraryStatus(libraryId, define.SyncOfficialContentStatusFailed, fmt.Sprintf(`没找到对应的公众号信息: %v`, err.Error()))
+		updateSyncOfficialLibraryStatus(libraryId, define.SyncOfficialContentStatusFailed, fmt.Sprintf(`corresponding official account info not found: %v`, err.Error()))
 		return
 	}
 
 	officialApp, ok := app.(wechat.OfficialAccountInterface)
 	if !ok {
-		updateSyncOfficialLibraryStatus(libraryId, define.SyncOfficialContentStatusFailed, `公众号示例初始化失败`)
+		updateSyncOfficialLibraryStatus(libraryId, define.SyncOfficialContentStatusFailed, `official account instance init failed`)
 		return
 	}
 
@@ -568,14 +570,18 @@ func SyncOfficialLibrary(lang string, libraryId int) {
 
 	offset := 0
 	count := 20
+
+	returnDir := filepath.Join(fmt.Sprintf(`%s/upload/chat_ai/%s/%s/%s`, filepath.Dir(define.AppRoot), libraryInfo[`admin_user_id`], `library_file`, tool.Date(`Ym`)))
+	thumbFolderPath := filepath.Join(fmt.Sprintf(`/upload/chat_ai/%s/%s/%s/`, libraryInfo[`admin_user_id`], `library_file`, tool.Date(`Ym`)))
+
 	for {
 		resp, err := officialApp.GetPublishedMessageList(offset, count, 0)
 		if err != nil {
-			updateSyncOfficialLibraryStatus(libraryId, define.SyncOfficialContentStatusFailed, fmt.Sprintf(`请求微信公众平台获取已发布的消息列表失败: %v`, err.Error()))
+			updateSyncOfficialLibraryStatus(libraryId, define.SyncOfficialContentStatusFailed, fmt.Sprintf(`request wechat official platform to get published message list failed: %v`, err.Error()))
 			return
 		}
 		if len(resp.Item) == 0 {
-			logs.Info("没有获取到公众号消息内容,跳过")
+			logs.Info(`no official account message content obtained, skip`)
 			break
 		}
 		// 处理当前批次的数据
@@ -586,10 +592,14 @@ func SyncOfficialLibrary(lang string, libraryId int) {
 			}
 
 			for _, newsItem := range item.Content.NewsItem {
+				ThumbPath, err := officialApp.GetMaterial(newsItem.ThumbMediaId, returnDir, thumbFolderPath) //获取一下封面
+				if err != nil {
+					logs.Error("error：" + err.Error())
+				}
 				// 检查URL地址
 				parsedURL, err := netURL.Parse(newsItem.Url)
 				if err != nil || parsedURL == nil {
-					logs.Error("URL地址不合法: %v", err.Error())
+					logs.Error(`invalid url: %v`, err.Error())
 					continue
 				}
 
@@ -608,7 +618,7 @@ func SyncOfficialLibrary(lang string, libraryId int) {
 
 				content, err := common.ProcessHTMLImages(strings.ReplaceAll(article.Content, "data-src", "src"), cast.ToInt(libraryInfo[`admin_user_id`]))
 				if err != nil {
-					logs.Error(fmt.Sprintf("提取html图片失败:%v", err.Error()))
+					logs.Error(fmt.Sprintf(`extract html image failed:%v`, err.Error()))
 				}
 
 				req := BridgeAddLibraryFileReq{}
@@ -618,11 +628,12 @@ func SyncOfficialLibrary(lang string, libraryId int) {
 				req.OfficialArticleUpdateTime = item.UpdateTime
 				req.LibraryId = cast.ToString(libraryId)
 				req.Content = content
+				req.ThumbPath = ThumbPath
 
 				req.Title = newsItem.Title
 				_, err = addLibFile(nil, lang, cast.ToInt(libraryInfo[`admin_user_id`]), libraryId, cast.ToInt(libraryInfo[`type`]), &define.ChunkParam{}, &req)
 				if err != nil {
-					updateSyncOfficialLibraryStatus(libraryId, define.SyncOfficialContentStatusFailed, fmt.Sprintf(`添加知识库文件失败: %v`, err.Error()))
+					updateSyncOfficialLibraryStatus(libraryId, define.SyncOfficialContentStatusFailed, fmt.Sprintf(`add knowledge base file failed: %v`, err.Error()))
 					return
 				}
 			}
@@ -675,7 +686,8 @@ func GetLibraryMetaSchemaList(c *gin.Context) {
 
 	// 内置元数据：不落库，只由 chat_ai_library 的开关字段控制展示
 	list := make([]map[string]any, 0, 8)
-	for _, b := range define.BuiltinMetaSchemaList {
+	builtinMetaSchemaList := common.GetBuiltinMetaSchemaList(common.GetLang(c))
+	for _, b := range builtinMetaSchemaList {
 		isShow := 0
 		switch b.Key {
 		case define.BuiltinMetaKeySource:
@@ -793,7 +805,8 @@ func GetLibraryMultiMetaSchemaList(c *gin.Context) {
 	result := make([]map[string]any, 0, 32)
 
 	// 内置 meta：只保留一份（与 GetRobotMetaSchemaList 一致）
-	for _, b := range define.BuiltinMetaSchemaList {
+	builtinMetaSchemaList := common.GetBuiltinMetaSchemaList(common.GetLang(c))
+	for _, b := range builtinMetaSchemaList {
 		k := b.Key
 		if seen[k] {
 			continue

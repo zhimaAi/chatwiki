@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
 	"fmt"
@@ -112,7 +113,7 @@ func GetSessionRecordList(c *gin.Context) {
 				list[i][`name`] = customer[`name`]
 				list[i][`avatar`] = customer[`avatar`]
 			} else {
-				list[i][`name`] = `访客XXXX`
+				list[i][`name`] = lib_define.DefaultCustomerName
 				list[i][`avatar`] = define.DefaultCustomerAvatar
 			}
 		}
@@ -127,7 +128,7 @@ func CreateSessionExport(c *gin.Context) {
 		return
 	}
 	robotId := cast.ToUint(c.Query(`robot_id`))
-	fileName := fmt.Sprintf(`会话记录%s.xlsx`, tool.Date(`YmdHis`))
+	fileName := i18n.Show(common.GetLang(c), `session_record_export_filename`, tool.Date(`YmdHis`))
 	params := map[string]any{
 		`admin_user_id`: userId,
 		`robot_id`:      robotId,
@@ -137,6 +138,6 @@ func CreateSessionExport(c *gin.Context) {
 		`end_time`:      cast.ToInt(c.Query(`end_time`)),
 		`name`:          strings.TrimSpace(c.Query(`name`)),
 	}
-	id, err := common.CreateExportTask(uint(userId), robotId, define.ExportSourceSession, fileName, params)
+	id, err := common.CreateExportTask(common.GetLang(c), uint(userId), robotId, define.ExportSourceSession, fileName, params)
 	c.String(http.StatusOK, lib_web.FmtJson(id, err))
 }

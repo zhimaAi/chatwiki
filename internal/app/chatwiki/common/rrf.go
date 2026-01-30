@@ -8,6 +8,8 @@ import (
 	"github.com/zhimaAi/go_tools/msql"
 )
 
+const CallbackNeighborLimit = 10
+
 type DataSource struct {
 	List   []msql.Params
 	Key    string

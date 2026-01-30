@@ -14,7 +14,7 @@ import (
 func GenerateChatwikiZip(userId int, domain, outputZip string) error {
 	link := `https://chatwiki.oss-cn-hangzhou.aliyuncs.com/client_side.zip`
 	if !LinkExists(link) {
-		return errors.New(`客户端压缩包获取失败`)
+		return errors.New(`the client failed to obtain the compressed package`)
 	}
 	configJson := `resources/app.asar.unpacked/resources/config.json`
 	reader, err := zip.OpenReader(GetFileByLink(link))

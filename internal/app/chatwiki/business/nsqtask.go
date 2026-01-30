@@ -3,10 +3,13 @@
 package business
 
 import (
+	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/thumbnail"
 	"chatwiki/internal/pkg/wechat"
 	"context"
 	"fmt"
 	"math"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -159,6 +162,7 @@ func ConvertVector(msg string, _ ...string) error {
 		return nil
 	}
 	embedding, err := common.GetVector2000(
+		define.LangEnUs,
 		cast.ToInt(info[`admin_user_id`]),
 		info[`admin_user_id`],
 		msql.Params{},
@@ -250,6 +254,7 @@ func ConvertGraph(msg string, _ ...string) error {
 	prompt := strings.ReplaceAll(define.PromptDefaultGraphConstruct, `{{content}}`, content)
 	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `user`, Content: prompt}}
 	chatResp, _, err := common.RequestChat(
+		define.LangEnUs,
 		cast.ToInt(info[`admin_user_id`]),
 		info[`admin_user_id`],
 		msql.Params{},
@@ -488,6 +493,16 @@ func CrawlArticle(msg string, _ ...string) error {
 		return nil
 	}
 
+	returnDir := filepath.Join(fmt.Sprintf(`%s/upload/chat_ai/%d/%s/%s`, filepath.Dir(define.AppRoot), adminUserId, `library_file`, tool.Date(`Ym`)))
+	thumbFolderPath := filepath.Join(fmt.Sprintf(`/upload/chat_ai/%d/%s/%s/`, adminUserId, `library_file`, tool.Date(`Ym`)))
+
+	//生成缩略图
+	thumbPath, _, _, genErr := thumbnail.GenerateThumbnail(common.GetFileByLink(uploadInfo.Link), returnDir, thumbFolderPath)
+
+	if genErr != nil {
+		logs.Error("generate thumbnail error：" + genErr.Error())
+	}
+
 	// update file status
 	_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
 		`status`:              define.FileStatusInitial,
@@ -497,6 +512,7 @@ func CrawlArticle(msg string, _ ...string) error {
 		`update_time`:         tool.Time2Int(),
 		`doc_last_renew_time`: tool.Time2Int(),
 		`async_split_params`:  ``, //清空之前的参数
+		`thumb_path`:          thumbPath,
 	})
 	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: fileId})
 	if err != nil {
@@ -543,7 +559,7 @@ func CrawlFeishuDoc(msg string, _ ...string) error {
 	app, err := wechat.GetApplication(msql.Params{`app_type`: lib_define.FeiShuRobot, `app_id`: file[`feishu_app_id`], `app_secret`: file[`feishu_app_secret`]})
 	feishuApp, ok := app.(wechat.FeishuInterface)
 	if !ok {
-		logs.Error(`飞书app初始化失败`)
+		logs.Error(`feishu app init failed`)
 		return nil
 	}
 	title, content, err := feishuApp.GetDocFileDetail(file[`feishu_document_id`])
@@ -560,11 +576,29 @@ func CrawlFeishuDoc(msg string, _ ...string) error {
 		return nil
 	}
 
+	returnDir := filepath.Join(fmt.Sprintf(`%s/upload/chat_ai/%d/%s/%s`, filepath.Dir(define.AppRoot), adminUserId, `library_file`, tool.Date(`Ym`)))
+	thumbFolderPath := filepath.Join(fmt.Sprintf(`/upload/chat_ai/%d/%s/%s/`, adminUserId, `library_file`, tool.Date(`Ym`)))
+
+	//生成缩略图
+	thumbPath, _, _, genErr := thumbnail.GenerateThumbnail(common.GetFileByLink(link), returnDir, thumbFolderPath)
+
+	if genErr != nil {
+		logs.Error("generate thumbnail error：" + genErr.Error())
+	}
+
+	//if common.IsUrl(link) {
+	//	err = os.Rename(outputPath, filepath.Dir(define.AppRoot)+thumbPath)
+	//	if err != nil {
+	//		logs.Error("move file error：" + err.Error())
+	//	}
+	//}
+
 	// update file status
 	_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
 		`status`:              define.FileStatusWaitSplit,
 		`file_name`:           title,
 		`file_url`:            link,
+		`thumb_path`:          thumbPath,
 		`file_ext`:            `md`,
 		`file_size`:           len(content),
 		`update_time`:         tool.Time2Int(),
@@ -588,7 +622,7 @@ func ExportTask(id string, _ ...string) error {
 		return nil
 	}
 	if len(task) == 0 {
-		return nil //任务状态不对
+		return nil //task status incorrect
 	}
 	_, err = m.Where(`id`, id).Where(`status`, cast.ToString(define.ExportStatusWaiting)).Update(msql.Datas{
 		`status`:      define.ExportStatusRunning,
@@ -621,16 +655,17 @@ func ExportTask(id string, _ ...string) error {
 	}()
 	params := make(map[string]any)
 	if err = tool.JsonDecodeUseNumber(task[`params`], &params); err != nil {
-		errMsg = `参数解析错误:` + err.Error()
+		errMsg = `parameter parsing error:` + err.Error()
 		return nil
 	}
+	lang := define.LangEnUs //default is english
 	switch cast.ToUint(task[`source`]) {
 	case define.ExportSourceSession: //会话记录导出
-		fileUrl, err = common.RunSessionExport(params)
+		fileUrl, err = common.RunSessionExport(lang, params)
 	case define.ExportSourceLibFileDoc: //知识库文档导出
-		fileUrl, fileName, err = common.RunLibFileDocExport(params)
+		fileUrl, fileName, err = common.RunLibFileDocExport(lang, params)
 	default:
-		errMsg = `来源类型错误:` + task[`source`]
+		errMsg = `invalid source type:` + task[`source`]
 	}
 	if err != nil { //导出失败
 		errMsg = err.Error()
@@ -777,7 +812,7 @@ func ExtractFaqFiles(msg string, _ ...string) error {
 			allContents := []chunkResult{}
 			if item.AiChunkErrMsg == "" {
 				if err := tool.JsonDecode(item.Answer, &allContents); err != nil {
-					data[`split_errmsg`] = fmt.Sprintf(`json解析失败:%s`, err.Error())
+					data[`split_errmsg`] = fmt.Sprintf(`json parsing failed:%s`, err.Error())
 					data[`split_status`] = define.FAQFileSplitStatusFailed
 					data[`err_content`] = item.Answer
 				}
@@ -827,7 +862,7 @@ func ExtractFaqFiles(msg string, _ ...string) error {
 
 EndExtract:
 	if failCount == total && isNew {
-		errMsg = `提取文件失败`
+		errMsg = `file extraction failed`
 		status = define.FAQFileStatusExtractFailed
 	}
 	common.UpdateLibFileFaqStatus(fileId, adminUserId, status, errMsg)
@@ -846,7 +881,7 @@ func OfficialAccountDraftSync(msg string, _ ...string) error {
 	//验证admin_user_id 和 app_id 获取secret
 	appInfo, err := common.GetWechatAppInfo(`access_key`, cast.ToString(data["access_key"]))
 	if err != nil {
-		logs.Error("微信app信息获取失败：" + err.Error())
+		logs.Error(`failed to get wechat app info:` + err.Error())
 	}
 
 	limit := cast.ToInt(data["limit"])
@@ -879,7 +914,7 @@ func OfficialAccountDraftSync(msg string, _ ...string) error {
 
 		_, err = client.Base.BaseClient.HttpPostJson(context.Background(), "/cgi-bin/draft/batchget", params, nil, nil, &respData)
 
-		//没拉到数据了，退出，
+		//no more data, exit
 		if len(respData.Item) == 0 {
 			break
 		}
@@ -900,10 +935,10 @@ func OfficialAccountDraftSync(msg string, _ ...string) error {
 			res, e := m.Where("media_id", s.MediaId).Update(updateData)
 
 			if e != nil {
-				logs.Error("执行错误：" + e.Error())
+				logs.Error(`execution error:` + e.Error())
 			}
 
-			//如果如果更新数据为0，写入数据
+			//if update count is 0, insert data
 			if res == 0 {
 				updateData[`create_time`] = time.Now().Unix()
 				updateData[`media_id`] = s.MediaId
@@ -925,7 +960,7 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 
 	//验证任务类型
 	if taskInfo.Type != define.OfficialAccountBatchSendSyncCommentTask {
-		logs.Error("任务类型错误" + cast.ToString(taskInfo.Type))
+		logs.Error(`invalid task type` + cast.ToString(taskInfo.Type))
 		return nil
 	}
 
@@ -937,7 +972,7 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 		Field(`a.*,b.media_id,c.app_id,c.app_secret`).Find()
 
 	if err != nil {
-		logs.Error("查询任务信息失败：" + err.Error())
+		logs.Error(`failed to query task info:` + err.Error())
 		return err
 	}
 
@@ -972,13 +1007,13 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 		beginIndex += pageSize
 
 		for _, comment := range respData.Comment {
-			//如果当前的评论ID，小于记录的评论ID，则代表拉取过，跳过拉取，
+			//if current comment id is less than recorded comment id, it has been synced, skip
 			if comment.UserCommentId <= maxCommentId {
 				returnSync = true
 				break
 			}
 
-			//更新一下最大评论ID
+			//update max comment id
 			if newMaxCommentId < comment.UserCommentId {
 				newMaxCommentId = comment.UserCommentId
 			}
@@ -999,7 +1034,7 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 				"reply_create_time":   comment.Reply.CreateTime,
 			}
 
-			//如果没有获取到文本内容，默认经过AI精选
+			//if no text content, default to AI selection
 			if updateData["content_text"] == "" {
 				updateData["ai_comment_rule_status"] = 1
 			}
@@ -1009,7 +1044,7 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 				Where(`msg_data_id`, taskData["msg_data_id"]).
 				Where(`user_comment_id`, cast.ToString(comment.UserCommentId)).Update(updateData)
 			if err != nil {
-				logs.Error("更新数据失败：" + err.Error())
+				logs.Error(`update data failed:` + err.Error())
 				continue
 			}
 
@@ -1019,7 +1054,7 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 
 				_, err := msql.Model(`wechat_official_comment_list`, define.Postgres).Insert(updateData, "id")
 				if err != nil {
-					logs.Error("数据写入失败：" + err.Error())
+					logs.Error(`data write failed:` + err.Error())
 					continue
 				}
 			}
@@ -1037,9 +1072,9 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 		`max_comment_id`:         newMaxCommentId,
 	})
 
-	//如果群发规则没开启自动精选评论，退出
+	//if auto selection not enabled, exit
 	if cast.ToInt(taskData["ai_comment_status"]) == 0 || !common.CheckUseAbilityByAbilityType(taskInfo.AdminUserId, common.OfficialAccountAbilityAIComment) {
-		logs.Debug("规则，或者账户没开启AI评论精选")
+		logs.Debug(`rule or account does not enable AI comment selection`)
 		return nil
 	}
 
@@ -1048,7 +1083,7 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 		Where(`msg_data_id`, taskData["msg_data_id"]).Where(`ai_comment_rule_status`, "0").Select()
 
 	if err != nil {
-		logs.Error("获取待AI精选的评论列表错误：" + err.Error())
+		logs.Error(`failed to get comment list for AI selection:` + err.Error())
 		return err
 	}
 
@@ -1064,7 +1099,7 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 			CommentText:   params["content_text"],
 		}
 		if err := common.AddJobs(define.OfficialAccountCommentAiCheckTopic, tool.JsonEncodeNoError(taskInfo)); err != nil {
-			logs.Error(`NSQ生产异常,走同步逻辑,错误:%s`, err.Error())
+			logs.Error(`nsq production error, fallback to sync logic:%s`, err.Error())
 			_ = OfficialAccountCommentAiCheck(tool.JsonEncodeNoError(taskInfo))
 		}
 	}
@@ -1091,13 +1126,13 @@ func OfficialAccountCommentAiCheck(msg string, _ ...string) error {
 	//查询评论规则详情
 	ruleInfo, err := query.Find()
 	if err != nil {
-		logs.Error(`获取评论规则错误：%s`, err.Error())
+		logs.Error(`failed to get comment rule:%s`, err.Error())
 		return err
 	}
 
 	//自定义规则，需要开启
 	if cast.ToInt(ruleInfo["is_default"]) == 0 && ruleInfo["switch"] != define.BaseOpen {
-		logs.Error("评论规则未开启")
+		logs.Error(`comment rule not enabled`)
 		return nil
 	}
 
@@ -1106,6 +1141,7 @@ func OfficialAccountCommentAiCheck(msg string, _ ...string) error {
 	reply_context := ""
 
 	//开始执行判断逻辑
+	lang := define.LangZhCn
 	if ruleInfo["delete_comment_switch"] == define.BaseOpen { //自动删除评论判断
 		nodeRule := manage.BridgeDeleteCommentRule{}
 		_ = tool.JsonDecode(ruleInfo["delete_comment_rule"], &nodeRule)
@@ -1118,7 +1154,7 @@ func OfficialAccountCommentAiCheck(msg string, _ ...string) error {
 				for _, keyword := range nodeRule.Keywords {
 					if strings.Contains(taskInfo.CommentText, keyword) { //包含关键词
 						hasKeywords = true
-						ai_comment_rule_text = append(ai_comment_rule_text, "AI自动删评-敏感词触发（"+keyword+"）")
+						ai_comment_rule_text = append(ai_comment_rule_text, i18n.Show(lang, `ai_comment_delete_sensitive_word`, keyword))
 						break
 					}
 				}
@@ -1126,11 +1162,11 @@ func OfficialAccountCommentAiCheck(msg string, _ ...string) error {
 
 			//AI检测，且存在提示词
 			if checkType == define.CommentCheckTypeAICheck && nodeRule.Prompt != "" {
-				userPrompt := "我下面给你一段评论内容，评论内容为：'" + taskInfo.CommentText + "'，请充分分析这段文字的意思，要求如下：" + nodeRule.Prompt + "，判断是否需要删除当前评论。"
+				userPrompt := i18n.Show(lang, `ai_comment_delete_check_prompt`, taskInfo.CommentText, nodeRule.Prompt)
 				checkRes := getAiCommentCheckRes(taskInfo.AdminUserId, userPrompt, ruleInfo["use_model"], ruleInfo["model_config_id"])
 
 				if checkRes.NeedDelete { //如果需要删除
-					ai_comment_rule_text = append(ai_comment_rule_text, "AI自动删评-AI检测")
+					ai_comment_rule_text = append(ai_comment_rule_text, i18n.Show(lang, `ai_comment_delete_ai_check`))
 					aiDelete = checkRes.NeedDelete
 				}
 			}
@@ -1159,23 +1195,23 @@ func OfficialAccountCommentAiCheck(msg string, _ ...string) error {
 		nodeRule := manage.BridgeReplyCommentRule{}
 		_ = tool.JsonDecode(ruleInfo["reply_comment_rule"], &nodeRule)
 
-		userPrompt := "我下面给你一段评论内容，评论内容为：'" + taskInfo.CommentText + "'，请充分分析这段文字的意思，要求如下：" + nodeRule.CheckReplyPrompt + "，判断是否需要回复当前评论。"
+		userPrompt := i18n.Show(lang, `ai_comment_reply_check_prompt`, taskInfo.CommentText, nodeRule.CheckReplyPrompt)
 		checkRes := getAiCommentCheckRes(taskInfo.AdminUserId, userPrompt, ruleInfo["use_model"], ruleInfo["model_config_id"])
 
 		//如果需要回复，且使用固定回复内容
 		if checkRes.NeedReply && nodeRule.ReplyType == 1 {
 			reply_context = nodeRule.ReplyPrompt
 			ai_comment_result[define.CommentExecTypeReply] = define.CommentExecTypeReply
-			ai_comment_rule_text = append(ai_comment_rule_text, "默认回复")
+			ai_comment_rule_text = append(ai_comment_rule_text, i18n.Show(lang, `ai_comment_default_reply`))
 		}
 
 		//如果需要回复，使用AI回复
 		if checkRes.NeedReply && nodeRule.ReplyType == 2 {
-			userPrompt := "我下面给你一段评论内容，评论内容为：'" + taskInfo.CommentText + "'，请充分分析这段文字的意思，要求如下：" + nodeRule.ReplyPrompt + "，帮我回复这个评论。"
+			userPrompt := i18n.Show(lang, `ai_comment_reply_generation_prompt`, taskInfo.CommentText, nodeRule.ReplyPrompt)
 			checkRes = getAiCommentCheckRes(taskInfo.AdminUserId, userPrompt, ruleInfo["use_model"], ruleInfo["model_config_id"])
 
 			reply_context = checkRes.ReplyContent
-			ai_comment_rule_text = append(ai_comment_rule_text, "AI自动回复")
+			ai_comment_rule_text = append(ai_comment_rule_text, i18n.Show(lang, `ai_comment_auto_reply`))
 			ai_comment_result[define.CommentExecTypeReply] = define.CommentExecTypeReply
 		}
 
@@ -1186,12 +1222,12 @@ func OfficialAccountCommentAiCheck(msg string, _ ...string) error {
 		nodeRule := manage.BridgeElectCommentRule{}
 		_ = tool.JsonDecode(ruleInfo["elect_comment_rule"], &nodeRule)
 
-		userPrompt := "我下面给你一段评论内容，评论内容为：'" + taskInfo.CommentText + "'，请充分分析这段文字的意思，要求如下：" + nodeRule.Prompt + "，判断是否需要设置为精选评论。"
+		userPrompt := i18n.Show(lang, `ai_comment_top_check_prompt`, taskInfo.CommentText, nodeRule.Prompt)
 		checkRes := getAiCommentCheckRes(taskInfo.AdminUserId, userPrompt, ruleInfo["use_model"], ruleInfo["model_config_id"])
 
 		if checkRes.NeedTop {
 			ai_comment_result[define.CommentExecTypeTop] = define.CommentExecTypeTop
-			ai_comment_rule_text = append(ai_comment_rule_text, "AI自动精选")
+			ai_comment_rule_text = append(ai_comment_rule_text, i18n.Show(lang, `ai_comment_auto_top`))
 		}
 	}
 
@@ -1237,7 +1273,7 @@ func OfficialAccountCommentAiCheck(msg string, _ ...string) error {
 		Where("user_comment_id", cast.ToString(taskInfo.UserCommentId)).Update(updateData)
 
 	if err != nil {
-		logs.Error("数据变更失败：" + err.Error())
+		logs.Error(`data update failed:` + err.Error())
 	}
 
 	return nil
@@ -1251,23 +1287,23 @@ func getAiCommentCheckRes(AdminUserId, userPrompt, use_model, model_config_id st
 		{Role: `user`, Content: userPrompt},
 	}
 
-	chatResp, _, err := common.RequestChat(cast.ToInt(AdminUserId), AdminUserId, nil, lib_define.AppYunPc,
+	chatResp, _, err := common.RequestChat(define.LangZhCn, cast.ToInt(AdminUserId), AdminUserId, nil, lib_define.AppYunPc,
 		cast.ToInt(model_config_id), use_model, messages, nil, 0.5, 2000)
 	if err != nil {
-		logs.Error("AI检测失败：" + err.Error())
+		logs.Error(`AI detection failed:` + err.Error())
 		return checkRes
 	}
 
 	err = tool.JsonDecodeUseNumber(chatResp.Result, &checkRes)
 	if err != nil {
-		logs.Error("AI检测结果解析失败：" + err.Error())
+		logs.Error(`AI detection result parsing failed:` + err.Error())
 	}
 
 	return checkRes
 }
 
 func OfficialAccountBatchSend(msg string, _ ...string) error {
-	logs.Debug(`消费者接收消息内容:%s`, msg)
+	logs.Debug(`consumer received message:%s`, msg)
 
 	taskInfo := define.DelayTaskEvent{}
 	if err := tool.JsonDecodeUseNumber(msg, &taskInfo); err != nil {
@@ -1277,12 +1313,12 @@ func OfficialAccountBatchSend(msg string, _ ...string) error {
 
 	//验证任务类型
 	if taskInfo.Type != define.OfficialAccountBatchSendDelayTask {
-		logs.Error("任务类型错误" + cast.ToString(taskInfo.Type))
+		logs.Error(`invalid task type` + cast.ToString(taskInfo.Type))
 		return nil
 	}
 
 	if !common.CheckUseAbilityByAbilityType(taskInfo.AdminUserId, common.OfficialAccountAbilityBatchSend) {
-		logs.Debug("账户群发未开启：" + cast.ToString(taskInfo.AdminUserId))
+		logs.Debug(`account batch send not enabled:` + cast.ToString(taskInfo.AdminUserId))
 		return nil
 	}
 
@@ -1295,19 +1331,19 @@ func OfficialAccountBatchSend(msg string, _ ...string) error {
 		Field(`a.*,b.media_id,c.app_id,c.app_secret`).Find()
 
 	if err != nil {
-		logs.Error("查询任务信息失败：" + err.Error())
+		logs.Error(`failed to query task info:` + err.Error())
 		return err
 	}
 
 	if cast.ToInt(taskData["send_status"]) != 0 {
-		logs.Error("任务状态错误：" + cast.ToString(taskData["send_status"]))
+		logs.Error(`invalid task status:` + cast.ToString(taskData["send_status"]))
 		return err
 	}
 
 	//初始化client
 	client, err := common.GetOfficialAccountApp(taskData["app_id"], taskData["app_secret"])
 	if err != nil {
-		logs.Error("wechatClient初始化失败：" + err.Error())
+		logs.Error(`wechat client init failed:` + err.Error())
 		return err
 	}
 
@@ -1330,13 +1366,13 @@ func OfficialAccountBatchSend(msg string, _ ...string) error {
 	_ = tool.JsonDecodeUseNumber(tool.JsonEncodeNoError(res), &officialAccountBatchSendRes)
 
 	if officialAccountBatchSendRes.Errcode != 0 {
-		logs.Error("群发任务执行失败：" + officialAccountBatchSendRes.Errmsg)
+		logs.Error(`batch send task execution failed:` + officialAccountBatchSendRes.Errmsg)
 
 		//变更任务状态
 		_, _ = msql.Model(`wechat_official_account_batch_send_task`, define.Postgres).Where(`id`, cast.ToString(taskInfo.TaskId)).Where(`admin_user_id`, cast.ToString(taskInfo.AdminUserId)).Update(msql.Datas{
 			`update_time`: time.Now().Unix(),
 			`send_res`:    tool.JsonEncodeNoError(res),
-			`send_status`: define.BatchSendStatusErr, //发送失败
+			`send_status`: define.BatchSendStatusErr, //send failed
 		})
 		return nil
 	}

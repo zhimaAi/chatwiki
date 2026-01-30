@@ -1,4 +1,5 @@
 {
+  "add": "Add",
   "addModel": "Add Model",
   "addModelButton": "Add Model",
   "api_endpoint": "API Endpoint",
@@ -73,6 +74,7 @@
   "remove_config_btn": "Remove Setting",
   "image_sizes_support": "Image Ratio Support",
   "max_image_count": "Max Image Count",
+  "saveSuccess": "Save successful",
   "support_watermark": "Support Watermark",
   "support_optimize_prompt": "Support Auto Optimize Prompt",
   "endpoint_id": "Endpoint ID",

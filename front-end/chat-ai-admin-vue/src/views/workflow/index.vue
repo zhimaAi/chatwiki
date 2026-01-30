@@ -591,6 +591,21 @@ const getCanvasData = () => {
         })
       }
     }
+
+    if (obj.node_type == 43) {
+      // 问答
+      if(node_params.question.answer_type == 'menu'){
+        if (node_params.question && node_params.question.reply_content_list && node_params.question.reply_content_list.length > 0) {
+          let menu_content = node_params.question.reply_content_list[0].smart_menu?.menu_content || []
+          menu_content.forEach((msg, index) => {
+            let key = obj.nodeSortKey + '-anchor_' + index
+            msg.next_node_key = edgeMap[key] || ''
+          })
+        }
+      }
+
+    }
+
     if (obj.node_type == 17) {
       // 代码运行
       let exception = edgeMap[obj.nodeSortKey + '-anchor_right_exception']
@@ -871,7 +886,7 @@ const handleRelease = async () => {
   for (let i = 0; i < list.length; i++) {
     let node = list[i]
     // 跳过边节点
-    if (node.node_type == 0 || node.node_type == -1) {
+    if (node.node_type == 0 || node.node_type == -1 || node.node_type == 43) {
       // 跳过
       continue
     }

@@ -1,4 +1,5 @@
 {
+  "add": "添加",
   "addModel": "添加模型",
   "addModelButton": "新增模型",
   "api_endpoint": "API 域名",
@@ -12,7 +13,7 @@
   "deleteModelContent": "确定要删除这个模型吗",
   "deployment_name": "部署名称",
   "editModelButton": "修改配置",
-  "getApikeyText": "如何从获取API Key？",
+  "getApikeyText": "如何获取API Key？",
   "modelConfigButton": "模型配置",
   "model_name": "模型名称",
   "model_type": "模型类型",
@@ -73,6 +74,7 @@
   "remove_config_btn": "移除配置",
   "image_sizes_support": "图片比例支持",
   "max_image_count": "生成图片最大数量",
+  "saveSuccess": "保存成功",
   "support_watermark": "支持图片水印",
   "support_optimize_prompt": "支持自动优化提示词",
   "endpoint_id": "接入点id",

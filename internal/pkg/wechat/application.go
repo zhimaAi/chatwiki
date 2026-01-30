@@ -42,6 +42,7 @@ type OfficialAccountInterface interface {
 	GetPublishedMessageList(offset, count, noContent int) (*publishresponse.ResponseBatchGet, error)
 	GetPublishedArticle(articleId string) (*publishresponse.ResponsePublishGetArticle, error)
 	GetAccountClient() (*officialAccount.OfficialAccount, error)
+	GetMaterial(materialId, returnDir, thumbFolderPath string) (string, error)
 }
 
 type FeishuInterface interface {

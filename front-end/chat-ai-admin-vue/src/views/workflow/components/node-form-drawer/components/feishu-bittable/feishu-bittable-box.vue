@@ -367,9 +367,11 @@ function paramsFormat(val) {
       table_id: formState?.tag_map?.table_id || [],
     }
   }
+
   delete val.field_names_json
   delete val.filter_json
   delete val.sort_json
+  delete val.fields_json
   return val
 }
 

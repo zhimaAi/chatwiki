@@ -87,7 +87,7 @@ func CheckParams(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 				out.Error = errors.New(i18n.Show(in.params.Lang, `param_invalid`, fmt.Sprintf(`question.%d.type`, idx)))
 			}
 			if out.Error == nil && imageTotal > 10 {
-				out.Error = errors.New(i18n.Show(in.params.Lang, `最多上传10张图片,每张图片不得超过10M`))
+				out.Error = errors.New(i18n.Show(in.params.Lang, `max_upload_images_limit`))
 			}
 			if out.Error != nil {
 				in.Stream(sse.Event{Event: `error`, Data: out.Error.Error()})
@@ -204,7 +204,7 @@ func SaveCustomerMsg(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 		msgType, content = define.MsgTypeImage, in.params.MediaIdToOssUrl
 	case lib_define.MsgTypeVoice, lib_define.MsgTypeVideo:
 		showContent := lib_define.MsgTypeNameMap[in.params.ReceivedMessageType]
-		msgType, content = define.MsgTypeText, `收到【`+showContent+`】类型的消息`
+		msgType, content = define.MsgTypeText, i18n.Show(in.params.Lang, `received_message_type`, showContent)
 	}
 	//当输入为多模态:改变入库的消息类型
 	if questionMultiple, ok := common.ParseInputQuestion(content); ok {

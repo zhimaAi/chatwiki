@@ -37,11 +37,12 @@ export function getSystemVariable() {
   ]
 }
 
-export const haveOutKeyNode = ['http-node', 'code-run-node']
+export const haveOutKeyNode = ['http-node', 'http-tool-node', 'code-run-node']
 
 export const allParentVariableNodeWhiteList = [
   'start-node',
   'http-node',
+  'http-tool-node',
   'parameter-extraction-node',
   'knowledge-base-node',
   'ai-dialogue-node',
@@ -61,6 +62,7 @@ export const allParentVariableNodeWhiteList = [
   'import-library-node',
   'json-node',
   'json-reverse-node',
+  'qa-node',
 ]
 
 const nodeTypeMaps = getNodeTypes()

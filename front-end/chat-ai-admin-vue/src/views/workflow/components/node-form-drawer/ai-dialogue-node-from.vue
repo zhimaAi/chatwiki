@@ -21,6 +21,7 @@
                   v-model:modeName="formState.use_model"
                   v-model:modeId="formState.model_config_id"
                   @loaded="onVectorModelLoaded"
+                  @change="handleModelChange"
                   style="width: 348px"
                 />
                 <!-- <DownOutlined /> -->
@@ -31,6 +32,27 @@
                 </a-button>
               </div>
             </a-form-item>
+
+            <a-form-item name="role" v-if="showMoreBtn">
+              <template #label>
+                <span>提示词所属角色&nbsp;</span>
+                <a-tooltip>
+                  <template #title>
+                    <div>
+                      对接大模型时，会将设置中的提示词拼接在对应的role角色下。
+                      <div>系统角色效果示例：</div>
+                      <div>{"role": "system", "content": "自定义提示词"}</div>
+                    </div>
+                  </template>
+                  <QuestionCircleOutlined class="question-icon" />
+                </a-tooltip>
+              </template>
+              <a-radio-group v-model:value="formState.role">
+                <a-radio :value="1">系统角色（System）</a-radio>
+                <a-radio :value="2">用户角色（User）</a-radio>
+              </a-radio-group>
+            </a-form-item>
+
             <a-form-item name="temperature" v-if="showMoreBtn">
               <template #label>
                 <span>温度&nbsp;</span>
@@ -275,9 +297,17 @@ const formState = reactive({
   prompt_tags: [],
   question_value: '',
   enable_thinking: false,
-  libs_node_key: void 0
+  libs_node_key: void 0,
+  role: 1
 })
 
+const handleModelChange = () => {
+  if (formState.use_model && formState.use_model.toLowerCase().includes('deepseek-r1')) {
+    formState.role = 2
+  } else {
+    formState.role = 1
+  }
+}
 const hanldeShowMore = () => {
   showMoreBtn.value = !showMoreBtn.value
 }
@@ -395,7 +425,8 @@ const init = () => {
       prompt_tags,
       question_value,
       enable_thinking,
-      libs_node_key
+      libs_node_key,
+      role
     } = llm
 
     getVlaueVariableList()
@@ -415,6 +446,7 @@ const init = () => {
       formState.model_config_id = modelList.value[0].id
       formState.use_model = modelList.value[0].children[0].name
     }
+    formState.role = +role || 1
   } catch (error) {
     console.log(error)
   }

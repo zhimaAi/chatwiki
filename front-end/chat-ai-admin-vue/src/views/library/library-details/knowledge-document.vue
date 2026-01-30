@@ -153,14 +153,93 @@
                 </div>
               </div>
             </template>
-            <div class="hover-btn-wrap" @click="handleChangeHideStatus">
+            <div class="hover-btn-wrap" v-if="viewMode !== 'folder' || viewMode === 'list'" @click="handleChangeHideStatus">
               <svg-icon name="expand"></svg-icon>
             </div>
           </a-popover>
-          <div class="title">{{ currentGroupItem.group_name }}</div>
+          <div class="title">
+            <template v-if="inFolderDetail">
+              <a-breadcrumb>
+                <a-breadcrumb-item>
+                  <a class="breadcrumb-a" @click="goToRootFolder">知识库文档</a>
+                </a-breadcrumb-item>
+                <a-breadcrumb-item v-if="groupId === -1">全部分组</a-breadcrumb-item>
+                <a-breadcrumb-item v-else>{{ currentGroupItem.group_name }}</a-breadcrumb-item>
+              </a-breadcrumb>
+            </template>
+            <template v-else>
+              <span class="title-text">知识库文档</span>
+            </template>
+          </div>
         </div>
         <div class="list-tools">
           <div class="tools-items">
+            <div class="tool-item">
+              <div class="view-toggle">
+                <div
+                  class="toggle-seg"
+                  :class="{ active: viewMode === 'folder' }"
+                  @click="switchToFolderView"
+                  aria-label="文件夹视图"
+                >
+                  <svg-icon
+                    class="toggle-icon"
+                    :name="viewMode === 'folder' ? 'folder-icon-active' : 'folder-icon'"
+                  ></svg-icon>
+                </div>
+                <div
+                  class="toggle-seg"
+                  :class="{ active: viewMode === 'list' }"
+                  @click="switchToListView"
+                  aria-label="缩略图视图"
+                >
+                  <svg-icon
+                    class="toggle-icon"
+                    :name="viewMode === 'list' ? 'thumbnail-icon-active' : 'thumbnail-icon'"
+                  ></svg-icon>
+                </div>
+              </div>
+            </div>
+            <div class="tool-item" v-if="viewMode === 'folder' && inFolderDetail">
+              <div class="sort-btn" ref="sortBtnRef">
+                <div class="sort-left">
+                  <span class="sort-text">{{ folderSort.order_field === 'total_hits' ? '合计' : folderSort.order_field === 'today_hits' ? '今日' : folderSort.order_field === 'yesterday_hits' ? '昨日' : '默认' }}</span>
+                  <svg-icon
+                    v-if="!folderSort.order_field"
+                    key="default"
+                    class="sort-icon active"
+                    name="sort-icon"
+                  />
+                  <svg-icon
+                    v-else-if="folderSort.order_type === 'DESC'"
+                    key="desc"
+                    class="sort-icon active"
+                    name="sort-down-icon"
+                    @click.stop="onClickSortIcon"
+                  />
+                  <svg-icon
+                    v-else
+                    key="asc"
+                    class="sort-icon active"
+                    name="sort-top-icon"
+                    @click.stop="onClickSortIcon"
+                  />
+                </div>
+                <a-dropdown v-model:open="sortOpen" trigger="click">
+                  <span class="sort-arrow" :class="{ active: sortOpen }" @click.prevent="toggleSortDropdown">
+                    <DownOutlined />
+                  </span>
+                  <template #overlay>
+                    <a-menu :selectedKeys="[(folderSort.order_field || 'default')]">
+                      <a-menu-item :key="'default'" @click="setFolderSort('default')">默认</a-menu-item>
+                      <a-menu-item :key="'total_hits'" @click="setFolderSort('total_hits')">合计</a-menu-item>
+                      <a-menu-item :key="'today_hits'" @click="setFolderSort('today_hits')">今日</a-menu-item>
+                      <a-menu-item :key="'yesterday_hits'" @click="setFolderSort('yesterday_hits')">昨日</a-menu-item>
+                    </a-menu>
+                  </template>
+                </a-dropdown>
+              </div>
+            </div>
             <a-flex align="center" class="tool-item custom-select-box" v-show="false">
               <span>嵌入模型：</span>
               <model-select
@@ -180,11 +259,11 @@
                 <div class="status-label">已学习：</div>
                 <div class="status-content">{{ count_data.learned_count }}</div>
               </div>
-              <div class="status-item">
+              <div class="status-item" v-if="count_data.learned_wait_count > 0">
                 <div class="status-label">，未学习：</div>
                 <div class="status-content content-tip">{{ count_data.learned_wait_count }}</div>
               </div>
-              <div class="status-item">
+              <div class="status-item" v-if="count_data.learned_err_count > 0">
                 <div class="status-label">，学习失败：</div>
                 <div class="status-content content-tip">{{ count_data.learned_err_count }}</div>
               </div>
@@ -269,6 +348,16 @@
                         <div class="desc">在线获取飞书知识库下docx格式云文档内容</div>
                       </div>
                     </a-menu-item>
+                    <!-- 添加分组 -->
+                    <a-menu-item :key="5" v-if="viewMode === 'folder'">
+                      <div class="dropdown-btn-menu">
+                        <a-flex class="title-block" :gap="4">
+                          <svg-icon name="group-default-icon"></svg-icon>
+                          <div class="title">添加分组</div>
+                        </a-flex>
+                        <div class="desc">便于文档更好的归类</div>
+                      </div>
+                    </a-menu-item>
                   </a-menu>
                 </template>
                 <a-button v-if="type != 3" type="primary">
@@ -281,7 +370,7 @@
             </div>
           </div>
         </div>
-        <page-alert style="margin-bottom: 16px" title="使用说明" v-if="libraryInfo.type == 0">
+        <page-alert style="margin-bottom: 16px" title="使用说明" v-if="libraryInfo.type == 0 && viewMode==='list'">
           <div>
             <p>
               1、如果单次上传一个文档，上传成功后，系统会自动学习；如果单次上传多个文档，上传成功后，需要手动点击文档后面"学习"进行学习；如果解析失败，支持重新学习。
@@ -289,9 +378,138 @@
             <p>2、未学习的文档数据不会被检索到。</p>
           </div>
         </page-alert>
-        <!-- :row-selection="{ selectedRowKeys: state.selectedRowKeys, onChange: onSelectChange }" -->
-        <div class="list-content">
+        <!-- 文件夹视图 -->
+        <div class="folder-view" v-if="viewMode==='folder'">
+          <div class="empty-folder" v-if="inFolderDetail && folderItems.length === 0">
+            <div class="empty-inner">
+              <img :src="emptyDocumentIcon" alt="" class="empty-img" />
+              <div class="empty-text">暂无文档</div>
+            </div>
+          </div>
+          <div class="folder-grid" v-else>
+            <div
+              v-for="item in folderItems"
+              :key="`${item.__type}-${item.id}`"
+              class="folder-card"
+              :class="[`card-${item.__type}`]"
+              @click="onCardClick(item)"
+            >
+              <div class="folder-thumb" :class="['status-' + (item.cover_status || 'success')]">
+                <template v-if="item.__type === 'group'">
+                  <svg-icon name="group-icon" class="folder-type-icon"></svg-icon>
+                </template>
+                <template v-else>
+                  <img v-if="item.cover_src" :src="item.cover_src" alt="" class="thumb-img" />
+                  <img class="thumb-img" v-else src="@/assets/img/default-bg.png">
+                  <div class="status-badge" v-if="item.status_label && item.cover_status !== 'success'">
+                    <a-tooltip v-if="item.cover_status === 'error' && item.origin.errmsg && item.origin.errmsg != 'success'">
+                      <template #title>
+                        <span>{{ item.origin.errmsg }}</span>
+                      </template>
+                      <svg-icon style="color: rgba(0, 0, 0, 0.4); font-size: 16px; vertical-align: sub;" name="tip-icon-two"></svg-icon>
+                      {{ item.status_label }}
+                    </a-tooltip>
+                    <svg-icon v-if="item.cover_status === 'error' && !item.origin.errmsg" style="color: rgba(0, 0, 0, 0.4); font-size: 16px; vertical-align: sub;" name="tip-icon-two"></svg-icon>
+                    <svg-icon v-if="item.cover_status === 'wait'" style="color: rgba(0, 0, 0, 0.4); font-size: 16px; vertical-align: sub;" name="time-default-icon"></svg-icon>
+                    <span v-if="item.origin.errmsg == 'success' && item.cover_status === 'loading' && getLearnPercent(item.origin) !== null" class="learn-percent">{{ getLearnPercent(item.origin) }}%</span>
+                    <span v-if="!item.origin.errmsg || item.origin.errmsg == 'success'" style="margin-left: 2px;">{{ item.status_label }}</span>
+                  </div>
+                </template>
+              </div>
+              <div class="folder-meta">
+                <template v-if="item.__type === 'group'">
+                  <div class="name zm-line1">{{ item.group_name }}</div>
+                </template>
+                <template v-else>
+                  <a-popover :title="null" v-if="item.origin.doc_type == 2">
+                    <template #content>
+                      原链接：<a :href="item.origin.doc_url" target="_blank">{{ item.origin.doc_url }} </a>
+                      <CopyOutlined v-copy="`${item.origin.doc_url}`" style="margin-left: 4px; cursor: pointer" />
+                    </template>
+                    <div class="name name-2line">
+                      {{ item.title }}
+                    </div>
+                  </a-popover>
+                  <div class="name name-2line" v-else>{{ item.title }}</div>
+                </template>
+                <div class="desc">
+                  <template v-if="item.__type === 'group'">
+                    <span>{{ item.total || '0' }}个知识库</span>
+                    <span>{{ formatCardTime(item.last_update_ts) }}</span>
+                  </template>
+                  <template v-else>
+                    <span class="file-ext">
+                      <svg-icon
+                        :name="['docx','excel','html','pdf','txt','xlsx','ofd','csv','md'].some(t => String(item.origin.file_ext || '').includes(t)) ? item.origin.file_ext : 'file_ext'"
+                        class="file-icon"
+                      />
+                      {{ item.origin.file_ext || '--' }}
+                    </span>
+                    <span>{{ formatCardTime(item.update_ts) }}</span>
+                  </template>
+                </div>
+              </div>
+              <a-dropdown v-if="item.__type === 'group' && item.id > 0">
+                <div class="card-more" @click.stop>
+                  <EllipsisOutlined />
+                </div>
+                <template #overlay>
+                  <a-menu>
+                    <a-menu-item @click="openGroupModal({ id: item.id, group_name: item.group_name })">
+                      <a-flex :gap="8" align="center"><svg-icon name="edit"></svg-icon><div>重命名</div></a-flex>
+                    </a-menu-item>
+                    <a-menu-item @click="handleDelGroup({ id: item.id, group_name: item.group_name })">
+                      <a-flex :gap="8" align="center"><svg-icon name="delete"></svg-icon><div>删除</div></a-flex>
+                    </a-menu-item>
+                  </a-menu>
+                </template>
+              </a-dropdown>
+              <a-dropdown v-if="item.__type === 'file'">
+                <div class="card-more" @click.stop>
+                  <EllipsisOutlined />
+                </div>
+                <template #overlay>
+                  <a-menu>
+                    <a-menu-item @click="showBaseData(item.origin)">
+                      <a-flex :gap="8" align="center"><svg-icon name="base-data-icon"></svg-icon><div>基础数据</div></a-flex>
+                    </a-menu-item>
+                    <a-menu-item @click="handlePreview(item.origin)">
+                      <a-flex :gap="8" align="center"><svg-icon name="preview-icon"></svg-icon><div>预览</div></a-flex>
+                    </a-menu-item>
+                    <a-menu-item @click="toReSegmentationPage(item.origin)">
+                      <a-flex :gap="8" align="center"><SyncOutlined class="action-icon" /><div>重新分段</div></a-flex>
+                    </a-menu-item>
+                    <a-menu-item @click="handleOpenRenameModal(item.origin)">
+                      <a-flex :gap="8" align="center"><svg-icon name="edit"></svg-icon><div>重命名</div></a-flex>
+                    </a-menu-item>
+                    <a-menu-item @click="openEditGroupModal(item.origin)">
+                      <a-flex :gap="8" align="center"><svg-icon name="group-default-icon"></svg-icon><div>修改分组</div></a-flex>
+                    </a-menu-item>
+                    <a-menu-item @click="handleDownload(item.origin)">
+                      <a-flex :gap="8" align="center"><svg-icon name="down-file"></svg-icon><div>下载文档</div></a-flex>
+                    </a-menu-item>
+                    <a-popconfirm title="确定要删除吗?" placement="topRight" trigger="click" @confirm="onDelete(item.origin)">
+                      <a-menu-item>
+                        <a-flex :gap="8" align="center"><svg-icon name="delete"></svg-icon><div>删除</div></a-flex>
+                      </a-menu-item>
+                    </a-popconfirm>
+                  </a-menu>
+                </template>
+              </a-dropdown>
+            </div>
+            <div ref="folderScrollSentinel" class="scroll-sentinel"></div>
+          </div>
+          <BaseDataDrawer
+            v-model:open="baseDataOpen"
+            :record="baseDataRecord"
+            @close="baseDataOpen=false"
+            @editOnline="handleEditOnlineDoc"
+          />
+        </div>
+        <!-- 列表视图 -->
+        <div class="list-content" v-else>
           <a-table
+            @resizeColumn="handleResizeColumn"
             :columns="columns"
             :data-source="fileList"
             :scroll="{ x: 1000 }"
@@ -312,10 +530,28 @@
                   <div class="zm-line1">{{column.title}}</div>
                 </a-tooltip>
               </template>
+              <template v-else-if="column.key === 'file_name'">
+                文档名称 (共{{ queryParams.total || 0 }}个)
+              </template>
+              <template v-else-if="column.key === 'graph_entity_count'">
+                <div class="title-box">
+                  <div class="zm-line1">实体数</div>
+                  <a-tooltip title="知识图谱实体数">
+                    <QuestionCircleOutlined />
+                  </a-tooltip>
+                </div>
+              </template>
             </template>
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'file_name'">
                 <div class="doc-name-td">
+                  <!-- 根据file_ext显示图标 -->
+                  <a-tooltip :title="`.${record.file_ext}`">
+                    <svg-icon
+                      :name="['docx','excel','html','pdf','txt','xlsx','ofd','csv','md'].some(t => String(record.file_ext || '').includes(t)) ? record.file_ext : 'file_ext'"
+                      class="file-icon"
+                    />
+                  </a-tooltip>
                   <a-popover :title="null" v-if="record.doc_type == 2">
                     <template #content>
                       原链接：<a :href="record.doc_url" target="_blank">{{ record.doc_url }} </a>
@@ -324,16 +560,22 @@
                         style="margin-left: 4px; cursor: pointer"
                       />
                     </template>
-                    <a @click="handlePreview(record)">
-                      <span v-if="['5', '6', '7'].includes(record.status)">{{
-                        record.doc_url
-                      }}</span>
-                      <span v-else>{{ record.file_name }}</span>
+                    <a @click="handlePreview(record, { open_new: true })">
+                      <a-tooltip :title="getTooltipTitle((['5','6','7'].includes(record.status) ? record.doc_url : record.file_name), record, 14, 2, 12)" placement="top">
+                        <span class="doc-name-text" :ref="el => setDescRef(el, record)">
+                          <span v-if="['5', '6', '7'].includes(record.status)">{{ record.doc_url }}</span>
+                          <span v-else>{{ record.file_name }}</span>
+                        </span>
+                      </a-tooltip>
                     </a>
                   </a-popover>
-                  <a @click="handlePreview(record)" v-else>
-                    <span v-if="['5', '6', '7'].includes(record.status)">{{ record.doc_url }}</span>
-                    <span v-else>{{ record.file_name }}</span>
+                  <a @click="handlePreview(record, { open_new: true })" v-else>
+                    <a-tooltip :title="getTooltipTitle((['5','6','7'].includes(record.status) ? record.doc_url : record.file_name), record, 14, 2, 12)" placement="top">
+                      <span class="doc-name-text" :ref="el => setDescRef(el, record)">
+                        <span v-if="['5', '6', '7'].includes(record.status)">{{ record.doc_url }}</span>
+                        <span v-else>{{ record.file_name }}</span>
+                      </span>
+                    </a-tooltip>
                   </a>
                   <div v-if="record.doc_type == 2 && record.remark" class="url-remark">
                     备注：{{ record.remark }}
@@ -343,6 +585,24 @@
               <template v-if="column.key === 'graph_entity_count'">
                 <a @click="toGraph(record)">{{ record.graph_entity_count }}</a>
               </template>
+              <!-- 状态 -->
+              <!-- <template v-if="column.key === 'status'">
+                <div class="status-icon-row">
+                  {{ record.status }}
+                  <a-tooltip title="学习完成" v-if="record.status == 2">
+                    <svg-icon name="accomplish-icon" class="status-icon" />
+                  </a-tooltip>
+                  <a-tooltip title="学习失败" v-if="[3, 7, 8].includes(Number(record.status))">
+                    <svg-icon
+                      name="fail-icon"
+                      class="status-icon"
+                    />
+                  </a-tooltip>
+                  <a-tooltip title="转换中" v-if="record.status == 0">
+                    <svg-icon name="time-icon" class="status-icon" />
+                  </a-tooltip>
+                </div>
+              </template> -->
               <template v-if="column.key === 'status'">
                 <template v-if="record.file_ext == 'pdf' && record.pdf_parse_type >= 2">
                   <div class="pdf-progress-box" v-if="record.status == 0">
@@ -398,7 +658,8 @@
                 </a-tooltip>
                 <template v-if="record.status == 4">
                   <span class="status-tag"><ClockCircleFilled /> 待学习</span>
-                  <a class="ml8" @click="handlePreview(record)">学习</a>
+                  <!-- 产品说去掉这个学习，因为和重新分段走的一样的逻辑 -->
+                  <!-- <a class="ml8" @click="handlePreview(record)">学习</a> -->
                 </template>
                 <template v-if="record.status == 5">
                   <span class="status-tag"><ClockCircleFilled /> 待获取</span>
@@ -452,39 +713,49 @@
                 </template>
               </template>
               <template v-if="column.key === 'file_size'">
-                <span v-if="record.doc_type == 3">-</span>
-                <span v-else>{{ record.file_size_str }}</span>
+                <span>
+                  {{ record.doc_type == 3 ? '-' : record.file_size_str }}
+                  /
+                  {{ record.status == 0 || record.status == 1 ? '-' : record.paragraph_count }}
+                </span>
               </template>
-              <template v-if="column.key === 'doc_auto_renew_frequency'">
-                <div class="text-block" v-if="record.doc_type == 2">
-                  <div class="time-content-box">
-                    <span v-if="record.doc_auto_renew_frequency == 1">不自动更新</span>
-                    <span v-if="record.doc_auto_renew_frequency == 2">每天</span>
-                    <span v-if="record.doc_auto_renew_frequency == 3">每3天</span>
-                    <span v-if="record.doc_auto_renew_frequency == 4">每7天</span>
-                    <span v-if="record.doc_auto_renew_frequency == 5">每30天</span>
-                    <span
-                      class="ml4"
-                      v-if="record.doc_auto_renew_frequency > 1 && record.doc_auto_renew_minute > 0"
-                    >
-                      {{ convertTime(record.doc_auto_renew_minute) }}
-                    </span>
-                    <span v-if="record.doc_auto_renew_frequency > 1">更新</span>
-                    <a class="ml4 btn-hover-block" @click="handleEditOnlineDoc(record)">修改</a>
-                  </div>
-                  <a-flex align="center">
-                    最近更新:
-                    {{ record.doc_last_renew_time_desc }}
-                    <a-popconfirm title="确认更新?" @confirm="handleUpdataDoc(record)">
-                      <a class="ml4 btn-hover-block">更新</a>
-                    </a-popconfirm>
-                  </a-flex>
+              <template v-if="column.key === 'update_info'">
+                <div class="text-block">
+                  <span class="time-content-box">
+                    {{ formatUpdateShort(record.update_time) }}
+                    <a-popover :title="null" placement="top" overlayClassName="update-popover">
+                      <template #content>
+                        <div class="update-tooltip">
+                          <div class="update-tooltip-title">
+                            更新频率：<span class="update-tooltip-value">{{ formatUpdateFrequency(record) }}</span>
+                            <div class="update-icon-box">
+                              <svg-icon
+                                name="edit"
+                                class="edit-icon"
+                              @click.stop="handleEditOnlineDoc(record, true)"
+                              ></svg-icon>
+                            </div>
+                          </div>
+                          <div class="update-tooltip-time">
+                            更新时间：<span class="update-tooltip-value">{{ record.update_time }}</span>
+                            <a-popconfirm title="确认更新?" @confirm="handleUpdataDoc(record)">
+                              <a class="ml4 btn-hover-block">更新</a>
+                            </a-popconfirm>
+                          </div>
+                        </div>
+                      </template>
+                      <span class="update-trigger-text">
+                        <template v-if="record.doc_type == 2 && record.doc_auto_renew_frequency">
+                          <span class="ml4">/</span>
+                          <svg-icon
+                            class="update-icon"
+                            :name="record.doc_auto_renew_frequency == 1 ? 'forbid-update-icon' : 'update-icon'"
+                          ></svg-icon>
+                        </template>
+                      </span>
+                    </a-popover>
+                  </span>
                 </div>
-                <div v-else>--</div>
-              </template>
-              <template v-if="column.key === 'paragraph_count'">
-                <span v-if="record.status == 0 || record.status == 1">-</span>
-                <span v-else>{{ record.paragraph_count }}</span>
               </template>
               <template v-if="column.key === 'action'">
                 <a-flex :gap="8">
@@ -509,7 +780,7 @@
                         <a-menu-item @click="handleOpenRenameModal(record)">
                           <div>重命名</div>
                         </a-menu-item>
-                        <a-popconfirm title="确定要删除吗?" @confirm="onDelete(record)">
+                        <a-popconfirm title="确定要删除吗?" @confirm="onDelete(record)" placement="topRight">
                           <a-menu-item>
                             <span>删除</span>
                           </a-menu-item>
@@ -525,7 +796,7 @@
                   </a-dropdown>
                 </a-flex>
               </template>
-              <template v-if="column.key.indexOf('meta_') > -1">
+              <template v-if="column.key.indexOf('meta_') > -1 && record[column.key]">
                 <a-tooltip :title="record[column.key].length > 8 ? record[column.key] : ''">
                   <div class="zm-line1">{{record[column.key]}}</div>
                 </a-tooltip>
@@ -649,7 +920,7 @@
 
 <script setup>
 import { useStorage } from '@/hooks/web/useStorage'
-import { reactive, ref, toRaw, onUnmounted, onMounted, computed, createVNode } from 'vue'
+import { reactive, ref, toRaw, onUnmounted, onMounted, computed, createVNode, nextTick } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -665,7 +936,9 @@ import {
   CopyOutlined,
   EllipsisOutlined,
   LoadingOutlined,
+  DownOutlined,
   SettingOutlined,
+  QuestionCircleOutlined
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import {
@@ -680,7 +953,7 @@ import {
   deleteLibraryGroup,
   sortLibararyListGroup
 } from '@/api/library'
-import { formatFileSize } from '@/utils/index'
+import { formatFileSize, setDescRef, getTooltipTitle } from '@/utils/index'
 import UploadFilesInput from '../add-library/components/upload-input.vue'
 import { transformUrlData } from '@/utils/validate.js'
 import AddCustomDocument from './components/add-custom-document.vue'
@@ -691,7 +964,10 @@ import RenameModal from './components/rename-modal.vue'
 import PageAlert from '@/components/page-alert/page-alert.vue'
 import GuideLearningTips from './components/guide-learning-tips.vue'
 import EditOnlineDoc from './components/edit-online-doc.vue'
+import BaseDataDrawer from './components/base-data-drawer.vue'
 import { useUserStore } from '@/stores/modules/user'
+import defaultCover from '@/assets/img/default-bg.png'
+import emptyDocumentIcon from '@/assets/svg/empty-document.svg'
 import { useLibraryStore } from '@/stores/modules/library'
 import { convertTime } from '@/utils/index'
 import { useCompanyStore } from '@/stores/modules/company'
@@ -802,10 +1078,6 @@ const modelForm = reactive({
   model_config_id: ''
 })
 
-const onSelectChange = (selectedRowKeys) => {
-  state.selectedRowKeys = selectedRowKeys
-}
-
 const onChangeModel = (val, option) => {
   let new_use_model = option.modelName
   let new_model_config_id = option.modelId
@@ -902,6 +1174,283 @@ const setDefaultModel = () => {
 
 const fileList = ref([])
 
+const viewMode = ref('list')
+const sortBtnRef = ref(null)
+
+function switchToFolderView() {
+  viewMode.value = 'folder'
+  localStorage.setItem(getViewModeStorageKey(), 'folder')
+  // 重置查询参数与状态
+  groupId.value = -1
+  inFolderDetail.value = false
+  queryParams.page = 1
+  queryParams.size = 50
+  queryParams.file_name = undefined
+  queryParams.status = ''
+  queryParams.sort_field = ''
+  queryParams.sort_type = ''
+  folderSort.order_field = ''
+  folderSort.order_type = 'DESC'
+  state.selectedRowKeys = []
+  sortOpen.value = false
+  if (!isHiddenGroup.value) {
+    handleChangeHideStatus()
+  }
+  onSearch()
+}
+function switchToListView() {
+  viewMode.value = 'list'
+  localStorage.setItem(getViewModeStorageKey(), 'list')
+  queryParams.size = 10
+  // 重置查询参数与状态
+  groupId.value = -1
+  queryParams.page = 1
+  queryParams.file_name = undefined
+  queryParams.status = ''
+  queryParams.sort_field = ''
+  queryParams.sort_type = ''
+  folderSort.order_field = ''
+  folderSort.order_type = 'DESC'
+  state.selectedRowKeys = []
+  sortOpen.value = false
+  if (isHiddenGroup.value) {
+    handleChangeHideStatus()
+  }
+  onSearch()
+}
+const sortOpen = ref(false)
+const folderSort = reactive({
+  order_field: '',
+  order_type: 'DESC'
+})
+function setFolderSort(field) {
+  if (field === 'default') {
+    folderSort.order_field = ''
+    folderSort.order_type = 'DESC'
+    queryParams.sort_field = ''
+    queryParams.sort_type = ''
+  } else {
+    folderSort.order_field = field
+    folderSort.order_type = 'DESC'
+    queryParams.sort_field = field
+    queryParams.sort_type = 'DESC'
+  }
+  queryParams.page = 1
+  sortOpen.value = false
+  getData()
+  getGroupLists()
+}
+function onClickSortIcon() {
+  if (!folderSort.order_field) return
+  folderSort.order_type = folderSort.order_type === 'DESC' ? 'ASC' : 'DESC'
+  queryParams.sort_type = folderSort.order_type
+  queryParams.page = 1
+  getData()
+}
+function toggleSortDropdown() {
+  sortOpen.value = !sortOpen.value
+}
+function getStatusClass(item) {
+  const s = Number(item?.status ?? -1)
+  if ([0, 1, 5, 6, 10].includes(s)) return 'loading'
+  if ([4].includes(s)) return 'wait'
+  if ([3, 7, 8, 9].includes(s)) return 'error'
+  return 'success'
+}
+const learnProgressTicker = ref(0)
+let learnProgressTimer = null
+const learnStartTS = {}
+function getLearnPercent(origin) {
+  try {
+    const _ = learnProgressTicker.value
+    const a = Number(origin?.ocr_pdf_index ?? 0)
+    const b = Number(origin?.ocr_pdf_total ?? 0)
+    if (b > 0 && a >= 0) {
+      return Math.max(0, Math.min(100, parseInt((a / b) * 100)))
+    }
+    const id = String(origin?.id || '0')
+    if (!learnStartTS[id]) learnStartTS[id] = Date.now()
+    const elapsedSec = (Date.now() - learnStartTS[id]) / 1000
+    const stepPerSec = 20 + (Number(id) % 6) * 5
+    const percent = Math.floor(10 + elapsedSec * stepPerSec)
+    return Math.max(10, Math.min(95, percent))
+  } catch {}
+  return null
+}
+
+const groupCards = computed(() => {
+  const lists = groupLists.value || []
+  const data = fileList.value || []
+  const timeField = props.type == 3 ? 'official_article_update_time' : 'update_time'
+  const pickLatest = (items) => {
+    if (!items.length) return null
+    const ordered = items
+      .filter(i => !!i[timeField])
+      .sort((a, b) => (String(a[timeField]).localeCompare(String(b[timeField]))))
+    return ordered.length ? ordered[ordered.length - 1] : items[items.length - 1]
+  }
+  return lists.map(g => {
+    const items = g.id === -1 ? data : data.filter(d => Number(d.group_id || 0) === Number(g.id))
+    const latest = pickLatest(items)
+    return {
+      id: g.id,
+      group_name: g.group_name,
+      total: g.total,
+      last_update: latest ? latest[timeField] || '' : '',
+      last_update_ts: latest && latest[timeField] ? dayjs(latest[timeField]).valueOf() : 0,
+      cover_status: latest ? getStatusClass(latest) : 'success',
+      cover_src: latest ? getFileCover(latest) : ''
+    }
+  })
+})
+const visibleGroupCards = computed(() => {
+  const arr = [...groupCards.value]
+  const { order_field, order_type } = folderSort
+  if (order_field === 'update_time' || order_field === 'library_num') {
+    arr.sort((a, b) => {
+      let av = 0
+      let bv = 0
+      if (order_field === 'update_time') {
+        av = a.last_update_ts || 0
+        bv = b.last_update_ts || 0
+      } else if (order_field === 'library_num') {
+        av = Number(a.total || 0)
+        bv = Number(b.total || 0)
+      }
+      return order_type === 'ASC' ? av - bv : bv - av
+    })
+  }
+  return arr
+})
+
+const folderFiles = computed(() => {
+  const data = fileList.value || []
+  const timeField = props.type == 3 ? 'official_article_update_time' : 'update_time'
+  return data.map(rec => {
+    const ts = rec[timeField] ? dayjs(rec[timeField]).valueOf() : 0
+    return {
+      __type: 'file',
+      id: rec.id,
+      title: rec.file_name || rec.doc_url || '',
+      update_ts: ts,
+      cover_src: getFileCover(rec) || '',
+      cover_status: getStatusClass(rec),
+      status_label: getStatusLabel(rec),
+      origin: rec
+    }
+  })
+})
+
+const rootUnGroupFiles = computed(() => {
+  const data = fileList.value || []
+  const timeField = props.type == 3 ? 'official_article_update_time' : 'update_time'
+  return data
+    .filter(rec => Number(rec.group_id || 0) <= 0)
+    .map(rec => {
+      const ts = rec[timeField] ? dayjs(rec[timeField]).valueOf() : 0
+      return {
+        __type: 'file',
+        id: rec.id,
+        title: rec.file_name || rec.doc_url || '',
+        update_ts: ts,
+        cover_src: getFileCover(rec) || '',
+        cover_status: getStatusClass(rec),
+        status_label: getStatusLabel(rec),
+        origin: rec
+      }
+    })
+})
+
+const folderItems = computed(() => {
+  if (!inFolderDetail.value) {
+    return [
+      ...visibleGroupCards.value.map(g => ({ __type: 'group', ...g })),
+      ...rootUnGroupFiles.value
+    ]
+  }
+  return folderFiles.value
+})
+
+function onCardClick(item) {
+  if (item.__type === 'group') {
+    inFolderDetail.value = true
+    handleChangeGroup({ id: item.id, group_name: item.group_name, total: item.total })
+  } else {
+    handlePreview(item.origin)
+  }
+}
+
+function formatCardTime(ts) {
+  if (!ts) return '--'
+  const d = dayjs(ts)
+  const now = dayjs()
+  if (d.isSame(now, 'day')) return d.format('HH:mm:ss')
+  if (now.diff(d, 'year') >= 1) return d.format('YYYY/MM/DD')
+  return d.format('MM/DD')
+}
+
+function getFileCover(rec) {
+  const status = getStatusClass(rec)
+  const src =
+    rec.thumb_path ||
+    rec.cover_url ||
+    rec.cover ||
+    rec.article_cover_url ||
+    ''
+  if (src) return src
+  if (status === 'wait' || status === 'loading' || status === 'error') return defaultCover
+  return ''
+}
+
+function getStatusLabel(record) {
+  const s = Number(record?.status ?? -1)
+  if (s === 0) return '转换中'
+  if (s === 1) return '学习中'
+  if (s === 2) return '学习完成'
+  if (s === 3) return '转换失败'
+  if (s === 4) return '待学习'
+  if (s === 5) return '待获取'
+  if (s === 6) return '获取中'
+  if (s === 7) return '获取失败'
+  if (s === 8) return '转化异常'
+  if (s === 9) return '取消解析'
+  if (s === 10) return '正在分段'
+  return ''
+}
+
+const baseDataOpen = ref(false)
+const baseDataRecord = ref(null)
+function showBaseData(rec) {
+  baseDataRecord.value = rec
+  baseDataOpen.value = true
+}
+
+function formatUpdateShort(timeStr) {
+  if (!timeStr) return '--'
+  const d = dayjs(timeStr)
+  return d.isValid() ? d.format('YY-MM-DD') : timeStr
+}
+
+function formatUpdateFrequency(record) {
+  const freq = Number(record?.doc_auto_renew_frequency || 0)
+  if (!freq) return '--'
+  let first = ''
+  if (freq === 1) { return '不自动更新' }
+  if (freq === 2) { first = '每天' }
+  if (freq === 3) { first = '每3天' }
+  if (freq === 4) { first = '每7天' }
+  if (freq === 5) { first = '每30天' }
+  const minute = Number(record?.doc_auto_renew_minute || 0)
+  if (minute > 0) {
+    let time = convertTime(minute)
+    if (typeof time === 'string' && /^0\d:\d{2}$/.test(time)) {
+      time = time.slice(1)
+    }
+    return `${first}${time}更新`
+  }
+  return '更新'
+}
+
 const count_data = reactive({
   learned_err_count: 0, // 失败数
   learned_count: 0, // 成功数
@@ -948,84 +1497,86 @@ const columnsDefault = [
     title: '文档名称',
     dataIndex: 'file_name',
     key: 'file_name',
+    resizable: true,
+    minWidth: 180,
+    maxWidth: 600,
     width: 300
   },
-
   {
-    title: '知识图谱',
-    dataIndex: 'graph_status',
-    key: 'graph_status',
-    width: 200
-  },
-  {
-    title: '文档格式',
-    dataIndex: 'file_ext',
-    key: 'file_ext',
-    width: 100
-  },
-  {
-    title: '文档大小',
+    title: '大小/分段',
     dataIndex: 'file_size_str',
     key: 'file_size',
-    width: 100
-  },
-  {
-    title: '分段',
-    dataIndex: 'paragraph_count',
-    key: 'paragraph_count',
-    width: 120
-  },
-  {
-    title: '更新频率/时间',
-    dataIndex: 'doc_auto_renew_frequency',
-    key: 'doc_auto_renew_frequency',
-    width: 260
-  },
-  {
-    title: '文章更新时间',
-    dataIndex: 'official_article_update_time',
-    key: 'official_article_update_time',
-    width: 220
+    resizable: true,
+    minWidth: 120,
+    maxWidth: 360,
+    width: 140
   },
   {
     title: '合计',
     dataIndex: 'total_hits',
     key: 'total_hits',
-    width: 150,
+    resizable: true,
+    minWidth: 80,
+    maxWidth: 200,
+    width: 80,
     sorter: true
   },
   {
     title: '昨日',
     dataIndex: 'yesterday_hits',
     key: 'yesterday_hits',
-    width: 150,
+    resizable: true,
+    minWidth: 80,
+    maxWidth: 200,
+    width: 80,
     sorter: true
   },
   {
     title: '今日',
     dataIndex: 'today_hits',
     key: 'today_hits',
-    width: 150,
+    resizable: true,
+    minWidth: 80,
+    maxWidth: 200,
+    width: 80,
     sorter: true
+  },
+  {
+    title: '知识图谱',
+    dataIndex: 'graph_status',
+    key: 'graph_status',
+    resizable: true,
+    minWidth: 120,
+    maxWidth: 400,
+    width: 200
   },
   {
     title: '知识图谱实体数',
     dataIndex: 'graph_entity_count',
     key: 'graph_entity_count',
+    resizable: true,
+    minWidth: 120,
+    maxWidth: 320,
     width: 160
   },
   {
-    title: '文档状态',
+    title: '状态',
     dataIndex: 'status',
     key: 'status',
-    width: 200
+    resizable: true,
+    minWidth: 130,
+    maxWidth: 200,
+    width: 130,
   },
-  // {
-  //   title: '更新时间',
-  //   dataIndex: 'update_time',
-  //   key: 'update_time',
-  //   width: 150
-  // },
+  {
+    title: '更新时间/频率',
+    dataIndex: 'update_info',
+    key: 'update_info',
+    resizable: true,
+    minWidth: 130,
+    maxWidth: 600,
+    width: 130
+  },
   {
     title: '操作',
     dataIndex: 'action',
@@ -1034,6 +1585,40 @@ const columnsDefault = [
     width: 100
   }
 ]
+
+const getColumnsWidthStorageKey = () => `qa_document_columns_widths_${libraryId.value || 0}`
+const getViewModeStorageKey = () => `qa_document_view_mode_${libraryId.value || 0}`
+const getSavedColumnsWidths = () => {
+  try {
+    const s = localStorage.getItem(getColumnsWidthStorageKey()) || '{}'
+    const obj = JSON.parse(s)
+    return typeof obj === 'object' && obj ? obj : {}
+  } catch {
+    return {}
+  }
+}
+const applySavedWidths = (cols) => {
+  const saved = getSavedColumnsWidths()
+  return cols.map(c => {
+    const w = saved[c.key]
+    if (typeof w === 'number') {
+      let width = w
+      if (typeof c.minWidth === 'number') {
+        width = Math.max(c.minWidth, width)
+      }
+      if (typeof c.maxWidth === 'number') {
+        width = Math.min(c.maxWidth, width)
+      }
+      return { ...c, width }
+    }
+    return c
+  })
+}
+const saveColumnWidth = (key, width) => {
+  const saved = getSavedColumnsWidths()
+  saved[key] = width
+  localStorage.setItem(getColumnsWidthStorageKey(), JSON.stringify(saved))
+}
 
 const handleChangeStatus = (item) => {
   onSearch()
@@ -1047,14 +1632,14 @@ const onTableChange = (pagination, _ , sorter) => {
   queryParams.sort_type = ''
   if(sorter.order && sorter.field){
     queryParams.sort_field = sorter.field
-    queryParams.sort_type = sorter.order == 'ascend' ? 'asc' : 'desc'
+    queryParams.sort_type = sorter.order == 'ascend' ? 'ASC' : 'DESC'
   }
   getData()
 }
 
 const onSearch = () => {
   queryParams.page = 1
-  getData()
+  getData(false)
   getGroupLists()
 }
 
@@ -1110,6 +1695,14 @@ const handlePreview = (record, params = {}) => {
       )
       return
     }
+    if (params.open_new === true) {
+      let queryUrl = router.resolve({
+        path: '/library/document-segmentation',
+        query: { document_id: record.id, page: queryParams.page }
+      })
+      window.open(queryUrl.href, '_blank')
+      return
+    }
     return router.push({
       path: '/library/document-segmentation',
       query: { document_id: record.id, page: queryParams.page }
@@ -1134,15 +1727,15 @@ const handlePreview = (record, params = {}) => {
     return message.error('正在分段,不可预览')
   }
 
-  if (routeName == 'libraryConfig') {
-    window.open('/#/library/preview?id=' + record.id)
+  if (params.open_new === true || routeName == 'libraryConfig') {
+    const url = router.resolve({ name: 'libraryPreview', query: { id: record.id, ...params } })
+    window.open(url.href, '_blank')
     return
   }
-
   router.push({ name: 'libraryPreview', query: { id: record.id, ...params } })
 }
 
-const getData = () => {
+const getData = (append = false) => {
   let params = toRaw(queryParams)
   if (params.status == 0) {
     params.status = ''
@@ -1160,31 +1753,36 @@ const getData = () => {
 
       libraryInfo.value = { ...info }
       createGraphSwitch.value = info.graph_switch == 1
-      if (info.graph_switch == '0' || !neo4j_status.value) {
-        columns.value = columnsDefault.filter(
-          (item) => !['graph_status', 'graph_entity_count'].includes(item.key)
-        )
-      } else {
-        columns.value = columnsDefault
-      }
-      if (props.type != 3) {
-        columns.value = columns.value.filter(i => i.key != 'official_article_update_time')
+      if (!append) {
+        if (info.graph_switch == '0' || !neo4j_status.value) {
+          columns.value = columnsDefault.filter(
+            (item) => !['graph_status', 'graph_entity_count'].includes(item.key)
+          )
+        } else {
+          columns.value = columnsDefault
+        }
+        if (props.type != 3) {
+          columns.value = columns.value.filter(i => i.key != 'official_article_update_time')
+        }
+        columns.value = applySavedWidths(columns.value)
       }
 
       let list = res.data.list || []
       let countData = res.data.count_data || {}
-      let metaList = list?.[0]?.meta_list || []
-      let metaCols = []
-      metaList.forEach(item => {
-        if (columns.value.findIndex(i => i.dataIndex == item.key) > -1) return
-        metaCols.push({
-          title: item.name,
-          key: `meta_${item.key}`,
-          dataIndex: `meta_${item.key}`,
-          width: 160,
+      if (!append) {
+        let metaList = list?.[0]?.meta_list || []
+        let metaCols = []
+        metaList.forEach(item => {
+          if (columns.value.findIndex(i => i.dataIndex == item.key) > -1) return
+          metaCols.push({
+            title: item.name,
+            key: `meta_${item.key}`,
+            dataIndex: `meta_${item.key}`,
+            width: 160,
+          })
         })
-      })
-      columns.value.splice(columns.value.length - 1, 0, ...metaCols)
+        columns.value.splice(columns.value.length - 1, 0, ...metaCols)
+      }
 
       queryParams.total = res.data.total
 
@@ -1193,7 +1791,7 @@ const getData = () => {
       count_data.learned_wait_count = countData.learned_wait_count
 
       let needRefresh = false
-      fileList.value = list.map((item) => {
+      const mapped = list.map((item) => {
         // , '4' 是待学习，如果加进去会一直刷新状态不会改变
         if (['1', '6', '0', '5'].includes(item.status)) {
           needRefresh = true
@@ -1218,6 +1816,7 @@ const getData = () => {
         }
         return item
       })
+      fileList.value = append ? [...fileList.value, ...mapped] : mapped
       needRefresh && timingRefreshStatus()
       !needRefresh && clearInterval(timingRefreshStatusTimer.value)
     })
@@ -1470,9 +2069,10 @@ const onGoSwitch = () => {
 }
 
 const editOnlineDocRef = ref(null)
-const handleEditOnlineDoc = (record) => {
+const handleEditOnlineDoc = (record, fromUpdateInfo = false) => {
   editOnlineDocRef.value.show({
-    ...record
+    ...record,
+    from_update_info: fromUpdateInfo
   })
 }
 const handleUpdataDoc = (record) => {
@@ -1526,7 +2126,9 @@ const handleChangeHideStatus = () => {
 const getGroupLists = () => {
   getLibraryGroup({
     library_id: libraryId.value,
-    group_type: 1
+    group_type: 1,
+    order_field: folderSort.order_field,
+    order_type: folderSort.order_type
   }).then((res) => {
     let lists = res.data || []
     let allTotal = lists.reduce((total, item) => {
@@ -1566,9 +2168,40 @@ const initData = () => {
   getData()
 }
 
+const inFolderDetail = ref(false)
 const handleChangeGroup = (item) => {
   groupId.value = item.id
   onSearch()
+}
+const goToRootFolder = () => {
+  inFolderDetail.value = false
+  groupId.value = -1
+  onSearch()
+}
+const folderScrollSentinel = ref(null)
+const folderScrollObserver = ref(null)
+function initFolderInfiniteScroll() {
+  try {
+    folderScrollObserver.value && folderScrollObserver.value.disconnect()
+    folderScrollObserver.value = new IntersectionObserver((entries) => {
+      const ent = entries[0]
+      if (ent && ent.isIntersecting) {
+        tryLoadMore()
+      }
+    }, { root: null, threshold: 0.1 })
+    nextTick(() => {
+      if (folderScrollSentinel.value) {
+        folderScrollObserver.value.observe(folderScrollSentinel.value)
+      }
+    })
+  } catch {}
+}
+function tryLoadMore() {
+  if (viewMode.value !== 'folder') return
+  const hasMore = queryParams.page * queryParams.size < (queryParams.total || 0)
+  if (!hasMore || isLoading.value) return
+  queryParams.page++
+  getData(true)
 }
 
 const handleDelGroup = (item) => {
@@ -1607,7 +2240,18 @@ onMounted(() => {
   if (width && width >= minGroupBoxWidth && width <= maxGroupBoxWidth) {
     groupBoxWidth.value = width
   }
+  const savedViewMode = localStorage.getItem(getViewModeStorageKey())
+  if (savedViewMode === 'folder' || savedViewMode === 'list') {
+    viewMode.value = savedViewMode
+    queryParams.size = savedViewMode === 'folder' ? 50 : 10
+  } else {
+    localStorage.setItem(getViewModeStorageKey(), 'list')
+  }
   checkFeishuCallback()
+  initFolderInfiniteScroll()
+  learnProgressTimer = setInterval(() => {
+    learnProgressTicker.value++
+  }, 1500)
 })
 
 const checkFeishuCallback = () => {
@@ -1702,8 +2346,24 @@ onMounted(() => {
   getData()
 })
 
+const handleResizeColumn = (w, col) => {
+  let width = w
+  if (typeof col.minWidth === 'number') {
+    width = Math.max(col.minWidth, width)
+  }
+  if (typeof col.maxWidth === 'number') {
+    width = Math.min(col.maxWidth, width)
+  }
+  col.width = width
+  columns.value = columns.value.map(c => (c.key === col.key ? { ...c, width } : c))
+  saveColumnWidth(col.key, width)
+}
+
 onUnmounted(() => {
   timingRefreshStatusTimer.value && clearInterval(timingRefreshStatusTimer.value)
+  learnProgressTimer && clearInterval(learnProgressTimer)
+  folderScrollObserver.value && folderScrollObserver.value.disconnect()
+  folderScrollObserver.value && folderScrollObserver.value.disconnect()
 })
 </script>
 
@@ -1716,12 +2376,20 @@ onUnmounted(() => {
 .group-header-title {
   display: flex;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
   .title {
-    color: #262626;
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 24px;
+    color: #00000073;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 22px;
+    .title-text {
+      color: #262626;
+      font-size: 16px;
+      font-style: normal;
+      font-weight: 600;
+      line-height: 24px;
+    }
   }
 }
 
@@ -1848,6 +2516,29 @@ onUnmounted(() => {
     }
   }
 }
+.empty-folder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 260px;
+  border-radius: 8px;
+  .empty-inner {
+    text-align: center;
+    .empty-img {
+      width: 88px;
+      height: 88px;
+      opacity: 0.8;
+    }
+    .empty-text {
+      margin-top: 12px;
+      color: #8c8c8c;
+    }
+  }
+}
+
+.scroll-sentinel {
+  height: 1px;
+}
 
 .hover-btn-wrap {
   width: fit-content;
@@ -1955,10 +2646,26 @@ onUnmounted(() => {
 
 .doc-name-td {
   word-break: break-all;
+  display: flex;
+  align-items: center;
+
+  .file-icon {
+    color: white;
+    font-size: 24px;
+    margin-right: 12px;
+  }
+}
+.doc-name-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .url-remark {
   color: #8c8c8c;
   margin-top: 2px;
+  flex-basis: 100%;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -2038,7 +2745,21 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     .tool-item {
-      margin-right: 16px;
+      margin-right: 8px;
+
+      .toggle-btn {
+        display: flex;
+        padding: 12px;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        border-radius: 12px;
+        background: #FFF;
+
+        .toggle-icon {
+          font-size: 32px;
+        }
+      }
     }
   }
 }
@@ -2052,7 +2773,8 @@ onUnmounted(() => {
   }
   .time-content-box {
     display: flex;
-    color: #8c8c8c;
+    color: #595959;
+    align-items: center;
   }
   .btn-hover-block {
     height: 24px;
@@ -2131,7 +2853,113 @@ onUnmounted(() => {
       color: #ed744a;
     }
   }
+  .update-icon {
+    width: 16px;
+    height: 16px;
+    margin-left: 4px;
+  }
+  .update-trigger-text {
+    cursor: pointer;
+  }
+  .status-icon-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-icon {
+    color: white;
+    font-size: 16px;
+  }
 }
+.view-toggle {
+  display: inline-flex;
+  align-items: center;
+  border: 2px solid #EDEFF2;
+  border-radius: 8px;
+  overflow: hidden;
+  box-sizing: border-box;
+  height: 32px;
+  background: #EDEFF2;
+  .toggle-seg {
+    width: 28px;
+    height: 28px;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 6px;
+    &:not(:last-child) {
+      border-right: 1px solid #EDEFF2;
+    }
+    .toggle-icon {
+      font-size: 16px;
+    }
+    &.active {
+      background: #fff;
+      width: 28px;
+      height: 28px;
+
+      .toggle-icon {
+        color: #2475fc;
+      }
+    }
+  }
+}
+
+.sort-btn {
+  width: 94px;
+  height: 34px;
+  padding: 5px 0px 5px 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #EDEFF2;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  .sort-left {
+    display: flex;
+    padding: 1px 4px;
+    align-items: center;
+    gap: 8px;
+    border-radius: 6px;
+    background: #EDEFF2;
+  }
+  .sort-text {
+    color: #595959;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 22px;
+  }
+  .sort-icon {
+    width: 16px;
+    height: 16px;
+    transition: color 0.3s ease, transform 0.3s ease;
+    &.active {
+      color: #2475fc;
+    }
+  }
+  .sort-arrow {
+    color: #595959;
+    font-size: 12px;
+    transition: transform 0.3s ease;
+  }
+}
+
+.sort-arrow.active {
+  transform: rotate(180deg);
+}
+
+.sort-dropdown {
+  width: 100%;
+}
+.sort-dropdown .ant-dropdown-menu {
+  width: 100%;
+  min-width: auto;
+}
+
 .pdf-progress-box {
   .progress-title {
     display: flex;
@@ -2230,6 +3058,12 @@ onUnmounted(() => {
   color: #8c8c8c;
   font-size: 12px;
   line-height: 24px;
+}
+
+.title-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .select-card-box {
@@ -2361,5 +3195,172 @@ onUnmounted(() => {
   :deep(.ant-spin-dot-item) {
     background-color: #6524fc !important;
   }
+}
+.folder-view {
+  padding-bottom: 24px;
+  .folder-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 24px;
+  }
+  .folder-card {
+    position: relative;
+    border: 1px solid #f0f0f0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+    cursor: pointer;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    width: 100%;
+    height: 182px;
+    &:hover {
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+    }
+    .card-more {
+      position: absolute;
+      right: 7px;
+      top: 8px;
+      color: #fff;
+      display: none;
+      padding: 4px;
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+      border-radius: 6px;
+      background: #00000040;
+    }
+    &:hover .card-more { display: inline-flex; }
+  }
+  .folder-thumb {
+    position: relative;
+    width: calc(100% - 16px);
+    margin: 8px;
+    height: 86px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+
+    .folder-type-icon {
+      font-size: 68px;
+    }
+    .thumb-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .type-tag {
+      position: absolute;
+      left: 8px;
+      top: 8px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 20px;
+      color: #fff;
+      background: rgba(36, 117, 252, 0.9);
+    }
+    .status-badge {
+      position: absolute;
+      left: 8px;
+      top: 8px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 20px;
+      color: #fff;
+      background: rgba(0,0,0,0.4);
+    }
+    .learn-percent {
+      margin-right: 4px;
+    }
+    &.status-loading {
+      background: linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%);
+    }
+  }
+  .card-file {
+    .folder-thumb {
+      border: 1px solid #F0F0F0;
+    }
+  }
+  .folder-meta {
+    padding: 0 8px 8px;
+    .name {
+      width: 100%;
+      height: 44px;
+      color: #242933;
+      text-align: center;
+      font-size: 14px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 22px;
+      margin-bottom: 8px;
+    }
+    .name-2line {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .desc {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #8c8c8c;
+      line-height: 20px;
+      .file-icon {
+        font-size: 14px;
+        vertical-align: -2px;
+        margin-right: 4px;
+      }
+    }
+  }
+}
+@media screen and (max-width: 1900px) {
+  .folder-view {
+    .folder-grid {
+      grid-template-columns: repeat(7, 1fr);
+    }
+  }
+}
+</style>
+
+<style lang="less">
+.ant-popover-inner-content {
+  .update-tooltip {
+    .update-tooltip-title {
+      display  : flex;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .update-icon-box {
+      display: flex;
+      padding: 4px;
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+      border-radius: 6px;
+      background: #E4E6EB;
+      margin-left: 8px;
+    }
+    .edit-icon {
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+  }
+  .update-tooltip-value {
+    color: #595959;
+  }
+  .update-trigger-text {
+    cursor: pointer;
+  }
+}
+.main-content-box .group-header-title .breadcrumb-a:hover {
+  background-color: transparent !important;
 }
 </style>

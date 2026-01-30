@@ -683,7 +683,7 @@
           </div>
         </div>
       </div>
-      <div class="message-content" :data-msg-type="props.msg.msg_type">
+      <div class="message-content" :data-msg-type="props.msg.msg_type" v-if="isShowMessageBody(props.msg)">
         <!-- <span class="triangle"></span> -->
         <div
           class="answer-reference-box"
@@ -1148,6 +1148,13 @@ function onClickSmartMenuKeyword(text: string) {
   const t = String(text || '').trim()
   if (!t) return
   emit('sendTextMessage', t)
+}
+
+const isShowMessageBody = (item: any) => {
+  if(parseReplyList(item.reply_content_list).length && item.content == ''){
+    return false
+  }
+  return true
 }
 
 onMounted(() => {

@@ -58,8 +58,10 @@ import DateSelect from './components/date.vue'
 import AiGenerate from './components/ai-generate-modal.vue'
 import { unknownIssueStats } from '@/api/chat'
 import { ExclamationCircleFilled } from '@ant-design/icons-vue'
-import { useRoute, useRouter } from 'vue-router'
-import { reactive, ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { reactive, ref, onMounted } from 'vue'
+
+
 const query = useRoute().query
 
 const activeKey = ref(1)
@@ -98,6 +100,7 @@ const handleDownload = () => {
 const onDateChange = (data) => {
   requestParams.start_day = data.start_time
   requestParams.end_day = data.end_time
+
   onSearch()
 }
 
@@ -131,6 +134,10 @@ const columns = [
     width: '20%'
   }
 ]
+
+onMounted(() => {
+  // getData()
+})
 </script>
 
 <style lang="less" scoped>

@@ -37,7 +37,7 @@ func GetModelConfigList(c *gin.Context) {
 		return
 	}
 	list := make([]common.ModelInfo, 0)
-	for _, modelConfig := range common.GetModelConfigList() {
+	for _, modelConfig := range common.GetModelConfigList(common.GetLang(c)) {
 		if len(modelDefine) > 0 && modelConfig.ModelDefine != modelDefine {
 			continue //存在检索的时候,不符合跳过
 		}
@@ -45,7 +45,7 @@ func GetModelConfigList(c *gin.Context) {
 			if modelConfig.ModelDefine != config[`model_define`] {
 				continue //模型服务商不一致,跳过
 			}
-			modelInfo, _ := common.GetModelInfoByConfig(adminUserId, cast.ToInt(config[`id`]))
+			modelInfo, _ := common.GetModelInfoByConfig(common.GetLang(c), adminUserId, cast.ToInt(config[`id`]))
 			list = append(list, modelInfo)
 		}
 	}
@@ -54,7 +54,7 @@ func GetModelConfigList(c *gin.Context) {
 
 func ShowModelConfigList(c *gin.Context) {
 	list := make([]common.ModelInfo, 0)
-	for _, modelConfig := range common.GetModelConfigList() {
+	for _, modelConfig := range common.GetModelConfigList(common.GetLang(c)) {
 		if modelConfig.ModelDefine == common.ModelChatWiki {
 			continue
 		}
@@ -74,7 +74,7 @@ func AddModelConfig(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	modelConfig, exist := common.GetModelConfigByDefine(modelDefine)
+	modelConfig, exist := common.GetModelConfigByDefine(common.GetLang(c), modelDefine)
 	if !exist {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_define`))))
 		return
@@ -100,7 +100,7 @@ func AddModelConfig(c *gin.Context) {
 		data[field] = value
 	}
 	//configuration test
-	if err := configurationTest(common.ToStringMap(data), modelConfig); err != nil {
+	if err := configurationTest(common.ToStringMap(data), modelConfig, common.GetLang(c)); err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
@@ -112,7 +112,7 @@ func AddModelConfig(c *gin.Context) {
 		return
 	}
 	//添加默认的可使用模型
-	common.AutoAddDefaultUseModel(userId, int(id), modelDefine)
+	common.AutoAddDefaultUseModel(common.GetLang(c), userId, int(id), modelDefine)
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.ModelConfigCacheBuildHandler{ModelConfigId: int(id)})
 	c.String(http.StatusOK, lib_web.FmtJson(id, nil))
@@ -198,9 +198,9 @@ func EditModelConfig(c *gin.Context) {
 		return
 	}
 	id := cast.ToInt(c.PostForm(`id`))
-	modelInfo, exist := common.GetModelInfoByConfig(userId, id)
+	modelInfo, exist := common.GetModelInfoByConfig(common.GetLang(c), userId, id)
 	if !exist {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(`模型配置ID参数错误`)))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `model_config_id_invalid`))))
 		return
 	}
 	data := msql.Datas{
@@ -226,7 +226,7 @@ func EditModelConfig(c *gin.Context) {
 		data[`secret_key`] = secretKey
 	}
 	//configuration test
-	if err := configurationTest(common.ToStringMap(data, `model_define`, info[`model_define`]), modelInfo); err != nil {
+	if err := configurationTest(common.ToStringMap(data, `model_define`, info[`model_define`]), modelInfo, common.GetLang(c)); err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
@@ -252,9 +252,9 @@ func GetModelConfigOption(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(list, err))
 }
 
-func configurationTest(config msql.Params, modelInfo common.ModelInfo) error {
+func configurationTest(config msql.Params, modelInfo common.ModelInfo, lang string) error {
 	if modelInfo.ModelDefine == common.ModelChatWiki {
-		return errors.New(`自有模型ChatWiki禁止操作`)
+		return errors.New(i18n.Show(lang, `own_model_chatwiki_operation_forbidden`))
 	}
 	//优先选取默认的模型进行参数测试
 	useModels := append(common.GetDefaultUseModel(modelInfo.ModelDefine), modelInfo.UseModelConfigs...)

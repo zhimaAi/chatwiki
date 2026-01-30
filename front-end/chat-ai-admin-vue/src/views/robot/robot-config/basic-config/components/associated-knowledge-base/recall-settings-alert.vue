@@ -1,6 +1,9 @@
 <style lang="less" scoped>
 .recall-settings-box {
   margin-top: 24px;
+  height: 650px;
+  overflow-x: auto;
+  padding-right: 16px;
 
   .form-box {
     .form-item {
@@ -102,6 +105,13 @@
         color: #2475fc;
       }
     }
+
+    .segment-controls{
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding-top: 4px;
+    }
   }
 }
 
@@ -154,9 +164,9 @@
           </div>
         </div>
 
-      <div class="form-item" v-if="formState.search_type == 1">
-        <WeightSelect v-model:rrf_weight="formState.rrf_weight" />
-      </div>
+        <div class="form-item" v-if="formState.search_type == 1">
+          <WeightSelect v-model:rrf_weight="formState.rrf_weight" />
+        </div>
 
         <div class="form-item">
           <div class="form-item-label">
@@ -212,6 +222,44 @@
                   :step="0.01"
                 />
               </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-item">
+          <div class="form-item-label">
+            <span class="setting-title">召回相邻分段&nbsp;</span>
+            <a-tooltip :overlayStyle="{ maxWidth: '350px' }">
+              <template #title>
+                <div style="font-size: 13px;">
+                  <p>当在知识库检索到相关分段时，会根据配置拼接相关联的上下文。作为最终内容返回给大模型。</p>
+                  <p>开启后，注意分段时不要设置分段重叠长度，否则可能影响最终效果。</p>
+                  <p>父子分段类型的知识库，或者分段字数超过3000字时，不会做任何处理。</p>
+                </div>
+              </template>
+              <QuestionCircleOutlined class="question-icon" />
+            </a-tooltip>
+            &nbsp;
+            <a-switch v-model:checked="formState.recall_neighbor_switch" />
+          </div>
+          
+          <div class="form-item-body">
+            <div class="segment-controls">
+              <div class="segment-input">
+                <span>拼接分段前</span>&nbsp;
+                <a-select v-model:value="formState.recall_neighbor_before_num" style="width: 80px;">
+                  <a-select-option :value="i - 1" v-for="i in 6" :key="i">{{ i - 1 }}</a-select-option>
+                </a-select>
+              </div>
+              
+              <div class="segment-input">
+                <span>后</span>&nbsp;
+                <a-select v-model:value="formState.recall_neighbor_after_num" style="width: 80px;">
+                  <a-select-option :value="i - 1" v-for="i in 6" :key="i">{{ i - 1 }}</a-select-option>
+                </a-select>
+              </div>
+              
+              <div class="segment-text">个分段内容</div>
             </div>
           </div>
         </div>
@@ -310,7 +358,10 @@ const formState = reactive({
   meta_search_switch: 0,
   meta_search_type: 1,
   meta_search_condition_list: "",
-  rrf_weight: {}
+  rrf_weight: {},
+  recall_neighbor_switch: false,
+  recall_neighbor_before_num: 1,
+  recall_neighbor_after_num: 1,
 })
 
 const metaFilterRef = ref(null)
@@ -331,6 +382,10 @@ const open = (data, r=null) => {
   formState.meta_search_type = Number(data.meta_search_type)
   formState.meta_search_condition_list = data.meta_search_condition_list
   formState.rrf_weight = data.rrf_weight
+  formState.recall_neighbor_switch = data.recall_neighbor_switch
+  formState.recall_neighbor_before_num = data.recall_neighbor_before_num
+  formState.recall_neighbor_after_num = data.recall_neighbor_after_num
+
   show.value = true
 }
 

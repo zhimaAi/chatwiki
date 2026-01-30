@@ -151,16 +151,16 @@ const (
 )
 
 // GetModelNameByDefine 获取指定模型的服务商名称
-func GetModelNameByDefine(modelDefine string) string {
-	if modelConfig, exist := GetModelConfigByDefine(modelDefine); exist {
+func GetModelNameByDefine(lang string, modelDefine string) string {
+	if modelConfig, exist := GetModelConfigByDefine(lang, modelDefine); exist {
 		return modelConfig.ModelName
 	}
-	return fmt.Sprintf(`未知(%s)`, modelDefine)
+	return fmt.Sprintf(`Unknown(%s)`, modelDefine)
 }
 
 // GetModelConfigByDefine 获取指定模型的基础定义
-func GetModelConfigByDefine(modelDefine string) (modelConfig ModelInfo, exist bool) {
-	for _, info := range GetModelConfigList() {
+func GetModelConfigByDefine(lang string, modelDefine string) (modelConfig ModelInfo, exist bool) {
+	for _, info := range GetModelConfigList(lang) {
 		if info.ModelDefine == modelDefine {
 			return info, true
 		}
@@ -169,7 +169,7 @@ func GetModelConfigByDefine(modelDefine string) (modelConfig ModelInfo, exist bo
 }
 
 // GetModelInfoByConfig 获取用户配置的模型完整信息
-func GetModelInfoByConfig(adminUserId, modelConfigId int) (_ ModelInfo, exist bool) {
+func GetModelInfoByConfig(lang string, adminUserId, modelConfigId int) (_ ModelInfo, exist bool) {
 	config, err := GetModelConfigInfo(modelConfigId, adminUserId)
 	if err != nil {
 		logs.Error(err.Error())
@@ -177,7 +177,7 @@ func GetModelInfoByConfig(adminUserId, modelConfigId int) (_ ModelInfo, exist bo
 	if len(config) == 0 {
 		return
 	}
-	modelConfig, exist := GetModelConfigByDefine(config[`model_define`])
+	modelConfig, exist := GetModelConfigByDefine(lang, config[`model_define`])
 	if !exist {
 		return
 	}
@@ -204,10 +204,10 @@ func GetModelInfoByConfig(adminUserId, modelConfigId int) (_ ModelInfo, exist bo
 }
 
 // GetModelConfigList 获取全部模型的基础定义
-func GetModelConfigList() []ModelInfo {
+func GetModelConfigList(lang string) []ModelInfo {
 	//模型过滤处理
 	list := make([]ModelInfo, 0)
-	for _, info := range modelConfigList {
+	for _, info := range getModelConfigList(lang) {
 		if !define.IsDev && tool.InArrayString(info.ModelDefine, []string{}) {
 			continue
 		}
@@ -245,313 +245,315 @@ func GetModelConfigList() []ModelInfo {
 	return list
 }
 
-var modelConfigList = [...]ModelInfo{
-	{
-		ModelDefine:             ModelOpenAI,
-		ModelName:               `OpenAI`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelOpenAI + `.png`,
-		Introduce:               `基于OpenAI官方提供的API`,
-		SupportList:             []string{Llm, TextEmbedding},
-		SupportedType:           []string{Llm, TextEmbedding},
-		ConfigParams:            []string{`api_key`},
-		HelpLinks:               `https://openai.com/`,
-		CallHandlerFunc:         GetOpenAIHandle,
-		CallSupplierhandlerFunc: GetOpenAISupplierHandle,
-	},
-	{
-		ModelDefine:             ModelOpenAIAgent,
-		ModelName:               `其他兼容OpenAI API的模型服务商`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelOpenAI + `.png`,
-		Introduce:               `支持添加其他兼容OpenAi API的模型服务商，比如api2d、oneapi等`,
-		SupportList:             []string{Llm, TextEmbedding},
-		SupportedType:           []string{Llm, TextEmbedding},
-		ConfigParams:            []string{`api_endpoint`, `api_key`, `api_version`},
-		ApiVersions:             []string{"v1", `v3`},
-		HelpLinks:               `https://openai.com/`,
-		CallHandlerFunc:         GetOpenAIAgentHandle,
-		CallSupplierhandlerFunc: GetOpenAIAgentSupplierHandle,
-	},
-	{
-		ModelDefine:   ModelAzureOpenAI,
-		ModelName:     `Azure OpenAI Service`,
-		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelAzureOpenAI + `.png`,
-		Introduce:     `Microsoft Azure提供的OpenAI API服务`,
-		SupportList:   []string{Llm, TextEmbedding, Speech2Text, Tts},
-		SupportedType: []string{Llm, TextEmbedding},
-		ConfigParams:  []string{`api_endpoint`, `api_key`, `api_version`},
-		ApiVersions: []string{
-			`2023-05-15`,
-			`2023-06-01-preview`,
-			`2023-10-01-preview`,
-			`2024-02-15-preview`,
-			`2024-03-01-preview`,
-			`2024-04-01-preview`,
-			`2024-05-01-preview`,
-			`2024-02-01`,
+func getModelConfigList(lang string) []ModelInfo {
+	return []ModelInfo{
+		{
+			ModelDefine:             ModelOpenAI,
+			ModelName:               `OpenAI`,
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelOpenAI + `.png`,
+			Introduce:               i18n.Show(lang, `model_openai_introduce`),
+			SupportList:             []string{Llm, TextEmbedding},
+			SupportedType:           []string{Llm, TextEmbedding},
+			ConfigParams:            []string{`api_key`},
+			HelpLinks:               `https://openai.com/`,
+			CallHandlerFunc:         GetOpenAIHandle,
+			CallSupplierhandlerFunc: GetOpenAISupplierHandle,
 		},
-		HelpLinks:               `https://azure.microsoft.com/en-us/products/ai-services/openai-service`,
-		CallHandlerFunc:         GetAzureHandler,
-		CallSupplierhandlerFunc: GetAzureSupplierHandler,
-	},
-	{
-		ModelDefine:             ModelAnthropicClaude,
-		ModelName:               `Anthropic Claude`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelAnthropicClaude + `.png`,
-		Introduce:               `Anthropic出品的Claude模型`,
-		SupportList:             []string{Llm},
-		SupportedType:           []string{Llm},
-		ConfigParams:            []string{`api_key`},
-		HelpLinks:               `https://claude.ai/`,
-		CallHandlerFunc:         GetClaudeHandler,
-		CallSupplierhandlerFunc: GetClaudeSupplierHandler,
-	},
-	{
-		ModelDefine:             ModelGoogleGemini,
-		ModelName:               `Google Gemini`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelGoogleGemini + `.png`,
-		Introduce:               `基于Google提供的Gemini API`,
-		SupportList:             []string{Llm, TextEmbedding},
-		SupportedType:           []string{Llm, TextEmbedding},
-		ConfigParams:            []string{`api_key`},
-		HelpLinks:               `https://ai.google.dev/`,
-		CallHandlerFunc:         GetGeminiHandler,
-		CallSupplierhandlerFunc: GetGeminiSupplierHandler,
-	},
-	{
-		ModelDefine:         ModelBaiduYiyan,
-		ModelName:           `文心一言`,
-		ModelIconUrl:        define.LocalUploadPrefix + `model_icon/` + ModelBaiduYiyan + `.png`,
-		Introduce:           `基于百度千帆大模型平台提供的文心一言API`,
-		SupportList:         []string{Llm, TextEmbedding},
-		SupportedType:       []string{Llm, TextEmbedding},
-		ConfigParams:        []string{`api_key`},
-		HistoryConfigParams: []string{`secret_key`},
-		NetworkSearchModelList: []string{
-			`ernie-4.5-turbo-32k`,
-			`ernie-4.5-turbo-128k`,
-			`ernie-4.0-8k`,
-			`ernie-x1-turbo-32k`,
-			`deepseek-v3`,
-			`deepseek-r1`,
+		{
+			ModelDefine:             ModelOpenAIAgent,
+			ModelName:               i18n.Show(lang, `model_openai_agent_name`),
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelOpenAI + `.png`,
+			Introduce:               i18n.Show(lang, `model_openai_agent_introduce`),
+			SupportList:             []string{Llm, TextEmbedding},
+			SupportedType:           []string{Llm, TextEmbedding},
+			ConfigParams:            []string{`api_endpoint`, `api_key`, `api_version`},
+			ApiVersions:             []string{"v1", `v3`},
+			HelpLinks:               `https://openai.com/`,
+			CallHandlerFunc:         GetOpenAIAgentHandle,
+			CallSupplierhandlerFunc: GetOpenAIAgentSupplierHandle,
 		},
-		HelpLinks:               `https://cloud.baidu.com/`,
-		CallHandlerFunc:         GetYiyanHandler,
-		CallSupplierhandlerFunc: GetYiyanSupplierHandler,
-	},
-	{
-		ModelDefine:   ModelAliyunTongyi,
-		ModelName:     `通义千问`,
-		ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelAliyunTongyi + `.png`,
-		Introduce:     `基于阿里云提供的通义千问API`,
-		SupportList:   []string{Llm, TextEmbedding, Tts, Rerank},
-		SupportedType: []string{Llm, TextEmbedding, Rerank},
-		ConfigParams:  []string{`api_key`},
-		NetworkSearchModelList: []string{
-			`qwen-plus`,
-			`qwen-turbo`,
-			`qwen3-235b-a22b`,
-			`qwen-max`,
-			`Moonshot-Kimi-K2-Instruct`,
+		{
+			ModelDefine:   ModelAzureOpenAI,
+			ModelName:     `Azure OpenAI Service`,
+			ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelAzureOpenAI + `.png`,
+			Introduce:     i18n.Show(lang, `model_azure_introduce`),
+			SupportList:   []string{Llm, TextEmbedding, Speech2Text, Tts},
+			SupportedType: []string{Llm, TextEmbedding},
+			ConfigParams:  []string{`api_endpoint`, `api_key`, `api_version`},
+			ApiVersions: []string{
+				`2023-05-15`,
+				`2023-06-01-preview`,
+				`2023-10-01-preview`,
+				`2024-02-15-preview`,
+				`2024-03-01-preview`,
+				`2024-04-01-preview`,
+				`2024-05-01-preview`,
+				`2024-02-01`,
+			},
+			HelpLinks:               `https://azure.microsoft.com/en-us/products/ai-services/openai-service`,
+			CallHandlerFunc:         GetAzureHandler,
+			CallSupplierhandlerFunc: GetAzureSupplierHandler,
 		},
-		HelpLinks:               `https://dashscope.aliyun.com/?spm=a2c4g.11186623.nav-dropdown-menu-0.142.6d1b46c1EeV28g&scm=20140722.X_data-37f0c4e3bf04683d35bc._.V_1`,
-		CallHandlerFunc:         GetTongyiHandler,
-		CallSupplierhandlerFunc: GetTongyiSupplierHandler,
-	},
-	{
-		ModelDefine:             ModelBaai,
-		ModelName:               `BGE`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelBaai + `.png`,
-		Introduce:               `由北京智源人工智能研究院研发的本地模型，包含bge-rerank-base、bge-m3模型，支持嵌入和rerank。使用bge系列模型，无需消耗token，但是本地模型运行需要硬件支持，请确保服务器有足够的内存（至少8G内存）和用于计算的GPU`,
-		SupportList:             []string{TextEmbedding, Rerank},
-		SupportedType:           []string{TextEmbedding, Rerank},
-		ConfigParams:            []string{`api_endpoint`},
-		HelpLinks:               `https://www.baidu.com/`,
-		CallHandlerFunc:         GetBaaiHandle,
-		CallSupplierhandlerFunc: GetBaaiSupplierHandle,
-	},
-	{
-		ModelDefine:             ModelCohere,
-		ModelName:               `Cohere`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelCohere + `.png`,
-		Introduce:               `cohere提供的模型，包含Command、Command R、Command R+等`,
-		SupportList:             []string{Llm, TextEmbedding, Rerank},
-		SupportedType:           []string{Llm, TextEmbedding, Rerank},
-		ConfigParams:            []string{`api_key`},
-		HelpLinks:               `https://cohere.com/`,
-		CallHandlerFunc:         GetCohereHandle,
-		CallSupplierhandlerFunc: GetCohereSupplierHandle,
-	},
-	{
-		ModelDefine:             ModelOllama,
-		ModelName:               `Ollama`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelOllama + `.png`,
-		Introduce:               `Ollama是一个轻量级的简单易用的本地大模型运行框架,通过Ollama可以在本地服务器构建和运营大语言模型(比如Llama3等).ChatWiki支持使用Ollama部署LLM的型和Text Embedding模型`,
-		SupportList:             []string{Llm, TextEmbedding},
-		SupportedType:           []string{Llm, TextEmbedding},
-		ConfigParams:            []string{`api_endpoint`},
-		HelpLinks:               `https://www.ollama.com/`,
-		CallHandlerFunc:         GetOllamaHandle,
-		CallSupplierhandlerFunc: GetOllamaSupplierHandle,
-	},
-	{
-		ModelDefine:             ModelXnference,
-		ModelName:               `xorbitsai inference`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelXnference + `.png`,
-		Introduce:               `Xorbits Inference(Xinference)是一个开源平台,用于简化各种AI模型的运行和集成,借助Xinference,您可以使用任何开源LLM,嵌入模型和多模态模型在本地服务器中部署`,
-		SupportList:             []string{Llm, TextEmbedding, Rerank},
-		SupportedType:           []string{Llm, TextEmbedding, Rerank},
-		ConfigParams:            []string{`api_version`, `api_endpoint`},
-		ApiVersions:             []string{"v1"},
-		HelpLinks:               `https://baidu.com/`,
-		CallHandlerFunc:         GetXinferenceHandle,
-		CallSupplierhandlerFunc: GetXinferenceSupplierHandle,
-	},
-	{
-		ModelDefine:             ModelDeepseek,
-		ModelName:               `DeepSeek`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelDeepseek + `.png`,
-		Introduce:               `由DeepSeek提供的大模型API`,
-		SupportList:             []string{Llm},
-		SupportedType:           []string{Llm},
-		ConfigParams:            []string{`api_key`},
-		HelpLinks:               `https://www.deepseek.com/`,
-		CallHandlerFunc:         GetDeepseekHandle,
-		CallSupplierhandlerFunc: GetDeepseekSupplierHandle,
-	},
-	{
-		ModelDefine:             ModelJina,
-		ModelName:               `Jina`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelJina + `.png`,
-		Introduce:               `有Jina提供的嵌入和Rerank模型，`,
-		SupportList:             []string{TextEmbedding, Rerank},
-		SupportedType:           []string{TextEmbedding, Rerank},
-		ConfigParams:            []string{`api_key`},
-		HelpLinks:               `https://jina.ai/`,
-		CallHandlerFunc:         GetJinaHandle,
-		CallSupplierhandlerFunc: GetJinaSupplierHandle,
-	},
-	{
-		ModelDefine:             ModelLingYiWanWu,
-		ModelName:               `零一万物`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelLingYiWanWu + `.png`,
-		Introduce:               `基于零一万物提供的零一大模型API`,
-		SupportList:             []string{Llm},
-		SupportedType:           []string{Llm},
-		ConfigParams:            []string{`api_key`},
-		HelpLinks:               `https://platform.lingyiwanwu.com/`,
-		CallHandlerFunc:         GetLingYiWanWuHandle,
-		CallSupplierhandlerFunc: GetLingYiWanWuSupplierHandle,
-	},
-	{
-		ModelDefine:             ModelMoonShot,
-		ModelName:               `月之暗面`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelMoonShot + `.png`,
-		Introduce:               `基于月之暗面提供的Kimi API`,
-		SupportList:             []string{Llm},
-		SupportedType:           []string{Llm},
-		ConfigParams:            []string{`api_key`},
-		HelpLinks:               `https://www.moonshot.cn/`,
-		CallHandlerFunc:         GetMoonShotHandle,
-		CallSupplierhandlerFunc: GetMoonShotSupplierHandle,
-	},
-	{
-		ModelDefine:             ModelSpark,
-		ModelName:               `讯飞星火`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelSpark + `.png`,
-		Introduce:               `基于科大讯飞提供的讯飞星火大模型API`,
-		SupportList:             []string{Llm},
-		SupportedType:           []string{Llm},
-		ConfigParams:            []string{`app_id`, `api_key`, `secret_key`},
-		HelpLinks:               `https://xinghuo.xfyun.cn/sparkapi`,
-		CallHandlerFunc:         GetSparkHandle,
-		CallSupplierhandlerFunc: GetSparkSupplierHandle,
-	},
-	{
-		ModelDefine:             ModelHunyuan,
-		ModelName:               `腾讯混元`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelHunyuan + `.png`,
-		Introduce:               `腾讯混元大模型由腾讯公司全链路自研`,
-		SupportList:             []string{Llm, TextEmbedding},
-		SupportedType:           []string{Llm, TextEmbedding},
-		ConfigParams:            []string{`api_key`, `secret_key`},
-		HelpLinks:               `https://cloud.tencent.com/product/hunyuan`,
-		CallHandlerFunc:         GetHunyuanHandle,
-		CallSupplierhandlerFunc: GetHunyuanSupplierHandle,
-	},
-	{
-		ModelDefine:             ModelDoubao,
-		ModelName:               `火山引擎`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelDoubao + `.png`,
-		Introduce:               `基于火山引擎提供的豆包大模型API`,
-		SupportList:             []string{Llm, TextEmbedding, Image},
-		SupportedType:           []string{Llm, TextEmbedding, Image},
-		ConfigParams:            []string{`api_key`, `region`},
-		HistoryConfigParams:     []string{`secret_key`},
-		HelpLinks:               `https://www.volcengine.com/product/doubao`,
-		CallHandlerFunc:         GetDoubaoHandle,
-		CallSupplierhandlerFunc: GetDoubaoSupplierHandle,
-	},
-	{
-		ModelDefine:             ModelBaichuan,
-		ModelName:               `百川智能`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelBaichuan + `.png`,
-		Introduce:               `基于百川智能提供的百川大模型API`,
-		SupportList:             []string{Llm, TextEmbedding},
-		SupportedType:           []string{Llm, TextEmbedding},
-		ConfigParams:            []string{`api_key`},
-		HelpLinks:               `https://platform.baichuan-ai.com`,
-		CallHandlerFunc:         GetBaichuanHandle,
-		CallSupplierhandlerFunc: GetBaichuanSupplierHandle,
-	},
-	{
-		ModelDefine:             ModelZhipu,
-		ModelName:               `智谱`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelZhipu + `.png`,
-		Introduce:               `领先的认知大模型AI开放平台`,
-		SupportList:             []string{Llm, TextEmbedding},
-		SupportedType:           []string{Llm, TextEmbedding},
-		ConfigParams:            []string{`api_key`},
-		HelpLinks:               `https://open.bigmodel.cn/`,
-		CallHandlerFunc:         GetZhipuHandle,
-		CallSupplierhandlerFunc: GetZhipuSupplierHandle,
-	},
-	{
-		ModelDefine:             ModelMinimax,
-		ModelName:               `minimax`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelMinimax + `.png`,
-		Introduce:               `MiniMax 成立于 2021 年 12 月，是领先的通用人工智能科技公司，致力于与用户共创智能。MiniMax 自主研发多模态、万亿参数的 MoE 大模型，并基于大模型推出海螺AI、星野等原生应用。MiniMax API 开放平台提供安全、灵活、可靠的 API 服务，助力企业和开发者快速搭建 AI 应用。`,
-		SupportList:             []string{Llm, Tts},
-		SupportedType:           []string{Llm, Tts},
-		ConfigParams:            []string{`api_key`},
-		HelpLinks:               `https://www.minimaxi.com/`,
-		CallHandlerFunc:         GetMinimaxHandle,
-		CallSupplierhandlerFunc: GetMinimaxSupplierHandle,
-	},
-	{
-		ModelDefine:             ModelSiliconFlow,
-		ModelName:               `硅基流动`,
-		ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelSiliconFlow + `.png`,
-		Introduce:               `支持通义千问，mata-lama，google-gemma，bge-m3等开源模型，可以免部署、低成本使用`,
-		SupportList:             []string{Llm, TextEmbedding, Rerank},
-		SupportedType:           []string{Llm, TextEmbedding, Rerank},
-		ConfigParams:            []string{`api_key`},
-		HelpLinks:               `https://siliconflow.cn/zh-cn/`,
-		CallHandlerFunc:         GetSiliconFlowHandle,
-		CallSupplierhandlerFunc: GetSiliconFlowSupplierHandle,
-	},
+		{
+			ModelDefine:             ModelAnthropicClaude,
+			ModelName:               `Anthropic Claude`,
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelAnthropicClaude + `.png`,
+			Introduce:               i18n.Show(lang, `model_claude_introduce`),
+			SupportList:             []string{Llm},
+			SupportedType:           []string{Llm},
+			ConfigParams:            []string{`api_key`},
+			HelpLinks:               `https://claude.ai/`,
+			CallHandlerFunc:         GetClaudeHandler,
+			CallSupplierhandlerFunc: GetClaudeSupplierHandler,
+		},
+		{
+			ModelDefine:             ModelGoogleGemini,
+			ModelName:               `Google Gemini`,
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelGoogleGemini + `.png`,
+			Introduce:               i18n.Show(lang, `model_gemini_introduce`),
+			SupportList:             []string{Llm, TextEmbedding},
+			SupportedType:           []string{Llm, TextEmbedding},
+			ConfigParams:            []string{`api_key`},
+			HelpLinks:               `https://ai.google.dev/`,
+			CallHandlerFunc:         GetGeminiHandler,
+			CallSupplierhandlerFunc: GetGeminiSupplierHandler,
+		},
+		{
+			ModelDefine:         ModelBaiduYiyan,
+			ModelName:           i18n.Show(lang, `model_yiyan_name`),
+			ModelIconUrl:        define.LocalUploadPrefix + `model_icon/` + ModelBaiduYiyan + `.png`,
+			Introduce:           i18n.Show(lang, `model_yiyan_introduce`),
+			SupportList:         []string{Llm, TextEmbedding},
+			SupportedType:       []string{Llm, TextEmbedding},
+			ConfigParams:        []string{`api_key`},
+			HistoryConfigParams: []string{`secret_key`},
+			NetworkSearchModelList: []string{
+				`ernie-4.5-turbo-32k`,
+				`ernie-4.5-turbo-128k`,
+				`ernie-4.0-8k`,
+				`ernie-x1-turbo-32k`,
+				`deepseek-v3`,
+				`deepseek-r1`,
+			},
+			HelpLinks:               `https://cloud.baidu.com/`,
+			CallHandlerFunc:         GetYiyanHandler,
+			CallSupplierhandlerFunc: GetYiyanSupplierHandler,
+		},
+		{
+			ModelDefine:   ModelAliyunTongyi,
+			ModelName:     i18n.Show(lang, `model_tongyi_name`),
+			ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelAliyunTongyi + `.png`,
+			Introduce:     i18n.Show(lang, `model_tongyi_introduce`),
+			SupportList:   []string{Llm, TextEmbedding, Tts, Rerank, Image},
+			SupportedType: []string{Llm, TextEmbedding, Rerank, Image},
+			ConfigParams:  []string{`api_key`},
+			NetworkSearchModelList: []string{
+				`qwen-plus`,
+				`qwen-turbo`,
+				`qwen3-235b-a22b`,
+				`qwen-max`,
+				`Moonshot-Kimi-K2-Instruct`,
+			},
+			HelpLinks:               `https://dashscope.aliyun.com/?spm=a2c4g.11186623.nav-dropdown-menu-0.142.6d1b46c1EeV28g&scm=20140722.X_data-37f0c4e3bf04683d35bc._.V_1`,
+			CallHandlerFunc:         GetTongyiHandler,
+			CallSupplierhandlerFunc: GetTongyiSupplierHandler,
+		},
+		{
+			ModelDefine:             ModelBaai,
+			ModelName:               `BGE`,
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelBaai + `.png`,
+			Introduce:               i18n.Show(lang, `model_baai_introduce`),
+			SupportList:             []string{TextEmbedding, Rerank},
+			SupportedType:           []string{TextEmbedding, Rerank},
+			ConfigParams:            []string{`api_endpoint`},
+			HelpLinks:               `https://www.baidu.com/`,
+			CallHandlerFunc:         GetBaaiHandle,
+			CallSupplierhandlerFunc: GetBaaiSupplierHandle,
+		},
+		{
+			ModelDefine:             ModelCohere,
+			ModelName:               `Cohere`,
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelCohere + `.png`,
+			Introduce:               i18n.Show(lang, `model_cohere_introduce`),
+			SupportList:             []string{Llm, TextEmbedding, Rerank},
+			SupportedType:           []string{Llm, TextEmbedding, Rerank},
+			ConfigParams:            []string{`api_key`},
+			HelpLinks:               `https://cohere.com/`,
+			CallHandlerFunc:         GetCohereHandle,
+			CallSupplierhandlerFunc: GetCohereSupplierHandle,
+		},
+		{
+			ModelDefine:             ModelOllama,
+			ModelName:               `Ollama`,
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelOllama + `.png`,
+			Introduce:               i18n.Show(lang, `model_ollama_introduce`),
+			SupportList:             []string{Llm, TextEmbedding},
+			SupportedType:           []string{Llm, TextEmbedding},
+			ConfigParams:            []string{`api_endpoint`},
+			HelpLinks:               `https://www.ollama.com/`,
+			CallHandlerFunc:         GetOllamaHandle,
+			CallSupplierhandlerFunc: GetOllamaSupplierHandle,
+		},
+		{
+			ModelDefine:             ModelXnference,
+			ModelName:               `xorbitsai inference`,
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelXnference + `.png`,
+			Introduce:               i18n.Show(lang, `model_xinference_introduce`),
+			SupportList:             []string{Llm, TextEmbedding, Rerank},
+			SupportedType:           []string{Llm, TextEmbedding, Rerank},
+			ConfigParams:            []string{`api_version`, `api_endpoint`},
+			ApiVersions:             []string{"v1"},
+			HelpLinks:               `https://baidu.com/`,
+			CallHandlerFunc:         GetXinferenceHandle,
+			CallSupplierhandlerFunc: GetXinferenceSupplierHandle,
+		},
+		{
+			ModelDefine:             ModelDeepseek,
+			ModelName:               `DeepSeek`,
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelDeepseek + `.png`,
+			Introduce:               i18n.Show(lang, `model_deepseek_introduce`),
+			SupportList:             []string{Llm},
+			SupportedType:           []string{Llm},
+			ConfigParams:            []string{`api_key`},
+			HelpLinks:               `https://www.deepseek.com/`,
+			CallHandlerFunc:         GetDeepseekHandle,
+			CallSupplierhandlerFunc: GetDeepseekSupplierHandle,
+		},
+		{
+			ModelDefine:             ModelJina,
+			ModelName:               `Jina`,
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelJina + `.png`,
+			Introduce:               i18n.Show(lang, `model_jina_introduce`),
+			SupportList:             []string{TextEmbedding, Rerank},
+			SupportedType:           []string{TextEmbedding, Rerank},
+			ConfigParams:            []string{`api_key`},
+			HelpLinks:               `https://jina.ai/`,
+			CallHandlerFunc:         GetJinaHandle,
+			CallSupplierhandlerFunc: GetJinaSupplierHandle,
+		},
+		{
+			ModelDefine:             ModelLingYiWanWu,
+			ModelName:               i18n.Show(lang, `model_lingyiwanwu_name`),
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelLingYiWanWu + `.png`,
+			Introduce:               i18n.Show(lang, `model_lingyiwanwu_introduce`),
+			SupportList:             []string{Llm},
+			SupportedType:           []string{Llm},
+			ConfigParams:            []string{`api_key`},
+			HelpLinks:               `https://platform.lingyiwanwu.com/`,
+			CallHandlerFunc:         GetLingYiWanWuHandle,
+			CallSupplierhandlerFunc: GetLingYiWanWuSupplierHandle,
+		},
+		{
+			ModelDefine:             ModelMoonShot,
+			ModelName:               i18n.Show(lang, `model_moonshot_name`),
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelMoonShot + `.png`,
+			Introduce:               i18n.Show(lang, `model_moonshot_introduce`),
+			SupportList:             []string{Llm},
+			SupportedType:           []string{Llm},
+			ConfigParams:            []string{`api_key`},
+			HelpLinks:               `https://www.moonshot.cn/`,
+			CallHandlerFunc:         GetMoonShotHandle,
+			CallSupplierhandlerFunc: GetMoonShotSupplierHandle,
+		},
+		{
+			ModelDefine:             ModelSpark,
+			ModelName:               i18n.Show(lang, `model_spark_name`),
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelSpark + `.png`,
+			Introduce:               i18n.Show(lang, `model_spark_introduce`),
+			SupportList:             []string{Llm},
+			SupportedType:           []string{Llm},
+			ConfigParams:            []string{`app_id`, `api_key`, `secret_key`},
+			HelpLinks:               `https://xinghuo.xfyun.cn/sparkapi`,
+			CallHandlerFunc:         GetSparkHandle,
+			CallSupplierhandlerFunc: GetSparkSupplierHandle,
+		},
+		{
+			ModelDefine:             ModelHunyuan,
+			ModelName:               i18n.Show(lang, `model_hunyuan_name`),
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelHunyuan + `.png`,
+			Introduce:               i18n.Show(lang, `model_hunyuan_introduce`),
+			SupportList:             []string{Llm, TextEmbedding},
+			SupportedType:           []string{Llm, TextEmbedding},
+			ConfigParams:            []string{`api_key`, `secret_key`},
+			HelpLinks:               `https://cloud.tencent.com/product/hunyuan`,
+			CallHandlerFunc:         GetHunyuanHandle,
+			CallSupplierhandlerFunc: GetHunyuanSupplierHandle,
+		},
+		{
+			ModelDefine:             ModelDoubao,
+			ModelName:               i18n.Show(lang, `model_doubao_name`),
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelDoubao + `.png`,
+			Introduce:               i18n.Show(lang, `model_doubao_introduce`),
+			SupportList:             []string{Llm, TextEmbedding, Image},
+			SupportedType:           []string{Llm, TextEmbedding, Image},
+			ConfigParams:            []string{`api_key`, `region`},
+			HistoryConfigParams:     []string{`secret_key`},
+			HelpLinks:               `https://www.volcengine.com/product/doubao`,
+			CallHandlerFunc:         GetDoubaoHandle,
+			CallSupplierhandlerFunc: GetDoubaoSupplierHandle,
+		},
+		{
+			ModelDefine:             ModelBaichuan,
+			ModelName:               i18n.Show(lang, `model_baichuan_name`),
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelBaichuan + `.png`,
+			Introduce:               i18n.Show(lang, `model_baichuan_introduce`),
+			SupportList:             []string{Llm, TextEmbedding},
+			SupportedType:           []string{Llm, TextEmbedding},
+			ConfigParams:            []string{`api_key`},
+			HelpLinks:               `https://platform.baichuan-ai.com`,
+			CallHandlerFunc:         GetBaichuanHandle,
+			CallSupplierhandlerFunc: GetBaichuanSupplierHandle,
+		},
+		{
+			ModelDefine:             ModelZhipu,
+			ModelName:               i18n.Show(lang, `model_zhipu_name`),
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelZhipu + `.png`,
+			Introduce:               i18n.Show(lang, `model_zhipu_introduce`),
+			SupportList:             []string{Llm, TextEmbedding},
+			SupportedType:           []string{Llm, TextEmbedding},
+			ConfigParams:            []string{`api_key`},
+			HelpLinks:               `https://open.bigmodel.cn/`,
+			CallHandlerFunc:         GetZhipuHandle,
+			CallSupplierhandlerFunc: GetZhipuSupplierHandle,
+		},
+		{
+			ModelDefine:             ModelMinimax,
+			ModelName:               `minimax`,
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelMinimax + `.png`,
+			Introduce:               i18n.Show(lang, `model_minimax_introduce`),
+			SupportList:             []string{Llm, Tts},
+			SupportedType:           []string{Llm, Tts},
+			ConfigParams:            []string{`api_key`},
+			HelpLinks:               `https://www.minimaxi.com/`,
+			CallHandlerFunc:         GetMinimaxHandle,
+			CallSupplierhandlerFunc: GetMinimaxSupplierHandle,
+		},
+		{
+			ModelDefine:             ModelSiliconFlow,
+			ModelName:               i18n.Show(lang, `model_siliconflow_name`),
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelSiliconFlow + `.png`,
+			Introduce:               i18n.Show(lang, `model_siliconflow_introduce`),
+			SupportList:             []string{Llm, TextEmbedding, Rerank},
+			SupportedType:           []string{Llm, TextEmbedding, Rerank},
+			ConfigParams:            []string{`api_key`},
+			HelpLinks:               `https://siliconflow.cn/zh-cn/`,
+			CallHandlerFunc:         GetSiliconFlowHandle,
+			CallSupplierhandlerFunc: GetSiliconFlowSupplierHandle,
+		},
+	}
 }
 
 func CompatibleUseModelOldData(config msql.Params, useModel string) string {
-	if len(config[`deployment_name`]) > 0 && tool.InArrayString(useModel, []string{`默认`, config[`show_model_name`]}) {
+	if len(config[`deployment_name`]) > 0 && tool.InArrayString(useModel, []string{lib_define.DefaultUseModel, config[`show_model_name`]}) {
 		useModel = config[`deployment_name`]
 	}
 	return useModel
 }
 
-func GetSupplierCallHandler(adminUserId, modelConfigId int) (*SupplierHandler, error) {
-	modelInfo, ok := GetModelInfoByConfig(adminUserId, modelConfigId)
+func GetSupplierCallHandler(lang string, adminUserId, modelConfigId int) (*SupplierHandler, error) {
+	modelInfo, ok := GetModelInfoByConfig(lang, adminUserId, modelConfigId)
 	if !ok {
-		return nil, errors.New(`模型配置ID参数错误`)
+		return nil, errors.New(i18n.Show(lang, `model_config_id_invalid`))
 	}
 	config := modelInfo.ConfigInfo
 	logs.Debug("modelInfo", modelInfo)
@@ -563,10 +565,10 @@ func GetSupplierCallHandler(adminUserId, modelConfigId int) (*SupplierHandler, e
 	return handler, nil
 }
 
-func GetModelCallHandler(adminUserId, modelConfigId int, useModel string, robot msql.Params) (*ModelCallHandler, error) {
-	modelInfo, ok := GetModelInfoByConfig(adminUserId, modelConfigId)
+func GetModelCallHandler(lang string, adminUserId, modelConfigId int, useModel string, robot msql.Params) (*ModelCallHandler, error) {
+	modelInfo, ok := GetModelInfoByConfig(lang, adminUserId, modelConfigId)
 	if !ok {
-		return nil, errors.New(`模型配置ID参数错误`)
+		return nil, errors.New(i18n.Show(lang, `model_config_id_invalid`))
 	}
 	//校验使用的模型是否有效
 	curModelMap := make(map[string]UseModelConfig)
@@ -602,12 +604,12 @@ func GetModelCallHandler(adminUserId, modelConfigId int, useModel string, robot 
 	return handler, nil
 }
 
-func GetVector2000(adminUserId int, openid string, robot msql.Params, library msql.Params, file msql.Params, modelConfigId int, useModel, input string) (string, error) {
-	handler, err := GetModelCallHandler(adminUserId, modelConfigId, useModel, robot)
+func GetVector2000(lang string, adminUserId int, openid string, robot msql.Params, library msql.Params, file msql.Params, modelConfigId int, useModel, input string) (string, error) {
+	handler, err := GetModelCallHandler(lang, adminUserId, modelConfigId, useModel, robot)
 	if err != nil {
 		return ``, err
 	}
-	res, err := handler.GetVector2000(adminUserId, openid, robot, library, file, input)
+	res, err := handler.GetVector2000(lang, adminUserId, openid, robot, library, file, input)
 	if err != nil {
 		return ``, err
 	}
@@ -617,43 +619,43 @@ func GetVector2000(adminUserId int, openid string, robot msql.Params, library ms
 	return tool.JsonEncode(res.Result)
 }
 
-func RequestChatStream(adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, chanStream chan sse.Event, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
-	handler, err := GetModelCallHandler(adminUserId, modelConfigId, useModel, robot)
+func RequestChatStream(lang string, adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, chanStream chan sse.Event, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
+	handler, err := GetModelCallHandler(lang, adminUserId, modelConfigId, useModel, robot)
 	if err != nil {
 		return adaptor.ZhimaChatCompletionResponse{}, 0, err
 	}
-	chatResp, requestTime, err := handler.RequestChatStream(adminUserId, openid, robot, appType, messages, functionTools, chanStream, temperature, maxToken)
+	chatResp, requestTime, err := handler.RequestChatStream(lang, adminUserId, openid, robot, appType, messages, functionTools, chanStream, temperature, maxToken)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
 		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken, robot, 0)
 	}
 	return chatResp, requestTime, err
 }
 
-func RequestSearchStream(adminUserId int, modelConfigId int, useModel string, library msql.Params, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, chanStream chan sse.Event, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
-	handler, err := GetModelCallHandler(adminUserId, modelConfigId, useModel, nil)
+func RequestSearchStream(lang string, adminUserId int, modelConfigId int, useModel string, library msql.Params, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, chanStream chan sse.Event, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
+	handler, err := GetModelCallHandler(lang, adminUserId, modelConfigId, useModel, nil)
 	if err != nil {
 		return adaptor.ZhimaChatCompletionResponse{}, 0, err
 	}
-	chatResp, requestTime, err := handler.RequestChatStream(adminUserId, "", library, "", messages, functionTools, chanStream, temperature, maxToken)
+	chatResp, requestTime, err := handler.RequestChatStream(lang, adminUserId, "", library, "", messages, functionTools, chanStream, temperature, maxToken)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
 		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken, msql.Params{}, 0)
 	}
 	return chatResp, requestTime, err
 }
 
-func RequestChat(adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
-	handler, err := GetModelCallHandler(adminUserId, modelConfigId, useModel, robot)
+func RequestChat(lang string, adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
+	handler, err := GetModelCallHandler(lang, adminUserId, modelConfigId, useModel, robot)
 	if err != nil {
 		return adaptor.ZhimaChatCompletionResponse{}, 0, err
 	}
-	chatResp, requestTime, err := handler.RequestChat(adminUserId, openid, robot, appType, messages, functionTools, temperature, maxToken)
+	chatResp, requestTime, err := handler.RequestChat(lang, adminUserId, openid, robot, appType, messages, functionTools, temperature, maxToken)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
 		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken, robot, 0)
 	}
 	return chatResp, requestTime, err
 }
 
-func (h *ModelCallHandler) GetVector2000(adminUserId int, openid string, robot msql.Params, library msql.Params, fileInfo msql.Params, input string) (adaptor.ZhimaEmbeddingResponse, error) {
+func (h *ModelCallHandler) GetVector2000(lang string, adminUserId int, openid string, robot msql.Params, library msql.Params, fileInfo msql.Params, input string) (adaptor.ZhimaEmbeddingResponse, error) {
 	client := &adaptor.Adaptor{}
 	client.Init(h.Meta)
 	req := adaptor.ZhimaEmbeddingRequest{Input: input}
@@ -680,7 +682,7 @@ func (h *ModelCallHandler) GetVector2000(adminUserId int, openid string, robot m
 		res.Result = append(res.Result, make([]float64, define.VectorDimension-len(res.Result))...)
 	}
 	//go func() {
-	err = LlmLogRequest("Text Embedding", adminUserId, openid, robot, library, h.config, lib_define.AppYunH5, fileInfo, h.Meta.Model, res.PromptToken, res.CompletionToken, req, res)
+	err = LlmLogRequest(lang, TextEmbedding, adminUserId, openid, robot, library, h.config, lib_define.AppYunH5, fileInfo, h.Meta.Model, res.PromptToken, res.CompletionToken, req, res)
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -702,7 +704,7 @@ func (h *ModelCallHandler) GetSimilarity(query []float64, inputs [][]float64) (s
 	return tool.JsonEncode(res.Result)
 }
 
-func (h *ModelCallHandler) RequestRerank(adminUserId int, openid, appType string, robot msql.Params, params *adaptor.ZhimaRerankReq) (adaptor.ZhimaRerankResp, error) {
+func (h *ModelCallHandler) RequestRerank(lang string, adminUserId int, openid, appType string, robot msql.Params, params *adaptor.ZhimaRerankReq) (adaptor.ZhimaRerankResp, error) {
 	client := &adaptor.Adaptor{}
 	client.Init(h.Meta)
 	req := &adaptor.ZhimaRerankReq{
@@ -726,7 +728,7 @@ func (h *ModelCallHandler) RequestRerank(adminUserId int, openid, appType string
 		CompletionToken: res.OutputToken,
 	}
 	//go func() {
-	err = LlmLogRequest("RERANK", adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.Meta.Model, totalResponse.PromptToken, totalResponse.CompletionToken, req, totalResponse)
+	err = LlmLogRequest(lang, Rerank, adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.Meta.Model, totalResponse.PromptToken, totalResponse.CompletionToken, req, totalResponse)
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -735,6 +737,7 @@ func (h *ModelCallHandler) RequestRerank(adminUserId int, openid, appType string
 }
 
 func (h *ModelCallHandler) RequestChatStream(
+	lang string,
 	adminUserId int,
 	openid string,
 	robot msql.Params,
@@ -824,7 +827,7 @@ func (h *ModelCallHandler) RequestChatStream(
 	if appType == "" && openid == "" {
 		library, robot = robot, library
 	}
-	err = LlmLogRequest("LLM", adminUserId, openid, robot, library, h.config, appType, msql.Params{}, h.Meta.Model, totalResponse.PromptToken, totalResponse.CompletionToken, req, totalResponse)
+	err = LlmLogRequest(lang, Llm, adminUserId, openid, robot, library, h.config, appType, msql.Params{}, h.Meta.Model, totalResponse.PromptToken, totalResponse.CompletionToken, req, totalResponse)
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -866,6 +869,7 @@ func (h *ModelCallHandler) CheckFunctionArguments(functionToolCall adaptor.Funct
 }
 
 func (h *ModelCallHandler) RequestChat(
+	lang string,
 	adminUserId int,
 	openid string,
 	robot msql.Params,
@@ -904,7 +908,7 @@ func (h *ModelCallHandler) RequestChat(
 		resp.Result = `OK`
 	}
 	//go func() {
-	err = LlmLogRequest("LLM", adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.Meta.Model, resp.PromptToken, resp.CompletionToken, req, resp)
+	err = LlmLogRequest(lang, Llm, adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.Meta.Model, resp.PromptToken, resp.CompletionToken, req, resp)
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -922,7 +926,7 @@ func (h *ModelCallHandler) RequestChat(
 }
 
 func CheckModelIsValid(userId, modelConfigId int, useModel, modelType string) bool {
-	modelInfo, exist := GetModelInfoByConfig(userId, modelConfigId)
+	modelInfo, exist := GetModelInfoByConfig(define.LangEnUs, userId, modelConfigId)
 	if !exist {
 		return false
 	}
@@ -944,17 +948,17 @@ func CheckModelIsDeepSeek(model string) bool {
 		strings.Contains(modelLower, `deepseek-reasoner`)
 }
 
-func CheckSupportFuncCall(adminUserId, modelConfigId int, useModel string) error {
-	modelInfo, exist := GetModelInfoByConfig(adminUserId, modelConfigId)
+func CheckSupportFuncCall(lang string, adminUserId, modelConfigId int, useModel string) error {
+	modelInfo, exist := GetModelInfoByConfig(lang, adminUserId, modelConfigId)
 	if !exist {
-		return errors.New(`模型配置ID参数错误`)
+		return errors.New(i18n.Show(lang, `model_config_id_invalid`))
 	}
 	useModel = CompatibleUseModelOldData(modelInfo.ConfigInfo, useModel) //兼容旧数据
 	if !tool.InArrayString(useModel, modelInfo.GetLlmModelList()) {
-		return errors.New(`使用模型名称参数错误`)
+		return errors.New(i18n.Show(lang, `use_model_name_param_error`))
 	}
 	if !tool.InArrayString(useModel, modelInfo.GetFunctionCallModels()) {
-		return errors.New(`使用模型不支持func call`)
+		return errors.New(i18n.Show(lang, `use_model_not_support_func_call`))
 	}
 	return nil
 }
@@ -972,7 +976,7 @@ func GetModelConfigOption(adminUserId int, modelType, lang string) ([]ModelInfo,
 	list := make([]ModelInfo, 0)
 	for _, config := range configs {
 		if tool.InArrayString(modelType, strings.Split(config[`model_types`], `,`)) {
-			modelInfo, ok := GetModelInfoByConfig(adminUserId, cast.ToInt(config[`id`]))
+			modelInfo, ok := GetModelInfoByConfig(lang, adminUserId, cast.ToInt(config[`id`]))
 			if !ok {
 				continue
 			}
@@ -993,7 +997,7 @@ func GetModelConfigOption(adminUserId int, modelType, lang string) ([]ModelInfo,
 	return list, nil
 }
 
-func (h *ModelCallHandler) RequestImageGenerate(adminUserId int, openid, appType string, robot msql.Params, params *adaptor.ZhimaImageGenerationReq) (*adaptor.ZhimaImageGenerationResp, error) {
+func (h *ModelCallHandler) RequestImageGenerate(lang string, adminUserId int, openid, appType string, robot msql.Params, params *adaptor.ZhimaImageGenerationReq) (*adaptor.ZhimaImageGenerationResp, error) {
 	client := &adaptor.Adaptor{}
 	client.Init(h.Meta)
 	params.Stream = false
@@ -1027,7 +1031,7 @@ func (h *ModelCallHandler) RequestImageGenerate(adminUserId int, openid, appType
 		datas = append(datas, data)
 	}
 	res.Datas = datas
-	err = LlmLogRequest(Image, adminUserId, openid, robot, msql.Params{}, h.config, appType,
+	err = LlmLogRequest(lang, Image, adminUserId, openid, robot, msql.Params{}, h.config, appType,
 		msql.Params{}, h.Meta.Model, res.InputToken, res.OutputToken, params, res)
 	if err != nil {
 		logs.Error(err.Error())
@@ -1036,6 +1040,7 @@ func (h *ModelCallHandler) RequestImageGenerate(adminUserId int, openid, appType
 }
 
 func (h *ModelCallHandler) RequestImageGenerateStream(
+	lang string,
 	adminUserId int,
 	openid string,
 	robot msql.Params,
@@ -1091,7 +1096,7 @@ func (h *ModelCallHandler) RequestImageGenerateStream(
 	if appType == "" && openid == "" {
 		library, robot = robot, library
 	}
-	err = LlmLogRequest(Image, adminUserId, openid, robot, library, h.config, appType, msql.Params{}, h.Meta.Model, totalResponse.InputToken, totalResponse.OutputToken, params, totalResponse)
+	err = LlmLogRequest(lang, Image, adminUserId, openid, robot, library, h.config, appType, msql.Params{}, h.Meta.Model, totalResponse.InputToken, totalResponse.OutputToken, params, totalResponse)
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -1099,13 +1104,13 @@ func (h *ModelCallHandler) RequestImageGenerateStream(
 	return totalResponse, requestTime, nil
 }
 
-func RequestImageGenerate(adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, params *adaptor.ZhimaImageGenerationReq) (*adaptor.ZhimaImageGenerationResp, error) {
-	handler, err := GetModelCallHandler(adminUserId, modelConfigId, useModel, robot)
+func RequestImageGenerate(lang string, adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, params *adaptor.ZhimaImageGenerationReq) (*adaptor.ZhimaImageGenerationResp, error) {
+	handler, err := GetModelCallHandler(lang, adminUserId, modelConfigId, useModel, robot)
 	if err != nil {
 		return &adaptor.ZhimaImageGenerationResp{}, err
 	}
 	params.Stream = false
-	res, err := handler.RequestImageGenerate(adminUserId, openid, appType, robot, params)
+	res, err := handler.RequestImageGenerate(lang, adminUserId, openid, appType, robot, params)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
 		handler.modelInfo.TokenUseReport(handler.config, useModel, res.InputToken, res.OutputToken, robot, 0)
 	}
@@ -1325,32 +1330,32 @@ func (h *ModelCallHandler) TtsSpeechT2A(params map[string]any) (map[string]any, 
 	return result, nil
 }
 
-func TtsGetVoiceList(adminUserId, modelConfigId int) ([]map[string]any, error) {
-	handler, err := GetSupplierCallHandler(adminUserId, modelConfigId)
+func TtsGetVoiceList(lang string, adminUserId, modelConfigId int) ([]map[string]any, error) {
+	handler, err := GetSupplierCallHandler(lang, adminUserId, modelConfigId)
 	if err != nil {
 		return nil, err
 	}
 	return handler.TtsGetVoiceList(adminUserId)
 }
 
-func TtsUploadVoiceFile(adminUserId, modelConfigId int, perpose, filePath string) (map[string]any, error) {
-	handler, err := GetSupplierCallHandler(adminUserId, modelConfigId)
+func TtsUploadVoiceFile(lang string, adminUserId, modelConfigId int, perpose, filePath string) (map[string]any, error) {
+	handler, err := GetSupplierCallHandler(lang, adminUserId, modelConfigId)
 	if err != nil {
 		return nil, err
 	}
 	return handler.TtsUploadVoiceFile(perpose, filePath)
 }
 
-func TtsCloneVoice(adminUserId, modelConfigId int, params map[string]any) (map[string]any, error) {
-	handler, err := GetSupplierCallHandler(adminUserId, modelConfigId)
+func TtsCloneVoice(lang string, adminUserId, modelConfigId int, params map[string]any) (map[string]any, error) {
+	handler, err := GetSupplierCallHandler(lang, adminUserId, modelConfigId)
 	if err != nil {
 		return nil, err
 	}
 	return handler.TtsCloneVoice(params)
 }
 
-func TtsSpeechT2A(adminUserId, modelConfigId int, useModel string, params map[string]any) (map[string]any, error) {
-	handler, err := GetModelCallHandler(adminUserId, modelConfigId, useModel, nil)
+func TtsSpeechT2A(lang string, adminUserId, modelConfigId int, useModel string, params map[string]any) (map[string]any, error) {
+	handler, err := GetModelCallHandler(lang, adminUserId, modelConfigId, useModel, nil)
 	if err != nil {
 		return nil, err
 	}

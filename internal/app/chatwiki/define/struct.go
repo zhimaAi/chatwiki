@@ -43,13 +43,14 @@ func (u *UploadInfo) GetDocType() int {
 }
 
 type ChatBaseParam struct {
-	AppType     string
-	AppInfo     msql.Params
-	Openid      string
-	AdminUserId int
-	Robot       msql.Params
-	Customer    msql.Params
-	RelUserId   int
+	AppType        string
+	AppInfo        msql.Params
+	Openid         string
+	AdminUserId    int
+	Robot          msql.Params
+	Customer       msql.Params
+	RelUserId      int
+	UseNewDialogue int // For webapp and embedded website (C-end), whether to use a new conversation (with history conversations displayed): 1 = use new conversation
 }
 
 type ChatRequestParam struct {

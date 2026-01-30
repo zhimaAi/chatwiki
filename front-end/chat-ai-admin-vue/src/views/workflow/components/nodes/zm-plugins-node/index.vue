@@ -28,7 +28,7 @@
   <node-common
     :properties="properties"
     :title="properties.node_name"
-    :iconUrl="info.icon"
+    :iconUrl="properties.node_icon || info.icon"
     :isSelected="isSelected"
     :isHovered="isHovered"
     :node-key="properties.node_key"
@@ -226,8 +226,11 @@ export default {
     loadPluginInfo() {
       return getPluginInfo({name: this.pluginName}).then(res => {
         let data = res?.data || {}
-        this.info = data.remote
+        this.info = data.remote || {}
         this.isMultiNode = data?.local?.multiNode || false
+      }).catch(() => {
+        this.info = { icon: this.properties.node_icon || '' }
+        this.isMultiNode = false
       })
     },
     loadPluginParams() {
@@ -237,6 +240,10 @@ export default {
         params: {}
       }).then(res => {
         this.pluginData = res?.data || {}
+        this.formStateFormat()
+        this.update(this.pluginData)
+      }).catch(() => {
+        this.pluginData = {}
         this.formStateFormat()
         this.update(this.pluginData)
       })
@@ -300,7 +307,10 @@ export default {
 
       nodeParams.plugin = nodeParams.plugin || {}
       nodeParams.plugin.params = nodeParams.plugin.params || {}
-      nodeParams.plugin.params.use_plugin_config = schemaAction?.use_plugin_config || false
+      const currentUse = nodeParams?.plugin?.params?.use_plugin_config
+      nodeParams.plugin.params.use_plugin_config = (schemaAction && Object.prototype.hasOwnProperty.call(schemaAction, 'use_plugin_config'))
+        ? !!schemaAction.use_plugin_config
+        : !!currentUse
 
       if (isAction) {
         nodeParams.plugin.params.arguments = {

@@ -47,6 +47,12 @@
       <template #overlay>
         <a-menu>
           <a-menu-item>
+            <a class="menu-item" href="javascript:;" @click="toAccount">
+              <UserOutlined class="menu-icon" />
+              <span class="menu-name">{{ displayUserName }}</span>
+            </a>
+          </a-menu-item>
+          <a-menu-item>
             <a class="menu-item" href="javascript:;" @click="toSystem">
               <svg-icon class="menu-icon" name="system-setting"></svg-icon>
               <span class="menu-name">{{ t('layout.navbar.system_manage') }}</span>
@@ -84,6 +90,7 @@ import { useUserStore } from '@/stores/modules/user'
 import { useCompanyStore } from '@/stores/modules/company'
 import { checkRole } from '@/utils/permission'
 import LocaleDropdown from './locale-dropdown.vue'
+import { UserOutlined } from '@ant-design/icons-vue';
 
 const { t } = useI18n()
 const companyStore = useCompanyStore()
@@ -102,6 +109,10 @@ const onLogout = () => {
 
 const toSystem = () => {
   window.open(`/#/user/model`, "_blank", "noopener")
+}
+
+const toAccount = () => {
+  window.open(`/#/user/account`, "_blank", "noopener")
 }
 
 const baseNavs = computed(() => [

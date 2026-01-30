@@ -117,7 +117,7 @@ const open = (data, record) => {
   const { model_icon_url, model_define, model_name, history_config_params } = data
   let config_params = data.config_params
 
-  title.value = record ? t('common.edit') + ' ' + model_name : t('common.add') + ' ' + model_name
+  title.value = record ? t('edit') + ' ' + model_name : t('add') + ' ' + model_name
 
   modelConfig.model_icon_url = model_icon_url
   modelConfig.model_define = model_define
@@ -261,7 +261,7 @@ const saveAddModel = () => {
     .then((res) => {
       confirmLoading.value = false
       show.value = false
-      message.success(t('common.saveSuccess'))
+      message.success(t('saveSuccess'))
 
       emit('ok', res.data)
     })
@@ -291,7 +291,7 @@ const saveEditModel = () => {
     .then(() => {
       confirmLoading.value = false
       show.value = false
-      message.success(t('common.saveSuccess'))
+      message.success(t('saveSuccess'))
 
       emit('ok')
     })

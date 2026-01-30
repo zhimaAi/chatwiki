@@ -27,11 +27,11 @@ func VectorEmbedding2000Migration() error {
 	} else {
 		maxId = cast.ToInt(maxIdStr)
 	}
-	logs.Other(`migration`, `获取最大ID:%d`, maxId)
+	logs.Other(`migration`, `get max id: %d`, maxId)
 	var size = 1000 //每一批次数
 	for i := 0; ; i++ {
 		start, end := i*size, (i+1)*size
-		logs.Other(`migration`, `第%d轮:%d~%d`, i+1, start, end)
+		logs.Other(`migration`, `round %d: %d~%d`, i+1, start, end)
 		affect, err := indexModel.Where(`id`, `>`, cast.ToString(start)).
 			Where(`id`, `<=`, cast.ToString(end)).
 			Where(`vector_dims(embedding)=2000`).
@@ -39,7 +39,7 @@ func VectorEmbedding2000Migration() error {
 		if err != nil {
 			return err
 		}
-		logs.Other(`migration`, `第%d轮:affect(%d)`, i+1, affect)
+		logs.Other(`migration`, `round %d: affect(%d)`, i+1, affect)
 		if end >= maxId {
 			break //处理完毕,结束循环
 		}

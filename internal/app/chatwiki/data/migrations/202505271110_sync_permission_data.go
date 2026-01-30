@@ -5,6 +5,7 @@ package migrations
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_define"
 	"context"
 	"database/sql"
 	"fmt"
@@ -43,7 +44,7 @@ func SyncHistoryPermissionData() {
 				exec <- total
 				return
 			}
-			logs.Info("同步历史权限数据,  查询:%v 条", len(data))
+			logs.Info(`sync history permission data, query: %v records`, len(data))
 			for _, item := range data {
 				adminUserId := cast.ToInt(item[`parent_id`])
 				if adminUserId == 0 {
@@ -53,7 +54,7 @@ func SyncHistoryPermissionData() {
 					defaultDepartment, _ := common.GetDefaultDepartmentInfo(adminUserId)
 					if len(defaultDepartment) <= 0 {
 						common.SaveDepartment(0, cast.ToInt64(adminUserId), msql.Datas{
-							`department_name`: `默认部门`,
+							`department_name`: lib_define.DefaultDepartment,
 							`is_default`:      1,
 							`admin_user_id`:   adminUserId,
 						})
@@ -177,7 +178,7 @@ func SyncHistoryPermissionData() {
 	}()
 	select {
 	case data := <-exec:
-		logs.Info("同步历史权限数据完成, 共同步 %v 条", data)
+		logs.Info(`sync history permission data completed, total synced: %v records`, data)
 		return
 	}
 }

@@ -99,7 +99,7 @@ func UseRobotTemplate(c *gin.Context) {
 		return
 	}
 	if len(bs) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(`文件内容不能为空`)))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `file_content_empty`))))
 		return
 	}
 	robotCsl, err := common.ParseRobotCsl(string(bs))
@@ -138,7 +138,7 @@ func UseRobotTemplate(c *gin.Context) {
 	if len(token) == 0 {
 		token = c.Query(`token`)
 	}
-	c.String(http.StatusOK, lib_web.FmtJson(ApplyRobotCsl(adminUserId, getLoginUserId(c), token, robotCsl)))
+	c.String(http.StatusOK, lib_web.FmtJson(ApplyRobotCsl(common.GetLang(c), adminUserId, getLoginUserId(c), token, robotCsl)))
 }
 
 // requestXiaokefu 封装小客服请求接口
@@ -171,7 +171,7 @@ func requestXiaokefu(api string, data map[string]any) (lib_web.Response, error) 
 	code := lib_web.Response{}
 	// 获取响应体
 	//returnBody, returnErr := ioutil.ReadAll(resp.Body)
-	//logs.Error(fmt.Sprintf(`结果：%v ,错误:%v`, string(returnBody), returnErr))
+	//logs.Error(fmt.Sprintf(`result: %v , error: %v`, string(returnBody), returnErr))
 	if err = request.ToJSON(&code); err != nil {
 		return lib_web.Response{}, err
 	}

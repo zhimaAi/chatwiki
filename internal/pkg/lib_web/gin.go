@@ -14,9 +14,16 @@ const NoMethod = `NoMethod`
 type Action = func(c *gin.Context)
 type Route map[string]map[string]Action
 
-func InitGin(port string, route Route, auth Action) *http.Server {
+// InitGin 初始化Gin服务器，现在支持添加额外的中间件
+func InitGin(port string, route Route, auth Action, extraMiddlewares ...gin.HandlerFunc) *http.Server {
 	handler := gin.Default()
 	handler.Use(gin.Recovery())
+
+	// 应用额外的中间件
+	for _, middleware := range extraMiddlewares {
+		handler.Use(middleware)
+	}
+
 	routeMap := make(map[string]string)
 	for method, routers := range route {
 		for path, action := range routers {

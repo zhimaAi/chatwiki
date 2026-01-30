@@ -6,9 +6,9 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -222,7 +222,7 @@ func GetFAQFileChunks(c *gin.Context) {
 		return
 	}
 	for i := range data {
-		data[i]["content"] = strings.ReplaceAll(cast.ToString(data[i]["content"]), "[图片占位符]", "")
+		data[i]["content"] = strings.ReplaceAll(cast.ToString(data[i]["content"]), lib_define.ImagePlaceholder, "")
 	}
 	common.FmtOk(c, data)
 }
@@ -446,12 +446,12 @@ func ExportFAQFileAllQA(c *gin.Context) {
 		page++
 		data = append(data, list...)
 	}
-	filePath, err := common.ExportFAQFileAllQA(data, ext, `lib_faq`)
+	filePath, err := common.ExportFAQFileAllQA(common.GetLang(c), data, ext, `lib_faq`)
 	if err != nil {
 		common.FmtError(c, `sys_err`)
 		return
 	}
-	c.FileAttachment(filePath, fmt.Sprintf(`FAQ分段结果导出%s.%s`, tool.Date(`Y-m-d-H-i-s`), ext))
+	c.FileAttachment(filePath, i18n.Show(common.GetLang(c), `faq_chunk_export_filename`, tool.Date(`Y-m-d-H-i-s`), ext))
 	go func(filePath string) {
 		time.Sleep(1 * time.Minute)
 		_ = os.Remove(filePath)

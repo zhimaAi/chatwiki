@@ -145,8 +145,8 @@ func GetPromptLibraryItems(c *gin.Context) {
 		delete(list[i], `create_time`)
 		delete(list[i], `update_time`)
 		if cast.ToInt(item[`prompt_type`]) == define.PromptTypeStruct {
-			item[`prompt_struct`], _ = common.CheckPromptConfig(define.PromptTypeStruct, item[`prompt_struct`])
-			list[i][`markdown`] = common.BuildPromptStruct(define.PromptTypeStruct, ``, item[`prompt_struct`])
+			item[`prompt_struct`], _ = common.CheckPromptConfig(common.GetLang(c), define.PromptTypeStruct, item[`prompt_struct`])
+			list[i][`markdown`] = common.BuildPromptStruct(common.GetLang(c), define.PromptTypeStruct, ``, item[`prompt_struct`])
 		}
 	}
 	data := map[string]any{`list`: list, `page`: page, `size`: size, `has_more`: len(list) == size}
@@ -171,7 +171,7 @@ func SavePromptLibraryItems(c *gin.Context) {
 		return
 	}
 	var err error
-	if promptStruct, err = common.CheckPromptConfig(promptType, promptStruct); err != nil {
+	if promptStruct, err = common.CheckPromptConfig(common.GetLang(c), promptType, promptStruct); err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
@@ -275,15 +275,15 @@ func CreatePromptByLlm(c *gin.Context) {
 	}
 	//check model_config_id and use_model
 	if ok := common.CheckModelIsValid(adminUserId, modelConfigId, useModel, common.Llm); !ok {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(`使用的LLM模型选择错误`)))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `llm_model_selection_error`))))
 		return
 	}
-	promptStruct, err := common.CreatePromptByAi(demand, adminUserId, modelConfigId, useModel)
+	promptStruct, err := common.CreatePromptByAi(common.GetLang(c), demand, adminUserId, modelConfigId, useModel)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
-	data := map[string]any{`promptStruct`: promptStruct, `markdown`: common.BuildPromptStruct(define.PromptTypeStruct, ``, promptStruct)}
+	data := map[string]any{`promptStruct`: promptStruct, `markdown`: common.BuildPromptStruct(common.GetLang(c), define.PromptTypeStruct, ``, promptStruct)}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
 

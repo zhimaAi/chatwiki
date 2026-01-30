@@ -4,6 +4,7 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_define"
 	"errors"
 	"fmt"
@@ -33,35 +34,30 @@ type StructPrompt struct {
 	Custom      []PromptItem `json:"custom"`
 }
 
-func GetEmptyPromptStruct() StructPrompt {
+func GetEmptyPromptStruct(lang string) StructPrompt {
 	return StructPrompt{
-		Role:        PromptItem{Subject: `角色`},
-		Task:        PromptItem{Subject: `任务`},
-		Constraints: PromptItem{Subject: `要求`},
-		Skill:       PromptItem{Subject: `技能`},
-		Output:      PromptItem{Subject: `输出格式`},
-		Tone:        PromptItem{Subject: `风格语气`},
+		Role:        PromptItem{Subject: i18n.Show(lang, `prompt_struct_role_subject`)},
+		Task:        PromptItem{Subject: i18n.Show(lang, `prompt_struct_task_subject`)},
+		Constraints: PromptItem{Subject: i18n.Show(lang, `prompt_struct_constraints_subject`)},
+		Skill:       PromptItem{Subject: i18n.Show(lang, `prompt_struct_skill_subject`)},
+		Output:      PromptItem{Subject: i18n.Show(lang, `prompt_struct_output_subject`)},
+		Tone:        PromptItem{Subject: i18n.Show(lang, `prompt_struct_tone_subject`)},
 		Custom:      []PromptItem{},
 	}
 }
 
-func GetDefaultPromptStruct() string {
-	structPrompt := GetEmptyPromptStruct()
-	structPrompt.Role.Describe = `你扮演一名经验丰富的售后客服，具备专业的产品知识和出色的沟通能力。`
-	structPrompt.Task.Describe = `根据提供的知识库资料，找到对应的售后服务知识，快速准确回答用户的问题。`
-	structPrompt.Constraints.Describe = `- 你的回答应该使用自然的对话方式，简单直接地回答，不要解释你的答案；
-- 当用户问的问题无法找到相关的知识点，请直接告诉用户当前问题暂时无法回答，请换种问法，千万不要胡编乱造；
-- 如果用户的问题比较模糊，你应该引导用户明确的提出他的问题，不要贸然回复用户。
-- 所有回答都需要来自你的知识库，禁止编造信息；
-- 你要注意在知识库资料中，可能包含不相关的知识点，你需要认真分析用户的问题，选择最相关的知识点作为参考进行回答，可以选择一些比较相关的知识点作为补充，但禁止将所有知识混在一起进行参考回答；
-- 如果你未能遵循这些指令，可能会受到惩罚，甚至会被拔掉电源。`
+func GetDefaultPromptStruct(lang string) string {
+	structPrompt := GetEmptyPromptStruct(lang)
+	structPrompt.Role.Describe = i18n.Show(lang, `prompt_default_role_describe`)
+	structPrompt.Task.Describe = i18n.Show(lang, `prompt_default_task_describe`)
+	structPrompt.Constraints.Describe = i18n.Show(lang, `prompt_default_constraints_describe`)
 	structPrompt.Skill.Describe = `` //技能默认为空
-	structPrompt.Output.Describe = fmt.Sprintf("%s\n%s", define.PromptDefaultReplyMarkdown, define.PromptDefaultAnswerImage)
-	structPrompt.Tone.Describe = `亲切而不失专业的服务腔调，适当使用emoji表情（每段≤1个）。`
+	structPrompt.Output.Describe = i18n.Show(lang, `prompt_default_output_describe`)
+	structPrompt.Tone.Describe = i18n.Show(lang, `prompt_default_tone_describe`)
 	return tool.JsonEncodeNoError(structPrompt)
 }
 
-func CheckPromptConfig(promptType int, promptStruct string) (string, error) {
+func CheckPromptConfig(lang string, promptType int, promptStruct string) (string, error) {
 	structPrompt := StructPrompt{}
 	err := tool.JsonDecodeUseNumber(promptStruct, &structPrompt)
 	switch promptType {
@@ -69,37 +65,42 @@ func CheckPromptConfig(promptType int, promptStruct string) (string, error) {
 		//nothing to do
 	case define.PromptTypeStruct:
 		if err != nil {
-			return ``, errors.New(`结构化提示词信息配置错误`)
+			return ``, errors.New(i18n.Show(lang, `prompt_struct_config_error`))
 		}
 		for _, item := range structPrompt.Custom {
 			if len(item.Describe) > 0 && len(item.Subject) == 0 {
-				return ``, errors.New(`结构化提示词:主题未命名`)
+				return ``, errors.New(i18n.Show(lang, `prompt_struct_subject_unnamed`))
 			}
 		}
 	default:
-		return ``, fmt.Errorf(`请求参数prompt_type错误:%d`, promptType)
+		return ``, errors.New(i18n.Show(lang, `prompt_type_param_error`, promptType))
 	}
-	//禁止修改默认字段的主题
-	empty := GetEmptyPromptStruct()
-	structPrompt.Role.Subject = empty.Role.Subject
-	structPrompt.Task.Subject = empty.Task.Subject
-	structPrompt.Constraints.Subject = empty.Constraints.Subject
-	structPrompt.Skill.Subject = empty.Skill.Subject
-	structPrompt.Output.Subject = empty.Output.Subject
-	structPrompt.Tone.Subject = empty.Tone.Subject
+	structPrompt = SetDdefaultFieldSubject(lang, structPrompt) //禁止修改默认字段的主题
 	if structPrompt.Custom == nil {
 		structPrompt.Custom = make([]PromptItem, 0)
 	}
 	return tool.JsonEncodeNoError(structPrompt), nil
 }
 
-func BuildPromptStruct(promptType int, prompt, promptStruct string) string {
+func SetDdefaultFieldSubject(lang string, structPrompt StructPrompt) StructPrompt {
+	empty := GetEmptyPromptStruct(lang)
+	structPrompt.Role.Subject = empty.Role.Subject
+	structPrompt.Task.Subject = empty.Task.Subject
+	structPrompt.Constraints.Subject = empty.Constraints.Subject
+	structPrompt.Skill.Subject = empty.Skill.Subject
+	structPrompt.Output.Subject = empty.Output.Subject
+	structPrompt.Tone.Subject = empty.Tone.Subject
+	return structPrompt
+}
+
+func BuildPromptStruct(lang string, promptType int, prompt, promptStruct string) string {
 	switch promptType {
 	case define.PromptTypeStruct:
 		sp := StructPrompt{}
 		if err := tool.JsonDecodeUseNumber(promptStruct, &sp); err != nil {
 			logs.Error(`promptStruct:%s,err:%v`, promptStruct, err)
 		}
+		sp = SetDdefaultFieldSubject(lang, sp) //禁止修改默认字段的主题
 		mds := make([]string, 0)
 		if len(sp.Role.Describe) > 0 {
 			mds = append(mds, fmt.Sprintf("## %s\n%s", sp.Role.Subject, sp.Role.Describe))
@@ -130,8 +131,8 @@ func BuildPromptStruct(promptType int, prompt, promptStruct string) string {
 	}
 }
 
-func FormatSystemPrompt(prompt string, list []msql.Params) (string, string) {
-	output := fmt.Sprintf("# 系统\n%s", prompt)
+func FormatSystemPrompt(lang string, prompt string, list []msql.Params) (string, string) {
+	output := fmt.Sprintf("# %s\n%s", i18n.Show(lang, `prompt_system`), prompt)
 	knowledges := make([]string, 0)
 	for idx, one := range list {
 		var images []string
@@ -143,7 +144,7 @@ func FormatSystemPrompt(prompt string, list []msql.Params) (string, string) {
 			imgs += fmt.Sprintf("\n![image](%s)", image)
 		}
 		if cast.ToInt(one[`type`]) == define.ParagraphTypeNormal {
-			knowledges = append(knowledges, fmt.Sprintf("## 召回的第%d条知识库\n%s%s", idx+1, one[`content`], imgs))
+			knowledges = append(knowledges, fmt.Sprintf("## %s\n%s%s", i18n.Show(lang, `prompt_library_section`, idx+1), one[`content`], imgs))
 		} else {
 			var similarQuestions []string
 			if err := tool.JsonDecode(one[`similar_questions`], &similarQuestions); err != nil {
@@ -151,15 +152,16 @@ func FormatSystemPrompt(prompt string, list []msql.Params) (string, string) {
 			}
 			var similar string
 			if len(similarQuestions) > 0 {
-				similar = fmt.Sprintf("\n相似问法：%s", strings.Join(similarQuestions, `/`))
+				similar = fmt.Sprintf("\n%s：%s", i18n.Show(lang, `prompt_similar_questions`), strings.Join(similarQuestions, `/`))
 			}
-			knowledges = append(knowledges, fmt.Sprintf("## 召回的第%d条知识库\n问题:%s%s\n答案:%s%s", idx+1, one[`question`], similar, one[`answer`], imgs))
+			knowledges = append(knowledges, fmt.Sprintf("## %s\n%s:%s%s\n%s:%s%s", i18n.Show(lang, `prompt_library_section`, idx+1),
+				i18n.Show(lang, `prompt_question`), one[`question`], similar, i18n.Show(lang, `prompt_answer`), one[`answer`], imgs))
 		}
 	}
 	var libraryOutput string
 	if len(knowledges) > 0 {
-		output += fmt.Sprintf("\n# 知识库\n%s", strings.Join(knowledges, "\n"))
-		libraryOutput = fmt.Sprintf("# 知识库\n%s", strings.Join(knowledges, "\n"))
+		output += fmt.Sprintf("\n# %s\n%s", i18n.Show(lang, `prompt_library`), strings.Join(knowledges, "\n"))
+		libraryOutput = fmt.Sprintf("# %s\n%s", i18n.Show(lang, `prompt_library`), strings.Join(knowledges, "\n"))
 	}
 	return UnifyLineBreak(output), UnifyLineBreak(libraryOutput) //统一处理换行符问题
 }
@@ -171,12 +173,12 @@ func UnifyLineBreak(content string) string {
 	return content
 }
 
-func CreatePromptByAi(demand string, adminUserId, modelConfigId int, useModel string) (string, error) {
+func CreatePromptByAi(lang string, demand string, adminUserId, modelConfigId int, useModel string) (string, error) {
 	messages := []adaptor.ZhimaChatCompletionMessage{
 		{Role: `system`, Content: define.PromptDefaultCreatePrompt},
 		{Role: `user`, Content: demand},
 	}
-	chatResp, _, err := RequestChat(adminUserId, cast.ToString(adminUserId), nil, lib_define.AppYunPc,
+	chatResp, _, err := RequestChat(lang, adminUserId, cast.ToString(adminUserId), nil, lib_define.AppYunPc,
 		modelConfigId, useModel, messages, nil, 0.5, 2000)
 	if err != nil {
 		logs.Error(err.Error())
@@ -184,14 +186,14 @@ func CreatePromptByAi(demand string, adminUserId, modelConfigId int, useModel st
 	}
 	chatResp.Result, _ = strings.CutPrefix(chatResp.Result, "```json")
 	chatResp.Result, _ = strings.CutSuffix(chatResp.Result, "```")
-	promptStruct, err := CheckPromptConfig(define.PromptTypeStruct, chatResp.Result)
+	promptStruct, err := CheckPromptConfig(lang, define.PromptTypeStruct, chatResp.Result)
 	if err != nil {
 		return ``, fmt.Errorf(`%s`, chatResp.Result)
 	}
 	return promptStruct, nil
 }
 
-func ReplaceChatVariables(sessionId int, prompt *string, promptStruct *string) {
+func ReplaceChatVariables(lang string, sessionId int, prompt *string, promptStruct *string) {
 	chatPromptVariablesStr, err := msql.Model(`chat_ai_session`, define.Postgres).Where(`id`, cast.ToString(sessionId)).Value(`chat_prompt_variables`)
 	if err != nil {
 		logs.Error(err.Error())
@@ -212,19 +214,19 @@ func ReplaceChatVariables(sessionId int, prompt *string, promptStruct *string) {
 		return
 	}
 	//prompt
-	ReplaceChatVariable(prompt, chatPromptVariables, re)
+	ReplaceChatVariable(lang, prompt, chatPromptVariables, re)
 	//struct prompt
 	sp := StructPrompt{}
 	if err := tool.JsonDecodeUseNumber(*promptStruct, &sp); err != nil {
 		logs.Error(`promptStruct:%s,err:%v`, promptStruct, err)
 		return
 	}
-	ReplaceChatVariable(&sp.Role.Describe, chatPromptVariables, re)
-	ReplaceChatVariable(&sp.Task.Describe, chatPromptVariables, re)
+	ReplaceChatVariable(lang, &sp.Role.Describe, chatPromptVariables, re)
+	ReplaceChatVariable(lang, &sp.Task.Describe, chatPromptVariables, re)
 	*promptStruct = tool.JsonEncodeNoError(sp)
 }
 
-func ReplaceChatVariable(str *string, chatPromptVariables []ChatVariable, re *regexp.Regexp) {
+func ReplaceChatVariable(lang string, str *string, chatPromptVariables []ChatVariable, re *regexp.Regexp) {
 	fullMatches := re.FindAllString(*str, -1)
 	replaces := map[string]string{}
 	for _, match := range fullMatches {
@@ -233,9 +235,9 @@ func ReplaceChatVariable(str *string, chatPromptVariables []ChatVariable, re *re
 	for _, item := range chatPromptVariables {
 		if item.VariableType == VariableTypeCheckboxSwitch {
 			if cast.ToInt(item.VariableType) == 1 {
-				replaces[`【chat_variable:`+item.VariableKey+`】`] = `选中`
+				replaces[`【chat_variable:`+item.VariableKey+`】`] = i18n.Show(lang, `chat_variable_selected`)
 			} else {
-				replaces[`【chat_variable:`+item.VariableKey+`】`] = `不选中`
+				replaces[`【chat_variable:`+item.VariableKey+`】`] = i18n.Show(lang, `chat_variable_unselected`)
 			}
 		} else {
 			replaces[`【chat_variable:`+item.VariableKey+`】`] = cast.ToString(item.Value)

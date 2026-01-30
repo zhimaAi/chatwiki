@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { sendAiMessage, chatWelcome, getDialogueList, getChatMessage, questionGuide, getFastCommandList, addFeedback, delFeedback, editVariables } from '@/api/chat'
+import { sendAiMessage, chatWelcome, getDialogueList, getChatMessage, questionGuide, getFastCommandList, addFeedback, delFeedback, deleteDialogue, editDialogue, editVariables } from '@/api/chat'
 import { editPrompt } from '@/api/robot/index'
 import { getUuid, getOpenid, extractVoiceInfo, removeVoiceFormat } from '@/utils/index'
 import { useEventBus } from '@/hooks/event/useEventBus'
@@ -93,6 +93,7 @@ export interface ExternalConfigH5 {
   open_type: number
   window_width: number
   window_height: number
+  new_session_btn_show: number
 }
 
 export const useChatStore = defineStore('chat', () => {
@@ -153,7 +154,8 @@ export const useChatStore = defineStore('chat', () => {
     },
     open_type: 1,
     window_width: 1200,
-    window_height: 650
+    window_height: 650,
+    new_session_btn_show: 2,
   })
 
   const chat_variables = ref<any>({
@@ -164,6 +166,7 @@ export const useChatStore = defineStore('chat', () => {
     dialogue_id: 0,
   })
 
+  let isFirstLoad = true
   // 创建对话
   const isNewChat = ref(false)
 
@@ -208,6 +211,10 @@ export const useChatStore = defineStore('chat', () => {
     try {
       const userInfo = res.data.customer
       const robotInfo = res.data.robot
+      if(isFirstLoad) {
+        dialogue_id.value = res.data.dialog_id || 0
+        isFirstLoad = false
+      }
 
       user.admin_user_id = userInfo.admin_user_id
       user.avatar = userInfo.avatar
@@ -483,6 +490,7 @@ export const useChatStore = defineStore('chat', () => {
       dialogue_id: dialogue_id.value,
       global: data.global,
       rel_user_id: userStore.userInfo ? userStore.userInfo.user_id : '',
+      use_new_dialogue: externalConfigH5.new_session_btn_show == 1 ? 1 : 0,
     }
 
     let variables_key = `chat_prompt_variables_${robot.robot_key}`
@@ -522,6 +530,8 @@ export const useChatStore = defineStore('chat', () => {
         pushAiMessage(aiMsg)
 
         if (isNewChat.value) {
+          // 插入新的对话记录
+          insertNewSession()
           isNewChat.value = false
         }
       }
@@ -615,7 +625,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   // 获取对话记录
-  const myChatListSize = 25
+  const myChatListSize = 35
   const myChatList = ref<any[]>([])
   const myChatListLoading = ref(false)
   const myChatListLoadCompleted = ref(false)
@@ -626,7 +636,6 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     let min_id = 0
-
     if (myChatList.value.length > 0) {
       min_id = myChatList.value[myChatList.value.length - 1].id
     }
@@ -636,7 +645,8 @@ export const useChatStore = defineStore('chat', () => {
     const res = await getDialogueList({
       min_id: min_id,
       size: myChatListSize,
-      robot_key: robot.robot_key
+      robot_key: robot.robot_key,
+      openid: robot.openid,
     })
 
     myChatListLoading.value = false
@@ -650,25 +660,79 @@ export const useChatStore = defineStore('chat', () => {
 
     myChatList.value = [...myChatList.value, ...list]
 
+    // 根据 id 去重
+    myChatList.value = myChatList.value.filter(
+      (item, index, self) =>
+        index === self.findIndex((t) => t.id === item.id)
+    )
+
+    return res
+  }
+
+  const delDialogue = async (data: any) => {
+    const res = await deleteDialogue({
+      robot_key: robot.robot_key,
+      openid: robot.openid,
+      ids: data.id,
+    })
+    if(data.id == -1){
+      // 删除的是全部
+      myChatList.value = []
+    }else{
+      myChatList.value = myChatList.value.filter(item => item.id != data.id)
+    }
+    if(data.id == -1 || data.id == dialogue_id.value){
+      dialogue_id.value = 0;
+      createChat({
+        openid: '',
+        robot_key: robot.robot_key,
+        avatar: '',
+        name: '',
+        nickname: '',
+        dialogue_id: 0
+      })
+    }
+    return res
+  }
+
+  const editDialogueChat = async (data: any)=>{
+    const res = await editDialogue({
+      robot_key: robot.robot_key,
+      openid: robot.openid,
+      id: data.id,
+      subject: data.subject
+    })
+    if(res.res == 0){
+      // 将myChatList.value 中id为data.id的项的subject改为data.subject
+      myChatList.value = myChatList.value.map(item => {
+        if(item.id == data.id){
+          item.subject = data.subject
+        }
+        return item
+      })
+    }
     return res
   }
   // 插入最新一条对话记录
-  // const insertNewSession = () => {
-  //   getDialogueList({
-  //     min_id: 0,
-  //     size: 1,
-  //     robot_key: robot.robot_key
-  //   }).then((res) => {
-  //     const list = res.data || []
+  const insertNewSession = () => {
+    getDialogueList({
+      min_id: 0,
+      size: 1,
+      robot_key: robot.robot_key,
+      openid: robot.openid,
+    }).then((res) => {
+      const list = res.data || []
 
-  //     if (list[0]) {
-  //       myChatList.value.unshift(list[0])
-  //     }
-  //   })
-  // }
+      if (list[0]) {
+        if(myChatList.value.filter(item => item.id === list[0].id).length === 0){
+          myChatList.value.unshift(list[0])
+        }
+      }
+    })
+  }
 
   // 打开对话
-  const openChat = async (data: Chat) => {
+  const openChat = async (data: any) => {
     const res = await createChat(data)
 
     return res
@@ -877,6 +941,8 @@ export const useChatStore = defineStore('chat', () => {
     upDataUiStyle,
     getFastCommand,
     updataQuickComand,
+    delDialogue,
+    editDialogueChat,
     chat_variables,
     handleEditVariables,
   }

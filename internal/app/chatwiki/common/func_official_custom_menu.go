@@ -308,7 +308,7 @@ func SendOfficialCustomMenuToWx(adminUserID int, appid string) (int, error) {
 	//转换成request.RequestMenuCreate
 	menu := LocalMenuListConvertToRequestMenuCreate(localMenuList)
 	if len(menu.Buttons) == 0 {
-		return 0, errors.New(`菜单为空`)
+		return 0, errors.New(`the menu is empty`)
 	}
 	//处理
 	setMenuCode, err := app.SetMenu(menu)
@@ -663,7 +663,7 @@ func CheckUseDefaultMenu(adminUserID int, appid string, parentMenus []OfficialCu
 		defaultMenu := OfficialCustomMenu{
 			ID:            0,
 			AppID:         appid,
-			MenuName:      `主菜单`,
+			MenuName:      lib_define.MainMenu,
 			MenuLevel:     OfficialCustomMenuMenuLevelOne,
 			OperUserID:    adminUserID,
 			CreateTime:    tool.Time2Int(),
@@ -699,7 +699,7 @@ func DeleteAllOfficialCustomMenuToWx(adminUserId int, appid string) string {
 		err = WxDeleteMenu(appInfo)
 		if err != nil {
 			wxName := appInfo[`app_name`]
-			errStr += wxName + `报错：` + err.Error() + `\n`
+			errStr += wxName + ` error：` + err.Error() + `\n`
 		}
 	}
 	return errStr

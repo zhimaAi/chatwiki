@@ -511,7 +511,7 @@
                 </div>
               </div>
 
-              <div class="item-body">
+              <div class="item-body" v-if="isShowBody(item)">
                 <div
                   class="file-items"
                   v-if="item.show_quote_file && item.quote_file && item.quote_file.length > 0"
@@ -859,6 +859,13 @@ function onClickSmartMenuKeyword(text) {
   const t = String(text || '').trim()
   if (!t) return
   emit('clickMsgMeun', t)
+}
+
+const isShowBody = (item) => {
+  if(parseReplyList(item.reply_content_list).length && item.content == ''){
+    return false
+  }
+  return true
 }
 
 defineExpose({

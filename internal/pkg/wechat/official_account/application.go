@@ -3,12 +3,17 @@
 package official_account
 
 import (
+	"bytes"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/wechat/common"
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"mime"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/messages"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/power"
@@ -19,6 +24,7 @@ import (
 	publishRequest "github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount/publish/request"
 	publishresponse "github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount/publish/response"
 	openresponse "github.com/ArtisanCloud/PowerWeChat/v3/src/openPlatform/authorizer/miniProgram/account/response"
+	"github.com/zhimaAi/go_tools/logs"
 )
 
 type Application struct {
@@ -393,4 +399,58 @@ func (a *Application) UploadTempVoice(filePath string) (string, int, error) {
 		return ``, resp.ErrCode, errors.New(resp.ErrMsg)
 	}
 	return resp.MediaID, 0, nil
+}
+
+func (a *Application) GetMaterial(material_id, saveDir, thumbFolderPath string) (string, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return "", err
+	}
+	token, err := app.AccessToken.GetToken(false)
+
+	if err != nil {
+		logs.Error("get token error：" + err.Error())
+		return "", err
+	}
+
+	// 构造请求体
+	reqBody := map[string]string{
+		"media_id": material_id,
+	}
+	jsonBody, err := json.Marshal(reqBody)
+
+	resp, err := http.Post("https://api.weixin.qq.com/cgi-bin/material/get_material?access_token="+token.AccessToken, "application/json", bytes.NewBuffer(jsonBody))
+
+	if err != nil {
+		logs.Error("error：" + err.Error())
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	filename := material_id + ".png"
+	_, params, err := mime.ParseMediaType(resp.Header.Get("Content-Disposition"))
+	if err == nil && params["filename"] != "" {
+		filename = params["filename"]
+	}
+
+	// 确保保存目录存在
+	if err := os.MkdirAll(saveDir, 0755); err != nil {
+		logs.Error(err.Error())
+		return "", err
+	}
+
+	filePath := filepath.Join(saveDir, filename)
+	outFile, err := os.Create(filePath)
+	if err != nil {
+		logs.Error(err.Error())
+		return "", err
+	}
+
+	_, err = io.Copy(outFile, resp.Body)
+	if err != nil {
+		logs.Error("copy file error：" + err.Error())
+		return "", err
+	}
+
+	return filepath.Join(thumbFolderPath, filename), nil
 }

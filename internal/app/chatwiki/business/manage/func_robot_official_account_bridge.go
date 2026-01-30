@@ -6,8 +6,12 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_define"
 	"context"
 	"errors"
+	"strings"
+	"time"
+
 	"github.com/ArtisanCloud/PowerLibs/v3/object"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/response"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount"
@@ -15,8 +19,6 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
-	"strings"
-	"time"
 )
 
 type BridgeGetOfficialDraftListReq struct {
@@ -90,8 +92,8 @@ func BridgeGetOfficialDraftGroupList(adminUserId int) ([]DraftGroupStruct, int, 
 		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`create_time ASC`).Field(`id,group_name`).Select()
 
 	respData := []DraftGroupStruct{
-		{Id: -1, GroupName: "全部"},
-		{Id: 0, GroupName: "未分组"},
+		{Id: -1, GroupName: lib_define.All},
+		{Id: 0, GroupName: lib_define.Ungrouped},
 	}
 
 	for _, datum := range data {
@@ -231,7 +233,7 @@ func BridgeSendTaskList(adminUserId int, lang string, req *BridgeBatchSendTaskLi
 		}
 
 		if item["comment_rule_id"] == "0" && item["comment_rule_name"] == "" {
-			tempItem["comment_rule_name"] = "暂无规则"
+			tempItem["comment_rule_name"] = lib_define.ThereAreNoRulesYet
 		}
 
 		formatedList = append(formatedList, tempItem)
@@ -337,7 +339,7 @@ func BridgeDeleteComment(access_key, msg_id string, index, comment_id int) (*res
 	})
 
 	if err != nil {
-		logs.Error("修改数据执行错误：" + err.Error())
+		logs.Error(`update data execution error: ` + err.Error())
 	}
 
 	return res, err
@@ -360,7 +362,7 @@ func BridgeDeleteCommentReply(access_key, msg_id string, index, comment_id int) 
 
 	_, err = client.Base.BaseClient.HttpPostJson(context.Background(), "/cgi-bin/comment/reply/delete", params, nil, nil, &respData)
 	if err != nil {
-		logs.Error("错误内容：" + err.Error())
+		logs.Error(`error content: ` + err.Error())
 	}
 
 	if cast.ToInt(respData["errcode"]) != 0 {
@@ -377,7 +379,7 @@ func BridgeDeleteCommentReply(access_key, msg_id string, index, comment_id int) 
 	})
 
 	if err != nil {
-		logs.Error("修改数据执行错误：" + err.Error())
+		logs.Error(`update data execution error: ` + err.Error())
 	}
 
 	return respData, err
@@ -610,6 +612,7 @@ func BridgeCommentList(adminUserId int, lang string, req *BridgeGetCommentListRe
 	}
 
 	var formatedList = make([]map[string]any, 0)
+	commentExecTypeMap := common.GetCommentExecTypeMap(lang)
 	for _, item := range list {
 		tempItem := make(map[string]any)
 		for k, v := range item {
@@ -620,7 +623,7 @@ func BridgeCommentList(adminUserId int, lang string, req *BridgeGetCommentListRe
 		commentResultText := []string{}
 		_ = tool.JsonDecodeUseNumber(cast.ToString(tempItem["ai_comment_result"]), &comment_result)
 		for _, result := range comment_result {
-			commentResultText = append(commentResultText, define.CommentExecTypeMap[result])
+			commentResultText = append(commentResultText, commentExecTypeMap[result])
 		}
 		tempItem["ai_comment_result_text"] = strings.Join(commentResultText, ",")
 		tempItem["ai_comment_rule_text"] = strings.Split(cast.ToString(tempItem["ai_comment_rule_text"]), ",")
@@ -633,6 +636,6 @@ func BridgeCommentList(adminUserId int, lang string, req *BridgeGetCommentListRe
 		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
 	}
 
-	data := map[string]any{`list`: formatedList, `total`: total, `page`: page, `size`: size, `type`: define.CommentExecTypeMap}
+	data := map[string]any{`list`: formatedList, `total`: total, `page`: page, `size`: size, `type`: commentExecTypeMap}
 	return data, 0, nil
 }

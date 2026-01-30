@@ -162,6 +162,7 @@ const scrollRef = ref(null)
 let scrollController = null
 const loading = ref(false)
 const finished = ref(false)
+const lastParams = ref({})
 
 const initScroll = () => {
   scrollController = new BScroll(scrollRef.value, {
@@ -178,17 +179,23 @@ const initScroll = () => {
   })
 
   scrollController.on('pullingUp', () => {
-    getData()
+    getData(lastParams.value)
   })
 }
 
 const getData = async (params = {}) => {
+  if (params.page === 1) {
+    finished.value = false
+  }
   if (loading.value || finished.value) {
     scrollController.finishPullUp()
     return
   }
 
   loading.value = true
+  if (params && Object.keys(params).length > 0) {
+    lastParams.value = { ...params }
+  }
 
   try {
     let res = await getReceiverList(params)

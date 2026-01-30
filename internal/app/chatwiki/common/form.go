@@ -216,13 +216,13 @@ func UploadFormFile(adminUserId, formId int, uuid, ext string, fieldsMap map[str
 		}
 		for field, fieldData := range fieldsMap {
 			if _, ok := title[field]; !ok {
-				item[`err_msg`] = `缺少字段:` + field
+				item[`err_msg`] = `missing field:` + field
 				errData = append(errData, item)
 				isErr = true
 				break
 			}
 			if cast.ToBool(fieldData[`required`]) && checkIsNull(cast.ToString(fieldData[`type`]), item[field]) {
-				item[`err_msg`] = `字段不为空:` + field
+				item[`err_msg`] = `fields required:` + field
 				errData = append(errData, item)
 				isErr = true
 				break
@@ -417,7 +417,7 @@ func BuildFunctionTools(formIdList []string, adminUserId int) ([]adaptor.Functio
 		}
 		functionTool := adaptor.FunctionTool{
 			Name:        form[`name`],
-			Description: form[`description`] + `(不要给任何字段赋予默认值)`,
+			Description: form[`description`] + `(Do not assign default values to any field)`,
 			Parameters: adaptor.Parameters{
 				Type:       `object`,
 				Properties: properties,

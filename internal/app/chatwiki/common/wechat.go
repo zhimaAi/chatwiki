@@ -8,8 +8,8 @@ import (
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/wechat"
 	"errors"
-	"github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount"
 
+	"github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 )
@@ -41,7 +41,6 @@ func RefreshAccountVerify(appInfo msql.Params) error {
 }
 
 func GetOfficialAccountApp(appid, secret string) (*officialAccount.OfficialAccount, error) {
-
 	app, err := wechat.GetApplication(msql.Params{
 		`app_type`:   lib_define.AppOfficeAccount,
 		`app_id`:     appid,
@@ -51,9 +50,7 @@ func GetOfficialAccountApp(appid, secret string) (*officialAccount.OfficialAccou
 	}
 	officialApp, ok := app.(wechat.OfficialAccountInterface)
 	if !ok {
-		return nil, errors.New("公众号初始化失败")
+		return nil, errors.New(`init official_account failure`)
 	}
-
 	return officialApp.GetAccountClient()
-
 }

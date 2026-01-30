@@ -4,6 +4,7 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"errors"
 	"fmt"
 	"reflect"
@@ -65,6 +66,7 @@ type SimpleField struct {
 	Required bool    `json:"required"`
 	Default  string  `json:"default,omitempty"`
 	Enum     string  `json:"enum,omitempty"` //枚举值
+	Lang     string  `json:"-"`              //需要手动设置,请勿请用
 }
 
 func (field SimpleField) SetVals(data any) SimpleField {
@@ -168,7 +170,7 @@ func (field SimpleField) ShowVals(specifyTyp ...string) string {
 		for _, val := range field.Vals {
 			list = append(list, val.Params)
 		}
-		_, libraryContent := FormatSystemPrompt(``, list)
+		_, libraryContent := FormatSystemPrompt(field.Lang, ``, list)
 		return libraryContent
 	}
 	//获取字段的vals值
@@ -331,29 +333,29 @@ func (fields RecurveFields) ExtractionData(result map[string]any) RecurveFields 
 	return fields
 }
 
-func (fields RecurveFields) Verify(parent ...string) error {
+func (fields RecurveFields) Verify(lang string, parent ...string) error {
 	maps := map[string]struct{}{}
 	for _, field := range fields {
 		fullKey := strings.Join(append(parent, field.Key), `.`)
 		if !IsVariableName(field.Key) {
-			return errors.New(fmt.Sprintf(`字段[%s]不能为空或格式错误`, fullKey))
+			return errors.New(i18n.Show(lang, `workflow_field_empty_or_format_error`, fullKey))
 		}
 		if !tool.InArrayString(field.Typ, TypScalars[:]) && !tool.InArrayString(field.Typ, TypArrays[:]) {
-			return errors.New(fmt.Sprintf(`字段类型[%s]不在指定列表范围内`, field.Typ))
+			return errors.New(i18n.Show(lang, `workflow_field_type_invalid`, field.Typ))
 		}
 		if _, ok := maps[field.Key]; ok {
-			return errors.New(fmt.Sprintf(`字段[%s]重复定义`, fullKey))
+			return errors.New(i18n.Show(lang, `workflow_field_duplicate`, fullKey))
 		}
 		maps[field.Key] = struct{}{}
 		if field.Typ == TypObject {
 			if len(field.Subs) == 0 {
-				return errors.New(fmt.Sprintf(`字段[%s]没有添加子项`, fullKey))
+				return errors.New(i18n.Show(lang, `workflow_field_no_children`, fullKey))
 			}
-			if err := field.Subs.Verify(append(parent, field.Key)...); err != nil {
+			if err := field.Subs.Verify(lang, append(parent, field.Key)...); err != nil {
 				return err
 			}
 		} else if len(field.Subs) > 0 {
-			return errors.New(fmt.Sprintf(`字段[%s]不允许添加子项`, fullKey))
+			return errors.New(i18n.Show(lang, `workflow_field_no_allow_children`, fullKey))
 		}
 	}
 	return nil

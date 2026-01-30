@@ -5,6 +5,7 @@ package work_flow
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
 	"context"
@@ -29,40 +30,42 @@ import (
 )
 
 const (
-	NodeTypeRemark           = -1 //注释
-	NodeTypeEdges            = 0  //图的edges
-	NodeTypeStart            = 1  //开始节点
-	NodeTypeTerm             = 2  //判断分支
-	NodeTypeCate             = 3  //问题分类
-	NodeTypeCurl             = 4  //http请求
-	NodeTypeLibs             = 5  //知识库检索
-	NodeTypeLlm              = 6  //AI对话
-	NodeTypeFinish           = 7  //结束节点
-	NodeTypeAssign           = 8  //赋值节点
-	NodeTypeReply            = 9  //指定回复
-	NodeTypeManual           = 10 //转人工(xkf)
-	NodeTypeQuestionOptimize = 11 // 问题优化
-	NodeTypeParamsExtractor  = 12 // 参数提取
-	NodeTypeFormInsert       = 13 //数据表单新增
-	NodeTypeFormDelete       = 14 //数据表单删除
-	NodeTypeFormUpdate       = 15 //数据表单更新
-	NodeTypeFormSelect       = 16 //数据表单查询
-	NodeTypeCodeRun          = 17 //代码运行
-	NodeTypeMcp              = 20 //MCP
-	NodeTypePlugin           = 21 //插件
-	NodeTypeLoop             = 25 //循环节点
-	NodeTypeLoopEnd          = 26 //终止循环节点
-	NodeTypeLoopStart        = 27 //开始循环节点
-	NodeTypeBatch            = 30 //批处理
-	NodeTypeBatchStart       = 31 //批处理开始
-	NodeTypeImageGeneration  = 33 //图片生成
-	NodeTypeJsonEncode       = 36 //json序列化
-	NodeTypeJsonDecode       = 37 //json反序列化
-	NodeTypeTextToAudio      = 38 //语音合成
-	NodeTypeVoiceClone       = 39 //声音复刻
-	NodeTypeLibraryImport    = 40 //知识库导入
-	NodeTypeWorkflow         = 41 //工作流
-	NodeTypeImmediatelyReply = 42 //立即回复
+	NodeTypeRemark           = -1 // Remark
+	NodeTypeEdges            = 0  // Graph edges
+	NodeTypeStart            = 1  // Start node
+	NodeTypeTerm             = 2  // Conditional branch
+	NodeTypeCate             = 3  // Question classification
+	NodeTypeCurl             = 4  // HTTP request
+	NodeTypeLibs             = 5  // Knowledge base retrieval
+	NodeTypeLlm              = 6  // AI conversation
+	NodeTypeFinish           = 7  // End node
+	NodeTypeAssign           = 8  // Assignment node
+	NodeTypeReply            = 9  // Specified reply
+	NodeTypeManual           = 10 // Transfer to human (xkf)
+	NodeTypeQuestionOptimize = 11 // Question optimization
+	NodeTypeParamsExtractor  = 12 // Parameter extraction
+	NodeTypeFormInsert       = 13 // Data form insert
+	NodeTypeFormDelete       = 14 // Data form delete
+	NodeTypeFormUpdate       = 15 // Data form update
+	NodeTypeFormSelect       = 16 // Data form query
+	NodeTypeCodeRun          = 17 // Code execution
+	NodeTypeMcp              = 20 // MCP
+	NodeTypePlugin           = 21 // Plugin
+	NodeTypeLoop             = 25 // Loop node
+	NodeTypeLoopEnd          = 26 // Loop end node
+	NodeTypeLoopStart        = 27 // Loop start node
+	NodeTypeBatch            = 30 // Batch processing
+	NodeTypeBatchStart       = 31 // Batch processing start
+	NodeTypeImageGeneration  = 33 // Image generation
+	NodeTypeJsonEncode       = 36 // JSON serialization
+	NodeTypeJsonDecode       = 37 // JSON deserialization
+	NodeTypeTextToAudio      = 38 // Text to audio
+	NodeTypeVoiceClone       = 39 // Voice cloning
+	NodeTypeLibraryImport    = 40 // Knowledge base import
+	NodeTypeWorkflow         = 41 // Workflow
+	NodeTypeImmediatelyReply = 42 // Immediate reply
+	NodeTypeQuestion         = 43 // Question
+	NodeTypeHttpTool         = 45 // HTTP tool
 )
 
 const (
@@ -78,6 +81,7 @@ var NodeTypes = [...]int{
 	NodeTypeTerm,
 	NodeTypeCate,
 	NodeTypeCurl,
+	NodeTypeHttpTool,
 	NodeTypeLibs,
 	NodeTypeLlm,
 	NodeTypeFinish,
@@ -106,6 +110,7 @@ var NodeTypes = [...]int{
 	NodeTypeLibraryImport,
 	NodeTypeWorkflow,
 	NodeTypeImmediatelyReply,
+	NodeTypeQuestion,
 }
 
 type NodeAdapter interface {
@@ -125,11 +130,15 @@ func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, ms
 		logs.Error(err.Error())
 		return nil, info, err
 	}
+	lang := define.LangEnUs
+	if flow != nil && flow.params != nil {
+		lang = flow.params.Lang
+	}
 	if len(info) == 0 {
-		return nil, info, errors.New(`节点信息不存在:` + nodeKey)
+		return nil, info, errors.New(i18n.Show(lang, `node_info_not_exist`, nodeKey))
 	}
 	nodeType := cast.ToInt(info[`node_type`])
-	nodeParams := DisposeNodeParams(nodeType, info[`node_params`])
+	nodeParams := DisposeNodeParams(nodeType, info[`node_params`], lang)
 	switch nodeType {
 	case NodeTypeStart:
 		return &StartNode{params: nodeParams.Start, nextNodeKey: info[`next_node_key`]}, info, nil
@@ -139,6 +148,8 @@ func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, ms
 		return &CateNode{params: nodeParams.Cate, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeCurl:
 		return &CurlNode{params: nodeParams.Curl, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeHttpTool:
+		return &HttpToolNode{params: nodeParams.Curl, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeLibs:
 		return &LibsNode{params: nodeParams.Libs, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeLlm:
@@ -195,8 +206,10 @@ func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, ms
 		return &WorkflowNode{params: nodeParams.Workflow, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeImmediatelyReply:
 		return &ImmediatelyReplyNode{params: nodeParams.ImmediatelyReply, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeQuestion:
+		return &QuestionNode{params: nodeParams.Question, nextNodeKey: info[`next_node_key`]}, info, nil
 	default:
-		return nil, info, errors.New(`不支持的节点类型:` + info[`node_type`])
+		return nil, info, errors.New(i18n.Show(lang, `node_type_not_supported`, info[`node_type`]))
 	}
 }
 
@@ -206,34 +219,34 @@ type StartNode struct {
 }
 
 func (n *StartNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行开始节点逻辑...`)
+	flow.Logs(`Executing start node logic...`)
 	workFlowGlobal := common.RecurveFields{}
-	for _, param := range n.params.DiyGlobal { //从配置参数组装
+	for _, param := range n.params.DiyGlobal { // Assemble from configuration parameters
 		field := common.SimpleField{Key: param.Key, Desc: &param.Desc, Typ: param.Typ}
 		workFlowGlobal = append(workFlowGlobal, common.RecurveField{SimpleField: field})
 	}
-	if len(flow.params.WorkFlowGlobal) > 0 { //传入参数数据提取
+	if len(flow.params.WorkFlowGlobal) > 0 { // Extract incoming parameter data
 		workFlowGlobal = workFlowGlobal.ExtractionData(flow.params.WorkFlowGlobal)
 	}
 	for key, field := range common.SimplifyFields(workFlowGlobal) {
 		flow.global[key] = field
 	}
-	if flow.params.Draft.IsDraft { //草稿调试场景
+	if flow.params.Draft.IsDraft { // Draft debugging scenario
 		flow.params.Robot[`question_multiple_switch`] = cast.ToString(cast.ToUint(flow.params.Draft.QuestionMultipleSwitch))
 	} else {
-		if flow.params.IsFromWorkflow { //工作流调用工作流场景暂时不做任何处理
+		if flow.params.IsFromWorkflow { // Workflow calling workflow scenario, temporarily no processing
 
-		} else { //触发器逻辑
+		} else { // Trigger logic
 			var findTrigger bool
 			for i, trigger := range n.params.TriggerList {
 				if trigger.TriggerSwitch && trigger.TriggerType == flow.params.TriggerParams.TriggerType {
 					findTrigger = true
-					flow.Logs(`选择使用触发器(%d):%s`, i+1, trigger.TriggerName)
-					trigger.SetGlobalValue(flow) //从触发器填充变量值
+					flow.Logs(`Select trigger (%d):%s`, i+1, trigger.TriggerName)
+					trigger.SetGlobalValue(flow) // Fill variable values from trigger
 				}
 			}
-			if !findTrigger { //没有开启的触发器
-				err = errors.New(`当前场景没有对应开启的触发器`)
+			if !findTrigger { // No enabled trigger
+				err = errors.New(i18n.Show(flow.params.Lang, `no_enabled_trigger_for_scenario`))
 				return
 			}
 		}
@@ -256,7 +269,7 @@ type TermNode struct {
 }
 
 func (n *TermNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行判断分支逻辑...`)
+	flow.Logs(`Executing condition branch logic...`)
 	for _, param := range n.params {
 		if param.Verify(flow) {
 			nextNodeKey = param.NextNodeKey
@@ -277,25 +290,36 @@ type CateNode struct {
 }
 
 func (n *CateNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, _ error) {
-	flow.Logs(`执行问题分类逻辑...`)
+	flow.Logs(`Executing question classification logic...`)
 	debugLog := common.SimpleField{Key: `special.llm_debug_log`, Typ: common.TypArrObject, Vals: []common.Val{}}
+
+	//part0:init messages
+	messages := make([]adaptor.ZhimaChatCompletionMessage, 0)
+
 	//part1:prompt
 	categorys := make([]string, 0)
 	for i, category := range n.params.Categorys {
 		categorys = append(categorys, fmt.Sprintf(`%d.%s`, i+1, category.Category))
 	}
-	prompt := fmt.Sprintf(`## 角色
-你是一个超过10年的资深客服，能够准确识别用户的情绪和意图，并将其分类。
-## 任务
-你需要分析用户的对话内容，识别用户意图，判断用户问题属于哪个分类。
-## 分类
-%s
-## 输出格式
-- 返回你认为用户问题归属分类的序号，如果你认为没有合适的分类，返回0。
-- 你只能返回分类的序号或者0，否则你将受到惩罚。
-- 只需要按要求返回，不要附带你的思考过程。`, strings.Join(categorys, "\n"))
-	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
-	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: prompt}})
+	// Compatible with frontend input
+	if n.params.Role >= 1 {
+		n.params.Role -= 1
+	}
+	// question_multiple_switch
+	if cast.ToBool(flow.params.Robot[`question_multiple_switch`]) {
+		//when question_multiple_switch is true, we will use system role to classify question
+		n.params.Role = define.PromptRoleTypeSystem
+	}
+
+	prompt := fmt.Sprintf(define.WorkFlowCateNodePrompt, strings.Join(categorys, "\n"))
+
+	if n.params.Role == define.PromptRoleTypeSystem {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: define.PromptRoleTypeMap[define.PromptRoleTypeSystem], Content: prompt})
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: prompt}})
+	} else {
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: ``}})
+	}
+
 	//part2:context_qa
 	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
 	contextList := common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
@@ -311,21 +335,30 @@ func (n *CateNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	if exist {
 		question = field.ShowVals()
 	}
-	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: question})
-	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: question}})
+
+	//part3:question,prompt+question
+	if n.params.Role == define.PromptRoleTypeUser {
+		content := strings.Join([]string{prompt, question}, "\n\n")
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: content})
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: content}})
+	} else {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: question})
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: question}})
+	}
+
 	//request chat
 	flow.params.Robot[`enable_thinking`] = cast.ToString(cast.ToUint(n.params.EnableThinking))
 	chatResp, requestTime, err := common.RequestChat(
-		flow.params.AdminUserId, openid, flow.params.Robot, flow.params.AppType,
+		flow.params.Lang, flow.params.AdminUserId, openid, flow.params.Robot, flow.params.AppType,
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
 	)
 	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
-	//提前给输出日志,避免下面报错丢失日志
+	// Output log in advance to avoid missing log due to error below
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `llm_answer`, `content`: chatResp.Result}})
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]any{`type`: `llm_error`, `content`: err}})
 	output = common.SimpleFields{debugLog.Key: debugLog}
 	if err != nil {
-		flow.Logs(`llm请求失败:` + err.Error())
+		flow.Logs(`llm request failed:` + err.Error())
 		nextNodeKey = n.nextNodeKey
 		return
 	}
@@ -333,16 +366,16 @@ func (n *CateNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	output[`llm_result.prompt_token`] = common.SimpleField{Key: `llm_result.prompt_token`, Typ: common.TypNumber, Vals: []common.Val{{Number: &chatResp.PromptToken}}}
 	number, err := cast.ToIntE(chatResp.Result)
 	if err != nil || number < 0 || number > len(n.params.Categorys) {
-		flow.Logs(`llm返回超出预期:` + chatResp.Result)
+		flow.Logs(`llm returned unexpected result:` + chatResp.Result)
 		nextNodeKey = n.nextNodeKey
 		return
 	}
 	if number == 0 {
-		flow.Logs(`llm判定为不属于列举的分类:` + chatResp.Result)
+		flow.Logs(`llm determined not belonging to listed categories:` + chatResp.Result)
 		nextNodeKey = n.nextNodeKey
 		return
 	}
-	flow.Logs(`llm判定的分类是:(%s)%s`, chatResp.Result, n.params.Categorys[number-1].Category)
+	flow.Logs(`llm determined category is:(%s)%s`, chatResp.Result, n.params.Categorys[number-1].Category)
 	nextNodeKey = n.params.Categorys[number-1].NextNodeKey
 	return
 }
@@ -358,7 +391,7 @@ type CurlNode struct {
 }
 
 func (n *CurlNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行http请求逻辑...`)
+	flow.Logs(`Executing http request logic...`)
 	rawurl := n.params.Rawurl
 	if len(n.params.Params) > 0 {
 		params := make([]string, 0)
@@ -449,7 +482,7 @@ func (n *CurlNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 		return
 	}
 	n.httpResultJson = tea.String(tool.JsonEncodeNoError(result))
-	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
+	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) // Extract data
 	nextNodeKey = n.nextNodeKey
 	return
 }
@@ -462,13 +495,39 @@ func (n *CurlNode) Params() any {
 	return n.params
 }
 
+type HttpToolNode struct {
+	params         CurlNodeParams
+	nextNodeKey    string
+	httpResultJson *string
+}
+
+func (n *HttpToolNode) GetHttpResultJson() *string {
+	return n.httpResultJson
+}
+
+func (n *HttpToolNode) Params() any {
+	return n.params
+}
+
+func (n *HttpToolNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	// Ensure HttpToolNode logic is consistent with CurlNode for easier updates
+	curlNode := &CurlNode{
+		params:         n.params,
+		nextNodeKey:    n.nextNodeKey,
+		httpResultJson: n.httpResultJson,
+	}
+	output, nextNodeKey, err = curlNode.Running(flow)
+	n.httpResultJson = curlNode.GetHttpResultJson() // Ensure httpResultJson is updated
+	return
+}
+
 type LibsNode struct {
 	params      LibsNodeParams
 	nextNodeKey string
 }
 
 func (n *LibsNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行知识库检索逻辑...`)
+	flow.Logs(`Executing knowledge base retrieval logic...`)
 	//guise robot
 	robot := flow.params.Robot
 	robot[`library_ids`] = n.params.LibraryIds
@@ -483,6 +542,9 @@ func (n *LibsNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	robot[`meta_search_type`] = cast.ToString(n.params.MetaSearchType)
 	robot[`meta_search_condition_list`] = n.params.MetaSearchConditionList
 
+	robot[`recall_neighbor_switch`] = cast.ToString(n.params.RecallNeighborSwitch)
+	robot[`recall_neighbor_after_num`] = cast.ToString(n.params.RecallNeighborAfterNum)
+	robot[`recall_neighbor_before_num`] = cast.ToString(n.params.RecallNeighborBeforeNum)
 	//start call
 	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
 	var question = cast.ToString(flow.global[`question`].GetVal(common.TypString))
@@ -491,12 +553,12 @@ func (n *LibsNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 		question = field.ShowVals()
 	}
 	list, libUseTime, err := common.GetMatchLibraryParagraphList(
-		openid, flow.params.AppType, question, []string{},
+		flow.params.Lang, openid, flow.params.AppType, question, []string{},
 		n.params.LibraryIds, n.params.TopK.Int(), n.params.Similarity, n.params.SearchType.Int(), robot,
 	)
 	isBackground := len(flow.params.Customer) > 0 && cast.ToInt(flow.params.Customer[`is_background`]) > 0
-	if !isBackground && len(list) == 0 { //未知问题统计
-		common.SaveUnknownIssueRecord(flow.params.AdminUserId, flow.params.Robot, question)
+	if !isBackground && len(list) == 0 { // Unknown question statistics
+		common.SaveUnknownIssueRecord(flow.params.Lang, flow.params.AdminUserId, flow.params.Robot, question)
 	}
 	if err != nil {
 		return
@@ -507,7 +569,7 @@ func (n *LibsNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	}
 	output = common.SimpleFields{
 		`special.lib_use_time`:       common.SimpleField{Key: `special.lib_use_time`, Typ: common.TypObject, Vals: []common.Val{{Object: libUseTime}}},
-		`special.lib_paragraph_list`: common.SimpleField{Key: `special.lib_paragraph_list`, Typ: common.TypArrParams, Vals: vals},
+		`special.lib_paragraph_list`: common.SimpleField{Key: `special.lib_paragraph_list`, Typ: common.TypArrParams, Vals: vals, Lang: flow.params.Lang},
 	}
 	nextNodeKey = n.nextNodeKey
 	return
@@ -523,10 +585,19 @@ type LlmNode struct {
 }
 
 func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行AI对话逻辑...`)
+	flow.Logs(`Executing AI conversation logic...`)
 	debugLog := common.SimpleField{Key: `special.llm_debug_log`, Typ: common.TypArrObject, Vals: []common.Val{}}
-	// check is deep-seek-r1
-	isDeepSeek := common.CheckModelIsDeepSeek(n.params.UseModel)
+
+	// Compatible with frontend input
+	if n.params.Role >= 1 {
+		n.params.Role -= 1
+	}
+	// question_multiple_switch
+	if cast.ToBool(flow.params.Robot[`question_multiple_switch`]) {
+		//when question_multiple_switch is true, we will use system role to classify question
+		n.params.Role = define.PromptRoleTypeSystem
+	}
+
 	//part0:init messages
 	messages := make([]adaptor.ZhimaChatCompletionMessage, 0)
 	//part1:prompt
@@ -539,12 +610,12 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 		list = append(list, val.Params)
 	}
 	confPrompt := flow.VariableReplace(n.params.Prompt)
-	prompt, libraryContent := common.FormatSystemPrompt(confPrompt, list)
-	if isDeepSeek {
-		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: libraryContent})
+	prompt, libraryContent := common.FormatSystemPrompt(flow.params.Lang, confPrompt, list)
+	if n.params.Role == define.PromptRoleTypeUser {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: define.PromptRoleTypeMap[define.PromptRoleTypeSystem], Content: libraryContent})
 		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: libraryContent}})
 	} else {
-		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `system`, Content: prompt})
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: define.PromptRoleTypeMap[define.PromptRoleTypeSystem], Content: prompt})
 		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: prompt}})
 	}
 	//part2:context_qa
@@ -562,7 +633,7 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 	if exist {
 		question = field.ShowVals()
 	}
-	if isDeepSeek {
+	if n.params.Role == define.PromptRoleTypeUser {
 		content := strings.Join([]string{confPrompt, question}, "\n\n")
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: content})
 		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: content}})
@@ -575,11 +646,11 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 	//request chat
 	flow.params.Robot[`enable_thinking`] = cast.ToString(cast.ToUint(n.params.EnableThinking))
 	chatResp, requestTime, err := common.RequestChat(
-		flow.params.AdminUserId, openid, flow.params.Robot, flow.params.AppType,
+		flow.params.Lang, flow.params.AdminUserId, openid, flow.params.Robot, flow.params.AppType,
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
 	)
 	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
-	//提前给输出日志,避免下面报错丢失日志
+	// Output log in advance to avoid missing log due to error below
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `llm_answer`, `content`: chatResp.Result}})
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]any{`type`: `llm_error`, `content`: err}})
 	output = common.SimpleFields{
@@ -588,7 +659,7 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 		debugLog.Key:                 debugLog,
 	}
 	if err != nil {
-		err = errors.New(`llm请求失败:` + err.Error())
+		err = errors.New(i18n.Show(flow.params.Lang, `llm_request_failed`, err.Error()))
 		return
 	}
 	llmTime := int(requestTime)
@@ -610,7 +681,7 @@ type FinishNode struct {
 }
 
 func (n *FinishNode) Running(flow *WorkFlow) (output common.SimpleFields, _ string, _ error) {
-	flow.Logs(`执行结束节点逻辑...`)
+	flow.Logs(`Executing finish node logic...`)
 	flow.isFinish = true
 	output = common.SimpleFields{}
 	if n.params.OutType == define.FinishNodeOutTypeMessage && len(n.params.Messages) > 0 {
@@ -696,27 +767,27 @@ type AssignNode struct {
 }
 
 func (n *AssignNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行赋值分支逻辑...`)
+	flow.Logs(`Executing assignment branch logic...`)
 	output = common.SimpleFields{}
 	for _, param := range n.params {
 		variable, _ := strings.CutPrefix(param.Variable, `global.`)
 		field, ok := flow.global[variable]
 		if !ok || field.Sys {
-			continue //自定义变量不存在
+			continue // Custom variable does not exist
 		}
-		var data any = flow.VariableReplace(param.Value) //变量替换
+		var data any = flow.VariableReplace(param.Value) // Variable replacement
 		if tool.InArrayString(field.Typ, common.TypArrays[:]) {
-			var temp []any //数组类型特殊处理
+			var temp []any // Special handling for array type
 			for _, item := range strings.Split(cast.ToString(data), `、`) {
 				temp = append(temp, item)
 			}
 			data = temp
 		}
-		flow.global[variable] = field.SetVals(data) //给自定义全局变量赋值
+		flow.global[variable] = field.SetVals(data) // Assign value to custom global variable
 		output[`global_set.`+variable] = flow.global[variable]
 	}
-	flow.Logs(`当前global值:%s`, tool.JsonEncodeNoError(flow.global))
-	//中间变量的处理
+	flow.Logs(`Current global values:%s`, tool.JsonEncodeNoError(flow.global))
+	// Handling intermediate variables
 	n.Intermediate(flow, output)
 	nextNodeKey = n.nextNodeKey
 	return
@@ -729,10 +800,10 @@ func (n *AssignNode) Intermediate(flow *WorkFlow, output common.SimpleFields) {
 	for loopKey, loopParam := range *flow.LoopIntermediate.Params {
 		for _, param := range n.params {
 			if param.Variable == flow.LoopIntermediate.LoopNodeKey+`.`+loopParam.Key {
-				//变量替换 支持数组等
+				// Variable replacement, supports arrays, etc.
 				var data any = flow.VariableReplace(param.Value)
 				if tool.InArrayString(loopParam.Typ, common.TypArrays[:]) {
-					var temp []any //数组类型特殊处理
+					var temp []any // Special handling for array type
 					for _, item := range strings.Split(cast.ToString(data), `、`) {
 						temp = append(temp, item)
 					}
@@ -755,7 +826,7 @@ type ReplyNode struct {
 }
 
 func (n *ReplyNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行指定回复逻辑...`)
+	flow.Logs(`Executing specified reply logic...`)
 	content := flow.VariableReplace(n.params.Content)
 	output = common.SimpleFields{
 		`special.llm_reply_content`: common.SimpleField{Key: `special.llm_reply_content`, Typ: common.TypString, Vals: []common.Val{{String: &content}}},
@@ -773,9 +844,9 @@ type ManualNode struct {
 }
 
 func (n *ManualNode) Running(flow *WorkFlow) (_ common.SimpleFields, _ string, err error) {
-	flow.Logs(`执行转人工逻辑...`)
+	flow.Logs(`Executing transfer to human logic...`)
 	flow.isFinish = true
-	err = errors.New(`仅云版支持转人工节点`)
+	err = errors.New(i18n.Show(flow.params.Lang, `cloud_version_manual_node_only`))
 	return
 }
 
@@ -789,16 +860,35 @@ type QuestionOptimizeNode struct {
 }
 
 func (n *QuestionOptimizeNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行问题优化逻辑...`)
+	flow.Logs(`Executing question optimization logic...`)
 	debugLog := common.SimpleField{Key: `special.question_optimize_debug_log`, Typ: common.TypArrObject, Vals: []common.Val{}}
+
+	//part0:init messages
+	messages := make([]adaptor.ZhimaChatCompletionMessage, 0)
+	// Compatible with frontend input
+	if n.params.Role >= 1 {
+		n.params.Role -= 1
+	}
+	// question_multiple_switch
+	if cast.ToBool(flow.params.Robot[`question_multiple_switch`]) {
+		//when question_multiple_switch is true, we will use system role to classify question
+		n.params.Role = define.PromptRoleTypeSystem
+	}
+
 	//part1:prompt
 	prompt := define.PromptWorkFlowQuestionOptimize
 	userPrompt := flow.VariableReplace(n.params.Prompt)
 	if userPrompt != `` {
-		prompt += fmt.Sprintf(`\n\n# 对话背景:\n %s`, userPrompt)
+		prompt += fmt.Sprintf(`\n\n# %s:\n %s`, i18n.Show(flow.params.Lang, `dialogue_background`), userPrompt)
 	}
-	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
-	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: prompt}})
+
+	if n.params.Role == define.PromptRoleTypeSystem {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: define.PromptRoleTypeMap[define.PromptRoleTypeSystem], Content: prompt})
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: prompt}})
+	} else {
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: ``}})
+	}
+
 	//part3:context_qa
 	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
 	contextList := common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
@@ -814,25 +904,33 @@ func (n *QuestionOptimizeNode) Running(flow *WorkFlow) (output common.SimpleFiel
 	if exist {
 		question = field.ShowVals()
 	}
-	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: question})
-	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: question}})
+
+	if n.params.Role == define.PromptRoleTypeUser {
+		content := strings.Join([]string{prompt, question}, "\n\n")
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: content})
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: content}})
+	} else {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: question})
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: question}})
+	}
+
 	//append OpenApiContent
 	messages = common.BuildOpenApiContent(flow.params.ChatRequestParam, messages)
 	//request chat
 	flow.params.Robot[`enable_thinking`] = cast.ToString(cast.ToUint(n.params.EnableThinking))
 	chatResp, requestTime, err := common.RequestChat(
-		flow.params.AdminUserId, openid, flow.params.Robot, flow.params.AppType,
+		flow.params.Lang, flow.params.AdminUserId, openid, flow.params.Robot, flow.params.AppType,
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
 	)
 	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
-	//提前给输出日志,避免下面报错丢失日志
+	// Output log in advance to avoid missing log due to error below
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `question_optimize_answer`, `content`: chatResp.Result}})
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]any{`type`: `question_optimize_error`, `content`: err}})
 	output = common.SimpleFields{
 		debugLog.Key: debugLog,
 	}
 	if err != nil {
-		err = errors.New(`llm请求失败:` + err.Error())
+		err = errors.New(i18n.Show(flow.params.Lang, `llm_request_failed`, err.Error()))
 		return
 	}
 	llmTime := int(requestTime)
@@ -854,20 +952,38 @@ type ParamsExtractorNode struct {
 }
 
 func (n *ParamsExtractorNode) Running(flow *WorkFlow) (outputs common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行参数提取逻辑...`)
+	flow.Logs(`Executing parameter extraction logic...`)
 	debugLog := common.SimpleField{Key: `special.params_extractor_debug_log`, Typ: common.TypArrObject, Vals: []common.Val{}}
+
+	//part0:init messages
+	messages := make([]adaptor.ZhimaChatCompletionMessage, 0)
+	// Compatible with frontend input
+	if n.params.Role >= 1 {
+		n.params.Role -= 1
+	}
+	// question_multiple_switch
+	if cast.ToBool(flow.params.Robot[`question_multiple_switch`]) {
+		//when question_multiple_switch is true, we will use system role to classify question
+		n.params.Role = define.PromptRoleTypeSystem
+	}
+
 	//part1:prompt
 	prompt := define.CompletionGenerateJsonPrompt
 	userPrompt := flow.VariableReplace(n.params.Prompt)
-	// 获取参数列表
+	// Get parameter list
 	params := tool.JsonEncodeNoError(n.params.Output)
 	if len(params) <= 0 {
 		params = `[]`
 	}
-	prompt = fmt.Sprintf(prompt, userPrompt, params)
 
-	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: prompt}}
-	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: prompt}})
+	prompt = fmt.Sprintf(prompt, userPrompt, params)
+	if n.params.Role == define.PromptRoleTypeSystem {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: define.PromptRoleTypeMap[define.PromptRoleTypeSystem], Content: prompt})
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: prompt}})
+	} else {
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `prompt`, `content`: ``}})
+	}
+
 	//part3:context_qa
 	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
 	contextList := common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
@@ -883,41 +999,49 @@ func (n *ParamsExtractorNode) Running(flow *WorkFlow) (outputs common.SimpleFiel
 	if exist {
 		question = field.ShowVals()
 	}
-	messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: question})
-	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: question}})
+
+	if n.params.Role == define.PromptRoleTypeUser {
+		content := strings.Join([]string{prompt, question}, "\n\n")
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: content})
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: content}})
+	} else {
+		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: question})
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `cur_question`, `content`: question}})
+	}
+
 	//append OpenApiContent
 	messages = common.BuildOpenApiContent(flow.params.ChatRequestParam, messages)
 	//request chat
 	flow.params.Robot[`enable_thinking`] = cast.ToString(cast.ToUint(n.params.EnableThinking))
 	chatResp, requestTime, err := common.RequestChat(
-		flow.params.AdminUserId, openid, flow.params.Robot, flow.params.AppType,
+		flow.params.Lang, flow.params.AdminUserId, openid, flow.params.Robot, flow.params.AppType,
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
 	)
 	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
 	chatResp.Result, _ = strings.CutPrefix(chatResp.Result, "```json")
 	chatResp.Result, _ = strings.CutSuffix(chatResp.Result, "```")
-	//提前给输出日志,避免下面报错丢失日志
+	// Output log in advance to avoid missing log due to error below
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `params_extractor_answer`, `content`: chatResp.Result}})
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]any{`type`: `params_extractor_error`, `content`: err}})
 	outputs = common.SimpleFields{
 		debugLog.Key: debugLog,
 	}
 	if err != nil {
-		err = errors.New(`llm请求失败:` + err.Error())
+		err = errors.New(i18n.Show(flow.params.Lang, `llm_request_failed`, err.Error()))
 		return
 	}
 	var result = make([]map[string]any, 0)
 	if err = tool.JsonDecodeUseNumber(chatResp.Result, &result); err != nil {
-		err = errors.New(`llm返回数据格式错误:` + err.Error())
+		err = errors.New(i18n.Show(flow.params.Lang, `llm_response_format_error`, err.Error()))
 		return
 	}
 	mapResult := make(map[string]any)
 	for _, item := range result {
 		mapResult[cast.ToString(item[`key`])] = item[`vals`]
 	}
-	output := common.SimplifyFields(n.params.Output.ExtractionData(mapResult)) //提取数据
+	output := common.SimplifyFields(n.params.Output.ExtractionData(mapResult)) // Extract data
 	for key, out := range output {
-		// 枚举值过滤
+		// Filter enum values
 		if len(out.Enum) > 0 {
 			enumValues := make([]any, 0)
 			enums := strings.Split(strings.ReplaceAll(out.Enum, "\n", ","), ",")
@@ -953,8 +1077,8 @@ type FormInsertNode struct {
 }
 
 func (n *FormInsertNode) Running(flow *WorkFlow) (_ common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行数据表单新增逻辑...`)
-	if err = checkFormId(flow.params.AdminUserId, n.params.FormId.Int()); err != nil {
+	flow.Logs(`Executing form data insertion logic...`)
+	if err = checkFormId(flow.params.AdminUserId, n.params.FormId.Int(), flow.params.Lang); err != nil {
 		return
 	}
 	entryValues := make(map[string]any)
@@ -979,8 +1103,8 @@ type FormDeleteNode struct {
 }
 
 func (n *FormDeleteNode) Running(flow *WorkFlow) (_ common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行数据表单删除逻辑...`)
-	if err = checkFormId(flow.params.AdminUserId, n.params.FormId.Int()); err != nil {
+	flow.Logs(`Executing form data deletion logic...`)
+	if err = checkFormId(flow.params.AdminUserId, n.params.FormId.Int(), flow.params.Lang); err != nil {
 		return
 	}
 	where := make([]define.FormFilterCondition, len(n.params.Where))
@@ -1011,8 +1135,8 @@ type FormUpdateNode struct {
 }
 
 func (n *FormUpdateNode) Running(flow *WorkFlow) (_ common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行数据表单更新逻辑...`)
-	if err = checkFormId(flow.params.AdminUserId, n.params.FormId.Int()); err != nil {
+	flow.Logs(`Executing form data update logic...`)
+	if err = checkFormId(flow.params.AdminUserId, n.params.FormId.Int(), flow.params.Lang); err != nil {
 		return
 	}
 	where := make([]define.FormFilterCondition, len(n.params.Where))
@@ -1059,8 +1183,8 @@ type FormSelectNode struct {
 }
 
 func (n *FormSelectNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行数据表单查询逻辑...`)
-	if err = checkFormId(flow.params.AdminUserId, n.params.FormId.Int()); err != nil {
+	flow.Logs(`Executing form data query logic...`)
+	if err = checkFormId(flow.params.AdminUserId, n.params.FormId.Int(), flow.params.Lang); err != nil {
 		return
 	}
 	where := make([]define.FormFilterCondition, len(n.params.Where))
@@ -1071,9 +1195,9 @@ func (n *FormSelectNode) Running(flow *WorkFlow) (output common.SimpleFields, ne
 	}
 	orderBy := make([]string, 0)
 	for _, order := range n.params.Order {
-		if order.IsAsc { //升序
+		if order.IsAsc { // Ascending
 			orderBy = append(orderBy, fmt.Sprintf(`%s asc`, order.Name))
-		} else { //降序
+		} else { // Descending
 			orderBy = append(orderBy, fmt.Sprintf(`%s desc`, order.Name))
 		}
 	}
@@ -1085,7 +1209,7 @@ func (n *FormSelectNode) Running(flow *WorkFlow) (output common.SimpleFields, ne
 	if err != nil {
 		return
 	}
-	//拼接数据
+	// Concatenate data
 	list := make([]map[string]any, len(entryIds))
 	if len(entryIds) > 0 {
 		fields, ok := msql.Model(`form_field`, define.Postgres).
@@ -1123,7 +1247,7 @@ func (n *FormSelectNode) Running(flow *WorkFlow) (output common.SimpleFields, ne
 			}
 		}
 	}
-	//组装输出结果
+	// Assemble output results
 	vals := make([]common.Val, 0)
 	for _, obj := range list {
 		vals = append(vals, common.Val{Object: obj})
@@ -1147,12 +1271,12 @@ type CodeRunNode struct {
 }
 
 func (n *CodeRunNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, _ error) {
-	flow.Logs(`执行代码运行逻辑...`)
-	//开始组装变量
+	flow.Logs(`Executing code execution logic...`)
+	// Start assembling variables
 	params := make(map[string]any)
 	for _, param := range n.params.Params {
 		field, exist := flow.GetVariable(param.Variable)
-		if !exist { //变量不存在
+		if !exist { // Variable does not exist
 			params[param.Field] = nil
 			continue
 		}
@@ -1162,7 +1286,7 @@ func (n *CodeRunNode) Running(flow *WorkFlow) (output common.SimpleFields, nextN
 			params[param.Field] = field.GetVal()
 		}
 	}
-	//开始代码运行
+	// Start code execution
 	data := lib_define.CodeRunBody{MainFunc: n.params.MainFunc, Params: params}
 	flow.Logs(`body:%s`, tool.JsonEncodeNoError(data))
 	timeout := time.Duration(n.params.Timeout) * time.Second
@@ -1172,15 +1296,15 @@ func (n *CodeRunNode) Running(flow *WorkFlow) (output common.SimpleFields, nextN
 	flow.Logs(`result:%s,err:%v`, jsonStr, err)
 	if err != nil {
 		nextNodeKey = n.params.Exception
-		return //代码运行异常
+		return // Code execution exception
 	}
 	result := make(map[string]any)
 	if err = tool.JsonDecodeUseNumber(jsonStr, &result); err != nil {
-		flow.Logs(`结果解析异常:%s`, err.Error())
+		flow.Logs(`Result parsing exception:%s`, err.Error())
 		nextNodeKey = n.params.Exception
-		return //结果解析异常
+		return // Result parsing exception
 	}
-	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
+	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) // Extract data
 	nextNodeKey = n.nextNodeKey
 	return
 }
@@ -1195,13 +1319,13 @@ type McpNode struct {
 }
 
 func (n *McpNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行MCP逻辑...`)
+	flow.Logs(`Executing MCP logic...`)
 
 	for s, a := range n.params.Arguments {
 		n.params.Arguments[s] = flow.VariableReplace(cast.ToString(a))
 	}
 
-	// 从数据库获取配置
+	// Get configuration from database
 	provider, err := msql.Model(`mcp_provider`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(flow.params.AdminUserId)).
 		Where(`id`, cast.ToString(n.params.ProviderId)).
@@ -1210,7 +1334,7 @@ func (n *McpNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 		return nil, "", err
 	}
 
-	// 获取工具
+	// Get tools
 	var toolList []mcp.Tool
 	err = json.Unmarshal([]byte(provider[`tools`]), &toolList)
 	if err != nil {
@@ -1225,25 +1349,25 @@ func (n *McpNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 		}
 	}
 	if !found {
-		return nil, "", errors.New("没有找到对应的工具")
+		return nil, "", errors.New(i18n.Show(flow.params.Lang, `mcp_tool_not_found`))
 	}
 
-	// 超时配置
+	// Timeout configuration
 	timeout := time.Duration(cast.ToUint(provider["request_timeout"])) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	// 初始化mcp客户端
+	// Initialize MCP client
 	mcpClient, err := common.NewMcpClient(ctx, cast.ToInt(provider[`client_type`]), provider[`url`], provider[`headers`])
 	if err != nil {
-		return nil, "", fmt.Errorf("mcp客户端初始化失败: %v", err.Error())
+		return nil, "", errors.New(i18n.Show(flow.params.Lang, `mcp_client_init_failed`, err.Error()))
 	}
 	result, err := common.CallTool(ctx, mcpClient, selectedTool, n.params.Arguments)
 	if err != nil {
-		return nil, "", fmt.Errorf("调用mcp工具出错: %v", err.Error())
+		return nil, "", errors.New(i18n.Show(flow.params.Lang, `mcp_tool_call_failed`, err.Error()))
 	}
 
-	// 构建 output
+	// Build output
 	output = common.SimpleFields{
 		`special.mcp_reply_content`: common.SimpleField{
 			Key:  `special.mcp_reply_content`,
@@ -1293,7 +1417,7 @@ type LoopStartNode struct {
 }
 
 func (n *LoopStartNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行开始节点逻辑...`)
+	flow.Logs(`Executing start node logic...`)
 	nextNodeKey = n.nextNodeKey
 	return
 }
@@ -1310,31 +1434,31 @@ type PluginNode struct {
 func (n *PluginNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, _ error) {
 	u := define.Config.Plugin[`endpoint`] + "/manage/plugin/local-plugins/run"
 
-	// 处理任意深度的 Map 和 Slice
+	// Handle Map and Slice of arbitrary depth
 	var deepReplace func(val any) any
 	deepReplace = func(val any) any {
 		switch v := val.(type) {
-		case map[string]any: // 如果是 Map，递归处理 Map 的每一个值
+		case map[string]any: // If it is a Map, recursively process each value of the Map
 			newMap := make(map[string]any)
 			for k, subVal := range v {
 				newMap[k] = deepReplace(subVal)
 			}
 			return newMap
-		case []any: // 如果是 Slice，递归处理 Slice 的每一个元素
+		case []any: // If it is a Slice, recursively process each element of the Slice
 			newSlice := make([]any, len(v))
 			for i, subVal := range v {
 				newSlice[i] = deepReplace(subVal)
 			}
 			return newSlice
-		case string: // 只有遇到字符串，才真正执行替换
+		case string: // Only execute replacement when encountering a string
 			return flow.VariableReplace(v)
 		default:
-			// 其他基本类型（int, bool等），转字符串后尝试替换
+			// Other basic types (int, bool, etc.), try to replace after converting to string
 			return flow.VariableReplace(cast.ToString(v))
 		}
 	}
 
-	// 对顶层的每个参数调用递归函数
+	// Call recursive function for each top-level parameter
 	for key, value := range n.params.Params {
 		n.params.Params[key] = deepReplace(value)
 	}
@@ -1361,7 +1485,7 @@ func (n *PluginNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNo
 		if err != nil {
 			return
 		}
-		output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
+		output = common.SimplifyFields(n.params.Output.ExtractionData(result)) // Extract data
 		nextNodeKey = n.nextNodeKey
 		return
 	} else if n.params.Type == `extension` {
@@ -1380,12 +1504,12 @@ func (n *PluginNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNo
 		if cast.ToInt(result["res"]) != 0 {
 			return nil, "", errors.New(cast.ToString(result["msg"]))
 		}
-		output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
+		output = common.SimplifyFields(n.params.Output.ExtractionData(result)) // Extract data
 		nextNodeKey = n.nextNodeKey
 		return
 	} else {
 		nextNodeKey = n.nextNodeKey
-		return nil, "", errors.New("暂不支持的插件类型")
+		return nil, "", errors.New(i18n.Show(flow.params.Lang, `plugin_type_not_supported`))
 	}
 }
 
@@ -1399,7 +1523,7 @@ type BatchStartNode struct {
 }
 
 func (n *BatchStartNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行批处理开始节点逻辑...`)
+	flow.Logs(`Executing batch start node logic...`)
 	nextNodeKey = n.nextNodeKey
 	return
 }
@@ -1428,7 +1552,7 @@ type ImageGeneration struct {
 }
 
 func (n *ImageGeneration) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行图片生成逻辑...`)
+	flow.Logs(`Executing image generation logic...`)
 	output = common.SimpleFields{}
 	var optimizePromptMode *string
 	if n.params.ImageOptimizePrompt == `1` {
@@ -1440,7 +1564,7 @@ func (n *ImageGeneration) Running(flow *WorkFlow) (output common.SimpleFields, n
 			images = append(images, flow.VariableReplace(image))
 		}
 	}
-	res, err := common.RequestImageGenerate(flow.params.AdminUserId, flow.params.Openid, flow.params.Robot, flow.params.AppType,
+	res, err := common.RequestImageGenerate(flow.params.Lang, flow.params.AdminUserId, flow.params.Openid, flow.params.Robot, flow.params.AppType,
 		cast.ToInt(n.params.ModelConfigId), n.params.UseModel, &adaptor.ZhimaImageGenerationReq{
 			Prompt:                    flow.VariableReplace(n.params.Prompt),
 			Size:                      &n.params.Size,
@@ -1459,7 +1583,7 @@ func (n *ImageGeneration) Running(flow *WorkFlow) (output common.SimpleFields, n
 			Vals: []common.Val{{String: tea.String(err.Error())}},
 		}
 		nextNodeKey = n.nextNodeKey
-		return //结果解析异常
+		return // Result parsing exception
 	} else {
 		output[`msg`] = common.SimpleField{
 			Key:  "msg",
@@ -1494,7 +1618,7 @@ type JsonEncode struct {
 }
 
 func (n *JsonEncode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行JSON序列化逻辑...`)
+	flow.Logs(`Executing JSON serialization logic...`)
 	variable := GetFirstVariable(n.params.InputVariable)
 	if variable == `` {
 		nextNodeKey = n.nextNodeKey
@@ -1503,7 +1627,7 @@ func (n *JsonEncode) Running(flow *WorkFlow) (output common.SimpleFields, nextNo
 	output = common.SimpleFields{}
 	field, exist := flow.GetVariable(variable)
 	if !exist || len(n.params.Outputs) == 0 {
-		flow.Logs(`变量%s不存在或输出为空`, variable)
+		flow.Logs(`Variable %s does not exist or output is empty`, variable)
 	} else {
 		out := n.params.Outputs[0]
 		if tool.InArray(field.Typ, []string{common.TypObject, common.TypParams}) {
@@ -1547,7 +1671,7 @@ type JsonDecode struct {
 }
 
 func (n *JsonDecode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行JSON反序列化逻辑...`)
+	flow.Logs(`Executing JSON deserialization logic...`)
 	output = common.SimpleFields{}
 	variable := n.params.InputVariable
 	if variable == `` {
@@ -1556,7 +1680,7 @@ func (n *JsonDecode) Running(flow *WorkFlow) (output common.SimpleFields, nextNo
 	}
 	field, exist := flow.GetVariable(variable)
 	if !exist {
-		flow.Logs(`变量%s不存在`, variable)
+		flow.Logs(`Variable %s does not exist`, variable)
 	} else {
 		vals := field.GetVals()
 		if len(vals) == 0 {
@@ -1576,7 +1700,7 @@ func (n *JsonDecode) Running(flow *WorkFlow) (output common.SimpleFields, nextNo
 			result := make(map[string]any)
 			err := tool.JsonDecode(data, &result)
 			if err != nil {
-				flow.Logs(`json反序列化失败:%s,%s`, data, err.Error())
+				flow.Logs(`JSON deserialization failed:%s,%s`, data, err.Error())
 			} else if len(n.params.Outputs) == 1 {
 				resOutput := n.params.Outputs[0]
 				var resVal any
@@ -1587,7 +1711,7 @@ func (n *JsonDecode) Running(flow *WorkFlow) (output common.SimpleFields, nextNo
 					Vals: []common.Val{{Object: resVal}},
 				}
 				if len(resOutput.Subs) > 0 {
-					resOutput.Subs.SimplifyFieldsDeepExtract(&output, resOutput.Key+`.`, result) //提取数据
+					resOutput.Subs.SimplifyFieldsDeepExtract(&output, resOutput.Key+`.`, result) // Extract data
 				}
 			}
 		}
@@ -1600,30 +1724,30 @@ func (n *JsonDecode) Params() any {
 	return n.params
 }
 
-// TextToAudioNode 语音合成
+// TextToAudioNode Text to Speech
 type TextToAudioNode struct {
 	params      TextToAudioNodeParams
 	nextNodeKey string
 }
 
 func (n *TextToAudioNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, _ error) {
-	flow.Logs(`执行语音合成逻辑...`)
+	flow.Logs(`Executing text to speech logic...`)
 
-	// 替换变量
+	// Replace variables
 	text := flow.VariableReplace(n.params.Arguments.Text)
 	voiceId := flow.VariableReplace(n.params.Arguments.VoiceSetting.VoiceId)
 
-	// 构建参数
+	// Build parameters
 	params := make(map[string]any)
 	params[`model`] = n.params.Arguments.UseModel
 	params[`text`] = text
 	params[`output_format`] = n.params.Arguments.OutputFormat
 
-	// 构建voice_setting
+	// Build voice_setting
 	voiceSetting := make(map[string]any)
 	voiceSetting[`voice_id`] = voiceId
 	if n.params.Arguments.VoiceSetting.Speed > 0 {
-		voiceSetting[`speed`] = float64(n.params.Arguments.VoiceSetting.Speed) / 50.0 // 转换为0.5-2.0范围
+		voiceSetting[`speed`] = float64(n.params.Arguments.VoiceSetting.Speed) / 50.0 // Convert to 0.5-2.0 range
 	}
 	if n.params.Arguments.VoiceSetting.Vol > 0 {
 		voiceSetting[`vol`] = n.params.Arguments.VoiceSetting.Vol
@@ -1636,7 +1760,7 @@ func (n *TextToAudioNode) Running(flow *WorkFlow) (output common.SimpleFields, n
 	}
 	params[`voice_setting`] = voiceSetting
 
-	// 构建audio_setting
+	// Build audio_setting
 	if n.params.Arguments.AudioSetting.SampleRate > 0 || n.params.Arguments.AudioSetting.Bitrate > 0 ||
 		len(n.params.Arguments.AudioSetting.Format) > 0 || n.params.Arguments.AudioSetting.Channel > 0 {
 		audioSetting := make(map[string]any)
@@ -1662,17 +1786,17 @@ func (n *TextToAudioNode) Running(flow *WorkFlow) (output common.SimpleFields, n
 		voiceModify[`sound_effects`] = n.params.Arguments.VoiceModify.SoundEffects
 	}
 
-	// 调用API
-	result, err := common.TtsSpeechT2A(flow.params.AdminUserId, n.params.Arguments.ModelId, n.params.Arguments.UseModel, params)
+	// Call API
+	result, err := common.TtsSpeechT2A(flow.params.Lang, flow.params.AdminUserId, n.params.Arguments.ModelId, n.params.Arguments.UseModel, params)
 	if err != nil {
-		flow.Logs(`语音合成失败: %v`, err)
+		flow.Logs(`Text to speech failed: %v`, err)
 		return nil, "", err
 	}
 
-	flow.Logs(`语音合成成功`)
+	flow.Logs(`Text to speech success`)
 
-	// 构建输出
-	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
+	// Build output
+	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) // Extract data
 	nextNodeKey = n.nextNodeKey
 	return
 }
@@ -1681,52 +1805,52 @@ func (n *TextToAudioNode) Params() any {
 	return n.params
 }
 
-// VoiceCloneNode 声音复刻
+// VoiceCloneNode Voice Cloning
 type VoiceCloneNode struct {
 	params      VoiceCloneNodeParams
 	nextNodeKey string
 }
 
 func (n *VoiceCloneNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, _ error) {
-	flow.Logs(`执行声音复刻逻辑...`)
+	flow.Logs(`Executing voice cloning logic...`)
 
-	// 获取模型配置
+	// Get model configuration
 	config, err := msql.Model(`chat_ai_model_config`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(flow.params.AdminUserId)).
 		Where(`model_define`, common.ModelMinimax).
 		Find()
 	if err != nil {
 		logs.Error(err.Error())
-		return nil, "", errors.New(`获取模型配置失败`)
+		return nil, "", errors.New(i18n.Show(flow.params.Lang, `get_model_config_failed`))
 	}
 	if len(config) == 0 {
-		return nil, "", errors.New(`没有配置MiniMax模型`)
+		return nil, "", errors.New(i18n.Show(flow.params.Lang, `minimax_model_not_configured`))
 	}
 
-	// 替换变量
+	// Replace variables
 	fileUrl := flow.VariableReplace(n.params.Arguments.FileUrl)
 	voiceId := flow.VariableReplace(n.params.Arguments.VoiceId)
 
-	// 下载文件到临时位置
+	// Download file to temporary location
 	tempDir := `/tmp/voice_clone_` + tool.Random(8)
 	if err = tool.MkDirAll(tempDir); err != nil {
-		return nil, "", fmt.Errorf(`创建临时目录失败: %v`, err)
+		return nil, "", errors.New(i18n.Show(flow.params.Lang, `create_temp_dir_failed`, err.Error()))
 	}
 	defer func() {
 		_ = os.RemoveAll(tempDir)
 	}()
 
-	// 下载复刻音频文件
+	// Download cloned audio file
 	cloneAudioPath := tempDir + `/clone_audio.mp3`
 	if err = common.DownloadFile(fileUrl, cloneAudioPath); err != nil {
-		return nil, "", fmt.Errorf(`下载复刻音频失败: %v`, err)
+		return nil, "", errors.New(i18n.Show(flow.params.Lang, `download_clone_audio_failed`, err.Error()))
 	}
 
-	// 上传复刻音频获取file_id
-	flow.Logs(`上传复刻音频...`)
-	uploadResult, err := common.TtsUploadVoiceFile(flow.params.AdminUserId, cast.ToInt(config["id"]), "voice_clone", cloneAudioPath)
+	// Upload cloned audio to get file_id
+	flow.Logs(`Uploading cloned audio...`)
+	uploadResult, err := common.TtsUploadVoiceFile(flow.params.Lang, flow.params.AdminUserId, cast.ToInt(config["id"]), "voice_clone", cloneAudioPath)
 	if err != nil {
-		return nil, "", fmt.Errorf(`上传复刻音频失败: %v`, err)
+		return nil, "", errors.New(i18n.Show(flow.params.Lang, `upload_clone_audio_failed`, err.Error()))
 	}
 
 	var cloneFileID int64
@@ -1736,29 +1860,29 @@ func (n *VoiceCloneNode) Running(flow *WorkFlow) (output common.SimpleFields, ne
 		}
 	}
 	if cloneFileID <= 0 {
-		return nil, "", errors.New(`获取复刻音频file_id失败`)
+		return nil, "", errors.New(i18n.Show(flow.params.Lang, `get_clone_audio_file_id_failed`))
 	}
 
-	flow.Logs(`复刻音频上传成功，file_id: %d`, cloneFileID)
+	flow.Logs(`Cloned audio uploaded successfully, file_id: %d`, cloneFileID)
 
-	// 处理示例音频（可选）
+	// Process example audio (optional)
 	var promptFileID int64
 	if len(n.params.Arguments.ClonePrompt.PromptAudioUrl) > 0 || len(n.params.Arguments.ClonePrompt.PromptText) > 0 {
 		promptAudioUrl := flow.VariableReplace(n.params.Arguments.ClonePrompt.PromptAudioUrl)
 		promptText := flow.VariableReplace(n.params.Arguments.ClonePrompt.PromptText)
 
 		if len(promptAudioUrl) > 0 && len(promptText) > 0 {
-			// 下载示例音频文件
+			// Download example audio file
 			promptAudioPath := tempDir + `/prompt_audio.mp3`
 			if err = common.DownloadFile(promptAudioUrl, promptAudioPath); err != nil {
-				return nil, "", fmt.Errorf(`下载示例音频失败: %v`, err)
+				return nil, "", errors.New(i18n.Show(flow.params.Lang, `download_prompt_audio_failed`, err.Error()))
 			}
 
-			// 上传示例音频获取file_id
-			flow.Logs(`上传示例音频...`)
-			promptUploadResult, err := common.TtsUploadVoiceFile(flow.params.AdminUserId, cast.ToInt(config["id"]), "prompt_audio", promptAudioPath)
+			// Upload example audio to get file_id
+			flow.Logs(`Uploading example audio...`)
+			promptUploadResult, err := common.TtsUploadVoiceFile(flow.params.Lang, flow.params.AdminUserId, cast.ToInt(config["id"]), "prompt_audio", promptAudioPath)
 			if err != nil {
-				return nil, "", fmt.Errorf(`上传示例音频失败: %v`, err)
+				return nil, "", errors.New(i18n.Show(flow.params.Lang, `upload_prompt_audio_failed`, err.Error()))
 			}
 
 			if fileInfo, ok := promptUploadResult[`file`].(map[string]any); ok {
@@ -1767,18 +1891,18 @@ func (n *VoiceCloneNode) Running(flow *WorkFlow) (output common.SimpleFields, ne
 				}
 			}
 			if promptFileID <= 0 {
-				return nil, "", errors.New(`获取示例音频file_id失败`)
+				return nil, "", errors.New(i18n.Show(flow.params.Lang, `get_prompt_audio_file_id_failed`))
 			}
-			flow.Logs(`示例音频上传成功，file_id: %d`, promptFileID)
+			flow.Logs(`Example audio uploaded successfully, file_id: %d`, promptFileID)
 		}
 	}
 
-	// 构建参数
+	// Build parameters
 	params := make(map[string]any)
 	params[`file_id`] = cloneFileID
 	params[`voice_id`] = voiceId
 
-	// 构建clone_prompt（可选）
+	// Build clone_prompt (optional)
 	if promptFileID > 0 && len(n.params.Arguments.ClonePrompt.PromptText) > 0 {
 		clonePrompt := make(map[string]any)
 		clonePrompt[`prompt_audio`] = promptFileID
@@ -1786,43 +1910,43 @@ func (n *VoiceCloneNode) Running(flow *WorkFlow) (output common.SimpleFields, ne
 		params[`clone_prompt`] = clonePrompt
 	}
 
-	// 添加试听参数（可选）
+	// Add audition parameters (optional)
 	if len(n.params.Arguments.Text) > 0 {
 		params[`text`] = flow.VariableReplace(n.params.Arguments.Text)
 	}
 
-	// 添加模型参数（可选）
+	// Add model parameters (optional)
 	if len(n.params.Arguments.Model) > 0 {
 		params[`model`] = flow.VariableReplace(n.params.Arguments.Model)
 	}
 
-	// 添加语言增强参数（可选）
+	// Add language boost parameters (optional)
 	if len(n.params.Arguments.LanguageBoost) > 0 {
 		params[`language_boost`] = flow.VariableReplace(n.params.Arguments.LanguageBoost)
 	}
 
-	// 添加降噪参数（可选）
+	// Add noise reduction parameters (optional)
 	if n.params.Arguments.NeedNoiseReduction {
 		params[`need_noise_reduction`] = true
 	}
 
-	// 添加音量归一化参数（可选）
+	// Add volume normalization parameters (optional)
 	if n.params.Arguments.NeedVolumeNormalization {
 		params[`need_volume_normalization`] = true
 	}
 
-	// 调用复刻API
-	flow.Logs(`开始音色复刻...`)
-	result, err := common.TtsCloneVoice(flow.params.AdminUserId, cast.ToInt(config["id"]), params)
+	// Call cloning API
+	flow.Logs(`Starting voice cloning...`)
+	result, err := common.TtsCloneVoice(flow.params.Lang, flow.params.AdminUserId, cast.ToInt(config["id"]), params)
 	if err != nil {
-		flow.Logs(`音色复刻失败: %v`, err)
+		flow.Logs(`Voice cloning failed: %v`, err)
 		return nil, "", err
 	}
 
-	flow.Logs(`音色复刻成功`)
+	flow.Logs(`Voice cloning success`)
 
-	// 构建输出
-	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) //提取数据
+	// Build output
+	output = common.SimplifyFields(n.params.Output.ExtractionData(result)) // Extract data
 	nextNodeKey = n.nextNodeKey
 	return
 }
@@ -1837,7 +1961,7 @@ type LibraryImport struct {
 }
 
 func (n *LibraryImport) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行知识库导入逻辑...`)
+	flow.Logs(`Executing knowledge base import logic...`)
 	output = common.SimpleFields{}
 	libraryInfo, err := common.GetLibraryInfo(cast.ToInt(n.params.LibraryId), flow.params.AdminUserId)
 	if err != nil {
@@ -1872,17 +1996,17 @@ func (n *LibraryImport) toImport(flow *WorkFlow, libraryInfo msql.Params) (msg s
 			Field(`id,user_name,parent_id`).Find()
 		if err != nil {
 			logs.Error(err.Error())
-			msg = `获取账号信息失败`
+			msg = i18n.Show(flow.params.Lang, `get_account_info_failed`)
 			return
 		}
 		if len(info) == 0 {
-			msg = `获取账号信息失败`
+			msg = i18n.Show(flow.params.Lang, `get_account_info_failed`)
 			return
 		}
 		jwtToken, err := common.GetToken(info[`id`], info[`user_name`], info["parent_id"])
 		if err != nil {
 			logs.Error(err.Error())
-			msg = `获取token失败`
+			msg = i18n.Show(flow.params.Lang, `get_token_failed`)
 			return
 		}
 		token = cast.ToString(jwtToken[`token`])
@@ -1893,34 +2017,34 @@ func (n *LibraryImport) toImport(flow *WorkFlow, libraryInfo msql.Params) (msg s
 		} else if n.params.ImportType == define.LibraryImportUrl {
 			normalUrl := flow.VariableReplace(n.params.NormalUrl)
 			if len(normalUrl) == 0 {
-				msg = `导入的URL为空`
+				msg = i18n.Show(flow.params.Lang, `import_url_empty`)
 				return
 			}
 			urlInfo, err := msql.Model(`chat_ai_library_file`, define.Postgres).
 				Where(`library_id`, libraryInfo[`id`]).Where(`doc_url`, normalUrl).Find()
 			if err != nil {
-				logs.Error(fmt.Sprintf(`获取文档信息失败 %s`, err.Error()))
-				msg = `获取文档信息失败`
+				logs.Error(fmt.Sprintf(`Failed to get document info %s`, err.Error()))
+				msg = i18n.Show(flow.params.Lang, `get_doc_info_failed`)
 				return
 			}
 			if n.params.NormalUrlRepeatOp == define.LibraryImportRepeatImport {
-				msg, ok = n.toImportUrl(token, normalUrl)
+				msg, ok = n.toImportUrl(flow.params.Lang, token, normalUrl)
 			} else if n.params.NormalUrlRepeatOp == define.LibraryImportRepeatNotImport {
 				if len(urlInfo) > 0 {
-					msg = fmt.Sprintf(`导入的URL（%s）已存在,指定不导入，本次不导入`, normalUrl)
+					msg = i18n.Show(flow.params.Lang, `import_url_exist_skip`, normalUrl)
 					ok = true
 				} else {
-					msg, ok = n.toImportUrl(token, normalUrl)
+					msg, ok = n.toImportUrl(flow.params.Lang, token, normalUrl)
 				}
 			} else if n.params.NormalUrlRepeatOp == define.LibraryImportRepeatUpdate {
-				msg, ok = n.toUpdateUrl(token, urlInfo)
+				msg, ok = n.toUpdateUrl(flow.params.Lang, token, urlInfo)
 			}
 		}
 	} else if cast.ToInt(libraryInfo[`type`]) == define.QALibraryType {
 		question := flow.VariableReplace(n.params.QaQuestion)
 		answer := flow.VariableReplace(n.params.QaAnswer)
 		if question == `` || answer == `` {
-			msg = `导入问题或答案为空`
+			msg = i18n.Show(flow.params.Lang, `import_qa_empty`)
 			return
 		}
 		var images []any
@@ -1958,28 +2082,28 @@ func (n *LibraryImport) toImport(flow *WorkFlow, libraryInfo msql.Params) (msg s
 		qaInfo, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
 			Where(`library_id`, libraryInfo[`id`]).Where(`question`, n.params.QaQuestion).Find()
 		if err != nil {
-			logs.Error(fmt.Sprintf(`获取问答信息失败 %s`, err.Error()))
-			msg = `获取问答信息失败`
+			logs.Error(fmt.Sprintf(`Failed to get QA info %s`, err.Error()))
+			msg = i18n.Show(flow.params.Lang, `get_qa_info_failed`)
 			return
 		}
 		if n.params.QaRepeatOp == define.LibraryImportRepeatImport {
-			msg, ok = n.toImportQa(token, question, answer, imagesNew, similars, nil)
+			msg, ok = n.toImportQa(flow.params.Lang, token, question, answer, imagesNew, similars, nil)
 		} else if n.params.QaRepeatOp == define.LibraryImportRepeatNotImport {
 			if len(qaInfo) > 0 {
-				msg = fmt.Sprintf(`导入的问答（%s）已存在,指定不导入，本次不导入`, question)
+				msg = i18n.Show(flow.params.Lang, `import_qa_exist_skip`, question)
 				ok = true
 			} else {
-				msg, ok = n.toImportQa(token, question, answer, imagesNew, similars, nil)
+				msg, ok = n.toImportQa(flow.params.Lang, token, question, answer, imagesNew, similars, nil)
 			}
 		} else if n.params.QaRepeatOp == define.LibraryImportRepeatUpdate {
 			if len(qaInfo) > 0 {
-				msg, ok = n.toImportQa(token, question, answer, imagesNew, similars, qaInfo)
+				msg, ok = n.toImportQa(flow.params.Lang, token, question, answer, imagesNew, similars, qaInfo)
 			} else {
-				msg, ok = n.toImportQa(token, question, answer, imagesNew, similars, nil)
+				msg, ok = n.toImportQa(flow.params.Lang, token, question, answer, imagesNew, similars, nil)
 			}
 		}
 	} else {
-		msg = `不支持的导入知识库类型`
+		msg = i18n.Show(flow.params.Lang, `library_import_type_not_supported`)
 	}
 	return
 }
@@ -1987,21 +2111,21 @@ func (n *LibraryImport) toImport(flow *WorkFlow, libraryInfo msql.Params) (msg s
 func (n *LibraryImport) toImportFile(flow *WorkFlow, token string, libraryInfo msql.Params) (msg string, ok bool) {
 	content := flow.VariableReplace(n.params.NormalContent)
 	if len(content) == 0 {
-		msg = `导入的内容为空`
+		msg = i18n.Show(flow.params.Lang, `import_content_empty`)
 		return
 	}
 	title := flow.VariableReplace(n.params.NormalTitle)
 	fileName := define.UploadDir + `work_flow/library_import/` + title + `.txt`
 	err := tool.WriteFile(fileName, content)
 	if err != nil {
-		logs.Error(`创建文件 %s 失败: %v\n`, fileName, err)
-		msg = `创建文件失败`
+		logs.Error(`Failed to create file %s: %v\n`, fileName, err)
+		msg = i18n.Show(flow.params.Lang, `create_file_failed`)
 		return
 	}
 	defer func() {
 		err := os.Remove(fileName)
 		if err != nil {
-			logs.Error(`删除文件 %s 失败: %v\n`, fileName, err)
+			logs.Error(`Failed to delete file %s: %v\n`, fileName, err)
 		}
 	}()
 	var res lib_web.Response
@@ -2011,19 +2135,19 @@ func (n *LibraryImport) toImportFile(flow *WorkFlow, token string, libraryInfo m
 		Param(`group_id`, n.params.LibraryGroupId).
 		PostFile(`library_files`, fileName).ToJSON(&res)
 	if err != nil {
-		logs.Error(`创建文档请求失败: %s %v\n`, res.Msg, err)
-		msg = `创建文档请求失败`
+		logs.Error(`Create document request failed: %s %v\n`, res.Msg, err)
+		msg = i18n.Show(flow.params.Lang, `create_doc_request_failed`)
 		return
 	}
 	if cast.ToInt(res.Res) != define.StatusOK {
-		logs.Error(fmt.Sprintf(`创建文档失败:%s(%v)`, res.Msg, err))
-		msg = `创建文档失败`
+		logs.Error(fmt.Sprintf(`Create document failed:%s(%v)`, res.Msg, err))
+		msg = i18n.Show(flow.params.Lang, `create_doc_failed`)
 		return
 	} else {
 		fileIds := cast.ToSlice(cast.ToStringMap(res.Data)[`file_ids`])
 		if len(fileIds) == 0 || cast.ToInt64(fileIds[0]) <= 0 {
-			logs.Error(fmt.Sprintf(`创建默认自定义文档失败:%s`, tool.JsonEncodeNoError(res)))
-			msg = `创建默认自定义文档失败`
+			logs.Error(fmt.Sprintf(`Create default custom document failed:%s`, tool.JsonEncodeNoError(res)))
+			msg = i18n.Show(flow.params.Lang, `create_default_custom_doc_failed`)
 			return
 		} else {
 			ok = true
@@ -2032,7 +2156,7 @@ func (n *LibraryImport) toImportFile(flow *WorkFlow, token string, libraryInfo m
 	return
 }
 
-func (n *LibraryImport) toImportQa(token, question, answer string, images []any, similars []any, qaInfo msql.Params) (msg string, ok bool) {
+func (n *LibraryImport) toImportQa(lang string, token, question, answer string, images []any, similars []any, qaInfo msql.Params) (msg string, ok bool) {
 	var res lib_web.Response
 	req := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/editParagraph`, define.Config.WebService[`port`])).
 		Header(`Token`, token).
@@ -2054,40 +2178,40 @@ func (n *LibraryImport) toImportQa(token, question, answer string, images []any,
 	}
 	err := req.Param(`group_id`, n.params.LibraryGroupId).ToJSON(&res)
 	if err != nil {
-		logs.Error(fmt.Sprintf(`导入问答对请求失败:%s(%v)`, res.Msg, err))
-		msg = `导入问答对请求失败`
+		logs.Error(fmt.Sprintf(`Import QA pair request failed:%s(%v)`, res.Msg, err))
+		msg = i18n.Show(lang, `import_qa_pair_request_failed`)
 		return
 	}
 	if cast.ToInt(res.Res) != define.StatusOK {
-		logs.Error(fmt.Sprintf(`创建默认自定义文档失败:%s(%v)`, res.Msg, err))
-		msg = `创建默认自定义文档失败`
+		logs.Error(fmt.Sprintf(`Create default custom document failed:%s(%v)`, res.Msg, err))
+		msg = i18n.Show(lang, `create_default_custom_doc_failed`)
 	} else {
 		ok = true
 	}
 	return
 }
 
-func (n *LibraryImport) toUpdateUrl(token string, urlInfo msql.Params) (msg string, ok bool) {
+func (n *LibraryImport) toUpdateUrl(lang string, token string, urlInfo msql.Params) (msg string, ok bool) {
 	var res lib_web.Response
 	err := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/manualCrawl`, define.Config.WebService[`port`])).
 		Header(`Token`, token).
 		Param(`id`, urlInfo[`id`]).
 		ToJSON(&res)
 	if err != nil {
-		msg = fmt.Sprintf(`更新url失败:%s(%v)`, res.Msg, err)
+		msg = i18n.Show(lang, `update_url_failed`) + fmt.Sprintf(":%s(%v)", res.Msg, err)
 		return
 	}
 	if cast.ToInt(res.Res) != define.StatusOK {
-		logs.Error(fmt.Sprintf(`更新失败:%s(%v)`, res.Msg, err))
-		msg = `更新url失败`
+		logs.Error(fmt.Sprintf(`Update failed:%s(%v)`, res.Msg, err))
+		msg = i18n.Show(lang, `update_url_failed`)
 	} else {
-		msg = `更新url成功`
+		msg = i18n.Show(lang, `update_url_success`)
 		ok = true
 	}
 	return
 }
 
-func (n *LibraryImport) toImportUrl(token, normalUrl string) (msg string, ok bool) {
+func (n *LibraryImport) toImportUrl(lang string, token, normalUrl string) (msg string, ok bool) {
 	var res lib_web.Response
 	err := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/addLibraryFile`, define.Config.WebService[`port`])).
 		Header(`Token`, token).
@@ -2098,18 +2222,18 @@ func (n *LibraryImport) toImportUrl(token, normalUrl string) (msg string, ok boo
 		Param(`library_id`, n.params.LibraryId).
 		Param(`group_id`, n.params.LibraryGroupId).ToJSON(&res)
 	if err != nil {
-		logs.Error(fmt.Sprintf(`导入请求失败:%s(%v)`, res.Msg, err))
-		msg = `导入请求失败`
+		logs.Error(fmt.Sprintf(`Import request failed:%s(%v)`, res.Msg, err))
+		msg = i18n.Show(lang, `import_request_failed`)
 		return
 	}
 	if cast.ToInt(res.Res) != define.StatusOK {
-		logs.Error(fmt.Sprintf(`导入失败:%s(%v)`, res.Msg, err))
-		msg = `导入失败`
+		logs.Error(fmt.Sprintf(`Import failed:%s(%v)`, res.Msg, err))
+		msg = i18n.Show(lang, `import_failed`)
 	} else {
 		fileIds := cast.ToSlice(cast.ToStringMap(res.Data)[`file_ids`])
 		if len(fileIds) == 0 || cast.ToInt64(fileIds[0]) <= 0 {
-			logs.Error(fmt.Sprintf(`导入失败:%s`, tool.JsonEncodeNoError(res)))
-			msg = `导入未成功`
+			logs.Error(fmt.Sprintf(`Import failed:%s`, tool.JsonEncodeNoError(res)))
+			msg = i18n.Show(lang, `import_not_success`)
 		} else {
 			ok = true
 		}
@@ -2121,7 +2245,7 @@ func (n *LibraryImport) Params() any {
 	return n.params
 }
 
-// WorkflowNode 工作流作为一个节点
+// WorkflowNode Workflow as a node
 type WorkflowNode struct {
 	params      WorkflowNodeParams
 	nextNodeKey string
@@ -2139,12 +2263,12 @@ func (n *WorkflowNode) Running(flow *WorkFlow) (output common.SimpleFields, next
 		return
 	}
 	if len(robotInfo) == 0 {
-		flow.Logs("机器人不存在")
+		flow.Logs(i18n.Show(flow.params.Lang, `robot_not_exist`))
 		nextNodeKey = n.params.Exception
 		return
 	}
 
-	// 执行下一个工作流
+	// Execute the next workflow
 	subParams := &WorkFlowParams{
 		ChatRequestParam:  flow.params.ChatRequestParam,
 		RealRobot:         robotInfo,
@@ -2154,9 +2278,9 @@ func (n *WorkflowNode) Running(flow *WorkFlow) (output common.SimpleFields, next
 	}
 	subParams.WorkFlowGlobal = make(map[string]any)
 	subParams.Robot = robotInfo
-	subParams.ImmediatelyReplyHandle = nil //不继续套娃(立即回复节点)
+	subParams.ImmediatelyReplyHandle = nil // Do not continue nesting (Immediate Reply Node)
 
-	// 变量替换
+	// Variable replacement
 	for _, p := range n.params.Params {
 		subParams.WorkFlowGlobal[p.Key] = flow.VariableReplace(p.Variable)
 	}
@@ -2167,12 +2291,12 @@ func (n *WorkflowNode) Running(flow *WorkFlow) (output common.SimpleFields, next
 		return
 	}
 
-	// 提取出指定回复的内容
+	// Extract specified reply content
 	var replyArr []string
 	var result string
 
 	for key, out := range subWorkflow.outputs {
-		if key == subWorkflow.curNodeKey { // 结束节点特殊处理
+		if key == subWorkflow.curNodeKey { // Special handling for end node
 			for specialKey, specialVal := range out {
 				if strings.HasPrefix(specialKey, "special.finish_reply_") {
 					for _, val := range specialVal.Vals {
@@ -2213,13 +2337,13 @@ func (n *WorkflowNode) Params() any {
 }
 
 func (n *ImmediatelyReplyNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
-	flow.Logs(`执行立即回复逻辑...`)
+	flow.Logs(`Executing immediate reply logic...`)
 	content := flow.VariableReplace(n.params.Content)
-	//立即输出消息
+	// Immediately output message
 	if flow.params.ImmediatelyReplyHandle != nil {
 		flow.params.ImmediatelyReplyHandle(ImmediatelyReplyBuildReplyContent(content))
 	}
-	//返回输出变量
+	// Return output variables
 	output = common.SimpleFields{
 		`special.llm_reply_content`: common.SimpleField{Key: `special.llm_reply_content`, Typ: common.TypString, Vals: []common.Val{{String: &content}}},
 	}
@@ -2228,5 +2352,51 @@ func (n *ImmediatelyReplyNode) Running(flow *WorkFlow) (output common.SimpleFiel
 }
 
 func (n *ImmediatelyReplyNode) Params() any {
+	return n.params
+}
+
+type QuestionNode struct {
+	params      QuestionParams
+	nextNodeKey string
+}
+
+func (n *QuestionNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	flow.Logs(`run question ...`)
+	output = common.SimpleFields{}
+	nextNodeKey = n.nextNodeKey
+	n.params.AnswerText = flow.VariableReplace(n.params.AnswerText)
+	if n.params.AnswerType == define.QuestionAnswerTypeText {
+		output = common.SimpleFields{
+			`special.llm_reply_content`: common.SimpleField{Key: `special.llm_reply_content`, Typ: common.TypString, Vals: []common.Val{{String: &n.params.AnswerText}}},
+		}
+	} else {
+		replyContentList := n.params.ReplyContentList
+		for replyContentKey, replyContent := range replyContentList {
+			if replyContent.ReplyType != common.ReplyTypeSmartMenu {
+				continue
+			}
+			replyContentList[replyContentKey].Type = replyContent.ReplyType
+			replyContentList[replyContentKey].SmartMenu.MenuDescription = flow.VariableReplace(n.params.AnswerText)
+			if len(replyContent.SmartMenu.MenuContent) > 0 {
+				newMenuContents := []SmartMenuContent{}
+				for _, menuContent := range replyContent.SmartMenu.MenuContent {
+					menuContent.Content = flow.VariableReplace(menuContent.Content)
+					if menuContent.MenuType != `-1` && menuContent.Content != `` {
+						newMenuContents = append(newMenuContents, menuContent)
+					}
+				}
+				replyContentList[replyContentKey].SmartMenu.MenuContent = newMenuContents
+			}
+		}
+		output = common.SimpleFields{
+			`special.reply_content_list`: common.SimpleField{Key: `special.reply_content_list`, Typ: common.TypString, Vals: []common.Val{{String: tea.String(tool.JsonEncodeNoError(replyContentList))}}},
+		}
+	}
+	flow.isFinish = true
+	flow.isStorage = true
+	return
+}
+
+func (n *QuestionNode) Params() any {
 	return n.params
 }

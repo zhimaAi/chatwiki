@@ -31,11 +31,11 @@ func CompensateUseModel() error {
 	} else {
 		maxId = cast.ToInt(maxIdStr)
 	}
-	logs.Other(`compensate`, `获取最大ID:%d`, maxId)
+	logs.Other(`compensate`, `get max id: %d`, maxId)
 	var size = 100 //每一批次数
 	for i := 0; ; i++ {
 		start, end := i*size, (i+1)*size
-		logs.Other(`compensate`, `第%d轮:%d~%d`, i+1, start, end)
+		logs.Other(`compensate`, `round %d: %d~%d`, i+1, start, end)
 		list, err := modelConfig.Where(`id`, `>`, cast.ToString(start)).
 			Where(`id`, `<=`, cast.ToString(end)).Select()
 		if err != nil {
@@ -75,16 +75,16 @@ func CompensateUseModelOne(config msql.Params) error {
 		case common.Rerank:
 			//nothing to do
 		default:
-			return fmt.Errorf(`特殊模型的model_types参数错误:%s`, config[`model_types`])
+			return fmt.Errorf(`the model_types parameter of the special model is incorrect:%s`, config[`model_types`])
 		}
 		if len(useModel.ShowModelName) == 0 { //填充空值
 			useModel.ShowModelName = useModel.UseModelName
 		}
-		if err := useModel.ToSave(cast.ToInt(config[`admin_user_id`]), cast.ToInt(config[`id`])); err != nil {
+		if err := useModel.ToSave(define.LangZhCn, cast.ToInt(config[`admin_user_id`]), cast.ToInt(config[`id`])); err != nil {
 			return err
 		}
 	default:
-		common.AutoAddDefaultUseModel(cast.ToInt(config[`admin_user_id`]), cast.ToInt(config[`id`]), config[`model_define`])
+		common.AutoAddDefaultUseModel(define.LangZhCn, cast.ToInt(config[`admin_user_id`]), cast.ToInt(config[`id`]), config[`model_define`])
 	}
 	return nil
 }

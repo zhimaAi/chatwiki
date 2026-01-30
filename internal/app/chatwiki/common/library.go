@@ -4,6 +4,7 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
 	"fmt"
@@ -162,16 +163,16 @@ func AddFileDataIndex(libraryId, adminUserId int) error {
 	return err
 }
 
-func AddDefaultLibrary(token, robotName, libraryIds, robotKey string, adminUserId int) (int, error) {
+func AddDefaultLibrary(lang string, token, robotName, libraryIds, robotKey string, adminUserId int) (int, error) {
 	libraryData := map[string]string{
-		`library_name`:                       robotName + `默认知识库`,
+		`library_name`:                       robotName + lib_define.DefaultLibrary,
 		`chunk_type`:                         cast.ToString(define.ChunkTypeNormal),
 		`normal_chunk_default_separators_no`: `12,11`,
 		`normal_chunk_default_chunk_size`:    `512`,
 		`type`:                               cast.ToString(define.QALibraryType),
 	}
 
-	modelConfigId, useModel, exist := GetDefaultEmbeddingConfig(adminUserId)
+	modelConfigId, useModel, exist := GetDefaultEmbeddingConfig(lang, adminUserId)
 	if exist {
 		libraryData[`use_model`] = useModel
 		libraryData[`model_config_id`] = cast.ToString(modelConfigId)

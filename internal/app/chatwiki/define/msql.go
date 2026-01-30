@@ -7,12 +7,6 @@ import "chatwiki/internal/pkg/lib_define"
 const Postgres = lib_define.Postgres
 
 const (
-	DefaultRoleRoot  = "所有者"
-	DefaultRoleAdmin = "管理员"
-	DefaultRoleUser  = "成员"
-)
-
-const (
 	TableRole              = "role"
 	TableUser              = "public.user"
 	TableMenu              = "menu"
@@ -71,11 +65,6 @@ const (
 	ExportSourceLibFileDoc uint = 2 //知识库文档
 )
 
-var ExportSourceList = []map[string]any{
-	{`source`: ExportSourceSession, `source_name`: `会话记录导出`},
-	{`source`: ExportSourceLibFileDoc, `source_name`: `知识库文档导出`},
-}
-
 const (
 	ExportStatusWaiting = 0
 	ExportStatusRunning = 1
@@ -132,12 +121,6 @@ const (
 	CommentExecTypeReply  = 2
 	CommentExecTypeTop    = 3
 )
-
-var CommentExecTypeMap = map[int]string{
-	CommentExecTypeDelete: "自动删除",
-	CommentExecTypeReply:  "自动回复",
-	CommentExecTypeTop:    "自动精选",
-}
 
 const (
 	CommentCheckTypeHintKeywords = 1

@@ -7,6 +7,7 @@ import actionNode from './action-node/index.js'
 import qaNode from './qa-node/index.js'
 import aiDialogueNode from './ai-dialogue-node'
 import httpNode from './http-node/index.js'
+import httpToolNode from './http-tool-node/index.js'
 import knowledgeBaseNode from './knowledge-base-node/index.js'
 import endNode from './end-node/index.js'
 import explainNode from './explain-node/index.js'
@@ -46,6 +47,7 @@ export default function registerCustomNodes(lf) {
   register(questionNode, lf)
   register(actionNode, lf)
   register(httpNode, lf)
+  register(httpToolNode, lf)
   register(qaNode, lf)
   register(aiDialogueNode, lf)
   register(knowledgeBaseNode, lf)

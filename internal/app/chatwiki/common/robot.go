@@ -4,6 +4,7 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/lib_define"
 	"context"
 	"errors"
 	"fmt"
@@ -78,9 +79,7 @@ func RobotAutoAdd(token string, adminUserId int) (msql.Params, error) {
 		err error
 	)
 
-	robotInfo := map[string]string{
-		`robot_name`: `默认机器人`,
-	}
+	robotInfo := map[string]string{`robot_name`: lib_define.DefaultRobot}
 
 	req := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/saveRobot`, define.Config.WebService[`port`])).Header(`token`, token)
 	for key, item := range robotInfo {
@@ -165,7 +164,7 @@ func BuildLibraryMessagesFromCache(robotKey, messageId string) ([]msql.Params, b
 		Field(`quote_file,content`).
 		Find()
 	if err != nil {
-		logs.Error("查询消息缓存失败: %v", err)
+		logs.Error(`query message cache failed: %v`, err)
 		return nil, false, err
 	}
 	if len(messageInfo[`content`]) == 0 {
@@ -174,7 +173,7 @@ func BuildLibraryMessagesFromCache(robotKey, messageId string) ([]msql.Params, b
 	// 解析quote_file为json数组
 	var quoteFile = make([]msql.Params, 0)
 	if err := tool.JsonDecode(cast.ToString(messageInfo["quote_file"]), &quoteFile); err != nil {
-		logs.Error("解析quote_file失败: %v", err)
+		logs.Error(`parse quote_file failed: %v`, err)
 		return nil, true, err
 	}
 	if len(quoteFile) <= 0 {
@@ -186,7 +185,7 @@ func BuildLibraryMessagesFromCache(robotKey, messageId string) ([]msql.Params, b
 		Where(`d.delete_time`, `0`).
 		Where(`s.message_id`, messageId).Field(`d.*,s.similarity`).Select()
 	if err != nil {
-		logs.Error("查询引用文件数据失败: %v", err)
+		logs.Error(`query referenced file data failed: %v`, err)
 		return nil, true, err
 	}
 	for i, one := range fileData {
@@ -205,11 +204,11 @@ func ResponseMessagesFromCache(messageId string, useStream bool, chanStream chan
 		Where("id", messageId).
 		Value(`content`)
 	if err != nil {
-		logs.Error("查询消息缓存失败: %v", err)
+		logs.Error(`query message cache failed: %v`, err)
 		return chatResp, 0, err
 	}
 	if len(content) == 0 {
-		return chatResp, 0, errors.New("消息缓存不存在")
+		return chatResp, 0, errors.New(`the message cache does not exist`)
 	}
 	requestTime := time.Now().Sub(requestStartTime).Milliseconds()
 	chanStream <- sse.Event{Event: `request_time`, Data: requestTime}
@@ -235,7 +234,7 @@ func CleanRobotMessageCache(id, robotKey string) error {
 		if IsMd5Str(lastPart) {
 			// 使用Redis Del操作删除缓存
 			if err := define.Redis.Del(context.Background(), iter.Val()).Err(); err != nil {
-				logs.Error("删除缓存失败: %s, %v", iter.Val(), err)
+				logs.Error(`delete cache failed: %s, %v`, iter.Val(), err)
 			}
 		}
 	}

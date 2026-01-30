@@ -64,7 +64,7 @@ func AppPush(msg string, _ ...string) error {
 	if msgType == lib_define.MsgTypeEvent && tool.InArrayString(event, []string{lib_define.EventMenuClick}) {
 		err := MenuClickHandler(message, msg)
 		if err != nil {
-			logs.Error(`菜单点击处理失败msg:%s,err:%s`, msg, err.Error())
+			logs.Error(`menu click handler failed msg:%s,err:%s`, msg, err.Error())
 			return err
 		}
 
@@ -75,7 +75,7 @@ func AppPush(msg string, _ ...string) error {
 	if msgType == lib_define.MsgTypeEvent && tool.InArrayString(event, []string{lib_define.EventSubscribe}) {
 		err := SubscribeEventHandler(message, msg)
 		if err != nil {
-			logs.Error(`关注后回复msg:%s,err:%s`, msg, err.Error())
+			logs.Error(`subscribe event handler failed msg:%s,err:%s`, msg, err.Error())
 			return err
 		}
 
@@ -191,7 +191,7 @@ func SendWelcome(push *lib_define.PushMessage) {
 	}
 	content, err := BuildSendMenu(push.Robot[`welcomes`])
 	if err != nil {
-		logs.Error(`welcomes:%s,err:%s`, push.Robot[`welcomes`], err.Error())
+		logs.Error(`build send menu failed welcomes:%s,err:%s`, push.Robot[`welcomes`], err.Error())
 		return
 	}
 	app, err := wechat.GetApplication(push.AppInfo)
@@ -217,7 +217,7 @@ func SendWelcome(push *lib_define.PushMessage) {
 func MenuClickHandler(message map[string]any, msg string) error {
 	appInfo, err := common.GetWechatAppInfo(`app_id`, cast.ToString(message[`appid`]))
 	if err != nil {
-		logs.Error(`无对应的公众号 msg:%s,err:%s`, msg, err.Error())
+		logs.Error(`no corresponding official account msg:%s,err:%s`, msg, err.Error())
 	}
 	if len(appInfo) == 0 {
 		return nil
@@ -227,17 +227,17 @@ func MenuClickHandler(message map[string]any, msg string) error {
 	if tool.IsNumeric(eventKey) {
 		menuInfo, err := common.GetOfficialCustomMenuInfo(cast.ToInt(eventKey))
 		if err != nil {
-			logs.Error(`无发查询到菜单 msg:%s,err:%s`, msg, err.Error())
+			logs.Error(`failed to query menu msg:%s,err:%s`, msg, err.Error())
 			return nil
 		}
 
 		if menuInfo.ID == 0 {
-			logs.Error(`无对应的菜单 msg:%s`, msg)
+			logs.Error(`no corresponding menu msg:%s`, msg)
 			return nil
 		}
 		appAdminUserId := cast.ToInt(appInfo[`admin_user_id`])
 		if menuInfo.AdminUserID != appAdminUserId {
-			logs.Error(`菜单不是对应公众号的菜单 msg:%s`, msg)
+			logs.Error(`menu does not belong to this official account msg:%s`, msg)
 			return nil
 		}
 
@@ -245,7 +245,7 @@ func MenuClickHandler(message map[string]any, msg string) error {
 		case common.OfficialCustomMenuActTypeSendMessage: //发送消息
 			//发送回复消息
 			if len(menuInfo.ActParams.ReplyContent) == 0 {
-				logs.Error(`菜单无回复消息 msg:%s,err:%s`, msg)
+				logs.Error(`menu has no reply content msg:%s,err:%s`, msg)
 				return nil
 			}
 			var replyList []common.ReplyContent
@@ -267,7 +267,7 @@ func MenuClickHandler(message map[string]any, msg string) error {
 			//构建app进行推送
 			app, err := wechat.GetApplication(appInfo)
 			if err != nil {
-				logs.Error(`初始化app失败 msg:%s,err:%s`, push.MsgRaw, err.Error())
+				logs.Error(`init app failed msg:%s,err:%s`, push.MsgRaw, err.Error())
 				return nil
 			}
 			if menuInfo.ActParams.ReplyNum == 0 {
@@ -280,7 +280,7 @@ func MenuClickHandler(message map[string]any, msg string) error {
 			}
 			replyList = common.FormatReplyListToDb(replyList, common.OfficialAbilityCustomMenu)
 			if len(replyList) == 0 {
-				logs.Error(`菜单无回复消息 `)
+				logs.Error(`menu has no reply message`)
 				return nil
 			}
 			//发送回复消息
@@ -298,7 +298,7 @@ func MenuClickHandler(message map[string]any, msg string) error {
 func SubscribeEventHandler(message map[string]any, msg string) error {
 	appInfo, err := common.GetWechatAppInfo(`app_id`, cast.ToString(message[`appid`]))
 	if err != nil {
-		logs.Error(`无对应的公众号 msg:%s,err:%s`, msg, err.Error())
+		logs.Error(`no corresponding official account msg:%s,err:%s`, msg, err.Error())
 		return nil
 	}
 	if len(appInfo) == 0 {
@@ -349,19 +349,19 @@ func SendSubscribeReply(push *lib_define.PushMessage) {
 	useAbility := common.CheckUseAbilityByAbilityType(push.AdminUserId, common.RobotAbilitySubscribeReply)
 	if !useAbility {
 		//关键词回复没开启
-		logs.Error(`关键词回复功能没开启 msg:%s,err:%s`, push.MsgRaw)
+		logs.Error(`keyword reply feature not enabled msg:%s,err:%s`, push.MsgRaw)
 		return
 	}
 	//获取关注场景
 	subscribeScene, err := app.GetSubscribeScene(push.Openid)
 	if err != nil {
-		logs.Error(`无法获取关注场景 msg:%s,err:%s`, push.MsgRaw, err.Error())
+		logs.Error(`failed to get subscribe scene msg:%s,err:%s`, push.MsgRaw, err.Error())
 		return
 	}
 	//关注回复的消息
 	message, err := common.SubscribeReplyHandle(params, subscribeScene)
 	if err != nil {
-		logs.Error(`无关注回复消息 msg:%s,err:%s`, push.MsgRaw, err.Error())
+		logs.Error(`no subscribe reply message msg:%s,err:%s`, push.MsgRaw, err.Error())
 		return
 	}
 	//没消息不回复
@@ -551,7 +551,7 @@ func SendReplyContentList(push *lib_define.PushMessage, replyContent []common.Re
 			case common.ReplyTypeImageText: //图文
 				localThumbURL := common.GetFileByLink(keywordReply.ThumbURL)
 				if localThumbURL == `` {
-					logs.Error(`图片不存在，url:%s`, keywordReply.ThumbURL)
+					logs.Error(`image does not exist url:%s`, keywordReply.ThumbURL)
 					break
 				}
 				errCode, err := app.SendImageTextLink(push.Openid, keywordReply.URL, keywordReply.Title, keywordReply.Description, localThumbURL, keywordReply.ThumbURL, push)
@@ -574,7 +574,7 @@ func SendReplyContentList(push *lib_define.PushMessage, replyContent []common.Re
 			case common.ReplyTypeImg: //图片
 				localThumbURL := common.GetFileByLink(keywordReply.ThumbURL)
 				if localThumbURL == `` {
-					logs.Error(`图片不存在，url:%s`, keywordReply.ThumbURL)
+					logs.Error(`image does not exist url:%s`, keywordReply.ThumbURL)
 					break
 				}
 				errCode, err := app.SendImage(push.Openid, localThumbURL, push)
@@ -585,7 +585,7 @@ func SendReplyContentList(push *lib_define.PushMessage, replyContent []common.Re
 			case common.ReplyTypeCard: //小程序卡片
 				localThumbURL := common.GetFileByLink(keywordReply.ThumbURL)
 				if localThumbURL == `` {
-					logs.Error(`图片不存在，url:%s`, keywordReply.ThumbURL)
+					logs.Error(`image does not exist url:%s`, keywordReply.ThumbURL)
 					break
 				}
 				errCode, err := app.SendMiniProgramPage(push.Openid, keywordReply.Appid, keywordReply.Title, keywordReply.PagePath, localThumbURL, push)
@@ -619,7 +619,7 @@ func SendReceivedMessageReply(push *lib_define.PushMessage) {
 	receivedMessageType := strings.ToLower(cast.ToString(push.Message[`MsgType`]))
 	receivedMessageType = UnifiedMessageType(receivedMessageType)
 	if receivedMessageType == `` {
-		logs.Error(`非消息类型，不处理消息：%s`, push.MsgRaw)
+		logs.Error(`not a message type, skip processing:%s`, push.MsgRaw)
 		return
 	}
 
@@ -670,12 +670,12 @@ func ThumbMediaIdToOssUrl(push *lib_define.PushMessage, app wechat.ApplicationIn
 	if thumbMediaId != `` {
 		thumbMedia, h, _, err := app.GetFileByMedia(thumbMediaId, push)
 		if err != nil {
-			logs.Error(`下载缩略图错误 thumbMedia：%s, msg:%s,err:%s`, thumbMedia, push.MsgRaw, err.Error())
+			logs.Error(`download thumbnail error thumbmedia:%s, msg:%s,err:%s`, thumbMedia, push.MsgRaw, err.Error())
 			return
 		}
 		uploadInfo, err := common.SaveImageByMedia(thumbMedia, h, push.AdminUserId, `received_message_images`, define.ImageAllowExt)
 		if err != nil {
-			logs.Error(`上传缩略图文件获取链接失败：%s, msg:%s,err:%s`, thumbMediaId, push.MsgRaw, err.Error())
+			logs.Error(`upload thumbnail file failed:%s, msg:%s,err:%s`, thumbMediaId, push.MsgRaw, err.Error())
 			return
 		}
 		//上传到oss获取链接
@@ -732,12 +732,12 @@ func ImageMediaIdToOssUrl(push *lib_define.PushMessage, receivedMessageType stri
 	if receivedMessageType == lib_define.MsgTypeImage && mediaId != `` {
 		media, h, _, err := app.GetFileByMedia(mediaId, push)
 		if err != nil {
-			logs.Error(`下载图片错误 mediaId：%s, msg:%s,err:%s`, mediaId, push.MsgRaw, err.Error())
+			logs.Error(`download image error mediaid:%s, msg:%s,err:%s`, mediaId, push.MsgRaw, err.Error())
 			return
 		}
 		uploadInfo, err := common.SaveImageByMedia(media, h, push.AdminUserId, `received_message_images`, define.ImageAllowExt)
 		if err != nil {
-			logs.Error(`上传文件获取链接失败：%s, msg:%s,err:%s`, mediaId, push.MsgRaw, err.Error())
+			logs.Error(`upload file failed to get link:%s, msg:%s,err:%s`, mediaId, push.MsgRaw, err.Error())
 			return
 		}
 		//上传到oss获取链接

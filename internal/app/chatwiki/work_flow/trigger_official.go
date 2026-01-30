@@ -184,7 +184,7 @@ func StartOfficial(message map[string]any) {
 		}
 		isOk, robot := TriggerOfficialVerifyStartNode(trigger[`robot_id`], msgType, appid, triggerConfig)
 		if !isOk {
-			logs.Error(LogTriggerPrefix + `触发器验证失败`)
+			logs.Error(LogTriggerPrefix + ` trigger verify faild`)
 			continue
 		}
 		go func(outputs []TriggerOutputParam) {
@@ -218,14 +218,14 @@ func StartOfficial(message map[string]any) {
 	return
 }
 
-func GetMessage() []TriggerOutputParam {
+func GetMessage(lang string) []TriggerOutputParam {
 	fields := make([]TriggerOutputParam, 0)
 	fields = append(fields, TriggerOutputParam{
 		StartNodeParam: StartNodeParam{
 			Key:      "appid",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "公众号id",
+			Desc:     i18n.Show(lang, "official_account_id"),
 		},
 		Variable: "global.appid",
 	})
@@ -234,7 +234,7 @@ func GetMessage() []TriggerOutputParam {
 			Key:      "ToUserName",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "开发者微信号",
+			Desc:     i18n.Show(lang, "developer_wechat_id"),
 		},
 		Variable: "global.ToUserName",
 	})
@@ -243,7 +243,7 @@ func GetMessage() []TriggerOutputParam {
 			Key:      "FromUserName",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "发送方账号（一个OpenID）",
+			Desc:     i18n.Show(lang, "sender_account_openid"),
 		},
 		Variable: "global.FromUserName",
 	})
@@ -252,7 +252,7 @@ func GetMessage() []TriggerOutputParam {
 			Key:      "CreateTime",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "消息创建时间（整型）",
+			Desc:     i18n.Show(lang, "message_create_time_int"),
 		},
 		Variable: "global.CreateTime",
 	})
@@ -261,7 +261,7 @@ func GetMessage() []TriggerOutputParam {
 			Key:      "MsgType",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "消息类型，文本为text，图片为image",
+			Desc:     i18n.Show(lang, "message_type_text_image"),
 		},
 		Variable: "global.MsgType",
 	})
@@ -270,7 +270,7 @@ func GetMessage() []TriggerOutputParam {
 			Key:      "Content",
 			Typ:      common.TypString,
 			Required: false,
-			Desc:     "文本消息内容，MsgType=text时存在",
+			Desc:     i18n.Show(lang, "text_message_content"),
 		},
 		Variable: "global.Content",
 	})
@@ -279,7 +279,7 @@ func GetMessage() []TriggerOutputParam {
 			Key:      "PicUrl",
 			Typ:      common.TypString,
 			Required: false,
-			Desc:     "图片链接（由系统生成），MsgType=image时存在",
+			Desc:     i18n.Show(lang, "image_link_system"),
 		},
 		Variable: "global.PicUrl",
 	})
@@ -288,7 +288,7 @@ func GetMessage() []TriggerOutputParam {
 			Key:      "MediaId",
 			Typ:      common.TypString,
 			Required: false,
-			Desc:     "图片消息媒体id，可以调用获取临时素材接口拉取数据",
+			Desc:     i18n.Show(lang, "image_media_id"),
 		},
 		Variable: "global.MediaId",
 	})
@@ -297,7 +297,7 @@ func GetMessage() []TriggerOutputParam {
 			Key:      "MsgId",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "消息id，64位整型",
+			Desc:     i18n.Show(lang, "message_id_64"),
 		},
 		Variable: "global.MsgId",
 	})
@@ -306,7 +306,7 @@ func GetMessage() []TriggerOutputParam {
 			Key:      "MsgDataId",
 			Typ:      common.TypString,
 			Required: false,
-			Desc:     "消息的数据ID（消息如果来自文章时才有）",
+			Desc:     i18n.Show(lang, "message_data_id"),
 		},
 		Variable: "global.MsgDataId",
 	})
@@ -315,13 +315,13 @@ func GetMessage() []TriggerOutputParam {
 			Key:      "Idx",
 			Typ:      common.TypString,
 			Required: false,
-			Desc:     "多图文时第几篇文章，从1开始（消息如果来自文章时才有）",
+			Desc:     i18n.Show(lang, "article_index"),
 		},
 		Variable: "global.Idx",
 	})
 	return fields
 }
-func GetMenuClick() []TriggerOutputParam {
+func GetMenuClick(lang string) []TriggerOutputParam {
 	fields := make([]TriggerOutputParam, 0)
 
 	fields = append(fields, TriggerOutputParam{
@@ -329,7 +329,7 @@ func GetMenuClick() []TriggerOutputParam {
 			Key:      "appid",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "公众号id",
+			Desc:     i18n.Show(lang, "official_account_id"),
 		},
 		Variable: "global.appid",
 	})
@@ -339,7 +339,7 @@ func GetMenuClick() []TriggerOutputParam {
 			Key:      "ToUserName",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "开发者微信号",
+			Desc:     i18n.Show(lang, "developer_wechat_id"),
 		},
 		Variable: "global.ToUserName",
 	})
@@ -349,7 +349,7 @@ func GetMenuClick() []TriggerOutputParam {
 			Key:      "FromUserName",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "发送方账号（一个OpenID）",
+			Desc:     i18n.Show(lang, "sender_account_openid"),
 		},
 		Variable: "global.FromUserName",
 	})
@@ -359,7 +359,7 @@ func GetMenuClick() []TriggerOutputParam {
 			Key:      "CreateTime",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "消息创建时间（整型）",
+			Desc:     i18n.Show(lang, "message_create_time_int"),
 		},
 		Variable: "global.CreateTime",
 	})
@@ -369,7 +369,7 @@ func GetMenuClick() []TriggerOutputParam {
 			Key:      "MsgType",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "消息类型，event",
+			Desc:     i18n.Show(lang, "message_type_event"),
 		},
 		Variable: "global.MsgType",
 	})
@@ -379,7 +379,7 @@ func GetMenuClick() []TriggerOutputParam {
 			Key:      "Event",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "事件类型，CLICK",
+			Desc:     i18n.Show(lang, "event_type_click"),
 		},
 		Variable: "global.Event",
 	})
@@ -389,14 +389,14 @@ func GetMenuClick() []TriggerOutputParam {
 			Key:      "EventKey",
 			Typ:      common.TypString,
 			Required: false,
-			Desc:     "事件KEY值，与自定义菜单接口中KEY值对应",
+			Desc:     i18n.Show(lang, "event_key_click"),
 		},
 		Variable: "global.EventKey",
 	})
 
 	return fields
 }
-func GetSubscribeUnsubscribe() []TriggerOutputParam {
+func GetSubscribeUnsubscribe(lang string) []TriggerOutputParam {
 	fields := make([]TriggerOutputParam, 0)
 
 	fields = append(fields, TriggerOutputParam{
@@ -404,7 +404,7 @@ func GetSubscribeUnsubscribe() []TriggerOutputParam {
 			Key:      "appid",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "公众号id",
+			Desc:     i18n.Show(lang, "official_account_id"),
 		},
 		Variable: "global.appid",
 	})
@@ -414,7 +414,7 @@ func GetSubscribeUnsubscribe() []TriggerOutputParam {
 			Key:      "ToUserName",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "开发者微信号",
+			Desc:     i18n.Show(lang, "developer_wechat_id"),
 		},
 		Variable: "global.ToUserName",
 	})
@@ -424,7 +424,7 @@ func GetSubscribeUnsubscribe() []TriggerOutputParam {
 			Key:      "FromUserName",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "发送方账号（一个OpenID）",
+			Desc:     i18n.Show(lang, "sender_account_openid"),
 		},
 		Variable: "global.FromUserName",
 	})
@@ -434,7 +434,7 @@ func GetSubscribeUnsubscribe() []TriggerOutputParam {
 			Key:      "CreateTime",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "消息创建时间（整型）",
+			Desc:     i18n.Show(lang, "message_create_time_int"),
 		},
 		Variable: "global.CreateTime",
 	})
@@ -444,7 +444,7 @@ func GetSubscribeUnsubscribe() []TriggerOutputParam {
 			Key:      "MsgType",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "消息类型，event",
+			Desc:     i18n.Show(lang, "message_type_event"),
 		},
 		Variable: "global.MsgType",
 	})
@@ -454,25 +454,25 @@ func GetSubscribeUnsubscribe() []TriggerOutputParam {
 			Key:      "Event",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "事件类型，subscribe(订阅)、unsubscribe(取消订阅)",
+			Desc:     i18n.Show(lang, "event_type_subscribe"),
 		},
 		Variable: "global.Event",
 	})
 
-	// EventKey 对于关注/取消关注事件通常是空的，但保留字段
+	// EventKey is usually empty for subscribe/unsubscribe events, but kept as a field
 	fields = append(fields, TriggerOutputParam{
 		StartNodeParam: StartNodeParam{
 			Key:      "EventKey",
 			Typ:      common.TypString,
 			Required: false,
-			Desc:     "事件KEY值，对于关注/取消关注事件通常为空",
+			Desc:     i18n.Show(lang, "event_key_subscribe"),
 		},
 		Variable: "global.EventKey",
 	})
 
 	return fields
 }
-func GetQrcodeScan() []TriggerOutputParam {
+func GetQrcodeScan(lang string) []TriggerOutputParam {
 	fields := make([]TriggerOutputParam, 0)
 
 	fields = append(fields, TriggerOutputParam{
@@ -480,7 +480,7 @@ func GetQrcodeScan() []TriggerOutputParam {
 			Key:      "appid",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "公众号id",
+			Desc:     i18n.Show(lang, "official_account_id"),
 		},
 		Variable: "global.appid",
 	})
@@ -490,7 +490,7 @@ func GetQrcodeScan() []TriggerOutputParam {
 			Key:      "ToUserName",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "开发者微信号",
+			Desc:     i18n.Show(lang, "developer_wechat_id"),
 		},
 		Variable: "global.ToUserName",
 	})
@@ -500,7 +500,7 @@ func GetQrcodeScan() []TriggerOutputParam {
 			Key:      "FromUserName",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "发送方账号（一个OpenID）",
+			Desc:     i18n.Show(lang, "sender_account_openid"),
 		},
 		Variable: "global.FromUserName",
 	})
@@ -510,7 +510,7 @@ func GetQrcodeScan() []TriggerOutputParam {
 			Key:      "CreateTime",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "消息创建时间 （整型）",
+			Desc:     i18n.Show(lang, "message_create_time_int"),
 		},
 		Variable: "global.CreateTime",
 	})
@@ -520,7 +520,7 @@ func GetQrcodeScan() []TriggerOutputParam {
 			Key:      "MsgType",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "消息类型，event",
+			Desc:     i18n.Show(lang, "message_type_event"),
 		},
 		Variable: "global.MsgType",
 	})
@@ -530,7 +530,7 @@ func GetQrcodeScan() []TriggerOutputParam {
 			Key:      "Event",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "事件类型，用户未关注时为subscribe， 用户已关注时为SCAN",
+			Desc:     i18n.Show(lang, "event_type_scan"),
 		},
 		Variable: "global.Event",
 	})
@@ -540,7 +540,7 @@ func GetQrcodeScan() []TriggerOutputParam {
 			Key:      "EventKey",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "事件KEY值，qrscene_为前缀，后面为二维码的场景值ID",
+			Desc:     i18n.Show(lang, "event_key_scan"),
 		},
 		Variable: "global.EventKey",
 	})
@@ -550,7 +550,7 @@ func GetQrcodeScan() []TriggerOutputParam {
 			Key:      "Ticket",
 			Typ:      common.TypString,
 			Required: true,
-			Desc:     "二维码的ticket，可用来换取二维码图片",
+			Desc:     i18n.Show(lang, "qrcode_ticket"),
 		},
 		Variable: "global.Ticket",
 	})

@@ -10,13 +10,13 @@ import (
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
-func RerankData(adminUserId int, openid, appType string, robot msql.Params, req *adaptor.ZhimaRerankReq) ([]msql.Params, error) {
+func RerankData(lang string, adminUserId int, openid, appType string, robot msql.Params, req *adaptor.ZhimaRerankReq) ([]msql.Params, error) {
 	modelConfigId, useModel := cast.ToInt(robot[`rerank_model_config_id`]), robot[`rerank_use_model`]
-	handler, err := GetModelCallHandler(adminUserId, modelConfigId, useModel, robot)
+	handler, err := GetModelCallHandler(lang, adminUserId, modelConfigId, useModel, robot)
 	if err != nil {
 		return nil, err
 	}
-	res, err := handler.RequestRerank(adminUserId, openid, appType, robot, req)
+	res, err := handler.RequestRerank(lang, adminUserId, openid, appType, robot, req)
 	if err != nil {
 		return nil, err
 	}

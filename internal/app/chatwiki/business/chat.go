@@ -214,7 +214,7 @@ func AddChatMessageFeedback(c *gin.Context) {
 	}
 
 	robotInfo := chatBaseParam.Robot
-	robotInfo[`corp_name`] = common.GetModelNameByDefine(modelConfig[`model_define`])
+	robotInfo[`corp_name`] = common.GetModelNameByDefine(common.GetLang(c), modelConfig[`model_define`])
 	robotJson, err := tool.JsonEncode(robotInfo)
 	if err != nil {
 		logs.Error(err.Error())
@@ -331,10 +331,20 @@ func ChatWelcome(c *gin.Context) {
 		`create_time`:   tool.Time2Int(),
 		`update_time`:   tool.Time2Int(),
 	}
+	dialogId, err := common.GetDialogueIdNoCreate(chatBaseParam)
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	sessionId, err := common.GetSessionIdNoCreate(dialogId)
+	if err != nil {
+		logs.Error(err.Error())
+	}
 	data := map[string]any{
 		`message`:       common.ToStringMap(message),
 		`robot`:         chatBaseParam.Robot,
 		`customer`:      chatBaseParam.Customer,
+		`dialog_id`:     dialogId,
+		`session_id`:    sessionId,
 		`chat_variable`: manage.GetChatRobotVariables(dialogueId, chatBaseParam),
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
@@ -474,6 +484,7 @@ func ChatQuestionGuide(c *gin.Context) {
 	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `user`, Content: prompt}}
 
 	chatResp, _, err := common.RequestChat(
+		common.GetLang(c),
 		chatBaseParam.AdminUserId,
 		chatBaseParam.Openid,
 		chatBaseParam.Robot,
@@ -582,6 +593,12 @@ func CallWorkFlow(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
+	if dialogueId == 0 {
+		dialogueId = cast.ToInt(c.PostForm(`dialogue_id`))
+	}
+	if sessionId == 0 {
+		sessionId = cast.ToInt(c.PostForm(`session_id`))
+	}
 	isDraft := cast.ToBool(c.PostForm(`is_draft`))
 	questionMultipleSwitch := cast.ToBool(c.PostForm(`question_multiple_switch`))
 	workFlowParams := &work_flow.WorkFlowParams{
@@ -609,7 +626,7 @@ func CallWorkFlow(c *gin.Context) {
 			_ = tool.JsonDecodeUseNumber(params[`node_info_json`], &node.NodeInfoJson)
 			nodeList = append(nodeList, node)
 		}
-		if workFlowParams.Draft.StartNodeKey, _, _, _, err = work_flow.VerifyWorkFlowNodes(nodeList, chatRequestParam.AdminUserId); err != nil {
+		if workFlowParams.Draft.StartNodeKey, _, _, _, err = work_flow.VerifyWorkFlowNodes(nodeList, chatRequestParam.AdminUserId, chatRequestParam.Lang); err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			return
 		}
@@ -617,9 +634,11 @@ func CallWorkFlow(c *gin.Context) {
 	_, nodeLogs, err := work_flow.BaseCallWorkFlow(workFlowParams)
 	useToken, useMills := common.TakeWorkFlowTestUseToken(nodeLogs)
 	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{
-		`node_logs`: nodeLogs,
-		`use_token`: useToken,
-		`use_mills`: useMills,
+		`node_logs`:  nodeLogs,
+		`use_token`:  useToken,
+		`use_mills`:  useMills,
+		`dialog_id`:  workFlowParams.DialogueId,
+		`session_id`: workFlowParams.SessionId,
 	}, err))
 }
 
@@ -697,7 +716,7 @@ func CallLoopWorkFlow(c *gin.Context) {
 		nodeList = append(nodeList, node)
 	}
 	workFlowParams.Draft.NodeMaps[loopNodeKey] = loopNodeInfo
-	if workFlowParams.Draft.StartNodeKey, _, _, err = work_flow.VerityLoopWorkflowNodes(chatRequestParam.AdminUserId, loopWorkFlowNode, nodeList, work_flow.LoopAllowNodeTypes, `循环节点`); err != nil {
+	if workFlowParams.Draft.StartNodeKey, _, _, err = work_flow.VerityLoopWorkflowNodes(chatRequestParam.AdminUserId, loopWorkFlowNode, nodeList, work_flow.LoopAllowNodeTypes, lib_define.CircularNode, chatRequestParam.Lang); err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
@@ -784,7 +803,7 @@ func CallBatchWorkFlow(c *gin.Context) {
 		nodeList = append(nodeList, node)
 	}
 	workFlowParams.Draft.NodeMaps[batchNodeKey] = batchNodeInfo
-	if workFlowParams.Draft.StartNodeKey, _, _, err = work_flow.VerityLoopWorkflowNodes(chatRequestParam.AdminUserId, batchWorkFlowNode, nodeList, work_flow.BatchAllowNodeTypes, `批处理`); err != nil {
+	if workFlowParams.Draft.StartNodeKey, _, _, err = work_flow.VerityLoopWorkflowNodes(chatRequestParam.AdminUserId, batchWorkFlowNode, nodeList, work_flow.BatchAllowNodeTypes, lib_define.BatchProcessing, chatRequestParam.Lang); err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
@@ -1012,7 +1031,7 @@ func CallWorkFlowHttpTest(c *gin.Context) {
 			curlNode = &node
 		}
 	}
-	_, _, _, _, err = work_flow.VerifyWorkFlowNodes(nodeList, chatRequestParam.AdminUserId)
+	_, _, _, _, err = work_flow.VerifyWorkFlowNodes(nodeList, chatRequestParam.AdminUserId, chatRequestParam.Lang)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return

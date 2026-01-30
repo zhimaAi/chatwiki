@@ -4,6 +4,7 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/wechat/common"
 	"errors"
@@ -16,8 +17,15 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-func checkSourceExist(source uint) bool {
-	for _, item := range define.ExportSourceList {
+func GetExportSourceList(lang string) []map[string]any {
+	return []map[string]any{
+		{`source`: define.ExportSourceSession, `source_name`: i18n.Show(lang, `session_record_export`)},
+		{`source`: define.ExportSourceLibFileDoc, `source_name`: i18n.Show(lang, `lib_file_doc_export`)},
+	}
+}
+
+func checkSourceExist(lang string, source uint) bool {
+	for _, item := range GetExportSourceList(lang) {
 		if cast.ToUint(item[`source`]) == source {
 			return true
 		}
@@ -25,9 +33,9 @@ func checkSourceExist(source uint) bool {
 	return false
 }
 
-func CreateExportTask(adminUserId, robotId, source uint, fileName string, params map[string]any) (int64, error) {
-	if !checkSourceExist(source) {
-		return 0, errors.New(`导出来源参数错误`)
+func CreateExportTask(lang string, adminUserId, robotId, source uint, fileName string, params map[string]any) (int64, error) {
+	if !checkSourceExist(lang, source) {
+		return 0, errors.New(i18n.Show(lang, `export_source_param_error`))
 	}
 	paramsJson, err := tool.JsonEncode(params)
 	if err != nil {
@@ -56,7 +64,7 @@ func CreateExportTask(adminUserId, robotId, source uint, fileName string, params
 	return id, nil
 }
 
-func RunSessionExport(params map[string]any) (string, error) {
+func RunSessionExport(lang string, params map[string]any) (string, error) {
 	//获取机器人信息
 	robot, err := msql.Model(`chat_ai_robot`, define.Postgres).
 		Where(`id`, cast.ToString(params[`robot_id`])).Where(`admin_user_id`, cast.ToString(params[`admin_user_id`])).Field(`robot_name`).Find()
@@ -65,7 +73,7 @@ func RunSessionExport(params map[string]any) (string, error) {
 		return ``, err
 	}
 	if len(robot) == 0 {
-		return ``, errors.New(`机器人信息不存在`)
+		return ``, errors.New(i18n.Show(lang, `robot_info_not_exist`))
 	}
 	//获取会话信息
 	sessionModel := msql.Model(`chat_ai_session`, define.Postgres).Alias(`s`).
@@ -93,7 +101,7 @@ func RunSessionExport(params map[string]any) (string, error) {
 		return ``, err
 	}
 	if len(sessions) == 0 {
-		return ``, errors.New(`没有任何会话记录`)
+		return ``, errors.New(i18n.Show(lang, `no_session_records`))
 	}
 	//获取+组装数据
 	channels := make(map[string]string)
@@ -111,7 +119,7 @@ func RunSessionExport(params map[string]any) (string, error) {
 			logs.Error(err.Error())
 			return ``, err
 		}
-		customerName := `访客XXXX`
+		customerName := lib_define.DefaultCustomerName
 		if customer, _ := GetCustomerInfo(session[`openid`], cast.ToInt(params[`admin_user_id`])); len(customer) > 0 {
 			customerName = customer[`name`]
 		}
@@ -136,16 +144,16 @@ func RunSessionExport(params map[string]any) (string, error) {
 	}
 	//开始导出
 	fields := tool.Fields{
-		{Field: "msgid", Header: "msgid"},
-		{Field: "openid", Header: "用户openid"},
-		{Field: "sender", Header: "发送者"},
-		{Field: "session_id", Header: "会话id"},
-		{Field: "content", Header: "消息内容"},
-		{Field: "create_time", Header: "消息发送时间"},
-		{Field: "app_name", Header: "消息来源"},
+		{Field: `msgid`, Header: i18n.Show(lang, `excel_header_msgid`)},
+		{Field: `openid`, Header: i18n.Show(lang, `excel_header_openid`)},
+		{Field: `sender`, Header: i18n.Show(lang, `excel_header_sender`)},
+		{Field: `session_id`, Header: i18n.Show(lang, `excel_header_session_id`)},
+		{Field: `content`, Header: i18n.Show(lang, `excel_header_content`)},
+		{Field: `create_time`, Header: i18n.Show(lang, `excel_header_create_time`)},
+		{Field: `app_name`, Header: i18n.Show(lang, `excel_header_app_name`)},
 	}
 	filePath := `static/public/export/session`
-	file, _, err := tool.ExcelExportPro(data, fields, `会话记录导出`, filePath)
+	file, _, err := tool.ExcelExportPro(data, fields, i18n.Show(lang, `session_record_export`), filePath)
 	if err != nil {
 		logs.Error(err.Error())
 		return ``, err
@@ -164,7 +172,7 @@ func RunSessionExport(params map[string]any) (string, error) {
 	return file[6:], nil
 }
 
-func RunLibFileDocExport(params map[string]any) (string, string, error) {
+func RunLibFileDocExport(lang string, params map[string]any) (string, string, error) {
 	libraryId := cast.ToInt(params[`library_id`])
 	dataIds := cast.ToString(params[`data_ids`])
 	exportType := cast.ToInt(params[`export_type`])
@@ -215,7 +223,7 @@ func RunLibFileDocExport(params map[string]any) (string, string, error) {
 			id = cast.ToInt(list[len(list)-1][`id`])
 			data = append(data, list...)
 		}
-		filePath, err = ExportFAQFileAllQA(data, ext, `library_file`)
+		filePath, err = ExportFAQFileAllQA(lang, data, ext, `library_file`)
 		if err != nil {
 			logs.Error(err.Error())
 			return ``, ``, err

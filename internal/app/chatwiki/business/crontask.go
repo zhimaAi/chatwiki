@@ -79,7 +79,7 @@ func DeleteFormEntry() {
 func DeleteExportFile() {
 	err := filepath.WalkDir(`static/public/export`, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d == nil {
-			return err //path not exist
+			return nil //path not exist
 		}
 		if info, err := d.Info(); err == nil && !info.IsDir() && info.ModTime().Unix() < time.Now().Unix()-86400*7 {
 			if err = os.Remove(path); err != nil {
@@ -96,7 +96,7 @@ func DeleteExportFile() {
 func DeleteConvertHtml() {
 	err := filepath.WalkDir(define.UploadDir+`chat_ai`, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d == nil {
-			return err //path not exist
+			return nil //path not exist
 		}
 		if !strings.Contains(path, `convert`) || strings.ToLower(filepath.Ext(path)) != `.html` {
 			return nil //not convert create html file
@@ -116,7 +116,7 @@ func DeleteConvertHtml() {
 func DeleteClientSide() {
 	err := filepath.WalkDir(`static/public/client_side`, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d == nil {
-			return err //path not exist
+			return nil //path not exist
 		}
 		if info, err := d.Info(); err == nil && !info.IsDir() && info.ModTime().Unix() < time.Now().Unix()-86400 {
 			if err = os.Remove(path); err != nil {
@@ -133,7 +133,7 @@ func DeleteClientSide() {
 func DeleteDownloadFile() {
 	err := filepath.WalkDir(`static/public/download`, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d == nil || d.Name() == `.gitignore` {
-			return err //path not exist
+			return nil //path not exist
 		}
 		if info, err := d.Info(); err == nil && !info.IsDir() && info.ModTime().Unix() < time.Now().Unix()-3600 {
 			if err = os.Remove(path); err != nil {
@@ -178,7 +178,7 @@ func CheckAliOcrRequest() {
 func UpdateLibraryFileData() {
 	// 每次处理的批次大小
 	const batchSize = 1000
-	logs.Debug("开始更新文档分段数据")
+	logs.Debug(`start updating document segment data`)
 	var (
 		total = 0
 		page  = 0
@@ -213,7 +213,7 @@ func UpdateLibraryFileData() {
 		page++
 		total += len(rows)
 	}
-	logs.Debug("结束更新文档分段数据,共:%v", total)
+	logs.Debug(`finish updating document segment data, total:%v`, total)
 }
 
 func DeleteLlmRequestLogs() {
@@ -242,7 +242,7 @@ func DeleteLlmRequestLogs() {
 			logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 			return
 		}
-		logs.Debug(`清理结果:第%d轮(%d~%d),affect(%d)`, i+1, start, end, affect)
+		logs.Debug(`cleanup result: round %d (%d~%d), affected %d`, i+1, start, end, affect)
 		if end >= maxId {
 			break //处理完毕,结束循环
 		}
@@ -254,14 +254,14 @@ func UpdateBatchSendData() {
 	list, err := msql.Model("wechat_official_account_batch_send_task", define.Postgres).
 		Where(`send_status`, cast.ToString(define.BatchSendStatusExec)).Select()
 	if err != nil {
-		logs.Error("任务列表查询错误:" + err.Error())
+		logs.Error(`task list query error:` + err.Error())
 		return
 	}
 
 	for _, params := range list {
 		res, err := manage.BridgeGetSendStatus(params["access_key"], params["send_msg_id"])
 		if err != nil {
-			logs.Error("查询错误：" + err.Error())
+			logs.Error(`query error:` + err.Error())
 		}
 
 		if res != nil && res.MsgStatus == "SEND_SUCCESS" {
@@ -276,7 +276,7 @@ func UpdateBatchSendData() {
 	succList, err := msql.Model("wechat_official_account_batch_send_task", define.Postgres).
 		Where(`send_status`, cast.ToString(define.BatchSendStatusSucc)).Where(`comment_status`, define.BaseOpen).Select()
 	if err != nil {
-		logs.Error("任务列表查询错误:" + err.Error())
+		logs.Error(`task list query error:` + err.Error())
 		return
 	}
 
@@ -299,7 +299,7 @@ func UpdateBatchSendData() {
 
 		//未到同步评论时间间隔
 		if (cast.ToInt(task["last_comment_sync_time"]) + (cast.ToInt(adminConfig["comment_pull_limit"])-1)*timeLimit) > int(time.Now().Unix()) {
-			logs.Debug("未到同步时间，下次同步时间为：" + cast.ToString(cast.ToInt(task["last_comment_sync_time"])+cast.ToInt(adminConfig["comment_pull_limit"])*timeLimit))
+			logs.Debug(`not time to sync, next sync time:` + cast.ToString(cast.ToInt(task["last_comment_sync_time"])+cast.ToInt(adminConfig["comment_pull_limit"])*timeLimit))
 			continue
 		}
 
@@ -316,7 +316,7 @@ func UpdateBatchSendData() {
 
 // CheckRobotPaymentDurationAuthCode 检查应用收费时长套餐
 func CheckRobotPaymentDurationAuthCode() {
-	logs.Debug(`开始检查应用收费时长套餐`)
+	logs.Debug(`start checking robot payment duration package`)
 	robotIdList, err := msql.Model(`robot_payment_setting`, define.Postgres).
 		Group(`robot_id`).
 		ColumnArr(`robot_id`)
