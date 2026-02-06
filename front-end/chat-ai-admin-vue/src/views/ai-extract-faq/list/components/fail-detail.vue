@@ -4,7 +4,7 @@
       wrapClassName="no-padding-modal"
       :bodyStyle="{ 'padding-right': '24px', 'max-height': '650px', 'overflow-y': 'auto' }"
       v-model:open="open"
-      title="提取失败分段"
+      :title="t('modal_title')"
       :width="746"
       :footer="null"
     >
@@ -24,6 +24,9 @@
 <script setup>
 import { ref } from 'vue'
 import { getFAQFileChunks } from '@/api/library'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.ai-extract-faq.list.components.fail-detail')
 
 const open = ref(false)
 

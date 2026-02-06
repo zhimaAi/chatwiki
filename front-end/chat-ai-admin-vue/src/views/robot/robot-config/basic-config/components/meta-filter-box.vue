@@ -6,16 +6,16 @@
         <div class="select-wrapper">
           <a-dropdown @click="changeType">
             <a class="ant-dropdown-link" @click.prevent>
-              {{ state.type == 1 ? '且' : '或' }}
+              {{ state.type == 1 ? t('label_and') : t('label_or') }}
               <DownOutlined/>
             </a>
             <template #overlay>
               <a-menu style="width: 100px">
                 <a-menu-item :key="1">
-                  <a href="javascript:;">且</a>
+                  <a href="javascript:;">{{ t('label_and') }}</a>
                 </a-menu-item>
                 <a-menu-item :key="2">
-                  <a href="javascript:;">或</a>
+                  <a href="javascript:;">{{ t('label_or') }}</a>
                 </a-menu-item>
               </a-menu>
             </template>
@@ -29,7 +29,7 @@
             <!-- 绑定字段 -->
             <a-select
               v-model:value="row.key"
-              placeholder="请选择"
+              :placeholder="t('ph_select')"
               style="width: 200px"
               @change="(val, opt) => fieldChange(row, val, opt)"
             >
@@ -47,7 +47,7 @@
             <a-select
               v-model:value="row.op"
               style="width: 120px"
-              placeholder="请选择"
+              :placeholder="t('ph_select')"
               :options="getFieldOptions(row.type)"
               @change="opChange(row)"
             />
@@ -55,8 +55,8 @@
           <div class="field-value-box">
             <template v-if="![5,6].includes(row.op)">
               <a-date-picker v-if="row.type == 1" v-model:value="row.value" @change="change" format="YYYY-MM-DD HH:mm" style="width: 100%;"/>
-              <a-input-number v-else-if="row.type == 2" v-model:value="row.value" placeholder="请输入" @blur="change" style="width: 100%;"/>
-              <a-input v-else v-model:value.trim="row.value" placeholder="请输入" :maxlength="20" @blur="change" style="width: 100%;"/>
+              <a-input-number v-else-if="row.type == 2" v-model:value="row.value" :placeholder="t('ph_input')" @blur="change" style="width: 100%;"/>
+              <a-input v-else v-model:value.trim="row.value" :placeholder="t('ph_input')" :maxlength="20" @blur="change" style="width: 100%;"/>
             </template>
           </div>
           <span class="field-del-btn" @click="removeCondition(index)">
@@ -69,7 +69,7 @@
     <div v-if="state.list.length < 10" class="add-btn-box">
       <a-button class="add-btn" type="dashed" block @click="addCondition">
         <PlusOutlined/>
-        添加条件
+        {{ t('btn_add_condition') }}
       </a-button>
     </div>
   </div>
@@ -80,7 +80,10 @@ import {computed, inject, ref, watch, reactive, onMounted} from 'vue'
 import dayjs from 'dayjs'
 import {PlusOutlined, DownOutlined} from '@ant-design/icons-vue'
 import {message} from 'ant-design-vue'
-import {jsonDecode} from "@/utils/index.js";
+import {jsonDecode} from "@/utils/index.js"
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.meta-filter-box');
 
 const emit = defineEmits(['change', 'update:rule', 'update:type'])
 
@@ -101,63 +104,63 @@ const props = defineProps({
   }
 })
 
-const Operators = [
+const Operators = computed(() => [
   {
     value: 1,
-    label: '是',
+    label: t('op_is'),
     use_types: [0, 1, 2]
   },
   {
     value: 2,
-    label: '不是',
+    label: t('op_is_not'),
     use_types: [0, 1, 2]
   },
   {
     value: 3,
-    label: '内容包含',
+    label: t('op_contains'),
     use_types: [0]
   },
   {
     value: 4,
-    label: '内容不包含',
+    label: t('op_not_contains'),
     use_types: [0]
   },
   {
     value: 5,
-    label: '为空',
+    label: t('op_is_empty'),
     use_types: [0, 1, 2]
   },
   {
     value: 6,
-    label: '不为空',
+    label: t('op_is_not_empty'),
     use_types: [0, 1, 2]
   },
   {
     value: 7,
-    label: '大于',
+    label: t('op_greater_than'),
     use_types: [1, 2]
   },
   {
     value: 8,
-    label: '等于',
+    label: t('op_equals'),
     use_types: [1, 2]
   },
   {
     value: 9,
-    label: '小于',
+    label: t('op_less_than'),
     use_types: [1, 2]
   },
   {
     value: 10,
-    label: '大于等于',
+    label: t('op_greater_than_or_equal'),
     use_types: [1, 2]
   },
   {
     value: 11,
-    label: '小于等于',
+    label: t('op_less_than_or_equal'),
     use_types: [1, 2]
   }
-]
+])
 
 const state = reactive({
   list: [],
@@ -233,7 +236,7 @@ function opChange(row) {
 }
 
 function getFieldOptions(type) {
-  return Operators.filter(item =>
+  return Operators.value.filter(item =>
     item.use_types.includes(type)
   )
 }
@@ -241,11 +244,11 @@ function getFieldOptions(type) {
 function verify() {
   try {
     for (let item of state.list) {
-      if (!item.key) throw '请选择过滤元数据'
-      if (!item.op) throw '请选择过滤操作符'
-      if (item.value && ![5,6].includes(item.op) && !item.value) throw '请选择过滤元数据值'
+      if (!item.key) throw t('msg_select_filter_metadata')
+      if (!item.op) throw t('msg_select_filter_operator')
+      if (item.value && ![5,6].includes(item.op) && !item.value) throw t('msg_select_filter_metadata_value')
     }
-    if (!state.list.length) throw '请完善至少一条过滤规则'
+    if (!state.list.length) throw t('msg_complete_at_least_one_filter_rule')
     return true
   } catch (e) {
     message.error(e)
@@ -293,7 +296,7 @@ defineExpose({
   }
 
   &.is-multiple {
-    padding-left: 20px;
+    padding-left: 30px;
 
     .query-condition-filter {
       padding-left: 32px;

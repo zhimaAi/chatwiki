@@ -11,7 +11,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// DoRequestChatUnify 统一的请求大语言模型逻辑
+// DoRequestChatUnify unified logic for requesting large language model
 func DoRequestChatUnify(in *ChatInParam, out *ChatOutParam) {
 	if !in.needRunWorkFlow && in.useStream {
 		out.chatResp, out.requestTime, out.Error = common.RequestChatStream(
@@ -54,15 +54,15 @@ func DoRequestChatUnify(in *ChatInParam, out *ChatOutParam) {
 	}
 }
 
-// DisposeUnknownQuestionPrompt 处理未知问题提示语和问题
+// DisposeUnknownQuestionPrompt handle unknown question prompt and questions
 func DisposeUnknownQuestionPrompt(in *ChatInParam, out *ChatOutParam) {
 	unknownQuestionPrompt := define.MenuJsonStruct{}
 	_ = tool.JsonDecodeUseNumber(in.params.Robot[`unknown_question_prompt`], &unknownQuestionPrompt)
 	if len(unknownQuestionPrompt.Content) == 0 && len(unknownQuestionPrompt.Question) == 0 {
-		unknownQuestionPrompt.Content = lib_define.DefaultUnknownQuestionPromptContent //默认值
+		unknownQuestionPrompt.Content = lib_define.DefaultUnknownQuestionPromptContent // default value
 	}
 	out.msgType = define.MsgTypeMenu
 	out.content = unknownQuestionPrompt.Content
 	out.menuJson = tool.JsonEncodeNoError(unknownQuestionPrompt)
-	in.saveRobotChatCache = false //未知问题不进聊天缓存
+	in.saveRobotChatCache = false // unknown questions not saved to chat cache
 }

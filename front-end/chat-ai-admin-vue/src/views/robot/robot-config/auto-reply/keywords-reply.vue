@@ -2,18 +2,18 @@
   <div class="user-model-page">
     <!-- 自动回复 开关 -->
     <div class="switch-block">
-      <span class="switch-title">自动回复</span>
+      <span class="switch-title">{{ t('auto_reply') }}</span>
       <a-switch
         @change="keyWordReplySwitchChange"
         :checked="keywordReplyStatus"
-        checked-children="开"
-        un-checked-children="关"
+        :checked-children="t('switch_on')"
+        :un-checked-children="t('switch_off')"
       />
-      <span class="switch-desc">开启后，按照关键词回复和收到消息回复规则，回复指定的内容，优先级关键词回复>收到消息回复</span>
+      <span class="switch-desc">{{ t('auto_reply_desc') }}</span>
     </div>
     <a-alert show-icon>
       <template #message>
-        <p>关键词回复内容支持设置图文链接，文字，图片，链接，小程序卡片</p>
+        <p>{{ t('keyword_reply_tip') }}</p>
       </template>
     </a-alert>
     <div class="search-block">
@@ -22,13 +22,13 @@
           <template #icon>
             <PlusOutlined />
           </template>
-          新增规则
+          {{ t('btn_add_rule') }}
         </a-button>
         <!-- 回复类型：下拉选择 图文  文本  图片  小程序 和链接 -->
         <div class="search-item">
           <a-select
             v-model="reply_type"
-            placeholder="回复类型"
+            :placeholder="t('label_reply_type')"
             allowClear
             :options="replyTypeOptions"
             style="width: 240px;"
@@ -39,7 +39,7 @@
         <div class="search-item">
           <a-input-search
             v-model:value="search_keyword"
-            placeholder="关键词/规则名称搜索"
+            :placeholder="t('ph_search_keyword')"
             allowClear
             style="width: 240px;"
             @search="onSearch"
@@ -51,16 +51,16 @@
         </div>
       </div>
       <div class="right-block">
-        <span>触发后继续回复</span>
+        <span>{{ t('continue_reply') }}</span>
         <a-tooltip>
-          <template #title>开关开启后，关键词回复后，继续触发收到消息自动回复，最后触发机器人回复</template>
+          <template #title>{{ t('continue_reply_tip') }}</template>
           <QuestionCircleOutlined />：
         </a-tooltip>
         <a-switch
           @change="handleChangeSwitch"
           :checked="keywordReplyAiReplyStatus"
-          checked-children="开"
-          un-checked-children="关"
+          :checked-children="t('switch_on')"
+          :un-checked-children="t('switch_off')"
         />
       </div>
     </div>
@@ -151,8 +151,8 @@
               :checked="record.switch_status"
               :checkedValue="'1'"
               :un-checkedValue="'0'"
-              checked-children="开"
-              un-checked-children="关"
+              :checked-children="t('switch_on')"
+              :un-checked-children="t('switch_off')"
               @change="handleReplySwitchChange(record, $event)"
             />
           </template>
@@ -161,9 +161,9 @@
           <!-- 操作 -->
           <template v-if="column.key === 'action'">
             <a-flex :gap="8">
-              <a @click="handleEdit(record)">编辑</a>
-              <a @click="handleDelete(record)">删除</a>
-              <a @click="handleCopy(record)">复制</a>
+              <a @click="handleEdit(record)">{{ t('btn_edit') }}</a>
+              <a @click="handleDelete(record)">{{ t('btn_delete') }}</a>
+              <a @click="handleCopy(record)">{{ t('btn_copy') }}</a>
             </a-flex>
           </template>
         </template>
@@ -181,6 +181,9 @@ import { saveRobotAbilitySwitchStatus, getRobotKeywordReplyList, saveRobotAbilit
 import { REPLY_TYPE_OPTIONS, REPLY_TYPE_LABEL_MAP } from '@/constants/index'
 import { useRobotStore } from '@/stores/modules/robot'
 import { message, Modal } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.auto-reply.keywords-reply')
 const robotStore = useRobotStore()
 
 // 来自左侧菜单的能力开关（关键词回复）
@@ -192,37 +195,37 @@ const router = useRouter()
 
 const columns = ref([
   {
-    title: '规则名',
+    title: t('col_rule_name'),
     dataIndex: 'name',
     key: 'name',
     width: 120
   },
   {
-    title: '模糊匹配',
+    title: t('col_fuzzy_match'),
     dataIndex: 'half_keyword',
     key: 'half_keyword',
     width: 220
   },
   {
-    title: '精准匹配',
+    title: t('col_exact_match'),
     dataIndex: 'full_keyword',
     key: 'full_keyword',
     width: 220
   },
   {
-    title: '回复内容',
+    title: t('col_reply_content'),
     dataIndex: 'reply_content',
     key: 'reply_content',
     width: 120
   },
   {
-    title: '启用状态',
+    title: t('col_enabled_status'),
     dataIndex: 'switch_status',
     key: 'switch_status',
     width: 120
   },
   {
-    title: '操作',
+    title: t('col_action'),
     dataIndex: 'action',
     key: 'action',
     width: 120
@@ -234,7 +237,7 @@ const pager = reactive({
   size: 10,
   total: 0
 })
-const replyTypeOptions = REPLY_TYPE_OPTIONS
+const replyTypeOptions = REPLY_TYPE_OPTIONS()
 const tableData = ref([])
 const loading = ref(false)
 const reply_type = ref('')
@@ -323,13 +326,13 @@ const keyWordReplySwitchChange = (checked) => {
   const switch_status = checked ? '1' : '0'
   if (switch_status === '0') {
     Modal.confirm({
-      title: '提示',
-      content: '关闭后，触发了关键词以及收到消息回复都不会再回复指定的内容',
+      title: t('title_tip'),
+      content: t('msg_close_warning'),
       onOk: () => {
         saveRobotAbilitySwitchStatus({ robot_id: query.id, ability_type: 'robot_auto_reply', switch_status }).then((res) => {
           if (res && res.res == 0) {
             robotStore.setKeywordReplySwitchStatus(switch_status)
-            message.success('操作成功')
+            message.success(t('msg_operation_success'))
             window.dispatchEvent(new CustomEvent('robotAbilityUpdated', { detail: { robotId: query.id } }))
           }
         })
@@ -340,7 +343,7 @@ const keyWordReplySwitchChange = (checked) => {
   saveRobotAbilitySwitchStatus({ robot_id: query.id, ability_type: 'robot_auto_reply', switch_status }).then((res) => {
     if (res && res.res == 0) {
       robotStore.setKeywordReplySwitchStatus(switch_status)
-      message.success('操作成功')
+      message.success(t('msg_operation_success'))
       window.dispatchEvent(new CustomEvent('robotAbilityUpdated', { detail: { robotId: query.id } }))
     }
   })
@@ -351,7 +354,7 @@ const handleReplySwitchChange = (record, checked) => {
   updateRobotKeywordReplySwitchStatus({ id: record.id, robot_id: query.id, switch_status }).then((res) => {
     if (res && res.res == 0) {
       record.switch_status = switch_status
-      message.success('操作成功')
+      message.success(t('msg_operation_success'))
     }
   })
 }
@@ -361,7 +364,7 @@ const handleChangeSwitch = (checked) => {
   saveRobotAbilityAiReplyStatus({ robot_id: query.id, ability_type: 'robot_auto_reply', ai_reply_status }).then((res) => {
     if (res && res.res == 0) {
       robotStore.setKeywordReplyAiReplyStatus(ai_reply_status)
-      message.success('操作成功')
+      message.success(t('msg_operation_success'))
     }
   })
 }
@@ -369,12 +372,12 @@ const handleChangeSwitch = (checked) => {
 const handleDelete = (record) => {
   // 确认删除
   Modal.confirm({
-    title: '确认删除吗？',
-    okText: '确认',
+    title: t('title_confirm_delete'),
+    okText: t('btn_confirm'),
     onOk: () => {
       deleteRobotKeywordReply({ id: record.id, robot_id: query.id }).then((res) => {
         if (res && res.res == 0) {
-          message.success('删除成功')
+          message.success(t('msg_delete_success'))
           getTableData()
         }
       })
@@ -383,7 +386,7 @@ const handleDelete = (record) => {
 }
 
 function mapReplyTypeLabel (t) {
-  return REPLY_TYPE_LABEL_MAP[t] || ''
+  return REPLY_TYPE_LABEL_MAP()[t] || ''
 }
 
 function summarizeReplyTypes (list) {

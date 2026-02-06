@@ -97,7 +97,7 @@ func GetNodeList(c *gin.Context) {
 	pluginName := []string{}
 	for _, node := range list {
 		nodeType := cast.ToInt(node[`node_type`])
-		if nodeType == work_flow.NodeTypePlugin { //获取引用插件列表
+		if nodeType == work_flow.NodeTypePlugin { // Get referenced plugin list
 			nodeParams := work_flow.DisposeNodeParams(nodeType, node[`node_params`], common.GetLang(c))
 			pluginName = append(pluginName, nodeParams.Plugin.Name)
 		}
@@ -107,12 +107,12 @@ func GetNodeList(c *gin.Context) {
 	remotePluginMap := make(map[string]define.RemotePluginStruct)
 	localPluginMap := make(map[string]string)
 
-	//如果存在插件引用，查询一下插件状态
+	// If plugin reference exists, query plugin status
 	if len(pluginName) > 0 {
 		reqData := map[string]any{
 			"name": strings.Join(pluginName, ","),
 		}
-		// 获取远程插件列表
+		// Get remote plugin list
 		resp, _ := requestXiaokefu(`kf/ChatWiki/CommonGetPluginList`, reqData)
 		err := tool.JsonDecodeUseNumber(tool.JsonEncodeNoError(resp.Data), &remotePlugin)
 		if err == nil {
@@ -121,7 +121,7 @@ func GetNodeList(c *gin.Context) {
 			}
 		}
 
-		//查询本地插件信息
+		// Query local plugin info
 		pluginList, _ := msql.Model(`plugin_config`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(userId)).Where(`name`, `in`, strings.Join(pluginName, `,`)).Select()
 		for _, params := range pluginList {
@@ -137,18 +137,18 @@ func GetNodeList(c *gin.Context) {
 			continue
 		}
 		nodeParams := work_flow.DisposeNodeParams(cast.ToInt(node[`node_type`]), node[`node_params`], common.GetLang(c))
-		if nodeType == work_flow.NodeTypePlugin { //获取引用插件列表
-			//logs.Debug(`开始处理插件脱敏:%s`, nodeParams.Plugin.Name)
+		if nodeType == work_flow.NodeTypePlugin { // Get referenced plugin list
+			//logs.Debug(`Start processing plugin desensitization:%s`, nodeParams.Plugin.Name)
 			manifest, _ := php.GetPluginManifest(nodeParams.Plugin.Name)
-			//logs.Debug(`判断前:%s`, nodeParams.Plugin.Name)
+			//logs.Debug(`Before judgment:%s`, nodeParams.Plugin.Name)
 			if nodeParams.Plugin.NoAuthFilter {
-				//敏感信息脱敏 兼容没安装插件插件的后续脱敏
-				//logs.Debug(`判断后:%s`, nodeParams.Plugin.Name)
+				// Sensitive info desensitization, compatible with subsequent desensitization for uninstalled plugins
+				//logs.Debug(`After judgment:%s`, nodeParams.Plugin.Name)
 				nodeInfoStr := node[`node_info_json`]
 				nodeParams.Plugin, nodeInfoStr = work_flow.PluginNodeDesensitize(userId, nodeParams.Plugin, nodeInfoStr)
 				list[i][`node_info_json`] = nodeInfoStr
 			}
-			//logs.Debug(`处理完成:%s`, nodeParams.Plugin.Name)
+			//logs.Debug(`Processing completed:%s`, nodeParams.Plugin.Name)
 
 			list[i][`has_loaded`] = localPluginMap[nodeParams.Plugin.Name]
 			list[i][`plugin_name`] = nodeParams.Plugin.Name
@@ -242,7 +242,7 @@ func SaveHttpAuthConfig(c *gin.Context) {
 		return
 	}
 
-	// http_auth_config_list 是前端通过post form传过来的一个json数组，每个元素包含以下字段：auth_key、auth_value、auth_value_addto、auth_remark
+	// http_auth_config_list is a JSON array passed from frontend via post form, each element contains: auth_key, auth_value, auth_value_addto, auth_remark
 	httpAuthConfigList := c.PostForm(`http_auth_config_list`)
 	var authConfigList []map[string]interface{}
 	tool.JsonDecodeUseNumber(httpAuthConfigList, &authConfigList)
@@ -251,7 +251,7 @@ func SaveHttpAuthConfig(c *gin.Context) {
 		return
 	}
 
-	// 首先将http_node_auth_config 表中staff_user_id、admin_user_id 的数据清空，然后循环插入httpAuthConfigList 中的数据
+	// First clear data in http_node_auth_config table for staff_user_id and admin_user_id, then loop insert data from httpAuthConfigList
 	m := msql.Model(`http_node_auth_config`, define.Postgres)
 	_, err := m.Where(`staff_user_id`, cast.ToString(userId)).Where(`admin_user_id`, cast.ToString(adminUserId)).Delete()
 	if err != nil {
@@ -265,7 +265,7 @@ func SaveHttpAuthConfig(c *gin.Context) {
 		return
 	}
 
-	// 循环插入httpAuthConfigList 中的数据
+	// Loop insert data from httpAuthConfigList
 	currentTime := tool.Time2Int()
 	for _, item := range authConfigList {
 		authKey := strings.TrimSpace(cast.ToString(item[`auth_key`]))
@@ -273,7 +273,7 @@ func SaveHttpAuthConfig(c *gin.Context) {
 			continue
 		}
 		authRemark := strings.TrimSpace(cast.ToString(item[`auth_remark`]))
-		// 如果auth_remark 大于10个字则跳过
+		// Skip if auth_remark is greater than 10 characters
 		if len(authRemark) > 10 {
 			continue
 		}
@@ -325,7 +325,7 @@ func SaveNodes(c *gin.Context) {
 		return
 	}
 
-	//获取编辑锁内容
+	// Get edit lock content
 	lockEditKey := fmt.Sprintf("user_id:%s,robot:%s,", userId, robotKey)
 	lockKeyMd5 := define.LockPreKey + ".draft_lock." + tool.MD5(lockEditKey)
 
@@ -337,7 +337,7 @@ func SaveNodes(c *gin.Context) {
 	lockValue, _ := tool.JsonEncode(filtered)
 
 	lockRes, err := define.Redis.Get(context.Background(), lockKeyMd5).Result()
-	if lockRes != "" && lockRes != lockValue { //有编辑锁，且锁不是自己的
+	if lockRes != "" && lockRes != lockValue { // Has edit lock and lock is not own
 		redisValueMap := make(map[string]any)
 		_ = tool.JsonDecodeUseNumber(lockRes, &redisValueMap)
 
@@ -351,20 +351,20 @@ func SaveNodes(c *gin.Context) {
 		return
 	}
 
-	//重新设置一下锁的时间
+	// Reset lock time
 	corpConfig := common.GetAdminConfig(userId)
 	draft_exptime := cast.ToInt(corpConfig["draft_exptime"])
 	_, _ = define.Redis.SetEX(context.Background(), lockKeyMd5, lockValue, time.Duration(draft_exptime)*time.Minute).Result()
 
-	if cast.ToInt(reCoverSave) == 0 { //需要验证
-		//获取一下库内的草稿信息
+	if cast.ToInt(reCoverSave) == 0 { // Need verification
+		// Get draft info from database
 		flowInfo, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`robot_key`, robotKey).Find()
 		if err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			return
 		}
 		dbDraftSaveTime := cast.ToInt(flowInfo["draft_save_time"])
-		//如果库里面记录了草稿保存时间，且 保存时间大于提交上来的最后保存时间，判定为此次保存是落后版本
+		// If draft save time is recorded in database and save time is greater than submitted last save time, determine this save as outdated version
 		if dbDraftSaveTime != 0 && dbDraftSaveTime > cast.ToInt(lastUpdateTime) {
 			c.String(http.StatusOK, lib_web.FmtJson(map[string]int{
 				"behind_draft": 1,
@@ -396,8 +396,12 @@ func SaveNodes(c *gin.Context) {
 	clearNodeKeys := make([]string, 0)
 	m := msql.Model(`work_flow_node`, define.Postgres)
 	if dataType == define.DataTypeRelease {
-		if startNodeKey, modelConfigIds, libraryIds, questionMultipleSwitch, err = work_flow.VerifyWorkFlowNodes(nodeList, userId, common.GetLang(c)); err != nil {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		var errNodeKey string
+		startNodeKey, modelConfigIds, libraryIds, questionMultipleSwitch, err, errNodeKey = work_flow.VerifyWorkFlowNodes(nodeList, userId, common.GetLang(c))
+		if err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(map[string]any{
+				`err_node_key`: errNodeKey,
+			}, err))
 			lib_redis.UnLock(define.Redis, lockKey) //unlock
 			return
 		}
@@ -463,7 +467,7 @@ func SaveNodes(c *gin.Context) {
 		}
 	}
 
-	//保存上次编辑人信息
+	// Save last editor info
 	userInfo, err := GetUserInfo(cast.ToString(getLoginUserId(c)))
 	editUserName := lib_define.UnknownUser
 	if err == nil && userInfo["user_name"] != "" {
@@ -595,7 +599,7 @@ func TestCodeRun(c *gin.Context) {
 	go func() {
 		select {
 		case <-c.Request.Context().Done():
-			code = 499 //客户端主动断开
+			code = 499 // Client actively disconnected
 			cancel()
 		}
 	}()
@@ -618,17 +622,45 @@ func WorkFlowNextVersion(c *gin.Context) {
 	}
 	robotId := cast.ToInt(robot[`id`])
 	m := msql.Model(`chat_ai_robot`, define.Postgres)
-	id, err := m.Where(`id`, cast.ToString(robotId)).
-		Where(`admin_user_id`, cast.ToString(userId)).Value(`id`)
+	robotInfo, err := m.Where(`id`, cast.ToString(robotId)).
+		Where(`admin_user_id`, cast.ToString(userId)).Find()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	if cast.ToInt(id) == 0 {
+	if cast.ToInt(robotInfo[`id`]) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
+	// verify nodes
+	var nodeMaps map[string]msql.Params
+	nodeMaps, err = msql.Model(`work_flow_node`, define.Postgres).
+		Where(`admin_user_id`, robotInfo[`admin_user_id`]).Where(`robot_id`, cast.ToString(robotId)).
+		Where(`data_type`, cast.ToString(define.DataTypeDraft)).ColumnMap(`*`, `node_key`)
+	nodeList := make([]work_flow.WorkFlowNode, 0)
+	for _, params := range nodeMaps {
+		node := work_flow.WorkFlowNode{
+			NodeType:      common.MixedInt(cast.ToInt(params[`node_type`])),
+			NodeName:      params[`node_name`],
+			NodeKey:       params[`node_key`],
+			NodeParams:    work_flow.NodeParams{},
+			NodeInfoJson:  make(map[string]any),
+			NextNodeKey:   params[`next_node_key`],
+			LoopParentKey: params[`loop_parent_key`],
+		}
+		_ = tool.JsonDecodeUseNumber(params[`node_params`], &node.NodeParams)
+		_ = tool.JsonDecodeUseNumber(params[`node_info_json`], &node.NodeInfoJson)
+		nodeList = append(nodeList, node)
+	}
+	var errNodeKey string
+	if _, _, _, _, err, errNodeKey = work_flow.VerifyWorkFlowNodes(nodeList, cast.ToInt(robotInfo[`admin_user_id`]), common.GetLang(c)); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(map[string]any{
+			`err_node_key`: errNodeKey,
+		}, err))
+		return
+	}
+
 	version, err := msql.Model(`work_flow_version`, define.Postgres).
 		Where(`robot_id`, cast.ToString(robotId)).
 		Where(`admin_user_id`, cast.ToString(userId)).Order(`id desc`).Limit(1).Value(`version`)
@@ -733,7 +765,7 @@ func WorkFlowPublishVersion(c *gin.Context) {
 		return
 	}
 
-	//获取编辑锁内容
+	// Get edit lock content
 	lockEditKey := fmt.Sprintf("user_id:%s,robot:%s,", userId, robotKey)
 	filtered := make(map[string]any)
 	filtered["login_user_id"] = getLoginUserId(c)
@@ -745,7 +777,7 @@ func WorkFlowPublishVersion(c *gin.Context) {
 	lockKeyMd5 := define.LockPreKey + ".draft_lock." + tool.MD5(lockEditKey)
 
 	lockRes, err := define.Redis.Get(context.Background(), lockKeyMd5).Result()
-	if lockRes != "" && lockRes != lockValue { //没有编辑锁
+	if lockRes != "" && lockRes != lockValue { // No edit lock
 		redisValueMap := make(map[string]any)
 		_ = tool.JsonDecodeUseNumber(lockRes, &redisValueMap)
 
@@ -787,8 +819,12 @@ func WorkFlowPublishVersion(c *gin.Context) {
 	var startNodeKey, modelConfigIds, libraryIds string
 	var questionMultipleSwitch bool
 	clearNodeKeys := make([]string, 0)
-	if startNodeKey, modelConfigIds, libraryIds, questionMultipleSwitch, err = work_flow.VerifyWorkFlowNodes(nodeList, userId, common.GetLang(c)); err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+	var errNodeKey string
+	startNodeKey, modelConfigIds, libraryIds, questionMultipleSwitch, err, errNodeKey = work_flow.VerifyWorkFlowNodes(nodeList, userId, common.GetLang(c))
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(map[string]any{
+			`err_node_key`: errNodeKey,
+		}, err))
 		lib_redis.UnLock(define.Redis, lockKey) //unlock
 		return
 	}
@@ -932,7 +968,7 @@ func WorkFlowPublishVersion(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
-// 获取企业配置
+// GetAdminConfig gets company config
 func GetAdminConfig(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
@@ -943,7 +979,7 @@ func GetAdminConfig(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(config, nil))
 }
 
-// 设置草稿箱编辑锁过期时间
+// SaveDraftExTime sets draft edit lock expiration time
 func SaveDraftExTime(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
@@ -960,7 +996,7 @@ func SaveDraftExTime(c *gin.Context) {
 
 	list, _ := m.Table(`admin_user_config`).Where(`admin_user_id`, cast.ToString(userId)).Select()
 
-	if len(list) == 0 { //没有配置
+	if len(list) == 0 { // No config
 		_, err := m.Table(`admin_user_config`).Insert(map[string]any{
 			"admin_user_id": userId,
 			"create_time":   time.Now().Unix(),
@@ -992,7 +1028,7 @@ func SaveDraftExTime(c *gin.Context) {
 
 }
 
-// 获取草稿箱编辑锁
+// GetDraftKey gets draft edit lock
 func GetDraftKey(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
@@ -1028,7 +1064,7 @@ func GetDraftKey(c *gin.Context) {
 	filtered["Header"] = c.Request.Header
 	filtered["is_self"] = lockVal == lockValue
 
-	//获取锁失败，看下是谁锁的
+	// Get lock failed, check who locked it
 	if !lockRes && lockVal != lockValue {
 		lockValueMap := make(map[string]any)
 		err := tool.JsonDecode(lockVal, &lockValueMap)
@@ -1038,7 +1074,7 @@ func GetDraftKey(c *gin.Context) {
 		}
 	}
 
-	//查一下当前草稿最后编辑人是谁
+	// Check who is the last editor of current draft
 	flowInfo, _ := msql.Model(`chat_ai_robot`, define.Postgres).Where(`robot_key`, robotKey).Find()
 	filtered["user_agent"] = flowInfo["last_edit_user_agent"]
 

@@ -11,29 +11,29 @@ import (
 )
 
 const (
-	RobotAbilityAutoReply            = `robot_auto_reply`             //自动回复功能 包含关键词回复 和 收到消息回复
-	RobotAbilityPayment              = `robot_payment`                //应用收费
-	RobotAbilityKeywordReply         = `robot_keyword_reply`          //关键词回复功能
-	RobotAbilityReceivedMessageReply = `robot_received_message_reply` //收到消息回复功能
-	RobotAbilitySubscribeReply       = `robot_subscribe_reply`        //关注后回复功能
-	RobotAbilitySmartMenu            = `robot_smart_menu`             //智能菜单功能
-	OfficialAbilityCustomMenu        = `official_custom_menu`         //自定义菜单功能
+	RobotAbilityAutoReply            = `robot_auto_reply`             // Auto-reply function including keyword reply and received message reply
+	RobotAbilityPayment              = `robot_payment`                // Application payment
+	RobotAbilityKeywordReply         = `robot_keyword_reply`          // Keyword reply function
+	RobotAbilityReceivedMessageReply = `robot_received_message_reply` // Received message reply function
+	RobotAbilitySubscribeReply       = `robot_subscribe_reply`        // Subscribe reply function
+	RobotAbilitySmartMenu            = `robot_smart_menu`             // Smart menu function
+	OfficialAbilityCustomMenu        = `official_custom_menu`         // Custom menu function
 )
 
 var DefaultRobotConfig = msql.Params{
-	"switch_status":   cast.ToString(define.SwitchOff), //开启状态
-	"fixed_menu":      cast.ToString(define.SwitchOff), //固定菜单
-	"show_select":     cast.ToString(define.SwitchOn),  //是否显示选择
-	"robot_only_show": cast.ToString(define.SwitchOff), //机器人功能中心中仅显示 这个不展示开关和固定菜单
+	"switch_status":   cast.ToString(define.SwitchOff), // Enable status
+	"fixed_menu":      cast.ToString(define.SwitchOff), // Fixed menu
+	"show_select":     cast.ToString(define.SwitchOn),  // Whether to show selection
+	"robot_only_show": cast.ToString(define.SwitchOff), // Only display in robot function center, this does not show switches and fixed menus
 
 }
 
-// RobotAbilityList 机器人能力列表
+// RobotAbilityList Robot capability list
 var RobotAbilityList = []Ability{
 	{
 		Name:          "[[ZM--AutoReplyName--ZM]]",
-		ModuleType:    RobotModule,           //模块类型
-		AbilityType:   RobotAbilityAutoReply, //全局唯一值 类型
+		ModuleType:    RobotModule,           // Module type
+		AbilityType:   RobotAbilityAutoReply, // Globally unique value type
 		Introduction:  "[[ZM--AutoReplyIntro--ZM]]",
 		Details:       "[[ZM--DetailsPlaceholder--ZM]]",
 		Icon:          "iconfont icon-keyword-reply",
@@ -65,8 +65,8 @@ var RobotAbilityList = []Ability{
 	},
 	{
 		Name:          "[[ZM--PaymentName--ZM]]",
-		ModuleType:    RobotModule,         //模块类型
-		AbilityType:   RobotAbilityPayment, //全局唯一值 类型
+		ModuleType:    RobotModule,         // Module type
+		AbilityType:   RobotAbilityPayment, // Globally unique value type
 		Introduction:  "[[ZM--PaymentIntro--ZM]]",
 		Details:       "[[ZM--DetailsPlaceholder--ZM]]",
 		Icon:          "iconfont icon-keyword-payment",
@@ -85,8 +85,8 @@ var RobotAbilityList = []Ability{
 	},
 	{
 		Name:          "[[ZM--SmartMenuName--ZM]]",
-		ModuleType:    RobotModule,           //模块类型
-		AbilityType:   RobotAbilitySmartMenu, //全局唯一值 类型
+		ModuleType:    RobotModule,           // Module type
+		AbilityType:   RobotAbilitySmartMenu, // Globally unique value type
 		Introduction:  "[[ZM--SmartMenuIntro--ZM]]",
 		Details:       "[[ZM--DetailsPlaceholder--ZM]]",
 		Icon:          "iconfont icon-smart-menu",
@@ -109,8 +109,8 @@ var RobotAbilityList = []Ability{
 	},
 	{
 		Name:          "[[ZM--SubscribeReplyName--ZM]]",
-		ModuleType:    RobotModule,                //模块类型 //本来应该在公众号模块 但wendy要求在机器人的功能中心中展示
-		AbilityType:   RobotAbilitySubscribeReply, //全局唯一值 类型
+		ModuleType:    RobotModule,                // Module type // Originally should be in official account module but wendy requested to display in robot function center
+		AbilityType:   RobotAbilitySubscribeReply, // Globally unique value type
 		Introduction:  "[[ZM--SubscribeReplyIntro--ZM]]",
 		Details:       "[[ZM--DetailsPlaceholder--ZM]]",
 		Icon:          "iconfont icon-subscribe-reply",
@@ -129,8 +129,8 @@ var RobotAbilityList = []Ability{
 	},
 	{
 		Name:          "[[ZM--CustomMenuName--ZM]]",
-		ModuleType:    RobotModule,               //模块类型 //本来应该在公众号模块 但wendy要求在机器人的功能中心中展示
-		AbilityType:   OfficialAbilityCustomMenu, //全局唯一值 类型
+		ModuleType:    RobotModule,               // Module type // Originally should be in official account module but wendy requested to display in robot function center
+		AbilityType:   OfficialAbilityCustomMenu, // Globally unique value type
 		Introduction:  "[[ZM--CustomMenuIntro--ZM]]",
 		Details:       "[[ZM--DetailsPlaceholder--ZM]]",
 		Icon:          "iconfont icon-official-custom-menu",
@@ -154,7 +154,7 @@ const (
 	RobotAbilitySwitchOff = 0
 )
 
-// GetRobotAbility 机器人能力列表
+// GetRobotAbility Robot capability list
 func GetRobotAbility(robotId int) ([]msql.Params, error) {
 	data, err := msql.Model(`chat_robot_ability`, define.Postgres).Where(`robot_id`, cast.ToString(robotId)).Order(`id desc`).Select()
 	if err == nil && len(data) > 0 {
@@ -167,7 +167,7 @@ func GetRobotAbility(robotId int) ([]msql.Params, error) {
 	return data, err
 }
 
-// GetRobotUseAbilityListByRobotId 获取机器人功能列表
+// GetRobotUseAbilityListByRobotId Get robot function list
 func GetRobotUseAbilityListByRobotId(robotId int, adminUserId int) ([]Ability, error) {
 	var list []Ability
 	userConfigList, err := GetUserAbilityByModuleType(adminUserId, RobotModule)
@@ -187,19 +187,19 @@ func GetRobotUseAbilityListByRobotId(robotId int, adminUserId int) ([]Ability, e
 	for _, item := range RobotAbilityList {
 		userConfig, isUserOk := userConfigMap[item.AbilityType]
 		if !isUserOk {
-			//用户没有配置的
+			// User has not configured
 			continue
 		}
 		item.UserConfig = userConfig
 		if userConfig["switch_status"] != cast.ToString(define.SwitchOn) {
-			//用户关闭配置的
+			// User has disabled the configuration
 			continue
 		}
 		robotConfig, isOk := robotConfigMap[item.AbilityType]
 		if isOk {
-			//机器人开启的
+			// Robot enabled
 			if robotConfig["switch_status"] == cast.ToString(define.SwitchOn) {
-				//有配置的 且开启的显示
+				// Configured and enabled ones are displayed
 				item.ShowSelect = define.SwitchOn
 				item.RobotConfig = robotConfig
 				list = append(list, item)
@@ -209,11 +209,11 @@ func GetRobotUseAbilityListByRobotId(robotId int, adminUserId int) ([]Ability, e
 	return list, err
 }
 
-// GetRobotAbilityConfigByAbilityType 检查机器人是否使用某个功能
+// GetRobotAbilityConfigByAbilityType Check if robot uses a certain function
 func GetRobotAbilityConfigByAbilityType(adminUserId int, robotId int, abilityType string) msql.Params {
-	//用户是否开启功能
+	// Whether user has enabled the function
 	if CheckUseAbilityByAbilityType(adminUserId, abilityType) {
-		//机器人是否开启功能
+		// Whether robot has enabled the function
 		data, err := msql.Model(`chat_robot_ability`, define.Postgres).Where(`robot_id`, cast.ToString(robotId)).Where(`ability_type`, abilityType).Where(`switch_status`, cast.ToString(define.SwitchOn)).Find()
 		if err == nil && len(data) > 0 {
 			return data
@@ -222,7 +222,7 @@ func GetRobotAbilityConfigByAbilityType(adminUserId int, robotId int, abilityTyp
 	return msql.Params{}
 }
 
-// GetRobotAbilityList 机器人功能中心列表
+// GetRobotAbilityList Robot function center list
 func GetRobotAbilityList(robotId int, adminUserId int, specifyAbilityType string) ([]Ability, error) {
 	var list []Ability
 	userConfigList, err := GetUserAbilityByModuleType(adminUserId, RobotModule)
@@ -240,38 +240,38 @@ func GetRobotAbilityList(robotId int, adminUserId int, specifyAbilityType string
 		}
 	}
 
-	//显示列表能力
+	// Display list capabilities
 	for _, item := range GetAllAbilityList() {
 		if specifyAbilityType != `` && item.AbilityType != specifyAbilityType {
 			continue
 		}
-		if specifyAbilityType == `` { //非指定的显示
+		if specifyAbilityType == `` { // Display non-specified ones
 			userConfig, isUserOk := userConfigMap[item.AbilityType]
 			if !isUserOk {
-				//用户没有配置的
+				// User has not configured
 				continue
 			}
 			item.UserConfig = userConfig
 			if userConfig["switch_status"] != cast.ToString(define.SwitchOn) {
-				//用户关闭配置的
+				// User has disabled the configuration
 				continue
 			}
-		} else { //指定配置显示
+		} else { // Display specified configuration
 			userConfig, isUserOk := userConfigMap[item.AbilityType]
 			if isUserOk {
 				item.UserConfig = userConfig
 			} else {
-				item.UserConfig = DefaultRobotConfig //默认关闭
+				item.UserConfig = DefaultRobotConfig // Default closed
 			}
 		}
 		robotConfig, isOk := robotConfigMap[item.AbilityType]
 		if isOk {
-			//有配置的 直接显示选择
+			// Configured ones, directly display selection
 			item.ShowSelect = define.SwitchOn
 			item.RobotConfig = robotConfig
 			list = append(list, item)
 		} else {
-			//没有配置的 查看是否显示选择
+			// Unconfigured ones, check whether to display selection
 			item.RobotConfig = DefaultRobotConfig
 			if item.ShowSelect == define.SwitchOn {
 				list = append(list, item)
@@ -281,9 +281,9 @@ func GetRobotAbilityList(robotId int, adminUserId int, specifyAbilityType string
 	return list, err
 }
 
-// SaveRobotAbilitySwitchStatus 保存机器人能力开关状态
+// SaveRobotAbilitySwitchStatus Save robot capability switch status
 func SaveRobotAbilitySwitchStatus(adminUserId int, robotId int, abilityType string, switchStatus int) error {
-	// 添加和更新
+	// Add and update
 	oldData, err := msql.Model(`chat_robot_ability`, define.Postgres).
 		Where(`robot_id`, cast.ToString(robotId)).
 		Where(`ability_type`, abilityType).
@@ -292,7 +292,7 @@ func SaveRobotAbilitySwitchStatus(adminUserId int, robotId int, abilityType stri
 		return err
 	}
 
-	// 保存配置
+	// Save configuration
 	saveData := msql.Datas{
 		"admin_user_id": adminUserId,
 		"robot_id":      robotId,
@@ -311,9 +311,9 @@ func SaveRobotAbilitySwitchStatus(adminUserId int, robotId int, abilityType stri
 	return err
 }
 
-// SaveRobotAbilityFixedMenu 保存机器人能力固定菜单状态
+// SaveRobotAbilityFixedMenu Save robot capability fixed menu status
 func SaveRobotAbilityFixedMenu(adminUserId int, robotId int, abilityType string, fixedMenu int) error {
-	// 添加和更新
+	// Add and update
 	oldData, err := msql.Model(`chat_robot_ability`, define.Postgres).
 		Where(`robot_id`, cast.ToString(robotId)).
 		Where(`ability_type`, abilityType).
@@ -322,7 +322,7 @@ func SaveRobotAbilityFixedMenu(adminUserId int, robotId int, abilityType string,
 		return err
 	}
 
-	// 保存配置
+	// Save configuration
 	saveData := msql.Datas{
 		"admin_user_id": adminUserId,
 		"robot_id":      robotId,
@@ -341,9 +341,9 @@ func SaveRobotAbilityFixedMenu(adminUserId int, robotId int, abilityType string,
 	return err
 }
 
-// SaveRobotAbilityAiReplyStatus 保存机器人能力AI回复状态
+// SaveRobotAbilityAiReplyStatus Save robot capability AI reply status
 func SaveRobotAbilityAiReplyStatus(adminUserId int, robotId int, abilityType string, aiReplyStatus int) error {
-	// 添加和更新
+	// Add and update
 	oldData, err := msql.Model(`chat_robot_ability`, define.Postgres).
 		Where(`robot_id`, cast.ToString(robotId)).
 		Where(`ability_type`, abilityType).
@@ -352,7 +352,7 @@ func SaveRobotAbilityAiReplyStatus(adminUserId int, robotId int, abilityType str
 		return err
 	}
 
-	// 保存配置
+	// Save configuration
 	saveData := msql.Datas{
 		"admin_user_id":   adminUserId,
 		"robot_id":        robotId,
@@ -371,9 +371,9 @@ func SaveRobotAbilityAiReplyStatus(adminUserId int, robotId int, abilityType str
 	return err
 }
 
-// SaveRobotAbility 保存机器人能力配置
+// SaveRobotAbility Save robot capability configuration
 func SaveRobotAbility(adminUserId int, robotId int, abilityType string, switchStatus int, fixedMenu int, aiReplyStatus int) error {
-	// 添加和更新
+	// Add and update
 	oldData, err := msql.Model(`chat_robot_ability`, define.Postgres).
 		Where(`robot_id`, cast.ToString(robotId)).
 		Where(`ability_type`, abilityType).
@@ -382,7 +382,7 @@ func SaveRobotAbility(adminUserId int, robotId int, abilityType string, switchSt
 		return err
 	}
 
-	// 保存配置
+	// Save configuration
 	saveData := msql.Datas{
 		"admin_user_id":   adminUserId,
 		"robot_id":        robotId,
@@ -403,7 +403,7 @@ func SaveRobotAbility(adminUserId int, robotId int, abilityType string, switchSt
 	return err
 }
 
-// GetRobotAbilityByRobotId 根据robot_id获取机器人能力列表
+// GetRobotAbilityByRobotId Get robot capability list by robot_id
 func GetRobotAbilityByRobotId(robotId int) ([]msql.Params, error) {
 	data, err := msql.Model(`chat_robot_ability`, define.Postgres).
 		Where(`robot_id`, cast.ToString(robotId)).

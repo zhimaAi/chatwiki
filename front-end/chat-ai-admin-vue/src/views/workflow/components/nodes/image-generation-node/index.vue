@@ -13,7 +13,7 @@
     <div class="ai-dialogue-node">
       <div class="field-list">
         <div class="field-item">
-          <div class="field-item-label">模型</div>
+          <div class="field-item-label">{{ t('label_model') }}</div>
           <div class="field-item-content">
             <div class="field-value">
               <span class="field-key">
@@ -26,7 +26,7 @@
           </div>
         </div>
         <div class="field-item">
-          <div class="field-item-label">提示词</div>
+          <div class="field-item-label">{{ t('label_prompt') }}</div>
           <div class="field-item-content">
             <div class="field-value">
               <span class="field-key">
@@ -41,7 +41,7 @@
           </div>
         </div>
         <div class="field-item">
-          <div class="field-item-label">输出</div>
+          <div class="field-item-label">{{ t('label_output') }}</div>
           <div class="options-list">
             <div class="options-item" v-for="item in outputList" :key="item">
               <div class="option-label">{{ item }}</div>
@@ -62,6 +62,9 @@ import NodeCommon from '../base-node.vue'
 import ModelNameText from '../model-name-text.vue'
 import UserQuestionText from '../user-question-text.vue'
 import AtText from '../../at-input/at-text.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.image-generation-node.index')
 
 const props = defineProps({
   properties: {
@@ -163,7 +166,7 @@ onBeforeUnmount(() => {})
       }
     }
     .field-item-label {
-      width: 60px;
+      width: auto;
       line-height: 22px;
       margin-right: 8px;
       font-size: 14px;

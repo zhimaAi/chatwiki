@@ -7,13 +7,13 @@ import (
 	"unicode/utf8"
 )
 
-// AiSpliter ai割客户端
+// AiSpliter AI splitter client
 type AiSpliter struct {
-	AiChunkSize int // 最大分块大小（按字符数）
-	Overlap     int // 分块重叠大小（按字符数）
+	AiChunkSize int // Maximum chunk size (by character count)
+	Overlap     int // Chunk overlap size (by character count)
 }
 
-// NewAiSpliterClient 创建一个新的语义分割客户端
+// NewAiSpliterClient creates a new semantic segmentation client
 func NewAiSpliterClient(aiChunkSize int) *AiSpliter {
 	return &AiSpliter{
 		AiChunkSize: aiChunkSize,
@@ -21,7 +21,7 @@ func NewAiSpliterClient(aiChunkSize int) *AiSpliter {
 	}
 }
 
-// SplitText 分割文本
+// SplitText splits text
 func (c *AiSpliter) SplitText(text string) ([]string, error) {
 	var result []string
 	contents := ""
@@ -73,7 +73,7 @@ func (c *AiSpliter) aiSplit(text string) []string {
 	return sentences
 }
 
-// addOverlappingContent 为分段添加重叠内容
+// addOverlappingContent adds overlapping content to chunks
 func (c *AiSpliter) addOverlappingContent(chunks []string) []string {
 	if len(chunks) <= 1 || c.Overlap <= 0 {
 		return chunks
@@ -85,21 +85,21 @@ func (c *AiSpliter) addOverlappingContent(chunks []string) []string {
 	for i := 1; i < len(result); i++ {
 		prevChunk := chunks[i-1]
 
-		// 将前一个块分割成句子
+		// Split previous chunk into sentences
 		prevSentences := c.splitIntoSentences(prevChunk)
 		if len(prevSentences) == 0 {
 			continue
 		}
 
-		// 添加句子作为重叠内容，直到接近但不超过设定的重叠大小
+		// Add sentences as overlapping content until close to but not exceeding the set overlap size
 		var overlappingSentences []string
 		var overlapSize int
 
-		// 从后向前添加句子
+		// Add sentences from back to front
 		for j := len(prevSentences) - 1; j >= 0; j-- {
 			sentenceSize := utf8.RuneCountInString(prevSentences[j])
 
-			// 如果添加当前句子后总大小不超过设定的重叠大小，或者尚未添加任何句子，则添加它
+			// If adding current sentence doesn't exceed the set overlap size, or no sentences have been added yet, add it
 			if overlapSize+sentenceSize <= c.Overlap || len(overlappingSentences) == 0 {
 				overlappingSentences = append([]string{prevSentences[j]}, overlappingSentences...)
 				overlapSize += sentenceSize
@@ -108,7 +108,7 @@ func (c *AiSpliter) addOverlappingContent(chunks []string) []string {
 			}
 		}
 
-		// 将重叠句子添加到当前块的前面
+		// Add overlapping sentences to the beginning of current chunk
 		if len(overlappingSentences) > 0 {
 			overlappingText := strings.Join(overlappingSentences, "")
 			result[i] = overlappingText + result[i]
@@ -118,7 +118,7 @@ func (c *AiSpliter) addOverlappingContent(chunks []string) []string {
 	return result
 }
 
-// splitIntoSentences 将文本分割成句子
+// splitIntoSentences splits text into sentences
 func (c *AiSpliter) splitIntoSentences(text string) []string {
 	separators := []string{"。", "？", "?", "\n"}
 	var sentences []string

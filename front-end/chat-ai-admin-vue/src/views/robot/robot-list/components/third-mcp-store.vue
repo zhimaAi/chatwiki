@@ -2,54 +2,54 @@
   <a-modal
     v-model:open="visible"
     :zIndex="1002"
-    :title="formState.provider_id ? '编辑MCP' : '添加MCP'"
+    :title="formState.provider_id ? t('title_edit_mcp') : t('title_add_mcp')"
     width="472px"
     :confirm-loading="saving"
     @ok="save">
     <div v-if="checking" class="checking-box">
       <div class="cont">
         <a-spin/>
-        正在验证...
+        {{ t('msg_checking') }}
       </div>
     </div>
     <div class="avatar-box">
       <AvatarInput v-model:value="formState.avatar" @change="avatarChange"/>
-      <div class="tip-info">点击替换，建议尺寸为100*100px，大小不超过100kb</div>
+      <div class="tip-info">{{ t('tip_avatar') }}</div>
     </div>
     <a-form class="form-box" labelAlign="left">
-      <a-form-item label="MCP插件名称" required :colon="false">
-        <a-input v-model:value="formState.name" placeholder="请输入MCP插件名称，最多20个字" :maxlength="20"/>
+      <a-form-item :label="t('label_mcp_plugin_name')" required :colon="false">
+        <a-input v-model:value="formState.name" :placeholder="t('ph_mcp_plugin_name')" :maxlength="20"/>
       </a-form-item>
-      <a-form-item label="描述" :colon="false">
+      <a-form-item :label="t('label_description')" :colon="false">
         <a-textarea
           v-model:value="formState.description"
           :auto-size="{ minRows: 2, maxRows: 5 }"
-          placeholder="请输入描述"
+          :placeholder="t('ph_description')"
           :maxlength="120"
         />
       </a-form-item>
-      <div class="tit-box">配置信息</div>
-      <a-form-item label="插件URL" :colon="false">
-        <a-input v-model:value="formState.url" placeholder="服务端点的URL"/>
-        <div v-if="formState.provider_id" class="cFB363F">修改服务端点 URL 可能会影响使用当前 MCP的应用</div>
+      <div class="tit-box">{{ t('title_config_info') }}</div>
+      <a-form-item :label="t('label_plugin_url')" :colon="false">
+        <a-input v-model:value="formState.url" :placeholder="t('ph_plugin_url')"/>
+        <div v-if="formState.provider_id" class="cFB363F">{{ t('msg_url_warning') }}</div>
       </a-form-item>
-      <a-form-item label="超时时间" :colon="false">
+      <a-form-item :label="t('label_timeout')" :colon="false">
         <a-input-number v-model:value="formState.request_timeout" :precision="0" style="width: 100%;"
-                        placeholder="请输入超时时间"/>
+                        :placeholder="t('ph_timeout')"/>
       </a-form-item>
-      <a-form-item label="请求头" :colon="false">
-        <div class="tip-info">发送到 MCP 服务器的额外 HTTP 请求头</div>
+      <a-form-item :label="t('label_headers')" :colon="false">
+        <div class="tip-info">{{ t('tip_headers') }}</div>
         <div class="req-head-box">
           <div class="req-head-item">
-            <div class="tit">请求头名称</div>
-            <div class="tit">请求头值</div>
+            <div class="tit">{{ t('label_header_name') }}</div>
+            <div class="tit">{{ t('label_header_value') }}</div>
           </div>
           <div v-for="(item, i) in formState.headers" :key="i" class="req-head-item">
-            <a-input v-model:value="item.key" placeholder="请输入"/>
-            <a-input v-model:value="item.value" placeholder="请输入"/>
+            <a-input v-model:value="item.key" :placeholder="t('ph_input')"/>
+            <a-input v-model:value="item.value" :placeholder="t('ph_input')"/>
             <CloseCircleOutlined @click="delHeader(i)"/>
           </div>
-          <a-button class="add-btn" type="dashed" :icon="h(PlusOutlined)" @click="addHeader">添加请求头</a-button>
+          <a-button class="add-btn" type="dashed" :icon="h(PlusOutlined)" @click="addHeader">{{ t('btn_add_header') }}</a-button>
         </div>
       </a-form-item>
     </a-form>
@@ -64,6 +64,9 @@ import AvatarInput from "@/views/robot/robot-list/components/avatar-input.vue";
 import {DEFAULT_MCP_AVATAR} from "@/constants/index.js";
 import {authTMcpProvider, saveTMcpProvider} from "@/api/robot/thirdMcp.js";
 import {setShowReqError} from "@/utils/http/axios/config.js";
+import {useI18n} from '@/hooks/web/useI18n';
+
+const {t} = useI18n('views.robot.robot-list.components.third-mcp-store');
 
 const emit = defineEmits(['ok'])
 
@@ -120,14 +123,14 @@ function hasAuthDataChange() {
 }
 
 function authConfig() {
-  const hide = message.loading('保存完成，正在进行授权验证...', 0)
+  const hide = message.loading(t('msg_saving_auth'), 0)
   checking.value = true
   setTimeout(() => {
     setShowReqError(false)
     authTMcpProvider({provider_id: providerId.value}).then(res => {
-      message.success('授权完成！')
+      message.success(t('msg_auth_success'))
     }).catch(err => {
-      message.warning('授权失败：'+err.message)
+      message.warning(t('msg_auth_failed') + err.message)
     }).finally(() => {
       hide()
       checking.value = false
@@ -145,10 +148,10 @@ function save() {
     saving.value = true
     formState.name = formState.name.trim()
     formState.description = formState.description.trim()
-    if (!formState.name) throw '请输入MCP插件名称'
-    if (!formState.description) throw '请输入MCP插件描述'
-    if (!formState.url) throw '请输入服务端点的URL'
-    if (!formState.request_timeout) throw '请输入超时时间'
+    if (!formState.name) throw t('err_plugin_name_required')
+    if (!formState.description) throw t('err_plugin_desc_required')
+    if (!formState.url) throw t('err_url_required')
+    if (!formState.request_timeout) throw t('err_timeout_required')
     let data = {...formState}
     if (avatarData.value) data.avatar = avatarData.value?.file
     data.headers = {}
@@ -168,7 +171,7 @@ function save() {
         authConfig()
       } else {
         emit('ok', formState)
-        message.success('已保存')
+        message.success(t('msg_saved'))
         visible.value = false
       }
     }).finally(() => {

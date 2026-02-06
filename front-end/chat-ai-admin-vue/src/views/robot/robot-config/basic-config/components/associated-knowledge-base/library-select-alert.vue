@@ -14,7 +14,7 @@
   }
   .list-group-box {
     display: flex;
-    height: 608px;
+    height: auto;
     overflow: hidden;
   }
 
@@ -68,7 +68,6 @@
   }
   .list-item-box {
     flex: 1;
-    height: 100%;
     overflow: hidden;
     padding-top: 24px;
     .alert-box {
@@ -138,13 +137,12 @@
     }
   }
   .footer-box {
-    height: 52px;
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
     border-top: 1px solid var(--06, #d9d9d9);
-    padding: 0 24px;
+    padding: 8px 24px;
   }
 }
 </style>
@@ -160,12 +158,12 @@
     <div class="library-checkbox-box">
       <div class="list-group-box">
         <div class="group-list-box">
-          <div class="main-title-block">关联知识库</div>
+          <div class="main-title-block">{{ t('title_associate_library') }}</div>
           <div style="margin-bottom: 16px">
             <a-input
               style="width: 216px"
               v-model:value="searchKeyword"
-              placeholder="请输入知识库名称搜索"
+              :placeholder="t('ph_search_library_name')"
               @change="onSearch"
             >
               <template #suffix>
@@ -194,13 +192,13 @@
           <div class="alert-box">
             <a-alert
               class="zm-alert-info"
-              message="请选择关联知识库，机器人会根据知识库内上传的文档回复用户的提问。每个机器人最多关联5个知识库"
+              :message="t('msg_select_library_tips')"
               type="info"
             />
           </div>
           <div class="btn-box">
-            <a-button @click="onRefresh"> <SyncOutlined /> 刷新 </a-button>
-            <a-button type="primary" ghost @click="openAddLibrary">新建知识库</a-button>
+            <a-button @click="onRefresh"> <SyncOutlined /> {{ t('btn_refresh') }} </a-button>
+            <a-button type="primary" ghost @click="openAddLibrary">{{ t('btn_create_library') }}</a-button>
           </div>
           <a-spin :spinning="isRefresh" :delay="100">
             <cu-scroll style="padding: 0 16px; height: 414px">
@@ -217,12 +215,12 @@
                   <div class="title-info-block">
                     {{ item.library_name }}
                     <span class="type-tag" :class="{ 'gray-tag': item.graph_switch == 0 }"
-                      >Graph</span
+                      >{{ t('tag_graph') }}</span
                     >
-                    <span class="type-tag" v-if="item.type == 0">普通知识库</span>
-                    <span class="type-tag" v-if="item.type == 1">对外知识库</span>
-                    <span class="type-tag" v-if="item.type == 2">问答知识库</span>
-                    <span class="type-tag" v-if="item.type == 3">公众号知识库</span>
+                    <span class="type-tag" v-if="item.type == 0">{{ t('tag_normal_library') }}</span>
+                    <span class="type-tag" v-if="item.type == 1">{{ t('tag_external_library') }}</span>
+                    <span class="type-tag" v-if="item.type == 2">{{ t('tag_qa_library') }}</span>
+                    <span class="type-tag" v-if="item.type == 3">{{ t('tag_wechat_library') }}</span>
                   </div>
                   <div class="desc-info-block">{{ item.library_intro }}</div>
                 </div>
@@ -236,9 +234,9 @@
             </cu-scroll>
           </a-spin>
           <div class="footer-box">
-            <a-button @click="show = false">取消</a-button>
+            <a-button @click="show = false">{{ t('btn_cancel') }}</a-button>
             <a-button type="primary" @click="saveCheckedList">
-              ({{ state.checkedList.length }}) 确定</a-button
+              ({{ state.checkedList.length }}) {{ t('btn_confirm') }}</a-button
             >
           </div>
         </div>
@@ -253,8 +251,12 @@ import { message } from 'ant-design-vue'
 import { SearchOutlined, SyncOutlined, RightOutlined, LeftOutlined } from '@ant-design/icons-vue'
 import { getLibraryList, getLibraryListGroup } from '@/api/library/index'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useI18n } from '@/hooks/web/useI18n'
+
 const robotStore = useRobotStore()
 const { robotInfo } = robotStore
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.associated-knowledge-base.library-select-alert')
 
 const emit = defineEmits(['change'])
 const props = defineProps({
@@ -284,7 +286,7 @@ const getGroupList = () => {
     })
     groupLists.value = [
       {
-        group_name: '全部',
+        group_name: t('group_all'),
         total: totalNumber,
         id: ''
       },
@@ -371,7 +373,7 @@ const onRefresh = async () => {
 
   isRefresh.value = false
 
-  message.success('刷新完成')
+  message.success(t('msg_refresh_success'))
 }
 
 const openAddLibrary = () => {

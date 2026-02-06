@@ -3,7 +3,7 @@
     <a-modal
       v-model:open="open"
       :confirm-loading="confirmLoading"
-      title="导入问答知识库"
+      :title="t('modal_title')"
       width="746px"
       wrapClassName="no-padding-modal"
       :bodyStyle="{ 'padding-right': '24px', 'max-height': '540px', 'overflow-y': 'auto' }"
@@ -11,8 +11,8 @@
     >
       <div class="modal-box">
         <a-radio-group v-model:value="tabs" @change="handleChangeTabs">
-          <a-radio-button :value="1">导入到已有知识库</a-radio-button>
-          <a-radio-button :value="2">创建问答知识库并导入</a-radio-button>
+          <a-radio-button :value="1">{{ t('import_to_existing_library') }}</a-radio-button>
+          <a-radio-button :value="2">{{ t('create_and_import_library') }}</a-radio-button>
         </a-radio-group>
         <template v-if="tabs == 1">
           <a-divider
@@ -20,19 +20,19 @@
             orientation="left"
             orientation-margin="0px"
           >
-            请选择要导入的知识库
+            {{ t('select_library_title') }}
           </a-divider>
           <div class="filter-block">
             <a-input-search
               v-model:value="library_name"
-              placeholder="请输入知识库名称搜索"
+              :placeholder="t('search_library_placeholder')"
               style="width: 240px"
               @search="getLibraryData()"
             />
-            <a-button @click="getLibraryData(true)" :icon="createVNode(SyncOutlined)">刷新</a-button>
+            <a-button @click="getLibraryData(true)" :icon="createVNode(SyncOutlined)">{{ t('refresh_button') }}</a-button>
           </div>
           <div class="empty-block" v-if="libraryLists.length == 0">
-            <a-empty></a-empty>
+            <a-empty>{{ t('no_data') }}</a-empty>
           </div>
           <div class="list-box">
             <div
@@ -61,6 +61,11 @@ import { getLibraryList, importParagraph } from '@/api/library/index'
 import { SyncOutlined } from '@ant-design/icons-vue'
 import AddQaLibrary from './add-qa-library.vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+
+const { t } = useI18n('views.ai-extract-faq.list.components.import-knowledge-modal')
+
 const emit = defineEmits(['ok'])
 const formState = reactive({})
 
@@ -98,7 +103,7 @@ const handleSaveForm = (library_id) => {
     ids: ids.value,
   })
     .then((res) => {
-      message.success('导入成功')
+      message.success(t('import_success'))
       open.value = false
       emit('ok')
     })
@@ -108,7 +113,7 @@ const handleSaveForm = (library_id) => {
 }
 const importLibrary = () => {
   if (!selectIds.value) {
-    return message.error('请选择导入的知识库')
+    return message.error(t('select_library_error'))
   }
   handleSaveForm(selectIds.value)
 }
@@ -123,7 +128,7 @@ const getLibraryData = (isResh) => {
     show_open_docs: 1
   }).then((res) => {
     libraryLists.value = res.data.filter(item => item.type == 2)
-    isResh && message.success('刷新成功')
+    isResh && message.success(t('refresh_success'))
   })
 }
 

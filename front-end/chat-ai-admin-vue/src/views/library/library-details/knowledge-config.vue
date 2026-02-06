@@ -199,51 +199,51 @@
     <div class="add-library-page">
       <div class="form-box">
         <a-form :label-col="{ span: 6 }">
-          <a-form-item ref="name" label="知识库名称" v-bind="validateInfos.library_name">
+          <a-form-item ref="name" :label="t('label_library_name')" v-bind="validateInfos.library_name">
             <a-input
               @blur="handleEdit"
               v-model:value="formState.library_name"
-              placeholder="请输入知识库名称，最多20个字"
+              :placeholder="t('ph_library_name')"
             />
           </a-form-item>
 
-          <a-form-item label="知识库简介">
+          <a-form-item :label="t('label_library_intro')">
             <a-textarea
               @blur="handleEdit"
               v-model:value="formState.library_intro"
-              placeholder="请输入知识库介绍"
+              :placeholder="t('ph_library_intro')"
             />
           </a-form-item>
 
-          <a-form-item ref="name" label="知识库封面" v-bind="validateInfos.avatar">
+          <a-form-item ref="name" :label="t('label_library_avatar')" v-bind="validateInfos.avatar">
             <AvatarInput v-model:value="formState.avatar" @change="onAvatarChange" />
-            <div class="form-item-tip">请上传知识库封面，建议尺寸为100*100px.大小不超过100kb</div>
+            <div class="form-item-tip">{{ t('tip_library_avatar') }}</div>
           </a-form-item>
 
-          <a-form-item label="历史发布获取时间" v-if="isWxLibrary">
+          <a-form-item :label="t('label_history_time')" v-if="isWxLibrary">
             <a-select v-model:value="formState.sync_official_history_type" @change="handleEdit">
-              <a-select-option :value="10">全部</a-select-option>
-              <a-select-option :value="1">半年内</a-select-option>
-              <a-select-option :value="2">一年内</a-select-option>
-              <a-select-option :value="3">三年以内</a-select-option>
+              <a-select-option :value="10">{{ t('option_all') }}</a-select-option>
+              <a-select-option :value="1">{{ t('option_half_year') }}</a-select-option>
+              <a-select-option :value="2">{{ t('option_one_year') }}</a-select-option>
+              <a-select-option :value="3">{{ t('option_three_years') }}</a-select-option>
             </a-select>
           </a-form-item>
           <a-form-item v-if="isWxLibrary">
             <template #label>
-              <a-tooltip title="每天3:00获取最新发布内容">
-                每天获取最新发布
+              <a-tooltip :title="t('tooltip_daily_sync')">
+                {{ t('label_daily_sync') }}
                 <QuestionCircleOutlined style="cursor: pointer; margin-left: 2px" />
               </a-tooltip>
             </template>
             <a-switch
               v-model:checked="formState.enable_cron_sync_official_content"
               @change="handleEdit"
-              checked-children="开"
-              un-checked-children="关"
+              :checked-children="t('switch_on')"
+              :un-checked-children="t('switch_off')"
             ></a-switch>
           </a-form-item>
 
-          <a-form-item label="嵌入模型" v-bind="validateInfos.use_model">
+          <a-form-item :label="t('label_embedding_model')" v-bind="validateInfos.use_model">
             <div class="card-box" v-if="false">
               <div
                 class="use-model-item"
@@ -278,16 +278,16 @@
               @change="onChangeModel"
             />
           </a-form-item>
-          <a-form-item label="生成知识图谱" v-show="neo4j_status">
+          <a-form-item :label="t('label_generate_graph')" v-show="neo4j_status">
             <a-switch
               @change="handleGraphSwitch"
               :checked="formState.graph_switch"
-              checked-children="开"
-              un-checked-children="关"
+              :checked-children="t('switch_on')"
+              :un-checked-children="t('switch_off')"
             />
-            <div class="form-item-tip">开启后，可以文档列表手动点击知识图谱学习生成知识图谱</div>
+            <div class="form-item-tip">{{ t('tip_generate_graph') }}</div>
           </a-form-item>
-          <a-form-item label="知识图谱模型" v-show="formState.graph_switch && neo4j_status">
+          <a-form-item :label="t('label_graph_model')" v-show="formState.graph_switch && neo4j_status">
             <ModelSelect
               modelType="LLM"
               v-model:modeName="formState.graph_use_model"
@@ -297,7 +297,7 @@
               @loaded="onVectorModelLoaded"
             />
           </a-form-item>
-          <a-form-item label="索引方式" v-if="isQaLibrary">
+          <a-form-item :label="t('label_indexing_method')" v-if="isQaLibrary">
             <div class="indexing-methods-box">
               <div
                 class="list-item"
@@ -307,10 +307,10 @@
                 <svg-icon class="check-icon" name="check-arrow-filled"></svg-icon>
                 <div class="list-title-block">
                   <svg-icon name="file-search"></svg-icon>
-                  问题与答案一起生成索引
+                  {{ t('indexing_qa_answer_title') }}
                 </div>
                 <div class="list-content">
-                  回答用户提问时，将用户提问与导入的问题和答案一起对比相似度，根据相似度高的问题和答案回复
+                  {{ t('indexing_qa_answer_desc') }}
                 </div>
               </div>
               <div
@@ -321,18 +321,18 @@
                 <svg-icon class="check-icon" name="check-arrow-filled"></svg-icon>
                 <div class="list-title-block">
                   <svg-icon name="comment-search"></svg-icon>
-                  仅对问题生成索引
+                  {{ t('indexing_qa_question_title') }}
                 </div>
                 <div class="list-content">
-                  回答用户提问时，将用户提问与导入的问题一起对比相似度，再根据相似度高的问题和对应的答案来回复
+                  {{ t('indexing_qa_question_desc') }}
                 </div>
               </div>
             </div>
           </a-form-item>
           <template v-if="!isQaLibrary">
-            <a-form-item label="分段方式" required>
+            <a-form-item :label="t('label_segmentation_type')" required>
               <div class="form-alert-tip">
-                提示：语义分段更适合没有排版过的文章，即没有明显换行符号的文本，否则更推荐使用普通分段
+                {{ t('tip_segmentation_type') }}
               </div>
               <div class="select-card-box">
                 <div
@@ -343,10 +343,10 @@
                   <svg-icon class="check-arrow" name="check-arrow-filled"></svg-icon>
                   <div class="card-title">
                     <svg-icon name="ordinary-segmentation" class="title-icon"></svg-icon>
-                    普通分段
+                    {{ t('segmentation_ordinary_title') }}
                   </div>
                   <div class="card-desc">
-                    基于文章中句号、空行，或者自定义符号进行分段，不会消耗模型token
+                    {{ t('segmentation_ordinary_desc') }}
                   </div>
                 </div>
                 <div
@@ -357,10 +357,10 @@
                   <svg-icon class="check-arrow" name="check-arrow-filled"></svg-icon>
                   <div class="card-title">
                     <svg-icon name="semantic-segmentation" class="title-icon"></svg-icon>
-                    语义分段
+                    {{ t('segmentation_semantic_title') }}
                   </div>
                   <div class="card-desc">
-                    将文章拆分成句子后，通过语句向量相似度进行分段，会消耗模型token
+                    {{ t('segmentation_semantic_desc') }}
                   </div>
                 </div>
 
@@ -373,10 +373,10 @@
                   <svg-icon class="check-arrow" name="check-arrow-filled"></svg-icon>
                   <div class="card-title">
                     <svg-icon name="semantic-segmentation" class="title-icon"></svg-icon>
-                    父子分段
+                    {{ t('segmentation_parent_child_title') }}
                   </div>
                   <div class="card-desc">
-                    基于文章中句号等符号进行分段，不会消耗模型token。父分段会拆分为若干子分段，子块用于检索，父块用作上下文
+                    {{ t('segmentation_parent_child_desc') }}
                   </div>
                 </div>
                 <div
@@ -387,26 +387,26 @@
                   <svg-icon class="check-arrow" name="check-arrow-filled"></svg-icon>
                   <div class="card-title">
                     <svg-icon name="semantic-segmentation" class="title-icon"></svg-icon>
-                    AI分段
+                    {{ t('segmentation_ai_title') }}
                   </div>
                   <div class="card-desc">
-                    将文章提交给大模型，大模型基于设定的提示词进行分段，会消耗大量模型token
+                    {{ t('segmentation_ai_desc') }}
                   </div>
                 </div>
               </div>
             </a-form-item>
             <template v-if="formState.chunk_type == 1">
-              <a-form-item label="分段标识符" required>
+              <a-form-item :label="t('label_segmentation_separators')" required>
                 <a-select
                   @change="handleEdit"
                   v-model:value="formState.normal_chunk_default_separators_no"
                   mode="tags"
                   style="width: 100%"
-                  placeholder="请选择分段标识符"
+                  :placeholder="t('ph_segmentation_separators')"
                   :options="segmentationTags"
                 ></a-select>
               </a-form-item>
-              <a-form-item label="分段最大长度" required>
+              <a-form-item :label="t('label_segmentation_max_length')" required>
                 <a-flex :gap="8" align="center">
                   <a-input-number
                     @blur="handleEdit"
@@ -416,10 +416,10 @@
                     :min="1"
                     :max="10000"
                   />
-                  字符
+                  {{ t('unit_characters') }}
                 </a-flex>
               </a-form-item>
-              <a-form-item label="分段重叠长度">
+              <a-form-item :label="t('label_segmentation_overlap')">
                 <a-flex :gap="8" align="center">
                   <a-input-number
                     @blur="handleEdit"
@@ -429,14 +429,14 @@
                     :min="1"
                     :max="5000"
                   />
-                  字符
+                  {{ t('unit_characters') }}
                 </a-flex>
               </a-form-item>
               <a-form-item>
                 <template #label>
-                  自动合并较小分段
+                  {{ t('label_auto_merge') }}
                   <a-tooltip
-                    title="开启后，如果分段长度不足设置的最大分段长度，会尝试与下一分段合并，直至合并后的分段字符数大于分段最大长度"
+                    :title="t('tooltip_auto_merge')"
                   >
                     <QuestionCircleOutlined />
                   </a-tooltip>
@@ -446,18 +446,18 @@
                   checkedValue="false"
                   unCheckedValue="true"
                   v-model:checked="formState.normal_chunk_default_not_merged_text"
-                  checked-children="开"
-                  un-checked-children="关"
+                  :checked-children="t('switch_on')"
+                  :un-checked-children="t('switch_off')"
                 />
               </a-form-item>
             </template>
             <template v-if="formState.chunk_type == 2">
               <a-form-item required v-if="formState.chunk_type == 2">
                 <template #label>
-                  分段阈值
+                  {{ t('label_segmentation_threshold') }}
                   <a-tooltip>
                     <template #title
-                      >用于控制分段拆分的标准，数值0~100,数值越大，分段越少，数值越小，分段越多。</template
+                      >{{ t('tooltip_segmentation_threshold') }}</template
                     >
                     <QuestionCircleOutlined style="cursor: pointer; margin-left: 2px" />
                   </a-tooltip>
@@ -466,13 +466,13 @@
                   @blur="handleEdit"
                   v-model:value="formState.semantic_chunk_default_threshold"
                   style="width: 100%"
-                  placeholder="请输入分段阈值"
+                  :placeholder="t('ph_segmentation_threshold')"
                   :precision="0"
                   :min="0"
                   :max="100"
                 />
               </a-form-item>
-              <a-form-item label="分段最大长度" required>
+              <a-form-item :label="t('label_segmentation_max_length')" required>
                 <a-flex :gap="8" align="center">
                   <a-input-number
                     @blur="handleEdit"
@@ -482,10 +482,10 @@
                     :min="1"
                     :max="100000"
                   />
-                  字符
+                  {{ t('unit_characters') }}
                 </a-flex>
               </a-form-item>
-              <a-form-item label="分段重叠长度">
+              <a-form-item :label="t('label_segmentation_overlap')">
                 <a-flex :gap="8" align="center">
                   <a-input-number
                     @blur="handleEdit"
@@ -495,17 +495,17 @@
                     :min="1"
                     :max="100000"
                   />
-                  字符
+                  {{ t('unit_characters') }}
                 </a-flex>
               </a-form-item>
             </template>
 
             <template v-if="formState.chunk_type == 3">
               <a-form-item required v-if="formState.chunk_type == 3">
-                <template #label> AI大模型 </template>
+                <template #label> {{ t('label_ai_model') }} </template>
                 <ModelSelect
                   modelType="LLM"
-                  placeholder="请选择AI大模型"
+                  :placeholder="t('ph_ai_model')"
                   v-model:modeName="formState.ai_chunk_model"
                   v-model:modeId="formState.ai_chunk_model_config_id"
                   :modeName="formState.ai_chunk_model"
@@ -515,7 +515,7 @@
                   @loaded="onVectorModelLoaded"
                 />
               </a-form-item>
-              <a-form-item label="提示词设置" required>
+              <a-form-item :label="t('label_prompt_setting')" required>
                 <a-flex :gap="8" align="center">
                   <a-textarea
                     @blur="handleEdit"
@@ -528,10 +528,10 @@
               </a-form-item>
               <a-form-item>
                 <template #label>
-                  单次最大字符数
+                  {{ t('label_max_characters') }}
                   <a-tooltip>
                     <template #title
-                      >由于大模型支持的上下文数量有限制，如果上传的文档较大，会按照最大字符数先拆分成多个分段，再提交给大模型进行分段。</template
+                      >{{ t('tooltip_max_characters') }}</template
                     >
                     <QuestionCircleOutlined style="cursor: pointer; margin-left: 2px" />
                   </a-tooltip>
@@ -540,35 +540,35 @@
                   @blur="handleEdit"
                   class="form-item-inptu-numbner"
                   v-model:value="formState.ai_chunk_size"
-                  placeholder="请输入单次最大字符数"
+                  :placeholder="t('ph_max_characters')"
                   :precision="0"
                   :min="0"
                   :formatter="(value) => parseInt(value)"
                   :parser="(value) => parseInt(value)"
                 />
-                字符
+                {{ t('unit_characters') }}
               </a-form-item>
             </template>
 
             <template v-if="formState.chunk_type == 4 && !isQaLibrary">
-              <div class="main-title-block">父块（用作上下文）</div>
-              <a-form-item label="分段类型">
+              <div class="main-title-block">{{ t('title_father_chunk') }}</div>
+              <a-form-item :label="t('label_chunk_type')">
                 <a-radio-group
                   @change="handleEdit"
                   v-model:value="formState.father_chunk_paragraph_type"
                 >
                   <a-radio :value="1"
-                    >全文
+                    >{{ t('radio_full_text') }}
                     <a-tooltip
-                      title="整个文档用作父块并直接检索。请注意，出于性能原因，超过 10000 个标记的文本将被自动截断。"
+                      :title="t('tooltip_full_text')"
                     >
                       <QuestionCircleOutlined />
                     </a-tooltip>
                   </a-radio>
                   <a-radio :value="2"
-                    >段落
+                    >{{ t('radio_paragraph') }}
                     <a-tooltip
-                      title="此模式根据分隔符和最大块长度将文本拆分为段落，使用拆分文本作为检索的父块"
+                      :title="t('tooltip_paragraph')"
                     >
                       <QuestionCircleOutlined />
                     </a-tooltip>
@@ -576,9 +576,9 @@
                 </a-radio-group>
               </a-form-item>
 
-              <a-form-item label="分段标识符" v-if="formState.father_chunk_paragraph_type == 2">
+              <a-form-item :label="t('label_segmentation_separators')" v-if="formState.father_chunk_paragraph_type == 2">
                 <a-select
-                  placeholder="请选择"
+                  :placeholder="t('ph_select')"
                   @change="handleEdit"
                   style="width: 100%"
                   mode="tags"
@@ -587,26 +587,26 @@
                 >
                 </a-select>
               </a-form-item>
-              <a-form-item label="分段最大长度" v-if="formState.father_chunk_paragraph_type == 2">
+              <a-form-item :label="t('label_segmentation_max_length')" v-if="formState.father_chunk_paragraph_type == 2">
                 <a-flex align="center" :gap="8">
                   <a-input-number
                     style="flex: 1"
                     @blur="handleEdit"
                     v-model:value="formState.father_chunk_chunk_size"
-                    placeholder="分段最大长度"
+                    :placeholder="t('ph_chunk_max_length')"
                     :min="200"
                     :max="10000"
                     :precision="0"
                     :formatter="(value) => parseInt(value)"
                     :parser="(value) => parseInt(value)"
-                  /><span class="unit-text">字符</span>
+                  /><span class="unit-text">{{ t('unit_characters') }}</span>
                 </a-flex>
               </a-form-item>
-              <div class="main-title-block">子块（用于检索）</div>
+              <div class="main-title-block">{{ t('title_son_chunk') }}</div>
 
-              <a-form-item label="分段标识符">
+              <a-form-item :label="t('label_segmentation_separators')">
                 <a-select
-                  placeholder="请选择"
+                  :placeholder="t('ph_select')"
                   @change="handleEdit"
                   style="width: 100%"
                   mode="tags"
@@ -615,19 +615,19 @@
                 >
                 </a-select>
               </a-form-item>
-              <a-form-item label="分段最大长度">
+              <a-form-item :label="t('label_segmentation_max_length')">
                 <a-flex align="center" :gap="8">
                   <a-input-number
                     style="flex: 1"
                     @blur="handleEdit"
                     v-model:value="formState.son_chunk_chunk_size"
-                    placeholder="分段最大长度"
+                    :placeholder="t('ph_chunk_max_length')"
                     :min="200"
                     :max="10000"
                     :precision="0"
                     :formatter="(value) => parseInt(value)"
                     :parser="(value) => parseInt(value)"
-                  /><span class="unit-text">字符</span>
+                  /><span class="unit-text">{{ t('unit_characters') }}</span>
                 </a-flex>
               </a-form-item>
             </template>
@@ -651,7 +651,9 @@ import ModelSelect from '@/components/model-select/model-select.vue'
 import OpenGrapgModal from './components/open-grapg-modal.vue'
 import { useCompanyStore } from '@/stores/modules/company'
 import { formatSeparatorsNo } from '@/utils/index'
+import { useI18n } from '@/hooks/web/useI18n'
 
+const { t } = useI18n('views.library.library-details.knowledge-config')
 const companyStore = useCompanyStore()
 const neo4j_status = computed(() => {
   return companyStore.companyInfo?.neo4j_status == 'true'
@@ -661,8 +663,7 @@ const rotue = useRoute()
 const router = useRouter()
 const query = rotue.query
 const defaultAvatar = LIBRARY_OPEN_AVATAR
-const defaultAiChunkPrumpt =
-  '你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。'
+const defaultAiChunkPrumpt = t('default_ai_chunk_prompt')
 
 const formState = reactive({
   library_name: '',
@@ -796,8 +797,8 @@ const libraryModeList = ref([
 const useForm = Form.useForm
 
 const rules = reactive({
-  library_name: [{ required: true, message: '请输入库名称', trigger: 'blur' }],
-  use_model: [{ required: true, message: '请选择嵌入模型', trigger: 'change' }]
+  library_name: [{ required: true, message: t('validator_library_name_required'), trigger: 'blur' }],
+  use_model: [{ required: true, message: t('validator_embedding_model_required'), trigger: 'change' }]
 })
 
 const { validateInfos } = useForm(formState, rules)
@@ -896,10 +897,10 @@ const handleOpenGrapgOk = (data) => {
     formState.graph_use_model = data.graph_use_model
     handleEdit(() => {
       Modal.confirm({
-        title: '已开启知识图谱',
-        content: '您可以在文档列表中点击知识图谱学习，系統将在您手动操作后开始抽取知识图谱',
-        cancelText: '知道了',
-        okText: '去学习',
+        title: t('modal_graph_enabled_title'),
+        content: t('modal_graph_enabled_content'),
+        cancelText: t('modal_graph_enabled_cancel'),
+        okText: t('modal_graph_enabled_ok'),
         icon: h(CheckCircleFilled, { style: { color: '#52c41a' } }),
         onOk: () =>
           router.push({
@@ -913,7 +914,7 @@ const handleOpenGrapgOk = (data) => {
 
 const handleEdit = (callback = null) => {
   if (!formState.library_name) {
-    return message.error('请输入知识库名称')
+    return message.error(t('validator_library_name'))
   }
   let data = {
     library_name: formState.library_name,
@@ -954,7 +955,7 @@ const handleEdit = (callback = null) => {
     data.avatar = formState.avatar_file
   }
   editLibrary(data).then((res) => {
-    typeof callback === 'function' ? callback() : message.success('修改成功')
+    typeof callback === 'function' ? callback() : message.success(t('msg_edit_success'))
   })
 }
 

@@ -1,0 +1,22 @@
+{
+  "default_ai_chunk_prompt": "你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。",
+  "breadcrumb_knowledge_base": "知识库管理",
+  "breadcrumb_knowledge_base_suffix": "知识库",
+  "breadcrumb_segmentation_setting": "分段设置",
+  "page_title": "文档分段与清洗",
+  "segmentation_preview": "分段预览",
+  "fragment_total": "共{total}个分段",
+  "data_processing": "数据处理中...",
+  "alert_reminder": "提醒",
+  "alert_content_changed": "文档片段已被编辑重新获取文档片段会丢失当前修改过的文档片段内容，确定要重新获取吗？",
+  "alert_confirm": "确定",
+  "alert_cancel": "取消",
+  "alert_parse_slow": "文档解析速度慢请稍后再试",
+  "alert_segmentation_failed": "分段失败提示",
+  "alert_model_failed": "模型调用失败",
+  "alert_model_failed_reason": "模型调用失败，失败原因：{reason}",
+  "alert_delete_fragment": "确定要删除这个片段吗?",
+  "alert_exit_confirm": "确定要退出吗?",
+  "message_save_success": "保存成功",
+  "message_request_exception": "请求异常，停止轮询"
+}

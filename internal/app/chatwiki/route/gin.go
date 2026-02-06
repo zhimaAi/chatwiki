@@ -59,6 +59,8 @@ func init() {
 	Route[http.MethodPost]["/manage/saveTopNavigate"] = manage.SaveTopNavigate
 	Route[http.MethodPost]["/manage/saveAliOcr"] = manage.SaveAliOcr
 	Route[http.MethodPost][`/manage/checkAliOcr`] = manage.CheckAliOcr
+	Route[http.MethodPost]["/manage/saveCookieTip"] = manage.SaveCookieTip
+	noAuthFuns(Route[http.MethodGet], `/manage/getCookieTip`, manage.GetCookieTip)
 
 	/*robot API*/
 	noAuthFuns(Route[http.MethodPost], `/manage/upload`, manage.Upload)

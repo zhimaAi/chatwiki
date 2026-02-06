@@ -2,17 +2,17 @@
   <div class="user-model-page">
     <!-- <div class="page-title">智能菜单</div> -->
     <div class="switch-block">
-      <span class="switch-title">智能菜单</span>
-      <a-switch @change="smartMenuSwitchChange" :checked="smartMenuStatus" checked-children="开"
-        un-checked-children="关" />
+      <span class="switch-title">{{ t('title_smart_menu') }}</span>
+      <a-switch @change="smartMenuSwitchChange" :checked="smartMenuStatus" :checked-children="t('switch_on')"
+        :un-checked-children="t('switch_off')" />
       <span class="switch-desc">
-        开启后，该智能菜单可以被关键词回复等功能调用
+        {{ t('switch_desc') }}
       </span>
     </div>
     <a-alert>
       <template #message>
-        <p>智能菜单是一种便捷的问题组合，客户可以点击菜单选项，直接触发对应的自动回复。</p>
-        <p>使用方法：第一步先添加智能菜单，第二步在各种自动回复内调用智能菜单，比如在关键词回复内引用这个菜单，那么在客户发送消息时，就会回复对应的菜单</p>
+        <p>{{ t('alert_description') }}</p>
+        <p>{{ t('alert_usage') }}</p>
       </template>
     </a-alert>
     <div class="search-block">
@@ -21,14 +21,14 @@
           <template #icon>
             <PlusOutlined />
           </template>
-          新增智能菜单
+          {{ t('btn_add_smart_menu') }}
         </a-button>
       </div>
     </div>
     <div class="list-box">
       <!-- 空状态 -->
       <div v-if="smartList.length === 0" class="list-empty">
-        <ListEmpty size="200" />
+        <ListEmpty size="200" :text="t('text_no_data')" />
       </div>
       <div v-else class="list-grid">
         <div class="list-card" v-for="it in smartList" :key="it.id">
@@ -54,7 +54,7 @@
           <div class="card-footer">
             <div class="footer-left">
               <div class="menu-name">{{ it.menu_title }}</div>
-              <div class="update-time">更新于{{ formatDateFn(it.update_time, 'YYYY-MM-DD') }}</div>
+              <div class="update-time">{{ t('text_updated_on') }}{{ formatDateFn(it.update_time, 'YYYY-MM-DD') }}</div>
             </div>
             <a-dropdown placement="bottomRight">
               <a class="more-btn" @click.prevent>
@@ -62,8 +62,8 @@
               </a>
               <template #overlay>
                 <a-menu>
-                  <a-menu-item key="edit" @click="handleEdit(it)">编辑</a-menu-item>
-                  <a-menu-item key="del" @click="handleDelete(it)" style="color: #FF4D4F;">删除</a-menu-item>
+                  <a-menu-item key="edit" @click="handleEdit(it)">{{ t('btn_edit') }}</a-menu-item>
+                  <a-menu-item key="del" @click="handleDelete(it)" style="color: #FF4D4F;">{{ t('btn_delete') }}</a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -84,6 +84,9 @@ import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import { DEFAULT_ROBOT_AVATAR } from '@/constants/index'
 import ListEmpty from '@/views/robot/robot-config/function-center/components/list-empty.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.smart-menu.smart-menu')
 
 const robotStore = useRobotStore()
 // 来自左侧菜单的能力开关（关键词回复）
@@ -124,15 +127,15 @@ function buildPreviewLines (list) {
       if (t === 'text') {
         if (rc?.description) lines.push({ text: rc.description })
       } else if (t === 'imageText') {
-        const txt = rc?.title || rc?.description || '图文链接'
+        const txt = rc?.title || rc?.description || t('text_image_text_link')
         lines.push({ text: txt, url: rc?.url })
       } else if (t === 'url') {
-        const txt = rc?.title || '链接'
+        const txt = rc?.title || t('text_link')
         lines.push({ text: txt, url: rc?.url })
       } else if (t === 'image') {
-        lines.push({ text: '图片' })
+        lines.push({ text: t('text_image') })
       } else if (t === 'card') {
-        const txt = rc?.title || '小程序卡片'
+        const txt = rc?.title || t('text_mini_program_card')
         lines.push({ text: txt })
       }
     })
@@ -215,14 +218,13 @@ const handleCopy = (record) => {
 }
 
 const handleDelete = (record) => {
-  // 确认删除
   Modal.confirm({
-    title: '确认删除吗？',
-    okText: '确认',
+    title: t('msg_confirm_delete'),
+    okText: t('btn_confirm'),
     onOk: () => {
       deleteSmartMenu({ id: record.id, robot_id: query.id }).then((res) => {
         if (res && res.res == 0) {
-          message.success('删除成功')
+          message.success(t('msg_delete_success'))
           getTableData()
         }
       })
@@ -234,14 +236,14 @@ const smartMenuSwitchChange = (checked) => {
   const switch_status = checked ? '1' : '0'
   if (!checked) {
     Modal.confirm({
-      title: '确认关闭智能菜单吗？',
-      okText: '确认',
-      cancelText: '取消',
+      title: t('msg_confirm_close'),
+      okText: t('btn_confirm'),
+      cancelText: t('btn_cancel'),
       onOk() {
         saveRobotAbilitySwitchStatus({ robot_id: query.id, ability_type: 'robot_smart_menu', switch_status }).then((res) => {
           if (res && res.res == 0) {
             robotStore.setSmartMenuSwitchStatus(switch_status)
-            message.success('操作成功')
+            message.success(t('msg_operation_success'))
             window.dispatchEvent(new CustomEvent('robotAbilityUpdated', { detail: { robotId: query.id } }))
           }
         })
@@ -252,7 +254,7 @@ const smartMenuSwitchChange = (checked) => {
   saveRobotAbilitySwitchStatus({ robot_id: query.id, ability_type: 'robot_smart_menu', switch_status }).then((res) => {
     if (res && res.res == 0) {
       robotStore.setSmartMenuSwitchStatus(switch_status)
-      message.success('操作成功')
+      message.success(t('msg_operation_success'))
       window.dispatchEvent(new CustomEvent('robotAbilityUpdated', { detail: { robotId: query.id } }))
     }
   })

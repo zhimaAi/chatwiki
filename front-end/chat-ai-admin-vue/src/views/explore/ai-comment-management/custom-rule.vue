@@ -1,8 +1,15 @@
 <template>
   <div class="custom-rule-page">
     <div class="toolbar">
-      <a-button type="primary" @click="goCreate">添加规则</a-button>
-      <a-input-search v-model:value="searchKey" allowClear placeholder="请输入规则名称搜索" style="width: 300px" @search="search" @pressEnter="search" />
+      <a-button type="primary" @click="goCreate">{{ t('btn_add_rule') }}</a-button>
+      <a-input-search
+        v-model:value="searchKey"
+        allowClear
+        :placeholder="t('search_rule_name_placeholder')"
+        style="width: 300px"
+        @search="search"
+        @pressEnter="search"
+      />
     </div>
 
     <div class="table-box">
@@ -33,11 +40,11 @@
           <template v-else-if="column.key==='task_info'">
             <span v-if="(record.task_info || []).length === 0">-</span>
             <template v-else>
-              <span>{{ (record.task_info || []).slice(0, 2).map(it => it.task_name).join('，') }}</span>
+              <span>{{ (record.task_info || []).slice(0, 2).map(it => it.task_name).join(', ') }}</span>
               <a-popover v-if="(record.task_info || []).length > 2" trigger="hover" placement="top">
                 <template #content>
                   <div style="max-width: 360px; white-space: normal;">
-                    {{ (record.task_info || []).map(it => it.task_name).join('，') }}
+                    {{ (record.task_info || []).map(it => it.task_name).join(', ') }}
                   </div>
                 </template>
                 <a style="margin-left: 4px">+{{ (record.task_info || []).length - 2 }}</a>
@@ -49,10 +56,10 @@
           </template>
           <template v-else-if="column.key==='actions'">
             <a-space>
-              <a @click="editRule(record)">编辑</a>
-              <span v-if="record.is_default == '1'" class="actions-disabled">删除</span>
-              <a v-else @click="delRule(record)">删除</a>
-              <a @click="copyRule(record)">复制</a>
+              <a @click="editRule(record)">{{ t('action_edit') }}</a>
+              <span v-if="record.is_default == '1'" class="actions-disabled">{{ t('action_delete') }}</span>
+              <a v-else @click="delRule(record)">{{ t('action_delete') }}</a>
+              <a @click="copyRule(record)">{{ t('action_copy') }}</a>
             </a-space>
           </template>
         </template>
@@ -67,8 +74,10 @@ import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import { getCommentRuleList, deleteCommentRule, changeCommentRuleStatus } from '@/api/robot'
+import { useI18n } from '@/hooks/web/useI18n'
 
 const router = useRouter()
+const { t } = useI18n('views.explore.ai-comment-management.custom-rule')
 
 const searchKey = ref('')
 const ruleList = ref([])
@@ -76,14 +85,14 @@ const loading = ref(false)
 const pager = reactive({ page: 1, size: 10, total: 0 })
 
 const columns = [
-  { title: '规则名', dataIndex: 'rule_name', key: 'rule_name' },
-  { title: '自动删评', dataIndex: 'delete_comment_switch', key: 'delete_comment_switch' },
-  { title: '自动回复评论', dataIndex: 'reply_comment_switch', key: 'reply_comment_switch' },
-  { title: '评论精选', dataIndex: 'elect_comment_switch', key: 'elect_comment_switch' },
-  { title: '生效群发文章', dataIndex: 'task_info', key: 'task_info' },
-  { title: '规则启用', dataIndex: 'switch', key: 'switch' },
-  { title: '创建时间', dataIndex: 'create_time', key: 'create_time' },
-  { title: '操作', dataIndex: 'actions', key: 'actions' },
+  { title: t('column_rule_name'), dataIndex: 'rule_name', key: 'rule_name' },
+  { title: t('column_delete_comment'), dataIndex: 'delete_comment_switch', key: 'delete_comment_switch' },
+  { title: t('column_reply_comment'), dataIndex: 'reply_comment_switch', key: 'reply_comment_switch' },
+  { title: t('column_elect_comment'), dataIndex: 'elect_comment_switch', key: 'elect_comment_switch' },
+  { title: t('column_task_info'), dataIndex: 'task_info', key: 'task_info' },
+  { title: t('column_switch'), dataIndex: 'switch', key: 'switch' },
+  { title: t('column_create_time'), dataIndex: 'create_time', key: 'create_time' },
+  { title: t('column_actions'), dataIndex: 'actions', key: 'actions' },
 ]
 
 const loadList = () => {
@@ -103,23 +112,23 @@ const onTableChange = (pagination) => {
 }
 
 const switchMap = {
-  delete_comment_switch: '自动删评',
-  reply_comment_switch: '自动回复评论',
-  elect_comment_switch: '评论精选',
-  switch: '规则启用',
+  delete_comment_switch: t('switch_delete_comment'),
+  reply_comment_switch: t('switch_reply_comment'),
+  elect_comment_switch: t('switch_elect_comment'),
+  switch: t('switch_rule_enable'),
 }
 
 const onToggle = async (record, field, checked) => {
   if (!checked) {
     Modal.confirm({
-      title: '提示',
-      content: `确认关闭${record.rule_name}中的${switchMap[field]}？`,
+      title: t('confirm_modal_title'),
+      content: t('confirm_close_switch', { rule_name: record.rule_name, switch_name: switchMap[field] }),
       icon: createVNode(ExclamationCircleOutlined),
       onOk: async () => {
         const val = checked ? 1 : 0
         await changeCommentRuleStatus({ id: record.id, change_fields: field, switch_status: val })
         record[field] = String(val)
-        message.success('操作成功')
+        message.success(t('message_operation_success'))
       }
     })
     return
@@ -127,7 +136,7 @@ const onToggle = async (record, field, checked) => {
   const val = checked ? 1 : 0
   await changeCommentRuleStatus({ id: record.id, change_fields: field, switch_status: val })
   record[field] = String(val)
-  message.success('操作成功')
+  message.success(t('message_operation_success'))
 }
 
 const editRule = (record) => {
@@ -138,13 +147,14 @@ const copyRule = (record) => {
 }
 const delRule = (record) => {
   Modal.confirm({
-    title: '确认删除该规则，删除后，使用该规则的群发，会使用默认规则？',
+    title: t('confirm_delete_rule_title'),
     icon: createVNode(ExclamationCircleOutlined),
     onOk: async () => {
       await deleteCommentRule({ id: record.id })
-      message.success('删除成功')
+      message.success(t('message_delete_success'))
       loadList()
-    }
+    },
+    content: t('confirm_delete_rule_content'),
   })
 }
 

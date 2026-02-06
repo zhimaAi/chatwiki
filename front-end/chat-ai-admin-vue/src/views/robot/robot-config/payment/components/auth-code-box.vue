@@ -3,71 +3,71 @@
     <div class="overview-box">
       <div class="overview-block">
         <div class="overview-item">
-          <div class="tit">今日生成 (次)
+          <div class="tit">{{ t('title_today_generate') }}
             <QuestionCircleOutlined/>
           </div>
           <div class="count">{{ statData.today_generate_count }}</div>
           <div class="val">
-            <span class="label">价格 (元）：</span>{{ statData.today_generate_price || 0}}
+            <span class="label">{{ t('label_price') }}：</span>{{ statData.today_generate_price || 0}}
           </div>
         </div>
         <div class="overview-item">
-          <div class="tit">昨日生成 (次)
+          <div class="tit">{{ t('title_yesterday_generate') }}
             <QuestionCircleOutlined/>
           </div>
           <div class="count">{{ statData.yesterday_generate_count }}</div>
           <div class="val">
-            <span class="label">价格 (元）：</span>{{ statData.yesterday_generate_price  || 0 }}
+            <span class="label">{{ t('label_price') }}：</span>{{ statData.yesterday_generate_price  || 0 }}
           </div>
         </div>
         <div class="overview-item">
-          <div class="tit">累计生成 (次)
+          <div class="tit">{{ t('title_total_generate') }}
             <QuestionCircleOutlined/>
           </div>
           <div class="count">{{ statData.total_generate_count }}</div>
           <div class="val">
-            <span class="label">价格 (元）：</span>{{ statData.total_generate_price || 0}}
+            <span class="label">{{ t('label_price') }}：</span>{{ statData.total_generate_price || 0}}
           </div>
         </div>
       </div>
       <div class="overview-block">
         <div class="overview-item">
-          <div class="tit">今日兑换 (次)
+          <div class="tit">{{ t('title_today_exchange') }}
             <QuestionCircleOutlined/>
           </div>
           <div class="count">{{ statData.today_exchange_count }}</div>
           <div class="val">
-            <span class="label">价格 (元）：</span>{{ statData.today_exchange_price || 0}}
+            <span class="label">{{ t('label_price') }}：</span>{{ statData.today_exchange_price || 0}}
           </div>
         </div>
         <div class="overview-item">
-          <div class="tit">昨日兑换 (次)
+          <div class="tit">{{ t('title_yesterday_exchange') }}
             <QuestionCircleOutlined/>
           </div>
           <div class="count">{{ statData.yesterday_exchange_count }}</div>
           <div class="val">
-            <span class="label">价格 (元）：</span>{{ statData.yesterday_exchange_price || 0}}
+            <span class="label">{{ t('label_price') }}：</span>{{ statData.yesterday_exchange_price || 0}}
           </div>
         </div>
         <div class="overview-item">
-          <div class="tit">累计兑换 (次)
+          <div class="tit">{{ t('title_total_exchange') }}
             <QuestionCircleOutlined/>
           </div>
           <div class="count">{{ statData.total_exchange_count }}</div>
           <div class="val">
-            <span class="label">价格 (元）：</span>{{ statData.total_exchange_price || 0}}
+            <span class="label">{{ t('label_price') }}：</span>{{ statData.total_exchange_price || 0}}
           </div>
         </div>
       </div>
     </div>
     <div class="main-box">
       <div class="main-tit">
-        授权码管理员
+        {{ t('title_auth_code_manager') }}
         <a-divider type="vertical"/>
-        <span class="tip-info">管理员使用不收费，管理员在聊天框内回复【授权码】可直接新建授权码</span>
+        <span class="tip-info">{{ t('msg_manager_tip') }}</span>
       </div>
       <div>
-        <a-button type="primary" ghost @click="showManagerModal"><PlusOutlined/> 新增管理员</a-button>
+        <a-button type="primary" ghost @click="showManagerModal"><PlusOutlined/> {{ t('btn_add_manager') }}</a-button>
         <div class="user-list">
           <a-tag v-for="item in managers" :key="item.id">
             <img class="avatar" :src="item.manager_avatar"/>
@@ -78,27 +78,27 @@
       </div>
     </div>
     <div class="main-box">
-      <div class="main-tit">授权码明细</div>
+      <div class="main-tit">{{ t('title_auth_code_detail') }}</div>
       <div>
         <div class="filter-box">
           <div class="left">
-            <a-input v-model:value.trim="filterData.content" @change="search" allow-clear placeholder="搜索授权码" style="width: 200px">
+            <a-input v-model:value.trim="filterData.content" @change="search" allow-clear :placeholder="t('ph_search_code')" style="width: 200px">
               <template #suffix>
                 <SearchOutlined/>
               </template>
             </a-input>
-            <a-input v-model:value.trim="filterData.openid" @change="search" allow-clear placeholder="搜索openid" style="width: 200px">
+            <a-input v-model:value.trim="filterData.openid" @change="search" allow-clear :placeholder="t('ph_search_openid')" style="width: 200px">
               <template #suffix>
                 <SearchOutlined/>
               </template>
             </a-input>
-            <a-select v-model:value="filterData.usage_status" @change="search" allow-clear placeholder="使用状态" style="width: 200px">
+            <a-select v-model:value="filterData.usage_status" @change="search" allow-clear :placeholder="t('label_usage_status')" style="width: 200px">
               <a-select-option v-for="(text, key) in usageStatusMap" :key="key" :value="key">{{ text }}</a-select-option>
             </a-select>
           </div>
           <div class="right">
-            <a-button @click="exportData">导 出</a-button>
-            <a-button type="primary" @click="showCodeModal"><PlusOutlined/> 新 增</a-button>
+            <a-button @click="exportData">{{ t('btn_export') }}</a-button>
+            <a-button type="primary" @click="showCodeModal"><PlusOutlined/> {{ t('btn_add') }}</a-button>
           </div>
         </div>
         <a-table
@@ -122,7 +122,7 @@
               </a-tooltip>
             </template>
             <template v-if="'action' === column.dataIndex">
-              <a @click="delCode(record)">删除</a>
+              <a @click="delCode(record)">{{ t('btn_delete') }}</a>
             </template>
           </template>
         </a-table>
@@ -150,6 +150,9 @@ import {
   getAuthCodeStats
 } from "@/api/robot/payment.js";
 import {tableToExcel, copyText} from "@/utils/index.js";
+import {useI18n} from '@/hooks/web/useI18n';
+
+const {t} = useI18n('views.robot.robot-config.payment.components.auth-code-box')
 
 const props = defineProps({
   config: {
@@ -178,67 +181,67 @@ const managers = ref([])
 const list = ref([])
 const columns = ref([
   {
-    title: '授权码',
+    title: t('label_auth_code'),
     dataIndex: 'content',
     width: 200,
   },
   {
-    title: '套餐名',
+    title: t('label_package_name'),
     dataIndex: 'package_name',
     width: 100,
   },
   {
-    title: '时长 (天)',
+    title: t('label_duration'),
     dataIndex: 'package_duration',
     width: 120,
   },
   {
-    title: '次数 (次)',
+    title: t('label_count'),
     dataIndex: 'package_count',
     width: 120,
   },
   {
-    title: '费用 (元)',
+    title: t('label_cost'),
     dataIndex: 'package_price',
     width: 100,
   },
   {
-    title: '使用状态',
+    title: t('label_usage_status'),
     dataIndex: 'usage_status_text',
     width: 120,
   },
   {
-    title: '兌换人',
+    title: t('label_exchanger'),
     dataIndex: 'exchanger_openid',
     width: 160,
   },
   {
-    title: '兑换时间',
+    title: t('label_exchange_time'),
     dataIndex: 'exchange_date',
     width: 160,
   },
   {
-    title: '使用时间',
+    title: t('label_use_time'),
     dataIndex: 'use_date',
     width: 160,
   },
   {
-    title: '创建时间',
+    title: t('label_create_time'),
     dataIndex: 'create_date',
     width: 160,
   },
   {
-    title: '创建人',
+    title: t('label_creator'),
     dataIndex: 'creator_name',
     width: 100,
   },
   {
-    title: '备注',
+    title: t('label_remark'),
     dataIndex: 'remark',
     width: 160,
   },
   {
-    title: '操作',
+    title: t('label_action'),
     dataIndex: 'action',
     fixed: 'right',
     width: 100,
@@ -255,9 +258,9 @@ const pagination = reactive({
   total: 0
 })
 const usageStatusMap = {
-  1: '未使用',
-  2: '已兑换',
-  3: '已使用',
+  1: t('usage_status_unused'),
+  2: t('usage_status_exchanged'),
+  3: t('usage_status_used'),
 }
 const packages = computed(() => {
   let res = props.config?.package_type == 1 ? props.config.count_package : props.config.duration_package
@@ -337,14 +340,14 @@ function showCodeModal() {
 
 function delCode(record) {
   Modal.confirm({
-    title: `提示`,
+    title: t('title_confirm'),
     icon: h(ExclamationCircleOutlined),
-    content: `确认删除该授权码?`,
-    okText: '确 定',
-    cancelText: '取 消',
+    content: t('msg_confirm_delete_code'),
+    okText: t('btn_confirm'),
+    cancelText: t('btn_cancel'),
     onOk() {
       delAuthCode({id: record.id}).then(() => {
-        message.success('已删除')
+        message.success(t('msg_deleted'))
         loadData()
       })
     }
@@ -353,14 +356,14 @@ function delCode(record) {
 
 function delManager(record) {
   Modal.confirm({
-    title: `提示`,
+    title: t('title_confirm'),
     icon: h(ExclamationCircleOutlined),
-    content: `确认删除该管理员?`,
-    okText: '确 定',
-    cancelText: '取 消',
+    content: t('msg_confirm_delete_manager'),
+    okText: t('btn_confirm'),
+    cancelText: t('btn_cancel'),
     onOk() {
       delAuthCodeManager({id: record.id, robot_id: route.query.id}).then(() => {
-        message.success('已删除')
+        message.success(t('msg_deleted'))
         loadManagers()
       })
     }
@@ -374,12 +377,12 @@ function exportData() {
     str.push(item.title)
     fields.push(item.dataIndex)
   })
-  tableToExcel(str.toString()+ '\n', list.value, fields, `${route.query.robot_key}授权码明细.csv`)
+  tableToExcel(str.toString()+ '\n', list.value, fields, `${route.query.robot_key}${t('title_auth_code_detail')}.csv`)
 }
 
 function copy(text) {
   copyText(text)
-  message.success('复制成功')
+  message.success(t('msg_copied'))
 }
 </script>
 

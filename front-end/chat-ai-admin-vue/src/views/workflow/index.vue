@@ -67,7 +67,7 @@
       </div>
     </div>
     <AddRobotAlert ref="addRobotAlertRef" />
-    <VersionModel ref="versionModelRef" />
+    <VersionModel ref="versionModelRef" @handleOpenErrorNode="handleOpenErrorNode" />
     <PublishDetail
       ref="publishDetailRef"
       @preview="handlePreviewVersion"
@@ -79,7 +79,7 @@
 
 <script setup>
 import { useWorkflowStore } from '@/stores/modules/workflow'
-import { getNodeList, saveNodes, getDraftKey } from '@/api/robot/index'
+import { getNodeList, saveNodes, getDraftKey, workFlowNextVersion } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
 import { generateUniqueId, duplicateRemoval, removeRepeat } from '@/utils/index'
 import { onMounted, ref, onUnmounted, watch, computed, h, provide} from 'vue'
@@ -96,7 +96,10 @@ import PublishDetail from './components/publish-detail.vue'
 import { getModelConfigOption } from '@/api/model/index'
 import { getModelOptionsList } from '@/components/model-select/index.js'
 import { useModelStore } from '@/stores/modules/model'
-import {downloadPlugin, openPlugin} from "@/api/plugins/index.js";
+import {downloadPlugin, openPlugin} from "@/api/plugins/index.js"
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.index')
 
 const modelStore = useModelStore()
 
@@ -381,7 +384,7 @@ function startInactivityWatcher () {
       const idle = Date.now() - lastChangeTs
       if (idle >= INACTIVITY_MS) {
         autoSaveEnabled.value = false
-        message.warning('已超过5分钟无改动，自动保存已暂停')
+        message.warning(t('msg_auto_save_paused'))
         updateAutoSaveTimer()
       }
     }
@@ -637,7 +640,7 @@ const handleSave = async (type) => {
   if (isLockedByOther.value) {
     // 手动保存时给出提示，自动保存静默跳过
     if (type === 'handle') {
-      message.warning('当前已有其他用户在编辑中，无法保存')
+      message.warning(t('msg_save_locked_by_other'))
     }
     return
   }
@@ -661,9 +664,9 @@ const handleSave = async (type) => {
     }
 
     const result = await confirmOverrideAndSave(basePayload, false)
-    console.log('result', 2)
+  
     if (result.saved) {
-      message.success('保存成功')
+      message.success(t('msg_save_success'))
     } else if (!result.behind) {
       // message.error('保存失败，请稍后重试')
     }
@@ -698,7 +701,7 @@ let autoBehindConfirming = false
 let autoBehindPromptShown = false // 本会话内已提示过自动保存覆盖
 let lastAutoBehindPromptTs = 0 // 上次提示时间戳
 const AUTO_PROMPT_COOLDOWN_MS = 2 * 60 * 1000 // 自动保存覆盖弹窗最短提示间隔
-const BEHIND_MODAL_TEXT = '当前草稿已经不是最新的草稿版本，保存后会覆盖，确认保存么？'
+const BEHIND_MODAL_TEXT = computed(() => t('msg_confirm_override_draft'))
 
 async function confirmOverrideAndSave (basePayload, isAuto) {
   try {
@@ -732,11 +735,11 @@ async function confirmOverrideAndSave (basePayload, isAuto) {
 
     return await new Promise((resolve) => {
       Modal.confirm({
-        title: '提示',
+        title: t('title_prompt'),
         icon: null,
-        content: BEHIND_MODAL_TEXT,
-        okText: '确 定',
-        cancelText: '取 消',
+        content: BEHIND_MODAL_TEXT.value,
+        okText: t('btn_confirm'),
+        cancelText: t('btn_cancel'),
         async onOk () {
           const forcePayload = { ...basePayload, re_cover_save: 1, uni_identifier: getUniIdentifier(), user_agent: buildUserAgent() }
           const res2 = await saveNodes(forcePayload)
@@ -786,11 +789,11 @@ async function confirmOverrideAndSave (basePayload, isAuto) {
     }
     return await new Promise((resolve) => {
       Modal.confirm({
-        title: '提示',
+        title: t('title_prompt'),
         icon: null,
-        content: BEHIND_MODAL_TEXT,
-        okText: '确 定',
-        cancelText: '取 消',
+        content: BEHIND_MODAL_TEXT.value,
+        okText: t('btn_confirm'),
+        cancelText: t('btn_cancel'),
         async onOk () {
           const forcePayload = { ...basePayload, re_cover_save: 1, uni_identifier: getUniIdentifier(), user_agent: buildUserAgent() }
           const res2 = await saveNodes(forcePayload)
@@ -877,7 +880,7 @@ const openVersionModel = (node_list) => {
 // 发布机器人
 const handleRelease = async () => {
   if (isLockedByOther.value) {
-    message.warning('当前已有其他用户在编辑中，无法发布')
+    message.warning(t('msg_publish_locked_by_other'))
     return
   }
   let list = getCanvasData()
@@ -911,8 +914,8 @@ const handleRelease = async () => {
   }
 
   if (errorNodes.length > 0) {
-    message.error('存在未关联的节点，请先关联')
-    return
+    // message.error(t('msg_unconnected_nodes'))
+    // return
   }
 
   // 先保存草稿，再发布
@@ -1005,7 +1008,7 @@ const getVersionRecord = () => {
 
 const setVersion = (data) => {
   if (isLockedByOther.value) {
-    message.warning('当前已有其他用户在编辑中，无法恢复')
+    message.warning(t('msg_restore_locked_by_other'))
     return
   }
   // 版本恢复前，先保存当前草稿一次
@@ -1030,7 +1033,7 @@ const setVersion = (data) => {
     currentVersion.value = ''
     currentVersionData.value = null
     getNode(data)
-    message.success('已保存当前草稿并恢复版本')
+    message.success(t('msg_draft_saved_and_restored'))
     // 恢复后重新启用自动保存（回到编辑态）
     isEditing.value = true
     autoSaveEnabled.value = true
@@ -1068,14 +1071,41 @@ const handlePreviewVersion = async (data, version) => {
   getNode(data)
 }
 // 运行测试
-const handleRunTest = () => {
-  pageHeaderRef.value.openRunTest()
+const handleRunTest = async () => {
+  if (isLockedByOther.value) {
+    message.warning(t('msg_save_locked_by_other'))
+    return
+  }
+  if (!isEditing.value) return
+
+  let list = getCanvasData()
+
+  await saveNodes({
+    robot_key: robot_key.value,
+    data_type: 1,
+    node_list: JSON.stringify(list),
+    draft_save_type: 'automatic',
+    draft_save_time: +robotStore.robotInfo.draft_save_time || 0,
+    uni_identifier: getUniIdentifier(),
+    user_agent: buildUserAgent()
+  })
+  await robotStore.getRobot(query.id)
+  workFlowNextVersion({
+    robot_key: robot_key.value,
+  }).then(res => {
+    pageHeaderRef.value.openRunTest()
+  }).catch((res) => {
+    if(res.data && res.data.err_node_key){
+      handleOpenErrorNode(res.data.err_node_key)
+    }
+  })
+
 }
 
 // 头部“编辑”按钮
 const handleClickEdit = async () => {
   if (isLockedByOther.value) {
-    message.warning('当前已有其他用户在编辑中，无法编辑')
+    message.warning(t('msg_edit_locked_by_other'))
     return
   }
   const ok = await acquireEditLock()
@@ -1087,7 +1117,7 @@ const handleClickEdit = async () => {
     lastChangeTs = Date.now()
     startChangeMonitor()
     updateAutoSaveTimer()
-    message.success('已进入编辑模式')
+    message.success(t('msg_enter_edit_mode'))
     toAddRobot(1)
   }
 }
@@ -1114,9 +1144,9 @@ const checkNodePluginStatus = (nds) => {
     }
     const nameStyle = {'color': '#8c8c8c'}
     Modal.confirm({
-      title: '工作流异常修复',
+      title: t('title_workflow_fix'),
       content: h('div', {}, [
-        h('div', {style: titleStyle}, '以下插件状态异常，是否自动安装插件并开启？'),
+        h('div', {style: titleStyle}, t('msg_plugin_abnormal_prompt')),
         h('div', {style: nameStyle}, names.join('、'))
       ]),
       onOk: async () => {
@@ -1131,7 +1161,7 @@ const checkNodePluginStatus = (nds) => {
           }))
         }
         await Promise.all(tasks)
-        message.success('操作完成，即将重新加载...')
+        message.success(t('msg_operation_reload'))
         setTimeout(() => {
           window.location.reload()
         }, 1200)
@@ -1162,6 +1192,10 @@ const handleAutoSaveDraft = async (type = 'automatic') => {
 
 provide('handleAutoSaveDraft', handleAutoSaveDraft)
 
+const handleOpenErrorNode = (data) => {
+  workflowCanvasRef.value.focusOnNode(data)
+}
+
 onMounted(async () => {
   // 记录当前工作流的打开页面计数
   incrementOpenTabs()
@@ -1173,7 +1207,7 @@ onMounted(async () => {
   if (isLockedByOther.value) {
     isEditing.value = false
     autoSaveEnabled.value = false
-    message.warning('其他人在编辑，已切换为查看模式')
+    message.warning(t('msg_switched_to_view_mode'))
   } else {
     // 无他人占用，直接进入编辑模式（无需手动点击编辑）
     const ok = await acquireEditLock()
@@ -1211,7 +1245,7 @@ onMounted(async () => {
   startInactivityWatcher()
   startChangeMonitor()
   if (route.query.show_tips) {
-    message.info('按住Shift 滚动鼠标可左右移动画布，按住Ctrl 滚动鼠标可放大缩小画布', 6)
+    message.info(t('msg_canvas_scroll_tips'), 6)
   }
 })
 

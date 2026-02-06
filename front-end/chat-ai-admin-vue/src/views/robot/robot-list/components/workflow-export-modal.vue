@@ -1,25 +1,25 @@
 <template>
   <a-modal
     v-model:open="visible"
-    title="导出知识库和数据库确认"
+    :title="t('title_export_confirm')"
     width="746px"
     @ok="ok"
   >
-    <a-alert class="zm-alert-info mt24" type="info" message="导出的工作流导入使用后，会自动创建引用的知识库和数据库，请确认是否同步导出知识库内容和数据库内容"/>
+    <a-alert class="zm-alert-info mt24" type="info" :message="t('msg_export_info')"/>
     <div class="main">
       <div v-if="libraryList.length" class="item">
-        <a-checkbox v-model:checked="libraryChecked">知识库内容</a-checkbox>
+        <a-checkbox v-model:checked="libraryChecked">{{ t('label_library_content') }}</a-checkbox>
         <div class="list">
           <a-tag v-for="item in libraryList" :key="item.id">{{ item.library_name }}</a-tag>
         </div>
-        <div v-show="libraryChecked" class="warning">导出的工作流时会导出引用的知识库，勾选后会同时导出知识库内容，请注意企业内容使用，保证数据安全</div>
+        <div v-show="libraryChecked" class="warning">{{ t('msg_library_warning') }}</div>
       </div>
       <div v-if="dbList.length" class="item">
-        <a-checkbox v-model:checked="dbChecked">数据库内容</a-checkbox>
+        <a-checkbox v-model:checked="dbChecked">{{ t('label_database_content') }}</a-checkbox>
         <div class="list">
           <a-tag v-for="item in dbList" :key="item.form_id">{{ item.form_name }}</a-tag>
         </div>
-        <div v-show="dbChecked" class="warning">导出的工作流时会导出引用的数据库，勾选后会同时导出数据库内容，请注意企业内容使用，保证数据安全</div>
+        <div v-show="dbChecked" class="warning">{{ t('msg_database_warning') }}</div>
       </div>
     </div>
   </a-modal>
@@ -27,7 +27,10 @@
 
 <script setup>
 import {ref} from 'vue'
+import {useI18n} from '@/hooks/web/useI18n'
 import {robotImportDataInfo} from "@/api/robot/index.js";
+
+const {t} = useI18n('views.robot.robot-list.components.workflow-export-modal')
 
 const emit = defineEmits(['ok'])
 const visible = ref(false)

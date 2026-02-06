@@ -1,0 +1,11 @@
+{
+  "title_log_detail": "Log Details",
+  "label_start_node_params": "Start Node Parameters",
+  "msg_input_question": "Please enter question!",
+  "msg_input_openid": "Please enter openid!",
+  "ph_input": "Enter",
+  "label_input": "Input",
+  "label_output": "Output",
+  "label_run_log": "Run Log",
+  "msg_copy_success": "Copied successfully"
+}

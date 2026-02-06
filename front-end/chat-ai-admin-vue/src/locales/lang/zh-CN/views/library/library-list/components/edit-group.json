@@ -1,0 +1,7 @@
+{
+  "modal_title": "修改分组",
+  "form_label": "分组名称：",
+  "select_placeholder": "请选择分组",
+  "error_message": "请选择分组",
+  "success_message": "修改分组成功"
+}

@@ -1,0 +1,7 @@
+{
+  "label_input": "输入",
+  "label_output": "输出",
+  "ph_url_param": "键入/选择参数，或者输入文本，以https:/开头",
+  "msg_invalid_url": "请输入以https:/开头的网址",
+  "ph_input_content": "请输入内容，键入\"/\"可以插入变量"
+}

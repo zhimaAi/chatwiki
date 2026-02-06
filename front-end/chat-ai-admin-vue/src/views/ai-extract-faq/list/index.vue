@@ -1,20 +1,21 @@
 <template>
   <div class="library-page">
-    <PageTabs class="mb-16" :tabs="pageTabs" active="/ai-extract-faq/list"></PageTabs>
-    <page-alert style="margin-bottom: 16px" title="使用说明">
+    <PageTabs class="mb-16" :tabs="pageTabs" active="/ai-extract-faq/list">
+    </PageTabs>
+    <page-alert style="margin-bottom: 16px" :title="t('usage_title')">
       <div>
         <p>
-          1、文档拆分成若干大段落，然后由大模型从大段落中抽取问答对。问答对类型的只是由很高的检索精度，但是大模型提取问答对的过程中也可能会导致部分细节丢失。
+          {{ t('usage_desc_1') }}
         </p>
         <p>
-          2、提取成功的文档，您可以下载到本地查看（系统会自动保存成docx格式），也可以直接导入到指定的问答知识库中。
+          {{ t('usage_desc_2') }}
         </p>
       </div>
     </page-alert>
     <div class="library-page-body">
       <div class="btn-block" v-if="uploadDocFaq">
         <a-button @click="handleOpenAddModal" type="primary" :icon="createVNode(UploadOutlined)"
-          >上传文档提取</a-button
+          >{{ t('upload_btn') }}</a-button
         >
       </div>
       <div class="list-box">
@@ -32,48 +33,48 @@
           @change="onTableChange"
           :scroll="{ x: 800 }"
         >
-          <a-table-column key="file_name" data-index="file_name" title="原始文档" :width="200">
+          <a-table-column key="file_name" data-index="file_name" :title="t('original_doc')" :width="200">
             <template #default="{ record }">
               <a @click="toDetail(record)">{{ record.file_name }}</a>
             </template>
           </a-table-column>
-          <a-table-column key="status" title="状态" :width="140">
+          <a-table-column key="status" :title="t('status')" :width="140">
             <template #default="{ record }">
               <div class="status-block status-bule" v-if="record.status == 0">
-                <LoadingOutlined />排队中
+                <LoadingOutlined />{{ t('status_queuing') }}
               </div>
               <div class="status-block status-bule" v-if="record.status == 1">
-                <ClockCircleFilled />文档解析中
+                <ClockCircleFilled />{{ t('status_parsing') }}
               </div>
               <div class="status-block status-bule" v-if="record.status == 2">
-                <ClockCircleFilled />提取中
+                <ClockCircleFilled />{{ t('status_extracting') }}
               </div>
               <div class="status-block status-green" v-if="record.status == 3">
-                <CheckCircleFilled />提取完成
+                <CheckCircleFilled />{{ t('status_completed') }}
               </div>
               <div class="status-block status-red" v-if="record.status == 4">
-                <CloseCircleFilled />提取失败
+                <CloseCircleFilled />{{ t('status_failed') }}
               </div>
             </template>
           </a-table-column>
-          <a-table-column key="chunk_size" title="分块方式" :width="200">
+          <a-table-column key="chunk_size" :title="t('chunk_method')" :width="200">
             <template #default="{ record }">
-              <div v-if="record.chunk_type == 1">按长度：{{ record.chunk_size }}</div>
+              <div v-if="record.chunk_type == 1">{{ t('by_length') }}{{ record.chunk_size }}</div>
               <div v-if="record.chunk_type == 2">
-                <div>按分隔符：{{ record.separators_no_desc }}</div>
-                <div>最大长度：{{ record.chunk_size }}</div>
+                <div>{{ t('by_separator') }}{{ record.separators_no_desc }}</div>
+                <div>{{ t('max_length') }}{{ record.chunk_size }}</div>
               </div>
             </template>
           </a-table-column>
-          <a-table-column key="count" title="总分块数" :width="110">
+          <a-table-column key="count" :title="t('total_chunks')" :width="110">
             <template #default="{ record }">
               {{ +record.success_count + +record.fail_count }}
             </template>
           </a-table-column>
-          <a-table-column key="success_count" title="提取成功分块数" :width="140">
+          <a-table-column key="success_count" :title="t('success_chunks')" :width="140">
             <template #default="{ record }"> {{ record.success_count }}</template>
           </a-table-column>
-          <a-table-column key="fail_count" title="提取失败分块数" :width="140">
+          <a-table-column key="fail_count" :title="t('failed_chunks')" :width="140">
             <template #default="{ record }">
               <a-flex :gap="12">
                 <a @click="handleOpenFailDetail(record)" v-if="record.fail_count > 0">{{
@@ -86,32 +87,32 @@
               </a-flex>
             </template>
           </a-table-column>
-          <a-table-column key="qa_count" title="提取问答对数量" :width="140">
+          <a-table-column key="qa_count" :title="t('qa_count')" :width="140">
             <template #default="{ record }">
               <a @click="toDetail(record)">{{ record.qa_count }}</a>
             </template>
           </a-table-column>
-          <a-table-column key="create_time_desc" title="上传时间" :width="150">
+          <a-table-column key="create_time_desc" :title="t('upload_time')" :width="150">
             <template #default="{ record }"> {{ record.create_time_desc }} </template>
           </a-table-column>
-          <a-table-column key="key7" title="操作" :width="190" fixed="right">
+          <a-table-column key="key7" :title="t('action')" :width="190" fixed="right">
             <template #default="{ record }">
-              <a-flex :gap="16">
+              <a-flex :gap="16" wrap="wrap">
                 <a-dropdown v-if="record.status == 3">
                   <template #overlay>
                     <a-menu>
                       <a-menu-item @click="handleDownload('docx', record.id)" key="1"
-                        >下载为docx</a-menu-item
+                        >{{ t('download_as_docx') }}</a-menu-item
                       >
                       <a-menu-item @click="handleDownload('xlsx', record.id)" key="2"
-                        >下载为xlsx</a-menu-item
+                        >{{ t('download_as_xlsx') }}</a-menu-item
                       >
                     </a-menu>
                   </template>
-                  <a-button size="small" type="link" style="padding: 0">下载</a-button>
+                  <a-button size="small" type="link" style="padding: 0">{{ t('download') }}</a-button>
                 </a-dropdown>
                 <a-button v-else disabled size="small" type="link" style="padding: 0"
-                  >下载</a-button
+                  >{{ t('download') }}</a-button
                 >
 
                 <a-button
@@ -120,10 +121,10 @@
                   size="small"
                   type="link"
                   style="padding: 0"
-                  >导入问答库</a-button
+                  >{{ t('import_kb') }}</a-button
                 >
                 <a-button @click="handleDelete(record)" size="small" type="link" style="padding: 0"
-                  >删除</a-button
+                  >{{ t('delete') }}</a-button
                 >
               </a-flex>
             </template>
@@ -166,6 +167,9 @@ import dayjs from 'dayjs'
 import { formatSeparatorsNo } from '@/utils/index'
 import { useUserStore } from '@/stores/modules/user'
 import { usePermissionStore } from '@/stores/modules/permission'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.ai-extract-faq.list.index')
 const userStore = useUserStore()
 const router = useRouter()
 
@@ -175,19 +179,19 @@ const uploadDocFaq = computed(() => role_type == 1 || role_permission.includes('
 
 const pageTabs = ref([
   {
-    title: '知识库',
+    title: t('tab_library'),
     path: '/library/list'
   },
   {
-    title: '数据库',
+    title: t('tab_database'),
     path: '/database/list'
   },
   {
-    title: '文档提取FAQ',
+    title: t('tab_extract_faq'),
     path: '/ai-extract-faq/list'
   },
   {
-    title: '触发次数统计',
+    title: t('tab_trigger_stats'),
     path: '/trigger-statics/list'
   }
 ])
@@ -302,11 +306,11 @@ function stopPolling(id) {
 
 const handleDelete = (data) => {
   Modal.confirm({
-    title: `删除确认`,
+    title: t('delete_confirm_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: `是否删除该文件【${data.file_name}】?`,
-    okText: '确定',
-    cancelText: '取消',
+    content: t('delete_confirm_content', { file_name: data.file_name }),
+    okText: t('confirm'),
+    cancelText: t('cancel'),
     okType: 'danger',
     onOk() {
       onDelete(data)
@@ -317,22 +321,22 @@ const handleDelete = (data) => {
 
 const onDelete = ({ id }) => {
   deleteFAQFile({ id }).then(() => {
-    message.success('删除成功')
+    message.success(t('delete_success'))
     getList()
   })
 }
 
 const handleReSync = (record) => {
   Modal.confirm({
-    title: `重新分段确认`,
+    title: t('resync_confirm_title'),
     icon: null,
-    okText: '确定',
-    cancelText: '取消',
+    okText: t('confirm'),
+    cancelText: t('cancel'),
     onOk() {
       renewFAQFileData({
         id: record.id
       }).then((res) => {
-        message.success('重新分段成功')
+        message.success(t('resync_success'))
         getList()
       })
     },
@@ -351,15 +355,15 @@ const toDetail = (record) => {
     })
     return
   }
-  let tips = '无法查看文件详情'
+  let tips = t('cannot_view_detail')
   if (record.status == 0) {
-    tips = '排队中,请稍候'
+    tips = t('status_queuing_tip')
   }
   if (record.status == 1) {
-    tips = '文档解析中,请稍候'
+    tips = t('status_parsing_tip')
   }
   if (record.status == 4) {
-    tips = '提取失败, 无法查看详情'
+    tips = t('status_failed_tip')
   }
   message.error(tips)
 }

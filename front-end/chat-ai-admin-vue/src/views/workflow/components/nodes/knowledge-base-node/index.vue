@@ -9,7 +9,7 @@
       }
     }
     .field-item-label {
-      width: 60px;
+      width: auto;
       line-height: 22px;
       margin-right: 8px;
       font-size: 14px;
@@ -80,7 +80,7 @@
     <div class="ai-dialogue-node">
       <div class="field-list">
         <div class="field-item">
-          <div class="field-item-label">用户问题</div>
+          <div class="field-item-label">{{ t('label_user_question') }}</div>
           <div class="field-item-content">
             <div class="field-value">
               <user-question-text ref="questionTextRef" :value="formState.question_value" />
@@ -89,17 +89,17 @@
         </div>
 
         <div class="field-item">
-          <div class="field-item-label">输出字段</div>
+          <div class="field-item-label">{{ t('label_output_fields') }}</div>
           <div class="field-item-content">
             <div class="field-value is-required">
-              <span class="field-key">知识库引用</span>
+              <span class="field-key">{{ t('label_knowledge_base_reference') }}</span>
               <span class="field-type">string</span>
             </div>
           </div>
         </div>
 
         <div class="field-item">
-          <div class="field-item-label">知识库</div>
+          <div class="field-item-label">{{ t('label_knowledge_base') }}</div>
           <div class="field-item-content">
             <div class="library-item" v-for="item in selectedLibraryRows" :key="item.id">{{ item.library_name }}</div>
           </div>
@@ -115,6 +115,9 @@ import NodeCommon from '../base-node.vue'
 import UserQuestionText from '../user-question-text.vue'
 import { getLibraryList } from '@/api/library/index'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.knowledge-base-node.index')
 const robotStore = useRobotStore()
 
 const rrf_weight = computed(()=>{

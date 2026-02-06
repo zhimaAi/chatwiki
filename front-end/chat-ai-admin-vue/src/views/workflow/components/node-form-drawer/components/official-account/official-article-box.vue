@@ -1,10 +1,10 @@
 <template>
   <div class="_main-box">
     <div v-if="!loginStatus" class="login-info-box">
-      <div class="tit">请先完成登录</div>
-      <a-button type="primary" class="link" @click="goLogin">去登录</a-button>
-      <div class="desc">已登录？
-        <a-button type="link" @click="refresh" :loading="loading">点击刷新</a-button>
+      <div class="tit">{{ t('title_login') }}</div>
+      <a-button type="primary" class="link" @click="goLogin">{{ t('btn_login') }}</a-button>
+      <div class="desc">{{ t('msg_logged_in') }}
+        <a-button type="link" @click="refresh" :loading="loading">{{ t('btn_refresh') }}</a-button>
       </div>
     </div>
     <PluginFormRender
@@ -30,11 +30,14 @@
 
 <script setup>
 import {onMounted, ref, computed} from 'vue';
+import { useI18n } from 'vue-i18n';
 import {CheckCircleFilled} from '@ant-design/icons-vue';
 import PluginFormRender from "../pluginFormRender.vue";
 import QrcodeBox from "@/components/common/qrcode-box.vue";
 import {useOfficialArticleLogin} from "@/composables/useOfficialArticleLogin.js";
 import {useUserStore} from "@/stores/modules/user.js";
+
+const { t } = useI18n();
 
 const emit = defineEmits(['updateVar'])
 const props = defineProps({

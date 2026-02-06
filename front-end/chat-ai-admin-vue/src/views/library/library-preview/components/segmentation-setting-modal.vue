@@ -5,7 +5,7 @@
       @cancel="onClose"
       :title="modalTitle"
       :maskClosable="false"
-      :ok-text="isLoading ? '文档解析中,请稍候...' : '确定'"
+      :ok-text="isLoading ? t('btn_ok_parsing') : t('btn_ok')"
       :confirmLoading="confirmLoading || isLoading"
       @ok="handleSaveSegmentation"
       :width="1084"
@@ -30,11 +30,14 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import DocumentSegmentationModal from '@/views/library/document-segmentation/document-segmentation-model.vue'
 import { message } from 'ant-design-vue'
 
+const { t } = useI18n('views.library.library-preview.components.segmentation-setting-modal')
+
 const settingModal = ref(false)
-const modalTitle = ref('重新分段')
+const modalTitle = ref(t('modal_title'))
 
 const emit = defineEmits(['ok', 'enable'])
 let parmas = {}
@@ -44,14 +47,14 @@ const formState = reactive({
   file_id: 0
 })
 
-const listStatusMap = {
-  0: '未转换',
-  1: '已转换',
-  2: '转换异常',
-  3: '转换中',
-  4: '分段失败',
-  10: '分段中'
-}
+const getListStatusMap = () => ({
+  0: t('status_not_converted'),
+  1: t('status_converted'),
+  2: t('status_conversion_exception'),
+  3: t('status_converting'),
+  4: t('tab_segmentation_failed'),
+  10: t('status_segmenting')
+})
 
 const currentData = reactive({
   status: '',
@@ -83,7 +86,7 @@ const show = (data) => {
   }]
   currentData.status = data.status
   currentData.errmsg = data.errmsg
-  currentData.status_text = listStatusMap[data.status]
+  currentData.status_text = getListStatusMap()[data.status]
 }
 
 const confirmLoading = ref(false)
@@ -96,7 +99,7 @@ const handleSaveSegmentation = () => {
 }
 
 const handleSaveOk = () => {
-  message.success('保存成功')
+  message.success(t('msg_save_success'))
   settingModal.value = false
   emit('ok', parmas.type)
 }

@@ -38,7 +38,7 @@ func ResetAppEmptyRobotKey() error {
 		return err
 	}
 	if len(oldAppInfoList) > 0 {
-		//清空处理 robot_key 为空的应用
+		// clear apps with empty robot_key
 		_, err = m.Where(`robot_id`, cast.ToString(0)).
 			Where(`robot_key`, `!=`, ``).
 			Update(msql.Datas{`robot_key`: ``})
@@ -46,7 +46,7 @@ func ResetAppEmptyRobotKey() error {
 			logs.Error(err.Error())
 			return err
 		}
-		//清空缓存
+		// clear cache
 		for _, appInfo := range oldAppInfoList {
 			lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `id`, Value: appInfo[`id`]})
 			lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `app_id`, Value: appInfo[`app_id`]})

@@ -1,0 +1,12 @@
+{
+  "title_welcome": "欢迎使用ChatWiki",
+  "ph_input_account": "请输入账号",
+  "msg_input_account": "请输入账号",
+  "ph_input_password": "请输入密码",
+  "msg_input_password": "请输入密码",
+  "msg_agree_terms": "使用代表同意我们的",
+  "label_service_agreement": "《服务协议》",
+  "label_and": "和",
+  "label_privacy_agreement": "《隐私协议》",
+  "btn_login": "立即登录"
+}

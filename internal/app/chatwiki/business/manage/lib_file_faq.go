@@ -26,7 +26,7 @@ func GetFAQConfig(c *gin.Context) {
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	// 从数据库获取FAQ配置信息
+	// Get FAQ config from database
 	config, err := msql.Model("chat_ai_faq_files", define.Postgres).
 		Where("admin_user_id", cast.ToString(adminUserId)).
 		Order("id DESC").
@@ -72,7 +72,7 @@ func RenewFAQFileData(c *gin.Context) {
 		return
 	}
 
-	// 查询文件信息
+	// Query file info
 	file, err := common.GetFaqFilesInfo(fileId, adminUserId)
 	if err != nil {
 		common.FmtError(c, `sys_err`)
@@ -83,7 +83,7 @@ func RenewFAQFileData(c *gin.Context) {
 		return
 	}
 
-	// 查询失败的数据ID列表
+	// Query failed data ID list
 	var faildIds []string
 	failedData, err := msql.Model("chat_ai_faq_files_data", define.Postgres).
 		Where("file_id", cast.ToString(fileId)).
@@ -100,7 +100,7 @@ func RenewFAQFileData(c *gin.Context) {
 			}
 		}
 	}
-	// 重新提取失败的数据
+	// Re-extract failed data
 	if message, err := tool.JsonEncode(map[string]any{
 		"file_id": fileId,
 		"ids":     strings.Join(faildIds, ","),
@@ -117,13 +117,13 @@ func RenewFAQFileData(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-// GetFAQFileList 获取FAQ文件列表
+// GetFAQFileList gets FAQ file list
 func GetFAQFileList(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	// 获取分页参数
+	// Get pagination parameters
 	page := cast.ToInt(c.Query("page"))
 	if page < 1 {
 		page = 1
@@ -133,10 +133,10 @@ func GetFAQFileList(c *gin.Context) {
 		pageSize = 10
 	}
 
-	// 查询FAQ文件列表
+	// Query FAQ file list
 	m := msql.Model("chat_ai_faq_files", define.Postgres).
 		Where("admin_user_id", cast.ToString(adminUserId))
-	// 分页查询
+	// Pagination query
 	list, total, err := m.Order("id DESC").
 		Paginate(page, pageSize)
 	if err != nil {
@@ -144,14 +144,14 @@ func GetFAQFileList(c *gin.Context) {
 		return
 	}
 
-	// 获取每个文件的统计数据
-	// 获取所有文件ID
+	// Get statistics for each file
+	// Get all file IDs
 	fileIds := make([]string, 0, len(list))
 	for i := range list {
 		fileIds = append(fileIds, cast.ToString(list[i]["id"]))
 	}
 
-	// 批量查询成功数
+	// Batch query success count
 	successCountMap := make(map[string]int)
 	successList, _ := msql.Model("chat_ai_faq_files_data", define.Postgres).
 		Where("file_id", "in", strings.Join(fileIds, ",")).
@@ -163,7 +163,7 @@ func GetFAQFileList(c *gin.Context) {
 		successCountMap[cast.ToString(item["file_id"])] = cast.ToInt(item["count"])
 	}
 
-	// 批量查询失败数
+	// Batch query fail count
 	failCountMap := make(map[string]int)
 	failList, _ := msql.Model("chat_ai_faq_files_data", define.Postgres).
 		Where("file_id", "in", strings.Join(fileIds, ",")).
@@ -175,7 +175,7 @@ func GetFAQFileList(c *gin.Context) {
 		failCountMap[cast.ToString(item["file_id"])] = cast.ToInt(item["count"])
 	}
 
-	// 批量查询QA总数
+	// Batch query QA total count
 	qaCountMap := make(map[string]int)
 	qaList, _ := msql.Model("chat_ai_faq_files_data_qa", define.Postgres).
 		Where("file_id", "in", strings.Join(fileIds, ",")).
@@ -186,7 +186,7 @@ func GetFAQFileList(c *gin.Context) {
 		qaCountMap[cast.ToString(item["file_id"])] = cast.ToInt(item["count"])
 	}
 
-	// 赋值统计数据
+	// Assign statistics data
 	for i := range list {
 		fileId := cast.ToString(list[i]["id"])
 		list[i]["success_count"] = cast.ToString(successCountMap[fileId])
@@ -205,14 +205,14 @@ func GetFAQFileChunks(c *gin.Context) {
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	// 获取文件ID
+	// Get file ID
 	fileId := cast.ToInt(c.Query("id"))
 	splitStatus := c.DefaultQuery("split_status", cast.ToString(define.FAQFileSplitStatusFailed))
 	if fileId == 0 {
 		common.FmtError(c, `param_invalid`, `id`)
 		return
 	}
-	// 获取分页参数
+	// Get pagination parameters
 	data, err := msql.Model("chat_ai_faq_files_data", define.Postgres).
 		Where("file_id", cast.ToString(fileId)).
 		Where("admin_user_id", cast.ToString(adminUserId)).
@@ -227,7 +227,7 @@ func GetFAQFileChunks(c *gin.Context) {
 	common.FmtOk(c, data)
 }
 
-// DeleteFAQFile 删除FAQ文件
+// DeleteFAQFile deletes FAQ file
 func DeleteFAQFile(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
@@ -250,7 +250,7 @@ func DeleteFAQFile(c *gin.Context) {
 		common.FmtError(c, `no_data`)
 		return
 	}
-	// 删除主表数据
+	// Delete main table data
 	_, err = m.Where("id", cast.ToString(fileId)).
 		Where("admin_user_id", cast.ToString(adminUserId)).
 		Delete()
@@ -260,7 +260,7 @@ func DeleteFAQFile(c *gin.Context) {
 		return
 	}
 
-	// 删除分析数据
+	// Delete analysis data
 	_, err = msql.Model("chat_ai_faq_files_data", define.Postgres).
 		Where("file_id", cast.ToString(fileId)).
 		Where("admin_user_id", cast.ToString(adminUserId)).
@@ -271,7 +271,7 @@ func DeleteFAQFile(c *gin.Context) {
 		return
 	}
 
-	// 删除QA数据
+	// Delete QA data
 	_, err = msql.Model("chat_ai_faq_files_data_qa", define.Postgres).
 		Where("file_id", cast.ToString(fileId)).
 		Where("admin_user_id", cast.ToString(adminUserId)).
@@ -287,7 +287,7 @@ func DeleteFAQFile(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-// GetFAQFileInfo 获取FAQ文件状态
+// GetFAQFileInfo gets FAQ file status
 func GetFAQFileInfo(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
@@ -300,7 +300,7 @@ func GetFAQFileInfo(c *gin.Context) {
 		return
 	}
 
-	// 查询文件状态
+	// Query file status
 	file, err := msql.Model("chat_ai_faq_files", define.Postgres).
 		Where("id", cast.ToString(fileId)).
 		Where("admin_user_id", cast.ToString(adminUserId)).
@@ -314,7 +314,7 @@ func GetFAQFileInfo(c *gin.Context) {
 		return
 	}
 
-	// 获取统计数据
+	// Get statistics data
 	successCount, _ := msql.Model("chat_ai_faq_files_data", define.Postgres).
 		Where("file_id", cast.ToString(fileId)).
 		Where("admin_user_id", cast.ToString(adminUserId)).
@@ -343,14 +343,14 @@ func GetFAQFileQAList(c *gin.Context) {
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	// 获取文件ID
+	// Get file ID
 	fileId := cast.ToInt(c.Query("id"))
 	if fileId == 0 {
 		common.FmtError(c, `param_invalid`, `id`)
 		return
 	}
 	isImport := c.Query("is_import")
-	// 获取分页参数
+	// Get pagination parameters
 	page := cast.ToInt(c.Query("page"))
 	if page < 1 {
 		page = 1
@@ -360,14 +360,14 @@ func GetFAQFileQAList(c *gin.Context) {
 		pageSize = 10
 	}
 
-	// 查询QA列表
+	// Query QA list
 	m := msql.Model("chat_ai_faq_files_data_qa", define.Postgres).
 		Where("file_id", cast.ToString(fileId)).
 		Where("admin_user_id", cast.ToString(adminUserId))
 	if isImport != "" {
 		m.Where("is_import", isImport)
 	}
-	// 分页查询
+	// Pagination query
 	list, _, err := m.Order("id ASC").
 		Paginate(page, pageSize)
 	if err != nil {
@@ -378,7 +378,7 @@ func GetFAQFileQAList(c *gin.Context) {
 		libraryInfo, _ := common.GetLibraryInfo(cast.ToInt(list[i][`library_id`]), adminUserId)
 		list[i][`library_name`] = libraryInfo[`library_name`]
 	}
-	// 查询总数
+	// Query total count
 	totalData, _ := msql.Model("chat_ai_faq_files_data_qa", define.Postgres).
 		Where("file_id", cast.ToString(fileId)).
 		Where("admin_user_id", cast.ToString(adminUserId)).
@@ -405,7 +405,7 @@ func ExportFAQFileAllQA(c *gin.Context) {
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	// 获取文件ID
+	// Get file ID
 	fileId := cast.ToInt(c.Query("id"))
 	ext := c.DefaultQuery("ext", `xlsx`)
 	if fileId == 0 {
@@ -428,12 +428,12 @@ func ExportFAQFileAllQA(c *gin.Context) {
 	page := 1
 	pageSize := 500
 	data := make([]msql.Params, 0)
-	// 查询QA列表
+	// Query QA list
 	for {
 		m := msql.Model("chat_ai_faq_files_data_qa", define.Postgres).
 			Where("file_id", cast.ToString(fileId)).
 			Where("admin_user_id", cast.ToString(adminUserId)).Field("question,answer,images")
-		// 分页查询
+		// Pagination query
 		list, _, err := m.Order("id ASC").
 			Paginate(page, pageSize)
 		if err != nil {
@@ -463,7 +463,7 @@ func SaveFAQFileQA(c *gin.Context) {
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	// 获取参数
+	// Get parameters
 	id := cast.ToInt(c.PostForm("id"))
 	if id == 0 {
 		common.FmtError(c, "param_invalid", "id")
@@ -478,7 +478,7 @@ func SaveFAQFileQA(c *gin.Context) {
 		return
 	}
 
-	// 查询数据是否存在
+	// Check if data exists
 	m := msql.Model("chat_ai_faq_files_data_qa", define.Postgres)
 	data, err := m.Where("id", cast.ToString(id)).
 		Where("admin_user_id", cast.ToString(adminUserId)).
@@ -497,7 +497,7 @@ func SaveFAQFileQA(c *gin.Context) {
 		"answer":      answer,
 		"update_time": tool.Time2Int(),
 	}
-	// 提取答案中的图片
+	// Extract images from answer
 	jsonImages, err := common.CheckLibraryImage(images)
 	if err != nil {
 		common.FmtError(c, `sys_err`)
@@ -506,7 +506,7 @@ func SaveFAQFileQA(c *gin.Context) {
 	if len(jsonImages) > 0 && len(images) > 0 {
 		updateData[`images`] = jsonImages
 	}
-	// 更新数据
+	// Update data
 	_, err = m.Where("id", cast.ToString(id)).
 		Where("admin_user_id", cast.ToString(adminUserId)).
 		Update(updateData)
@@ -530,7 +530,7 @@ func DeleteFAQFileQA(c *gin.Context) {
 		return
 	}
 
-	// 批量删除数据
+	// Batch delete data
 	_, err := msql.Model("chat_ai_faq_files_data_qa", define.Postgres).
 		Where("id", "in", ids).
 		Where("admin_user_id", cast.ToString(adminUserId)).
@@ -548,16 +548,16 @@ func ImportParagraph(c *gin.Context) {
 		return
 	}
 
-	// 获取文件ID
+	// Get file ID
 	libraryId := cast.ToInt(c.PostForm("library_id"))
 	fileId := cast.ToInt(c.PostForm("file_id"))
 	ids := cast.ToString(c.PostForm("ids"))
-	// 根据id或file_id查询QA数据并保存到段落
+	// Query QA data by id or file_id and save to paragraph
 	if libraryId == 0 || fileId == 0 {
 		common.FmtError(c, "param_invalid", "library_id or file_id")
 		return
 	}
-	common.ImportFAQFile(adminUserId, libraryId, fileId, ids, c.GetHeader(`token`), true)
+	common.ImportFAQFile(common.GetLang(c), adminUserId, libraryId, fileId, ids, c.GetHeader(`token`), true)
 	common.FmtOk(c, nil)
 }
 

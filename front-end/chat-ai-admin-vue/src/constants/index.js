@@ -1,3 +1,4 @@
+import { useI18n } from '@/hooks/web/useI18n'
 /**
  * 请求成功状态码
  */
@@ -21,7 +22,7 @@ export const REFRESHTOKEN_TIMEOUT = 1 * 60 * 60 * 1000
 /**
  * 不重定向白名单
  */
-export const NO_REDIRECT_WHITE_LIST = ['/login', '/about']
+export const NO_REDIRECT_WHITE_LIST = ['/login', '/about', '/privacy_policy']
 
 /**
  * 不重置路由白名单
@@ -55,7 +56,10 @@ export const LIBRARY_NORMAL_AVATAR = new URL('@/assets/svg/ordinary-icon.svg', i
 // 知识库-问答知识库头像
 export const LIBRARY_QA_AVATAR = new URL('@/assets/svg/faq-icon.svg', import.meta.url).href
 // 知识库-公众号知识库头像
-export const LIBRARY_OFFICIAL_ACCOUNT_AVATAR = new URL('@/assets/svg/accounts-icon.svg', import.meta.url).href
+export const LIBRARY_OFFICIAL_ACCOUNT_AVATAR = new URL(
+  '@/assets/svg/accounts-icon.svg',
+  import.meta.url
+).href
 // 对外文档头像
 export const LIBRARY_OPEN_AVATAR = '/upload/default/library_open_avatar.svg'
 
@@ -69,14 +73,17 @@ export const DEFAULT_MCP_AVATAR = '/upload/default/mcp_avatar.svg'
 export const DEFAULT_TEMPLATE_AVATAR = '/upload/default/template_avatar.svg'
 
 // 默认模板主图
-export const DEFAULT_TEMPLATE_MAIN_PIC = 'https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/modal-main-pic-new.png'
+export const DEFAULT_TEMPLATE_MAIN_PIC =
+  'https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/modal-main-pic-new.png'
 // 默认的导入csl头像
-export const DEFAULT_IMPORT_CSL_AVATAR = new URL('@/assets/img/import_csl_avatar.svg', import.meta.url).href
+export const DEFAULT_IMPORT_CSL_AVATAR = new URL(
+  '@/assets/img/import_csl_avatar.svg',
+  import.meta.url
+).href
 
 // 默认的webApp浮动图标
 export const DEFAULT_WEBAPP_ICON = new URL('@/assets/img/sdk_float_avatar.svg', import.meta.url)
   .href
-
 
 // 默认prompt
 export const DERAULT_ROBOT_PROMPT = `回答要求：
@@ -91,56 +98,72 @@ export const OPEN_BOC_BASE_URL = '/open-doc'
  * - REPLY_TYPE_LABEL_MAP: 组件内展示的中文标签
  * - REPLY_TYPE_OPTIONS: 下拉筛选项（value 使用前端类型标识）
  */
-export const REPLY_TYPE_LABEL_MAP = {
-  text: '文本',
-  imageText: '图文链接',
-  image: '图片',
-  card: '小程序',
-  url: '链接',
-  smartMenu: '智能菜单'
+export const REPLY_TYPE_LABEL_MAP = () => {
+  const { t } = useI18n('constants.index')
+  return {
+    text: t('text'),
+    imageText: t('imageText'),
+    image: t('image'),
+    card: t('card'),
+    url: t('url'),
+    smartMenu: t('smartMenu')
+  }
 }
 
-export const REPLY_TYPE_OPTIONS = [
-  { label: REPLY_TYPE_LABEL_MAP.imageText, value: 'imageText' },
-  { label: REPLY_TYPE_LABEL_MAP.text, value: 'text' },
-  { label: REPLY_TYPE_LABEL_MAP.url, value: 'url' },
-  { label: REPLY_TYPE_LABEL_MAP.image, value: 'image' },
-  { label: REPLY_TYPE_LABEL_MAP.card, value: 'card' },
-  { label: REPLY_TYPE_LABEL_MAP.smartMenu, value: 'smartMenu' },
-]
+export const REPLY_TYPE_OPTIONS = () => {
+  const { t } = useI18n('constants.index')
+  return [
+    { label: t('imageText'), value: 'imageText' },
+    { label: t('text'), value: 'text' },
+    { label: t('url'), value: 'url' },
+    { label: t('image'), value: 'image' },
+    { label: t('card'), value: 'card' },
+    { label: t('smartMenu'), value: 'smartMenu' }
+  ]
+}
 
 /**
  * 关注后自动回复：类型标签映射与筛选项
  * - SUBSCRIBE_REPLY_TYPE_LABEL_MAP: 组件内展示的中文标签
  * - SUBSCRIBE_REPLY_TYPE_OPTIONS: 下拉筛选项（value 使用前端类型标识）
  */
-export const SUBSCRIBE_REPLY_TYPE_LABEL_MAP = {
-  text: '文本',
-  image: '图片',
-  voice: '音频',
-  video: '视频'
+export const SUBSCRIBE_REPLY_TYPE_LABEL_MAP = () => {
+  const { t } = useI18n('constants.index')
+  return {
+    text: t('text'),
+    image: t('image'),
+    voice: t('voice'),
+    video: t('video')
+  }
 }
 
-export const SUBSCRIBE_REPLY_TYPE_OPTIONS = [
-  { label: SUBSCRIBE_REPLY_TYPE_LABEL_MAP.text, value: 'text' },
-  { label: SUBSCRIBE_REPLY_TYPE_LABEL_MAP.image, value: 'image' },
-  { label: SUBSCRIBE_REPLY_TYPE_LABEL_MAP.voice, value: 'voice' },
-  { label: SUBSCRIBE_REPLY_TYPE_LABEL_MAP.video, value: 'video' }
-]
+export const SUBSCRIBE_REPLY_TYPE_OPTIONS = () => {
+  const { t } = useI18n('constants.index')
+  return [
+    { label: t('text'), value: 'text' },
+    { label: t('image'), value: 'image' },
+    { label: t('voice'), value: 'voice' },
+    { label: t('video'), value: 'video' }
+  ]
+}
+
 
 // 关注来源选项（用于订阅回复-按来源设置）
-export const SUBSCRIBE_SOURCE_OPTIONS = [
-  { label: '公众号搜索', value: 'ADD_SCENE_SEARCH' },
-  { label: '公众号迁移', value: 'ADD_SCENE_ACCOUNT_MIGRATION' },
-  { label: '名片分享', value: 'ADD_SCENE_PROFILE_CARD' },
-  { label: '扫描二维码', value: 'ADD_SCENE_QR_CODE' },
-  { label: '图文页内名称点击', value: 'ADD_SCENE_PROFILE_LINK' },
-  { label: '图文页右上角菜单', value: 'ADD_SCENE_PROFILE_ITEM' },
-  { label: '支付后关注', value: 'ADD_SCENE_PAID' },
-  { label: '微信广告', value: 'ADD_SCENE_WECHAT_ADVERTISEMENT' },
-  { label: '他人转载', value: 'ADD_SCENE_REPRINT' },
-  { label: '视频号直播', value: 'ADD_SCENE_LIVESTREAM' },
-  { label: '视频号', value: 'ADD_SCENE_CHANNELS' },
-  { label: '小程序关注', value: 'ADD_SCENE_WXA' },
-  { label: '其他', value: 'ADD_SCENE_OTHERS' }
-]
+export const SUBSCRIBE_SOURCE_OPTIONS = () => {
+  const { t } = useI18n('constants.index')
+  return [
+    { label: t('subscribe_search'), value: 'ADD_SCENE_SEARCH' },
+    { label: t('subscribe_migration'), value: 'ADD_SCENE_ACCOUNT_MIGRATION' },
+    { label: t('profile_card'), value: 'ADD_SCENE_PROFILE_CARD' },
+    { label: t('qr_code'), value: 'ADD_SCENE_QR_CODE' },
+    { label: t('profile_link'), value: 'ADD_SCENE_PROFILE_LINK' },
+    { label: t('profile_item'), value: 'ADD_SCENE_PROFILE_ITEM' },
+    { label: t('paid'), value: 'ADD_SCENE_PAID' },
+    { label: t('wechat_ad'), value: 'ADD_SCENE_WECHAT_ADVERTISEMENT' },
+    { label: t('reprint'), value: 'ADD_SCENE_REPRINT' },
+    { label: t('livestream'), value: 'ADD_SCENE_LIVESTREAM' },
+    { label: t('channels'), value: 'ADD_SCENE_CHANNELS' },
+    { label: t('wxa'), value: 'ADD_SCENE_WXA' },
+    { label: t('other'), value: 'ADD_SCENE_OTHERS' }
+  ]
+}

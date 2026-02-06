@@ -11,7 +11,7 @@
 const props = defineProps({
   text: {
     type: String,
-    default: '暂无数据'
+    default: ''
   },
   size: {
     type: [Number, String],

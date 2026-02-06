@@ -3,12 +3,12 @@
     <PageTabs class="mb-16" :tabs="pageTabs" active="/trigger-statics/list"></PageTabs>
     <div class="statics-block">
       <div class="statics-item">
-        <div class="title">合计触发次数</div>
+        <div class="title">{{ t('title_total_triggers') }}</div>
         <div class="num">{{ tip_total }}</div>
       </div>
 
       <div class="statics-item unknown-item cursor-pointer" @click="showUnknowQuestionModal">
-        <a class="title">未知问题合计数量&nbsp;<RightOutlined /></a>
+        <a class="title">{{ t('unknown_questions_total') }} <RightOutlined /></a>
         <div class="num">{{ unknow_question_total }}</div>
       </div>
     </div>
@@ -22,11 +22,11 @@
       />
     </div>
     <div class="tab-box">
-      <div class="main-title">触发次数排行榜</div>
+      <div class="main-title">{{ t('trigger_ranking') }}</div>
       <a-segmented @change="handleChangeType" v-model:value="currentType" :options="options" />
       <a-select
         v-if="currentType == 1 || currentType == 3"
-        placeholder="全部知识库"
+        :placeholder="t('all_knowledge_base')"
         allowClear
         @change="onSearch"
         v-model:value="searchState.library_id"
@@ -54,7 +54,7 @@
           @change="onTableChange"
           :scroll="{ x: 800 }"
         >
-          <a-table-column key="index" data-index="index" title="排名" :width="100">
+          <a-table-column key="index" data-index="index" :title="t('ranking')" :width="100">
             <template #default="{ index }">
               {{ index + (pager.page - 1) * pager.size + 1 }}
             </template>
@@ -62,7 +62,7 @@
           <a-table-column
             key="content"
             data-index="content"
-            title="知识内容"
+            :title="t('knowledge_content')"
             :width="380"
             v-if="currentType == 1"
           >
@@ -70,43 +70,44 @@
               <div v-if="record.content">{{ record.content }}</div>
               <div class="qa-list-box" v-else>
                 <div class="list-item">
-                  <div class="list-label">问题</div>
+                  <div class="list-label">{{ t('question') }}</div>
                   <div class="list-content">{{ record.question }}</div>
                 </div>
                 <div class="list-item" style="color: #8c8c8c">
-                  <div class="list-label">答案</div>
+                  <div class="list-label">{{ t('answer') }}</div>
                   <div class="list-content">{{ record.answer }}</div>
                 </div>
               </div>
             </template>
           </a-table-column>
 
-          <a-table-column key="group_name" title="知识库分组" :width="120" v-if="currentType == 3">
+          <a-table-column key="group_name" :title="t('knowledge_base_group')" :width="120" v-if="currentType == 3">
             <template #default="{ record }"> {{ record.group_name }} </template>
           </a-table-column>
 
-          <a-table-column key="library_name" title="所属知识库" :width="140">
+          <a-table-column key="library_name" :title="t('owned_knowledge_base')" :width="140">
             <template #default="{ record }">
-              {{ record.library_name }}
-              <span v-if="currentType == 1">
-                <RightOutlined />
-                {{ record.group_name || '未分组' }}
-                <span v-if="record.library_file_name">
+              <span>{{ record.library_name }}
+                <span v-if="currentType == 1">
                   <RightOutlined />
-                  {{ record.library_file_name }}
+                  {{ record.group_name || t('unassigned') }}
+                  <span v-if="record.library_file_name">
+                    <RightOutlined />
+                    {{ record.library_file_name }}
+                  </span>
                 </span>
               </span>
             </template>
           </a-table-column>
-          <a-table-column key="tip" title="触发次数" :width="100">
+          <a-table-column key="tip" :title="t('trigger_count')" :width="100">
             <template #default="{ record }">
               <a-flex :gap="12">
                 <span>{{ record.tip }}</span>
-                <a @click="toDetail(record)">详情<RightOutlined /></a>
+                <a @click="toDetail(record)">{{ t('details') }}<RightOutlined /></a>
               </a-flex>
             </template>
           </a-table-column>
-          <a-table-column key="percentage" title="占比" :width="100">
+          <a-table-column key="percentage" :title="t('proportion')" :width="100">
             <template #default="{ record }"> {{ record.percentage }}% </template>
           </a-table-column>
         </a-table>
@@ -121,6 +122,7 @@ import dayjs from 'dayjs'
 import { ref, reactive, onMounted } from 'vue'
 import { RightOutlined } from '@ant-design/icons-vue'
 import { getDateRangePresets } from '@/utils/index'
+import { useI18n } from '@/hooks/web/useI18n'
 import {
   statLibraryDataSort,
   statLibraryTotal,
@@ -133,23 +135,25 @@ import PageTabs from '@/components/cu-tabs/page-tabs.vue'
 import DetailModal from './components/detail-modal.vue'
 import UnknowQuestionModal from './components/unknow-question-modal.vue'
 
+const { t } = useI18n('views.trigger-statics.list.index')
+
 const dateRangePresets = getDateRangePresets()
 
 const pageTabs = ref([
   {
-    title: '知识库',
+    title: t('knowledge_base'),
     path: '/library/list'
   },
   {
-    title: '数据库',
+    title: t('database'),
     path: '/database/list'
   },
   {
-    title: '文档提取FAQ',
+    title: t('document_extraction_faq'),
     path: '/ai-extract-faq/list'
   },
   {
-    title: '触发次数统计',
+    title: t('trigger_count_statistics'),
     path: '/trigger-statics/list'
   }
 ])
@@ -176,15 +180,15 @@ const pager = reactive({
 
 const options = [
   {
-    label: '按内容',
+    label: t('by_content'),
     value: 1
   },
   {
-    label: '按知识库分组',
+    label: t('by_knowledge_base_group'),
     value: 3
   },
   {
-    label: '按知识库',
+    label: t('by_knowledge_base'),
     value: 2
   }
 ]

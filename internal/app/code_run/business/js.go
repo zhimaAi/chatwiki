@@ -27,6 +27,7 @@ func JavaScript(c *gin.Context) {
 		code = 499 //客户端主动断开
 	case <-signal: //代码运行完成
 	}
+
 	c.String(code, lib_web.FmtJson(result, err))
 }
 

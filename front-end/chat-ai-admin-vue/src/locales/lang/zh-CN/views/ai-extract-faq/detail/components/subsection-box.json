@@ -1,0 +1,1 @@
+{"title_qa": "问答（共 {total} 个）", "label_question": "问题", "label_answer": "答案", "msg_similar_questions": "共 {count} 个相似问法", "title_import_to_knowledge": "是否导入知识库", "status_imported": "已导入", "status_not_imported": "未导入", "title_action": "操作", "title_hint": "提示", "msg_confirm_delete": "确认是否删除该分段?", "msg_delete_success": "删除成功"}

@@ -128,25 +128,25 @@
   <div class="add-library-page">
     <div class="form-box">
       <a-form :label-col="{ span: 5 }">
-        <a-form-item ref="name" label="知识库名称" v-bind="validateInfos.library_name">
+        <a-form-item ref="name" :label="t('label_library_name')" v-bind="validateInfos.library_name">
           <a-input
             v-model:value="formState.library_name"
             type="text"
-            placeholder="请输入知识库名称，最多20个字"
+            :placeholder="t('ph_library_name')"
             :maxlength="20"
           />
         </a-form-item>
 
-        <a-form-item label="知识库简介">
-          <a-textarea v-model:value="formState.library_intro" placeholder="请输入知识库介绍" />
+        <a-form-item :label="t('label_library_intro')">
+          <a-textarea v-model:value="formState.library_intro" :placeholder="t('ph_library_intro')" />
         </a-form-item>
 
-        <a-form-item ref="name" label="知识库封面" v-bind="validateInfos.avatar">
+        <a-form-item ref="name" :label="t('label_library_avatar')" v-bind="validateInfos.avatar">
           <AvatarInput v-model:value="formState.avatar" @change="onAvatarChange" />
-          <div class="form-item-tip">请上传知识库封面，建议尺寸为100*100px.大小不超过100kb</div>
+          <div class="form-item-tip">{{ t('msg_avatar_tip') }}</div>
         </a-form-item>
         <template v-if="type != 1">
-          <a-form-item label="导入文档类型" required>
+          <a-form-item :label="t('label_doc_type')" required>
             <div class="upload-document-type-box">
               <div
                 class="type-item"
@@ -177,7 +177,7 @@
           <a-form-item
             v-show="formState.doc_type == 1"
             ref="name"
-            label="知识库文档"
+            :label="t('label_library_files')"
             v-bind="validateInfos.library_files"
           >
             <UploadFile :type="type" @change="handleFileChange" />
@@ -186,42 +186,42 @@
           <a-form-item
             v-show="formState.doc_type == 2"
             ref="urls"
-            label="网页链接"
+            :label="t('label_urls')"
             v-bind="validateInfos.urls"
           >
             <a-textarea
               style="height: 120px"
               v-model:value="formState.urls"
-              placeholder="请输入网页链接,形式：一行标题一行网页链接"
+              :placeholder="t('ph_urls')"
             />
           </a-form-item>
 
           <a-form-item
             v-show="formState.doc_type == 2"
             ref="doc_auto_renew_frequency"
-            label="更新频率"
+            :label="t('label_update_frequency')"
             required
           >
             <a-select v-model:value="formState.doc_auto_renew_frequency" style="width: 100%">
-              <a-select-option :value="1">不自动更新</a-select-option>
-              <a-select-option :value="2">每天</a-select-option>
-              <a-select-option :value="3">每3天</a-select-option>
-              <a-select-option :value="4">每7天</a-select-option>
-              <a-select-option :value="5">每30天</a-select-option>
+              <a-select-option :value="1">{{ t('option_no_auto_update') }}</a-select-option>
+              <a-select-option :value="2">{{ t('option_every_day') }}</a-select-option>
+              <a-select-option :value="3">{{ t('option_every_3_days') }}</a-select-option>
+              <a-select-option :value="4">{{ t('option_every_7_days') }}</a-select-option>
+              <a-select-option :value="5">{{ t('option_every_30_days') }}</a-select-option>
             </a-select>
           </a-form-item>
 
           <div v-show="formState.doc_type == 3">
-            <a-form-item ref="file_name" label="文档名称" v-bind="validateInfos.file_name">
-              <a-input placeholder="请输入文档名称" v-model:value="formState.file_name"></a-input>
+            <a-form-item ref="file_name" :label="t('label_file_name')" v-bind="validateInfos.file_name">
+              <a-input :placeholder="t('ph_file_name')" v-model:value="formState.file_name"></a-input>
             </a-form-item>
-            <a-form-item label="文档类型" required v-if="false">
+            <a-form-item :label="t('label_doc_category')" required v-if="false">
               <a-radio-group v-model:value="formState.is_qa_doc">
-                <a-radio :value="0">普通文档</a-radio>
-                <a-radio :value="1">QA文档</a-radio>
+                <a-radio :value="0">{{ t('option_normal_doc') }}</a-radio>
+                <a-radio :value="1">{{ t('option_qa_doc') }}</a-radio>
               </a-radio-group>
             </a-form-item>
-            <a-form-item label="索引方式" required v-if="formState.is_qa_doc == 1">
+            <a-form-item :label="t('label_index_method')" required v-if="formState.is_qa_doc == 1">
               <div class="upload-document-type-box">
                 <div
                   class="type-item"
@@ -255,7 +255,7 @@
           </div>
         </template>
 
-        <a-form-item label="嵌入模型 " v-bind="validateInfos.use_model">
+        <a-form-item :label="t('label_embedding_model')" v-bind="validateInfos.use_model">
           <div class="card-box" v-if="false">
             <div
               class="use-model-item"
@@ -283,7 +283,7 @@
           </div>
           <a-select
             v-model:value="formState.use_model"
-            placeholder="请选择嵌入模型"
+            :placeholder="t('ph_select_model')"
             @change="handleChangeModel"
           >
             <a-select-opt-group v-for="item in modelList" :key="item.id">
@@ -313,13 +313,13 @@
         </a-form-item>
 
         <a-form-item :wrapper-col="{ span: 14, offset: 4 }">
-          <a-button @click="resetForm">取 消</a-button>
+          <a-button @click="resetForm">{{ t('btn_cancel') }}</a-button>
           <a-button
             type="primary"
             style="margin-left: 16px"
             :loading="saveLoading"
             @click.prevent="onSubmit"
-            >下一步</a-button
+            >{{ t('btn_next') }}</a-button
           >
         </a-form-item>
       </a-form>
@@ -339,6 +339,9 @@ import { LIBRARY_NORMAL_AVATAR, LIBRARY_OPEN_AVATAR } from '@/constants/index'
 import { transformUrlData } from '@/utils/validate.js'
 import { useStorage } from '@/hooks/web/useStorage'
 import { duplicateRemoval, removeRepeat } from '@/utils/index'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.add-library.add-library')
 
 const { getStorage, setStorage } = useStorage('localStorage')
 
@@ -357,65 +360,61 @@ const type = computed(() => {
 const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
 const oldModelDefineList = ['azure']
 
-const libraryModeList = ref([
+const libraryModeList = computed(() => [
   {
     iconName: 'high',
     iconNameActive: 'high-active',
-    title: '高质量',
+    title: t('title_high_quality'),
     value: 1,
     is_offline: false,
-    desc: '使用在线的嵌入模型，在召回时具有更高的准确度，但需要花费token'
+    desc: t('desc_high_quality')
   }
-  // {
-  //   iconName: 'economic',
-  //   iconNameActive: 'economic-active',
-  //   title: '经济',
-  //   value: 2,
-  //   is_offline: true,
-  //   desc: '使用离线的向量模型，较在线模型准确度稍低，但是不需要消耗token'
-  // }
 ])
 
-const documentTypeList = ref([
-  {
-    iconName: 'doc-icon',
-    iconNameActive: 'doc-icon-active',
-    title: '本地文档',
-    value: 1,
-    desc: `${type.value == 2 ? '上传本地 docx/csv/xlsx 等格式文件' : '上传本地 pdf/docx/ofd/txt/md/xlsx/csv/html 等格式文件'}`
-  },
-  {
-    iconName: 'link-icon',
-    iconNameActive: 'link-icon-active',
-    title: '在线数据',
-    value: 2,
-    desc: '获取在线网页内容'
-  },
-  {
-    iconName: 'cu-doc-icon',
-    iconNameActive: 'cu-doc-active',
-    title: '自定义文档',
-    value: 3,
-    desc: '自定义一个空文档，手动添加或编辑内容'
+const documentTypeList = computed(() => {
+  const list = [
+    {
+      iconName: 'doc-icon',
+      iconNameActive: 'doc-icon-active',
+      title: t('title_local_doc'),
+      value: 1,
+      desc: type.value == 2 ? t('desc_local_doc_open') : t('desc_local_doc_normal')
+    },
+    {
+      iconName: 'link-icon',
+      iconNameActive: 'link-icon-active',
+      title: t('title_online_data'),
+      value: 2,
+      desc: t('desc_online_data')
+    },
+    {
+      iconName: 'cu-doc-icon',
+      iconNameActive: 'cu-doc-active',
+      title: t('title_custom_doc'),
+      value: 3,
+      desc: t('desc_custom_doc')
+    }
+  ]
+  if (type.value == 2) {
+    return list.filter((item) => item.value != 2)
   }
-])
-if (type.value == 2) {
-  documentTypeList.value = documentTypeList.value.filter((item) => item.value != 2)
-}
-const qaIndexTypeList = ref([
+  return list
+})
+
+const qaIndexTypeList = computed(() => [
   {
     iconName: 'file-search',
     iconNameActive: 'file-search',
-    title: '问题与答案一起生成索引',
+    title: t('title_qa_index_both'),
     value: 1,
-    desc: '回答用户提问时，将用户提问与导入的问题和答案一起对比相似度，根据相似度高的问题和答案回复'
+    desc: t('desc_qa_index_both')
   },
   {
     iconName: 'comment-search',
     iconNameActive: 'comment-search',
-    title: '仅对问题生成索引',
+    title: t('title_qa_index_question_only'),
     value: 2,
-    desc: '回答用户提问时，将用户提问与导入的问题一起对比相似度，再根据相似度高的问题和对应的答案来回复'
+    desc: t('desc_qa_index_question_only')
   }
 ])
 
@@ -453,7 +452,7 @@ const validateFiles = (_rule, value) => {
   if ((value && value.length > 0) || formState.doc_type != 1) {
     return Promise.resolve()
   } else {
-    return Promise.reject(new Error('请上传文件'))
+    return Promise.reject(new Error(t('msg_upload_file')))
   }
 }
 
@@ -466,18 +465,18 @@ const validateUrl = (_rule, value) => {
     return Promise.resolve()
   }
   if (transformUrlData(value) === false) {
-    return Promise.reject(new Error('网页地址不合法'))
+    return Promise.reject(new Error(t('msg_invalid_url')))
   }
   return Promise.resolve()
 }
 
 const rules = reactive({
-  library_name: [{ required: true, message: '请输入库名称', trigger: 'change' }],
-  use_model: [{ required: true, message: '请选择嵌入模型', trigger: 'change' }],
+  library_name: [{ required: true, message: t('msg_enter_library_name'), trigger: 'change' }],
+  use_model: [{ required: true, message: t('msg_select_model'), trigger: 'change' }],
   library_files: [
     {
       required: type.value == 0,
-      message: '请选择文件',
+      message: t('msg_select_file'),
       trigger: 'change',
       validator: validateFiles
     }
@@ -498,7 +497,7 @@ const rules = reactive({
         if (formState.doc_type != 3 || value) {
           return Promise.resolve()
         } else {
-          return Promise.reject(new Error('请输入文档名称'))
+          return Promise.reject(new Error(t('msg_enter_doc_name')))
         }
       }
     }
@@ -606,10 +605,9 @@ const saveForm = () => {
 
   createLibrary(formData)
     .then((res) => {
-      message.success('创建成功')
+      message.success(t('msg_create_success'))
       // 对外知识库
       if (type.value == 1) {
-        console.log('对外知识库')
         router.replace({
           path: '/public-library/config',
           query: {

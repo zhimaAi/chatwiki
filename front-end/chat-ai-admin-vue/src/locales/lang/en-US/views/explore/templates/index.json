@@ -1,0 +1,13 @@
+{
+  "ph_search_template": "Search templates",
+  "label_all": "All",
+  "msg_no_available_plugin": "No available plugins",
+  "btn_use_template": "Use Template",
+  "msg_use_success": "Used successfully",
+  "title_tip": "Tip",
+  "msg_version_too_low": "Current system version is too low and may not support this template. Please upgrade to the latest version!",
+  "btn_continue_use": "Continue",
+  "btn_cancel": "Cancel",
+  "msg_confirm_use_template": "Are you sure you want to use template 【{name}】 to create an application?",
+  "btn_confirm": "Confirm"
+}

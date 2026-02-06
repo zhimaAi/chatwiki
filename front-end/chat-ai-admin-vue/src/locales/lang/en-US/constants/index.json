@@ -1,0 +1,23 @@
+{
+  "text": "Text",
+  "imageText": "Image Text",
+  "image": "Image",
+  "card": "Card",
+  "url": "URL",
+  "smartMenu": "Smart Menu",
+  "voice": "Voice",
+  "video": "Video",
+  "subscribe_search": "Official Account Search",
+  "subscribe_migration": "Account Migration",
+  "profile_card": "Profile Card Share",
+  "qr_code": "QR Code Scan",
+  "profile_link": "Profile Link Click",
+  "profile_item": "Profile Item Menu",
+  "paid": "Post-Payment Follow",
+  "wechat_ad": "WeChat Ad",
+  "reprint": "Repost",
+  "livestream": "Channels Live",
+  "channels": "Channels",
+  "wxa": "Mini Program Follow",
+  "other": "Other"
+}

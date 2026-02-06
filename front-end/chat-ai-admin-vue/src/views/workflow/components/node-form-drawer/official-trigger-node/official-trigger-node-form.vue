@@ -6,7 +6,7 @@
         :iconName="node.node_icon_name"
         @changeTitle="handleTitleChange"
         @deleteNode="handleDeleteNode"
-        desc="当对接的公众号触发相关事件时，自动触发流程"
+        :desc="t('desc_official_trigger')"
       >
       </NodeFormHeader>
     </template>
@@ -16,11 +16,11 @@
         <div class="gray-block">
           <div class="output-label">
             <img src="@/assets/svg/wx-app-icon.svg" alt="" class="output-label-icon" />
-            <span class="output-label-text">公众号</span>
+            <span class="output-label-text">{{ t('label_official_account') }}</span>
           </div>
           <div>
             <a-button @click="handleOpenAppModal" type="dashed"
-              ><PlusOutlined />添加公众号</a-button
+              ><PlusOutlined />{{ t('btn_add_official') }}</a-button
             >
             <div class="app-item-list">
               <div class="app-item" v-for="item in selectAppItems" :key="item.app_id">
@@ -32,7 +32,7 @@
             </div>
           </div>
           <div class="form-item">
-            <div class="form-item-label">触发事件</div>
+            <div class="form-item-label">{{ t('label_trigger_event') }}</div>
             <div class="form-item-content">
               <a-select
                 :options="trigger_options"
@@ -48,12 +48,12 @@
         <div class="gray-block">
           <div class="output-label">
             <img src="@/assets/svg/output.svg" alt="" class="output-label-icon" />
-            <span class="output-label-text">输出</span>
+            <span class="output-label-text">{{ t('label_output') }}</span>
             <a
               class="ml8"
               href="https://developers.weixin.qq.com/doc/subscription/guide/product/message/Receiving_standard_messages.html"
               target="_blank"
-              >查看官方接口文档</a
+              >{{ t('btn_view_document') }}</a
             >
           </div>
           <div class="field-items">
@@ -69,7 +69,7 @@
               <div class="field-value-box">
                 <a-select
                   style="width: 200px"
-                  placeholder="请输入选择变量"
+                  :placeholder="t('ph_select_variable')"
                   v-model:value="item.variable"
                   allowClear
                   @dropdownVisibleChange="dropdownVisibleChange"
@@ -85,12 +85,13 @@
           </div>
         </div>
       </div>
-      <SelectWechatApp ref="wxAppRef" title="添加公众号" @ok="handleAppChange" />
+      <SelectWechatApp ref="wxAppRef" :title="t('btn_add_official')" @ok="handleAppChange" />
     </div>
   </NodeFormLayout>
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { ref, onMounted, inject, computed, reactive } from 'vue'
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
@@ -98,6 +99,7 @@ import { PlusOutlined, CloseCircleFilled, QuestionCircleOutlined } from '@ant-de
 import SelectWechatApp from '@/components/common/select-wechat-app.vue'
 import { useWorkflowStore } from '@/stores/modules/workflow'
 const workflowStore = useWorkflowStore()
+const { t } = useI18n('views.workflow.components.node-form-drawer.official-trigger-node.official-trigger-node-form')
 
 const officialList = computed(() => workflowStore.officialList)
 const triggerOfficialList = computed(() => workflowStore.triggerOfficialList)
@@ -123,19 +125,19 @@ const getGraph = inject('getGraph')
 
 const trigger_options = ref([
   {
-    label: '私信消息',
+    label: t('label_private_message'),
     value: 'message'
   },
   {
-    label: '关注/取消关注事件',
+    label: t('label_subscribe_unsubscribe'),
     value: 'subscribe_unsubscribe'
   },
   {
-    label: '扫描带参数二维码事件',
+    label: t('label_qrcode_scan'),
     value: 'qrcode_scan'
   },
   {
-    label: '自定义菜单事件',
+    label: t('label_menu_click'),
     value: 'menu_click'
   }
 ])

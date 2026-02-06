@@ -4,7 +4,7 @@
       <NodeFormHeader
         :title="node.node_name"
         :iconName="node.node_icon_name"
-        desc="工作流完结的节点，在此节点可以定义工作流返回的信息"
+        :desc="t('desc_end_node')"
         @close="handleClose"
       >
       </NodeFormHeader>
@@ -13,7 +13,7 @@
       <div class="node-form-content">
         <a-form ref="formRef" layout="vertical" :model="formState">
           <div class="gray-block">
-            <div class="gray-block-title">输出类型</div>
+            <div class="gray-block-title">{{ t('title_output_type') }}</div>
             <a-segmented
               class="customer-segmented"
               v-model:value="formState.out_type"
@@ -21,13 +21,13 @@
             />
           </div>
           <div class="gray-block" style="margin-top: 12px" v-if="formState.out_type == 'variable'">
-            <div class="gray-block-title">输出变量</div>
+            <div class="gray-block-title">{{ t('title_output_variable') }}</div>
 
             <div class="array-form-box">
               <div class="field-key-title">
-                <div class="field-key" style="width: 200px">参数key</div>
-                <div class="field-key" style="width: 114px">类型</div>
-                <div class="field-key" style="flex: 1">参数值</div>
+                <div class="field-key" style="width: 200px">{{ t('label_param_key') }}</div>
+                <div class="field-key" style="width: 114px">{{ t('label_type') }}</div>
+                <div class="field-key" style="flex: 1">{{ t('label_param_value') }}</div>
               </div>
               <div class="form-item-list">
                 <a-form-item :label="null">
@@ -36,13 +36,13 @@
                       style="width: 200px"
                       disabled
                       :value="'content'"
-                      placeholder="请输入"
+                      :placeholder="t('ph_input_value')"
                     ></a-input>
                     <a-form-item-rest>
                       <a-select
                         :value="'string'"
                         disabled
-                        placeholder="请选择"
+                        :placeholder="t('ph_select_value')"
                         style="width: 114px"
                       >
                         <a-select-option
@@ -53,9 +53,9 @@
                         >
                       </a-select>
                     </a-form-item-rest>
-                    <div>
+                    <div class="msg_content_return_setting">
                       <ExclamationCircleFilled style="color: #faad14" />
-                      content的返回值请在下方消息中设置
+                      {{ t('msg_content_return_setting') }}
                     </div>
                   </div>
                 </a-form-item>
@@ -66,13 +66,13 @@
                     <a-input
                       style="width: 200px"
                       v-model:value="item.key"
-                      placeholder="请输入"
+                      :placeholder="t('ph_input_value')"
                     ></a-input>
                     <a-form-item-rest>
                       <a-select
                         @change="onTypeChange(item)"
                         v-model:value="item.typ"
-                        placeholder="请选择"
+                        :placeholder="t('ph_select_value')"
                         style="width: 114px"
                       >
                         <a-select-option
@@ -93,7 +93,7 @@
                         @change="
                           (text, selectedList) => changeOutputValue(text, selectedList, item, index)
                         "
-                        placeholder="请输入变量值，键入“/”插入变量"
+                        :placeholder="t('ph_input_variable_value')"
                       >
                         <template #option="{ label, payload }">
                           <div class="field-list-item">
@@ -129,16 +129,15 @@
                 </a-form-item>
               </div>
               <a-button @click="handleAddOutPut" :icon="h(PlusOutlined)" block type="dashed"
-                >添加参数</a-button
+                >{{ t('btn_add_param') }}</a-button
               >
             </div>
           </div>
           <div class="gray-block" style="margin-top: 12px">
-            <div class="gray-block-title">自定义消息</div>
+            <div class="gray-block-title">{{ t('title_custom_message') }}</div>
             <div class="array-form-box">
               <div class="form-item-label" style="margin-bottom: 8px">
-                未自定义消息内容，系统默认将结束节点的上一级大模型节点的输出或者指
-                定回复节点的输出作为消息返回。最多添加5条消息。
+                {{ t('msg_custom_message_desc') }}
               </div>
               <div class="form-item-list" v-for="(item, index) in formState.messages" :key="index">
                 <a-form-item :label="null">
@@ -146,9 +145,9 @@
                     <div class="input-header">
                       <div>
                         {{ index + 1 }}、
-                        <span v-if="item.type == 'text'">文本消息</span>
-                        <span v-if="item.type == 'image'">图片消息</span>
-                        <span v-if="item.type == 'voice'">语音消息</span>
+                        <span v-if="item.type == 'text'">{{ t('label_text_message') }}</span>
+                        <span v-if="item.type == 'image'">{{ t('label_image_message') }}</span>
+                        <span v-if="item.type == 'voice'">{{ t('label_voice_message') }}</span>
                       </div>
                       <div class="btn-hover-wrap" @click="onDelItem(index)">
                         <CloseCircleOutlined />
@@ -178,20 +177,20 @@
               <a-dropdown>
                 <div>
                   <a-button type="dashed" block
-                    ><PlusOutlined />添加消息 （{{ formState.messages.length }} / 5）</a-button
+                    ><PlusOutlined />{{ t('btn_add_message', { count: formState.messages.length }) }}</a-button
                   >
                 </div>
 
                 <template #overlay>
                   <a-menu>
                     <a-menu-item @click="handleAddItem('text')">
-                      <a>文本</a>
+                      <a>{{ t('label_text') }}</a>
                     </a-menu-item>
                     <a-menu-item @click="handleAddItem('image')">
-                      <a>图片</a>
+                      <a>{{ t('label_image') }}</a>
                     </a-menu-item>
                     <a-menu-item @click="handleAddItem('voice')">
-                      <a>语音</a>
+                      <a>{{ t('label_voice') }}</a>
                     </a-menu-item>
                   </a-menu>
                 </template>
@@ -205,6 +204,7 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { getUuid } from '@/utils/index'
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
@@ -220,6 +220,7 @@ import AtInput from '../../at-input/at-input.vue'
 import SubKey from './subs-key.vue'
 import { message } from 'ant-design-vue'
 
+const { t } = useI18n('views.workflow.components.node-form-drawer.end-node-form.index')
 const emit = defineEmits(['update-node'])
 const props = defineProps({
   lf: {
@@ -237,18 +238,18 @@ const props = defineProps({
 })
 
 const placeholderMap = {
-  text: '请输入文本消息内容，键入/可以插入变量',
-  image: '请输入图片消息的url（系统发送时会自动转成图片发送），键入/可插入变量',
-  voice: '请输入语音的url（系统发送时会自动转成语音发送），键入/可插入变量'
+  text: t('ph_text_message'),
+  image: t('ph_image_message'),
+  voice: t('ph_voice_message')
 }
 
 const typeOptions = [
   {
-    label: '返回消息',
+    label: t('label_return_message'),
     value: 'message'
   },
   {
-    label: '返回消息和变量',
+    label: t('label_return_message_and_variable'),
     value: 'variable'
   }
 ]
@@ -356,7 +357,7 @@ const init = () => {
     let dataRaw = props.node.dataRaw || props.node.node_params || '{}'
     let finish = JSON.parse(dataRaw).finish || {}
     finish = JSON.parse(JSON.stringify(finish))
-    console.log(finish, '==')
+
     getVlaueVariableList()
 
     formState.out_type = finish.out_type || 'message'
@@ -387,7 +388,7 @@ watch(
 
 const handleAddItem = (type) => {
   if (formState.messages.length >= 5) {
-    return message.warning('最多添加5条消息')
+    return message.warning(t('msg_max_5_messages'))
   }
   formState.messages.push({
     key: getUuid(16),
@@ -398,7 +399,7 @@ const handleAddItem = (type) => {
 
 const onDelItem = (index) => {
   if (formState.messages.length <= 1) {
-    return message.warning('最少添加1条消息')
+    return message.warning(t('msg_min_1_message'))
   }
   formState.messages.splice(index, 1)
 }
@@ -502,5 +503,10 @@ onMounted(() => {
   gap: 8px;
   margin-bottom: 4px;
   font-weight: 600;
+}
+
+.msg_content_return_setting{
+  line-height: 16px;
+  font-size: 13px;
 }
 </style>

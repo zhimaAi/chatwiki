@@ -13,7 +13,7 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 )
 
-// HttpToolRequest HTTP工具请求结构
+// HttpToolRequest HTTP tool request struct
 type HttpToolRequest struct {
 	ID          int    `form:"id" json:"id"`
 	Name        string `form:"name" json:"name" binding:"required"`
@@ -23,7 +23,7 @@ type HttpToolRequest struct {
 	Description string `form:"description" json:"description"`
 }
 
-// HttpToolNodeRequest HTTP工具节点请求结构
+// HttpToolNodeRequest HTTP tool node request struct
 type HttpToolNodeRequest struct {
 	ID              int    `form:"id" json:"id"`
 	HttpToolID      int    `form:"http_tool_id" json:"http_tool_id" binding:"required"`
@@ -32,18 +32,18 @@ type HttpToolNodeRequest struct {
 	NodeName        string `form:"node_name" json:"node_name" binding:"required"`
 	NodeDescription string `form:"node_description" json:"node_description"`
 	NodeRemark      string `form:"node_remark" json:"node_remark"`
-	DataRaw         string `form:"data_raw" json:"data_raw"` // 原始数据，用于生成node_params
+	DataRaw         string `form:"data_raw" json:"data_raw"` // raw data, used to generate node_params
 }
 
-// HttpToolListFilterRequest HTTP工具列表过滤请求结构
+// HttpToolListFilterRequest HTTP tool list filter request struct
 type HttpToolListFilterRequest struct {
 	Name      string `json:"name" form:"name"`
 	Page      int    `json:"page" form:"page"`
 	Size      int    `json:"size" form:"size"`
-	WithNodes bool   `json:"with_nodes" form:"with_nodes"` // 是否同时获取节点详情
+	WithNodes bool   `json:"with_nodes" form:"with_nodes"` // whether to include node details
 }
 
-// HttpToolNodeListFilterRequest HTTP工具节点列表过滤请求结构
+// HttpToolNodeListFilterRequest HTTP tool node list filter request struct
 type HttpToolNodeListFilterRequest struct {
 	HttpToolID int    `json:"http_tool_id" form:"http_tool_id" binding:"required"`
 	NodeName   string `json:"node_name" form:"node_name"`
@@ -51,24 +51,24 @@ type HttpToolNodeListFilterRequest struct {
 	Size       int    `json:"size" form:"size"`
 }
 
-// SaveHttpTool 保存HTTP工具（创建或更新）
+// SaveHttpTool Save HTTP tool (create or update)
 func SaveHttpTool(c *gin.Context) {
 	var req HttpToolRequest
 
-	// 获取参数
+	// Get params
 	if err := c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 如果是更新操作，检查工具是否存在且属于当前用户
+	// If updating, check whether the tool exists and belongs to current user
 	if req.ID > 0 {
 		toolInfo, err := common.GetHttpTool(req.ID)
 		if err != nil {
@@ -87,11 +87,11 @@ func SaveHttpTool(c *gin.Context) {
 			return
 		}
 
-		// 如果是更新操作，使用数据库中的tool_key，不允许更改
+		// If updating, use tool_key from DB and forbid changes
 		req.ToolKey = cast.ToString(toolInfo["tool_key"])
 	}
 
-	// 保存工具（创建或更新）
+	// Save tool (create or update)
 	id, err := common.SaveHttpTool(
 		req.ID,
 		adminUserId,
@@ -111,24 +111,24 @@ func SaveHttpTool(c *gin.Context) {
 	common.FmtOk(c, map[string]interface{}{"id": id})
 }
 
-// DeleteHttpTool 删除HTTP工具
+// DeleteHttpTool Delete HTTP tool
 func DeleteHttpTool(c *gin.Context) {
 	id := cast.ToInt(c.PostForm("id"))
 
-	// 检查参数
+	// Validate params
 	if id <= 0 {
 		common.FmtError(c, `param_lack`, `id`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查工具是否存在且属于当前用户
+	// Check whether the tool exists and belongs to current user
 	toolInfo, err := common.GetHttpTool(id)
 	if err != nil {
 		logs.Error("Get http tool error: %s", err.Error())
@@ -146,7 +146,7 @@ func DeleteHttpTool(c *gin.Context) {
 		return
 	}
 
-	// 删除工具
+	// Delete tool
 	err = common.DeleteHttpTool(id)
 	if err != nil {
 		logs.Error("DeleteHttpTool error: %s", err.Error())
@@ -157,24 +157,24 @@ func DeleteHttpTool(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-// GetHttpTool 获取单个HTTP工具
+// GetHttpTool Get a single HTTP tool
 func GetHttpTool(c *gin.Context) {
 	id := cast.ToInt(c.Query("id"))
 
-	// 检查参数
+	// Validate params
 	if id <= 0 {
 		common.FmtError(c, `param_lack`, `id`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 获取工具信息及节点列表
+	// Get tool info and node list
 	toolInfo, err := common.GetHttpToolWithNodes(id)
 	if err != nil {
 		logs.Error("Get http tool with nodes error: %s", err.Error())
@@ -187,16 +187,16 @@ func GetHttpTool(c *gin.Context) {
 		return
 	}
 
-	// 检查权限
+	// Check permissions
 	if cast.ToInt(toolInfo["admin_user_id"]) != adminUserId {
 		common.FmtError(c, `auth_no_permission`)
 		return
 	}
 
-	// 如果toolInfo包含节点详情，需要将data_raw转换为node_params对象
+	// If toolInfo includes node details, convert data_raw to node_params
 	if nodes, ok := toolInfo["nodes"].([]map[string]any); ok {
 		for j := range nodes {
-			// 从data_raw解析NodeParams
+			// Parse NodeParams from data_raw
 			if dataRaw, ok := nodes[j]["data_raw"].(string); ok && dataRaw != "" {
 				nodeParams := work_flow.DisposeNodeParams(work_flow.NodeTypeCurl, dataRaw, common.GetLang(c))
 				nodeParams.Curl.ToolInfo = GetHttpToolInfo(nodes[j])
@@ -207,21 +207,21 @@ func GetHttpTool(c *gin.Context) {
 		}
 	}
 
-	// 返回数据
+	// Return data
 	common.FmtOk(c, toolInfo)
 }
 
-// GetHttpToolList 获取HTTP工具列表
+// GetHttpToolList Get HTTP tool list
 func GetHttpToolList(c *gin.Context) {
 	var req HttpToolListFilterRequest
 
-	// 获取参数
+	// Get params
 	if err := c.ShouldBindQuery(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 设置默认分页参数
+	// Set default pagination
 	if req.Page <= 0 {
 		req.Page = 1
 	}
@@ -229,19 +229,19 @@ func GetHttpToolList(c *gin.Context) {
 		req.Size = 10
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 获取工具列表，支持仅返回节点数量而不需要节点详情
+	// Get tool list; supports returning only node count without node details
 	var list []map[string]any
 	var total int
 	var err error
 
-	// 使用新的方法，支持仅获取节点数量
+	// Use new method; supports fetching only node count
 	list, total, err = common.GetHttpToolListWithFilterAndNodeCount(adminUserId, req.Name, req.Page, req.Size, req.WithNodes, true)
 	if err != nil {
 		logs.Error("GetHttpToolListWithFilterAndNodeCount error: %s", err.Error())
@@ -249,13 +249,13 @@ func GetHttpToolList(c *gin.Context) {
 		return
 	}
 
-	// 如果需要获取节点详情，需要将data_raw转换为node_params对象
+	// If node details are required, convert data_raw to node_params
 	if req.WithNodes {
 		for i := range list {
-			// 处理节点列表，先尝试不同的类型断言
+			// Process node list; try different type assertions
 			if nodesSlice, ok := list[i]["nodes"].([]map[string]any); ok {
 				for j := range nodesSlice {
-					// 从data_raw解析NodeParams
+					// Parse NodeParams from data_raw
 					if dataRaw, ok := nodesSlice[j]["data_raw"].(string); ok && dataRaw != "" {
 						nodeParams := work_flow.DisposeNodeParams(work_flow.NodeTypeCurl, dataRaw, common.GetLang(c))
 						nodeParams.Curl.ToolInfo = GetHttpToolInfo(nodesSlice[j])
@@ -267,7 +267,7 @@ func GetHttpToolList(c *gin.Context) {
 		}
 	}
 
-	// 返回分页数据
+	// Return paginated data
 	response := map[string]interface{}{
 		"list":  list,
 		"total": total,
@@ -278,7 +278,7 @@ func GetHttpToolList(c *gin.Context) {
 	common.FmtOk(c, response)
 }
 
-// GetHttpToolInfo 获取HTTP工具信息
+// GetHttpToolInfo Get HTTP tool info
 func GetHttpToolInfo(nodes map[string]any) work_flow.HttpToolInfo {
 	return work_flow.HttpToolInfo{
 		HttpToolName:            cast.ToString(nodes["http_tool_name"]),
@@ -293,24 +293,24 @@ func GetHttpToolInfo(nodes map[string]any) work_flow.HttpToolInfo {
 	}
 }
 
-// SaveHttpToolNode 保存HTTP工具节点（创建或更新）
+// SaveHttpToolNode Save HTTP tool node (create or update)
 func SaveHttpToolNode(c *gin.Context) {
 	var req HttpToolNodeRequest
 
-	// 获取参数
+	// Get params
 	if err := c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查HTTP工具是否存在且属于当前用户
+	// Check whether the HTTP tool exists and belongs to current user
 	httpToolInfo, err := common.GetHttpTool(req.HttpToolID)
 	if err != nil {
 		logs.Error("Get http tool error: %s", err.Error())
@@ -328,7 +328,7 @@ func SaveHttpToolNode(c *gin.Context) {
 		return
 	}
 
-	// 如果是更新操作，检查节点是否存在且属于当前用户
+	// If updating, check whether the node exists and belongs to current user
 	if req.ID > 0 {
 		nodeInfo, err := common.GetHttpToolNode(req.ID)
 		if err != nil {
@@ -348,7 +348,7 @@ func SaveHttpToolNode(c *gin.Context) {
 		}
 	}
 
-	// 保存节点（创建或更新）- 包含node_params参数
+	// Save node (create or update) - includes node_params param
 	id, err := common.SaveHttpToolNode(
 		req.ID,
 		adminUserId,
@@ -370,24 +370,24 @@ func SaveHttpToolNode(c *gin.Context) {
 	common.FmtOk(c, map[string]interface{}{"id": id})
 }
 
-// DeleteHttpToolNode 删除HTTP工具节点
+// DeleteHttpToolNode Delete HTTP tool node
 func DeleteHttpToolNode(c *gin.Context) {
 	id := cast.ToInt(c.PostForm("id"))
 
-	// 检查参数
+	// Validate params
 	if id <= 0 {
 		common.FmtError(c, `param_lack`, `id`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查节点是否存在且属于当前用户
+	// Check whether the node exists and belongs to current user
 	nodeInfo, err := common.GetHttpToolNode(id)
 	if err != nil {
 		logs.Error("Get http tool node error: %s", err.Error())
@@ -405,7 +405,7 @@ func DeleteHttpToolNode(c *gin.Context) {
 		return
 	}
 
-	// 删除节点
+	// Delete node
 	err = common.DeleteHttpToolNode(id)
 	if err != nil {
 		logs.Error("DeleteHttpToolNode error: %s", err.Error())
@@ -416,24 +416,24 @@ func DeleteHttpToolNode(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-// GetHttpToolNode 获取单个HTTP工具节点
+// GetHttpToolNode Get a single HTTP tool node
 func GetHttpToolNode(c *gin.Context) {
 	id := cast.ToInt(c.Query("id"))
 
-	// 检查参数
+	// Validate params
 	if id <= 0 {
 		common.FmtError(c, `param_lack`, `id`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 获取节点信息
+	// Get node info
 	nodeInfo, err := common.GetHttpToolNode(id)
 	if err != nil {
 		logs.Error("Get http tool node error: %s", err.Error())
@@ -446,13 +446,13 @@ func GetHttpToolNode(c *gin.Context) {
 		return
 	}
 
-	// 检查权限
+	// Check permissions
 	if cast.ToInt(nodeInfo["admin_user_id"]) != adminUserId {
 		common.FmtError(c, `auth_no_permission`)
 		return
 	}
 
-	// 从data_raw解析NodeParams
+	// Parse NodeParams from data_raw
 	if dataRaw, ok := nodeInfo["data_raw"].(string); ok && dataRaw != "" {
 		nodeParams := work_flow.DisposeNodeParams(work_flow.NodeTypeCurl, dataRaw, common.GetLang(c))
 		nodeParams.Curl.ToolInfo = GetHttpToolInfo(nodeInfo)
@@ -461,21 +461,21 @@ func GetHttpToolNode(c *gin.Context) {
 
 	}
 
-	// 返回数据
+	// Return data
 	common.FmtOk(c, nodeInfo)
 }
 
-// GetHttpToolNodeList 获取HTTP工具节点列表
+// GetHttpToolNodeList Get HTTP tool node list
 func GetHttpToolNodeList(c *gin.Context) {
 	var req HttpToolNodeListFilterRequest
 
-	// 获取参数
+	// Get params
 	if err := c.ShouldBindQuery(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 设置默认分页参数
+	// Set default pagination
 	if req.Page <= 0 {
 		req.Page = 1
 	}
@@ -483,14 +483,14 @@ func GetHttpToolNodeList(c *gin.Context) {
 		req.Size = 10
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查HTTP工具是否存在且属于当前用户
+	// Check whether the HTTP tool exists and belongs to current user
 	httpToolInfo, err := common.GetHttpTool(req.HttpToolID)
 	if err != nil {
 		logs.Error("Get http tool error: %s", err.Error())
@@ -508,7 +508,7 @@ func GetHttpToolNodeList(c *gin.Context) {
 		return
 	}
 
-	// 获取节点列表
+	// Get node list
 	list, total, err := common.GetHttpToolNodeListWithFilter(req.HttpToolID, req.NodeName, req.Page, req.Size)
 	if err != nil {
 		logs.Error("GetHttpToolNodeListWithFilter error: %s", err.Error())
@@ -516,7 +516,7 @@ func GetHttpToolNodeList(c *gin.Context) {
 		return
 	}
 
-	// 对每个节点，从data_raw解析NodeParams并替换node_params字段
+	// For each node, parse NodeParams from data_raw and set node_params
 	for i := range list {
 		if dataRaw, ok := list[i]["data_raw"].(string); ok && dataRaw != "" {
 			nodeParams := work_flow.DisposeNodeParams(work_flow.NodeTypeCurl, dataRaw, common.GetLang(c))
@@ -527,7 +527,7 @@ func GetHttpToolNodeList(c *gin.Context) {
 		}
 	}
 
-	// 返回分页数据
+	// Return paginated data
 	response := map[string]interface{}{
 		"list":  list,
 		"total": total,

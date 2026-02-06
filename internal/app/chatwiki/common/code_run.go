@@ -17,6 +17,10 @@ import (
 )
 
 func RequestCodeRun(ctx context.Context, api string, data lib_define.CodeRunBody) (string, error) {
+	if len(api) == 0 {
+		api = lib_define.LanguageJavaScript
+	}
+
 	domain := define.Config.WebService[`code_run`]
 	body, err := tool.JsonEncode(data)
 	if err != nil {
@@ -28,6 +32,7 @@ func RequestCodeRun(ctx context.Context, api string, data lib_define.CodeRunBody
 	link := fmt.Sprintf(`%s/%s?sign=%s&timestamp=%d&nonce=%s`, domain, api, sign, timestamp, nonce)
 	request := curl.Post(link).Body(body).Header(`Content-Type`, `application/json`)
 	resp, err := request.WithContext(ctx).Response()
+
 	if err != nil {
 		return ``, err
 	}
@@ -35,11 +40,13 @@ func RequestCodeRun(ctx context.Context, api string, data lib_define.CodeRunBody
 		return ``, errors.New(fmt.Sprintf(`SYSTEM ERROR:%d`, resp.StatusCode))
 	}
 	code := lib_web.Response{}
+
 	if err = request.ToJSON(&code); err != nil {
 		return ``, err
 	}
 	if code.Res != lib_web.CommonSuccess {
 		return ``, errors.New(code.Msg)
 	}
+
 	return cast.ToString(code.Data), nil
 }

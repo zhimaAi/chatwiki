@@ -3,7 +3,7 @@
     <div class="breadcrumb-block">
       <a-breadcrumb>
         <a-breadcrumb-item>
-          <router-link to="/library/list"> 知识库管理 </router-link></a-breadcrumb-item
+          <router-link to="/library/list"> {{ t('breadcrumb_library_management') }} </router-link></a-breadcrumb-item
         >
         <a-breadcrumb-item>
           <router-link
@@ -14,10 +14,10 @@
               }
             }"
           >
-            <div class="library-line1">{{ detailsInfo.library_name }}知识库</div>
+            <div class="library-line1">{{ detailsInfo.library_name }}{{ t('breadcrumb_knowledge_base') }}</div>
           </router-link >
         </a-breadcrumb-item>
-        <a-breadcrumb-item>知识库详情</a-breadcrumb-item>
+        <a-breadcrumb-item>{{ t('breadcrumb_knowledge_base_details') }}</a-breadcrumb-item>
       </a-breadcrumb>
       <div class="selct-star-box">
         <SelectStarBox :startLists="startLists" @change="handleCategoryChange" />
@@ -30,57 +30,57 @@
     </div>
     <div class="search-content-block">
       <div class="preview-box">
-        <a-button v-if="!isCollapsed" @click="toggleCollapse('put')"><svg-icon class="preview-box-icon" name="put-away"></svg-icon> 收起预览</a-button>
-        <a-button v-else @click="toggleCollapse('expand')"><svg-icon class="preview-box-icon" name="expand"></svg-icon> 展开预览</a-button>
+        <a-button v-if="!isCollapsed" @click="toggleCollapse('put')"><svg-icon class="preview-box-icon" name="put-away"></svg-icon> {{ t('btn_collapse_preview') }}</a-button>
+        <a-button v-else @click="toggleCollapse('expand')"><svg-icon class="preview-box-icon" name="expand"></svg-icon> {{ t('btn_expand_preview') }}</a-button>
       </div>
       <a-space>
         <a-input
           v-model:value="filterData.search"
-          placeholder="搜索内容"
+          :placeholder="t('ph_search_content')"
           style="width: 200px"
           allowClear
           @change="search"
         />
         <a-select
           v-model:value="filterData.status"
-          placeholder="请选择"
+          :placeholder="t('ph_select')"
           style="width: 160px"
           @change="search"
           v-if="is_qa_doc"
         >
-          <a-select-option :value="-1">全部嵌入状态</a-select-option>
+          <a-select-option :value="-1">{{ t('select_all_embed_status') }}</a-select-option>
           <a-select-option v-for="(i, key) in listStatusMap" :key="i" :value="key">{{ i }}</a-select-option>
         </a-select>
         <a-select
           v-if="detailsInfo.graph_switch"
           v-model:value="filterData.graph_status"
-          placeholder="请选择"
+          :placeholder="t('ph_select')"
           @change="search"
           style="width: 160px"
         >
-          <a-select-option :value="-1">全部知识图谱状态</a-select-option>
+          <a-select-option :value="-1">{{ t('select_all_graph_status') }}</a-select-option>
           <a-select-option v-for="(i, key) in graphStatusMap" :key="i" :value="key">{{ i }}</a-select-option>
         </a-select>
-        <a-button @click="showMetaModal">修改元数据</a-button>
+        <a-button @click="showMetaModal">{{ t('btn_modify_metadata') }}</a-button>
         <a-dropdown>
           <template #overlay>
             <a-menu>
-              <a-menu-item @click="reEmbeddingVectors">重新嵌入向量</a-menu-item>
-              <a-menu-item v-if="detailsInfo.graph_switch" @click="reExtractingGraph">重新抽取知识图谱</a-menu-item>
-              <a-menu-item @click="handleRenameModal">重命名</a-menu-item>
+              <a-menu-item @click="reEmbeddingVectors">{{ t('btn_re_embed_vectors') }}</a-menu-item>
+              <a-menu-item v-if="detailsInfo.graph_switch" @click="reExtractingGraph">{{ t('btn_re_extract_graph') }}</a-menu-item>
+              <a-menu-item @click="handleRenameModal">{{ t('btn_rename') }}</a-menu-item>
               <a-menu-item v-if="doc_type == 2" @click="showUpdateFrequen"
-                >设置更新频率</a-menu-item
+                >{{ t('btn_set_update_frequency') }}</a-menu-item
               >
             </a-menu>
           </template>
-          <a-button>其他操作 <DownOutlined /></a-button>
+          <a-button>{{ t('btn_other_operations') }} <DownOutlined /></a-button>
         </a-dropdown>
-        <a-button v-if="doc_type != 3" @click="reSegment">重新分段</a-button>
+        <a-button v-if="doc_type != 3" @click="reSegment">{{ t('btn_re_segment') }}</a-button>
         <a-button @click="openEditSubscription({})" type="primary">
           <template #icon>
             <PlusOutlined />
           </template>
-          <span>添加分段</span>
+          <span>{{ t('btn_add_section') }}</span>
         </a-button>
       </a-space>
     </div>
@@ -143,15 +143,15 @@
                   <a-radio-button :value="1">
                     <a-tooltip
                       placement="right"
-                      title="原文预览模式下，会展示pdf原始文件内容，手动编辑分段的不会展示。您可以通过原文预览模式，校验分段准确性，然后手动编辑分段。"
+                      :title="t('tooltip_original_preview')"
                     >
-                      原文预览
+                      {{ t('radio_original_preview') }}
                       <span v-if="pdfPreviewMode == 1 && totalPages > 0"
                         >({{ currentPdfPage }} / {{ totalPages }})</span
                       >
                     </a-tooltip>
                   </a-radio-button>
-                  <a-radio-button :value="2">纯文本预览</a-radio-button>
+                  <a-radio-button :value="2">{{ t('radio_plain_text_preview') }}</a-radio-button>
                 </a-radio-group>
               </div>
               <div class="segmentation-btn" v-if="detailsInfo?.file_ext == 'pdf'">
@@ -159,30 +159,30 @@
                   <template #overlay>
                     <a-menu @click="handleSegmentationMenuClick">
                       <a-menu-item :key="1" v-if="pdfPreviewMode == 1 && totalPages > 0">
-                        <a-tooltip placement="right" title="将当前页重新解析并分段">
-                          <div>将当页重新分段</div>
+                        <a-tooltip placement="right" :title="t('tooltip_re_segment_current_page')">
+                          <div>{{ t('menu_re_segment_current_page') }}</div>
                         </a-tooltip>
                       </a-menu-item>
                       <a-menu-item :key="2">
                         <a-tooltip
                           placement="right"
-                          title="将整个文档重新分段，注意，重新分段并不会重新提取文档的内容，只是将内容重新分段。"
+                          :title="t('tooltip_re_segment_document')"
                         >
-                          <div>将文档重新分段</div>
+                          <div>{{ t('menu_re_segment_document') }}</div>
                         </a-tooltip>
                       </a-menu-item>
                       <a-menu-item :key="3">
                         <a-tooltip
                           placement="right"
-                          title="将整个文档重新学习，包含重新解析并提取文档内容，重新分段。"
+                          :title="t('tooltip_re_learn_document')"
                         >
-                          <div>重新学习文档</div>
+                          <div>{{ t('menu_re_learn_document') }}</div>
                         </a-tooltip>
                       </a-menu-item>
                     </a-menu>
                   </template>
                   <a-button>
-                    重新分段
+                    {{ t('btn_re_segment') }}
                     <DownOutlined />
                   </a-button>
                 </a-dropdown>
@@ -288,6 +288,9 @@ import { ref, reactive, computed, nextTick, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { LeftOutlined, PlusOutlined, DownOutlined } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.library-preview.index')
 import Empty from './components/empty.vue'
 import SubsectionBox from './components/subsection-box.vue'
 import {
@@ -323,10 +326,10 @@ const pdfRef = ref(null)
 const pdfLoadedPage = ref(0)
 const pdfTotalPage = ref(0)
 const graphStatusMap = {
-  0: '待生成',
-  4: '生成中',
-  2: '生成成功',
-  3: '生成失败'
+  0: t('status_pending_generation'),
+  4: t('status_generating'),
+  2: t('status_generation_success'),
+  3: t('status_generation_failed')
 }
 
 const startLists = ref([])
@@ -414,10 +417,10 @@ const paragraphInfo = ref({})
 const paragraphLists = ref([])
 const total = ref(0)
 const listStatusMap = {
-  0: '未转换',
-  1: '已转换',
-  2: '转换异常',
-  3: '转换中...'
+  0: t('status_not_converted'),
+  1: t('status_converted'),
+  2: t('status_conversion_exception'),
+  3: t('status_converting')
 }
 
 const totalData = reactive({
@@ -432,37 +435,37 @@ const totalData = reactive({
 const generalListStatusMap = reactive([
   {
     value: -1,
-    label: '全部',
+    label: t('tab_all'),
     num: computed(() => totalData.total)
   },
   {
     value: 4,
-    label: '分段失败',
+    label: t('tab_segmentation_failed'),
     num: computed(() => totalData.split_status_exception)
   },
   {
     value: 0,
-    label: '未转换',
+    label: t('tab_not_converted'),
     num: computed(() => totalData.vector_status_initial)
   },
   {
     value: 3,
-    label: '转换中',
+    label: t('tab_converting'),
     num: computed(() => totalData.vector_status_converting)
   },
   {
     value: 2,
-    label: '转换异常',
+    label: t('tab_conversion_exception'),
     num: computed(() => totalData.vector_status_exception)
   },
   {
     value: 1,
-    label: '已转换',
+    label: t('tab_converted'),
     num: computed(() => totalData.vector_status_converted)
   }
 ])
 
-const defaultAiChunkPrumpt = '你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。'
+const defaultAiChunkPrumpt = t('default_ai_chunk_prompt')
 const settingMode = ref(1) // 1 表格，0 非表格
 let formData = {
   id: route.query.id,
@@ -728,11 +731,11 @@ const openEditSubscription = (data) => {
 const updateFrequencyRef = ref(null)
 
 const reEmbeddingVectors = () => {
-  reconstructVector({ id: route.query.id }).then(() => message.success('操作完成'))
+  reconstructVector({ id: route.query.id }).then(() => message.success(t('msg_operation_completed')))
 }
 
 const reExtractingGraph = () => {
-  reconstructGraph({ id: route.query.id }).then(() => message.success('操作完成'))
+  reconstructGraph({ id: route.query.id }).then(() => message.success(t('msg_operation_completed')))
 }
 const renameModalRef = ref(null)
 const handleRenameModal = () => {
@@ -769,10 +772,10 @@ const pdfPageSelect = (page) => {
     }
   }
   if (page > paragraphLists.value[paragraphLists.value.length - 1].page_num) {
-    message.warning('分段数据正在加载，请稍后...')
+    message.warning(t('msg_segment_data_loading'))
     const checkLoadFinished = () => {
       if (page <= paragraphLists.value[paragraphLists.value.length - 1].page_num) {
-        message.success('加载完成')
+        message.success(t('msg_loading_completed'))
         nextTick(() => {
           link()
         })
@@ -810,12 +813,12 @@ const paragraphPosition = (data) => {
     const el = getPageEl()
     if (!el) {
       // 未加载到pdf时
-      message.warning('PDF正在加载，请稍后...')
+      message.warning(t('msg_pdf_loading'))
       const checkLoadFinished = () => {
         if (!getPageEl()) {
           pdfRef.value && pdfRef.value.loadMore()
         } else {
-          message.success('加载完成')
+          message.success(t('msg_loading_completed'))
           link()
         }
       }
@@ -1177,7 +1180,7 @@ const handleSaveLibFileSplit = async (documentFragmentList, index) => {
 
   saveLibFileSplit(parmas)
     .then((res) => {
-      message.success('操作成功')
+      message.success(t('msg_operation_success'))
       // 后端返回的id替换成新的id
       const newIds = res.data
       for (let index = 0; index < newIds.length; index++) {

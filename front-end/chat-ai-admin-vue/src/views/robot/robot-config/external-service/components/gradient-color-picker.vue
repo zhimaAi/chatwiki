@@ -25,13 +25,13 @@
   <div class="gradient-color-picker">
     <div class="color-picker-box">
       <div class="gradient-type-select">
-        <a-select :value="gradientDirection" style="width: 180px" @change="onChangeType">
+        <a-select :value="gradientDirection" style="width: 230px" @change="onChangeType">
           <a-select-option
             :value="opt.value"
             :type="opt.type"
             v-for="opt in options"
             :key="opt.key"
-            >{{ opt.label }}</a-select-option
+            >{{ t(opt.label) }}</a-select-option
           >
         </a-select>
       </div>
@@ -52,6 +52,9 @@ import { ref, computed, watch } from 'vue'
 import { RightOutlined } from '@ant-design/icons-vue'
 import ColorPicker from '@/components/color-picker/index.vue'
 import { Form } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.external-service.components.gradient-color-picker')
 
 const emit = defineEmits(['update:value'])
 const props = defineProps({
@@ -66,25 +69,25 @@ const formItemContext = Form.useInjectFormItemContext()
 const options = ref([
   {
     key: 1,
-    label: '单色',
+    label: 'label_solid_color',
     value: 'color',
     type: 'color'
   },
   {
     key: 2,
-    label: '线性渐变（横向）',
+    label: 'label_linear_gradient_horizontal',
     value: 'to right',
     type: 'linear-gradient'
   },
   {
     key: 3,
-    label: '线性渐变（竖向）',
+    label: 'label_linear_gradient_vertical',
     value: 'to bottom',
     type: 'linear-gradient'
   },
   {
     key: 4,
-    label: '径向渐变',
+    label: 'label_radial_gradient',
     value: 'circle',
     type: 'radial-gradient'
   }

@@ -1,0 +1,23 @@
+{
+  "text": "文本",
+  "imageText": "图文链接",
+  "image": "图片",
+  "card": "小程序",
+  "url": "链接",
+  "smartMenu": "智能菜单",
+  "voice": "音频",
+  "video": "视频",
+  "subscribe_search": "公众号搜索",
+  "subscribe_migration": "公众号迁移",
+  "profile_card": "名片分享",
+  "qr_code": "扫描二维码",
+  "profile_link": "图文页内名称点击",
+  "profile_item": "图文页右上角菜单",
+  "paid": "支付后关注",
+  "wechat_ad": "微信广告",
+  "reprint": "他人转载",
+  "livestream": "视频号直播",
+  "channels": "视频号",
+  "wxa": "小程序关注",
+  "other": "其他"
+}

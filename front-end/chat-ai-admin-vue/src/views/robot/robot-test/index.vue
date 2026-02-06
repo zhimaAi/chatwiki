@@ -121,7 +121,7 @@
       <div class="breadcrumb-box">
         <a-breadcrumb>
           <a-breadcrumb-item
-            ><router-link to="/robot/list">机器人管理</router-link></a-breadcrumb-item
+            ><router-link to="/robot/list">{{ t('breadcrumb_robot_management') }}</router-link></a-breadcrumb-item
           >
           <a-breadcrumb-item>{{ robot.robot_name }}</a-breadcrumb-item>
         </a-breadcrumb>
@@ -132,7 +132,7 @@
       <div class="page-left">
         <div class="page-left-top">
           <a-button type="primary" block ghost @click="openNewChat"
-            ><PlusOutlined /> 新建对话</a-button
+            ><PlusOutlined /> {{ t('btn_new_chat') }}</a-button
           >
         </div>
         <div class="page-left-body">
@@ -148,9 +148,9 @@
       <!-- body -->
       <div class="page-body">
         <div class="form-banner-top" v-if="isShowFromHeader">
-          <div class="title">表单信息</div>
+          <div class="title">{{ t('title_form_info') }}</div>
           <div class="edit-block" @click="handleEditVariableForm">
-            <EditOutlined />编辑
+            <EditOutlined />{{ t('btn_edit') }}
           </div>
         </div>
         <div class="chat-box-body">
@@ -213,6 +213,9 @@ import libraryInfoAlert from './components/library-info-alert.vue'
 import VariableModal from './components/variable-modal/index.vue'
 import { saveRobot, checkChatRequestPermission } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-test.index')
 
 
 const rotue = useRoute()
@@ -258,7 +261,7 @@ const onSendMesage = async () => {
   }
 
   if (!message.value && !fileList.value.length) {
-    return showErrorMsg('请输入消息内容')
+    return showErrorMsg(t('msg_please_input_message'))
   }
 
   checkChatRequestPermissionLoding.value = true
@@ -276,7 +279,7 @@ const onSendMesage = async () => {
   checkChatRequestPermissionLoding.value = false
 
   if(result.data && result.data.words){
-    return antMessage.error(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)
+    return antMessage.error(t('msg_sensitive_words', { words: result.data.words.join(';') }))
   }
 
   let msg_type = 1;
@@ -309,12 +312,12 @@ const onSendMesage = async () => {
 
     msg = JSON.stringify(messageList)
   }
-  
-  
-  
+
+
+
 
   isAllowedScrollToBottom = true
-  
+
   sendMessage({
     message: msg,
     global: JSON.stringify(query),
@@ -326,7 +329,7 @@ const onSendMesage = async () => {
   }catch(err){
     checkChatRequestPermissionLoding.value = false
   }
-  
+
 }
 
 const openNewChat = async () => {
@@ -419,7 +422,7 @@ const saveForm = (formState) => {
 
       saveLoading.value = false
 
-      showSuccessMsg('保存成功')
+      showSuccessMsg(t('success_save'))
 
       getRobot(formState.id)
     })
@@ -435,22 +438,20 @@ const onPromptChange = (e) => {
 
 const onSaveRobotPrompt = async (formState, isDefault) => {
   let newFormState = JSON.parse(JSON.stringify(formState)) // 深拷贝，不能改变原对象
-  let content =
-    '如果您已对外提供本机器人，保存后修改的提示问也会立刻生效。如果您只是想要测试优化提示词的效果，直接修改后测试即可，无需保存。'
   Modal.confirm({
-    title: '确定保存提示词吗?',
-    icon: createVNode(ExclamationCircleOutlined),
-    content: createVNode('div', { style: 'color:red;' }, content),
-    onOk: async () => {
-      // updateRobotInfo({ ...toRaw(formState) })
-      if (isDefault) {
-        // 传给后端的是默认，渲染的是真实名称
-        newFormState.use_model = '默认'
-      }
-      saveForm(newFormState)
-    },
-    onCancel() {}
-  })
+        title: t('confirm_save_prompt'),
+        icon: createVNode(ExclamationCircleOutlined),
+        content: createVNode('div', { style: 'color:red;' }, t('confirm_save_prompt_content')),
+        onOk: async () => {
+          // updateRobotInfo({ ...toRaw(formState) })
+          if (isDefault) {
+            // 传给后端的是默认，渲染的是真实名称
+            newFormState.use_model = '默认'
+          }
+          saveForm(newFormState)
+        },
+        onCancel() {}
+      })
 }
 
 // 监听 updateAiMessage 触发消息列表滚动

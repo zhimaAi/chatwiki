@@ -1,0 +1,25 @@
+{
+  "banner_ai_comment_not_enabled": "AI评论精选功能暂未开启，您可到探索 > 功能 > AI评论精选开启",
+  "common_go_enable": "去开启",
+  "breadcrumb_article_group_send": "文章群发",
+  "switch_on": "开",
+  "switch_off": "关",
+  "switch_tip": "开启后，用户可以在文章管理中群发文章给公众号用户，该群发支持使用AI评论精选功能自动删评，回复，精选评论。",
+  "empty_no_mp_bound": "暂未绑定公众号",
+  "empty_bind_mp_tip": "请选到系统设置>公众号管理绑定公众号",
+  "btn_bind_mp": "去绑定公众号",
+  "segmented_group_send": "群发管理",
+  "segmented_draft_box": "草稿箱",
+  "alert_line_1": "1. 本功能仅限认证的公众号。支持同步微信公众后台未发布的草稿箱。",
+  "alert_line_2": "2. 群发的内容不会显示在文章管理内。请注意群发和已发布的区别。",
+  "modal_ai_comment_not_enabled_title": "未开启AI评论精选",
+  "modal_ai_comment_not_enabled": "AI评论精选功能暂未开启",
+  "modal_ai_comment_not_enabled_tip": "，您可到探索 > 功能 > AI评论精选开启",
+  "checkbox_dont_remind_three_days": "3天内不在提示",
+  "btn_cancel": "取消",
+  "modal_confirm_title": "提示",
+  "modal_confirm_disable_content": "关闭后，该功能默认关闭不再支持使用，确认关闭？",
+  "message_operation_success": "操作成功",
+  "more_show": "更多"
+}
+

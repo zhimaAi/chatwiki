@@ -1,0 +1,12 @@
+{
+  "modal_title_add": "Add Data",
+  "modal_title_edit": "Edit Data",
+  "switch_on": "On",
+  "switch_off": "Off",
+  "ph_input_content": "Please enter content",
+  "validator_required": "Please enter {name}",
+  "validator_number": "{name} must be a number",
+  "validator_integer": "Please enter an integer",
+  "msg_add_success": "Added successfully",
+  "msg_edit_success": "Modified successfully"
+}

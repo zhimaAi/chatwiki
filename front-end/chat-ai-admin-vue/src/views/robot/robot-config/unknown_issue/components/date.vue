@@ -27,18 +27,18 @@
 import dayjs from 'dayjs'
 import { ref, onMounted, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+const { t } = useI18n('views.robot.robot-config.unknown-issue.components.date')
 
-
+const query = useRoute().query
 const router = useRouter()
-const route = useRoute()
-
-const query = route.query
 
 const props = defineProps({
   datekey: {
     type: String,
     default: ''
-  },
+  }
 })
 
 const create_time_type = ref(1)
@@ -47,28 +47,28 @@ const emit = defineEmits(['dateChange'])
 
 let tagDateArr = reactive([
   {
-    label: '今日',
+    label: t('today'),
     value: true,
     key: 2,
     start_date: dayjs().startOf('day'),
     end_date: dayjs().endOf('day')
   },
   {
-    label: '昨日',
+    label: t('yesterday'),
     value: false,
     key: 3,
     start_date: dayjs().subtract(1, 'day').startOf('day'),
     end_date: dayjs().startOf('day').subtract(1, 'millisecond')
   },
   {
-    label: '近7日',
+    label: t('last_7_days'),
     value: false,
     key: 4,
     start_date: dayjs().subtract(6, 'day').startOf('day'),
     end_date: dayjs().endOf('day').subtract(1, 'millisecond')
   },
   {
-    label: '自定义',
+    label: t('custom'),
     value: false,
     key: 5,
     start_date: dayjs().startOf('month').startOf('day'),
@@ -119,9 +119,7 @@ onMounted(() => {
     range.value = [dayjs(query.start_date), dayjs(query.end_date)]
     start_time.value = dayjs(query.start_date).format('YYYYMMDD')
     end_time.value = dayjs(query.end_date).format('YYYYMMDD')
-
     search()
-    
     setTimeout(() => {
       router.push({
         path: router.path,

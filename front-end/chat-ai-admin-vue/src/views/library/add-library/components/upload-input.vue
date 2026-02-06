@@ -5,11 +5,11 @@
       <div class="ant-upload-drag-icon">
         <inbox-outlined></inbox-outlined>
       </div>
-      <div class="ant-upload-text">点击或将文件拖拽到这里上传</div>
+      <div class="ant-upload-text">{{ t('upload_text') }}</div>
       <div class="ant-upload-hint">
-        <p>一次只能上传{{ props.maxCount }}个文档，单个文件不超过100M</p>
+        <p>{{ t('upload_hint', { maxCount: props.maxCount }) }}</p>
         <p>
-          <span>支持文件类型：</span><span class="ant-upload-hint-ext" v-for="ext in fileTypes" :key="ext">.{{ ext }}</span>
+          <span>{{ t('support_file_types') }}</span><span class="ant-upload-hint-ext" v-for="ext in fileTypes" :key="ext">.{{ ext }}</span>
         </p>
       </div>
     </a-upload-dragger>
@@ -22,6 +22,9 @@
 import { ref, computed, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { InboxOutlined } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.add-library.components.upload-input')
 
 const emit = defineEmits(['change', 'update:value'])
 
@@ -64,13 +67,13 @@ let timer = null
 
 const showMaxCountErrorTip = () => {
   if (fileList.value.length >= props.maxCount) {
-    return message.error('一次最多上传' + props.maxCount + '个文件')
+    return message.error(t('max_files_error', { maxCount: props.maxCount }))
   }
 }
 
 const onChange = () => {
   if (fileList.value.length > props.maxCount) {
-    message.error('一次最多上传' + props.maxCount + '个文件')
+    message.error(t('max_files_error', { maxCount: props.maxCount }))
   }
 
   let files = [...fileList.value]
@@ -100,14 +103,14 @@ const beforeUpload = (file) => {
   const isWhitelistFile = fileTypes.includes(ext.toLowerCase())
 
   if (!isWhitelistFile) {
-    message.error('不支持的文件格式')
+    message.error(t('unsupported_format_error'))
     return false
   }
 
   const isLt100M = file.size / 1024 / 1024 < 100
 
   if (!isLt100M) {
-    message.error('文件大小不能超过100M')
+    message.error(t('file_size_error'))
     return false
   }
 

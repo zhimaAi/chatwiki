@@ -4,7 +4,7 @@
       <NodeFormHeader
         :title="node.node_name"
         :iconName="node.node_icon_name"
-        desc="用于把JSON字符串转化为变量"
+        :desc="t('desc_json_decode')"
         @close="handleClose"
       >
       </NodeFormHeader>
@@ -13,7 +13,7 @@
       <div class="node-form-content">
         <a-form ref="formRef" layout="vertical" :model="formState">
           <div class="gray-block">
-            <div class="gray-block-title">输入 (string格式数据)</div>
+            <div class="gray-block-title">{{ t('label_input_string') }}</div>
             <div class="array-form-box">
               <a-cascader
                 v-model:value="formState.input_variable"
@@ -24,17 +24,17 @@
                 :allowClear="false"
                 :displayRender="({ labels }) => labels.join('/')"
                 :field-names="{ children: 'children' }"
-                placeholder="请选择"
+                :placeholder="t('ph_select')"
               />
             </div>
           </div>
 
           <div class="gray-block mt16">
-            <div class="gray-block-title">输出 (自定义输出字段)</div>
+            <div class="gray-block-title">{{ t('label_output_custom') }}</div>
             <div class="output-box">
               <div class="output-block">
-                <div class="output-item">参数Key</div>
-                <div class="output-item">类型</div>
+                <div class="output-item">{{ t('label_param_key') }}</div>
+                <div class="output-item">{{ t('label_type') }}</div>
               </div>
               <div class="array-form-box" @mousedown.stop="">
                 <div class="form-item-list" v-for="(item, index) in formState.output" :key="index">
@@ -43,13 +43,13 @@
                       <a-input
                         style="width: 214px"
                         v-model:value="item.key"
-                        placeholder="请输入"
+                        :placeholder="t('ph_input')"
                       ></a-input>
                       <a-form-item-rest>
                         <a-select
                           @change="onTypeChange(item)"
                           v-model:value="item.typ"
-                          placeholder="请选择"
+                          :placeholder="t('ph_select')"
                           :showArrow="false"
                           disabled
                           style="width: 214px"
@@ -95,6 +95,7 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { getUuid } from '@/utils/index'
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
@@ -102,6 +103,8 @@ import { ref, reactive, watch, h, onMounted } from 'vue'
 import { CloseCircleOutlined, PlusOutlined, PlusCircleOutlined } from '@ant-design/icons-vue'
 import SubKey from './subs-key.vue'
 import { formatSpacialKey } from '@/views/workflow/components/util.js'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.json-reverse-node-form.index')
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({
@@ -127,7 +130,6 @@ function getOptions() {
     let list = nodeModel.getAllParentVariable()
 
     valueOptions.value = handleOptions(filterCalueOptions(list))
-    console.log(valueOptions.value)
   }
 }
 
@@ -157,8 +159,6 @@ function filterCalueOptions(list) {
     const result = []
 
     for (const item of items) {
-      console.log(props.node, '=item')
-
       if (item.children && item.children.length > 0) {
         // 有子节点的情况，递归处理子节点
         const filteredChildren = traverse(item.children)

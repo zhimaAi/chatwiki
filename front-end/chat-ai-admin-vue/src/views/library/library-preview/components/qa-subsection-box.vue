@@ -6,19 +6,19 @@
     </div> -->
     <a-table :data-source="paragraphLists" :pagination="false">
       <a-table-column key="id" data-index="id" :width="1148">
-        <template #title>问答（共{{ props.total }}个）</template>
+        <template #title>{{ t('title_qa_total', { count: props.total }) }}</template>
         <template #default="{ record }">
           <div class="qa-list-box">
             <div class="list-item">
-              <div class="list-label">问题</div>
+              <div class="list-label">{{ t('label_question') }}</div>
               <div class="list-content" v-html="textToHighlight(record.question, props.search)"></div>
             </div>
             <div class="list-item" v-if="record.similar_questions && record.similar_questions.length">
-              <div class="list-label">相似问法</div>
+              <div class="list-label">{{ t('label_similar_questions') }}</div>
               <div class="list-content" v-html="textToHighlight(record.similar_questions.join('/'), props.search)"></div>
             </div>
             <div class="list-item">
-              <div class="list-label">答案</div>
+              <div class="list-label">{{ t('label_answer') }}</div>
               <div class="list-content" v-html="textToHighlight(record.answer, props.search)"></div>
             </div>
             <div class="fragment-img" v-viewer>
@@ -27,26 +27,26 @@
           </div>
         </template>
       </a-table-column>
-      <a-table-column title="嵌入状态" key="status_text" data-index="status_text" :width="128">
+      <a-table-column :title="t('title_embed_status')" key="status_text" data-index="status_text" :width="128">
         <template #default="{ record }">
-          <span class="status-tag" v-if="record.status == 0"><ClockCircleFilled /> 未转换</span>
+          <span class="status-tag" v-if="record.status == 0"><ClockCircleFilled /> {{ t('status_not_converted') }}</span>
           <span class="status-tag complete" v-if="record.status == 1"
-            ><CheckCircleFilled /> 已转换</span
+            ><CheckCircleFilled /> {{ t('status_converted') }}</span
           >
           <a-tooltip placement="top" v-if="record.status == 2">
             <template #title>
               <span>{{ record.errmsg }}</span>
             </template>
             <span>
-              <span class="status-tag status-error"><CloseCircleFilled /> 转换异常</span>
+              <span class="status-tag status-error"><CloseCircleFilled /> {{ t('status_convert_error') }}</span>
             </span>
           </a-tooltip>
           <span class="status-tag running" v-if="record.status == 3"
-            ><a-spin size="small" /> 转换中</span
+            ><a-spin size="small" /> {{ t('status_converting') }}</span
           >
         </template>
       </a-table-column>
-      <a-table-column title="操作" key="action" data-index="action" :width="120">
+      <a-table-column :title="t('title_operation')" key="action" data-index="action" :width="120">
         <template #default="{ record, index }">
           <div class="right-opration">
             <a-dropdown>
@@ -73,14 +73,14 @@
                   <a-menu-item>
                     <div class="start-item" @click="handleOpenSetStartModal">
                       <SettingOutlined />
-                      <div>标记设置</div>
+                      <div>{{ t('btn_mark_settings') }}</div>
                     </div>
                   </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
             <a-tooltip>
-              <template #title>重新转换</template>
+              <template #title>{{ t('tooltip_re_convert') }}</template>
               <div class="hover-btn-box" @click="toReSegmentationPage(record, index)">
                 <SyncOutlined />
               </div>
@@ -92,10 +92,10 @@
               <template #overlay>
                 <a-menu>
                   <a-menu-item>
-                    <div @click.stop="handleOpenEditModal(record)">编辑</div>
+                    <div @click.stop="handleOpenEditModal(record)">{{ t('btn_edit') }}</div>
                   </a-menu-item>
                   <a-menu-item>
-                    <div @click.stop="hanldleDelete(record.id)">删除</div>
+                    <div @click.stop="hanldleDelete(record.id)">{{ t('btn_delete') }}</div>
                   </a-menu-item>
                 </a-menu>
               </template>
@@ -132,6 +132,9 @@ import {
   updateParagraphCategory
 } from '@/api/library'
 import { useRoute } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.library-preview.components.qa-subsection-box')
 
 const route = useRoute()
 const query = route.query
@@ -161,9 +164,9 @@ const toReSegmentationPage = (item, index) => {
   let { id, title, content, question, answer, images, category_id } = item
   let similar_questions = item.similar_questions || []
   Modal.confirm({
-    title: '重新转换确认',
+    title: t('title_confirm_re_convert'),
     icon: null,
-    content: `确定要重新转换【分段${index + 1}】吗?`,
+    content: t('msg_confirm_re_convert', { index: index + 1 }),
     onOk() {
       return new Promise((resolve, reject) => {
         editParagraph({ id, title, content, question, answer, images, category_id, similar_questions: JSON.stringify(similar_questions) })
@@ -185,14 +188,14 @@ const handleOpenEditModal = (item) => {
 }
 const hanldleDelete = (id) => {
   Modal.confirm({
-    title: '提示',
+    title: t('title_tip'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确认是否删除该分段?',
+    content: t('msg_confirm_delete'),
     onOk() {
       return new Promise((resolve, reject) => {
         deleteParagraph({ id })
           .then((res) => {
-            message.success('删除成功')
+            message.success(t('msg_delete_success'))
             emit('handleDelParagraph', id)
             resolve()
           })
@@ -236,7 +239,7 @@ const handleSetCategory = (item, star = {}) => {
     id: item.id,
     category_id: star.id || 0
   }).then((res) => {
-    message.success('设置成功')
+    message.success(t('msg_set_success'))
     item.category_id = star.id
     getCategoryLists()
   })

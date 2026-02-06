@@ -21,13 +21,13 @@
 </style>
 
 <template>
-  <edit-box class="setting-box" title="用户问题建议" icon-name="suggested-issues">
+  <edit-box class="setting-box" :title="t('title_suggested_questions')" icon-name="suggested-issues">
     <template #extra>
       <span></span>
     </template>
     <div class="robot-info-box">
       <div class="robot-prompt">
-        开启后，机器人回答问题后，自动根据对话内容提供
+        {{ t('msg_guide_description', { num: robotInfo.question_guide_num }) }}
         <a-input-number
           v-model:value="robotInfo.question_guide_num"
           style="width: 80px"
@@ -36,7 +36,6 @@
           :max="10"
           @blur="handleEdit"
         />
-        条用户提问建议，最大不超过10条。
       </div>
     </div>
 
@@ -46,14 +45,17 @@
       checkedValue="true"
       unCheckedValue="false"
       v-model:checked="robotInfo.enable_question_guide"
-      checked-children="开"
-      un-checked-children="关"
+      :checked-children="t('btn_on')"
+      :un-checked-children="t('btn_off')"
     />
   </edit-box>
 </template>
 <script setup>
 import { ref, reactive, inject, toRaw } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import EditBox from './edit-box.vue'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.suggested-issues')
 
 const isEdit = ref(false)
 const { robotInfo, updateRobotInfo } = inject('robotInfo')

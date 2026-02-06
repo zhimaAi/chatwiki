@@ -6,7 +6,7 @@
         :iconName="node.node_icon_name"
         @changeTitle="handleTitleChange"
         @deleteNode="handleDeleteNode"
-        desc="chatwiki对外服务，用户发起会话时触发工作流"
+        :desc="t('desc_session_trigger')"
       >
       </NodeFormHeader>
     </template>
@@ -16,7 +16,7 @@
         <div class="gray-block multi-modal-box">
           <div class="output-label">
             <img src="@/assets/img/workflow/output.svg" alt="" class="output-label-icon" />
-            <span class="output-label-text">多模态输入</span>
+            <span class="output-label-text">{{ t('label_multi_modal_input') }}</span>
             &nbsp;&nbsp;
             <a-switch
               v-model:checked="formState.question_multiple_switch"
@@ -24,18 +24,18 @@
             />
           </div>
           <div class="multi-modal-input">
-            <div style="color: #8c8c8c;">开启后，支持用户输入文字+图片消息。用户输入的文字消息依然会作为question变量输出，还会额外增加一个变量question_multiple
+            <div style="color: #8c8c8c;">{{ t('msg_multi_modal_desc') }}
               <a-tooltip placement="left">
                 <template #title>
-                  <div>question_multiple是一个对象数组，包含用户输入的文字和图片消息示例如下：</div>
+                  <div>{{ t('tip_question_multiple') }}</div>
               <pre><code>"question_multiple":[
   {
     "type":"text",
-    "text":"这是什么"
+    "text":"{{ t('sample_text_content') }}"
   },{
     "type":"image_url",
     "image_url":{
-      "url":"这里是图片的ur"
+      "url":"{{ t('sample_image_url') }}"
     }
   }
 ]
@@ -49,8 +49,8 @@
         <div class="gray-block">
           <div class="output-label">
             <img src="@/assets/img/workflow/output.svg" alt="" class="output-label-icon" />
-            <span class="output-label-text">输出</span>
-            <span class="output-desc">（输出参数已自动映射到开始节点）</span>
+            <span class="output-label-text">{{ t('label_output') }}</span>
+            <span class="output-desc">{{ t('msg_output_auto_mapped') }}</span>
           </div>
           <div class="field-items">
             <div class="field-item" v-for="(item, index) in list" :key="index">
@@ -64,7 +64,7 @@
               <div class="field-value-box">
                 <a-select
                   style="width: 200px"
-                  placeholder="请输入选择变量"
+                  :placeholder="t('ph_select_variable')"
                   v-model:value="item.variable"
                   allowClear
                   @dropdownVisibleChange="dropdownVisibleChange"
@@ -91,6 +91,9 @@ import { ref, reactive, onMounted, inject, computed } from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import NodeFormLayout from './node-form-layout.vue'
 import NodeFormHeader from './node-form-header.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.session-trigger-form')
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({

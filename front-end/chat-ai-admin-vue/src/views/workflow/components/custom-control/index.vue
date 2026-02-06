@@ -55,7 +55,7 @@
     bottom: 48px;
     left: 50%;
     height: 550px;
-    width: 484px;
+    width: 500px;
     transform: translateX(-50%);
   }
 }
@@ -82,19 +82,19 @@
             <template #icon>
               <PlusOutlined />
             </template>
-            <span>新建节点</span>
+            <span>{{ t('btn_create_node') }}</span>
           </a-button>
         </div>
 
         <div class="control-item">
           <a-button @click="handleRunTest" style="background-color: #00ad3a" type="primary">
-            <CaretRightOutlined /><span>运行测试</span>
+            <CaretRightOutlined /><span>{{ t('btn_run_test') }}</span>
           </a-button>
         </div>
 
         <div class="control-item">
           <a-button @click="handleAutoLayout" type="default">
-            <PartitionOutlined /><span>整理画布</span>
+            <PartitionOutlined /><span>{{ t('btn_organize_canvas') }}</span>
           </a-button>
         </div>
       </div>
@@ -111,6 +111,9 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import ZoomSelect from './zoom-select.vue'
 import { PlusOutlined, CaretRightOutlined, PartitionOutlined } from '@ant-design/icons-vue'
 import NodeListPopup from '../node-list-popup/index.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.custom-control.index')
 
 const emit = defineEmits(['runTest', 'addNode', 'zoomChange', 'autoLayout'])
 

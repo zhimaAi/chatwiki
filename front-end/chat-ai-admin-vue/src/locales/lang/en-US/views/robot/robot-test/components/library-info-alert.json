@@ -1,0 +1,11 @@
+{
+  "title_answer_source": "Answer Source",
+  "label_selected": "Selected",
+  "label_id": "ID:",
+  "label_characters_count": "Total {count} characters",
+  "btn_preview_original_file": "Preview Original File",
+  "btn_view_source_document": "View Source Document",
+  "label_similarity": "Similarity:",
+  "label_question": "Q:",
+  "label_answer": "A:"
+}

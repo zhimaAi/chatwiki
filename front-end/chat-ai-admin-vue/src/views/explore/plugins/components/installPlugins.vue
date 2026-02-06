@@ -21,34 +21,34 @@
         <a-tooltip :title="getTooltipTitle(item.description, item)" placement="top">
           <div class="desc zm-line1" :ref="el => setDescRef(el, item)">{{ item.description }}</div>
         </a-tooltip>
-        <div class="version">版本：v{{ item.local.version }} <span v-if="item.has_update" class="tag">有更新</span></div>
+        <div class="version">{{ t('label_version', {version: item.local.version}) }} <span v-if="item.has_update" class="tag">{{ t('label_has_update') }}</span></div>
         <div class="action-box">
           <div class="left" @click.stop="">
             <a-switch v-model:checked="item.local.has_loaded" @change="openChange(item)"/>
           </div>
           <div class="right">
-            <span v-if="item.local.type != 'trigger'" class="zm-link-pointer" @click.stop="delPlugin(item)">删除</span>
+            <span v-if="item.local.type != 'trigger'" class="zm-link-pointer" @click.stop="delPlugin(item)">{{ t('btn_delete') }}</span>
             <template v-if="item.help_url">
               <a-divider type="vertical"/>
-              <a @click.stop class="c595959" :href="item.help_url" target="_blank">使用说明</a>
+              <a @click.stop class="c595959" :href="item.help_url" target="_blank">{{ t('btn_usage_guide') }}</a>
             </template>
-            <template v-if="showConifgPlugins.includes(item.name) || item.local.multiNode">
+            <template v-if="showConfigPlugins.includes(item.name) || item.local.multiNode">
               <a-divider type="vertical"/>
-              <a @click.stop="showConfigModal(item)">配置</a>
+              <a @click.stop="showConfigModal(item)">{{ t('btn_config') }}</a>
             </template>
             <template v-if="item.has_update">
               <a-divider type="vertical"/>
-              <a @click.stop="update(item)">更新</a>
+              <a @click.stop="update(item)">{{ t('btn_update') }}</a>
             </template>
           </div>
         </div>
       </div>
     </div>
-    <EmptyBox v-else title="暂未安装插件">
+    <EmptyBox v-else :title="t('title_no_plugins_installed')">
       <template #desc>
-        <div>更多功能可到 <a  @click="emit('tabChange', 3)">探索>插件广场</a> 中去添加</div>
+        <div>{{ t('msg_more_features_prefix') }} <a @click="emit('tabChange', 3)">{{ t('title_explore_plugin_marketplace') }}</a>{{ t('msg_more_features_suffix') }}</div>
         <div class="text-center mt24">
-          <a-button class="btn" type="primary" @click="emit('tabChange', 3)">去添加</a-button>
+          <a-button class="btn" type="primary" @click="emit('tabChange', 3)">{{ t('btn_go_add') }}</a-button>
         </div>
       </template>
     </EmptyBox>
@@ -72,7 +72,9 @@ import {jsonDecode} from "@/utils/index.js";
 import FeishuConfigBox from "@/views/explore/plugins/components/feishu-config-box.vue";
 import ConfigBox from "@/views/explore/plugins/components/config-box.vue";
 import OfficialArticleConfig from "@/views/explore/plugins/components/official-article-config.vue";
+import { useI18n } from '@/hooks/web/useI18n';
 
+const { t } = useI18n('views.explore.plugins.components.installPlugins')
 const emit = defineEmits(['installReport', 'tabChange'])
 const props = defineProps({
   filterData: {
@@ -88,7 +90,7 @@ const officialArtRef = ref(null)
 const configRef = ref(null)
 const loading = ref(true)
 const list = ref([])
-const showConifgPlugins = [
+const showConfigPlugins = [
   'feishu_bitable',
   'official_account_profile',
   'official_batch_tag',
@@ -173,21 +175,21 @@ async function openChange(item) {
   const cancel = () => item.local.has_loaded = !item.local.has_loaded
   if (!item.local.has_loaded) {
     Modal.confirm({
-      title: '确认关闭该插件？',
-      content: '关闭后，其他应用的位置都不可使用！确认关闭？',
-      okText: '确定',
-      cancelText: '取消',
+      title: t('title_confirm_close_plugin'),
+      content: t('msg_close_plugin_warning'),
+      okText: t('btn_confirm'),
+      cancelText: t('btn_cancel'),
       onOk: () => {
         if(item.local.type == 'trigger'){
           triggerSwitch({
             id: item.trigger_config_id,
             switch_status: 0
           }).then(() => {
-            message.success('已关闭')
+            message.success(t('msg_closed'))
           }).catch(cancel)
         }else{
           closePlugin({name: item.name}).then(() => {
-            message.success('已关闭')
+            message.success(t('msg_closed'))
           }).catch(cancel)
         }
       },
@@ -201,7 +203,7 @@ async function openChange(item) {
         id: item.trigger_config_id,
         switch_status: 1
       }).then(()=>{
-        message.success('已开启')
+        message.success(t('msg_opened'))
       })
       return
     }
@@ -211,10 +213,10 @@ async function openChange(item) {
       if (!Object.keys(data).length) {
         cancel()
         return Modal.confirm({
-          title: '授权飞书应用接口权限',
-          content: h('div', {style:{color:' red'}}, '请先完成信息配置，获取接口权限'),
-          okText: '确定',
-          cancelText: '取消',
+          title: t('title_authorize_feishu'),
+          content: h('div', {style:{color:' red'}}, t('msg_complete_config_first')),
+          okText: t('btn_confirm'),
+          cancelText: t('btn_cancel'),
           onOk: () => {
             showFeishuConfig(item)
           },
@@ -222,7 +224,7 @@ async function openChange(item) {
       }
     }
     openPlugin({name: item.name}).then(() => {
-      message.success('已开启')
+      message.success(t('msg_opened'))
     }).catch(cancel)
   }
 }
@@ -233,13 +235,13 @@ function showFeishuConfig(item) {
 
 function delPlugin(item) {
   Modal.confirm({
-    title: '确认删除该插件？',
-    content: '删除后，其他应用的位置都不可使用！确认删除？',
-    okText: '确定',
-    cancelText: '取消',
+    title: t('title_confirm_delete_plugin'),
+    content: t('msg_delete_plugin_warning'),
+    okText: t('btn_confirm'),
+    cancelText: t('btn_cancel'),
     onOk: () => {
       uninstallPlugin({name: item.name}).then(() => {
-        message.success('已删除')
+        message.success(t('msg_deleted'))
         loadData()
       })
     }

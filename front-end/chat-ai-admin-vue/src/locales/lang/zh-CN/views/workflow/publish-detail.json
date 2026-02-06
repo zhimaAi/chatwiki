@@ -1,0 +1,1 @@
+{"title_publish_detail": "发布详情", "label_current_draft": "当前最新草稿", "label_saved_at": "最近保存于", "btn_restore_version": "恢复到此版本", "msg_confirm_restore_version": "确定要恢复到v{version}版吗", "msg_restore_warning": "恢复后，将覆盖当前草稿内容。如需要将此版本作为发布版本，需要您手动点击发布", "msg_set_success": "设置成功"}

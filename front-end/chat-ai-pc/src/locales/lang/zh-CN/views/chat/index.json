@@ -1,0 +1,7 @@
+{
+  "label_powered_by": "由 ChatWiki 提供软件支持",
+  "label_form_info": "表单信息",
+  "btn_edit": "编辑",
+  "msg_input_required": "请输入消息内容",
+  "msg_sensitive_word": "提交的内容包含敏感词：[{words}] 请修改后再提交"
+}

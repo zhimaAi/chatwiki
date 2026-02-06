@@ -73,7 +73,7 @@
   >
     <div class="start-node">
       <div class="start-node-options">
-        <div class="options-title">请求地址</div>
+        <div class="options-title">{{ t('label_request_url') }}</div>
         <div class="options-list">
           <div class="options-item">
             <div class="option-label">{{ formState.url }}</div>
@@ -83,7 +83,7 @@
     </div>
     <div class="start-node">
       <div class="start-node-options">
-        <div class="options-title">请求方式</div>
+        <div class="options-title">{{ t('label_request_method') }}</div>
         <div class="options-list">
           <div class="options-item">
             <div class="option-label">{{ formState.method }}</div>
@@ -97,6 +97,9 @@
 <script setup>
 import NodeCommon from '../base-node.vue'
 import { nextTick, onMounted, inject, watch, reactive } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.webhook-trigger-node.index')
 const resetSize = inject('resetSize')
 const props = defineProps({
   properties: {

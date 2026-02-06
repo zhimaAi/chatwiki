@@ -1,0 +1,17 @@
+{
+  "modal_title": "设置AI评论规则",
+  "search_rule_placeholder": "请输入规则名搜索",
+  "btn_go_create_rule": "去创建规则",
+  "th_rule_name": "规则名称",
+  "th_delete_comment": "自动删评",
+  "th_reply_comment": "自动回复评论",
+  "th_elect_comment": "评论精选",
+  "th_rule_enable": "规则启用",
+  "empty_no_rule": "暂无规则",
+  "tag_default": "默认",
+  "switch_on": "开",
+  "switch_off": "关",
+  "error_select_rule": "请选择一个规则",
+  "message_set_success": "设置成功"
+}
+

@@ -4,7 +4,7 @@
       <NodeFormHeader
         :title="node.node_name"
         :iconName="node.node_icon_name"
-        desc="通过本节点可以给全局变量赋值"
+        :desc="t('desc_variable_assignment')"
         @close="handleClose"
       >
       </NodeFormHeader>
@@ -18,7 +18,7 @@
               <div class="field-name-box">
                 <a-select
                   style="width: 100%"
-                  placeholder="请输入选择变量"
+                  :placeholder="t('ph_select_variable')"
                   v-model:value="item.variable"
                   @dropdownVisibleChange="dropdownVisibleChange"
                   @change="update"
@@ -37,7 +37,7 @@
                   :defaultValue="item.value"
                   @open="showAtList"
                   @change="(text, selectedList) => changeValue(text, selectedList, item, index)"
-                  placeholder="请输入变量值，键入“/”插入变量"
+                  :placeholder="t('ph_input_variable_value')"
                 >
                   <template #option="{ label, payload }">
                     <div class="field-value-option">
@@ -58,7 +58,7 @@
               <template #icon>
                 <PlusOutlined />
               </template>
-              添加赋值变量
+              {{ t('btn_add_assign_variable') }}
             </a-button>
           </div>
         </div>
@@ -73,6 +73,9 @@ import NodeFormHeader from './node-form-header.vue'
 import { ref, onMounted } from 'vue'
 import { CloseCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import AtInput from '../at-input/at-input.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.variable-assignment-node-form')
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({

@@ -1,0 +1,23 @@
+{
+  "title_smart_menu": "智能菜单",
+  "switch_on": "开",
+  "switch_off": "关",
+  "switch_desc": "开启后，该智能菜单可以被关键词回复等功能调用",
+  "alert_description": "智能菜单是一种便捷的问题组合，客户可以点击菜单选项，直接触发对应的自动回复。",
+  "alert_usage": "使用方法：第一步先添加智能菜单，第二步在各种自动回复内调用智能菜单，比如在关键词回复内引用这个菜单，那么在客户发送消息时，就会回复对应的菜单",
+  "btn_add_smart_menu": "新增智能菜单",
+  "btn_edit": "编辑",
+  "btn_delete": "删除",
+  "text_updated_on": "更新于",
+  "msg_confirm_delete": "确认删除吗？",
+  "btn_confirm": "确认",
+  "msg_delete_success": "删除成功",
+  "msg_confirm_close": "确认关闭智能菜单吗？",
+  "btn_cancel": "取消",
+  "msg_operation_success": "操作成功",
+  "text_image_text_link": "图文链接",
+  "text_link": "链接",
+  "text_image": "图片",
+  "text_mini_program_card": "小程序卡片",
+  "text_no_data": "暂无数据"
+}

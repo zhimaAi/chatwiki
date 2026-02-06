@@ -1,0 +1,8 @@
+{
+  "modal_title": "机器人分布详情",
+  "table": {
+    "rank": "排名",
+    "robot": "机器人",
+    "trigger_count": "触发次数"
+  }
+}

@@ -1,6 +1,6 @@
 <template>
-  <a-modal v-model:open="visible" title="关联工作流" width="669px" @ok="ok">
-    <a-alert class="zm-alert-info mt24" type="info" message="选择工作流后，会自动生成唯一标识符，可修改" show-icon/>
+  <a-modal v-model:open="visible" :title="t('title_associate_workflow')" width="669px" @ok="ok">
+    <a-alert class="zm-alert-info mt24" type="info" :message="t('msg_workflow_identifier_hint')" show-icon/>
     <div class="data-list">
       <div
         v-for="(item, i) in list"
@@ -15,7 +15,7 @@
             <div class="desc">{{ item.robot_intro }}</div>
           </div>
           <a-checkbox v-if="item.has_published == 1" v-model:checked="item.checked"/>
-          <span v-else class="status-tag waiting"><ExclamationCircleFilled/> 未发布</span>
+          <span v-else class="status-tag waiting"><ExclamationCircleFilled/> {{ t('status_unpublished') }}</span>
         </div>
       </div>
     </div>
@@ -26,6 +26,9 @@
 import {ref, reactive} from 'vue';
 import {ExclamationCircleFilled} from '@ant-design/icons-vue';
 import {getRobotList} from "@/api/robot/index.js";
+import { useI18n } from '@/hooks/web/useI18n';
+
+const { t } = useI18n('views.robot.robot-list.components.select-workflow-modal');
 
 const emit = defineEmits(['ok'])
 

@@ -54,20 +54,20 @@
 </style>
 
 <template>
-  <edit-box class="setting-box" title="问题优化" icon-name="problem-optimization">
+  <edit-box class="setting-box" :title="t('title_problem_optimization')" icon-name="problem-optimization">
     <template #extra>
       <span></span>
     </template>
     <div class="robot-info-box">
       <div class="robot-prompt">
-        开启后，进行知识库搜索时，会根据对话记录，利用AI补全问题缺失的信息
+        {{ t('desc_enable_question_optimize') }}
       </div>
       <a-tooltip>
         <template #title>
-          <span>填写对话背景，可以帮助大模型在上下文不全时也能更好的补全用户问题</span>
+          <span>{{ t('tip_dialogue_background_help') }}</span>
         </template>
         <div class="dialog-bg-set" @click="isBgSet = true">
-          对话背景设置
+          {{ t('btn_dialogue_background_setting') }}
         </div>
       </a-tooltip>
     </div>
@@ -78,18 +78,18 @@
       checkedValue="true"
       unCheckedValue="false"
       v-model:checked="robotInfo.enable_question_optimize"
-      checked-children="开"
-      un-checked-children="关"
+      :checked-children="t('switch_on')"
+      :un-checked-children="t('switch_off')"
     />
 
     <div class="modal-box" ref="modalBoxRef">
-      <a-modal :getContainer="() => $refs.modalBoxRef" v-model:open="isBgSet" :width="472" title="用户问题建议设置" @ok="handleSave">
+      <a-modal :getContainer="() => $refs.modalBoxRef" v-model:open="isBgSet" :width="472" :title="t('title_user_question_suggestion_setting')" @ok="handleSave">
         <div class="modal-item-box">
           <div class="modal-item">
-            <div class="label">模型</div>
+            <div class="label">{{ t('label_model') }}</div>
             <a-radio-group v-model:value="modelStatus" @change="handleChangeModel">
-              <a-radio value="0">跟随机器人</a-radio>
-              <a-radio value="1">指定模型</a-radio>
+              <a-radio value="0">{{ t('radio_follow_robot') }}</a-radio>
+              <a-radio value="1">{{ t('radio_specify_model') }}</a-radio>
             </a-radio-group>
             <ModelSelect
               v-if="modelStatus == '1'"
@@ -101,11 +101,11 @@
             />
           </div>
           <div class="modal-item">
-            <div class="label">对话背景</div>
+            <div class="label">{{ t('label_dialogue_background') }}</div>
             <a-textarea
               style="height: 120px"
               v-model:value="robotInfo.optimize_question_dialogue_background"
-              placeholder="描述当前对话的背景，便于大模型补全用户问题，比如：当前对话是关于chatwiki的使用问题和功能介绍" />
+              :placeholder="t('ph_dialogue_background')" />
           </div>
         </div>
       </a-modal>
@@ -114,8 +114,11 @@
 </template>
 <script setup>
 import { ref, reactive, inject, toRaw, nextTick, onMounted } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import EditBox from './edit-box.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.problem-optimization')
 
 const isBgSet = ref(false)
 const isEdit = ref(false)

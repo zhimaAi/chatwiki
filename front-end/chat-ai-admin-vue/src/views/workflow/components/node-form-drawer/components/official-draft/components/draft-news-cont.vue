@@ -1,14 +1,13 @@
 <template>
   <a-modal
-    title="正文内容"
+    :title="t('title_content')"
     width="880px"
     v-model:open="visible"
     @ok="save"
   >
     <a-alert type="info" class="zm-alert-info">
       <template #message>
-        图文消息的具体内容，支持HTML标签，必须少于2万字符，小于1M，且此处会去除JS,涉及图片url必须来源
-        "上传图文消息内的图片获取URL"接口获取。外部图片url将被过滤。 图片消息则仅支持纯文本和部分特殊功能标签如商品，商品个数不可超过50个
+        {{ t('msg_rich_text_content_intro') }}
       </template>
     </a-alert>
 
@@ -57,6 +56,9 @@ import {Editor as SlateEditor, Range, Transforms, Text} from 'slate'
 import CascadePanel from "@/views/workflow/components/at-input/cascade-panel.vue";
 import {runPlugin} from "@/api/plugins/index.js";
 import {getBase64, getTreeOptions} from "@/utils/index.js";
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.official-draft.components.draft-news-cont')
 
 
 const emit = defineEmits(['change'])
@@ -88,7 +90,7 @@ const toolbarConfig = ref({
   ]
 })
 const editorConfig = {
-  placeholder: '请输入内容，键入“/”可以插入变量',
+  placeholder: t('ph_input_content'),
   MENU_CONF: {
     uploadImage: {
       async customUpload(file, insertFn) {

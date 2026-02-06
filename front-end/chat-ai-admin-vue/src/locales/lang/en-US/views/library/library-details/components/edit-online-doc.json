@@ -1,0 +1,14 @@
+{
+  "title_add_online_data": "Add Online Data",
+  "label_file_name": "File Name",
+  "ph_input": "Enter...",
+  "label_update_frequency": "Update Frequency",
+  "option_no_auto_update": "No Auto Update",
+  "option_daily": "Daily",
+  "option_every_3_days": "Every 3 Days",
+  "option_every_7_days": "Every 7 Days",
+  "option_every_30_days": "Every 30 Days",
+  "label_update_time": "Update Time",
+  "msg_input_file_name": "Please enter the file name",
+  "msg_select_update_frequency": "Please select update frequency"
+}

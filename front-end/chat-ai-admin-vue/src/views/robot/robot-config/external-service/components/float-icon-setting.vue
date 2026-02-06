@@ -84,7 +84,7 @@
 </style>
 
 <template>
-  <CardBox title="悬浮图标设置">
+  <CardBox :title="t('title_float_icon_setting')">
     <template #icon>
       <MessageOutlined name="quick-Instruction" style="font-size: 16px; color: #262626" />
     </template>
@@ -92,7 +92,7 @@
       {{ props.title }}
       <div class="form-box">
         <div class="form-item">
-          <div class="form-item-label">展示形式：</div>
+          <div class="form-item-label">{{ t('label_display_type') }}</div>
           <div class="form-content">
             <div class="display-types">
               <div
@@ -103,7 +103,7 @@
                 <div class="type-icon">
                   <img src="@/assets/img/robot/display_type_1.svg" alt="" />
                 </div>
-                <div class="type-name">简洁</div>
+                <div class="type-name">{{ t('type_simple') }}</div>
               </div>
               <div
                 class="display-type"
@@ -113,7 +113,7 @@
                 <div class="type-icon">
                   <img src="@/assets/img/robot/display_type_2.svg" alt="" />
                 </div>
-                <div class="type-name">加文案</div>
+                <div class="type-name">{{ t('type_with_text') }}</div>
               </div>
 
               <div
@@ -129,7 +129,7 @@
                     title=""
                   />
                 </div>
-                <div class="type-name">自定义</div>
+                <div class="type-name">{{ t('type_custom') }}</div>
               </div>
 
               <div
@@ -142,16 +142,16 @@
                   </div>
                 </cu-upload>
 
-                <div class="type-name">{{formData.buttonIcon ? '上传图片' : '自定义'}}</div>
+                <div class="type-name">{{ formData.buttonIcon ? t('label_upload_image') : t('type_custom') }}</div>
               </div>
             </div>
           </div>
         </div>
         <div class="form-item" v-if="formData.displayType == 2">
-          <div class="form-item-label">按钮文案：</div>
+          <div class="form-item-label">{{ t('label_button_text') }}</div>
           <div class="form-content">
             <a-input
-              placeholder="请输入按钮文案"
+              :placeholder="t('ph_input_button_text')"
               :maxlength="15"
               style="width: 315px"
               v-model:value="formData.buttonText"
@@ -159,7 +159,7 @@
           </div>
         </div>
         <div class="form-item">
-          <div class="form-item-label">底边距：</div>
+          <div class="form-item-label">{{ t('label_bottom_margin') }}</div>
           <div class="form-content">
             <div class="number-input">
               <a-input-number class="input" v-model:value="formData.bottomMargin" />
@@ -168,7 +168,7 @@
           </div>
         </div>
         <div class="form-item">
-          <div class="form-item-label">右边距：</div>
+          <div class="form-item-label">{{ t('label_right_margin') }}</div>
           <div class="form-content">
             <div class="number-input">
               <a-input-number class="input" v-model:value="formData.rightMargin" />
@@ -177,7 +177,7 @@
           </div>
         </div>
         <div class="form-item">
-          <div class="form-item-label">显示未读消息数：</div>
+          <div class="form-item-label">{{ t('label_show_unread_count') }}</div>
           <div class="form-content">
             <a-switch
               v-model:checked="formData.showUnreadCount"
@@ -187,7 +187,7 @@
           </div>
         </div>
         <div class="form-item">
-          <div class="form-item-label">显示新消息提示：</div>
+          <div class="form-item-label">{{ t('label_show_new_message_tip') }}</div>
           <div class="form-content">
             <a-switch
               v-model:checked="formData.showNewMessageTip"
@@ -200,7 +200,7 @@
           <div class="form-item-label"></div>
           <div class="form-content">
             <a-button type="primary" :loading="props.saveLoading" @click="handleSubmit"
-              >保存</a-button
+              >{{ t('btn_save') }}</a-button
             >
           </div>
         </div>
@@ -215,6 +215,9 @@ import { reactive, toRaw, watch, computed } from 'vue'
 import { MessageOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import CardBox from './card-box.vue'
 import CuUpload from '@/components/cu-upload/cu-upload.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.external-service.components.float-icon-setting')
 
 // 定义组件属性
 const props = defineProps({
@@ -234,7 +237,7 @@ const emit = defineEmits(['save'])
 // 响应式数据
 const formData = reactive({
   displayType: 1,
-  buttonText: '快来聊聊吧~',
+  buttonText: t('default_button_text'),
   buttonIcon: '',
   bottomMargin: 32,
   rightMargin: 32,

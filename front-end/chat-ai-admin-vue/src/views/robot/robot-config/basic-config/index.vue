@@ -1,8 +1,8 @@
 <template>
   <a-tabs class="tab-wrapper" @change="handleTabChange" v-model:activeKey="activeKey">
-    <a-tab-pane :key="1" tab="基础配置"></a-tab-pane>
-    <a-tab-pane v-if="false" :key="3" tab="权限管理"></a-tab-pane>
-    <a-tab-pane :key="2" tab="常见问题"></a-tab-pane>
+    <a-tab-pane :key="1" :tab="t('tab_basic_config')"></a-tab-pane>
+    <a-tab-pane v-if="false" :key="3" :tab="t('tab_permission_management')"></a-tab-pane>
+    <a-tab-pane :key="2" :tab="t('tab_common_questions')"></a-tab-pane>
   </a-tabs>
   <div class="robot-config-page" v-if="activeKey == 1">
     <div class="scroll-box" ref="scrollBox">
@@ -78,6 +78,7 @@
 import { reactive, ref, toRaw, provide, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import BasicConfig from './components/basic-config.vue'
 import SystemPromptWords from './components/system-prompt-words.vue'
 import ModelSettings from './components/model-settings.vue'
@@ -101,6 +102,8 @@ import Skill from './components/skill/index.vue'
 import ChatCache from './components/chat-cache.vue'
 import VariableSetting from './components/variable-setting/index.vue'
 import AnswerPrompt from './components/answer-prompt.vue'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.index')
 
 const robotStore = useRobotStore()
 const activeLocalKey = '/robot/config/basic-config/activeKey'
@@ -190,7 +193,7 @@ const saveForm = () => {
 
       saveLoading.value = false
 
-      message.success('保存成功')
+      message.success(t('msg_save_success'))
 
       getRobot(formState.id)
     })

@@ -5,12 +5,12 @@ package biz_chat
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/pipeline"
 	"context"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -21,10 +21,10 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// CheckKeywordReply 关键词检测处理
+// CheckKeywordReply handles keyword detection and reply
 func CheckKeywordReply(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if len(in.params.AppInfo) > 0 && len(in.params.ReceivedMessageType) > 0 && in.params.ReceivedMessageType != lib_define.MsgTypeText {
-		return pipeline.PipeContinue //微信应用等,非文本消息跳过关键词回复逻辑
+		return pipeline.PipeContinue // skip keyword reply logic for non-text messages in WeChat app etc.
 	}
 	var keywordReplyList []common.ReplyContent
 	keywordReplyList, in.keywordSkipAI, _ = common.BuildKeywordReplyMessage(in.params)
@@ -34,9 +34,9 @@ func CheckKeywordReply(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	return pipeline.PipeContinue
 }
 
-// SetRobotPaymentAuthCodeManager 设置授权码管理员
+// SetRobotPaymentAuthCodeManager sets auth code manager
 func SetRobotPaymentAuthCodeManager(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
-	//应用收费没开启
+	// payment feature not enabled
 	if !in.robotAbilityPayment {
 		return pipeline.PipeContinue
 	}
@@ -44,7 +44,7 @@ func SetRobotPaymentAuthCodeManager(in *ChatInParam, out *ChatOutParam) pipeline
 	var replyContent common.ReplyContent
 	replyContent.ReplyType = common.ReplyTypeText
 	ctx := context.Background()
-	// 管理员发送设置码
+	// admin sends setup code
 	if strings.HasPrefix(in.params.Question, define.RobotPaymentAuthCodePrefix) && strings.HasSuffix(in.params.Question, define.RobotPaymentAuthCodeSuffix) {
 		key := define.RobotPaymentAuthCodeManagerCachePrefix + in.params.Robot[`id`]
 		val, err := define.Redis.Get(ctx, key).Result()
@@ -59,7 +59,7 @@ func SetRobotPaymentAuthCodeManager(in *ChatInParam, out *ChatOutParam) pipeline
 				return pipeline.PipeContinue
 			}
 
-			// 从访客表里查询详细信息
+			// query details from customer table
 			avatar := ``
 			name := ``
 			customer, err := msql.Model(`chat_ai_customer`, define.Postgres).
@@ -101,7 +101,8 @@ func SetRobotPaymentAuthCodeManager(in *ChatInParam, out *ChatOutParam) pipeline
 					logs.Error(err.Error())
 				}
 			}
-			replyContent.Description = `已将您设置为【授权码】管理员，后续发送【授权码】将返回可用的授权码`
+			// default to zh-CN for auth code content (no bilingual match)
+			replyContent.Description = i18n.Show(define.LangZhCn, "payment_set_manager_success")
 			out.replyContentList = append(out.replyContentList, replyContent)
 			if in.params.PassiveId > 0 {
 				out.content = replyContent.Description
@@ -113,16 +114,23 @@ func SetRobotPaymentAuthCodeManager(in *ChatInParam, out *ChatOutParam) pipeline
 	return pipeline.PipeContinue
 }
 
-// GetRobotPaymentAuthCodePackage 管理员获取授权码套餐
+// GetRobotPaymentAuthCodePackage admin gets auth code package
 func GetRobotPaymentAuthCodePackage(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
-	//应用收费没开启
+	// payment feature not enabled
 	if !in.robotAbilityPayment {
 		return pipeline.PipeContinue
 	}
 
 	var replyContent common.ReplyContent
 	replyContent.ReplyType = common.ReplyTypeText
-	if in.params.Question == `授权码` && in.isPaymentManager {
+	// bilingual keyword match: auth code
+	matched, matchedLang := i18n.KeywordAuthCode.Match(in.params.Question)
+	if matched && in.isPaymentManager {
+		// default to zh-CN, use en-US only when en-US match succeeds
+		lang := define.LangZhCn
+		if matchedLang == define.LangEnUs {
+			lang = define.LangEnUs
+		}
 		setting, err := msql.Model(`robot_payment_setting`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(in.params.AdminUserId)).
 			Where(`robot_id`, in.params.Robot[`id`]).
@@ -141,9 +149,9 @@ func GetRobotPaymentAuthCodePackage(in *ChatInParam, out *ChatOutParam) pipeline
 				logs.Error(err.Error())
 				return pipeline.PipeContinue
 			}
-			replyContent.Description = "点击以下智能菜单将为您生成对应的授权码："
+			replyContent.Description = i18n.Show(lang, "payment_select_package_prompt")
 			for _, countPackageInfo := range countPackageInfoList {
-				content := fmt.Sprintf("%s【%d次】--%s元", countPackageInfo.Name, countPackageInfo.Count, cast.ToString(countPackageInfo.Price))
+				content := fmt.Sprintf(i18n.GetPaymentCountPackageFormat(lang), countPackageInfo.Name, countPackageInfo.Count, cast.ToString(countPackageInfo.Price))
 				replyContent.Description += fmt.Sprintf("\n<a href=\"weixin://bizmsgmenu?msgmenucontent=%s&msgmenuid=%d\">%s</a>", content, countPackageInfo.Id, content)
 			}
 			out.replyContentList = append(out.replyContentList, replyContent)
@@ -160,9 +168,9 @@ func GetRobotPaymentAuthCodePackage(in *ChatInParam, out *ChatOutParam) pipeline
 				logs.Error(err.Error())
 				return pipeline.PipeContinue
 			}
-			replyContent.Description = "点击以下智能菜单将为您生成对应的授权码："
+			replyContent.Description = i18n.Show(lang, "payment_select_package_prompt")
 			for _, durationPackageInfo := range durationPackageInfoList {
-				content := fmt.Sprintf("%s【%d天】--%s元", durationPackageInfo.Name, durationPackageInfo.Duration, cast.ToString(durationPackageInfo.Price))
+				content := fmt.Sprintf(i18n.GetPaymentDurationPackageFormat(lang), durationPackageInfo.Name, durationPackageInfo.Duration, cast.ToString(durationPackageInfo.Price))
 				replyContent.Description += fmt.Sprintf("\n<a href=\"weixin://bizmsgmenu?msgmenucontent=%s&msgmenuid=%d\">%s</a>", content, durationPackageInfo.Id, content)
 			}
 			out.replyContentList = append(out.replyContentList, replyContent)
@@ -176,9 +184,9 @@ func GetRobotPaymentAuthCodePackage(in *ChatInParam, out *ChatOutParam) pipeline
 	return pipeline.PipeContinue
 }
 
-// GetRobotPaymentAuthCodeContent 管理员获取授权码
+// GetRobotPaymentAuthCodeContent admin gets auth code content
 func GetRobotPaymentAuthCodeContent(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
-	//应用收费没开启
+	// payment feature not enabled
 	if !in.robotAbilityPayment {
 		return pipeline.PipeContinue
 	}
@@ -186,12 +194,18 @@ func GetRobotPaymentAuthCodeContent(in *ChatInParam, out *ChatOutParam) pipeline
 	var replyContent common.ReplyContent
 
 	if in.isPaymentManager {
-		reg1 := regexp.MustCompile(`^(.+?)【(\d+)次】--(.+?)元$`)
-		reg2 := regexp.MustCompile(`^(.+?)【(\d+)天】--(.+?)元$`)
-		matches1 := reg1.FindStringSubmatch(in.params.Question)
-		matches2 := reg2.FindStringSubmatch(in.params.Question)
+		// use bilingual regex to match package format
+		countResult := i18n.PaymentCountPackagePattern.Match(in.params.Question)
+		durationResult := i18n.PaymentDurationPackagePattern.Match(in.params.Question)
 
-		if len(matches1) > 0 || len(matches2) > 0 {
+		if countResult.Matched || durationResult.Matched {
+			// default to zh-CN, use en-US only when en-US match succeeds
+			lang := define.LangZhCn
+			if countResult.Matched && countResult.Lang == define.LangEnUs {
+				lang = define.LangEnUs
+			} else if durationResult.Matched && durationResult.Lang == define.LangEnUs {
+				lang = define.LangEnUs
+			}
 			setting, err := msql.Model(`robot_payment_setting`, define.Postgres).
 				Where(`admin_user_id`, cast.ToString(in.params.AdminUserId)).
 				Where(`robot_id`, in.params.Robot[`id`]).
@@ -211,8 +225,8 @@ func GetRobotPaymentAuthCodeContent(in *ChatInParam, out *ChatOutParam) pipeline
 			var packagePrice float32
 			var content string
 
-			// 次数套餐
-			if len(matches1) > 0 {
+			// count package
+			if countResult.Matched {
 				var countPackageInfoList []*define.RobotPaymentCountPackage
 				err = json.Unmarshal([]byte(setting[`count_package`]), &countPackageInfoList)
 				if err != nil {
@@ -220,7 +234,7 @@ func GetRobotPaymentAuthCodeContent(in *ChatInParam, out *ChatOutParam) pipeline
 					return pipeline.PipeContinue
 				}
 				for _, countPackageInfo := range countPackageInfoList {
-					format := fmt.Sprintf("%s【%d次】--%s元", countPackageInfo.Name, countPackageInfo.Count, cast.ToString(countPackageInfo.Price))
+					format := fmt.Sprintf(i18n.GetPaymentCountPackageFormat(lang), countPackageInfo.Name, countPackageInfo.Count, cast.ToString(countPackageInfo.Price))
 					if format == in.params.Question {
 						packageId = countPackageInfo.Id
 						packageName = countPackageInfo.Name
@@ -230,7 +244,7 @@ func GetRobotPaymentAuthCodeContent(in *ChatInParam, out *ChatOutParam) pipeline
 						break
 					}
 				}
-			} else if len(matches2) > 0 {
+			} else if durationResult.Matched {
 				var durationPackageInfoList []define.RobotPaymentDurationPackage
 				err = json.Unmarshal([]byte(setting[`duration_package`]), &durationPackageInfoList)
 				if err != nil {
@@ -238,7 +252,7 @@ func GetRobotPaymentAuthCodeContent(in *ChatInParam, out *ChatOutParam) pipeline
 					return pipeline.PipeContinue
 				}
 				for _, durationPackageInfo := range durationPackageInfoList {
-					format := fmt.Sprintf("%s【%d天】--%s元", durationPackageInfo.Name, durationPackageInfo.Duration, cast.ToString(durationPackageInfo.Price))
+					format := fmt.Sprintf(i18n.GetPaymentDurationPackageFormat(lang), durationPackageInfo.Name, durationPackageInfo.Duration, cast.ToString(durationPackageInfo.Price))
 					if format == in.params.Question {
 						packageId = durationPackageInfo.Id
 						packageName = durationPackageInfo.Name
@@ -255,7 +269,7 @@ func GetRobotPaymentAuthCodeContent(in *ChatInParam, out *ChatOutParam) pipeline
 				return pipeline.PipeContinue
 			}
 
-			// 从访客表里查询详细信息
+			// query details from customer table
 			name := ``
 			customer, err := msql.Model(`chat_ai_customer`, define.Postgres).
 				Where(`admin_user_id`, cast.ToString(in.params.AdminUserId)).
@@ -296,7 +310,7 @@ func GetRobotPaymentAuthCodeContent(in *ChatInParam, out *ChatOutParam) pipeline
 			}
 
 			replyContent.ReplyType = common.ReplyTypeText
-			replyContent.Description = fmt.Sprintf("您的授权码为：\n%s\n将本内容发送到公众号兑换", content)
+			replyContent.Description = i18n.Show(lang, "payment_auth_code_generated", content)
 			out.replyContentList = append(out.replyContentList, replyContent)
 			if in.params.PassiveId > 0 {
 				out.content = replyContent.Description
@@ -309,9 +323,9 @@ func GetRobotPaymentAuthCodeContent(in *ChatInParam, out *ChatOutParam) pipeline
 	return pipeline.PipeContinue
 }
 
-// ExchangeRobotPaymentAuthCode 兑换授权码
+// ExchangeRobotPaymentAuthCode exchanges auth code
 func ExchangeRobotPaymentAuthCode(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
-	//应用收费没开启
+	// payment feature not enabled
 	if !in.robotAbilityPayment {
 		return pipeline.PipeContinue
 	}
@@ -319,8 +333,12 @@ func ExchangeRobotPaymentAuthCode(in *ChatInParam, out *ChatOutParam) pipeline.P
 	var replyContent common.ReplyContent
 	replyContent.ReplyType = common.ReplyTypeText
 
-	re := regexp.MustCompile(`###.+?###`)
-	authCodeContent := re.FindString(in.params.Question)
+	authCodeContent := i18n.PaymentAuthCodeContentPattern.FindString(in.params.Question)
+	// if question only contains auth code, use zh-CN; otherwise use user's lang
+	lang := in.params.Lang
+	if authCodeContent == in.params.Question {
+		lang = define.LangZhCn
+	}
 	if authCodeContent != "" {
 		info, err := msql.Model(`robot_payment_auth_code`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(in.params.AdminUserId)).
@@ -332,7 +350,7 @@ func ExchangeRobotPaymentAuthCode(in *ChatInParam, out *ChatOutParam) pipeline.P
 			return pipeline.PipeContinue
 		}
 		if len(info) == 0 {
-			replyContent.Description = fmt.Sprintf("兑换失败。\n请检查授权码是否正确")
+			replyContent.Description = i18n.Show(lang, "payment_exchange_failed")
 			out.replyContentList = append(out.replyContentList, replyContent)
 			if in.params.PassiveId > 0 {
 				out.content = replyContent.Description
@@ -342,31 +360,33 @@ func ExchangeRobotPaymentAuthCode(in *ChatInParam, out *ChatOutParam) pipeline.P
 		}
 
 		if in.isPaymentManager {
-			// 组装公众号消息
-			replyContent.Description += fmt.Sprintf("管理员无需兑换，可直接使用工作流，以下为授权码日志")
-			replyContent.Description += fmt.Sprintf("\n授权码：\n%s", authCodeContent)
+			// build official account message
+			replyContent.Description += i18n.Show(lang, "payment_manager_no_exchange")
+			replyContent.Description += fmt.Sprintf("\n%s\n%s", i18n.Show(lang, "payment_auth_code_label"), authCodeContent)
 			if cast.ToInt(info[`package_type`]) == define.RobotPaymentPackageTypeCount {
-				replyContent.Description += fmt.Sprintf("\n所属套餐：\n%s【%s次】--%s元", info[`package_name`], info[`package_count`], info[`package_price`])
+				packageFormat := fmt.Sprintf(i18n.GetPaymentCountPackageFormat(lang), info[`package_name`], cast.ToInt(info[`package_count`]), info[`package_price`])
+				replyContent.Description += fmt.Sprintf("\n%s\n%s", i18n.Show(lang, "payment_package_label"), packageFormat)
 			} else {
-				replyContent.Description += fmt.Sprintf("\n所属套餐：\n%s【%s天】--%s元", info[`package_name`], info[`package_duration`], info[`package_price`])
+				packageFormat := fmt.Sprintf(i18n.GetPaymentDurationPackageFormat(lang), info[`package_name`], cast.ToInt(info[`package_duration`]), info[`package_price`])
+				replyContent.Description += fmt.Sprintf("\n%s\n%s", i18n.Show(lang, "payment_package_label"), packageFormat)
 			}
 			if cast.ToInt(info[`usage_status`]) == define.RobotPaymentAuthCodeUsageStatusPending {
-				replyContent.Description += fmt.Sprintf("\n兑换状态：待使用")
+				replyContent.Description += fmt.Sprintf("\n%s", i18n.Show(lang, "payment_status_pending"))
 			} else if cast.ToInt(info[`usage_status`]) == define.RobotPaymentAuthCodeUsageStatusExchanged {
-				replyContent.Description += fmt.Sprintf("\n兑换状态：已兑换")
-				replyContent.Description += fmt.Sprintf("\n兑换人：%s", info[`exchanger_name`])
-				replyContent.Description += fmt.Sprintf("\n兑换时间：%s", time.Unix(cast.ToInt64(info[`exchange_time`]), 0).Format("06-01-02 15:04:05"))
+				replyContent.Description += fmt.Sprintf("\n%s", i18n.Show(lang, "payment_status_exchanged"))
+				replyContent.Description += fmt.Sprintf("\n%s%s", i18n.Show(lang, "payment_exchanger_label"), info[`exchanger_name`])
+				replyContent.Description += fmt.Sprintf("\n%s%s", i18n.Show(lang, "payment_exchange_time_label"), time.Unix(cast.ToInt64(info[`exchange_time`]), 0).Format("06-01-02 15:04:05"))
 			} else if cast.ToInt(info[`usage_status`]) == define.RobotPaymentAuthCodeUsageStatusUsed {
-				replyContent.Description += fmt.Sprintf("\n兑换状态：已使用")
-				replyContent.Description += fmt.Sprintf("\n使用时间：%s", time.Unix(cast.ToInt64(info[`use_time`]), 0).Format("06-01-02 15:04:05"))
+				replyContent.Description += fmt.Sprintf("\n%s", i18n.Show(lang, "payment_status_used"))
+				replyContent.Description += fmt.Sprintf("\n%s%s", i18n.Show(lang, "payment_use_time_label"), time.Unix(cast.ToInt64(info[`use_time`]), 0).Format("06-01-02 15:04:05"))
 			}
-			replyContent.Description += fmt.Sprintf("\n创建时间：%s", time.Unix(cast.ToInt64(info[`create_time`]), 0).Format("06-01-02 15:04:05"))
-			replyContent.Description += fmt.Sprintf("\n创建人：%s", info[`creator_name`])
+			replyContent.Description += fmt.Sprintf("\n%s%s", i18n.Show(lang, "payment_create_time_label"), time.Unix(cast.ToInt64(info[`create_time`]), 0).Format("06-01-02 15:04:05"))
+			replyContent.Description += fmt.Sprintf("\n%s%s", i18n.Show(lang, "payment_creator_label"), info[`creator_name`])
 		} else {
 			if cast.ToInt(info[`usage_status`]) == define.RobotPaymentAuthCodeUsageStatusExchanged || cast.ToInt(info[`usage_status`]) == define.RobotPaymentAuthCodeUsageStatusUsed {
-				replyContent.Description = fmt.Sprintf("兑换失败。\n%s\n%s已兑换", authCodeContent, time.Unix(cast.ToInt64(info[`use_time`]), 0).Format("06-01-02 15:04:05"))
+				replyContent.Description = i18n.Show(lang, "payment_exchange_failed_already", authCodeContent, time.Unix(cast.ToInt64(info[`exchange_time`]), 0).Format("06-01-02 15:04:05"))
 			} else {
-				// 从访客表里查询详细信息
+				// query details from customer table
 				avatar := ``
 				name := ``
 				customer, err := msql.Model(`chat_ai_customer`, define.Postgres).
@@ -381,7 +401,7 @@ func ExchangeRobotPaymentAuthCode(in *ChatInParam, out *ChatOutParam) pipeline.P
 					name = customer[`name`]
 				}
 
-				// 兑换逻辑
+				// exchange logic
 				_, err = msql.Model(`robot_payment_auth_code`, define.Postgres).
 					Where(`id`, info[`id`]).
 					Update(msql.Datas{
@@ -397,15 +417,20 @@ func ExchangeRobotPaymentAuthCode(in *ChatInParam, out *ChatOutParam) pipeline.P
 					logs.Error(err.Error())
 				}
 
-				// 组装公众号消息
-				replyContent.Description = fmt.Sprintf("您已兑换%s", info[`package_name`])
+				// build official account message
+				replyContent.Description = i18n.Show(lang, "payment_exchange_success", info[`package_name`])
 				if cast.ToInt(info[`package_type`]) == define.RobotPaymentPackageTypeCount {
-					replyContent.Description += fmt.Sprintf("\n剩余可用：%d次\n", cast.ToInt(info[`package_count`])-cast.ToInt(info[`used_count`]))
+					replyContent.Description += i18n.Show(lang, "payment_remain_count_with_newline", cast.ToInt(info[`package_count`])-cast.ToInt(info[`used_count`]))
 				} else {
-					replyContent.Description += fmt.Sprintf("\n剩余可用：%d天", cast.ToInt(info[`package_duration`])-cast.ToInt(info[`used_duration`]))
-					replyContent.Description += fmt.Sprintf("\n剩余可用：%d次\n", cast.ToInt(info[`package_count`])-cast.ToInt(info[`used_count`]))
+					replyContent.Description += fmt.Sprintf("\n%s", i18n.Show(lang, "payment_remain_duration", cast.ToInt(info[`package_duration`])-cast.ToInt(info[`used_duration`])))
+					replyContent.Description += i18n.Show(lang, "payment_remain_count_with_newline", cast.ToInt(info[`package_count`])-cast.ToInt(info[`used_count`]))
 				}
-				replyContent.Description += `回复 <a href="weixin://bizmsgmenu?msgmenucontent=我的权益&msgmenuid=1">我的权益</a> 可查看使用情况`
+				// select link text based on language
+				if lang == define.LangEnUs {
+					replyContent.Description += i18n.Show(lang, "payment_check_benefits_link_en")
+				} else {
+					replyContent.Description += i18n.Show(lang, "payment_check_benefits_link")
+				}
 			}
 		}
 		out.replyContentList = append(out.replyContentList, replyContent)
@@ -418,9 +443,9 @@ func ExchangeRobotPaymentAuthCode(in *ChatInParam, out *ChatOutParam) pipeline.P
 	return pipeline.PipeContinue
 }
 
-// QueryRobotPaymentAuthCodeRight 查看授权码权益
+// QueryRobotPaymentAuthCodeRight views auth code benefits
 func QueryRobotPaymentAuthCodeRight(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
-	//应用收费没开启
+	// payment feature not enabled
 	if !in.robotAbilityPayment {
 		return pipeline.PipeContinue
 	}
@@ -428,8 +453,15 @@ func QueryRobotPaymentAuthCodeRight(in *ChatInParam, out *ChatOutParam) pipeline
 	var replyContent common.ReplyContent
 	replyContent.ReplyType = common.ReplyTypeText
 
-	if in.params.Question == "我的权益" {
-		// 先计算时长套餐
+	// bilingual keyword match: my benefits
+	matched, matchedLang := i18n.KeywordMyBenefits.Match(in.params.Question)
+	if matched {
+		// default to zh-CN, use en-US only when en-US match succeeds
+		lang := define.LangZhCn
+		if matchedLang == define.LangEnUs {
+			lang = define.LangEnUs
+		}
+		// calculate duration package first
 		authCodeList, err := msql.Model(`robot_payment_auth_code`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(in.params.AdminUserId)).
 			Where(`robot_id`, in.params.Robot[`id`]).
@@ -455,22 +487,22 @@ func QueryRobotPaymentAuthCodeRight(in *ChatInParam, out *ChatOutParam) pipeline
 			}
 		}
 
-		replyContent.Description = `当前`
+		replyContent.Description = i18n.Show(lang, "payment_current_status")
 		if remainDuration > 0 {
-			replyContent.Description += fmt.Sprintf("\n剩余可用：%d天", remainDuration)
+			replyContent.Description += fmt.Sprintf("\n%s", i18n.Show(lang, "payment_remain_duration", remainDuration))
 		}
-		replyContent.Description += fmt.Sprintf("\n剩余可用：%d次", remainCount)
+		replyContent.Description += fmt.Sprintf("\n%s", i18n.Show(lang, "payment_remain_count", remainCount))
 
 		if len(authCodeList) > 0 {
-			replyContent.Description += fmt.Sprintf("\n兑换记录：")
+			replyContent.Description += fmt.Sprintf("\n%s", i18n.Show(lang, "payment_exchange_history"))
 			for _, authCode := range authCodeList {
 				if cast.ToInt(authCode[`package_type`]) == define.RobotPaymentPackageTypeCount {
-					replyContent.Description += fmt.Sprintf("\n%s 兑换%d次",
+					replyContent.Description += i18n.Show(lang, "payment_exchange_count_record",
 						time.Unix(cast.ToInt64(authCode[`exchange_time`]), 0).Format("06-01-02 15:04:05"),
 						cast.ToInt(authCode[`package_count`]),
 					)
 				} else {
-					replyContent.Description += fmt.Sprintf("\n%s 兑换%d天",
+					replyContent.Description += i18n.Show(lang, "payment_exchange_duration_record",
 						time.Unix(cast.ToInt64(authCode[`exchange_time`]), 0).Format("06-01-02 15:04:05"),
 						cast.ToInt(authCode[`package_duration`]),
 					)
@@ -488,7 +520,7 @@ func QueryRobotPaymentAuthCodeRight(in *ChatInParam, out *ChatOutParam) pipeline
 	return pipeline.PipeContinue
 }
 
-// CheckReceivedMessageReply 收到消息回复处理
+// CheckReceivedMessageReply handles received message reply
 func CheckReceivedMessageReply(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if in.keywordSkipAI {
 		return pipeline.PipeContinue
@@ -500,7 +532,7 @@ func CheckReceivedMessageReply(in *ChatInParam, out *ChatOutParam) pipeline.Pipe
 	return pipeline.PipeContinue
 }
 
-// PushReplyContentList 推送回复内容列表
+// PushReplyContentList pushes reply content list
 func PushReplyContentList(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if len(out.replyContentList) > 0 {
 		in.Stream(sse.Event{Event: `reply_content_list`, Data: out.replyContentList})

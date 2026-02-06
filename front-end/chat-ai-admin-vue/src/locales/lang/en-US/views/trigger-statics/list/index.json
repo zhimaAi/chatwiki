@@ -1,0 +1,23 @@
+{
+  "knowledge_base": "Knowledge Base",
+  "database": "Database",
+  "document_extraction_faq": "Document Extraction FAQ",
+  "trigger_count_statistics": "Trigger Count Statistics",
+  "title_total_triggers": "Total Triggers",
+  "trigger_ranking": "Trigger Ranking",
+  "all_knowledge_base": "All Knowledge Base",
+  "ranking": "Ranking",
+  "knowledge_content": "Knowledge Content",
+  "question": "Question",
+  "answer": "Answer",
+  "knowledge_base_group": "Knowledge Base Group",
+  "owned_knowledge_base": "Owned Knowledge Base",
+  "unassigned": "Unassigned",
+  "trigger_count": "Trigger Count",
+  "details": "Details",
+  "proportion": "Proportion",
+  "by_content": "By Content",
+  "by_knowledge_base_group": "By Knowledge Base Group",
+  "by_knowledge_base": "By Knowledge Base",
+  "unknown_questions_total": "Unknown Questions"
+}

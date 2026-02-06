@@ -32,8 +32,8 @@
           <template v-if="item.type == 'boolean'">
             <a-switch
               v-model:checked="formState[item.name]"
-              checked-children="开"
-              un-checked-children="关"
+              :checked-children="t('switch_on')"
+              :un-checked-children="t('switch_off')"
               checkedValue="true"
               unCheckedValue="false"
             />
@@ -42,11 +42,11 @@
             <a-input-number
               style="width: 100%"
               v-model:value.number="formState[item.name]"
-              :placeholder="`请输入内容`"
+              :placeholder="t('ph_input_content')"
             />
           </template>
           <template v-else>
-            <a-input v-model:value="formState[item.name]" :placeholder="`请输入内容`" />
+            <a-input v-model:value="formState[item.name]" :placeholder="t('ph_input_content')" />
           </template>
         </a-form-item>
       </a-form>
@@ -59,8 +59,12 @@ import { PlusOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import { addFormEntry } from '@/api/database'
-const modalTitle = ref('添加数据')
+
+const { t } = useI18n('views.database.database-detail.database-manage.components.add-data-modal')
+
+const modalTitle = ref(t('modal_title_add'))
 const rotue = useRoute()
 const query = rotue.query
 const emit = defineEmits('ok')
@@ -84,10 +88,10 @@ const formatField = () => {
     formState[item.name] = ''
     item.rules = []
     if (item.required == 'true') {
-      item.rules.push({ required: true, message: `请输入${item.name}` })
+      item.rules.push({ required: true, message: t('validator_required', { name: item.name }) })
     }
     if (item.type == 'number') {
-      item.rules.push({ type: 'number', message: `${item.name}必须为数字` })
+      item.rules.push({ type: 'number', message: t('validator_number', { name: item.name }) })
     }
     if (item.type == 'integer') {
       // item.rules.push({ type: 'integer', message: `${item.name}必须为整数` })
@@ -107,7 +111,7 @@ const isValidatorInteger = (rule, value) => {
     if(value == '' || Number.isInteger(+value)){
       return resolve()
     }
-    return reject('请输入整数')
+    return reject(t('validator_integer'))
   })
 }
 const open = ref(false)
@@ -121,9 +125,9 @@ const show = (data) => {
   formState.id = ''
   Object.assign(formState, convertNumberStringsToObjectNumbers(data))
   if (formState.id) {
-    modalTitle.value = '修改数据'
+    modalTitle.value = t('modal_title_edit')
   } else {
-    modalTitle.value = '添加数据'
+    modalTitle.value = t('modal_title_add')
   }
 }
 
@@ -131,7 +135,7 @@ const formRef = ref(null)
 const handleOk = () => {
   formRef.value.validate().then((res) => {
     addFormEntry({ ...formState }).then((res) => {
-      let tip = formState.id ? '修改成功' : '添加成功'
+      let tip = formState.id ? t('msg_edit_success') : t('msg_add_success')
       message.success(tip)
       open.value = false
       emit('ok')

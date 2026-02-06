@@ -71,10 +71,10 @@
 
 <template>
   <div class="user-model-page">
-    <div class="page-title">导出记录</div>
+    <div class="page-title">{{ t('title') }}</div>
     <div class="list-wrapper">
       <div class="content-wrapper">
-        <a-alert show-icon message="导出文件仅保留7天，7天后自动删除，请及时下载到本地"></a-alert>
+        <a-alert show-icon :message="t('alert_message')"></a-alert>
         <div class="search-block">
           <DateSelect datekey="2" @dateChange="onDateChange" />
         </div>
@@ -96,16 +96,16 @@
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'status'">
               <div v-if="record.status == 0" class="status-item status-0">
-                <ClockCircleFilled />等待导出
+                <ClockCircleFilled />{{ t('status_waiting') }}
               </div>
               <div v-if="record.status == 1" class="status-item status-1">
-                <LoadingOutlined />导出中
+                <LoadingOutlined />{{ t('status_exporting') }}
               </div>
               <div v-if="record.status == 2" class="status-item status-2">
-                <CheckCircleFilled />导出成功
+                <CheckCircleFilled />{{ t('status_success') }}
               </div>
               <div v-if="record.status == 3" class="status-item status-3">
-                <CloseCircleFilled />导出失败
+                <CloseCircleFilled />{{ t('status_failed') }}
                 <a-tooltip v-if="record.err_msg">
                   <template #title>{{ record.err_msg }}</template>
                   <QuestionCircleOutlined />
@@ -114,7 +114,7 @@
             </template>
 
             <template v-if="column.key === 'action'">
-              <a @click="handleDownload(record)" v-if="!record.is_over_7_days">下载</a>
+              <a @click="handleDownload(record)" v-if="!record.is_over_7_days">{{ t('action_download') }}</a>
               <span v-else>--</span>
             </template>
           </template>
@@ -136,8 +136,10 @@ import {
 } from '@ant-design/icons-vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/modules/user'
+import { useI18n } from '@/hooks/web/useI18n'
 import dayjs from 'dayjs'
 import { reactive, ref } from 'vue'
+const { t } = useI18n('views.library.library-details.export-record')
 const userStore = useUserStore()
 const query = useRoute().query
 
@@ -196,27 +198,27 @@ const handleDownload = (record) => {
 
 const columns = [
   {
-    title: '导出时间',
+    title: t('column_export_time'),
     dataIndex: 'create_time_desc',
     key: 'create_time_desc'
   },
   {
-    title: '导出文件名称',
+    title: t('column_file_name'),
     dataIndex: 'file_name',
     key: 'file_name'
   },
   {
-    title: '来源',
+    title: t('column_source'),
     key: 'source_desc',
     dataIndex: 'source_desc'
   },
   {
-    title: '状态',
+    title: t('column_status'),
     key: 'status',
     dataIndex: 'status'
   },
   {
-    title: '操作',
+    title: t('column_action'),
     key: 'action'
   }
 ]

@@ -19,7 +19,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// ProcessHTMLImages 把html中的网络图片下载转换成本地图片
+// ProcessHTMLImages downloads network images in HTML and converts them to local images
 func ProcessHTMLImages(content string, userId int) (string, error) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(content))
 	if err != nil {
@@ -63,7 +63,7 @@ func ProcessHTMLImages(content string, userId int) (string, error) {
 	return out, nil
 }
 
-// handleNetworkImage 下载网络图片并替换成本地图片
+// handleNetworkImage downloads network image and replaces it with local image
 func handleNetworkImage(sel *goquery.Selection, src string, userId int) error {
 	resp, err := http.Get(src)
 	if err != nil {
@@ -80,7 +80,7 @@ func handleNetworkImage(sel *goquery.Selection, src string, userId int) error {
 		return err
 	}
 
-	// 判断 MIME，决定扩展名
+	// Determine extension based on MIME type
 	mimeType := resp.Header.Get("Content-Type")
 	ext := mimeToExt(mimeType)
 	if ext == "" {
@@ -100,7 +100,7 @@ func handleNetworkImage(sel *goquery.Selection, src string, userId int) error {
 	return nil
 }
 
-// handleBase64Image 把base64格式图片下载到本地
+// handleBase64Image downloads base64 format images to local
 func handleBase64Image(sel *goquery.Selection, src string, userId int) error {
 	parts := strings.Split(src, ";")
 	if len(parts) < 2 {
@@ -109,7 +109,7 @@ func handleBase64Image(sel *goquery.Selection, src string, userId int) error {
 
 	format := strings.TrimPrefix(parts[0], "data:image/")
 	if format == "svg+xml" {
-		return nil // 不处理 svg
+		return nil // Don't process svg
 	}
 
 	b64 := strings.TrimPrefix(parts[1], "base64,")

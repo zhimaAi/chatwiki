@@ -1,0 +1,7 @@
+{
+  "modal_title": "Copy Settings to Other Apps",
+  "alert_message": "Copy the billing settings and feature switch status of the current page to the selected apps",
+  "status_unpublished": "Unpublished",
+  "error_select_app": "Please select an app",
+  "msg_operation_completed": "Operation completed"
+}

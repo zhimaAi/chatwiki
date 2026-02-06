@@ -1,0 +1,16 @@
+{
+  "btn_add_tool": "添加工具",
+  "btn_edit": "编辑",
+  "btn_delete": "删除",
+  "label_create_time": "创建时间",
+  "label_update_time": "更新时间",
+  "title_tool_list": "工具列表",
+  "label_request_url": "请求地址：",
+  "label_params": "参数",
+  "label_required": "必填",
+  "title_no_tool": "暂未添加工具",
+  "btn_add_now": "立即添加",
+  "msg_delete_confirm": "确定删除该工具吗？删除后不可恢复",
+  "btn_confirm_delete": "删 除",
+  "btn_cancel": "取 消"
+}

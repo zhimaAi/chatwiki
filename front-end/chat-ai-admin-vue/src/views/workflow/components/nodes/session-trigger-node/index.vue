@@ -73,7 +73,7 @@
   >
     <div class="start-node">
       <div class="start-node-options">
-        <div class="options-title">输出</div>
+        <div class="options-title">{{ t('label_output') }}</div>
         <div class="options-list">
           <div
             class="options-item"
@@ -92,6 +92,7 @@
 
 <script>
 import NodeCommon from '../base-node.vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
 export default {
   name: 'StartNode',
@@ -99,6 +100,10 @@ export default {
     NodeCommon
   },
   inject: ['resetSize'],
+  setup() {
+    const { t } = useI18n('views.workflow.components.nodes.session-trigger-node.index')
+    return { t }
+  },
   props: {
     properties: {
       type: Object,

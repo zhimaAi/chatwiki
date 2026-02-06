@@ -27,13 +27,13 @@ import (
 
 type metaSearchCondition struct {
 	Key   string `json:"key"`
-	Type  int    `json:"type"`  // 0 string,1 time,2 number（同 define.LibraryMetaType*）
+	Type  int    `json:"type"`  //0 string, 1 time, 2 number (same as define.LibraryMetaType*)
 	Op    int    `json:"op"`    // define.MetaOp*
-	Value string `json:"value"` // 可为空（为空/不为空操作符）
+	Value string `json:"value"` //can be empty (empty/not-empty operators)
 }
 
 func validateMetaSearchConfig(lang string, metaSwitch, metaType int, raw string) (int, int, string, error) {
-	// 默认关闭
+	//Off by default
 	if metaSwitch != define.MetaSearchSwitchOn {
 		return define.MetaSearchSwitchOff, define.MetaSearchTypeAnd, `[]`, nil
 	}
@@ -63,7 +63,7 @@ func validateMetaSearchConfig(lang string, metaSwitch, metaType int, raw string)
 		if c.Key == `` {
 			return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
 		}
-		// key 格式固定：内置 key 或 key_数字
+		//Fixed key format: built-in key or key_number
 		if !define.IsBuiltinMetaKey(c.Key) && !common.IsCustomMetaKey(c.Key) {
 			return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
 		}
@@ -71,7 +71,7 @@ func validateMetaSearchConfig(lang string, metaSwitch, metaType int, raw string)
 			return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
 		}
 
-		// op 规则
+		//Op rules
 		switch c.Type {
 		case define.LibraryMetaTypeString:
 			if !tool.InArrayInt(c.Op, []int{define.MetaOpIs, define.MetaOpIsNot, define.MetaOpContains, define.MetaOpNotContains, define.MetaOpEmpty, define.MetaOpNotEmpty}) {
@@ -83,7 +83,7 @@ func validateMetaSearchConfig(lang string, metaSwitch, metaType int, raw string)
 			}
 		}
 
-		// value 规则
+		//Value rules
 		v := strings.TrimSpace(c.Value)
 		needValue := !(c.Op == define.MetaOpEmpty || c.Op == define.MetaOpNotEmpty)
 		if needValue {
@@ -93,7 +93,7 @@ func validateMetaSearchConfig(lang string, metaSwitch, metaType int, raw string)
 			if utf8.RuneCountInString(v) > 20 {
 				return 0, 0, ``, errors.New(i18n.Show(lang, `meta_condition_value_too_long`, 20))
 			}
-			// number/time 需要是数字输入
+			//For number/time, the value must be numeric
 			if c.Type == define.LibraryMetaTypeNumber {
 				if ok, _ := regexp.MatchString(`^-?\d+(\.\d+)?$`, v); !ok {
 					return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
@@ -122,7 +122,7 @@ func GetRobotList(c *gin.Context) {
 		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`is_top desc, sort_num desc ,id desc`)
 
 	applicationType := cast.ToInt(c.DefaultQuery(`application_type`, `-1`))
-	if applicationType >= 0 { //按应用类型筛选
+	if applicationType >= 0 { //filter by application type
 		m.Where(`application_type`, cast.ToString(applicationType))
 	}
 
@@ -164,8 +164,8 @@ func GetRobotList(c *gin.Context) {
 		return
 	}
 
-	// 添加 has_published 字段
-	// 先收集所有 application_type=1 的 robot IDs
+	//Add has_published field
+	//Collect robot IDs with application_type=1
 	var workflowRobotIds []string
 	for i := range list {
 		applicationType := cast.ToInt(list[i][`application_type`])
@@ -174,7 +174,7 @@ func GetRobotList(c *gin.Context) {
 		}
 	}
 
-	// 批量查询有发布版本的 robot IDs
+	//Batch query robots that have published versions
 	publishedRobotMap := make(map[string]bool)
 	if len(workflowRobotIds) > 0 {
 		publishedRobots, err := msql.Model(`work_flow_version`, define.Postgres).
@@ -190,14 +190,14 @@ func GetRobotList(c *gin.Context) {
 		}
 	}
 
-	// 设置 has_published 字段
+	//Set has_published field
 	for i := range list {
 		applicationType := cast.ToInt(list[i][`application_type`])
 		if applicationType == 0 {
-			// application_type=0，聊天类型，has_published=1
+			//application_type=0 (chat): has_published=1
 			list[i][`has_published`] = `1`
 		} else if applicationType == 1 {
-			// application_type=1，工作流类型，检查是否有发布版本
+			//application_type=1 (workflow): check for published versions
 			robotId := cast.ToString(list[i][`id`])
 			if publishedRobotMap[robotId] {
 				list[i][`has_published`] = `1`
@@ -205,7 +205,7 @@ func GetRobotList(c *gin.Context) {
 				list[i][`has_published`] = `0`
 			}
 		} else {
-			// 其他类型默认为0
+			//Other types default to 0
 			list[i][`has_published`] = `0`
 		}
 	}
@@ -286,7 +286,7 @@ func SaveRobot(c *gin.Context) {
 	groupId := cast.ToInt(c.PostForm(`group_id`))
 	promptRoleType := cast.ToInt(c.PostForm(`prompt_role_type`))
 	opTypeRelationLibrary := cast.ToInt(c.PostForm(`op_type_relation_library`))
-	// 元数据
+	//metadata
 	metaSearchSwitch := cast.ToInt(c.DefaultPostForm(`meta_search_switch`, `0`))
 	metaSearchType := cast.ToInt(c.DefaultPostForm(`meta_search_type`, cast.ToString(define.MetaSearchTypeAnd)))
 	metaSearchConditionList := strings.TrimSpace(c.DefaultPostForm(`meta_search_condition_list`, `[]`))
@@ -315,7 +315,7 @@ func SaveRobot(c *gin.Context) {
 		return
 	}
 	if checkName != 0 {
-		//检测机器人名称 取最大值加一
+		//Auto-increment name suffix based on max existing value
 		RobotCount, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).
 			Where(`robot_name`, `like`, robotName+`%`).Count(`id`)
 		if err == nil {
@@ -354,7 +354,7 @@ func SaveRobot(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
 		return
 	}
-	if id == 0 && len(rrfWeight) == 0 { //新建的时候填充默认值
+	if id == 0 && len(rrfWeight) == 0 { //fill default values on create
 		rrfWeight = tool.JsonEncodeNoError(common.GetDefaultRrfWeight(userId))
 	}
 	if err = common.CheckRrfWeight(rrfWeight, common.GetLang(c)); err != nil {
@@ -455,7 +455,7 @@ func SaveRobot(c *gin.Context) {
 
 	//check form
 	if len(formIds) > 0 {
-		//判断func call能力
+		//Check func-call capability
 		if err = common.CheckSupportFuncCall(common.GetLang(c), userId, modelConfigId, useModel); err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			return
@@ -515,7 +515,7 @@ func SaveRobot(c *gin.Context) {
 	}
 
 	tipsBeforeAnswerSwitch := cast.ToBool(c.DefaultPostForm(`tips_before_answer_switch`, `true`))
-	tipsBeforeAnswerContent := strings.TrimSpace(c.DefaultPostForm(`tips_before_answer_content`, i18n.Show(common.GetLang(c), `thinking_please_wait`))) //`思考中、请稍等`
+	tipsBeforeAnswerContent := strings.TrimSpace(c.DefaultPostForm(`tips_before_answer_content`, i18n.Show(common.GetLang(c), `thinking_please_wait`))) //"Thinking... please wait"
 
 	// logs.Info(`tipsBeforeAnswerContent: %v`, utf8.RuneCountInString(tipsBeforeAnswerContent))
 	if len(tipsBeforeAnswerContent) > 30 && utf8.RuneCountInString(tipsBeforeAnswerContent) > 10 {
@@ -677,7 +677,7 @@ func AddFlowRobot(c *gin.Context) {
 		return
 	}
 	if checkName != 0 {
-		//检测机器人名称 取最大值加一
+		//Auto-increment name suffix based on max existing value
 		RobotCount, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).
 			Where(`robot_name`, `like`, robotName+`%`).Count(`id`)
 		if err == nil {
@@ -790,7 +790,7 @@ func GetRobotMetaSchemaList(c *gin.Context) {
 		return
 	}
 
-	// 按 name 取交集：只有所有知识库都存在的 name 才返回
+	//Intersect by name: return only names present in all libraries
 	idArr := strings.Split(libraryIdsStr, ",")
 	libIdSet := make(map[string]struct{}, len(idArr))
 	libIds := make([]string, 0, len(idArr))
@@ -810,11 +810,11 @@ func GetRobotMetaSchemaList(c *gin.Context) {
 		return
 	}
 
-	// 去重（内置按 key；自定义按 name）
+	//Deduplicate (built-in by key; custom by name)
 	seenBuiltinKey := make(map[string]bool)
 	result := make([]map[string]any, 0, 32)
 
-	// 内置 meta：只保留一份
+	//Built-in meta: keep one copy
 	builtinMetaSchemaList := common.GetBuiltinMetaSchemaList(common.GetLang(c))
 	for _, b := range builtinMetaSchemaList {
 		k := b.Key
@@ -831,7 +831,7 @@ func GetRobotMetaSchemaList(c *gin.Context) {
 		}
 	}
 
-	// 自定义 meta：按 name 求交集（type 必须一致）
+	//Custom meta: intersect by name (type must match)
 	customList, err := msql.Model(`library_meta_schema`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(userId)).
 		Where(`library_id`, `in`, strings.Join(libIds, `,`)).
@@ -877,7 +877,7 @@ func GetRobotMetaSchemaList(c *gin.Context) {
 			}
 			aggMap[name] = a
 		}
-		// 同一个库重复 name 不重复计数
+		//Do not double-count duplicate names within the same library
 		if _, ok := a.seenLib[libId]; ok {
 			continue
 		}
@@ -957,7 +957,7 @@ func EditExternalConfig(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
-// GetDefaultRrfWeight 获取默认的RRF算法权重配置
+// GetDefaultRrfWeight returns default RRF weight configuration
 func GetDefaultRrfWeight(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
@@ -992,20 +992,20 @@ func GetRobotInfo(c *gin.Context) {
 		_, _ = common.AddDefaultLibrary(common.GetLang(c), c.GetHeader(`token`), info[`robot_name`], info[`library_ids`], info[`robot_key`], userId)
 		info, _ = common.GetRobotInfo(info[`robot_key`])
 	}
-	if len(info[`rrf_weight`]) == 0 { //填充默认值
+	if len(info[`rrf_weight`]) == 0 { //fill default values
 		info[`rrf_weight`] = tool.JsonEncodeNoError(common.GetDefaultRrfWeight(userId))
 	}
 	if len(info[`prompt_struct`]) == 0 {
-		info[`prompt_struct`] = tool.JsonEncodeNoError(common.GetEmptyPromptStruct(common.GetLang(c))) //旧数据默认给空值
+		info[`prompt_struct`] = tool.JsonEncodeNoError(common.GetEmptyPromptStruct(common.GetLang(c))) //for legacy data, default to empty
 	}
-	if cast.ToInt(info[`prompt_type`]) == define.PromptTypeStruct { //用于旧数据格式化
+	if cast.ToInt(info[`prompt_type`]) == define.PromptTypeStruct { //for legacy data normalization
 		info[`prompt_struct`], _ = common.CheckPromptConfig(common.GetLang(c), define.PromptTypeStruct, info[`prompt_struct`])
 	}
 	//configure external service parameters
 	info[`image_domain`] = define.Config.WebService[`image_domain`]
 	info[`h5_domain`] = define.Config.WebService[`h5_domain`]
 	info[`pc_domain`] = define.Config.WebService[`pc_domain`]
-	info[`prompt_struct_default`] = common.GetDefaultPromptStruct(common.GetLang(c)) //提供给前端的默认值
+	info[`prompt_struct_default`] = common.GetDefaultPromptStruct(common.GetLang(c)) //default value for the frontend
 	info[`wechat_ip`] = define.Config.WebService[`wechat_ip`]
 	info[`push_wechat_kefu`] = fmt.Sprintf(`%s/push_pwd/wechat_kefu`, define.Config.WebService[`push_domain`])
 	info[`push_token`] = lib_define.SignToken
@@ -1325,7 +1325,7 @@ func RelationWorkFlow(c *gin.Context) {
 		}
 		workFlowIds = strings.Join(robotIds, `,`)
 	}
-	if len(workFlowIds) > 0 { //判断func call能力
+	if len(workFlowIds) > 0 { //check func-call capability
 		if err = common.CheckSupportFuncCall(common.GetLang(c), adminUserId, cast.ToInt(robot[`model_config_id`]), robot[`use_model`]); err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			return
@@ -1426,7 +1426,7 @@ func RobotAutoAdd(c *gin.Context) {
 		Order(`id desc`).
 		ColumnArr(`id`)
 	if len(robot) == 0 {
-		if robotInfo, err = common.RobotAutoAdd(c.GetHeader(`token`), adminUserId); err != nil {
+		if robotInfo, err = common.RobotAutoAdd(common.GetLang(c), c.GetHeader(`token`), adminUserId); err != nil {
 			common.FmtError(c, `sys_err`, err.Error())
 			return
 		}

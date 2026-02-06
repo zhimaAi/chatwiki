@@ -177,7 +177,7 @@
             :style="{ height: inputHeight + 'px' }"
             class="text-input"
             :value="props.value"
-            :placeholder="translate('在此输入您想了解的内容')"
+            :placeholder="t('ph_input_message')"
             @change="onChange"
             @input="onInput"
             @keydown.enter="handleEnter"
@@ -213,7 +213,7 @@ import calcTextareaHeight from '@/utils/calcTextareaHeight'
 import { useChatStore } from '@/stores/modules/chat'
 import { useUserStore } from '@/stores/modules/user'
 import { showToast } from 'vant'
-import { translate } from '@/utils/translate.js'
+import { useI18n } from '@/hooks/web/useI18n'
 import { useUpload } from '@/hooks/web/useUpload.js'
 import FileToolbar from './file-toolbar.vue'
 
@@ -242,6 +242,8 @@ const props = defineProps({
     default: false
   },
 })
+
+const { t } = useI18n('views.chat.components.message-input')
 
 const { fileList } = toRefs(props)
 const messageTextarea = ref(null)

@@ -3,6 +3,9 @@ import { createApp, h, nextTick } from 'vue'
 import {generateUniqueId, jsonDecode} from '@/utils/index'
 import {HasOutputPluginNames} from "@/constants/plugin.js";
 import { allParentVariableNodeWhiteList } from '../util.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.base-node')
 
 function transformArray(arr, parent) {
   // 使用map处理数组并返回新的数组
@@ -369,7 +372,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         if (allParentVariableNodeWhiteList.includes(node.type)){
           if (node.type === 'zm-plugins-node') {
             let nodeParams = jsonDecode(node.properties.node_params)
-            if (HasOutputPluginNames.includes(nodeParams.plugin.name) || nodeParams.plugin?.output_obj.length) {
+            if (HasOutputPluginNames.includes(nodeParams.plugin.name) || nodeParams.plugin?.output_obj?.length) {
               parentNodes.push(node);
             }
           } else {
@@ -518,8 +521,8 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         obj.children = [{
           key: 'special.lib_paragraph_list',
           typ: 'string',
-          name: '知识库引用',
-          label: '知识库引用'
+          name: t('var_knowledge_base_reference'),
+          label: t('var_knowledge_base_reference')
         }]
       }
 
@@ -527,8 +530,8 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         obj.children = [{
           key: 'special.llm_reply_content',
           typ: 'string',
-          name: 'AI回复内容',
-          label: 'AI回复内容',
+          name: t('var_ai_reply_content'),
+          label: t('var_ai_reply_content'),
         }]
       }
 
@@ -536,8 +539,8 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         obj.children = [{
           key: 'special.llm_reply_content',
           typ: 'string',
-          name: '消息内容',
-          label: '消息内容',
+          name: t('var_message_content'),
+          label: t('var_message_content'),
         }]
       }
 
@@ -546,8 +549,8 @@ export class BaseVueNodeModel extends HtmlNodeModel {
           {
             key: 'special.llm_reply_content',
             typ: 'string',
-            name: '消息内容',
-            label: '消息内容'
+            name: t('var_message_content'),
+            label: t('var_message_content')
           }
         ]
       }
@@ -556,8 +559,8 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         obj.children = [{
           key: 'special.question_optimize_reply_content',
           typ: 'string',
-          name: '问题优化结果',
-          label: '问题优化结果',
+          name: t('var_question_optimization_result'),
+          label: t('var_question_optimization_result'),
         }]
       }
 
@@ -566,7 +569,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
           key: 'special.mcp_reply_content',
           typ: 'string',
           name: 'text',
-          label: '工具生成的内容',
+          label: t('var_tool_generated_content'),
         }]
       }
       if(node.type === 'image-generation-node'){

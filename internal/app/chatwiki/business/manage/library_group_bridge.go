@@ -44,7 +44,7 @@ func BridgeGetLibraryGroup(adminUserId, userId int, lang string, req *BridgeGetL
 
 	switch groupType {
 	case define.LibraryGroupTypeQA:
-		//统计数据
+		// Stats
 		stats, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
 			Where2(wheres).Where(`isolated`, `false`).Where(`delete_time`, `0`).
 			Group(`group_id`).ColumnObj(`COUNT(1) AS total`, `group_id`)
@@ -56,7 +56,7 @@ func BridgeGetLibraryGroup(adminUserId, userId int, lang string, req *BridgeGetL
 			list[i][`total`] = cast.ToString(cast.ToInt(stats[params[`id`]]))
 		}
 	case define.LibraryGroupTypeFile:
-		//统计数据
+		// Stats
 		stats, err := msql.Model(`chat_ai_library_file`, define.Postgres).
 			Where2(wheres).Where(`delete_time`, `0`).
 			Group(`group_id`).ColumnObj(`COUNT(1) AS total`, `group_id`)

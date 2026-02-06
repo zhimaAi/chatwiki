@@ -7,7 +7,7 @@
       <a-textarea
         class="message-input"
         :value="props.value"
-        placeholder="在此输入您想了解的内容，Shift+Enter换行"
+        :placeholder="t('ph_input_content')"
         :auto-size="{ minRows: 2, maxRows: 5 }"
         @change="onChange"
         @keydown="handleKeydown"
@@ -36,6 +36,9 @@
 import { computed, toRefs } from 'vue'
 import FileToolbar from './file-toolbar.vue'
 import { useUpload } from '@/hooks/web/useUpload.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-test.components.message-input')
 
 const emit = defineEmits(['send', 'update:value', 'update:fileList'])
 

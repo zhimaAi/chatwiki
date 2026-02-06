@@ -9,7 +9,7 @@
       }
     }
     .field-item-label {
-      width: 60px;
+      width: auto;
       line-height: 22px;
       margin-right: 8px;
       font-size: 14px;
@@ -96,7 +96,7 @@
     <div class="ai-dialogue-node">
       <div class="field-list">
         <div class="field-item">
-          <div class="field-item-label">输入参数</div>
+          <div class="field-item-label">{{ t('label_input_params') }}</div>
           <div class="field-item-content">
             <div class="field-list-item">
               <div class="field-text">
@@ -114,7 +114,7 @@
         </div>
 
         <div class="field-item">
-          <div class="field-item-label">输出字段</div>
+          <div class="field-item-label">{{ t('label_output_fields') }}</div>
           <div class="field-item-content">
             <div class="field-value" v-for="(item, index) in formState.output" :key="index">
               <span class="field-key"> {{ item.key }}</span>
@@ -132,6 +132,9 @@ import { ref, reactive, watch, onMounted, inject, nextTick, onBeforeUnmount } fr
 import NodeCommon from '../base-node.vue'
 import AtText from '../../at-input/at-text.vue'
 import { haveOutKeyNode } from '@/views/workflow/components/util.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.json-node.index')
 
 const props = defineProps({
   properties: {

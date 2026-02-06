@@ -26,7 +26,10 @@
 <script setup>
 import dayjs from 'dayjs'
 import { ref, onMounted, reactive, watch } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import { message } from 'ant-design-vue'
+
+const { t } = useI18n('views.robot.robot-config.export-record.components.date')
 
 const props = defineProps({
   datekey: {
@@ -41,21 +44,21 @@ const emit = defineEmits(['dateChange'])
 
 let tagDateArr = reactive([
   {
-    label: '近7日',
+    label: t('label_last_7_days'),
     value: true,
     key: 2,
     start_date: dayjs().subtract(6, 'day'),
     end_date: dayjs().subtract(0, 'day')
   },
   {
-    label: '近14日',
+    label: t('label_last_14_days'),
     value: false,
     key: 3,
     start_date: dayjs().subtract(13, 'day'),
     end_date: dayjs().subtract(0, 'day')
   },
   {
-    label: '近30日',
+    label: t('label_last_30_days'),
     value: false,
     key: 4,
     start_date: dayjs().subtract(29, 'day'),

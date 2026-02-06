@@ -9,7 +9,7 @@
       }
     }
     .field-item-label {
-      width: 60px;
+      width: auto;
       line-height: 22px;
       margin-right: 8px;
       font-size: 14px;
@@ -119,7 +119,7 @@
     <div class="ai-dialogue-node">
       <div class="field-list">
         <div class="field-item">
-          <div class="field-item-label" @click="handleDelEdg">提问内容</div>
+          <div class="field-item-label" @click="handleDelEdg">{{ t('label_question_content') }}</div>
           <div class="field-item-content">
             <div class="field-list-item">
               <div class="field-text">
@@ -136,11 +136,11 @@
         </div>
 
         <div class="field-item">
-          <div class="field-item-label">回答方式</div>
+          <div class="field-item-label">{{ t('label_answer_type') }}</div>
           <div class="field-item-content">
             <div class="field-value">
               <span class="field-key">
-                {{ formState.answer_type == 'text' ? '直接回答' : '智能菜单回答' }}</span
+                {{ t(formState.answer_type == 'text' ? 'label_direct_answer' : 'label_smart_menu_answer') }}</span
               >
             </div>
           </div>
@@ -167,7 +167,9 @@
 import { ref, reactive, watch, onMounted, inject, nextTick, onBeforeUnmount } from 'vue'
 import NodeCommon from '../base-node.vue'
 import AtText from '../../at-input/at-text.vue'
-import { haveOutKeyNode } from '@/views/workflow/components/util.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.qa-node.index')
 
 const props = defineProps({
   properties: {
@@ -218,7 +220,6 @@ const formState = reactive({
 })
 
 const handleDelEdg = () => {
-  console.log(graphModel(), getNode())
   let nodeSortKey = props.properties.nodeSortKey
   let edges = graphModel().edges
   if (formState.answer_type == 'text') {

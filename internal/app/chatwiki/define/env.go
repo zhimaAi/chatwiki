@@ -15,7 +15,7 @@ const TemplateDir = `/html-template/open/doc/`
 const TemplateStaticDir = `/static/html-template/open/doc/`
 const AppName = "chatwiki"
 
-// Version 会在编译时通过 -ldflags 注入
+// Version will be injected via -ldflags during compilation
 var Version = "V2025-12-09"
 var IsPublicNetWork = 1
 

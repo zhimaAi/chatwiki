@@ -26,7 +26,10 @@
 <script setup>
 import dayjs from 'dayjs'
 import { ref, onMounted, reactive, watch } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import { message } from 'ant-design-vue'
+
+const { t } = useI18n('views.robot.robot-config.session-record.components.date')
 
 const props = defineProps({
   datekey: {
@@ -41,21 +44,21 @@ const emit = defineEmits(['dateChange'])
 
 let tagDateArr = reactive([
   {
-    label: '今日',
+    label: t('label_today'),
     value: true,
     key: 2,
     start_time: dayjs().startOf('day'),
     end_time: dayjs().endOf('day')
   },
   {
-    label: '昨日',
+    label: t('label_yesterday'),
     value: false,
     key: 3,
     start_time: dayjs().subtract(1, 'day').startOf('day'),
     end_time: dayjs().startOf('day').subtract(1, 'millisecond')
   },
   {
-    label: '近7日',
+    label: t('label_last_7_days'),
     value: false,
     key: 4,
     start_time: dayjs().subtract(6, 'day').startOf('day'),
@@ -97,12 +100,12 @@ const handleDateChange = (dates) => {
   const startDate = dayjs(dates[0]).startOf('day')
   const endDate = dayjs(dates[1]).endOf('day')
   if (endDate.diff(startDate, 'days') > 29) {
-    range.value[0] = dates[0].startOf('day')
-    range.value[1] = startDate.add(29, 'days').endOf('day')
-    start_time.value = range.value[0].unix()
-    end_time.value = range.value[1].unix()
-    message.error(`最多只能选择30天`)
-  } else {
+      range.value[0] = dates[0].startOf('day')
+      range.value[1] = startDate.add(29, 'days').endOf('day')
+      start_time.value = range.value[0].unix()
+      end_time.value = range.value[1].unix()
+      message.error(t('msg_max_30_days'))
+    } else {
     const start = dayjs(dates[0]).startOf('day').unix()
     const end = dayjs(dates[1]).endOf('day').unix()
     range.value = dates

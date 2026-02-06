@@ -1,0 +1,11 @@
+{
+  "title": "AI Smart Summary",
+  "model_selection_label": "Please select the large model for generating unknown issue summaries",
+  "generate_button": "Start Summary",
+  "generating_title": "Generating Data",
+  "generating_tip": "Data is being generated, please do not close the page",
+  "complete_title": "Generation Complete",
+  "complete_subtitle": "You can download the generated data in the unknown issue summary",
+  "download_button": "Go to Download",
+  "before_unload_tip": "Data is being generated, are you sure you want to leave?"
+}

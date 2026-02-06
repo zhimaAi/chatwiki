@@ -2,7 +2,7 @@
   <div>
     <a-modal
       v-model:open="open"
-      title="添加协作者"
+      :title="t('title_add_collaborator')"
       @ok="handleOk"
       :width="746"
       wrapClassName="no-padding-modal"
@@ -11,20 +11,20 @@
     >
       <div class="form-box">
         <a-form layout="vertical">
-          <a-form-item label="协作权限" required>
+          <a-form-item :label="t('label_collaboration_permission')" required>
             <a-radio-group v-model:value="formState.operate_rights">
-              <a-radio value="4">管理</a-radio>
-              <a-radio value="2">编辑</a-radio>
-              <a-radio value="1">查看</a-radio>
+              <a-radio value="4">{{ t('btn_manage') }}</a-radio>
+              <a-radio value="2">{{ t('btn_edit') }}</a-radio>
+              <a-radio value="1">{{ t('btn_view') }}</a-radio>
             </a-radio-group>
           </a-form-item>
-          <a-form-item label="协作者" required>
+          <a-form-item :label="t('label_collaborator')" required>
             <a-radio-group v-model:value="formState.identity_type">
-              <a-radio value="1">按成员选</a-radio>
-              <a-radio value="2">按组织架构</a-radio>
+              <a-radio value="1">{{ t('btn_select_by_member') }}</a-radio>
+              <a-radio value="2">{{ t('btn_select_by_org') }}</a-radio>
             </a-radio-group>
             <div class="form-tip" v-if="role_permission && role_permission.includes('TeamManage')">
-              如果协作者没有账号，请先到团队管理中添加账号 <a @click="toManagePage">去添加</a>
+              {{ t('msg_no_account_tip') }} <a @click="toManagePage">{{ t('btn_go_to_add') }}</a>
             </div>
           </a-form-item>
           <div class="list-box" v-if="formState.identity_type == 1">
@@ -73,6 +73,9 @@ import { UserOutlined } from '@ant-design/icons-vue'
 import { getUserList } from '@/api/manage/index.js'
 import { getAllDepartment, savePermissionManage } from '@/api/department/index.js'
 import { usePermissionStore } from '@/stores/modules/permission'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('components.add-collaborator.add-collaborator')
 
 const role_permission = computed(() => usePermissionStore().role_permission || [])
 
@@ -154,7 +157,7 @@ const handleOk = () => {
     identity_ids = departmentCheckList.value
   }
   if (identity_ids.length == 0) {
-    message.error('请选择成员或成员组织')
+    message.error(t('msg_select_member_or_org'))
     return
   }
   let parmas = {
@@ -165,7 +168,7 @@ const handleOk = () => {
   saveLoading.value = true
   savePermissionManage(parmas)
     .then((res) => {
-      message.success('保存成功')
+      message.success(t('msg_save_success'))
       open.value = false
       emit('ok')
     })

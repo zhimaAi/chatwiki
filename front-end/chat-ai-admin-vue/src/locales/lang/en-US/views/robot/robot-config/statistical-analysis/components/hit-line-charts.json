@@ -1,0 +1,9 @@
+{
+  "label_daily_active_users": "Daily Active Users (people)",
+  "legend_total_messages": "Total Messages",
+  "legend_hit_messages": "Hit Messages",
+  "legend_miss_messages": "Miss Messages",
+  "legend_hit_rate": "Hit Rate",
+  "yaxis_label_count": "Count (times)",
+  "yaxis_label_percentage": "Percentage (%)"
+}

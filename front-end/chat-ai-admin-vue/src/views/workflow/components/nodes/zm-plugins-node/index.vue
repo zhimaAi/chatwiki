@@ -1,29 +1,3 @@
-<style lang="less" scoped>
-.ding-group-node {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 52px;
-
-  > div {
-    display: flex;
-    word-break: break-all;
-
-    .label {
-      flex-shrink: 0;
-      text-align: right;
-      white-space: normal;
-    }
-
-    :deep(.ant-tag) {
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-    }
-  }
-}
-</style>
-
 <template>
   <node-common
     :properties="properties"
@@ -80,6 +54,7 @@ import DynamicRender from "./components/dynamic-render.vue";
 import AtText from "@/views/workflow/components/at-input/at-text.vue";
 import { pluginOutputToTree } from "@/constants/plugin.js";
 import { haveOutKeyNode } from '@/views/workflow/components/util.js'
+import { useI18n } from '@/hooks/web/useI18n'
 
 export default {
   name: 'QuestionNode',
@@ -101,10 +76,16 @@ export default {
     isSelected: {type: Boolean, default: false},
     isHovered: {type: Boolean, default: false},
   },
+  setup() {
+    const { t } = useI18n('views.workflow.components.nodes.zm-plugins-node.index')
+    return {
+      t
+    }
+  },
   data() {
     return {
       atTextRef: null,
-      menus: [{name: '删除', key: 'delete', color: '#fb363f'}],
+      menus: [{name: 'btn_delete', key: 'delete', color: '#fb363f'}],
       formState: {
         // app_id: {
         //   type: 'string',
@@ -119,15 +100,6 @@ export default {
       valueOptions: []
     }
   },
-  mounted() {
-    const graphModel = this.getGraph()
-    graphModel.eventCenter.on('custom:setNodeName', this.onUpatateNodeName)
-    this.init()
-  },
-  onBeforeUnmount() {
-    const graphModel = this.getGraph()
-    graphModel.eventCenter.off('custom:setNodeName', this.onUpatateNodeName)
-  },
   computed: {
     pluginName() {
       return this.nodeParams?.plugin?.name || null
@@ -141,6 +113,15 @@ export default {
     isOfficialSendMessagePlugin() {
       return this.pluginName === 'official_send_message'
     }
+  },
+  mounted() {
+    const graphModel = this.getGraph()
+    graphModel.eventCenter.on('custom:setNodeName', this.onUpatateNodeName)
+    this.init()
+  },
+  onBeforeUnmount() {
+    const graphModel = this.getGraph()
+    graphModel.eventCenter.off('custom:setNodeName', this.onUpatateNodeName)
   },
   watch: {
     properties: {
@@ -447,7 +428,7 @@ export default {
         const tags = Array.isArray(meta?.tags) ? meta.tags : []
 
         if (key === 'app_id') {
-          label = '公众号名称'
+          label = this.t('label_official_account_name')
           value = String(args.app_name ?? this.formState?.app_name?.value ?? '')
         }
 
@@ -484,16 +465,16 @@ export default {
           let args = this.nodeParams?.plugin?.params?.arguments || {}
           let tag_map = this.nodeParams?.plugin?.params?.arguments?.tag_map || {}
           this.formState = {
-            app_name: {type: 'string', name: '公众号名称', value: args.app_name, tags: []},
+            app_name: {type: 'string', name: this.t('label_official_account_name'), value: args.app_name, tags: []},
           }
           if (args.tag_type == 1) {
-            this.formState.tag_name = {type: 'string', name: '标签名称', value: args.tag_name, tags: []}
+            this.formState.tag_name = {type: 'string', name: this.t('label_tag_name'), value: args.tag_name, tags: []}
           } else if (tag_map?.tagid?.length) {
-            this.formState.tagid = {type: 'string', name: '标签名称', value: args.tagid, tags: tag_map.tagid || []}
+            this.formState.tagid = {type: 'string', name: this.t('label_tag_name'), value: args.tagid, tags: tag_map.tagid || []}
           } else {
-            this.formState.tagid = {type: 'string', name: '标签ID', value: args.tagid, tags: []}
+            this.formState.tagid = {type: 'string', name: this.t('label_tag_id'), value: args.tagid, tags: []}
           }
-          this.formState.next_openid = {type: 'string', name: '上批尾用户openid', value: args.next_openid, tags: tag_map.next_openid || []}
+          this.formState.next_openid = {type: 'string', name: this.t('label_last_batch_openid'), value: args.next_openid, tags: tag_map.next_openid || []}
           this.updateSize()
           return
         } else {
@@ -501,7 +482,7 @@ export default {
           data[this.business].params = {
             app_name: {
               type: 'string',
-              name: '公众号名称',
+              name: this.t('label_official_account_name'),
             },
             ...data[this.business].params
           }
@@ -513,22 +494,22 @@ export default {
       let args = this.nodeParams?.plugin?.params?.arguments || {}
       let tag_map = this.nodeParams?.plugin?.params?.arguments?.tag_map || {}
       this.formState = {
-        app_name: {type: 'string', name: '公众号名称', value: args.app_name, tags: []},
-        template_name: {type: 'string', name: '模板名称', value: args.template_name, tags: []},
-        touser: {type: 'string', name: '接收者', value: args.touser, tags: tag_map.touser || []},
+        app_name: {type: 'string', name: this.t('label_official_account_name'), value: args.app_name, tags: []},
+        template_name: {type: 'string', name: this.t('label_template_name'), value: args.template_name, tags: []},
+        touser: {type: 'string', name: this.t('label_receiver'), value: args.touser, tags: tag_map.touser || []},
       }
       switch (args.link_type) {
         case 0:
-          this.formState.link_type = {type: 'string', name: '模板跳转', value: '不跳转', tags: []}
+          this.formState.link_type = {type: 'string', name: this.t('label_template_jump'), value: this.t('text_no_jump'), tags: []}
           break
         case 1:
-          this.formState.link_type = {type: 'string', name: '模板跳转', value: '跳转链接', tags: []}
-          this.formState.url = {type: 'string', name: '跳转链接', value: args.url, tags: tag_map.url || []}
+          this.formState.link_type = {type: 'string', name: this.t('label_template_jump'), value: this.t('text_jump_link'), tags: []}
+          this.formState.url = {type: 'string', name: this.t('label_jump_link'), value: args.url, tags: tag_map.url || []}
           break
         case 2:
-          this.formState.link_type = {type: 'string', name: '模板跳转', value: '跳转小程序', tags: []}
-          this.formState.miniprogram_app = {type: 'string', name: '小程序APPID', ...args.miniprogram.appid }
-          this.formState.miniprogram_path = {type: 'string', name: '小程序路径', ...args.miniprogram.pagepath }
+          this.formState.link_type = {type: 'string', name: this.t('label_template_jump'), value: this.t('text_jump_miniprogram'), tags: []}
+          this.formState.miniprogram_app = {type: 'string', name: this.t('label_miniprogram_appid'), ...args.miniprogram.appid }
+          this.formState.miniprogram_path = {type: 'string', name: this.t('label_miniprogram_path'), ...args.miniprogram.pagepath }
           break
       }
       this.updateSize()
@@ -537,13 +518,13 @@ export default {
       let args = this.nodeParams?.plugin?.params?.arguments || {}
       let tag_map = this.nodeParams?.plugin?.params?.arguments?.tag_map || {}
       this.formState = {
-        app_name: {type: 'string', name: '公众号名称', value: args.app_name, tags: []},
-        openid_list: {type: 'string', name: '粉丝openid列表', value: args.openid_list, tags: []},
+        app_name: {type: 'string', name: this.t('label_official_account_name'), value: args.app_name, tags: []},
+        openid_list: {type: 'string', name: this.t('label_fans_openid_list'), value: args.openid_list, tags: []},
       }
       if (args.tag_type == 1) {
-        this.formState.tag_name = {type: 'string', name: '标签名称', value: args.tag_name, tags: []}
+        this.formState.tag_name = {type: 'string', name: this.t('label_tag_name'), value: args.tag_name, tags: []}
       } else {
-        this.formState.tagid = {type: 'string', name: '标签名称', value: args.tagid, tags: tag_map.tagid || []}
+        this.formState.tagid = {type: 'string', name: this.t('label_tag_name'), value: args.tagid, tags: tag_map.tagid || []}
       }
       this.updateSize()
     },
@@ -559,12 +540,12 @@ export default {
     officialDraftHandle() {
       let args = this.nodeParams?.plugin?.params?.arguments || {}
       let tag_map = this.nodeParams?.plugin?.params?.arguments?.tag_map || {}
-      let article_type_text = !args.article_type ? '--' : args.article_type == 'news' ? '图文消息' : '图片消息'
+      let article_type_text = !args.article_type ? '--' : args.article_type == 'news' ? this.t('text_news_message') : this.t('text_image_message')
       switch (this.business) {
         case 'add_draft':
           this.formState = {
-            app_name: {type: 'string', name: '公众号名称', value: args.app_name, tags: []},
-            article_type: {type: 'string', name: '文章类型', value: article_type_text, tags: []},
+            app_name: {type: 'string', name: this.t('label_official_account_name'), value: args.app_name, tags: []},
+            article_type: {type: 'string', name: this.t('label_article_type'), value: article_type_text, tags: []},
           }
           break
         case 'update_draft':
@@ -574,11 +555,11 @@ export default {
         case 'get_draft':
         default:
           this.formState = {
-            app_name: {type: 'string', name: '公众号名称', value: args.app_name, tags: []},
-            media_id: {type: 'string', name: '文章ID', value: args.media_id, tags: tag_map.media_id || []},
+            app_name: {type: 'string', name: this.t('label_official_account_name'), value: args.app_name, tags: []},
+            media_id: {type: 'string', name: this.t('label_article_id'), value: args.media_id, tags: tag_map.media_id || []},
           }
           if (this.business === 'preview_message') {
-            this.formState.account = {type: 'string', name: '接收用户', value: args.account, tags: tag_map.account || []}
+            this.formState.account = {type: 'string', name: this.t('label_receive_user'), value: args.account, tags: tag_map.account || []}
           }
           break
       }
@@ -592,3 +573,29 @@ export default {
   },
 }
 </script>
+
+<style lang="less" scoped>
+.ding-group-node {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 52px;
+
+  > div {
+    display: flex;
+    word-break: break-all;
+
+    .label {
+      flex-shrink: 0;
+      text-align: right;
+      white-space: normal;
+    }
+
+    :deep(.ant-tag) {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+  }
+}
+</style>

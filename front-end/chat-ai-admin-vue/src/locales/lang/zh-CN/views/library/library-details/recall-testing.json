@@ -1,0 +1,11 @@
+{
+  "empty_no_results": "暂无结果，请重试",
+  "label_id": "ID：",
+  "text_total_chars": "共{count}个字符",
+  "label_from": "来源：",
+  "text_selected": "-精选",
+  "label_similarity": "相似度：",
+  "label_question": "问题：",
+  "label_similar_questions": "相似问法：",
+  "label_answer": "答案："
+}

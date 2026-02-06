@@ -1,0 +1,17 @@
+{
+  "modal_title": "Set AI comment rule",
+  "search_rule_placeholder": "Search by rule name",
+  "btn_go_create_rule": "Create rule",
+  "th_rule_name": "Rule name",
+  "th_delete_comment": "Auto delete",
+  "th_reply_comment": "Auto reply",
+  "th_elect_comment": "Featured comments",
+  "th_rule_enable": "Rule enabled",
+  "empty_no_rule": "No rules",
+  "tag_default": "Default",
+  "switch_on": "On",
+  "switch_off": "Off",
+  "error_select_rule": "Please select a rule",
+  "message_set_success": "Set successfully"
+}
+

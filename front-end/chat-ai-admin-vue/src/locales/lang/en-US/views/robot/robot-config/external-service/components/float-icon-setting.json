@@ -1,0 +1,16 @@
+{
+  "title_float_icon_setting": "Float Icon Settings",
+  "label_display_type": "Display Type:",
+  "type_simple": "Simple",
+  "type_with_text": "With Text",
+  "type_custom": "Custom",
+  "label_upload_image": "Upload Image",
+  "label_button_text": "Button Text:",
+  "ph_input_button_text": "Enter button text",
+  "label_bottom_margin": "Bottom Margin:",
+  "label_right_margin": "Right Margin:",
+  "label_show_unread_count": "Show Unread Count:",
+  "label_show_new_message_tip": "Show New Message Tip:",
+  "btn_save": "Save",
+  "default_button_text": "Let's chat~"
+}

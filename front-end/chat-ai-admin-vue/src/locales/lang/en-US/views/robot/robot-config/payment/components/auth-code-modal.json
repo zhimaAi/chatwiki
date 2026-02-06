@@ -1,0 +1,17 @@
+{
+  "title_add_auth_code": "Add Auth Code",
+  "btn_copy": "Copy",
+  "btn_cancel": "Cancel",
+  "msg_add_manager_tip": "After setting up an administrator, the administrator can reply with [Auth Code] in the official account to quickly add new codes. ",
+  "msg_add_manager_link": "Click here to add administrator",
+  "label_package": "Package",
+  "ph_select_package": "Select package",
+  "label_count": "Quantity",
+  "label_custom": "Custom",
+  "ph_input": "Please input",
+  "label_remark": "Remark",
+  "msg_add_success": "Added successfully",
+  "msg_copy_success": "Copied successfully",
+  "msg_select_package": "Please select a package",
+  "msg_select_count": "Please select quantity"
+}

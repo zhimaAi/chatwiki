@@ -5,43 +5,43 @@
         <RrcallTestingForm @load="handleLoading" @save="handleRecallTest"></RrcallTestingForm>
       </cu-scroll>
     </div>
-    <div class="content-list-box">
+    <div class="content-list-box" ref="contRef">
       <div class="empty-box" v-if="isEmpty || lists.length === 0">
         <img src="@/assets/img/library/detail/empty.png" alt="" />
-        <div class="title">暂无结果，请重试</div>
+        <div class="title">{{ t('empty_no_results') }}</div>
       </div>
       <cu-scroll v-else>
         <div class="list-item" v-for="item in lists" :key="item.id">
           <div class="top-block">
             <div class="title">
-              id：{{ item.id }}
+              {{ t('label_id') }}{{ item.id }}
               <div v-if="item.title" class="ml4">{{ item.title }}</div>
-              <span>共{{ item.word_total }}个字符</span>
+              <span>{{ t('text_total_chars', { count: item.word_total }) }}</span>
             </div>
           </div>
           <div class="info-block">
-            <span class="gray-text">来自：</span>
+            <span class="gray-text">{{ t('label_from') }}</span>
             <div class="link-text" @click="handlePreview(item)">
               <LinkOutlined />
               {{ item.file_name }}
-              <span v-if="!item.file_name">{{ item.library_name }}-精选</span>
+              <span v-if="!item.file_name">{{ item.library_name }}{{ t('text_selected') }}</span>
             </div>
             <span class="v-line"></span>
             <span class="gray-text"
-              >相似度：
+              >{{ t('label_similarity') }}
               <svg-icon name="similarity" style="font-size: 16px"></svg-icon>
               {{ item.similarity }}
             </span>
           </div>
           <template v-if="libraryType == 2">
-            <div class="content-box" v-if="item.question">问题：{{ item.question }}</div>
+            <div class="content-box" v-if="item.question">{{ t('label_question') }}{{ item.question }}</div>
             <div class="content-box similar-questions-box" v-if="item.similar_questions && item.similar_questions.length">
-              <span>相似问法：</span>
+              <span>{{ t('label_similar_questions') }}</span>
               <ul class="similar-questions-list">
                 <li v-for="(value, index) in item.similar_questions" :key="index">{{ value }}</li>
               </ul>
             </div>
-            <div class="content-box" v-if="item.answer">答案：{{ item.answer }}</div>
+            <div class="content-box" v-if="item.answer">{{ t('label_answer') }}{{ item.answer }}</div>
           </template>
           <div class="content-box" v-html="item.content" v-else></div>
         </div>
@@ -53,16 +53,24 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
 import { useLibraryStore } from '@/stores/modules/library'
 import { LinkOutlined } from '@ant-design/icons-vue'
 import RrcallTestingForm from './components/recall-testing-form.vue'
+import {useMathJax} from "@/composables/useMathJax.js";
+
+const { t } = useI18n('views.library.library-details.recall-testing')
 
 const route = useRoute()
 const router = useRouter()
 const libraryStore = useLibraryStore()
+const { renderMath } = useMathJax()
+
+const contRef = ref(null)
 const isEmpty = ref(false)
 const loading = ref(false)
 const lists = ref([])
+
 
 const libraryType = computed(() => libraryStore.type)
 
@@ -72,10 +80,11 @@ const handleRecallTest = (data = []) => {
   data.forEach((item) => {
     if(item.similar_questions){
       item.similar_questions = JSON.parse(item.similar_questions)
-    } 
+    }
   })
 
   lists.value = data || []
+  renderMath(contRef.value)
 }
 const handleLoading = () => {
   loading.value = true;

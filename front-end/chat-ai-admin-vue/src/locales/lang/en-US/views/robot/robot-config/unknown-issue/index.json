@@ -1,0 +1,7 @@
+{
+  "tip_title": "Statistics of user questions that did not retrieve knowledge from the knowledge base during conversations with the robot",
+  "tip_content": "1. If you believe there is corresponding knowledge in the knowledge base but it was not retrieved, it may be because your recall threshold is set too high or top K is too small. You can adjust the robot's recall settings to improve the recall rate.",
+  "column_unknown_question": "Unknown Question",
+  "column_trigger_date": "Trigger Date",
+  "column_trigger_count": "Daily Occurrences"
+}

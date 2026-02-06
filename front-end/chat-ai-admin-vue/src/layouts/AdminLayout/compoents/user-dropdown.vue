@@ -136,7 +136,7 @@ const baseNavs = computed(() => [
   },
   {
     id: 3,
-    key: 'PublicLibrary',
+    key: 'PublicLibrary-new',
     label: 'PublicLibrary',
     title: t('layout.navbar.document'),
     icon: 'nav-doc',
@@ -145,7 +145,7 @@ const baseNavs = computed(() => [
   },
   {
     id: 4,
-    key: 'library-search',
+    key: 'library-search-new',
     label: 'library-search',
     title: t('layout.navbar.search'),
     icon: 'search',
@@ -169,7 +169,6 @@ const top_navigate = computed(() => {
 
 const navs = computed(() => {
   const closeList = top_navigate.value.filter(item => !item.open);
-
   return closeList
     .map(item => baseNavs.value.find(nav => nav.key === item.id))
     .filter(Boolean);

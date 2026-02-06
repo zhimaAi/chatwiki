@@ -20,24 +20,24 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// SemanticSplitter 语义分割客户端
+// SemanticSplitter Semantic segmentation client
 type SemanticSplitter struct {
-	SemanticChunkSize      int                       // 最大分块大小（按字符数）
-	SemanticChunkOverlap   int                       // 分块重叠大小（按字符数）
-	SemanticChunkThreshold int                       // 语义断点阈值（百分比，1-100）
-	AdminUserId            int                       // 用户ID
-	ModelConfigId          int                       // 模型配置ID
-	UseModel               string                    // 使用的模型
-	GoRoutineNum           int                       // 协程数量
-	GetVector              func() ([]float64, error) // 获取向量的函数
+	SemanticChunkSize      int                       // Maximum chunk size (by character count)
+	SemanticChunkOverlap   int                       // Chunk overlap size (by character count)
+	SemanticChunkThreshold int                       // Semantic breakpoint threshold (percentage, 1-100)
+	AdminUserId            int                       // User ID
+	ModelConfigId          int                       // Model configuration ID
+	UseModel               string                    // Model being used
+	GoRoutineNum           int                       // Goroutine number
+	GetVector              func() ([]float64, error) // Function to get vector
 }
 
-// NewSemanticSplitterClient 创建一个新的语义分割客户端
+// NewSemanticSplitterClient Creates a new semantic splitter client
 func NewSemanticSplitterClient() *SemanticSplitter {
 	return &SemanticSplitter{}
 }
 
-// SplitText 分割文本
+// SplitText Split text
 func (c *SemanticSplitter) SplitText(text string) ([]string, error) {
 	chunks, err := c.semanticSplit(text)
 	if err != nil {
@@ -54,12 +54,12 @@ func (c *SemanticSplitter) SplitText(text string) ([]string, error) {
 			result = append(result, chunk)
 		}
 	}
-	// 添加重叠内容
+	// Add overlapping content
 	result = c.addOverlappingContent(result)
 	return result, nil
 }
 
-// addOverlappingContent 为分段添加重叠内容
+// addOverlappingContent Add overlapping content to segments
 func (c *SemanticSplitter) addOverlappingContent(chunks []string) []string {
 	if len(chunks) <= 1 || c.SemanticChunkOverlap <= 0 {
 		return chunks
@@ -71,21 +71,21 @@ func (c *SemanticSplitter) addOverlappingContent(chunks []string) []string {
 	for i := 1; i < len(result); i++ {
 		prevChunk := chunks[i-1]
 
-		// 将前一个块分割成句子
+		// Split the previous chunk into sentences
 		prevSentences := c.splitIntoSentences(prevChunk)
 		if len(prevSentences) == 0 {
 			continue
 		}
 
-		// 添加句子作为重叠内容，直到接近但不超过设定的重叠大小
+		// Add sentences as overlapping content, approaching but not exceeding the set overlap size
 		var overlappingSentences []string
 		var overlapSize int
 
-		// 从后向前添加句子
+		// Add sentences from back to front
 		for j := len(prevSentences) - 1; j >= 0; j-- {
 			sentenceSize := utf8.RuneCountInString(prevSentences[j])
 
-			// 如果添加当前句子后总大小不超过设定的重叠大小，或者尚未添加任何句子，则添加它
+			// If adding the current sentence does not exceed the set overlap size, or no sentences have been added yet, add it
 			if overlapSize+sentenceSize <= c.SemanticChunkOverlap || len(overlappingSentences) == 0 {
 				overlappingSentences = append([]string{prevSentences[j]}, overlappingSentences...)
 				overlapSize += sentenceSize
@@ -94,7 +94,7 @@ func (c *SemanticSplitter) addOverlappingContent(chunks []string) []string {
 			}
 		}
 
-		// 将重叠句子添加到当前块的前面
+		// Add overlapping sentences to the front of the current chunk
 		if len(overlappingSentences) > 0 {
 			overlappingText := strings.Join(overlappingSentences, "")
 			result[i] = overlappingText + result[i]
@@ -104,7 +104,7 @@ func (c *SemanticSplitter) addOverlappingContent(chunks []string) []string {
 	return result
 }
 
-// semanticSplit 语义分割
+// semanticSplit Semantic segmentation
 func (c *SemanticSplitter) semanticSplit(text string) ([]string, error) {
 	sentences := c.splitIntoSentences(text)
 	if len(sentences) <= 1 {
@@ -121,7 +121,7 @@ func (c *SemanticSplitter) semanticSplit(text string) ([]string, error) {
 	return chunks, nil
 }
 
-// splitIntoSentences 将文本分割成句子
+// splitIntoSentences Split text into sentences
 func (c *SemanticSplitter) splitIntoSentences(text string) []string {
 	separators := []string{"。", "？", "?", "\n"}
 	var sentences []string
@@ -153,7 +153,7 @@ func (c *SemanticSplitter) splitIntoSentences(text string) []string {
 	return sentences
 }
 
-// VectorCacheBuildHandler 向量缓存处理程序
+// VectorCacheBuildHandler Vector cache handler
 type VectorCacheBuildHandler struct {
 	AdminUserId   int
 	ModelConfigId int
@@ -181,7 +181,7 @@ func (h *VectorCacheBuildHandler) GetCacheData() (any, error) {
 		return nil, err
 	}
 
-	// 解析JSON字符串到float64数组
+	// Parse JSON string to float64 array
 	var vector []float64
 	if err := json.Unmarshal([]byte(embedding), &vector); err != nil {
 		logs.Error("Get vector error: %v", err)
@@ -190,11 +190,11 @@ func (h *VectorCacheBuildHandler) GetCacheData() (any, error) {
 	return vector, nil
 }
 
-// generateEmbeddings 为每个句子生成向量表示
+// generateEmbeddings Generate vector representations for each sentence
 func (c *SemanticSplitter) generateEmbeddings(sentences []string) ([][]float64, error) {
 	var vectors = make([][]float64, len(sentences))
 
-	// 使用通道来控制并发
+	// Use channel to control concurrency
 	type vectorResult struct {
 		index  int
 		vector []float64
@@ -202,16 +202,16 @@ func (c *SemanticSplitter) generateEmbeddings(sentences []string) ([][]float64, 
 	}
 	resultChan := make(chan vectorResult, len(sentences))
 
-	// 创建信号量来限制并发数量
+	// Create semaphore to limit concurrent number
 	sem := make(chan struct{}, c.GoRoutineNum)
 
-	// 启动协程生成向量
+	// Start goroutines to generate vectors
 	for i, sentence := range sentences {
 		go func(idx int, text string) {
-			sem <- struct{}{}        // 获取信号量
-			defer func() { <-sem }() // 释放信号量
+			sem <- struct{}{}        // Acquire semaphore
+			defer func() { <-sem }() // Release semaphore
 
-			// 尝试从缓存获取向量
+			// Try to get vector from cache
 			var vector []float64
 			var err error
 
@@ -222,7 +222,7 @@ func (c *SemanticSplitter) generateEmbeddings(sentences []string) ([][]float64, 
 				Sentence:      text,
 			}
 
-			// 从缓存获取或生成向量，缓存5分钟
+			// Get or generate vector from cache, cached for 5 minutes
 			err = lib_redis.GetCacheWithBuild(define.Redis, handler, &vector, time.Hour*24)
 
 			resultChan <- vectorResult{
@@ -233,7 +233,7 @@ func (c *SemanticSplitter) generateEmbeddings(sentences []string) ([][]float64, 
 		}(i, sentence)
 	}
 
-	// 收集结果
+	// Collect results
 	var lastError error
 	validVectors := 0
 
@@ -248,7 +248,7 @@ func (c *SemanticSplitter) generateEmbeddings(sentences []string) ([][]float64, 
 		validVectors++
 	}
 
-	// 过滤掉空向量
+	// Filter out empty vectors
 	resultVectors := make([][]float64, 0, validVectors)
 	for _, v := range vectors {
 		if len(v) > 0 {
@@ -266,7 +266,7 @@ func (c *SemanticSplitter) generateEmbeddings(sentences []string) ([][]float64, 
 	return resultVectors, nil
 }
 
-// calculateDifferences 计算相邻向量之间的相似度差异
+// calculateDifferences Calculate similarity differences between adjacent vectors
 func (c *SemanticSplitter) calculateDifferences(vectors [][]float64) []float64 {
 	var differences []float64
 
@@ -279,46 +279,46 @@ func (c *SemanticSplitter) calculateDifferences(vectors [][]float64) []float64 {
 	return differences
 }
 
-// findBreakpoints 找出应该在哪里分割的断点
+// findBreakpoints Find breakpoints indicating where to split
 func (c *SemanticSplitter) findBreakpoints(differences []float64) []int {
 	if len(differences) == 0 {
 		return []int{}
 	}
 
-	// 使用百分位法确定阈值
+	// Determine threshold using percentile method
 	threshold := c.getThresholdPercentile(differences)
 
-	// 寻找差异值大于阈值的位置作为断点
+	// Find positions where difference values exceed the threshold as breakpoints
 	var breakpoints []int
 	for i, diff := range differences {
 		if diff > threshold {
-			breakpoints = append(breakpoints, i+1) // i+1 表示在第 i 和 i+1 句子之间断开
+			breakpoints = append(breakpoints, i+1) // i+1 means breaking between sentence i and i+1
 		}
 	}
 
 	return breakpoints
 }
 
-// getThresholdPercentile 获取差异值的百分位阈值
+// getThresholdPercentile Get percentile threshold of difference values
 func (c *SemanticSplitter) getThresholdPercentile(differences []float64) float64 {
 	if len(differences) == 0 {
 		return 0
 	}
 
-	// 复制差异值数组并排序
+	// Copy difference value array and sort
 	sortedDiffs := make([]float64, len(differences))
 	copy(sortedDiffs, differences)
 	sort.Float64s(sortedDiffs)
 
-	// 计算阈值位置
+	// Calculate threshold position
 	percentile := float64(c.SemanticChunkThreshold) / 100.0
 	idx := int(math.Floor(float64(len(sortedDiffs)-1) * percentile))
 
-	// 返回对应的阈值
+	// Return the corresponding threshold
 	return sortedDiffs[idx]
 }
 
-// formChunks 根据断点形成文本块
+// formChunks Form text chunks based on breakpoints
 func (c *SemanticSplitter) formChunks(sentences []string, breakpoints []int) []string {
 	var chunks []string
 	if len(breakpoints) == 0 {
@@ -341,35 +341,35 @@ func (c *SemanticSplitter) formChunks(sentences []string, breakpoints []int) []s
 	return chunks
 }
 
-// splitByBinaryDivision 使用二分法将句子数组分割成适当大小的块
+// splitByBinaryDivision Use binary division to split sentence array into appropriately sized chunks
 func (c *SemanticSplitter) splitByBinaryDivision(sentences []string) []string {
 	var chunks []string
 	var currentChunk []string
 	var currentLength int
 
-	// 尝试将句子组合成块，不超过最大分块大小
+	// Try to combine sentences into chunks, not exceeding maximum chunk size
 	for _, sentence := range sentences {
 		sentenceLength := utf8.RuneCountInString(sentence)
 
-		// 如果单个句子就超过了最大长度，需要按字符分割
+		// If a single sentence exceeds the maximum length, it needs to be split by characters
 		if sentenceLength > c.SemanticChunkSize {
 			if len(currentChunk) > 0 {
 				chunks = append(chunks, strings.Join(currentChunk, ""))
 				currentChunk = nil
 				currentLength = 0
 			}
-			// 对超长句子进行字符分割
+			// Perform character splitting on overly long sentences
 			subChunks := c.splitSentenceByChars(sentence)
 			chunks = append(chunks, subChunks...)
 			continue
 		}
 
-		// 判断添加当前句子是否会超出最大长度
+		// Determine if adding the current sentence would exceed the maximum length
 		if currentLength+sentenceLength <= c.SemanticChunkSize {
 			currentChunk = append(currentChunk, sentence)
 			currentLength += sentenceLength
 		} else {
-			// 当前块已满，保存并开始新块
+			// Current chunk is full, save and start a new chunk
 			if len(currentChunk) > 0 {
 				chunks = append(chunks, strings.Join(currentChunk, ""))
 				currentChunk = []string{sentence}
@@ -378,7 +378,7 @@ func (c *SemanticSplitter) splitByBinaryDivision(sentences []string) []string {
 		}
 	}
 
-	// 添加最后一个块
+	// Add the last chunk
 	if len(currentChunk) > 0 {
 		chunks = append(chunks, strings.Join(currentChunk, ""))
 	}
@@ -386,12 +386,12 @@ func (c *SemanticSplitter) splitByBinaryDivision(sentences []string) []string {
 	return chunks
 }
 
-// splitSentenceByChars 将单个句子按字符分割
+// splitSentenceByChars Split a single sentence by characters
 func (c *SemanticSplitter) splitSentenceByChars(sentence string) []string {
 	var result []string
 	runes := []rune(sentence)
 
-	// 使用最大分块大小进行分割
+	// Split using maximum chunk size
 	for i := 0; i < len(runes); i += c.SemanticChunkSize {
 		end := i + c.SemanticChunkSize
 		if end > len(runes) {
@@ -406,7 +406,7 @@ func (c *SemanticSplitter) splitSentenceByChars(sentence string) []string {
 	return result
 }
 
-// cosineSimilarity 计算两个向量之间的余弦相似度
+// cosineSimilarity Calculate cosine similarity between two vectors
 func cosineSimilarity(v1, v2 []float64) float64 {
 	if len(v1) != len(v2) {
 		return 0

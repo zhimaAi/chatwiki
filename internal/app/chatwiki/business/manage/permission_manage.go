@@ -21,11 +21,11 @@ func GetPermissionManageList(c *gin.Context) {
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	// 获取身份类型参数
+	// Get identity type params
 	identityId := cast.ToString(c.Query("identity_id"))
 	identityType := cast.ToInt(c.Query("identity_type"))
 	objectType := cast.ToInt(c.Query("object_type"))
-	tab := cast.ToInt(c.Query("tab")) // 1:成员部门 2:部门的上级
+	tab := cast.ToInt(c.Query("tab")) // 1: member department 2: parent department
 	if identityType <= 0 || objectType <= 0 || objectType > 3 {
 		common.FmtError(c, "param_lack")
 		return
@@ -66,14 +66,14 @@ func GetPermissionManageList(c *gin.Context) {
 	common.FmtOk(c, list)
 }
 
-// GetPartnerManageList 协作者
+// GetPartnerManageList Collaborators
 func GetPartnerManageList(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
 
-	// 获取参数
+	// Get params
 	objectId := cast.ToInt(c.Query("object_id"))
 	objectType := cast.ToInt(c.Query("object_type"))
 	if objectId <= 0 || objectType <= 0 || objectType > 3 {
@@ -81,12 +81,12 @@ func GetPartnerManageList(c *gin.Context) {
 		return
 	}
 
-	// 构建查询条件
+	// Build query conditions
 	m := msql.Model("permission_manage", define.Postgres).
 		Where("admin_user_id", cast.ToString(adminUserId)).
 		Where(`object_id`, `in`, fmt.Sprintf(`%v,%v`, objectId, define.ObjectTypeAll)).
 		Where("object_type", cast.ToString(objectType))
-	// 获取权限列表
+	// Get permission list
 	list, err := m.Order("id desc").Select()
 	if err != nil {
 		logs.Error(err.Error())
@@ -242,7 +242,7 @@ func formatRelationData(list []msql.Params) map[string]msql.Params {
 	return data
 }
 
-// BatchSavePermissionManage 保存权限管理配置
+// BatchSavePermissionManage Save permission management config
 func BatchSavePermissionManage(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
@@ -255,12 +255,12 @@ func BatchSavePermissionManage(c *gin.Context) {
 		OperateRights int `json:"operate_rights"`
 	}
 	var objectArray []PermissionManage
-	// 获取参数
+	// Get params
 	identityIds := strings.TrimSpace(c.PostForm("identity_ids"))
 	identityType := cast.ToInt(c.PostForm("identity_type"))
 	objectType := cast.ToInt(c.PostForm("object_type"))
 	err := tool.JsonDecode(c.PostForm("object_array"), &objectArray)
-	// 参数校验
+	// Validate params
 	if len(identityIds) == 0 || identityType <= 0 || err != nil {
 		common.FmtError(c, "param_lack")
 		return
@@ -314,7 +314,7 @@ func BatchSavePermissionManage(c *gin.Context) {
 			}
 		}
 	}
-	// 开启事务
+	// Begin transaction
 	m.Begin()
 	_, err = m.Where("identity_id", `in`, identityIds).
 		Where("identity_type", cast.ToString(identityType)).
@@ -337,7 +337,7 @@ func BatchSavePermissionManage(c *gin.Context) {
 				common.FmtError(c, "param_lack")
 				return
 			}
-			// 校验操作权限值
+			// Validate operation rights value
 			validRights := []int{define.PermissionQueryRights, define.PermissionManageRights, define.PermissionEditRights}
 			if !tool.InArray(item.OperateRights, validRights) {
 				m.Rollback()
@@ -350,7 +350,7 @@ func BatchSavePermissionManage(c *gin.Context) {
 				common.FmtError(c, "auth_no_permission")
 				return
 			}
-			// 插入新权限
+			// Insert new permission
 			_, err = common.SavePermissionManage(0, cast.ToInt64(userId), msql.Datas{
 				"admin_user_id":  adminUserId,
 				"identity_id":    user,
@@ -372,7 +372,7 @@ func BatchSavePermissionManage(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-// SavePermissionManage 保存权限管理配置
+// SavePermissionManage Save permission management config
 func SavePermissionManage(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
@@ -385,17 +385,17 @@ func SavePermissionManage(c *gin.Context) {
 		OperateRights int `json:"operate_rights"`
 	}
 	var objectArray []PermissionManage
-	// 获取参数
+	// Get params
 	identityIds := strings.TrimSpace(c.PostForm("identity_ids"))
 	identityType := cast.ToInt(c.PostForm("identity_type"))
 	err := tool.JsonDecode(c.PostForm("object_array"), &objectArray)
 
-	// 参数校验
+	// Validate params
 	if len(identityIds) == 0 || identityType <= 0 || len(objectArray) <= 0 || err != nil {
 		common.FmtError(c, "param_lack")
 		return
 	}
-	// 开启事务
+	// Begin transaction
 	m := msql.Model("permission_manage", define.Postgres)
 	m.Begin()
 	for _, user := range strings.Split(identityIds, ",") {
@@ -410,7 +410,7 @@ func SavePermissionManage(c *gin.Context) {
 				common.FmtError(c, "param_lack")
 				return
 			}
-			// 校验操作权限值
+			// Validate operation rights value
 			validRights := []int{define.PermissionQueryRights, define.PermissionManageRights, define.PermissionEditRights}
 			if !tool.InArray(item.OperateRights, validRights) {
 				m.Rollback()
@@ -424,7 +424,7 @@ func SavePermissionManage(c *gin.Context) {
 				common.FmtError(c, "auth_no_permission")
 				return
 			}
-			// 检查是否存在权限记录
+			// Check whether permission record exists
 			existingPerms, err := m.Where("admin_user_id", cast.ToString(adminUserId)).
 				Where("identity_id", user).
 				Where("identity_type", cast.ToString(identityType)).
@@ -438,13 +438,13 @@ func SavePermissionManage(c *gin.Context) {
 				return
 			}
 			if len(existingPerms) > 0 {
-				// 更新已存在的权限
+				// Update existing permission
 				_, err = common.SavePermissionManage(cast.ToInt64(existingPerms), cast.ToInt64(adminUserId), msql.Datas{
 					"operate_rights": item.OperateRights,
 					"update_time":    tool.Time2Int(),
 				})
 			} else {
-				// 插入新权限
+				// Insert new permission
 				_, err = common.SavePermissionManage(0, cast.ToInt64(adminUserId), msql.Datas{
 					"admin_user_id":  adminUserId,
 					"identity_id":    user,
@@ -476,7 +476,7 @@ func DeletePermissionMange(c *gin.Context) {
 	identityType := cast.ToInt(c.PostForm("identity_type"))
 	objectId := cast.ToInt(c.PostForm("object_id"))
 	objectType := cast.ToInt(c.PostForm("object_type"))
-	// 参数校验
+	// Validate params
 	if identityId == 0 || identityType <= 0 || objectId == 0 || objectType == 0 {
 		common.FmtError(c, "param_lack")
 		return

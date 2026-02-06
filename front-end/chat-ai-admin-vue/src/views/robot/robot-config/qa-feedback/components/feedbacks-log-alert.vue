@@ -73,7 +73,7 @@
   <a-drawer
     class="feedbacks-log-alert"
     v-model:open="show"
-    title="反馈详情"
+    :title="t('title_feedback_details')"
     placement="right"
     width="746px"
     :closable="false"
@@ -85,7 +85,7 @@
     <div class="feedbacks-log-content">
       <div class="feedbacks-log-items">
         <div class="feedbacks-log-label">
-          <span>问题 </span>
+          <span>{{ t('label_question') }} </span>
         </div>
 
         <div class="feedbacks-log-item">
@@ -95,7 +95,7 @@
 
       <div class="feedbacks-log-items">
         <div class="feedbacks-log-label">
-          <span>回答 </span>
+          <span>{{ t('label_answer') }} </span>
         </div>
         
         <div class="feedbacks-log-item">
@@ -105,18 +105,18 @@
 
       <div class="feedbacks-log-items">
         <div class="feedbacks-log-label">
-          <span>反馈 </span>
+          <span>{{ t('label_feedback') }} </span>
         </div>
         <div class="feedbacks-log-item">
-          <div v-if="feedbacksLog.type == '1'" class="item-type"><svg-icon style="font-size: 16px; color: #2475FC; margin-right: 4px;" name="like-active" />点赞</div>
-          <div v-if="feedbacksLog.type == '2'" class="item-type"><svg-icon style="font-size: 16px; color: #2475FC; margin-right: 4px;" name="dislike-active" />点踩</div>
+          <div v-if="feedbacksLog.type == '1'" class="item-type"><svg-icon style="font-size: 16px; color: #2475FC; margin-right: 4px;" name="like-active" />{{ t('label_like') }}</div>
+          <div v-if="feedbacksLog.type == '2'" class="item-type"><svg-icon style="font-size: 16px; color: #2475FC; margin-right: 4px;" name="dislike-active" />{{ t('label_dislike') }}</div>
           <p>{{ feedbacksLog.content }}</p>
         </div>
       </div>
 
       <div class="feedbacks-log-items" v-for="(item, index) in feedbacksLog.quotes" :key="item.FileId">
         <div class="feedbacks-log-label">
-          <span>参考内容{{ index + 1 }} </span>
+          <span>{{ t('label_reference_content') }}{{ index + 1 }} </span>
         </div>
         <div class="feedbacks-log-item">
           <div class="quotes-box" >
@@ -132,18 +132,18 @@
 
       <div class="feedbacks-log-items">
         <div class="feedbacks-log-label">
-          <span>聊天模式 </span>
+          <span>{{ t('label_chat_mode') }} </span>
         </div>
         <div class="feedbacks-log-item">
-          <p v-if="feedbacksLog.robot.chat_type == '1'">仅知识库</p>
-          <p v-else-if="feedbacksLog.robot.chat_type == '2'">直连</p>
-          <p v-else-if="feedbacksLog.robot.chat_type == '3'">混合</p>
+          <p v-if="feedbacksLog.robot.chat_type == '1'">{{ t('label_only_knowledge_base') }}</p>
+          <p v-else-if="feedbacksLog.robot.chat_type == '2'">{{ t('label_direct_connection') }}</p>
+          <p v-else-if="feedbacksLog.robot.chat_type == '3'">{{ t('label_hybrid') }}</p>
         </div>
       </div>
 
       <div class="feedbacks-log-items">
         <div class="feedbacks-log-label">
-          <span>使用模型 </span>
+          <span>{{ t('label_used_model') }} </span>
         </div>
         <div class="feedbacks-log-item">
           <p>{{ feedbacksLog.robot.use_model }}({{ feedbacksLog.robot.corp_name }})</p>
@@ -157,7 +157,9 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { CloseOutlined } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
+const { t } = useI18n('views.robot.robot-config.qa-feedback.components.feedbacks-log-alert')
 const router = useRouter()
 const show = ref(false)
 const feedbacksLog = reactive({

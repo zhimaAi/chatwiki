@@ -1,17 +1,17 @@
 <template>
-  <NodeFormLayout>
+  <NodeFormLayout class="voice-clone-form">
     <NodeFormHeader
       :title="node.node_name"
       :iconName="node.node_icon_name"
-      desc="支持音色快速复制"
+      :desc="t('desc_voice_clone')"
     />
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>输入</div>
+        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>{{ t('label_input') }}</div>
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">复刻音频文件</div>
+          <div class="option-label">{{ t('label_clone_audio_file') }}</div>
           <div class="option-type">string</div>
         </div>
         <div>
@@ -22,7 +22,7 @@
             :defaultSelectedList="formState.tag_map?.file_url || []"
             :defaultValue="formState.file_url"
             ref="atInputRef"
-            placeholder="输入文件的url，键入/插入变量"
+            :placeholder="t('ph_input_file_url')"
             @open="getValueVariableList"
             @change="(text, selectedList) => changeValue('file_url', text, selectedList)"
           >
@@ -34,11 +34,11 @@
             </template>
           </AtInput>
         </div>
-        <div class="desc">待复刻音频</div>
+        <div class="desc">{{ t('msg_clone_audio') }}</div>
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">音频ID</div>
+          <div class="option-label">{{ t('label_voice_id') }}</div>
           <div class="option-type">string</div>
         </div>
         <div>
@@ -49,7 +49,7 @@
             :defaultSelectedList="formState.tag_map?.voice_id || []"
             :defaultValue="formState.voice_id"
             ref="atInputRef"
-            placeholder="请输入参数值，键入/插入变量"
+            :placeholder="t('ph_input_voice_id')"
             @open="getValueVariableList"
             @change="(text, selectedList) => changeValue('voice_id', text, selectedList)"
           >
@@ -61,12 +61,12 @@
             </template>
           </AtInput>
         </div>
-        <div class="desc">克隆音色的 voice_id，正确示例：“MiniMax001"”，长度范围［8,256］，首字符必须为英文字母允许数字、字母、_未位字符不可为-._，不可与已有id 重复</div>
+        <div class="desc">{{ t('msg_voice_id_desc') }}</div>
       </div>
       <div class="options-item">
         <div class="options-item-tit flex-between">
-          <div class="option-label">复刻示例音频</div>
-          <a @click="settingsShowChange">高级设置 <DownOutlined v-if="!settingsOpen"/><UpOutlined v-else/></a>
+          <div class="option-label">{{ t('label_clone_sample_audio') }}</div>
+          <a @click="settingsShowChange">{{ t('label_advanced_settings') }} <DownOutlined v-if="!settingsOpen"/><UpOutlined v-else/></a>
         </div>
       </div>
 
@@ -75,8 +75,8 @@
           <div class="form-box">
             <div class="form-item ">
               <div class="form-tit">
-                <a-tooltip title="音色复刻示例音频，提供本参数将有助于增强语音合成的音色相似度和稳定性">
-                  音频文件
+                <a-tooltip :title="t('tip_audio_file')">
+                  {{ t('label_audio_file') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
               </div>
@@ -88,7 +88,7 @@
                   :defaultSelectedList="formState.tag_map?.prompt_audio_url || []"
                   :defaultValue="formState.clone_prompt.prompt_audio_url"
                   ref="atInputRef"
-                  placeholder="输入文件的url，键入/插入变量"
+                  :placeholder="t('ph_input_file_url')"
                   @open="getValueVariableList"
                   @change="(text, selectedList) => changeValue('prompt_audio_url', text, selectedList, formState.clone_prompt)"
                 >
@@ -103,8 +103,8 @@
             </div>
             <div class="form-item ">
               <div class="form-tit">
-                <a-tooltip title="示例音频的对应文本，需确保和音频内容一致，句末需有标点符号做结尾">
-                  文本
+                <a-tooltip :title="t('tip_text')">
+                  {{ t('label_text') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
               </div>
@@ -116,7 +116,7 @@
                   :defaultSelectedList="formState.tag_map?.prompt_text || []"
                   :defaultValue="formState.clone_prompt.prompt_text"
                   ref="atInputRef"
-                  placeholder="输入示例音频的对应文本，键入/插入变量"
+                  :placeholder="t('ph_input_sample_text')"
                   @open="getValueVariableList"
                   @change="(text, selectedList) => changeValue('prompt_text', text, selectedList, formState.clone_prompt)"
                 >
@@ -133,14 +133,13 @@
         </div>
         <div class="options-item">
           <div class="options-item-tit">
-            <div class="option-label">复刻试听参数</div>
+            <div class="option-label">{{ t('label_clone_preview_params') }}</div>
           </div>
           <div class="form-box">
             <div class="form-item ">
               <div class="form-tit">
-                <a-tooltip
-                  title="复刻试听参数，限制 1000 字符以内。模型将使用复刻后的音色朗读本段文本内容，并返回试听音频链接。">
-                  文本
+                <a-tooltip :title="t('tip_preview_text')">
+                  {{ t('label_preview_text') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
               </div>
@@ -152,7 +151,7 @@
                   :defaultSelectedList="formState.tag_map?.text || []"
                   :defaultValue="formState.text"
                   ref="atInputRef"
-                  placeholder="输入复刻试听的文本，键入/插入变量"
+                  :placeholder="t('ph_input_preview_text')"
                   @open="getValueVariableList"
                   @change="(text, selectedList) => changeValue('text', text, selectedList)"
                 >
@@ -167,13 +166,13 @@
             </div>
             <div class="form-item">
               <div class="form-tit">
-                <a-tooltip title="是否增强对指定的小语种和方言的识别能力。默认值为 null，可设置为 auto 让模型自主判断。">
-                  小语种识别能力
+                <a-tooltip :title="t('tip_small_language_recognition')">
+                  {{ t('label_small_language_recognition') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
               </div>
               <div class="form-cont">
-                <a-select v-model:value="formState.language_boost" placeholder="请选择" @change="update">
+                <a-select v-model:value="formState.language_boost" :placeholder="t('ph_select')" @change="update">
                   <a-select-option v-for="(txt, key) in languageMap" :key="key" :value="key">{{ txt }}</a-select-option>
                 </a-select>
               </div>
@@ -184,9 +183,8 @@
           <div class="form-box">
             <div class="form-item">
               <div class="form-tit c262626">
-                <a-tooltip
-                  title="指定合成试听音频使用的语音模型，提供 text(文本) 字段时必传此字段">
-                  试听音频语音模型
+                <a-tooltip :title="t('tip_preview_audio_model')">
+                  {{ t('label_preview_audio_model') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
               </div>
@@ -207,9 +205,8 @@
           <div class="form-box">
             <div class="form-item">
               <div class="form-tit">
-                <a-tooltip
-                  title="音频复刻参数，表示是否开启降噪">
-                  降噪
+                <a-tooltip :title="t('tip_noise_reduction')">
+                  {{ t('label_noise_reduction') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
               </div>
@@ -219,8 +216,8 @@
             </div>
             <div class="form-item">
               <div class="form-tit">
-                <a-tooltip title="音频复刻参数，是否开启音量归一化">
-                  音量归一化
+                <a-tooltip :title="t('tip_volume_normalization')">
+                  {{ t('label_volume_normalization') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
               </div>
@@ -230,8 +227,8 @@
             </div>
             <div class="form-item">
               <div class="form-tit">
-                <a-tooltip title="是否在合成试听音频的末尾添加音频节奏标识">
-                  音频节奏标识
+                <a-tooltip :title="t('tip_audio_rhythm_mark')">
+                  {{ t('label_audio_rhythm_mark') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
               </div>
@@ -245,7 +242,7 @@
     </div>
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>输出</div>
+        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>{{ t('label_output') }}</div>
       </div>
       <div class="options-item">
         <OutputFields :tree-data="outputData"/>
@@ -270,6 +267,9 @@ import {
 } from "@/constants/voice.js";
 import OutputFields from "@/views/workflow/components/feishu-table/output-fields.vue";
 import {pluginOutputToTree} from "@/constants/plugin.js";
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.voice-clone-form')
 
 const props = defineProps({
   lf: {
@@ -344,7 +344,7 @@ function changeVoiceId(text, selectedList) {
 
 function showVoiceModal() {
   if (!formState.model_config_id) {
-    return message.warning('请先选择语音模型')
+    return message.warning(t('msg_select_model_first'))
   }
   voiceModalRef.value.show([formState.voice_setting.voice_id])
 }
@@ -387,6 +387,10 @@ function update() {
   justify-content: space-between;
 }
 
+.voice-clone-form{
+
+}
+
 .node-options {
   :deep(.mention-input-warpper) {
     height: 33px;
@@ -402,17 +406,15 @@ function update() {
 
   .form-item {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     gap: 8px;
     padding: 4px 0;
 
     .form-tit {
       display: flex;
       align-items: center;
-      justify-content: left;
+      justify-content: start;
       flex-shrink: 0;
-      width: 140px;
       word-break: break-all;
       color: #595959;
 

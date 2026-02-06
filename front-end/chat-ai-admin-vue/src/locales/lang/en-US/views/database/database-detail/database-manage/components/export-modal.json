@@ -1,0 +1,7 @@
+{
+  "modal_title": "Export Data",
+  "radio_all_data": "All Data",
+  "radio_custom_date": "Custom Date",
+  "label_select_date": "Select Export Date",
+  "validator_date_required": "Please select export date"
+}

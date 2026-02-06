@@ -1,0 +1,13 @@
+{
+  "label_view_name": "视图名称",
+  "ph_input_content": "请输入内容，键入\"/\"可以插入变量",
+  "desc_view_name": "视图名称。名称不能包含特殊字符；不可以包含 [ ] 等特殊字符；1 字符 ～ 100 字符",
+  "label_view_type": "视图类型",
+  "ph_select_view": "选择视图",
+  "desc_view_type": "视图类型，默认为表格视图。",
+  "opt_grid_view": "表格视图",
+  "opt_kanban_view": "看板视图",
+  "opt_gallery_view": "画册视图",
+  "opt_gantt_view": "甘特视图",
+  "opt_form_view": "表单视图"
+}

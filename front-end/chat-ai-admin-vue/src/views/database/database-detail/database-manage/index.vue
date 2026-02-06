@@ -4,33 +4,33 @@
   </div>
   <div class="empty-box" v-if="!pageLoading && !column.length">
     <img src="@/assets/img/library/preview/empty.png" alt="" />
-    <div>暂无字段, 请先去添加字段</div>
+    <div>{{ t('empty_no_fields') }}</div>
   </div>
   <div class="field-manage-page" v-if="!pageLoading && column.length">
     <div class="page-title">
-      数据管理
+      {{ t('title') }}
       <a-flex :gap="16">
         <a-button type="primary" @click="handleAddData()">
           <template #icon>
             <PlusOutlined />
           </template>
-          添加数据
+          {{ t('btn_add_data') }}
         </a-button>
         <a-button @click="handleImportData()">
           <template #icon>
             <DownloadOutlined />
           </template>
-          导入数据
+          {{ t('btn_import_data') }}
         </a-button>
         <a-dropdown>
           <template #overlay>
             <a-menu>
-              <a-menu-item key="1"><div @click="handleOpenExportModal">导出数据</div></a-menu-item>
-              <a-menu-item key="2"><div @click="handleClearData">清空数据</div></a-menu-item>
+              <a-menu-item key="1"><div @click="handleOpenExportModal">{{ t('menu_export_data') }}</div></a-menu-item>
+              <a-menu-item key="2"><div @click="handleClearData">{{ t('menu_clear_data') }}</div></a-menu-item>
             </a-menu>
           </template>
           <a-button>
-            更多操作
+            {{ t('btn_more_actions') }}
             <DownOutlined />
           </a-button>
         </a-dropdown>
@@ -44,7 +44,7 @@
       @change="handleChangeTab"
     >
       <a-tab-pane key="" :closable="false">
-        <template #tab>全部 ({{ allCount }})</template>
+        <template #tab>{{ t('tab_all', { count: allCount }) }}</template>
       </a-tab-pane>
       <a-tab-pane v-for="pane in panes" :key="pane.id" :closable="false">
         <template #tab>
@@ -58,11 +58,11 @@
           ({{ pane.entry_count }})</template
         >
       </a-tab-pane>
-      <template #addIcon> <PlusOutlined /> 添加分类 </template>
+      <template #addIcon> <PlusOutlined /> {{ t('tab_add_category') }} </template>
       <template #rightExtra>
         <span class="setting-btn" @click="handleOpenManageModal">
           <SettingOutlined />
-          管理分类
+          {{ t('btn_manage_category') }}
         </span>
       </template>
     </a-tabs>
@@ -82,7 +82,7 @@
         }"
         @change="onTableChange"
       >
-        <a-table-column key="id" data-index="id" title="id" :width="60">
+        <a-table-column key="id" data-index="id" :title="t('column_id_title')" :width="60">
         </a-table-column>
         <a-table-column
           v-for="item in column"
@@ -113,12 +113,12 @@
             <span v-else>{{ record[item.name] || '-' }} </span>
           </template>
         </a-table-column>
-        <a-table-column key="action" title="操作" :width="120" fixed="right">
+        <a-table-column key="action" :title="t('column_action_title')" :width="120" fixed="right">
           <template #default="{ record }">
             <span>
-              <a @click="handleAddData(record)">编辑</a>
+              <a @click="handleAddData(record)">{{ t('action_edit') }}</a>
               <a-divider type="vertical" />
-              <a @click="onDelete(record)">删除</a>
+              <a @click="onDelete(record)">{{ t('action_delete') }}</a>
             </span>
           </template>
         </a-table-column>
@@ -154,6 +154,7 @@ import {
 import { ref, reactive, createVNode, computed } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
 import AddDataModal from './components/add-data-modal.vue'
 import ExportModal from './components/export-modal.vue'
 import AddFilrerModal from './components/add-filter-modal.vue'
@@ -167,6 +168,8 @@ import {
   emptyFormEntry,
   getFormFilterList
 } from '@/api/database'
+
+const { t } = useI18n('views.database.database-detail.database-manage.index')
 
 const databaseStore = useDatabaseStore()
 const allCount = computed(() => {
@@ -254,15 +257,15 @@ const onEditTabs = (targetKey, action) => {
 
 const onDelete = (record) => {
   Modal.confirm({
-    title: `删除确认`,
+    title: t('modal_delete_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: `删除后不可恢复，确认删除这条数据吗?`,
-    okText: '确 定',
+    content: t('modal_delete_content'),
+    okText: t('modal_delete_ok'),
     okType: 'danger',
-    cancelText: '取 消',
+    cancelText: t('modal_delete_cancel'),
     onOk() {
       delFormEntry({ id: record.id }).then((res) => {
-        message.success('删除成功')
+        message.success(t('msg_delete_success'))
         handleManageOkBack()
       })
     },
@@ -271,15 +274,15 @@ const onDelete = (record) => {
 }
 const handleClearData = () => {
   Modal.confirm({
-    title: `清空数据提示`,
+    title: t('modal_clear_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: `数据清空后将无法恢复，确认清空数据吗？`,
-    okText: '清 空',
+    content: t('modal_clear_content'),
+    okText: t('modal_clear_ok'),
     okType: 'danger',
-    cancelText: '取 消',
+    cancelText: t('modal_clear_cancel'),
     onOk() {
       emptyFormEntry({ form_id: query.form_id }).then((res) => {
-        message.success('清空成功')
+        message.success(t('msg_clear_success'))
         handleManageOkBack()
       })
     },

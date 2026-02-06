@@ -5,16 +5,16 @@
     </div>
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>输入</div>
+        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>{{ t('title_input') }}</div>
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">公众号</div>
+          <div class="option-label">{{ t('label_official_account') }}</div>
         </div>
         <div>
           <a-select
             v-model:value="formState.app_id"
-            placeholder="请选择公众号"
+            :placeholder="t('ph_select_official_account')"
             style="width: 100%;"
             @change="(value, option) => appChange(value, option)"
           >
@@ -33,8 +33,8 @@
       <div class="options-item is-required">
         <div class="options-item-tit">
           <div class="option-label">
-            接收人
-            <a-tooltip title="用户的openid">
+            {{ t('label_receiver') }}
+            <a-tooltip :title="t('tooltip_receiver_openid')">
               <QuestionCircleOutlined />
             </a-tooltip>
           </div>
@@ -48,7 +48,7 @@
             :defaultValue="formState.receiver"
             @open="emit('updateVar')"
             @change="(text, selectedList) => onChangeReceiver(text, selectedList)"
-            placeholder="请输入接收人，键入“/”可以插入变量"
+            :placeholder="t('ph_input_receiver')"
           >
             <template #option="{ label, payload }">
               <div class="field-list-item">
@@ -61,13 +61,13 @@
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">消息类型</div>
+          <div class="option-label">{{ t('label_message_type') }}</div>
         </div>
         <div>
           <a-select
             v-model:value="formState.msgtype"
             @change="msgTypeChange"
-            :placeholder="formState.app_id ? '请选择消息类型' : '请先选择公众号'"
+            :placeholder="formState.app_id ? t('ph_select_message_type') : t('ph_select_official_account_first')"
             style="width: 100%;">
             <a-select-option
               v-for="item in tables"
@@ -90,7 +90,7 @@
 
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>输出</div>
+        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>{{ t('title_output') }}</div>
       </div>
       <div class="options-item">
         <OutputFields :tree-data="outputData"/>
@@ -109,6 +109,9 @@ import {getPluginActionDefaultArguments, pluginOutputToTree} from "@/constants/p
 import {getWechatAppList} from "@/api/robot/index.js";
 import { useEventBus } from '@/hooks/event/useEventBus.js'
 import AtInput from '@/views/workflow/components/at-input/at-input.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.official-send-message.official-send-message-box')
 
 const emit = defineEmits(['updateVar'])
 const props = defineProps({
@@ -347,10 +350,10 @@ function onWorkflowValidate() {
     const typeItem = tables.value.find(i => i.msgtype == formState.msgtype)
     if (res && res.ok === false) {
       bus.emit && bus.emit('workflow:validate:error', {
-        component: '公众号发送消息',
+        component: t('component_official_send_message'),
         type: formState.msgtype,
         typeDisplay: typeItem?.name || formState.msgtype,
-        message: '请完善发送消息的必填项',
+        message: t('msg_complete_required_fields'),
         errors: res.errors || []
       })
     }

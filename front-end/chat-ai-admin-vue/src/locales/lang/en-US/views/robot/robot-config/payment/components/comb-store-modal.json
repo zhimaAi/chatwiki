@@ -1,0 +1,14 @@
+{
+  "title_edit_package": "Edit Package",
+  "title_create_package": "Create Package",
+  "label_package_name": "Package Name",
+  "ph_package_name_example": "Example: Daily Package, max 6 characters",
+  "label_duration": "Duration (Days)",
+  "ph_input": "Please enter",
+  "label_count": "Count",
+  "label_price": "Price (CNY)",
+  "msg_input_package_name": "Please enter package name",
+  "msg_input_package_duration": "Please enter package duration",
+  "msg_input_package_count": "Please enter package count",
+  "msg_input_package_price": "Please enter package price"
+}

@@ -1,0 +1,11 @@
+{
+  "title_tip": "Tip",
+  "msg_enable_feature_tip": "After enabling this feature, please go to Robot > Function Center to configure and use it",
+  "label_dont_remind": "Don't remind for 3 days",
+  "btn_cancel": "Cancel",
+  "btn_go_to_use": "Go to Use",
+  "msg_close_confirm_default": "After closing, this feature will be disabled by default and will no longer be available. All WeChat menu items will be deactivated. Confirm to close?",
+  "msg_close_confirm_library": "After closing, the knowledge base module will no longer display the WeChat knowledge base module. Previously imported articles will not be available for reference. Confirm to close?",
+  "msg_close_confirm_payment": "After closing, the configured payment strategy will be disabled. Confirm to close?",
+  "msg_operation_success": "Operation successful"
+}

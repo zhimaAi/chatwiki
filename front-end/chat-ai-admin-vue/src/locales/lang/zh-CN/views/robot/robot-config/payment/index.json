@@ -1,0 +1,11 @@
+{
+  "title_app_charging": "应用收费",
+  "switch_on": "开",
+  "switch_off": "关",
+  "link_view_feature_intro": "查看功能介绍",
+  "tab_billing_settings": "收费设置",
+  "tab_auth_code_management": "授权码管理",
+  "msg_operation_success": "操作成功",
+  "modal_title_tip": "提示",
+  "modal_confirm_close": "关闭后，设置的收费策略将失效，确认关闭？"
+}

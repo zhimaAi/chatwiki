@@ -18,18 +18,19 @@
       class="j-mention"
       :class="[{'show-placeholder': localValue.length == 0, }, 'type-'+type]"
       contenteditable="plaintext-only"
-      :placeholder="placeholder"
+      :placeholder="computedPlaceholder"
       @focus="onFocus"
       @input="debouncedUpdate"
       @click="clickJMention"
       @blur="handleBlur"></div>
-        <span class="placeholder" v-if="localValue.length == 0">{{ placeholder }}</span>
+        <span class="placeholder" v-if="localValue.length == 0">{{ computedPlaceholder }}</span>
     </div>
   </div>
 </template>
 
 <script>
 import CascadePanel from './cascade-panel.vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
 // 把树状的options抓换成编排的数组
 const getTreeOptions = (options) => {
@@ -61,7 +62,7 @@ export default {
     },
     placeholder: {
       type: String,
-      default: "请输入",
+      default: "ph_input",
     },
     defaultValue: {
       type: [String, Number],
@@ -96,6 +97,12 @@ export default {
       default: true,
     }
   },
+  setup() {
+    const { t } = useI18n('views.workflow.components.at-input.at-input')
+    return {
+      t
+    }
+  },
   data() {
     return {
       timer: null,
@@ -107,6 +114,11 @@ export default {
       atText: "",
       localValue: "",
     };
+  },
+  computed: {
+    computedPlaceholder() {
+      return this.placeholder === 'ph_input' ? this.t('ph_input') : this.placeholder
+    }
   },
   watch: {
     defaultValue(val){

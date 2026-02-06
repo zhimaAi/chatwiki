@@ -10,16 +10,16 @@
         <div class="btn-block">
           <a-popover :title="null" trigger="click" v-model:open="isShowMenu" :arrow="false" placement="right">
             <template #content>
-              <NodeListPopup style="height: 550px;" :excludedNodeTypes="excludedNodeTypes" @addNode="handleAddNode" type="loop-node" />
+              <NodeListPopup style="height: 550px;width: 500px;" :excludedNodeTypes="excludedNodeTypes" @addNode="handleAddNode" type="loop-node" />
             </template>
-            <a-tooltip title="新建内部节点">
+            <a-tooltip :title="t('tooltip_create_inner_node')">
               <div class="btn-item" @click.stop="handleClick">
                 <PlusCircleOutlined />
               </div>
             </a-tooltip>
           </a-popover>
 
-          <a-tooltip title="运行测试">
+          <a-tooltip :title="t('tooltip_run_test')">
             <div class="btn-item" @click.stop="handleOpenTestModal">
               <CaretRightOutlined />
             </div>
@@ -32,7 +32,7 @@
             <template #overlay>
               <a-menu>
                 <a-menu-item @click="handleDelete">
-                  <div style="color: #fb363f">删除</div>
+                  <div style="color: #fb363f">{{ t('btn_delete') }}</div>
                 </a-menu-item>
               </a-menu>
             </template>
@@ -41,10 +41,10 @@
       </div>
       <div class="info-block">
         <div class="info-item">
-          <div class="info-label">循环类型</div>
+          <div class="info-label">{{ t('label_loop_type') }}</div>
           <div class="info-content">
-            <div class="label-text" v-if="formState.loop_type == 'array'">使用数组循环</div>
-            <div class="label-text" v-if="formState.loop_type == 'number'">指定循环次数</div>
+            <div class="label-text" v-if="formState.loop_type == 'array'">{{ t('text_loop_array') }}</div>
+            <div class="label-text" v-if="formState.loop_type == 'number'">{{ t('text_loop_number') }}</div>
             <div class="label-value" v-if="formState.loop_type == 'number'">
               {{ formState.loop_number }}
             </div>
@@ -65,6 +65,10 @@ import NodeListPopup from '../../node-list-popup/index.vue'
 import { CaretRightOutlined, PlusCircleOutlined } from '@ant-design/icons-vue'
 import RunTest from './components/run-test.vue'
 import BorderLine from './components/border-line.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.custom-group-node.index')
+
 const props = defineProps({
   properties: {
     type: Object,

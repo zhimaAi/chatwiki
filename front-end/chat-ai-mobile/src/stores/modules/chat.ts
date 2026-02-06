@@ -138,7 +138,7 @@ export const useChatStore = defineStore('chat', () => {
     answer_source_switch: false,
     application_type: '0',
     question_multiple_switch: 0,
-    tips_before_answer_content: '思考中、请稍等',
+    tips_before_answer_content: '思考中、请稍候',
     tips_before_answer_switch: true,
   })
 

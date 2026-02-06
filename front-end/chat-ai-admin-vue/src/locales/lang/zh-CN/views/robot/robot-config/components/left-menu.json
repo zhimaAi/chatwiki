@@ -1,0 +1,16 @@
+{
+  "label_workflow_orchestration": "工作流编排",
+  "label_basic_configuration": "基础配置",
+  "label_knowledge_base": "知识库",
+  "label_workflow": "工作流",
+  "label_function_center": "功能中心",
+  "label_external_services": "对外服务",
+  "label_chat_test": "聊天测试",
+  "label_qa_feedback": "问答反馈",
+  "label_session_records": "会话记录",
+  "label_api_key_management": "API Key管理",
+  "label_unknown_issues": "未知问题",
+  "label_statistical_analysis": "统计分析",
+  "label_export_records": "导出记录",
+  "label_invocation_logs": "调用日志"
+}

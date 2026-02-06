@@ -2,12 +2,12 @@
   <div class="robot-page">
     <cu-scroll>
       <div class="associated-robot">
-        <div class="associated-robot-title">已关联机器人 ({{ lists.length }})</div>
+        <div class="associated-robot-title">{{ t('title', { count: lists.length }) }}</div>
         <a-button type="primary" @click="handleAddData">
           <template #icon>
             <PlusOutlined />
           </template>
-          关联机器人
+          {{ t('btn_associate_robot') }}
         </a-button>
       </div>
       <div class="list-box">
@@ -23,7 +23,7 @@
               <div class="robot-info-content">
                 <div class="robot-name">{{ item.robot_name }}</div>
                 <div class="robot-type-tag">
-                  {{ item.application_type == 0 ? '聊天机器人' : '工作流' }}
+                  {{ item.application_type == 0 ? t('type_chat_bot') : t('type_workflow') }}
                 </div>
               </div>
             </div>
@@ -33,13 +33,13 @@
       </div>
       <div class="empty-box" v-if="lists.length == 0 && !isLoading">
         <img src="@/assets/img/library/detail/empty.png" alt="" />
-        <div class="title">暂无数据</div>
+        <div class="title">{{ t('empty_no_data') }}</div>
       </div>
     </cu-scroll>
     <!-- 新增弹出，选择数据 -->
     <SeeModelAlert
       ref="seeModelAlertRef"
-      :currentTitle="'关联机器人'"
+      :currentTitle="t('modal_title')"
       :robotList="robotList"
       @save="onSave"
     />
@@ -52,11 +52,14 @@ import {
 } from '@ant-design/icons-vue'
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
 import { getLibraryRobotInfo, relationRobot } from '@/api/library'
 import SeeModelAlert from '@/components/see-model-alert/see-model-alert.vue'
 import { getRobotList } from '@/api/robot/index.js'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/modules/user'
+
+const { t } = useI18n('views.library.library-details.related-robots')
 
 const userStore = useUserStore()
 // 查看模型
@@ -136,7 +139,7 @@ const onSave = (ids) => {
 
   relationRobot(params)
     .then((res) => {
-      message.success('操作成功')
+      message.success(t('msg_operation_success'))
       getLists()
     })
     .catch(() => {})

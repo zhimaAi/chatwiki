@@ -1,30 +1,35 @@
 <template>
   <div v-if="!batchSendEnabled" class="ability-banner">
     <svg-icon name="tip-icon" style="font-size: 16px; color: white;" />
-    <span>文章群发功能暂未开启，您可到探索 > 功能 > 文章群发开启</span>
-    <a class="go-enable" href="javascript:void(0);" @click="goEnableBatchSend">去开启</a>
+    <span>{{ t('banner_batch_send_not_enabled') }}</span>
+    <a class="go-enable" href="javascript:void(0);" @click="goEnableBatchSend">{{ t('common_go_enable') }}</a>
   </div>
   <div class="user-model-page">
   <div class="breadcrumb-wrap">
     <svg-icon name="back" style="font-size: 20px;" @click="goBack" />
-    <div v-if="isCopyCustomRule" class="breadcrumb-title" @click="goBack">复制自定义规则</div>
-    <div v-else-if="isEditCustomRule" class="breadcrumb-title" @click="goBack">编辑自定义规则</div>
-    <div v-else-if="isCreateCustomRule" class="breadcrumb-title" @click="goBack">新建自定义规则</div>
+    <div v-if="isCopyCustomRule" class="breadcrumb-title" @click="goBack">{{ t('breadcrumb_copy_custom_rule') }}</div>
+    <div v-else-if="isEditCustomRule" class="breadcrumb-title" @click="goBack">{{ t('breadcrumb_edit_custom_rule') }}</div>
+    <div v-else-if="isCreateCustomRule" class="breadcrumb-title" @click="goBack">{{ t('breadcrumb_create_custom_rule') }}</div>
     <template v-else>
-      <span class="breadcrumb-title" @click="goBack">AI评论精选</span>
+      <span class="breadcrumb-title" @click="goBack">{{ t('breadcrumb_ai_comment_selection') }}</span>
       <a-switch
         :checked="abilitySwitchChecked"
-        checked-children="开"
-        un-checked-children="关"
+        :checked-children="t('switch_on')"
+        :un-checked-children="t('switch_off')"
         @change="onAbilitySwitchChange"
       />
-      <span class="switch-tip">开启后，可设置规则对系统内发布的群发使用AI自动精选功能，自动删评，回复，精选评论。</span>
+      <span class="switch-tip">{{ t('switch_tip') }}</span>
     </template>
   </div>
 
     <a-alert class="alert-box" show-icon style="margin: 16px 48px 0;">
       <template #message>
-        <div>仅支持通过当前系统群发的文章做Al评论管理，按照设置的规则自动删评 <br /> 自动回复评论需开启文章群发功能并创建文章群发，<a @click="goToArticleGroupSend" href="javascript:void(0);">去创建</a></div>
+        <div>
+          <span>{{ t('alert_support_tip') }}</span>
+          <br />
+          <span>{{ t('alert_auto_reply_tip') }}</span>
+          <a @click="goToArticleGroupSend" href="javascript:void(0);">{{ t('alert_go_create') }}</a>
+        </div>
       </template>
     </a-alert>
 
@@ -45,14 +50,16 @@
   </div>
   <a-modal v-model:open="bannerTipOpen" :footer="null">
     <template #title>
-      <span><ExclamationCircleFilled style="color:#faad14;margin-right:8px;" />未开启文章群发</span>
+      <span><ExclamationCircleFilled style="color:#faad14;margin-right:8px;" />{{ t('modal_article_batch_send_not_enabled_title') }}</span>
     </template>
-    <div><span style="color: red;">文章群发功能暂未开启</span>，您可到探索 > 功能 > 文章群发开启</div>
+    <div>
+      <span style="color: red;">{{ t('modal_article_batch_send_not_enabled') }}</span>{{ t('modal_article_batch_send_not_enabled_tip') }}
+    </div>
     <div class="enable-tip-footer">
-      <a-checkbox v-model:checked="bannerTipDontRemind">3天内不在提示</a-checkbox>
+      <a-checkbox v-model:checked="bannerTipDontRemind">{{ t('checkbox_dont_remind_three_days') }}</a-checkbox>
       <div class="footer-actions">
-        <a-button @click="onCancelBannerTip">取消</a-button>
-        <a-button type="primary" @click="goEnableBatchSend">去开启</a-button>
+        <a-button @click="onCancelBannerTip">{{ t('btn_cancel') }}</a-button>
+        <a-button type="primary" @click="goEnableBatchSend">{{ t('common_go_enable') }}</a-button>
       </div>
     </div>
   </a-modal>
@@ -64,17 +71,19 @@ import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { getSpecifyAbilityConfig, saveUserAbility } from '@/api/explore'
 import { ExclamationCircleFilled } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n('views.explore.ai-comment-management.index')
 const isCreateCustomRule = computed(() => route.name === 'exploreAiCommentManagementCreateCustomRule')
 const isCopyCustomRule = computed(() => route.name === 'exploreAiCommentManagementCreateCustomRule' && route.query.copy === '1')
 const isEditCustomRule = computed(() => route.name === 'exploreAiCommentManagementCreateCustomRule' && route.query.id)
 
 const segmentedOptions = [
-  { label: '默认规则', value: 'default-rule' },
-  { label: '自定义规则', value: 'custom-rule' },
-  { label: '评论处理记录', value: 'comment-processing-record' }
+  { label: t('segmented_default_rule'), value: 'default-rule' },
+  { label: t('segmented_custom_rule'), value: 'custom-rule' },
+  { label: t('segmented_comment_processing_record'), value: 'comment-processing-record' }
 ]
 
 const getActiveByRoute = () => {
@@ -121,13 +130,13 @@ const onAbilitySwitchChange = (checked) => {
   const newStatus = checked ? '1' : '0'
   if (newStatus === '0') {
     Modal.confirm({
-      title: '提示',
-      content: '关闭后，该功能默认关闭不再支持使用，确认关闭？',
+      title: t('modal_confirm_title'),
+      content: t('modal_confirm_disable_content'),
       onOk: () => {
         saveUserAbility({ ability_type: 'official_account_ai_comment', switch_status: newStatus }).then((res) => {
           if (res && res.res == 0) {
             abilitySwitchChecked.value = false
-            message.success('操作成功')
+            message.success(t('message_operation_success'))
           }
         })
       }
@@ -137,7 +146,7 @@ const onAbilitySwitchChange = (checked) => {
   saveUserAbility({ ability_type: 'official_account_ai_comment', switch_status: newStatus }).then((res) => {
     if (res && res.res == 0) {
       abilitySwitchChecked.value = true
-      message.success('操作成功')
+      message.success(t('message_operation_success'))
     }
   })
 }

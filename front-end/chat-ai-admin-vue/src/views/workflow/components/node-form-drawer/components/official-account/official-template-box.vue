@@ -2,16 +2,16 @@
   <div class="tpl-container">
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>输入</div>
+        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>{{ t('label_section_input') }}</div>
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">公众号</div>
+          <div class="option-label">{{ t('label_official_account') }}</div>
         </div>
         <div>
           <a-select
             v-model:value="formState.app_id"
-            placeholder="请选择公众号"
+            :placeholder="t('ph_select_official_account')"
             style="width: 100%;"
             @change="appChange"
           >
@@ -28,15 +28,15 @@
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">公众号模板</div>
-          <a-tooltip title="同步最新的公众号模板">
-            <a @click="syncTemplates">同步 <a-spin v-if="syncing" size="small"/></a>
+          <div class="option-label">{{ t('label_official_template') }}</div>
+          <a-tooltip :title="t('tooltip_sync_templates')">
+            <a @click="syncTemplates">{{ t('btn_sync') }} <a-spin v-if="syncing" size="small"/></a>
           </a-tooltip>
         </div>
         <div>
           <a-select
             v-model:value="formState.template_id"
-            placeholder="请选择模板"
+            :placeholder="t('ph_select_template')"
             style="width: 100%;"
             @change="templateChange"
           >
@@ -53,7 +53,7 @@
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">接收者（用户）openid</div>
+          <div class="option-label">{{ t('label_receiver_openid') }}</div>
           <div class="option-type">string</div>
         </div>
         <div>
@@ -65,7 +65,7 @@
             ref="atInputRef"
             @open="emit('updateVar')"
             @change="(text, selectedList) => changeFieldValue('touser', text, selectedList)"
-            placeholder="请输入内容，键入“/”可以插入变量"
+            :placeholder="t('ph_input_content')"
           >
             <template #option="{ label, payload }">
               <div class="field-list-item">
@@ -75,7 +75,7 @@
             </template>
           </AtInput>
         </div>
-        <div class="desc">普通用户的标识，对当前公众号唯一</div>
+        <div class="desc">{{ t('desc_receiver_openid') }}</div>
       </div>
       <div
         v-for="(opt, key) in formState.data"
@@ -95,7 +95,7 @@
             ref="atInputRef"
             @open="emit('updateVar')"
             @change="(text, selectedList) => changeValue(opt, text, selectedList, key)"
-            placeholder="请输入内容，键入“/”可以插入变量"
+            :placeholder="t('ph_input_content')"
           >
             <template #option="{ label, payload }">
               <div class="field-list-item">
@@ -109,22 +109,22 @@
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">跳转方式</div>
+          <div class="option-label">{{ t('label_jump_type') }}</div>
         </div>
         <div>
           <a-radio-group
             v-model:value="formState.link_type"
             @change="linkTypeChange"
           >
-            <a-radio :value="0">不跳转</a-radio>
-            <a-radio :value="1">链接</a-radio>
-            <a-radio :value="2">小程序</a-radio>
+            <a-radio :value="0">{{ t('opt_jump_none') }}</a-radio>
+            <a-radio :value="1">{{ t('opt_jump_link') }}</a-radio>
+            <a-radio :value="2">{{ t('opt_jump_miniprogram') }}</a-radio>
           </a-radio-group>
         </div>
       </div>
       <div v-if="formState.link_type == 1" class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">链接</div>
+          <div class="option-label">{{ t('label_link') }}</div>
         </div>
         <div>
           <AtInput
@@ -136,7 +136,7 @@
             ref="atInputRef"
             @open="emit('updateVar')"
             @change="(text, selectedList) => changeFieldValue('url', text, selectedList)"
-            placeholder="请输入内容，键入“/”可以插入变量"
+            :placeholder="t('ph_input_content')"
           >
             <template #option="{ label, payload }">
               <div class="field-list-item">
@@ -150,7 +150,7 @@
       <template v-else-if="formState.link_type == 2">
         <div class="options-item is-required">
           <div class="options-item-tit">
-            <div class="option-label">小程序APPID</div>
+            <div class="option-label">{{ t('label_miniprogram_appid') }}</div>
           </div>
           <div>
             <AtInput
@@ -162,7 +162,7 @@
               ref="atInputRef"
               @open="emit('updateVar')"
               @change="(text, selectedList) => changeValue(formState.miniprogram.appid, text, selectedList)"
-              placeholder="请输入内容，键入“/”可以插入变量"
+              :placeholder="t('ph_input_content')"
             >
               <template #option="{ label, payload }">
                 <div class="field-list-item">
@@ -172,11 +172,11 @@
               </template>
             </AtInput>
           </div>
-          <div class="desc">小程序appid必须与发模板消息的公众号是关联关系</div>
+          <div class="desc">{{ t('desc_miniprogram_appid') }}</div>
         </div>
         <div class="options-item is-required">
           <div class="options-item-tit">
-            <div class="option-label">小程序路径</div>
+            <div class="option-label">{{ t('label_miniprogram_path') }}</div>
           </div>
           <div>
             <AtInput
@@ -188,7 +188,7 @@
               ref="atInputRef"
               @open="emit('updateVar')"
               @change="(text, selectedList) => changeValue(formState.miniprogram.pagepath, text, selectedList)"
-              placeholder="请输入内容，键入“/”可以插入变量"
+              :placeholder="t('ph_input_content')"
             >
               <template #option="{ label, payload }">
                 <div class="field-list-item">
@@ -203,7 +203,7 @@
     </div>
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>输出</div>
+        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>{{ t('label_section_output') }}</div>
       </div>
       <div class="options-item">
         <OutputFields :tree-data="outputData"/>
@@ -214,12 +214,15 @@
 
 <script setup>
 import {ref, reactive, onMounted, watch, inject} from 'vue';
+import { useI18n } from 'vue-i18n';
 import AtInput from "@/views/workflow/components/at-input/at-input.vue";
 import {getWechatAppList} from "@/api/robot/index.js";
 import {runPlugin} from "@/api/plugins/index.js";
 import {pluginOutputToTree} from "@/constants/plugin.js";
 import OutputFields from "@/views/workflow/components/feishu-table/output-fields.vue";
 import {message} from 'ant-design-vue';
+
+const { t } = useI18n();
 
 
 const emit = defineEmits(['updateVar'])
@@ -265,64 +268,66 @@ const formState = reactive({
   link_type: 0,
   tag_map: {}
 })
-const RegObj = {
+
+// Validation rules object
+const getRegObj = () => ({
   thing: {
     reg: /^[\u4e00-\u9fa5a-zA-Z0-9\W_]{1,20}$/,
-    txt: "20个以内字符,可汉字、数字、字母或符号组合"
+    txt: t('msg_validation_thing')
   },
   short_thing: {
     reg: /^[\u4e00-\u9fa5a-zA-Z0-9\W_]{1,5}$/,
-    txt: "5个以内字符,可汉字、数字、字母或符号组合"
+    txt: t('msg_validation_short_thing')
   },
   number: {
     reg: /^\d{1,32}(.\d{1,2})?$/,
-    txt: "32位以内数字,只能数字，可带小数"
+    txt: t('msg_validation_number')
   },
   const: {
     reg: /^[\u4e00-\u9fa5a-zA-Z0-9\W_]{1,20}$/,
-    txt: "20位以内字符，超过无法下发注"
+    txt: t('msg_validation_const')
   },
   letter: {
     reg: /^[a-zA-Z]{1,32}$/,
-    txt: "32位以内字母，只能字母"
+    txt: t('msg_validation_letter')
   },
   symbol: {
     reg: /^[\W_]{1,5}$/,
-    txt: "5位以内符号，只能符号"
+    txt: t('msg_validation_symbol')
   },
   character_string: {
     reg: /^[a-zA-Z0-9\W_]{1,32}$/,
-    txt: "32位以内数字、字母或符号，可数字、字母或符号组合"
+    txt: t('msg_validation_character_string')
   },
   time: {
     reg: /^\d{4}年\d{1,2}月\d{1,2}日\s+\d{1,2}:\d{1,2}(:\d{1,2})?(~\d{4}年\d{1,2}月\d{1,2}日\s+\d{1,2}:\d{1,2}(:\d{1,2})?)?$/,
-    txt: "24小时制时间格式（支持+年月日），支持填时间段，两个时间点之间用“~”符号连接 例如：2019年10月1日 15:01~2019年10月1日 18:01"
+    txt: t('msg_validation_time')
   },
   date: {
     reg: /^\d{4}年\d{1,2}月\d{1,2}日(\s+\d{1,2}:\d{1,2}(:\d{1,2})?)?(~\d{4}年\d{1,2}月\d{1,2}日\s+\d{1,2}:\d{1,2}(:\d{1,2})?)?$/,
-    txt: "年月日格式（支持+24小时制时间），支持填时间段，两个时间点之间用“~”符号连接 例如：2019年10月1日 15:01~2019年10月1日 18:01"
+    txt: t('msg_validation_date')
   },
   amount: {
     reg: /^[$¥]?\d{1,10}(.\d{1,2})?[元]?$/,
-    txt: "金额，1个币种符号+10位以内纯数字，可带小数，结尾可带“元”	可带小数 例如：¥200元、$200"
+    txt: t('msg_validation_amount')
   },
   phone_number: {
     reg: /^[0-9-+*# ]{5,17}$/,
-    txt: "电话，17位以内，数字、符号"
+    txt: t('msg_validation_phone_number')
   },
   car_number: {
     reg: /^[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领A-Z]{1}[a-zA-Z0-9]{6,7}[\u4e00-\u9fa5]{0,1}$/,
-    txt: "车牌，8位以内，第一位与最后一位可为汉字，其余为字母或数字"
+    txt: t('msg_validation_car_number')
   },
   name: {
     reg: /^(?:[\u4e00-\u9fa5]{1,10}|[a-zA-Z\p{P}]{1,20})$/,
-    txt: "10个以内纯汉字或20个以内纯字母或符号"
+    txt: t('msg_validation_name')
   },
   phrase: {
     reg: /^[\u4e00-\u9fa5]{1,5}$/,
-    txt: "汉字，5个以内汉字"
+    txt: t('msg_validation_phrase')
   },
-}
+})
 
 onMounted(() => {
   init()
@@ -370,12 +375,12 @@ function templateChange(_, option) {
 
 function syncTemplates() {
   if (!formState.app_secret || !formState.app_id) {
-    return message.warning('请先选择公众号')
+    return message.warning(t('msg_please_select_official_account'))
   }
   if (syncing.value) return
   syncing.value = true
   loadTemplates().then(() => {
-    message.success('同步完成')
+    message.success(t('msg_sync_completed'))
   }).finally(() => {
     syncing.value = false
   })
@@ -453,13 +458,14 @@ function update() {
 function parseWxTemplateToObj(str) {
   const obj = {};
   const lines = str.split('\n').map(s => s.trim()).filter(Boolean);
+  const regObj = getRegObj();
 
   for (const line of lines) {
     // 情况1：有标题，例如：标题:{{content.DATA}}
     let match = line.match(/^(.*?):\s*\{\{([\w]+)\.DATA\}\}$/);
     if (match) {
       let key = match[2].replace(/\d/g, '')
-      obj[match[2]] = { title: match[1], value: '', tags: [], desc: RegObj[key]?.txt || '', format_err: false};
+      obj[match[2]] = { title: match[1], value: '', tags: [], desc: regObj[key]?.txt || '', format_err: false};
       continue;
     }
 
@@ -475,7 +481,8 @@ function parseWxTemplateToObj(str) {
 
 function wxTemplateContCheck(field, item) {
   let key = field.replace(/\d/g, '')
-  if(RegObj[key] && !RegObj[key].reg.test(item.value)) {
+  const regObj = getRegObj()
+  if(regObj[key] && !regObj[key].reg.test(item.value)) {
     item.format_err = true
   } else {
     item.format_err = false

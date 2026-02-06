@@ -1,11 +1,11 @@
 <template>
   <a-modal
     v-model:open="visible"
-    title="选择音色"
+    :title="t('title_select_voice')"
     width="670px"
     @ok="save"
   >
-    <a-input v-model:value.trim="keyword" placeholder="请输入音色名称/ID搜索" allow-clear style="width: 240px;">
+    <a-input v-model:value.trim="keyword" :placeholder="t('ph_search_voice')" allow-clear style="width: 240px;">
       <template #suffix>
         <SearchOutlined/>
       </template>
@@ -35,7 +35,9 @@
 import {ref, computed, toRaw} from 'vue';
 import {getVoiceList} from "@/api/node/index.js";
 import {SearchOutlined} from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.select-voice-modal')
 const emit = defineEmits(['change'])
 const props = defineProps({
   modelConfigId: {
@@ -52,29 +54,30 @@ const keyword = ref('')
 const list = ref([])
 const selectedRowKeys = ref([])
 const selectedRows = ref([])
-const columns = [
+
+const columns = computed(() => [
   {
-    title: '序号',
+    title: t('label_index'),
     dataIndex: 'index',
     key: 'index',
     width: 80,
   },
   {
-    title: '名称',
+    title: t('label_name'),
     dataIndex: 'voice_name',
     width: 120,
   },
   {
-    title: 'ID',
+    title: t('label_id'),
     dataIndex: 'voice_id',
     width: 80,
   },
   {
-    title: '描述',
+    title: t('label_description'),
     dataIndex: 'description',
     width: 200,
   },
-]
+])
 const showList = computed(() => {
   if (keyword.value) {
     return list.value.filter(item => {

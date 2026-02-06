@@ -178,14 +178,14 @@ func CreateRobotCsl(lang string, id, adminUserId int, form_id, library_id string
 	if len(robotName) > 0 {
 		robotCsl.FileName = fmt.Sprintf(`%s_%s.csl`, robotName, tool.Date(`YmdHis`))
 	}
-	//文件分段精选配置
+	// File segment category config
 	category, err := msql.Model(`category`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).ColumnObj(`type`, `id`)
 	if err != nil {
 		return
 	}
 	robotCsl.Category = category
-	//工作流,知识库,数据表引用采集
+	// Workflow, library, form reference collection
 	switch cast.ToInt(robot[`application_type`]) {
 	case define.ApplicationTypeChat:
 		if len(robot[`work_flow_ids`]) > 0 {
@@ -224,10 +224,10 @@ func CreateRobotCsl(lang string, id, adminUserId int, form_id, library_id string
 			err = sqlErr
 			return
 		}
-		//工作流节点配置信息脱密
+		// Workflow node config info desensitization
 		nodes = work_flow.NodesConfDesensitize(adminUserId, nodes, lang)
 
-		// 过滤鉴权信息
+		// Filter auth info
 		for i, node := range nodes {
 			filterNodeParams := work_flow.NodeParams{}
 			_ = tool.JsonDecodeUseNumber(node[`node_params`], &filterNodeParams)
@@ -236,7 +236,7 @@ func CreateRobotCsl(lang string, id, adminUserId int, form_id, library_id string
 
 			switch cast.ToInt(node[`node_type`]) {
 			case work_flow.NodeTypeCurl, work_flow.NodeTypeHttpTool:
-				// 过滤params
+				// Filter params
 				if len(filterNodeParams.Curl.HttpAuth) > 0 {
 					for idx := range filterNodeParams.Curl.HttpAuth {
 						filterNodeParams.Curl.HttpAuth[idx].Value = `` // remove value when export to csl
@@ -244,7 +244,7 @@ func CreateRobotCsl(lang string, id, adminUserId int, form_id, library_id string
 					nodes[i][`node_params`] = tool.JsonEncodeNoError(filterNodeParams)
 				}
 
-				// 过滤json
+				// Filter json
 				dataRaw, ok := filterNodeJson[`dataRaw`]
 				if ok {
 					dataRawMap := map[string]interface{}{}
@@ -277,7 +277,7 @@ func CreateRobotCsl(lang string, id, adminUserId int, form_id, library_id string
 			_ = tool.JsonDecodeUseNumber(node[`node_params`], &nodeParams)
 			switch cast.ToInt(node[`node_type`]) {
 			case work_flow.NodeTypeLibs:
-				if len(nodeParams.Libs.LibraryIds) > 0 { //存在关联的知识库
+				if len(nodeParams.Libs.LibraryIds) > 0 { // Associated library exists
 					for _, libraryId := range strings.Split(nodeParams.Libs.LibraryIds, `,`) {
 						robotCsl.Librarys[cast.ToInt(libraryId)] = nil
 					}
@@ -310,7 +310,7 @@ func CreateRobotCsl(lang string, id, adminUserId int, form_id, library_id string
 	for _, id := range libraryIdArr {
 		libraryMap[id] = id
 	}
-	//处理知识库
+	// Process library
 	for libraryId := range robotCsl.Librarys {
 		importData := false
 		if _, ok := libraryMap[cast.ToString(libraryId)]; ok && len(libraryIdArr) > 0 {
@@ -324,7 +324,7 @@ func CreateRobotCsl(lang string, id, adminUserId int, form_id, library_id string
 			logs.Error(sqlErr.Error())
 		}
 	}
-	//处理表单
+	// Process form
 	formIdArr := strings.Split(form_id, ",")
 	formIdMap := make(map[int]string)
 	for _, id := range formIdArr {
@@ -350,15 +350,15 @@ func ApplyRobotCsl(lang string, adminUserId, userId int, token string, robotCsl 
 	if robotCsl == nil || len(robotCsl.Robot) == 0 {
 		return nil, errors.New(i18n.Show(lang, `robot_info_not_exist`))
 	}
-	//获取默认的模型配置
+	// Get default model config
 	models, err := common.GetDefaultModelParams(lang, adminUserId)
 	if err != nil {
 		return nil, err
 	}
 	logs.Debug(`models:%s`, tool.JsonEncodeNoError(models))
-	//初始化新旧id的maps
+	// Initialize old-new id maps
 	cslIdMaps := common.NewCslIdMaps()
-	//分段分类(精选)id(旧=>新)
+	// Segment category id (old=>new)
 	category, err := msql.Model(`category`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).ColumnObj(`id`, `type`)
 	if err != nil {
@@ -367,14 +367,14 @@ func ApplyRobotCsl(lang string, adminUserId, userId int, token string, robotCsl 
 	for oldId, oldType := range robotCsl.Category {
 		cslIdMaps.Category[cast.ToInt(oldId)] = cast.ToInt(category[oldType])
 	}
-	//开始导入知识库
+	// Start importing library
 	for _, libraryCsl := range robotCsl.Librarys {
-		sqlErr := libraryCsl.Import(adminUserId, userId, cslIdMaps, models, token)
+		sqlErr := libraryCsl.Import(lang, adminUserId, userId, cslIdMaps, models, token)
 		if sqlErr != nil {
 			logs.Error(sqlErr.Error())
 		}
 	}
-	//开始导入数据表
+	// Start importing form
 	cslIdMaps.FormsName = make(map[int]string)
 	for _, formCsl := range robotCsl.Forms {
 		sqlErr := formCsl.Import(adminUserId, cslIdMaps)
@@ -382,15 +382,15 @@ func ApplyRobotCsl(lang string, adminUserId, userId int, token string, robotCsl 
 			logs.Error(sqlErr.Error())
 		}
 	}
-	//开始导入机器人
+	// Start importing robot
 	var newRobot msql.Params
 	switch cast.ToInt(robotCsl.Robot[`application_type`]) {
 	case define.ApplicationTypeChat:
-		newRobot, err = ApplyChatRobot(robotCsl.Robot, cslIdMaps, models, token)
+		newRobot, err = ApplyChatRobot(lang, robotCsl.Robot, cslIdMaps, models, token)
 		if err != nil {
 			return nil, err
 		}
-		//导入关联工作流
+		// Import associated workflow
 		workFlowIds := make([]string, 0)
 		for _, workflow := range robotCsl.Workflows {
 			relationWorkflow, sqlErr := ApplyFlowRobot(lang, adminUserId, workflow.Robot, workflow.Nodes, cslIdMaps, models, token)
@@ -400,7 +400,7 @@ func ApplyRobotCsl(lang string, adminUserId, userId int, token string, robotCsl 
 			}
 			workFlowIds = append(workFlowIds, relationWorkflow[`id`])
 		}
-		//关联工作流操作
+		// Associate workflow operation
 		if len(workFlowIds) > 0 {
 			up := msql.Datas{`work_flow_ids`: strings.Join(workFlowIds, `,`), `update_time`: tool.Time2Int()}
 			if _, err = msql.Model(`chat_ai_robot`, define.Postgres).Where(`id`, newRobot[`id`]).Update(up); err != nil {
@@ -414,11 +414,11 @@ func ApplyRobotCsl(lang string, adminUserId, userId int, token string, robotCsl 
 			return nil, err
 		}
 	}
-	//返回机器人信息
+	// Return robot info
 	return newRobot, nil
 }
 
-func ApplyChatRobot(robot msql.Params, cslIdMaps *common.CslIdMaps, models *common.DefaultModelParams, token string) (msql.Params, error) {
+func ApplyChatRobot(lang string, robot msql.Params, cslIdMaps *common.CslIdMaps, models *common.DefaultModelParams, token string) (msql.Params, error) {
 	chatRobot := make(map[string]string)
 	chatRobot[`check_name`] = `1`
 	for key, val := range robot {
@@ -474,7 +474,7 @@ func ApplyChatRobot(robot msql.Params, cslIdMaps *common.CslIdMaps, models *comm
 			chatRobot[key] = val
 		}
 	}
-	code, err := common.RequestChatWiki(`/manage/saveRobot`, http.MethodPost, token, chatRobot)
+	code, err := common.RequestChatWiki(lang, `/manage/saveRobot`, http.MethodPost, token, chatRobot)
 	if err != nil {
 		return nil, err
 	}
@@ -490,14 +490,14 @@ func ApplyFlowRobot(lang string, adminUserId int, robot msql.Params, nodes []msq
 		`check_name`:           `1`,
 		`is_default`:           cast.ToString(define.NotDefault),
 	}
-	code, err := common.RequestChatWiki(`/manage/addFlowRobot`, http.MethodPost, token, flowRobot)
+	code, err := common.RequestChatWiki(lang, `/manage/addFlowRobot`, http.MethodPost, token, flowRobot)
 	if err != nil {
 		return nil, err
 	}
 	newRobot := cast.ToStringMapString(code.Data)
-	//工作流节点配置信息脱密
+	// Workflow node config info desensitization
 	nodes = work_flow.NodesConfDesensitize(adminUserId, nodes, lang)
-	//工作流节点
+	// Workflow nodes
 	for _, node := range nodes {
 		nodeType := cast.ToInt(node[`node_type`])
 		if !tool.InArrayInt(nodeType, work_flow.NodeTypes[:]) {
@@ -527,7 +527,7 @@ func ReplaceNodeParams(adminUserId int, nodeType int, nodeParamsStr, nodeInfoStr
 	if err := tool.JsonDecodeUseNumber(nodeParamsStr, &nodeParams); err != nil {
 		logs.Error(err.Error())
 	}
-	replace := make(map[string]any) //修正node_info_json.dataRaw数据
+	replace := make(map[string]any) // Correct node_info_json.dataRaw data
 	switch nodeType {
 	case work_flow.NodeTypeCate:
 		nodeParams.Cate.ModelConfigId = common.MixedInt(models.LlmModelConfigId)

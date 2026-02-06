@@ -1,52 +1,52 @@
 <template>
   <div>
-    <a-modal v-model:open="show" title="编辑分段" @ok="handleOk" width="746px">
+    <a-modal v-model:open="show" :title="t('title')" @ok="handleOk" width="746px">
       <a-form layout="vertical">
-        <a-form-item label="分段标题：">
+        <a-form-item :label="t('label_title')">
           <a-input
             type="text"
-            placeholder="请输入分段标题"
+            :placeholder="t('ph_title')"
             v-model:value="formState.title"
           ></a-input>
         </a-form-item>
         <template v-if="isExcelQa">
-          <a-form-item label="分段问题：" v-bind="validateInfos.question">
+          <a-form-item :label="t('label_question')" v-bind="validateInfos.question">
             <a-textarea
-              placeholder="请输入分段问题"
+              :placeholder="t('ph_question')"
               v-model:value="formState.question"
               style="height: 100px"
             ></a-textarea>
           </a-form-item>
-          <a-form-item label="相似问法（一行一个，最多可添加100个相似问法）">
+          <a-form-item :label="t('label_similar')">
             <a-textarea
-              placeholder="请输入相似问法"
+              :placeholder="t('ph_similar')"
               v-model:value="formState.similar_question_list"
               style="height: 100px"
             ></a-textarea>
           </a-form-item>
-          <a-form-item label="分段答案：" v-bind="validateInfos.answer">
+          <a-form-item :label="t('label_answer')" v-bind="validateInfos.answer">
             <a-textarea
-              placeholder="请输入分段答案"
+              :placeholder="t('ph_answer')"
               v-model:value="formState.answer"
               style="height: 140px"
             ></a-textarea>
           </a-form-item>
         </template>
-        <a-form-item v-else label="分段内容：" v-bind="validateInfos.content">
+        <a-form-item v-else :label="t('label_content')" v-bind="validateInfos.content">
           <a-textarea
-            placeholder="请输入分段内容"
+            :placeholder="t('ph_content')"
             v-model:value="formState.content"
             style="height: 150px"
           ></a-textarea>
         </a-form-item>
-        <a-form-item label="附件">
+        <a-form-item :label="t('label_attachment')">
           <div class="upload-box-wrapper">
             <a-tabs v-model:activeKey="activeKey" size="small">
               <a-tab-pane key="1">
                 <template #tab>
                   <span>
                     <svg-icon name="img-icon" style="font-size: 14px; color: #2475fc"></svg-icon>
-                    图片
+                    {{ t('tab_images') }}
                     <span v-if="formState.images.length">({{ formState.images.length }})</span>
                   </span>
                 </template>
@@ -59,11 +59,13 @@
     </a-modal>
   </div>
 </template>
-
 <script setup>
 import { ref, reactive, toRaw } from 'vue'
 import { Form } from 'ant-design-vue'
 import UploadImg from '@/components/upload-img/index.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.document-segmentation.components.edit-fragment-alert')
 const emit = defineEmits(['ok'])
 
 const activeKey = ref('1')
@@ -82,11 +84,11 @@ const formState = reactive({
 const formRules = reactive({
   content: [
     {
-      message: '请输入分段内容',
+      message: t('validation_content'),
       validator: async (rule, value) => {
         if (!isExcelQa.value) {
           if (!value) {
-            return Promise.reject('请输入分段内容')
+            return Promise.reject(t('validation_content'))
           }
           return Promise.resolve()
         }
@@ -96,11 +98,11 @@ const formRules = reactive({
   ],
   question: [
     {
-      message: '请输入分段问题',
+      message: t('validation_question'),
       validator: async (rule, value) => {
         if (isExcelQa.value) {
           if (!value) {
-            return Promise.reject('请输入分段问题')
+            return Promise.reject(t('validation_question'))
           }
           return Promise.resolve()
         }
@@ -110,11 +112,11 @@ const formRules = reactive({
   ],
   answer: [
     {
-      message: '请输入分段答案',
+      message: t('validation_answer'),
       validator: async (rule, value) => {
         if (isExcelQa.value) {
           if (!value) {
-            return Promise.reject('请输入分段答案')
+            return Promise.reject(t('validation_answer'))
           }
           return Promise.resolve()
         }

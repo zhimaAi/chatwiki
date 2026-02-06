@@ -37,13 +37,13 @@
                 >{{type.type_title}}</div>
               </div>
             </template>
-            <div class="type-tag type-more" @click.stop>更多</div>
+            <div class="type-tag type-more" @click.stop>{{ t('label_more') }}</div>
           </a-tooltip>
         </div>
       </div>
       <div ref="loadMoreRef" class="load-more-sentinel"></div>
     </div>
-    <EmptyBox v-else title="暂无可用MCP"/>
+    <EmptyBox v-else :title="t('msg_no_available_mcp')"/>
   </div>
 </template>
 
@@ -53,6 +53,9 @@ import {useRouter} from 'vue-router';
 import EmptyBox from "@/components/common/empty-box.vue";
 import {getMcpSquareList} from "@/api/mcp/index.js";
 import LoadingBox from "@/components/common/loading-box.vue";
+import { useI18n } from '@/hooks/web/useI18n';
+
+const { t } = useI18n('views.explore.mcp.components.square')
 
 const props = defineProps({
   filterData: {

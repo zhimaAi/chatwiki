@@ -15,7 +15,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// RobotSubscribeReplyCacheBuildHandler 关注后回复规则缓存
+// RobotSubscribeReplyCacheBuildHandler Cache for subscription reply rules
 type RobotSubscribeReplyCacheBuildHandler struct {
 	AdminUserId int
 	Appid       string
@@ -42,7 +42,7 @@ func (h *SubscribeReplyLastTimeCacheBuildHandler) GetCacheData() (any, error) {
 	}, nil
 }
 
-// GetSubscribeReplyLastTime 获取关注后回复规则最后回复时间
+// GetSubscribeReplyLastTime Get the last reply time for subscription reply rules
 func GetSubscribeReplyLastTime(robotId, ruleId int, openid string) (int, error) {
 	result := map[string]interface{}{
 		"last_time": 0,
@@ -59,9 +59,9 @@ func SetSubscribeReplyLastTime(robotId, ruleId int, lastTime int, openid string)
 }
 
 const (
-	SubscribeRuleTypeDefault  = `subscribe_reply_default`  // 默认规则
-	SubscribeRuleTypeSource   = `subscribe_reply_source`   // 来源规则
-	SubscribeRuleTypeDuration = `subscribe_reply_duration` // 时间规则
+	SubscribeRuleTypeDefault  = `subscribe_reply_default`  // Default rule
+	SubscribeRuleTypeSource   = `subscribe_reply_source`   // Source rule
+	SubscribeRuleTypeDuration = `subscribe_reply_duration` // Duration rule
 )
 
 type RobotSubscribeReply struct {
@@ -92,7 +92,7 @@ func (h *RobotSubscribeReplyCacheBuildHandler) GetCacheKey() string {
 
 func (h *RobotSubscribeReplyCacheBuildHandler) GetCacheData() (any, error) {
 	data, err := msql.Model(`func_chat_robot_subscribe_reply`, define.Postgres).Where(`admin_user_id`, cast.ToString(h.AdminUserId)).Where(`appid`, h.Appid).Where(`rule_type`, h.RuleType).Where(`switch_status`, cast.ToString(define.SwitchOn)).Order(`priority_num asc,id desc`).Select()
-	//转换
+	// Convert
 	list := make([]RobotSubscribeReply, 0)
 	if err == nil && len(data) > 0 {
 		for _, item := range data {
@@ -103,15 +103,15 @@ func (h *RobotSubscribeReplyCacheBuildHandler) GetCacheData() (any, error) {
 				continue
 			}
 
-			// 解析 week_duration 字段
+			// Parse week_duration field
 			var weekDuration = make([]int, 0)
 			_ = tool.JsonDecodeUseNumber(item[`week_duration`], &weekDuration)
 
-			// 解析 reply_type 字段
+			// Parse reply_type field
 			var replyType = make([]string, 0)
 			_ = tool.JsonDecodeUseNumber(item[`reply_type`], &replyType)
 
-			// 解析 subscribe_source 字段
+			// Parse subscribe_source field
 			var subscribeSource = make([]string, 0)
 			_ = tool.JsonDecodeUseNumber(item[`subscribe_source`], &subscribeSource)
 
@@ -141,7 +141,7 @@ func (h *RobotSubscribeReplyCacheBuildHandler) GetCacheData() (any, error) {
 	return list, err
 }
 
-// GetRobotSubscribeReplyListByAppid 公众号关注后回复规则列表
+// GetRobotSubscribeReplyListByAppid Official account subscription reply rule list
 func GetRobotSubscribeReplyListByAppid(adminUserId int, appid, ruleType string) ([]RobotSubscribeReply, error) {
 	result := make([]RobotSubscribeReply, 0)
 	err := lib_redis.GetCacheWithBuild(define.Redis, &RobotSubscribeReplyCacheBuildHandler{AdminUserId: adminUserId, Appid: appid, RuleType: ruleType}, &result, time.Hour)
@@ -151,7 +151,7 @@ func GetRobotSubscribeReplyListByAppid(adminUserId int, appid, ruleType string) 
 	return result, err
 }
 
-// SaveRobotSubscribeReply 保存关注后回复规则（创建或更新）
+// SaveRobotSubscribeReply Save subscription reply rule (create or update)
 func SaveRobotSubscribeReply(id, adminUserID int, appid, ruleType, durationType string, weekDuration []int, startDay, endDay, startDuration, endDuration string, priorityNum, replyInterval int, subscribeSource []string, replyContent []ReplyContent, replyType []string, replyNum int, switchStatus int) (int64, error) {
 	weekDurationJson, _ := tool.JsonEncode(weekDuration)
 	subscribeSourceJson, _ := tool.JsonEncode(subscribeSource)
@@ -182,25 +182,25 @@ func SaveRobotSubscribeReply(id, adminUserID int, appid, ruleType, durationType 
 	var newId int64
 
 	if id <= 0 {
-		// 创建新记录
+		// Create new record
 		data["create_time"] = tool.Time2Int()
 		newId, err = msql.Model(`func_chat_robot_subscribe_reply`, define.Postgres).Insert(data, "id")
 	} else {
-		// 更新现有记录
+		// Update existing record
 		_, err = msql.Model(`func_chat_robot_subscribe_reply`, define.Postgres).Where("id", cast.ToString(id)).Update(data)
 		newId = int64(id)
 	}
 
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &RobotSubscribeReplyCacheBuildHandler{AdminUserId: adminUserID, Appid: appid, RuleType: ruleType})
 	}
 	return newId, err
 }
 
-// DeleteRobotSubscribeReply 删除关注后回复规则
+// DeleteRobotSubscribeReply Delete subscription reply rule
 func DeleteRobotSubscribeReply(id int, adminUserId int) error {
-	//先获取删除的记录
+	// First get the record to be deleted
 	oldOne, err := GetRobotSubscribeReply(id, adminUserId)
 	if err != nil {
 		return err
@@ -209,42 +209,42 @@ func DeleteRobotSubscribeReply(id int, adminUserId int) error {
 	ruleType := cast.ToString(oldOne[`rule_type`])
 	_, err = msql.Model(`func_chat_robot_subscribe_reply`, define.Postgres).Where("id", cast.ToString(id)).Delete()
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &RobotSubscribeReplyCacheBuildHandler{AdminUserId: adminUserId, Appid: appid, RuleType: ruleType})
 	}
 	return err
 }
 
-// GetRobotSubscribeReply 获取单个关注后回复规则
+// GetRobotSubscribeReply Get a single subscription reply rule
 func GetRobotSubscribeReply(id int, adminUserId int) (msql.Params, error) {
 	return msql.Model(`func_chat_robot_subscribe_reply`, define.Postgres).Where("id", cast.ToString(id)).Where("admin_user_id", cast.ToString(adminUserId)).Find()
 }
 
-// GetRobotSubscribeReplyListWithFilter 获取关注后回复规则列表（带过滤条件和分页）
+// GetRobotSubscribeReplyListWithFilter Get subscription reply rule list (with filters and pagination)
 func GetRobotSubscribeReplyListWithFilter(adminUserId int, appid, ruleType, replyType string, page, size int) ([]msql.Params, int, error) {
 	model := msql.Model(`func_chat_robot_subscribe_reply`, define.Postgres).Where("admin_user_id", cast.ToString(adminUserId))
 
-	// 根据appid查询
+	// Query by appid
 	if appid != "" {
 		model.Where("appid", appid)
 	}
-	// 根据规则类型查询
+	// Query by rule type
 	if ruleType != "" {
 		model.Where("rule_type", ruleType)
 	}
 
-	// 根据回复类型查询
+	// Query by reply type
 	if replyType != "" {
-		// 使用 PostgreSQL 的 jsonb 操作符进行查询
+		// Query using PostgreSQL's jsonb operator
 		model.Where("reply_type ?| array['" + replyType + "']")
 	}
 
-	// 添加分页
+	// Add pagination
 	list, total, err := model.Order("priority_num ASC,id DESC").Paginate(page, size)
 	return list, total, err
 }
 
-// CheckSubscribeSourceRepeatedlyEnable 检查订阅来源是否重复启用
+// CheckSubscribeSourceRepeatedlyEnable Check if subscription source is repeatedly enabled
 func CheckSubscribeSourceRepeatedlyEnable(ruleType string, subscribeSource []string, appid string, id int) map[string]interface{} {
 	result := map[string]interface{}{
 		"is_repeat":             false,
@@ -258,7 +258,7 @@ func CheckSubscribeSourceRepeatedlyEnable(ruleType string, subscribeSource []str
 		return result
 	}
 
-	// 检测SubscribeSource是否重复
+	// Check if SubscribeSource is duplicated
 	model := msql.Model(`func_chat_robot_subscribe_reply`, define.Postgres).
 		Where("appid", appid).
 		Where("rule_type", SubscribeRuleTypeSource).
@@ -266,7 +266,7 @@ func CheckSubscribeSourceRepeatedlyEnable(ruleType string, subscribeSource []str
 		Where("id", "!=", cast.ToString(id))
 
 	if len(subscribeSource) > 0 {
-		// 使用PostgreSQL数组重叠操作符检查是否有重复的subscribe_source
+		// Use PostgreSQL array overlap operator to check for duplicate subscribe_source
 		model.Where("subscribe_source ?| array['" + strings.Join(subscribeSource, `','`) + "']")
 	}
 
@@ -283,7 +283,7 @@ func CheckSubscribeSourceRepeatedlyEnable(ruleType string, subscribeSource []str
 		existingSubscribeSource := DisposeStringList(checkUseRule["subscribe_source"])
 		result["subscribe_source"] = existingSubscribeSource
 
-		// 获取subscribeSource 与 existingSubscribeSource 的交集
+		// Get intersection of subscribeSource and existingSubscribeSource
 		var intersection []string
 		existingMap := make(map[string]bool)
 		for _, source := range existingSubscribeSource {
@@ -295,7 +295,7 @@ func CheckSubscribeSourceRepeatedlyEnable(ruleType string, subscribeSource []str
 			}
 		}
 
-		// 通过 lib_define.SubscribeSceneNameMap[] 获取订阅场景名称并通过,拼接
+		// Get subscription scene names through lib_define.SubscribeSceneNameMap[] and join with commas
 		sceneNames := make([]string, 0)
 		for _, scene := range intersection {
 			if name, exists := lib_define.SubscribeSceneNameMap[scene]; exists {
@@ -313,9 +313,9 @@ func CheckSubscribeSourceRepeatedlyEnable(ruleType string, subscribeSource []str
 	return result
 }
 
-// UpdateRobotSubscribeReplySwitchStatus 更新关注后回复规则开关状态
+// UpdateRobotSubscribeReplySwitchStatus Update subscription reply rule switch status
 func UpdateRobotSubscribeReplySwitchStatus(id int, adminUserId int, switchStatus int) error {
-	//先获取更新的记录
+	// First get the record to be updated
 	oldOne, err := GetRobotSubscribeReply(id, adminUserId)
 	if err != nil {
 		return err
@@ -330,15 +330,15 @@ func UpdateRobotSubscribeReplySwitchStatus(id int, adminUserId int, switchStatus
 
 	_, err = msql.Model(`func_chat_robot_subscribe_reply`, define.Postgres).Where("id", cast.ToString(id)).Update(data)
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &RobotSubscribeReplyCacheBuildHandler{AdminUserId: adminUserId, Appid: appid, RuleType: ruleType})
 	}
 	return err
 }
 
-// UpdateRobotSubscribeReplyPriorityNum 更新关注后回复规则优先级
+// UpdateRobotSubscribeReplyPriorityNum Update subscription reply rule priority
 func UpdateRobotSubscribeReplyPriorityNum(id int, adminUserId int, priorityNum int) error {
-	//先获取更新的记录
+	// First get the record to be updated
 	oldOne, err := GetRobotSubscribeReply(id, adminUserId)
 	if err != nil {
 		return err
@@ -353,7 +353,7 @@ func UpdateRobotSubscribeReplyPriorityNum(id int, adminUserId int, priorityNum i
 
 	_, err = msql.Model(`func_chat_robot_subscribe_reply`, define.Postgres).Where("id", cast.ToString(id)).Update(data)
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &RobotSubscribeReplyCacheBuildHandler{AdminUserId: adminUserId, Appid: appid, RuleType: ruleType})
 	}
 	return err

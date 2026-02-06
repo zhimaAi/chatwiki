@@ -28,7 +28,7 @@
     <div class="workflow-form">
       <div class="node-options">
         <div class="options-title">
-          <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>输入</div>
+          <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>{{ t('label_input') }}</div>
         </div>
         <template v-for="item in options" :key="item.key">
           <div :class="['options-item', {'is-required': item.required}]">
@@ -62,7 +62,7 @@
       </div>
       <div class="node-options">
         <div class="options-title">
-          <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>输出</div>
+          <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>{{ t('label_output') }}</div>
         </div>
         <div class="options-item">
           <OutputFields :tree-data="outputData"/>
@@ -80,6 +80,9 @@ import AtInput from '../at-input/at-input.vue'
 import {getRobotStartNode} from "@/api/robot/index.js";
 import {jsonDecode} from "@/utils/index.js";
 import OutputFields from "@/views/workflow/components/feishu-table/output-fields.vue";
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.zm-workflow-node-form')
 
 const getNode = inject('getNode')
 const setData = inject('setData')

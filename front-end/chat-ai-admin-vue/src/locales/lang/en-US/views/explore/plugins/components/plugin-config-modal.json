@@ -1,0 +1,13 @@
+{
+  "title_api_key_auth_config": "API Key Authorization Configuration",
+  "msg_config_workflow_tip": "After configuring credentials, workflows can directly call this plugin",
+  "label_credential_name": "Credential Name",
+  "msg_please_input_credential_name": "Please enter credential name!",
+  "ph_input_credential_name": "Please enter credential name",
+  "msg_credential_name_desc": "Name only used to distinguish multiple authorization configurations, not for API calls",
+  "msg_please_input_field": "Please enter {field}!",
+  "btn_get": "Get",
+  "msg_credential_name_exists": "Credential name already exists",
+  "msg_saved": "Saved",
+  "msg_config_save_failed": "Failed to save configuration"
+}

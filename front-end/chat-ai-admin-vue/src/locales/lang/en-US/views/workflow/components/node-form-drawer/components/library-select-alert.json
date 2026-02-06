@@ -1,0 +1,15 @@
+{
+  "title_linked_library": "Linked Libraries",
+  "ph_search_library": "Enter library name to search",
+  "msg_linked_library_tip": "Please select linked libraries. The bot will respond to user questions based on uploaded documents in the libraries. Each bot can link up to 5 libraries.",
+  "btn_refresh": "Refresh",
+  "btn_create_library": "Create Library",
+  "label_normal_library": "Normal Library",
+  "label_external_library": "External Library",
+  "label_qa_library": "Q&A Library",
+  "label_mp_library": "MP Library",
+  "btn_cancel": "Cancel",
+  "btn_confirm": "Confirm",
+  "label_all": "All",
+  "msg_refresh_success": "Refresh completed"
+}

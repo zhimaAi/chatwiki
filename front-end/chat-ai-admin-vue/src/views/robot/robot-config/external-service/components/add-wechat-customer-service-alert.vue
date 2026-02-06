@@ -94,18 +94,18 @@
 <template>
   <a-modal width="1168px" v-model:open="show" :title="title" @cancel="handleCancel">
     <template #footer>
-      <a-button key="back" @click="handleCancel">取 消</a-button>
+      <a-button key="back" @click="handleCancel">{{ t('btn_cancel') }}</a-button>
       <a-button key="submit" type="primary" :loading="loading" @click="step = 2" v-if="step === 1"
-        >保存并进入下一步</a-button
+        >{{ t('btn_save_next') }}</a-button
       >
       <a-button key="submit" type="primary" :loading="loading" @click="handleSave" v-if="step === 2"
-        >已完成配置</a-button
+        >{{ t('btn_config_complete') }}</a-button
       >
     </template>
     <div class="add-wechat-app-alert" v-if="step === 2">
       <a-alert
         class="tip-alert"
-        message="进入微信客服后台（kf.weixin.qq.com），在【开发配置】中启用企业内部接入后获取开发者信息"
+        :message="t('tip_config_step2')"
         type="info"
         show-icon
       />
@@ -113,22 +113,22 @@
       <div class="alert-body">
         <div class="form-box">
           <a-form ref="formRef" layout="vertical" :model="formState" :rules="formRules">
-            <a-form-item label="企业头像/名称" name="app_name">
+            <a-form-item :label="t('label_company_info')" name="app_name">
               <PageTitleInput
                 :autoUpload="false"
                 v-model:avatar="formState.app_avatar_url"
                 v-model:value.trim="formState.app_name"
-                placeholder="请输入您的企业名称"
+                :placeholder="t('placeholder_company_name')"
                 @changeAvatar="onChangeAvatar"
               />
             </a-form-item>
-            <a-form-item label="企业id" name="app_id">
-              <a-input v-model:value.trim="formState.app_id" placeholder="请输入您的AppId" />
+            <a-form-item :label="t('label_company_id')" name="app_id">
+              <a-input v-model:value.trim="formState.app_id" :placeholder="t('placeholder_app_id')" />
             </a-form-item>
-            <a-form-item label="企业Secret" name="app_secret">
+            <a-form-item :label="t('label_company_secret')" name="app_secret">
               <a-input
                 v-model:value.trim="formState.app_secret"
-                placeholder="请输入您的AppSecret"
+                :placeholder="t('placeholder_app_secret')"
               />
             </a-form-item>
           </a-form>
@@ -141,7 +141,7 @@
     <div class="add-wechat-app-alert" v-if="step === 1">
       <a-alert
         class="tip-alert"
-        message="进入微信客服后台（kf.weixin.qq.com），在【开发配置】中启用企业内部接入。请按照下图配置"
+        :message="t('tip_config_step1')"
         type="info"
         show-icon
       />
@@ -149,17 +149,17 @@
         <div class="config-items">
           <div class="config-item">
             <span class="config-value">{{ robotInfo.push_wechat_kefu }}</span>
-            <span class="copy-btn" @click="handleCopy(robotInfo.push_wechat_kefu)">复制</span>
+            <span class="copy-btn" @click="handleCopy(robotInfo.push_wechat_kefu)">{{ t('btn_copy') }}</span>
           </div>
 
           <div class="config-item">
             <span class="config-value">{{ robotInfo.push_token }}</span>
-            <span class="copy-btn" @click="handleCopy(robotInfo.push_token)">复制</span>
+            <span class="copy-btn" @click="handleCopy(robotInfo.push_token)">{{ t('btn_copy') }}</span>
           </div>
 
           <div class="config-item">
             <span class="config-value">{{ robotInfo.push_aeskey }}</span>
-            <span class="copy-btn" @click="handleCopy(robotInfo.push_aeskey)">复制</span>
+            <span class="copy-btn" @click="handleCopy(robotInfo.push_aeskey)">{{ t('btn_copy') }}</span>
           </div>
         </div>
         <img class="config-preview-img" src="@/assets/img/robot/config_preview_03.png" />
@@ -173,7 +173,10 @@ import { saveWechatApp } from '@/api/robot'
 import { ref, reactive, computed, toRaw, inject } from 'vue'
 import { copyText } from '@/utils/index'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import PageTitleInput from './page-title-input.vue'
+
+const { t } = useI18n('views.robot.robot-config.external-service.components.add-wechat-customer-service-alert')
 
 const emit = defineEmits(['ok'])
 const defaultAvatar = '/upload/default/wechat_kefu_avatar.png'
@@ -199,14 +202,14 @@ const formRules = {
   app_name: [
     {
       required: true,
-      message: '请输入您的公众号名称',
+      message: t('rule_app_name'),
       trigger: 'change'
     },
     {
       trigger: 'change',
       validator: () => {
         if (!formState.app_avatar_url) {
-          return Promise.reject('请上传公众号头像')
+          return Promise.reject(t('rule_app_avatar'))
         } else {
           return Promise.resolve()
         }
@@ -216,22 +219,22 @@ const formRules = {
   app_id: [
     {
       required: true,
-      message: '请输入您的AppId',
+      message: t('rule_app_id'),
       trigger: 'change'
     }
   ],
   app_secret: [
     {
       required: true,
-      message: '请输入您的AppSecret',
+      message: t('rule_app_secret'),
       trigger: 'change'
     }
   ]
 }
 
 const title = computed(() => {
-  let text = !formState.id ? '添加微信客服' : '编辑微信客服'
-  let text2 = step.value == 1 ? '-服务器配置' : '-填写微信客服开发信息'
+  let text = !formState.id ? t('title_add_wechat') : t('title_edit_wechat')
+  let text2 = step.value == 1 ? t('title_step1') : t('title_step2')
 
   return text + text2
 })
@@ -255,7 +258,7 @@ const submitForm = () => {
   saveWechatApp(data).then((res) => {
     Object.assign(step2Info, res.data)
     step.value = 2
-    message.success('保存成功')
+    message.success(t('msg_save_success'))
 
     emit('ok')
 
@@ -285,7 +288,7 @@ const handleCancel = () => {
 
 const handleCopy = (text) => {
   copyText(text)
-  message.success('复制成功')
+  message.success(t('msg_copy_success'))
 }
 
 const open = (data) => {

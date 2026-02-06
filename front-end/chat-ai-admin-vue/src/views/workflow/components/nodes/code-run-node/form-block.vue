@@ -2,10 +2,10 @@
   <div class="form-block">
     <a-form ref="formRef" layout="vertical" :model="formState">
       <div class="gray-block">
-        <div class="gray-block-title">输入</div>
+        <div class="gray-block-title">{{ t('label_input') }}</div>
 
         <div class="array-form-box" @mousedown.stop="">
-          <div class="form-item-label">自定义输入参数</div>
+          <div class="form-item-label">{{ t('label_custom_input_params') }}</div>
           <div class="form-item-list" v-for="(item, index) in formState.params" :key="index">
             <a-form-item
               :label="null"
@@ -17,7 +17,7 @@
                   <a-input
                     style="width: 160px"
                     v-model:value="item.field"
-                    placeholder="请输入参数KEY"
+                    :placeholder="t('ph_input_param_key')"
                   ></a-input>
                 </a-form-item-rest>
 
@@ -29,7 +29,7 @@
                   :allowClear="false"
                   :displayRender="({ labels }) => labels.join('/')"
                   :field-names="{ children: 'children' }"
-                  placeholder="请选择"
+                  :placeholder="t('ph_select')"
                 />
 
                 <div
@@ -44,14 +44,14 @@
             </a-form-item>
           </div>
           <a-button @click="handleAddParams" :icon="h(PlusOutlined)" block type="dashed"
-            >添加参数</a-button
+            >{{ t('btn_add_param') }}</a-button
           >
         </div>
         <div class="code-edit-box"  @mousedown.stop="">
           <div class="title-block">
-            <div>JavaScript 代码</div>
+            <div>{{ t('title_javascript_code') }}</div>
             <a-flex :gap="16" align="center">
-              <a @click="resetTemp">还原为模板</a>
+              <a @click="resetTemp">{{ t('btn_restore_template') }}</a>
               <div class="btn-hover-wrap" @click="openEditCodeBox"><FullscreenOutlined /></div>
             </a-flex>
           </div>
@@ -62,26 +62,26 @@
       </div>
       <a-form-item name="timeout">
         <template #label>
-          <a-flex :gap="2">超时时长</a-flex>
+          <a-flex :gap="2">{{ t('label_timeout') }}</a-flex>
         </template>
         <div class="flex-block-item">
           <a-input-number
-            placeholder="请输入请求地址"
+            :placeholder="t('ph_request_url')"
             style="width: 138px"
             :precision="0"
             v-model:value="formState.timeout"
             :min="0"
             :max="3000"
           />
-          秒
+          {{ t('label_seconds') }}
         </div>
       </a-form-item>
       <div class="gray-block mt16">
-        <div class="gray-block-title" @click="test">输出 (自定义输出字段)</div>
+        <div class="gray-block-title" @click="test">{{ t('label_output_fields') }}</div>
         <div class="output-box">
           <div class="output-block">
-            <div class="output-item">参数Key</div>
-            <div class="output-item">类型</div>
+            <div class="output-item">{{ t('label_param_key') }}</div>
+            <div class="output-item">{{ t('label_type') }}</div>
           </div>
           <div class="array-form-box" @mousedown.stop="">
             <div class="form-item-list" v-for="(item, index) in formState.output" :key="index">
@@ -94,13 +94,13 @@
                   <a-input
                     style="width: 214px"
                     v-model:value="item.key"
-                    placeholder="请输入"
+                    :placeholder="t('ph_input')"
                   ></a-input>
                   <a-form-item-rest>
                     <a-select
                       @change="onTypeChange(item)"
                       v-model:value="item.typ"
-                      placeholder="请选择"
+                      :placeholder="t('ph_select')"
                       style="width: 214px"
                     >
                       <a-select-option v-for="op in typOptions" :value="op.value">{{
@@ -125,23 +125,23 @@
               </a-form-item>
             </div>
             <a-button @click="handleAddOutPut" :icon="h(PlusOutlined)" block type="dashed"
-              >添加参数</a-button
+              >{{ t('btn_add_param') }}</a-button
             >
           </div>
         </div>
       </div>
       <div class="gray-block mt16">
-        <div class="gray-block-title">异常处理</div>
-        <div>运行代码报错时执行该分支</div>
+        <div class="gray-block-title">{{ t('label_exception_handling') }}</div>
+        <div>{{ t('msg_exception_branch_desc') }}</div>
       </div>
     </a-form>
     <a-modal
       v-model:open="open"
-      title="编辑代码"
+      :title="t('title_edit_code')"
       :width="746"
     >
       <template #footer>
-        <a-button type="primary"  @click="handleOk">确定</a-button>
+        <a-button type="primary"  @click="handleOk">{{ t('btn_confirm') }}</a-button>
       </template>
       <div style="margin: 40px 0 24px 0">
         <CodeEditBox ref="codeEditBoxRef" v-model:value="formState.main_func" :width="698" :height="472" />
@@ -162,6 +162,9 @@ import SubKey from './subs-key.vue'
 import AtInput from '../at-input/at-input.vue'
 import CodeEditBox from './code-edit-box.vue'
 import { haveOutKeyNode, specialNodeList } from '@/views/workflow/components/util.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.code-run-node.form-block')
 
 const graphModel = inject('getGraph')
 const getNode = inject('getNode')

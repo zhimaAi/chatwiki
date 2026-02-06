@@ -39,40 +39,40 @@ const PlaceholderRegexStr = `\[\[ZM--\s*(\w+)\s*--ZM\]\]`
 const PlaceholderPrefix = "[[ZM--"
 const PlaceholderSuffix = "--ZM]]"
 
-// PlaceholderRegex 正则表达式用于匹配 [[ZM--变量名--ZM]] 格式的占位符
+// PlaceholderRegex regular expression to match placeholders in [[ZM--variable_name--ZM]] format
 var PlaceholderRegex = regexp.MustCompile(PlaceholderRegexStr)
 
-// ReplacePlaceholdersInString 替换字符串中的占位符
+// ReplacePlaceholdersInString replace placeholders in string
 func ReplacePlaceholdersInString(text string, lang string) string {
-	// 查找所有匹配的占位符
+	// find all matching placeholders
 	matches := PlaceholderRegex.FindAllStringIndex(text, -1)
 	if len(matches) == 0 {
 		return text
 	}
 
-	// 从后往前替换，防止索引偏移
+	// replace from back to front to prevent index offset
 	for i := len(matches) - 1; i >= 0; i-- {
 		start, end := matches[i][0], matches[i][1]
-		fullMatch := text[start:end]                                                                            // 完整的占位符，例如 [[ZM--variable_name--ZM]]
-		variableName := strings.TrimPrefix(strings.TrimSuffix(fullMatch, PlaceholderSuffix), PlaceholderPrefix) // 提取变量名部分 (去掉 [[ZM-- 和 --ZM]])
+		fullMatch := text[start:end]                                                                            // full placeholder, e.g. [[ZM--variable_name--ZM]]
+		variableName := strings.TrimPrefix(strings.TrimSuffix(fullMatch, PlaceholderSuffix), PlaceholderPrefix) // extract variable name (remove [[ZM-- and --ZM]])
 
-		// 去除变量名前后的空格
+		// trim spaces around variable name
 		variableName = strings.TrimSpace(variableName)
-		// 从i18n获取对应的翻译文本
+		// get translated text from i18n
 		translatedText := Show(lang, variableName)
 
-		// 确保翻译文本经过JSON转义，避免破坏JSON格式
+		// ensure translated text is JSON escaped to avoid breaking JSON format
 		escapedText, err := json.Marshal(translatedText)
 		if err != nil {
-			// 如果转义失败，使用原文本作为备选方案
+			// if escape fails, use raw text as fallback
 			logs.Info("JSON escape failed for translation: %s, using raw text", translatedText)
 		} else {
-			// 移除首尾的引号（json.Marshal会添加引号）
+			// remove quotes at both ends (json.Marshal adds quotes)
 			escapedText = escapedText[1 : len(escapedText)-1]
 			translatedText = string(escapedText)
 		}
 
-		// 替换占位符
+		// replace placeholder
 		text = text[:start] + translatedText + text[end:]
 	}
 

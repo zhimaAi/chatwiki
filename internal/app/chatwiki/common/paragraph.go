@@ -52,7 +52,7 @@ func GetParagraphSplit(userId, fileId, pdfPageNum int, fileDataIds string, split
 	if err != nil {
 		return
 	}
-	list.UnifySetNumber() //对number统一编号
+	list.UnifySetNumber() // Unify number assignment
 	for i := range list {
 		if splitParams.IsQaDoc == define.DocTypeQa {
 			list[i].WordTotal = utf8.RuneCountInString(list[i].Question) + utf8.RuneCountInString(list[i].Answer)
@@ -84,22 +84,22 @@ func GetFileDataInfo(id string, FileDataId, pdfPageNum int, lang string) (list d
 			Answer:     item[`answer`],
 			Images:     images,
 			WordTotal:  cast.ToInt(item[`word_total`]),
-			//父子分段
+			// Father-son chunking
 			FatherChunkParagraphNumber: cast.ToInt(item[`father_chunk_paragraph_number`]),
 		})
 	}
-	list.UnifySetNumber() //对number统一编号
+	list.UnifySetNumber() // Unify number assignment
 	return list, nil
 }
 
 func SaveSplitParagraph(adminUserId, fileId int, paragraph msql.Params, list define.DocSplitItems) (define.DocSplitItems, error) {
-	if len(paragraph) == 0 { //pdf单页重新分段,兼容处理
+	if len(paragraph) == 0 { // PDF single page re-segmentation, compatibility handling
 		fatherChunkParagraphNumber, number, sqlErr := GetAddParagraphNumbers(int64(fileId))
 		if sqlErr != nil {
 			logs.Error(sqlErr.Error())
 			return list, sqlErr
 		}
-		//给新数据设置编号
+		// Set numbers for new data
 		for i := range list {
 			list[i].FatherChunkParagraphNumber, list[i].Number = fatherChunkParagraphNumber, number+i
 		}
@@ -114,10 +114,10 @@ func SaveSplitParagraph(adminUserId, fileId int, paragraph msql.Params, list def
 		return list, err
 	}
 	indexModel := msql.Model(`chat_ai_library_file_data_index`, define.Postgres)
-	var number int //编号变量
+	var number int // Number variable
 	for _, item := range datas {
-		if item[`id`] == paragraph[`id`] { //重新分段的段落
-			//删除分段及分段索引
+		if item[`id`] == paragraph[`id`] { // Re-segmented paragraph
+			// Delete paragraph and paragraph index
 			_, err = m.Where(`id`, item[`id`]).Delete()
 			if err != nil {
 				logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
@@ -126,16 +126,16 @@ func SaveSplitParagraph(adminUserId, fileId int, paragraph msql.Params, list def
 			if err != nil {
 				logs.Error(`sql:%s,err:%s`, indexModel.GetLastSql(), err.Error())
 			}
-			//给新数据设置编号
+			// Set numbers for new data
 			for i := range list {
 				number++
-				list[i].FatherChunkParagraphNumber = cast.ToInt(paragraph[`father_chunk_paragraph_number`]) //保持不变
+				list[i].FatherChunkParagraphNumber = cast.ToInt(paragraph[`father_chunk_paragraph_number`]) // Keep unchanged
 				list[i].Number = number
-				list[i].PageNum = cast.ToInt(paragraph[`page_num`]) //保持不变
+				list[i].PageNum = cast.ToInt(paragraph[`page_num`]) // Keep unchanged
 			}
-		} else { //其他数据直接修改编号
+		} else { // Other data directly modify number
 			number++
-			if cast.ToInt(item[`id`]) != number { //修正编号
+			if cast.ToInt(item[`id`]) != number { // Correct number
 				_, err = m.Where(`id`, item[`id`]).Update(msql.Datas{`number`: number, `update_time`: cast.ToString(tool.Time2Int())})
 				if err != nil {
 					logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
@@ -165,7 +165,7 @@ func GetAddParagraphNumbers(fileId int64) (int, int, error) {
 		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 		return 0, 0, err
 	}
-	if cast.ToInt(maxFn) > 0 { //父子分段,新起一个父分段
+	if cast.ToInt(maxFn) > 0 { // Father-son chunking, start a new father chunk
 		return cast.ToInt(maxFn) + 1, 1, nil
 	}
 	maxNumber, err := m.Where(`file_id`, cast.ToString(fileId)).Max(`number`)
@@ -193,8 +193,8 @@ func RefreshParagraphNumbers(fileId int64) {
 			FatherChunkParagraphNumber: cast.ToInt(item[`father_chunk_paragraph_number`]),
 		}
 	}
-	list.UnifySetNumber() //对number统一编号
-	//所有数据修正编号
+	list.UnifySetNumber() // Unify number assignment
+	// Correct numbers for all data
 	for i, item := range datas {
 		if cast.ToInt(item[`id`]) != list[i].Number {
 			_, err = m.Where(`id`, item[`id`]).Update(msql.Datas{`number`: list[i].Number, `update_time`: cast.ToString(tool.Time2Int())})

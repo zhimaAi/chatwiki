@@ -1,0 +1,1 @@
+{"desc_official_trigger": "当对接的公众号触发相关事件时，自动触发流程", "label_official_account": "公众号", "btn_add_official": "添加公众号", "label_trigger_event": "触发事件", "label_private_message": "私信消息", "label_subscribe_unsubscribe": "关注/取消关注事件", "label_qrcode_scan": "扫描带参数二维码事件", "label_menu_click": "自定义菜单事件", "label_output": "输出", "btn_view_document": "查看官方接口文档", "ph_select_variable": "请输入选择变量"}

@@ -1,0 +1,9 @@
+{
+  "label_daily_active_users": "日活用户数（人）",
+  "legend_total_messages": "消息总数",
+  "legend_hit_messages": "命中消息",
+  "legend_miss_messages": "未命中消息",
+  "legend_hit_rate": "命中率",
+  "yaxis_label_count": "数量（次）",
+  "yaxis_label_percentage": "百分比（%）"
+}

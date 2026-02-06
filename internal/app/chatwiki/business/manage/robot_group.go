@@ -68,7 +68,7 @@ func GetRobotGroupList(c *gin.Context) {
 		}
 		//wheres = append(wheres, []string{`id`, `in`, strings.Join(managedRobotIdList, `,`)})
 	}
-	//统计每个分组下的机器人数量
+	//Count robots in each group
 	stats, err := msql.Model(`chat_ai_robot`, define.Postgres).
 		Where2(wheres).
 		Group(`group_id`).ColumnObj(`COUNT(1) AS total`, `group_id`)
@@ -156,7 +156,7 @@ func DeleteRobotGroup(c *gin.Context) {
 	}
 
 	m := msql.Model(`chat_ai_robot_group`, define.Postgres)
-	//检查分组是否存在
+	//Check whether the group exists
 	groupId, err := m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Value(`id`)
 	if err != nil {
 		logs.Error(err.Error())
@@ -168,7 +168,7 @@ func DeleteRobotGroup(c *gin.Context) {
 		return
 	}
 
-	//将该分组下的机器人移到未分组
+	//Move robots in this group to Ungrouped
 	_, err = msql.Model(`chat_ai_robot`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).
 		Where(`group_id`, cast.ToString(id)).
 		Update(msql.Datas{`group_id`: `0`, `update_time`: tool.Time2Int()})
@@ -178,7 +178,7 @@ func DeleteRobotGroup(c *gin.Context) {
 		return
 	}
 
-	//删除分组
+	//Delete group
 	_, err = m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Delete()
 	if err != nil {
 		logs.Error(err.Error())
@@ -202,7 +202,7 @@ func RelationRobotGroup(c *gin.Context) {
 		return
 	}
 	//data check
-	//检查机器人是否存在
+	//Check whether the robot exists
 	robotInfo, err := msql.Model(`chat_ai_robot`, define.Postgres).
 		Where(`id`, cast.ToString(robotId)).
 		Where(`admin_user_id`, cast.ToString(userId)).
@@ -217,7 +217,7 @@ func RelationRobotGroup(c *gin.Context) {
 		return
 	}
 
-	//更新机器人分组
+	//Update robot group
 	_, err = msql.Model(`chat_ai_robot`, define.Postgres).
 		Where(`id`, cast.ToString(robotId)).
 		Where(`admin_user_id`, cast.ToString(userId)).

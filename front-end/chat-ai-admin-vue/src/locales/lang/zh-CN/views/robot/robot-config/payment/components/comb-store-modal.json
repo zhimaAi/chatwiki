@@ -1,0 +1,14 @@
+{
+  "title_edit_package": "编辑套餐",
+  "title_create_package": "新增套餐",
+  "label_package_name": "套餐名",
+  "ph_package_name_example": "示例：单日套餐，最多6个字",
+  "label_duration": "时长（天）",
+  "ph_input": "请输入",
+  "label_count": "次数（次）",
+  "label_price": "费用（元）",
+  "msg_input_package_name": "请输入套餐名称",
+  "msg_input_package_duration": "请输入套餐时长",
+  "msg_input_package_count": "请输入套餐次数",
+  "msg_input_package_price": "请输入套餐费用"
+}

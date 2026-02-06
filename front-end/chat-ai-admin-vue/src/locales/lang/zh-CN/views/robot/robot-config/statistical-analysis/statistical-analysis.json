@@ -1,0 +1,23 @@
+{
+  "label_channel": "渠道：",
+  "ph_all_channels": "全部渠道",
+  "label_date": "日期：",
+  "btn_reset": "重置",
+  "title_daily_active_users": "日活用户数",
+  "tooltip_daily_active_users": "每天进行有效沟通的用户数。有效沟通的判定标准为一次及以上的问—答。",
+  "unit_people": "单位（人）",
+  "title_daily_new_users": "日新增用户数",
+  "tooltip_daily_new_users": "每天进行有效沟通的新增用户数。有效沟通的判定标准为一次及以上的—问—答。",
+  "title_total_messages": "总消息数",
+  "tooltip_total_messages": "每天用户和机器人沟通过程中产生的所有消息总数。",
+  "unit_messages": "单位（条）",
+  "title_token_consumption": "Token消耗数",
+  "tooltip_token_consumption": "每天大模型消耗的token总数，包括使用大模型回答问题、优化问题、推荐问题的token消耗。",
+  "unit_thousands": "单位（千）",
+  "channel_webapp": "WebAPP",
+  "channel_embedded_website": "嵌入网站",
+  "label_daily_active_users": "日活用户数（人）",
+  "label_daily_new_users": "日新增用户数（人）",
+  "label_total_messages": "总消息数（条）",
+  "label_token_consumption": "token消耗数（千）"
+}

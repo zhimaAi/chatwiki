@@ -1,37 +1,39 @@
 <template>
   <a-modal
-    title="新增授权码"
+    :title="t('title_add_auth_code')"
     v-model:open="visible"
     :confirm-loading="saving"
-    :cancel-text="finished ? '复制' : '取消' "
+    :cancel-text="finished ? t('btn_copy') : t('btn_cancel')"
     @ok="save"
     @cancel="close"
   >
     <template v-if="!finished">
       <a-alert type="info" class="zm-alert-info">
-        <template #message>设置管理员后，管理员可在公众号内回复【授权码】快速新垲，<a @click="emit('addManager')">点此新增管理员</a></template>
+        <template #message>
+          {{ t('msg_add_manager_tip') }}<a @click="emit('addManager')">{{ t('msg_add_manager_link') }}</a>
+        </template>
       </a-alert>
       <a-form layout="vertical" class="mt16">
-        <a-form-item label="套餐" required>
-          <a-select v-model:value="formState.package_id" placeholder="选择套餐">
+        <a-form-item :label="t('label_package')" required>
+          <a-select v-model:value="formState.package_id" :placeholder="t('ph_select_package')">
             <a-select-option v-for="item in packages" :value="item.id">{{ item.name }}</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="数量" required>
+        <a-form-item :label="t('label_count')" required>
           <div class="count-box">
             <ZmRadioGroup v-model:value="formState.count" :options="options"/>
-            <a-input-number v-model:value="formState.count" :min="1" :max="1000" placeholder="请输入"/>
+            <a-input-number style="width: 130px" v-model:value="formState.count" :min="1" :max="1000" :placeholder="t('ph_input')"/>
           </div>
         </a-form-item>
-        <a-form-item label="备注">
-          <a-input v-model:value.trim="formState.remark" placeholder="请输入" style="width: 100%"/>
+        <a-form-item :label="t('label_remark')">
+          <a-input v-model:value.trim="formState.remark" :placeholder="t('ph_input')" style="width: 100%"/>
         </a-form-item>
       </a-form>
     </template>
     <div v-else class="success-box">
       <div class="tit">
         <CheckCircleFilled class="icon"/>
-        新增成功
+        {{ t('msg_add_success') }}
       </div>
       <div class="code-list">
         <div class="code-item" v-for="code in list" :key="code.content">{{code.content}}</div>
@@ -47,6 +49,9 @@ import {CheckCircleFilled} from '@ant-design/icons-vue';
 import {message} from 'ant-design-vue';
 import {addAuthCode} from "@/api/robot/payment.js";
 import {copyText} from "@/utils/index.js";
+import { useI18n } from '@/hooks/web/useI18n';
+
+const { t } = useI18n('views.robot.robot-config.payment.components.auth-code-modal');
 
 const emit = defineEmits(['addManager', 'ok'])
 const props = defineProps({
@@ -75,7 +80,7 @@ const options = computed(() => {
     {label: '50', value: 50},
   ]
   base.push({
-    label: '自定义',
+    label: t('label_custom'),
     value: [1, 5, 10, 50].includes(formState.count) ? '' : formState.count
   })
   return base
@@ -92,7 +97,7 @@ function close() {
     emit('ok')
     let codes = list.value.map(i => i.content)
     copyText(codes.join('\n'))
-    message.success('复制成功')
+    message.success(t('msg_copy_success'))
   }
   visible.value = false
 }
@@ -103,10 +108,10 @@ function save() {
     visible.value = false
   } else {
     if (!formState.package_id) {
-      return message.error('请选择套餐')
+      return message.error(t('msg_select_package'))
     }
     if (!formState.count) {
-      return message.error('请选择数量')
+      return message.error(t('msg_select_count'))
     }
     saving.value = true
     addAuthCode({

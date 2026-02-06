@@ -11,10 +11,10 @@
 <template>
   <a-modal
     v-model:open="show"
-    title="编辑描述"
+    :title="t('title_edit_desc')"
     @ok="handleOk"
     :confirmLoading="props.confirmLoading"
-    ok-text="保 存"
+    :ok-text="t('btn_save')"
   >
     <div class="upload-ssl-form">
       <a-form ref="formRef" :model="formState" :rules="rules" autocomplete="off" layout="vertical">
@@ -28,6 +28,9 @@
 
 <script setup>
 import { ref, reactive, toRaw } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.public-library.home.components.edit-desc')
 
 const emit = defineEmits(['ok'])
 

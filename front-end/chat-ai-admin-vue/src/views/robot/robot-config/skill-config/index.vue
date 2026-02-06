@@ -68,24 +68,24 @@
 
 <template>
   <div class="user-model-page">
-    <div class="page-title">工作流</div>
+    <div class="page-title">{{ t('title_workflow') }}</div>
     <div class="list-wrapper">
       <div class="content-wrapper">
         <a-alert show-icon style="align-items: baseline">
           <template #message>
             <div>
-              关联工作流后，大语言模型会根据用户问题自主决定是否调用工作流。这需要利用大模型的工具调用能力，请确保您选择的大语言模型知识工具调用。
+              {{ t('msg_workflow_tip_1') }}
             </div>
-            <div>支持关联未发布的工作流，但是未发布的工作流并不会被实际调用。</div>
+            <div>{{ t('msg_workflow_tip_2') }}</div>
           </template>
         </a-alert>
         <div class="actions-box">
           <a-button type="primary" :icon="h(PlusOutlined)" @click="handleOpenSelectLibraryAlert"
-            >添加技能</a-button
+            >{{ t('btn_add_skill') }}</a-button
           >
         </div>
         <a-table :data-source="selectedLibraryRows">
-          <a-table-column key="robot_name" title="工作流">
+          <a-table-column key="robot_name" :title="t('col_workflow')">
             <template #default="{ record }">
               <div class="avatar-box">
                 <img :src="record.robot_avatar" alt="" />
@@ -93,20 +93,20 @@
               </div>
             </template>
           </a-table-column>
-          <a-table-column key="robot_intro" data-index="robot_intro" title="工作流描述" >
+          <a-table-column key="robot_intro" data-index="robot_intro" :title="t('col_workflow_desc')" >
             <template #default="{ record }">
               {{ record.robot_intro || '--' }}
             </template>
           </a-table-column>
-          <a-table-column key="start_node_key" title="状态">
+          <a-table-column key="start_node_key" :title="t('col_status')">
             <template #default="{ record }">
-              <div v-if="!record.start_node_key" class="status-block"><span></span>未发布</div>
-              <div v-else class="status-block success"><span></span>已发布</div>
+              <div v-if="!record.start_node_key" class="status-block"><span></span>{{ t('status_unpublished') }}</div>
+              <div v-else class="status-block success"><span></span>{{ t('status_published') }}</div>
             </template>
           </a-table-column>
-          <a-table-column key="start_node_key" title="操作">
+          <a-table-column key="start_node_key" :title="t('col_actions')">
             <template #default="{ record }">
-              <a @click="handleRemoveCheckedLibrary(record)">移除</a>
+              <a @click="handleRemoveCheckedLibrary(record)">{{ t('action_remove') }}</a>
             </template>
           </a-table-column>
         </a-table>
@@ -125,6 +125,9 @@ import RobotSelectAlert from '../basic-config/components/skill/robot-select-aler
 import { message } from 'ant-design-vue'
 import { useRobotStore } from '@/stores/modules/robot'
 import { reactive, ref, computed, watchEffect, toRaw, h } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.skill-config.index')
 const query = useRoute().query
 const robotStore = useRobotStore()
 
@@ -173,7 +176,7 @@ const onSave = () => {
     id: query.id,
     ...formData
   }).then((res) => {
-    message.success('保存成功')
+    message.success(t('msg_save_success'))
     getRobot(query.id)
   })
 }

@@ -142,7 +142,7 @@
                 <img class="avatar" :src="item.avatar || '/src/assets/img/workflow/node-service.svg'" />
                 <div class="name">{{ item.name }}</div>
               </div>
-              <div class="extra">节点数量：{{ (item.nodes || []).length }}</div>
+              <div class="extra">{{ t('label_node_count') }}{{ (item.nodes || []).length }}</div>
               <div>{{ item.description }}</div>
             </div>
           </template>
@@ -178,7 +178,7 @@
                 </div>
                 <div class="param-item" v-if="Array.isArray(node?.node_params?.curl?.params) && node.node_params.curl.params.length">
                   <div class="field">
-                    <span class="name">查询参数</span>
+                    <span class="name">{{ t('label_query_params') }}</span>
                   </div>
                   <div class="desc">
                     {{ node.node_params.curl.params.map(p => p.key).filter(Boolean).join(', ') }}
@@ -186,7 +186,7 @@
                 </div>
                 <div class="param-item" v-if="Array.isArray(node?.node_params?.curl?.headers) && node.node_params.curl.headers.length">
                   <div class="field">
-                    <span class="name">请求头</span>
+                    <span class="name">{{ t('label_request_headers') }}</span>
                   </div>
                   <div class="desc">
                     {{ node.node_params.curl.headers.map(h => h.key).filter(Boolean).join(', ') }}
@@ -194,7 +194,7 @@
                 </div>
                 <div class="param-item" v-if="Array.isArray(node?.node_params?.curl?.output) && node.node_params.curl.output.length">
                   <div class="field">
-                    <span class="name">输出字段</span>
+                    <span class="name">{{ t('label_output_fields') }}</span>
                   </div>
                   <div class="desc">
                     {{ node.node_params.curl.output.map(o => o.key).filter(Boolean).join(', ') }}
@@ -209,8 +209,8 @@
     </div>
     <div v-else class="empty-box">
       <img style="height: 200px" src="@/assets/empty.png" />
-      <div>暂无可添加HTTP工具</div>
-      <a @click="handleOpenAddHttp">去添加<RightOutlined /></a>
+      <div>{{ t('msg_no_http_tools') }}</div>
+      <a @click="handleOpenAddHttp">{{ t('btn_go_add') }}<RightOutlined /></a>
     </div>
   </div>
 </template>
@@ -220,6 +220,9 @@ import { ref, onMounted, computed } from 'vue'
 import { RightOutlined, DownOutlined } from '@ant-design/icons-vue'
 import { getHttpTools } from '@/api/robot/http_tool.js'
 import { addHttpToolNode } from '../node-list'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-list-popup.http-tool-list')
 
 const emit = defineEmits(['add'])
 

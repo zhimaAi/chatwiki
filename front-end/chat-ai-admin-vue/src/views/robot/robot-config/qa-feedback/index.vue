@@ -72,16 +72,16 @@
 
 <template>
   <div class="user-model-page">
-    <div class="page-title">数据概览</div>
+    <div class="page-title">{{ t('title_data_overview') }}</div>
     <div class="overview-box">
       <div class="item-box" v-for="item in overviewData" :key="item.titleObj.id">
-        <div class="item-info">{{ item.titleObj.title }}</div>
+        <div class="item-info">{{ t(item.titleObj.title) }}</div>
         <div class="item-icon-content item-like"><svg-icon style="font-size: 24px; color: #8C8C8C;" name="like" />{{ item.like_count }}</div>
         <div class="item-icon-content item-dislike"><svg-icon style="font-size: 24px; color: #8C8C8C;" name="dislike" />{{ item.dislike }}</div>
       </div>
     </div>
 
-    <div class="page-title">反馈记录</div>
+    <div class="page-title">{{ t('title_feedback_records') }}</div>
     <div class="list-wrapper">
       <QaFeedback></QaFeedback>
     </div>
@@ -93,7 +93,9 @@ import { useRoute } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import { getFeedbackStats } from '@/api/manage/index.js'
 import QaFeedback from './qa-feedback.vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
+const { t } = useI18n('views.robot.robot-config.qa-feedback.index')
 const route = useRoute()
 
 const query = route.query
@@ -107,28 +109,28 @@ const forMatTitle = (key) => {
   }
   switch (key) {
     case 'today_stats':
-        obj.title = '今日'
+        obj.title = 'label_today'
         obj.id = 1
         break;
     case 'yesterday_stats':
-        obj.title = '昨日'
+        obj.title = 'label_yesterday'
         obj.id = 2
         break;
     case 'week_stats':
-        obj.title = '近7日'
+        obj.title = 'label_last_7_days'
         obj.id = 3
         break;
     case 'total_stats':
-        obj.title = '总计'
+        obj.title = 'label_total'
         obj.id = 4
         break;
   }
   return obj
 }
 const getData = () => {
-  // 获取列表
+  // Get list
   let parmas = {
-    robot_id: query.id, // 机器人ID, // 机器人ID
+    robot_id: query.id, // Robot ID
   }
 
 

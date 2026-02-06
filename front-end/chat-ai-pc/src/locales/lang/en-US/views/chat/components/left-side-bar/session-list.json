@@ -1,0 +1,10 @@
+{
+  "title_rename": "Rename",
+  "ph_input": "Enter name",
+  "btn_rename": "Rename",
+  "btn_delete": "Delete",
+  "msg_input_new_name": "Please enter a new name",
+  "msg_rename_success": "Renamed successfully",
+  "title_delete_confirm": "Delete Confirmation",
+  "msg_confirm_delete": "Confirm to delete this record"
+}

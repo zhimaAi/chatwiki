@@ -354,12 +354,12 @@
 <template>
   <div class="robot-page">
 <!--    <h3 class="page-title">应用</h3>-->
-    <page-alert class="mt16" title="使用说明">
+    <page-alert class="mt16" :title="t('title_usage_guide')">
       <div>
         <p>
-          1、应用包括两种类型：聊天机器人、工作流。聊天机器人适合新手用户，关联知识库后只需简单配置，即可创建一个基于私有知识库的问答机器人。工作流适合高级用户，利用系统预制节点自定义任务流程，适合解决复杂任务。
+          {{ t('usage_guide_content_1') }}
         </p>
-        <p>2、发现模块也提供了丰富模版，可以根据需要选择适合模版快速创建应用。</p>
+        <p>{{ t('usage_guide_content_2') }}</p>
       </div>
     </page-alert>
 
@@ -373,44 +373,44 @@
             <template #icon>
               <PlusOutlined />
             </template>
-            创建应用
+            {{ t('btn_create_app') }}
           </a-button>
           <template #overlay>
             <a-menu>
               <a-menu-item @click.prevent="toAddRobot(0)">
                 <span class="create-action">
                   <img class="icon" :src="DEFAULT_ROBOT_AVATAR" alt="" />
-                  <span>聊天机器人</span>
+                  <span>{{ t('label_chat_bot') }}</span>
                 </span>
               </a-menu-item>
               <a-menu-item @click.prevent="toAddRobot(1)">
                 <span class="create-action">
                   <img class="icon" :src="DEFAULT_WORKFLOW_AVATAR" alt="" />
-                  <span>工作流</span>
+                  <span>{{ t('label_workflow') }}</span>
                 </span>
               </a-menu-item>
               <a-menu-item @click.prevent="toAddThirdMcp">
                 <span class="create-action">
                   <img class="icon" :src="DEFAULT_MCP_AVATAR" alt="" />
-                  <span>外部MCP</span>
+                  <span>{{ t('label_external_mcp') }}</span>
                 </span>
               </a-menu-item>
               <a-menu-item @click.prevent="toAddHttpTool">
                 <span class="create-action">
                   <img class="icon" :src="DEFAULT_MCP_AVATAR" alt="" />
-                  <span>HTTP工具</span>
+                  <span>{{ t('label_http_tool') }}</span>
                 </span>
               </a-menu-item>
               <a-menu-item @click="toImportCsl">
                 <span class="create-action">
                   <img class="icon" :src="DEFAULT_IMPORT_CSL_AVATAR" alt="">
-                  <span>导入csl创建</span>
+                  <span>{{ t('label_import_csl_create') }}</span>
                 </span>
               </a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
-        <div v-if="robotCreate && activeKey == '3'" class="desc-box"><div class="link" @click="goMcpSquare">更多MCP？去MCP广场</div></div>
+        <div v-if="robotCreate && activeKey == '3'" class="desc-box"><div class="link" @click="goMcpSquare">{{ t('link_more_mcp_square') }}</div></div>
       </div>
     </div>
 
@@ -421,8 +421,8 @@
         <cu-scroll style="padding-right: 16px">
           <div class="group-head-box" v-if="!isHideGroup">
             <div class="head-title">
-              <div>机器人分组</div>
-              <a-tooltip title="新建分组">
+              <div>{{ t('title_robot_group') }}</div>
+              <a-tooltip :title="t('tooltip_new_group')">
                 <div class="hover-btn-wrap" @click="openGroupModal({})"><PlusOutlined /></div>
               </a-tooltip>
             </div>
@@ -430,7 +430,7 @@
               <a-input
                 v-model:value="groupSearchKey"
                 allowClear
-                placeholder="搜索分组"
+                :placeholder="t('ph_search_group')"
                 style="width: 100%"
               >
                 <template #suffix>
@@ -458,10 +458,10 @@
                     <template #overlay>
                       <a-menu>
                         <a-menu-item>
-                          <div @click.stop="openGroupModal(item)">重命名</div>
+                          <div @click.stop="openGroupModal(item)">{{ t('btn_rename') }}</div>
                         </a-menu-item>
                         <a-menu-item>
-                          <div @click.stop="handleDelGroup(item)">删 除</div>
+                          <div @click.stop="handleDelGroup(item)">{{ t('btn_delete') }}</div>
                         </a-menu-item>
                       </a-menu>
                     </template>
@@ -471,7 +471,7 @@
             </div>
           </div>
         </cu-scroll>
-        <a-tooltip placement="right" :title="isHideGroup ? '展开分组' : '收起分组'">
+        <a-tooltip placement="right" :title="isHideGroup ? t('tooltip_expand_group') : t('tooltip_collapse_group')">
           <div class="hide-group-box" @click="handleChangeHideGroup">
             <LeftOutlined v-if="!isHideGroup" />
             <RightOutlined v-else />
@@ -503,7 +503,7 @@
                     <div class="robot-info-content">
                       <div class="robot-name">{{ item.robot_name }}</div>
                       <div class="robot-type-tag">
-                        {{ item.application_type == 0 ? '聊天机器人' : '工作流' }}
+                        {{ item.application_type == 0 ? t('label_chat_bot') : t('label_workflow') }}
                       </div>
                     </div>
                   </div>
@@ -513,22 +513,22 @@
                   <div class="robot-action" @click.stop>
                     <!-- <div class="robot-action-item" @click="toEditRobot(item)"><svg-icon class="action-icon" name="jibenpeizhi" /></div> -->
                     <!-- <div class="robot-action-item" @click="toTestPage(item)"><svg-icon class="action-icon" name="cmd" /></div> -->
-                    <a-tooltip title="长按拖动排序">
+                    <a-tooltip :title="t('tooltip_drag_sort')">
                       <div class="robot-action-item drag-btn" @click.stop>
                         <svg-icon class="action-icon" name="dragv2"></svg-icon>
                       </div>
                     </a-tooltip>
-                    <a-tooltip title="聊天测试">
+                    <a-tooltip :title="t('tooltip_chat_test')">
                       <div class="robot-action-item" @click.stop="toTestPage(item)">
                         <svg-icon class="action-icon" name="chat"></svg-icon>
                       </div>
                     </a-tooltip>
-                    <a-tooltip title="会话记录">
+                    <a-tooltip :title="t('tooltip_session_record')">
                       <div class="robot-action-item" @click.stop="toSessionRecordPage(item)">
                         <svg-icon class="action-icon" name="session"></svg-icon>
                       </div>
                     </a-tooltip>
-                    <a-tooltip title="统计分析">
+                    <a-tooltip :title="t('tooltip_statistics')">
                       <div class="robot-action-item" @click.stop="toAnalysisPage(item)">
                         <svg-icon class="action-icon" name="analysis"></svg-icon>
                       </div>
@@ -545,19 +545,19 @@
                               class="delete-text-color"
                               href="javascript:;"
                               @click="handleDelete(item)"
-                            >删 除</a
+                            >{{ t('btn_delete') }}</a
                             >
                           </a-menu-item>
                           <a-menu-item>
-                            <div @click.stop="openEditGroupModal(item)">修改分组</div>
+                            <div @click.stop="openEditGroupModal(item)">{{ t('btn_edit_group') }}</div>
                           </a-menu-item>
                           <a-menu-item>
                             <a class="copy-text-color" href="javascript:;" @click="handleCopy(item)"
-                            >复 制</a
+                            >{{ t('btn_copy') }}</a
                             >
                           </a-menu-item>
                           <a-menu-item @click="handleExportCsl(item)">
-                            <span>导出为csl</span>
+                            <span>{{ t('btn_export_csl') }}</span>
                           </a-menu-item>
                         </a-menu>
                       </template>
@@ -611,13 +611,15 @@ import { getRobotPermission } from '@/utils/permission'
 import AddGroup from '@/views/robot/robot-list/components/add-group.vue'
 import EditGroup from '@/views/robot/robot-list/components/edit-group.vue'
 import { useOpenUrlWithToken } from '@/hooks/web'
-import McpBox from "@/views/robot/robot-list/components/mcp-box.vue";
 import McpPanel from "@/views/robot/robot-list/components/mcp-panel.vue";
 import ThirdMcpStore from "@/views/robot/robot-list/components/third-mcp-store.vue";
 import HttpToolBox from "@/views/robot/robot-list/components/http-tool-box.vue";
 import { useRouter } from 'vue-router'
 import { setDescRef, getTooltipTitle, objectToQueryString } from '@/utils/index'
 import WorkflowExportModal from "@/views/robot/robot-list/components/workflow-export-modal.vue";
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-list.robot-list')
 
 const router = useRouter()
 
@@ -625,23 +627,23 @@ const route = useRoute()
 
 const tabs = ref([
   {
-    title: '全部 (0)',
+    title: `${t('tab_all')} (0)`,
     value: '2'
   },
   {
-    title: '聊天机器人 (0)',
+    title: `${t('label_chat_bot')} (0)`,
     value: '0'
   },
   {
-    title: '工作流 (0)',
+    title: `${t('label_workflow')} (0)`,
     value: '1'
   },
   {
-    title: 'MCP插件',
+    title: t('tab_mcp_plugin'),
     value: '3'
   },
   {
-    title: 'HTTP工具',
+    title: t('tab_http_tool'),
     value: '6'
   }
 ])
@@ -713,23 +715,23 @@ const getList = () => {
 
     tabs.value = [
       {
-        title: '全部 (' + allNumber + ')',
+        title: `${t('tab_all')} (${allNumber})`,
         value: '2'
       },
       {
-        title: '聊天机器人 (' + chatNumber + ')',
+        title: `${t('label_chat_bot')} (${chatNumber})`,
         value: '0'
       },
       {
-        title: '工作流 (' + workflowNumber + ')',
+        title: `${t('label_workflow')} (${workflowNumber})`,
         value: '1'
       },
       {
-        title: 'MCP插件',
+        title: t('tab_mcp_plugin'),
         value: '3'
       },
       {
-        title: 'HTTP工具',
+        title: t('tab_http_tool'),
         value: '6'
       }
     ]
@@ -789,16 +791,16 @@ const toAddHttpTool = () => {
 const handleDelete = (data) => {
   let key = getRobotPermission(data.id)
   if (key != 4) {
-    return message.error('您没有删除机器人的权限')
+    return message.error(t('msg_no_delete_permission'))
   }
   let secondsToGo = 3
   let modal = Modal.confirm({
-    title: `删除机器人${data.robot_name}`,
+    title: `${t('title_delete_robot')}${data.robot_name}`,
     icon: createVNode(ExclamationCircleOutlined),
-    content: '您确定要删除此机器人吗？',
-    okText: secondsToGo + ' 确 定',
+    content: t('msg_confirm_delete_robot'),
+    okText: secondsToGo + ' ' + t('btn_confirm'),
     okType: 'danger',
-    cancelText: '取 消',
+    cancelText: t('btn_cancel'),
     okButtonProps: {
       disabled: true
     },
@@ -811,7 +813,7 @@ const handleDelete = (data) => {
   let interval = setInterval(() => {
     if (secondsToGo == 1) {
       modal.update({
-        okText: '确 定',
+        okText: t('btn_confirm'),
         okButtonProps: {
           disabled: false
         }
@@ -823,7 +825,7 @@ const handleDelete = (data) => {
       secondsToGo -= 1
 
       modal.update({
-        okText: secondsToGo + ' 确 定',
+        okText: secondsToGo + ' ' + t('btn_confirm'),
         okButtonProps: {
           disabled: true
         }
@@ -834,7 +836,7 @@ const handleDelete = (data) => {
 
 const onDelete = ({ id }) => {
   deleteRobot({ id }).then(() => {
-    message.success('删除成功')
+    message.success(t('msg_delete_success'))
     getList()
   })
 }
@@ -842,12 +844,12 @@ const onDelete = ({ id }) => {
 const handleCopy = (data) => {
   let secondsToGo = 3
   let modal = Modal.confirm({
-    title: `复制机器人${data.robot_name}`,
+    title: `${t('title_copy_robot')}${data.robot_name}`,
     icon: createVNode(ExclamationCircleOutlined),
-    content: '您确定要复制此机器人吗？',
-    okText: secondsToGo + ' 确 定',
+    content: t('msg_confirm_copy_robot'),
+    okText: secondsToGo + ' ' + t('btn_confirm'),
     okType: 'danger',
-    cancelText: '取 消',
+    cancelText: t('btn_cancel'),
     okButtonProps: {
       disabled: true
     },
@@ -860,7 +862,7 @@ const handleCopy = (data) => {
   let interval = setInterval(() => {
     if (secondsToGo == 1) {
       modal.update({
-        okText: '确 定',
+        okText: t('btn_confirm'),
         okButtonProps: {
           disabled: false
         }
@@ -872,7 +874,7 @@ const handleCopy = (data) => {
       secondsToGo -= 1
 
       modal.update({
-        okText: secondsToGo + ' 确 定',
+        okText: secondsToGo + ' ' + t('btn_confirm'),
         okButtonProps: {
           disabled: true
         }
@@ -883,7 +885,7 @@ const handleCopy = (data) => {
 
 const onCopy = ({ id }) => {
   robotCopy({ id }).then(() => {
-    message.success('复制成功')
+    message.success(t('msg_copy_success'))
     getList()
   })
 }
@@ -932,7 +934,7 @@ const getGroupList = () => {
     })
     groupLists.value = [
       {
-        group_name: '全部',
+        group_name: t('tab_all'),
         total: totalNumber,
         id: ''
       },
@@ -962,17 +964,17 @@ const openEditGroupModal = (item) => {
 
 const handleDelGroup = (item) => {
   Modal.confirm({
-    title: `确认删除分组${item.group_name}`,
+    title: `${t('title_delete_group')}${item.group_name}`,
     icon: createVNode(ExclamationCircleOutlined),
     content: '',
-    okText: '确认',
+    okText: t('btn_confirm_delete_group'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('btn_cancel'),
     onOk() {
       deleteRobotGroup({
         id: item.id
       }).then(() => {
-        message.success('删除成功')
+        message.success(t('msg_delete_success'))
         getGroupList()
         if (group_id.value == item.id) {
           group_id.value = ''
@@ -998,7 +1000,7 @@ const onDragEnd = (e) => {
   }
   if (e.newIndex > 0) params.to_robot_id = filterRobotList.value[e.newIndex - 1].id
   moveRobotSort(params).then(res => {
-    message.success('操作完成')
+    message.success(t('msg_operation_complete'))
   }).finally(() => {
     moving.value = false
   })

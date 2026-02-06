@@ -1,0 +1,26 @@
+{
+  "btn_add_rule": "Add rule",
+  "search_rule_name_placeholder": "Search by rule name",
+  "column_rule_name": "Rule name",
+  "column_delete_comment": "Auto delete",
+  "column_reply_comment": "Auto reply",
+  "column_elect_comment": "Featured comments",
+  "column_task_info": "Effective bulk articles",
+  "column_switch": "Rule enabled",
+  "column_create_time": "Created at",
+  "column_actions": "Actions",
+  "action_edit": "Edit",
+  "action_delete": "Delete",
+  "action_copy": "Copy",
+  "switch_delete_comment": "Auto delete",
+  "switch_reply_comment": "Auto reply",
+  "switch_elect_comment": "Featured comments",
+  "switch_rule_enable": "Rule enabled",
+  "confirm_modal_title": "Notice",
+  "confirm_close_switch": "Are you sure you want to turn off {switch_name} in {rule_name}?",
+  "message_operation_success": "Operation successful",
+  "confirm_delete_rule_title": "Delete rule",
+  "confirm_delete_rule_content": "Are you sure you want to delete this rule? After deletion, bulk sends using this rule will fall back to the default rule.",
+  "message_delete_success": "Deleted successfully"
+}
+

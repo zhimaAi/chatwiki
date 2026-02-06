@@ -1,0 +1,1 @@
+{"title": "变量", "tip": "变量将以表单形式让用户在对话前填写，用户填写的表单内容将自动替换提示词中的变量。提示词中输入/可选择变量", "btn_add_variable": "新增变量", "btn_edit": "编 辑", "btn_delete": "删 除", "msg_max_variables": "最多添加10个变量", "msg_delete_confirm": "删除确认?", "msg_delete_content": "确认删除该变量【{name}】?", "msg_delete_success": "删除成功"}

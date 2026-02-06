@@ -91,7 +91,7 @@ type DocSplitItem struct {
 	WordTotal           int      `json:"word_total"`
 	Images              []string `json:"images"`
 	AiChunkErrMsg       string   `json:"ai_chunk_err_msg"`
-	//父子分段
+	// parent-child chunk
 	FatherChunkParagraphNumber int `json:"father_chunk_paragraph_number"`
 }
 
@@ -144,10 +144,10 @@ type SplitParams struct {
 	AiChunkSize                int      `json:"ai_chunk_size"`
 	AiChunkNew                 bool     `json:"ai_chunk_new"`
 	ParagraphChunk             bool     `json:"paragraph_chunk"`
-	ChunkAsync                 bool     `json:"chunk_async"` // 异步
+	ChunkAsync                 bool     `json:"chunk_async"` // asynchronous
 	FileExt                    string   `json:"file_ext"`
 	NotMergedText              bool     `json:"not_merged_text"`
-	//父子分段
+	// parent-child chunk
 	FatherChunkParagraphType int    `json:"father_chunk_paragraph_type"`
 	FatherChunkSeparatorsNo  string `json:"father_chunk_separators_no"`
 	FatherChunkChunkSize     int    `json:"father_chunk_chunk_size"`
@@ -319,7 +319,7 @@ type RobotPaymentDurationPackage struct {
 	Price    float32 `json:"price"`
 }
 
-// 远程插件
+// remote plugin
 type RemotePluginStruct struct {
 	Author              string `json:"author"`
 	CreateTime          string `json:"create_time"`

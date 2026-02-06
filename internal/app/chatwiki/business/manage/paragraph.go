@@ -370,7 +370,7 @@ func getParagraphAddNumber(c *gin.Context, fileId int64) int {
 	return cast.ToInt(maxNumber) + 1
 }
 
-func getLibraryDefaultFile(libraryId, adminUserId int, token string) (int64, error) {
+func getLibraryDefaultFile(lang string, libraryId, adminUserId int, token string) (int64, error) {
 	params := map[string]string{
 		`admin_user_id`: cast.ToString(adminUserId),
 		`library_id`:    cast.ToString(libraryId),
@@ -380,7 +380,8 @@ func getLibraryDefaultFile(libraryId, adminUserId int, token string) (int64, err
 		`qa_index_type`: cast.ToString(define.QAIndexTypeQuestionAndAnswer),
 	}
 	m := msql.Model(`chat_ai_library_file`, define.Postgres)
-	request := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/addLibraryFile`, define.Config.WebService[`port`])).Header(`token`, token)
+	request := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/addLibraryFile`, define.Config.WebService[`port`])).
+		Header(`token`, token).Header(`lang`, lang)
 	for field, value := range params {
 		m.Where(field, value)
 		request.Param(field, value)
@@ -435,10 +436,10 @@ func SaveParagraph(c *gin.Context) {
 	common.FmtBridgeResponse(c, data, httpStatus, err)
 }
 
-// SaveParagraphMetadata 批量保存段落（chat_ai_library_file_data）的自定义元数据
-// 入参（POST）：
-// - ids: 段落ID集合（英文逗号分隔）
-// - list: JSON数组 [{"key":"key_1","value":"xxx"}, ...]（仅允许自定义 key_xxx；内置 key 直接忽略）
+// SaveParagraphMetadata bulk saves custom metadata for paragraphs (chat_ai_library_file_data)
+// Parameters (POST):
+// - ids: paragraph ID list (comma-separated)
+// - list: JSON array [{"key":"key_1","value":"xxx"}, ...] (only custom key_xxx allowed; built-in keys are ignored)
 func SaveParagraphMetadata(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
@@ -470,7 +471,7 @@ func SaveParagraphMetadata(c *gin.Context) {
 		if k == `` {
 			continue
 		}
-		// 内置元数据固定值：不允许修改（直接忽略）
+		//Built-in metadata has fixed values: modifications are not allowed (ignored)
 		if define.IsBuiltinMetaKey(k) {
 			continue
 		}
@@ -498,7 +499,7 @@ func SaveParagraphMetadata(c *gin.Context) {
 		return
 	}
 
-	// 严格校验：请求 ids 中必须全部存在，否则拒绝部分更新
+	//Strict validation: all ids in the request must exist; otherwise reject partial updates
 	idArr := strings.Split(ids, ",")
 	existSet := make(map[string]struct{}, len(paras))
 	libIdSet := make(map[int]struct{}, len(paras))
@@ -513,7 +514,7 @@ func SaveParagraphMetadata(c *gin.Context) {
 		}
 	}
 
-	// 校验所有 key 必须存在于每个涉及知识库的自定义 meta schema 中
+	//Validate that every key exists in the custom meta schema of each involved library
 	libIdList := make([]string, 0, len(libIdSet))
 	for lid := range libIdSet {
 		if lid > 0 {
@@ -556,7 +557,7 @@ func SaveParagraphMetadata(c *gin.Context) {
 		}
 	}
 
-	// 逐条合并写回（metadata 里只改这些 key）
+	//Merge and write back one by one (only update these keys in metadata)
 	now := tool.Time2Int()
 	m := msql.Model(`chat_ai_library_file_data`, define.Postgres)
 	for _, p := range paras {
@@ -629,7 +630,7 @@ func SaveSplitParagraph(c *gin.Context) {
 	}
 	for i, item := range list {
 		if item.Images == nil {
-			list[i].Images = make([]string, 0) //初始化,防止json后nil
+			list[i].Images = make([]string, 0) //initialize to avoid nil after JSON
 		}
 		if _, err := common.CheckLibraryImage(item.Images); err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `images`))))
@@ -654,7 +655,7 @@ func SaveSplitParagraph(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	//数据库处理
+	//Database processing
 	_ = m.Begin()
 	list, err = common.SaveSplitParagraph(adminUserId, cast.ToInt(fileId), paragraph, list)
 	if err != nil {
@@ -674,7 +675,7 @@ func SaveSplitParagraph(c *gin.Context) {
 			`images`:        tool.JsonEncodeNoError(item.Images),
 			`category_id`:   categoryId,
 			`update_time`:   tool.Time2Int(),
-			//父子分段
+			//Parent/child segments
 			`father_chunk_paragraph_number`: item.FatherChunkParagraphNumber,
 		}
 		if cast.ToInt(fileInfo[`is_qa_doc`]) == define.DocTypeQa {
@@ -746,7 +747,7 @@ func SaveSplitParagraph(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	//pdf单页重新分段,兼容处理,刷新全部分段的编号
+	//PDF single-page re-splitting compatibility: refresh numbering for all segments
 	if len(paragraph) == 0 {
 		common.RefreshParagraphNumbers(fileId)
 	}
@@ -1017,7 +1018,7 @@ func GenerateAiPrompt(c *gin.Context) {
 		return
 	}
 	maxTokens := 0
-	// 生成AI提示词
+	//Generate AI prompt
 	prompt := fmt.Sprintf(define.PromptAiGenerate, 500)
 	messages := []adaptor.ZhimaChatCompletionMessage{
 		{

@@ -1,21 +1,21 @@
 <template>
   <div class="field-manage-page">
     <div class="page-title">
-      字段管理
+      {{ t('title') }}
       <a-button type="primary" @click="handleAddField()">
         <template #icon>
           <PlusOutlined />
         </template>
-        添加字段
+        {{ t('btn_add_field') }}
       </a-button>
     </div>
     <div class="table-wrapper customize-scroll-style">
       <a-table :pagination="false" :data-source="data">
         <a-table-column key="name" data-index="name" :width="150">
           <template #title>
-            字段名称
+            {{ t('column_name_title') }}
             <a-tooltip>
-              <template #title>定义数据表的表头，可以在对应表头下存储相关数据。</template>
+              <template #title>{{ t('column_name_tooltip') }}</template>
               <QuestionCircleOutlined />
             </a-tooltip>
           </template>
@@ -31,9 +31,9 @@
         </a-table-column>
         <a-table-column key="description" data-index="description" :width="150">
           <template #title>
-            字段描述
+            {{ t('column_description_title') }}
             <a-tooltip>
-              <template #title>表头字段的说明，帮助用户或大模型理解表头字段</template>
+              <template #title>{{ t('column_description_tooltip') }}</template>
               <QuestionCircleOutlined />
             </a-tooltip>
           </template>
@@ -49,20 +49,20 @@
         </a-table-column>
         <a-table-column key="type" data-index="type" :width="120">
           <template #title>
-            数据类型
+            {{ t('column_type_title') }}
             <a-tooltip>
-              <template #title>选择存储字段对应的数据类型</template>
+              <template #title>{{ t('column_type_tooltip') }}</template>
               <QuestionCircleOutlined />
             </a-tooltip>
           </template>
         </a-table-column>
         <a-table-column key="required" data-index="required" :width="120">
           <template #title>
-            是否必要
+            {{ t('column_required_title') }}
             <a-tooltip>
               <template #title>
-                <div>必要字段：在保存一行数据时，必须提供对应字段信息，否则无法保存该行数据</div>
-                <div>非必要字段：缺失该字段信息时，一行数据仍可被保存在表中</div>
+                <div>{{ t('column_required_tooltip_required') }}</div>
+                <div>{{ t('column_required_tooltip_optional') }}</div>
               </template>
               <QuestionCircleOutlined />
             </a-tooltip>
@@ -71,17 +71,17 @@
             <a-switch
               @change="handleChangeRequired(record)"
               :checked="record.required == 'true'"
-              checked-children="开"
-              un-checked-children="关"
+              :checked-children="t('switch_on')"
+              :un-checked-children="t('switch_off')"
             />
           </template>
         </a-table-column>
-        <a-table-column key="action" title="操作" :width="90">
+        <a-table-column key="action" :title="t('column_action_title')" :width="90">
           <template #default="{ record }">
             <span>
-              <a @click="handleAddField(record)">编辑</a>
+              <a @click="handleAddField(record)">{{ t('action_edit') }}</a>
               <a-divider type="vertical" />
-              <a @click="onDelete(record)">删除</a>
+              <a @click="onDelete(record)">{{ t('action_delete') }}</a>
             </span>
           </template>
         </a-table-column>
@@ -100,8 +100,11 @@ import {
 import { ref, reactive, createVNode } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
 import { getFormFieldList, delFormField, updateFormRequired } from '@/api/database'
 import AddFieldModal from './components/add-field-modal.vue'
+
+const { t } = useI18n('views.database.database-detail.field-manage.index')
 
 const rotue = useRoute()
 const query = rotue.query
@@ -120,22 +123,22 @@ const handleChangeRequired = (record) => {
     form_id: query.form_id,
     required: record.required == 'true' ? 'false' : 'true'
   }).then((res) => {
-    message.success('修改成功')
+    message.success(t('msg_modify_success'))
     getData()
   })
 }
 
 const onDelete = (record) => {
   Modal.confirm({
-    title: `删除确认`,
+    title: t('modal_delete_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: `删除后，字段下所有数据将一并删除，删除后不可恢复。确认删除字段${record.name}吗?`,
-    okText: '确 定',
+    content: t('modal_delete_content', { name: record.name }),
+    okText: t('modal_delete_ok'),
     okType: 'danger',
-    cancelText: '取 消',
+    cancelText: t('modal_delete_cancel'),
     onOk() {
       delFormField({ id: record.id }).then((res) => {
-        message.success('删除成功')
+        message.success(t('msg_delete_success'))
         getData()
       })
     },

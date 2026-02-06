@@ -10,14 +10,14 @@
         class="mr12"
         :style="{ width: widthPx }"
         v-model:value="item.key"
-        placeholder="请输入"
+        :placeholder="t('ph_input')"
       ></a-input>
       <img class="fork-icon" src="@/assets/svg/right-fork-icon.svg" alt="" />
       <a-select
         class="mr12"
         @change="onTypeChange(item)"
         v-model:value="item.typ"
-        placeholder="请选择"
+        :placeholder="t('ph_select')"
         :style="{ width: widthPx }"
       >
         <a-select-option v-for="op in filterTypOptions" :value="op.value">{{
@@ -43,8 +43,11 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { computed } from 'vue'
 import { CloseCircleOutlined, PlusCircleOutlined } from '@ant-design/icons-vue'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.json-reverse-node-form.subs-key')
 const props = defineProps({
   data: {},
   level: {

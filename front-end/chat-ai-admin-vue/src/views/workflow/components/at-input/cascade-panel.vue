@@ -29,7 +29,7 @@
             </div>
           </div>
           <div class="cascade-panel-empty" v-if="level.options && level.options.length === 0">
-            暂无数据
+            {{ t('msg_no_data') }}
           </div>
         </div>
       </div>
@@ -38,8 +38,16 @@
 </template>
 
 <script>
+import { useI18n } from '@/hooks/web/useI18n'
+
 export default {
   name: "CascadePanel",
+  setup() {
+    const { t } = useI18n('views.workflow.components.at-input.cascade-panel')
+    return {
+      t
+    }
+  },
   props: {
     // 级联选项数据
     options: {

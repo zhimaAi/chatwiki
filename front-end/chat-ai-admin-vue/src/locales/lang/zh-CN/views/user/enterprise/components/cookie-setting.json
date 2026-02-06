@@ -1,0 +1,10 @@
+{
+  "titleCookieAuthSetting": "cookie授权提醒设置",
+  "labelIpRange": "提醒IP范围",
+  "labelReminderPages": "提醒页面",
+  "btnCancel": "取消",
+  "btnConfirm": "确定",
+  "msgWarmTip": "温馨提示",
+  "msgTrialVersion": "体验版本不支持该功能，如需使用，请升级到【企业版本】",
+  "msgSaveSuccess": "保存成功"
+}

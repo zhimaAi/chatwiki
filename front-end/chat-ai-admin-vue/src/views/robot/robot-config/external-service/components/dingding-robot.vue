@@ -12,10 +12,10 @@
 <template>
   <div class="">
     <a-alert class="tip-alert" type="info" show-icon>
-      <template #message>绑定钉钉机器人后，客户通过单聊或者群聊和钉钉机器人聊天，可使用当前机器人回答的内容自动回复</template>
+      <template #message>{{ t('tip_bind_dingding') }}</template>
     </a-alert>
     <div class="wechat-app-list">
-      <AddWechatApp label="绑定钉钉机器人" @click="showAddAlert" />
+      <AddWechatApp :label="t('label_bind_dingding')" @click="showAddAlert" />
       <WechatAppItem
         v-for="item in list"
         :key="item.id"
@@ -33,10 +33,12 @@ import { ref, inject, onMounted, createVNode } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import { getWechatAppList, deleteWechatApp } from '@/api/robot'
+import { useI18n } from '@/hooks/web/useI18n'
 import WechatAppItem from './wechat-app-item.vue'
 import AddWechatApp from './add-wechat-app.vue'
 import AddDingdingAlert from "./add-dingding-alert.vue";
 
+const { t } = useI18n('views.robot.robot-config.external-service.components.dingding-robot')
 const { robotInfo } = inject('robotInfo')
 
 const addAppAlertRef = ref()
@@ -60,12 +62,12 @@ const handleDelete = (item) => {
   let secondsToGo = 3
 
   const modal = Modal.confirm({
-    title: `确定移除${item.app_name}吗?`,
+    title: t('title_confirm_remove', { app_name: item.app_name }),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '移除后，机器人无法继续回复用户消息。',
-    okText: secondsToGo + ' 确 定',
+    content: t('msg_remove_warning'),
+    okText: secondsToGo + ' ' + t('btn_confirm'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('btn_cancel'),
     okButtonProps: {
       disabled: true
     },
@@ -75,7 +77,7 @@ const handleDelete = (item) => {
       }).then(() => {
         getList()
 
-        message.success('删除成功')
+        message.success(t('msg_delete_success'))
       })
     },
     onCancel() {}
@@ -84,7 +86,7 @@ const handleDelete = (item) => {
   let interval = setInterval(() => {
     if (secondsToGo == 1) {
       modal.update({
-        okText: '确 定',
+        okText: t('btn_confirm'),
         okButtonProps: {
           disabled: false
         }
@@ -96,7 +98,7 @@ const handleDelete = (item) => {
       secondsToGo -= 1
 
       modal.update({
-        okText: secondsToGo + ' 确 定',
+        okText: secondsToGo + ' ' + t('btn_confirm'),
         okButtonProps: {
           disabled: true
         }

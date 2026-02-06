@@ -1,0 +1,12 @@
+{
+  "title": "AI Generate Prompt",
+  "alert_message": "Generate AI segmentation prompts based on imported document content, supports setting character count for imported documents.",
+  "label_select_model": "Select Model:",
+  "label_content_prefix": "Based on first",
+  "label_count_suffix": "characters, auto-generate prompt",
+  "btn_generate": "Start Generating",
+  "tip_generating": "Generating prompt...",
+  "tip_completed": "Prompt generation completed",
+  "btn_use_prompt": "Use This Prompt",
+  "message_success": "Operation successful"
+}

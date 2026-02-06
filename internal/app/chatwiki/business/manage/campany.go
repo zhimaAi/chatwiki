@@ -6,14 +6,18 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/app/chatwiki/ip"
 	"chatwiki/internal/app/chatwiki/middlewares"
+	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/zhimaAi/go_tools/logs"
+	"github.com/zhimaAi/go_tools/tool"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
@@ -65,6 +69,8 @@ func SaveCompany(c *gin.Context) {
 		common.FmtError(c, `company_save_err`)
 		return
 	}
+	lib_redis.DelCacheData(define.Redis, &CompanyCacheBuildHandler{AdminUserId: cast.ToInt(user["user_id"])})
+	lib_redis.DelCacheData(define.Redis, &CompanyCacheBuildHandler{AdminUserId: 0})
 	common.FmtOk(c, insertId)
 }
 
@@ -104,6 +110,8 @@ func SaveTopNavigate(c *gin.Context) {
 		common.FmtError(c, `company_save_err`)
 		return
 	}
+	lib_redis.DelCacheData(define.Redis, &CompanyCacheBuildHandler{AdminUserId: adminUserId})
+	lib_redis.DelCacheData(define.Redis, &CompanyCacheBuildHandler{AdminUserId: 0})
 	common.FmtOk(c, insertId)
 }
 
@@ -161,7 +169,8 @@ func SaveAliOcr(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-
+	lib_redis.DelCacheData(define.Redis, &CompanyCacheBuildHandler{AdminUserId: userId})
+	lib_redis.DelCacheData(define.Redis, &CompanyCacheBuildHandler{AdminUserId: 0})
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
@@ -175,4 +184,106 @@ func CheckAliOcr(c *gin.Context) {
 		}
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+}
+
+type SwitchCookieTipReq struct {
+	CookieTipPositions   string `form:"cookie_tip_positions" json:"cookie_tip_positions"`
+	CookieTipIpLocations string `form:"cookie_tip_ip_locations" json:"cookie_tip_ip_locations"`
+}
+
+const (
+	domestic = `domestic`
+	overseas = `overseas`
+)
+
+type CompanyCacheBuildHandler struct{ AdminUserId int }
+
+func (h *CompanyCacheBuildHandler) GetCacheKey() string {
+	return fmt.Sprintf(`chatwiki.company_info.%d`, h.AdminUserId)
+}
+func (h *CompanyCacheBuildHandler) GetCacheData() (any, error) {
+	if h.AdminUserId == 0 {
+		return msql.Model(define.TableCompany, define.Postgres).Order(`parent_id asc`).Limit(1).Find()
+	}
+	return msql.Model(define.TableCompany, define.Postgres).
+		Where(`parent_id`, cast.ToString(h.AdminUserId)).Find()
+}
+
+func SaveCookieTip(c *gin.Context) {
+	var (
+		err      error
+		insertId int64
+	)
+	//get params
+	var req SwitchCookieTipReq
+	if err = c.ShouldBind(&req); err != nil {
+		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
+		return
+	}
+	var adminUserId = GetAdminUserId(c)
+	// login user
+	user := GetLoginUserInfo(c)
+	if user == nil {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+	data := msql.Datas{
+		"cookie_tip_positions":    req.CookieTipPositions,
+		"cookie_tip_ip_locations": req.CookieTipIpLocations,
+		"update_time":             time.Now().Unix(),
+	}
+
+	m := msql.Model(define.TableCompany, define.Postgres)
+	// save ..
+	_, err = m.Where(`parent_id`, cast.ToString(adminUserId)).Update(data)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `company_save_err`)
+		return
+	}
+	lib_redis.DelCacheData(define.Redis, &CompanyCacheBuildHandler{AdminUserId: adminUserId})
+	lib_redis.DelCacheData(define.Redis, &CompanyCacheBuildHandler{AdminUserId: 0})
+	common.FmtOk(c, insertId)
+}
+
+func GetCookieTip(c *gin.Context) {
+	var (
+		err error
+	)
+	position := c.Query(`position`)
+	config := msql.Params{}
+	err = lib_redis.GetCacheWithBuild(define.Redis, &CompanyCacheBuildHandler{AdminUserId: 0}, &config, time.Minute)
+	if err != nil {
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	isShowCookieTip := false
+	if len(config) == 0 {
+		common.FmtOk(c, map[string]any{
+			"is_show_cookie_tip": isShowCookieTip,
+		})
+		return
+	}
+	if len(position) == 0 {
+		common.FmtOk(c, map[string]any{
+			"is_show_cookie_tip": isShowCookieTip,
+		})
+		return
+	}
+	cookieTipPositions := strings.Split(cast.ToString(config[`cookie_tip_positions`]), ",")
+	if tool.InArray(position, cookieTipPositions) {
+		realIp := lib_web.GetClientIP(c)
+		isChinaIp := ip.IsChinaIP(realIp)
+		cookieTipIpLocations := strings.Split(cast.ToString(config[`cookie_tip_ip_locations`]), ",")
+		if isChinaIp {
+			if tool.InArray(domestic, cookieTipIpLocations) {
+				isShowCookieTip = true
+			}
+		} else if tool.InArray(overseas, cookieTipIpLocations) {
+			isShowCookieTip = true
+		}
+	}
+	common.FmtOk(c, map[string]any{
+		"is_show_cookie_tip": isShowCookieTip,
+	})
 }

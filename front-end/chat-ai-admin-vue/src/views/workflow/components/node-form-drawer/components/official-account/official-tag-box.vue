@@ -2,16 +2,16 @@
   <div class="tag-container">
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>输入</div>
+        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>{{ t('label_section_input') }}</div>
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">公众号</div>
+          <div class="option-label">{{ t('label_official_account') }}</div>
         </div>
         <div>
           <a-select
             v-model:value="formState.app_id"
-            placeholder="请选择公众号"
+            :placeholder="t('ph_select_official_account')"
             style="width: 100%;"
             @change="appChange"
           >
@@ -28,9 +28,9 @@
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">公众号标签</div>
-          <a-tooltip title="同步最新的公众号标签">
-            <a @click="syncTags">同步 <a-spin v-if="syncing" size="small"/></a>
+          <div class="option-label">{{ t('label_official_account_tag') }}</div>
+          <a-tooltip :title="t('tooltip_sync_tags')">
+            <a @click="syncTags">{{ t('btn_sync') }} <a-spin v-if="syncing" size="small"/></a>
           </a-tooltip>
         </div>
         <div class="tag-box">
@@ -39,13 +39,13 @@
             @change="tagTypeChange"
             style="width: 120px;"
           >
-            <a-select-option :value="1">选择标签</a-select-option>
-            <a-select-option :value="2">插入变量</a-select-option>
+            <a-select-option :value="1">{{ t('btn_select_tag') }}</a-select-option>
+            <a-select-option :value="2">{{ t('btn_insert_variable') }}</a-select-option>
           </a-select>
           <a-select
             v-if="formState.tag_type == 1"
             v-model:value="formState.tagid"
-            placeholder="请选择标签"
+            :placeholder="t('ph_select_tag')"
             style="width: 100%;"
             @change="tagChange"
             show-search
@@ -70,7 +70,7 @@
             ref="atInputRef"
             @open="emit('updateVar')"
             @change="(text, selectedList) => changeFieldValue('tagid', text, selectedList)"
-            placeholder="请输入内容，键入“/”可以插入变量"
+            :placeholder="t('ph_input_content')"
           >
             <template #option="{ label, payload }">
               <div class="field-list-item">
@@ -83,7 +83,7 @@
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">粉丝openid列表</div>
+          <div class="option-label">{{ t('label_fans_openid_list') }}</div>
           <div class="option-type">string</div>
         </div>
         <div>
@@ -96,7 +96,7 @@
             ref="atInputRef"
             @open="emit('updateVar')"
             @change="(text, selectedList) => changeFieldValue('openid_list', text, selectedList)"
-            placeholder="请输入内容，键入“/”可以插入变量"
+            :placeholder="t('ph_input_content')"
           >
             <template #option="{ label, payload }">
               <div class="field-list-item">
@@ -106,12 +106,12 @@
             </template>
           </AtInput>
         </div>
-        <div class="desc">粉丝openid列表，最多50个，逗号分割</div>
+        <div class="desc">{{ t('desc_fans_openid_list') }}</div>
       </div>
     </div>
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>输出</div>
+        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>{{ t('label_section_output') }}</div>
       </div>
       <div class="options-item">
         <OutputFields :tree-data="outputData"/>
@@ -122,12 +122,15 @@
 
 <script setup>
 import {ref, reactive, onMounted, watch, inject} from 'vue';
+import { useI18n } from 'vue-i18n';
 import AtInput from "@/views/workflow/components/at-input/at-input.vue";
 import {getWechatAppList} from "@/api/robot/index.js";
 import {runPlugin} from "@/api/plugins/index.js";
 import {pluginOutputToTree} from "@/constants/plugin.js";
 import OutputFields from "@/views/workflow/components/feishu-table/output-fields.vue";
 import {message} from 'ant-design-vue';
+
+const { t } = useI18n();
 
 const emit = defineEmits(['updateVar'])
 const props = defineProps({
@@ -207,12 +210,12 @@ function appChange(_, option) {
 
 function syncTags() {
   if (!formState.app_secret || !formState.app_id) {
-    return message.warning('请先选择公众号')
+    return message.warning(t('msg_please_select_official_account'))
   }
   if (syncing.value) return
   syncing.value = true
   loadTags().then(() => {
-    message.success('同步完成')
+    message.success(t('msg_sync_completed'))
   }).finally(() => {
     syncing.value = false
   })

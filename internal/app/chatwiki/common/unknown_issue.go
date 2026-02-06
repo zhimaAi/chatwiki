@@ -19,7 +19,7 @@ import (
 )
 
 func SaveUnknownIssueRecord(lang string, adminUserId int, robot msql.Params, question string) {
-	question = GetFirstQuestionByInput(question) //多模态输入特殊处理
+	question = GetFirstQuestionByInput(question) // Special handling for multimodal input
 	m := msql.Model(`chat_ai_unknown_issue_stats`, define.Postgres)
 	id, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`robot_id`, robot[`id`]).
 		Where(`stats_day`, cast.ToString(tool.GetYmd(0))).Where(`question`, question).Value(`id`)
@@ -27,7 +27,7 @@ func SaveUnknownIssueRecord(lang string, adminUserId int, robot msql.Params, que
 		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 		return
 	}
-	if cast.ToUint(id) == 0 { //没有数据
+	if cast.ToUint(id) == 0 { // No data
 		ins := msql.Datas{
 			`admin_user_id`: adminUserId,
 			`robot_id`:      robot[`id`],
@@ -39,7 +39,7 @@ func SaveUnknownIssueRecord(lang string, adminUserId int, robot msql.Params, que
 		newId, err := m.Insert(ins, `id`)
 		if err != nil {
 			var sqlerr *pq.Error
-			if errors.As(err, &sqlerr) && sqlerr.Code == `23505` { //唯一索引约束
+			if errors.As(err, &sqlerr) && sqlerr.Code == `23505` { // Unique index constraint
 				SaveUnknownIssueRecord(lang, adminUserId, robot, question)
 				return
 			}
@@ -47,12 +47,12 @@ func SaveUnknownIssueRecord(lang string, adminUserId int, robot msql.Params, que
 			return
 		}
 		id = cast.ToString(newId)
-		//未知问题总结逻辑异步处理
+		// Asynchronous processing of unknown issue summary logic
 		if cast.ToUint(robot[`unknown_summary_status`]) > 0 {
 			go SaveUnknownIssueSummaryRecord(lang, adminUserId, robot, MbSubstr(question, 0, MaxContent))
 		}
 	}
-	//开始更新数据
+	// Start updating data
 	sqlraw := fmt.Sprintf(`trigger_total=trigger_total+1,update_time=%d`, tool.Time2Int())
 	if _, err = m.Where(`id`, id).Update2(sqlraw); err != nil {
 		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
@@ -88,7 +88,7 @@ func SaveUnknownIssueSummaryRecord(lang string, adminUserId int, robot msql.Para
 		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 		return
 	}
-	if len(summary) == 0 || cast.ToFloat64(summary[`similarity`]) < cast.ToFloat64(robot[`unknown_summary_similarity`]) { //插入数据
+	if len(summary) == 0 || cast.ToFloat64(summary[`similarity`]) < cast.ToFloat64(robot[`unknown_summary_similarity`]) { // Insert data
 		ins := msql.Datas{
 			`admin_user_id`: adminUserId,
 			`robot_id`:      robot[`id`],
@@ -99,14 +99,14 @@ func SaveUnknownIssueSummaryRecord(lang string, adminUserId int, robot msql.Para
 			`update_time`:   tool.Time2Int(),
 		}
 		_, err = m.Insert(ins)
-	} else { //更新数据
+	} else { // Update data
 		if summary[`question`] == question {
-			return //相同的问题,跳过更新
+			return // Same question, skip update
 		}
 		unknownList := DisposeStringList(summary[`unknown_list`], question)
 		unknownListStr := tool.JsonEncodeNoError(unknownList)
 		if summary[`unknown_list`] == unknownListStr {
-			return //相同的问题,跳过更新
+			return // Same question, skip update
 		}
 		data := msql.Datas{
 			`unknown_list`:  unknownListStr,
@@ -122,26 +122,26 @@ func SaveUnknownIssueSummaryRecord(lang string, adminUserId int, robot msql.Para
 
 func ExportUnknownIssueSummary(lang string, list []msql.Params, ext string) (string, error) {
 	if define.IsDocxFile(ext) {
-		var lineBreak = "\r" //docx的换行符,比较特殊
+		var lineBreak = "\r" // Special line break for docx
 		doc := document.New()
 		var imageConfig = &document.ImageConfig{Size: &document.ImageSize{Width: 145, KeepAspectRatio: true}}
 		for idx, params := range list {
-			if idx > 0 { //添加两个换行
+			if idx > 0 { // Add two line breaks
 				doc.AddParagraph(lineBreak + lineBreak)
 			}
-			//问题
+			// Question
 			para := doc.AddParagraph(``)
 			para.AddFormattedText(i18n.Show(lang, `export_question_header`)+`：`, &document.TextFormat{Bold: true, FontSize: 14})
 			para.AddFormattedText(lineBreak+params[`question`], &document.TextFormat{FontSize: 12})
-			//相似问法
+			// Similar questions
 			para.AddFormattedText(lineBreak+i18n.Show(lang, `export_similar_questions_header`)+`：`, &document.TextFormat{Bold: true, FontSize: 14})
 			for _, item := range DisposeStringList(params[`unknown_list`]) {
 				para.AddFormattedText(lineBreak+item, &document.TextFormat{FontSize: 12})
 			}
-			//答案
+			// Answer
 			para.AddFormattedText(lineBreak+i18n.Show(lang, `export_answer_header`)+`：`, &document.TextFormat{Bold: true, FontSize: 14})
 			para.AddFormattedText(lineBreak+params[`answer`], &document.TextFormat{FontSize: 12})
-			//图片
+			// Images
 			for _, imgUrl := range DisposeStringList(params[`images`]) {
 				if !LinkExists(imgUrl) {
 					continue

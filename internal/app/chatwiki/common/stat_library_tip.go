@@ -219,7 +219,7 @@ func statLibraryFormatByDataId(sorts []msql.Params, totalTip int) ([]msql.Params
 				item[`group_id`] = dataInfo[`group_id`]
 			}
 		}
-		//普通知识库 通过file找到group
+		// General knowledge base: find group through file
 		if cast.ToInt(item[`type`]) == define.ParagraphTypeNormal {
 			for _, fileInfo := range libraryFileInfos {
 				if item[`library_file_id`] == fileInfo[`library_file_id`] {
@@ -475,7 +475,7 @@ func StatLibraryGroupDataSort(adminUserId, libraryId, page, size int, beginDateY
 			if val, ok := item[`final_group_id`]; ok {
 				item[`group_id`] = val
 			} else {
-				item[`group_id`] = `0` // 业务合理的默认值
+				item[`group_id`] = `0` // Reasonable default value for business
 			}
 			delete(item, `final_group_id`)
 		}
@@ -483,7 +483,7 @@ func StatLibraryGroupDataSort(adminUserId, libraryId, page, size int, beginDateY
 	total, err := mtotal.Group(fmt.Sprintf(`f.library_id,%s`, caseWhenGroupId)).
 		Count(`1`)
 	if err != nil {
-		logs.Error(err.Error() + `,` + mtotal.GetLastSql()) // 补充打印错误SQL，方便排查
+		logs.Error(err.Error() + `,` + mtotal.GetLastSql()) // Print error SQL for easier troubleshooting
 		return nil, err
 	}
 	mt := msql.Model(`chat_ai_stat_library_data_robot_tip`, define.Postgres).
@@ -494,7 +494,7 @@ func StatLibraryGroupDataSort(adminUserId, libraryId, page, size int, beginDateY
 	}
 	totalTip, err := mt.Sum(`tip`)
 	if err != nil {
-		logs.Error(err.Error() + `,` + mt.GetLastSql()) // 补充打印错误SQL
+		logs.Error(err.Error() + `,` + mt.GetLastSql()) // Print error SQL
 		return nil, err
 	}
 	list, err := statLibraryGroupFormatByDataId(sorts, cast.ToInt(totalTip))
@@ -614,4 +614,36 @@ func StatUnknowQuestionRank(adminUserId, startDay, endDay int) ([]msql.Params, e
 		}
 	}
 	return return_list, nil
+}
+
+func CleanStatLibraryDataTip(adminUserId int, dataIds []string) {
+	if len(dataIds) > 0 {
+		_, err := msql.Model(`chat_ai_stat_library_data_robot_tip`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Where(`data_id`, `in`, strings.Join(dataIds, `,`)).
+			Delete()
+		if err != nil {
+			logs.Error(err.Error())
+		}
+	}
+}
+
+func CleanStatLibraryTip(adminUserId int, libraryId int) error {
+	if libraryId > 0 {
+		_, err := msql.Model(`chat_ai_stat_library_data_robot_tip`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Where(`library_id`, cast.ToString(libraryId)).
+			Delete()
+		if err != nil {
+			logs.Error(err.Error())
+		}
+		_, err = msql.Model(`chat_ai_stat_library_robot_tip`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Where(`library_id`, cast.ToString(libraryId)).
+			Delete()
+		if err != nil {
+			logs.Error(err.Error())
+		}
+	}
+	return nil
 }

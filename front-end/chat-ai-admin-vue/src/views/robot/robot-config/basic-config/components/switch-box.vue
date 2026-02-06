@@ -80,8 +80,8 @@
       <a-switch
         v-model:checked="checked"
         @change="handleChange"
-        checked-children="开"
-        un-checked-children="关"
+        :checked-children="t('btn_switch_on')"
+        :un-checked-children="t('btn_switch_off')"
       />
     </div>
   </div>
@@ -89,6 +89,9 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.switch-box')
 const emit = defineEmits(['update:value', 'change'])
 
 const props = defineProps({

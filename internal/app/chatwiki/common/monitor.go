@@ -24,14 +24,14 @@ func SaveChatMonitor(data msql.Datas) {
 		return
 	}
 	var sqlerr *pq.Error
-	if errors.As(err, &sqlerr) && sqlerr.Code == `42P01` { //表不存在
-		//创建新表
+	if errors.As(err, &sqlerr) && sqlerr.Code == `42P01` { // Table does not exist
+		// Create new table
 		sql := fmt.Sprintf(`CREATE TABLE "%s" (LIKE "%s" INCLUDING ALL)`, tableName, ChatMonitorBaseTableName)
 		_, err = msql.RawExec(define.Postgres, sql, nil)
 		if err != nil {
-			logs.Error(err.Error()) //创建新表出错了
+			logs.Error(err.Error()) // Error creating new table
 		}
-		//尝试重新插入
+		// Try to re-insert
 		if _, err = msql.Model(tableName, define.Postgres).Insert(data); err == nil {
 			return
 		}
@@ -74,14 +74,14 @@ type Monitor struct {
 
 func (m *Monitor) Save(err error) {
 	if m.params.ChatBaseParam == nil || len(m.params.Robot) == 0 {
-		return //机器人信息为空,请求参数robot_key错误
+		return // Robot info is empty, request parameter robot_key is wrong
 	}
 	m.EndTime = time.Now().UnixMilli()
 	m.AllUseTime = m.EndTime - m.StartTime
 	if err != nil {
 		m.Error = err
 	}
-	//日志准入条件限制
+	// Log admission condition restriction
 	switch cast.ToInt(m.params.Robot[`application_type`]) {
 	case define.ApplicationTypeChat:
 		if m.Error == nil && m.AllUseTime < 2000 {
@@ -91,11 +91,11 @@ func (m *Monitor) Save(err error) {
 		if m.Error == nil && m.AllUseTime < 5000 {
 			return
 		}
-		m.LlmCallTime = m.RequestTime //特殊数据修正
+		m.LlmCallTime = m.RequestTime // Special data correction
 	default:
 		return
 	}
-	//开始记录
+	// Start recording
 	if define.IsDev {
 		logs.Other(`monitor`, tool.JsonEncodeNoError(m))
 	}

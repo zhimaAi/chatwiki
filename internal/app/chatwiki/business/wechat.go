@@ -26,7 +26,7 @@ import (
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
-// UnifiedMessageType 统一MsgType
+// UnifiedMessageType unified MsgType
 func UnifiedMessageType(msgType string) string {
 	switch msgType {
 	case lib_define.DingTalkMsgTypeImage:
@@ -52,15 +52,15 @@ func AppPush(msg string, _ ...string) error {
 	}
 	//discard what is not needed
 	msgType := strings.ToLower(cast.ToString(message[`MsgType`]))
-	//统一MsgType
+	// unified MsgType
 	msgType = UnifiedMessageType(msgType)
 	message[`MsgType`] = msgType
-	//统一消息类型结束
+	// end of unified message type
 	event := strings.ToLower(cast.ToString(message[`Event`]))
 
-	//点击菜单 关注取关 私信消息 扫描带参数二维码事件
+	// click menu, subscribe/unsubscribe, private message, scan QR code with parameters event
 	go work_flow.StartOfficial(message)
-	//菜单点击事件处理
+	// menu click event handling
 	if msgType == lib_define.MsgTypeEvent && tool.InArrayString(event, []string{lib_define.EventMenuClick}) {
 		err := MenuClickHandler(message, msg)
 		if err != nil {
@@ -71,7 +71,7 @@ func AppPush(msg string, _ ...string) error {
 		return nil
 	}
 
-	//关注事件
+	// subscribe event
 	if msgType == lib_define.MsgTypeEvent && tool.InArrayString(event, []string{lib_define.EventSubscribe}) {
 		err := SubscribeEventHandler(message, msg)
 		if err != nil {
@@ -82,7 +82,7 @@ func AppPush(msg string, _ ...string) error {
 		return nil
 	}
 
-	// 事件过滤 ？？ 只限制某些事件
+	// event filtering - only restrict certain events
 	if msgType == lib_define.MsgTypeEvent && !tool.InArrayString(event, []string{lib_define.EventEnterSession, lib_define.EventUserEnterTempsession}) {
 		return nil
 	}
@@ -160,7 +160,7 @@ func AppPush(msg string, _ ...string) error {
 		SendReply(push)
 		break
 	default:
-		//其他类型
+		// other type
 		SendReceivedMessageReply(push)
 		break
 	}
@@ -213,7 +213,7 @@ func SendWelcome(push *lib_define.PushMessage) {
 	}
 }
 
-// MenuClickHandler 菜单点击事件处理
+// MenuClickHandler menu click event handling
 func MenuClickHandler(message map[string]any, msg string) error {
 	appInfo, err := common.GetWechatAppInfo(`app_id`, cast.ToString(message[`appid`]))
 	if err != nil {
@@ -242,19 +242,19 @@ func MenuClickHandler(message map[string]any, msg string) error {
 		}
 
 		switch menuInfo.ChooseActItem {
-		case common.OfficialCustomMenuActTypeSendMessage: //发送消息
-			//发送回复消息
+		case common.OfficialCustomMenuActTypeSendMessage: // send message
+			// send reply message
 			if len(menuInfo.ActParams.ReplyContent) == 0 {
 				logs.Error(`menu has no reply content msg:%s,err:%s`, msg)
 				return nil
 			}
 			var replyList []common.ReplyContent
-			//获取openid
+			// get openid
 			openid := strings.TrimSpace(cast.ToString(message[`FromUserName`]))
 			if appInfo[`app_type`] == lib_define.AppWechatKefu { //external_userid integrates with open_kfid
 				openid = wechatCommon.GetWechatKefuOpenid(cast.ToInt(appInfo[`admin_user_id`]), message)
 			}
-			//构建push
+			// build push
 			push := &lib_define.PushMessage{
 				MsgRaw:      msg,
 				Message:     message,
@@ -264,7 +264,7 @@ func MenuClickHandler(message map[string]any, msg string) error {
 				Content:     ``,
 				AppInfo:     appInfo,
 			}
-			//构建app进行推送
+			// build app for pushing
 			app, err := wechat.GetApplication(appInfo)
 			if err != nil {
 				logs.Error(`init app failed msg:%s,err:%s`, push.MsgRaw, err.Error())
@@ -283,18 +283,18 @@ func MenuClickHandler(message map[string]any, msg string) error {
 				logs.Error(`menu has no reply message`)
 				return nil
 			}
-			//发送回复消息
+			// send reply message
 			SendReplyContentList(push, replyList, app)
 			break
 		case common.OfficialCustomMenuActTypeJumpURL:
-			//跳转链接 不需要处理
+			// jump link no need to handle
 			break
 		}
 	}
 	return nil
 }
 
-// SubscribeEventHandler 关注事件
+// SubscribeEventHandler subscribe event
 func SubscribeEventHandler(message map[string]any, msg string) error {
 	appInfo, err := common.GetWechatAppInfo(`app_id`, cast.ToString(message[`appid`]))
 	if err != nil {
@@ -310,7 +310,7 @@ func SubscribeEventHandler(message map[string]any, msg string) error {
 	if appInfo[`app_type`] == lib_define.AppWechatKefu { //external_userid integrates with open_kfid
 		openid = wechatCommon.GetWechatKefuOpenid(cast.ToInt(appInfo[`admin_user_id`]), message)
 	}
-	//订阅回复
+	// subscription reply
 	push := &lib_define.PushMessage{
 		MsgRaw:      msg,
 		Message:     message,
@@ -325,10 +325,10 @@ func SubscribeEventHandler(message map[string]any, msg string) error {
 	return nil
 }
 
-// SendSubscribeReply 订阅回复
+// SendSubscribeReply subscription reply
 func SendSubscribeReply(push *lib_define.PushMessage) {
 	if len(push.AppInfo) == 0 || push.AppInfo[`app_type`] != lib_define.AppOfficeAccount {
-		//不是公众号的关注回复
+		// not a public account subscription reply
 		return
 	}
 	app := &official_account.Application{AppID: push.AppInfo[`app_id`], Secret: push.AppInfo[`app_secret`]}
@@ -345,36 +345,36 @@ func SendSubscribeReply(push *lib_define.PushMessage) {
 		Question:            push.Content,
 	}
 
-	//关键词回复
+	// keyword reply
 	useAbility := common.CheckUseAbilityByAbilityType(push.AdminUserId, common.RobotAbilitySubscribeReply)
 	if !useAbility {
-		//关键词回复没开启
+		// keyword reply not enabled
 		logs.Error(`keyword reply feature not enabled msg:%s,err:%s`, push.MsgRaw)
 		return
 	}
-	//获取关注场景
+	// get subscription scene
 	subscribeScene, err := app.GetSubscribeScene(push.Openid)
 	if err != nil {
 		logs.Error(`failed to get subscribe scene msg:%s,err:%s`, push.MsgRaw, err.Error())
 		return
 	}
-	//关注回复的消息
+	// subscription reply message
 	message, err := common.SubscribeReplyHandle(params, subscribeScene)
 	if err != nil {
 		logs.Error(`no subscribe reply message msg:%s,err:%s`, push.MsgRaw, err.Error())
 		return
 	}
-	//没消息不回复
+	// no message no reply
 	if len(message) == 0 {
 		return
 	}
 
-	//发送回复的消息
+	// send reply message
 	ReplyContentListHandle(push, message, app)
 	return
 }
 
-// ShowTypingStatusToUser 已认证微信公众号+微信小程序,显示正在输入中
+// ShowTypingStatusToUser authenticated WeChat public account + mini program, show typing status
 func ShowTypingStatusToUser(appType string, appInfo, robot msql.Params) (showTyping bool) {
 	switch appType {
 	case lib_define.AppOfficeAccount:
@@ -418,12 +418,12 @@ func SendReply(push *lib_define.PushMessage) {
 	if common.IsContainChinese(push.Content) {
 		params.Lang = define.LangZhCn
 	}
-	//下载图片
+	// download image
 	ImageMediaIdToOssUrl(push, receivedMessageType, app, params)
-	//下载缩略图
+	// download thumbnail
 	ThumbMediaIdToOssUrl(push, app, params)
 
-	//构建成多模态输入数据格式
+	// construct to multimodal input data format
 	switch receivedMessageType {
 	case lib_define.MsgTypeImage:
 		push.Content = tool.JsonEncodeNoError(adaptor.QuestionMultiple{
@@ -438,9 +438,9 @@ func SendReply(push *lib_define.PushMessage) {
 			{Type: adaptor.TypeVideo, VedioUrl: adaptor.VedioUrl{Url: params.MediaIdToOssUrl}},
 		})
 	}
-	params.Question = push.Content //将question替换成多模态输入数据格式
+	params.Question = push.Content // replace question with multimodal input data format
 
-	//已认证微信公众号+微信小程序,显示正在输入中
+	// authenticated WeChat public account + mini program, show typing status
 	if ShowTypingStatusToUser(params.AppType, params.AppInfo, params.Robot) {
 		if errCode, e := app.SetTyping(push.Openid, lib_define.CommandTyping); e != nil {
 			logs.Error(`customer:%s,errcode:%d,err:%s`, push.Openid, errCode, e.Error())
@@ -465,18 +465,18 @@ func SendReply(push *lib_define.PushMessage) {
 		return
 	}
 
-	//未认证公众号的消息特殊处理
+	// special handling for unauthenticated public account messages
 	if params.AppType == lib_define.AppOfficeAccount && params.PassiveId > 0 {
-		return //走被动回复,发送消息接口没有权限
+		return // passive reply, sending message interface has no permission
 	}
 
-	//发送回复的消息
+	// send reply message
 	SendReplyMessageHandle(push, message, app, err, params)
 	return
 }
 
 func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, app wechat.ApplicationInterface, err error, params *define.ChatRequestParam) bool {
-	//判断是否有关键词回复
+	// check if there are keyword replies
 	ReplyContentListHandle(push, message, app)
 
 	var content string
@@ -527,7 +527,7 @@ func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, a
 	return false
 }
 
-// ReplyContentListHandle 回复处理
+// ReplyContentListHandle reply handling
 func ReplyContentListHandle(push *lib_define.PushMessage, message msql.Params, app wechat.ApplicationInterface) {
 	replyContentListJson, isKeyword := message[`reply_content_list`]
 	if isKeyword {
@@ -537,18 +537,18 @@ func ReplyContentListHandle(push *lib_define.PushMessage, message msql.Params, a
 	}
 }
 
-// SendReplyContentList 发送回复内容列表
+// SendReplyContentList send reply content list
 func SendReplyContentList(push *lib_define.PushMessage, replyContent []common.ReplyContent, app wechat.ApplicationInterface) {
 	if len(replyContent) > 0 {
 		for _, keywordReply := range replyContent {
-			//有关键词回复的处理
-			//兼容类型
+			// handle keyword replies
+			// compatible type
 			checkType := keywordReply.ReplyType
 			if checkType == `` && keywordReply.Type != `` {
 				checkType = keywordReply.Type
 			}
 			switch checkType {
-			case common.ReplyTypeImageText: //图文
+			case common.ReplyTypeImageText: // image-text
 				localThumbURL := common.GetFileByLink(keywordReply.ThumbURL)
 				if localThumbURL == `` {
 					logs.Error(`image does not exist url:%s`, keywordReply.ThumbURL)
@@ -559,19 +559,19 @@ func SendReplyContentList(push *lib_define.PushMessage, replyContent []common.Re
 					logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
 				}
 				break
-			case common.ReplyTypeText: //文本
+			case common.ReplyTypeText: // text
 				errCode, err := app.SendText(push.Openid, keywordReply.Description, push)
 				if err != nil {
 					logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
 				}
 				break
-			case common.ReplyTypeUrl: //链接
+			case common.ReplyTypeUrl: // link
 				errCode, err := app.SendUrl(push.Openid, keywordReply.URL, keywordReply.Title, push)
 				if err != nil {
 					logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
 				}
 				break
-			case common.ReplyTypeImg: //图片
+			case common.ReplyTypeImg: // image
 				localThumbURL := common.GetFileByLink(keywordReply.ThumbURL)
 				if localThumbURL == `` {
 					logs.Error(`image does not exist url:%s`, keywordReply.ThumbURL)
@@ -582,7 +582,7 @@ func SendReplyContentList(push *lib_define.PushMessage, replyContent []common.Re
 					logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
 				}
 				break
-			case common.ReplyTypeCard: //小程序卡片
+			case common.ReplyTypeCard: // mini program card
 				localThumbURL := common.GetFileByLink(keywordReply.ThumbURL)
 				if localThumbURL == `` {
 					logs.Error(`image does not exist url:%s`, keywordReply.ThumbURL)
@@ -593,7 +593,7 @@ func SendReplyContentList(push *lib_define.PushMessage, replyContent []common.Re
 					logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
 				}
 				break
-			case common.ReplyTypeSmartMenu: //智能菜单
+			case common.ReplyTypeSmartMenu: // smart menu
 				errCode, err := app.SendSmartMenu(push.Openid, keywordReply.SmartMenu, push)
 				if err != nil {
 					logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
@@ -601,14 +601,14 @@ func SendReplyContentList(push *lib_define.PushMessage, replyContent []common.Re
 				break
 
 			default:
-				//其他类型消息 没指定类型的发送兼容
+				// other message types, send compatible if no specific type
 				break
 			}
 		}
 	}
 }
 
-// SendReceivedMessageReply 发送收到消息的回复
+// SendReceivedMessageReply send received message reply
 func SendReceivedMessageReply(push *lib_define.PushMessage) {
 	app, err := wechat.GetApplication(push.AppInfo)
 	if err != nil {
@@ -643,28 +643,28 @@ func SendReceivedMessageReply(push *lib_define.PushMessage) {
 	if common.IsContainChinese(push.Content) {
 		params.Lang = define.LangZhCn
 	}
-	//下载图片
+	// download image
 	ImageMediaIdToOssUrl(push, receivedMessageType, app, params)
-	//下载缩略图
+	// download thumbnail
 	ThumbMediaIdToOssUrl(push, app, params)
 
-	//记录收到的消息
+	// record received message
 	message, err := common.OnlyReceivedMessageReply(params)
 	if err != nil {
 		logs.Error(`msg:%s,err:%s`, push.MsgRaw, err.Error())
 		return
 	}
-	//没消息不回复
+	// no message no reply
 	if len(message) == 0 {
 		return
 	}
 
-	//发送回复的消息
+	// send reply message
 	SendReplyMessageHandle(push, message, app, err, params)
 	return
 }
 
-// ThumbMediaIdToOssUrl 缩略图处理
+// ThumbMediaIdToOssUrl thumbnail processing
 func ThumbMediaIdToOssUrl(push *lib_define.PushMessage, app wechat.ApplicationInterface, params *define.ChatRequestParam) {
 	thumbMediaId := cast.ToString(push.Message[`ThumbMediaId`])
 	if thumbMediaId != `` {
@@ -678,12 +678,12 @@ func ThumbMediaIdToOssUrl(push *lib_define.PushMessage, app wechat.ApplicationIn
 			logs.Error(`upload thumbnail file failed:%s, msg:%s,err:%s`, thumbMediaId, push.MsgRaw, err.Error())
 			return
 		}
-		//上传到oss获取链接
+		// upload to oss to get link
 		params.ThumbMediaIdToOssUrl = uploadInfo.Link
 	}
 }
 
-// OfficeAccountImageDownloadPriority 公众号图片下载优先逻辑
+// OfficeAccountImageDownloadPriority public account image download priority logic
 func OfficeAccountImageDownloadPriority(push *lib_define.PushMessage, receivedMessageType string, params *define.ChatRequestParam) (ok bool) {
 	if push.AppInfo[`app_type`] != lib_define.AppOfficeAccount || receivedMessageType != lib_define.MsgTypeImage {
 		return
@@ -708,15 +708,15 @@ func OfficeAccountImageDownloadPriority(push *lib_define.PushMessage, receivedMe
 		logs.Error(err.Error())
 		return
 	}
-	//上传到oss获取链接
+	// upload to oss to get link
 	params.MediaIdToOssUrl = uploadInfo.Link
 	return true
 }
 
-// ImageMediaIdToOssUrl 图片消息处理
+// ImageMediaIdToOssUrl image message processing
 func ImageMediaIdToOssUrl(push *lib_define.PushMessage, receivedMessageType string, app wechat.ApplicationInterface, params *define.ChatRequestParam) {
 	if OfficeAccountImageDownloadPriority(push, receivedMessageType, params) {
-		return //公众号图片下载优先逻辑
+		return // public account image download priority logic
 	}
 	mediaId := cast.ToString(push.Message[`MediaId`])
 	if push.AppInfo[`app_type`] == lib_define.FeiShuRobot && receivedMessageType == lib_define.MsgTypeImage {
@@ -740,7 +740,7 @@ func ImageMediaIdToOssUrl(push *lib_define.PushMessage, receivedMessageType stri
 			logs.Error(`upload file failed to get link:%s, msg:%s,err:%s`, mediaId, push.MsgRaw, err.Error())
 			return
 		}
-		//上传到oss获取链接
+		// upload to oss to get link
 		params.MediaIdToOssUrl = uploadInfo.Link
 	}
 }

@@ -1,0 +1,11 @@
+{
+  "breadcrumb_robot_management": "机器人管理",
+  "btn_new_chat": "新建对话",
+  "title_form_info": "表单信息",
+  "btn_edit": "编辑",
+  "msg_please_input_message": "请输入消息内容",
+  "msg_sensitive_words": "提交的内容包含敏感词：[{words}] 请修改后再提交",
+  "confirm_save_prompt": "确定保存提示词吗?",
+  "confirm_save_prompt_content": "如果您已对外提供本机器人，保存后修改的提示问也会立刻生效。如果您只是想要测试优化提示词的效果，直接修改后测试即可，无需保存。",
+  "success_save": "保存成功"
+}

@@ -17,26 +17,26 @@ import (
 
 type MetaSearchCondition struct {
 	Key   string `json:"key"`
-	Type  int    `json:"type"`  // 0 string,1 time,2 number（同 define.LibraryMetaType*）
+	Type  int    `json:"type"`  // 0 string, 1 time, 2 number (same as define.LibraryMetaType*)
 	Op    int    `json:"op"`    // define.MetaOp*
-	Value string `json:"value"` // 可为空（为空/不为空操作符）
+	Value string `json:"value"` // Can be empty (empty/not empty operators)
 }
 
 type metaSearchTarget int
 
 const (
-	metaSearchTargetFile      metaSearchTarget = 1 // chat_ai_library_file（按 file_id 过滤）
-	metaSearchTargetParagraph metaSearchTarget = 2 // chat_ai_library_file_data（按 data_id=id 过滤）
+	metaSearchTargetFile      metaSearchTarget = 1 // chat_ai_library_file (filter by file_id)
+	metaSearchTargetParagraph metaSearchTarget = 2 // chat_ai_library_file_data (filter by data_id=id)
 )
 
-// IsCustomMetaKey 自定义元数据 key 固定格式：key_数字
+// IsCustomMetaKey Custom metadata key fixed format: key_number
 func IsCustomMetaKey(key string) bool {
 	ok, _ := regexp.MatchString(`^key_\d+$`, key)
 	return ok
 }
 
 func sqlQuote(s string) string {
-	// 最小化转义：单引号翻倍
+	// Minimize escaping: double single quotes
 	return strings.ReplaceAll(s, `'`, `''`)
 }
 
@@ -45,15 +45,15 @@ func buildMetaFieldExpr(cond MetaSearchCondition, target metaSearchTarget) (expr
 	if define.IsBuiltinMetaKey(key) {
 		switch key {
 		case define.BuiltinMetaKeySource:
-			// doc_type 是 int，这里按 text 处理（便于 string 操作符）
+			// doc_type is int, treated as text here (for string operators)
 			if target == metaSearchTargetParagraph {
-				// 段落来源：直接用 d.type 映射（与 GetParagraphList 展示一致）
-				// type=1 => source=4，type=2 => source=5
+				// Paragraph source: directly map d.type (consistent with GetParagraphList display)
+				// type=1 => source=4, type=2 => source=5
 				return "CASE WHEN d.type=1 THEN '4' WHEN d.type=2 THEN '5' ELSE '' END", false, false, false, nil
 			}
 			return "COALESCE(f.doc_type::text,'')", false, false, false, nil
 		case define.BuiltinMetaKeyGroup:
-			// group 过滤按分组名（与前端展示一致）
+			// Group filtering by group name (consistent with frontend display)
 			if target == metaSearchTargetParagraph {
 				return "CASE WHEN d.group_id=0 THEN '' ELSE COALESCE(g.group_name,'') END", true, false, false, nil
 			}
@@ -73,12 +73,12 @@ func buildMetaFieldExpr(cond MetaSearchCondition, target metaSearchTarget) (expr
 		}
 	}
 
-	// 自定义 key 格式固定：key_数字
+	// Custom key fixed format: key_number
 	if !IsCustomMetaKey(key) {
 		return "", false, false, false, errors.New("invalid meta key")
 	}
 
-	// 自定义 meta：来自 jsonb metadata
+	// Custom meta: from jsonb metadata
 	switch cond.Type {
 	case define.LibraryMetaTypeString:
 		if target == metaSearchTargetParagraph {
@@ -86,14 +86,14 @@ func buildMetaFieldExpr(cond MetaSearchCondition, target metaSearchTarget) (expr
 		}
 		return fmt.Sprintf("COALESCE(f.metadata->>'%s','')", key), false, false, false, nil
 	case define.LibraryMetaTypeNumber:
-		// 安全 cast：值统一先 btrim 去掉空格；不满足数字格式则 NULL
+		// Safe cast: values are trimmed first; if not numeric format then NULL
 		if target == metaSearchTargetParagraph {
-			// 注意：Postgres 正则（~）是 POSIX，不支持 \\d，必须用 [0-9]
+			// Note: Postgres regex (~) is POSIX, does not support \d, must use [0-9]
 			return fmt.Sprintf("CASE WHEN btrim(d.metadata->>'%s') ~ '^-?[0-9]+(\\\\.[0-9]+)?$' THEN btrim(d.metadata->>'%s')::numeric ELSE NULL END", key, key), false, false, true, nil
 		}
 		return fmt.Sprintf("CASE WHEN btrim(f.metadata->>'%s') ~ '^-?[0-9]+(\\\\.[0-9]+)?$' THEN btrim(f.metadata->>'%s')::numeric ELSE NULL END", key, key), false, false, true, nil
 	case define.LibraryMetaTypeTime:
-		// time 用整数时间戳（最多 20 位）
+		// time uses integer timestamp (max 20 digits)
 		if target == metaSearchTargetParagraph {
 			return fmt.Sprintf("CASE WHEN btrim(d.metadata->>'%s') ~ '^[0-9]{1,20}$' THEN btrim(d.metadata->>'%s')::bigint ELSE NULL END", key, key), false, false, true, nil
 		}
@@ -115,10 +115,10 @@ func buildMetaConditionSQL(cond MetaSearchCondition, target metaSearchTarget) (s
 	val := strings.TrimSpace(cond.Value)
 	valQ := sqlQuote(val)
 
-	// 空/不空（对数值：NULL 或 0 视为空；对字符串：空串视为空）
+	// Empty/not empty (for numbers: NULL or 0 is considered empty; for strings: empty string is considered empty)
 	if op == define.MetaOpEmpty {
 		if numeric {
-			// 对内置 create/update_time：0 视为空；对自定义数值：NULL 视为空
+			// For built-in create/update_time: 0 is considered empty; for custom numbers: NULL is considered empty
 			if define.IsBuiltinMetaKey(strings.TrimSpace(cond.Key)) && (cond.Key == define.BuiltinMetaKeyCreateTime || cond.Key == define.BuiltinMetaKeyUpdateTime) {
 				return fmt.Sprintf("(%s = 0)", expr), needGroupJoin, needFileJoin, nil
 			}
@@ -136,12 +136,12 @@ func buildMetaConditionSQL(cond MetaSearchCondition, target metaSearchTarget) (s
 		return fmt.Sprintf("(%s <> '')", expr), needGroupJoin, needFileJoin, nil
 	}
 
-	// 需要 value 的操作符
+	// Operators that require value
 	if val == "" {
 		return "", false, false, errors.New("value required")
 	}
 
-	// string ops
+	// String operators
 	if !numeric {
 		switch op {
 		case define.MetaOpIs:
@@ -157,8 +157,8 @@ func buildMetaConditionSQL(cond MetaSearchCondition, target metaSearchTarget) (s
 		}
 	}
 
-	// numeric/time ops
-	// 这里 val 必须是数字（上游保存已校验，这里再兜底）
+	// Numeric/time operators
+	// Here val must be a number (validated upstream, double-checked here)
 	if ok, _ := regexp.MatchString(`^-?\d+(\.\d+)?$`, val); !ok {
 		return "", false, false, errors.New("invalid numeric value")
 	}
@@ -166,7 +166,7 @@ func buildMetaConditionSQL(cond MetaSearchCondition, target metaSearchTarget) (s
 	case define.MetaOpIs, define.MetaOpEq:
 		return fmt.Sprintf("(%s IS NOT NULL AND %s = %s)", expr, expr, val), needGroupJoin, needFileJoin, nil
 	case define.MetaOpIsNot:
-		// “不是/不等于”不包含空值/非法值；空/不空请用 MetaOpEmpty / MetaOpNotEmpty
+		// "Is not/Not equal" does not include null/invalid values; use MetaOpEmpty / MetaOpNotEmpty for empty checks
 		return fmt.Sprintf("(%s IS NOT NULL AND %s <> %s)", expr, expr, val), needGroupJoin, needFileJoin, nil
 	case define.MetaOpGt:
 		return fmt.Sprintf("(%s IS NOT NULL AND %s > %s)", expr, expr, val), needGroupJoin, needFileJoin, nil
@@ -234,11 +234,11 @@ func getAllowedIdSetByRobotMetaSearch(adminUserId int, libraryIds string, robot 
 			Where(`d.library_id`, `in`, libraryIds).
 			Where(`d.delete_time`, `0`)
 		if needFileJoin {
-			// source 需要 file.doc_type
+			// source requires file.doc_type
 			m.Join(`chat_ai_library_file f`, `d.file_id=f.id AND f.delete_time=0`, `left`)
 		}
 		if needGroupJoin {
-			// 分组名过滤需要 join（group_type=LibraryGroupTypeQA）
+			// Group name filtering requires join (group_type=LibraryGroupTypeQA)
 			m.Join(`chat_ai_library_group g`, fmt.Sprintf(`d.group_id=g.id AND g.library_id=d.library_id AND g.group_type=%d`, define.LibraryGroupTypeQA), `left`)
 		}
 		m.Where(where)
@@ -260,7 +260,7 @@ func getAllowedIdSetByRobotMetaSearch(adminUserId int, libraryIds string, robot 
 			Where(`f.library_id`, `in`, libraryIds).
 			Where(`f.delete_time`, `0`)
 		if needGroupJoin {
-			// 分组名过滤需要 join（group_type=LibraryGroupTypeFile）
+			// Group name filtering requires join (group_type=LibraryGroupTypeFile)
 			m.Join(`chat_ai_library_group g`, fmt.Sprintf(`f.group_id=g.id AND g.library_id=f.library_id AND g.group_type=%d`, define.LibraryGroupTypeFile), `left`)
 		}
 		m.Where(where)
@@ -279,7 +279,7 @@ func getAllowedIdSetByRobotMetaSearch(adminUserId int, libraryIds string, robot 
 }
 
 func filterParamsByMetaSet(list []msql.Params, allowedFile map[string]struct{}, allowedData map[string]struct{}) []msql.Params {
-	// nil 表示不做过滤
+	// nil means no filtering
 	if allowedFile == nil && allowedData == nil {
 		return list
 	}
@@ -287,7 +287,7 @@ func filterParamsByMetaSet(list []msql.Params, allowedFile map[string]struct{}, 
 	for _, one := range list {
 		typ := cast.ToInt(one[`type`])
 		if typ == define.ParagraphTypeNormal {
-			// 普通（type=1）：按文件表过滤
+			// Normal (type=1): filter by file table
 			if allowedFile == nil {
 				out = append(out, one)
 				continue
@@ -297,7 +297,7 @@ func filterParamsByMetaSet(list []msql.Params, allowedFile map[string]struct{}, 
 			}
 			continue
 		}
-		// QA/其它：按段落表过滤（id=data_id）
+		// QA/Others: filter by paragraph table (id=data_id)
 		if allowedData == nil {
 			out = append(out, one)
 			continue
@@ -331,12 +331,12 @@ func listHasNonNormalType(lists ...[]msql.Params) bool {
 	return false
 }
 
-// ApplyRobotMetaSearchFilter 最简用法：输入任意数量列表：
-// - 普通段(type=1)按 chat_ai_library_file 元数据过滤（file_id 维度）
-// - QA/其它段(type!=1)按 chat_ai_library_file_data 元数据过滤（data_id=id 维度）
-// 未开启过滤时原样返回。
+// ApplyRobotMetaSearchFilter Simplest usage: input any number of lists:
+// - Normal paragraphs (type=1) filtered by chat_ai_library_file metadata (file_id dimension)
+// - QA/Other paragraphs (type!=1) filtered by chat_ai_library_file_data metadata (data_id=id dimension)
+// Returns original when filtering is not enabled.
 func ApplyRobotMetaSearchFilter(adminUserId int, libraryIds string, robot msql.Params, lists ...[]msql.Params) ([][]msql.Params, error) {
-	// 未开启过滤：原样返回
+	// Filtering not enabled: return as-is
 	if cast.ToInt(robot[`meta_search_switch`]) != define.MetaSearchSwitchOn {
 		out := make([][]msql.Params, 0, len(lists))
 		for _, l := range lists {
@@ -362,7 +362,7 @@ func ApplyRobotMetaSearchFilter(adminUserId int, libraryIds string, robot msql.P
 		}
 	}
 
-	// 无过滤：原样返回
+	// No filtering: return as-is
 	if allowedFile == nil && allowedData == nil {
 		out := make([][]msql.Params, 0, len(lists))
 		for _, l := range lists {

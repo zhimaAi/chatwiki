@@ -1,0 +1,14 @@
+{
+  "title_http_tool": "HTTP Tools",
+  "label_available_tools": " available tools",
+  "label_no_available_tools": "No available tools",
+  "label_update": "Updated",
+  "btn_edit": "Edit",
+  "btn_delete": "Delete",
+  "title_no_http_tool": "No HTTP tools added yet",
+  "btn_add_now": "Add Now",
+  "msg_delete_confirm": "Are you sure you want to delete this HTTP tool? After deleting the tool, workflows that use this tool may not run properly. Confirm deletion?",
+  "msg_deleted": "Deleted",
+  "btn_confirm": "Confirm",
+  "btn_cancel": "Cancel"
+}

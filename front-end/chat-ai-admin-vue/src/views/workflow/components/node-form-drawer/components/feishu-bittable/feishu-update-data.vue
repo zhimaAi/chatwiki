@@ -93,7 +93,7 @@
     <div class="node-box-content">
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">record_id</div>
+          <div class="option-label">{{ t('label_record_id') }}</div>
           <div class="option-type">string</div>
         </div>
         <div>
@@ -106,7 +106,7 @@
             :ref="el => atInputRef['record_id'] = el"
             @open="emit('updateVar')"
             @change="(val, tags) => changeValue('record_id', val, tags)"
-            placeholder="请输入内容，键入“/”可以插入变量"
+            :placeholder="t('ph_input_content')"
           >
             <template #option="{ label, payload }">
               <div class="field-list-item">
@@ -116,18 +116,18 @@
             </template>
           </AtInput>
         </div>
-        <div class="desc">待更新的记录ID；示例值："reCWNXZPQv"</div>
+        <div class="desc">{{ t('desc_update_record_id') }}</div>
       </div>
       <div class="options-item is-required">
         <div class="flex-between">
           <div class="options-item-tit">
-            <div class="option-label">更新数据</div>
+            <div class="option-label">{{ t('label_update_data') }}</div>
           </div>
           <div class="flex-between">
             <FullscreenOutlined v-if="state.input_type_map.fields == 2" class="zm-pointer" @click="showFull('fields')"/>
             <a-select v-model:value="state.input_type_map.fields" style="width: 130px;" @change="update">
-              <a-select-option :value="1">选择更新数据</a-select-option>
-              <a-select-option :value="2">输入变量</a-select-option>
+              <a-select-option :value="1">{{ t('opt_select_update_data') }}</a-select-option>
+              <a-select-option :value="2">{{ t('opt_input_variable') }}</a-select-option>
             </a-select>
           </div>
         </div>
@@ -151,9 +151,9 @@
               :ref="el => atInputRef['fields'] = el"
               @open="emit('updateVar')"
               @change="(val, tags) => changeValue('fields_json', val, tags)"
-              placeholder="请输入内容，键入“/”可以插入变量"
+              :placeholder="t('ph_input_content')"
             />
-            <div class="desc">内容示例：[{"field_name":"文本","ui_type":"Text","value":"001"},{"field_name":"日期","ui_type":"DateTime","value":1769077135214},{"field_name":"数字","ui_type":"Number","value":99},{"field_name":"单选","ui_type":"SingleSelect","value":"选项1"},{"field_name":"多选","ui_type":"MultiSelect","value":["类别A","类别B"]},{"field_name":"复选框","ui_type":"Checkbox","value":true}]</div>
+            <div class="desc">{{ t('desc_update_data_example') }}</div>
           </template>
         </div>
       </div>
@@ -167,6 +167,9 @@ import {FullscreenOutlined} from '@ant-design/icons-vue'
 import FieldListSelect from "@/views/workflow/components/feishu-table/field-selector/index.vue";
 import AtFullInput from "@/views/workflow/components/at-input/at-full-input.vue";
 import AtInput from "@/views/workflow/components/at-input/at-input.vue";
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.feishu-bittable.feishu-update-data')
 
 const emit = defineEmits(['update', 'updateVar'])
 const props = defineProps({

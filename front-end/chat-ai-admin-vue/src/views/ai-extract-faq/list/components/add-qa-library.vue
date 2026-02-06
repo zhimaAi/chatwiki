@@ -60,43 +60,43 @@
     <a-form layout="vertical">
       <a-form-item ref="name" :label="false" v-bind="validateInfos.avatar">
         <AvatarInput v-model:value="formState.avatar" @change="onAvatarChange" />
-        <div class="form-item-tip">点击替换，建议尺寸为100*100px，大小不超过100kb</div>
+        <div class="form-item-tip">{{ t('avatar_tip') }}</div>
       </a-form-item>
-      <a-form-item ref="name" label="知识库名称" v-bind="validateInfos.library_name">
+      <a-form-item ref="name" :label="t('library_name_label')" v-bind="validateInfos.library_name">
         <a-input
           v-model:value="formState.library_name"
-          placeholder="请输入知识库名称，最多20个字"
+          :placeholder="t('library_name_placeholder')"
           :maxlength="20"
         />
       </a-form-item>
 
-      <a-form-item label="知识库简介" v-bind="validateInfos.library_intro">
+      <a-form-item :label="t('library_intro_label')" v-bind="validateInfos.library_intro">
         <a-textarea
           :maxlength="1000"
           v-model:value="formState.library_intro"
-          placeholder="请输入知识库简介，比如 ZHIMA CHATAI 基于大预言模型提供ZHIMA CHATAI 产品帮助"
+          :placeholder="t('library_intro_placeholder')"
         />
       </a-form-item>
 
       <div class="hight-set-text">
-        <div class="title-block"><SettingOutlined />高级设置</div>
+        <div class="title-block"><SettingOutlined />{{ t('advanced_settings') }}</div>
         <div class="right-btn-box" @click="isHide = !isHide">
           <template v-if="isHide">
-            展开
+            {{ t('expand') }}
             <DownOutlined />
           </template>
           <template v-else>
-            收起
+            {{ t('collapse') }}
             <UpOutlined />
           </template>
         </div>
       </div>
       <a-form-item v-show="!isHide">
         <template #label
-          >文档解析向量模型
+          >{{ t('document_vector_model') }}
           <a-tooltip>
             <template #title
-              >向量模型可以将分段数据转化为向量形式，存储到向量数据库中，便于后续根据用户问题查询匹配。</template
+              >{{ t('vector_model_tooltip') }}</template
             >
             <QuestionCircleOutlined class="ml4" />
           </a-tooltip>
@@ -127,13 +127,14 @@ import {
   UpOutlined
 } from '@ant-design/icons-vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+const { t } = useI18n('views.ai-extract-faq.list.components.add-qa-library')
 const emit = defineEmits('ok')
 
 const isHide = ref(true)
 
 const useForm = Form.useForm
-const default_ai_chunk_prumpt =
-  '你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。'
+const default_ai_chunk_prumpt = t('ai_chunk_prumpt_default')
 const formState = reactive({
   type: '0',
   access_rights: 0,
@@ -169,7 +170,7 @@ const formState = reactive({
 })
 
 const rules = reactive({
-  library_name: [{ required: true, message: '请输入库名称', trigger: 'change' }]
+  library_name: [{ required: true, message: t('library_name_required'), trigger: 'change' }]
 })
 
 const { validate, validateInfos } = useForm(formState, rules)
@@ -253,7 +254,7 @@ const saveForm = () => {
   formData.append('is_default', 2)
 
   createLibrary(formData).then((res) => {
-    message.success('创建成功')
+    message.success(t('create_success'))
     // res.data.id
     emit('ok', res.data.id)
   })

@@ -137,7 +137,7 @@ func GetFormEntryCountByFilter(adminUserId, formId, _type int, filterConditions 
 
 func BuildFilterConditionSql(_type int, filterConditions []define.FormFilterCondition) string {
 	if len(filterConditions) == 0 {
-		return `` //防止拼接出错误的sql
+		return `` // Prevent concatenating incorrect SQL
 	}
 	var rawSql []string
 	for _, filterCondition := range filterConditions {
@@ -184,7 +184,7 @@ func BuildFilterConditionSql(_type int, filterConditions []define.FormFilterCond
 		} else if filterCondition.Rule == `boolean_false` {
 			sql = sql + `boolean_content = false`
 		}
-		if filterCondition.FormFieldId == 0 { //FormFieldId==0时,表示的是form_entry_id,int类型
+		if filterCondition.FormFieldId == 0 { // When FormFieldId==0, it represents form_entry_id, int type
 			sql = strings.ReplaceAll(sql, `form_field_id=0 and integer_content`, `form_entry_id`)
 		}
 		sql = sql + `)`
@@ -282,7 +282,7 @@ func SaveFormEntry(adminUserId, formId, formEntryId int, entryValues map[string]
 	for _, formField := range formFields {
 		content, ok := entryValues[formField[`name`]]
 		if !ok && formEntryId > 0 {
-			continue //更新的时候,允许仅更新部分字段
+			continue // When updating, allow updating only partial fields
 		}
 		if cast.ToBool(formField[`required`]) && !ok {
 			return errors.New(`lack param field ` + formField[`name`])
@@ -346,11 +346,11 @@ func SaveFormEntry(adminUserId, formId, formEntryId int, entryValues map[string]
 				_ = m.Rollback()
 				return err
 			}
-			if cast.ToUint(fieldValueId) == 0 { //新增字段,没有数据的走新增
+			if cast.ToUint(fieldValueId) == 0 { // New field, insert if no data
 				fieldValue[`form_entry_id`] = formEntryId
 				fieldValue[`create_time`] = tool.Time2Int()
 				_, err = m.Insert(fieldValue)
-			} else { //走更新逻辑
+			} else { // Update logic
 				_, err = m.Where2(wheres).Update(fieldValue)
 			}
 			if err != nil {

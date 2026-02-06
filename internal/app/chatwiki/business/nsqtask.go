@@ -4,12 +4,10 @@ package business
 
 import (
 	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/pkg/thumbnail"
 	"chatwiki/internal/pkg/wechat"
 	"context"
 	"fmt"
 	"math"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -190,7 +188,7 @@ func ConvertVector(msg string, _ ...string) error {
 
 	var embeddingKey = `embedding`
 	if common.GetVectorDims(embedding) == 2000 {
-		embeddingKey = `embedding2000` //固定2000维度向量的文档
+		embeddingKey = `embedding2000` // fixed 2000-dimensional vector document
 	}
 
 	_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`id`, cast.ToString(id)).Update(msql.Datas{
@@ -291,7 +289,7 @@ func ConvertGraph(msg string, _ ...string) error {
 		confidence := cast.ToFloat64(triple["confidence"])
 
 		if len(subject) > 0 && len(predicate) > 0 && len(object) > 0 {
-			// 替换关系名称中的特殊字符
+			// replace special characters in relation names
 			sanitizedPredicate := strings.ReplaceAll(predicate, ".", "_")
 			sanitizedPredicate = strings.ReplaceAll(sanitizedPredicate, "...", "_")
 			sanitizedPredicate = strings.ReplaceAll(sanitizedPredicate, " ", "_")
@@ -493,15 +491,7 @@ func CrawlArticle(msg string, _ ...string) error {
 		return nil
 	}
 
-	returnDir := filepath.Join(fmt.Sprintf(`%s/upload/chat_ai/%d/%s/%s`, filepath.Dir(define.AppRoot), adminUserId, `library_file`, tool.Date(`Ym`)))
-	thumbFolderPath := filepath.Join(fmt.Sprintf(`/upload/chat_ai/%d/%s/%s/`, adminUserId, `library_file`, tool.Date(`Ym`)))
-
-	//生成缩略图
-	thumbPath, _, _, genErr := thumbnail.GenerateThumbnail(common.GetFileByLink(uploadInfo.Link), returnDir, thumbFolderPath)
-
-	if genErr != nil {
-		logs.Error("generate thumbnail error：" + genErr.Error())
-	}
+	thumbPath := common.GenThumbnail(common.GetFileByLink(uploadInfo.Link), cast.ToString(adminUserId))
 
 	// update file status
 	_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
@@ -511,7 +501,7 @@ func CrawlArticle(msg string, _ ...string) error {
 		`file_url`:            uploadInfo.Link,
 		`update_time`:         tool.Time2Int(),
 		`doc_last_renew_time`: tool.Time2Int(),
-		`async_split_params`:  ``, //清空之前的参数
+		`async_split_params`:  ``, // clear previous parameters
 		`thumb_path`:          thumbPath,
 	})
 	lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: fileId})
@@ -555,7 +545,7 @@ func CrawlFeishuDoc(msg string, _ ...string) error {
 		return nil
 	}
 
-	// 获取飞书文档详情
+	// get Feishu document details
 	app, err := wechat.GetApplication(msql.Params{`app_type`: lib_define.FeiShuRobot, `app_id`: file[`feishu_app_id`], `app_secret`: file[`feishu_app_secret`]})
 	feishuApp, ok := app.(wechat.FeishuInterface)
 	if !ok {
@@ -576,22 +566,7 @@ func CrawlFeishuDoc(msg string, _ ...string) error {
 		return nil
 	}
 
-	returnDir := filepath.Join(fmt.Sprintf(`%s/upload/chat_ai/%d/%s/%s`, filepath.Dir(define.AppRoot), adminUserId, `library_file`, tool.Date(`Ym`)))
-	thumbFolderPath := filepath.Join(fmt.Sprintf(`/upload/chat_ai/%d/%s/%s/`, adminUserId, `library_file`, tool.Date(`Ym`)))
-
-	//生成缩略图
-	thumbPath, _, _, genErr := thumbnail.GenerateThumbnail(common.GetFileByLink(link), returnDir, thumbFolderPath)
-
-	if genErr != nil {
-		logs.Error("generate thumbnail error：" + genErr.Error())
-	}
-
-	//if common.IsUrl(link) {
-	//	err = os.Rename(outputPath, filepath.Dir(define.AppRoot)+thumbPath)
-	//	if err != nil {
-	//		logs.Error("move file error：" + err.Error())
-	//	}
-	//}
+	thumbPath := common.GenThumbnail(common.GetFileByLink(link), cast.ToString(adminUserId))
 
 	// update file status
 	_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
@@ -660,16 +635,16 @@ func ExportTask(id string, _ ...string) error {
 	}
 	lang := define.LangEnUs //default is english
 	switch cast.ToUint(task[`source`]) {
-	case define.ExportSourceSession: //会话记录导出
+	case define.ExportSourceSession: // session record export
 		fileUrl, err = common.RunSessionExport(lang, params)
-	case define.ExportSourceLibFileDoc: //知识库文档导出
+	case define.ExportSourceLibFileDoc: // knowledge base document export
 		fileUrl, fileName, err = common.RunLibFileDocExport(lang, params)
 	default:
 		errMsg = `invalid source type:` + task[`source`]
 	}
-	if err != nil { //导出失败
+	if err != nil { // export failed
 		errMsg = err.Error()
-	} else { //导出成功
+	} else { // export succeeded
 		status = define.ExportStatusSucceed
 		errMsg = `SUCCEED`
 	}
@@ -878,7 +853,7 @@ func OfficialAccountDraftSync(msg string, _ ...string) error {
 		return err
 	}
 
-	//验证admin_user_id 和 app_id 获取secret
+	// verify admin_user_id and app_id to get secret
 	appInfo, err := common.GetWechatAppInfo(`access_key`, cast.ToString(data["access_key"]))
 	if err != nil {
 		logs.Error(`failed to get wechat app info:` + err.Error())
@@ -887,17 +862,17 @@ func OfficialAccountDraftSync(msg string, _ ...string) error {
 	limit := cast.ToInt(data["limit"])
 	admin_user_id := cast.ToInt(data["admin_user_id"])
 
-	//初始化client
+	// initialize client
 	client, err := common.GetOfficialAccountApp(appInfo["app_id"], appInfo["app_secret"])
 	if err != nil {
 		logs.Error(err.Error())
 		return err
 	}
 
-	count := 20 //每轮拉取条数
+	count := 20 // number of items per pull
 	round := math.Ceil(cast.ToFloat64(limit) / cast.ToFloat64(count))
 
-	if limit == 0 { //获取全部的草稿，最多拉取100轮，2千个草稿
+	if limit == 0 { // get all drafts, maximum 100 pulls, 2 thousand drafts
 		round = 100
 	}
 
@@ -909,7 +884,7 @@ func OfficialAccountDraftSync(msg string, _ ...string) error {
 		params := &object.HashMap{
 			"offset":     offset,
 			"count":      count,
-			"no_content": 1, //不要草稿内容明细
+			"no_content": 1, // do not include draft content details
 		}
 
 		_, err = client.Base.BaseClient.HttpPostJson(context.Background(), "/cgi-bin/draft/batchget", params, nil, nil, &respData)
@@ -919,7 +894,7 @@ func OfficialAccountDraftSync(msg string, _ ...string) error {
 			break
 		}
 
-		//遍历数据结果
+		// traverse data results
 		for _, s := range respData.Item {
 			updateData := msql.Datas{
 				`admin_user_id`:     admin_user_id,
@@ -958,13 +933,13 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 		return err
 	}
 
-	//验证任务类型
+	// verify task type
 	if taskInfo.Type != define.OfficialAccountBatchSendSyncCommentTask {
 		logs.Error(`invalid task type` + cast.ToString(taskInfo.Type))
 		return nil
 	}
 
-	//查询任务详情信息
+	// query task details
 	taskData, err := msql.Model(`wechat_official_account_batch_send_task`, define.Postgres).Alias("a").
 		Join("wechat_official_account_draft b", "a.draft_id = b.id ", "inner").
 		Join("chat_ai_wechat_app c", "a.access_key = c.access_key and a.admin_user_id = c.admin_user_id ", "inner").
@@ -976,7 +951,7 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 		return err
 	}
 
-	//	获取评论列表
+	// get comment list
 	client, err := common.GetOfficialAccountApp(taskData["app_id"], taskData["app_secret"])
 	if err != nil {
 		logs.Error(err.Error())
@@ -1065,7 +1040,7 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 		}
 	}
 
-	//评论同步完了，更新一下数据
+	// comment synchronization completed, update data
 	msql.Model(`wechat_official_account_batch_send_task`, define.Postgres).Where(`id`, cast.ToString(taskInfo.TaskId)).Where(`admin_user_id`, cast.ToString(taskInfo.AdminUserId)).Update(msql.Datas{
 		`update_time`:            time.Now().Unix(),
 		`last_comment_sync_time`: time.Now().Unix(),
@@ -1117,42 +1092,42 @@ func OfficialAccountCommentAiCheck(msg string, _ ...string) error {
 
 	query := msql.Model(`wechat_official_account_comment_rule`, define.Postgres).Where(`admin_user_id`, cast.ToString(taskInfo.AdminUserId))
 
-	if taskInfo.CommentRuleId == 0 { //默认规则
+	if taskInfo.CommentRuleId == 0 { // default rule
 		query.Where("is_default", "1")
 	} else {
 		query.Where(`id`, cast.ToString(taskInfo.CommentRuleId))
 	}
 
-	//查询评论规则详情
+	// query comment rule details
 	ruleInfo, err := query.Find()
 	if err != nil {
 		logs.Error(`failed to get comment rule:%s`, err.Error())
 		return err
 	}
 
-	//自定义规则，需要开启
+	// custom rule, needs to be enabled
 	if cast.ToInt(ruleInfo["is_default"]) == 0 && ruleInfo["switch"] != define.BaseOpen {
 		logs.Error(`comment rule not enabled`)
 		return nil
 	}
 
-	ai_comment_rule_text := []string{} //触发条件
-	ai_comment_result := map[int]int{} //处理结果
+	ai_comment_rule_text := []string{} // trigger conditions
+	ai_comment_result := map[int]int{} // processing results
 	reply_context := ""
 
-	//开始执行判断逻辑
+	// start executing judgment logic
 	lang := define.LangZhCn
-	if ruleInfo["delete_comment_switch"] == define.BaseOpen { //自动删除评论判断
+	if ruleInfo["delete_comment_switch"] == define.BaseOpen { // automatic delete comment judgment
 		nodeRule := manage.BridgeDeleteCommentRule{}
 		_ = tool.JsonDecode(ruleInfo["delete_comment_rule"], &nodeRule)
 		hasKeywords := false
 		aiDelete := false
 
 		for _, checkType := range nodeRule.Type {
-			//敏感词检测，且敏感词数大于1
-			if checkType == define.CommentCheckTypeHintKeywords && len(nodeRule.Keywords) > 0 { //敏感词检测
+			// sensitive word detection, and number of sensitive words greater than 1
+			if checkType == define.CommentCheckTypeHintKeywords && len(nodeRule.Keywords) > 0 { // sensitive word detection
 				for _, keyword := range nodeRule.Keywords {
-					if strings.Contains(taskInfo.CommentText, keyword) { //包含关键词
+					if strings.Contains(taskInfo.CommentText, keyword) { // contains keyword
 						hasKeywords = true
 						ai_comment_rule_text = append(ai_comment_rule_text, i18n.Show(lang, `ai_comment_delete_sensitive_word`, keyword))
 						break
@@ -1160,12 +1135,12 @@ func OfficialAccountCommentAiCheck(msg string, _ ...string) error {
 				}
 			}
 
-			//AI检测，且存在提示词
+			// AI detection, and prompt exists
 			if checkType == define.CommentCheckTypeAICheck && nodeRule.Prompt != "" {
 				userPrompt := i18n.Show(lang, `ai_comment_delete_check_prompt`, taskInfo.CommentText, nodeRule.Prompt)
 				checkRes := getAiCommentCheckRes(taskInfo.AdminUserId, userPrompt, ruleInfo["use_model"], ruleInfo["model_config_id"])
 
-				if checkRes.NeedDelete { //如果需要删除
+				if checkRes.NeedDelete { // if deletion is needed
 					ai_comment_rule_text = append(ai_comment_rule_text, i18n.Show(lang, `ai_comment_delete_ai_check`))
 					aiDelete = checkRes.NeedDelete
 				}
@@ -1173,24 +1148,24 @@ func OfficialAccountCommentAiCheck(msg string, _ ...string) error {
 
 		}
 
-		//只选了一个判断条件，触发敏感词或者AI检测通过之后，就需要删除
+		// only one judgment condition is selected, after sensitive word or AI detection is triggered, deletion is needed
 		if len(nodeRule.Type) == 1 && (hasKeywords || aiDelete) {
 			ai_comment_result[define.CommentExecTypeDelete] = define.CommentExecTypeDelete
 		}
 
-		//选了两个条件，需要同时满足，且两个条件都通过
+		// two conditions selected, both need to be satisfied and both passed
 		if len(nodeRule.Type) == 2 && nodeRule.Condition == 1 && hasKeywords && aiDelete {
 			ai_comment_result[define.CommentExecTypeDelete] = define.CommentExecTypeDelete
 		}
 
-		//选了两个条件，满足任意一个，且有一个通过
+		// two conditions selected, satisfy any one, and one passes
 		if len(nodeRule.Type) == 2 && nodeRule.Condition == 2 && (hasKeywords || aiDelete) {
 			ai_comment_result[define.CommentExecTypeDelete] = define.CommentExecTypeDelete
 		}
 	}
 
-	//如果没有删除评论操作，继续判断
-	if _, ok := ai_comment_result[define.CommentExecTypeDelete]; !ok && ruleInfo["reply_comment_switch"] == define.BaseOpen { //自动回复判断
+	// if no delete comment operation, continue judging
+	if _, ok := ai_comment_result[define.CommentExecTypeDelete]; !ok && ruleInfo["reply_comment_switch"] == define.BaseOpen { // automatic reply judgment
 
 		nodeRule := manage.BridgeReplyCommentRule{}
 		_ = tool.JsonDecode(ruleInfo["reply_comment_rule"], &nodeRule)
@@ -1198,14 +1173,14 @@ func OfficialAccountCommentAiCheck(msg string, _ ...string) error {
 		userPrompt := i18n.Show(lang, `ai_comment_reply_check_prompt`, taskInfo.CommentText, nodeRule.CheckReplyPrompt)
 		checkRes := getAiCommentCheckRes(taskInfo.AdminUserId, userPrompt, ruleInfo["use_model"], ruleInfo["model_config_id"])
 
-		//如果需要回复，且使用固定回复内容
+		// if reply is needed, and using fixed reply content
 		if checkRes.NeedReply && nodeRule.ReplyType == 1 {
 			reply_context = nodeRule.ReplyPrompt
 			ai_comment_result[define.CommentExecTypeReply] = define.CommentExecTypeReply
 			ai_comment_rule_text = append(ai_comment_rule_text, i18n.Show(lang, `ai_comment_default_reply`))
 		}
 
-		//如果需要回复，使用AI回复
+		// if reply is needed, using AI reply
 		if checkRes.NeedReply && nodeRule.ReplyType == 2 {
 			userPrompt := i18n.Show(lang, `ai_comment_reply_generation_prompt`, taskInfo.CommentText, nodeRule.ReplyPrompt)
 			checkRes = getAiCommentCheckRes(taskInfo.AdminUserId, userPrompt, ruleInfo["use_model"], ruleInfo["model_config_id"])
@@ -1217,8 +1192,8 @@ func OfficialAccountCommentAiCheck(msg string, _ ...string) error {
 
 	}
 
-	//如果没有删除评论操作，继续判断
-	if _, ok := ai_comment_result[define.CommentExecTypeDelete]; !ok && ruleInfo["elect_comment_switch"] == define.BaseOpen { //自动精选判断
+	// if no delete comment operation, continue judging
+	if _, ok := ai_comment_result[define.CommentExecTypeDelete]; !ok && ruleInfo["elect_comment_switch"] == define.BaseOpen { // automatic highlight judgment
 		nodeRule := manage.BridgeElectCommentRule{}
 		_ = tool.JsonDecode(ruleInfo["elect_comment_rule"], &nodeRule)
 
@@ -1242,14 +1217,14 @@ func OfficialAccountCommentAiCheck(msg string, _ ...string) error {
 	}
 	for key, _ := range ai_comment_result {
 		commentResult = append(commentResult, key)
-		if key == define.CommentExecTypeDelete { //删除评论
+		if key == define.CommentExecTypeDelete { // delete comment
 			_, err := manage.BridgeDeleteComment(taskInfo.AccessKey, taskInfo.MsgDataId, 0, taskInfo.UserCommentId)
 			if err == nil {
 				updateData["delete_status"] = 1
 			}
 		}
 
-		if key == define.CommentExecTypeReply && reply_context != "" { //回复评论
+		if key == define.CommentExecTypeReply && reply_context != "" { // reply comment
 			_, err := manage.BridgeReplyComment(taskInfo.AccessKey, taskInfo.MsgDataId, reply_context, 0, taskInfo.UserCommentId)
 			if err == nil {
 				updateData["reply_comment_text"] = reply_context
@@ -1257,7 +1232,7 @@ func OfficialAccountCommentAiCheck(msg string, _ ...string) error {
 			}
 		}
 
-		if key == define.CommentExecTypeTop { //置顶评论
+		if key == define.CommentExecTypeTop { // pin comment
 			_, err := manage.BridgeMarkElect(taskInfo.AccessKey, taskInfo.MsgDataId, 0, taskInfo.UserCommentId)
 			if err == nil {
 				updateData["comment_type"] = 1
@@ -1311,7 +1286,7 @@ func OfficialAccountBatchSend(msg string, _ ...string) error {
 		return err
 	}
 
-	//验证任务类型
+	// verify task type
 	if taskInfo.Type != define.OfficialAccountBatchSendDelayTask {
 		logs.Error(`invalid task type` + cast.ToString(taskInfo.Type))
 		return nil
@@ -1322,7 +1297,7 @@ func OfficialAccountBatchSend(msg string, _ ...string) error {
 		return nil
 	}
 
-	//此处执行发送任务动作，需要任务状态是开启的
+	// execute send task action here, task status needs to be open
 	taskData, err := msql.Model(`wechat_official_account_batch_send_task`, define.Postgres).Alias("a").
 		Join("wechat_official_account_draft b", "a.draft_id = b.id ", "inner").
 		Join("chat_ai_wechat_app c", "a.access_key = c.access_key and a.admin_user_id = c.admin_user_id ", "inner").
@@ -1340,14 +1315,14 @@ func OfficialAccountBatchSend(msg string, _ ...string) error {
 		return err
 	}
 
-	//初始化client
+	// initialize client
 	client, err := common.GetOfficialAccountApp(taskData["app_id"], taskData["app_secret"])
 	if err != nil {
 		logs.Error(`wechat client init failed:` + err.Error())
 		return err
 	}
 
-	//创建发送任务
+	// create send task
 	resp := power.HashMap{}
 	res, err := client.Broadcasting.SendNews(context.Background(), taskData["media_id"], &request.Reception{
 		//ToUser: []string{"o0DNE6i3WNEKnFRu7XXEzs9wLMtQ", "o0DNE6kjqc121GkNXSUng71jo5Kc"},
@@ -1368,7 +1343,7 @@ func OfficialAccountBatchSend(msg string, _ ...string) error {
 	if officialAccountBatchSendRes.Errcode != 0 {
 		logs.Error(`batch send task execution failed:` + officialAccountBatchSendRes.Errmsg)
 
-		//变更任务状态
+		// change task status
 		_, _ = msql.Model(`wechat_official_account_batch_send_task`, define.Postgres).Where(`id`, cast.ToString(taskInfo.TaskId)).Where(`admin_user_id`, cast.ToString(taskInfo.AdminUserId)).Update(msql.Datas{
 			`update_time`: time.Now().Unix(),
 			`send_res`:    tool.JsonEncodeNoError(res),
@@ -1377,7 +1352,7 @@ func OfficialAccountBatchSend(msg string, _ ...string) error {
 		return nil
 	}
 
-	//变更任务状态
+	// change task status
 	_, _ = msql.Model(`wechat_official_account_batch_send_task`, define.Postgres).Where(`id`, cast.ToString(taskInfo.TaskId)).Where(`admin_user_id`, cast.ToString(taskInfo.AdminUserId)).Update(msql.Datas{
 		`update_time`: time.Now().Unix(),
 		`send_status`: define.BatchSendStatusExec,
@@ -1406,6 +1381,6 @@ func ImportLibFileFaq(msg string, _ ...string) error {
 	fileId := cast.ToInt(data[`file_id`])
 	ids := cast.ToString(data[`ids`])
 	token := cast.ToString(data[`token`])
-	common.ImportFAQFile(adminUserId, libraryId, fileId, ids, token, false)
+	common.ImportFAQFile(define.LangEnUs, adminUserId, libraryId, fileId, ids, token, false)
 	return nil
 }

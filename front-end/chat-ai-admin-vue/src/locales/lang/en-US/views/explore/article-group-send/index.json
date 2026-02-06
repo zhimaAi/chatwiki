@@ -1,0 +1,25 @@
+{
+  "banner_ai_comment_not_enabled": "AI Comment Selection is not enabled. You can enable it via Explore > Features > AI Comment Selection",
+  "common_go_enable": "Enable",
+  "breadcrumb_article_group_send": "Article Bulk Send",
+  "switch_on": "On",
+  "switch_off": "Off",
+  "switch_tip": "After enabling, users can bulk send articles to official account followers in Article Management, and AI Comment Selection will automatically delete, reply to, and feature comments.",
+  "empty_no_mp_bound": "No official account bound",
+  "empty_bind_mp_tip": "Please go to System Settings > Official Account Management to bind an account",
+  "btn_bind_mp": "Bind official account",
+  "segmented_group_send": "Bulk send management",
+  "segmented_draft_box": "Draft box",
+  "alert_line_1": "1. This feature is only available for verified official accounts and supports syncing unpublished drafts from the WeChat backend.",
+  "alert_line_2": "2. Bulk-sent content will not appear in Article Management. Please note the difference between bulk send and published articles.",
+  "modal_ai_comment_not_enabled_title": "AI Comment Selection not enabled",
+  "modal_ai_comment_not_enabled": "AI Comment Selection is not enabled",
+  "modal_ai_comment_not_enabled_tip": ", you can enable it via Explore > Features > AI Comment Selection",
+  "checkbox_dont_remind_three_days": "Do not remind again within 3 days",
+  "btn_cancel": "Cancel",
+  "modal_confirm_title": "Notice",
+  "modal_confirm_disable_content": "After closing, this feature will be disabled by default and can no longer be used. Are you sure you want to close it?",
+  "message_operation_success": "Operation successful",
+  "more_show": "More"
+}
+

@@ -102,7 +102,7 @@
 <template>
   <edit-box
     class="setting-box"
-    title="关联知识库"
+    :title="t('title_associated_knowledge_base')"
     icon-name="guanlianzhishiku"
     v-model:isEdit="isEdit"
     :bodyStyle="{ padding: 0 }"
@@ -110,8 +110,8 @@
     <template #extra>
       <div class="actions-box">
         <a-flex :gap="8">
-          <a-button size="small" @click="handleOpenRecallSettingsAlert">召回设置</a-button>
-          <a-button size="small" @click="handleOpenSelectLibraryAlert">关联知识库</a-button>
+          <a-button size="small" @click="handleOpenRecallSettingsAlert">{{ t('btn_recall_settings') }}</a-button>
+          <a-button size="small" @click="handleOpenSelectLibraryAlert">{{ t('btn_associate_knowledge_base') }}</a-button>
         </a-flex>
       </div>
     </template>
@@ -143,23 +143,23 @@
     </div>
     <div class="setting-info-block">
       <div class="set-item">
-        检索模式：
-        <span v-if="formState.search_type == 1">混合检索</span>
-        <span v-if="formState.search_type == 2">向量检索</span>
-        <span v-if="formState.search_type == 3">全文检索</span>
-        <span v-if="formState.search_type == 4">知识图谱检索</span>
+        {{ t('label_search_mode') }}
+        <span v-if="formState.search_type == 1">{{ t('label_hybrid_search') }}</span>
+        <span v-if="formState.search_type == 2">{{ t('label_vector_search') }}</span>
+        <span v-if="formState.search_type == 3">{{ t('label_fulltext_search') }}</span>
+        <span v-if="formState.search_type == 4">{{ t('label_graph_search') }}</span>
       </div>
       <div class="set-item">
-        Top K：
+        {{ t('label_top_k') }}
         <span>{{ formState.top_k }}</span>
       </div>
       <div class="set-item" v-if="formState.search_type <= 2">
-        相似度阈值：
+        {{ t('label_similarity_threshold') }}
         <span>{{ formState.similarity }}</span>
       </div>
       <div class="set-item">
-        Rerank模型：
-        <span v-if="formState.rerank_status == 0">关</span>
+        {{ t('label_rerank_model') }}
+        <span v-if="formState.rerank_status == 0">{{ t('label_off') }}</span>
         <span v-else>{{ getModelName }}</span>
       </div>
     </div>
@@ -184,6 +184,9 @@ import LibrarySelectAlert from './library-select-alert.vue'
 import RecallSettingsAlert from './recall-settings-alert.vue'
 import NoOpenGraphModal from './no-open-graph-modal.vue'
 import { getModelNameText } from '@/components/model-select/index.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.associated-knowledge-base.index')
 
 const { getStorage, removeStorage } = useStorage('localStorage')
 
@@ -315,10 +318,10 @@ const loadWxLbStatus = () => {
 // 显示未关联知识库提示
 const handleShowNoLibraryTip = () => {
   Modal.confirm({
-    title: '还未关联知识库',
-    content: '关联知识库后，机器人会根据知识库作答。',
-    okText: '立即关联',
-    cancelText: '暂不关联',
+    title: t('modal_title_no_library'),
+    content: t('modal_content_no_library'),
+    okText: t('modal_btn_associate_now'),
+    cancelText: t('modal_btn_associate_later'),
     onOk() {
       handleOpenSelectLibraryAlert()
     }

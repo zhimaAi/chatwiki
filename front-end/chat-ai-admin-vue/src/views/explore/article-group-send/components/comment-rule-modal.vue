@@ -1,30 +1,35 @@
 <template>
-  <a-modal v-model:open="open" title="设置AI评论规则" :width="720" @ok="onOk" @cancel="onCancel">
+  <a-modal v-model:open="open" :title="t('modal_title')" :width="720" @ok="onOk" @cancel="onCancel">
     <div class="rule-modal">
       <div class="toolbar">
-        <a-input-search v-model:value="query.rule_name" :placeholder="'请输入规则名搜索'" @search="onSearch" allowClear />
-        <a-button class="create-btn" @click="onCreate">去创建规则</a-button>
+        <a-input-search
+          v-model:value="query.rule_name"
+          :placeholder="t('search_rule_placeholder')"
+          @search="onSearch"
+          allowClear
+        />
+        <a-button class="create-btn" @click="onCreate">{{ t('btn_go_create_rule') }}</a-button>
       </div>
       <div class="table-header">
-        <div class="th th-name">规则名称</div>
-        <div class="th">自动删评</div>
-        <div class="th">自动回复评论</div>
-        <div class="th">评论精选</div>
-        <div class="th">规则启用</div>
+        <div class="th th-name">{{ t('th_rule_name') }}</div>
+        <div class="th">{{ t('th_delete_comment') }}</div>
+        <div class="th">{{ t('th_reply_comment') }}</div>
+        <div class="th">{{ t('th_elect_comment') }}</div>
+        <div class="th">{{ t('th_rule_enable') }}</div>
       </div>
       <div v-if="loading" class="loading-box"><a-spin /></div>
         <div v-else>
-          <div v-if="list.length === 0" class="empty-box"><a-empty description="暂无规则" /></div>
+          <div v-if="list.length === 0" class="empty-box"><a-empty :description="t('empty_no_rule')" /></div>
           <a-radio-group v-else v-model:value="selectedRuleId" class="radio-list">
             <div class="radio-row" v-for="it in list" :key="it.id">
               <div class="name-col">
                 <a-radio :value="String(it.id)">{{ it.rule_name }}</a-radio>
-                <a-tag v-if="String(it.is_default) === '1'" color="blue" class="default-tag">默认</a-tag>
+                <a-tag v-if="String(it.is_default) === '1'" color="blue" class="default-tag">{{ t('tag_default') }}</a-tag>
               </div>
-              <div class="col"><a-switch checked-children="开" un-checked-children="关" :checked="String(it.delete_comment_switch) === '1'" disabled /></div>
-              <div class="col"><a-switch checked-children="开" un-checked-children="关" :checked="String(it.reply_comment_switch) === '1'" disabled /></div>
-              <div class="col"><a-switch checked-children="开" un-checked-children="关" :checked="String(it.elect_comment_switch) === '1'" disabled /></div>
-              <div class="col"><a-switch checked-children="开" un-checked-children="关" :checked="String(it.switch) === '1'" disabled /></div>
+              <div class="col"><a-switch :checked-children="t('switch_on')" :un-checked-children="t('switch_off')" :checked="String(it.delete_comment_switch) === '1'" disabled /></div>
+              <div class="col"><a-switch :checked-children="t('switch_on')" :un-checked-children="t('switch_off')" :checked="String(it.reply_comment_switch) === '1'" disabled /></div>
+              <div class="col"><a-switch :checked-children="t('switch_on')" :un-checked-children="t('switch_off')" :checked="String(it.elect_comment_switch) === '1'" disabled /></div>
+              <div class="col"><a-switch :checked-children="t('switch_on')" :un-checked-children="t('switch_off')" :checked="String(it.switch) === '1'" disabled /></div>
             </div>
           </a-radio-group>
           <div class="pager-box">
@@ -40,8 +45,10 @@ import { ref, reactive } from 'vue'
 import { message } from 'ant-design-vue'
 import { getCommentRuleList, setBatchSendTaskCommentRule } from '@/api/robot'
 import { useRouter } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
 
 const router = useRouter()
+const { t } = useI18n('views.explore.article-group-send.components.comment-rule-modal')
 const open = ref(false)
 const list = ref([])
 const loading = ref(false)
@@ -87,7 +94,7 @@ const onCreate = () => {
  }
 
 const onOk = async () => {
-  if (!selectedRuleId.value) { message.warning('请选择一个规则'); return }
+  if (!selectedRuleId.value) { message.warning(t('error_select_rule')) ; return }
   if (selectOnly.value || !taskId.value) {
     const picked = (list.value || []).find((it) => String(it.id) === String(selectedRuleId.value)) || null
     const rule_name = picked?.rule_name || ''
@@ -97,7 +104,7 @@ const onOk = async () => {
     return
   }
   await setBatchSendTaskCommentRule({ task_id: taskId.value, rule_id: selectedRuleId.value })
-  message.success('设置成功')
+  message.success(t('message_set_success'))
   open.value = false
   emit('updated')
 }

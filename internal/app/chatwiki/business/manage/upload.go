@@ -34,7 +34,7 @@ func Upload(c *gin.Context) {
 			return
 		}
 		identity = robotKey
-	} else { //管理有台操作,校验登录态
+	} else { // Admin console operation; validate login session
 		var userId int
 		if userId = GetAdminUserId(c); userId == 0 {
 			return
@@ -63,7 +63,7 @@ func Upload(c *gin.Context) {
 		allowExts = append(allowExts, define.AudioAllowExt...)
 	}
 	if tool.InArray(category, []string{`chat_image`}) {
-		filesize = define.ChatImageLimitSize //聊天测试、webapp、网页插件的多模态输入-上传图片
+		filesize = define.ChatImageLimitSize // Chat test/webapp/web plugin multimodal input - upload image
 	}
 
 	uploadInfo, err := common.SaveUploadedFile(fileHeader, filesize, identity, category, allowExts)

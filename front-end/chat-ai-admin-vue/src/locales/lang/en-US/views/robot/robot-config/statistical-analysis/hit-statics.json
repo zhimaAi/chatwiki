@@ -1,0 +1,18 @@
+{
+  "label_channel": "Channel:",
+  "ph_all_channels": "All Channels",
+  "label_date": "Date:",
+  "btn_reset": "Reset",
+  "title_knowledge_hit_rate": "Knowledge Hit Rate",
+  "tooltip_knowledge_hit_rate": "Number of knowledge base hit messages / Total number of robot response messages",
+  "title_total_messages": "Total Messages",
+  "tooltip_total_messages": "Only counts messages corresponding to robot responses, excluding messages during manual service",
+  "title_knowledge_hit_messages": "Knowledge Base Hit Messages",
+  "tooltip_knowledge_hit_messages": "When the robot replies, if a knowledge base document is retrieved, it is considered a hit message",
+  "title_knowledge_miss_messages": "Knowledge Base Miss Messages",
+  "btn_details": "Details",
+  "series_total_messages": "Total Messages",
+  "series_hit_messages": "Hit Messages",
+  "series_miss_messages": "Miss Messages",
+  "series_hit_rate": "Hit Rate"
+}

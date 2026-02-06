@@ -2,7 +2,7 @@
   <div>
     <a-modal
       v-model:open="open"
-      title="字段详情"
+      :title="t('title_field_detail')"
       @ok="handleOk"
       :width="648"
       wrapClassName="no-padding-modal"
@@ -16,22 +16,22 @@
         :wrapper-col="{ span: 24 }"
       >
         <!-- 字段类型 -->
-        <a-form-item label="字段类型" name="variable_type">
+        <a-form-item :label="t('label_field_type')" name="variable_type">
           <a-select
             @change="handleTypChange"
             v-model:value="form.variable_type"
-            placeholder="请选择字段类型"
+            :placeholder="t('ph_select_field_type')"
           >
-            <a-select-option value="input_string">文本</a-select-option>
-            <a-select-option value="input_number">数字</a-select-option>
-            <a-select-option value="select_one">下拉单选</a-select-option>
-            <a-select-option value="checkbox_switch">复选框</a-select-option>
+            <a-select-option value="input_string">{{ t('option_text') }}</a-select-option>
+            <a-select-option value="input_number">{{ t('option_number') }}</a-select-option>
+            <a-select-option value="select_one">{{ t('option_select_one') }}</a-select-option>
+            <a-select-option value="checkbox_switch">{{ t('option_checkbox_switch') }}</a-select-option>
           </a-select>
         </a-form-item>
 
         <!-- 字段key -->
         <a-form-item
-          label="字段key"
+          :label="t('label_field_key')"
           name="variable_key"
           :rules="[
             {
@@ -40,23 +40,23 @@
             }
           ]"
         >
-          <a-input v-model:value="form.variable_key" :maxLength="10" placeholder="请输入字段key" />
+          <a-input v-model:value="form.variable_key" :maxLength="10" :placeholder="t('ph_input_field_key')" />
         </a-form-item>
 
         <!-- 字段名 -->
-        <a-form-item label="字段名" name="variable_name" :rules="[{ required: true }]">
-          <a-input v-model:value="form.variable_name" :maxLength="10" placeholder="请输入字段名" />
+        <a-form-item :label="t('label_field_name')" name="variable_name" :rules="[{ required: true }]">
+          <a-input v-model:value="form.variable_name" :maxLength="10" :placeholder="t('ph_input_field_name')" />
         </a-form-item>
 
         <!-- 最大长度 -->
         <a-form-item
-          label="最大长度"
+          :label="t('label_max_length')"
           name="max_input_length"
           v-if="['input_string', 'input_number'].includes(form.variable_type)"
         >
           <a-input-number
             v-model:value="form.max_input_length"
-            placeholder="请输入"
+            :placeholder="t('ph_input')"
             :precision="0"
             :min="1"
             :max="50"
@@ -64,9 +64,9 @@
         </a-form-item>
 
         <!-- 默认值 -->
-        <a-form-item label="默认值" name="default_value">
+        <a-form-item :label="t('label_default_value')" name="default_value">
           <div v-if="form.variable_type == 'input_string'">
-            <a-input v-model:value="form.default_value" placeholder="请输入默认值" />
+            <a-input v-model:value="form.default_value" :placeholder="t('ph_input_default_value')" />
           </div>
           <div v-if="form.variable_type == 'input_number'">
             <a-input-number
@@ -74,32 +74,32 @@
               style="width: 100%"
               stringMode
               v-model:value="form.default_value"
-              placeholder="请输入默认值"
+              :placeholder="t('ph_input_default_value')"
             />
           </div>
-          <div v-if="form.variable_type == 'select_one'" placeholder="请选择默认值">
+          <div v-if="form.variable_type == 'select_one'" :placeholder="t('ph_select_default_value')">
             <a-select v-model:value="form.default_value" style="width: 100%">
               <a-select-option v-for="item in filtersOptions" :value="item.label">{{
                 item.label
               }}</a-select-option>
             </a-select>
           </div>
-          <div v-if="form.variable_type == 'checkbox_switch'" placeholder="请选择默认值">
+          <div v-if="form.variable_type == 'checkbox_switch'" :placeholder="t('ph_select_default_value')">
             <a-select v-model:value="form.default_value" style="width: 100%">
-              <a-select-option value="1">选中</a-select-option>
-              <a-select-option value="2">不选中</a-select-option>
+              <a-select-option value="1">{{ t('option_selected') }}</a-select-option>
+              <a-select-option value="2">{{ t('option_not_selected') }}</a-select-option>
             </a-select>
           </div>
         </a-form-item>
 
         <!-- 是否必填 -->
         <a-form-item :label="null" name="must_input" v-if="form.variable_type != 'checkbox_switch'">
-          <a-checkbox v-model:checked="form.must_input">必填</a-checkbox>
+          <a-checkbox v-model:checked="form.must_input">{{ t('label_required') }}</a-checkbox>
         </a-form-item>
 
         <!-- 下拉选项（仅当类型为 select_one 时显示） -->
-        <a-form-item v-if="form.variable_type === 'select_one'" label="选项" name="options">
-          <a-button type="dashed" @click="addOption">+ 添加选项</a-button>
+        <a-form-item v-if="form.variable_type === 'select_one'" :label="t('label_options')" name="options">
+          <a-button type="dashed" @click="addOption">{{ t('btn_add_option') }}</a-button>
           <a-form-item-rest>
             <draggable
               v-model="form.options"
@@ -113,9 +113,9 @@
                   <a-input
                     v-model:value="element.label"
                     :maxLength="50"
-                    placeholder="请输入选项标签"
+                    :placeholder="t('ph_input_option_label')"
                   />
-                  <a-button type="link" danger @click="removeOption(index)">删除</a-button>
+                  <a-button type="link" danger @click="removeOption(index)">{{ t('btn_delete') }}</a-button>
                 </div>
               </template>
             </draggable>
@@ -132,6 +132,9 @@ import { createChatVariable } from '@/api/robot/index'
 import { useRoute } from 'vue-router'
 import draggable from 'vuedraggable'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.variable-setting.add-variable-modal')
 
 const query = useRoute().query
 const open = ref(false)
@@ -168,12 +171,12 @@ const show = (data = {}) => {
 
 const checkKey = (rule, value) => {
   if (!value) {
-    return Promise.reject('请输入参数key')
+    return Promise.reject(t('msg_input_key_required'))
   }
   // 校验是否只包含英文字母和下划线
   const regex = /^[a-zA-Z_]+$/
   if (!regex.test(value)) {
-    return Promise.reject('只能包含英文字母和下划线')
+    return Promise.reject(t('msg_key_invalid'))
   }
   return Promise.resolve()
 }
@@ -186,7 +189,7 @@ const handleOk = () => {
     if (form.variable_type == 'select_one') {
       options = form.options.filter((item) => item.label != '')
       if (options.length == 0) {
-        return message.error('请填写选项')
+        return message.error(t('msg_fill_options'))
       }
     }
     let max_input_length = form.max_input_length
@@ -199,7 +202,7 @@ const handleOk = () => {
       must_input: form.must_input ? 1 : 0,
       options: JSON.stringify(options)
     }).then((res) => {
-      message.success(form.id ? '更新成功' : '创建成功')
+      message.success(form.id ? t('msg_update_success') : t('msg_create_success'))
       open.value = false
       emit('ok')
     })

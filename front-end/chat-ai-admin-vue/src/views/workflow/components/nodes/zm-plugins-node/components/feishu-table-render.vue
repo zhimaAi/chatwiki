@@ -212,7 +212,7 @@
 </template>
 
 <script>
-import {BatchActions, FeiShuOperatorMap, getBatchActionParams} from "@/constants/feishu-table.js";
+import {BatchActions, feiShuOperatorMap, getBatchActionParams} from "@/constants/feishu-table.js";
 import AtText from "@/views/workflow/components/at-input/at-text.vue";
 import {runPlugin} from "@/api/plugins/index.js";
 
@@ -234,7 +234,7 @@ export default {
     return {
       BatchActions,
       batchActionParam: {},
-      operatorMap: FeiShuOperatorMap(),
+      operatorMap: feiShuOperatorMap,
       actionState: {},
     }
   },

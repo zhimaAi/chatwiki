@@ -2,11 +2,11 @@
   <div class="team-members-pages">
     <a-flex justify="flex-start">
       <div class="set-model">
-        <div class="label set-model-label">渠道：</div>
+        <div class="label set-model-label">{{ t('label_channel') }}</div>
         <div class="set-model-body">
           <a-select
             v-model:value="requestParams.channel"
-            placeholder="全部渠道"
+            :placeholder="t('ph_all_channels')"
             @change="handleChangeModel"
             :style="{'width': '200px'}"
           >
@@ -19,7 +19,7 @@
 
       <div class="set-date">
         <div class="label set-date-label">
-          <span>日期：</span>
+          <span>{{ t('label_date') }}</span>
         </div>
         <div class="set-date-body">
           <DateSelect 
@@ -30,59 +30,59 @@
       </div>
 
       <div class="set-reset">
-        <a-button @click="onReset">重置</a-button>
+        <a-button @click="onReset">{{ t('btn_reset') }}</a-button>
       </div>
     </a-flex>
     <div class="list-box">
       <div class="list-item">
         <div class="item-top">
           <div class="item-top-left">
-            <div class="item-top-title">日活用户数</div>
+            <div class="item-top-title">{{ t('title_daily_active_users') }}</div>
             <a-tooltip placement="top">
-              <template #title>每天进行有效沟通的用户数。有效沟通的判定标准为一次及以上的问—答。</template>
+              <template #title>{{ t('tooltip_daily_active_users') }}</template>
               <QuestionCircleOutlined />
             </a-tooltip>
           </div>
-          <div class="item-top-right">单位（人）</div>
+          <div class="item-top-right">{{ t('unit_people') }}</div>
         </div>
         <Echarts :xDataArray="xDataArray.res1" :yDataArray="yDataArray.res1"></Echarts>
       </div>
       <div class="list-item">
         <div class="item-top">
           <div class="item-top-left">
-            <div class="item-top-title">日新增用户数</div>
+            <div class="item-top-title">{{ t('title_daily_new_users') }}</div>
             <a-tooltip placement="top">
-              <template #title>每天进行有效沟通的新增用户数。有效沟通的判定标准为一次及以上的—问—答。</template>
+              <template #title>{{ t('tooltip_daily_new_users') }}</template>
               <QuestionCircleOutlined />
             </a-tooltip>
           </div>
-          <div class="item-top-right">单位（人）</div>
+          <div class="item-top-right">{{ t('unit_people') }}</div>
         </div>
         <Echarts :xDataArray="xDataArray.res2" :yDataArray="yDataArray.res2"></Echarts>
       </div>
       <div class="list-item">
         <div class="item-top">
           <div class="item-top-left">
-            <div class="item-top-title">总消息数</div>
+            <div class="item-top-title">{{ t('title_total_messages') }}</div>
             <a-tooltip placement="top">
-              <template #title>每天用户和机器人沟通过程中产生的所有消息总数。</template>
+              <template #title>{{ t('tooltip_total_messages') }}</template>
               <QuestionCircleOutlined />
             </a-tooltip>
           </div>
-          <div class="item-top-right">单位（条）</div>
+          <div class="item-top-right">{{ t('unit_messages') }}</div>
         </div>
         <Echarts :xDataArray="xDataArray.res3" :yDataArray="yDataArray.res3"></Echarts>
       </div>
       <div class="list-item">
         <div class="item-top">
           <div class="item-top-left">
-            <div class="item-top-title">Token消耗数</div>
+            <div class="item-top-title">{{ t('title_token_consumption') }}</div>
             <a-tooltip placement="top">
-              <template #title>每天大模型消耗的token总数，包括使用大模型回答问题、优化问题、推荐问题的token消耗。</template>
+              <template #title>{{ t('tooltip_token_consumption') }}</template>
               <QuestionCircleOutlined />
             </a-tooltip>
           </div>
-          <div class="item-top-right">单位（千）</div>
+          <div class="item-top-right">{{ t('unit_thousands') }}</div>
         </div>
         <Echarts :xDataArray="xDataArray.res4" :yDataArray="yDataArray.res4"></Echarts>
       </div>
@@ -97,8 +97,10 @@ import DateSelect from './components/date.vue'
 import Echarts from './components/echarts.vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
 
 const route = useRoute()
+const { t } = useI18n('views.robot.robot-config.statistical-analysis.statistical-analysis')
 // type = 1日活用户数 2日新增用户数 3总消息数 4token消耗数
 const echartItem = [1, 2, 3, 4]
 
@@ -121,8 +123,8 @@ const channelItem = ref([
   {
     key: 'all',
     id: 'all',
-    label: '全部渠道',
-    title: '全部渠道'
+    label: t('ph_all_channels'),
+    title: t('ph_all_channels')
   },
   {
     key: 'yun_h5',
@@ -133,8 +135,8 @@ const channelItem = ref([
   {
     key: 'yun_pc',
     id: 'yun_pc',
-    label: '嵌入网站',
-    title: '嵌入网站'
+    label: t('channel_embedded_website'),
+    title: t('channel_embedded_website')
   }
 ])
 
@@ -170,7 +172,7 @@ const onSearch = () => {
 }
 
 const yDataArrayDefault = reactive({
-  name: '日活用户数（人）',
+  name: t('label_daily_active_users'),
   type: 'line',
   showSymbol: false,
   symbol: 'circle', // 标记的图形
@@ -229,16 +231,16 @@ const forMatYDataArray = (arr, type) => {
   let currentName = '日活用户数（人）'
   switch (type) {
       case '1':
-        currentName = '日活用户数（人）'
+        currentName = t('label_daily_active_users')
           break;
       case '2':
-        currentName = '日新增用户数（人）'
+        currentName = t('label_daily_new_users')
           break;
       case '3':
-        currentName = '总消息数（条）'
+        currentName = t('label_total_messages')
           break;
       case '4':
-        currentName = 'token消耗数（千）'
+        currentName = t('label_token_consumption')
           break;
   }
   arr.map((item) => newArr.push(type == '4' ? formatAmount(item.amount) : item.amount))

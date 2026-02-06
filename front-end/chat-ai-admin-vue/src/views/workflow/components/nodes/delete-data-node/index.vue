@@ -90,7 +90,7 @@
     <div class="node-box">
       <div class="static-field-list">
         <div class="static-field-item">
-          <div class="static-field-item-label">数据表</div>
+          <div class="static-field-item-label">{{ t('label_data_table') }}</div>
           <div class="static-field-item-content">
             <div class="static-field-value">
               {{ state.formData.form_name || '--' }}
@@ -99,12 +99,12 @@
         </div>
 
         <div class="static-field-item" style="align-items: center">
-          <div class="static-field-item-label">删除条件</div>
+          <div class="static-field-item-label">{{ t('label_delete_condition') }}</div>
           <div class="static-field-item-content">
             <span class="static-field-value" v-if="state.formData.where.length == 0">--</span>
             <div class="condition-box">
               <div class="condition-left-box" v-if="state.formData.where.length > 1">
-                <span class="connection-text">{{ state.formData.typ == 1 ? '且' : '或' }}</span>
+                <span class="connection-text">{{ state.formData.typ == 1 ? t('label_and') : t('label_or') }}</span>
               </div>
               <div class="condition-line" v-if="state.formData.where.length > 1"></div>
               <div class="condition-body">
@@ -144,6 +144,9 @@ import { useDataTableStore } from '@/stores/modules/data-table'
 import { ref, reactive, watch, onMounted, nextTick, inject,  toRaw } from 'vue'
 import NodeCommon from '../base-node.vue'
 import AtText from '../../at-input/at-text.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.delete-data-node.index')
 
 const props = defineProps({
   properties: {

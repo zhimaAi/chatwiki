@@ -1,0 +1,14 @@
+{
+  "title_input": "Input",
+  "title_output": "Output",
+  "label_official_account": "Official Account",
+  "ph_select_official_account": "Select official account",
+  "label_receiver": "Receiver",
+  "tooltip_receiver_openid": "User's openid",
+  "ph_input_receiver": "Enter receiver. Type '/' to insert variables",
+  "label_message_type": "Message Type",
+  "ph_select_message_type": "Select message type",
+  "ph_select_official_account_first": "Select official account first",
+  "component_official_send_message": "Official Account Send Message",
+  "msg_complete_required_fields": "Please complete required fields for sending message"
+}

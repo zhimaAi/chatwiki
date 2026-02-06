@@ -1,0 +1,1 @@
+{"label_weight": "权重", "tooltip_weight": "混合检索模式，结果中各检索方式的加权权重 权重越高，对应检索结果的采纳数量越多", "label_vector": "向量", "label_fulltext": "全文", "label_graph": "图"}

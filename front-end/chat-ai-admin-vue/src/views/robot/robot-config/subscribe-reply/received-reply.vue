@@ -295,7 +295,7 @@ const pager = reactive({
   size: 10,
   total: 0
 })
-const replyTypeOptions = REPLY_TYPE_OPTIONS
+const replyTypeOptions = REPLY_TYPE_OPTIONS()
 const tableData = ref([])
 const loading = ref(false)
 const reply_type = ref('')
@@ -541,7 +541,7 @@ function handleRuleSwitchChange (ri, val) {
 }
 
 function mapReplyTypeLabel (t) {
-  return REPLY_TYPE_LABEL_MAP[t] || ''
+  return REPLY_TYPE_LABEL_MAP()[t] || ''
 }
 
 function summarizeReplyTypes (list) {
@@ -603,7 +603,7 @@ function formatDurationLabel (record) {
   return `${type || ''}：${sd || ''} 至 ${ed || ''}`
 }
 
-const SUBSCRIBE_SOURCE_LABEL_MAP = Object.fromEntries((SUBSCRIBE_SOURCE_OPTIONS || []).map((op) => [String(op.value), op.label]))
+const SUBSCRIBE_SOURCE_LABEL_MAP = Object.fromEntries((SUBSCRIBE_SOURCE_OPTIONS() || []).map((op) => [String(op.value), op.label]))
 
 function formatMessageType (record) {
   const list = Array.isArray(record?.subscribe_source) ? record.subscribe_source : []

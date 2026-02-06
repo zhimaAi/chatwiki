@@ -1,0 +1,14 @@
+{
+  "avatar_tip": "点击替换，建议尺寸为100*100px，大小不超过100kb",
+  "library_name_label": "知识库名称",
+  "library_name_placeholder": "请输入知识库名称，最多20个字",
+  "library_intro_label": "知识库简介",
+  "library_intro_placeholder": "请输入知识库简介，比如 ZHIMA CHATAI 基于大预言模型提供ZHIMA CHATAI 产品帮助",
+  "advanced_settings": "高级设置",
+  "expand": "展开",
+  "collapse": "收起",
+  "document_vector_model": "文档解析向量模型",
+  "vector_model_tooltip": "向量模型可以将分段数据转化为向量形式，存储到向量数据库中，便于后续根据用户问题查询匹配。",
+  "library_name_required": "请输入库名称",
+  "create_success": "创建成功"
+}

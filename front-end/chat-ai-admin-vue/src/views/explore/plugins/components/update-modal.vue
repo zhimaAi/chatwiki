@@ -29,6 +29,9 @@
 import {ref, computed} from 'vue';
 import {message} from 'ant-design-vue';
 import {downloadPlugin} from "@/api/plugins/index.js";
+import { useI18n } from '@/hooks/web/useI18n';
+
+const { t } = useI18n('views.explore.plugins.components.update-modal');
 
 const emit = defineEmits(['ok'])
 const open = ref(false)
@@ -40,13 +43,13 @@ const local = ref(null)
 const statusInput = computed(() => {
   if (!local.value) {
     return {
-      title: '安装插件',
-      text: '安装',
+      title: t('title_install_plugin'),
+      text: t('btn_install'),
     }
   } else {
     return {
-      title: '更新插件',
-      text: '更新',
+      title: t('title_update_plugin'),
+      text: t('btn_update'),
     }
   }
 })
@@ -68,7 +71,7 @@ function install() {
   }).then(() => {
     emit('ok')
     open.value = false
-    message.success(statusInput.value.text + '完成')
+    message.success(t('msg_operation_completed', { operation: statusInput.value.text }))
   }).finally(() => {
     installing.value = false
   })

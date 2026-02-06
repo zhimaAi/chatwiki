@@ -38,15 +38,15 @@
                     placeholder="请输入参数KEY"
                   ></a-input>
                 </a-form-item-rest>
-                <at-input 
-                inputStyle="overflow-y: hidden; overflow-x: scroll; height: 32px;" 
+                <at-input
+                inputStyle="overflow-y: hidden; overflow-x: scroll; height: 32px;"
                 :ref="(el) => setAtInputRef(el, 'headers', index)"
-                :options="variableOptions" 
-                :defaultSelectedList="item.tags" 
-                :defaultValue="item.value" 
-                @open="getVlaueVariableList"  
-                @change="(text, selectedList) => changeValue('headers', text, selectedList, item, index)" 
-                placeholder="请输入变量值，键入“/”插入变量">
+                :options="variableOptions"
+                :defaultSelectedList="item.tags"
+                :defaultValue="item.value"
+                @open="getVlaueVariableList"
+                @change="(text, selectedList) => changeValue('headers', text, selectedList, item, index)"
+                :placeholder="t('ph_input_variable_value')">
                   <template #option="{ label, payload }">
                     <div class="field-list-item">
                       <div class="field-label">{{ label }}</div>
@@ -81,15 +81,15 @@
                     placeholder="请输入参数KEY"
                   ></a-input>
                 </a-form-item-rest>
-                <at-input 
+                <at-input
                 inputStyle="overflow-y: hidden; overflow-x: scroll; height: 32px;"
                 :ref="(el) => setAtInputRef(el, 'params', index)"
-                :options="variableOptions" 
-                :defaultSelectedList="item.tags" 
-                :defaultValue="item.value" 
-                @open="getVlaueVariableList"  
-                @change="(text, selectedList) => changeValue('params', text, selectedList, item, index)" 
-                placeholder="请输入变量值，键入“/”插入变量">
+                :options="variableOptions"
+                :defaultSelectedList="item.tags"
+                :defaultValue="item.value"
+                @open="getVlaueVariableList"
+                @change="(text, selectedList) => changeValue('params', text, selectedList, item, index)"
+                :placeholder="t('ph_input_variable_value')">
                   <template #option="{ label, payload }">
                     <div class="field-list-item">
                       <div class="field-label">{{ label }}</div>
@@ -130,15 +130,15 @@
                       placeholder="请输入参数KEY"
                     ></a-input>
                   </a-form-item-rest>
-                  <at-input 
+                  <at-input
                   inputStyle="overflow-y: hidden; overflow-x: scroll; height: 32px;"
                   :ref="(el) => setAtInputRef(el, 'body', index)"
-                  :options="variableOptions" 
-                  :defaultSelectedList="item.tags" 
-                  :defaultValue="item.value" 
-                  @open="getVlaueVariableList"  
-                  @change="(text, selectedList) => changeValue('body', text, selectedList, item, index)" 
-                  placeholder="请输入变量值，键入“/”插入变量">
+                  :options="variableOptions"
+                  :defaultSelectedList="item.tags"
+                  :defaultValue="item.value"
+                  @open="getVlaueVariableList"
+                  @change="(text, selectedList) => changeValue('body', text, selectedList, item, index)"
+                  :placeholder="t('ph_input_variable_value')">
                     <template #option="{ label, payload }">
                       <div class="field-list-item">
                         <div class="field-label">{{ label }}</div>
@@ -157,15 +157,15 @@
             >
           </div>
           <a-form-item :label="null" name="body_raw" v-if="formState.type == 2">
-            <at-input 
+            <at-input
             type="textarea"
-            :options="variableOptions" 
-            :defaultSelectedList="formState.body_raw_tags" 
-            :defaultValue="formState.body_raw" 
+            :options="variableOptions"
+            :defaultSelectedList="formState.body_raw_tags"
+            :defaultValue="formState.body_raw"
             :ref="(el) => setAtInputRef(el, 'body', 'body_raw')"
             @open="getVlaueVariableList"
-            @change="(text, selectedList) => changeValue('body_raw', text, selectedList)" 
-            placeholder="请输入变量值，键入“/”插入变量">
+            @change="(text, selectedList) => changeValue('body_raw', text, selectedList)"
+            :placeholder="t('ph_input_variable_value')">
               <template #option="{ label, payload }">
                 <div class="field-list-item">
                   <div class="field-label">{{ label }}</div>
@@ -260,6 +260,9 @@ import {
 import SubKey from './subs-key.vue'
 import AtInput from '../at-input/at-input.vue'
 import { haveOutKeyNode } from '@/views/workflow/components/util.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.http-node.form-block')
 
 const graphModel = inject('getGraph')
 const getNode = inject('getNode')

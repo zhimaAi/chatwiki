@@ -65,49 +65,50 @@
   <div class="web-app-box">
     <div class="box-left">
       <div class="box-wrapper">
-        <card-box title="样式设置">
+        <card-box :title="t('style_settings_title')">
           <template #icon>
             <svg-icon name="pc" style="font-size: 16px; color: #262626"></svg-icon>
           </template>
           <template #action>
-            <a-button @click="saveForm" size="small" type="primary">保存</a-button>
+            <a-button @click="saveForm" size="small" type="primary">{{ t('save_btn') }}</a-button>
           </template>
           <div class="web-app-style form-box">
             <a-form ref="formRef" layout="vertical" :model="formState" :rules="formRules">
-              <a-form-item class="form-item" label="页面标题" name="headTitle">
+              <a-form-item class="form-item" :label="t('page_title_label')" name="headTitle">
                 <PageTitleInput
                   v-model:avatar="formState.headImage"
                   v-model:value="formState.headTitle"
                 />
               </a-form-item>
-              <a-form-item class="form-item" label="简介" name="headSubTitle">
+              <a-form-item class="form-item" :label="t('subtitle_label')" name="headSubTitle">
                 <a-textarea
                   v-model:value="formState.headSubTitle"
-                  placeholder="简介将展示在客户端，不超过100个字符"
+                  :placeholder="t('subtitle_placeholder')"
                 />
               </a-form-item>
               <a-form-item
                 class="form-item"
-                label="颜色"
+                :label="t('color_label')"
                 :name="['pageStyle', 'headBackgroundColor']"
               >
                 <GradientColorPicker v-model:value="formState.pageStyle.headBackgroundColor" />
               </a-form-item>
-              <a-form-item class="form-item" label="语言" name="lang">
+              <a-form-item class="form-item" :label="t('language_label')" name="lang">
                 <a-select
                   style="width: 180px"
                   v-model:value="formState.lang"
-                  placeholder="请选择语言"
+                  :placeholder="t('language_placeholder')"
                 >
-                  <a-select-option value="zh-CN">简体中文</a-select-option>
-                  <a-select-option value="en-US">English</a-select-option>
+                  <a-select-option value="zh-CN">{{ t('language_zh_cn') }}</a-select-option>
+                  <a-select-option value="en-US">{{ t('language_en_us') }}</a-select-option>
                 </a-select>
               </a-form-item>
-              <a-form-item class="form-item" label="网址打开方式" name="open_type" required>
+              <a-form-item class="form-item" :label="t('url_open_type_label')" name="open_type" required>
                 <a-radio-group v-model:value="formState.open_type">
-                  <a-radio :value="1">新标签页打开</a-radio>
-                  <a-radio :value="2">新窗口弹窗打开
-                    <a-tooltip title="仅管控PC端新窗口打开,移动端依然用新标签页打开">
+                  <a-radio :value="1">{{ t('open_new_tab') }}</a-radio>
+                  <a-radio :value="2">{{ t('open_new_window') }}
+                    <a-tooltip :title="t('open_new_window_tooltip')">
+                      <template #title>prompt text</template>
                       <QuestionCircleOutlined />
                     </a-tooltip>
                   </a-radio>
@@ -115,22 +116,22 @@
                 <a-form-item-rest v-if="formState.open_type == 2">
                   <div class="window-size-box">
                     <a-flex align="center" :gap="8">
-                      <div>弹窗高度</div>
+                      <div>{{ t('window_height_label') }}</div>
                       <a-input-number  v-model:value="formState.window_height" :min="500" :max="2000" />
                       PX
                     </a-flex>
                     <a-flex align="center" :gap="8">
-                      <div>弹窗宽度</div>
+                      <div>{{ t('window_width_label') }}</div>
                       <a-input-number  v-model:value="formState.window_width" :min="500" :max="2000" />
                       PX
                     </a-flex>
                   </div>
                 </a-form-item-rest>
               </a-form-item>
-              <a-form-item class="form-item" label="是否显示历史对话和新增对话按钮" name="new_session_btn_show" required>
+              <a-form-item class="form-item" :label="t('label_show_history_and_new_session_btn')" name="new_session_btn_show" required>
                 <a-radio-group v-model:value="formState.new_session_btn_show" name="new_session_btn_show">
-                  <a-radio :value="1">显示</a-radio>
-                  <a-radio :value="2">不显示</a-radio>
+                  <a-radio :value="1">{{ t('label_show') }}</a-radio>
+                  <a-radio :value="2">{{ t('label_hide') }}</a-radio>
                 </a-radio-group>
               </a-form-item>
             </a-form>
@@ -139,12 +140,12 @@
       </div>
 
       <div class="box-wrapper">
-        <card-box title="将以下代码复制到网站代码的< /body>标签之前">
+        <card-box :title="t('copy_sdk_code_title')">
           <template #icon>
             <svg-icon name="sdk" style="font-size: 16px; color: #262626"></svg-icon>
           </template>
           <template #action>
-            <a-button @click="copySDKCode" size="small">复制</a-button>
+            <a-button @click="copySDKCode" size="small">{{ t('copy_btn') }}</a-button>
           </template>
           <div class="sdk-code">
             <pre><code>{{ sdkCode }}</code></pre>
@@ -166,13 +167,13 @@
     <div class="box-right">
       <div class="demo-box">
         <iframe id="web-preview" :src="previewIframeSrc" frameborder="0"></iframe>
-        <!-- <iframe id="web-preview" src="http://114.55.112.51:20182/web/#/chat?robot_key=IZy35yzOSJ&language=zh-CN" frameborder="0"></iframe> -->
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { getSdkCode } from './sdk-code'
 import { ref, reactive, toRaw, watch, computed } from 'vue'
 import { storeToRefs } from 'pinia'
@@ -187,6 +188,7 @@ import QuickInstruction from './quick-instruction.vue'
 import FloatIconSetting from './float-icon-setting.vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 
+const { t } = useI18n('views.robot.robot-config.external-service.components.embed-website')
 const robotStore = useRobotStore()
 const { robotInfo, external_config_pc } = storeToRefs(robotStore)
 const { getRobot } = robotStore
@@ -195,7 +197,7 @@ const sdkCode = getSdkCode(robotInfo.value)
 
 const copySDKCode = () => {
   copyText(sdkCode)
-  message.success('复制成功')
+  message.success(t('copy_success'))
 }
 
 const formRef = ref()
@@ -240,21 +242,21 @@ const formRules = {
   lang: [
     {
       required: true,
-      message: '请选择语言',
+      message: t('please_select_language'),
       trigger: 'change'
     }
   ],
   headTitle: [
     {
       required: true,
-      message: '请输入标题',
+      message: t('please_input_title'),
       trigger: 'input'
     },
     {
       trigger: 'input',
       validator: () => {
         if (!formState.headImage) {
-          return Promise.reject('请上传logo')
+          return Promise.reject(t('please_upload_logo'))
         } else {
           return Promise.resolve()
         }
@@ -265,7 +267,7 @@ const formRules = {
     headBackgroundColor: [
       {
         required: true,
-        message: '请选择颜色',
+        message: t('please_select_color'),
         trigger: 'change'
       }
     ]
@@ -284,7 +286,7 @@ const saveWebSiteInfo = () => {
     external_config_pc: JSON.stringify(formData)
   }).then(() => {
     getRobot(id)
-    message.success('保存成功')
+    message.success(t('save_success'))
   })
 }
 

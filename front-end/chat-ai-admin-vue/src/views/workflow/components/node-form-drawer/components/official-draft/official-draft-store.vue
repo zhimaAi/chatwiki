@@ -2,16 +2,16 @@
   <div class="article-container">
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/setting-icon.svg" class="title-icon"/> 基础信息</div>
+        <div><img src="@/assets/img/workflow/setting-icon.svg" class="title-icon"/> {{ t('title_basic_info') }}</div>
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">公众号</div>
+          <div class="option-label">{{ t('label_official_account') }}</div>
         </div>
         <div>
           <a-select
             v-model:value="formState.app_id"
-            placeholder="请选择公众号"
+            :placeholder="t('ph_select_official_account')"
             style="width: 100%;"
             @change="appChange"
           >
@@ -28,22 +28,22 @@
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">文章类型</div>
+          <div class="option-label">{{ t('label_article_type') }}</div>
         </div>
         <div>
           <a-radio-group v-model:value="formState.article_type" @change="articleTypeChange">
-            <a-radio value="news">图文消息</a-radio>
-            <a-radio value="newspic">图片消息</a-radio>
+            <a-radio value="news">{{ t('opt_news') }}</a-radio>
+            <a-radio value="newspic">{{ t('opt_newspic') }}</a-radio>
           </a-radio-group>
         </div>
       </div>
     </div>
     <div class="node-options article-form-box">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>输入</div>
+        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/> {{ t('title_input') }}</div>
         <a href="https://developers.weixin.qq.com/doc/subscription/api/draftbox/draftmanage/api_draft_add.html"
            style="font-weight: 400;"
-           target="_blank">查看帮助文档</a>
+           target="_blank">{{ t('view_help_doc') }}</a>
       </div>
       <div v-if="actionName === 'add_draft'" class="options-item">
         <div class="news-tabs">
@@ -53,7 +53,7 @@
             :class="['news-item', {active: i == currentNewsIndex}]"
             @click="articleChange(article, i)"
           >
-            {{ i == 0 ? '主图文' : `副图文${i}` }}
+            {{ i == 0 ? t('main_news') : `${t('secondary_news')} ${i}` }}
             <CloseOutlined v-if="formState.articles.length > 1" class="del-icon" @click.stop="delNews(i)"/>
           </div>
           <div v-if="formState.articles.length < 8" class="news-item" @click="addNews">
@@ -64,7 +64,7 @@
       <template v-else>
         <div class="options-item baseline is-required">
           <div class="options-item-tit">
-            <div class="option-label">文章ID</div>
+            <div class="option-label">{{ t('label_article_id') }}</div>
           </div>
           <div style="width: 100%;">
             <AtInput
@@ -76,7 +76,7 @@
               ref="atInputRef"
               @open="emit('updateVar')"
               @change="(text, selectedList) => changeStateFieldValue('media_id', text, selectedList)"
-              placeholder="请输入内容，键入“/”可以插入变量"
+              :placeholder="t('ph_input_content_with_var')"
             >
               <template #option="{ label, payload }">
                 <div class="field-list-item">
@@ -85,12 +85,12 @@
                 </div>
               </template>
             </AtInput>
-            <div class="desc">文章media_id</div>
+            <div class="desc">{{ t('desc_article_media_id') }}</div>
           </div>
         </div>
         <div class="options-item baseline is-required">
           <div class="options-item-tit">
-            <div class="option-label">文章位置</div>
+            <div class="option-label">{{ t('label_article_position') }}</div>
           </div>
           <div>
             <AtInput
@@ -102,7 +102,7 @@
               ref="atInputRef"
               @open="emit('updateVar')"
               @change="(text, selectedList) => changeStateFieldValue('index', text, selectedList)"
-              placeholder="请输入内容，键入“/”可以插入变量"
+              :placeholder="t('ph_input_content_with_var')"
             >
               <template #option="{ label, payload }">
                 <div class="field-list-item">
@@ -111,13 +111,13 @@
                 </div>
               </template>
             </AtInput>
-            <div class="desc">要更新的文章在图文消息中的位置（多图文消息时，此字段才有意义），第一篇为0（输入0~7的正整数）</div>
+            <div class="desc">{{ t('desc_article_position') }}</div>
           </div>
         </div>
       </template>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">标题</div>
+          <div class="option-label">{{ t('label_title') }}</div>
         </div>
         <AtInput
           type="textarea"
@@ -128,7 +128,7 @@
           ref="atInputRef"
           @open="emit('updateVar')"
           @change="(text, selectedList) => changeFieldValue('title', text, selectedList)"
-          placeholder="请输入内容，键入“/”可以插入变量"
+          :placeholder="t('ph_input_content_with_var')"
         >
           <template #option="{ label, payload }">
             <div class="field-list-item">
@@ -141,7 +141,7 @@
       <template v-if="currentNews.article_type === 'news'">
         <div class="options-item">
           <div class="options-item-tit">
-            <div class="option-label">作者</div>
+            <div class="option-label">{{ t('label_author') }}</div>
           </div>
           <AtInput
             type="textarea"
@@ -152,7 +152,7 @@
             ref="atInputRef"
             @open="emit('updateVar')"
             @change="(text, selectedList) => changeFieldValue('author', text, selectedList)"
-            placeholder="请输入内容，键入“/”可以插入变量"
+            :placeholder="t('ph_input_content_with_var')"
           >
             <template #option="{ label, payload }">
               <div class="field-list-item">
@@ -164,7 +164,7 @@
         </div>
         <div class="options-item">
           <div class="options-item-tit">
-            <div class="option-label">摘要</div>
+            <div class="option-label">{{ t('label_digest') }}</div>
           </div>
           <AtInput
             type="textarea"
@@ -175,7 +175,7 @@
             ref="atInputRef"
             @open="emit('updateVar')"
             @change="(text, selectedList) => changeFieldValue('digest', text, selectedList)"
-            placeholder="请输入内容，键入“/”可以插入变量"
+            :placeholder="t('ph_input_content_with_var')"
           >
             <template #option="{ label, payload }">
               <div class="field-list-item">
@@ -188,7 +188,7 @@
       </template>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">正文内容</div>
+          <div class="option-label">{{ t('label_content') }}</div>
         </div>
         <div class="cont-box">
           <AtInput
@@ -200,7 +200,7 @@
             ref="atInputRef"
             @open="emit('updateVar')"
             @change="(text, selectedList) => changeFieldValue('content', text, selectedList)"
-            placeholder="请输入内容，键入“/”可以插入变量"
+            :placeholder="t('ph_input_content_with_var')"
           >
             <template #option="{ label, payload }">
               <div class="field-list-item">
@@ -209,7 +209,7 @@
               </div>
             </template>
           </AtInput>
-          <a-tooltip title="编辑窗口">
+          <a-tooltip :title="t('tooltip_edit_window')">
             <FullscreenOutlined class="edit-icon" @click="showContModal"/>
           </a-tooltip>
         </div>
@@ -217,7 +217,7 @@
       <template v-if="currentNews.article_type === 'news'">
         <div class="options-item">
           <div class="options-item-tit">
-            <div class="option-label">原文地址</div>
+            <div class="option-label">{{ t('label_content_source_url') }}</div>
           </div>
           <AtInput
             type="textarea"
@@ -228,7 +228,7 @@
             ref="atInputRef"
             @open="emit('updateVar')"
             @change="(text, selectedList) => changeFieldValue('content_source_url', text, selectedList)"
-            placeholder="请输入内容，键入“/”可以插入变量"
+            :placeholder="t('ph_input_content_with_var')"
           >
             <template #option="{ label, payload }">
               <div class="field-list-item">
@@ -240,7 +240,7 @@
         </div>
         <div class="options-item is-required baseline">
           <div class="options-item-tit">
-            <div class="option-label">封面素材</div>
+            <div class="option-label">{{ t('label_cover_material') }}</div>
           </div>
           <div style="flex: 1;">
             <AtInput
@@ -252,7 +252,7 @@
               ref="atInputRef"
               @open="emit('updateVar')"
               @change="(text, selectedList) => changeFieldValue('thumb_media_id', text, selectedList)"
-              placeholder="请输入内容，键入“/”可以插入变量"
+              :placeholder="t('ph_input_content_with_var')"
             >
               <template #option="{ label, payload }">
                 <div class="field-list-item">
@@ -267,13 +267,13 @@
       </template>
       <div class="options-item">
         <div class="options-item-tit">
-          <div class="option-label">文章评论</div>
+          <div class="option-label">{{ t('label_article_comments') }}</div>
         </div>
         <ZmRadioGroup v-model:value="currentNews.need_open_comment" :options="comOpts" @change="update"/>
       </div>
       <div class="options-item">
         <div class="options-item-tit">
-          <div class="option-label">评论人群</div>
+          <div class="option-label">{{ t('label_comment_audience') }}</div>
         </div>
         <ZmRadioGroup v-model:value="currentNews.only_fans_can_comment" :options="fansComOpts" @change="update"/>
       </div>
@@ -294,7 +294,7 @@
       <template v-else>
         <div class="options-item is-required baseline">
           <div class="options-item-tit">
-            <div class="option-label">图片</div>
+            <div class="option-label">{{ t('label_image') }}</div>
           </div>
           <div class="img-box">
             <div v-for="(item, index) in currentNews.image_info" :key="index" class="img-item">
@@ -307,7 +307,7 @@
                 ref="atInputRef"
                 @open="emit('updateVar')"
                 @change="(text, selectedList) => changeValue(item, text, selectedList)"
-                placeholder="请输入内容，键入“/”可以插入变量"
+                :placeholder="t('ph_input_content_with_var')"
               >
                 <template #option="{ label, payload }">
                   <div class="field-list-item">
@@ -322,13 +322,13 @@
               v-if="currentNews.image_info.length < 20"
               type="dashed"
               :icon="h(PlusOutlined)"
-              @click="addItem('image_info')">新增图片
+              @click="addItem('image_info')">{{ t('btn_add_image') }}
             </a-button>
           </div>
         </div>
         <div class="options-item baseline">
           <div class="options-item-tit">
-            <div class="option-label">封面信息</div>
+            <div class="option-label">{{ t('label_cover_info') }}</div>
           </div>
           <div class="img-box">
             <div v-for="(item, index) in currentNews.cover_info" :key="index" class="img-item">
@@ -341,7 +341,7 @@
                 ref="atInputRef"
                 @open="emit('updateVar')"
                 @change="(text, selectedList) => changeValue(item, text, selectedList)"
-                placeholder="请输入内容，键入“/”可以插入变量"
+                :placeholder="t('ph_input_content_with_var')"
               >
                 <template #option="{ label, payload }">
                   <div class="field-list-item">
@@ -356,7 +356,7 @@
               v-if="currentNews.cover_info.length < 5"
               type="dashed"
               :icon="h(PlusOutlined)"
-              @click="addItem('cover_info')">新增封面
+              @click="addItem('cover_info')">{{ t('btn_add_cover') }}
             </a-button>
           </div>
         </div>
@@ -375,7 +375,7 @@
 <!--                ref="atInputRef"-->
 <!--                @open="emit('updateVar')"-->
 <!--                @change="(text, selectedList) => changeValue(item, text, selectedList)"-->
-<!--                placeholder="请输入内容，键入“/”可以插入变量"-->
+<!--                placeholder="请输入内容，键入"/"可以插入变量"-->
 <!--              >-->
 <!--                <template #option="{ label, payload }">-->
 <!--                  <div class="field-list-item">-->
@@ -398,7 +398,7 @@
     </div>
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>输出</div>
+        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/> {{ t('title_output') }}</div>
       </div>
       <div class="options-item">
         <OutputFields :tree-data="outputData"/>
@@ -432,6 +432,9 @@ import {PlusOutlined, CloseOutlined, FullscreenOutlined, CloseCircleOutlined, Qu
 import ZmRadioGroup from "@/components/common/zm-radio-group.vue";
 import DraftNewsCont from "./components/draft-news-cont.vue";
 import DraftNewspicCont from "./components/draft-newspic-cont.vue";
+import {useI18n} from "@/hooks/web/useI18n";
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.official-draft.official-draft-store')
 
 const emit = defineEmits(['updateVar'])
 const props = defineProps({
@@ -489,26 +492,26 @@ const currentNews = computed(() => {
   return formState.articles[currentNewsIndex.value] || articleData
 })
 
-const positionOpts = [
-  {label: '居中', value: 1},
-  {label: '左对齐', value: 2},
-  {label: '右对齐', value: 3},
-]
+const positionOpts = computed(() => [
+  {label: t('label_center'), value: 1},
+  {label: t('label_left_align'), value: 2},
+  {label: t('label_right_align'), value: 3},
+])
 
-const thumbTypeOpts = [
-  {label: '素材url', value: 1},
-  {label: '素材MedialD', value: 2},
-]
+const thumbTypeOpts = computed(() => [
+  {label: t('opt_material_url'), value: 1},
+  {label: t('opt_material_media_id'), value: 2},
+])
 
-const comOpts = [
-  {label: '关闭', value: 0},
-  {label: '打开', value: 1},
-]
+const comOpts = computed(() => [
+  {label: t('opt_close'), value: 0},
+  {label: t('opt_open'), value: 1},
+])
 
-const fansComOpts = [
-  {label: '所有人可评论', value: 0},
-  {label: '粉丝才可评论', value: 1},
-]
+const fansComOpts = computed(() => [
+  {label: t('opt_all_users'), value: 0},
+  {label: t('opt_fans_only'), value: 1},
+])
 
 onMounted(() => {
   init()

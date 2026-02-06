@@ -98,7 +98,7 @@ func SaveDraftGroup(c *gin.Context) {
 	model := msql.Model(`wechat_official_account_draft_group`, define.Postgres)
 	data, _ := model.Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`group_name`, group_name).Find()
 
-	if id != 0 && cast.ToInt(data[`id`]) != 0 && id != cast.ToInt(data[`id`]) { //编辑场景
+	if id != 0 && cast.ToInt(data[`id`]) != 0 && id != cast.ToInt(data[`id`]) { // In edit scenario
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `duplicated_draft_group_name`))))
 		return
 	}
@@ -276,7 +276,7 @@ func SetBatchSendTaskOpenStatus(c *gin.Context) {
 		return
 	}
 
-	//需要开启状态
+	// Needs to be in enabled status
 	if open_status == cast.ToInt(define.BaseOpen) {
 		BridgeAddDelayTask(adminUserId, task_id, cast.ToInt64(taskInfo["send_time"]))
 	}
@@ -298,7 +298,7 @@ func DeleteBatchSendTask(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
-	//发送中或者发送完成的，不支持删除
+	// Sending or completed tasks cannot be deleted
 	if cast.ToInt(taskInfo["send_status"]) == 1 || cast.ToInt(taskInfo["send_status"]) == 2 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `task_running`))))
 		return
@@ -339,7 +339,7 @@ func ChangeBatchTaskCommentRuleStatus(c *gin.Context) {
 		`ai_comment_status`: ai_comment_status,
 	}
 
-	if cast.ToInt(taskInfo["comment_rule_id"]) == 0 && ai_comment_status == cast.ToInt(define.BaseOpen) { //如果开启规则，且当前群发任务没有关联规则ID，查一下默认规则
+	if cast.ToInt(taskInfo["comment_rule_id"]) == 0 && ai_comment_status == cast.ToInt(define.BaseOpen) { // If rule is enabled and current batch task has no associated rule ID, query default rule
 		ruleInfo, _ := msql.Model(`wechat_official_account_comment_rule`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`is_default`, "1").Find()
 		if cast.ToInt(ruleInfo["id"]) == 0 {
@@ -396,7 +396,7 @@ func ChangeCommentStatus(c *gin.Context) {
 	comment_status := cast.ToInt(c.PostForm(`comment_status`))
 
 	model := msql.Model(`wechat_official_account_batch_send_task`, define.Postgres)
-	//先查询一下任务状态，
+	// First check task status
 	taskInfo, err := model.Where(`id`, task_id).Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`access_key`, access_key).Find()
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -605,14 +605,14 @@ func DeleteCommentRule(c *gin.Context) {
 		"update_time":     time.Now().Unix(),
 		"comment_rule_id": 0,
 	}
-	//查询默认规则信息，
+	// Query default rule info
 	ruleInfo, err := msql.Model(`wechat_official_account_comment_rule`, define.Postgres).Where("admin_user_id", cast.ToString(adminUserId)).Where("is_default", "1").Find()
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 
-	//如果有默认规则，改为默认规则生效
+	// If default rule exists, change to default rule effective
 	if cast.ToInt(ruleInfo["id"]) != 0 {
 		updateCommentRuleId["comment_rule_id"] = ruleInfo["id"]
 	}

@@ -1,0 +1,12 @@
+{
+  "title_edit_http_tool": "Edit HTTP Tool",
+  "title_add_http_tool": "Add HTTP Tool",
+  "label_tool_cover": "Tool Cover",
+  "tip_cover_size": "Recommended size: 100*100px, max 2MB",
+  "label_name": "Name",
+  "label_description": "Description",
+  "ph_input_name": "Please enter HTTP tool name, up to 20 characters",
+  "ph_input_desc": "Please enter description",
+  "msg_input_name": "Please enter name",
+  "msg_saved": "Saved"
+}

@@ -14,7 +14,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// RobotReceivedMessageReplyCacheBuildHandler 机器人收到消息回复规则缓存
+// RobotReceivedMessageReplyCacheBuildHandler Robot received message reply rule cache
 type RobotReceivedMessageReplyCacheBuildHandler struct {
 	RobotId  int
 	RuleType string
@@ -25,14 +25,14 @@ const (
 	MessageTypeSpecify = define.MessageTypeSpecify
 )
 const (
-	RuleTypeMessageType = define.RuleTypeMessageType // 消息类型规则
-	RuleTypeDuration    = define.RuleTypeDuration    //时间范围规则
+	RuleTypeMessageType = define.RuleTypeMessageType // Message type rule
+	RuleTypeDuration    = define.RuleTypeDuration    // Time range rule
 )
 
 const (
-	DurationTypeWeek      = define.DurationTypeWeek      //时间类型：week:周
-	DurationTypeDay       = define.DurationTypeDay       //时间类型：day:天
-	DurationTypeTimeRange = define.DurationTypeTimeRange //时间范围规则
+	DurationTypeWeek      = define.DurationTypeWeek      // Duration type: week
+	DurationTypeDay       = define.DurationTypeDay       // Duration type: day
+	DurationTypeTimeRange = define.DurationTypeTimeRange // Time range rule
 
 )
 
@@ -65,7 +65,7 @@ func (h *RobotReceivedMessageReplyCacheBuildHandler) GetCacheKey() string {
 
 func (h *RobotReceivedMessageReplyCacheBuildHandler) GetCacheData() (any, error) {
 	data, err := msql.Model(`func_chat_robot_received_message_reply`, define.Postgres).Where(`robot_id`, cast.ToString(h.RobotId)).Where(`rule_type`, h.RuleType).Where(`switch_status`, cast.ToString(define.SwitchOn)).Order(`priority_num asc,id desc`).Select()
-	//转换
+	// Convert
 	list := make([]RobotReceivedMessageReply, 0)
 	if err == nil && len(data) > 0 {
 		for _, item := range data {
@@ -76,15 +76,15 @@ func (h *RobotReceivedMessageReplyCacheBuildHandler) GetCacheData() (any, error)
 				continue
 			}
 
-			// 解析 week_duration 字段
+			// Parse week_duration field
 			var weekDuration = make([]int, 0)
 			_ = tool.JsonDecodeUseNumber(item[`week_duration`], &weekDuration)
 
-			// 解析 specify_message_type 字段
+			// Parse specify_message_type field
 			var specifyMessageType = make([]string, 0)
 			_ = tool.JsonDecodeUseNumber(item[`specify_message_type`], &specifyMessageType)
 
-			// 解析 reply_type 字段
+			// Parse reply_type field
 			var replyType = make([]string, 0)
 			_ = tool.JsonDecodeUseNumber(item[`reply_type`], &replyType)
 
@@ -135,7 +135,7 @@ func (h *ReceivedMessageReplyLastTimeCacheBuildHandler) GetCacheData() (any, err
 	}, nil
 }
 
-// GetReceivedMessageReplyLastTime 获取收到消息回复规则最后回复时间
+// GetReceivedMessageReplyLastTime Get the last reply time for received message reply rules
 func GetReceivedMessageReplyLastTime(robotId, ruleId int, openid string) (int, error) {
 	result := map[string]interface{}{
 		"last_time": 0,
@@ -151,7 +151,7 @@ func SetReceivedMessageReplyLastTime(robotId, ruleId int, lastTime int, openid s
 	return lib_redis.SetOne(define.Redis, &ReceivedMessageReplyLastTimeCacheBuildHandler{RobotId: robotId, RuleId: ruleId, LastTime: lastTime, Openid: openid}, time.Hour)
 }
 
-// GetRobotReceivedMessageReplyListByRobotId 机器人收到消息回复规则列表
+// GetRobotReceivedMessageReplyListByRobotId Robot received message reply rule list
 func GetRobotReceivedMessageReplyListByRobotId(robotId int, ruleType string) ([]RobotReceivedMessageReply, error) {
 	result := make([]RobotReceivedMessageReply, 0)
 	err := lib_redis.GetCacheWithBuild(define.Redis, &RobotReceivedMessageReplyCacheBuildHandler{RobotId: robotId, RuleType: ruleType}, &result, time.Hour)
@@ -161,7 +161,7 @@ func GetRobotReceivedMessageReplyListByRobotId(robotId int, ruleType string) ([]
 	return result, err
 }
 
-// SaveRobotReceivedMessageReply 保存收到消息回复规则（创建或更新）
+// SaveRobotReceivedMessageReply Save received message reply rule (create or update)
 func SaveRobotReceivedMessageReply(id, adminUserID, robotID int, ruleType, durationType string, weekDuration []int, startDay, endDay, startDuration, endDuration string, priorityNum, replyInterval, messageType int, specifyMessageType []string, replyContent []ReplyContent, replyType []string, replyNum int, switchStatus int) (int64, error) {
 	weekDurationJson, _ := tool.JsonEncode(weekDuration)
 	specifyMessageTypeJson, _ := tool.JsonEncode(specifyMessageType)
@@ -193,23 +193,23 @@ func SaveRobotReceivedMessageReply(id, adminUserID, robotID int, ruleType, durat
 	var newId int64
 
 	if id <= 0 {
-		// 创建新记录
+		// Create new record
 		data["create_time"] = tool.Time2Int()
 		newId, err = msql.Model(`func_chat_robot_received_message_reply`, define.Postgres).Insert(data, "id")
 	} else {
-		// 更新现有记录
+		// Update existing record
 		_, err = msql.Model(`func_chat_robot_received_message_reply`, define.Postgres).Where("id", cast.ToString(id)).Update(data)
 		newId = int64(id)
 	}
 
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &RobotReceivedMessageReplyCacheBuildHandler{RobotId: robotID, RuleType: ruleType})
 	}
 	return newId, err
 }
 
-// DeleteRobotReceivedMessageReply 删除收到消息回复规则
+// DeleteRobotReceivedMessageReply Delete received message reply rule
 func DeleteRobotReceivedMessageReply(id, robotID int) error {
 	oldOne, err := GetRobotReceivedMessageReply(id, robotID)
 	if err != nil {
@@ -219,13 +219,13 @@ func DeleteRobotReceivedMessageReply(id, robotID int) error {
 
 	_, err = msql.Model(`func_chat_robot_received_message_reply`, define.Postgres).Where("id", cast.ToString(id)).Delete()
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &RobotReceivedMessageReplyCacheBuildHandler{RobotId: robotID, RuleType: ruleType})
 	}
 	return err
 }
 
-// UpdateRobotReceivedMessageReplyPriorityNum 更新收到消息回复规则优先级
+// UpdateRobotReceivedMessageReplyPriorityNum Update received message reply rule priority
 func UpdateRobotReceivedMessageReplyPriorityNum(id, robotID, priorityNum int) error {
 	oldOne, err := GetRobotReceivedMessageReply(id, robotID)
 	if err != nil {
@@ -240,39 +240,39 @@ func UpdateRobotReceivedMessageReplyPriorityNum(id, robotID, priorityNum int) er
 
 	_, err = msql.Model(`func_chat_robot_received_message_reply`, define.Postgres).Where("id", cast.ToString(id)).Update(data)
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &RobotReceivedMessageReplyCacheBuildHandler{RobotId: robotID, RuleType: ruleType})
 	}
 	return err
 
 }
 
-// GetRobotReceivedMessageReply 获取单个收到消息回复规则
+// GetRobotReceivedMessageReply Get a single received message reply rule
 func GetRobotReceivedMessageReply(id int, robotID int) (msql.Params, error) {
 	return msql.Model(`func_chat_robot_received_message_reply`, define.Postgres).Where("id", cast.ToString(id)).Where("robot_id", cast.ToString(robotID)).Find()
 }
 
-// GetRobotReceivedMessageReplyListWithFilter 获取收到消息回复规则列表（带过滤条件和分页）
+// GetRobotReceivedMessageReplyListWithFilter Get received message reply rule list (with filters and pagination)
 func GetRobotReceivedMessageReplyListWithFilter(robotID int, ruleType, replyType string, page, size int) ([]msql.Params, int, error) {
 	model := msql.Model(`func_chat_robot_received_message_reply`, define.Postgres).Where("robot_id", cast.ToString(robotID))
 
-	// 根据规则类型查询
+	// Query by rule type
 	if ruleType != "" {
 		model.Where("rule_type", ruleType)
 	}
 
-	// 根据回复类型查询
+	// Query by reply type
 	if replyType != "" {
-		// 使用 PostgreSQL 的 jsonb 操作符进行查询
+		// Query using PostgreSQL's jsonb operator
 		model.Where("reply_type ?| array['" + replyType + "']")
 	}
 
-	// 添加分页
+	// Add pagination
 	list, total, err := model.Order("priority_num ASC,id DESC").Paginate(page, size)
 	return list, total, err
 }
 
-// UpdateRobotReceivedMessageReplySwitchStatus 更新收到消息回复规则开关状态
+// UpdateRobotReceivedMessageReplySwitchStatus Update received message reply rule switch status
 func UpdateRobotReceivedMessageReplySwitchStatus(id, robotID, switchStatus int) (map[string]interface{}, error) {
 	result := map[string]interface{}{
 		"is_repeat":     false,
@@ -287,7 +287,7 @@ func UpdateRobotReceivedMessageReplySwitchStatus(id, robotID, switchStatus int) 
 	}
 
 	if switchStatus == define.SwitchOn {
-		// 获取消息
+		// Get message
 		reply, err := GetRobotReceivedMessageReply(id, robotID)
 		if err != nil {
 			result["is_repeat"] = true
@@ -311,14 +311,14 @@ func UpdateRobotReceivedMessageReplySwitchStatus(id, robotID, switchStatus int) 
 
 	_, err := msql.Model(`func_chat_robot_received_message_reply`, define.Postgres).Where("id", cast.ToString(id)).Update(data)
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &RobotReceivedMessageReplyCacheBuildHandler{RobotId: robotID, RuleType: RuleTypeMessageType})
 		lib_redis.DelCacheData(define.Redis, &RobotReceivedMessageReplyCacheBuildHandler{RobotId: robotID, RuleType: RuleTypeDuration})
 	}
 	return result, err
 }
 
-// CheckSpecifyMessageTypeRepeatedlyEnable 检查指定消息类型是否重复启用
+// CheckSpecifyMessageTypeRepeatedlyEnable Check if specified message type is repeatedly enabled
 func CheckSpecifyMessageTypeRepeatedlyEnable(ruleType string, messageType int, specifyMessageType []string, robotID, id int) map[string]interface{} {
 
 	result := map[string]interface{}{
@@ -332,7 +332,7 @@ func CheckSpecifyMessageTypeRepeatedlyEnable(ruleType string, messageType int, s
 		return result
 	}
 	if messageType == MessageTypeAll {
-		//查询有启动的消息类型 就可以提示 无法开启，默认回复中存在相同消息类型
+		// Query if there are enabled message types, can prompt that it cannot be turned on because the same message type exists in default replies
 		checkUseRule, err := msql.Model(`func_chat_robot_received_message_reply`, define.Postgres).Where("robot_id", cast.ToString(robotID)).Where("rule_type", RuleTypeMessageType).Where("switch_status", cast.ToString(define.SwitchOn)).Where("id", "!=", cast.ToString(id)).Find()
 		if err != nil {
 			result["is_repeat"] = true
@@ -347,8 +347,8 @@ func CheckSpecifyMessageTypeRepeatedlyEnable(ruleType string, messageType int, s
 			return result
 		}
 	} else {
-		//指定消息类型
-		//查看是否有启动全部类型的
+		// Specify message type
+		// Check if there is a fully enabled type
 		checkUseRule, err := msql.Model(`func_chat_robot_received_message_reply`, define.Postgres).Where("robot_id", cast.ToString(robotID)).Where("rule_type", RuleTypeMessageType).Where("switch_status", cast.ToString(define.SwitchOn)).Where("message_type", cast.ToString(MessageTypeAll)).Where("id", "!=", cast.ToString(id)).Find()
 		if err != nil {
 			result["is_repeat"] = true
@@ -363,7 +363,7 @@ func CheckSpecifyMessageTypeRepeatedlyEnable(ruleType string, messageType int, s
 			return result
 		}
 
-		//检测SpecifyMessageType是否重复
+		// Check if SpecifyMessageType is duplicated
 		model := msql.Model(`func_chat_robot_received_message_reply`, define.Postgres).Where("robot_id", cast.ToString(robotID)).Where("rule_type", RuleTypeMessageType).Where("switch_status", cast.ToString(define.SwitchOn)).Where("id", "!=", cast.ToString(id))
 		if len(specifyMessageType) > 0 {
 			model.Where("specify_message_type ?| array['" + strings.Join(specifyMessageType, `','`) + "']")

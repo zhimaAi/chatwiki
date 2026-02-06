@@ -55,16 +55,16 @@
       <NodeFormHeader
         :title="node.node_name"
         :iconName="node.node_icon_name"
-        desc="触发该节点，将立即给用户回复一条固定消息"
+        :desc="t('desc_immediately_reply')"
       ></NodeFormHeader>
     </template>
     <div class="specify-reply-form">
       <div class="node-content">
-          <div class="form-label">输出</div>
+          <div class="form-label">{{ t('label_output') }}</div>
           <div class="form-item" @mousedown.stop="">
             <div class="form-item-label">
               <div class="flex-between-box">
-                <div>消息内容</div>
+                <div>{{ t('label_message_content') }}</div>
                 <div class="btn-hover-wrap" @click="handleOpenFullAtModal">
                   <FullscreenOutlined />
                 </div>
@@ -77,7 +77,7 @@
                 :defaultSelectedList="formState.content_tags"
                 :defaultValue="formState.content"
                 ref="atInputRef"
-                placeholder="请输入消息内容，键入“/”可以插入变量"
+                :placeholder="t('ph_input_message_content')"
                 input-style="height: 130px"
                 type="textarea"
                 @open="showAtList"
@@ -91,7 +91,7 @@
           :options="valueOptions"
           :defaultSelectedList="formState.content_tags"
           :defaultValue="formState.content"
-          placeholder="请输入消息内容，键入“/”可以插入变量"
+          :placeholder="t('ph_input_message_content')"
           type="textarea"
           @open="showAtList"
           @change="(text, selectedList) => changeValue(text, selectedList)"
@@ -100,7 +100,7 @@
         />
     </div>
   </NodeFormLayout>
- 
+
 </template>
 
 <script>
@@ -110,6 +110,7 @@ import { haveOutKeyNode } from '@/views/workflow/components/util.js'
 import { FullscreenOutlined } from '@ant-design/icons-vue'
 import AtInput from '../at-input/at-input.vue'
 import FullAtInput from '../at-input/full-at-input.vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
 export default {
   name: 'SpecifyReplyNode',
@@ -130,6 +131,12 @@ export default {
     },
     isSelected: { type: Boolean, default: false },
     isHovered: { type: Boolean, default: false }
+  },
+  setup() {
+    const { t } = useI18n('views.workflow.components.node-form-drawer.immediately-reply-form')
+    return {
+      t
+    }
   },
   data() {
     return {

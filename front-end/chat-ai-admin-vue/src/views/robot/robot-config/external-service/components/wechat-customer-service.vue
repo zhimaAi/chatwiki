@@ -13,12 +13,12 @@
   <div class="">
     <a-alert
       class="tip-alert"
-      message="绑定微信客服，用户通过微信客服咨询时由机器人自动回复"
+      :message="t('tip_bind_wechat')"
       type="info"
       show-icon
     />
     <div class="wechat-app-list">
-      <AddWechatApp label="绑定微信客服" @click="showAddAlert" />
+      <AddWechatApp :label="t('label_bind_wechat')" @click="showAddAlert" />
       <WechatAppItem
         v-for="item in list"
         :key="item.id"
@@ -38,10 +38,12 @@ import { ref, inject, onMounted, createVNode } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import { getWechatAppList, deleteWechatApp, refreshAccountVerify } from '@/api/robot'
+import { useI18n } from '@/hooks/web/useI18n'
 import WechatAppItem from './wechat-app-item.vue'
 import AddWechatApp from './add-wechat-app.vue'
 import AddWechatAppAlert from './add-wechat-customer-service-alert.vue'
 
+const { t } = useI18n('views.robot.robot-config.external-service.components.wechat-customer-service')
 const { robotInfo } = inject('robotInfo')
 
 const addAppAlertRef = ref()
@@ -65,12 +67,12 @@ const handleDelete = (item) => {
   let secondsToGo = 3
 
   const modal = Modal.confirm({
-    title: `确定移除${item.app_name}吗?`,
+    title: t('title_confirm_remove', { app_name: item.app_name }),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '移除后，机器人无法继续回复用户消息。',
-    okText: secondsToGo + ' 确 定',
+    content: t('msg_remove_warning'),
+    okText: secondsToGo + ' ' + t('btn_confirm'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('btn_cancel'),
     okButtonProps: {
       disabled: true
     },
@@ -80,7 +82,7 @@ const handleDelete = (item) => {
       }).then(() => {
         getList()
 
-        message.success('删除成功')
+        message.success(t('msg_delete_success'))
       })
     },
     onCancel() {}
@@ -89,7 +91,7 @@ const handleDelete = (item) => {
   let interval = setInterval(() => {
     if (secondsToGo == 1) {
       modal.update({
-        okText: '确 定',
+        okText: t('btn_confirm'),
         okButtonProps: {
           disabled: false
         }
@@ -101,7 +103,7 @@ const handleDelete = (item) => {
       secondsToGo -= 1
 
       modal.update({
-        okText: secondsToGo + ' 确 定',
+        okText: secondsToGo + ' ' + t('btn_confirm'),
         okButtonProps: {
           disabled: true
         }
@@ -119,7 +121,7 @@ const handleRefresh = (item) => {
   refreshAccountVerify({
     id: item.id
   }).then(() => {
-    message.success('刷新成功')
+    message.success(t('msg_refresh_success'))
     getList()
   })
 }

@@ -1,0 +1,11 @@
+{
+  "title_answer_source": "答案来源",
+  "label_selected": "精选",
+  "label_id": "id：",
+  "label_characters_count": "共{count}个字符",
+  "btn_preview_original_file": "预览原文件",
+  "btn_view_source_document": "查看源文档",
+  "label_similarity": "相似度：",
+  "label_question": "Q：",
+  "label_answer": "A："
+}

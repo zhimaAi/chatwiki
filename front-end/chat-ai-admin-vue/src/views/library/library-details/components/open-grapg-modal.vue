@@ -1,8 +1,8 @@
 <template>
   <div>
-    <a-modal v-model:open="open" title="请先选择生成知识图谱模型" @ok="handleOk">
+    <a-modal v-model:open="open" :title="t('title_select_graph_model')" @ok="handleOk">
       <div>
-        <div class="desc-text">开启后，会使用指定模型抽取知识中实体和关系。</div>
+        <div class="desc-text">{{ t('desc_graph_function') }}</div>
         <ModelSelect
           modelType="LLM"
           v-model:modeName="formState.graph_use_model"
@@ -19,6 +19,9 @@
 import { ref, reactive, nextTick, createVNode } from 'vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { Modal } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.library-details.components.open-grapg-modal')
 const open = ref(false)
 const running = ref(false)
 const params = ref({})
@@ -41,19 +44,19 @@ const onChangeModel = () => {}
 
 const openConfirm = () => {
   Modal.confirm({
-    title: '确定开启生成知识图谱吗?',
+    title: t('title_confirm_enable_graph'),
     icon: null,
     content: createVNode('div', { style: 'color: #262626;' }, [
-      createVNode('span', {}, '生成知识图谱依赖大模型能力'),
-      createVNode('span', { style: 'color:red;' }, '可能会产生比较大的Token消耗'),
+      createVNode('span', {}, t('msg_graph_llm_dependency')),
+      createVNode('span', { style: 'color:red;' }, t('warning_token_consumption')),
       createVNode(
         'span',
         {},
-        '。知识图谱擅长精准的实体关系推理和逻辑验证（比如需要查询问题是X商品有哪些优惠方案），但对非结构化文本和语义模糊查询支持较弱。建议您优先使用向量，当单纯向量检索无法满足时再尝试知识图谱'
+        t('desc_graph_capability')
       )
     ]),
-    okText: '确定开启',
-    cancelText: '暂不开启',
+    okText: t('btn_confirm_enable'),
+    cancelText: t('btn_later'),
     onOk() {
       open.value = true
       running.value = false

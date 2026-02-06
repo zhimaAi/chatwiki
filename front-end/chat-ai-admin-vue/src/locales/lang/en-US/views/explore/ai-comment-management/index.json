@@ -1,0 +1,26 @@
+{
+  "banner_batch_send_not_enabled": "Article bulk sending is not enabled. You can enable it via Explore > Features > Article Bulk Send",
+  "common_go_enable": "Enable",
+  "breadcrumb_copy_custom_rule": "Copy custom rule",
+  "breadcrumb_edit_custom_rule": "Edit custom rule",
+  "breadcrumb_create_custom_rule": "Create custom rule",
+  "breadcrumb_ai_comment_selection": "AI Comment Selection",
+  "switch_on": "On",
+  "switch_off": "Off",
+  "switch_tip": "After enabling, you can set rules to let AI automatically select, delete and reply to comments for bulk-sent posts in the system.",
+  "alert_support_tip": "Only articles sent in bulk through this system support AI comment management and automatic deletion according to the configured rules",
+  "alert_auto_reply_tip": "To enable automatic reply, you need to enable article bulk sending and create a bulk send task,",
+  "alert_go_create": "Create now",
+  "modal_article_batch_send_not_enabled_title": "Article bulk sending not enabled",
+  "modal_article_batch_send_not_enabled": "Article bulk sending is not enabled",
+  "modal_article_batch_send_not_enabled_tip": ", you can enable it via Explore > Features > Article Bulk Send",
+  "checkbox_dont_remind_three_days": "Do not remind again within 3 days",
+  "btn_cancel": "Cancel",
+  "segmented_default_rule": "Default rule",
+  "segmented_custom_rule": "Custom rule",
+  "segmented_comment_processing_record": "Comment processing records",
+  "modal_confirm_title": "Notice",
+  "modal_confirm_disable_content": "After closing, this feature will be disabled by default and can no longer be used. Are you sure you want to close it?",
+  "message_operation_success": "Operation successful"
+}
+

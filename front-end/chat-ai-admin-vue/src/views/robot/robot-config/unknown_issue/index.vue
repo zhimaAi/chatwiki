@@ -8,13 +8,9 @@
           </div>
         </template>
         <template #message>
-          <div class="tip-title">统计用户在与机器人对话中，没有从知识库中检索出知识的用户问题</div>
+          <div class="tip-title">{{ t('tip_title') }}</div>
           <div class="tip-content">
-            <p>
-              1.
-              如果您认为知识库里面有对应的知识，只是没有检索出来，可能是您设置的召回阈值过高或者top
-              K较少。您调整机器人的召回设置来提升召回率。
-            </p>
+            <p>{{ t('tip_content') }}</p>
           </div>
         </template>
       </a-alert>
@@ -58,10 +54,10 @@ import DateSelect from './components/date.vue'
 import AiGenerate from './components/ai-generate-modal.vue'
 import { unknownIssueStats } from '@/api/chat'
 import { ExclamationCircleFilled } from '@ant-design/icons-vue'
-import { useRoute } from 'vue-router'
-import { reactive, ref, onMounted } from 'vue'
-
-
+import { useRoute, useRouter } from 'vue-router'
+import { reactive, ref, computed } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+const { t } = useI18n('views.robot.robot-config.unknown-issue.index')
 const query = useRoute().query
 
 const activeKey = ref(1)
@@ -100,7 +96,6 @@ const handleDownload = () => {
 const onDateChange = (data) => {
   requestParams.start_day = data.start_time
   requestParams.end_day = data.end_time
-
   onSearch()
 }
 
@@ -116,28 +111,24 @@ const getData = () => {
 
 const columns = [
   {
-    title: '未知问题',
+    title: t('column_unknown_question'),
     dataIndex: 'question',
     key: 'question',
     width: '60%'
   },
   {
-    title: '触发日期',
+    title: t('column_trigger_date'),
     dataIndex: 'show_date',
     key: 'show_date',
     width: '20%'
   },
   {
-    title: '当日出现次数',
+    title: t('column_trigger_count'),
     key: 'trigger_total',
     dataIndex: 'trigger_total',
     width: '20%'
   }
 ]
-
-onMounted(() => {
-  // getData()
-})
 </script>
 
 <style lang="less" scoped>

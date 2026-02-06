@@ -1,0 +1,10 @@
+{
+  "btn_mini_program_reply_settings": "Mini Program Reply Settings",
+  "label_bind_wechat_mini_program": "Bind WeChat Mini Program",
+  "title_confirm_remove": "Confirm to remove {app_name}?",
+  "msg_remove_warning": "After removal, the robot will no longer be able to reply to user messages.",
+  "btn_confirm": "Confirm",
+  "btn_cancel": "Cancel",
+  "msg_delete_success": "Delete Success",
+  "msg_refresh_success": "Refresh Success"
+}

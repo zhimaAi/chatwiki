@@ -19,13 +19,14 @@
       @input="divInput" 
       @keydown="dropDownKeydown"
       @click="clickJMention"></div>
-        <span class="placeholder" v-if="localValue.length == 0">{{ placeholder }}</span>
+        <span class="placeholder" v-if="localValue.length == 0">{{ t(placeholder) }}</span>
     </div>
   </div>
 </template>
 
 <script>
 import CascadePanel from './cascade-panel.vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
 // 把树状的options抓换成编排的数组
 const getTreeOptions = (options) => {
@@ -45,6 +46,10 @@ export default {
   components: {
     CascadePanel,
   },
+  setup() {
+    const { t } = useI18n('views.workflow.components.nodes.at-input.at-input')
+    return { t }
+  },
   inject: ['getNode', 'getGraph', 'setData'],
   emits: ["input", 'change', "update:selectedList", "focus", 'open'],
   props: {
@@ -57,7 +62,7 @@ export default {
     },
     placeholder: {
       type: String,
-      default: "请输入",
+      default: "ph_input",
     },
     defaultValue: {
       type: String,

@@ -13,28 +13,28 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// CustomMenuRequest 通用请求结构
+// CustomMenuRequest generic request structure
 type CustomMenuRequest struct {
 	Appid    string `form:"appid" json:"appid" binding:"required"`
 	MenuJson string `form:"menu_json" json:"menu_json" binding:"required"`
 }
 
-// CustomMenuListFilterRequest 列表过滤请求结构
+// CustomMenuListFilterRequest list filter request structure
 type CustomMenuListFilterRequest struct {
 	Appid string `json:"appid" form:"appid" binding:"required"`
 }
 
-// SaveCustomMenu 保存自定义菜单（创建或更新）
+// SaveCustomMenu saves custom menu (create or update)
 func SaveCustomMenu(c *gin.Context) {
 	var req CustomMenuRequest
 
-	// 获取参数
+	// Get parameters
 	if err := c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 解析 MenuJson
+	// Parse MenuJson
 	var menuList []common.OfficialCustomMenu
 	if req.MenuJson != "" {
 		if err := tool.JsonDecodeUseNumber(req.MenuJson, &menuList); err != nil {
@@ -43,23 +43,23 @@ func SaveCustomMenu(c *gin.Context) {
 		}
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
-	//功能开关检测
+	// Feature switch check
 	useAbility := common.CheckUseAbilityByAbilityType(adminUserId, common.OfficialAbilityCustomMenu)
-	// 获取操作用户信息
-	operUserID := getLoginUserId(c) // 默认使用管理员ID作为操作人ID
+	// Get operator user info
+	operUserID := getLoginUserId(c) // Default use admin ID as operator ID
 
-	// 保存菜单（创建或更新）
+	// Save menu (create or update)
 	_, err := common.SaveOfficialCustomMenu(
 		adminUserId,
 		req.Appid,
 		operUserID,
-		menuList, // 使用解析后的值
+		menuList, // Use parsed values
 		useAbility,
 	)
 
@@ -72,24 +72,24 @@ func SaveCustomMenu(c *gin.Context) {
 	common.FmtOk(c, map[string]interface{}{"appid": req.Appid})
 }
 
-// GetCustomMenuList 获取自定义菜单列表
+// GetCustomMenuList gets custom menu list
 func GetCustomMenuList(c *gin.Context) {
 	var req CustomMenuListFilterRequest
 
-	// 获取参数
+	// Get parameters
 	if err := c.ShouldBindQuery(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 获取菜单列表
+	// Get menu list
 	menuList, err := common.GetOfficialCustomMenuList(adminUserId, req.Appid)
 	if err != nil {
 		logs.Error("GetCustomMenuList error: %s", err.Error())
@@ -102,28 +102,28 @@ func GetCustomMenuList(c *gin.Context) {
 	})
 }
 
-// CloseWxMenu 关闭微信菜单
+// CloseWxMenu closes WeChat menu
 func CloseWxMenu(c *gin.Context) {
 	appid := cast.ToString(c.PostForm("appid"))
 	if appid == `` {
 		common.FmtError(c, `param_err`, "appid")
 		return
 	}
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 获取菜单列表
+	// Get menu list
 	errorString := common.DeleteAllOfficialCustomMenuToWx(adminUserId, appid)
 	common.FmtOk(c, map[string]interface{}{
 		"errorString": errorString,
 	})
 }
 
-// SyncWxMenuToShow 同步微信菜单到展示
+// SyncWxMenuToShow syncs WeChat menu to display
 func SyncWxMenuToShow(c *gin.Context) {
 	appid := cast.ToString(c.Query("appid"))
 	if appid == "" {
@@ -131,16 +131,16 @@ func SyncWxMenuToShow(c *gin.Context) {
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
-	// 获取操作用户信息
-	operUserID := getLoginUserId(c) // 默认使用管理员ID作为操作人ID
+	// Get operator user info
+	operUserID := getLoginUserId(c) // Default use admin ID as operator ID
 
-	// 获取菜单列表
+	// Get menu list
 	menuList, err := common.SyncWxMenuToShow(adminUserId, appid, operUserID)
 	if err != nil {
 		logs.Error("SyncWxMenuToShow error: %s", err.Error())

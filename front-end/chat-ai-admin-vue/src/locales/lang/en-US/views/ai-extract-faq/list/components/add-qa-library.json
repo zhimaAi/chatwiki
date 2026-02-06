@@ -1,0 +1,14 @@
+{
+  "avatar_tip": "Click to replace, recommended size is 100*100px, size not exceeding 100kb",
+  "library_name_label": "Knowledge Base Name",
+  "library_name_placeholder": "Please enter knowledge base name, up to 20 characters",
+  "library_intro_label": "Knowledge Base Introduction",
+  "library_intro_placeholder": "Please enter knowledge base introduction, e.g. ZHIMA CHATAI is based on large language models to provide ZHIMA CHATAI product help",
+  "advanced_settings": "Advanced Settings",
+  "expand": "Expand",
+  "collapse": "Collapse",
+  "document_vector_model": "Document Parsing Vector Model",
+  "vector_model_tooltip": "Vector models can convert segmented data into vector form, store it in vector databases, and facilitate subsequent query matching based on user questions.",
+  "library_name_required": "Please enter library name",
+  "create_success": "Created successfully"
+}

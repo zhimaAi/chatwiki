@@ -1,0 +1,12 @@
+{
+  "modal_title_add": "添加数据",
+  "modal_title_edit": "修改数据",
+  "switch_on": "开",
+  "switch_off": "关",
+  "ph_input_content": "请输入内容",
+  "validator_required": "请输入{name}",
+  "validator_number": "{name}必须为数字",
+  "validator_integer": "请输入整数",
+  "msg_add_success": "添加成功",
+  "msg_edit_success": "修改成功"
+}

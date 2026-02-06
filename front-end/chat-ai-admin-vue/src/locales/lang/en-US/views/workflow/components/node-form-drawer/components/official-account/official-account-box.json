@@ -1,0 +1,16 @@
+{
+  "label_official_account": "Official Account",
+  "label_official_account_tag": "Official Account Tag",
+  "label_tag_name": "Tag Name",
+  "label_tag_type": "Tag Type",
+  "label_official_account_name": "Official Account Name",
+  "btn_sync": "Sync",
+  "btn_select_tag": "Select Tags",
+  "btn_insert_variable": "Insert Variable",
+  "ph_select_official_account": "Please select an official account",
+  "ph_select_tag": "Please select tags",
+  "ph_input_content": "Please enter content, type \"/\" to insert variables",
+  "tooltip_sync_tags": "Sync latest official account tags",
+  "msg_please_select_official_account": "Please select an official account first",
+  "msg_sync_completed": "Sync completed"
+}

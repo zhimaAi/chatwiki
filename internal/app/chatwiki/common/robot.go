@@ -73,7 +73,7 @@ type responseSaveRobot struct {
 	} `json:"data"`
 }
 
-func RobotAutoAdd(token string, adminUserId int) (msql.Params, error) {
+func RobotAutoAdd(lang string, token string, adminUserId int) (msql.Params, error) {
 	var (
 		res responseSaveRobot
 		err error
@@ -81,7 +81,8 @@ func RobotAutoAdd(token string, adminUserId int) (msql.Params, error) {
 
 	robotInfo := map[string]string{`robot_name`: lib_define.DefaultRobot}
 
-	req := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/saveRobot`, define.Config.WebService[`port`])).Header(`token`, token)
+	req := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/saveRobot`, define.Config.WebService[`port`])).
+		Header(`token`, token).Header(`lang`, lang)
 	for key, item := range robotInfo {
 		req.Param(key, item)
 	}
@@ -120,11 +121,11 @@ func SetRobotMessageCache(robotKey, question, messageId, conf string) error {
 		expireTime = cast.ToInt(cacheConfig[`valid_time`])
 	}
 
-	// 构建缓存key，包含robotKey和question的MD5
+	// Build cache key, containing MD5 of robotKey and question
 	r := RobotMessagesCacheBuildHandler{RobotKey: robotKey}
 	cacheKey := fmt.Sprintf(`%s.%s`, r.GetCacheKey(), tool.MD5(strings.TrimSpace(question)))
 
-	// 使用Redis Set操作设置缓存
+	// Use Redis Set operation to set cache
 	if err := define.Redis.Set(context.Background(), cacheKey, messageId, time.Second*time.Duration(expireTime)).Err(); err != nil {
 		return err
 	}
@@ -145,11 +146,11 @@ func HitRobotMessageCache(robotKey, question, conf string) (bool, string) {
 		return false, ``
 	}
 
-	// 构建缓存key，包含robotKey和question的MD5
+	// Build cache key, containing MD5 of robotKey and question
 	r := RobotMessagesCacheBuildHandler{RobotKey: robotKey}
 	cacheKey := fmt.Sprintf(`%s.%s`, r.GetCacheKey(), tool.MD5(strings.TrimSpace(question)))
 
-	// 使用Redis Get操作获取缓存
+	// Use Redis Get operation to get cache
 	if messageId, err = define.Redis.Get(context.Background(), cacheKey).Result(); err != nil {
 		return false, ``
 	}
@@ -157,8 +158,8 @@ func HitRobotMessageCache(robotKey, question, conf string) (bool, string) {
 }
 
 func BuildLibraryMessagesFromCache(robotKey, messageId string) ([]msql.Params, bool, error) {
-	// 混合与知识库匹配
-	// 查询chat_ai_message表的数据
+	// Hybrid and knowledge base matching
+	// Query data from chat_ai_message table
 	messageInfo, err := msql.Model("chat_ai_message", define.Postgres).
 		Where("id", messageId).
 		Field(`quote_file,content`).
@@ -170,7 +171,7 @@ func BuildLibraryMessagesFromCache(robotKey, messageId string) ([]msql.Params, b
 	if len(messageInfo[`content`]) == 0 {
 		return nil, false, nil
 	}
-	// 解析quote_file为json数组
+	// Parse quote_file as json array
 	var quoteFile = make([]msql.Params, 0)
 	if err := tool.JsonDecode(cast.ToString(messageInfo["quote_file"]), &quoteFile); err != nil {
 		logs.Error(`parse quote_file failed: %v`, err)
@@ -179,7 +180,7 @@ func BuildLibraryMessagesFromCache(robotKey, messageId string) ([]msql.Params, b
 	if len(quoteFile) <= 0 {
 		return nil, true, nil
 	}
-	// 如果有引用文件，查询文件数据
+	// If there are referenced files, query file data
 	fileData, err := msql.Model(`chat_ai_answer_source`, define.Postgres).Alias(`s`).
 		Join(`chat_ai_library_file_data d`, `d.id=s.paragraph_id`, `inner`).
 		Where(`d.delete_time`, `0`).
@@ -192,14 +193,14 @@ func BuildLibraryMessagesFromCache(robotKey, messageId string) ([]msql.Params, b
 		fileInfo, _ := GetLibFileInfo(cast.ToInt(one[`file_id`]), 0)
 		fileData[i][`file_name`] = fileInfo[`file_name`]
 	}
-	// 返回数据
+	// Return data
 	return changeListContent(fileData), true, nil
 }
 
 func ResponseMessagesFromCache(messageId string, useStream bool, chanStream chan sse.Event) (adaptor.ZhimaChatCompletionResponse, int64, error) {
 	chatResp := adaptor.ZhimaChatCompletionResponse{}
 	requestStartTime := time.Now()
-	// 查询chat_ai_message表的数据
+	// Query data from chat_ai_message table
 	content, err := msql.Model("chat_ai_message", define.Postgres).
 		Where("id", messageId).
 		Value(`content`)
@@ -212,27 +213,27 @@ func ResponseMessagesFromCache(messageId string, useStream bool, chanStream chan
 	}
 	requestTime := time.Now().Sub(requestStartTime).Milliseconds()
 	chanStream <- sse.Event{Event: `request_time`, Data: requestTime}
-	// 如果使用流式输出
+	// If using streaming output
 	if useStream {
 		chanStream <- sse.Event{Event: `sending`, Data: content}
 	}
 	chatResp.Result = content
-	// 返回数据
+	// Return data
 	return chatResp, requestTime, nil
 }
 
 func CleanRobotMessageCache(id, robotKey string) error {
-	// 构建缓存key，包含robotKey和question的MD5
+	// Build cache key, containing MD5 of robotKey and question
 	r := RobotMessagesCacheBuildHandler{RobotKey: robotKey}
 	allQuestionCacheKey := fmt.Sprintf(`%s.%s`, r.GetCacheKey(), `*`)
-	// logs.Info("删除缓存key: %s", allQuestionCacheKey)
+	// logs.Info("Delete cache key: %s", allQuestionCacheKey)
 	iter := define.Redis.Scan(context.Background(), 0, allQuestionCacheKey, 0).Iterator()
 	for iter.Next(context.Background()) {
-		// logs.Info("拿到key:%s", iter.Val())
+		// logs.Info("Got key:%s", iter.Val())
 		parts := strings.Split(iter.Val(), ".")
 		lastPart := parts[len(parts)-1]
 		if IsMd5Str(lastPart) {
-			// 使用Redis Del操作删除缓存
+			// Use Redis Del operation to delete cache
 			if err := define.Redis.Del(context.Background(), iter.Val()).Err(); err != nil {
 				logs.Error(`delete cache failed: %s, %v`, iter.Val(), err)
 			}

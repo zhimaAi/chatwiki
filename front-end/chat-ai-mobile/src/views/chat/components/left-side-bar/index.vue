@@ -22,6 +22,9 @@ import PcSideBar from './pc-side-bar.vue'
 import H5SizeBar from './h5-side-bar.vue'
 import { showConfirmDialog } from 'vant'
 import { useChatStore } from '@/stores/modules/chat'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.chat.components.left-side-bar.index')
 const chatStore = useChatStore()
 
 const emit = defineEmits(['openChat', 'openNewChat'])
@@ -43,8 +46,8 @@ const openNewChat = () => {
 
 const emptyAllChat = () => {
   showConfirmDialog({
-    title: '清空记录确认',
-    message: '确认清空所有记录'
+    title: t('title_confirm_clear'),
+    message: t('msg_confirm_clear_all')
   })
     .then(() => {
       chatStore.delDialogue({

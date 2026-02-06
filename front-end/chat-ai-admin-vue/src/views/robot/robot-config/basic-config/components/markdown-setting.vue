@@ -3,7 +3,7 @@
 <template>
   <SwitchBox
     class="markdown-setting"
-    title="Markdown格式输出"
+    :title="t('title_markdown_output')"
     icon-name="jibenpeizhi"
     v-model:value="value"
     @change="onSave"
@@ -12,13 +12,16 @@
       <span></span>
     </template>
 
-    <div>开启后，在使用H5链接、Web、PC客户端时,可以要求机器人以Markdown格式输出回答</div>
+    <div>{{ t('msg_markdown_description') }}</div>
   </SwitchBox>
 </template>
 
 <script setup>
 import { ref, watch, inject } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import SwitchBox from './switch-box.vue'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.markdown-setting')
 
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
 

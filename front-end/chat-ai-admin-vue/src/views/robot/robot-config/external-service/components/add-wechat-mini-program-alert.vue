@@ -95,18 +95,18 @@
 <template>
   <a-modal width="1168px" v-model:open="show" :title="title" @cancel="handleCancel">
     <template #footer>
-      <a-button key="back" @click="handleCancel" v-if="step === 1">取 消</a-button>
+      <a-button key="back" @click="handleCancel" v-if="step === 1">{{ t('btn_cancel') }}</a-button>
       <a-button key="submit" type="primary" :loading="loading" @click="handleSave" v-if="step === 1"
-        >保存并进入下一步</a-button
+        >{{ t('btn_save_and_next') }}</a-button
       >
       <a-button key="submit" type="primary" :loading="loading" @click="handleOk" v-if="step === 2"
-        >已完成配置</a-button
+        >{{ t('btn_config_completed') }}</a-button
       >
     </template>
     <div class="add-wechat-app-alert" v-if="step === 1">
       <a-alert
         class="tip-alert"
-        message="进入微信公众号后台（https://developers.weixin.qq.com/console/product），左上角“我的业务和服务”选择”小程序“后在【基础信息中】获取开发者信息"
+        :message="t('tip_step1')"
         type="info"
         show-icon
       />
@@ -114,32 +114,32 @@
       <div class="alert-body">
         <div class="form-box">
           <a-form ref="formRef" layout="vertical" :model="formState" :rules="formRules">
-            <a-form-item label="小程序头像/名称" name="app_name">
+            <a-form-item :label="t('label_mini_program_avatar_name')" name="app_name">
               <PageTitleInput
                 :autoUpload="false"
                 v-model:avatar="formState.app_avatar_url"
                 v-model:value.trim="formState.app_name"
-                placeholder="请输入您的小程序名称"
+                :placeholder="t('ph_enter_mini_program_name')"
                 @changeAvatar="onChangeAvatar"
               />
             </a-form-item>
-            <a-form-item label="AppId" name="app_id">
-              <a-input v-model:value.trim="formState.app_id" placeholder="请输入您的AppId" />
+            <a-form-item :label="t('label_app_id')" name="app_id">
+              <a-input v-model:value.trim="formState.app_id" :placeholder="t('ph_enter_app_id')" />
             </a-form-item>
-            <a-form-item label="AppSecret" name="app_secret">
+            <a-form-item :label="t('label_app_secret')" name="app_secret">
               <a-input
                 v-model:value.trim="formState.app_secret"
-                placeholder="请输入您的AppSecret"
+                :placeholder="t('ph_enter_app_secret')"
               />
             </a-form-item>
             <a-form-item
-              label="将以下IP添加到小程序IP白名单中，如未开启ip白名单保护可不添加"
+              :label="t('label_add_ip_to_whitelist')"
               name="wechat_ip"
               required
             >
               <div class="my-ip">
                 <span class="ip-text">{{ robotInfo.wechat_ip }}</span>
-                <a class="copy-btn" @click="copyIp">复 制</a>
+                <a class="copy-btn" @click="copyIp">{{ t('btn_copy') }}</a>
               </div>
             </a-form-item>
           </a-form>
@@ -152,7 +152,7 @@
     <div class="add-wechat-app-alert" v-if="step === 2">
       <a-alert
         class="tip-alert"
-        message="进入微信公众号后台（https://developers.weixin.qq.com/console/product），在【基础信息-域名与消息推送配置-消息推送】中配置并启用服务器配置。请按照下图配置"
+        :message="t('tip_step2')"
         type="info"
         show-icon
       />
@@ -160,17 +160,17 @@
         <div class="config-items">
           <div class="config-item">
             <span class="config-value">{{ step2Info.push_url }}</span>
-            <span class="copy-btn" @click="handleCopy(step2Info.push_url)">复制</span>
+            <span class="copy-btn" @click="handleCopy(step2Info.push_url)">{{ t('btn_copy') }}</span>
           </div>
 
           <div class="config-item">
             <span class="config-value">{{ step2Info.push_token }}</span>
-            <span class="copy-btn" @click="handleCopy(step2Info.push_token)">复制</span>
+            <span class="copy-btn" @click="handleCopy(step2Info.push_token)">{{ t('btn_copy') }}</span>
           </div>
 
           <div class="config-item">
             <span class="config-value">{{ step2Info.push_aeskey }}</span>
-            <span class="copy-btn" @click="handleCopy(step2Info.push_aeskey)">复制</span>
+            <span class="copy-btn" @click="handleCopy(step2Info.push_aeskey)">{{ t('btn_copy') }}</span>
           </div>
         </div>
         <img class="config-preview-img" src="@/assets/img/robot/config_preview_02.png" />
@@ -184,7 +184,10 @@ import { saveWechatApp } from '@/api/robot'
 import { ref, reactive, computed, toRaw, inject } from 'vue'
 import { copyText } from '@/utils/index'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import PageTitleInput from './page-title-input.vue'
+
+const { t } = useI18n('views.robot.robot-config.external-service.components.add-wechat-mini-program-alert')
 
 const emit = defineEmits(['ok'])
 const defaultAvatar = '/upload/default/mini_program_avatar.png'
@@ -210,14 +213,14 @@ const formRules = {
   app_name: [
     {
       required: true,
-      message: '请输入您的公众号名称',
+      message: t('msg_enter_official_account_name'),
       trigger: 'change'
     },
     {
       trigger: 'change',
       validator: () => {
         if (!formState.app_avatar_url) {
-          return Promise.reject('请上传公众号头像')
+          return Promise.reject(t('msg_upload_official_account_avatar'))
         } else {
           return Promise.resolve()
         }
@@ -227,22 +230,22 @@ const formRules = {
   app_id: [
     {
       required: true,
-      message: '请输入您的AppId',
+      message: t('msg_enter_app_id'),
       trigger: 'change'
     }
   ],
   app_secret: [
     {
       required: true,
-      message: '请输入您的AppSecret',
+      message: t('msg_enter_app_secret'),
       trigger: 'change'
     }
   ]
 }
 
 const title = computed(() => {
-  let text = !formState.id ? '添加微信小程序' : '编辑微信小程序'
-  let text2 = step.value == 1 ? '-填写小程序开发信息' : '-服务器配置'
+  let text = !formState.id ? t('title_add_wechat_mini_program') : t('title_edit_wechat_mini_program')
+  let text2 = step.value == 1 ? t('title_step1') : t('title_step2')
 
   return text + text2
 })
@@ -266,7 +269,7 @@ const submitForm = () => {
   saveWechatApp(data).then((res) => {
     Object.assign(step2Info, res.data)
     step.value = 2
-    message.success('保存成功')
+    message.success(t('msg_save_success'))
 
     emit('ok')
   })
@@ -295,7 +298,7 @@ const handleCancel = () => {
 
 const handleCopy = (text) => {
   copyText(text)
-  message.success('复制成功')
+  message.success(t('msg_copy_success'))
 }
 
 const copyIp = () => {

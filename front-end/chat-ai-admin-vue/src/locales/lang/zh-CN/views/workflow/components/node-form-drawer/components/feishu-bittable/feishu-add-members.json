@@ -1,0 +1,8 @@
+{
+  "label_select_role": "选择角色",
+  "label_member_id_type": "协作者ID的类型",
+  "ph_select": "请选择",
+  "desc_member_id_type": "协作者ID的类型，仅支持 user_id",
+  "label_member_id": "协作者ID",
+  "desc_member_id_link": "协作者ID，<a href=\"https://open.feishu.cn/document/platform-overveiw/basic-concepts/user-identity-introduction/open-id\" target=\"_blank\">如何获取协作者ID</a>"
+}

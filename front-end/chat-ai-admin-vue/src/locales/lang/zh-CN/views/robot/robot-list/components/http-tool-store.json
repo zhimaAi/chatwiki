@@ -1,0 +1,12 @@
+{
+  "title_edit_http_tool": "编辑HTTP工具",
+  "title_add_http_tool": "添加HTTP工具",
+  "label_tool_cover": "工具封面",
+  "tip_cover_size": "建议尺寸为100*100px，大小不超过2M",
+  "label_name": "名称",
+  "label_description": "描述",
+  "ph_input_name": "请输入HTTP工具名称，最多20个字",
+  "ph_input_desc": "请输入描述",
+  "msg_input_name": "请输入名称",
+  "msg_saved": "已保存"
+}

@@ -1,12 +1,12 @@
 <template>
   <div class="main-content-block">
     <a-tabs class="tab-wrapper" v-model:activeKey="activeKey" @change="handleChangeTab">
-      <a-tab-pane :key="1" tab="默认知识库"></a-tab-pane>
-      <a-tab-pane :key="2" tab="关联知识库"></a-tab-pane>
+      <a-tab-pane :key="1" :tab="t('tab_default_library')"></a-tab-pane>
+      <a-tab-pane :key="2" :tab="t('tab_related_library')"></a-tab-pane>
        <template #rightExtra>
         <div class="tab-right-extra">
-          近7天客户消息知识库命中率：{{ library_hit_rate }}%
-          <a @click="toHitStatics">查看</a>
+          {{ t('text_hit_rate_label') }}：{{ library_hit_rate }}%
+          <a @click="toHitStatics">{{ t('link_view') }}</a>
         </div>
        </template>
     </a-tabs>
@@ -28,6 +28,9 @@ import RelatedLibrary from './related-library.vue'
 import dayjs from 'dayjs'
 import { statAiTipAnalyse } from '@/api/manage/index.js'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.library-config.index')
 const router = useRouter()
 const query = useRoute().query
 

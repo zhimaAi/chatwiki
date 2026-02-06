@@ -5,12 +5,12 @@
       :title="modalTitle"
       @ok="handleOk"
       :width="472"
-      ok-text="确定"
-      cancel-text="取消"
+      :ok-text="t('btn_confirm')"
+      :cancel-text="t('btn_cancel')"
     >
       <a-form ref="formRef" layout="vertical" :model="formState" style="margin: 24px 0">
         <a-form-item
-          label="参数key"
+          :label="t('label_param_key')"
           name="key"
           :rules="[
             {
@@ -26,11 +26,11 @@
           />
         </a-form-item>
         <a-form-item
-          label="参数类型"
+          :label="t('label_param_type')"
           name="typ"
-          :rules="[{ required: true, message: '请选择参数类型' }]"
+          :rules="[{ required: true, message: t('msg_select_type') }]"
         >
-          <a-select v-model:value="formState.typ" placeholder="请选择" style="width: 100%">
+          <a-select v-model:value="formState.typ" :placeholder="t('ph_select')" style="width: 100%">
             <a-select-option v-for="op in typOptions" :value="op.value">{{
               op.value
             }}</a-select-option>
@@ -42,9 +42,12 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { message } from 'ant-design-vue'
 import { getUuid } from '@/utils/index'
 import { ref, reactive, computed } from 'vue'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.webhook-trigger-node-form.add-key-modal')
 
 const emit = defineEmits(['add', 'edit', 'addSub'])
 
@@ -128,18 +131,18 @@ const typOptions = computed(() => {
 })
 
 const open = ref(false)
-const modalTitle = ref('新增参数')
+const modalTitle = ref(t('title_add_param'))
 
 let oprateType = 'add'
 
 const checkKey = (rule, value) => {
   if (!value) {
-    return Promise.reject('请输入参数key')
+    return Promise.reject(t('msg_enter_key'))
   }
   // 校验是否只包含英文字母和下划线
   const regex = /^[a-zA-Z_]+$/
   if (!regex.test(value)) {
-    return Promise.reject('只能包含英文字母和下划线')
+    return Promise.reject(t('msg_only_letters_underscore'))
   }
   return Promise.resolve()
 }
@@ -164,7 +167,7 @@ const add = () => {
     subs: []
   })
   oprateType = 'add'
-  modalTitle.value = '新增参数'
+  modalTitle.value = t('title_add_param')
   open.value = true
 }
 
@@ -177,7 +180,7 @@ const addSub = (index) => {
     subs: []
   })
   oprateType = 'addSub'
-  modalTitle.value = '新增参数'
+  modalTitle.value = t('title_add_param')
   open.value = true
 }
 
@@ -193,7 +196,7 @@ const edit = (data, index) => {
     ...data
   })
   oprateType = 'edit'
-  modalTitle.value = '编辑参数'
+  modalTitle.value = t('title_edit_param')
   open.value = true
 }
 

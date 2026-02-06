@@ -37,7 +37,7 @@ func GetWechatAppList(c *gin.Context) {
 	appType := strings.TrimSpace(c.Query(`app_type`))
 	if len(appType) > 0 {
 		m.Where(`app_type`, appType)
-		// 公众号根据排序字段来排序
+		//For official accounts, sort by the sort field
 		if appType == lib_define.AppOfficeAccount {
 			m.Order(`sort asc`)
 		}
@@ -62,24 +62,24 @@ func GetWechatAppList(c *gin.Context) {
 		}
 		if appInfo[`account_customer_type`] == `-1` && tool.InArrayString(appInfo[`app_type`], []string{lib_define.AppOfficeAccount, lib_define.AppMini}) {
 			go func() {
-				_ = common.RefreshAccountVerify(appInfo) //异步把默认值刷新一下
+				_ = common.RefreshAccountVerify(appInfo) //refresh defaults asynchronously
 			}()
 		}
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 }
 
-// RobotRelateOfficialAccount 机器人关联公众账号
+// RobotRelateOfficialAccount binds a robot to an official account
 func RobotRelateOfficialAccount(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
 		return
 	}
-	// 获取参数
+	//Get parameters
 	robotId := cast.ToInt(c.PostForm(`robot_id`))
 	appIdList := strings.TrimSpace(c.PostForm(`app_id_list`))
 
-	// 获取机器人信息
+	//Get robot info
 	robot, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`id`, cast.ToString(robotId)).
 		Where(`admin_user_id`, cast.ToString(userId)).Field(`id,robot_key`).Find()
 	if err != nil {
@@ -92,7 +92,7 @@ func RobotRelateOfficialAccount(c *gin.Context) {
 		return
 	}
 
-	// 获取该机器人关联过的配置
+	//Get configs already linked to this robot
 	oldAppInfoList, err := msql.Model(`chat_ai_wechat_app`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(userId)).
 		Where(`robot_id`, cast.ToString(robotId)).
@@ -108,7 +108,7 @@ func RobotRelateOfficialAccount(c *gin.Context) {
 		shouldDelIdList = append(shouldDelIdList, appInfo[`id`])
 	}
 
-	// 获取需要添加的配置
+	//Get configs to add
 	shouldAddAppInfoList, err := msql.Model(`chat_ai_wechat_app`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(userId)).
 		Where(`app_id`, `in`, appIdList).
@@ -139,7 +139,7 @@ func RobotRelateOfficialAccount(c *gin.Context) {
 		shouldAddIdList = append(shouldAddIdList, appInfo[`id`])
 	}
 
-	// 先清空旧记录
+	//Clear old records first
 	if len(shouldDelIdList) > 0 {
 		_, err = msql.Model(`chat_ai_wechat_app`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(userId)).
@@ -153,7 +153,7 @@ func RobotRelateOfficialAccount(c *gin.Context) {
 		}
 	}
 
-	// 再更新记录
+	//Then update records
 	if len(shouldAddIdList) > 0 {
 		_, err = msql.Model(`chat_ai_wechat_app`, define.Postgres).
 			Where(`id`, `in`, strings.Join(shouldAddIdList, `,`)).
@@ -165,7 +165,7 @@ func RobotRelateOfficialAccount(c *gin.Context) {
 		}
 	}
 
-	// 清缓存
+	//Clear cache
 	for _, appInfo := range append(oldAppInfoList, shouldAddAppInfoList...) {
 		lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `id`, Value: appInfo[`id`]})
 		lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `app_id`, Value: appInfo[`app_id`]})
@@ -261,7 +261,7 @@ func SaveWechatApp(c *gin.Context) {
 		`update_time`: tool.Time2Int(),
 	}
 
-	// 公众号类型不需要和机器人强绑定，其它类型需要和机器人直接关联
+	//Official accounts do not require strong binding to a robot; other types must be linked directly
 	if appType != lib_define.AppOfficeAccount {
 		robot, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`id`, cast.ToString(robotId)).
 			Where(`admin_user_id`, cast.ToString(userId)).Field(`id,robot_key`).Find()
@@ -276,7 +276,7 @@ func SaveWechatApp(c *gin.Context) {
 		}
 		data[`robot_key`] = robot[`robot_key`]
 	}
-	// 公众号类型的appid应该全局唯一
+	//For official accounts, app_id should be globally unique
 	if appType == lib_define.AppOfficeAccount && id == 0 {
 		count, err := msql.Model(`chat_ai_wechat_app`, define.Postgres).Where(`app_id`, appId).Where(`app_type`, appType).Count()
 		if err != nil {
@@ -297,7 +297,7 @@ func SaveWechatApp(c *gin.Context) {
 	if len(appAvatar) > 0 {
 		data[`app_avatar`] = appAvatar
 	}
-	//微信应用认证类型
+	//WeChat app verification type
 	if basic, _, err := app.GetAccountBasicInfo(); err == nil {
 		data[`account_customer_type`] = basic.CustomerType
 	}

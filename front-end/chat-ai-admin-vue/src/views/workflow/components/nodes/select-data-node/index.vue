@@ -128,7 +128,7 @@
     <div class="node-box">
       <div class="static-field-list">
         <div class="static-field-item">
-          <div class="static-field-item-label">数据表</div>
+          <div class="static-field-item-label">{{ t('label_data_table') }}</div>
           <div class="static-field-item-content">
             <div class="static-field-value">
               {{ state.formData.form_name || '--' }}
@@ -137,12 +137,12 @@
         </div>
 
         <div class="static-field-item" style="align-items: center">
-          <div class="static-field-item-label">查询条件</div>
+          <div class="static-field-item-label">{{ t('label_query_conditions') }}</div>
           <div class="static-field-item-content">
             <span class="static-field-value" v-if="state.formData.where.length == 0">--</span>
             <div class="condition-box">
               <div class="condition-left-box" v-if="state.formData.where.length > 1">
-                <span class="connection-text">{{ state.formData.typ == 1 ? '且' : '或' }}</span>
+                <span class="connection-text">{{ state.formData.typ == 1 ? t('text_and') : t('text_or') }}</span>
               </div>
               <div class="condition-line" v-if="state.formData.where.length > 1"></div>
               <div class="condition-body">
@@ -173,7 +173,7 @@
         </div>
 
         <div class="static-field-item">
-          <div class="static-field-item-label">查询字段</div>
+          <div class="static-field-item-label">{{ t('label_query_fields') }}</div>
           <div class="static-field-item-content">
             <div class="options-list">
               <div
@@ -195,10 +195,12 @@
 <script setup>
 import { getFilterRuleLabel } from '@/constants/database'
 import { useDataTableStore } from '@/stores/modules/data-table'
+import { useI18n } from '@/hooks/web/useI18n'
 import { ref, reactive, inject, onMounted, toRaw, nextTick, watch, onBeforeUnmount } from 'vue'
 import NodeCommon from '../base-node.vue'
 import AtText from '../../at-input/at-text.vue'
 
+const { t } = useI18n('views.workflow.components.nodes.select-data-node.index')
 
 const props = defineProps({
   properties: {

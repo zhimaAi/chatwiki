@@ -3,7 +3,7 @@
     <a-modal
       v-model:open="open"
       :confirm-loading="confirmLoading"
-      title="上传文档"
+      :title="t('modal_title')"
       width="746px"
       @ok="handleSave"
     >
@@ -21,10 +21,10 @@
             @change="onFilesChange"
           />
         </a-form-item>
-        <a-form-item name="chunk_model_config_id" label="提取模型">
+        <a-form-item name="chunk_model_config_id" :label="t('chunk_model_label')">
           <ModelSelect
             modelType="LLM"
-            placeholder="请选择AI大模型"
+            :placeholder="t('chunk_model_placeholder')"
             v-model:modeName="formState.chunk_model"
             v-model:modeId="formState.chunk_model_config_id"
             :modeName="formState.chunk_model"
@@ -33,10 +33,10 @@
             @loaded="onVectorModelLoaded"
           />
         </a-form-item>
-        <a-form-item label="分块方式">
+        <a-form-item :label="t('chunk_type_label')">
           <a-radio-group v-model:value="formState.chunk_type">
-            <a-radio :value="1">按长度</a-radio>
-            <a-radio :value="2">按分隔符</a-radio>
+            <a-radio :value="1">{{ t('chunk_type_by_length') }}</a-radio>
+            <a-radio :value="2">{{ t('chunk_type_by_separator') }}</a-radio>
           </a-radio-group>
           <div class="mt8" v-if="formState.chunk_type == 1">
             <a-input-number
@@ -44,13 +44,13 @@
               :min="1"
               :max="10000"
               :step="1"
-              placeholder="请输入"
+              :placeholder="t('chunk_size_placeholder')"
               style="width: 300px"
             />
           </div>
           <div v-if="formState.chunk_type == 2" class="mt8">
             <a-select
-              placeholder="请选择"
+              :placeholder="t('separator_placeholder')"
               style="width: 300px"
               mode="tags"
               v-model:value="formState.separators_no"
@@ -61,21 +61,21 @@
             </a-select>
           </div>
         </a-form-item>
-        <a-form-item label="最大长度" v-if="formState.chunk_type == 2">
+        <a-form-item :label="t('max_length_label')" v-if="formState.chunk_type == 2">
             <a-input-number
               v-model:value="formState.chunk_size"
               :min="1"
               :max="10000"
               :step="1"
-              placeholder="请输入"
+              :placeholder="t('chunk_size_placeholder')"
               style="width: 300px"
             />
         </a-form-item>
-        <a-form-item label="FAQ提取提示词">
+        <a-form-item :label="t('faq_prompt_label')">
           <a-textarea
             v-model:value="formState.chunk_prompt"
             style="height: 150px"
-            placeholder="请输入"
+            :placeholder="t('faq_prompt_placeholder')"
           />
         </a-form-item>
       </a-form>
@@ -84,13 +84,20 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { ref, reactive, nextTick, onMounted } from 'vue'
 import {addFAQFile, getFAQConfig } from '@/api/library/index'
 import UploadFilesInput from './upload-input.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { formatSeparatorsNo } from '@/utils/index'
 import { message } from 'ant-design-vue'
+
+
+const { t } = useI18n('views.ai-extract-faq.list.components.upload-document')
+
 const emit = defineEmits(['ok'])
+
+const defaultPromt = t('default_prompt')
 
 const props = defineProps({
   separatorsOptions: {
@@ -99,12 +106,7 @@ const props = defineProps({
   },
 })
 
-const defaultPromt = `根据user角色提供的文本，学习和分析它，并整理学习成果：
-- 提出问题并给出每个问题的答案。
-- 答案需详细完整，尽可能保留原文描述，可以适当扩展答案描述。
-- 答案可以包含普通文字、链接、代码、表格、公示、媒体链接等 Markdown 元素。
-- 最多提出 50 个问题。
-- 生成的问题和答案和源文本语言相同。`
+
 
 const formState = reactive({
   faq_files: [],
@@ -118,13 +120,13 @@ const formState = reactive({
 const rules = ref({
   chunk_model_config_id: [
     {
-      message: '请选择提取模型',
+      message: t('confirm_validate_msg_model'),
       required: true
     }
   ],
   faq_files: [
     {
-      message: '请选择文件',
+      message: t('confirm_validate_msg_file'),
       required: true
     }
   ]
@@ -188,7 +190,7 @@ const saveForm = () => {
   confirmLoading.value = true
   addFAQFile(formData)
     .then((res) => {
-      message.success('上传成功')
+      message.success(t('upload_success_msg'))
       emit('ok')
       open.value = false
     })

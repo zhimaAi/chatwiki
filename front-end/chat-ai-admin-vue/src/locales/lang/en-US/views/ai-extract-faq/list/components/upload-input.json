@@ -1,0 +1,8 @@
+{
+  "click_or_drag_upload": "Click or drag files here to upload",
+  "batch_upload_hint": "Support batch upload of multiple documents, single file size not exceeding 100M, up to {count} documents",
+  "supported_file_types": "Supported file types: ",
+  "max_upload_error": "Upload up to {count} files at once",
+  "unsupported_file_format": "Unsupported file format",
+  "file_size_limit": "File size cannot exceed 100M"
+}

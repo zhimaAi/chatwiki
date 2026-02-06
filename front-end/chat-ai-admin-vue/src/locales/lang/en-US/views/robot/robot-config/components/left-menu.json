@@ -1,0 +1,16 @@
+{
+  "label_workflow_orchestration": "Workflow Orchestration",
+  "label_basic_configuration": "Basic Configuration",
+  "label_knowledge_base": "Knowledge Base",
+  "label_workflow": "Workflow",
+  "label_function_center": "Function Center",
+  "label_external_services": "External Services",
+  "label_chat_test": "Chat Test",
+  "label_qa_feedback": "Q&A Feedback",
+  "label_session_records": "Session Records",
+  "label_api_key_management": "API Key Management",
+  "label_unknown_issues": "Unknown Issues",
+  "label_statistical_analysis": "Statistical Analysis",
+  "label_export_records": "Export Records",
+  "label_invocation_logs": "Invocation Logs"
+}

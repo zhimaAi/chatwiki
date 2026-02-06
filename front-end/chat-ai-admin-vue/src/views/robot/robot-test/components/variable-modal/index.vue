@@ -12,7 +12,7 @@
       <div class="banner-bg">
         <img src="@/assets/img/form-modal-header.png" alt="" />
       </div>
-      <div class="title">请先填写信息</div>
+      <div class="title">{{ t('title_fill_info') }}</div>
     </div>
     <div class="form-body">
       <a-form :model="formState" ref="formRef" layout="vertical">
@@ -22,13 +22,13 @@
           :key="item.variable_key"
           :label="item.variable_type == 'checkbox_switch' ? null : item.variable_name"
           :name="item.variable_key"
-          :rules="[{ required: item.must_input == 1, message: `请输入${item.variable_name}` }]"
+          :rules="[{ required: item.must_input == 1, message: t('msg_input_required', { name: item.variable_name }) }]"
         >
           <template v-if="item.variable_type == 'input_string'">
             <a-input
               v-model:value="formState[item.variable_key]"
               :maxLength="getLength(item)"
-              placeholder="请输入"
+              :placeholder="t('ph_input')"
             />
           </template>
           <template v-if="item.variable_type == 'input_number'">
@@ -37,7 +37,7 @@
               v-model:value="formState[item.variable_key]"
               stringMode
               :maxLength="50"
-              placeholder="请输入"
+              :placeholder="t('ph_input')"
             />
           </template>
           <template v-if="item.variable_type == 'select_one'">
@@ -60,7 +60,7 @@
     </div>
     <div class="from-footer">
       <div class="btn-box">
-        <a-button @click="handleSave" block type="primary">提 交</a-button>
+        <a-button @click="handleSave" block type="primary">{{ t('btn_submit') }}</a-button>
       </div>
     </div>
   </a-modal>
@@ -70,6 +70,9 @@
 import { ref, computed, watch, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import { useChatStore } from '@/stores/modules/chat'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-test.components.variable-modal.index')
 const query = useRoute().query
 
 const isEdit = ref(false)
@@ -151,7 +154,6 @@ const getLength = (item) => {
 watch(
   () => wait_variables.value,
   (val) => {
-    console.log(chat_variables.value, '===')
     val && initData(wait_variables.value)
   },
   {

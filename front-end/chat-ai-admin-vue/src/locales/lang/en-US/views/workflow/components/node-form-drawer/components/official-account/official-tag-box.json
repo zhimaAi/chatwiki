@@ -1,0 +1,17 @@
+{
+  "label_section_input": "Input",
+  "label_section_output": "Output",
+  "label_official_account": "Official Account",
+  "label_official_account_tag": "Official Account Tag",
+  "label_fans_openid_list": "Fan OpenID List",
+  "btn_sync": "Sync",
+  "btn_select_tag": "Select Tags",
+  "btn_insert_variable": "Insert Variable",
+  "ph_select_official_account": "Please select an official account",
+  "ph_select_tag": "Please select tags",
+  "ph_input_content": "Please enter content, type \"/\" to insert variables",
+  "tooltip_sync_tags": "Sync latest official account tags",
+  "desc_fans_openid_list": "Fan OpenID list, maximum 50 items, separated by commas",
+  "msg_please_select_official_account": "Please select an official account first",
+  "msg_sync_completed": "Sync completed"
+}

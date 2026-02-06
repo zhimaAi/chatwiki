@@ -1,27 +1,27 @@
 <template>
   <div class="subManage-edit">
     <a-breadcrumb class="subManage-breadcrumb">
-      <a-breadcrumb-item><a :href="autoReplyUrl">关键词回复</a></a-breadcrumb-item>
-      <a-breadcrumb-item>新增规则</a-breadcrumb-item>
+      <a-breadcrumb-item><a :href="autoReplyUrl">{{ t('breadcrumb_keyword_reply') }}</a></a-breadcrumb-item>
+      <a-breadcrumb-item>{{ t('breadcrumb_add_rule') }}</a-breadcrumb-item>
     </a-breadcrumb>
 
     <div class="main">
       <a-form ref="formRef" :model="form" :rules="rules">
-        <a-form-item label="规则名称" name="name" :rules="[{ required: true, message: '请输入规则名称' }]">
-          <a-input v-model:value="form.name" placeholder="请输入" style="width: 512px;" />
+        <a-form-item :label="t('label_rule_name')" name="name" :rules="[{ required: true, message: t('msg_input_rule_name') }]">
+          <a-input v-model:value="form.name" :placeholder="t('ph_input')" style="width: 512px;" />
         </a-form-item>
 
         <div class="nav-box" style="padding-top: 10px;">
           <svg-icon name="set-keywords" style="font-size: 16px;"></svg-icon>
-          设置关键词
+          {{ t('title_set_keywords') }}
         </div>
 
         <!-- 精准匹配 -->
         <div class="item-box">
           <div class="item-title-box">
-            <div class="item-title">精准匹配</div>
+            <div class="item-title">{{ t('title_exact_match') }}</div>
             <a-tooltip>
-              <template #title>发送消息内容只提到某个关键词，才回复指定的内容</template>
+              <template #title>{{ t('tip_exact_match') }}</template>
               <QuestionCircleOutlined style="color: #8C8C8C;" />
             </a-tooltip>
           </div>
@@ -30,7 +30,7 @@
               <a-input
                 ref="fullInputRef"
                 v-model:value="fullKeywordInput"
-                placeholder="输入关键词后回车或失去焦点添加"
+                :placeholder="t('ph_input_keyword')"
                 style="width:260px;"
                 @pressEnter="confirmAddFull"
                 @blur="confirmAddFull"
@@ -41,7 +41,7 @@
                 <template #icon>
                   <PlusOutlined />
                 </template>
-                添加关键词
+                {{ t('btn_add_keyword') }}
               </a-button>
             </template>
           </div>
@@ -55,9 +55,9 @@
         <!-- 模糊匹配 -->
         <div class="item-box" style="margin-top: 12px;">
           <div class="item-title-box">
-            <div class="item-title">模糊匹配</div>
+            <div class="item-title">{{ t('title_fuzzy_match') }}</div>
             <a-tooltip>
-              <template #title>发送消息内容只要包含某个关键词，才回复指定的内容</template>
+              <template #title>{{ t('tip_fuzzy_match') }}</template>
               <QuestionCircleOutlined style="color: #8C8C8C;" />
             </a-tooltip>
           </div>
@@ -66,7 +66,7 @@
               <a-input
                 ref="halfInputRef"
                 v-model:value="halfKeywordInput"
-                placeholder="输入关键词后回车或失去焦点添加"
+                :placeholder="t('ph_input_keyword')"
                 style="width:260px;"
                 @pressEnter="confirmAddHalf"
                 @blur="confirmAddHalf"
@@ -77,7 +77,7 @@
                 <template #icon>
                   <PlusOutlined />
                 </template>
-                添加关键词
+                {{ t('btn_add_keyword') }}
               </a-button>
             </template>
           </div>
@@ -91,7 +91,7 @@
         <!-- 回复内容 -->
         <div class="nav-box" style="margin-top: 24px;">
           <svg-icon name="reply-content" style="font-size: 16px;"></svg-icon>
-          回复内容
+          {{ t('title_reply_content') }}
         </div>
         <div class="item-box">
           <MultiReply v-for="(it, idx) in replyList" :key="idx" ref="replyRefs" v-model:value="replyList[idx]" :reply_index="idx"
@@ -100,30 +100,30 @@
             <template #icon>
               <PlusOutlined />
             </template>
-            添加回复内容({{replyList.length}}/5)
+            {{ t('btn_add_reply_content') }}({{replyList.length}}/5)
           </a-button>
         </div>
 
         <!-- 回复设置 -->
         <div class="nav-box" style="margin-top: 24px;">
           <svg-icon name="reply-settings" style="font-size: 16px;"></svg-icon>
-          回复设置
+          {{ t('title_reply_settings') }}
         </div>
         <div class="item-box">
           <div class="item-title-box">
-            <div class="item-title">回复方式：</div>
+            <div class="item-title">{{ t('label_reply_method') }}</div>
           </div>
           <div class="radio-container">
             <a-radio-group v-model:value="form.reply_num" @change="handleReplyTypeChange">
-              <a-radio value="0">全部回复</a-radio>
-              <a-radio value="1">随机回复一条</a-radio>
+              <a-radio value="0">{{ t('reply_all') }}</a-radio>
+              <a-radio value="1">{{ t('reply_random') }}</a-radio>
             </a-radio-group>
           </div>
         </div>
 
         <!-- 保存 底部固定 -->
         <div class="btn-container">
-          <a-button type="primary" @click="onSubmit">保存</a-button>
+          <a-button type="primary" @click="onSubmit">{{ t('btn_save') }}</a-button>
         </div>
       </a-form>
     </div>
@@ -136,7 +136,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import MultiReply from '@/components/replay-card/multi-reply.vue'
 import { getRobotKeywordReply, saveRobotKeywordReply, checkKeyWordRepeat } from '@/api/explore/index.js'
+import { useI18n } from '@/hooks/web/useI18n'
 
+const { t } = useI18n('views.robot.robot-config.auto-reply.add-rule')
 const query = useRoute().query
 const ruleId = ref(+query.rule_id || +query['rule-id'] || 0)
 const router = useRouter()
@@ -148,7 +150,7 @@ const form = reactive({
 })
 const rules = {
   name: [
-    { required: true, message: '请输入规则名称', trigger: 'blur' }
+    { required: true, message: t('msg_input_rule_name'), trigger: 'blur' }
   ]
 }
 
@@ -173,22 +175,22 @@ const startAddFull = () => {
 const confirmAddFull = async () => {
   if (addingFullBusy.value) return
   const v = (fullKeywordInput.value || '').trim()
-  if (!v) { message.warning('请输入关键词'); return }
-  if (fullKeywords.value.includes(v)) { message.warning('已存在该关键词'); return }
+  if (!v) { message.warning(t('msg_input_keyword')); return }
+  if (fullKeywords.value.includes(v)) { message.warning(t('msg_keyword_exists')); return }
   try {
     addingFullBusy.value = true
     const res = await checkKeyWordRepeat({ id: ruleId.value, robot_id: query.id, keyword: v })
     const repeat = res?.data?.is_repeat
     const ruleName = res?.data?.rule_name || ''
     if (repeat) {
-      message.error(`关键词与规则「${ruleName}」重复`)
+      message.error(t('msg_keyword_duplicate', { ruleName }))
       return
     }
     fullKeywords.value.push(v)
     fullKeywordInput.value = ''
     addingFull.value = false
   } catch (e) {
-    message.error('校验失败，请稍后重试')
+    message.error(t('msg_check_failed'))
   } finally {
     addingFullBusy.value = false
   }
@@ -208,22 +210,22 @@ const startAddHalf = () => {
 const confirmAddHalf = async () => {
   if (addingHalfBusy.value) return
   const v = (halfKeywordInput.value || '').trim()
-  if (!v) { message.warning('请输入关键词'); return }
-  if (halfKeywords.value.includes(v)) { message.warning('已存在该关键词'); return }
+  if (!v) { message.warning(t('msg_input_keyword')); return }
+  if (halfKeywords.value.includes(v)) { message.warning(t('msg_keyword_exists')); return }
   try {
     addingHalfBusy.value = true
     const res = await checkKeyWordRepeat({ id: ruleId.value, robot_id: query.id, keyword: v })
     const repeat = res?.data?.is_repeat
     const ruleName = res?.data?.rule_name || ''
     if (repeat) {
-      message.error(`关键词与规则「${ruleName}」重复`)
+      message.error(t('msg_keyword_duplicate', { ruleName }))
       return
     }
     halfKeywords.value.push(v)
     halfKeywordInput.value = ''
     addingHalf.value = false
   } catch (e) {
-    message.error('校验失败，请稍后重试')
+    message.error(t('msg_check_failed'))
   } finally {
     addingHalfBusy.value = false
   }
@@ -237,7 +239,7 @@ const replyList = ref([{ type: 'text', description: '' }])
 const replyRefs = ref([])
 const addReplyItem = () => {
   if (replyList.value.length >= 5) {
-    message.warning('最多添加5条回复内容')
+    message.warning(t('msg_max_reply_content'))
     return
   }
   replyList.value.push({ type: 'text', description: '' })
@@ -297,11 +299,11 @@ function serializeReplyTypeCodes (list) {
 const onSubmit = () => {
   formRef.value?.validate().then(async () => {
     if (!fullKeywords.value.length && !halfKeywords.value.length) {
-      message.warning('请至少添加一个关键词（精准或模糊）')
+      message.warning(t('msg_at_least_one_keyword'))
       return
     }
     if (!replyList.value.length) {
-      message.warning('请至少添加一条回复内容')
+      message.warning(t('msg_at_least_one_reply'))
       return
     }
     for (const comp of replyRefs.value) {
@@ -323,7 +325,7 @@ const onSubmit = () => {
     try {
       const res = await saveRobotKeywordReply(payload)
       if (res && res.res == 0) {
-        message.success('保存成功')
+        message.success(t('msg_save_success'))
         router.push({ path: '/robot/ability/auto-reply', query: { id: query.id, robot_key: query.robot_key } })
       }
     } catch (e) {
@@ -339,7 +341,7 @@ onMounted(async () => {
     try {
       const res = await getRobotKeywordReply({ id: copyId })
       const data = res?.data || {}
-      form.name = `${(data?.name || '')}副本`
+      form.name = `${(data?.name || '')}${t('label_copy_suffix')}`
       // fullKeywords.value = Array.isArray(data?.full_keyword) ? data.full_keyword : []
       // halfKeywords.value = Array.isArray(data?.half_keyword) ? data.half_keyword : []
       const list = Array.isArray(data?.reply_content) ? data.reply_content : []
@@ -356,7 +358,7 @@ onMounted(async () => {
       }))
       form.reply_num = data.reply_num
     } catch (e) {
-      message.error('加载规则失败，请稍后重试')
+      message.error(t('msg_load_failed'))
     }
     return
   }
@@ -381,7 +383,7 @@ onMounted(async () => {
     }))
     form.reply_num = data.reply_num
   } catch (e) {
-    message.error('加载规则失败，请稍后重试')
+    message.error(t('msg_load_failed'))
   }
 })
 
@@ -412,7 +414,7 @@ onMounted(async () => {
     padding: 0 8px;
     border-radius: 6px;
     background-color: white;
-    padding-bottom: 24px;
+    padding-bottom: 80px;
 
     .title {
       border-radius: 6px;

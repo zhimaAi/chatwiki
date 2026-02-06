@@ -22,12 +22,12 @@
 </style>
 
 <template>
-  <edit-box class="setting-box" title="聊天缓存" icon-name="chat-cache">
+  <edit-box class="setting-box" :title="t('title_chat_cache')" icon-name="chat-cache">
     <template #extra>
       <span></span>
     </template>
     <div class="robot-info-box">
-      开启后，会缓存用户的问题和大模型的答案，如果之后有用户提出相同的问题，会直接回复缓存的答案。缓存有效期为
+      {{ t('msg_cache_description') }}
       <div class="set-block">
         <a-input-group compact>
           <a-input-number
@@ -49,21 +49,21 @@
             style="width: 70px"
           />
           <a-select v-model:value="state.unix" style="width: 70px" @change="handleChangeUnix">
-            <a-select-option value="h">小时</a-select-option>
-            <a-select-option value="m">分钟</a-select-option>
+            <a-select-option value="h">{{ t('unit_hour') }}</a-select-option>
+            <a-select-option value="m">{{ t('unit_minute') }}</a-select-option>
           </a-select>
         </a-input-group>
       </div>
     </div>
     <div class="switch-item">
-      <a-button @click="handleCleanCache" size="small">清空缓存</a-button>
+      <a-button @click="handleCleanCache" size="small">{{ t('btn_clean_cache') }}</a-button>
       <a-switch
         @change="handleEdit"
         :checkedValue="1"
         :unCheckedValue="0"
         v-model:checked="formState.cache_switch"
-        checked-children="开"
-        un-checked-children="关"
+        :checked-children="t('switch_on')"
+        :un-checked-children="t('switch_off')"
       />
     </div>
   </edit-box>
@@ -74,7 +74,9 @@ import EditBox from './edit-box.vue'
 import { cleanRobotChatCache } from '@/api/robot/index'
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
+const { t } = useI18n('views.robot.robot-config.basic-config.components.chat-cache')
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
 
 const formState = reactive({
@@ -117,15 +119,15 @@ const handleChangeUnix = () => {
 
 const handleCleanCache = () => {
   Modal.confirm({
-    title: '确定清空缓存?',
+    title: t('msg_confirm_clear_cache'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确定操作清空缓存吗？',
+    content: t('msg_confirm_clear_cache_content'),
     onOk() {
       cleanRobotChatCache({
         id: robotInfo.id,
         robot_key: robotInfo.robot_key
       }).then((res) => {
-        message.success('清空成功')
+        message.success(t('msg_clear_success'))
       })
     }
   })

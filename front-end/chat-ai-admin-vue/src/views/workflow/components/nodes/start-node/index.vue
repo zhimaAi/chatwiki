@@ -73,7 +73,7 @@
   >
     <div class="start-node">
       <div class="start-node-options">
-        <div class="options-title">输出</div>
+        <div class="options-title">{{ t('output') }}</div>
         <div class="options-list">
           <div
             class="options-item"
@@ -92,6 +92,7 @@
 
 <script>
 import NodeCommon from '../base-node.vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
 export default {
   name: 'StartNode',
@@ -108,6 +109,10 @@ export default {
     },
     isSelected: { type: Boolean, default: false },
     isHovered: { type: Boolean, default: false }
+  },
+  setup() {
+    const { t } = useI18n('views.workflow.components.nodes.start-node')
+    return { t }
   },
   data() {
     return {

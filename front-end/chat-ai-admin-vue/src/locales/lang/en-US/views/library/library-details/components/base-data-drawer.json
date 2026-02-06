@@ -1,0 +1,16 @@
+{
+  "title_basic_data": "Basic Data",
+  "label_updated_at": "Updated at",
+  "label_no_auto_update": "No Auto Update",
+  "label_every_day": "Every Day",
+  "label_every_3_days": "Every 3 Days",
+  "label_every_7_days": "Every 7 Days",
+  "label_every_30_days": "Every 30 Days",
+  "btn_edit": "Edit",
+  "label_file_format": "File Format",
+  "label_doc_size": "Document Size",
+  "label_doc_segments": "Segments",
+  "label_total_triggers": "Total Triggers",
+  "label_today_triggers": "Today",
+  "label_yesterday_triggers": "Yesterday"
+}

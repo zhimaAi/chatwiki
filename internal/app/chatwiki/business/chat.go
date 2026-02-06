@@ -374,9 +374,9 @@ func ChatRequest(c *gin.Context) {
 		}
 		return false
 	})
-	*params.IsClose = true //set flag
+	*params.IsClose = true // set flag
 	for range chanStream {
-		//discard unpushed data flows
+		// discard unpushed data flows
 	}
 }
 
@@ -549,7 +549,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 
 func GetDialogueSession(params *define.ChatRequestParam) (int, int, error) {
 	if len(params.Openid) == 0 {
-		return 0, 0, nil //来源工作流,openid为空,不生成对话id,会话id
+		return 0, 0, nil // from workflow, openid is empty, no dialog id or session id generated
 	}
 	var err error
 	dialogueId := params.DialogueId
@@ -578,7 +578,7 @@ func GetDialogueSession(params *define.ChatRequestParam) (int, int, error) {
 }
 
 func CallWorkFlow(c *gin.Context) {
-	c.Set(`from_work_flow`, true) //设置标志位,不校验openid为空
+	c.Set(`from_work_flow`, true) // set flag, do not validate openid as empty
 	chatRequestParam := getChatRequestParam(c)
 	if chatRequestParam.Error != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, chatRequestParam.Error))
@@ -607,7 +607,7 @@ func CallWorkFlow(c *gin.Context) {
 		SessionId:        sessionId,
 		Draft:            work_flow.Draft{IsDraft: isDraft, QuestionMultipleSwitch: questionMultipleSwitch},
 	}
-	if isDraft { //运行测试(草稿)
+	if isDraft { // run test (draft)
 		workFlowParams.Draft.NodeMaps, err = msql.Model(`work_flow_node`, define.Postgres).
 			Where(`admin_user_id`, chatRequestParam.Robot[`admin_user_id`]).Where(`robot_id`, chatRequestParam.Robot[`id`]).
 			Where(`data_type`, cast.ToString(define.DataTypeDraft)).ColumnMap(`*`, `node_key`)
@@ -626,8 +626,11 @@ func CallWorkFlow(c *gin.Context) {
 			_ = tool.JsonDecodeUseNumber(params[`node_info_json`], &node.NodeInfoJson)
 			nodeList = append(nodeList, node)
 		}
-		if workFlowParams.Draft.StartNodeKey, _, _, _, err = work_flow.VerifyWorkFlowNodes(nodeList, chatRequestParam.AdminUserId, chatRequestParam.Lang); err != nil {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		var errNodeKey string
+		if workFlowParams.Draft.StartNodeKey, _, _, _, err, errNodeKey = work_flow.VerifyWorkFlowNodes(nodeList, chatRequestParam.AdminUserId, chatRequestParam.Lang); err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(map[string]any{
+				`err_node_key`: errNodeKey,
+			}, err))
 			return
 		}
 	}
@@ -643,7 +646,7 @@ func CallWorkFlow(c *gin.Context) {
 }
 
 func CallLoopWorkFlow(c *gin.Context) {
-	c.Set(`from_work_flow`, true) //设置标志位,不校验openid为空
+	c.Set(`from_work_flow`, true) // set flag, do not validate openid as empty
 	chatRequestParam := getChatRequestParam(c)
 	if chatRequestParam.Error != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, chatRequestParam.Error))
@@ -730,7 +733,7 @@ func CallLoopWorkFlow(c *gin.Context) {
 }
 
 func CallBatchWorkFlow(c *gin.Context) {
-	c.Set(`from_work_flow`, true) //设置标志位,不校验openid为空
+	c.Set(`from_work_flow`, true) // set flag, do not validate openid as empty
 	chatRequestParam := getChatRequestParam(c)
 	if chatRequestParam.Error != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, chatRequestParam.Error))
@@ -817,7 +820,7 @@ func CallBatchWorkFlow(c *gin.Context) {
 }
 
 func CallLoopWorkFlowParams(c *gin.Context) {
-	c.Set(`from_work_flow`, true) //设置标志位,不校验openid为空
+	c.Set(`from_work_flow`, true) // set flag, do not validate openid as empty
 	chatBaseParam, err := common.CheckChatRequest(c)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
@@ -858,7 +861,7 @@ func CallLoopWorkFlowParams(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
-	//循环数组
+	// loop array
 	loopTestParams := make([]common.LoopTestParams, 0)
 	if loopNode.NodeParams.Loop.LoopType == common.LoopTypeArray {
 		for _, loopField := range loopNode.NodeParams.Loop.LoopArrays {
@@ -886,7 +889,7 @@ func CallLoopWorkFlowParams(c *gin.Context) {
 			childNodes = append(childNodes, node)
 		}
 	}
-	//中间变量
+	// intermediate variable
 	for _, intermediateField := range loopNode.NodeParams.Loop.IntermediateParams {
 		if intermediateField.Key == `` {
 			continue
@@ -909,13 +912,13 @@ func CallLoopWorkFlowParams(c *gin.Context) {
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{
 		`loop_test_params`: loopTestParams,
-		`is_need_question`: work_flow.FindKeyIsUse(childNodes, `global.question`), //是否需要question
-		`is_need_openid`:   work_flow.FindKeyIsUse(childNodes, `global.openid`),   //是否需要openid
+		`is_need_question`: work_flow.FindKeyIsUse(childNodes, `global.question`), // whether question is needed
+		`is_need_openid`:   work_flow.FindKeyIsUse(childNodes, `global.openid`),   // whether openid is needed
 	}, err))
 }
 
 func CallBatchWorkFlowParams(c *gin.Context) {
-	c.Set(`from_work_flow`, true) //设置标志位,不校验openid为空
+	c.Set(`from_work_flow`, true) // set flag, do not validate openid as empty
 	chatBaseParam, err := common.CheckChatRequest(c)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
@@ -956,7 +959,7 @@ func CallBatchWorkFlowParams(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
-	//循环数组
+	// loop array
 	batchTestParams := make([]common.BatchTestParams, 0)
 	for _, batchField := range batchNode.NodeParams.Batch.BatchArrays {
 		findNode := work_flow.FindNodeByUseKey(nodeList, batchField.Value)
@@ -984,13 +987,13 @@ func CallBatchWorkFlowParams(c *gin.Context) {
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{
 		`loop_test_params`: batchTestParams,
-		`is_need_question`: work_flow.FindKeyIsUse(childNodes, `global.question`), //是否需要question
-		`is_need_openid`:   work_flow.FindKeyIsUse(childNodes, `global.openid`),   //是否需要openid
+		`is_need_question`: work_flow.FindKeyIsUse(childNodes, `global.question`), // whether question is needed
+		`is_need_openid`:   work_flow.FindKeyIsUse(childNodes, `global.openid`),   // whether openid is needed
 	}, err))
 }
 
 func CallWorkFlowHttpTest(c *gin.Context) {
-	c.Set(`from_work_flow`, true) //设置标志位,不校验openid为空
+	c.Set(`from_work_flow`, true) // set flag, do not validate openid as empty
 	chatRequestParam := getChatRequestParam(c)
 	if chatRequestParam.Error != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, chatRequestParam.Error))
@@ -1031,9 +1034,13 @@ func CallWorkFlowHttpTest(c *gin.Context) {
 			curlNode = &node
 		}
 	}
-	_, _, _, _, err = work_flow.VerifyWorkFlowNodes(nodeList, chatRequestParam.AdminUserId, chatRequestParam.Lang)
+	//Verify the workflow nodes
+	var errNodeKey string
+	workFlowParams.Draft.StartNodeKey, _, _, _, err, errNodeKey = work_flow.VerifyWorkFlowNodes(nodeList, chatRequestParam.AdminUserId, chatRequestParam.Lang)
 	if err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		c.String(http.StatusOK, lib_web.FmtJson(map[string]any{
+			`err_node_key`: errNodeKey,
+		}, err))
 		return
 	}
 	ret, err := work_flow.CallHttpTest(workFlowParams, curlNode)

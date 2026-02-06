@@ -1,0 +1,10 @@
+{
+  "titleCookieAuthSetting": "Cookie Authorization Settings",
+  "labelIpRange": "Reminder IP Range",
+  "labelReminderPages": "Reminder Pages",
+  "btnCancel": "Cancel",
+  "btnConfirm": "Confirm",
+  "msgWarmTip": "Warm Tip",
+  "msgTrialVersion": "This feature is not supported in the trial version. Please upgrade to the Enterprise version to use it",
+  "msgSaveSuccess": "Saved successfully"
+}

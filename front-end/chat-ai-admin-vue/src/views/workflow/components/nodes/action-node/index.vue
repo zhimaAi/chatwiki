@@ -31,13 +31,14 @@
     @handleMenu="handleMenu"
   >
     <div class="question-node">
-      <div class="node-desc">{{ properties.content || '点击设置消息内容' }}</div>
+      <div class="node-desc">{{ properties.content || t('msg_click_to_set_content') }}</div>
     </div>
   </node-common>
 </template>
 
 <script>
 import NodeCommon from '../base-node.vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
 export default {
   name: 'QuestionNode',
@@ -54,6 +55,10 @@ export default {
     },
     isSelected: { type: Boolean, default: false },
     isHovered: { type: Boolean, default: false },
+  },
+  setup() {
+    const { t } = useI18n('views.workflow.components.nodes.action-node.index')
+    return { t }
   },
   data() {
     return {

@@ -1,0 +1,23 @@
+{
+  "modal_title_add": "Add Field",
+  "modal_title_edit": "Edit Field",
+  "label_name": "Field Name",
+  "label_name_tooltip": "Define the table header, where relevant data can be stored under the corresponding header.",
+  "ph_name": "Please enter field name",
+  "label_description": "Field Description",
+  "label_description_tooltip": "Description of the header field, helping users or AI models understand the table header field",
+  "ph_description": "Please enter field description",
+  "label_type": "Data Type",
+  "label_type_tooltip": "Select the data type corresponding to the stored field",
+  "ph_type": "Please select data type",
+  "label_required": "Required",
+  "label_required_tooltip_required": "Required field: When saving a row of data, the corresponding field information must be provided, otherwise the row cannot be saved",
+  "label_required_tooltip_optional": "Optional field: When the field information is missing, a row of data can still be saved in the table",
+  "switch_on": "On",
+  "switch_off": "Off",
+  "validator_name_pattern": "Must start with an English letter and can only contain lowercase letters, numbers, and underscores",
+  "validator_description_required": "Please enter field description",
+  "validator_type_required": "Please select data type",
+  "msg_add_success": "Added successfully",
+  "msg_edit_success": "Modified successfully"
+}

@@ -15,14 +15,14 @@
     >
       <div class="group-head-box">
         <div class="head-title">
-          <a-tooltip title="收起问答分组">
+          <a-tooltip :title="t('collapse_group')">
             <div class="hover-btn-wrap" @click="handleChangeHideStatus">
               <svg-icon name="put-away"></svg-icon>
             </div>
           </a-tooltip>
           <div class="flex-between-box">
-            <div>问答分组</div>
-            <a-tooltip title="新建分组">
+            <div>{{ t('qa_group') }}</div>
+            <a-tooltip :title="t('create_group')">
               <div class="hover-btn-wrap" @click="openGroupModal({})"><PlusOutlined /></div>
             </a-tooltip>
           </div>
@@ -31,7 +31,7 @@
           <a-input
             v-model:value="groupSearchKey"
             allowClear
-            placeholder="搜索分组"
+            :placeholder="t('search_group')"
             style="width: 100%"
           >
             <template #suffix>
@@ -60,10 +60,10 @@
                   <template #overlay>
                     <a-menu>
                       <a-menu-item>
-                        <div @click.stop="openGroupModal(item)">重命名</div>
+                        <div @click.stop="openGroupModal(item)">{{ t('rename') }}</div>
                       </a-menu-item>
                       <a-menu-item>
-                        <div @click.stop="handleDelGroup(item)">删 除</div>
+                        <div @click.stop="handleDelGroup(item)">{{ t('delete') }}</div>
                       </a-menu-item>
                     </a-menu>
                   </template>
@@ -87,8 +87,8 @@
                   <div class="group-head-box">
                     <div class="head-title">
                       <div class="flex-between-box">
-                        <div>问答分组</div>
-                        <a-tooltip title="新建分组">
+                        <div>{{ t('qa_group') }}</div>
+                        <a-tooltip :title="t('create_group')">
                           <div class="hover-btn-wrap" @click="openGroupModal({})">
                             <PlusOutlined />
                           </div>
@@ -99,7 +99,7 @@
                       <a-input
                         allowClear
                         v-model:value="groupSearchKey"
-                        placeholder="搜索分组"
+                        :placeholder="t('search_group')"
                         style="width: 100%"
                       >
                         <template #suffix>
@@ -129,10 +129,10 @@
                             <template #overlay>
                               <a-menu>
                                 <a-menu-item>
-                                  <div @click.stop="openGroupModal(item)">重命名</div>
+                                  <div @click.stop="openGroupModal(item)">{{ t('rename') }}</div>
                                 </a-menu-item>
                                 <a-menu-item>
-                                  <div @click.stop="handleDelGroup(item)">删 除</div>
+                                  <div @click.stop="handleDelGroup(item)">{{ t('delete') }}</div>
                                 </a-menu-item>
                               </a-menu>
                             </template>
@@ -150,38 +150,38 @@
             <div>{{ currentGroupItem.group_name }}</div>
             <div class="btn-right-box">
               <div>
-                <a-input @change="search" v-model:value="filterData.search" placeholder="搜索问答">
+                <a-input @change="search" v-model:value="filterData.search" :placeholder="t('search_qa')">
                   <template #suffix>
                     <SearchOutlined />
                   </template>
                 </a-input>
               </div>
-              <a-button @click="showMetaModal(1)">元数据 <SettingOutlined/></a-button>
+              <a-button @click="showMetaModal(1)">{{ t('metadata') }} <SettingOutlined/></a-button>
               <a-dropdown>
-               <a-button>批量操作 <DownOutlined/></a-button>
+               <a-button>{{ t('batch_operation') }} <DownOutlined/></a-button>
                <template #overlay>
                  <a-menu>
-                   <a-menu-item key="1"><div @click="handleBathDel">批量删除</div></a-menu-item>
-                   <a-menu-item key="2"><div @click="handleOpenMoveModal">批量移动</div></a-menu-item>
-                   <a-menu-item key="2"><div @click="showMetaModal(2)">修改元数据</div></a-menu-item>
+                   <a-menu-item key="1"><div @click="handleBathDel">{{ t('batch_delete') }}</div></a-menu-item>
+                   <a-menu-item key="2"><div @click="handleOpenMoveModal">{{ t('batch_move') }}</div></a-menu-item>
+                   <a-menu-item key="2"><div @click="showMetaModal(2)">{{ t('modify_metadata') }}</div></a-menu-item>
                  </a-menu>
                </template>
               </a-dropdown>
-              <a-button @click="handleOpenFileUploadModal()">导入</a-button>
-              <a-button @click="handleSyncDownload()">导出</a-button>
+              <a-button @click="handleOpenFileUploadModal()">{{ t('batch_import') }}</a-button>
+              <a-button @click="handleSyncDownload()">{{ t('batch_export') }}</a-button>
               <a-button
                 @click="openEditSubscription({})"
                 type="primary"
                 :icon="createVNode(PlusOutlined)"
-                >问答</a-button
+                >{{ t('qa') }}</a-button
               >
             </div>
           </div>
           <div class="des-content-block">
             <div class="alert-icon-box" v-if="exception_total > 0">
               <svg-icon name="alert-icon"></svg-icon>
-              <div>{{ exception_total }}个问答学习失败</div>
-              <a @click="reEmbeddingVectors">重新学习</a>
+              <div>{{ exception_total }}{{ t('learn_failed') }}</div>
+              <a @click="reEmbeddingVectors">{{ t('re_learn') }}</a>
             </div>
           </div>
         </div>
@@ -219,12 +219,13 @@
   ></EditSubscription>
   <AddGroup ref="addGroupRef" @ok="initData" />
   <QaUploadModal :groupLists="groupLists" :library_id="library_id" @ok="initData" ref="qaUploadModalRef" />
-  <a-modal v-model:open="moveOpen" title="批量移动分组" @ok="handleMove">
-    <a-flex align="center" style="margin: 24px 0">
-      <div>移动到分组：</div>
-      <a-select v-model:value="moveState.group_id" style="flex: 1" placeholder="请选择分组">
+  <a-modal v-model:open="moveOpen" :title="t('batch_move_group')" @ok="handleMove">
+    <a-flex class="move-group-form" align="center" style="margin: 24px 0">
+      <div class="form-label">{{ t('move_to_group') }}</div>
+      <a-select v-model:value="moveState.group_id" style="flex: 1" :placeholder="t('select_group')">
         <a-select-option
           v-for="item in groupLists.filter((item) => item.id >= 0)"
+          :key="item.id"
           :value="item.id"
           >{{ item.group_name }}</a-select-option
         >
@@ -234,12 +235,12 @@
   <a-modal v-model:open="downLoadModalOpen" :title="null" :footer="null" :width="640">
     <a-result
       status="success"
-      title="导出任务创建成功"
-      sub-title="系统会在后台导出。导出数据量越大，耗时越久。您可以稍后点击导出记录查看并下载导出的文件。"
+      :title="t('export_task_created')"
+      :sub-title="t('export_task_desc')"
     >
       <template #extra>
-        <a-button style="margin-right: 16px;" @click="downLoadModalOpen = false">知道了</a-button>
-        <a-button @click="toDownloadPage" type="primary">去下载</a-button>
+        <a-button style="margin-right: 16px;" @click="downLoadModalOpen = false">{{ t('got_it') }}</a-button>
+        <a-button @click="toDownloadPage" type="primary">{{ t('go_download') }}</a-button>
       </template>
     </a-result>
   </a-modal>
@@ -274,6 +275,9 @@ import QaUploadModal from '../components/qa-upload-modal.vue'
 import AddGroup from './components/add-group.vue'
 import router from '@/router'
 import MetadataManageModal from "@/views/library/library-details/components/metadata-manage-modal.vue";
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.library-details.qa-knowledge-document.index')
 
 const subsectionBoxRef = ref(null)
 const metaRef = ref(null)
@@ -318,10 +322,10 @@ const sourceTypeMap = {
   5: '导入问答'
 }
 const listStatusMap = {
-  0: '未转换',
-  1: '已转换',
-  2: '转换异常',
-  3: '转换中...'
+  0: t('not_converted'),
+  1: t('converted'),
+  2: t('convert_error'),
+  3: t('converting')
 }
 const detailsInfo = ref({
   is_qa_doc: '1',
@@ -366,7 +370,7 @@ const handleChangeHideStatus = () => {
 
 const reEmbeddingVectors = () => {
   reconstructCategoryVector({ id: libraryId.value }).then(() => {
-    message.success('操作完成')
+    message.success(t('operation_complete'))
     getParagraphLists()
   })
 }
@@ -429,7 +433,7 @@ const getGroupLists = () => {
     }, 0)
     groupLists.value = [
       {
-        group_name: '全部分组',
+        group_name: t('all_groups'),
         id: -1,
         total: allTotal
       },
@@ -459,17 +463,17 @@ const handleChangeGroup = (item) => {
 
 const handleDelGroup = (item) => {
   Modal.confirm({
-    title: `确认删除分组${item.group_name}`,
+    title: `${t('confirm_delete_group')}${item.group_name}`,
     icon: createVNode(ExclamationCircleOutlined),
     content: '',
-    okText: '确认',
+    okText: t('confirm'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('cancel'),
     onOk() {
       deleteLibraryGroup({
         id: item.id
       }).then(() => {
-        message.success('删除成功')
+        message.success(t('delete_success'))
         getGroupLists()
         if (groupId.value == item.id) {
           groupId.value = -1
@@ -494,7 +498,7 @@ const moveState = reactive({
 
 const handleOpenMoveModal = () => {
   if (subsectionBoxRef.value.state.selectedRowKeys.length == 0) {
-    return message.error('请选择你要移动的问答')
+    return message.error(t('select_qa_to_move'))
   }
   moveState.ids = subsectionBoxRef.value.state.selectedRowKeys.join(',')
   moveState.group_id = void 0
@@ -503,17 +507,17 @@ const handleOpenMoveModal = () => {
 
 const handleBathDel = () => {
   if (subsectionBoxRef.value.state.selectedRowKeys.length == 0) {
-    return message.error('请选择你要删除的问答')
+    return message.error(t('select_qa_to_delete'))
   }
 
   Modal.confirm({
-    title: '提示',
+    title: t('tip'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确认是否删除所选问答?',
+    content: t('confirm_delete_selected'),
     onOk() {
       deleteParagraph({ id: subsectionBoxRef.value.state.selectedRowKeys.join(',') }).then(
         (res) => {
-          message.success('删除成功')
+          message.success(t('delete_success'))
           getParagraphLists()
         }
       )
@@ -524,19 +528,19 @@ const handleBathDel = () => {
 
 const handleMove = () => {
   if (!moveState.group_id) {
-    return message.error('请选择分组')
+    return message.error(t('select_group_tip'))
   }
   setParagraphGroup({
     ...moveState
   }).then(() => {
     moveOpen.value = false
-    message.success('移动成功')
+    message.success(t('move_success'))
     initData()
   })
 }
 
 const GROUP_BOX_WIDTH_KEY = 'qa_document_group_box_width'
-const minGroupBoxWidth = 180
+const minGroupBoxWidth = 200
 const maxGroupBoxWidth = 256
 
 const groupBoxWidth = ref(minGroupBoxWidth)
@@ -608,7 +612,7 @@ const toDownloadPage = ()=>{
 const showMetaModal = (type) => {
   if (type == 2) {
     if (subsectionBoxRef.value.state.selectedRowKeys.length == 0) {
-      return message.error('请选择你要修改的问答')
+      return message.error(t('select_qa_to_modify'))
     }
     qaIds.value = subsectionBoxRef.value.state.selectedRowKeys
   }
@@ -624,7 +628,7 @@ const showMetaModal = (type) => {
 
   .group-content-box {
     position: relative;
-    width: 180px;
+    width: 200px;
     border-right: 1px solid #d9d9d9;
     padding-top: 24px;
     padding-left: 24px;
@@ -885,5 +889,11 @@ const showMetaModal = (type) => {
 }
 .group-content-box.collapsed .resize-bar {
   display: none;
+}
+
+.move-group-form{
+  .form-label{
+    padding-right: 4px;
+  }
 }
 </style>

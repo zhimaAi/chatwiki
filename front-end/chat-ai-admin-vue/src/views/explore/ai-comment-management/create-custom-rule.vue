@@ -1,17 +1,22 @@
 <template>
   <div class="default-rule-page">
     <div class="form-row">
-      <div class="form-label">规则名称</div>
-      <a-input v-model:value="ruleForm.rule_name" placeholder="请输入规则名称" style="width: 300px" />
+      <div class="form-label">{{ t('rule_name_label') }}</div>
+      <a-input
+        v-model:value="ruleForm.rule_name"
+        :placeholder="t('rule_name_placeholder')"
+        style="width: 300px"
+      />
     </div>
 
     <div class="form-row">
-      <div class="form-label">模型</div>
+      <div class="form-label">{{ t('model_label') }}</div>
       <ModelSelect
         modelType="LLM"
         v-model:modeName="ruleForm.use_model"
         v-model:modeId="ruleForm.model_config_id"
         style="width: 300px;"
+        :placeholder="t('select_model_placeholder')"
         @change="onModelChange"
       />
     </div>
@@ -42,41 +47,50 @@
       <div class="module-card-header">
         <div class="module-card-title">
           <svg-icon name="comment-delete" style="font-size: 16px; margin-right: 8px;" />
-          <span>AI自动删评</span>
+          <span>{{ t('module_delete_title') }}</span>
         </div>
         <a-switch v-model:checked="ruleForm.delete_comment_switch" :checkedValue="1" :unCheckedValue="0" />
       </div>
       <div v-if="ruleForm.delete_comment_switch==1" class="module-card-body">
         <div class="field">
-          <div class="field-label">规则</div>
+          <div class="field-label">{{ t('delete_rule_label') }}</div>
           <a-checkbox-group v-model:value="ruleForm.delete_type">
-            <a-checkbox :value="1">触发敏感词</a-checkbox>
-            <a-checkbox :value="2">AI检测</a-checkbox>
+            <a-checkbox :value="1">{{ t('delete_rule_sensitive_word') }}</a-checkbox>
+            <a-checkbox :value="2">{{ t('delete_rule_ai_detection') }}</a-checkbox>
           </a-checkbox-group>
         </div>
         <div class="field" v-if="(ruleForm.delete_type || []).includes(1)">
-          <div class="field-label">敏感词</div>
+          <div class="field-label">{{ t('delete_sensitive_word_label') }}</div>
           <div class="tag-list">
             <a-tag v-for="(kw, idx) in ruleForm.delete_keywords" :key="kw" closable @close="removeKeyword(idx)">{{ kw }}</a-tag>
           </div>
-          <a-textarea v-model:value="deleteKeywordInput" placeholder="请输入" @blur="onAddKeyword" :auto-size="{ minRows: 2 }" />
+          <a-textarea
+            v-model:value="deleteKeywordInput"
+            :placeholder="t('common_input_placeholder')"
+            @blur="onAddKeyword"
+            :auto-size="{ minRows: 2 }"
+          />
         </div>
         <div class="field" v-if="(ruleForm.delete_type || []).includes(2)">
-          <div class="field-label">AI检测规则</div>
-          <a-textarea v-model:value="ruleForm.delete_prompt" placeholder="请输入" :auto-size="{ minRows: 3 }" />
+          <div class="field-label">{{ t('delete_ai_rule_label') }}</div>
+          <a-textarea
+            v-model:value="ruleForm.delete_prompt"
+            :placeholder="t('common_input_placeholder')"
+            :auto-size="{ minRows: 3 }"
+          />
         </div>
         <div class="field" v-if="(ruleForm.delete_type || []).includes(2)">
-          <div class="field-label">条件</div>
+          <div class="field-label">{{ t('condition_label') }}</div>
           <a-radio-group v-model:value="ruleForm.delete_condition">
-            <a-radio :value="1">全部满足</a-radio>
-            <a-radio :value="2">满足其中一个条件</a-radio>
+            <a-radio :value="1">{{ t('condition_all') }}</a-radio>
+            <a-radio :value="2">{{ t('condition_any') }}</a-radio>
           </a-radio-group>
         </div>
         <div class="field" v-if="(ruleForm.delete_type || []).includes(2)">
-          <div class="field-label">优先级</div>
+          <div class="field-label">{{ t('priority_label') }}</div>
           <a-radio-group v-model:value="ruleForm.delete_priority">
-            <a-radio :value="1">敏感词优先</a-radio>
-            <a-radio :value="2">AI检测优先</a-radio>
+            <a-radio :value="1">{{ t('priority_sensitive_first') }}</a-radio>
+            <a-radio :value="2">{{ t('priority_ai_first') }}</a-radio>
           </a-radio-group>
         </div>
       </div>
@@ -86,25 +100,33 @@
       <div class="module-card-header">
         <div class="module-card-title">
           <svg-icon name="comment-reply" style="font-size: 16px; margin-right: 8px;" />
-          <span>AI自动回复</span>
+          <span>{{ t('module_reply_title') }}</span>
         </div>
         <a-switch v-model:checked="ruleForm.reply_comment_switch" :checkedValue="1" :unCheckedValue="0" />
       </div>
       <div v-if="ruleForm.reply_comment_switch==1" class="module-card-body">
         <div class="field">
-          <div class="field-label">自动回复规则</div>
-          <a-textarea v-model:value="ruleForm.reply_check_prompt" placeholder="请输入" :auto-size="{ minRows: 3 }"/>
+          <div class="field-label">{{ t('auto_reply_rule_label') }}</div>
+          <a-textarea
+            v-model:value="ruleForm.reply_check_prompt"
+            :placeholder="t('common_input_placeholder')"
+            :auto-size="{ minRows: 3 }"
+          />
         </div>
         <div class="field">
-          <div class="field-label">回复内容</div>
+          <div class="field-label">{{ t('reply_content_label') }}</div>
           <a-radio-group v-model:value="ruleForm.reply_type">
-            <a-radio :value="1">固定回复内容</a-radio>
-            <a-radio :value="2">AI生成回复内容</a-radio>
+            <a-radio :value="1">{{ t('reply_type_fixed') }}</a-radio>
+            <a-radio :value="2">{{ t('reply_type_ai') }}</a-radio>
           </a-radio-group>
         </div>
         <div class="field">
           <div class="field-label">{{ replyContentLabel }}</div>
-          <a-textarea v-model:value="ruleForm.reply_prompt" placeholder="请输入" :auto-size="{ minRows: 3 }" />
+          <a-textarea
+            v-model:value="ruleForm.reply_prompt"
+            :placeholder="t('common_input_placeholder')"
+            :auto-size="{ minRows: 3 }"
+          />
         </div>
       </div>
     </div>
@@ -113,23 +135,33 @@
       <div class="module-card-header">
         <div class="module-card-title">
           <svg-icon name="comment-selected" style="font-size: 16px; margin-right: 8px;" />
-          <span>AI自动精选</span>
+          <span>{{ t('module_elect_title') }}</span>
         </div>
         <a-switch v-model:checked="ruleForm.elect_comment_switch" :checkedValue="1" :unCheckedValue="0" />
       </div>
       <div v-if="ruleForm.elect_comment_switch==1" class="module-card-body">
         <div class="field">
-          <div class="field-label">自动精选规则</div>
-          <a-textarea v-model:value="ruleForm.elect_prompt" placeholder="请输入" :auto-size="{ minRows: 3 }" />
+          <div class="field-label">{{ t('auto_elect_rule_label') }}</div>
+          <a-textarea
+            v-model:value="ruleForm.elect_prompt"
+            :placeholder="t('common_input_placeholder')"
+            :auto-size="{ minRows: 3 }"
+          />
         </div>
       </div>
     </div>
 
     <div class="page-right-footer">
-      <a-button type="primary" @click="onSave">保存并应用</a-button>
+      <a-button type="primary" @click="onSave">{{ t('btn_save_and_apply') }}</a-button>
     </div>
 
-    <a-modal v-model:open="taskModalOpen" title="选择群发任务" :width="720" @ok="confirmSelectTasks" @cancel="taskModalOpen=false">
+    <a-modal
+      v-model:open="taskModalOpen"
+      :title="t('task_modal_title')"
+      :width="720"
+      @ok="confirmSelectTasks"
+      @cancel="taskModalOpen=false"
+    >
       <div class="task-modal">
         <a-table
           :columns="taskColumns"
@@ -156,9 +188,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { getCommentRuleInfo, getBatchSendTaskList, saveCommentRule } from '@/api/robot'
+import { useI18n } from '@/hooks/web/useI18n'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n('views.explore.ai-comment-management.create-custom-rule')
 // const isCreateCustomRule = computed(() => route.name === 'exploreAiCommentManagementCreateCustomRule')
 const isCopyCustomRule = computed(() => route.name === 'exploreAiCommentManagementCreateCustomRule' && route.query.copy === '1')
 const isEditCustomRule = computed(() => route.name === 'exploreAiCommentManagementCreateCustomRule' && route.query.id)
@@ -181,7 +215,9 @@ const ruleForm = reactive({
   elect_prompt: '',
 })
 
-const replyContentLabel = computed(() => ruleForm.reply_type === 1 ? '回复内容' : '回复内容规则')
+const replyContentLabel = computed(() =>
+  ruleForm.reply_type === 1 ? t('reply_content_label') : t('reply_content_rule_label')
+)
 
 // const taskScope = ref('all')
 // const selectedTaskIds = ref([])
@@ -218,7 +254,7 @@ const taskPager = reactive({ page: 1, size: 10, total: 0 })
 const taskSelectedRowKeys = ref([])
 
 const taskColumns = [
-  { title: '群发名称', dataIndex: 'task_name', key: 'task_name' },
+  { title: t('task_column_task_name'), dataIndex: 'task_name', key: 'task_name' },
 ]
 
 const onSelectChange = (keys) => {
@@ -286,7 +322,7 @@ const loadDefaultRule = () => {
   getCommentRuleInfo(params).then((res) => {
     const item = res?.data || null
     if (!item) return
-    ruleForm.rule_name = item.rule_name || '默认规则'
+    ruleForm.rule_name = item.rule_name || t('rule_name_default')
     ruleForm.use_model = item.use_model || ruleForm.use_model
     ruleForm.model_config_id = item.model_config_id || ruleForm.model_config_id
     ruleForm.delete_comment_switch = +item.delete_comment_switch || 0
@@ -328,10 +364,10 @@ const loadDefaultRule = () => {
 
 const onSave = () => {
   if (!String(ruleForm.rule_name || '').trim()) {
-    return message.error('请输入规则名称')
+    return message.error(t('error_enter_rule_name'))
   }
   if (!ruleForm.use_model) {
-    return message.error('请选择模型')
+    return message.error(t('error_select_model'))
   }
   // if (taskScope.value === 'specific' && selectedTaskIds.value.length === 0) {
   //   return message.error('请选择群发任务')
@@ -341,26 +377,26 @@ const onSave = () => {
     const hasSensitive = types.includes(1)
     const hasDetection = types.includes(2)
     if (types.length === 0) {
-      return message.error('AI自动删评，请至少勾选一个选项')
+      return message.error(t('error_delete_at_least_one_option'))
     }
     if (hasSensitive && (!ruleForm.delete_keywords || ruleForm.delete_keywords.length === 0)) {
-      return message.error('请输入敏感词')
+      return message.error(t('error_enter_sensitive_words'))
     }
     if (hasDetection && !String(ruleForm.delete_prompt || '').trim()) {
-      return message.error('请输入AI检测规则')
+      return message.error(t('error_enter_ai_detect_rule'))
     }
   }
   if (ruleForm.reply_comment_switch == 1) {
     if (!String(ruleForm.reply_check_prompt || '').trim()) {
-      return message.error('请输入自动回复规则')
+      return message.error(t('error_enter_auto_reply_rule'))
     }
     if (!String(ruleForm.reply_prompt || '').trim()) {
-      return message.error(`请输入${replyContentLabel.value}`)
+      return message.error(t('error_enter_reply_content', { label: replyContentLabel.value }))
     }
   }
   if (ruleForm.elect_comment_switch == 1) {
     if (!String(ruleForm.elect_prompt || '').trim()) {
-      return message.error('请输入自动精选规则')
+      return message.error(t('error_enter_auto_elect_rule'))
     }
   }
   // const taskIds = taskScope.value === 'all' ? 0 : selectedTaskIds.value.join(',')
@@ -398,7 +434,9 @@ const onSave = () => {
   if (isEditCustomRule.value && !isCopyCustomRule.value) {
     payload.id = route.query.id
   }
-  saveCommentRule(payload).then(() => { message.success('保存成功') })
+  saveCommentRule(payload).then(() => {
+    message.success(t('save_success'))
+  })
   // 返回
   router.back()
 }

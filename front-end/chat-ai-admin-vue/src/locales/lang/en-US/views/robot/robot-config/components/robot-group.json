@@ -1,0 +1,16 @@
+{
+  "title_robot_groups": "Robot Groups",
+  "title_create_group": "Create Group",
+  "ph_search_groups": "Search groups",
+  "btn_rename": "Rename",
+  "btn_delete": "Delete",
+  "title_expand_groups": "Expand Groups",
+  "title_collapse_groups": "Collapse Groups",
+  "label_chat_robot": "Chat Robot",
+  "label_workflow": "Workflow",
+  "label_all": "All",
+  "msg_confirm_delete_group": "Confirm to delete group {name}",
+  "btn_confirm": "Confirm",
+  "btn_cancel": "Cancel",
+  "msg_delete_success": "Deleted successfully"
+}

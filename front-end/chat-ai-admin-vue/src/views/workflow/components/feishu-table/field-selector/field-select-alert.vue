@@ -81,7 +81,7 @@
 </style>
 
 <template>
-  <a-modal width="746px" v-model:open="state.show" title="关联数据表" @ok="handleOk" ok-text="确定" cancel-text="取消">
+  <a-modal width="746px" v-model:open="state.show" :title="t('title_relate_data_table')" @ok="handleOk" :ok-text="t('btn_confirm')" :cancel-text="t('btn_cancel')">
     <div class="field-select-box">
       <div class="field-list-box" v-if="fields.length">
         <a-table rowKey="field_name"
@@ -93,7 +93,7 @@
       </div>
       <div class="empty-box" v-if="!fields.length">
         <img src="@/assets/img/library/preview/empty.png" alt=""/>
-        <div>暂无字段, 请先去数据表添加</div>
+        <div>{{ t('msg_no_fields_add') }}</div>
       </div>
     </div>
   </a-modal>
@@ -101,6 +101,9 @@
 
 <script setup>
 import {ref, reactive} from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.feishu-table.field-selector.field-select-alert')
 
 const emit = defineEmits(['ok'])
 const props = defineProps({
@@ -119,11 +122,11 @@ const state = reactive({
 
 const columns = ref([
   {
-    title: '字段名称',
+    title: t('label_field_name'),
     dataIndex: 'field_name',
   },
   {
-    title: '数据类型',
+    title: t('label_data_type'),
     dataIndex: 'ui_type',
   },
   // {

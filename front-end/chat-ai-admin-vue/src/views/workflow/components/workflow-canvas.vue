@@ -113,6 +113,9 @@ import { ContextPad } from './plugins/context-pad/index.js'
 import { CanvasHistory } from './plugins/canvas-history/index.js'
 import { CustomKeyboard } from './plugins/custom-keyboard/index.js'
 import registerCustomNodes from './nodes/index.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.workflow-canvas')
 
 const emit = defineEmits(['selectNode', 'onDeleteNode', 'onDeleteEdge', 'runTest', 'blankClick'])
 
@@ -422,7 +425,6 @@ function initLogicFlow() {
 
     // 自定义边删除
     lf.on('custom:edge:delete', (edge) => {
-      console.log(edge, '==edge')
       handleDeleteEdge(edge)
     })
 
@@ -754,7 +756,7 @@ const onAddLoopGroup = (options) => {
           with: 200,
           properties: {
             node_type: 27,
-            node_name: '循环开始',
+            node_name: t('node_loop_start'),
             node_icon_name: 'start-node',
             node_params: JSON.stringify({})
           }
@@ -775,7 +777,7 @@ const onAddBatchGroup = (options) => {
           with: 200,
           properties: {
             node_type: 31,
-            node_name: '批量执行开始',
+            node_name: t('node_batch_start'),
             node_icon_name: 'start-node',
             node_params: JSON.stringify({})
           }
@@ -809,7 +811,7 @@ const onCustomAddNode = (options) => {
   // zIndex = zIndex + 1
 
   if(hasSessionNode && nodeData.type == 'session-trigger-node'){
-    return message.error('请勿添加多个会话触发器')
+    return message.error(t('msg_duplicate_session_trigger'))
   }
 
   // nodeData.zIndex = zIndex
@@ -937,7 +939,7 @@ const handleAutoLayout = async () => {
       }
     })
     .catch((e) => {
-      message.error('布局失败，请检查' + e)
+      message.error(t('msg_layout_failed') + e)
       // 如果布局失败，回滚事务
       if (history) {
         history.rollbackTransaction()
@@ -1083,7 +1085,7 @@ const deleteSelectedElements = () => {
     // 必须保留一个触发器
     const triggerNodes = getTriggerNodes();
     if (triggerNodes.length - deletetTriggerNodes.length < 1) {
-      message.error('请至少保留一个触发器！');
+      message.error(t('msg_keep_at_least_one_trigger'));
       return;
     }
   }
@@ -1135,8 +1137,8 @@ const deleteSelectedElements = () => {
   }
 
   if (elementsToDelete.length > 1 || (elementsToDelete.length === 1 && isNode(elementsToDelete[0]))) {
-    const title = elementsToDelete.length > 1 ? '批量删除' : '删除节点'
-    const content = `确定要删除选中的 ${elementsToDelete.length} 个元素吗？`
+    const title = elementsToDelete.length > 1 ? t('title_batch_delete') : t('title_delete_node')
+    const content = t('msg_confirm_delete_elements', { count: elementsToDelete.length })
     let checkboxChecked = false
 
     Modal.confirm({
@@ -1149,7 +1151,7 @@ const deleteSelectedElements = () => {
             checkboxChecked = e.target.checked
           }
         },
-        () => '不再提示')
+        () => t('label_dont_show_again'))
       ]),
       onOk: () => {
         if(checkboxChecked){
@@ -1236,6 +1238,58 @@ const handleBlankClick = () => {
   }
 }
 
+const focusOnNode = (nodeId) => {
+  if (!lf || !nodeId) return
+  
+  const nodeModel = lf.getNodeModelById(nodeId)
+  if (!nodeModel) return
+  handleZoomChange(1)
+  // 计算目标位置：节点中心偏左 150 像素
+  const targetX = nodeModel.x + 150
+  const targetY = nodeModel.y
+  
+  // 尝试使用 LogicFlow 的 focusOn 方法
+  try {
+    if (lf.focusOn) {
+      lf.focusOn({
+        id: nodeId,
+        coordinate: {
+          x: targetX,
+          y: targetY
+        }
+      })
+    } else {
+      // 如果没有 focusOn 方法，使用 translate 方法
+      const { transformModel } = lf.graphModel
+      const { width: canvasWidth, height: canvasHeight } = lf.graphModel
+      
+      // 获取当前的缩放比例
+      const { SCALE_X: scaleX, SCALE_Y: scaleY } = transformModel
+      
+      // 计算画布中心点在画布坐标系中的位置
+      const centerX = canvasWidth / 2
+      const centerY = canvasHeight / 2
+      
+      // 计算需要的平移量，使目标点移动到画布中心（考虑缩放比例）
+      const newTranslateX = (centerX - targetX) / scaleX
+      const newTranslateY = (centerY - targetY) / scaleY
+      
+      // 直接设置 transformModel 的平移属性
+      transformModel.TRANSLATE_X = newTranslateX
+      transformModel.TRANSLATE_Y = newTranslateY
+    }
+    handleSelectedNode({
+      id:nodeModel.id,
+      type: nodeModel.type,
+      properties: nodeModel.properties,
+      x: nodeModel.x,
+      y: nodeModel.y
+    })
+  } catch (error) {
+    console.error('Failed to focus on node:', error)
+  }
+}
+
 onMounted(() => {
   initLogicFlow()
 })
@@ -1250,6 +1304,7 @@ defineExpose({
   lfRef,
   setData,
   getData,
-  updateNode
+  updateNode,
+  focusOnNode
 })
 </script>

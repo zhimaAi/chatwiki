@@ -1,20 +1,20 @@
 <template>
-    <a-modal v-model:open="open" title="未知问题机器人分布详情" :width="700" :footer="null">
+    <a-modal v-model:open="open" :title="t('title_unknown_question_robot_distribution')" :width="700" :footer="null">
         <div class="unknow-list-box">
             <a-table :data-source="list" :loading="loading" :pagination="false" :scroll="{ y: 500 }">
-                <a-table-column key="index" data-index="index" title="排名" :width="100">
+                <a-table-column key="index" data-index="index" :title="t('label_rank')" :width="100">
                     <template #default="{ index }">
                         {{ index + 1 }}
                     </template>
                 </a-table-column>
 
-                <a-table-column key="robot_name" title="机器人" :width="200">
+                <a-table-column key="robot_name" :title="t('label_robot')" :width="200">
                     <template #default="{ record }">
                         {{ record.robot_name }}
                     </template>
                 </a-table-column>
 
-                <a-table-column key="unknow_count" title="未知问题数量" :width="150">
+                <a-table-column key="unknow_count" :title="t('label_unknown_question_count')" :width="150">
                     <template #default="{ record }">
                         <a-flex :gap="12">
                             <span>{{ record.unknow_question_total }}</span>
@@ -22,9 +22,9 @@
                     </template>
                 </a-table-column>
 
-                <a-table-column key="action" title="操作" :width="120">
+                <a-table-column key="action" :title="t('label_action')" :width="120">
                     <template #default="{ record }">
-                        <a @click="handleViewDetail(record)">查看明细</a>
+                        <a @click="handleViewDetail(record)">{{ t('btn_view_details') }}</a>
                     </template>
                 </a-table-column>
             </a-table>
@@ -38,6 +38,9 @@ import { statUnknowQuestionRank } from '@/api/library'
 import { getRobotInfo } from '@/api/robot'
 import { useRouter } from 'vue-router'
 import { ref, reactive } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.trigger-statics.list.components.unknow-question-modal')
 
 const router = useRouter()
 

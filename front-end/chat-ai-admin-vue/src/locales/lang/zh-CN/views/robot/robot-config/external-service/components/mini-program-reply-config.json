@@ -1,0 +1,9 @@
+{
+  "title_mini_program_reply_settings": "小程序回复设置",
+  "label_ai_generated_content": "回复显示内容由AI生成",
+  "label_typing_indicator": "回复时显示正在输入中",
+  "switch_on": "开",
+  "switch_off": "关",
+  "msg_save_success": "保存成功",
+  "msg_save_failed": "保存失败"
+}

@@ -136,7 +136,7 @@
 <template>
   <div class="recall-settings-box">
     <div class="alert-box">
-      用户提问时，会将召回的文档分段传递给大模型，大模型会根据传递的分段回答用户提问。您可以通过召回测试，输入问题查看匹配的文档分段和相似度
+      {{ t('alert_tip') }}
     </div>
     <div class="form-box">
       <div class="form-item">
@@ -144,17 +144,17 @@
           <a-textarea
             style="height: 76px"
             v-model:value="formState.question"
-            placeholder="请输入测试问题"
+            :placeholder="t('ph_test_question')"
           />
         </div>
       </div>
       <div class="form-item">
-        <a-button :loading="loading" @click="handleRecallTest" type="primary" block>测试</a-button>
+        <a-button :loading="loading" @click="handleRecallTest" type="primary" block>{{ t('btn_test') }}</a-button>
       </div>
       <div class="form-item">
         <div class="form-item-label">
           <div class="hover-label" @click="isHide = !isHide">
-            检索模式
+            {{ t('label_retrieval_mode') }}
             <DownOutlined v-if="isHide" />
             <UpOutlined v-else />
           </div>
@@ -194,10 +194,10 @@
 
       <div class="form-item">
         <div class="form-item-label">
-          <span>Top K&nbsp;</span>
+          <span>{{ t('label_top_k') }}&nbsp;</span>
           <a-tooltip>
             <template #title
-              >最多从知识库中召回分段数，最低为1，最高为10。召回分段数越多，消耗的token也会越多。</template
+              >{{ t('tooltip_top_k') }}</template
             >
             <QuestionCircleOutlined class="question-icon" />
           </a-tooltip>
@@ -216,9 +216,9 @@
 
       <div class="form-item" v-if="formState.search_type <= 2">
         <div class="form-item-label">
-          <span>相似度阈值&nbsp;</span>
+          <span>{{ t('label_similarity_threshold') }}&nbsp;</span>
           <a-tooltip>
-            <template #title>召回时，只会召回相似度大于阈值的文本分段。取值范围：0~1，阈值越大回答的越准确，建议不超过0.9</template>
+            <template #title>{{ t('tooltip_similarity_threshold') }}</template>
             <QuestionCircleOutlined class="question-icon" />
           </a-tooltip>
         </div>
@@ -242,7 +242,7 @@
 
       <div class="form-item">
         <div class="form-item-label">
-          <span>Rerank模型</span>
+          <span>{{ t('label_rerank_model') }}</span>
           &nbsp;
           <a-switch
             :checkedValue="1"
@@ -256,7 +256,7 @@
             v-model:modeName="formState.rerank_use_model"
             v-model:modeId="formState.rerank_model_config_id"
             style="width: 320px"
-            placeholder="请选择Rerank模型"
+            :placeholder="t('ph_select_rerank_model')"
           />
         </div>
       </div>
@@ -268,12 +268,14 @@
 import { getModelConfigOption } from '@/api/model/index'
 import { reactive, ref, toRaw, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
 import { QuestionCircleOutlined, DownOutlined, UpOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { libraryRecallTest, getDefaultRrfWeight } from '@/api/library'
 import WeightSelect from '@/components/weight-select/index.vue'
 
+const { t } = useI18n('views.library.library-details.components.recall-testing-form')
 
 const route = useRoute()
 const loading = ref(false)
@@ -285,28 +287,28 @@ const isHide = ref(true)
 const retrievalModeList = ref([
 {
     iconName: 'mix-icon',
-    title: '混合检索',
+    title: t('mode_mix_title'),
     value: 1,
     isRecommendation: true,
-    desc: '同时执行三种检索模式，使用RRF算法进行排序，从三种查询结果中选择更匹配用户问题的结果。混合检索兼顾语义相似性与逻辑关联性，通过互补优势提升检索的准确性和生成结果的可信度'
+    desc: t('mode_mix_desc')
   },
   {
     iconName: 'vector-icon',
-    title: '向量检索',
+    title: t('mode_vector_title'),
     value: 2,
-    desc: '将用户提问转成向量之后与知识库分段匹配相似度，返回相似度高的结果。向量检索擅长语义相似性匹配和大规模非结构化数据处理，但缺乏可解释性和精准关系验证'
+    desc: t('mode_vector_desc')
   },
   {
     iconName: 'graph-icon',
-    title: '知识图谱检索',
+    title: t('mode_graph_title'),
     value: 4,
-    desc: '通过关系推理，检索出与用户问题相关联的知识。知识图谱检索擅长精准的实体关系推理和逻辑验证，但对非结构化文本和语义模糊查询支持较弱'
+    desc: t('mode_graph_desc')
   },
   {
     iconName: 'search-check-icon',
-    title: '全文检索',
+    title: t('mode_fulltext_title'),
     value: 3,
-    desc: '通过分词匹配文档中的词汇，返回包含这些词汇的文本片段'
+    desc: t('mode_fulltext_desc')
   },
 ])
 
@@ -354,7 +356,7 @@ const checkRerank = () => {
 
 const handleSave = () => {
   if (checkRerank()) {
-    return message.error('请选择Rerank模型')
+    return message.error(t('msg_select_rerank_model'))
   }
 
   show.value = false
@@ -366,13 +368,13 @@ const triggerChange = () => {
 }
 const handleRecallTest = () => {
   if (!formState.similarity) {
-    return message.error('请输入相似度')
+    return message.error(t('msg_input_similarity'))
   }
   if (!formState.size) {
-    return message.error('请输入分段数')
+    return message.error(t('msg_input_size'))
   }
   if (!formState.question) {
-    return message.error('请输入测试问题')
+    return message.error(t('msg_input_question'))
   }
   let parmas = {
     id: formState.id,

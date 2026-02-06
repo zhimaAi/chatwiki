@@ -1,17 +1,17 @@
 <template>
   <a-modal
     v-model:open="open"
-    title="解析 cURL"
+    :title="t('title_parse_curl')"
     :width="680"
     :confirm-loading="loading"
     @ok="handleParse"
     @cancel="handleClose"
-    okText="解析"
-    cancelText="取消"
+    :okText="t('btn_parse')"
+    :cancelText="t('btn_cancel')"
   >
     <div class="parse-curl-modal">
       <a-alert
-        message="请粘贴 cURL 命令，系统将自动解析并填充到 HTTP 请求配置中。只支持 GET、POST 请求。"
+        :message="t('msg_parse_curl_tip')"
         type="info"
         show-icon
         class="mb16"
@@ -34,8 +34,11 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { ref } from 'vue'
 import parseCurl from '@bany/curl-to-json';
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.http-node.parse-curl-modal')
 
 const emit = defineEmits(['parse', 'close'])
 
@@ -43,7 +46,7 @@ const open = ref(false)
 const loading = ref(false)
 const curlInput = ref('')
 const parseError = ref('')
-const placeholderText = ref(`请粘贴 cURL 命令，例如：curl -X POST https://api.example.com/data -H 'Content-Type: application/json' -d '{"key":"value"}'`)
+const placeholderText = ref(t('ph_curl_example', {data: "'{\"key\":\"value\"}'"}))
 
 const show = () => {
   open.value = true
@@ -65,7 +68,7 @@ const hide = () => {
 
 const handleParse = async () => {
   if (!curlInput.value.trim()) {
-    parseError.value = '请输入 cURL 命令'
+    parseError.value = t('msg_input_curl')
     return
   }
 
@@ -128,7 +131,7 @@ const handleParse = async () => {
     out = JSON.parse(out);
     
     if (out.method !== 'GET' && out.method !== 'POST') {
-      parseError.value = '只支持 GET、POST 请求'
+      parseError.value = t('msg_only_get_post')
       return
     }
 

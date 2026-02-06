@@ -74,9 +74,9 @@
   <div>
     <div class="field-list">
       <div class="field-list-row">
-        <div class="field-list-col field-list-col-head field-name-head">字段名</div>
-        <div class="field-list-col field-list-col-head field-type-head">类型</div>
-        <div class="field-list-col field-list-col-head field-value-head" v-if="showInput">字段值</div>
+        <div class="field-list-col field-list-col-head field-name-head">{{ t('label_field_name') }}</div>
+        <div class="field-list-col field-list-col-head field-type-head">{{ t('label_type') }}</div>
+        <div class="field-list-col field-list-col-head field-value-head" v-if="showInput">{{ t('label_field_value') }}</div>
         <div
           class="field-list-col field-list-col-head field-del-head"
           v-if="props.showDelete"
@@ -87,8 +87,8 @@
         <div class="field-list-col field-name-col">--</div>
         <div class="field-list-col field-type-col">--</div>
         <div class="field-list-col field-value-col">
-          <a-tooltip title="请先选择数据库">
-            <a-input :disabled="true" placeholder="请输入参数值，键入/插入变量"/>
+          <a-tooltip :title="t('ph_select_database_first')">
+            <a-input :disabled="true" :placeholder="t('ph_input_value_variable')"/>
           </a-tooltip>
         </div>
       </div>
@@ -100,7 +100,7 @@
 <!--          <a-checkbox v-if="item.ui_type === 'Checkbox'" v-model:checked="item.value"/>-->
 <!--          <a-select-->
 <!--            v-else-if="item.ui_type === 'SingleSelect'"-->
-<!--            placeholder="请选择"-->
+<!--            :placeholder="t('ph_select')"-->
 <!--            v-model:value="item.value"-->
 <!--            style="width: 100%;"-->
 <!--          >-->
@@ -108,7 +108,7 @@
 <!--          </a-select>-->
 <!--          <a-select-->
 <!--            v-else-if="item.ui_type === 'MultiSelect'"-->
-<!--            placeholder="请选择（多选）"-->
+<!--            :placeholder="请选择（多选）"-->
 <!--            v-model:value="item.value"-->
 <!--            style="width: 100%;"-->
 <!--            mode="multiple"-->
@@ -134,7 +134,7 @@
     <div class="add-btn-box" v-if="props.showAdd">
       <a-button class="add-btn" type="dashed" block @click="handleAddField">
         <PlusOutlined/>
-        添加字段
+        {{ t('btn_add_field') }}
       </a-button>
     </div>
 
@@ -147,6 +147,9 @@ import {ref, reactive, watch, inject, onMounted, computed} from 'vue'
 import {PlusOutlined} from '@ant-design/icons-vue'
 import FieldSelectAlert from './field-select-alert.vue'
 import AtInput from '../../at-input/at-input.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.feishu-table.field-selector.index')
 
 const emit = defineEmits(['change'])
 
@@ -248,12 +251,12 @@ const handleAddField = () => {
 const formatPlaceholder = item => {
   switch (item.ui_type) {
     case 'Checkbox':
-      return '请输入true或false，键入“/”插入变量'
+      return t('ph_input_true_false')
     case 'MultiSelect':
-      return '多个选项“,”分割，键入“/”插入变量'
+      return t('ph_input_multi_select')
       break
   }
-  return '请输入参数值，键入“/”插入变量'
+  return t('ph_input_value_variable')
 }
 
 onMounted(() => {

@@ -1,0 +1,12 @@
+{
+  "label_channel": "Channel:",
+  "ph_all_channels": "All Channels",
+  "label_date": "Date:",
+  "ph_search_user_name": "Search by user name",
+  "btn_reset": "Reset",
+  "btn_export": "Export",
+  "title_export_success": "Export task created successfully",
+  "msg_export_success": "The system will export in the background. The larger the export data volume, the longer it will take. You can click Export Records later to view and download the exported file.",
+  "btn_know": "Got it",
+  "btn_go_download": "Go to download"
+}

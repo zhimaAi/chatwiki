@@ -1,0 +1,7 @@
+{
+  "modal_title": "复制设置到其他应用",
+  "alert_message": "将当前页面的收费设置以及功能开关状态，复制到选中的应用",
+  "status_unpublished": "未发布",
+  "error_select_app": "请选择应用",
+  "msg_operation_completed": "操作完成"
+}

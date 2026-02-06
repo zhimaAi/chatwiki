@@ -60,7 +60,7 @@
 <template>
   <div class="trigger-list-box">
     <div class="search-box" @click.stop="">
-      <a-input-search v-model:value.trim="keyword" allowClear placeholder="请输入名称查询"/>
+      <a-input-search v-model:value.trim="keyword" allowClear :placeholder="t('ph_search_by_name')"/>
     </div>
     <template v-if="showList.length">
       <div class="trigger-list">
@@ -81,8 +81,8 @@
     </template>
     <div v-else class="empty-box">
       <img style="height: 200px" src="@/assets/empty.png"/>
-      <div>暂无可用工作流</div>
-      <a href="/#/robot/list?active=1" target="_blank">去添加
+      <div>{{ t('msg_no_workflows_available') }}</div>
+      <a href="/#/robot/list?active=1" target="_blank">{{ t('btn_add_now') }}
         <RightOutlined/>
       </a>
     </div>
@@ -94,6 +94,9 @@ import {ref, computed, onMounted} from 'vue'
 import {createWorkflowNode} from '../node-list'
 import {RightOutlined, DownOutlined} from '@ant-design/icons-vue'
 import {getRobotList} from "@/api/robot/index.js";
+import {useI18n} from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-list-popup.workflow-list')
 
 const emit = defineEmits(['add'])
 const list = ref([])

@@ -1,0 +1,17 @@
+{
+  "searching_knowledge_base": "Querying knowledge base...",
+  "found_documents": "Found {count} documents in knowledge base",
+  "deep_thinking": "Deep thinking...",
+  "deep_thinking_completed": "Deep thinking completed",
+  "featured": "Featured",
+  "copy": "Copy",
+  "like": "Like",
+  "feedback_title": "Result feedback",
+  "feedback_placeholder": "Please feedback what you think is unsatisfactory",
+  "cancel": "Cancel",
+  "submit": "Submit",
+  "dislike": "Dislike",
+  "copy_success": "Copy successful",
+  "operation_success": "Operation successful",
+  "thanks_for_feedback": "Thank you for your feedback"
+}

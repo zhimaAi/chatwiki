@@ -1,0 +1,5 @@
+{
+  "btn_upload_photo": "上传照片",
+  "msg_format_error": "知识库封面只支持JPG、PNG格式的图片",
+  "msg_size_error": "知识库封面图片大小不能超过100kb"
+}

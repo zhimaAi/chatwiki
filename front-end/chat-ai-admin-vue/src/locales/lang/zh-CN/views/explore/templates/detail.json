@@ -1,0 +1,13 @@
+{
+  "title_template_detail": "模板详情",
+  "btn_use_template": "使用模板",
+  "title_usage_instructions": "使用说明",
+  "title_template_category": "模板分类",
+  "msg_use_success": "使用成功",
+  "title_tip": "提示",
+  "msg_version_too_low": "当前系统版本过低，可能无法使用此模板；请您升级到最新版本后使用！",
+  "btn_continue_use": "继续使用",
+  "btn_cancel": "取 消",
+  "msg_confirm_use_template": "确定使用模板【{name}】创建应用吗?",
+  "btn_confirm": "确 认"
+}

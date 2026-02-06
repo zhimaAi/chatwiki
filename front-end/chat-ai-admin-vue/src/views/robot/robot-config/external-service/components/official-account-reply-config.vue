@@ -1,10 +1,10 @@
 <template>
-    <a-modal v-model:open="visible" title="已认证公众号回复设置" :width="480" :footer="null">
+    <a-modal v-model:open="visible" :title="t('title_official_account_reply_settings')" :width="480" :footer="null">
         <div class="reply-config-content">
             <!-- 选项1 -->
             <div class="setting-item">
                 <div class="setting-label">
-                    <span>回复显示内容由AI生成</span>
+                    <span>{{ t('label_ai_generated_content') }}</span>
                     <a-tooltip>
                         <template #title>
                             <img class="tip-img" src="@/assets/img/robot/official_account_reply_config01.png" alt="">
@@ -15,14 +15,14 @@
                 <div class="switch-wrapper">
                     <a-switch v-model:checked="aiGenerated"
                         @change="() => handleSave('show_ai_msg_gzh', aiGenerated)" />
-                    <span class="switch-text">{{ aiGenerated ? '开' : '关' }}</span>
+                    <span class="switch-text">{{ aiGenerated ? t('status_on') : t('status_off') }}</span>
                 </div>
             </div>
 
             <!-- 选项2 -->
             <div class="setting-item">
                 <div class="setting-label">
-                    <span>回复时显示正在输入中</span>
+                    <span>{{ t('label_show_typing_indicator') }}</span>
                     <a-tooltip>
                         <template #title>
                             <img class="tip-img" src="@/assets/img/robot/official_account_reply_config02.png" alt="">
@@ -33,7 +33,7 @@
                 <div class="switch-wrapper">
                     <a-switch v-model:checked="typingIndicator"
                         @change="() => handleSave('show_typing_gzh', typingIndicator)" />
-                    <span class="switch-text">{{ typingIndicator ? '开' : '关' }}</span>
+                    <span class="switch-text">{{ typingIndicator ? t('status_on') : t('status_off') }}</span>
                 </div>
             </div>
 
@@ -46,7 +46,9 @@ import { setWechatConfigSwitch } from '@/api/robot'
 import { ref } from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
+const { t } = useI18n('views.robot.robot-config.external-service.components.official-account-reply-config')
 const emit = defineEmits(['change'])
 
 const visible = ref(false)
@@ -77,13 +79,13 @@ const handleSave = async (key, value) => {
         })
 
         if (res.code == 0) {
-            message.success('保存成功')
+            message.success(t('msg_save_success'))
             //   visible.value = false
             emit('change')
         }
     } catch (error) {
         console.error('保存失败:', error)
-        message.error('保存失败')
+        message.error(t('msg_save_failed'))
     }
 }
 

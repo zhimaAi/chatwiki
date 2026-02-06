@@ -1,0 +1,5 @@
+{
+  "title_scan_to_login": "Scan to Login",
+  "msg_scan_with_wechat": "Please scan the QR code below with WeChat to log in",
+  "msg_qrcode_valid": "QR code is valid for 5 minutes, please scan as soon as possible"
+}

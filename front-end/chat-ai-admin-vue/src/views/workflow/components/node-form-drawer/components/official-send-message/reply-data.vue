@@ -27,8 +27,8 @@
   <div class="add-data-form">
     <div class="node-box-content">
       <div class="setting-label">
-        <span>回复内容</span>
-        <span class="tip">（不填写字段值则为空）</span>
+        <span>{{ t('label_reply_content') }}</span>
+        <span class="tip">{{ t('msg_empty_field_tip') }}</span>
       </div>
 
       <div class="setting-box">
@@ -49,7 +49,10 @@
 
 <script setup>
 import { ref, toRaw } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import FieldListSelect from "@/views/workflow/components/data-table/reply-select/index.vue";
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.official-send-message.reply-data')
 
 const emit = defineEmits(['update'])
 const props = defineProps({

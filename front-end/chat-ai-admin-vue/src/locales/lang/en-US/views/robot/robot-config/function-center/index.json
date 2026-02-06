@@ -1,0 +1,18 @@
+{
+  "title_function_center": "Function Center",
+  "msg_function_center_desc": "View enabled features. You can pin them to the primary menu for quick enable/disable. Add more features in",
+  "link_explore_function_center": "Explore > Function Center",
+  "msg_function_center_desc_suffix": "",
+  "empty_title": "No Features Added",
+  "empty_desc_prefix": "Add more features in",
+  "empty_desc_suffix": "",
+  "btn_add": "Add Now",
+  "tab_function": "Functions",
+  "tab_plugin": "Plugins",
+  "msg_close_keyword_no_reply": "After closing, triggered keywords will no longer reply with specified content",
+  "msg_close_smart_menu_no_reply": "After closing, other smart menu rules will not trigger replies",
+  "msg_close_auto_reply_no_content": "After closing, triggered keywords and message replies will no longer respond with specified content",
+  "msg_close_confirm_payment": "After closing, the configured payment strategy will be disabled. Confirm to close?",
+  "title_confirm_close": "Confirm to Close?",
+  "msg_operation_success": "Operation successful"
+}

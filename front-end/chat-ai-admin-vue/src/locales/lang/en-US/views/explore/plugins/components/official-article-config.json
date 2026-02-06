@@ -1,0 +1,9 @@
+{
+  "label_recent_login_time": "Last Login Time:",
+  "label_login_duration": "Login Duration:",
+  "btn_change_password_settings": "Change Password / Set Offline Notifications",
+  "title_login_required": "Please Login First",
+  "btn_go_login": "Go to Login",
+  "msg_already_logged_in": "Already logged in?",
+  "btn_click_refresh": "Click to Refresh"
+}

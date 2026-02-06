@@ -29,7 +29,7 @@ func BuildChatContextPair(openid string, robotId, dialogueId, curMsgId, contextP
 	m := msql.Model(`chat_ai_message`, define.Postgres).Where(`openid`, openid).
 		Where(`robot_id`, cast.ToString(robotId)).Where(`dialogue_id`, cast.ToString(dialogueId)).
 		Where(`is_valid_function_call = false`)
-	if curMsgId > 0 { //兼容调试运行获取上下文
+	if curMsgId > 0 { // Compatible with debug mode to get context
 		m.Where(`id`, `<`, cast.ToString(curMsgId))
 	}
 	list, err := m.Order(`id desc`).Field(`id,content,is_customer`).Limit(contextPair * 4).Select()
@@ -136,7 +136,7 @@ func BuildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 	//part1:prompt
 	roleType := define.PromptRoleTypeMap[cast.ToInt(params.Robot[`prompt_role_type`])]
 	if cast.ToBool(params.Robot[`question_multiple_switch`]) {
-		//调用多模态时,忽略用户设置的提示词放在user里面,固定放在system里面
+		// When calling multimodal, ignore user-set prompts placed in user role, always place in system role
 		roleType = define.PromptRoleTypeMap[define.PromptRoleTypeSystem]
 	}
 	prompt, libraryContent := FormatSystemPrompt(params.Lang, params.Prompt, list)
@@ -179,7 +179,7 @@ func BuildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 	prompt, _ := FormatSystemPrompt(params.Lang, params.Prompt, nil)
 	roleType := define.PromptRoleTypeMap[cast.ToInt(params.Robot[`prompt_role_type`])]
 	if cast.ToBool(params.Robot[`question_multiple_switch`]) {
-		//调用多模态时,忽略用户设置的提示词放在user里面,固定放在system里面
+		// When calling multimodal, ignore user-set prompts in user role, always place in system role
 		roleType = define.PromptRoleTypeMap[define.PromptRoleTypeSystem]
 	}
 	if roleType != define.PromptRoleUser {
@@ -260,7 +260,7 @@ func DisposeQuoteFile(adminUserId int, list []msql.Params) ([]msql.Params, strin
 	return quoteFile, tool.JsonEncodeNoError(quoteFileForSave)
 }
 
-// CheckQaDirectReply 检查命中问答知识时直接回复答案
+// CheckQaDirectReply checks if QA knowledge is hit and replies directly with the answer
 func CheckQaDirectReply(list []msql.Params, robot msql.Params) (string, bool) {
 	var fieldSwitch, fieldScore string
 	switch cast.ToInt(robot[`chat_type`]) {
@@ -276,7 +276,7 @@ func CheckQaDirectReply(list []msql.Params, robot msql.Params) (string, bool) {
 		len(list[0][`similarity`]) > 0 &&
 		cast.ToFloat32(list[0][`similarity`]) >= cast.ToFloat32(robot[fieldScore]) {
 		content := list[0][`answer`]
-		if len(list[0][`images`]) > 0 { //知识库分段包含图片的
+		if len(list[0][`images`]) > 0 { // Library paragraph contains images
 			images := make([]string, 0)
 			_ = tool.JsonDecodeUseNumber(list[0][`images`], &images)
 			for _, image := range images {
@@ -288,37 +288,37 @@ func CheckQaDirectReply(list []msql.Params, robot msql.Params) (string, bool) {
 	return ``, false
 }
 
-// GetRandomSliceReply 从回复内容列表中随机选择指定数量的条目
-// 如果请求数量大于列表总数，则返回全部内容
-// 如果请求数量小于等于0，则返回空列表
+// GetRandomSliceReply randomly selects specified number of items from reply content list
+// If requested number is greater than total list size, returns all content
+// If requested number is less than or equal to 0, returns empty list
 func GetRandomSliceReply(replyList []ReplyContent, num int) []ReplyContent {
-	// 边界条件检查
+	// Boundary condition check
 	if len(replyList) == 0 || num <= 0 {
 		return []ReplyContent{}
 	}
 
-	// 如果请求数量大于总数，则返回全部
+	// If requested number is greater than total, return all
 	if num >= len(replyList) {
 		return replyList
 	}
 
-	// 创建结果切片
+	// Create result slice
 	result := make([]ReplyContent, 0, num)
 
-	// 创建索引切片并随机打乱
+	// Create index slice and shuffle randomly
 	indexes := make([]int, len(replyList))
 	for i := range indexes {
 		indexes[i] = i
 	}
 
-	// Fisher-Yates shuffle 算法随机打乱索引
+	// Fisher-Yates shuffle algorithm to randomize indexes
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := len(indexes) - 1; i > 0; i-- {
 		j := r.Intn(i + 1)
 		indexes[i], indexes[j] = indexes[j], indexes[i]
 	}
 
-	// 取前num个元素
+	// Take first num elements
 	for i := 0; i < num; i++ {
 		result = append(result, replyList[indexes[i]])
 	}
@@ -326,67 +326,67 @@ func GetRandomSliceReply(replyList []ReplyContent, num int) []ReplyContent {
 	return result
 }
 
-// BuildKeywordReplyMessage 构建关键词回复消息
+// BuildKeywordReplyMessage builds keyword reply message
 func BuildKeywordReplyMessage(params *define.ChatRequestParam) ([]ReplyContent, bool, error) {
 	//part0:init messages
 	var replyList []ReplyContent
-	//判断是否关键词跳过ai回复
+	// Check if keyword should skip AI reply
 	var keywordSkipAI = false
 
-	//判断开关
+	// Check switch
 	robotId := cast.ToInt(params.Robot[`id`])
 	adminUserId := cast.ToInt(params.Robot[`admin_user_id`])
-	//关键词回复
+	// Keyword reply
 	robotAbilityConfig := GetRobotAbilityConfigByAbilityType(adminUserId, robotId, RobotAbilityAutoReply)
 	if len(robotAbilityConfig) == 0 {
-		//关键词回复没开启
+		// Keyword reply not enabled
 		return replyList, false, nil
 	}
 
-	//获取所有关键词缓存
+	// Get all keyword cache
 	robotKeywordReplyList, err := GetRobotKeywordReplyListByRobotId(robotId)
 	if err != nil {
 		return replyList, false, err
 	}
 
-	//关键词回复是否跳过ai
+	// Whether keyword reply skips AI
 	keywordSkipAI = cast.ToInt(robotAbilityConfig[`ai_reply_status`]) != define.SwitchOn
 
-	//问题判断
-	question := GetFirstQuestionByInput(params.Question) //多模态输入特殊处理
+	// Question check
+	question := GetFirstQuestionByInput(params.Question) // Special handling for multimodal input
 
-	//循环判断  构造消息
+	// Loop check and construct message
 	for _, robotKeywordReply := range robotKeywordReplyList {
-		//判断关键词
+		// Check keyword
 		if robotKeywordReply.SwitchStatus != define.SwitchOn {
 			continue
 		}
 		keywordFlag := false
-		// 精确匹配 FullKeyword
+		// Exact match FullKeyword
 		for _, keyword := range robotKeywordReply.FullKeyword {
 			if question == keyword {
-				//匹配成功 构造消息
+				// Match success, construct message
 				keywordFlag = true
 				break
 			}
 		}
 
-		// 包含匹配 HalfKeyword
+		// Contains match HalfKeyword
 		for _, keyword := range robotKeywordReply.HalfKeyword {
 			if strings.Contains(question, keyword) {
-				//匹配成功 构造消息
+				// Match success, construct message
 				keywordFlag = true
 				break
 			}
 		}
 
 		if keywordFlag {
-			//匹配成功 判断回复类型
+			// Match success, determine reply type
 			if robotKeywordReply.ReplyNum == 0 {
 				replyList = append(replyList, robotKeywordReply.ReplyContent...)
 			} else {
-				//随机选择 ReplyNum 条
-				//数组中随机切取 ReplyNum 条
+				// Randomly select ReplyNum items
+				// Randomly slice ReplyNum items from array
 				selectReplyList := GetRandomSliceReply(robotKeywordReply.ReplyContent, robotKeywordReply.ReplyNum)
 				if len(selectReplyList) > 0 {
 					replyList = append(replyList, selectReplyList...)
@@ -394,33 +394,33 @@ func BuildKeywordReplyMessage(params *define.ChatRequestParam) ([]ReplyContent, 
 			}
 		}
 	}
-	//循环replyList标记来源
+	// Loop replyList to mark source
 	replyList = FormatReplyListToDb(replyList, RobotAbilityKeywordReply)
-	//判断是否继续ai
+	// Check whether to continue AI
 	if len(replyList) == 0 {
-		//没有匹配到关键词 继续ai
+		// No keyword matched, continue AI
 		return replyList, false, nil
 	}
-	//返回消息
+	// Return message
 	return replyList, keywordSkipAI, nil
 }
 
-// BuildSubscribeReply 构建关注后回复消息
+// BuildSubscribeReply builds subscribe reply message
 func BuildSubscribeReply(params *define.ChatRequestParam, subscribeScene string) ([]ReplyContent, error) {
 	//part0:init messages
 	var replyList []ReplyContent
-	//判断开关
+	// Check switch
 	adminUserId := cast.ToInt(params.AppInfo[`admin_user_id`])
-	appid := cast.ToString(params.AppInfo[`app_id`]) // 从 params.AppInfo 获取 app_id
-	//关键词回复
+	appid := cast.ToString(params.AppInfo[`app_id`]) // Get app_id from params.AppInfo
+	// Keyword reply
 	useAbility := CheckUseAbilityByAbilityType(adminUserId, RobotAbilitySubscribeReply)
 	if !useAbility {
-		//关键词回复没开启
+		// Keyword reply not enabled
 		return replyList, nil
 	}
 
-	// 1. 获取今天是星期几的int值
-	// time.Weekday：Sunday=0, Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5, Saturday=6
+	// 1. Get today's weekday as int value
+	// time.Weekday: Sunday=0, Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5, Saturday=6
 	weekday := cast.ToInt(time.Now().Weekday())
 
 	var subscribeReplyList []RobotSubscribeReply
@@ -428,28 +428,28 @@ func BuildSubscribeReply(params *define.ChatRequestParam, subscribeScene string)
 	needCheck := true
 
 	if needCheck && len(replyList) == 0 {
-		//时间检测
+		// Time check
 		subscribeReplyList, err = GetRobotSubscribeReplyListByAppid(adminUserId, appid, define.RuleTypeSubscribeDuration)
 		if err != nil {
 
 			return replyList, err
 		}
 
-		//循环判断  构造消息
+		// Loop check and construct message
 		for _, subscribeReply := range subscribeReplyList {
-			//判断关键词
+			// Check keyword
 			if subscribeReply.SwitchStatus != define.SwitchOn {
 				continue
 			}
 			if subscribeReply.RuleType != define.RuleTypeSubscribeDuration {
-				//不是时间规则
+				// Not time rule
 				continue
 			}
-			//时间规则 且 开启
+			// Time rule and enabled
 			checkFlag := false
 			switch subscribeReply.DurationType {
 			case DurationTypeWeek:
-				// 周
+				// Week
 				for _, day := range subscribeReply.WeekDuration {
 					if day == weekday {
 						checkFlag = true
@@ -458,30 +458,30 @@ func BuildSubscribeReply(params *define.ChatRequestParam, subscribeScene string)
 				}
 				break
 			case DurationTypeDay:
-				// 每天
+				// Every day
 				checkFlag = true
 				break
 			case DurationTypeTimeRange:
-				// 时间范围
+				// Time range
 				checkFlag = IsTodayInDateRange(subscribeReply.StartDay, subscribeReply.EndDay)
 				break
 			default:
-				// 默认
+				// Default
 				break
 			}
-			//判断是否继续
+			// Check whether to continue
 			if !checkFlag {
 				continue
 			}
-			//对比时间 不在范围的跳过
+			// Compare time, skip if not in range
 			if !NowInHHmmRangeSimple(subscribeReply.StartDuration, subscribeReply.EndDuration) {
 				continue
 			}
-			//匹配到消息 则跳过 消息检测
+			// Match message then skip message check
 			needCheck = false
-			//判断时间间隔
+			// Check time interval
 			if subscribeReply.ReplyInterval > 0 {
-				//判断时间间隔
+				// Check time interval
 				var lastTime int
 				lastTime, err = GetSubscribeReplyLastTime(adminUserId, subscribeReply.ID, params.Openid)
 				if err != nil {
@@ -489,22 +489,22 @@ func BuildSubscribeReply(params *define.ChatRequestParam, subscribeScene string)
 				}
 				nextTime := lastTime + subscribeReply.ReplyInterval
 				if nextTime > tool.Time2Int() {
-					//时间间隔内中 不满足
+					// Not satisfied within time interval
 					break
 				}
-				// 设置时间间隔
+				// Set time interval
 				err = SetSubscribeReplyLastTime(adminUserId, subscribeReply.ID, tool.Time2Int(), params.Openid)
 				if err != nil {
 					return nil, err
 				}
 			}
 
-			//匹配成功 构造消息
+			// Match success, construct message
 			if subscribeReply.ReplyNum == 0 {
 				replyList = append(replyList, subscribeReply.ReplyContent...)
 			} else {
-				//随机选择 ReplyNum 条
-				//数组中随机切取 ReplyNum 条
+				// Randomly select ReplyNum items
+				// Randomly slice ReplyNum items from array
 				selectReplyList := GetRandomSliceReply(subscribeReply.ReplyContent, subscribeReply.ReplyNum)
 				if len(selectReplyList) > 0 {
 					replyList = append(replyList, selectReplyList...)
@@ -515,35 +515,35 @@ func BuildSubscribeReply(params *define.ChatRequestParam, subscribeScene string)
 	}
 
 	if needCheck && len(replyList) == 0 {
-		//获取所有来源检测
+		// Get all source checks
 		subscribeReplyList, err = GetRobotSubscribeReplyListByAppid(adminUserId, appid, define.RuleTypeSubscribeSource)
 		if err != nil {
 
 			return replyList, err
 		}
-		//来源检测
+		// Source check
 		for _, subscribeReply := range subscribeReplyList {
-			//判断关键词
+			// Check keyword
 			if subscribeReply.SwitchStatus != define.SwitchOn {
 				continue
 			}
 			if subscribeReply.RuleType != define.RuleTypeSubscribeSource {
-				//不是来源的
+				// Not source type
 				continue
 			}
-			//检测来源
+			// Check source
 			if !tool.InArrayString(subscribeScene, subscribeReply.SubscribeSource) {
-				//不在指定来源中
+				// Not in specified source
 				continue
 			}
-			//匹配到消息 则跳过 消息检测
+			// Match message then skip message check
 			needCheck = false
-			//匹配成功 构造消息
+			// Match success, construct message
 			if subscribeReply.ReplyNum == 0 {
 				replyList = append(replyList, subscribeReply.ReplyContent...)
 			} else {
-				//随机选择 ReplyNum 条
-				//数组中随机切取 ReplyNum 条
+				// Randomly select ReplyNum items
+				// Randomly slice ReplyNum items from array
 				selectReplyList := GetRandomSliceReply(subscribeReply.ReplyContent, subscribeReply.ReplyNum)
 				if len(selectReplyList) > 0 {
 					replyList = append(replyList, selectReplyList...)
@@ -554,7 +554,7 @@ func BuildSubscribeReply(params *define.ChatRequestParam, subscribeScene string)
 	}
 
 	if needCheck && len(replyList) == 0 {
-		//按默认关注开启判断
+		// Check by default follow enable
 		subscribeReplyList, err = GetRobotSubscribeReplyListByAppid(adminUserId, appid, define.RuleTypeSubscribeDefault)
 		if err != nil {
 
@@ -565,16 +565,16 @@ func BuildSubscribeReply(params *define.ChatRequestParam, subscribeScene string)
 				continue
 			}
 			if subscribeReply.RuleType != define.RuleTypeSubscribeDefault {
-				//不是默认类型
+				// Not default type
 				continue
 			}
 
-			//匹配成功 构造消息
+			// Match success, construct message
 			if subscribeReply.ReplyNum == 0 {
 				replyList = append(replyList, subscribeReply.ReplyContent...)
 			} else {
-				//随机选择 ReplyNum 条
-				//数组中随机切取 ReplyNum 条
+				// Randomly select ReplyNum items
+				// Randomly slice ReplyNum items from array
 				selectReplyList := GetRandomSliceReply(subscribeReply.ReplyContent, subscribeReply.ReplyNum)
 				if len(selectReplyList) > 0 {
 					replyList = append(replyList, selectReplyList...)
@@ -582,34 +582,34 @@ func BuildSubscribeReply(params *define.ChatRequestParam, subscribeScene string)
 			}
 		}
 	}
-	//循环replyList标记来源
+	// Loop replyList to mark source
 	replyList = FormatReplyListToDb(replyList, RobotAbilitySubscribeReply)
-	//判断是否继续ai
+	// Check whether to continue AI
 	if len(replyList) == 0 {
-		//没有匹配到关键词 继续ai
+		// No keyword matched, continue AI
 		return replyList, nil
 	}
-	//返回消息
+	// Return message
 	return replyList, nil
 }
 
 func BuildReceivedMessageReply(params *define.ChatRequestParam, messageType string) ([]ReplyContent, error) {
 	//part0:init messages
 	var replyList []ReplyContent
-	//判断开关
+	// Check switch
 	robotId := cast.ToInt(params.Robot[`id`])
 	adminUserId := cast.ToInt(params.Robot[`admin_user_id`])
-	//关键词回复
+	// Keyword reply
 	robotAbilityConfig := GetRobotAbilityConfigByAbilityType(adminUserId, robotId, RobotAbilityAutoReply)
 	if len(robotAbilityConfig) == 0 {
-		//关键词回复没开启
+		// Keyword reply not enabled
 		return replyList, nil
 	}
 
-	// 1. 获取今天是星期几的int值
-	// time.Weekday：Sunday=0, Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5, Saturday=6
+	// 1. Get today's weekday as int value
+	// time.Weekday: Sunday=0, Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5, Saturday=6
 	weekday := cast.ToInt(time.Now().Weekday())
-	//获取所有关键词缓存
+	// Get all keyword cache
 	receivedMessageRuleList, err := GetRobotReceivedMessageReplyListByRobotId(robotId, RuleTypeDuration)
 	if err != nil {
 
@@ -617,21 +617,21 @@ func BuildReceivedMessageReply(params *define.ChatRequestParam, messageType stri
 	}
 
 	messageTypeCheck := true
-	//循环判断  构造消息
+	// Loop check and construct message
 	for _, receivedMessageRule := range receivedMessageRuleList {
-		//判断关键词
+		// Check keyword
 		if receivedMessageRule.SwitchStatus != define.SwitchOn {
 			continue
 		}
 		if receivedMessageRule.RuleType != RuleTypeDuration {
-			//不是时间规则
+			// Not time rule
 			continue
 		}
-		//时间规则 且 开启
+		// Time rule and enabled
 		checkFlag := false
 		switch receivedMessageRule.DurationType {
 		case DurationTypeWeek:
-			// 周
+			// Week
 			for _, day := range receivedMessageRule.WeekDuration {
 				if day == weekday {
 					checkFlag = true
@@ -640,30 +640,30 @@ func BuildReceivedMessageReply(params *define.ChatRequestParam, messageType stri
 			}
 			break
 		case DurationTypeDay:
-			// 每天
+			// Every day
 			checkFlag = true
 			break
 		case DurationTypeTimeRange:
-			// 时间范围
+			// Time range
 			checkFlag = IsTodayInDateRange(receivedMessageRule.StartDay, receivedMessageRule.EndDay)
 			break
 		default:
-			// 默认
+			// Default
 			break
 		}
-		//判断是否继续
+		// Check whether to continue
 		if !checkFlag {
 			continue
 		}
-		//对比时间 不在范围的跳过
+		// Compare time, skip if not in range
 		if !NowInHHmmRangeSimple(receivedMessageRule.StartDuration, receivedMessageRule.EndDuration) {
 			continue
 		}
-		//匹配到消息 则跳过 消息检测
+		// Match message then skip message check
 		messageTypeCheck = false
-		//判断时间间隔
+		// Check time interval
 		if receivedMessageRule.ReplyInterval > 0 {
-			//判断时间间隔
+			// Check time interval
 			var lastTime int
 			lastTime, err = GetReceivedMessageReplyLastTime(robotId, receivedMessageRule.ID, params.Openid)
 			if err != nil {
@@ -671,22 +671,22 @@ func BuildReceivedMessageReply(params *define.ChatRequestParam, messageType stri
 			}
 			nextTime := lastTime + receivedMessageRule.ReplyInterval
 			if nextTime > tool.Time2Int() {
-				//时间间隔内中 不满足
+				// Not satisfied within time interval
 				break
 			}
-			// 设置时间间隔
+			// Set time interval
 			err = SetReceivedMessageReplyLastTime(robotId, receivedMessageRule.ID, tool.Time2Int(), params.Openid)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		//匹配成功 构造消息
+		// Match success, construct message
 		if receivedMessageRule.ReplyNum == 0 {
 			replyList = append(replyList, receivedMessageRule.ReplyContent...)
 		} else {
-			//随机选择 ReplyNum 条
-			//数组中随机切取 ReplyNum 条
+			// Randomly select ReplyNum items
+			// Randomly slice ReplyNum items from array
 			selectReplyList := GetRandomSliceReply(receivedMessageRule.ReplyContent, receivedMessageRule.ReplyNum)
 			if len(selectReplyList) > 0 {
 				replyList = append(replyList, selectReplyList...)
@@ -696,7 +696,7 @@ func BuildReceivedMessageReply(params *define.ChatRequestParam, messageType stri
 	}
 
 	if messageTypeCheck && len(replyList) == 0 {
-		//按消息类型判断
+		// Check by message type
 		receivedMessageRuleList, err = GetRobotReceivedMessageReplyListByRobotId(robotId, RuleTypeMessageType)
 		if err != nil {
 
@@ -707,7 +707,7 @@ func BuildReceivedMessageReply(params *define.ChatRequestParam, messageType stri
 				continue
 			}
 			if receivedMessageRule.RuleType != RuleTypeMessageType {
-				//不是指定消息类型
+				// Not specified message type
 				continue
 			}
 			checkFlag := false
@@ -716,7 +716,7 @@ func BuildReceivedMessageReply(params *define.ChatRequestParam, messageType stri
 				checkFlag = true
 				break
 			case MessageTypeSpecify:
-				//指定消息类型
+				// Specified message type
 				for _, msgType := range receivedMessageRule.SpecifyMessageType {
 					if messageType == msgType {
 						checkFlag = true
@@ -725,16 +725,16 @@ func BuildReceivedMessageReply(params *define.ChatRequestParam, messageType stri
 				}
 				break
 			default:
-				// 默认
+				// Default
 				break
 			}
-			//判断是否继续
+			// Check whether to continue
 			if !checkFlag {
 				continue
 			}
-			//判断时间间隔
+			// Check time interval
 			if receivedMessageRule.ReplyInterval > 0 {
-				//判断时间间隔
+				// Check time interval
 				var lastTime int
 				lastTime, err = GetReceivedMessageReplyLastTime(robotId, receivedMessageRule.ID, params.Openid)
 				if err != nil {
@@ -742,21 +742,21 @@ func BuildReceivedMessageReply(params *define.ChatRequestParam, messageType stri
 				}
 				nextTime := lastTime + receivedMessageRule.ReplyInterval
 				if nextTime > tool.Time2Int() {
-					//时间间隔内中 不满足
+					// Not satisfied within time interval
 					break
 				}
-				// 设置时间间隔
+				// Set time interval
 				err = SetReceivedMessageReplyLastTime(robotId, receivedMessageRule.ID, tool.Time2Int(), params.Openid)
 				if err != nil {
 					return nil, err
 				}
 			}
-			//匹配成功 构造消息
+			// Match success, construct message
 			if receivedMessageRule.ReplyNum == 0 {
 				replyList = append(replyList, receivedMessageRule.ReplyContent...)
 			} else {
-				//随机选择 ReplyNum 条
-				//数组中随机切取 ReplyNum 条
+				// Randomly select ReplyNum items
+				// Randomly slice ReplyNum items from array
 				selectReplyList := GetRandomSliceReply(receivedMessageRule.ReplyContent, receivedMessageRule.ReplyNum)
 				if len(selectReplyList) > 0 {
 					replyList = append(replyList, selectReplyList...)
@@ -767,18 +767,18 @@ func BuildReceivedMessageReply(params *define.ChatRequestParam, messageType stri
 		}
 	}
 
-	//循环replyList标记来源
+	// Loop replyList to mark source
 	replyList = FormatReplyListToDb(replyList, RobotAbilityReceivedMessageReply)
-	//判断是否继续ai
+	// Check whether to continue AI
 	if len(replyList) == 0 {
-		//没有匹配到关键词 继续ai
+		// No keyword matched, continue AI
 		return replyList, nil
 	}
-	//返回消息
+	// Return message
 	return replyList, nil
 }
 
-// IsTodayInDateRange 简洁但健壮版（推荐用于通用场景）
+// IsTodayInDateRange concise but robust version (recommended for general scenarios)
 func IsTodayInDateRange(start, end string) bool {
 	today := time.Now()
 	sd, _ := time.Parse("2006-01-02", start)
@@ -791,11 +791,11 @@ func NowInHHmmRangeSimple(start, end string) bool {
 	now := time.Now()
 	loc := now.Location()
 
-	// 解析HH:mm到临时时间（日期会被忽略）
+	// Parse HH:mm to temporary time (date will be ignored)
 	startTime, _ := time.Parse("15:04", start)
 	endTime, _ := time.Parse("15:04", end)
 
-	// 构造今天的起止时间（只取时分）
+	// Construct today's start and end time (only take hour and minute)
 	startT := time.Date(now.Year(), now.Month(), now.Day(), startTime.Hour(), startTime.Minute(), 0, 0, loc)
 	endT := time.Date(now.Year(), now.Month(), now.Day(), endTime.Hour(), endTime.Minute(), 0, 0, loc)
 
@@ -824,17 +824,17 @@ func OnlyReceivedMessageReplyHandle(params *define.ChatRequestParam, monitor *Mo
 	}
 	var receivedMessageJson string
 	if len(params.ReceivedMessage) > 0 {
-		//回复内容
+		// Reply content
 		receivedMessageJson = tool.JsonEncodeNoError(params.ReceivedMessage)
 	}
 
-	//显示内容
+	// Display content
 	showContent, isName := lib_define.MsgTypeNameMap[params.ReceivedMessageType]
 	if !isName {
 		showContent = i18n.Show(params.Lang, `msg_type_unknown`)
 	}
 	showContent = i18n.Show(params.Lang, `received_message_type`, showContent)
-	//展示图片消息
+	// Display image message
 	if params.ReceivedMessageType == lib_define.MsgTypeImage && params.MediaIdToOssUrl != `` {
 		msgType = define.MsgTypeImage
 		showContent = params.MediaIdToOssUrl
@@ -878,11 +878,11 @@ func OnlyReceivedMessageReplyHandle(params *define.ChatRequestParam, monitor *Mo
 
 	debugLog := make([]any, 0) //debug log
 	defer func() {
-		monitor.DebugLog = debugLog //记录监控数据
+		monitor.DebugLog = debugLog // Record monitoring data
 	}()
 
 	var receivedMessageReplyList []ReplyContent
-	//收到消息回复处理
+	// Handle received message reply
 	receivedMessageReplyList, _ = BuildReceivedMessageReply(params, params.ReceivedMessageType)
 
 	if len(receivedMessageReplyList) == 0 {
@@ -896,7 +896,7 @@ func OnlyReceivedMessageReplyHandle(params *define.ChatRequestParam, monitor *Mo
 		llmStartTime                        = time.Now()
 	)
 
-	//记录监控数据
+	// Record monitoring data
 	monitor.LlmCallTime = time.Now().Sub(llmStartTime).Milliseconds()
 	monitor.RequestTime, monitor.Error = requestTime, err
 
@@ -932,7 +932,7 @@ func OnlyReceivedMessageReplyHandle(params *define.ChatRequestParam, monitor *Mo
 		message[`avatar`] = params.Robot[`robot_avatar`]
 	}
 	if len(receivedMessageReplyList) > 0 {
-		//回复内容
+		// Reply content
 		receivedMessageReplyListJson := tool.JsonEncodeNoError(receivedMessageReplyList)
 		message[`reply_content_list`] = receivedMessageReplyListJson
 	}
@@ -956,12 +956,12 @@ func OnlyReceivedMessageReplyHandle(params *define.ChatRequestParam, monitor *Mo
 	return ToStringMap(message, `id`, id), nil
 }
 
-// SubscribeReplyHandle 关注后回复处理
+// SubscribeReplyHandle handles subscribe reply
 func SubscribeReplyHandle(params *define.ChatRequestParam, subscribeScene string) (msql.Params, error) {
-	//显示内容
+	// Display content
 	var subscribeReplyList []ReplyContent
 	appid := cast.ToString(params.AppInfo[`app_id`])
-	//收到消息回复处理
+	// Handle received message reply
 	subscribeReplyList, _ = BuildSubscribeReply(params, subscribeScene)
 
 	if len(subscribeReplyList) == 0 {
@@ -1003,7 +1003,7 @@ func SubscribeReplyHandle(params *define.ChatRequestParam, subscribeScene string
 		message[`avatar`] = params.Robot[`robot_avatar`]
 	}
 	if len(subscribeReplyList) > 0 {
-		//回复内容
+		// Reply content
 		subscribeReplyListJson := tool.JsonEncodeNoError(subscribeReplyList)
 		message[`reply_content_list`] = subscribeReplyListJson
 	}

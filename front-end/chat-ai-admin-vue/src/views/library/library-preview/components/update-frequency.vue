@@ -4,17 +4,17 @@
       v-model:open="visible"
       :confirm-loading="loading"
       :maskClosable="false"
-      title="设置更新频率"
+      :title="t('modal_title')"
       @ok="handleOk"
     >
       <a-form style="margin: 32px 0" layout="vertical" :model="formState">
-        <a-form-item name="doc_auto_renew_frequency" label="更新频率" required>
+        <a-form-item name="doc_auto_renew_frequency" :label="t('label_update_frequency')" required>
           <a-select v-model:value="formState.doc_auto_renew_frequency" style="width: 100%">
-            <a-select-option :value="1">不自动更新</a-select-option>
-            <a-select-option :value="2">每天</a-select-option>
-            <a-select-option :value="3">每3天</a-select-option>
-            <a-select-option :value="4">每7天</a-select-option>
-            <a-select-option :value="5">每30天</a-select-option>
+            <a-select-option :value="1">{{ t('option_not_auto_update') }}</a-select-option>
+            <a-select-option :value="2">{{ t('option_daily') }}</a-select-option>
+            <a-select-option :value="3">{{ t('option_every_3_days') }}</a-select-option>
+            <a-select-option :value="4">{{ t('option_every_7_days') }}</a-select-option>
+            <a-select-option :value="5">{{ t('option_every_30_days') }}</a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -24,8 +24,11 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import { editLibFile } from '@/api/library'
 import { message } from 'ant-design-vue'
+
+const { t } = useI18n('views.library.library-preview.components.update-frequency')
 const emit = defineEmits(['ok'])
 const visible = ref(false)
 const loading = ref(false)
@@ -47,7 +50,7 @@ const handleOk = () => {
     .then((res) => {
       emit('ok', formState.doc_auto_renew_frequency)
       visible.value = false
-      message.success('设置成功')
+      message.success(t('msg_set_success'))
     })
     .finally(() => {
       loading.value = false

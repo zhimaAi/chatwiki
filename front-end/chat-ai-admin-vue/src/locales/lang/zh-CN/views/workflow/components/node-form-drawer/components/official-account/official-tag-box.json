@@ -1,0 +1,17 @@
+{
+  "label_section_input": "输入",
+  "label_section_output": "输出",
+  "label_official_account": "公众号",
+  "label_official_account_tag": "公众号标签",
+  "label_fans_openid_list": "粉丝openid列表",
+  "btn_sync": "同步",
+  "btn_select_tag": "选择标签",
+  "btn_insert_variable": "插入变量",
+  "ph_select_official_account": "请选择公众号",
+  "ph_select_tag": "请选择标签",
+  "ph_input_content": "请输入内容，键入\"/\"可以插入变量",
+  "tooltip_sync_tags": "同步最新的公众号标签",
+  "desc_fans_openid_list": "粉丝openid列表，最多50个，逗号分割",
+  "msg_please_select_official_account": "请先选择公众号",
+  "msg_sync_completed": "同步完成"
+}

@@ -133,7 +133,7 @@
           <span class="file-number" :class="{ big: fileList.length > 9 }" v-if="fileList.length > 0">{{ fileList.length }}</span>
           <svg-icon class="action-btn select-file" name="circularNeedle" @click="openFileDialog"></svg-icon>
           <i class="line"></i>
-          <Tippy :content="showFiletoolbar ? '隐藏图片' : '显示图片'" placement="top">
+          <Tippy :content="showFiletoolbar ? t('msg_hide_images') : t('msg_show_images')" placement="top">
             <svg-icon class="action-btn show-file" name="eye-open" v-if="showFiletoolbar" @click="showFiletoolbar = false"></svg-icon>
             <svg-icon class="action-btn hide-file" name="eye-close" v-else @click="showFiletoolbar = true"></svg-icon>
           </Tippy>
@@ -149,11 +149,14 @@
 
 <script setup lang="ts">
 import { ref, toRefs, computed } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import { useUpload } from '@/hooks/web/useUpload.js'
 import { useChatStore } from '@/stores/modules/chat'
 import AutoSizeTextarea from './auto-size-textarea.vue'
 import FileToolbar from './file-toolbar.vue'
 import { Tippy } from 'vue-tippy'
+
+const { t } = useI18n('views.chat.components.message-input')
 
 
 const emit = defineEmits(['update:value', 'send', 'update:fileList'])

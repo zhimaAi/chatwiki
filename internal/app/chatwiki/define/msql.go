@@ -49,10 +49,10 @@ const (
 )
 
 var LibraryTypes = [...]int{
-	GeneralLibraryType,  //0普通知识库
-	QALibraryType,       //2问答知识库
-	OpenLibraryType,     //1对外知识库
-	OfficialLibraryType, //3公众号知识库
+	GeneralLibraryType,  //0 general library
+	QALibraryType,       //2 Q&A library
+	OpenLibraryType,     //1 open library
+	OfficialLibraryType, //3 official account library
 }
 
 const (
@@ -61,8 +61,8 @@ const (
 )
 
 const (
-	ExportSourceSession    uint = 1 //会话记录导出
-	ExportSourceLibFileDoc uint = 2 //知识库文档
+	ExportSourceSession    uint = 1 // session record export
+	ExportSourceLibFileDoc uint = 2 // library document
 )
 
 const (
@@ -108,14 +108,14 @@ const (
 	McpClientTypeHttp = 2
 )
 
-// 1指定事件,2指定时间,3手动执行
+// 1 specific event, 2 specific time, 3 manual execution
 const (
 	RunTypeEvent = 1
 	RunTypeCron  = 2
 	RunTypeHand  = 3
 )
 
-// 1 删除评论,2 回复评论,3置顶评论
+// 1 delete comment, 2 reply to comment, 3 pin comment
 const (
 	CommentExecTypeDelete = 1
 	CommentExecTypeReply  = 2
@@ -162,9 +162,9 @@ const (
 )
 
 var (
-	RobotPaymentAuthCodeUsageStatusPending   = 1 // 未使用
-	RobotPaymentAuthCodeUsageStatusExchanged = 2 // 已兑换
-	RobotPaymentAuthCodeUsageStatusUsed      = 3 // 已使用
+	RobotPaymentAuthCodeUsageStatusPending   = 1 // not used
+	RobotPaymentAuthCodeUsageStatusExchanged = 2 // exchanged
+	RobotPaymentAuthCodeUsageStatusUsed      = 3 // used
 	RobotPaymentPackageTypeCount             = 1
 	RobotPaymentPackageTypeDuration          = 2
 )

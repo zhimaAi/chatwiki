@@ -166,7 +166,7 @@ export const useChatStore = defineStore('chat', () => {
     chat_type: '',
     answer_source_switch: false,
     application_type: '0',
-    tips_before_answer_content: '思考中、请稍等',
+    tips_before_answer_content: '思考中、请稍侯...',
     tips_before_answer_switch: true,
   })
   // 样式配置
@@ -818,7 +818,6 @@ export const useChatStore = defineStore('chat', () => {
       })
 
       messageList.value = [...list, ...messageList.value]
-      console.log(messageList.value)
       return res
     } catch (err) {
       Promise.reject(err)

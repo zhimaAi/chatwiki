@@ -4,18 +4,18 @@
       <NodeFormHeader
         :title="node.node_name"
         :iconName="node.node_icon_name"
-        desc="将相关内容导入到对应知识库"
+        :desc="t('desc_import_library')"
         @close="handleClose"
       >
       </NodeFormHeader>
     </template>
-    <div class="problem-optimization-form">
+    <div class="import-library-node-form">
       <div class="node-form-content">
         <a-form ref="formRef" layout="vertical" :model="formState">
           <div class="gray-block">
             <div class="gray-block-title">
               <svg-icon name="nav-library" style="font-size: 14px; color: #333"></svg-icon>
-              知识库
+              {{ t('label_library') }}
             </div>
             <a-form-item :label="null">
               <div class="konwledge-list-item" v-for="item in selectedLibraryRows" :key="item.id">
@@ -37,17 +37,17 @@
                     :icon="h(PlusOutlined)"
                     block
                     type="dashed"
-                    >添加知识库</a-button
+                    >{{ t('btn_add_library') }}</a-button
                   >
                 </div>
               </div>
             </a-form-item>
 
-            <a-form-item label="知识分组">
+            <a-form-item :label="t('label_library_group')">
               <a-select
                 v-model:value="formState.library_group_id"
                 style="width: 100%"
-                placeholder="请选择"
+                :placeholder="t('ph_select')"
               >
                 <a-select-option v-for="item in groupLists" :value="item.id" :key="item.id">{{
                   item.group_name
@@ -56,7 +56,7 @@
             </a-form-item>
 
             <a-form-item
-              label="导入类型"
+              :label="t('label_import_type')"
               v-if="selectedLibraryType != 2 && selectedLibraryType >= 0"
             >
               <a-segmented
@@ -66,7 +66,7 @@
               />
             </a-form-item>
 
-            <a-form-item label="分段问题重复" v-if="selectedLibraryType == 2">
+            <a-form-item :label="t('label_qa_repeat')" v-if="selectedLibraryType == 2">
               <a-segmented
                 class="customer-segmented"
                 v-model:value="formState.qa_repeat_op"
@@ -75,7 +75,7 @@
             </a-form-item>
 
             <a-form-item
-              label="文档URL重复"
+              :label="t('label_url_repeat')"
               v-if="
                 selectedLibraryType != 2 &&
                 selectedLibraryType >= 0 &&
@@ -93,11 +93,11 @@
           <div class="gray-block mt16">
             <div class="gray-block-title">
               <svg-icon name="input" style="font-size: 14px; color: #333"></svg-icon>
-              输入
+              {{ t('label_input') }}
             </div>
             <template v-if="selectedLibraryType != 2 && selectedLibraryType >= 0">
               <div class="flex-block-item" v-if="formState.import_type == 'content'">
-                <div class="form-item-label required">文档标题</div>
+                <div class="form-item-label required">{{ t('label_document_title') }}</div>
                 <div class="form-content-box flex1">
                   <at-input
                     inputStyle="overflow-y: hidden; overflow-x: scroll; height: 22px;"
@@ -107,7 +107,7 @@
                     @change="
                       (text, selectedList) => changeValue(text, selectedList, 'normal_title')
                     "
-                    placeholder="请输入变量值，键入“/”插入变量"
+                    :placeholder="t('ph_input_value')"
                   >
                     <template #option="{ label, payload }">
                       <div class="field-list-item">
@@ -119,7 +119,7 @@
                 </div>
               </div>
               <div class="flex-block-item" v-if="formState.import_type == 'content'">
-                <div class="form-item-label required">文档内容</div>
+                <div class="form-item-label required">{{ t('label_document_content') }}</div>
                 <div class="form-content-box flex1">
                   <at-input
                     inputStyle="overflow-y: hidden; overflow-x: scroll; height: 22px;"
@@ -129,7 +129,7 @@
                     @change="
                       (text, selectedList) => changeValue(text, selectedList, 'normal_content')
                     "
-                    placeholder="请输入变量值，键入“/”插入变量"
+                    :placeholder="t('ph_input_value')"
                   >
                     <template #option="{ label, payload }">
                       <div class="field-list-item">
@@ -141,7 +141,7 @@
                 </div>
               </div>
               <div class="flex-block-item" v-if="formState.import_type == 'url'">
-                <div class="form-item-label">文档URL</div>
+                <div class="form-item-label">{{ t('label_document_url') }}</div>
                 <div class="form-content-box flex1">
                   <at-input
                     inputStyle="overflow-y: hidden; overflow-x: scroll; height: 22px;"
@@ -149,7 +149,7 @@
                     :defaultValue="formState.normal_url"
                     @open="getVlaueVariableList"
                     @change="(text, selectedList) => changeValue(text, selectedList, 'normal_url')"
-                    placeholder="请输入变量值，键入“/”插入变量"
+                    :placeholder="t('ph_input_value')"
                   >
                     <template #option="{ label, payload }">
                       <div class="field-list-item">
@@ -164,7 +164,7 @@
 
             <template v-if="selectedLibraryType == 2">
               <div class="flex-block-item">
-                <div class="form-item-label required">分段问题</div>
+                <div class="form-item-label required">{{ t('label_segment_question') }}</div>
                 <div class="form-content-box flex1">
                   <at-input
                     inputStyle="overflow-y: hidden; overflow-x: scroll; height: 22px;"
@@ -172,7 +172,7 @@
                     :defaultValue="formState.qa_question"
                     @open="getVlaueVariableList"
                     @change="(text, selectedList) => changeValue(text, selectedList, 'qa_question')"
-                    placeholder="请输入变量值，键入“/”插入变量"
+                    :placeholder="t('ph_input_value')"
                   >
                     <template #option="{ label, payload }">
                       <div class="field-list-item">
@@ -184,7 +184,7 @@
                 </div>
               </div>
               <div class="flex-block-item">
-                <div class="form-item-label required">分段答案</div>
+                <div class="form-item-label required">{{ t('label_segment_answer') }}</div>
                 <div class="form-content-box flex1">
                   <at-input
                     inputStyle="overflow-y: hidden; overflow-x: scroll; height: 22px;"
@@ -192,7 +192,7 @@
                     :defaultValue="formState.qa_answer"
                     @open="getVlaueVariableList"
                     @change="(text, selectedList) => changeValue(text, selectedList, 'qa_answer')"
-                    placeholder="请输入变量值，键入“/”插入变量"
+                    :placeholder="t('ph_input_value')"
                   >
                     <template #option="{ label, payload }">
                       <div class="field-list-item">
@@ -205,8 +205,8 @@
               </div>
               <div class="flex-block-item">
                 <div class="form-item-label">
-                  答案附图
-                  <a-tooltip title="图片url，<array string>格式，支持传入多个">
+                  {{ t('label_answer_images') }}
+                  <a-tooltip :title="t('tip_answer_images')">
                     <QuestionCircleOutlined />
                   </a-tooltip>
                 </div>
@@ -219,7 +219,7 @@
                     @change="
                       (text, selectedList) => changeValue(text, selectedList, 'qa_images_variable')
                     "
-                    placeholder="请输入变量值，键入“/”插入变量"
+                    :placeholder="t('ph_input_value')"
                   >
                     <template #option="{ label, payload }">
                       <div class="field-list-item">
@@ -232,8 +232,8 @@
               </div>
               <div class="flex-block-item">
                 <div class="form-item-label">
-                  相似问法
-                  <a-tooltip title="<array string>格式，支持传入多个">
+                  {{ t('label_similar_questions') }}
+                  <a-tooltip :title="t('tip_similar_questions')">
                     <QuestionCircleOutlined />
                   </a-tooltip>
                 </div>
@@ -247,7 +247,7 @@
                       (text, selectedList) =>
                         changeValue(text, selectedList, 'qa_similar_question_variable')
                     "
-                    placeholder="请输入变量值，键入“/”插入变量"
+                    :placeholder="t('ph_input_value')"
                   >
                     <template #option="{ label, payload }">
                       <div class="field-list-item">
@@ -263,11 +263,11 @@
           <div class="gray-block mt16">
             <div class="gray-block-title">
               <svg-icon name="output" style="font-size: 14px; color: #333"></svg-icon>
-              输出
+              {{ t('label_output') }}
             </div>
             <div class="options-item">
               <div class="option-label">msg</div>
-              <div class="desc">ok表示成功，其他输出为报错日志</div>
+              <div class="desc">{{ t('msg_output_description') }}</div>
             </div>
           </div>
         </a-form>
@@ -283,6 +283,7 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
 import { ref, reactive, watch, computed, onMounted, h, nextTick } from 'vue'
@@ -291,6 +292,8 @@ import { getLibraryList, getLibraryGroup } from '@/api/library/index'
 import LibrarySelectAlert from '../components/library-select-alert.vue'
 import { getSpecifyAbilityConfig } from '@/api/explore/index.js'
 import AtInput from '../../at-input/at-input.vue'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.import-library-node-form.index')
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({
@@ -308,31 +311,31 @@ const props = defineProps({
   }
 })
 
-const options1 = [
+const options1 = computed(() => [
   {
-    label: '导入文档内容',
+    label: t('label_import_content'),
     value: 'content'
   },
   {
-    label: '导入url',
+    label: t('label_import_url'),
     value: 'url'
   }
-]
+])
 
-const options2 = [
+const options2 = computed(() => [
   {
-    label: '依然导入',
+    label: t('label_import_anyway'),
     value: 'import'
   },
   {
-    label: '不导入',
+    label: t('label_not_import'),
     value: 'not import'
   },
   {
-    label: '更新内容',
+    label: t('label_update_content'),
     value: 'update'
   }
-]
+])
 
 const groupListMap = ref({})
 
@@ -559,25 +562,32 @@ onMounted(() => {
 
 <style lang="less" scoped>
 @import '../form-block.less';
-.flex-block-item {
-  margin-bottom: 12px;
-  .form-item-label {
-    width: 100px;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    position: relative;
-    &.required {
-      &::before {
-        content: '*';
-        color: #fb363f;
+
+.import-library-node-form{
+  .flex-block-item {
+    flex-direction: column;
+    align-items: normal;
+    margin-bottom: 12px;
+    .form-item-label {
+      width: auto;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      position: relative;
+      &.required {
+        &::before {
+          content: '*';
+          color: #fb363f;
+        }
       }
     }
-  }
-  .form-content-box {
-    overflow: hidden;
+    .form-content-box {
+      overflow: hidden;
+    }
   }
 }
+
+
 .node-form-content {
   ::v-deep(.ant-form-item-label) {
     padding: 0 0 4px;

@@ -1,0 +1,12 @@
+{
+  "label_channel": "渠道：",
+  "ph_all_channels": "全部渠道",
+  "label_date": "日期：",
+  "ph_search_user_name": "请输入用户名称搜索",
+  "btn_reset": "重置",
+  "btn_export": "导出",
+  "title_export_success": "导出任务创建成功",
+  "msg_export_success": "系统会在后台导出。导出数据量越大，耗时越久。您可以稍后点击导出记录查看并下载导出的文件。",
+  "btn_know": "知道了",
+  "btn_go_download": "去下载"
+}

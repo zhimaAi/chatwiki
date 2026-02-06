@@ -4,11 +4,11 @@
       <div class="tip-box">
         <div class="tip-box-left">
           <div class="tip-title">
-            <ExclamationCircleFilled style="font-size: 20px; color: #FF9900;" />提示
+            <ExclamationCircleFilled style="font-size: 20px; color: #FF9900;" />{{ t('tip_title') }}
           </div>
-          <div class="tip-text">开源版暂不支持此功能，如需使用请联系官方客服</div>
+          <div class="tip-text">{{ t('tip_text') }}</div>
           <div>
-            <a class="link-text" href="https://chatwiki.com/price" target="_blank">查看版本功能 <RightOutlined /></a>
+            <a class="link-text" href="https://chatwiki.com/price" target="_blank">{{ t('link_text') }} <RightOutlined /></a>
           </div>
         </div>
          <div class="tip-box-right">
@@ -21,6 +21,9 @@
 
 <script setup>
 import { ExclamationCircleFilled, RightOutlined } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.library-details.recycle-bin-record')
 </script>
 
 <style lang="less" scoped>

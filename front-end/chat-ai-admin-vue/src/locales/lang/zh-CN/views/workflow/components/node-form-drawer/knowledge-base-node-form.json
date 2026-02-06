@@ -1,0 +1,1 @@
+{"desc_knowledge_base": "从指定知识库中检索相关的分段，点击召回设置可以规定检索数据的条数和相似度阈值", "label_input": "输入", "label_knowledge_base": "关联知识库", "btn_add_knowledge_base": "添加知识库", "btn_recall_settings": "召回设置", "label_user_question": "用户问题", "label_output": "输出", "label_knowledge_quote": "知识库引用", "ph_select": "请选择"}

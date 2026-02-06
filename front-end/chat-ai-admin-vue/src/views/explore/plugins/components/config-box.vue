@@ -42,13 +42,13 @@
                       <div class="field">
                         <span class="name">{{ key }}</span>
                         <span class="type">{{ field.type }}</span>
-                        <span v-if="field.required" class="required">必填</span>
+                        <span v-if="field.required" class="required">{{ t('label_required') }}</span>
                       </div>
                       <div class="desc">{{ field.desc }}</div>
                     </div>
                   </div>
                 </template>
-                <a>参数</a>
+                <a>{{ t('label_params') }}</a>
               </a-popover>
             </div>
           </div>
@@ -67,7 +67,9 @@ import {message, Modal} from 'ant-design-vue';
 import {jsonDecode, timeNowGapFormat} from "@/utils/index.js";
 import {getPluginConfig, runPlugin, setPluginConfig} from "@/api/plugins/index.js";
 import PluginConfigBox from "./plugin-config-box.vue";
+import { useI18n } from '@/hooks/web/useI18n';
 
+const { t } = useI18n('views.explore.plugins.components.config-box')
 const emit = defineEmits(['del', 'edit', 'auth'])
 
 const open = ref(false)

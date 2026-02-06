@@ -16,7 +16,7 @@ type RrfWeightConfig struct {
 	Graph  uint `json:"graph"`
 }
 
-// GetDefaultRrfWeight 获取默认的RRF算法权重配置
+// GetDefaultRrfWeight Get the default RRF algorithm weight configuration
 func GetDefaultRrfWeight(adminUserId int) RrfWeightConfig {
 	if GetNeo4jStatus(adminUserId) {
 		return RrfWeightConfig{Vector: 50, Search: 30, Graph: 20}
@@ -24,10 +24,10 @@ func GetDefaultRrfWeight(adminUserId int) RrfWeightConfig {
 	return RrfWeightConfig{Vector: 70, Search: 30, Graph: 0}
 }
 
-// CheckRrfWeight 校验前端配置的RRF算法权重参数
+// CheckRrfWeight Validate the RRF algorithm weight parameters configured by the frontend
 func CheckRrfWeight(rrfWeight, lang string) error {
 	if len(rrfWeight) == 0 {
-		return nil //空值不校验,直接使用默认值
+		return nil // Skip validation for empty values, use default values directly
 	}
 	config := RrfWeightConfig{}
 	if err := tool.JsonDecodeUseNumber(rrfWeight, &config); err != nil {
@@ -39,9 +39,9 @@ func CheckRrfWeight(rrfWeight, lang string) error {
 	return nil
 }
 
-// ParseRrfWeight 解析RRF算法权重配置参数
+// ParseRrfWeight Parse the RRF algorithm weight configuration parameters
 func ParseRrfWeight(adminUserId int, rrfWeight string) RrfWeightConfig {
-	if len(rrfWeight) == 0 { //未配置,使用默认值
+	if len(rrfWeight) == 0 { // Not configured, use default value
 		return GetDefaultRrfWeight(adminUserId)
 	}
 	config := RrfWeightConfig{}

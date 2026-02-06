@@ -21,8 +21,8 @@
           </div>
           <div class="desc">{{ item.desc }}</div>
           <div class="card-switch" v-if="item.pdf_parse_type == 4 && !ali_ocr_switch">
-            未开启阿里云OCR
-            <div class="card-switch-btn" @click.stop="onGoSwitch">去开启</div>
+            {{ t('ali_ocr_not_enabled') }}
+            <div class="card-switch-btn" @click.stop="onGoSwitch">{{ t('go_to_enable') }}</div>
           </div>
         </div>
       </div>
@@ -32,7 +32,7 @@
       @cancel="onClose"
       :title="modalTitle"
       :maskClosable="false"
-      :ok-text="isLoading ? '文档解析中,请稍候...' : '确定'"
+      :ok-text="isLoading ? t('document_parsing_please_wait') : t('confirm')"
       :confirmLoading="confirmLoading || isLoading"
       @ok="handleSaveSegmentation"
       :width="1000"
@@ -58,6 +58,9 @@ import DocumentSegmentationModal from '@/views/library/document-segmentation/doc
 import { message } from 'ant-design-vue'
 import { restudyLibraryFile } from '@/api/library'
 import { useCompanyStore } from '@/stores/modules/company'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.library-preview.components.re-segmentation-page')
 
 const companyStore = useCompanyStore()
 const ali_ocr_switch = computed(() => {
@@ -81,20 +84,20 @@ let parmas = {}
 
 const analysisLists = ref([
   {
-    title: '图文OCR解析',
-    desc: '通过OCR文字识别提取pdf文件内容，可以兼容扫描件，但是解析速度较慢。',
+    title: t('image_text_ocr'),
+    desc: t('image_text_ocr_desc'),
     icon: 'pdf-ocr',
     pdf_parse_type: 2
   },
   {
-    title: '纯文本解析',
-    desc: '只提取Pdf中的文字内容，如果文档为扫描件可能提取不到内容。',
+    title: t('text_only'),
+    desc: t('text_only_desc'),
     icon: 'pdf-text',
     pdf_parse_type: 1
   },
   {
-    title: '图文解析',
-    desc: '提取PDF文档中的图片和文字',
+    title: t('image_text'),
+    desc: t('image_text_desc'),
     icon: 'pdf-img',
     pdf_parse_type: 3
   }
@@ -122,16 +125,16 @@ const show = (data) => {
   formState.pdf_parse_type = 2
   formState.pdf_page_num = data.pdf_page_num
   if (data.type == 1) {
-    modalTitle.value = `当页(${data.pdf_page_num})重新分段`
+    modalTitle.value = t('resegment_current_page', { page: data.pdf_page_num })
   }
   if (data.type == 2) {
-    modalTitle.value = `将文档重新分段`
+    modalTitle.value = t('resegment_document')
   }
   if (data.type == 3) {
-    modalTitle.value = `重新学习文档`
+    modalTitle.value = t('restudy_document')
     analysisLists.value.push({
-      title: '阿里云OCR解析',
-      desc: '通过阿里云文档智能接口解析提取图片和文字',
+      title: t('ali_cloud_ocr'),
+      desc: t('ali_cloud_ocr_desc'),
       icon: 'ali-ocr',
       pdf_parse_type: 4
     })
@@ -164,7 +167,7 @@ const handleSaveType = () => {
       pdf_parse_type: formState.pdf_parse_type
     })
       .then((res) => {
-        message.success('重新学习成功')
+        message.success(t('restudy_success'))
         if (formState.pdf_parse_type == 2 || formState.pdf_parse_type == 3 || formState.pdf_parse_type == 4) {
           //跳转回知识库文档列表，当前文档状态进入转换中
           router.push({
@@ -197,7 +200,7 @@ const handleSaveSegmentation = () => {
 }
 
 const handleSaveOk = () => {
-  message.success('保存成功')
+  message.success(t('save_success'))
   settingModal.value = false
   emit('ok', parmas.type)
 }

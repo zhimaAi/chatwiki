@@ -14,7 +14,7 @@
             @change="search"
             style="width: 100%"
             allowClear
-            placeholder="搜索模板"
+            :placeholder="t('ph_search_template')"
           >
             <template #suffix>
               <SearchOutlined />
@@ -23,7 +23,7 @@
         </div>
         <div class="cate-box">
           <div :class="['cate-item', { active: !filterData.category }]" @click="selectCate(null)">
-            <div>全部</div>
+            <div>{{ t('label_all') }}</div>
             <span v-if="allCateCount > 0" class="count">{{ allCateCount }}</span>
           </div>
           <div
@@ -66,14 +66,14 @@
                   </div>
                   <div class="right">
                     <a @click.stop.prevent="useTemplate(item)"
-                      ><svg-icon name="icon-rocket" /> 使用模板</a
+                      ><svg-icon name="icon-rocket" /> {{ t('btn_use_template') }}</a
                     >
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          <EmptyBox v-else title="暂无可用插件" />
+          <EmptyBox v-else :title="t('msg_no_available_plugin')" />
           <LoadingBox v-if="loading" />
         </div>
       </div>
@@ -103,7 +103,9 @@ import { setDescRef, getTooltipTitle, listScrollPullLoad } from '@/utils/index'
 import DetailModel from './detail-model.vue'
 import {usePublicNetworkCheck} from "@/composables/usePublicNetworkCheck.js";
 import PublicNetworkCheck from "@/components/common/public-network-check.vue";
+import { useI18n } from '@/hooks/web/useI18n'
 
+const { t } = useI18n('views.explore.templates.index')
 const {isPublicNetwork} = usePublicNetworkCheck(init)
 const route = useRoute()
 const router = useRouter()
@@ -202,7 +204,7 @@ function checkVersion(sys_v, tpl_v) {
 function useTemplate(item) {
   const run = () => {
     useRobotTemplate({ template_id: item.id, csl_url: item.csl_url }).then((res) => {
-      message.success('使用成功')
+      message.success(t('msg_use_success'))
       loadData()
       const { id, robot_key } = res.data
       const url = router.resolve({ path: '/robot/config/workflow', query: { id, robot_key } })
@@ -211,20 +213,20 @@ function useTemplate(item) {
   }
   if (!checkVersion(sysVersion.value, item.version)) {
     Modal.confirm({
-      title: '提示',
-      content: '当前系统版本过低，可能无法使用此模板；请您升级到最新版本后使用！',
+      title: t('title_tip'),
+      content: t('msg_version_too_low'),
       icon: h(ExclamationCircleOutlined),
-      okText: '继续使用',
-      cancelText: '取 消',
+      okText: t('btn_continue_use'),
+      cancelText: t('btn_cancel'),
       onOk: run
     })
   } else {
     Modal.confirm({
-      title: '提示',
-      content: `确定使用模板【${item.name}】创建应用吗?`,
+      title: t('title_tip'),
+      content: t('msg_confirm_use_template', { name: item.name }),
       icon: h(ExclamationCircleOutlined),
-      okText: '确 认',
-      cancelText: '取 消',
+      okText: t('btn_confirm'),
+      cancelText: t('btn_cancel'),
       onOk: run
     })
   }

@@ -19,20 +19,20 @@
           >
             <template #icon><LeftOutlined style="font-size: 12px" /></template>
           </a-button>
-          <span v-if="isAIGenerate">AI生成相似问法</span>
-          <span v-else>{{ id ? '编辑分段' : '新增分段' }}</span>
+          <span v-if="isAIGenerate">{{ t('title_ai_generate') }}</span>
+          <span v-else>{{ id ? t('title_edit_subsection') : t('title_add_subsection') }}</span>
         </div>
       </template>
 
       <div class="form-box-wrapper" v-show="!isAIGenerate">
         <div class="form-item" v-if="!isQaDocment">
-          <div class="form-label">分段标题：</div>
+          <div class="form-label">{{ t('label_section_title') }}</div>
           <div class="form-content">
-            <a-input :maxLength="25" v-model:value="title" placeholder="请输入分段标题" />
+            <a-input :maxLength="25" v-model:value="title" :placeholder="t('ph_input_section_title')" />
           </div>
         </div>
         <div class="form-item" v-if="!isQaDocment">
-          <div class="form-label">分段分类标记</div>
+          <div class="form-label">{{ t('label_section_category') }}</div>
           <div class="form-content">
             <a-segmented v-model:value="category_id" :options="startLists">
               <template #label="{ payload }">
@@ -48,7 +48,7 @@
         </div>
         <template v-if="isQaDocment">
           <div class="form-item">
-            <div class="form-label required">所属分组：</div>
+            <div class="form-label required">{{ t('label_group') }}</div>
             <div class="form-content">
               <a-select v-model:value="group_id" style="width: 100%">
                 <a-select-option v-for="item in groupLists" :value="item.id">{{ item.group_name }}</a-select-option>
@@ -56,36 +56,36 @@
             </div>
           </div>
           <div class="form-item">
-            <div class="form-label required">分段问题：</div>
+            <div class="form-label required">{{ t('label_section_question') }}</div>
             <div class="form-content">
               <a-textarea
-                placeholder="请输入分段问题"
+                :placeholder="t('ph_input_section_question')"
                 v-model:value="question"
                 style="height: 100px"
               ></a-textarea>
             </div>
           </div>
           <div class="form-item">
-            <div class="form-label required">分段答案：</div>
+            <div class="form-label required">{{ t('label_section_answer') }}</div>
             <div class="form-content">
               <a-textarea
-                placeholder="请输入分段答案"
+                :placeholder="t('ph_input_section_answer')"
                 v-model:value="answer"
                 style="height: 100px"
               ></a-textarea>
-              <div v-if="answer.length > 10000" class="error-tip">分段答案最多支持10000个字符</div>
+              <div v-if="answer.length > 10000" class="error-tip">{{ t('msg_answer_max_length') }}</div>
             </div>
           </div>
         </template>
         <div class="form-item" v-else>
-          <div class="form-label required">分段内容：</div>
+          <div class="form-label required">{{ t('label_section_content') }}</div>
           <div class="form-content">
             <a-textarea
               style="height: 150px"
               v-model:value="content"
-              placeholder="请输入分段内容"
+              :placeholder="t('ph_input_section_content')"
             />
-            <div v-if="content.length > 10000" class="error-tip">分段内容最多支持10000个字符</div>
+            <div v-if="content.length > 10000" class="error-tip">{{ t('msg_content_max_length') }}</div>
           </div>
         </div>
         <div class="form-item">
@@ -97,7 +97,7 @@
                   <template #tab>
                     <span>
                       <svg-icon name="img-icon" style="font-size: 14px; color: #2475fc"></svg-icon>
-                      答案附图
+                      {{ t('tab_answer_images') }}
                       <span v-if="images.length">({{ images.length }})</span>
                     </span>
                   </template>
@@ -110,20 +110,20 @@
 
         <div class="form-item" v-if="isQaDocment">
           <div class="form-label-box">
-            <div class="form-label">相似问法</div>
+            <div class="form-label">{{ t('label_similar_questions') }}</div>
             <div class="ai-generate" @click="handleAIGenerate">
               <svg-icon name="ai-generate" style="font-size: 14px"></svg-icon>
-              <div class="ai-generate-text">AI自动生成</div>
+              <div class="ai-generate-text">{{ t('btn_ai_auto_generate') }}</div>
             </div>
           </div>
           <div class="form-content">
             <a-textarea
-              placeholder="请输入相似问法"
+              :placeholder="t('ph_input_similar_questions')"
               v-model:value="similar_questions"
               style="height: 100px"
               @blur="onProcessText"
             ></a-textarea>
-            <div class="form-content-tip">一行一个，最多可添加100个相似问法</div>
+            <div class="form-content-tip">{{ t('tip_similar_questions_format') }}</div>
           </div>
         </div>
       </div>
@@ -135,7 +135,7 @@
             <!-- 模型选择 -->
             <div class="form-box-wrapper-options">
               <div class="form-item flex1">
-                <div class="form-label required">相似问法模型：</div>
+                <div class="form-label required">{{ t('label_similar_question_model') }}</div>
                 <div class="form-content">
                   <!-- 自定义选择器 -->
                   <ModelSelect
@@ -150,14 +150,14 @@
               <div class="form-item flex1">
                 <div class="form-content dual-inputs">
                   <div class="input-group">
-                    <div class="form-label required">问题个数：</div>
+                    <div class="form-label required">{{ t('label_question_count') }}</div>
                     <div class="form-label-input-box">
                       <a-input-number
                         v-model:value="formState.count"
                         :min="1"
                         :max="20"
-                        style="width: 100%; padding: 2px 11px"
-                      />个
+                        style="width: 100%;"
+                      />{{ t('label_question') }}
                     </div>
                   </div>
                 </div>
@@ -166,11 +166,11 @@
 
             <div class="form-box-wrapper-content">
               <div class="problem-box">
-                <div class="problem">问题</div>
+                <div class="problem">{{ t('label_question') }}</div>
                 <div class="problem-content">{{ question }}</div>
               </div>
               <div class="problem-box">
-                <div class="problem">答案</div>
+                <div class="problem">{{ t('label_answer') }}</div>
                 <div class="problem-content">{{ answer }}</div>
               </div>
             </div>
@@ -178,7 +178,7 @@
             <div class="form-item generate-btn-box">
               <a-button @click="handleGenerate" :loading="generating" class="generate-btn">
                 <svg-icon name="ai-generate-white" style="font-size: 16px"></svg-icon>
-                开始生成
+                {{ t('btn_start_generate') }}
               </a-button>
             </div>
           </div>
@@ -186,8 +186,8 @@
             <!-- 生成结果区域 -->
             <div class="result-nav">
               <svg-icon name="generate-icon" style="font-size: 14px"></svg-icon>
-              <span class="tip" v-if="generating">相似问法生成中...</span>
-              <div class="result-nav-text" v-else>相似问法生成完毕</div>
+              <span class="tip" v-if="generating">{{ t('tip_generating') }}</span>
+              <div class="result-nav-text" v-else>{{ t('tip_generate_completed') }}</div>
             </div>
 
             <div class="container" v-if="!messageObj.content && generating && !isError">
@@ -207,7 +207,7 @@
             </div>
             <div class="result-footer">
               <a-button class="result-footer-btn" type="primary" @click="handleSaveSimilar"
-                >保存相似问法</a-button
+                >{{ t('btn_save_similar') }}</a-button
               >
             </div>
           </div>
@@ -217,8 +217,8 @@
       <!-- 底部自定义footer处理步骤切换 -->
       <template #footer>
         <template v-if="!isAIGenerate">
-          <a-button @click="open = false">取消</a-button>
-          <a-button type="primary" @click="handleOk">确定</a-button>
+          <a-button @click="open = false">{{ t('btn_cancel') }}</a-button>
+          <a-button type="primary" @click="handleOk">{{ t('btn_confirm') }}</a-button>
         </template>
       </template>
     </a-modal>
@@ -242,6 +242,9 @@ import { isArray } from 'ant-design-vue/lib/_util/util.js'
 import colorLists from '@/utils/starColors.js'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import MarkdownIt from 'markdown-it'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.library-preview.components.edit-subsection')
 
 // 新增状态
 const isError = ref(false)
@@ -354,7 +357,7 @@ const getCategoryLists = () => {
           value: 0,
           payload: {
             id: 0,
-            name: '未标记'
+            name: t('label_unmarked')
           }
         },
         ...list
@@ -369,13 +372,13 @@ const handleOk = () => {
   onProcessText()
 
   if (!content.value && !isQaDocment.value) {
-    return message.error('请输入分段内容')
+    return message.error(t('msg_input_section_content'))
   }
   if (!question.value && isQaDocment.value) {
-    return message.error('请输入分段问题')
+    return message.error(t('msg_input_section_question'))
   }
   if (!answer.value && isQaDocment.value) {
-    return message.error('请输入分段答案')
+    return message.error(t('msg_input_section_answer'))
   }
   if (isQaDocment.value && answer.value.length > 10000) {
     return
@@ -384,7 +387,7 @@ const handleOk = () => {
     return
   }
   if (pathName == 'categaryManages' && category_id.value <= 0) {
-    return message.error('请选择分类标记')
+    return message.error(t('msg_select_category'))
   }
   let data = {
     title: title.value,
@@ -428,26 +431,26 @@ const handleOk = () => {
     formData.append('library_id', props.detailsInfo.library_id)
   }
   if (pathName == 'categaryManages') {
-    formData.delete('file_id')
-    formData.append('library_id', route.query.id)
-    saveCategoryParagraph(formData).then((res) => {
-      message.success(data.id ? '修改成功' : '添加成功')
-      open.value = false
-      emit('handleEdit', {
-        ...data
+      formData.delete('file_id')
+      formData.append('library_id', route.query.id)
+      saveCategoryParagraph(formData).then((res) => {
+        message.success(data.id ? t('msg_edit_success') : t('msg_add_success'))
+        open.value = false
+        emit('handleEdit', {
+          ...data
+        })
+        getCategoryLists()
       })
-      getCategoryLists()
-    })
-  } else {
-    editParagraph(formData).then((res) => {
-      message.success(data.id ? '修改成功' : '添加成功')
-      open.value = false
-      emit('handleEdit', {
-        ...data
+    } else {
+      editParagraph(formData).then((res) => {
+        message.success(data.id ? t('msg_edit_success') : t('msg_add_success'))
+        open.value = false
+        emit('handleEdit', {
+          ...data
+        })
+        getCategoryLists()
       })
-      getCategoryLists()
-    })
-  }
+    }
 }
 
 // 处理AI生成按钮点击
@@ -491,7 +494,7 @@ const handleSaveSimilar = () => {
   } else {
     similar_questions.value += `\n${aiResult.value}`
   }
-  message.success('保存成功')
+  message.success(t('msg_save_success'))
   showResult.value = false
   isAIGenerate.value = false
   isGenerate.value = false
@@ -638,8 +641,6 @@ defineExpose({ showModal })
     }
   }
   .form-content {
-    margin-top: 8px;
-
     .form-content-tip {
       align-self: stretch;
       color: #8c8c8c;
@@ -775,7 +776,7 @@ defineExpose({ showModal })
       transform: translateX(-50%);
 
       .result-footer-btn {
-        width: 160px;
+        width: fit-content;
       }
     }
   }

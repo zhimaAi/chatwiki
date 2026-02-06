@@ -1,0 +1,8 @@
+{
+  "label_insert_data": "Insert Data",
+  "tip_empty_field": "(Leave field value empty if not filled)",
+  "opt_select_add_data": "Select Add Data",
+  "opt_input_variable": "Input Variable",
+  "ph_input_content": "Please enter content, type \"/\" to insert variable",
+  "desc_data_example": "Content example: [{\"field_name\":\"Text\",\"ui_type\":\"Text\",\"value\":\"001\"},{\"field_name\":\"Date\",\"ui_type\":\"DateTime\",\"value\":1769077135214},{\"field_name\":\"Number\",\"ui_type\":\"Number\",\"value\":99},{\"field_name\":\"Single Select\",\"ui_type\":\"SingleSelect\",\"value\":\"Option 1\"},{\"field_name\":\"Multi Select\",\"ui_type\":\"MultiSelect\",\"value\":[\"Category A\",\"Category B\"]},{\"field_name\":\"Checkbox\",\"ui_type\":\"Checkbox\",\"value\":true}]"
+}

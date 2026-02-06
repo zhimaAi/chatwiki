@@ -1,36 +1,36 @@
 <template>
-  <edit-box class="setting-box" title="模型设置" icon-name="moxingshezhi" v-model:isEdit="isEdit">
+  <edit-box class="setting-box" :title="t('title_model_settings')" icon-name="moxingshezhi" v-model:isEdit="isEdit">
     <template #extra>
       <div class="actions-box">
-        <a-button @click="handleEdit(true)" size="small">修改</a-button>
+        <a-button @click="handleEdit(true)" size="small">{{ t('btn_modify') }}</a-button>
       </div>
     </template>
     <div class="setting-info-block">
       <div class="set-item w-100">
-        LLM模型：
+        {{ t('label_llm_model') }}：
         <span>{{ getModelName }}</span>
       </div>
       <div class="set-item">
-        温度：
+        {{ t('label_temperature') }}：
         <span>{{ formState.temperature }}</span>
       </div>
       <div class="set-item">
-        最大token：
+        {{ t('label_max_token') }}：
         <span>{{ formState.max_token }}</span>
       </div>
       <div class="set-item">
-        上下文数量：
+        {{ t('label_context_pair') }}：
         <span>{{ formState.context_pair }}</span>
       </div>
       <div class="set-item">
-        显示推理过程：
-        <span>{{ formState.think_switch == 1 ? '开' : '关' }}</span>
+        {{ t('label_show_reasoning_process') }}：
+        <span>{{ formState.think_switch == 1 ? t('state_on') : t('state_off') }}</span>
       </div>
     </div>
     <a-modal
       v-model:open="isEdit"
       :width="672"
-      title="模型设置"
+      :title="t('title_model_settings')"
       @cancel="handleCancel"
       @ok="handleSave"
     >
@@ -39,7 +39,7 @@
           <a-col v-bind="grid">
             <div class="form-item">
               <div class="form-item-label mb12">
-                <span>LLM模型&nbsp;</span>
+                <span>{{ t('label_llm_model') }}&nbsp;</span>
               </div>
               <div class="form-item-body">
                 <!-- 自定义选择器 -->
@@ -57,12 +57,12 @@
           <a-col v-bind="grid">
             <div class="form-item" style="display: flex; align-items: center">
               <div class="form-item-label mb12">
-                <span>提示词所属角色：&nbsp;</span>
+                <span>{{ t('label_prompt_role') }}：&nbsp;</span>
               </div>
               <div>
                 <a-radio-group v-model:value="formState.prompt_role_type">
-                  <a-radio value="0">系统角色（System）</a-radio>
-                  <a-radio value="1">用户角色（User）</a-radio>
+                  <a-radio value="0">{{ t('option_system_role') }}</a-radio>
+                  <a-radio value="1">{{ t('option_user_role') }}</a-radio>
                 </a-radio-group>
               </div>
             </div>
@@ -71,9 +71,9 @@
           <a-col v-bind="grid">
             <div class="form-item">
               <div class="form-item-label">
-                <span>温度&nbsp;</span>
+                <span>{{ t('label_temperature') }}&nbsp;</span>
                 <a-tooltip>
-                  <template #title>温度越低，回答越严谨。温度越高，回答越发散。</template>
+                  <template #title>{{ t('tooltip_temperature') }}</template>
                   <QuestionCircleOutlined class="question-icon" />
                 </a-tooltip>
               </div>
@@ -104,9 +104,9 @@
           <a-col v-bind="grid">
             <div class="form-item">
               <div class="form-item-label">
-                <span>最大token&nbsp;</span>
+                <span>{{ t('label_max_token') }}&nbsp;</span>
                 <a-tooltip>
-                  <template #title>问题+答案的最大token数，如果出现回答被截断，可调高此值</template>
+                  <template #title>{{ t('tooltip_max_token') }}</template>
                   <QuestionCircleOutlined class="question-icon" />
                 </a-tooltip>
               </div>
@@ -135,11 +135,9 @@
           <a-col v-bind="grid">
             <div class="form-item">
               <div class="form-item-label">
-                <span>上下文数量&nbsp;</span>
+                <span>{{ t('label_context_pair') }}&nbsp;</span>
                 <a-tooltip>
-                  <template #title
-                    >提示词中携带的历史聊天记录轮次。设置为0则不携带聊天记录。最多设置50轮。注意，携带的历史聊天记录越多，消耗的token相应也就越多。</template
-                  >
+                  <template #title>{{ t('tooltip_context_pair') }}</template>
                   <QuestionCircleOutlined class="question-icon" />
                 </a-tooltip>
               </div>
@@ -164,15 +162,15 @@
           <a-col v-bind="grid">
             <div class="form-item justify-between">
               <div class="form-item-label">
-                <span>多模态输入&nbsp;</span>
+                <span>{{ t('label_multimodal_input') }}&nbsp;</span>
                 <a-tooltip>
                   <template #title>
-                    <span>开启时，调用大模型时会指定走深度思考模式</span>
+                    <span>{{ t('tooltip_multimodal_input') }}</span>
                   </template>
                   <QuestionCircleOutlined class="question-icon" />
                 </a-tooltip>
               </div>
-              <CuTooltip title="当前选择的模型不支持多模态输入" :disabled="!disableMultimodalInput">
+              <CuTooltip :title="t('msg_model_not_support_multimodal')" :disabled="!disableMultimodalInput">
                 <a-switch
                   v-model:checked="formState.question_multiple_switch"
                   :checkedValue="1"
@@ -186,10 +184,10 @@
           <a-col v-bind="grid" v-if="show_enable_thinking">
             <div class="form-item justify-between">
               <div class="form-item-label">
-                <span>深度思考&nbsp;</span>
+                <span>{{ t('label_deep_thinking') }}&nbsp;</span>
                 <a-tooltip>
                   <template #title>
-                    <span>开启时，调用大模型时会指定走深度思考模式</span>
+                    <span>{{ t('tooltip_deep_thinking') }}</span>
                   </template>
                   <QuestionCircleOutlined class="question-icon" />
                 </a-tooltip>
@@ -205,12 +203,10 @@
           <a-col v-bind="grid">
             <div class="form-item justify-between">
               <div class="form-item-label">
-                <span>显示推理过程&nbsp;</span>
+                <span>{{ t('label_show_reasoning_process') }}&nbsp;</span>
                 <a-tooltip>
                   <template #title>
-                    <span
-                      >开启后，API接口、聊天测试页、 webAPP页会显示或返回推理模型的推理过程</span
-                    >
+                    <span>{{ t('tooltip_show_reasoning_process') }}</span>
                   </template>
                   <QuestionCircleOutlined class="question-icon" />
                 </a-tooltip>
@@ -242,6 +238,9 @@ import EditBox from './edit-box.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { getModelNameText } from '@/components/model-select/index.js'
 import CuTooltip from '@/components/cu-tooltip/index.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.model-settings')
 
 const grid = reactive({ sm: 24, md: 24, lg: 12, xl: 24, xxl: 24 })
 // 获取LLM模型

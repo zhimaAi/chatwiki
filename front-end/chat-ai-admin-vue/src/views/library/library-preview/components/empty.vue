@@ -1,20 +1,22 @@
 <template>
   <div class="empty-box">
     <img src="../../../../assets/img/library/preview/empty.png" alt="" />
-    <div class="title">知识库文档为空，请添加分段</div>
+    <div class="title">{{ t('msg_empty') }}</div>
     <div>
       <a-button type="primary" @click="handleOpenEditModal">
         <template #icon>
           <PlusOutlined />
         </template>
-        <span>添加分段</span>
+        <span>{{ t('btn_add_segment') }}</span>
       </a-button>
     </div>
   </div>
 </template>
 <script setup>
-import { ref } from 'vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.library-preview.components.empty')
 const emit = defineEmits(['openEditSubscription'])
 const props = defineProps({
   detailsInfo: {

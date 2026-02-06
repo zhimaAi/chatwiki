@@ -3,22 +3,22 @@
     <a-modal v-model:open="show" :title="modalTitle" @ok="handleOk" width="476px">
       <div class="form-box">
         <a-form layout="vertical">
-          <a-form-item label="原密码" v-bind="validateInfos.old_password">
+          <a-form-item :label="t('label_old_password')" v-bind="validateInfos.old_password">
             <a-input-password
               v-model:value="formState.old_password"
-              placeholder="请输入原始密码校验"
+              :placeholder="t('ph_input_old_password')"
             />
           </a-form-item>
-          <a-form-item label="登录密码" v-bind="validateInfos.password">
+          <a-form-item :label="t('label_password')" v-bind="validateInfos.password">
             <a-input-password
               v-model:value="formState.password"
-              placeholder="密码必须包含字母、数字或者字符中的两种，6-32位"
+              :placeholder="t('ph_password_rule')"
             />
           </a-form-item>
-          <a-form-item label="确认密码" v-bind="validateInfos.check_password">
+          <a-form-item :label="t('label_confirm_password')" v-bind="validateInfos.check_password">
             <a-input-password
               v-model:value="formState.check_password"
-              placeholder="请重新输入密码"
+              :placeholder="t('ph_reinput_password')"
             />
           </a-form-item>
         </a-form>
@@ -32,11 +32,13 @@ import { validatePassword } from '@/utils/validate.js'
 import { ref, reactive, toRaw } from 'vue'
 import { Form, message } from 'ant-design-vue'
 import { saveProfile } from '@/api/manage/index.js'
+import { useI18n } from '@/hooks/web/useI18n'
 const emit = defineEmits(['ok'])
 
 const useForm = Form.useForm
+const { t } = useI18n('views.user.account.components.modify-account')
 const show = ref(false)
-const modalTitle = ref('修改登录密码')
+const modalTitle = ref(t('title_modify_password'))
 const formState = reactive({
   password: '',
   check_password: '',
@@ -47,22 +49,22 @@ const formState = reactive({
 const formRules = reactive({
   old_password: [
     {
-      message: '请输入原始密码',
+      message: t('msg_input_old_password'),
       required: true
     }
   ],
   password: [
     {
-      message: '请输入登录密码',
+      message: t('msg_input_password'),
       required: true
     },
     {
       validator: async (rule, value) => {
         if (!validatePassword(value) && value) {
-          return Promise.reject('密码必须包含字母、数字或者字符中的两种，6-32位')
+          return Promise.reject(t('ph_password_rule'))
         }
         if(value == formState.old_password){
-          return Promise.reject('原密码不能和新密码一致')
+          return Promise.reject(t('msg_password_same'))
         }
         return Promise.resolve()
       }
@@ -70,13 +72,13 @@ const formRules = reactive({
   ],
   check_password: [
     {
-      message: '请输入确认密码',
+      message: t('msg_input_confirm_password'),
       required: true
     },
     {
       validator: async (rule, value) => {
         if (value != formState.password && value) {
-          return Promise.reject('两次输入的密码不一致')
+          return Promise.reject(t('msg_password_mismatch'))
         }
         return Promise.resolve()
       }
@@ -100,7 +102,7 @@ const handleOk = () => {
     saveProfile({
       ...toRaw(formState)
     }).then((res) => {
-      message.success(`修改成功`)
+      message.success(t('msg_modify_success'))
       show.value = false
       emit('ok')
     })

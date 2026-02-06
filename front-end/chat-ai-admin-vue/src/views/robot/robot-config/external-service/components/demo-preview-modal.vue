@@ -1,16 +1,16 @@
 <template>
   <div>
-    <a-modal v-model:open="open" :width="746" title="未认证公众号回复效果示例" :footer="null">
+    <a-modal v-model:open="open" :width="746" :title="t('title_unauthorized_public_account_reply')" :footer="null">
       <div class="content-block">
         <div class="img-wrapper-box">
-          <div class="title">用户咨询自动回复效果示例</div>
+          <div class="title">{{ t('title_user_consultation_reply') }}</div>
           <img
             src="https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/wechat-app/guide1.png"
             alt=""
           />
         </div>
         <div class="img-wrapper-box">
-          <div class="title">回复内容超长自动分段效果示例</div>
+          <div class="title">{{ t('title_long_content_segmentation') }}</div>
           <img
             src="https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/wechat-app/guide2.png"
             alt=""
@@ -23,6 +23,9 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+const { t } = useI18n('views.robot.robot-config.external-service.components.demo-preview-modal')
+
 const open = ref(false)
 
 const show = () => {

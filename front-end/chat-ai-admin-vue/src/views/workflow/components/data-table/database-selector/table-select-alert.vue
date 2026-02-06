@@ -79,7 +79,7 @@
 </style>
 
 <template>
-  <a-modal width="746px" v-model:open="show" title="关联数据表" ok-text="确定" cancel-text="取消" @ok="saveCheckedList">
+  <a-modal width="746px" v-model:open="show" :title="t('title_relate_data_table')" :ok-text="t('btn_confirm')" :cancel-text="t('btn_cancel')" @ok="saveCheckedList">
     <div class="library-checkbox-box">
 
       <a-radio-group v-model:value="loaclValue" style="width: 100%" v-if="options.length">
@@ -96,8 +96,8 @@
       <div class="empty-box" v-if="!options.length">
         <img src="@/assets/img/library/preview/empty.png" alt="" />
         <div>
-          暂无数据表, 请先去添加数据表
-          <a @click="openAddLibrary"> 去添加</a>
+          {{ t('msg_no_data_table') }}
+          <a @click="openAddLibrary"> {{ t('btn_go_add') }}</a>
         </div>
       </div>
     </div>
@@ -106,6 +106,9 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.data-table.database-selector.table-select-alert')
 
 const emit = defineEmits(['ok'])
 

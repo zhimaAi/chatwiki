@@ -1,0 +1,23 @@
+{
+  "desc_generate_image": "通过文字描述/添加参考图片生成图片",
+  "label_model_settings": "模型设置",
+  "label_model": "模型",
+  "label_ratio": "比例",
+  "ph_select": "请选择",
+  "label_max_count": "最大生成数量",
+  "tip_max_count": "最多生成几张图片，实际生成图片数量请在提示词里面指定（比如：请生成4张图片），但是不会超过最大数量。",
+  "label_watermark": "右下水印",
+  "label_show": "显示",
+  "label_hide": "不显示",
+  "label_optimize_prompt": "优化提示词",
+  "label_enable": "开启",
+  "label_disable": "关闭",
+  "label_input": "输入",
+  "label_prompt": "提示词",
+  "ph_input_message": "请输入消息内容，键入\"/\"可以插入变量",
+  "label_reference_image": "参考图URL",
+  "ph_input_value": "请输入变量值，键入\"/\"插入变量",
+  "btn_add_reference_image": "新增参考图",
+  "msg_max_images_limit": "最多添加{val}张参考图",
+  "label_output": "输出"
+}

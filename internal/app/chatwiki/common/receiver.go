@@ -15,7 +15,7 @@ import (
 
 func createNewReceiver(params *define.ChatRequestParam, sessionId int64) {
 	if len(params.Customer) > 0 && cast.ToInt(params.Customer[`is_background`]) > 0 {
-		return //实时会话里面不展示聊天测试的会话
+		return // Do not display chat test sessions in real-time sessions
 	}
 	var appId string
 	if len(params.ChatBaseParam.AppInfo) > 0 {
@@ -25,7 +25,7 @@ func createNewReceiver(params *define.ChatRequestParam, sessionId int64) {
 	for _, item := range GetChannelList(params.ChatBaseParam.AdminUserId, cast.ToUint(params.ChatBaseParam.Robot[`id`])) {
 		channels[fmt.Sprintf(`%s_%s`, item.AppType, item.AppId)] = item.AppName
 	}
-	question := GetFirstQuestionByInput(params.Question) //多模态输入特殊处理
+	question := GetFirstQuestionByInput(params.Question) // Special handling for multimodal input
 	appName := channels[fmt.Sprintf(`%s_%s`, params.ChatBaseParam.AppType, appId)]
 	data := msql.Datas{
 		`admin_user_id`:     params.ChatBaseParam.AdminUserId,
@@ -52,7 +52,7 @@ func createNewReceiver(params *define.ChatRequestParam, sessionId int64) {
 		data[`name`] = lib_define.DefaultCustomerName
 		data[`avatar`] = define.DefaultCustomerAvatar
 	}
-	//获取关联用户信息
+	// Get associated user info
 	if params.RelUserId > 0 {
 		FillRelUserInfo(data, params.RelUserId)
 	}
@@ -62,7 +62,7 @@ func createNewReceiver(params *define.ChatRequestParam, sessionId int64) {
 		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 		return
 	}
-	//websocket notify
+	// WebSocket notify
 	ReceiverChangeNotify(params.ChatBaseParam.AdminUserId, `create`, ToStringMap(data, `id`, id))
 }
 
@@ -81,13 +81,13 @@ func updateReceiver(sessionId int, lastChat msql.Datas, isCustomer int) {
 	if isCustomer == define.MsgFromCustomer {
 		lastChat[`unread`] = cast.ToInt(info[`unread`]) + 1
 	}
-	//同步更新一下CustomerInfo
+	// Sync update CustomerInfo
 	if customer, _ := GetCustomerInfo(info[`openid`], cast.ToInt(info[`admin_user_id`])); len(customer) > 0 {
 		lastChat[`nickname`] = customer[`nickname`]
 		lastChat[`name`] = customer[`name`]
 		lastChat[`avatar`] = customer[`avatar`]
 	}
-	//获取关联用户信息
+	// Get associated user info
 	relUserId := cast.ToInt(lastChat[`rel_user_id`])
 	if relUserId > 0 {
 		FillRelUserInfo(lastChat, relUserId)
@@ -98,7 +98,7 @@ func updateReceiver(sessionId int, lastChat msql.Datas, isCustomer int) {
 	for key, val := range lastChat {
 		info[key] = cast.ToString(val)
 	}
-	//websocket notify
+	// WebSocket notify
 	ReceiverChangeNotify(cast.ToInt(info[`admin_user_id`]), `update`, info)
 }
 
@@ -148,13 +148,13 @@ func DeleteReceiver() {
 		return
 	}
 	if len(list) == 0 {
-		return //no close receiver
+		return // No closed receiver
 	}
 	for id, adminUserId := range list {
 		if _, err = m.Where(`id`, id).Delete(); err != nil {
 			logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 		}
-		//websocket notify
+		// WebSocket notify
 		ReceiverChangeNotify(cast.ToInt(adminUserId), `delete`, id)
 	}
 }

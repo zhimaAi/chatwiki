@@ -1,0 +1,11 @@
+{
+  "btn_delete": "Delete",
+  "var_knowledge_base_reference": "Knowledge Base Reference",
+  "var_ai_reply_content": "AI Reply Content",
+  "var_message_content": "Message Content",
+  "var_question_optimization_result": "Question Optimization Result",
+  "var_tool_generated_content": "Tool Generated Content",
+  "err_only_right_anchor": "Only right anchor connections allowed",
+  "err_group_connection_rule": "Nodes inside a group can only connect to nodes within the same group; nodes outside can only connect to nodes outside",
+  "err_only_left_anchor": "Only left anchor connections allowed"
+}

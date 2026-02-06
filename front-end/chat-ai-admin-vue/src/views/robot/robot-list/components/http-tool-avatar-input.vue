@@ -12,7 +12,7 @@
       <div>
         <LoadingOutlined v-if="loading" />
         <PlusOutlined v-else />
-        <div class="ant-upload-text">上传照片</div>
+        <div class="ant-upload-text">{{ t('label_upload_photo') }}</div>
       </div>
     </a-upload>
     <a-modal :open="previewVisible" :title="previewTitle" :footer="null" @cancel="handleCancel">
@@ -26,6 +26,9 @@ import { ref, watch } from 'vue'
 import { message, Form } from 'ant-design-vue'
 import { LoadingOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { uploadFile } from '@/api/app'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-list.components.http-tool-avatar-input')
 
 const emit = defineEmits(['update:value'])
 const props = defineProps({
@@ -58,12 +61,12 @@ const triggerChange = (link) => {
 const beforeUpload = (file) => {
   const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
   if (!isJpgOrPng) {
-    message.error('只支持JPG、PNG格式的图片')
+    message.error(t('msg_only_jpg_png'))
     return false
   }
   const isLt2M = file.size / 1024 < 1024 * 2
   if (!isLt2M) {
-    message.error('图片大小不能超过2M')
+    message.error(t('msg_image_size_limit'))
     return false
   }
   fileList.value = [file]
@@ -71,7 +74,7 @@ const beforeUpload = (file) => {
   uploadFile({ file, category: 'http_tool_avatar' }).then((res) => {
     const link = res?.data?.link || ''
     if (!link) {
-      message.error('上传失败')
+      message.error(t('msg_upload_failed'))
       loading.value = false
       return
     }
@@ -79,7 +82,7 @@ const beforeUpload = (file) => {
     triggerChange(link)
   }).catch(() => {
     loading.value = false
-    message.error('上传失败')
+    message.error(t('msg_upload_failed'))
   })
   return false
 }

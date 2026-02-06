@@ -1,0 +1,15 @@
+{
+  "label_old_password": "Old Password",
+  "ph_input_old_password": "Please enter your old password for verification",
+  "label_password": "Login Password",
+  "ph_password_rule": "Password must contain at least two of letters, numbers, or characters, 6-32 characters",
+  "label_confirm_password": "Confirm Password",
+  "ph_reinput_password": "Please re-enter your password",
+  "title_modify_password": "Change Login Password",
+  "msg_input_old_password": "Please enter your old password",
+  "msg_input_password": "Please enter your login password",
+  "msg_password_same": "New password cannot be the same as the old password",
+  "msg_input_confirm_password": "Please enter your confirm password",
+  "msg_password_mismatch": "The two passwords do not match",
+  "msg_modify_success": "Password changed successfully"
+}

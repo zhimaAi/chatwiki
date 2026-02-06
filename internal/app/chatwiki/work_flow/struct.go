@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
 	"encoding/json"
 	"errors"
@@ -399,6 +400,7 @@ type CodeRunNodeParams struct {
 	Timeout   uint                 `json:"timeout"`
 	Output    common.RecurveFields `json:"output"`
 	Exception string               `json:"exception"`
+	Language  string               `json:"language"`
 }
 
 type McpNodeParams struct {
@@ -1073,11 +1075,12 @@ func RemoveVariablePlaceholders(content string) string {
 	return regexp.MustCompile(`【(([a-f0-9]{32}\.)?[a-zA-Z_][a-zA-Z0-9_\-.]*)】`).ReplaceAllString(content, "")
 }
 
-func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int, lang string) (startNodeKey, modelConfigIds, libraryIds string, questionMultipleSwitch bool, err error) {
+func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int, lang string) (startNodeKey, modelConfigIds, libraryIds string, questionMultipleSwitch bool, err error, errNodeKey string) {
 	startNodeCount, finishNodeCount := 0, 0
 	fromNodes := make(FromNodes)
 	for i, node := range nodeList {
 		if err = node.Verify(adminUserId, lang); err != nil {
+			errNodeKey = node.NodeKey
 			return
 		}
 		if node.NodeType <= NodeTypeEdges {
@@ -1115,6 +1118,7 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int, lang string) 
 							}
 							if !boolExist {
 								err = errors.New(i18n.Show(lang, `node_next_node_not_exist`, node.NodeName))
+								errNodeKey = node.NodeKey
 								return
 							}
 						}
@@ -1154,11 +1158,13 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int, lang string) 
 		}
 		if _, ok := fromNodes[node.NodeKey]; !ok {
 			err = errors.New(i18n.Show(lang, `workflow_has_isolated_node`, node.NodeName))
+			errNodeKey = node.NodeKey
 			return
 		}
 		//Verify that the selected variable must exist
 		err = verifyNode(adminUserId, node, fromNodes, nodeList, lang)
 		if err != nil {
+			errNodeKey = node.NodeKey
 			return
 		}
 	}
@@ -2033,18 +2039,31 @@ func (params *CodeRunNodeParams) Verify(lang string) error {
 		}
 		maps[param.Field] = struct{}{}
 	}
-	ok, err := regexp.MatchString(`function\s+main\s*\(.*\)\s*\{`, params.MainFunc)
-	if err != nil || !ok {
-		return errors.New(i18n.Show(lang, `javascript_code_missing_main_function`))
+
+	if params.Language == lib_define.LanguagePython {
+		ok, err := regexp.MatchString(`def\s+main\s*\(.*\)\s*\:`, params.MainFunc)
+		if err != nil || !ok {
+			return errors.New(`python_code_missing_main_function`)
+		}
+	} else {
+		ok, err := regexp.MatchString(`function\s+main\s*\(.*\)\s*\{`, params.MainFunc)
+		if err != nil || !ok {
+			return errors.New(i18n.Show(lang, `javascript_code_missing_main_function`))
+		}
 	}
+
 	if params.Timeout < 1 || params.Timeout > 60 {
 		return errors.New(i18n.Show(lang, `code_run_timeout_range`))
 	}
-	if err = params.Output.Verify(lang); err != nil {
-		return err
+	if outputErr := params.Output.Verify(lang); outputErr != nil {
+		return outputErr
 	}
 	if len(params.Exception) == 0 || !common.IsMd5Str(params.Exception) {
 		return errors.New(i18n.Show(lang, `exception_handling_next_node_not_specified`))
+	}
+
+	if len(params.Language) != 0 && !tool.InArrayString(params.Language, []string{lib_define.LanguageJavaScript, lib_define.LanguagePython}) {
+		return errors.New(i18n.Show(lang, `please_select_language`))
 	}
 	return nil
 }

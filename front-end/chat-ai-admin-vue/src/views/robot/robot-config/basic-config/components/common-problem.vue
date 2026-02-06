@@ -147,10 +147,10 @@
 <template>
   <div class="common-problem-box">
     <div class="left-content-box">
-      <edit-box class="setting-box" title="常见问题设置" icon-name="common-quession">
+      <edit-box class="setting-box" :title="t('title_common_problem_settings')" icon-name="common-quession">
         <template #icon>
           <a-tooltip>
-            <template #title>最多10条。开启后，常见问题会显示在每条问答后面</template>
+            <template #title>{{ t('tooltip_max_10_items') }}</template>
             <QuestionCircleOutlined class="quess-icon" />
           </a-tooltip>
         </template>
@@ -161,17 +161,17 @@
             checkedValue="true"
             unCheckedValue="false"
             v-model:checked="robotInfo.enable_common_question"
-            checked-children="开"
-            un-checked-children="关"
+            :checked-children="t('switch_on')"
+            :un-checked-children="t('switch_off')"
           />
           <a-divider type="vertical" />
-          <a-button type="primary" size="small" @click="open">添加</a-button>
+          <a-button type="primary" size="small" @click="open">{{ t('btn_add') }}</a-button>
         </template>
         <div class="empty-box" v-if="common_question_list.length == 0">
           <img src="@/assets/empty.png" alt="" />
-          <div class="title">暂无数据</div>
-          <div class="desc">常见问题会显示在每条对话后面,供用户快速提问</div>
-          <a-button @click="open" type="primary">立即添加</a-button>
+          <div class="title">{{ t('empty_no_data') }}</div>
+          <div class="desc">{{ t('empty_desc') }}</div>
+          <a-button @click="open" type="primary">{{ t('btn_add_now') }}</a-button>
         </div>
         <div class="lists-box" v-else>
           <draggable
@@ -204,7 +204,7 @@
           class="question-box"
           v-if="common_question_list.length && robotInfo.enable_common_question == 'true'"
         >
-          <div class="name">常见问题</div>
+          <div class="name">{{ t('label_common_problem') }}</div>
           <div class="list-item" v-for="item in common_question_list" :key="item">
             {{ item }}
           </div>
@@ -214,13 +214,13 @@
         <img class="footer-img" src="@/assets/img/robot/preview/phone-footer.png" alt="" />
       </div>
     </div>
-    <a-modal v-model:open="show" :title="modalTitle" @ok="handleOk" width="476px">
+    <a-modal v-model:open="show" :title="t(modalTitle)" @ok="handleOk" width="476px">
       <a-form class="form-box" layout="vertical">
-        <a-form-item label="问题名称" v-bind="validateInfos.question">
+        <a-form-item :label="t('label_question_name')" v-bind="validateInfos.question">
           <a-input
             :maxLength="100"
             v-model:value="formState.question"
-            placeholder="请输入问题"
+            :placeholder="t('ph_input_question')"
           ></a-input>
         </a-form-item>
       </a-form>
@@ -238,6 +238,9 @@ import {
   QuestionCircleOutlined
 } from '@ant-design/icons-vue'
 import EditBox from './edit-box.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.common-problem')
 const isEdit = ref(false)
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
 const common_question_list = computed(() => {
@@ -250,7 +253,7 @@ watch(common_question_list, () => {
 })
 const useForm = Form.useForm
 const show = ref(false)
-const modalTitle = ref('添加问题')
+const modalTitle = ref('modal_title_add')
 const formState = reactive({
   question: '',
   index: -1
@@ -259,7 +262,7 @@ const formState = reactive({
 const formRules = reactive({
   question: [
     {
-      message: '请输入问题名称',
+      message: t('msg_input_question_name'),
       required: true
     }
   ]
@@ -269,29 +272,31 @@ const { resetFields, validate, validateInfos } = useForm(formState, formRules)
 
 const open = () => {
   if (common_question_list.value.length >= 10) {
-    return message.error('最多设置10条常用问题')
+    return message.error(t('msg_max_10_questions'))
   }
   show.value = true
   resetFields()
   formState.question = ''
   formState.index = -1
+  modalTitle.value = 'modal_title_add'
 }
 const edit = (question, index) => {
   show.value = true
   resetFields()
   formState.question = question
   formState.index = index
+  modalTitle.value = 'modal_title_edit'
 }
 const delQuestion = (index) => {
   let commonQuestionList = []
   commonQuestionList = common_question_list.value.filter((item, i) => index != i)
   Modal.confirm({
-    title: '提醒',
+    title: t('modal_title_remind'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确定要删除该问题吗?',
-    okText: '确定',
+    content: t('modal_content_confirm_delete'),
+    okText: t('btn_confirm'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('btn_cancel'),
     onOk() {
       updateRobotInfo({
         common_question_list: JSON.stringify(commonQuestionList)

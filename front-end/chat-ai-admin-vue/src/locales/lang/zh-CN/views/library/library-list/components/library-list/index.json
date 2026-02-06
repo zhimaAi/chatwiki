@@ -7,8 +7,8 @@
   "official_account_knowledge_base": "公众号",
   "delete": "删除",
   "modify_group": "修改分组",
-  "document": "文档",
-  "size": "大小",
+  "document_count": "文档数量",
+  "storage_size": "存储大小",
   "related_app": "关联应用",
   "colon": "："
 }

@@ -19,7 +19,7 @@
                 style="min-height: 300px"
                 v-model:value.trim="formState.content"
                 auto-size
-                placeholder="请输入注释"
+                :placeholder="t('ph_input_comment')"
               />
             </div>
           </div>
@@ -30,9 +30,12 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
 import { reactive, watch, onMounted, h } from 'vue'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.explain-node-form.index')
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({

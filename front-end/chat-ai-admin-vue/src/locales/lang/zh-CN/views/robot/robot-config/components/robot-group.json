@@ -1,0 +1,16 @@
+{
+  "title_robot_groups": "机器人分组",
+  "title_create_group": "新建分组",
+  "ph_search_groups": "搜索分组",
+  "btn_rename": "重命名",
+  "btn_delete": "删 除",
+  "title_expand_groups": "展开分组",
+  "title_collapse_groups": "收起分组",
+  "label_chat_robot": "聊天机器人",
+  "label_workflow": "工作流",
+  "label_all": "全部",
+  "msg_confirm_delete_group": "确认删除分组{name}",
+  "btn_confirm": "确认",
+  "btn_cancel": "取消",
+  "msg_delete_success": "删除成功"
+}

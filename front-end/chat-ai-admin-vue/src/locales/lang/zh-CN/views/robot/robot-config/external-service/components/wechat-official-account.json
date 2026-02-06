@@ -1,0 +1,14 @@
+{
+  "support_unverified_account": "支持接入未认证公众号",
+  "view_demo": "查看效果示例",
+  "associate_official_account": "关联公众号",
+  "unverified_account_reply_settings": "未认证公众号回复设置",
+  "verified_account_reply_settings": "已认证公众号回复设置",
+  "no_official_account_associated": "暂未关联公众号",
+  "refresh_success": "刷新成功",
+  "confirm_remove": "确定移除{app_name}吗?",
+  "remove_warning": "移除后，机器人无法继续回复用户消息。",
+  "confirm": "确定",
+  "cancel": "取消",
+  "delete_success": "删除成功"
+}

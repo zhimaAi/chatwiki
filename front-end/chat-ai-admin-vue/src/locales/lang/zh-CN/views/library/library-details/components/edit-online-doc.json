@@ -1,0 +1,14 @@
+{
+  "title_add_online_data": "添加在线数据",
+  "label_file_name": "文件名称",
+  "ph_input": "请输入",
+  "label_update_frequency": "更新频率",
+  "option_no_auto_update": "不自动更新",
+  "option_daily": "每天",
+  "option_every_3_days": "每3天",
+  "option_every_7_days": "每7天",
+  "option_every_30_days": "每30天",
+  "label_update_time": "更新时间",
+  "msg_input_file_name": "请输入文档名称",
+  "msg_select_update_frequency": "请选择更新频率"
+}

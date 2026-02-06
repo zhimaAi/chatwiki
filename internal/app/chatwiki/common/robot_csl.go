@@ -28,13 +28,13 @@ const RobotCslKey = `A8R0pvUT7fuCLm4idsBV1IkSD6EZg9HO`
 type RobotCsl struct {
 	StartTime time.Time           `json:"start_time"`
 	EndTime   time.Time           `json:"end_time"`
-	Robot     msql.Params         `json:"robot"`               //机器人配置信息
-	FileName  string              `json:"file_name"`           //导出的文件名称
-	Category  msql.Params         `json:"category"`            //文件分段精选配置
-	Librarys  map[int]*LibraryCsl `json:"librarys,omitempty"`  //机器人涉及的知识库
-	Forms     map[int]*FormCsl    `json:"forms,omitempty"`     //机器人涉及的数据表
-	Nodes     []msql.Params       `json:"nodes"`               //工作流草稿节点数据
-	Workflows []*RobotCsl         `json:"workflows,omitempty"` //机器人关联的工作流
+	Robot     msql.Params         `json:"robot"`               // Robot configuration information
+	FileName  string              `json:"file_name"`           // Exported file name
+	Category  msql.Params         `json:"category"`            // File segment refinement configuration
+	Librarys  map[int]*LibraryCsl `json:"librarys,omitempty"`  // Knowledge bases involved in the robot
+	Forms     map[int]*FormCsl    `json:"forms,omitempty"`     // Data tables involved in the robot
+	Nodes     []msql.Params       `json:"nodes"`               // Workflow draft node data
+	Workflows []*RobotCsl         `json:"workflows,omitempty"` // Workflows associated with the robot
 }
 
 func NewRobotCsl() *RobotCsl {
@@ -79,11 +79,11 @@ func ParseRobotCsl(content string) (robotCsl *RobotCsl, err error) {
 }
 
 type LibraryCsl struct {
-	Library       msql.Params   `json:"library"`        //知识库配置信息
-	QuestionGuide []msql.Params `json:"question_guide"` //对外文档引导
-	LibGroups     []msql.Params `json:"lib_groups"`     //知识库分组信息
-	LibFiles      []*LibFileCsl `json:"lib_files"`      //知识库文件信息
-	FileDocs      []msql.Params `json:"file_docs"`      //对外文档文件列表
+	Library       msql.Params   `json:"library"`        // Knowledge base configuration information
+	QuestionGuide []msql.Params `json:"question_guide"` // External document guide
+	LibGroups     []msql.Params `json:"lib_groups"`     // Knowledge base grouping information
+	LibFiles      []*LibFileCsl `json:"lib_files"`      // Knowledge base file information
+	FileDocs      []msql.Params `json:"file_docs"`      // External document file list
 }
 
 func BuildLibraryCsl(lang string, libraryId, adminUserId int, importData bool) (libraryCsl *LibraryCsl, err error) {
@@ -98,7 +98,7 @@ func BuildLibraryCsl(lang string, libraryId, adminUserId int, importData bool) (
 		err = errors.New(i18n.Show(lang, `library_id_param_error`))
 		return
 	}
-	//知识库配置信息
+	// Knowledge base configuration information
 	library, sqlErr := GetLibraryInfo(libraryId, adminUserId)
 	if sqlErr != nil {
 		err = sqlErr
@@ -114,7 +114,7 @@ func BuildLibraryCsl(lang string, libraryId, adminUserId int, importData bool) (
 		return
 	}
 
-	//对外文档引导
+	// External document guide
 	questionGuide, sqlErr := msql.Model(`chat_ai_library_question_guide `, define.Postgres).
 		Where(`library_id`, cast.ToString(libraryId)).Order(`id`).Select()
 	if sqlErr != nil {
@@ -122,7 +122,7 @@ func BuildLibraryCsl(lang string, libraryId, adminUserId int, importData bool) (
 		return
 	}
 	libraryCsl.QuestionGuide = questionGuide
-	//知识库分组信息
+	// Knowledge base grouping information
 	libGroups, sqlErr := msql.Model(`chat_ai_library_group`, define.Postgres).
 		Where(`library_id`, cast.ToString(libraryId)).Order(`id`).Select()
 	if sqlErr != nil {
@@ -130,7 +130,7 @@ func BuildLibraryCsl(lang string, libraryId, adminUserId int, importData bool) (
 		return
 	}
 	libraryCsl.LibGroups = libGroups
-	//知识库文件信息
+	// Knowledge base file information
 	libFiles, sqlErr := msql.Model(`chat_ai_library_file`, define.Postgres).
 		Where(`library_id`, cast.ToString(libraryId)).Order(`id`).Select()
 	if sqlErr != nil {
@@ -145,7 +145,7 @@ func BuildLibraryCsl(lang string, libraryId, adminUserId int, importData bool) (
 			logs.Error(sqlErr.Error())
 		}
 	}
-	//对外文档文件列表
+	// External document file list
 	fileDocs, sqlErr := msql.Model(`chat_ai_library_file_doc `, define.Postgres).Where(`delete_time`, `0`).
 		Where(`library_id`, cast.ToString(libraryId)).Order(`sort desc`).Order(`id`).Select()
 	if sqlErr != nil {
@@ -156,9 +156,9 @@ func BuildLibraryCsl(lang string, libraryId, adminUserId int, importData bool) (
 	return
 }
 
-func RequestChatWiki(path, method, token string, params map[string]string) (lib_web.Response, error) {
+func RequestChatWiki(lang string, path, method, token string, params map[string]string) (lib_web.Response, error) {
 	link := fmt.Sprintf(`http://127.0.0.1:%s%s`, define.Config.WebService[`port`], path)
-	request := curl.NewRequest(link, method).Header(`token`, token)
+	request := curl.NewRequest(link, method).Header(`token`, token).Header(`lang`, lang)
 	for key, item := range params {
 		request.Param(key, item)
 	}
@@ -179,8 +179,8 @@ func RequestChatWiki(path, method, token string, params map[string]string) (lib_
 	return code, nil
 }
 
-func (libraryCsl *LibraryCsl) Import(adminUserId, userId int, cslIdMaps *CslIdMaps, models *DefaultModelParams, token string) error {
-	//知识库配置信息
+func (libraryCsl *LibraryCsl) Import(lang string, adminUserId, userId int, cslIdMaps *CslIdMaps, models *DefaultModelParams, token string) error {
+	// Knowledge base configuration information
 	oldLibraryId := cast.ToInt(libraryCsl.Library[`id`])
 	libraryData := make(map[string]string)
 	for key, val := range libraryCsl.Library {
@@ -211,7 +211,7 @@ func (libraryCsl *LibraryCsl) Import(adminUserId, userId int, cslIdMaps *CslIdMa
 
 	base_library_name := libraryData[`library_name`]
 	library_name_arr := strings.Split(libraryData[`library_name`], "_")
-	if cast.ToInt(library_name_arr[len(library_name_arr)-1]) > 0 { //如果最后一位是数字
+	if cast.ToInt(library_name_arr[len(library_name_arr)-1]) > 0 { // If the last character is a digit
 		base_library_name = strings.Join(library_name_arr[:len(library_name_arr)-1], "_")
 	}
 
@@ -223,13 +223,13 @@ func (libraryCsl *LibraryCsl) Import(adminUserId, userId int, cslIdMaps *CslIdMa
 	libraryData[`library_name`] = base_library_name
 
 	libraryData[`is_default`] = cast.ToString(define.NotDefault)
-	code, err := RequestChatWiki(`/manage/createLibrary`, http.MethodPost, token, libraryData)
+	code, err := RequestChatWiki(lang, `/manage/createLibrary`, http.MethodPost, token, libraryData)
 	if err != nil {
 		return err
 	}
 	newLibraryId := cast.ToInt(cast.ToStringMap(code.Data)[`id`])
 	cslIdMaps.Librarys[oldLibraryId] = newLibraryId
-	//对外文档引导
+	// External document guide
 	for _, questionGuide := range libraryCsl.QuestionGuide {
 		questionGuideData := msql.Datas{`admin_user_id`: adminUserId, `library_id`: newLibraryId}
 		for key, val := range questionGuide {
@@ -242,7 +242,7 @@ func (libraryCsl *LibraryCsl) Import(adminUserId, userId int, cslIdMaps *CslIdMa
 			logs.Error(err.Error())
 		}
 	}
-	//知识库分组信息
+	// Knowledge base grouping information
 	for _, libGroup := range libraryCsl.LibGroups {
 		oldLibGroupId := cast.ToInt(libGroup[`id`])
 		libGroupData := msql.Datas{`admin_user_id`: adminUserId, `library_id`: newLibraryId}
@@ -257,15 +257,15 @@ func (libraryCsl *LibraryCsl) Import(adminUserId, userId int, cslIdMaps *CslIdMa
 		}
 		cslIdMaps.LibGroups[oldLibGroupId] = int(newLibGroupId)
 	}
-	//知识库文件信息
+	// Knowledge base file information
 	for _, LibFile := range libraryCsl.LibFiles {
-		err = LibFile.Import(adminUserId, newLibraryId, cslIdMaps, models, token)
+		err = LibFile.Import(lang, adminUserId, newLibraryId, cslIdMaps, models, token)
 		if err != nil {
 			logs.Error(err.Error())
 		}
 	}
-	//对外文档文件列表
-	tempMaps := make(map[int]int) //新文件id=>旧的pid
+	// External document file list
+	tempMaps := make(map[int]int) // New file id => old pid
 	for _, fileDoc := range libraryCsl.FileDocs {
 		oldFileDocId := cast.ToInt(fileDoc[`id`])
 		oldFileDocPId := cast.ToInt(fileDoc[`pid`])
@@ -275,13 +275,13 @@ func (libraryCsl *LibraryCsl) Import(adminUserId, userId int, cslIdMaps *CslIdMa
 		if err != nil {
 			logs.Error(err.Error())
 		}
-		if oldFileDocPId > 0 { //有父级的情况下,先记录一下
+		if oldFileDocPId > 0 { // If there is a parent, record it first
 			tempMaps[newFileDocId] = oldFileDocPId
 		}
 		cslIdMaps.FileDocs[oldFileDocId] = newFileDocId
 	}
 	for newFileDocId, oldFileDocPId := range tempMaps {
-		if newFileDocPId := cslIdMaps.FileDocs[oldFileDocPId]; newFileDocPId > 0 { //更新pid关系
+		if newFileDocPId := cslIdMaps.FileDocs[oldFileDocPId]; newFileDocPId > 0 { // Update pid relationship
 			if _, err = ChangeLibDoc(newFileDocId, msql.Datas{`pid`: newFileDocPId}); err != nil {
 				logs.Error(err.Error())
 			}
@@ -291,8 +291,8 @@ func (libraryCsl *LibraryCsl) Import(adminUserId, userId int, cslIdMaps *CslIdMa
 }
 
 type LibFileCsl struct {
-	LibFile  msql.Params   `json:"lib_file"`  //知识库文件信息
-	FileData []msql.Params `json:"file_data"` //文件分段列表
+	LibFile  msql.Params   `json:"lib_file"`  // Knowledge base file information
+	FileData []msql.Params `json:"file_data"` // File segment list
 }
 
 func BuildLibFileCsl(libFile msql.Params) (libFileCsl *LibFileCsl, err error) {
@@ -300,7 +300,7 @@ func BuildLibFileCsl(libFile msql.Params) (libFileCsl *LibFileCsl, err error) {
 		LibFile:  libFile,
 		FileData: make([]msql.Params, 0),
 	}
-	//文件分段列表
+	// File segment list
 	fileData, sqlErr := msql.Model(`chat_ai_library_file_data `, define.Postgres).
 		Where(`file_id`, libFile[`id`]).Order(`page_num,father_chunk_paragraph_number,number`).Order(`id`).Select()
 	if sqlErr != nil {
@@ -311,15 +311,15 @@ func BuildLibFileCsl(libFile msql.Params) (libFileCsl *LibFileCsl, err error) {
 	return
 }
 
-func (libFileCsl *LibFileCsl) Import(adminUserId, libraryId int, cslIdMaps *CslIdMaps, models *DefaultModelParams, token string) error {
-	//知识库文件信息
+func (libFileCsl *LibFileCsl) Import(lang string, adminUserId, libraryId int, cslIdMaps *CslIdMaps, models *DefaultModelParams, token string) error {
+	// Knowledge base file information
 	oldLibFileId := cast.ToInt(libFileCsl.LibFile[`id`])
 	libFileData := msql.Datas{`admin_user_id`: adminUserId, `library_id`: libraryId}
 	for key, val := range libFileCsl.LibFile {
 		switch key {
 		case `id`, `admin_user_id`, `library_id`, `ai_chunk_task_id`, `ali_ocr_job_id`, `group_id`:
 		case `status`:
-			libFileData[key] = define.FileStatusLearned //设置为完成
+			libFileData[key] = define.FileStatusLearned // Set as completed
 		case `semantic_chunk_model_config_id`:
 			if cast.ToInt(val) > 0 {
 				libFileData[key] = models.VectorModelConfigId
@@ -345,7 +345,7 @@ func (libFileCsl *LibFileCsl) Import(adminUserId, libraryId int, cslIdMaps *CslI
 		return err
 	}
 	cslIdMaps.LibFiles[oldLibFileId] = int(newLibFileId)
-	//文件分段列表
+	// File segment list
 	for _, fileData := range libFileCsl.FileData {
 		params := map[string]string{`library_id`: cast.ToString(libraryId), `file_id`: cast.ToString(newLibFileId)}
 		for key, val := range fileData {
@@ -361,7 +361,7 @@ func (libFileCsl *LibFileCsl) Import(adminUserId, libraryId int, cslIdMaps *CslI
 				params[key] = val
 			}
 		}
-		_, err = RequestChatWiki(`/manage/addParagraph`, http.MethodPost, token, params)
+		_, err = RequestChatWiki(lang, `/manage/addParagraph`, http.MethodPost, token, params)
 		if err != nil {
 			logs.Error(err.Error())
 		}
@@ -370,12 +370,12 @@ func (libFileCsl *LibFileCsl) Import(adminUserId, libraryId int, cslIdMaps *CslI
 }
 
 type FormCsl struct {
-	Form                msql.Params   `json:"form"`                  //数据表配置信息
-	FormEntry           []msql.Params `json:"form_entry"`            //数据表的行数据
-	FormField           []msql.Params `json:"form_field"`            //数据表的字段信息
-	FormFieldValue      []msql.Params `json:"form_field_value"`      //数据表的key-val
-	FormFilter          []msql.Params `json:"form_filter"`           //数据表的分类配置
-	FormFilterCondition []msql.Params `json:"form_filter_condition"` //数据表的分类条件
+	Form                msql.Params   `json:"form"`                  // Data table configuration information
+	FormEntry           []msql.Params `json:"form_entry"`            // Data table row data
+	FormField           []msql.Params `json:"form_field"`            // Data table field information
+	FormFieldValue      []msql.Params `json:"form_field_value"`      // Data table key-value pairs
+	FormFilter          []msql.Params `json:"form_filter"`           // Data table classification configuration
+	FormFilterCondition []msql.Params `json:"form_filter_condition"` // Data table classification conditions
 }
 
 func BuildFormCsl(lang string, formId, adminUserId int, importData bool) (formCsl *FormCsl, err error) {
@@ -391,7 +391,7 @@ func BuildFormCsl(lang string, formId, adminUserId int, importData bool) (formCs
 		err = errors.New(i18n.Show(lang, `form_id_param_error`))
 		return
 	}
-	//数据表配置信息
+	// Data table configuration information
 	form, sqlErr := msql.Model(`form`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`id`, cast.ToString(formId)).Find()
 	if sqlErr != nil {
@@ -403,7 +403,7 @@ func BuildFormCsl(lang string, formId, adminUserId int, importData bool) (formCs
 		return
 	}
 	formCsl.Form = form
-	//数据表的行数据
+	// Data table row data
 	if importData {
 		formEntry, sqlErr := msql.Model(`form_entry`, define.Postgres).
 			Where(`form_id`, cast.ToString(formId)).Where(`delete_time`, `0`).Order(`id`).Select()
@@ -413,7 +413,7 @@ func BuildFormCsl(lang string, formId, adminUserId int, importData bool) (formCs
 		}
 		formCsl.FormEntry = formEntry
 	}
-	//数据表的字段信息
+	// Data table field information
 	formField, sqlErr := msql.Model(`form_field`, define.Postgres).
 		Where(`form_id`, cast.ToString(formId)).Order(`id`).Select()
 	if sqlErr != nil {
@@ -421,7 +421,7 @@ func BuildFormCsl(lang string, formId, adminUserId int, importData bool) (formCs
 		return
 	}
 	formCsl.FormField = formField
-	//数据表的key-val
+	// Data table key-value pairs
 	if len(formCsl.FormEntry) > 0 {
 		formEntryIds := make([]string, 0)
 		for _, item := range formCsl.FormEntry {
@@ -435,7 +435,7 @@ func BuildFormCsl(lang string, formId, adminUserId int, importData bool) (formCs
 		}
 		formCsl.FormFieldValue = formFieldValue
 	}
-	//数据表的分类配置
+	// Data table classification configuration
 	formFilter, sqlErr := msql.Model(`form_filter`, define.Postgres).
 		Where(`form_id`, cast.ToString(formId)).Order(`id`).Select()
 	if sqlErr != nil {
@@ -443,7 +443,7 @@ func BuildFormCsl(lang string, formId, adminUserId int, importData bool) (formCs
 		return
 	}
 	formCsl.FormFilter = formFilter
-	//数据表的分类条件
+	// Data table classification conditions
 	if len(formFilter) > 0 {
 		formFilterIds := make([]string, 0)
 		for _, item := range formFilter {
@@ -461,7 +461,7 @@ func BuildFormCsl(lang string, formId, adminUserId int, importData bool) (formCs
 }
 
 func (formCsl *FormCsl) Import(adminUserId int, cslIdMaps *CslIdMaps) error {
-	//数据表配置信息
+	// Data table configuration information
 	oldFormId := cast.ToInt(formCsl.Form[`id`])
 	formData := msql.Datas{`admin_user_id`: adminUserId}
 	for key, val := range formCsl.Form {
@@ -473,13 +473,13 @@ func (formCsl *FormCsl) Import(adminUserId int, cslIdMaps *CslIdMaps) error {
 	tableName := strings.Split(cast.ToString(formData["name"]), "_")
 	realTableName := ""
 	tableSuffix := cast.ToInt(tableName[len(tableName)-1])
-	if tableSuffix > 0 { //如果有后缀
+	if tableSuffix > 0 { // If there is a suffix
 		realTableName = strings.Join(tableName[:len(tableName)-1], "_")
 	} else {
 		realTableName = strings.Join(tableName, "_")
 	}
 
-	//进行同名表验证
+	// Validate table with same name
 	dbNameCount, err := msql.Model(`form`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`name`, `like`, realTableName).Count(`id`)
 	if err != nil {
 		logs.Error(err.Error())
@@ -494,9 +494,9 @@ func (formCsl *FormCsl) Import(adminUserId int, cslIdMaps *CslIdMaps) error {
 		return err
 	}
 	cslIdMaps.Forms[oldFormId] = int(newFormId)
-	//新表名
+	// New table name
 	cslIdMaps.FormsName[int(newFormId)] = cast.ToString(formData[`name`])
-	//数据表的字段信息
+	// Data table field information
 	for _, formField := range formCsl.FormField {
 		oldFormFieldId := cast.ToInt(formField[`id`])
 		formFieldData := msql.Datas{`admin_user_id`: adminUserId, `form_id`: newFormId}
@@ -512,7 +512,7 @@ func (formCsl *FormCsl) Import(adminUserId int, cslIdMaps *CslIdMaps) error {
 		cslIdMaps.FormFields[oldFormFieldId] = int(newFormFieldId)
 	}
 
-	//数据表的行数据
+	// Data table row data
 	for _, formEntry := range formCsl.FormEntry {
 		oldFormEntryId := cast.ToInt(formEntry[`id`])
 		formEntryData := msql.Datas{`admin_user_id`: adminUserId, `form_id`: newFormId}
@@ -528,7 +528,7 @@ func (formCsl *FormCsl) Import(adminUserId int, cslIdMaps *CslIdMaps) error {
 		cslIdMaps.FormEntrys[oldFormEntryId] = int(newFormEntryId)
 	}
 
-	//数据表的key-val
+	// Data table key-value pairs
 	for _, formFieldValue := range formCsl.FormFieldValue {
 		formEntryId := cslIdMaps.FormEntrys[cast.ToInt(formFieldValue[`form_entry_id`])]
 		formFieldId := cslIdMaps.FormFields[cast.ToInt(formFieldValue[`form_field_id`])]
@@ -543,7 +543,7 @@ func (formCsl *FormCsl) Import(adminUserId int, cslIdMaps *CslIdMaps) error {
 			return err
 		}
 	}
-	//数据表的分类配置
+	// Data table classification configuration
 	for _, formFilter := range formCsl.FormFilter {
 		oldFormFilterId := cast.ToInt(formFilter[`id`])
 		formFilterData := msql.Datas{`form_id`: newFormId}
@@ -558,7 +558,7 @@ func (formCsl *FormCsl) Import(adminUserId int, cslIdMaps *CslIdMaps) error {
 		}
 		cslIdMaps.FormFilters[oldFormFilterId] = int(newFormFilterId)
 	}
-	//数据表的分类条件
+	// Data table classification conditions
 	for _, formFilterCondition := range formCsl.FormFilterCondition {
 		formFilterId := cslIdMaps.FormFilters[cast.ToInt(formFilterCondition[`form_filter_id`])]
 		formFieldId := cslIdMaps.FormFields[cast.ToInt(formFilterCondition[`form_field_id`])]
@@ -577,17 +577,17 @@ func (formCsl *FormCsl) Import(adminUserId int, cslIdMaps *CslIdMaps) error {
 }
 
 type CslIdMaps struct {
-	Librarys    map[int]int    //知识库id(旧=>新)
-	LibFiles    map[int]int    //知识库文件id(旧=>新)
-	Category    map[int]int    //分段分类(精选)id(旧=>新)
-	LibGroups   map[int]int    //知识库分段分组id(旧=>新)
-	FileDocs    map[int]int    //对外文档文件id(旧=>新)
-	Forms       map[int]int    //数据表id(旧=>新)
-	FormEntrys  map[int]int    //数据表行数据id(旧=>新)
-	FormFields  map[int]int    //数据表字段id(旧=>新)
-	FormFilters map[int]int    //数据表分类id(旧=>新)
-	Workflows   map[int]int    //工作流id(旧=>新)
-	FormsName   map[int]string //数据表名(旧=>新)
+	Librarys    map[int]int    // Knowledge base ID (old=>new)
+	LibFiles    map[int]int    // Knowledge base file ID (old=>new)
+	Category    map[int]int    // Segment classification (refined) ID (old=>new)
+	LibGroups   map[int]int    // Knowledge base segment grouping ID (old=>new)
+	FileDocs    map[int]int    // External document file ID (old=>new)
+	Forms       map[int]int    // Data table ID (old=>new)
+	FormEntrys  map[int]int    // Data table row data ID (old=>new)
+	FormFields  map[int]int    // Data table field ID (old=>new)
+	FormFilters map[int]int    // Data table classification ID (old=>new)
+	Workflows   map[int]int    // Workflow ID (old=>new)
+	FormsName   map[int]string // Data table name (old=>new)
 }
 
 func NewCslIdMaps() *CslIdMaps {
@@ -624,7 +624,7 @@ func GetDefaultModelParams(lang string, adminUserId int) (params *DefaultModelPa
 		return
 	}
 	sort.Slice(configs, func(i, j int) bool {
-		return tool.InArrayString(configs[i][`model_define`], []string{ModelChatWiki}) //优先选取的模型
+		return tool.InArrayString(configs[i][`model_define`], []string{ModelChatWiki}) // Priority model to select
 	})
 	for _, config := range configs {
 		modelInfo, ok := GetModelInfoByConfig(lang, adminUserId, cast.ToInt(config[`id`]))
@@ -635,7 +635,7 @@ func GetDefaultModelParams(lang string, adminUserId int) (params *DefaultModelPa
 			if models := modelInfo.GetLlmModelList(); len(models) > 0 {
 				params.LlmModelConfigId = cast.ToInt(config[`id`])
 				params.LlmUseModel = models[0]
-				//优先使用支持func call的
+				// Prefer to use models that support function calls
 				if models = modelInfo.GetFunctionCallModels(); len(models) > 0 {
 					params.LlmUseModel = models[0]
 				}

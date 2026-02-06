@@ -2,6 +2,10 @@ import {getTMcpProviders} from "@/api/robot/thirdMcp.js";
 import {jsonDecode} from "@/utils/index.js";
 import {getInstallPlugins, runPlugin} from "@/api/plugins/index.js";
 import {getPluginActionDefaultArguments, pluginHasAction} from "@/constants/plugin.js";
+import { i18n } from '@/locales'
+
+// i18n 翻译辅助函数
+const t = (key) => i18n.global.t(`views.workflow.components.nodes.${key}`)
 
 const defaultRowData = {
   node_key: '',
@@ -20,48 +24,48 @@ function getNodeIconUrl(name) {
 export const nodesGroup = [
   {
     key: 'start',
-    name: '开始',
+    name: t('group.start'),
     icon: '',
     hidden: true,
   },
   {
     key: 'large-model-capability',
-    name: '大模型能力',
+    name: t('group.largeModelCapability'),
     icon: ''
   },
   {
     key: 'knowledge-retrieval',
-    name: '知识检索',
+    name: t('group.knowledgeRetrieval'),
     icon: ''
   },
   {
     key: 'database-operation',
-    name: '数据库操作',
+    name: t('group.databaseOperation'),
     icon: ''
   },
   {
     key: 'external-service',
-    name: '外部调用',
+    name: t('group.externalService'),
     icon: ''
   },
   {
     key: 'processing-logic',
-    name: '处理逻辑',
+    name: t('group.processingLogic'),
     icon: ''
   },
   {
     key: 'execute-action',
-    name: '执行动作',
+    name: t('group.executeAction'),
     icon: ''
   },
   {
     key: 'end',
-    name: '结束',
+    name: t('group.end'),
     icon: ''
   },
   {
     key: 'other',
-    name: '其他',
+    name: t('group.other'),
     icon: ''
   }
 ]
@@ -204,7 +208,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 1,
-      node_name: '流程开始',
+      node_name: t('node.workflowStart'),
       node_icon: getNodeIconUrl('start-node'),
       node_icon_name: 'start-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0FFF8 2%, rgba(229, 239, 255, 0) 100%)',
@@ -228,7 +232,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 27,
-      node_name: '循环开始',
+      node_name: t('node.loopStart'),
       node_icon: getNodeIconUrl('start-node'),
       node_icon_name: 'start-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0FFF8 2%, rgba(229, 239, 255, 0) 100%)',
@@ -247,7 +251,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 31,
-      node_name: '批量执行开始',
+      node_name: t('node.batchStart'),
       node_icon: getNodeIconUrl('start-node'),
       node_icon_name: 'start-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0FFF8 2%, rgba(229, 239, 255, 0) 100%)',
@@ -263,7 +267,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 9,
-      node_name: '指定回复',
+      node_name: t('node.specifyReply'),
       node_icon: getNodeIconUrl('specify-reply-node'),
       node_icon_name: 'specify-reply-node',
       node_header_bg_color: 'linear-gradient(180deg, #FFF7F0 2%, rgba(229, 239, 255, 0) 100%)',
@@ -284,7 +288,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 43,
-      node_name: '问答',
+      node_name: t('node.qa'),
       node_icon: getNodeIconUrl('specify-reply-node'),
       node_icon_name: 'specify-reply-node',
       node_header_bg_color: 'linear-gradient(180deg, #FFF7F0 2%, rgba(229, 239, 255, 0) 100%)',
@@ -326,7 +330,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 42,
-      node_name: '立即回复',
+      node_name: t('node.immediatelyReply'),
       node_icon: getNodeIconUrl('specify-reply-node'),
       node_icon_name: 'specify-reply-node',
       node_header_bg_color: 'linear-gradient(180deg, #FFF7F0 2%, rgba(229, 239, 255, 0) 100%)',
@@ -347,7 +351,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 6,
-      node_name: '大模型',
+      node_name: t('node.aiDialogue'),
       node_icon: getNodeIconUrl('ai-dialogue-node'),
       node_icon_name: 'ai-dialogue-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -374,7 +378,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 11,
-      node_name: '问题优化',
+      node_name: t('node.problemOptimization'),
       node_icon: getNodeIconUrl('problem-optimization-node'),
       node_icon_name: 'problem-optimization-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -398,11 +402,11 @@ export const nodeList = [
     groupKey: 'end',
     type: 'end-node',
     width: 420,
-    height: 94,
+    height: 116,
     properties: {
       ...getRowData(),
       node_type: 7,
-      node_name: '结束流程',
+      node_name: t('node.endWorkflow'),
       node_icon: getNodeIconUrl('end-node'),
       node_icon_name: 'end-node',
       node_header_bg_color: 'linear-gradient(180deg, #FFF0F7 2%, rgba(229, 239, 255, 0) 100%)',
@@ -419,11 +423,11 @@ export const nodeList = [
     groupKey: 'end',
     type: 'terminate-node',
     width: 420,
-    height: 94,
+    height: 116,
     properties: {
       ...getRowData(),
       node_type: 26,
-      node_name: '终止循环',
+      node_name: t('node.terminateLoop'),
       node_icon: getNodeIconUrl('end-node'),
       node_icon_name: 'end-node',
       node_header_bg_color: 'linear-gradient(180deg, #FFF0F7 2%, rgba(229, 239, 255, 0) 100%)',
@@ -439,7 +443,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: -1,
-      node_name: '注释卡片',
+      node_name: t('node.noteCard'),
       node_icon: getNodeIconUrl('explain-node'),
       node_icon_name: 'explain-node',
       node_params: JSON.stringify({
@@ -457,7 +461,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 8,
-      node_name: '变量赋值',
+      node_name: t('node.variableAssignment'),
       node_icon: getNodeIconUrl('variable-assignment-node'),
       node_icon_name: 'variable-assignment-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -480,7 +484,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 25,
-      node_name: '循环',
+      node_name: t('node.loop'),
       node_icon: getNodeIconUrl('custom-group-node'),
       node_icon_name: 'custom-group-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -504,7 +508,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 30,
-      node_name: '批量执行',
+      node_name: t('node.batchExecution'),
       node_icon: getNodeIconUrl('batch-group-node'),
       node_icon_name: 'batch-group-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -527,7 +531,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 5,
-      node_name: '检索知识库',
+      node_name: t('node.knowledgeBase'),
       node_icon: getNodeIconUrl('knowledge-base-node'),
       node_icon_name: 'knowledge-base-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0FFFF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -558,7 +562,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 40,
-      node_name: '导入知识库',
+      node_name: t('node.importLibrary'),
       node_icon: getNodeIconUrl('knowledge-base-node'),
       node_icon_name: 'knowledge-base-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0FFFF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -595,7 +599,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 3,
-      node_name: '问题分类',
+      node_name: t('node.questionClassification'),
       node_icon: getNodeIconUrl('question-node'),
       node_icon_name: 'question-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -628,7 +632,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 2,
-      node_name: '判断分支',
+      node_name: t('node.judgeBranch'),
       node_icon: getNodeIconUrl('judge-node'),
       node_icon_name: 'judge-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -659,7 +663,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 36,
-      node_name: 'JSON 序列化',
+      node_name: t('node.jsonEncode'),
       node_icon: getNodeIconUrl('json-node'),
       node_icon_name: 'json-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -686,7 +690,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 37,
-      node_name: 'JSON 反序列化',
+      node_name: t('node.jsonDecode'),
       node_icon: getNodeIconUrl('json-reverse-node'),
       node_icon_name: 'json-reverse-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -708,12 +712,12 @@ export const nodeList = [
     id: '',
     groupKey: 'external-service',
     type: 'http-node',
-    width: 568,
+    width: 420,
     height: 216,
     properties: {
       ...getRowData(),
       node_type: 4,
-      node_name: 'http请求',
+      node_name: t('node.httpRequest'),
       node_icon: getNodeIconUrl('http-node'),
       node_icon_name: 'http-node',
       node_header_bg_color: 'linear-gradient(180deg, #F7F0FF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -756,7 +760,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 45,
-      node_name: 'http工具',
+      node_name: t('node.httpTool'),
       node_icon: getNodeIconUrl('http-node'),
       node_icon_name: 'http-node',
       node_header_bg_color: 'linear-gradient(180deg, #F7F0FF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -804,7 +808,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 13,
-      node_name: '新增数据',
+      node_name: t('node.addData'),
       node_icon: getNodeIconUrl('data-node'),
       node_header_bg_color: 'linear-gradient(180deg, #FFF0F7 2%, rgba(229, 239, 255, 0) 100%)',
       node_icon_name: 'data-node',
@@ -825,7 +829,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 14,
-      node_name: '删除数据',
+      node_name: t('node.deleteData'),
       node_icon: getNodeIconUrl('data-node'),
       node_icon_name: 'data-node',
       node_header_bg_color: 'linear-gradient(180deg, #FFF0F7 2%, rgba(229, 239, 255, 0) 100%)',
@@ -849,7 +853,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 15,
-      node_name: '更新数据',
+      node_name: t('node.updateData'),
       node_icon: getNodeIconUrl('data-node'),
       node_icon_name: 'data-node',
       node_header_bg_color: 'linear-gradient(180deg, #FFF0F7 2%, rgba(229, 239, 255, 0) 100%)',
@@ -874,7 +878,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 16,
-      node_name: '查询数据',
+      node_name: t('node.queryData'),
       node_icon: getNodeIconUrl('data-node'),
       node_icon_name: 'data-node',
       node_header_bg_color: 'linear-gradient(180deg, #FFF0F7 2%, rgba(229, 239, 255, 0) 100%)',
@@ -901,7 +905,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 12,
-      node_name: '参数提取器',
+      node_name: t('node.parameterExtraction'),
       node_icon: getNodeIconUrl('parameter-extraction-node'),
       node_icon_name: 'parameter-extraction-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -939,7 +943,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 33,
-      node_name: '图片生成',
+      node_name: t('node.imageGeneration'),
       node_icon: getNodeIconUrl('image-generation-node'),
       node_icon_name: 'image-generation-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -967,7 +971,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 17,
-      node_name: '代码运行',
+      node_name: t('node.codeExecution'),
       node_icon: getNodeIconUrl('code-run-node'),
       node_icon_name: 'code-run-node',
       node_header_bg_color: 'linear-gradient(180deg, #F7F0FF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -1051,7 +1055,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 38,
-      node_name: '语音合成',
+      node_name: t('node.voiceSynthesis'),
       node_icon: getNodeIconUrl('voice-synthesis-node'),
       node_icon_name: 'voice-synthesis-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
@@ -1074,7 +1078,7 @@ export const nodeList = [
     properties: {
       ...getRowData(),
       node_type: 39,
-      node_name: '声音复刻',
+      node_name: t('node.voiceClone'),
       node_icon: getNodeIconUrl('voice-clone-node'),
       node_icon_name: 'voice-clone-node',
       node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',

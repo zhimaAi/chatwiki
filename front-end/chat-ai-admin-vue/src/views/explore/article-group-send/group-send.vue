@@ -1,7 +1,7 @@
 <template>
   <div class="group-send-wrapper">
         <div class="toolbar">
-          <a-button type="primary" @click="handleCreateSend">创建群发</a-button>
+          <a-button type="primary" @click="handleCreateSend">{{ t('btn_create_send') }}</a-button>
           <!-- <a-button :disabled="selectedRowKeys.length === 0">批量管理</a-button> -->
         </div>
 
@@ -19,13 +19,13 @@
               </span>
             </template>
             <template #expandedRowRender="{ record }">
-              <div class="expanded-draft">
+                <div class="expanded-draft">
                 <img v-if="record.thumb_url" class="thumb" :src="record.thumb_url" />
                 <img v-else class="thumb" src="@/assets/img/default-cover.png" />
                 <div class="info">
                   <div class="title">{{ record.title }}</div>
-                  <div class="meta">所属分组：{{ record.group_name }}</div>
-                  <div class="digest">{{ record.digest || '暂无摘要' }}</div>
+                  <div class="meta">{{ t('expanded_group_label') }}{{ record.group_name }}</div>
+                  <div class="digest">{{ record.digest || t('expanded_no_digest') }}</div>
                 </div>
                 <div class="expanded-meta" @click="openCommentDrawer(record)">
                   <svg-icon name="comment" size="32px" style="color: transparent;" />
@@ -36,7 +36,7 @@
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'task_name'">
                 <div class="task-cell">
-                  <a-tag v-if="record.is_top == '1'" color="blue">置顶</a-tag>
+                  <a-tag v-if="record.is_top == '1'" color="blue">{{ t('tag_pinned') }}</a-tag>
                   <span class="name">{{ record.task_name }}</span>
                 </div>
               </template>
@@ -53,44 +53,44 @@
                       <ExclamationCircleOutlined style="font-size: 16px; color: #FF4D4F;" />
                     </a-tooltip>
                   </div>
-                  <div v-if="record.send_time != '0'" class="time">定时群发：{{ formatTime(record.send_time) }}</div>
-                  <div v-else class="time">立即发送：{{ formatTime(record.create_time) }}</div>
+                  <div v-if="record.send_time != '0'" class="time">{{ t('scheduled_send_prefix') }}{{ formatTime(record.send_time) }}</div>
+                  <div v-else class="time">{{ t('immediate_send_prefix') }}{{ formatTime(record.create_time) }}</div>
                 </div>
               </template>
               <template v-else-if="column.key === 'receiver'">
-                <span style="color: #595959;">{{ toUserTypeMap[record.to_user_type] || '全部粉丝' }}</span>
+                <span style="color: #595959;">{{ toUserTypeMap[record.to_user_type] || t('receiver_all_fans') }}</span>
               </template>
               <template v-else-if="column.key === 'open_status'">
-                <a-switch :checked="record.open_status == '1'" checked-children="开" un-checked-children="关"
+                <a-switch :checked="record.open_status == '1'" :checked-children="t('switch_on')" :un-checked-children="t('switch_off')"
                   @change="onToggleOpen(record, $event)" />
               </template>
               <template v-else-if="column.key === 'comment_status'">
-                <a-switch :checked="record.comment_status == '1'" checked-children="开" un-checked-children="关"
+                <a-switch :checked="record.comment_status == '1'" :checked-children="t('switch_on')" :un-checked-children="t('switch_off')"
                   @change="onToggleMessageComment(record, $event)" />
               </template>
               <template v-else-if="column.key === 'ai_comment_status'">
                 <div class="ai-comment-cell">
-                  <a-switch :checked="record.ai_comment_status == '1'" checked-children="开" un-checked-children="关"
+                  <a-switch :checked="record.ai_comment_status == '1'" :checked-children="t('switch_on')" :un-checked-children="t('switch_off')"
                     @change="onToggleAiComment(record, $event)" />
                   <div class="comment-rule-cell">
                     <span class="rule">
-                      <span v-if="record.is_default == '1'" class="default-tag">默认</span>
-                      {{ record.comment_rule_name || '默认规则' }}
+                      <span v-if="record.is_default == '1'" class="default-tag">{{ t('tag_default') }}</span>
+                      {{ record.comment_rule_name || t('default_rule_name') }}
                     </span>
-                    <a class="edit-link" @click="editCommentRule(record)">修改</a>
+                    <a class="edit-link" @click="editCommentRule(record)">{{ t('link_edit_rule') }}</a>
                   </div>
                 </div>
               </template>
               <template v-else-if="column.key === 'actions'">
-                <a-space style="gap: 16px;">
-                  <a @click="editTask(record)">编辑</a>
+                  <a-space style="gap: 16px;">
+                  <a @click="editTask(record)">{{ t('action_edit_task') }}</a>
                   <a-dropdown>
-                    <a>更多</a>
+                    <a>{{ t('action_more') }}</a>
                     <template #overlay>
                       <a-menu>
-                        <a-menu-item @click="toggleTop(record)">{{ record.is_top == '1' ? '取消置顶' : '置 顶'
+                        <a-menu-item @click="toggleTop(record)">{{ record.is_top == '1' ? t('menu_unpin') : t('menu_pin')
                           }}</a-menu-item>
-                        <a-menu-item @click="deleteTask(record)">删 除</a-menu-item>
+                        <a-menu-item @click="deleteTask(record)">{{ t('menu_delete_task') }}</a-menu-item>
                       </a-menu>
                     </template>
                   </a-dropdown>
@@ -125,8 +125,10 @@ import CommentDrawer from './components/comment-drawer.vue'
 import CommentRuleModal from './components/comment-rule-modal.vue'
 import CreateSendModal from './components/create-send-modal.vue'
 import { addNoReferrerMeta, removeNoReferrerMeta } from '@/utils/index.js'
+import { useI18n } from '@/hooks/web/useI18n'
 
 const router = useRouter()
+const { t } = useI18n('views.explore.article-group-send.group-send')
 
 const props = defineProps({
   appId: { type: String, default: '' },
@@ -139,22 +141,22 @@ const loadingTasks = ref(false)
 const pager = reactive({ page: 1, size: 10, total: 0 })
 
 const statusTextMap = {
-  '-1': '已删除',
-  '0': '未发送',
-  '1': '发送中',
-  '2': '已发送',
-  '3': '发送失败',
+  '-1': t('status_deleted'),
+  '0': t('status_not_sent'),
+  '1': t('status_sending'),
+  '2': t('status_sent'),
+  '3': t('status_failed'),
 }
-const toUserTypeMap = { '0': '全部粉丝' }
+const toUserTypeMap = { '0': t('receiver_all_fans') }
 
 const columns = [
-  { title: '群发', dataIndex: 'task_name', key: 'task_name' },
-  { title: '群发时间', dataIndex: 'send_time', key: 'send_time' },
-  { title: '接收者', dataIndex: 'receiver', key: 'receiver' },
-  { title: '启用', dataIndex: 'open_status', key: 'open_status' },
-  { title: '留言', dataIndex: 'comment_status', key: 'comment_status' },
-  { title: 'AI评论', dataIndex: 'ai_comment_status', key: 'ai_comment_status' },
-  { title: '操作', dataIndex: 'actions', key: 'actions' },
+  { title: t('column_task_name'), dataIndex: 'task_name', key: 'task_name' },
+  { title: t('column_send_time'), dataIndex: 'send_time', key: 'send_time' },
+  { title: t('column_receiver'), dataIndex: 'receiver', key: 'receiver' },
+  { title: t('column_open_status'), dataIndex: 'open_status', key: 'open_status' },
+  { title: t('column_comment_status'), dataIndex: 'comment_status', key: 'comment_status' },
+  { title: t('column_ai_comment_status'), dataIndex: 'ai_comment_status', key: 'ai_comment_status' },
+  { title: t('column_actions'), dataIndex: 'actions', key: 'actions' },
 ]
 
 const onTableChange = (pagination) => {
@@ -180,31 +182,30 @@ const getTaskList = () => {
 }
 
 const toggleTop = async (record) => {
-  // 如果是取消置顶需要二次确认
   if (record.is_top == '1') {
     Modal.confirm({
-      title: '确认取消置顶？',
+      title: t('modal_unpin_title'),
       icon: createVNode(ExclamationCircleOutlined),
       onOk: async () => {
         await setBatchSendTaskTopStatus({ task_id: record.id, is_top: record.is_top == '1' ? 0 : 1 })
-        message.success('已取消置顶')
+        message.success(t('message_unpinned'))
         getTaskList()
       }
     })
     return
   }
   await setBatchSendTaskTopStatus({ task_id: record.id, is_top: record.is_top == '1' ? 0 : 1 })
-  message.success(record.is_top == '1' ? '已取消置顶' : '已置顶')
+  message.success(record.is_top == '1' ? t('message_unpinned') : t('message_pinned'))
   getTaskList()
 }
 
 const deleteTask = (record) => {
   Modal.confirm({
-    title: `确认删除群发任务：${record.task_name}`,
+    title: t('modal_delete_task_title', { name: record.task_name }),
     icon: createVNode(ExclamationCircleOutlined),
     onOk: async () => {
       await deleteBatchSendTask({ task_id: record.id })
-      message.success('删除成功')
+      message.success(t('message_delete_success'))
       getTaskList()
     }
   })
@@ -212,15 +213,14 @@ const deleteTask = (record) => {
 
 const onToggleOpen = async (record, checked) => {
   const open_status = checked ? 1 : 0
-  // 如果是关闭，需要二次确认
   if (!checked) {
     Modal.confirm({
-      title: '确认关闭群发任务？',
+      title: t('modal_close_send_title'),
       icon: createVNode(ExclamationCircleOutlined),
       onOk: async () => {
         await setBatchSendTaskEnableStatus({ task_id: record.id, open_status })
         record.open_status = String(open_status)
-        message.success('已关闭群发任务')
+        message.success(t('message_send_closed'))
         getTaskList()
       }
     })
@@ -228,7 +228,7 @@ const onToggleOpen = async (record, checked) => {
   }
   await setBatchSendTaskEnableStatus({ task_id: record.id, open_status })
   record.open_status = String(open_status)
-  message.success('操作成功')
+  message.success(t('message_operation_success'))
 }
 
 const onToggleAiComment = async (record, checked) => {
@@ -238,13 +238,13 @@ const onToggleAiComment = async (record, checked) => {
       const status = res?.data?.user_config?.switch_status
       if (String(status || '0') !== '1') {
         Modal.confirm({
-          title: 'AI评论',
+          title: t('modal_ai_comment_title'),
           content: createVNode('div', null, [
-            createVNode('span', { style: 'color: #ff4d4f;' }, 'AI评论功能暂未开启'),
-            createVNode('span', null, '，您可到探索>功能中 去开启')
+            createVNode('span', { style: 'color: #ff4d4f;' }, t('modal_ai_comment_not_enabled')),
+            createVNode('span', null, t('modal_ai_comment_not_enabled_tip'))
           ]),
-          okText: '去开启',
-          cancelText: '取消',
+          okText: t('modal_ai_comment_ok'),
+          cancelText: t('btn_cancel'),
           onOk: () => {
             router.push('/explore/index/ai-comment-management')
           }
@@ -257,15 +257,14 @@ const onToggleAiComment = async (record, checked) => {
   }
 
   const ai_comment_status = checked ? 1 : 0
-  // 关闭需要二次确认
   if (!checked) {
     Modal.confirm({
-      title: '确认关闭AI评论规则？',
+      title: t('modal_close_ai_rule_title'),
       icon: createVNode(ExclamationCircleOutlined),
       onOk: async () => {
         await setBatchSendTaskCommentRuleStatus({ task_id: record.id, ai_comment_status })
         record.ai_comment_status = String(ai_comment_status)
-        message.success('已关闭AI评论规则')
+        message.success(t('message_ai_rule_closed'))
         getTaskList()
       }
     })
@@ -279,15 +278,14 @@ const onToggleAiComment = async (record, checked) => {
 
 const onToggleMessageComment = async (record, checked) => {
   const comment_status = checked ? 1 : 0
-  // 关闭需要二次确认
   if (!checked) {
     Modal.confirm({
-      title: '确认关闭留言？',
+      title: t('modal_close_comment_title'),
       icon: createVNode(ExclamationCircleOutlined),
       onOk: async () => {
         await changeCommentStatus({ task_id: record.id, msg_id: record.msg_data_id, access_key: props.accessKey, comment_status })
         record.comment_status = String(comment_status)
-        message.success('已关闭留言')
+        message.success(t('message_comment_closed'))
         getTaskList()
       }
     })
@@ -295,7 +293,7 @@ const onToggleMessageComment = async (record, checked) => {
   }
   await changeCommentStatus({ task_id: record.id, msg_id: record.msg_data_id, access_key: props.accessKey, comment_status })
   record.comment_status = String(comment_status)
-  message.success('操作成功')
+  message.success(t('message_operation_success'))
 }
 
 const editSendModalRef = ref(null)

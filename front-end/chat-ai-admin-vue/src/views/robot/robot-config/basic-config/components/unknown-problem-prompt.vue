@@ -66,7 +66,7 @@
 <template>
   <edit-box
     class="setting-box"
-    title="未知问题提示语"
+    :title="t('title_unknown_problem_prompt')"
     icon-name="unknown-prompt"
     v-model:isEdit="isEdit"
     @save="onSave"
@@ -75,9 +75,7 @@
     <template #tip>
       <a-tooltip placement="top" :overlayInnerStyle="{ width: '400px' }">
         <template #title>
-          <span
-            >仅知识库模式下，用户提问没有在知识库中大于score阈值的分段时，会直接回复未知问题提示语。</span
-          >
+          <span>{{ t('tip_knowledge_mode') }}</span>
         </template>
         <QuestionCircleOutlined />
       </a-tooltip>
@@ -86,7 +84,7 @@
       <div class="question-title">
         <a-textarea
           v-model:value="formState.unknown_question_prompt.content"
-          placeholder="请输入未知问题提示语"
+          :placeholder="t('ph_input_unknown_prompt')"
         />
       </div>
       <div class="question-options">
@@ -103,7 +101,7 @@
               <a-input
                 class="question-option-content"
                 v-model:value="element.content"
-                placeholder="请输入问题"
+                :placeholder="t('ph_input_question')"
               />
               <div class="action-box">
                 <CloseCircleOutlined class="del-btn" @click="deleteOption(index)" />
@@ -113,7 +111,7 @@
         </draggable>
 
         <div class="add-btn" @click="addQuestion">
-          <PlusOutlined class="add-btn-icon" />添加引导问题
+          <PlusOutlined class="add-btn-icon" />{{ t('btn_add_guide_question') }}
         </div>
       </div>
     </div>
@@ -139,6 +137,9 @@ import draggable from 'vuedraggable'
 import EditBox from './edit-box.vue'
 import { getUuid } from '@/utils/index'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.unknown-problem-prompt')
 
 const isEdit = ref(false)
 const drag = ref(false)

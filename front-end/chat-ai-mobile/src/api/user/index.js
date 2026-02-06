@@ -11,3 +11,7 @@ export const loginApi = (user_name, password) => {
 export const getUserInfo = (data) => {
   return request.get({ url: '/manage/checkLogin', data })
 }
+
+export const getCookieTip = (params) => {
+  return request.get({ url: '/manage/getCookieTip', params })
+}

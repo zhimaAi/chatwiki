@@ -7,13 +7,15 @@
       mode="horizontal"
       @click="handleChangeMenu"
     >
-      <template #title> 11 </template>
     </a-menu>
   </div>
 </template>
 
 <script setup>
 import { ref, h } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.external-service.components.top-meun')
 
 const emit = defineEmits(['change', 'update:value'])
 const props = defineProps({
@@ -35,41 +37,40 @@ const items = ref([
   {
     key: 'EmbedWebsite',
     id: 'EmbedWebsite',
-    label: '嵌入网站',
-    title: '嵌入网站'
+    label: t('menu_embed_website'),
+    title: t('menu_embed_website')
   },
   {
     key: 'WeChatOfficialAccount',
     id: 'WeChatOfficialAccount',
     label: h('div', { class: 'tag-text-box' }, [
-      h('span', {}, '微信公众号'),
-      h('span', { class: 'text-xs' }, '支持未认证')
+      h('span', {}, t('menu_wechat_official_account')),
+      h('span', { class: 'text-xs' }, t('tip_unverified_supported'))
     ])
-    // title: '微信公众号'
   },
   {
     key: 'WeChatMiniProgram',
     id: 'WeChatMiniProgram',
-    label: '微信小程序',
-    title: '微信小程序'
+    label: t('menu_wechat_mini_program'),
+    title: t('menu_wechat_mini_program')
   },
   {
     key: 'WeChatCustomerService',
     id: 'WeChatCustomerService',
-    label: '微信客服',
-    title: '微信客服'
+    label: t('menu_wechat_customer_service'),
+    title: t('menu_wechat_customer_service')
   },
   {
     key: 'FeishuRobot',
     id: 'FeishuRobot',
-    label: '飞书机器人',
-    title: '飞书机器人'
+    label: t('menu_feishu_robot'),
+    title: t('menu_feishu_robot')
   },
   {
     key: 'DingDingRobot',
     id: 'DingDingRobot',
-    label: '钉钉机器人',
-    title: '钉钉机器人'
+    label: t('menu_dingtalk_robot'),
+    title: t('menu_dingtalk_robot')
   }
 ])
 

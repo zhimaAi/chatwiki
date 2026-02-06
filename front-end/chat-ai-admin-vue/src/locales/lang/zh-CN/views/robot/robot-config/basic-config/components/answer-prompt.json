@@ -1,0 +1,1 @@
+{"title_answer_generation_prompt": "答案生成中提示语", "msg_answer_generation_description": "开启后，WebAPP、嵌入网站对外服务中，答案生成前会显示提示语", "ph_input": "请输入", "btn_on": "开", "btn_off": "关", "msg_thinking_please_wait": "思考中、请稍候..."}

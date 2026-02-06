@@ -8,3 +8,8 @@ type CodeRunBody struct {
 	MainFunc string         `json:"main_func"`
 	Params   map[string]any `json:"params"`
 }
+
+const (
+	LanguageJavaScript = `javaScript`
+	LanguagePython     = `python`
+)

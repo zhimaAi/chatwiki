@@ -2,41 +2,41 @@
   <div class="user-model-page">
     <a-alert show-icon style="padding-top: 16px">
       <template #message>
-        <p>1、开启后，系统将自动将语意相近的未知问题聚类，生成聚类问题</p>
-        <p>2、您可以将聚类问题导出，添加回复后更新到知识库单面。</p>
+        <p>{{ t('alert_message_1') }}</p>
+        <p>{{ t('alert_message_2') }}</p>
       </template>
     </a-alert>
     <div class="search-block">
       <div class="left-block">
-        <span>自动聚类</span>
+        <span>{{ t('auto_cluster') }}</span>
         <a-tooltip>
-          <template #title>开启后，系统将自动将语意相近的未知问题累类，生成聚类问题</template>
+          <template #title>{{ t('auto_cluster_tooltip') }}</template>
           <QuestionCircleOutlined />：
         </a-tooltip>
         <a-switch
           @change="handleChangeSwitch"
           :checked="unknown_summary_status"
-          checked-children="开"
-          un-checked-children="关"
+          :checked-children="t('switch_on')"
+          :un-checked-children="t('switch_off')"
         />
-        <a @click="handleOpenClusterModal">设置</a>
+        <a @click="handleOpenClusterModal">{{ t('settings') }}</a>
       </div>
       <div class="right-block">
-        <DateSelect datekey="4" @dateChange="onDateChange" />
-        <a-button type="primary" @click="onSearch">查询</a-button>
-        <a-dropdown>
-          <template #overlay>
-            <a-menu>
-              <a-menu-item @click="handleDownload('docx')" key="1">下载为docx</a-menu-item>
-              <a-menu-item @click="handleDownload('xlsx')" key="2">下载为xlsx</a-menu-item>
-            </a-menu>
-          </template>
-          <a-button type="primary">
-            下载
-            <DownOutlined />
-          </a-button>
-        </a-dropdown>
-      </div>
+          <DateSelect datekey="4" @dateChange="onDateChange" />
+          <a-button type="primary" @click="onSearch">{{ t('query') }}</a-button>
+          <a-dropdown>
+            <template #overlay>
+              <a-menu>
+                <a-menu-item @click="handleDownload('docx')" key="1">{{ t('download_docx') }}</a-menu-item>
+                <a-menu-item @click="handleDownload('xlsx')" key="2">{{ t('download_xlsx') }}</a-menu-item>
+              </a-menu>
+            </template>
+            <a-button type="primary">
+              {{ t('download') }}
+              <DownOutlined />
+            </a-button>
+          </a-dropdown>
+        </div>
     </div>
     <div class="list-box">
       <a-table
@@ -52,11 +52,11 @@
         }"
         @change="onTableChange"
       >
-        <a-table-column key="question" title="聚类问题" :width="480">
+        <a-table-column key="question" :title="t('column_cluster_question')" :width="480">
           <template #default="{ record }">
             <div class="qa-list-box">
               <div class="list-item">
-                <div class="list-label">问题</div>
+                <div class="list-label">{{ t('column_question') }}</div>
                 <div class="list-content">
                   {{ record.question }}
                   <a-popover placement="topLeft" v-if="record.unknown_total > 0">
@@ -72,14 +72,14 @@
                       </div>
                     </template>
                     <template #title>
-                      <span>共聚类了{{ record.unknown_total }}个未知问题</span>
+                      <span>{{ t('cluster_count', { count: record.unknown_total }) }}</span>
                     </template>
                     <a>（{{ record.unknown_total }}） </a>
                   </a-popover>
                 </div>
               </div>
               <div class="list-item" v-if="record.answer">
-                <div class="list-label">答案</div>
+                <div class="list-label">{{ t('column_answer') }}</div>
                 <div class="list-content">{{ record.answer }}</div>
               </div>
               <div class="fragment-img" v-viewer>
@@ -109,19 +109,19 @@
               </a-popover>
             </template>
           </a-table-column> -->
-        <a-table-column key="show_date" title="触发日期" :width="120">
+        <a-table-column key="show_date" :title="t('column_trigger_date')" :width="120">
           <template #default="{ record }">{{ record.show_date }} </template>
         </a-table-column>
-        <a-table-column key="to_library_id" title="是否导入知识库" :width="160">
+        <a-table-column key="to_library_id" :title="t('column_imported')" :width="160">
           <template #default="{ record }">
             <div class="import-td-box">
               <div class="status-block success" v-if="record.to_library_id > 0">
                 <span></span>
-                已导入
+                {{ t('imported_yes') }}
               </div>
               <div class="status-block none" v-else>
                 <span></span>
-                未导入
+                {{ t('imported_no') }}
               </div>
               <a
                 :href="`/#/library/details/knowledge-document?id=${record.to_library_id}`"
@@ -131,11 +131,11 @@
             </div>
           </template>
         </a-table-column>
-        <a-table-column key="action" title="操作" :width="135">
+        <a-table-column key="action" :title="t('column_action')" :width="135">
           <template #default="{ record }">
             <a-flex :gap="8">
-              <a @click="handleOpenAnswerModal(record)">设置答案</a>
-              <a @click="handleOpenLibrary(record)">导入知识库</a>
+              <a @click="handleOpenAnswerModal(record)">{{ t('action_set_answer') }}</a>
+              <a @click="handleOpenLibrary(record)">{{ t('action_import_library') }}</a>
             </a-flex>
           </template>
         </a-table-column>
@@ -160,6 +160,8 @@ import { useRobotStore } from '@/stores/modules/robot'
 import DateSelect from '../components/date.vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/modules/user'
+import { useI18n } from '@/hooks/web/useI18n'
+const { t } = useI18n('views.robot.robot-config.unknown-issue.summarize.index')
 const userStore = useUserStore()
 const robotStore = useRobotStore()
 
@@ -277,7 +279,7 @@ const handleChangeSwitch = (val) => {
       unknown_summary_similarity: robotInfo.value.unknown_summary_similarity,
       unknown_summary_status: 0
     }).then((res) => {
-      message.success('保存成功')
+      message.success(t('save_success'))
       getRobot(query.id)
     })
   }

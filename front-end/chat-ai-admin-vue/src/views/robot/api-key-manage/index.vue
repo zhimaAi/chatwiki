@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <div class="page-title">API Key管理</div>
+    <div class="page-title">{{ t('page_title') }}</div>
     <a-alert class="mt8" type="info" show-icon>
       <template #icon>
         <div>
@@ -10,17 +10,16 @@
       <template #message>
         <div class="alert-content">
           <div>
-            请妥善保管您的API Key,注意不要外泄。API
-            Key外泄可能导致其他人使用此Key访问您的机器人，消耗您模型资源。
+            {{ t('alert_message') }}
           </div>
         </div>
       </template>
     </a-alert>
     <div class="opration-box">
-      <a-button type="primary" @click="handleOpenAddModal">新增API Key</a-button>
+      <a-button type="primary" @click="handleOpenAddModal">{{ t('add_api_key_btn') }}</a-button>
       <a-input v-model:value="end_point" style="width: 500px" readonly>
         <template #addonBefore>
-          <span @click="copyText(end_point)" style="cursor: pointer">复制API Endpoint</span>
+          <span @click="copyText(end_point)" style="cursor: pointer">{{ t('copy_api_endpoint') }}</span>
         </template>
       </a-input>
 
@@ -29,26 +28,26 @@
         href="https://www.yuque.com/zhimaxiaoshiwangluo/pggco1/bg1ol40fo68pgdae"
         target="_blank"
       >
-        <a-button>API 文档</a-button>
+        <a-button>{{ t('api_documentation') }}</a-button>
       </a>
     </div>
     <div class="list-box">
       <div class="list-item" v-for="item in lists" :key="item.id">
         <a-flex justify="space-between" align="center">
           <div class="key-content">
-            <span>API Key：</span>
+            <span>{{ t('api_key_label') }}</span>
             <span>{{ item.key }}</span>
           </div>
           <div class="right-box">
             <a-switch
               @change="handleChangeStatus(item)"
               :checked="item.status == 1"
-              checked-children="开"
-              un-checked-children="关"
+              :checked-children="t('switch_on')"
+              :un-checked-children="t('switch_off')"
             />
 
-            <a-button @click="copyText(item.key)">复制</a-button>
-            <a-button danger @click="handleDelApiKey(item)">删除</a-button>
+            <a-button @click="copyText(item.key)">{{ t('copy_btn') }}</a-button>
+            <a-button danger @click="handleDelApiKey(item)">{{ t('delete_btn') }}</a-button>
           </div>
         </a-flex>
       </div>
@@ -57,6 +56,7 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import {
   ExclamationCircleFilled,
   CopyOutlined,
@@ -73,6 +73,7 @@ import {
   deleteRobotApikey
 } from '@/api/robot/index'
 import useClipboard from 'vue-clipboard3'
+const { t } = useI18n('views.robot.api-key-manage.index')
 const { toClipboard } = useClipboard()
 const robotStore = useRobotStore()
 const { robotInfo } = storeToRefs(robotStore)
@@ -92,24 +93,24 @@ const handleChangeStatus = (item) => {
     robot_key: robotInfo.value.robot_key,
     id: item.id
   }).then((res) => {
-    message.success('更新成功')
+    message.success(t('update_success'))
     getApiKeyList()
   })
 }
 
 const handleOpenAddModal = () => {
   Modal.confirm({
-    title: h('div', { style: 'color:#262626; font-weight: 600;' }, '新增API Key'),
+    title: h('div', { style: 'color:#262626; font-weight: 600;' }, t('add_api_key_title')),
     icon: null,
     content: h(
       'div',
       { style: ' color: #f10; line-height: 22px;' },
-      '请妥善保管您的API Key,注意不要外泄。API Key外泄可能导致其他人使用此Key访问您的机器人，消耗您模型资源。'
+      t('add_api_key_warning')
     ),
     bodyStyle: {
       padding: '12px 8px 4px 12px'
     },
-    okText: '创建',
+    okText: t('create_btn'),
     width: 480,
     onOk: () => {
       handleCrrate()
@@ -122,7 +123,7 @@ const handleCrrate = () => {
   addRobotApikey({
     robot_key: robotInfo.value.robot_key
   }).then((res) => {
-    message.success('创建成功')
+    message.success(t('create_success'))
     getApiKeyList()
   })
 }
@@ -131,12 +132,12 @@ const handleDelApiKey = (item) => {
   let secondsToGo = 5
   let key = formatString(item.key)
   let modal = Modal.confirm({
-    title: `确定删除API Key：${key}`,
+    title: t('confirm_delete_title', { key }),
     icon: createVNode(ExclamationCircleOutlined),
-    content: h('div', { style: { color: '#FB363F' } }, '删除后，将无法使用该Key调用接口'),
-    okText: secondsToGo + ' 确 定',
+    content: h('div', { style: { color: '#FB363F' } }, t('delete_warning')),
+    okText: secondsToGo + ' ' + t('confirm_btn'),
     okType: 'danger',
-    cancelText: '取 消',
+    cancelText: t('cancel_btn'),
     okButtonProps: {
       disabled: true
     },
@@ -145,7 +146,7 @@ const handleDelApiKey = (item) => {
         robot_key: robotInfo.value.robot_key,
         id: item.id
       }).then((res) => {
-        message.success('删除成功')
+        message.success(t('delete_success'))
         getApiKeyList()
       })
     },
@@ -155,7 +156,7 @@ const handleDelApiKey = (item) => {
   let interval = setInterval(() => {
     if (secondsToGo == 1) {
       modal.update({
-        okText: '确 定',
+        okText: t('confirm_btn'),
         okButtonProps: {
           disabled: false
         }
@@ -167,7 +168,7 @@ const handleDelApiKey = (item) => {
       secondsToGo -= 1
 
       modal.update({
-        okText: secondsToGo + ' 确 定',
+        okText: secondsToGo + ' ' + t('confirm_btn'),
         okButtonProps: {
           disabled: true
         }
@@ -176,26 +177,23 @@ const handleDelApiKey = (item) => {
   }, 1000)
 }
 function formatString(str) {
-  let start = str.slice(0, 4) // 取前四位
-  let end = str.slice(-4) // 取后四位，注意这里使用了负数索引
+  let start = str.slice(0, 4)
+  let end = str.slice(-4)
 
-  // 检查字符串长度，如果长度小于8，则直接返回原字符串或做适当调整
   if (str.length <= 4) {
-    return str // 如果原字符串长度小于等于4，直接返回原字符串
+    return str
   } else if (str.length <= 8) {
-    // 如果原字符串长度在5到8之间，只取前四位并添加"..."
     return start + '...'
   } else {
-    // 否则，返回前四位，中间加"..."，再加后四位
     return start + '...' + end
   }
 }
 const copyText = async (text) => {
   try {
     await toClipboard(text)
-    message.success('复制成功')
+    message.success(t('copy_success'))
   } catch (e) {
-    message.error('复制失败')
+    message.error(t('copy_fail'))
   }
 }
 </script>

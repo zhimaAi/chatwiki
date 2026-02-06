@@ -9,7 +9,7 @@
       }
     }
     .field-item-label {
-      width: 60px;
+      width: auto;
       line-height: 22px;
       margin-right: 8px;
       font-size: 14px;
@@ -96,7 +96,7 @@
     <div class="ai-dialogue-node">
       <div class="field-list">
         <div class="field-item">
-          <div class="field-item-label">输入参数</div>
+          <div class="field-item-label">{{ t('label_input_params') }}</div>
           <div class="field-item-content">
             <div class="field-list-item" v-for="item in formState.params" :key="item.cu_key">
               <div class="field-text">
@@ -109,7 +109,7 @@
         </div>
 
         <div class="field-item">
-          <div class="field-item-label">输出字段</div>
+          <div class="field-item-label">{{ t('label_output_fields') }}</div>
           <div class="field-item-content">
             <div class="field-value" v-for="item in formState.output" :key="item.cu_key">
               <span class="field-key"> {{ item.key }}</span>
@@ -119,10 +119,10 @@
         </div>
 
         <div class="field-item">
-          <div class="field-item-label">异常处理</div>
+          <div class="field-item-label">{{ t('label_exception_handling') }}</div>
           <div class="field-item-content">
             <div class="field-value">
-              <span class="field-key">运行代码报错时执行该分支</span>
+              <span class="field-key">{{ t('msg_exception_branch') }}</span>
             </div>
           </div>
         </div>
@@ -137,6 +137,9 @@ import NodeCommon from '../base-node.vue'
 import { ArrowRightOutlined } from '@ant-design/icons-vue'
 import UserQuestionText from '../user-question-text.vue'
 import { haveOutKeyNode, specialNodeList } from '@/views/workflow/components/util.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.code-run-node.index')
 
 const props = defineProps({
   properties: {
@@ -155,6 +158,7 @@ const resetSize = inject('resetSize')
 // --- State ---
 const menus = ref([])
 const formState = reactive({
+  language: 'javaScript',
   main_func: '',
   params: [
     {
@@ -228,6 +232,7 @@ const reset = () => {
     formState[key] = code_run[key]
   }
   formState.main_func = formState.main_func || defaultCode
+  formState.language = formState.language || 'javaScript'
 
   formState.params = formState.params.map((it) => {
     let specialKey = ''

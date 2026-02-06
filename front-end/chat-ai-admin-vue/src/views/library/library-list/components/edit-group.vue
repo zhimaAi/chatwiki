@@ -1,10 +1,10 @@
 <template>
   <div>
-    <a-modal v-model:open="open" :title="modalTitle" @ok="handleOk">
+    <a-modal v-model:open="open" :title="t('modal_title')" @ok="handleOk">
       <div class="form-item">
-        <div class="form-label">分组名称：</div>
+        <div class="form-label">{{ t('form_label') }}</div>
         <div class="form-content">
-          <a-select v-model:value="formState.group_id" style="width: 100%" placeholder="请选择分组">
+          <a-select v-model:value="formState.group_id" style="width: 100%" :placeholder="t('select_placeholder')">
             <a-select-option v-for="item in groupLists" :value="item.id">{{
               item.group_name
             }}</a-select-option>
@@ -19,9 +19,11 @@
 import { ref, reactive } from 'vue'
 import { relationLibraryGroup, getLibraryListGroup } from '@/api/library'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+const { t } = useI18n('views.library.library-list.components.edit-group')
 const open = ref(false)
 const emit = defineEmits(['ok'])
-const modalTitle = ref('修改分组')
+const modalTitle = ref(t('modal_title'))
 const formState = reactive({
   group_id: '',
   library_id: ''
@@ -37,12 +39,12 @@ const show = (data) => {
 }
 const handleOk = () => {
   if (!formState.group_id) {
-    return message.error('请选择分组')
+    return message.error(t('error_message'))
   }
   relationLibraryGroup({
     ...formState
   }).then((res) => {
-    message.success(`${modalTitle.value}成功`)
+    message.success(`${t('modal_title')}成功`)
     open.value = false
     emit('ok')
   })

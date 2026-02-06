@@ -1,11 +1,14 @@
 <template>
   <div class="empty-box">
     <img src="../../../../assets/img/library/preview/empty.png" alt="" />
-    <div class="title">暂无分段</div>
-    <div class="info">左侧进行分段设置后，点击“生成分段预览</div>
+    <div class="title">{{ t('title') }}</div>
+    <div class="info">{{ t('info') }}</div>
   </div>
 </template>
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.document-segmentation.components.empty')
 </script>
 <style lang="less" scoped>
 .empty-box {

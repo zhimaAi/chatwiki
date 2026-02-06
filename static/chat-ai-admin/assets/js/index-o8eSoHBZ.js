@@ -1,0 +1,2 @@
+import{_ as e}from"./emoji-mart-BBMRoEa3.js";import{a as o,p as t,b as a}from"./vue-chunks-BdaA73Wf.js";import"./editor-cherry-CFIsbKoN.js";const c="/assets/img/no-authority-BATp6taU.png",r={},n={class:"authority-page"};function i(d,s){return a(),o("div",n,[...s[0]||(s[0]=[t("div",{class:"center-content"},[t("img",{src:c,alt:""}),t("div",{class:"title"},"无管理权限"),t("div",{class:"desc"},"请联系管理员添加响应权限")],-1)])])}const m=e(r,[["render",i],["__scopeId","data-v-e88c93d8"]]);export{m as default};
+//# sourceMappingURL=index-o8eSoHBZ.js.map

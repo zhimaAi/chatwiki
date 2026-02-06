@@ -1,0 +1,12 @@
+{
+  "filter_result_placeholder": "Processing result",
+  "search_comment_placeholder": "Search by comment keyword",
+  "column_content_text": "Comment content",
+  "column_result": "Result",
+  "column_reply_text": "Reply content",
+  "column_draft_title": "Bulk send / Article",
+  "column_rule_name": "Triggered rule",
+  "column_rule_detail": "Triggered rule details",
+  "column_exec_time": "Processed at"
+}
+

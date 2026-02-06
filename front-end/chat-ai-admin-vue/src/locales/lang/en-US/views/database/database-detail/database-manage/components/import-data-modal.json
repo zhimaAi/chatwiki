@@ -1,0 +1,18 @@
+{
+  "modal_title": "Import Data",
+  "alert_support": "Support importing data via Excel or JSON files.",
+  "link_excel_template": "Excel Template",
+  "link_json_template": "JSON Template",
+  "alert_instruction": "When importing, if the id is empty, new data will be created. If the id has a value, the corresponding data will be updated. The id is obtained by exporting data. Maximum 10,000 records per import.",
+  "upload_text": "Click or drag files here to upload",
+  "upload_hint": "Only supports: json.xlsx.csv files, please note required fields",
+  "progress_tip": "Data is being imported, please do not close the page",
+  "result_title": "Import Complete",
+  "result_subtitle": "Import successful {success}, import failed {fail}",
+  "result_subtitle_tip": "You can download the failed data, modify it and re-import",
+  "btn_download_fail": "Download Failed Data",
+  "msg_upload_failed": "{name} file upload failed.",
+  "template_name_excel": "Import Data Template.csv",
+  "template_name_json": "Import Data Template.json",
+  "fail_data_name": "Failed Data_"
+}

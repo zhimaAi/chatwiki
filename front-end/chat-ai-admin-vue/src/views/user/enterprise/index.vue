@@ -50,26 +50,31 @@
     </div>
     <a-divider></a-divider>
     <div class="enterprise-box">
+      <a-flex align="center">
+        <div class="content-label">{{ t('labelCookieAuth') }}：</div>
+        <div class="content-name">
+          <span class="gray-text">{{ cookieText }}</span>
+        </div>
+        <a class="edit-btn" @click="handleOpenCookieModal">{{ t('change') }}</a>
+      </a-flex>
+    </div>
+    <a-divider></a-divider>
+    <div class="enterprise-box">
       <a-flex>
-        <div class="content-label" style="line-height: 32px">{{ t('topNavigationSettings') }}：</div>
+        <div class="content-label" style="line-height: 32px">
+          {{ t('topNavigationSettings') }}：
+        </div>
         <NavSetting @handleGetCompany="handleGetCompany" />
       </a-flex>
     </div>
-    <a-modal
-      v-model:open="open"
-      :title="t('SetSystemName')"
-      @ok="handleSetCompany"
-    >
+    <a-modal v-model:open="open" :title="t('SetSystemName')" @ok="handleSetCompany">
       <a-form class="form-box">
         <a-form-item :label="t('systemName')">
-          <a-input
-            :maxlength="15"
-            v-model:value="formState.name"
-            :placeholder="t('enterName')"
-          />
+          <a-input :maxlength="15" v-model:value="formState.name" :placeholder="t('enterName')" />
         </a-form-item>
       </a-form>
     </a-modal>
+    <CookieSetting ref="cookieSettingRef" />
   </div>
 </template>
 
@@ -81,6 +86,7 @@ import { saveCompany } from '@/api/user/index.js'
 import { useI18n } from '@/hooks/web/useI18n'
 import { message } from 'ant-design-vue'
 import NavSetting from './components/nav-setting.vue'
+import CookieSetting from './components/cookie-setting.vue'
 
 const { t } = useI18n('views.user.enterprise')
 
@@ -119,4 +125,43 @@ const handleSetCompany = () => {
     open.value = false
   })
 }
+
+const cookieSettingRef = ref(null)
+const handleOpenCookieModal = () => {
+  cookieSettingRef.value.show()
+}
+
+const cookieText = computed(() => {
+  let cookie_tip_positions = companyInfo.cookie_tip_positions
+    ? companyInfo.cookie_tip_positions.split(',')
+    : []
+
+  let cookie_tip_ip_locations = companyInfo.cookie_tip_ip_locations
+    ? companyInfo.cookie_tip_ip_locations.split(',')
+    : []
+
+  if (cookie_tip_positions.length == 0 && cookie_tip_ip_locations.length == 0) {
+    return t('msgCookieNotSet')
+  }
+
+  let cookie_tip_ip_locations_map = {
+    domestic: t('labelDomesticIp'),
+    overseas: t('labelOverseasIp')
+  }
+
+  let cookie_tip_positions_map = {
+    home: t('labelHome'),
+    login: t('labelLoginPage'),
+    webapp: t('labelWebapp')
+  }
+  let result = []
+  cookie_tip_ip_locations.forEach((item) => {
+    result.push(cookie_tip_ip_locations_map[item])
+  })
+  cookie_tip_positions.forEach((item) => {
+    result.push(cookie_tip_positions_map[item])
+  })
+  result = result.filter(Boolean)
+  return `${t('msgCookieEnabled')}（${result.join('、')}）`
+})
 </script>

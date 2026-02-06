@@ -19,7 +19,7 @@
         <a-tooltip :title="getTooltipTitle(item.description, item, 14, 1, 0)" placement="top">
           <div class="desc zm-line1" :ref="el => setDescRef(el, item)">{{ item.description }}</div>
         </a-tooltip>
-        <div class="version">版本：v{{ item.latest_version }}</div>
+        <div class="version">{{ t('label_version') }}v{{ item.latest_version }}</div>
         <div class="action-box">
           <div class="left">
             <svg-icon name="download"/>
@@ -27,19 +27,19 @@
           </div>
           <div class="right">
             <template v-if="item.help_url">
-              <a @click.stop class="c595959" :href="item.help_url" target="_blank">使用说明</a>
+              <a @click.stop class="c595959" :href="item.help_url" target="_blank">{{ t('link_user_guide') }}</a>
               <a-divider type="vertical"/>
             </template>
             <template v-if="item.local">
-              <a v-if="item.has_update" @click.stop="install(item)">更新</a>
-              <span v-else>已安装</span>
+              <a v-if="item.has_update" @click.stop="install(item)">{{ t('btn_update') }}</a>
+              <span v-else>{{ t('msg_installed') }}</span>
             </template>
-            <a v-else @click.stop="install(item)">安装</a>
+            <a v-else @click.stop="install(item)">{{ t('btn_install') }}</a>
           </div>
         </div>
       </div>
     </div>
-    <EmptyBox v-else title="暂无可用插件"/>
+    <EmptyBox v-else :title="t('msg_no_available_plugins')"/>
 
     <UpdateModal ref="updateRef" @ok="loadData"/>
   </div>
@@ -53,6 +53,9 @@ import {getInstallPlugins, getRemotePlugins} from "@/api/plugins/index.js";
 import LoadingBox from "@/components/common/loading-box.vue";
 import UpdateModal from "./update-modal.vue";
 import { setDescRef, getTooltipTitle } from '@/utils/index'
+import { useI18n } from '@/hooks/web/useI18n';
+
+const { t } = useI18n('views.explore.plugins.components.remote-plugins');
 
 const emit = defineEmits(['installReport'])
 const props = defineProps({

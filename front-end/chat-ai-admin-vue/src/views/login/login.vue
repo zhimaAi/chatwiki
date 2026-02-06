@@ -141,6 +141,7 @@
         <div class="copyright-text" @click="toXiaokefu">{{ t('copyrightTextTwo') }}</div>
       </div>
     </div>
+    <CookieAuth />
   </div>
 </template>
 
@@ -154,6 +155,7 @@ import LayoutLogo from '@/layouts/AdminLayout/compoents/layout-logo.vue'
 import { useUserStore } from '@/stores/modules/user'
 import { UserOutlined, LockOutlined } from '@ant-design/icons-vue';
 import { useCompanyStore } from '@/stores/modules/company'
+import CookieAuth from './cookie-auth.vue'
 
 const localeStore = useLocaleStore()
 const lang = computed(() => localeStore.getCurrentLocale.lang)

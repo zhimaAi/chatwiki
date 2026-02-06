@@ -69,7 +69,7 @@
   width: 100%;
   height: 100%;
 
-  
+
 }
 </style>
 
@@ -109,7 +109,7 @@
         <ChatList ref="chatListRef" @switchChat="handleSwitchChat" />
       </div>
     </div>
-    <div class="page-body">
+    <div class="page-body" ref="bodyRef">
       <ChatBox v-if="activeChat" ref="chatBoxRef" />
       <list-empty style="background: #F2F4F7;" size="250" v-else>
         <div>
@@ -140,6 +140,7 @@ const chatMonitorStore = useChatMonitorStore()
 const { init, changeRobot, switchChat, closeIM } = chatMonitorStore
 const { robotList, selectedRobotId, activeChat } = storeToRefs(chatMonitorStore)
 
+const bodyRef = ref(null)
 const chatListRef = ref(null)
 const chatBoxRef = ref(null)
 const keyword = ref('')

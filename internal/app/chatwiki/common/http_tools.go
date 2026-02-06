@@ -15,7 +15,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// HttpToolsCacheBuildHandler HTTP工具缓存构建处理器
+// HttpToolsCacheBuildHandler HTTP tool cache build handler
 type HttpToolsCacheBuildHandler struct {
 	ID int
 }
@@ -29,7 +29,7 @@ func (h *HttpToolsCacheBuildHandler) GetCacheData() (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	// 转换
+	// Convert
 	if len(data) > 0 {
 		result := map[string]interface{}{
 			"id":            cast.ToInt(data[`id`]),
@@ -47,7 +47,7 @@ func (h *HttpToolsCacheBuildHandler) GetCacheData() (any, error) {
 	}
 }
 
-// HttpToolsNodeCacheBuildHandler HTTP工具节点缓存构建处理器
+// HttpToolsNodeCacheBuildHandler HTTP tool node cache build handler
 type HttpToolsNodeCacheBuildHandler struct {
 	ID int
 }
@@ -61,7 +61,7 @@ func (h *HttpToolsNodeCacheBuildHandler) GetCacheData() (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	// 转换
+	// Convert
 	if len(data) > 0 {
 		result := map[string]interface{}{
 			"id":               cast.ToInt(data[`id`]),
@@ -81,21 +81,21 @@ func (h *HttpToolsNodeCacheBuildHandler) GetCacheData() (any, error) {
 	}
 }
 
-// GetHttpToolInfo 获取HTTP工具信息
+// GetHttpToolInfo gets HTTP tool info
 func GetHttpToolInfo(id int) (map[string]interface{}, error) {
 	var result map[string]interface{}
 	err := lib_redis.GetCacheWithBuild(define.Redis, &HttpToolsCacheBuildHandler{ID: id}, &result, time.Hour)
 	return result, err
 }
 
-// GetHttpToolNodeInfo 获取HTTP工具节点信息
+// GetHttpToolNodeInfo gets HTTP tool node info
 func GetHttpToolNodeInfo(id int) (map[string]interface{}, error) {
 	var result map[string]interface{}
 	err := lib_redis.GetCacheWithBuild(define.Redis, &HttpToolsNodeCacheBuildHandler{ID: id}, &result, time.Hour)
 	return result, err
 }
 
-// SaveHttpTool 保存HTTP工具（创建或更新）
+// SaveHttpTool saves HTTP tool (create or update)
 func SaveHttpTool(id, adminUserID int, name, nameEn, toolKey, avatar, description string) (int64, error) {
 	data := msql.Datas{
 		"admin_user_id": adminUserID,
@@ -110,7 +110,7 @@ func SaveHttpTool(id, adminUserID int, name, nameEn, toolKey, avatar, descriptio
 	var newId int64
 
 	if id <= 0 {
-		// 创建新记录
+		// Create new record
 		if toolKey == `` {
 			toolKey = GenerateToolKey(adminUserID)
 		}
@@ -118,95 +118,95 @@ func SaveHttpTool(id, adminUserID int, name, nameEn, toolKey, avatar, descriptio
 		data["create_time"] = tool.Time2Int()
 		newId, err = msql.Model(`http_tools`, define.Postgres).Insert(data, "id")
 	} else {
-		// 更新现有记录，但不更新tool_key
+		// Update existing record, but don't update tool_key
 		_, err = msql.Model(`http_tools`, define.Postgres).Where("id", cast.ToString(id)).Update(data)
 		newId = int64(id)
 	}
 
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &HttpToolsCacheBuildHandler{ID: int(newId)})
 	}
 	return newId, err
 }
 
-// DeleteHttpTool 删除HTTP工具
+// DeleteHttpTool deletes HTTP tool
 func DeleteHttpTool(id int) error {
-	// 先删除相关的节点
+	// First delete related nodes
 	_, err := msql.Model(`http_tools_node`, define.Postgres).Where("http_tool_id", cast.ToString(id)).Delete()
 	if err != nil {
 		return err
 	}
 
-	// 删除主表记录
+	// Delete main table record
 	_, err = msql.Model(`http_tools`, define.Postgres).Where("id", cast.ToString(id)).Delete()
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &HttpToolsCacheBuildHandler{ID: id})
 	}
 	return err
 }
 
-// GetHttpToolWithNodes 获取单个HTTP工具及其节点信息
+// GetHttpToolWithNodes gets single HTTP tool and its node information
 func GetHttpToolWithNodes(id int) (map[string]any, error) {
 	return GetSingleHttpTool(id, true)
 }
 
-// GetHttpTool 获取单个HTTP工具（兼容旧版）
+// GetHttpTool gets single HTTP tool (compatible with older versions)
 func GetHttpTool(id int) (msql.Params, error) {
 	return msql.Model(`http_tools`, define.Postgres).Where("id", cast.ToString(id)).Find()
 }
 
-// GenerateToolKey 生成HTTP工具Key
+// GenerateToolKey generates HTTP tool key
 func GenerateToolKey(adminUserId int) string {
-	// 生成节点key HttpTool +uuid v7 + adminUserId%5
-	key, _ := uuid.NewV7()                           // 1. 生成 V7
-	raw := strings.ReplaceAll(key.String(), "-", "") // 2. 去连字符
+	// Generate node key HttpTool +uuid v7 + adminUserId%5
+	key, _ := uuid.NewV7()                           // 1. Generate V7
+	raw := strings.ReplaceAll(key.String(), "-", "") // 2. Remove hyphens
 	nodeKey := fmt.Sprintf("HttpTool%s%d", raw, adminUserId%5)
 	return nodeKey
 }
 
-// GenerateNodeKey 生成HTTP工具节点Key
+// GenerateNodeKey generates HTTP tool node key
 func GenerateNodeKey(adminUserId int) string {
-	// 生成节点key HttpTool +uuid v7 + adminUserId%5
-	key, _ := uuid.NewV7()                           // 1. 生成 V7
-	raw := strings.ReplaceAll(key.String(), "-", "") // 2. 去连字符
+	// Generate node key HttpTool +uuid v7 + adminUserId%5
+	key, _ := uuid.NewV7()                           // 1. Generate V7
+	raw := strings.ReplaceAll(key.String(), "-", "") // 2. Remove hyphens
 	nodeKey := fmt.Sprintf("HttpToolNode%s%d", raw, adminUserId%5)
 	return nodeKey
 }
 
-// GetHttpToolWithNodeCount 获取单个HTTP工具及其节点数量
+// GetHttpToolWithNodeCount gets single HTTP tool and its node count
 func GetHttpToolWithNodeCount(id int) (map[string]any, error) {
 	return GetSingleHttpTool(id, false)
 }
 
-// GetHttpToolListWithFilter 获取HTTP工具列表（带过滤条件和分页）
+// GetHttpToolListWithFilter gets HTTP tool list (with filters and pagination)
 func GetHttpToolListWithFilter(adminUserID int, name string, page, size int, withNodes bool) ([]map[string]any, int, error) {
 	return GetHttpToolListWithFilterAndNodeCount(adminUserID, name, page, size, withNodes, true)
 }
 
-// GetHttpToolListWithFilterAndNodeCount 获取HTTP工具列表（带过滤条件和分页），可选择是否获取节点数量
+// GetHttpToolListWithFilterAndNodeCount gets HTTP tool list (with filters and pagination), option to get node count
 func GetHttpToolListWithFilterAndNodeCount(adminUserID int, name string, page, size int, withNodes, withNodeCount bool) ([]map[string]any, int, error) {
 	model := msql.Model(`http_tools`, define.Postgres).Where("admin_user_id", cast.ToString(adminUserID))
 
-	// 根据工具名称模糊查询
+	// Fuzzy query by tool name
 	if name != "" {
 		model.Where("name LIKE ?", "%"+name+"%")
 	}
 
-	// 添加分页
+	// Add pagination
 	list, total, err := model.Order("id DESC").Paginate(page, size)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// 转换为[]map[string]any格式
-	//获取http_tool_info
+	// Convert to []map[string]any format
+	// Get http_tool_info
 	toolInfoList := make(map[string]msql.Params)
 	resultList := make([]map[string]any, len(list))
 	for i, item := range list {
 		id := cast.ToString(item["id"])
-		//为节点统一 返回值格式使用
+		// Unify return value format for nodes
 		toolInfoList[id] = msql.Params{
 			`name`:        cast.ToString(item["name"]),
 			`avatar`:      cast.ToString(item["avatar"]),
@@ -221,29 +221,29 @@ func GetHttpToolListWithFilterAndNodeCount(adminUserID int, name string, page, s
 	}
 
 	if len(resultList) > 0 {
-		// 获取所有主表ID
+		// Get all main table IDs
 		ids := make([]string, len(resultList))
 		for i, item := range resultList {
 			ids[i] = cast.ToString(item["id"])
 		}
 
-		// 如果需要获取节点数量
+		// If node count is needed
 		if withNodeCount {
-			// 一次性查询所有主表ID对应的节点数量
+			// Query all node counts for main IDs at once
 			nodesList, err := msql.Model(`http_tools_node`, define.Postgres).
 				Where("http_tool_id", "in", strings.Join(ids, ",")).
 				Group("http_tool_id").
 				Field("http_tool_id, COUNT(*) as count").
 				Select()
 			if err == nil {
-				// 创建ID到数量的映射
+				// Create mapping from ID to count
 				countMap := make(map[string]int64)
 				for _, node := range nodesList {
 					httpToolId := cast.ToString(node["http_tool_id"])
 					countMap[httpToolId] = cast.ToInt64(node["count"])
 				}
 
-				// 为每个结果设置节点数量
+				// Set node count for each result
 				for i := range resultList {
 					idStr := cast.ToString(resultList[i]["id"])
 					if count, exists := countMap[idStr]; exists {
@@ -253,30 +253,30 @@ func GetHttpToolListWithFilterAndNodeCount(adminUserID int, name string, page, s
 					}
 				}
 			} else {
-				// 如果查询失败，设置默认值
+				// If query fails, set default values
 				for i := range resultList {
 					resultList[i]["node_count"] = int64(0)
 				}
 			}
 		}
 
-		// 如果需要同时获取节点详情
+		// If node details are also needed
 		if withNodes {
-			// 一次性查询所有主表ID对应的节点列表
+			// Query all node lists for main IDs at once
 			httpToolNodes, err := msql.Model(`http_tools_node`, define.Postgres).
 				Where("http_tool_id", "in", strings.Join(ids, ",")).
 				Order("http_tool_id ASC, id ASC").
 				Select()
 			if err == nil {
 
-				// 创建ID到节点列表的映射
+				// Create mapping from ID to node list
 				nodesMap := make(map[string][]map[string]any)
 				for i := range httpToolNodes {
 					httpToolId := cast.ToString(httpToolNodes[i]["http_tool_id"])
-					//统一返回值格式
+					// Unify return value format
 					httpTool := toolInfoList[httpToolId]
 					httpToolNodes[i] = NodeAddHttpToolInfo(httpToolNodes[i], httpTool)
-					// 转换为[]map[string]any格式
+					// Convert to []map[string]any format
 					nodeInfo := make(map[string]any)
 					for k, v := range httpToolNodes[i] {
 						nodeInfo[k] = v
@@ -284,7 +284,7 @@ func GetHttpToolListWithFilterAndNodeCount(adminUserID int, name string, page, s
 					nodesMap[httpToolId] = append(nodesMap[httpToolId], nodeInfo)
 				}
 
-				// 为每个结果设置节点列表
+				// Set node list for each result
 				for i := range resultList {
 					idStr := cast.ToString(resultList[i]["id"])
 
@@ -295,7 +295,7 @@ func GetHttpToolListWithFilterAndNodeCount(adminUserID int, name string, page, s
 					}
 				}
 			} else {
-				// 如果查询失败，设置空列表
+				// If query fails, set empty list
 				for i := range resultList {
 					resultList[i]["nodes"] = make([]map[string]any, 0)
 				}
@@ -315,9 +315,9 @@ func NodeAddHttpToolInfo(node msql.Params, httpTool msql.Params) msql.Params {
 	return node
 }
 
-// GetSingleHttpTool 获取单个HTTP工具信息（复用列表查询逻辑）
+// GetSingleHttpTool gets single HTTP tool information (reuse list query logic)
 func GetSingleHttpTool(id int, withNodes bool) (map[string]any, error) {
-	// 直接查询指定ID的工具
+	// Directly query tool with specified ID
 	httpTool, err := msql.Model(`http_tools`, define.Postgres).Where("id", cast.ToString(id)).Find()
 	if err != nil || len(httpTool) == 0 {
 		return nil, err
@@ -328,7 +328,7 @@ func GetSingleHttpTool(id int, withNodes bool) (map[string]any, error) {
 		result[k] = v
 	}
 
-	// 添加节点数量
+	// Add node count
 	nodesCount, err := msql.Model(`http_tools_node`, define.Postgres).
 		Where("http_tool_id", cast.ToString(id)).
 		Count()
@@ -338,7 +338,7 @@ func GetSingleHttpTool(id int, withNodes bool) (map[string]any, error) {
 		result["node_count"] = int64(0)
 	}
 
-	// 如果需要节点详情
+	// If node details are needed
 	if withNodes {
 		httpToolNodes, err := msql.Model(`http_tools_node`, define.Postgres).
 			Where("http_tool_id", cast.ToString(id)).
@@ -349,9 +349,9 @@ func GetSingleHttpTool(id int, withNodes bool) (map[string]any, error) {
 		}
 		nodes := make([]map[string]any, 0)
 		for i := range httpToolNodes {
-			//统一返回值格式
+			// Unify return value format
 			httpToolNodes[i] = NodeAddHttpToolInfo(httpToolNodes[i], httpTool)
-			// 转换为[]map[string]any格式
+			// Convert to []map[string]any format
 			nodeInfo := make(map[string]any)
 			for k, v := range httpToolNodes[i] {
 				nodeInfo[k] = v
@@ -364,7 +364,7 @@ func GetSingleHttpTool(id int, withNodes bool) (map[string]any, error) {
 	return result, nil
 }
 
-// SaveHttpToolNode 保存HTTP工具节点（创建或更新）
+// SaveHttpToolNode saves HTTP tool node (create or update)
 func SaveHttpToolNode(id, adminUserID, httpToolID int, nodeKey, nodeName, nodeNameEn, nodeDescription, nodeRemark, dataRaw string) (int64, error) {
 	data := msql.Datas{
 		"admin_user_id":    adminUserID,
@@ -381,7 +381,7 @@ func SaveHttpToolNode(id, adminUserID, httpToolID int, nodeKey, nodeName, nodeNa
 	var newId int64
 
 	if id <= 0 {
-		// 创建新记录
+		// Create new record
 		if nodeKey == `` {
 			nodeKey = GenerateNodeKey(adminUserID)
 		}
@@ -389,36 +389,36 @@ func SaveHttpToolNode(id, adminUserID, httpToolID int, nodeKey, nodeName, nodeNa
 		data["create_time"] = tool.Time2Int()
 		newId, err = msql.Model(`http_tools_node`, define.Postgres).Insert(data, "id")
 	} else {
-		// 更新现有记录
+		// Update existing record
 		_, err = msql.Model(`http_tools_node`, define.Postgres).Where("id", cast.ToString(id)).Update(data)
 		newId = int64(id)
 	}
 
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &HttpToolsNodeCacheBuildHandler{ID: int(newId)})
 	}
 	return newId, err
 }
 
-// DeleteHttpToolNode 删除HTTP工具节点
+// DeleteHttpToolNode deletes HTTP tool node
 func DeleteHttpToolNode(id int) error {
 	_, err := msql.Model(`http_tools_node`, define.Postgres).Where("id", cast.ToString(id)).Delete()
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &HttpToolsNodeCacheBuildHandler{ID: id})
 	}
 	return err
 }
 
-// GetHttpToolNode 获取单个HTTP工具节点
+// GetHttpToolNode gets single HTTP tool node
 func GetHttpToolNode(id int) (map[string]any, error) {
 	node, err := msql.Model(`http_tools_node`, define.Postgres).Where("id", cast.ToString(id)).Find()
 	if err != nil {
 		return nil, err
 	}
 
-	// 关联获取主表信息
+	// Associate and get main table information
 	if len(node) > 0 {
 		httpTool, err := msql.Model(`http_tools`, define.Postgres).Where("id", cast.ToString(node["http_tool_id"])).Find()
 		if err != nil {
@@ -430,7 +430,7 @@ func GetHttpToolNode(id int) (map[string]any, error) {
 		}
 	}
 
-	// 转换为[]map[string]any格式
+	// Convert to []map[string]any format
 	result := make(map[string]any)
 	for k, v := range node {
 		result[k] = v
@@ -439,22 +439,22 @@ func GetHttpToolNode(id int) (map[string]any, error) {
 	return result, nil
 }
 
-// GetHttpToolNodeListWithFilter 获取HTTP工具节点列表（带过滤条件和分页）
+// GetHttpToolNodeListWithFilter gets HTTP tool node list (with filters and pagination)
 func GetHttpToolNodeListWithFilter(httpToolID int, nodeName string, page, size int) ([]map[string]any, int, error) {
 	model := msql.Model(`http_tools_node`, define.Postgres).Where("http_tool_id", cast.ToString(httpToolID))
 
-	// 根据节点名称模糊查询
+	// Fuzzy query by node name
 	if nodeName != "" {
 		model.Where("node_name LIKE ?", "%"+nodeName+"%")
 	}
 
-	// 添加分页
+	// Add pagination
 	list, total, err := model.Order("id DESC").Paginate(page, size)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// 转换为[]map[string]any格式
+	// Convert to []map[string]any format
 	resultList := make([]map[string]any, len(list))
 	for i, item := range list {
 		resultMap := make(map[string]any)
@@ -465,24 +465,24 @@ func GetHttpToolNodeListWithFilter(httpToolID int, nodeName string, page, size i
 	}
 
 	if len(resultList) > 0 {
-		// 获取所有节点关联的工具ID
+		// Get all tool IDs associated with nodes
 		toolIds := make([]string, len(resultList))
 		for i, item := range resultList {
 			toolIds[i] = cast.ToString(item["http_tool_id"])
 		}
 
-		// 一次性查询所有工具信息
+		// Query all tool information at once
 		httpTools, err := msql.Model(`http_tools`, define.Postgres).
 			Where("id", "in", strings.Join(toolIds, ",")).
 			Select()
 		if err == nil {
-			// 创建ID到工具信息的映射
+			// Create mapping from ID to tool information
 			toolMap := make(map[string]msql.Params)
 			for _, httpTool := range httpTools {
 				toolMap[cast.ToString(httpTool["id"])] = httpTool
 			}
 
-			// 为每个节点设置工具信息
+			// Set tool information for each node
 			for i := range resultList {
 				toolId := cast.ToString(resultList[i]["http_tool_id"])
 				if httpTool, exists := toolMap[toolId]; exists {

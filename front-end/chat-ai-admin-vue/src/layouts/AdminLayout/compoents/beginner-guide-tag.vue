@@ -45,7 +45,7 @@
   <div class="beginner-guide-tag" v-if="role_type == 1 && total_process != 100" @click="handleToGuide">
     <span class="red-dot"></span>
     <svg-icon class="nav-icon" name="guide"></svg-icon>
-    <span class="nav-name">新手指引</span>
+    <span class="nav-name">{{ t('title_beginner_guide') }}</span>
   </div>
 </template>
 
@@ -54,6 +54,9 @@ import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGuideStore } from '@/stores/modules/guide'
 import { usePermissionStore } from '@/stores/modules/permission'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('layouts.AdminLayout.compoents.beginner-guide-tag')
 
 const guideStore = useGuideStore()
 const permissionStore = usePermissionStore()

@@ -11,7 +11,7 @@
     <div class="specify-reply-node">
       <div class="static-field-list">
         <div class="static-field-item">
-          <div class="static-field-item-label">语音模型</div>
+          <div class="static-field-item-label">{{ t('label_voice_model') }}</div>
           <div class="static-field-item-content">
             <div class="static-field-value">
               {{ formState.use_model }}
@@ -19,7 +19,7 @@
           </div>
         </div>
         <div class="static-field-item">
-          <div class="static-field-item-label">文本</div>
+          <div class="static-field-item-label">{{ t('label_text') }}</div>
           <div class="static-field-item-content">
             <div class="static-field-value">
               <at-text
@@ -27,6 +27,7 @@
                 :options="valueOptions"
                 :defaultSelectedList="formState.text_tags"
                 :defaultValue="formState.text"
+                class="text"
                 ref="atInputRef"
               />
               <span v-else>--</span>
@@ -42,6 +43,7 @@
 import NodeCommon from '../base-node.vue'
 import AtText from '../../at-input/at-text.vue'
 import {haveOutKeyNode} from '@/views/workflow/components/util.js'
+import { useI18n } from '@/hooks/web/useI18n'
 
 export default {
   name: 'SpecifyReplyNode',
@@ -49,6 +51,10 @@ export default {
   components: {
     NodeCommon,
     AtText
+  },
+  setup() {
+    const { t } = useI18n('views.workflow.components.nodes.voice-synthesis-node.index')
+    return { t }
   },
   props: {
     properties: {
@@ -114,17 +120,20 @@ export default {
   position: relative;
   z-index: 2;
 
-  .static-field-value {
-    height: auto;
-    line-height: 16px;
-    font-size: 12px;
-    word-break: break-all;
+  .static-field-item-content{
+    flex: 1;
     overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    white-space: pre-wrap;
+  }
+  .static-field-value {
+    height: 22px;
+    line-height: 20px;
+    font-size: 12px;
+    overflow: hidden;
+    .text{
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 
   &:deep(.j-mention-at) {

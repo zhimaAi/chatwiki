@@ -14,7 +14,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// SmartMenuRequest 通用请求结构
+// SmartMenuRequest General request struct
 type SmartMenuRequest struct {
 	ID              int    `form:"id" json:"id"`
 	RobotID         int    `form:"robot_id" json:"robot_id" binding:"required"`
@@ -23,7 +23,7 @@ type SmartMenuRequest struct {
 	MenuContent     string `form:"menu_content" json:"menu_content"`
 }
 
-// SmartMenuListFilterRequest 列表过滤请求结构
+// SmartMenuListFilterRequest List filter request struct
 type SmartMenuListFilterRequest struct {
 	RobotID   int    `json:"robot_id" form:"robot_id" binding:"required"`
 	MenuTitle string `json:"menu_title" form:"menu_title"`
@@ -31,17 +31,17 @@ type SmartMenuListFilterRequest struct {
 	Size      int    `json:"size" form:"size"`
 }
 
-// SaveSmartMenu 保存智能菜单（创建或更新）
+// SaveSmartMenu Save smart menu (create or update)
 func SaveSmartMenu(c *gin.Context) {
 	var req SmartMenuRequest
 
-	// 获取参数
+	// Get params
 	if err := c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 解析 MenuContent
+	// Parse MenuContent
 	var menuContent []lib_define.SmartMenuContent
 	if req.MenuContent != "" {
 		if err := tool.JsonDecodeUseNumber(req.MenuContent, &menuContent); err != nil {
@@ -50,19 +50,19 @@ func SaveSmartMenu(c *gin.Context) {
 		}
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check whether the robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, req.RobotID, adminUserId) {
 		return
 	}
 
-	// 如果是更新操作，检查规则是否存在且属于当前用户和机器人
+	// If updating, check whether the menu exists and belongs to current user and robot
 	if req.ID > 0 {
 		menuInfo, err := common.GetSmartMenu(req.ID, req.RobotID)
 		if err != nil {
@@ -82,14 +82,14 @@ func SaveSmartMenu(c *gin.Context) {
 		}
 	}
 
-	// 保存规则（创建或更新）
+	// Save menu (create or update)
 	id, err := common.SaveSmartMenu(
 		req.ID,
 		adminUserId,
 		req.RobotID,
 		req.MenuTitle,
 		req.MenuDescription,
-		menuContent, // 使用解析后的值
+		menuContent, // use parsed value
 	)
 
 	if err != nil {
@@ -101,12 +101,12 @@ func SaveSmartMenu(c *gin.Context) {
 	common.FmtOk(c, map[string]interface{}{"id": id})
 }
 
-// DeleteSmartMenu 删除智能菜单
+// DeleteSmartMenu Delete smart menu
 func DeleteSmartMenu(c *gin.Context) {
 	id := cast.ToInt(c.PostForm("id"))
 	robotID := cast.ToInt(c.PostForm("robot_id"))
 
-	// 检查参数
+	// Validate params
 	if id <= 0 {
 		common.FmtError(c, `param_lack`, `id`)
 		return
@@ -117,19 +117,19 @@ func DeleteSmartMenu(c *gin.Context) {
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check whether the robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, robotID, adminUserId) {
 		return
 	}
 
-	// 检查菜单是否存在且属于当前用户和机器人
+	// Check whether the menu exists and belongs to current user and robot
 	menuInfo, err := common.GetSmartMenu(id, robotID)
 	if err != nil {
 		logs.Error("Get smart menu error: %s", err.Error())
@@ -147,7 +147,7 @@ func DeleteSmartMenu(c *gin.Context) {
 		return
 	}
 
-	// 删除菜单
+	// Delete menu
 	err = common.DeleteSmartMenu(id, robotID)
 	if err != nil {
 		logs.Error("DeleteSmartMenu error: %s", err.Error())
@@ -158,25 +158,25 @@ func DeleteSmartMenu(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-// GetSmartMenu 获取单个智能菜单
+// GetSmartMenu Get a single smart menu
 func GetSmartMenu(c *gin.Context) {
 	id := cast.ToInt(c.Query("id"))
 	robotID := cast.ToInt(c.Query("robot_id"))
 
-	// 检查参数
+	// Validate params
 	if id <= 0 {
 		common.FmtError(c, `param_lack`, `id`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 获取菜单信息
+	// Get menu info
 	menuInfo, err := common.GetSmartMenu(id, robotID)
 	if err != nil {
 		logs.Error("Get smart menu error: %s", err.Error())
@@ -189,16 +189,16 @@ func GetSmartMenu(c *gin.Context) {
 		return
 	}
 
-	// 检查权限
+	// Check permissions
 	if cast.ToInt(menuInfo["admin_user_id"]) != adminUserId {
 		common.FmtError(c, `auth_no_permission`)
 		return
 	}
 
-	// 处理返回数据
+	// Build response
 	var menuContent []lib_define.SmartMenuContent
 
-	// 解析JSON数据
+	// Parse JSON
 	if menuInfo["menu_content"] != "" {
 		_ = tool.JsonDecodeUseNumber(menuInfo["menu_content"], &menuContent)
 	}
@@ -216,17 +216,17 @@ func GetSmartMenu(c *gin.Context) {
 	common.FmtOk(c, result)
 }
 
-// GetSmartMenuList 获取智能菜单列表
+// GetSmartMenuList Get smart menu list
 func GetSmartMenuList(c *gin.Context) {
 	var req SmartMenuListFilterRequest
 
-	// 获取参数
+	// Get params
 	if err := c.ShouldBindQuery(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 设置默认分页参数
+	// Set default pagination
 	if req.Page <= 0 {
 		req.Page = 1
 	}
@@ -234,19 +234,19 @@ func GetSmartMenuList(c *gin.Context) {
 		req.Size = 10
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check whether the robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, req.RobotID, adminUserId) {
 		return
 	}
 
-	// 获取菜单列表
+	// Get menu list
 	list, total, err := common.GetSmartMenuListWithFilter(req.RobotID, req.MenuTitle, req.Page, req.Size)
 	if err != nil {
 		logs.Error("GetSmartMenuListWithFilter error: %s", err.Error())
@@ -254,12 +254,12 @@ func GetSmartMenuList(c *gin.Context) {
 		return
 	}
 
-	// 处理返回数据
+	// Build response
 	var result []map[string]interface{}
 	for _, item := range list {
 		var menuContent []lib_define.SmartMenuContent
 
-		// 解析JSON数据
+		// Parse JSON
 		if item["menu_content"] != "" {
 			_ = tool.JsonDecodeUseNumber(item["menu_content"], &menuContent)
 		}
@@ -275,7 +275,7 @@ func GetSmartMenuList(c *gin.Context) {
 		})
 	}
 
-	// 返回分页数据
+	// Return paginated data
 	response := map[string]interface{}{
 		"list":  result,
 		"total": total,

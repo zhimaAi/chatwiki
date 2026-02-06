@@ -1,0 +1,11 @@
+{
+  "title_app_charging": "App Charging",
+  "subtitle_value_payment": "Let users pay for value!",
+  "title_set_pricing_rules": "Set Pricing Rules",
+  "desc_pricing_modes": "Supports per-use and daily billing modes",
+  "title_purchase_auth_code": "Purchase Authorization Code",
+  "desc_scan_to_purchase": "Users scan QR code to add admin and purchase authorization code",
+  "title_redeem_usage": "Redeem Usage",
+  "desc_redeem_code": "Users reply with authorization code to get usage count",
+  "btn_setup_now": "Setup Now"
+}

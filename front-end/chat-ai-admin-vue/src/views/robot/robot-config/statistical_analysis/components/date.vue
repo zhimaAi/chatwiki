@@ -16,6 +16,9 @@
 import dayjs from 'dayjs';
 import { ref, onMounted, reactive, watch } from 'vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.statistical-analysis.components.date')
 
 const props = defineProps({
   datekey: {
@@ -30,21 +33,21 @@ const emit = defineEmits(['dateChange'])
 
 let tagDateArr = reactive([
   {
-    label: '近7日',
+    label: t('label_last_7_days'),
     value: true,
     key: 2,
     start_date: dayjs().subtract(6, 'day'),
     end_date: dayjs().subtract(0, 'day'),
   },
   {
-    label: '近14日',
+    label: t('label_last_14_days'),
     value: false,
     key: 3,
     start_date: dayjs().subtract(13, 'day'),
     end_date: dayjs().subtract(0, 'day'),
   },
   {
-    label: '近30日',
+    label: t('label_last_30_days'),
     value: false,
     key: 4,
     start_date: dayjs().subtract(29, 'day'),
@@ -86,7 +89,7 @@ const handleDateChange = (dates, dateStrings) => {
     range.value[1] = startDate.add(29, 'days')
     start_time.value = range.value[0].format('YYYY-MM-DD')
     end_time.value = range.value[1].format('YYYY-MM-DD')
-    message.error(`最多只能选择30天`)
+    message.error(t('error_max_30_days'))
   } else {
     range.value = dates
     start_time.value = dateStrings[0]

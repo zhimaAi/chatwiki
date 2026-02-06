@@ -27,7 +27,7 @@ func initGin() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	port := define.Config.WebService[`port`]
-	define.WebService = lib_web.InitGin(port, route.Route, middlewares.CasbinAuth(), middlewares.I18nPlaceholderMiddleware()) // 添加国际化占位符中间件
+	define.WebService = lib_web.InitGin(port, route.Route, middlewares.CasbinAuth(), middlewares.I18nPlaceholderMiddleware()) // add i18n placeholder middleware
 
 	// Setup upload directory and MCP endpoint with multi-tenant support
 	if handler, ok := define.WebService.Handler.(*gin.Engine); ok {

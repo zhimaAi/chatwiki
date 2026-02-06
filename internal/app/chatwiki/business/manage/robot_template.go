@@ -20,7 +20,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// GetRobotTemplateCategoryList 获取模板分类列表
+// GetRobotTemplateCategoryList gets the template category list
 func GetRobotTemplateCategoryList(c *gin.Context) {
 	resp, err := requestXiaokefu(`kf/ChatWiki/CommonGetRobotTemplateCategoryList`, map[string]any{`switch`: 1})
 	if err != nil {
@@ -39,7 +39,7 @@ func GetRobotTemplateCategoryList(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(respData, nil))
 }
 
-// GetRobotTemplateList 获取模板列表
+// GetRobotTemplateList gets the template list
 func GetRobotTemplateList(c *gin.Context) {
 	body := make(map[string]any)
 
@@ -65,7 +65,7 @@ func GetRobotTemplateList(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(resp.Data, nil))
 }
 
-// UseRobotTemplate 使用模板
+// UseRobotTemplate uses a template
 func UseRobotTemplate(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
@@ -79,7 +79,7 @@ func UseRobotTemplate(c *gin.Context) {
 		return
 	}
 
-	// 下载csl文件
+	// Download CSL file
 	resp, err := http.Get(cslUrl)
 	if err != nil {
 		logs.Error(err.Error())
@@ -109,7 +109,7 @@ func UseRobotTemplate(c *gin.Context) {
 		return
 	}
 
-	//获取模版最新信息
+	// Fetch latest template info
 	body := make(map[string]any)
 	body[`template_id`] = templateId
 	respTemplateInfo, infoErr := requestXiaokefu(`kf/ChatWiki/CommonGetRobotTemplateDetail`, body)
@@ -120,12 +120,12 @@ func UseRobotTemplate(c *gin.Context) {
 	}
 	templateInfo, ok := respTemplateInfo.Data.(map[string]any)
 	if ok {
-		//更新Csl中的机器人信息
+		// Update robot info in CSL
 		robotCsl.Robot[`robot_name`] = cast.ToString(templateInfo[`name`])
 		robotCsl.Robot[`robot_intro`] = cast.ToString(templateInfo[`description`])
 		robotCsl.Robot[`robot_avatar`] = cast.ToString(templateInfo[`avatar`])
 	}
-	// 增加使用次数
+	// Increase usage count
 	_, err = requestXiaokefu("kf/ChatWiki/CommonUseTemplate", map[string]any{`template_id`: templateId})
 	if err != nil {
 		logs.Error(err.Error())
@@ -133,7 +133,7 @@ func UseRobotTemplate(c *gin.Context) {
 		return
 	}
 
-	// 导入模板
+	// Import template
 	token := c.GetHeader(`token`)
 	if len(token) == 0 {
 		token = c.Query(`token`)
@@ -141,7 +141,7 @@ func UseRobotTemplate(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(ApplyRobotCsl(common.GetLang(c), adminUserId, getLoginUserId(c), token, robotCsl)))
 }
 
-// requestXiaokefu 封装小客服请求接口
+// requestXiaokefu wraps Xiaokefu API requests
 func requestXiaokefu(api string, data map[string]any) (lib_web.Response, error) {
 	domain := define.Config.Xiaokefu[`domain`]
 	body, err := tool.JsonEncode(data)
@@ -169,7 +169,7 @@ func requestXiaokefu(api string, data map[string]any) (lib_web.Response, error) 
 		return lib_web.Response{}, fmt.Errorf(`SYSTEM ERROR:%d`, resp.StatusCode)
 	}
 	code := lib_web.Response{}
-	// 获取响应体
+	// Read response body
 	//returnBody, returnErr := ioutil.ReadAll(resp.Body)
 	//logs.Error(fmt.Sprintf(`result: %v , error: %v`, string(returnBody), returnErr))
 	if err = request.ToJSON(&code); err != nil {
@@ -181,7 +181,7 @@ func requestXiaokefu(api string, data map[string]any) (lib_web.Response, error) 
 	return code, nil
 }
 
-// CommonGetRobotTemplateDetail 获取机器人模板详情
+// CommonGetRobotTemplateDetail gets robot template details
 func CommonGetRobotTemplateDetail(c *gin.Context) {
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {

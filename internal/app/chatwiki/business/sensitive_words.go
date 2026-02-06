@@ -20,7 +20,7 @@ func CheckChatRequestPermission(c *gin.Context) {
 	var externalConfigH5 map[string]any
 	from := strings.TrimSpace(c.PostForm(`from`))
 	if params.Error == nil {
-		question := common.GetFirstQuestionByInput(params.Question) //多模态输入特殊处理
+		question := common.GetFirstQuestionByInput(params.Question) // multimodal input special handling
 		if cast.ToInt(params.Robot[`sensitive_words_switch`]) == define.SwitchOn && len(question) > 0 {
 			if ok, wordsArr := common.CheckSensitiveWords(question, cast.ToInt(params.Robot[`admin_user_id`]), cast.ToInt(params.Robot[`id`])); ok {
 				common.FmtOk(c, map[string]any{`code`: define.ErrorCodeContainsSensitiveWords, `words`: wordsArr})

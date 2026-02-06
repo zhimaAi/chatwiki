@@ -1,0 +1,14 @@
+{
+  "label_default": "Default",
+  "btn_set_as_default": "Set as Default",
+  "btn_delete": "Delete",
+  "btn_authorize_now": "Authorize Now",
+  "msg_authorized_credentials": "{count} Credentials Authorized",
+  "title_authorization_required": "Authorization Required",
+  "msg_config_after_auth": "After authorization, configurations will appear here",
+  "label_parameters": "Parameters",
+  "label_required": "Required",
+  "title_tip": "Tip",
+  "msg_confirm_delete_config": "Confirm to delete this configuration?",
+  "msg_deleted": "Deleted"
+}

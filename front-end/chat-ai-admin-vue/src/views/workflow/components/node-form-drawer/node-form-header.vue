@@ -85,7 +85,7 @@
         </slot>
       </div>
       <div class="title-conttent">
-        <a-input class="node-name-input" v-model:value="localTitle" placeholder="请输入节点名称" @change.stop="handleTitleChange" />
+        <a-input class="node-name-input" v-model:value="localTitle" :placeholder="t('ph_input_node_name')" @change.stop="handleTitleChange" />
       </div>
       <div class="title-right">
         <slot name="runBtn"></slot>
@@ -96,7 +96,7 @@
           <template #overlay>
             <a-menu style="width: 100px">
               <a-menu-item @click="handleDeleteNode()">
-                <a href="javascript:;">删除</a>
+                <a href="javascript:;">{{ t('btn_delete') }}</a>
               </a-menu-item>
             </a-menu>
           </template>
@@ -115,6 +115,9 @@
 <script setup>
 import { ref,  computed, inject } from 'vue'
 import { CloseOutlined } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.node-form-header')
 
 const changeTitle = inject('changeTitle')
 const deleteNode = inject('deleteNode')

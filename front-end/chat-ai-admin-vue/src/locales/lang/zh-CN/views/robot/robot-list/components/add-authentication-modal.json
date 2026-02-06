@@ -1,0 +1,18 @@
+{
+  "title_auth_parameters": "鉴权参数",
+  "msg_auth_info": "选择的参数会自动填充到工具配置，鉴权参数在导出或上架模板时会自动清空",
+  "btn_add_parameter": "添加参数",
+  "ph_input": "请输入",
+  "label_remark": "备注",
+  "label_action": "操作",
+  "msg_confirm_delete": "确认删除该字段?",
+  "btn_confirm": "确定",
+  "btn_cancel": "取消",
+  "btn_delete": "删除",
+  "msg_max_limit": "最多添加100条",
+  "msg_fill_row": "请填写第{val}行参数",
+  "msg_add_parameter": "请添加参数",
+  "btn_save_only": "仅保存参数",
+  "btn_save_and_add": "保存并添加",
+  "msg_save_success": "保存成功"
+}

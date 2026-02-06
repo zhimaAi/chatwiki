@@ -5,7 +5,7 @@
     </div>
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>输入</div>
+        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>{{ t('title_input') }}</div>
         <a-select
           v-if="Object.keys(configData).length"
           v-model:value="currentConfigName"
@@ -14,12 +14,12 @@
             {{ item.name }}
           </a-select-option>
         </a-select>
-        <a-button v-else @click="showConfigModal">未授权 <DownOutlined/></a-button>
+        <a-button v-else @click="showConfigModal">{{ t('btn_unauthorized') }} <DownOutlined/></a-button>
       </div>
       <template v-if="'create_bitable' != actionName">
         <div class="options-item is-required">
           <div class="options-item-tit">
-            <div class="option-label">多维表</div>
+            <div class="option-label">{{ t('label_multidimensional_table') }}</div>
           </div>
           <div class="min-input">
             <AtInput
@@ -31,7 +31,7 @@
               ref="atInputRef"
               @open="emit('updateVar')"
               @change="(val, tags) => changeValue('app_token', val, tags)"
-              placeholder="请输入文档url，键入“/”可以插入变量"
+              :placeholder="t('ph_input_document_url')"
             >
               <template #option="{ label, payload }">
                 <div class="field-list-item">
@@ -41,22 +41,22 @@
               </template>
             </AtInput>
           </div>
-          <div class="desc">多维表格的唯一标识符，支持输入文档 url</div>
+          <div class="desc">{{ t('desc_multidimensional_table_id') }}</div>
         </div>
         <div v-if="!['table_add_members', 'update_advanced', 'roles_list', 'create_tables'].includes(actionName)" class="options-item is-required">
           <div class="options-item-tit">
-            <div class="option-label">选择数据表</div>
+            <div class="option-label">{{ t('label_select_table') }}</div>
           </div>
           <div class="flex-center min-input">
             <a-select v-model:value="formState.table_set_type" @change="tableSetChange" style="width: 112px;flex-shrink: 0;">
-              <a-select-option value="1">选择数据表</a-select-option>
-              <a-select-option value="2">插入变量</a-select-option>
+              <a-select-option value="1">{{ t('label_select_table') }}</a-select-option>
+              <a-select-option value="2">{{ t('label_insert_variable') }}</a-select-option>
             </a-select>
             <a-select
               v-if="formState.table_set_type == 1"
               v-model:value="formState.table_id"
               @change="tableChange"
-              :placeholder="formState.app_token ? '请选择数据表' : '请先输入多维表文档url'"
+              :placeholder="formState.app_token ? t('ph_select_table') : t('ph_input_multidimensional_url_first')"
               style="width: 100%;">
               <a-select-option
                 v-for="item in tables"
@@ -75,7 +75,7 @@
               ref="atInputRef"
               @open="emit('updateVar')"
               @change="(val, tags) => changeValue('table_id', val, tags)"
-              placeholder="请输入表格id，键入“/”可以插入变量"
+              :placeholder="t('ph_input_table_id')"
             >
               <template #option="{ label, payload }">
                 <div class="field-list-item">
@@ -85,7 +85,7 @@
               </template>
             </AtInput>
           </div>
-          <div class="desc">输入表格id，table_id  例如：tblz2wmlWiB1JGxS</div>
+          <div class="desc">{{ t('desc_table_id_example') }}</div>
         </div>
       </template>
       <FeishuBatchBox
@@ -115,7 +115,7 @@
 
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>输出</div>
+        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>{{ t('title_output') }}</div>
       </div>
       <div class="options-item">
         <OutputFields :tree-data="outputData"/>
@@ -128,6 +128,7 @@
 
 <script setup>
 import {ref, reactive, onMounted, computed, inject, nextTick} from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import {runPlugin} from "@/api/plugins/index.js";
 import FeishuInsertData from "./feishu-insert-data.vue";
 import FeishuUpdateData from "./feishu-update-data.vue";
@@ -135,6 +136,8 @@ import FeishuDelData from "./feishu-del-data.vue";
 import FeishuSearchData from "./feishu-search-data.vue";
 import OutputFields from "@/views/workflow/components/feishu-table/output-fields.vue";
 import {BatchActions, ShowFieldTypes} from "@/constants/feishu-table.js";
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.feishu-bittable.feishu-bittable-box')
 import FeishuBatchBox from "./feishu-batch-box.vue";
 import {getPluginActionDefaultArguments, pluginOutputToTree, getPluginConfigData} from "@/constants/plugin.js";
 import {DownOutlined} from '@ant-design/icons-vue';

@@ -5,12 +5,12 @@
       :title="modalTitle"
       @ok="handleOk"
       :width="472"
-      ok-text="确定"
-      cancel-text="取消"
+      :ok-text="t('btn_confirm')"
+      :cancel-text="t('btn_cancel')"
     >
       <a-form ref="formRef" layout="vertical" :model="formState" style="margin: 24px 0">
         <a-form-item
-          label="参数key"
+          :label="t('label_param_key')"
           name="key"
           :rules="[
             {
@@ -22,39 +22,39 @@
           <a-input
             v-model:value="formState.key"
             :maxlength="20"
-            placeholder="英文字母和下划线“_”组成，最多20字符"
+            :placeholder="t('ph_param_key_tip')"
           />
         </a-form-item>
         <a-form-item
-          label="参数类型"
+          :label="t('label_param_type')"
           name="typ"
-          :rules="[{ required: true, message: '请选择参数类型' }]"
+          :rules="[{ required: true, message: t('msg_select_type') }]"
         >
-          <a-select v-model:value="formState.typ" placeholder="请选择" style="width: 100%">
+          <a-select v-model:value="formState.typ" :placeholder="t('ph_select')" style="width: 100%">
             <a-select-option v-for="op in typOptions" :value="op.value">{{
               op.value
             }}</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item
-          label="是否必填"
+          :label="t('label_required')"
           name="required"
-          :rules="[{ required: true, message: '请选择是否必填' }]"
+          :rules="[{ required: true, message: t('msg_select_required') }]"
         >
           <a-switch v-model:checked="formState.required" />
         </a-form-item>
         <a-form-item
-          label="默认值"
+          :label="t('label_default_value')"
           name="default"
-          :rules="[{ required: formState.required, message: '请输入默认值' }]"
+          :rules="[{ required: formState.required, message: t('msg_enter_default') }]"
         >
-          <a-input v-model:value="formState.default" placeholder="必填时大模型未提取到会返回默认值" />
+          <a-input v-model:value="formState.default" :placeholder="t('msg_enter_default')" />
         </a-form-item>
-        <a-form-item label="枚举值" name="enum">
+        <a-form-item :label="t('label_enum_values')" name="enum">
           <a-textarea
             style="height: 80px"
             v-model:value="formState.enum"
-            placeholder="列举该字段的值，一行一个。系统会要求大模型只能返回列举的值"
+            :placeholder="t('ph_enum_tip')"
           />
         </a-form-item>
       </a-form>
@@ -63,24 +63,27 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { message } from 'ant-design-vue'
 import { ref, reactive } from 'vue'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.parameter-extraction-form.add-params-modal')
 
 const emit = defineEmits(['add', 'edit', 'addSub'])
 
 const open = ref(false)
-const modalTitle = ref('新增参数')
+const modalTitle = ref(t('title_add_param'))
 
 let oprateType = 'add'
 
 const checkKey = (rule, value) => {
   if (!value) {
-    return Promise.reject('请输入参数key')
+    return Promise.reject(t('msg_enter_key'))
   }
   // 校验是否只包含英文字母和下划线
   const regex = /^[a-zA-Z_]+$/
   if (!regex.test(value)) {
-    return Promise.reject('只能包含英文字母和下划线')
+    return Promise.reject(t('msg_only_letters_underscore'))
   }
   return Promise.resolve()
 }
@@ -109,7 +112,7 @@ const add = () => {
     subs: []
   })
   oprateType = 'add'
-  modalTitle.value = '新增参数'
+  modalTitle.value = t('title_add_param')
   open.value = true
 }
 
@@ -125,7 +128,7 @@ const addSub = (index) => {
     subs: []
   })
   oprateType = 'addSub'
-  modalTitle.value = '新增参数'
+  modalTitle.value = t('title_add_param')
   open.value = true
 }
 
@@ -144,7 +147,7 @@ const edit = (data, index) => {
     ...data
   })
   oprateType = 'edit'
-  modalTitle.value = '编辑参数'
+  modalTitle.value = t('title_edit_param')
   open.value = true
 }
 

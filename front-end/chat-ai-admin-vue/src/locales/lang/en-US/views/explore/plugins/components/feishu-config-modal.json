@@ -1,0 +1,17 @@
+{
+  "title_api_key_auth_config": "API Key Authorization Configuration",
+  "msg_config_workflow_call": "After configuring credentials, workflows can directly call this plugin",
+  "label_credential_name": "Credential Name",
+  "msg_input_credential_name": "Please enter credential name!",
+  "ph_input_credential_name": "Please enter credential name",
+  "msg_credential_name_desc": "Name used to distinguish multiple authorization configurations, not for API calls",
+  "label_app_id": "APP ID",
+  "msg_input_app_id": "Please enter APP ID!",
+  "ph_input_app_id": "Please enter APP ID",
+  "label_app_secret": "APP Secret",
+  "msg_input_app_secret": "Please enter APP Secret!",
+  "ph_input_app_secret": "Please enter APP Secret",
+  "msg_how_to_get_app_id_secret": "How to get APP ID and APP Secret",
+  "msg_saved": "Saved",
+  "msg_credential_name_exists": "Credential name already exists"
+}

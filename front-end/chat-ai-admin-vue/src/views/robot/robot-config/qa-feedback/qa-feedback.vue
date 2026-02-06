@@ -1,18 +1,18 @@
 <template>
   <div class="team-members-pages">
     <a-flex justify="flex-end">
-      <div class="total"><div class="label total-label">共计：</div><div class="total-num">{{ requestParams.total }}条</div></div>
+      <div class="total"><div class="label total-label">{{ t('label_total') }}：</div><div class="total-num">{{ requestParams.total }} {{ t('label_item') }}</div></div>
       <div class="set-model">
-        <div class="label set-model-label">类型：</div>
+        <div class="label set-model-label">{{ t('label_type') }}：</div>
         <div class="set-model-body">
           <a-select
             v-model:value="requestParams.type"
-            placeholder="全部类型"
+            :placeholder="t('placeholder_all_types')"
             @change="handleChangeModel"
             :style="{'width': '130px'}"
           >
             <a-select-option v-for="item in modelList" :key="item.key" :value="item.id">
-              <span>{{ item.label }}</span>
+              <span>{{ t(item.label) }}</span>
             </a-select-option>
           </a-select>
         </div>
@@ -20,7 +20,7 @@
 
       <div class="set-date">
         <div class="label set-date-label">
-          <span>日期：</span>
+          <span>{{ t('label_date') }}：</span>
         </div>
         <div class="set-date-body">
           <DateSelect 
@@ -31,7 +31,7 @@
       </div>
 
       <div class="set-reset">
-        <a-button @click="onReset">重置</a-button>
+        <a-button @click="onReset">{{ t('btn_reset') }}</a-button>
       </div>
     </a-flex>
     <div class="list-box">
@@ -47,25 +47,8 @@
         } : false"
         @change="onTableChange"
       >
-        <a-table-column title="问答" data-index="question" width="411px">
+        <a-table-column :title="t('table_column_qa')" data-index="question" width="411px">
           <template #default="{ record }">
-            <!-- <a-popover placement="top" :overlayStyle="{ maxWidth: '711px', wordBreak: 'break-word' }">
-              <template #content>
-                <div class="user-box">
-                  <div class="name-info">
-                    <div class="user-name">{{ record.question }}</div>
-                    <div class="user-info">{{ record.answer }}</div>
-                  </div>
-                </div>
-              </template>
-              <div class="user-box">
-                <div class="name-info">
-                  <div class="user-name">{{ record.question }}</div>
-                  <div class="user-info">{{ record.answer }}</div>
-                </div>
-              </div>
-            </a-popover> -->
-            
             <div class="user-box">
               <div class="name-info">
                 <div class="user-name">{{ record.question }}</div>
@@ -74,28 +57,28 @@
             </div>
           </template>
         </a-table-column>
-        <a-table-column title="回答反馈" data-index="type" width="160px">
+        <a-table-column :title="t('table_column_feedback')" data-index="type" width="160px">
           <template #default="{ record }">
-            <div v-if="record.type == '1'" class="item-type"><svg-icon style="font-size: 24px; color: #8C8C8C;" name="like" />点赞</div>
-            <div v-if="record.type == '2'" class="item-type"><svg-icon style="font-size: 24px; color: #8C8C8C;" name="dislike" />点踩</div>
+            <div v-if="record.type == '1'" class="item-type"><svg-icon style="font-size: 24px; color: #8C8C8C;" name="like" />{{ t('label_like') }}</div>
+            <div v-if="record.type == '2'" class="item-type"><svg-icon style="font-size: 24px; color: #8C8C8C;" name="dislike" />{{ t('label_dislike') }}</div>
           </template>
         </a-table-column>
-        <a-table-column title="反馈内容" data-index="content" width="264px">
+        <a-table-column :title="t('table_column_feedback_content')" data-index="content" width="264px">
           <template #default="{ record }">
             <div class="item-content">
               {{ record.content }}
             </div>
           </template>
         </a-table-column>
-        <a-table-column title="时间" data-index="create_time" width="200px">
+        <a-table-column :title="t('table_column_time')" data-index="create_time" width="200px">
           <template #default="{ record }">
             <div class="item-date">{{ record.create_time }}</div>
           </template>
         </a-table-column>
-        <a-table-column title="操作" data-index="action" width="88px">
+        <a-table-column :title="t('table_column_action')" data-index="action" width="88px">
           <template #default="{ record }">
             <a-flex :gap="16" class="action-box">
-              <a-button type="link" @click="handleOpenFeedbacksLog(record)">查看详情</a-button>
+              <a-button type="link" @click="handleOpenFeedbacksLog(record)">{{ t('btn_view_details') }}</a-button>
             </a-flex>
           </template>
         </a-table-column>
@@ -111,6 +94,9 @@ import { useRoute } from 'vue-router'
 import dayjs from 'dayjs'
 import DateSelect from './components/date.vue'
 import FeedbacksLogAlert from './components/feedbacks-log-alert.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.qa-feedback.qa-feedback')
 
 // 打开Feedbacks日志
 const feedbacksLogAlertRef = ref(null)
@@ -123,25 +109,25 @@ const modelList = ref([
   {
     key: 'all',
     id: 'all',
-    label: '全部类型',
-    title: '全部类型'
+    label: 'placeholder_all_types',
+    title: 'placeholder_all_types'
   },
   {
     key: '1',
     id: '1',
-    label: '点赞',
-    title: '点赞'
+    label: 'label_like',
+    title: 'label_like'
   },
   {
     key: '2',
     id: '2',
-    label: '点踩',
-    title: '点踩'
+    label: 'label_dislike',
+    title: 'label_dislike'
   }
 ])
 
 const requestParams = reactive({
-  robot_id: query.id, // 机器人ID
+  robot_id: query.id, // Robot ID
   page: 1,
   size: 20,
   total: 0,
@@ -162,12 +148,12 @@ const handleOpenFeedbacksLog = async (item) => {
 }
 
 const onReset = () => {
-  // 重置
+  // Reset
   requestParams.type = 'all'
   requestParams.start_date = ''
   requestParams.end_date = ''
 
-  // 初始化子组件
+  // Initialize child component
   datekey.value = 1 + '-' + Math.random()
 }
 
@@ -182,9 +168,9 @@ const onSearch = () => {
 }
 const tableData = ref([])
 const getData = () => {
-  // 获取列表
+  // Get list
   let parmas = {
-    robot_id: requestParams.robot_id, // 机器人ID
+    robot_id: requestParams.robot_id, // Robot ID
     page: requestParams.page,
     size: requestParams.size,
     start_date: requestParams.start_date,
@@ -213,7 +199,7 @@ const handleChangeModel = (val) => {
 }
 
 onMounted(() => {
-    // 获取模型
+    // Get model
     // onSearch()
 })
 

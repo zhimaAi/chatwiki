@@ -1,0 +1,15 @@
+{
+  "title_query_conditions": "查询条件",
+  "opt_select_query_condition": "选择查询条件",
+  "opt_input_variable": "输入变量",
+  "ph_input_content": "请输入内容，键入\"/\"可以插入变量",
+  "desc_filter_example": "内容示例：{\"conditions\":[{\"field_name\":\"文章ID\",\"operator\":\"is\",\"value\":\"123\"}],\"conjunction\":\"and\"}",
+  "title_query_fields": "查询字段",
+  "opt_select_query_fields": "选择查询字段",
+  "desc_field_names_example": "内容示例：[\"文章ID\",\"封面图\",\"创建时间\",\"介绍\"]",
+  "title_sort": "排序",
+  "opt_select_sort": "选择排序",
+  "desc_sort_example": "内容示例：[{\"desc\":false,\"field_name\":\"文章ID\"},{\"desc\":true,\"field_name\":\"更新时间\"}]",
+  "label_query_count": "查询数量"
+}
+

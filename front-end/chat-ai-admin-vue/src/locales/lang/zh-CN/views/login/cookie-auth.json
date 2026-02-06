@@ -1,0 +1,8 @@
+{
+  "title_privacy_notice": "ChatWiki 隐私授权提醒",
+  "msg_cookie_description": "我们使用 Cookie 来改善您的浏览体验、提供个性化内容并分析我们的流量。点击'全部接受'，即表示您同意我们使用 Cookie。您可以管理您的偏好设置或阅读我们的 {cookiePolicy} 和 {privacyPolicy} 了解更多详情。",
+  "btn_decline": "拒绝",
+  "btn_accept_all": "全部接受",
+  "link_cookie_policy": "Cookie 政策",
+  "link_privacy_policy": "隐私政策"
+}

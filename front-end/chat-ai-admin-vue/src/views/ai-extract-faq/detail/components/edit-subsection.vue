@@ -2,39 +2,39 @@
   <a-modal
     v-model:open="open"
     @ok="handleOk"
-    title="编辑分段"
+    :title="t('title_edit_segment')"
     wrapClassName="no-padding-modal"
     :bodyStyle="{ 'max-height': '670px', 'overflow-y': 'auto', 'padding-right': '12px' }"
     :width="944"
   >
     <div class="form-box">
       <a-form layout="vertical">
-        <!-- <a-form-item ref="title" label="分段标题" v-bind="validateInfos.title">
-          <a-input :maxLength="25" v-model:value="formState.title" placeholder="请输入分段标题" />
+        <!-- <a-form-item ref="title" :label="t('label_segment_title')" v-bind="validateInfos.title">
+          <a-input :maxLength="25" v-model:value="formState.title" :placeholder="t('ph_input_segment_title')" />
         </a-form-item> -->
-        <a-form-item ref="question" label="分段问题" v-bind="validateInfos.question">
+        <a-form-item ref="question" :label="t('label_segment_question')" v-bind="validateInfos.question">
           <a-textarea
-            placeholder="请输入分段问题"
+            :placeholder="t('ph_input_segment_question')"
             v-model:value="formState.question"
             style="height: 100px"
           ></a-textarea>
         </a-form-item>
-        <a-form-item ref="answer" label="分段答案" v-bind="validateInfos.answer">
+        <a-form-item ref="answer" :label="t('label_segment_answer')" v-bind="validateInfos.answer">
           <a-textarea
-            placeholder="请输入分段问题"
+            :placeholder="t('ph_input_segment_answer')"
             v-model:value="formState.answer"
             style="height: 100px"
           ></a-textarea>
         </a-form-item>
 
-        <a-form-item label="附件" v-bind="validateInfos.images">
+        <a-form-item :label="t('label_attachments')" v-bind="validateInfos.images">
           <div class="upload-box-wrapper">
             <a-tabs v-model:activeKey="activeKey" size="small">
               <a-tab-pane key="1">
                 <template #tab>
                   <span>
                     <svg-icon name="img-icon" style="font-size: 14px; color: #2475fc"></svg-icon>
-                    图片
+                    {{ t('label_image') }}
                     <span v-if="formState.images.length">({{ formState.images.length }})</span>
                   </span>
                 </template>
@@ -55,6 +55,10 @@ import { saveFAQFileQA } from '@/api/library/index'
 import { isArray } from 'ant-design-vue/lib/_util/util.js'
 import { SettingOutlined } from '@ant-design/icons-vue'
 import UploadImg from '@/components/upload-img/index.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.ai-extract-faq.detail.edit-subsection')
+
 const emit = defineEmits(['ok'])
 
 const open = ref(false)
@@ -68,10 +72,10 @@ const formState = reactive({
 })
 
 const rules = reactive({
-  // title: [{ required: true, message: '请输入分段标题', trigger: 'change' }],
-  question: [{ required: true, message: '请输入分段问题', trigger: 'change' }],
-  answer: [{ required: true, message: '请输入分段答案', trigger: 'change' }]
-  // images: [{ required: true, message: '请上传图片', trigger: 'change' }]
+  // title: [{ required: true, message: 'msg_input_segment_title', trigger: 'change' }],
+  question: [{ required: true, message: t('msg_input_segment_question'), trigger: 'change' }],
+  answer: [{ required: true, message: t('msg_input_segment_answer'), trigger: 'change' }]
+  // images: [{ required: true, message: 'msg_upload_image', trigger: 'change' }]
 })
 
 const { validate, validateInfos } = useForm(formState, rules)
@@ -99,7 +103,7 @@ const saveForm = () => {
     }
   }
   saveFAQFileQA(formData).then((res) => {
-    message.success('编辑成功')
+    message.success(t('msg_edit_success'))
     open.value = false
     emit('ok')
   })

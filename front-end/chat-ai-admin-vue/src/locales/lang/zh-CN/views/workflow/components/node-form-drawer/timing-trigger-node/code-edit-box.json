@@ -1,0 +1,1 @@
+{"msg_cron_empty": "Cron表达式不能为空", "msg_cron_field_count": "Cron表达式应包含5个字段（分钟 小时 日 月 周），当前为{count}个字段", "msg_field_error": "{name}字段错误: {error}", "msg_field_empty": "字段不能为空", "msg_step_range": "步长必须是1-59之间的数字", "msg_range_error": "范围值必须在{min}-{max}之间", "msg_start_greater_end": "起始值不能大于结束值", "msg_unsupported_char": "该字段不支持此特殊字符"}

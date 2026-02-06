@@ -1,0 +1,5 @@
+{
+  "title_scan_to_login": "扫码登录",
+  "msg_scan_with_wechat": "请使用微信扫描下方二维码登录",
+  "msg_qrcode_valid": "二维码有效期为5分钟，请尽快扫描"
+}

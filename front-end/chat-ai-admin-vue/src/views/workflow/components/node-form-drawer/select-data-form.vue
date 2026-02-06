@@ -48,8 +48,8 @@
     <template #header>
       <NodeFormHeader :title="node.node_name" :iconName="node.node_icon_name">
         <template #desc>
-          <span >在指定数据表中查询符合条件的数据，可以在数据库中维护数据表
-            <a target="_blank" href="/#/database/list">去管理</a>
+          <span >{{ t('title_desc_select_data') }}
+            <a target="_blank" href="/#/database/list">{{ t('btn_go_manage') }}</a>
           </span>
         </template>
       </NodeFormHeader>
@@ -59,11 +59,11 @@
       <div class="node-box-content">
           <div class="node-box-title">
             <img class="input-icon" src="@/assets/img/workflow/input.svg" alt="" />
-            <span class="text">输入</span>
+            <span class="text">{{ t('label_input') }}</span>
           </div>
 
           <div class="setting-label">
-            <span>数据表</span>
+            <span>{{ t('label_data_table') }}</span>
           </div>
 
           <div class="setting-box">
@@ -77,7 +77,7 @@
           </div>
 
           <div class="setting-box">
-            <collapse-panel title="查询条件" :count="state.formData.where.length">
+            <collapse-panel :title="t('label_query_condition')" :count="state.formData.where.length">
               <QueryConditionFilter
                 :disabled="!state.formData.form_id"
                 :where="state.formData.where"
@@ -89,7 +89,7 @@
           </div>
 
           <div class="setting-box" @wheel.stop @touchmove.stop>
-            <collapse-panel title="查询字段" :count="state.formData.fields.length">
+            <collapse-panel :title="t('label_query_fields')" :count="state.formData.fields.length">
               <FieldListSelect
                 :form-id="state.formData.form_id"
                 :showAdd="state.formData.form_id != ''"
@@ -102,7 +102,7 @@
           </div>
 
           <div class="setting-box" @wheel.stop @touchmove.stop>
-            <collapse-panel title="排序" :count="state.formData.order.length">
+            <collapse-panel :title="t('label_sort')" :count="state.formData.order.length">
               <SortSelector
                 :form-id="state.formData.form_id"
                 :disabled="!state.formData.form_id"
@@ -113,7 +113,7 @@
           </div>
 
           <div class="setting-label">
-            <span>查询数量</span>
+            <span>{{ t('label_query_count') }}</span>
           </div>
 
           <div class="setting-box" @wheel.stop @touchmove.stop>
@@ -124,7 +124,7 @@
         <div class="node-box-content">
           <div class="node-box-title">
             <img class="input-icon" src="@/assets/img/workflow/output.svg" alt="" />
-            <span class="text">输出</span>
+            <span class="text">{{ t('label_output') }}</span>
           </div>
 
           <div class="setting-box">
@@ -146,6 +146,9 @@ import QueryConditionFilter from '../data-table/query-condition-filter.vue'
 import SortSelector from '../data-table/sort-selector/index.vue'
 import OutputFields from '../data-table/output-fields.vue'
 import { useDataTableStore } from '@/stores/modules/data-table'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.select-data-form')
 
 const props = defineProps({
   node: {

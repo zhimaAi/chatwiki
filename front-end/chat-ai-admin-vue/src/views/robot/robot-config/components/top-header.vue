@@ -18,12 +18,12 @@
       </a-popover>
     </div>
     <a-tooltip v-if="routeName == 'robotWorkflow'">
-      <template #title>编辑机器人</template>
+      <template #title>{{ t('title_edit_robot') }}</template>
       <div class="hover-block" @click="toEditRobot()"><EditOutlined /></div>
     </a-tooltip>
     <a-dropdown v-if="robotCreate">
       <a-tooltip>
-        <template #title>新建机器人</template>
+        <template #title>{{ t('title_create_robot') }}</template>
         <div class="hover-block" @click.prevent=""><PlusCircleOutlined /></div>
       </a-tooltip>
 
@@ -32,13 +32,13 @@
           <a-menu-item @click.prevent="toAddRobot(0)">
             <span class="create-action">
               <img class="icon" :src="DEFAULT_ROBOT_AVATAR" alt="" />
-              <span>聊天机器人</span>
+              <span>{{ t('label_chat_robot') }}</span>
             </span>
           </a-menu-item>
           <a-menu-item @click.prevent="toAddRobot(1)">
             <span class="create-action">
               <img class="icon" :src="DEFAULT_WORKFLOW_AVATAR" alt="" />
-              <span>工作流</span>
+              <span>{{ t('label_workflow') }}</span>
             </span>
           </a-menu-item>
         </a-menu>
@@ -57,6 +57,9 @@ import { useRouter, useRoute } from 'vue-router'
 import { usePermissionStore } from '@/stores/modules/permission'
 import { useRobotStore } from '@/stores/modules/robot'
 import RobotGroup from './robot-group.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.components.top-header')
 
 const router = useRouter()
 const route = useRoute()

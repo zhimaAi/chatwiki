@@ -238,7 +238,7 @@ func AuthMcpProvider(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(provider, nil))
 }
 
-// updateProviderAuth 封装更新 provider 状态
+// updateProviderAuth wraps updating provider status
 func updateProviderAuth(providerId int, hasAuth bool, tools string) error {
 	auth := 0
 	if hasAuth {

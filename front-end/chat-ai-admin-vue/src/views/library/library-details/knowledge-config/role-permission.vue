@@ -2,7 +2,7 @@
   <cu-scroll>
     <div class="content-box">
       <div class="add-btn-block" v-if="currentPermission == 4">
-        <a-button type="primary" @click="openAddModal" :icon="h(PlusOutlined)">添加协助者</a-button>
+        <a-button type="primary" @click="openAddModal" :icon="h(PlusOutlined)">{{ t('addCollaborator') }}</a-button>
       </div>
       <div class="list-content">
         <a-table :columns="columns" :data-source="tableData" :pagination="false">
@@ -23,12 +23,12 @@
 
             <template v-if="column.key === 'operate_rights'">
               <div class="hover-btn-box" v-if="currentPermission == 2 || record.user_name == user_name">
-                <span v-if="record.operate_rights == 4">管理</span>
-                <span v-if="record.operate_rights == 2">编辑</span>
-                <span v-if="record.operate_rights == 1">查看</span>
+                <span v-if="record.operate_rights == 4">{{ t('manage') }}</span>
+                <span v-if="record.operate_rights == 2">{{ t('edit') }}</span>
+                <span v-if="record.operate_rights == 1">{{ t('view') }}</span>
               </div>
               <template v-else-if="record.role_type == 1 || record.is_creator == 1">
-                <div class="hover-btn-box">管理</div>
+                <div class="hover-btn-box">{{ t('manage') }}</div>
               </template>
               <a-popover
                 v-else
@@ -41,9 +41,9 @@
                     <div class="role-menu" @click="handleChangeStatus(record, 4)">
                       <div class="menu-header">
                         <UserOutlined />
-                        <span class="title">管理</span>
+                        <span class="title">{{ t('manage') }}</span>
                       </div>
-                      <div class="desc">可编辑，可删除，可查看</div>
+                      <div class="desc">{{ t('manageDesc') }}</div>
                       <div class="check-box" v-if="record.operate_rights == 4">
                         <CheckOutlined />
                       </div>
@@ -51,9 +51,9 @@
                     <div class="role-menu" @click="handleChangeStatus(record, 2)">
                       <div class="menu-header">
                         <EditOutlined />
-                        <span class="title">编辑</span>
+                        <span class="title">{{ t('edit') }}</span>
                       </div>
-                      <div class="desc">可编辑，可查看</div>
+                      <div class="desc">{{ t('editDesc') }}</div>
                       <div class="check-box" v-if="record.operate_rights == 2">
                         <CheckOutlined />
                       </div>
@@ -61,9 +61,9 @@
                     <div class="role-menu" @click="handleChangeStatus(record, 1)">
                       <div class="menu-header">
                         <EyeOutlined />
-                        <span class="title">查看</span>
+                        <span class="title">{{ t('view') }}</span>
                       </div>
-                      <div class="desc">仅查看</div>
+                      <div class="desc">{{ t('viewDesc') }}</div>
                       <div class="check-box" v-if="record.operate_rights == 1">
                         <CheckOutlined />
                       </div>
@@ -71,9 +71,9 @@
                   </div>
                 </template>
                 <div class="hover-btn-box">
-                  <span v-if="record.operate_rights == 4">管理</span>
-                  <span v-if="record.operate_rights == 2">编辑</span>
-                  <span v-if="record.operate_rights == 1">查看</span>
+                  <span v-if="record.operate_rights == 4">{{ t('manage') }}</span>
+                  <span v-if="record.operate_rights == 2">{{ t('edit') }}</span>
+                  <span v-if="record.operate_rights == 1">{{ t('view') }}</span>
                   <DownOutlined />
                 </div>
               </a-popover>
@@ -81,7 +81,7 @@
             <template v-if="column.key === 'action'">
               <template v-if="currentPermission == 4 && record.user_name != user_name">
                 <a @click="handleDel(record)" v-if="record.role_type != 1 && record.is_creator != 1"
-                  >移除</a
+                  >{{ t('remove') }}</a
                 >
               </template>
             </template>
@@ -113,7 +113,9 @@ import { message, Modal } from 'ant-design-vue'
 import AddCollaborator from '@/components/add-collaborator/add-collaborator.vue'
 import { getLibraryPermission } from '@/utils/permission'
 import { useRoute } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
 const query = useRoute().query
+const { t } = useI18n('views.library.library-details.knowledge-config.role-permission')
 
 import { useUserStore } from '@/stores/modules/user'
 const userStore = useUserStore()
@@ -153,13 +155,13 @@ const openAddModal = () => {
 }
 
 const handleChangeStatus = (record, operate_rights) => {
-  let right_str = operate_rights == 4 ? '管理' : operate_rights == 2 ? '编辑' : '查看'
+  let right_str = operate_rights == 4 ? t('manage') : operate_rights == 2 ? t('edit') : t('view')
   Modal.confirm({
-    title: '提示?',
+    title: t('confirmTitle'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确认修改该协作者权限为' + '【' + right_str + '】',
-    okText: '确认',
-    cancelText: '取消',
+    content: t('confirmModifyPermission', { permission: right_str }),
+    okText: t('confirm'),
+    cancelText: t('cancel'),
     onOk: () => {
       let data = [
         {
@@ -173,7 +175,7 @@ const handleChangeStatus = (record, operate_rights) => {
         identity_type: record.identity_type,
         object_array: JSON.stringify(data)
       }).then((res) => {
-        message.success('修改成功')
+        message.success(t('modifySuccess'))
         getData()
       })
     },
@@ -183,12 +185,12 @@ const handleChangeStatus = (record, operate_rights) => {
 
 const handleDel = (record) => {
   Modal.confirm({
-    title: '提示?',
+    title: t('confirmTitle'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确认删除该条数据',
-    okText: '确认',
+    content: t('confirmDelete'),
+    okText: t('confirm'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('cancel'),
     onOk: () => {
       deletePermissionManage({
         identity_id: record.identity_id,
@@ -196,7 +198,7 @@ const handleDel = (record) => {
         object_id: record.object_id,
         object_type: record.object_type
       }).then((res) => {
-        message.success('删除成功')
+        message.success(t('deleteSuccess'))
         getData()
       })
     },
@@ -206,17 +208,17 @@ const handleDel = (record) => {
 
 const columns = ref([
   {
-    title: '姓名',
+    title: t('name'),
     dataIndex: 'name',
     key: 'name'
   },
   {
-    title: '权限',
+    title: t('permission'),
     dataIndex: 'operate_rights',
     key: 'operate_rights'
   },
   {
-    title: '操作',
+    title: t('operation'),
     dataIndex: 'action',
     key: 'action',
     width: 80

@@ -7,14 +7,14 @@
       <a-space>
         <a-select
           v-model:value="filterData.status"
-          placeholder="请选择"
+          :placeholder="t('ph_select')"
           style="width: 160px"
           @change="search"
         >
-          <a-select-option :value="-1">全部嵌入状态</a-select-option>
+          <a-select-option :value="-1">{{ t('option_all_status') }}</a-select-option>
           <a-select-option v-for="(i, key) in listStatusMap" :value="key">{{ i }}</a-select-option>
         </a-select>
-        <a-button @click="reEmbeddingVectors">重新嵌入向量</a-button>
+        <a-button @click="reEmbeddingVectors">{{ t('btn_re_embedding') }}</a-button>
 
         <!-- <a-button @click="openEditSubscription({})" type="primary">
           <template #icon>
@@ -53,6 +53,7 @@
 import { reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import SelectStarBox from '@/views/library/library-preview/components/selct-star-box.vue'
 import {
   getLibFileInfo,
@@ -64,6 +65,8 @@ import { PlusOutlined, DownOutlined, StarFilled } from '@ant-design/icons-vue'
 import SubsectionBox from './components/subsection-box.vue'
 import EditSubscription from '@/views/library/library-preview/components/edit-subsection.vue'
 import { useLibraryStore } from '@/stores/modules/library'
+
+const { t } = useI18n('views.library.library-details.categary-manage.index')
 const libraryStore = useLibraryStore()
 
 
@@ -77,17 +80,17 @@ const paragraphLists = ref([])
 
 const total = ref(0)
 const graphStatusMap = {
-  0: '待生成',
-  4: '生成中',
-  2: '生成成功',
-  3: '生成失败'
+  0: t('status_graph_pending'),
+  4: t('status_graph_generating'),
+  2: t('status_graph_success'),
+  3: t('status_graph_failed')
 }
 
 const listStatusMap = {
-  0: '未转换',
-  1: '已转换',
-  2: '转换异常',
-  3: '转换中...'
+  0: t('status_convert_unconverted'),
+  1: t('status_convert_converted'),
+  2: t('status_convert_error'),
+  3: t('status_convert_converting')
 }
 const detailsInfo = ref({})
 
@@ -117,7 +120,7 @@ const handleCategoryChange = (id) => {
   search()
 }
 const reEmbeddingVectors = () => {
-  reconstructCategoryVector({ id: query.id }).then(() => message.success('操作完成'))
+  reconstructCategoryVector({ id: query.id }).then(() => message.success(t('msg_operation_complete')))
 }
 
 const editSubscriptionRef = ref(null)

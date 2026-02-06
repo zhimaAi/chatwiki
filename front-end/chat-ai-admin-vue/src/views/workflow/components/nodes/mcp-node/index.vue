@@ -47,6 +47,7 @@ import {jsonDecode} from '@/utils/index'
 import NodeCommon from '../base-node.vue'
 import {getTMcpProviderInfo} from "@/api/robot/thirdMcp.js";
 import AtText from "@/views/workflow/components/at-input/at-text.vue";
+import { useI18n } from '@/hooks/web/useI18n'
 
 export default {
   name: 'QuestionNode',
@@ -68,7 +69,7 @@ export default {
   data() {
     return {
       atTextRef: null,
-      menus: [{name: '删除', key: 'delete', color: '#fb363f'}],
+      menus: [{name: 'btn_delete', key: 'delete', color: '#fb363f'}],
       visible: false,
       toolInfo: {},
       mcpInfo: {},
@@ -80,6 +81,11 @@ export default {
         }
       },
       valueOptions: []
+    }
+  },
+  computed: {
+    t() {
+      return useI18n('views.workflow.components.nodes.mcp-node.index').t
     }
   },
   mounted() {

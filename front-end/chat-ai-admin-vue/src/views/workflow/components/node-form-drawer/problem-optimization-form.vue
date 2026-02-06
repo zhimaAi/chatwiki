@@ -4,7 +4,7 @@
       <NodeFormHeader
         :title="node.node_name"
         :iconName="node.node_icon_name"
-        desc="用大模型优化用户问题，补全潜在信息缺口，提升知识召回率"
+        :desc="t('desc_problem_optimization')"
         @close="handleClose"
       >
       </NodeFormHeader>
@@ -13,8 +13,8 @@
       <div class="node-form-content" @mousedown.stop="">
         <a-form ref="formRef" layout="vertical" :model="formState">
           <div class="gray-block">
-            <div class="gray-block-title">输入</div>
-            <a-form-item label="LLM模型" name="use_model">
+            <div class="gray-block-title">{{ t('label_input') }}</div>
+            <a-form-item :label="t('label_llm_model')" name="use_model">
               <div class="flex-block-item">
                 <ModelSelect
                   modelType="LLM"
@@ -26,7 +26,7 @@
                 />
                 <!-- <DownOutlined /> -->
                 <a-button @click="hanldeShowMore"
-                  >高级设置
+                  >{{ t('btn_advanced_settings') }}
                   <DownOutlined v-if="showMoreBtn" />
                   <UpOutlined v-else />
                 </a-button>
@@ -34,28 +34,28 @@
             </a-form-item>
             <a-form-item name="role" v-if="showMoreBtn">
               <template #label>
-                <span>提示词所属角色&nbsp;</span>
+                <span>{{ t('label_prompt_role') }}&nbsp;</span>
                 <a-tooltip>
                   <template #title>
                     <div>
-                      对接大模型时，会将设置中的提示词拼接在对应的role角色下。
-                      <div>系统角色效果示例：</div>
-                      <div>{"role": "system", "content": "自定义提示词"}</div>
+                      {{ t('tip_prompt_role_desc') }}
+                      <div>{{ t('label_system_role_example') }}</div>
+                      <div>{"role": "system", "content": "{{ t('sample_custom_prompt') }}"}</div>
                     </div>
                   </template>
                   <QuestionCircleOutlined class="question-icon" />
                 </a-tooltip>
               </template>
               <a-radio-group v-model:value="formState.role">
-                <a-radio :value="1">系统角色（System）</a-radio>
-                <a-radio :value="2">用户角色（User）</a-radio>
+                <a-radio :value="1">{{ t('label_system_role') }}</a-radio>
+                <a-radio :value="2">{{ t('label_user_role') }}</a-radio>
               </a-radio-group>
             </a-form-item>
             <a-form-item name="temperature" v-if="showMoreBtn">
               <template #label>
-                <span>温度&nbsp;</span>
+                <span>{{ t('label_temperature') }}&nbsp;</span>
                 <a-tooltip>
-                  <template #title>温度越低，回答越严谨。温度越高，回答越发散。</template>
+                  <template #title>{{ t('tip_temperature_desc') }}</template>
                   <QuestionCircleOutlined class="question-icon" />
                 </a-tooltip>
               </template>
@@ -83,9 +83,9 @@
             </a-form-item>
             <a-form-item name="max_token" v-if="showMoreBtn">
               <template #label>
-                <span>最大token&nbsp;</span>
+                <span>{{ t('label_max_token') }}&nbsp;</span>
                 <a-tooltip>
-                  <template #title>问题+答案的最大token数，如果出现回答被截断，可调高此值</template>
+                  <template #title>{{ t('tip_max_token_desc') }}</template>
                   <QuestionCircleOutlined class="question-icon" />
                 </a-tooltip>
               </template>
@@ -107,9 +107,9 @@
             </a-form-item>
             <a-form-item name="enable_thinking" v-if="showMoreBtn && show_enable_thinking">
               <template #label>
-                <span>深度思考&nbsp;</span>
+                <span>{{ t('label_deep_thinking') }}&nbsp;</span>
                 <a-tooltip>
-                  <template #title>开启时，调用大模型时会指定走深度思考模式</template>
+                  <template #title>{{ t('tip_deep_thinking_desc') }}</template>
                   <QuestionCircleOutlined class="question-icon" />
                 </a-tooltip>
               </template>
@@ -119,10 +119,10 @@
             </a-form-item>
             <a-form-item name="context_pair">
               <template #label>
-                <span>上下文数量&nbsp;</span>
+                <span>{{ t('label_context_pair') }}&nbsp;</span>
                 <a-tooltip>
                   <template #title
-                    >提示词中携带的历史聊天记录轮次。设置为0则不携带聊天记录。最多设置50轮。注意，携带的历史聊天记录越多，消耗的token相应也就越多。</template
+                    >{{ t('tip_context_pair_desc') }}</template
                   >
                   <QuestionCircleOutlined class="question-icon" />
                 </a-tooltip>
@@ -146,7 +146,7 @@
             <a-form-item name="prompt" class="width-100">
               <template #label>
                 <div class="space-between-box">
-                  <div>对话背景</div>
+                  <div>{{ t('label_dialogue_background') }}</div>
                   <!-- <div class="btn-hover-wrap" @click="onShowAddPromptModal">
                   <DownloadOutlined />从提示词库导入
                 </div> -->
@@ -161,7 +161,7 @@
                 ref="atInputRef"
                 @open="getVlaueVariableList"
                 @change="(text, selectedList) => changeValue(text, selectedList)"
-                placeholder="描述当前对话的背景，便于大模型补全用户问题，比如：当前对话是关于chatwiki的使用问题和功能介绍"
+                :placeholder="t('ph_input_dialogue_background')"
               >
                 <template #option="{ label, payload }">
                   <div class="field-list-item">
@@ -170,10 +170,10 @@
                   </div>
                 </template>
               </at-input>
-              <div class="form-tip">输入 / 插入变量</div>
+              <div class="form-tip">{{ t('msg_input_insert_variable') }}</div>
             </a-form-item>
             <div class="diy-form-item">
-              <div class="form-label">用户问题</div>
+              <div class="form-label">{{ t('label_user_question') }}</div>
               <div class="form-content">
                 <a-cascader
                   v-model:value="formState.question_value"
@@ -183,15 +183,15 @@
                   :allowClear="false"
                   :displayRender="({ labels }) => labels.join('/')"
                   :field-names="{ children: 'children' }"
-                  placeholder="请选择"
+                  :placeholder="t('ph_select')"
                 />
               </div>
             </div>
           </div>
           <div class="gray-block mt16">
-            <div class="gray-block-title">输出</div>
+            <div class="gray-block-title">{{ t('label_output') }}</div>
             <div class="options-item">
-              <div class="option-label">问题优化结果</div>
+              <div class="option-label">{{ t('label_question_optimization_result') }}</div>
               <div class="option-type">string</div>
             </div>
           </div>
@@ -212,6 +212,9 @@ import AtInput from '../at-input/at-input.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import ImportPrompt from '@/components/import-prompt/index.vue'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.problem-optimization-form')
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({

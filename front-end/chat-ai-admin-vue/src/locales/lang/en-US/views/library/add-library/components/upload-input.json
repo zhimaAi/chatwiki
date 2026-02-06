@@ -1,0 +1,1 @@
+{"upload_text": "Click or drag files here to upload", "upload_hint": "Upload up to {maxCount} documents at a time, each file not exceeding 100M", "support_file_types": "Supported file types:", "max_files_error": "Upload up to {maxCount} files at a time", "unsupported_format_error": "Unsupported file format", "file_size_error": "File size cannot exceed 100M"}

@@ -4,7 +4,7 @@
       <NodeFormHeader
         :title="node.node_name"
         :iconName="node.node_icon_name"
-        desc="通过文字描述/添加参考图片生成图片"
+        :desc="t('desc_generate_image')"
         @close="handleClose"
       >
       </NodeFormHeader>
@@ -14,10 +14,10 @@
         <a-form ref="formRef" layout="vertical" :model="formState">
           <div class="gray-block">
             <div class="gray-block-title">
-              <img src="@/assets/svg/system-setting.svg" alt="" />模型设置
+              <img src="@/assets/svg/system-setting.svg" alt="" />{{ t('label_model_settings') }}
             </div>
             <div class="model-setting-form">
-              <div class="model-label">模型</div>
+              <div class="model-label">{{ t('label_model') }}</div>
               <div class="model-content">
                 <ModelSelect
                   modelType="IMAGE"
@@ -29,9 +29,9 @@
             </div>
 
             <div class="model-setting-form">
-              <div class="model-label">比例</div>
+              <div class="model-label">{{ t('label_ratio') }}</div>
               <div class="model-content">
-                <a-select placeholder="请选择" v-model:value="formState.size" style="width: 100%">
+                <a-select :placeholder="t('ph_select')" v-model:value="formState.size" style="width: 100%">
                   <a-select-option
                     v-for="item in sizeOptions"
                     :value="item.value"
@@ -44,15 +44,15 @@
 
             <div class="model-setting-form">
               <div class="model-label">
-                最大生成数量
+                {{ t('label_max_count') }}
                 <a-tooltip>
-                  <template #title>最多生成几张图片，实际生成图片数量请在提示词里面指定（比如：请生成4张图片），但是不会超过最大数量。</template>
+                  <template #title>{{ t('tip_max_count') }}</template>
                   <QuestionCircleOutlined />
                 </a-tooltip>
               </div>
               <div class="model-content">
                 <a-input-number
-                  placeholder="请输入"
+                  :placeholder="t('ph_select')"
                   style="width: 100%"
                   v-model:value="formState.image_num"
                   :min="1"
@@ -62,7 +62,7 @@
             </div>
 
             <div class="model-setting-form" v-if="show_image_watermark">
-              <div class="model-label">右下水印</div>
+              <div class="model-label">{{ t('label_watermark') }}</div>
               <div class="model-content">
                 <a-segmented
                   class="customer-segmented"
@@ -73,7 +73,7 @@
             </div>
 
             <div class="model-setting-form" v-if="show_image_optimize_prompt">
-              <div class="model-label">优化提示词</div>
+              <div class="model-label">{{ t('label_optimize_prompt') }}</div>
               <div class="model-content">
                 <a-segmented
                   class="customer-segmented"
@@ -87,11 +87,11 @@
             class="gray-block mt16"
             v-if="currentModelConfig.input_image == 1 || currentModelConfig.input_text == 1"
           >
-            <div class="gray-block-title"><img src="@/assets/svg/input.svg" alt="" />输入</div>
+            <div class="gray-block-title"><img src="@/assets/svg/input.svg" alt="" />{{ t('label_input') }}</div>
             <a-form-item name="use_model" v-if="currentModelConfig.input_text == 1">
               <template #label>
                 <div style="width: 409px" class="flex-between-box">
-                  <div>提示词</div>
+                  <div>{{ t('label_prompt') }}</div>
                   <div class="btn-hover-wrap" @click="handleOpenFullAtModal">
                     <FullscreenOutlined />
                   </div>
@@ -102,7 +102,7 @@
                 :defaultSelectedList="formState.prompt_tags"
                 :defaultValue="formState.prompt"
                 ref="promptInputRef"
-                placeholder="请输入消息内容，键入“/”可以插入变量"
+                :placeholder="t('ph_input_message')"
                 input-style="height: 76px"
                 type="textarea"
                 @open="showAtList"
@@ -110,7 +110,7 @@
               />
             </a-form-item>
             <a-form-item
-              label="参考图URL"
+              :label="t('label_reference_image')"
               name="use_model"
               v-if="currentModelConfig.input_image == 1"
             >
@@ -132,7 +132,7 @@
                         @change="
                           (text, selectedList) => changeImgListValue(text, selectedList, item)
                         "
-                        placeholder="请输入变量值，键入“/”插入变量"
+                        :placeholder="t('ph_input_value')"
                       >
                         <template #option="{ label, payload }">
                           <div class="field-list-item">
@@ -148,14 +148,14 @@
                     </div>
                   </div>
                   <a-button @click="handleAddcategory" :icon="h(PlusOutlined)" block type="dashed"
-                    >新增参考图</a-button
+                    >{{ t('btn_add_reference_image') }}</a-button
                   >
                 </div>
               </a-form-item-rest>
             </a-form-item>
           </div>
           <div class="gray-block mt16">
-            <div class="gray-block-title"><img src="@/assets/svg/output.svg" alt="" />输出</div>
+            <div class="gray-block-title"><img src="@/assets/svg/output.svg" alt="" />{{ t('label_output') }}</div>
             <div class="output-item">
               <div class="key-label">msg</div>
               <div class="key-value">string</div>
@@ -172,7 +172,7 @@
       :options="valueOptions"
       :defaultSelectedList="formState.prompt_tags"
       :defaultValue="formState.prompt"
-      placeholder="请输入消息内容，键入“/”可以插入变量"
+      :placeholder="t('ph_input_message')"
       input-style="height: 76px"
       type="textarea"
       @open="showAtList"
@@ -200,6 +200,9 @@ import { getCurrentModelConfig } from '@/components/model-select/index.js'
 import { getSizeOptions } from '@/views/workflow/components/util.js'
 import { message } from 'ant-design-vue'
 import FullAtInput from '../../at-input/full-at-input.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.image-generation-node-form.index')
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({
@@ -217,27 +220,27 @@ const props = defineProps({
   }
 })
 
-const options1 = [
+const options1 = computed(() => [
   {
-    label: '显示',
+    label: t('label_show'),
     value: '1'
   },
   {
-    label: '不显示',
+    label: t('label_hide'),
     value: '0'
   }
-]
+])
 
-const options2 = [
+const options2 = computed(() => [
   {
-    label: '开启',
+    label: t('label_enable'),
     value: '1'
   },
   {
-    label: '关闭',
+    label: t('label_disable'),
     value: '0'
   }
-]
+])
 
 const variableOptions = ref([])
 
@@ -429,7 +432,7 @@ const changeImgListValue = (text, selectedList, item) => {
 
 const handleAddcategory = () => {
   if (formState.input_images.length >= image_inputs_image_max.value) {
-    return message.error('最多添加' + image_inputs_image_max.value + '张参考图')
+    return message.error(t('msg_max_images_limit', { val: image_inputs_image_max.value }))
   }
   formState.input_images.push({
     value: '',

@@ -4,7 +4,7 @@
       <NodeFormHeader
         :title="node.node_name"
         :iconName="node.node_icon_name"
-        desc="从指定知识库中检索相关的分段，点击召回设置可以规定检索数据的条数和相似度阈值"
+        :desc="t('desc_knowledge_base')"
         @close="handleClose"
       >
       </NodeFormHeader>
@@ -13,9 +13,9 @@
       <div class="node-form-content">
         <a-form ref="formRef" layout="vertical" :model="formState">
           <div class="gray-block">
-            <div class="gray-block-title">输入</div>
+            <div class="gray-block-title">{{ t('label_input') }}</div>
 
-            <a-form-item label="关联知识库">
+            <a-form-item :label="t('label_knowledge_base')">
               <div class="konwledge-list-item" v-for="item in selectedLibraryRows" :key="item.id">
                 <div class="avatar-box">
                   <img :src="item.avatar" alt="" />
@@ -35,7 +35,7 @@
                     :icon="h(PlusOutlined)"
                     block
                     type="dashed"
-                    >添加知识库</a-button
+                    >{{ t('btn_add_knowledge_base') }}</a-button
                   >
                 </div>
                 <div>
@@ -44,14 +44,14 @@
                     :icon="h(SettingOutlined)"
                     block
                     type="dashed"
-                    >召回设置</a-button
+                    >{{ t('btn_recall_settings') }}</a-button
                   >
                 </div>
               </div>
             </a-form-item>
 
             <div class="diy-form-item">
-              <div class="form-label">用户问题</div>
+              <div class="form-label">{{ t('label_user_question') }}</div>
               <div class="form-content">
                 <div class="form-content">
                   <a-cascader
@@ -62,16 +62,16 @@
                     :allowClear="false"
                     :displayRender="({ labels }) => labels.join('/')"
                     :field-names="{ children: 'children' }"
-                    placeholder="请选择"
+                    :placeholder="t('ph_select')"
                   />
                 </div>
               </div>
             </div>
           </div>
           <div class="gray-block mt16">
-            <div class="gray-block-title">输出</div>
+            <div class="gray-block-title">{{ t('label_output') }}</div>
             <div class="options-item">
-              <div class="option-label">知识库引用</div>
+              <div class="option-label">{{ t('label_knowledge_quote') }}</div>
               <div class="option-type">string</div>
             </div>
           </div>
@@ -98,6 +98,9 @@ import LibrarySelectAlert from './components/library-select-alert.vue'
 import RecallSettingsAlert from '../nodes/knowledge-base-node//recall-settings-alert.vue'
 import { getSpecifyAbilityConfig } from '@/api/explore/index.js'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.knowledge-base-node-form')
 const robotStore = useRobotStore()
 
 const rrf_weight = computed(() => {

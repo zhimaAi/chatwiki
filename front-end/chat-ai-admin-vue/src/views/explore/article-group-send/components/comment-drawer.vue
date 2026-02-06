@@ -1,24 +1,24 @@
 <template>
-  <a-drawer v-model:open="open" title="查看评论" :width="420" :destroyOnClose="true">
+  <a-drawer v-model:open="open" :title="t('drawer_title')" :width="420" :destroyOnClose="true">
     <div class="article-card">
       <img v-if="article.thumb_url" class="thumb" :src="article.thumb_url" />
       <img v-else class="thumb" src="@/assets/img/default-cover.png" />
       <div class="info">
         <div class="title">{{ article.title }}</div>
-        <div class="meta">所属分组：{{ article.group_name }}</div>
+        <div class="meta">{{ t('article_group_label') }}{{ article.group_name }}</div>
         <div class="digest">{{ article.digest }}</div>
       </div>
     </div>
-    <div class="comment-header">{{ pagination.total }}条评论</div>
+    <div class="comment-header">{{ t('comment_header', { total: pagination.total }) }}</div>
     <div class="list-box" v-if="!isLoading" ref="bodyAnchorRef">
       <div class="comment-item" v-for="it in list" :key="it.id">
         <a-avatar :size="40" :src="userAvatar" />
         <div class="comment-content">
           <div class="top-line">
             <span class="name">{{ formatUserName(it.open_id) }}</span>
-            <a-tag v-if="isSelected(it)" color="#FF4D4F" style="margin-right: 0;">精选</a-tag>
+            <a-tag v-if="isSelected(it)" color="#FF4D4F" style="margin-right: 0;">{{ t('tag_selected') }}</a-tag>
             <span class="time">{{ formatDisplayChatTime(it.comment_create_time) }}</span>
-            <div class="delete-status" v-if="it.delete_status == '1'">已删除</div>
+            <div class="delete-status" v-if="it.delete_status == '1'">{{ t('deleted_status') }}</div>
             <span class="actions" v-else>
               <DeleteOutlined class="delete-icon" @click="handleDelete(it)" />
             </span>
@@ -29,9 +29,9 @@
               <a-avatar :size="32" :src="defaultAvatar" style="flex-basis: 32px;" />
               <div class="ai-replay-content-right">
                 <div class="ai-replay-content-right-top">
-                  <span class="name ai">AI机器人</span>
+                  <span class="name ai">{{ t('ai_bot_name') }}</span>
                   <span class="time">{{ formatDisplayChatTime(it.reply_create_time) }}</span>
-                  <div class="delete-status" v-if="it.delete_status == '1'">已删除</div>
+                  <div class="delete-status" v-if="it.delete_status == '1'">{{ t('deleted_status') }}</div>
                   <span class="actions" v-else>
                     <DeleteOutlined class="delete-icon" @click="handleDeleteReply(it)" />
                   </span>
@@ -42,10 +42,10 @@
           </div>
         </div>
       </div>
-      <div class="empty" v-if="list.length === 0"><a-empty /></div>
+      <div class="empty" v-if="list.length === 0"><a-empty :description="t('empty_no_comment')" /></div>
       <div class="load-more-tips" v-else>
-        <span v-if="loadingMore">加载中...</span>
-        <span v-else-if="!hasMore">已加载全部</span>
+        <span v-if="loadingMore">{{ t('load_more_loading') }}</span>
+        <span v-else-if="!hasMore">{{ t('load_more_no_more') }}</span>
       </div>
     </div>
     <div class="loading-box" v-else><a-spin /></div>
@@ -59,6 +59,9 @@ import { DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons-vue
 import { getCommentList, deleteComment, deleteCommentReply } from '@/api/robot'
 import { DEFAULT_ROBOT_AVATAR, DEFAULT_USER_AVATAR } from '@/constants/index'
 import { formatDisplayChatTime, addNoReferrerMeta, removeNoReferrerMeta } from '@/utils/index.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.explore.article-group-send.components.comment-drawer')
 
 const defaultAvatar = DEFAULT_ROBOT_AVATAR
 const userAvatar = DEFAULT_USER_AVATAR
@@ -95,13 +98,13 @@ const loadComments = () => {
 
 const handleDelete = (item) => {
   Modal.confirm({
-    title: '确认删除评论吗？',
+    title: t('modal_delete_comment_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    okText: '删除',
-    cancelText: '取消',
+    okText: t('btn_delete'),
+    cancelText: t('btn_cancel'),
     onOk: async () => {
       await deleteComment({ msg_id: item.msg_data_id, comment_id: item.user_comment_id, access_key: article.value.access_key })
-      message.success('删除成功')
+      message.success(t('message_delete_success'))
       loadComments()
     }
   })
@@ -109,13 +112,13 @@ const handleDelete = (item) => {
 
 const handleDeleteReply = (item) => {
   Modal.confirm({
-    title: '确认删除回复吗？',
+    title: t('modal_delete_reply_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    okText: '删除',
-    cancelText: '取消',
+    okText: t('btn_delete'),
+    cancelText: t('btn_cancel'),
     onOk: async () => {
       await deleteCommentReply({ msg_id: item.msg_data_id, comment_id: item.user_comment_id, access_key: article.value.access_key })
-      message.success('删除成功')
+      message.success(t('message_delete_success'))
       loadComments()
     }
   })
@@ -124,15 +127,15 @@ const handleDeleteReply = (item) => {
 defineExpose({ show })
 
 const formatUserName = (open_id) => {
-  if (!open_id) return '用户'
+  if (!open_id) return t('default_user_name')
   const suf = String(open_id).slice(-4)
-  return `用户_${suf}`
+  return t('user_name_with_suffix', { suf })
 }
 
 const isSelected = (it) => {
   if (String(it.comment_type) === '1') return true
   const text = String(it.ai_comment_result_text || '')
-  return text.includes('自动精选')
+  return text.includes(t('auto_feature_keyword'))
 }
 
 const tryAttach = () => {

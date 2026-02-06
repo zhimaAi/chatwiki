@@ -51,7 +51,7 @@ func GetDefaultPromptStruct(lang string) string {
 	structPrompt.Role.Describe = i18n.Show(lang, `prompt_default_role_describe`)
 	structPrompt.Task.Describe = i18n.Show(lang, `prompt_default_task_describe`)
 	structPrompt.Constraints.Describe = i18n.Show(lang, `prompt_default_constraints_describe`)
-	structPrompt.Skill.Describe = `` //技能默认为空
+	structPrompt.Skill.Describe = `` // Skills are empty by default
 	structPrompt.Output.Describe = i18n.Show(lang, `prompt_default_output_describe`)
 	structPrompt.Tone.Describe = i18n.Show(lang, `prompt_default_tone_describe`)
 	return tool.JsonEncodeNoError(structPrompt)
@@ -75,7 +75,7 @@ func CheckPromptConfig(lang string, promptType int, promptStruct string) (string
 	default:
 		return ``, errors.New(i18n.Show(lang, `prompt_type_param_error`, promptType))
 	}
-	structPrompt = SetDdefaultFieldSubject(lang, structPrompt) //禁止修改默认字段的主题
+	structPrompt = SetDdefaultFieldSubject(lang, structPrompt) // Prohibit modification of default field subjects
 	if structPrompt.Custom == nil {
 		structPrompt.Custom = make([]PromptItem, 0)
 	}
@@ -100,7 +100,7 @@ func BuildPromptStruct(lang string, promptType int, prompt, promptStruct string)
 		if err := tool.JsonDecodeUseNumber(promptStruct, &sp); err != nil {
 			logs.Error(`promptStruct:%s,err:%v`, promptStruct, err)
 		}
-		sp = SetDdefaultFieldSubject(lang, sp) //禁止修改默认字段的主题
+		sp = SetDdefaultFieldSubject(lang, sp) // Prohibit modification of default field subjects
 		mds := make([]string, 0)
 		if len(sp.Role.Describe) > 0 {
 			mds = append(mds, fmt.Sprintf("## %s\n%s", sp.Role.Subject, sp.Role.Describe))
@@ -163,7 +163,7 @@ func FormatSystemPrompt(lang string, prompt string, list []msql.Params) (string,
 		output += fmt.Sprintf("\n# %s\n%s", i18n.Show(lang, `prompt_library`), strings.Join(knowledges, "\n"))
 		libraryOutput = fmt.Sprintf("# %s\n%s", i18n.Show(lang, `prompt_library`), strings.Join(knowledges, "\n"))
 	}
-	return UnifyLineBreak(output), UnifyLineBreak(libraryOutput) //统一处理换行符问题
+	return UnifyLineBreak(output), UnifyLineBreak(libraryOutput) // Unify line break processing
 }
 
 func UnifyLineBreak(content string) string {

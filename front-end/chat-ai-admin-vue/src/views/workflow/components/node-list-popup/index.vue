@@ -274,19 +274,19 @@
   <div class="node-list-popup">
     <div class="tabs-box">
       <div :class="['tab-item', { active: tabActive == 1 }]" @click="tabChange(1)">
-        <svg-icon name="base-node-type" /> <span>基础功能</span>
+        <svg-icon name="base-node-type" /> <span>{{ t('tab_basic_functions') }}</span>
       </div>
       <div :class="['tab-item', {active: tabActive == 3}]" @click="tabChange(3)">
-        <svg-icon name="plugin-node-type"/> <span>插件</span>
+        <svg-icon name="plugin-node-type"/> <span>{{ t('tab_plugins') }}</span>
       </div>
       <div :class="['tab-item', { active: tabActive == 2 }]" @click="tabChange(2)">
-        <svg-icon name="mcp-node-type" /> <span>工具</span>
+        <svg-icon name="mcp-node-type" /> <span>{{ t('tab_mcp') }}</span>
       </div>
       <div v-if="props.type == 'float-btn'" :class="['tab-item', { active: props.active == 4 }]" @click="tabChange(4)">
-        <svg-icon name="mcp-node-type" /> <span>触发器</span>
+        <svg-icon name="mcp-node-type" /> <span>{{ t('tab_triggers') }}</span>
       </div>
       <div :class="['tab-item', { active: tabActive == 5 }]" @click="tabChange(5)">
-        <svg-icon name="workflow" /> <span>工作流</span>
+        <svg-icon name="workflow" /> <span>{{ t('tab_workflows') }}</span>
       </div>
     </div>
     <div class="node-list-popup-content">
@@ -315,7 +315,7 @@
           <div :class="['sub-tab-item', { active: mcpHttpTab == 'HTTP' }]" @click="mcpHttpTab = 'HTTP'">HTTP</div>
         </div>
         <div class="search-box">
-          <a-input-search v-model:value.trim="mcpKeyword" allowClear placeholder="请输入名称查询" />
+          <a-input-search v-model:value.trim="mcpKeyword" allowClear :placeholder="t('ph_search_by_name')" />
         </div>
         <template v-if="mcpHttpTab == 'MCP' && showMcpNodes.length">
           <div class="node-list">
@@ -328,7 +328,7 @@
                       <div class="name">{{ item.name }}</div>
                     </div>
                     <div>{{ item.url }}</div>
-                    <div class="extra">可用工具：{{ item.tools.length }}</div>
+                    <div class="extra">{{ t('label_available_tools') }}{{ item.tools.length }}</div>
                   </div>
                 </template>
                 <div class="node-info" @click="item.expand = !item.expand">
@@ -359,7 +359,7 @@
                         <div class="field">
                           <span class="name">{{ key }}</span>
                           <span class="type">{{ field.type }}</span>
-                          <span v-if="tool.inputSchema.required && tool.inputSchema.required.includes(key)" class="required">必填</span>
+                          <span v-if="tool.inputSchema.required && tool.inputSchema.required.includes(key)" class="required">{{ t('label_required') }}</span>
                         </div>
                         <div class="desc">{{ field.description }}</div>
                       </div>
@@ -370,18 +370,18 @@
               </div>
             </div>
           </div>
-          <a class="more-link" @click="handleOpenAddMcp">更多MCP插件 <RightOutlined/></a>
+          <a class="more-link" @click="handleOpenAddMcp">{{ t('label_more_mcp_plugins') }} <RightOutlined/></a>
         </template>
         <div v-else-if="mcpHttpTab == 'MCP'" class="empty-box">
           <img style="height: 200px" src="@/assets/empty.png" />
-          <div>暂无可用MCP插件</div>
-          <a @click="handleOpenAddMcp">去添加<RightOutlined /></a>
+          <div>{{ t('msg_no_mcp_plugins') }}</div>
+          <a @click="handleOpenAddMcp">{{ t('btn_add_now') }}<RightOutlined /></a>
         </div>
         <template v-else-if="mcpHttpTab == 'HTTP'">
           <div class="node-list" style="flex: 1; overflow-y: auto;">
             <HttpToolList :keyword="mcpKeyword" @add="handleAddHttpToolNode" />
           </div>
-          <a class="more-link" href="/#/robot/list?active=6" target="_blank">更多HTTP工具 <RightOutlined/></a>
+          <a class="more-link" href="/#/robot/list?active=6" target="_blank">{{ t('label_more_http_tools') }} <RightOutlined/></a>
         </template>
       </div>
       <template v-else-if="tabActive == 3">
@@ -411,7 +411,7 @@
                             <div class="name">{{ node.properties.node_name }}</div>
                           </div>
                           <div>{{ node.properties.node_desc }}</div>
-                          <div class="extra">可用工具：{{ getPluginActions(node.plugin_name).length  }}</div>
+                          <div class="extra">{{ t('label_available_tools') }}{{ getPluginActions(node.plugin_name).length  }}</div>
                         </div>
                       </template>
                       <div class="node-info" @click="node.expand = !node.expand">
@@ -442,7 +442,7 @@
                               <div class="field">
                                 <span class="name">{{ key }}</span>
                                 <span class="type">{{ field.type }}</span>
-                                <span v-if="field.required" class="required">必填</span>
+                                <span v-if="field.required" class="required">{{ t('label_required') }}</span>
                               </div>
                               <div class="desc">{{ field.desc }}</div>
                             </div>
@@ -467,12 +467,12 @@
                 </template>
               </template>
             </div>
-            <a class="more-link" href="/#/plugins/index?active=2" target="_blank">更多插件 <RightOutlined/></a>
+            <a class="more-link" href="/#/plugins/index?active=2" target="_blank">{{ t('btn_more_plugins') }} <RightOutlined/></a>
           </template>
           <div v-else class="empty-box">
             <img style="height: 200px;" src="@/assets/empty.png"/>
-            <div>暂无可用插件</div>
-            <a href="/#/plugins/index?active=2" target="_blank">去添加<RightOutlined/></a>
+            <div>{{ t('msg_no_plugins') }}</div>
+            <a href="/#/plugins/index?active=2" target="_blank">{{ t('btn_add_now') }}<RightOutlined/></a>
           </div>
         </div>
       </template>
@@ -488,7 +488,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import { RightOutlined, DownOutlined, ExclamationCircleFilled } from '@ant-design/icons-vue'
+import { RightOutlined, DownOutlined } from '@ant-design/icons-vue'
 import TriggerList from './trigger-list.vue'
 import {
   getAllGroupNodes,
@@ -504,6 +504,9 @@ import WorkflowList from "@/views/workflow/components/node-list-popup/workflow-l
 import HttpToolList from "@/views/workflow/components/node-list-popup/http-tool-list.vue";
 import {usePublicNetworkCheck} from "@/composables/usePublicNetworkCheck.js";
 import PublicNetworkCheck from "@/components/common/public-network-check.vue";
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-list-popup.index')
 
 const emit = defineEmits(['addNode', 'addTrigger', 'mouseMove', 'update:active'])
 
@@ -674,7 +677,7 @@ function handleAddHttpToolNode(node) {
   display: flex;
   align-items: center;
   height: 32px;
-  width: 200px;
+  min-width: 200px;
   gap: 8px;
   padding: 0 16px;
   border-radius: 6px;

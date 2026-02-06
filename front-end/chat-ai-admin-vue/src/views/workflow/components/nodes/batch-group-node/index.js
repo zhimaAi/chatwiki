@@ -3,6 +3,9 @@ import { dynamicGroup } from '@logicflow/extension'
 import { createApp, h, nextTick } from 'vue'
 import CustomGroupComponent from './index.vue'
 import { allParentVariableNodeWhiteList } from '../../util.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.base-node')
 
 function transformArray(arr, parent) {
   // 使用map处理数组并返回新的数组
@@ -363,7 +366,7 @@ class CustomGroupModel extends dynamicGroup.model {
   }
   setAttributes() {
     const sourceRule01 = {
-      message: '只允许从右边的锚点连出',
+      message: t('err_only_right_anchor'),
       validate: (sourceNode, targetNode, sourceAnchor, targetAnchor) => {
         if (sourceNode.id == targetNode.id) {
           return false
@@ -376,7 +379,7 @@ class CustomGroupModel extends dynamicGroup.model {
       }
     }
     const sourceRule02 = {
-      message: '分组里面的节点只能连接当前分组里面的节点,分组外面的节点只能连接分组外面的节点',
+      message: t('err_group_connection_rule'),
       validate: (sourceNode, targetNode, sourceAnchor, targetAnchor) => {
         if(sourceNode.properties.loop_parent_key){
           return sourceNode.properties.loop_parent_key === targetNode.properties.loop_parent_key
@@ -392,7 +395,7 @@ class CustomGroupModel extends dynamicGroup.model {
     this.sourceRules = [sourceRule01, sourceRule02]
 
     const targetRule01 = {
-      message: '只允许连接左边的锚点',
+      message: t('err_only_left_anchor'),
       validate: (sourceNode, targetNode, sourceAnchor, targetAnchor) => {
         if (sourceNode.id == targetNode.id) {
           return false
@@ -550,8 +553,8 @@ class CustomGroupModel extends dynamicGroup.model {
           {
             key: 'special.lib_paragraph_list',
             typ: 'string',
-            name: '知识库引用',
-            label: '知识库引用'
+            name: t('var_knowledge_base_reference'),
+            label: t('var_knowledge_base_reference')
           }
         ]
       }
@@ -561,8 +564,8 @@ class CustomGroupModel extends dynamicGroup.model {
           {
             key: 'special.llm_reply_content',
             typ: 'string',
-            name: 'AI回复内容',
-            label: 'AI回复内容'
+            name: t('var_ai_reply_content'),
+            label: t('var_ai_reply_content')
           }
         ]
       }
@@ -572,8 +575,8 @@ class CustomGroupModel extends dynamicGroup.model {
           {
             key: 'special.llm_reply_content',
             typ: 'string',
-            name: '消息内容',
-            label: '消息内容'
+            name: t('var_message_content'),
+            label: t('var_message_content')
           }
         ]
       }
@@ -583,8 +586,8 @@ class CustomGroupModel extends dynamicGroup.model {
           {
             key: 'special.llm_reply_content',
             typ: 'string',
-            name: '消息内容',
-            label: '消息内容'
+            name: t('var_message_content'),
+            label: t('var_message_content')
           }
         ]
       }
@@ -594,8 +597,8 @@ class CustomGroupModel extends dynamicGroup.model {
           {
             key: 'special.question_optimize_reply_content',
             typ: 'string',
-            name: '问题优化结果',
-            label: '问题优化结果'
+            name: t('var_question_optimization_result'),
+            label: t('var_question_optimization_result')
           }
         ]
       }
@@ -606,7 +609,7 @@ class CustomGroupModel extends dynamicGroup.model {
             key: 'special.mcp_reply_content',
             typ: 'string',
             name: 'text',
-            label: '工具生成的内容'
+            label: t('var_tool_generated_content')
           }
         ]
       }

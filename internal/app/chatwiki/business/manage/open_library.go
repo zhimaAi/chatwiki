@@ -105,16 +105,16 @@ func GetLibDocInfo(c *gin.Context) {
 		docInfo[`content`] = docInfo[`draft_content`]
 	}
 
-	// 给默认的banner
+	// Set default banner
 	if len(cast.ToString(docInfo[`banner_img_url`])) == 0 {
 		docInfo[`banner_img_url`] = define.DefaultLibDocBanner
 	}
 
-	// 渲染首页快速文档内容
+	// Render quick docs content for the home page
 	docInfo[`quick_doc_content_value`] = ""
 	if len(cast.ToString(docInfo[`quick_doc_content`])) > 0 {
-		quickDocArr := []msql.Datas{} // 快速文档内容数组
-		// 将quickDocIdArr中的doc_id提取出来，存到quickDocIds中
+		quickDocArr := []msql.Datas{} // quick docs content array
+		// Extract doc_id from quickDocIdArr into quickDocIds
 		quickDocIdArr := []msql.Datas{}
 		quickDocIds := []int{}
 		if err := tool.JsonDecode(cast.ToString(docInfo[`quick_doc_content`]), &quickDocIdArr); err != nil {
@@ -143,7 +143,7 @@ func GetLibDocInfo(c *gin.Context) {
 			quickDocItem[`create_time`] = quickDocInfo[`create_time`]
 			quickDocItem[`update_time`] = quickDocInfo[`update_time`]
 			quickDocItem[`children`] = common.GetLibDocCateLog(quickDocId, libraryId, false)
-			// 最后添加成数组
+			// Append to array
 			quickDocArr = append(quickDocArr, quickDocItem)
 		}
 		docInfo[`quick_doc_content_value`], err = tool.JsonEncode(quickDocArr)
@@ -511,7 +511,7 @@ func SaveLibDocSeo(c *gin.Context) {
 	common.FmtOk(c, map[string]any{"doc_id": id})
 }
 
-// 保存对外知识库首页快捷文档
+// Save home page quick docs for the public library
 func SaveLibDocIndexQuickDoc(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
@@ -556,7 +556,7 @@ func SaveLibDocIndexQuickDoc(c *gin.Context) {
 	common.FmtOk(c, map[string]any{"doc_id": id})
 }
 
-// 保存对外知识库首页背景图
+// Save home page banner image for the public library
 func SaveLibDocBannerImg(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {

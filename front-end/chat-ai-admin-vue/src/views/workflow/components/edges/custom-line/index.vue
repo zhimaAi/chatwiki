@@ -21,11 +21,13 @@
 
 <template>
   <div class="custom-line-popup" v-show="isDeleteConfirmShow">
-    <button class="delete-btn" @click.stop="handleDelete">删 除</button>
+    <button class="delete-btn" @click.stop="handleDelete">{{ t('btn_delete') }}</button>
   </div>
 </template>
 
 <script>
+import { useI18n } from '@/hooks/web/useI18n'
+
 export default {
   name: 'CustomLine',
   emits: ['delete'],
@@ -43,6 +45,11 @@ export default {
   data() {
     return {
       isDeleteConfirmShow: false,
+    }
+  },
+  computed: {
+    t() {
+      return useI18n('views.workflow.components.edges.custom-line.index').t
     }
   },
   watch: {
@@ -65,7 +72,7 @@ export default {
       const model = this.getModel()
 
       graphModel.eventCenter.emit('custom:edge:delete', model)
-      
+
       this.$emit('delete')
     },
   },

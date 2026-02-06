@@ -1,19 +1,19 @@
 <template>
   <div>
-    <a-modal v-model:open="open" title="机器人分布详情" :width="624" :footer="null">
+    <a-modal v-model:open="open" :title="t('modal_title')" :width="624" :footer="null">
       <a-table :data-source="list" :loading="loading" :pagination="false" :scroll="{ y: 500 }">
-        <a-table-column key="index" data-index="index" title="排名" :width="100">
+        <a-table-column key="index" data-index="index" :title="t('table.rank')" :width="100">
           <template #default="{ index }">
             {{ index + 1 }}
           </template>
         </a-table-column>
 
-        <a-table-column key="robot_name" title="机器人" :width="140">
+        <a-table-column key="robot_name" :title="t('table.robot')" :width="140">
           <template #default="{ record }">
             {{ record.robot_name }}
           </template>
         </a-table-column>
-        <a-table-column key="tip" title="触发次数" :width="120">
+        <a-table-column key="tip" :title="t('table.trigger_count')" :width="120">
           <template #default="{ record }">
             <a-flex :gap="12">
               <span>{{ record.tip }}</span>
@@ -27,7 +27,10 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import { statLibraryDataRobotDetail, statLibraryRobotDetail } from '@/api/library'
+
+const { t } = useI18n('views.trigger-statics.list.components.detail-modal')
 
 const open = ref(false)
 const loading = ref(false)

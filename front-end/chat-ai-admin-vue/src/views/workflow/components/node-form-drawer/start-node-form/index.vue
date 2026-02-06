@@ -124,7 +124,7 @@
         :hideMenus="true"
       >
         <template #desc>
-          <span>流程开始节点，点击可以设置全局变量、触发方式等</span>
+          <span>{{ t('desc_start_node') }}</span>
         </template>
       </NodeFormHeader>
     </template>
@@ -135,9 +135,9 @@
           <template #icon>
             <PlusOutlined />
           </template>
-          <span>添加触发器</span>
+          <span>{{ t('btn_add_trigger') }}</span>
         </a-button>
-        <div class="add-trigger-desc">添加触发器后支持定时或者外部事件触发工作流</div>
+        <div class="add-trigger-desc">{{ t('desc_add_trigger') }}</div>
       </div>
       <div class="node-form-content">
         <div class="start-node">
@@ -145,7 +145,7 @@
             <div class="options-title">
               <div>
                 <img src="@/assets/img/workflow/global-variable.svg" alt="" class="title-icon" />
-                <span>自定义全局变量</span>
+                <span>{{ t('title_custom_global_variable') }}</span>
               </div>
               <div>
                 <a-tooltip
@@ -153,12 +153,7 @@
                   :overlayStyle="{ maxWidth: '600px' }"
                 >
                   <template #title>
-                    <div>
-                      定义工作流的全局变量。通过全局变量可以临时缓存数据。全局变量可以通过以下方式赋值：<br />
-                      1、通过webapp访问时，可以在连接中拼接参数给全局变量赋值<br />
-                      2、通过api访问时，可以再API中传递参数值<br />
-                      3、可以通过变量赋值节点，给全局变量赋值
-                    </div>
+                    <div v-html="t('tip_global_variable_definition')"></div>
                   </template>
                   <QuestionCircleOutlined style="color: #595959; font-size: 16px" />
                 </a-tooltip>
@@ -192,16 +187,16 @@
                 <template #icon>
                   <PlusOutlined />
                 </template>
-                添加全局变量
+                {{ t('btn_add_global_variable') }}
               </a-button>
             </div>
           </div>
 
           <a-modal
             v-model:open="show"
-            title="新增变量"
-            okText="保 存"
-            cancelText="取 消"
+            :title="t('title_add_variable')"
+            :okText="t('btn_save')"
+            :cancelText="t('btn_cancel')"
             @ok="handleOk"
           >
             <a-form
@@ -209,24 +204,24 @@
               :model="formState"
               :rules="formRules"
               label-align="right"
-              :label-col="{ span: 4 }"
-              :wrapper-col="{ span: 19 }"
+              :label-col="{ span: 6}"
+              :wrapper-col="{ span: 18 }"
             >
-              <a-form-item label="变量名" name="key">
-                <a-input v-model:value="formState.key" placeholder="请输入变量名" />
+              <a-form-item :label="t('label_variable_name')" name="key">
+                <a-input v-model:value="formState.key" :placeholder="t('ph_input_variable_name')" />
               </a-form-item>
-              <a-form-item label="类型" name="typ">
+              <a-form-item :label="t('label_type')" name="typ">
                 <a-select v-model:value="formState.typ">
                   <a-select-option :value="item.value" v-for="item in typOptions" :key="item.value">
                     <span>{{ item.lable }}</span>
                   </a-select-option>
                 </a-select>
               </a-form-item>
-              <a-form-item label="必填" name="required">
+              <a-form-item :label="t('label_required')" name="required">
                 <a-switch v-model:checked="formState.required" />
               </a-form-item>
-              <a-form-item label="描述" name="desc">
-                <a-textarea v-model:value="formState.desc" placeholder="请输入描述" />
+              <a-form-item :label="t('label_description')" name="desc">
+                <a-textarea v-model:value="formState.desc" :placeholder="t('ph_input_description')" />
               </a-form-item>
             </a-form>
           </a-modal>
@@ -237,12 +232,13 @@
 </template>
 
 <script>
+import { computed } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
 import { QuestionCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import  {message } from 'ant-design-vue'
 import { useWorkflowStore } from '@/stores/modules/workflow'
-const workflowStore = useWorkflowStore()
 
 const typOptions = [
   {
@@ -290,6 +286,33 @@ export default {
       default: () => ({})
     }
   },
+  setup() {
+    const { t } = useI18n('views.workflow.components.node-form-drawer.start-node-form.index')
+    const workflowStore = useWorkflowStore()
+
+    const formRules = computed(() => ({
+      key: [
+        { required: true, message: t('msg_input_variable_name'), trigger: 'blur' },
+        { pattern: /[a-zA-Z_][a-zA-Z0-9_\-.]*/, message: t('msg_variable_name_format'), trigger: 'blur' },
+        { min: 1, max: 20, message: t('msg_variable_name_length'), trigger: 'blur' }
+      ],
+      typ: [
+        { required: true, message: t('msg_select_type'), trigger: 'change' }
+      ],
+      required: [
+        { required: true, message: t('msg_select_required'), trigger: 'change' }
+      ],
+      desc: [
+        { min: 1, max: 50, message: t('msg_description_length'), trigger: 'blur' }
+      ]
+    }))
+
+    return {
+      t,
+      workflowStore,
+      formRules
+    }
+  },
   data() {
     return {
       sys_global: [],
@@ -304,23 +327,7 @@ export default {
         required: false,
         desc: ''
       },
-      editIndex: -1,
-      formRules: {
-        key: [
-          { required: true, message: '请输入变量名', trigger: 'blur' },
-          { pattern: /[a-zA-Z_][a-zA-Z0-9_\-.]*/, message: '英文字母和下划线组成', trigger: 'blur' },
-          { min: 1, max: 20, message: '长度在1到20个字符', trigger: 'blur' }
-        ],
-        typ: [
-          { required: true, message: '请选择变量类型', trigger: 'change' }
-        ],
-        required: [
-          { required: true, message: '请选择是否必填', trigger: 'change' }
-        ],
-        desc: [
-          { min: 1, max: 50, message: '长度在1到50个字符', trigger: 'blur' }
-        ]
-      }
+      editIndex: -1
     }
   },
   mounted() {
@@ -343,7 +350,7 @@ export default {
       this.$emit('update-node', data)
     },
     handleAddTrigger(){
-      workflowStore.getTriggerList(this.$route.query.robot_key, true);
+      this.workflowStore.getTriggerList(this.$route.query.robot_key, true);
       this.getGraph().eventCenter.emit('custom:showTriggerLit')
     },
     getTriggerVariables(){
@@ -380,7 +387,7 @@ export default {
       let field = this.diy_global[index]
 
       if(triggerVariableMap['global.' + field.key]){
-        return message.error('该变量被触发器关联，请先解除关联')
+        return message.error(t('msg_variable_linked_to_trigger'))
       }
  
       this.diy_global.splice(index, 1)
@@ -407,7 +414,7 @@ export default {
 
         this.update()
       } catch (error) {
-        console.log('验证失败')
+        console.log(t('msg_validation_failed'))
       }
     },
   }

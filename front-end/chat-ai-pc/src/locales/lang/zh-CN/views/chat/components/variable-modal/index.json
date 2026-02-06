@@ -1,0 +1,7 @@
+{
+  "title_fill_info": "请先填写信息",
+  "ph_input": "请输入{name}",
+  "ph_select": "请选择{name}",
+  "btn_submit": "提交",
+  "msg_submit_failed": "提交失败，请检查输入内容"
+}

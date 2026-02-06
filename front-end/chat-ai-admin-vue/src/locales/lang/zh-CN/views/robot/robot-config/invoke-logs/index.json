@@ -1,0 +1,13 @@
+{
+  "title_invoke_logs": "调用日志",
+  "ph_input_openid": "请输入openid",
+  "ph_input_question": "请输入问题",
+  "btn_view_detail": "查看明细",
+  "label_openid": "openid",
+  "label_question": "question",
+  "label_workflow_version": "工作流版本",
+  "label_duration": "耗时",
+  "label_token_consumption": "token消耗（K）",
+  "label_invoke_time": "调用时间",
+  "label_action": "操作"
+}

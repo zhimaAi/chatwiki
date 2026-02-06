@@ -58,13 +58,11 @@
 </style>
 
 <template>
-  <edit-box class="setting-box" title="变量" icon-name="variable-icon">
+  <edit-box class="setting-box" :title="t('title')" icon-name="variable-icon">
     <template #tip>
       <a-tooltip placement="top" :overlayInnerStyle="{ width: '400px' }">
         <template #title>
-          <span
-            >变量将以表单形式让用户在对话前填写，用户填写的表单内容将自动替换提示词中的变量。提示词中输入/可选择变量</span
-          >
+          <span>{{ t('tip') }}</span>
         </template>
         <QuestionCircleOutlined />
       </a-tooltip>
@@ -72,7 +70,7 @@
     <template #extra>
       <div class="actions-box">
         <a-flex :gap="8">
-          <a-button size="small" @click="handleOpenModal">新增变量</a-button>
+          <a-button size="small" @click="handleOpenModal">{{ t('btn_add_variable') }}</a-button>
         </a-flex>
       </div>
     </template>
@@ -93,10 +91,10 @@
             <template #overlay>
               <a-menu>
                 <a-menu-item>
-                  <a @click="handleEdit(item)">编 辑</a>
+                  <a @click="handleEdit(item)">{{ t('btn_edit') }}</a>
                 </a-menu-item>
                 <a-menu-item>
-                  <a @click="handleDelVaribel(item)">删 除</a>
+                  <a @click="handleDelVaribel(item)">{{ t('btn_delete') }}</a>
                 </a-menu-item>
               </a-menu>
             </template>
@@ -116,6 +114,9 @@ import { deleteChatVariable } from '@/api/robot/index'
 import AddVariableModal from './add-variable-modal.vue'
 import { message, Modal } from 'ant-design-vue'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.variable-setting.index')
 const robotStore = useRobotStore()
 
 let typeNameMap = {
@@ -132,7 +133,7 @@ const chatVariables = computed(() => {
 const addVariableModalRef = ref(null)
 const handleOpenModal = () => {
   if(chatVariables.value.length >= 10){
-    return message.error('最多添加10个变量')
+    return message.error(t('msg_max_variables'))
   }
   addVariableModalRef.value.show()
 }
@@ -146,16 +147,16 @@ const handleOk = () => {
 
 const handleDelVaribel = (item) => {
   Modal.confirm({
-    title: '删除确认?',
+    title: t('msg_delete_confirm'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: `确认删除该变量【${item.variable_name}】?`,
+    content: t('msg_delete_content', { name: item.variable_name }),
     okType: 'danger',
     onOk() {
       deleteChatVariable({
         robot_key: item.robot_key,
         id: item.id
       }).then((res) => {
-        message.success('删除成功')
+        message.success(t('msg_delete_success'))
         handleOk()
       })
     }

@@ -1,0 +1,12 @@
+{
+  "modal_title": "导入问答知识库",
+  "import_to_existing_library": "导入到已有知识库",
+  "create_and_import_library": "创建问答知识库并导入",
+  "select_library_title": "请选择要导入的知识库",
+  "search_library_placeholder": "请输入知识库名称搜索",
+  "refresh_button": "刷新",
+  "no_data": "暂无数据",
+  "import_success": "导入成功",
+  "select_library_error": "请选择导入的知识库",
+  "refresh_success": "刷新成功"
+}

@@ -1,0 +1,7 @@
+{
+  "label_powered_by": "Powered by ChatWiki",
+  "label_form_info": "Form Info",
+  "btn_edit": "Edit",
+  "msg_input_required": "Please enter a message",
+  "msg_sensitive_word": "Submitted content contains sensitive words: [{words}]. Please modify and resubmit"
+}

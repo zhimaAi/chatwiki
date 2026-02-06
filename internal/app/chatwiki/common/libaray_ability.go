@@ -10,16 +10,16 @@ import (
 )
 
 const (
-	OfficialAccountAbilityBatchSend = `official_account_batch_send` //公众号文章群发
-	OfficialAccountAbilityAIComment = `official_account_ai_comment` //公众号文章AI评论
+	OfficialAccountAbilityBatchSend = `official_account_batch_send` // Official account article mass sending
+	OfficialAccountAbilityAIComment = `official_account_ai_comment` // Official account article AI comments
 	LibraryAbilityOfficialAccount   = `library_ability_official_account`
 )
 
 var LibraryAbilityList = []Ability{
 	{
 		Name:          "[[ZM--OfficialAccountBatchSendName--ZM]]",
-		ModuleType:    RobotModule,                     //模块类型
-		AbilityType:   OfficialAccountAbilityBatchSend, //全局唯一值 类型
+		ModuleType:    RobotModule,                     // Module type
+		AbilityType:   OfficialAccountAbilityBatchSend, // Globally unique value type
 		Introduction:  "[[ZM--OfficialAccountBatchSendIntro--ZM]]",
 		Details:       "[[ZM--DetailsPlaceholder--ZM]]",
 		Icon:          "iconfont icon-keyword-reply",
@@ -49,8 +49,8 @@ var LibraryAbilityList = []Ability{
 	},
 	{
 		Name:          "[[ZM--OfficialAccountAICommentName--ZM]]",
-		ModuleType:    RobotModule,                     //模块类型
-		AbilityType:   OfficialAccountAbilityAIComment, //全局唯一值 类型
+		ModuleType:    RobotModule,                     // Module type
+		AbilityType:   OfficialAccountAbilityAIComment, // Globally unique value type
 		Introduction:  "[[ZM--OfficialAccountAICommentIntro--ZM]]",
 		Details:       "[[ZM--DetailsPlaceholder--ZM]]",
 		Icon:          "iconfont icon-keyword-reply",
@@ -89,8 +89,8 @@ var LibraryAbilityList = []Ability{
 		},
 	}, {
 		Name:                 "[[ZM--LibraryAbilityOfficialAccountName--ZM]]",
-		ModuleType:           LibraryModule,                 //模块类型
-		AbilityType:          LibraryAbilityOfficialAccount, //全局唯一值 类型
+		ModuleType:           LibraryModule,                 // Module type
+		AbilityType:          LibraryAbilityOfficialAccount, // Globally unique value type
 		Introduction:         "[[ZM--LibraryAbilityOfficialAccountIntro--ZM]]",
 		Details:              "[[ZM--DetailsPlaceholder--ZM]]",
 		Icon:                 "iconfont icon-official-account",
@@ -108,7 +108,7 @@ var LibraryAbilityList = []Ability{
 	},
 }
 
-// CheckHasEnabledOfficialAccount 检查是否已启动公众号知识库开关
+// CheckHasEnabledOfficialAccount checks if the official account knowledge base switch is enabled
 func CheckHasEnabledOfficialAccount(adminUserId int) (bool, error) {
 	data, err := msql.Model(`ability`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).

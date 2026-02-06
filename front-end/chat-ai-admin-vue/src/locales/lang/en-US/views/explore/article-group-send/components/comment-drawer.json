@@ -1,0 +1,19 @@
+{
+  "drawer_title": "View comments",
+  "article_group_label": "Group: ",
+  "comment_header": "{total} comments",
+  "tag_selected": "Featured",
+  "ai_bot_name": "AI bot",
+  "empty_no_comment": "No comments yet",
+  "load_more_loading": "Loading...",
+  "load_more_no_more": "All loaded",
+  "modal_delete_comment_title": "Delete this comment?",
+  "modal_delete_reply_title": "Delete this reply?",
+  "btn_delete": "Delete",
+  "btn_cancel": "Cancel",
+  "message_delete_success": "Deleted successfully",
+  "default_user_name": "User",
+  "user_name_with_suffix": "User_{suf}",
+  "auto_feature_keyword": "Auto featured",
+  "deleted_status": "Deleted"
+}

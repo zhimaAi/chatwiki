@@ -1,0 +1,16 @@
+{
+  "btn_add_tool": "Add Tool",
+  "btn_edit": "Edit",
+  "btn_delete": "Delete",
+  "label_create_time": "Created",
+  "label_update_time": "Updated",
+  "title_tool_list": "Tool List",
+  "label_request_url": "Request URL: ",
+  "label_params": "Params",
+  "label_required": "Required",
+  "title_no_tool": "No tools added yet",
+  "btn_add_now": "Add Now",
+  "msg_delete_confirm": "Are you sure you want to delete this tool? This action cannot be undone.",
+  "btn_confirm_delete": "Delete",
+  "btn_cancel": "Cancel"
+}

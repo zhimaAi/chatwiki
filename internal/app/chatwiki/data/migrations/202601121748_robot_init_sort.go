@@ -28,9 +28,9 @@ func init() {
 func InitRobotSort() error {
 	m := msql.Model(`chat_ai_robot`, define.Postgres).
 		Field(`id,robot_name,admin_user_id`).
-		Order(`admin_user_id asc,id asc`) //基础排序处理
+		Order(`admin_user_id asc,id asc`) // basic sorting
 	list, err := m.Select()
-	//排序处理
+	// sorting
 	if err != nil {
 		logs.Other(`migration`, `query all robot sort data failed: %s`, err.Error())
 		return err

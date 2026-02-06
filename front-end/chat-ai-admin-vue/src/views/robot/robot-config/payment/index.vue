@@ -1,11 +1,11 @@
 <template>
   <div class="_container">
     <div class="main-tit">
-      <div>应用收费
-        <a-switch :checked="switchStatus" checked-children="开" un-checked-children="关" @change="switchChange"/>
+      <div>{{ t('title_app_charging') }}
+        <a-switch :checked="switchStatus" :checked-children="t('switch_on')" :un-checked-children="t('switch_off')" @change="switchChange"/>
       </div>
       <router-link :to="{path: '/robot/ability/payment-guide', query: route.query}">
-        <a class="link">查看功能介绍</a>
+        <a class="link">{{ t('link_view_feature_intro') }}</a>
       </router-link>
     </div>
     <div class="tab-box">
@@ -20,6 +20,7 @@
 <script setup>
 import {ref, onMounted, computed} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
+import { useI18n } from '@/hooks/web/useI18n';
 import ListTabs from "@/components/cu-tabs/list-tabs.vue";
 import SettingsBox from "./components/settings-box.vue";
 import AuthCodeBox from "./components/auth-code-box.vue";
@@ -29,6 +30,8 @@ import {jsonDecode} from "@/utils/index.js";
 import {saveRobotAbilitySwitchStatus} from "@/api/explore/index.js";
 import {Modal, message} from 'ant-design-vue';
 import {useRobotStore} from "@/stores/modules/robot.js";
+
+const { t } = useI18n('views.robot.robot-config.payment.index')
 
 const route = useRoute()
 const router = useRouter()
@@ -41,11 +44,11 @@ const config = ref({})
 const active = ref(2)
 const tabs = ref([
   {
-    title: '收费设置',
+    title: t('tab_billing_settings'),
     value: 1
   },
   {
-    title: '授权码管理',
+    title: t('tab_auth_code_management'),
     value: 2
   },
 ])
@@ -96,7 +99,7 @@ function switchChange(checked) {
       switch_status
     }).then(() => {
       robotStore.setPaymentSwitchStatus(switch_status)
-      message.success('操作成功')
+      message.success(t('msg_operation_success'))
       window.dispatchEvent(
         new CustomEvent('robotAbilityUpdated', {
           detail: { robotId: route.query.id }
@@ -107,8 +110,8 @@ function switchChange(checked) {
 
   if (switch_status === '0') {
     Modal.confirm({
-      title: '提示',
-      content: '关闭后，设置的收费策略将失效，确认关闭？',
+      title: t('modal_title_tip'),
+      content: t('modal_confirm_close'),
       onOk: submit
     })
   } else {

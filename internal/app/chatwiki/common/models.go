@@ -35,7 +35,7 @@ type ModelCallHandler struct {
 	modelInfo *ModelInfo
 	adaptor.Meta
 	config msql.Params
-	//传入useModel对应的各类型模型信息
+	// UseModel corresponding model type information
 	CurModelMap map[string]UseModelConfig
 }
 
@@ -79,37 +79,37 @@ func (modelInfo *ModelInfo) GetModelList(modelType string, functionCall, choosab
 			continue
 		}
 		if modelType == Llm && functionCall && !cast.ToBool(useModel.FunctionCall) {
-			continue //获取支持function call,不支持的跳过
+			continue // Get support for function call, skip if not supported
 		}
-		if modelType == Llm && choosableThinking && useModel.ThinkingType != 2 { //深度思考选项:0不支持,1支持,2可选
-			continue //获取支持配置可选Thinking,不支持的跳过
+		if modelType == Llm && choosableThinking && useModel.ThinkingType != 2 { // Deep thinking option: 0 not supported, 1 supported, 2 optional
+			continue // Get support for optional Thinking configuration, skip if not supported
 		}
 		models = append(models, useModel.UseModelName)
 	}
 	return models
 }
 
-// GetFunctionCallModels 获取支持function call模型列表
+// GetFunctionCallModels Get the list of models that support function call
 func (modelInfo *ModelInfo) GetFunctionCallModels() []string {
 	return modelInfo.GetModelList(Llm, true, false)
 }
 
-// GetChoosableThinkingModels 获取支持配置可选Thinking的模型列表
+// GetChoosableThinkingModels Get the list of models that support optional Thinking configuration
 func (modelInfo *ModelInfo) GetChoosableThinkingModels() []string {
 	return modelInfo.GetModelList(Llm, false, true)
 }
 
-// GetLlmModelList 获取大语言模型列表
+// GetLlmModelList Get the list of large language models
 func (modelInfo *ModelInfo) GetLlmModelList() []string {
 	return modelInfo.GetModelList(Llm, false, false)
 }
 
-// GetVectorModelList 获取嵌入模型列表
+// GetVectorModelList Get the list of embedding models
 func (modelInfo *ModelInfo) GetVectorModelList() []string {
 	return modelInfo.GetModelList(TextEmbedding, false, false)
 }
 
-// GetRerankModelList 获取重排序模型列表
+// GetRerankModelList Get the list of reranking models
 func (modelInfo *ModelInfo) GetRerankModelList() []string {
 	return modelInfo.GetModelList(Rerank, false, false)
 }
@@ -150,7 +150,7 @@ const (
 	MaxContent    = 10000
 )
 
-// GetModelNameByDefine 获取指定模型的服务商名称
+// GetModelNameByDefine Get the provider name of the specified model
 func GetModelNameByDefine(lang string, modelDefine string) string {
 	if modelConfig, exist := GetModelConfigByDefine(lang, modelDefine); exist {
 		return modelConfig.ModelName
@@ -158,7 +158,7 @@ func GetModelNameByDefine(lang string, modelDefine string) string {
 	return fmt.Sprintf(`Unknown(%s)`, modelDefine)
 }
 
-// GetModelConfigByDefine 获取指定模型的基础定义
+// GetModelConfigByDefine Get the base definition of the specified model
 func GetModelConfigByDefine(lang string, modelDefine string) (modelConfig ModelInfo, exist bool) {
 	for _, info := range GetModelConfigList(lang) {
 		if info.ModelDefine == modelDefine {
@@ -168,7 +168,7 @@ func GetModelConfigByDefine(lang string, modelDefine string) (modelConfig ModelI
 	return
 }
 
-// GetModelInfoByConfig 获取用户配置的模型完整信息
+// GetModelInfoByConfig Get the complete model information of the user configuration
 func GetModelInfoByConfig(lang string, adminUserId, modelConfigId int) (_ ModelInfo, exist bool) {
 	config, err := GetModelConfigInfo(modelConfigId, adminUserId)
 	if err != nil {
@@ -181,10 +181,10 @@ func GetModelInfoByConfig(lang string, adminUserId, modelConfigId int) (_ ModelI
 	if !exist {
 		return
 	}
-	modelInfo := modelConfig //拷贝一个新的
-	//填充配置信息
+	modelInfo := modelConfig // Copy a new one
+	// Fill configuration information
 	modelInfo.ConfigInfo = config
-	//新旧数据兼容处理
+	// Compatibility handling for old and new data
 	historyConfigParams := make([]string, 0)
 	for _, item := range modelInfo.HistoryConfigParams {
 		if data, ok := config[item]; ok && len(data) > 0 {
@@ -192,7 +192,7 @@ func GetModelInfoByConfig(lang string, adminUserId, modelConfigId int) (_ ModelI
 		}
 	}
 	modelInfo.HistoryConfigParams = historyConfigParams
-	//填充可使用模型数据
+	// Fill available model data
 	if config[`model_define`] != ModelChatWiki {
 		if useModelList, err := GetModelListInfo(modelConfigId); err != nil {
 			logs.Error(err.Error())
@@ -203,9 +203,9 @@ func GetModelInfoByConfig(lang string, adminUserId, modelConfigId int) (_ ModelI
 	return modelInfo, true
 }
 
-// GetModelConfigList 获取全部模型的基础定义
+// GetModelConfigList Get the base definitions of all models
 func GetModelConfigList(lang string) []ModelInfo {
-	//模型过滤处理
+	// Model filtering process
 	list := make([]ModelInfo, 0)
 	for _, info := range getModelConfigList(lang) {
 		if !define.IsDev && tool.InArrayString(info.ModelDefine, []string{}) {
@@ -213,9 +213,9 @@ func GetModelConfigList(lang string) []ModelInfo {
 		}
 		list = append(list, info)
 	}
-	//添加自定义模型
+	// Add custom model
 	//list = append(list, ModelInfo{ModelDefine: `DIY MODEL`})
-	//零值处理
+	// Zero value processing
 	for i, info := range list {
 		if info.SupportList == nil {
 			list[i].SupportList = make([]string, 0)
@@ -570,9 +570,9 @@ func GetModelCallHandler(lang string, adminUserId, modelConfigId int, useModel s
 	if !ok {
 		return nil, errors.New(i18n.Show(lang, `model_config_id_invalid`))
 	}
-	//校验使用的模型是否有效
+	// Validate if the used model is valid
 	curModelMap := make(map[string]UseModelConfig)
-	useModel = CompatibleUseModelOldData(modelInfo.ConfigInfo, useModel) //兼容旧数据
+	useModel = CompatibleUseModelOldData(modelInfo.ConfigInfo, useModel) // Compatible with old data
 	for i := range modelInfo.UseModelConfigs {
 		if modelInfo.UseModelConfigs[i].UseModelName == useModel {
 			curModelMap[modelInfo.UseModelConfigs[i].ModelType] = modelInfo.UseModelConfigs[i]
@@ -753,7 +753,7 @@ func (h *ModelCallHandler) RequestChatStream(
 		h.Meta.EnabledThinking = true
 	}
 	if h.CurModelMap[Llm].InputImage > 0 && len(robot) > 0 && cast.ToBool(robot[`question_multiple_switch`]) {
-		messages = ConvertQuestionMultiple(messages) //转换成多模态输入结构
+		messages = ConvertQuestionMultiple(messages) // Convert to multimodal input structure
 	}
 	client.Init(h.Meta)
 	req := adaptor.ZhimaChatCompletionRequest{
@@ -884,7 +884,7 @@ func (h *ModelCallHandler) RequestChat(
 		h.Meta.EnabledThinking = true
 	}
 	if h.CurModelMap[Llm].InputImage > 0 && len(robot) > 0 && cast.ToBool(robot[`question_multiple_switch`]) {
-		messages = ConvertQuestionMultiple(messages) //转换成多模态输入结构
+		messages = ConvertQuestionMultiple(messages) // Convert to multimodal input structure
 	}
 	client.Init(h.Meta)
 	req := adaptor.ZhimaChatCompletionRequest{
@@ -930,7 +930,7 @@ func CheckModelIsValid(userId, modelConfigId int, useModel, modelType string) bo
 	if !exist {
 		return false
 	}
-	useModel = CompatibleUseModelOldData(modelInfo.ConfigInfo, useModel) //兼容旧数据
+	useModel = CompatibleUseModelOldData(modelInfo.ConfigInfo, useModel) // Compatible with old data
 	switch modelType {
 	case Llm:
 		return tool.InArrayString(useModel, modelInfo.GetLlmModelList())
@@ -953,7 +953,7 @@ func CheckSupportFuncCall(lang string, adminUserId, modelConfigId int, useModel 
 	if !exist {
 		return errors.New(i18n.Show(lang, `model_config_id_invalid`))
 	}
-	useModel = CompatibleUseModelOldData(modelInfo.ConfigInfo, useModel) //兼容旧数据
+	useModel = CompatibleUseModelOldData(modelInfo.ConfigInfo, useModel) // Compatible with old data
 	if !tool.InArrayString(useModel, modelInfo.GetLlmModelList()) {
 		return errors.New(i18n.Show(lang, `use_model_name_param_error`))
 	}
@@ -980,7 +980,7 @@ func GetModelConfigOption(adminUserId int, modelType, lang string) ([]ModelInfo,
 			if !ok {
 				continue
 			}
-			//过滤掉非当前检索的模型列表
+			// Filter out models that are not in the current search
 			useModels := make([]UseModelConfig, 0)
 			for _, useModel := range modelInfo.UseModelConfigs {
 				if useModel.ModelType == modelType {
@@ -988,7 +988,7 @@ func GetModelConfigOption(adminUserId int, modelType, lang string) ([]ModelInfo,
 				}
 			}
 			if len(useModels) == 0 {
-				continue //过滤掉空数据模型服务商
+				continue // Filter out empty data model providers
 			}
 			modelInfo.UseModelConfigs = useModels
 			list = append(list, modelInfo)
@@ -1176,7 +1176,7 @@ func (h *SupplierHandler) TtsGetVoiceList(adminUserId int) ([]map[string]any, er
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 
-	// 检查响应状态
+	// Check response status
 	if baseResp, ok := result["base_resp"].(map[string]any); ok {
 		if statusCode, ok := baseResp["status_code"].(float64); ok {
 			if statusCode != 0 {
@@ -1221,12 +1221,12 @@ func (h *SupplierHandler) TtsUploadVoiceFile(purpose, filePath string) (map[stri
 
 	url := "https://api.minimaxi.com/v1/files/upload"
 
-	// 验证文件是否存在
+	// Verify if file exists
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return nil, errors.New("file not found: " + filePath)
 	}
 
-	// 检查文件大小
+	// Check file size
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get file info: %w", err)
@@ -1251,7 +1251,7 @@ func (h *SupplierHandler) TtsUploadVoiceFile(purpose, filePath string) (map[stri
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	// 检查响应状态
+	// Check response status
 	if baseResp, ok := result["base_resp"].(map[string]any); ok {
 		if statusCode, ok := baseResp["status_code"].(float64); ok {
 			if statusCode != 0 {
@@ -1284,7 +1284,7 @@ func (h *SupplierHandler) TtsCloneVoice(params map[string]any) (map[string]any, 
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 
-	// 检查响应状态
+	// Check response status
 	if baseResp, ok := result["base_resp"].(map[string]any); ok {
 		if statusCode, ok := baseResp["status_code"].(float64); ok {
 			if statusCode != 0 {
@@ -1317,7 +1317,7 @@ func (h *ModelCallHandler) TtsSpeechT2A(params map[string]any) (map[string]any, 
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 
-	// 检查响应状态
+	// Check response status
 	if baseResp, ok := result["base_resp"].(map[string]any); ok {
 		if statusCode, ok := baseResp["status_code"].(float64); ok {
 			if statusCode != 0 {

@@ -61,49 +61,95 @@
 </style>
 
 <template>
+
   <div class="document-fragment" :class="{'dashed-line': props.isNeedDashedLine, 'mt8': props.chunk_type == 4 && !props.isNeedDashedLine}">
+
     <div class="fragment-header">
+
       <div class="fragment-info">
+
         <span class="fragment-number">#<span v-if="props.chunk_type == 4">{{ props.father_chunk_paragraph_number }}-</span>{{ props.number }}</span>
+
         <span class="fragment-title" v-if="props.title">{{ props.title }}</span>
-        <span class="fragment-content-lenght">共{{ props.total }}个字符</span>
+
+        <span class="fragment-content-lenght">{{ t('total_characters', { total: props.total }) }}</span>
+
         <span class="fragment-content-status" v-if="props.status === 'paragraphsSegmented'">
+
           {{ props.currentData?.status_text || '-' }}<LoadingOutlined v-if="props.currentData?.status == 3" />
+
           <a-tooltip v-if="props.currentData?.status == 2 && props.currentData.errmsg" :title="props.currentData.errmsg">
+
             <strong class="cfb363f"
+
               >原因<ExclamationCircleOutlined class="err-icon cfb363f"
+
             /></strong>
+
           </a-tooltip>
+
         </span>
+
       </div>
+
+
 
       <div class="fragment-action">
-        <a @click="handleEdit">编辑</a>
+
+        <a @click="handleEdit">{{ t('edit') }}</a>
+
         <a-divider type="vertical" />
-        <a @click="handleDelete">删除</a>
+
+        <a @click="handleDelete">{{ t('delete') }}</a>
+
       </div>
+
     </div>
 
+
+
     <div class="fragment-content">{{ props.content }}</div>
+
     <div class="fragment-content" v-if="props.question">Q：{{ props.question }}</div>
+
     <div
+
       class="fragment-content"
+
       v-if="props.similar_question_list && props.similar_question_list.join('')"
+
     >
-      相似问法：{{ props.similar_question_list.join('/') }}
+
+      {{ t('similar_questions') }}{{ props.similar_question_list.join('/') }}
+
     </div>
+
     <div class="fragment-content" v-if="props.answer">A：{{ props.answer }}</div>
+
     <div class="fragment-img" v-viewer>
+
       <img v-for="(item, index) in props.images" :key="index" :src="item" alt="" />
+
     </div>
+
   </div>
+
 </template>
 
 <script setup>
+
 import {
+
   ExclamationCircleOutlined,
+
   LoadingOutlined,
+
 } from '@ant-design/icons-vue'
+
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.document-segmentation.components.document-fragment')
+
 const emit = defineEmits(['edit', 'delete'])
 const props = defineProps({
   number: {

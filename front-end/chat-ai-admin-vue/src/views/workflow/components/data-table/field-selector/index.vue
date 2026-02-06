@@ -64,9 +64,9 @@
   <div>
     <div class="field-list">
       <div class="field-list-row">
-        <div class="field-list-col field-list-col-head field-name-head">字段名</div>
-        <div class="field-list-col field-list-col-head field-type-head">类型</div>
-        <div class="field-list-col field-list-col-head field-value-head" v-if="showInput">字段值</div>
+        <div class="field-list-col field-list-col-head field-name-head">{{ t('label_field_name') }}</div>
+        <div class="field-list-col field-list-col-head field-type-head">{{ t('label_type') }}</div>
+        <div class="field-list-col field-list-col-head field-value-head" v-if="showInput">{{ t('label_field_value') }}</div>
         <div
           class="field-list-col field-list-col-head field-del-head"
           v-if="props.showDelete"
@@ -77,8 +77,8 @@
         <div class="field-list-col field-name-col">--</div>
         <div class="field-list-col field-type-col">--</div>
         <div class="field-list-col field-value-col">
-          <a-tooltip title="请先选择数据库">
-            <a-input :disabled="true" placeholder="请输入参数值，键入/插入变量" />
+          <a-tooltip :title="t('ph_select_database_first')">
+            <a-input :disabled="true" :placeholder="t('ph_input_value_variable')" />
           </a-tooltip>
         </div>
       </div>
@@ -87,14 +87,14 @@
         <div class="field-list-col field-name-col">{{ item.name }}</div>
         <div class="field-list-col field-type-col">{{ item.type }}</div>
         <div class="field-list-col field-value-col" v-if="showInput">
-          <!-- <a-input placeholder="请输入参数值，键入“/”插入变量" v-model:value="item.value" @change="onChangeFieldValue" /> -->
-          <AtInput 
-          :options="atInputOptions" 
+          <!-- <a-input :placeholder="t('ph_input_value_variable')" v-model:value="item.value" @change="onChangeFieldValue" /> -->
+          <AtInput
+          :options="atInputOptions"
           :defaultValue="item.value"
           :defaultSelectedList="item.atTags"
           @open="showAtList"
           @change="(text, selectedList) => changeAtInputValue(text, selectedList, item, index)"
-          placeholder="请输入参数值，键入“/”插入变量" />
+          :placeholder="t('ph_input_value_variable')" />
         </div>
         <div class="field-list-col field-del-col" v-if="props.showDelete">
           <span class="del-btn" @click="handleDel(index)">
@@ -105,7 +105,7 @@
     </div>
 
     <div class="add-btn-box" v-if="props.showAdd">
-      <a-button class="add-btn" type="dashed" block @click="handleAddField"><PlusOutlined /> 添加更新字段</a-button>
+      <a-button class="add-btn" type="dashed" block @click="handleAddField"><PlusOutlined /> {{ t('btn_add_update_field') }}</a-button>
     </div>
 
     <FieldSelectAlert :formId="formId" ref="fieldSelectAlertRef" @ok="onChangeSelect" />
@@ -117,6 +117,9 @@ import { ref, reactive, watch, inject, onMounted } from 'vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import FieldSelectAlert from './field-select-alert.vue'
 import AtInput from '../../at-input/at-input.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.data-table.field-selector.index')
 
 const emit = defineEmits(['change'])
 

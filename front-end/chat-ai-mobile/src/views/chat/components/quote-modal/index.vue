@@ -6,8 +6,8 @@
         <div class="content-block">
           <div class="list-item" v-for="(item,index) in lists" :key="item.id">
             <div class="item-title">
-              参考内容{{ index + 1 }}
-              <a v-if="item.page_num > 0" @click="viewSourceFile(item)">预览原文件</a>
+              {{ t('label_reference') }}{{ index + 1 }}
+              <a v-if="item.page_num > 0" @click="viewSourceFile(item)">{{ t('btn_preview_original') }}</a>
             </div>
             <div class="content-body">
               <div class="content-text" v-html="item.content"></div>
@@ -34,9 +34,12 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import { getAnswerSource } from '@/api/chat/index.js'
 import VuePdfEmbed from 'vue-pdf-embed'
 import { useChatStore } from '@/stores/modules/chat'
+
+const { t } = useI18n('views.chat.components.quote-modal.index')
 const chatStore = useChatStore()
 const { user } = chatStore
 const show = ref(false)

@@ -1,0 +1,17 @@
+{
+  "unverified_account_reply_settings": "Unverified Official Account Reply Settings",
+  "api_limit_notice": "Due to WeChat API restrictions, unverified official accounts can only reply immediately after the user asks a question. If the answer generation is slow, the system will prompt the user to manually retrieve the reply",
+  "manual_reply_prompt": "Manual Reply Prompt",
+  "manual_reply_text": "Manual Reply Text",
+  "continue_reading_text": "Continue Reading Text (for content over 500 characters)",
+  "please_input": "Please input",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "default_prompt": "Thinking... Please click the blue text below to get the reply later\r\nGet Reply👇👇👇",
+  "default_reply_text": "👉👉Click here to get reply👈👈",
+  "default_continue_text": "More content, click here to read more",
+  "save_success": "Saved successfully",
+  "error_prompt": "Please enter manual reply prompt",
+  "error_reply_text": "Please enter manual reply text",
+  "error_continue_text": "Please enter continue reading text"
+}

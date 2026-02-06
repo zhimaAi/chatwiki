@@ -1,0 +1,5 @@
+{
+  "btn_upload_photo": "Upload Photo",
+  "msg_format_error": "Only JPG and PNG image formats are supported for the knowledge base cover.",
+  "msg_size_error": "Knowledge base cover image size cannot exceed 100KB."
+}

@@ -2,8 +2,8 @@
   <a-drawer
     :open="open"
     placement="right"
-    :width="400"
-    title="基础数据"
+    :width="480"
+    :title="t('title_basic_data')"
     @close="onClose"
   >
     <div class="base-data-drawer" v-if="record">
@@ -12,50 +12,50 @@
       </div>
       <div class="base-title zm-line1">{{ record.file_name }}</div>
       <div class="base-update">
-        <span>更新于 {{ record.update_time }}</span>
+        <span>{{ t('label_updated_at') }} {{ record.update_time }}</span>
         <span class="sep">|</span>
         <span>
-          <span v-if="record.doc_auto_renew_frequency == 1">不自动更新</span>
-          <span v-if="record.doc_auto_renew_frequency == 2">每天</span>
-          <span v-if="record.doc_auto_renew_frequency == 3">每3天</span>
-          <span v-if="record.doc_auto_renew_frequency == 4">每7天</span>
-          <span v-if="record.doc_auto_renew_frequency == 5">每30天</span>
+          <span v-if="record.doc_auto_renew_frequency == 1">{{ t('label_no_auto_update') }}</span>
+          <span v-if="record.doc_auto_renew_frequency == 2">{{ t('label_every_day') }}</span>
+          <span v-if="record.doc_auto_renew_frequency == 3">{{ t('label_every_3_days') }}</span>
+          <span v-if="record.doc_auto_renew_frequency == 4">{{ t('label_every_7_days') }}</span>
+          <span v-if="record.doc_auto_renew_frequency == 5">{{ t('label_every_30_days') }}</span>
           <span class="ml4" v-if="record.doc_auto_renew_frequency > 1 && record.doc_auto_renew_minute > 0">
             {{ convertTime(record.doc_auto_renew_minute) }}
           </span>
-          <a class="ml12 btn-hover-block" @click="emit('editOnline', record)">修改</a>
+          <a class="ml12 btn-hover-block" @click="emit('editOnline', record)">{{ t('btn_edit') }}</a>
         </span>
       </div>
       <div class="base-meta-grid">
         <div class="meta-item">
           <div class="value">{{ record.file_ext || '--' }}</div>
-          <div class="label">文件格式</div>
+          <div class="label">{{ t('label_file_format') }}</div>
         </div>
         <div class="line-vertical"></div>
         <div class="meta-item">
           <div class="value">{{ record.file_size_str || '--' }}</div>
-          <div class="label">文档大小</div>
+          <div class="label">{{ t('label_doc_size') }}</div>
         </div>
         <div class="line-vertical"></div>
         <div class="meta-item">
           <div class="value">{{ record.paragraph_count ?? '-' }}</div>
-          <div class="label">文档分段</div>
+          <div class="label">{{ t('label_doc_segments') }}</div>
         </div>
       </div>
       <div class="base-hits-grid">
         <div class="hits-item">
           <div class="value">{{ record.total_hits ?? 0 }}</div>
-          <div class="label">合计触发</div>
+          <div class="label">{{ t('label_total_triggers') }}</div>
         </div>
         <div class="line-vertical"></div>
         <div class="hits-item">
           <div class="value">{{ record.today_hits ?? 0 }}</div>
-          <div class="label">今日触发</div>
+          <div class="label">{{ t('label_today_triggers') }}</div>
         </div>
         <div class="line-vertical"></div>
         <div class="hits-item">
           <div class="value">{{ record.yesterday_hits ?? 0 }}</div>
-          <div class="label">昨日触发</div>
+          <div class="label">{{ t('label_yesterday_triggers') }}</div>
         </div>
       </div>
     </div>
@@ -64,9 +64,12 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import defaultCover from '@/assets/img/default-cover.png'
 import emptyDocumentIcon from '@/assets/svg/empty-document.svg'
 import { convertTime } from '@/utils/index'
+
+const { t } = useI18n('views.library.library-details.components.base-data-drawer')
 
 const emit = defineEmits(['close', 'editOnline'])
 const props = defineProps({
@@ -110,7 +113,6 @@ const fileCover = computed(() => getFileCover(props.record))
 <style scoped lang="less">
 .base-data-drawer {
   .base-cover {
-    width: 350px;
     height: 200px;
     border-radius: 6px;
     border: 1px solid #F0F0F0;
@@ -119,7 +121,6 @@ const fileCover = computed(() => getFileCover(props.record))
   }
   .base-title {
     margin-top: 10px;
-    width: 352px;
     color: #262626;
     font-size: 14px;
     font-style: normal;
@@ -142,7 +143,7 @@ const fileCover = computed(() => getFileCover(props.record))
      }
   }
   .base-meta-grid, .base-hits-grid {
-    width: 352px;
+    width: 100%;
     height: 80px;
     box-sizing: border-box;
     display: inline-flex;

@@ -27,13 +27,13 @@
     </div>
     <van-dialog
       :show="showDialog"
-      title="重命名"
+      :title="t('title_rename')"
       @confirm="handleSave"
       @cancel="showDialog = false"
       show-cancel-button
     >
       <div class="input-box">
-        <van-field v-model="textValue" placeholder="请输入" />
+        <van-field v-model="textValue" :placeholder="t('ph_input')" />
       </div>
     </van-dialog>
   </div>
@@ -43,6 +43,9 @@
 import { ref, computed } from 'vue'
 import { showConfirmDialog, showToast } from 'vant'
 import { useChatStore } from '@/stores/modules/chat'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.chat.components.left-side-bar.session-list')
 const chatStore = useChatStore()
 
 const emit = defineEmits(['handleOpenChat'])
@@ -59,10 +62,10 @@ const handleOpenChat = (item) => {
   emit('handleOpenChat', item)
 }
 
-const actions = [
-  { text: '重命名', key: 1 },
-  { text: '删除', key: 2 }
-]
+const actions = computed(() => [
+  { text: t('btn_rename'), key: 1 },
+  { text: t('btn_delete'), key: 2 }
+])
 
 let currentItem = {}
 const textValue = ref('')
@@ -80,7 +83,7 @@ const onSelect = (action, item) => {
 }
 const handleSave = () => {
   if (textValue.value == '') {
-    return showToast('请输入新的名称')
+    return showToast(t('msg_input_new_name'))
   }
   chatStore
     .editDialogueChat({
@@ -89,7 +92,7 @@ const handleSave = () => {
     })
     .then((res) => {
       if (res.res == 0) {
-        showToast('修改成功')
+        showToast(t('msg_rename_success'))
         showDialog.value = false
       }
     })
@@ -97,8 +100,8 @@ const handleSave = () => {
 
 const handleDel = (item) => {
   showConfirmDialog({
-    title: '删除确认',
-    message: '确认删除该记录'
+    title: t('title_delete_confirm'),
+    message: t('msg_confirm_delete')
   })
     .then(() => {
       chatStore.delDialogue(item)

@@ -187,9 +187,9 @@
       <div class="chat-page-header">
         <ChatHeader />
         <div class="form-banner-top" v-if="isShowFromHeader">
-          <div class="title">表单信息</div>
+          <div class="title">{{ t('label_form_info') }}</div>
           <div class="edit-block" @click="handleEditVariableForm">
-            <img src="@/assets/icons/edit.svg" alt="">编辑
+            <img src="@/assets/icons/edit.svg" alt=""> {{ t('btn_edit') }}
           </div>
         </div>
       </div>
@@ -235,7 +235,7 @@
           :showUpload="showUpload"
           @send="onSendMesage"
         />
-        <div class="technical-support-text">{{ translate('由 ChatWiki 提供软件支持') }}</div>
+        <div class="technical-support-text">{{ t('label_powered_by') }}</div>
       </div>
     </div>
     <VariableModal ref="variableModalRef" />
@@ -245,10 +245,12 @@
 <script setup lang="ts">
 import type { Message } from './types'
 import { getUuid } from '@/utils/index'
-import { translate } from '@/utils/translate.js'
+import { useI18n } from '@/hooks/web/useI18n'
+import { useLocale } from '@/hooks/web/useLocale'
+import { useLocaleStoreWithOut } from '@/stores/modules/locale'
 import { checkChatRequestPermission } from '@/api/robot/index'
 import { postInit } from '@/event/postMessage'
-import { ref, onMounted, onUnmounted, toRaw, computed } from 'vue'
+import { ref, onMounted, onUnmounted, toRaw, computed, watch } from 'vue'
 import { showToast } from 'vant'
 import { useWindowWidth } from './useWindowWidth'
 import { storeToRefs } from 'pinia'
@@ -267,6 +269,11 @@ type MessageListComponent = {
   scrollToMessage: (id: number | string) => void
   scrollToBottom: () => void
 }
+
+// 初始化 i18n
+const { changeLocale } = useLocale()
+const localeStore = useLocaleStoreWithOut()
+const { t } = useI18n('views.chat.index')
 
 interface LeftSideBarRefState {
   handleShowH5Chat: any
@@ -290,7 +297,6 @@ const {
   onGetChatMessage,
   $reset,
   robot,
-  externalConfigPC,
   openChatWindow,
   closeChatWindow,
   getMyChatList,
@@ -298,7 +304,7 @@ const {
   createChat 
 } = chatStore
 
-const { messageList, sendLock, dialogue_id } = storeToRefs(chatStore)
+const { messageList, sendLock, dialogue_id, externalConfigPC } = storeToRefs(chatStore)
 
 
 const isShowFromHeader = computed(()=>{
@@ -387,12 +393,12 @@ const init = async () => {
     handleMessageListScrollToBottom()
   }
   // 通知sdk 初始化完毕
-  SDKInit({ robot: toRaw(robot), config: toRaw(externalConfigPC) })
+  SDKInit({ robot: toRaw(robot), config: toRaw(externalConfigPC.value) })
 }
 
 const sendTextMessage = (val: string) => {
   if (!val) {
-    return showToast('请输入消息内容')
+    return showToast(t('msg_input_required'))
   }
 
   sendMessage({
@@ -414,7 +420,7 @@ const onSendMesage = async (content: any) => {
   let text = content.trim()
 
   if (!text && !fileList.value.length) {
-    return showToast('请输入消息内容')
+    return showToast(t('msg_input_required'))
   }
 
   //检查是否含有敏感词
@@ -430,7 +436,7 @@ const onSendMesage = async (content: any) => {
   checkChatRequestPermissionLoding.value = true
 
   if (result.data && result.data.words) {
-    return showToast(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)
+    return showToast(t('msg_sensitive_word', { words: result.data.words.join(';') }))
   }
 
   isAllowedScrollToBottom = true
@@ -567,6 +573,19 @@ const variableModalRef = ref<null | VariableModalRefState>(null)
 const handleEditVariableForm = () => {
   variableModalRef.value?.handleEdit()
 }
+
+// 监听 externalConfigH5.lang 变化，自动切换 i18n 语言
+watch(
+  () => chatStore.externalConfigPC.lang,
+  async (newLang) => {
+    if (newLang && newLang !== localeStore.currentLocale.lang && ['zh-CN', 'en-US'].includes(newLang)) {
+      await changeLocale(newLang as LocaleType)
+
+      // window.location.reload()
+    }
+  },
+  { immediate: true }
+)
 
 onMounted(() => {
   init()

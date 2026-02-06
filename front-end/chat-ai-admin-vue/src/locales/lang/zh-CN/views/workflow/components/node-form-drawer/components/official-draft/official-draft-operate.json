@@ -1,0 +1,9 @@
+{
+  "label_official_account": "公众号",
+  "ph_select_official_account": "请选择公众号",
+  "msg_unsupported_account": "暂不支持未认证公众号、服务号",
+  "label_message_user_type": "接受消息用户类型",
+  "opt_official_user_openid": "公众号用户openid",
+  "opt_wechat_id": "用户微信号（每日最高100次）",
+  "label_official_account_name": "公众号名称"
+}

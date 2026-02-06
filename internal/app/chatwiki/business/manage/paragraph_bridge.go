@@ -147,8 +147,8 @@ func BridgeGetParagraphList(adminUserId, loginUserId int, lang string, req *Brid
 		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
 	}
 
-	// ===== meta_list（段落也返回）=====
-	// 批量准备：group_name（QA分组）、library meta schema、library 内置 is_show 开关
+	//===== meta_list (also returned for paragraphs) =====
+	//Batch prepare: group_name (QA group), library meta schema, built-in is_show switch
 	libraryIdSet := make(map[int]struct{})
 	for _, it := range list {
 		libraryIdSet[cast.ToInt(it[`library_id`])] = struct{}{}
@@ -191,7 +191,7 @@ func BridgeGetParagraphList(adminUserId, loginUserId int, lang string, req *Brid
 		}
 	}
 
-	// (library_id, group_id) -> group_name（仅针对 QA 分组）
+	//(library_id, group_id) -> group_name (QA groups only)
 	groupNameMap := make(map[string]string)
 	groupNameMap[`0:0`] = lib_define.Ungrouped
 	if len(libIds) > 0 {
@@ -224,9 +224,9 @@ func BridgeGetParagraphList(adminUserId, loginUserId int, lang string, req *Brid
 		}
 		tempItem[`images`] = images
 
-		// meta_list：内置+自定义（不修改数据库 metadata 原值；直接基于 a.metadata 解析）
+		//meta_list: built-in + custom (do not mutate DB metadata; parse from a.metadata)
 		libId := cast.ToInt(item[`library_id`])
-		// 来源：直接基于 chat_ai_library_file_data.type 映射
+		//Source: mapped from chat_ai_library_file_data.type
 		// type=1 => source=4，type=2 => source=5
 		paraType := cast.ToInt(item[`type`])
 		sourceVal := 0
@@ -357,12 +357,12 @@ func BridgeSaveParagraph(adminUserId, loginUserId int, lang string, req *BridgeS
 			logs.Error(err.Error())
 			return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
 		}
-		if cast.ToUint(fileIdStr) == 0 { //分段不存在
+		if cast.ToUint(fileIdStr) == 0 { //paragraph segment does not exist
 			return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `id`))
 		}
 		fileId = cast.ToInt64(fileIdStr)
 	}
-	if fileId == 0 { //没有指定文件的,创建一个默认的自定义文档
+	if fileId == 0 { //no file specified; create a default custom document
 		libraryId := cast.ToInt(req.LibraryId)
 		if libraryId <= 0 {
 			return nil, -1, errors.New(i18n.Show(lang, `param_lack`))
@@ -379,7 +379,7 @@ func BridgeSaveParagraph(adminUserId, loginUserId int, lang string, req *BridgeS
 		if len(token) == 0 {
 			token = req.Token
 		}
-		fileId, err = getLibraryDefaultFile(libraryId, adminUserId, token)
+		fileId, err = getLibraryDefaultFile(lang, libraryId, adminUserId, token)
 		if err != nil {
 			logs.Error(err.Error())
 			return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
@@ -410,7 +410,7 @@ func BridgeSaveParagraph(adminUserId, loginUserId int, lang string, req *BridgeS
 		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `images`))
 	}
 	if imagesJson := strings.TrimSpace(req.ImagesJson); len(imagesJson) > 0 {
-		jsonImages = imagesJson //适用于特殊场景,直接传递参数
+		jsonImages = imagesJson //for special scenarios, pass through parameters directly
 	}
 
 	_ = m.Begin()
@@ -588,7 +588,8 @@ func BridgeDeleteParagraph(adminUserId int, ids, lang string) error {
 			logs.Error(err.Error())
 			return errors.New(i18n.Show(lang, `sys_err`))
 		}
-
+		// clear stat library data robot tip
+		common.CleanStatLibraryDataTip(adminUserId, strings.Split(ids, `,`))
 		_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`data_id`, `in`, cast.ToString(ids)).Delete()
 		if err != nil {
 			logs.Error(err.Error())

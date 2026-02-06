@@ -78,7 +78,7 @@
 </style>
 
 <template>
-  <a-modal width="746px" v-model:open="show" title="添加技能" @ok="saveCheckedList">
+  <a-modal width="746px" v-model:open="show" :title="t('title_add_skill')" @ok="saveCheckedList">
     <div class="library-checkbox-box">
       <a-spin :spinning="isRefresh" :delay="100">
         <a-checkbox-group v-model:value="state.checkedList" style="width: 100%">
@@ -86,7 +86,7 @@
             <div class="list-item-wraapper" v-for="item in options" :key="item.id">
               <a-checkbox class="list-item"  :value="item.id">
                 <div class="library-name">{{ item.robot_name }}
-                  <span class="library-desc" v-if="item.start_node_key===''"> (未发布)</span></div>
+                  <span class="library-desc" v-if="item.start_node_key===''"> ({{ t('text_unpublished') }})</span></div>
                 <div class="library-desc">{{ item.robot_intro || '--' }}</div>
               </a-checkbox>
             </div>
@@ -95,7 +95,7 @@
       </a-spin>
       <div class="empty-box" v-if="!isRefresh && !options.length">
         <img src="@/assets/img/library/preview/empty.png" alt="" />
-        <div>暂无数据，请先添加工作流</div>
+        <div>{{ t('msg_no_data_add_workflow') }}</div>
       </div>
     </div>
   </a-modal>
@@ -106,6 +106,9 @@ import { reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { SearchOutlined, SyncOutlined } from '@ant-design/icons-vue'
 import { getRobotList } from '@/api/robot/index'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.skill.robot-select-alert')
 
 const emit = defineEmits(['change'])
 

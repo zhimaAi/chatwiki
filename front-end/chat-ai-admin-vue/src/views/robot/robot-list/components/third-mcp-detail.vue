@@ -9,7 +9,7 @@
     <div v-if="checking" class="checking-box">
       <div class="cont">
         <a-spin/>
-        正在验证...
+        {{ t('msg_checking') }}
       </div>
     </div>
     <div class="head-box">
@@ -19,8 +19,8 @@
           <div class="left">
             <div class="name zm-line1">{{ detail.name }}</div>
             <div>
-              <div v-if="detail.has_auth == 1" class="auth-tag">已授权</div>
-              <div v-else class="auth-tag fail">未授权</div>
+              <div v-if="detail.has_auth == 1" class="auth-tag">{{ t('label_authorized') }}</div>
+              <div v-else class="auth-tag fail">{{ t('label_unauthorized') }}</div>
             </div>
           </div>
           <div class="right">
@@ -28,8 +28,8 @@
               <EllipsisOutlined class="icon"/>
               <template #overlay>
                 <a-menu>
-                  <a-menu-item @click.stop="editApp">编辑</a-menu-item>
-                  <a-menu-item @click.stop="delApp"><span class="cFB363F">删除</span></a-menu-item>
+                  <a-menu-item @click.stop="editApp">{{ t('btn_edit') }}</a-menu-item>
+                  <a-menu-item @click.stop="delApp"><span class="cFB363F">{{ t('btn_delete') }}</span></a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -39,23 +39,23 @@
       </div>
       <div class="link">{{ detail.description }}</div>
       <div class="link">{{ detail.url }}</div>
-      <a-button v-if="detail.has_auth == 1" class="auth-btn" @click="authConfig(2)">重新授权</a-button>
-      <a-button v-else type="primary" class="auth-btn" @click="authConfig(1)">授 权</a-button>
+      <a-button v-if="detail.has_auth == 1" class="auth-btn" @click="authConfig(2)">{{ t('btn_reauthorize') }}</a-button>
+      <a-button v-else type="primary" class="auth-btn" @click="authConfig(1)">{{ t('btn_authorize') }}</a-button>
     </div>
     <div class="body-box">
       <div v-if="detail.has_auth != 1" class="no-auth-box">
         <img src="@/assets/no-permission.png"/>
-        <div class="tit">需要授权</div>
-        <div class="desc">授权后，MCP工具将显示在这里</div>
-        <a class="link" @click="authConfig(1)">立即授权</a>
+        <div class="tit">{{ t('title_need_auth') }}</div>
+        <div class="desc">{{ t('msg_need_auth_desc') }}</div>
+        <a class="link" @click="authConfig(1)">{{ t('btn_authorize_now') }}</a>
       </div>
       <template v-else>
         <div class="main-tit">
-          <span>{{ detail.tools.length }}个可用工具</span>
+          <span>{{ t('msg_available_tools', { count: detail.tools.length }) }}</span>
           <div class="extra-box">
-            <div class="update-time">{{ detail.up_time_text }}更新</div>
+            <div class="update-time">{{ t('msg_updated', { time: detail.up_time_text }) }}</div>
             <a class="refresh-btn" @click="refresh(true)">
-              <SyncOutlined :spin="refreshing"/> 刷新
+              <SyncOutlined :spin="refreshing"/> {{ t('btn_refresh') }}
             </a>
           </div>
         </div>
@@ -80,6 +80,9 @@ import {message, Modal} from 'ant-design-vue';
 import {authTMcpProvider, getTMcpProviderInfo} from "@/api/robot/thirdMcp";
 import {jsonDecode, timeNowGapFormat} from "@/utils/index.js";
 import {setShowReqError} from "@/utils/http/axios/config.js";
+import {useI18n} from "@/hooks/web/useI18n";
+
+const {t} = useI18n('views.robot.robot-list.components.third-mcp-detail');
 
 const emit = defineEmits(['del', 'edit', 'auth'])
 
@@ -106,11 +109,11 @@ function authConfig(type) {
         checking.value = false
         detail.value.has_auth = 1
         refresh()
-        message.success('已验证，授权完成')
+        message.success(t('msg_verify_success'))
       }, 2000)
     }).catch(err => {
       detail.value.has_auth = 0
-      message.warning('授权失败：'+err.message)
+      message.warning(t('msg_auth_failed', { error: err.message }))
       checking.value = false
     }).finally(() => {
       emit('auth', detail.value.has_auth)
@@ -121,8 +124,8 @@ function authConfig(type) {
   }
   if (type == 2) {
     Modal.confirm({
-      title: '提示',
-      content: '授权或者刷新应用列表都可能会影响已有工具的调用，确认继续操作吗？',
+      title: t('title_confirm'),
+      content: t('msg_reauth_confirm'),
       onOk: () => {
         auth()
       }
@@ -147,7 +150,7 @@ function refresh(needAuth=false) {
       info.tools = jsonDecode(info.tools, [])
       info.up_time_text = timeNowGapFormat(info.update_time)
       detail.value = info
-      needAuth && message.success('刷新完成')
+      needAuth && message.success(t('msg_refresh_complete'))
     }).finally(() => {
       refreshing.value = false
     })
@@ -155,8 +158,8 @@ function refresh(needAuth=false) {
   if (needAuth) {
     if (refreshing.value) return
     Modal.confirm({
-      title: '提示',
-      content: '刷新应用列表或者授权都可能会影响已有工具的调用，确认继续操作吗？',
+      title: t('title_confirm'),
+      content: t('msg_refresh_confirm'),
       onOk: () => {
         refreshing.value = true
         setShowReqError(false)
@@ -165,7 +168,7 @@ function refresh(needAuth=false) {
           func()
         }).catch(err => {
           detail.value.has_auth = 0
-          message.warning('验证授权失败：'+err.message)
+          message.warning(t('msg_verify_auth_failed', { error: err.message }))
           refreshing.value = false
         }).finally(() => {
           emit('auth', detail.value.has_auth)

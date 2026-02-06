@@ -1,10 +1,22 @@
 <template>
   <div class="comment-record-page">
     <div class="toolbar">
-      <a-select v-model:value="filters.check_result" allowClear placeholder="处理结果" style="width: 160px" @change="search">
+      <a-select
+        v-model:value="filters.check_result"
+        allowClear
+        :placeholder="t('filter_result_placeholder')"
+        style="width: 160px"
+        @change="search"
+      >
         <a-select-option v-for="(label, val) in typeMap" :key="val" :value="val">{{ label }}</a-select-option>
       </a-select>
-      <a-input-search v-model:value="filters.comment_text" allowClear placeholder="请输入评论关键词搜索" style="width: 300px" @search="search" />
+      <a-input-search
+        v-model:value="filters.comment_text"
+        allowClear
+        :placeholder="t('search_comment_placeholder')"
+        style="width: 300px"
+        @search="search"
+      />
     </div>
 
     <div class="table-box">
@@ -48,7 +60,7 @@
                 <span v-if="idx < (record.ai_comment_rule_text || []).length - 1">, </span>
               </template>
               <a-tooltip v-if="(record.ai_comment_rule_text || []).length > 3">
-                <template #title>{{ (record.ai_comment_rule_text || []).join('，') }}</template>
+                <template #title>{{ (record.ai_comment_rule_text || []).join(', ') }}</template>
                 <span style="cursor: pointer;">...+{{ (record.ai_comment_rule_text || []).length - 3 }}</span>
               </a-tooltip>
             </div>
@@ -65,6 +77,9 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { getCommentList } from '@/api/robot'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.explore.ai-comment-management.comment-processing-record')
 
 const filters = reactive({ check_result: undefined, comment_text: '' })
 const typeMap = reactive({})
@@ -73,13 +88,13 @@ const loading = ref(false)
 const pager = reactive({ page: 1, size: 10, total: 0 })
 
 const columns = [
-  { title: '评论内容', dataIndex: 'content_text', key: 'content_text', width: 220 },
-  { title: '处理结果', dataIndex: 'ai_comment_result_text', key: 'ai_comment_result_text', width: 130 },
-  { title: '回复内容', dataIndex: 'reply_comment_text', key: 'reply_comment_text', width: 220 },
-  { title: '群发/文章', dataIndex: 'draft_title', key: 'draft_title', width: 120 },
-  { title: '触发规则', dataIndex: 'rule_name', key: 'rule_name', width: 120 },
-  { title: '触发规则明细', dataIndex: 'ai_comment_rule_text', key: 'ai_comment_rule_text', width: 300 },
-  { title: '处理时间', dataIndex: 'ai_exec_time', key: 'ai_exec_time', width: 120 },
+  { title: t('column_content_text'), dataIndex: 'content_text', key: 'content_text', width: 220 },
+  { title: t('column_result'), dataIndex: 'ai_comment_result_text', key: 'ai_comment_result_text', width: 130 },
+  { title: t('column_reply_text'), dataIndex: 'reply_comment_text', key: 'reply_comment_text', width: 220 },
+  { title: t('column_draft_title'), dataIndex: 'draft_title', key: 'draft_title', width: 120 },
+  { title: t('column_rule_name'), dataIndex: 'rule_name', key: 'rule_name', width: 120 },
+  { title: t('column_rule_detail'), dataIndex: 'ai_comment_rule_text', key: 'ai_comment_rule_text', width: 300 },
+  { title: t('column_exec_time'), dataIndex: 'ai_exec_time', key: 'ai_exec_time', width: 120 },
 ]
 
 const loadList = () => {

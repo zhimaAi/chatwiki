@@ -150,7 +150,7 @@ func TokenLimitList(c *gin.Context) {
 	}
 	for _, robotInfo := range robotInfos {
 		robotInfo[`token_app_type`] = common.GetTokenAppType(robotInfo)
-		//今日使用token
+		// Tokens used today
 		for _, todayUse := range todayUseList {
 			if cast.ToInt(todayUse[`robot_id`]) == cast.ToInt(robotInfo[`robot_id`]) &&
 				todayUse[`token_app_type`] == robotInfo[`token_app_type`] {

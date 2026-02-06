@@ -1,13 +1,13 @@
-<template>
+﻿<template>
   <div>
-    <a-modal v-model:open="open" title="字段详情" :width="746">
+    <a-modal v-model:open="open" :title="t('title_field_details')" :width="746">
       <div class="input-box">
         <at-input
           inputStyle="height: 550px;"
           :options="props.options"
           :defaultSelectedList="props.defaultSelectedList"
           :defaultValue="props.defaultValue"
-          :placeholder="props.placeholder"
+          :placeholder="t(props.placeholder)"
           :type="props.type"
           ref="atInputRef"
           @open="showAtList"
@@ -15,7 +15,7 @@
         />
       </div>
       <template #footer>
-        <a-button type="primary" @click="handleOk">确定</a-button>
+        <a-button type="primary" @click="handleOk">{{ t('btn_confirm') }}</a-button>
       </template>
     </a-modal>
   </div>
@@ -23,7 +23,10 @@
 
 <script setup>
 import { ref, nextTick, watch } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import AtInput from '../at-input/at-input.vue'
+
+const { t } = useI18n('views.workflow.components.nodes.components.full-at-input')
 const open = ref(false)
 
 const emit = defineEmits(['open', 'change', 'ok'])
@@ -52,7 +55,7 @@ const props = defineProps({
   },
   placeholder: {
     type: String,
-    default: '请输入消息内容，键入“/”可以插入变量'
+    default: 'ph_message_content'
   },
   type: {
     type: String,
@@ -96,3 +99,4 @@ defineExpose({ show })
   }
 }
 </style>
+

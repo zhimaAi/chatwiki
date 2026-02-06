@@ -27,7 +27,7 @@ func (h *RobotSmartMenuCacheBuildHandler) GetCacheData() (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	//转换
+	// Convert
 	if len(data) > 0 {
 		//
 		var smartMenuContent = make([]lib_define.SmartMenuContent, 0)
@@ -48,33 +48,33 @@ func (h *RobotSmartMenuCacheBuildHandler) GetCacheData() (any, error) {
 	}
 }
 
-// GetSmartMenuInfo 获取智能菜单信息
+// GetSmartMenuInfo Get smart menu information
 func GetSmartMenuInfo(id int) (lib_define.SmartMenu, error) {
 	result := lib_define.SmartMenu{}
 	err := lib_redis.GetCacheWithBuild(define.Redis, &RobotSmartMenuCacheBuildHandler{ID: id}, &result, time.Hour)
 	return result, err
 }
 
-// FormatReplyListToDb 格式化修改回复列表
-// 注意这个格式化可能会修改 数组长度，所以需要调用后判断是否长度为0
+// FormatReplyListToDb Format reply list
+// Note that this formatting may modify the array length, so check if the length is 0 after calling
 func FormatReplyListToDb(replyList []ReplyContent, sendSource string) []ReplyContent {
 	if len(replyList) == 0 {
 		return replyList
 	}
 	newReplyList := make([]ReplyContent, 0)
 	for i := range replyList {
-		//标记来源
+		// Mark source
 		replyList[i].SendSource = sendSource
 		replyType := replyList[i].ReplyType
 		if replyType == `` && replyList[i].Type != `` {
 			replyType = replyList[i].Type
 		}
-		//智能菜单
+		// Smart menu
 		if replyType == ReplyTypeSmartMenu {
-			//获取智能菜单内容
+			// Get smart menu content
 			smartMenu, err := GetSmartMenuInfo(cast.ToInt(replyList[i].SmartMenuId))
 			if err == nil && smartMenu.ID > 0 {
-				//替换时间
+				// Replace date
 				smartMenu.MenuDescription = wechatCommon.ReplaceDate(smartMenu.MenuDescription)
 				replyList[i].SmartMenu = smartMenu
 			} else {
@@ -86,7 +86,7 @@ func FormatReplyListToDb(replyList []ReplyContent, sendSource string) []ReplyCon
 	return newReplyList
 }
 
-// SaveSmartMenu 保存智能菜单（创建或更新）
+// SaveSmartMenu Save smart menu (create or update)
 func SaveSmartMenu(id, adminUserID, robotID int, menuTitle, menuDescription string, menuContent []lib_define.SmartMenuContent) (int64, error) {
 	menuContentJson, _ := tool.JsonEncode(menuContent)
 
@@ -103,47 +103,47 @@ func SaveSmartMenu(id, adminUserID, robotID int, menuTitle, menuDescription stri
 	var newId int64
 
 	if id <= 0 {
-		// 创建新记录
+		// Create new record
 		data["create_time"] = tool.Time2Int()
 		newId, err = msql.Model(`func_chat_robot_smart_menu`, define.Postgres).Insert(data, "id")
 	} else {
-		// 更新现有记录
+		// Update existing record
 		_, err = msql.Model(`func_chat_robot_smart_menu`, define.Postgres).Where("id", cast.ToString(id)).Update(data)
 		newId = int64(id)
 	}
 
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &RobotSmartMenuCacheBuildHandler{ID: id})
 	}
 	return newId, err
 }
 
-// DeleteSmartMenu 删除智能菜单
+// DeleteSmartMenu Delete smart menu
 func DeleteSmartMenu(id, robotID int) error {
 	_, err := msql.Model(`func_chat_robot_smart_menu`, define.Postgres).Where("id", cast.ToString(id)).Where("robot_id", cast.ToString(robotID)).Delete()
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &RobotSmartMenuCacheBuildHandler{ID: id})
 	}
 	return err
 }
 
-// GetSmartMenu 获取单个智能菜单
+// GetSmartMenu Get single smart menu
 func GetSmartMenu(id int, robotID int) (msql.Params, error) {
 	return msql.Model(`func_chat_robot_smart_menu`, define.Postgres).Where("id", cast.ToString(id)).Where("robot_id", cast.ToString(robotID)).Find()
 }
 
-// GetSmartMenuListWithFilter 获取智能菜单列表（带过滤条件和分页）
+// GetSmartMenuListWithFilter Get smart menu list (with filters and pagination)
 func GetSmartMenuListWithFilter(robotID int, menuTitle string, page, size int) ([]msql.Params, int, error) {
 	model := msql.Model(`func_chat_robot_smart_menu`, define.Postgres).Where("robot_id", cast.ToString(robotID))
 
-	// 根据菜单标题模糊查询
+	// Fuzzy query by menu title
 	if menuTitle != "" {
 		model.Where("menu_title LIKE ?", "%"+menuTitle+"%")
 	}
 
-	// 添加分页
+	// Add pagination
 	list, total, err := model.Order("id DESC").Paginate(page, size)
 	return list, total, err
 }

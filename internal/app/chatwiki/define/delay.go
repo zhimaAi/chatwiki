@@ -9,8 +9,8 @@ import (
 var DelayTicker = time.NewTicker(time.Second)
 
 const (
-	OfficialAccountBatchSendDelayTask       = 1 //公众号消息群发延时任务
-	OfficialAccountBatchSendSyncCommentTask = 2 //公众号消息评论同步延时任务
+	OfficialAccountBatchSendDelayTask       = 1 // official account message mass sending delay task
+	OfficialAccountBatchSendSyncCommentTask = 2 // official account message comment synchronization delay task
 )
 
 type BaseDelayTask struct {

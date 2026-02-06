@@ -9,7 +9,7 @@
       }
     }
     .field-item-label {
-      width: 60px;
+      width: 90px;
       line-height: 22px;
       margin-right: 8px;
       font-size: 14px;
@@ -19,16 +19,13 @@
     }
     .field-item-content {
       flex: 1;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
       overflow: hidden;
     }
     .field-list-item {
       display: flex;
       align-items: center;
       gap: 4px;
-      width: 200px;
+      width: 100%;
       line-height: 16px;
       padding: 3px 4px;
       border-radius: 4px;
@@ -37,6 +34,10 @@
       color: #595959;
       background: #fff;
       overflow: hidden;
+      margin-bottom: 4px;
+      &:last-child {
+        margin-bottom: 0;
+      }
       .right-arrow {
         width: 24px;
         height: 100%;
@@ -49,19 +50,26 @@
       }
 
       .field-text{
-        max-width: 100px;
+        max-width: 120px;
         font-size: 12px;
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
       }
       .field-text2{
-        max-width: 100px;
+        max-width: 120px;
         font-size: 12px;
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
       }
+    }
+    .body_raw{
+      width: 100%;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .field-value {
       display: flex;
@@ -108,16 +116,16 @@
     <div class="ai-dialogue-node">
       <div class="field-list">
         <div class="field-item">
-          <div class="field-item-label">请求地址</div>
+          <div class="field-item-label">{{ t('label_request_url') }}</div>
           <div class="field-item-content">
             <div class="field-value">
               <span class="field-key"> {{ formState.method }}</span>
-              <span class="field-type">{{ formState.rawurl }}</span>
+              <span class="field-type" v-if="formState.rawurl">{{ formState.rawurl }}</span>
             </div>
           </div>
         </div>
         <div class="field-item">
-          <div class="field-item-label">HEADERS</div>
+          <div class="field-item-label">{{ t('label_headers') }}</div>
           <div class="field-item-content">
             <div class="field-list-item" v-for="item in formState.headers" :key="item.cu_key">
               <div class="field-text">{{ item.key }}</div>
@@ -130,7 +138,7 @@
         </div>
 
         <div class="field-item">
-          <div class="field-item-label">PARAMS</div>
+          <div class="field-item-label">{{ t('label_params') }}</div>
           <div class="field-item-content">
             <div class="field-list-item" v-for="item in formState.params" :key="item.cu_key">
               <div class="field-text">{{ item.key }}</div>
@@ -143,7 +151,7 @@
         </div>
 
         <div class="field-item" v-if="formState.type == 1">
-          <div class="field-item-label">BODY</div>
+          <div class="field-item-label">{{ t('label_body') }}</div>
           <div class="field-item-content">
             <div class="field-list-item" v-for="item in formState.body" :key="item.cu_key">
               <div class="field-text">{{ item.key }}</div>
@@ -155,16 +163,16 @@
           </div>
         </div>
         <div class="field-item" v-if="formState.type == 2">
-          <div class="field-item-label">BODY</div>
+          <div class="field-item-label">{{ t('label_body') }}</div>
           <div class="field-item-content">
-            <div class="field-list-item">
+            <div class="field-list-item body_raw">
               {{ formState.body_raw }}
             </div>
           </div>
         </div>
 
         <div class="field-item">
-          <div class="field-item-label">输出字段</div>
+          <div class="field-item-label">{{ t('label_output_fields') }}</div>
           <div class="field-item-content">
             <div class="field-value" v-for="item in formState.output" :key="item.cu_key">
               <span class="field-key"> {{ item.key }}</span>
@@ -183,6 +191,9 @@ import NodeCommon from '../base-node.vue'
 import { ArrowRightOutlined } from '@ant-design/icons-vue'
 import { haveOutKeyNode } from '@/views/workflow/components/util.js'
 import AtText from '../../at-input/at-text.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.http-node.index')
 
 const props = defineProps({
   properties: {

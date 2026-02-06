@@ -56,7 +56,7 @@
     <!--独立插件-->
     <div v-else class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>输入</div>
+        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>{{ t('label_input') }}</div>
       </div>
       <div v-for="(item, key) in formState"
            :key="key"
@@ -75,7 +75,7 @@
             ref="atInputRef"
             @open="getValueVariableList"
             @change="(text, selectedList) => changeValue(item, text, selectedList)"
-            placeholder="请输入内容，键入“/”可以插入变量"
+            :placeholder="t('ph_input_content')"
           >
             <template #option="{ label, payload }">
               <div class="field-list-item">
@@ -109,6 +109,9 @@ import OfficialDraftBox from "./components/official-draft/official-draft-box.vue
 import DynamicApiBox from "./components/dynamic-api/dynamic-api-box.vue";
 import HttpToolBox from "./components/http-tool/http-tool-box.vue";
 import OfficialArticleBox from "./components/official-account/official-article-box.vue";
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.zm-plugins-node-form')
 
 const getNode = inject('getNode')
 const setData = inject('setData')

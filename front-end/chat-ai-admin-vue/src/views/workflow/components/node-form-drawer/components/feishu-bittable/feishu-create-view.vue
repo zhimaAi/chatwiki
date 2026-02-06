@@ -2,7 +2,7 @@
   <div>
     <div class="options-item is-required">
       <div class="options-item-tit">
-        <div class="option-label">视图名称</div>
+        <div class="option-label">{{ t('label_view_name') }}</div>
         <div class="option-type">string</div>
       </div>
       <div class="min-input">
@@ -15,7 +15,7 @@
           ref="atInputRef"
           @open="emit('updateVar')"
           @change="(val, tags) => changeValue('view_name', val, tags)"
-          placeholder="请输入内容，键入“/”可以插入变量"
+          :placeholder="t('ph_input_content')"
         >
           <template #option="{ label, payload }">
             <div class="field-list-item">
@@ -25,22 +25,22 @@
           </template>
         </AtInput>
       </div>
-      <div class="desc">视图名称。名称不能包含特殊字符；不可以包含 [ ] 等特殊字符；1 字符 ～ 100 字符</div>
+      <div class="desc">{{ t('desc_view_name') }}</div>
     </div>
     <div class="options-item">
       <div class="options-item-tit">
-        <div class="option-label">视图类型</div>
+        <div class="option-label">{{ t('label_view_type') }}</div>
         <div class="option-type">string</div>
       </div>
       <div class="min-input">
         <a-select
           v-model:value="state.view_type"
           :options="VIEW_SELECT_OPTIONS"
-          placeholder="选择视图"
+          :placeholder="t('ph_select_view')"
           style="width: 100%;"
         />
       </div>
-      <div class="desc">视图类型，默认为表格视图。</div>
+      <div class="desc">{{ t('desc_view_type') }}</div>
     </div>
   </div>
 </template>
@@ -48,6 +48,9 @@
 <script setup>
 import {reactive} from 'vue'
 import AtInput from "@/views/workflow/components/at-input/at-input.vue";
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.feishu-bittable.feishu-create-view')
 
 const props = defineProps({
   variableOptions: {
@@ -62,11 +65,11 @@ const state = reactive({
 })
 
 const VIEW_SELECT_OPTIONS = [
-  { label: '表格视图', value: 'grid' },
-  { label: '看板视图', value: 'kanban' },
-  { label: '画册视图', value: 'gallery' },
-  { label: '甘特视图', value: 'gantt' },
-  { label: '表单视图', value: 'form' }
+  { label: t('opt_grid_view'), value: 'grid' },
+  { label: t('opt_kanban_view'), value: 'kanban' },
+  { label: t('opt_gallery_view'), value: 'gallery' },
+  { label: t('opt_gantt_view'), value: 'gantt' },
+  { label: t('opt_form_view'), value: 'form' }
 ]
 
 function init(nodeParams=null) {

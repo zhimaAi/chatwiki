@@ -5,7 +5,7 @@ package common
 import "regexp"
 
 func TakeUrls(str *string) []string {
-	// 标准HTTP/HTTPS链接
+	// Standard HTTP/HTTPS links
 	regex := regexp.MustCompile(`https?://(?:[-\w]+\.)+[-\w]+(?:/[-\w\./\?%&=]*)?`)
 	return regex.FindAllString(*str, -1)
 }

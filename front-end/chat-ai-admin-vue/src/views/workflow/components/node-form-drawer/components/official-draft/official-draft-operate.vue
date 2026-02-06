@@ -11,12 +11,12 @@
     <template #app_id="{ state, item, keyName}">
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">公众号</div>
+          <div class="option-label">{{ t('label_official_account') }}</div>
         </div>
         <div>
           <a-select
             v-model:value="item.value"
-            placeholder="请选择公众号"
+            :placeholder="t('ph_select_official_account')"
             style="width: 100%;"
             @change="(value, option) => appChange(state, option)"
           >
@@ -33,19 +33,19 @@
         </div>
         <div v-if="['publish_draft', 'preview_message'].includes(actionName)" class="desc">
           <ExclamationCircleFilled/>
-          暂不支持未认证公众号、服务号
+          {{ t('msg_unsupported_account') }}
         </div>
       </div>
     </template>
     <template v-if="actionName === 'preview_message'" #type="{state, item}">
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">接受消息用户类型</div>
+          <div class="option-label">{{ t('label_message_user_type') }}</div>
         </div>
         <div>
           <a-radio-group v-model:value="item.value">
-            <a-radio value="touser">公众号用户openid</a-radio>
-            <a-radio value="towxname">用户微信号（每日最高100次）</a-radio>
+            <a-radio value="touser">{{ t('opt_official_user_openid') }}</a-radio>
+            <a-radio value="towxname">{{ t('opt_wechat_id') }}</a-radio>
           </a-radio-group>
         </div>
       </div>
@@ -59,7 +59,9 @@ import {ExclamationCircleFilled} from '@ant-design/icons-vue';
 import PluginFormRender from "@/views/workflow/components/node-form-drawer/components/pluginFormRender.vue";
 import {getWechatAppList} from "@/api/robot/index.js";
 import {jsonDecode, sortObjectKeys} from "@/utils/index.js";
+import {useI18n} from "@/hooks/web/useI18n";
 
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.official-draft.official-draft-operate')
 const emit = defineEmits(['updateVar'])
 const props = defineProps({
   node: {
@@ -92,7 +94,7 @@ function getParams() {
       default: null,
     },
     app_name: {
-      desc: '公众号名称',
+      desc: 'label_official_account_name',
       type: 'string',
     },
   }

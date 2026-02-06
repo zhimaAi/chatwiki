@@ -1,0 +1,13 @@
+{
+  "label_view_name": "View Name",
+  "ph_input_content": "Please enter content, type \"/\" to insert variable",
+  "desc_view_name": "View name. Cannot contain special characters; cannot contain [ ] characters; 1 character ~ 100 characters",
+  "label_view_type": "View Type",
+  "ph_select_view": "Select View",
+  "desc_view_type": "View type, defaults to grid view.",
+  "opt_grid_view": "Grid View",
+  "opt_kanban_view": "Kanban View",
+  "opt_gallery_view": "Gallery View",
+  "opt_gantt_view": "Gantt View",
+  "opt_form_view": "Form View"
+}

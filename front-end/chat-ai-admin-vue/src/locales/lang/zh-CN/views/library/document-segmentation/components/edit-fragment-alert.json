@@ -1,0 +1,18 @@
+{
+  "title": "编辑分段",
+  "label_title": "分段标题：",
+  "ph_title": "请输入分段标题",
+  "label_question": "分段问题：",
+  "ph_question": "请输入分段问题",
+  "label_similar": "相似问法（一行一个，最多可添加100个相似问法）",
+  "ph_similar": "请输入相似问法",
+  "label_answer": "分段答案：",
+  "ph_answer": "请输入分段答案",
+  "label_content": "分段内容：",
+  "ph_content": "请输入分段内容",
+  "label_attachment": "附件",
+  "tab_images": "图片",
+  "validation_content": "请输入分段内容",
+  "validation_question": "请输入分段问题",
+  "validation_answer": "请输入分段答案"
+}

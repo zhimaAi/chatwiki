@@ -52,7 +52,7 @@
 <template>
   <div class="trigger-list-box">
     <div class="search-box" @click.stop="">
-      <a-input-search v-model:value.trim="keyword" allowClear placeholder="请输入名称查询" />
+      <a-input-search v-model:value.trim="keyword" allowClear :placeholder="t('ph_search_by_name')" />
     </div>
     <template v-if="triggerList.length">
       <div class="trigger-list">
@@ -83,15 +83,15 @@
           </div>
         </div>
       </div>
-      <!-- <a class="more-link" href="/#/plugins/index?active=2" target="_blank">更多插件
+      <!-- <a class="more-link" href="/#/plugins/index?active=2" target="_blank">{{ t('btn_more_plugins') }}
         <RightOutlined />
       </a> -->
     </template>
     <div v-else class="empty-box">
       <img style="height: 200px" src="@/assets/empty.png" />
-      <div>暂无可用插件</div>
+      <div>{{ t('msg_no_plugins') }}</div>
       <a href="/#/plugins/index?active=2" target="_blank"
-        >去添加
+        >{{ t('btn_add_now') }}
         <RightOutlined />
       </a>
     </div>
@@ -103,6 +103,9 @@ import { createTriggerNode } from '../node-list'
 import { ref, computed } from 'vue'
 import { useWorkflowStore } from '@/stores/modules/workflow'
 import { RightOutlined, DownOutlined } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-list-popup.index')
 
 const emit = defineEmits(['add'])
 
@@ -131,7 +134,7 @@ const handleAddNode = (item) => {
 const handleSubClick = (item, sub) => {
   if (item.trigger_type == 4) {
     item.trigger_official_config.msg_type = sub.value
-    console.log(triggerOfficialList.value, sub)
+
     item.outputs = triggerOfficialList.value.find((item) => item.msg_type == sub.value).fields
   }
   let node = createTriggerNode(item)

@@ -22,7 +22,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// FeishuUserAuthLoginRedirect 跳转到飞书授权地址
+// FeishuUserAuthLoginRedirect redirects to the Feishu authorization URL
 func FeishuUserAuthLoginRedirect(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
@@ -57,7 +57,7 @@ func FeishuUserAuthLoginRedirect(c *gin.Context) {
 	c.Redirect(http.StatusFound, callbackUrl)
 }
 
-// FeishuUserAuthLoginCallback 飞书授权回调
+// FeishuUserAuthLoginCallback handles the Feishu authorization callback
 func FeishuUserAuthLoginCallback(c *gin.Context) {
 	stateStr := strings.TrimSpace(c.Query("state"))
 	code := strings.TrimSpace(c.Query(`code`))
@@ -107,7 +107,7 @@ func FeishuUserAuthLoginCallback(c *gin.Context) {
 	c.Redirect(http.StatusFound, tool.Base64DecodeNoError(state.FrontRedirectUrl)+"&"+params.Encode())
 }
 
-// GetFeishuDocFileList 获取飞书知识库文档列表
+// GetFeishuDocFileList gets the Feishu Knowledge Base document list
 func GetFeishuDocFileList(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {

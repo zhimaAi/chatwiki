@@ -13,14 +13,14 @@
               ">
             <div class="group-head-box">
               <div class="head-title">
-                <a-tooltip title="收起分组">
+                <a-tooltip :title="t('tooltip_collapse_group')">
                   <div class="hover-btn-wrap" @click="handleChangeHideStatus">
                     <svg-icon name="put-away"></svg-icon>
                   </div>
                 </a-tooltip>
                 <div class="flex-between-box">
-                  <div>草稿箱分组</div>
-                  <a-tooltip title="新建分组">
+                  <div>{{ t('draft_group_title') }}</div>
+                  <a-tooltip :title="t('tooltip_new_group')">
                     <div class="hover-btn-wrap" @click="openGroupModal({})">
                       <PlusOutlined />
                     </div>
@@ -28,7 +28,12 @@
                 </div>
               </div>
               <div class="search-box">
-                <a-input v-model:value="groupSearchKey" allowClear placeholder="搜索分组" style="width: 100%">
+                <a-input
+                  v-model:value="groupSearchKey"
+                  allowClear
+                  :placeholder="t('search_group_placeholder')"
+                  style="width: 100%"
+                >
                   <template #suffix>
                     <SearchOutlined @click.stop="" />
                   </template>
@@ -77,8 +82,8 @@
                           <div class="group-head-box">
                             <div class="head-title">
                               <div class="flex-between-box">
-                                <div>草稿箱分组</div>
-                                <a-tooltip title="新建分组">
+                                <div>{{ t('draft_group_title') }}</div>
+                                <a-tooltip :title="t('tooltip_new_group')">
                                   <div class="hover-btn-wrap" @click="openGroupModal({})">
                                     <PlusOutlined />
                                   </div>
@@ -86,7 +91,12 @@
                               </div>
                             </div>
                             <div class="search-box">
-                              <a-input allowClear v-model:value="groupSearchKey" placeholder="搜索分组" style="width: 100%">
+                              <a-input
+                                allowClear
+                                v-model:value="groupSearchKey"
+                                :placeholder="t('search_group_placeholder')"
+                                style="width: 100%"
+                              >
                                 <template #suffix>
                                   <SearchOutlined @click.stop="" />
                                 </template>
@@ -126,13 +136,13 @@
                     </a-popover>
                   </div>
                   <a-button type="primary" @click="openSyncModal" :loading="syncLoading">
-                    <SyncOutlined v-if="!syncLoading" />同步草稿
+                    <SyncOutlined v-if="!syncLoading" />{{ t('btn_sync_draft') }}
                   </a-button>
-                  <a-button :disabled="selectedCount === 0" @click="handleBatchGroup">批量分组</a-button>
+                  <a-button :disabled="selectedCount === 0" @click="handleBatchGroup">{{ t('btn_batch_group') }}</a-button>
                 </div>
                 <div class="header-row">
                   <a-checkbox v-model:checked="allChecked" />
-                  <span class="header-text">内容</span>
+                  <span class="header-text">{{ t('header_content') }}</span>
                 </div>
               </div>
 
@@ -141,7 +151,7 @@
                 <template v-else>
                   <div v-if="draftLists.length === 0" class="empty-box">
                     <img src="@/assets/empty.png" />
-                    <div class="title">暂无草稿</div>
+                    <div class="title">{{ t('empty_no_draft') }}</div>
                   </div>
                   <div v-else class="draft-list">
                     <div class="draft-item" v-for="item in draftLists" :key="item.id">
@@ -150,7 +160,7 @@
                       <img v-else class="thumb" src="@/assets/img/default-cover.png" />
                       <div class="info">
                         <div class="title">{{ item.title }}</div>
-                        <div class="meta">所属分组：{{ getGroupName(item.group_id) }}</div>
+                        <div class="meta">{{ t('draft_group_label') }}{{ getGroupName(item.group_id) }}</div>
                         <div class="digest">{{ item.digest }}</div>
                       </div>
                       <div class="extra">
@@ -169,15 +179,19 @@
           </div>
         </div>
 
-        <a-modal v-model:open="groupModalOpen" title="添加分组" @ok="handleSaveGroup">
-          <div style="margin: 32px 0 4px;">分组名称：</div>
-          <a-input v-model:value="groupModalState.group_name" placeholder="请输入分组名称" style="margin-bottom: 20px;" />
+        <a-modal v-model:open="groupModalOpen" :title="t('modal_add_group_title')" @ok="handleSaveGroup">
+          <div style="margin: 32px 0 4px;">{{ t('modal_group_name_label') }}</div>
+          <a-input
+            v-model:value="groupModalState.group_name"
+            :placeholder="t('modal_group_name_placeholder')"
+            style="margin-bottom: 20px;"
+          />
         </a-modal>
 
-        <a-modal v-model:open="moveOpen" title="批量移动分组" @ok="handleMove">
+        <a-modal v-model:open="moveOpen" :title="t('modal_batch_move_group_title')" @ok="handleMove">
           <a-flex align="center" style="margin: 24px 0">
-            <div>移动到分组：</div>
-            <a-select v-model:value="moveState.group_id" style="flex: 1" placeholder="请选择分组">
+            <div>{{ t('modal_move_to_group_label') }}</div>
+            <a-select v-model:value="moveState.group_id" style="flex: 1" :placeholder="t('modal_select_group_placeholder')">
               <a-select-option v-for="item in groupLists.filter((g) => g.id > 0)" :key="item.id" :value="item.id">{{
                 item.group_name }}</a-select-option>
             </a-select>
@@ -188,12 +202,12 @@
           :get-group-name="getGroupName" @created="onCreatedSend" />
 
 
-        <a-modal v-model:open="syncModalOpen" title="同步草稿箱" :width="478" @ok="onConfirmSyncDraft">
+        <a-modal v-model:open="syncModalOpen" :title="t('modal_sync_draft_title')" :width="478" @ok="onConfirmSyncDraft">
           <div class="sync-modal">
             <div class="sync-desc-box">
-              由于微信限制了草稿箱每日同步接口次数，为防止同步草箱时出现接口超限的情况，您可以根据个人业务选择草稿箱的同步条数
+              {{ t('sync_desc') }}
             </div>
-            <div class="sync-select-title">选择同步条数</div>
+            <div class="sync-select-title">{{ t('sync_select_title') }}</div>
             <div class="sync-select-box">
               <a-slider :min="0" :max="3" :step="null" v-model:value="syncLimitIndex" :marks="syncMarks"
                 :tooltipOpen="false" />
@@ -218,8 +232,9 @@ import {
 import CreateSendModal from './components/create-send-modal.vue'
 import { PlusOutlined, EllipsisOutlined, SearchOutlined, ExclamationCircleOutlined, SyncOutlined } from '@ant-design/icons-vue'
 import { addNoReferrerMeta, removeNoReferrerMeta } from '@/utils/index.js'
+import { useI18n } from '@/hooks/web/useI18n'
 
-
+const { t } = useI18n('views.explore.article-group-send.draft-box')
 const props = defineProps({
   appId: { type: String, default: '' },
   accessKey: { type: String, default: '' }
@@ -273,24 +288,24 @@ const openGroupModal = (data = {}) => {
 const groupModalOpen = ref(false)
 const groupModalState = reactive({ id: 0, group_name: '' })
 const handleSaveGroup = async () => {
-  if (!groupModalState.group_name) return message.error('请输入分组名称')
+  if (!groupModalState.group_name) return message.error(t('error_enter_group_name'))
   await saveOfficialDraftGroup({ id: groupModalState.id, group_name: groupModalState.group_name })
   groupModalOpen.value = false
-  message.success('操作成功')
+  message.success(t('message_operation_success'))
   await loadGroupLists()
 }
 
 const handleDelGroup = (item) => {
   Modal.confirm({
-    title: `确认删除分组：${item.group_name}`,
+    title: t('modal_delete_group_title', { name: item.group_name }),
     icon: createVNode(ExclamationCircleOutlined),
     content: '',
-    okText: '确认',
-    cancelText: '取消',
+    okText: t('btn_confirm'),
+    cancelText: t('btn_cancel'),
     onOk: async () => {
       await deleteOfficialDraftGroup({ id: item.id })
       await loadGroupLists()
-      message.success('操作成功')
+      message.success(t('message_operation_success'))
       if (groupId.value == item.id) {
         groupId.value = -1
         await loadDrafts()
@@ -362,7 +377,7 @@ const onShowSizeChange = (current, pageSize) => {
 
 const handleOpenMoveModal = () => {
   const ids = getSelectedIds()
-  if (ids.length === 0) return message.error('请选择你要移动的草稿')
+  if (ids.length === 0) return message.error(t('error_select_draft_to_move'))
   moveState.ids = ids.join(',')
   moveState.group_id = void 0
   moveOpen.value = true
@@ -378,10 +393,10 @@ const handleGroupSend = (item) => { createSendModalRef.value && createSendModalR
 const moveOpen = ref(false)
 const moveState = reactive({ group_id: void 0, ids: '' })
 const handleMove = async () => {
-  if (!moveState.group_id) return message.error('请选择分组')
+  if (!moveState.group_id) return message.error(t('error_select_group'))
   await moveOfficialDraftGroup({ draft_id: moveState.ids, group_id: moveState.group_id, app_id: props.appId })
   moveOpen.value = false
-  message.success('移动成功')
+  message.success(t('message_move_success'))
   await loadDrafts()
   await loadGroupTotals()
 }
@@ -389,7 +404,7 @@ const handleMove = async () => {
 // 折叠与宽度拖拽
 const GROUP_BOX_WIDTH_KEY = 'official_draft_group_box_width'
 const HIDE_KEY = 'official_draft_group_hide_key'
-const minGroupBoxWidth = 180
+const minGroupBoxWidth = 200
 const maxGroupBoxWidth = 256
 const groupBoxWidth = ref(minGroupBoxWidth)
 const isHiddenGroup = ref(localStorage.getItem(HIDE_KEY) == 1)
@@ -466,20 +481,20 @@ const syncGroupHeight = () => {
 const getGroupName = (gid) => {
   const item = groupLists.value.find((g) => g.id == gid)
   if (item) return item.group_name
-  if (gid == 0) return '未分组'
+  if (gid == 0) return t('group_unassigned')
   return ''
 }
 
-const onCreatedSend = () => { message.success('创建群发任务成功') }
+const onCreatedSend = () => { message.success(t('message_create_send_success')) }
 
 
 const syncModalOpen = ref(false)
 const syncLimitIndex = ref(0)
 const syncMarks = {
-  0: '前100条',
-  1: '前200条',
-  2: '前1000条',
-  3: '全部'
+  0: t('sync_mark_100'),
+  1: t('sync_mark_200'),
+  2: t('sync_mark_1000'),
+  3: t('sync_mark_all')
 }
 const syncOptions = [100, 200, 1000, 0]
 const openSyncModal = () => {
@@ -490,7 +505,7 @@ const onConfirmSyncDraft = async () => {
   syncLoading.value = true
   await syncOfficialDraftList({ access_key: props.accessKey, limit })
   syncLoading.value = false
-  message.success('已提交同步任务，稍后刷新查看')
+  message.success(t('message_sync_submitted'))
   syncModalOpen.value = false
   setTimeout(() => { loadDrafts(); loadGroupTotals() }, 800)
   setTimeout(() => { syncGroupHeight() }, 1000)
@@ -529,7 +544,7 @@ const onConfirmSyncDraft = async () => {
 
   .group-content-box {
     position: relative;
-    width: 180px;
+    width: 200px;
     border-right: 1px solid #F0F0F0;
     padding-top: 24px;
     height: 100%;

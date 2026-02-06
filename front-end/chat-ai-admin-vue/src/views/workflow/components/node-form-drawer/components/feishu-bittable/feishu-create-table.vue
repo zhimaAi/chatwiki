@@ -2,7 +2,7 @@
   <div>
     <div class="options-item is-required">
       <div class="options-item-tit">
-        <div class="option-label">数据表名称</div>
+        <div class="option-label">{{ t('label_table_name') }}</div>
         <div class="option-type">string</div>
       </div>
       <div class="min-input">
@@ -15,7 +15,7 @@
           ref="atInputRef"
           @open="emit('updateVar')"
           @change="(val, tags) => changeValue('name', val, tags)"
-          placeholder="请输入内容，键入“/”可以插入变量"
+          :placeholder="t('ph_input_content')"
         >
           <template #option="{ label, payload }">
             <div class="field-list-item">
@@ -25,13 +25,11 @@
           </template>
         </AtInput>
       </div>
-      <div class="desc">数据表名称；名称中的首尾空格将会被默认去除，不可以包含 / \\ ? * : [ ] 等特殊字符"；1 字符 ～ 100
-        字符
-      </div>
+      <div class="desc">{{ t('desc_table_name') }}</div>
     </div>
     <div class="options-item">
       <div class="options-item-tit">
-        <div class="option-label">表格视图的名称</div>
+        <div class="option-label">{{ t('label_view_name') }}</div>
         <div class="option-type">string</div>
       </div>
       <div class="min-input">
@@ -44,7 +42,7 @@
           ref="atInputRef"
           @open="emit('updateVar')"
           @change="(val, tags) => changeValue('default_view_name', val, tags)"
-          placeholder="请输入内容，键入“/”可以插入变量"
+          :placeholder="t('ph_input_content')"
         >
           <template #option="{ label, payload }">
             <div class="field-list-item">
@@ -54,12 +52,12 @@
           </template>
         </AtInput>
       </div>
-      <div class="desc">表格视图的名称；名称中的首尾空格将会被默认去除，名称中不允许包含 [ ] 两个字符</div>
+      <div class="desc">{{ t('desc_view_name') }}</div>
     </div>
     <div class="options-item">
       <div class="options-item-tit flex-between">
         <div class="flex-between">
-          <div class="option-label">数据表的初始字段</div>
+          <div class="option-label">{{ t('label_initial_fields') }}</div>
           <div class="option-type">jsonString</div>
         </div>
         <div class="btn-hover-wrap" @click="handleOpenFullAtModal">
@@ -76,7 +74,7 @@
           ref="atInputRef"
           @open="emit('updateVar')"
           @change="(val, tags) => changeValue('fields', val, tags)"
-          placeholder="请输入内容，键入“/”可以插入变量"
+          :placeholder="t('ph_input_content')"
         >
           <template #option="{ label, payload }">
             <div class="field-list-item">
@@ -86,16 +84,14 @@
           </template>
         </AtInput>
       </div>
-      <div class="desc">如果传入了 表格视图的名称，则必须传入
-        数据表的初始字段。示例：[{"field_name":"索引字段","type":1},{"field_name":"单选","type":3,"ui_type":"SingleSelect","property":{"options":[{"name":"Enabled"},{"name":"Disabled"}]}}]
-      </div>
+      <div class="desc">{{ t('desc_initial_fields') }}</div>
     </div>
 
     <FullAtInput
       :options="variableOptions"
       :defaultSelectedList="state?.tag_map?.fields || []"
       :defaultValue="state.fields"
-      placeholder="请输入内容，键入“/”可以插入变量"
+      :placeholder="t('ph_input_content')"
       type="textarea"
       @open="emit('updateVar')"
       @change="(val, tags) => changeValue('fields', val, tags)"
@@ -110,6 +106,9 @@ import {ref, reactive} from 'vue'
 import AtInput from "@/views/workflow/components/at-input/at-input.vue";
 import FullAtInput from "@/views/workflow/components/at-input/full-at-input.vue";
 import {FullscreenOutlined} from '@ant-design/icons-vue';
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.feishu-bittable.feishu-create-table')
 
 const props = defineProps({
   variableOptions: {

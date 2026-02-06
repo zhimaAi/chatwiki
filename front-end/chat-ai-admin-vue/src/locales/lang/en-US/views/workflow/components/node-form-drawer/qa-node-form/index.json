@@ -1,0 +1,16 @@
+{
+  "desc": "Ask users questions mid-workflow. Supports preset options and open-ended questions.",
+  "title_question_content": "Question Content",
+  "ph_input_message": "Enter message, type \"/\" to insert variable",
+  "ph_input_message_with_slash": "Enter message, type '/' to insert variable",
+  "label_answer_type": "Answer Type",
+  "opt_direct_answer": "Direct Answer",
+  "opt_smart_menu": "Smart Menu",
+  "btn_add_menu": "Add Menu",
+  "title_output": "Output",
+  "default_other_case": "Other cases when smart menu is not clicked (invisible to user)",
+  "msg_min_menu_required": "At least 1 menu item required",
+  "tip_question_multiple": "\"question_multiple\" is an object array containing user text and image messages. Example:",
+  "sample_text_content": "What is this",
+  "sample_image_url": "Image URL here"
+}

@@ -2,7 +2,7 @@
 
 <template>
   <SwitchBox
-    title="显示引文"
+    :title="t('title_show_citations')"
     icon-name="jibenpeizhi"
     v-model:value="value"
     @change="onSave"
@@ -11,13 +11,16 @@
       <span></span>
     </template>
 
-    <div>开启后，机器人回答时，在回答后面显示引用的知识库文档</div>
+    <div>{{ t('desc_show_citations') }}</div>
   </SwitchBox>
 </template>
 
 <script setup>
 import { ref, watch, inject } from 'vue'
 import SwitchBox from './switch-box.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.display-aitations')
 
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
 

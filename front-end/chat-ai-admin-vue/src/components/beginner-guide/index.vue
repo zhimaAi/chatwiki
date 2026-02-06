@@ -52,7 +52,7 @@
             </div>
           </div>
           <div class="to-config-btn" v-if="current_item.show_config_btn">
-            <a-button @click="handleToConfig()" type="primary" ghost>立即前往配置</a-button>
+            <a-button @click="handleToConfig()" type="primary" ghost>{{ t('btn_go_to_config') }}</a-button>
           </div>
           <div class="tag-list" v-if="current_item.tags">
             <div class="tag-item" v-for="(item, index) in current_item.tags" :key="index">
@@ -69,13 +69,13 @@
             style="margin-top: 32px"
           >
             <a-button @click="handleTest" type="primary" style="background-color: #21a665">
-              <CaretRightFilled />开始测试
+              <CaretRightFilled />{{ t('btn_start_test') }}
             </a-button>
-            <a-button @click="handlePre">上一步</a-button>
+            <a-button @click="handlePre">{{ t('btn_pre') }}</a-button>
           </div>
           <div v-else class="btn-block-wrapper">
-            <a-button @click="handlePre" v-if="current_item.index > 0">上一步</a-button>
-            <a-button @click="handleNext" type="primary">下一步</a-button>
+            <a-button @click="handlePre" v-if="current_item.index > 0">{{ t('btn_pre') }}</a-button>
+            <a-button @click="handleNext" type="primary">{{ t('btn_next') }}</a-button>
           </div>
           <div class="guide-preview-box" v-if="current_item.preview_imgs">
             <a-image
@@ -90,13 +90,13 @@
           <div class="chat-test-box" v-if="current_process == 'test_robot'">
             <a-form :model="formState" ref="formRef" autocomplete="off" layout="vertical">
               <a-form-item
-                label="机器人"
+                :label="t('label_robot')"
                 name="robot_key"
-                :rules="[{ required: true, message: '请选择机器人' }]"
+                :rules="[{ required: true, message: t('msg_select_robot') }]"
               >
                 <a-select
                   v-model:value="formState.robot_key"
-                  placeholder="请选择机器人"
+                  :placeholder="t('ph_select_robot')"
                   style="width: 364px"
                 >
                   <a-select-option v-for="item in robotLists" :value="item.robot_key">{{
@@ -105,23 +105,23 @@
                 </a-select>
               </a-form-item>
               <a-form-item
-                label="测试问题"
+                :label="t('label_test_question')"
                 name="robot_key"
-                :rules="[{ required: true, message: '请输入问题' }]"
+                :rules="[{ required: true, message: t('msg_input_question') }]"
               >
                 <a-input
                   style="width: 364px"
                   v-model:value="formState.question"
-                  placeholder="请输入问题"
+                  :placeholder="t('ph_input_question')"
                 />
               </a-form-item>
             </a-form>
 
             <div class="test-result" v-if="hasTest">
               <div class="test-result-title">
-                测试结果
-                <div class="result-tag success" v-if="resultContent"><CheckCircleFilled />通过</div>
-                <div class="result-tag error" v-else><CloseCircleFilled />错误</div>
+                {{ t('title_test_result') }}
+                <div class="result-tag success" v-if="resultContent"><CheckCircleFilled />{{ t('tag_pass') }}</div>
+                <div class="result-tag error" v-else><CloseCircleFilled />{{ t('tag_error') }}</div>
               </div>
               <div class="result-content">{{ resultContent }}</div>
             </div>
@@ -143,6 +143,8 @@ import {
   CloseCircleFilled
 } from '@ant-design/icons-vue'
 import { useGuideStore } from '@/stores/modules/guide'
+import { useI18n } from '@/hooks/web/useI18n'
+const { t } = useI18n('components.beginner-guide.index')
 const guideStore = useGuideStore()
 
 const robotLists = ref([])
@@ -155,25 +157,25 @@ const current_process = ref('set_model')
 
 const menuMap = {
   set_model: {
-    desc: '配置基础大模型',
-    tags: ['设置', '模型管理', '可添加模型', '添加指定类型模型', '完成设置'],
-    step_desc: '配置好的大模型可在机器人/知识库中引用',
+    desc: t('desc_set_model'),
+    tags: [t('tag_set_model_1'), t('tag_set_model_2'), t('tag_set_model_3'), t('tag_set_model_4'), t('tag_set_model_5')],
+    step_desc: t('step_desc_set_model'),
     show_config_btn: true,
     preview_imgs: ['set_model_1'].map((name) => getImgUrl(name)),
     config_url: '/#/user/model?activeTab=0'
   },
   create_library: {
-    desc: '创建知识库并导入知识',
-    tags: ['知识库模块', '新增知识库', '上传指定类型文档', '完成设置'],
-    step_desc: '配置好的知识库可在机器人中引用',
+    desc: t('desc_create_library'),
+    tags: [t('tag_create_library_1'), t('tag_create_library_2'), t('tag_create_library_3'), t('tag_create_library_4')],
+    step_desc: t('step_desc_create_library'),
     show_config_btn: true,
     preview_imgs: ['create_library_1', 'create_library_2'].map((name) => getImgUrl(name)),
     config_url: '/#/library/list'
   },
   create_robot: {
-    desc: '创建AI机器人并关联知识库',
-    tags: ['机器人模块', '新增机器人', '关联知识库文档', '根据业务编辑关键词', '完成设置'],
-    step_desc: '设置好的机器人即可测试发布',
+    desc: t('desc_create_robot'),
+    tags: [t('tag_create_robot_1'), t('tag_create_robot_2'), t('tag_create_robot_3'), t('tag_create_robot_4'), t('tag_create_robot_5')],
+    step_desc: t('step_desc_create_robot'),
     show_config_btn: true,
     preview_imgs: ['create_robot_1', 'create_robot_2', 'create_robot_3'].map((name) =>
       getImgUrl(name)
@@ -181,7 +183,7 @@ const menuMap = {
     config_url: '/#/robot/list'
   },
   test_robot: {
-    desc: '测试机器人并分享给用户使用'
+    desc: t('desc_test_robot')
   }
 }
 

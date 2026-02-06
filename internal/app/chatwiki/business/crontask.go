@@ -176,7 +176,7 @@ func CheckAliOcrRequest() {
 }
 
 func UpdateLibraryFileData() {
-	// 每次处理的批次大小
+	// batch size for each processing
 	const batchSize = 1000
 	logs.Debug(`start updating document segment data`)
 	var (
@@ -184,7 +184,7 @@ func UpdateLibraryFileData() {
 		page  = 0
 	)
 	for {
-		// 获取一批数据
+		// fetch a batch of data
 		rows, err := msql.Model("chat_ai_library_file_data", define.Postgres).
 			Limit((page * batchSize), batchSize).
 			Order(`id asc`).
@@ -195,13 +195,13 @@ func UpdateLibraryFileData() {
 			return
 		}
 
-		// 如果没有数据了就退出循环
+		// exit loop if no more data
 		if len(rows) == 0 {
 			break
 		}
 		minId := cast.ToInt(rows[0])
 		maxId := cast.ToInt(rows[len(rows)-1])
-		// 更新数据
+		// update data
 		_, err = msql.Model("chat_ai_library_file_data", define.Postgres).
 			Where("id", ">=", cast.ToString(minId)).
 			Where("id", "<=", cast.ToString(maxId)).
@@ -224,16 +224,16 @@ func DeleteLlmRequestLogs() {
 	if err != nil {
 		var sqlerr *pq.Error
 		if errors.As(err, &sqlerr) && sqlerr.Code == `42P01` {
-			return //表不存在,不报错了
+			return // table does not exist, no error reported
 		}
 		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 		return
 	}
 	minId, maxId := cast.ToInt(info[`minid`]), cast.ToInt(info[`maxid`])
 	if minId <= 0 || maxId <= 0 {
-		return //没有可以清理的数据
+		return // no data to clean up
 	}
-	var size = 1000 //每一批次数
+	var size = 1000 // number of records per batch
 	for i := 0; ; i++ {
 		start, end := minId+i*size, min(maxId, minId+(i+1)*size)
 		affect, err := m.Where(`id`, `>=`, cast.ToString(start)).
@@ -244,7 +244,7 @@ func DeleteLlmRequestLogs() {
 		}
 		logs.Debug(`cleanup result: round %d (%d~%d), affected %d`, i+1, start, end, affect)
 		if end >= maxId {
-			break //处理完毕,结束循环
+			break // processing complete, end loop
 		}
 	}
 }
@@ -272,7 +272,7 @@ func UpdateBatchSendData() {
 		}
 	}
 
-	//	获取发送成功的任务，继续刷新评论
+	// fetch successfully sent tasks, continue refreshing comments
 	succList, err := msql.Model("wechat_official_account_batch_send_task", define.Postgres).
 		Where(`send_status`, cast.ToString(define.BatchSendStatusSucc)).Where(`comment_status`, define.BaseOpen).Select()
 	if err != nil {
@@ -287,7 +287,7 @@ func UpdateBatchSendData() {
 		if sendTime == 0 {
 			sendTime = cast.ToInt(task["create_time"])
 		}
-		//如果超过拉取评论时间，
+		// if exceeds comment pull time,
 		if int(time.Now().Unix())-sendTime > cast.ToInt(adminConfig["comment_pull_days"])*86400 {
 			continue
 		}
@@ -297,7 +297,7 @@ func UpdateBatchSendData() {
 			timeLimit = 10
 		}
 
-		//未到同步评论时间间隔
+		// not yet time for comment sync interval
 		if (cast.ToInt(task["last_comment_sync_time"]) + (cast.ToInt(adminConfig["comment_pull_limit"])-1)*timeLimit) > int(time.Now().Unix()) {
 			logs.Debug(`not time to sync, next sync time:` + cast.ToString(cast.ToInt(task["last_comment_sync_time"])+cast.ToInt(adminConfig["comment_pull_limit"])*timeLimit))
 			continue
@@ -314,7 +314,7 @@ func UpdateBatchSendData() {
 
 }
 
-// CheckRobotPaymentDurationAuthCode 检查应用收费时长套餐
+// CheckRobotPaymentDurationAuthCode checks application payment duration packages
 func CheckRobotPaymentDurationAuthCode() {
 	logs.Debug(`start checking robot payment duration package`)
 	robotIdList, err := msql.Model(`robot_payment_setting`, define.Postgres).

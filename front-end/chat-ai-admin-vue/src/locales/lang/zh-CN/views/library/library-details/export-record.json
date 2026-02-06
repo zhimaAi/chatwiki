@@ -1,0 +1,1 @@
+{"title": "导出记录", "alert_message": "导出文件仅保留7天，7天后自动删除，请及时下载到本地", "column_export_time": "导出时间", "column_file_name": "导出文件名称", "column_source": "来源", "column_status": "状态", "column_action": "操作", "status_waiting": "等待导出", "status_exporting": "导出中", "status_success": "导出成功", "status_failed": "导出失败", "action_download": "下载"}

@@ -1,0 +1,14 @@
+{
+  "title_http_tool": "HTTP工具",
+  "label_available_tools": "个可用工具",
+  "label_no_available_tools": "暂无可用的工具",
+  "label_update": "更新",
+  "btn_edit": "编辑",
+  "btn_delete": "删除",
+  "title_no_http_tool": "暂未添加HTTP工具",
+  "btn_add_now": "立即添加",
+  "msg_delete_confirm": "确认删除该HTTP工具么？删除工具后使用到该工具的工作流可能无法正常运行。确认删除么？",
+  "msg_deleted": "已删除",
+  "btn_confirm": "确定",
+  "btn_cancel": "取消"
+}

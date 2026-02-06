@@ -1,16 +1,16 @@
 <template>
   <div>
-    <a-modal v-model:open="open" title="鉴权参数" :width="700">
+    <a-modal v-model:open="open" :title="t('title_auth_param')" :width="700">
       <div class="mt24">
         <a-alert
           class="zm-alert-info"
-          message="选择的参数会自动填充到http节点，鉴权参数在导出CSL或上架模板时会自动清空"
+          :message="t('msg_auth_param_tip')"
           type="info"
         />
       </div>
       <div class="add-btn-block">
         <a-button type="primary" :icon="h(PlusOutlined)" ghost @click="handleAddKey"
-          >添加参数</a-button
+          >{{ t('btn_add_param') }}</a-button
         >
       </div>
       <div class="list-box">
@@ -24,10 +24,10 @@
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.dataIndex === 'auth_key'">
-              <a-input v-model:value="record.auth_key" placeholder="请输入" />
+              <a-input v-model:value="record.auth_key" :placeholder="t('ph_input')" />
             </template>
             <template v-if="column.dataIndex === 'auth_value'">
-              <a-input v-model:value="record.auth_value" placeholder="请输入" />
+              <a-input v-model:value="record.auth_value" :placeholder="t('ph_input')" />
             </template>
             <template v-if="column.dataIndex === 'auth_value_addto'">
               <a-select v-model:value="record.auth_value_addto" style="width: 100%">
@@ -37,16 +37,16 @@
               </a-select>
             </template>
             <template v-if="column.dataIndex === 'auth_remark'">
-              <a-input :maxLength="10" v-model:value="record.auth_remark" placeholder="请输入" />
+              <a-input :maxLength="10" v-model:value="record.auth_remark" :placeholder="t('ph_input')" />
             </template>
             <template v-if="column.dataIndex === 'action'">
               <a-popconfirm
-                title="确认删除该字段?"
-                ok-text="确定"
-                cancel-text="取消"
+                :title="t('msg_confirm_delete')"
+                :ok-text="t('btn_confirm')"
+                :cancel-text="t('btn_cancel')"
                 @confirm="handleDel(record)"
               >
-                <a>删除</a>
+                <a>{{ t('label_delete') }}</a>
               </a-popconfirm>
             </template>
           </template>
@@ -54,20 +54,23 @@
       </div>
 
       <template #footer>
-        <a-button @click="open = false">取消</a-button>
-        <a-button @click="handleSave">仅保存参数</a-button>
-        <a-button type="primary" @click="handleOk">保存并添加</a-button>
+        <a-button @click="open = false">{{ t('btn_cancel') }}</a-button>
+        <a-button @click="handleSave">{{ t('btn_only_save') }}</a-button>
+        <a-button type="primary" @click="handleOk">{{ t('btn_save_and_add') }}</a-button>
       </template>
     </a-modal>
   </div>
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { getUuid } from '@/utils/index'
 import { ref, h, reactive } from 'vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import { getHttpAuthConfig, saveHttpAuthConfig } from '@/api/robot/index'
 import { message } from 'ant-design-vue'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.http-node.add-authentication-modal')
 const open = ref(false)
 
 const tableData = ref([])
@@ -76,23 +79,23 @@ const emit = defineEmits(['ok'])
 
 const columns = [
   {
-    title: 'Key',
+    title: t('label_key'),
     dataIndex: 'auth_key'
   },
   {
-    title: 'Value',
+    title: t('label_value'),
     dataIndex: 'auth_value'
   },
   {
-    title: 'Add To',
+    title: t('label_add_to'),
     dataIndex: 'auth_value_addto'
   },
   {
-    title: '备注',
+    title: t('label_remark'),
     dataIndex: 'auth_remark'
   },
   {
-    title: '操作',
+    title: t('label_operation'),
     dataIndex: 'action',
     width: 80
   }
@@ -114,7 +117,7 @@ const show = () => {
 
 const handleAddKey = () => {
   if (tableData.value.length >= 100) {
-    return message.error('最多添加100条')
+    return message.error(t('msg_max_100'))
   }
   tableData.value.push({
     auth_key: '',
@@ -157,11 +160,11 @@ function getParmas() {
   })
 
   if (errorIndex.length > 0) {
-    message.error(`请填写第${errorIndex.join(',')}行参数`)
+    message.error(t('msg_fill_params', { index: errorIndex.join(',') }))
     return false
   }
   if (resultList.length == 0) {
-    message.error('请添加参数')
+    message.error(t('msg_add_param'))
     return false
   }
 
@@ -181,7 +184,7 @@ const handleOk = () => {
     http_auth_config_list: JSON.stringify(http_auth_config_list)
   })
     .then((res) => {
-      message.success('保存成功')
+      message.success(t('msg_save_success'))
     })
     .finally(() => {
       state.selectedRowKeys = []
@@ -197,7 +200,7 @@ const handleSave = () => {
   saveHttpAuthConfig({
     http_auth_config_list: JSON.stringify(http_auth_config_list)
   }).then((res) => {
-    message.success('保存成功')
+    message.success(t('msg_save_success'))
   })
 }
 

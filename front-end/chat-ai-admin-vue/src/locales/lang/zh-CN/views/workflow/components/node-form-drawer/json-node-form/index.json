@@ -1,0 +1,1 @@
+{"desc_json_encode": "用于把变量转化为JSON字符串", "label_input": "输入", "ph_input_message": "请输入消息内容，键入\"/\"可以插入变量", "label_output_custom": "输出 (自定义输出字段)", "label_param_key": "参数Key", "label_type": "类型", "ph_input": "请输入", "ph_select": "请选择"}

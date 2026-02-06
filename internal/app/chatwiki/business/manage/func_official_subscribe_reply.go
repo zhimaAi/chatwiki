@@ -15,7 +15,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// SubscribeReplyRequest 通用请求结构
+// SubscribeReplyRequest generic request structure
 type SubscribeReplyRequest struct {
 	ID              int    `form:"id" json:"id"`
 	Appid           string `form:"appid" json:"appid"`
@@ -34,14 +34,14 @@ type SubscribeReplyRequest struct {
 	SwitchStatus    int    `form:"switch_status" json:"switch_status"`
 }
 
-// SubscribeReplySwitchStatusRequest 开关状态请求结构
+// SubscribeReplySwitchStatusRequest switch status request structure
 type SubscribeReplySwitchStatusRequest struct {
 	ID           int    `form:"id" json:"id" binding:"required"`
 	Appid        string `json:"appid" form:"appid"`
 	SwitchStatus int    `form:"switch_status" json:"switch_status"`
 }
 
-// SubscribeReplyListFilterRequest 列表过滤请求结构
+// SubscribeReplyListFilterRequest list filter request structure
 type SubscribeReplyListFilterRequest struct {
 	Appid     string `json:"appid" form:"appid"`
 	RuleType  string `json:"rule_type" form:"rule_type"`
@@ -50,17 +50,17 @@ type SubscribeReplyListFilterRequest struct {
 	Size      int    `json:"size" form:"size"`
 }
 
-// SaveRobotSubscribeReply 保存关注后回复规则（创建或更新）
+// SaveRobotSubscribeReply saves subscribe reply rule (create or update)
 func SaveRobotSubscribeReply(c *gin.Context) {
 	var req SubscribeReplyRequest
 
-	// 获取参数
+	// Get parameters
 	if err := c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 解析 WeekDuration
+	// Parse WeekDuration
 	var weekDuration []int
 	if req.WeekDuration != "" {
 		weekDurationStr := strings.Split(req.WeekDuration, ",")
@@ -69,17 +69,17 @@ func SaveRobotSubscribeReply(c *gin.Context) {
 		}
 	}
 
-	// 解析 SubscribeSource
+	// Parse SubscribeSource
 	var subscribeSource []string
 	if req.SubscribeSource != "" {
 		subscribeSource = strings.Split(req.SubscribeSource, ",")
-		// 去除空格
+		// Remove spaces
 		for i, v := range subscribeSource {
 			subscribeSource[i] = strings.TrimSpace(v)
 		}
 	}
 
-	// 解析 ReplyContent
+	// Parse ReplyContent
 	var replyContent []common.ReplyContent
 	if req.ReplyContent != "" {
 		if err := tool.JsonDecodeUseNumber(req.ReplyContent, &replyContent); err != nil {
@@ -88,7 +88,7 @@ func SaveRobotSubscribeReply(c *gin.Context) {
 		}
 	}
 
-	// 解析 ReplyType
+	// Parse ReplyType
 	var replyType []string
 	if len(replyContent) > 0 {
 		for _, reply := range replyContent {
@@ -100,14 +100,14 @@ func SaveRobotSubscribeReply(c *gin.Context) {
 		}
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 如果是更新操作，检查规则是否存在且属于当前用户和机器人
+	// If updating, check if rule exists and belongs to current user and robot
 	if req.ID > 0 {
 		ruleInfo, err := common.GetRobotSubscribeReply(req.ID, adminUserId)
 		if err != nil {
@@ -122,7 +122,7 @@ func SaveRobotSubscribeReply(c *gin.Context) {
 		}
 	}
 
-	// 检测类型
+	// Check type
 	if req.SwitchStatus == define.SwitchOn {
 		result := common.CheckSubscribeSourceRepeatedlyEnable(req.RuleType, subscribeSource, req.Appid, req.ID)
 		if cast.ToBool(result["is_repeat"]) {
@@ -134,23 +134,23 @@ func SaveRobotSubscribeReply(c *gin.Context) {
 		}
 	}
 
-	// 保存规则（创建或更新）
+	// Save rule (create or update)
 	id, err := common.SaveRobotSubscribeReply(
 		req.ID,
 		adminUserId,
 		req.Appid,
 		req.RuleType,
 		req.DurationType,
-		weekDuration, // 使用解析后的值
+		weekDuration, // Use parsed values
 		req.StartDay,
 		req.EndDay,
 		req.StartDuration,
 		req.EndDuration,
 		req.PriorityNum,
 		req.ReplyInterval,
-		subscribeSource, // 使用解析后的值
-		replyContent,    // 使用解析后的值
-		replyType,       // 使用解析后的值
+		subscribeSource, // Use parsed values
+		replyContent,    // Use parsed values
+		replyType,       // Use parsed values
 		req.ReplyNum,
 		req.SwitchStatus,
 	)
@@ -164,24 +164,24 @@ func SaveRobotSubscribeReply(c *gin.Context) {
 	common.FmtOk(c, map[string]interface{}{"id": id})
 }
 
-// DeleteRobotSubscribeReply 删除关注后回复规则
+// DeleteRobotSubscribeReply deletes subscribe reply rule
 func DeleteRobotSubscribeReply(c *gin.Context) {
 	id := cast.ToInt(c.PostForm("id"))
 
-	// 检查参数
+	// Check parameters
 	if id <= 0 {
 		common.FmtError(c, `param_lack`, `id`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 删除规则
+	// Delete rule
 	err := common.DeleteRobotSubscribeReply(id, adminUserId)
 	if err != nil {
 		logs.Error("DeleteRobotSubscribeReply error: %s", err.Error())
@@ -192,24 +192,24 @@ func DeleteRobotSubscribeReply(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-// GetRobotSubscribeReply 获取单个关注后回复规则
+// GetRobotSubscribeReply gets single subscribe reply rule
 func GetRobotSubscribeReply(c *gin.Context) {
 	id := cast.ToInt(c.Query("id"))
 
-	// 检查参数
+	// Check parameters
 	if id <= 0 {
 		common.FmtError(c, `param_lack`, `id`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 获取规则信息
+	// Get rule info
 	ruleInfo, err := common.GetRobotSubscribeReply(id, adminUserId)
 	if err != nil {
 		logs.Error("Get robot subscribe reply error: %s", err.Error())
@@ -222,12 +222,12 @@ func GetRobotSubscribeReply(c *gin.Context) {
 		return
 	}
 
-	// 处理返回数据
+	// Process return data
 	var weekDuration []int
 	var replyType, subscribeSource []string
 	var replyContent []common.ReplyContent
 
-	// 解析JSON数据
+	// Parse JSON data
 	if ruleInfo["week_duration"] != "" {
 		_ = tool.JsonDecodeUseNumber(ruleInfo["week_duration"], &weekDuration)
 	}
@@ -243,7 +243,7 @@ func GetRobotSubscribeReply(c *gin.Context) {
 	if ruleInfo["reply_content"] != "" {
 		_ = tool.JsonDecodeUseNumber(ruleInfo["reply_content"], &replyContent)
 	}
-	// 格式化智能菜单消息
+	// Format smart menu message
 	replyContent = common.FormatReplyListToDb(replyContent, common.RobotAbilitySubscribeReply)
 
 	result := map[string]interface{}{
@@ -270,17 +270,17 @@ func GetRobotSubscribeReply(c *gin.Context) {
 	common.FmtOk(c, result)
 }
 
-// GetRobotSubscribeReplyList 获取关注后回复规则列表
+// GetRobotSubscribeReplyList gets subscribe reply rule list
 func GetRobotSubscribeReplyList(c *gin.Context) {
 	var req SubscribeReplyListFilterRequest
 
-	// 获取参数
+	// Get parameters
 	if err := c.ShouldBindQuery(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 设置默认分页参数
+	// Set default pagination parameters
 	if req.Page <= 0 {
 		req.Page = 1
 	}
@@ -288,14 +288,14 @@ func GetRobotSubscribeReplyList(c *gin.Context) {
 		req.Size = 10
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 获取规则列表
+	// Get rule list
 	list, total, err := common.GetRobotSubscribeReplyListWithFilter(adminUserId, req.Appid, req.RuleType, req.ReplyType, req.Page, req.Size)
 	if err != nil {
 		logs.Error("GetRobotSubscribeReplyListWithFilter error: %s", err.Error())
@@ -305,7 +305,7 @@ func GetRobotSubscribeReplyList(c *gin.Context) {
 
 	defaultPriorityNum := 1
 
-	// 处理返回数据
+	// Process return data
 	var result []map[string]interface{}
 	for _, item := range list {
 		var weekDuration []int
@@ -314,15 +314,15 @@ func GetRobotSubscribeReplyList(c *gin.Context) {
 
 		priorityNum := cast.ToInt(item["priority_num"])
 		if req.RuleType == define.RuleTypeSubscribeDefault {
-			//默认类型
+			// Default type
 			if priorityNum != defaultPriorityNum {
 				priorityNum = defaultPriorityNum
-				//更新排序
+				// Update sort order
 				_ = common.UpdateRobotSubscribeReplyPriorityNum(cast.ToInt(item["id"]), adminUserId, priorityNum)
 			}
 			defaultPriorityNum++
 		}
-		// 解析JSON数据
+		// Parse JSON data
 		if item["week_duration"] != "" {
 			_ = tool.JsonDecodeUseNumber(item["week_duration"], &weekDuration)
 		}
@@ -338,7 +338,7 @@ func GetRobotSubscribeReplyList(c *gin.Context) {
 		if item["reply_content"] != "" {
 			_ = tool.JsonDecodeUseNumber(item["reply_content"], &replyContent)
 		}
-		// 格式化智能菜单消息
+		// Format smart menu message
 		replyContent = common.FormatReplyListToDb(replyContent, common.RobotAbilityReceivedMessageReply)
 
 		result = append(result, map[string]interface{}{
@@ -363,7 +363,7 @@ func GetRobotSubscribeReplyList(c *gin.Context) {
 		})
 	}
 
-	// 返回分页数据
+	// Return paginated data
 	response := map[string]interface{}{
 		"list":  result,
 		"total": total,
@@ -374,30 +374,30 @@ func GetRobotSubscribeReplyList(c *gin.Context) {
 	common.FmtOk(c, response)
 }
 
-// UpdateRobotSubscribeReplySwitchStatus 更新关注后回复规则开关状态
+// UpdateRobotSubscribeReplySwitchStatus updates subscribe reply rule switch status
 func UpdateRobotSubscribeReplySwitchStatus(c *gin.Context) {
 	var req SubscribeReplySwitchStatusRequest
 
-	// 获取参数
+	// Get parameters
 	if err := c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 检查开关状态参数是否合法 (0:关闭, 1:开启)
+	// Check if switch status parameter is valid (0: off, 1: on)
 	if req.SwitchStatus != define.SwitchOff && req.SwitchStatus != define.SwitchOn {
 		common.FmtError(c, `param_invalid`, `switch_status`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查规则是否存在且属于当前用户和机器人
+	// Check if rule exists and belongs to current user and robot
 	ruleInfo, err := common.GetRobotSubscribeReply(req.ID, adminUserId)
 	if err != nil {
 		logs.Error("Get robot subscribe reply error: %s", err.Error())
@@ -410,10 +410,10 @@ func UpdateRobotSubscribeReplySwitchStatus(c *gin.Context) {
 		return
 	}
 
-	// 更新开关状态
+	// Update switch status
 	var result map[string]interface{}
 	if req.SwitchStatus == define.SwitchOn {
-		// 解析 subscribe_source
+		// Parse subscribe_source
 		var subscribeSource []string
 		if ruleInfo["subscribe_source"] != "" {
 			_ = tool.JsonDecodeUseNumber(ruleInfo["subscribe_source"], &subscribeSource)
@@ -439,13 +439,13 @@ func UpdateRobotSubscribeReplySwitchStatus(c *gin.Context) {
 	common.FmtOk(c, map[string]interface{}{"switch_status": req.SwitchStatus})
 }
 
-// UpdateRobotSubscribeReplyPriorityNum 更新关注后回复规则优先级
+// UpdateRobotSubscribeReplyPriorityNum updates subscribe reply rule priority
 func UpdateRobotSubscribeReplyPriorityNum(c *gin.Context) {
 	id := cast.ToInt(c.PostForm("id"))
 	appid := cast.ToString(c.PostForm("appid"))
 	priorityNum := cast.ToInt(c.PostForm("priority_num"))
 
-	// 检查参数
+	// Check parameters
 	if id <= 0 {
 		common.FmtError(c, `param_lack`, `id`)
 		return
@@ -456,14 +456,14 @@ func UpdateRobotSubscribeReplyPriorityNum(c *gin.Context) {
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查规则是否存在且属于当前用户和机器人
+	// Check if rule exists and belongs to current user and robot
 	ruleInfo, err := common.GetRobotSubscribeReply(id, adminUserId)
 	if err != nil {
 		logs.Error("Get robot subscribe reply error: %s", err.Error())
@@ -476,7 +476,7 @@ func UpdateRobotSubscribeReplyPriorityNum(c *gin.Context) {
 		return
 	}
 
-	// 更新规则优先级
+	// Update rule priority
 	err = common.UpdateRobotSubscribeReplyPriorityNum(id, adminUserId, priorityNum)
 	if err != nil {
 		logs.Error("UpdateRobotSubscribeReplyPriorityNum error: %s", err.Error())

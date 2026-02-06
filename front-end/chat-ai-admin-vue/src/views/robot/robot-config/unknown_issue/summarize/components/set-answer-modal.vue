@@ -2,47 +2,47 @@
   <div>
     <a-modal
       v-model:open="open"
-      title="设置答案"
+      :title="t('title')"
       @ok="handleOk"
       :width="746"
       :confirmLoading="saveLoading"
     >
       <div class="form-box">
         <a-form layout="vertical">
-          <a-form-item label="问题" v-bind="validateInfos.question">
+          <a-form-item :label="t('label_question')" v-bind="validateInfos.question">
             <a-textarea
-              placeholder="请输入问题"
+              :placeholder="t('placeholder_question')"
               v-model:value="formState.question"
               style="height: 100px"
             ></a-textarea>
           </a-form-item>
           <a-form-item
-            label="相似问法(一行一个，最多可添加100个相似问法)"
+            :label="t('label_similar_questions')"
             v-bind="validateInfos.unknown_list"
           >
             <a-textarea
-              placeholder="请输入相似问法"
+              :placeholder="t('placeholder_similar_questions')"
               v-model:value="formState.unknown_list"
               style="height: 100px"
             ></a-textarea>
           </a-form-item>
-          <a-form-item label="答案" v-bind="validateInfos.answer">
+          <a-form-item :label="t('label_answer')" v-bind="validateInfos.answer">
             <a-textarea
-              placeholder="请输入分段答案"
+              :placeholder="t('placeholder_answer')"
               v-model:value="formState.answer"
               :maxlength="10000"
               style="height: 100px"
             ></a-textarea>
           </a-form-item>
 
-          <a-form-item label="附件">
+          <a-form-item :label="t('label_attachments')">
             <div class="upload-box-wrapper">
               <a-tabs v-model:activeKey="activeKey" size="small">
                 <a-tab-pane key="1">
                   <template #tab>
                     <span>
                       <svg-icon name="img-icon" style="font-size: 14px; color: #2475fc"></svg-icon>
-                      图片
+                      {{ t('tab_images') }}
                       <span v-if="formState.images.length">({{ formState.images.length }})</span>
                     </span>
                   </template>
@@ -64,6 +64,8 @@ import { useRoute } from 'vue-router'
 import { isArray } from 'ant-design-vue/lib/_util/util.js'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { unknownIssueSummaryAnswer } from '@/api/robot/index.js'
+import { useI18n } from '@/hooks/web/useI18n'
+const { t } = useI18n('views.robot.robot-config.unknown-issue.summarize.components.set-answer-modal')
 
 const emit = defineEmits(['ok'])
 const query = useRoute().query
@@ -85,15 +87,14 @@ const show = (data) => {
 }
 
 const rules = reactive({
-  question: [{ required: true, message: '请输入问题', trigger: 'change' }],
-  unknown_list: [{ required: true, message: '请输入相似问法', trigger: 'change' }],
-  answer: [{ required: true, message: '请输入答案', trigger: 'change' }]
+  question: [{ required: true, message: t('validation_question'), trigger: 'change' }],
+  unknown_list: [{ required: true, message: t('validation_similar_questions'), trigger: 'change' }],
+  answer: [{ required: true, message: t('validation_answer'), trigger: 'change' }]
 })
 
 const { validate, validateInfos } = useForm(formState, rules)
 
 const handleOk = () => {
-  console.log('---')
   validate()
     .then(() => {
       saveForm()
@@ -128,7 +129,7 @@ const saveForm = () => {
   saveLoading.value = true
   unknownIssueSummaryAnswer(formData)
     .then((res) => {
-      message.success('保存成功')
+      message.success(t('save_success'))
       open.value = false
       emit('ok')
     })

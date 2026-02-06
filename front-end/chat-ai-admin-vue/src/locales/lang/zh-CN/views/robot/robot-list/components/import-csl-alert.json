@@ -1,0 +1,1 @@
+{"title_import_csl": "导入csl文件创建机器人", "tip_description": "您可以将您编排好的机器人导出为csl文件,共享给他人使用。也可以从他人处获取导出的csl文件,通过导入形式创建机器人。", "upload_text": "点击或将文件拖拽到这里上传", "upload_hint": "仅支持从chatwiki导出生成的csl文件", "msg_upload_csl": "请上传csl文件", "msg_import_success": "导入成功", "msg_only_csl_format": "只能上传csl格式的文件"}

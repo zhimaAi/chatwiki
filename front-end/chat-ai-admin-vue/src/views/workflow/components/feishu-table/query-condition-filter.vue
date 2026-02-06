@@ -6,16 +6,16 @@
         <div class="select-wrapper">
           <a-dropdown>
             <a class="ant-dropdown-link" @click.prevent>
-              {{ state.conjunction == 'and' ? '且' : '或' }}
+              {{ state.conjunction == 'and' ? t('label_and') : t('label_or') }}
               <DownOutlined />
             </a>
             <template #overlay>
               <a-menu style="width: 100px" @click="changeType">
                 <a-menu-item key="and">
-                  <a href="javascript:;">且</a>
+                  <a href="javascript:;">{{ t('label_and') }}</a>
                 </a-menu-item>
                 <a-menu-item key="or">
-                  <a href="javascript:;">或</a>
+                  <a href="javascript:;">{{ t('label_or') }}</a>
                 </a-menu-item>
               </a-menu>
             </template>
@@ -46,10 +46,11 @@
             <!-- 绑定条件 -->
             <a-select
               v-model:value="row.operator"
-              style="width: 100px"
+              style="width: 180px"
               @change="() => changeOperator(row, index)"
             >
               <a-select-option
+                style="width: 220px;"
                 v-for="item in getFieldOperator(row.field_type)"
                 :value="item.key"
                 :key="item.key"
@@ -62,7 +63,7 @@
             <!-- 空值检查、布尔类型（无需输入） -->
             <a-input
               v-if="['isEmpty', 'isNotEmpty'].includes(row.operator)"
-              placeholder="无需输入值"
+              :placeholder="t('ph_no_value_required')"
               disabled
             />
             <!-- 文本类型输入 -->
@@ -73,7 +74,7 @@
               :defaultSelectedList="row.atTags"
               @open="showAtList"
               @change="(text, selectedList) => changeAtInputValue(text, selectedList, row, index)"
-              placeholder="请输入参数值，键入“/”插入变量"
+              :placeholder="t('ph_input_value_variable')"
             />
           </div>
           <span class="field-del-btn" @click="removeCondition(index)">
@@ -84,16 +85,16 @@
     </div>
 
     <div class="add-btn-box">
-      <a-tooltip title="请先选择数据库" style="width: 100%" v-if="disabled">
+      <a-tooltip :title="t('ph_select_database_first')" style="width: 100%" v-if="disabled">
         <span>
           <a-button class="add-btn" type="dashed" disabled block>
-            <PlusOutlined /> 添加条件
+            <PlusOutlined /> {{ t('btn_add_condition') }}
           </a-button>
         </span>
       </a-tooltip>
 
       <a-button class="add-btn" type="dashed" block @click="addCondition" v-else>
-        <PlusOutlined /> 添加条件
+        <PlusOutlined /> {{ t('btn_add_condition') }}
       </a-button>
     </div>
   </div>
@@ -102,9 +103,12 @@
 <script setup>
 import { computed, inject, ref, watch, reactive, onMounted } from 'vue'
 import { PlusOutlined, DownOutlined } from '@ant-design/icons-vue'
-import { FIELD_TYPE_RULES, getFilterRulesByType } from '@/constants/database'
+import { getFilterRulesByType } from '@/constants/database'
 import AtInput from '../at-input/at-input.vue'
-import {FeiShuOperator, getFieldOperator} from "@/constants/feishu-table.js";
+import { getFieldOperator } from "@/constants/feishu-table.js";
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.feishu-table.query-condition-filter')
 
 const emit = defineEmits(['change'])
 
@@ -157,7 +161,7 @@ const isMultiple = computed(() => {
 const atInputOptions = ref([])
 
 const getAtInputOptions = () => {
-  let options = getNode().getAllParentVariable()
+  let options = getNode().getAllParentVariable();
 
   atInputOptions.value = options || []
 }

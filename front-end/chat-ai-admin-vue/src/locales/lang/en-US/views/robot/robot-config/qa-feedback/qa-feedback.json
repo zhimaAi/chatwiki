@@ -1,0 +1,17 @@
+{
+  "label_total": "Total",
+  "label_type": "Type",
+  "label_date": "Date",
+  "btn_reset": "Reset",
+  "placeholder_all_types": "All Types",
+  "table_column_qa": "Q&A",
+  "table_column_feedback": "Answer Feedback",
+  "table_column_feedback_content": "Feedback Content",
+  "table_column_time": "Time",
+  "table_column_action": "Action",
+  "label_like": "Like",
+  "label_dislike": "Dislike",
+  "btn_view_details": "View Details",
+  "text_no_content": "--",
+  "label_item": "Items"
+}

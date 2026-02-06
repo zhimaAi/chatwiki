@@ -1,43 +1,43 @@
 <template>
   <div class="subManage-edit">
     <a-breadcrumb class="subManage-breadcrumb">
-      <a-breadcrumb-item><a :href="autoReplyUrl">收到消息回复</a></a-breadcrumb-item>
-      <a-breadcrumb-item>{{ ruleType === 'receive_reply_message_type' ? '新增回复' : '增加时段回复' }}</a-breadcrumb-item>
+      <a-breadcrumb-item><a :href="autoReplyUrl">{{ t('breadcrumb_received_reply') }}</a></a-breadcrumb-item>
+      <a-breadcrumb-item>{{ ruleType === 'receive_reply_message_type' ? t('breadcrumb_add_reply') : t('breadcrumb_add_time_reply') }}</a-breadcrumb-item>
     </a-breadcrumb>
 
     <div class="main">
       <a-form ref="formRef" :model="form" :rules="rules">
-        <a-form-item name="switch_status" :rules="[{ required: true, message: '请输入规则名称' }]">
+        <a-form-item name="switch_status" :rules="[{ required: true, message: t('msg_input_rule_name') }]">
           <template #label>
-            是否开启
+            {{ t('label_enable') }}
             <a-tooltip>
-              <template #title>开启开关后，触发消息类型回复指定的内容</template>
+              <template #title>{{ t('tip_enable') }}</template>
               <span class="ml4"><QuestionCircleOutlined /></span>
             </a-tooltip>
           </template>
-          <a-switch v-model:checked="form.switch_status" checked-children="开" un-checked-children="关" />
+          <a-switch v-model:checked="form.switch_status" :checked-children="t('switch_on')" :un-checked-children="t('switch_off')" />
         </a-form-item>
 
-        <a-form-item  v-if="ruleType === 'receive_reply_duration'" name="duration_type" label="选择回复时间">
+        <a-form-item  v-if="ruleType === 'receive_reply_duration'" name="duration_type" :label="t('label_select_reply_time')">
           <div class="item-box">
-            <a-form-item name="duration_type" :rules="[{ required: true, message: '请选择回复时间类型' }]">
+            <a-form-item name="duration_type" :rules="[{ required: true, message: t('msg_select_reply_time_type') }]">
               <a-radio-group v-model:value="form.duration_type">
-                <a-radio value="week">每星期</a-radio>
-                <a-radio value="day">每天</a-radio>
-                <a-radio value="time_range">自定义时间</a-radio>
+                <a-radio value="week">{{ t('radio_every_week') }}</a-radio>
+                <a-radio value="day">{{ t('radio_every_day') }}</a-radio>
+                <a-radio value="time_range">{{ t('radio_custom_time') }}</a-radio>
               </a-radio-group>
             </a-form-item>
 
             <a-form-item v-if="form.duration_type === 'week'" name="week_day"
               :rules="[{ validator: validateWeekDay }]">
               <a-select v-model:value="form.week_day" mode="multiple" style="width: 200px;" allowClear>
-                <a-select-option value="1">星期一</a-select-option>
-                <a-select-option value="2">星期二</a-select-option>
-                <a-select-option value="3">星期三</a-select-option>
-                <a-select-option value="4">星期四</a-select-option>
-                <a-select-option value="5">星期五</a-select-option>
-                <a-select-option value="6">星期六</a-select-option>
-                <a-select-option value="7">星期日</a-select-option>
+                <a-select-option value="1">{{ t('week_monday') }}</a-select-option>
+                <a-select-option value="2">{{ t('week_tuesday') }}</a-select-option>
+                <a-select-option value="3">{{ t('week_wednesday') }}</a-select-option>
+                <a-select-option value="4">{{ t('week_thursday') }}</a-select-option>
+                <a-select-option value="5">{{ t('week_friday') }}</a-select-option>
+                <a-select-option value="6">{{ t('week_saturday') }}</a-select-option>
+                <a-select-option value="7">{{ t('week_sunday') }}</a-select-option>
               </a-select>
             </a-form-item>
 
@@ -49,35 +49,35 @@
         </a-form-item>
 
         <!-- 回复时段 -->
-        <a-form-item  v-if="ruleType === 'receive_reply_duration'" name="reply_period" label="回复时段" :rules="[{ required: true, message: '请选择回复时段' }]">
+        <a-form-item  v-if="ruleType === 'receive_reply_duration'" name="reply_period" :label="t('label_reply_period')" :rules="[{ required: true, message: t('msg_select_reply_period') }]">
           <!-- 范围选择 时间段 -->
           <a-time-range-picker v-model:value="form.reply_period" valueFormat="HH:mm" format="HH:mm" :allowClear="false" />
           <div class="tip-box">
-            如需跨天，请单独重新再添加一条时段回复：第一个是到23:59结束，第二个是从0点开始
+            {{ t('tip_cross_day') }}
           </div>
         </a-form-item>
 
         <!-- 优先级 -->
-        <a-form-item  v-if="ruleType === 'receive_reply_duration'" name="priority_num" label="优先级" :rules="[{ required: true, message: '输入优先级，1-100之间' }]">
+        <a-form-item  v-if="ruleType === 'receive_reply_duration'" name="priority_num" :label="t('label_priority')" :rules="[{ required: true, message: t('msg_input_priority') }]">
           <a-input-number v-model:value="form.priority_num" style="width: 200px;" :min="1" :max="100" />
           <div class="tip-box" style="color: red;">
-            数字越小，则优先级越高。优先级仅在时间相互冲突时有效，比如一个每天1-9点与一个每天310点，当8点钟触发时，则只会触发其中优先级最高的一个。
+            {{ t('tip_priority') }}
           </div>
         </a-form-item>
 
         <!-- 触发回复间隔时间：秒 -->
-        <a-form-item class="interval-item" name="reply_interval" label="触发回复间隔时间">
+        <a-form-item class="interval-item" name="reply_interval" :label="t('label_reply_interval')">
           <div class="flex-center">
             <a-input-number v-model:value="form.reply_interval" style="width: 60px;" />
-            <span class="ml4">秒 在时间间隔内只会触发一次该回复，0秒为无时间间隔限制</span>
+            <span class="ml4">{{ t('tip_reply_interval') }}</span>
           </div>
         </a-form-item>
 
         <!-- 消息类型：单选 全部消息、指定消息 -->
-        <a-form-item class="message-type-item" v-if="ruleType === 'receive_reply_message_type'" name="message_type" label="消息类型">
+        <a-form-item class="message-type-item" v-if="ruleType === 'receive_reply_message_type'" name="message_type" :label="t('label_message_type')">
           <a-radio-group v-model:value="form.message_type">
-            <a-radio value="0">全部消息</a-radio>
-            <a-radio value="1">指定消息</a-radio>
+            <a-radio value="0">{{ t('radio_all_messages') }}</a-radio>
+            <a-radio value="1">{{ t('radio_specify_messages') }}</a-radio>
           </a-radio-group>
         </a-form-item>
         <div v-if="form.message_type === '1'" style="margin-left: 98px;">
@@ -87,7 +87,7 @@
         <!-- 回复内容 -->
         <div class="nav-box" style="margin-top: 24px;">
           <svg-icon name="reply-content" style="font-size: 16px;"></svg-icon>
-          回复内容
+          {{ t('title_reply_content') }}
         </div>
         <div class="item-box">
           <MultiReply v-for="(it, idx) in replyList" :key="idx" ref="replyRefs" v-model:value="replyList[idx]" :reply_index="idx" 
@@ -96,23 +96,23 @@
             <template #icon>
               <PlusOutlined />
             </template>
-            添加回复内容({{replyList.length}}/5)
+            {{ t('btn_add_reply_content') }}({{replyList.length}}/5)
           </a-button>
         </div>
 
         <!-- 回复方式 -->
-        <a-form-item name="reply_num" label="回复方式" style="margin-top: 24px;">
+        <a-form-item name="reply_num" :label="t('label_reply_method')" style="margin-top: 24px;">
           <div class="radio-container">
             <a-radio-group v-model:value="form.reply_num" @change="handleReplyTypeChange">
-              <a-radio value="0">全部回复</a-radio>
-              <a-radio value="1">随机回复一条</a-radio>
+              <a-radio value="0">{{ t('reply_all') }}</a-radio>
+              <a-radio value="1">{{ t('reply_random') }}</a-radio>
             </a-radio-group>
           </div>
         </a-form-item>
 
         <!-- 保存 底部固定 -->
         <div class="btn-container">
-          <a-button type="primary" @click="onSubmit">保存</a-button>
+          <a-button type="primary" @click="onSubmit">{{ t('btn_save') }}</a-button>
         </div>
       </a-form>
     </div>
@@ -127,7 +127,9 @@ import MultiReply from '@/components/replay-card/multi-reply.vue'
 import { getRobotReceivedMessageReply, saveRobotReceivedMessageReply } from '@/api/explore/index.js'
 import dayjs from 'dayjs'
 import { SUBSCRIBE_REPLY_TYPE_OPTIONS } from '@/constants/index'
+import { useI18n } from '@/hooks/web/useI18n'
 
+const { t } = useI18n('views.robot.robot-config.auto-reply.add-reply')
 const replyRefs = ref([])
 const query = useRoute().query
 const ruleId = ref(+query.rule_id || +query['rule-id'] || 0)
@@ -152,22 +154,22 @@ const form = reactive({
 })
 const rules = {
   name: [
-    { required: true, message: '请输入规则名称', trigger: 'blur' }
+    { required: true, message: t('msg_input_rule_name'), trigger: 'blur' }
   ]
 }
 // 关键词集合
-const messageTypeOptions = SUBSCRIBE_REPLY_TYPE_OPTIONS
+const messageTypeOptions = SUBSCRIBE_REPLY_TYPE_OPTIONS()
 
 function validateDateRange (_rule, value) {
   if (form.duration_type !== 'time_range') return Promise.resolve()
   const ok = Array.isArray(value) && value.length === 2 && value[0] && value[1]
-  return ok ? Promise.resolve() : Promise.reject('请选择起止日期')
+  return ok ? Promise.resolve() : Promise.reject(t('msg_select_date_range'))
 }
 
 function validateWeekDay (_rule, value) {
   if (form.duration_type !== 'week') return Promise.resolve()
   const ok = Array.isArray(value) && value.length > 0
-  return ok ? Promise.resolve() : Promise.reject('请选择至少一个星期')
+  return ok ? Promise.resolve() : Promise.reject(t('msg_select_at_least_one_week'))
 }
 
 watch(() => form.duration_type, (val) => {
@@ -207,7 +209,7 @@ watch(() => form.date_range, (v) => {
 const replyList = ref([{ type: 'text', description: '' }])
 const addReplyItem = () => {
   if (replyList.value.length >= 5) {
-    message.warning('最多添加5条回复内容')
+    message.warning(t('msg_max_reply_content'))
     return
   }
   replyList.value.push({ type: 'text', description: '' })
@@ -238,24 +240,24 @@ function serializeReplyTypeCodes (list) {
 const onSubmit = () => {
   formRef.value?.validate().then(async () => {
     if (!replyList.value.length) {
-      message.warning('请至少添加一条回复内容')
+      message.warning(t('msg_at_least_one_reply'))
       return
     }
 
     if (ruleType.value === 'receive_reply_duration') {
       if (!form.reply_period || form.reply_period.length !== 2) {
-        message.warning('请选择回复时段')
+        message.warning(t('msg_select_reply_period_warning'))
         return
       }
       const p = Number(form.priority_num)
       if (!Number.isInteger(p) || p < 1 || p > 100) {
-        message.warning('优先级需为1-100之间的整数')
+        message.warning(t('msg_priority_range'))
         return
       }
       if (form.duration_type === 'time_range') {
         const ok = Array.isArray(form.date_range) && form.date_range.length === 2 && form.date_range[0] && form.date_range[1]
         if (!ok) {
-          message.warning('请选择自定义日期范围')
+          message.warning(t('msg_select_custom_date_range'))
           return
         }
       }
@@ -264,7 +266,7 @@ const onSubmit = () => {
     if (ruleType.value === 'receive_reply_message_type') {
       if (form.message_type === '1') {
         if (!Array.isArray(form.message_type_list) || form.message_type_list.length === 0) {
-          message.warning('请至少选择一种指定消息类型')
+          message.warning(t('msg_select_message_type'))
           return
         }
       }
@@ -310,7 +312,7 @@ const onSubmit = () => {
     try {
       const res = await saveRobotReceivedMessageReply(payload)
       if (res && res.res == 0) {
-        message.success('保存成功')
+        message.success(t('msg_save_success'))
         router.push({ path: '/robot/ability/auto-reply', query: { id: query.id, robot_key: query.robot_key, active_key: 'received', rule_type: ruleType.value } })
       }
     } catch (e) {
@@ -386,7 +388,7 @@ onMounted(async () => {
     if (!ruleId.value) return
     await fetchOne(ruleId.value)
   } catch (e) {
-    message.error('加载规则失败，请稍后重试')
+    message.error(t('msg_load_failed'))
   }
 })
 
@@ -493,15 +495,7 @@ onMounted(async () => {
 }
 
 ::v-deep(.ant-form-item-label) {
-  width: 98px;
-  min-width: 98px;
-  flex: 0 0 98px;
-}
-
-.interval-item ::v-deep(.ant-form-item-label) {
-  width: 130px;
-  min-width: 130px;
-  flex: 0 0 130px;
+  width: 150px;
 }
 
 .message-type-item {

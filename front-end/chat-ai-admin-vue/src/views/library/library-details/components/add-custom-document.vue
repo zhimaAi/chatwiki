@@ -9,20 +9,20 @@
     >
       <div class="form-box">
         <a-form layout="vertical">
-          <a-form-item label="文档名称" v-bind="validateInfos.file_name">
+          <a-form-item :label="t('label_document_name')" v-bind="validateInfos.file_name">
             <a-input
               type="text"
-              placeholder="请输入文档名称"
+              :placeholder="t('ph_input_document_name')"
               v-model:value="formState.file_name"
             ></a-input>
           </a-form-item>
-          <a-form-item label="文档类型" required v-if="false">
+          <a-form-item :label="t('label_document_type')" required v-if="false">
             <a-radio-group v-model:value="formState.is_qa_doc">
-              <a-radio :value="0">普通文档</a-radio>
-              <a-radio :value="1">QA文档</a-radio>
+              <a-radio :value="0">{{ t('label_normal_document') }}</a-radio>
+              <a-radio :value="1">{{ t('label_qa_document') }}</a-radio>
             </a-radio-group>
           </a-form-item>
-          <a-form-item label="索引方式" required v-if="formState.is_qa_doc == 1">
+          <a-form-item :label="t('label_index_method')" required v-if="formState.is_qa_doc == 1">
             <div class="upload-document-type-box">
               <div
                 class="type-item"
@@ -38,9 +38,9 @@
                         formState.qa_index_type == item.value ? item.iconNameActive : item.iconName
                       "
                     ></svg-icon>
-                    <div class="title-text">{{ item.title }}</div>
+                    <div class="title-text">{{ t(item.title) }}</div>
                   </div>
-                  <div class="desc">{{ item.desc }}</div>
+                  <div class="desc">{{ t(item.desc) }}</div>
                 </div>
                 <svg-icon
                   class="check-arrow"
@@ -59,16 +59,20 @@
 
 <script setup>
 import { validatePassword } from '@/utils/validate.js'
-import { ref, reactive, toRaw } from 'vue'
+import { ref, reactive, toRaw, computed } from 'vue'
 import { Form, message } from 'ant-design-vue'
 import { addLibraryFile } from '@/api/library'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.library-details.components.add-custom-document')
 const emit = defineEmits(['ok'])
 const router = useRouter()
 const rotue = useRoute()
 const useForm = Form.useForm
 const show = ref(false)
-const modalTitle = ref('添加自定义文档')
+const modalTitleKey = 'title_add_custom_document'
+const modalTitle = computed(() => t(modalTitleKey))
 
 const props = defineProps({
   libraryInfo:{
@@ -92,16 +96,16 @@ const qaIndexTypeList = ref([
   {
     iconName: 'file-search',
     iconNameActive: 'file-search',
-    title: '问题与答案一起生成索引',
+    title: 'title_qa_index_qa',
     value: 1,
-    desc: '回答用户提问时，将用户提问与导入的问题和答案一起对比相似度，根据相似度高的问题和答案回复'
+    desc: 'desc_qa_index_qa'
   },
   {
     iconName: 'comment-search',
     iconNameActive: 'comment-search',
-    title: '仅对问题生成索引',
+    title: 'title_qa_index_question',
     value: 2,
-    desc: '回答用户提问时，将用户提问与导入的问题一起对比相似度，再根据相似度高的问题和对应的答案来回复'
+    desc: 'desc_qa_index_question'
   }
 ])
 const handleChangeQaIndexType = (type) => {
@@ -110,7 +114,7 @@ const handleChangeQaIndexType = (type) => {
 const formRules = reactive({
   file_name: [
     {
-      message: '请输入昵称',
+      message: 'msg_input_nickname',
       required: true
     }
   ]
@@ -140,7 +144,7 @@ const handleOk = () => {
     saveLoading.value = true
     addLibraryFile(formData)
       .then((res) => {
-        message.success(`${modalTitle.value}成功`)
+        message.success(t(modalTitleKey) + t('msg_operation_success'))
         show.value = false
         router.push('/library/preview?id=' + res.data.file_ids[0])
         // emit('ok')

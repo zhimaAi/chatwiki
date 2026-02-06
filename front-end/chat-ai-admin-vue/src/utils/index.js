@@ -2,7 +2,7 @@ import { message } from 'ant-design-vue'
 import { useStorage } from '../hooks/web/useStorage'
 import CryptoJS from 'crypto-js'
 import dayjs from 'dayjs'
-
+import { useI18n } from '@/hooks/web/useI18n'
 export function generateUniqueId(salt = '') {
   // 获取当前时间戳（毫秒级）
   const timestamp = Date.now()
@@ -352,6 +352,7 @@ export function removeNoReferrerMeta () {
 
 // 格式化显示时间
 export function formatDisplayChatTime(time) {
+  const { t } = useI18n('constants.database')
   time = time * 1000
 
   const date = new Date(time)
@@ -368,9 +369,9 @@ export function formatDisplayChatTime(time) {
   const timeStr = `${hours}:${minutes}:${seconds}`
 
   if (isToday) {
-    return `今天 ${timeStr}`
+    return `${t('label_today')} ${timeStr}`
   } else if (isYesterday) {
-    return `昨天 ${timeStr}`
+    return `${t('label_yesterday')} ${timeStr}`
   } else {
     const year = date.getFullYear()
     const month = (date.getMonth() + 1).toString().padStart(2, '0')
@@ -502,37 +503,38 @@ export function base64ToFile(base64, filename) {
 }
 
 export function getDateRangePresets() {
+  const { t } = useI18n('utils.index')
   return [
     {
-      label: '今天',
+      label: t('label_today'),
       value: [dayjs().startOf('day'), dayjs().endOf('day')]
     },
     {
-      label: '昨天',
+      label: t('label_yesterday'),
       value: [dayjs().subtract(1, 'day').startOf('day'), dayjs().subtract(1, 'day').endOf('day')]
     },
     {
-      label: '本周',
+      label: t('label_this_week'),
       value: [dayjs().startOf('week'), dayjs().endOf('week')]
     },
     {
-      label: '本月',
+      label: t('label_this_month'),
       value: [dayjs().startOf('month'), dayjs().endOf('month')]
     },
     {
-      label: '本年',
+      label: t('label_this_year'),
       value: [dayjs().startOf('year'), dayjs().endOf('year')]
     },
     {
-      label: '近7天',
+      label: t('label_last_7_days'),
       value: [dayjs().subtract(6, 'day').startOf('day'), dayjs().endOf('day')]
     },
     {
-      label: '近30天',
+      label: t('label_last_30_days'),
       value: [dayjs().subtract(29, 'day').startOf('day'), dayjs().endOf('day')]
     },
     {
-      label: '近90天',
+      label: t('label_last_90_days'),
       value: [dayjs().subtract(89, 'day').startOf('day'), dayjs().endOf('day')]
     }
   ]
@@ -564,6 +566,7 @@ export function formatSeparatorsNo(data, defaultValue) {
 }
 
 export function timeNowGapFormat(timestamp = null) {
+  const { t } = useI18n('constants.database')
   if (timestamp == null) timestamp = Number(new Date());
   timestamp = parseInt(timestamp);
   // 判断用户输入的时间戳是秒还是毫秒,一般前端js获取的时间戳是毫秒(13位),后端传过来的为秒(10位)
@@ -574,22 +577,22 @@ export function timeNowGapFormat(timestamp = null) {
   let tips = "";
   switch (true) {
     case timer < 10:
-      tips = "刚刚";
+      tips = t('just_now');
       break;
     case timer >= 10 && timer < 60:
-      tips = timer + "秒前";
+      tips = timer + t('seconds_ago');
       break;
     case timer >= 60 && timer < 3600:
-      tips = parseInt(timer / 60) + "分钟前";
+      tips = parseInt(timer / 60) + t('minutes_ago');
       break;
     case timer >= 3600 && timer < 86400:
-      tips = parseInt(timer / 3600) + "小时前";
+      tips = parseInt(timer / 3600) + t('hours_ago');
       break;
     case timer >= 86400 && timer < 2592000:
-      tips = parseInt(timer / 86400) + "天前";
+      tips = parseInt(timer / 86400) + t('days_ago');
       break;
     case timer >= 2592000 && timer < 365 * 86400:
-      tips = parseInt(timer / (86400 * 30)) + "个月前";
+      tips = parseInt(timer / (86400 * 30)) + t('months_ago');
       break;
     case timer >= 86400:
       tips = filters.getToDate(timestamp, "monthTime");

@@ -255,7 +255,7 @@ func GetFormFieldList(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	if len(list) == 0 { //没有字段时,将所有的脏数据记录标记为已删除
+	if len(list) == 0 { //When there are no fields, mark all dirty records as deleted
 		_, err = msql.Model(`form_entry`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(userId)).
 			Where(`form_id`, cast.ToString(formId)).Where(`delete_time`, `0`).

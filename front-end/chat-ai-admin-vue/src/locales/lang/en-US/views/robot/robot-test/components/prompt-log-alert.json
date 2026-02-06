@@ -1,0 +1,17 @@
+{
+  "title_prompt_log": "Prompt Log",
+  "label_prompt": "Prompt",
+  "msg_prompt_tooltip": "System prompt and document segments.",
+  "label_context": "Context",
+  "msg_context_tooltip": "Historical question messages passed",
+  "label_user": "USER",
+  "msg_user_tooltip": "Current user question",
+  "label_assistant": "ASSISTANT",
+  "msg_assistant_tooltip": "Answer output by the language model",
+  "label_recall_time": "Recall time",
+  "msg_recall_time_tooltip": "Time required to retrieve valid segments from the knowledge base, including time for segment sorting.",
+  "label_request_time": "Request time",
+  "msg_request_time_tooltip": "Time from sending question and context information to the LLM to when the LLM starts returning the answer.",
+  "label_error": "Error",
+  "msg_error_tooltip": "Error information, displayed when the chat interface call fails."
+}
