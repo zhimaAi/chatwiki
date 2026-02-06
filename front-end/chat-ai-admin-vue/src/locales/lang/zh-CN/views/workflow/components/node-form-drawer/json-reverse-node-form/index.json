@@ -1,0 +1,1 @@
+{"desc_json_decode": "用于把JSON字符串转化为变量", "label_input_string": "输入 (string格式数据)", "ph_select": "请选择", "label_output_custom": "输出 (自定义输出字段)", "label_param_key": "参数Key", "label_type": "类型", "ph_input": "请输入"}

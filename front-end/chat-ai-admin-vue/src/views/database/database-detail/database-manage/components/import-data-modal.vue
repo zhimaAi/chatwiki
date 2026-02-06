@@ -2,7 +2,7 @@
   <div>
     <a-modal
       v-model:open="open"
-      title="导入数据"
+      :title="t('modal_title')"
       :confirm-loading="confirmLoading"
       @ok="handleOk"
       :footer="null"
@@ -11,12 +11,12 @@
       <a-alert show-icon class="alert-box">
         <template #message>
           <div>
-            支持通过Excel或者json文件导入数据。
-            <a @click="exportExcelTemplate" class="mr8">excel模板</a>
-            <a @click="exportJsonTemplate">json模板</a>
+            {{ t('alert_support') }}
+            <a @click="exportExcelTemplate" class="mr8">{{ t('link_excel_template') }}</a>
+            <a @click="exportJsonTemplate">{{ t('link_json_template') }}</a>
           </div>
           <div>
-            导入时，如果d为空，则新建数据。如果id有值，则更新d对应的数据。id通过导出数据获取。单次导入上限1万条数据。
+            {{ t('alert_instruction') }}
           </div>
         </template>
       </a-alert>
@@ -35,21 +35,21 @@
           <p class="ant-upload-drag-icon">
             <inbox-outlined></inbox-outlined>
           </p>
-          <p class="ant-upload-text">点击或将文件拖拽到这里上传</p>
-          <p class="ant-upload-hint">仅支持：json.xlsx.csv文件，请注意必填项</p>
+          <p class="ant-upload-text">{{ t('upload_text') }}</p>
+          <p class="ant-upload-hint">{{ t('upload_hint') }}</p>
         </a-upload-dragger>
       </div>
     </a-modal>
-    <a-modal v-model:open="resultOpen" title="导入数据" :footer="null" :width="746">
+    <a-modal v-model:open="resultOpen" :title="t('modal_title')" :footer="null" :width="746">
       <div class="progress-box" v-if="percent < 100">
         <a-progress type="circle" :percent="percent" />
-        <div class="tip">数据导入中，请勿关闭页面</div>
+        <div class="tip">{{ t('progress_tip') }}</div>
       </div>
-      <a-result v-else status="success" title="导入完成">
+      <a-result v-else status="success" :title="t('result_title')">
         <template #subTitle
-          >导入成功{{ resultInfo.success }}，导入失败{{ resultInfo.total - resultInfo.success }}
+          >{{ t('result_subtitle', { success: resultInfo.success, fail: resultInfo.total - resultInfo.success }) }}
           <span v-if="resultInfo.total - resultInfo.success > 0">
-            您可以下载失败数据，修改后重新导入
+            {{ t('result_subtitle_tip') }}
           </span>
         </template>
         <template #extra>
@@ -57,7 +57,7 @@
             v-if="resultInfo.total - resultInfo.success > 0"
             @click="downFailData"
             type="primary"
-            >下载失败数据</a-button
+            >{{ t('btn_download_fail') }}</a-button
           >
         </template>
       </a-result>
@@ -75,6 +75,10 @@ import dayjs from 'dayjs'
 import { uploadFormFile, getUploadFormFileProc } from '@/api/database'
 import { message } from 'ant-design-vue'
 import { reactive } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.database.database-detail.database-manage.components.import-data-modal')
+
 const userStore = useUserStore()
 const emit = defineEmits(['ok'])
 
@@ -111,7 +115,7 @@ const handleChange = (info) => {
     }
   } else if (status === 'error') {
     fileList.value = []
-    message.error(`${info.file.name} file upload failed.`)
+    message.error(t('msg_upload_failed', { name: info.file.name }))
   }
 }
 function handleDrop(e) {
@@ -153,7 +157,7 @@ const exportExcelTemplate = () => {
   let str
   str = props.column.map((item) => item.name)
   str = 'id,' + str.join(',') + '\n'
-  tableToExcel(str, [], [], '导入数据模板.csv')
+  tableToExcel(str, [], [], t('template_name_excel'))
 }
 
 const exportJsonTemplate = () => {
@@ -163,7 +167,7 @@ const exportJsonTemplate = () => {
   props.column.forEach((item) => {
     datas[item.name] = ''
   })
-  exportToJsonWithSaver([datas], '导入数据模板.json')
+  exportToJsonWithSaver([datas], t('template_name_json'))
 }
 
 const show = () => {
@@ -188,7 +192,7 @@ const downFailData = () => {
   str = str + 'err_msg\n'
   fieds.push('err_msg')
   let jsonData = resultInfo.err_data
-  let name = '失败数据_' + dayjs().format('YYYY/MM/DD HH:mm') + '.xlsx'
+  let name = t('fail_data_name') + dayjs().format('YYYY/MM/DD HH:mm') + '.xlsx'
   tableToExcel(str, jsonData, fieds, name)
 }
 

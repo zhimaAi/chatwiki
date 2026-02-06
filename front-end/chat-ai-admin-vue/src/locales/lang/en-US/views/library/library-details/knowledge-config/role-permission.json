@@ -1,0 +1,20 @@
+{
+  "addCollaborator": "Add Collaborator",
+  "manage": "Manage",
+  "edit": "Edit",
+  "view": "View",
+  "manageDesc": "Can edit, delete, and view",
+  "editDesc": "Can edit and view",
+  "viewDesc": "View only",
+  "remove": "Remove",
+  "confirmTitle": "Confirm",
+  "confirmModifyPermission": "Confirm to change this collaborator's permission to [{permission}]",
+  "confirm": "Confirm",
+  "cancel": "Cancel",
+  "modifySuccess": "Modified successfully",
+  "confirmDelete": "Confirm to delete this data",
+  "deleteSuccess": "Deleted successfully",
+  "name": "Name",
+  "permission": "Permission",
+  "operation": "Operation"
+}

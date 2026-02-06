@@ -13,7 +13,7 @@
     <div class="ai-dialogue-node">
       <div class="field-list">
         <div class="field-item">
-          <div class="field-item-label">知识库</div>
+          <div class="field-item-label">{{ t('label_knowledge_base') }}</div>
           <div class="field-item-content">
             <div class="field-value">
               <span class="field-key"> {{ library_name }}</span>
@@ -22,7 +22,7 @@
         </div>
         <template v-if="selectedLibraryType == 2">
           <div class="field-item">
-            <div class="field-item-label">分段问题</div>
+            <div class="field-item-label">{{ t('label_segment_question') }}</div>
             <div class="field-item-content">
               <div class="field-value">
                 <span class="field-key">
@@ -32,7 +32,7 @@
             </div>
           </div>
           <div class="field-item">
-            <div class="field-item-label">分段答案</div>
+            <div class="field-item-label">{{ t('label_segment_answer') }}</div>
             <div class="field-item-content">
               <div class="field-value">
                 <span class="field-key">
@@ -45,7 +45,7 @@
 
         <template v-if="selectedLibraryType != 2 && selectedLibraryType >= 0">
           <div class="field-item" v-if="formState.import_type == 'content'">
-            <div class="field-item-label">文档标题</div>
+            <div class="field-item-label">{{ t('label_document_title') }}</div>
             <div class="field-item-content">
               <div class="field-value">
                 <span class="field-key">
@@ -55,7 +55,7 @@
             </div>
           </div>
           <div class="field-item" v-if="formState.import_type == 'content'">
-            <div class="field-item-label">文档内容</div>
+            <div class="field-item-label">{{ t('label_document_content') }}</div>
             <div class="field-item-content">
               <div class="field-value">
                 <span class="field-key">
@@ -65,7 +65,7 @@
             </div>
           </div>
           <div class="field-item" v-if="formState.import_type == 'url'">
-            <div class="field-item-label">文档URL</div>
+            <div class="field-item-label">{{ t('label_document_url') }}</div>
             <div class="field-item-content">
               <div class="field-value">
                 <span class="field-key">
@@ -85,6 +85,9 @@ import { ref, reactive, watch, onMounted, inject, nextTick, onBeforeUnmount, com
 import NodeCommon from '../base-node.vue'
 import AtText from '../../at-input/at-text.vue'
 import { useWorkflowStore } from '@/stores/modules/workflow'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.import-library-node.index')
 
 const workflowStore = useWorkflowStore()
 
@@ -203,7 +206,7 @@ onBeforeUnmount(() => {})
       }
     }
     .field-item-label {
-      width: 60px;
+      width: auto;
       line-height: 22px;
       margin-right: 8px;
       font-size: 14px;

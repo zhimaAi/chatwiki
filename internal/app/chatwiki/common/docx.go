@@ -114,10 +114,26 @@ func DocxInfoExtract(name string, userId int) (result []string, err error) {
 			if node.Prefix == `a` && node.Data == `blip` && len(node.Attr) > 0 {
 				if id, ok := GetNodeAttr(node.Attr, `r`, `embed`); ok && len(rels[id]) > 0 {
 					if imgStr, err := GetImgByZip(reader, `word/`+rels[id], userId); err == nil {
-						temp += imgStr //图片信息
+						temp += imgStr // Image info
 					} else {
 						logs.Error(err.Error())
 					}
+				}
+			}
+			// Handle OMML math formulas
+			if node.Prefix == `m` && node.Data == `oMath` {
+				// Get the complete oMath node content
+				ommlXML := "<m:oMath xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\">" + node.OutputXML(false) + "</m:oMath>"
+				// Create OMML to LaTeX converter
+				converter := NewOMMLToLatexConverter()
+				// Convert OMML to LaTeX
+				latexFormula, err := converter.ConvertOMMLToLatex(ommlXML)
+				if err != nil {
+					logs.Error("Error converting OMML to LaTeX: %v", err)
+					// If conversion fails, try using the node's inner text
+					temp += node.InnerText()
+				} else {
+					temp += "$$ " + latexFormula + " $$" // Wrap with LaTeX format
 				}
 			}
 		})
@@ -213,7 +229,7 @@ type PdfOcrCacheItem struct {
 }
 
 var (
-	pdfOcrCacheTTL = 15 * time.Minute // 缓存有效期
+	pdfOcrCacheTTL = 15 * time.Minute // Cache TTL
 )
 
 type PdfOcrCacheBuildHandler struct {
@@ -242,7 +258,7 @@ func (h *PdfOcrCacheBuildHandler) GetCacheData() (any, error) {
 
 func ocrReadOnePagePdfImpl(userId int, pdfParseType int, pdfUrl string, pageNum int, lang string) (define.DocSplitItems, int, error) {
 	file := GetFileByLink(pdfUrl)
-	outDir := define.UploadDir + fmt.Sprintf(`pdf_split/%s`, tool.Random(8)) //随机生成切分后的目录
+	outDir := define.UploadDir + fmt.Sprintf(`pdf_split/%s`, tool.Random(8)) // Randomly generate split directory
 	defer func(path string) {
 		_ = os.RemoveAll(path)
 	}(outDir)

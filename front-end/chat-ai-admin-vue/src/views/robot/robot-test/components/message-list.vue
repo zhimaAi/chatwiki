@@ -471,11 +471,11 @@
                   <div class="thinking-label" @click="toggleQuoteFiel(item)">
                     <template v-if="item.quote_loading">
                       <LoadingOutlined class="loading" />
-                      <span class="label-text">正在检索知识库...</span>
+                      <span class="label-text">{{ t('label_retrieving_knowledge_base') }}</span>
                     </template>
                     <template v-if="!item.quote_loading">
                       <svg-icon class="think-icon" name="quote-file"></svg-icon>
-                      <span class="label-text">检索到{{ item.quote_file.length }}个知识库文档</span>
+                      <span class="label-text">{{ t('label_retrieved_knowledge_base_docs', { count: item.quote_file.length }) }}</span>
                     </template>
                     <svg-icon
                       name="arrow-down"
@@ -495,7 +495,7 @@
                     <LoadingOutlined class="loading" v-if="item.reasoning_status" />
                     <svg-icon class="think-icon" name="think" v-else></svg-icon>
                     <span class="label-text">{{
-                      item.reasoning_status ? '深度思考中...' : '已完成深度思考'
+                      item.reasoning_status ? t('label_thinking') : t('label_thinking_completed')
                     }}</span>
 
                     <svg-icon
@@ -505,7 +505,7 @@
                     ></svg-icon>
                   </div>
                   <a-tooltip>
-                    <template #title>在应用设置中关闭推理过程开关，将不再显示推理过程</template>
+                    <template #title>{{ t('msg_disable_reasoning_tooltip') }}</template>
                     <InfoCircleOutlined class="tip" />
                   </a-tooltip>
                 </div>
@@ -525,7 +525,7 @@
                     <a class="file-name">
                       <svg-icon class="think-icon" name="quote-file"></svg-icon>
                       <span v-if="file.file_name">{{ file.file_name }}</span>
-                      <span v-else>{{ file.library_name }}-精选</span>
+                      <span v-else>{{ file.library_name }}-{{ t('library_featured') }}</span>
                     </a>
                   </div>
                 </div>
@@ -576,7 +576,7 @@
                 >
                   <div class="message-action" v-if="item.debug && item.debug.length > 0">
                     <div class="action-btn">
-                      <span><a @click="openPromptLog(item)">Prompt 日志</a></span>
+                      <span><a @click="openPromptLog(item)">{{ t('btn_prompt_log') }}</a></span>
                     </div>
                   </div>
                 </div>
@@ -614,6 +614,9 @@ import VoiceMessage from './voice-message.vue'
 import TextMessage from './messages/text-message.vue'
 import MultipleMessage from './messages/multiple-message.vue'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-test.components.message-list')
 const robotStore = useRobotStore()
 
 const tips_before_answer_content = computed(()=>{

@@ -105,7 +105,7 @@ func StatTokenApp(c *gin.Context) {
 	size := max(1, cast.ToInt(c.DefaultQuery(`size`, `10`)))
 	startDate := strings.TrimSpace(c.Query(`start_date`))
 	endDate := strings.TrimSpace(c.Query(`end_date`))
-	if len(startDate) == 0 || len(endDate) == 0 { //如果为空 那么默认近七天
+	if len(startDate) == 0 || len(endDate) == 0 { // default to last 7 days if empty
 		startDate = time.Now().AddDate(0, 0, -7).Format(`2006-01-02`)
 		endDate = time.Now().Format(`2006-01-02`)
 	}
@@ -158,7 +158,7 @@ func StatTokenAppChart(c *gin.Context) {
 	}
 	startDate := strings.TrimSpace(c.Query(`start_date`))
 	endDate := strings.TrimSpace(c.Query(`end_date`))
-	if len(startDate) == 0 || len(endDate) == 0 { //如果为空 那么默认近七天
+	if len(startDate) == 0 || len(endDate) == 0 { // default to last 7 days if empty
 		startDate = time.Now().AddDate(0, 0, -7).Format(`2006-01-02`)
 		endDate = time.Now().Format(`2006-01-02`)
 	}
@@ -381,7 +381,7 @@ func WorkflowLogs(c *gin.Context) {
 					list[key][`version`] = versionInfo[`version`]
 				}
 			}
-			//耗时
+			// Duration
 			durationMills := 0
 			totalToken := 0
 			nodeLogs := make([]define.NodeLogs, 0)

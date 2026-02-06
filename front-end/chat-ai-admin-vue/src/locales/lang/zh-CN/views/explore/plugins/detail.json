@@ -1,0 +1,13 @@
+{
+  "title_plugin_detail": "插件详情",
+  "btn_usage_guide": "使用说明",
+  "btn_update": "更 新",
+  "btn_installed": "已安装",
+  "btn_install": "安 装",
+  "title_plugin_overview": "插件概叙",
+  "title_category": "类别",
+  "title_version": "版本",
+  "btn_version_history": "版本历史",
+  "title_permissions": "权限列表",
+  "label_max_memory": "最大内存"
+}

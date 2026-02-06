@@ -4,12 +4,12 @@
       <NodeFormHeader
         :title="node.node_name"
         :iconName="node.node_icon_name"
-        desc="发起一个http请求，实现与第三方系统数据交互"
+        :desc="t('desc_http_node')"
         @close="handleClose"
       >
         <template #runBtn>
           <a-tooltip>
-            <template #title>运行测试</template>
+            <template #title>{{ t('btn_run_test') }}</template>
             <div class="run-test-btn" @click="handleOpenTestModal">
               <CaretRightOutlined style="color: rgb(0, 173, 58)" />
             </div>
@@ -22,16 +22,16 @@
         <a-form ref="formRef" layout="vertical" :model="formState">
           <div class="gray-block">
             <div class="gray-block-title  export-curl-title">
-            <span> 输入</span>
+            <span>{{ t('title_input') }}</span>
             <a-button ghost type="primary" size="small" @click="showParseModal">
-              <CodeOutlined /> 导入cURL
+              <CodeOutlined /> {{ t('btn_import_curl') }}
             </a-button>
             </div>
 
             <a-form-item
-              label="请求地址"
+              :label="t('label_request_url')"
               name="rawurl"
-              :rules="[{ required: true, message: '请输入请求地址' }]"
+              :rules="[{ required: true, message: t('msg_input_request_url') }]"
             >
               <div class="flex-block-item">
                 <a-form-item-rest>
@@ -43,13 +43,13 @@
                 <a-input
                   class="flex1"
                   v-model:value="formState.rawurl"
-                  placeholder="请输入请求地址"
+                  :placeholder="t('msg_input_request_url')"
                 ></a-input>
               </div>
             </a-form-item>
 
             <div class="array-form-box">
-              <div class="form-item-label">HEADERS</div>
+              <div class="form-item-label">{{ t('title_headers') }}</div>
               <div class="form-item-list" v-for="(item, index) in formState.headers" :key="index">
                 <a-form-item :label="null" :name="['headers', index, 'value']">
                   <div class="flex-block-item">
@@ -57,7 +57,7 @@
                       <a-input
                         style="width: 120px"
                         v-model:value="item.key"
-                        placeholder="请输入参数KEY"
+                        :placeholder="t('ph_input_param_key')"
                       ></a-input>
                     </a-form-item-rest>
 
@@ -73,7 +73,7 @@
                           (text, selectedList) =>
                             changeValue('headers', text, selectedList, item, index)
                         "
-                        placeholder="请输入变量值，键入“/”插入变量"
+                        :placeholder="t('ph_input_variable_value')"
                       >
                         <template #option="{ label, payload }">
                           <div class="field-list-item">
@@ -91,11 +91,11 @@
                 </a-form-item>
               </div>
               <a-button @click="handleAddHeader" :icon="h(PlusOutlined)" block type="dashed"
-                >添加参数</a-button
+                >{{ t('btn_add_param') }}</a-button
               >
             </div>
             <div class="array-form-box">
-              <div class="form-item-label">PARAMS</div>
+              <div class="form-item-label">{{ t('title_params') }}</div>
               <div class="form-item-list" v-for="(item, index) in formState.params" :key="index">
                 <a-form-item :label="null" :name="['params', index, 'value']">
                   <div class="flex-block-item">
@@ -103,7 +103,7 @@
                       <a-input
                         style="width: 120px"
                         v-model:value="item.key"
-                        placeholder="请输入参数KEY"
+                        :placeholder="t('ph_input_param_key')"
                       ></a-input>
                     </a-form-item-rest>
                     <div class="at-input-flex1">
@@ -118,7 +118,7 @@
                           (text, selectedList) =>
                             changeValue('params', text, selectedList, item, index)
                         "
-                        placeholder="请输入变量值，键入“/”插入变量"
+                        :placeholder="t('ph_input_variable_value')"
                       >
                         <template #option="{ label, payload }">
                           <div class="field-list-item">
@@ -136,16 +136,16 @@
                 </a-form-item>
               </div>
               <a-button @click="handleAddParams" :icon="h(PlusOutlined)" block type="dashed"
-                >添加参数</a-button
+                >{{ t('btn_add_param') }}</a-button
               >
             </div>
 
             <div v-if="formState.method == 'POST'">
-              <a-form-item label="BODY" name="type" class="line-height-22">
+              <a-form-item :label="t('title_body')" name="type" class="line-height-22">
                 <a-radio-group v-model:value="formState.type">
-                  <a-radio :value="0">none</a-radio>
-                  <a-radio :value="1">x-www-form-urlencoded</a-radio>
-                  <a-radio :value="2">JSON</a-radio>
+                  <a-radio :value="0">{{ t('label_body_none') }}</a-radio>
+                  <a-radio :value="1">{{ t('label_body_form_urlencoded') }}</a-radio>
+                  <a-radio :value="2">{{ t('label_body_json') }}</a-radio>
                 </a-radio-group>
               </a-form-item>
               <div class="array-form-box" v-if="formState.type == 1">
@@ -162,7 +162,7 @@
                         <a-input
                           style="width: 120px"
                           v-model:value="item.key"
-                          placeholder="请输入参数KEY"
+                          :placeholder="t('ph_input_param_key')"
                         ></a-input>
                       </a-form-item-rest>
                       <div class="at-input-flex1">
@@ -177,7 +177,7 @@
                             (text, selectedList) =>
                               changeValue('body', text, selectedList, item, index)
                           "
-                          placeholder="请输入变量值，键入“/”插入变量"
+                          :placeholder="t('ph_input_variable_value')"
                         >
                           <template #option="{ label, payload }">
                             <div class="field-list-item">
@@ -195,7 +195,7 @@
                   </a-form-item>
                 </div>
                 <a-button @click="handleAddBody" :icon="h(PlusOutlined)" block type="dashed"
-                  >添加参数</a-button
+                  >{{ t('btn_add_param') }}</a-button
                 >
               </div>
               <a-form-item :label="null" name="body_raw" v-if="formState.type == 2">
@@ -207,7 +207,7 @@
                   :ref="(el) => setAtInputRef(el, 'body', 'body_raw')"
                   @open="getVlaueVariableList"
                   @change="(text, selectedList) => changeValue('body_raw', text, selectedList)"
-                  placeholder="请输入变量值，键入“/”插入变量"
+                  :placeholder="t('ph_input_variable_value')"
                 >
                   <template #option="{ label, payload }">
                     <div class="field-list-item">
@@ -221,25 +221,25 @@
 
             <a-form-item name="timeout">
               <template #label>
-                <a-flex :gap="2">超时时长</a-flex>
+                <a-flex :gap="2">{{ t('label_timeout') }}</a-flex>
               </template>
               <div class="flex-block-item">
                 <a-input-number
-                  placeholder="请输入请求地址"
+                  :placeholder="t('msg_input_request_url')"
                   style="width: 120px"
                   :precision="0"
                   v-model:value="formState.timeout"
                   :min="0"
                   :max="3000"
                 />
-                秒
+                {{ t('label_second') }}
               </div>
             </a-form-item>
           </div>
           <div class="gray-block mt16">
-            <div class="gray-block-title">鉴权
+            <div class="gray-block-title">{{ t('title_authentication') }}
               <a-tooltip>
-                <template #title>鉴权参数：导出模板CSL文件，或者上架模板时，自动清空参数值</template>
+                <template #title>{{ t('tip_authentication_params') }}</template>
                 <QuestionCircleOutlined />
               </a-tooltip>
             </div>
@@ -257,13 +257,13 @@
                       <a-input
                         style="width: 124px"
                         v-model:value="item.key"
-                        placeholder="请输入"
+                        :placeholder="t('ph_input_value')"
                       ></a-input>
                       <a-form-item-rest>
                         <a-input
                           style="width: 124px"
                           v-model:value="item.value"
-                          placeholder="请输入"
+                          :placeholder="t('ph_input_value')"
                         ></a-input>
                         <a-select v-model:value="item.add_to" style="width: 124px">
                           <a-select-option value="HEADERS">HEADERS</a-select-option>
@@ -277,20 +277,20 @@
                     </div>
                   </a-form-item>
                 </div>
-                <a-button @click="handleOpenAuthenticationModal" :icon="h(PlusOutlined)" block type="dashed">添加参数</a-button>
+                <a-button @click="handleOpenAuthenticationModal" :icon="h(PlusOutlined)" block type="dashed">{{ t('btn_add_param') }}</a-button>
               </div>
             </div>
           </div>
 
           <div class="gray-block mt16">
             <div class="gray-block-title output-title" @click="test">
-              <span>输出 (输出字段提取)</span>
-              <a-button type="primary" size="small" @click="handleOpenTestModal">自动提取输出参数</a-button>
+              <span>{{ t('title_output_extraction') }}</span>
+              <a-button type="primary" size="small" @click="handleOpenTestModal">{{ t('btn_auto_extract_output') }}</a-button>
             </div>
             <div class="output-box">
               <div class="output-block">
-                <div class="output-item">参数Key</div>
-                <div class="output-item">类型</div>
+                <div class="output-item">{{ t('label_param_key') }}</div>
+                <div class="output-item">{{ t('label_type') }}</div>
               </div>
               <div class="array-form-box" @mousedown.stop="">
                 <div class="form-item-list" v-for="(item, index) in formState.output" :key="index">
@@ -299,13 +299,13 @@
                       <a-input
                         style="width: 214px"
                         v-model:value="item.key"
-                        placeholder="请输入"
+                        :placeholder="t('ph_input_value')"
                       ></a-input>
                       <a-form-item-rest>
                         <a-select
                           @change="onTypeChange(item)"
                           v-model:value="item.typ"
-                          placeholder="请选择"
+                          :placeholder="t('ph_select_value')"
                           style="width: 214px"
                         >
                           <a-select-option v-for="op in typOptions" :value="op.value" :key="op.value">{{
@@ -334,7 +334,7 @@
                   </a-form-item>
                 </div>
                 <a-button @click="handleAddOutPut" :icon="h(PlusOutlined)" block type="dashed"
-                  >添加参数</a-button
+                  >{{ t('btn_add_param') }}</a-button
                 >
               </div>
             </div>
@@ -353,6 +353,7 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
 import { ref, reactive, watch, h, onMounted, inject } from 'vue'
@@ -365,6 +366,7 @@ import { getUuid } from '@/utils/index'
 import AddAuthenticationModal from './add-authentication-modal.vue'
 import RunTest from './run-test.vue'
 
+const { t } = useI18n('views.workflow.components.node-form-drawer.http-node.http-node-form')
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({
@@ -561,7 +563,7 @@ const handleOpenTestModal = async () => {
 
 const handleAutoExtract = (fields) => {
   formState.output = fields
-  message.success('自动提取成功')
+  message.success(t('msg_auto_extract_success'))
 }
 
 const setAtInputRef = (el, name, index) => {

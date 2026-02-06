@@ -1,0 +1,10 @@
+{
+  "tip_bind_wechat": "Bind WeChat customer service, and the robot will automatically reply when users consult through WeChat customer service",
+  "label_bind_wechat": "Bind WeChat Customer Service",
+  "title_confirm_remove": "Are you sure you want to remove {app_name}?",
+  "msg_remove_warning": "After removal, the robot will no longer be able to reply to user messages.",
+  "btn_confirm": "Confirm",
+  "btn_cancel": "Cancel",
+  "msg_delete_success": "Deletion successful",
+  "msg_refresh_success": "Refresh successful"
+}

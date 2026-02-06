@@ -2,14 +2,14 @@
   <div>
     <a-modal
       v-model:open="show"
-      title="运行测试"
+      :title="t('title_run_test')"
       :footer="null"
       :width="820"
       wrapClassName="no-padding-modal"
     >
       <div class="flex-content-box">
         <div class="test-model-box">
-          <div class="top-title" @click="handleOpenRecognizeModal">运行参数</div>
+          <div class="top-title" @click="handleOpenRecognizeModal">{{ t('label_run_params') }}</div>
           <a-form
             :model="formState"
             ref="formRef"
@@ -21,24 +21,24 @@
               v-for="(item, index) in formState.test_params"
               :key="item.key"
               :name="['test_params', index, 'value']"
-              :rules="[{ required: true, message: `请输入${item.field}` }]"
+              :rules="[{ required: true, message: `${t('ph_input')}${item.field}` }]"
             >
               <template #label>
                 <a-flex :gap="8"
                   >{{ item.field }}<a-tag style="margin: 0">{{ item.typ }}</a-tag>
                   <a v-if="item.typ.includes('array')" @click="handleOpenRecognizeModal(index)">
                     <ImportOutlined />
-                    一键导入
+                    {{ t('btn_one_click_import') }}
                   </a>
                 </a-flex>
               </template>
               <template v-if="item.typ != 'number' && !item.typ.includes('array')">
-                <a-input placeholder="请输入" v-model:value="item.value" />
+                <a-input :placeholder="t('ph_input')" v-model:value="item.value" />
               </template>
               <template v-if="item.typ == 'number'">
                 <a-input-number
                   style="width: 100%"
-                  placeholder="请输入"
+                  :placeholder="t('ph_input')"
                   v-model:value="item.value"
                 />
               </template>
@@ -46,7 +46,7 @@
                 <div class="input-list-box">
                   <div class="input-list-item" v-for="(input, i) in item.value" :key="i">
                     <a-form-item-rest
-                      ><a-input placeholder="请输入" v-model:value="input.value"
+                      ><a-input :placeholder="t('ph_input')" v-model:value="input.value"
                     /></a-form-item-rest>
 
                     <CloseCircleOutlined
@@ -55,7 +55,7 @@
                     />
                   </div>
                   <div class="add-btn-box">
-                    <a-button @click="handleAddItem(item.value)" block type="dashed">添加</a-button>
+                    <a-button @click="handleAddItem(item.value)" block type="dashed">{{ t('btn_add') }}</a-button>
                   </div>
                 </div>
               </template>
@@ -67,17 +67,16 @@
               @click="handleSubmit"
               style="background-color: #00ad3a"
               type="primary"
-              ><CaretRightOutlined />运行测试</a-button
-            >
+              ><CaretRightOutlined />{{ t('btn_run_test') }}</a-button>
           </div>
         </div>
         <div class="preview-box">
           <template v-if="resultStr">
             <div class="preview-title">
-              <div class="title-text">日志详情</div>
+              <div class="title-text">{{ t('label_log_details') }}</div>
             </div>
             <div class="preview-content-block">
-              <div class="title-block">运行日志<CopyOutlined @click="handleCopy" /></div>
+              <div class="title-block">{{ t('label_run_log') }}<CopyOutlined @click="handleCopy" /></div>
               <div class="preview-code-box">
                 <vue-json-pretty :data="resultStr" />
               </div>
@@ -85,10 +84,10 @@
           </template>
           <template v-if="isErrorStatus">
             <div class="preview-title">
-              <div class="title-text">日志详情</div>
+              <div class="title-text">{{ t('label_log_details') }}</div>
             </div>
             <div class="preview-content-block">
-              <div class="title-block">错误日志</div>
+              <div class="title-block">{{ t('label_run_log') }}</div>
               <div class="error-box" style="margin-top: 12px;">
                  <a-alert :message="errorMsg" type="error" />
               </div>
@@ -98,22 +97,22 @@
       </div>
     </a-modal>
 
-    <a-modal v-model:open="recognizeOpen" :width="820" title="批量导入字段值" @ok="handleSaveValue">
+    <a-modal v-model:open="recognizeOpen" :width="820" :title="t('title_batch_import')" @ok="handleSaveValue">
       <a-textarea
         v-model:value.trim="jsonData"
-        placeholder="请输入JSON字符串"
+        :placeholder="t('ph_input_json')"
         style="min-height: 200px"
       />
 
       <div v-if="showJsonError" style="color: #f50">
-        json格式错误 请输入正确的json字符串 列如
-        [{"xxx":"11","id":48985},{"brand":"aaa","id":48986}]
+        {{ t('msg_json_error') }}
       </div>
     </a-modal>
   </div>
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import {
   CaretRightOutlined,
   CloseCircleOutlined,
@@ -126,6 +125,8 @@ import { reactive, ref } from 'vue'
 import { testCodeRun } from '@/api/robot/index'
 import { message } from 'ant-design-vue'
 import { copyText } from '@/utils/index'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.code-run-node.run-test')
 
 const emit = defineEmits(['save'])
 
@@ -179,6 +180,7 @@ let local_test_params = []
 const handleOpenTestModal = async (data) => {
   resultStr.value = ''
   formState.main_func = data.main_func
+  formState.language = data.language || 'javaScript'
   let localFormData = localStorage.getItem('code_run_node_test_modal_data') || '{}'
   local_test_params = JSON.parse(localFormData).test_params || []
 
@@ -273,7 +275,7 @@ const handleSubmit = () => {
       ...postData
     })
       .then((res) => {
-        message.success('测试结果生成完成')
+        message.success(t('msg_test_success'))
         resultStr.value = JSON.parse(res.data)
       })
       .catch((res) => {
@@ -318,7 +320,7 @@ function isJson(str) {
 
 const handleCopy = () => {
   copyText(JSON.stringify(resultStr.value))
-  message.success('复制成功')
+  message.success(t('msg_copy_success'))
 }
 
 const open = (data, isInLoopNode) => {

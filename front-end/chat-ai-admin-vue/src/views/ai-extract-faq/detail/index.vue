@@ -8,16 +8,16 @@
         <a-breadcrumb>
           <a-breadcrumb-item>
             <router-link to="/ai-extract-faq/list"
-              ><LeftOutlined /> 文档提取FAQ
+              ><LeftOutlined /> {{ t('label_document_extract_faq') }}
             </router-link></a-breadcrumb-item
           >
           <a-breadcrumb-item>{{ file_name }}</a-breadcrumb-item>
         </a-breadcrumb>
       </div>
-      <page-alert class="mb16" title="使用说明">
+      <page-alert class="mb16" :title="t('title_usage_instruction')">
         <div>
           <p>
-            您可以查看、编辑提取处的问答对，并直接将问答对导入到知识库中。您也可以将知识库下载成文档，批量导入导问答知识库中。
+            {{ t('msg_usage_description') }}
           </p>
         </div>
       </page-alert>
@@ -32,18 +32,18 @@
             @click="handleOpenImportModal"
             type="primary"
             :icon="createVNode(UploadOutlined)"
-            >导入知识库</a-button
+            >{{ t('btn_import_knowledge_base') }}</a-button
           >
-          <a-button @click="handleDel">批量删除</a-button>
+          <a-button @click="handleDel">{{ t('btn_batch_delete') }}</a-button>
           <a-dropdown>
             <template #overlay>
               <a-menu>
-                <a-menu-item @click="handleDownload('docx')" key="1">下载为docx</a-menu-item>
-                <a-menu-item @click="handleDownload('xlsx')" key="2">下载为xlsx</a-menu-item>
+                <a-menu-item @click="handleDownload('docx')" key="1">{{ t('label_download_as_docx') }}</a-menu-item>
+                <a-menu-item @click="handleDownload('xlsx')" key="2">{{ t('label_download_as_xlsx') }}</a-menu-item>
               </a-menu>
             </template>
             <a-button type="primary">
-              下载
+              {{ t('btn_download') }}
               <DownOutlined />
             </a-button>
           </a-dropdown>
@@ -92,6 +92,9 @@ import ImportKnowledgeModal from '../list/components/import-knowledge-modal.vue'
 import { useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { useUserStore } from '@/stores/modules/user'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.ai-extract-faq.detail.index')
 const userStore = useUserStore()
 
 const route = useRoute()
@@ -158,7 +161,7 @@ const importKnowledgeModalRef = ref(null)
 const handleOpenImportModal = () => {
   let selectedRowKeys = subsectionBoxRef.value.state.selectedRowKeys
   if (selectedRowKeys.length == 0) {
-    return message.error('请选择你要导入的问答')
+    return message.error(t('msg_select_qa_to_import'))
   }
   importKnowledgeModalRef.value.show({
     id: query.id,
@@ -169,15 +172,15 @@ const handleOpenImportModal = () => {
 const handleDel = () => {
   let selectedRowKeys = subsectionBoxRef.value.state.selectedRowKeys
   if (selectedRowKeys.length == 0) {
-    return message.error('请选择你要删除的问答')
+    return message.error(t('msg_select_qa_to_delete'))
   }
   Modal.confirm({
-    title: '提示',
+    title: t('title_tip'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确认是否删除选中的分段?',
+    content: t('msg_confirm_delete_segment'),
     onOk() {
       deleteFAQFileQA({ ids: selectedRowKeys.join(',') }).then((res) => {
-        message.success('删除成功')
+        message.success(t('msg_delete_success'))
         getParagraphLists()
       })
     },
@@ -198,21 +201,21 @@ const setStatusOption = (total, import_total) => {
       value: '',
       payload: {
         num: total,
-        title: '全部'
+        title: t('label_all')
       }
     },
     {
       value: 0,
       payload: {
         num: total - import_total,
-        title: '未导入'
+        title: t('label_not_imported')
       }
     },
     {
       value: 1,
       payload: {
         num: import_total,
-        title: '已导入'
+        title: t('label_imported')
       }
     }
   ]

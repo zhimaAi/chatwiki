@@ -166,7 +166,7 @@ func QueryAndParseAliOcrRequest(file msql.Params, aliOcrKey, aliOcrSecret string
 		`convert`, tool.Date(`Ym`), tool.MD5(htmlContent))
 	url, err := WriteFileByString(objectKey, htmlContent)
 
-	// 更新文件状态为待分割
+	// Update file status to pending split
 	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
 		Where(`id`, file[`id`]).
 		Update(msql.Datas{
@@ -189,25 +189,25 @@ func QueryAndParseAliOcrRequest(file msql.Params, aliOcrKey, aliOcrSecret string
 	return nil
 }
 
-// 生成OCR识别结果的HTML内容
+// generateOcrHtmlContent generates HTML content from OCR recognition result
 func generateOcrHtmlContent(data map[string]interface{}) string {
-	// 构建HTML头部
+	// Build HTML header
 	htmlContent := `<html><head><meta charset="utf-8"></head><body>`
 
-	// 处理layouts数据
+	// Process layouts data
 	layouts := extractLayouts(data)
 
-	// 按页码分组布局
+	// Group layouts by page number
 	pageLayouts := groupLayoutsByPage(layouts)
 
-	// 获取所有页码并排序
+	// Get all page numbers and sort them
 	pageNums := make([]int, 0, len(pageLayouts))
 	for pageNum := range pageLayouts {
 		pageNums = append(pageNums, pageNum)
 	}
 	sort.Ints(pageNums)
 
-	// 按顺序处理每个页面的布局，确保包含所有页码
+	// Process each page's layouts in order to ensure all page numbers are included
 	for pageNum := 0; pageNum <= pageNums[len(pageNums)-1]; pageNum++ {
 		htmlContent += "<meta charset=\"UTF-8\"/>\n"
 
@@ -215,7 +215,7 @@ func generateOcrHtmlContent(data map[string]interface{}) string {
 		if exists {
 			htmlContent += "<div>" + processPageLayouts(layouts) + "</div>"
 		} else {
-			// 对于缺失的页码，添加空内容
+			// Add empty content for missing page numbers
 			htmlContent += "<div></div>"
 		}
 	}
@@ -224,23 +224,23 @@ func generateOcrHtmlContent(data map[string]interface{}) string {
 	return htmlContent
 }
 
-// 提取layouts数据
+// extractLayouts extracts layouts data
 func extractLayouts(data map[string]interface{}) []map[string]interface{} {
 	var layouts []map[string]interface{}
 
-	// 获取layouts数组
+	// Get layouts array
 	layoutsInterface, hasLayouts := data["layouts"]
 	if !hasLayouts {
 		return layouts
 	}
 
-	// 转换为数组类型
+	// Convert to array type
 	layoutsArray, ok := layoutsInterface.([]interface{})
 	if !ok {
 		return layouts
 	}
 
-	// 转换每个layout为map
+	// Convert each layout to map
 	for _, layoutInterface := range layoutsArray {
 		if layout, ok := layoutInterface.(map[string]interface{}); ok {
 			layouts = append(layouts, layout)
@@ -250,7 +250,7 @@ func extractLayouts(data map[string]interface{}) []map[string]interface{} {
 	return layouts
 }
 
-// 按页码分组布局
+// groupLayoutsByPage groups layouts by page number
 func groupLayoutsByPage(layouts []map[string]interface{}) map[int][]map[string]interface{} {
 	pageLayouts := make(map[int][]map[string]interface{})
 
@@ -262,7 +262,7 @@ func groupLayoutsByPage(layouts []map[string]interface{}) map[int][]map[string]i
 	return pageLayouts
 }
 
-// 处理页面布局
+// processPageLayouts processes page layouts
 func processPageLayouts(layouts []map[string]interface{}) string {
 	md := ""
 	for _, layout := range layouts {

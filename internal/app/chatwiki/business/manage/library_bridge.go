@@ -131,13 +131,13 @@ func BridgeGetLibraryList(adminUserId, userId int, lang string, req *BridgeLibra
 			}
 			if len(params[`avatar`]) == 0 {
 				switch cast.ToInt(params[`type`]) {
-				case 0: //普通知识库
+				case 0: //general library
 					params[`avatar`] = define.LocalUploadPrefix + `default/library_avatar.png`
 					break
-				case 2: //问答知识库
+				case 2: //Q&A library
 					params[`avatar`] = define.LocalUploadPrefix + `default/library_faq.png`
 					break
-				case 3: //公众号知识库
+				case 3: //official account library
 					params[`avatar`] = define.LocalUploadPrefix + `default/official_account_avatar.png`
 					break
 				}
@@ -193,7 +193,7 @@ func BridgeGetLibraryListGroup(adminUserId, userId int, lang string, req *Bridge
 	} else {
 		req.Type = fmt.Sprintf(`%v`, cast.ToInt(req.Type))
 	}
-	//统计数据
+	//Statistics
 	stats, err := msql.Model(`chat_ai_library`, define.Postgres).
 		Where2(wheres).
 		Where(`type`, `in`, req.Type).
@@ -548,7 +548,7 @@ func BridgeEditLibrary(c *gin.Context, adminUserId, loginUserId int, lang string
 	if len(info) == 0 {
 		return nil, -1, errors.New(i18n.Show(lang, `no_data`))
 	}
-	if chunkType == define.ChunkTypeFatherSon && cast.ToInt(info[`type`]) != define.GeneralLibraryType { //父子分段仅支持普通知识库
+	if chunkType == define.ChunkTypeFatherSon && cast.ToInt(info[`type`]) != define.GeneralLibraryType { //parent/child chunking is supported only for general libraries
 		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `chunk_type`))
 	}
 
@@ -614,11 +614,11 @@ func BridgeEditLibrary(c *gin.Context, adminUserId, loginUserId int, lang string
 	} else if info[`use_model`] != useModel || cast.ToInt(info[`model_config_id`]) != modelConfigId {
 		go common.EmbeddingNewVector(id, cast.ToInt(info[`admin_user_id`]))
 	}
-	// QA 切换索引方式
+	//Switch QA index type
 	if cast.ToInt(info[`type`]) == define.QALibraryType && qaIndexType != cast.ToInt(info[`qa_index_type`]) {
 		go common.EmbeddingNewQAVector(id, cast.ToInt(info[`admin_user_id`]), qaIndexType)
 	}
-	// 更新历史发布内容
+	//Update historical published content
 	if cast.ToInt(info[`type`]) == define.OfficialLibraryType && cast.ToInt(info[`sync_official_history_type`]) < syncOfficialHistoryType {
 		go SyncOfficialLibrary(common.GetLang(c), id)
 	}
@@ -638,7 +638,7 @@ func ValidateChunkParam(adminUserId int, chunkParam *define.ChunkParam, typ stri
 		return errors.New(i18n.Show(lang, `param_invalid`, `chunk_type`))
 	}
 	if chunkType == define.ChunkTypeFatherSon {
-		if cast.ToInt(typ) != define.GeneralLibraryType { //父子分段仅支持普通知识库
+		if cast.ToInt(typ) != define.GeneralLibraryType { //parent/child chunking is supported only for general libraries
 			return errors.New(i18n.Show(lang, `param_invalid`, `chunk_type`))
 		}
 		if !tool.InArrayInt(cast.ToInt(chunkParam.FatherChunkParagraphType), []int{define.FatherChunkParagraphTypeFullText, define.FatherChunkParagraphTypeSection}) {
@@ -746,6 +746,8 @@ func BridgeDeleteLibrary(adminUserId, loginUserId int, lang string, req *BridgeD
 		logs.Error(err.Error())
 		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
 	}
+	//clear stat library tip
+	common.CleanStatLibraryTip(adminUserId, id)
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.LibraryCacheBuildHandler{LibraryId: id})
 	//dispose relation data

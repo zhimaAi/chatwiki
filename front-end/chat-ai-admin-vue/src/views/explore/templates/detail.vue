@@ -2,7 +2,7 @@
   <div class="_container _plugin-detail-cont">
     <div class="header">
 <!--      <LeftOutlined @click="router.back()" class="back-icon"/>-->
-      <span class="title">模板详情</span>
+      <span class="title">{{ t('title_template_detail') }}</span>
     </div>
     <LoadingBox v-if="loading"/>
     <div v-else class="content">
@@ -20,7 +20,7 @@
             <div class="right">
               <a-button class="use-btn" type="primary" ghost @click="useTemplate">
                 <svg-icon name="icon-rocket"/>
-                使用模板
+                {{ t('btn_use_template') }}
               </a-button>
             </div>
           </div>
@@ -41,13 +41,13 @@
 <!--            <pre class="text-cont">{{ info.overview }}</pre>-->
 <!--          </div>-->
           <div class="main-block">
-            <div class="main-tit">使用说明</div>
+            <div class="main-tit">{{ t('title_usage_instructions') }}</div>
             <pre class="text-cont" v-viewer v-html="tplInfo.instructions"></pre>
           </div>
         </div>
         <div class="right">
           <div class="main-block">
-            <div class="main-tit">模板分类</div>
+            <div class="main-tit">{{ t('title_template_category') }}</div>
             <div class="text-cont flex-center">
               {{ tplInfo.category_name }}
             </div>
@@ -68,7 +68,9 @@ import LoadingBox from "@/components/common/loading-box.vue";
 import {getPluginInfo} from "@/api/plugins/index.js";
 import {getTplDetailMain, useRobotTemplate} from "@/api/explore/template.js";
 import {useCompanyStore} from "@/stores/modules/company.js";
+import { useI18n } from '@/hooks/web/useI18n'
 
+const { t } = useI18n('views.explore.templates.detail')
 const router = useRouter()
 const route = useRoute()
 
@@ -105,7 +107,7 @@ function useTemplate() {
   }
   const run = () => {
     useRobotTemplate({template_id: item.id, csl_url: item.csl_url}).then(res => {
-      message.success('使用成功')
+      message.success(t('msg_use_success'))
       const {id, robot_key} = res.data
       const url = router.resolve({path: '/robot/config/workflow', query: {id, robot_key}})
       window.open(url.href, '_blank')
@@ -113,20 +115,20 @@ function useTemplate() {
   }
   if (!checkVersion(sysVersion.value, item.version)) {
     Modal.confirm({
-      title: '提示',
-      content: '当前系统版本过低，可能无法使用此模板；请您升级到最新版本后使用！',
+      title: t('title_tip'),
+      content: t('msg_version_too_low'),
       icon: h(ExclamationCircleOutlined),
-      okText: '继续使用',
-      cancelText: '取 消',
+      okText: t('btn_continue_use'),
+      cancelText: t('btn_cancel'),
       onOk: run
     })
   } else {
     Modal.confirm({
-      title: '提示',
-      content: `确定使用模板【${item.name}】创建应用吗?`,
+      title: t('title_tip'),
+      content: t('msg_confirm_use_template', { name: item.name }),
       icon: h(ExclamationCircleOutlined),
-      okText: '确 认',
-      cancelText: '取 消',
+      okText: t('btn_confirm'),
+      cancelText: t('btn_cancel'),
       onOk: run
     })
   }

@@ -10,14 +10,14 @@
         class="mr12"
         :style="{ width: widthPx }"
         v-model:value="item.key"
-        placeholder="请输入"
+        :placeholder="t('ph_input')"
       ></a-input>
       <img class="fork-icon" src="@/assets/svg/right-fork-icon.svg" alt="" />
       <a-select
         class="mr12"
         @change="onTypeChange(item)"
         v-model:value="item.typ"
-        placeholder="请选择"
+        :placeholder="t('ph_select')"
         :style="{ width: widthPx }"
       >
         <a-select-option v-for="op in filterTypOptions" :value="op.value">{{
@@ -50,6 +50,10 @@
 import { computed, ref } from 'vue'
 import { CloseCircleOutlined, PlusCircleOutlined, EditOutlined} from '@ant-design/icons-vue'
 import AddParamsModal from './add-params-modal.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.parameter-extraction-node.subs-key')
+
 const props = defineProps({
   data: {},
   level: {

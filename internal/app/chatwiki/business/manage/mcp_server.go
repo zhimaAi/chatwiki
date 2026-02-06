@@ -56,16 +56,16 @@ func GetMcpServerList(c *gin.Context) {
 			return
 		}
 
-		// 简化 node_params 结构，只返回必要的参数信息
+		// Simplify node_params structure, only return necessary parameter info
 		for i := range toolList {
 			simplifiedParams := simplifyNodeParams(toolList[i])
-			// 将简化后的参数序列化为 JSON 字符串
+			// Serialize simplified parameters to JSON string
 			simplifiedParamsJSON, err := json.Marshal(simplifiedParams)
 			if err != nil {
 				logs.Error("Failed to marshal simplified_params: %v", err)
 				continue
 			}
-			// 创建新的 map 来存储简化后的参数
+			// Create new map to store simplified parameters
 			newTool := make(msql.Params)
 			for k, v := range toolList[i] {
 				newTool[k] = v
@@ -362,7 +362,7 @@ func SaveMcpTool(c *gin.Context) {
 		return
 	}
 
-	// 验证 MCP Server 是否存在
+	// Verify MCP Server exists
 	mcpServer, err := msql.Model(`mcp_server`, define.Postgres).
 		Where(`id`, cast.ToString(serverId)).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
@@ -377,7 +377,7 @@ func SaveMcpTool(c *gin.Context) {
 		return
 	}
 
-	// 解析传入的 robot_id 列表
+	// Parse incoming robot_id list
 	newRobotIds := make(map[int]bool)
 	if len(robotIdsStr) > 0 {
 		for _, idStr := range strings.Split(robotIdsStr, ",") {
@@ -388,7 +388,7 @@ func SaveMcpTool(c *gin.Context) {
 		}
 	}
 
-	// 获取当前 server_id 下的所有 mcp_tool
+	// Get all mcp_tools under current server_id
 	existingTools, err := msql.Model(`mcp_tool`, define.Postgres).
 		Where(`server_id`, cast.ToString(serverId)).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
@@ -399,7 +399,7 @@ func SaveMcpTool(c *gin.Context) {
 		return
 	}
 
-	// 构建现有的 robot_id 映射
+	// Build existing robot_id mapping
 	existingRobotIds := make(map[int]int) // robot_id -> tool_id
 	for _, t := range existingTools {
 		robotId := cast.ToInt(t[`robot_id`])
@@ -407,10 +407,10 @@ func SaveMcpTool(c *gin.Context) {
 		existingRobotIds[robotId] = toolId
 	}
 
-	// 找出需要添加的 robot_id（新列表中有，旧列表中没有）
+	// Find robot_ids to add (in new list but not in old list)
 	for robotId := range newRobotIds {
 		if _, exists := existingRobotIds[robotId]; !exists {
-			// 验证 robot 是否存在且类型正确
+			// Verify robot exists and type is correct
 			robot, err := msql.Model(`chat_ai_robot`, define.Postgres).
 				Where(`admin_user_id`, cast.ToString(adminUserId)).
 				Where(`application_type`, cast.ToString(define.ApplicationTypeFlow)).
@@ -430,7 +430,7 @@ func SaveMcpTool(c *gin.Context) {
 				return
 			}
 
-			// 生成随机名称
+			// Generate random name
 			getRandomStr := func() (string, error) {
 				b := make([]byte, 10)
 				if _, err := rand.Read(b); err != nil {
@@ -445,7 +445,7 @@ func SaveMcpTool(c *gin.Context) {
 				return
 			}
 
-			// 添加新的 mcp_tool
+			// Add new mcp_tool
 			_, err = msql.Model(`mcp_tool`, define.Postgres).Insert(msql.Datas{
 				`admin_user_id`: adminUserId,
 				`server_id`:     serverId,
@@ -462,7 +462,7 @@ func SaveMcpTool(c *gin.Context) {
 		}
 	}
 
-	// 找出需要删除的 robot_id（旧列表中有，新列表中没有）
+	// Find robot_ids to delete (in old list but not in new list)
 	for robotId, toolId := range existingRobotIds {
 		if !newRobotIds[robotId] {
 			_, err = msql.Model(`mcp_tool`, define.Postgres).
@@ -477,7 +477,7 @@ func SaveMcpTool(c *gin.Context) {
 		}
 	}
 
-	// 检查删除后是否还有 tool，如果没有则将 server 的 publish_status 设为 0
+	// Check if any tools remain after deletion, if not set server publish_status to 0
 	count, err := msql.Model(`mcp_tool`, define.Postgres).
 		Where(`server_id`, cast.ToString(serverId)).
 		Count()
@@ -568,12 +568,12 @@ func DeleteMcpTool(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
-// simplifyNodeParams 简化 node_params 结构，只返回必要的参数信息
-// 默认返回 content 和 open_id，如果 node_params 不为空则还包含 diy_global 中的参数
+// simplifyNodeParams simplifies node_params structure, only returns necessary parameter info
+// Default returns content and open_id, if node_params is not empty also includes params from diy_global
 func simplifyNodeParams(toolData msql.Params) []map[string]interface{} {
 	params := make([]map[string]interface{}, 0)
 
-	// 默认参数：content 和 open_id
+	// Default params: content and open_id
 	params = append(params, map[string]interface{}{
 		"key":      "content",
 		"desc":     lib_define.DialogueContent,
@@ -587,7 +587,7 @@ func simplifyNodeParams(toolData msql.Params) []map[string]interface{} {
 		"required": true,
 	})
 
-	// 如果 node_params 不为空，提取 diy_global 中的参数
+	// If node_params is not empty, extract params from diy_global
 	nodeParamsStr := cast.ToString(toolData["node_params"])
 	if nodeParamsStr != "" {
 		var nodeParams work_flow.NodeParams
@@ -596,7 +596,7 @@ func simplifyNodeParams(toolData msql.Params) []map[string]interface{} {
 			return params
 		}
 
-		// 添加 diy_global 中的参数
+		// Add params from diy_global
 		for _, param := range nodeParams.Start.DiyGlobal {
 			params = append(params, map[string]interface{}{
 				"key":      param.Key,

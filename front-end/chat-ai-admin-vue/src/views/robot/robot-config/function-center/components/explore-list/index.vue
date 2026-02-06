@@ -197,8 +197,8 @@
             <a-switch
               v-if="item.robot_only_show != 1"
               :checked="item.robot_config?.switch_status == '1'"
-              checked-children="开"
-              un-checked-children="关"
+              :checked-children="t('btn_on')"
+              :un-checked-children="t('btn_off')"
               class="no-bubble"
               @change="(checked)=>handleSwitchChange(item, checked)"
             />
@@ -212,9 +212,9 @@
               @change="(e)=>handleFixedMenuChange(item, e?.target?.checked === true)"
             >
               <a-tooltip
-                title="勾选后增加机器人—级菜单固定显示"
+                :title="t('msg_fixed_menu_tooltip')"
               >
-                固定菜单
+                {{ t('label_fixed_menu') }}
               </a-tooltip>
             </a-checkbox>
         </div>
@@ -224,6 +224,10 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.function-center.components.explore-list.index')
+
 const emit = defineEmits(['switchChange', 'fixedMenuChange', 'clickItem'])
 
 const props = defineProps({

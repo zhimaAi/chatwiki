@@ -10,16 +10,16 @@
         <div class="btn-block">
           <a-popover :title="null" trigger="click" v-model:open="isShowMenu" placement="right">
             <template #content>
-              <NodeListPopup :excludedNodeTypes="excludedNodeTypes" @addNode="handleAddNode" type="loop-node" />
+              <NodeListPopup style="width: 500px;height: 550px;" :excludedNodeTypes="excludedNodeTypes" @addNode="handleAddNode" type="loop-node" />
             </template>
-            <a-tooltip title="新建内部节点">
+            <a-tooltip :title="t('tooltip_create_inner_node')">
               <div class="btn-item" @click.stop="handleClick">
                 <PlusCircleOutlined />
               </div>
             </a-tooltip>
           </a-popover>
 
-          <a-tooltip title="运行测试">
+          <a-tooltip :title="t('tooltip_run_test')">
             <div class="btn-item" @click.stop="handleOpenTestModal">
               <CaretRightOutlined />
             </div>
@@ -32,7 +32,7 @@
             <template #overlay>
               <a-menu>
                 <a-menu-item @click="handleDelete">
-                  <div style="color: #fb363f">删除</div>
+                  <div style="color: #fb363f">{{ t('btn_delete') }}</div>
                 </a-menu-item>
               </a-menu>
             </template>
@@ -41,7 +41,7 @@
       </div>
       <div class="info-block">
         <div class="info-item">
-          <div class="info-label">执行数组</div>
+          <div class="info-label">{{ t('label_execution_array') }}</div>
           <div class="info-content">
             <div class="label-text">input</div>
           </div>
@@ -64,7 +64,9 @@ import { CaretRightOutlined, PlusCircleOutlined } from '@ant-design/icons-vue'
 import NodeListPopup from '../../node-list-popup/index.vue'
 import RunTest from './components/run-test.vue'
 import BorderLine from './components/border-line.vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
+const { t } = useI18n('views.workflow.components.nodes.batch-group-node.index')
 
 const props = defineProps({
   properties: {
@@ -113,7 +115,7 @@ const handleOpenTestModal = () => {
   if(data && data.key && data.typ && data.value){
     runTestRef.value.open()
   }else{
-    message.error('请填写执行数组')
+    message.error(t('msg_fill_execution_array'))
   }
 }
 

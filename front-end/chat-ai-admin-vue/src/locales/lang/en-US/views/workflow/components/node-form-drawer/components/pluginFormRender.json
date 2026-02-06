@@ -1,0 +1,7 @@
+{
+  "label_input": "Input",
+  "label_output": "Output",
+  "ph_url_param": "Enter/select parameters or input text starting with https:/",
+  "msg_invalid_url": "Please enter a URL starting with https:/",
+  "ph_input_content": "Enter content, type \"/\" to insert variables"
+}

@@ -3,7 +3,7 @@
     <template #header>
       <NodeFormHeader :title="node.node_name" :iconName="node.node_icon_name">
         <template #desc>
-          <span>指定条件创建不同分支，系统根据变量值判断应该走哪个分支</span>
+          <span>{{ t('desc_judge_condition') }}</span>
         </template>
       </NodeFormHeader>
     </template>
@@ -20,7 +20,7 @@
               <div class="gray-block" :key="item.key">
                 <div class="gray-block-title">
                   <a-flex :gap="8"
-                    ><HolderOutlined class="icon drag-btn" />{{ index == 0 ? 'if' : 'else if' }}
+                    ><HolderOutlined class="icon drag-btn" />{{ index == 0 ? t('label_if') : t('label_else_if') }}
                   </a-flex>
                   <div
                     v-if="formState.term.length > 1"
@@ -38,8 +38,8 @@
                       :bordered="false"
                       style="width: 64px"
                     >
-                      <a-select-option :value="0">and</a-select-option>
-                      <a-select-option :value="1">or</a-select-option>
+                      <a-select-option :value="0">{{ t('label_and') }}</a-select-option>
+                      <a-select-option :value="1">{{ t('label_or') }}</a-select-option>
                     </a-select>
                   </div>
                   <div class="condition-body">
@@ -63,9 +63,9 @@
                         :allowClear="false"
                         :displayRender="({ labels }) => labels.join('/')"
                         :field-names="{ children: 'children' }"
-                        placeholder="请选择"
-                      />
-                      <a-select v-model:value="term.type" style="width: 120px" placeholder="请选择">
+                      :placeholder="t('ph_select')"
+                    />
+                      <a-select v-model:value="term.type" style="width: 120px" :placeholder="t('ph_select')">
                         <a-select-option
                           v-for="option in getTypeOptions(term)"
                           :value="option.value"
@@ -75,7 +75,7 @@
                       </a-select>
                       <a-input
                         v-if="term.type != 5 && term.type != 6"
-                        placeholder="请输入"
+                        :placeholder="t('ph_input')"
                         v-model:value="term.value"
                         style="width: 150px"
                       ></a-input>
@@ -91,7 +91,7 @@
                     :icon="h(PlusOutlined)"
                     block
                     type="dashed"
-                    >添加条件</a-button
+                    >{{ t('label_add_condition') }}</a-button
                   >
                 </div>
               </div>
@@ -100,12 +100,12 @@
 
           <div class="add-btn-block">
             <a-button @click="handleAddBranch" :icon="h(PlusOutlined)" block type="dashed"
-              >添加分支</a-button
+              >{{ t('label_add_branch') }}</a-button
             >
           </div>
           <div class="gray-block mt8">
-            <div class="gray-block-title">else</div>
-            <div class="main-text">不符合上述所有分支的条件时，走默认分支</div>
+            <div class="gray-block-title">{{ t('label_else') }}</div>
+            <div class="main-text">{{ t('msg_else_default_branch') }}</div>
           </div>
         </a-form>
       </div>
@@ -120,6 +120,9 @@ import NodeFormLayout from './node-form-layout.vue'
 import NodeFormHeader from './node-form-header.vue'
 import { CloseCircleOutlined, PlusOutlined, HolderOutlined } from '@ant-design/icons-vue'
 import { specialNodeList } from '@/views/workflow/components/util.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.judge-node-form')
 
 const props = defineProps({
   node: {
@@ -361,46 +364,46 @@ const handleVariableChange = (term) => {
 
 let baseTypeOptions = [
   {
-    label: '等于',
+    label: t('opt_equal'),
     value: 1
   },
   {
-    label: '不等于',
+    label: t('opt_not_equal'),
     value: 2
   },
   {
-    label: '包含',
+    label: t('opt_contain'),
     value: 3
   },
   {
-    label: '不包含',
+    label: t('opt_not_contain'),
     value: 4
   },
   {
-    label: '为空',
+    label: t('opt_is_empty'),
     value: 5
   },
   {
-    label: '不为空',
+    label: t('opt_not_empty'),
     value: 6
   }
 ]
 
 let baseTypeOptions2 = [
   {
-    label: '包含其中一项',
+    label: t('opt_contain_one'),
     value: 3
   },
   {
-    label: '不包含其中一项',
+    label: t('opt_not_contain_one'),
     value: 4
   },
   {
-    label: '为空',
+    label: t('opt_is_empty'),
     value: 5
   },
   {
-    label: '不为空',
+    label: t('opt_not_empty'),
     value: 6
   }
 ]
@@ -450,11 +453,11 @@ function getTypeOptions(data) {
   if (typ == 'boole') {
     return [
       {
-        label: '等于',
+        label: t('opt_equal'),
         value: 1
       },
       {
-        label: '不等于',
+        label: t('opt_not_equal'),
         value: 2
       }
     ]

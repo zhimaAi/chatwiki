@@ -1,0 +1,15 @@
+{
+  "title": "Set Answer",
+  "label_question": "Question",
+  "placeholder_question": "Please enter question",
+  "label_similar_questions": "Similar Questions (one per line, up to 100 similar questions)",
+  "placeholder_similar_questions": "Please enter similar questions",
+  "label_answer": "Answer",
+  "placeholder_answer": "Please enter segmented answer",
+  "label_attachments": "Attachments",
+  "tab_images": "Images",
+  "validation_question": "Please enter question",
+  "validation_similar_questions": "Please enter similar questions",
+  "validation_answer": "Please enter answer",
+  "save_success": "Save Successfully"
+}

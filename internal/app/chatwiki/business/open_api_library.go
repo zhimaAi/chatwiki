@@ -53,7 +53,7 @@ func OpenGetLibraryList(c *gin.Context) {
 	returnData := make([]map[string]any, 0)
 	for _, library := range libraryList {
 		config, _ := common.GetModelConfigInfo(cast.ToInt(library[`model_config_id`]), adminUserId)
-		library[`model_define`] = config[`model_define`] //补充模型服务商定义名
+		library[`model_define`] = config[`model_define`] // supplement model service provider definition name
 		//take params
 		returnData = append(returnData, common.TakeParamsFromMap(library, `id`, `avatar`, `type`, `library_intro`, `library_name`,
 			`file_size`, `file_total`, `model_config_id`, `model_define`, `use_model`, `group_id`))

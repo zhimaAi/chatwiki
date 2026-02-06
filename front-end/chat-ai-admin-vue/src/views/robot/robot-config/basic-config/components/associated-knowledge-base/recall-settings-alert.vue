@@ -128,12 +128,12 @@
 </style>
 
 <template>
-  <a-modal width="746px" v-model:open="show" title="召回设置" @ok="handleSave">
+  <a-modal width="786px" v-model:open="show" :title="t('title_recall_settings')" @ok="handleSave">
     <div class="recall-settings-box">
       <div class="form-box">
         <div class="form-item is-required">
           <div class="form-item-label">
-            <span>检索模式</span>
+            <span>{{ t('label_retrieval_mode') }}</span>
           </div>
           <div class="form-item-body">
             <div class="retrieval-mode-items">
@@ -152,12 +152,12 @@
 
                 <div class="retrieval-mode-title">
                   <svg-icon :name="item.iconName" class="title-icon"></svg-icon>
-                  <span class="title-text">{{ item.title }}</span>
+                  <span class="title-text">{{ t(item.title) }}</span>
                   <img v-if="item.isRecommendation" style="width: 32px;" src="@/assets/svg/recommendation.svg" alt="">
                 </div>
 
                 <div class="retrieval-mode-desc">
-                  {{ item.desc }}
+                  {{ t(item.desc) }}
                 </div>
               </div>
             </div>
@@ -170,10 +170,10 @@
 
         <div class="form-item">
           <div class="form-item-label">
-            <span>Top K&nbsp;</span>
+            <span>{{ t('label_top_k') }}&nbsp;</span>
             <a-tooltip>
               <template #title
-                >最多从知识库中召回分段数，最低为1，最高为10。召回分段数越多，消耗的token也会越多。</template
+                >{{ t('tooltip_top_k') }}</template
               >
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
@@ -197,9 +197,9 @@
 
         <div class="form-item" v-if="formState.search_type <= 2">
           <div class="form-item-label">
-            <span>相似度阈值&nbsp;</span>
+            <span>{{ t('label_similarity_threshold') }}&nbsp;</span>
             <a-tooltip>
-              <template #title>召回时，只会召回相似度大于阈值的文本分段。取值范围：0~1，阈值越大回答的越准确，建议不超过0.9</template>
+              <template #title>{{ t('tooltip_similarity_threshold') }}</template>
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
           </div>
@@ -228,13 +228,13 @@
         
         <div class="form-item">
           <div class="form-item-label">
-            <span class="setting-title">召回相邻分段&nbsp;</span>
+            <span class="setting-title">{{ t('label_recall_neighbor_segments') }}&nbsp;</span>
             <a-tooltip :overlayStyle="{ maxWidth: '350px' }">
               <template #title>
                 <div style="font-size: 13px;">
-                  <p>当在知识库检索到相关分段时，会根据配置拼接相关联的上下文。作为最终内容返回给大模型。</p>
-                  <p>开启后，注意分段时不要设置分段重叠长度，否则可能影响最终效果。</p>
-                  <p>父子分段类型的知识库，或者分段字数超过3000字时，不会做任何处理。</p>
+                  <p>{{ t('tooltip_recall_neighbor_desc_1') }}</p>
+                  <p>{{ t('tooltip_recall_neighbor_desc_2') }}</p>
+                  <p>{{ t('tooltip_recall_neighbor_desc_3') }}</p>
                 </div>
               </template>
               <QuestionCircleOutlined class="question-icon" />
@@ -246,27 +246,27 @@
           <div class="form-item-body">
             <div class="segment-controls">
               <div class="segment-input">
-                <span>拼接分段前</span>&nbsp;
+                <span>{{ t('label_concat_before') }}</span>&nbsp;
                 <a-select v-model:value="formState.recall_neighbor_before_num" style="width: 80px;">
                   <a-select-option :value="i - 1" v-for="i in 6" :key="i">{{ i - 1 }}</a-select-option>
                 </a-select>
               </div>
               
               <div class="segment-input">
-                <span>后</span>&nbsp;
+                <span>{{ t('label_after') }}</span>&nbsp;
                 <a-select v-model:value="formState.recall_neighbor_after_num" style="width: 80px;">
                   <a-select-option :value="i - 1" v-for="i in 6" :key="i">{{ i - 1 }}</a-select-option>
                 </a-select>
               </div>
               
-              <div class="segment-text">个分段内容</div>
+              <div class="segment-text">{{ t('label_segments_content') }}</div>
             </div>
           </div>
         </div>
 
         <div class="form-item">
           <div class="form-item-label">
-            <span>Rerank模型</span>
+            <span>{{ t('label_rerank_model') }}</span>
             &nbsp;
             <a-switch
               :checkedValue="1"
@@ -287,8 +287,8 @@
 
         <div class="form-item">
           <div class="form-item-label">
-            <a-tooltip title="元数据过滤是使用元数据属性（例如分组，知识创建时间等）来细化和控制系統内相关信息的检索过程。召回时仅会召回满足要求的知识。">
-              <span>元数据过滤 <QuestionCircleOutlined/></span>
+            <a-tooltip :title="t('tooltip_metadata_filter')">
+              <span>{{ t('label_metadata_filter') }} <QuestionCircleOutlined/></span>
             </a-tooltip>
             &nbsp;
             <a-switch
@@ -319,34 +319,37 @@ import ModelSelect from '@/components/model-select/model-select.vue'
 import { message } from 'ant-design-vue'
 import {getRobotMetaSchemaList} from "@/api/library/index.js";
 import MetaFilterBox from "@/views/robot/robot-config/basic-config/components/meta-filter-box.vue";
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.associated-knowledge-base.recall-settings-alert')
 
 const emit = defineEmits(['change'])
 
 const retrievalModeList = ref([
   {
     iconName: 'mix-icon',
-    title: '混合检索',
+    title: 'title_mixed_retrieval',
     value: 1,
     isRecommendation: true,
-    desc: '同时执行三种检索模式，使用RRF算法进行排序，从三种查询结果中选择更匹配用户问题的结果。混合检索兼顾语义相似性与逻辑关联性，通过互补优势提升检索的准确性和生成结果的可信度'
+    desc: 'desc_mixed_retrieval'
   },
   {
     iconName: 'vector-icon',
-    title: '向量检索',
+    title: 'title_vector_retrieval',
     value: 2,
-    desc: '将用户提问转成向量之后与知识库分段匹配相似度，返回相似度高的结果。向量检索擅长语义相似性匹配和大规模非结构化数据处理，但缺乏可解释性和精准关系验证'
+    desc: 'desc_vector_retrieval'
   },
   {
     iconName: 'graph-icon',
-    title: '知识图谱检索',
+    title: 'title_graph_retrieval',
     value: 4,
-    desc: '通过关系推理，检索出与用户问题相关联的知识。知识图谱检索擅长精准的实体关系推理和逻辑验证，但对非结构化文本和语义模糊查询支持较弱'
+    desc: 'desc_graph_retrieval'
   },
   {
     iconName: 'search-check-icon',
-    title: '全文检索',
+    title: 'title_full_text_retrieval',
     value: 3,
-    desc: '通过分词匹配文档中的词汇，返回包含这些词汇的文本片段'
+    desc: 'desc_full_text_retrieval'
   },
 ])
 
@@ -417,7 +420,7 @@ const checkRerank = () => {
 
 const handleSave = () => {
   if (checkRerank()) {
-    return message.error('请选择Rerank模型')
+    return message.error(t('msg_please_select_rerank_model'))
   }
   if (formState.meta_search_switch == 1 && !metaFilterRef.value.verify()) {
     return

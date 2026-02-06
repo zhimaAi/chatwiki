@@ -38,6 +38,7 @@
 
 <script>
 import BaseNode from '../base-node.vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
 export default {
   name: 'QuestionNode',
@@ -45,6 +46,10 @@ export default {
     BaseNode,
   },
   inject: ['getNode', 'getGraph'],
+  setup() {
+    const { t } = useI18n('views.workflow.components.nodes.demo-node.index')
+    return { t }
+  },
   props: {
     properties: {
       type: Object,
@@ -55,7 +60,7 @@ export default {
   },
   data() {
     return {
-      menus: [{ name: '删除', key: 'delete', color: '#fb363f' }],
+      menus: [{ name: this.t('btn_delete'), key: 'delete', color: '#fb363f' }],
     }
   },
   mounted() {},

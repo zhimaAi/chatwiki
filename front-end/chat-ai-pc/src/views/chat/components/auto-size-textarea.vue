@@ -61,14 +61,18 @@
     @keydown.shift.enter.prevent="onTextEnter"
     @keydown.ctrl.enter.prevent="onTextEnter"
     @keydown.alt.enter.prevent="onTextEnter"
-    :placeholder="translate('在此输入您想了解的内容')"
+    :placeholder="t('ph_input')"
   ></textarea>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import calcTextareaHeight from '@/utils/calcTextareaHeight'
-import { translate } from '@/utils/translate.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+// 初始化 i18n
+const { t } = useI18n('views.chat.components.auto-size-textarea')
+
 const props = defineProps({
   value: {
     type: String,

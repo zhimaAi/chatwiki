@@ -20,7 +20,7 @@ func StartDelayService() {
 			logs.Error(`zrange by score error:%s/%s`, tool.JsonEncodeNoError(opt), err.Error())
 		}
 		if len(list) == 0 {
-			continue //说明此刻没有任务可以跳过此轮
+			continue // indicates that there are no tasks at this moment, skip this round
 		}
 		for _, task := range list {
 			go DelayTaskTrigger(task)

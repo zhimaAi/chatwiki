@@ -48,7 +48,7 @@ const (
 )
 
 const (
-	MsgTypeMixed = 99 //多模态输入内容
+	MsgTypeMixed = 99 // multimodal input content
 	MsgTypeText  = 1
 	MsgTypeMenu  = 2
 	MsgTypeImage = 3
@@ -60,10 +60,10 @@ const (
 )
 
 const (
-	ChunkTypeNormal    = 1 //普通分段
-	ChunkTypeSemantic  = 2 //语义分段
-	ChunkTypeAi        = 3 //AI分段
-	ChunkTypeFatherSon = 4 //父子分段
+	ChunkTypeNormal    = 1 // normal chunk
+	ChunkTypeSemantic  = 2 // semantic chunk
+	ChunkTypeAi        = 3 // AI chunk
+	ChunkTypeFatherSon = 4 // parent-child chunk
 )
 
 const (
@@ -124,9 +124,9 @@ const (
 )
 
 const (
-	ChatTypeLibrary = 1 //仅知识库模式
-	ChatTypeDirect  = 2 //直连模式
-	ChatTypeMixture = 3 //混合模式
+	ChatTypeLibrary = 1 // library only mode
+	ChatTypeDirect  = 2 // direct mode
+	ChatTypeMixture = 3 // mixed mode
 )
 
 const (
@@ -189,7 +189,7 @@ const (
 	LibraryGroupTypeFile = 1
 )
 
-// chat_ai_library_file_doc 中的is_dir字段
+// is_dir field in chat_ai_library_file_doc
 const (
 	IsFile = 0
 	ISDir  = 1

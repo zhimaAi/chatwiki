@@ -26,11 +26,11 @@
           <a-result
             v-else
             status="warning"
-            title="组件加载失败"
-            sub-title="无法找到对应的节点表单组件"
+            :title="t('msg_component_load_failed')"
+            :sub-title="t('msg_component_not_found')"
           >
             <template #extra>
-              <a-button type="primary" @click="handleClose">关闭</a-button>
+              <a-button type="primary" @click="handleClose">{{ t('btn_close') }}</a-button>
             </template>
           </a-result>
         </div>
@@ -49,6 +49,9 @@
  */
 
 import { ref, computed, provide } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.index')
 import StartNodeForm from './start-node-form/index.vue'
 import ProblemOptimizationForm from './problem-optimization-form.vue'
 import AiDialogueNodeFrom from './ai-dialogue-node-from.vue'

@@ -67,7 +67,7 @@
 <template>
   <edit-box
     class="setting-box"
-    title="技能"
+    :title="t('title_skill')"
     icon-name="skii"
     v-model:isEdit="isEdit"
     :bodyStyle="{ padding: 0 }"
@@ -75,7 +75,7 @@
     <template #tip>
       <a-tooltip placement="top">
         <template #title>
-          <span>支持关联工作流</span>
+          <span>{{ t('tip_support_workflow') }}</span>
         </template>
         <QuestionCircleOutlined />
       </a-tooltip>
@@ -83,7 +83,7 @@
     <template #extra>
       <div class="actions-box">
         <a-flex :gap="8">
-          <a-button size="small" @click="handleOpenSelectLibraryAlert">添加技能</a-button>
+          <a-button size="small" @click="handleOpenSelectLibraryAlert">{{ t('btn_add_skill') }}</a-button>
         </a-flex>
       </div>
     </template>
@@ -107,6 +107,9 @@ import { CloseCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons-v
 import EditBox from '../edit-box.vue'
 import RobotSelectAlert from './robot-select-alert.vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.skill.index')
 const isEdit = ref(false)
 
 const { robotInfo, getRobot } = inject('robotInfo')
@@ -157,7 +160,7 @@ const onSave = () => {
     id: robotInfo.id,
     ...formData
   }).then((res) => {
-    message.success('保存成功')
+    message.success(t('msg_save_success'))
     getRobot(robotInfo.id)
   })
 }

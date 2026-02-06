@@ -233,7 +233,7 @@ func CreateOfficialLibrary(c *gin.Context) {
 	logs.Debug(`CreateOfficialLibrary req %#v`, req)
 	req.FileAvatar, _ = c.FormFile(`avatar`)
 
-	// 参数检查
+	// Parameter check
 	if !tool.InArrayInt(cast.ToInt(syncOfficialHistoryType), define.SyncOfficialHistoryTypeList[:]) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_err`, `sync_official_history_type`))))
 		return
@@ -249,14 +249,14 @@ func CreateOfficialLibrary(c *gin.Context) {
 		return
 	}
 
-	// 避免重复创建相同的公众号知识库
+	// Avoid duplicate creation of same official account library
 	key := fmt.Sprintf("official_account_library_create_lock_%d", adminUserId)
 	value, _ := officialAccountLibraryCreateLock.LoadOrStore(key, &sync.Mutex{})
 	lock := value.(*sync.Mutex)
 	lock.Lock()
 	defer lock.Unlock()
 
-	// 重复性检查
+	// Duplicate check
 	for _, appId := range appIdListArr {
 		appInfo, err := common.GetWechatAppInfo(`app_id`, appId)
 		if err != nil {
@@ -280,7 +280,7 @@ func CreateOfficialLibrary(c *gin.Context) {
 		}
 	}
 
-	// 一次性选择多个公众号需要创建多个公众号知识库，应该放到事务里
+	// Selecting multiple official accounts at once requires creating multiple libraries, should be in transaction
 	m := msql.Model(`chat_ai_library`, define.Postgres)
 	err = m.Begin()
 	defer func() {
@@ -330,7 +330,7 @@ func CreateOfficialLibrary(c *gin.Context) {
 		return
 	}
 
-	// 同步公众号知识库
+	// Sync official account library
 	for _, libId := range libIdList {
 		go SyncOfficialLibrary(common.GetLang(c), libId)
 	}
@@ -548,7 +548,7 @@ func SyncOfficialLibrary(lang string, libraryId int) {
 		return
 	}
 
-	// 根据 sync_official_history_type 计算时间范围
+	// Calculate time range based on sync_official_history_type
 	syncType := cast.ToInt(libraryInfo[`sync_official_history_type`])
 	var startTime int64
 	now := time.Now()
@@ -561,9 +561,9 @@ func SyncOfficialLibrary(lang string, libraryId int) {
 	case define.SyncOfficialHistoryTypeThreeYear:
 		startTime = now.AddDate(-3, 0, 0).Unix()
 	case define.SyncOfficialHistoryTypeAll:
-		startTime = 0 // 0 表示不限制开始时间
+		startTime = 0 // 0 means no start time limit
 	default:
-		startTime = now.AddDate(-1, 0, 0).Unix() // 默认一年
+		startTime = now.AddDate(-1, 0, 0).Unix() // Default one year
 	}
 
 	updateSyncOfficialLibraryStatus(libraryId, define.SyncOfficialContentStatusWorking, ``)
@@ -584,26 +584,26 @@ func SyncOfficialLibrary(lang string, libraryId int) {
 			logs.Info(`no official account message content obtained, skip`)
 			break
 		}
-		// 处理当前批次的数据
+		// Process current batch data
 		for _, item := range resp.Item {
-			// 只处理在指定时间范围内的消息
+			// Only process messages within specified time range
 			if startTime > 0 && item.UpdateTime < startTime {
-				continue // 跳过早于开始时间的消息
+				continue // Skip messages earlier than start time
 			}
 
 			for _, newsItem := range item.Content.NewsItem {
-				ThumbPath, err := officialApp.GetMaterial(newsItem.ThumbMediaId, returnDir, thumbFolderPath) //获取一下封面
+				ThumbPath, err := officialApp.GetMaterial(newsItem.ThumbMediaId, returnDir, thumbFolderPath) // Get cover image
 				if err != nil {
 					logs.Error("error：" + err.Error())
 				}
-				// 检查URL地址
+				// Check URL address
 				parsedURL, err := netURL.Parse(newsItem.Url)
 				if err != nil || parsedURL == nil {
-					logs.Error(`invalid url: %v`, err.Error())
+					logs.Error(`invalid url: %s/%v`, newsItem.Url, err)
 					continue
 				}
 
-				// 去除html中无用标签
+				// Remove useless HTML tags
 				blockTags := "</(div|p|h[1-6]|article|section|header|footer|blockquote|ul|ol|li|nav|aside)>"
 				brTag := "<br[^>]*>"
 				reBlock := regexp.MustCompile(blockTags)
@@ -684,7 +684,7 @@ func GetLibraryMetaSchemaList(c *gin.Context) {
 		return
 	}
 
-	// 内置元数据：不落库，只由 chat_ai_library 的开关字段控制展示
+	// Built-in metadata: not stored in database, controlled by chat_ai_library switch fields
 	list := make([]map[string]any, 0, 8)
 	builtinMetaSchemaList := common.GetBuiltinMetaSchemaList(common.GetLang(c))
 	for _, b := range builtinMetaSchemaList {
@@ -709,7 +709,7 @@ func GetLibraryMetaSchemaList(c *gin.Context) {
 		})
 	}
 
-	// 自定义元数据：来自 library_meta_schema
+	// Custom metadata: from library_meta_schema
 	customList, err := msql.Model(`library_meta_schema`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`library_id`, cast.ToString(libraryId)).
@@ -725,7 +725,7 @@ func GetLibraryMetaSchemaList(c *gin.Context) {
 		for k, v := range item {
 			obj[k] = v
 		}
-		// 数字化字段：前后端统一用 int
+		// Digital field: use int for both frontend and backend
 		obj[`id`] = cast.ToInt(item[`id`])
 		obj[`library_id`] = cast.ToInt(item[`library_id`])
 		obj[`admin_user_id`] = cast.ToInt(item[`admin_user_id`])
@@ -740,12 +740,12 @@ func GetLibraryMetaSchemaList(c *gin.Context) {
 	common.FmtOk(c, list)
 }
 
-// GetLibraryMultiMetaSchemaList 获取一个或多个知识库“共有”的元数据 schema（交集）
-// 入参（GET）：
-// - library_ids: 知识库ID集合（英文逗号分隔），兼容 library_id 单个 id
-// 返回结构与 GetRobotMetaSchemaList 对齐：
-// - 内置元数据：只返回一份（is_show=1）
-// - 自定义元数据：仅返回所有指定知识库都存在的 name（按 name 求交集）
+// GetLibraryMultiMetaSchemaList gets "common" metadata schema for one or more libraries (intersection)
+// Parameters (GET):
+// - library_ids: Library ID collection (comma separated), compatible with single library_id
+// Return structure aligned with GetRobotMetaSchemaList:
+// - Built-in metadata: only return one copy (is_show=1)
+// - Custom metadata: only return names that exist in all specified libraries (intersection by name)
 func GetLibraryMultiMetaSchemaList(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
@@ -754,7 +754,7 @@ func GetLibraryMultiMetaSchemaList(c *gin.Context) {
 
 	libraryIdsStr := strings.TrimSpace(c.Query(`library_ids`))
 	if libraryIdsStr == `` {
-		// 兼容单个
+		// Compatible with single ID
 		libraryIdsStr = strings.TrimSpace(c.Query(`library_id`))
 	}
 	if libraryIdsStr == `` {
@@ -767,7 +767,7 @@ func GetLibraryMultiMetaSchemaList(c *gin.Context) {
 	}
 
 	idArr := strings.Split(libraryIdsStr, ",")
-	// 去重 & 保序不重要：这里只需要数量
+	// Deduplication & order not important: only need count here
 	libIdSet := make(map[string]struct{}, len(idArr))
 	libIds := make([]string, 0, len(idArr))
 	for _, s := range idArr {
@@ -800,11 +800,11 @@ func GetLibraryMultiMetaSchemaList(c *gin.Context) {
 		return
 	}
 
-	// 结果（按 key 去重）
+	// Result (deduplicate by key)
 	seen := make(map[string]bool)
 	result := make([]map[string]any, 0, 32)
 
-	// 内置 meta：只保留一份（与 GetRobotMetaSchemaList 一致）
+	// Built-in meta: only keep one copy (consistent with GetRobotMetaSchemaList)
 	builtinMetaSchemaList := common.GetBuiltinMetaSchemaList(common.GetLang(c))
 	for _, b := range builtinMetaSchemaList {
 		k := b.Key
@@ -822,7 +822,7 @@ func GetLibraryMultiMetaSchemaList(c *gin.Context) {
 		})
 	}
 
-	// 自定义 meta：按 name 求交集（必须每个库都存在；type 必须一致）
+	// Custom meta: intersection by name (must exist in every library; type must be consistent)
 	customList, err := msql.Model(`library_meta_schema`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`library_id`, `in`, strings.Join(libIds, `,`)).
@@ -868,7 +868,7 @@ func GetLibraryMultiMetaSchemaList(c *gin.Context) {
 			}
 			aggMap[name] = a
 		}
-		// 同一个库重复 name 不重复计数
+		// Duplicate name in same library does not count repeatedly
 		if _, ok := a.seenLib[libId]; ok {
 			continue
 		}
@@ -914,7 +914,7 @@ func SaveLibraryMetaSchema(c *gin.Context) {
 		return
 	}
 
-	// 校验知识库归属
+	// Verify library ownership
 	libraryInfo, err := msql.Model(`chat_ai_library`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`id`, cast.ToString(libraryId)).
@@ -930,8 +930,8 @@ func SaveLibraryMetaSchema(c *gin.Context) {
 		return
 	}
 
-	// 内置元数据 is_show：更新到 chat_ai_library.show_meta_*
-	// 约定：前端提交内置项时传 key=source/update_time/create_time/group 与 is_show
+	// Built-in metadata is_show: update to chat_ai_library.show_meta_*
+	// Convention: frontend passes key=source/update_time/create_time/group and is_show when submitting built-in items
 	key := strings.TrimSpace(c.PostForm(`key`))
 	isShow := cast.ToInt(c.PostForm(`is_show`))
 	if isShow != 0 && isShow != 1 {
@@ -981,7 +981,7 @@ func SaveLibraryMetaSchema(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `meta_type_invalid`))))
 		return
 	}
-	// isShow 已在上方统一校验过
+	// isShow has been validated above
 
 	now := tool.Time2Int()
 	m := msql.Model(`library_meta_schema`, define.Postgres)
@@ -1007,7 +1007,7 @@ func SaveLibraryMetaSchema(c *gin.Context) {
 			common.FmtError(c, `no_data`)
 			return
 		}
-		// key 不可变：更新时不写 key
+		// key is immutable: do not write key during update
 		_, err = m.Where(`admin_user_id`, cast.ToString(adminUserId)).
 			Where(`library_id`, cast.ToString(libraryId)).
 			Where(`id`, cast.ToString(id)).
@@ -1021,7 +1021,7 @@ func SaveLibraryMetaSchema(c *gin.Context) {
 		return
 	}
 
-	// 新增：先插入拿到 id，再把 key 更新成 key_{id}（后续不可变）
+	// Add new: first insert to get id, then update key to key_{id} (immutable afterwards)
 	tempKey := fmt.Sprintf("tmp_%d", time.Now().UnixNano())
 	insertData := msql.Datas{
 		`create_time`:   now,

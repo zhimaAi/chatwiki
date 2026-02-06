@@ -1,0 +1,5 @@
+{
+  "label_bitable_name": "多维表格名称",
+  "ph_input_content": "请输入内容，键入\"/\"可以插入变量",
+  "desc_bitable_app_name": "多维表格 App 名称。最长为 255 个字符。 示例值：\"一篇新的多维表格\""
+}

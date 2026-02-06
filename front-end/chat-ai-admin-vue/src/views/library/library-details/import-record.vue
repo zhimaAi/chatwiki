@@ -3,14 +3,14 @@
     <cu-scroll :scrollbar="false">
       <a-alert
         show-icon
-        message="通过文档导入记录，可以查看文档学习状态，学习失败的文档可以重新学习"
+        :message="t('alert_message')"
       ></a-alert>
       <div class="list-tools">
         <div class="tools-items">
           <a-input
             style="width: 282px"
             v-model:value="queryParams.file_name"
-            placeholder="请输入文档名称搜索"
+            :placeholder="t('search_placeholder')"
             @change="onSearch"
           >
             <template #suffix>
@@ -40,7 +40,7 @@
               <div class="doc-name-td">
                 <a-popover :title="null" v-if="record.doc_type == 2">
                   <template #content>
-                    原链接：<a :href="record.doc_url" target="_blank">{{ record.doc_url }} </a>
+                    {{ t('original_link') }}：<a :href="record.doc_url" target="_blank">{{ record.doc_url }} </a>
                     <CopyOutlined
                       v-copy="`${record.doc_url}`"
                       style="margin-left: 4px; cursor: pointer"
@@ -54,10 +54,10 @@
                 <span v-else>
                   <span v-if="['5', '6', '7'].includes(record.status)">{{ record.doc_url }}</span>
                   <span v-else>{{ record.file_name }}</span>
-                  <a style="margin-left: 2px;" @click="handleSyncDownload(record)">下载</a>
+                  <a style="margin-left: 2px;" @click="handleSyncDownload(record)">{{ t('download') }}</a>
                 </span>
                 <div v-if="record.doc_type == 2 && record.remark" class="url-remark">
-                  备注：{{ record.remark }}
+                  {{ t('remark') }}：{{ record.remark }}
                 </div>
               </div>
             </template>
@@ -65,8 +65,8 @@
               <template v-if="record.file_ext == 'pdf' && record.pdf_parse_type >= 2">
                 <div class="pdf-progress-box" v-if="record.status == 0">
                   <div class="progress-title">
-                    <span class="status-box"><LoadingOutlined />文档解析中</span>
-                    <a @click="handleCancelOcrPdf(record)">取消</a>
+                    <span class="status-box"><LoadingOutlined />{{ t('status_parsing') }}</span>
+                    <a @click="handleCancelOcrPdf(record)">{{ t('cancel') }}</a>
                   </div>
                   <div class="progress-bar">
                     <a-progress
@@ -83,16 +83,16 @@
               </template>
               <template v-else>
                 <span class="status-tag running" v-if="record.status == 0"
-                  ><a-spin size="small" /> 转换中</span
+                  ><a-spin size="small" /> {{ t('status_converting') }}</span
                 >
               </template>
 
               <span class="status-tag running" v-if="record.status == 1"
-                ><a-spin size="small" /> 学习中</span
+                ><a-spin size="small" /> {{ t('status_learning') }}</span
               >
 
               <span class="status-tag complete" v-if="record.status == 2"
-                ><CheckCircleFilled /> 学习完成</span
+                ><CheckCircleFilled /> {{ t('status_learning_complete') }}</span
               >
 
               <a-tooltip placement="top" v-if="record.status == 3">
@@ -100,9 +100,9 @@
                   <span>{{ record.errmsg }}</span>
                 </template>
                 <span>
-                  <span class="status-tag status-error"><CloseCircleFilled /> 转换失败</span>
+                  <span class="status-tag status-error"><CloseCircleFilled /> {{ t('status_conversion_failed') }}</span>
                   <a class="ml8" v-if="libraryInfo.type == 2" @click="handlePreview(record)"
-                    >学习</a
+                    >{{ t('status_learn') }}</a
                   >
                 </span>
               </a-tooltip>
@@ -111,32 +111,32 @@
                   <span>{{ record.errmsg }}</span>
                 </template>
                 <span>
-                  <span class="status-tag status-error"><CloseCircleFilled /> 转化异常</span>
+                  <span class="status-tag status-error"><CloseCircleFilled /> {{ t('status_conversion_error') }}</span>
                 </span>
               </a-tooltip>
               <template v-if="record.status == 4">
-                <span class="status-tag"><ClockCircleFilled /> 待学习</span>
-                <a class="ml8" @click="handlePreview(record)">学习</a>
+                <span class="status-tag"><ClockCircleFilled /> {{ t('status_wait_learning') }}</span>
+                <a class="ml8" @click="handlePreview(record)">{{ t('status_learn') }}</a>
               </template>
               <template v-if="record.status == 5">
-                <span class="status-tag"><ClockCircleFilled /> 待获取</span>
+                <span class="status-tag"><ClockCircleFilled /> {{ t('status_wait_fetch') }}</span>
               </template>
               <span class="status-tag running" v-if="record.status == 6"
-                ><a-spin size="small" /> 获取中</span
+                ><a-spin size="small" /> {{ t('status_fetching') }}</span
               >
               <a-tooltip placement="top" v-if="record.status == 7">
                 <template #title>
                   <span>{{ record.errmsg }}</span>
                 </template>
-                <span class="status-tag error"><CloseCircleFilled /> 获取失败</span>
+                <span class="status-tag error"><CloseCircleFilled /> {{ t('status_fetch_failed') }}</span>
               </a-tooltip>
               <template v-if="record.status == 9">
-                <span class="status-tag cancel"><ExclamationCircleOutlined /> 取消解析</span>
+                <span class="status-tag cancel"><ExclamationCircleOutlined /> {{ t('status_cancel_parsing') }}</span>
               </template>
 
               <span class="status-tag subning" v-if="record.status == 10">
                 <a-spin size="small" />
-                正在分段
+                {{ t('status_segmenting') }}
               </span>
             </template>
             <template v-if="column.key === 'file_size'">
@@ -154,12 +154,12 @@
     <a-modal v-model:open="downLoadModalOpen" :title="null" :footer="null" :width="640">
       <a-result
         status="success"
-        title="导出任务创建成功"
-        sub-title="系统会在后台导出。导出数据量越大，耗时越久。您可以稍后点击导出记录查看并下载导出的文件。"
+        :title="t('modal_export_success_title')"
+        :sub-title="t('modal_export_success_subtitle')"
       >
         <template #extra>
-          <a-button style="margin-right: 16px;" @click="downLoadModalOpen = false">知道了</a-button>
-          <a-button @click="toDownloadPage" type="primary">去下载</a-button>
+          <a-button style="margin-right: 16px;" @click="downLoadModalOpen = false">{{ t('modal_know') }}</a-button>
+          <a-button @click="toDownloadPage" type="primary">{{ t('modal_go_download') }}</a-button>
         </template>
       </a-result>
     </a-modal>
@@ -185,6 +185,9 @@ import { getLibraryFileList, cancelOcrPdf, createExportLibFileTask } from '@/api
 import { formatFileSize } from '@/utils/index'
 import { useLibraryStore } from '@/stores/modules/library'
 import { useUserStore } from '@/stores/modules/user'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.library-details.import-record')
 const { setStorage } = useStorage('localStorage')
 const userStore = useUserStore()
 const libraryStore = useLibraryStore()
@@ -229,44 +232,44 @@ const queryParams = reactive({
 })
 
 const columns = ref([])
-const columnsDefault = [
+const columnsDefault = computed(() => [
   {
-    title: '文档名称',
+    title: t('column_file_name'),
     dataIndex: 'file_name',
     key: 'file_name',
     width: 300
   },
   {
-    title: '文档格式',
+    title: t('column_file_format'),
     dataIndex: 'file_ext',
     key: 'file_ext',
     width: 100
   },
   {
-    title: '文档大小',
+    title: t('column_file_size'),
     dataIndex: 'file_size_str',
     key: 'file_size',
     width: 100
   },
   {
-    title: '分段',
+    title: t('column_segmentation'),
     dataIndex: 'paragraph_count',
     key: 'paragraph_count',
     width: 120
   },
   {
-    title: '文档状态',
+    title: t('column_status'),
     dataIndex: 'status',
     key: 'status',
     width: 200
   },
   {
-    title: '操作时间',
+    title: t('column_operation_time'),
     dataIndex: 'update_time',
     key: 'update_time',
     width: 150
   }
-]
+])
 
 const onTableChange = (pagination) => {
   queryParams.page = pagination.current
@@ -288,22 +291,22 @@ const handlePreview = (record, params = {}) => {
   }
   return
   if (record.status == '3' && libraryInfo.value.type != 2) {
-    return message.error('学习失败,不可预览')
+    return message.error(t('message_learning_failed'))
   }
   if (record.status == '0') {
-    return message.error('转换中,稍候可预览')
+    return message.error(t('message_converting'))
   }
   if (record.status == '1') {
-    return message.error('学习中,不可预览')
+    return message.error(t('message_learning_preview'))
   }
   if (record.status == '6') {
-    return message.error('获取中,不可预览')
+    return message.error(t('message_fetching'))
   }
   if (record.status == '7') {
-    return message.error('获取失败,不可预览')
+    return message.error(t('message_fetch_failed'))
   }
   if (record.status == '10') {
-    return message.error('正在分段,不可预览')
+    return message.error(t('message_segmenting'))
   }
 
   router.push({ name: 'libraryPreview', query: { id: record.id, ...params } })
@@ -326,7 +329,7 @@ const getData = () => {
 
       libraryInfo.value = { ...info }
 
-      columns.value = columnsDefault
+      columns.value = columnsDefault.value
 
       let list = res.data.list || []
       let countData = res.data.count_data || {}
@@ -369,14 +372,14 @@ const timingRefreshStatus = () => {
 
 const handleCancelOcrPdf = (record) => {
   Modal.confirm({
-    title: `取消确认？`,
-    content: '确认取消该文档解析',
-    okText: '确定',
+    title: t('modal_cancel_title'),
+    content: t('modal_cancel_content'),
+    okText: t('modal_ok'),
     onOk() {
       cancelOcrPdf({
         id: record.id
       }).then((res) => {
-        message.success('取消成功')
+        message.success(t('message_cancel_success'))
         getData()
       })
     }

@@ -22,31 +22,31 @@ const DefaultUseModelFile = define.AppRoot + `data/default_use_model.json`
 
 type DefaultUseModelConfig struct {
 	ModelDefine string `json:"model_define"`
-	ModelName   string `json:"model_name"` //仅用于展示
+	ModelName   string `json:"model_name"` // For display only
 	UseModelConfig
 }
 
 type ModelInputSupport struct {
-	InputText     uint `json:"input_text,omitzero"`     //文本
-	InputVoice    uint `json:"input_voice,omitzero"`    //语音
-	InputImage    uint `json:"input_image,omitzero"`    //图片
-	InputVideo    uint `json:"input_video,omitzero"`    //视频
-	InputDocument uint `json:"input_document,omitzero"` //文档
+	InputText     uint `json:"input_text,omitzero"`     // Text
+	InputVoice    uint `json:"input_voice,omitzero"`    // Voice
+	InputImage    uint `json:"input_image,omitzero"`    // Image
+	InputVideo    uint `json:"input_video,omitzero"`    // Video
+	InputDocument uint `json:"input_document,omitzero"` // Document
 }
 
 type ModelOutputSupport struct {
-	OutputText  uint `json:"output_text,omitzero"`  //文本
-	OutputVoice uint `json:"output_voice,omitzero"` //语音
-	OutputImage uint `json:"output_image,omitzero"` //图片
-	OutputVideo uint `json:"output_video,omitzero"` //视频
+	OutputText  uint `json:"output_text,omitzero"`  // Text
+	OutputVoice uint `json:"output_voice,omitzero"` // Voice
+	OutputImage uint `json:"output_image,omitzero"` // Image
+	OutputVideo uint `json:"output_video,omitzero"` // Video
 }
 
 type ImageGeneration struct {
-	ImageSizes          string `json:"image_sizes"`            //支持的图片比例
-	ImageMax            string `json:"image_max"`              //最大生成图片数量
-	ImageWatermark      string `json:"image_watermark"`        //是否添加水印，1添加，0不添加
-	ImageOptimizePrompt string `json:"image_optimize_prompt"`  //是否开启优化提示词，1开启，0不开启
-	ImageInputsImageMax string `json:"image_inputs_image_max"` //输入图片时最多输入几张图片
+	ImageSizes          string `json:"image_sizes"`            // Supported image ratios
+	ImageMax            string `json:"image_max"`              // Maximum number of generated images
+	ImageWatermark      string `json:"image_watermark"`        // Whether to add watermark, 1 to add, 0 not to add
+	ImageOptimizePrompt string `json:"image_optimize_prompt"`  // Whether to enable optimized prompt words, 1 to enable, 0 not to enable
+	ImageInputsImageMax string `json:"image_inputs_image_max"` // Maximum number of images to input when inputting images
 }
 
 type UseModelConfig struct {
@@ -54,12 +54,12 @@ type UseModelConfig struct {
 	ModelType           string `json:"model_type,omitzero"`
 	UseModelName        string `json:"use_model_name,omitzero"`
 	ShowModelName       string `json:"show_model_name,omitzero"`
-	ThinkingType        uint   `json:"thinking_type,omitzero"`         //深度思考选项:0不支持,1支持,2可选
-	FunctionCall        uint   `json:"function_call,omitzero"`         //是否支持function call
-	ModelInputSupport                                                  //支持的输入类型
-	ModelOutputSupport                                                 //支持的输出类型
-	VectorDimensionList string `json:"vector_dimension_list,omitzero"` //向量维度列表(英文逗号分割)
-	ImageGeneration     string `json:"image_generation,omitzero"`      //图片生成配置
+	ThinkingType        uint   `json:"thinking_type,omitzero"` //Deep thinking option: 0 not supported, 1 supported, 2 optional
+	FunctionCall        uint   `json:"function_call,omitzero"` //Whether function call is supported
+	ModelInputSupport          //Supported input types
+	ModelOutputSupport         //Supported output types
+	VectorDimensionList string `json:"vector_dimension_list,omitzero"` //Vector dimension list (comma separated)
+	ImageGeneration     string `json:"image_generation,omitzero"`      //Image generation configuration
 }
 
 func (useModel *UseModelConfig) ToDatas() (data msql.Datas, err error) {
@@ -68,13 +68,13 @@ func (useModel *UseModelConfig) ToDatas() (data msql.Datas, err error) {
 		return
 	}
 	err = tool.JsonDecodeUseNumber(jsonStr, &data)
-	delete(data, `id`) //释放主键id字段
+	delete(data, `id`) // Release primary key id field
 	return
 }
 
 func (useModel *UseModelConfig) ToSave(lang string, adminUserId, modelConfigId int) error {
 	m := msql.Model(`chat_ai_model_list`, define.Postgres)
-	if useModel.Id > 0 { //编辑可用模型
+	if useModel.Id > 0 { // Edit available model
 		id, _ := m.Where(`id`, cast.ToString(useModel.Id)).
 			Where(`admin_user_id`, cast.ToString(adminUserId)).
 			Where(`model_config_id`, cast.ToString(modelConfigId)).Value(`id`)
@@ -86,8 +86,8 @@ func (useModel *UseModelConfig) ToSave(lang string, adminUserId, modelConfigId i
 	if err != nil {
 		return err
 	}
-	//校验模型唯一性
-	if useModel.Id > 0 { //编辑可用模型时,剔除这一条记录
+	// Verify model uniqueness
+	if useModel.Id > 0 { // When editing an available model, exclude this record
 		m.Where(`id`, `<>`, cast.ToString(useModel.Id))
 	}
 	id, err := m.Where(`model_config_id`, cast.ToString(modelConfigId)).
@@ -99,14 +99,14 @@ func (useModel *UseModelConfig) ToSave(lang string, adminUserId, modelConfigId i
 	if cast.ToUint(id) > 0 {
 		return errors.New(i18n.Show(lang, `model_already_exist_under_config`, useModel.UseModelName, useModel.ModelType))
 	}
-	//保存模型数据
-	if useModel.Id == 0 { //新增可用模型
+	// Save model data
+	if useModel.Id == 0 { // Add new available model
 		data[`admin_user_id`] = adminUserId
 		data[`model_config_id`] = modelConfigId
 		data[`create_time`] = tool.Time2Int()
 		data[`update_time`] = tool.Time2Int()
 		_, err = m.Insert(data)
-	} else { //编辑可用模型
+	} else { // Edit available model
 		data[`update_time`] = tool.Time2Int()
 		_, err = m.Where(`id`, cast.ToString(useModel.Id)).Update(data)
 	}
@@ -181,7 +181,7 @@ func LoadUseModelConfig(params msql.Params, modelSupplier string) UseModelConfig
 func GetDefaultUseModel(modelDefine string) (useModels []UseModelConfig) {
 	useModels = make([]UseModelConfig, 0)
 	if tool.InArrayString(modelDefine, []string{ModelChatWiki, ModelOpenAIAgent, ModelAzureOpenAI, ModelOllama, ModelXnference, ModelDoubao}) {
-		return //没有默认的模型
+		return // No default models
 	}
 	jsonStr, err := tool.ReadFile(DefaultUseModelFile)
 	if err != nil {

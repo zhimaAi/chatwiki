@@ -86,7 +86,7 @@
   <div class="web-app-box">
     <div class="box-left">
       <div class="box-wrapper">
-        <card-box title="H5链接">
+        <card-box :title="t('h5_link_title')">
           <template #icon>
             <svg-icon name="phone" style="font-size: 16px; color: #262626"></svg-icon>
           </template>
@@ -96,20 +96,20 @@
             </div>
             <div class="link-action">
               <a-button class="action-btn" type="primary" ghost @click="copyH5WebSite(h5_src)"
-                >复 制</a-button
+                >{{ t('copy_btn') }}</a-button
               >
-              <a-button class="action-btn" @click="handlePreview(h5_src)">预 览</a-button>
+              <a-button class="action-btn" @click="handlePreview(h5_src)">{{ t('preview_btn') }}</a-button>
               <a-tooltip color="#fff" placement="top">
                 <template #title>
                   <img style="width: 180px" :src="previewQrcodeH5" alt="" />
                 </template>
-                <a-button class="action-btn">二维码</a-button>
+                <a-button class="action-btn">{{ t('qrcode_btn') }}</a-button>
               </a-tooltip>
             </div>
 
             <div class="card-title">
               <svg-icon name="circularNeedle" style="font-size: 16px; color: #262626"></svg-icon>
-              <div class="title-text">pc网页链接</div>
+              <div class="title-text">{{ t('pc_web_link_title') }}</div>
             </div>
 
             <div class="web-app-link">
@@ -117,32 +117,32 @@
             </div>
             <div class="link-action">
               <a-button class="action-btn" type="primary" ghost @click="copyH5WebSite(pc_src)"
-                >复 制</a-button
+                >{{ t('copy_btn') }}</a-button
               >
-              <a-button class="action-btn" @click="handlePreview(pc_src)">预 览</a-button>
+              <a-button class="action-btn" @click="handlePreview(pc_src)">{{ t('preview_btn') }}</a-button>
               <a-tooltip color="#fff" placement="top">
                 <template #title>
                   <img style="width: 180px" :src="previewQrcodePc" alt="" />
                 </template>
-                <a-button class="action-btn">二维码</a-button>
+                <a-button class="action-btn">{{ t('qrcode_btn') }}</a-button>
               </a-tooltip>
             </div>
 
             <div class="access-restrictions form-box">
               <div class="form-item">
-                <div class="form-item-label">访问限制</div>
+                <div class="form-item-label">{{ t('access_restrictions_label') }}</div>
                 <div class="form-item-body">
                   <a-radio-group
                     v-model:value="accessRestrictionsType"
                     @change="saveAccessRestrictionsType"
                   >
-                    <a-radio :value="1"><span class="default-text-color">无限制</span></a-radio>
+                    <a-radio :value="1"><span class="default-text-color">{{ t('no_restriction') }}</span></a-radio>
                     <a-radio :value="2"
-                      ><span class="default-text-color">登录后才可访问</span></a-radio
+                      ><span class="default-text-color">{{ t('login_required') }}</span></a-radio
                     >
                     <a-radio v-if="false" :value="3"
-                      ><span class="default-text-color">有权限的账号登录后才可访问</span>
-                      <a-tooltip title="可在基础配置→ 权限管理处添加协作者。">
+                      ><span class="default-text-color">{{ t('authorized_login_required') }}</span>
+                      <a-tooltip :title="t('authorized_tooltip')">
                         <QuestionCircleOutlined class="ml4" />
                       </a-tooltip>
                     </a-radio>
@@ -155,30 +155,30 @@
       </div>
 
       <div class="box-wrapper">
-        <card-box title="样式设置">
+        <card-box :title="t('style_settings_title')">
           <template #icon>
             <svg-icon name="phone" style="font-size: 16px; color: #262626"></svg-icon>
           </template>
           <template #action>
-            <a-button @click="saveForm" size="small" type="primary">保存</a-button>
+            <a-button @click="saveForm" size="small" type="primary">{{ t('save_btn') }}</a-button>
           </template>
           <div class="web-app-style form-box">
             <a-form ref="formRef" layout="vertical" :model="formState" :rules="formRules">
-              <a-form-item class="form-item" label="是否显示标题栏" name="navbarShow">
+              <a-form-item class="form-item" :label="t('show_navbar_label')" name="navbarShow">
                 <a-radio-group v-model:value="formState.navbarShow" name="navbarShow">
-                  <a-radio :value="1">显示</a-radio>
-                  <a-radio :value="2">不显示</a-radio>
+                  <a-radio :value="1">{{ t('show_navbar_yes') }}</a-radio>
+                  <a-radio :value="2">{{ t('show_navbar_no') }}</a-radio>
                 </a-radio-group>
               </a-form-item>
 
-              <a-form-item class="form-item" label="是否显示历史对话和新增对话按钮" name="new_session_btn_show">
+              <a-form-item class="form-item" :label="t('show_history_and_new_session_btn_label')" name="new_session_btn_show">
                 <a-radio-group v-model:value="formState.new_session_btn_show" name="new_session_btn_show">
-                  <a-radio :value="1">显示</a-radio>
-                  <a-radio :value="2">不显示</a-radio>
+                  <a-radio :value="1">{{ t('show_navbar_yes') }}</a-radio>
+                  <a-radio :value="2">{{ t('show_navbar_no') }}</a-radio>
                 </a-radio-group>
               </a-form-item>
 
-              <a-form-item class="form-item" label="页面标题" name="pageTitle">
+              <a-form-item class="form-item" :label="t('page_title_label')" name="pageTitle">
                 <PageTitleInput
                   v-model:avatar="formState.logo"
                   v-model:value="formState.pageTitle"
@@ -187,27 +187,27 @@
 
               <a-form-item
                 class="form-item"
-                label="标题栏颜色"
+                :label="t('navbar_color_label')"
                 :name="['pageStyle', 'navbarBackgroundColor']"
               >
                 <ColorPicker v-model:value="formState.pageStyle.navbarBackgroundColor" />
               </a-form-item>
 
-              <a-form-item class="form-item" label="语言" name="lang">
+              <a-form-item class="form-item" :label="t('language_label')" name="lang">
                 <a-select
                   style="width: 180px"
                   v-model:value="formState.lang"
-                  placeholder="请选择语言"
+                  :placeholder="t('language_placeholder')"
                 >
-                  <a-select-option value="zh-CN">简体中文</a-select-option>
-                  <a-select-option value="en-US">English</a-select-option>
+                  <a-select-option value="zh-CN">{{ t('language_zh_cn') }}</a-select-option>
+                  <a-select-option value="en-US">{{ t('language_en_us') }}</a-select-option>
                 </a-select>
               </a-form-item>
-              <a-form-item class="form-item" label="网址打开方式" name="open_type" required>
+              <a-form-item class="form-item" :label="t('url_open_type_label')" name="open_type" required>
                 <a-radio-group v-model:value="formState.open_type">
-                  <a-radio :value="1">新标签页打开</a-radio>
-                  <a-radio :value="2">新窗口弹窗打开
-                    <a-tooltip title="仅管控PC端新窗口打开,移动端依然用新标签页打开">
+                  <a-radio :value="1">{{ t('open_new_tab') }}</a-radio>
+                  <a-radio :value="2">{{ t('open_new_window') }}
+                    <a-tooltip :title="t('open_new_window_tooltip')">
                       <template #title>prompt text</template>
                       <QuestionCircleOutlined />
                     </a-tooltip>
@@ -216,12 +216,12 @@
                 <a-form-item-rest v-if="formState.open_type == 2">
                   <div class="window-size-box">
                     <a-flex align="center" :gap="8">
-                      <div>弹窗高度</div>
+                      <div>{{ t('window_height_label') }}</div>
                       <a-input-number  v-model:value="formState.window_height" :min="500" :max="2000" />
                       PX
                     </a-flex>
                     <a-flex align="center" :gap="8">
-                      <div>弹窗宽度</div>
+                      <div>{{ t('window_width_label') }}</div>
                       <a-input-number  v-model:value="formState.window_width" :min="500" :max="2000" />
                       PX
                     </a-flex>
@@ -245,6 +245,7 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import QRCode from 'qrcode'
 import { ref, reactive, toRaw, watch, computed } from 'vue'
 import { message } from 'ant-design-vue'
@@ -260,6 +261,7 @@ import PreviewCommand from './preview-command.vue'
 import { useRouter } from 'vue-router'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 
+const { t } = useI18n('views.robot.robot-config.external-service.components.web-app')
 const router = useRouter()
 const robotStore = useRobotStore()
 const { robotInfo, external_config_h5 } = storeToRefs(robotStore)
@@ -314,21 +316,21 @@ const formRules = {
   lang: [
     {
       required: true,
-      message: '请选择语言',
+      message: t('please_select_language'),
       trigger: 'change'
     }
   ],
   pageTitle: [
     {
       required: true,
-      message: '请输入标题',
+      message: t('please_input_title'),
       trigger: 'input'
     },
     {
       trigger: 'input',
       validator: () => {
         if (!formState.logo) {
-          return Promise.reject('请上传logo')
+          return Promise.reject(t('please_upload_logo'))
         } else {
           return Promise.resolve()
         }
@@ -338,7 +340,7 @@ const formRules = {
   navbarShow: [
     {
       required: true,
-      message: '请选择是否显示标题栏',
+      message: t('please_select_navbar_show'),
       trigger: 'change'
     }
   ],
@@ -346,7 +348,7 @@ const formRules = {
     navbarBackgroundColor: [
       {
         required: true,
-        message: '请选择标题栏颜色',
+        message: t('please_select_navbar_color'),
         trigger: 'change'
       }
     ]
@@ -370,8 +372,7 @@ const saveWebAppInfo = (formData) => {
     external_config_h5: JSON.stringify(formData)
   }).then(() => {
     getRobot(id)
-    message.success('保存成功')
-    // 刷新一下
+    message.success(t('save_success'))
     router.go(0)
   })
 }
@@ -400,7 +401,7 @@ const handlePreview = (src) => {
 
 const copyH5WebSite = (text) => {
   copyText(text)
-  message.success('复制成功')
+  message.success(t('copy_success'))
 }
 
 const generateQR = async () => {

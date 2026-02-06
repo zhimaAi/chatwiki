@@ -3,41 +3,41 @@
     <a-alert
       type="info"
       show-icon
-      message="当用户无可用次数时，会返回给用户套餐购买说明，引导用户购买。本功能仅管控微信公众号、微信小程序、微信客服对外服务，其他渠道不受管控"
+      :message="t('alert_info_message')"
       class="zm-alert-info"
     />
     <div class="content">
       <div class="left">
-        <a-button @click="showCopyModal">复制设置到其他应用</a-button>
+        <a-button @click="showCopyModal">{{ t('btn_copy_settings') }}</a-button>
         <div class="form-box">
           <div class="form-item">
-            <div class="form-item-tit">允许试用次数</div>
+            <div class="form-item-tit">{{ t('label_allow_trial_count') }}</div>
             <a-select v-model:value="formState.try_count" style="width: 320px;">
               <a-select-option v-for="i in 50" :key="i" :value="i">{{ i }}</a-select-option>
             </a-select>
           </div>
           <div class="form-item">
-            <div class="form-item-tit">套餐方案</div>
+            <div class="form-item-tit">{{ t('label_package_plan') }}</div>
             <a-radio-group v-model:value="formState.package_type" @change="packageTypeChange">
-              <a-radio value="1">按次数收费</a-radio>
-              <a-radio value="2">按时长收费</a-radio>
+              <a-radio value="1">{{ t('radio_charge_by_count') }}</a-radio>
+              <a-radio value="2">{{ t('radio_charge_by_duration') }}</a-radio>
             </a-radio-group>
           </div>
           <div class="form-item">
-            <div class="form-item-tit">套餐方案</div>
+            <div class="form-item-tit">{{ t('label_package_plan') }}</div>
             <div>
               <a-button type="primary" ghost :disabled="currentPackage.length > 9" @click="showAddModal()">
                 <PlusOutlined/>
-                新增套餐 ({{ currentPackage.length }}/10)
+                {{ t('btn_add_package') }} ({{ currentPackage.length }}/10)
               </a-button>
               <table class="combo-table mt8">
                 <thead>
                 <tr>
-                  <th class="ant-table-cell" width="120">套餐名</th>
-                  <th class="ant-table-cell" width="100">时长 (天)</th>
-                  <th class="ant-table-cell" width="120">总次数 (次)</th>
-                  <th class="ant-table-cell" width="100">费用 (元)</th>
-                  <th class="ant-table-cell" width="140">操作</th>
+                  <th class="ant-table-cell" width="120">{{ t('table_header_package_name') }}</th>
+                  <th class="ant-table-cell" width="100">{{ t('table_header_duration') }}</th>
+                  <th class="ant-table-cell" width="120">{{ t('table_header_total_count') }}</th>
+                  <th class="ant-table-cell" width="100">{{ t('table_header_cost') }}</th>
+                  <th class="ant-table-cell" width="140">{{ t('table_header_operation') }}</th>
                 </tr>
                 </thead>
                 <draggable
@@ -59,8 +59,8 @@
                       <td class="ant-table-cell">{{ element.count }}</td>
                       <td class="ant-table-cell">{{ element.price }}</td>
                       <td class="ant-table-cell">
-                        <a @click="showAddModal(element, index)">编辑</a>
-                        <a @click="delPackage(element, index)" class="ml16">删除</a>
+                        <a @click="showAddModal(element, index)">{{ t('btn_edit') }}</a>
+                        <a @click="delPackage(element, index)" class="ml16">{{ t('btn_delete') }}</a>
                       </td>
                     </tr>
                   </template>
@@ -70,7 +70,7 @@
             </div>
           </div>
           <div class="form-item">
-            <div class="form-item-tit">联系二维码（推荐上传微信二维码方便用户联系）</div>
+            <div class="form-item-tit">{{ t('label_contact_qrcode') }}</div>
             <div>
               <a-upload
                 accept=".png,.jpg,.jpeg"
@@ -79,34 +79,34 @@
               >
                 <a-button type="primary" ghost>
                   <PlusOutlined/>
-                  上传图片
+                  {{ t('btn_upload_image') }}
                 </a-button>
               </a-upload>
               <div class="qrcode-box mt8" v-if="formState.contact_qrcode">
                 <img class="qrcode" :src="formState.contact_qrcode"/>
-                <a @click="delQrcode">删除</a>
+                <a @click="delQrcode">{{ t('btn_delete_qrcode') }}</a>
               </div>
             </div>
           </div>
         </div>
       </div>
       <div class="right">
-        <div class="tit">无使用次数用户，对话时默认返回图片</div>
+        <div class="tit">{{ t('label_preview_title') }}</div>
         <div class="preview-box" id="previewBox">
           <div :class="['wrap',{'no-qrcode': !formState.contact_qrcode}]">
             <div class="tip">
               <ExclamationCircleFilled class="icon"/>
-              您的使用次数已耗尽，请扫码联系客服购买
+              {{ t('preview_tip_usage_exhausted') }}
             </div>
             <img v-if="formState.contact_qrcode" class="qrcode" :src="formState.contact_qrcode" crossorigin="anonymous"/>
-            <div class="title">次数套餐</div>
+            <div class="title">{{ t('preview_title_package') }}</div>
             <div class="table-box">
               <table>
                 <tr v-for="(item, i) in currentPackage" :key="i">
                   <td>{{ item.name }}</td>
-                  <td v-if="formState.package_type == 2">{{ item.duration }}天</td>
-                  <td>{{ item.count }}次</td>
-                  <td>{{ item.price }}元</td>
+                  <td v-if="formState.package_type == 2">{{ item.duration }}{{ t('preview_unit_day') }}</td>
+                  <td>{{ item.count }}{{ t('preview_unit_count') }}</td>
+                  <td>{{ item.price }}{{ t('preview_unit_yuan') }}</td>
                 </tr>
               </table>
             </div>
@@ -117,9 +117,9 @@
     <div class="footer">
       <a-popover
         :open="saveTipShow"
-        content="配置修改后需保存后生效"
+        :content="t('popover_save_tip')"
         :getPopupContainer="triggerNode => triggerNode">
-        <a-button type="primary" style="width: 120px;" :loading="saving" @click.stop="save">保 存</a-button>
+        <a-button type="primary" style="width: 120px;" :loading="saving" @click.stop="save">{{ t('btn_save') }}</a-button>
       </a-popover>
     </div>
 
@@ -131,6 +131,7 @@
 <script setup>
 import {ref, reactive, onMounted, nextTick, computed, h} from 'vue';
 import {useRoute} from 'vue-router';
+import { useI18n } from '@/hooks/web/useI18n';
 import {message, Modal} from 'ant-design-vue';
 import {PlusOutlined, ExclamationCircleFilled, ExclamationCircleOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable'
@@ -141,6 +142,8 @@ import {uploadFile} from "@/api/app/index.js";
 import {canvasToFile, jsonDecode} from "@/utils/index.js";
 import html2canvas from 'html2canvas'
 import CopyConfigModal from "@/views/robot/robot-config/payment/components/copy-config-modal.vue";
+
+const { t } = useI18n('views.robot.robot-config.payment.components.settings-box')
 
 const emit = defineEmits(['update'])
 const props = defineProps({
@@ -219,11 +222,11 @@ function packageChange(info) {
 
 function delPackage(record, index) {
   Modal.confirm({
-    title: `提示`,
+    title: t('modal_title_tip'),
     icon: h(ExclamationCircleOutlined),
-    content: `确认删除该套餐?`,
-    okText: '确 定',
-    cancelText: '取 消',
+    content: t('modal_confirm_delete_package'),
+    okText: t('modal_btn_confirm'),
+    cancelText: t('modal_btn_cancel'),
     onOk() {
       currentPackage.value.splice(index, 1)
     }
@@ -233,9 +236,9 @@ function delPackage(record, index) {
 function handleBeforeUpload(file) {
   try {
     const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
-    if (!isJpgOrPng) throw '只支持JPG、PNG格式的图片'
+    if (!isJpgOrPng) throw t('error_image_format')
     const isLt2M = file.size / 1024 < 1024 * 2
-    if (!isLt2M) throw '图片大小不能超过2M'
+    if (!isLt2M) throw t('error_image_size')
     uploadFile({category: 'library_image', file}).then((res) => {
       formState.contact_qrcode = res.data.link
     })
@@ -247,11 +250,11 @@ function handleBeforeUpload(file) {
 
 function delQrcode() {
   Modal.confirm({
-    title: `提示`,
+    title: t('modal_title_tip'),
     icon: h(ExclamationCircleOutlined),
-    content: `确认删除联系二维码?`,
-    okText: '确 定',
-    cancelText: '取 消',
+    content: t('modal_confirm_delete_qrcode'),
+    okText: t('modal_btn_confirm'),
+    cancelText: t('modal_btn_cancel'),
     onOk() {
       formState.contact_qrcode = ""
     }
@@ -287,7 +290,7 @@ function save() {
     data.count_package = JSON.stringify(data.count_package)
     data.duration_package = JSON.stringify(data.duration_package)
     savePaymentSetting(data).then(res => {
-      message.success('已保存')
+      message.success(t('msg_saved'))
       loadData()
     }).finally(() => {
       saving.value = false

@@ -1,12 +1,12 @@
 <template>
   <a-tabs class="tab-wrapper" v-model:activeKey="activeKey" @change="handleChangeTab">
     <template v-if="unknown_summary_status">
-      <a-tab-pane :key="2" tab="未知问题总结"></a-tab-pane>
-      <a-tab-pane :key="1" tab="未知问题统计"></a-tab-pane>
+      <a-tab-pane :key="2" :tab="t('unknown_issue_summary')"></a-tab-pane>
+      <a-tab-pane :key="1" :tab="t('unknown_issue_statistics')"></a-tab-pane>
     </template>
     <template v-else>
-      <a-tab-pane :key="1" tab="未知问题统计"></a-tab-pane>
-      <a-tab-pane :key="2" tab="未知问题总结"></a-tab-pane>
+      <a-tab-pane :key="1" :tab="t('unknown_issue_statistics')"></a-tab-pane>
+      <a-tab-pane :key="2" :tab="t('unknown_issue_summary')"></a-tab-pane>
     </template>
   </a-tabs>
   <div class="user-model-page">
@@ -22,6 +22,8 @@ import { reactive, ref, computed } from 'vue'
 import { useRobotStore } from '@/stores/modules/robot'
 import UnknownIssue from './index.vue'
 import UnknownIssueSummarize from './summarize/index.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+const { t } = useI18n('views.robot.robot-config.unknown-issue.unknow-index')
 const robotStore = useRobotStore()
 const activeLocalKey = '/robot/config/unknown_issue/activeKey'
 const activeKey = ref(+localStorage.getItem(activeLocalKey) || 1)

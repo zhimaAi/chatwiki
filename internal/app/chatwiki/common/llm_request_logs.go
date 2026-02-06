@@ -26,14 +26,14 @@ func SaveLlmRequestLogs(data msql.Datas) error {
 		return nil
 	}
 	var sqlerr *pq.Error
-	if errors.As(err, &sqlerr) && sqlerr.Code == `42P01` { //表不存在
-		//创建新表
+	if errors.As(err, &sqlerr) && sqlerr.Code == `42P01` { // Table does not exist
+		// Create new table
 		sql := fmt.Sprintf(`CREATE TABLE "%s" (LIKE "%s" INCLUDING ALL)`, tableName, LlmRequestLogsBaseTableName)
 		_, err = msql.RawExec(define.Postgres, sql, nil)
 		if err != nil {
-			logs.Error(err.Error()) //创建新表出错了
+			logs.Error(err.Error()) // Error creating new table
 		}
-		//尝试重新插入
+		// Try to re-insert
 		if _, err = msql.Model(tableName, define.Postgres).Insert(data); err == nil {
 			return nil
 		}

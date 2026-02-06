@@ -11,7 +11,7 @@
       <div class="value-title-item">
         <a-select
           v-if="item.typ != 'object'"
-          placeholder="请输入选择变量"
+          :placeholder="t('ph_select_variable')"
           v-model:value="item.desc"
           style="width: 90%"
         >
@@ -54,9 +54,12 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { computed, ref } from 'vue'
 import { CloseCircleOutlined, PlusCircleOutlined, EditOutlined } from '@ant-design/icons-vue'
 import AddKeyModal from './add-key-modal.vue'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.webhook-trigger-node-form.subs-key')
 const props = defineProps({
   data: {},
   level: {

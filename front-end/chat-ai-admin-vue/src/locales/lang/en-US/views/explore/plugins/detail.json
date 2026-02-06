@@ -1,0 +1,13 @@
+{
+  "title_plugin_detail": "Plugin Details",
+  "btn_usage_guide": "Usage Guide",
+  "btn_update": "Update",
+  "btn_installed": "Installed",
+  "btn_install": "Install",
+  "title_plugin_overview": "Plugin Overview",
+  "title_category": "Category",
+  "title_version": "Version",
+  "btn_version_history": "Version History",
+  "title_permissions": "Permissions",
+  "label_max_memory": "Max Memory"
+}

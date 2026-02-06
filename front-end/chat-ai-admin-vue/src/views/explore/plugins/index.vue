@@ -10,7 +10,7 @@
         <div class="radio-tabs">
           <div @click="filterTypeChange(0)" :class="['radio-tab', {active: filterData.filter_type == 0 }]">
             <svg-icon name="icon-all"/>
-            <span>全部</span>
+            <span>{{ t('label_all') }}</span>
           </div>
           <div v-for="type in types"
                @click="filterTypeChange(type.id)"
@@ -26,7 +26,7 @@
           @change="filterDataChange"
           style="width: 360px;"
           allowClear
-          placeholder="搜索插件">
+          :placeholder="t('ph_search_plugin')">
           <template #suffix>
             <SearchOutlined/>
           </template>
@@ -50,7 +50,9 @@ import MainTab from "@/views/explore/components/main-tab.vue";
 import {getPluginTypes} from "@/api/plugins/index.js";
 import {usePublicNetworkCheck} from "@/composables/usePublicNetworkCheck.js";
 import PublicNetworkCheck from "@/components/common/public-network-check.vue";
+import { useI18n } from '@/hooks/web/useI18n';
 
+const { t } = useI18n('views.explore.plugins.index')
 const {isPublicNetwork} = usePublicNetworkCheck()
 const route = useRoute()
 const tabRef = ref(null)

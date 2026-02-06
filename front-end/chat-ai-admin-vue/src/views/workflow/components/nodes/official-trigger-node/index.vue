@@ -67,15 +67,15 @@
   >
     <div class="start-node">
       <div class="start-node-options">
-        <div class="options-title">触发事件</div>
+        <div class="options-title">{{ t('label_trigger_event') }}</div>
         <div class="options-list">
           <div class="options-item">
-            <div class="option-label">{{ msg_type_map[formState.msg_type] }}</div>
+            <div class="option-label">{{ t(msg_type_map[formState.msg_type]) }}</div>
           </div>
         </div>
       </div>
       <div class="start-node-options">
-        <div class="options-title" @click="test">公众号</div>
+        <div class="options-title" @click="test">{{ t('label_official_account') }}</div>
         <div class="options-list">
           <div class="options-item" v-for="item in selectAppItems.slice(0, 1)" :key="item.app_id">
             <div class="option-label">{{ item.app_name }}</div>
@@ -86,7 +86,7 @@
         </div>
       </div>
       <div class="start-node-options">
-        <div class="options-title">输出</div>
+        <div class="options-title">{{ t('label_output') }}</div>
         <div class="options-list">
           <div
             class="options-item"
@@ -110,6 +110,10 @@
 import NodeCommon from '../base-node.vue'
 import { nextTick, onMounted, inject, watch, reactive, ref, computed } from 'vue'
 import { useWorkflowStore } from '@/stores/modules/workflow'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.official-trigger-node.index')
+
 const workflowStore = useWorkflowStore()
 
 const resetSize = inject('resetSize')
@@ -138,10 +142,10 @@ watch(
 )
 
 let msg_type_map = {
-  message: '私信消息',
-  subscribe_unsubscribe: '关注/取消关注事件',
-  qrcode_scan: '扫描带参数二维码事件',
-  menu_click: '自定义菜单事件'
+  message: 'text_private_message',
+  subscribe_unsubscribe: 'text_subscribe_unsubscribe',
+  qrcode_scan: 'text_qrcode_scan',
+  menu_click: 'text_menu_click'
 }
 
 const formState = reactive({

@@ -1,0 +1,8 @@
+{
+  "click_or_drag_upload": "点击或将文件拖拽到这里上传",
+  "batch_upload_hint": "支持多个文档批量上传，单个文件不超过100M，最多{count}个文档",
+  "supported_file_types": "支持文件类型：",
+  "max_upload_error": "一次最多上传{count}个文件",
+  "unsupported_file_format": "不支持的文件格式",
+  "file_size_limit": "文件大小不能超过100M"
+}

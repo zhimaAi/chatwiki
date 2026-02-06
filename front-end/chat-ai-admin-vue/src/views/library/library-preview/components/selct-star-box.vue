@@ -2,11 +2,11 @@
   <div class="star-select-box">
     <a-tabs v-model:activeKey="activeKey" size="small" @change="handleChange">
       <a-tab-pane :key="-1">
-        <template #tab>全部</template>
+        <template #tab>{{ t('tab_all') }}</template>
       </a-tab-pane>
       <a-tab-pane :key="0" v-if="!hideId.includes(0)">
         <template #tab>
-          <div class="star-item"><StarOutlined />未精选</div>
+          <div class="star-item"><StarOutlined />{{ t('tab_unselected') }}</div>
         </template>
       </a-tab-pane>
       <a-tab-pane v-for="item in props.startLists" :key="item.id">
@@ -22,8 +22,11 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import { StarFilled, StarOutlined } from '@ant-design/icons-vue'
 import colorLists from '@/utils/starColors.js'
+
+const { t } = useI18n('views.library.library-preview.components.selct-star-box')
 const emit = defineEmits(['change'])
 const props = defineProps({
   startLists: {

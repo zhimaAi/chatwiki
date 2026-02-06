@@ -4,7 +4,7 @@ package common
 
 import "chatwiki/internal/pkg/lib_define"
 
-// ReplyContent 回复内容
+// ReplyContent response content
 type ReplyContent struct {
 	ReplyType       string               `json:"reply_type" form:"reply_type"`
 	ThumbURL        string               `json:"thumb_url" form:"thumb_url"`
@@ -19,17 +19,17 @@ type ReplyContent struct {
 	Type            string               `json:"type" form:"type"`
 	Pic             string               `json:"pic,omitempty" form:"pic,omitempty"`
 	SmartMenuId     string               `json:"smart_menu_id" form:"smart_menu_id"`
-	SmartMenu       lib_define.SmartMenu `json:"smart_menu,omitempty" form:"smart_menu"` //智能菜单 输出时候传递
+	SmartMenu       lib_define.SmartMenu `json:"smart_menu,omitempty" form:"smart_menu"` // Smart menu, passed when outputting
 	SendSource      string               `json:"send_source" form:"send_source"`
 }
 
 const (
-	ReplyTypeImageText = `imageText` //图文
-	ReplyTypeText      = `text`      //文本
-	ReplyTypeUrl       = `url`       //网址
-	ReplyTypeImg       = `image`     //图片
-	ReplyTypeCard      = `card`      //小程序卡片
-	ReplyTypeSmartMenu = `smartMenu` //智能菜单
+	ReplyTypeImageText = `imageText` // Image-text
+	ReplyTypeText      = `text`      // Text
+	ReplyTypeUrl       = `url`       // URL
+	ReplyTypeImg       = `image`     // Image
+	ReplyTypeCard      = `card`      // Mini program card
+	ReplyTypeSmartMenu = `smartMenu` // Smart menu
 )
 
 const (

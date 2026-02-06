@@ -1,31 +1,31 @@
 <template>
   <div v-if="!aiCommentEnabled" class="ability-banner">
     <svg-icon name="tip-icon" style="font-size: 16px; color: white;" />
-    <span>AI评论精选功能暂未开启，您可到探索 > 功能 > AI评论精选开启</span>
-    <a class="go-enable" href="javascript:void(0);" @click="goEnableAiComment">去开启</a>
+    <span>{{ t('banner_ai_comment_not_enabled') }}</span>
+    <a class="go-enable" href="javascript:void(0);" @click="goEnableAiComment">{{ t('common_go_enable') }}</a>
   </div>
   <div class="user-model-page">
   <div class="breadcrumb-wrap">
     <svg-icon @click="goBack" name="back" style="font-size: 20px;" />
-    <span @click="goBack" class="breadcrumb-title">文章群发</span>
+    <span @click="goBack" class="breadcrumb-title">{{ t('breadcrumb_article_group_send') }}</span>
     <a-switch
       :checked="abilitySwitchChecked"
-      checked-children="开"
-      un-checked-children="关"
+      :checked-children="t('switch_on')"
+      :un-checked-children="t('switch_off')"
       @change="onAbilitySwitchChange"
     />
-    <span class="switch-tip">开启后，用户可以在文章管理中群发文章给公众号用户，该群发支持使用AI评论精选功能自动删评，回复，精选评论。</span>
+    <span class="switch-tip">{{ t('switch_tip') }}</span>
   </div>
 
     <div v-if="loadingApps" class="loading-box"><a-spin /></div>
     <template v-else>
       <div class="empty-wrap" v-if="accountList.length === 0">
         <ListEmpty size="180">
-          <div class="empty-default">暂未绑定公众号</div>
-          <div class="empty-sub">请选到系统设置>公众号管理绑定公众号</div>
+          <div class="empty-default">{{ t('empty_no_mp_bound') }}</div>
+          <div class="empty-sub">{{ t('empty_bind_mp_tip') }}</div>
         </ListEmpty>
         <div class="empty-actions">
-          <a-button type="primary" @click="toBindMp">去绑定公众号</a-button>
+          <a-button type="primary" @click="toBindMp">{{ t('btn_bind_mp') }}</a-button>
         </div>
       </div>
       <template v-else>
@@ -38,7 +38,7 @@
             </div>
             <a-button v-if="!expanded && mpAccounts.length > visibleCount" type="dashed" class="more-btn"
               @click="expanded = true">
-              更多 +{{ mpAccounts.length - visibleCount }}
+              {{ t('more_show') }} +{{ mpAccounts.length - visibleCount }}
             </a-button>
           </div>
         </div>
@@ -53,8 +53,8 @@
 
         <a-alert class="alert-box" style="margin: 16px 48px 0;">
           <template #message>
-            <div>1. 本功能仅限认证的公众号。支持同步微信公众后台未发布的草稿箱。</div>
-            <div>2. 群发的内容不会显示在文章管理内。请注意群发和已发布的区别。</div>
+            <div>{{ t('alert_line_1') }}</div>
+            <div>{{ t('alert_line_2') }}</div>
           </template>
         </a-alert>
 
@@ -70,14 +70,16 @@
   </div>
   <a-modal v-model:open="bannerTipOpen" :footer="null">
     <template #title>
-      <span><ExclamationCircleFilled style="color:#faad14;margin-right:8px;" />未开启AI评论精选</span>
+      <span><ExclamationCircleFilled style="color:#faad14;margin-right:8px;" />{{ t('modal_ai_comment_not_enabled_title') }}</span>
     </template>
-    <div><span style="color: red;">AI评论精选功能暂未开启</span>，您可到探索 > 功能 > AI评论精选开启</div>
+    <div>
+      <span style="color: red;">{{ t('modal_ai_comment_not_enabled') }}</span>{{ t('modal_ai_comment_not_enabled_tip') }}
+    </div>
     <div class="enable-tip-footer">
-      <a-checkbox v-model:checked="bannerTipDontRemind">3天内不在提示</a-checkbox>
+      <a-checkbox v-model:checked="bannerTipDontRemind">{{ t('checkbox_dont_remind_three_days') }}</a-checkbox>
       <div class="footer-actions">
-        <a-button @click="onCancelBannerTip">取消</a-button>
-        <a-button type="primary" @click="goEnableAiComment">去开启</a-button>
+        <a-button @click="onCancelBannerTip">{{ t('btn_cancel') }}</a-button>
+        <a-button type="primary" @click="goEnableAiComment">{{ t('common_go_enable') }}</a-button>
       </div>
     </div>
   </a-modal>
@@ -91,13 +93,15 @@ import { getSpecifyAbilityConfig, saveUserAbility } from '@/api/explore'
 import { getWechatAppList } from '@/api/robot'
 import { ExclamationCircleFilled } from '@ant-design/icons-vue'
 import ListEmpty from '@/views/robot/robot-config/function-center/components/list-empty.vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n('views.explore.article-group-send.index')
 
 const segmentedOptions = [
-  { label: '群发管理', value: 'group-send' },
-  { label: '草稿箱', value: 'draft-box' }
+  { label: t('segmented_group_send'), value: 'group-send' },
+  { label: t('segmented_draft_box'), value: 'draft-box' }
 ]
 
 const getActiveByRoute = () => {
@@ -106,7 +110,6 @@ const getActiveByRoute = () => {
 }
 
 const goBack = () => {
-  // 如果有浏览器记录，就返回上一页
   if (router.options.history.state.back) {
     router.back()
   } else {
@@ -116,7 +119,6 @@ const goBack = () => {
 
 const activeKey = ref(getActiveByRoute())
 
-// 能力开关：文章群发
 const abilitySwitchChecked = ref(false)
 const initAbilitySwitch = () => {
   getSpecifyAbilityConfig({ ability_type: 'official_account_batch_send' }).then((res) => {
@@ -143,13 +145,13 @@ const onAbilitySwitchChange = (checked) => {
   const newStatus = checked ? '1' : '0'
   if (newStatus === '0') {
     Modal.confirm({
-      title: '提示',
-      content: '关闭后，该功能默认关闭不再支持使用，确认关闭？',
+      title: t('modal_confirm_title'),
+      content: t('modal_confirm_disable_content'),
       onOk: () => {
         saveUserAbility({ ability_type: 'official_account_batch_send', switch_status: newStatus }).then((res) => {
           if (res && res.res == 0) {
             abilitySwitchChecked.value = false
-            message.success('操作成功')
+            message.success(t('message_operation_success'))
           }
         })
       }
@@ -159,7 +161,7 @@ const onAbilitySwitchChange = (checked) => {
   saveUserAbility({ ability_type: 'official_account_batch_send', switch_status: newStatus }).then((res) => {
     if (res && res.res == 0) {
       abilitySwitchChecked.value = true
-      message.success('操作成功')
+      message.success(t('message_operation_success'))
     }
   })
 }

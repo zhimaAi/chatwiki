@@ -21,7 +21,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// GetPaymentSetting 获取应用收费设置
+// GetPaymentSetting gets app payment settings
 func GetPaymentSetting(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
@@ -44,7 +44,7 @@ func GetPaymentSetting(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(res, nil))
 }
 
-// SavePaymentSetting 保存应用收费设置
+// SavePaymentSetting saves app payment settings
 func SavePaymentSetting(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
@@ -182,7 +182,7 @@ func SavePaymentSetting(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 }
 
-// CopyPaymentSetting 复制设置到其他应用
+// CopyPaymentSetting copies settings to other apps
 func CopyPaymentSetting(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
@@ -279,7 +279,7 @@ func CopyPaymentSetting(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
-// GetAuthCodeList 获取授权码列表
+// GetAuthCodeList gets authorization code list
 func GetAuthCodeList(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
@@ -319,7 +319,7 @@ func GetAuthCodeList(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
 }
 
-// AddAuthCode 添加授权码
+// AddAuthCode adds authorization code
 func AddAuthCode(c *gin.Context) {
 	var userId, adminUserId int
 	if userId = getLoginUserId(c); userId == 0 {
@@ -337,7 +337,7 @@ func AddAuthCode(c *gin.Context) {
 		return
 	}
 
-	// 获取配置
+	// Get configuration
 	setting, err := msql.Model(`robot_payment_setting`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(userId)).
 		Where(`robot_id`, cast.ToString(robotId)).
@@ -464,7 +464,7 @@ func AddAuthCode(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(result, nil))
 }
 
-// DeleteAuthCode 删除授权码
+// DeleteAuthCode deletes authorization code
 func DeleteAuthCode(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
@@ -482,7 +482,7 @@ func DeleteAuthCode(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
-// GetAuthCodeStats 获取授权码统计
+// GetAuthCodeStats gets authorization code statistics
 func GetAuthCodeStats(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
@@ -494,7 +494,7 @@ func GetAuthCodeStats(c *gin.Context) {
 		return
 	}
 
-	// 今日生成数
+	// Today's generated count
 	todayGenerateStats, err := msql.Model(`robot_payment_auth_code`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`robot_id`, cast.ToString(robotId)).
@@ -507,7 +507,7 @@ func GetAuthCodeStats(c *gin.Context) {
 		return
 	}
 
-	// 昨日生成数
+	// Yesterday's generated count
 	yesterdayGenerateStats, err := msql.Model(`robot_payment_auth_code`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`robot_id`, cast.ToString(robotId)).
@@ -520,7 +520,7 @@ func GetAuthCodeStats(c *gin.Context) {
 		return
 	}
 
-	// 累计生成数
+	// Cumulative generated count
 	totalStats, err := msql.Model(`robot_payment_auth_code`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`robot_id`, cast.ToString(robotId)).
@@ -532,7 +532,7 @@ func GetAuthCodeStats(c *gin.Context) {
 		return
 	}
 
-	// 今日兑换数
+	// Today's redeemed count
 	todayExchangeStats, err := msql.Model(`robot_payment_auth_code`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`robot_id`, cast.ToString(robotId)).
@@ -545,7 +545,7 @@ func GetAuthCodeStats(c *gin.Context) {
 		return
 	}
 
-	// 昨日兑换数
+	// Yesterday's redeemed count
 	yesterdayExchangeStats, err := msql.Model(`robot_payment_auth_code`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`robot_id`, cast.ToString(robotId)).
@@ -558,7 +558,7 @@ func GetAuthCodeStats(c *gin.Context) {
 		return
 	}
 
-	// 累计兑换数
+	// Cumulative redeemed count
 	totdalExchangeStats, err := msql.Model(`robot_payment_auth_code`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`robot_id`, cast.ToString(robotId)).
@@ -587,7 +587,7 @@ func GetAuthCodeStats(c *gin.Context) {
 	}, nil))
 }
 
-// GetAuthCodeManager 获取授权码管理员列表
+// GetAuthCodeManager gets authorization code manager list
 func GetAuthCodeManager(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
@@ -607,7 +607,7 @@ func GetAuthCodeManager(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 }
 
-// AddAuthCodeManager 新增授权码管理员
+// AddAuthCodeManager adds authorization code manager
 func AddAuthCodeManager(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
@@ -631,7 +631,7 @@ func AddAuthCodeManager(c *gin.Context) {
 	return
 }
 
-// DeleteAuthCodeManager 删除授权码管理员
+// DeleteAuthCodeManager deletes authorization code manager
 func DeleteAuthCodeManager(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {

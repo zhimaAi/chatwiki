@@ -4,12 +4,12 @@
       <NodeFormHeader
         :title="node.node_name"
         :iconName="node.node_icon_name"
-        desc="通过设定批量运行次数和逻辑，运行批处理体内的任务"
+        :desc="t('desc_batch_group')"
         @close="handleClose"
       >
         <template #runBtn>
           <a-tooltip>
-            <template #title>运行测试</template>
+            <template #title>{{ t('btn_run_test') }}</template>
             <div class="action-btn" @click="handleOpenTestModal">
               <CaretRightOutlined style="color: rgb(0, 173, 58)" />
             </div>
@@ -23,13 +23,13 @@
           <div class="gray-block">
             <div class="gray-block-title">
               <img src="@/assets/svg/execute.svg" alt="" />
-              <span>执行设置</span>
+              <span>{{ t('title_execution_settings') }}</span>
             </div>
             <div class="row-form-item">
               <div class="form-label">
-                <span>并行运行数量</span>
+                <span>{{ t('label_parallel_count') }}</span>
                 <a-tooltip>
-                  <template #title>并行运行数量，最大一次执行10个</template>
+                  <template #title>{{ t('tip_parallel_count') }}</template>
                   <QuestionCircleOutlined class="tip-icon" />
                 </a-tooltip>
               </div>
@@ -40,7 +40,7 @@
                   :min="1"
                   :precision="0"
                   :step="1"
-                  placeholder="请输入"
+                  :placeholder="t('ph_input_value')"
                   v-model:value="formState.chan_number"
                 ></a-input-number>
               </div>
@@ -48,9 +48,9 @@
 
             <div class="row-form-item">
               <div class="form-label">
-                <span>最大执行次数</span>
+                <span>{{ t('label_max_execution_count') }}</span>
                 <a-tooltip>
-                  <template #title>批量执行运行总次数不超过该上限，超过时会直接进入下一个节点</template>
+                  <template #title>{{ t('tip_max_execution_count') }}</template>
                   <QuestionCircleOutlined class="tip-icon" />
                 </a-tooltip>
               </div>
@@ -61,7 +61,7 @@
                   :min="1"
                   :precision="0"
                   :step="1"
-                  placeholder="请输入"
+                  :placeholder="t('ph_input_value')"
                   v-model:value="formState.max_run_number"
                 ></a-input-number>
               </div>
@@ -70,17 +70,17 @@
           <div class="gray-block">
             <div class="gray-block-title">
               <img src="@/assets/svg/execute_array.svg" alt="" />
-              执行数组
+              {{ t('title_execution_array') }}
               <a-tooltip>
-                <template #title>批处理体中节点要使用的变量，仅支持引用数组，循环次数为数组的长度，执行时会按顺序输出单个数组</template>
+                <template #title>{{ t('tip_execution_array') }}</template>
                 <QuestionCircleOutlined />
               </a-tooltip>
             </div>
             <div class="output-box">
               <div class="output-block">
-                <div class="output-item" style="width: 25%">参数Key</div>
-                <div class="output-item" style="width: 30%">类型</div>
-                <div class="output-item" style="width: 45%">参数值</div>
+                <div class="output-item" style="width: 25%">{{ t('label_param_key') }}</div>
+                <div class="output-item" style="width: 30%">{{ t('label_type') }}</div>
+                <div class="output-item" style="width: 45%">{{ t('label_param_value') }}</div>
               </div>
               <div class="array-form-box">
                 <div
@@ -93,7 +93,7 @@
                       <a-input
                         style="width: 25%"
                         v-model:value="item.key"
-                        placeholder="请输入"
+                        :placeholder="t('ph_input_value')"
                       ></a-input>
                       <a-form-item-rest>
                         <a-input
@@ -111,7 +111,7 @@
                           :allowClear="false"
                           :displayRender="({ labels }) => labels.join('/')"
                           :field-names="{ children: 'children' }"
-                          placeholder="请选择"
+                          :placeholder="t('ph_select_value')"
                         />
                       </a-form-item-rest>
                     </div>
@@ -124,18 +124,18 @@
           <div class="gray-block">
             <div class="gray-block-title">
               <img src="@/assets/svg/output.svg" alt="" />
-              输出
+              {{ t('title_output') }}
               <a-tooltip>
-                <template #title>循环完成后输出的内容，仅支持引用循环体中节点的输出变量，输出的内容会自动组装为数组类型</template>
+                <template #title>{{ t('tip_output') }}</template>
                 <QuestionCircleOutlined />
               </a-tooltip>
             </div>
 
             <div class="output-box">
               <div class="output-block">
-               <div class="output-item" style="width: 23%">参数Key</div>
-                <div class="output-item" style="width: 27%">类型</div>
-                <div class="output-item" style="width: 45%">参数值</div>
+               <div class="output-item" style="width: 23%">{{ t('label_param_key') }}</div>
+                <div class="output-item" style="width: 27%">{{ t('label_type') }}</div>
+                <div class="output-item" style="width: 45%">{{ t('label_param_value') }}</div>
               </div>
               <div class="array-form-box">
                 <div
@@ -148,7 +148,7 @@
                       <a-input
                         style="width: 25%"
                         v-model:value="item.key"
-                        placeholder="请输入"
+                        :placeholder="t('ph_input_value')"
                       ></a-input>
                       <a-form-item-rest>
                         <a-input
@@ -166,7 +166,7 @@
                           :allowClear="false"
                           :displayRender="({ labels }) => labels.join('/')"
                           :field-names="{ children: 'children' }"
-                          placeholder="请选择"
+                          :placeholder="t('ph_select_value')"
                         />
                       </a-form-item-rest>
                       <div class="btn-hover-wrap" @click="onDelOutputArrays(index)">
@@ -180,7 +180,7 @@
                   :icon="h(PlusOutlined)"
                   block
                   type="dashed"
-                  >添加参数</a-button
+                  >{{ t('btn_add_param') }}</a-button
                 >
               </div>
             </div>
@@ -193,6 +193,7 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { generateRandomId } from '@/utils/index'
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
@@ -206,6 +207,7 @@ import {
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 
+const { t } = useI18n('views.workflow.components.node-form-drawer.batch-group-form.index')
 const emit = defineEmits(['update-node'])
 const props = defineProps({
   lf: {
@@ -398,7 +400,7 @@ const handleOpenTestModal = () => {
   if (data && data.key && data.typ && data.value) {
     runTestRef.value?.open()
   } else {
-    message.error('请填写执行数组')
+    message.error(t('msg_fill_execution_array'))
   }
 }
 

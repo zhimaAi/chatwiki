@@ -3,12 +3,12 @@
     <template #image>
       <img src="@/assets/empty-network.png" width="200px"/>
     </template>
-    <template #title>网络异常，无法连接服务器</template>
+    <template #title>{{ t('title_network_error') }}</template>
     <template #desc>
       <div class="empty-desc-box">
-        <div>相关功能已自动关闭请检查网络后重试</div>
+        <div>{{ t('msg_function_closed_retry') }}</div>
         <a-button class="btn" type="primary" :loading="loading" @click="reload">
-          {{loading ? '重新连接中，请稍候...' : '重新连接'}}
+          {{ loading ? t('btn_reconnecting') : t('btn_reconnect') }}
         </a-button>
       </div>
     </template>
@@ -19,6 +19,9 @@
 import {onMounted, onUnmounted, ref} from 'vue'
 import EmptyBox from "@/components/common/empty-box.vue";
 import {useCompanyStore} from "@/stores/modules/company.js";
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('components.common.public-network-check')
 
 const companyStore = useCompanyStore()
 const reloadCount = ref(1)

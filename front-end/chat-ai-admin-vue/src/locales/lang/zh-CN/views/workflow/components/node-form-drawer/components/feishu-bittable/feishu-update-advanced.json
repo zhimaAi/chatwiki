@@ -1,0 +1,9 @@
+{
+  "label_bitable_name": "多维表格的名称",
+  "ph_input_content": "请输入内容，键入\"/\"可以插入变量",
+  "desc_update_bitable_name": "更新多维表格的名称",
+  "label_enable_advanced_permission": "开启高级权限",
+  "opt_enable": "开启",
+  "opt_disable": "关闭",
+  "desc_advanced_permission": "多维表格是否已开启高级权限，开关关闭则不更新设置"
+}

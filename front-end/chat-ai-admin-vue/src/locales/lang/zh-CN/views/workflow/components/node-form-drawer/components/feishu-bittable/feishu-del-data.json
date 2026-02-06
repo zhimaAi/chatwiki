@@ -1,0 +1,6 @@
+{
+  "label_record_id": "record_id",
+  "ph_input_content": "请输入内容，键入\"/\"可以插入变量",
+  "desc_record_id": "待删除的记录ID；示例值：\"reCWNXZPQv\""
+}
+

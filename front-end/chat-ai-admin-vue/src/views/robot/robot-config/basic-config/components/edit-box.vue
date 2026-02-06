@@ -79,12 +79,12 @@
             <div class="actions-box">
               <template v-if="props.isEdit">
                 <a-flex :gap="8">
-                  <a-button @click="handleSave" size="small" type="primary">保存</a-button>
-                  <a-button @click="handleEdit(false)" size="small">取消</a-button>
+                  <a-button @click="handleSave" size="small" type="primary">{{ t('btn_save') }}</a-button>
+                  <a-button @click="handleEdit(false)" size="small">{{ t('btn_cancel') }}</a-button>
                 </a-flex>
               </template>
               <template v-else>
-                <a-button @click="handleEdit(true)" size="small">修改</a-button>
+                <a-button @click="handleEdit(true)" size="small">{{ t('btn_edit') }}</a-button>
               </template>
             </div>
           </slot>
@@ -98,6 +98,8 @@
   </div>
 </template>
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
+
 const emit = defineEmits(['update:isEdit', 'save', 'edit'])
 
 const props = defineProps({
@@ -120,6 +122,8 @@ const props = defineProps({
     }
   }
 })
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.edit-box')
 
 const handleEdit = (val) => {
   emit('edit')

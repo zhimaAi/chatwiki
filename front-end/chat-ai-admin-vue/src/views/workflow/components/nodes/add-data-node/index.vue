@@ -12,7 +12,7 @@
     <div class="add-data-node">
       <div class="static-field-list">
         <div class="static-field-item">
-          <div class="static-field-item-label">数据表</div>
+          <div class="static-field-item-label">{{ t('label_data_table') }}</div>
           <div class="static-field-item-content">
             <div class="static-field-value">
               {{ state.formData.form_name || '--' }}
@@ -21,7 +21,7 @@
         </div>
 
         <div class="static-field-item">
-          <div class="static-field-item-label">插入数据</div>
+          <div class="static-field-item-label">{{ t('label_insert_data') }}</div>
           <div class="static-field-item-content">
             <div class="static-field-value" v-if="state.formData.datas.length == 0">--</div>
             <div class="static-field-value" v-for="item in state.formData.datas" :key="item.id">
@@ -35,7 +35,7 @@
               </span>
 
               <span class="field-arrow"><img src="@/assets/img/workflow/arrow-right.svg" alt=""/></span>
-              
+
               <span class="field-name">{{ item.name }}</span>
             </div>
           </div>
@@ -50,6 +50,9 @@ import { ref, inject, onMounted, reactive, nextTick, watch, toRaw, onUnmounted }
 import NodeCommon from '../base-node.vue'
 import AtText from '../../at-input/at-text.vue'
 import { haveOutKeyNode } from '@/views/workflow/components/util.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.add-data-node.index')
 
 const props = defineProps({
   properties: {

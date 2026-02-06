@@ -39,11 +39,11 @@ func GetModelConfigList(c *gin.Context) {
 	list := make([]common.ModelInfo, 0)
 	for _, modelConfig := range common.GetModelConfigList(common.GetLang(c)) {
 		if len(modelDefine) > 0 && modelConfig.ModelDefine != modelDefine {
-			continue //存在检索的时候,不符合跳过
+			continue // When filtering, skip non-matching
 		}
 		for _, config := range configs {
 			if modelConfig.ModelDefine != config[`model_define`] {
-				continue //模型服务商不一致,跳过
+				continue // Model provider mismatch, skip
 			}
 			modelInfo, _ := common.GetModelInfoByConfig(common.GetLang(c), adminUserId, cast.ToInt(config[`id`]))
 			list = append(list, modelInfo)
@@ -58,7 +58,7 @@ func ShowModelConfigList(c *gin.Context) {
 		if modelConfig.ModelDefine == common.ModelChatWiki {
 			continue
 		}
-		modelConfig.UseModelConfigs = common.GetDefaultUseModel(modelConfig.ModelDefine) //填充默认的模型列表
+		modelConfig.UseModelConfigs = common.GetDefaultUseModel(modelConfig.ModelDefine) // Fill default model list
 		list = append(list, modelConfig)
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
@@ -111,7 +111,7 @@ func AddModelConfig(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	//添加默认的可使用模型
+	// Add default usable models
 	common.AutoAddDefaultUseModel(common.GetLang(c), userId, int(id), modelDefine)
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.ModelConfigCacheBuildHandler{ModelConfigId: int(id)})
@@ -256,13 +256,13 @@ func configurationTest(config msql.Params, modelInfo common.ModelInfo, lang stri
 	if modelInfo.ModelDefine == common.ModelChatWiki {
 		return errors.New(i18n.Show(lang, `own_model_chatwiki_operation_forbidden`))
 	}
-	//优先选取默认的模型进行参数测试
+	// Prefer default model for configuration test
 	useModels := append(common.GetDefaultUseModel(modelInfo.ModelDefine), modelInfo.UseModelConfigs...)
 	if len(useModels) == 0 {
-		return nil //没有获取到模型的,不校验
+		return nil // No model found; skip validation
 	}
-	//调用模型测试
-	modelInfo.ConfigInfo = config //替换成当前提交的参数
+	// Call model for testing
+	modelInfo.ConfigInfo = config // Replace with the currently submitted params
 	handler, err := modelInfo.CallHandlerFunc(modelInfo, modelInfo.ConfigInfo, useModels[0].UseModelName)
 	if err != nil {
 		return err

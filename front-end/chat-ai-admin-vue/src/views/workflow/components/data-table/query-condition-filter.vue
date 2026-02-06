@@ -6,16 +6,16 @@
         <div class="select-wrapper">
           <a-dropdown>
             <a class="ant-dropdown-link" @click.prevent>
-              {{ state.type == 1 ? '且' : '或' }}
+              {{ state.type == 1 ? t('label_and') : t('label_or') }}
               <DownOutlined />
             </a>
             <template #overlay>
               <a-menu style="width: 100px" @click="changeType">
                 <a-menu-item :key="1">
-                  <a href="javascript:;">且</a>
+                  <a href="javascript:;">{{ t('label_and') }}</a>
                 </a-menu-item>
                 <a-menu-item :key="2">
-                  <a href="javascript:;">或</a>
+                  <a href="javascript:;">{{ t('label_or') }}</a>
                 </a-menu-item>
               </a-menu>
             </template>
@@ -48,11 +48,12 @@
             <!-- 绑定条件 -->
             <a-select
               v-model:value="row.rule"
-              style="width: 100px"
+              style="width: 150px"
               @change="(value, option) => selectRule(index, option)"
             >
               <a-select-option
                 :value="item.value"
+                style="width: 220px;"
                 v-for="item in operatorOptionsMap[row.field_type]"
                 :key="item.value"
                 >{{ item.label }}</a-select-option
@@ -63,7 +64,7 @@
             <!-- 绑定条件值 -->
             <!-- 介于范围输入 -->
             <div class="site-input-group-wrapper" v-if="row.rule === 'between'">
-              <div class="site-input-left"  title="请输入数字，键入“/”插入变量">
+              <div class="site-input-left"  :title="t('ph_input_number_variable')">
                 <AtInput
                   :options="atInputOptions"
                   :defaultValue="row.rule_value1"
@@ -72,12 +73,12 @@
                   @change="
                     (text, selectedList) => changeAtInputValue(text, selectedList, row, index)
                   "
-                  placeholder="请输入数字"
+                  :placeholder="t('ph_input_number')"
                 />
               </div>
 
               <span class="site-input-split">~</span>
-              <div class="site-input-right" title="请输入数字，键入“/”插入变量">
+              <div class="site-input-right" :title="t('ph_input_number_variable')">
                 <AtInput
                   :options="atInputOptions"
                   :defaultValue="row.rule_value2"
@@ -86,18 +87,18 @@
                   @change="
                     (text, selectedList) => changeAtInputValue2(text, selectedList, row, index)
                   "
-                  placeholder="请输入数字"
+                  :placeholder="t('ph_input_number')"
                 />
               </div>
             </div>
 
             <!-- 布尔类型选择 -->
-            <!-- <a-select 
+            <!-- <a-select
               v-else-if="row.field_type === 'boolean'"
               :value="row.rule_value1"
               @change="value => updateRuleValue(index, 'rule_value1', value)"
               style="width: 100%"
-              placeholder="请选择"
+              :placeholder="t('ph_select')"
             >
               <a-select-option value="true">是/真</a-select-option>
               <a-select-option value="false">否/假</a-select-option>
@@ -106,17 +107,17 @@
             <!-- 空值检查、布尔类型（无需输入） -->
             <a-input
               v-else-if="['empty', 'not_empty', 'boolean'].includes(row.field_type)"
-              placeholder="无需输入值"
+              :placeholder="t('ph_no_value_required')"
               disabled
             />
 
             <!-- 数字类型输入 -->
-            <!-- <a-input 
+            <!-- <a-input
               v-else-if="['integer', 'number'].includes(row.field_type)"
               :value="row.rule_value1"
               @input="e => updateRuleValueByNumber(index, 'rule_value1', e)"
               style="width: 100%"
-              placeholder="请输入数字"
+              :placeholder="t('ph_input_number')"
             /> -->
 
             <AtInput
@@ -126,7 +127,7 @@
               :defaultSelectedList="row.atTags"
               @open="showAtList"
               @change="(text, selectedList) => changeAtInputValue(text, selectedList, row, index)"
-              placeholder="请输入数字，键入“/”插入变量"
+              :placeholder="t('ph_input_number_variable')"
             />
 
             <!-- 文本类型输入 -->
@@ -137,13 +138,13 @@
               :defaultSelectedList="row.atTags"
               @open="showAtList"
               @change="(text, selectedList) => changeAtInputValue(text, selectedList, row, index)"
-              placeholder="请输入参数值，键入“/”插入变量"
+              :placeholder="t('ph_input_value_variable')"
             />
-            <!-- <a-input 
+            <!-- <a-input
               v-else
-              :value="row.rule_value1" 
+              :value="row.rule_value1"
               @input="e => updateRuleValue(index, 'rule_value1', e)"
-              placeholder="请输入文本内容"
+              :placeholder="请输入文本内容"
             /> -->
           </div>
           <span class="field-del-btn" @click="removeCondition(index)">
@@ -154,16 +155,16 @@
     </div>
 
     <div class="add-btn-box">
-      <a-tooltip title="请先选择数据库" style="width: 100%" v-if="disabled">
+      <a-tooltip :title="t('ph_select_database_first')" style="width: 100%" v-if="disabled">
         <span>
           <a-button class="add-btn" type="dashed" disabled block>
-            <PlusOutlined /> 添加条件
+            <PlusOutlined /> {{ t('btn_add_condition') }}
           </a-button>
         </span>
       </a-tooltip>
 
       <a-button class="add-btn" type="dashed" block @click="addCondition" v-else>
-        <PlusOutlined /> 添加条件
+        <PlusOutlined /> {{ t('btn_add_condition') }}
       </a-button>
     </div>
   </div>
@@ -172,8 +173,11 @@
 <script setup>
 import { computed, inject, ref, watch, reactive, onMounted } from 'vue'
 import { PlusOutlined, DownOutlined } from '@ant-design/icons-vue'
-import { FIELD_TYPE_RULES, getFilterRulesByType } from '@/constants/database'
+import { getFieldTypeRules, getFilterRulesByType } from '@/constants/database'
 import AtInput from '../at-input/at-input.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.data-table.query-condition-filter')
 
 const emit = defineEmits(['change', 'changeType'])
 
@@ -223,13 +227,13 @@ const isMultiple = computed(() => {
 
 // 动态获取操作符选项的计算属性
 const operatorOptionsMap = computed(() => {
-  return FIELD_TYPE_RULES
+  return getFieldTypeRules()
 })
 
 const atInputOptions = ref([])
 
 const getAtInputOptions = () => {
-  let options = getNode().getAllParentVariable()
+  let options = getNode().getAllParentVariable();
 
   atInputOptions.value = options || []
 }
@@ -395,7 +399,7 @@ onMounted(() => {
   }
 
   &.is-multiple {
-    padding-left: 20px;
+    padding-left: 22px;
     .query-condition-filter {
       padding-left: 32px;
     }
@@ -428,7 +432,7 @@ onMounted(() => {
       margin-right: 8px;
     }
     .field-value-box {
-      width: 210px;
+      width: 178px;
       overflow: hidden;
     }
     .field-del-btn {

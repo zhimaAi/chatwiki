@@ -7,8 +7,8 @@ const (
 	MessageTypeSpecify = 1
 )
 const (
-	RuleTypeMessageType = `receive_reply_message_type` // 消息类型规则
-	RuleTypeDuration    = `receive_reply_duration`     //时间范围规则
+	RuleTypeMessageType = `receive_reply_message_type` // message type rule
+	RuleTypeDuration    = `receive_reply_duration`     // time range rule
 
 	RuleTypeSubscribeDefault  = `subscribe_reply_default`
 	RuleTypeSubscribeDuration = `subscribe_reply_duration`
@@ -16,8 +16,8 @@ const (
 )
 
 const (
-	DurationTypeWeek      = `week`       //时间类型：week:周
-	DurationTypeDay       = `day`        //时间类型：day:天
-	DurationTypeTimeRange = `time_range` //时间范围规则
+	DurationTypeWeek      = `week`       // duration type: week
+	DurationTypeDay       = `day`        // duration type: day
+	DurationTypeTimeRange = `time_range` // time range rule
 
 )

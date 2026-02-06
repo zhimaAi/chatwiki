@@ -248,7 +248,7 @@ func DeleteLibraryListGroup(c *gin.Context) {
 	}
 
 	m := msql.Model(`chat_ai_library_list_group`, define.Postgres)
-	//检查分组是否存在
+	// Check whether the group exists
 	groupId, err := m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Value(`id`)
 	if err != nil {
 		logs.Error(err.Error())
@@ -260,7 +260,7 @@ func DeleteLibraryListGroup(c *gin.Context) {
 		return
 	}
 
-	//将该分组下的机器人移到未分组
+	// Move items under this group to Ungrouped
 	_, err = msql.Model(`chat_ai_library`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).
 		Where(`group_id`, cast.ToString(id)).
 		Update(msql.Datas{`group_id`: `0`, `update_time`: tool.Time2Int()})
@@ -270,7 +270,7 @@ func DeleteLibraryListGroup(c *gin.Context) {
 		return
 	}
 
-	//删除分组
+	// Delete group
 	_, err = m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Delete()
 	if err != nil {
 		logs.Error(err.Error())
@@ -329,7 +329,7 @@ func RelationLibraryGroup(c *gin.Context) {
 		return
 	}
 	//data check
-	//检查机器人是否存在
+	// Check whether the library exists
 	libraryInfo, err := msql.Model(`chat_ai_library`, define.Postgres).
 		Where(`id`, cast.ToString(libraryId)).
 		Where(`admin_user_id`, cast.ToString(userId)).
@@ -344,7 +344,7 @@ func RelationLibraryGroup(c *gin.Context) {
 		return
 	}
 
-	//更新机器人分组
+	// Update group
 	if sense == define.LibraryGroupTypeFile {
 		_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
 			Where(`id`, cast.ToString(fileId)).

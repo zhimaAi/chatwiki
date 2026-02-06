@@ -1,0 +1,17 @@
+{
+  "msg_querying_kb": "正在检索知识库...",
+  "title_deep_thinking": "深度思考中...",
+  "title_deep_thinking_completed": "已完成深度思考",
+  "btn_copy": "复制",
+  "btn_like": "点赞",
+  "btn_dislike": "点踩",
+  "title_result_feedback": "结果反馈",
+  "ph_feedback": "请反馈你觉得回答不满意的地方",
+  "btn_cancel": "取消",
+  "btn_submit": "提交",
+  "msg_found_documents_in_kb": "检索到{count}个知识库文档",
+  "label_featured": "精选",
+  "msg_copied_successfully": "复制成功",
+  "msg_operation_success": "操作成功",
+  "msg_feedback_received": "感谢反馈"
+}

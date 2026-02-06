@@ -1,7 +1,7 @@
 <template>
   <a-modal
     v-model:open="open"
-    title="日志详情"
+    :title="t('title_log_detail')"
     :footer="null"
     :width="880"
     wrapClassName="no-padding-modal"
@@ -9,7 +9,7 @@
   >
     <div class="flex-content-box">
       <div class="test-model-box">
-        <div class="top-title">开始节点参数</div>
+        <div class="top-title">{{ t('label_start_node_params') }}</div>
         <a-form
           :model="formState"
           ref="formRef"
@@ -17,17 +17,17 @@
           :wrapper-col="{ span: 24 }"
           autocomplete="off"
         >
-          <a-form-item name="question" :rules="[{ required: true, message: '请输入question!' }]">
+          <a-form-item name="question" :rules="[{ required: true, message: t('msg_input_question') }]">
             <template #label>
               <a-flex :gap="4">question <a-tag style="margin: 0">string</a-tag> </a-flex>
             </template>
-            <a-input readonly placeholder="请输入" v-model:value="formState.question" />
+            <a-input readonly :placeholder="t('ph_input')" v-model:value="formState.question" />
           </a-form-item>
-          <a-form-item name="openid" :rules="[{ required: true, message: '请输入openid!' }]">
+          <a-form-item name="openid" :rules="[{ required: true, message: t('msg_input_openid') }]">
             <template #label>
               <a-flex :gap="4">openid <a-tag style="margin: 0">string</a-tag> </a-flex>
             </template>
-            <a-input readonly placeholder="请输入" v-model:value="formState.openid" />
+            <a-input readonly :placeholder="t('ph_input')" v-model:value="formState.openid" />
           </a-form-item>
         </a-form>
 
@@ -55,7 +55,7 @@
       <div class="preview-box">
         <template v-if="cuttentItem">
           <div class="preview-title">
-            <div class="title-text">日志详情</div>
+            <div class="title-text">{{ t('title_log_detail') }}</div>
             <div class="icon-name-box">
               <img :src="cuttentItem.node_icon" alt="" />
               <div class="node-name">{{ cuttentItem.node_name }}</div>
@@ -63,19 +63,19 @@
             <div class="time-tag" v-if="cuttentItem.is_success">{{ cuttentItem.use_time }}ms</div>
           </div>
           <div class="preview-content-block">
-            <div class="title-block">输入<CopyOutlined @click="handleCopy('input')" /></div>
+            <div class="title-block">{{ t('label_input') }}<CopyOutlined @click="handleCopy('input')" /></div>
             <div class="preview-code-box">
               <vue-json-pretty :data="cuttentItem.input" />
             </div>
           </div>
           <div class="preview-content-block">
-            <div class="title-block">输出<CopyOutlined @click="handleCopy('node_output')" /></div>
+            <div class="title-block">{{ t('label_output') }}<CopyOutlined @click="handleCopy('node_output')" /></div>
             <div class="preview-code-box">
               <vue-json-pretty :data="cuttentItem.node_output" />
             </div>
           </div>
           <div class="preview-content-block">
-            <div class="title-block">运行日志<CopyOutlined @click="handleCopy('output')" /></div>
+            <div class="title-block">{{ t('label_run_log') }}<CopyOutlined @click="handleCopy('output')" /></div>
             <div class="preview-code-box">
               <vue-json-pretty :data="cuttentItem.output" />
             </div>
@@ -100,7 +100,9 @@ import { useRoute } from 'vue-router'
 import { getImageUrl } from '@/views/workflow/components/util.js'
 import { message } from 'ant-design-vue'
 import { copyText } from '@/utils/index'
+import { useI18n } from '@/hooks/web/useI18n'
 
+const { t } = useI18n('views.robot.robot-config.invoke-logs.components.logs-detail')
 const emit = defineEmits(['save', 'getGlobal'])
 const query = useRoute().query
 
@@ -146,7 +148,7 @@ const handleChangeNodeKey = (item) => {
 
 const handleCopy = (key) => {
   copyText(JSON.stringify(cuttentItem.value[key]))
-  message.success('复制成功')
+  message.success(t('msg_copy_success'))
 }
 
 defineExpose({

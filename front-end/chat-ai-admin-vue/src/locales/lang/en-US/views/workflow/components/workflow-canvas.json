@@ -1,0 +1,11 @@
+{
+  "title_batch_delete": "Batch Delete",
+  "title_delete_node": "Delete Node",
+  "msg_confirm_delete_elements": "Are you sure you want to delete the selected {count} elements?",
+  "label_dont_show_again": "Don't show again",
+  "msg_duplicate_session_trigger": "Only one session trigger can be added",
+  "msg_keep_at_least_one_trigger": "Keep at least one trigger",
+  "node_loop_start": "Start",
+  "node_batch_start": "Start",
+  "msg_layout_failed": "Layout failed, please check"
+}

@@ -37,10 +37,10 @@
                 :key="item.key"
                 @click.stop="handleMenu(item)"
               >
-                {{ item.name }}
+                {{ t(item.name) }}
               </div>
 
-              <div class="node-menu del-btn" @click.stop="handleDelete(item)">删除</div>
+              <div class="node-menu del-btn" @click.stop="handleDelete(item)">{{ t('btn_delete') }}</div>
             </div>
           </div>
         </div>
@@ -54,6 +54,7 @@
 
 <script>
 import { getImageUrl } from '../util.js'
+import { useI18n } from '@/hooks/web/useI18n'
 
 export default {
   name: 'NodeCommon',
@@ -117,6 +118,9 @@ export default {
   computed: {
     allMenus() {
       return [...this.menus, ...this.localMenus]
+    },
+    t() {
+      return useI18n('views.workflow.components.nodes.base-node').t
     }
   },
   mounted() {

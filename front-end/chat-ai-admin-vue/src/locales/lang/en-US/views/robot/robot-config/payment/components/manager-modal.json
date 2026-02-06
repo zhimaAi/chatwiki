@@ -1,0 +1,7 @@
+{
+  "title_add_manager": "Add Auth Code Manager",
+  "btn_confirm": "Confirm",
+  "msg_reply_in_account": "Reply in the official account",
+  "msg_set_admin_tip": "The corresponding account will be automatically set as administrator. The setup code is valid for 3 minutes.",
+  "msg_copy_success": "Copied successfully"
+}

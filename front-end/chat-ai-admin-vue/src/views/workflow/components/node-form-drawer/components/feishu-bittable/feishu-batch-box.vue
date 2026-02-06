@@ -25,7 +25,7 @@
             ref="atInputRef"
             @open="emit('updateVar')"
             @change="(text, selectedList) => changeValue(item, text, selectedList)"
-            placeholder="请输入内容，键入“/”可以插入变量"
+            :placeholder="t('ph_input_content')"
           >
             <template #option="{ label, payload }">
               <div class="field-list-item">
@@ -42,7 +42,7 @@
       :options="variableOptions"
       :defaultSelectedList="fullDefaultTags"
       :defaultValue="fullDefaultValue"
-      placeholder="请输入内容，键入“/”可以插入变量"
+      :placeholder="t('ph_input_content')"
       type="textarea"
       @open="emit('updateVar')"
       @change="(val, tags) => changeValueByFull(val, tags)"
@@ -55,10 +55,13 @@
 <script setup>
 import {FullscreenOutlined} from '@ant-design/icons-vue';
 import {reactive, onMounted, ref} from 'vue';
+import { useI18n } from '@/hooks/web/useI18n'
 import AtInput from "@/views/workflow/components/at-input/at-input.vue";
 import FullAtInput from "@/views/workflow/components/at-input/full-at-input.vue";
 import {jsonDecode} from "@/utils/index.js";
 import {getBatchActionParams} from "@/constants/feishu-table.js";
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.feishu-bittable.common')
 
 const emit = defineEmits(['update', 'updateVar'])
 const props = defineProps({

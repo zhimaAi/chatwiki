@@ -1,0 +1,7 @@
+{
+  "modal_title": "导出数据",
+  "radio_all_data": "全部数据",
+  "radio_custom_date": "自定义日期",
+  "label_select_date": "选择导出日期",
+  "validator_date_required": "请选择导出日期"
+}

@@ -50,8 +50,8 @@
       <NodeFormHeader :title="node.node_name" :iconName="node.node_icon_name">
         <template #desc>
           <span
-            >在指定数据表中插入数据，可以在数据库中维护数据表
-            <a target="_blank" href="/#/database/list">去管理</a></span
+            >{{ t('title_desc_insert_data') }}
+            <a target="_blank" href="/#/database/list">{{ t('btn_go_manage') }}</a></span
           >
         </template>
       </NodeFormHeader>
@@ -61,11 +61,11 @@
       <div class="node-box-content">
         <div class="node-box-title">
           <img class="input-icon" src="@/assets/img/workflow/input.svg" alt="" />
-          <span class="text">输入</span>
+          <span class="text">{{ t('label_input') }}</span>
         </div>
 
         <div class="setting-label">
-          <span>数据表</span>
+          <span>{{ t('label_data_table') }}</span>
         </div>
 
         <div class="setting-box">
@@ -79,8 +79,8 @@
         </div>
 
         <div class="setting-label">
-          <span>插入数据</span>
-          <span class="tip">（不填写字段值则为空）</span>
+          <span>{{ t('label_insert_data') }}</span>
+          <span class="tip">{{ t('tip_empty_field') }}</span>
         </div>
 
         <div class="setting-box">
@@ -105,6 +105,9 @@ import NodeFormHeader from './node-form-header.vue'
 import FieldListSelect from '../data-table/field-selector/index.vue'
 import DataTableSelect from '../data-table/database-selector/index.vue'
 import { useDataTableStore } from '@/stores/modules/data-table'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.add-data-form')
 
 const emit = defineEmits(['update-node'])
 

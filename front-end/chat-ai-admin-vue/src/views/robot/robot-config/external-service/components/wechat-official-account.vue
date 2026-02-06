@@ -15,14 +15,14 @@
 <template>
   <div>
     <a-alert banner>
-      <template #message> 支持接入未认证公众号，<a @click="handleShowDemoModal">查看效果示例</a> </template>
+      <template #message> {{ t('support_unverified_account') }}，<a @click="handleShowDemoModal">{{ t('view_demo') }}</a> </template>
     </a-alert>
     <LoadingBox v-if="loading"/>
     <template v-else-if="list.length">
       <div class="add-btn-block">
-        <a-button @click="showAddAlert" type="primary">关联公众号</a-button>
-        <a-button @click="handleAddUnverified" :icon="createVNode(SettingOutlined)">未认证公众号回复设置</a-button>
-        <a-button @click="handleShowVerifiedConfig" :icon="createVNode(SettingOutlined)">已认证公众号回复设置</a-button>
+        <a-button @click="showAddAlert" type="primary">{{ t('associate_official_account') }}</a-button>
+        <a-button @click="handleAddUnverified" :icon="createVNode(SettingOutlined)">{{ t('unverified_account_reply_settings') }}</a-button>
+        <a-button @click="handleShowVerifiedConfig" :icon="createVNode(SettingOutlined)">{{ t('verified_account_reply_settings') }}</a-button>
       </div>
       <div class="wechat-app-list">
         <WechatAppItem
@@ -36,9 +36,9 @@
         />
       </div>
     </template>
-    <EmptyBox v-else style="margin-top: 20vh;" title="暂未关联公众号">
+    <EmptyBox v-else style="margin-top: 20vh;" :title="t('no_official_account_associated')">
       <template #desc>
-        <a-button @click="showAddAlert" type="primary">关联公众号</a-button>
+        <a-button @click="showAddAlert" type="primary">{{ t('associate_official_account') }}</a-button>
       </template>
     </EmptyBox>
 
@@ -61,6 +61,9 @@ import SelectWechatApp from "@/views/robot/robot-config/external-service/compone
 import LoadingBox from "@/components/common/loading-box.vue";
 import EmptyBox from "@/components/common/empty-box.vue";
 import OfficialAccountReplyConfig from './official-account-reply-config.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.external-service.components.wechat-official-account')
 
 const { robotInfo, getRobot } = inject('robotInfo')
 
@@ -92,18 +95,18 @@ const handleRefresh = (item) => {
   refreshAccountVerify({
     id: item.id
   }).then(() => {
-    message.success('刷新成功')
+    message.success(t('refresh_success'))
     getList()
   })
 }
 
 const handleDelete = (item) => {
   const modal = Modal.confirm({
-    title: `确定移除${item.app_name}吗?`,
+    title: t('confirm_remove', { app_name: item.app_name }),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '移除后，机器人无法继续回复用户消息。',
-    okText: '确定',
-    cancelText: '取消',
+    content: t('remove_warning'),
+    okText: t('confirm'),
+    cancelText: t('cancel'),
     onOk() {
       let row = list.value.filter(i => i.app_id != item.app_id)
       let ids = row.map(i => i.app_id).toString()
@@ -112,7 +115,7 @@ const handleDelete = (item) => {
         app_id_list: ids
       }).then(() => {
         getList()
-        message.success('删除成功')
+        message.success(t('delete_success'))
       })
     },
   })

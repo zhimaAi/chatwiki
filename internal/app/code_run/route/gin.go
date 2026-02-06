@@ -23,4 +23,5 @@ func init() {
 	Route[lib_web.NoRoute][`/`] = business.NoRoute   //NoMethod
 	/*code_run API*/
 	Route[http.MethodPost][`/javaScript`] = business.JavaScript
+	Route[http.MethodPost][`/python`] = business.Python
 }

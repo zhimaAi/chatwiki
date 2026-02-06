@@ -372,7 +372,7 @@
     <div class="message-list">
       <div class="empty-box" v-if="props.isEmpty || !props.messages">
         <img src="@/assets/img/library/detail/empty.png" alt="" />
-        <div class="title">暂无结果，请重试</div>
+        <div class="title">{{ t('msg_empty_result') }}</div>
       </div>
       <template v-else v-for="item in props.messages" :key="item.uid">
         <!-- 用户的消息 -->
@@ -499,6 +499,9 @@ import { ref, nextTick } from 'vue'
 import { formatDisplayChatTime } from '@/utils/index'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import VoiceMessage from '@/views/robot/robot-test/components/voice-message.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.session-record.components.message-list')
 
 const emit = defineEmits(['scroll', 'scrollStart', 'scrollEnd'])
 

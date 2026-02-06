@@ -39,7 +39,7 @@
 <template>
   <edit-box
     class="setting-box"
-    title="聊天模式"
+    :title="t('title_chat_mode')"
     icon-name="chat-mode"
     v-model:isEdit="isEdit"
     :bodyStyle="{ padding: 0 }"
@@ -47,43 +47,42 @@
     <template #tip>
       <a-tooltip placement="top" :overlayInnerStyle="{ width: '400px' }">
         <template #title>
-          <span
-            >仅知识库模式：用户提问时，从知识库检索文档，大语言模型（LLM）根据检索出来的文档分段进行回复。如果没有符合的分段，则不由LLM回复，直接回复未知问题提示语。</span
+          <span>{{ t('tip_knowledge_base_only') }}</span
           ><br />
-          <span>直连模式：用户提问时，直接由LLM生成答案，不从关联知识库中检索。</span>
+          <span>{{ t('tip_direct_mode') }}</span>
         </template>
         <QuestionCircleOutlined />
       </a-tooltip>
     </template>
     <template #extra>
       <div class="actions-box">
-        <a-button size="small" @click="handleEdit(true)">修改</a-button>
+        <a-button size="small" @click="handleEdit(true)">{{ t('btn_edit') }}</a-button>
       </div>
     </template>
     <div class="setting-info-block">
       <div class="set-item">
-        聊天模式：
-        <span v-if="robotInfo.chat_type == '1'">仅知识库</span>
-        <span v-if="robotInfo.chat_type == '2'">直连模式</span>
-        <span v-if="robotInfo.chat_type == '3'">混合模式</span>
+        {{ t('label_chat_mode') }}
+        <span v-if="robotInfo.chat_type == '1'">{{ t('chat_mode_knowledge_base_only') }}</span>
+        <span v-if="robotInfo.chat_type == '2'">{{ t('chat_mode_direct') }}</span>
+        <span v-if="robotInfo.chat_type == '3'">{{ t('chat_mode_mixed') }}</span>
       </div>
       <template v-if="robotInfo.chat_type == '1'">
         <div class="set-item">
-          命中问答知识时直接回复答案：
-          <span>{{ robotInfo.library_qa_direct_reply_switch == 'true' ? '开' : '关' }}</span>
+          {{ t('label_direct_reply_qa') }}
+          <span>{{ robotInfo.library_qa_direct_reply_switch == 'true' ? t('status_on') : t('status_off') }}</span>
         </div>
         <div class="set-item" v-if="robotInfo.library_qa_direct_reply_switch == 'true'">
-          相似度阈值：
+          {{ t('label_similarity_threshold') }}
           <span>{{ robotInfo.library_qa_direct_reply_score }}</span>
         </div>
       </template>
       <template v-if="robotInfo.chat_type == '3'">
         <div class="set-item">
-          命中问答知识时直接回复答案：
-          <span>{{ robotInfo.mixture_qa_direct_reply_switch == 'true' ? '开' : '关' }}</span>
+          {{ t('label_direct_reply_qa') }}
+          <span>{{ robotInfo.mixture_qa_direct_reply_switch == 'true' ? t('status_on') : t('status_off') }}</span>
         </div>
         <div class="set-item" v-if="robotInfo.mixture_qa_direct_reply_switch == 'true'">
-          相似度阈值：
+          {{ t('label_similarity_threshold') }}
           <span>{{ robotInfo.mixture_qa_direct_reply_score }}</span>
         </div>
       </template>
@@ -96,6 +95,9 @@
 
 <script setup>
 import { ref, reactive, inject, toRaw } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.chat-mode.index')
 const isEdit = ref(false)
 import EditBox from '../edit-box.vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'

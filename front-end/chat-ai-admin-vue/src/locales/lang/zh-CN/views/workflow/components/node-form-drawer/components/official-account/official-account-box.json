@@ -1,0 +1,16 @@
+{
+  "label_official_account": "公众号",
+  "label_official_account_tag": "公众号标签",
+  "label_tag_name": "标签名称",
+  "label_tag_type": "标签类型",
+  "label_official_account_name": "公众号名称",
+  "btn_sync": "同步",
+  "btn_select_tag": "选择标签",
+  "btn_insert_variable": "插入变量",
+  "ph_select_official_account": "请选择公众号",
+  "ph_select_tag": "请选择标签",
+  "ph_input_content": "请输入内容，键入\"/\"可以插入变量",
+  "tooltip_sync_tags": "同步最新的公众号标签",
+  "msg_please_select_official_account": "请先选择公众号",
+  "msg_sync_completed": "同步完成"
+}

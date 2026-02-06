@@ -1,0 +1,15 @@
+{
+  "title": "设置答案",
+  "label_question": "问题",
+  "placeholder_question": "请输入问题",
+  "label_similar_questions": "相似问法(一行一个，最多可添加100个相似问法)",
+  "placeholder_similar_questions": "请输入相似问法",
+  "label_answer": "答案",
+  "placeholder_answer": "请输入分段答案",
+  "label_attachments": "附件",
+  "tab_images": "图片",
+  "validation_question": "请输入问题",
+  "validation_similar_questions": "请输入相似问法",
+  "validation_answer": "请输入答案",
+  "save_success": "保存成功"
+}

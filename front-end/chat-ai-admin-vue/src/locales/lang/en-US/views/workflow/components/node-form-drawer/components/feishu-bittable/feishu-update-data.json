@@ -1,0 +1,9 @@
+{
+  "label_record_id": "record_id",
+  "ph_input_content": "Please enter content, type \"/\" to insert variable",
+  "desc_update_record_id": "Record ID to be updated; Example value: \"reCWNXZPQv\"",
+  "label_update_data": "Update Data",
+  "opt_select_update_data": "Select Update Data",
+  "opt_input_variable": "Input Variable",
+  "desc_update_data_example": "Content example: [{\"field_name\":\"Text\",\"ui_type\":\"Text\",\"value\":\"001\"},{\"field_name\":\"Date\",\"ui_type\":\"DateTime\",\"value\":1769077135214},{\"field_name\":\"Number\",\"ui_type\":\"Number\",\"value\":99},{\"field_name\":\"Single Select\",\"ui_type\":\"SingleSelect\",\"value\":\"Option 1\"},{\"field_name\":\"Multi Select\",\"ui_type\":\"MultiSelect\",\"value\":[\"Category A\",\"Category B\"]},{\"field_name\":\"Checkbox\",\"ui_type\":\"Checkbox\",\"value\":true}]"
+}

@@ -19,7 +19,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// 1发送消息 2跳转网页 3跳转小程序 4人工客服 5推送事件
+// 1Send Message 2Jump to Web Page 3Jump to Mini Program 4Customer Service 5Push Event
 const (
 	OfficialCustomMenuActTypeSendMessage     = 1
 	OfficialCustomMenuActTypeJumpURL         = 2
@@ -31,23 +31,23 @@ const (
 const OfficialCustomMenuMenuLevelOne = 1
 const OfficialCustomMenuMenuLevelTwo = 2
 
-// OfficialCustomMenu 聊天机器人智能菜单
+// OfficialCustomMenu Intelligent chatbot menu
 type OfficialCustomMenu struct {
-	ID            int                        `json:"id" form:"id"`                             // 自增ID
-	AdminUserID   int                        `json:"admin_user_id" form:"admin_user_id"`       // 管理员用户ID
-	AppID         string                     `json:"appid" form:"appid"`                       // 公众号appid
-	SeqID         int                        `json:"seq_id" form:"seq_id"`                     // 排序id
-	MenuName      string                     `json:"menu_name" form:"menu_name"`               // 菜单名称
-	MenuLevel     int                        `json:"menu_level" form:"menu_level"`             // 菜单层级 1根菜单 2二级菜单
-	ParentMenuID  int                        `json:"parent_menu_id" form:"parent_menu_id"`     // 上级节点id
-	ChooseActItem int                        `json:"choose_act_item" form:"choose_act_item"`   // 默认选中栏目 0有子节点时无此功能 1发送消息 2跳转网页 3跳转小程序 4人工客服 5推送事件
-	ActParams     OfficialCustomMenuActParam `json:"act_params" form:"act_params"`             // 配置json串
-	OperUserID    int                        `json:"oper_user_id" form:"oper_user_id"`         // 操作人ID
-	TemplateID    int                        `json:"template_id,omitempty" form:"template_id"` // 模版id
-	BatchID       int                        `json:"batch_id,omitempty" form:"batch_id"`       // 批量id
+	ID            int                        `json:"id" form:"id"`                             // Auto-increment ID
+	AdminUserID   int                        `json:"admin_user_id" form:"admin_user_id"`       // Admin user ID
+	AppID         string                     `json:"appid" form:"appid"`                       // Official account appid
+	SeqID         int                        `json:"seq_id" form:"seq_id"`                     // Sequence ID
+	MenuName      string                     `json:"menu_name" form:"menu_name"`               // Menu name
+	MenuLevel     int                        `json:"menu_level" form:"menu_level"`             // Menu level 1Root menu 2Sub menu
+	ParentMenuID  int                        `json:"parent_menu_id" form:"parent_menu_id"`     // Parent node ID
+	ChooseActItem int                        `json:"choose_act_item" form:"choose_act_item"`   // Default selected item 0No function when has child nodes 1Send message 2Jump to web page 3Jump to mini program 4Customer service 5Push event
+	ActParams     OfficialCustomMenuActParam `json:"act_params" form:"act_params"`             // Configuration JSON string
+	OperUserID    int                        `json:"oper_user_id" form:"oper_user_id"`         // Operator user ID
+	TemplateID    int                        `json:"template_id,omitempty" form:"template_id"` // Template ID
+	BatchID       int                        `json:"batch_id,omitempty" form:"batch_id"`       // Batch ID
 	SubMenuList   []OfficialCustomMenu       `json:"sub_menu_list,omitempty" form:"sub_menu_list"`
-	CreateTime    int                        `json:"create_time,omitempty"` // 创建时间
-	UpdateTime    int                        `json:"update_time,omitempty"` // 更新时间
+	CreateTime    int                        `json:"create_time,omitempty"` // Creation time
+	UpdateTime    int                        `json:"update_time,omitempty"` // Update time
 }
 
 type OfficialCustomMenuActParam struct {
@@ -62,7 +62,7 @@ type OfficialCustomMenuActParam struct {
 	Key          string         `json:"key,omitempty"`
 }
 
-// OfficialCustomMenuCacheBuildHandler 菜单缓存处理器
+// OfficialCustomMenuCacheBuildHandler Menu cache handler
 type OfficialCustomMenuCacheBuildHandler struct {
 	ID int
 }
@@ -79,7 +79,7 @@ func (h *OfficialCustomMenuCacheBuildHandler) GetCacheData() (any, error) {
 		return nil, err
 	}
 
-	// 转换
+	// Convert
 	if len(data) > 0 {
 		var actParams OfficialCustomMenuActParam
 		_ = tool.JsonDecodeUseNumber(data[`act_params`], &actParams)
@@ -106,17 +106,17 @@ func (h *OfficialCustomMenuCacheBuildHandler) GetCacheData() (any, error) {
 	}
 }
 
-// GetOfficialCustomMenuInfo 获取自定义菜单信息
+// GetOfficialCustomMenuInfo Get custom menu information
 func GetOfficialCustomMenuInfo(id int) (OfficialCustomMenu, error) {
 	result := OfficialCustomMenu{}
 	err := lib_redis.GetCacheWithBuild(define.Redis, &OfficialCustomMenuCacheBuildHandler{ID: id}, &result, time.Hour)
 	return result, err
 }
 
-// SaveOfficialCustomMenu 保存自定义菜单（创建或更新）
-// 更新菜单而不是删除重建，保持菜单ID不变以维持与微信的关联
+// SaveOfficialCustomMenu Save custom menu (create or update)
+// Update menu instead of deleting and recreating, keeping menu ID unchanged to maintain association with WeChat
 func SaveOfficialCustomMenu(adminUserID int, appid string, operUserID int, menuList []OfficialCustomMenu, sendWx bool) (int, error) {
-	// 开始事务
+	// Begin transaction
 	tx, err := msql.Begin(define.Postgres)
 	if err != nil {
 		return 0, err
@@ -132,7 +132,7 @@ func SaveOfficialCustomMenu(adminUserID int, appid string, operUserID int, menuL
 	//
 	oldMenus, err := GetOfficialCustomMenuList(adminUserID, appid)
 
-	// 获取当前数据库中存在的菜单
+	// Get menus currently existing in database
 	existingMenus, err := msql.Model(`func_official_custom_menu`, define.Postgres).
 		Where("admin_user_id", cast.ToString(adminUserID)).
 		Where("appid", appid).
@@ -141,14 +141,14 @@ func SaveOfficialCustomMenu(adminUserID int, appid string, operUserID int, menuL
 		return 0, err
 	}
 
-	// 创建现有菜单ID映射
+	// Create mapping of existing menu IDs
 	existingMenuMap := make(map[int]msql.Params)
 	for _, menu := range existingMenus {
 		menuID := cast.ToInt(menu["id"])
 		existingMenuMap[menuID] = menu
 	}
 
-	// 解析主菜单
+	// Parse main menus
 	var parentMenus []OfficialCustomMenu
 
 	for _, menu := range menuList {
@@ -157,11 +157,11 @@ func SaveOfficialCustomMenu(adminUserID int, appid string, operUserID int, menuL
 		}
 	}
 
-	// 用于跟踪已处理的菜单ID，以便删除不再需要的菜单
+	// Used to track processed menu IDs, to delete menus that are no longer needed
 	processedMenuIDs := make(map[int]bool)
 
-	// 更新或创建主菜单及对应的子菜单
-	parentIDMap := make(map[int]int) // oldID -> newID (对于新建菜单)
+	// Update or create main menus and their corresponding sub-menus
+	parentIDMap := make(map[int]int) // oldID -> newID (for newly created menus)
 	for i, menu := range parentMenus {
 		actParamsJson, _ := tool.JsonEncode(menu.ActParams)
 
@@ -181,7 +181,7 @@ func SaveOfficialCustomMenu(adminUserID int, appid string, operUserID int, menuL
 
 		var newId int64
 		if menu.ID > 0 && existingMenuMap[menu.ID] != nil {
-			// 更新现有菜单
+			// Update existing menu
 			_, err = msql.Model(`func_official_custom_menu`, define.Postgres).
 				Where("id", cast.ToString(menu.ID)).
 				Update(data)
@@ -191,27 +191,27 @@ func SaveOfficialCustomMenu(adminUserID int, appid string, operUserID int, menuL
 			newId = int64(menu.ID)
 			processedMenuIDs[menu.ID] = true
 		} else {
-			// 创建新菜单
+			// Create new menu
 			data["parent_menu_id"] = 0
 			data["create_time"] = tool.Time2Int()
 			newId, err = msql.Model(`func_official_custom_menu`, define.Postgres).Insert(data, "id")
 			if err != nil {
 				return 0, err
 			}
-			// 记录新创建的菜单ID映射
+			// Record mapping of newly created menu IDs
 			if menu.ID > 0 {
 				parentIDMap[menu.ID] = int(newId)
 			}
 			processedMenuIDs[int(newId)] = true
 		}
 
-		// 更新父菜单ID映射，确保即使原ID不存在也能正确映射
+		// Update parent menu ID mapping, ensuring correct mapping even if original ID does not exist
 		if menu.ID > 0 {
 			parentIDMap[menu.ID] = int(newId)
 		}
 		parentMenus[i].ID = int(newId)
 
-		// 处理该主菜单下的子菜单
+		// Process sub-menus under this main menu
 		for j := range parentMenus[i].SubMenuList {
 			parentMenus[i].SubMenuList[j].MenuLevel = OfficialCustomMenuMenuLevelTwo
 			parentMenus[i].SubMenuList[j].ParentMenuID = int(newId)
@@ -236,7 +236,7 @@ func SaveOfficialCustomMenu(adminUserID int, appid string, operUserID int, menuL
 
 			var subNewId int64
 			if subMenu.ID > 0 && existingMenuMap[subMenu.ID] != nil {
-				// 更新现有的子菜单
+				// Update existing sub-menu
 				_, err = msql.Model(`func_official_custom_menu`, define.Postgres).
 					Where("id", cast.ToString(subMenu.ID)).
 					Update(subData)
@@ -246,7 +246,7 @@ func SaveOfficialCustomMenu(adminUserID int, appid string, operUserID int, menuL
 				subNewId = int64(subMenu.ID)
 				processedMenuIDs[subMenu.ID] = true
 			} else {
-				// 创建新的子菜单
+				// Create new sub-menu
 				subData["create_time"] = tool.Time2Int()
 				subNewId, err = msql.Model(`func_official_custom_menu`, define.Postgres).Insert(subData, "id")
 				if err != nil {
@@ -258,7 +258,7 @@ func SaveOfficialCustomMenu(adminUserID int, appid string, operUserID int, menuL
 		}
 	}
 
-	// 删除未被处理的旧菜单（即已被删除的菜单）
+	// Delete unprocessed old menus (i.e. menus that have been deleted)
 	for menuID := range existingMenuMap {
 		if !processedMenuIDs[menuID] {
 			_, err = msql.Model(`func_official_custom_menu`, define.Postgres).
@@ -267,30 +267,30 @@ func SaveOfficialCustomMenu(adminUserID int, appid string, operUserID int, menuL
 			if err != nil {
 				return 0, err
 			}
-			// 清除被删除菜单的缓存
+			// Clear cache of deleted menu
 			lib_redis.DelCacheData(define.Redis, &OfficialCustomMenuCacheBuildHandler{ID: menuID})
 		}
 	}
 
-	// 清除所有相关缓存
+	// Clear all related caches
 	for menuID := range processedMenuIDs {
 		lib_redis.DelCacheData(define.Redis, &OfficialCustomMenuCacheBuildHandler{ID: menuID})
 	}
 
-	// 记录菜单变更历史
+	// Record menu change history
 	err = saveMenuHistory(adminUserID, appid, operUserID, oldMenus)
 	if err != nil {
 		return 0, err
 	}
 	if sendWx {
-		//将本地菜单 发送到微信 菜单去
+		// Send local menu to WeChat
 		return SendOfficialCustomMenuToWx(adminUserID, appid)
 	}
-	//将本地菜单 发送到微信 菜单去
+	// Send local menu to WeChat
 	return 0, nil
 }
 
-// SendOfficialCustomMenuToWx 发送自定义菜单
+// SendOfficialCustomMenuToWx Send custom menu
 func SendOfficialCustomMenuToWx(adminUserID int, appid string) (int, error) {
 	appInfo, err := msql.Model(`chat_ai_wechat_app`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserID)).Where(`app_id`, appid).Find()
 	if err != nil {
@@ -299,21 +299,21 @@ func SendOfficialCustomMenuToWx(adminUserID int, appid string) (int, error) {
 
 	app := &official_account.Application{AppID: appInfo[`app_id`], Secret: appInfo[`app_secret`]}
 
-	//获取菜单 转化成request.RequestMenuCreate
+	// Get menu and convert to request.RequestMenuCreate
 
 	localMenuList, err := GetOfficialCustomMenuList(adminUserID, appid)
 	if err != nil {
 		return 0, err
 	}
-	//转换成request.RequestMenuCreate
+	// Convert to request.RequestMenuCreate
 	menu := LocalMenuListConvertToRequestMenuCreate(localMenuList)
 	if len(menu.Buttons) == 0 {
 		return 0, errors.New(`the menu is empty`)
 	}
-	//处理
+	// Process
 	setMenuCode, err := app.SetMenu(menu)
 	if err == nil {
-		//保存菜单 开启状态
+		// Save menu enabled status
 		_, err = msql.Model(`chat_ai_wechat_app`, define.Postgres).
 			Where(`id`, appInfo[`id`]).
 			Where(`admin_user_id`, appInfo[`admin_user_id`]).
@@ -325,7 +325,7 @@ func SendOfficialCustomMenuToWx(adminUserID int, appid string) (int, error) {
 	return setMenuCode, err
 }
 
-// LocalMenuListConvertToRequestMenuCreate 本地菜单列表转换为 request.RequestMenuCreate
+// LocalMenuListConvertToRequestMenuCreate Convert local menu list to request.RequestMenuCreate
 func LocalMenuListConvertToRequestMenuCreate(localMenuList []OfficialCustomMenu) request.RequestMenuCreate {
 	var menu request.RequestMenuCreate
 	buttons := make([]*request.Button, 0)
@@ -334,7 +334,7 @@ func LocalMenuListConvertToRequestMenuCreate(localMenuList []OfficialCustomMenu)
 		curButton := request.Button{
 			Name: localMenu.MenuName,
 		}
-		// 不再需要循环 actParams，因为 ActParams 现在是单个对象而不是数组
+		// No longer need to loop through actParams, as ActParams is now a single object rather than an array
 		act := localMenu.ActParams
 		switch act.Item {
 		case OfficialCustomMenuActTypeSendMessage:
@@ -357,7 +357,7 @@ func LocalMenuListConvertToRequestMenuCreate(localMenuList []OfficialCustomMenu)
 			break
 		}
 
-		//处理子菜单
+		// Process sub-menu
 		if len(localMenu.SubMenuList) > 0 {
 			subButtons := make([]request.SubButton, 0)
 			for _, subMenu := range localMenu.SubMenuList {
@@ -395,7 +395,7 @@ func LocalMenuListConvertToRequestMenuCreate(localMenuList []OfficialCustomMenu)
 	return menu
 }
 
-// SyncWxMenuToShow 同步微信菜单到展示
+// SyncWxMenuToShow Synchronize WeChat menu to display
 func SyncWxMenuToShow(adminUserID int, appid string, operUserID int) ([]OfficialCustomMenu, error) {
 	appInfo, err := msql.Model(`chat_ai_wechat_app`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserID)).Where(`app_id`, appid).Find()
 	if err != nil {
@@ -406,7 +406,7 @@ func SyncWxMenuToShow(adminUserID int, appid string, operUserID int) ([]Official
 	localMenuList := make([]OfficialCustomMenu, 0)
 	WxMenu, err := app.GetMenu()
 	if err != nil {
-		//报错如果包含 menu no exist
+		// Error if contains menu no exist
 		if strings.Contains(err.Error(), `menu no exist`) {
 			localMenuList = CheckUseDefaultMenu(adminUserID, appid, localMenuList)
 			return localMenuList, nil
@@ -418,7 +418,7 @@ func SyncWxMenuToShow(adminUserID int, appid string, operUserID int) ([]Official
 		localMenuList = CheckUseDefaultMenu(adminUserID, appid, localMenuList)
 		return localMenuList, nil
 	}
-	//转化为本地菜单
+	// Convert to local menu
 	for menuIndex, button := range WxMenu.Menus.Buttons {
 		localMenu := OfficialCustomMenu{
 			MenuName:     button.Name,
@@ -434,7 +434,7 @@ func SyncWxMenuToShow(adminUserID int, appid string, operUserID int) ([]Official
 			if tool.IsNumeric(button.Key) {
 				localMenu.ChooseActItem = OfficialCustomMenuActTypeSendMessage
 				localMenu.ActParams.Item = OfficialCustomMenuActTypeSendMessage
-				//获取对应菜单的详情
+				// Get details of corresponding menu
 				getMenu, err := GetOfficialCustomMenuInfo(cast.ToInt(button.Key))
 				if err == nil && getMenu.ID > 0 {
 					localMenu.ID = getMenu.ID
@@ -477,7 +477,7 @@ func SyncWxMenuToShow(adminUserID int, appid string, operUserID int) ([]Official
 					if tool.IsNumeric(subButton.Key) {
 						subMenu.ChooseActItem = OfficialCustomMenuActTypeSendMessage
 						subMenu.ActParams.Item = OfficialCustomMenuActTypeSendMessage
-						//获取对应菜单的详情
+						// Get details of corresponding menu
 						getMenu, err := GetOfficialCustomMenuInfo(cast.ToInt(subButton.Key))
 						if err == nil && getMenu.ID > 0 {
 							subMenu.ID = getMenu.ID
@@ -511,28 +511,28 @@ func SyncWxMenuToShow(adminUserID int, appid string, operUserID int) ([]Official
 		}
 		localMenuList = append(localMenuList, localMenu)
 	}
-	// 检查是否使用默认菜单
+	// Check if default menu is used
 	localMenuList = CheckUseDefaultMenu(adminUserID, appid, localMenuList)
-	//转化为本地菜单返回给前端
+	// Convert to local menu and return to frontend
 	return localMenuList, err
 }
 
-// saveMenuHistory 保存菜单变更历史
+// saveMenuHistory Save menu change history
 func saveMenuHistory(adminUserID int, appid string, operUserID int, oldMenus []OfficialCustomMenu) error {
-	// 获取当前数据库中的菜单（完整的一级和二级菜单结构）
+	// Get menus in current database (complete primary and secondary menu structure)
 	currentMenuList, err := GetOfficialCustomMenuList(adminUserID, appid)
 	if err != nil {
 		return err
 	}
 
-	// 清理当前菜单列表中的时间字段
+	// Clean time fields in current menu list
 	cleanCurrentMenuList := make([]OfficialCustomMenu, len(currentMenuList))
 	for i, menu := range currentMenuList {
 		cleanMenu := menu
 		cleanMenu.CreateTime = 0
 		cleanMenu.UpdateTime = 0
 
-		// 清理子菜单的时间字段
+		// Clean time fields of sub-menus
 		cleanSubMenuList := make([]OfficialCustomMenu, len(cleanMenu.SubMenuList))
 		for j, subMenu := range cleanMenu.SubMenuList {
 			cleanSubMenu := subMenu
@@ -547,14 +547,14 @@ func saveMenuHistory(adminUserID int, appid string, operUserID int, oldMenus []O
 
 	//
 	historyMenuList := oldMenus
-	// 清理提交的菜单列表中的时间字段
+	// Clean time fields in submitted menu list
 	cleanHistoryMenuList := make([]OfficialCustomMenu, len(oldMenus))
 	for i, menu := range historyMenuList {
 		cleanMenu := menu
 		cleanMenu.CreateTime = 0
 		cleanMenu.UpdateTime = 0
 
-		// 清理子菜单的时间字段
+		// Clean time fields of sub-menus
 		cleanSubMenuList := make([]OfficialCustomMenu, len(cleanMenu.SubMenuList))
 		for j, subMenu := range cleanMenu.SubMenuList {
 			cleanSubMenu := subMenu
@@ -567,9 +567,9 @@ func saveMenuHistory(adminUserID int, appid string, operUserID int, oldMenus []O
 		cleanHistoryMenuList[i] = cleanMenu
 	}
 
-	// 使用 DeepEqual 比较两个结构体切片
+	// Use DeepEqual to compare two struct slices
 	if !reflect.DeepEqual(cleanHistoryMenuList, cleanCurrentMenuList) {
-		// 重新编码当前菜单（包含时间字段）用于存储
+		// Re-encode current menu (including time fields) for storage
 		historyMenuJson, _ := tool.JsonEncode(cleanHistoryMenuList)
 		currentMenuJson, _ := tool.JsonEncode(cleanCurrentMenuList)
 
@@ -592,9 +592,9 @@ func saveMenuHistory(adminUserID int, appid string, operUserID int, oldMenus []O
 	return nil
 }
 
-// GetOfficialCustomMenuList 获取自定义菜单列表
+// GetOfficialCustomMenuList Get custom menu list
 func GetOfficialCustomMenuList(adminUserID int, appid string) ([]OfficialCustomMenu, error) {
-	// 获取所有菜单
+	// Get all menus
 	menus, err := msql.Model(`func_official_custom_menu`, define.Postgres).
 		Where("admin_user_id", cast.ToString(adminUserID)).
 		Where("appid", appid).
@@ -604,11 +604,11 @@ func GetOfficialCustomMenuList(adminUserID int, appid string) ([]OfficialCustomM
 		return nil, err
 	}
 
-	// 分别存储一级菜单和二级菜单
+	// Store primary and secondary menus separately
 	parentMenus := make([]OfficialCustomMenu, 0)
 	subMenuMap := make(map[int][]OfficialCustomMenu) // parent_menu_id -> []SubMenu
 
-	// 处理所有菜单项
+	// Process all menu items
 	for _, item := range menus {
 		var actParams OfficialCustomMenuActParam
 		_ = tool.JsonDecodeUseNumber(item[`act_params`], &actParams)
@@ -635,24 +635,24 @@ func GetOfficialCustomMenuList(adminUserID int, appid string) ([]OfficialCustomM
 		if menu.MenuLevel == OfficialCustomMenuMenuLevelOne {
 			parentMenus = append(parentMenus, menu)
 		} else if menu.MenuLevel == OfficialCustomMenuMenuLevelTwo {
-			// 将二级菜单按parent_menu_id分组
+			// Group secondary menus by parent_menu_id
 			subMenuMap[menu.ParentMenuID] = append(subMenuMap[menu.ParentMenuID], menu)
 		}
 	}
 
-	// 将二级菜单附加到对应的一级菜单
+	// Attach secondary menus to corresponding primary menu
 	for i := range parentMenus {
 		if subMenus, exists := subMenuMap[parentMenus[i].ID]; exists {
 			parentMenus[i].SubMenuList = subMenus
 		}
 	}
-	// 检查是否使用默认菜单
+	// Check if default menu is used
 	parentMenus = CheckUseDefaultMenu(adminUserID, appid, parentMenus)
 
 	return parentMenus, nil
 }
 
-// CheckUseDefaultMenu 检查是否使用默认菜单
+// CheckUseDefaultMenu Check if default menu is used
 func CheckUseDefaultMenu(adminUserID int, appid string, parentMenus []OfficialCustomMenu) []OfficialCustomMenu {
 	if len(parentMenus) == 0 {
 		sendReplyContent := make([]ReplyContent, 0)
@@ -680,9 +680,9 @@ func CheckUseDefaultMenu(adminUserID int, appid string, parentMenus []OfficialCu
 	return parentMenus
 }
 
-// DeleteAllOfficialCustomMenuToWx 删除所有公众号自定义菜单
+// DeleteAllOfficialCustomMenuToWx Delete all official account custom menus
 func DeleteAllOfficialCustomMenuToWx(adminUserId int, appid string) string {
-	//获取所有公众号
+	// Get all official accounts
 	m := msql.Model(`chat_ai_wechat_app`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId))
 	m.Where(`app_type`, lib_define.AppOfficeAccount)
@@ -706,13 +706,13 @@ func DeleteAllOfficialCustomMenuToWx(adminUserId int, appid string) string {
 }
 
 func WxDeleteMenu(appInfo msql.Params) error {
-	//捕获报错
+	// Capture error
 	app := &official_account.Application{AppID: appInfo[`app_id`], Secret: appInfo[`app_secret`]}
 	_, err := app.DeleteMenu()
 	if err != nil {
 		return err
 	}
-	//更新公众号菜单开关状态
+	// Update official account menu switch status
 	_, err = msql.Model(`chat_ai_wechat_app`, define.Postgres).
 		Where(`id`, appInfo[`id`]).
 		Where(`admin_user_id`, appInfo[`admin_user_id`]).
@@ -722,9 +722,9 @@ func WxDeleteMenu(appInfo msql.Params) error {
 	return err
 }
 
-// DeleteOfficialCustomMenuToDb 删除自定义菜单
+// DeleteOfficialCustomMenuToDb Delete custom menu
 func DeleteOfficialCustomMenuToDb(adminUserID int, appid string) error {
-	// 开始事务
+	// Begin transaction
 	tx, err := msql.Begin(define.Postgres)
 	if err != nil {
 		return err
@@ -737,7 +737,7 @@ func DeleteOfficialCustomMenuToDb(adminUserID int, appid string) error {
 		}
 	}()
 
-	// 删除菜单
+	// Delete menu
 	_, err = msql.Model(`func_official_custom_menu`, define.Postgres).
 		Where("admin_user_id", cast.ToString(adminUserID)).
 		Where("appid", appid).
@@ -746,7 +746,7 @@ func DeleteOfficialCustomMenuToDb(adminUserID int, appid string) error {
 		return err
 	}
 
-	// 清除所有相关缓存
+	// Clear all related caches
 	allMenus, err := msql.Model(`func_official_custom_menu`, define.Postgres).
 		Where("admin_user_id", cast.ToString(adminUserID)).
 		Where("appid", appid).

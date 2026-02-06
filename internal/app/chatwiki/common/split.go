@@ -147,7 +147,7 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 	if err != nil {
 		return
 	}
-	list.UnifySetNumber() //对number统一编号
+	list.UnifySetNumber() // Unify numbering for number
 	for i := range list {
 		if splitParams.IsQaDoc == define.DocTypeQa {
 			list[i].WordTotal = utf8.RuneCountInString(list[i].Question) + utf8.RuneCountInString(list[i].Answer)
@@ -192,7 +192,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 			}
 		}
 	}
-	list.UnifySetNumber() //对number统一编号
+	list.UnifySetNumber() // Unify numbering for number
 
 	if splitParams.IsQaDoc == define.DocTypeQa {
 		if qaIndexType != define.QAIndexTypeQuestionAndAnswer && qaIndexType != define.QAIndexTypeQuestion {
@@ -291,12 +291,12 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 			`word_total`:    item.WordTotal,
 			`create_time`:   tool.Time2Int(),
 			`update_time`:   tool.Time2Int(),
-			//父子分段
+			// Parent-child segmentation
 			`father_chunk_paragraph_number`: item.FatherChunkParagraphNumber,
 		}
 
-		// 如果知识库的的类型是问答知识库
-		// 则把知识库文件中的group_id塞到分段表的group_id
+		// If the library type is QA library
+		// then put the group_id from the library file into the segment table's group_id
 		if cast.ToInt(library[`type`]) == define.QALibraryType {
 			data[`group_id`] = info[`group_id`]
 		}
@@ -326,11 +326,11 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 				data[`images`] = `[]`
 			}
 
-			// 仅对问答知识库处理
+			// Process only for QA knowledge base
 			if cast.ToInt(library[`type`]) == define.QALibraryType {
-				// 在这里检测，如果问题相同，就删除原有问答再新增新问答
-				// 不过有一个问题，因为这个方法是通过goroutine方式运行，有一个极限的情况
-				// 当用户快速上传多个文件，而多个文件中存在相同问题，则可能还是会出现问题相同，答案不同的情况
+				// Detect here, if questions are the same, delete the original Q&A and add new Q&A
+				// However, there is an issue, because this method runs via goroutine, there is an extreme situation
+				// When users upload multiple files quickly, and multiple files contain the same question, it may still result in the same question with different answers
 				qaQuestionExistQuery := msql.Model("chat_ai_library_file_data", define.Postgres).
 					Where(`admin_user_id`, cast.ToString(userId)).
 					Where(`library_id`, cast.ToString(info[`library_id`])).
@@ -341,7 +341,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 					return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
 				}
 
-				// 将重复的问答直接删除问答和向量索引
+				// Directly delete duplicate Q&A and vector indexes
 				if len(qaQuestionExistIds) > 0 {
 					_, err = msql.Model("chat_ai_library_file_data", define.Postgres).
 						Where(`admin_user_id`, cast.ToString(userId)).
@@ -364,7 +364,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 				}
 			}
 
-			// 实际添加分段文件
+			// Actually add segmented file
 			id, err := msql.Model("chat_ai_library_file_data", define.Postgres).Insert(data, `id`)
 			if err != nil {
 				logs.Error(err.Error())
@@ -583,12 +583,12 @@ func RecursiveCharacter(items define.DocSplitItems, separators []string, chunkSi
 	split.ChunkOverlap = chunkOverlap
 	split.NotMergedText = notMergedText
 	split.LenFunc = func(s string) int {
-		//将内容包含图片的部分统计为字符-(长度1),这里不能为长度0,最后一段会被丢弃
+		// Count parts containing images as characters -(length 1), cannot be length 0 here, otherwise the last segment will be discarded
 		return utf8.RuneCountInString(regexp.MustCompile(`\{\{!!(.+?)!!}}`).ReplaceAllString(s, `-`))
 	}
 	list := make(define.DocSplitItems, 0)
 	for _, item := range items {
-		//内容包含图片:前面追加一个第一顺位的切分字符,避免图片出现在两段里面
+		// Content contains images: prepend the first priority split character to avoid images appearing in two segments
 		contents, err := split.SplitText(strings.ReplaceAll(item.Content, `{{!!`, split.Separators[0]+`{{!!`))
 		if err != nil {
 			logs.Error(err.Error())
@@ -598,7 +598,7 @@ func RecursiveCharacter(items define.DocSplitItems, separators []string, chunkSi
 			if len(content) == 0 {
 				continue
 			}
-			//将追加的第一顺位的切分字符剔除掉
+			// Remove the prepended first priority split character
 			content = strings.ReplaceAll(content, split.Separators[0]+`{{!!`, `{{!!`)
 			content, images := ExtractTextImages(content)
 			if len(content) == 0 {
@@ -626,12 +626,12 @@ func GetSeparatorsByNo(separatorsNo, lang string) ([]string, error) {
 	}
 	replacer := strings.NewReplacer(`\\n`, `\n`, `\\r`, `\r`, `\\t`, `\t`, `\n`, "\n", `\r`, "\r", `\t`, "\t")
 	for i, no := range list {
-		//自定义分段标识符
+		// Custom segmentation markers
 		if noStr, ok := no.(string); ok {
 			separators = append(separators, replacer.Replace(noStr))
 			continue
 		}
-		//系统预设分段标识符
+		// System preset segmentation markers
 		no := cast.ToInt(no)
 		if no < 1 || no > len(define.SeparatorsList) {
 			return separators, errors.New(i18n.Show(lang, `param_invalid`, `separators_no.`+cast.ToString(i)))
@@ -665,30 +665,30 @@ func MultDocSplit(adminUserId, fileId, pdfPageNum int, splitParams define.SplitP
 		separators  []string
 	)
 	if splitParams.ChunkType == define.ChunkTypeNormal {
-		separators = append(splitParams.Separators, textsplitter.DefaultOptions().Separators...) //补充默认分隔符
+		separators = append(splitParams.Separators, textsplitter.DefaultOptions().Separators...) // Add default separators
 		return RecursiveCharacter(items, separators, splitParams.ChunkSize, splitParams.ChunkOverlap, splitParams.NotMergedText)
 	} else if splitParams.ChunkType == define.ChunkTypeFatherSon {
-		if cast.ToBool(splitParams.IsTableFile) { //表格按分段特殊处理
-			for i := range items { //标记父编号
+		if cast.ToBool(splitParams.IsTableFile) { // Special handling for tables by segmentation
+			for i := range items { // Mark parent number
 				items[i].FatherChunkParagraphNumber = i + 1
 			}
 			return RecursiveCharacter(items, textsplitter.DefaultOptions().Separators,
 				textsplitter.DefaultOptions().ChunkSize, textsplitter.DefaultOptions().ChunkOverlap, false)
 		}
-		items = MergeDocSplitItems(items) //pdf等文件先合并成一个
+		items = MergeDocSplitItems(items) // First merge PDF and other files into one
 		if splitParams.FatherChunkParagraphType != define.FatherChunkParagraphTypeFullText {
 			separators, err = GetSeparatorsByNo(splitParams.FatherChunkSeparatorsNo, ``)
 			items, err = RecursiveCharacter(items, separators, splitParams.FatherChunkChunkSize, 0, true)
 			if err != nil {
 				return items, err
 			}
-		} else { //出于性能原因,超过10000个标记的文本将被自动截断
+		} else { // For performance reasons, text with more than 10000 tokens will be automatically truncated
 			items, err = RecursiveCharacter(items, nil, 10000, 0, true)
 			if err != nil {
 				return items, err
 			}
 		}
-		for i := range items { //标记父编号
+		for i := range items { // Mark parent number
 			items[i].FatherChunkParagraphNumber = i + 1
 		}
 		separators, err = GetSeparatorsByNo(splitParams.SonChunkSeparatorsNo, ``)
@@ -818,23 +818,23 @@ func RequestConvertService(file, fromFormat string, pdfParseType int) (content s
 
 func PdfConvertHtml(fileId int, fileLink string, pdfParseType int) (content string, err error) {
 	page, err := api.PageCountFile(fileLink)
-	if err != nil { //获取页码出错
+	if err != nil { // Error getting page count
 		return
 	}
-	outDir := define.UploadDir + fmt.Sprintf(`pdf_split/%s`, tool.Random(8)) //随机生成切分后的目录
+	outDir := define.UploadDir + fmt.Sprintf(`pdf_split/%s`, tool.Random(8)) // Randomly generate directory for split results
 	defer func(path string) {
-		_ = os.RemoveAll(path) //结束后删除目录
+		_ = os.RemoveAll(path) // Delete directory after completion
 	}(outDir)
-	_ = tool.MkDirAll(outDir) //确保输出目录存在
+	_ = tool.MkDirAll(outDir) // Ensure output directory exists
 	if err = api.SplitFile(fileLink, outDir, 1, nil); err != nil {
 		return
 	}
-	//来自spanFileName,千万不要改,大写会出问题!!!
+	// From spanFileName, never change this, uppercase will cause problems!!!
 	filename := strings.TrimSuffix(filepath.Base(fileLink), `.pdf`)
 	for idx := 1; idx <= page; idx++ {
 		item := fmt.Sprintf(`%s/%s_%d.pdf`, outDir, filename, idx)
 		if !tool.IsFile(item) {
-			continue //预防文件不存在的情况
+			continue // Prevent case where file doesn't exist
 		}
 		onePage, err := RequestConvertService(item, `pdf`, pdfParseType)
 		if err != nil {
@@ -869,20 +869,20 @@ func ConvertHtml(fileId int, link string, userId int, pdfParseType int) (content
 		return ``, errors.New(`file not exist:` + link)
 	}
 	ext := strings.ToLower(strings.TrimLeft(filepath.Ext(link), `.`))
-	if ext == `pdf` { //切分成每一页再转换合并
+	if ext == `pdf` { // Split into each page then convert and merge
 		content, err = PdfConvertHtml(fileId, GetFileByLink(link), pdfParseType)
-	} else { //直接请求转换服务
+	} else { // Directly request conversion service
 		content, err = RequestConvertService(GetFileByLink(link), ext, pdfParseType)
 	}
 	if err != nil {
 		return ``, err
 	}
-	//替换base64编码的图片
+	// Replace base64 encoded images
 	content, err = ReplaceBase64Img(content, userId)
 	if err != nil {
 		return ``, err
 	}
-	//保存html文件
+	// Save HTML file
 	objectKey := fmt.Sprintf(`chat_ai/%d/%s/%s/%s.html`, userId,
 		`convert`, tool.Date(`Ym`), tool.MD5(content))
 	url, err := WriteFileByString(objectKey, content)
@@ -960,7 +960,7 @@ func ReplaceRemoteImg(content string, userId int) (string, error) {
 	doc.Find("img").Each(func(index int, item *goquery.Selection) {
 		src, exists := item.Attr("src")
 		if exists && (strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://")) {
-			// 下载远程图片
+			// Download remote image
 			resp, err := http.Get(src)
 			if err != nil {
 				logs.Error(err.Error())
@@ -978,22 +978,22 @@ func ReplaceRemoteImg(content string, userId int) (string, error) {
 				return
 			}
 
-			// 读取图片数据
+			// Read image data
 			imgData, err := io.ReadAll(resp.Body)
 			if err != nil {
 				logs.Error(err.Error())
 				return
 			}
 
-			// 确定图片格式
+			// Determine image format
 			contentType := resp.Header.Get("Content-Type")
-			format := "jpg" // 默认格式
+			format := "jpg" // default
 			if strings.Contains(contentType, "png") {
 				format = "png"
 			} else if strings.Contains(contentType, "gif") {
 				format = "gif"
 			} else if strings.Contains(contentType, "webp") {
-				// 如果是webp格式，转换为PNG
+				// If webp format, convert to PNG
 				imgData, err = ConvertWebPToPNG(imgData)
 				if err != nil {
 					logs.Error(err.Error())
@@ -1002,7 +1002,7 @@ func ReplaceRemoteImg(content string, userId int) (string, error) {
 				format = "png"
 			}
 
-			// 保存图片到本地
+			// Save image to local
 			objectKey := fmt.Sprintf(`chat_ai/%d/%s/%s/%s.%s`, userId, `library_image`, tool.Date(`Ym`), tool.MD5(string(imgData)), format)
 			imgUrl, err := WriteFileByString(objectKey, string(imgData))
 			if err != nil {
@@ -1010,7 +1010,7 @@ func ReplaceRemoteImg(content string, userId int) (string, error) {
 				return
 			}
 
-			// 替换图片标签
+			// Replace image tag
 			newTag := fmt.Sprintf("<b>{{!!%s!!}}</b>", imgUrl)
 			item.ReplaceWithHtml(newTag)
 		}
@@ -1096,7 +1096,7 @@ func ParseTabFile(fileUrl, fileExt string) ([][]string, error) {
 	if !LinkExists(fileUrl) {
 		return nil, errors.New(`file not exist:` + fileUrl)
 	}
-	//read excel
+	// Read Excel
 	var rows = make([][]string, 0)
 	if fileExt == `csv` {
 		content, err := tool.ReadFile(GetFileByLink(fileUrl))
@@ -1138,7 +1138,7 @@ func ReadTab(fileUrl, fileExt string) (define.DocSplitItems, int, error) {
 		pairs := make([]string, 0)
 		for j := range rows[i] {
 			wordTotal += utf8.RuneCountInString(rows[i][j])
-			if i == 0 { //excel head
+			if i == 0 { // Excel header
 				continue
 			}
 			if len(rows[i][j]) == 0 || len(rows[0]) <= j {
@@ -1241,7 +1241,7 @@ func ReadQaTab(fileUrl, fileExt string, splitParams define.SplitParams) (define.
 			question = row[questionIndex]
 		}
 		if similarIndex > 0 && len(row) > similarIndex && len(row[similarIndex]) > 0 {
-			// 通过换行符分割相似问题
+			// Split similar questions by newline character
 			similarQuestionList = append(similarQuestionList, strings.FieldsFunc(row[similarIndex], func(r rune) bool {
 				return r == '\n' || r == '\r'
 			})...)
@@ -1285,56 +1285,56 @@ func QaDocSplit(splitParams define.SplitParams, items define.DocSplitItems) defi
 					continue
 				}
 			} else {
-				splitParams.SimilarLabel = strings.ReplaceAll(splitParams.SimilarLabel, ":", "：")
-				splitParams.AnswerLable = strings.ReplaceAll(splitParams.AnswerLable, ":", "：")
+				splitParams.SimilarLabel = strings.ReplaceAll(splitParams.SimilarLabel, ":", ":")
+				splitParams.AnswerLable = strings.ReplaceAll(splitParams.AnswerLable, ":", ":")
 				similarIndex := strings.Index(section, splitParams.SimilarLabel)
 				answerIndex := strings.Index(section, splitParams.AnswerLable)
 
 				if similarIndex != -1 && answerIndex != -1 && similarIndex < answerIndex {
-					// 情况 1: 找到了 Similar 标签并在 Answer 标签之前（预期的 Q/S/A 结构）
+					// Case 1: Found Similar tag and it's before Answer tag (expected Q/S/A structure)
 					question = section[:similarIndex]
 
-					// 相似问题文本块在 Similar 标签和 Answer 标签之间
+					// Similar question text block is between Similar and Answer tags
 					similarBlock := section[similarIndex+len(splitParams.SimilarLabel) : answerIndex]
-					// 通过换行符分割相似问题
+					// Split similar questions by newline character
 					similarList = append(similarList, strings.FieldsFunc(similarBlock, func(r rune) bool {
 						return r == '\n' || r == '\r'
 					})...)
 					// similarList = append(similarList, similarBlock)
 
-					// 答案部分从 Answer 标签之后开始
+					// Answer part starts after the Answer tag
 					answer = section[answerIndex+len(splitParams.AnswerLable):]
 				} else if answerIndex != -1 {
-					// 情况 2: 找到了 Answer 标签，但 Similar 标签缺失或在 Answer 之后
-					// 将从块的开始到 Answer 标签之前的所有内容视为问题。
-					// 相似问题列表将为空。
+					// Case 2: Found Answer tag, but Similar tag is missing or comes after Answer
+					// Treat all content from the start of the block to before the Answer tag as the question.
+					// Similar question list will be empty.
 					question = section[:answerIndex]
-					similarList = []string{} // 没有找到相似问题
+					similarList = []string{} // No similar questions found
 
-					// 答案部分从 Answer 标签之后开始
+					// Answer part starts after the Answer tag
 					answer = section[answerIndex+len(splitParams.AnswerLable):]
 				} else {
-					// 情况 3: Answer 和 Similar 都没有按预期方式找到（或者只找到了 Similar 但没有 Answer）。
-					// 这个块不符合预期的 Q&A 格式，跳过。
+					// Case 3: Neither Answer nor Similar found as expected (or only found Similar but no Answer).
+					// This block doesn't match the expected Q&A format, skip.
 					continue
 				}
 			}
 
 			question = strings.TrimSpace(question)
 			answer = strings.TrimSpace(answer)
-			answer, images = ExtractTextImages(answer) // 对去除空白后的答案文本进行处理
+			answer, images = ExtractTextImages(answer) // Process the answer text after removing whitespace
 
-			// 检查处理后是否得到了有效的问题和答案
+			// Check if we got valid question and answer after processing
 			if len(question) == 0 || len(answer) == 0 {
-				// fmt.Printf("警告: 跳过处理后问题或答案为空的块 (页码 %d, 块索引 %d)。\n", i+1, sectionIndex) // 可选的日志记录
-				continue // 如果问题或答案为空则跳过
+				// fmt.Printf("Warning: Skipping block after processing where question or answer is empty (Page %d, Block index %d).\n", i+1, sectionIndex) // Optional logging
+				continue // Skip if question or answer is empty
 			}
 
-			// 将成功提取的项添加到列表中
+			// Add successfully extracted items to the list
 			list = append(list, define.DocSplitItem{
-				PageNum:             i + 1, // 假设 i 是原始项/页的索引，从 0 开始
+				PageNum:             i + 1, // Assume i is the original item/page index, starting from 0
 				Question:            question,
-				SimilarQuestionList: similarList, // 存储相似问题列表
+				SimilarQuestionList: similarList, // Store similar question list
 				Answer:              answer,
 				Images:              images,
 			})
@@ -1433,7 +1433,7 @@ func AutoSplitLibFile(adminUserId, fileId int, splitParams define.SplitParams) {
 		logs.Error(err.Error())
 		return
 	}
-	// default type
+	// Default type
 	if splitParams.QaIndexType == 0 {
 		splitParams.QaIndexType = define.QAIndexTypeQuestionAndAnswer
 	}
@@ -1444,7 +1444,7 @@ func AutoSplitLibFile(adminUserId, fileId int, splitParams define.SplitParams) {
 			return
 		}
 	} else {
-		// 知识库问答文件导入走这里@sizz 20250903
+		// Knowledge base QA file import goes here@sizz 20250903
 		_, err = SaveLibFileSplit(adminUserId, fileId, wordTotal, splitParams.QaIndexType, splitParams, list, 0, lang)
 		if err != nil {
 			logs.Error(err.Error())
@@ -1478,7 +1478,7 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list d
 	var submitContent define.DocSplitItems
 	spliter := NewAiSpliterClient(splitParams.AiChunkSize)
 	for _, item := range list {
-		// pdf 按页提交
+		// pdf submit by page
 		if define.IsPdfFile(splitParams.FileExt) {
 			spliteItem := define.DocSplitItem{
 				PageNum: item.PageNum,

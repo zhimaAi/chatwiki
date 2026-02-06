@@ -41,7 +41,7 @@ func SaveDepartment(id, adminUserId int64, data msql.Datas) (int64, error) {
 	m := msql.Model(`department`, define.Postgres)
 	var err error
 	if id > 0 {
-		// 更新
+		// Update
 		info, err := m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(adminUserId)).Value(`id`)
 		if err != nil {
 			logs.Error(err.Error())
@@ -52,7 +52,7 @@ func SaveDepartment(id, adminUserId int64, data msql.Datas) (int64, error) {
 		}
 		_, err = m.Where(`id`, cast.ToString(id)).Update(data)
 	} else {
-		// 新增
+		// Insert
 		data[`create_time`] = tool.Time2Int()
 		id, err = m.Insert(data, `id`)
 	}
@@ -63,16 +63,16 @@ func SaveDepartment(id, adminUserId int64, data msql.Datas) (int64, error) {
 	return id, nil
 }
 
-// GetDepartmentLevel 获取部门层级的pid列表和层级数
+// GetDepartmentLevel gets department level pid list and level count
 func GetDepartmentLevel(adminUserId, pDid int) (int, int, error) {
-	// 查询该管理员用户下的所有部门
+	// Query all departments under this admin user
 	result, err := GetAllDepartmentList(adminUserId)
 	if err != nil {
 		logs.Error(err.Error())
 		return 0, 0, err
 	}
 
-	// 构建id到pid的映射
+	// Build id to pid mapping
 	currentId := 0
 	idToPid := make(map[int]int)
 	for _, v := range result {
@@ -82,11 +82,11 @@ func GetDepartmentLevel(adminUserId, pDid int) (int, int, error) {
 		idToPid[cast.ToInt(v["id"])] = cast.ToInt(v["pid"])
 	}
 
-	// 从指定id开始向下查找所有子部门id
+	// Find all child department ids starting from specified id
 	var childList []string
-	maxLevel := 1 // 初始化最大层级为1
+	maxLevel := 1 // Initialize max level to 1
 	pLevel := 0
-	// 用于记录每个节点的层级
+	// Used to record each node's level
 	levelMap := make(map[int]int)
 	levelMap[currentId] = 1
 
@@ -124,7 +124,7 @@ func OverDepartmentLevel(adminUserId, pid, id int) (bool, int) {
 	if cast.ToInt(config) > 0 {
 		maxLevel = cast.ToInt(config)
 	}
-	// 查询该管理员用户下的所有部门
+	// Query all departments under this admin user
 	pLevel, currentLevel, err := GetDepartmentLevel(adminUserId, pid)
 	if err != nil {
 		logs.Error(err.Error())
@@ -137,7 +137,7 @@ func OverDepartmentLevel(adminUserId, pid, id int) (bool, int) {
 	return currentLevel+addLevel > maxLevel, maxLevel
 }
 
-// GetDepartmentMembers 获取部门成员列表
+// GetDepartmentMembers gets department member list
 func GetDepartmentMembers(departmentIds string) (map[int][]string, error) {
 	if len(departmentIds) <= 0 {
 		return nil, errors.New("invalid department id")
@@ -156,7 +156,7 @@ func GetDepartmentMembers(departmentIds string) (map[int][]string, error) {
 	return mapList, nil
 }
 
-// GetDepartmentMembers 获取成员部门列表
+// GetUserDepartments gets user department list
 func GetUserDepartments(userId int) ([]msql.Params, error) {
 	if userId <= 0 {
 		return nil, errors.New("invalid department id")
@@ -171,7 +171,7 @@ func GetUserDepartments(userId int) ([]msql.Params, error) {
 	return data, nil
 }
 
-// GetDepartmentMembers 获取成员部门列表
+// GetUserDepartmentIds gets user department id list
 func GetUserDepartmentIds(userIds string) ([]string, error) {
 	if len(userIds) <= 0 {
 		return nil, errors.New("invalid user id")
@@ -186,7 +186,7 @@ func GetUserDepartmentIds(userIds string) ([]string, error) {
 	return list, nil
 }
 
-// GetUserAllDepartmentIds 获取成员部门列表
+// GetUserAllDepartmentIds gets all user department ids
 func GetUserAllDepartmentIds(adminUserId int, userIds string) ([]string, error) {
 	list, err := GetUserDepartmentIds(userIds)
 	if err != nil {
@@ -199,7 +199,7 @@ func GetUserAllDepartmentIds(adminUserId int, userIds string) ([]string, error) 
 		return nil, err
 	}
 
-	// 获取部门所有的上级...
+	// Get all parent departments...
 	for _, v := range list {
 		childList := &[]string{}
 		findDepartmentParent(allDepartments, cast.ToInt(v), childList)
@@ -258,7 +258,7 @@ type DepartmentInfo struct {
 func GetDepartmentTrees(adminUserId int) ([]*DepartmentInfo, []string, error) {
 	m := msql.Model(`department`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId))
-	// 获取所有部门数据
+	// Get all department data
 	list, err := m.Order(`id asc`).Select()
 	if err != nil {
 		logs.Error(err.Error())
@@ -270,7 +270,7 @@ func GetDepartmentTrees(adminUserId int) ([]*DepartmentInfo, []string, error) {
 		departmentIds = append(departmentIds, v[`id`])
 	}
 	userIdMap, _ := GetDepartmentMembers(strings.Join(departmentIds, `,`))
-	// 返回用户
+	// Return users
 	for _, v := range list {
 		var userData = []msql.Params{}
 		if userIds, ok := userIdMap[cast.ToInt(v[`id`])]; ok {
@@ -293,12 +293,12 @@ func ConvertListToTree(list []*DepartmentInfo, parentId int) []*DepartmentInfo {
 	var (
 		tree []*DepartmentInfo
 	)
-	// 计算所有子部门数量
+	// Calculate all child department counts
 	for _, node := range list {
 		if node.Pid == parentId {
 			node.Children = ConvertListToTree(list, node.Id)
-			// 计算当前节点下所有成员数
-			childCount := len(node.UserData)
+		// Calculate all members under current node
+		childCount := len(node.UserData)
 			for _, child := range node.Children {
 				childCount += child.ChildrenNums
 			}
@@ -310,11 +310,11 @@ func ConvertListToTree(list []*DepartmentInfo, parentId int) []*DepartmentInfo {
 }
 
 func SaveUserDepartmentData(adminUserId int, userIds, departmentIds string) error {
-	// 开启事务
+	// Start transaction
 	m := msql.Model("department_member", define.Postgres)
 	m.Begin()
 
-	// 删除原有部门关系
+	// Delete original department relations
 	_, err := m.Where("user_id", "in", userIds).Delete()
 	if err != nil {
 		m.Rollback()
@@ -322,7 +322,7 @@ func SaveUserDepartmentData(adminUserId int, userIds, departmentIds string) erro
 		return err
 	}
 
-	// 批量插入新的部门关系
+	// Batch insert new department relations
 	userIdArr := strings.Split(userIds, ",")
 	for _, departmentId := range strings.Split(departmentIds, ",") {
 		for _, uid := range userIdArr {

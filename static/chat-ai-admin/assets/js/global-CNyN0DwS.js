@@ -1,1 +1,0 @@
-import{am as o}from"./vue-chunks-CGLjTDrY.js";const a=o("global",{state:()=>({hideLayoutTopAndBottom:!0}),getters:{},actions:{setHideLayoutTopAndBottom(t){this.hideLayoutTopAndBottom=t}}});export{a as u};

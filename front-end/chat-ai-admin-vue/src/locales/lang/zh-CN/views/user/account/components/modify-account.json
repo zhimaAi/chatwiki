@@ -1,0 +1,15 @@
+{
+  "label_old_password": "原密码",
+  "ph_input_old_password": "请输入原始密码校验",
+  "label_password": "登录密码",
+  "ph_password_rule": "密码必须包含字母、数字或者字符中的两种，6-32位",
+  "label_confirm_password": "确认密码",
+  "ph_reinput_password": "请重新输入密码",
+  "title_modify_password": "修改登录密码",
+  "msg_input_old_password": "请输入原始密码",
+  "msg_input_password": "请输入登录密码",
+  "msg_password_same": "原密码不能和新密码一致",
+  "msg_input_confirm_password": "请输入确认密码",
+  "msg_password_mismatch": "两次输入的密码不一致",
+  "msg_modify_success": "修改成功"
+}

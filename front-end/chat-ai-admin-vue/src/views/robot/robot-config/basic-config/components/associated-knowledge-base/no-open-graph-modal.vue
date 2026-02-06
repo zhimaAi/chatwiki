@@ -1,9 +1,9 @@
 <template>
   <div>
-    <a-modal v-model:open="open" title="部分知识库未开启生成知识图谱" :footer="null" :width="746">
+    <a-modal v-model:open="open" :title="t('title_partial_kb_no_graph')" :footer="null" :width="746">
       <a-alert
         style="margin-top: 16px"
-        message="当前机器人关联的部分知识库未开启知识图谱,无法通过知识图谱检索,可能会影响检索结果。请您按需开启对应知识的生成知识图谱功能"
+        :message="t('msg_graph_not_enabled_warning')"
       ></a-alert>
       <cu-scroll :scrollbar="false" style="height: 400px">
         <div class="list-box">
@@ -36,6 +36,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { RightOutlined } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.associated-knowledge-base.no-open-graph-modal')
 
 const emit = defineEmits(['refreshList'])
 const props = defineProps({

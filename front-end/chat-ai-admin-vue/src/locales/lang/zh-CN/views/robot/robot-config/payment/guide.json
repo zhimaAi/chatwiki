@@ -1,0 +1,11 @@
+{
+  "title_app_charging": "应用收费",
+  "subtitle_value_payment": "让用户为价值买单！",
+  "title_set_pricing_rules": "设置收费规则",
+  "desc_pricing_modes": "支持设置按次收费/按天收费两种收费模式",
+  "title_purchase_auth_code": "用户购买授权码",
+  "desc_scan_to_purchase": "用户扫码添加管理员购买授权码",
+  "title_redeem_usage": "用户兑换使用",
+  "desc_redeem_code": "用户回复授权码，获取使用次数",
+  "btn_setup_now": "立即设置"
+}

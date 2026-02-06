@@ -1,7 +1,7 @@
 <template>
   <a-modal
     v-model:open="visible"
-    title="关联公众号"
+    :title="t('title_link_official_account')"
     :confirm-loading="saving"
     width="626px"
     @ok="save"
@@ -9,7 +9,7 @@
     <LoadingBox v-if="loading" style="margin: 10vh 0;"/>
     <template v-else-if="list.length">
       <div class="action-box">
-        <a-button type="primary" ghost :icon="h(PlusOutlined)" @click="linkOfficial">添加公众号</a-button>
+        <a-button type="primary" ghost :icon="h(PlusOutlined)" @click="linkOfficial">{{ t('btn_add_official_account') }}</a-button>
       </div>
       <div class="wechat-app-list">
         <div v-for="item in list"
@@ -19,26 +19,26 @@
             <img class="app-avatar" :src="item.app_avatar" alt=""/>
             <div class="app-info">
               <div class="app-name">{{ item.app_name }}</div>
-              <div class="app-desc">Appid：{{ item.app_id }}</div>
+              <div class="app-desc">{{ t('label_appid') }}{{ item.app_id }}</div>
             </div>
           </div>
           <div class="ext-info-list">
             <div class="status-block status-success" v-if="item.account_is_verify == 'true'">
               <CheckCircleFilled/>
-              已认证
+              {{ t('status_verified') }}
             </div>
             <div v-else class="status-block status-warning">
               <ExclamationCircleFilled/>
-              未认证
+              {{ t('status_unverified') }}
             </div>
             <a-checkbox v-model:checked="item.checked"/>
           </div>
         </div>
       </div>
     </template>
-    <EmptyBox v-else title="暂未绑定公众号">
+    <EmptyBox v-else :title="t('title_no_bound_official_account')">
       <template #desc>
-        <a-button type="primary" @click="linkOfficial">绑定公众号</a-button>
+        <a-button type="primary" @click="linkOfficial">{{ t('btn_bind_official_account') }}</a-button>
       </template>
     </EmptyBox>
   </a-modal>
@@ -48,11 +48,13 @@ import {ref, h, computed} from 'vue';
 import {useRouter} from 'vue-router';
 import {message} from 'ant-design-vue';
 import {PlusOutlined, CheckCircleFilled, ExclamationCircleFilled} from '@ant-design/icons-vue';
+import {useI18n} from '@/hooks/web/useI18n';
 import LoadingBox from "@/components/common/loading-box.vue";
 import EmptyBox from "@/components/common/empty-box.vue";
 import {getWechatAppList, robotBindWxApp} from "@/api/robot/index.js";
 import {usePermissionStore} from "@/stores/modules/permission.js";
 
+const { t } = useI18n('views.robot.robot-config.external-service.components.select-wechat-app');
 const emit = defineEmits(['change'])
 const router = useRouter()
 const permissionStore = usePermissionStore()

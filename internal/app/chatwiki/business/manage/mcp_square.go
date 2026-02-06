@@ -13,7 +13,7 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 )
 
-// GetMcpSquareTypeList 获取模板分类列表
+// GetMcpSquareTypeList gets the template category list
 func GetMcpSquareTypeList(c *gin.Context) {
 	resp, err := requestXiaokefu(`kf/ChatWiki/CommonGetMcpTypeList`, nil)
 	if err != nil {
@@ -32,7 +32,7 @@ func GetMcpSquareTypeList(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(respData, nil))
 }
 
-// GetMcpSquareList 获取模板列表
+// GetMcpSquareList gets the template list
 func GetMcpSquareList(c *gin.Context) {
 	body := make(map[string]any)
 

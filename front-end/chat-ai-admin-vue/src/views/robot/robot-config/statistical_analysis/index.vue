@@ -34,8 +34,8 @@
   <div class="user-model-page">
     <!-- <div class="page-title">统计分析</div> -->
     <a-tabs class="tab-wrapper" @change="changeMenu" v-model:activeKey="activeKey">
-      <a-tab-pane :key="1" tab="基础统计"></a-tab-pane>
-      <a-tab-pane :key="3" tab="命中统计"></a-tab-pane>
+      <a-tab-pane :key="1" :tab="t('tab_basic_statistics')"></a-tab-pane>
+      <a-tab-pane :key="3" :tab="t('tab_hit_statistics')"></a-tab-pane>
     </a-tabs>
     <div class="list-wrapper">
       <StatisticalAnalysis v-if="activeKey === 1" />
@@ -48,7 +48,10 @@
 import StatisticalAnalysis from './statistical_analysis.vue'
 import HitStatics from './hit-statics.vue'
 import { ref } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 const activeLocalKey = '/robot/config/statistical_analysis/activeKey'
+
+const { t } = useI18n('views.robot.robot-config.statistical-analysis.index')
 
 const activeKey = ref(+localStorage.getItem(activeLocalKey) || 1)
 

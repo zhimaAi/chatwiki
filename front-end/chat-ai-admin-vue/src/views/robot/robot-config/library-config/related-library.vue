@@ -1,7 +1,7 @@
 <template>
   <div class="main-content-block">
     <div class="btn-block">
-      <a-button type="primary" @click="handleOpenSelectLibraryAlert">关联知识库</a-button>
+      <a-button type="primary" @click="handleOpenSelectLibraryAlert">{{ t('btn_relate_library') }}</a-button>
     </div>
     <div class="list-box">
       <div class="list-item-wrapper" v-for="item in selectedLibraryRows" :key="item.id">
@@ -17,13 +17,13 @@
             <div class="library-info-content">
               <div class="library-title">{{ item.library_name }}</div>
               <div class="library-type">
-                <span class="type-tag" v-if="item.type == 0">普通知识库</span>
-                <span class="type-tag" v-if="item.type == 1">对外知识库</span>
-                <span class="type-tag" v-if="item.type == 2">问答知识库</span>
-                <span class="type-tag" v-if="item.type == 3">公众号知识库</span>
+                <span class="type-tag" v-if="item.type == 0">{{ t('label_normal_library') }}</span>
+                <span class="type-tag" v-if="item.type == 1">{{ t('label_external_library') }}</span>
+                <span class="type-tag" v-if="item.type == 2">{{ t('label_qa_library') }}</span>
+                <span class="type-tag" v-if="item.type == 3">{{ t('label_official_account_library') }}</span>
                 <a-tooltip v-if="neo4j_status">
                   <template #title
-                    >{{ item.graph_switch == 0 ? '未' : '已' }}开启知识图谱生成</template
+                    >{{ item.graph_switch == 0 ? t('msg_graph_disabled') : t('msg_graph_enabled') }}</template
                   >
                   <span class="type-tag graph-tag" :class="{ 'gray-tag': item.graph_switch == 0 }"
                     >Graph</span
@@ -38,9 +38,9 @@
 
           <div class="item-footer">
             <div class="library-size">
-              <span class="text-item">文档：{{ item.file_total }}</span>
-              <span class="text-item">大小：{{ item.file_size_str }}</span>
-              <span class="text-item">关联应用：{{ item.robot_nums || 0 }}</span>
+              <span class="text-item">{{ t('label_docs') }}：{{ item.file_total }}</span>
+              <span class="text-item">{{ t('label_size') }}：{{ item.file_size_str }}</span>
+              <span class="text-item">{{ t('label_related_apps') }}：{{ item.robot_nums || 0 }}</span>
             </div>
 
             <div class="action-box" @click.stop v-if="item.id != robotInfo.default_library_id">
@@ -51,11 +51,11 @@
                 <template #overlay>
                   <a-menu>
                     <a-menu-item v-if="item.type != 1">
-                      <a @click.stop="handleSetDefaultLibrary(item)">设为默认</a>
+                      <a @click.stop="handleSetDefaultLibrary(item)">{{ t('btn_set_default') }}</a>
                     </a-menu-item>
                     <a-menu-item>
                       <a class="delete-text-color" @click.stop="handleRemoveCheckedLibrary(item)"
-                        >取消关联</a
+                        >{{ t('btn_cancel_relation') }}</a
                       >
                     </a-menu-item>
                   </a-menu>
@@ -71,6 +71,7 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { getLibraryList } from '@/api/library/index'
 import { relationLibrary } from '@/api/robot/index'
 import { storeToRefs } from 'pinia'
@@ -86,6 +87,8 @@ import { formatFileSize } from '@/utils/index'
 import { useRobotStore } from '@/stores/modules/robot'
 import { message } from 'ant-design-vue'
 import {getSpecifyAbilityConfig} from "@/api/explore/index.js";
+
+const { t } = useI18n('views.robot.robot-config.library-config.related-library')
 const neo4j_status = computed(() => {
   return companyStore.companyInfo?.neo4j_status == 'true'
 })
@@ -134,7 +137,7 @@ const handleRemoveCheckedLibrary = (item) => {
 
 const handleSetDefaultLibrary = (item) => {
   Modal.confirm({
-    title: `确定将${item.library_name}设为默认知识库吗？`,
+    title: t('msg_confirm_set_default', { library_name: item.library_name }),
     // icon: createVNode(ExclamationCircleOutlined),
     icon: null,
     content: createVNode(
@@ -142,7 +145,7 @@ const handleSetDefaultLibrary = (item) => {
       {
         style: 'color:red;'
       },
-      '一个机器人只能有一个默认知识库'
+      t('msg_one_default_library')
     ),
     onOk() {
       formState.default_library_id = item.id
@@ -171,7 +174,7 @@ const onSave = (default_library_id) => {
     default_library_id: default_library_id || null,
     id: query.id
   }).then((res) => {
-    message.success('操作成功')
+    message.success(t('msg_operation_success'))
     getRobot(query.id)
   })
 }

@@ -1,0 +1,7 @@
+{
+  "tip_title": "统计用户在与机器人对话中，没有从知识库中检索出知识的用户问题",
+  "tip_content": "1. 如果您认为知识库里面有对应的知识，只是没有检索出来，可能是您设置的召回阈值过高或者top K较少。您调整机器人的召回设置来提升召回率。",
+  "column_unknown_question": "未知问题",
+  "column_trigger_date": "触发日期",
+  "column_trigger_count": "当日出现次数"
+}

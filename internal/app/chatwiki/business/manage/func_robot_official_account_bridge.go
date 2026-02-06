@@ -140,22 +140,22 @@ func BridgeCreateSendTask(adminUserId int, lang string, req *BridgeCreateSendTas
 	id := req.TaskId
 
 	if req.TaskId != 0 {
-		//查询任务信息
+		// Query task info
 		taskData, _ := model.Where(`id`, cast.ToString(req.TaskId)).Find()
 
 		if cast.ToInt(taskData["id"]) == 0 {
 			return nil, -1, errors.New(i18n.Show(lang, `no_data`))
 		}
 
-		//不是待发送的状态，不允许编辑
+		// If not in wait status, editing is not allowed
 		if cast.ToInt(taskData["send_status"]) != define.BatchSendStatusWait {
 			return nil, -1, errors.New(i18n.Show(lang, `task_not_wait`))
 		}
 
 		model.Where(`id`, cast.ToString(req.TaskId)).Update(insertData)
 	} else {
-		//查询默认规则
-		if req.CommentRuleId == 0 { //没有指定生效规则，查询默认规则
+		// Query default rule
+		if req.CommentRuleId == 0 { // If no rule specified, query default rule
 			ruleInfo, _ := msql.Model(`wechat_official_account_comment_rule`, define.Postgres).Where("admin_user_id", cast.ToString(adminUserId)).Where("is_default", "1").Find()
 			insertData["comment_rule_id"] = cast.ToInt(ruleInfo["id"])
 		}
@@ -170,7 +170,7 @@ func BridgeCreateSendTask(adminUserId int, lang string, req *BridgeCreateSendTas
 		id = int(insert_id)
 	}
 
-	//任务开启状态 创建群发定时任务
+	// If task is enabled, create batch send scheduled task
 	if req.OpenStatus == 1 {
 		BridgeAddDelayTask(adminUserId, int(id), req.SendTime)
 	}
@@ -179,7 +179,7 @@ func BridgeCreateSendTask(adminUserId int, lang string, req *BridgeCreateSendTas
 }
 
 func BridgeAddDelayTask(adminUserId, tasId int, sendTime int64) {
-	//默认延迟10秒执行，如果发送时间，超过当前时间，计算一下延迟执行时间
+	// Default delay 5 seconds, if send time exceeds current time, calculate delay execution time
 	delayTime := int64(5)
 	if sendTime > time.Now().Unix() {
 		delayTime = sendTime - time.Now().Unix()
@@ -429,19 +429,19 @@ func getOfficialAppClient(access_key string) (*officialAccount.OfficialAccount, 
 }
 
 type BridgeDeleteCommentRule struct {
-	Type      []int    `json:"type"`      //1:触发敏感词，2：AI检测
-	Keywords  []string `json:"keywords"`  //敏感词列表
-	Condition int      `json:"condition"` //条件，1：全部满足，2：满足其中一个
-	Priority  int      `json:"priority"`  //优先级，1：触发敏感词，2：AI检测
-	Prompt    string   `json:"prompt"`    //AI 检测提示词
+	Type      []int    `json:"type"`      //1: trigger sensitive word, 2: AI detection
+	Keywords  []string `json:"keywords"`  //Sensitive word list
+	Condition int      `json:"condition"` //Condition, 1: all met, 2: one met
+	Priority  int      `json:"priority"`  //Priority, 1: trigger sensitive word, 2: AI detection
+	Prompt    string   `json:"prompt"`    //AI detection prompt
 }
 type BridgeReplyCommentRule struct {
-	CheckReplyPrompt string `json:"check_reply_prompt"` //判断是否回复提示词
-	ReplyType        int    `json:"reply_type"`         //回复类型。1：指定内容，2：AI生成回复
-	ReplyPrompt      string `json:"reply_prompt"`       //回复内容或者回复提示词
+	CheckReplyPrompt string `json:"check_reply_prompt"` //Whether to reply prompt
+	ReplyType        int    `json:"reply_type"`         //Reply type. 1: specified content, 2: AI generated reply
+	ReplyPrompt      string `json:"reply_prompt"`       //Reply content or reply prompt
 }
 type BridgeElectCommentRule struct {
-	Prompt string `json:"prompt"` //提示词
+	Prompt string `json:"prompt"` //Prompt
 }
 
 type BridgeSaveCommentRuleReq struct {
@@ -475,7 +475,7 @@ func BridgeSaveCommentRule(adminUserId int, lang string, req *BridgeSaveCommentR
 	}
 	m := msql.Model(`wechat_official_account_comment_rule`, define.Postgres)
 
-	//如果创建默认规则，验证一下是否存在重复的默认规则
+	// If creating default rule, check if duplicate default rule exists
 	if req.IsDefault == 1 {
 		m.Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`is_default`, cast.ToString(req.IsDefault))
 
@@ -483,16 +483,16 @@ func BridgeSaveCommentRule(adminUserId int, lang string, req *BridgeSaveCommentR
 			m.Where(`id`, "!=", cast.ToString(req.Id))
 		}
 		ruleList, _ := m.Select()
-		//新建场景，当前账户下有默认规则，退出
+		// In create scenario, if default rule exists for current account, exit
 		if len(ruleList) != 0 {
 			return nil, -1, errors.New(i18n.Show(lang, `default_comment_rule_already_exists`))
 		}
 
-		//默认规则，默认开启
+		// Default rule, enabled by default
 		insertData["switch"] = 1
 	}
 
-	//编辑场景
+	// In edit scenario
 	if req.Id != 0 {
 		_, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`id`, cast.ToString(req.Id)).Update(insertData)
 		if err != nil {
@@ -558,7 +558,7 @@ func BridgeGetCommentRuleList(adminUserId int, lang string, req *BridgeGetCommen
 			tempItem[k] = v
 		}
 
-		//查询规则关联群发任务
+		// Query rule associated batch send tasks
 		tempItem["task_info"], _ = msql.Model(`wechat_official_account_batch_send_task`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`comment_rule_id`, cast.ToString(tempItem["id"])).Field("id,task_name").Select()
 		formatedList = append(formatedList, tempItem)
 	}

@@ -1,0 +1,21 @@
+{
+  "title_config_dingding": "配置钉钉机器人",
+  "btn_cancel": "取 消",
+  "btn_save_next": "保存并进入下一步",
+  "btn_config_completed": "已完成配置",
+  "tip_config_dingding": "登录钉钉开放后台，按照文档完成配置井发布应用 <a href=\"https://open.dingtalk.com/\" target=\"_blank\">登录后台</a>，<a href=\"https://www.yuque.com/zhimaxiaoshiwangluo/pggco1/cou9iaitt0v2pe5v?singleDoc#\" target=\"_blank\">如何配置？</a>\n应用添加完成后，复制Client ID 和API Client Secret填写到以下配置中",
+  "label_robot_avatar_name": "机器人头像/名称",
+  "ph_enter_robot_name": "请输入您的机器人名称",
+  "label_client_id": "Client ID",
+  "ph_enter_client_id": "请输入您的Client ID",
+  "label_client_secret": "Client Secret",
+  "ph_enter_client_secret": "请输入您的Client Secret",
+  "tip_copy_http_url": "复制以下http地址，填写钉钉应用详情>应用能力>机器人配置中的消息接收模式-选择HTTP模式的消息接收地址",
+  "btn_copy": "复制",
+  "msg_save_success": "保存成功",
+  "msg_copy_success": "复制成功",
+  "rule_required_robot_name": "请输入您的机器人名称",
+  "rule_required_avatar": "请上传机器人头像",
+  "rule_required_app_id": "请输入您的AppId",
+  "rule_required_api_secret": "请输入您的Api Secret"
+}

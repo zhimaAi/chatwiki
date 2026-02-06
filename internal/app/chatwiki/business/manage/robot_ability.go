@@ -40,45 +40,45 @@ type SaveRobotAbilityAiReplyStatusReq struct {
 	AiReplyStatus int    `form:"ai_reply_status" json:"ai_reply_status"`
 }
 
-// SaveRobotAbility 保存机器人功能开关状态
+// SaveRobotAbility saves robot ability switch status
 func SaveRobotAbility(c *gin.Context) {
 	var (
 		err error
 		req SaveRobotAbilityReq
 	)
 
-	// 获取参数
+	// Get parameters
 	if err = c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 检查开关状态参数是否合法 (0:关闭, 1:开启)
+	// Check if switch status parameter is valid (0: off, 1: on)
 	if req.SwitchStatus != define.SwitchOff && req.SwitchStatus != define.SwitchOn {
 		common.FmtError(c, `param_invalid`, `switch_status`)
 		return
 	}
 
-	// 检查固定菜单参数是否合法 (0:关闭, 1:开启)
+	// Check if fixed menu parameter is valid (0: off, 1: on)
 	if req.FixedMenu != define.SwitchOff && req.FixedMenu != define.SwitchOn {
 		common.FmtError(c, `param_invalid`, `fixed_menu`)
 		return
 	}
 
-	// 检查AI回复参数是否合法 (0:关闭, 1:开启)
+	// Check if AI reply parameter is valid (0: off, 1: on)
 	if req.AiReplyStatus != define.SwitchOff && req.AiReplyStatus != define.SwitchOn {
 		common.FmtError(c, `param_invalid`, `ai_reply_status`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	robotInfo, err := msql.Model(`chat_ai_robot`, define.Postgres).
 		Where("id", cast.ToString(req.RobotId)).
 		Where("admin_user_id", cast.ToString(adminUserId)).
@@ -94,7 +94,7 @@ func SaveRobotAbility(c *gin.Context) {
 		return
 	}
 
-	// 保存机器人功能开关状态
+	// Save robot ability switch status
 	err = common.SaveRobotAbility(adminUserId, req.RobotId, req.AbilityType, req.SwitchStatus, req.FixedMenu, req.AiReplyStatus)
 	if err != nil {
 		logs.Error("SaveRobotAbility error: %s", err.Error())
@@ -105,38 +105,38 @@ func SaveRobotAbility(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-// SaveRobotAbilitySwitchStatus 保存机器人功能开关状态
+// SaveRobotAbilitySwitchStatus saves robot ability switch status
 func SaveRobotAbilitySwitchStatus(c *gin.Context) {
 	var (
 		err error
 		req SaveRobotAbilitySwitchStatusReq
 	)
 
-	// 获取参数
+	// Get parameters
 	if err = c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 检查开关状态参数是否合法 (0:关闭, 1:开启)
+	// Check if switch status parameter is valid (0: off, 1: on)
 	if req.SwitchStatus != define.SwitchOff && req.SwitchStatus != define.SwitchOn {
 		common.FmtError(c, `param_invalid`, `switch_status`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, req.RobotId, adminUserId) {
 		return
 	}
 
-	// 保存机器人功能开关状态
+	// Save robot ability switch status
 	err = common.SaveRobotAbilitySwitchStatus(adminUserId, req.RobotId, req.AbilityType, req.SwitchStatus)
 	if err != nil {
 		logs.Error("SaveRobotAbilitySwitchStatus error: %s", err.Error())
@@ -148,7 +148,7 @@ func SaveRobotAbilitySwitchStatus(c *gin.Context) {
 }
 
 func checkRobotByAdminUserId(c *gin.Context, robotId, adminUserId int) bool {
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	robotInfo, err := msql.Model(`chat_ai_robot`, define.Postgres).
 		Where("id", cast.ToString(robotId)).
 		Where("admin_user_id", cast.ToString(adminUserId)).
@@ -166,38 +166,38 @@ func checkRobotByAdminUserId(c *gin.Context, robotId, adminUserId int) bool {
 	return false
 }
 
-// SaveRobotAbilityFixedMenu 保存机器人功能固定菜单状态
+// SaveRobotAbilityFixedMenu saves robot ability fixed menu status
 func SaveRobotAbilityFixedMenu(c *gin.Context) {
 	var (
 		err error
 		req SaveRobotAbilityFixedMenuReq
 	)
 
-	// 获取参数
+	// Get parameters
 	if err = c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 检查固定菜单参数是否合法 (0:关闭, 1:开启)
+	// Check if fixed menu parameter is valid (0: off, 1: on)
 	if req.FixedMenu != define.SwitchOff && req.FixedMenu != define.SwitchOn {
 		common.FmtError(c, `param_invalid`, `fixed_menu`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, req.RobotId, adminUserId) {
 		return
 	}
 
-	// 保存机器人功能固定菜单状态
+	// Save robot ability fixed menu status
 	err = common.SaveRobotAbilityFixedMenu(adminUserId, req.RobotId, req.AbilityType, req.FixedMenu)
 	if err != nil {
 		logs.Error("SaveRobotAbilityFixedMenu error: %s", err.Error())
@@ -208,38 +208,38 @@ func SaveRobotAbilityFixedMenu(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-// SaveRobotAbilityAiReplyStatus 保存机器人功能AI回复状态
+// SaveRobotAbilityAiReplyStatus saves robot ability AI reply status
 func SaveRobotAbilityAiReplyStatus(c *gin.Context) {
 	var (
 		err error
 		req SaveRobotAbilityAiReplyStatusReq
 	)
 
-	// 获取参数
+	// Get parameters
 	if err = c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 检查AI回复参数是否合法 (0:关闭, 1:开启)
+	// Check if AI reply parameter is valid (0: off, 1: on)
 	if req.AiReplyStatus != define.SwitchOff && req.AiReplyStatus != define.SwitchOn {
 		common.FmtError(c, `param_invalid`, `ai_reply_status`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, req.RobotId, adminUserId) {
 		return
 	}
 
-	// 保存机器人功能AI回复状态
+	// Save robot ability AI reply status
 	err = common.SaveRobotAbilityAiReplyStatus(adminUserId, req.RobotId, req.AbilityType, req.AiReplyStatus)
 	if err != nil {
 		logs.Error("SaveRobotAbilityAiReplyStatus error: %s", err.Error())
@@ -250,28 +250,28 @@ func SaveRobotAbilityAiReplyStatus(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-// GetRobotAbilityList 根据robot_id获取机器人功能列表
+// GetRobotAbilityList gets robot ability list by robot_id
 func GetRobotAbilityList(c *gin.Context) {
-	// 获取参数
+	// Get parameters
 	robotId := cast.ToInt(c.Query("robot_id"))
 	if robotId <= 0 {
 		common.FmtError(c, `param_lack`, `robot_id`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, robotId, adminUserId) {
 		return
 	}
 
-	// 获取机器人功能列表
+	// Get robot ability list
 	list, err := common.GetRobotAbilityList(robotId, adminUserId, ``)
 	if err != nil {
 		logs.Error("GetRobotAbilityByRobotId error: %s", err.Error())
@@ -282,9 +282,9 @@ func GetRobotAbilityList(c *gin.Context) {
 	common.FmtOk(c, list)
 }
 
-// GetRobotSpecifyAbilityConfig 获取指定机器人功能配置
+// GetRobotSpecifyAbilityConfig gets specified robot ability config
 func GetRobotSpecifyAbilityConfig(c *gin.Context) {
-	// 获取参数
+	// Get parameters
 	robotId := cast.ToInt(c.Query("robot_id"))
 	abilityType := cast.ToString(c.Query("ability_type"))
 	if robotId <= 0 {
@@ -296,19 +296,19 @@ func GetRobotSpecifyAbilityConfig(c *gin.Context) {
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, robotId, adminUserId) {
 		return
 	}
 
-	// 获取机器人功能列表
+	// Get robot ability list
 	list, err := common.GetRobotAbilityList(robotId, adminUserId, abilityType)
 	if err != nil {
 		logs.Error("GetRobotAbilityByRobotId error: %s", err.Error())

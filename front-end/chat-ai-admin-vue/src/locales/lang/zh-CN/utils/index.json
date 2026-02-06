@@ -1,0 +1,10 @@
+{
+  "label_today": "今天",
+  "label_yesterday": "昨天",
+  "label_this_week": "本周",
+  "label_this_month": "本月",
+  "label_this_year": "本年",
+  "label_last_7_days": "近7天",
+  "label_last_30_days": "近30天",
+  "label_last_90_days": "近90天"
+}

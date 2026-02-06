@@ -1,0 +1,1 @@
+{"desc_immediately_reply": "Trigger this node to immediately reply with a fixed message", "label_output": "Output", "label_message_content": "Message Content", "ph_input_message_content": "Enter message content, type \"/\" to insert variables"}

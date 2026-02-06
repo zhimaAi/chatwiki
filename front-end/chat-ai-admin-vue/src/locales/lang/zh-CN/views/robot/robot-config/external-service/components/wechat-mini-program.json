@@ -1,0 +1,10 @@
+{
+  "btn_mini_program_reply_settings": "小程序回复设置",
+  "label_bind_wechat_mini_program": "绑定微信小程序",
+  "title_confirm_remove": "确定移除{app_name}吗?",
+  "msg_remove_warning": "移除后，机器人无法继续回复用户消息。",
+  "btn_confirm": "确 定",
+  "btn_cancel": "取消",
+  "msg_delete_success": "删除成功",
+  "msg_refresh_success": "刷新成功"
+}

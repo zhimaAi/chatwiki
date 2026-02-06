@@ -1,0 +1,9 @@
+{
+  "label_retrieving_knowledge_base": "Retrieving knowledge base...",
+  "label_retrieved_knowledge_base_docs": "Retrieved {count} knowledge base documents",
+  "label_thinking": "Thinking deeply...",
+  "label_thinking_completed": "Deep thinking completed",
+  "msg_disable_reasoning_tooltip": "Disable the reasoning process switch in application settings to stop displaying the reasoning process",
+  "btn_prompt_log": "Prompt Log",
+  "library_featured": "Featured"
+}

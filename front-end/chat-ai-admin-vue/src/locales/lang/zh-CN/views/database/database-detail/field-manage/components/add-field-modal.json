@@ -1,0 +1,23 @@
+{
+  "modal_title_add": "添加字段",
+  "modal_title_edit": "编辑字段",
+  "label_name": "字段名称",
+  "label_name_tooltip": "定义数据表的表头，可以在对应表头下存储相关数据。",
+  "ph_name": "请输入字段名称",
+  "label_description": "字段描述",
+  "label_description_tooltip": "表头字段的说明，帮助用户或大模型理解表头字段",
+  "ph_description": "请输入字段描述",
+  "label_type": "数据类型",
+  "label_type_tooltip": "选择存储字段对应的数据类型",
+  "ph_type": "请选择数据类型",
+  "label_required": "是否必要",
+  "label_required_tooltip_required": "必要字段：在保存一行数据时，必须提供对应字段信息，否则无法保存该行数据",
+  "label_required_tooltip_optional": "非必要字段：缺失该字段信息时，一行数据仍可被保存在表中",
+  "switch_on": "开",
+  "switch_off": "关",
+  "validator_name_pattern": "必须以英文字母开头，只能包含小写字母、数字、下划线",
+  "validator_description_required": "请输入字段描述",
+  "validator_type_required": "请选择数据类型",
+  "msg_add_success": "新增成功",
+  "msg_edit_success": "修改成功"
+}

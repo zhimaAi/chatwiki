@@ -1,0 +1,12 @@
+{
+  "filter_result_placeholder": "处理结果",
+  "search_comment_placeholder": "请输入评论关键词搜索",
+  "column_content_text": "评论内容",
+  "column_result": "处理结果",
+  "column_reply_text": "回复内容",
+  "column_draft_title": "群发/文章",
+  "column_rule_name": "触发规则",
+  "column_rule_detail": "触发规则明细",
+  "column_exec_time": "处理时间"
+}
+

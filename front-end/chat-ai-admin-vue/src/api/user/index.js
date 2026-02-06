@@ -148,3 +148,15 @@ export const saveAliOcr = (data) => {
 export const saveTopNavigate = (data) => {
   return request.post({ url: '/manage/saveTopNavigate', data })
 }
+
+export const saveCookieTip = (data) => {
+  return request.post({ url: '/manage/saveCookieTip', data })
+}
+
+
+export const getCookieTip = (params = {}) => {
+  return request.get({
+    url: '/manage/getCookieTip',
+    params: params
+  })
+}

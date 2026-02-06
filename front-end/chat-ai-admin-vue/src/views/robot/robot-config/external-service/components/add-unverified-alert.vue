@@ -9,10 +9,10 @@
     <div class="form-content-box">
       <div class="left-box">
         <div class="form-body">
-          <div class="model-title">未认证公众号回复设置</div>
+          <div class="model-title">{{ t('unverified_account_reply_settings') }}</div>
           <a-alert
             class="zm-alert-info"
-            message="由于微信接口限制,未认证公众号只能在用户提问后立即回复答案。若答案生成较慢,系统将提示用户手动获取回复"
+            :message="t('api_limit_notice')"
             type="info"
           />
           <a-form
@@ -22,39 +22,39 @@
             :model="formState"
             :rules="formRules"
           >
-            <a-form-item label="手动获取回复提示语" name="wechat_not_verify_hand_get_reply">
+            <a-form-item :label="t('manual_reply_prompt')" name="wechat_not_verify_hand_get_reply">
               <a-textarea
                 v-model:value="formState.wechat_not_verify_hand_get_reply"
-                placeholder="请输入"
+                :placeholder="t('please_input')"
                 :maxLength="100"
                 @blur="handleBlur"
                 :auto-size="{ minRows: 3, maxRows: 3 }"
               />
             </a-form-item>
-            <a-form-item label="手动获取回复蓝字文案" name="wechat_not_verify_hand_get_word">
+            <a-form-item :label="t('manual_reply_text')" name="wechat_not_verify_hand_get_word">
               <a-input
                 :maxLength="100"
                 @blur="handleBlur"
                 v-model:value="formState.wechat_not_verify_hand_get_word"
-                placeholder="请输入"
+                :placeholder="t('please_input')"
               />
             </a-form-item>
             <a-form-item
-              label="内容超500字截断，获取下文蓝字文案"
+              :label="t('continue_reading_text')"
               name="wechat_not_verify_hand_get_next"
             >
               <a-input
                 :maxLength="100"
                 @blur="handleBlur"
                 v-model:value="formState.wechat_not_verify_hand_get_next"
-                placeholder="请输入"
+                :placeholder="t('please_input')"
               />
             </a-form-item>
           </a-form>
         </div>
         <div class="footer-box">
-          <a-button @click="handleCancel">取 消</a-button>
-          <a-button type="primary" @click="handleSave">确 定</a-button>
+          <a-button @click="handleCancel">{{ t('cancel') }}</a-button>
+          <a-button type="primary" @click="handleSave">{{ t('confirm') }}</a-button>
         </div>
       </div>
       <div class="preview-box">
@@ -71,17 +71,19 @@
 import { ref, reactive, toRaw, inject } from 'vue'
 import { setWechatNotVerifyConfig } from '@/api/robot'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
 const emit = defineEmits(['ok'])
 
 const { robotInfo, getRobot } = inject('robotInfo')
+const { t } = useI18n('views.robot.robot-config.external-service.components.add-unverified-alert')
 
 const show = ref(false)
 const formRef = ref()
 
-const wechat_not_verify_hand_get_reply_default = '正在思考中，请稍后点击下方蓝字\r\n获取回复👇👇👇'
-const wechat_not_verify_hand_get_word_default = '👉👉点我获取回复👈👈'
-const wechat_not_verify_hand_get_next_default = '内容较多，点此查看下文'
+const wechat_not_verify_hand_get_reply_default = t('default_prompt')
+const wechat_not_verify_hand_get_word_default = t('default_reply_text')
+const wechat_not_verify_hand_get_next_default = t('default_continue_text')
 
 const formState = reactive({
   id: robotInfo.id,
@@ -104,21 +106,21 @@ const formRules = {
   wechat_not_verify_hand_get_reply: [
     {
       required: true,
-      message: '请输入手动获取回复提示语',
+      message: t('error_prompt'),
       trigger: 'change'
     }
   ],
   wechat_not_verify_hand_get_word: [
     {
       required: true,
-      message: '请输入手动获取回复蓝字文案',
+      message: t('error_reply_text'),
       trigger: 'change'
     }
   ],
   wechat_not_verify_hand_get_next: [
     {
       required: true,
-      message: '请输入内容超500字截断，获取下文蓝字文案',
+      message: t('error_continue_text'),
       trigger: 'change'
     }
   ]
@@ -128,7 +130,7 @@ const submitForm = () => {
   let data = { ...toRaw(formState) }
 
   setWechatNotVerifyConfig(data).then((res) => {
-    message.success('保存成功')
+    message.success(t('save_success'))
     handleCancel()
     getRobot(robotInfo.id)
     emit('ok')

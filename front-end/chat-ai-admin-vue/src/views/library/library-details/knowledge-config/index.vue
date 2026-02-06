@@ -1,8 +1,8 @@
 <template>
   <div class="page-container-box">
     <a-tabs v-model:activeKey="activeKey" @change="handleChangeTabs">
-      <a-tab-pane :key="1" tab="知识库配置"></a-tab-pane>
-      <a-tab-pane v-if="false" :key="2" tab="角色权限"></a-tab-pane>
+      <a-tab-pane :key="1" :tab="t('knowledgeConfig')"></a-tab-pane>
+      <a-tab-pane v-if="false" :key="2" :tab="t('rolePermission')"></a-tab-pane>
     </a-tabs>
     <div class="content-box">
       <KnowledgeConfig v-if="activeKey == 1" />
@@ -16,10 +16,14 @@ import { ref } from 'vue'
 import KnowledgeConfig from '../knowledge-config.vue'
 import rolePermission from './role-permission.vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.library-details.knowledge-config.index')
 const route = useRoute()
 const router = useRouter()
 const query = route.query
 const activeKey = ref(+query.activeKey || 1)
+
 const handleChangeTabs = () => {
   let queryParmas = {
     ...query

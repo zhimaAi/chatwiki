@@ -112,38 +112,35 @@
 </style>
 
 <template>
-  <a-modal width="1000px" v-model:open="show" title="配置钉钉机器人" @cancel="handleCancel">
+  <a-modal width="1000px" v-model:open="show" :title="t('title_config_dingding')" @cancel="handleCancel">
     <template #footer>
-      <a-button key="back" @click="handleCancel" v-if="step === 1">取 消</a-button>
-      <a-button key="submit" type="primary" :loading="loading" @click="handleSave" v-if="step === 1">保存并进入下一步
+      <a-button key="back" @click="handleCancel" v-if="step === 1">{{ t('btn_cancel') }}</a-button>
+      <a-button key="submit" type="primary" :loading="loading" @click="handleSave" v-if="step === 1">{{ t('btn_save_next') }}
       </a-button>
-      <a-button key="submit" type="primary" :loading="loading" @click="handleOk" v-if="step === 2">已完成配置</a-button>
+      <a-button key="submit" type="primary" :loading="loading" @click="handleOk" v-if="step === 2">{{ t('btn_config_completed') }}</a-button>
     </template>
     <div class="add-wechat-app-alert" v-if="step === 1">
       <a-alert class="tip-alert" type="info" show-icon>
-        <template #message>
-          <div>登录钉钉开放后台，按照文档完成配置井发布应用 <a href="https://open.dingtalk.com/" target="_blank">登录后台</a>，<a href="https://www.yuque.com/zhimaxiaoshiwangluo/pggco1/cou9iaitt0v2pe5v?singleDoc#" target="_blank">如何配置？</a></div>
-          <div>应用添加完成后，复制Client ID 和API Client Secret填写到以下配置中</div>
-        </template>
+        <template #message v-html="t('tip_config_dingding')"></template>
       </a-alert>
 
       <div class="alert-body">
         <div class="form-box">
           <a-form ref="formRef" layout="vertical" :model="formState" :rules="formRules">
-            <a-form-item label="机器人头像/名称" name="app_name">
+            <a-form-item :label="t('label_robot_avatar_name')" name="app_name">
               <PageTitleInput
                 :autoUpload="false"
                 v-model:avatar="formState.app_avatar_url"
                 v-model:value.trim="formState.app_name"
-                placeholder="请输入您的机器人名称"
+                :placeholder="t('ph_enter_robot_name')"
                 @changeAvatar="onChangeAvatar"
               />
             </a-form-item>
-            <a-form-item label="Client ID" name="app_id">
-              <a-input v-model:value.trim="formState.app_id" placeholder="请输入您的Client ID"/>
+            <a-form-item :label="t('label_client_id')" name="app_id">
+              <a-input v-model:value.trim="formState.app_id" :placeholder="t('ph_enter_client_id')"/>
             </a-form-item>
-            <a-form-item label="Client Secret" name="app_secret">
-              <a-input v-model:value.trim="formState.app_secret" placeholder="请输入您的Client Secret"/>
+            <a-form-item :label="t('label_client_secret')" name="app_secret">
+              <a-input v-model:value.trim="formState.app_secret" :placeholder="t('ph_enter_client_secret')"/>
             </a-form-item>
           </a-form>
         </div>
@@ -154,13 +151,13 @@
     </div>
     <div class="add-wechat-app-alert" v-if="step === 2">
       <a-alert class="tip-alert"
-               message="复制以下http地址，填写钉钉应用详情>应用能力>机器人配置中的消息接收模式-选择HTTP模式的消息接收地址"
+               :message="t('tip_copy_http_url')"
                type="info"
                show-icon/>
       <div class="config-items">
         <div class="config-item">
           <span class="config-value">{{ step2Info.push_url }}</span>
-          <span class="copy-btn" @click="handleCopy(step2Info.push_url)">复制</span>
+          <span class="copy-btn" @click="handleCopy(step2Info.push_url)">{{ t('btn_copy') }}</span>
         </div>
       </div>
       <div class="config-preview-box">
@@ -175,8 +172,10 @@ import {saveWechatApp} from '@/api/robot'
 import {ref, reactive, computed, toRaw, inject} from 'vue'
 import {copyText} from '@/utils/index'
 import {message} from 'ant-design-vue'
+import {useI18n} from '@/hooks/web/useI18n'
 import PageTitleInput from './page-title-input.vue'
 
+const {t} = useI18n('views.robot.robot-config.external-service.components.add-dingding-alert')
 const emit = defineEmits(['ok'])
 const defaultAvatar = '/upload/default/dingtalk_robot_avatar.png'
 
@@ -202,14 +201,14 @@ const formRules = {
   app_name: [
     {
       required: true,
-      message: '请输入您的机器人名称',
+      message: t('rule_required_robot_name'),
       trigger: 'change'
     },
     {
       trigger: 'change',
       validator: () => {
         if (!formState.app_avatar_url) {
-          return Promise.reject('请上传机器人头像')
+          return Promise.reject(t('rule_required_avatar'))
         } else {
           return Promise.resolve()
         }
@@ -219,14 +218,14 @@ const formRules = {
   app_id: [
     {
       required: true,
-      message: '请输入您的AppId',
+      message: t('rule_required_app_id'),
       trigger: 'change'
     }
   ],
   app_secret: [
     {
       required: true,
-      message: '请输入您的Api Secret',
+      message: t('rule_required_api_secret'),
       trigger: 'change'
     }
   ]
@@ -251,7 +250,7 @@ const submitForm = () => {
   saveWechatApp(data).then((res) => {
     Object.assign(step2Info, res.data)
     step.value = 2
-    message.success('保存成功')
+    message.success(t('msg_save_success'))
 
     emit('ok')
   })
@@ -280,7 +279,7 @@ const handleCancel = () => {
 
 const handleCopy = (text) => {
   copyText(text)
-  message.success('复制成功')
+  message.success(t('msg_copy_success'))
 }
 
 const copyIp = () => {

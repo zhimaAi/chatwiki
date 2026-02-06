@@ -1,16 +1,16 @@
 <template>
   <a-modal
-    title="新增授权码管理员"
+    :title="t('title_add_manager')"
     v-model:open="visible"
     width="669px"
   >
     <template #footer>
-      <a-button type="primary" @click="close">确 定</a-button>
+      <a-button type="primary" @click="close">{{ t('btn_confirm') }}</a-button>
     </template>
     <div class="main">
-      <span>在公众号内回复</span>
+      <span>{{ t('msg_reply_in_account') }}</span>
       <span class="code-box" @click="copy">{{authCode}} <CopyOutlined/></span>
-      <span>对应账号自动设置为管理员，设置码3分钟内有效</span>
+      <span>{{ t('msg_set_admin_tip') }}</span>
     </div>
     <div class="example">
       <img src="@/assets/img/robot/app-charging/example-01.png"/>
@@ -25,6 +25,9 @@ import {message} from 'ant-design-vue';
 import {CopyOutlined} from '@ant-design/icons-vue'
 import {addAuthCodeManager} from "@/api/robot/payment.js";
 import {copyText} from "@/utils/index.js";
+import { useI18n } from '@/hooks/web/useI18n';
+
+const { t } = useI18n('views.robot.robot-config.payment.components.manager-modal');
 
 const props = defineProps({
   robotId: {
@@ -55,7 +58,7 @@ function loadCode() {
 
 function copy() {
   copyText(authCode.value)
-  message.success('复制成功')
+  message.success(t('msg_copy_success'))
 }
 
 defineExpose({
@@ -71,6 +74,7 @@ defineExpose({
   font-size: 14px;
   gap: 4px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 
   .code-box {
     display: flex;

@@ -4,7 +4,7 @@
       <NodeFormHeader
         :title="node.node_name"
         :iconName="node.node_icon_name"
-        desc="支持中间向用户提问问题，支持预置选项提问和开放式问题提问两种方式"
+        :desc="t('desc')"
         @close="handleClose"
       >
       </NodeFormHeader>
@@ -14,7 +14,7 @@
         <a-form ref="formRef" layout="vertical" :model="formState">
           <div class="gray-block">
             <a-flex justify="space-between">
-              <div class="gray-block-title">提问内容</div>
+              <div class="gray-block-title">{{ t('title_question_content') }}</div>
               <div class="btn-hover-wrap" @click="handleOpenFullAtModal">
                 <FullscreenOutlined />
               </div>
@@ -25,7 +25,7 @@
                 :options="valueOptions"
                 :defaultValue="formState.answer_text"
                 ref="atInputRef"
-                placeholder="请输入消息内容，键入“/”插入变量"
+                :placeholder="t('ph_input_message')"
                 input-style="height: 130px"
                 type="textarea"
                 @open="showAtList"
@@ -33,11 +33,11 @@
               />
             </div>
 
-            <a-form-item label="回答类型">
+            <a-form-item :label="t('label_answer_type')">
               <a-radio-group v-model:value="formState.answer_type">
-                <a-radio value="text">直接回答</a-radio>
+                <a-radio value="text">{{ t('opt_direct_answer') }}</a-radio>
                 <a-radio value="menu"
-                  >智能菜单回答
+                  >{{ t('opt_smart_menu') }}
 
                   <a-popover :title="null">
                     <template #content>
@@ -69,7 +69,7 @@
                           :bordered="false"
                           :options="valueOptions"
                           :defaultValue="element.content"
-                          placeholder="请输入消息内容，键入“/”插入变量"
+                          :placeholder="t('ph_input_message')"
                           @open="showAtList"
                           @change="
                             (text, selectedList) => changeMenuValue(text, selectedList, element)
@@ -85,14 +85,14 @@
               </draggable>
               <div>
                 <a-button @click="handleAddMenu()" type="dashed" block
-                  ><PlusOutlined />添加菜单</a-button
+                  ><PlusOutlined />{{ t('btn_add_menu') }}</a-button
                 >
               </div>
             </div>
           </div>
 
           <div class="gray-block mt16">
-            <div class="gray-block-title">输出</div>
+            <div class="gray-block-title">{{ t('title_output') }}</div>
             <div class="options-item">
               <div class="option-label">question</div>
               <div class="option-type">string</div>
@@ -100,11 +100,21 @@
             <div class="options-item">
               <div class="option-label">question_multiple</div>
               <div class="option-type" v-text="'array<object>'"></div>
-              <a-tooltip>
+              <a-tooltip placement="left">
                 <template #title>
-                  <pre>
-                    {{ question_multiple_tip }}
-                  </pre>
+                  <div>{{ t('tip_question_multiple') }}</div>
+              <pre><code>"question_multiple":[
+  {
+    "type":"text",
+    "text":"{{ t('sample_text_content') }}"
+  },{
+    "type":"image_url",
+    "image_url":{
+      "url":"{{ t('sample_image_url') }}"
+    }
+  }
+]
+              </code></pre>
                 </template>
                 <QuestionCircleOutlined />
               </a-tooltip>
@@ -115,7 +125,7 @@
       <FullAtInput
         :options="valueOptions"
         :defaultValue="formState.answer_text"
-        placeholder="请输入消息内容，键入'/'可以插入变量"
+        :placeholder="t('ph_input_message_with_slash')"
         type="textarea"
         @open="showAtList"
         @change="(text, selectedList) => changeValue(text, selectedList)"
@@ -130,6 +140,7 @@
 import { getUuid } from '@/utils/index'
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import { ref, reactive, watch, h, onMounted } from 'vue'
 import {
   CloseCircleOutlined,
@@ -143,6 +154,7 @@ import AtInput from '../../at-input/at-input.vue'
 import FullAtInput from '../../at-input/full-at-input.vue'
 import { message } from 'ant-design-vue'
 
+const { t } = useI18n('views.workflow.components.node-form-drawer.qa-node-form.index')
 const emit = defineEmits(['update-node'])
 const props = defineProps({
   lf: {
@@ -164,18 +176,6 @@ const fullAtInputRef = ref(null)
 
 const valueOptions = ref([])
 
-const question_multiple_tip = `
-用户输入的文字和图片消息示例如下：
-"question_multiple": [
-{
-"type": "text",
-"text": "这是什么",
-},{
-"type": "image",
-"image_url": "https://url"
-}]"
-`
-
 function getOptions() {
   const nodeModel = props.lf.getNodeModelById(props.nodeId)
   if (nodeModel) {
@@ -194,7 +194,7 @@ const showAtList = (val) => {
 const defaultMenu = ref({
   menu_type: '-1',
   serial_no: '-1',
-  content: '其他未点击智能菜单的情况（用户不可见）'
+  content: t('default_other_case')
 })
 
 const formState = reactive({
@@ -319,7 +319,7 @@ const onDragEnd = () => {}
 
 const onDelete = (index) => {
   if (formState.menu_content.length <= 1) {
-    return message.warning('最少添加1条菜单')
+    return message.warning(t('msg_min_menu_required'))
   }
   formState.menu_content.splice(index, 1)
 }
@@ -389,6 +389,7 @@ onMounted(() => {
     margin-bottom: 4px;
     .input-box {
       flex: 1;
+      overflow: hidden;
     }
     .drag-btn {
       cursor: grab;

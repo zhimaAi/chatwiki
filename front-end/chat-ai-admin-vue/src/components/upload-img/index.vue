@@ -23,7 +23,7 @@
           </div>
         </div>
         <p class="upload-text" :class="{ 'center-content': imageUrl.length == 0 }">
-          支持点击空白处、拖拽、粘贴图片，上传图片不得超过2M，仅支持png、jpg、jpeg格式
+          {{ t('msg_upload_hint') }}
         </p>
       </a-upload-dragger>
     </div>
@@ -36,6 +36,9 @@ import { InboxOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons-vu
 import { message } from 'ant-design-vue'
 import { uploadFile } from '@/api/app'
 import { api as viewerApi } from 'v-viewer'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('components.upload-img.index')
 const emit = defineEmits(['update:value'])
 const fileList = ref([])
 const imageUrl = ref([])
@@ -60,16 +63,16 @@ const beforeUpload = (file) => {
   const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
 
   if (!isJpgOrPng) {
-    message.error('只支持JPG、PNG格式的图片')
+    message.error(t('msg_invalid_format'))
     return false
   }
 
   const isLt2M = file.size / 1024 < 1024 * 2
   if (imageUrl.value.length >= maxUploadNum) {
-    return message.error('最多上传三张图片')
+    return message.error(t('msg_max_limit'))
   }
   if (!isLt2M) {
-    message.error('图片大小不能超过2M')
+    message.error(t('msg_size_limit'))
     return false
   }
   uploadFile({
@@ -93,10 +96,10 @@ const del = (index) => {
 let isUploading = false
 const pasteUpload = async (e) => {
   if (imageUrl.value.length >= maxUploadNum) {
-    return message.error('最多上传三张图片')
+    return message.error(t('msg_max_limit'))
   }
   if (!(e.clipboardData && e.clipboardData.items)) {
-    message.error('当前浏览器不支持粘贴上传操作！')
+    message.error(t('msg_paste_not_supported'))
     return
   }
   if (isUploading) {
@@ -127,14 +130,14 @@ const pasteUpload = async (e) => {
           emit('update:value', imageUrl.value)
         })
       } else {
-        error('请粘贴正确图片')
+        message.error(t('msg_paste_invalid_image'))
         isUploading = false
         inputVal.value = ''
       }
     }
   } catch (e) {
     isUploading = false
-    message.error('上传失败')
+    message.error(t('msg_upload_failed'))
   }
 }
 

@@ -29,24 +29,24 @@
                 <div class="info">
                   <div class="tit zm-line1">{{ item.name }}</div>
                   <div class="btns">
-                    <a-tag v-if="item.is_default" color="#f50">默认</a-tag>
-                    <a v-else @click="setConfigDef(item, key)">设为默认</a>
-                    <a @click="delConfig(item, key)">删除</a>
+                    <a-tag v-if="item.is_default" color="#f50">{{ t('label_default') }}</a-tag>
+                    <a v-else @click="setConfigDef(item, key)">{{ t('btn_set_as_default') }}</a>
+                    <a @click="delConfig(item, key)">{{ t('btn_delete') }}</a>
                   </div>
                 </div>
               </div>
             </div>
           </template>
-          <a-button type="primary" :icon="h(PlusOutlined)" class="auth-btn" @click="onAuth">已授权{{ configLen }}个凭证</a-button>
+          <a-button type="primary" :icon="h(PlusOutlined)" class="auth-btn" @click="onAuth">{{ t('msg_authorized_credentials', { count: configLen }) }}</a-button>
         </a-popover>
-        <a-button v-else type="primary" class="auth-btn" @click="onAuth">立即授权</a-button>
+        <a-button v-else type="primary" class="auth-btn" @click="onAuth">{{ t('btn_authorize_now') }}</a-button>
       </div>
       <div class="body-box">
         <div v-if="!configLen" class="no-auth-box">
           <img src="@/assets/no-permission.png"/>
-          <div class="tit">需要授权</div>
-          <div class="desc">授权后，配置将显示在这里</div>
-          <a class="link" @click="onAuth">立即授权</a>
+          <div class="tit">{{ t('title_authorization_required') }}</div>
+          <div class="desc">{{ t('msg_config_after_auth') }}</div>
+          <a class="link" @click="onAuth">{{ t('btn_authorize_now') }}</a>
         </div>
         <div v-else class="action-box">
           <div v-for="(item, i) in actionData" :key="i" class="action-item">
@@ -65,13 +65,13 @@
                       <div class="field">
                         <span class="name">{{ key }}</span>
                         <span class="type">{{ field.type }}</span>
-                        <span v-if="field.required" class="required">必填</span>
+                        <span v-if="field.required" class="required">{{ t('label_required') }}</span>
                       </div>
                       <div class="desc">{{ field.desc }}</div>
                     </div>
                   </div>
                 </template>
-                <a>参数</a>
+                <a>{{ t('label_parameters') }}</a>
               </a-popover>
             </div>
           </div>
@@ -89,6 +89,9 @@
   import {jsonDecode} from "@/utils/index.js";
   import {getPluginConfig, setPluginConfig} from "@/api/plugins/index.js";
   import PluginConfigModal from "./plugin-config-modal.vue";
+  import { useI18n } from '@/hooks/web/useI18n';
+
+  const { t } = useI18n('views.explore.plugins.components.plugin-config-box');
   
   const open = ref(false)
   const detail = ref({})
@@ -143,8 +146,8 @@
   
   function delConfig(item, key) {
     Modal.confirm({
-      title: '提示',
-      content: '确认删除该配置？',
+      title: t('title_tip'),
+      content: t('msg_confirm_delete_config'),
       onOk: () => {
         delete configData.value[key]
         setPluginConfig({
@@ -152,7 +155,7 @@
           data: JSON.stringify(configData.value)
         }).then(() => {
           loadConfig()
-          message.success('已删除')
+          message.success(t('msg_deleted'))
         })
       }
     })

@@ -1,0 +1,6 @@
+{
+  "label_upload_photo": "Upload Photo",
+  "msg_only_jpg_png": "Only JPG and PNG formats are supported",
+  "msg_image_size_limit": "Image size cannot exceed 2MB",
+  "msg_upload_failed": "Upload failed"
+}

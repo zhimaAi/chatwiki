@@ -14,7 +14,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// GetDepartmentList 获取部门列表
+// GetDepartmentList gets the department list
 func GetDepartmentList(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
@@ -44,10 +44,10 @@ func GetAllDepartment(c *gin.Context) {
 		return
 	}
 
-	// 构建查询条件
+	//Build query conditions
 	m := msql.Model(`department`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(userId))
-	// 获取所有部门数据
+	//Get all department data
 	list, err := m.Order(`id desc`).Select()
 	if err != nil {
 		logs.Error(err.Error())
@@ -57,14 +57,14 @@ func GetAllDepartment(c *gin.Context) {
 	common.FmtOk(c, list)
 }
 
-// SaveDepartment 保存部门信息
+// SaveDepartment saves department info
 func SaveDepartment(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
 		return
 	}
 	var err error
-	// 获取参数
+	//Get params
 	id := cast.ToInt64(c.PostForm(`id`))
 	pid := cast.ToInt64(c.PostForm(`pid`))
 	departmentName := strings.TrimSpace(c.PostForm(`department_name`))
@@ -90,7 +90,7 @@ func SaveDepartment(c *gin.Context) {
 	common.FmtOk(c, map[string]any{`id`: id})
 }
 
-// DeleteDepartment 删除部门
+// DeleteDepartment deletes a department
 func DeleteDepartment(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
@@ -191,7 +191,7 @@ func DeleteDepartment(c *gin.Context) {
 		common.FmtError(c, `sys_err`, err.Error())
 		return
 	}
-	// 删除部门
+	//Delete departments
 	_, err = m.Where(`id`, `in`, strings.Join(delIds, `,`)).Delete()
 	if err != nil {
 		m.Rollback()
@@ -203,14 +203,14 @@ func DeleteDepartment(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-// BatchUpdateUserDepartment 批量修改用户部门
+// BatchUpdateUserDepartment batch-updates user departments
 func BatchUpdateUserDepartment(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
 
-	// 获取参数
+	//Get params
 	departmentIds := strings.TrimSpace(c.PostForm("department_ids"))
 	userIds := strings.TrimSpace(c.PostForm("user_ids"))
 	if len(departmentIds) <= 0 || len(userIds) == 0 {
@@ -218,7 +218,7 @@ func BatchUpdateUserDepartment(c *gin.Context) {
 		return
 	}
 
-	// 检查部门是否存在
+	//Validate that departments exist
 	departmentInfo, err := msql.Model("department", define.Postgres).
 		Where("id", `in`, departmentIds).
 		Where("admin_user_id", cast.ToString(adminUserId)).

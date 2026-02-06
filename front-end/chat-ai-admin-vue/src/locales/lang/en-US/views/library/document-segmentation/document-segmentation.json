@@ -1,0 +1,22 @@
+{
+  "default_ai_chunk_prompt": "You are an article segmentation assistant. Segment articles based on semantic meaning, ensuring each segment expresses a complete semantic unit. Each segment should be around 500 characters, with a maximum of 1000 characters. Please strictly follow the article content for segmentation without modifying the content. Output the segmented content after completion.",
+  "breadcrumb_knowledge_base": "Knowledge Management",
+  "breadcrumb_knowledge_base_suffix": "Knowledge Base",
+  "breadcrumb_segmentation_setting": "Segmentation Settings",
+  "page_title": "Document Segmentation & Cleaning",
+  "segmentation_preview": "Segmentation Preview",
+  "fragment_total": "Total {total} segments",
+  "data_processing": "Processing data...",
+  "alert_reminder": "Reminder",
+  "alert_content_changed": "Document fragments have been edited. Re-fetching document fragments will lose the currently modified fragment content. Are you sure you want to re-fetch?",
+  "alert_confirm": "Confirm",
+  "alert_cancel": "Cancel",
+  "alert_parse_slow": "Document parsing is slow, please try again later",
+  "alert_segmentation_failed": "Segmentation Failed",
+  "alert_model_failed": "Model call failed",
+  "alert_model_failed_reason": "Model call failed, reason: {reason}",
+  "alert_delete_fragment": "Are you sure you want to delete this fragment?",
+  "alert_exit_confirm": "Are you sure you want to exit?",
+  "message_save_success": "Saved successfully",
+  "message_request_exception": "Request exception, stopping polling"
+}

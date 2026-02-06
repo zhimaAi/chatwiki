@@ -1,0 +1,10 @@
+{
+  "title_rename": "重命名",
+  "action_rename": "重命名",
+  "action_delete": "删除",
+  "ph_input": "请输入",
+  "msg_input_new_name": "请输入新的名称",
+  "msg_update_success": "修改成功",
+  "title_delete_confirm": "删除确认",
+  "msg_confirm_delete": "确认删除该记录"
+}

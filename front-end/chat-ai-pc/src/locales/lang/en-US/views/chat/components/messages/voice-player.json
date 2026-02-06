@@ -1,0 +1,9 @@
+{
+  "status_loading": "Loading",
+  "status_playing": "Playing",
+  "hint_click_to_pause": "(Click to pause)",
+  "label_voice_message": "Voice message",
+  "hint_click_to_play": "(Click to play)",
+  "msg_play_failed": "Play failed",
+  "msg_audio_play_error": "Audio play error"
+}

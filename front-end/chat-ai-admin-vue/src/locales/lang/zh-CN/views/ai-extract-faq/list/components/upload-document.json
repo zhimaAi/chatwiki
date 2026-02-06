@@ -1,0 +1,18 @@
+{
+  "modal_title": "上传文档",
+  "faq_files_label": "请选择文件",
+  "chunk_model_label": "提取模型",
+  "chunk_model_placeholder": "请选择AI大模型",
+  "chunk_type_label": "分块方式",
+  "chunk_type_by_length": "按长度",
+  "chunk_type_by_separator": "按分隔符",
+  "chunk_size_placeholder": "请输入",
+  "separator_placeholder": "请选择",
+  "max_length_label": "最大长度",
+  "faq_prompt_label": "FAQ提取提示词",
+  "faq_prompt_placeholder": "请输入",
+  "confirm_validate_msg_model": "请选择提取模型",
+  "confirm_validate_msg_file": "请选择文件",
+  "upload_success_msg": "上传成功",
+  "default_prompt": "根据user角色提供的文本，学习和分析它，并整理学习成果：\n- 提出问题并给出每个问题的答案。\n- 答案需详细完整，尽可能保留原文描述，可以适当扩展答案描述。\n- 答案可以包含普通文字、链接、代码、表格、公示、媒体链接等 Markdown 元素。\n- 最多提出 50 个问题。\n- 生成的问题和答案和源文本语言相同。"
+}

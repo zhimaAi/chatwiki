@@ -1,0 +1,9 @@
+{
+  "label_official_account": "Official Account",
+  "ph_select_official_account": "Select an Official Account",
+  "msg_unsupported_account": "Unverified official accounts and service accounts are not supported",
+  "label_message_user_type": "Recipient User Type",
+  "opt_official_user_openid": "Official Account User OpenID",
+  "opt_wechat_id": "WeChat ID (Up to 100 times daily)",
+  "label_official_account_name": "Official Account Name"
+}

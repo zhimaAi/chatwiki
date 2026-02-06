@@ -1,0 +1,12 @@
+{
+  "title": "AI生成提示词",
+  "alert_message": "根据导入的文档的内容生成AI分段的提示词，支持设置导入文档的字数。",
+  "label_select_model": "选择模型：",
+  "label_content_prefix": "根据文档内容前：",
+  "label_count_suffix": "个字，自动生成提示词",
+  "btn_generate": "开始生成",
+  "tip_generating": "提示词生成中...",
+  "tip_completed": "提示词生成完毕",
+  "btn_use_prompt": "使用该提示词",
+  "message_success": "操作成功"
+}

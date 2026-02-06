@@ -1,0 +1,14 @@
+{
+  "support_unverified_account": "Support unverified official accounts",
+  "view_demo": "View demo",
+  "associate_official_account": "Associate Official Account",
+  "unverified_account_reply_settings": "Unverified Account Reply Settings",
+  "verified_account_reply_settings": "Verified Account Reply Settings",
+  "no_official_account_associated": "No official accounts associated yet",
+  "refresh_success": "Refresh successful",
+  "confirm_remove": "Confirm removal of {app_name}?",
+  "remove_warning": "After removal, the robot will no longer be able to reply to user messages.",
+  "confirm": "Confirm",
+  "cancel": "Cancel",
+  "delete_success": "Deletion successful"
+}

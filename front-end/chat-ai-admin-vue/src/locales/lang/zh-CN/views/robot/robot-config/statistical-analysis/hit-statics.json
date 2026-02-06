@@ -1,0 +1,18 @@
+{
+  "label_channel": "渠道：",
+  "ph_all_channels": "全部渠道",
+  "label_date": "日期：",
+  "btn_reset": "重置",
+  "title_knowledge_hit_rate": "知识命中率",
+  "tooltip_knowledge_hit_rate": "命中知识库消息数 / 机器人回复消息总数",
+  "title_total_messages": "消息总数",
+  "tooltip_total_messages": "仅统计机器人回复对应消息数量，不含人工服务期间消息",
+  "title_knowledge_hit_messages": "知识库命中消息数",
+  "tooltip_knowledge_hit_messages": "机器人回复时，检索到知识库文档，则认为命中消息",
+  "title_knowledge_miss_messages": "知识库未命中消息数",
+  "btn_details": "详情",
+  "series_total_messages": "消息总数",
+  "series_hit_messages": "命中消息",
+  "series_miss_messages": "未命中消息",
+  "series_hit_rate": "命中率"
+}

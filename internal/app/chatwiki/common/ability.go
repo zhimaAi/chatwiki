@@ -19,34 +19,34 @@ const (
 )
 
 type Ability struct {
-	Name                 string      `json:"name" form:"name"`                                     //功能名称
-	ModuleType           string      `json:"module_type" form:"module_type"`                       //模块类型 区分属于哪个模块
-	AbilityType          string      `json:"ability_type" form:"ability_type"`                     //功能类型 全局唯一 长度最大100 一般是 模块key_功能key
-	Introduction         string      `json:"introduction" form:"introduction"`                     //功能简介
-	Details              string      `json:"details" form:"details"`                               //功能详情
-	Icon                 string      `json:"icon" form:"icon"`                                     //功能图标
-	SupportChannelsList  []string    `json:"support_channels_list" form:"support_channels_list"`   //支持的渠道列表
-	ShowSelect           int         `json:"show_select" form:"show_select"`                       //是否显示选择
-	DefaultSelectedValue int         `json:"default_selected_value" form:"default_selected_value"` // 默认值
-	RobotOnlyShow        int         `json:"robot_only_show" form:"robot_only_show"`               //机器人功能中心中仅显示 这个不展示开关和固定菜单
-	UserConfig           msql.Params `json:"user_config" form:"user_config"`                       //用户开启模块配置
-	RobotConfig          msql.Params `json:"robot_config" form:"robot_config"`                     //模块是robot时候的配置
-	Menu                 define.Menu `json:"menu" form:"menu"`                                     //菜单配置
+	Name                 string      `json:"name" form:"name"`                                     // Function name
+	ModuleType           string      `json:"module_type" form:"module_type"`                       // Module type, identifies which module it belongs to
+	AbilityType          string      `json:"ability_type" form:"ability_type"`                     // Function type, globally unique, max length 100, usually module_key_function_key
+	Introduction         string      `json:"introduction" form:"introduction"`                     // Function introduction
+	Details              string      `json:"details" form:"details"`                               // Function details
+	Icon                 string      `json:"icon" form:"icon"`                                     // Function icon
+	SupportChannelsList  []string    `json:"support_channels_list" form:"support_channels_list"`   // List of supported channels
+	ShowSelect           int         `json:"show_select" form:"show_select"`                       // Whether to show selection
+	DefaultSelectedValue int         `json:"default_selected_value" form:"default_selected_value"` // Default value
+	RobotOnlyShow        int         `json:"robot_only_show" form:"robot_only_show"`               // Only display in robot function center, does not show switch and fixed menu
+	UserConfig           msql.Params `json:"user_config" form:"user_config"`                       // User enabled module configuration
+	RobotConfig          msql.Params `json:"robot_config" form:"robot_config"`                     // Configuration when module is robot
+	Menu                 define.Menu `json:"menu" form:"menu"`                                     // Menu configuration
 }
 
-const DefaultModuleType = `system` //默认系统模块
+const DefaultModuleType = `system` // Default system module
 
-// GetAllAbilityList 获取所有功能列表
+// GetAllAbilityList gets all function list
 func GetAllAbilityList() []Ability {
 	var abilityList []Ability
 
-	//机器人模块的功能
+	// Robot module functions
 	abilityList = append(abilityList, RobotAbilityList...)
 
-	//公众号模块的功能
+	// Official account module functions
 	abilityList = append(abilityList, LibraryAbilityList...)
 
-	//默认模块 没赋值的全是默认模块
+	// Default module, all unassigned are default modules
 	for _, ability := range abilityList {
 		if ability.ModuleType == `` {
 			ability.ModuleType = DefaultModuleType
@@ -56,13 +56,13 @@ func GetAllAbilityList() []Ability {
 	return abilityList
 }
 
-// GetUserAbilityByModuleType 获取用户模块功能
+// GetUserAbilityByModuleType gets user module functions
 func GetUserAbilityByModuleType(adminUserId int, moduleType string) ([]msql.Params, error) {
 	data, err := msql.Model(`ability`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`module_type`, moduleType).Order(`id desc`).Select()
 	return data, err
 }
 
-// GetUserAbility 机器人能力列表
+// GetUserAbility gets robot ability list
 func GetUserAbility(adminUserId int) ([]msql.Params, error) {
 	data, err := msql.Model(`ability`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`id desc`).Select()
 	if err == nil && len(data) > 0 {
@@ -74,7 +74,7 @@ func GetUserAbility(adminUserId int) ([]msql.Params, error) {
 	return data, err
 }
 
-// GetUseAbilityListByUserId 获取账号正在使用的功能列表
+// GetUseAbilityListByUserId gets the list of functions currently used by the account
 func GetUseAbilityListByUserId(adminUserId int) ([]Ability, error) {
 	var list []Ability
 	configList, err := GetUserAbility(adminUserId)
@@ -88,7 +88,7 @@ func GetUseAbilityListByUserId(adminUserId int) ([]Ability, error) {
 		userConfig, isOk := configMap[item.AbilityType]
 		if isOk {
 			if userConfig["switch_status"] == cast.ToString(define.SwitchOn) {
-				//有配置的 且开启的显示
+				// Show if configured and enabled
 				item.ShowSelect = define.SwitchOn
 				item.RobotConfig = userConfig
 				list = append(list, item)
@@ -98,7 +98,7 @@ func GetUseAbilityListByUserId(adminUserId int) ([]Ability, error) {
 	return list, err
 }
 
-// CheckUseAbilityByAbilityType 检查用户是否使用某个功能
+// CheckUseAbilityByAbilityType checks if user is using a specific function
 func CheckUseAbilityByAbilityType(adminUserId int, abilityType string) bool {
 	data, err := msql.Model(`ability`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`ability_type`, abilityType).Where(`switch_status`, cast.ToString(define.SwitchOn)).Find()
 	if err == nil && len(data) > 0 {
@@ -107,7 +107,7 @@ func CheckUseAbilityByAbilityType(adminUserId int, abilityType string) bool {
 	return false
 }
 
-// GetAbilityList 功能中心列表
+// GetAbilityList gets function center list
 func GetAbilityList(adminUserId int, specifyAbilityType string) ([]Ability, error) {
 	var list []Ability
 	configList, err := GetUserAbility(adminUserId)
@@ -118,7 +118,7 @@ func GetAbilityList(adminUserId int, specifyAbilityType string) ([]Ability, erro
 		}
 	}
 
-	//显示列表能力
+	// Display list abilities
 	abilityList := GetAllAbilityList()
 	for _, item := range abilityList {
 		if specifyAbilityType != `` && item.AbilityType != specifyAbilityType {
@@ -126,12 +126,12 @@ func GetAbilityList(adminUserId int, specifyAbilityType string) ([]Ability, erro
 		}
 		userConfig, isOk := configMap[item.AbilityType]
 		if isOk {
-			//有配置的 直接显示选择
+			// Show selection if configured
 			item.ShowSelect = define.SwitchOn
 			item.UserConfig = userConfig
 			list = append(list, item)
 		} else {
-			//没有配置的 创建默认配置
+			// Create default configuration if not configured
 			info, err := SaveUserAbility(adminUserId, item.AbilityType, item.DefaultSelectedValue)
 			if err != nil {
 				logs.Error(err.Error())
@@ -190,7 +190,7 @@ func GetAbilityDetail(adminUserId int, abilityType string) (Ability, error) {
 	return result, nil
 }
 
-// GetModuleTypeByAbilityType 获取模块类型
+// GetModuleTypeByAbilityType gets the module type
 func GetModuleTypeByAbilityType(abilityType string) string {
 	for _, item := range GetAllAbilityList() {
 		if item.AbilityType == abilityType {
@@ -200,17 +200,17 @@ func GetModuleTypeByAbilityType(abilityType string) string {
 	return DefaultModuleType
 }
 
-// SaveUserAbility 保存用户功能
+// SaveUserAbility saves user ability
 func SaveUserAbility(adminUserId int, abilityType string, switchStatus int) (msql.Params, error) {
-	//添加和更新
+	// Add and update
 	oldData, err := msql.Model(`ability`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`ability_type`, abilityType).Find()
 	if err != nil {
 		return nil, err
 	}
-	//模块类型
+	// Module type
 	moduleType := GetModuleTypeByAbilityType(abilityType)
 
-	//保存配置
+	// Save configuration
 	saveData := msql.Datas{
 		"admin_user_id": adminUserId,
 		"module_type":   moduleType,
@@ -229,7 +229,7 @@ func SaveUserAbility(adminUserId int, abilityType string, switchStatus int) (msq
 	}
 
 	oldData, err = msql.Model(`ability`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`ability_type`, abilityType).Find()
-	//处理启用关闭功能逻辑
+	// Handle enable/disable function logic
 	AbilitySwitchHandler(adminUserId, abilityType, cast.ToInt(oldData[`switch_status`]))
 
 	return oldData, err
@@ -237,16 +237,16 @@ func SaveUserAbility(adminUserId int, abilityType string, switchStatus int) (msq
 
 func AbilitySwitchHandler(adminUserId int, abilityType string, switchStatus int) {
 	if switchStatus == define.SwitchOn {
-		//开启功能
+		// Enable function
 		switch abilityType {
 		case OfficialAbilityCustomMenu:
 			break
 		}
 	} else {
-		//关闭功能
+		// Disable function
 		switch abilityType {
 		case OfficialAbilityCustomMenu:
-			//删除所有公众号的菜单
+			// Delete all official account menus
 			DeleteAllOfficialCustomMenuToWx(adminUserId, ``)
 			break
 		}

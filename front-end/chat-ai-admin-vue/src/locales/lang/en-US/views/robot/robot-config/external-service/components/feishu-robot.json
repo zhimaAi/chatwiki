@@ -1,0 +1,9 @@
+{
+  "tip_bind_feishu_robot": "Bind Feishu intelligent robot. Employees can send messages to Feishu robot in one-to-one or group chats, and the robot will automatically reply.",
+  "label_bind_feishu_robot": "Bind Feishu Intelligent Robot",
+  "title_confirm_remove": "Confirm to remove {app_name}?",
+  "msg_remove_warning": "After removal, the robot can no longer reply to user messages.",
+  "btn_confirm": "Confirm",
+  "btn_cancel": "Cancel",
+  "msg_delete_success": "Deleted successfully"
+}

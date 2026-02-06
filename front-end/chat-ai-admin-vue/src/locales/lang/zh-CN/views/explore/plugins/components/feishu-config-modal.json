@@ -1,0 +1,17 @@
+{
+  "title_api_key_auth_config": "API Key授权配置",
+  "msg_config_workflow_call": "配置凭据后，工作流可直接调用此插件",
+  "label_credential_name": "凭证名称",
+  "msg_input_credential_name": "请输入凭证名称!",
+  "ph_input_credential_name": "请输入凭证名称",
+  "msg_credential_name_desc": "仅用于区分多个授权配置的名称，不用于接口调用",
+  "label_app_id": "APP ID",
+  "msg_input_app_id": "请输入APP ID!",
+  "ph_input_app_id": "请输入APP ID",
+  "label_app_secret": "APP Secret",
+  "msg_input_app_secret": "请输入APP Secret!",
+  "ph_input_app_secret": "请输入APP Secret",
+  "msg_how_to_get_app_id_secret": "如何获取APP ID和APP Secret",
+  "msg_saved": "已保存",
+  "msg_credential_name_exists": "凭证名称已存在"
+}

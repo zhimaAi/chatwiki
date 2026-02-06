@@ -1,0 +1,15 @@
+{
+  "title_query_conditions": "Query Conditions",
+  "opt_select_query_condition": "Select Query Conditions",
+  "opt_input_variable": "Input Variable",
+  "ph_input_content": "Please enter content, type \"/\" to insert variable",
+  "desc_filter_example": "Content example: {\"conditions\":[{\"field_name\":\"Article ID\",\"operator\":\"is\",\"value\":\"123\"}],\"conjunction\":\"and\"}",
+  "title_query_fields": "Query Fields",
+  "opt_select_query_fields": "Select Query Fields",
+  "desc_field_names_example": "Content example: [\"Article ID\",\"Cover Image\",\"Created At\",\"Introduction\"]",
+  "title_sort": "Sort",
+  "opt_select_sort": "Select Sort",
+  "desc_sort_example": "Content example: [{\"desc\":false,\"field_name\":\"Article ID\"},{\"desc\":true,\"field_name\":\"Updated At\"}]",
+  "label_query_count": "Query Count"
+}
+

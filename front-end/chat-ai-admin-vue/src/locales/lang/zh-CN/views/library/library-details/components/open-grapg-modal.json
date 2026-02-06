@@ -1,0 +1,10 @@
+{
+  "title_select_graph_model": "请先选择生成知识图谱模型",
+  "desc_graph_function": "开启后，会使用指定模型抽取知识中实体和关系。",
+  "title_confirm_enable_graph": "确定开启生成知识图谱吗?",
+  "msg_graph_llm_dependency": "生成知识图谱依赖大模型能力",
+  "warning_token_consumption": "可能会产生比较大的 Token 消耗",
+  "desc_graph_capability": "。知识图谱擅长精准的实体关系推理和逻辑验证（比如需要查询问题是X商品有哪些优惠方案），但对非结构化文本和语义模糊查询支持较弱。建议您优先使用向量，当单纯向量检索无法满足时再尝试知识图谱",
+  "btn_confirm_enable": "确定开启",
+  "btn_later": "暂不开启"
+}

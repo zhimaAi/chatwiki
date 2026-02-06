@@ -1,0 +1,13 @@
+{
+  "title_template_detail": "Template Details",
+  "btn_use_template": "Use Template",
+  "title_usage_instructions": "Usage Instructions",
+  "title_template_category": "Template Category",
+  "msg_use_success": "Used successfully",
+  "title_tip": "Tip",
+  "msg_version_too_low": "Current system version is too low and may not support this template. Please upgrade to the latest version!",
+  "btn_continue_use": "Continue",
+  "btn_cancel": "Cancel",
+  "msg_confirm_use_template": "Are you sure you want to use template 【{name}】 to create an application?",
+  "btn_confirm": "Confirm"
+}

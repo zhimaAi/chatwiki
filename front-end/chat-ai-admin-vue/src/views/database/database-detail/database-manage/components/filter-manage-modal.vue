@@ -11,21 +11,21 @@
         <div class="t-head">
           <div class="td">
             <div style="width: 24px"></div>
-            分类名称
+            {{ t('column_category_name') }}
           </div>
-          <div class="td">类型</div>
-          <div class="td">启用分类</div>
-          <div class="td flex-none" style="width: 120px">操作</div>
+          <div class="td">{{ t('column_type') }}</div>
+          <div class="td">{{ t('column_enabled') }}</div>
+          <div class="td flex-none" style="width: 120px">{{ t('column_action') }}</div>
         </div>
         <div class="t-body">
           <div class="t-row">
             <div class="t-item">
               <div style="width: 24px"></div>
-              全部
+              {{ t('text_all') }}
             </div>
-            <div class="t-item">系统分类</div>
+            <div class="t-item">{{ t('type_system') }}</div>
             <div class="t-item">
-              <a-switch :checked="true" disabled checked-children="开" un-checked-children="关" />
+              <a-switch :checked="true" disabled :checked-children="t('switch_on')" :un-checked-children="t('switch_off')" />
             </div>
             <div class="t-item flex-none" style="width: 120px"></div>
           </div>
@@ -48,21 +48,21 @@
                   </span>
                   <span v-else>{{ element.name }} </span>
                 </div>
-                <div class="t-item">自定义分类</div>
+                <div class="t-item">{{ t('type_custom') }}</div>
                 <div class="t-item">
                   <a-switch
                     @change="handleChangeEnabled(element)"
                     :checked="element.enabled"
-                    checked-children="开"
-                    un-checked-children="关"
+                    :checked-children="t('switch_on')"
+                    :un-checked-children="t('switch_off')"
                     checkedValue="true"
                     unCheckedValue="false"
                   />
                 </div>
                 <div class="t-item flex-none" style="width: 120px">
-                  <a @click="handleOpenAddModal(element)">编辑</a>
+                  <a @click="handleOpenAddModal(element)">{{ t('action_edit') }}</a>
                   <a-divider type="vertical" />
-                  <a @click="onDelete(element, index)">删除</a>
+                  <a @click="onDelete(element, index)">{{ t('action_delete') }}</a>
                 </div>
               </div>
             </template>
@@ -83,6 +83,7 @@ import { ref, createVNode } from 'vue'
 import draggable from 'vuedraggable'
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import {
   getFormFilterList,
   delFormFilter,
@@ -91,10 +92,13 @@ import {
 } from '@/api/database'
 import AddFilrerModal from './add-filter-modal.vue'
 import { useRoute } from 'vue-router'
+
+const { t } = useI18n('views.database.database-detail.database-manage.components.filter-manage-modal')
+
 const rotue = useRoute()
 const query = rotue.query
 const emit = defineEmits(['ok', 'change'])
-const modalTitle = ref('管理分类')
+const modalTitle = ref(t('modal_title'))
 const open = ref(false)
 
 const props = defineProps({
@@ -138,7 +142,7 @@ const onDragEnd = () => {
     form_id: query.form_id,
     filter_sort: JSON.stringify(filter_sort)
   }).then((res) => {
-    message.success('排序成功')
+    message.success(t('msg_sort_success'))
     getSortLists()
     emit('change')
   })
@@ -150,22 +154,22 @@ const handleChangeEnabled = (record) => {
     id: record.id,
     enabled: record.enabled == 'true' ? 'false' : 'true'
   }).then((res) => {
-    message.success('设置成功')
+    message.success(t('msg_set_success'))
     getSortLists()
     emit('change')
   })
 }
 const onDelete = (record, index) => {
   Modal.confirm({
-    title: `删除确认`,
+    title: t('modal_delete_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: `确认删除该分类?`,
-    okText: '确 定',
+    content: t('modal_delete_content'),
+    okText: t('modal_delete_ok'),
     okType: 'danger',
-    cancelText: '取 消',
+    cancelText: t('modal_delete_cancel'),
     onOk() {
       delFormFilter({ id: record.id, form_id: query.form_id }).then((res) => {
-        message.success('删除成功')
+        message.success(t('msg_delete_success'))
         data.value.splice(index, 1)
         emit('change')
       })

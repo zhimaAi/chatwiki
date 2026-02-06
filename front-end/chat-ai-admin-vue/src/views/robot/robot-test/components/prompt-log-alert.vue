@@ -40,7 +40,7 @@
   <a-drawer
     class="prompt-log-alert"
     v-model:open="show"
-    title="Prompt 日志"
+    :title="t('title_prompt_log')"
     placement="right"
     width="746px"
     :closable="false"
@@ -49,12 +49,12 @@
       <span class="close-btn" @click="onClose"><CloseOutlined /></span>
     </template>
 
-    <div class="prompt-log-content">
+    <div class="prompt-log-content" ref="contRef">
       <div class="prompt-log-items">
         <div class="prompt-log-label">
-          <span>提示词 </span>
+          <span>{{ t('label_prompt') }} </span>
           <a-tooltip>
-            <template #title>系统提示词和文档分段。</template>
+            <template #title>{{ t('msg_prompt_tooltip') }}</template>
             <QuestionCircleOutlined class="question-icon" />
           </a-tooltip>
         </div>
@@ -70,9 +70,9 @@
 
       <div class="prompt-log-items">
         <div class="prompt-log-label">
-          <span>上下文 </span>
+          <span>{{ t('label_context') }} </span>
           <a-tooltip>
-            <template #title>传递的历史提问消息</template>
+            <template #title>{{ t('msg_context_tooltip') }}</template>
             <QuestionCircleOutlined class="question-icon" />
           </a-tooltip>
         </div>
@@ -84,9 +84,9 @@
 
       <div class="prompt-log-items">
         <div class="prompt-log-label">
-          <span>USER </span>
+          <span>{{ t('label_user') }} </span>
           <a-tooltip>
-            <template #title>本次用户的提问</template>
+            <template #title>{{ t('msg_user_tooltip') }}</template>
             <QuestionCircleOutlined class="question-icon" />
           </a-tooltip>
         </div>
@@ -97,9 +97,9 @@
 
       <div class="prompt-log-items">
         <div class="prompt-log-label">
-          <span>ASSISTANT </span>
+          <span>{{ t('label_assistant') }} </span>
           <a-tooltip>
-            <template #title>语言模型输出的答案</template>
+            <template #title>{{ t('msg_assistant_tooltip') }}</template>
             <QuestionCircleOutlined class="question-icon" />
           </a-tooltip>
         </div>
@@ -110,9 +110,9 @@
 
       <div class="prompt-log-items" v-if="promptLog.recall_time > 0">
         <div class="prompt-log-label">
-          <span>Recall time </span>
+          <span>{{ t('label_recall_time') }} </span>
           <a-tooltip>
-            <template #title>从知识库中检索到有效分段所需要的时间，包括对分段进行排序时间。</template>
+            <template #title>{{ t('msg_recall_time_tooltip') }}</template>
             <QuestionCircleOutlined class="question-icon" />
           </a-tooltip>
         </div>
@@ -123,9 +123,9 @@
 
       <div class="prompt-log-items" v-if="promptLog.request_time > 0">
         <div class="prompt-log-label">
-          <span>Request time </span>
+          <span>{{ t('label_request_time') }} </span>
           <a-tooltip>
-            <template #title>从发送问题和上下文信息给大模型到大模型开始返回答案的时间。</template>
+            <template #title>{{ t('msg_request_time_tooltip') }}</template>
             <QuestionCircleOutlined class="question-icon" />
           </a-tooltip>
         </div>
@@ -136,9 +136,9 @@
 
       <div class="prompt-log-items">
         <div class="prompt-log-label">
-          <span>Error </span>
+          <span>{{ t('label_error') }} </span>
           <a-tooltip>
-            <template #title>报错信息，调用聊天接口报错时会显示。</template>
+            <template #title>{{ t('msg_error_tooltip') }}</template>
             <QuestionCircleOutlined class="question-icon" />
           </a-tooltip>
         </div>
@@ -153,7 +153,14 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { CloseOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
+import { useMathJax } from "@/composables/useMathJax.js";
+import { useI18n } from '@/hooks/web/useI18n'
 
+const { t } = useI18n('views.robot.robot-test.components.prompt-log-alert')
+
+const {renderMath} = useMathJax()
+
+const contRef = ref(null)
 const show = ref(false)
 const promptLog = reactive({
   prompt: '',
@@ -200,6 +207,7 @@ const open = (msg) => {
   }
 
   show.value = true
+  renderMath(contRef.value)
 }
 
 defineExpose({

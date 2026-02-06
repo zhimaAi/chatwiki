@@ -1,0 +1,21 @@
+{
+  "modal_title": "Manage Categories",
+  "column_category_name": "Category Name",
+  "column_type": "Type",
+  "column_enabled": "Enable Category",
+  "column_action": "Actions",
+  "text_all": "All",
+  "type_system": "System Category",
+  "type_custom": "Custom Category",
+  "switch_on": "On",
+  "switch_off": "Off",
+  "action_edit": "Edit",
+  "action_delete": "Delete",
+  "msg_sort_success": "Sort successful",
+  "msg_set_success": "Settings successful",
+  "modal_delete_title": "Delete Confirmation",
+  "modal_delete_content": "Are you sure you want to delete this category?",
+  "modal_delete_ok": "Confirm",
+  "modal_delete_cancel": "Cancel",
+  "msg_delete_success": "Deleted successfully"
+}

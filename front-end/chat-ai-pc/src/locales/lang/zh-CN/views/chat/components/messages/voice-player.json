@@ -1,0 +1,9 @@
+{
+  "status_loading": "加载中",
+  "status_playing": "播放中",
+  "hint_click_to_pause": "(点击暂停)",
+  "label_voice_message": "语音消息",
+  "hint_click_to_play": "(点击播放)",
+  "msg_play_failed": "播放失败",
+  "msg_audio_play_error": "音频播放出错"
+}

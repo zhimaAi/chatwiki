@@ -184,7 +184,7 @@
 
 <template>
   <div class="chat-between-box">
-    <div class="left-menu-content">
+    <div class="left-menu-content" v-if="isCookieAccepted">
       <LeftSideBar 
         @openChat="handleOpenChat" 
         @openNewChat="openNewChat" 
@@ -193,7 +193,7 @@
         ref="leftSideBarRef"
       />
     </div>
-    <div class="chat-page" id="chatPage">
+    <div class="chat-page" id="chatPage" v-if="isCookieAccepted">
       <div class="chat-page-header">
         <CuNavbar
           :title="externalConfigH5.pageTitle"
@@ -201,9 +201,9 @@
           v-if="externalConfigH5.navbarShow == 1"
         />
         <div class="form-banner-top" v-if="isShowFromHeader">
-          <div class="title">表单信息</div>
+          <div class="title">{{ t('label_form_info') }}</div>
           <div class="edit-block" @click="handleEditVariableForm">
-            <img src="@/assets/icons/edit.svg" alt="">编辑
+            <img src="@/assets/icons/edit.svg">{{ t('btn_edit') }}
           </div>
         </div>
       </div>
@@ -263,7 +263,7 @@
           :loading="sendLoading"
         />
 
-        <div class="technical-support-text">{{ translate('由 ChatWiki 提供软件支持') }}</div>
+        <div class="technical-support-text">{{ t('tech_support') }}</div>
       </div>
 
       <LogOut
@@ -275,16 +275,16 @@
       <LoginModal ref="loginModalRef" />
       <VariableModal ref="variableModalRef" />
     </div>
+    <CookieModal ref="cookieModalRef" :isMobileDevice="isMobileDevice" @onAccept="handleCookieDecision" @onDecline="handleCookieDecision" />
   </div>
 </template>
 
 <script setup lang="ts">
 import type { Message } from './types'
-import { translate } from '@/utils/translate.js'
 import { getUuid } from '@/utils/index.js'
 import { checkChatRequestPermission } from '@/api/robot/index'
 import { useRoute } from 'vue-router'
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { showToast, showConfirmDialog } from 'vant'
 import { storeToRefs } from 'pinia'
 import { useWindowWidth } from './useWindowWidth'
@@ -292,6 +292,9 @@ import { useEventBus } from '@/hooks/event/useEventBus'
 import { useIM } from '@/hooks/event/useIM'
 import { useChatStore } from '@/stores/modules/chat'
 import { useUserStore } from '@/stores/modules/user'
+import { useLocaleStoreWithOut } from '@/stores/modules/locale'
+import { useI18n } from '@/hooks/web/useI18n'
+import { useLocale } from '@/hooks/web/useLocale'
 import CuNavbar from '@/components/cu-navbar/index.vue'
 import MessageInput from './components/message-input.vue'
 import MessageList from './components/messages/message-list.vue'
@@ -302,6 +305,12 @@ import LoginModal from './components/login-modal.vue'
 import MessageInputPc from './components/message-input-pc.vue'
 import LeftSideBar from '@/views/chat/components/left-side-bar/index.vue'
 import VariableModal from './components/variable-modal/index.vue'
+import CookieModal from './components/cookie-modal.vue'
+
+const { t } = useI18n('views.chat.index')
+const { changeLocale } = useLocale()
+const localeStore = useLocaleStoreWithOut()
+import type { LocaleType } from '@/locales/config'
 
 const { windowWidth } = useWindowWidth()
 const route = useRoute()
@@ -402,8 +411,8 @@ const onTrigger = () => {
   } else {
     // 触发退出操作
     showConfirmDialog({
-      title: '温馨提示',
-      message: '是否退出本系统？'
+      title: t('title_warning'),
+      message: t('msg_logout_confirm')
     })
       .then(() => {
         // on close
@@ -476,7 +485,7 @@ const onSendMesage = async () => {
   let text = message.value.trim()
 
   if (!text && !fileList.value.length) {
-    return showToast('请输入消息内容')
+    return showToast(t('msg_input_message'))
   }
 
   checkChatRequestPermissionLoding.value = true
@@ -492,7 +501,7 @@ const onSendMesage = async () => {
     checkChatRequestPermissionLoding.value = false
 
     if (result.data && result.data.words) {
-      return showToast(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)
+      return showToast(t('msg_sensitive_word', { words: result.data.words.join(';') }))
     }
 
     isAllowedScrollToBottom = true
@@ -580,7 +589,7 @@ const checkLogin = async () => {
   // 未登录
   if (result.data?.code == 10002) {
     // 弹出登录
-    showToast('请登录账号')
+    showToast(t('msg_please_login'))
     onShowLogin()
     userStore.setLoginStatus(false)
     return false
@@ -589,7 +598,7 @@ const checkLogin = async () => {
   // 有权限的账号登录后才可访问
   if (result.data?.code == 10003) {
     // 弹出登录
-    showToast('当前账号无访问权限')
+    showToast(t('msg_no_permission'))
     onShowLogin()
     userStore.setLoginStatus(false)
     return false
@@ -598,7 +607,7 @@ const checkLogin = async () => {
   userStore.setLoginStatus(true)
 
   if (result.data && result.data.words) {
-    return showToast(`提交的内容包含敏感词：[${result.data.words.join(';')}] 请修改后再提交`)
+    return showToast(t('msg_sensitive_word', { words: result.data.words.join(';') }))
   }
 }
 
@@ -678,25 +687,49 @@ const handleEditVariableForm = () => {
   variableModalRef.value?.handleEdit()
 }
 
+// 监听 externalConfigH5.lang 变化，自动切换 i18n 语言
+watch(
+  () => chatStore.externalConfigH5.lang,
+  async (newLang) => {
+    if (newLang && newLang !== localeStore.currentLocale.lang && ['zh-CN', 'en-US'].includes(newLang)) {
+      await changeLocale(newLang as LocaleType)
 
-onMounted(async () => {
-  // 获取登录信息，如果没有登录则立即弹出登录
-  // 后端说这个地方不用/manage/checkLogin接口获取用户信息来判断是否登录，直接调下面的接口，关键词传空字符串就行
+      // window.location.reload()
+    }
+  },
+  { immediate: true }
+)
+
+interface CookieModalRefState {
+  show: () => void
+}
+const cookieModalRef = ref<null | CookieModalRefState>(null)
+const isCookieAccepted = ref(false)
+
+const handleCookieDecision = () => {
+  isCookieAccepted.value = true
+  initChatPage()
+}
+
+const initChatPage = async () => {
+  if (!isCookieAccepted.value) {
+    return
+  }
+
   await checkLogin()
-
   init()
-  // 获取对话记录
   getMyChatList()
 
-  // 监听 updateAiMessage 触发消息列表滚动
   emitter.on('updateAiMessage', onUpdateAiMessage)
-
-  // 监听im消息
   on('message', onUpdateAiMessage)
 
   setChatPageHeight()
-
   window.addEventListener('resize', setChatPageHeight)
+}
+
+
+onMounted(async () => {
+  cookieModalRef.value?.show()
 })
 
 onUnmounted(() => {

@@ -1,18 +1,28 @@
-export const FeiShuOperator = [
-  {key: "is", label: "是"},
-  {key: "isNot", label: "不是"},
-  {key: "contains", label: "包含"},
-  {key: "doesNotContain", label: "不包含"},
-  {key: "isEmpty", label: "为空"},
-  {key: "isNotEmpty", label: "不为空"},
-  {key: "isGreater", label: "大于"},
-  {key: "isGreaterEqual", label: "大于等于"},
-  {key: "isLess", label: "小于"},
-  {key: "isLessEqual", label: "小于等于"},
-  // {key: "like", label: "LIKE"},
-  // {key: "in", label: "IN"}
-]
+import { useI18n } from '@/hooks/web/useI18n'
 
+// 获取带翻译的操作符列表
+export const getFeiShuOperator = () => {
+  const { t } = useI18n('constants.database')
+  return [
+    {key: "is", label: t('label_is')},
+    {key: "isNot", label: t('label_is_not')},
+    {key: "contains", label: t('label_contain')},
+    {key: "doesNotContain", label: t('label_not_contain')},
+    {key: "isEmpty", label: t('label_empty')},
+    {key: "isNotEmpty", label: t('label_not_empty')},
+    {key: "isGreater", label: t('label_greater_than')},
+    {key: "isGreaterEqual", label: t('label_greater_than_or_equal')},
+    {key: "isLess", label: t('label_less_than')},
+    {key: "isLessEqual", label: t('label_less_than_or_equal')},
+    // {key: "like", label: "LIKE"},
+    // {key: "in", label: "IN"}
+  ]
+}
+
+// 带翻译的操作符列表常量
+export const FeiShuOperator = getFeiShuOperator()
+
+// 保持向后兼容的映射函数（使用原始中文 label）
 export function FeiShuOperatorMap() {
   let map = {}
   for (let item of FeiShuOperator) {
@@ -20,6 +30,18 @@ export function FeiShuOperatorMap() {
   }
   return map
 }
+
+// 获取带翻译的操作符映射
+export const getFeiShuOperatorMap = () => {
+  let map = {}
+  for (let item of getFeiShuOperator()) {
+    map[item.key] = item
+  }
+  return map
+}
+
+// 带翻译的操作符映射常量
+export const feiShuOperatorMap = getFeiShuOperatorMap()
 
 export const ShowFieldTypes = ['Text', 'SingleSelect', 'MultiSelect', 'DateTime', 'Number', 'Checkbox']
 

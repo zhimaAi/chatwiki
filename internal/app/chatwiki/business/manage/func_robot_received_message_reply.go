@@ -15,7 +15,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// ReceivedMessageReplyRequest 通用请求结构
+// ReceivedMessageReplyRequest generic request structure
 type ReceivedMessageReplyRequest struct {
 	ID                 int    `form:"id" json:"id"`
 	RobotID            int    `form:"robot_id" json:"robot_id" binding:"required"`
@@ -35,14 +35,14 @@ type ReceivedMessageReplyRequest struct {
 	SwitchStatus       int    `form:"switch_status" json:"switch_status"`
 }
 
-// ReceivedMessageReplySwitchStatusRequest 开关状态请求结构
+// ReceivedMessageReplySwitchStatusRequest switch status request structure
 type ReceivedMessageReplySwitchStatusRequest struct {
 	ID           int `form:"id" json:"id" binding:"required"`
 	RobotID      int `form:"robot_id" json:"robot_id" binding:"required"`
 	SwitchStatus int `form:"switch_status" json:"switch_status"`
 }
 
-// ReceivedMessageReplyListFilterRequest 列表过滤请求结构
+// ReceivedMessageReplyListFilterRequest list filter request structure
 type ReceivedMessageReplyListFilterRequest struct {
 	RobotID   int    `json:"robot_id" form:"robot_id" binding:"required"`
 	RuleType  string `json:"rule_type" form:"rule_type"`
@@ -51,17 +51,17 @@ type ReceivedMessageReplyListFilterRequest struct {
 	Size      int    `json:"size" form:"size"`
 }
 
-// SaveRobotReceivedMessageReply 保存收到消息回复规则（创建或更新）
+// SaveRobotReceivedMessageReply saves received message reply rule (create or update)
 func SaveRobotReceivedMessageReply(c *gin.Context) {
 	var req ReceivedMessageReplyRequest
 
-	// 获取参数
+	// Get parameters
 	if err := c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 解析 WeekDuration
+	// Parse WeekDuration
 	var weekDuration []int
 	if req.WeekDuration != "" {
 		weekDurationStr := strings.Split(req.WeekDuration, ",")
@@ -70,17 +70,17 @@ func SaveRobotReceivedMessageReply(c *gin.Context) {
 		}
 	}
 
-	// 解析 SpecifyMessageType
+	// Parse SpecifyMessageType
 	var specifyMessageType []string
 	if req.SpecifyMessageType != "" {
 		specifyMessageType = strings.Split(req.SpecifyMessageType, ",")
-		// 去除空格
+		// Remove spaces
 		for i, v := range specifyMessageType {
 			specifyMessageType[i] = strings.TrimSpace(v)
 		}
 	}
 
-	// 解析 ReplyContent
+	// Parse ReplyContent
 	var replyContent []common.ReplyContent
 	if req.ReplyContent != "" {
 		if err := tool.JsonDecodeUseNumber(req.ReplyContent, &replyContent); err != nil {
@@ -89,7 +89,7 @@ func SaveRobotReceivedMessageReply(c *gin.Context) {
 		}
 	}
 
-	// 解析 ReplyType
+	// Parse ReplyType
 	var replyType []string
 	if len(replyContent) > 0 {
 		for _, reply := range replyContent {
@@ -101,19 +101,19 @@ func SaveRobotReceivedMessageReply(c *gin.Context) {
 		}
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, req.RobotID, adminUserId) {
 		return
 	}
 
-	// 如果是更新操作，检查规则是否存在且属于当前用户和机器人
+	// If updating, check if rule exists and belongs to current user and robot
 	if req.ID > 0 {
 		ruleInfo, err := common.GetRobotReceivedMessageReply(req.ID, req.RobotID)
 		if err != nil {
@@ -132,7 +132,7 @@ func SaveRobotReceivedMessageReply(c *gin.Context) {
 			return
 		}
 	}
-	//检测类型
+	// Check type
 	if req.SwitchStatus == define.SwitchOn {
 		result := common.CheckSpecifyMessageTypeRepeatedlyEnable(req.RuleType, req.MessageType, specifyMessageType, req.RobotID, req.ID)
 		if cast.ToBool(result["is_repeat"]) {
@@ -141,14 +141,14 @@ func SaveRobotReceivedMessageReply(c *gin.Context) {
 		}
 	}
 
-	// 保存规则（创建或更新）
+	// Save rule (create or update)
 	id, err := common.SaveRobotReceivedMessageReply(
 		req.ID,
 		adminUserId,
 		req.RobotID,
 		req.RuleType,
 		req.DurationType,
-		weekDuration, // 使用解析后的值
+		weekDuration, // Use parsed values
 		req.StartDay,
 		req.EndDay,
 		req.StartDuration,
@@ -156,9 +156,9 @@ func SaveRobotReceivedMessageReply(c *gin.Context) {
 		req.PriorityNum,
 		req.ReplyInterval,
 		req.MessageType,
-		specifyMessageType, // 使用解析后的值
-		replyContent,       // 使用解析后的值
-		replyType,          // 使用解析后的值
+		specifyMessageType, // Use parsed values
+		replyContent,       // Use parsed values
+		replyType,          // Use parsed values
 		req.ReplyNum,
 		req.SwitchStatus,
 	)
@@ -172,12 +172,12 @@ func SaveRobotReceivedMessageReply(c *gin.Context) {
 	common.FmtOk(c, map[string]interface{}{"id": id})
 }
 
-// DeleteRobotReceivedMessageReply 删除收到消息回复规则
+// DeleteRobotReceivedMessageReply deletes received message reply rule
 func DeleteRobotReceivedMessageReply(c *gin.Context) {
 	id := cast.ToInt(c.PostForm("id"))
 	robotID := cast.ToInt(c.PostForm("robot_id"))
 
-	// 检查参数
+	// Check parameters
 	if id <= 0 {
 		common.FmtError(c, `param_lack`, `id`)
 		return
@@ -188,19 +188,19 @@ func DeleteRobotReceivedMessageReply(c *gin.Context) {
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, robotID, adminUserId) {
 		return
 	}
 
-	// 检查规则是否存在且属于当前用户和机器人
+	// Check if rule exists and belongs to current user and robot
 	ruleInfo, err := common.GetRobotReceivedMessageReply(id, robotID)
 	if err != nil {
 		logs.Error("Get robot received message reply error: %s", err.Error())
@@ -218,7 +218,7 @@ func DeleteRobotReceivedMessageReply(c *gin.Context) {
 		return
 	}
 
-	// 删除规则
+	// Delete rule
 	err = common.DeleteRobotReceivedMessageReply(id, robotID)
 	if err != nil {
 		logs.Error("DeleteRobotReceivedMessageReply error: %s", err.Error())
@@ -229,25 +229,25 @@ func DeleteRobotReceivedMessageReply(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-// GetRobotReceivedMessageReply 获取单个收到消息回复规则
+// GetRobotReceivedMessageReply gets single received message reply rule
 func GetRobotReceivedMessageReply(c *gin.Context) {
 	id := cast.ToInt(c.Query("id"))
 	robotID := cast.ToInt(c.Query("robot_id"))
 
-	// 检查参数
+	// Check parameters
 	if id <= 0 {
 		common.FmtError(c, `param_lack`, `id`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 获取规则信息
+	// Get rule info
 	ruleInfo, err := common.GetRobotReceivedMessageReply(id, robotID)
 	if err != nil {
 		logs.Error("Get robot received message reply error: %s", err.Error())
@@ -260,18 +260,18 @@ func GetRobotReceivedMessageReply(c *gin.Context) {
 		return
 	}
 
-	// 检查权限
+	// Check permission
 	if cast.ToInt(ruleInfo["admin_user_id"]) != adminUserId {
 		common.FmtError(c, `auth_no_permission`)
 		return
 	}
 
-	// 处理返回数据
+	// Process return data
 	var weekDuration []int
 	var specifyMessageType, replyType []string
 	var replyContent []common.ReplyContent
 
-	// 解析JSON数据
+	// Parse JSON data
 	if ruleInfo["week_duration"] != "" {
 		_ = tool.JsonDecodeUseNumber(ruleInfo["week_duration"], &weekDuration)
 	}
@@ -287,7 +287,7 @@ func GetRobotReceivedMessageReply(c *gin.Context) {
 	if ruleInfo["reply_content"] != "" {
 		_ = tool.JsonDecodeUseNumber(ruleInfo["reply_content"], &replyContent)
 	}
-	// 格式化智能菜单消息
+	// Format smart menu message
 	replyContent = common.FormatReplyListToDb(replyContent, common.RobotAbilityReceivedMessageReply)
 
 	result := map[string]interface{}{
@@ -315,17 +315,17 @@ func GetRobotReceivedMessageReply(c *gin.Context) {
 	common.FmtOk(c, result)
 }
 
-// GetRobotReceivedMessageReplyList 获取收到消息回复规则列表
+// GetRobotReceivedMessageReplyList gets received message reply rule list
 func GetRobotReceivedMessageReplyList(c *gin.Context) {
 	var req ReceivedMessageReplyListFilterRequest
 
-	// 获取参数
+	// Get parameters
 	if err := c.ShouldBindQuery(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 设置默认分页参数
+	// Set default pagination parameters
 	if req.Page <= 0 {
 		req.Page = 1
 	}
@@ -333,19 +333,19 @@ func GetRobotReceivedMessageReplyList(c *gin.Context) {
 		req.Size = 10
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, req.RobotID, adminUserId) {
 		return
 	}
 
-	// 获取规则列表
+	// Get rule list
 	list, total, err := common.GetRobotReceivedMessageReplyListWithFilter(req.RobotID, req.RuleType, req.ReplyType, req.Page, req.Size)
 	if err != nil {
 		logs.Error("GetRobotReceivedMessageReplyListWithFilter error: %s", err.Error())
@@ -353,14 +353,14 @@ func GetRobotReceivedMessageReplyList(c *gin.Context) {
 		return
 	}
 
-	// 处理返回数据
+	// Process return data
 	var result []map[string]interface{}
 	for _, item := range list {
 		var weekDuration []int
 		var specifyMessageType, replyType []string
 		var replyContent []common.ReplyContent
 
-		// 解析JSON数据
+		// Parse JSON data
 		if item["week_duration"] != "" {
 			_ = tool.JsonDecodeUseNumber(item["week_duration"], &weekDuration)
 		}
@@ -376,7 +376,7 @@ func GetRobotReceivedMessageReplyList(c *gin.Context) {
 		if item["reply_content"] != "" {
 			_ = tool.JsonDecodeUseNumber(item["reply_content"], &replyContent)
 		}
-		// 格式化智能菜单消息
+		// Format smart menu message
 		replyContent = common.FormatReplyListToDb(replyContent, common.RobotAbilityReceivedMessageReply)
 
 		result = append(result, map[string]interface{}{
@@ -402,7 +402,7 @@ func GetRobotReceivedMessageReplyList(c *gin.Context) {
 		})
 	}
 
-	// 返回分页数据
+	// Return paginated data
 	response := map[string]interface{}{
 		"list":  result,
 		"total": total,
@@ -413,35 +413,35 @@ func GetRobotReceivedMessageReplyList(c *gin.Context) {
 	common.FmtOk(c, response)
 }
 
-// UpdateRobotReceivedMessageReplySwitchStatus 更新收到消息回复规则开关状态
+// UpdateRobotReceivedMessageReplySwitchStatus updates received message reply rule switch status
 func UpdateRobotReceivedMessageReplySwitchStatus(c *gin.Context) {
 	var req ReceivedMessageReplySwitchStatusRequest
 
-	// 获取参数
+	// Get parameters
 	if err := c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 检查开关状态参数是否合法 (0:关闭, 1:开启)
+	// Validate switch status parameter (0: off, 1: on)
 	if req.SwitchStatus != define.SwitchOff && req.SwitchStatus != define.SwitchOn {
 		common.FmtError(c, `param_invalid`, `switch_status`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, req.RobotID, adminUserId) {
 		return
 	}
 
-	// 检查规则是否存在且属于当前用户和机器人
+	// Check if rule exists and belongs to current user and robot
 	ruleInfo, err := common.GetRobotReceivedMessageReply(req.ID, req.RobotID)
 	if err != nil {
 		logs.Error("Get robot received message reply error: %s", err.Error())
@@ -459,7 +459,7 @@ func UpdateRobotReceivedMessageReplySwitchStatus(c *gin.Context) {
 		return
 	}
 
-	// 更新开关状态
+	// Update switch status
 	var result map[string]interface{}
 	result, err = common.UpdateRobotReceivedMessageReplySwitchStatus(req.ID, req.RobotID, req.SwitchStatus)
 	if err != nil {
@@ -476,13 +476,13 @@ func UpdateRobotReceivedMessageReplySwitchStatus(c *gin.Context) {
 	common.FmtOk(c, result)
 }
 
-// UpdateRobotReceivedMessageReplyPriorityNum 更新收到消息回复规则优先级
+// UpdateRobotReceivedMessageReplyPriorityNum updates received message reply rule priority
 func UpdateRobotReceivedMessageReplyPriorityNum(c *gin.Context) {
 	id := cast.ToInt(c.PostForm("id"))
 	robotID := cast.ToInt(c.PostForm("robot_id"))
 	priorityNum := cast.ToInt(c.PostForm("priority_num"))
 
-	// 检查参数
+	// Check parameters
 	if id <= 0 {
 		common.FmtError(c, `param_lack`, `id`)
 		return
@@ -493,19 +493,19 @@ func UpdateRobotReceivedMessageReplyPriorityNum(c *gin.Context) {
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, robotID, adminUserId) {
 		return
 	}
 
-	// 检查规则是否存在且属于当前用户和机器人
+	// Check if rule exists and belongs to current user and robot
 	ruleInfo, err := common.GetRobotReceivedMessageReply(id, robotID)
 	if err != nil {
 		logs.Error("Get robot received message reply error: %s", err.Error())
@@ -523,7 +523,7 @@ func UpdateRobotReceivedMessageReplyPriorityNum(c *gin.Context) {
 		return
 	}
 
-	// 删除规则
+	// Update rule priority
 	err = common.UpdateRobotReceivedMessageReplyPriorityNum(id, robotID, priorityNum)
 	if err != nil {
 		logs.Error("UpdateRobotReceivedMessageReplyPriorityNum error: %s", err.Error())

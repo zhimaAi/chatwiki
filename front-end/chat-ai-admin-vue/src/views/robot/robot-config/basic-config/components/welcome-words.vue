@@ -66,7 +66,7 @@
 <template>
   <edit-box
     class="setting-box"
-    title="欢迎语"
+    :title="t('title_welcome')"
     icon-name="huanyingyu"
     v-model:isEdit="isEdit"
     @save="onSave"
@@ -74,7 +74,7 @@
   >
     <div class="form-box" v-show="isEdit">
       <div class="question-title">
-        <a-textarea v-model:value="formState.welcomes.content" placeholder="请输入欢迎语" />
+        <a-textarea v-model:value="formState.welcomes.content" :placeholder="t('ph_input_welcome')" />
       </div>
       <div class="question-options">
         <draggable
@@ -90,7 +90,7 @@
               <a-input
                 class="question-option-content"
                 v-model:value="element.content"
-                placeholder="请输入问题"
+                :placeholder="t('ph_input_question')"
               />
               <div class="action-box">
                 <CloseCircleOutlined class="del-btn" @click="deleteOption(index)" />
@@ -100,7 +100,7 @@
         </draggable>
 
         <div class="add-btn" @click="addQuestion">
-          <PlusOutlined class="add-btn-icon" />添加引导问题
+          <PlusOutlined class="add-btn-icon" />{{ t('btn_add_guide_question') }}
         </div>
       </div>
     </div>
@@ -125,6 +125,9 @@ import { PlusOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
 import draggable from 'vuedraggable'
 import EditBox from './edit-box.vue'
 import { getUuid } from '@/utils/index'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.welcome-words')
 
 const isEdit = ref(false)
 const drag = ref(false)
@@ -165,11 +168,11 @@ const deleteOption = (index) => {
 
 const onSave = () => {
   if (!formState.welcomes.content) {
-    return message.error('请输入欢迎语')
+    return message.error(t('msg_welcome_required'))
   }
 
   if (checkWelcomeQuestion()) {
-    return message.error('引导问题内容不能为空')
+    return message.error(t('msg_question_required'))
   }
 
   updateRobotInfo({ ...toRaw(formState) })

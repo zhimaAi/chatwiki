@@ -20,7 +20,7 @@
     <div class="ai-dialogue-node">
       <div class="static-field-list">
         <div class="static-field-item">
-          <div class="static-field-item-label">用户问题</div>
+          <div class="static-field-item-label">{{ t('label_user_question') }}</div>
           <div class="static-field-item-content">
             <div class="static-field-value">
               <user-question-text ref="questionTextRef" :value="formState.question_value" />
@@ -29,7 +29,7 @@
         </div>
 
         <div class="static-field-item">
-          <div class="static-field-item-label">LLM模型</div>
+          <div class="static-field-item-label">{{ t('label_llm_model') }}</div>
           <div class="static-field-item-content">
             <div class="static-field-value">
               <model-name-text :useModel="formState.use_model" :modelConfigId="formState.model_config_id" />
@@ -38,10 +38,10 @@
         </div>
 
         <div class="static-field-item">
-          <div class="static-field-item-label">输出</div>
+          <div class="static-field-item-label">{{ t('label_output') }}</div>
           <div class="static-field-item-content">
             <div class="static-field-value">
-              <span class="static-field-key">问题优化结果</span>
+              <span class="static-field-key">{{ t('label_problem_optimization_result') }}</span>
               <span class="static-field-type">string</span>
             </div>
           </div>
@@ -58,6 +58,9 @@ import { storeToRefs } from 'pinia'
 import NodeCommon from '../base-node.vue'
 import ModelNameText from '../model-name-text.vue'
 import UserQuestionText from '../user-question-text.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.problem-optimization-node.index')
 
 // --- Props and Injections ---
 const props = defineProps({

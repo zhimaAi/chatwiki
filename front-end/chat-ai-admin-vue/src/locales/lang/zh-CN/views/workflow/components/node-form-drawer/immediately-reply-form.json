@@ -1,0 +1,6 @@
+{
+  "desc_immediately_reply": "触发该节点，将立即给用户回复一条固定消息",
+  "label_output": "输出",
+  "label_message_content": "消息内容",
+  "ph_input_message_content": "请输入消息内容，键入\"/\"可以插入变量"
+}

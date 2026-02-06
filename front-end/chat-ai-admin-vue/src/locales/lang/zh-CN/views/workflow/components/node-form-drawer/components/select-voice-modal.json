@@ -1,0 +1,8 @@
+{
+  "title_select_voice": "选择音色",
+  "ph_search_voice": "请输入音色名称/ID搜索",
+  "label_index": "序号",
+  "label_name": "名称",
+  "label_id": "ID",
+  "label_description": "描述"
+}

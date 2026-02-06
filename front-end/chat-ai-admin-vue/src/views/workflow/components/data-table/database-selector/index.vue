@@ -46,7 +46,7 @@
       <svg-icon class="del-btn" name="close-circle" @click="handleClear"></svg-icon>
     </div>
 
-    <a-button class="select-data-btn" type="primary" ghost @click="handleSelectData" v-else><PlusOutlined /> 选择数据表</a-button>
+    <a-button class="select-data-btn" type="primary" ghost @click="handleSelectData" v-else><PlusOutlined /> {{ t('btn_select_data_table') }}</a-button>
 
     <TableSelectAlert ref="tableSelectAlertRef" @ok="onSelectOk" :options="options" />
   </div>
@@ -56,6 +56,9 @@
 import { ref, computed } from 'vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import TableSelectAlert from './table-select-alert.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.data-table.database-selector.index')
 
 const emit = defineEmits(['update:value', 'change'])
 

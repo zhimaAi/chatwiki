@@ -29,7 +29,7 @@ func GetDialogueId(chatBaseParam *define.ChatBaseParam, question string) (int, e
 			return cast.ToInt(dialogueId), nil //use the old first
 		}
 	}
-	question = GetFirstQuestionByInput(question) //多模态输入特殊处理
+	question = GetFirstQuestionByInput(question) // Special handling for multimodal input
 	id, err := m.Insert(msql.Datas{
 		`admin_user_id`: chatBaseParam.AdminUserId,
 		`robot_id`:      chatBaseParam.Robot[`id`],
@@ -65,7 +65,7 @@ func GetSessionId(params *define.ChatRequestParam, dialogueId int) (int, error) 
 	if params.ChatBaseParam != nil && len(params.AppInfo) > 0 {
 		appId = params.AppInfo[`app_id`]
 	}
-	question := GetFirstQuestionByInput(params.Question) //多模态输入特殊处理
+	question := GetFirstQuestionByInput(params.Question) // Special handling for multimodal input
 	id, err := msql.Model(`chat_ai_session`, define.Postgres).Insert(msql.Datas{
 		`admin_user_id`:     params.ChatBaseParam.AdminUserId,
 		`app_type`:          params.ChatBaseParam.AppType,
@@ -87,7 +87,7 @@ func GetSessionId(params *define.ChatRequestParam, dialogueId int) (int, error) 
 	if err != nil && !errors.Is(err, redis.Nil) {
 		logs.Error(err.Error())
 	}
-	//日活用户数统计+日新增用户数统计
+	// Daily active user count + daily new user count
 	go func() {
 		if err = statDailyActiveUser(params.AdminUserId, cast.ToInt(params.Robot[`id`]), params.AppType); err != nil {
 			logs.Error(err.Error())

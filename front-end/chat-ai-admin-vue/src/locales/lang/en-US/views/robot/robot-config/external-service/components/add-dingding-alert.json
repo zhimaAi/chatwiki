@@ -1,0 +1,21 @@
+{
+  "title_config_dingding": "Configure DingTalk Robot",
+  "btn_cancel": "Cancel",
+  "btn_save_next": "Save and Proceed to Next Step",
+  "btn_config_completed": "Configuration Completed",
+  "tip_config_dingding": "Log in to the DingTalk Open Platform backend, complete the configuration according to the documentation, and publish the application <a href=\"https://open.dingtalk.com/\" target=\"_blank\">Log in to Backend</a>, <a href=\"https://www.yuque.com/zhimaxiaoshiwangluo/pggco1/cou9iaitt0v2pe5v?singleDoc#\" target=\"_blank\">How to Configure?</a>\nAfter adding the application, copy the Client ID and API Client Secret and fill them in the configuration below",
+  "label_robot_avatar_name": "Robot Avatar/Name",
+  "ph_enter_robot_name": "Please enter your robot name",
+  "label_client_id": "Client ID",
+  "ph_enter_client_id": "Please enter your Client ID",
+  "label_client_secret": "Client Secret",
+  "ph_enter_client_secret": "Please enter your Client Secret",
+  "tip_copy_http_url": "Copy the following HTTP address and fill it in the message receiving mode - select HTTP mode message receiving address in DingTalk application details > application capabilities > robot configuration",
+  "btn_copy": "Copy",
+  "msg_save_success": "Saved successfully",
+  "msg_copy_success": "Copied successfully",
+  "rule_required_robot_name": "Please enter your robot name",
+  "rule_required_avatar": "Please upload robot avatar",
+  "rule_required_app_id": "Please enter your AppId",
+  "rule_required_api_secret": "Please enter your Api Secret"
+}

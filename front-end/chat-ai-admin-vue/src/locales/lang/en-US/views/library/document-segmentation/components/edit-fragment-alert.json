@@ -1,0 +1,18 @@
+{
+  "title": "Edit Segment",
+  "label_title": "Segment Title:",
+  "ph_title": "Please enter segment title",
+  "label_question": "Segment Question:",
+  "ph_question": "Please enter segment question",
+  "label_similar": "Similar Questions (one per line, up to 100 similar questions)",
+  "ph_similar": "Please enter similar questions",
+  "label_answer": "Segment Answer:",
+  "ph_answer": "Please enter segment answer",
+  "label_content": "Segment Content:",
+  "ph_content": "Please enter segment content",
+  "label_attachment": "Attachment",
+  "tab_images": "Images",
+  "validation_content": "Please enter segment content",
+  "validation_question": "Please enter segment question",
+  "validation_answer": "Please enter segment answer"
+}

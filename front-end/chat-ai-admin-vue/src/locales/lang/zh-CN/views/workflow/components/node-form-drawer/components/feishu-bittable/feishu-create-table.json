@@ -1,0 +1,9 @@
+{
+  "label_table_name": "数据表名称",
+  "ph_input_content": "请输入内容，键入\"/\"可以插入变量",
+  "desc_table_name": "数据表名称；名称中的首尾空格将会被默认去除，不可以包含 / \\ ? * : [ ] 等特殊字符\"；1 字符 ～ 100 字符",
+  "label_view_name": "表格视图的名称",
+  "desc_view_name": "表格视图的名称；名称中的首尾空格将会被默认去除，名称中不允许包含 [ ] 两个字符",
+  "label_initial_fields": "数据表的初始字段",
+  "desc_initial_fields": "如果传入了表格视图的名称，则必须传入数据表的初始字段。示例：[{\"field_name\":\"索引字段\",\"type\":1},{\"field_name\":\"单选\",\"type\":3,\"ui_type\":\"SingleSelect\",\"property\":{\"options\":[{\"name\":\"Enabled\"},{\"name\":\"Disabled\"}]}}]"
+}

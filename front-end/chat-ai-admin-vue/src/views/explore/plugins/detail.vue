@@ -2,7 +2,7 @@
   <div class="_container _plugin-detail-cont">
     <div class="header">
       <LeftOutlined @click="router.back()" class="back-icon"/>
-      <span class="title">插件详情</span>
+      <span class="title">{{ t('title_plugin_detail') }}</span>
     </div>
     <LoadingBox v-if="loading"/>
     <div v-else class="content">
@@ -16,13 +16,13 @@
             </div>
             <div class="right">
               <a v-if="info.help_url" :href="info.help_url" target="_blank">
-                <a-button type="primary" ghost>使用说明</a-button>
+                <a-button type="primary" ghost>{{ t('btn_usage_guide') }}</a-button>
               </a>
               <template v-if="info.local">
-                <a-button v-if="info.has_update" type="primary" @click="install">更 新</a-button>
-                <a-button v-else>已安装</a-button>
+                <a-button v-if="info.has_update" type="primary" @click="install">{{ t('btn_update') }}</a-button>
+                <a-button v-else>{{ t('btn_installed') }}</a-button>
               </template>
-              <a-button v-else type="primary" @click="install">安 装</a-button>
+              <a-button v-else type="primary" @click="install">{{ t('btn_install') }}</a-button>
             </div>
           </div>
         </div>
@@ -38,24 +38,24 @@
       <div class="detail-info">
         <div class="left">
           <div v-if="info.overview" class="main-block">
-            <div class="main-tit">插件概叙</div>
+            <div class="main-tit">{{ t('title_plugin_overview') }}</div>
             <pre class="text-cont">{{info.overview}}</pre>
           </div>
           <div class="main-block">
-            <div class="main-tit">使用说明</div>
+            <div class="main-tit">{{ t('btn_usage_guide') }}</div>
             <pre class="text-cont" v-viewer v-html="info.introduction"></pre>
           </div>
         </div>
         <div class="right">
           <div class="main-block">
-            <div class="main-tit">类别</div>
+            <div class="main-tit">{{ t('title_category') }}</div>
             <div class="text-cont flex-center">
               <img class="cate-icon" :src="info.filter_type_icon"/>
               {{info.filter_type_title}}
             </div>
           </div>
           <div class="main-block">
-            <div class="main-tit">版本</div>
+            <div class="main-tit">{{ t('title_version') }}</div>
             <div class="version-info">
               v{{ info.latest_version }}
               <a-divider type="vertical"/>
@@ -63,14 +63,14 @@
             </div>
             <div class="text-cont">{{info?.latest_version_detail?.upgrade_description}}</div>
             <div>
-              <a @click="showVersionHistory">版本历史
+              <a @click="showVersionHistory">{{ t('btn_version_history') }}
                 <RightOutlined/>
               </a>
             </div>
           </div>
           <div class="main-block">
-            <div class="main-tit">权限列表</div>
-            <div class="text-cont">最大内存 {{ info?.latest_version_detail?.memory }}MB</div>
+            <div class="main-tit">{{ t('title_permissions') }}</div>
+            <div class="text-cont">{{ t('label_max_memory') }} {{ info?.latest_version_detail?.memory }}MB</div>
           </div>
         </div>
       </div>
@@ -90,7 +90,9 @@ import VersionModal from "./components/version-modal.vue";
 import UpdateModal from "./components/update-modal.vue";
 import LoadingBox from "@/components/common/loading-box.vue";
 import {getPluginInfo} from "@/api/plugins/index.js";
+import { useI18n } from '@/hooks/web/useI18n';
 
+const { t } = useI18n('views.explore.plugins.detail')
 const router = useRouter()
 const route = useRoute()
 

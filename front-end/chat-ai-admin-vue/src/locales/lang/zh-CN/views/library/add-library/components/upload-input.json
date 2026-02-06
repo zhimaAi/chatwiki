@@ -1,0 +1,1 @@
+{"upload_text": "点击或将文件拖拽到这里上传", "upload_hint": "一次只能上传{maxCount}个文档，单个文件不超过100M", "support_file_types": "支持文件类型：", "max_files_error": "一次最多上传{maxCount}个文件", "unsupported_format_error": "不支持的文件格式", "file_size_error": "文件大小不能超过100M"}

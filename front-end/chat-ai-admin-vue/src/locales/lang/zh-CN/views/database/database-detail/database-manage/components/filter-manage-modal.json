@@ -1,0 +1,21 @@
+{
+  "modal_title": "管理分类",
+  "column_category_name": "分类名称",
+  "column_type": "类型",
+  "column_enabled": "启用分类",
+  "column_action": "操作",
+  "text_all": "全部",
+  "type_system": "系统分类",
+  "type_custom": "自定义分类",
+  "switch_on": "开",
+  "switch_off": "关",
+  "action_edit": "编辑",
+  "action_delete": "删除",
+  "msg_sort_success": "排序成功",
+  "msg_set_success": "设置成功",
+  "modal_delete_title": "删除确认",
+  "modal_delete_content": "确认删除该分类?",
+  "modal_delete_ok": "确 定",
+  "modal_delete_cancel": "取 消",
+  "msg_delete_success": "删除成功"
+}

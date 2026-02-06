@@ -5,7 +5,7 @@
       v-model:open="open"
       :confirm-loading="confirmLoading"
       :maskClosable="false"
-      title="上传文档"
+      :title="t('title_upload_document')"
       @ok="handleSaveFiles"
       @cancel="handleCloseFileUploadModal"
     >
@@ -13,22 +13,22 @@
         <a-alert show-icon>
           <template #message>
             <div>
-              通过word或者Excel形式导入问答，建议您参考<a
+              {{ t('msg_import_via_word_excel') }}<a
                 href="https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/template/FAQ导入模板.docx"
-                >word导入模板</a
+                >{{ t('label_word_template') }}</a
               >&nbsp;
               <a href="https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/template/FAQ 导入模板.xlsx"
-                >Excel导入模板</a
-              >创建导入文档
+                >{{ t('label_excel_template') }}</a
+              >{{ t('msg_create_import_document') }}
             </div>
-            <div>如果您不是使用导入模板创建的文档，可以点击高级设置指定提取规则</div>
-            <div>知识库已有相同的问题时，会覆盖原有问答</div>
+            <div>{{ t('msg_specify_extraction_rules') }}</div>
+            <div>{{ t('msg_duplicate_question_override') }}</div>
           </template>
         </a-alert>
       </div>
       <a-flex align="center" style="margin: 16px 0">
-        <div>所属分组：</div>
-        <a-select v-model:value="formState.group_id" style="flex: 1" placeholder="请选择分组">
+        <div>{{ t('label_belong_group') }}</div>
+        <a-select v-model:value="formState.group_id" style="flex: 1" :placeholder="t('ph_select_group')">
           <a-select-option
             v-for="item in props.groupLists.filter((item) => item.id >= 0)"
             :value="item.id"
@@ -41,7 +41,7 @@
       </div>
       <div class="hight-set" v-if="fileList.length > 0">
         <a @click="isHide = !isHide"
-          >高级设置：
+          >{{ t('label_advanced_settings') }}
 
           <DownOutlined v-if="!isHide" />
           <UpOutlined v-else />
@@ -49,11 +49,11 @@
         <template v-if="isHide">
           <div class="set-box" v-if="fileType == 1">
             <div class="form-item">
-              <div class="form-item-label required">问题所在列：</div>
+              <div class="form-item-label required">{{ t('label_question_column') }}</div>
               <div class="form-item-body">
                 <a-select
                   v-model:value="formState.question_column"
-                  placeholder="请选择列名"
+                  :placeholder="t('ph_select_column')"
                   style="width: 100%"
                 >
                   <a-select-option
@@ -66,11 +66,11 @@
               </div>
             </div>
             <div class="form-item">
-              <div class="form-item-label">相似问法所在列：</div>
+              <div class="form-item-label">{{ t('label_similar_question_column') }}</div>
               <div class="form-item-body">
                 <a-select
                   v-model:value="formState.similar_column"
-                  placeholder="请选择相似问题所在列"
+                  :placeholder="t('ph_select_similar_question_column')"
                   style="width: 100%"
                 >
                   <a-select-option
@@ -84,11 +84,11 @@
             </div>
 
             <div class="form-item">
-              <div class="form-item-label required">答案所在列：</div>
+              <div class="form-item-label required">{{ t('label_answer_column') }}</div>
               <div class="form-item-body">
                 <a-select
                   v-model:value="formState.answer_column"
-                  placeholder="请选择答案所在列"
+                  :placeholder="t('ph_select_answer_column')"
                   style="width: 100%"
                 >
                   <a-select-option
@@ -103,21 +103,21 @@
           </div>
           <div class="set-box" v-if="fileType == 2">
             <div class="form-item">
-              <div class="form-item-label">问题开始标识符：</div>
+              <div class="form-item-label">{{ t('label_question_start_marker') }}</div>
               <div class="form-item-body">
-                <a-input placeholder="请输入标识符" v-model:value="formState.question_lable" />
+                <a-input :placeholder="t('ph_input_marker')" v-model:value="formState.question_lable" />
               </div>
             </div>
             <div class="form-item">
-              <div class="form-item-label">相似问法开始标识符：</div>
+              <div class="form-item-label">{{ t('label_similar_question_start_marker') }}</div>
               <div class="form-item-body">
-                <a-input placeholder="请输入标识符" v-model:value="formState.similar_label" />
+                <a-input :placeholder="t('ph_input_marker')" v-model:value="formState.similar_label" />
               </div>
             </div>
             <div class="form-item">
-              <div class="form-item-label">答案开始标识符：</div>
+              <div class="form-item-label">{{ t('label_answer_start_marker') }}</div>
               <div class="form-item-body">
-                <a-input placeholder="请输入标识符" v-model:value="formState.answer_lable" />
+                <a-input :placeholder="t('ph_input_marker')" v-model:value="formState.answer_lable" />
               </div>
             </div>
           </div>
@@ -135,6 +135,9 @@ import { readLibFileExcelTitle, addLibraryFile } from '@/api/library/index'
 import { message } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useLibraryStore } from '@/stores/modules/library'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.library-details.components.qa-upload-modal')
 const libraryStore = useLibraryStore()
 const { qa_index_type } = libraryStore
 
@@ -168,9 +171,9 @@ const formState = reactive({
   question_column: void 0,
   answer_column: void 0,
   similar_column: void 0,
-  question_lable: '问题：',
-  answer_lable: '答案：',
-  similar_label: '相似问法：',
+  question_lable: 'label_question',
+  answer_lable: 'label_answer',
+  similar_label: 'label_similar_question',
   group_id: void 0,
 })
 
@@ -203,7 +206,7 @@ const getExcelQaTitle = () => {
 
 const handleSaveFiles = () => {
   if (fileList.value.length == 0) {
-    message.error('请选择文件')
+    message.error(t('msg_select_file'))
     return
   }
 
@@ -222,19 +225,19 @@ const handleSaveFiles = () => {
   if (isTableType) {
     if(!formState.question_column){
       confirmLoading.value = false
-      return message.error('请选择问题所在列')
+      return message.error(t('msg_select_question_column'))
     }
     if(!formState.answer_column){
       confirmLoading.value = false
-      return message.error('请选择答案所在列')
+      return message.error(t('msg_select_answer_column'))
     }
     formData.append('question_column', formState.question_column)
     formData.append('answer_column', formState.answer_column)
     formState.similar_column && formData.append('similar_column', formState.similar_column)
   } else {
-    formData.append('question_lable', formState.question_lable)
-    formData.append('answer_lable', formState.answer_lable)
-    formData.append('similar_label', formState.similar_label)
+    formData.append('question_lable', t(formState.question_lable))
+    formData.append('answer_lable', t(formState.answer_lable))
+    formData.append('similar_label', t(formState.similar_label))
   }
   formData.append('group_id', formState.group_id >= 0 ? formState.group_id : 0)
   formData.append('is_qa_doc', 1)
@@ -263,9 +266,9 @@ const onFilesChange = (files) => {
   formState.question_column = void 0
   formState.answer_column = void 0
   formState.similar_column = void 0
-  formState.question_lable = '问题：'
-  formState.answer_lable = '答案：'
-  formState.similar_label = '相似问法：'
+  formState.question_lable = 'label_question'
+  formState.answer_lable = 'label_answer'
+  formState.similar_label = 'label_similar_question'
   fileList.value = files
   if (files && files.length > 0) {
     if (files[0].type.includes('.document')) {

@@ -1,5 +1,6 @@
 import { fetchEventSource, EventStreamContentType } from '@/libs/fetch-event-source'
 import type { EventSourceMessage } from '@/libs/fetch-event-source'
+import { useLocaleStoreWithOut } from '@/stores/modules/locale'
 
 // 定义SSEOptions类型
 type SSEOptions = {
@@ -31,6 +32,8 @@ export default class SSE {
   }
 
   open() {
+    const localeStore = useLocaleStoreWithOut()
+    const currentLocale = localeStore.getCurrentLocale
     const formdata = new FormData()
 
     for (const key in this.opt.data) {
@@ -43,6 +46,7 @@ export default class SSE {
       method: 'POST',
       headers: {
         'App-Type': 'yun_h5',
+        'lang': currentLocale.lang,
       },
       signal: this.controller.signal,
       // 允许在页面隐藏时继续接收消息(开启后不再触发自动重连的问题)

@@ -1,6 +1,6 @@
 <template>
   <div class="user-model-page">
-    <div class="page-title">调用日志</div>
+    <div class="page-title">{{ t('title_invoke_logs') }}</div>
     <div class="list-wrapper">
       <div class="content-wrapper">
         <div class="search-block">
@@ -15,7 +15,7 @@
             style="width: 256px"
             v-model:value="requestParams.openid"
             @change="onSearch"
-            placeholder="请输入openid"
+            :placeholder="t('ph_input_openid')"
           >
             <template #suffix>
               <SearchOutlined />
@@ -25,7 +25,7 @@
             style="width: 256px"
             v-model:value="requestParams.question"
             @change="onSearch"
-            placeholder="请输入问题"
+            :placeholder="t('ph_input_question')"
           >
             <template #suffix>
               <SearchOutlined />
@@ -43,15 +43,15 @@
             current: requestParams.page,
             total: requestParams.total,
             pageSize: requestParams.size,
-            showQuickJumper: true,
-            showSizeChanger: true,
+            show_quick_jumper: true,
+            show_size_changer: true,
             pageSizeOptions: ['10', '20', '50', '100']
           }"
           @change="onTableChange"
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'action'">
-              <a @click="handleOpenDetailModal(record)">查看明细</a>
+              <a @click="handleOpenDetailModal(record)">{{ t('btn_view_detail') }}</a>
             </template>
           </template>
         </a-table>
@@ -69,6 +69,9 @@ import { useRoute } from 'vue-router'
 import dayjs from 'dayjs'
 import LogsDetail from './components/logs-detail.vue'
 import { reactive, ref, onMounted } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.invoke-logs.index')
 const query = useRoute().query
 
 const dateRangePresets = getDateRangePresets()
@@ -141,43 +144,43 @@ const handleOpenDetailModal = (record) => {
 
 const columns = [
   {
-    title: 'openid',
+    title: t('label_openid'),
     dataIndex: 'openid',
     key: 'openid',
     width: 150
   },
   {
-    title: 'question',
+    title: t('label_question'),
     dataIndex: 'question',
     key: 'question',
     width: 250
   },
   {
-    title: '工作流版本',
+    title: t('label_workflow_version'),
     key: 'version',
     dataIndex: 'version',
     width: 130
   },
   {
-    title: '耗时',
+    title: t('label_duration'),
     key: 'duration_mills_desc',
     dataIndex: 'duration_mills_desc',
     width: 130
   },
   {
-    title: 'token消耗（K）',
+    title: t('label_token_consumption'),
     key: 'total_token_desc',
     dataIndex: 'total_token_desc',
     width: 130
   },
   {
-    title: '调用时间',
+    title: t('label_invoke_time'),
     key: 'create_time_desc',
     dataIndex: 'create_time_desc',
     width: 150
   },
   {
-    title: '操作',
+    title: t('label_action'),
     key: 'action',
     width: 100
   }

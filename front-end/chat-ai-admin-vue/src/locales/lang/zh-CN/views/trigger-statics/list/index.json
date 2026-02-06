@@ -1,0 +1,23 @@
+{
+  "knowledge_base": "知识库",
+  "database": "数据库",
+  "document_extraction_faq": "文档提取FAQ",
+  "trigger_count_statistics": "触发次数统计",
+  "title_total_triggers": "总触发次数",
+  "trigger_ranking": "触发排行",
+  "all_knowledge_base": "全部知识库",
+  "ranking": "排名",
+  "knowledge_content": "知识内容",
+  "question": "问题",
+  "answer": "答案",
+  "knowledge_base_group": "知识库分组",
+  "owned_knowledge_base": "所属知识库",
+  "unassigned": "未分配",
+  "trigger_count": "触发次数",
+  "details": "详情",
+  "proportion": "占比",
+  "by_content": "按内容",
+  "by_knowledge_base_group": "按知识库分组",
+  "by_knowledge_base": "按知识库",
+  "unknown_questions_total": "未知问题合计数量"
+}

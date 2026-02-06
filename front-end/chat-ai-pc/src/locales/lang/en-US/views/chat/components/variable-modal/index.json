@@ -1,0 +1,7 @@
+{
+  "title_fill_info": "Please fill in the information",
+  "ph_input": "Please enter {name}",
+  "ph_select": "Please select {name}",
+  "btn_submit": "Submit",
+  "msg_submit_failed": "Submission failed, please check your input"
+}

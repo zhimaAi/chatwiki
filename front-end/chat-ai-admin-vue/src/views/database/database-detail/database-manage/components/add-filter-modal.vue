@@ -9,13 +9,13 @@
         layout="vertical"
       >
         <a-form-item
-          label="分类名称"
+          :label="t('label_category_name')"
           name="name"
-          :rules="[{ required: true, message: '请输入分类名称' }]"
+          :rules="[{ required: true, message: t('validator_category_name_required') }]"
         >
-          <a-input :maxLength="64" v-model:value="formState.name" placeholder="请输入分类名称" />
+          <a-input :maxLength="64" v-model:value="formState.name" :placeholder="t('ph_category_name')" />
         </a-form-item>
-        <div class="form-required-item">筛选条件</div>
+        <div class="form-required-item">{{ t('label_filter_condition') }}</div>
         <div class="filter-list-box">
           <a-space
             v-for="(item, index) in formState.condition"
@@ -23,12 +23,12 @@
             style="display: flex; margin-bottom: 8px"
             align="baseline"
           >
-            <div>条件{{ index + 1 }}:</div>
+            <div>{{ t('condition_label', { index: index + 1 }) }}</div>
             <a-form-item>
               <a-select
                 v-model:value="item.form_field_id"
                 style="width: 150px"
-                placeholder="请选择"
+                :placeholder="t('ph_select')"
                 @change="handleChangeFiled(item, index)"
               >
                 <a-select-option
@@ -44,10 +44,10 @@
               :name="['condition', index, 'rule']"
               :rules="{
                 required: true,
-                message: '请选择规则'
+                message: t('validator_rule_required')
               }"
             >
-              <a-select v-model:value="item.rule" style="width: 120px" placeholder="请选择规则">
+              <a-select v-model:value="item.rule" style="width: 120px" :placeholder="t('validator_rule_required')">
                 <a-select-option
                   v-for="filed in ruleOptions[item.form_filed_type]"
                   :key="filed.value"
@@ -63,7 +63,7 @@
                 asyncValidator: (rule, value) => validatorItem1(rule, value, item),
               }"
             >
-              <a-input v-model:value="item.rule_value1" placeholder="请输入"></a-input>
+              <a-input v-model:value="item.rule_value1" :placeholder="t('ph_input')"></a-input>
             </a-form-item>
             <a-form-item
               v-show="is_show_rule_value2(item)"
@@ -73,18 +73,18 @@
                 trigger: 'blur'
               }"
             >
-              <a-input v-model:value="item.rule_value2" placeholder="请输入"></a-input>
+              <a-input v-model:value="item.rule_value2" :placeholder="t('ph_input')"></a-input>
             </a-form-item>
             <MinusCircleOutlined v-if="formState.condition.length > 1" @click="removeItem(index)" />
           </a-space>
           <div style="margin-left: 48px">
-            <a-button @click="handleAddItem">添加条件</a-button>
+            <a-button @click="handleAddItem">{{ t('btn_add_condition') }}</a-button>
           </div>
         </div>
-        <a-form-item label="条件之间关系" required>
+        <a-form-item :label="t('label_condition_relation')" required>
           <a-radio-group v-model:value="formState.type">
-            <a-radio value="1">与（And）</a-radio>
-            <a-radio value="2">或（Or）</a-radio>
+            <a-radio value="1">{{ t('radio_and') }}</a-radio>
+            <a-radio value="2">{{ t('radio_or') }}</a-radio>
           </a-radio-group>
         </a-form-item>
       </a-form>
@@ -97,9 +97,13 @@ import { PlusOutlined, QuestionCircleOutlined, MinusCircleOutlined } from '@ant-
 import { reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import { addFormFilter, editFormFilter, getFormFilterInfo } from '@/api/database'
 import { isNumberOrNumberString } from '@/utils/validate'
-const modalTitle = ref('添加分类')
+
+const { t } = useI18n('views.database.database-detail.database-manage.components.add-filter-modal')
+
+const modalTitle = ref(t('modal_title_add'))
 const rotue = useRoute()
 const query = rotue.query
 const emit = defineEmits(['ok'])
@@ -155,7 +159,7 @@ const handleAddItem = () => {
   let hasAddId = formState.condition.map((i) => i.form_field_id)
   let canAddItem = props.column.filter((i) => !hasAddId.includes(i.id))
   if (!canAddItem.length) {
-    message.error('字段已全部添加')
+    message.error(t('msg_field_all_added'))
     return
   }
   formState.condition.push({
@@ -187,17 +191,17 @@ const validatorItem1 = (rule, value, item) => {
   return new Promise((resolve, reject) => {
     if (is_show_rule_value1(item)) {
       if (!value) {
-        return reject('请输入')
+        return reject(t('validator_input_required'))
       }
       if (item.form_filed_type == 'integer') {
         if (!Number.isInteger(+value)) {
-          return reject('请输入整数')
+          return reject(t('validator_integer'))
         }
         return resolve()
       }
       if (item.form_filed_type == 'number') {
         if (!isNumberOrNumberString(value)) {
-          return reject('请输入数字')
+          return reject(t('validator_number'))
         }
         return resolve()
       }
@@ -212,23 +216,23 @@ const validatorItem2 = (rule, value, item) => {
   return new Promise((resolve, reject) => {
     if (is_show_rule_value2(item)) {
       if (!value) {
-        return reject('请输入')
+        return reject(t('validator_input_required'))
       }
       if (item.form_filed_type == 'integer') {
         if (!Number.isInteger(+value)) {
-          return reject('请输入整数')
+          return reject(t('validator_integer'))
         }
         if (+value < +item.rule_value1) {
-          return reject('右边的值需要大于左边的值')
+          return reject(t('validator_value2_greater'))
         }
         return resolve()
       }
       if (item.form_filed_type == 'number') {
         if (!isNumberOrNumberString(value)) {
-          return reject('请输入数字')
+          return reject(t('validator_number'))
         }
         if (+value < +item.rule_value1) {
-          return reject('右边的值需要大于左边的值')
+          return reject(t('validator_value2_greater'))
         }
         return resolve()
       }
@@ -241,7 +245,7 @@ const validatorItem2 = (rule, value, item) => {
 
 const show = () => {
   open.value = true
-  modalTitle.value = '添加分类'
+  modalTitle.value = t('modal_title_add')
   formatConditions()
   formState.name = ''
   formState.type = '1'
@@ -249,7 +253,7 @@ const show = () => {
 }
 const edit = (data) => {
   open.value = true
-  modalTitle.value = '编辑分类'
+  modalTitle.value = t('modal_title_edit')
   getFormFilterInfo({
     form_id: query.form_id,
     id: data.id
@@ -302,10 +306,10 @@ const handleOk = () => {
       condition: JSON.stringify(condition)
     }
     let methodUrl = addFormFilter
-    let tip = '添加成功'
+    let tip = t('msg_add_success')
     if (formState.id) {
       methodUrl = editFormFilter
-      tip = '编辑成功'
+      tip = t('msg_edit_success')
     }
     methodUrl(parmas).then((res) => {
       message.success(tip)
@@ -319,89 +323,89 @@ const handleOk = () => {
 const ruleOptions = ref({
   string: [
     {
-      label: '是',
+      label: t('rule_eq'),
       value: 'eq'
     },
     {
-      label: '不是',
+      label: t('rule_neq'),
       value: 'neq'
     },
     {
-      label: '包含',
+      label: t('rule_contain'),
       value: 'contain'
     },
     {
-      label: '不包含',
+      label: t('rule_not_contain'),
       value: 'not_contain'
     },
     {
-      label: '为空',
+      label: t('rule_empty'),
       value: 'empty'
     },
     {
-      label: '不为空',
+      label: t('rule_not_empty'),
       value: 'not_empty'
     }
   ],
   integer: [
     {
-      label: '大于',
+      label: t('rule_gt'),
       value: 'gt'
     },
     {
-      label: '小于',
+      label: t('rule_lt'),
       value: 'lt'
     },
     {
-      label: '大于等于',
+      label: t('rule_gte'),
       value: 'gte'
     },
     {
-      label: '小于等于',
+      label: t('rule_lte'),
       value: 'lte'
     },
     {
-      label: '等于',
+      label: t('rule_eq'),
       value: 'eq'
     },
     {
-      label: '介于',
+      label: t('rule_between'),
       value: 'between'
     }
   ],
   number: [
     {
-      label: '大于',
+      label: t('rule_gt'),
       value: 'gt'
     },
     {
-      label: '小于',
+      label: t('rule_lt'),
       value: 'lt'
     },
     {
-      label: '大于等于',
+      label: t('rule_gte'),
       value: 'gte'
     },
     {
-      label: '小于等于',
+      label: t('rule_lte'),
       value: 'lte'
     },
     {
-      label: '等于',
+      label: t('rule_eq'),
       value: 'eq'
     },
     {
-      label: '介于',
+      label: t('rule_between'),
       value: 'between'
     }
   ],
   boolean: [
     {
-      label: '是',
+      label: t('rule_true'),
       value: 'true'
     },
     {
-      label: '不是',
+      label: t('rule_false'),
       value: 'false'
     }
   ]

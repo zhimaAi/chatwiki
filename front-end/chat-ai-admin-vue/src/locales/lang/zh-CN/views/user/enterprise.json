@@ -12,5 +12,13 @@
   "on": "开",
   "off": "关",
   "saveSuccess": "保存成功",
-  "change": "修改"
+  "change": "修改",
+  "labelCookieAuth": "cookie授权提醒",
+  "msgCookieNotSet": "未设置（设置后对应IP访问相关页面时，会显示cookie授权提醒）",
+  "labelDomesticIp": "国内IP",
+  "labelOverseasIp": "国外IP",
+  "labelHome": "官网",
+  "labelLoginPage": "登录页",
+  "labelWebapp": "webapp对外服务",
+  "msgCookieEnabled": "已开启"
 }

@@ -15,23 +15,23 @@
           <div class="info-box">
             <div class="name zm-line1">{{ item.name }}</div>
             <div>
-              <div v-if="item.has_auth == 1" class="auth-tag">已授权</div>
-              <div v-else class="auth-tag fail">未授权</div>
+              <div v-if="item.has_auth == 1" class="auth-tag">{{ t('tag_authorized') }}</div>
+              <div v-else class="auth-tag fail">{{ t('tag_unauthorized') }}</div>
             </div>
           </div>
         </div>
         <div class="zm-line1">{{ item.url }}</div>
         <div class="bottom">
           <div class="extra-box">
-            <div class="extra-item">可用工具：{{ item.tools.length }}</div>
-            <div class="extra-item">{{ item.up_time_text }}更新</div>
+            <div class="extra-item">{{ t('label_available_tools') }}{{ item.tools.length }}</div>
+            <div class="extra-item">{{ item.up_time_text }} {{ t('label_updated') }}</div>
           </div>
           <a-dropdown>
             <a-button @click.stop size="small" :icon="h(EllipsisOutlined)"/>
             <template #overlay>
               <a-menu>
-                <a-menu-item @click.stop="editApp(item)">编辑</a-menu-item>
-                <a-menu-item @click.stop="delApp(item)"><span class="cFB363F">删除</span></a-menu-item>
+                <a-menu-item @click.stop="editApp(item)">{{ t('btn_edit') }}</a-menu-item>
+                <a-menu-item @click.stop="delApp(item)"><span class="cFB363F">{{ t('btn_delete') }}</span></a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
@@ -40,9 +40,9 @@
     </div>
     <div v-else class="empty-box">
       <img src="@/assets/empty.png"/>
-      <div class="title">暂未添加外部MCP插件</div>
-      <div class="desc-box"><div class="link" @click="goMcpSquare">更多MCP？去MCP广场</div></div>
-      <a-button @click="showMcpModal" class="btn" type="primary">立即添加</a-button>
+      <div class="title">{{ t('title_no_mcp_added') }}</div>
+      <div class="desc-box"><div class="link" @click="goMcpSquare">{{ t('link_more_mcp') }}</div></div>
+      <a-button @click="showMcpModal" class="btn" type="primary">{{ t('btn_add_now') }}</a-button>
     </div>
 
     <ThirdMcpDetail ref="mcpDetailRef" @del="delApp" @edit="editApp" @auth="loadData"/>
@@ -59,6 +59,9 @@ import ThirdMcpStore from "@/views/robot/robot-list/components/third-mcp-store.v
 import {delTMcpProvider, getTMcpProviders} from "@/api/robot/thirdMcp.js";
 import { jsonDecode, timeNowGapFormat } from "@/utils/index.js";
 import { useRouter } from "vue-router";
+import { useI18n } from '@/hooks/web/useI18n';
+
+const { t } = useI18n('views.robot.robot-list.components.third-mcp-box')
 
 const router = useRouter()
 
@@ -117,13 +120,13 @@ function goMcpSquare () {
 
 function delApp(item) {
   Modal.confirm({
-    title: '确认删除该MCP插件？',
-    content: '删除后，其他应用的位置都不可使用！确认删除？',
-    okText: '确定',
-    cancelText: '取消',
+    title: t('modal_confirm_delete_title'),
+    content: t('modal_confirm_delete_content'),
+    okText: t('btn_confirm'),
+    cancelText: t('btn_cancel'),
     onOk: () => {
       delTMcpProvider({provider_id: item.id}).then(() => {
-        message.success('已删除')
+        message.success(t('msg_deleted'))
         loadData()
         mcpDetailRef.value && mcpDetailRef.value.hide()
       })
@@ -201,7 +204,8 @@ defineExpose({
       .extra-box {
         display: flex;
         align-items: center;
-        gap: 12px;
+        flex-wrap: wrap;
+        gap: 2px 12px;
         color: #8c8c8c;
         font-size: 12px;
         font-weight: 400;

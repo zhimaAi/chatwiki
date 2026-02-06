@@ -1,0 +1,1 @@
+{"desc_json_encode": "Convert variables to JSON string", "label_input": "Input", "ph_input_message": "Enter message content, type '/' to insert variable", "label_output_custom": "Output (Custom Output Fields)", "label_param_key": "Parameter Key", "label_type": "Type", "ph_input": "Please enter", "ph_select": "Please select"}

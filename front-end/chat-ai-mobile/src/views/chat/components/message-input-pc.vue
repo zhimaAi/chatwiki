@@ -6,7 +6,7 @@
         class="message-input"
         :value="props.value"
         :auto-size="{ minRows: 2, maxRows: 5 }"
-        :placeholder="translate('在此输入您想了解的内容，Shift+Enter换行')"
+        :placeholder="t('ph_input_message_with_shift')"
         @change="onChange"
         @keydown="handleKeydown"
       />
@@ -37,7 +37,7 @@ import { useChatStore } from '@/stores/modules/chat'
 import { useUserStore } from '@/stores/modules/user'
 import { Textarea as ATextarea, Spin as ASpin } from 'ant-design-vue'
 import { showToast } from 'vant'
-import { translate } from '@/utils/translate.js'
+import { useI18n } from '@/hooks/web/useI18n'
 import { useUpload } from '@/hooks/web/useUpload.js'
 import { checkChatRequestPermission } from '@/api/robot/index'
 import FileToolbar from './file-toolbar.vue'
@@ -69,6 +69,8 @@ const props = defineProps({
 })
 
 const { fileList } = toRefs(props)
+
+const { t } = useI18n('views.chat.components.message-input-pc')
 
 const { openFileDialog } = useUpload({
   limit: 10,

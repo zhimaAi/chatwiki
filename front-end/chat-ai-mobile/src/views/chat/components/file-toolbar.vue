@@ -23,7 +23,7 @@
           <div v-if="file.status === 'uploading'" class="progress-bar">
             <div class="progress" :style="{ width: file.percent + '%' }"></div>
           </div>
-          <div v-if="file.status === 'error'" class="error-text">上传失败</div>
+          <div v-if="file.status === 'error'" class="error-text">{{ t('msg_upload_failed') }}</div>
         </div>
       </div>
     </div>
@@ -33,6 +33,9 @@
 <script setup>
 import { api as viewerApi } from "v-viewer"
 import { computed } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.chat.components.file-toolbar')
 
 const props = defineProps({
   fileList: {

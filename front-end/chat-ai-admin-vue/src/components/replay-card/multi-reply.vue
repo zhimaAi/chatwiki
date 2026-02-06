@@ -3,22 +3,22 @@
     <a-tabs v-model:activeKey="activeTab" @change="onTabChange">
       <a-tab-pane key="imageText">
         <template #tab>
-          <span class="tab-with-icon"><svg-icon name="reply-content-image-text" size="14" /> 图文链接</span>
+          <span class="tab-with-icon"><svg-icon name="reply-content-image-text" size="14" /> {{ t('tab_image_text') }}</span>
         </template>
         <div class="form-grid">
-          <a-form :model="imageText" :rules="rules.imageText" ref="imageTextForm" layout="horizontal"
+          <a-form :model="imageText" :rules="rules.imageText" ref="imageTextForm" layout="vertical"
             :labelCol="labelCol" :wrapperCol="wrapperCol">
-            <a-form-item label="链接地址" name="url">
-              <a-input v-model:value="imageText.url" placeholder="链接请已http或https开头（备注将展示在客户昵称后）" />
+            <a-form-item :label="t('label_link_url')" name="url">
+              <a-input v-model:value="imageText.url" :placeholder="t('ph_link_url')" />
             </a-form-item>
-            <a-form-item label="链接标题" name="title">
-              <a-input v-model:value="imageText.title" placeholder="链接标题" />
+            <a-form-item :label="t('label_link_title')" name="title">
+              <a-input v-model:value="imageText.title" :placeholder="t('ph_link_title')" />
             </a-form-item>
-            <a-form-item label="链接描述" name="description">
-              <a-textarea v-model:value="imageText.description" auto-size placeholder="链接描述" :maxlength="300"
+            <a-form-item :label="t('label_link_desc')" name="description">
+              <a-textarea v-model:value="imageText.description" auto-size :placeholder="t('ph_link_desc')" :maxlength="300"
                 :showCount="true" />
             </a-form-item>
-            <a-form-item label="链接图片" name="thumb_url">
+            <a-form-item :label="t('label_link_image')" name="thumb_url">
               <a-input v-model:value="imageText.thumb_url" style="display:none" />
               <a-form-item-rest>
                 <div class="upload-row">
@@ -26,10 +26,10 @@
                     :custom-request="(options) => handleUpload(options, 'received_message_images')"
                     accept=".png,.jpg,.jpeg">
                     <a-button type="default">
-                      <UploadOutlined />上传图片
+                      <UploadOutlined />{{ t('btn_upload_image') }}
                     </a-button>
                   </a-upload>
-                  <a-input @paste="onPaste" @click="pasteImage" placeholder="复制粘贴上传图片">复制粘贴上传</a-input>
+                  <a-input @paste="onPaste" @click="pasteImage" :placeholder="t('ph_paste_upload')"></a-input>
                 </div>
                 <div v-if="imageText.thumb_url" class="preview-wrap">
                   <img v-viewer :src="imageText.thumb_url" class="preview" />
@@ -45,17 +45,17 @@
 
       <a-tab-pane key="text">
         <template #tab>
-          <span class="tab-with-icon"><svg-icon name="reply-content-text" size="14" /> 文字</span>
+          <span class="tab-with-icon"><svg-icon name="reply-content-text" size="14" /> {{ t('tab_text') }}</span>
         </template>
         <div class="text-area">
-          <a-textarea ref="textAreaRef" v-model:value="text.description" :rows="6" placeholder="请输入" :maxlength="300"
+          <a-textarea ref="textAreaRef" v-model:value="text.description" :rows="6" :placeholder="t('ph_input')" :maxlength="300"
             :showCount="true" />
           <div class="emoji-row">
             <a-popover v-model:open="showEmoji" placement="bottomLeft" trigger="click" :getPopupContainer="getPopup">
               <template #content>
                 <Picker :data="emojiIndex" :emojiSize="18" :showPreview="false" set="apple" @select="onEmojiSelect" />
               </template>
-              <a-tooltip title="插入表情">😊</a-tooltip>
+              <a-tooltip :title="t('tip_insert_emoji')">😊</a-tooltip>
             </a-popover>
           </div>
         </div>
@@ -63,7 +63,7 @@
 
       <a-tab-pane key="image">
         <template #tab>
-          <span class="tab-with-icon"><svg-icon name="reply-content-image" size="14" /> 图片</span>
+          <span class="tab-with-icon"><svg-icon name="reply-content-image" size="14" /> {{ t('tab_image') }}</span>
         </template>
         <div class="form-grid">
           <div class="upload-drop" @paste="onPaste" @drop.prevent="onDrop" @dragover.prevent>
@@ -77,7 +77,7 @@
               <a-upload :show-upload-list="false" :before-upload="handleBeforeUpload"
                 :custom-request="(options) => handleUpload(options, 'received_message_images')"
                 accept=".png,.jpg,.jpeg">
-                <div class="hint">支持点击空白处、拖拽、粘贴图片，上传图片不得超过2M，仅支持png、jpg、jpeg格式</div>
+                <div class="hint">{{ t('tip_image_upload') }}</div>
               </a-upload>
             </div>
           </div>
@@ -86,16 +86,16 @@
 
       <a-tab-pane key="url">
         <template #tab>
-          <span class="tab-with-icon"><svg-icon name="reply-content-link" size="14" /> 网址</span>
+          <span class="tab-with-icon"><svg-icon name="reply-content-link" size="14" /> {{ t('tab_url') }}</span>
         </template>
         <div class="form-grid">
-          <a-form :model="urlCard" :rules="rules.url" ref="urlForm" layout="horizontal" :labelCol="labelCol"
+          <a-form :model="urlCard" :rules="rules.url" ref="urlForm" layout="vertical" :labelCol="labelCol"
             :wrapperCol="wrapperCol">
-            <a-form-item label="链接标题" name="title">
-              <a-input v-model:value="urlCard.title" placeholder="请输入" />
+            <a-form-item :label="t('label_link_title')" name="title">
+              <a-input v-model:value="urlCard.title" :placeholder="t('ph_input')" />
             </a-form-item>
-            <a-form-item label="打开网址" name="url">
-              <a-input v-model:value="urlCard.url" placeholder="链接请已http或https开头（备注将展示在客户昵称后）" />
+            <a-form-item :label="t('label_link_url')" name="url">
+              <a-input v-model:value="urlCard.url" :placeholder="t('ph_link_url_2')" />
             </a-form-item>
           </a-form>
         </div>
@@ -103,34 +103,34 @@
 
       <a-tab-pane key="card">
         <template #tab>
-          <span class="tab-with-icon"><svg-icon name="applet" size="14" /> 小程序卡片</span>
+          <span class="tab-with-icon"><svg-icon name="applet" size="14" /> {{ t('tab_mini_card') }}</span>
         </template>
         <div class="form-grid">
-          <a-form :model="miniCard" :rules="rules.card" ref="cardForm" layout="horizontal" :labelCol="cardLabelCol"
+          <a-form :model="miniCard" :rules="rules.card" ref="cardForm" layout="vertical" :labelCol="cardLabelCol"
             :wrapperCol="cardWrapperCol">
             <a-alert type="info" style="margin-bottom: 16px;"
-              message="小程序卡片仅支持在公众号，微信客服和微信小程序中发送，其他渠道会发送失败公众号内回复必须是关联小程序，微信小程序内回复必须是当前的小程序" />
-            <a-form-item label="小程序标题" name="title">
-              <a-input v-model:value="miniCard.title" placeholder="请输入小程序卡片标题" />
+              :message="t('tip_mini_card')" />
+            <a-form-item :label="t('label_mini_title')" name="title">
+              <a-input v-model:value="miniCard.title" :placeholder="t('ph_mini_title')" />
             </a-form-item>
-            <a-form-item label="小程序appID" name="appid">
-              <a-input v-model:value="miniCard.appid" placeholder="请输入小程序appID" />
-              <div style="margin-top: 2px; color: #FB363F;">小程序右上角三个点>名字>更多资料>Appid;公众号内回复时必须跟小程序是关联关系</div>
+            <a-form-item :label="t('label_mini_appid')" name="appid">
+              <a-input v-model:value="miniCard.appid" :placeholder="t('ph_mini_appid')" />
+              <div style="margin-top: 2px; color: #FB363F;">{{ t('tip_mini_appid') }}</div>
             </a-form-item>
-            <a-form-item label="小程序路径" name="page_path">
-              <a-input v-model:value="miniCard.page_path" placeholder="请输入小程序路径" />
-              <div style="margin-top: 2px; color: #8C8C8C;">请联系小程序开发者获取路径,比如/pages/index/index,注意，路径建议以/开头</div>
+            <a-form-item :label="t('label_mini_path')" name="page_path">
+              <a-input v-model:value="miniCard.page_path" :placeholder="t('ph_mini_path')" />
+              <div style="margin-top: 2px; color: #8C8C8C;">{{ t('tip_mini_path') }}</div>
             </a-form-item>
-            <a-form-item label="小程序封面" name="thumb_url">
+            <a-form-item :label="t('label_mini_cover')" name="thumb_url">
               <a-input v-model:value="miniCard.thumb_url" style="display:none" />
               <a-form-item-rest>
                 <div class="upload-row">
                   <a-upload :show-upload-list="false" :before-upload="handleBeforeUpload"
                     :custom-request="(options) => handleUpload(options, 'received_message_images')"
                     accept=".png,.jpg,.jpeg">
-                    <a-button type="default">上传图片</a-button>
+                    <a-button type="default">{{ t('btn_upload_image_2') }}</a-button>
                   </a-upload>
-                  <a-input @paste="onPaste" @click="pasteImage" placeholder="复制粘贴上传图片">复制粘贴上传</a-input>
+                  <a-input @paste="onPaste" @click="pasteImage" :placeholder="t('ph_paste_upload_2')"></a-input>
                 </div>
                 <div v-if="miniCard.thumb_url" class="preview-wrap">
                   <img v-viewer :src="miniCard.thumb_url" class="preview" />
@@ -146,14 +146,14 @@
 
       <a-tab-pane key="smartMenu" v-if="show_smart">
         <template #tab>
-          <span class="tab-with-icon"><svg-icon name="reply-content-smart" size="14" /> 智能菜单</span>
+          <span class="tab-with-icon"><svg-icon name="reply-content-smart" size="14" /> {{ t('tab_smart_menu') }}</span>
         </template>
         <div class="smart-tab-box">
           <a-button type="dashed" class="choose-smart-btn" @click="openSmartChoose">
             <template #icon>
               <PlusOutlined />
             </template>
-            选择智能菜单
+            {{ t('btn_choose_smart') }}
           </a-button>
           <div v-if="smartPreview.id" class="smart-preview">
             <div class="smart-list-card">
@@ -179,8 +179,8 @@
               </div>
               <div class="smart-card-footer">
                 <div class="smart-footer-left">
-                  <div class="smart-menu-name">{{ smartPreview.title || '智能菜单' }}</div>
-                  <div class="smart-update-time">更新于{{ formatDateFn(smartPreview.update_time, 'YYYY-MM-DD') }}</div>
+                  <div class="smart-menu-name">{{ smartPreview.title || t('smart_menu') }}</div>
+                  <div class="smart-update-time">{{ t('updated_at') }}{{ formatDateFn(smartPreview.update_time, 'YYYY-MM-DD') }}</div>
                 </div>
               </div>
             </div>
@@ -195,7 +195,7 @@
       </template>
     </a-tabs>
 
-    <a-modal v-if="show_smart" v-model:open="smartChooseOpen" title="选择智能菜单" :width="860" @ok="onSmartChooseOk"
+    <a-modal v-if="show_smart" v-model:open="smartChooseOpen" :title="t('btn_choose_smart')" :width="860" @ok="onSmartChooseOk"
       @cancel="onSmartChooseCancel">
       <div class="smart-modal">
         <div class="smart-modal-header">
@@ -203,17 +203,17 @@
             <template #icon>
               <PlusOutlined />
             </template>
-            新增智能菜单
+            {{ t('btn_add_smart') }}
           </a-button>
           <template v-if="isSubscribeMode">
-            <span class="ml8">选择机器人：</span>
+            <span class="ml8">{{ t('label_select_robot') }}</span>
             <a-select v-model:value="selectedRobotId" style="width: 220px" @change="(val) => loadSmartList(val)">
               <a-select-option v-for="rb in robotOptions" :value="rb.id" :key="rb.id">{{ rb.name }}</a-select-option>
             </a-select>
           </template>
         </div>
         <div v-if="smartList.length === 0" class="smart-empty">
-          <a-empty description="暂无智能菜单" />
+          <a-empty :description="t('empty_smart_menu')" />
         </div>
         <div class="smart-grid" v-else>
           <div class="smart-card" v-for="it in smartList" :key="it.id" :class="{ selected: selectedSmartId === it.id }"
@@ -240,8 +240,8 @@
               </div>
               <div class="smart-card-footer">
                 <div class="smart-footer-left">
-                  <div class="smart-menu-name">{{ it.menu_title || it.menu_name || '智能菜单' }}</div>
-                  <div class="smart-update-time">更新于{{ formatDateFn(it.update_time, 'YYYY-MM-DD') }}</div>
+                  <div class="smart-menu-name">{{ it.menu_title || it.menu_name || t('smart_menu_2') }}</div>
+                  <div class="smart-update-time">{{ t('updated_at_2') }}{{ formatDateFn(it.update_time, 'YYYY-MM-DD') }}</div>
                 </div>
                 <div class="smart-footer-right" @click.stop>
                   <template v-if="selectedSmartId === it.id">
@@ -256,9 +256,9 @@
                       </a>
                       <template #overlay>
                         <a-menu>
-                          <a-menu-item key="edit" @click="editSmart(it)">编辑</a-menu-item>
+                          <a-menu-item key="edit" @click="editSmart(it)">{{ t('btn_edit') }}</a-menu-item>
                           <a-menu-item key="del" class="del" @click="delSmart(it)"
-                            style="color: #FF4D4F;">删除</a-menu-item>
+                            style="color: #FF4D4F;">{{ t('btn_delete') }}</a-menu-item>
                         </a-menu>
                       </template>
                     </a-dropdown>
@@ -286,6 +286,9 @@ import { getSmartMenuList, deleteSmartMenu, getSpecifyAbilityConfig, getRobotSpe
 import { getRobotList } from '@/api/robot/index.js'
 import dayjs from 'dayjs'
 import { DEFAULT_ROBOT_AVATAR } from '@/constants/index'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('components.replay-card.multi-reply')
 const route = useRoute()
 
 const user_smart_configs = ref(['exploreSubscribeReply', 'exploreCustomMenu'])
@@ -345,8 +348,8 @@ function initUserShowSmart () {
 
 let isUploading = false
 const emojiIndex = new EmojiIndex(emojiDataJson)
-const labelCol = { span: 3 }
-const wrapperCol = { span: 21 }
+const labelCol = { span: 5 }
+const wrapperCol = { span: 19 }
 const cardLabelCol = { span: 4 }
 const cardWrapperCol = { span: 20 }
 const imageTextForm = ref(null)
@@ -356,44 +359,44 @@ const cardForm = ref(null)
 watch(() => text.description, (v) => {
   const s = String(v || '')
   if (s.length > 300) {
-    message.warning('最多输入300个字')
+    message.warning(t('msg_max_chars'))
     text.description = s.slice(0, 300)
   }
 })
 watch(() => imageText.description, (v) => {
   const s = String(v || '')
   if (s.length > 300) {
-    message.warning('最多输入300个字')
+    message.warning(t('msg_max_chars'))
     imageText.description = s.slice(0, 300)
   }
 })
 
 const rules = {
   imageText: {
-    url: [{ required: true, message: '请输入http/https地址' }, { validator: httpValidator }],
-    title: [{ required: true, message: '请输入标题' }],
-    description: [{ required: true, message: '请输入描述' }],
-    thumb_url: [{ required: true, message: '请上传链接图片' }]
+    url: [{ required: true, message: t('msg_input_http_https') }, { validator: httpValidator }],
+    title: [{ required: true, message: t('msg_input_title') }],
+    description: [{ required: true, message: t('msg_input_desc') }],
+    thumb_url: [{ required: true, message: t('msg_upload_link_image') }]
   },
   url: {
-    title: [{ required: true, message: '请输入标题' }],
-    url: [{ required: true, message: '请输入http/https地址' }, { validator: httpValidator }]
+    title: [{ required: true, message: t('msg_input_title_2') }],
+    url: [{ required: true, message: t('msg_input_http_https_2') }, { validator: httpValidator }]
   },
   card: {
-    title: [{ required: true, message: '请输入小程序标题' }],
-    appid: [{ required: true, message: '请输入小程序appID' }],
-    page_path: [{ required: true, message: '请输入小程序路径' }],
-    thumb_url: [{ required: true, message: '请上传小程序封面' }]
+    title: [{ required: true, message: t('msg_input_mini_title') }],
+    appid: [{ required: true, message: t('msg_input_mini_appid') }],
+    page_path: [{ required: true, message: t('msg_input_mini_path') }],
+    thumb_url: [{ required: true, message: t('msg_upload_mini_cover') }]
   },
   smartMenu: {
-    id: [{ required: true, message: '请选择智能菜单' }]
+    id: [{ required: true, message: t('msg_select_smart') }]
   }
 }
 
 function httpValidator (_rule, value) {
   if (!value) return Promise.resolve()
   const ok = /^https?:\/\//.test(value)
-  return ok ? Promise.resolve() : Promise.reject('链接需以http或https开头')
+  return ok ? Promise.resolve() : Promise.reject(t('msg_link_protocol'))
 }
 
 const showEmoji = ref(false)
@@ -409,7 +412,7 @@ function onEmojiSelect (emoji) {
     const val = text.description || ''
     let nextVal = val.slice(0, start) + char + val.slice(end)
     if ((nextVal || '').length > 300) {
-      message.warning('最多输入300个字')
+      message.warning(t('msg_max_chars_2'))
       nextVal = (nextVal || '').slice(0, 300)
     }
     text.description = nextVal
@@ -422,7 +425,7 @@ function onEmojiSelect (emoji) {
   } else {
     let nextVal = (text.description || '') + char
     if ((nextVal || '').length > 300) {
-      message.warning('最多输入300个字')
+      message.warning(t('msg_max_chars_2'))
       nextVal = (nextVal || '').slice(0, 300)
     }
     text.description = nextVal
@@ -438,12 +441,12 @@ function emitDel () { emit('del', props.reply_index) }
 function handleBeforeUpload (file) {
   const isValidType = file.type === 'image/jpeg' || file.type === 'image/png'
   if (!isValidType) {
-    message.error('只支持JPG、PNG格式的图片')
+    message.error(t('msg_image_format'))
     return false
   }
   const isLt2M = file.size / 1024 < 1024 * 2
   if (!isLt2M) {
-    message.error('图片大小不能超过2M')
+    message.error(t('msg_image_size'))
     return false
   }
   return true
@@ -468,7 +471,7 @@ async function handleUpload ({ file, onError, onSuccess }, category) {
     onSuccess && onSuccess(res)
     onChange()
   } catch (e) {
-    message.error('上传失败')
+    message.error(t('msg_upload_failed'))
     onError && onError(e)
   }
 }
@@ -618,7 +621,7 @@ function getPayload () {
 // 规避某些环境下 ant popover 的 getPopupContainer 使用 triggerNode.parentNode 导致的空引用
 function getPopup () { return document.body }
 
-function pasteImage () { message.info('复制图片后按Ctrl+V可尝试粘贴图片'); }
+function pasteImage () { message.info(t('msg_paste_image')); }
 function onPaste (e) {
   if (isUploading) return
   const items = e.clipboardData?.items || []
@@ -730,18 +733,18 @@ function buildPreviewLinesFromReplyContent (list) {
         })
       }
     } else if (t === 'imageText') {
-      const txt = rc?.title || rc?.description || '图文链接';
+      const txt = rc?.title || rc?.description || t('label_image_text');
       lines.push({ kind: 'keyword', text: txt })
     } else if (t === 'url') {
-      const txt = rc?.title || '链接';
+      const txt = rc?.title || t('label_link');
       lines.push({ kind: 'keyword', text: txt })
     } else if (t === 'image') {
-      lines.push({ kind: 'text', text: '图片' })
+      lines.push({ kind: 'text', text: t('label_image') })
     } else if (t === 'card') {
-      const txt = rc?.title || '小程序卡片';
+      const txt = rc?.title || t('label_mini_card');
       lines.push({ kind: 'text', text: txt })
     } else if (t === 'smartMenu') {
-      const txt = rc?.title || '智能菜单';
+      const txt = rc?.title || t('label_smart_menu');
       lines.push({ kind: 'text', text: txt })
     }
   })
@@ -764,8 +767,7 @@ function openSmartChoose () {
       if (def) loadSmartList(def)
     })
   } else {
-    const rid = query.id || ''
-    loadSmartList(rid)
+    loadSmartList()
   }
 }
 function openAddSmartMenu () { const url = `/#/robot/ability/smart-menu?id=${query.id}&robot_key=${query.robot_key}`; window.open(url, '_blank') }
@@ -773,17 +775,17 @@ function loadSmartList (robot_id) {
   const rid = String(robot_id || query.id || '')
   getSmartMenuList({ robot_id: rid }).then((res) => {
     const list = Array.isArray(res?.data?.list) ? res.data.list : []
-    smartList.value = list.map((it) => ({
-      id: String(it.id || ''),
-      menu_title: it.menu_title || it.menu_name || '智能菜单',
-      update_time: Number(it.update_time || it.create_time || 0),
-      avatar_url: it.avatar_url || '',
-      menu_description: it.menu_description || '',
-      menu_content: Array.isArray(it.menu_content) ? it.menu_content : [],
-      reply_content: Array.isArray(it.reply_content) ? it.reply_content : []
-    }))
-    // 默认不选中任何智能菜单
-  }).catch(() => { smartList.value = [] })
+  smartList.value = list.map((it) => ({
+    id: String(it.id || ''),
+    menu_title: it.menu_title || it.menu_name || t('smart_menu_3'),
+    update_time: Number(it.update_time || it.create_time || 0),
+    avatar_url: it.avatar_url || '',
+    menu_description: it.menu_description || '',
+    menu_content: Array.isArray(it.menu_content) ? it.menu_content : [],
+    reply_content: Array.isArray(it.reply_content) ? it.reply_content : []
+  }))
+  // 默认不选中任何智能菜单
+}).catch(() => { smartList.value = [] })
 }
 
 async function loadRobotOptions () {
@@ -797,9 +799,9 @@ async function loadRobotOptions () {
 }
 
 function onSmartChooseOk () {
-  if (!selectedSmartId.value) { message.warning('请选择一个智能菜单'); return }
+  if (!selectedSmartId.value) { message.warning(t('msg_select_one_smart')); return }
   const picked = smartList.value.find((it) => String(it.id) === String(selectedSmartId.value))
-  if (!picked) { message.error('未找到所选智能菜单'); return }
+  if (!picked) { message.error(t('msg_smart_not_found')); return }
   smartPreview.id = String(picked.id || selectedSmartId.value)
   smartPreview.title = picked.menu_title || picked.menu_name || ''
   smartPreview.update_time = Number(picked.update_time || picked.create_time || 0)
@@ -824,7 +826,7 @@ function editSmart (it) {
 function delSmart (it) {
   deleteSmartMenu({ id: it.id, robot_id: query.id }).then((res) => {
     if (res && res.res == 0) {
-      message.success('删除成功')
+      message.success(t('msg_delete_success'))
       loadSmartList()
     }
   })
@@ -844,27 +846,27 @@ async function validate () {
   const t = activeTab.value
   try {
     if (t === 'imageText') {
-      try { await imageTextForm.value?.validate(); return true } catch (_e) { message.warning('请完善图文链接必填项'); return false }
+      try { await imageTextForm.value?.validate(); return true } catch (_e) { message.warning(t('msg_complete_image_text')); return false }
     }
     if (t === 'text') {
       const s = String(text.description || '').trim()
-      if (!s) { message.warning('请输入文字内容'); return false }
+      if (!s) { message.warning(t('msg_input_text')); return false }
       return true
     }
     if (t === 'image') {
       const url = String(image.thumb_url || '').trim()
-      if (!url) { message.warning('请上传图片'); return false }
+      if (!url) { message.warning(t('msg_upload_image_2')); return false }
       return true
     }
     if (t === 'url') {
-      try { await urlForm.value?.validate(); return true } catch (_e) { message.warning('请完善网址必填项'); return false }
+      try { await urlForm.value?.validate(); return true } catch (_e) { message.warning(t('msg_complete_url')); return false }
     }
     if (t === 'card') {
-      try { await cardForm.value?.validate(); return true } catch (_e) { message.warning('请完善小程序卡片必填项'); return false }
+      try { await cardForm.value?.validate(); return true } catch (_e) { message.warning(t('msg_complete_mini_card')); return false }
     }
     if (t === 'smartMenu') {
       const sid = String(selectedSmartId.value || smartPreview.id || '')
-      if (!sid) { message.warning('请选择智能菜单'); return false }
+      if (!sid) { message.warning(t('msg_select_smart_2')); return false }
       return true
     }
   } catch (_e) {

@@ -21,7 +21,7 @@ import (
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
-// CheckChanStream 检查流式输出的管道
+// CheckChanStream check stream output pipe
 func CheckChanStream(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if in.chanStream == nil {
 		out.Error = errors.New(`channel stream is nil`)
@@ -30,10 +30,10 @@ func CheckChanStream(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	return pipeline.PipeContinue
 }
 
-// SseKeepAlive 流式输出保活
+// SseKeepAlive stream output keep alive
 func SseKeepAlive(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	go func() {
-		defer func() { //防止:send on closed channel
+		defer func() { // prevent: send on closed channel
 			if r := recover(); r != nil {
 				logs.Error(`Recovered in SseKeepAlive:%v`, r)
 			}
@@ -41,7 +41,7 @@ func SseKeepAlive(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 		for {
 			time.Sleep(3 * time.Second)
 			if in.chanStreamClosed {
-				return //已关闭,不推送了
+				return // closed, no more push
 			}
 			in.Stream(sse.Event{Event: `keep-alive`, Data: tool.Date()})
 		}
@@ -49,13 +49,13 @@ func SseKeepAlive(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	return pipeline.PipeContinue
 }
 
-// StreamPing 给前端推送ping
+// StreamPing push ping to frontend
 func StreamPing(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	in.Stream(sse.Event{Event: `ping`, Data: tool.Time2Int()})
 	return pipeline.PipeContinue
 }
 
-// CheckParams 请求参数检查
+// CheckParams check request parameters
 func CheckParams(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if in.params.Error != nil {
 		out.Error = in.params.Error
@@ -67,7 +67,7 @@ func CheckParams(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 		in.Stream(sse.Event{Event: `error`, Data: out.Error.Error()})
 		return pipeline.PipeStop
 	}
-	//当输入为多模态时,进行基础的参数校验
+	// when input is multi-modal, perform basic parameter validation
 	if questionMultiple, ok := common.ParseInputQuestion(in.params.Question); ok {
 		for idx := range questionMultiple {
 			var imageTotal int
@@ -110,7 +110,7 @@ func FilterLibrary(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 		}
 		filteredLibIdList := libraryIdList
 
-		// 如果关闭了公众号知识库，需要移除公众号类库
+		// if official account knowledge base is closed, remove official account libraries
 		if !hasEnabledOfficialAccount {
 			libIds, err := msql.Model(`chat_ai_library`, define.Postgres).
 				Where(`admin_user_id`, cast.ToString(in.params.AdminUserId)).
@@ -139,7 +139,7 @@ func CloseOpenApiReceiver(in *ChatInParam, out *ChatOutParam) pipeline.PipeResul
 	return pipeline.PipeContinue
 }
 
-// GetDialogueId 校验对话或创建对话
+// GetDialogueId validate or create dialogue
 func GetDialogueId(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if in.params.DialogueId > 0 {
 		dialogue, err := common.GetDialogueInfo(in.params.DialogueId, in.params.AdminUserId, cast.ToInt(in.params.Robot[`id`]), in.params.Openid)
@@ -162,13 +162,13 @@ func GetDialogueId(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 		}
 		in.params.DialogueId = dialogueId
 	}
-	//记录对话ID
+	// record dialogue id
 	in.dialogueId = in.params.DialogueId
 	in.Stream(sse.Event{Event: `dialogue_id`, Data: in.dialogueId})
 	return pipeline.PipeContinue
 }
 
-// GetSessionId 获取会话ID
+// GetSessionId get session id
 func GetSessionId(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	sessionId, err := common.GetSessionId(in.params, in.dialogueId)
 	if err != nil {
@@ -176,13 +176,13 @@ func GetSessionId(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 		in.Stream(sse.Event{Event: `error`, Data: out.Error.Error()})
 		return pipeline.PipeStop
 	}
-	//记录会话ID
+	// record session id
 	in.sessionId = sessionId
 	in.Stream(sse.Event{Event: `session_id`, Data: in.sessionId})
 	return pipeline.PipeContinue
 }
 
-// CustomerPush 推送customer信息
+// CustomerPush push customer info
 func CustomerPush(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	customer, err := common.GetCustomerInfo(in.params.Openid, in.params.AdminUserId)
 	if err != nil {
@@ -190,15 +190,15 @@ func CustomerPush(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 		in.Stream(sse.Event{Event: `error`, Data: out.Error.Error()})
 		return pipeline.PipeStop
 	}
-	in.params.Customer = customer //更新一下
+	in.params.Customer = customer // update
 	in.Stream(sse.Event{Event: `customer`, Data: customer})
 	return pipeline.PipeContinue
 }
 
-// SaveCustomerMsg 保存customer消息
+// SaveCustomerMsg save customer message
 func SaveCustomerMsg(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	msgType, content := define.MsgTypeText, in.params.Question
-	//微信等应用:放过来的消息类型特殊处理
+	// wechat and other apps: special handling for message types
 	switch in.params.ReceivedMessageType {
 	case lib_define.MsgTypeImage:
 		msgType, content = define.MsgTypeImage, in.params.MediaIdToOssUrl
@@ -206,7 +206,7 @@ func SaveCustomerMsg(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 		showContent := lib_define.MsgTypeNameMap[in.params.ReceivedMessageType]
 		msgType, content = define.MsgTypeText, i18n.Show(in.params.Lang, `received_message_type`, showContent)
 	}
-	//当输入为多模态:改变入库的消息类型
+	// when input is multi-modal: change message type for database
 	if questionMultiple, ok := common.ParseInputQuestion(content); ok {
 		msgType, content = define.MsgTypeMixed, tool.JsonEncodeNoError(questionMultiple)
 	}
@@ -248,9 +248,9 @@ func SaveCustomerMsg(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	return pipeline.PipeContinue
 }
 
-// UpLastChatByC 更新last_chat
+// UpLastChatByC update last_chat
 func UpLastChatByC(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
-	content := common.GetFirstQuestionByInput(out.cMessage[`content`]) //多模态输入特殊处理
+	content := common.GetFirstQuestionByInput(out.cMessage[`content`]) // multi-modal input special handling
 	lastChat := msql.Datas{
 		`last_chat_time`:    out.cMessage[`create_time`],
 		`last_chat_message`: common.MbSubstr(content, 0, 1000),
@@ -285,7 +285,7 @@ func UpChatPromptVariablesByC(in *ChatInParam, out *ChatOutParam) pipeline.PipeR
 	return pipeline.PipeContinue
 }
 
-// WebsocketNotifyByC 接待变更通知
+// WebsocketNotifyByC receiver change notification
 func WebsocketNotifyByC(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	common.ReceiverChangeNotify(in.params.AdminUserId, `c_message`, out.cMessage)
 	return pipeline.PipeContinue
@@ -305,7 +305,7 @@ func SetRobotAbilityPayment(in *ChatInParam, out *ChatOutParam) pipeline.PipeRes
 	return pipeline.PipeContinue
 }
 
-// CheckPaymentManager 设置当前会话是否是授权码管理员
+// CheckPaymentManager check if current session is auth code manager
 func CheckPaymentManager(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if !in.robotAbilityPayment {
 		return pipeline.PipeContinue

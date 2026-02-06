@@ -337,13 +337,13 @@ func BaseCallWorkFlow(params *WorkFlowParams) (flow *WorkFlow, nodeLogs []common
 	if params.Draft.IsDraft {
 		startNodeKey = params.Draft.StartNodeKey
 		if len(startNodeKey) == 0 {
-			err = errors.New(i18n.Show(flow.params.Lang, "workflow_no_start_node_data"))
+			err = errors.New(i18n.Show(params.Lang, "workflow_no_start_node_data"))
 			return
 		}
 	} else {
 		startNodeKey = params.RealRobot[`start_node_key`]
 		if len(startNodeKey) == 0 {
-			err = errors.New(i18n.Show(flow.params.Lang, "workflow_no_start_node_data"))
+			err = errors.New(i18n.Show(params.Lang, "workflow_no_start_node_data"))
 			return
 		}
 	}

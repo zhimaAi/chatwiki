@@ -1,0 +1,9 @@
+{
+    "title_parse_curl": "Parse cURL",
+    "msg_parse_curl_tip": "Paste cURL command, the system will automatically parse and fill into HTTP request configuration. Only supports GET, POST requests.",
+    "ph_curl_example": "Paste cURL command, e.g.: curl -X POST https://api.example.com/data -H 'Content-Type: application/json' -d {data}",
+    "btn_parse": "Parse",
+    "btn_cancel": "Cancel",
+    "msg_input_curl": "Please enter cURL command",
+    "msg_only_get_post": "Only supports GET, POST requests"
+}

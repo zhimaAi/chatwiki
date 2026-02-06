@@ -1,0 +1,8 @@
+{
+  "label_node_count": "Node count: ",
+  "label_query_params": "Query Parameters",
+  "label_request_headers": "Request Headers",
+  "label_output_fields": "Output Fields",
+  "msg_no_http_tools": "No HTTP tools available",
+  "btn_go_add": "Add Now"
+}

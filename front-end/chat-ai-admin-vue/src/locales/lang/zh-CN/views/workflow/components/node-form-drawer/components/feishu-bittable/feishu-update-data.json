@@ -1,0 +1,9 @@
+{
+  "label_record_id": "record_id",
+  "ph_input_content": "请输入内容，键入\"/\"可以插入变量",
+  "desc_update_record_id": "待更新的记录ID；示例值：\"reCWNXZPQv\"",
+  "label_update_data": "更新数据",
+  "opt_select_update_data": "选择更新数据",
+  "opt_input_variable": "输入变量",
+  "desc_update_data_example": "内容示例：[{\"field_name\":\"文本\",\"ui_type\":\"Text\",\"value\":\"001\"},{\"field_name\":\"日期\",\"ui_type\":\"DateTime\",\"value\":1769077135214},{\"field_name\":\"数字\",\"ui_type\":\"Number\",\"value\":99},{\"field_name\":\"单选\",\"ui_type\":\"SingleSelect\",\"value\":\"选项1\"},{\"field_name\":\"多选\",\"ui_type\":\"MultiSelect\",\"value\":[\"类别A\",\"类别B\"]},{\"field_name\":\"复选框\",\"ui_type\":\"Checkbox\",\"value\":true}]"
+}

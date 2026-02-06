@@ -1,31 +1,34 @@
 <template>
   <div class="_container">
     <div class="main">
-      <div class="title"><a>应用收费</a> <span>让用户为价值买单！</span></div>
+      <div class="title"><a>{{ t('title_app_charging') }}</a> <span>{{ t('subtitle_value_payment') }}</span></div>
       <div class="content">
         <div class="item-box">
-          <div class="tit">设置收费规则</div>
-          <div class="desc">支持设置按次收费/按天收费两种收费模式</div>
+          <div class="tit">{{ t('title_set_pricing_rules') }}</div>
+          <div class="desc">{{ t('desc_pricing_modes') }}</div>
           <img src="@/assets/img/robot/app-charging/app-charging-img01.png"/>
         </div>
         <div class="item-box">
-          <div class="tit">用户购买授权码</div>
-          <div class="desc">用户扫码添加管理员购买授权码</div>
+          <div class="tit">{{ t('title_purchase_auth_code') }}</div>
+          <div class="desc">{{ t('desc_scan_to_purchase') }}</div>
           <img src="@/assets/img/robot/app-charging/app-charging-img02.png"/>
         </div>
         <div class="item-box">
-          <div class="tit">用户兑换使用</div>
-          <div class="desc">用户回复授权码，获取使用次数</div>
+          <div class="tit">{{ t('title_redeem_usage') }}</div>
+          <div class="desc">{{ t('desc_redeem_code') }}</div>
           <img src="@/assets/img/robot/app-charging/app-charging-img03.png"/>
         </div>
       </div>
-      <a-button type="primary" class="main-btn" @click="linkSetting">立即设置</a-button>
+      <a-button type="primary" class="main-btn" @click="linkSetting">{{ t('btn_setup_now') }}</a-button>
     </div>
   </div>
 </template>
 
 <script setup>
 import {useRoute, useRouter} from 'vue-router';
+import { useI18n } from '@/hooks/web/useI18n';
+
+const { t } = useI18n('views.robot.robot-config.payment.guide')
 
 const route = useRoute()
 const router = useRouter()

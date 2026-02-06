@@ -3,29 +3,29 @@
     <a-table :data-source="paragraphLists" :pagination="false">
       <a-table-column key="id" data-index="id" :width="1148">
         <template #title>
-          <template v-if="isQaLibray"> 问答（共{{ props.total }}个） </template>
-          <template v-else>分段 （共{{ props.total }}个分段）</template>
+          <template v-if="isQaLibray"> {{ t('title_qa', { total: props.total }) }} </template>
+          <template v-else>{{ t('title_segment', { total: props.total }) }}</template>
         </template>
         <template #default="{ record, index }">
           <a v-if="record.file_name" class="file-name-text" @click="toFileDetail(record)">{{
             record.file_name
           }}</a>
-          <div v-else class="file-name-text" style="color: #f40">原文档已删除</div>
+          <div v-else class="file-name-text" style="color: #f40">{{ t('text_file_deleted') }}</div>
           <template v-if="isQaLibray">
             <div class="qa-list-box">
               <div class="list-item">
-                <div class="list-label">问题</div>
+                <div class="list-label">{{ t('label_question') }}</div>
                 <div class="list-content">{{ record.question }}</div>
               </div>
               <div
                 class="list-item"
                 v-if="record.similar_questions && record.similar_questions.length"
               >
-                <div class="list-label">相似问法</div>
+                <div class="list-label">{{ t('label_similar_questions') }}</div>
                 <div class="list-content">{{ record.similar_questions.join('/') }}</div>
               </div>
               <div class="list-item">
-                <div class="list-label">答案</div>
+                <div class="list-label">{{ t('label_answer') }}</div>
                 <div class="list-content">{{ record.answer }}</div>
               </div>
               <div class="fragment-img" v-viewer>
@@ -36,11 +36,11 @@
           <template v-else>
             <div class="common-list-box">
               <div class="top-block">
-                <div class="title">分段{{ index + 1 }}</div>
+                <div class="title">{{ t('text_segment_index', { index: index + 1 }) }}</div>
                 <div class="title">
                   {{ record.title }}
                 </div>
-                <span>共{{ record.word_total }}个字符</span>
+                <span>{{ t('text_total_chars', { count: record.word_total }) }}</span>
               </div>
               <div class="content-box" v-html="record.content"></div>
               <div class="fragment-img" v-viewer>
@@ -50,34 +50,34 @@
           </template>
         </template>
       </a-table-column>
-      <a-table-column title="嵌入状态" key="status_text" data-index="status_text" :width="128">
+      <a-table-column :title="t('column_embedding_status')" key="status_text" data-index="status_text" :width="168">
         <template #default="{ record }">
-          <span class="status-tag" v-if="record.status == 0"><ClockCircleFilled /> 未转换</span>
+          <span class="status-tag" v-if="record.status == 0"><ClockCircleFilled /> {{ t('status_unconverted') }}</span>
           <span class="status-tag complete" v-if="record.status == 1"
-            ><CheckCircleFilled /> 已转换</span
+            ><CheckCircleFilled /> {{ t('status_converted') }}</span
           >
           <a-tooltip placement="top" v-if="record.status == 2">
             <template #title>
               <span>{{ record.errmsg }}</span>
             </template>
             <span>
-              <span class="status-tag status-error"><CloseCircleFilled /> 转换异常</span>
+              <span class="status-tag status-error"><CloseCircleFilled /> {{ t('status_error') }}</span>
             </span>
           </a-tooltip>
           <span class="status-tag running" v-if="record.status == 3"
-            ><a-spin size="small" /> 转换中</span
+            ><a-spin size="small" /> {{ t('status_converting') }}</span
           >
         </template>
       </a-table-column>
-      <a-table-column title="操作" key="action" data-index="action" :width="120">
+      <a-table-column :title="t('column_action')" key="action" data-index="action" :width="120">
         <template #default="{ record, index }">
           <div class="right-opration">
             <div class="hover-btn-box" v-if="isQaLibray">
               <a-popconfirm
                 v-if="record.category_id > 0"
-                title="是否取消该标记？"
-                ok-text="确定"
-                cancel-text="取消"
+                :title="t('confirm_cancel_tag')"
+                :ok-text="t('btn_confirm')"
+                :cancel-text="t('btn_cancel')"
                 @confirm="handleSetCategory(record, {})"
               >
                 <StarFilled :style="{ color: getColor(record), 'font-size': '16px' }" />
@@ -92,9 +92,9 @@
               <div class="hover-btn-box">
                 <a-popconfirm
                   v-if="record.category_id > 0"
-                  title="是否取消该标记？"
-                  ok-text="确定"
-                  cancel-text="取消"
+                  :title="t('confirm_cancel_tag')"
+                  :ok-text="t('btn_confirm')"
+                  :cancel-text="t('btn_cancel')"
                   @confirm="handleSetCategory(record, {})"
                 >
                   <StarFilled :style="{ color: getColor(record), 'font-size': '16px' }" />
@@ -116,7 +116,7 @@
                   <a-menu-item>
                     <div class="start-item" @click="handleOpenSetStartModal">
                       <SettingOutlined />
-                      <div>标记设置</div>
+                      <div>{{ t('menu_tag_settings') }}</div>
                     </div>
                   </a-menu-item>
                 </a-menu>
@@ -124,7 +124,7 @@
             </a-dropdown>
 
             <a-tooltip>
-              <template #title>重新转换</template>
+              <template #title>{{ t('tooltip_re_convert') }}</template>
               <div class="hover-btn-box" @click="toReSegmentationPage(record, index)">
                 <SyncOutlined />
               </div>
@@ -136,10 +136,10 @@
               <template #overlay>
                 <a-menu>
                   <a-menu-item>
-                    <div @click.stop="handleOpenEditModal(record)">编辑</div>
+                    <div @click.stop="handleOpenEditModal(record)">{{ t('menu_edit') }}</div>
                   </a-menu-item>
                   <a-menu-item>
-                    <div @click.stop="hanldleDelete(record)">删除</div>
+                    <div @click.stop="hanldleDelete(record)">{{ t('menu_delete') }}</div>
                   </a-menu-item>
                 </a-menu>
               </template>
@@ -155,6 +155,7 @@
 import { reactive, ref, computed, createVNode } from 'vue'
 import { message } from 'ant-design-vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
 import {
   ExclamationCircleOutlined,
   CheckCircleFilled,
@@ -178,6 +179,7 @@ import {
   saveCategoryParagraph
 } from '@/api/library'
 
+const { t } = useI18n('views.library.library-details.categary-manage.components.subsection-box')
 const emit = defineEmits([
   'handleDelParagraph',
   'handleScrollTargetPage',
@@ -206,9 +208,9 @@ const toReSegmentationPage = (item, index) => {
   let { id, title, content, question, answer, images, category_id, library_id } = item
   let similar_questions = item.similar_questions || []
   Modal.confirm({
-    title: '重新转换确认',
+    title: t('modal_re_convert_title'),
     icon: null,
-    content: `确定要重新转换【分段${index + 1}】吗?`,
+    content: t('modal_re_convert_content', { index: index + 1 }),
     onOk() {
       return new Promise((resolve, reject) => {
         saveCategoryParagraph({
@@ -240,9 +242,9 @@ const handleOpenEditModal = (item) => {
 }
 const hanldleDelete = (record) => {
   Modal.confirm({
-    title: '提示',
+    title: t('modal_tip_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '是否取消该标记?',
+    content: t('modal_tip_content'),
     onOk() {
       handleSetCategory(record, {})
     },
@@ -277,7 +279,7 @@ const handleSetCategory = (item, star = {}) => {
     id: item.id,
     category_id: star.id || 0
   }).then((res) => {
-    message.success('修改成功')
+    message.success(t('msg_modify_success'))
     if (!star.id) {
       emit('handleDelParagraph', item.id)
     } else {

@@ -1,0 +1,11 @@
+{
+  "title_log_detail": "日志详情",
+  "label_start_node_params": "开始节点参数",
+  "msg_input_question": "请输入question!",
+  "msg_input_openid": "请输入openid!",
+  "ph_input": "请输入",
+  "label_input": "输入",
+  "label_output": "输出",
+  "label_run_log": "运行日志",
+  "msg_copy_success": "复制成功"
+}

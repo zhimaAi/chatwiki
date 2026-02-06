@@ -15,14 +15,14 @@ import (
 	"github.com/zhimaAi/go_tools/msql"
 )
 
-// GetMaxRobotNum 获取最大排序
+// GetMaxRobotNum gets max sort number
 func GetMaxRobotNum(adminUserId int) (int, error) {
 	maxSortNum, err := msql.Model(`chat_ai_robot`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).Max(`sort_num`)
 	return cast.ToInt(maxSortNum), err
 }
 
-// MoveRobotSort 移动排序
+// MoveRobotSort moves robot sort order
 func MoveRobotSort(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
@@ -30,15 +30,15 @@ func MoveRobotSort(c *gin.Context) {
 	}
 
 	moveRobotId := cast.ToInt(c.DefaultPostForm(`move_robot_id`, `0`))
-	if moveRobotId <= 0 { //按应用类型筛选
+	if moveRobotId <= 0 { // Filter by app type
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `move_robot_id`, define.MaxRobotNum))))
 		return
 	}
 
 	toRobotId := cast.ToInt(c.DefaultPostForm(`to_robot_id`, `0`))
 
-	if toRobotId <= 0 { //按应用类型筛选
-		// 排在最前面 获取最大sort_num 排序
+	if toRobotId <= 0 { // Filter by app type
+		// Move to front, get max sort_num
 		maxSortNum, _ := GetMaxRobotNum(adminUserId)
 		_, err := msql.Model(`chat_ai_robot`, define.Postgres).
 			Where(`id`, cast.ToString(moveRobotId)).
@@ -50,7 +50,7 @@ func MoveRobotSort(c *gin.Context) {
 		common.FmtOk(c, nil)
 		return
 	} else {
-		// 排在指定位置后面 //同步替换位置排序sort_num 和 指定配置is_top  大于指定位置sort_num 的sort_num + 1
+		// Move after specified position, sync replace position sort_num and is_top config, increment sort_num for items greater than specified position
 		toRobotInfo, err := msql.Model(`chat_ai_robot`, define.Postgres).
 			Where(`id`, cast.ToString(toRobotId)).
 			Field(`id,is_top,sort_num`).Find()
@@ -58,7 +58,7 @@ func MoveRobotSort(c *gin.Context) {
 			common.FmtError(c, `sys_err`, err.Error())
 			return
 		}
-		//大于指定位置sort_num 的sort_num + 1
+		// Increment sort_num for items greater than specified position
 		_, err = msql.Model(`chat_ai_robot`, define.Postgres).
 			Where(`admin_user_id`, cast.ToString(adminUserId)).
 			Where(`sort_num`, `>=`, toRobotInfo[`sort_num`]).
@@ -67,7 +67,7 @@ func MoveRobotSort(c *gin.Context) {
 			common.FmtError(c, `sys_err`, err.Error())
 			return
 		}
-		//同步替换位置排序sort_num 和 指定配置is_top
+		// Sync replace position sort_num and is_top config
 		_, err = msql.Model(`chat_ai_robot`, define.Postgres).
 			Where(`id`, cast.ToString(moveRobotId)).
 			Update(msql.Datas{`sort_num`: toRobotInfo[`sort_num`], `is_top`: toRobotInfo[`is_top`]})

@@ -63,7 +63,7 @@ func OpenDoc(c *gin.Context) {
 			}
 		}
 	}
-	//  get catalog
+	// get catalog
 	catalog, err := common.GetLibDocCateLogByCache(cast.ToInt(info[`library_id`]), previewKey)
 	if err != nil {
 		logs.Error(err.Error())
@@ -117,13 +117,13 @@ func luteMdToHTML(markdownText string) string {
 		}
 		text := node.TokensStr()
 
-		// 匹配颜色和字体大小的正则表达式
+		// regular expression for matching color and font size
 		colorReg := `!!#([0-9a-fA-F]{6})`
 		sizeReg := `!(\d+)`
 
 		var style []string
 
-		// 提取颜色
+		// extract color
 		if strings.Contains(text, "!!#") {
 			if matches := regexp.MustCompile(colorReg).FindStringSubmatch(text); len(matches) > 1 {
 				style = append(style, fmt.Sprintf("color: #%s", matches[1]))
@@ -131,7 +131,7 @@ func luteMdToHTML(markdownText string) string {
 			}
 		}
 
-		// 提取字体大小
+		// extract font size
 		if strings.Contains(text, "!") {
 			if matches := regexp.MustCompile(sizeReg).FindStringSubmatch(text); len(matches) > 1 {
 				size := cast.ToInt(matches[1])
@@ -143,7 +143,7 @@ func luteMdToHTML(markdownText string) string {
 			}
 		}
 
-		// 清理结尾的标记
+		// clean up trailing markers
 		content := text
 		if strings.HasSuffix(content, "!!") {
 			content = content[:len(content)-2]
@@ -242,7 +242,7 @@ func OpenHome(c *gin.Context) {
 			}
 		}
 	}
-	//  get catalog
+	// get catalog
 	catalog, err := common.GetLibDocCateLogByCache(libraryId, previewKey)
 	if err != nil {
 		logs.Error(err.Error())
@@ -298,7 +298,7 @@ func OpenSearch(c *gin.Context) {
 		}
 	}
 	if typ == `html` {
-		//  get catalog
+		// get catalog
 		catalog, err := common.GetLibDocCateLogByCache(libraryId, "")
 		if err != nil {
 			logs.Error(err.Error())
@@ -321,7 +321,7 @@ func OpenSearch(c *gin.Context) {
 		}
 		common.FmtOk(c, docInfo)
 	} else {
-		//  get catalog
+		// get catalog
 		common.FmtOk(c, nil)
 	}
 }
@@ -453,7 +453,7 @@ func OpenDocApi(c *gin.Context) {
 			}
 		}
 	}
-	//  get catalog
+	// get catalog
 	catalog, err := common.GetLibDocCateLogByCache(cast.ToInt(info[`library_id`]), previewKey)
 	if err != nil {
 		logs.Error(err.Error())
@@ -466,9 +466,9 @@ func OpenDocApi(c *gin.Context) {
 	prev, next := common.FindPrevAndNext(catalog, docKey)
 
 	if prev != nil && prev.IsDir == 1 {
-		// 循环10次，找到第一个非目录的节点
+		// loop 10 times to find the first non-directory node
 		for i := 0; i < 10; i++ {
-			// 如果第一个节点是个空文件夹
+			// if the first node is an empty folder
 			if prev == nil || prev.DocKey == "" {
 				break
 			}
@@ -480,9 +480,9 @@ func OpenDocApi(c *gin.Context) {
 	}
 
 	if next != nil && next.IsDir == 1 {
-		// 循环10次，找到第一个非目录的节点
+		// loop 10 times to find the first non-directory node
 		for i := 0; i < 10; i++ {
-			//如果最后一个节点是空文件夹
+			// if the last node is an empty folder
 			if next == nil || next.DocKey == "" {
 				break
 			}
@@ -573,7 +573,7 @@ func OpenHomeApi(c *gin.Context) {
 			}
 		}
 	}
-	//  get catalog
+	// get catalog
 	catalog, err := common.GetLibDocCateLogByCache(libraryId, previewKey)
 	if err != nil {
 		logs.Error(err.Error())
@@ -583,16 +583,16 @@ func OpenHomeApi(c *gin.Context) {
 	// get question guide
 	questionGuide := common.GetQuestionGuideList(libraryId)
 
-	// 给默认的banner
+	// set default banner
 	if len(cast.ToString(info[`banner_img_url`])) == 0 {
 		info[`banner_img_url`] = define.DefaultLibDocBanner
 	}
 
-	// 渲染快捷文档
+	// render quick documents
 	quickDocContentValue := []msql.Datas{}
 	if len(cast.ToString(info[`quick_doc_content`])) > 0 {
-		var quickDocArr []msql.Datas // 快速文档内容数组
-		// 将quickDocIdArr中的doc_id提取出来，存到quickDocIds中
+		var quickDocArr []msql.Datas // quick document content array
+		// extract doc_id from quickDocIdArr and store in quickDocIds
 		var quickDocIdArr []msql.Datas
 		var quickDocIds []int
 		if err := tool.JsonDecode(cast.ToString(info[`quick_doc_content`]), &quickDocIdArr); err != nil {
@@ -610,7 +610,7 @@ func OpenHomeApi(c *gin.Context) {
 			if len(quickDocInfo) <= 0 {
 				continue
 			}
-			// 这里要把删除的文档干掉
+			// remove deleted documents here
 			if cast.ToInt(quickDocInfo[`delete_time`]) != 0 {
 				continue
 			}
@@ -626,13 +626,13 @@ func OpenHomeApi(c *gin.Context) {
 			quickDocItem[`create_time`] = quickDocInfo[`create_time`]
 			quickDocItem[`update_time`] = quickDocInfo[`update_time`]
 			quickDocItem[`children`] = common.GetLibDocCateLog(quickDocId, libraryId, false)
-			// 最后添加成数组
+			// finally add to array
 			quickDocArr = append(quickDocArr, quickDocItem)
 		}
 		quickDocContentValue = quickDocArr
 	}
 
-	// 再处理quick_doc_content
+	// process quick_doc_content again
 	quickDocContent := []msql.Datas{}
 	if len(cast.ToString(info[`quick_doc_content`])) > 0 {
 		err = tool.JsonDecode(cast.ToString(info[`quick_doc_content`]), &quickDocContent)
@@ -695,7 +695,7 @@ func OpenSearchApi(c *gin.Context) {
 			return
 		}
 	}
-	//  get catalog
+	// get catalog
 	catalog, err := common.GetLibDocCateLogByCache(libraryId, "")
 	if err != nil {
 		logs.Error(err.Error())

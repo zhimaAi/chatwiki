@@ -4,21 +4,24 @@
       <img src="@/assets/empty.png"/>
     </slot>
     <div class="title">
-      <slot name="title">{{ title }}</slot>
+      <slot name="title">{{ t(title) }}</slot>
     </div>
     <div class="desc">
-      <slot name="desc">{{ desc }}</slot>
+      <slot name="desc">{{ desc ? t(desc) : '' }}</slot>
     </div>
   </div>
 </template>
 
 <script setup>
-import {ref} from 'vue';
+import { computed } from 'vue';
+import { useI18n } from '@/hooks/web/useI18n';
+
+const { t } = useI18n('components.common.empty-box');
 
 const props = defineProps({
   title: {
     type: String,
-    default: '暂无数据'
+    default: 'no_data'
   },
   desc: {
     type: String,

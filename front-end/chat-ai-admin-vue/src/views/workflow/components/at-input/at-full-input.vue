@@ -1,12 +1,13 @@
 <template>
-  <div>
+  <div class="_full-input-box">
+    <FullscreenOutlined v-if="canFull" class="full-icon" @click="showFull"/>
     <AtInput
       :type="type"
       :inputStyle="inputStyle"
       :options="options"
       :defaultValue="innerValue"
       :defaultSelectedList="innerTags"
-      :placeholder="placeholder"
+      :placeholder="computedPlaceholder"
       :canRepeat="canRepeat"
       :isContain="isContain"
       :checkAnyLevel="checkAnyLevel"
@@ -26,7 +27,7 @@
       :options="options"
       :defaultValue="innerValue"
       :defaultSelectedList="innerTags"
-      placeholder="请输入内容，键入“/”可以插入变量"
+      :placeholder="t('ph_input_content_with_variable')"
       :type="type"
       @open="emit('open')"
       @change="handleChange"
@@ -37,10 +38,13 @@
 </template>
 
 <script setup>
-import {ref, watch} from 'vue'
+import {ref, watch, computed} from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+import {FullscreenOutlined} from '@ant-design/icons-vue'
 import AtInput from "./at-input.vue";
 import FullAtInput from "@/views/workflow/components/at-input/full-at-input.vue";
 
+const { t } = useI18n('views.workflow.components.at-input.at-full-input')
 const emit = defineEmits(['open', 'change'])
 const props = defineProps({
   type: {
@@ -52,7 +56,7 @@ const props = defineProps({
   },
   placeholder: {
     type: String,
-    default: "请输入",
+    default: "ph_input",
   },
   defaultValue: {
     type: [String, Number],
@@ -81,6 +85,10 @@ const props = defineProps({
   checkAnyLevel:{
     type: Boolean,
     default: false
+  },
+  canFull:{
+    type: Boolean,
+    default: false
   }
 })
 
@@ -88,6 +96,9 @@ const atInputRef = ref(null)
 const fullAtInputRef = ref(null)
 const innerValue = ref(props.defaultValue)
 const innerTags = ref(props.defaultSelectedList)
+const computedPlaceholder = computed(() => {
+  return props.placeholder === 'ph_input' ? t('ph_input') : props.placeholder
+})
 
 watch(
   () => props.defaultValue,
@@ -123,6 +134,17 @@ defineExpose({
 })
 </script>
 
-<style scoped>
+<style scoped lang="less">
+._full-input-box {
+  width: 100%;
+  position: relative;
 
+  .full-icon {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    cursor: pointer;
+    z-index: 999;
+  }
+}
 </style>

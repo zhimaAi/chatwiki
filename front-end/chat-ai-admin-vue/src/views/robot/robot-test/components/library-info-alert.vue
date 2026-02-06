@@ -111,7 +111,7 @@
   <a-drawer
     class="library-info-alert"
     v-model:open="show"
-    title="答案来源"
+    :title="t('title_answer_source')"
     placement="right"
     width="746px"
     :closable="false"
@@ -131,31 +131,31 @@
           @click="chagenFile(file)"
         >
           <span v-if="file.file_name">{{ file.file_name }}</span>
-          <span v-else>{{ file.library_name }}-精选</span>
+          <span v-else>{{ file.library_name }}-{{ t('label_selected') }}</span>
         </div>
       </div>
 
-      <div class="document-items">
+      <div class="document-items" ref="docBoxRef">
         <div class="document-item" v-for="item in documentList" :key="item.id">
           <div class="document-item-header">
             <div class="left-box">
-              <span class="document-title">id：{{ item.id }}</span>
+              <span class="document-title">{{ t('label_id') }}{{ item.id }}</span>
               <span class="document-title" v-if="item.title">{{ item.title }}</span>
-              <span class="document-size"> 共{{ item.word_total }}个字符 </span>
+              <span class="document-size"> {{ t('label_characters_count', { count: item.word_total }) }} </span>
             </div>
             <div class="right-box">
-              <a @click="viewSourceFile(item)" v-if="item.page_num > 0">预览原文件&gt;</a>
-              <a @click="toSource">查看源文档&gt;</a>
+              <a @click="viewSourceFile(item)" v-if="item.page_num > 0">{{ t('btn_preview_original_file') }}&gt;</a>
+              <a @click="toSource">{{ t('btn_view_source_document') }}&gt;</a>
             </div>
           </div>
 
           <div class="document-item-body">
             <div class="document-similarity">
-              相似度： <svg-icon name="similarity" style="font-size: 16px"></svg-icon
+              {{ t('label_similarity') }} <svg-icon name="similarity" style="font-size: 16px"></svg-icon
               >{{ item.similarity }}
             </div>
-            <div class="document-content" v-if="item.question">Q：{{ item.question }}</div>
-            <div class="document-content" v-if="item.answer">A：{{ item.answer }}</div>
+            <div class="document-content" v-if="item.question">{{ t('label_question') }}{{ item.question }}</div>
+            <div class="document-content" v-if="item.answer">{{ t('label_answer') }}{{ item.answer }}</div>
             <div class="document-content">
               {{ item.content }}
             </div>
@@ -183,10 +183,17 @@ import { CloseOutlined } from '@ant-design/icons-vue'
 import { getAnswerSource } from '@/api/chat/index'
 import VuePdfEmbed from 'vue-pdf-embed'
 import { useChatStore } from '@/stores/modules/chat'
+import { useI18n } from '@/hooks/web/useI18n'
+import { useMathJax } from "@/composables/useMathJax.js";
+
+const { t } = useI18n('views.robot.robot-test.components.library-info-alert')
+
 const chatStore = useChatStore()
 const { robot, user } = chatStore
 const router = useRouter()
+const { renderMath } = useMathJax()
 
+const docBoxRef = ref(null)
 const show = ref(false)
 
 const fileList = ref([])
@@ -244,6 +251,7 @@ const getDocumentList = (file) => {
     openid: robot.openid,
   }).then((res) => {
     documentList.value = res.data || []
+    renderMath(docBoxRef.value)
   })
 }
 
@@ -262,7 +270,7 @@ const viewTitle = computed(()=>{
   if(currentItem.file_name){
     return currentItem.file_name
   }
-  return currentItem.library_name + '-精选'
+  return currentItem.library_name + '-' + t('label_selected')
 })
 const sourceUrl = ref('')
 const viewOpen = ref(false)

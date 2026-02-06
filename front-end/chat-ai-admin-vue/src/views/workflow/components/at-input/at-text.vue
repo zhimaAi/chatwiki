@@ -3,6 +3,8 @@
 </template>
 
 <script>
+import { useI18n } from '@/hooks/web/useI18n'
+
 // 把树状的options抓换成编排的数组
 const getTreeOptions = (options) => {
   let result = [];
@@ -30,7 +32,7 @@ export default {
     },
     placeholder: {
       type: String,
-      default: "请输入",
+      default: "ph_input",
     },
     defaultValue: {
       type: [String, Number],
@@ -57,6 +59,12 @@ export default {
       default: "",
     }
   },
+  setup() {
+    const { t } = useI18n('views.workflow.components.at-input.at-text')
+    return {
+      t
+    }
+  },
   data() {
     return {
       timer: null,
@@ -70,6 +78,11 @@ export default {
       atText: "",
       localValue: "",
     };
+  },
+  computed: {
+    computedPlaceholder() {
+      return this.placeholder === 'ph_input' ? this.t('ph_input') : this.placeholder
+    }
   },
   watch: {
     defaultValue(val){

@@ -4,8 +4,8 @@
       <div class="popover-scroll-box">
         <div class="group-head-box">
           <div class="head-title">
-            <div>机器人分组</div>
-            <a-tooltip title="新建分组">
+            <div>{{ t('title_robot_groups') }}</div>
+            <a-tooltip :title="t('title_create_group')">
               <div class="hover-btn-wrap" @click="openGroupModal({})"><PlusOutlined /></div>
             </a-tooltip>
           </div>
@@ -13,7 +13,7 @@
             <a-input
               v-model:value="groupSearchKey"
               allowClear
-              placeholder="搜索分组"
+              :placeholder="t('ph_search_groups')"
               style="width: 100%"
             >
               <template #suffix>
@@ -41,10 +41,10 @@
                   <template #overlay>
                     <a-menu>
                       <a-menu-item>
-                        <div @click.stop="openGroupModal(item)">重命名</div>
+                        <div @click.stop="openGroupModal(item)">{{ t('btn_rename') }}</div>
                       </a-menu-item>
                       <a-menu-item>
-                        <div @click.stop="handleDelGroup(item)">删 除</div>
+                        <div @click.stop="handleDelGroup(item)">{{ t('btn_delete') }}</div>
                       </a-menu-item>
                     </a-menu>
                   </template>
@@ -54,7 +54,7 @@
           </div>
         </div>
       </div>
-      <a-tooltip placement="right" :title="isHideGroup ? '展开分组' : '收起分组'">
+      <a-tooltip placement="right" :title="isHideGroup ? t('title_expand_groups') : t('title_collapse_groups')">
         <div class="hide-group-box" @click="handleChangeHideGroup">
           <LeftOutlined v-if="!isHideGroup" />
           <RightOutlined v-else />
@@ -78,7 +78,7 @@
             <div class="robot-info-content">
               <div class="robot-name">{{ item.robot_name }}</div>
               <div class="robot-type-tag">
-                {{ item.application_type == 0 ? '聊天机器人' : '工作流' }}
+                {{ item.application_type == 0 ? t('label_chat_robot') : t('label_workflow') }}
               </div>
             </div>
           </div>
@@ -105,6 +105,9 @@ import { deleteRobotGroup } from '@/api/robot/index.js'
 import { Modal, message } from 'ant-design-vue'
 import AddGroup from '@/views/robot/robot-list/components/add-group.vue'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.components.robot-group')
 const robotStore = useRobotStore()
 
 const props = defineProps({
@@ -148,7 +151,7 @@ const robotGroupList = computed(() => {
   })
   return [
     {
-      group_name: '全部',
+      group_name: t('label_all'),
       total: totalNumber,
       id: ''
     },
@@ -180,17 +183,17 @@ const openGroupModal = (data) => {
 
 const handleDelGroup = (item) => {
   Modal.confirm({
-    title: `确认删除分组${item.group_name}`,
+    title: t('msg_confirm_delete_group', { name: item.group_name }),
     icon: createVNode(ExclamationCircleOutlined),
     content: '',
-    okText: '确认',
+    okText: t('btn_confirm'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('btn_cancel'),
     onOk() {
       deleteRobotGroup({
         id: item.id
       }).then(() => {
-        message.success('删除成功')
+        message.success(t('msg_delete_success'))
         robotStore.getGroupList()
         if (group_id.value == item.id) {
           group_id.value = ''

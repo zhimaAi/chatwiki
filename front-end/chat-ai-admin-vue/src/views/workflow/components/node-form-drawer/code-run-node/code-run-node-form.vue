@@ -4,12 +4,12 @@
       <NodeFormHeader
         :title="node.node_name"
         :iconName="node.node_icon_name"
-        desc="运行一段JS代码，将代码return的数据输出到下一节点。一般用于进行数据处理。"
+        :desc="t('desc_code_run')"
         @close="handleClose"
       >
         <template #runBtn>
           <a-tooltip>
-            <template #title>运行测试</template>
+            <template #title>{{ t('tip_run_test') }}</template>
             <div class="action-btn" @click="handleOpenTestModal">
               <CaretRightOutlined style="color: rgb(0, 173, 58)" />
             </div>
@@ -21,9 +21,9 @@
       <div class="node-form-content">
         <a-form ref="formRef" layout="vertical" :model="formState">
           <div class="gray-block">
-            <div class="gray-block-title">输入</div>
+            <div class="gray-block-title">{{ t('label_input') }}</div>
             <div class="array-form-box">
-              <div class="form-item-label">自定义输入参数</div>
+              <div class="form-item-label">{{ t('label_custom_input_params') }}</div>
               <div class="form-item-list" v-for="(item, index) in formState.params" :key="index">
                 <a-form-item :label="null" :name="['params', index, 'variable']">
                   <div class="flex-block-item">
@@ -31,7 +31,7 @@
                       <a-input
                         style="width: 190px"
                         v-model:value="item.field"
-                        placeholder="请输入参数KEY"
+                        :placeholder="t('ph_input_key')"
                       ></a-input>
                     </a-form-item-rest>
 
@@ -43,7 +43,7 @@
                       :allowClear="false"
                       :displayRender="({ labels }) => labels.join('/')"
                       :field-names="{ children: 'children' }"
-                      placeholder="请选择"
+                      :placeholder="t('ph_select')"
                     />
 
                     <div class="btn-hover-wrap" @click="onDelParams(index)">
@@ -53,15 +53,20 @@
                 </a-form-item>
               </div>
               <a-button @click="handleAddParams" :icon="h(PlusOutlined)" block type="dashed"
-                >添加参数</a-button
+                >{{ t('btn_add_param') }}</a-button
               >
             </div>
 
             <div class="code-edit-box">
               <div class="title-block">
-                <div>JavaScript 代码</div>
+                <div>
+                  <a-select @change="handleChangeLanguage" v-model:value="formState.language" style="width: 160px">
+                    <a-select-option value="javaScript">javaScript</a-select-option>
+                    <a-select-option value="python">python</a-select-option>
+                  </a-select>
+                </div>
                 <a-flex :gap="16" align="center">
-                  <a @click="resetTemp">还原为模板</a>
+                  <a @click="resetTemp">{{ t('btn_restore_template') }}</a>
                   <div class="btn-hover-wrap" @click="openEditCodeBox"><FullscreenOutlined /></div>
                 </a-flex>
               </div>
@@ -72,28 +77,28 @@
 
             <a-form-item name="timeout" class="mt16">
               <template #label>
-                <a-flex :gap="2">超时时长</a-flex>
+                <a-flex :gap="2">{{ t('label_timeout') }}</a-flex>
               </template>
               <div class="flex-block-item">
                 <a-input-number
-                  placeholder="请输入请求地址"
+                  :placeholder="t('ph_input_url')"
                   style="width: 138px"
                   :precision="0"
                   v-model:value="formState.timeout"
                   :min="0"
                   :max="3000"
                 />
-                秒
+                {{ t('label_second') }}
               </div>
             </a-form-item>
           </div>
 
           <div class="gray-block mt16">
-            <div class="gray-block-title">输出 (自定义输出字段)</div>
+            <div class="gray-block-title">{{ t('label_output_custom') }}</div>
             <div class="output-box">
               <div class="output-block">
-                <div class="output-item">参数Key</div>
-                <div class="output-item">类型</div>
+                <div class="output-item">{{ t('label_param_key') }}</div>
+                <div class="output-item">{{ t('label_type') }}</div>
               </div>
               <div class="array-form-box" @mousedown.stop="">
                 <div class="form-item-list" v-for="(item, index) in formState.output" :key="index">
@@ -102,13 +107,13 @@
                       <a-input
                         style="width: 214px"
                         v-model:value="item.key"
-                        placeholder="请输入"
+                        :placeholder="t('ph_input')"
                       ></a-input>
                       <a-form-item-rest>
                         <a-select
                           @change="onTypeChange(item)"
                           v-model:value="item.typ"
-                          placeholder="请选择"
+                          :placeholder="t('ph_select')"
                           style="width: 214px"
                         >
                           <a-select-option
@@ -140,20 +145,20 @@
                   </a-form-item>
                 </div>
                 <a-button @click="handleAddOutPut" :icon="h(PlusOutlined)" block type="dashed"
-                  >添加参数</a-button
+                  >{{ t('btn_add_param') }}</a-button
                 >
               </div>
             </div>
           </div>
 
           <div class="gray-block mt16">
-            <div class="gray-block-title">异常处理</div>
-            <div>运行代码报错时执行该分支</div>
+            <div class="gray-block-title">{{ t('label_exception_handling') }}</div>
+            <div>{{ t('msg_exception_handling_desc') }}</div>
           </div>
 
-          <a-modal v-model:open="open" title="编辑代码" :width="746">
+          <a-modal v-model:open="open" :title="t('title_edit_code')" :width="746">
             <template #footer>
-              <a-button type="primary" @click="handleOk">确定</a-button>
+              <a-button type="primary" @click="handleOk">{{ t('btn_confirm') }}</a-button>
             </template>
             <div style="margin: 40px 0 24px 0">
               <CodeEditBox
@@ -172,6 +177,7 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
 import { ref, reactive, watch, h, onMounted } from 'vue'
@@ -188,6 +194,8 @@ import SubKey from './subs-key.vue'
 import CodeEditBox from './code-edit-box.vue'
 import RunTest from './run-test.vue'
 import { specialNodeList } from '@/views/workflow/components/util.js'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.code-run-node.code-run-node-form')
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({
@@ -214,6 +222,23 @@ const defaultCode = `function main({data1, data2}){
 	}
 }`
 
+const pythonCode = `def main(data1, data2):
+	return {
+        'data1': data1,
+        'data2': data2
+	}`
+
+const getDefaultCode = () => {
+  if (formState.language == 'python') {
+    return pythonCode
+  }
+  return defaultCode
+}
+
+const handleChangeLanguage = () => {
+  formState.main_func = getDefaultCode()
+}
+
 function getOptions() {
   // const node = props.lf.getNodeDataById(props.nodeId)
   const nodeModel = props.lf.getNodeModelById(props.nodeId)
@@ -222,7 +247,6 @@ function getOptions() {
 
     variableOptions.value = handleOptions(list)
   }
-  console.log(variableOptions.value, '==')
 }
 
 // 递归处理Options
@@ -249,6 +273,7 @@ function handleOptions(options) {
 const formRef = ref()
 
 const formState = reactive({
+  language: 'javaScript',
   main_func: '',
   params: [
     {
@@ -269,12 +294,12 @@ const formState = reactive({
 
 const resetTemp = () => {
   Modal.confirm({
-    title: '确认还原为模板？',
-    content: '还原后即被覆盖，不能撤销',
-    okText: '确认',
-    cancelText: '取消',
-    onOk: () => {
-      formState.main_func = defaultCode
+    title: t('msg_confirm_restore'),
+    content: t('msg_restore_desc'),
+    okText: t('btn_confirm'),
+    cancelText: t('btn_cancel'),
+    onOk() {
+      formState.main_func = getDefaultCode()
     }
   })
 }
@@ -324,6 +349,7 @@ const init = () => {
 
     code_run = JSON.parse(JSON.stringify(code_run))
 
+    console.log(code_run, '===')
     getOptions()
 
     for (let key in code_run) {
@@ -347,7 +373,9 @@ const init = () => {
       }
       formState[key] = code_run[key]
     }
-    formState.main_func = formState.main_func || defaultCode
+    formState.language = formState.language || 'javaScript'
+    formState.main_func = formState.main_func || getDefaultCode()
+
 
     formState.params = formState.params.map((it) => {
       let specialKey = ''
@@ -499,6 +527,7 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin-bottom: 8px;
   }
 }
 .action-btn {

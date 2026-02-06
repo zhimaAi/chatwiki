@@ -65,8 +65,8 @@ type SimpleField struct {
 	Vals     []Val   `json:"vals,omitempty"`
 	Required bool    `json:"required"`
 	Default  string  `json:"default,omitempty"`
-	Enum     string  `json:"enum,omitempty"` //枚举值
-	Lang     string  `json:"-"`              //需要手动设置,请勿请用
+	Enum     string  `json:"enum,omitempty"` // Enum values
+	Lang     string  `json:"-"`              // Need to be manually set, do not use
 }
 
 func (field SimpleField) SetVals(data any) SimpleField {
@@ -83,7 +83,7 @@ func (field SimpleField) SetVals(data any) SimpleField {
 		field.Vals = nil
 		return field
 	}
-	field.Vals = make([]Val, 0) //清空原有的值
+	field.Vals = make([]Val, 0) // Clear the original values
 	for _, one := range datas {
 		switch field.Typ {
 		case TypString, TypArrString:
@@ -119,7 +119,7 @@ func (field SimpleField) GetVals(specifyTyp ...string) []any {
 	vals := make([]any, 0)
 	typ := field.Typ
 	if len(specifyTyp) > 0 && len(specifyTyp[0]) > 0 {
-		typ = specifyTyp[0] //指定类型
+		typ = specifyTyp[0] // Specify type
 	}
 	for _, val := range field.Vals {
 		switch typ {
@@ -164,7 +164,7 @@ func (field SimpleField) GetVal(specifyTyp ...string) any {
 }
 
 func (field SimpleField) ShowVals(specifyTyp ...string) string {
-	//特殊的变量值,使用特定的输出方式
+	// Special variable values, use specific output method
 	if field.Key == `special.lib_paragraph_list` {
 		list := make([]msql.Params, 0)
 		for _, val := range field.Vals {
@@ -173,24 +173,24 @@ func (field SimpleField) ShowVals(specifyTyp ...string) string {
 		_, libraryContent := FormatSystemPrompt(field.Lang, ``, list)
 		return libraryContent
 	}
-	//获取字段的vals值
+	// Get the vals values of the field
 	typ := field.Typ
 	if len(specifyTyp) > 0 && len(specifyTyp[0]) > 0 {
-		typ = specifyTyp[0] //指定类型
+		typ = specifyTyp[0] // Specify type
 	}
 	vals := field.GetVals(typ)
-	//复杂类型json形式输出
+	// Complex type JSON format output
 	if len(vals) > 0 && tool.InArrayString(typ, []string{TypObject, TypParams, TypArrObject, TypArrParams}) {
 		if tool.InArrayString(typ, TypArrays[:]) {
 			return tool.JsonEncodeNoError(vals)
 		}
 		return tool.JsonEncodeNoError(vals[0])
 	}
-	//标准的变量值,统一格式输出
+	// Standard variable values, unified format output
 	temp := make([]string, 0)
 	for _, v := range vals {
 		show := fmt.Sprintf(`%v`, v)
-		if len(show) > 0 { //filter empty
+		if len(show) > 0 { // filter empty
 			temp = append(temp, show)
 		}
 	}
@@ -219,7 +219,7 @@ func SimplifyFields(recurveFields RecurveFields) SimpleFields {
 			simpleFields[field.Key] = field.SimpleField
 		} else {
 			for key, simpleField := range SimplifyFields(field.Subs) {
-				simpleField.Key = field.Key + `.` + key //统一key值
+				simpleField.Key = field.Key + `.` + key // Unified key value
 				simpleFields[field.Key+`.`+key] = simpleField
 			}
 		}
@@ -270,14 +270,14 @@ func GetRecurveFields(simpleFields SimpleFields) RecurveFields {
 	for key, field := range simpleFields {
 		if before, after, found := strings.Cut(key, `.`); !found {
 			fieldMap[key] = RecurveField{SimpleField: field}
-		} else { //递归组装object
+		} else { // Recursive assembly of object
 			if _, ok := fieldMap[before]; !ok {
-				objField := field //组建出来的Object
+				objField := field // Assembled Object
 				objField.Key, objField.Typ, objField.Vals = before, TypObject, nil
 				fieldMap[before] = RecurveField{SimpleField: objField, Subs: make(RecurveFields, 0)}
 			}
 			temp := fieldMap[before]
-			field.Key = after //取下一级的key值
+			field.Key = after // Get the key value of the next level
 			for _, recurveField := range GetRecurveFields(SimpleFields{after: field}) {
 				var exist bool
 				for idx, sub := range temp.Subs {
@@ -542,7 +542,7 @@ func GetRecursiveFieldsFromMap(data map[string]any) RecurveFields {
 		case reflect.Float32, reflect.Float64:
 			if valKind == reflect.Float64 {
 				if num, ok := mapVal.(float64); ok {
-					// 检查float64是否是整数（小数部分为0）
+					// Check if float64 is an integer (decimal part is 0)
 					if num == float64(int64(num)) {
 						recurveFields = append(recurveFields, RecurveField{
 							SimpleField: SimpleField{Key: mapKey, Typ: TypNumber},
@@ -575,12 +575,12 @@ func GetRecursiveFieldsFromMap(data map[string]any) RecurveFields {
 				for i := 0; i < arrVal.Len(); i++ {
 					elem := arrVal.Index(i)
 					if elem.IsNil() {
-						continue // 跳过nil元素
+						continue // Skip nil elements
 					}
-					// 安全获取元素类型：处理interface{}包装的情况
+					// Safely get element type: handle interface{} wrapper case
 					elemKind = elem.Kind()
 					if elemKind == reflect.Interface {
-						// 解包interface{}获取真实类型
+						// Unpack interface{} to get the real type
 						elemKind = elem.Elem().Kind()
 					}
 					elemValue = elem.Interface()
@@ -595,7 +595,7 @@ func GetRecursiveFieldsFromMap(data map[string]any) RecurveFields {
 				case reflect.Float32, reflect.Float64:
 					if elemKind == reflect.Float64 {
 						if num, ok := elemValue.(float64); ok {
-							// 检查float64是否是整数（小数部分为0）
+							// Check if float64 is an integer (decimal part is 0)
 							if num == float64(int64(num)) {
 								arrField.Typ = TypArrNumber
 							} else {

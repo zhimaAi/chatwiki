@@ -1,0 +1,1 @@
+{"title_chat_cache": "聊天缓存", "msg_cache_description": "开启后，会缓存用户的问题和大模型的答案，如果之后有用户提出相同的问题，会直接回复缓存的答案。缓存有效期为", "unit_hour": "小时", "unit_minute": "分钟", "btn_clean_cache": "清空缓存", "switch_on": "开", "switch_off": "关", "msg_confirm_clear_cache": "确定清空缓存?", "msg_confirm_clear_cache_content": "确定操作清空缓存吗？", "msg_clear_success": "清空成功"}

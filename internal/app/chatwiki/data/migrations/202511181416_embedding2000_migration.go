@@ -28,7 +28,7 @@ func VectorEmbedding2000Migration() error {
 		maxId = cast.ToInt(maxIdStr)
 	}
 	logs.Other(`migration`, `get max id: %d`, maxId)
-	var size = 1000 //每一批次数
+	var size = 1000 // batch size
 	for i := 0; ; i++ {
 		start, end := i*size, (i+1)*size
 		logs.Other(`migration`, `round %d: %d~%d`, i+1, start, end)
@@ -41,7 +41,7 @@ func VectorEmbedding2000Migration() error {
 		}
 		logs.Other(`migration`, `round %d: affect(%d)`, i+1, affect)
 		if end >= maxId {
-			break //处理完毕,结束循环
+			break // processing complete, exit loop
 		}
 	}
 	return nil

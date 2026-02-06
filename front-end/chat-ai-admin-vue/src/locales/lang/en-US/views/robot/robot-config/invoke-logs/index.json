@@ -1,0 +1,13 @@
+{
+  "title_invoke_logs": "Invoke Logs",
+  "ph_input_openid": "Enter openid",
+  "ph_input_question": "Enter question",
+  "btn_view_detail": "View Details",
+  "label_openid": "openid",
+  "label_question": "question",
+  "label_workflow_version": "Workflow Version",
+  "label_duration": "Duration",
+  "label_token_consumption": "Token Consumption (K)",
+  "label_invoke_time": "Invoke Time",
+  "label_action": "Action"
+}

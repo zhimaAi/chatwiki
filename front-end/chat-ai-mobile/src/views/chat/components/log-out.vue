@@ -32,11 +32,15 @@
 <template>
   <div class="log-out-box">
     <svg-icon name="log-out" class="log-out-icon" />
-    <span class="log-text">退出登录</span>
+    <span class="log-text">{{ t('btn_logout') }}</span>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.chat.components.log-out')
+
 const emit = defineEmits([ 'send' ])
 
 

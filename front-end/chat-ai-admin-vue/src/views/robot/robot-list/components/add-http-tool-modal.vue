@@ -3,51 +3,51 @@
     v-model:open="visible"
     width="720px"
     :confirm-loading="saving"
-    :title="editingId ? '编辑工具' : '添加工具'"
+    :title="editingId ? t('title_edit_tool') : t('title_add_tool')"
     @ok="save">
     <div class="gray-block" style="background: #FFF;">
       <div class="gray-block-title-left" style="margin-bottom: 16px;">
-        <svg-icon name="jibenpeizhi" size="16" /> <span>基本信息</span>
+        <svg-icon name="jibenpeizhi" size="16" /> <span>{{ t('label_basic_info') }}</span>
       </div>
       <a-form ref="formRef" :model="form" :rules="rules" layout="vertical">
-        <a-form-item name="node_name_en" label="名称" required>
+        <a-form-item name="node_name_en" :label="t('label_name')" required>
           <a-input
             v-model:value="form.node_name_en"
-            placeholder="请输入名称"
+            :placeholder="t('ph_input_name')"
             :maxlength="50"
           />
-          <div class="form-tips">只能输入英文数字和字符"_"、"."、"-"，最多不超过50个字符</div>
+          <div class="form-tips">{{ t('tip_name_format') }}</div>
         </a-form-item>
-        <a-form-item name="title" label="备注名" required>
+        <a-form-item name="title" :label="t('label_remark_name')" required>
           <a-input
             v-model:value="form.title"
-            placeholder="请输入备注名"
+            :placeholder="t('ph_input_remark')"
             :maxlength="20"
           />
-          <div class="form-tips">用于显示，不超过20个字</div>
+          <div class="form-tips">{{ t('tip_remark_length') }}</div>
         </a-form-item>
-        <a-form-item name="description" label="描述" required>
+        <a-form-item name="description" :label="t('label_description')" required>
           <a-textarea
             v-model:value="form.description"
             :auto-size="{ minRows: 2, maxRows: 4 }"
-            placeholder="请输入描述"
+            :placeholder="t('ph_input_desc')"
             :maxlength="500"
           />
-          <div class="form-tips">还可以输入 {{ 500 - (form.description ? form.description.length : 0) }} 个字</div>
+          <div class="form-tips">{{ t('tip_desc_length', { count: 500 - (form.description ? form.description.length : 0) }) }}</div>
         </a-form-item>
       </a-form>
     </div>
     <div class="gray-block">
       <div class="gray-block-title">
         <div class="gray-block-title-left">
-          <svg-icon name="input" size="16"/> <span>输入</span>
+          <svg-icon name="input" size="16"/> <span>{{ t('label_input') }}</span>
         </div>
         <a-button ghost type="primary" size="small" @click="showParseModal">
-          <CodeOutlined /> 导入cURL
+          <CodeOutlined /> {{ t('btn_import_curl') }}
         </a-button>
       </div>
       <a-form class="form-box" ref="inputFormRef" :model="form" :rules="inputRules" layout="vertical">
-        <a-form-item label="请求地址" required>
+        <a-form-item :label="t('label_request_url')" required>
           <div class="flex-block-item">
             <a-select v-model:value="form.method" style="width: 120px">
               <a-select-option value="GET">GET</a-select-option>
@@ -56,11 +56,11 @@
               <a-select-option value="DELETE">DELETE</a-select-option>
               <a-select-option value="PATCH">PATCH</a-select-option>
             </a-select>
-            <a-input class="flex1" v-model:value="form.url" placeholder="请输入请求地址"/>
+            <a-input class="flex1" v-model:value="form.url" :placeholder="t('ph_input_url')"/>
           </div>
         </a-form-item>
         <div class="array-form-box">
-          <div class="form-item-label">HEADERS</div>
+          <div class="form-item-label">{{ t('label_headers') }}</div>
           <div class="form-item-list" v-for="(item, i) in form.headers" :key="i">
             <div class="flex-block-item">
               <a-input style="width: 120px" v-model:value="item.key" placeholder="Key"/>
@@ -68,10 +68,10 @@
               <div class="btn-hover-wrap" @click="form.headers.splice(i,1)"><CloseCircleOutlined /></div>
             </div>
           </div>
-          <a-button block type="dashed" :icon="h(PlusOutlined)" @click="form.headers.push({key:'', value:''})">添加参数</a-button>
+          <a-button block type="dashed" :icon="h(PlusOutlined)" @click="form.headers.push({key:'', value:''})">{{ t('btn_add_param') }}</a-button>
         </div>
         <div class="array-form-box">
-          <div class="form-item-label">PARAMS</div>
+          <div class="form-item-label">{{ t('label_params') }}</div>
           <div class="form-item-list" v-for="(item, i) in form.params" :key="i">
             <div class="flex-block-item">
               <a-input style="width: 120px" v-model:value="item.key" placeholder="Key"/>
@@ -79,10 +79,10 @@
               <div class="btn-hover-wrap" @click="form.params.splice(i,1)"><CloseCircleOutlined /></div>
             </div>
           </div>
-          <a-button block type="dashed" :icon="h(PlusOutlined)" @click="form.params.push({key:'', value:''})">添加参数</a-button>
+          <a-button block type="dashed" :icon="h(PlusOutlined)" @click="form.params.push({key:'', value:''})">{{ t('btn_add_param') }}</a-button>
         </div>
         <div class="array-form-box mt12" v-if="['POST','PUT','PATCH'].includes(form.method)">
-          <a-form-item label="BODY" class="body-form-item">
+          <a-form-item :label="t('label_body')" class="body-form-item">
             <a-radio-group v-model:value="form.body_type">
               <a-radio :value="0">none</a-radio>
               <a-radio :value="1">x-www-form-urlencoded</a-radio>
@@ -97,14 +97,14 @@
                 <div class="btn-hover-wrap" @click="form.body.splice(i,1)"><CloseCircleOutlined /></div>
               </div>
             </div>
-            <a-button block type="dashed" :icon="h(PlusOutlined)" @click="form.body.push({key:'', value:''})">添加参数</a-button>
+            <a-button block type="dashed" :icon="h(PlusOutlined)" @click="form.body.push({key:'', value:''})">{{ t('btn_add_param') }}</a-button>
           </div>
           <a-form-item v-if="form.body_type == 2">
             <a-textarea v-model:value="form.body_raw" :auto-size="{ minRows: 4, maxRows: 10 }" placeholder='{ "foo": "bar" }'/>
           </a-form-item>
         </div>
         <div class="array-form-box timeout-form-item">
-          <a-form-item label="超时时间(秒)">
+          <a-form-item :label="t('label_timeout')">
             <a-input-number v-model:value="form.timeout" :min="1" :max="600" style="width: 160px" />
           </a-form-item>
         </div>
@@ -113,9 +113,9 @@
     <div class="gray-block">
       <div class="gray-block-title">
         <div class="gray-block-title-left">
-          <span>鉴权</span>
+          <span>{{ t('label_auth') }}</span>
           <a-tooltip>
-            <template #title>鉴权参数：导出模板CSL文件，或者上架模板时，自动清空参数值</template>
+            <template #title>{{ t('tip_auth') }}</template>
             <QuestionCircleOutlined />
           </a-tooltip>
         </div>
@@ -129,8 +129,8 @@
         <div class="array-form-box" @mousedown.stop="">
           <div class="form-item-list" v-for="(item, i) in form.auth" :key="i">
             <div class="flex-block-item" style="gap: 12px">
-              <a-input style="width: 33%" v-model:value="item.key" placeholder="请输入"/>
-              <a-input style="width: 33%" v-model:value="item.value" placeholder="请输入"/>
+              <a-input style="width: 33%" v-model:value="item.key" :placeholder="t('ph_input_key')"/>
+              <a-input style="width: 33%" v-model:value="item.value" :placeholder="t('ph_input_key')"/>
               <a-select v-model:value="item.add_to" style="width: 33%">
                 <a-select-option value="HEADERS">HEADERS</a-select-option>
                 <a-select-option value="PARAMS">PARAMS</a-select-option>
@@ -141,26 +141,26 @@
               </div>
             </div>
           </div>
-          <a-button @click="handleOpenAuthenticationModal" :icon="h(PlusOutlined)" block type="dashed">添加参数</a-button>
+          <a-button @click="handleOpenAuthenticationModal" :icon="h(PlusOutlined)" block type="dashed">{{ t('btn_add_param') }}</a-button>
         </div>
       </div>
     </div>
     <div class="gray-block">
       <div class="gray-block-title">
         <div class="gray-block-title-left">
-          <svg-icon name="output" size="16"/> <span>输出</span>
+          <svg-icon name="output" size="16"/> <span>{{ t('label_output') }}</span>
         </div>
       </div>
       <div class="output-box">
         <div class="output-block">
-          <div class="output-item" style="width: 33%">参数Key</div>
-          <div class="output-item" style="width: 33%">类型</div>
+          <div class="output-item" style="width: 33%">{{ t('label_param_key') }}</div>
+          <div class="output-item" style="width: 33%">{{ t('label_type') }}</div>
         </div>
         <div class="array-form-box">
           <div class="form-item-list" v-for="(item, i) in form.output" :key="i">
             <div class="flex-block-item" style="gap: 12px">
-              <a-input style="width: 214px" v-model:value="item.key" placeholder="请输入"/>
-              <a-select @change="onTypeChange(item)" v-model:value="item.typ" style="width: 214px" placeholder="请选择">
+              <a-input style="width: 214px" v-model:value="item.key" :placeholder="t('ph_input_key')"/>
+              <a-select @change="onTypeChange(item)" v-model:value="item.typ" style="width: 214px" :placeholder="t('ph_select_type')">
                 <a-select-option v-for="op in typOptions" :key="op.value" :value="op.value">{{ op.value }}</a-select-option>
               </a-select>
               <div class="btn-hover-wrap" v-if="item.typ == 'object'" @click="onAddSubs(i)">
@@ -172,7 +172,7 @@
               <SubKey :data="item.subs" :level="2" :typOptions="typOptions" />
             </div>
           </div>
-          <a-button block type="dashed" :icon="h(PlusOutlined)" @click="form.output.push({key:'', typ:'string', subs: []})">添加参数</a-button>
+          <a-button block type="dashed" :icon="h(PlusOutlined)" @click="form.output.push({key:'', typ:'string', subs: []})">{{ t('btn_add_param') }}</a-button>
         </div>
       </div>
     </div>
@@ -189,6 +189,9 @@ import { saveHttpToolItem, delHttpToolItem } from '@/api/robot/http_tool.js'
 import AddAuthenticationModal from './add-authentication-modal.vue'
 import SubKey from '@/views/workflow/components/node-form-drawer/http-node/subs-key.vue'
 import { message, Modal } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-list.components.add-http-tool-modal')
 
 const emit = defineEmits(['ok'])
 const props = defineProps({
@@ -237,20 +240,20 @@ const typOptions = [
 
 const rules = {
   node_name_en: [
-    { required: true, message: '请输入名称' },
+    { required: true, message: t('msg_input_name') },
     {
       validator: (rule, value) => {
         const reg = /^[a-zA-Z0-9_.-]+$/
-        if (!reg.test(value)) return Promise.reject('只能输入英文数字和字符"_"、"."、"-"')
+        if (!reg.test(value)) return Promise.reject(t('msg_name_format'))
         return Promise.resolve()
       }
     }
   ],
   title: [
-    { required: true, message: '请输入备注名' }
+    { required: true, message: t('msg_input_remark') }
   ],
   description: [
-    { required: true, message: '请输入描述' }
+    { required: true, message: t('msg_input_desc') }
   ]
 }
 const inputRules = {
@@ -258,9 +261,9 @@ const inputRules = {
     {
       validator: (_rule, value) => {
         const arr = Array.isArray(value) ? value : []
-        if (!arr.length) return Promise.reject('请添加鉴权参数')
+        if (!arr.length) return Promise.reject(t('msg_add_auth_param'))
         const ok = arr.every(it => String(it.key || '').trim().length > 0)
-        if (!ok) return Promise.reject('请填写鉴权参数Key')
+        if (!ok) return Promise.reject(t('msg_fill_auth_key'))
         return Promise.resolve()
       }
     }
@@ -433,7 +436,7 @@ async function save() {
     saving.value = true
     const req = editingId.value ? saveHttpToolItem({ id: editingId.value, ...payload }) : saveHttpToolItem(payload)
     return req.then(() => {
-      message.success('操作成功')
+      message.success(t('msg_operation_success'))
       emit('ok')
       visible.value = false
     }).finally(() => {
@@ -442,10 +445,10 @@ async function save() {
   }
   if (editingId.value) {
     Modal.confirm({
-      title: '确认保存',
-      content: '修改工具后使用到该工具的工作流可能无法正常运行。确认保存编辑么？',
-      okText: '确认',
-      cancelText: '取消',
+      title: t('msg_confirm_save'),
+      content: t('msg_save_confirm'),
+      okText: t('btn_confirm'),
+      cancelText: t('btn_cancel'),
       onOk() {
         return doSave()
       }
@@ -457,7 +460,7 @@ async function save() {
 
 function del(item) {
   delHttpToolItem(item.id).then(() => {
-    message.success('操作成功')
+    message.success(t('msg_operation_success'))
     emit('ok')
     visible.value = false
   }).finally(() => saving.value = false)

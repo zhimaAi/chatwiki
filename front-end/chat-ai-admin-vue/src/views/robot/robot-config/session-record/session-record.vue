@@ -2,11 +2,11 @@
   <div class="team-members-pages">
     <a-flex justify="flex-start" class="screen-box">
       <div class="set-model">
-        <div class="label set-model-label">渠道：</div>
+        <div class="label set-model-label">{{ t('label_channel') }}</div>
         <div class="set-model-body">
           <a-select
             v-model:value="requestParams.app_type"
-            placeholder="全部渠道"
+            :placeholder="t('ph_all_channels')"
             @change="handleChangeModel"
             :style="{ width: '200px' }"
           >
@@ -23,7 +23,7 @@
 
       <div class="set-date">
         <div class="label set-date-label">
-          <span>日期：</span>
+          <span>{{ t('label_date') }}</span>
         </div>
         <div class="set-date-body">
           <DateSelect @dateChange="onDateChange" :datekey="datekey"></DateSelect>
@@ -33,15 +33,15 @@
       <div class="set-name">
         <a-input-search
           v-model:value="requestParams.name"
-          placeholder="请输入用户名称搜索"
+          :placeholder="t('ph_search_user_name')"
           style="width: 200px"
           @search="onSearch"
         />
       </div>
 
       <div class="set-reset">
-        <a-button @click="onReset">重置</a-button>
-        <a-button @click="onExport" :loading="btnLoading">导出</a-button>
+        <a-button @click="onReset">{{ t('btn_reset') }}</a-button>
+        <a-button @click="onExport" :loading="btnLoading">{{ t('btn_export') }}</a-button>
       </div>
     </a-flex>
     <div class="list-box">
@@ -70,12 +70,12 @@
     <a-modal v-model:open="open" :title="null" :footer="null" :width="640">
       <a-result
         status="success"
-        title="导出任务创建成功"
-        sub-title="系统会在后台导出。导出数据量越大，耗时越久。您可以稍后点击导出记录查看并下载导出的文件。"
+        :title="t('title_export_success')"
+        :sub-title="t('msg_export_success')"
       >
         <template #extra>
-          <a-button style="margin-right: 16px;" @click="open = false">知道了</a-button>
-          <a-button @click="toDownloadPage" type="primary">去下载</a-button>
+          <a-button style="margin-right: 16px;" @click="open = false">{{ t('btn_know') }}</a-button>
+          <a-button @click="toDownloadPage" type="primary">{{ t('btn_go_download') }}</a-button>
         </template>
       </a-result>
     </a-modal>
@@ -84,6 +84,7 @@
 <script setup>
 import { ref, reactive, onMounted, watch, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
 import DateSelect from './components/date.vue'
 import { storeToRefs } from 'pinia'
 import User from './components/user.vue'
@@ -91,6 +92,8 @@ import MessageList from './components/message-list.vue'
 import { useRobotStore } from '@/stores/modules/robot'
 import { useChatStore } from '@/stores/modules/chat'
 import { createSessionExport } from '@/api/chat'
+
+const { t } = useI18n('views.robot.robot-config.session-record.session-record')
 
 const isEmpty = ref(false)
 const router = useRouter()
@@ -270,7 +273,7 @@ const getChannelLists = async () => {
     robot_id: requestParams.robot_id, // 机器人ID
   }
   const res = await getChannelList(params)
-  channelItem.value = [...[{ app_type: 'all', app_name: '全部渠道' }], ...res.data]
+  channelItem.value = [...[{ app_type: 'all', app_name: t('ph_all_channels') }], ...res.data]
 }
 
 const getPostParmas = () => {
@@ -327,7 +330,8 @@ onUnmounted(() => {})
   height: 100%;
 
   .screen-box {
-    gap: 24px;
+    gap: 12px;
+    flex-wrap: wrap;
   }
 
   .list-box {

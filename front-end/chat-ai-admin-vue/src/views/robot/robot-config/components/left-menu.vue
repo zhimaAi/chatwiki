@@ -9,7 +9,7 @@
               :to="{ path: item.path, query: item.query || query }"
               :target="item.target || '_self'"
               @click.stop
-            >{{ item.label }}</router-link>
+            >{{ t(item.label) }}</router-link>
           </template>
           <router-link
             class="default-color"
@@ -27,7 +27,7 @@
           :target="item.target || '_self'"
           :to="{ path: item.path, query: item.query || query }"
         >
-          <a-menu-item :icon="item.icon" :path="item.path" :key="item.key">{{ item.label }}</a-menu-item>
+          <a-menu-item :icon="item.icon" :path="item.path" :key="item.key">{{ t(item.label) }}</a-menu-item>
         </router-link>
       </template>
     </a-menu>
@@ -41,9 +41,11 @@ import SvgIcon from '@/components/svg-icon/index.vue'
 import { getRobotPermission } from '@/utils/permission'
 import { getRobotAbilityList } from '@/api/explore'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useI18n } from '@/hooks/web/useI18n'
 const emit = defineEmits(['changeMenu'])
 const route = useRoute()
 const robotStore = useRobotStore()
+const { t } = useI18n('views.robot.robot-config.components.left-menu')
 const props = defineProps({
   robotInfo: {
     type: Object,
@@ -84,8 +86,8 @@ const baseItems = [
         name: 'workflow',
         class: 'menu-icon'
       }),
-    label: '工作流编排',
-    title: '工作流编排',
+    label: 'label_workflow_orchestration',
+    title: 'label_workflow_orchestration',
     path: '/robot/config/workflow',
     menuIn: ['1']
   },
@@ -97,8 +99,8 @@ const baseItems = [
         name: 'jichupeizhi',
         class: 'menu-icon'
       }),
-    label: '基础配置',
-    title: '基础配置',
+    label: 'label_basic_configuration',
+    title: 'label_basic_configuration',
     path: '/robot/config/basic-config',
     menuIn: ['0']
   },
@@ -110,8 +112,8 @@ const baseItems = [
         name: 'guanlianzhishiku',
         class: 'menu-icon'
       }),
-    label: '知识库',
-    title: '知识库',
+    label: 'label_knowledge_base',
+    title: 'label_knowledge_base',
     path: '/robot/config/library-config',
     menuIn: ['0']
   },
@@ -123,8 +125,8 @@ const baseItems = [
         name: 'skii',
         class: 'menu-icon'
       }),
-    label: '工作流',
-    title: '工作流',
+    label: 'label_workflow',
+    title: 'label_workflow',
     path: '/robot/config/skill-config',
     menuIn: ['0']
   },
@@ -136,8 +138,8 @@ const baseItems = [
         name: 'function-center',
         class: 'menu-icon'
       }),
-    label: '功能中心',
-    title: '功能中心',
+    label: 'label_function_center',
+    title: 'label_function_center',
     path: '/robot/config/function-center',
     menuIn: ['0', '1']
   },
@@ -149,8 +151,8 @@ const baseItems = [
         name: 'duiwaifuwu',
         class: 'menu-icon'
       }),
-    label: '对外服务',
-    title: '对外服务',
+    label: 'label_external_services',
+    title: 'label_external_services',
     path: '/robot/config/external-services',
     menuIn: ['0', '1']
   },
@@ -162,8 +164,8 @@ const baseItems = [
         name: 'liaotianceshi',
         class: 'menu-icon'
       }),
-    label: '聊天测试',
-    title: '聊天测试',
+    label: 'label_chat_test',
+    title: 'label_chat_test',
     path: '/robot/test',
     query: {
       robot_key: props.robotInfo.robot_key,
@@ -180,8 +182,8 @@ const baseItems = [
         name: 'qa-feedback',
         class: 'menu-icon'
       }),
-    label: '问答反馈',
-    title: '问答反馈',
+    label: 'label_qa_feedback',
+    title: 'label_qa_feedback',
     path: '/robot/config/qa-feedbacks',
     menuIn: ['0', '1']
   },
@@ -193,8 +195,8 @@ const baseItems = [
         name: 'session-record',
         class: 'menu-icon'
       }),
-    label: '会话记录',
-    title: '会话记录',
+    label: 'label_session_records',
+    title: 'label_session_records',
     path: '/robot/config/session-record',
     query: {
       robot_key: props.robotInfo.robot_key,
@@ -210,8 +212,8 @@ const baseItems = [
         name: 'duiwaifuwu',
         class: 'menu-icon'
       }),
-    label: 'API Key管理',
-    title: 'API Key管理',
+    label: 'label_api_key_management',
+    title: 'label_api_key_management',
     path: '/robot/config/api-key-manage',
     menuIn: ['0', '1']
   },
@@ -223,8 +225,8 @@ const baseItems = [
         name: 'unknown-issue',
         class: 'menu-icon'
       }),
-    label: '未知问题',
-    title: '未知问题',
+    label: 'label_unknown_issues',
+    title: 'label_unknown_issues',
     path: '/robot/config/unknown_issue',
     menuIn: ['0', '1']
   },
@@ -236,8 +238,8 @@ const baseItems = [
         name: 'statistical-analysis',
         class: 'menu-icon'
       }),
-    label: '统计分析',
-    title: '统计分析',
+    label: 'label_statistical_analysis',
+    title: 'label_statistical_analysis',
     path: '/robot/config/statistical_analysis',
     menuIn: ['0', '1']
   },
@@ -249,8 +251,8 @@ const baseItems = [
         name: 'export-record',
         class: 'menu-icon'
       }),
-    label: '导出记录',
-    title: '导出记录',
+    label: 'label_export_records',
+    title: 'label_export_records',
     path: '/robot/config/export-record',
     menuIn: ['0', '1']
   },
@@ -262,8 +264,8 @@ const baseItems = [
         name: 'doc-file',
         class: 'menu-icon'
       }),
-    label: '调用日志',
-    title: '调用日志',
+    label: 'label_invocation_logs',
+    title: 'label_invocation_logs',
     path: '/robot/config/invoke-logs',
     menuIn: ['1']
   }

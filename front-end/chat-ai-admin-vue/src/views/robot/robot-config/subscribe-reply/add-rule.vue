@@ -161,7 +161,7 @@ const messageTypeOptions = [
   { label: '音频', value: 'audio' },
   { label: '视频', value: 'video' }
 ]
-const subscribeSourceOptions = SUBSCRIBE_SOURCE_OPTIONS
+const subscribeSourceOptions = SUBSCRIBE_SOURCE_OPTIONS()
 
 function validateDateRange (_rule, value) {
   if (form.duration_type !== 'time_range') return Promise.resolve()

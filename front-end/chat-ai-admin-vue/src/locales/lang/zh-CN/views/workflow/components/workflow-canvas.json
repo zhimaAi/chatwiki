@@ -1,0 +1,11 @@
+{
+  "title_batch_delete": "批量删除",
+  "title_delete_node": "删除节点",
+  "msg_confirm_delete_elements": "确定要删除选中的 {count} 个元素吗？",
+  "label_dont_show_again": "不再提醒",
+  "msg_duplicate_session_trigger": "只能添加一个会话触发器",
+  "msg_keep_at_least_one_trigger": "至少保留一个触发器",
+  "node_loop_start": "循环开始",
+  "node_batch_start": "批量执行开始",
+  "msg_layout_failed": "布局失败，请检查"
+}

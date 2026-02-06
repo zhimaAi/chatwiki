@@ -130,7 +130,7 @@ export const useRobotStore = defineStore('robot', () => {
       search: 0,
       graph: 0,
     },
-    tips_before_answer_content: '思考中、请稍等',
+    tips_before_answer_content: '思考中、请稍候...',
     tips_before_answer_switch: 'true',
     show_ai_msg_gzh: 0,
     show_typing_gzh: 0,

@@ -12,5 +12,13 @@
   "on": "On",
   "off": "Off",
   "saveSuccess": "Saved successfully",
-  "change": "Change"
+  "change": "Change",
+  "labelCookieAuth": "Cookie Authorization",
+  "msgCookieNotSet": "Not set (Cookie authorization reminder will be displayed when corresponding IPs access relevant pages)",
+  "labelDomesticIp": "Domestic IP",
+  "labelOverseasIp": "Overseas IP",
+  "labelHome": "Official Website",
+  "labelLoginPage": "Login Page",
+  "labelWebapp": "Webapp External Service",
+  "msgCookieEnabled": "Enabled"
 }

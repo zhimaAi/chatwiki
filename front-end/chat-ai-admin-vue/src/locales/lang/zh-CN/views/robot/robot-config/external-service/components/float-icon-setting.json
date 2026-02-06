@@ -1,0 +1,16 @@
+{
+  "title_float_icon_setting": "悬浮图标设置",
+  "label_display_type": "展示形式：",
+  "type_simple": "简洁",
+  "type_with_text": "加文案",
+  "type_custom": "自定义",
+  "label_upload_image": "上传图片",
+  "label_button_text": "按钮文案：",
+  "ph_input_button_text": "请输入按钮文案",
+  "label_bottom_margin": "底边距：",
+  "label_right_margin": "右边距：",
+  "label_show_unread_count": "显示未读消息数：",
+  "label_show_new_message_tip": "显示新消息提示：",
+  "btn_save": "保存",
+  "default_button_text": "快来聊聊吧~"
+}

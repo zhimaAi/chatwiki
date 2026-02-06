@@ -8,10 +8,7 @@ import (
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
-	"chatwiki/internal/pkg/thumbnail"
 	"errors"
-	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -55,7 +52,7 @@ func BridgeGetLibFileList(adminUserId, loginUserId int, lang string, req *Bridge
 	sortField := cast.ToString(req.SortField)
 	sortType := cast.ToString(req.SortType)
 	// groupId := cast.ToInt(c.Query(`group_id`))
-	// 全部时给一个默认值
+	//Use a default value when selecting all
 	groupId := cast.ToInt(req.GroupId)
 	m := msql.Model(`chat_ai_library_file`, define.Postgres).
 		Alias(`f`).
@@ -100,15 +97,15 @@ func BridgeGetLibFileList(adminUserId, loginUserId int, lang string, req *Bridge
 		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
 	}
 
-	// ====== 元数据及其值（列表也返回）======
-	// 内置 is_show：来自 chat_ai_library
+	//====== Metadata and its values (also returned in the list) ======
+	//Built-in is_show: from chat_ai_library
 	libraryShow, _ := msql.Model(`chat_ai_library`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`id`, cast.ToString(libraryId)).
 		Field(`show_meta_source,show_meta_update_time,show_meta_create_time,show_meta_group`).
 		Find()
 
-	// 取该知识库的自定义 schema 列表（前端直接渲染表格）
+	//Fetch custom schema list for this library (rendered directly by the frontend)
 	schemaList, err := msql.Model(`library_meta_schema`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`library_id`, cast.ToString(libraryId)).
@@ -123,7 +120,7 @@ func BridgeGetLibFileList(adminUserId, loginUserId int, lang string, req *Bridge
 			if k == `` {
 				continue
 			}
-			// 按 is_show 控制是否返回
+			//Control return by is_show
 			if cast.ToInt(one[`is_show`]) != define.SwitchOn {
 				continue
 			}
@@ -131,7 +128,7 @@ func BridgeGetLibFileList(adminUserId, loginUserId int, lang string, req *Bridge
 			schemaMap[k] = one
 		}
 	}
-	// 分组 id -> name 映射
+	//Group id -> name mapping
 	groupMap := map[int]string{0: lib_define.Ungrouped}
 	groupList, err := msql.Model(`chat_ai_library_group`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
@@ -174,7 +171,7 @@ func BridgeGetLibFileList(adminUserId, loginUserId int, lang string, req *Bridge
 		}
 	}
 
-	// 给列表每条记录补齐 group_name/meta_list（内置+自定义）
+	//Populate group_name/meta_list for each list item (built-in + custom)
 	listAny := make([]map[string]any, 0, len(list))
 	builtinMetaSchemaList := common.GetBuiltinMetaSchemaList(lang)
 	for _, item := range list {
@@ -195,27 +192,20 @@ func BridgeGetLibFileList(adminUserId, loginUserId int, lang string, req *Bridge
 			metaStr = `{}`
 		}
 
-		//没有缩略图的，生成一下
+		//Generate thumbnail if missing
 		if cast.ToString(item[`thumb_path`]) == "" {
 			go func(item msql.Params) {
-
-				returnDir := filepath.Join(fmt.Sprintf(`%s/upload/chat_ai/%d/%s/%s`, filepath.Dir(define.AppRoot), adminUserId, `library_file`, tool.Date(`Ym`)))
-				thumbFolderPath := filepath.Join(fmt.Sprintf(`/upload/chat_ai/%d/%s/%s/`, adminUserId, `library_file`, tool.Date(`Ym`)))
-				//生成缩略图
-				thumbPath, _, _, genErr := thumbnail.GenerateThumbnail(common.GetFileByLink(item["file_url"]), returnDir, thumbFolderPath)
-
-				if genErr != nil {
-					logs.Error("generate thumbnail error：" + genErr.Error())
-				} else {
+				//Generate thumbnail
+				thumbPath := common.GenThumbnail(common.GetFileByLink(item["file_url"]), cast.ToString(adminUserId))
+				if thumbPath != "" {
 					msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, item[`id`]).Update(msql.Datas{`thumb_path`: thumbPath})
 				}
-
 			}(item)
 		}
 
 		_ = tool.JsonDecode(metaStr, &metaMap)
 
-		// meta_list：前端表格直接渲染（新功能不考虑兼容，不返回 meta_values）
+		//meta_list: rendered directly by the frontend table (no compatibility mode; meta_values not returned)
 		metaList := make([]map[string]any, 0, len(builtinMetaSchemaList)+len(schemaKeyList))
 		builtinValueMap := map[string]any{
 			define.BuiltinMetaKeyUpdateTime: cast.ToInt(item[`update_time`]),
@@ -370,6 +360,8 @@ func BridgeDelLibraryFile(adminUserId int, ids, lang string) error {
 			logs.Error(err.Error())
 			continue
 		}
+		//clear stat library data robot tip
+		common.CleanStatLibraryDataTip(adminUserId, dataIdList)
 		_, err = msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
 			Where(`data_id`, `in`, strings.Join(dataIdList, `,`)).
 			Delete()

@@ -9,7 +9,7 @@
             class="tab-item"
             :class="{ active: props.msg.question_tabkey == 1 }"
           >
-            {{ translate('猜你想问') }}
+            {{ t('tab_guess_you_want') }}
           </div>
           <div
             v-if="
@@ -31,7 +31,7 @@
             class="tab-item"
             :class="{ active: props.msg.question_tabkey == 2 }"
           >
-            {{ translate('常见问题') }}
+            {{ t('tab_common_questions') }}
           </div>
         </div>
         <template v-if="props.msg.question_tabkey == 1">
@@ -61,7 +61,9 @@
 
 <script setup>
 import { ref } from 'vue'
-import { translate } from '@/utils/translate.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.chat.components.messages.guess-you-want')
 const emit = defineEmits(['sendTextMessage'])
 const props = defineProps({
   msg: {

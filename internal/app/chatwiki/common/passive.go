@@ -19,25 +19,25 @@ import (
 )
 
 func PassiveReplyLogNotify(lang string, logid int64, question, answer string) {
-	//答案抽取图片,内容按500分段
+	// Extract images from answers, content segmented by 500
 	content, images := GetImgInMessage(answer, false)
 	split := textsplitter.NewRecursiveCharacter()
 	split.ChunkSize, split.ChunkOverlap = 500, 0
 	replys, _ := split.SplitText(content)
-	if define.IsDev && question == `debug` { //测试环境调试数据
+	if define.IsDev && question == `debug` { // Test environment debug data
 		replys = []string{`ai_reply_1`, `ai_reply_2`, `ai_reply_3`, `ai_reply_4`}
 		images = []string{`/upload/model_icon/yiyan.png`, `/upload/model_icon/doubao.png`}
 	}
 	if len(images) > 1 {
 		replys = append(replys, fmt.Sprintf(` ----- %s ----- `, i18n.Show(lang, `view_images`)))
 	}
-	//图片兼容非oss链接处理
+	// Process image compatibility for non-OSS links
 	for i, image := range images {
 		if !IsUrl(image) {
 			images[i] = define.Config.WebService[`image_domain`] + image
 		}
 	}
-	//信息入库处理
+	// Process data storage
 	passiveModel := msql.Model(`chat_ai_passive_reply_log`, define.Postgres)
 	_, err := passiveModel.Where(`id`, cast.ToString(logid)).Update(msql.Datas{
 		`status`:      define.SwitchOn,
@@ -48,7 +48,7 @@ func PassiveReplyLogNotify(lang string, logid int64, question, answer string) {
 	if err != nil {
 		logs.Error(`sql:%s,err:%s`, passiveModel.GetLastSql(), err.Error())
 	}
-	//完成消息通知
+	// Complete message notification
 	err = define.Redis.Publish(context.Background(), lib_define.RedisPrefixPassiveSubscribe, logid).Err()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		logs.Error(`passive_id:%s,err:%s`, logid, err.Error())

@@ -1,0 +1,14 @@
+{
+  "title_feedback_details": "反馈详情",
+  "label_question": "问题",
+  "label_answer": "回答",
+  "label_feedback": "反馈",
+  "label_reference_content": "参考内容",
+  "label_chat_mode": "聊天模式",
+  "label_used_model": "使用模型",
+  "label_like": "点赞",
+  "label_dislike": "点踩",
+  "label_only_knowledge_base": "仅知识库",
+  "label_direct_connection": "直连",
+  "label_hybrid": "混合"
+}

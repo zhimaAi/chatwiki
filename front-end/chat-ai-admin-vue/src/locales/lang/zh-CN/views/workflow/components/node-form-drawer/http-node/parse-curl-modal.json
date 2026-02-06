@@ -1,0 +1,9 @@
+{
+    "title_parse_curl": "解析 cURL",
+    "msg_parse_curl_tip": "请粘贴 cURL 命令，系统将自动解析并填充到 HTTP 请求配置中。只支持 GET、POST 请求。",
+    "ph_curl_example": "请粘贴 cURL 命令，例如：curl -X POST https://api.example.com/data -H 'Content-Type: application/json' -d {data}",
+    "btn_parse": "解析",
+    "btn_cancel": "取消",
+    "msg_input_curl": "请输入 cURL 命令",
+    "msg_only_get_post": "只支持 GET、POST 请求"
+}

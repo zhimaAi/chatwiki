@@ -3,6 +3,7 @@
 
 .judge-node {
   position: relative;
+  overflow: hidden;
 
   .condition-box {
     position: relative;
@@ -95,7 +96,7 @@
     margin-bottom: 8px;
 
     .if-box-label {
-      width: 60px;
+      width: 48px;
       line-height: 22px;
       margin-right: 8px;
       text-align: right;
@@ -106,6 +107,7 @@
       flex: 1;
       padding: 8px;
       border-radius: 6px;
+      overflow: hidden;
       background: #f2f4f7;
     }
   }
@@ -148,11 +150,11 @@
   >
     <div class="judge-node">
       <div class="if-box" :ref="(el) => ifBoxRefs[index] = el" v-for="(item, index) in formState.term" :key="index">
-        <div class="if-box-label">{{ index == 0 ? 'if' : 'else if' }}</div>
+        <div class="if-box-label">{{ index == 0 ? t('label_if') : t('label_else_if') }}</div>
         <div class="if-box-content">
           <div class="condition-box">
             <div class="condition-left-box" v-if="item.terms.length > 1">
-              <span class="connection-text">{{ item.is_or == 1 ? 'or' : 'and' }}</span>
+              <span class="connection-text">{{ item.is_or == 1 ? t('label_or') : t('label_and') }}</span>
             </div>
             <div class="condition-line" v-if="item.terms.length > 1"></div>
             <div class="condition-body">
@@ -172,9 +174,9 @@
         </div>
       </div>
       <div class="else-box">
-        <div class="else-box-label">else</div>
+        <div class="else-box-label">{{ t('label_else') }}</div>
         <div class="else-box-content">
-          <div class="else-desc">不符合上述所有分支的条件时，走默认分支</div>
+          <div class="else-desc">{{ t('msg_else_desc') }}</div>
         </div>
       </div>
     </div>
@@ -186,6 +188,9 @@ import { ref, reactive, watch, inject, onMounted, nextTick } from 'vue'
 import NodeCommon from '../base-node.vue'
 import userQuestionText  from '../user-question-text.vue'
 import { specialNodeList } from '@/views/workflow/components/util.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.judge-node.index')
 
 const props = defineProps({
   properties: {
@@ -238,46 +243,46 @@ function handleOptions(options) {
 
 let baseTypeOptions = [
   {
-    label: '等于',
+    label: t('label_equal'),
     value: 1
   },
   {
-    label: '不等于',
+    label: t('label_not_equal'),
     value: 2
   },
   {
-    label: '包含',
+    label: t('label_contain'),
     value: 3
   },
   {
-    label: '不包含',
+    label: t('label_not_contain'),
     value: 4
   },
   {
-    label: '为空',
+    label: t('label_is_empty'),
     value: 5
   },
   {
-    label: '不为空',
+    label: t('label_not_empty'),
     value: 6
   }
 ]
 
 let baseTypeOptions2 = [
   {
-    label: '包含其中一项',
+    label: t('label_contain_one'),
     value: 3
   },
   {
-    label: '不包含其中一项',
+    label: t('label_not_contain_one'),
     value: 4
   },
   {
-    label: '为空',
+    label: t('label_is_empty'),
     value: 5
   },
   {
-    label: '不为空',
+    label: t('label_not_empty'),
     value: 6
   }
 ]
@@ -327,11 +332,11 @@ function getTypeOptions(data) {
   if (typ == 'boole') {
     return [
       {
-        label: '等于',
+        label: t('label_equal'),
         value: 1
       },
       {
-        label: '不等于',
+        label: t('label_not_equal'),
         value: 2
       }
     ]

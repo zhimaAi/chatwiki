@@ -9,12 +9,12 @@
       :scroll="{x: 1200}"
       @change="tableChange"
     >
-      <a-table-column key="id" data-index="id" :width="700">
-        <template #title>问答（共{{ props.total }}个）</template>
+      <a-table-column key="id" data-index="id" :width="1148">
+        <template #title>{{ t('title_qa_total', { total: props.total }) }}</template>
         <template #default="{ record }">
           <div class="qa-list-box" @dblclick="handleOpenEditModal(record)">
             <div class="list-item">
-              <div class="list-label">问题</div>
+              <div class="list-label">{{ t('label_question') }}</div>
               <div class="list-content">
                 <a-tooltip placement="top" v-if="record.status == 2">
                   <template #title>
@@ -39,7 +39,7 @@
                       </div>
                     </template>
                     <template #title>
-                      <span>共 {{ record.similar_questions.length }} 个相似问法</span>
+                      <span>{{ t('msg_similar_questions', { length: record.similar_questions.length }) }}</span>
                     </template>
                     <a>（{{ record.similar_questions.length }}）</a>
                   </a-popover>
@@ -47,7 +47,7 @@
               </div>
             </div>
             <div class="list-item list-item-answer">
-              <div class="list-label">答案</div>
+              <div class="list-label">{{ t('label_answer') }}</div>
               <div class="list-content" v-html="textToHighlight(record.answer, props.search)"></div>
             </div>
             <div class="fragment-img" v-viewer>
@@ -57,7 +57,7 @@
         </template>
       </a-table-column>
       <a-table-column
-        title="合计"
+        :title="t('col_total')"
         key="total_hits"
         data-index="total_hits"
         :width="108"
@@ -65,7 +65,7 @@
       >
       </a-table-column>
       <a-table-column
-        title="昨日"
+        :title="t('col_yesterday')"
         key="yesterday_hits"
         data-index="yesterday_hits"
         :width="108"
@@ -73,7 +73,7 @@
       >
       </a-table-column>
       <a-table-column
-        title="今日"
+        :title="t('col_today')"
         key="today_hits"
         data-index="today_hits"
         :width="108"
@@ -97,7 +97,7 @@
           </a-tooltip>
         </template>
       </a-table-column>
-      <a-table-column title="操作" key="action" data-index="action" :width="120" fixed="right">
+      <a-table-column :title="t('col_action')" key="action" data-index="action" :width="120" fixed="right">
         <template #default="{ record, index }">
           <div class="right-opration" >
             <div class="hover-btn-box" @click="handleSetCategory(record, 0)" v-if="record.category_id > 0">
@@ -137,6 +137,9 @@ import {
   getCategoryList,
   updateParagraphCategory
 } from '@/api/library'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.library-details.qa-knowledge-document.components.subsection-box')
 
 const emit = defineEmits([
   'handleDelParagraph',
@@ -184,14 +187,14 @@ const handleOpenEditModal = (item) => {
 }
 const hanldleDelete = (id) => {
   Modal.confirm({
-    title: '提示',
+    title: t('title_hint'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确认是否删除该问答?',
+    content: t('msg_confirm_delete'),
     onOk() {
       return new Promise((resolve, reject) => {
         deleteParagraph({ id })
           .then((res) => {
-            message.success('删除成功')
+            message.success(t('msg_delete_success'))
             emit('handleDelParagraph', id)
             resolve()
           })
@@ -209,7 +212,7 @@ const handleSetCategory = (item, category_id) => {
     id: item.id,
     category_id
   }).then((res) => {
-    message.success('设置成功')
+    message.success(t('msg_set_success'))
     emit('getList')
   })
 }

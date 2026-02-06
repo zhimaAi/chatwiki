@@ -47,7 +47,7 @@
 
 <script>
 import { QuestionCircleOutlined } from '@ant-design/icons-vue';
-import {FeiShuOperatorMap} from "@/constants/feishu-table.js";
+import {feiShuOperatorMap} from "@/constants/feishu-table.js";
 import AtText from "@/views/workflow/components/at-input/at-text.vue";
 
 export default {
@@ -63,7 +63,7 @@ export default {
   },
   data() {
     return {
-      operatorMap: FeiShuOperatorMap(),
+      operatorMap: feiShuOperatorMap,
       actionState: {},
     }
   },

@@ -24,7 +24,7 @@
     <div class="mcp-form">
       <div class="node-options">
         <div class="options-title">
-          <div><img src="@/assets/img/workflow/input.svg" class="title-icon" />输入</div>
+          <div><img src="@/assets/img/workflow/input.svg" class="title-icon" />{{ t('label_input') }}</div>
         </div>
         <div
           v-for="(item, key) in formState.params"
@@ -46,7 +46,7 @@
               ref="atInputRef"
               @open="getValueVariableList"
               @change="(text, selectedList) => changeValue(item, text, selectedList)"
-              placeholder="请输入内容，键入“/”可以插入变量"
+              :placeholder="t('ph_input_content')"
             >
               <template #option="{ label, payload }">
                 <div class="field-list-item">
@@ -61,17 +61,17 @@
       </div>
       <div class="node-options">
         <div class="options-title">
-          <div><img src="@/assets/img/workflow/output.svg" class="title-icon" />输出</div>
+          <div><img src="@/assets/img/workflow/output.svg" class="title-icon" />{{ t('label_output') }}</div>
         </div>
         <div class="options-item">
           <div class="options-item-tit">
-            <div class="option-label">输出</div>
+            <div class="option-label">{{ t('label_output_text') }}</div>
           </div>
           <div class="options-item-tit">
             <div class="option-label">text</div>
             <div class="option-type">string</div>
           </div>
-          <div class="desc">工具生成的内容</div>
+          <div class="desc">{{ t('msg_tool_generated_content') }}</div>
         </div>
       </div>
     </div>
@@ -85,7 +85,9 @@ import { ref, reactive, inject, onMounted, computed } from 'vue'
 import NodeFormLayout from './node-form-layout.vue'
 import NodeFormHeader from './node-form-header.vue'
 import AtInput from '../at-input/at-input.vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
+const { t } = useI18n('views.workflow.components.node-form-drawer.mcp-form')
 const getNode = inject('getNode')
 const setData = inject('setData')
 

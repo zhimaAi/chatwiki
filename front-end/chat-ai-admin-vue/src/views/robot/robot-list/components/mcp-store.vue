@@ -1,37 +1,37 @@
 <template>
   <a-modal
     v-model:open="visible"
-    :title="formState.server_id ? '编辑MCP' : '添加MCP'"
+    :title="formState.server_id ? t('title_edit_mcp') : t('title_add_mcp')"
     width="472px"
     :confirm-loading="saving"
     @ok="save">
     <div class="avatar-box">
       <AvatarInput v-model:value="formState.avatar" @change="avatarChange"/>
-      <div class="tip-info">点击替换，建议尺寸为100*100px，大小不超过100kb</div>
+      <div class="tip-info">{{ t('tip_avatar_replace') }}</div>
     </div>
     <a-form class="form-box" labelAlign="left">
-      <a-form-item label="MCP插件名称" required :colon="false">
-        <a-input v-model:value="formState.name" placeholder="请输入MCP插件名称，最多20个字" :maxlength="20"/>
+      <a-form-item :label="t('label_mcp_plugin_name')" required :colon="false">
+        <a-input v-model:value="formState.name" :placeholder="t('ph_mcp_plugin_name')" :maxlength="20"/>
       </a-form-item>
-      <a-form-item label="描述" :colon="false">
+      <a-form-item :label="t('label_description')" :colon="false">
         <a-textarea
           v-model:value="formState.description"
           :auto-size="{ minRows: 2, maxRows: 5 }"
-          placeholder="请输入描述" :maxlength="20"/>
+          :placeholder="t('ph_description')" :maxlength="20"/>
       </a-form-item>
       <template v-if="!formState.server_id">
-        <div class="tit-box">配置信息 <span class="desc">以下配置创建完成后自动生成</span></div>
-        <a-form-item label="插件URL" :colon="false">
-          <a-input disabled placeholder="创建完成后默认生成"/>
+        <div class="tit-box">{{ t('title_config_info') }} <span class="desc">{{ t('desc_config_auto_generate') }}</span></div>
+        <a-form-item :label="t('label_plugin_url')" :colon="false">
+          <a-input disabled :placeholder="t('ph_plugin_url_default')"/>
         </a-form-item>
-        <a-form-item label="授权方式" :colon="false">
-          <a-input disabled placeholder="Service token / API key"/>
+        <a-form-item :label="t('label_auth_method')" :colon="false">
+          <a-input disabled :placeholder="t('ph_auth_method_default')"/>
         </a-form-item>
-        <a-form-item label="请求头" :colon="false">
-          <a-input disabled placeholder="Authorization"/>
+        <a-form-item :label="t('label_request_header')" :colon="false">
+          <a-input disabled :placeholder="t('ph_request_header_default')"/>
         </a-form-item>
-        <a-form-item label="API KEY" :colon="false">
-          <a-input disabled placeholder="创建完成后默认生成"/>
+        <a-form-item :label="t('label_api_key')" :colon="false">
+          <a-input disabled :placeholder="t('ph_api_key_default')"/>
         </a-form-item>
       </template>
     </a-form>
@@ -45,6 +45,9 @@ import AvatarInput from "@/views/robot/robot-list/components/avatar-input.vue";
 import {saveMcpServer} from "@/api/robot/mcp.js";
 import {DEFAULT_MCP_AVATAR} from "@/constants/index.js";
 import {base64ToFile} from "@/utils/index.js";
+import {useI18n} from '@/hooks/web/useI18n';
+
+const { t } = useI18n('views.robot.robot-list.components.mcp-store');
 
 const emit = defineEmits(['ok'])
 
@@ -74,13 +77,13 @@ function save() {
     saving.value = true
     formState.name = formState.name.trim()
     formState.description = formState.description.trim()
-    if (!formState.name) throw '请输入MCP插件名称'
-    if (!formState.description) throw '请输入MCP插件描述'
+    if (!formState.name) throw t('msg_input_mcp_plugin_name')
+    if (!formState.description) throw t('msg_input_mcp_plugin_description')
     let data = {...formState}
     if (avatarData.value) data.avatar = avatarData.value?.file
     saveMcpServer(data).then(res => {
       emit('ok', formState)
-      message.success('已保存')
+      message.success(t('msg_saved'))
       visible.value = false
     }).finally(() => {
       saving.value = false

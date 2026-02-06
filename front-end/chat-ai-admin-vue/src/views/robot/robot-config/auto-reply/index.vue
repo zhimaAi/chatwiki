@@ -1,10 +1,10 @@
 <template>
   <div class="auto-reply-home">
     <a-tabs v-model:activeKey="activeKey">
-      <a-tab-pane key="keywords" tab="关键词回复">
+      <a-tab-pane key="keywords" :tab="t('tab_keywords')">
         <KeywordsReply />
       </a-tab-pane>
-      <a-tab-pane key="received" tab="收到消息回复">
+      <a-tab-pane key="received" :tab="t('tab_received')">
         <ReceivedReply />
       </a-tab-pane>
     </a-tabs>
@@ -17,8 +17,10 @@ import { ref } from 'vue'
 import KeywordsReply from './keywords-reply.vue'
 import ReceivedReply from './received-reply.vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
 
 const route = useRoute()
+const { t } = useI18n('views.robot.robot-config.auto-reply.index')
 const activeKey = ref(route.query.active_key || 'keywords')
 </script>
 

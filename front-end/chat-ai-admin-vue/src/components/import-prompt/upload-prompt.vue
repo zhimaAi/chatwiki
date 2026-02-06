@@ -1,25 +1,25 @@
 <template>
   <div>
-    <a-modal v-model:open="open" title="保存到提示词库" :width="580" @ok="handleOk" :confirmLoading="isLoading">
+    <a-modal v-model:open="open" :title="t('title_save_to_library')" :width="580" @ok="handleOk" :confirmLoading="isLoading">
       <a-form
         style="margin-top: 24px"
-        :label-col="{ span: 4 }"
+        :label-col="{ span: 5 }"
         :wrapper-col="{ span: 18 }"
         ref="formRef"
         :model="formState"
       >
         <a-form-item
           name="title"
-          label="提示词标题"
-          :rules="[{ required: true, message: '请输入提示词标题' }]"
+          :label="t('label_prompt_title')"
+          :rules="[{ required: true, message: t('msg_input_prompt_title') }]"
         >
           <a-input
             v-model:value="formState.title"
-            placeholder="请输入提示词标题"
+            :placeholder="t('ph_input_prompt_title')"
             :maxLength="10"
           ></a-input>
         </a-form-item>
-        <a-form-item name="group_id" label="分组">
+        <a-form-item name="group_id" :label="t('label_group')">
           <a-select v-model:value="formState.group_id" style="width: 100%">
             <a-select-option v-for="item in groupList" :value="item.id">{{
               item.group_name
@@ -36,6 +36,10 @@ import { ref, h, reactive } from 'vue'
 import {} from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { getPromptLibraryGroup, savePromptLibraryItems } from '@/api/user/index.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('components.import-prompt.upload-prompt')
+
 const open = ref(false)
 
 const formState = reactive({
@@ -49,7 +53,7 @@ const formState = reactive({
 const formRef = ref(null)
 const show = (data) => {
   if(data.prompt_type == 0 && !data.prompt){
-    return message.error('自定义提示为空,无法上传')
+    return message.error(t('msg_custom_prompt_empty'))
   }
   formRef.value && formRef.value.resetFields()
   let newData = {
@@ -74,7 +78,7 @@ const getGroupList = () => {
     groupList.value = [
       {
         id: 0,
-        group_name: '默认分组'
+        group_name: t('group_default')
       },
       ...res.data
     ]
@@ -95,7 +99,7 @@ const handleOk = () => {
       ...parmas
     })
       .then(() => {
-        message.success(`保存成功`)
+        message.success(t('msg_save_success'))
         open.value = false
       })
       .finally(() => {

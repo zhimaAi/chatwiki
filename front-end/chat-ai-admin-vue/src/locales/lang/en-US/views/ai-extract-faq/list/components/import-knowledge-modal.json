@@ -1,0 +1,12 @@
+{
+  "modal_title": "Import Q&A Knowledge Base",
+  "import_to_existing_library": "Import to Existing Knowledge Base",
+  "create_and_import_library": "Create Q&A Knowledge Base and Import",
+  "select_library_title": "Please Select Knowledge Base to Import",
+  "search_library_placeholder": "Enter Knowledge Base Name to Search",
+  "refresh_button": "Refresh",
+  "no_data": "No Data",
+  "import_success": "Import Successful",
+  "select_library_error": "Please Select a Knowledge Base to Import",
+  "refresh_success": "Refresh Successful"
+}

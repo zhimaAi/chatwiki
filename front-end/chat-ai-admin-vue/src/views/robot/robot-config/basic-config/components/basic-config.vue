@@ -73,7 +73,7 @@
 <template>
   <edit-box
     class="basic-config"
-    title="基本配置"
+    :title="t('title_basic_config')"
     icon-name="jibenpeizhi"
     v-model:isEdit="isEdit"
     @save="onSave"
@@ -81,7 +81,7 @@
   >
     <div class="robot-form-box" v-show="isEdit">
       <div class="form-item">
-        <div class="form-item-label">机器人名称/头像</div>
+        <div class="form-item-label">{{ t('label_robot_name_avatar') }}</div>
         <div class="form-item-body robot-name-item">
           <cu-upload accept="image/*" @change="handleChangeAvatar">
             <div class="robot-avetar-upload">
@@ -94,18 +94,18 @@
           </cu-upload>
 
           <div class="robot-name-box">
-            <a-input v-model:value="formState.robot_name" placeholder="请输入机器人名称" />
+            <a-input v-model:value="formState.robot_name" :placeholder="t('ph_input_robot_name')" />
           </div>
         </div>
       </div>
 
       <div class="form-item">
-        <div class="form-item-label">简介</div>
+        <div class="form-item-label">{{ t('label_intro') }}</div>
         <div class="form-item-body">
           <a-textarea
             :rows="3"
             v-model:value="formState.robot_intro"
-            placeholder="请输入机器人简介，比如 ZHIMA CHATAI 基于大语言模型提供ZHIMA CHATAI 产品帮助。"
+            :placeholder="t('ph_input_robot_intro')"
             allow-clear
           />
         </div>
@@ -117,8 +117,8 @@
         <span class="robot-name">{{ robotInfo.robot_name }}</span>
       </div>
       <div class="robot-intro">
-        <span>分组：{{ groupName }}</span>
-        <span>简介：{{ robotInfo.robot_intro || '还没有设置机器人介绍，快来写一段简介吧' }}</span>
+        <span>{{ t('label_group') }}{{ groupName }}</span>
+        <span>{{ t('label_intro_colon') }}{{ robotInfo.robot_intro || t('msg_no_intro') }}</span>
       </div>
     </div>
   </edit-box>
@@ -129,6 +129,9 @@ import { ref, reactive, inject, toRaw, computed } from 'vue'
 import EditBox from './edit-box.vue'
 import CuUpload from '@/components/cu-upload/cu-upload.vue'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.basic-config')
 const robotStore = useRobotStore()
 const isEdit = ref(false)
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
@@ -150,7 +153,7 @@ const robotGroupList = computed(() => {
 
 
 const groupName = computed(() => {
-  let group_name = '未分组'
+  let group_name = t('msg_ungrouped')
   let currentRobotItem = robotList.value.find((item) => item.id == robotInfo.id) || {}
   if(currentRobotItem.group_id > 0){
     let groupItem = robotGroupList.value.find((item) => item.id == currentRobotItem.group_id)

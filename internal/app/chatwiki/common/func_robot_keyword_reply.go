@@ -16,7 +16,7 @@ import (
 const MaxKeywordNum = 500
 const MaxKeywordReplyRuleNum = 1000
 
-// RobotKeywordReplyCacheBuildHandler 机器人关键词回复规则缓存
+// RobotKeywordReplyCacheBuildHandler Robot keyword reply rule cache
 type RobotKeywordReplyCacheBuildHandler struct {
 	RobotId int
 }
@@ -40,7 +40,7 @@ func (h *RobotKeywordReplyCacheBuildHandler) GetCacheKey() string {
 
 func (h *RobotKeywordReplyCacheBuildHandler) GetCacheData() (any, error) {
 	data, err := msql.Model(`func_chat_robot_keyword_reply`, define.Postgres).Where(`robot_id`, cast.ToString(h.RobotId)).Where(`switch_status`, cast.ToString(define.SwitchOn)).Order(`id desc`).Select()
-	//转换
+	// Convert
 	list := make([]RobotKeywordReply, 0)
 	if err == nil && len(data) > 0 {
 		for _, item := range data {
@@ -57,7 +57,7 @@ func (h *RobotKeywordReplyCacheBuildHandler) GetCacheData() (any, error) {
 				Name:         item[`name`],
 				FullKeyword:  DisposeStringList(item[`full_keyword`]),
 				HalfKeyword:  DisposeStringList(item[`half_keyword`]),
-				ReplyContent: replyContent, //处理回复内容
+				ReplyContent: replyContent, // Process reply content
 				ReplyType:    DisposeStringList(item[`reply_type`]),
 				SwitchStatus: cast.ToInt(item[`switch_status`]),
 				ReplyNum:     cast.ToInt(item[`reply_num`]),
@@ -67,7 +67,7 @@ func (h *RobotKeywordReplyCacheBuildHandler) GetCacheData() (any, error) {
 	return list, err
 }
 
-// GetRobotKeywordReplyListByRobotId 机器人关键词回复规则列表
+// GetRobotKeywordReplyListByRobotId Robot keyword reply rule list
 func GetRobotKeywordReplyListByRobotId(robotId int) ([]RobotKeywordReply, error) {
 	result := make([]RobotKeywordReply, 0)
 	err := lib_redis.GetCacheWithBuild(define.Redis, &RobotKeywordReplyCacheBuildHandler{RobotId: robotId}, &result, time.Hour)
@@ -77,15 +77,15 @@ func GetRobotKeywordReplyListByRobotId(robotId int) ([]RobotKeywordReply, error)
 	return result, err
 }
 
-// SaveRobotKeywordReply 保存关键词回复规则（创建或更新）
+// SaveRobotKeywordReply Save keyword reply rule (create or update)
 func SaveRobotKeywordReply(id, adminUserID, robotID int, name string, fullKeyword, halfKeyword []string, replyContent []ReplyContent, replyType []string, replyNum int) (int64, error) {
 	fullKeywordJson, _ := tool.JsonEncode(fullKeyword)
 	halfKeywordJson, _ := tool.JsonEncode(halfKeyword)
 	replyContentJson, _ := tool.JsonEncode(replyContent)
 
-	//兼容判断一下
+	// Compatible judgment
 	if len(replyType) == 0 && len(replyContent) > 0 {
-		//循环replyContent 将reply_type 赋值 replyType
+		// Loop replyContent to assign reply_type to replyType
 		for _, reply := range replyContent {
 			if len(reply.ReplyType) == 0 {
 				replyType = append(replyType, reply.ReplyType)
@@ -111,65 +111,65 @@ func SaveRobotKeywordReply(id, adminUserID, robotID int, name string, fullKeywor
 	var newId int64
 
 	if id <= 0 {
-		// 创建新记录
+		// Create new record
 		data["create_time"] = tool.Time2Int()
 		newId, err = msql.Model(`func_chat_robot_keyword_reply`, define.Postgres).Insert(data, "id")
 	} else {
-		// 更新现有记录
+		// Update existing record
 		_, err = msql.Model(`func_chat_robot_keyword_reply`, define.Postgres).Where("id", cast.ToString(id)).Update(data)
 		newId = int64(id)
 	}
 
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &RobotKeywordReplyCacheBuildHandler{RobotId: robotID})
 	}
 	return newId, err
 }
 
-// DeleteRobotKeywordReply 删除关键词回复规则
+// DeleteRobotKeywordReply Delete keyword reply rule
 func DeleteRobotKeywordReply(id, robotID int) error {
 	_, err := msql.Model(`func_chat_robot_keyword_reply`, define.Postgres).Where("id", cast.ToString(id)).Delete()
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &RobotKeywordReplyCacheBuildHandler{RobotId: robotID})
 	}
 	return err
 }
 
-// GetRobotKeywordReply 获取单个关键词回复规则
+// GetRobotKeywordReply Get a single keyword reply rule
 func GetRobotKeywordReply(id int) (msql.Params, error) {
 	return msql.Model(`func_chat_robot_keyword_reply`, define.Postgres).Where("id", cast.ToString(id)).Find()
 }
 
-// GetRobotKeywordReplyUseRuleNum 获取机器人使用中的关键词回复规则数量
+// GetRobotKeywordReplyUseRuleNum Get the number of keyword reply rules in use by the robot
 func GetRobotKeywordReplyUseRuleNum(robotID int) (int, error) {
 	total, err := msql.Model(`func_chat_robot_keyword_reply`, define.Postgres).Where(`robot_id`, cast.ToString(robotID)).Where(`switch_status`, cast.ToString(define.SwitchOn)).Count()
 	return total, err
 }
 
-// GetRobotKeywordReplyListWithFilter 获取关键词回复规则列表（带过滤条件和分页）
+// GetRobotKeywordReplyListWithFilter Get keyword reply rule list (with filters and pagination)
 func GetRobotKeywordReplyListWithFilter(robotID int, keyword, replyType string, page, size int) ([]msql.Params, int, error) {
 	model := msql.Model(`func_chat_robot_keyword_reply`, define.Postgres).Where("robot_id", cast.ToString(robotID))
 
-	// 根据关键词模糊查询（在full_keyword或half_keyword中）
+	// Fuzzy query by keyword (in full_keyword or half_keyword)
 	if keyword != "" {
-		// 使用 PostgreSQL 的 jsonb 操作符进行查询
+		// Query using PostgreSQL's jsonb operator
 		model.Where("( (name ILIKE '%" + keyword + "%') OR  (full_keyword ?| array['" + keyword + "'] OR half_keyword ?| array['" + keyword + "']) )")
 	}
 
-	// 根据回复类型查询
+	// Query by reply type
 	if replyType != "" {
-		// 使用 PostgreSQL 的 jsonb 操作符进行查询
+		// Query using PostgreSQL's jsonb operator
 		model.Where("reply_type ?| array['" + replyType + "']")
 	}
 
-	// 添加分页
+	// Add pagination
 	list, total, err := model.Order("id DESC").Paginate(page, size)
 	return list, total, err
 }
 
-// UpdateRobotKeywordReplySwitchStatus 更新关键词回复规则开关状态
+// UpdateRobotKeywordReplySwitchStatus Update keyword reply rule switch status
 func UpdateRobotKeywordReplySwitchStatus(id, robotID, switchStatus int) error {
 	data := msql.Datas{
 		"switch_status": switchStatus,
@@ -178,19 +178,19 @@ func UpdateRobotKeywordReplySwitchStatus(id, robotID, switchStatus int) error {
 
 	_, err := msql.Model(`func_chat_robot_keyword_reply`, define.Postgres).Where("id", cast.ToString(id)).Update(data)
 	if err == nil {
-		// 清除缓存
+		// Clear cache
 		lib_redis.DelCacheData(define.Redis, &RobotKeywordReplyCacheBuildHandler{RobotId: robotID})
 	}
 	return err
 }
 
-// CheckKeyWordRepeat 检测关键词是否重复
+// CheckKeyWordRepeat Check if keyword is repeated
 func CheckKeyWordRepeat(robotID int, keyword string, id int) (bool, string) {
-	//检测是否重复 返回重复状态和规则名称
+	// Check if repeated, return repeat status and rule name
 	model := msql.Model(`func_chat_robot_keyword_reply`, define.Postgres).Where("robot_id", cast.ToString(robotID))
-	// 根据关键词模糊查询（在full_keyword或half_keyword中）
+	// Fuzzy query by keyword (in full_keyword or half_keyword)
 	if keyword != "" {
-		// 使用 PostgreSQL 的 jsonb 操作符进行查询
+		// Query using PostgreSQL's jsonb operator
 		model.Where(" (full_keyword ?| array['" + keyword + "'] OR half_keyword ?| array['" + keyword + "']) ")
 	} else {
 		return false, ""

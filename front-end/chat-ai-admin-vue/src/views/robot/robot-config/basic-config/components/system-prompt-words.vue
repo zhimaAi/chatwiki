@@ -1,39 +1,39 @@
 <template>
   <div class="prompt-box">
     <div class="tab-header">
-      <a-tabs v-model:activeKey="prompt_type">
-        <a-tab-pane :key="1" tab="结构化提示词"></a-tab-pane>
-        <a-tab-pane :key="0" tab="自定义提示词"></a-tab-pane>
+      <a-tabs style="width: 400px;" v-model:activeKey="prompt_type">
+        <a-tab-pane :key="1" :tab="t('tab_structured')"></a-tab-pane>
+        <a-tab-pane :key="0" :tab="t('tab_custom')"></a-tab-pane>
       </a-tabs>
       <div class="opt-block" v-if="isEdit">
         <a-tooltip>
-          <template #title>将当前编辑的提示词保存到提示词库中</template>
+          <template #title>{{ t('tooltip_upload') }}</template>
           <div class="hover-btn-box" style="color: #6524fc" @click="onShowUpPromptModal">
-            <ToTopOutlined />上传
+            <ToTopOutlined />{{ t('btn_upload') }}
           </div>
         </a-tooltip>
         <a-tooltip>
-          <template #title>从提示词库导入提示词</template>
+          <template #title>{{ t('tooltip_import') }}</template>
           <div class="hover-btn-box" style="color: #6524fc" @click="onShowAddPromptModal">
-            <DownloadOutlined />导入
+            <DownloadOutlined />{{ t('btn_import') }}
           </div>
         </a-tooltip>
 
         <div class="ai-mark-box hover-btn-box" @click="onShowAiCreateModal">
           <svg-icon name="ai-mark" />
-          AI自动生成
+          {{ t('btn_ai_generate') }}
         </div>
 
         <a-flex :gap="8">
-          <a-button size="small" type="primary" @click="onSave">保存</a-button>
-          <a-button size="small" @click="onCancel">取消</a-button>
+          <a-button size="small" type="primary" @click="onSave">{{ t('btn_save') }}</a-button>
+          <a-button size="small" @click="onCancel">{{ t('btn_cancel') }}</a-button>
         </a-flex>
       </div>
       <div class="opt-block" v-else>
         <span class="tip-text"
-          >当前类型：{{ currentPromptType == 1 ? '结构化提示词' : '自定义提示词' }}</span
+          >{{ t('msg_current_type') }}{{ currentPromptType == 1 ? t('msg_structured_prompt') : t('msg_custom_prompt') }}</span
         >
-        <a-button size="small" @click="handleEdit">修改</a-button>
+        <a-button size="small" @click="handleEdit">{{ t('btn_edit') }}</a-button>
       </div>
     </div>
     <div class="prompt-list-box" v-if="prompt_type == 1">
@@ -42,7 +42,7 @@
         <div class="prompt-header">
           <div class="prompt-title">{{ formState.prompt_struct.role.subject }}</div>
           <div class="btn-wrapper-box" v-if="isEdit">
-            <a @click="handleReset('role')">恢复默认</a>
+            <a @click="handleReset('role')">{{ t('btn_reset_default') }}</a>
           </div>
         </div>
         <div class="prompt-content">
@@ -50,7 +50,7 @@
             :bordered="false"
             :disabled="!isEdit"
             v-model:value="formState.prompt_struct.role.describe"
-            :placeholder="placeholderMap.role"
+            :placeholder="t('ph_role')"
           />
         </div>
       </div>
@@ -59,7 +59,7 @@
         <div class="prompt-header">
           <div class="prompt-title">{{ formState.prompt_struct.task.subject }}</div>
           <div class="btn-wrapper-box" v-if="isEdit">
-            <a @click="handleReset('task')">恢复默认</a>
+            <a @click="handleReset('task')">{{ t('btn_reset_default') }}</a>
           </div>
         </div>
         <div class="prompt-content">
@@ -67,7 +67,7 @@
             :bordered="false"
             :disabled="!isEdit"
             v-model:value="formState.prompt_struct.task.describe"
-            :placeholder="placeholderMap.task"
+            :placeholder="t('ph_task')"
           />
         </div>
       </div>
@@ -77,7 +77,7 @@
           <div class="prompt-header">
             <div class="prompt-title">{{ formState.prompt_struct.constraints.subject }}</div>
             <div class="btn-wrapper-box" v-if="isEdit">
-              <a @click="handleReset('constraints')">恢复默认</a>
+              <a @click="handleReset('constraints')">{{ t('btn_reset_default') }}</a>
             </div>
           </div>
           <div class="prompt-content">
@@ -85,7 +85,7 @@
               :bordered="false"
               :disabled="!isEdit"
               v-model:value="formState.prompt_struct.constraints.describe"
-              :placeholder="placeholderMap.constraints"
+              :placeholder="t('ph_constraints')"
               style="min-height: 130px"
             />
           </div>
@@ -95,7 +95,7 @@
           <div class="prompt-header">
             <div class="prompt-title">{{ formState.prompt_struct.skill.subject }}</div>
             <div class="btn-wrapper-box" v-if="isEdit">
-              <a @click="handleImportSkill()">自动导入技能</a>
+              <a @click="handleImportSkill()">{{ t('btn_import_skill') }}</a>
             </div>
           </div>
           <div class="prompt-content">
@@ -103,7 +103,7 @@
               :bordered="false"
               :disabled="!isEdit"
               v-model:value="formState.prompt_struct.skill.describe"
-              :placeholder="placeholderMap.skill"
+              :placeholder="t('ph_skill')"
               style="min-height: 80px"
             />
           </div>
@@ -115,24 +115,24 @@
             <div class="prompt-title">{{ formState.prompt_struct.output.subject }}</div>
             <div class="btn-wrapper-box" v-if="isEdit">
               <div class="swich-item">
-                输出markdown：
+                {{ t('label_output_markdown') }}
                 <a-switch
                   @change="(val) => handleChangeSwitch(val, 'outSwitch')"
                   v-model:checked="outSwitch"
-                  checked-children="开"
-                  un-checked-children="关"
+                  :checked-children="t('switch_on')"
+                  :un-checked-children="t('switch_off')"
                 />
               </div>
               <div class="swich-item">
-                回复图片：
+                {{ t('label_reply_image') }}
                 <a-switch
                   @change="(val) => handleChangeSwitch(val, 'imgSwitch')"
                   v-model:checked="imgSwitch"
-                  checked-children="开"
-                  un-checked-children="关"
+                  :checked-children="t('switch_on')"
+                  :un-checked-children="t('switch_off')"
                 />
               </div>
-              <a @click="handleReset('output')">恢复默认</a>
+              <a @click="handleReset('output')">{{ t('btn_reset_default') }}</a>
             </div>
           </div>
           <div class="prompt-content">
@@ -140,7 +140,7 @@
               :bordered="false"
               :disabled="!isEdit"
               v-model:value="formState.prompt_struct.output.describe"
-              :placeholder="placeholderMap.output"
+              :placeholder="t('ph_output')"
             />
           </div>
         </div>
@@ -149,7 +149,7 @@
           <div class="prompt-header">
             <div class="prompt-title">{{ formState.prompt_struct.tone.subject }}</div>
             <div class="btn-wrapper-box" v-if="isEdit">
-              <a @click="handleReset('tone')">恢复默认</a>
+              <a @click="handleReset('tone')">{{ t('btn_reset_default') }}</a>
             </div>
           </div>
           <div class="prompt-content">
@@ -157,7 +157,7 @@
               :bordered="false"
               :disabled="!isEdit"
               v-model:value="formState.prompt_struct.tone.describe"
-              :placeholder="placeholderMap.tone"
+              :placeholder="t('ph_tone')"
             />
           </div>
         </div>
@@ -175,7 +175,7 @@
                 :disabled="!isEdit"
                 style="width: 100%"
                 v-model:value="item.subject"
-                placeholder="请输入主题"
+                :placeholder="t('ph_input_subject')"
               ></a-input>
             </div>
             <div class="btn-wrapper-box" v-if="isEdit">
@@ -189,43 +189,43 @@
               :bordered="false"
               :disabled="!isEdit"
               v-model:value="item.describe"
-              placeholder="请输入"
+              :placeholder="t('ph_input')"
             />
           </div>
         </div>
         <div class="add-theme-block" v-if="isEdit">
-          <a-button @click="handleAddTheme" block :icon="h(PlusOutlined)">添加主题</a-button>
+          <a-button @click="handleAddTheme" block :icon="h(PlusOutlined)">{{ t('btn_add_theme') }}</a-button>
         </div>
       </template>
       <div class="show-more-block">
         <div class="btn-item" @click="handleShowMore">
-          <template v-if="!isHide">展开<DownOutlined /></template>
-          <template v-else>收起<UpOutlined /></template>
+          <template v-if="!isHide">{{ t('btn_expand') }}<DownOutlined /></template>
+          <template v-else>{{ t('btn_collapse') }}<UpOutlined /></template>
         </div>
       </div>
     </div>
     <div class="diy-prompt-box" :class="{ 'is-disabled': !isEdit }" v-else>
       <a-flex align="center" justify="space-between" v-if="isEdit" style="margin: 8px 0">
         <div style="color: #8c8c8c">
-          键入"/"可以插入变量，用户输入的参数会填充变量作为最终的提示词
+          {{ t('msg_var_insert_tip') }}
         </div>
         <div class="diy-switch-box">
           <div class="swich-item">
-            输出markdown：
+            {{ t('label_output_markdown') }}
             <a-switch
               @change="(val) => handleDiyChangeSwitch(val, 'outDiySwitch')"
               v-model:checked="outDiySwitch"
-              checked-children="开"
-              un-checked-children="关"
+              :checked-children="t('switch_on')"
+              :un-checked-children="t('switch_off')"
             />
           </div>
           <div class="swich-item">
-            回复图片：
+            {{ t('label_reply_image') }}
             <a-switch
               @change="(val) => handleDiyChangeSwitch(val, 'imgDiySwitch')"
               v-model:checked="imgDiySwitch"
-              checked-children="开"
-              un-checked-children="关"
+              :checked-children="t('switch_on')"
+              :un-checked-children="t('switch_off')"
             />
           </div>
         </div>
@@ -269,6 +269,9 @@ import ImportPrompt from '@/components/import-prompt/index.vue'
 import UploadPrompt from '@/components/import-prompt/upload-prompt.vue'
 import AtInput from './at-input/index.vue'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.system-prompt-words')
 const robotStore = useRobotStore()
 const isEdit = ref(false)
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
@@ -278,18 +281,9 @@ const props = defineProps({
     default: () => []
   }
 })
-let placeholderMap = {
-  role: '请输入，告知大模型要扮演的身份、职责、沟通风格等，比如“你扮演一名经验丰富的电商行业售后客服AI助手，具备良好的沟通能力和解决问题的能力。”',
-  task: '请输入，比如“根据提供的知识库资料，找到对应的售后知识（每个知识点之间使用⧼-split_line-⧽进行分割），快速准确回答用户的问题。”',
-  constraints:
-    '请输入对大模型在回复时的要求，比如“你的回答应该使用自然的对话方式，简单直接地回答，不要解释你的答案；当用户问题没有找到相关知识点时，直接告诉用户问题暂时无法回答，不能胡编乱造，否则你将受到惩罚。”',
-  output: '请输入对大模型输出格式的要求，比如“请使用markdown格式输出”',
-  tone: '请告知语言风格要求，比如“专业而不失亲切，适当使用emoji增强可读性”',
-  skill: '请输入'
-}
 
-const PromptDefaultReplyMarkdown = `- 请使用markdown格式回答问题。`
-const PromptDefaultAnswerImage = `- 当你选择的知识点中包含图片、链接数据时，你需要在你的答案对应位置输出这些数据，不要改写或忽略这些数据。`
+const PromptDefaultReplyMarkdown = t('prompt_default_reply_markdown')
+const PromptDefaultAnswerImage = t('prompt_default_answer_image')
 
 const prompt_struct_default = ref({})
 
@@ -470,7 +464,7 @@ const handleReset = (key) => {
 }
 
 const handleImportSkill = () => {
-  // 导入技能
+  // {{ t('comment_import_skill') }}
   let work_flow_ids = robotInfo.work_flow_ids.split(',')
   let selectRobotList = props.robotList.filter((item) => {
     return work_flow_ids.includes(item.id)

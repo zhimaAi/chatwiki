@@ -67,7 +67,7 @@
 <template>
   <edit-box
     class="setting-box"
-    title="数据库"
+    :title="t('title_database')"
     icon-name="guanlianzhishiku"
     v-model:isEdit="isEdit"
     :bodyStyle="{ padding: 0 }"
@@ -75,9 +75,7 @@
     <template #tip>
       <a-tooltip placement="top">
         <template #title>
-          <span
-            >关联数据库表，可以在机器人对话时，搜集用户数据进行存储，或者调用存储的数据回答用户提问。</span
-          >
+          <span>{{ t('tip_database_description') }}</span>
         </template>
         <QuestionCircleOutlined />
       </a-tooltip>
@@ -85,7 +83,7 @@
     <template #extra>
       <div class="actions-box">
         <a-flex :gap="8">
-          <a-button size="small" @click="handleOpenSelectLibraryAlert">关联数据表</a-button>
+          <a-button size="small" @click="handleOpenSelectLibraryAlert">{{ t('btn_link_data_table') }}</a-button>
         </a-flex>
       </div>
     </template>
@@ -108,6 +106,10 @@ import { ref, reactive, inject, watchEffect, computed, toRaw } from 'vue'
 import { CloseCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
 import EditBox from '../edit-box.vue'
 import LibrarySelectAlert from './library-select-alert.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.data-base.index')
+
 const isEdit = ref(false)
 
 const { robotInfo, updateRobotInfo } = inject('robotInfo')

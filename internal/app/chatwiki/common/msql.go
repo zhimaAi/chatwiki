@@ -289,7 +289,7 @@ func GetMatchLibraryParagraphByGraphSimilarity(lang string, robot msql.Params, o
 		size = 10 // Set default value
 	}
 
-	// 1. 从问题中提取实体
+	// 1. Extract entities from the question
 	extractEntitiesPrompt := strings.ReplaceAll(define.PromptDefaultEntityExtract, `{{question}}`, question)
 	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `system`, Content: extractEntitiesPrompt}}
 	chatResp, _, err := RequestChat(
@@ -317,7 +317,7 @@ func GetMatchLibraryParagraphByGraphSimilarity(lang string, robot msql.Params, o
 	chatResp.Result = strings.TrimSuffix(chatResp.Result, "```")
 	chatResp.Result = strings.TrimSpace(chatResp.Result)
 
-	// 2. 解析LLM提取的实体列表
+	// 2. Parse the entity list extracted by LLM
 	var entities []string
 	err = json.Unmarshal([]byte(chatResp.Result), &entities)
 	if err != nil {
@@ -330,32 +330,32 @@ func GetMatchLibraryParagraphByGraphSimilarity(lang string, robot msql.Params, o
 		return result, nil
 	}
 
-	// 记录提取的实体数量
+	// Record the number of extracted entities
 	logs.Info("Extracted %d entities from question[%s]", len(entities), question)
 
-	// 3. 使用图数据库查询相关实体
+	// 3. Query related entities using graph database
 	graphDB := NewGraphDB(cast.ToInt(robot[`admin_user_id`]))
 	libraryIdsArr := strings.Split(libraryIds, ",")
 
-	// 存储所有查询结果
+	// Store all query results
 	allResults := make([]*neo4j.Record, 0)
-	dataIds := make(map[int]float64) // 用于去重和存储最高置信度
+	dataIds := make(map[int]float64) // Used for deduplication and storing highest confidence
 
-	// 为每个实体分配合理的查询限制
+	// Allocate reasonable query limits for each entity
 	perEntityLimit := size * 4
 	if len(entities) > 0 {
 		perEntityLimit = perEntityLimit / len(entities)
 		if perEntityLimit < 10 {
-			perEntityLimit = 10 // 确保最小查询限制
+			perEntityLimit = 10 // Ensure minimum query limit
 		}
 	}
 
-	// 4. 对每个实体执行优化后的深度查询（使用协程并行执行）
-	queryStartTime := time.Now() // 查询开始时间
+	// 4. Perform optimized deep queries for each entity (executed in parallel using goroutines)
+	queryStartTime := time.Now() // Query start time
 	var wg sync.WaitGroup
-	var mu sync.Mutex // 用于保护 allResults 的并发访问
+	var mu sync.Mutex // Used to protect concurrent access to allResults
 
-	// 为每个实体启动一个协程
+	// Start a goroutine for each entity
 	for i, entityName := range entities {
 		if len(entityName) == 0 {
 			logs.Error("Empty entity at index %d", i)
@@ -374,27 +374,27 @@ func GetMatchLibraryParagraphByGraphSimilarity(lang string, robot msql.Params, o
 
 			logs.Info("Found %d related triples for entity[%d]", len(res.Records), index+1)
 
-			// 安全地追加结果
+			// Safely append results
 			mu.Lock()
 			allResults = append(allResults, res.Records...)
 			mu.Unlock()
 		}(i, entityName)
 	}
 
-	// 等待所有查询完成
+	// Wait for all queries to complete
 	wg.Wait()
 
-	// 计算并记录查询时间
+	// Calculate and record query time
 	queryDuration := time.Since(queryStartTime)
 	logs.Info("Parallel entity query completed in %v for %d entities", queryDuration, len(entities))
 
-	// 如果没有找到相关实体，直接返回
+	// Return directly if no related entities are found
 	if len(allResults) == 0 {
 		logs.Info("No related entities found")
 		return result, nil
 	}
 
-	// 5. 收集相关的数据ID和置信度，根据深度调整置信度
+	// 5. Collect related data IDs and confidence scores, adjust confidence based on depth
 	for _, record := range allResults {
 		dataIdValue, dataIdExists := record.Get("data_id")
 		confidenceValue, confidenceExists := record.Get("confidence")
@@ -412,14 +412,14 @@ func GetMatchLibraryParagraphByGraphSimilarity(lang string, robot msql.Params, o
 			confidence = 0.5
 		}
 		if depth > 0 {
-			// 每增加一级深度，降低20%的置信度
+			// Reduce confidence by 20% for each additional level of depth
 			depthFactor := 1.0 - float64(depth-1)*0.2
 			if depthFactor < 0.4 {
-				depthFactor = 0.4 // 最低保留40%的原始置信度
+				depthFactor = 0.4 // Retain at least 40% of original confidence
 			}
 			confidence = confidence * depthFactor
 		}
-		// 保存最高置信度
+		// Save highest confidence
 		if existingConf, exists := dataIds[dataId]; exists {
 			if confidence > existingConf {
 				dataIds[dataId] = confidence
@@ -429,7 +429,7 @@ func GetMatchLibraryParagraphByGraphSimilarity(lang string, robot msql.Params, o
 		}
 	}
 
-	// 6. 查询对应的段落数据
+	// 6. Query corresponding paragraph data
 	if len(dataIds) > 0 {
 		logs.Info("Found %d related data IDs", len(dataIds))
 
@@ -447,7 +447,7 @@ func GetMatchLibraryParagraphByGraphSimilarity(lang string, robot msql.Params, o
 			return result, err
 		}
 
-		// 7. 添加置信度作为相似度得分
+		// 7. Add confidence as similarity score
 		for _, paragraph := range paragraphs {
 			id := cast.ToInt(paragraph["id"])
 			if conf, exists := dataIds[id]; exists {
@@ -456,12 +456,12 @@ func GetMatchLibraryParagraphByGraphSimilarity(lang string, robot msql.Params, o
 			}
 		}
 
-		// 按相似度降序排序
+		// Sort by similarity in descending order
 		sort.Slice(result, func(i, j int) bool {
 			return cast.ToFloat64(result[i]["similarity"]) > cast.ToFloat64(result[j]["similarity"])
 		})
 
-		// 限制返回大小
+		// Limit return size
 		if len(result) > size {
 			result = result[:size]
 		}
@@ -525,7 +525,7 @@ func GetMatchLibraryDataIdsByFullText(content, libraryIds string, size int) ([]s
 
 func GetMatchLibraryDataIdsByLike(content, libraryIds string, size int) ([]string, error) {
 	ids := make([]string, 0)
-	// 精准搜索
+	// Exact search
 	ids, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`library_id`, `in`, libraryIds).
 		Where(`delete_time`, `0`).
 		Where(fmt.Sprintf(`content ILIKE '%%%s%%'`, content)).
@@ -541,7 +541,7 @@ func GetMatchLibraryDataIdsByLike(content, libraryIds string, size int) ([]strin
 
 func GetMatchFileParagraphIdsByFullTextSearch(question, fileIds string) ([]string, error) {
 	ids := make([]string, 0)
-	// 精准搜索
+	// Exact search
 	ids, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`file_id`, `in`, fileIds).
 		Where(`delete_time`, `0`).
 		Where(fmt.Sprintf(`content similar to '%%%s%%'`, question)).
@@ -593,7 +593,7 @@ func GetMatchLibraryParagraphList(lang string, openid, appType, question string,
 	if len(libraryIds) == 0 {
 		return result, libUseTime, nil
 	}
-	question = GetFirstQuestionByInput(question) //多模态输入特殊处理
+	question = GetFirstQuestionByInput(question) // Multimodal input special processing
 	if len(question) == 0 {
 		return result, libUseTime, nil
 	}
@@ -622,7 +622,7 @@ func GetMatchLibraryParagraphList(lang string, openid, appType, question string,
 	}
 	libUseTime.RecallTime = time.Now().Sub(temp).Milliseconds()
 
-	//由于存在问题优化,需要根据相似度再次排序
+	// Due to question optimization, need to sort again based on similarity
 	sort.Slice(vectorList, func(i, j int) bool {
 		return cast.ToFloat64(vectorList[i][`similarity`]) > cast.ToFloat64(vectorList[j][`similarity`])
 	})
@@ -633,17 +633,17 @@ func GetMatchLibraryParagraphList(lang string, openid, appType, question string,
 		return cast.ToFloat64(graphList[i][`similarity`]) > cast.ToFloat64(graphList[j][`similarity`])
 	})
 
-	//由于存在问题优化,导致召回的内容会出现重复的
+	// Due to question optimization, the recalled content may have duplicates
 	vectorList = SliceMsqlParamsUnique(vectorList, `id`)
 	searchList = SliceMsqlParamsUnique(searchList, `id`)
 	graphList = SliceMsqlParamsUnique(graphList, `id`)
 
-	// 元数据过滤（按文件维度过滤召回候选）
+	// Metadata filtering (filter recall candidates by file dimension)
 	if cast.ToInt(robot[`meta_search_switch`]) == define.MetaSearchSwitchOn {
 		filtered, err := ApplyRobotMetaSearchFilter(adminUserId, libraryIds, robot, vectorList, searchList, graphList)
 		if err != nil {
 			logs.Error(err.Error())
-			// 配置异常时直接中断，避免返回与配置不一致的数据
+			// Interrupt directly on configuration error to avoid returning data inconsistent with configuration
 			return result, libUseTime, err
 		}
 		vectorList, searchList, graphList = filtered[0], filtered[1], filtered[2]
@@ -656,7 +656,7 @@ func GetMatchLibraryParagraphList(lang string, openid, appType, question string,
 		Add(DataSource{List: searchList, Key: `id`, Fixed: 50, Weight: weights.Search}).
 		Add(DataSource{List: graphList, Key: `id`, Fixed: 50, Weight: weights.Graph}).Sort()
 
-	//rerank 重排逻辑
+	// Rerank logic
 	temp = time.Now()
 	rerankList, err := GetMatchLibraryParagraphByMergeRerank(lang, openid, appType, question, list, robot)
 	libUseTime.RerankTime = time.Now().Sub(temp).Milliseconds()
@@ -667,15 +667,15 @@ func GetMatchLibraryParagraphList(lang string, openid, appType, question string,
 		list = rerankList
 	}
 
-	//由于存在问题优化和4倍召回,需要截取一下
+	// Due to question optimization and 4x recall, need to truncate
 	if len(list) > size {
 		list = list[:size]
 	}
 
-	//父子分段-替换成对应的父分段内容+去重
+	// Parent-child segmentation - replace with corresponding parent segment content + deduplication
 	list = FatherSonChunkReplace(list)
 
-	//召回邻居段落
+	// Recall neighboring paragraphs
 	if len(list) <= CallbackNeighborLimit && `true` == cast.ToString(robot[`recall_neighbor_switch`]) {
 		list = RecallNeighborChunkReplace(list, cast.ToInt(robot[`recall_neighbor_before_num`]), cast.ToInt(robot[`recall_neighbor_after_num`]))
 	}
@@ -706,9 +706,9 @@ func FatherSonChunkReplace(list []msql.Params) []msql.Params {
 	result := make([]msql.Params, 0)
 	m := msql.Model(`chat_ai_library_file_data`, define.Postgres)
 	for _, one := range list {
-		if cast.ToUint(one[`father_chunk_paragraph_number`]) > 0 { //父子分段逻辑,子段替换成父段内容
+		if cast.ToUint(one[`father_chunk_paragraph_number`]) > 0 { // Parent-child segmentation logic, child segments replaced with parent content
 			if _, ok := existMap[one[`father_chunk_paragraph_number`]]; ok {
-				continue //已存在对应的父分段内容,去重
+				continue // Corresponding parent segment content already exists, deduplication
 			}
 			contents, err := m.Where(`content`, `<>`, ``).Where(`file_id`, one[`file_id`]).
 				Where(`father_chunk_paragraph_number`, one[`father_chunk_paragraph_number`]).
@@ -716,7 +716,7 @@ func FatherSonChunkReplace(list []msql.Params) []msql.Params {
 			if err != nil {
 				logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 			}
-			if len(contents) > 0 { //返回对应的父分段内容
+			if len(contents) > 0 { // Return corresponding parent segment content
 				one[`content`] = strings.Join(contents, "\r\n")
 				existMap[one[`father_chunk_paragraph_number`]] = struct{}{}
 			}
@@ -892,7 +892,7 @@ func GetDefaultLlmConfig(lang string, adminUserId int) (int, string, bool) {
 		return 0, ``, false
 	}
 	sort.Slice(configs, func(i, j int) bool {
-		return tool.InArrayString(configs[i][`model_define`], []string{ModelChatWiki}) //优先选取的模型
+		return tool.InArrayString(configs[i][`model_define`], []string{ModelChatWiki}) // Preferred models to select
 	})
 	for _, config := range configs {
 		if !tool.InArrayString(Llm, strings.Split(config[`model_types`], `,`)) {
@@ -914,7 +914,7 @@ func GetDefaultEmbeddingConfig(lang string, adminUserId int) (int, string, bool)
 		return 0, ``, false
 	}
 	sort.Slice(configs, func(i, j int) bool {
-		return tool.InArrayString(configs[i][`model_define`], []string{ModelChatWiki}) //优先选取的模型
+		return tool.InArrayString(configs[i][`model_define`], []string{ModelChatWiki}) // Preferred models to select
 	})
 	for _, config := range configs {
 		if !tool.InArrayString(TextEmbedding, strings.Split(config[`model_types`], `,`)) {
@@ -1018,9 +1018,9 @@ func GetLastDialogueId(adminUserId, robotId int, openid string) int {
 }
 
 func GetOptimizedQuestions(param *define.ChatRequestParam, contextList []map[string]string) ([]string, error) {
-	question := GetFirstQuestionByInput(param.Question) //多模态输入特殊处理
+	question := GetFirstQuestionByInput(param.Question) // Multimodal input special processing
 	if len(question) == 0 {
-		return []string{}, nil //输入没有文本内容时,跳过问题优化
+		return []string{}, nil // Skip question optimization when input has no text content
 	}
 	histories := ""
 	for _, item := range contextList {
@@ -1360,12 +1360,12 @@ func (h *TokenAppUseCacheBuildHandler) GetCacheData() (any, error) {
 	return GetTokenAppUseByDate(h.AdminUserId, h.RobotId, h.TokenAppType, h.DateYmd)
 }
 
-// 获取配置
+// Get configuration
 func GetAdminConfig(UserId int) map[string]string {
 	m := msql.Model(``, define.Postgres)
 	list, _ := m.Table(`admin_user_config`).Where(`admin_user_id`, cast.ToString(UserId)).Select()
 
-	if len(list) == 0 { //如果没有配置，给一下默认配置
+	if len(list) == 0 { // If no configuration, provide default configuration
 		defaultList := make(map[string]string)
 		defaultList["draft_exptime"] = "10"
 		defaultList["comment_pull_days"] = "7"

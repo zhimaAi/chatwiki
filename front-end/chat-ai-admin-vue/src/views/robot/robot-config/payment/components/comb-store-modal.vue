@@ -1,21 +1,21 @@
 <template>
   <a-modal
-    :title="info ? '编辑套餐' : '新增套餐'"
+    :title="info ? t('title_edit_package') : t('title_create_package')"
     v-model:open="visible"
     @ok="save"
   >
     <a-form layout="vertical">
-      <a-form-item label="套餐名" required>
-        <a-input v-model:value.trim="formState.name" placeholder="示例：单日套餐，最多6个字" :maxlength="6"/>
+      <a-form-item :label="t('label_package_name')" required>
+        <a-input v-model:value.trim="formState.name" :placeholder="t('ph_package_name_example')" :maxlength="6"/>
       </a-form-item>
-      <a-form-item v-if="type == 2" label="时长（天）" required>
-        <a-input-number v-model:value="formState.duration" :min="0" :precision="0" placeholder="请输入" style="width: 100%"/>
+      <a-form-item v-if="type == 2" :label="t('label_duration')" required>
+        <a-input-number v-model:value="formState.duration" :min="0" :precision="0" :placeholder="t('ph_input')" style="width: 100%"/>
       </a-form-item>
-      <a-form-item label="次数（次）" required>
-        <a-input-number v-model:value="formState.count" :min="0" :precision="0" placeholder="请输入" style="width: 100%"/>
+      <a-form-item :label="t('label_count')" required>
+        <a-input-number v-model:value="formState.count" :min="0" :precision="0" :placeholder="t('ph_input')" style="width: 100%"/>
       </a-form-item>
-      <a-form-item label="费用（元）" required>
-        <a-input-number v-model:value="formState.price" :min="0" :precision="2" placeholder="请输入" style="width: 100%"/>
+      <a-form-item :label="t('label_price')" required>
+        <a-input-number v-model:value="formState.price" :min="0" :precision="2" :placeholder="t('ph_input')" style="width: 100%"/>
       </a-form-item>
     </a-form>
   </a-modal>
@@ -24,6 +24,9 @@
 <script setup>
 import {ref, reactive, toRaw} from 'vue'
 import {message} from 'ant-design-vue'
+import {useI18n} from '@/hooks/web/useI18n'
+
+const {t} = useI18n('views.robot.robot-config.payment.components.comb-store-modal')
 
 const emit = defineEmits(['ok'])
 const props = defineProps({
@@ -50,10 +53,10 @@ function show(_info) {
 
 function save() {
   try {
-    if (!formState.name) throw '请输入套餐名称'
-    if (props.type == 2 && !formState.duration) throw '请输入套餐时长'
-    if (!formState.count) throw '请输入套餐次数'
-    if (!formState.price) throw '请输入套餐费用'
+    if (!formState.name) throw t('msg_input_package_name')
+    if (props.type == 2 && !formState.duration) throw t('msg_input_package_duration')
+    if (!formState.count) throw t('msg_input_package_count')
+    if (!formState.price) throw t('msg_input_package_price')
     let res = toRaw(formState)
     if (props.type == 1) delete res.duration
     visible.value = false

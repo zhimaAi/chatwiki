@@ -4,13 +4,13 @@
       <a-form class="mt16" layout="vertical">
         <a-form-item label="">
           <a-radio-group v-model:value="formState.type" name="radioGroup">
-            <a-radio :value="1">全部数据</a-radio>
-            <a-radio :value="2">自定义日期</a-radio>
+            <a-radio :value="1">{{ t('radio_all_data') }}</a-radio>
+            <a-radio :value="2">{{ t('radio_custom_date') }}</a-radio>
           </a-radio-group>
         </a-form-item>
         <a-form-item
           required
-          label="选择导出日期"
+          :label="t('label_select_date')"
           v-show="formState.type == 2"
           v-bind="validateInfos.dates"
         >
@@ -31,10 +31,14 @@ import { PlusOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { reactive, ref } from 'vue'
 import { Form, message } from 'ant-design-vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
 import { exportFormEntry } from '@/api/database'
+
+const { t } = useI18n('views.database.database-detail.database-manage.components.export-modal')
+
 const rotue = useRoute()
 const query = rotue.query
-const modalTitle = ref('导出数据')
+const modalTitle = ref(t('modal_title'))
 const open = ref(false)
 const formState = reactive({
   dates: [],
@@ -50,7 +54,7 @@ const formRules = reactive({
     {
       validator: async (rule, value) => {
         if (formState.type == 2 && !value.length) {
-          return Promise.reject('请选择导出日期')
+          return Promise.reject(t('validator_date_required'))
         }
         return Promise.resolve()
       }

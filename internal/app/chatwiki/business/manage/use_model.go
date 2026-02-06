@@ -40,10 +40,10 @@ func SaveUseModelConfig(c *gin.Context) {
 	}
 	params := make(msql.Params)
 	for key := range c.Request.PostForm {
-		params[key] = strings.TrimSpace(c.PostForm(key)) //参数太多了,套个娃
+		params[key] = strings.TrimSpace(c.PostForm(key)) //Too many params; wrap once
 	}
 	useModel := common.LoadUseModelConfig(params, modelInfo.ModelDefine)
-	//参数校验
+	//Parameter validation
 	if !tool.InArrayString(useModel.ModelType, []string{common.Llm, common.TextEmbedding, common.Rerank, common.Image, common.Tts}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_type`))))
 		return
@@ -53,7 +53,7 @@ func SaveUseModelConfig(c *gin.Context) {
 		return
 	}
 	if len(useModel.ShowModelName) == 0 {
-		useModel.ShowModelName = useModel.UseModelName //填充默认值
+		useModel.ShowModelName = useModel.UseModelName //Fill default value
 	}
 	if useModel.ModelType == common.Image {
 		if !tool.InArrayString(modelInfo.ModelDefine, []string{common.ModelDoubao, common.ModelAliyunTongyi}) {
@@ -92,7 +92,7 @@ func SaveUseModelConfig(c *gin.Context) {
 			return
 		}
 	} else {
-		if !tool.InArrayInt(int(useModel.ThinkingType), []int{0, 1, 2}) { //深度思考选项:0不支持,1支持,2可选
+		if !tool.InArrayInt(int(useModel.ThinkingType), []int{0, 1, 2}) { //Thinking options: 0 unsupported, 1 supported, 2 optional
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `thinking_type`))))
 			return
 		}
@@ -101,8 +101,8 @@ func SaveUseModelConfig(c *gin.Context) {
 			return
 		}
 	}
-	//调用模型测试
-	if useModel.ModelType != common.Tts { // 语音tts模型暂时不做测试
+	//Model call test
+	if useModel.ModelType != common.Tts { //TTS models are not tested for now
 		handler, err := modelInfo.CallHandlerFunc(modelInfo, modelInfo.ConfigInfo, useModel.UseModelName)
 		if err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
@@ -112,7 +112,7 @@ func SaveUseModelConfig(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			return
 		}
-		//保存数据
+		//Save data
 		err = useModel.ToSave(common.GetLang(c), adminUserId, modelConfigId)
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 	} else {
@@ -131,7 +131,7 @@ func DelUseModelConfig(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	//校验可用模型是否存在
+	//Validate whether the available model exists
 	m := msql.Model(`chat_ai_model_list`, define.Postgres)
 	info, err := m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(adminUserId)).Field(`model_config_id`).Find()
 	if err != nil {
@@ -159,7 +159,7 @@ func GetMiniMaxVoiceList(c *gin.Context) {
 		return
 	}
 
-	// 获取模型配置
+	//Get model config
 	config, err := msql.Model(`chat_ai_model_config`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`model_define`, common.ModelMinimax).
@@ -174,7 +174,7 @@ func GetMiniMaxVoiceList(c *gin.Context) {
 		return
 	}
 
-	// 调用MiniMax API获取音色列表
+	//Call MiniMax API to get the voice list
 	result, err := common.TtsGetVoiceList(common.GetLang(c), adminUserId, cast.ToInt(config[`id`]))
 	if err != nil {
 		logs.Error(`get minimax voice list failed: %v`, err)
@@ -182,6 +182,6 @@ func GetMiniMaxVoiceList(c *gin.Context) {
 		return
 	}
 
-	// 返回结果
+	//Return result
 	c.String(http.StatusOK, lib_web.FmtJson(result, nil))
 }

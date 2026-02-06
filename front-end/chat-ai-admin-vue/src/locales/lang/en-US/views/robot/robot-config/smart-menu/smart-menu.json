@@ -1,0 +1,23 @@
+{
+  "title_smart_menu": "Smart Menu",
+  "switch_on": "On",
+  "switch_off": "Off",
+  "switch_desc": "After enabling, this smart menu can be called by keyword reply and other functions",
+  "alert_description": "Smart menu is a convenient question combination. Customers can click menu options to directly trigger corresponding auto replies.",
+  "alert_usage": "Usage: Step 1: Add smart menu first. Step 2: Call smart menu in various auto replies. For example, reference this menu in keyword reply, then when customers send messages, the corresponding menu will be replied",
+  "btn_add_smart_menu": "Add Smart Menu",
+  "btn_edit": "Edit",
+  "btn_delete": "Delete",
+  "text_updated_on": "Updated on",
+  "msg_confirm_delete": "Confirm to delete?",
+  "btn_confirm": "Confirm",
+  "msg_delete_success": "Delete successfully",
+  "msg_confirm_close": "Confirm to close smart menu?",
+  "btn_cancel": "Cancel",
+  "msg_operation_success": "Operation successful",
+  "text_image_text_link": "Image Text Link",
+  "text_link": "Link",
+  "text_image": "Image",
+  "text_mini_program_card": "Mini Program Card",
+  "text_no_data": "No data"
+}

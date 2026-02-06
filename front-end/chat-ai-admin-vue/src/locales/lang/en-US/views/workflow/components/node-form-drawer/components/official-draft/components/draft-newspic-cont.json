@@ -1,0 +1,5 @@
+{
+  "title_content": "Content",
+  "msg_rich_text_content_intro": "Rich text content with HTML tags. Must be less than 20,000 characters, under 1MB. JS will be removed. Image URLs must be obtained from the 'Get URL for images in rich text messages' API. External image URLs will be filtered. Image messages only support plain text and some special feature tags like products (max 50 products).",
+  "ph_input_content": "Enter content. Type '/' to insert variables"
+}

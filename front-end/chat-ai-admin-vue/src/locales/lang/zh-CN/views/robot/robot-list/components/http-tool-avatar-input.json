@@ -1,0 +1,6 @@
+{
+  "label_upload_photo": "上传照片",
+  "msg_only_jpg_png": "只支持JPG、PNG格式的图片",
+  "msg_image_size_limit": "图片大小不能超过2M",
+  "msg_upload_failed": "上传失败"
+}

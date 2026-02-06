@@ -13,7 +13,7 @@
           <div class="banner-bg">
             <img src="@/assets/img/form-modal-header.png" alt="" />
           </div>
-          <div class="title">请先填写信息</div>
+          <div class="title">{{ t('title_please_fill_info') }}</div>
           <div class="close-btn" @click="handleClose" v-if="isEdit">
             <van-icon name="clear" />
           </div>
@@ -35,7 +35,7 @@
                   :name="item.variable_key"
                   :label="null"
                   :required="item.must_input == 1"
-                  :placeholder="`请输入${item.variable_name}`"
+                  :placeholder="`${t('label_please_input')}${item.variable_name}`"
                   :rules="getRules(item)"
                   v-model.trim="formState[item.variable_key]"
                   :maxlength="getLength(item)"
@@ -46,7 +46,7 @@
                   :name="item.variable_key"
                   :label="null"
                   :required="item.must_input == 1"
-                  :placeholder="`请输入${item.variable_name}`"
+                  :placeholder="`${t('label_please_input')}${item.variable_name}`"
                   :rules="getRules(item)"
                   v-model="formState[item.variable_key]"
                   type="number"
@@ -57,7 +57,7 @@
                   :name="item.variable_key"
                   :label="null"
                   :required="item.must_input == 1"
-                  :placeholder="`请选择${item.variable_name}`"
+                  :placeholder="`${t('label_please_select')}${item.variable_name}`"
                   :rules="getRules(item)"
                   v-model="formState[item.variable_key]"
                   is-link
@@ -81,7 +81,7 @@
             </template>
 
             <div style="margin: 32px 16px">
-              <van-button round block type="primary" native-type="submit"> 提交 </van-button>
+              <van-button round block type="primary" native-type="submit">{{ t('btn_submit') }}</van-button>
             </div>
           </van-form>
         </div>
@@ -100,6 +100,9 @@ import { ref, computed, watch, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import { useChatStore } from '@/stores/modules/chat'
 import { showFailToast } from 'vant'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.chat.components.variable-modal.index')
 
 const query = useRoute().query
 const chatStore = useChatStore()
@@ -207,7 +210,7 @@ const getRules = (item) => {
   if (item.must_input == 1) {
     rules.push({
       required: true,
-      message: `请输入${item.variable_name}`,
+      message: `${t('label_please_input')}${item.variable_name}`,
       validator: (val) => {
         if (item.must_input == 1) {
           return val !== undefined && val !== null && val !== ''
@@ -273,7 +276,7 @@ const handleSave = async (values) => {
     open.value = false
   } catch (error) {
     console.error('验证失败', error)
-    showFailToast(error.message || '提交失败，请检查输入内容')
+    showFailToast(error.message || t('msg_submit_failed'))
   }
 }
 

@@ -159,7 +159,7 @@ func UnknownIssueSummaryAnswer(c *gin.Context) {
 		`images`:        jsonImages,
 		`update_time`:   tool.Time2Int(),
 	}
-	if summary[`question`] != question { //更换了问题内容,重新转向量
+	if summary[`question`] != question { //question content changed; regenerate embedding
 		robot, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`id`, summary[`robot_id`]).Where(`admin_user_id`, cast.ToString(adminUserId)).Find()
 		if err != nil {
 			logs.Error(err.Error())

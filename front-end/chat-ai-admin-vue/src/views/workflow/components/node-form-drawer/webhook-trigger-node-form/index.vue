@@ -6,7 +6,7 @@
         :iconName="node.node_icon_name"
         @changeTitle="handleTitleChange"
         @deleteNode="handleDeleteNode"
-        desc="向服务器发送请求，触发工作流。"
+        :desc="t('desc_webhook_trigger')"
       >
       </NodeFormHeader>
     </template>
@@ -15,7 +15,7 @@
       <div class="node-form-content">
         <a-form ref="formRef" layout="vertical" :model="formState">
           <div class="gray-block">
-            <a-form-item label="请求地址">
+            <a-form-item :label="t('label_request_url')">
               <a-input-group compact>
                 <a-select v-model:value="formState.method" style="width: 20%">
                   <a-select-option value="POST">POST</a-select-option>
@@ -23,34 +23,34 @@
                 </a-select>
                 <a-input readonly v-model:value="formState.url" style="width: 65%" />
                 <a-button @click="handleCopyText()" style="width: 15%" type="primary"
-                  >复制</a-button
+                  >{{ t('btn_copy') }}</a-button
                 >
               </a-input-group>
             </a-form-item>
 
-            <a-form-item label="鉴权">
+            <a-form-item :label="t('label_auth')">
               <a-radio-group v-model:value="formState.switch_verify">
-                <a-radio value="1">需要鉴权</a-radio>
-                <a-radio value="0">无需鉴权</a-radio>
+                <a-radio value="1">{{ t('label_need_auth') }}</a-radio>
+                <a-radio value="0">{{ t('label_no_auth') }}</a-radio>
               </a-radio-group>
             </a-form-item>
 
-            <a-form-item label="IP白名单">
+            <a-form-item :label="t('label_ip_whitelist')">
               <a-radio-group v-model:value="formState.switch_allow_ip">
-                <a-radio value="0">不启用</a-radio>
-                <a-radio value="1">启用</a-radio>
+                <a-radio value="0">{{ t('label_not_enable') }}</a-radio>
+                <a-radio value="1">{{ t('label_enable') }}</a-radio>
               </a-radio-group>
               <div class="mt8">
                 <a-textarea
                   v-model:value="formState.allow_ips"
                   style="min-height: 74px"
-                  placeholder="请输入ip，一行一个"
+                  :placeholder="t('ph_input_ip')"
                 />
               </div>
             </a-form-item>
 
             <div class="array-form-box">
-              <div class="form-item-label">PARAMS</div>
+              <div class="form-item-label">{{ t('label_params') }}</div>
               <div class="form-item-list" v-for="(item, index) in formState.params" :key="index">
                 <a-form-item :label="null">
                   <div class="flex-block-item">
@@ -58,13 +58,13 @@
                       <a-input
                         style="width: 120px"
                         v-model:value="item.key"
-                        placeholder="请输入参数KEY"
+                        :placeholder="t('ph_input_key')"
                       ></a-input>
                     </a-form-item-rest>
                     <div class="at-input-flex1">
                       <a-select
                         style="width: 100%"
-                        placeholder="请输入选择变量"
+                        :placeholder="t('ph_select_variable')"
                         v-model:value="item.desc"
                         @dropdownVisibleChange="dropdownVisibleChange"
                       >
@@ -85,11 +85,11 @@
                 </a-form-item>
               </div>
               <a-button @click="handleAddParams" :icon="h(PlusOutlined)" block type="dashed"
-                >添加参数</a-button
+                >{{ t('btn_add_param') }}</a-button
               >
             </div>
             <template v-if="formState.method == 'POST'">
-              <a-form-item label="BODY">
+              <a-form-item :label="t('label_body')">
                 <a-radio-group v-model:value="formState.request_content_type">
                   <a-radio value="none">none</a-radio>
                   <a-radio value="multipart/form-data">form-data</a-radio>
@@ -103,10 +103,10 @@
               >
                 <div class="array-form-box">
                   <div class="th-header-block">
-                    <div class="td-title" style="width: 180px">key</div>
-                    <div class="td-title" style="width: 90px">类型</div>
-                    <div class="td-title" style="width: 160px">全部变量</div>
-                    <div class="td-title" style="flex: 1">操作</div>
+                    <div class="td-title" style="width: 180px">{{ t('label_key') }}</div>
+                    <div class="td-title" style="width: 90px">{{ t('label_value_type') }}</div>
+                    <div class="td-title" style="width: 160px">{{ t('label_all_variables') }}</div>
+                    <div class="td-title" style="flex: 1">{{ t('label_operation') }}</div>
                   </div>
                   <div class="form-item-list" v-for="(item, index) in formState.form" :key="index">
                     <a-form-item :label="null">
@@ -115,7 +115,7 @@
                         <div class="key-item" style="width: 90px">{{ item.typ }}</div>
                         <div class="key-item" style="width: 160px">
                           <a-select
-                            placeholder="请输入选择变量"
+                            :placeholder="t('ph_select_variable')"
                             v-model:value="item.desc"
                             style="width: 90%"
                             @dropdownVisibleChange="dropdownVisibleChange"
@@ -160,7 +160,7 @@
                 </div>
                 <div class="mt8">
                   <a-button @click="handleAddKeyModal" :icon="h(PlusOutlined)" block type="dashed"
-                    >添加参数</a-button
+                    >{{ t('label_add_param') }}</a-button
                   >
                 </div>
               </div>
@@ -170,10 +170,10 @@
               >
                 <div class="array-form-box">
                   <div class="th-header-block">
-                    <div class="td-title" style="width: 180px">key</div>
-                    <div class="td-title" style="width: 90px">类型</div>
-                    <div class="td-title" style="width: 160px">全部变量</div>
-                    <div class="td-title" style="flex: 1">操作</div>
+                    <div class="td-title" style="width: 180px">{{ t('label_key') }}</div>
+                    <div class="td-title" style="width: 90px">{{ t('label_value_type') }}</div>
+                    <div class="td-title" style="width: 160px">{{ t('label_all_variables') }}</div>
+                    <div class="td-title" style="flex: 1">{{ t('label_operation') }}</div>
                   </div>
                   <div
                     class="form-item-list"
@@ -186,7 +186,7 @@
                         <div class="key-item" style="width: 90px">{{ item.typ }}</div>
                         <div class="key-item" style="width: 160px">
                           <a-select
-                            placeholder="请输入选择变量"
+                            :placeholder="t('ph_select_variable')"
                             v-model:value="item.desc"
                             style="width: 90%"
                             @dropdownVisibleChange="dropdownVisibleChange"
@@ -214,7 +214,7 @@
                 </div>
                 <div class="mt8">
                   <a-button @click="handleAddKeyModal" :icon="h(PlusOutlined)" block type="dashed"
-                    >添加参数</a-button
+                    >{{ t('label_add_param') }}</a-button
                   >
                 </div>
               </div>
@@ -224,10 +224,10 @@
               >
                 <div class="array-form-box">
                   <div class="th-header-block">
-                    <div class="td-title" style="width: 180px">key</div>
-                    <div class="td-title" style="width: 90px">类型</div>
-                    <div class="td-title" style="width: 160px">全部变量</div>
-                    <div class="td-title" style="flex: 1">操作</div>
+                    <div class="td-title" style="width: 180px">{{ t('label_key') }}</div>
+                    <div class="td-title" style="width: 90px">{{ t('label_value_type') }}</div>
+                    <div class="td-title" style="width: 160px">{{ t('label_all_variables') }}</div>
+                    <div class="td-title" style="flex: 1">{{ t('label_operation') }}</div>
                   </div>
                   <div class="form-item-list" v-for="(item, index) in formState.json" :key="index">
                     <a-form-item :label="null">
@@ -237,7 +237,7 @@
                         <div class="key-item" style="width: 160px">
                           <a-select
                             v-if="item.typ != 'object'"
-                            placeholder="请输入选择变量"
+                            :placeholder="t('ph_select_variable')"
                             v-model:value="item.desc"
                             style="width: 90%"
                             @dropdownVisibleChange="dropdownVisibleChange"
@@ -282,23 +282,23 @@
                 </div>
                 <div class="mt8">
                   <a-button @click="handleAddKeyModal" :icon="h(PlusOutlined)" block type="dashed"
-                    >添加参数</a-button
+                    >{{ t('label_add_param') }}</a-button
                   >
                 </div>
               </div>
             </template>
           </div>
           <div class="gray-block mt16">
-            <a-form-item label="RESPONSE">
+            <a-form-item :label="t('label_response')">
               <a-radio-group v-model:value="formState.response_type">
-                <a-radio value="message_variable">工作流执行结束返回</a-radio>
-                <a-radio value="now">立即返回</a-radio>
+                <a-radio value="message_variable">{{ t('label_return_after_end') }}</a-radio>
+                <a-radio value="now">{{ t('label_return_now') }}</a-radio>
               </a-radio-group>
               <div class="mt8" v-if="formState.response_type == 'now'">
                 <a-textarea
                   v-model:value="formState.response_now"
                   style="min-height: 74px"
-                  placeholder="请在这里输入返回的json"
+                  :placeholder="t('ph_input_response')"
                 />
               </div>
             </a-form-item>
@@ -317,6 +317,7 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { getUuid } from '@/utils/index'
 import { ref, onMounted, inject, reactive, computed, watch, h } from 'vue'
 import {
@@ -331,6 +332,8 @@ import AddKeyModal from './add-key-modal.vue'
 import SubKey from './subs-key.vue'
 import { copyText } from '@/utils/index'
 import { message } from 'ant-design-vue'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.webhook-trigger-node-form.index')
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({
@@ -474,7 +477,6 @@ function getOptions() {
 
     globalOptions.value = diy_global || []
   }
-  console.log(globalOptions.value, '---')
 }
 
 const strGlobalOptions = computed(()=>{
@@ -575,7 +577,7 @@ const onKeyAddSub = (data, index) => {
 
 const handleCopyText = () => {
   copyText(formState.url)
-  message.success('复制成功')
+  message.success(t('msg_copy_success'))
 }
 
 onMounted(() => {

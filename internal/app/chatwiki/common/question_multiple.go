@@ -9,7 +9,7 @@ import (
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
-// ParseInputQuestion 解析输入的问题是否为多模态json格式
+// ParseInputQuestion Parse input question to check if it's multimodal JSON format
 func ParseInputQuestion(question string) (adaptor.QuestionMultiple, bool) {
 	questionMultiple := make(adaptor.QuestionMultiple, 0)
 	err := tool.JsonDecodeUseNumber(question, &questionMultiple)
@@ -19,7 +19,7 @@ func ParseInputQuestion(question string) (adaptor.QuestionMultiple, bool) {
 	return nil, false
 }
 
-// AppendImageDomain 统一处理追加静态资源的域名
+// AppendImageDomain Unified processing of appending static resource domain
 func AppendImageDomain(link string) string {
 	if !IsUrl(link) {
 		link = define.Config.WebService[`image_domain`] + link
@@ -27,7 +27,7 @@ func AppendImageDomain(link string) string {
 	return link
 }
 
-// QuestionMultipleAppendImageDomain 多模态输入追加静态资源的域名
+// QuestionMultipleAppendImageDomain Append static resource domain for multimodal input
 func QuestionMultipleAppendImageDomain(questionMultiple adaptor.QuestionMultiple) adaptor.QuestionMultiple {
 	for i, item := range questionMultiple {
 		switch item.Type {
@@ -42,7 +42,7 @@ func QuestionMultipleAppendImageDomain(questionMultiple adaptor.QuestionMultiple
 	return questionMultiple
 }
 
-// ConvertQuestionMultiple 转换成多模态输入结构
+// ConvertQuestionMultiple Convert to multimodal input structure
 func ConvertQuestionMultiple(messages []adaptor.ZhimaChatCompletionMessage) []adaptor.ZhimaChatCompletionMessage {
 	for i, message := range messages {
 		if message.Role != `user` {
@@ -55,7 +55,7 @@ func ConvertQuestionMultiple(messages []adaptor.ZhimaChatCompletionMessage) []ad
 	return messages
 }
 
-// GetQuestionByQuestionMultiple 从多模态输入结构抽取输入的问题
+// GetQuestionByQuestionMultiple Extract input question from multimodal input structure
 func GetQuestionByQuestionMultiple(questionMultiple adaptor.QuestionMultiple) string {
 	for _, item := range questionMultiple {
 		if item.Type == adaptor.TypeText && len(item.Text) > 0 {
@@ -65,7 +65,7 @@ func GetQuestionByQuestionMultiple(questionMultiple adaptor.QuestionMultiple) st
 	return ``
 }
 
-// GetFirstQuestionByInput 从用户输入抽取第一个问题
+// GetFirstQuestionByInput Extract first question from user input
 func GetFirstQuestionByInput(question string) string {
 	if questionMultiple, ok := ParseInputQuestion(question); ok {
 		return GetQuestionByQuestionMultiple(questionMultiple)

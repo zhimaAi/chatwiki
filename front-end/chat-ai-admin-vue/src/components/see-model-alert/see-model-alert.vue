@@ -65,7 +65,7 @@
   <a-modal class="add-model-alert" width="800px" v-model:open="show" :title="currentTitle" @ok="handleOk" @cancel="handleClose">
     <div class="form-wrapper" v-if="activeKey === 'robot'">
         <div class="select">
-          已选择({{ checkedList.length }})
+          {{ t('text_selected', { count: checkedList.length }) }}
         </div>
         <a-checkbox-group class="list-box" v-model:value="checkedList">
           <a-checkbox class="list-item" v-for="item in dataList" :key="item.id" :value="item.id">
@@ -78,7 +78,7 @@
     </div>
     <div class="form-wrapper" v-else-if="activeKey === 'library'">
         <div class="select">
-          已选择({{ checkedList.length }})
+          {{ t('text_selected', { count: checkedList.length }) }}
         </div>
         <a-checkbox-group class="list-box" v-model:value="checkedList">
           <a-checkbox class="list-item" v-for="item in dataList" :key="item.id" :value="item.id">
@@ -90,7 +90,7 @@
     </div>
     <div class="form-wrapper" v-else-if="activeKey === 'form'">
         <div class="select">
-          已选择({{ checkedList.length }})
+          {{ t('text_selected', { count: checkedList.length }) }}
         </div>
         <a-checkbox-group class="list-box" v-model:value="checkedList">
           <a-checkbox class="list-item" v-for="item in dataList" :key="item.id" :value="item.id">
@@ -109,6 +109,8 @@
 import { ref, reactive, markRaw, toRaw, watch } from 'vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import { Empty } from 'ant-design-vue'
+
+const { t } = useI18n('components.see-model-alert.see-model-alert')
 
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE
 const emit = defineEmits(['save'])
@@ -132,7 +134,6 @@ const props = defineProps({
 })
 const checkedList = ref([])
 const activeKey = ref('')
-const { t } = useI18n()
 const show = ref(false)
 const dataList = ref([])
 

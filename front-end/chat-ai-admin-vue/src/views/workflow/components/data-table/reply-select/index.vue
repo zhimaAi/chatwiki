@@ -92,9 +92,9 @@
   <div>
     <div class="field-list" :class="{'wide-value-col': hasObjectPropRows}">
       <div class="field-list-row">
-        <div class="field-list-col field-list-col-head field-name-head">字段名</div>
-        <div class="field-list-col field-list-col-head field-type-head">类型</div>
-        <div class="field-list-col field-list-col-head field-value-head" v-if="showInput">字段值</div>
+        <div class="field-list-col field-list-col-head field-name-head">{{ t('label_field_name') }}</div>
+        <div class="field-list-col field-list-col-head field-type-head">{{ t('label_type') }}</div>
+        <div class="field-list-col field-list-col-head field-value-head" v-if="showInput">{{ t('label_field_value') }}</div>
         <div
           class="field-list-col field-list-col-head field-del-head"
           v-if="props.showDelete"
@@ -105,8 +105,8 @@
         <div class="field-list-col field-name-col">--</div>
         <div class="field-list-col field-type-col">--</div>
         <div class="field-list-col field-value-col">
-          <a-tooltip title="请先选择数据库">
-            <a-input :disabled="true" placeholder="请输入参数值，键入/插入变量"/>
+          <a-tooltip :title="t('ph_select_database_first')">
+            <a-input :disabled="true" :placeholder="t('ph_input_value_variable')"/>
           </a-tooltip>
         </div>
       </div>
@@ -140,7 +140,7 @@
                   :defaultSelectedList="(item.properties?.[item.current_properties_key]?.atTags ?? [])"
                   @open="showAtList"
                   @change="(text, selectedList) => changeAtInputValue(text, selectedList, item, index)"
-                  placeholder='请输入参数，键入"/"插入变量' />
+                  :placeholder="t('ph_input_param_variable')" />
               </div>
             </div>
           </template>
@@ -151,7 +151,7 @@
               :defaultSelectedList="item.atTags"
               @open="showAtList"
               @change="(text, selectedList) => changeAtInputValue(text, selectedList, item, index)"
-              placeholder='请输入参数，键入"/"插入变量' />
+              :placeholder="t('ph_input_param_variable')" />
           </template>
           <div v-if="item.__error" style="color:#FB363F; margin-top:4px;">{{ item.__error }}</div>
         </div>
@@ -169,6 +169,9 @@
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import {ref, reactive, watch, inject, onMounted, computed} from 'vue'
 import AtInput from '../../at-input/at-input.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.data-table.reply-select.index')
 
 const emit = defineEmits(['change'])
 
@@ -228,50 +231,50 @@ const fieldRuleMap = {
         if (refRegex.test(String(v||''))) return true
         return /^https?:\/\//.test(String(v||''))
       },
-      validationTip: '链接需以http或https开头',
-      functionalTip: '跳转到外链，支持插入变量，链接需以http或https开头。'
+      validationTip: t('validation_tip_url'),
+      functionalTip: t('functional_tip_url')
     },
     title: {
       required: true,
       validator: (v) => !!String(v||'').trim(),
-      validationTip: '请输入标题',
-      functionalTip: '展示在链接卡片的标题位置'
+      validationTip: t('validation_tip_title'),
+      functionalTip: t('functional_tip_title')
     },
     description: {
       required: true,
       validator: (v) => String(v||'').trim().length > 0 && String(v||'').length <= 300,
-      validationTip: '请输入描述，最多300字',
-      functionalTip: '展示在链接卡片的描述位置'
+      validationTip: t('validation_tip_description'),
+      functionalTip: t('functional_tip_description')
     },
     thumb_url: {
       required: true,
       validator: (v) => !!String(v||'').trim(),
-      validationTip: '请上传链接图片',
-      functionalTip: '支持png/jpg/jpeg，建议≤2M'
+      validationTip: t('validation_tip_thumb_url'),
+      functionalTip: t('functional_tip_thumb_url')
     }
   },
   text: {
     content: {
       required: true,
       validator: (v) => String(v||'').trim().length > 0 && String(v||'').length <= 300,
-      validationTip: '请输入文本内容，最多300字',
-      functionalTip: '支持插入变量，最多300字'
+      validationTip: t('validation_tip_content'),
+      functionalTip: t('functional_tip_content')
     }
   },
   image: {
     thumb_url: {
       required: true,
       validator: (v) => !!String(v||'').trim(),
-      validationTip: '请上传图片',
-      functionalTip: '支持png/jpg/jpeg，建议≤2M'
+      validationTip: t('validation_tip_image_thumb_url'),
+      functionalTip: t('functional_tip_image_thumb_url')
     }
   },
   url: {
     title: {
       required: true,
       validator: (v) => !!String(v||'').trim(),
-      validationTip: '请输入标题',
-      functionalTip: '展示在卡片标题位置'
+      validationTip: t('validation_tip_title'),
+      functionalTip: t('functional_tip_title')
     },
     url: {
       required: true,
@@ -281,34 +284,34 @@ const fieldRuleMap = {
         if (refRegex.test(String(v||''))) return true
         return /^https?:\/\//.test(String(v||''))
       },
-      validationTip: '链接需以http或https开头',
-      functionalTip: '点击后跳转的链接，链接需以http或https开头。'
+      validationTip: t('validation_tip_card_url'),
+      functionalTip: t('functional_tip_card_url')
     }
   },
   card: {
     title: {
       required: true,
       validator: (v) => !!String(v||'').trim(),
-      validationTip: '请输入小程序标题',
-      functionalTip: '展示在卡片标题位置'
+      validationTip: t('validation_tip_card_title'),
+      functionalTip: t('functional_tip_card_title')
     },
     appid: {
       required: true,
       validator: (v) => !!String(v||'').trim(),
-      validationTip: '请输入小程序appID',
-      functionalTip: '小程序右上角>名字>更多资料>AppID；公众号需与小程序关联'
+      validationTip: t('validation_tip_appid'),
+      functionalTip: t('functional_tip_appid')
     },
     page_path: {
       required: true,
       validator: (v) => /^\//.test(String(v||'')),
-      validationTip: '请输入以/开头的小程序路径',
-      functionalTip: '向开发者获取路径，如/pages/index/index'
+      validationTip: t('validation_tip_page_path'),
+      functionalTip: t('functional_tip_page_path')
     },
     thumb_url: {
       required: true,
       validator: (v) => !!String(v||'').trim(),
-      validationTip: '请上传小程序封面',
-      functionalTip: '支持png/jpg/jpeg，建议≤2M'
+      validationTip: t('validation_tip_card_thumb_url'),
+      functionalTip: t('functional_tip_card_thumb_url')
     }
   }
 }

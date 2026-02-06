@@ -31,7 +31,7 @@
 
 <template>
   <div class="user-model-page">
-    <div class="page-title">会话记录</div>
+    <div class="page-title">{{ t('title_session_record') }}</div>
     <div class="list-wrapper">
       <SessionRecord></SessionRecord>
     </div>
@@ -39,5 +39,8 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import SessionRecord from './session-record.vue'
+
+const { t } = useI18n('views.robot.robot-config.session-record.index')
 </script>

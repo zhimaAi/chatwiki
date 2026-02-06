@@ -2,34 +2,34 @@
 
 package define
 
-// 元数据过滤（机器人配置）
+// Metadata filtering (robot configuration)
 const (
 	MetaSearchSwitchOff = 0
 	MetaSearchSwitchOn  = 1
 )
 
-// 过滤条件组合类型：1 且 2 或
+// Filter condition combination type: 1 AND 2 OR
 const (
 	MetaSearchTypeAnd = 1
 	MetaSearchTypeOr  = 2
 )
 
-// 最多条件数
+// Maximum number of conditions
 const MetaSearchMaxConditions = 10
 
-// 操作符枚举（存库/前后端传递数字）
-// string字段：是、不是、内容包含、内容不包含、为空、不为空
-// number/time字段：是、不是、为空、不为空、大于、等于、小于、大于等于、小于等于
+// Operator enumeration (stored in database/numbers passed between frontend and backend)
+// string fields: is, is not, contains, does not contain, is empty, is not empty
+// number/time fields: is, is not, is empty, is not empty, greater than, equal to, less than, greater than or equal to, less than or equal to
 const (
-	MetaOpIs          = 1  // 是
-	MetaOpIsNot       = 2  // 不是
-	MetaOpContains    = 3  // 内容包含（string）
-	MetaOpNotContains = 4  // 内容不包含（string）
-	MetaOpEmpty       = 5  // 为空
-	MetaOpNotEmpty    = 6  // 不为空
-	MetaOpGt          = 7  // 大于
-	MetaOpEq          = 8  // 等于
-	MetaOpLt          = 9  // 小于
-	MetaOpGte         = 10 // 大于等于
-	MetaOpLte         = 11 // 小于等于
+	MetaOpIs          = 1  // is
+	MetaOpIsNot       = 2  // is not
+	MetaOpContains    = 3  // contains content (string)
+	MetaOpNotContains = 4  // does not contain content (string)
+	MetaOpEmpty       = 5  // is empty
+	MetaOpNotEmpty    = 6  // is not empty
+	MetaOpGt          = 7  // greater than
+	MetaOpEq          = 8  // equal to
+	MetaOpLt          = 9  // less than
+	MetaOpGte         = 10 // greater than or equal to
+	MetaOpLte         = 11 // less than or equal to
 )

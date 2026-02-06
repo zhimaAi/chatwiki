@@ -5,13 +5,13 @@
     :confirm-loading="saving"
   >
     <template #title>
-      <div>{{ isEdit ? '修改元数据' : '元数据管理' }} <span
-        class="desc">元数据用于描述文档的属性。应用召回知识时可根据元数据进行筛选</span></div>
+      <div class="title">{{ isEdit ? t('title_edit_metadata') : t('title_metadata_manage') }} <span
+        class="desc">{{ t('desc_metadata') }}</span></div>
     </template>
     <template #footer>
       <template v-if="isEdit">
-        <a-button @click="visible = false">取 消</a-button>
-        <a-button type="primary" @click="saveValues">保 存</a-button>
+        <a-button @click="visible = false">{{ t('btn_cancel') }}</a-button>
+        <a-button type="primary" @click="saveValues">{{ t('btn_save') }}</a-button>
       </template>
     </template>
     <div class="_main">
@@ -20,7 +20,7 @@
           <div v-for="(item, index) in customList" :key="index" class="meta-item">
             <div class="left">
               <a-checkbox v-model:checked="item.checked"></a-checkbox>
-              <a-tooltip :title="item.is_show == 1 ? '列表显示' : '列表隐藏'">
+              <a-tooltip :title="item.is_show == 1 ? t('label_list_show') : t('label_list_hide')">
                 <span @click="showChange(item)">
                   <EyeOutlined v-if="item.is_show == 1" class="icon"/>
                   <EyeInvisibleOutlined v-else class="icon"/>
@@ -31,9 +31,9 @@
             </div>
             <a-date-picker v-if="item.type == 1" v-model:value="item.value" format="YYYY-MM-DD HH:mm" class="input-box"
                            @change="item.checked = true"/>
-            <a-input-number v-else-if="item.type === 2" v-model:value="item.value" placeholder="请输入" :maxlength="20"
+            <a-input-number v-else-if="item.type === 2" v-model:value="item.value" :placeholder="t('ph_please_input')" :maxlength="20"
                             class="input-box" @change="item.checked = true"/>
-            <a-input v-else v-model:value.trim="item.value" placeholder="请输入" :maxlength="20" class="input-box"
+            <a-input v-else v-model:value.trim="item.value" :placeholder="t('ph_please_input')" :maxlength="20" class="input-box"
                      @change="item.checked = true"/>
           </div>
         </div>
@@ -42,23 +42,23 @@
         <div class="mt16">
           <a-button type="primary" ghost @click="addData">
             <PlusOutlined/>
-            新增元数据
+            {{ t('btn_add_metadata') }}
           </a-button>
         </div>
         <div v-if="customList.length" class="meta-card">
           <template v-for="(item, index) in customList" :key="index">
             <div v-if="item.is_edit" class="meta-edit-item">
-              <a-input v-model:value.trim="item.name" placeholder="请输入" :maxlength="20"/>
+              <a-input v-model:value.trim="item.name" :placeholder="t('ph_please_input')" :maxlength="20"/>
               <a-select v-model:value="item.type" :options="typeData" class="min" :disabled="item.id > 0"/>
               <a-select v-model:value="item.is_show" :options="showData" class="min"/>
               <div class="action-box">
-                <a-button @click="cancelEdit(item, index)">取 消</a-button>
-                <a-button type="primary" @click="dataChange(item)">保 存</a-button>
+                <a-button @click="cancelEdit(item, index)">{{ t('btn_cancel') }}</a-button>
+                <a-button type="primary" @click="dataChange(item)">{{ t('btn_save') }}</a-button>
               </div>
             </div>
             <div v-else class="meta-item">
               <div class="left">
-                <a-tooltip :title="item.is_show == 1 ? '列表显示' : '列表隐藏'">
+                <a-tooltip :title="item.is_show == 1 ? t('label_list_show') : t('label_list_hide')">
                   <span @click="showChange(item)">
                     <EyeOutlined v-if="item.is_show == 1" class="icon"/>
                     <EyeInvisibleOutlined v-else class="icon"/>
@@ -75,10 +75,10 @@
           </template>
         </div>
         <div class="meta-card">
-          <div class="meta-tit">内置</div>
+          <div class="meta-tit">{{ t('label_builtin') }}</div>
           <div v-for="(item, index) in builtList" :key="index" class="meta-item">
             <div class="left">
-              <a-tooltip :title="item.is_show == 1 ? '列表显示' : '列表隐藏'">
+              <a-tooltip :title="item.is_show == 1 ? t('label_list_show') : t('label_list_hide')">
                 <span @click="showChange(item)">
                   <EyeOutlined v-if="item.is_show == 1" class="icon"/>
                   <EyeInvisibleOutlined v-else class="icon"/>
@@ -98,6 +98,7 @@ import {ref} from 'vue'
 import dayjs from 'dayjs'
 import {PlusOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CloseCircleOutlined} from '@ant-design/icons-vue'
 import {Modal, message} from 'ant-design-vue'
+import {useI18n} from '@/hooks/web/useI18n'
 import {
   delLibraryMetaSchema,
   getLibraryMetaSchemaList,
@@ -105,6 +106,8 @@ import {
   saveMetadata,
   saveQaMetadata
 } from "@/api/library/index.js";
+
+const {t} = useI18n('views.library.library-details.components.metadata-manage-modal')
 
 const emit = defineEmits(['change'])
 const props = defineProps({
@@ -120,18 +123,18 @@ const props = defineProps({
   }
 })
 const showData = [
-  {value: 1, label: '列表显示'},
-  {value: 0, label: '列表隐藏'},
+  {value: 1, label: t('label_list_show')},
+  {value: 0, label: t('label_list_hide')},
 ]
 const typeData = [
-  {value: 0, label: 'string'},
-  {value: 1, label: 'time'},
-  {value: 2, label: 'number'}
+  {value: 0, label: t('label_type_string')},
+  {value: 1, label: t('label_type_time')},
+  {value: 2, label: t('label_type_number')}
 ]
 const typeMap = {
-  0: 'string',
-  1: 'time',
-  2: 'number'
+  0: t('label_type_string'),
+  1: t('label_type_time'),
+  2: t('label_type_number')
 }
 const visible = ref(false)
 const saving = ref(false)
@@ -188,14 +191,14 @@ function addData() {
 
 function delData(record, index) {
   Modal.confirm({
-    title: '提示',
-    content: '确认删除该元数据？',
-    okText: '删除',
-    cancelText: '取消',
+    title: t('title_tip'),
+    content: t('msg_confirm_delete'),
+    okText: t('btn_delete'),
+    cancelText: t('btn_cancel'),
     onOk: () => {
       delLibraryMetaSchema({id: record.id}).then(() => {
         customList.value.splice(index, 1)
-        message.success('已删除')
+        message.success(t('msg_deleted'))
       })
     }
   })
@@ -220,7 +223,7 @@ function showChange(record) {
 
 function dataChange(record) {
   // 修改元数据字段
-  if (!record.name) return message.warning('请输入元数据名称')
+  if (!record.name) return message.warning(t('msg_please_enter_metadata_name'))
   saveLibraryMetaSchema({
     ...record,
     is_show: Number(record.is_show),
@@ -230,14 +233,14 @@ function dataChange(record) {
     record.id = res?.data
     record.is_edit = false
     record.backup = {name, type, is_show}
-    message.success('已保存')
+    message.success(t('msg_saved'))
     emit('change')
   })
 }
 
 function saveValues() {
   // 修改元数据
-  if (!customList.value.length) return message.error('暂无可用元数据')
+  if (!customList.value.length) return message.error(t('msg_no_available_metadata'))
   let _data = []
   for (let record of customList.value) {
     if (!record.checked) continue
@@ -254,7 +257,7 @@ function saveValues() {
       value: val
     })
   }
-  if (!_data.length) return message.error('请选择修改数据')
+  if (!_data.length) return message.error(t('msg_please_select_data'))
   let req
   if (props.qaIds.length) {
     req = saveQaMetadata({
@@ -267,10 +270,10 @@ function saveValues() {
       list: JSON.stringify(_data)
     })
   } else {
-    return message.error('缺少知识库信息')
+    return message.error(t('msg_missing_library_info'))
   }
   req.then(() => {
-    message.success('已保存')
+    message.success(t('msg_saved'))
     emit('change')
     visible.value = false
   })
@@ -281,8 +284,13 @@ defineExpose({
 })
 </script>
 <style lang="less" scoped>
+.title{
+  padding-right: 30px;
+  line-height: 18px;
+}
 .desc {
   color: #8c8c8c;
+  line-height: 18px;
   font-size: 14px;
   font-weight: 400;
   margin-left: 16px;

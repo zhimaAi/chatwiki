@@ -1,8 +1,8 @@
 <template>
   <div class="subsection-box content-container" ref="containerRef">
     <div class="subsection-box-title">
-      分段预览
-      <span>共{{ props.total }}个分段</span>
+      {{ t('segmentation_preview') }}
+      <span>{{ t('total_segments', { count: props.total }) }}</span>
     </div>
     <div
       class="list-item"
@@ -15,33 +15,33 @@
       <div class="top-block">
         <div class="title">
           <!-- id：{{ item.id }} -->
-          分段 <template v-if="props.detailsInfo.chunk_type == 4">{{ item.father_chunk_paragraph_number }}-</template> {{ item.number }}
+          {{ t('segment') }} <template v-if="props.detailsInfo.chunk_type == 4">{{ t('segment_father_child', { father: item.father_chunk_paragraph_number, child: item.number }) }}</template><template v-else>{{ item.number }}</template>
           <div class="title-block">
             {{ item.title }}
           </div>
-          <span>共{{ item.word_total }}个字符</span>
+          <span>{{ t('total_characters', { count: item.word_total }) }}</span>
           <span class="status-box">
-            嵌入状态：{{ item.status_text }}<LoadingOutlined v-if="item.status == 3" />
+            {{ t('embedding_status') }}：{{ item.status_text }}<LoadingOutlined v-if="item.status == 3" />
             <a-tooltip v-if="item.status == 2 && item.errmsg" :title="item.errmsg">
               <strong class="cfb363f"
-                >原因<ExclamationCircleOutlined class="err-icon cfb363f"
+                >{{ t('reason') }}<ExclamationCircleOutlined class="err-icon cfb363f"
               /></strong>
             </a-tooltip>
             <a-tooltip v-if="item.split_status == 4 && item.split_err_msg" :title="item.split_err_msg">
               <div class="split-err">
                 <ExclamationCircleFilled style="margin-left: 0;" class="cfb363f" />
-                分段失败
+                {{ t('segmentation_failed') }}
               </div>
             </a-tooltip>
           </span>
           <span v-if="detailsInfo.graph_switch">
-            知识图谱状态：{{ item.graph_status_text }}
+            {{ t('knowledge_graph_status') }}：{{ item.graph_status_text }}
             <a-tooltip
               v-if="item.graph_status == 3 && item.graph_err_msg"
               :title="item.graph_err_msg"
             >
               <strong class="cfb363f"
-                >原因<ExclamationCircleOutlined class="err-icon cfb363f"
+                >{{ t('reason') }}<ExclamationCircleOutlined class="err-icon cfb363f"
               /></strong>
             </a-tooltip>
           </span>
@@ -72,7 +72,7 @@
                 <a-menu-item>
                   <div class="start-item" @click.stop="handleOpenSetStartModal">
                     <SettingOutlined />
-                    <div>精选设置</div>
+                    <div>{{ t('featured_settings') }}</div>
                   </div>
                 </a-menu-item>
               </a-menu>
@@ -80,7 +80,7 @@
           </a-dropdown>
 
           <a-tooltip>
-            <template #title>重新分段</template>
+            <template #title>{{ t('re_segment') }}</template>
             <div class="hover-btn-box" @click.stop="onReSegment(item)">
               <svg-icon name="segmentation-icon" style="font-size: 16px;"></svg-icon>
             </div>
@@ -88,7 +88,7 @@
 
           <template v-if="detailsInfo.graph_switch">
             <a-tooltip>
-              <template #title>知识图谱</template>
+              <template #title>{{ t('knowledge_graph') }}</template>
               <div class="hover-btn-box" @click="openGraphModel(item)">
                 <svg-icon name="graph-icon" style="font-size: 16px;color: #595959;"></svg-icon>
               </div>
@@ -96,7 +96,7 @@
           </template>
 
           <a-tooltip>
-            <template #title>重新转换</template>
+            <template #title>{{ t('re_convert') }}</template>
             <div class="hover-btn-box">
               <SyncOutlined @click.stop="toReSegmentationPage(item, index)" />
             </div>
@@ -108,18 +108,18 @@
             <template #overlay>
               <a-menu>
                 <a-menu-item>
-                  <div @click.stop="handleOpenEditModal(item)">编辑</div>
+                  <div @click.stop="handleOpenEditModal(item)">{{ t('edit') }}</div>
                 </a-menu-item>
                 <a-menu-item>
-                  <div @click.stop="hanldleDelete(item.id)">删除</div>
+                  <div @click.stop="hanldleDelete(item.id)">{{ t('delete') }}</div>
                 </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
         </div>
       </div>
-      <div class="content-box" v-if="item.question">Q： <span v-html="textToHighlight(item.question, props.search)"></span></div>
-      <div class="content-box" v-if="item.answer">A：<span v-html="textToHighlight(item.answer, props.search)"></span></div>
+      <div class="content-box" v-if="item.question">{{ t('question_prefix') }} <span v-html="textToHighlight(item.question, props.search)"></span></div>
+      <div class="content-box" v-if="item.answer">{{ t('answer_prefix') }}<span v-html="textToHighlight(item.answer, props.search)"></span></div>
       <div class="content-box" @mouseup.stop="handleMouseUp($event, index)" v-html="textToHighlight(item.content, props.search)"></div>
       <div class="fragment-img" v-if="item.images.length > 0" v-viewer>
         <img v-for="(item, imageIndex) in item.images" :key="imageIndex" :src="item" alt="" />
@@ -128,7 +128,7 @@
     <ClassificationMarkModal @ok="getCategoryLists" ref="classificationMarkModalRef" />
     <GraphModel ref="graphModelRef" />
     <!-- 选择内容气泡 -->
-    <div 
+    <div
       v-if="showBubble"
       class="bubble-card"
       :style="bubbleStyle"
@@ -138,28 +138,28 @@
           name="segmentation"
           style="font-size: 16px; color: #262626; margin-right: 4px"
         ></svg-icon>
-        单独成段
+        {{ t('separate') }}
       </button>
       <button class="bubble-item" @click.stop="handleAction('merge-prev')">
         <svg-icon
           name="segmentation-up"
           style="font-size: 16px; color: #262626; margin-right: 4px"
         ></svg-icon>
-        合并到上一分段
+        {{ t('merge_prev') }}
       </button>
       <button class="bubble-item" @click.stop="handleAction('merge-next')">
         <svg-icon
           name="segmentation-down"
           style="font-size: 16px; color: #262626; margin-right: 4px"
         ></svg-icon>
-        合并到下一分段
+        {{ t('merge_next') }}
       </button>
       <button class="bubble-item" @click.stop="handleAction('delete')">
         <svg-icon
           name="delete"
           style="font-size: 16px; color: #262626; margin-right: 4px"
         ></svg-icon>
-        删除
+        {{ t('delete_content') }}
       </button>
     </div>
   </div>
@@ -167,6 +167,7 @@
 <script setup>
 import { ref, createVNode, computed, onMounted, onUnmounted   } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
 import { message } from 'ant-design-vue'
 import {
   ExclamationCircleOutlined,
@@ -188,6 +189,9 @@ import {
   getCategoryList,
   updateParagraphCategory
 } from '@/api/library'
+import {useMathJax} from "@/composables/useMathJax.js";
+
+const { t } = useI18n('views.library.library-preview.components.subsection-box')
 
 const route = useRoute()
 const emit = defineEmits([
@@ -221,14 +225,15 @@ const props = defineProps({
     default: 0
   }
 })
+const { renderMath } = useMathJax();
 
 const toReSegmentationPage = (item, index) => {
   let { id, title, content, question, answer, images, category_id } = item
   let similar_questions = item.similar_questions || []
   Modal.confirm({
-    title: '重新转换确认',
+    title: t('re_convert_confirm_title'),
     icon: null,
-    content: `确定要重新转换【分段${index + 1}】吗?`,
+    content: t('re_convert_confirm_content', { index: index + 1 }),
     onOk() {
       return new Promise((resolve) => {
         editParagraph({ id, title, content, question, answer, images, category_id, similar_questions: JSON.stringify(similar_questions)  })
@@ -250,14 +255,14 @@ const handleOpenEditModal = (item) => {
 }
 const hanldleDelete = (id) => {
   Modal.confirm({
-    title: '提示',
+    title: t('confirm_delete_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确认是否删除该分段?',
+    content: t('confirm_delete_content'),
     onOk() {
       return new Promise((resolve) => {
         deleteParagraph({ id })
           .then(() => {
-            message.success('删除成功')
+            message.success(t('delete_success'))
             emit('handleDelParagraph', id)
             resolve()
           })
@@ -278,7 +283,7 @@ const handleToTargetPage = (item, index, event) => {
     page_num: item.page_num,
     index
   })
-  
+
   handleClickOutside(event)
 }
 
@@ -316,7 +321,7 @@ const handleSetCategory = (item, star = {}) => {
     id: item.id,
     category_id: star.id || 0
   }).then(() => {
-    message.success('设置成功')
+    message.success(t('set_success'))
     item.category_id = star.id
     getCategoryLists()
   })
@@ -342,18 +347,18 @@ const selectedData = ref({
 // 计算气泡卡片样式
 const bubbleStyle = computed(() => {
   if (!showBubble.value) return {};
-  
+
   // 获取气泡卡片的预估宽度和高度
   const bubbleWidth = 162; // 根据实际样式调整
-  
+
   // 计算理想位置
   let left = position.value.x;
   let top = position.value.y;
-  
+
   // 获取容器和视口尺寸
   const containerRect = containerRef.value.getBoundingClientRect();
   const viewportWidth = window.innerWidth;
-  
+
   // 防止左侧超出
   if (left < 10) {
     left = 10;
@@ -362,11 +367,11 @@ const bubbleStyle = computed(() => {
   else if (left + bubbleWidth > viewportWidth - 50) {
     left = viewportWidth - bubbleWidth - 50;
   }
-  
+
   // 转换为相对于容器的位置
   const containerLeft = left - containerRect.left;
   const containerTop = top;
-  
+
   return {
     left: `${containerLeft}px`,
     top: `${containerTop}px`,
@@ -391,14 +396,14 @@ const handleMouseUp = (event, parentIndex) => {
 
       selectedText.value = selectedTextContent;
       selectedRange.value = selection.getRangeAt(0).cloneRange();
-      
+
       // 获取选中文本的位置
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
-      
+
       // 计算相对于内容区域的位置
       const contentRect = containerRef.value.getBoundingClientRect();
-      
+
       position.value = {
         x: rect.left + rect.width / 2,
         y: rect.top - contentRect.top - 50 // 向上偏移50px显示气泡
@@ -413,7 +418,7 @@ const handleMouseUp = (event, parentIndex) => {
 
 const handleAction = (action) => {
   const { parentIndex } = selectedData.value;
-  
+
   switch(action) {
     case 'separate':
       separateParagraph(parentIndex);
@@ -436,8 +441,8 @@ const handleAction = (action) => {
 // 新增HTML内容拆分方法
 const splitHtmlContent = (container, startOffset, endOffset) => {
   // 增加全选内容判断
-  const isFullSelection = 
-    startOffset === 0 && 
+  const isFullSelection =
+    startOffset === 0 &&
     endOffset === container.textContent.length &&
     container.textContent.trim().length > 0;
 
@@ -499,9 +504,9 @@ const separateParagraph = (index) => {
   if (!selectedText) return
 
   Modal.confirm({
-    title: '单独分段',
+    title: t('separate_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确认将该分段内容单独分段么？分段后，原分段的内容会被删除',
+    content: t('separate_content'),
     onOk() {
       // 创建临时容器处理HTML内容
       const tempDiv = document.createElement('div')
@@ -548,7 +553,7 @@ const separateParagraph = (index) => {
 // 合并到下一分段
 const mergeWithNext = (index) => {
   if (index >= props.paragraphLists.length - 1) {
-    return message.error('没有下一个分段')
+    return message.error(t('no_next_segment'))
   };
 
   const content = props.paragraphLists[index].content
@@ -559,9 +564,9 @@ const mergeWithNext = (index) => {
   if (!selectedText) return
 
   Modal.confirm({
-    title: '合并到下一个分段',
+    title: t('merge_next_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确认将该分段内容合并到下一个分段么？分段后，原分段的内容会被删除',
+    content: t('merge_next_content'),
     onOk() {
       // 创建临时容器处理HTML内容
       const tempDiv = document.createElement('div')
@@ -609,7 +614,7 @@ const mergeWithNext = (index) => {
 // 合并到上一分段
 const mergeWithPrevious = (index) => {
   if (index <= 0) {
-    return message.error('没有上一个分段')
+    return message.error(t('no_prev_segment'))
   };
 
   const content = props.paragraphLists[index].content
@@ -620,9 +625,9 @@ const mergeWithPrevious = (index) => {
   if (!selectedText) return
 
   Modal.confirm({
-    title: '合并到上一个分段',
+    title: t('merge_prev_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确认将该分段内容合并到上一个分段么？分段后，原分段的内容会被删除',
+    content: t('merge_prev_content'),
     onOk() {
       // 创建临时容器处理HTML内容
       const tempDiv = document.createElement('div')
@@ -678,9 +683,9 @@ const onDeleteParagraph = (index) => {
   if (!selectedText) return
 
   Modal.confirm({
-    title: '删除',
+    title: t('delete_content_title'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确认将该分段内容删除么？',
+    content: t('delete_content_content'),
     onOk() {
       // 创建临时容器处理HTML内容
       const tempDiv = document.createElement('div')
@@ -767,14 +772,14 @@ function textToHighlight(fullText, highlightText, options = {}) {
     regexPattern = new RegExp(escapeRegExp(highlightText), flags);
   }
 
-  return fullText.replace(regexPattern, match => 
+  return fullText.replace(regexPattern, match =>
     `<span class="${highlightClass}">${match}</span>`
   );
 }
 
 /**
  * 转义正则表达式特殊字符
- * @param {string} string 
+ * @param {string} string
  * @returns {string}
  */
 function escapeRegExp(string) {
@@ -783,6 +788,9 @@ function escapeRegExp(string) {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  setTimeout(() => {
+    renderMath()
+  }, 100)
 });
 
 onUnmounted(() => {
@@ -900,7 +908,7 @@ defineExpose({ handleOpenEditModal })
         border-radius: 2px;
         box-shadow: 0 1px 1px rgba(0,0,0,0.1);
       }
-      
+
     }
     .fragment-img {
       padding: 0px 16px 16px;
@@ -989,7 +997,7 @@ defineExpose({ handleOpenEditModal })
   border-radius: 6px;
   background: #FFF;
   box-shadow: 0 6px 30px 5px #0000000d, 0 16px 24px 2px #0000000a, 0 8px 10px -5px #00000014;
-  
+
   .bubble-item {
     display: flex;
     padding: 5px 16px;
@@ -1017,7 +1025,7 @@ defineExpose({ handleOpenEditModal })
   //   border-color: white transparent transparent;
   //   filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.1));
   // }
-  
+
   // /* 箭头边框 */
   // &::before {
   //   content: '';

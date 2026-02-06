@@ -1,0 +1,17 @@
+{
+  "title_prompt_log": "Prompt 日志",
+  "label_prompt": "提示词",
+  "msg_prompt_tooltip": "系统提示词和文档分段。",
+  "label_context": "上下文",
+  "msg_context_tooltip": "传递的历史提问消息",
+  "label_user": "USER",
+  "msg_user_tooltip": "本次用户的提问",
+  "label_assistant": "ASSISTANT",
+  "msg_assistant_tooltip": "语言模型输出的答案",
+  "label_recall_time": "Recall time",
+  "msg_recall_time_tooltip": "从知识库中检索到有效分段所需要的时间，包括对分段进行排序时间。",
+  "label_request_time": "Request time",
+  "msg_request_time_tooltip": "从发送问题和上下文信息给大模型到大模型开始返回答案的时间。",
+  "label_error": "Error",
+  "msg_error_tooltip": "报错信息，调用聊天接口报错时会显示。"
+}

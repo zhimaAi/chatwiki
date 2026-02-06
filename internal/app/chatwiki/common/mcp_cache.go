@@ -14,13 +14,13 @@ import (
 	"github.com/zhimaAi/go_tools/msql"
 )
 
-// MCP Server 缓存
+// MCP Server cache
 var (
 	mcpServerCache     = make(map[int]*CachedMCPServer)
 	mcpServerCacheLock sync.RWMutex
 )
 
-// CachedMCPServer MCP 服务器缓存结构
+// CachedMCPServer MCP server cache structure
 type CachedMCPServer struct {
 	Server      *server.MCPServer
 	HTTPHandler http.Handler
@@ -31,7 +31,7 @@ type CachedMCPServer struct {
 	ToolsHash   string
 }
 
-// GetMCPServerCache 获取缓存的 MCP 服务器
+// GetMCPServerCache Get cached MCP server
 func GetMCPServerCache(serverId int) (*CachedMCPServer, bool) {
 	mcpServerCacheLock.RLock()
 	defer mcpServerCacheLock.RUnlock()
@@ -39,14 +39,14 @@ func GetMCPServerCache(serverId int) (*CachedMCPServer, bool) {
 	return cached, exists
 }
 
-// SetMCPServerCache 设置 MCP 服务器缓存
+// SetMCPServerCache Set MCP server cache
 func SetMCPServerCache(serverId int, cached *CachedMCPServer) {
 	mcpServerCacheLock.Lock()
 	defer mcpServerCacheLock.Unlock()
 	mcpServerCache[serverId] = cached
 }
 
-// UpdateMCPServerLastUsed 更新最后使用时间
+// UpdateMCPServerLastUsed Update last used time
 func UpdateMCPServerLastUsed(serverId int) {
 	mcpServerCacheLock.Lock()
 	defer mcpServerCacheLock.Unlock()
@@ -55,7 +55,7 @@ func UpdateMCPServerLastUsed(serverId int) {
 	}
 }
 
-// ClearMCPServerCache 清除 MCP Server 缓存（当工具配置变更时调用）
+// ClearMCPServerCache Clear MCP Server cache (called when tool configuration changes)
 func ClearMCPServerCache(adminUserId int) {
 	// Query server_id by admin_user_id
 	mcpServerInfo, err := msql.Model(`mcp_server`, define.Postgres).

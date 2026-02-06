@@ -1,0 +1,23 @@
+{
+  "label_equal": "等于",
+  "label_not_equal": "不等于",
+  "label_is": "是",
+  "label_is_not": "不是",
+  "label_greater_than": "大于",
+  "label_less_than": "小于",
+  "label_greater_than_or_equal": "大于等于",
+  "label_less_than_or_equal": "小于等于",
+  "label_between": "介于",
+  "label_contain": "包含",
+  "label_not_contain": "不包含",
+  "label_empty": "为空",
+  "label_not_empty": "不为空",
+  "label_today": "今天",
+  "label_yesterday": "昨天",
+  "just_now": "刚刚",
+  "seconds_ago": "秒前",
+  "minutes_ago": "分钟前",
+  "hours_ago": "小时前",
+  "days_ago": "天前",
+  "months_ago": "月前"
+}

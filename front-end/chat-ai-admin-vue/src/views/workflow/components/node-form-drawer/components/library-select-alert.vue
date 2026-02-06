@@ -160,12 +160,12 @@
     <div class="library-checkbox-box">
       <div class="list-group-box">
         <div class="group-list-box">
-          <div class="main-title-block">关联知识库</div>
+          <div class="main-title-block">{{ t('title_linked_library') }}</div>
           <div style="margin-bottom: 16px">
             <a-input
               style="width: 216px"
               v-model:value="searchKeyword"
-              placeholder="请输入知识库名称搜索"
+              :placeholder="t('ph_search_library')"
               @change="onSearch"
             >
               <template #suffix>
@@ -194,13 +194,13 @@
           <div class="alert-box">
             <a-alert
               class="zm-alert-info"
-              message="请选择关联知识库，机器人会根据知识库内上传的文档回复用户的提问。每个机器人最多关联5个知识库"
+              :message="t('msg_linked_library_tip')"
               type="info"
             />
           </div>
           <div class="btn-box">
-            <a-button @click="onRefresh"> <SyncOutlined /> 刷新 </a-button>
-            <a-button type="primary" ghost @click="openAddLibrary">新建知识库</a-button>
+            <a-button @click="onRefresh"> <SyncOutlined /> {{ t('btn_refresh') }} </a-button>
+            <a-button type="primary" ghost @click="openAddLibrary">{{ t('btn_create_library') }}</a-button>
           </div>
           <a-spin :spinning="isRefresh" :delay="100">
             <cu-scroll style="padding: 0 16px; height: 414px">
@@ -219,10 +219,10 @@
                     <span class="type-tag" :class="{ 'gray-tag': item.graph_switch == 0 }"
                       >Graph</span
                     >
-                    <span class="type-tag" v-if="item.type == 0">普通知识库</span>
-                    <span class="type-tag" v-if="item.type == 1">对外知识库</span>
-                    <span class="type-tag" v-if="item.type == 2">问答知识库</span>
-                    <span class="type-tag" v-if="item.type == 3">公众号知识库</span>
+                    <span class="type-tag" v-if="item.type == 0">{{ t('label_normal_library') }}</span>
+                    <span class="type-tag" v-if="item.type == 1">{{ t('label_external_library') }}</span>
+                    <span class="type-tag" v-if="item.type == 2">{{ t('label_qa_library') }}</span>
+                    <span class="type-tag" v-if="item.type == 3">{{ t('label_mp_library') }}</span>
                   </div>
                   <div class="desc-info-block">{{ item.library_intro }}</div>
                 </div>
@@ -233,9 +233,9 @@
             </cu-scroll>
           </a-spin>
           <div class="footer-box">
-            <a-button @click="show = false">取消</a-button>
+            <a-button @click="show = false">{{ t('btn_cancel') }}</a-button>
             <a-button type="primary" @click="saveCheckedList">
-              ({{ state.checkedList.length }}) 确定</a-button
+              ({{ state.checkedList.length }}) {{ t('btn_confirm') }}</a-button
             >
           </div>
         </div>
@@ -250,8 +250,12 @@ import { message } from 'ant-design-vue'
 import { SearchOutlined, SyncOutlined } from '@ant-design/icons-vue'
 import { getLibraryList, getLibraryListGroup } from '@/api/library/index'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useI18n } from '@/hooks/web/useI18n'
+
 const robotStore = useRobotStore()
 const { robotInfo } = robotStore
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.library-select-alert')
 
 const emit = defineEmits(['change'])
 const props = defineProps({
@@ -285,7 +289,7 @@ const getGroupList = () => {
     })
     groupLists.value = [
       {
-        group_name: '全部',
+        group_name: t('label_all'),
         total: totalNumber,
         id: ''
       },
@@ -374,7 +378,7 @@ const onRefresh = async () => {
 
   isRefresh.value = false
 
-  message.success('刷新完成')
+  message.success(t('msg_refresh_success'))
 }
 
 const openAddLibrary = () => {

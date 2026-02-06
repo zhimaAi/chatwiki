@@ -72,7 +72,7 @@ func MultSplitFaqFiles(list define.DocSplitItems, splitParams define.SplitFaqPar
 	if len(list) == 0 {
 		return
 	}
-	// split by document type
+	// Split by document type
 	if splitParams.ChunkType == define.FAQChunkTypeLength {
 		spliter := NewAiSpliterClient(splitParams.ChunkSize)
 		for _, item := range list {
@@ -125,7 +125,7 @@ func MultSplitFaqFiles(list define.DocSplitItems, splitParams define.SplitFaqPar
 			}
 		}
 	}
-	listSplit.UnifySetNumber() //对number统一编号
+	listSplit.UnifySetNumber() // Unify numbering for number
 	for i := range listSplit {
 		if splitParams.IsQaDoc == define.DocTypeQa {
 			listSplit[i].WordTotal = utf8.RuneCountInString(listSplit[i].Question) + utf8.RuneCountInString(listSplit[i].Answer)
@@ -246,26 +246,26 @@ func ExtractLibFaqFiles(adminUserId int, splitParams define.SplitFaqParams, subm
 func ExportFAQFileAllQA(lang string, list []msql.Params, ext, source string) (string, error) {
 	fileSavePath := `static/public/export/` + source
 	if define.IsDocxFile(ext) {
-		var lineBreak = "\r" //docx的换行符,比较特殊
+		var lineBreak = "\r" // DOCX line break, quite special
 		doc := document.New()
 		var imageConfig = &document.ImageConfig{Size: &document.ImageSize{Width: 145, KeepAspectRatio: true}}
 		for idx, params := range list {
-			if idx > 0 { //添加两个换行
+			if idx > 0 { // Add two line breaks
 				doc.AddParagraph(lineBreak + lineBreak)
 			}
-			//问题
+			// Question
 			para := doc.AddParagraph(``)
 			para.AddFormattedText(i18n.Show(lang, `faq_question`)+`：`, &document.TextFormat{Bold: true, FontSize: 14})
 			para.AddFormattedText(lineBreak+params[`question`], &document.TextFormat{FontSize: 12})
-			//相似问法
+			// Similar questions
 			para.AddFormattedText(lineBreak+i18n.Show(lang, `faq_similar_questions`)+`：`, &document.TextFormat{Bold: true, FontSize: 14})
 			for _, item := range DisposeStringList(params[`similar_questions`]) {
 				para.AddFormattedText(lineBreak+item, &document.TextFormat{FontSize: 12})
 			}
-			//答案
+			// Answer
 			para.AddFormattedText(lineBreak+i18n.Show(lang, `faq_answer`)+`：`, &document.TextFormat{Bold: true, FontSize: 14})
 			para.AddFormattedText(lineBreak+params[`answer`], &document.TextFormat{FontSize: 12})
-			//图片
+			// Images
 			for _, imgUrl := range DisposeStringList(params[`images`]) {
 				if !LinkExists(imgUrl) {
 					continue
@@ -301,7 +301,7 @@ func ExportFAQFileAllQA(lang string, list []msql.Params, ext, source string) (st
 	}
 }
 
-func ImportFAQFile(adminUserId, libraryId, fileId int, ids, token string, isSync bool) {
+func ImportFAQFile(lang string, adminUserId, libraryId, fileId int, ids, token string, isSync bool) {
 	if isSync {
 		if message, err := tool.JsonEncode(map[string]any{
 			`admin_user_id`: adminUserId,
@@ -321,13 +321,13 @@ func ImportFAQFile(adminUserId, libraryId, fileId int, ids, token string, isSync
 	var err error
 
 	if len(ids) > 0 {
-		// 查询单条QA数据
+		// Query single QA data
 		qaList, err = msql.Model("chat_ai_faq_files_data_qa", define.Postgres).
 			Where("id", `in`, cast.ToString(ids)).
 			Where("admin_user_id", cast.ToString(adminUserId)).
 			Select()
 	} else {
-		// 查询文件下所有QA数据
+		// Query all QA data under the file
 		qaList, err = msql.Model("chat_ai_faq_files_data_qa", define.Postgres).
 			Where("file_id", cast.ToString(fileId)).
 			Where("admin_user_id", cast.ToString(adminUserId)).
@@ -344,7 +344,8 @@ func ImportFAQFile(adminUserId, libraryId, fileId int, ids, token string, isSync
 	var res lib_web.Response
 	for _, item := range qaList {
 		var imgs []string
-		req := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/addParagraph`, define.Config.WebService[`port`])).Header(`token`, token)
+		req := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/addParagraph`, define.Config.WebService[`port`]))
+		req.Header(`token`, token).Header(`lang`, lang)
 		req.Param(`library_id`, cast.ToString(libraryId))
 		req.Param(`similar_questions`, `[]`)
 		req.Param(`question`, item[`question`])
@@ -368,7 +369,7 @@ func ImportFAQFile(adminUserId, libraryId, fileId int, ids, token string, isSync
 		}
 		qaIds = append(qaIds, cast.ToString(item[`id`]))
 	}
-	// 更新数据
+	// Update data
 	_, err = msql.Model("chat_ai_faq_files_data_qa", define.Postgres).
 		Where("id", `in`, strings.Join(qaIds, `,`)).
 		Where("admin_user_id", cast.ToString(adminUserId)).

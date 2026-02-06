@@ -16,7 +16,7 @@ import (
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
-// CheckSkipCallLlm 检查是否跳过llm调用
+// CheckSkipCallLlm check if skip llm call
 func CheckSkipCallLlm(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if len(in.params.AppInfo) > 0 && len(in.params.ReceivedMessageType) > 0 && in.params.ReceivedMessageType != lib_define.MsgTypeText {
 		switch in.params.ReceivedMessageType {
@@ -32,24 +32,24 @@ func CheckSkipCallLlm(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	return pipeline.PipeContinue
 }
 
-// BuildOpenApiContent 开放接口自定义上下文处理
+// BuildOpenApiContent build open api custom context
 func BuildOpenApiContent(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	out.messages = common.BuildOpenApiContent(in.params, out.messages)
 	return pipeline.PipeContinue
 }
 
-// BuildFunctionTools 构建function tool
+// BuildFunctionTools build function tools
 func BuildFunctionTools(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if len(in.params.Robot[`form_ids`]) > 0 {
 		formIdList := strings.Split(in.params.Robot[`form_ids`], `,`)
 		out.functionTools, out.Error = common.BuildFunctionTools(formIdList, in.params.AdminUserId)
 		if out.Error != nil {
-			in.exitChat = true //直接退出标志位
+			in.exitChat = true // exit flag
 			in.Stream(sse.Event{Event: `error`, Data: out.Error.Error()})
 			return pipeline.PipeStop
 		}
 	}
-	//聊天机器人支持关联工作流
+	// chat bot supports related workflow
 	var workFlowFuncCall []adaptor.FunctionTool
 	workFlowFuncCall, in.needRunWorkFlow = work_flow.BuildFunctionTools(in.params.Lang, in.params.Robot)
 	if in.needRunWorkFlow {
@@ -58,13 +58,13 @@ func BuildFunctionTools(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult 
 	return pipeline.PipeContinue
 }
 
-// SetLlmStartTime 设置llm请求开始时间
+// SetLlmStartTime set llm request start time
 func SetLlmStartTime(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	in.llmStartTime = time.Now()
 	return pipeline.PipeContinue
 }
 
-// BuildImmediatelyReplyHandle 构建立即回复输出句柄
+// BuildImmediatelyReplyHandle build immediate reply handle
 func BuildImmediatelyReplyHandle(in *ChatInParam, out *ChatOutParam) func(replyContent common.ReplyContent) {
 	return func(replyContent common.ReplyContent) {
 		out.replyContentList = append(out.replyContentList, replyContent)
@@ -72,7 +72,7 @@ func BuildImmediatelyReplyHandle(in *ChatInParam, out *ChatOutParam) func(replyC
 	}
 }
 
-// DoApplicationTypeFlow 工作流机器人逻辑
+// DoApplicationTypeFlow workflow bot logic
 func DoApplicationTypeFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if cast.ToInt(in.params.Robot[`application_type`]) == define.ApplicationTypeFlow {
 		workFlowParams := &work_flow.WorkFlowParams{ChatRequestParam: in.params, CurMsgId: int(out.cMsgId), DialogueId: in.dialogueId, SessionId: in.sessionId}
@@ -85,15 +85,15 @@ func DoApplicationTypeFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResu
 			out.replyContentList = append(out.replyContentList, replyContentList...)
 		}
 		if out.Error != nil {
-			in.exitChat = true //直接退出标志位
+			in.exitChat = true // exit flag
 			out.debugLog = append(out.debugLog, map[string]string{`type`: `cur_question`, `content`: in.params.Question})
-			in.Stream(sse.Event{Event: `debug`, Data: out.debugLog}) //渲染Prompt日志
+			in.Stream(sse.Event{Event: `debug`, Data: out.debugLog}) // render prompt log
 			common.SendDefaultUnknownQuestionPrompt(in.params, out.Error.Error(), in.chanStream, &out.content)
 		} else {
-			//显示引文逻辑
+			// show citation logic
 			callLlm := pipeline.NewPipeline(in, out)
-			callLlm.Pipe(StartQuoteFile)       //显示引文开始信号
-			callLlm.Pipe(DisposeQuoteFilePush) //处理引用知识库文件+推送
+			callLlm.Pipe(StartQuoteFile)       // show citation start signal
+			callLlm.Pipe(DisposeQuoteFilePush) // process citation files and push
 			callLlm.Process()
 			in.Stream(sse.Event{Event: `recall_time`, Data: in.monitor.LibUseTime.RecallTime})
 			in.Stream(sse.Event{Event: `request_time`, Data: out.requestTime})
@@ -104,7 +104,7 @@ func DoApplicationTypeFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResu
 	return pipeline.PipeContinue
 }
 
-// DoChatByChatCache 通过聊天缓存获取相应内容
+// DoChatByChatCache get content from chat cache
 func DoChatByChatCache(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if in.hitCache {
 		out.chatResp, out.requestTime, out.Error = common.ResponseMessagesFromCache(in.answerMessageId, in.useStream, in.chanStream)
@@ -115,43 +115,43 @@ func DoChatByChatCache(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	return pipeline.PipeContinue
 }
 
-// DoChatTypeDirect 直连模式聊天逻辑
+// DoChatTypeDirect direct connection mode chat logic
 func DoChatTypeDirect(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if cast.ToInt(in.params.Robot[`chat_type`]) == define.ChatTypeDirect {
-		DoRequestChatUnify(in, out) //请求大语言模型
+		DoRequestChatUnify(in, out) // request llm
 		return pipeline.PipeStop
 	}
 	return pipeline.PipeContinue
 }
 
-// DoChatTypeMixture 混合模式聊天逻辑
+// DoChatTypeMixture mixture mode chat logic
 func DoChatTypeMixture(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if cast.ToInt(in.params.Robot[`chat_type`]) == define.ChatTypeMixture {
 		if content, ok := common.CheckQaDirectReply(out.list, in.params.Robot); ok {
 			out.content = content
 			in.Stream(sse.Event{Event: `sending`, Data: out.content})
 		} else {
-			DoRequestChatUnify(in, out) //请求大语言模型
+			DoRequestChatUnify(in, out) // request llm
 		}
 		return pipeline.PipeStop
 	}
 	return pipeline.PipeContinue
 }
 
-// DoChatTypeLibrary 仅知识库模式聊天逻辑
+// DoChatTypeLibrary knowledge base only mode chat logic
 func DoChatTypeLibrary(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if cast.ToInt(in.params.Robot[`chat_type`]) == define.ChatTypeLibrary {
 		if !in.needRunWorkFlow && len(out.list) == 0 {
-			DisposeUnknownQuestionPrompt(in, out) //未知问题(未关联工作流场景)
+			DisposeUnknownQuestionPrompt(in, out) // unknown question (no workflow scene)
 		} else {
 			if len(out.list) == 0 {
-				in.waitChooseWorkFlow = true //等待选择的关联工作流
+				in.waitChooseWorkFlow = true // wait for workflow selection
 			}
 			if content, ok := common.CheckQaDirectReply(out.list, in.params.Robot); ok {
 				out.content = content
 				in.Stream(sse.Event{Event: `sending`, Data: out.content})
 			} else {
-				DoRequestChatUnify(in, out) //请求大语言模型
+				DoRequestChatUnify(in, out) // request llm
 			}
 		}
 		return pipeline.PipeStop
@@ -159,7 +159,7 @@ func DoChatTypeLibrary(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	return pipeline.PipeContinue
 }
 
-// CheckReplyByChatCache 检查回复来自聊天缓存
+// CheckReplyByChatCache check reply from chat cache
 func CheckReplyByChatCache(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if in.hitCache {
 		return pipeline.PipeStop
@@ -167,18 +167,18 @@ func CheckReplyByChatCache(in *ChatInParam, out *ChatOutParam) pipeline.PipeResu
 	return pipeline.PipeContinue
 }
 
-// DoRelationWorkFlow 聊天机器人支持关联工作流
+// DoRelationWorkFlow chat bot supports related workflow
 func DoRelationWorkFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if out.Error == nil && in.needRunWorkFlow {
 		workFlowRobot, workFlowGlobal := work_flow.ChooseWorkFlowRobot(cast.ToString(in.params.AdminUserId), out.chatResp.FunctionToolCalls)
-		if len(workFlowRobot) == 0 { //大模型没有返回需要调用的工作流
+		if len(workFlowRobot) == 0 { // no workflow returned by llm
 			if in.waitChooseWorkFlow {
-				DisposeUnknownQuestionPrompt(in, out) //未知问题(已关联工作流场景)
+				DisposeUnknownQuestionPrompt(in, out) // unknown question (workflow scene)
 				return pipeline.PipeStop
 			}
 			in.Stream(sse.Event{Event: `request_time`, Data: out.requestTime})
 			in.Stream(sse.Event{Event: `sending`, Data: out.content})
-		} else { //组装工作流请求参数,并执行工作流
+		} else { // build workflow params and execute workflow
 			workFlowParams := work_flow.BuildWorkFlowParams(*in.params, workFlowRobot, workFlowGlobal, int(out.cMsgId), in.dialogueId, in.sessionId)
 			workFlowParams.ImmediatelyReplyHandle = BuildImmediatelyReplyHandle(in, out)
 			replyContentList := []common.ReplyContent{}
@@ -194,7 +194,7 @@ func DoRelationWorkFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult 
 			} else {
 				common.SendDefaultUnknownQuestionPrompt(in.params, out.Error.Error(), in.chanStream, &out.content)
 			}
-			in.saveRobotChatCache = false //关联工作流不进聊天缓存
+			in.saveRobotChatCache = false // related workflow not saved to chat cache
 		}
 	}
 	return pipeline.PipeStop

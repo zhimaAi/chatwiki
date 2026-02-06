@@ -67,14 +67,14 @@ func GetOfdRels(reader *zip.ReadCloser) (rels map[string]string) {
 func IsNewLine(minH, maxH *float64, boundary string) bool {
 	temp := strings.Fields(boundary)
 	if len(boundary) == 0 || len(temp) != 4 {
-		return false //错误的boundary
+		return false // Invalid boundary
 	}
 	start, end := cast.ToFloat64(temp[1]), cast.ToFloat64(temp[1])+cast.ToFloat64(temp[3])
-	if *minH == 0 && *maxH == 0 { //首行位置
+	if *minH == 0 && *maxH == 0 { // First line position
 		*minH, *maxH = start, end
 		return false
 	}
-	if *maxH < start || end < *minH { //开启新行
+	if *maxH < start || end < *minH { // Start new line
 		*minH, *maxH = start, end
 		return true
 	}
@@ -124,7 +124,7 @@ func OfdInfoExtract(name string, userId int) (result []string, err error) {
 					if id, ok := GetNodeAttr(node.Attr, ``, `ResourceID`); ok && len(rels[id]) > 0 {
 						if imgStr, err := GetImgByZip(reader, `Doc_0/Res/`+rels[id], userId); err == nil {
 							content, _ = strings.CutSuffix(content, "\r\n")
-							content += "\r\n" + imgStr + "\r\n" //图片信息
+							content += "\r\n" + imgStr + "\r\n" // Image information
 						} else {
 							logs.Error(err.Error())
 						}

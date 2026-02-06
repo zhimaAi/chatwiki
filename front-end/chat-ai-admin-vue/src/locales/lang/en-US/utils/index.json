@@ -1,0 +1,10 @@
+{
+  "label_today": "Today",
+  "label_yesterday": "Yesterday",
+  "label_this_week": "This Week",
+  "label_this_month": "This Month",
+  "label_this_year": "This Year",
+  "label_last_7_days": "Last 7 Days",
+  "label_last_30_days": "Last 30 Days",
+  "label_last_90_days": "Last 90 Days"
+}

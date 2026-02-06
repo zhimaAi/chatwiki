@@ -315,18 +315,18 @@ func FindPrevAndNext(nodes []*LibraryCatalog, docKey string) (prev *LibraryCatal
 	return prev, next
 }
 
-// 深度优先遍历，将节点按顺序存储到切片中
+// Depth-first traversal, storing nodes in sequence to the slice
 func dfs(root *LibraryCatalog, nodes *[]*LibraryCatalog) {
 	if root == nil {
 		return
 	}
-	*nodes = append(*nodes, root) // 将当前节点加入切片
+	*nodes = append(*nodes, root) // Add current node to the slice
 	for _, child := range root.Children {
-		dfs(child, nodes) // 递归遍历子节点
+		dfs(child, nodes) // Recursively traverse child nodes
 	}
 }
 
-// 查找上一个节点
+// Find previous node
 func findPrevious(nodes []*LibraryCatalog, target *LibraryCatalog) *LibraryCatalog {
 	for i, node := range nodes {
 		if node == target && i > 0 {
@@ -339,7 +339,7 @@ func findPrevious(nodes []*LibraryCatalog, target *LibraryCatalog) *LibraryCatal
 	return nil
 }
 
-// 查找下一个节点
+// Find next node
 func findNext(nodes []*LibraryCatalog, target *LibraryCatalog) *LibraryCatalog {
 	for i, node := range nodes {
 		if node == target && i < len(nodes)-1 {
@@ -352,7 +352,7 @@ func findNext(nodes []*LibraryCatalog, target *LibraryCatalog) *LibraryCatalog {
 	return nil
 }
 
-// 查找节点
+// Find node
 func findNode(root *LibraryCatalog, targetValue string) *LibraryCatalog {
 	if root == nil {
 		return nil
@@ -714,7 +714,7 @@ func GetOpenBindLibList(domain, typ string) ([]msql.Params, error) {
 		if cast.ToInt(item[`access_rights`]) != define.OpenLibraryAccessRights {
 			continue
 		}
-		// 去除http(s)前缀后进行域名匹配
+		// Perform domain matching after removing http(s) prefix
 		shareUrl := strings.TrimPrefix(strings.TrimPrefix(item[`share_url`], "https://"), "http://")
 		domainTrim := strings.TrimPrefix(strings.TrimPrefix(domain, "https://"), "http://")
 		if strings.Contains(shareUrl, domainTrim) {

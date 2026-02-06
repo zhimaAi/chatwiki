@@ -8,7 +8,7 @@ import (
 	"github.com/gin-contrib/sse"
 )
 
-// RobotInfoPush 推送机器人信息
+// RobotInfoPush push robot info
 func RobotInfoPush(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	in.Stream(sse.Event{Event: `robot`, Data: in.params.Robot})
 	return pipeline.PipeContinue

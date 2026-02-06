@@ -259,18 +259,18 @@
 
         <div class="item-footer">
           <div class="library-size">
-            <a-tooltip title="文档数量">
+            <a-tooltip :title="t('document_count')">
               <span class="text-item">
                 <svg-icon class="icon" name="document-icon"></svg-icon>
                 {{ item.file_total }}
               </span>
             </a-tooltip>
-            <a-tooltip title="存储大小">
+            <a-tooltip :title="t('storage_size')">
               <span class="text-item">
               <svg-icon class="icon" name="storage-icon"></svg-icon>
               {{ item.file_size_str }}</span>
             </a-tooltip>
-            <a-tooltip title="关联应用">
+            <a-tooltip :title="t('related_app')">
               <span class="text-item">
                 <svg-icon class="icon" name="relevance-icon"></svg-icon>
                 {{ item.robot_nums || 0 }}

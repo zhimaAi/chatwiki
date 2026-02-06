@@ -1,21 +1,21 @@
 <template>
   <div>
     <!-- <a-button @click="handleOpenTestModal" style="background-color: #00ad3a" type="primary"
-      ><CaretRightOutlined />运行测试</a-button
+      ><CaretRightOutlined />{{ t('btn_run_test') }}</a-button
     > -->
     <a-modal v-model:open="show" :footer="null" :width="820" wrapClassName="no-padding-modal">
       <template #title>
         <div class="modal-title-block">
-          运行测试{{ formState.dialogue_id }}
+          {{ t('btn_run_test') }}{{ formState.dialogue_id }}
           <div class="run-detail" v-if="resultList.length">
-            <span>总耗时：{{ formatTime(use_mills) }}</span>
-            <span>token消耗：{{ use_token }} Tokens</span>
+            <span>{{ t('label_total_time') }}：{{ formatTime(use_mills) }}</span>
+            <span>{{ t('label_token_usage') }}：{{ use_token }} {{ t('label_tokens') }}</span>
           </div>
         </div>
       </template>
       <div class="flex-content-box">
         <div class="test-model-box">
-          <div class="top-title">开始节点参数</div>
+          <div class="top-title">{{ t('title_start_node_params') }}</div>
           <a-form
             :model="formState"
             ref="formRef"
@@ -28,7 +28,7 @@
                 :name="['globalState', item.key]"
                 v-for="item in diy_global"
                 :key="item.key"
-                :rules="[{ required: item.required, message: `请输入${item.key}` }]"
+                :rules="[{ required: item.required, message: t('msg_input_key', { key: item.key }) }]"
               >
                 <template #label>
                   <a-flex :gap="4"
@@ -70,7 +70,7 @@
                       />
                     </div>
                     <div class="add-btn-box">
-                      <a-button @click="handleAddItem(item.key)" block type="dashed">添加</a-button>
+                      <a-button @click="handleAddItem(item.key)" block type="dashed">{{ t('btn_add') }}</a-button>
                     </div>
                   </div>
                 </template>
@@ -82,7 +82,7 @@
                 <template #label>
                   <a-flex :gap="4">question <a-tag style="margin: 0">string</a-tag> </a-flex>
                 </template>
-                <a-input placeholder="请输入question" v-model:value="formState.question" />
+                <a-input :placeholder="t('msg_input_key', { key: 'question' })" v-model:value="formState.question" />
               </a-form-item>
               <a-form-item v-if="question_multiple_switch">
                 <template #label>
@@ -97,7 +97,7 @@
                     :key="i"
                   >
                     <a-form-item-rest
-                      ><a-input placeholder="请输入" v-model:value="input.value"
+                      ><a-input :placeholder="t('ph_input')" v-model:value="input.value"
                     /></a-form-item-rest>
 
                     <CloseCircleOutlined
@@ -106,7 +106,7 @@
                     />
                   </div>
                   <div class="add-btn-box">
-                    <a-button @click="handleAddQuetionItem()" block type="dashed">添加</a-button>
+                    <a-button @click="handleAddQuetionItem()" block type="dashed">{{ t('btn_add') }}</a-button>
                   </div>
                 </div>
               </a-form-item>
@@ -114,7 +114,7 @@
           </a-form>
 
           <div class="result-list-box loading-box" v-if="loading">
-            <a-spin v-if="loading" tip="测试结果生成中..." />
+            <a-spin v-if="loading" :tip="t('msg_generating_test_result')" />
           </div>
 
           <div class="result-list-box" v-if="resultList.length > 0">
@@ -150,14 +150,14 @@
               @click="handleSubmit"
               style="background-color: #00ad3a"
               type="primary"
-              ><CaretRightOutlined />{{ isShowQuestionForm ? '继续测试' : '运行测试' }} </a-button
+              ><CaretRightOutlined />{{ isShowQuestionForm ? t('btn_continue_test') : t('btn_run_test') }} </a-button
             >
           </div>
         </div>
         <div class="preview-box">
           <template v-if="cuttentItem">
             <div class="preview-title">
-              <div class="title-text">日志详情</div>
+              <div class="title-text">{{ t('title_log_details') }}</div>
               <div class="icon-name-box">
                 <img :src="cuttentItem.node_icon" alt="" />
                 <div class="node-name">{{ cuttentItem.node_name }}</div>
@@ -165,25 +165,25 @@
               <div class="time-tag" v-if="cuttentItem.is_success">{{ cuttentItem.use_time }}ms</div>
             </div>
             <div class="preview-content-block" v-if="currentImageList.length > 0">
-              <div class="title-block">生成图像日志</div>
+              <div class="title-block">{{ t('title_generated_image_log') }}</div>
               <div class="preview-img-box">
                 <ImageLogs :currentImageList="currentImageList" />
               </div>
             </div>
             <div class="preview-content-block">
-              <div class="title-block">输入<CopyOutlined @click="handleCopy('input')" /></div>
+              <div class="title-block">{{ t('label_input') }}<CopyOutlined @click="handleCopy('input')" /></div>
               <div class="preview-code-box">
                 <vue-json-pretty :data="cuttentItem.input" />
               </div>
             </div>
             <div class="preview-content-block">
-              <div class="title-block">输出<CopyOutlined @click="handleCopy('node_output')" /></div>
+              <div class="title-block">{{ t('label_output') }}<CopyOutlined @click="handleCopy('node_output')" /></div>
               <div class="preview-code-box">
                 <vue-json-pretty :data="cuttentItem.node_output" />
               </div>
             </div>
             <div class="preview-content-block">
-              <div class="title-block">运行日志<CopyOutlined @click="handleCopy('output')" /></div>
+              <div class="title-block">{{ t('label_run_log') }}<CopyOutlined @click="handleCopy('output')" /></div>
               <div class="preview-code-box">
                 <vue-json-pretty :data="cuttentItem.output" />
               </div>
@@ -214,12 +214,15 @@ import { getImageUrl, formatTime } from '../util'
 import { message } from 'ant-design-vue'
 import { copyText } from '@/utils/index'
 import ImageLogs from '@/views/workflow/components/image-logs/index.vue'
-const DEFAULT_SUGGEST_MAP = {
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.run-test.index')
+const DEFAULT_SUGGEST_MAP = computed(() => ({
   openid: '38fjp8344ru43',
-  question: '你好',
-  question_multiple: '{"type":"text", "text":"这是什么"}',
+  question: t('placeholder_hello'),
+  question_multiple: `{"type":"text", "text":"${t('placeholder_what_is_this')}"}`,
   conversationid: '12345'
-}
+}))
 const props = defineProps({
   lf: {
     type: Object
@@ -305,11 +308,6 @@ const formState = reactive({
 const handleOpenTestModal = () => {
   isShowQuestionForm.value = false
   getQuestionMultipleSwitchStatus()
-  if (props.isLockedByOther) {
-    message.warning('当前已有其他用户在编辑中，无法运行测试')
-    return
-  }
-  emit('save', 'automatic')
   let localData = localStorage.getItem('workflow_run_test_data') || '{}'
   localData = JSON.parse(localData)
 
@@ -329,7 +327,6 @@ const handleOpenTestModal = () => {
   currentNodeKey.value = ''
   emit('getGlobal')
   nextTick(() => {
-    console.log(props.start_node_params, '==')
     diy_global.value.forEach((item) => {
       formState.globalState[item.key] = setGlobalDefaultVal(item)
     })
@@ -375,14 +372,14 @@ function getGlobalDefaultVal() {
   diy_global.value.forEach((item) => {
     if (item.typ == 'string') {
       const v = (formState.globalState[item.key] || '').trim()
-      result[item.key] = v ? v : (DEFAULT_SUGGEST_MAP[item.key] ?? '')
+      result[item.key] = v ? v : (DEFAULT_SUGGEST_MAP.value[item.key] ?? '')
     }
     if (item.typ == 'number') {
       const raw = formState.globalState[item.key]
       if (raw !== '' && raw != null) {
         result[item.key] = +raw
       } else {
-        const def = DEFAULT_SUGGEST_MAP[item.key]
+        const def = DEFAULT_SUGGEST_MAP.value[item.key]
         result[item.key] = def != null && def !== '' && !isNaN(Number(def)) ? Number(def) : ''
       }
     }
@@ -400,8 +397,8 @@ function getGlobalDefaultVal() {
         })
         .filter((it) => it)
 
-      if ((!Array.isArray(list) || list.length === 0) && DEFAULT_SUGGEST_MAP[item.key]) {
-        const def = DEFAULT_SUGGEST_MAP[item.key]
+      if ((!Array.isArray(list) || list.length === 0) && DEFAULT_SUGGEST_MAP.value[item.key]) {
+        const def = DEFAULT_SUGGEST_MAP.value[item.key]
         if (isJsonString(def)) {
           list = [JSON.parse(def)]
         } else {
@@ -511,9 +508,9 @@ const formateData = (data) => {
   if(lastItem.node_type == 43){
     // 问答节点
     isShowQuestionForm.value = true
-    message.success('请继续填写问答参数')
+    message.success(t('msg_continue_qa_params'))
   }else{
-    message.success('测试结果生成完成')
+    message.success(t('msg_test_result_generated'))
     formState.question = ''
     formState.question_multiple = [{value: ''}]
     isShowQuestionForm.value = false
@@ -539,7 +536,7 @@ const handleChangeNodeKey = (item) => {
 
 const handleCopy = (key) => {
   copyText(JSON.stringify(cuttentItem.value[key]))
-  message.success('复制成功')
+  message.success(t('msg_copy_success'))
 }
 
 const open = () => {
@@ -547,8 +544,8 @@ const open = () => {
 }
 
 function getDefaultPlaceholder(item) {
-  const def = DEFAULT_SUGGEST_MAP[item.key]
-  return def ? `${def}` : '请输入'
+  const def = DEFAULT_SUGGEST_MAP.value[item.key]
+  return def ? `${def}` : t('ph_input')
 }
 
 function parseJSONMaybe(str) {
@@ -570,7 +567,7 @@ function buildStorageOverrides() {
     if (item.typ === 'string') {
       const v = String(formState.globalState[key] || '').trim()
       if (!v) return
-      const def = DEFAULT_SUGGEST_MAP[key]
+      const def = DEFAULT_SUGGEST_MAP.value[key]
       if (def != null && v === String(def)) return
       overrides[key] = v
       return
@@ -579,7 +576,7 @@ function buildStorageOverrides() {
       const raw = formState.globalState[key]
       if (raw === '' || raw == null) return
       const val = +raw
-      const def = DEFAULT_SUGGEST_MAP[key]
+      const def = DEFAULT_SUGGEST_MAP.value[key]
       if (def != null && !isNaN(Number(def)) && val === Number(def)) return
       overrides[key] = val
       return
@@ -595,7 +592,7 @@ function buildStorageOverrides() {
         })
       if (!typed.length) return
       let defList = []
-      const def = DEFAULT_SUGGEST_MAP[key]
+      const def = DEFAULT_SUGGEST_MAP.value[key]
       if (def != null) {
         const o = parseJSONMaybe(String(def))
         defList = o != null ? [o] : [String(def)]

@@ -9,7 +9,7 @@
       }
     }
     .field-item-label {
-      width: 60px;
+      width: auto;
       line-height: 22px;
       margin-right: 8px;
       font-size: 14px;
@@ -69,7 +69,7 @@
     <div class="ai-dialogue-node">
       <div class="field-list">
         <div class="field-item">
-          <div class="field-item-label">用户问题</div>
+          <div class="field-item-label">{{ t('label_user_question') }}</div>
           <div class="field-item-content">
             <div class="field-value">
               <user-question-text ref="questionTextRef" :value="formState.question_value" />
@@ -78,7 +78,7 @@
         </div>
 
         <div class="field-item">
-          <div class="field-item-label">LLM模型</div>
+          <div class="field-item-label">{{ t('label_llm_model') }}</div>
           <div class="field-item-content">
             <div class="field-value">
               <span class="field-key">
@@ -89,10 +89,10 @@
         </div>
 
         <div class="field-item">
-          <div class="field-item-label">输出</div>
+          <div class="field-item-label">{{ t('label_output') }}</div>
           <div class="field-item-content">
             <div class="field-value is-required">
-              <span class="field-key">AI回复内容</span>
+              <span class="field-key">{{ t('label_ai_reply_content') }}</span>
               <span class="field-type">string</span>
             </div>
           </div>
@@ -109,6 +109,9 @@ import NodeCommon from '../base-node.vue'
 import { useRobotStore } from '@/stores/modules/robot'
 import ModelNameText from '../model-name-text.vue'
 import UserQuestionText from '../user-question-text.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.ai-dialogue-node.index')
 
 const props = defineProps({
   properties: {

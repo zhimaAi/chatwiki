@@ -2,7 +2,7 @@
 
 package define
 
-// LibraryMetaType 元数据类型（前后端传递数字）
+// LibraryMetaType metadata type (numbers passed between frontend and backend)
 const (
 	LibraryMetaTypeString = 0
 	LibraryMetaTypeTime   = 1
@@ -24,7 +24,7 @@ func IsLibraryMetaTypeValid(t int) bool {
 	return false
 }
 
-// 内置元数据 key（全局唯一）
+// Built-in metadata keys (globally unique)
 const (
 	BuiltinMetaKeySource     = "source"
 	BuiltinMetaKeyUpdateTime = "update_time"
@@ -35,7 +35,7 @@ const (
 type BuiltinMetaSchema struct {
 	Name string
 	Key  string
-	Type int // 同 LibraryMetaType*
+	Type int // Same as LibraryMetaType*
 }
 
 func IsBuiltinMetaKey(key string) bool {

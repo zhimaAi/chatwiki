@@ -2,7 +2,7 @@
   <div>
     <div class="options-item is-required">
       <div class="options-item-tit">
-        <div class="option-label">多维表格的名称</div>
+        <div class="option-label">{{ t('label_bitable_name') }}</div>
         <div class="option-type">string</div>
       </div>
       <div class="min-input">
@@ -15,7 +15,7 @@
           ref="atInputRef"
           @open="emit('updateVar')"
           @change="(val, tags) => changeValue('name', val, tags)"
-          placeholder="请输入内容，键入“/”可以插入变量"
+          :placeholder="t('ph_input_content')"
         >
           <template #option="{ label, payload }">
             <div class="field-list-item">
@@ -25,12 +25,12 @@
           </template>
         </AtInput>
       </div>
-      <div class="desc">更新多维表格的名称</div>
+      <div class="desc">{{ t('desc_update_bitable_name') }}</div>
     </div>
     <div class="options-item is-required">
       <div class="flex-between">
         <div class="options-item-tit ">
-          <div class="option-label">开启高级权限</div>
+          <div class="option-label">{{ t('label_enable_advanced_permission') }}</div>
           <div class="option-type">string</div>
         </div>
         <div>
@@ -39,11 +39,11 @@
       </div>
       <div class="min-input">
         <a-radio-group v-model:value="state.is_advanced" :disabled="state.is_advanced < 1" @change="update">
-          <a-radio value="1">开启</a-radio>
-          <a-radio value="2">关闭</a-radio>
+          <a-radio value="1">{{ t('opt_enable') }}</a-radio>
+          <a-radio value="2">{{ t('opt_disable') }}</a-radio>
         </a-radio-group>
       </div>
-      <div class="desc">多维表格是否已开启高级权限，开关关闭则不更新设置</div>
+      <div class="desc">{{ t('desc_advanced_permission') }}</div>
     </div>
   </div>
 </template>
@@ -52,6 +52,9 @@
 import {ref, reactive, watch} from 'vue'
 import AtInput from "@/views/workflow/components/at-input/at-input.vue";
 import {runPlugin} from "@/api/plugins/index.js";
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.feishu-bittable.feishu-update-advanced')
 
 const props = defineProps({
   variableOptions: {

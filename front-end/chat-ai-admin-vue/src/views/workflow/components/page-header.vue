@@ -176,25 +176,25 @@
       <template v-if="robotInfo.start_node_key != ''">
         <div class="robot-status-box status-1" @click="onEdit">
           <CheckCircleFilled class="robot-status-icon" />
-          <div class="robot-status-text">已发布</div>
+          <div class="robot-status-text">{{ t('status_published') }}</div>
         </div>
       </template>
       <template v-else>
         <div class="robot-status-box status-0">
           <ExclamationCircleFilled class="robot-status-icon" />
-          <div class="robot-status-text">未发布</div>
+          <div class="robot-status-text">{{ t('status_unpublished') }}</div>
         </div>
       </template>
     </div>
     <div class="header-right" v-if="props.showRight">
       <template v-if="currentVersion == '' && isEditing">
         <div class="last-save-time" v-if="robotInfo.draft_save_time && robotInfo.draft_save_time != 0">
-          {{ formatTime(robotInfo.draft_save_time, 'MM/DD HH:mm:ss') }} {{ robotInfo.draft_save_type == 'handle' ? '手动' : '自动' }}保存草稿
-          <span v-if="isEditing && !isLockedByOther && (!autoSaveEnabled || !isLeader)" class="auto-save-hint">你可能已在其他页面编辑，已停止自动保存</span>
+          {{ formatTime(robotInfo.draft_save_time, 'MM/DD HH:mm:ss') }} {{ robotInfo.draft_save_type == 'handle' ? t('save_type_manual') : t('save_type_auto') }}{{ t('save_draft') }}
+          <span v-if="isEditing && !isLockedByOther && (!autoSaveEnabled || !isLeader)" class="auto-save-hint">{{ t('msg_auto_save_stopped') }}</span>
         </div>
         <template v-if="!isLockedByOther">
-          <a-button class="save-draft" @click="handleSave('handle')">保存草稿</a-button>
-          <a-button type="primary" :loading="props.saveLoading"  class="publish-robot" @click="handleRelease">发布机器人</a-button>
+          <a-button class="save-draft" @click="handleSave('handle')">{{ t('save_draft') }}</a-button>
+          <a-button type="primary" :loading="props.saveLoading"  class="publish-robot" @click="handleRelease">{{ t('publish_robot') }}</a-button>
         </template>
       </template>
       <!-- <template v-else>
@@ -206,9 +206,9 @@
         <template #icon>
           <EditOutlined />
         </template>
-        编辑
+        {{ t('btn_edit') }}
       </a-button>
-      <a-tooltip title="历史发布详情">
+      <a-tooltip :title="t('tooltip_history_details')">
         <a-button @click="getVersionRecord()"><ClockCircleOutlined /></a-button>
       </a-tooltip>
       <!-- 管理员显示锁定图标 -->
@@ -231,13 +231,13 @@
               name="lock-icon"
               style="font-size: 14px; color: #262626"
             ></svg-icon>
-            <span style="color: #262626;">编辑锁设置</span>
-            <span style="color:#8c8c8c; font-weight: normal;">不同的IP和UserAgent都会限制</span>
+            <span style="color: #262626;">{{ t('title_lock_settings') }}</span>
+            <span style="color:#8c8c8c; font-weight: normal;">{{ t('desc_lock_restriction') }}</span>
           </div>
         </template>
         <template #content>
           <div class="lock-config">
-            <span style="color: #595959;">编辑结束后锁</span>
+            <span style="color: #595959;">{{ t('label_lock_after_edit') }}</span>
             <a-input-number
               v-model:value="lockMinutes"
               :min="10"
@@ -245,11 +245,11 @@
               :precision="0"
               style="margin:0 4px;width:86px"
             />
-            <span style="color: #595959;">分钟后才能编辑</span>
+            <span style="color: #595959;">{{ t('label_minutes_before_edit') }}</span>
           </div>
           <div style="margin-top: 24px;text-align:right;">
-            <a-button class="ml8" @click="lockPopoverOpen=false">取 消</a-button>
-            <a-button type="primary" class="ml8" :loading="lockLoading" @click="saveLockConfig">保 存</a-button>
+            <a-button class="ml8" @click="lockPopoverOpen=false">{{ t('btn_cancel') }}</a-button>
+            <a-button type="primary" class="ml8" :loading="lockLoading" @click="saveLockConfig">{{ t('btn_save') }}</a-button>
           </div>
         </template>
         <a-button class="" @click="lockPopoverOpen=true" style="padding:5px 9px;">
@@ -262,8 +262,8 @@
       </a-popover>
     </div>
     <div class="lock-tip" v-if="isLockedByOther">
-      <div>当前已有用户正在编辑中，无法编辑保存草稿或发布工作流</div>
-      <div class="lock-info">（{{ '用户：' + loginUserName || '--' }}  {{ 'IP：' + lockRemoteAddr || '--' }}  {{ 'User Agent：' + lockUserAgent || '--' }}）</div>
+      <div>{{ t('msg_locked_by_other') }}</div>
+      <div class="lock-info">（{{ t('label_user') + loginUserName || '--' }}  {{ t('label_ip') + lockRemoteAddr || '--' }}  {{ t('label_user_agent') + lockUserAgent || '--' }}）</div>
     </div>
     <RunTest ref="runTestRef" :lf="lf" :start_node_params="start_node_params" @getGlobal="getGlobal" @save="handleSave" :isLockedByOther="isLockedByOther" />
   </div>
@@ -281,7 +281,12 @@ import { useUserStore } from '@/stores/modules/user'
 import { saveDraftExTime, getAdminConfig } from '@/api/robot/index'
 import { message, Modal } from 'ant-design-vue'
 import { useEventBus } from '@/hooks/event/useEventBus.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.page-header')
+
 const robotStore = useRobotStore()
+
 const robotInfo = computed(() => {
   return robotStore.robotInfo
 })
@@ -333,10 +338,10 @@ const saveLockConfig = async () => {
   lockLoading.value = true
   try {
     await saveDraftExTime({ draft_exptime: lockMinutes.value })
-    message.success('编辑锁设置已保存')
+    message.success(t('msg_lock_settings_saved'))
     lockPopoverOpen.value = false
   } catch (e) {
-    message.error('保存失败，请稍后重试')
+    message.error(t('msg_save_failed'))
   } finally {
     lockLoading.value = false
   }
@@ -382,8 +387,8 @@ const handleSave = (type = "handle") => {
   bus.off && bus.off('workflow:validate:error', onErr)
   if (hasError) {
     Modal.warning({
-      title: '表单未完成',
-      content: details.length ? h('div', details.map(d => h('div', d))) : '请完善必填项后再保存'
+      title: t('title_form_incomplete'),
+      content: details.length ? h('div', details.map(d => h('div', d))) : t('msg_complete_required_before_save')
     })
     return
   }
@@ -408,8 +413,8 @@ const handleRelease = () => {
   bus.off && bus.off('workflow:validate:error', onErr)
   if (hasError) {
     Modal.warning({
-      title: '表单未完成',
-      content: details.length ? h('div', details.map(d => h('div', d))) : '请完善必填项后再发布'
+      title: t('title_form_incomplete'),
+      content: details.length ? h('div', details.map(d => h('div', d))) : t('msg_complete_required_before_release')
     })
     return
   }

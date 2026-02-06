@@ -1,0 +1,17 @@
+{
+  "searching_knowledge_base": "正在检索知识库...",
+  "found_documents": "检索到{count}个知识库文档",
+  "deep_thinking": "深度思考中...",
+  "deep_thinking_completed": "已完成深度思考",
+  "featured": "精选",
+  "copy": "复制",
+  "like": "点赞",
+  "feedback_title": "结果反馈",
+  "feedback_placeholder": "请反馈你觉得回答不满意的地方",
+  "cancel": "取消",
+  "submit": "提交",
+  "dislike": "点踩",
+  "copy_success": "复制成功",
+  "operation_success": "操作成功",
+  "thanks_for_feedback": "感谢反馈"
+}

@@ -1,25 +1,25 @@
 <template>
   <a-modal
     v-model:open="visible"
-    :title="formState.id ? '编辑HTTP工具' : '添加HTTP工具'"
+    :title="formState.id ? t('title_edit_http_tool') : t('title_add_http_tool')"
     width="472px"
     :confirm-loading="saving"
     @ok="save">
     <a-form class="form-box" labelAlign="left">
-      <a-form-item label="工具封面" :colon="false">
+      <a-form-item :label="t('label_tool_cover')" :colon="false">
         <HttpToolAvatarInput v-model:value="formState.avatar" />
-        <div class="form-item-tip">建议尺寸为100*100px，大小不超过2M</div>
+        <div class="form-item-tip">{{ t('tip_cover_size') }}</div>
       </a-form-item>
     </a-form>
     <a-form class="form-box" labelAlign="left">
-      <a-form-item label="名称" required :colon="false">
-        <a-input v-model:value="formState.name" placeholder="请输入HTTP工具名称，最多20个字" :maxlength="20"/>
+      <a-form-item :label="t('label_name')" required :colon="false">
+        <a-input v-model:value="formState.name" :placeholder="t('ph_input_name')" :maxlength="20"/>
       </a-form-item>
-      <a-form-item label="描述" :colon="false">
+      <a-form-item :label="t('label_description')" :colon="false">
         <a-textarea
           v-model:value="formState.description"
           :auto-size="{ minRows: 2, maxRows: 5 }"
-          placeholder="请输入描述" :maxlength="60"/>
+          :placeholder="t('ph_input_desc')" :maxlength="60"/>
       </a-form-item>
     </a-form>
   </a-modal>
@@ -30,6 +30,9 @@ import {ref, reactive} from 'vue';
 import {message} from 'ant-design-vue';
 import { saveHttpTool } from '@/api/robot/http_tool.js';
 import HttpToolAvatarInput from './http-tool-avatar-input.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-list.components.http-tool-store')
 
 const emit = defineEmits(['ok'])
 
@@ -61,13 +64,13 @@ function save() {
     saving.value = true
     formState.name = String(formState.name || '').trim()
     formState.description = String(formState.description || '').trim()
-    if (!formState.name) throw '请输入名称'
+    if (!formState.name) throw t('msg_input_name')
     let data = {...formState}
     const avatarLink = String(formState.avatar || '')
     if (avatarLink) data.avatar = avatarLink
     saveHttpTool(data).then(() => {
       emit('ok', formState)
-      message.success('已保存')
+      message.success(t('msg_saved'))
       visible.value = false
     }).finally(() => {
       saving.value = false

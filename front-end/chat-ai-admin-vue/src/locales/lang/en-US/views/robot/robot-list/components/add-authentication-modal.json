@@ -1,0 +1,18 @@
+{
+  "title_auth_parameters": "Auth Parameters",
+  "msg_auth_info": "Selected parameters will be automatically filled into tool configuration. Auth parameters will be automatically cleared when exporting or publishing templates.",
+  "btn_add_parameter": "Add Parameter",
+  "ph_input": "Please enter",
+  "label_remark": "Remark",
+  "label_action": "Action",
+  "msg_confirm_delete": "Confirm to delete this field?",
+  "btn_confirm": "Confirm",
+  "btn_cancel": "Cancel",
+  "btn_delete": "Delete",
+  "msg_max_limit": "Maximum 100 items allowed",
+  "msg_fill_row": "Please fill in parameters for row {val}",
+  "msg_add_parameter": "Please add parameters",
+  "btn_save_only": "Save Only",
+  "btn_save_and_add": "Save and Add",
+  "msg_save_success": "Saved successfully"
+}

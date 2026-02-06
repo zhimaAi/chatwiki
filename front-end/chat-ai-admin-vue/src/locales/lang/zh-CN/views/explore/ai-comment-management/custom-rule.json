@@ -1,0 +1,26 @@
+{
+  "btn_add_rule": "添加规则",
+  "search_rule_name_placeholder": "请输入规则名称搜索",
+  "column_rule_name": "规则名",
+  "column_delete_comment": "自动删评",
+  "column_reply_comment": "自动回复评论",
+  "column_elect_comment": "评论精选",
+  "column_task_info": "生效群发文章",
+  "column_switch": "规则启用",
+  "column_create_time": "创建时间",
+  "column_actions": "操作",
+  "action_edit": "编辑",
+  "action_delete": "删除",
+  "action_copy": "复制",
+  "switch_delete_comment": "自动删评",
+  "switch_reply_comment": "自动回复评论",
+  "switch_elect_comment": "评论精选",
+  "switch_rule_enable": "规则启用",
+  "confirm_modal_title": "提示",
+  "confirm_close_switch": "确认关闭{rule_name}中的{switch_name}？",
+  "message_operation_success": "操作成功",
+  "confirm_delete_rule_title": "删除规则",
+  "confirm_delete_rule_content": "确认删除该规则，删除后，使用该规则的群发，会使用默认规则？",
+  "message_delete_success": "删除成功"
+}
+

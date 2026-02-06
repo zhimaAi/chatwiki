@@ -1,31 +1,31 @@
 <template>
   <div>
-    <a-modal class="create-send-modal" v-model:open="open" :title="mode === 'edit' ? '编辑群发' : '创建群发'" :width="720"
+    <a-modal class="create-send-modal" v-model:open="open" :title="mode === 'edit' ? t('modal_title_edit') : t('modal_title_create')" :width="720"
       @ok="onOk" @cancel="onCancel">
       <a-form layout="vertical" ref="sendFormRef" :model="sendForm" :rules="sendFormRules" class="create-send-form">
-        <a-form-item label="群发名称" name="task_name" required>
-          <a-input v-model:value="sendForm.task_name" placeholder="请输入群发名称" />
+        <a-form-item :label="t('field_task_name')" name="task_name" required>
+          <a-input v-model:value="sendForm.task_name" :placeholder="t('placeholder_task_name')" />
         </a-form-item>
 
-        <a-form-item label="群发对象" name="to_user_type">
+        <a-form-item :label="t('field_to_user_type')" name="to_user_type">
           <a-radio-group v-model:value="sendForm.to_user_type">
-            <a-radio :value="0">全部粉丝</a-radio>
+            <a-radio :value="0">{{ t('to_user_all_fans') }}</a-radio>
           </a-radio-group>
         </a-form-item>
 
-        <a-form-item label="群发内容" required>
+        <a-form-item :label="t('field_send_content')" required>
           <a-button type="dashed" style="margin-bottom: 8px" @click="openSelectDraft">
             <template #icon>
               <PlusOutlined />
             </template>
-            选择草稿
+            {{ t('btn_select_draft') }}
           </a-button>
           <div class="draft-preview" v-if="selectedDraft">
             <img v-if="selectedDraft.thumb_url" class="thumb" :src="selectedDraft.thumb_url" />
             <img v-else class="thumb" src="@/assets/img/default-cover.png" />
             <div class="info">
               <div class="title">{{ selectedDraft.title }}</div>
-              <div class="meta">所属分组：{{ selectedDraft.group_name || (getGroupNameProp ?
+              <div class="meta">{{ t('draft_group_label') }}{{ selectedDraft.group_name || (getGroupNameProp ?
                 getGroupNameProp(selectedDraft.group_id) :
                 '') }}</div>
               <div class="digest">{{ selectedDraft.digest }}</div>
@@ -33,33 +33,33 @@
           </div>
         </a-form-item>
 
-        <a-form-item label="选择AI精选评论规则">
-          <a-button type="dashed" @click="openSelectRule">选择规则</a-button>
-          <div class="desc" v-if="selectedRuleId">已选择：{{ selectedRuleName || ('规则ID ' + selectedRuleId) }}</div>
+        <a-form-item :label="t('field_select_ai_rule')">
+          <a-button type="dashed" @click="openSelectRule">{{ t('btn_select_rule') }}</a-button>
+          <div class="desc" v-if="selectedRuleId">{{ t('selected_rule_desc', { name: selectedRuleName || ('ID ' + selectedRuleId) }) }}</div>
         </a-form-item>
 
-        <a-form-item label="开启留言" name="comment_status">
+        <a-form-item :label="t('field_comment_status')" name="comment_status">
           <a-switch v-model:checked="sendForm.comment_status" :checkedValue="1" :un-checkedValue="0" />
         </a-form-item>
 
-        <a-form-item label="群发时间">
+        <a-form-item :label="t('field_send_time')">
           <a-radio-group v-model:value="sendTimeType">
-            <a-radio value="now">立即群发</a-radio>
-            <a-radio value="custom">自定义群发时间</a-radio>
+            <a-radio value="now">{{ t('send_time_now') }}</a-radio>
+            <a-radio value="custom">{{ t('send_time_custom') }}</a-radio>
           </a-radio-group>
           <div style="margin-top: 8px" v-if="sendTimeType === 'custom'">
             <a-date-picker v-model:value="sendCustomTime" show-time style="width: 100%" />
           </div>
         </a-form-item>
 
-        <a-form-item label="是否开启" name="open_status">
+        <a-form-item :label="t('field_open_status')" name="open_status">
           <a-switch v-model:checked="sendForm.open_status" :checkedValue="1" :un-checkedValue="0" />
-          <div class="desc">立即发送默认开启的话，保存后立即发送</div>
+          <div class="desc">{{ t('desc_open_status') }}</div>
         </a-form-item>
       </a-form>
     </a-modal>
     <CommentRuleModal ref="commentRuleModalRef" @updated="onRuleUpdated" @selected="onRuleSelected" />
-    <a-modal v-model:open="selectDraftOpen" title="选择草稿" :width="720" @ok="onConfirmSelectDraft">
+    <a-modal v-model:open="selectDraftOpen" :title="t('modal_select_draft_title')" :width="720" @ok="onConfirmSelectDraft">
       <div class="select-draft-modal">
         <div v-if="selectDraftLoading" class="loading-box"><a-spin /></div>
         <template v-else>
@@ -71,7 +71,7 @@
                 <img v-else class="thumb" src="@/assets/img/default-cover.png" />
                 <div class="info">
                   <div class="title">{{ it.title }}</div>
-                  <div class="meta">所属分组：{{ getGroupNameFn(it.group_id) }}</div>
+                  <div class="meta">{{ t('draft_group_label') }}{{ getGroupNameFn(it.group_id) }}</div>
                   <div class="digest">{{ it.digest }}</div>
                 </div>
               </label>
@@ -96,6 +96,7 @@ import { createBatchSendTask, getOfficialDraftList } from '@/api/robot'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import CommentRuleModal from '@/views/explore/article-group-send/components/comment-rule-modal.vue'
 import { addNoReferrerMeta, removeNoReferrerMeta } from '@/utils/index.js'
+import { useI18n } from '@/hooks/web/useI18n'
 
 const props = defineProps({
   appId: { type: String, default: '' },
@@ -104,20 +105,21 @@ const props = defineProps({
 })
 
 const router = useRouter()
+const { t } = useI18n('views.explore.article-group-send.components.create-send-modal')
 
 const open = ref(false)
 const mode = ref('create')
 const currentTask = ref(null)
 const selectedDraft = ref(null)
 const sendForm = reactive({ task_name: '', to_user_type: 0, comment_status: 1, open_status: 1 })
-const sendFormRules = { task_name: [{ required: true, message: '请输入群发任务名称' }] }
+const sendFormRules = { task_name: [{ required: true, message: t('error_enter_task_name') }] }
 const sendFormRef = ref(null)
 const sendTimeType = ref('now')
 const sendCustomTime = ref(null)
 const getGroupNameProp = props.getGroupName
 const getGroupNameFn = (gid) => {
   if (typeof getGroupNameProp === 'function') return getGroupNameProp(gid)
-  if (gid == 0) return '未分组'
+  if (gid == 0) return t('group_unassigned')
   return ''
 }
 
@@ -157,7 +159,7 @@ const onSelectPageChange = (page, size) => {
 }
 
 const onConfirmSelectDraft = () => {
-  if (!selectDraftId.value) { message.error('请选择草稿'); return }
+  if (!selectDraftId.value) { message.error(t('error_select_draft')) ; return }
   const it = selectDraftList.value.find(d => d.id === selectDraftId.value)
   if (it) {
     selectedDraft.value = it
@@ -227,7 +229,7 @@ const onOk = async () => {
   try {
     await sendFormRef.value?.validate()
   } catch (e) { return }
-  if (!selectedDraft.value) { message.error('未选择草稿'); return }
+  if (!selectedDraft.value) { message.error(t('error_no_draft_selected')) ; return }
   let ts = 0
   if (sendTimeType.value === 'custom' && sendCustomTime.value) ts = Math.floor(sendCustomTime.value.valueOf() / 1000)
   const params = {
@@ -242,7 +244,7 @@ const onOk = async () => {
   if (selectedRuleId.value) params.comment_rule_id = selectedRuleId.value
   if (selectedDraft.value?.id) params.draft_id = selectedDraft.value.id
   if (mode.value === 'edit') {
-    if (!currentTask.value) { message.error('无效任务'); return }
+    if (!currentTask.value) { message.error(t('error_invalid_task')) ; return }
     params.task_id = currentTask.value.id
     await createBatchSendTask(params)
     emit('updated')
@@ -254,16 +256,16 @@ const onOk = async () => {
   // 如果当前页面不是文章群发页面，提示用户去群发管理查看进度
   if (router.currentRoute.value.path !== '/explore/index/article-group-send/group-send') {
     Modal.confirm({
-      title: '群发任务已创建',
-      content: '您可到群发管理中查看群发进度',
-      okText: '去查看',
-      cancelText: '取消',
+      title: t('modal_task_created_title'),
+      content: t('modal_task_created_content'),
+      okText: t('modal_task_created_ok'),
+      cancelText: t('btn_cancel'),
       onOk: () => {
         router.push({ path: '/explore/index/article-group-send/group-send' })
       }
     })
   } else {
-    message.success('群发任务已创建')
+    message.success(t('message_task_created'))
   }
   emit('created')
   open.value = false

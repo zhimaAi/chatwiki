@@ -1,13 +1,13 @@
 <template>
   <div>
-    <a-drawer v-model:open="open" title="发布详情" placement="right" :width="400" :bodyStyle="{ padding: '12px 24px' }">
+    <a-drawer v-model:open="open" :title="t('title_publish_detail')" placement="right" :width="400" :bodyStyle="{ padding: '12px 24px' }">
       <div class="version-detail">
         <div class="version-list" @click="handlePreviewVersion('')" v-if="robotInfo.draft_save_time && robotInfo.draft_save_time != 0">
           <div class="version-header">
-            <div class="version-title">当前最新草稿</div>
+            <div class="version-title">{{ t('label_current_draft') }}</div>
           </div>
           <div class="version-desc flex-center">
-            最近保存于{{ formatTime(robotInfo.draft_save_time, 'MM/DD HH:mm:ss') }}
+            {{ t('label_saved_at') }}{{ formatTime(robotInfo.draft_save_time, 'MM/DD HH:mm:ss') }}
             <div class="version-file-box">
               <a-popover placement="topRight" :overlay-style="{
                 'max-width': '372px'
@@ -68,7 +68,7 @@
 
               <template #overlay>
                 <a-menu>
-                  <a-menu-item :disabled="props.isLockedByOther" @click="setVersion(item)"> 恢复到此版本 </a-menu-item>
+                  <a-menu-item :disabled="props.isLockedByOther" @click="setVersion(item)"> {{ t('btn_restore_version') }} </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -90,6 +90,10 @@ import { EllipsisOutlined } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import { useRobotStore } from '@/stores/modules/robot'
 import { useRoute } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.publish-detail')
+
 const query = useRoute().query
 const open = ref(false)
 const currentIp = ref('')
@@ -129,12 +133,12 @@ const getDetailList = () => {
 
 const setVersion = (item) => {
   Modal.confirm({
-    title: `确定要恢复到v${item.version}版吗`,
+    title: t('msg_confirm_restore_version', { version: item.version }),
     icon: null,
     content: h(
       'div',
       { style: 'color:red;' },
-      '恢复后，将覆盖当前草稿内容。如需要将此版本作为发布版本，需要您手动点击发布'
+      t('msg_restore_warning')
     ),
     onOk() {
       workFlowVersionDetail({
@@ -144,7 +148,7 @@ const setVersion = (item) => {
         emit('setVersion', res.data)
         open.value = false
         if (res.res == 0) {
-          message.success('设置成功')
+          message.success(t('msg_set_success'))
         }
       })
     },

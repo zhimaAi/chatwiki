@@ -61,7 +61,7 @@ func SaveLibrarySearch(c *gin.Context) {
 		common.FmtError(c, err.Error())
 		return
 	}
-	// 准备保存的数据
+	// Data to save
 	saveData := msql.Datas{
 		"user_id":                userId,
 		"temperature":            temperature,
@@ -111,7 +111,7 @@ func GetLibrarySearch(c *gin.Context) {
 		common.FmtError(c, err.Error())
 		return
 	}
-	if len(data) > 0 && len(data[`rrf_weight`]) == 0 { //填充默认值
+	if len(data) > 0 && len(data[`rrf_weight`]) == 0 { // fill default value
 		data[`rrf_weight`] = tool.JsonEncodeNoError(common.GetDefaultRrfWeight(userId))
 	}
 	common.FmtOk(c, data)
@@ -151,7 +151,7 @@ func LibraryAiSummary(c *gin.Context) {
 	if len(prompt) == 0 {
 		prompt = define.PromptLibAiSummary
 	}
-	size = min(500, size) //召回条数提高的500条
+	size = min(500, size) // cap recall size at 500
 	if searchType != define.SearchTypeMixed && searchType != define.SearchTypeVector && searchType != define.SearchTypeFullText && searchType != define.SearchTypeGraph {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
 		return

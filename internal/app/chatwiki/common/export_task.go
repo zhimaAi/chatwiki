@@ -65,7 +65,7 @@ func CreateExportTask(lang string, adminUserId, robotId, source uint, fileName s
 }
 
 func RunSessionExport(lang string, params map[string]any) (string, error) {
-	//获取机器人信息
+	// Get robot info
 	robot, err := msql.Model(`chat_ai_robot`, define.Postgres).
 		Where(`id`, cast.ToString(params[`robot_id`])).Where(`admin_user_id`, cast.ToString(params[`admin_user_id`])).Field(`robot_name`).Find()
 	if err != nil {
@@ -75,7 +75,7 @@ func RunSessionExport(lang string, params map[string]any) (string, error) {
 	if len(robot) == 0 {
 		return ``, errors.New(i18n.Show(lang, `robot_info_not_exist`))
 	}
-	//获取会话信息
+	// Get session info
 	sessionModel := msql.Model(`chat_ai_session`, define.Postgres).Alias(`s`).
 		Join(`chat_ai_dialogue d`, `s.dialogue_id=d.id`, `left`)
 	sessionModel.Where(`s.admin_user_id`, cast.ToString(params[`admin_user_id`]))
@@ -103,7 +103,7 @@ func RunSessionExport(lang string, params map[string]any) (string, error) {
 	if len(sessions) == 0 {
 		return ``, errors.New(i18n.Show(lang, `no_session_records`))
 	}
-	//获取+组装数据
+	// Get and assemble data
 	channels := make(map[string]string)
 	for _, item := range GetChannelList(cast.ToInt(params[`admin_user_id`]), cast.ToUint(params[`robot_id`])) {
 		channels[fmt.Sprintf(`%s_%s`, item.AppType, item.AppId)] = item.AppName
@@ -123,7 +123,7 @@ func RunSessionExport(lang string, params map[string]any) (string, error) {
 		if customer, _ := GetCustomerInfo(session[`openid`], cast.ToInt(params[`admin_user_id`])); len(customer) > 0 {
 			customerName = customer[`name`]
 		}
-		if session[`app_type`] == lib_define.AppWechatKefu { //特殊处理
+		if session[`app_type`] == lib_define.AppWechatKefu { // Special handling
 			session[`openid`], _ = common.GetExternalUserInfo(session[`openid`])
 		}
 		for _, item := range list {
@@ -142,7 +142,7 @@ func RunSessionExport(lang string, params map[string]any) (string, error) {
 			})
 		}
 	}
-	//开始导出
+	// Start export
 	fields := tool.Fields{
 		{Field: `msgid`, Header: i18n.Show(lang, `excel_header_msgid`)},
 		{Field: `openid`, Header: i18n.Show(lang, `excel_header_openid`)},
@@ -183,7 +183,7 @@ func RunLibFileDocExport(lang string, params map[string]any) (string, string, er
 	fileName := ""
 	switch exportType {
 	case define.ExportQALibDocs:
-		// 导出QA文档
+		// Export QA documents
 		libraryInfo, err := GetLibraryInfo(libraryId, adminUserId)
 		if err != nil {
 			logs.Error(err.Error())
@@ -196,7 +196,7 @@ func RunLibFileDocExport(lang string, params map[string]any) (string, string, er
 		id := 0
 		pageSize := 500
 		data := make([]msql.Params, 0)
-		// 查询QA列表
+		// Query QA list
 		for {
 			m := msql.Model("chat_ai_library_file_data", define.Postgres).Alias(`d`).
 				Join(`chat_ai_library_group g`, `d.group_id = g.id`, `left`).
@@ -211,7 +211,7 @@ func RunLibFileDocExport(lang string, params map[string]any) (string, string, er
 			if groupId >= 0 {
 				m.Where(`d.group_id`, cast.ToString(groupId))
 			}
-			// 分页查询
+			// Paginated query
 			list, err := m.Order("d.id ASC").Limit(pageSize).Select()
 			if err != nil {
 				logs.Error(err.Error())

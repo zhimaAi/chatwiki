@@ -58,7 +58,7 @@ type (
 		QuoteLib       any                  `json:"quote_lib,omitempty"`
 		QuoteFile      any                  `json:"quote_file,omitempty"`
 		IsSwitchManual *bool                `json:"is_switch_manual,omitempty"`
-		//功能中心-自动回复:(关键词回复+收到消息回复)
+		// function center - auto reply: (keyword reply + received message reply)
 		ReplyContentList []common.ReplyContent `json:"reply_content_list,omitempty"`
 	}
 	ChatMessagesMetaData struct {
@@ -148,7 +148,7 @@ func ChatMessages(c *gin.Context) {
 		if isSwitchManual := cast.ToBool(message[`is_switch_manual`]); isSwitchManual {
 			res.IsSwitchManual = &isSwitchManual
 		}
-		if len(message[`reply_content_list`]) > 0 { //返回功能中心自动回复内容
+		if len(message[`reply_content_list`]) > 0 { // return function center auto reply content
 			_ = tool.JsonDecodeUseNumber(message[`reply_content_list`], &res.ReplyContentList)
 			for i, item := range res.ReplyContentList {
 				if len(item.ThumbURL) > 0 && !common.IsUrl(item.ThumbURL) {
@@ -199,7 +199,7 @@ func (r *ChatMessagesReq) buildChatRequestParam(c *gin.Context) (*define.ChatReq
 		Robot:       robot,
 		Customer:    customer,
 	}
-	//更新CustomerInfo
+	// update CustomerInfo
 	saveCustomerInfo(c, chatBaseParam)
 	chatBaseParam.Customer, err = common.GetCustomerInfo(r.OpenID, adminUserId)
 	if err != nil {

@@ -1292,7 +1292,8 @@ func (n *CodeRunNode) Running(flow *WorkFlow) (output common.SimpleFields, nextN
 	timeout := time.Duration(n.params.Timeout) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	jsonStr, err := common.RequestCodeRun(ctx, `javaScript`, data)
+
+	jsonStr, err := common.RequestCodeRun(ctx, n.params.Language, data)
 	flow.Logs(`result:%s,err:%v`, jsonStr, err)
 	if err != nil {
 		nextNodeKey = n.params.Exception
@@ -2130,7 +2131,7 @@ func (n *LibraryImport) toImportFile(flow *WorkFlow, token string, libraryInfo m
 	}()
 	var res lib_web.Response
 	err = curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/addLibraryFile`, define.Config.WebService[`port`])).
-		Header(`Token`, token).
+		Header(`Token`, token).Header(`lang`, flow.params.Lang).
 		Param(`library_id`, libraryInfo[`id`]).
 		Param(`group_id`, n.params.LibraryGroupId).
 		PostFile(`library_files`, fileName).ToJSON(&res)
@@ -2159,7 +2160,7 @@ func (n *LibraryImport) toImportFile(flow *WorkFlow, token string, libraryInfo m
 func (n *LibraryImport) toImportQa(lang string, token, question, answer string, images []any, similars []any, qaInfo msql.Params) (msg string, ok bool) {
 	var res lib_web.Response
 	req := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/editParagraph`, define.Config.WebService[`port`])).
-		Header(`Token`, token).
+		Header(`Token`, token).Header(`lang`, lang).
 		Param(`question`, question).
 		Param(`answer`, answer).
 		Param(`library_id`, n.params.LibraryId)
@@ -2194,7 +2195,7 @@ func (n *LibraryImport) toImportQa(lang string, token, question, answer string, 
 func (n *LibraryImport) toUpdateUrl(lang string, token string, urlInfo msql.Params) (msg string, ok bool) {
 	var res lib_web.Response
 	err := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/manualCrawl`, define.Config.WebService[`port`])).
-		Header(`Token`, token).
+		Header(`Token`, token).Header(`lang`, lang).
 		Param(`id`, urlInfo[`id`]).
 		ToJSON(&res)
 	if err != nil {
@@ -2214,7 +2215,7 @@ func (n *LibraryImport) toUpdateUrl(lang string, token string, urlInfo msql.Para
 func (n *LibraryImport) toImportUrl(lang string, token, normalUrl string) (msg string, ok bool) {
 	var res lib_web.Response
 	err := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/addLibraryFile`, define.Config.WebService[`port`])).
-		Header(`Token`, token).
+		Header(`Token`, token).Header(`lang`, lang).
 		Param(`urls`, tool.JsonEncodeNoError([]map[string]string{{`url`: normalUrl}})).
 		Param(`doc_auto_renew_frequency`, `1`).
 		Param(`doc_auto_renew_minute`, `120`).

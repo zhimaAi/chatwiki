@@ -12,17 +12,17 @@
     :closeable="false"
   >
     <div class="login-container">
-      <h2 class="title">欢迎使用ChatWiki</h2>
-      
+      <h2 class="title">{{ t('title_welcome') }}</h2>
+
       <van-form @submit="handleLogin">
         <div class="form-item">
           <svg-icon name="user" class="input-icon" />
           <van-field
             v-model="username"
             type="text"
-            placeholder="请输入账号"
+            :placeholder="t('ph_input_account')"
             class="custom-input"
-            :rules="[{ required: true, message: '请输入账号' }]"
+            :rules="[{ required: true, message: t('msg_input_account') }]"
           />
         </div>
 
@@ -31,28 +31,28 @@
           <van-field
             v-model="password"
             type="password"
-            placeholder="请输入密码"
+            :placeholder="t('ph_input_password')"
             class="custom-input"
-            :rules="[{ required: true, message: '请输入密码' }]"
+            :rules="[{ required: true, message: t('msg_input_password') }]"
           />
         </div>
 
         <div class="form-item">
           <div class="info-box">
-            <div>使用代表同意我们的</div>
-            <div class="info-link" @click="onGoLink('https://www.yuque.com/zhimaxiaoshiwangluo/pggco1/kcs5ogf88ola88gk?source=aHR0cHM6Ly9jbG91ZC5jaGF0d2lraS5jb20vIy9sb2dpbj9jb2RlPS9saWJyYXJ5L2xpc3Q=')">《服务协议》</div>
-            <div>和</div>
-            <div class="info-link" @click="onGoLink('https://www.yuque.com/zhimaxiaoshiwangluo/pggco1/wktycu3clg16pcv6?source=aHR0cHM6Ly9jbG91ZC5jaGF0d2lraS5jb20vIy9sb2dpbj9jb2RlPS9saWJyYXJ5L2xpc3Q=')">《隐私协议》</div>
+            <span>{{ t('msg_agree_terms') }}&nbsp;</span>
+            <span class="info-link" @click="onGoLink('https://www.yuque.com/zhimaxiaoshiwangluo/pggco1/kcs5ogf88ola88gk?source=aHR0cHM6Ly9jbG91ZC5jaGF0d2lraS5jb20vIy9sb2dpbj9jb2RlPS9saWJyYXJ5L2xpc3Q=')">{{ t('label_service_agreement') }}</span>
+            <span>&nbsp;{{ t('label_and') }}&nbsp;</span>
+            <span class="info-link" @click="onGoLink('https://www.yuque.com/zhimaxiaoshiwangluo/pggco1/wktycu3clg16pcv6?source=aHR0cHM6Ly9jbG91ZC5jaGF0d2lraS5jb20vIy9sb2dpbj9jb2RlPS9saWJyYXJ5L2xpc3Q=')">{{ t('label_privacy_agreement') }}</span>
           </div>
         </div>
 
-        <van-button 
+        <van-button
           block
-          type="primary" 
+          type="primary"
           native-type="submit"
           class="login-btn"
         >
-          立即登录
+          {{ t('btn_login') }}
         </van-button>
       </van-form>
     </div>
@@ -63,6 +63,9 @@
 import { ref } from 'vue';
 import { Popup, Button, Field, Form } from 'vant';
 import { useUserStore } from '@/stores/modules/user'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.chat.components.login-modal')
 const userStore = useUserStore()
 
 const showLogin = ref(false);
@@ -146,8 +149,6 @@ defineExpose({
   }
 
   .info-box {
-    display: flex;
-    align-items: center;
     color: #8c8c8c;
     font-size: 12px;
     font-style: normal;

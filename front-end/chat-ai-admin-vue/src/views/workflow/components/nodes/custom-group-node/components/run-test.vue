@@ -11,16 +11,16 @@
     >
 
       <template #title>
-        <div class="modal-title-block">运行测试
+        <div class="modal-title-block">{{ t('btn_run_test') }}
           <div class="run-detail" v-if="resultList.length">
-            <span>总耗时：{{ formatTime(use_mills) }}</span>
-            <span>token消耗：{{ use_token }} Tokens</span>
+            <span>{{ t('label_total_time') }}{{ formatTime(use_mills) }}</span>
+            <span>{{ t('label_token_consumption') }}{{ use_token }} {{ t('unit_tokens') }}</span>
           </div>
         </div>
       </template>
       <div class="flex-content-box">
         <div class="test-model-box">
-          <div class="top-title">开始节点参数</div>
+          <div class="top-title">{{ t('title_start_node_params') }}</div>
           <a-form
             :model="formState"
             ref="formRef"
@@ -31,23 +31,23 @@
             <a-form-item
               v-if="is_need_question"
               name="question"
-              :rules="[{ required: true, message: '请输入question!' }]"
+              :rules="[{ required: true, message: t('msg_input_question') }]"
             >
               <template #label>
                 <a-flex :gap="4">question <a-tag style="margin: 0">string</a-tag> </a-flex>
               </template>
-              <a-input placeholder="请输入" v-model:value="formState.question" />
+              <a-input :placeholder="t('ph_input')" v-model:value="formState.question" />
             </a-form-item>
-            <a-form-item name="openid" :rules="[{ required: true, message: '请输入openid!' }]" v-if="is_need_openid ">
+            <a-form-item name="openid" :rules="[{ required: true, message: t('msg_input_openid') }]" v-if="is_need_openid ">
               <template #label>
                 <a-flex :gap="4">openid <a-tag style="margin: 0">string</a-tag> </a-flex>
               </template>
-              <a-input placeholder="请输入" v-model:value="formState.openid" />
+              <a-input :placeholder="t('ph_input')" v-model:value="formState.openid" />
             </a-form-item>
             <a-form-item
               v-for="item in loop_test_params"
               :key="item.node_key"
-              :rules="[{ required: item.field.required, message: `请输入${item.node_name}` }]"
+              :rules="[{ required: item.field.required, message: t('msg_input_field', { field: item.node_name }) }]"
             >
               <template #label>
                 <a-flex :gap="4"
@@ -56,12 +56,12 @@
                 </a-flex>
               </template>
               <template v-if="item.field.typ == 'string'">
-                <a-input placeholder="请输入" v-model:value="item.field.Vals" />
+                <a-input :placeholder="t('ph_input')" v-model:value="item.field.Vals" />
               </template>
               <template v-if="item.field.typ == 'number'">
                 <a-input-number
                   style="width: 100%"
-                  placeholder="请输入"
+                  :placeholder="t('ph_input')"
                   v-model:value="item.field.Vals"
                 />
               </template>
@@ -69,7 +69,7 @@
                 <div class="input-list-box">
                   <div class="input-list-item" v-for="(input, i) in item.field.Vals" :key="i">
                     <a-form-item-rest
-                      ><a-input placeholder="请输入" v-model:value="input.value"
+                      ><a-input :placeholder="t('ph_input')" v-model:value="input.value"
                     /></a-form-item-rest>
 
                     <CloseCircleOutlined
@@ -79,7 +79,7 @@
                   </div>
                   <div class="add-btn-box">
                     <a-button @click="handleAddItem(item.field.Vals)" block type="dashed"
-                      >添加</a-button
+                      >{{ t('btn_add') }}</a-button
                     >
                   </div>
                 </div>
@@ -88,7 +88,7 @@
           </a-form>
 
           <div class="result-list-box loading-box" v-if="loading">
-            <a-spin v-if="loading" tip="测试结果生成中..." />
+            <a-spin v-if="loading" :tip="t('msg_test_generating')" />
           </div>
 
           <div class="result-list-box" v-if="resultList.length > 0">
@@ -124,14 +124,14 @@
               @click="handleSubmit"
               style="background-color: #00ad3a"
               type="primary"
-              ><CaretRightOutlined />运行测试</a-button
+              ><CaretRightOutlined />{{ t('btn_run_test') }}</a-button
             >
           </div>
         </div>
         <div class="preview-box">
           <template v-if="cuttentItem">
             <div class="preview-title">
-              <div class="title-text">日志详情</div>
+              <div class="title-text">{{ t('title_log_details') }}</div>
               <div class="icon-name-box">
                 <img :src="cuttentItem.node_icon" alt="" />
                 <div class="node-name">{{ cuttentItem.node_name }}</div>
@@ -139,25 +139,25 @@
               <div class="time-tag" v-if="cuttentItem.is_success">{{ cuttentItem.use_time }}ms</div>
             </div>
             <div class="preview-content-block" v-if="currentImageList.length > 0">
-              <div class="title-block">生成图像日志</div>
+              <div class="title-block">{{ t('title_generated_image_logs') }}</div>
               <div class="preview-img-box">
                 <ImageLogs :currentImageList="currentImageList" />
               </div>
             </div>
             <div class="preview-content-block">
-              <div class="title-block">输入<CopyOutlined @click="handleCopy('input')" /></div>
+              <div class="title-block">{{ t('title_input') }}<CopyOutlined @click="handleCopy('input')" /></div>
               <div class="preview-code-box">
                 <vue-json-pretty :data="cuttentItem.input" />
               </div>
             </div>
             <div class="preview-content-block">
-              <div class="title-block">输出<CopyOutlined @click="handleCopy('node_output')" /></div>
+              <div class="title-block">{{ t('title_output') }}<CopyOutlined @click="handleCopy('node_output')" /></div>
               <div class="preview-code-box">
                 <vue-json-pretty :data="cuttentItem.node_output" />
               </div>
             </div>
             <div class="preview-content-block">
-              <div class="title-block">运行日志<CopyOutlined @click="handleCopy('output')" /></div>
+              <div class="title-block">{{ t('title_run_log') }}<CopyOutlined @click="handleCopy('output')" /></div>
               <div class="preview-code-box">
                 <vue-json-pretty :data="cuttentItem.output" />
               </div>
@@ -187,6 +187,9 @@ import { getImageUrl, formatTime } from '../../../util'
 import { message } from 'ant-design-vue'
 import { copyText } from '@/utils/index'
 import ImageLogs from '@/views/workflow/components/image-logs/index.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.custom-group-node.components.run-test')
 const robotStore = useRobotStore()
 
 const isLockedByOther = computed(() => {
@@ -240,7 +243,7 @@ const formState = reactive({
 
 const handleOpenTestModal = async () => {
   if (isLockedByOther.value) {
-    message.warning('当前已有其他用户在编辑中，无法运行测试')
+    message.warning(t('msg_locked_by_other'))
     return
   }
   robotStore.robotInfo.loop_save_canvas_status++ // 触发保存草稿操作
@@ -254,7 +257,7 @@ const handleOpenTestModal = async () => {
   formState.question = localData.question || ''
   formState.openid = localData.openid || ''
   formState.global = localData.global || ''
-  
+
   resultList.value = []
   currentNodeKey.value = ''
   setTimeout(() => {
@@ -337,7 +340,7 @@ const handleSubmit = () => {
       ...postData
     })
       .then((res) => {
-        message.success('测试结果生成完成')
+        message.success(t('msg_test_completed'))
 
         let node_logs = res.data.node_logs || []
         use_token.value = res.data.use_token
@@ -374,7 +377,7 @@ const handleChangeNodeKey = (item) => {
 
 const handleCopy = (key) => {
   copyText(JSON.stringify(cuttentItem.value[key]))
-  message.success('复制成功')
+  message.success(t('msg_copy_success'))
 }
 
 function formatStr(item) {

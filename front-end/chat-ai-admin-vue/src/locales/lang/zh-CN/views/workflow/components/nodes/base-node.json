@@ -1,0 +1,11 @@
+{
+  "btn_delete": "删除",
+  "var_knowledge_base_reference": "知识库引用",
+  "var_ai_reply_content": "AI回复内容",
+  "var_message_content": "消息内容",
+  "var_question_optimization_result": "问题优化结果",
+  "var_tool_generated_content": "工具生成的内容",
+  "err_only_right_anchor": "只允许从右边的锚点连出",
+  "err_group_connection_rule": "分组里面的节点只能连接当前分组里面的节点，分组外面的节点只能连接分组外面的节点",
+  "err_only_left_anchor": "只允许连接左边的锚点"
+}

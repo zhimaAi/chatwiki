@@ -1,0 +1,8 @@
+{
+  "title_privacy_notice": "ChatWiki Privacy Notice",
+  "msg_cookie_description": "We use cookies to improve your browsing experience, provide personalized content, and analyze our traffic. By clicking 'Accept All', you agree to our use of cookies. You can manage your preferences or read our {cookiePolicy} and {privacyPolicy} for more details.",
+  "btn_decline": "Decline",
+  "btn_accept_all": "Accept All",
+  "link_cookie_policy": "Cookie Policy",
+  "link_privacy_policy": "Privacy Policy"
+}

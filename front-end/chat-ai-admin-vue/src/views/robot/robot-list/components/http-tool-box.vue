@@ -6,7 +6,7 @@
     <template v-else>
       <template v-if="!detailTool">
         <div class="list-head">
-          <div class="title">HTTP工具</div>
+          <div class="title">{{ t('title_http_tool') }}</div>
         </div>
         <div v-if="tools.length" class="list-box">
           <div
@@ -26,17 +26,17 @@
             </div>
             <div class="bottom">
               <div class="extra-box">
-                <div class="extra-item" v-if="item.node_count > 0">{{ item.node_count }}个可用工具</div>
-                <div class="extra-item" v-else>暂无可用的工具</div>
+                <div class="extra-item" v-if="item.node_count > 0">{{ item.node_count }}{{ t('label_available_tools') }}</div>
+                <div class="extra-item" v-else>{{ t('label_no_available_tools') }}</div>
               </div>
               <div class="bottom-right">
-                <div class="update-time">{{ item.up_time_text }}更新</div>
+                <div class="update-time">{{ item.up_time_text }}{{ t('label_update') }}</div>
                 <a-dropdown>
                   <a-button @click.stop size="small" :icon="h(EllipsisOutlined)"/>
                   <template #overlay>
                     <a-menu>
-                      <a-menu-item @click.stop="editItem(item)">编辑</a-menu-item>
-                      <a-menu-item @click.stop="delItem(item)"><span class="cFB363F">删除</span></a-menu-item>
+                      <a-menu-item @click.stop="editItem(item)">{{ t('btn_edit') }}</a-menu-item>
+                      <a-menu-item @click.stop="delItem(item)"><span class="cFB363F">{{ t('btn_delete') }}</span></a-menu-item>
                     </a-menu>
                   </template>
                 </a-dropdown>
@@ -46,13 +46,13 @@
         </div>
         <div v-else class="empty-box">
           <img src="@/assets/empty.png"/>
-          <div class="title">暂未添加HTTP工具</div>
-          <a-button @click="showStore" class="btn" type="primary">立即添加</a-button>
+          <div class="title">{{ t('title_no_http_tool') }}</div>
+          <a-button @click="showStore" class="btn" type="primary">{{ t('btn_add_now') }}</a-button>
         </div>
       </template>
       <template v-else>
         <div class="breadcrumb">
-          <a @click="backToList">HTTP工具</a> <span>/</span> <span class="cur">{{ detailTool.name }}</span>
+          <a @click="backToList">{{ t('title_http_tool') }}</a> <span>/</span> <span class="cur">{{ detailTool.name }}</span>
         </div>
         <HttpToolDetail
           :tool="detailTool"
@@ -79,6 +79,9 @@ import AddHttpToolModal from './add-http-tool-modal.vue'
 import HttpToolDetail from './http-tool-detail.vue'
 import { getHttpTools, delHttpTool } from '@/api/robot/http_tool.js'
 import { setDescRef, getTooltipTitle, timeNowGapFormat } from '@/utils/index'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-list.components.http-tool-box')
 
 const storeRef = ref(null)
 const addToolRef = ref(null)
@@ -142,13 +145,13 @@ function showEditToolModal (item) {
 
 function delItem(item) {
   Modal.confirm({
-    title: '删除确认',
-    content: '确认删除该HTTP工具么？删除工具后使用到该工具的工作流可能无法正常运行。确认删除么？',
-    okText: '确定',
-    cancelText: '取消',
+    title: t('btn_delete'),
+    content: t('msg_delete_confirm'),
+    okText: t('btn_confirm'),
+    cancelText: t('btn_cancel'),
     onOk: () => {
       delHttpTool({ id: item.id }).then(() => {
-        message.success('已删除')
+        message.success(t('msg_deleted'))
         if (detailTool.value && detailTool.value.id === item.id) {
           detailTool.value = null
         }

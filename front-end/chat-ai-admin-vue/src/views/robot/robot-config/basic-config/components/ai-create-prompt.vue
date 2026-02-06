@@ -2,13 +2,15 @@
   <div>
     <a-modal
       v-model:open="open"
-      title="AI 生成提示词"
+      :title="t('title_ai_generate_prompt')"
       wrapClassName="no-padding-modal"
       :bodyStyle="{ 'max-height': '600px', 'overflow-y': 'auto' }"
-      :width="746"
+      :width="856"
     >
       <template #footer>
-        <a-button type="primary" :loading="confirmLoading" @click="handleOk">使用该提示</a-button>
+        <a-button type="primary" :loading="confirmLoading" @click="handleOk">
+          {{ t('btn_use_prompt') }}
+        </a-button>
       </template>
       <div class="ai-create-box">
         <div class="input-box">
@@ -17,17 +19,17 @@
             v-model:value="demand"
             size="large"
             auto-size
-            placeholder="请输入AI 生成提示词例如：创建一个电商行业售后客服"
+            :placeholder="t('ph_input_prompt')"
           ></a-textarea>
           <div class="btn-box" :class="{ 'disabed-status': isLoading }" @click="handleCreatePrompt">
             <LoadingOutlined v-if="isLoading" />
             <svg-icon name="ai-mark" />
-            <span v-if="isLoading">生成中...</span>
-            <span v-else>生成</span>
+            <span v-if="isLoading">{{ t('txt_generating') }}</span>
+            <span v-else>{{ t('btn_generate') }}</span>
           </div>
         </div>
         <div class="quick-tags-box">
-          <div class="quick-label">快捷生成：</div>
+          <div class="quick-label">{{ t('label_quick_generate') }}</div>
           <a-tag
             v-for="item in quickData"
             :key="item.title"
@@ -39,7 +41,7 @@
         <div class="ai-list-box">
           <template v-if="isLoading">
             <div class="loading-box">
-              <a-spin tip="正在生成中..."></a-spin>
+              <a-spin :tip="t('tip_generating')"></a-spin>
             </div>
           </template>
           <template v-else>
@@ -52,7 +54,7 @@
                   {{ formState.promptStruct.role.describe }}
                 </div>
               </div>
-              <!-- 任务 -->
+              <!-- {{ t('label_task') }} -->
               <div class="prompt-list">
                 <div class="prompt-header">
                   <div class="prompt-title">{{ formState.promptStruct.task.subject }}</div>
@@ -61,7 +63,7 @@
                   {{ formState.promptStruct.task.describe }}
                 </div>
               </div>
-              <!-- 要求 -->
+              <!-- {{ t('label_requirements') }} -->
               <div class="prompt-list">
                 <div class="prompt-header">
                   <div class="prompt-title">
@@ -72,7 +74,7 @@
                   {{ formState.promptStruct.constraints.describe }}
                 </div>
               </div>
-              <!-- 输出格式 -->
+              <!-- {{ t('label_output_format') }} -->
               <div class="prompt-list">
                 <div class="prompt-header">
                   <div class="prompt-title">{{ formState.promptStruct.output.subject }}</div>
@@ -81,7 +83,7 @@
                   {{ formState.promptStruct.output.describe }}
                 </div>
               </div>
-              <!-- 风格 -->
+              <!-- {{ t('label_style') }} -->
               <div class="prompt-list">
                 <div class="prompt-header">
                   <div class="prompt-title">{{ formState.promptStruct.tone.subject }}</div>
@@ -91,7 +93,7 @@
                 </div>
               </div>
 
-              <!-- 自定义 -->
+              <!-- {{ t('label_custom') }} -->
               <div
                 class="prompt-list"
                 v-for="(item, index) in formState.promptStruct.custom"
@@ -120,6 +122,9 @@ import { message } from 'ant-design-vue'
 import { LoadingOutlined } from '@ant-design/icons-vue'
 import { useRoute } from 'vue-router'
 import { Empty } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.ai-create-prompt')
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE
 const open = ref(false)
 const confirmLoading = ref(false)
@@ -132,19 +137,19 @@ const isLoading = ref(false)
 
 const quickData = [
   {
-    title: '创建一个电商行业售后客服'
+    title: t('quick_ecommerce_after_sales')
   },
   {
-    title: '创建一个英语教育机构官网售前机器人'
+    title: t('quick_english_education_pre_sales')
   }
 ]
 
-const description = ref('在上方输入框输入要求，点击生成提示词')
+const description = ref(t('msg_input_requirement'))
 const show = () => {
   hasData.value = false
   formState.promptStruct = defaultData
   demand.value = ''
-  description.value = '在上方输入框输入要求，点击生成提示词'
+  description.value = t('msg_input_requirement')
   open.value = true
 }
 const hasData = ref(false)
@@ -179,10 +184,10 @@ const handleQuickMark = (title) => {
 }
 const handleCreatePrompt = () => {
   if (!demand.value) {
-    return message.error('请输入AI 生成提示词')
+    return message.error(t('msg_empty_input'))
   }
   if (isLoading.value) {
-    return message.error('正在生成中...')
+    return message.error(t('msg_generating_in_progress'))
   }
   isLoading.value = true
   createPromptByAi({
@@ -203,7 +208,7 @@ const handleCreatePrompt = () => {
 }
 const handleOk = () => {
   if (!hasData.value) {
-    return message.error('请先生成提示词')
+    return message.error(t('msg_prompt_not_generated'))
   }
   emit('handleAiSave', formState.promptStruct)
   open.value = false
@@ -286,6 +291,7 @@ defineExpose({
   display: flex;
   align-items: center;
   margin-top: 12px;
+  gap: 4px;
   .quick-label {
     color: #333;
     font-weight: 500;

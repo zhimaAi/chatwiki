@@ -66,28 +66,28 @@
   >
     <div class="start-node">
       <div class="start-node-options" v-if="formState.type == 'select_time'">
-        <div class="options-title">执行时间</div>
+        <div class="options-title">{{ t('label_execution_time') }}</div>
         <div class="options-list">
           <div class="options-item">
             <div class="option-label" v-if="formState.every_type == 'day'">
-              每天 {{ formState.hour_minute }}
+              {{ t('text_every_day') }} {{ formState.hour_minute }}
             </div>
             <div class="option-label" v-if="formState.every_type == 'week'">
-              每周 {{ week_number_map[formState.week_number] }} {{ formState.hour_minute }}
+              {{ t('text_every_week') }} {{ t(week_number_map[formState.week_number]) }} {{ formState.hour_minute }}
             </div>
             <div class="option-label" v-if="formState.every_type == 'month'">
-              每月
-              <span v-if="formState.month_day">{{ formState.month_day }}号</span>
+              {{ t('text_every_month') }}
+              <span v-if="formState.month_day">{{ formState.month_day }}{{ t('text_day_suffix') }}</span>
               {{ formState.hour_minute }}
             </div>
           </div>
         </div>
       </div>
       <div class="start-node-options" v-else>
-        <div class="options-title">执行时间</div>
+        <div class="options-title">{{ t('label_execution_time') }}</div>
         <div class="options-list">
           <div class="options-item">
-            <div class="option-label">Linux Crontab代码</div>
+            <div class="option-label">{{ t('text_linux_crontab_code') }}</div>
           </div>
         </div>
       </div>
@@ -98,6 +98,10 @@
 <script setup>
 import NodeCommon from '../base-node.vue'
 import { nextTick, onMounted, inject, watch, reactive } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.timing-trigger-node.index')
+
 const resetSize = inject('resetSize')
 const props = defineProps({
   properties: {
@@ -123,13 +127,13 @@ watch(
 )
 
 let week_number_map = {
-  1: '星期一',
-  2: '星期二',
-  3: '星期三',
-  4: '星期四',
-  5: '星期五',
-  6: '星期六',
-  0: '星期日'
+  1: 'text_monday',
+  2: 'text_tuesday',
+  3: 'text_wednesday',
+  4: 'text_thursday',
+  5: 'text_friday',
+  6: 'text_saturday',
+  0: 'text_sunday'
 }
 const formState = reactive({
   type: 'select_time',

@@ -1,0 +1,10 @@
+{
+  "title_rename": "Rename",
+  "action_rename": "Rename",
+  "action_delete": "Delete",
+  "ph_input": "Please enter",
+  "msg_input_new_name": "Please enter a new name",
+  "msg_update_success": "Updated successfully",
+  "title_delete_confirm": "Delete Confirmation",
+  "msg_confirm_delete": "Confirm to delete this record"
+}

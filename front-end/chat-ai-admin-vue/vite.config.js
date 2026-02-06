@@ -117,31 +117,82 @@ export default defineConfig((opt) => {
             return 'assets/[name]-[hash].[ext]'
           },
           // 该选项允许你创建自定义的公共 chunk
-          manualChunks: {
-            // 框架核心
-            'vue-chunks': ['vue', 'vue-router', 'pinia', 'vue-i18n'],
-            // UI组件库
-            'ui-antd': ['ant-design-vue', '@ant-design/icons-vue'],
-            // 图表库
-            'charts': ['echarts'],
-            // 工具库
-            'utils': ['axios', 'dayjs', 'crypto-js', 'qs', 'js-cookie', 'file-saver'],
-            'vue-pdf-embed': ['vue-pdf-embed'],
-            'elkjs': ['elkjs'],
-            'neo4j': [
-              '@neo4j-nvl/base',
-              '@neo4j-nvl/interaction-handlers',
-              '@neo4j-nvl/layout-workers'
-            ],
-            // 编辑器库 - 单独分块！
-            'wange-ditor': ['@wangeditor/editor', '@wangeditor/editor-for-vue'],
-            'editor-cherry': ['cherry-markdown'],
-            'editor-code': [
-              'codemirror',
-              'codemirror-editor-vue3',
-              'markdown-it'
-            ],
-            'other': ['html2canvas', 'v-viewer']
+          manualChunks(id) {
+            // 语言文件按语言自动分离
+            if (id.includes('/src/locales/lang/')) {
+              const langMatch = id.match(/\/src\/locales\/lang\/([a-zA-Z0-9-]+)\//)
+              if (langMatch) {
+                return `lang-${langMatch[1]}`
+              }
+            }
+
+            // 其他第三方库分离
+            if (id.includes('node_modules')) {
+              // 截取 node_modules 后的路径，避免项目名干扰
+              const moduleId = id.split('node_modules/')[1]
+              
+              // Cherry Markdown - 必须在所有包含"vue"的库之前
+              if (moduleId.includes('cherry') || moduleId.includes('Cherry')) {
+                return 'editor-cherry'
+              }
+
+              // 重要：先匹配包含"vue"的具体库，再匹配核心vue（避免误判）
+              // UI组件库 - 包含 vue 关键字，必须在 vue 之前
+              if (moduleId.includes('ant-design-vue') || moduleId.includes('@ant-design')) {
+                return 'ui-antd'
+              }
+              // 编辑器库 - 包含 vue 关键字，必须在 vue 之前
+              if (moduleId.includes('@wangeditor')) {
+                return 'wange-ditor'
+              }
+              if (moduleId.includes('vue-pdf-embed')) {
+                return 'vue-pdf-embed'
+              }
+              if (moduleId.includes('codemirror') || moduleId.includes('markdown-it')) {
+                return 'editor-code'
+              }
+              // Medium Editor
+              if (moduleId.includes('medium-editor')) {
+                return 'medium-editor'
+              }
+              // Emoji Picker
+              if (moduleId.includes('emoji-mart')) {
+                return 'emoji-mart'
+              }
+              // Lodash
+              if (moduleId.includes('lodash')) {
+                return 'lodash'
+              }
+              // LogicFlow
+              if (moduleId.includes('@logicflow')) {
+                return 'logicflow'
+              }
+              // 图表库
+              if (moduleId.includes('echarts')) {
+                return 'charts'
+              }
+              // 工具库
+              if (moduleId.includes('axios') || moduleId.includes('dayjs') || moduleId.includes('crypto-js') ||
+                  moduleId.includes('qs') || moduleId.includes('js-cookie') || moduleId.includes('file-saver')) {
+                return 'utils'
+              }
+              // 布局相关
+              if (moduleId.includes('elkjs')) {
+                return 'elkjs'
+              }
+              // Neo4j相关
+              if (moduleId.includes('@neo4j')) {
+                return 'neo4j'
+              }
+              // 其他
+              if (moduleId.includes('html2canvas') || moduleId.includes('v-viewer')) {
+                return 'other'
+              }
+              // 框架核心 - 放在最后
+              if (moduleId.includes('vue') || moduleId.includes('pinia') || moduleId.includes('vue-router') || moduleId.includes('vue-i18n')) {
+                return 'vue-chunks'
+              }
+            }
           }
         }
       },

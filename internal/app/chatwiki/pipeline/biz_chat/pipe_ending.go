@@ -17,25 +17,25 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// CheckSaveRobotMsg 检查是否需要保存AI消息
+// CheckSaveRobotMsg check if ai message needs to be saved
 func CheckSaveRobotMsg(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if len(out.content) == 0 && len(out.replyContentList) == 0 {
-		return pipeline.PipeStop //跳过llm并且没有其他回复内容,不需要保存AI消息
+		return pipeline.PipeStop // skip llm and no other reply content, no need to save ai message
 	}
 	return pipeline.PipeContinue
 }
 
-// SetMonitorFromLlm 记录llm的监控数据
+// SetMonitorFromLlm record llm monitoring data
 func SetMonitorFromLlm(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
-	if !in.llmStartTime.IsZero() { //未设置llmStartTime的跳过
+	if !in.llmStartTime.IsZero() { // skip if llmStartTime not set
 		in.monitor.LlmCallTime = time.Now().Sub(in.llmStartTime).Milliseconds()
 	}
 	in.monitor.RequestTime, in.monitor.Error = out.requestTime, out.Error
-	out.Error = nil //清空llm的调用错误
+	out.Error = nil // clear llm call error
 	return pipeline.PipeContinue
 }
 
-// OfficeAccountPassiveReply 未认证公众号的消息特殊处理
+// OfficeAccountPassiveReply special handling for unauthenticated office account messages
 func OfficeAccountPassiveReply(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if in.params.AppType == lib_define.AppOfficeAccount && in.params.PassiveId > 0 {
 		common.PassiveReplyLogNotify(in.params.Lang, in.params.PassiveId, in.params.Question, out.content)
@@ -43,7 +43,7 @@ func OfficeAccountPassiveReply(in *ChatInParam, out *ChatOutParam) pipeline.Pipe
 	return pipeline.PipeContinue
 }
 
-// DisposeClientBreak 处理客户端断开逻辑
+// DisposeClientBreak handle client disconnect logic
 func DisposeClientBreak(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if *in.params.IsClose {
 		out.Error = errors.New(`client break`)
@@ -52,14 +52,14 @@ func DisposeClientBreak(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult 
 	return pipeline.PipeContinue
 }
 
-// PushDebugLog 推送渲染Prompt日志
+// PushDebugLog push render prompt log
 func PushDebugLog(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	out.debugLog = append(out.debugLog, map[string]string{`type`: `cur_answer`, `content`: out.content})
 	in.Stream(sse.Event{Event: `debug`, Data: out.debugLog})
 	return pipeline.PipeContinue
 }
 
-// SaveRobotMsg 保存机器人消息
+// SaveRobotMsg save robot message
 func SaveRobotMsg(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	aiMessage := msql.Datas{
 		`admin_user_id`:          in.params.AdminUserId,
@@ -84,7 +84,7 @@ func SaveRobotMsg(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 		aiMessage[`name`] = in.params.Robot[`robot_name`]
 		aiMessage[`avatar`] = in.params.Robot[`robot_avatar`]
 	}
-	if len(out.replyContentList) > 0 { //关键词回复 触发内容
+	if len(out.replyContentList) > 0 { // keyword reply trigger content
 		aiMessage[`reply_content_list`] = tool.JsonEncodeNoError(out.replyContentList)
 	}
 	id, err := msql.Model(`chat_ai_message`, define.Postgres).Insert(aiMessage, `id`)
@@ -99,7 +99,7 @@ func SaveRobotMsg(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	return pipeline.PipeContinue
 }
 
-// SaveRobotChatCache 保存机器人聊天缓存
+// SaveRobotChatCache save robot chat cache
 func SaveRobotChatCache(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if in.saveRobotChatCache {
 		_ = common.SetRobotMessageCache(in.params.Robot[`robot_key`], in.params.Question, cast.ToString(out.aiMsgId), in.params.Robot[`cache_config`])
@@ -107,7 +107,7 @@ func SaveRobotChatCache(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult 
 	return pipeline.PipeContinue
 }
 
-// UpLastChatByAi 更新last_chat
+// UpLastChatByAi update last_chat
 func UpLastChatByAi(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	lastChat := msql.Datas{
 		`last_chat_time`:    out.AiMessage[`create_time`],
@@ -117,13 +117,13 @@ func UpLastChatByAi(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	return pipeline.PipeContinue
 }
 
-// WebsocketNotifyByAi 接待变更通知
+// WebsocketNotifyByAi reception change notification
 func WebsocketNotifyByAi(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	common.ReceiverChangeNotify(in.params.AdminUserId, `ai_message`, out.AiMessage)
 	return pipeline.PipeContinue
 }
 
-// SaveAnswerSource 保存答案来源
+// SaveAnswerSource save answer source
 func SaveAnswerSource(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if len(out.list) > 0 {
 		asm := msql.Model(`chat_ai_answer_source`, define.Postgres)
@@ -152,7 +152,7 @@ func SaveAnswerSource(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	return pipeline.PipeContinue
 }
 
-// AdditionAiMessage 追加机器人消息返回字段
+// AdditionAiMessage append robot message return fields
 func AdditionAiMessage(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	aiMessage := msql.Datas{
 		`prompt_tokens`:     out.chatResp.PromptToken,
@@ -164,11 +164,11 @@ func AdditionAiMessage(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 		aiMessage[key] = val
 	}
 	AdditionQuoteLib(in.params, out.list, &aiMessage) //quote_lib
-	out.AiMessage = common.ToStringMap(aiMessage)     //重新赋值
+	out.AiMessage = common.ToStringMap(aiMessage)     //reassign value
 	return pipeline.PipeContinue
 }
 
-// PushAiMessageFinish 推送机器人消息+完成标志
+// PushAiMessageFinish push robot message and finish flag
 func PushAiMessageFinish(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	in.Stream(sse.Event{Event: `data`, Data: out.AiMessage})
 	in.Stream(sse.Event{Event: `finish`, Data: tool.Time2Int()})

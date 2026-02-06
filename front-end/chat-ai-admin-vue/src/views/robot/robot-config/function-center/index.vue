@@ -1,12 +1,12 @@
 <template>
   <div class="user-model-page">
-    <div class="page-title">功能中心</div>
+    <div class="page-title">{{ t('title_function_center') }}</div>
     <div class="list-wrapper">
       <div class="content-wrapper">
         <a-alert show-icon style="align-items: baseline">
           <template #message>
             <div>
-              查询已经启用的功能，可选择在一级菜单中固定，快捷开启和关闭功能 更多功能可到 <a href="#/explore/index" target="_blank">探索>功能中心</a> 中添加
+              {{ t('msg_function_center_desc') }} <a href="#/explore/index" target="_blank">{{ t('link_explore_function_center') }}</a>{{ t('msg_function_center_desc_suffix') }}
             </div>
           </template>
         </a-alert>
@@ -16,9 +16,9 @@
               <cu-scroll style="padding-right: 16px; flex: 1">
                 <ListEmpty v-if="list.length == 0" size="250" class="empty-box">
                   <div class="empty-content">
-                    <p class="empty-title">暂未添加功能</p>
-                    <p class="empty-desc">更多功能可到 <a href="#/explore/index" target="_blank">探索>功能中心</a> 去添加</p>
-                    <a-button type="primary" @click="handleCreateClick">去添加</a-button>
+                    <p class="empty-title">{{ t('empty_title') }}</p>
+                    <p class="empty-desc">{{ t('empty_desc_prefix') }} <a href="#/explore/index" target="_blank">{{ t('link_explore_function_center') }}</a> {{ t('empty_desc_suffix') }}</p>
+                    <a-button type="primary" @click="handleCreateClick">{{ t('btn_add') }}</a-button>
                   </div>
                 </ListEmpty>
                 <ExploreList v-else :list="list" @switchChange="handleSwitchChange" @fixedMenuChange="handleFixedMenuChange" @clickItem="handleClickItem" />
@@ -36,6 +36,7 @@ import { onMounted, ref, h } from 'vue'
 import { message, Modal  } from 'ant-design-vue'
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
 import {
   getRobotAbilityList,
   saveRobotAbilitySwitchStatus,
@@ -44,14 +45,16 @@ import {
 import ExploreList from './components/explore-list/index.vue'
 import ListEmpty from './components/list-empty.vue'
 
+const { t } = useI18n('views.robot.robot-config.function-center.index')
+
 // 顶部页签暂不使用
 const tabs = ref([
   {
-    title: '功能',
+    title: 'tab_function',
     value: '1'
   },
   {
-    title: '插件',
+    title: 'tab_plugin',
     value: '2'
   }
 ])
@@ -61,8 +64,8 @@ const router = useRouter()
 const list = ref([])
 const updateTabNumber = () => {
   tabs.value = [
-    { title: '功能', value: '1' },
-    { title: '插件', value: '2' }
+    { title: t('tab_function'), value: '1' },
+    { title: t('tab_plugin'), value: '2' }
   ]
 }
 
@@ -85,21 +88,24 @@ const handleSwitchChange = (item, checked) => {
   const newStatus = checked ? '1' : '0'
   // 如果是关闭二次弹窗提示：提示：弹框提示：关闭后，触发了关键词不会再回复指定内容
   if (newStatus == '0') {
-    let tip = '关闭后，触发了关键词不会再回复指定内容'
+    let tip = t('msg_close_keyword_no_reply')
     if (item.ability_type == 'robot_smart_menu') {
-      tip = '关闭后，其他回复智能菜单的规则触发后都不再回复'
+      tip = t('msg_close_smart_menu_no_reply')
     }
     if (item.ability_type == 'robot_auto_reply') {
-      tip = '关闭后，触发了关键词以及收到消息回复都不会再回复指定的内容'
+      tip = t('msg_close_auto_reply_no_content')
+    }
+    if (item.ability_type == 'robot_payment') {
+      tip = t('msg_close_confirm_payment')
     }
     Modal.confirm({
-      title: '确认关闭吗？',
+      title: t('title_confirm_close'),
       icon: h(ExclamationCircleOutlined),
       content: tip,
       onOk: () => {
         saveRobotAbilitySwitchStatus({ robot_id: robotId.value, ability_type: item.ability_type, switch_status: newStatus }).then((res) => {
           if (res && res.res == 0) {
-            message.success('操作成功')
+            message.success(t('msg_operation_success'))
             if (item.robot_config) {
               item.robot_config.switch_status = newStatus
             }
@@ -115,7 +121,7 @@ const handleSwitchChange = (item, checked) => {
   }
   saveRobotAbilitySwitchStatus({ robot_id: robotId.value, ability_type: item.ability_type, switch_status: newStatus }).then((res) => {
     if (res && res.res == 0) {
-      message.success('操作成功')
+      message.success(t('msg_operation_success'))
       if (item.robot_config) {
         item.robot_config.switch_status = newStatus
       }
@@ -128,7 +134,7 @@ const handleFixedMenuChange = (item, checked) => {
   const newStatus = checked ? '1' : '0'
   saveRobotAbilityFixedMenu({ robot_id: robotId.value, ability_type: item.ability_type, fixed_menu: newStatus }).then((res) => {
     if (res && res.res == 0) {
-      message.success('操作成功')
+      message.success(t('msg_operation_success'))
       if (item.robot_config) {
         item.robot_config.fixed_menu = newStatus
       }

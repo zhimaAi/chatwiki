@@ -1,0 +1,8 @@
+{
+  "label_insert_data": "插入数据",
+  "tip_empty_field": "（不填写字段值则为空）",
+  "opt_select_add_data": "选择添加数据",
+  "opt_input_variable": "输入变量",
+  "ph_input_content": "请输入内容，键入\"/\"可以插入变量",
+  "desc_data_example": "内容示例：[{\"field_name\":\"文本\",\"ui_type\":\"Text\",\"value\":\"001\"},{\"field_name\":\"日期\",\"ui_type\":\"DateTime\",\"value\":1769077135214},{\"field_name\":\"数字\",\"ui_type\":\"Number\",\"value\":99},{\"field_name\":\"单选\",\"ui_type\":\"SingleSelect\",\"value\":\"选项1\"},{\"field_name\":\"多选\",\"ui_type\":\"MultiSelect\",\"value\":[\"类别A\",\"类别B\"]},{\"field_name\":\"复选框\",\"ui_type\":\"Checkbox\",\"value\":true}]"
+}

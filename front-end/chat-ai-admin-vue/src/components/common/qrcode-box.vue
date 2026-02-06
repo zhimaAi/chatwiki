@@ -6,11 +6,11 @@
     width="380px"
   >
     <div class="qrcode-box">
-      <div class="title">扫码登录</div>
+      <div class="title">{{ t('title_scan_to_login') }}</div>
       <div class="content">
-        <div class="tip">请使用微信扫描下方二维码登员</div>
+        <div class="tip">{{ t('msg_scan_with_wechat') }}</div>
         <img class="qrcode" src="https://xiaokefu.com.cn/static/home/img/zhima.jpg"/>
-        <div class="desc">二妞码有效期为5分钟，请尽快扫描</div>
+        <div class="desc">{{ t('msg_qrcode_valid') }}</div>
       </div>
     </div>
   </a-modal>
@@ -18,6 +18,9 @@
 
 <script setup>
 import {ref} from 'vue'
+import {useI18n} from '@/hooks/web/useI18n'
+
+const {t} = useI18n('components.common.qrcode-box')
 
 const open = ref(false)
 

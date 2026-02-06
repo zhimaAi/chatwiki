@@ -18,8 +18,12 @@
 <script setup>
 import { ref, h, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
 import SvgIcon from '@/components/svg-icon/index.vue'
 import { UserOutlined } from '@ant-design/icons-vue'
+
+const { t } = useI18n('views.database.database-detail.components.left-menus')
+
 const emit = defineEmits(['changeMenu'])
 const route = useRoute()
 const query = route.query
@@ -38,9 +42,9 @@ const items = ref([
           class: 'menu-icon'
         }),
       ]),
-    label: '字段管理',
+    label: t('menu_field_manage'),
 
-    title: '字段管理',
+    title: t('menu_field_manage'),
     path: '/database/details/field-manage'
   },
   {
@@ -53,8 +57,8 @@ const items = ref([
           class: 'menu-icon'
         }),
       ]),
-    label: '数据管理',
-    title: '数据管理',
+    label: t('menu_database_manage'),
+    title: t('menu_database_manage'),
     path: '/database/details/database-manage'
   },
   // {

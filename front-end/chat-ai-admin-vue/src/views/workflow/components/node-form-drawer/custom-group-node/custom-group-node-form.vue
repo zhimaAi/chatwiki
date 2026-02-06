@@ -4,9 +4,17 @@
       <NodeFormHeader
         :title="node.node_name"
         :iconName="node.node_icon_name"
-        desc="用于通过设定循环次数和逻辑，重复执行一系列任务"
+        :desc="t('desc_custom_group')"
         @close="handleClose"
       >
+        <template #runBtn>
+          <a-tooltip>
+            <template #title>{{ t('tooltip_run_test') }}</template>
+            <div class="action-btn" @click="handleOpenTestModal">
+              <CaretRightOutlined style="color: rgb(0, 173, 58)" />
+            </div>
+          </a-tooltip>
+        </template>
       </NodeFormHeader>
     </template>
     <div class="problem-optimization-form">
@@ -15,22 +23,20 @@
           <div class="gray-block">
             <div class="gray-block-title">
               <img src="@/assets/svg/loop-icon.svg" alt="" />
-              循环设置
+              {{ t('label_loop_settings') }}
               <a-tooltip>
-                <template #title
-                  >如果引用数组，循环次数为数组的长度；如果指定次数，循环次数为指定的次数；</template
-                >
+                <template #title>{{ t('tip_loop_settings') }}</template>
                 <QuestionCircleOutlined />
               </a-tooltip>
             </div>
             <div class="flex-form-item">
-              <div class="form-label">循环类型</div>
+              <div class="form-label">{{ t('label_loop_type') }}</div>
               <a-select v-model:value="formState.loop_type" style="width: 170px">
-                <a-select-option value="array">使用数组循环</a-select-option>
-                <a-select-option value="number">指定循环次数</a-select-option>
+                <a-select-option value="array">{{ t('label_use_array') }}</a-select-option>
+                <a-select-option value="number">{{ t('label_specify_count') }}</a-select-option>
               </a-select>
               <a-input-number
-                placeholder="请输入"
+                :placeholder="t('ph_input')"
                 v-if="formState.loop_type == 'number'"
                 style="flex: 1"
                 v-model:value="formState.loop_number"
@@ -42,17 +48,17 @@
           <div class="gray-block" v-if="formState.loop_type == 'array'">
             <div class="gray-block-title">
               <img src="@/assets/svg/loop-2.svg" alt="" />
-              循环数组
+              {{ t('label_loop_array') }}
               <a-tooltip>
-                <template #title>仅支持引用数组，循环次数为数组的长度</template>
+                <template #title>{{ t('tip_loop_array') }}</template>
                 <QuestionCircleOutlined />
               </a-tooltip>
             </div>
             <div class="output-box">
               <div class="output-block">
-                <div class="output-item">参数Key</div>
-                <div class="output-item">类型</div>
-                <div class="output-item" style="flex: 1">参数值</div>
+                <div class="output-item">{{ t('label_param_key') }}</div>
+                <div class="output-item">{{ t('label_type') }}</div>
+                <div class="output-item" style="flex: 1">{{ t('label_param_value') }}</div>
               </div>
               <div class="array-form-box">
                 <div
@@ -65,7 +71,7 @@
                       <a-input
                         style="width: 25%"
                         v-model:value="item.key"
-                        placeholder="请输入"
+                        :placeholder="t('ph_input')"
                       ></a-input>
                       <a-form-item-rest>
                         <a-input
@@ -83,7 +89,7 @@
                           :allowClear="false"
                           :displayRender="({ labels }) => labels.join('/')"
                           :field-names="{ children: 'children' }"
-                          placeholder="请选择"
+                          :placeholder="t('ph_select')"
                         />
                       </a-form-item-rest>
                       <div class="btn-hover-wrap" v-if="false" @click="onDelLoopArrays(index)">
@@ -98,7 +104,7 @@
                   :icon="h(PlusOutlined)"
                   block
                   type="dashed"
-                  >添加参数</a-button
+                  >{{ t('btn_add_param') }}</a-button
                 >
               </div>
             </div>
@@ -107,18 +113,18 @@
           <div class="gray-block">
             <div class="gray-block-title">
               <img src="@/assets/svg/loop-3.svg" alt="" />
-              中间变量
+              {{ t('label_intermediate_variable') }}
               <a-tooltip>
-                <template #title>变量可在多次循环中实现共享，可用于在多次循环中传递变量</template>
+                <template #title>{{ t('tip_intermediate_variable') }}</template>
                 <QuestionCircleOutlined />
               </a-tooltip>
             </div>
 
             <div class="output-box">
               <div class="output-block">
-                <div class="output-item">参数Key</div>
-                <div class="output-item" style="margin-left: 4px;">类型</div>
-                <div class="output-item" style="flex: 1">参数值</div>
+                <div class="output-item">{{ t('label_param_key') }}</div>
+                <div class="output-item" style="margin-left: 4px;">{{ t('label_type') }}</div>
+                <div class="output-item" style="flex: 1">{{ t('label_param_value') }}</div>
               </div>
               <div class="array-form-box">
                 <div
@@ -131,10 +137,10 @@
                       <a-input
                         style="width: 25%"
                         v-model:value="item.key"
-                        placeholder="请输入"
+                        :placeholder="t('ph_input')"
                       ></a-input>
                       <a-form-item-rest>
-                        <a-select v-model:value="item.typ" placeholder="请选择" style="width: 25%">
+                        <a-select v-model:value="item.typ" :placeholder="t('ph_select')" style="width: 25%">
                           <a-select-option
                             v-for="op in typOptions"
                             :value="op.value"
@@ -153,7 +159,7 @@
                             @change="
                               (text, selectedList) => changeValue(text, selectedList, item, index)
                             "
-                            placeholder="请输入变量值，键入“/”插入变量"
+                            :placeholder="t('ph_input_variable_value')"
                           >
                             <template #option="{ label, payload }">
                               <div class="field-list-item">
@@ -175,7 +181,7 @@
                   :icon="h(PlusOutlined)"
                   block
                   type="dashed"
-                  >添加参数</a-button
+                  >{{ t('btn_add_param') }}</a-button
                 >
               </div>
             </div>
@@ -184,18 +190,18 @@
           <div class="gray-block">
             <div class="gray-block-title">
               <img src="@/assets/svg/output.svg" alt="" />
-              输出
+              {{ t('label_output') }}
               <a-tooltip>
-                <template #title>循环完成后输出的内容，仅支持引用循环体中节点的输出变量</template>
+                <template #title>{{ t('tip_output') }}</template>
                 <QuestionCircleOutlined />
               </a-tooltip>
             </div>
 
             <div class="output-box">
               <div class="output-block">
-                <div class="output-item">参数Key</div>
-                <div class="output-item" style="margin-left: 4px;">类型</div>
-                <div class="output-item" style="width: 38%">参数值</div>
+                <div class="output-item">{{ t('label_param_key') }}</div>
+                <div class="output-item" style="margin-left: 4px;">{{ t('label_type') }}</div>
+                <div class="output-item" style="width: 38%">{{ t('label_param_value') }}</div>
               </div>
               <div class="array-form-box">
                 <div
@@ -208,7 +214,7 @@
                       <a-input
                         style="width: 25%"
                         v-model:value="item.key"
-                        placeholder="请输入"
+                        :placeholder="t('ph_input')"
                       ></a-input>
                       <a-form-item-rest>
                         <a-input
@@ -226,7 +232,7 @@
                           :allowClear="false"
                           :displayRender="({ labels }) => labels.join('/')"
                           :field-names="{ children: 'children' }"
-                          placeholder="请选择"
+                          :placeholder="t('ph_select')"
                         />
                       </a-form-item-rest>
                       <div class="btn-hover-wrap" @click="onDelOutputArrays(index)">
@@ -240,7 +246,7 @@
                   :icon="h(PlusOutlined)"
                   block
                   type="dashed"
-                  >添加参数</a-button
+                  >{{ t('btn_add_param') }}</a-button
                 >
               </div>
             </div>
@@ -248,20 +254,25 @@
         </a-form>
       </div>
     </div>
+    <RunTest :loop_node_key="nodeId" ref="runTestRef" />
   </NodeFormLayout>
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
 import { ref, reactive, watch, h, onMounted, inject, computed } from 'vue'
 import {
   CloseCircleOutlined,
   PlusOutlined,
-  PlusCircleOutlined,
-  QuestionCircleOutlined
+  QuestionCircleOutlined,
+  CaretRightOutlined
 } from '@ant-design/icons-vue'
 import AtInput from '../../at-input/at-input.vue'
+import RunTest from '../../nodes/custom-group-node/components/run-test.vue'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.custom-group-node.custom-group-node-form')
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({
@@ -286,8 +297,13 @@ const variableOptions = ref([])
 const loopArraysOptions = ref([])
 
 const outputArrarysOptions = ref([])
-
+const runTestRef = ref(null)
 const atInputRefs = reactive({})
+
+const handleOpenTestModal = () => {
+  runTestRef.value.open()
+}
+
 const setAtInputRef = (el, name, index) => {
   if (el) {
     let key = `at_input_${name}_${index}`
@@ -660,6 +676,22 @@ onMounted(() => {
   flex: 1;
   overflow: hidden;
 }
+
+.action-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease-in;
+  margin-left: 8px;
+  &:hover {
+    background: #e4e6eb;
+  }
+}
+
 .output-box {
   .output-block {
     display: flex;

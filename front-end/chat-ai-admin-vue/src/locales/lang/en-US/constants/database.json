@@ -1,0 +1,23 @@
+{
+  "label_equal": "Equal",
+  "label_not_equal": "Not Equal",
+  "label_is": "Is",
+  "label_is_not": "Is Not",
+  "label_greater_than": "Greater Than",
+  "label_less_than": "Less Than",
+  "label_greater_than_or_equal": "Greater Than or Equal",
+  "label_less_than_or_equal": "Less Than or Equal",
+  "label_between": "Between",
+  "label_contain": "Contains",
+  "label_not_contain": "Does Not Contain",
+  "label_empty": "Empty",
+  "label_not_empty": "Not Empty",
+  "label_today": "Today",
+  "label_yesterday": "Yesterday",
+  "just_now": "Just Now",
+  "seconds_ago": "Seconds Ago",
+  "minutes_ago": "Minutes Ago",
+  "hours_ago": "Hours Ago",
+  "days_ago": "Days Ago",
+  "months_ago": "Months Ago"
+}

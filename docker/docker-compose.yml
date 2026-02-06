@@ -203,7 +203,7 @@ services:
       TZ: ${TIMEZONE}
 
   chatwiki_code_run:
-    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/ubuntu:22.04
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/python:3.12.12-trixie
     container_name: chatwiki_code_run
     networks:
       - chatwiki_network
@@ -215,6 +215,18 @@ services:
     environment:
       TZ: ${TIMEZONE}
 
+  chatwiki_gen_thumbnail:
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/ubuntu:22.04
+    container_name: chatwiki_gen_thumbnail
+    networks:
+      - chatwiki_network
+    volumes:
+      - ../:/var/www/chatwiki/
+    working_dir: /var/www/chatwiki
+    command: ./build/gen_thumbnail --IsDev=false
+    restart: always
+    environment:
+      TZ: ${TIMEZONE}
   chatwiki_plugin:
     image: registry.cn-hangzhou.aliyuncs.com/chatwiki/plugin:1.0
     container_name: chatwiki_plugin

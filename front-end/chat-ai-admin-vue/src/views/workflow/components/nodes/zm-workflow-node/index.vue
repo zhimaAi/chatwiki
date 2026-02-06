@@ -78,7 +78,7 @@
   >
     <div class="start-node">
       <div class="start-node-options">
-        <div class="options-title">输入参数</div>
+        <div class="options-title">{{ t('label_input_params') }}</div>
         <div class="options-list" style="max-height: 82px;overflow: hidden;">
           <div
             class="options-item"
@@ -92,10 +92,10 @@
         </div>
       </div>
       <div class="start-node-options">
-        <div class="options-title">异常处理</div>
+        <div class="options-title">{{ t('label_exception_handling') }}</div>
         <div class="options-list">
           <div class="options-item">
-            <div class="option-label">运行代码报错时执行该分支</div>
+            <div class="option-label">{{ t('msg_error_handling') }}</div>
           </div>
         </div>
       </div>
@@ -107,6 +107,7 @@
 import {jsonDecode} from '@/utils/index'
 import NodeCommon from '../base-node.vue'
 import {getRobotStartNode} from "@/api/robot/index.js";
+import { useI18n } from '@/hooks/web/useI18n'
 
 export default {
   name: 'ZmWorkflowNode',
@@ -114,6 +115,10 @@ export default {
     NodeCommon,
   },
   inject: ['getNode', 'getGraph', 'resetSize', 'setData'],
+  setup() {
+    const { t } = useI18n('views.workflow.components.nodes.zm-workflow-node.index')
+    return { t }
+  },
   props: {
     properties: {
       type: Object,

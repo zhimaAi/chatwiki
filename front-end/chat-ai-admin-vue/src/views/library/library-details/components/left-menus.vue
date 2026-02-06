@@ -8,9 +8,9 @@
         :key="item.key"
       >
         <a-menu-item :icon="item.icon" :path="item.path" :key="item.key" v-if="!item.hidden">
-          {{item.label}}
-          <span v-if="item.syncStatus == 2" class="sync-tag run">同步中</span>
-          <span v-else-if="item.syncStatus == 3" class="sync-tag fail">同步失败</span>
+          {{ item.key === 'related-robots' ? item.label : t(item.label)}}
+          <span v-if="item.syncStatus == 2" class="sync-tag run">{{t('msg_syncing')}}</span>
+          <span v-else-if="item.syncStatus == 3" class="sync-tag fail">{{t('msg_sync_failed')}}</span>
         </a-menu-item>
       </router-link>
     </a-menu>
@@ -23,6 +23,9 @@ import { useRoute } from 'vue-router'
 import SvgIcon from '@/components/svg-icon/index.vue'
 import { useUserStore } from '@/stores/modules/user'
 import { useLibraryStore } from '@/stores/modules/library'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.library-details.components.left-menus')
 
 const libraryStore = useLibraryStore()
 
@@ -37,6 +40,11 @@ const query = route.query
 
 const robot_nums = computed(() => {
   return userStore.getRobotNums
+})
+
+const relatedRobotsLabel = computed(() => {
+  const baseLabel = t('label_related_robots')
+  return robot_nums.value > 0 ? `${baseLabel} (${robot_nums.value})` : baseLabel
 })
 
 const selectedKeys = computed(() => {
@@ -64,8 +72,8 @@ const menus = computed(() => {
             class: 'menu-icon-active'
           })
         ]),
-      label: libraryStore.type == 2 ? '知识管理' : '知识库文档' ,
-      title: '知识库文档',
+      label: libraryStore.type == 2 ? 'label_knowledge_management' : 'label_knowledge_document',
+      title: 'title_knowledge_document',
       path: '/library/details/knowledge-document',
       syncStatus: Number(librarySyncStatus.value)
     },
@@ -84,8 +92,8 @@ const menus = computed(() => {
             class: 'menu-icon-active'
           })
         ]),
-      label: '知识图谱',
-      title: '知识图谱',
+      label: 'label_knowledge_graph',
+      title: 'title_knowledge_graph',
       path: '/library/details/knowledge-graph'
     },
     {
@@ -102,8 +110,8 @@ const menus = computed(() => {
             class: 'menu-icon-active'
           })
         ]),
-      label: '精选',
-      title: '精选',
+      label: 'label_featured',
+      title: 'title_featured',
       path: '/library/details/categary-manage'
     },
     {
@@ -120,8 +128,8 @@ const menus = computed(() => {
             class: 'menu-icon-active'
           })
         ]),
-      label: '召回测试',
-      title: '召回测试',
+      label: 'label_recall_testing',
+      title: 'title_recall_testing',
       path: '/library/details/recall-testing'
     },
     {
@@ -138,8 +146,8 @@ const menus = computed(() => {
             class: 'menu-icon-active'
           })
         ]),
-      label: '知识库配置',
-      title: '知识库配置',
+      label: 'label_knowledge_config',
+      title: 'title_knowledge_config',
       path: '/library/details/knowledge-config'
     },
     {
@@ -156,7 +164,7 @@ const menus = computed(() => {
             class: 'menu-icon-active'
           })
         ]),
-      label: `关联机器人${robot_nums.value > 0 ? ` (${robot_nums.value})` : ''}`,
+      label: relatedRobotsLabel.value,
       path: '/library/details/related-robots'
     }
   ]
@@ -175,8 +183,8 @@ const menus = computed(() => {
             class: 'menu-icon-active'
           })
         ]),
-      label: '导入记录',
-      title: '导入记录',
+      label: 'label_import_record',
+      title: 'title_import_record',
       path: '/library/details/import-record'
     })
     lists.push({
@@ -193,8 +201,8 @@ const menus = computed(() => {
             class: 'menu-icon-active'
           })
         ]),
-      label: '导出记录',
-      title: '导出记录',
+      label: 'label_export_record',
+      title: 'title_export_record',
       path: '/library/details/export-record'
     })
   }else{
@@ -212,8 +220,8 @@ const menus = computed(() => {
             class: 'menu-icon-active'
           })
         ]),
-      label: '回收站',
-      title: '回收站',
+      label: 'label_recycle_bin',
+      title: 'title_recycle_bin',
       path: '/library/details/recycle-bin-record'
     })
   }

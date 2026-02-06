@@ -100,7 +100,7 @@
         <div class="field-list-col field-value-col">
           <a-select v-model:value="item.is_asc" style="width: 100%" @change="changeValue">
             <a-select-option :value="opt.value" v-for="opt in operatorOptions" :key="opt.key">
-              {{ opt.label }}
+              {{ t(opt.label) }}
             </a-select-option>
           </a-select>
         </div>
@@ -113,16 +113,16 @@
     </div>
 
     <div class="add-btn-box">
-      <a-tooltip title="请先选择数据库" style="width: 100%" v-if="disabled">
+      <a-tooltip :title="t('ph_select_database_first')" style="width: 100%" v-if="disabled">
         <span>
           <a-button class="add-btn" type="dashed" disabled block>
-            <PlusOutlined /> 添加排序字段
+            <PlusOutlined /> {{ t('btn_add_sort_field') }}
           </a-button>
         </span>
       </a-tooltip>
 
       <a-button class="add-btn" type="dashed" block @click="handleAddField" v-else>
-        <PlusOutlined /> 添加排序字段
+        <PlusOutlined /> {{ t('btn_add_sort_field') }}
       </a-button>
     </div>
 
@@ -134,6 +134,9 @@
 import { ref, watch } from 'vue'
 import { PlusOutlined, HolderOutlined } from '@ant-design/icons-vue'
 import FieldSelectAlert from './field-select-alert.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.feishu-table.sort-selector.index')
 
 const emit = defineEmits(['change'])
 
@@ -161,8 +164,8 @@ const props = defineProps({
 })
 
 const operatorOptions = [
-  { label: '升序', value: 1, key: 'asc' },
-  { label: '降序', value: 0, key: 'desc' }
+  { label: 'label_asc', value: 1, key: 'asc' },
+  { label: 'label_desc', value: 0, key: 'desc' }
 ]
 
 const fieldSelectAlertRef = ref()

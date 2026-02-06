@@ -58,7 +58,7 @@
 </style>
 
 <template>
-    <a-modal width="746px" v-model:open="show" title="聊天模式设置" @ok="handleSave">
+    <a-modal width="746px" v-model:open="show" :title="t('title_chat_mode_settings')" @ok="handleSave">
         <a-radio-group class="direct-box" v-model:value="chat_typeValue">
             <a-radio
             class="direct-item"
@@ -71,10 +71,10 @@
             <div class="direct-desc">{{ item.direct_desc }}</div>
             <div class="qa" v-show="item.isQaDirectReply && chat_typeValue == item.direct_id">
                 <div class="prompt-form-item-label">
-                    <span class="qa-title">命中问答知识时直接回复答案</span>
+                    <span class="qa-title">{{ t('label_reply_directly_when_qa_matched') }}</span>
                     <a-tooltip>
-                        <template #title v-if="item.chat_type == '1'">仅知识库模式下，检索出来的score排名最高的分段为QA模式，且score超过指定阈值是，直接回复分段的答案，不经过大语言模型（LLM）生成回复。</template>
-                        <template #title v-else-if="item.chat_type == '3'">混合模式下，检索出来的score排名最高的分段为QA模式，且score超过指定阈值是，直接回复分段的答案，不经过大语言模型（LLM）生成回复。</template>
+                        <template #title v-if="item.chat_type == '1'">{{ t('tooltip_library_mode_qa_direct_reply') }}</template>
+                        <template #title v-else-if="item.chat_type == '3'">{{ t('tooltip_mixture_mode_qa_direct_reply') }}</template>
                         <QuestionCircleOutlined class="question-icon" />
                     </a-tooltip>
                     <div class="direct-switch">
@@ -95,7 +95,7 @@
             </div>
 
             <div class="similarity" v-show="item.isQaDirectReply && chat_typeValue == item.direct_id">
-                <span>相似度超过</span>
+                <span>{{ t('label_similarity_exceeds') }}</span>
                 <div class="number-input-box">
                     <a-input-number
                     v-if="item.chat_type == '1'"
@@ -114,7 +114,7 @@
                     :step="0.01"
                     />
                 </div>
-                <span>时直接回复答案</span>
+                <span>{{ t('label_reply_directly_when_exceeds') }}</span>
             </div>
 
             </a-radio>
@@ -125,6 +125,9 @@
 <script setup>
 import { ref, reactive, toRaw, onMounted, watch } from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.chat-mode.chat-edit-alert')
 
 const emit = defineEmits(['save'])
 
@@ -133,9 +136,9 @@ const chat_typeValue = ref(1)
 const directStateData = () => ([
   {
     direct_id: 1,
-    direct_title: '仅知识库模式',
+    direct_title: t('title_library_mode'),
     direct_desc:
-      '用户提问时,从知识库检索文档,大语言模型(LLM)根据检索出来的文档分段进行回复。如果没有符合的分段，则不由LLM回复，直接回复未知问题提示语。',
+      t('desc_library_mode'),
     chat_type: '1',
     library_qa_direct_reply_score: '0.900',
     library_qa_direct_reply_switch: 0,
@@ -143,8 +146,8 @@ const directStateData = () => ([
   },
   {
     direct_id: 3,
-    direct_title: '混合模式',
-    direct_desc: '用户提问时,从知识库检索文档,大语言模型(LLM)根据检索出来的文档分段进行回复。如索果没有符合的分段,则由大语言模型自行组织回复。',
+    direct_title: t('title_mixture_mode'),
+    direct_desc: t('desc_mixture_mode'),
     chat_type: '3',
     mixture_qa_direct_reply_score: '0.900',
     mixture_qa_direct_reply_switch: 0,
@@ -152,8 +155,8 @@ const directStateData = () => ([
   },
   {
     direct_id: 2,
-    direct_title: '直连模式',
-    direct_desc: '用户提问时，直接由LLM生成答案，不从关联知识库中检索。',
+    direct_title: t('title_direct_mode'),
+    direct_desc: t('desc_direct_mode'),
     chat_type: '2',
     isQaDirectReply: false
   }

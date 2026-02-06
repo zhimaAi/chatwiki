@@ -1,0 +1,9 @@
+{
+  "label_table_name": "Table Name",
+  "ph_input_content": "Please enter content, type \"/\" to insert variable",
+  "desc_table_name": "Table name; leading and trailing spaces will be removed by default, cannot contain special characters like / \\ ? * : [ ]\"; 1 character ~ 100 characters",
+  "label_view_name": "Table View Name",
+  "desc_view_name": "Table view name; leading and trailing spaces will be removed by default, cannot contain [ ] characters",
+  "label_initial_fields": "Initial Fields of Table",
+  "desc_initial_fields": "If table view name is passed, initial fields of table must be passed. Example: [{\"field_name\":\"Index Field\",\"type\":1},{\"field_name\":\"Single Select\",\"type\":3,\"ui_type\":\"SingleSelect\",\"property\":{\"options\":[{\"name\":\"Enabled\"},{\"name\":\"Disabled\"}]}}]"
+}

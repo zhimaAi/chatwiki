@@ -6,6 +6,9 @@
 <script setup>
 import * as echarts from 'echarts'
 import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.statistical-analysis.components.hit-line-charts')
 
 const props = defineProps({
   xDataArray: {
@@ -21,7 +24,7 @@ const props = defineProps({
     default: function () {
       return [
         {
-          name: '日活用户数（人）',
+          name: 'label_daily_active_users',
           type: 'line',
           showSymbol: false,
           symbol: 'circle', // 标记的图形
@@ -89,13 +92,14 @@ const myEchartData = () => {
         let tip = params[0].axisValue + '<br>'
         params.forEach((item) => {
           let value = item.value
-          if (item.seriesName === '命中率') {
+          let seriesName = item.seriesName.startsWith('label_') || item.seriesName.startsWith('legend_') ? t(item.seriesName) : item.seriesName
+          if (seriesName === t('legend_hit_rate')) {
             value += '%'
           }
           tip += `
               <span style="display:inline-block;margin-right:5px;border-radius:10px;
               width:9px;height:9px;background-color:${item.color};"></span>
-              ${item.seriesName}: ${value}<br>
+              ${seriesName}: ${value}<br>
             `
         })
         return tip
@@ -109,7 +113,7 @@ const myEchartData = () => {
       bottom: '10%'
     },
     legend: {
-      data: ['消息总数', '命中消息', '未命中消息', '命中率'],
+      data: [t('legend_total_messages'), t('legend_hit_messages'), t('legend_miss_messages'), t('legend_hit_rate')],
       bottom: 0
     },
     xAxis: {
@@ -119,24 +123,29 @@ const myEchartData = () => {
     yAxis: [
       {
         type: 'value',
-        name: '数量（次）'
+        name: t('yaxis_label_count')
       },
       {
         type: 'value',
-        name: '百分比（%）',
+        name: t('yaxis_label_percentage'),
         axisLabel: {
           formatter: '{value}%'
         }
       }
     ],
     series: props.yDataArray.map((series, index) => {
-      if (series.name === '命中率') {
+      const translatedName = series.name.startsWith('label_') || series.name.startsWith('legend_') ? t(series.name) : series.name
+      if (translatedName === t('legend_hit_rate')) {
         return {
           ...series,
+          name: translatedName,
           yAxisIndex: 1
         }
       }
-      return series
+      return {
+        ...series,
+        name: translatedName
+      }
     })
   }
   myEchart.setOption(option, { notMerge: true })

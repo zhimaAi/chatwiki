@@ -1,0 +1,18 @@
+{
+  "modal_title": "导入数据",
+  "alert_support": "支持通过Excel或者json文件导入数据。",
+  "link_excel_template": "excel模板",
+  "link_json_template": "json模板",
+  "alert_instruction": "导入时，如果d为空，则新建数据。如果id有值，则更新d对应的数据。id通过导出数据获取。单次导入上限1万条数据。",
+  "upload_text": "点击或将文件拖拽到这里上传",
+  "upload_hint": "仅支持：json.xlsx.csv文件，请注意必填项",
+  "progress_tip": "数据导入中，请勿关闭页面",
+  "result_title": "导入完成",
+  "result_subtitle": "导入成功{success}，导入失败{fail}",
+  "result_subtitle_tip": "您可以下载失败数据，修改后重新导入",
+  "btn_download_fail": "下载失败数据",
+  "msg_upload_failed": "{name} file upload failed.",
+  "template_name_excel": "导入数据模板.csv",
+  "template_name_json": "导入数据模板.json",
+  "fail_data_name": "失败数据_"
+}

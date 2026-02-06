@@ -2,11 +2,11 @@
   <div class="team-members-pages">
     <a-flex justify="flex-start" :gap="16">
       <div class="search-item">
-        <div class="search-label">渠道：</div>
+        <div class="search-label">{{ t('label_channel') }}</div>
         <div class="search-content">
           <a-select
             v-model:value="requestParams.channel"
-            placeholder="全部渠道"
+            :placeholder="t('ph_all_channels')"
             @change="handleChangeModel"
             style="width: 200px"
           >
@@ -24,7 +24,7 @@
 
       <div class="search-item">
         <div class="search-label">
-          <span>日期：</span>
+          <span>{{ t('label_date') }}</span>
         </div>
         <div class="search-content">
           <DateSelect
@@ -36,16 +36,16 @@
       </div>
 
       <div class="search-item">
-        <a-button @click="onReset">重置</a-button>
+        <a-button @click="onReset">{{ t('btn_reset') }}</a-button>
       </div>
     </a-flex>
     <div class="statics-header">
       <div class="statics-item">
         <div class="title">
           <a-flex align="center" :gap="4"
-            >知识命中率
+            >{{ t('title_knowledge_hit_rate') }}
             <a-tooltip>
-              <template #title>命中知识库消息数 / 机器人回复消息总数</template>
+              <template #title>{{ t('tooltip_knowledge_hit_rate') }}</template>
               <QuestionCircleOutlined />
             </a-tooltip>
           </a-flex>
@@ -55,9 +55,9 @@
       <div class="statics-item">
         <div class="title">
           <a-flex align="center" :gap="4"
-            >消息总数
+            >{{ t('title_total_messages') }}
             <a-tooltip>
-              <template #title>仅统计机器人回复对应消息数量，不含人工服务期间消息</template>
+              <template #title>{{ t('tooltip_total_messages') }}</template>
               <QuestionCircleOutlined />
             </a-tooltip>
           </a-flex>
@@ -67,9 +67,9 @@
       <div class="statics-item">
         <div class="title">
           <a-flex align="center" :gap="4"
-            >知识库命中消息数
+            >{{ t('title_knowledge_hit_messages') }}
             <a-tooltip>
-              <template #title>机器人回复时，检索到知识库文档，则认为命中消息</template>
+              <template #title>{{ t('tooltip_knowledge_hit_messages') }}</template>
               <QuestionCircleOutlined />
             </a-tooltip>
           </a-flex>
@@ -78,8 +78,8 @@
       </div>
       <div class="statics-item">
         <div class="title">
-          <a-flex align="center" :gap="4">知识库未命中消息数 </a-flex>
-          <a @click="handleToUnknow">详情</a>
+          <a-flex align="center" :gap="4">{{ t('title_knowledge_miss_messages') }} </a-flex>
+          <a @click="handleToUnknow">{{ t('btn_details') }}</a>
         </div>
         <div class="num">{{ staticsHeader.library_miss_total }}</div>
       </div>
@@ -103,11 +103,13 @@ import HitLineChart from './components/hit-line-charts.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useChatStore } from '@/stores/modules/chat'
 import dayjs from 'dayjs'
+import { useI18n } from '@/hooks/web/useI18n'
 const router = useRouter()
 
 const chatStore = useChatStore()
 const { getChannelList } = chatStore
 const route = useRoute()
+const { t } = useI18n('views.robot.robot-config.statistical-analysis.hit-statics')
 
 const channelItem = ref([])
 
@@ -134,7 +136,7 @@ const lineChartData = reactive({
 
 const getChannelLists = async () => {
   const res = await getChannelList({ robot_id: route.query.id })
-  channelItem.value = [...[{ app_type: '', app_name: '全部渠道', app_id: '' }], ...res.data]
+  channelItem.value = [...[{ app_type: '', app_name: t('ph_all_channels'), app_id: '' }], ...res.data]
 }
 
 const onDateChange = (date) => {
@@ -198,10 +200,10 @@ const forMatYDataArray = (arr) => {
   })
 
   series.push(
-    createSeries('消息总数', message_total, '#0079FE'),
-    createSeries('命中消息', library_hit_total, '#00C292'),
-    createSeries('未命中消息', library_miss_total, '#FF6B6B'),
-    createSeries('命中率', library_hit_rate, '#333')
+    createSeries(t('series_total_messages'), message_total, '#0079FE'),
+    createSeries(t('series_hit_messages'), library_hit_total, '#00C292'),
+    createSeries(t('series_miss_messages'), library_miss_total, '#FF6B6B'),
+    createSeries(t('series_hit_rate'), library_hit_rate, '#333')
   )
 
   return series
@@ -255,7 +257,7 @@ onMounted(() => {
   width: 95%;
   .statics-item {
     flex: 1;
-    height: 90px;
+    height: auto;
     border-radius: 6px;
     background: #f2f4f7;
     padding: 16px 24px;

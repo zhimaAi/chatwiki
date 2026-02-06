@@ -13,7 +13,7 @@
       <div v-else>
         <loading-outlined v-if="loading"></loading-outlined>
         <plus-outlined v-else></plus-outlined>
-        <div class="ant-upload-text">上传照片</div>
+        <div class="ant-upload-text">{{ t('upload_photo') }}</div>
       </div>
     </a-upload>
 
@@ -27,6 +27,7 @@
 import { ref, watch } from 'vue'
 import { message, Form } from 'ant-design-vue'
 import { LoadingOutlined, PlusOutlined } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
 function getBase64(file) {
   return new Promise((resolve, reject) => {
@@ -36,6 +37,8 @@ function getBase64(file) {
     reader.onerror = (error) => reject(error)
   })
 }
+
+const { t } = useI18n('views.ai-extract-faq.list.components.avatar-input')
 
 const emit = defineEmits(['update:value', 'change'])
 const props = defineProps({
@@ -77,14 +80,14 @@ const beforeUpload = (file) => {
   const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
 
   if (!isJpgOrPng) {
-    message.error('知识库封面只支持JPG、PNG格式的图片')
+    message.error(t('image_format_error'))
     return false
   }
 
   const isLt2M = file.size / 1024 < 100
 
   if (!isLt2M) {
-    message.error('知识库封面图片大小不能超过100kb')
+    message.error(t('image_size_error'))
     return false
   }
 

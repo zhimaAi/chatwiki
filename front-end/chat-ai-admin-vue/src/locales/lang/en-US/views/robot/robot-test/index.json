@@ -1,0 +1,11 @@
+{
+  "breadcrumb_robot_management": "Robot Management",
+  "btn_new_chat": "New Chat",
+  "title_form_info": "Form Information",
+  "btn_edit": "Edit",
+  "msg_please_input_message": "Please enter message content",
+  "msg_sensitive_words": "The submitted content contains sensitive words: [{words}] Please modify and resubmit",
+  "confirm_save_prompt": "Are you sure you want to save the prompt?",
+  "confirm_save_prompt_content": "If you have provided this robot to external users, the modified prompt will take effect immediately after saving. If you only want to test and optimize the prompt effect, you can directly modify and test it without saving.",
+  "success_save": "Saved successfully"
+}

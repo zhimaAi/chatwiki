@@ -9,7 +9,7 @@
       }
     }
     .field-item-label {
-      width: 60px;
+      width: auto;
       line-height: 22px;
       margin-right: 8px;
       font-size: 14px;
@@ -19,20 +19,22 @@
     }
     .field-item-content {
       flex: 1;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
+      overflow: hidden;
     }
     .field-list-item {
       display: flex;
       gap: 4px;
       align-items: center;
       line-height: 16px;
+      margin-bottom: 4px;
       padding: 3px 4px;
       border-radius: 4px;
       border: 1px solid #d9d9d9;
       color: #595959;
       background: #fff;
+      &:last-child {
+        margin-bottom: 0;
+      }
       .right-arrow {
         width: 24px;
         height: 100%;
@@ -43,29 +45,18 @@
         justify-content: center;
         font-size: 13px;
       }
+      .field-value{
+        max-width: 130px;
+      }
       .field-text{
+        max-width: 130px;
         font-size: 12px;
       }
-    }
-    .field-value {
-      display: flex;
-      align-items: center;
-      line-height: 16px;
-      padding: 3px 4px;
-      border-radius: 4px;
-      font-size: 12px;
-      border: 1px solid #d9d9d9;
-      color: #595959;
-      background: #fff;
-
-      .field-type {
-        padding: 1px 8px;
-        margin-left: 4px;
-        border-radius: 4px;
-        font-size: 12px;
-        line-height: 16px;
-        font-weight: 400;
-        background: #e4e6eb;
+      .field-value,
+      .field-text{
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
     }
   }
@@ -87,7 +78,7 @@
     <div class="ai-dialogue-node">
       <div class="field-list">
         <div class="field-item">
-          <div class="field-item-label">变量</div>
+          <div class="field-item-label">{{ t('label_variable') }}</div>
           <div class="field-item-content">
             <div class="field-list-item" v-for="(item, index) in formState.list" :key="index">
               <div class="field-text">
@@ -95,6 +86,7 @@
                   :options="valueOptions"
                   :default-value="item.value"
                   :defaultSelectedList="item.tags"
+                  class="field-value"
                 />
               </div>
               <div class="right-arrow"><ArrowRightOutlined /></div>
@@ -115,6 +107,9 @@ import NodeCommon from '../base-node.vue'
 import { ArrowRightOutlined } from '@ant-design/icons-vue'
 import { haveOutKeyNode } from '@/views/workflow/components/util.js'
 import AtText from '../../at-input/at-text.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.variable-assignment-node.index')
 
 const props = defineProps({
   properties: {

@@ -1,0 +1,9 @@
+{
+  "label_bitable_name": "Multidimensional Table Name",
+  "ph_input_content": "Please enter content, type \"/\" to insert variable",
+  "desc_update_bitable_name": "Update multidimensional table name",
+  "label_enable_advanced_permission": "Enable Advanced Permissions",
+  "opt_enable": "Enable",
+  "opt_disable": "Disable",
+  "desc_advanced_permission": "Whether the multidimensional table has enabled advanced permissions; if disabled, settings will not be updated"
+}

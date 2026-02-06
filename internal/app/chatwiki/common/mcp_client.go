@@ -115,7 +115,7 @@ func ListTools(ctx context.Context, c *client.Client) ([]mcp.Tool, error) {
 				Method: "tools/list",
 			},
 			Params: mcp.PaginatedParams{
-				Cursor: "", // 初始为空
+				Cursor: "", // Initially empty
 			},
 		},
 	}
@@ -202,7 +202,7 @@ func NormalizeArgumentsBySchema(args map[string]any, schema *mcp.ToolInputSchema
 	normalized := make(map[string]any, len(args))
 	requiredSet := make(map[string]struct{}, len(schema.Required))
 
-	// 建立 required 字段快速查找表
+	// Build quick lookup table for required fields
 	for _, name := range schema.Required {
 		requiredSet[name] = struct{}{}
 	}
@@ -210,7 +210,7 @@ func NormalizeArgumentsBySchema(args map[string]any, schema *mcp.ToolInputSchema
 	for name, val := range args {
 		propSchemaAny, exists := schema.Properties[name]
 		if !exists {
-			// schema 中未定义的字段直接跳过
+			// Skip fields not defined in schema
 			continue
 		}
 
@@ -220,7 +220,7 @@ func NormalizeArgumentsBySchema(args map[string]any, schema *mcp.ToolInputSchema
 			continue
 		}
 
-		// 如果是非必填字段并且值为空，则跳过
+		// Skip if not required and value is empty
 		if _, isRequired := requiredSet[name]; !isRequired {
 			if isEmptyValue(val) {
 				continue
@@ -231,7 +231,7 @@ func NormalizeArgumentsBySchema(args map[string]any, schema *mcp.ToolInputSchema
 
 		switch schemaType {
 		case "object", "array":
-			// 若值是字符串，看起来像 JSON，则尝试解析
+			// If value is a string that looks like JSON, try to parse
 			if str, ok := val.(string); ok {
 				var parsed any
 				if err := json.Unmarshal([]byte(str), &parsed); err == nil {
@@ -250,7 +250,7 @@ func NormalizeArgumentsBySchema(args map[string]any, schema *mcp.ToolInputSchema
 	return normalized, nil
 }
 
-// 判断是否为空值（适用于各种可能类型）
+// Determine if value is empty (applies to various types)
 func isEmptyValue(v any) bool {
 	if v == nil {
 		return true
@@ -280,7 +280,7 @@ func isEmptyValue(v any) bool {
 	}
 }
 
-// CallTool 调用MCP工具
+// CallTool Call MCP tool
 func CallTool(ctx context.Context, c *client.Client, selectedTool mcp.Tool, arguments map[string]any) (string, error) {
 	err := c.Start(ctx)
 	if err != nil {
@@ -312,12 +312,12 @@ func CallTool(ctx context.Context, c *client.Client, selectedTool mcp.Tool, argu
 		return "", fmt.Errorf(`parameter format error: %v`, err)
 	}
 
-	// 2. 校验参数合法性
+	// 2. Validate parameter validity
 	if err := ValidateMcpToolArguments(selectedTool, normalizedArgs); err != nil {
 		return "", fmt.Errorf(`parameter verification failed: %v`, err)
 	}
 
-	// 3. 执行调用
+	// 3. Execute call
 	result, err := c.CallTool(ctx, mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name:      selectedTool.Name,
@@ -329,22 +329,22 @@ func CallTool(ctx context.Context, c *client.Client, selectedTool mcp.Tool, argu
 		return "", fmt.Errorf(`call the mcp tool error: %v`, err.Error())
 	}
 	//if result.IsError {
-	//	return "", errors.New("调用mcp工具失败")
+	//	return "", errors.New(i18n.Show(lang, "call_mpc_tool_fail"))
 	//}
 
-	// 声明用于存储最终文本内容的变量
+	// Declare variable to store final text content
 	var strContent string
 
 	for _, content := range result.Content {
-		// 使用类型断言检查 content 的具体类型
+		// Use type assertion to check the specific type of content
 		switch c := content.(type) {
 		case mcp.TextContent:
 			strContent = c.Text
 			goto FoundContent
 		case mcp.ImageContent:
-			// TODO: 后续兼容 ImageContent 类型的逻辑
+			// TODO: Add support for ImageContent type later
 		case mcp.AudioContent:
-			// TODO: 后续兼容 AudioContent 类型的逻辑
+			// TODO: Add support for AudioContent type later
 		default:
 			return "", fmt.Errorf(`unknown return type: %T`, content)
 		}

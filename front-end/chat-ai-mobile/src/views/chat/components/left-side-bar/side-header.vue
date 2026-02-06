@@ -9,9 +9,9 @@
       </div>
       <div class="btn-box">
         <div style="flex: 1">
-          <van-button block @click="openNewChat" type="primary" :size="size">新建对话</van-button>
+          <van-button block @click="openNewChat" type="primary" :size="size">{{ t('btn_new_chat') }}</van-button>
         </div>
-        <van-button @click="emptyAllChat" :size="size">清空记录</van-button>
+        <van-button @click="emptyAllChat" :size="size">{{ t('btn_clear_history') }}</van-button>
       </div>
     </template>
     <template v-else>
@@ -19,7 +19,7 @@
         <div class="logo-box">
           <img src="@/assets/logo.png" alt="" />
         </div>
-        <div class="new-chat-box" @click="openNewChat" v-tooltip="'新建对话'">
+        <div class="new-chat-box" @click="openNewChat" v-tooltip="t('btn_new_chat')">
           <img src="@/assets/icons/add-chat.svg" alt="" />
         </div>
       </div>
@@ -30,6 +30,9 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { Button } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.chat.components.left-side-bar.side-header')
 
 const emit = defineEmits(['openNewChat', 'emptyAllChat', 'handleClose'])
 const props = defineProps({

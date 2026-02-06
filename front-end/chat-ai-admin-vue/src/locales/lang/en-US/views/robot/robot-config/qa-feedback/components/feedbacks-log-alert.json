@@ -1,0 +1,14 @@
+{
+  "title_feedback_details": "Feedback Details",
+  "label_question": "Question",
+  "label_answer": "Answer",
+  "label_feedback": "Feedback",
+  "label_reference_content": "Reference Content",
+  "label_chat_mode": "Chat Mode",
+  "label_used_model": "Used Model",
+  "label_like": "Like",
+  "label_dislike": "Dislike",
+  "label_only_knowledge_base": "Knowledge Base Only",
+  "label_direct_connection": "Direct Connection",
+  "label_hybrid": "Hybrid"
+}

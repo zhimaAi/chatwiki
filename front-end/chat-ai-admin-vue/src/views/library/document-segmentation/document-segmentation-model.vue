@@ -147,11 +147,11 @@
       <div class="page-right">
         <div class="document-fragment-preview">
           <div class="preview-header">
-            <span class="label-text">分段预览</span>
-            <span class="fragment-number">共{{ documentFragmentTotal }}个分段</span>
+            <span class="label-text">{{ t('segmentationPreview') }}</span>
+            <span class="fragment-number">{{ t('totalSegments', { count: documentFragmentTotal }) }}</span>
           </div>
           <Empty v-if="isEmpty && !aiLoading"></Empty>
-          <div v-if="aiLoading" class="loading-box"><a-spin />数据处理中...</div>
+          <div v-if="aiLoading" class="loading-box"><a-spin />{{ t('processingData') }}</div>
           <div class="preview-box" ref="previewBoxRef">
             <div
               class="fragment-item"
@@ -200,8 +200,10 @@ import {
   getLibFileExcelTitle
 } from '@/api/library/index'
 import { useLibraryStore } from '@/stores/modules/library'
+import { useI18n } from '@/hooks/web/useI18n'
 
 const libraryStore = useLibraryStore()
+const { t } = useI18n('views.library.document-segmentation.document-segmentation-model')
 
 const { setInitDocumentFragmentList } = libraryStore
 const route = useRoute()
@@ -228,8 +230,7 @@ const props = defineProps({
   }
 })
 const current_chunk_type = ref(1)
-const defaultAiChunkPrumpt =
-  '你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。'
+const defaultAiChunkPrumpt = 'defaultAiChunkPrumpt'
 let formData = {
   id: id,
   separators_no: '', // 自定义分段-分隔符序号集
@@ -272,12 +273,12 @@ const onChangeSetting = (data) => {
   }
   if (itWasEdited) {
     Modal.confirm({
-      title: '提醒',
+      title: t('reminder'),
       icon: createVNode(ExclamationCircleOutlined),
-      content: '文档片段已被编辑重新获取文档片段会丢失当前修改过的文档片段内容，确定要重新获取吗？',
-      okText: '确定',
+      content: t('reFetchConfirm'),
+      okText: t('confirm'),
       okType: 'danger',
-      cancelText: '取消',
+      cancelText: t('cancel'),
       onOk() {
         itWasEdited = false
         getDocumentFragment('create')
@@ -326,7 +327,7 @@ const getDocumentStatus = () => {
       semantic_chunk_overlap: +res.data.semantic_chunk_overlap || 50,
       semantic_chunk_threshold: +res.data.semantic_chunk_threshold || 90,
       semantic_chunk_use_model: res.data.semantic_chunk_use_model || '',
-      ai_chunk_prumpt: res.data.ai_chunk_prumpt || '',
+      ai_chunk_prumpt: res.data.ai_chunk_prumpt || t('defaultAiChunkPrumpt'),
       ai_chunk_model: res.data.ai_chunk_model || '',
       semantic_chunk_model_config_id:
         res.data.semantic_chunk_model_config_id > 0 ? res.data.semantic_chunk_model_config_id : '',
@@ -363,8 +364,8 @@ const getDocumentStatus = () => {
       loopNumber++
       if (loopNumber > maxLoopNumber) {
         Modal.error({
-          title: '提醒',
-          content: '文档解析速度慢请稍后再试'
+          title: t('reminder'),
+          content: t('documentParsingSlow')
         })
         return
       }
@@ -583,8 +584,8 @@ const startPolling = () => {
       if (error.value) {
         let errorText = formatError(error.value)
         Modal.error({
-          title: '分段失败提示',
-          content: errorText ? `模型调用失败，失败原因：${errorText}` : '模型调用失败'
+          title: t('segmentationFailed'),
+          content: errorText ? t('modelCallFailedWithReason', { reason: errorText }) : t('modelCallFailed')
         })
       }
     }
@@ -631,12 +632,12 @@ const saveFragment = ({ title, content, question, answer, images }) => {
 // 删除文档片段
 const handleDeleteFragment = (index) => {
   Modal.confirm({
-    title: '提醒',
+    title: t('reminder'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确定要删除这个片段吗?',
-    okText: '确定',
+    content: t('deleteSegmentConfirm'),
+    okText: t('confirm'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('cancel'),
     onOk() {
       itWasEdited = true
       documentFragmentList.value.splice(index, 1)
@@ -659,12 +660,12 @@ const updataFormData = () => {
     data.separators_no = JSON.stringify(data.separators_no)
   }
   if (typeof data.father_chunk_separators_no == 'object') {
-    
+
     data.father_chunk_separators_no = JSON.stringify(data.father_chunk_separators_no)
   }
   if (typeof data.son_chunk_separators_no == 'object') {
     data.son_chunk_separators_no = JSON.stringify(data.son_chunk_separators_no)
-    
+
   }
   formData = {
     ...formData,

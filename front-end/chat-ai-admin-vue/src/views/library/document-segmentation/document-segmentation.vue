@@ -134,7 +134,7 @@
     <div class="breadcrumb-block">
       <a-breadcrumb>
         <a-breadcrumb-item>
-          <router-link to="/library/list"> 知识库管理 </router-link></a-breadcrumb-item
+          <router-link to="/library/list"> {{ t('breadcrumb_knowledge_base') }} </router-link></a-breadcrumb-item
         >
         <a-breadcrumb-item>
           <router-link
@@ -145,15 +145,15 @@
               }
             }"
           >
-            {{ libFileInfo.library_name }}知识库</router-link
+            {{ libFileInfo.library_name }}{{ t('breadcrumb_knowledge_base_suffix') }}</router-link
           >
         </a-breadcrumb-item>
-        <a-breadcrumb-item>分段设置</a-breadcrumb-item>
+        <a-breadcrumb-item>{{ t('breadcrumb_segmentation_setting') }}</a-breadcrumb-item>
       </a-breadcrumb>
     </div>
     <div class="page-title">
       <LeftOutlined @click="goBack" />
-      <span class="title">文档分段与清洗</span>
+      <span class="title">{{ t('page_title') }}</span>
       <!-- <div class="page-title-right" v-if="library_type == 0" style="margin-left: auto">
         <a-button type="primary" :loading="saveLoading" @click="handleSaveLibFileSplit"
           >保存</a-button
@@ -177,11 +177,11 @@
       <div class="page-right">
         <div class="document-fragment-preview">
           <div class="preview-header">
-            <span class="label-text">分段预览</span>
-            <span class="fragment-number">共{{ documentFragmentTotal }}个分段</span>
+            <span class="label-text">{{ t('segmentation_preview') }}</span>
+            <span class="fragment-number">{{ t('fragment_total', { total: documentFragmentTotal }) }}</span>
           </div>
           <Empty v-if="isEmpty && !aiLoading"></Empty>
-          <div v-if="aiLoading" class="loading-box"><a-spin />数据处理中...</div>
+          <div v-if="aiLoading" class="loading-box"><a-spin />{{ t('data_processing') }}</div>
           <div class="preview-box" ref="previewBoxRef">
             <div
               class="fragment-item"
@@ -228,6 +228,8 @@ import Empty from './components/empty.vue'
 import SegmentationSetting from './components/segmentation-setting.vue'
 import DocumentFragment from './components/document-fragment.vue'
 import EditFragmentAlert from './components/edit-fragment-alert.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
 import {
   getLibFileSplit,
   getLibFileSplitPreview,
@@ -238,10 +240,14 @@ import {
   getLibFileExcelTitle
 } from '@/api/library/index'
 import { useLibraryStore } from '@/stores/modules/library'
+import {useMathJax} from "@/composables/useMathJax.js";
+
+const { t } = useI18n('views.library.document-segmentation.document-segmentation')
 
 const libraryStore = useLibraryStore()
 const route = useRoute()
 const router = useRouter()
+const { renderMath } = useMathJax()
 
 const { setInitDocumentFragmentList } = libraryStore
 const { document_id } = route.query
@@ -249,7 +255,7 @@ const spinning = ref(true)
 const settingMode = ref(1) // 1 表格，0 非表格
 const current_chunk_type = ref(1)
 let itWasEdited = false
-const defaultAiChunkPrumpt = '你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。'
+const defaultAiChunkPrumpt = t('default_ai_chunk_prompt')
 let formData = {
   id: document_id,
   separators_no: '', // 自定义分段-分隔符序号集
@@ -288,12 +294,12 @@ const onChangeSetting = (data) => {
   }
   if (itWasEdited) {
     Modal.confirm({
-      title: '提醒',
+      title: t('alert_reminder'),
       icon: createVNode(ExclamationCircleOutlined),
-      content: '文档片段已被编辑重新获取文档片段会丢失当前修改过的文档片段内容，确定要重新获取吗？',
-      okText: '确定',
+      content: t('alert_content_changed'),
+      okText: t('alert_confirm'),
       okType: 'danger',
-      cancelText: '取消',
+      cancelText: t('alert_cancel'),
       onOk() {
         itWasEdited = false
         getDocumentFragment('create')
@@ -379,8 +385,8 @@ const getDocumentStatus = () => {
       loopNumber++
       if (loopNumber > maxLoopNumber) {
         Modal.error({
-          title: '提醒',
-          content: '文档解析速度慢请稍后再试'
+          title: t('alert_reminder'),
+          content: t('alert_parse_slow')
         })
         return
       }
@@ -475,6 +481,7 @@ const getDocumentFragment = (type) => {
       setInitDocumentFragmentList(initDocumentFragmentList.value)
       documentFragmentList.value = res.data.list || []
       documentFragmentTotal.value = res.data.list.length || 0
+      renderMath(previewBoxRef.value)
 
       if (formData.chunk_type == 3) {
         // ai分段
@@ -526,10 +533,10 @@ const pollData = async () => {
       documentFragmentTotal.value = res.data.list.length || 0
       return true; // 停止轮询
     }
-    
+
     return false; // 继续轮询
   } catch (err) {
-    error.value = '请求异常，停止轮询';
+    error.value = t('message_request_exception');
     return true; // 停止轮询
   }
 };
@@ -560,8 +567,8 @@ const startPolling = () => {
       if (error.value) {
         let errorText = formatError(error.value)
         Modal.error({
-          title: '分段失败提示',
-          content: errorText ? `模型调用失败，失败原因：${errorText}` : '模型调用失败'
+          title: t('alert_segmentation_failed'),
+          content: errorText ? t('alert_model_failed_reason', { reason: errorText }) : t('alert_model_failed')
         })
       }
     }
@@ -609,12 +616,12 @@ const saveFragment = ({ title, content, question, answer, images,similar_questio
 // 删除文档片段
 const handleDeleteFragment = (index) => {
   Modal.confirm({
-    title: '提醒',
+    title: t('alert_reminder'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确定要删除这个片段吗?',
-    okText: '确定',
+    content: t('alert_delete_fragment'),
+    okText: t('alert_confirm'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('alert_cancel'),
     onOk() {
       itWasEdited = true
       documentFragmentList.value.splice(index, 1)
@@ -703,7 +710,7 @@ const handleSaveLibFileSplit = async () => {
 
   saveLibFileSplit(parmas)
     .then(() => {
-      message.success('保存成功')
+      message.success(t('message_save_success'))
       let page = 1
       if (route.query.page) {
         page = route.query.page
@@ -722,12 +729,12 @@ const handleSaveLibFileSplit = async () => {
 // 取消和上一步
 const handleCancel = () => {
   Modal.confirm({
-    title: '确定要退出吗?',
+    title: t('alert_exit_confirm'),
     icon: createVNode(ExclamationCircleOutlined),
     content: '',
-    okText: '确定',
+    okText: t('alert_confirm'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('alert_cancel'),
     onOk() {
       router.replace('/library/details?id=' + library_id)
     },

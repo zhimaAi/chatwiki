@@ -1,0 +1,19 @@
+{
+  "drawer_title": "查看评论",
+  "article_group_label": "所属分组：",
+  "comment_header": "{total}条评论",
+  "tag_selected": "精选",
+  "ai_bot_name": "AI机器人",
+  "empty_no_comment": "暂无评论",
+  "load_more_loading": "加载中...",
+  "load_more_no_more": "已加载全部",
+  "modal_delete_comment_title": "确认删除评论吗？",
+  "modal_delete_reply_title": "确认删除回复吗？",
+  "btn_delete": "删除",
+  "btn_cancel": "取消",
+  "message_delete_success": "删除成功",
+  "default_user_name": "用户",
+  "user_name_with_suffix": "用户_{suf}",
+  "auto_feature_keyword": "自动精选",
+  "deleted_status": "已删除"
+}

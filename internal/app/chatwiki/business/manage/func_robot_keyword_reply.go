@@ -15,7 +15,7 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-// KeywordReplyRequest 通用请求结构
+// KeywordReplyRequest generic request structure
 type KeywordReplyRequest struct {
 	ID           int    `form:"id" json:"id"`
 	RobotID      int    `form:"robot_id" json:"robot_id" binding:"required"`
@@ -27,14 +27,14 @@ type KeywordReplyRequest struct {
 	ForcedEnable int    `form:"forced_enable" json:"forced_enable"`
 }
 
-// SwitchStatusRequest 开关状态请求结构
+// SwitchStatusRequest switch status request structure
 type SwitchStatusRequest struct {
 	ID           int `form:"id" json:"id" binding:"required"`
 	RobotID      int `form:"robot_id" json:"robot_id" binding:"required"`
 	SwitchStatus int `form:"switch_status" json:"switch_status"`
 }
 
-// ReceivedMessageReplyListFilterRequest 列表过滤请求结构
+// ListFilterRequest list filter request structure
 type ListFilterRequest struct {
 	RobotID   int    `json:"robot_id" form:"robot_id" binding:"required"`
 	Keyword   string `json:"keyword" form:"keyword"`
@@ -44,21 +44,21 @@ type ListFilterRequest struct {
 	Size      int    `json:"size" form:"size"`
 }
 
-// SaveRobotKeywordReply 保存关键词回复规则（创建或更新）
+// SaveRobotKeywordReply saves keyword reply rule (create or update)
 func SaveRobotKeywordReply(c *gin.Context) {
 	var req KeywordReplyRequest
 
-	// 获取参数
+	// Get parameters
 	if err := c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 解析 FullKeyword
+	// Parse FullKeyword
 	var fullKeyword []string
 	if req.FullKeyword != "" {
 		fullKeyword = strings.Split(req.FullKeyword, ",")
-		// 去除空格
+		// Remove spaces
 		for i, v := range fullKeyword {
 			fullKeyword[i] = strings.TrimSpace(v)
 		}
@@ -68,11 +68,11 @@ func SaveRobotKeywordReply(c *gin.Context) {
 		return
 	}
 
-	// 解析 HalfKeyword
+	// Parse HalfKeyword
 	var halfKeyword []string
 	if req.HalfKeyword != "" {
 		halfKeyword = strings.Split(req.HalfKeyword, ",")
-		// 去除空格
+		// Remove spaces
 		for i, v := range halfKeyword {
 			halfKeyword[i] = strings.TrimSpace(v)
 		}
@@ -82,7 +82,7 @@ func SaveRobotKeywordReply(c *gin.Context) {
 		common.FmtError(c, `robot_keyword_reply_max_num`, cast.ToString(common.MaxKeywordNum))
 		return
 	}
-	// 解析 ReplyContent
+	// Parse ReplyContent
 	var replyContent []common.ReplyContent
 	if req.ReplyContent != "" {
 		if err := tool.JsonDecodeUseNumber(req.ReplyContent, &replyContent); err != nil {
@@ -91,10 +91,10 @@ func SaveRobotKeywordReply(c *gin.Context) {
 		}
 	}
 
-	// 解析 ReplyType
+	// Parse ReplyType
 	var replyType []string
 	if len(replyContent) > 0 {
-		// 后台自己合并
+		// Backend merges automatically
 		for _, reply := range replyContent {
 			if reply.ReplyType == `` && reply.Type != `` {
 				replyType = append(replyType, reply.Type)
@@ -104,19 +104,19 @@ func SaveRobotKeywordReply(c *gin.Context) {
 		}
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, req.RobotID, adminUserId) {
 		return
 	}
 
-	// 如果是更新操作，检查规则是否存在且属于当前用户和机器人
+	// If updating, check if rule exists and belongs to current user and robot
 	if req.ID > 0 {
 		ruleInfo, err := common.GetRobotKeywordReply(req.ID)
 		if err != nil {
@@ -136,16 +136,16 @@ func SaveRobotKeywordReply(c *gin.Context) {
 		}
 	}
 
-	// 保存规则（创建或更新）
+	// Save rule (create or update)
 	id, err := common.SaveRobotKeywordReply(
 		req.ID,
 		adminUserId,
 		req.RobotID,
 		req.Name,
-		fullKeyword,  // 使用解析后的值
-		halfKeyword,  // 使用解析后的值
-		replyContent, // 使用解析后的值
-		replyType,    // 使用解析后的值
+		fullKeyword,  // Use parsed values
+		halfKeyword,  // Use parsed values
+		replyContent, // Use parsed values
+		replyType,    // Use parsed values
 		req.ReplyNum,
 	)
 
@@ -165,12 +165,12 @@ func SaveRobotKeywordReply(c *gin.Context) {
 	common.FmtOk(c, map[string]interface{}{"id": id})
 }
 
-// DeleteRobotKeywordReply 删除关键词回复规则
+// DeleteRobotKeywordReply deletes keyword reply rule
 func DeleteRobotKeywordReply(c *gin.Context) {
 	id := cast.ToInt(c.PostForm("id"))
 	robotID := cast.ToInt(c.PostForm("robot_id"))
 
-	// 检查参数
+	// Check parameters
 	if id <= 0 {
 		common.FmtError(c, `param_lack`, `id`)
 		return
@@ -181,19 +181,19 @@ func DeleteRobotKeywordReply(c *gin.Context) {
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, robotID, adminUserId) {
 		return
 	}
 
-	// 检查规则是否存在且属于当前用户和机器人
+	// Check if rule exists and belongs to current user and robot
 	ruleInfo, err := common.GetRobotKeywordReply(id)
 	if err != nil {
 		logs.Error("Get robot keyword reply error: %s", err.Error())
@@ -211,7 +211,7 @@ func DeleteRobotKeywordReply(c *gin.Context) {
 		return
 	}
 
-	// 删除规则
+	// Delete rule
 	err = common.DeleteRobotKeywordReply(id, robotID)
 	if err != nil {
 		logs.Error("DeleteRobotKeywordReply error: %s", err.Error())
@@ -222,24 +222,24 @@ func DeleteRobotKeywordReply(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-// GetRobotKeywordReply 获取单个关键词回复规则
+// GetRobotKeywordReply gets single keyword reply rule
 func GetRobotKeywordReply(c *gin.Context) {
 	id := cast.ToInt(c.Query("id"))
 
-	// 检查参数
+	// Check parameters
 	if id <= 0 {
 		common.FmtError(c, `param_lack`, `id`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 获取规则信息
+	// Get rule info
 	ruleInfo, err := common.GetRobotKeywordReply(id)
 	if err != nil {
 		logs.Error("Get robot keyword reply error: %s", err.Error())
@@ -252,17 +252,17 @@ func GetRobotKeywordReply(c *gin.Context) {
 		return
 	}
 
-	// 检查权限
+	// Check permission
 	if cast.ToInt(ruleInfo["admin_user_id"]) != adminUserId {
 		common.FmtError(c, `auth_no_permission`)
 		return
 	}
 
-	// 处理返回数据
+	// Process return data
 	var fullKeyword, halfKeyword, replyType []string
 	var replyContent []common.ReplyContent
 
-	// 解析JSON数据
+	// Parse JSON data
 	if ruleInfo["full_keyword"] != "" {
 		_ = tool.JsonDecodeUseNumber(ruleInfo["full_keyword"], &fullKeyword)
 	}
@@ -278,7 +278,7 @@ func GetRobotKeywordReply(c *gin.Context) {
 	if ruleInfo["reply_content"] != "" {
 		_ = tool.JsonDecodeUseNumber(ruleInfo["reply_content"], &replyContent)
 	}
-	// 格式化智能菜单消息
+	// Format smart menu message
 	replyContent = common.FormatReplyListToDb(replyContent, common.RobotAbilityReceivedMessageReply)
 
 	result := map[string]interface{}{
@@ -298,17 +298,17 @@ func GetRobotKeywordReply(c *gin.Context) {
 	common.FmtOk(c, result)
 }
 
-// GetRobotKeywordReplyList 获取关键词回复规则列表
+// GetRobotKeywordReplyList gets keyword reply rule list
 func GetRobotKeywordReplyList(c *gin.Context) {
 	var req ListFilterRequest
 
-	// 获取参数
+	// Get parameters
 	if err := c.ShouldBindQuery(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 设置默认分页参数
+	// Set default pagination parameters
 	if req.Page <= 0 {
 		req.Page = 1
 	}
@@ -316,19 +316,19 @@ func GetRobotKeywordReplyList(c *gin.Context) {
 		req.Size = 10
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, req.RobotID, adminUserId) {
 		return
 	}
 
-	// 获取规则列表
+	// Get rule list
 	list, total, err := common.GetRobotKeywordReplyListWithFilter(req.RobotID, req.Keyword, req.ReplyType, req.Page, req.Size)
 	if err != nil {
 		logs.Error("GetRobotKeywordReplyListWithFilter error: %s", err.Error())
@@ -336,13 +336,13 @@ func GetRobotKeywordReplyList(c *gin.Context) {
 		return
 	}
 
-	// 处理返回数据
+	// Process return data
 	var result []map[string]interface{}
 	for _, item := range list {
 		var fullKeyword, halfKeyword, replyType []string
 		var replyContent []common.ReplyContent
 
-		// 解析JSON数据
+		// Parse JSON data
 		if item["full_keyword"] != "" {
 			_ = tool.JsonDecodeUseNumber(item["full_keyword"], &fullKeyword)
 		}
@@ -358,7 +358,7 @@ func GetRobotKeywordReplyList(c *gin.Context) {
 		if item["reply_content"] != "" {
 			_ = tool.JsonDecodeUseNumber(item["reply_content"], &replyContent)
 		}
-		// 格式化智能菜单消息
+		// Format smart menu message
 		replyContent = common.FormatReplyListToDb(replyContent, common.RobotAbilityKeywordReply)
 
 		result = append(result, map[string]interface{}{
@@ -376,7 +376,7 @@ func GetRobotKeywordReplyList(c *gin.Context) {
 		})
 	}
 
-	// 返回分页数据
+	// Return paginated data
 	response := map[string]interface{}{
 		"list":  result,
 		"total": total,
@@ -387,17 +387,17 @@ func GetRobotKeywordReplyList(c *gin.Context) {
 	common.FmtOk(c, response)
 }
 
-// UpdateRobotKeywordReplySwitchStatus 更新关键词回复规则开关状态
+// UpdateRobotKeywordReplySwitchStatus updates keyword reply rule switch status
 func UpdateRobotKeywordReplySwitchStatus(c *gin.Context) {
 	var req SwitchStatusRequest
 
-	// 获取参数
+	// Get parameters
 	if err := c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 判断开启条数
+	// Check enabled rule count
 	useNum, err := common.GetRobotKeywordReplyUseRuleNum(req.RobotID)
 	if err != nil {
 		logs.Error("GetRobotKeywordReplyUseRuleNum error: %s", err.Error())
@@ -409,25 +409,25 @@ func UpdateRobotKeywordReplySwitchStatus(c *gin.Context) {
 		return
 	}
 
-	// 检查开关状态参数是否合法 (0:关闭, 1:开启)
+	// Check if switch status parameter is valid (0: off, 1: on)
 	if req.SwitchStatus != define.SwitchOff && req.SwitchStatus != define.SwitchOn {
 		common.FmtError(c, `param_invalid`, `switch_status`)
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, req.RobotID, adminUserId) {
 		return
 	}
 
-	// 检查规则是否存在且属于当前用户和机器人
+	// Check if rule exists and belongs to current user and robot
 	ruleInfo, err := common.GetRobotKeywordReply(req.ID)
 	if err != nil {
 		logs.Error("Get robot keyword reply error: %s", err.Error())
@@ -445,7 +445,7 @@ func UpdateRobotKeywordReplySwitchStatus(c *gin.Context) {
 		return
 	}
 
-	// 更新开关状态
+	// Update switch status
 	err = common.UpdateRobotKeywordReplySwitchStatus(req.ID, req.RobotID, req.SwitchStatus)
 	if err != nil {
 		logs.Error("UpdateRobotKeywordReplySwitchStatus error: %s", err.Error())
@@ -466,21 +466,21 @@ func CheckKeyWordRepeat(c *gin.Context) {
 		return
 	}
 
-	// 获取登录用户信息
+	// Get logged-in user info
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 检查机器人是否存在且属于当前用户
+	// Check if robot exists and belongs to current user
 	if checkRobotByAdminUserId(c, robotID, adminUserId) {
 		return
 	}
 
-	// 检查关键词是否重复
+	// Check if keyword is duplicate
 	isRepeat, ruleName := common.CheckKeyWordRepeat(robotID, keyword, id)
-	// 返回分页数据
+	// Return response data
 	response := map[string]interface{}{
 		"is_repeat": isRepeat,
 		"rule_name": ruleName,

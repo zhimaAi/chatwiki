@@ -78,7 +78,7 @@
 </style>
 
 <template>
-  <a-modal width="746px" v-model:open="show" title="关联数据表" @ok="saveCheckedList">
+  <a-modal width="746px" v-model:open="show" :title="t('title_link_data_table')" @ok="saveCheckedList">
     <div class="library-checkbox-box">
       <!-- <a-alert message="请选择关联知识库，机器人会根据知识库内上传的文档回复用户的提问。每个机器人最多关联5个知识库" type="info" /> -->
       <!-- <div class="list-tools">
@@ -111,8 +111,8 @@
       <div class="empty-box" v-if="!isRefresh && !options.length">
         <img src="@/assets/img/library/preview/empty.png" alt="" />
         <div>
-          暂无数据表, 请先去添加数据表
-          <a @click="openAddLibrary"> 去添加</a>
+          {{ t('msg_no_data_table_add_first') }}
+          <a @click="openAddLibrary"> {{ t('btn_go_add') }}</a>
         </div>
       </div>
     </div>
@@ -124,6 +124,9 @@ import { reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { SearchOutlined, SyncOutlined } from '@ant-design/icons-vue'
 import { getFormList } from '@/api/database/index'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.data-base.library-select-alert')
 
 const emit = defineEmits(['change'])
 
@@ -175,7 +178,7 @@ const onRefresh = async () => {
 
   isRefresh.value = false
 
-  message.success('刷新完成')
+  message.success(t('msg_refresh_success'))
 }
 
 const openAddLibrary = () => {

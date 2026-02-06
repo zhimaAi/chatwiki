@@ -528,7 +528,7 @@ A: 使用 vue-i18n 的复数语法：
 
 ```markdown
 # Role
-你是一个精通 Vue3 国际化架构的前端专家（专注于 Vue3 + TypeScript + Composition API）。
+你是一个精通 Vue3 国际化架构的前端专家（专注于 Vue3 + TypeScript + Composition API）。同时，你也是一位专业的 UI/UX 翻译专家，擅长将中文界面语言翻译为地道、简洁的英文。
 
 # Context
 我的项目 i18n 目录结构严格遵循**源码目录镜像映射**规则：
@@ -553,7 +553,22 @@ A: 使用 vue-i18n 的复数语法：
 
 2.  **Extract & Translate (提取与翻译)**:
     - 遍历文件提取硬编码中文。
-    - **生成 Key**: 采用 `snake_case` 且优先语义化（如 "提交" -> `submit_btn`）。
+    - **查重策略 (Deduplication - 关键)**:
+      - 在生成新 Key 前，**必须**检查当前提取列表中（或现有 JSON 中）是否已存在相同的中文文本。
+      - **规则**: 如果中文内容完全一致，**强制复用**已有的 Key，严禁创建重复项（例如：禁止同时存在 `label_recycle` 和 `title_recycle` 对应同一个中文）。
+    - **生成 Key (语义化前缀规则)**:
+      - 仅在无重复 Key 时生成新 Key
+      - 按钮/操作：`btn_{verb}` (如: 提交 -> `btn_submit`, 取消 -> `btn_cancel`)
+      - 标签/表头：`label_{name}` (如: 用户名 -> `label_username`)
+      - 标题：`title_{name}` (如: 新增用户 -> `title_create_user`)
+      - 提示/消息：`msg_{content}` (如: 操作成功 -> `msg_operation_success`)
+      - 占位符：`ph_{content}` (如: 请输入 -> `ph_input`)
+    - **翻译原则 (Translation Guidelines)**:
+      - **简洁性**：英文翻译应简练有力，避免冗长的解释性翻译 (e.g., "Please click here to submit" -> "Submit").
+      - **格式规范**：
+        - **按钮/标题**：使用 **Title Case** (e.g., "Upload File").
+        - **提示信息**：使用 **Sentence case** (e.g., "File uploaded successfully.").
+      - **专业术语**：使用标准 SaaS/Web 术语 (e.g., "编辑" -> "Edit", "删除" -> "Delete", "保存" -> "Save").
     - **写入 JSON**:
       - 自动创建不存在的目录或文件。
       - 向 `zh-CN` 写入中文，向 `en-US` 写入对应的英文翻译。
@@ -575,13 +590,31 @@ A: 使用 vue-i18n 的复数语法：
       - *注意*: 如果 Template 中不便修改，请使用 `computed` 包装 Prop 进行翻译。
 
     - **参数处理**:
-      - 原文 `"搜索 ${val}"` -> 代码 `t('search', { val })`。
+      - 原文 `"搜索 {val}"` -> 代码 `t('search', { val })`。
 
 # Constraints
 1.  **强制**：所有 i18n 引入必须来自 `@/hooks/web/useI18n`。
 2.  **强制**：Namespace 必须包含**完整的文件名路径**。
 3.  **强制**：若遇到 `defineProps` 默认值，**切勿**直接包裹 `t()`，必须传递 Key 字符串。
-4.  **强制**：如果当前是 React (.tsx) 文件，请停止操作并提示“仅支持 Vue 文件”。
-5.  **强制**：始终用中文沟通。
-6.  **输出**：直接生成修改后的代码块和 JSON 文件内容，无需啰嗦解释。
+4.  **强制**：翻译英文时，优先考虑 UI 语境，**禁止**直译（如 "登录中" -> "Logging in...", not "Login center"）。
+5.  **强制**：同一中文字符串必须**合并**为一个 Key，禁止出现重复 Key。
+6.  **强制**：如果当前是 React (.tsx) 文件，请停止操作并提示“仅支持 Vue 文件”。
+7.  **强制**：始终用中文沟通。
+8.  **输出**：直接生成修改后的代码块和 JSON 文件内容，无需啰嗦解释。
+
+# Final Output format
+执行完成后，请生成简要报告，格式如下：
+
+翻译完成结果如下：
+
+### 翻译内容:
+| 生成的Key | 原文 | 译文 |
+|----------|------|------|
+
+### 命名空间：`{Namespace}`
+
+### 国际化文件：
+- `src/locales/lang/{lang}/` + [Namespace转换回路径] + `.json`
+- `src/locales/lang/{lang}/` + [Namespace转换回路径] + `.json`
 ```
+

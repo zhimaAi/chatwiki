@@ -1,0 +1,8 @@
+{
+  "label_select_role": "Select Role",
+  "label_member_id_type": "Collaborator ID Type",
+  "ph_select": "Please select",
+  "desc_member_id_type": "Collaborator ID type, only supports user_id",
+  "label_member_id": "Collaborator ID",
+  "desc_member_id_link": "Collaborator ID, <a href=\"https://open.feishu.cn/document/platform-overveiw/basic-concepts/user-identity-introduction/open-id\" target=\"_blank\">how to get collaborator ID</a>"
+}

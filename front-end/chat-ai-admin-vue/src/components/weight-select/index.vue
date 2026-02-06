@@ -2,10 +2,10 @@
   <div class="slider-box" :class="{ 'neo4j-status-close-slider': !neo4j_status }" :style="cssVars">
     <div class="form-label-block">
       <div class="label-title">
-        权重
+        {{ t('label_weight') }}
         <a-tooltip>
           <template #title>
-            混合检索模式，结果中各检索方式的加权权重 权重越高，对应检索结果的采纳数量越多
+            {{ t('tooltip_weight') }}
           </template>
           <QuestionCircleOutlined />
         </a-tooltip>
@@ -34,7 +34,11 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import { useCompanyStore } from '@/stores/modules/company'
+
+const { t } = useI18n('components.weight-select.index')
+
 const companyStore = useCompanyStore()
 const neo4j_status = computed(() => {
   return companyStore.companyInfo?.neo4j_status == 'true'
@@ -51,19 +55,19 @@ const listItems = computed(() => {
   let { vector, search, graph } = props.rrf_weight
   let list = [
     {
-      label: '向量',
+      label: t('label_vector'),
       value: formatter(vector),
       color: '#2475fc'
     },
     {
-      label: '全文',
+      label: t('label_fulltext'),
       value: formatter(search),
       color: '#03b615'
     }
   ]
   if (neo4j_status.value) {
     list.push({
-      label: '图',
+      label: t('label_graph'),
       value: formatter(graph),
       color: '#F59A23'
     })
@@ -150,7 +154,8 @@ function formatter(value) {
   .label-title {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 2px;
+    margin-right: 8px;
   }
   .item-list-box {
     display: flex;

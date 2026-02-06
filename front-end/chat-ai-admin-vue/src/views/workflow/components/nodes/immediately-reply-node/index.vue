@@ -11,7 +11,7 @@
     <div class="specify-reply-node">
       <div class="static-field-list">
         <div class="static-field-item">
-          <div class="static-field-item-label">消息内容</div>
+          <div class="static-field-item-label">{{ t('label_message_content') }}</div>
           <div class="static-field-item-content">
             <div class="static-field-value">
               <AtText
@@ -35,6 +35,7 @@
 import NodeCommon from '../base-node.vue'
 import AtText from '../../at-input/at-text.vue'
 import { haveOutKeyNode } from '@/views/workflow/components/util.js'
+import { useI18n } from '@/hooks/web/useI18n'
 
 export default {
   name: 'ImmediatelyReplyNode',
@@ -42,6 +43,10 @@ export default {
   components: {
     NodeCommon,
     AtText
+  },
+  setup() {
+    const { t } = useI18n('views.workflow.components.nodes.immediately-reply-node.index')
+    return { t }
   },
   props: {
     properties: {

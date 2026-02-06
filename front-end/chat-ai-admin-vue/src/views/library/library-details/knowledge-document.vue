@@ -15,14 +15,14 @@
     >
       <div class="group-head-box">
         <div class="head-title">
-          <a-tooltip title="收起问答分组">
+          <a-tooltip :title="t('tooltip_collapse_group')">
             <div class="hover-btn-wrap" @click="handleChangeHideStatus">
               <svg-icon name="put-away"></svg-icon>
             </div>
           </a-tooltip>
           <div class="flex-between-box">
-            <div>知识分组</div>
-            <a-tooltip title="新建分组">
+            <div>{{ t('label_knowledge_group') }}</div>
+            <a-tooltip :title="t('tooltip_create_group')">
               <div class="hover-btn-wrap" @click="openGroupModal({})"><PlusOutlined /></div>
             </a-tooltip>
           </div>
@@ -31,7 +31,7 @@
           <a-input
             v-model:value="groupSearchKey"
             allowClear
-            placeholder="搜索分组"
+            :placeholder="t('ph_search_group')"
             style="width: 100%"
           >
             <template #suffix>
@@ -70,10 +70,10 @@
                       <template #overlay>
                         <a-menu>
                           <a-menu-item>
-                            <div @click.stop="openGroupModal(item)">重命名</div>
+                            <div @click.stop="openGroupModal(item)">{{ t('btn_rename') }}</div>
                           </a-menu-item>
                           <a-menu-item>
-                            <div @click.stop="handleDelGroup(item)">删 除</div>
+                            <div @click.stop="handleDelGroup(item)">{{ t('btn_delete') }}</div>
                           </a-menu-item>
                         </a-menu>
                       </template>
@@ -94,11 +94,11 @@
           <a-popover :title="null" placement="bottom" v-if="isHiddenGroup">
             <template #content>
               <div class="pover-group-content-box">
-                <div class="group-head-box">
+                  <div class="group-head-box">
                   <div class="head-title">
                     <div class="flex-between-box">
-                      <div>问答分组</div>
-                      <a-tooltip title="新建分组">
+                      <div>{{ t('label_qa_group') }}</div>
+                      <a-tooltip :title="t('tooltip_create_group')">
                         <div class="hover-btn-wrap" @click="openGroupModal({})">
                           <PlusOutlined />
                         </div>
@@ -109,7 +109,7 @@
                     <a-input
                       allowClear
                       v-model:value="groupSearchKey"
-                      placeholder="搜索分组"
+                      :placeholder="t('ph_search_group')"
                       style="width: 100%"
                     >
                       <template #suffix>
@@ -139,10 +139,10 @@
                           <template #overlay>
                             <a-menu>
                               <a-menu-item>
-                                <div @click.stop="openGroupModal(item)">重命名</div>
+                                <div @click.stop="openGroupModal(item)">{{ t('btn_rename') }}</div>
                               </a-menu-item>
                               <a-menu-item>
-                                <div @click.stop="handleDelGroup(item)">删 除</div>
+                                <div @click.stop="handleDelGroup(item)">{{ t('btn_delete') }}</div>
                               </a-menu-item>
                             </a-menu>
                           </template>
@@ -161,14 +161,14 @@
             <template v-if="inFolderDetail">
               <a-breadcrumb>
                 <a-breadcrumb-item>
-                  <a class="breadcrumb-a" @click="goToRootFolder">知识库文档</a>
+                  <a class="breadcrumb-a" @click="goToRootFolder">{{ t('label_knowledge_base_doc') }}</a>
                 </a-breadcrumb-item>
-                <a-breadcrumb-item v-if="groupId === -1">全部分组</a-breadcrumb-item>
+                <a-breadcrumb-item v-if="groupId === -1">{{ t('label_all_groups') }}</a-breadcrumb-item>
                 <a-breadcrumb-item v-else>{{ currentGroupItem.group_name }}</a-breadcrumb-item>
               </a-breadcrumb>
             </template>
             <template v-else>
-              <span class="title-text">知识库文档</span>
+              <span class="title-text">{{ t('label_knowledge_base_doc') }}</span>
             </template>
           </div>
         </div>
@@ -180,7 +180,7 @@
                   class="toggle-seg"
                   :class="{ active: viewMode === 'folder' }"
                   @click="switchToFolderView"
-                  aria-label="文件夹视图"
+                  :aria-label="t('aria_folder_view')"
                 >
                   <svg-icon
                     class="toggle-icon"
@@ -191,7 +191,7 @@
                   class="toggle-seg"
                   :class="{ active: viewMode === 'list' }"
                   @click="switchToListView"
-                  aria-label="缩略图视图"
+                  :aria-label="t('aria_thumbnail_view')"
                 >
                   <svg-icon
                     class="toggle-icon"
@@ -203,7 +203,7 @@
             <div class="tool-item" v-if="viewMode === 'folder' && inFolderDetail">
               <div class="sort-btn" ref="sortBtnRef">
                 <div class="sort-left">
-                  <span class="sort-text">{{ folderSort.order_field === 'total_hits' ? '合计' : folderSort.order_field === 'today_hits' ? '今日' : folderSort.order_field === 'yesterday_hits' ? '昨日' : '默认' }}</span>
+                  <span class="sort-text">{{ folderSort.order_field === 'total_hits' ? t('sort_total') : folderSort.order_field === 'today_hits' ? t('sort_today') : folderSort.order_field === 'yesterday_hits' ? t('sort_yesterday') : t('sort_default') }}</span>
                   <svg-icon
                     v-if="!folderSort.order_field"
                     key="default"
@@ -231,17 +231,17 @@
                   </span>
                   <template #overlay>
                     <a-menu :selectedKeys="[(folderSort.order_field || 'default')]">
-                      <a-menu-item :key="'default'" @click="setFolderSort('default')">默认</a-menu-item>
-                      <a-menu-item :key="'total_hits'" @click="setFolderSort('total_hits')">合计</a-menu-item>
-                      <a-menu-item :key="'today_hits'" @click="setFolderSort('today_hits')">今日</a-menu-item>
-                      <a-menu-item :key="'yesterday_hits'" @click="setFolderSort('yesterday_hits')">昨日</a-menu-item>
+                      <a-menu-item :key="'default'" @click="setFolderSort('default')">{{ t('sort_default') }}</a-menu-item>
+                      <a-menu-item :key="'total_hits'" @click="setFolderSort('total_hits')">{{ t('sort_total') }}</a-menu-item>
+                      <a-menu-item :key="'today_hits'" @click="setFolderSort('today_hits')">{{ t('sort_today') }}</a-menu-item>
+                      <a-menu-item :key="'yesterday_hits'" @click="setFolderSort('yesterday_hits')">{{ t('sort_yesterday') }}</a-menu-item>
                     </a-menu>
                   </template>
                 </a-dropdown>
               </div>
             </div>
             <a-flex align="center" class="tool-item custom-select-box" v-show="false">
-              <span>嵌入模型：</span>
+              <span>{{ t('label_embedding_model') }}</span>
               <model-select
                 modelType="TEXT EMBEDDING"
                 :isOffline="false"
@@ -256,15 +256,15 @@
           <div class="right-box">
             <div class="status-box" v-if="libraryInfo.type == 0">
               <div class="status-item">
-                <div class="status-label">已学习：</div>
+                <div class="status-label">{{ t('status_learned') }}</div>
                 <div class="status-content">{{ count_data.learned_count }}</div>
               </div>
               <div class="status-item" v-if="count_data.learned_wait_count > 0">
-                <div class="status-label">，未学习：</div>
+                <div class="status-label">{{ t('status_unlearned') }}</div>
                 <div class="status-content content-tip">{{ count_data.learned_wait_count }}</div>
               </div>
               <div class="status-item" v-if="count_data.learned_err_count > 0">
-                <div class="status-label">，学习失败：</div>
+                <div class="status-label">{{ t('status_learn_failed') }}</div>
                 <div class="status-content content-tip">{{ count_data.learned_err_count }}</div>
               </div>
             </div>
@@ -272,7 +272,7 @@
               <a-select
                 v-model:value="queryParams.status"
                 style="width: 150px"
-                placeholder="请选择"
+                :placeholder="t('ph_select')"
                 @change="handleChangeStatus"
               >
                 <a-select-option v-for="item in statusList" :key="item.id" :value="item.id">{{
@@ -284,7 +284,7 @@
               <a-input
                 style="width: 140px"
                 v-model:value="queryParams.file_name"
-                placeholder="文档名称搜索"
+                :placeholder="t('ph_search_doc_name')"
                 @change="onSearch"
               >
                 <template #suffix>
@@ -294,15 +294,15 @@
             </div>
             <a-flex align="center" v-if="neo4j_status" class="tool-item custom-select-box pd-5-8">
               <ModelSelect modelType="LLM" v-show="false" @loaded="onVectorModelLoaded" />
-              <span>生成知识图谱：</span>
+              <span>{{ t('label_generate_knowledge_graph') }}</span>
               <a-switch
                 v-model:checked="createGraphSwitch"
                 @change="createGraphSwitchChange"
-                checked-children="开"
-                un-checked-children="关"
+                :checked-children="t('switch_on')"
+                :un-checked-children="t('switch_off')"
               />
             </a-flex>
-            <a-button v-if="props.type != 3" @click="showMetaModal(1)">元数据 <SettingOutlined/></a-button>
+            <a-button v-if="props.type != 3" @click="showMetaModal(1)">{{ t('btn_metadata') }} <SettingOutlined/></a-button>
             <div class="tool-item">
               <a-dropdown :trigger="['hover']" overlayClassName="add-dropdown-btn">
                 <template #overlay>
@@ -311,13 +311,13 @@
                       <div class="dropdown-btn-menu">
                         <a-flex class="title-block" :gap="4">
                           <svg-icon name="doc-icon"></svg-icon>
-                          <div class="title">本地文档</div>
+                          <div class="title">{{ t('menu_local_doc') }}</div>
                         </a-flex>
                         <div class="desc" v-if="libraryInfo.type == 2">
-                          上传本地 docx/csv/xlsx 等格式文件
+                          {{ t('menu_local_doc_desc_qa') }}
                         </div>
                         <div class="desc" v-else>
-                          上传本地 pdf/docx/ofd/txt/md/xlsx/csv/html 等格式文件
+                          {{ t('menu_local_doc_desc') }}
                         </div>
                       </div>
                     </a-menu-item>
@@ -325,27 +325,27 @@
                       <div class="dropdown-btn-menu">
                         <a-flex class="title-block" :gap="4">
                           <svg-icon name="link-icon"></svg-icon>
-                          <div class="title">在线数据</div>
+                          <div class="title">{{ t('menu_online_data') }}</div>
                         </a-flex>
-                        <div class="desc">获取在线网页内容</div>
+                        <div class="desc">{{ t('menu_online_data_desc') }}</div>
                       </div>
                     </a-menu-item>
                     <a-menu-item :key="3">
                       <div class="dropdown-btn-menu">
                         <a-flex class="title-block" :gap="4">
                           <svg-icon name="cu-doc-icon"></svg-icon>
-                          <div class="title">自定义文档</div>
+                          <div class="title">{{ t('menu_custom_doc') }}</div>
                         </a-flex>
-                        <div class="desc">自定义一个空文档，手动添加内容</div>
+                        <div class="desc">{{ t('menu_custom_doc_desc') }}</div>
                       </div>
                     </a-menu-item>
                     <a-menu-item :key="4" v-if="libraryInfo.type == 0">
                       <div class="dropdown-btn-menu">
                         <a-flex class="title-block" :gap="4">
                           <svg-icon name="feishu-doc"></svg-icon>
-                          <div class="title">飞书知识库</div>
+                          <div class="title">{{ t('menu_feishu') }}</div>
                         </a-flex>
-                        <div class="desc">在线获取飞书知识库下docx格式云文档内容</div>
+                        <div class="desc">{{ t('menu_feishu_desc') }}</div>
                       </div>
                     </a-menu-item>
                     <!-- 添加分组 -->
@@ -353,9 +353,9 @@
                       <div class="dropdown-btn-menu">
                         <a-flex class="title-block" :gap="4">
                           <svg-icon name="group-default-icon"></svg-icon>
-                          <div class="title">添加分组</div>
+                          <div class="title">{{ t('menu_add_group') }}</div>
                         </a-flex>
-                        <div class="desc">便于文档更好的归类</div>
+                        <div class="desc">{{ t('menu_add_group_desc') }}</div>
                       </div>
                     </a-menu-item>
                   </a-menu>
@@ -364,18 +364,16 @@
                   <template #icon>
                     <PlusOutlined />
                   </template>
-                  <span>添加内容</span>
+                  <span>{{ t('btn_add_content') }}</span>
                 </a-button>
               </a-dropdown>
             </div>
           </div>
         </div>
-        <page-alert style="margin-bottom: 16px" title="使用说明" v-if="libraryInfo.type == 0 && viewMode==='list'">
+        <page-alert style="margin-bottom: 16px" :title="t('title_usage_instructions')" v-if="libraryInfo.type == 0 && viewMode==='list'">
           <div>
-            <p>
-              1、如果单次上传一个文档，上传成功后，系统会自动学习；如果单次上传多个文档，上传成功后，需要手动点击文档后面"学习"进行学习；如果解析失败，支持重新学习。
-            </p>
-            <p>2、未学习的文档数据不会被检索到。</p>
+            <p>{{ t('msg_usage_1') }}</p>
+            <p>{{ t('msg_usage_2') }}</p>
           </div>
         </page-alert>
         <!-- 文件夹视图 -->
@@ -383,7 +381,7 @@
           <div class="empty-folder" v-if="inFolderDetail && folderItems.length === 0">
             <div class="empty-inner">
               <img :src="emptyDocumentIcon" alt="" class="empty-img" />
-              <div class="empty-text">暂无文档</div>
+              <div class="empty-text">{{ t('empty_no_doc') }}</div>
             </div>
           </div>
           <div class="folder-grid" v-else>
@@ -423,7 +421,7 @@
                 <template v-else>
                   <a-popover :title="null" v-if="item.origin.doc_type == 2">
                     <template #content>
-                      原链接：<a :href="item.origin.doc_url" target="_blank">{{ item.origin.doc_url }} </a>
+                      {{ t('tooltip_original_link') }}<a :href="item.origin.doc_url" target="_blank">{{ item.origin.doc_url }} </a>
                       <CopyOutlined v-copy="`${item.origin.doc_url}`" style="margin-left: 4px; cursor: pointer" />
                     </template>
                     <div class="name name-2line">
@@ -434,7 +432,7 @@
                 </template>
                 <div class="desc">
                   <template v-if="item.__type === 'group'">
-                    <span>{{ item.total || '0' }}个知识库</span>
+                    <span>{{ item.total || '0' }}{{ t('label_knowledge_base_count') }}</span>
                     <span>{{ formatCardTime(item.last_update_ts) }}</span>
                   </template>
                   <template v-else>
@@ -456,10 +454,10 @@
                 <template #overlay>
                   <a-menu>
                     <a-menu-item @click="openGroupModal({ id: item.id, group_name: item.group_name })">
-                      <a-flex :gap="8" align="center"><svg-icon name="edit"></svg-icon><div>重命名</div></a-flex>
+                      <a-flex :gap="8" align="center"><svg-icon name="edit"></svg-icon><div>{{ t('btn_rename') }}</div></a-flex>
                     </a-menu-item>
                     <a-menu-item @click="handleDelGroup({ id: item.id, group_name: item.group_name })">
-                      <a-flex :gap="8" align="center"><svg-icon name="delete"></svg-icon><div>删除</div></a-flex>
+                      <a-flex :gap="8" align="center"><svg-icon name="delete"></svg-icon><div>{{ t('btn_delete') }}</div></a-flex>
                     </a-menu-item>
                   </a-menu>
                 </template>
@@ -471,26 +469,26 @@
                 <template #overlay>
                   <a-menu>
                     <a-menu-item @click="showBaseData(item.origin)">
-                      <a-flex :gap="8" align="center"><svg-icon name="base-data-icon"></svg-icon><div>基础数据</div></a-flex>
+                      <a-flex :gap="8" align="center"><svg-icon name="base-data-icon"></svg-icon><div>{{ t('btn_base_data') }}</div></a-flex>
                     </a-menu-item>
                     <a-menu-item @click="handlePreview(item.origin)">
-                      <a-flex :gap="8" align="center"><svg-icon name="preview-icon"></svg-icon><div>预览</div></a-flex>
+                      <a-flex :gap="8" align="center"><svg-icon name="preview-icon"></svg-icon><div>{{ t('btn_preview') }}</div></a-flex>
                     </a-menu-item>
                     <a-menu-item @click="toReSegmentationPage(item.origin)">
-                      <a-flex :gap="8" align="center"><SyncOutlined class="action-icon" /><div>重新分段</div></a-flex>
+                      <a-flex :gap="8" align="center"><SyncOutlined class="action-icon" /><div>{{ t('btn_re_segment') }}</div></a-flex>
                     </a-menu-item>
                     <a-menu-item @click="handleOpenRenameModal(item.origin)">
-                      <a-flex :gap="8" align="center"><svg-icon name="edit"></svg-icon><div>重命名</div></a-flex>
+                      <a-flex :gap="8" align="center"><svg-icon name="edit"></svg-icon><div>{{ t('btn_rename') }}</div></a-flex>
                     </a-menu-item>
                     <a-menu-item @click="openEditGroupModal(item.origin)">
-                      <a-flex :gap="8" align="center"><svg-icon name="group-default-icon"></svg-icon><div>修改分组</div></a-flex>
+                      <a-flex :gap="8" align="center"><svg-icon name="group-default-icon"></svg-icon><div>{{ t('btn_edit_group') }}</div></a-flex>
                     </a-menu-item>
                     <a-menu-item @click="handleDownload(item.origin)">
-                      <a-flex :gap="8" align="center"><svg-icon name="down-file"></svg-icon><div>下载文档</div></a-flex>
+                      <a-flex :gap="8" align="center"><svg-icon name="down-file"></svg-icon><div>{{ t('btn_download_doc') }}</div></a-flex>
                     </a-menu-item>
-                    <a-popconfirm title="确定要删除吗?" placement="topRight" trigger="click" @confirm="onDelete(item.origin)">
+                    <a-popconfirm :title="t('confirm_delete')" placement="topRight" trigger="click" @confirm="onDelete(item.origin)">
                       <a-menu-item>
-                        <a-flex :gap="8" align="center"><svg-icon name="delete"></svg-icon><div>删除</div></a-flex>
+                        <a-flex :gap="8" align="center"><svg-icon name="delete"></svg-icon><div>{{ t('btn_delete') }}</div></a-flex>
                       </a-menu-item>
                     </a-popconfirm>
                   </a-menu>
@@ -531,12 +529,12 @@
                 </a-tooltip>
               </template>
               <template v-else-if="column.key === 'file_name'">
-                文档名称 (共{{ queryParams.total || 0 }}个)
+                {{ t('col_doc_name_total', { total: queryParams.total || 0 }) }}
               </template>
               <template v-else-if="column.key === 'graph_entity_count'">
                 <div class="title-box">
-                  <div class="zm-line1">实体数</div>
-                  <a-tooltip title="知识图谱实体数">
+                  <div class="zm-line1">{{ t('col_entity_count') }}</div>
+                  <a-tooltip :title="t('tooltip_entity_count')">
                     <QuestionCircleOutlined />
                   </a-tooltip>
                 </div>
@@ -554,7 +552,7 @@
                   </a-tooltip>
                   <a-popover :title="null" v-if="record.doc_type == 2">
                     <template #content>
-                      原链接：<a :href="record.doc_url" target="_blank">{{ record.doc_url }} </a>
+                      {{ t('tooltip_original_link') }}<a :href="record.doc_url" target="_blank">{{ record.doc_url }} </a>
                       <CopyOutlined
                         v-copy="`${record.doc_url}`"
                         style="margin-left: 4px; cursor: pointer"
@@ -578,7 +576,7 @@
                     </a-tooltip>
                   </a>
                   <div v-if="record.doc_type == 2 && record.remark" class="url-remark">
-                    备注：{{ record.remark }}
+                    {{ t('label_remark') }}{{ record.remark }}
                   </div>
                 </div>
               </template>
@@ -607,8 +605,8 @@
                 <template v-if="record.file_ext == 'pdf' && record.pdf_parse_type >= 2">
                   <div class="pdf-progress-box" v-if="record.status == 0">
                     <div class="progress-title">
-                      <span class="status-box"><LoadingOutlined />文档解析中</span>
-                      <a @click="handleCancelOcrPdf(record)">取消</a>
+                      <span class="status-box"><LoadingOutlined />{{ t('status_parsing') }}</span>
+                      <a @click="handleCancelOcrPdf(record)">{{ t('btn_cancel') }}</a>
                     </div>
                     <div class="progress-bar">
                       <a-progress
@@ -625,16 +623,16 @@
                 </template>
                 <template v-else>
                   <span class="status-tag running" v-if="record.status == 0"
-                    ><a-spin size="small" /> 转换中</span
+                    ><a-spin size="small" /> {{ t('status_converting') }}</span
                   >
                 </template>
 
                 <span class="status-tag running" v-if="record.status == 1"
-                  ><a-spin size="small" /> 学习中</span
-                >
+                  ><a-spin size="small" /> {{ t('status_learning') }}</span
+                  >
 
                 <span class="status-tag complete" v-if="record.status == 2"
-                  ><CheckCircleFilled /> 学习完成</span
+                  ><CheckCircleFilled /> {{ t('status_learn_complete') }}</span
                 >
 
                 <a-tooltip placement="top" v-if="record.status == 3">
@@ -642,9 +640,9 @@
                     <span>{{ record.errmsg }}</span>
                   </template>
                   <span>
-                    <span class="status-tag status-error"><CloseCircleFilled /> 转换失败</span>
+                    <span class="status-tag status-error"><CloseCircleFilled /> {{ t('status_convert_failed') }}</span>
                     <a class="ml8" v-if="libraryInfo.type == 2" @click="handlePreview(record)"
-                      >学习</a
+                      >{{ t('btn_learn') }}</a
                     >
                   </span>
                 </a-tooltip>
@@ -653,62 +651,62 @@
                     <span>{{ record.errmsg }}</span>
                   </template>
                   <span>
-                    <span class="status-tag status-error"><CloseCircleFilled /> 转化异常</span>
+                    <span class="status-tag status-error"><CloseCircleFilled /> {{ t('status_convert_error') }}</span>
                   </span>
                 </a-tooltip>
                 <template v-if="record.status == 4">
-                  <span class="status-tag"><ClockCircleFilled /> 待学习</span>
+                  <span class="status-tag"><ClockCircleFilled /> {{ t('status_wait_learn') }}</span>
                   <!-- 产品说去掉这个学习，因为和重新分段走的一样的逻辑 -->
-                  <!-- <a class="ml8" @click="handlePreview(record)">学习</a> -->
+                  <!-- <a class="ml8" @click="handlePreview(record)">{{ t('btn_learn') }}</a> -->
                 </template>
                 <template v-if="record.status == 5">
-                  <span class="status-tag"><ClockCircleFilled /> 待获取</span>
+                  <span class="status-tag"><ClockCircleFilled /> {{ t('status_wait_fetch') }}</span>
                 </template>
                 <span class="status-tag running" v-if="record.status == 6"
-                  ><a-spin size="small" /> 获取中</span
+                  ><a-spin size="small" /> {{ t('status_fetching') }}</span
                 >
                 <a-tooltip placement="top" v-if="record.status == 7">
                   <template #title>
                     <span>{{ record.errmsg }}</span>
                   </template>
-                  <span class="status-tag error"><CloseCircleFilled /> 获取失败</span>
+                  <span class="status-tag error"><CloseCircleFilled /> {{ t('status_fetch_failed') }}</span>
                 </a-tooltip>
                 <template v-if="record.status == 9">
-                  <span class="status-tag cancel"><ExclamationCircleOutlined /> 取消解析</span>
+                  <span class="status-tag cancel"><ExclamationCircleOutlined /> {{ t('status_cancel_parse') }}</span>
                 </template>
 
                 <span class="status-tag subning" v-if="record.status == 10">
                   <a-spin size="small" />
-                  正在分段
+                  {{ t('status_segmenting') }}
                 </span>
               </template>
               <template v-if="column.key === 'graph_status'">
                 <!--0待生成 1排队中 2生成完成 3生成失败 4生成中 5部分成功-->
                 <template v-if="record.graph_status == 0">
-                  <span class="status-tag"><ClockCircleFilled /> 待生成</span>
-                  <a class="ml8" @click="createGraphTask(record)">生成</a>
+                  <span class="status-tag"><ClockCircleFilled /> {{ t('status_wait_generate') }}</span>
+                  <a class="ml8" @click="createGraphTask(record)">{{ t('btn_generate') }}</a>
                 </template>
                 <span v-else-if="record.graph_status == 1" class="status-tag running"
-                  ><HourglassFilled /> 排队中</span
+                  ><HourglassFilled /> {{ t('status_queueing') }}</span
                 >
                 <span v-else-if="record.graph_status == 2" class="status-tag complete"
-                  ><CheckCircleFilled /> 生成完成</span
+                  ><CheckCircleFilled /> {{ t('status_generate_complete') }}</span
                 >
                 <template v-else-if="record.graph_status == 3">
-                  <span class="status-tag error"><CloseCircleFilled /> 生成失败</span>
-                  <a class="ml8" @click="createGraphTask(record)">生成</a>
+                  <span class="status-tag error"><CloseCircleFilled /> {{ t('status_generate_failed') }}</span>
+                  <a class="ml8" @click="createGraphTask(record)">{{ t('btn_generate') }}</a>
                   <a-tooltip v-if="record.graph_err_msg" :title="record.graph_err_msg">
-                    <div class="zm-line1 reason-text">原因：{{ record.graph_err_msg }}</div>
+                    <div class="zm-line1 reason-text">{{ t('label_reason') }}{{ record.graph_err_msg }}</div>
                   </a-tooltip>
                 </template>
                 <span v-else-if="record.graph_status == 4" class="status-tag running"
-                  ><a-spin size="small" /> 生成中</span
+                  ><a-spin size="small" /> {{ t('status_generating') }}</span
                 >
                 <template v-else-if="record.graph_status == 5">
-                  <span class="status-tag warning"><CheckCircleFilled /> 部分成功</span>
+                  <span class="status-tag warning"><CheckCircleFilled /> {{ t('status_partial_success') }}</span>
                   <div class="reason-text">
-                    失败数：{{ record.graph_err_count || 0 }}
-                    <a class="ml8" @click="handlePreview(record, { graph_status: 3 })">详情</a>
+                    {{ t('label_fail_count') }}{{ record.graph_err_count || 0 }}
+                    <a class="ml8" @click="handlePreview(record, { graph_status: 3 })">{{ t('btn_details') }}</a>
                   </div>
                 </template>
               </template>
@@ -727,7 +725,7 @@
                       <template #content>
                         <div class="update-tooltip">
                           <div class="update-tooltip-title">
-                            更新频率：<span class="update-tooltip-value">{{ formatUpdateFrequency(record) }}</span>
+                            {{ t('label_update_frequency') }}<span class="update-tooltip-value">{{ formatUpdateFrequency(record) }}</span>
                             <div class="update-icon-box">
                               <svg-icon
                                 name="edit"
@@ -737,9 +735,9 @@
                             </div>
                           </div>
                           <div class="update-tooltip-time">
-                            更新时间：<span class="update-tooltip-value">{{ record.update_time }}</span>
-                            <a-popconfirm title="确认更新?" @confirm="handleUpdataDoc(record)">
-                              <a class="ml4 btn-hover-block">更新</a>
+                            {{ t('label_update_time') }}<span class="update-tooltip-value">{{ record.update_time }}</span>
+                            <a-popconfirm :title="t('confirm_update')" @confirm="handleUpdataDoc(record)">
+                              <a class="ml4 btn-hover-block">{{ t('btn_update') }}</a>
                             </a-popconfirm>
                           </div>
                         </div>
@@ -760,7 +758,7 @@
               <template v-if="column.key === 'action'">
                 <a-flex :gap="8">
                   <a-tooltip>
-                    <template #title>重新分段</template>
+                    <template #title>{{ t('tooltip_re_segment') }}</template>
                     <SyncOutlined class="btn-hover-block" @click="toReSegmentationPage(record)" />
                   </a-tooltip>
                   <a-dropdown>
@@ -770,26 +768,26 @@
                     <template #overlay>
                       <a-menu>
                         <a-menu-item v-if="record.doc_type == 2">
-                          <div @click="handleEditOnlineDoc(record)">编辑</div>
+                          <div @click="handleEditOnlineDoc(record)">{{ t('btn_edit') }}</div>
                         </a-menu-item>
                         <a-menu-item
                           :disabled="record.status == 6 || record.status == 7 || record.status == 0"
                         >
-                          <div @click="handlePreview(record)">预览</div>
+                          <div @click="handlePreview(record)">{{ t('btn_preview') }}</div>
                         </a-menu-item>
                         <a-menu-item @click="handleOpenRenameModal(record)">
-                          <div>重命名</div>
+                          <div>{{ t('btn_rename') }}</div>
                         </a-menu-item>
-                        <a-popconfirm title="确定要删除吗?" @confirm="onDelete(record)" placement="topRight">
+                        <a-popconfirm :title="t('confirm_delete')" @confirm="onDelete(record)" placement="topRight">
                           <a-menu-item>
-                            <span>删除</span>
+                            <span>{{ t('btn_delete') }}</span>
                           </a-menu-item>
                         </a-popconfirm>
                         <a-menu-item @click="openEditGroupModal(record)">
-                          <div>修改分组</div>
+                          <div>{{ t('btn_edit_group') }}</div>
                         </a-menu-item>
                         <a-menu-item @click="handleDownload(record)">
-                          <div>下载文档</div>
+                          <div>{{ t('btn_download_doc') }}</div>
                         </a-menu-item>
                       </a-menu>
                     </template>
@@ -811,7 +809,7 @@
       v-model:open="addFileState.open"
       :confirm-loading="addFileState.confirmLoading"
       :maskClosable="false"
-      title="上传文档"
+      :title="t('title_upload_doc')"
       @ok="handleSaveFiles"
       @cancel="handleCloseFileUploadModal"
       width="740px"
@@ -827,7 +825,7 @@
             />
           </div>
         </a-form-item>
-        <a-form-item v-if="existPdfFile" required label="PDF解析模式" class="select-card-main">
+        <a-form-item v-if="existPdfFile" required :label="t('label_pdf_parse_mode')" class="select-card-main">
           <div class="select-card-box">
             <div
               v-for="item in PDF_PARSE_MODE"
@@ -843,12 +841,12 @@
               <div class="card-title">
                 <svg-icon :name="item.icon" style="font-size: 16px"></svg-icon>
                 {{ item.title }}
-                <div class="card-switch-box" v-if="item.key == 4 && !ali_ocr_switch">未开启</div>
+                <div class="card-switch-box" v-if="item.key == 4 && !ali_ocr_switch">{{ t('label_not_enabled') }}</div>
               </div>
               <div class="card-desc">{{ item.desc }}</div>
               <div class="card-switch" v-if="item.key == 4 && !ali_ocr_switch">
-                未开启阿里云OCR
-                <div class="card-switch-btn" @click.stop="onGoSwitch">去开启</div>
+                {{ t('msg_ali_ocr_not_enabled') }}
+                <div class="card-switch-btn" @click.stop="onGoSwitch">{{ t('btn_go_enable') }}</div>
               </div>
             </div>
           </div>
@@ -860,7 +858,7 @@
       v-model:open="addUrlState.open"
       :confirm-loading="addUrlState.confirmLoading"
       :maskClosable="false"
-      title="添加在线数据"
+      :title="t('title_add_online_data')"
       width="746px"
       @ok="handleSaveUrl"
       @cancel="handleCloseUrlModal"
@@ -872,26 +870,26 @@
         :model="addUrlState"
         :rules="addUrlState.rules"
       >
-        <a-form-item name="urls" label="网页链接">
+        <a-form-item name="urls" :label="t('label_web_link')">
           <a-textarea
             style="height: 120px"
             v-model:value="addUrlState.urls"
-            placeholder="请输入网页链接,形式：一行标题一行网页链接"
+            :placeholder="t('ph_web_link')"
           />
         </a-form-item>
-        <a-form-item name="doc_auto_renew_frequency" label="更新频率" required>
+        <a-form-item name="doc_auto_renew_frequency" :label="t('label_update_frequency')" required>
           <a-select v-model:value="addUrlState.doc_auto_renew_frequency" style="width: 100%">
-            <a-select-option :value="1">不自动更新</a-select-option>
-            <a-select-option :value="2">每天</a-select-option>
-            <a-select-option :value="3">每3天</a-select-option>
-            <a-select-option :value="4">每7天</a-select-option>
-            <a-select-option :value="5">每30天</a-select-option>
+            <a-select-option :value="1">{{ t('update_freq_never') }}</a-select-option>
+            <a-select-option :value="2">{{ t('update_freq_daily') }}</a-select-option>
+            <a-select-option :value="3">{{ t('update_freq_3days') }}</a-select-option>
+            <a-select-option :value="4">{{ t('update_freq_7days') }}</a-select-option>
+            <a-select-option :value="5">{{ t('update_freq_30days') }}</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item
           v-if="addUrlState.doc_auto_renew_frequency > 1"
           name="doc_auto_renew_minute"
-          label="更新时间"
+          :label="t('label_update_time')"
         >
           <a-time-picker
             valueFormat="HH:mm"
@@ -920,6 +918,7 @@
 
 <script setup>
 import { useStorage } from '@/hooks/web/useStorage'
+import { useI18n } from '@/hooks/web/useI18n'
 import { reactive, ref, toRaw, onUnmounted, onMounted, computed, createVNode, nextTick } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -978,6 +977,7 @@ import AddFeishuDocument from "./components/add-feishu-document.vue";
 import MetadataManageModal from "@/views/library/library-details/components/metadata-manage-modal.vue";
 
 const { setStorage } = useStorage('localStorage')
+const { t } = useI18n('views.library.library-details.knowledge-document')
 
 const libraryStore = useLibraryStore()
 const { changeGraphSwitch } = libraryStore
@@ -1021,36 +1021,37 @@ const filterGroupLists = computed(() => {
 
 const userStore = useUserStore()
 const sourceTypeMap = {
-  1: '本地文档',
-  2: '在线文档',
-  3: '自定义文档',
-  4: '手工新增问答',
-  5: '导入问答'
+  1: t('menu_local_doc'),
+  2: t('menu_online_data'),
+  3: t('menu_custom_doc'),
+  4: t('source_manual_qa'),
+  5: t('source_import_qa'),
+  6: t('source_import_fs')
 }
 const PDF_PARSE_MODE = [
   {
     key: 2,
-    title: '图文OCR解析',
+    title: t('pdf_mode_ocr_title'),
     icon: 'pdf-ocr',
-    desc: '通过OCR文字识别提取pdf文件内容，可以兼容扫描件，但是解析速度较慢。'
+    desc: t('pdf_mode_ocr_desc')
   },
   {
     key: 1,
-    title: '纯文本解析',
+    title: t('pdf_mode_text_title'),
     icon: 'pdf-text',
-    desc: '只提取pdf中的文字内容，如果文档为扫描件可能提取不到内容。'
+    desc: t('pdf_mode_text_desc')
   },
   {
     key: 3,
-    title: '图文解析',
+    title: t('pdf_mode_img_title'),
     icon: 'pdf-img',
-    desc: '提取PDF文档中的图片和文字'
+    desc: t('pdf_mode_img_desc')
   },
   {
     key: 4,
-    title: '阿里云OCR解析',
+    title: t('pdf_mode_ali_title'),
     icon: 'ali-ocr',
-    desc: '通过阿里云文档智能接口解析提取图片和文字'
+    desc: t('pdf_mode_ali_desc')
   }
 ]
 const rotue = useRoute()
@@ -1084,8 +1085,8 @@ const onChangeModel = (val, option) => {
 
   if (fileList.value.length > 0) {
     Modal.confirm({
-      title: `确定切换模型为${new_use_model}吗？`,
-      content: '切换后，所有学习文档将自动重新学习。',
+      title: t('confirm_switch_model_title', { model: new_use_model }),
+      content: t('confirm_switch_model_content'),
       onOk() {
         modelForm.use_model = new_use_model
         modelForm.model_config_id = new_model_config_id
@@ -1111,7 +1112,7 @@ const saveLibraryConfig = (showSuccessTip = true, callback = null) => {
 
     typeof callback === 'function' && callback()
     if (showSuccessTip) {
-      message.success('保存成功')
+      message.success(t('msg_save_success'))
     }
   })
 }
@@ -1404,17 +1405,17 @@ function getFileCover(rec) {
 
 function getStatusLabel(record) {
   const s = Number(record?.status ?? -1)
-  if (s === 0) return '转换中'
-  if (s === 1) return '学习中'
-  if (s === 2) return '学习完成'
-  if (s === 3) return '转换失败'
-  if (s === 4) return '待学习'
-  if (s === 5) return '待获取'
-  if (s === 6) return '获取中'
-  if (s === 7) return '获取失败'
-  if (s === 8) return '转化异常'
-  if (s === 9) return '取消解析'
-  if (s === 10) return '正在分段'
+  if (s === 0) return t('status_converting')
+  if (s === 1) return t('status_learning')
+  if (s === 2) return t('status_learn_complete')
+  if (s === 3) return t('status_convert_failed')
+  if (s === 4) return t('status_wait_learn')
+  if (s === 5) return t('status_wait_fetch')
+  if (s === 6) return t('status_fetching')
+  if (s === 7) return t('status_fetch_failed')
+  if (s === 8) return t('status_convert_error')
+  if (s === 9) return t('status_cancel_parse')
+  if (s === 10) return t('status_segmenting')
   return ''
 }
 
@@ -1435,20 +1436,20 @@ function formatUpdateFrequency(record) {
   const freq = Number(record?.doc_auto_renew_frequency || 0)
   if (!freq) return '--'
   let first = ''
-  if (freq === 1) { return '不自动更新' }
-  if (freq === 2) { first = '每天' }
-  if (freq === 3) { first = '每3天' }
-  if (freq === 4) { first = '每7天' }
-  if (freq === 5) { first = '每30天' }
+  if (freq === 1) { return t('update_freq_never') }
+  if (freq === 2) { first = t('update_freq_daily') }
+  if (freq === 3) { first = t('update_freq_3days') }
+  if (freq === 4) { first = t('update_freq_7days') }
+  if (freq === 5) { first = t('update_freq_30days') }
   const minute = Number(record?.doc_auto_renew_minute || 0)
   if (minute > 0) {
     let time = convertTime(minute)
     if (typeof time === 'string' && /^0\d:\d{2}$/.test(time)) {
       time = time.slice(1)
     }
-    return `${first}${time}更新`
+    return t('update_freq_format', { freq: first, time })
   }
-  return '更新'
+  return t('update_freq_update')
 }
 
 const count_data = reactive({
@@ -1471,30 +1472,30 @@ const queryParams = reactive({
 const statusList = [
   {
     id: '',
-    name: '全部'
+    name: t('status_all')
   },
   {
     id: '4',
-    name: '待学习'
+    name: t('status_wait_learn')
   },
   {
     id: '8',
-    name: '部分失败'
+    name: t('status_partial_fail')
   },
   {
     id: '3',
-    name: '全部失败'
+    name: t('status_all_fail')
   },
   {
     id: '2',
-    name: '成功'
+    name: t('status_success')
   }
 ]
 
 const columns = ref([])
 const columnsDefault = [
   {
-    title: '文档名称',
+    title: t('col_doc_name'),
     dataIndex: 'file_name',
     key: 'file_name',
     resizable: true,
@@ -1503,7 +1504,7 @@ const columnsDefault = [
     width: 300
   },
   {
-    title: '大小/分段',
+    title: t('col_size_segment'),
     dataIndex: 'file_size_str',
     key: 'file_size',
     resizable: true,
@@ -1512,7 +1513,7 @@ const columnsDefault = [
     width: 140
   },
   {
-    title: '合计',
+    title: t('col_total'),
     dataIndex: 'total_hits',
     key: 'total_hits',
     resizable: true,
@@ -1522,7 +1523,7 @@ const columnsDefault = [
     sorter: true
   },
   {
-    title: '昨日',
+    title: t('col_yesterday'),
     dataIndex: 'yesterday_hits',
     key: 'yesterday_hits',
     resizable: true,
@@ -1532,7 +1533,7 @@ const columnsDefault = [
     sorter: true
   },
   {
-    title: '今日',
+    title: t('col_today'),
     dataIndex: 'today_hits',
     key: 'today_hits',
     resizable: true,
@@ -1542,7 +1543,7 @@ const columnsDefault = [
     sorter: true
   },
   {
-    title: '知识图谱',
+    title: t('col_knowledge_graph'),
     dataIndex: 'graph_status',
     key: 'graph_status',
     resizable: true,
@@ -1551,7 +1552,7 @@ const columnsDefault = [
     width: 200
   },
   {
-    title: '知识图谱实体数',
+    title: t('col_entity_count'),
     dataIndex: 'graph_entity_count',
     key: 'graph_entity_count',
     resizable: true,
@@ -1560,7 +1561,7 @@ const columnsDefault = [
     width: 160
   },
   {
-    title: '状态',
+    title: t('col_status'),
     dataIndex: 'status',
     key: 'status',
     resizable: true,
@@ -1569,7 +1570,7 @@ const columnsDefault = [
     width: 130,
   },
   {
-    title: '更新时间/频率',
+    title: t('col_update_info'),
     dataIndex: 'update_info',
     key: 'update_info',
     resizable: true,
@@ -1578,7 +1579,7 @@ const columnsDefault = [
     width: 130
   },
   {
-    title: '操作',
+    title: t('col_action'),
     dataIndex: 'action',
     key: 'action',
     fixed: 'right',
@@ -1657,28 +1658,28 @@ const onDelete = ({ id }) => {
 
     getData()
     getGroupLists()
-    message.success('删除成功')
+    message.success(t('msg_delete_success'))
   })
 }
 
 const handleBatchDelete = () => {
   if (state.selectedRowKeys.length == 0) {
-    return message.error('请选择要删除的文档')
+    return message.error(t('msg_select_doc_first'))
   }
   Modal.confirm({
-    title: '删除确认',
+    title: t('confirm_delete_title'),
     icon: createVNode(ExclamationCircleOutlined),
     content: createVNode(
       'div',
       {
         style: 'color: #8c8c8c;'
       },
-      '确定要删除选择的文档吗?'
+      t('confirm_delete_content')
     ),
     onOk() {
       delLibraryFile({ id: state.selectedRowKeys.join(',') }).then(() => {
         getData()
-        message.success('批量删除成功')
+        message.success(t('msg_batch_delete_success'))
       })
     },
     onCancel() {}
@@ -1709,22 +1710,22 @@ const handlePreview = (record, params = {}) => {
     })
   }
   if (record.status == '3' && libraryInfo.value.type != 2) {
-    return message.error('学习失败,不可预览')
+    return message.error(t('msg_learn_failed_cannot_preview'))
   }
   if (record.status == '0') {
-    return message.error('转换中,稍候可预览')
+    return message.error(t('msg_converting_wait'))
   }
   if (record.status == '1') {
-    return message.error('学习中,不可预览')
+    return message.error(t('msg_learning_cannot_preview'))
   }
   if (record.status == '6') {
-    return message.error('获取中,不可预览')
+    return message.error(t('msg_fetching_cannot_preview'))
   }
   if (record.status == '7') {
-    return message.error('获取失败,不可预览')
+    return message.error(t('msg_fetch_failed_cannot_preview'))
   }
   if (record.status == '10') {
-    return message.error('正在分段,不可预览')
+    return message.error(t('msg_segmenting_cannot_preview'))
   }
 
   if (params.open_new === true || routeName == 'libraryConfig') {
@@ -1838,10 +1839,9 @@ const addCustomDocumentRef = ref(null)
 const handleMenuClick = (e) => {
   if (vectorModelTextList.value.length == 0) {
     Modal.confirm({
-      title: `请先到模型管理中添加嵌入模型？`,
-      content:
-        '知识库学习需要使用到嵌入模型，请在系统管理-模型管理中添加。推荐使用通义千问、openai或者火山引擎的嵌入模型。',
-      okText: '去添加',
+      title: t('confirm_add_model_title'),
+      content: t('confirm_add_model_content'),
+      okText: t('btn_go_add'),
       onOk() {
         router.push({ path: '/user/model' })
       }
@@ -1874,13 +1874,13 @@ const addUrlState = reactive({
   rules: {
     urls: [
       {
-        message: '请输入网页地址',
+        message: t('msg_enter_web_url'),
         required: true
       },
       {
         validator: (_rule, value) => {
           if (transformUrlData(value) === false) {
-            return Promise.reject(new Error('网页地址不合法'))
+            return Promise.reject(new Error(t('msg_invalid_web_url')))
           }
           return Promise.resolve()
         }
@@ -1965,7 +1965,7 @@ const handleSaveFiles = () => {
   }
 
   if (addFileState.fileList.length == 0) {
-    message.error('请选择文件')
+    message.error(t('msg_select_file_first'))
     return
   }
 
@@ -2079,21 +2079,21 @@ const handleUpdataDoc = (record) => {
   manualCrawl({
     id: record.id
   }).then((res) => {
-    message.success('更新成功')
+    message.success(t('msg_update_success'))
     getData()
   })
 }
 
 const handleCancelOcrPdf = (record) => {
   Modal.confirm({
-    title: `取消确认？`,
-    content: '确认取消该文档解析',
-    okText: '确定',
+    title: t('confirm_cancel_parse_title'),
+    content: t('confirm_cancel_parse_content'),
+    okText: t('btn_confirm'),
     onOk() {
       cancelOcrPdf({
         id: record.id
       }).then((res) => {
-        message.success('取消成功')
+        message.success(t('msg_cancel_success'))
         getData()
       })
     }
@@ -2136,7 +2136,7 @@ const getGroupLists = () => {
     }, 0)
     groupLists.value = [
       {
-        group_name: '全部分组',
+        group_name: t('label_all_groups'),
         id: -1,
         total: allTotal
       },
@@ -2206,18 +2206,18 @@ function tryLoadMore() {
 
 const handleDelGroup = (item) => {
   Modal.confirm({
-    title: `确认删除分组${item.group_name}`,
+    title: t('confirm_delete_group_title', { groupName: item.group_name }),
     icon: createVNode(ExclamationCircleOutlined),
     content: '',
-    okText: '确认',
+    okText: t('btn_confirm'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('btn_cancel'),
     onOk() {
       deleteLibraryGroup({
         id: item.id,
         sense: 1
       }).then(() => {
-        message.success('删除成功')
+        message.success(t('msg_delete_success'))
         getGroupLists()
         if (groupId.value == item.id) {
           groupId.value = -1
@@ -2324,7 +2324,7 @@ const handleDragEnd = async () => {
       sense: 1,
       sort_group: JSON.stringify(sortList)
     })
-    message.success('排序已保存')
+    message.success(t('msg_sort_saved'))
   } catch (error) {
     console.error('排序保存失败:', error)
     // 恢复原顺序
@@ -2839,6 +2839,7 @@ onUnmounted(() => {
     }
 
     &.status-error {
+      font-size: 12px;
       cursor: pointer;
       color: #fb363f;
       // background-color: #f5c6c8;

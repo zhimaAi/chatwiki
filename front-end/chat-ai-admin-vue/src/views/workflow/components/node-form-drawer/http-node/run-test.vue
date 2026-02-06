@@ -8,12 +8,12 @@
     >
       <template #title>
         <div class="modal-title-block">
-           <span>运行测试</span>
+           <span>{{ t('title_run_test') }}</span>
         </div>
       </template>
       <div class="flex-content-box">
         <div class="test-model-box">
-          <div class="auto-extract-tip"><a-alert message="运行测试成功后，支持自动填充输出参数" type="info" show-icon /></div>
+          <div class="auto-extract-tip"><a-alert :message="t('msg_auto_extract_tip')" type="info" show-icon /></div>
           <a-form
             :model="formState"
             ref="formRef"
@@ -24,7 +24,7 @@
             <a-form-item
               v-for="item in test_params"
               :key="item.node_key"
-              :rules="[{ required: item.field.required, message: `请输入${item.field.label}` }]"
+              :rules="[{ required: item.field.required, message: t('msg_required_field', { label: item.field.label }) }]"
             >
               <template #label>
                 <a-flex :gap="4" >
@@ -33,12 +33,12 @@
                 </a-flex>
               </template>
               <template v-if="item.field.typ == 'string'">
-                <a-input placeholder="请输入" v-model:value="item.field.Vals" />
+                <a-input :placeholder="t('ph_input')" v-model:value="item.field.Vals" />
               </template>
               <template v-if="item.field.typ == 'number'">
                 <a-input-number
                   style="width: 100%"
-                  placeholder="请输入"
+                  :placeholder="t('ph_input')"
                   v-model:value="item.field.Vals"
                 />
               </template>
@@ -46,7 +46,7 @@
                 <div class="input-list-box">
                   <div class="input-list-item" v-for="(input, i) in item.field.Vals" :key="i">
                     <a-form-item-rest
-                      ><a-input placeholder="请输入" v-model:value="input.value"
+                      ><a-input :placeholder="t('ph_input')" v-model:value="input.value"
                     /></a-form-item-rest>
 
                     <CloseCircleOutlined
@@ -56,7 +56,7 @@
                   </div>
                   <div class="add-btn-box">
                     <a-button @click="handleAddItem(item.field.Vals)" block type="dashed"
-                      >添加</a-button
+                      >{{ t('btn_add') }}</a-button
                     >
                   </div>
                 </div>
@@ -71,26 +71,26 @@
               style="background-color: #00ad3a"
               type="primary"
               >
-              <span v-if="!loading"><CaretRightOutlined />运行测试</span>
-              <span v-if="loading">测试结果生成中...</span>
+              <span v-if="!loading"><CaretRightOutlined />{{ t('btn_run_test') }}</span>
+              <span v-if="loading">{{ t('msg_generating') }}</span>
             </a-button>
 
-            <a-button style="margin-left: 16px" type="primary" v-if="runTestStatus === 'success'" @click="handleAutoExtractOutput">自动提取输出参数</a-button>
+            <a-button style="margin-left: 16px" type="primary" v-if="runTestStatus === 'success'" @click="handleAutoExtractOutput">{{ t('btn_auto_extract') }}</a-button>
           </div>
         </div>
         <div class="preview-box">
           <template v-if="runTestStatus === 'success'">
             <div class="preview-title">
-              <div class="title-text">日志详情</div>
+              <div class="title-text">{{ t('label_log_details') }}</div>
             </div>
             <div class="preview-content-block">
-              <div class="title-block">原始输出<CopyOutlined @click="handleCopy('result')" /></div>
+              <div class="title-block">{{ t('label_raw_output') }}<CopyOutlined @click="handleCopy('result')" /></div>
               <div class="preview-code-box">
                 <vue-json-pretty :data="testResult.result" />
               </div>
             </div>
             <div class="preview-content-block">
-              <div class="title-block">运行日志<CopyOutlined @click="handleCopy('output')" /></div>
+              <div class="title-block">{{ t('label_run_log') }}<CopyOutlined @click="handleCopy('output')" /></div>
               <div class="preview-code-box">
                 <vue-json-pretty :data="testResult.output" />
               </div>
@@ -103,6 +103,7 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import {
   CaretRightOutlined,
   CloseCircleOutlined,
@@ -115,6 +116,8 @@ import { useRobotStore } from '@/stores/modules/robot'
 import { callWorkFlowHttpTest } from '@/api/robot/index'
 import { message } from 'ant-design-vue'
 import { copyText, generateRandomId } from '@/utils/index'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.http-node.run-test')
 
 
 const props = defineProps({
@@ -150,7 +153,7 @@ const formState = reactive({
 
 const handleOpenTestModal = async (fields) => {
   if (isLockedByOther.value) {
-    message.warning('当前已有其他用户在编辑中，无法运行测试')
+    message.warning(t('msg_locked_by_other'))
     return
   }
   
@@ -204,12 +207,12 @@ const handleSubmit = () => {
       ...postData
     })
       .then((res) => {
-        message.success('测试结果生成完成')
+        message.success(t('msg_test_success'))
         testResult.value = res.data;
         runTestStatus.value = 'success'
       })
       .catch((err) => {
-        message.error('测试结果生成失败')
+        message.error(t('msg_test_failed'))
         runTestStatus.value = 'error'
       })
       .finally(() => {
@@ -222,7 +225,7 @@ const handleSubmit = () => {
 const handleCopy = (key) => {
   copyText(JSON.stringify(testResult.value[key]))
 
-  message.success('复制成功')
+  message.success(t('msg_copy_success'))
 }
 
 const handleAutoExtractOutput = () => {

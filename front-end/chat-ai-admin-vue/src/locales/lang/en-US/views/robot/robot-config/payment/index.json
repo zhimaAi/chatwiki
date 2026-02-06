@@ -1,0 +1,11 @@
+{
+  "title_app_charging": "App Charging",
+  "switch_on": "On",
+  "switch_off": "Off",
+  "link_view_feature_intro": "View Feature Introduction",
+  "tab_billing_settings": "Billing Settings",
+  "tab_auth_code_management": "Authorization Code Management",
+  "msg_operation_success": "Operation successful",
+  "modal_title_tip": "Tip",
+  "modal_confirm_close": "After closing, the billing strategy will become invalid. Confirm to close?"
+}

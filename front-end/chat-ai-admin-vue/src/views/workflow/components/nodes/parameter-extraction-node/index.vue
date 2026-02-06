@@ -9,7 +9,7 @@
       }
     }
     .field-item-label {
-      width: 60px;
+      width: auto;
       line-height: 22px;
       margin-right: 8px;
       font-size: 14px;
@@ -70,7 +70,7 @@
     <div class="ai-dialogue-node">
       <div class="field-list">
         <div class="field-item">
-          <div class="field-item-label">用户问题</div>
+          <div class="field-item-label">{{ t('label_user_question') }}</div>
           <div class="field-item-content">
             <div class="field-value">
               <user-question-text ref="questionTextRef" :value="formState.question_value" />
@@ -79,7 +79,7 @@
         </div>
 
         <div class="field-item">
-          <div class="field-item-label">LLM模型</div>
+          <div class="field-item-label">{{ t('label_llm_model') }}</div>
           <div class="field-item-content">
             <div class="field-value">
               <span class="field-key">
@@ -90,7 +90,7 @@
         </div>
 
         <div class="field-item">
-          <div class="field-item-label">输出字段</div>
+          <div class="field-item-label">{{ t('label_output_fields') }}</div>
           <div class="field-item-content">
             <div class="field-value" :class="{ 'is-required': item.required }" v-for="item in formState.output" :key="item.cu_key">
               <span class="field-key"> {{ item.key }}</span>
@@ -119,6 +119,9 @@ import { haveOutKeyNode } from '@/views/workflow/components/util.js'
 import { useRobotStore } from '@/stores/modules/robot'
 import ModelNameText from '../model-name-text.vue'
 import UserQuestionText from '../user-question-text.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.parameter-extraction-node.index')
 
 const props = defineProps({
   properties: {

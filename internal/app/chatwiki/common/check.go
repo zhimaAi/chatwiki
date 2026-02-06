@@ -48,7 +48,7 @@ func CheckChatRequest(c *gin.Context, compatibilityXkf ...bool) (*define.ChatBas
 		openid = strings.TrimSpace(c.Query(`openid`))
 	}
 	if len(openid) == 0 && c.GetBool(`from_work_flow`) {
-		//来源工作流,不校验openid为空
+		// From workflow, do not verify openid is empty
 	} else if len(compatibilityXkf) > 0 && compatibilityXkf[0] {
 		if !IsXkfOpenid(openid) {
 			return nil, errors.New(i18n.Show(GetLang(c), `param_invalid`, `openid`))
@@ -204,7 +204,7 @@ func CheckSplitParams(libraryInfo msql.Params, splitParams define.SplitParams, l
 			splitParams.FatherChunkChunkSize = cast.ToInt(libraryInfo[`father_chunk_chunk_size`])
 			splitParams.SonChunkSeparatorsNo = libraryInfo[`son_chunk_separators_no`]
 			splitParams.SonChunkChunkSize = cast.ToInt(libraryInfo[`son_chunk_chunk_size`])
-			splitParams.NotMergedText = true //父子分段不合并较小分段
+			splitParams.NotMergedText = true // Father-son chunking does not merge smaller chunks
 		}
 	}
 
@@ -267,7 +267,7 @@ func CheckSplitParams(libraryInfo msql.Params, splitParams define.SplitParams, l
 		}
 	}
 
-	//分隔符序号转换成分隔符实体
+	// Convert separator numbers to separator entities
 	separators, err := GetSeparatorsByNo(splitParams.SeparatorsNo, lang)
 	if err != nil {
 		return splitParams, err

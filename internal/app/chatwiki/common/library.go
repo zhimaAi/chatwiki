@@ -94,7 +94,7 @@ func EmbeddingNewQAVector(libraryId, adminUserId, qaIndexType int) {
 	}
 	if qaIndexType == define.QAIndexTypeQuestionAndAnswer {
 		if len(answerIds) <= 0 {
-			// 新增
+			// Insert
 			page := 1
 			size := 200
 			for {
@@ -182,7 +182,8 @@ func AddDefaultLibrary(lang string, token, robotName, libraryIds, robotKey strin
 		res lib_web.Response
 		err error
 	)
-	req := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/createLibrary`, define.Config.WebService[`port`])).Header(`token`, token)
+	req := curl.Post(fmt.Sprintf(`http://127.0.0.1:%s/manage/createLibrary`, define.Config.WebService[`port`])).
+		Header(`token`, token).Header(`lang`, lang)
 	for key, item := range libraryData {
 		req.Param(key, item)
 	}
@@ -199,7 +200,7 @@ func AddDefaultLibrary(lang string, token, robotName, libraryIds, robotKey strin
 	} else {
 		libraryIds = cast.ToString(id)
 	}
-	// 更新机器人的知识库关联信息
+	// Update the robot's knowledge base association information
 	if _, err = msql.Model(`chat_ai_robot`, define.Postgres).Where(`robot_key`, robotKey).Update(msql.Datas{
 		`library_ids`:        libraryIds,
 		`default_library_id`: id,

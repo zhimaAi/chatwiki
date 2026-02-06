@@ -8,7 +8,7 @@
           :value="item.key"
           :key="item.key"
         >
-          {{ item.label }}
+          {{ t(item.label) }}
         </a-radio-button>
       </a-radio-group>
     </div>
@@ -27,6 +27,9 @@
 import dayjs from 'dayjs'
 import { ref, onMounted, reactive, watch } from 'vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.qa-feedback.components.date')
 
 const props = defineProps({
   datekey: {
@@ -41,21 +44,21 @@ const emit = defineEmits(['dateChange'])
 
 let tagDateArr = reactive([
   {
-    label: '今日',
+    label: 'label_today',
     value: true,
     key: 2,
     start_time: dayjs().startOf('day'),
     end_time: dayjs().endOf('day')
   },
   {
-    label: '昨日',
+    label: 'label_yesterday',
     value: false,
     key: 3,
     start_time: dayjs().subtract(1, 'day').startOf('day'),
     end_time: dayjs().startOf('day').subtract(1, 'millisecond')
   },
   {
-    label: '近7日',
+    label: 'label_last_7_days',
     value: false,
     key: 4,
     start_time: dayjs().subtract(6, 'day').startOf('day'),
@@ -106,7 +109,7 @@ const handleDateChange = (dates) => {
     range.value[1] = startDate.add(29, 'days').endOf('day')
     start_time.value = range.value[0].format('YYYY-MM-DD')
     end_time.value = range.value[1].format('YYYY-MM-DD')
-    message.error(`最多只能选择30天`)
+    message.error(t('error_max_30_days'))
   } else {
     const start = dayjs(dates[0]).startOf('day').format('YYYY-MM-DD')
     const end = dayjs(dates[1]).endOf('day').format('YYYY-MM-DD')

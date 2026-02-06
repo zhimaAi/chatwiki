@@ -1,0 +1,6 @@
+{
+  "label_today": "Today",
+  "label_yesterday": "Yesterday",
+  "label_last_7_days": "Last 7 Days",
+  "error_max_30_days": "You can only select up to 30 days"
+}

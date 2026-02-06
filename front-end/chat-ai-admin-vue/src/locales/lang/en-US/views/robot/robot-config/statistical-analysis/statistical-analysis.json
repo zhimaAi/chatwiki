@@ -1,0 +1,23 @@
+{
+  "label_channel": "Channel:",
+  "ph_all_channels": "All Channels",
+  "label_date": "Date:",
+  "btn_reset": "Reset",
+  "title_daily_active_users": "Daily Active Users",
+  "tooltip_daily_active_users": "Number of users who have effective communication every day. Effective communication is defined as one or more question-answer interactions.",
+  "unit_people": "Unit (people)",
+  "title_daily_new_users": "Daily New Users",
+  "tooltip_daily_new_users": "Number of new users who have effective communication every day. Effective communication is defined as one or more question-answer interactions.",
+  "title_total_messages": "Total Messages",
+  "tooltip_total_messages": "Total number of messages generated during user-robot interactions every day.",
+  "unit_messages": "Unit (messages)",
+  "title_token_consumption": "Token Consumption",
+  "tooltip_token_consumption": "Total tokens consumed by the large model every day, including tokens used for answering questions, optimizing questions, and recommending questions.",
+  "unit_thousands": "Unit (thousands)",
+  "channel_webapp": "WebAPP",
+  "channel_embedded_website": "Embedded Website",
+  "label_daily_active_users": "Daily Active Users (people)",
+  "label_daily_new_users": "Daily New Users (people)",
+  "label_total_messages": "Total Messages (messages)",
+  "label_token_consumption": "Token Consumption (thousands)"
+}

@@ -1,0 +1,9 @@
+{
+  "tip_bind_feishu_robot": "绑定飞书智能机器人，员工可在飞书单聊或者群聊给飞书机器人发送消息时由机器人自动回复",
+  "label_bind_feishu_robot": "绑定飞书智能机器人",
+  "title_confirm_remove": "确定移除{app_name}吗?",
+  "msg_remove_warning": "移除后，机器人无法继续回复用户消息。",
+  "btn_confirm": "确 定",
+  "btn_cancel": "取消",
+  "msg_delete_success": "删除成功"
+}

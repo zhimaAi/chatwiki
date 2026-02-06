@@ -1,0 +1,5 @@
+{
+  "upload_photo": "Upload Photo",
+  "image_format_error": "Knowledge base cover only supports JPG and PNG format images",
+  "image_size_error": "Knowledge base cover image size cannot exceed 100kb"
+}

@@ -13,13 +13,13 @@
         </cu-scroll>
       </div>
     </div>
-    <a-modal v-model:open="enableTipOpen" title="提示" :footer="null">
-      <div>开启该功能后请到机器人>功能中心，配置并使用该功能</div>
+    <a-modal v-model:open="enableTipOpen" :title="t('title_tip')" :footer="null">
+      <div>{{ t('msg_enable_feature_tip') }}</div>
       <div class="enable-tip-footer">
-        <a-checkbox v-model:checked="enableTipDontRemind">3天内不再提醒</a-checkbox>
+        <a-checkbox v-model:checked="enableTipDontRemind">{{ t('label_dont_remind') }}</a-checkbox>
         <div class="footer-actions">
-          <a-button @click="onCancelTip">取消</a-button>
-          <a-button type="primary" @click="goToFunctionCenter">去使用</a-button>
+          <a-button @click="onCancelTip">{{ t('btn_cancel') }}</a-button>
+          <a-button type="primary" @click="goToFunctionCenter">{{ t('btn_go_to_use') }}</a-button>
         </div>
       </div>
     </a-modal>
@@ -36,7 +36,10 @@ import {
   saveUserAbility
 } from '@/api/explore'
 import ExploreList from './components/explore-list/index.vue'
-import MainTab from "@/views/explore/components/main-tab.vue";
+import MainTab from "@/views/explore/components/main-tab.vue"
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.explore.explore-index.explore-index')
 
 // 顶部页签暂不使用
 
@@ -76,17 +79,17 @@ const handleSwitchChange = (item, checked) => {
   const newStatus = checked ? '1' : '0'
   if (newStatus === '0') {
     const contMap = {
-      'robot_auto_reply': '关闭后，该功能默认关闭不再支持使用，所有的公众号菜单都会停用，确认关闭？',
-      'library_ability_official_account': '关闭后，知识库模块将不再显示公众号知识库模块，历史已导入的文章将无法引用，确认关闭？',
-      'robot_payment': '关闭后，设置的收费策略将失效，确认关闭？',
+      'robot_auto_reply': t('msg_close_confirm_default'),
+      'library_ability_official_account': t('msg_close_confirm_library'),
+      'robot_payment': t('msg_close_confirm_payment'),
     }
     Modal.confirm({
-      title: '提示',
-      content: contMap[item.ability_type] || '关闭后，该功能默认关闭不再支持使用，所有的公众号菜单都会停用，确认关闭？',
+      title: t('title_tip'),
+      content: contMap[item.ability_type] || t('msg_close_confirm_default'),
       onOk: () => {
         saveUserAbility({ ability_type: item.ability_type, switch_status: newStatus }).then((res) => {
           if (res && res.res == 0) {
-            message.success('操作成功')
+            message.success(t('msg_operation_success'))
             if (item.user_config) {
               item.user_config.switch_status = newStatus
             } else if (item.robot_config) {
@@ -100,7 +103,7 @@ const handleSwitchChange = (item, checked) => {
   }
   saveUserAbility({ ability_type: item.ability_type, switch_status: newStatus }).then((res) => {
     if (res && res.res == 0) {
-      message.success('操作成功')
+      message.success(t('msg_operation_success'))
       if (item.user_config) {
         item.user_config.switch_status = newStatus
       } else if (item.robot_config) {
@@ -111,7 +114,6 @@ const handleSwitchChange = (item, checked) => {
       const now = Date.now()
       if (until <= now) {
         enableTipDontRemind.value = false
-        // 如果是关注后回复、自定义菜单 不需要提示
         if (item.robot_only_show != 1) {
           enableTipOpen.value = true
         }

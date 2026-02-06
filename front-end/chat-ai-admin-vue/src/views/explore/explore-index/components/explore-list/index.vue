@@ -190,8 +190,8 @@
         <div class="item-footer">
             <a-switch
               :checked="(item.user_config?.switch_status == '1') || (item.robot_config?.switch_status == '1')"
-              checked-children="开"
-              un-checked-children="关"
+              :checked-children="t('label_on')"
+              :un-checked-children="t('label_off')"
               class="no-bubble"
               @change="(checked)=>handleSwitchChange(item, checked)"
             />
@@ -204,6 +204,9 @@
 <script setup>
 import { setDescRef, getTooltipTitle } from '@/utils/index'
 import { useRouter } from 'vue-router'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.explore.explore-index.components.explore-list.index')
 const emit = defineEmits(['switchChange', 'clickItem'])
 
 const router = useRouter()

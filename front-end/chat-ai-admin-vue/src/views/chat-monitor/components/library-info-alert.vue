@@ -124,7 +124,7 @@
         </div>
       </div>
 
-      <div class="document-items">
+      <div class="document-items" ref="docBoxRef">
         <div class="document-item" v-for="item in documentList" :key="item.id">
           <div class="document-item-header">
             <div class="left-box">
@@ -161,12 +161,15 @@ import { useRouter } from 'vue-router'
 import { CloseOutlined } from '@ant-design/icons-vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import { getAnswerSource } from '@/api/chat/index'
+import {useMathJax} from "@/composables/useMathJax.js";
 
 const { t } = useI18n('views.chat-monitor.components.library-info-alert')
 
 const router = useRouter()
+const { renderMath } = useMathJax()
 
 const show = ref(false)
+const docBoxRef = ref(null)
 
 const fileList = ref([])
 const activeFileId = ref(null)
@@ -206,6 +209,7 @@ const getDocumentList = (file) => {
     openid: file.openid,
   }).then((res) => {
     documentList.value = res.data || []
+    renderMath(docBoxRef.value)
   })
 }
 

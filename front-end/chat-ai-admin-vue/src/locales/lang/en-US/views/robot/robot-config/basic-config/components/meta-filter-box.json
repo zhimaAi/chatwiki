@@ -1,0 +1,22 @@
+{
+  "label_and": "AND",
+  "label_or": "OR",
+  "ph_select": "Please select",
+  "ph_input": "Please input",
+  "btn_add_condition": "Add Condition",
+  "op_is": "Is",
+  "op_is_not": "Is Not",
+  "op_contains": "Contains",
+  "op_not_contains": "Does Not Contain",
+  "op_is_empty": "Is Empty",
+  "op_is_not_empty": "Is Not Empty",
+  "op_greater_than": "Greater Than",
+  "op_equals": "Equals",
+  "op_less_than": "Less Than",
+  "op_greater_than_or_equal": "Greater Than or Equal",
+  "op_less_than_or_equal": "Less Than or Equal",
+  "msg_select_filter_metadata": "Please select filter metadata",
+  "msg_select_filter_operator": "Please select filter operator",
+  "msg_select_filter_metadata_value": "Please select filter metadata value",
+  "msg_complete_at_least_one_filter_rule": "Please complete at least one filter rule"
+}

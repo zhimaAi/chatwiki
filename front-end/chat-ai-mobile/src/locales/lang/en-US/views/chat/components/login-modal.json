@@ -1,0 +1,12 @@
+{
+  "title_welcome": "Welcome to ChatWiki",
+  "ph_input_account": "Please enter account",
+  "msg_input_account": "Please enter account",
+  "ph_input_password": "Please enter password",
+  "msg_input_password": "Please enter password",
+  "msg_agree_terms": "By using, you agree to our",
+  "label_service_agreement": "Service Agreement",
+  "label_and": "and",
+  "label_privacy_agreement": "Privacy Agreement",
+  "btn_login": "Login Now"
+}

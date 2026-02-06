@@ -1,0 +1,11 @@
+{
+  "title": "AI智能总结",
+  "model_selection_label": "请选择生成未知问题总结的大模型",
+  "generate_button": "开始总结",
+  "generating_title": "生成数据",
+  "generating_tip": "数据生成中，请勿关闭页面",
+  "complete_title": "生成完成",
+  "complete_subtitle": "您可以去未知问题总结中下载生成的数据",
+  "download_button": "去下载",
+  "before_unload_tip": "数据正在生成中，确定要离开吗？"
+}

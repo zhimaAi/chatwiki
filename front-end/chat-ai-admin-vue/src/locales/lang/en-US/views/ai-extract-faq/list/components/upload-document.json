@@ -1,0 +1,18 @@
+{
+  "modal_title": "Upload Document",
+  "faq_files_label": "Please select files",
+  "chunk_model_label": "Extraction Model",
+  "chunk_model_placeholder": "Please select AI model",
+  "chunk_type_label": "Chunking Method",
+  "chunk_type_by_length": "By Length",
+  "chunk_type_by_separator": "By Separator",
+  "chunk_size_placeholder": "Please enter",
+  "separator_placeholder": "Please select",
+  "max_length_label": "Max Length",
+  "faq_prompt_label": "FAQ Extraction Prompt",
+  "faq_prompt_placeholder": "Please enter",
+  "confirm_validate_msg_model": "Please select extraction model",
+  "confirm_validate_msg_file": "Please select files",
+  "upload_success_msg": "Upload successful",
+  "default_prompt": "Based on the text provided by the user role, learn and analyze it, and organize the learning results:\n- Ask questions and provide answers for each question.\n- Answers should be detailed and complete, preserving the original text description as much as possible, and appropriately expanding the answer description.\n- Answers can contain Markdown elements such as regular text, links, code, tables, formulas, and media links.\n- Ask at most 50 questions.\n- The generated questions and answers should be in the same language as the source text."
+}

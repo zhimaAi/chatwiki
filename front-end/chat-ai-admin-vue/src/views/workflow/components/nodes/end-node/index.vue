@@ -20,22 +20,27 @@
     :node-key="properties.node_key"
     :node_type="properties.node_type"
     @handleMenu="handleMenu"
-    style="width: 420px; height: 94px;"
+    style="width: 420px; height: 116px;"
   >
     <div class="end-node">
-      <div class="node-desc">触发该节点结束调用,并返回流程执行结果</div>
+      <div class="node-desc">{{ t('msg_trigger_node_end_return_result') }}</div>
     </div>
   </node-common>
 </template>
 
 <script>
 import NodeCommon from '../base-node.vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
 export default {
   name: 'EndNode',
   inject: ['getNode', 'getGraph', 'setData', 'resetSize'],
   components: {
     NodeCommon
+  },
+  setup() {
+    const { t } = useI18n('views.workflow.components.nodes.end-node.index')
+    return { t }
   },
   props: {
     properties: {
@@ -60,7 +65,7 @@ export default {
   computed: {},
   methods: {
     handleMenu() {
-      
+
     }
   }
 }

@@ -7,7 +7,7 @@
         class="tab-item"
         :class="{ active: props.item.question_tabkey == 1 }"
       >
-        猜你想问
+        {{ t('tab_guess_you_want') }}
       </div>
       <div
         v-if="
@@ -21,7 +21,7 @@
         class="tab-item"
         :class="{ active: props.item.question_tabkey == 2 }"
       >
-        常见问题
+        {{ t('tab_common_questions') }}
       </div>
     </div>
     <div class="message-menus" v-if="props.item.question_tabkey == 1">
@@ -49,6 +49,10 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-test.components.guess-you-want')
+
 const emit = defineEmits(['clickMeun'])
 const props = defineProps({
   item: {

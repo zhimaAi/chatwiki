@@ -1,0 +1,11 @@
+{
+  "title_warning": "Warning",
+  "msg_logout_confirm": "Are you sure you want to logout?",
+  "msg_input_message": "Please enter a message",
+  "msg_sensitive_word": "The submitted content contains sensitive words: [{words}]. Please modify and resubmit.",
+  "msg_please_login": "Please login to your account",
+  "msg_no_permission": "Current account has no access permission",
+  "label_form_info": "Form Information",
+  "btn_edit": "Edit",
+  "tech_support": "Powered by ChatWiki"
+}

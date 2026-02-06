@@ -1,0 +1,16 @@
+{
+  "title_basic_data": "基础数据",
+  "label_updated_at": "更新于",
+  "label_no_auto_update": "不自动更新",
+  "label_every_day": "每天",
+  "label_every_3_days": "每3天",
+  "label_every_7_days": "每7天",
+  "label_every_30_days": "每30天",
+  "btn_edit": "修改",
+  "label_file_format": "文件格式",
+  "label_doc_size": "文档大小",
+  "label_doc_segments": "文档分段",
+  "label_total_triggers": "合计触发",
+  "label_today_triggers": "今日触发",
+  "label_yesterday_triggers": "昨日触发"
+}

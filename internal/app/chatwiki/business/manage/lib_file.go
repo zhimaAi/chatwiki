@@ -10,7 +10,6 @@ import (
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
-	"chatwiki/internal/pkg/thumbnail"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -101,7 +100,7 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 	similarColumn := strings.TrimSpace(addFileParam.SimilarColumn)
 	similarLabel := strings.TrimSpace(addFileParam.SimilarLabel)
 	pdfParseType := cast.ToInt(addFileParam.PdfParseType)
-	// 问答知识库（libraryType == define.QALibraryType groupId是chat_ai_library_file 和 chat_ai_library_file_data 的group_id字段；
+	// QA library (libraryType == define.QALibraryType): groupId is chat_ai_library_file.group_id and chat_ai_library_file_data.group_id
 	groupId := max(0, cast.ToInt(addFileParam.GroupId))
 	officialArticleId := strings.TrimSpace(addFileParam.OfficialArticleId)
 	officialArticleUpdateTime := cast.ToInt64(addFileParam.OfficialArticleUpdateTime)
@@ -207,7 +206,7 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 		if len(libraryFiles) == 0 {
 			return nil, errors.New(i18n.Show(lang, `upload_empty`))
 		}
-	case define.DocTypeOfficial: // 公众号文章
+	case define.DocTypeOfficial: // WeChat official account article
 		if libraryType != define.OfficialLibraryType {
 			return nil, errors.New(i18n.Show(lang, `param_invalid`, `doc_type`))
 		}
@@ -218,14 +217,14 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 			return nil, err
 		}
 		libraryFiles = append(libraryFiles, &define.UploadInfo{Name: title, Size: int64(len(content)), Ext: `html`, Link: link})
-	case define.DocTypeFeishu: // 飞书知识库
+	case define.DocTypeFeishu: // Feishu knowledge base
 		if libraryType != define.GeneralLibraryType {
 			return nil, errors.New(i18n.Show(lang, `param_invalid`, `doc_type`))
 		}
 		if strings.TrimSpace(feishuDocumentIdList) == "" || len(feishuAppId) == 0 || len(feishuAppSecret) == 0 {
 			return nil, errors.New(i18n.Show(lang, `param_lack`))
 		}
-		// feishu_document_id 去重
+		// Deduplicate feishu_document_id
 		feishuDocumentIdSet := make(map[string]struct{})
 		for _, rawId := range strings.Split(feishuDocumentIdList, ",") {
 			docId := strings.TrimSpace(rawId)
@@ -261,7 +260,7 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 		// save document and push to nsq
 		var fileIds []int64
 		for feishuDocumentId := range feishuDocumentIdSet {
-			// 已存在则更新并复用（同一个知识库同一个feishu_document_id只保留一条）
+			// If exists, update and reuse (keep only one per library and feishu_document_id)
 			if existId, ok := existIdMap[feishuDocumentId]; ok && existId > 0 {
 				_, updateErr := msql.Model(`chat_ai_library_file`, define.Postgres).
 					Where(`id`, cast.ToString(existId)).
@@ -303,7 +302,7 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 
 			fileId, insertErr := m.Insert(insData, `id`)
 			if insertErr != nil {
-				// 可能并发/历史数据导致唯一约束冲突：补查存在则更新复用，否则记录错误
+				// Unique constraint conflict from concurrency/history: re-check and reuse if exists; otherwise log the error
 				old, findErr := msql.Model(`chat_ai_library_file`, define.Postgres).
 					Where(`admin_user_id`, cast.ToString(userId)).
 					Where(`library_id`, cast.ToString(libraryId)).
@@ -389,17 +388,11 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 			status = define.FileStatusInitial
 		}
 
-		returnDir := filepath.Join(fmt.Sprintf(`%s/upload/chat_ai/%d/%s/%s`, filepath.Dir(define.AppRoot), userId, `library_file`, tool.Date(`Ym`)))
-		thumbFolderPath := filepath.Join(fmt.Sprintf(`/upload/chat_ai/%d/%s/%s/`, userId, `library_file`, tool.Date(`Ym`)))
-
-		//生成缩略图
-		thumbPath, _, _, genErr := thumbnail.GenerateThumbnail(common.GetFileByLink(uploadInfo.Link), returnDir, thumbFolderPath)
-
-		if genErr != nil {
-			logs.Error("generate thumbnail error：" + genErr.Error())
-		}
-
-		if addFileParam.ThumbPath != "" {
+		// Generate thumbnail
+		thumbPath := ""
+		if addFileParam.ThumbPath == "" {
+			thumbPath = common.GenThumbnail(common.GetFileByLink(uploadInfo.Link), cast.ToString(userId))
+		} else {
 			thumbPath = addFileParam.ThumbPath
 		}
 
@@ -454,7 +447,7 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 		}
 		var fileId int64
 		var err error
-		if len(officialArticleId) > 0 { // 公众号知识库需要根据article_id来做更新操作
+		if len(officialArticleId) > 0 { // Official account library updates by article_id
 			old, err := m.Where(`library_id`, cast.ToString(libraryId)).Where(`official_article_id`, officialArticleId).Find()
 			if err != nil {
 				logs.Error(err.Error())
@@ -467,7 +460,7 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 				_, err = m.Where(`id`, old[`id`]).Update(insData)
 				fileId = cast.ToInt64(old[`id`])
 			}
-		} else { // 普通知识库直接插入
+		} else { // General library inserts directly
 			fileId, err = m.Insert(insData, `id`)
 			//set use guide finish
 			if docType == define.DocTypeLocal && cast.ToInt(libraryInfo[`is_default`]) == define.NotDefault && define.IsPdfFile(uploadInfo.Ext) {
@@ -588,7 +581,7 @@ func setChunkParam(chunkParam *define.ChunkParam, splitParams *define.SplitParam
 			splitParams.FatherChunkChunkSize = cast.ToInt(libraryInfo[`father_chunk_chunk_size`])
 			splitParams.SonChunkSeparatorsNo = libraryInfo[`son_chunk_separators_no`]
 			splitParams.SonChunkChunkSize = cast.ToInt(libraryInfo[`son_chunk_chunk_size`])
-			splitParams.NotMergedText = true //父子分段不合并较小分段
+			splitParams.NotMergedText = true // Do not merge small chunks for parent/child chunking
 		}
 		return
 	}
@@ -616,7 +609,7 @@ func setChunkParam(chunkParam *define.ChunkParam, splitParams *define.SplitParam
 		splitParams.FatherChunkChunkSize = cast.ToInt(chunkParam.FatherChunkChunkSize)
 		splitParams.SonChunkSeparatorsNo = chunkParam.SonChunkSeparatorsNo
 		splitParams.SonChunkChunkSize = cast.ToInt(chunkParam.SonChunkChunkSize)
-		splitParams.NotMergedText = true //父子分段不合并较小分段
+		splitParams.NotMergedText = true // Do not merge small chunks for parent/child chunking
 	}
 }
 
@@ -715,8 +708,8 @@ func GetLibFileInfo(c *gin.Context) {
 	separators, _ := common.GetSeparatorsByNo(info[`separators_no`], common.GetLang(c))
 	info[`separators`] = strings.Join(separators, ", ")
 
-	// ====== 元数据及其值 ======
-	// 1) 内置元数据值：固定从 chat_ai_library_file 字段映射
+	// ====== Metadata and values ======
+	// 1) Built-in metadata values: mapped from chat_ai_library_file fields
 	groupId := cast.ToInt(info[`group_id`])
 	groupName := lib_define.Ungrouped
 	if groupId > 0 {
@@ -733,15 +726,15 @@ func GetLibFileInfo(c *gin.Context) {
 	}
 	info[`group_name`] = groupName
 
-	// 2) 自定义元数据值：来自 chat_ai_library_file.metadata(jsonb)
+	// 2) Custom metadata values: from chat_ai_library_file.metadata (jsonb)
 	metaMap := make(map[string]any)
 	metaStr := strings.TrimSpace(cast.ToString(info[`metadata`]))
 	if metaStr == `` {
-		metaStr = `{}` // 容错
+		metaStr = `{}` // fallback
 	}
 	_ = tool.JsonDecode(metaStr, &metaMap)
 
-	// 3) 组装元数据表格行（前端直接渲染）
+	// 3) Build metadata table rows (rendered directly by frontend)
 	builtinValueMap := map[string]any{
 		define.BuiltinMetaKeyUpdateTime: cast.ToInt(info[`update_time`]),
 		define.BuiltinMetaKeyCreateTime: cast.ToInt(info[`create_time`]),
@@ -749,17 +742,17 @@ func GetLibFileInfo(c *gin.Context) {
 		define.BuiltinMetaKeyGroup:      groupName,
 	}
 
-	// 自定义：只返回已配置的 schema key（避免返回无效/脏key）
+	// Custom: return only configured schema keys (avoid invalid/dirty keys)
 	schemaList, err := msql.Model(`library_meta_schema`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(userId)).
 		Where(`library_id`, cast.ToString(cast.ToInt(info[`library_id`]))).
 		Order(`id asc`).
 		Select()
 
-	// 4) 生成表格行：数据名/数据类型/数据值
+	// 4) Generate table rows: name/type/value
 	builtinMetaSchemaList := common.GetBuiltinMetaSchemaList(common.GetLang(c))
 	metaList := make([]map[string]any, 0, len(builtinMetaSchemaList)+len(schemaList))
-	// 内置：数据值来自文件字段；is_show 来自 chat_ai_library 的 show_meta_*
+	// Built-in: values from file fields; is_show from chat_ai_library show_meta_*
 	for _, b := range builtinMetaSchemaList {
 		isShow := 0
 		switch b.Key {
@@ -804,7 +797,7 @@ func GetLibFileInfo(c *gin.Context) {
 			})
 		}
 	}
-	// info 是 msql.Params(map[string]string)，这里组装一个 any-map 返回，避免把 map 赋给 string
+	// info is msql.Params(map[string]string); build an any-map to avoid assigning map to string
 	resp := make(map[string]any, len(info)+4)
 	for k, v := range info {
 		resp[k] = v
@@ -948,7 +941,7 @@ func unifyGetLibFileSplit(c *gin.Context, chunkPreview bool) {
 		SonChunkSeparatorsNo:       strings.TrimSpace(c.Query(`son_chunk_separators_no`)),
 		SonChunkChunkSize:          cast.ToInt(c.Query(`son_chunk_chunk_size`)),
 	}
-	if chunkPreview { //预览逻辑
+	if chunkPreview { // preview logic
 		splitParams.ChunkPreview = true
 		splitParams.ChunkPreviewSize = define.SplitPreviewChunkMaxSize
 		if define.IsDev {
@@ -1056,7 +1049,7 @@ func SaveLibFileSplit(c *gin.Context) {
 
 	if splitParams.ChunkType == define.ChunkTypeAi && !splitParams.AiChunkNew {
 		// do nothging
-		// 同步orc解析pdf的情况很耗时，直接使用前端传入的值保存
+		// Synchronous OCR PDF parsing is slow; save the frontend value directly
 	} else if !(pdfPageNum > 0 && (splitParams.PdfParseType == define.PdfParseTypeOcr || splitParams.PdfParseType == define.PdfParseTypeOcrWithImage)) {
 		list, wordTotal, splitParams, err = common.GetLibFileSplit(userId, fileId, pdfPageNum, splitParams, common.GetLang(c))
 		if err != nil {
@@ -1124,7 +1117,7 @@ func saveLibFileSplitAsync(c *gin.Context) {
 		splitParams.AiChunkNew = true
 	}
 	if splitParams.ChunkAsync {
-		// 异步保存
+		// Save asynchronously
 		go func() {
 			if err = common.UpdateLibFileData(userId, fileId, msql.Datas{`status`: define.FileStatusChunking}); err != nil {
 				logs.Error(err.Error())
@@ -1370,7 +1363,7 @@ func GetFileGraphInfo(c *gin.Context) {
 		paragraphMap[paragraphId] = paragraph
 	}
 
-	// 获取节点数据，添加搜索条件筛选
+	// Fetch node data with search filter
 	nodeRes, err := common.NewGraphDB(userId).GetFileNodes(fileId, dataId, searchTerm)
 	if err != nil {
 		logs.Error(err.Error())
@@ -1378,7 +1371,7 @@ func GetFileGraphInfo(c *gin.Context) {
 		return
 	}
 
-	// 准备节点数据
+	// Prepare node data
 	nodes := make([]map[string]any, 0)
 	nodeIds := make(map[int64]bool)
 
@@ -1387,7 +1380,7 @@ func GetFileGraphInfo(c *gin.Context) {
 		name, _ := record.Get("name")
 		dataId, _ := record.Get("data_id")
 
-		// 将节点ID添加到nodeIds集合中
+		// Add node ID to nodeIds set
 		if idInt64, ok := nodeId.(int64); ok {
 			nodeIds[idInt64] = true
 		}
@@ -1398,7 +1391,7 @@ func GetFileGraphInfo(c *gin.Context) {
 			"data_id": dataId,
 		}
 
-		// 将段落数据添加到节点中
+		// Attach paragraph data to node
 		if dataIdStr := cast.ToString(dataId); dataIdStr != "" && paragraphMap[dataIdStr] != nil {
 			paragraph := paragraphMap[dataIdStr]
 			node["file_id"] = paragraph["file_id"]
@@ -1409,7 +1402,7 @@ func GetFileGraphInfo(c *gin.Context) {
 		nodes = append(nodes, node)
 	}
 
-	// 如果没有找到节点，直接返回空结果
+	// If no nodes found, return empty result
 	if len(nodes) == 0 {
 		result := map[string]any{
 			"nodes": nodes,
@@ -1419,7 +1412,7 @@ func GetFileGraphInfo(c *gin.Context) {
 		return
 	}
 
-	// 获取边数据，添加搜索条件筛选
+	// Fetch edge data with search filter
 	edgeRes, err := common.NewGraphDB(userId).GetFileRelationships(fileId, dataId, searchTerm)
 	if err != nil {
 		logs.Error(err.Error())
@@ -1427,9 +1420,9 @@ func GetFileGraphInfo(c *gin.Context) {
 		return
 	}
 
-	// 准备边数据，只保留与筛选后节点相关的边
+	// Prepare edge data; keep only edges related to filtered nodes
 	edges := make([]map[string]any, 0)
-	// 用于去重的映射，记录已经添加的边的方向
+	// Dedup map to track added edge directions
 	edgeDirections := make(map[string]bool)
 
 	for _, record := range edgeRes.Records {
@@ -1438,7 +1431,7 @@ func GetFileGraphInfo(c *gin.Context) {
 		toId, _ := record.Get("to_id")
 		label, _ := record.Get("label")
 
-		// 检查边的两端是否都在筛选后的节点集合中
+		// Check both ends of the edge are in the filtered node set
 		fromIdInt64, fromOk := fromId.(int64)
 		toIdInt64, toOk := toId.(int64)
 
@@ -1446,9 +1439,9 @@ func GetFileGraphInfo(c *gin.Context) {
 			continue
 		}
 
-		// 只有当边的两端都在筛选后的节点列表中，才考虑添加这条边
+		// Add the edge only if both ends are in the filtered node list
 		if nodeIds[fromIdInt64] && nodeIds[toIdInt64] {
-			// 创建方向键，格式为：较小ID-较大ID
+			// Build direction key: smallerID-largerID
 			var directionKey string
 			if fromIdInt64 < toIdInt64 {
 				directionKey = fmt.Sprintf("%d-%d", fromIdInt64, toIdInt64)
@@ -1456,12 +1449,12 @@ func GetFileGraphInfo(c *gin.Context) {
 				directionKey = fmt.Sprintf("%d-%d", toIdInt64, fromIdInt64)
 			}
 
-			// 如果这个方向已经被添加过，则跳过
+			// Skip if this direction was already added
 			if edgeDirections[directionKey] {
 				continue
 			}
 
-			// 标记这个方向已经被添加
+			// Mark this direction as added
 			edgeDirections[directionKey] = true
 
 			edges = append(edges, map[string]any{
@@ -1473,7 +1466,7 @@ func GetFileGraphInfo(c *gin.Context) {
 		}
 	}
 
-	// 构建结果
+	// Build result
 	result := map[string]any{
 		"nodes": nodes,
 		"edges": edges,
@@ -1528,7 +1521,7 @@ func RestudyLibraryFile(c *gin.Context) {
 			`pdf_parse_type`:     pdfParseType,
 			`ocr_pdf_index`:      0,
 			`ocr_pdf_total`:      page,
-			`async_split_params`: ``, //清空之前的参数
+			`async_split_params`: ``, // Clear previous params
 		})
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -1805,7 +1798,7 @@ func ReadLibFileExcelTitle(c *gin.Context) {
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	if err := c.Request.ParseMultipartForm(32 << 20); err != nil { // 32MB 最大内存
+	if err := c.Request.ParseMultipartForm(32 << 20); err != nil { // 32MB max memory
 		logs.Error(err.Error())
 		common.FmtError(c, `file_err`)
 		return
@@ -1893,7 +1886,7 @@ func CreateExportLibFileTask(c *gin.Context) {
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	// 类型判断
+	// Type validation
 	exportType := cast.ToInt(c.Query("export_type")) // 1: upload file 2:qa docs
 	libraryId := cast.ToUint(c.Query("library_id"))
 	if !tool.InArrayInt(exportType, []int{define.ExportLibFileUpload, define.ExportQALibDocs}) {
@@ -1934,7 +1927,7 @@ func DownloadLibraryFile(c *gin.Context) {
 		common.FmtError(c, `no_data`)
 		return
 	}
-	// 导出上传文件
+	// Export uploaded file
 	filePath := fileInfo[`file_url`]
 	fileName := fileInfo[`file_name`]
 	if !strings.HasSuffix(fileName, fileInfo[`file_ext`]) {
@@ -1958,7 +1951,7 @@ func SaveMetadata(c *gin.Context) {
 		return
 	}
 
-	// 批量保存：list=[{"key":"key_1","value":"xxx"},...]
+	// Batch save: list=[{"key":"key_1","value":"xxx"},...]
 	listRaw := strings.TrimSpace(c.PostForm(`list`))
 	if listRaw == `` || listRaw == `[]` || listRaw == `null` || listRaw == `{}` {
 		common.FmtError(c, `param_lack`)
@@ -1980,11 +1973,11 @@ func SaveMetadata(c *gin.Context) {
 		if k == `` {
 			continue
 		}
-		// 内置元数据固定值：不允许修改（直接忽略）
+		// Built-in metadata fixed values: not editable (ignore)
 		if define.IsBuiltinMetaKey(k) {
 			continue
 		}
-		// 统一转字符串存储（与过滤逻辑一致：metadata->>key 再 cast）
+		// Store as string consistently (same as filter logic: metadata->>key then cast)
 		updateMap[k] = cast.ToString(it.Value)
 		keySet[k] = struct{}{}
 	}
@@ -2010,7 +2003,7 @@ func SaveMetadata(c *gin.Context) {
 	}
 	libraryId := cast.ToInt(fileInfo[`library_id`])
 
-	// 校验所有 key 必须存在于该知识库的自定义 meta schema 中
+	// Validate all keys exist in this library's custom meta schema
 	keyList := make([]string, 0, len(keySet))
 	for k := range keySet {
 		keyList = append(keyList, k)

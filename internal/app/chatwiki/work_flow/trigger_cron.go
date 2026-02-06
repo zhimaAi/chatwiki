@@ -68,8 +68,7 @@ func RemoveEntry(entryId int) {
 func TriggerCronSelectTimeRun() {
 	list, err := msql.Model(`work_flow_trigger`, define.Postgres).
 		Where(`trigger_type`, cast.ToString(TriggerTypeCron)).
-		Where(`cron_entry_id`, `0`).
-		Where(`is_finish`, `0`).Select()
+		Where(`cron_entry_id`, `0`).Select()
 	if err != nil {
 		logs.Error(LogTriggerPrefix + err.Error())
 		return
@@ -130,7 +129,6 @@ func setRunResult(id string, startTime int64, err error) {
 	}
 	_, err = msql.Model(`work_flow_trigger`, define.Postgres).
 		Where(`id`, id).Update(msql.Datas{
-		`is_finish`: 1,
 		`last_msg`: tool.JsonEncodeNoError(map[string]any{
 			`start_time`: startTime,
 			`end_time`:   time.Now().Unix(),

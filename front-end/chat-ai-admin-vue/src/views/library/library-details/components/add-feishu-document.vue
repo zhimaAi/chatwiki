@@ -3,22 +3,14 @@
     v-model:open="open"
     :confirm-loading="saving"
     :maskClosable="false"
-    :title="step == 1 ? '导入飞书知识库' : '请选择需要同步的文件'"
+    :title="step == 1 ? t('title_import_feishu_library') : t('title_select_sync_files')"
     width="646px"
     @ok="save"
   >
     <template v-if="step == 1">
       <a-alert class="zm-alert-info" show-icon type="info">
         <template #message>
-          请先在<a href="https://open.feishu.cn/document/server-docs/api-call-guide/terminology" target="_blank">飞书开发者后台</a>创建自建应用获取App ID 和 App Secret，并将需要同步的 <a
-          href="https://open.feishu.cn/document/server-docs/docs/wiki-v2/wiki-qa#b5da330b" target="_blank">知识库授权给对应应用</a>；
-          <a-popover>
-            <template #title>
-              <a-image width="600px" :src="RedirectExampleImg"/>
-            </template>
-            在飞书应用中填写重定向URL：<a @click="handleCopy(redirectUrl)" title="点击复制">{{redirectUrl}}</a>
-          </a-popover>
-          。完成后，系统将自动同步知识库目录下.docx格式的云文档
+          {{ t('msg_feishu_guide') }}
         </template>
       </a-alert>
       <a-form
@@ -28,11 +20,11 @@
         :model="formState"
         :rules="rules"
       >
-        <a-form-item name="feishu_app_id" label="AppId">
-          <a-input v-model:value.trim="formState.feishu_app_id" placeholder="请输入飞书 AppId"/>
+        <a-form-item name="feishu_app_id" :label="t('label_app_id')">
+          <a-input v-model:value.trim="formState.feishu_app_id" :placeholder="t('ph_input_app_id')"/>
         </a-form-item>
-        <a-form-item name="feishu_app_secret" label="AppSecret">
-          <a-input v-model:value.trim="formState.feishu_app_secret" placeholder="请输入飞书 AppSecret"/>
+        <a-form-item name="feishu_app_secret" :label="t('label_app_secret')">
+          <a-input v-model:value.trim="formState.feishu_app_secret" :placeholder="t('ph_input_app_secret')"/>
         </a-form-item>
       </a-form>
     </template>
@@ -63,10 +55,10 @@
 <!--            valueFormat="HH:mm"-->
 <!--          />-->
 <!--        </a-form-item>-->
-        <a-form-item label="文件范围">
+        <a-form-item :label="t('label_file_scope')">
           <a-radio-group v-model:value="formState.file_type">
-            <a-radio :value="1">权限范围内所有文件</a-radio>
-            <a-radio :value="2">部分文件</a-radio>
+            <a-radio :value="1">{{ t('radio_all_files') }}</a-radio>
+            <a-radio :value="2">{{ t('radio_partial_files') }}</a-radio>
           </a-radio-group>
           <div class="file-list" v-if="formState.file_type == 2">
             <a-directory-tree
@@ -94,7 +86,10 @@ import {addLibraryFile, getFeishuDocFileList} from "@/api/library/index.js"
 import {message} from 'ant-design-vue'
 import {convertTime, copyText, objectToQueryString, strToBase64} from "@/utils/index.js";
 import {useUserStore} from '@/stores/modules/user'
+import {useI18n} from '@/hooks/web/useI18n'
 import RedirectExampleImg from '@/assets/img/library/feishu-redirct-example.png'
+
+const { t } = useI18n('views.library.library-details.components.add-feishu-document')
 
 const emit = defineEmits(['ok'])
 const props = defineProps({
@@ -125,11 +120,11 @@ const formState = reactive({
 })
 const rules = reactive({
   feishu_app_id: {
-    message: '请输入飞书 AppId',
+    message: t('msg_input_app_id'),
     required: true
   },
   feishu_app_secret: {
-    message: '请输入飞书 AppSecret',
+    message: t('msg_input_app_secret'),
     required: true
   },
 })
@@ -197,13 +192,13 @@ function getAllDocxTokens(list = []) {
 
 const handleCopy = (text) => {
   copyText(text)
-  message.success('复制成功')
+  message.success(t('msg_copy_success'))
 }
 
 function save() {
   formRef.value.validate().then(() => {
     if (step.value == 1) {
-      const hide = message.loading('正在进行验证...')
+      const hide = message.loading(t('msg_verifying'))
       let host = ''
       if (import.meta.env.MODE !== 'production') {
         host = `http://${import.meta.env.MODE}.zhima_chat_ai.applnk.cn`
@@ -225,10 +220,10 @@ function save() {
     } else {
       // if (formState.doc_auto_renew_frequency > 1 && !formState.doc_auto_renew_minute) return message.error('请选择更新时间')
       if (formState.file_type == 2) {
-        if (!formState.feishu_document_id_list.length) return message.error('请选择同步文件')
+        if (!formState.feishu_document_id_list.length) return message.error(t('msg_select_sync_files'))
       } else {
         formState.feishu_document_id_list = getAllDocxTokens(filesTreeData.value)
-        if (!formState.feishu_document_id_list.length) return message.error('暂无可同步文件')
+        if (!formState.feishu_document_id_list.length) return message.error(t('msg_no_sync_files'))
       }
       let params = {
         library_id: props.libraryId,
@@ -242,7 +237,7 @@ function save() {
       saving.value = true
       addLibraryFile(params).then(res => {
         emit('ok')
-        message.success('添加完成')
+        message.success(t('msg_added_success'))
         open.value = false
       }).finally(() => {
         saving.value = false

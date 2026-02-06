@@ -15,7 +15,7 @@
     >
       <div class="prompt-wrapper">
         <div class="group-box">
-          <div class="main-title">导入提示词</div>
+          <div class="main-title">{{ t('title_import_prompt') }}</div>
           <cu-scroll style="height: 480px">
             <div class="group-list-box">
               <div
@@ -39,9 +39,9 @@
         <div class="content-box">
           <div class="opration-btn-block">
             <a-button :loading="btnLoading" @click="refreshList"
-              ><SyncOutlined v-if="!btnLoading" />刷新列表</a-button
+              ><SyncOutlined v-if="!btnLoading" />{{ t('btn_refresh_list') }}</a-button
             >
-            <a-button @click="toAddPage">管理知识库</a-button>
+            <a-button @click="toAddPage">{{ t('btn_manage_knowledge_base') }}</a-button>
           </div>
           <div class="content-scroll-box">
             <cu-scroll style="padding: 0 24px">
@@ -52,19 +52,19 @@
                 <div class="prompt-list" v-for="item in lists" :key="item.id">
                   <div class="prompt-header">
                     <div class="prompt-title">
-                      <div class="prompt-type diy" v-if="item.prompt_type == 0">自定义</div>
-                      <div class="prompt-type" v-if="item.prompt_type == 1">结构化</div>
+                      <div class="prompt-type diy" v-if="item.prompt_type == 0">{{ t('label_custom') }}</div>
+                      <div class="prompt-type" v-if="item.prompt_type == 1">{{ t('label_structured') }}</div>
                       <div class="title">{{ item.title }}</div>
                     </div>
                     <div class="right-btn-box">
-                      <a-tooltip :title="item.isHide ? '展开' : '收起'">
+                      <a-tooltip :title="item.isHide ? t('tooltip_expand') : t('tooltip_collapse')">
                         <div class="hover-btn-box" @click="handleHide(item)">
                           <DownOutlined v-if="item.isHide" />
                           <UpOutlined v-else />
                         </div>
                       </a-tooltip>
                       <div class="hover-btn-box primary" @click="handleImport(item)">
-                        <CheckCircleOutlined />导入
+                        <CheckCircleOutlined />{{ t('btn_import') }}
                       </div>
                     </div>
                   </div>
@@ -140,12 +140,12 @@
               <a-empty style="padding-top: 100px" v-if="lists.length == 0">
                 <template #description>
                   <div class="empty-content">
-                    <div class="title">你还没有添加任何提示词</div>
+                    <div class="title">{{ t('msg_no_prompts') }}</div>
                     <div class="desc">
-                      可以在系统设置-提示词库中维护提示词模板，然后再聊天机器人和工作流中引用
+                      {{ t('msg_no_prompts_desc') }}
                     </div>
                     <div>
-                      <a-button type="primary" @click="toAddPage">立即添加</a-button>
+                      <a-button type="primary" @click="toAddPage">{{ t('btn_add_now') }}</a-button>
                     </div>
                   </div>
                 </template>
@@ -170,6 +170,9 @@ import {
 } from '@ant-design/icons-vue'
 import { getPromptLibraryGroup, getPromptLibraryItems } from '@/api/user/index.js'
 import { Modal } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('components.import-prompt.index')
 const open = ref(false)
 
 const emit = defineEmits(['ok'])
@@ -180,9 +183,9 @@ const show = () => {
 }
 const handleImport = (item) => {
   Modal.confirm({
-    title: '导入确认',
+    title: t('title_import_confirm'),
     icon: h(ExclamationCircleOutlined),
-    content: '确定将该条提示导入',
+    content: t('msg_import_confirm'),
     onOk() {
       emit('ok', item)
       open.value = false
@@ -200,11 +203,11 @@ const getGroupList = () => {
     groupList.value = [
       {
         id: -1,
-        group_name: '全部'
+        group_name: t('label_all')
       },
       {
         id: 0,
-        group_name: '默认分组'
+        group_name: t('label_default_group')
       },
       ...res.data
     ]

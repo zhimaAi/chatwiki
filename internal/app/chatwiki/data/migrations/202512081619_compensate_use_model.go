@@ -32,7 +32,7 @@ func CompensateUseModel() error {
 		maxId = cast.ToInt(maxIdStr)
 	}
 	logs.Other(`compensate`, `get max id: %d`, maxId)
-	var size = 100 //每一批次数
+	var size = 100 // batch size
 	for i := 0; ; i++ {
 		start, end := i*size, (i+1)*size
 		logs.Other(`compensate`, `round %d: %d~%d`, i+1, start, end)
@@ -42,14 +42,14 @@ func CompensateUseModel() error {
 			logs.Error(`sql:%s,err:%s`, modelConfig.GetLastSql(), err.Error())
 			return err
 		}
-		for _, config := range list { //逐个处理
+		for _, config := range list { // process one by one
 			if err = CompensateUseModelOne(config); err != nil {
 				logs.Error(`config:%s,err:%s`, tool.JsonEncodeNoError(config), err.Error())
 				return err
 			}
 		}
 		if end >= maxId {
-			break //处理完毕,结束循环
+			break // processing complete, exit loop
 		}
 	}
 	return nil
@@ -77,7 +77,7 @@ func CompensateUseModelOne(config msql.Params) error {
 		default:
 			return fmt.Errorf(`the model_types parameter of the special model is incorrect:%s`, config[`model_types`])
 		}
-		if len(useModel.ShowModelName) == 0 { //填充空值
+		if len(useModel.ShowModelName) == 0 { // fill empty value
 			useModel.ShowModelName = useModel.UseModelName
 		}
 		if err := useModel.ToSave(define.LangZhCn, cast.ToInt(config[`admin_user_id`]), cast.ToInt(config[`id`])); err != nil {

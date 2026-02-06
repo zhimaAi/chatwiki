@@ -295,6 +295,7 @@
   flex-shrink: 0;
   border-radius: 12px;
   background: var(--Conditional-pop-over, #fff);
+  width: 250px;
   box-shadow:
     0 6px 30px 5px #0000000d,
     0 16px 24px 2px #0000000a,
@@ -331,7 +332,7 @@
 }
 
 .text-input {
-  width: 268px;
+  width: 100%;
   height: 98px;
   display: flex;
   padding: 5px 12px;
@@ -636,18 +637,11 @@
           <div class="thinking-label" @click="toggleQuoteFiel()">
             <template v-if="props.msg.quote_loading">
               <van-loading class="loading" color="#262626" size="16px" type="spinner" />
-              <span class="label-text">{{ translate('正在检索知识库...') }}</span>
+              <span class="label-text">{{ t('searching_knowledge_base') }}</span>
             </template>
             <template v-if="!props.msg.quote_loading">
               <svg-icon class="think-icon" name="quote-file"></svg-icon>
-              <span class="label-text" v-if="externalConfigH5.lang == 'en-US'"
-                >Found {{ props.msg.quote_file.length }}
-                {{ props.msg.quote_file.length > 1 ? 'documents' : 'document' }} in knowledge
-                base</span
-              >
-              <span class="label-text" v-else
-                >检索到{{ props.msg.quote_file.length }}个知识库文档</span
-              >
+              <span class="label-text">{{ t('found_documents', { count: props.msg.quote_file.length }) }}</span>
             </template>
             <svg-icon
               name="down-arrow"
@@ -672,7 +666,7 @@
             />
             <svg-icon class="think-icon" name="think" v-else></svg-icon>
             <span class="label-text">{{
-              props.msg.reasoning_status ? translate('深度思考中...') : translate('已完成深度思考')
+              props.msg.reasoning_status ? t('deep_thinking') : t('deep_thinking_completed')
             }}</span>
 
             <svg-icon
@@ -699,7 +693,7 @@
             <svg-icon name="quote-file" />
             <span @click="handleToLink(item)">
               <span v-if="item.file_name">{{ item.file_name }}</span>
-              <span v-else>{{ item.library_name }}-精选</span>
+              <span v-else>{{ item.library_name }}-{{ t('featured') }}</span>
             </span>
           </div>
         </div>
@@ -734,7 +728,7 @@
           <div class="operation" v-if="isShowCopy">
             <div @click="handleCopy" class="copy-block">
               <div class="copy-icon"></div>
-              <span> {{ translate('复制') }}</span>
+              <span> {{ t('copy') }}</span>
             </div>
             <div
               ref="operationRef"
@@ -742,7 +736,7 @@
               v-if="!isCustomerMessage && !isWelcomeMessage && robot.feedback_switch"
             >
               <div
-                v-tooltip="translate('点赞')"
+                v-tooltip="t('like')"
                 @click="handlePraise(props.msg)"
                 class="praise-block"
                 :class="{ 'praise-active': !isTrampleClick && isPraiseActive }"
@@ -751,26 +745,22 @@
               </div>
               <van-popover placement="top-end" v-if="!isTrampleActive" @close="onCancel">
                 <div ref="feedbackModal" class="feedback-modal">
-                  <div class="modal-title">{{ translate('结果反馈') }}</div>
+                  <div class="modal-title">{{ t('feedback_title') }}</div>
                   <div class="content">
                     <textarea
                       class="text-input"
                       v-model="feedbackContent"
-                      :placeholder="translate('请反馈你觉得回答不满意的地方')"
+                      :placeholder="t('feedback_placeholder')"
                     ></textarea>
                   </div>
                   <div class="btn-box">
-                    <van-button class="model-btn cancel-btn" type="default" @click="onCancel">{{
-                      translate('取消')
-                    }}</van-button>
-                    <van-button class="model-btn submit-btn" type="primary" @click="onSubmit">{{
-                      translate('提交')
-                    }}</van-button>
+                    <van-button class="model-btn cancel-btn" type="default" @click="onCancel">{{ t('cancel') }}</van-button>
+                    <van-button class="model-btn submit-btn" type="primary" @click="onSubmit">{{ t('submit') }}</van-button>
                   </div>
                 </div>
                 <template #reference>
                   <div
-                    v-tooltip="translate('点踩')"
+                    v-tooltip="t('dislike')"
                     @click="handleTrample(props.msg, 4)"
                     class="trample-block"
                     :class="{ 'trample-active': isTrampleClick }"
@@ -780,7 +770,7 @@
                 </template>
               </van-popover>
               <div
-                v-tooltip="translate('点踩')"
+                v-tooltip="t('dislike')"
                 v-else
                 @click="handleTrample(props.msg, 3)"
                 class="trample-block"
@@ -792,12 +782,12 @@
           </div>
           <div class="hover-copy-tool-block" v-if="isShowHoverCopy">
             <div ref="operationRef" class="operation-right">
-              <div v-tooltip="translate('复制')" @click="handleCopy" class="copy-block">
+              <div v-tooltip="t('copy')" @click="handleCopy" class="copy-block">
                 <div class="copy-icon"></div>
               </div>
               <template v-if="!isCustomerMessage && !isWelcomeMessage && robot.feedback_switch">
                 <div
-                  v-tooltip="translate('点赞')"
+                  v-tooltip="t('like')"
                   @click="handlePraise(props.msg)"
                   class="praise-block"
                   :class="{ 'praise-active': !isTrampleClick && isPraiseActive }"
@@ -806,26 +796,26 @@
                 </div>
                 <van-popover placement="top-end" v-if="!isTrampleActive" @close="onCancel">
                   <div ref="feedbackModal" class="feedback-modal">
-                    <div class="modal-title">{{ translate('结果反馈') }}</div>
+                    <div class="modal-title">{{ t('feedback_title') }}</div>
                     <div class="content">
                       <textarea
                         class="text-input"
                         v-model="feedbackContent"
-                        :placeholder="translate('请反馈你觉得回答不满意的地方')"
+                        :placeholder="t('feedback_placeholder')"
                       ></textarea>
                     </div>
                     <div class="btn-box">
                       <van-button class="model-btn cancel-btn" type="default" @click="onCancel">
-                        {{ translate('取消') }}
+                        {{ t('cancel') }}
                       </van-button>
                       <van-button class="model-btn submit-btn" type="primary" @click="onSubmit">
-                        {{ translate('提交') }}
+                        {{ t('submit') }}
                       </van-button>
                     </div>
                   </div>
                   <template #reference>
                     <div
-                      v-tooltip="translate('点踩')"
+                      v-tooltip="t('dislike')"
                       @click="handleTrample(props.msg, 2)"
                       class="trample-block"
                       :class="{ 'trample-active': isTrampleClick }"
@@ -836,7 +826,7 @@
                 </van-popover>
                 <div
                   v-else
-                  v-tooltip="translate('点踩')"
+                  v-tooltip="t('dislike')"
                   @click="handleTrample(props.msg, 1)"
                   class="trample-block"
                   :class="{ 'trample-active': isTrampleActive }"
@@ -899,7 +889,7 @@
 </template>
 
 <script setup lang="ts">
-import { translate } from '@/utils/translate.js'
+import { useI18n } from '@/hooks/web/useI18n'
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import type { Message } from '@/stores/modules/chat'
@@ -922,7 +912,7 @@ const { toClipboard } = useClipboard()
 const emit = defineEmits(['sendTextMessage', 'toggleReasonProcess', 'toggleQuoteFiel'])
 const chatStore = useChatStore()
 const { robot, onAddFeedback, onDelFeedback } = chatStore
-const externalConfigH5 = computed(() => chatStore.externalConfigH5)
+const { t } = useI18n('views.chat.components.messages.message-item')
 const textMessage = ref('.')
 const feedbackContent = ref('')
 const ai_message_id = ref('')
@@ -969,7 +959,7 @@ const isShowHoverCopy = computed(() => {
 const handleCopy = async () => {
   isTrampleClick.value = false
   await toClipboard(props.msg.content)
-  showToast(translate('复制成功'))
+  showToast(t('copy_success'))
 }
 
 const handlePraise = async (item) => {
@@ -1009,7 +999,7 @@ const handleTrample = async (item, type) => {
     await onDelFeedback(params)
     isTrampleActive.value = false
     isTrampleClick.value = false
-    showToast('操作成功')
+    showToast(t('operation_success'))
   }
 }
 
@@ -1040,7 +1030,7 @@ const onSubmit = async () => {
   feedbackContent.value = ''
   isPraiseActive.value = false
 
-  showToast(translate('感谢反馈'))
+  showToast(t('thanks_for_feedback'))
 }
 
 const common_question_list = computed(() => robot.common_question_list)

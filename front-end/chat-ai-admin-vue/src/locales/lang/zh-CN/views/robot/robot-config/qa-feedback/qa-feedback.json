@@ -1,0 +1,17 @@
+{
+  "label_total": "共计",
+  "label_type": "类型",
+  "label_date": "日期",
+  "btn_reset": "重置",
+  "placeholder_all_types": "全部类型",
+  "table_column_qa": "问答",
+  "table_column_feedback": "回答反馈",
+  "table_column_feedback_content": "反馈内容",
+  "table_column_time": "时间",
+  "table_column_action": "操作",
+  "label_like": "点赞",
+  "label_dislike": "点踩",
+  "btn_view_details": "查看详情",
+  "text_no_content": "--",
+  "label_item": "条"
+}

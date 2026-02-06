@@ -111,7 +111,7 @@
       <img class="app-avatar" :src="item.app_avatar" alt="" />
       <div class="app-info">
         <div class="app-name">{{ item.app_name }}</div>
-        <div class="app-desc">Appid：{{ item.app_id }}</div>
+        <div class="app-desc">{{ t('appid') }}{{ item.app_id }}</div>
       </div>
     </div>
     <template v-if="showExtTypeList.includes(props.app_type)">
@@ -121,14 +121,14 @@
       <div class="ext-info-list">
         <div class="status-block status-success" v-if="item.account_is_verify == 'true'">
           <CheckCircleFilled />
-          已认证
+          {{ t('verified') }}
         </div>
         <a-flex :gap="8" v-else>
           <div class="status-block status-warning">
             <ExclamationCircleFilled />
-            未认证
+            {{ t('unverified') }}
           </div>
-          <a @click="handleRefresh">刷新状态</a>
+          <a @click="handleRefresh">{{ t('refresh_status') }}</a>
         </a-flex>
       </div>
     </template>
@@ -140,10 +140,10 @@
       <template #overlay>
         <a-menu>
           <a-menu-item v-if="showMenu.includes('edit')" @click="handleEdit">
-            <a>编 辑</a>
+            <a>{{ t('edit') }}</a>
           </a-menu-item>
           <a-menu-item v-if="showMenu.includes('del')" @click="handleDelete">
-            <a style="color: #fb363f">删 除</a>
+            <a style="color: #fb363f">{{ t('delete') }}</a>
           </a-menu-item>
         </a-menu>
       </template>
@@ -153,8 +153,11 @@
 
 <script setup>
 import { CheckCircleFilled, ExclamationCircleFilled, EllipsisOutlined } from '@ant-design/icons-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 const emit = defineEmits(['edit', 'delete', 'refresh'])
 const showExtTypeList = ['mini_program', 'official_account']
+
+const { t } = useI18n('views.robot.robot-config.external-service.components.wechat-app-item')
 
 const props = defineProps({
   item: {

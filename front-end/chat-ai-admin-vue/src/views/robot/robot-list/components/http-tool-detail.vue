@@ -11,13 +11,13 @@
             <div class="desc">{{ tool.description }}</div>
           </div>
           <div class="right-box">
-            <a-button @click="$emit('addTool', tool)" type="primary" ghost :icon="h(PlusOutlined)">添加工具</a-button>
+            <a-button @click="$emit('addTool', tool)" type="primary" ghost :icon="h(PlusOutlined)">{{ t('btn_add_tool') }}</a-button>
             <a-dropdown>
               <a-button :icon="h(EllipsisOutlined)"/>
               <template #overlay>
                 <a-menu>
-                  <a-menu-item @click="$emit('editBase', tool)">编辑</a-menu-item>
-                  <a-menu-item @click="$emit('deleteBase', tool)"><span class="cFB363F">删除</span></a-menu-item>
+                  <a-menu-item @click="$emit('editBase', tool)">{{ t('btn_edit') }}</a-menu-item>
+                  <a-menu-item @click="$emit('deleteBase', tool)"><span class="cFB363F">{{ t('btn_delete') }}</span></a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -26,12 +26,12 @@
       </div>
       <div class="app-data">
         <div class="data-item">
-          <div class="title">创建时间</div>
+          <div class="title">{{ t('label_create_time') }}</div>
           <div class="value">{{ formatTs(tool.create_time) }}</div>
         </div>
         <a-divider type="vertical" style="height: 24px;"/>
         <div class="data-item">
-          <div class="title">更新时间</div>
+          <div class="title">{{ t('label_update_time') }}</div>
           <div class="value">{{ formatTs(tool.update_time) }}</div>
         </div>
       </div>
@@ -39,13 +39,13 @@
     <div class="tools-box">
       <div class="head-box">
         <AppstoreOutlined class="icon"/>
-        工具列表（{{ nodesList.length || 0 }}）
+        {{ t('title_tool_list') }}（{{ nodesList.length || 0 }}）
       </div>
       <div v-if="nodesList.length" class="tools-list">
         <div v-for="(item, i) in nodesList" :key="i" class="tools-item">
           <div class="left">
             <div class="tit">{{ item.displayTitle }}</div>
-            <div class="key">请求地址：{{ item.rawurl }}</div>
+            <div class="key">{{ t('label_request_url') }}{{ item.rawurl }}</div>
             <a-tooltip :title="getTooltipTitle(item.displayDesc, item)" placement="top">
               <div class="desc" :class="`titleRef_${item.id}`">{{item.displayDesc}}</div>
             </a-tooltip>
@@ -58,13 +58,13 @@
                       <div class="field">
                         <span class="name">{{ field.key }}</span>
                         <span class="type">{{ field.typ }}</span>
-                        <span v-if="field.required" class="required">必填</span>
+                        <span v-if="field.required" class="required">{{ t('label_required') }}</span>
                       </div>
                       <div class="desc">{{ field.desc }}</div>
                     </div>
                   </div>
                 </template>
-                <a>参数</a>
+                <a>{{ t('label_params') }}</a>
               </a-popover>
             </div>
           </div>
@@ -72,8 +72,8 @@
             <a-button size="small" :icon="h(EllipsisOutlined)"/>
             <template #overlay>
               <a-menu>
-                <a-menu-item @click="$emit('editTool', item.originNode)">编辑</a-menu-item>
-                <a-menu-item @click="delItem(item.originNode)"><span class="cFB363F">删除</span></a-menu-item>
+                <a-menu-item @click="$emit('editTool', item.originNode)">{{ t('btn_edit') }}</a-menu-item>
+                <a-menu-item @click="delItem(item.originNode)"><span class="cFB363F">{{ t('btn_delete') }}</span></a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
@@ -81,8 +81,8 @@
       </div>
       <div v-else class="empty-box">
         <img src="@/assets/empty.png"/>
-        <div class="title">暂未添加工具</div>
-        <a-button @click="$emit('addTool', tool)" class="btn" type="primary">立即添加</a-button>
+        <div class="title">{{ t('title_no_tool') }}</div>
+        <a-button @click="$emit('addTool', tool)" class="btn" type="primary">{{ t('btn_add_now') }}</a-button>
       </div>
     </div>
   </div>
@@ -96,6 +96,9 @@ import { delHttpToolItem } from '@/api/robot/http_tool.js'
 import { Modal } from 'ant-design-vue'
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-list.components.http-tool-detail')
 
 const props = defineProps({
   tool: {
@@ -108,11 +111,11 @@ const emit = defineEmits(['addTool', 'editTool', 'ok', 'editBase', 'deleteBase']
 
 function delItem(item) {
   Modal.confirm({
-    title: '删除确认',
+    title: t('btn_delete'),
     icon: h(ExclamationCircleOutlined),
-    content: '确定删除该工具吗？删除后不可恢复',
-    okText: '删 除',
-    cancelText: '取 消',
+    content: t('msg_delete_confirm'),
+    okText: t('btn_confirm_delete'),
+    cancelText: t('btn_cancel'),
     onOk() {
       return delHttpToolItem({ id: item.id }).then(() => {
         emit('ok')

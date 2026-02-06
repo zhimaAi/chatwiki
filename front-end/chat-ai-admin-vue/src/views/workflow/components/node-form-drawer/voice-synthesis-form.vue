@@ -1,17 +1,17 @@
 <template>
-  <NodeFormLayout>
+  <NodeFormLayout class="voice-synthesis-form">
     <NodeFormHeader
       :title="node.node_name"
       :iconName="node.node_icon_name"
-      desc="调用大模型，生成回复。"
+      :desc="t('desc_voice_synthesis')"
     />
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>输入</div>
+        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>{{ t('label_input') }}</div>
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">语音模型</div>
+          <div class="option-label">{{ t('label_voice_model') }}</div>
         </div>
         <ModelSelect
           model-type="TTS"
@@ -23,7 +23,7 @@
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">文本</div>
+          <div class="option-label">{{ t('label_text') }}</div>
           <div class="option-type">string</div>
         </div>
         <div>
@@ -45,28 +45,28 @@
             </template>
           </AtInput>
         </div>
-        <div class="desc">需要合成语音的文本，长度限制小于 10000字符；文本长度尽量不要超过3000字，否则生成速度较慢</div>
+        <div class="desc">{{ t('msg_text_desc') }}</div>
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">选择音色</div>
+          <div class="option-label">{{ t('label_select_voice') }}</div>
         </div>
         <div class="flex-between">
           <ZmRadioGroup v-model:value="formState.voice_setting.voice_id" :options="voiceOptions" @change="update"/>
-          <a-tooltip title="高级设置">
+          <a-tooltip placement="left" :title="t('label_advanced_settings')">
             <span class="setting-icon" @click="settingsShowChange"><SettingOutlined/></span>
           </a-tooltip>
         </div>
       </div>
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">音色设置</div>
+          <div class="option-label">{{ t('label_voice_settings') }}</div>
           <div class="option-type">string</div>
         </div>
         <div class="flex-between">
           <a-select v-model:value="formState.voice_set_type" @change="voiceSetTypeChange">
-            <a-select-option :value="1">选择音色</a-select-option>
-            <a-select-option :value="2">设置音色</a-select-option>
+            <a-select-option :value="1">{{ t('label_select_voice_type') }}</a-select-option>
+            <a-select-option :value="2">{{ t('label_set_voice') }}</a-select-option>
           </a-select>
           <a-select
             v-if="formState.voice_set_type == 1"
@@ -75,7 +75,7 @@
             @dropdownVisibleChange="showVoiceModal"
             style="width: 100%;"
           >
-            <a-select-option value="-1">请选择</a-select-option>
+            <a-select-option value="-1">{{ t('ph_select') }}</a-select-option>
             <a-select-option v-for="item in showVoiceOpts" :value="item.value" :key="item.item">
               {{ item.label }}
             </a-select-option>
@@ -88,7 +88,7 @@
             :defaultSelectedList="formState.tag_map?.voice_setting_voice_id || []"
             :defaultValue="formState.voice_setting.voice_id"
             ref="atInputRef"
-            placeholder="请输入内容，键入“/”可以插入变量"
+            :placeholder="t('ph_input_content')"
             @open="getValueVariableList"
             @change="changeVoiceId"
           >
@@ -105,7 +105,7 @@
       <template v-if="settingsOpen">
         <div class="options-item">
           <div class="options-item-tit">
-            <div class="option-label">声音设置</div>
+            <div class="option-label">{{ t('label_voice_settings_label') }}</div>
           </div>
           <div class="form-box">
             <div v-for="field in ['speed', 'vol', 'pitch']" :key="field" class="form-item">
@@ -130,7 +130,7 @@
                   <a-col :span="7">
                     <a-input-number
                       v-model:value="formState.voice_setting[field]"
-                      placeholder="请输入"
+                      :placeholder="t('ph_select')"
                       :min="voiceSettingSliderConfig[field].min"
                       :max="voiceSettingSliderConfig[field].max"
                       class="ml16"
@@ -141,24 +141,22 @@
             </div>
             <div class="form-item">
               <div class="form-tit required">
-                <a-tooltip
-                  title="控制合成语音的情绪，模型会根据输入文本自动匹配合适的情绪，一般无需手动指定；该参数仅对 speech-2.6-hd, speech-2.6-turbo, speech-02-hd, speech-02-turbo, speech-01-hd, speech-01-turbo 模型生效">
-                  情绪
+                <a-tooltip :title="t('tip_emotion')">
+                  {{ t('label_emotion') }}
                   <QuestionCircleOutlined/>
                   <span class="option-type">string</span>
                 </a-tooltip>
               </div>
               <div class="form-cont">
-                <a-select v-model:value="formState.voice_setting.emotion" placeholder="请选择" @change="update">
+                <a-select v-model:value="formState.voice_setting.emotion" :placeholder="t('ph_select')" @change="update">
                   <a-select-option v-for="(txt, key) in emotionMap" :key="key">{{ txt }}</a-select-option>
                 </a-select>
               </div>
             </div>
             <div class="form-item ">
               <div class="form-tit required">
-                <a-tooltip
-                  title="是否启用中文、英语文本规范化，开启后可提升数字阅读场景的性能，但会略微增加延迟，默认值为 false">
-                  中/英文本规范化
+                <a-tooltip :title="t('tip_text_normalization')">
+                  {{ t('label_text_normalization') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
               </div>
@@ -170,62 +168,61 @@
         </div>
         <div class="options-item">
           <div class="options-item-tit">
-            <div class="option-label">音频设置</div>
+            <div class="option-label">{{ t('label_audio_settings') }}</div>
           </div>
           <div class="form-box">
             <div class="form-item">
               <div class="form-tit">
-                <a-tooltip title="生成音频的采样率。可选范围[8000，16000，22050，24000，32000，44100]，默认为 32000">
-                  采样率
+                <a-tooltip :title="t('tip_sample_rate')">
+                  {{ t('label_sample_rate') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
                 <span class="option-type">Number</span>
               </div>
               <div class="form-cont">
-                <a-select v-model:value="formState.audio_setting.sample_rate" placeholder="请选择" @change="update">
+                <a-select v-model:value="formState.audio_setting.sample_rate" :placeholder="t('ph_select')" @change="update">
                   <a-select-option v-for="item in audioSampleRates" :key="item">{{ item }}</a-select-option>
                 </a-select>
               </div>
             </div>
             <div class="form-item">
               <div class="form-tit">
-                <a-tooltip
-                  title="生成音频的比特率。可选范围[32000，64000，128000，256000]，默认值为 128000。该参数仅对 mp3 格式的音频生效">
-                  比特率
+                <a-tooltip :title="t('tip_bitrate')">
+                  {{ t('label_bitrate') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
                 <span class="option-type">Number</span>
               </div>
               <div class="form-cont">
-                <a-select v-model:value="formState.audio_setting.bitrate" placeholder="请选择" @change="update">
+                <a-select v-model:value="formState.audio_setting.bitrate" :placeholder="t('ph_select')" @change="update">
                   <a-select-option v-for="item in audioBitrate" :key="item">{{ item }}</a-select-option>
                 </a-select>
               </div>
             </div>
             <div class="form-item">
               <div class="form-tit">
-                <a-tooltip title="生成音频的格式，wav 仅在非流式输出下支持">
-                  格式
+                <a-tooltip :title="t('tip_format')">
+                  {{ t('label_format') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
                 <span class="option-type">string</span>
               </div>
               <div class="form-cont">
-                <a-select v-model:value="formState.audio_setting.format" placeholder="请选择" @change="update">
+                <a-select v-model:value="formState.audio_setting.format" :placeholder="t('ph_select')" @change="update">
                   <a-select-option v-for="item in audioFormats" :key="item">{{ item }}</a-select-option>
                 </a-select>
               </div>
             </div>
             <div class="form-item">
               <div class="form-tit">
-                <a-tooltip title="生成音频的声道数">
-                  声道数
+                <a-tooltip :title="t('tip_channel')">
+                  {{ t('label_channel') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
                 <span class="option-type">Number</span>
               </div>
               <div class="form-cont">
-                <a-select v-model:value="formState.audio_setting.channel" placeholder="请选择" @change="update">
+                <a-select v-model:value="formState.audio_setting.channel" :placeholder="t('ph_select')" @change="update">
                   <a-select-option v-for="item in audioChannels" :key="item.value" :value="item.value">
                     {{ item.label }}
                   </a-select-option>
@@ -236,7 +233,7 @@
         </div>
         <div class="options-item">
           <div class="options-item-tit">
-            <div class="option-label">声音效果器设置</div>
+            <div class="option-label">{{ t('label_voice_effect_settings') }}</div>
           </div>
           <div class="form-box">
             <div v-for="field in ['pitch', 'intensity', 'timbre']" :key="field" class="form-item">
@@ -261,7 +258,7 @@
                   <a-col :span="7">
                     <a-input-number
                       v-model:value="formState.voice_modify[field]"
-                      placeholder="请输入"
+                      :placeholder="t('ph_select')"
                       :min="voiceModifySliderConfig[field].min"
                       :max="voiceModifySliderConfig[field].max"
                       class="ml16"
@@ -272,15 +269,15 @@
             </div>
             <div class="form-item">
               <div class="form-tit">
-                <a-tooltip title="音效设置，单次仅能选择一种，可选">
-                  音效
+                <a-tooltip :title="t('tip_sound_effect')">
+                  {{ t('label_sound_effect') }}
                   <QuestionCircleOutlined/>
                   <span class="option-type">string</span>
                 </a-tooltip>
               </div>
               <div class="form-cont">
-                <a-select v-model:value="formState.voice_modify.sound_effects" placeholder="请选择" @change="update">
-                  <a-select-option value="">无</a-select-option>
+                <a-select v-model:value="formState.voice_modify.sound_effects" :placeholder="t('ph_select')" @change="update">
+                  <a-select-option value="">{{ t('opt_none') }}</a-select-option>
                   <a-select-option v-for="(txt, key) in effectMap" :key="key" :value="key">{{ txt }}</a-select-option>
                 </a-select>
               </div>
@@ -289,40 +286,39 @@
         </div>
         <div class="options-item">
           <div class="options-item-tit">
-            <div class="option-label">其他设置</div>
+            <div class="option-label">{{ t('label_other_settings') }}</div>
           </div>
           <div class="form-box">
             <div class="form-item">
               <div class="form-tit">
-                <a-tooltip title="是否增强对指定的小语种和方言的识别能力">
-                  小语种识别能力
+                <a-tooltip :title="t('tip_small_language_recognition')">
+                  {{ t('label_small_language_recognition') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
               </div>
               <div class="form-cont">
-                <a-select v-model:value="formState.language_boost" placeholder="请选择" @change="update">
+                <a-select v-model:value="formState.language_boost" :placeholder="t('ph_select')" @change="update">
                   <a-select-option v-for="(txt, key) in languageMap" :key="key" :value="key">{{ txt }}</a-select-option>
                 </a-select>
               </div>
             </div>
             <div class="form-item">
               <div class="form-tit">
-                <a-tooltip title="控制输出结果形式的参数，可选值范围为[url, hex]。该参数仅在非流式场景生效，流式场景仅支持返回 hex 形式。返回的 url 有效期为 24 小时">
-                  输出结果形式
+                <a-tooltip :title="t('tip_output_format')">
+                  {{ t('label_output_format') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
               </div>
               <div class="form-cont">
-                <a-select v-model:value="formState.output_format" placeholder="请选择" @change="update">
+                <a-select v-model:value="formState.output_format" :placeholder="t('ph_select')" @change="update">
                   <a-select-option v-for="(txt, key) in formatMap" :key="key" :value="key">{{ txt }}</a-select-option>
                 </a-select>
               </div>
             </div>
             <div class="form-item">
               <div class="form-tit">
-                <a-tooltip
-                  title="对于音频恒定比特率（cbr）控制，可选 false、 true。当此参数设置为 true，将以恒定比特率方式进行音频编码。注意：本参数仅当音频设置为流式输出，且音频格式为 mp3 时生效。">
-                  恒定比特率控制
+                <a-tooltip :title="t('tip_constant_bitrate_control')">
+                  {{ t('label_constant_bitrate_control') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
               </div>
@@ -332,9 +328,8 @@
             </div>
             <div class="form-item">
               <div class="form-tit">
-                <a-tooltip
-                  title="控制是否开启字幕服务，默认值为 false。此参数仅在非流式输出场景下有效，且仅对 speech-2.6-hd speech-2.6-turbo speech-02-turbo speech-02-hd speech-01-turbo speech-01-hd 模型有效">
-                  开启字幕服务
+                <a-tooltip :title="t('tip_subtitle_service')">
+                  {{ t('label_subtitle_service') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
               </div>
@@ -344,8 +339,8 @@
             </div>
             <div class="form-item">
               <div class="form-tit">
-                <a-tooltip title="控制在合成音频的末尾添加音频节奏标识，默认值为 False。该参数仅对非流式合成生效">
-                  合成音频的末尾添加音频节奏标识
+                <a-tooltip :title="t('tip_add_audio_rhythm_mark')">
+                  {{ t('label_add_audio_rhythm_mark') }}
                   <QuestionCircleOutlined/>
                 </a-tooltip>
               </div>
@@ -359,7 +354,7 @@
     </div>
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>输出</div>
+        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>{{ t('label_output') }}</div>
       </div>
       <div class="options-item">
         <OutputFields :tree-data="outputData"/>
@@ -397,6 +392,9 @@ import {
 } from "@/constants/voice.js";
 import OutputFields from "@/views/workflow/components/feishu-table/output-fields.vue";
 import {pluginOutputToTree} from "@/constants/plugin.js";
+import { useI18n } from '@/hooks/web/useI18n';
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.voice-synthesis-form');
 
 const props = defineProps({
   lf: {
@@ -457,7 +455,7 @@ const voiceOptions = computed(() => {
   const customValue = inDefault ? '-1' : voiceSelectOpts.value?.[0]?.voice_id ?? voiceId
   return [
     ...defaultVoiceOpts,
-    { label: '自定义', value: customValue }
+    { label: t('opt_custom'), value: customValue }
   ]
 })
 
@@ -507,7 +505,7 @@ function changeVoiceId(text, selectedList) {
 
 function showVoiceModal() {
   if (!formState.model_config_id) {
-    return message.warning('请先选择语音模型')
+    return message.warning(t('msg_select_voice_model_first'))
   }
   voiceModalRef.value.show([formState.voice_setting.voice_id])
 }
@@ -561,6 +559,14 @@ function update() {
     word-break: break-all;
   }
 }
+.voice-synthesis-form{
+  .options-item{
+    margin-top: 24px !important;
+  }
+  .options-item-tit{
+    margin-bottom: 4px;
+  }
+}
 
 .setting-icon {
   color: #2475FC;
@@ -575,21 +581,19 @@ function update() {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  gap: 4px;
+  gap: 8px;
 
   .form-item {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    flex-direction: column;
     padding: 4px 0;
 
     .form-tit {
       display: flex;
       align-items: center;
-      justify-content: left;
+      justify-content: start;
       flex-shrink: 0;
-      width: 132px;
+      margin-bottom: 8px;
       word-break: break-all;
       color: #595959;
 

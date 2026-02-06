@@ -1,0 +1,26 @@
+{
+  "banner_batch_send_not_enabled": "文章群发功能暂未开启，您可到探索 > 功能 > 文章群发开启",
+  "common_go_enable": "去开启",
+  "breadcrumb_copy_custom_rule": "复制自定义规则",
+  "breadcrumb_edit_custom_rule": "编辑自定义规则",
+  "breadcrumb_create_custom_rule": "新建自定义规则",
+  "breadcrumb_ai_comment_selection": "AI评论精选",
+  "switch_on": "开",
+  "switch_off": "关",
+  "switch_tip": "开启后，可设置规则对系统内发布的群发使用AI自动精选功能，自动删评，回复，精选评论。",
+  "alert_support_tip": "仅支持通过当前系统群发的文章做AI评论管理，按照设置的规则自动删评",
+  "alert_auto_reply_tip": "自动回复评论需开启文章群发功能并创建文章群发，",
+  "alert_go_create": "去创建",
+  "modal_article_batch_send_not_enabled_title": "未开启文章群发",
+  "modal_article_batch_send_not_enabled": "文章群发功能暂未开启",
+  "modal_article_batch_send_not_enabled_tip": "，您可到探索 > 功能 > 文章群发开启",
+  "checkbox_dont_remind_three_days": "3天内不在提示",
+  "btn_cancel": "取消",
+  "segmented_default_rule": "默认规则",
+  "segmented_custom_rule": "自定义规则",
+  "segmented_comment_processing_record": "评论处理记录",
+  "modal_confirm_title": "提示",
+  "modal_confirm_disable_content": "关闭后，该功能默认关闭不再支持使用，确认关闭？",
+  "message_operation_success": "操作成功"
+}
+

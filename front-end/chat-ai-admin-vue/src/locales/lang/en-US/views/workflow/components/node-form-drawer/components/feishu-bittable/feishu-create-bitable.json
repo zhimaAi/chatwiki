@@ -1,0 +1,5 @@
+{
+  "label_bitable_name": "Multidimensional Table Name",
+  "ph_input_content": "Please enter content, type \"/\" to insert variable",
+  "desc_bitable_app_name": "Multidimensional table App name. Maximum 255 characters. Example: \"A new multidimensional table\""
+}

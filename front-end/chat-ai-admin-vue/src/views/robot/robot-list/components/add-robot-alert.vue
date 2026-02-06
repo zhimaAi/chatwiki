@@ -125,44 +125,44 @@
         <a-form-item ref="name" label="" v-bind="validateInfos.robot_avatar_url" v-if="isEdit">
           <div class="robot-avatar-box">
             <AvatarInput :listType="'picture'" :style="{ width: '62px', height: '62px', borderRadius: '16px' }" v-model:value="formState.robot_avatar_url" @change="onAvatarChange" />
-            <div class="form-item-tip">请上传机器人头像，建议尺寸为100*100px,大小不超过100KB</div>
+            <div class="form-item-tip">{{ t('ph_upload_avatar') }}</div>
           </div>
         </a-form-item>
 
-        <a-form-item required v-if="formState.application_type != 0" ref="en_name" label="工作流名称" v-bind="validateInfos.en_name">
-          <a-input v-model:value="formState.en_name" :maxLength="50" placeholder="请输入" />
-          <div class="form-item-tip">只能输入英文数字和字符"_"、"."、"-"，最多不超过50个字符</div>
+        <a-form-item required v-if="formState.application_type != 0" ref="en_name" :label="t('label_workflow_name')" v-bind="validateInfos.en_name">
+          <a-input v-model:value="formState.en_name" :maxLength="50" :placeholder="t('ph_input')" />
+          <div class="form-item-tip">{{ t('msg_workflow_name_format') }}</div>
         </a-form-item>
 
-        <a-form-item  ref="name" :label="formState.application_type == 0 ? '应用名称' : '备注名' " v-bind="validateInfos.robot_name">
-          <a-input v-model:value="formState.robot_name" :maxLength="20" placeholder="请输入" />
-          <div  v-if="formState.application_type != 0"  class="form-item-tip">仅用作后台显示，不超过20个字</div>
+        <a-form-item  ref="name" :label="formState.application_type == 0 ? t('label_app_name') : t('label_remark_name')" v-bind="validateInfos.robot_name">
+          <a-input v-model:value="formState.robot_name" :maxLength="20" :placeholder="t('ph_input')" />
+          <div  v-if="formState.application_type != 0"  class="form-item-tip">{{ t('msg_remark_name_tip') }}</div>
         </a-form-item>
 
-        <a-form-item  ref="group_id" label="分组" v-bind="validateInfos.group_id">
-          <a-select v-model:value="formState.group_id" style="width: 100%" placeholder="请选择分组">
+        <a-form-item  ref="group_id" :label="t('label_group')" v-bind="validateInfos.group_id">
+          <a-select v-model:value="formState.group_id" style="width: 100%" :placeholder="t('ph_select_group')">
             <a-select-option v-for="item in groupLists" :value="item.id">{{ item.group_name }}</a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="简介" v-bind="validateInfos.robot_intro">
+        <a-form-item :label="t('label_intro')" v-bind="validateInfos.robot_intro">
           <a-textarea
             v-if="!isEdit"
             :rows="3"
             v-model:value="formState.robot_intro"
-            placeholder="请输入机器人简介，比如ChatWiki产品帮助机器人，可以通过提问获取ChatWiki的使用帮助，比如如何创建机器人，如何新建知识库，如何添加模型等。"
+            :placeholder="t('ph_intro_chat')"
           />
           <a-textarea
             v-else
             :rows="3"
             v-model:value="formState.robot_intro"
-            placeholder="请输入机器人简介，比如 ZHIMA CHATAI 基于大预言模型提供 ZHIMA CHATAI 产品帮助"
+            :placeholder="t('ph_intro_workflow')"
           />
         </a-form-item>
 
-        <a-form-item ref="name" label="机器人头像" v-bind="validateInfos.robot_avatar_url" v-if="!isEdit">
+        <a-form-item ref="name" :label="t('label_robot_avatar')" v-bind="validateInfos.robot_avatar_url" v-if="!isEdit">
           <AvatarInput v-model:value="formState.robot_avatar_url" @change="onAvatarChange" />
-          <div class="form-item-tip">请上传机器人头像，建议尺寸为100*100px,大小不超过100KB</div>
+          <div class="form-item-tip">{{ t('ph_upload_avatar') }}</div>
         </a-form-item>
       </a-form>
     </div>
@@ -171,6 +171,7 @@
 
 <script setup>
 import { useStorage } from '@/hooks/web/useStorage'
+import { useI18n } from '@/hooks/web/useI18n'
 import { ref, reactive, h, onMounted, computed } from 'vue'
 import { Form, message, Modal } from 'ant-design-vue'
 import { CloseCircleFilled } from '@ant-design/icons-vue'
@@ -180,6 +181,8 @@ import { useRoute, useRouter } from 'vue-router'
 import AvatarInput from './avatar-input.vue'
 import { DEFAULT_ROBOT_AVATAR, DEFAULT_WORKFLOW_AVATAR } from '@/constants/index'
 import { useRobotStore } from '@/stores/modules/robot'
+
+const { t } = useI18n('views.robot.robot-list.components.add-robot-alert')
 const robotStore = useRobotStore()
 
 const { setStorage } = useStorage('localStorage')
@@ -210,16 +213,16 @@ const formState = reactive({
 const title = computed(() => {
   if(formState.application_type == 0){
     if(isEdit.value){
-      return '编辑机器人基本信息'
+      return t('title_edit_robot_info')
     }else{
-      return '新建聊天机器人'
+      return t('title_create_chat_robot')
     }
 
   }else{
     if(isEdit.value){
-      return '编辑工作流基本信息'
+      return t('title_edit_workflow_info')
     }else{
-      return '新建工作流'
+      return t('title_create_workflow')
     }
   }
 })
@@ -230,23 +233,23 @@ const robotInfo = computed(() => {
 
 const { getRobot } = robotStore
 
-const rules = reactive({
+const rules = computed(() => ({
   robot_name: [
     {
       required: true,
-      message: '请输入机器人名称',
+      message: t('msg_robot_name_required'),
       trigger: 'change'
     },
     {
       min: 1,
       max: 20,
-      message: '最多20个字',
+      message: t('msg_max_20_chars'),
       trigger: 'change'
     }
   ],
   en_name:[
   ]
-})
+}))
 
 const { validate, validateInfos, clearValidate } = useForm(formState, rules)
 
@@ -266,11 +269,11 @@ const saveForm = () => {
   saveLoading.value = true
 
   let requertUrl = saveRobot
-  let tipVal = '机器人创建成功'
+  let tipVal = 'msg_robot_created'
   if (isEdit.value) {
     requertUrl = editBaseInfo
     formData.id = route.query.id
-    tipVal = '机器人编辑成功'
+    tipVal = 'msg_robot_edited'
     if (formData.robot_avatar == default_avatar) {
       delete formData.robot_avatar
     }
@@ -284,7 +287,7 @@ const saveForm = () => {
         return message.error(res.msg)
       }
 
-      message.success(tipVal)
+      message.success(t(tipVal))
       if(!isEdit.value && route.query.robot_key){
         emit('addRobot')
         show.value = false
@@ -322,13 +325,13 @@ const checkLLM = async () => {
 
   if (!res || res.data.length == 0) {
     Modal.confirm({
-      title: '请先添加LLM模型服务商?',
+      title: t('msg_add_llm_provider_title'),
       icon: h(CloseCircleFilled, {
         style: {
           color: 'red'
         }
       }),
-      content: '机器人聊天基于LLM(大语言模型)，请先完成LLM服务商配置',
+      content: t('msg_add_llm_provider_content'),
       onOk() {
         router.push('/user/model')
       },
@@ -368,12 +371,12 @@ const open = async (type, is_edit) => {
     }
   }
   if(type == 0) {
-    rules.en_name = []
+    rules.value.en_name = []
   }else{
-  rules.en_name = [
+  rules.value.en_name = [
     {
       required: true,
-      message: '请输入工作流名称',
+      message: t('msg_workflow_name_required'),
       trigger: 'change'
     },
     {
@@ -383,7 +386,7 @@ const open = async (type, is_edit) => {
         }
         //只能输入英文数字和字符“_”、“”、“_”
         if (!/^[a-zA-Z0-9_\.\-]+$/.test(value)) {
-           return Promise.reject('只能输入英文数字和字符"_"、"."、"-"')
+           return Promise.reject(t('msg_workflow_name_format_error'))
         }else{
           return Promise.resolve()
         }

@@ -18,33 +18,33 @@ type SaveAbilityReq struct {
 	SwitchStatus int    `form:"switch_status" json:"switch_status"`
 }
 
-// SaveUserAbility 保存用户功能开关状态
+// SaveUserAbility saves the user's feature switch status
 func SaveUserAbility(c *gin.Context) {
 	var (
 		err error
 		req SaveAbilityReq
 	)
 
-	// 获取参数
+	//Get params
 	if err = c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
 
-	// 检查开关状态参数是否合法 (0:关闭, 1:开启)
+	//Validate switch status (0: off, 1: on)
 	if req.SwitchStatus != define.SwitchOff && req.SwitchStatus != define.SwitchOn {
 		common.FmtError(c, `param_invalid`, `switch_status`)
 		return
 	}
 
-	// 获取登录用户信息
+	//Get current user
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 保存用户功能开关状态
+	//Save user's feature switch status
 	_, err = common.SaveUserAbility(adminUserId, req.AbilityType, req.SwitchStatus)
 	if err != nil {
 		logs.Error("SaveUserAbility error: %s", err.Error())
@@ -55,9 +55,9 @@ func SaveUserAbility(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-// GetAbilityList 获取用户功能列表
+// GetAbilityList gets the user's feature list
 func GetAbilityList(c *gin.Context) {
-	// 获取登录用户信息
+	//Get current user
 	abilityType := cast.ToString(c.Query("ability_type"))
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
@@ -65,7 +65,7 @@ func GetAbilityList(c *gin.Context) {
 		return
 	}
 
-	// 获取功能列表
+	//Get feature list
 	list, err := common.GetAbilityList(adminUserId, abilityType)
 	if err != nil {
 		logs.Error("GetAbilityList error: %s", err.Error())
@@ -76,23 +76,23 @@ func GetAbilityList(c *gin.Context) {
 	common.FmtOk(c, list)
 }
 
-// GetSpecifyAbilityConfig 获取用户功能配置
+// GetSpecifyAbilityConfig gets the user's feature config
 func GetSpecifyAbilityConfig(c *gin.Context) {
-	// 获取参数
+	//Get params
 	abilityType := cast.ToString(c.Query("ability_type"))
 	if abilityType == `` {
 		common.FmtError(c, `param_lack`, `ability_type`)
 		return
 	}
 
-	// 获取登录用户信息
+	//Get current user
 	adminUserId := GetAdminUserId(c)
 	if adminUserId == 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
 
-	// 获取机器人功能列表
+	//Get robot ability list
 	list, err := common.GetAbilityList(adminUserId, abilityType)
 	if err != nil {
 		logs.Error("GetAbilityList error: %s", err.Error())

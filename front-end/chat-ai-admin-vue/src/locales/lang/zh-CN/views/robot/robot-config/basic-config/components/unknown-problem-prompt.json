@@ -1,0 +1,1 @@
+{"title_unknown_problem_prompt": "未知问题提示语", "tip_knowledge_mode": "仅知识库模式下，用户提问没有在知识库中大于score阈值的分段时，会直接回复未知问题提示语。", "ph_input_unknown_prompt": "请输入未知问题提示语", "ph_input_question": "请输入问题", "btn_add_guide_question": "添加引导问题"}

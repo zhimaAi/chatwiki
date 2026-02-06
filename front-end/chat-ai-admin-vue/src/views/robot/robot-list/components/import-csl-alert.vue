@@ -35,13 +35,13 @@
 </style>
 
 <template>
-  <a-modal width="600px" v-model:open="show" :confirmLoading="saveLoading" title="导入csl文件创建机器人" @ok="handleSave"
+  <a-modal width="600px" v-model:open="show" :confirmLoading="saveLoading" :title="t('title_import_csl')" @ok="handleSave"
     @cancel="onCancel">
     <div class="form-box">
       <div class="tip-box">
         <a-alert type="info">
           <template #description>
-            您可以将您编排好的机器人导出为csl文件,共享给他人使用。也可以从他人处获取导出的csl文件,通过导入形式创建机器人。
+            {{ t('tip_description') }}
           </template>
         </a-alert>
       </div>
@@ -50,8 +50,8 @@
         <p class="ant-upload-drag-icon">
           <inbox-outlined class="upload-icon"></inbox-outlined>
         </p>
-        <p class="upload-text">点击或将文件拖拽到这里上传</p>
-        <p class="upload-hint">仅支持从chatwiki导出生成的csl文件</p>
+        <p class="upload-text">{{ t('upload_text') }}</p>
+        <p class="upload-hint">{{ t('upload_hint') }}</p>
       </a-upload-dragger>
     </div>
   </a-modal>
@@ -62,6 +62,9 @@ import { ref } from 'vue';
 import { InboxOutlined } from '@ant-design/icons-vue';
 import { message, Upload } from 'ant-design-vue';
 import { robotImport } from '@/api/robot/index.js';
+import { useI18n } from '@/hooks/web/useI18n';
+
+const { t } = useI18n('views.robot.robot-list.components.import-csl-alert');
 
 const emit = defineEmits(['ok']);
 
@@ -80,7 +83,7 @@ const onCancel = () => {
 
 const handleSave = () => {
   if (fileList.value.length === 0) {
-    message.error('请上传csl文件');
+    message.error(t('msg_upload_csl'));
     return;
   }
 
@@ -92,7 +95,7 @@ const handleSave = () => {
   }).then((res) => {
     saveLoading.value = false;
     show.value = false;
-    message.success('导入成功');
+    message.success(t('msg_import_success'));
     fileList.value = [];
     emit('ok', res.data);
   })
@@ -105,7 +108,7 @@ const handleSave = () => {
 const beforeUpload = (file) => {
   const isCsl = file.name.endsWith('.csl');
   if (!isCsl) {
-    message.error('只能上传csl格式的文件');
+    message.error(t('msg_only_csl_format'));
     return Upload.LIST_IGNORE;
   }
   // 验证通过后返回false，阻止自动上传，由手动触发上传

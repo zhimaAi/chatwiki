@@ -161,7 +161,7 @@
     wrapClassName="no-padding-modal"
     :bodyStyle="{ 'padding-right': '24px', 'max-height': '540px', 'overflow-y': 'auto' }"
     @cancel="handleCancel"
-    width="620px"
+    width="700px"
   >
     <div class="form-box">
       <a-form layout="vertical" ref="formRef" :model="formState">
@@ -258,7 +258,7 @@
         </a-form-item>
         <div v-show="!isHide && (formState.type == 0 || formState.type == 3)">
           <a-form-item :label="t('segmentation_method')" required>
-            <div class="form-alert-tip">
+            <div class="form-alert-tip" style="white-space: wrap;">
               {{ t('segmentation_tip') }}
             </div>
             <div class="select-card-box">
@@ -616,8 +616,7 @@ const router = useRouter()
 const visible = ref(false)
 
 const saveLoading = ref(false)
-const default_ai_chunk_prumpt =
-  '你是一位文章分段助手，根据文章内容的语义进行合理分段，确保每个分段表述一个完整的语义，每个分段字数控制在500字左右，最大不超过1000字。请严格按照文章内容进行分段，不要对文章内容进行加工，分段完成后输出分段后的内容。'
+const default_ai_chunk_prumpt = t('default_ai_chunk_prompt')
 const formState = reactive({
   type: '0',
   access_rights: 0,

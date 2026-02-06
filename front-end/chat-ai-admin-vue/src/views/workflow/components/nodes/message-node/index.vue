@@ -69,9 +69,9 @@
     @handleMenu="handleMenu"
   >
     <div class="message-node">
-      <div class="no-data" v-if="properties.message_list.length == 0">点击设置消息内容</div>
+      <div class="no-data" v-if="properties.message_list.length == 0">{{ t('msg_click_to_set_message') }}</div>
       <div class="message-item" v-for="(item, index) in properties.message_list" :key="index">
-        <div class="node-desc">延时{{ item.delay }}s</div>
+        <div class="node-desc">{{ t('label_delay') }}{{ item.delay }}s</div>
         <div class="q-title" v-if="item.msg_type == 'text' || item.msg_type == 'menu'">
           {{ item.sort_content }}
         </div>
@@ -91,6 +91,7 @@
 
 <script>
 import NodeCommon from '../base-node.vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
 export default {
   name: 'MessageNode',
@@ -98,6 +99,10 @@ export default {
     NodeCommon,
   },
   inject: ['getNode', 'getGraph'],
+  setup() {
+    const { t } = useI18n('views.workflow.components.nodes.message-node.index')
+    return { t }
+  },
   props: {
     properties: {
       type: Object,

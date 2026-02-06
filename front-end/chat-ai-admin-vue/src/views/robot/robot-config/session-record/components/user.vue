@@ -2,7 +2,7 @@
   <div class="user-content" ref="scrollUserBoxRef" @scroll="onScroll">
     <div class="empty-box" v-if="userLists.length === 0">
       <img src="@/assets/img/library/detail/empty.png" alt="" />
-      <div class="title">暂无结果，请重试</div>
+      <div class="title">{{ t('msg_no_results') }}</div>
     </div>
     <div
       v-else
@@ -22,7 +22,7 @@
         </div>
         <div class="user-info">{{ item.last_chat_message }}</div>
         <div class="user-source-box">
-          <div class="user-source-title">来自：</div>
+          <div class="user-source-title">{{ t('label_from') }}</div>
           <div class="user-source-content">{{ formatSource(item) }}</div>
         </div>
       </div>
@@ -31,6 +31,9 @@
 </template>
 <script setup>
 import { onMounted, ref, watch } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.session-record.components.user')
 
 const scrollUserBoxRef = ref(null)
 const props = defineProps({

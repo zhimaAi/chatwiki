@@ -44,6 +44,16 @@ const routes = [
       hidden: true
     }
   },
+  {
+    path: '/privacy_policy',
+    name: 'PrivacyPolicy',
+    component: () => import('../views/privacy-policy/index.vue'),
+    meta: {
+      title: '隐私政策',
+      noCache: true,
+      hidden: true
+    }
+  },
   user,
   guide,
   robot,

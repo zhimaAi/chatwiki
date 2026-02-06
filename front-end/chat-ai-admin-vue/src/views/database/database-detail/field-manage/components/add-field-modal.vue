@@ -4,33 +4,33 @@
       <a-form layout="vertical">
         <a-form-item v-bind="validateInfos.name">
           <template #label
-            >字段名称&nbsp;
+            >{{ t('label_name') }}&nbsp;
             <a-tooltip>
-              <template #title>定义数据表的表头，可以在对应表头下存储相关数据。</template>
+              <template #title>{{ t('label_name_tooltip') }}</template>
               <QuestionCircleOutlined />
             </a-tooltip>
           </template>
-          <a-input :maxLength="64" v-model:value="formState.name" placeholder="请输入字段名称" />
+          <a-input :maxLength="64" v-model:value="formState.name" :placeholder="t('ph_name')" />
         </a-form-item>
         <a-form-item v-bind="validateInfos.description">
           <template #label
-            >字段描述&nbsp;
+            >{{ t('label_description') }}&nbsp;
             <a-tooltip>
-              <template #title>表头字段的说明，帮助用户或大模型理解表头字段</template>
+              <template #title>{{ t('label_description_tooltip') }}</template>
               <QuestionCircleOutlined />
             </a-tooltip>
           </template>
-          <a-input :maxLength="64" v-model:value="formState.description" placeholder="请输入字段描述" />
+          <a-input :maxLength="64" v-model:value="formState.description" :placeholder="t('ph_description')" />
         </a-form-item>
         <a-form-item v-bind="validateInfos.type">
           <template #label
-            >数据类型&nbsp;
+            >{{ t('label_type') }}&nbsp;
             <a-tooltip>
-              <template #title>选择存储字段对应的数据类型</template>
+              <template #title>{{ t('label_type_tooltip') }}</template>
               <QuestionCircleOutlined />
             </a-tooltip>
           </template>
-          <a-select v-model:value="formState.type" style="width: 100%" placeholder="请选择数据类型">
+          <a-select v-model:value="formState.type" style="width: 100%" :placeholder="t('ph_type')">
             <a-select-option v-for="item in typeOption" :value="item.value" :key="item.value">{{
               item.label
             }}</a-select-option>
@@ -38,19 +38,19 @@
         </a-form-item>
         <a-form-item>
           <template #label
-            >是否必要&nbsp;
+            >{{ t('label_required') }}&nbsp;
             <a-tooltip>
               <template #title>
-                <div>必要字段：在保存一行数据时，必须提供对应字段信息，否则无法保存该行数据</div>
-                <div>非必要字段：缺失该字段信息时，一行数据仍可被保存在表中</div>
+                <div>{{ t('label_required_tooltip_required') }}</div>
+                <div>{{ t('label_required_tooltip_optional') }}</div>
               </template>
               <QuestionCircleOutlined />
             </a-tooltip>
           </template>
           <a-switch
             v-model:checked="formState.required"
-            checked-children="开"
-            un-checked-children="关"
+            :checked-children="t('switch_on')"
+            :un-checked-children="t('switch_off')"
             checkedValue="true"
             unCheckedValue="false"
           />
@@ -65,8 +65,12 @@ import { PlusOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { Form, message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
 import { addFormField } from '@/api/database'
-const modalTitle = ref('添加字段')
+
+const { t } = useI18n('views.database.database-detail.field-manage.components.add-field-modal')
+
+const modalTitle = ref(t('modal_title_add'))
 const rotue = useRoute()
 const query = rotue.query
 const open = ref(false)
@@ -105,7 +109,7 @@ const show = (data) => {
   formState.type = data.type
   formState.required = data.required
   formState.id = data.id || ''
-  modalTitle.value = data.id ? '编辑字段' : '添加字段'
+  modalTitle.value = data.id ? t('modal_title_edit') : t('modal_title_add')
 }
 const formRules = reactive({
   name: [
@@ -113,7 +117,7 @@ const formRules = reactive({
       required: true,
       validator: async (rule, value) => {
         if (!/^[a-z][a-z0-9_]*$/.test(value)) {
-          return Promise.reject('必须以英文字母开头，只能包含小写字母、数字、下划线')
+          return Promise.reject(t('validator_name_pattern'))
         }
         return Promise.resolve()
       }
@@ -122,13 +126,13 @@ const formRules = reactive({
   description: [
     {
       required: true,
-      message: '请输入字段描述'
+      message: t('validator_description_required')
     }
   ],
   type: [
     {
       required: true,
-      message: '请选择数据类型'
+      message: t('validator_type_required')
     }
   ]
 })
@@ -137,7 +141,7 @@ const { resetFields, validate, validateInfos } = useForm(formState, formRules)
 const handleOk = () => {
   validate().then(() => {
     addFormField(formState).then((res) => {
-      let tip = formState.id ? '修改成功' : '新增成功'
+      let tip = formState.id ? t('msg_edit_success') : t('msg_add_success')
       message.success(tip)
       open.value = false
       emit('ok')

@@ -80,12 +80,14 @@
         {{ item.label }}
       </div>
       <div class="option-line"></div>
-      <div class="zoom-select-option" @click="handleFitView()">全览</div>
+      <div class="zoom-select-option" @click="handleFitView()">{{ t('btn_fit_view') }}</div>
     </div>
   </div>
 </template>
 
 <script>
+import { useI18n } from '@/hooks/web/useI18n'
+
 export default {
   name: 'NodeCommon',
   props: {
@@ -93,6 +95,10 @@ export default {
       type: Number,
       default: 100,
     },
+  },
+  setup() {
+    const { t } = useI18n('views.workflow.components.custom-control.zoom-select')
+    return { t }
   },
   data() {
     return {

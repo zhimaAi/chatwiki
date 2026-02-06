@@ -1,0 +1,15 @@
+{
+  "title_linked_library": "关联知识库",
+  "ph_search_library": "请输入知识库名称搜索",
+  "msg_linked_library_tip": "请选择关联知识库，机器人会根据知识库内上传的文档回复用户的提问。每个机器人最多关联5个知识库",
+  "btn_refresh": "刷新",
+  "btn_create_library": "新建知识库",
+  "label_normal_library": "普通知识库",
+  "label_external_library": "对外知识库",
+  "label_qa_library": "问答知识库",
+  "label_mp_library": "公众号知识库",
+  "btn_cancel": "取消",
+  "btn_confirm": "确定",
+  "label_all": "全部",
+  "msg_refresh_success": "刷新完成"
+}

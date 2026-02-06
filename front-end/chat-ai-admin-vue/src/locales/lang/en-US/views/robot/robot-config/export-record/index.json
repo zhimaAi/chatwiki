@@ -1,0 +1,14 @@
+{
+  "title_export_record": "Export Record",
+  "msg_export_file_retention": "Export files are retained for only 7 days and will be automatically deleted after that. Please download them to your local device in a timely manner.",
+  "status_waiting_export": "Waiting for Export",
+  "status_exporting": "Exporting",
+  "status_export_success": "Export Success",
+  "status_export_failed": "Export Failed",
+  "action_download": "Download",
+  "title_export_time": "Export Time",
+  "title_export_file_name": "Export File Name",
+  "title_source": "Source",
+  "title_status": "Status",
+  "title_action": "Action"
+}

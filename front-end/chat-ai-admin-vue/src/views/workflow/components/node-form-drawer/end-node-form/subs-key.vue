@@ -10,14 +10,14 @@
         <a-input
           :style="{ width: widthPx }"
           v-model:value="item.key"
-          placeholder="请输入"
+          :placeholder="t('ph_input')"
         ></a-input>
       </a-flex>
       <!-- <img class="fork-icon" src="@/assets/svg/right-fork-icon.svg" alt="" /> -->
       <a-select
         @change="onTypeChange(item)"
         v-model:value="item.typ"
-        placeholder="请选择"
+        :placeholder="t('ph_select')"
         style="width: 114px"
       >
         <a-select-option v-for="op in filterTypOptions" :value="op.value">{{
@@ -31,7 +31,7 @@
           :defaultSelectedList="item.tags"
           :defaultValue="item.desc"
           @change="(text, selectedList) => changeOutputValue(text, selectedList, item, index)"
-          placeholder="请输入变量值，键入“/”插入变量"
+          :placeholder="t('ph_input_value')"
         >
           <template #option="{ label, payload }">
             <div class="field-list-item">
@@ -64,9 +64,12 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { computed } from 'vue'
 import { CloseCircleOutlined, PlusCircleOutlined } from '@ant-design/icons-vue'
 import AtInput from '../../at-input/at-input.vue'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.end-node-form.subs-key')
 const props = defineProps({
   data: {},
   level: {

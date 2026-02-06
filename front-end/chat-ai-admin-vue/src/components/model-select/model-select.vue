@@ -1,7 +1,8 @@
 <template>
+  <!-- ph_select_model -->
   <a-select
     :value="value"
-    :placeholder="placeholder"
+    :placeholder="placeholder || t('ph_select_model')"
     @change="handleChangeModel"
     style="width: 100%"
     :allowClear="true"
@@ -42,6 +43,9 @@
 import { getModelConfigOption } from '@/api/model/index'
 import { ref, onMounted, watch, computed } from 'vue'
 import { getModelOptionsList } from '@/components/model-select/index.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('components.model-select.model-select')
 
 const emit = defineEmits(['change', 'update:modeName', 'update:modeId', 'update:useConfigId', 'loaded'])
 const props = defineProps({
@@ -66,7 +70,7 @@ const props = defineProps({
   },
   placeholder: {
     type: String,
-    default: '请选择嵌入模型'
+    default: ''
   }
 })
 

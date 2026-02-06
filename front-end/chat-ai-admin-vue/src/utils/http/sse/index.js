@@ -1,4 +1,5 @@
 import { fetchEventSource, EventStreamContentType } from '@/libs/fetch-event-source'
+import { useLocaleStoreWithOut } from '@/stores/modules/locale'
 
 export default class SSE {
   onOpen = undefined
@@ -20,6 +21,9 @@ export default class SSE {
   }
 
   open() {
+    const localeStore = useLocaleStoreWithOut()
+    const currentLocale = localeStore.getCurrentLocale
+
     let formdata = new FormData()
 
     for (let key in this.opt.data) {
@@ -27,11 +31,13 @@ export default class SSE {
     }
 
     let headersData = {
-      'App-Type': ''
+      'App-Type': '',
+      'lang': currentLocale.lang,
     }
 
     if (this.opt.token) {
       headersData = {
+        ...headersData,
         'App-Type': '',
         'token': this.opt.token
       }

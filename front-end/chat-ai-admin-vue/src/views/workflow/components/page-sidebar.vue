@@ -174,7 +174,7 @@
         v-model:open="handleTooltipShow"
         :arrow="false"
       >
-        <template #title>{{ sidebarHide ? '展开' : '收起' }}</template>
+        <template #title>{{ sidebarHide ? t('tooltip_expand') : t('tooltip_collapse') }}</template>
         <span class="sidebar-handle" @click="onHandleClick">
           <span class="handle-line handle-line01"></span>
           <span class="handle-line handle-line02"></span>
@@ -207,6 +207,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGlobalStore } from '@/stores/modules/global'
 import CuTooltip from '@/components/cu-tooltip/index.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.page-sidebar')
 
 const globalStore = useGlobalStore()
 
@@ -230,9 +233,9 @@ const props = defineProps({
   }
 })
 
-const menus = [
+const menus = computed(() => [
   {
-    label: '工作流编排',
+    label: t('menu_workflow'),
     value: 'workflow',
     path: '/robot/config/workflow',
     iconName: 'workflow'
@@ -244,13 +247,13 @@ const menus = [
   //   iconName: 'jichupeizhi'
   // },
   {
-    label: '对外服务',
+    label: t('menu_external_services'),
     value: 'external-services',
     path: '/robot/config/external-services',
     iconName: 'duiwaifuwu'
   },
   {
-    label: '聊天测试',
+    label: t('menu_chat_test'),
     value: 'test',
     path: '/robot/test',
     iconName: 'liaotianceshi',
@@ -263,19 +266,19 @@ const menus = [
   //   iconName: 'function-center'
   // },
   {
-    label: '问答反馈',
+    label: t('menu_qa_feedback'),
     value: 'qa-feedbacks',
     path: '/robot/config/qa-feedbacks',
     iconName: 'qa-feedback'
   },
   {
-    label: '会话记录',
+    label: t('menu_session_record'),
     value: 'session-record',
     path: '/robot/config/session-record',
     iconName: 'session-record'
   },
   {
-    label: 'API Key管理',
+    label: t('menu_api_key_manage'),
     value: 'api-key-manage',
     path: '/robot/config/api-key-manage',
     iconName: 'duiwaifuwu'
@@ -287,24 +290,24 @@ const menus = [
   //   iconName: 'unknown-issue'
   // },
   {
-    label: '统计分析',
+    label: t('menu_statistical_analysis'),
     value: 'statistical_analysis',
     path: '/robot/config/statistical_analysis',
     iconName: 'statistical-analysis'
   },
   {
-    label: '导出记录',
+    label: t('menu_export_record'),
     value: 'export-record',
     path: '/robot/config/export-record',
     iconName: 'export-record'
   },
   {
-    label: '调用日志',
+    label: t('menu_invoke_logs'),
     value: 'invoke-logs',
     path: '/robot/config/invoke-logs',
     iconName: 'doc-file'
   }
-]
+])
 
 const onMenuClick = (item) => {
   if(item.isNewWindowOpen){

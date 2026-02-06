@@ -2,15 +2,15 @@
   <div class="select-data-form">
     <div class="node-box-content">
       <div class="setting-box">
-        <collapse-panel title="查询条件" :count="state.filter.conditions.length">
+        <collapse-panel :title="t('title_query_conditions')" :count="state.filter.conditions.length">
           <template #extra>
             <div class="flex-between">
               <div v-if="state.input_type_map.filter != 1" class="btn-hover-wrap" @click="handleOpenFullAtModal('filter_json')">
                 <FullscreenOutlined/>
               </div>
               <a-select v-model:value="state.input_type_map.filter" style="width: 130px;" @change="update">
-                <a-select-option :value="1">选择查询条件</a-select-option>
-                <a-select-option :value="2">输入变量</a-select-option>
+                <a-select-option :value="1">{{ t('opt_select_query_condition') }}</a-select-option>
+                <a-select-option :value="2">{{ t('opt_input_variable') }}</a-select-option>
               </a-select>
             </div>
           </template>
@@ -24,7 +24,7 @@
               :ref="el => atInputRef['filter_json'] = el"
               @open="emit('updateVar')"
               @change="(val, tags) => changeValue('filter_json', val, tags)"
-              placeholder="请输入内容，键入“/”可以插入变量"
+              :placeholder="t('ph_input_content')"
             >
               <template #option="{ label, payload }">
                 <div class="field-list-item">
@@ -33,7 +33,7 @@
                 </div>
               </template>
             </AtInput>
-            <div class="desc">内容示例：{"conditions":[{"field_name":"文章ID","operator":"is","value":"123"}],"conjunction":"and"}</div>
+            <div class="desc">{{ t('desc_filter_example') }}</div>
           </template>
           <QueryConditionFilter
             v-else
@@ -47,15 +47,15 @@
       </div>
 
       <div class="setting-box" @wheel.stop @touchmove.stop>
-        <collapse-panel title="查询字段" :count="state.field_names.length">
+        <collapse-panel :title="t('title_query_fields')" :count="state.field_names.length">
           <template #extra>
             <div class="flex-between">
               <div v-if="state.input_type_map.field_names != 1" class="btn-hover-wrap" @click="handleOpenFullAtModal('field_names_json')">
                 <FullscreenOutlined/>
               </div>
               <a-select v-model:value="state.input_type_map.field_names" style="width: 130px;" @change="update">
-                <a-select-option :value="1">选择查询字段</a-select-option>
-                <a-select-option :value="2">输入变量</a-select-option>
+                <a-select-option :value="1">{{ t('opt_select_query_fields') }}</a-select-option>
+                <a-select-option :value="2">{{ t('opt_input_variable') }}</a-select-option>
               </a-select>
             </div>
           </template>
@@ -69,7 +69,7 @@
               :ref="el => atInputRef['field_names_json'] = el"
               @open="emit('updateVar')"
               @change="(val, tags) => changeValue('field_names_json', val, tags)"
-              placeholder="请输入内容，键入“/”可以插入变量"
+              :placeholder="t('ph_input_content')"
             >
               <template #option="{ label, payload }">
                 <div class="field-list-item">
@@ -78,7 +78,7 @@
                 </div>
               </template>
             </AtInput>
-            <div class="desc">内容示例：["文章ID","封面图","创建时间","介绍"]</div>
+            <div class="desc">{{ t('desc_field_names_example') }}</div>
           </template>
           <FieldListSelect
             v-else
@@ -94,15 +94,15 @@
       </div>
 
       <div class="setting-box" @wheel.stop @touchmove.stop>
-        <collapse-panel title="排序" :count="state.sort.length">
+        <collapse-panel :title="t('title_sort')" :count="state.sort.length">
           <template #extra>
             <div class="flex-between">
               <div v-if="state.input_type_map.sort != 1" class="btn-hover-wrap" @click="handleOpenFullAtModal('sort_json')">
                 <FullscreenOutlined/>
               </div>
               <a-select v-model:value="state.input_type_map.sort" style="width: 130px;" @change="update">
-                <a-select-option :value="1">选择排序</a-select-option>
-                <a-select-option :value="2">输入变量</a-select-option>
+                <a-select-option :value="1">{{ t('opt_select_sort') }}</a-select-option>
+                <a-select-option :value="2">{{ t('opt_input_variable') }}</a-select-option>
               </a-select>
             </div>
           </template>
@@ -116,7 +116,7 @@
               :ref="el => atInputRef['sort_json'] = el"
               @open="emit('updateVar')"
               @change="(val, tags) => changeValue('sort_json', val, tags)"
-              placeholder="请输入内容，键入“/”可以插入变量"
+              :placeholder="t('ph_input_content')"
             >
               <template #option="{ label, payload }">
                 <div class="field-list-item">
@@ -125,7 +125,7 @@
                 </div>
               </template>
             </AtInput>
-            <div class="desc">内容示例：[{"desc":false,"field_name":"文章ID"},{"desc":true,"field_name":"更新时间"}]</div>
+            <div class="desc">{{ t('desc_sort_example') }}</div>
           </template>
           <SortSelector
             v-else
@@ -138,7 +138,7 @@
       </div>
 
       <div class="setting-label">
-        <span>查询数量</span>
+        <span>{{ t('label_query_count') }}</span>
       </div>
 
       <div class="setting-box" @wheel.stop @touchmove.stop>
@@ -155,7 +155,7 @@
       :options="variableOptions"
       :defaultSelectedList="fullDefaultTags"
       :defaultValue="fullDefaultValue"
-      placeholder="请输入内容，键入“/”可以插入变量"
+      :placeholder="t('ph_input_content')"
       type="textarea"
       @open="emit('updateVar')"
       @change="(val, tags) => changeValueByFull(val, tags)"
@@ -175,6 +175,9 @@ import AtInput from "@/views/workflow/components/at-input/at-input.vue";
 import FullAtInput from "@/views/workflow/components/at-input/full-at-input.vue";
 import { FullscreenOutlined } from '@ant-design/icons-vue'
 import {jsonDecode} from "@/utils/index.js";
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.feishu-bittable.feishu-search-data')
 
 const emit = defineEmits(['update', 'updateVar'])
 const props = defineProps({

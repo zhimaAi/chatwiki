@@ -11,8 +11,8 @@
             <div class="left-box">
               <div class="name">
                 {{ appInfo.name }}
-                <span v-if="appInfo.status_bool" class="status-tag finished"><CheckCircleFilled/> 已发布</span>
-                <span v-else class="status-tag waiting"><ExclamationCircleFilled/> 未发布</span>
+                <span v-if="appInfo.status_bool" class="status-tag finished"><CheckCircleFilled/> {{ t('status_published') }}</span>
+                <span v-else class="status-tag waiting"><ExclamationCircleFilled/> {{ t('status_unpublished') }}</span>
               </div>
               <div class="desc">{{ appInfo.description }}</div>
             </div>
@@ -21,15 +21,15 @@
                   v-model:checked="appInfo.status_bool"
                   @change="statusChange"
                   :loading="statusLoading"
-                  checked-children="开"
-                  un-checked-children="关"/>
-              <a-button @click="showWorkflowModal" type="primary" ghost :icon="h(PlusOutlined)">添加工作流</a-button>
+                  :checked-children="t('switch_on')"
+                  :un-checked-children="t('switch_off')"/>
+              <a-button @click="showWorkflowModal" type="primary" ghost :icon="h(PlusOutlined)">{{ t('btn_add_workflow') }}</a-button>
               <a-dropdown>
                 <a-button :icon="h(EllipsisOutlined)"/>
                 <template #overlay>
                   <a-menu>
-                    <a-menu-item @click="showMcpModal">编辑</a-menu-item>
-                    <a-menu-item @click="delMcp"><span class="cFB363F">删除</span></a-menu-item>
+                    <a-menu-item @click="showMcpModal">{{ t('btn_edit') }}</a-menu-item>
+                    <a-menu-item @click="delMcp"><span class="cFB363F">{{ t('btn_delete') }}</span></a-menu-item>
                   </a-menu>
                 </template>
               </a-dropdown>
@@ -39,7 +39,7 @@
         <div class="app-data">
           <template v-for="(item, i) in appData" :key="i">
             <div class="data-item">
-              <div class="title">{{ item.title }}</div>
+              <div class="title">{{ t(item.title) }}</div>
               <div class="value">{{ item.value }}</div>
             </div>
             <a-divider type="vertical" style="height: 24px;"/>
@@ -49,13 +49,13 @@
       <div class="tools-box">
         <div class="head-box">
           <AppstoreOutlined class="icon"/>
-          工具列表（{{ tools.length || 0 }}）
+          {{ t('label_tools_list') }}（{{ tools.length || 0 }}）
         </div>
         <div v-if="tools.length" class="tools-list">
           <div v-for="(item, i) in tools" :key="i" class="tools-item">
             <div class="left">
               <div class="tit">{{ item.robot_name }}</div>
-              <div class="key">唯一标识符号：{{ item.name }}</div>
+              <div class="key">{{ t('label_unique_identifier') }}：{{ item.name }}</div>
               <div class="desc">{{ item.robot_intro }}</div>
               <div class="params">
                 <a-tag
@@ -70,13 +70,13 @@
                         <div class="field">
                           <span class="name">{{ field.key }}</span>
                           <span class="type">{{ field.typ }}</span>
-                          <span v-if="field.required" class="required">必填</span>
+                          <span v-if="field.required" class="required">{{ t('label_required') }}</span>
                         </div>
                         <div class="desc">{{ field.desc }}</div>
                       </div>
                     </div>
                   </template>
-                  <a>参数</a>
+                  <a>{{ t('label_params') }}</a>
                 </a-popover>
               </div>
             </div>
@@ -84,8 +84,8 @@
               <a-button size="small" :icon="h(EllipsisOutlined)"/>
               <template #overlay>
                 <a-menu>
-                  <a-menu-item @click="showIdentModal(item)">编辑标识符</a-menu-item>
-                  <a-menu-item @click="delTool(item)"><span class="cFB363F">删除</span></a-menu-item>
+                  <a-menu-item @click="showIdentModal(item)">{{ t('btn_edit_identifier') }}</a-menu-item>
+                  <a-menu-item @click="delTool(item)"><span class="cFB363F">{{ t('btn_delete') }}</span></a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -93,15 +93,15 @@
         </div>
         <div v-else class="empty-box">
           <img src="@/assets/empty.png"/>
-          <div class="title">暂未绑定工作流</div>
-          <a-button @click="showWorkflowModal" class="btn" type="primary">立即绑定</a-button>
+          <div class="title">{{ t('msg_no_workflow_bound') }}</div>
+          <a-button @click="showWorkflowModal" class="btn" type="primary">{{ t('btn_bind_now') }}</a-button>
         </div>
       </div>
     </template>
     <div v-else class="empty-box">
       <img src="@/assets/empty.png"/>
-      <div class="title">暂未添加工作流MCP插件</div>
-      <a-button @click="showMcpModal" class="btn" type="primary">立即添加</a-button>
+      <div class="title">{{ t('msg_no_mcp_added') }}</div>
+      <a-button @click="showMcpModal" class="btn" type="primary">{{ t('btn_add_now') }}</a-button>
     </div>
 
     <McpStore ref="mcpRef" @ok="loadData"/>
@@ -109,11 +109,11 @@
     <a-modal
         v-model:open="identVisible"
         :confirm-loading="identSaving"
-        title="编辑标识符"
+        :title="t('title_edit_identifier')"
         @ok="saveIdent">
-      <div>标识符</div>
+      <div>{{ t('label_identifier') }}</div>
       <div class="mt4">
-        <a-input v-model:value="identValue" @input="identInput" placeholder="请输入标识符" :maxlength="32"/>
+        <a-input v-model:value="identValue" @input="identInput" :placeholder="t('ph_input_identifier')" :maxlength="32"/>
       </div>
     </a-modal>
   </div>
@@ -140,6 +140,9 @@ import {
   delMcpServer
 } from "@/api/robot/mcp.js";
 import {jsonDecode} from "@/utils/index.js";
+import { useI18n } from '@/hooks/web/useI18n';
+
+const { t } = useI18n('views.robot.robot-list.components.mcp-box');
 
 const mcpRef = ref(null)
 const workflowRef = ref(null)
@@ -187,7 +190,7 @@ function statusChange() {
       server_id: appInfo.value.id,
       publish_status: Number(appInfo.value.status_bool)
     }).then(res => {
-      message.success('操作完成')
+      message.success(t('msg_operation_completed'))
     }).finally(() => {
       statusLoading.value = false
     }).catch(() => {
@@ -196,10 +199,10 @@ function statusChange() {
   }
   if (!appInfo.value.status_bool) {
     Modal.confirm({
-      title: '确认关闭MCP服务？',
-      content: '关闭后，其他应用的位置都不可使用！确认关闭？',
-      okText: '确定',
-      cancelText: '取消',
+      title: t('title_confirm_close_mcp'),
+      content: t('msg_close_mcp_warning'),
+      okText: t('btn_confirm'),
+      cancelText: t('btn_cancel'),
       onOk: () => ok(),
       onCancel: () =>  cancel()
     })
@@ -211,23 +214,23 @@ function statusChange() {
 function appDataFormat() {
   appData.value = [
     {
-      title: 'URL',
+      title: 'label_url',
       value: `${window.location.origin}/mcp`
     },
     {
-      title: '请求方式',
+      title: 'label_request_method',
       value: 'POST'
     },
     {
-      title: '授权方式',
+      title: 'label_auth_method',
       value: 'Service token / API key'
     },
     {
-      title: '请求参数名',
+      title: 'label_request_param_name',
       value: 'Authorization'
     },
     {
-      title: 'API key',
+      title: 'label_api_key',
       value: `Bearer ${appInfo.value?.api_key}`
     },
   ]
@@ -248,13 +251,13 @@ function showMcpModal() {
 
 function delMcp() {
   Modal.confirm({
-    title: '确认删除MCP服务？',
-    content: '删除后，其他应用的位置都不可使用！确认删除？',
-    okText: '确定',
-    cancelText: '取消',
+    title: t('title_confirm_delete_mcp'),
+    content: t('msg_delete_mcp_warning'),
+    okText: t('btn_confirm'),
+    cancelText: t('btn_cancel'),
     onOk: () => {
       delMcpServer({server_id: appInfo.value.id}).then(() => {
-        message.success('已删除')
+        message.success(t('msg_deleted'))
         loadData()
       })
     }
@@ -277,7 +280,7 @@ const identInput = e => {
 }
 
 function saveIdent() {
-  if (!identValue.value) return message.warning('请输入标识符')
+  if (!identValue.value) return message.warning(t('msg_input_identifier_warning'))
   identSaving.value = true
   editMcpTool({
     tool_id: identRecord.value.id,
@@ -285,7 +288,7 @@ function saveIdent() {
   }).then(res => {
     identRecord.value.name = identValue.value
     identVisible.value = false
-    message.success('已保存')
+    message.success(t('msg_saved'))
   }).finally(() => {
     identSaving.value = false
   })
@@ -293,12 +296,12 @@ function saveIdent() {
 
 function delTool(item) {
   Modal.confirm({
-    title: '确认删除该工具？',
-    okText: '确定',
-    cancelText: '取消',
+    title: t('title_confirm_delete_tool'),
+    okText: t('btn_confirm'),
+    cancelText: t('btn_cancel'),
     onOk: () => {
       delMcpTool({tool_id: item.id}).then(() => {
-        message.success('已删除')
+        message.success(t('msg_deleted'))
         loadData()
       })
     }
@@ -311,7 +314,7 @@ function saveTools(ids) {
     robot_id: ids.toString()
   }).then(res => {
     loadData()
-    message.success('已保存')
+    message.success(t('msg_saved'))
   })
 }
 </script>

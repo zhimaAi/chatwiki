@@ -13,7 +13,7 @@
     <div class="ai-dialogue-node">
       <div class="field-list">
         <div class="field-item">
-          <div class="field-item-label">用户问题</div>
+          <div class="field-item-label">{{ t('label_user_question') }}</div>
           <div class="field-item-content">
             <div class="field-value">
               <span class="field-key">
@@ -24,7 +24,7 @@
         </div>
 
         <div class="field-item">
-          <div class="field-item-label">LLM模型</div>
+          <div class="field-item-label">{{ t('label_llm_model') }}</div>
           <div class="field-item-content">
             <div class="field-value">
               <span class="field-key">
@@ -35,7 +35,7 @@
         </div>
 
         <div class="field-item">
-          <div class="field-item-label">问题分类</div>
+          <div class="field-item-label">{{ t('label_question_category') }}</div>
           <div class="field-item-content">
             <div class="category-list">
               <div class="field-value category-value" v-for="item in formState.categorys" :key="item.key">
@@ -43,7 +43,7 @@
               </div>
 
               <div class="field-value category-value">
-                <span>默认分类</span>
+                <span>{{ t('label_default_category') }}</span>
               </div>
             </div>
           </div>
@@ -61,6 +61,9 @@ import NodeCommon from '../base-node.vue'
 import { useRobotStore } from '@/stores/modules/robot'
 import ModelNameText from '../model-name-text.vue'
 import UserQuestionText from '../user-question-text.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.nodes.question-node.index')
 
 const props = defineProps({
   properties: {
@@ -199,7 +202,7 @@ onBeforeUnmount(() => {
       }
     }
     .field-item-label {
-      width: 60px;
+      width: auto;
       line-height: 22px;
       margin-right: 8px;
       font-size: 14px;

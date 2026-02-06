@@ -10,18 +10,18 @@
       <!-- 自定义标题 -->
       <template #title>
         <div class="custom-modal-header">
-          <span>AI生成提示词</span>
+          <span>{{ t('title') }}</span>
         </div>
       </template>
       <!-- AI生成表单 -->
       <div class="ai-generate-wrapper">
         <div class="form-box-wrapper ai-generate-wrapper-box" :class="{ 'show-generate': isGenerate }">
           <div class="ai-generate-wrapper-left">
-            <a-alert class="alert-box" message="根据导入的文档的内容生成AI分段的提示词，支持设置导入文档的字数。" type="info" />
+            <a-alert class="alert-box" :message="t('alert_message')" type="info" />
             <!-- 模型选择 -->
             <div class="form-box-wrapper-options">
               <div class="form-item flex1">
-                <div class="form-label required">选择模型：</div>
+                <div class="form-label required">{{ t('label_select_model') }}</div>
                 <div class="form-content">
                   <!-- 自定义选择器 -->
                   <ModelSelect
@@ -36,14 +36,14 @@
               <div class="form-item flex1">
                 <div class="form-content dual-inputs">
                   <div class="input-group">
-                    <div class="form-label required">根据文档内容前：</div>
+                    <div class="form-label required">{{ t('label_content_prefix') }}</div>
                     <div class="form-label-input-box">
-                      <a-input-number 
-                        v-model:value="formState.count" 
-                        :min="1" 
-                        :max="10000" 
+                      <a-input-number
+                        v-model:value="formState.count"
+                        :min="1"
+                        :max="10000"
                         style="width: 137px;"
-                      />个字，自动生成提示词
+                      />{{ t('label_count_suffix') }}
                     </div>
                   </div>
                 </div>
@@ -51,13 +51,13 @@
             </div>
 
             <div class="form-item generate-btn-box">
-              <a-button 
+              <a-button
                 @click="handleGenerate"
                 :loading="generating"
                 class="generate-btn"
               >
                 <svg-icon name="ai-generate-white" style="font-size: 16px;"></svg-icon>
-                开始生成
+                {{ t('btn_generate') }}
               </a-button>
             </div>
           </div>
@@ -65,8 +65,8 @@
             <!-- 生成结果区域 -->
             <div class="result-nav">
               <svg-icon name="generate-icon" style="font-size: 14px;"></svg-icon>
-              <span class="tip" v-if="generating">提示词生成中...</span>
-              <div class="result-nav-text" v-else>提示词生成完毕</div>
+              <span class="tip" v-if="generating">{{ t('tip_generating') }}</span>
+              <div class="result-nav-text" v-else>{{ t('tip_completed') }}</div>
             </div>
 
             <div class="container" v-if="!messageObj.content && generating && !isError">
@@ -85,7 +85,7 @@
               <div class="dialog-content" v-html="renderedMarkdown"></div>
             </div>
             <div class="result-footer">
-              <a-button class="result-footer-btn" :disabled="aiResult == ''" type="primary" @click="handleOk">使用该提示词</a-button>
+              <a-button class="result-footer-btn" :disabled="aiResult == ''" type="primary" @click="handleOk">{{ t('btn_use_prompt') }}</a-button>
             </div>
           </div>
         </div>
@@ -104,6 +104,9 @@ import { generateAiPrompt } from '@/api/library'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import MarkdownIt from 'markdown-it';
 import { useLibraryStore } from '@/stores/modules/library'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.document-segmentation.components.ai-generate-modal')
 
 const libraryStore = useLibraryStore()
 const props = defineProps({
@@ -150,7 +153,7 @@ const showModal = () => {
 }
 
 const handleOk = () => {
-  message.success('操作成功')
+  message.success(t('message_success'))
   showResult.value = false
   isGenerate.value = false
   open.value = false

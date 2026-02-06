@@ -6,7 +6,7 @@
         :iconName="node.node_icon_name"
         @changeTitle="handleTitleChange"
         @deleteNode="handleDeleteNode"
-        desc="在设定的时间点，自动执行工作流"
+        :desc="t('desc_timing_trigger')"
       >
       </NodeFormHeader>
     </template>
@@ -16,12 +16,12 @@
         <div class="gray-block">
           <div class="output-label">
             <img src="@/assets/svg/alarm-clock.svg" alt="" class="output-label-icon" />
-            <span class="output-label-text">触发时间</span>
+            <span class="output-label-text">{{ t('label_trigger_time') }}</span>
           </div>
           <div class="form-item">
             <a-radio-group v-model:value="formState.type">
-              <a-radio value="select_time">选择触发时间</a-radio>
-              <a-radio value="linux_crontab">Linux Crontab 代码</a-radio>
+              <a-radio value="select_time">{{ t('label_select_time') }}</a-radio>
+              <a-radio value="linux_crontab">{{ t('label_linux_crontab') }}</a-radio>
             </a-radio-group>
           </div>
           <div class="form-item" v-if="formState.type === 'select_time'">
@@ -29,7 +29,7 @@
               <a-cascader
                 v-model:value="formState.time_value"
                 :options="options"
-                placeholder="请选择"
+                :placeholder="t('ph_select')"
                 style="width: 194px"
               />
               <a-time-picker
@@ -44,7 +44,7 @@
           <div class="form-item custom-textarea" v-else>
             <a-textarea
               v-model:value="formState.linux_crontab"
-              placeholder="请输入代码"
+              :placeholder="t('ph_input_code')"
               style="min-height: 142px; background: #262626; color: #bfbfbf"
             />
           </div>
@@ -55,10 +55,13 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { ref, onMounted, inject, reactive, computed, watch } from 'vue'
 import NodeFormLayout from '../node-form-layout.vue'
 import NodeFormHeader from '../node-form-header.vue'
 import CodeEditBox from './code-edit-box.vue'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.timing-trigger-node.timing-trigger-node-form')
 
 const emit = defineEmits(['update-node'])
 const props = defineProps({
@@ -80,58 +83,58 @@ function getMonthDays() {
   let lists = []
   for (let i = 0; i < 31; i++) {
     lists.push({
-      label: i + 1 + '号',
+      label: i + 1 + t('label_day'),
       value: i + 1 + ''
     })
   }
   return lists
 }
 
-const options = [
+const options = computed(() => [
   {
     value: 'day',
-    label: '每天执行'
+    label: t('label_every_day')
   },
   {
     value: 'week',
-    label: '每周执行',
+    label: t('label_every_week'),
     children: [
       {
         value: '0',
-        label: '星期日'
+        label: t('label_sunday')
       },
       {
         value: '1',
-        label: '星期一'
+        label: t('label_monday')
       },
       {
         value: '2',
-        label: '星期二'
+        label: t('label_tuesday')
       },
       {
         value: '3',
-        label: '星期三'
+        label: t('label_wednesday')
       },
       {
         value: '4',
-        label: '星期四'
+        label: t('label_thursday')
       },
       {
         value: '5',
-        label: '星期五'
+        label: t('label_friday')
       },
       {
         value: '6',
-        label: '星期六'
+        label: t('label_saturday')
       }
     ]
   },
   {
     value: 'month',
-    label: '每月执行',
+    label: t('label_every_month'),
     children: getMonthDays()
   }
-]
+])
 
 const formState = reactive({
   type: 'select_time',

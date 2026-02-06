@@ -1,0 +1,14 @@
+{
+  "title_export_record": "导出记录",
+  "msg_export_file_retention": "导出文件仅保留7天，7天后自动删除，请及时下载到本地",
+  "status_waiting_export": "等待导出",
+  "status_exporting": "导出中",
+  "status_export_success": "导出成功",
+  "status_export_failed": "导出失败",
+  "action_download": "下载",
+  "title_export_time": "导出时间",
+  "title_export_file_name": "导出文件名称",
+  "title_source": "来源",
+  "title_status": "状态",
+  "title_action": "操作"
+}

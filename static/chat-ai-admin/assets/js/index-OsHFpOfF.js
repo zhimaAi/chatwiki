@@ -1,0 +1,2 @@
+import{_ as s}from"./no-permission-DtJ3NYHG.js";import{_ as o}from"./emoji-mart-BBMRoEa3.js";import{a as r,p as t,b as a}from"./vue-chunks-BdaA73Wf.js";import"./editor-cherry-CFIsbKoN.js";const c={},i={class:"authority-page"};function n(_,e){return a(),r("div",i,[...e[0]||(e[0]=[t("div",{class:"center-content"},[t("img",{src:s,alt:""}),t("div",{class:"title"},"暂无权限")],-1)])])}const f=o(c,[["render",n],["__scopeId","data-v-19ad5b16"]]);export{f as default};
+//# sourceMappingURL=index-OsHFpOfF.js.map

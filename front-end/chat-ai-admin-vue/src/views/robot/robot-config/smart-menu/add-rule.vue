@@ -1,25 +1,25 @@
 <template>
   <div class="subManage-edit">
     <a-breadcrumb class="subManage-breadcrumb">
-      <a-breadcrumb-item><a :href="autoReplyUrl">智能菜单</a></a-breadcrumb-item>
-      <a-breadcrumb-item>新增规则</a-breadcrumb-item>
+      <a-breadcrumb-item><a :href="autoReplyUrl">{{ t('title_smart_menu') }}</a></a-breadcrumb-item>
+      <a-breadcrumb-item>{{ t('title_add_rule') }}</a-breadcrumb-item>
     </a-breadcrumb>
 
     <div class="main">
       <div class="left-pane">
         <a-form ref="formRef" :model="form" :rules="rules" layout="vertical">
-          <a-form-item name="menu_title" label="菜单名称" :rules="[{ required: true, message: '请输入菜单名称' }]">
-            <a-input v-model:value="form.menu_title" placeholder="请输入" />
+          <a-form-item name="menu_title" :label="t('label_menu_name')" :rules="[{ required: true, message: t('msg_input_menu_name') }]">
+            <a-input v-model:value="form.menu_title" :placeholder="t('ph_input')" />
           </a-form-item>
 
-          <a-form-item name="menu_description" label="菜单内容" :rules="[{ required: true, message: '请输入菜单内容' }]">
+          <a-form-item name="menu_description" :label="t('label_menu_content')" :rules="[{ required: true, message: t('msg_input_menu_content') }]">
             <div class="menu-content-box">
               <a-textarea ref="menuContentRef" v-model:value="form.menu_description" :rows="6"
-                placeholder="请输入菜单内容，每行一条" />
+                :placeholder="t('ph_menu_content')" />
               <div class="insert-row">
-                <span class="insert-label">插入：</span>
+                <span class="insert-label">{{ t('label_insert') }}</span>
                 <a-dropdown>
-                  <a class="insert-btn" @click.prevent>时间</a>
+                  <a class="insert-btn" @click.prevent>{{ t('btn_time') }}</a>
                   <template #overlay>
                     <a-menu>
                       <a-menu-item v-for="fmt in timeFormats" :key="fmt">
@@ -36,13 +36,13 @@
                     <Picker :data="emojiIndex" :emojiSize="18" :showPreview="false" set="apple"
                       @select="onEmojiSelect" />
                   </template>
-                  <a class="insert-btn">表情符号</a>
+                  <a class="insert-btn">{{ t('btn_emoji') }}</a>
                 </a-popover>
               </div>
             </div>
           </a-form-item>
 
-          <a-form-item name="menu_content" label="菜单标题" :rules="[{ validator: validateMenuContent }]">
+          <a-form-item name="menu_content" :label="t('label_menu_title')" :rules="[{ validator: validateMenuContent }]">
             <a-input v-model:value="hiddenMenuContent" style="display:none" />
             <a-form-item-rest>
               <div class="title-list">
@@ -61,22 +61,22 @@
                       inputmode="numeric" autofocus v-model="it.orderDisplayStr" @blur="endEditOrder(idx)"
                       @keyup.enter="endEditOrder(idx)" />
                     <div class="input-box" :class="{ focused: focusedId === it.id }">
-                      <a-input v-model:value="it.text" :disabled="it.isNewline === true" placeholder="请输入菜单标题、40个字以内"
+                      <a-input v-model:value="it.text" :disabled="it.isNewline === true" :placeholder="t('ph_menu_title')"
                         maxLength="40" @focus="onFocusTitle(idx, $event)" @blur="onBlurTitle(idx)">
                         <template #suffix>
-                          <a v-if="!it.isPure && !it.linkType && (!!(it.replyConfig?.rule_id) || !!it.rule_id || !!it.replyConfig)" class="suffix-action" @click="openReplyModal(idx)">编辑</a>
+                          <a v-if="!it.isPure && !it.linkType && (!!(it.replyConfig?.rule_id) || !!it.rule_id || !!it.replyConfig)" class="suffix-action" @click="openReplyModal(idx)">{{ t('btn_edit') }}</a>
                           <a-tooltip v-else-if="!it.isPure && !it.linkType && !keywordReplyStatus">
-                            <template #title>需要开启自动回复</template>
-                            <a class="suffix-action disabled" @click.prevent>添加回复</a>
+                            <template #title>{{ t('tip_need_auto_reply') }}</template>
+                            <a class="suffix-action disabled" @click.prevent>{{ t('btn_add_reply') }}</a>
                           </a-tooltip>
-                          <a v-else-if="!it.isPure && !it.linkType" class="suffix-action" @click="openReplyModal(idx)">添加回复</a>
+                          <a v-else-if="!it.isPure && !it.linkType" class="suffix-action" @click="openReplyModal(idx)">{{ t('btn_add_reply') }}</a>
                         </template>
                       </a-input>
                       <div v-if="focusedId === it.id" class="float-toolbar" @mousedown.stop="onToolbarMouseDown">
-                        <a @mousedown.prevent.stop="openMiniLinkModal(idx)">插入小程序链接</a>
-                        <a @mousedown.prevent.stop="openUrlLinkModal(idx)">插入网址链接</a>
-                        <a v-if="!it.isPure && !it.linkType" @mousedown.prevent.stop="convertToPure(idx)">转为纯文本</a>
-                        <a v-if="!it.isPure && !it.linkType" @mousedown.prevent.stop="insertNewline(idx)">换行</a>
+                        <a @mousedown.prevent.stop="openMiniLinkModal(idx)">{{ t('btn_insert_mini_link') }}</a>
+                        <a @mousedown.prevent.stop="openUrlLinkModal(idx)">{{ t('btn_insert_url_link') }}</a>
+                        <a v-if="!it.isPure && !it.linkType" @mousedown.prevent.stop="convertToPure(idx)">{{ t('btn_to_plain_text') }}</a>
+                        <a v-if="!it.isPure && !it.linkType" @mousedown.prevent.stop="insertNewline(idx)">{{ t('btn_newline') }}</a>
                       </div>
                     </div>
                   </div>
@@ -92,7 +92,7 @@
           </a-form-item>
 
           <div class="btn-container">
-            <a-button type="primary" @click="onSubmit">保存</a-button>
+            <a-button type="primary" @click="onSubmit">{{ t('btn_save') }}</a-button>
           </div>
         </a-form>
       </div>
@@ -101,25 +101,25 @@
       </div>
     </div>
 
-    <a-modal v-model:open="replyModalOpen" :title="`${replyForm.rule_id ? '编辑' : '添加'}菜单标题回复内容`" :width="720" @ok="onReplyModalOk"
+    <a-modal v-model:open="replyModalOpen" :title="`${replyForm.rule_id ? t('title_edit_menu_reply') : t('title_add_menu_reply')}`" :width="720" @ok="onReplyModalOk"
       @cancel="onReplyModalCancel">
       <a-form :model="replyForm" layout="vertical" class="reply-modal-form">
-        <a-form-item label="规则名" name="rule_name" :rules="[{ required: true, message: '请输入规则名' }]">
+        <a-form-item :label="t('label_rule_name')" name="rule_name" :rules="[{ required: true, message: t('msg_input_rule_name') }]">
           <a-input v-model:value="replyForm.rule_name" />
         </a-form-item>
-        <a-form-item label="关键字" name="keyword" :rules="[{ required: true, message: '请输入关键字' }]">
-          <a-input v-model:value="replyForm.keyword" :maxlength="30" placeholder="请输入关键字" @focus="onKeywordFocus" @pressEnter="onKeywordFocus" @blur="onKeywordFocus">
+        <a-form-item :label="t('label_keyword')" name="keyword" :rules="[{ required: true, message: t('msg_input_keyword') }]">
+          <a-input v-model:value="replyForm.keyword" :maxlength="30" :placeholder="t('ph_keyword')" @focus="onKeywordFocus" @pressEnter="onKeywordFocus" @blur="onKeywordFocus">
             <template #addonBefore>
               <a-select v-model:value="replyForm.match_type" style="width: 120px">
-                <a-select-option value="full">全匹配</a-select-option>
-                <a-select-option value="partial">半匹配</a-select-option>
+                <a-select-option value="full">{{ t('select_full_match') }}</a-select-option>
+                <a-select-option value="partial">{{ t('select_partial_match') }}</a-select-option>
               </a-select>
             </template>
           </a-input>
-          <div class="tip-box" style="margin-top: 4px;">关键字最多输入30个字</div>
+          <div class="tip-box" style="margin-top: 4px;">{{ t('tip_keyword_max_length') }}</div>
         </a-form-item>
 
-        <a-form-item name="replyList" label="回复内容" :rules="[{ required: true, message: '' }]">
+        <a-form-item name="replyList" :label="t('label_reply_content')" :rules="[{ required: true, message: '' }]">
           <div class="item-box">
             <MultiReply v-for="(it, idx) in replyForm.replyList" :key="idx" ref="replyRefs" v-model:value="replyForm.replyList[idx]"
               :reply_index="idx" :show_smart="true" @change="onReplyContentChange" @del="onReplyDelItem" />
@@ -128,44 +128,44 @@
               <template #icon>
                 <PlusOutlined />
               </template>
-              添加回复内容({{ replyForm.replyList.length }}/5)
+              {{ t('btn_add_reply_content') }}({{ replyForm.replyList.length }}/5)
             </a-button>
           </div>
         </a-form-item>
       </a-form>
     </a-modal>
 
-    <a-modal v-model:open="miniLinkModalOpen" title="编辑小程序卡片" :width="720" @ok="onMiniLinkOk"
+    <a-modal v-model:open="miniLinkModalOpen"  :title="t('title_edit_mini_card')" :width="720" @ok="onMiniLinkOk"
       @cancel="onMiniLinkCancel">
-      <a-form :model="miniLinkForm" :labelCol="labelCol" :wrapperCol="wrapperCol">
-        <a-form-item label="卡片标题" name="title" :rules="[{ required: true, message: '请输入卡片标题' }]">
-          <a-input v-model:value="miniLinkForm.title" placeholder="请输入卡片标题" />
+      <a-form :model="miniLinkForm" layout="vertical">
+        <a-form-item :label="t('label_card_title')" name="title" :rules="[{ required: true, message: t('msg_input_card_title') }]">
+          <a-input v-model:value="miniLinkForm.title" :placeholder="t('ph_card_title')" />
         </a-form-item>
-        <a-form-item label="Appid" name="appid"
-          :rules="[{ required: true, message: '请输入Appid' }, { validator: appidValidator }]">
-          <a-input v-model:value="miniLinkForm.appid" placeholder="请输入Appid 格式为：wx*****" />
+        <a-form-item :label="t('label_appid')" name="appid"
+          :rules="[{ required: true, message: t('msg_input_appid') }, { validator: appidValidator }]">
+          <a-input v-model:value="miniLinkForm.appid" :placeholder="t('ph_appid')" />
           <div class="tips-box">
-            <div>1：小程序只能填写自己的appid；<a @click="openDocs('appid')">查找appid</a></div>
-            <div>2：公众号只能填写跟公众号已经关联的小程序的appid；<a @click="openDocs('assoc')">查看关联方法</a></div>
+            <div>{{ t('tip_appid_1') }}<a @click="openDocs('appid')">{{ t('btn_find_appid') }}</a></div>
+            <div>{{ t('tip_appid_2') }}<a @click="openDocs('assoc')">{{ t('btn_view_assoc') }}</a></div>
           </div>
         </a-form-item>
-        <a-form-item label="小程序路径" name="path" :rules="[{ required: true, message: '请输入小程序路径' }]">
-          <a-input v-model:value="miniLinkForm.path" placeholder="请输入小程序路径" />
+        <a-form-item :label="t('label_mini_path')" name="path" :rules="[{ required: true, message: t('msg_input_mini_path') }]">
+          <a-input v-model:value="miniLinkForm.path" :placeholder="t('ph_mini_path')" />
           <div class="tips-box">
-            <div>小程序路径是指小程序的某一特定页面的地址，请联系小程序开发者获取路径,比如 pages/index/index?a=2&b=1。</div>
+            <div>{{ t('tip_mini_path') }}</div>
           </div>
         </a-form-item>
       </a-form>
     </a-modal>
 
-    <a-modal v-model:open="urlLinkModalOpen" title="编辑链接" :width="720" @ok="onUrlLinkOk" @cancel="onUrlLinkCancel">
+    <a-modal v-model:open="urlLinkModalOpen" :title="t('title_edit_link')" :width="720" @ok="onUrlLinkOk" @cancel="onUrlLinkCancel">
       <a-form :model="urlLinkForm" :labelCol="labelCol" :wrapperCol="wrapperCol">
-        <a-form-item label="标题" name="title" :rules="[{ required: true, message: '请输入标题' }]">
-          <a-input v-model:value="urlLinkForm.title" placeholder="请输入标题" />
+        <a-form-item :label="t('label_title')" name="title" :rules="[{ required: true, message: t('msg_input_title') }]">
+          <a-input v-model:value="urlLinkForm.title" :placeholder="t('ph_title')" />
         </a-form-item>
-        <a-form-item label="打开链接" name="url"
-          :rules="[{ required: true, message: '请输入打开链接' }, { validator: urlHttpValidator }]">
-          <a-input v-model:value="urlLinkForm.url" placeholder="请输入打开链接 必须包含http:// 或 https://" />
+        <a-form-item :label="t('label_open_link')" name="url"
+          :rules="[{ required: true, message: t('msg_input_open_link') }, { validator: urlHttpValidator }]">
+          <a-input v-model:value="urlLinkForm.url" :placeholder="t('ph_open_link')" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -183,6 +183,9 @@ import emojiDataJson from 'emoji-mart-vue-fast/data/all.json'
 import { Picker, EmojiIndex } from 'emoji-mart-vue-fast/src'
 import smartMenuRuleImgSrc from '@/assets/img/robot/smart-menu-rule.png'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.smart-menu.add-rule')
 const labelCol = { span: 3 }
 const wrapperCol = { span: 21 }
 const query = useRoute().query
@@ -252,12 +255,12 @@ function getPopup () {
 
 function urlHttpValidator (_rule, value) {
   if (!value) return Promise.resolve()
-  return /^https?:\/\//.test(String(value)) ? Promise.resolve() : Promise.reject('链接需以http或https开头')
+  return /^https?:\/\//.test(String(value)) ? Promise.resolve() : Promise.reject(t('msg_link_http_error'))
 }
 
 function appidValidator (_rule, value) {
   if (!value) return Promise.resolve()
-  return /^wx/.test(String(value)) ? Promise.resolve() : Promise.reject('当前填写的appid可能不是小程序的appid，请检查核实。')
+  return /^wx/.test(String(value)) ? Promise.resolve() : Promise.reject(t('msg_appid_error'))
 }
 
 function onKeywordFocus () {
@@ -267,7 +270,7 @@ function onKeywordFocus () {
     .then((res) => {
       const repeat = res?.data?.is_repeat
       const ruleName = res?.data?.rule_name || ''
-      if (repeat) message.error(`关键词与规则「${ruleName}」重复`)
+      if (repeat) message.error(t('msg_keyword_repeat', { ruleName }))
     })
 }
 
@@ -276,7 +279,7 @@ function serializeReplyTypeCodes (list) { const map = { text: '2', image: '4', c
 
 function validateMenuContent (_rule, _value) {
   const ok = Array.isArray(titleItems.value) && titleItems.value.length > 0
-  return ok ? Promise.resolve() : Promise.reject('请至少添加一个菜单标题')
+  return ok ? Promise.resolve() : Promise.reject(t('msg_add_menu_title'))
 }
 
 const titleItems = ref([
@@ -341,7 +344,7 @@ function onToolbarMouseDown () {
 }
 function insertNewline (idx) {
   const it = titleItems.value[idx]
-  it.text = '当前行为换行'
+  it.text = t('text_newline')
   it.isPure = true
   it.isNewline = true
   it.replyConfig = null
@@ -353,12 +356,12 @@ function convertToPure (idx) {
 }
 function addTitleAfter (idx) {
   const count = titleItems.value.length
-  if (count >= MAX_TITLES) { message.warning('菜单标题最多10条'); return }
+  if (count >= MAX_TITLES) { message.warning(t('msg_menu_title_max')); return }
   const nextOrder = count + 1
   titleItems.value.splice(idx + 1, 0, { id: Date.now() + Math.random(), text: '', isPure: false, orderDisplay: nextOrder, replyConfig: null, editingIndex: false, orderDisplayStr: '' })
 }
 function removeTitle (idx) {
-  if (titleItems.value.length <= 1) { message.warning('至少保留1条菜单标题'); return }
+  if (titleItems.value.length <= 1) { message.warning(t('msg_menu_title_min')); return }
   titleItems.value.splice(idx, 1)
 }
 function startEditOrder (idx) {
@@ -398,7 +401,7 @@ const replyForm = reactive({
 })
 let editingTitleIndex = -1
 function openReplyModal (idx) {
-  if (!titleItems.value[idx].text) { message.error('请输入菜单标题'); return }
+  if (!titleItems.value[idx].text) { message.error(t('msg_input_menu_title')); return }
   editingTitleIndex = idx
   const it = titleItems.value[idx]
   replyForm.rule_name = it.replyConfig?.rule_name || String(it.text || '')
@@ -441,8 +444,8 @@ async function onReplyModalOk () {
   if (editingTitleIndex < 0) { replyModalOpen.value = false; return }
   const name = String(replyForm.rule_name || '').trim()
   const kw = String(replyForm.keyword || '').trim()
-  if (!name || !kw) { message.warning('请完善规则名与关键字'); return }
-  if (!Array.isArray(replyForm.replyList) || replyForm.replyList.length === 0) { message.warning('请至少添加一条回复内容'); return }
+  if (!name || !kw) { message.warning(t('msg_complete_rule_keyword')); return }
+  if (!Array.isArray(replyForm.replyList) || replyForm.replyList.length === 0) { message.warning(t('msg_add_reply_item')); return }
   for (const comp of replyRefs.value) {
     if (comp && comp.validate) {
       const ok = await comp.validate()
@@ -453,7 +456,7 @@ async function onReplyModalOk () {
     .then((res) => {
       const repeat = res?.data?.is_repeat
       const ruleName = res?.data?.rule_name || ''
-      if (repeat) { message.error(`关键词与规则「${ruleName}」重复`); return Promise.reject('repeat') }
+      if (repeat) { message.error(t('msg_keyword_repeat', { ruleName })); return Promise.reject('repeat') }
       const payload = {
         robot_id: query.id,
         name,
@@ -468,7 +471,7 @@ async function onReplyModalOk () {
       return saveRobotKeywordReply(payload)
     })
     .then((res) => {
-      if (!(res && res.res == 0)) { message.error('保存失败，请稍后重试'); return }
+      if (!(res && res.res == 0)) { message.error(t('msg_save_failed')); return }
       const newId = (res?.data?.id) || ''
       const cfg = {
         rule_name: replyForm.rule_name,
@@ -480,7 +483,7 @@ async function onReplyModalOk () {
       titleItems.value[editingTitleIndex].replyConfig = cfg
       replyForm.rule_id = cfg.rule_id
       replyModalOpen.value = false
-      message.success('保存成功')
+      message.success(t('msg_save_success'))
     })
     .catch((e) => { if (e !== 'repeat') { /* ignore */ } })
 }
@@ -536,10 +539,10 @@ function onMiniLinkOk () {
   const a = String(miniLinkForm.appid || '').trim()
   const p = String(miniLinkForm.path || '').trim()
   if (!t || !a || !p) {
-    message.warning('请完善小程序卡片信息'); return
+    message.warning(t('msg_complete_mini_card')); return
   }
   if (!/^wx/.test(a)) {
-    message.warning('当前填写的appid可能不是小程序的appid，请检查核实。'); return
+    message.warning(t('msg_appid_error')); return
   }
   if (editingTitleIndex < 0) {
     miniLinkModalOpen.value = false; return
@@ -576,8 +579,8 @@ function openUrlLinkModal (idx) {
 function onUrlLinkOk () {
   const t = String(urlLinkForm.title || '').trim()
   const u = String(urlLinkForm.url || '').trim()
-  if (!t || !u) { message.warning('请完善链接信息'); return }
-  if (!/^https?:\/\//.test(u)) { message.warning('链接需以http或https开头'); return }
+  if (!t || !u) { message.warning(t('msg_complete_link')); return }
+  if (!/^https?:\/\//.test(u)) { message.warning(t('msg_link_http_error')); return }
   if (editingTitleIndex < 0) { urlLinkModalOpen.value = false; return }
   const it = titleItems.value[editingTitleIndex]
   it.text = `<a href="${u}">${t}</a>`
@@ -624,7 +627,7 @@ watch(() => form.date_range, (v) => {
 
 const onSubmit = () => {
   formRef.value?.validate().then(async () => {
-    if (!form.menu_title || !form.menu_description) { message.warning('请完善菜单名称和菜单内容'); return }
+    if (!form.menu_title || !form.menu_description) { message.warning(t('msg_complete_menu_content')); return }
     const menu_content = titleItems.value.map((it) => {
       const hasLink = !!it.linkType
       const isPure = !!it.isPure
@@ -647,11 +650,11 @@ const onSubmit = () => {
     try {
       const res = await saveSmartMenu(payload)
       if (res && res.res == 0) {
-        message.success('保存成功')
+        message.success(t('msg_save_success'))
         router.push({ path: '/robot/ability/smart-menu', query: { id: query.id, robot_key: query.robot_key } })
       }
     } catch (e) {
-      message.error('保存失败，请稍后重试')
+      message.error(t('msg_save_failed'))
     }
   })
 }
@@ -672,7 +675,7 @@ onMounted(async () => {
         const isMini = isAnchor && /data-miniprogram-appid/i.test(txt)
         return {
           id: Date.now() + i,
-          text: (t === '0' && txt === '') ? '当前行为换行' : txt,
+          text: (t === '0' && txt === '') ? t('text_newline') : txt,
           isPure: t === '0',
           isNewline: (t === '0' && txt === ''),
           orderDisplay: ((mc && mc.serial_no !== undefined && String(mc.serial_no).trim() !== '') ? Number(mc.serial_no) : (i + 1)),
@@ -717,7 +720,7 @@ onMounted(async () => {
     if (!ruleId.value && copyId) { await fetchOne(copyId); return }
     if (!ruleId.value) return
     await fetchOne(ruleId.value)
-  } catch (e) { message.error('加载规则失败，请稍后重试') }
+  } catch (e) { message.error(t('msg_load_failed')) }
 })
 </script>
 <style lang="less" scoped>

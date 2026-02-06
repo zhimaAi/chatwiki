@@ -105,11 +105,11 @@
   <div class="quick-instructions-box">
     <card-box>
       <template #title>
-        快捷指令设置
+        {{ t('quick_instruction_settings') }}
         <a-popover placement="top">
           <template #content>
             <div class="help-box">
-              <div>快捷指令是对话输入框上方的按钮,配置完成后,用户可以快速发起预设对话</div>
+              <div>{{ t('quick_instruction_help') }}</div>
               <img src="@/assets/img/robot/quick-help.png" alt="" />
             </div>
           </template>
@@ -127,10 +127,10 @@
             :checkedValue="1"
             :unCheckedValue="0"
             v-model:checked="fastCommandSwitch"
-            checked-children="开"
-            un-checked-children="关"
+            :checked-children="t('switch_on')"
+            :un-checked-children="t('switch_off')"
           />
-          <a-button @click="openAddModal" size="small" type="primary">添加</a-button>
+          <a-button @click="openAddModal" size="small" type="primary">{{ t('add_btn') }}</a-button>
         </div>
       </template>
       <div class="quick-list-box">
@@ -161,21 +161,21 @@
     <a-modal v-model:open="show" :title="modalTitle" @ok="handleOk" width="576px">
       <div class="form-box">
         <a-form layout="vertical">
-          <a-form-item label="指令标题" v-bind="validateInfos.title">
+          <a-form-item :label="t('instruction_title_label')" v-bind="validateInfos.title">
             <a-input
-              placeholder="请输入指令标题"
+              :placeholder="t('instruction_title_placeholder')"
               :maxLength="20"
               v-model:value="formState.title"
             ></a-input>
           </a-form-item>
-          <a-form-item label="指令类型" required>
+          <a-form-item :label="t('instruction_type_label')" required>
             <a-radio-group v-model:value="formState.typ" @change="handleChange">
-              <a-radio :value="1">输入内容</a-radio>
-              <a-radio :value="2">跳转网页</a-radio>
+              <a-radio :value="1">{{ t('input_content') }}</a-radio>
+              <a-radio :value="2">{{ t('jump_webpage') }}</a-radio>
             </a-radio-group>
           </a-form-item>
           <a-form-item
-            :label="formState.typ == 1 ? '指令内容' : '网页链接'"
+            :label="formState.typ == 1 ? t('instruction_content_label') : t('webpage_link_label')"
             required
             v-bind="validateInfos.content"
           >
@@ -183,11 +183,11 @@
               style="height: 100px"
               v-if="formState.typ == 1"
               v-model:value="formState.content"
-              placeholder="请输入指令内容"
+              :placeholder="t('instruction_content_placeholder')"
             />
             <a-input
               v-else
-              placeholder="请输入网页链接"
+              :placeholder="t('webpage_link_placeholder')"
               v-model:value="formState.content"
             ></a-input>
           </a-form-item>
@@ -198,6 +198,7 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { ref, reactive, toRaw, createVNode, watch } from 'vue'
 import { Form, message, Modal } from 'ant-design-vue'
 import CardBox from './card-box.vue'
@@ -219,6 +220,8 @@ import {
   sortFastCommand
 } from '@/api/robot/index'
 import { useRoute } from 'vue-router'
+
+const { t } = useI18n('views.robot.robot-config.external-service.components.quick-instruction')
 const props = defineProps({
   type: {
     type: Number,
@@ -251,7 +254,7 @@ const getLists = () => {
 getLists()
 const useForm = Form.useForm
 const show = ref(false)
-const modalTitle = ref('添加快捷指令')
+const modalTitle = ref('')
 const formState = reactive({
   robot_id: route.query.id,
   app_id: props.type,
@@ -274,7 +277,7 @@ const handleChangeShortcutSwitch = (val) => {
       fast_command_switch: fastCommandSwitch.value,
     })
     getRobot(id)
-    message.success(`修改成功`)
+    message.success(t('modify_success'))
   }).catch((err) => {
     // 失败后回到原状态
     fastCommandSwitch.value = !fastCommandSwitch.value
@@ -288,7 +291,7 @@ const handleChange = () => {
 const openAddModal = (data) => {
   show.value = true
   resetFields()
-  modalTitle.value = data.id ? '编辑快捷指令' : '添加快捷指令'
+  modalTitle.value = data.id ? t('edit_quick_instruction') : t('add_quick_instruction')
   formState.title = data.title || ''
   formState.content = data.content || ''
   formState.id = data.id || ''
@@ -297,7 +300,7 @@ const openAddModal = (data) => {
 const formRules = reactive({
   title: [
     {
-      message: '请输入指令标题',
+      message: t('title_required'),
       required: true
     }
   ],
@@ -309,7 +312,7 @@ const formRules = reactive({
     {
       validator: async (rule, value) => {
         if (value == '') {
-          return Promise.reject(new Error(`请输入${formState.typ == 1 ? '内容' : '网址'}`))
+          return Promise.reject(new Error(t('content_required', { param: formState.typ == 1 ? t('input_content') : t('jump_webpage') })))
         }
         if (formState.typ == 1) {
           // 内容
@@ -318,7 +321,7 @@ const formRules = reactive({
           if (isValidURL(value)) {
             return Promise.resolve()
           } else {
-            return Promise.reject(new Error('请输入合法网页链接'))
+            return Promise.reject(new Error(t('invalid_url')))
           }
         }
       }
@@ -333,7 +336,7 @@ const handleOk = () => {
     saveFastCommand({
       ...toRaw(formState)
     }).then((res) => {
-      message.success(`修改成功`)
+      message.success(t('modify_success'))
       show.value = false
       getLists()
     })
@@ -341,15 +344,15 @@ const handleOk = () => {
 }
 const handleDelete = (id) => {
   Modal.confirm({
-    title: '提醒',
+    title: t('reminder'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确定要删除该快捷指令吗?',
-    okText: '确定',
+    content: t('delete_confirm'),
+    okText: t('confirm_btn'),
     okType: 'danger',
-    cancelText: '取消',
+    cancelText: t('cancel_btn'),
     onOk() {
       deleteFastCommand({ id }).then((res) => {
-        message.success(`删除成功`)
+        message.success(t('delete_success'))
         getLists()
       })
     },
@@ -368,7 +371,7 @@ const handleDrag = (e) => {
   sortFastCommand({
     data: sort,
   }).then((res) => {
-    message.success(`保存成功`)
+    message.success(t('save_success'))
     getLists()
   })
 }

@@ -5,7 +5,7 @@
     </div>
     <div class="node-options" v-if="hasCacheSetting">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/setting-icon.svg" class="title-icon"/>设置</div>
+        <div><img src="@/assets/img/workflow/setting-icon.svg" class="title-icon"/>{{ t('title_settings') }}</div>
         <div class="acton-box" v-if="clickUrl">
           <a :href="clickUrl" target="_blank" rel="noopener noreferrer">{{ clickTitle || clickUrl }}</a>
         </div>
@@ -41,7 +41,7 @@
     </div>
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>输入</div>
+        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>{{ t('title_input') }}</div>
         <template v-if="hasPluginConfigComponent">
           <a-select
             v-if="Object.keys(configData).length"
@@ -53,7 +53,7 @@
               {{ item.name || name }}
             </a-select-option>
           </a-select>
-          <a-button v-else @click="showConfigModal">未授权 <DownOutlined/></a-button>
+          <a-button v-else @click="showConfigModal">{{ t('btn_unauthorized') }} <DownOutlined/></a-button>
         </template>
       </div>
       <FieldList
@@ -118,13 +118,13 @@
 
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>输出</div>
+        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>{{ t('title_output') }}</div>
       </div>
       <div class="options-item">
         <OutputFields :tree-data="outputData"/>
       </div>
     </div>
-    
+
     <PluginConfigModal ref="configModalRef" @change="loadConfig(true)"/>
   </div>
 </template>
@@ -143,6 +143,9 @@ import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import { useRoute } from 'vue-router'
 import PluginConfigModal from "@/views/explore/plugins/components/plugin-config-modal.vue";
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.dynamic-api.dynamic-api-box')
 
 const emit = defineEmits(['updateVar'])
 const props = defineProps({
@@ -189,7 +192,8 @@ function sortedEnum(list) {
 const formState = reactive({
   app_id: '',
   app_secret: '',
-  app_name: ''
+  app_name: '',
+  extras: {}
 })
 const loading = ref(false)
 const loadingF = ref(false)
@@ -346,6 +350,7 @@ function nodeParamsAssign() {
   })
   if (arg.app_secret) formState.app_secret = String(arg.app_secret)
   if (arg.app_name) formState.app_name = String(arg.app_name)
+  if (arg.extras) formState.extras = arg.extras
 }
 
 function appChange (value, option) {
@@ -364,11 +369,12 @@ function appChange (value, option) {
 }
 
 function onWorkflowValidate() {
+  console.log('node', props.node)
   const bus = useEventBus()
   const res = validateAll()
   if (res && res.ok === false) {
     bus.emit && bus.emit('workflow:validate:error', {
-      component: '公众号智能API',
+      component: props.node?.node_name,
       type: '',
       typeDisplay: '',
       message: '请完善字段后再继续',
@@ -402,9 +408,14 @@ function update(val = null) {
   storeAllToCache()
 }
 
-function onChangeDynamic (key, text, selectedList) {
+function onChangeDynamic (key, text, selectedList, extras = {}) {
   formState[key] = text
   formState[key + '_tags'] = selectedList
+  if (typeof formState.extras === "object") {
+    Object.assign(formState.extras, extras)
+  } else {
+    formState.extras = extras
+  }
   update()
 }
 
@@ -477,8 +488,11 @@ function buildRendering () {
 
     const tags = Array.isArray(formState[it.key + '_tags']) ? formState[it.key + '_tags'] : []
     if (it.key === 'app_id') {
-      label = '公众号名称'
+      label = t('label_official_account_name')
       value = String(formState.app_name ?? '')
+    }
+    if (it.meta?.select_remote_component && it.key === 'sheetIdOrName' && formState?.extras?.table_name) {
+      value = String(formState.extras.table_name)
     }
     if (it.meta?.enum_component || it.meta?.radio_component || it.meta?.switch_component) {
       const opt = (it.meta?.enum || []).find((e) => String(e?.value) === value)
@@ -557,6 +571,9 @@ function buildArguments() {
   if (formState.app_name) {
     args.app_name = String(formState.app_name || '')
   }
+  if (formState.extras) {
+    args.extras = formState.extras
+  }
   return args
 }
 
@@ -579,7 +596,7 @@ function validateAll () {
     }
     if (meta.select_official_component) {
       if (meta.required && !val) {
-        const msg = meta.error || '请选择公众号'
+        const msg = meta.error || t('msg_select_official_account')
         errors[key] = msg
         result.ok = false
         result.errors.push({ field_name: meta.name || key, message: msg })
@@ -589,12 +606,12 @@ function validateAll () {
     if (meta.enum_component || meta.radio_component || meta.switch_component) {
       const enums = (meta.enum || []).map(it => String(it.value))
       if (meta.required && !val) {
-        const msg = meta.error || '请选择'
+        const msg = meta.error || t('msg_please_select')
         errors[key] = msg
         result.ok = false
         result.errors.push({ field_name: meta.name || key, message: msg })
       } else if (val && enums.length && !enums.includes(val)) {
-        const msg = meta.error || '选择不合法'
+        const msg = meta.error || t('msg_invalid_selection')
         errors[key] = msg
         result.ok = false
         result.errors.push({ field_name: meta.name || key, message: msg })
@@ -609,7 +626,7 @@ function validateAll () {
       const beginTags = Array.isArray(formState[beginKey + '_tags']) ? formState[beginKey + '_tags'] : []
       const endTags = Array.isArray(formState[endKey + '_tags']) ? formState[endKey + '_tags'] : []
       if (meta.required && (!beginVal && beginTags.length === 0 || !endVal && endTags.length === 0)) {
-        const msg = meta.error || '请选择起止时间'
+        const msg = meta.error || t('msg_select_date_range')
         errors[key] = msg
         result.ok = false
         result.errors.push({ field_name: meta.name || key, message: msg })
@@ -624,14 +641,14 @@ function validateAll () {
           return d.isValid()
         }
         if (beginVal && beginTags.length === 0 && !isValidDateStr(beginVal)) {
-          const msg = meta.error || '开始日期格式需为YYYY-MM-DD'
+          const msg = meta.error || t('msg_start_date_format')
           errors[key] = msg
           result.ok = false
           result.errors.push({ field_name: meta.name || key, message: msg })
           return
         }
         if (endVal && endTags.length === 0 && !isValidDateStr(endVal)) {
-          const msg = meta.error || '结束日期格式需为YYYY-MM-DD'
+          const msg = meta.error || t('msg_end_date_format')
           errors[key] = msg
           result.ok = false
           result.errors.push({ field_name: meta.name || key, message: msg })
@@ -642,7 +659,7 @@ function validateAll () {
         const b = dayjs(beginVal)
         const e = dayjs(endVal)
         if (e.isBefore(b)) {
-          const msg = meta.error || '结束时间不能早于开始时间'
+          const msg = meta.error || t('msg_end_after_start')
           errors[key] = msg
           result.ok = false
           result.errors.push({ field_name: meta.name || key, message: msg })
@@ -651,7 +668,7 @@ function validateAll () {
         const interval = e.diff(b, 'day')
         const allowedDays = Number(meta.date_range_max_interval || 0)
         if (allowedDays > 0 && (interval + 1) > allowedDays) {
-          const msg = meta.error || `时间跨度不能超过${allowedDays}天`
+          const msg = meta.error || t('msg_date_range_limit', { days: allowedDays })
           errors[key] = msg
           result.ok = false
           result.errors.push({ field_name: meta.name || key, message: msg })
@@ -661,14 +678,14 @@ function validateAll () {
       return
     }
     if (meta.required && !val && (!Array.isArray(tags) || tags.length === 0)) {
-      const msg = meta.error || '请输入内容'
+      const msg = meta.error || t('msg_please_input_content')
       errors[key] = msg
       result.ok = false
       result.errors.push({ field_name: meta.name || key, message: msg })
     } else if (key.toLowerCase().includes('url') && val && (!Array.isArray(tags) || tags.length === 0)) {
       const ok = /^https?:\/\//.test(val) || isValidURL(val)
       if (!ok) {
-        const msg = meta.error || '请输入正确的URL'
+        const msg = meta.error || t('msg_correct_url')
         errors[key] = msg
         result.ok = false
         result.errors.push({ field_name: meta.name || key, message: msg })
@@ -720,13 +737,13 @@ function loadFieldTags(fieldKey, service) {
 
 function syncFieldTags(fieldKey, meta) {
   if (!formState.app_id || !formState.app_secret) {
-    return message.warning('请先选择公众号')
+    return message.warning(t('msg_select_official_account_first'))
   }
   if (syncingTags[fieldKey]) return
   syncingTags[fieldKey] = true
   loadFieldTags(fieldKey, meta?.query_tag_service)
     .then(() => {
-      message.success('同步完成')
+      message.success(t('msg_sync_completed'))
     })
     .finally(() => {
       syncingTags[fieldKey] = false
@@ -818,6 +835,9 @@ function showConfigModal() {
   configModalRef.value && configModalRef.value.show(configData.value, pluginNameForCache, schemaData)
 }
 function configChange() {
+  let args = []
+  injectConfigArgs(args)
+  Object.assign(formState, args)
   update()
 }
 function settingsShowChange() {

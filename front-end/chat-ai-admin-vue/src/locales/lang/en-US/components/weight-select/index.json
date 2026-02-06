@@ -1,0 +1,1 @@
+{"label_weight": "Weight", "tooltip_weight": "In hybrid retrieval mode, the weighted weight of each retrieval method in the results. The higher the weight, the more retrieval results of the corresponding method will be adopted", "label_vector": "Vector", "label_fulltext": "Full-text", "label_graph": "Graph"}

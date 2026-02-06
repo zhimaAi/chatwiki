@@ -93,7 +93,7 @@ func LlmLogRequest(
 
 	if len(robot) > 0 {
 		data[`source_robot`] = sourceRobot
-		data[`source_robot_id`] = cast.ToInt(robot[`id`]) //hotfix: pq: 无效的类型 integer 输入语法: ""
+		data[`source_robot_id`] = cast.ToInt(robot[`id`]) //hotfix: pq: invalid input syntax for type integer: ""
 	}
 	if len(library) > 0 {
 		data[`source_library`] = sourceLibrary

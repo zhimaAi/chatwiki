@@ -1,0 +1,10 @@
+{
+  "title_select_graph_model": "Select Knowledge Graph Model",
+  "desc_graph_function": "When enabled, the specified model will be used to extract entities and relationships from knowledge.",
+  "title_confirm_enable_graph": "Enable Knowledge Graph Generation?",
+  "msg_graph_llm_dependency": "Knowledge graph generation relies on LLM capabilities",
+  "warning_token_consumption": "This may result in significant token consumption",
+  "desc_graph_capability": ". Knowledge graphs excel at precise entity-relationship reasoning and logical validation (e.g., querying discount plans for product X), but have limited support for unstructured text and semantically ambiguous queries. We recommend prioritizing vector search and using knowledge graphs only when vector retrieval alone is insufficient.",
+  "btn_confirm_enable": "Enable",
+  "btn_later": "Later"
+}

@@ -1,8 +1,8 @@
 <template>
   <div>
-    <a-modal v-model:open="open" title="重命名" @ok="handleOk">
+    <a-modal v-model:open="open" :title="t('title_rename')" @ok="handleOk">
       <div class="rename-input">
-        <a-input v-model:value="file_name" placeholder="请输入文档名称" />
+        <a-input v-model:value="file_name" :placeholder="t('ph_input_document_name')" />
       </div>
     </a-modal>
   </div>
@@ -12,6 +12,9 @@
 import { ref } from 'vue'
 import { editLibFile } from '@/api/library/index.js'
 import { message } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.library.library-details.components.rename-modal')
 const emit = defineEmits(['ok'])
 const open = ref(false)
 const file_name = ref('')
@@ -24,13 +27,13 @@ const show = (data = {}) => {
 }
 const handleOk = () => {
   if (!file_name.value) {
-    message.error('请输入文档名称')
+    message.error(t('msg_input_document_name'))
   }
   editLibFile({
     id,
     file_name: file_name.value
   }).then((res) => {
-    message.success('重命名成功')
+    message.success(t('msg_rename_success'))
     emit('ok', file_name.value)
     open.value = false
   })

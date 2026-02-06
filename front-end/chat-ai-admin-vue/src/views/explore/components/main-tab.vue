@@ -7,35 +7,38 @@
 </template>
 
 <script setup>
-import {ref, onMounted} from 'vue';
+import {ref, onMounted, computed} from 'vue';
 import {useRouter} from 'vue-router'
 import {ExclamationCircleFilled} from '@ant-design/icons-vue'
 import ListTabs from "@/components/cu-tabs/list-tabs.vue";
 import {getInstallPlugins, triggerConfigList} from "@/api/plugins/index.js";
 import {usePublicNetworkCheck} from "@/composables/usePublicNetworkCheck.js";
+import { useI18n } from '@/hooks/web/useI18n';
 
+const { t } = useI18n('views.explore.components.main-tab')
 const emit = defineEmits(['change'])
 const router = useRouter()
 const active = ref(localStorage.getItem('zm:explore:active') || '1')
-const tabs = ref([
+const pluginCount = ref(localStorage.getItem('zm:explore:plugins:count') || '0')
+const tabs = computed(() => [
   {
-    title: '模板广场',
+    title: t('title_template_marketplace'),
     value: '4'
   },
   {
-    title: '功能',
+    title: t('title_features'),
     value: '1'
   },
   {
-    title: `插件(${localStorage.getItem('zm:explore:plugins:count') || '0'})`,
+    title: `${t('title_plugins')}(${pluginCount.value})`,
     value: '2'
   },
   {
-    title: '插件广场',
+    title: t('title_plugin_marketplace'),
     value: '3'
   },
   {
-    title: 'MCP广场',
+    title: t('title_mcp_marketplace'),
     value: '5'
   }
 ])
@@ -72,8 +75,7 @@ async function loadInstallPlugins() {
   let triggerLength = res.data.length
   getInstallPlugins().then(res => {
     let _list = res?.data || []
-    let plugin = tabs.value.find(i => i.value == 2)
-    plugin.title = `插件(${_list.length + triggerLength})`
+    pluginCount.value = _list.length + triggerLength
     localStorage.setItem('zm:explore:plugins:count', _list.length + triggerLength)
   })
 }

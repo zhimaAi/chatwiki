@@ -8,11 +8,11 @@
       :loading="props.isLoading"
     >
       <a-table-column key="id" data-index="id" :width="1148">
-        <template #title>问答（共{{ props.total }}个）</template>
+        <template #title>{{ t('title_qa', { total: props.total }) }}</template>
         <template #default="{ record }">
           <div class="qa-list-box">
             <div class="list-item">
-              <div class="list-label">问题</div>
+              <div class="list-label">{{ t('label_question') }}</div>
               <div class="list-content">
                 <a-tooltip placement="top" v-if="record.status == 2">
                   <template #title>
@@ -38,7 +38,7 @@
                       </div>
                     </template>
                     <template #title>
-                      <span>共 {{ record.similar_questions.length }} 个相似问法</span>
+                      <span>{{ t('msg_similar_questions', { count: record.similar_questions.length }) }}</span>
                     </template>
                     <a>（{{ record.similar_questions.length }}）</a>
                   </a-popover>
@@ -46,7 +46,7 @@
               </div>
             </div>
             <div class="list-item list-item-answer">
-              <div class="list-label">答案</div>
+              <div class="list-label">{{ t('label_answer') }}</div>
               <div class="list-content">{{ record.answer }}</div>
             </div>
             <div class="fragment-img" v-viewer>
@@ -55,13 +55,13 @@
           </div>
         </template>
       </a-table-column>
-      <a-table-column title="是否导入知识库" key="is_import" data-index="is_import" :width="180">
+      <a-table-column :title="t('title_import_to_knowledge')" key="is_import" data-index="is_import" :width="180">
         <template #default="{ record }">
           <div v-if="record.is_import == 1" class="status-block status-green">
-            <CheckCircleFilled />已导入
+            <CheckCircleFilled />{{ t('status_imported') }}
           </div>
           <div v-if="record.is_import == 0" class="status-block status-gray">
-            <ExclamationCircleFilled />未导入
+            <ExclamationCircleFilled />{{ t('status_not_imported') }}
           </div>
           <div>
             <a
@@ -72,7 +72,7 @@
           </div>
         </template>
       </a-table-column>
-      <a-table-column title="操作" key="action" data-index="action" :width="120">
+      <a-table-column :title="t('title_action')" key="action" data-index="action" :width="120">
         <template #default="{ record, index }">
           <div class="right-opration">
             <div class="hover-btn-box" @click.stop="handleOpenEditModal(record)">
@@ -98,6 +98,9 @@ import {
   DeleteOutlined
 } from '@ant-design/icons-vue'
 import { deleteFAQFileQA } from '@/api/library'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.ai-extract-faq.detail.components.subsection-box')
 
 const emit = defineEmits(['handleDelParagraph', 'openEditSubscription'])
 const props = defineProps({
@@ -131,14 +134,14 @@ const handleOpenEditModal = (item) => {
 }
 const hanldleDelete = (id) => {
   Modal.confirm({
-    title: '提示',
+    title: t('title_hint'),
     icon: createVNode(ExclamationCircleOutlined),
-    content: '确认是否删除该分段?',
+    content: t('msg_confirm_delete'),
     onOk() {
       return new Promise((resolve, reject) => {
         deleteFAQFileQA({ ids: id })
           .then((res) => {
-            message.success('删除成功')
+            message.success(t('msg_delete_success'))
             emit('handleDelParagraph', id)
             resolve()
           })

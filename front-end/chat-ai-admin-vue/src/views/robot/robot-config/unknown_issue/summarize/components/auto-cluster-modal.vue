@@ -1,10 +1,10 @@
 <template>
   <div>
-    <a-modal v-model:open="open" title="自动聚类设置" @ok="handleOk">
+    <a-modal v-model:open="open" :title="t('title')" @ok="handleOk">
       <div class="form-box">
         <a-form layout="vertical">
           <a-form-item v-bind="validateInfos.unknown_summary_model_config_id">
-            <template #label>请设置使用的向量模型 </template>
+            <template #label>{{ t('label_vector_model') }}</template>
             <ModelSelect
               modelType="TEXT EMBEDDING"
               v-model:modeName="formState.unknown_summary_use_model"
@@ -15,14 +15,14 @@
           </a-form-item>
           <a-form-item v-bind="validateInfos.unknown_summary_similarity">
             <template #label
-              >相似度阈值
+              >{{ t('label_similarity_threshold') }}
               <a-tooltip>
-                <template #title>语意相似度大于指定阈值的问题会自动聚类</template>
+                <template #title>{{ t('tooltip_similarity') }}</template>
                 <QuestionCircleOutlined class="ml4" />
               </a-tooltip>
             </template>
             <a-input-number
-              placeholder="请输入相似度阈值"
+              :placeholder="t('placeholder_similarity')"
               style="width: 100%"
               v-model:value="formState.unknown_summary_similarity"
               :min="0"
@@ -44,6 +44,8 @@ import { useRoute } from 'vue-router'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { setUnknownIssueSummary } from '@/api/robot/index.js'
 import ModelSelect from '@/components/model-select/model-select.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+const { t } = useI18n('views.robot.robot-config.unknown-issue.summarize.components.auto-cluster-modal')
 
 const emit = defineEmits(['ok'])
 const query = useRoute().query
@@ -60,19 +62,17 @@ const formState = reactive({
 const useForm = Form.useForm
 const saveLoading = ref(false)
 const show = (data) => {
-  console.log(data, '===')
   formState.unknown_summary_model_config_id = data.unknown_summary_model_config_id || ''
   formState.unknown_summary_use_model = data.unknown_summary_use_model || ''
   formState.unknown_summary_similarity = data.unknown_summary_similarity || ''
   formState.unknown_summary_status = data.unknown_summary_status || ''
-  console.log(formState, '==')
   open.value = true
 }
 
 const rules = reactive({
-  unknown_summary_similarity: [{ required: true, message: '请输入相似度阈值', trigger: 'change' }],
+  unknown_summary_similarity: [{ required: true, message: t('validation_similarity'), trigger: 'change' }],
   unknown_summary_model_config_id: [
-    { required: true, message: '请选择使用的向量模型', trigger: 'change' }
+    { required: true, message: t('validation_vector_model'), trigger: 'change' }
   ]
 })
 
@@ -99,7 +99,7 @@ const saveForm = () => {
   setUnknownIssueSummary({
     ...formState
   }).then((res) => {
-    message.success('保存成功')
+    message.success(t('save_success'))
     open.value = false
     emit('ok')
   })

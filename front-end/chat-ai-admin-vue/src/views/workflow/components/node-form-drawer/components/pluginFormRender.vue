@@ -2,7 +2,7 @@
   <div>
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>输入</div>
+        <div><img src="@/assets/img/workflow/input.svg" class="title-icon"/>{{ t('label_input') }}</div>
         <slot name="input-title-extra"></slot>
       </div>
       <template v-for="(item, key) in formState" :key="key">
@@ -39,7 +39,7 @@
     </div>
     <div class="node-options">
       <div class="options-title">
-        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>输出</div>
+        <div><img src="@/assets/img/workflow/output.svg" class="title-icon"/>{{ t('label_output') }}</div>
       </div>
       <div class="options-item">
         <OutputFields :tree-data="outputData"/>
@@ -53,6 +53,9 @@ import {ref, reactive, watch, inject} from 'vue';
 import AtInput from "@/views/workflow/components/at-input/at-input.vue";
 import OutputFields from "@/views/workflow/components/feishu-table/output-fields.vue";
 import {pluginOutputToTree} from "@/constants/plugin.js";
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.pluginFormRender')
 
 const emit = defineEmits(['updateVar'])
 const props = defineProps({
@@ -83,13 +86,13 @@ const nodeParams = JSON.parse(props.node.node_params)
 const fieldRules = {
   url: {
     label: (item, key) => item?.name || key,
-    placeholder: '键入/选择参数，或者输入文本，以https:/开头',
+    placeholder: t('ph_url_param'),
     validate: (item) => {
       const hasVar = Array.isArray(item.tags) && item.tags.length > 0
       if (hasVar) { item.__error = null; return true }
       const v = String(item.value || '').trim()
       const ok = v.startsWith('https:/')
-      item.__error = ok ? null : '请输入以https:/开头的网址'
+      item.__error = ok ? null : t('msg_invalid_url')
       return ok
     }
   }
@@ -146,7 +149,7 @@ function getLabel(item, key) {
 function getPlaceholder(key) {
   const r = fieldRules[key]
   if (r && r.placeholder) return r.placeholder
-  return '请输入内容，键入“/”可以插入变量'
+  return t('ph_input_content')
 }
 
 function validateField(key, item) {

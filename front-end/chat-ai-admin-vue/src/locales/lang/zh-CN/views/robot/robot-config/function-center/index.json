@@ -1,0 +1,18 @@
+{
+  "title_function_center": "功能中心",
+  "msg_function_center_desc": "查询已经启用的功能，可选择在一级菜单中固定，快捷开启和关闭功能 更多功能可到",
+  "link_explore_function_center": "探索>功能中心",
+  "msg_function_center_desc_suffix": "中添加",
+  "empty_title": "暂未添加功能",
+  "empty_desc_prefix": "更多功能可到",
+  "empty_desc_suffix": "去添加",
+  "btn_add": "去添加",
+  "tab_function": "功能",
+  "tab_plugin": "插件",
+  "msg_close_keyword_no_reply": "关闭后，触发了关键词不会再回复指定内容",
+  "msg_close_smart_menu_no_reply": "关闭后，其他回复智能菜单的规则触发后都不再回复",
+  "msg_close_auto_reply_no_content": "关闭后，触发了关键词以及收到消息回复都不会再回复指定的内容",
+  "msg_close_confirm_payment": "关闭后，设置的收费策略将失效，确认关闭？",
+  "title_confirm_close": "确认关闭吗？",
+  "msg_operation_success": "操作成功"
+}

@@ -12,19 +12,19 @@ import (
 	"github.com/zhimaAi/go_tools/logs"
 )
 
-// GraphDB 图数据库操作封装
+// GraphDB graph database operation wrapper
 type GraphDB struct {
 	adminUserId int
 }
 
-// NewGraphDB 创建图数据库操作实例
+// NewGraphDB creates graph database operation instance
 func NewGraphDB(adminUserId int) *GraphDB {
 	return &GraphDB{
 		adminUserId: adminUserId,
 	}
 }
 
-// Execute 执行Cypher查询
+// Execute executes Cypher query
 func (g *GraphDB) Execute(query string) (*neo4j.EagerResult, error) {
 	logs.Debug("execute neo4j query: %s", query)
 	ctx := context.Background()
@@ -71,7 +71,7 @@ func (g *GraphDB) GetEntityCount(idList []string) (*neo4j.EagerResult, error) {
 	return g.Execute(query)
 }
 
-// DeleteByLibrary 删除库相关的所有图数据
+// DeleteByLibrary deletes all graph data related to library
 func (g *GraphDB) DeleteByLibrary(libraryId int) error {
 	query := fmt.Sprintf(`
 		MATCH (n:Entity_%d {library_id: %d})
@@ -81,7 +81,7 @@ func (g *GraphDB) DeleteByLibrary(libraryId int) error {
 	return err
 }
 
-// DeleteByFile 删除文件相关的所有图数据
+// DeleteByFile deletes all graph data related to file
 func (g *GraphDB) DeleteByFile(fileId int) error {
 	query := fmt.Sprintf(`
 		MATCH (n:Entity_%d {file_id: %d})
@@ -91,7 +91,7 @@ func (g *GraphDB) DeleteByFile(fileId int) error {
 	return err
 }
 
-// DeleteByData 删除数据相关的所有图数据
+// DeleteByData deletes all graph data related to data
 func (g *GraphDB) DeleteByData(dataId int) error {
 	query := fmt.Sprintf(`
 		MATCH (n:Entity_%d {data_id: %d})
@@ -136,7 +136,7 @@ func (g *GraphDB) FindRelatedEntities(entity string, libraryIds []string, limit 
 	return results, nil
 }
 
-// GetFileRelationships 获取指定文件的所有关系边
+// GetFileRelationships gets all relationship edges of specified file
 func (g *GraphDB) GetFileRelationships(fileId int, dataId int, searchTerm ...string) (*neo4j.EagerResult, error) {
 	query := fmt.Sprintf(`
 		MATCH (s:Entity_%d {file_id: %d})-[r]-(o:Entity_%d {file_id: %d})
@@ -160,12 +160,12 @@ func (g *GraphDB) GetFileRelationships(fileId int, dataId int, searchTerm ...str
 	`, g.adminUserId, fileId, dataId, g.adminUserId, fileId, dataId)
 	}
 
-	// 如果指定了搜索词，尝试作为关系类型或节点名称过滤
+	// If search term is specified, try filtering by relationship type or node name
 	if len(searchTerm) > 0 && searchTerm[0] != "" {
-		// 转义单引号
+		// Escape single quote
 		escapedTerm := strings.ReplaceAll(searchTerm[0], "'", "''")
 
-		// 修改查询，同时过滤关系类型和节点名称
+		// Modify query to filter both relationship type and node name
 		query = fmt.Sprintf(`
 		MATCH (s:Entity_%d {file_id: %d})-[r]-(o:Entity_%d {file_id: %d})
 		WHERE type(r) CONTAINS '%s' OR s.name CONTAINS '%s' OR o.name CONTAINS '%s'
@@ -194,7 +194,7 @@ func (g *GraphDB) GetFileRelationships(fileId int, dataId int, searchTerm ...str
 	return g.Execute(query)
 }
 
-// GetFileNodes 获取文件中所有唯一节点
+// GetFileNodes gets all unique nodes in file
 func (g *GraphDB) GetFileNodes(fileId int, dataId int, searchTerm ...string) (*neo4j.EagerResult, error) {
 	query := fmt.Sprintf(`
 		MATCH (n:Entity_%d {file_id: %d})
@@ -210,9 +210,9 @@ func (g *GraphDB) GetFileNodes(fileId int, dataId int, searchTerm ...string) (*n
 	`, g.adminUserId, fileId, dataId)
 	}
 
-	// 如果指定了搜索词，添加过滤条件
+	// If search term is specified, add filter condition
 	if len(searchTerm) > 0 && searchTerm[0] != "" {
-		// 转义单引号
+		// Escape single quote
 		escapedTerm := strings.ReplaceAll(searchTerm[0], "'", "''")
 
 		if dataId > 0 {

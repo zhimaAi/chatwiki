@@ -8,9 +8,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"net/http"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -21,45 +18,16 @@ import (
 	"github.com/tealeg/xlsx"
 )
 
-// GenerateThumbnail 生成缩略图
-// 返回: (生成的缩略图路径, 错误信息)
-func GenerateThumbnail(inputPath, outputPath, thumbFolderPath string) (string, string, string, error) {
+// GenerateThumbnail generates a thumbnail (memory processing version)
+// input: content (original file binary), filename (used to identify file type, e.g., "test.docx")
+// return: (thumbnail PNG binary, error message)
+func GenerateThumbnail(content []byte, filename string) ([]byte, string, error) {
+	// 1. Get file extension
+	ext := filepath.Ext(filename)
 
-	var content []byte
-	var err error
-
-	// 1. 获取文件内容
-	if isURL(inputPath) {
-		content, err = downloadFile(inputPath)
-		if err != nil {
-			return "", "", "", fmt.Errorf("download failed: %w", err)
-		}
-		// 如果是 URL，默认下载到当前运行目录，或者你可以指定一个临时目录
-	} else {
-		content, err = ioutil.ReadFile(inputPath)
-		if err != nil {
-			return "", "", "", fmt.Errorf("read file failed: %w", err)
-		}
-	}
-
-	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
-		err := os.MkdirAll(outputPath, 0755)
-		if err != nil {
-			return "", "", "", fmt.Errorf("create directory %s failed: %w", outputPath, err)
-		}
-	}
-
-	// 2. 构造输出文件名
-	baseName := filepath.Base(inputPath)
-	ext := filepath.Ext(baseName)
-	nameWithoutExt := strings.TrimSuffix(baseName, ext)
-	fileName := nameWithoutExt + "_thumb.png"
-
-	// 最终生成的缩略图路径
-	thumbnailPath := filepath.Join(outputPath, fileName)
-
-	// 3. 核心：将任意格式转换为 PDF 的二进制数据 (内存处理)
+	// 2. Core: Convert any format to PDF binary data (in-memory processing)
 	var pdfBytes []byte
+	var err error
 
 	switch strings.ToLower(ext) {
 	case ".pdf":
@@ -77,54 +45,71 @@ func GenerateThumbnail(inputPath, outputPath, thumbFolderPath string) (string, s
 	case ".ofd":
 		pdfBytes, err = convertOfdToPdf(content)
 	default:
-		return "", "", "", fmt.Errorf("unsupported file type: %s", ext)
+		return nil, "", fmt.Errorf("unsupported file type: %s", ext)
 	}
 
 	if err != nil {
-		return "", "", "", fmt.Errorf("convert to pdf failed: %w", err)
+		return nil, "", fmt.Errorf("convert to pdf failed: %w", err)
 	}
 
-	// 4. 渲染 PDF 第一页为图片并保存
-	err = renderPdfBytesToImage(pdfBytes, thumbnailPath)
+	// 3. Render PDF first page as image binary
+	thumbBytes, err := renderPdfBytesToImageBytes(pdfBytes)
 	if err != nil {
-		return "", "", "", fmt.Errorf("render image failed: %w", err)
+		return nil, "", fmt.Errorf("render image failed: %w", err)
 	}
 
-	fmt.Printf("Thumbnail generated: %s\n", thumbnailPath)
+	nameWithoutExt := strings.TrimSuffix(filename, ext)
+	fileName := nameWithoutExt + "_thumb.png"
 
-	// 5. 返回生成的路径
-	return filepath.Join(thumbFolderPath, fileName), fileName, thumbnailPath, nil
+	return thumbBytes, fileName, nil
 }
 
 // =========================================================
-// 渲染层：PDF -> Image (保持不变)
+// Rendering Layer: PDF -> Image Bytes (PNG)
 // =========================================================
 
-func renderPdfBytesToImage(pdfContent []byte, thumbnailPath string) error {
+func renderPdfBytesToImageBytes(pdfContent []byte) ([]byte, error) {
 	doc, err := fitz.NewFromMemory(pdfContent)
 	if err != nil {
-		return fmt.Errorf("fitz load pdf failed: %w", err)
+		return nil, fmt.Errorf("fitz load pdf failed: %w", err)
 	}
 	defer doc.Close()
 
 	if doc.NumPage() == 0 {
-		return fmt.Errorf("pdf has no pages")
+		return nil, fmt.Errorf("pdf has no pages")
 	}
 
-	// 渲染第一页
+	// 1. Render the first page as a raw image
 	img, err := doc.Image(0)
 	if err != nil {
-		return fmt.Errorf("render page 0 failed: %w", err)
+		return nil, fmt.Errorf("render page 0 failed: %w", err)
 	}
 
-	// 智能缩放：放入 800x800 容器，保持比例
-	dstImage := imaging.Fit(img, 800, 800, imaging.Lanczos)
+	// 2. Get original image dimensions
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
 
-	return imaging.Save(dstImage, thumbnailPath)
+	// 3. Crop: Keep only the top half (1/2)
+	// Use CropAnchor with the Top anchor point, width unchanged, height set to half
+	topHalfImg := imaging.CropAnchor(img, width, height/2, imaging.Top)
+
+	// 4. Smart Scaling: Fit the cropped top half into an 800x800 container
+	// Note: Fit maintains aspect ratio. Since only the top half is used, the resulting thumbnail will show header content more clearly than a full-page thumbnail.
+	dstImage := imaging.Fit(topHalfImg, 800, 800, imaging.Lanczos)
+
+	// 5. Encode the image to PNG byte stream
+	var buf bytes.Buffer
+	err = imaging.Encode(&buf, dstImage, imaging.PNG)
+	if err != nil {
+		return nil, fmt.Errorf("encode image to png failed: %w", err)
+	}
+
+	return buf.Bytes(), nil
 }
 
 // =========================================================
-// 转换层：Any -> PDF (使用 go-pdf/fpdf)
+// Conversion Layer: Any -> PDF (using go-pdf/fpdf)
 // =========================================================
 
 func newPdfGenerator() (*fpdf.Fpdf, error) {
@@ -132,18 +117,19 @@ func newPdfGenerator() (*fpdf.Fpdf, error) {
 	pdf.SetMargins(20, 20, 20)
 	pdf.AddPage()
 
-	// 必须要有 simhei.ttf 否则中文无法显示
+	// Must have simhei.ttf otherwise Chinese characters cannot be displayed
+	// Note: Since this is now pure in-memory processing, the fontPath here still relies on the local filesystem
+	// If complete file-independence is needed, change to AddUTF8FontFromBytes and bundle the font file into the program
 	fontPath := "internal/pkg/thumbnail/fonts/SimHei.ttf"
 
-	// 这里的路径检查可以根据需要加，fpdf 如果找不到文件会 panic 或报错
-	// 建议确保文件存在
+	// Add simple error tolerance here to prevent panic. In practice, ensure the font exists.
 	pdf.AddUTF8Font("SimHei", "", fontPath)
 	pdf.SetFont("SimHei", "", 12)
 
 	return pdf, nil
 }
 
-// DOCX 转 PDF
+// DOCX to PDF
 func convertDocxToPdf(content []byte) ([]byte, error) {
 	text := extractDocxText(content)
 	pdf, err := newPdfGenerator()
@@ -162,7 +148,7 @@ func convertDocxToPdf(content []byte) ([]byte, error) {
 	return generatePdfBytes(pdf)
 }
 
-// XLSX 转 PDF
+// XLSX to PDF
 func convertXlsxToPdf(content []byte) ([]byte, error) {
 	xlFile, err := xlsx.OpenBinary(content)
 	if err != nil {
@@ -209,7 +195,7 @@ func convertXlsxToPdf(content []byte) ([]byte, error) {
 	return generatePdfBytes(pdf)
 }
 
-// CSV 转 PDF
+// CSV to PDF
 func convertCsvToPdf(content []byte) ([]byte, error) {
 	if len(content) > 3 && content[0] == 0xEF && content[1] == 0xBB && content[2] == 0xBF {
 		content = content[3:]
@@ -258,7 +244,7 @@ func convertCsvToPdf(content []byte) ([]byte, error) {
 	return generatePdfBytes(pdf)
 }
 
-// HTML 转 PDF
+// HTML to PDF
 func convertHtmlToPdf(content []byte) ([]byte, error) {
 	htmlStr := string(content)
 	reScript := regexp.MustCompile(`(?si)<script.*?>.*?</script>`)
@@ -281,7 +267,7 @@ func convertHtmlToPdf(content []byte) ([]byte, error) {
 	return convertTextToPdf(text)
 }
 
-// 文本 转 PDF
+// Text to PDF
 func convertTextToPdf(text string) ([]byte, error) {
 	pdf, err := newPdfGenerator()
 	if err != nil {
@@ -297,24 +283,18 @@ func convertTextToPdf(text string) ([]byte, error) {
 	return generatePdfBytes(pdf)
 }
 
-// OFD 转 PDF (尝试解压解析，失败则降级为文本)
+// OFD to PDF
 func convertOfdToPdf(content []byte) ([]byte, error) {
-	// 尝试作为 ZIP 打开
 	r, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
 	if err != nil {
-		// 【关键修复】：如果不是有效的 ZIP 文件，不要直接报错
-		// 可能是原始 XML 格式或文件头损坏，尝试直接按纯文本处理
-		// 这样至少能生成一张带有文字内容的缩略图
+		// Fallback
 		return convertTextToPdf(string(content))
 	}
 
 	var sb strings.Builder
 	fileFound := false
 
-	// 遍历压缩包寻找文本内容
 	for _, f := range r.File {
-		// 通常 OFD 的核心文字在 Document.xml 或 Content.xml 中
-		// 这里放宽匹配条件，提取所有 xml 内容可能会更保险，但目前保持你原有的逻辑
 		if strings.HasSuffix(f.Name, "Content.xml") || strings.HasSuffix(f.Name, "Document.xml") {
 			rc, err := f.Open()
 			if err == nil {
@@ -326,10 +306,7 @@ func convertOfdToPdf(content []byte) ([]byte, error) {
 		}
 	}
 
-	// 如果解压成功了，但在 zip 里没找到预期的 xml 文件
-	// 也降级为直接转换原始内容，防止生成空白 PDF
 	if !fileFound || sb.Len() == 0 {
-		// 尝试读取 zip 中第一个文件作为备选，或者直接渲染原始内容
 		return convertTextToPdf(string(content))
 	}
 
@@ -337,7 +314,7 @@ func convertOfdToPdf(content []byte) ([]byte, error) {
 }
 
 // =========================================================
-// 辅助函数
+// Helper Functions
 // =========================================================
 
 func generatePdfBytes(pdf *fpdf.Fpdf) ([]byte, error) {
@@ -388,38 +365,17 @@ func extractDocxTextSimple(r io.Reader) string {
 	return sb.String()
 }
 
-func isURL(path string) bool {
-	return strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
-}
-
-func downloadFile(url string) ([]byte, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("status %d", resp.StatusCode)
-	}
-	return ioutil.ReadAll(resp.Body)
-}
-
 func sanitizeText(s string) string {
 	return strings.Map(func(r rune) rune {
-		// 1. 保留常用的控制字符：换行(\n=10)、回车(\r=13)、制表符(\t=9)
 		if r < 32 {
 			if r == 10 || r == 13 || r == 9 {
 				return r
 			}
-			return -1 // 删除其他控制字符
+			return -1
 		}
-
-		// 2. 删除超过 0xFFFF 的字符 (主要是 Emoji)
-		// SimHei 等常见中文字体通常不包含这些 Emoji，且 fpdf 处理 4字节字符会报错
 		if r > 0xFFFF {
 			return -1
 		}
-
 		return r
 	}, s)
 }

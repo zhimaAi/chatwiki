@@ -13,8 +13,8 @@
             src="https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/voice/play-active.gif"
             alt=""
           />
-          <span class="text1">{{ loading ? '加载中' : '播放中' }}...</span>
-          <span class="text2">(点击暂停) </span>
+          <span class="text1">{{ loading ? t('status_loading') : t('status_playing') }}...</span>
+          <span class="text2">{{ t('hint_click_to_pause') }} </span>
           <img class="icon2" src="https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/voice/open.svg" alt="">
         </div>
         <div class="play-content" v-else>
@@ -23,8 +23,8 @@
             src="https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/voice/play-static.svg"
             alt=""
           />
-          <span class="text1">语音消息</span>
-          <span class="text2">(点击播放)</span>
+          <span class="text1">{{ t('label_voice_message') }}</span>
+          <span class="text2">{{ t('hint_click_to_play') }}</span>
           <img class="icon2" src="https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/voice/stop.svg" alt="">
         </div>
       </button>
@@ -52,6 +52,9 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.chat.components.messages.voice-player')
 
 const props = defineProps({
   url: { type: String, default: '' },
@@ -81,7 +84,7 @@ const togglePlay = () => {
         loading.value = false
       })
       .catch((error) => {
-        console.error('播放失败:', error)
+        console.error(t('msg_playback_failed'), error)
         loading.value = false
       })
   }
@@ -105,7 +108,7 @@ const onEnded = () => {
 
 // 音频错误处理
 const onError = () => {
-  console.error('音频播放出错')
+  console.error(t('msg_audio_playback_error'))
   isPlaying.value = false
   loading.value = false
 }

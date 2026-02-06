@@ -1,0 +1,17 @@
+{
+  "title_add_auth_code": "新增授权码",
+  "btn_copy": "复制",
+  "btn_cancel": "取消",
+  "msg_add_manager_tip": "设置管理员后，管理员可在公众号内回复【授权码】快速新增，",
+  "msg_add_manager_link": "点此新增管理员",
+  "label_package": "套餐",
+  "ph_select_package": "选择套餐",
+  "label_count": "数量",
+  "label_custom": "自定义",
+  "ph_input": "请输入",
+  "label_remark": "备注",
+  "msg_add_success": "新增成功",
+  "msg_copy_success": "复制成功",
+  "msg_select_package": "请选择套餐",
+  "msg_select_count": "请选择数量"
+}

@@ -1,0 +1,12 @@
+{
+  "modal_title": "Re-segment",
+  "btn_ok_parsing": "Document parsing, please wait...",
+  "btn_ok": "Confirm",
+  "msg_save_success": "Saved successfully",
+  "status_not_converted": "Not Converted",
+  "status_converted": "Converted",
+  "status_conversion_exception": "Conversion Exception",
+  "status_converting": "Converting...",
+  "tab_segmentation_failed": "Segmentation Failed",
+  "status_segmenting": "Segmenting"
+}

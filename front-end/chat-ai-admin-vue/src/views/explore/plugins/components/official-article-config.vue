@@ -6,19 +6,19 @@
           <img class="avatar" :src="loginInfo?.headimgurl"/>
           <div class="info">
             <div class="name">{{ loginInfo?.nickname }}</div>
-            <div>最近登录时间：{{ dayjs(loginInfo.login_time * 1000).format('YYYY-MM-DD HH:mm') }}</div>
-            <div>已登录时长：{{ loginInfo.login_duration_text }}</div>
+            <div>{{ t('label_recent_login_time') }}{{ dayjs(loginInfo.login_time * 1000).format('YYYY-MM-DD HH:mm') }}</div>
+            <div>{{ t('label_login_duration') }}{{ loginInfo.login_duration_text }}</div>
           </div>
         </div>
-        <a class="main-btn" :href="loginUrl" target="_blank">修改密码/设置离线通知</a>
+        <a class="main-btn" :href="loginUrl" target="_blank">{{ t('btn_change_password_settings') }}</a>
       </div>
     </template>
     <template v-else #body>
       <div class="no-auth-box">
         <img src="@/assets/official-unlogin.png"/>
-        <div class="tit">请先完成登录</div>
-        <a-button type="primary" class="link" @click="goLogin">去登录</a-button>
-        <div class="desc">已登录？<a-button type="link" @click="refresh" :loading="loading">点击刷新</a-button></div>
+        <div class="tit">{{ t('title_login_required') }}</div>
+        <a-button type="primary" class="link" @click="goLogin">{{ t('btn_go_login') }}</a-button>
+        <div class="desc">{{ t('msg_already_logged_in') }}<a-button type="link" @click="refresh" :loading="loading">{{ t('btn_click_refresh') }}</a-button></div>
       </div>
     </template>
   </ConfigBox>
@@ -29,6 +29,9 @@ import {ref} from 'vue';
 import dayjs from 'dayjs';
 import ConfigBox from "./config-box.vue";
 import {useOfficialArticleLogin} from "@/composables/useOfficialArticleLogin.js";
+import { useI18n } from '@/hooks/web/useI18n';
+
+const { t } = useI18n('views.explore.plugins.components.official-article-config');
 
 const {
   loginInfo,
@@ -36,11 +39,13 @@ const {
   loginUrl,
   loading,
   refresh,
-  goLogin
-} = useOfficialArticleLogin()
+  goLogin,
+  init,
+} = useOfficialArticleLogin(false)
 const configRef = ref(null)
 
 function show(info) {
+  init()
   configRef.value.show(info)
 }
 

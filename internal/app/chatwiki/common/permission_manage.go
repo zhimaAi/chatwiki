@@ -21,7 +21,7 @@ func SavePermissionManage(id, adminUserId int64, data msql.Datas) (int64, error)
 	data[`update_time`] = tool.Time2Int()
 	m := msql.Model(`permission_manage`, define.Postgres)
 	if id > 0 {
-		// 更新
+		// Update
 		info, err := m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(adminUserId)).Value(`id`)
 		if err != nil {
 			logs.Error(err.Error())
@@ -36,7 +36,7 @@ func SavePermissionManage(id, adminUserId int64, data msql.Datas) (int64, error)
 			return id, err
 		}
 	} else {
-		// 新增
+		// Add
 		data[`create_time`] = tool.Time2Int()
 		id, err := m.Insert(data, `id`)
 		if err != nil {
@@ -88,7 +88,7 @@ func GetPartentPermissionList(adminUserId int, identityId string, identityType, 
 		}
 	}
 
-	// 获取上级部门权限
+	// Get superior department permissions
 	if len(departmentIds) > 0 {
 		departmentPermissionData, err := GetPermissionManageList(adminUserId, strings.Join(departmentIds, `,`), define.IdentityTypeDepartment, objectType)
 		if err != nil {
@@ -114,7 +114,7 @@ func GetAllPermissionManage(adminUserId int, identityId string, identityType, ob
 		logs.Error(err.Error())
 		return permissionData, permissionMergeData
 	}
-	// 获取上级部门权限
+	// Get superior department permissions
 	if len(departmentIds) > 0 {
 		departmentPermissionData, err := GetPermissionManageList(adminUserId, strings.Join(departmentIds, `,`), define.IdentityTypeDepartment, objectType)
 		if err != nil {

@@ -9,7 +9,7 @@
       <!-- 自定义标题 -->
       <template #title>
         <div class="custom-modal-header">
-          <span>AI智能总结</span>
+          <span>{{ t('title') }}</span>
         </div>
       </template>
       <!-- AI生成表单 -->
@@ -19,7 +19,7 @@
             <!-- 模型选择 -->
             <div class="form-box-wrapper-options">
               <div class="form-item flex1">
-                <div class="form-label required">请选择生成未知问题总结的大模型</div>
+                <div class="form-label required">{{ t('model_selection_label') }}</div>
                 <div class="form-content">
                   <ModelSelect
                     modelType="LLM"
@@ -37,7 +37,7 @@
                 class="generate-btn"
               >
                 <svg-icon name="ai-generate-white" style="font-size: 16px;"></svg-icon>
-                开始总结
+                {{ t('generate_button') }}
               </a-button>
             </div>
           </div>
@@ -50,20 +50,20 @@
     </a-modal>
 
     <!-- 生成中 -->
-    <a-modal v-model:open="resultOpen" title="生成数据" :footer="null" :width="746">
+    <a-modal v-model:open="resultOpen" :title="t('generating_title')" :footer="null" :width="746">
       <div class="progress-box" v-if="percent < 100">
         <a-progress type="circle" :percent="percent" :status="progressStatus" :stroke-color="strokeColor"/>
-        <div class="tip">数据生成中，请勿关闭页面</div>
+        <div class="tip">{{ t('generating_tip') }}</div>
       </div>
-      <a-result v-else status="success" title="生成完成">
+      <a-result v-else status="success" :title="t('complete_title')">
         <template #subTitle>
-          您可以去未知问题总结中下载生成的数据
+          {{ t('complete_subtitle') }}
         </template>
         <template #extra>
           <a-button
             @click="downFailData"
             type="primary"
-            >去下载</a-button
+            >{{ t('download_button') }}</a-button
           >
         </template>
       </a-result>
@@ -75,6 +75,8 @@ import { ref, reactive, nextTick, computed, onBeforeUnmount } from 'vue'
 import { message } from 'ant-design-vue'
 import { generateSimilarQuestions } from '@/api/library'
 import ModelSelect from '@/components/model-select/model-select.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+const { t } = useI18n('views.robot.robot-config.unknown-issue.components.ai-generate-modal')
 
 // 新增状态
 const percent = ref(10)
@@ -173,8 +175,8 @@ const downFailData = () => {
 const handleBeforeUnload = (e) => {
   if (isGenerating.value) {
     e.preventDefault()
-    e.returnValue = '数据正在生成中，确定要离开吗？'
-    return '数据正在生成中，确定要离开吗？'
+    e.returnValue = t('before_unload_tip')
+    return t('before_unload_tip')
   }
 }
 

@@ -15,12 +15,12 @@
     <template #app_id="{ state, item, keyName}">
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">公众号</div>
+          <div class="option-label">{{ t('label_official_account') }}</div>
         </div>
         <div>
           <a-select
             v-model:value="item.value"
-            placeholder="请选择公众号"
+            :placeholder="t('ph_select_official_account')"
             style="width: 100%;"
             @change="(value, option) => appChange(state, option)"
           >
@@ -40,9 +40,9 @@
     <template #tagid="{ state, item, keyName}">
       <div class="options-item is-required">
         <div class="options-item-tit">
-          <div class="option-label">公众号标签</div>
-          <a-tooltip title="同步最新的公众号标签">
-            <a @click="syncTags">同步 <a-spin v-if="syncing" size="small"/></a>
+          <div class="option-label">{{ t('label_official_account_tag') }}</div>
+          <a-tooltip :title="t('tooltip_sync_tags')">
+            <a @click="syncTags">{{ t('btn_sync') }} <a-spin v-if="syncing" size="small"/></a>
           </a-tooltip>
         </div>
         <div class="tag-box">
@@ -51,13 +51,13 @@
             @change="tagTypeChange(state)"
             style="width: 120px;"
           >
-            <a-select-option :value="1">选择标签</a-select-option>
-            <a-select-option :value="2">插入变量</a-select-option>
+            <a-select-option :value="1">{{ t('btn_select_tag') }}</a-select-option>
+            <a-select-option :value="2">{{ t('btn_insert_variable') }}</a-select-option>
           </a-select>
           <a-select
             v-if="state.tag_type.value == 1"
             v-model:value="item.value"
-            placeholder="请选择标签"
+            :placeholder="t('ph_select_tag')"
             show-search
             :filter-option="filterOption"
             style="width: 100%;"
@@ -82,7 +82,7 @@
             ref="atInputRef"
             @open="emit('updateVar')"
             @change="(text, selectedList) => changeValue(item, text, selectedList)"
-            placeholder="请输入内容，键入“/”可以插入变量"
+            :placeholder="t('ph_input_content')"
           >
             <template #option="{ label, payload }">
               <div class="field-list-item">
@@ -99,12 +99,15 @@
 
 <script setup>
 import {ref, onMounted} from 'vue';
+import { useI18n } from '@/hooks/web/useI18n';
 import AtInput from "@/views/workflow/components/at-input/at-input.vue";
 import {getWechatAppList} from "@/api/robot/index.js";
 import PluginFormRender from "../pluginFormRender.vue";
 import {runPlugin} from "@/api/plugins/index.js";
 import {jsonDecode, sortObjectKeys} from "@/utils/index.js";
 import {message} from 'ant-design-vue'
+
+const { t } = useI18n('views.workflow.components.node-form-drawer.components.official-account.official-account-box');
 
 const emit = defineEmits(['updateVar'])
 const props = defineProps({
@@ -156,7 +159,7 @@ function getParams() {
       default: null,
     },
     app_name: {
-      desc: '公众号名称',
+      desc: t('label_official_account_name'),
       type: 'string',
     },
   }
@@ -168,11 +171,11 @@ function getParams() {
         default: null,
       },
       tag_name: {
-        desc: '标签名称',
+        desc: t('label_tag_name'),
         type: 'string',
       },
       tag_type: {
-        desc: '标签类型',
+        desc: t('label_tag_type'),
         type: 'number',
         default: 1,
       }
@@ -192,12 +195,12 @@ function loadWxApps() {
 
 function syncTags() {
   if (!config.value.app_secret || !config.value.app_id) {
-    return message.warning('请先选择公众号')
+    return message.warning(t('msg_please_select_official_account'))
   }
   if (syncing.value) return
   syncing.value = true
   loadTags().then(() => {
-    message.success('同步完成')
+    message.success(t('msg_sync_completed'))
   }).finally(() => {
     syncing.value = false
   })

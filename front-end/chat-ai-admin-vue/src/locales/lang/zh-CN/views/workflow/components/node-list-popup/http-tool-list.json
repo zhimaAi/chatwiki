@@ -1,0 +1,8 @@
+{
+  "label_node_count": "节点数量：",
+  "label_query_params": "查询参数",
+  "label_request_headers": "请求头",
+  "label_output_fields": "输出字段",
+  "msg_no_http_tools": "暂无可添加HTTP工具",
+  "btn_go_add": "去添加"
+}

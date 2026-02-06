@@ -2,15 +2,15 @@
   <div>
     <a-modal
       v-model:open="open"
-      title="发布"
-      ok-text="立即发布"
+      :title="t('title_publish')"
+      :ok-text="t('btn_publish_now')"
       @ok="handleOk"
       :confirmLoading="saveLoading"
       :width="600"
     >
       <div class="form-box">
         <div class="form-item">
-          <div class="form-label">版本号：</div>
+          <div class="form-label">{{ t('label_version_number') }}</div>
           <div class="form-content">
             <div class="version-input-box">
               v
@@ -23,11 +23,11 @@
           </div>
         </div>
         <div class="form-item">
-          <div class="form-label">版本描述：</div>
+          <div class="form-label">{{ t('label_version_description') }}</div>
           <div class="form-content">
             <a-textarea
               v-model:value="version_desc"
-              placeholder="请描述本次发布版本的更新内容"
+              :placeholder="t('ph_version_desc')"
               :auto-size="{ minRows: 4, maxRows: 7 }"
             />
           </div>
@@ -43,6 +43,9 @@ import { workFlowNextVersion, workFlowPublishVersion } from '@/api/robot/index'
 import { message } from 'ant-design-vue'
 import { useRoute } from 'vue-router'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.workflow.version-model')
 
 const query = useRoute().query
 const open = ref(false)
@@ -56,10 +59,16 @@ const version_desc = ref('')
 
 const saveLoading = ref(false)
 
-const emit = defineEmits(['ok'])
+const emit = defineEmits(['ok', 'handleOpenErrorNode'])
 
-const show = (list) => {
-  getVersion()
+const show = async (list) => {
+  let res = await getVersion()
+  if(res.res == 1){
+    if(res.data && res.data.err_node_key){
+      emit('handleOpenErrorNode', res.data.err_node_key)
+      return
+    }
+  }
   version_desc.value = ''
   node_list = list
   open.value = true
@@ -131,23 +140,31 @@ const handleOk = () => {
       })
       open.value = false
       if (res && res.res == 0) {
-        message.success('发布成功')
+        message.success(t('msg_publish_success'))
         emit('ok')
       }
+    }).catch((res)=>{
+      if(res.data && res.data.err_node_key){
+        emit('handleOpenErrorNode', res.data.err_node_key)
+      }
+      open.value = false
     })
     .finally(() => {
       saveLoading.value = false
     })
 }
 
-const getVersion = () => {
-  workFlowNextVersion({
+const getVersion = async () => {
+  return workFlowNextVersion({
     robot_key: query.robot_key
   }).then((res) => {
     let version_params = res.data.version_params || []
     value1.value = version_params[0]
     value2.value = version_params[1]
     value3.value = version_params[2]
+    return res
+  }).catch((res)=>{
+    return res
   })
 }
 

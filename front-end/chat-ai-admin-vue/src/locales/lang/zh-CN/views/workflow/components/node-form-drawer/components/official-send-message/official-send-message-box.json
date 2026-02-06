@@ -1,0 +1,14 @@
+{
+  "title_input": "输入",
+  "title_output": "输出",
+  "label_official_account": "公众号",
+  "ph_select_official_account": "请选择公众号",
+  "label_receiver": "接收人",
+  "tooltip_receiver_openid": "用户的openid",
+  "ph_input_receiver": "请输入接收人，键入\"/\"可以插入变量",
+  "label_message_type": "消息类型",
+  "ph_select_message_type": "请选择消息类型",
+  "ph_select_official_account_first": "请先选择公众号",
+  "component_official_send_message": "公众号发送消息",
+  "msg_complete_required_fields": "请完善发送消息的必填项"
+}

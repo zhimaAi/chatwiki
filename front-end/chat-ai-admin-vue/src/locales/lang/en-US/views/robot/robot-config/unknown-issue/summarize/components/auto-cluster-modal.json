@@ -1,0 +1,10 @@
+{
+  "title": "Auto Cluster Settings",
+  "label_vector_model": "Please select vector model",
+  "label_similarity_threshold": "Similarity Threshold",
+  "tooltip_similarity": "Questions with semantic similarity above the specified threshold will be automatically clustered",
+  "placeholder_similarity": "Please enter similarity threshold",
+  "validation_similarity": "Please enter similarity threshold",
+  "validation_vector_model": "Please select vector model",
+  "save_success": "Save Successfully"
+}

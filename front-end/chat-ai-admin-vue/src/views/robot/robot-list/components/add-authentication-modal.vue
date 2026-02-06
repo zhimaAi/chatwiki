@@ -1,15 +1,15 @@
 <template>
   <div>
-    <a-modal v-model:open="open" title="鉴权参数" :width="700">
+    <a-modal v-model:open="open" :title="t('title_auth_parameters')" :width="700">
       <div class="mt24">
         <a-alert
           class="zm-alert-info"
-          message="选择的参数会自动填充到工具配置，鉴权参数在导出或上架模板时会自动清空"
+          :message="t('msg_auth_info')"
           type="info"
         />
       </div>
       <div class="add-btn-block">
-        <a-button type="primary" :icon="h(PlusOutlined)" ghost @click="handleAddKey">添加参数</a-button>
+        <a-button type="primary" :icon="h(PlusOutlined)" ghost @click="handleAddKey">{{ t('btn_add_parameter') }}</a-button>
       </div>
       <div class="list-box">
         <a-table
@@ -22,10 +22,10 @@
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.dataIndex === 'auth_key'">
-              <a-input v-model:value="record.auth_key" placeholder="请输入" />
+              <a-input v-model:value="record.auth_key" :placeholder="t('ph_input')" />
             </template>
             <template v-if="column.dataIndex === 'auth_value'">
-              <a-input v-model:value="record.auth_value" placeholder="请输入" />
+              <a-input v-model:value="record.auth_value" :placeholder="t('ph_input')" />
             </template>
             <template v-if="column.dataIndex === 'auth_value_addto'">
               <a-select v-model:value="record.auth_value_addto" style="width: 100%">
@@ -35,20 +35,20 @@
               </a-select>
             </template>
             <template v-if="column.dataIndex === 'auth_remark'">
-              <a-input :maxLength="10" v-model:value="record.auth_remark" placeholder="请输入" />
+              <a-input :maxLength="10" v-model:value="record.auth_remark" :placeholder="t('ph_input')" />
             </template>
             <template v-if="column.dataIndex === 'action'">
-              <a-popconfirm title="确认删除该字段?" ok-text="确定" cancel-text="取消" @confirm="handleDel(record)">
-                <a>删除</a>
+              <a-popconfirm :title="t('msg_confirm_delete')" :ok-text="t('btn_confirm')" :cancel-text="t('btn_cancel')" @confirm="handleDel(record)">
+                <a>{{ t('btn_delete') }}</a>
               </a-popconfirm>
             </template>
           </template>
         </a-table>
       </div>
       <template #footer>
-        <a-button @click="open = false">取消</a-button>
-        <a-button @click="handleSave">仅保存参数</a-button>
-        <a-button type="primary" @click="handleOk">保存并添加</a-button>
+        <a-button @click="open = false">{{ t('btn_cancel') }}</a-button>
+        <a-button @click="handleSave">{{ t('btn_save_only') }}</a-button>
+        <a-button type="primary" @click="handleOk">{{ t('btn_save_and_add') }}</a-button>
       </template>
     </a-modal>
   </div>
@@ -60,8 +60,12 @@
   import { PlusOutlined } from '@ant-design/icons-vue'
   import { getHttpAuthConfig, saveHttpAuthConfig } from '@/api/robot/index'
   import { message } from 'ant-design-vue'
-const open = ref(false)
-const initSelected = ref([])
+  import { useI18n } from '@/hooks/web/useI18n'
+
+  const { t } = useI18n('views.robot.robot-list.components.add-authentication-modal')
+
+  const open = ref(false)
+  const initSelected = ref([])
   
   const tableData = ref([])
   
@@ -71,8 +75,8 @@ const initSelected = ref([])
     { title: 'Key', dataIndex: 'auth_key' },
     { title: 'Value', dataIndex: 'auth_value' },
     { title: 'Add To', dataIndex: 'auth_value_addto' },
-    { title: '备注', dataIndex: 'auth_remark' },
-    { title: '操作', dataIndex: 'action', width: 80 }
+    { title: t('label_remark'), dataIndex: 'auth_remark' },
+    { title: t('label_action'), dataIndex: 'action', width: 80 }
   ]
   
   const state = reactive({
@@ -82,16 +86,17 @@ const initSelected = ref([])
   const onSelectChange = (selectedRowKeys) => {
     state.selectedRowKeys = selectedRowKeys
   }
-const show = (selected = []) => {
-  open.value = true
-  initSelected.value = Array.isArray(selected) ? selected : []
-  state.selectedRowKeys = []
-  getConfigList()
-}
+
+  const show = (selected = []) => {
+    open.value = true
+    initSelected.value = Array.isArray(selected) ? selected : []
+    state.selectedRowKeys = []
+    getConfigList()
+  }
   
   const handleAddKey = () => {
     if (tableData.value.length >= 100) {
-      return message.error('最多添加100条')
+      return message.error(t('msg_max_limit'))
     }
     tableData.value.push({
       auth_key: '',
@@ -106,7 +111,7 @@ const show = (selected = []) => {
     tableData.value = tableData.value.filter((item) => item.uni_key !== record.uni_key)
   }
   
-const getConfigList = () => {
+  const getConfigList = () => {
   getHttpAuthConfig().then((res) => {
     let list = res.data || []
     tableData.value = list.map((item) => {
@@ -140,11 +145,11 @@ const getConfigList = () => {
     })
   
     if (errorIndex.length > 0) {
-      message.error(`请填写第${errorIndex.join(',')}行参数`)
+      message.error(t('msg_fill_row', { val: errorIndex.join(',') }))
       return false
     }
     if (resultList.length == 0) {
-      message.error('请添加参数')
+      message.error(t('msg_add_parameter'))
       return false
     }
   
@@ -164,7 +169,7 @@ const getConfigList = () => {
       http_auth_config_list: JSON.stringify(http_auth_config_list)
     })
       .then(() => {
-        message.success('保存成功')
+        message.success(t('msg_save_success'))
       })
       .finally(() => {
         state.selectedRowKeys = []
@@ -180,7 +185,7 @@ const getConfigList = () => {
     saveHttpAuthConfig({
       http_auth_config_list: JSON.stringify(http_auth_config_list)
     }).then(() => {
-      message.success('保存成功')
+      message.success(t('msg_save_success'))
     })
   }
   

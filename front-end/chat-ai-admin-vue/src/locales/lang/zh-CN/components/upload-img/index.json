@@ -1,0 +1,1 @@
+{"msg_upload_hint": "支持点击空白处、拖拽、粘贴图片，上传图片不得超过2M，仅支持png、jpg、jpeg格式", "msg_invalid_format": "只支持JPG、PNG格式的图片", "msg_max_limit": "最多上传三张图片", "msg_size_limit": "图片大小不能超过2M", "msg_paste_not_supported": "当前浏览器不支持粘贴上传操作！", "msg_paste_invalid_image": "请粘贴正确图片", "msg_upload_failed": "上传失败"}

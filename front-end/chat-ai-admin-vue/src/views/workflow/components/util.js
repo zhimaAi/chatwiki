@@ -1,4 +1,6 @@
 import { getNodeTypes, getNodesMap } from './node-list.js'
+import { useI18n } from '@/hooks/web/useI18n'
+
 export function getQuestionNodeAnchor(node) {
   if (node.categorys && node.categorys.length) {
     return node.categorys.map((item, index) => {
@@ -12,20 +14,22 @@ export function getQuestionNodeAnchor(node) {
 }
 
 export function getTargetUserOptions() {
+  const { t } = useI18n('views.workflow.components.util')
   let options = [
-    { value: 1, label: '历史' },
-    { value: 2, label: '近30天' },
-    { value: 3, label: '近60天' },
-    { value: 4, label: '近90天' }
+    { value: 1, label: t('opt_history') },
+    { value: 2, label: t('opt_last_30_days') },
+    { value: 3, label: t('opt_last_60_days') },
+    { value: 4, label: t('opt_last_90_days') }
   ]
 
   return options
 }
 
 export function getSystemVariable() {
+  const { t } = useI18n('views.workflow.components.util')
   return [
     {
-      label: '用户消息',
+      label: t('var_user_message'),
       value: '【global.question】',
       payload: { typ: 'string' }
     },
@@ -93,13 +97,14 @@ export function getImageUrl(node_type) {
 }
 
 export function getSizeOptions() {
+  const { t } = useI18n('views.workflow.components.util')
   return [
     {
-      label: '自动适配比例(2k)',
+      label: t('size_auto_2k'),
       value: '2K'
     },
     {
-      label: '自动适配比例(4k)',
+      label: t('size_auto_4k'),
       value: '4K'
     },
     {

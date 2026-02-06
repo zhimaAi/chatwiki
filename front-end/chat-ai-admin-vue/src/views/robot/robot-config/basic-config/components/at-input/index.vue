@@ -18,18 +18,19 @@
         class="j-mention"
         :class="[{ 'show-placeholder': localValue.length == 0 }, 'type-' + type]"
         contenteditable="plaintext-only"
-        :placeholder="placeholder"
+        :placeholder="t(placeholder)"
         @focus="onFocus"
         @input="debouncedUpdate"
         @click="clickJMention"
         @blur="handleBlur"
       ></div>
-      <span class="placeholder" v-if="localValue.length == 0">{{ placeholder }}</span>
+      <span class="placeholder" v-if="localValue.length == 0">{{ t(placeholder) }}</span>
     </div>
   </div>
 </template>
 
 <script>
+import { useI18n } from '@/hooks/web/useI18n'
 import CascadePanel from './cascade-panel.vue'
 
 // 把树状的options抓换成编排的数组
@@ -62,7 +63,7 @@ export default {
     },
     placeholder: {
       type: String,
-      default: '请输入'
+      default: 'ph_input'
     },
     defaultValue: {
       type: [String, Number],
@@ -91,6 +92,12 @@ export default {
     checkAnyLevel: {
       type: Boolean,
       default: false
+    }
+  },
+  setup() {
+    const { t } = useI18n('views.robot.robot-config.basic-config.components.at-input.index')
+    return {
+      t
     }
   },
   data() {
@@ -527,7 +534,6 @@ export default {
       this.selectOption(item)
     },
     selectOption(opt, isInit = false) {
-      console.log(opt, '===')
       if (!opt) return
       // 处理用户选择逻辑
       this.showDropdown = false

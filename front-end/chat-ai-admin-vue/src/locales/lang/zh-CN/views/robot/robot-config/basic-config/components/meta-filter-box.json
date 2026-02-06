@@ -1,0 +1,22 @@
+{
+  "label_and": "且",
+  "label_or": "或",
+  "ph_select": "请选择",
+  "ph_input": "请输入",
+  "btn_add_condition": "添加条件",
+  "op_is": "是",
+  "op_is_not": "不是",
+  "op_contains": "内容包含",
+  "op_not_contains": "内容不包含",
+  "op_is_empty": "为空",
+  "op_is_not_empty": "不为空",
+  "op_greater_than": "大于",
+  "op_equals": "等于",
+  "op_less_than": "小于",
+  "op_greater_than_or_equal": "大于等于",
+  "op_less_than_or_equal": "小于等于",
+  "msg_select_filter_metadata": "请选择过滤元数据",
+  "msg_select_filter_operator": "请选择过滤操作符",
+  "msg_select_filter_metadata_value": "请选择过滤元数据值",
+  "msg_complete_at_least_one_filter_rule": "请完善至少一条过滤规则"
+}

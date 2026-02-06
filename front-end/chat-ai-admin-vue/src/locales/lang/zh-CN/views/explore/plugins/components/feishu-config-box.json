@@ -1,0 +1,14 @@
+{
+  "label_default": "默认",
+  "btn_set_default": "设为默认",
+  "btn_delete": "删除",
+  "msg_authorized_credentials": "已授权{count}个凭证",
+  "btn_authorize_now": "立即授权",
+  "msg_need_authorization": "需要授权",
+  "msg_config_after_auth": "授权后，配置将显示在这里",
+  "label_params": "参数",
+  "label_required": "必填",
+  "title_tip": "提示",
+  "msg_confirm_delete_config": "确认删除该配置？",
+  "msg_deleted": "已删除"
+}
