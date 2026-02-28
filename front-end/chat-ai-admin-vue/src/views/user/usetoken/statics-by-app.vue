@@ -50,7 +50,7 @@
         <a-table-column :title="t('views.user.usetoken.output') + '(k)'" data-index="completion_token_desc" :width="140">
           <template #default="{ record }">{{ record.completion_token_desc }}</template>
         </a-table-column>
-        <a-table-column :title="t('views.user.usetoken.date')" data-index="date" :width="140">
+        <a-table-column :title="t('views.user.usetoken.date_label')" data-index="date" :width="140">
           <template #default="{ record }">{{ record.date }}</template>
         </a-table-column>
       </a-table>
@@ -148,7 +148,7 @@ const handleExport = () => {
       }
     })
 
-    let headers = `${t('views.user.usetoken.type')},${t('views.user.usetoken.app_name')},${t('views.user.usetoken.total_consumption')}(k),${t('views.user.usetoken.input')}(k),${t('views.user.usetoken.output')}(k),${t('views.user.usetoken.date')}\n`
+    let headers = `${t('views.user.usetoken.type')},${t('views.user.usetoken.app_name')},${t('views.user.usetoken.total_consumption')}(k),${t('views.user.usetoken.input')}(k),${t('views.user.usetoken.output')}(k),${t('views.user.usetoken.date_label')}\n`
     let fieds = [
       'token_app_type_desc',
       'robot_name',

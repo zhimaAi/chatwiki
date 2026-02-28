@@ -19,6 +19,23 @@
   --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
   --vt-c-text-dark-1: var(--vt-c-white);
   --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
+
+  /* 字体栈说明：
+     1. 西文/数字优先：保证英数字体优美 (Mac OS, Windows)
+     2. 中文优先 (Mac)：苹方
+     3. 中文降级 (Windows/Mac旧版)：冬青黑体
+     4. 中文核心 (Windows)：微软雅黑
+     5. Linux/其他：文泉驿微米黑
+     6. 兜底：sans-serif
+     7. Emoji 兜底：防止 Emoji 变成黑白方块 */
+  --vt-font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    "WenQuanYi Micro Hei",
+    sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 }
 
 /* semantic color variables for this project */
@@ -61,6 +78,7 @@
 body {
   color: var(--color-text);
   background: var(--color-background);
+  font-family: var(--vt-font-family) !important;
   transition:
     color 0.5s,
     background-color 0.5s;

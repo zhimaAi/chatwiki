@@ -11,7 +11,7 @@
   "total_consumption": "合计消耗",
   "input": "输入",
   "output": "输出",
-  "date": "日期",
+  "date_label": "日期",
   "robot": "机器人",
   "workflow": "工作流",
   "other": "其他",

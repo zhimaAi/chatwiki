@@ -19,5 +19,17 @@
   "livestream": "视频号直播",
   "channels": "视频号",
   "wxa": "小程序关注",
-  "other": "其他"
+  "other": "其他",
+  "local_document": "本地文档",
+  "online_document": "在线文档",
+  "custom_document": "自定义文档",
+  "manual_qa": "手工新增问答",
+  "import_qa": "导入问答",
+  "feishu_knowledge": "飞书知识库",
+  "pending_generation": "待生成",
+  "in_queue": "排队中",
+  "generation_complete": "生成完成",
+  "generation_failed": "生成失败",
+  "generating": "生成中",
+  "partial_success": "部分成功"
 }

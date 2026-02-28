@@ -1,0 +1,12 @@
+{
+  "btn_new_chat": "New Chat",
+  "tooltip_expand": "Expand",
+  "tooltip_collapse": "Collapse",
+  "label_new_chat": "New Chat",
+  "label_today": "Today",
+  "label_yesterday": "Yesterday",
+  "label_this_month": "This Month",
+  "label_earlier": "Earlier",
+  "title_clear_confirm": "Clear Records Confirmation",
+  "msg_clear_all_records": "Confirm to clear all records"
+}

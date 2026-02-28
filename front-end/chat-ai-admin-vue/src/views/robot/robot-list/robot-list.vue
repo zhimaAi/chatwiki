@@ -322,19 +322,20 @@
 }
 
 .desc-box {
-  width: 200px;
+  width: auto;
   position: absolute;
-  bottom: -29px;
-  left: -35px;
+  bottom: -20px;
+  right: 34px;
   margin-top: 12px;
   display: flex;
   align-items: center;
   gap: 4px;
   color: #8c8c8c;
   font-size: 14px;
-  font-style: normal;
   font-weight: 400;
   line-height: 22px;
+  white-space: nowrap;
+  background-color: #fff;
 
   .link {
     cursor: pointer;

@@ -26,6 +26,7 @@ func RefreshAccountVerify(appInfo msql.Params) error {
 	//database dispose
 	data := msql.Datas{
 		`account_customer_type`: basic.CustomerType,
+		`account_type`:          basic.AccountType,
 		`update_time`:           tool.Time2Int(),
 	}
 	m := msql.Model(`chat_ai_wechat_app`, define.Postgres)

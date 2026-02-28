@@ -7,6 +7,7 @@ import (
 	"chatwiki/internal/app/chatwiki/middlewares"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/wechat"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -459,7 +460,7 @@ func LibraryRecallTest(c *gin.Context) {
 		}
 	}
 
-	list, _, err := common.GetMatchLibraryParagraphList(common.GetLang(c), cast.ToString(userId), lib_define.AppYunH5, question, []string{}, libraryIds, size, similarity, searchType, robot)
+	list, _, err := common.GetMatchLibraryParagraphList(common.GetLang(c), cast.ToString(userId), lib_define.AppYunH5, "", question, []string{}, libraryIds, size, similarity, searchType, robot)
 	for _, item := range list {
 		library, err := common.GetLibraryInfo(cast.ToInt(item[`library_id`]), userId)
 		if err != nil {
@@ -1084,5 +1085,290 @@ func DeleteLibraryMetaSchema(c *gin.Context) {
 		common.FmtError(c, `sys_err`)
 		return
 	}
+	common.FmtOk(c, nil)
+}
+
+func GetSimilarQuestions(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+
+	// Get parameters
+	resultType := c.DefaultQuery(`type`, `list`)
+	dataId := cast.ToInt(c.Query(`data_id`))
+	libraryId := cast.ToInt(c.Query(`library_id`))
+	size := 2000
+
+	// Validate parameters
+	if dataId <= 0 {
+		common.FmtError(c, `param_lack`)
+		return
+	}
+	if libraryId <= 0 {
+		common.FmtError(c, `param_lack`)
+		return
+	}
+	libraryInfo, err := msql.Model(`chat_ai_library`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, cast.ToString(libraryId)).
+		Field(`*`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	// Get similarity threshold from user_config
+	loginUserId := getLoginUserId(c)
+	configData, err := msql.Model(define.TableUserConfig, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`user_id`, cast.ToString(loginUserId)).Find()
+	similarityThreshold := 0.8 // Default similarity threshold
+	if err == nil && len(configData) > 0 {
+		configSimilarity := cast.ToFloat64(configData[`qa_merge_similarity`])
+		if configSimilarity > 0 && configSimilarity <= 1 {
+			similarityThreshold = configSimilarity
+		}
+	}
+	sourceData, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`id`, cast.ToString(dataId)).
+		Where(`library_id`, cast.ToString(libraryId)).
+		Where(`delete_time`, `0`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(sourceData) == 0 {
+		common.FmtError(c, `no_data`)
+		return
+	}
+	tempSourceData := make(map[string]any)
+	for k, v := range sourceData {
+		tempSourceData[k] = v
+	}
+	var sourceImages []string = []string{}
+	_ = json.Unmarshal([]byte(sourceData[`images`]), &sourceImages)
+	tempSourceData[`images`] = sourceImages
+	// Query vector for specified data_id from chat_ai_library_file_data_index
+	indexModel := msql.Model(`chat_ai_library_file_data_index`, define.Postgres)
+	vectorData, err := indexModel.Where(`data_id`, cast.ToString(dataId)).
+		Where(`library_id`, cast.ToString(libraryId)).
+		Where(`delete_time`, `0`).
+		Field(`embedding, embedding2000`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(vectorData) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`count`: 0, `list`: []any{}}, nil))
+		return
+	}
+
+	// Get vector based on dimension (use embedding2000 for 2000-dimensional vectors)
+	var embedding string
+	if common.GetVectorDims(cast.ToString(vectorData[`embedding2000`])) == 2000 {
+		embedding = cast.ToString(vectorData[`embedding2000`])
+	} else {
+		embedding = cast.ToString(vectorData[`embedding`])
+	}
+	if len(embedding) == 0 {
+		embedding, err = common.GetVector2000(common.GetLang(c), adminUserId, ``, msql.Params{}, msql.Params{}, msql.Params{},
+			cast.ToInt(libraryInfo[`model_config_id`]),
+			libraryInfo[`use_model`], sourceData[`question`])
+		if err != nil {
+			logs.Error(err.Error())
+			return
+		}
+		if len(embedding) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`count`: 0, `list`: []any{}}, nil))
+			return
+		}
+	}
+
+	// Use VectorRecall to query similar paragraphs
+	list, err := common.VectorRecall(cast.ToString(libraryId), embedding, size)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	filterList := []map[string]any{}
+	for _, item := range list {
+		tempItem := make(map[string]any)
+		for k, v := range item {
+			tempItem[k] = v
+		}
+		similarity := cast.ToFloat64(item[`similarity`])
+		if similarity < similarityThreshold {
+			continue
+		}
+		if cast.ToInt(item[`id`]) == dataId {
+			continue
+		}
+		var images []string
+		err = json.Unmarshal([]byte(item[`images`]), &images)
+		if err != nil {
+			continue
+		}
+		tempItem[`images`] = images
+		filterList = append(filterList, tempItem)
+	}
+
+	// Return results based on type
+	if resultType == `count` {
+		c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`count`: len(filterList)}, nil))
+	} else {
+		c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`count`: len(filterList), `list`: filterList, `source_data`: tempSourceData}, nil))
+	}
+}
+
+type MergeQAParagraphReq struct {
+	SourceDataId  int    `form:"source_data_id" json:"source_data_id" binding:"required"`
+	TargetDataId  int    `form:"target_data_id" json:"target_data_id" binding:"required"`
+	DeleteDataIds string `form:"delete_data_ids" json:"delete_data_ids"`
+}
+
+func MergeQAParagraph(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+
+	var req MergeQAParagraphReq
+	if err := c.ShouldBind(&req); err != nil {
+		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
+		return
+	}
+
+	// Validate parameters
+	if req.SourceDataId <= 0 || req.TargetDataId <= 0 {
+		common.FmtError(c, `param_lack`)
+		return
+	}
+
+	// Get target paragraph data to retrieve answer
+	targetData, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`id`, cast.ToString(req.TargetDataId)).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`delete_time`, `0`).
+		Field(`id, file_id, library_id, title, content, question, answer, similar_questions, category_id, group_id, images`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(targetData) == 0 {
+		common.FmtError(c, `no_data`)
+		return
+	}
+
+	var targetImages []string
+	if err := json.Unmarshal([]byte(cast.ToString(targetData[`images`])), &targetImages); err != nil {
+		targetImages = []string{}
+	}
+
+	// Get source paragraph data
+	sourceData, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`id`, cast.ToString(req.SourceDataId)).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`delete_time`, `0`).
+		Field(`id, file_id, library_id, title, content, question, answer, similar_questions, category_id, group_id`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(sourceData) == 0 {
+		common.FmtError(c, `no_data`)
+		return
+	}
+
+	// Merge similar_questions from sourceData, question from targetData, and questions from deleteDataIds
+	var mergedSimilarQuestions []string
+
+	// Parse sourceData similar_questions
+	var sourceSimilarQuestions []string
+	if err := json.Unmarshal([]byte(cast.ToString(sourceData[`similar_questions`])), &sourceSimilarQuestions); err == nil {
+		mergedSimilarQuestions = append(mergedSimilarQuestions, sourceSimilarQuestions...)
+	}
+
+	// Add targetData question
+	if targetQuestion := cast.ToString(targetData[`question`]); targetQuestion != "" && req.SourceDataId != req.TargetDataId {
+		mergedSimilarQuestions = append(mergedSimilarQuestions, targetQuestion)
+	}
+	deleteIds := strings.Split(req.DeleteDataIds, ",")
+	deleteIds = append(deleteIds, cast.ToString(req.TargetDataId))
+	newDeleteIds := []string{}
+	for _, id := range deleteIds {
+		if id == "" {
+			continue
+		}
+		if cast.ToInt(id) == req.SourceDataId {
+			continue
+		}
+		newDeleteIds = append(newDeleteIds, id)
+	}
+	req.DeleteDataIds = strings.Join(newDeleteIds, ",")
+	// Get questions from deleteDataIds
+	if req.DeleteDataIds != "" {
+		deleteIds := strings.Split(req.DeleteDataIds, ",")
+		if len(deleteIds) > 0 {
+			deleteQuestions, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+				Where(`id`, `in`, strings.Join(deleteIds, `,`)).
+				Where(`admin_user_id`, cast.ToString(adminUserId)).
+				Where(`delete_time`, `0`).
+				Field(`question`).
+				ColumnArr(`question`)
+			if err != nil {
+				logs.Error(err.Error())
+			} else if len(deleteQuestions) > 0 {
+				mergedSimilarQuestions = append(mergedSimilarQuestions, deleteQuestions...)
+			}
+		}
+	}
+
+	// Remove duplicates
+	mergedSimilarQuestions = common.SliceUnifyUnique(mergedSimilarQuestions, func(s string) string { return s })
+
+	// Update source paragraph with target's answer and images
+	loginUserId := getLoginUserId(c)
+	updateReq := &BridgeSaveParagraphReq{
+		Id:               cast.ToString(req.SourceDataId),
+		FileId:           cast.ToString(sourceData[`file_id`]),
+		Title:            cast.ToString(sourceData[`title`]),
+		Content:          cast.ToString(sourceData[`content`]),
+		Question:         cast.ToString(sourceData[`question`]),
+		Answer:           targetData[`answer`],
+		SimilarQuestions: tool.JsonEncodeNoError(mergedSimilarQuestions),
+		Images:           targetImages,
+		CategoryId:       cast.ToString(sourceData[`category_id`]),
+		GroupId:          cast.ToString(sourceData[`group_id`]),
+	}
+	_, _, err = BridgeSaveParagraph(adminUserId, loginUserId, common.GetLang(c), updateReq)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+
+	// Delete paragraphs in deleteDataIds (exclude source_data_id, source_data_id cannot be deleted)
+	if req.DeleteDataIds != "" {
+		deleteIds := strings.Split(req.DeleteDataIds, ",")
+		for _, deleteId := range deleteIds {
+			trimmedId := strings.TrimSpace(deleteId)
+			err = BridgeDeleteParagraph(adminUserId, trimmedId, common.GetLang(c))
+			if err != nil {
+				logs.Error(err.Error())
+			}
+		}
+	}
+
 	common.FmtOk(c, nil)
 }

@@ -21,5 +21,8 @@
   "imported_no": "未导入",
   "action_set_answer": "设置答案",
   "action_import_library": "导入知识库",
+  "action_view_context": "查看会话",
+  "context_title": "问题会话上下文",
+  "context_not_found": "未找到可定位的会话记录",
   "save_success": "保存成功"
 }

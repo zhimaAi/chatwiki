@@ -233,6 +233,7 @@ type LibsNodeParams struct {
 	RecallNeighborSwitch    bool            `json:"recall_neighbor_switch"`
 	RecallNeighborAfterNum  common.MixedInt `json:"recall_neighbor_after_num"`
 	RecallNeighborBeforeNum common.MixedInt `json:"recall_neighbor_before_num"`
+	RecallNeighborTopK      common.MixedInt `json:"recall_neighbor_top_k"`
 }
 
 /************************************/
@@ -1806,6 +1807,17 @@ func (params *LibsNodeParams) Verify(adminUserId int, lang string) error {
 			return errors.New(i18n.Show(lang, `rerank_model_selection_error`))
 		}
 	}
+
+	if params.RecallNeighborBeforeNum < common.DefaultCallbackNeighborBeforeMin || params.RecallNeighborBeforeNum > common.DefaultCallbackNeighborBeforeMax {
+		return errors.New(i18n.Show(lang, `param_invalid`, `recall_neighbor_before_num`))
+	}
+	if params.RecallNeighborAfterNum < common.DefaultCallbackNeighborAfterMin || params.RecallNeighborAfterNum > common.DefaultCallbackNeighborAfterMax {
+		return errors.New(i18n.Show(lang, `param_invalid`, `recall_neighbor_after_num`))
+	}
+	if params.RecallNeighborTopK < common.DefaultCallbackNeighborTopKMin || params.RecallNeighborTopK > common.DefaultCallbackNeighborTopKMax {
+		return errors.New(i18n.Show(lang, `recall_neighbor_top_k`))
+	}
+
 	return nil
 }
 

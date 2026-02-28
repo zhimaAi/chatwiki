@@ -235,5 +235,4 @@ const handleClick = async (e, item) => {
   } catch (_) {}
   emit('clickItem', item)
 }
-
 </script>

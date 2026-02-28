@@ -35,7 +35,7 @@
     display: flex;
     gap: 50px;
 
-    .form-item {
+    > div {
       flex: 1;
     }
 
@@ -68,6 +68,54 @@
     }
   }
 }
+
+.avatar-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  .avatar-item {
+    width: 62px;
+    height: 62px;
+    border-radius: 16px;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+
+    &.active {
+      .selected-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+
+    .selected-icon {
+      display: none;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: 99;
+      left: 0;
+      top: 0;
+      background: #00000052;
+
+      img {
+        width: 32px;
+        height: 32px;
+      }
+    }
+
+    .avatar {
+      width: 100%;
+      height: 100%;
+    }
+  }
+}
+
+.mt16 {
+  margin-top: 16px;
+}
 </style>
 
 <template>
@@ -80,21 +128,37 @@
     @edit="handleEdit"
   >
     <div class="robot-form-box" v-show="isEdit">
-      <div class="form-item">
-        <div class="form-item-label">{{ t('label_robot_name_avatar') }}</div>
-        <div class="form-item-body robot-name-item">
-          <cu-upload accept="image/*" @change="handleChangeAvatar">
-            <div class="robot-avetar-upload">
-              <img
-                class="robot-avetar"
-                :src="formState.robot_avatar_url"
-                v-if="formState.robot_avatar_url"
-              />
-            </div>
-          </cu-upload>
+      <div>
+        <div class="form-item">
+          <div class="form-item-label">{{ t('label_robot_name_avatar') }}</div>
+          <div class="form-item-body robot-name-item">
+            <cu-upload accept="image/*" @change="handleChangeAvatar">
+              <div class="robot-avetar-upload">
+                <img
+                  class="robot-avetar"
+                  :src="formState.robot_avatar_url"
+                  v-if="formState.robot_avatar_url"
+                />
+              </div>
+            </cu-upload>
 
-          <div class="robot-name-box">
-            <a-input v-model:value="formState.robot_name" :placeholder="t('ph_input_robot_name')" />
+            <div class="robot-name-box">
+              <a-input v-model:value="formState.robot_name" :placeholder="t('ph_input_robot_name')" />
+            </div>
+          </div>
+        </div>
+        <div class="form-item mt16">
+          <div class="form-item-label">{{ t('label_default_avatar') }}</div>
+          <div class="form-item-body avatar-list">
+            <div
+              v-for="(item, i) in showDefaultAvatars"
+              :key="i"
+              :class="['avatar-item', {active: formState.robot_avatar_url == item}]"
+              @click="selectDefaultAvatar(item)"
+            >
+              <div class="selected-icon"><img src="@/assets/img/selected-icon.png"/></div>
+              <img class="avatar" :src="item"/>
+            </div>
           </div>
         </div>
       </div>
@@ -130,6 +194,7 @@ import EditBox from './edit-box.vue'
 import CuUpload from '@/components/cu-upload/cu-upload.vue'
 import { useRobotStore } from '@/stores/modules/robot'
 import { useI18n } from '@/hooks/web/useI18n'
+import {DEFAULT_ROBOT_AVATAR, DEFAULT_ROBOT_AVATAR_LIST, DEFAULT_WORKFLOW_AVATAR} from "@/constants/index.js";
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.basic-config')
 const robotStore = useRobotStore()
@@ -149,6 +214,11 @@ const robotList = computed(() => {
 
 const robotGroupList = computed(() => {
   return robotStore.robotGroupList || []
+})
+
+const showDefaultAvatars = computed(() => {
+  let def_avatar = robotInfo.application_type == 0 ? DEFAULT_ROBOT_AVATAR : DEFAULT_WORKFLOW_AVATAR
+  return [def_avatar, ...DEFAULT_ROBOT_AVATAR_LIST]
 })
 
 
@@ -184,5 +254,10 @@ const handleEdit = () => {
   formState.robot_intro = robotInfo.robot_intro
   formState.robot_avatar = robotInfo.robot_avatar
   formState.robot_avatar_url = robotInfo.robot_avatar_url
+}
+
+const selectDefaultAvatar = (val) => {
+  formState.robot_avatar_url = val
+  formState.robot_avatar = val
 }
 </script>

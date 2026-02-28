@@ -187,6 +187,16 @@ const baseNavs = computed(() => [
     icon: 'nav-chat',
     path: '/chat-monitor/index',
     permission: ['ChatSessionManage']
+  },
+  {
+    id: 7,
+    key: 'workbench',
+    label: 'workbench',
+    title: t('workbench'),
+    icon: 'nav-workbench',
+    path: '/workbench/chat',
+    permission: ['Workbench', 'WorkbenchManage'],
+    target: '_blank'
   }
   // {
   //   id: 6,
@@ -218,8 +228,12 @@ const navs = computed(() => {
 })
 
 const handleClickNav = (item) => {
-  router.push(item.path)
-  // window.open(`/#${item.path}`, "_blank", "noopener") // 建议添加 noopener 防止安全漏洞
+  if(item.target && item.target == '_blank'){
+    window.open(`/#${item.path}`, "_blank")
+  } else {
+    router.push(item.path)
+  }
+
 }
 
 const handleChangeRobotmenuItem = (type, item) => {

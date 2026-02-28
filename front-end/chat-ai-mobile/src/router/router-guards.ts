@@ -19,7 +19,7 @@ function extractChatDataFromQuery(query: any): Partial<Chat> {
 
 // 辅助函数：检查是否需要重定向  
 function shouldRedirect(to: any): boolean {  
-    return NO_REDIRECT_WHITE_LIST.some((n) => n === to.name);  
+    return NO_REDIRECT_WHITE_LIST.some((n) => n === to.path);  
 }  
 
 export function createRouterGuards(router: Router) {  

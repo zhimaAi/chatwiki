@@ -174,6 +174,16 @@ var Menus = []Menu{
 			//},
 		},
 	},
+	{
+		Name:   "[[ZM--WorkbenchName--ZM]]",
+		UniKey: "Workbench",
+		Children: []*Menu{
+			{
+				Name:   "[[ZM--WorkbenchName--ZM]]",
+				UniKey: "WorkbenchManage",
+			},
+		},
+	},
 }
 
 var AllUniKeyList = []string{
@@ -198,6 +208,7 @@ var UserUniKeyList = []string{
 	"FormManage",
 	"AccountManage",
 	"ClientSideManage",
+	"WorkbenchManage",
 }
 
 var MustUniKeyList = []string{

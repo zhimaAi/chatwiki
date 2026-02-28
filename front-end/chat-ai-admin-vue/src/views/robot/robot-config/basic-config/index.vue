@@ -44,7 +44,7 @@
       <div class="setting-box">
         <SensitiveWords />
       </div>
-      <!--  
+      <!--
       <div class="setting-box">
         <MarkdownSetting />
       </div>
@@ -127,7 +127,7 @@ const formState = reactive(robotInfo.value)
 const updateRobotInfo = (val) => {
   let newState = JSON.parse(JSON.stringify(val))
   // 对机器人头像特殊处理
-  if (val.robot_avatar) {
+  if (val.robot_avatar && val.robot_avatar instanceof File) {
     newState.robot_avatar = new File([val.robot_avatar], val.robot_avatar.name)
   }
   if(!newState.op_type_relation_library && formState.op_type_relation_library){
@@ -152,15 +152,15 @@ provide('robotInfo', {
 })
 
 const saveForm = () => {
-  // 对机器人头像特殊处理
-  let robot_avatar
-  if (formState.robot_avatar) {
-    robot_avatar = new File([formState.robot_avatar], formState.robot_avatar.name)
-  }
   let formData = JSON.parse(JSON.stringify(toRaw(formState)))
   // 有机器人头像就赋值
-  if (robot_avatar) {
-    formData.robot_avatar = robot_avatar
+  if (formState.robot_avatar) {
+    if (formState.robot_avatar instanceof File) {
+      formData.robot_avatar = new File([formState.robot_avatar], formState.robot_avatar.name)
+      delete formData.robot_avatar_url
+    } else {
+      formData.robot_avatar_url = formState.robot_avatar
+    }
   }
   let welcomes = formData.welcomes
 
@@ -181,8 +181,6 @@ const saveForm = () => {
 
   formData.cache_config = JSON.stringify(formData.cache_config)
 
-  delete formData.robot_avatar_url
-
   saveLoading.value = true
 
   saveRobot(formData)
@@ -196,6 +194,7 @@ const saveForm = () => {
       message.success(t('msg_save_success'))
 
       getRobot(formState.id)
+      robotStore.getRobotLists()
     })
     .catch(() => {
       saveLoading.value = false

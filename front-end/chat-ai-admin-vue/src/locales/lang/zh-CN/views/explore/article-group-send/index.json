@@ -10,7 +10,7 @@
   "btn_bind_mp": "去绑定公众号",
   "segmented_group_send": "群发管理",
   "segmented_draft_box": "草稿箱",
-  "alert_line_1": "1. 本功能仅限认证的公众号。支持同步微信公众后台未发布的草稿箱。",
+  "alert_line_1": "1. <span class='text_color_ed744a'>本功能仅支持已认证公众号/服务号</span>；支持同步微信公众后台未发布的草稿箱。",
   "alert_line_2": "2. 群发的内容不会显示在文章管理内。请注意群发和已发布的区别。",
   "modal_ai_comment_not_enabled_title": "未开启AI评论精选",
   "modal_ai_comment_not_enabled": "AI评论精选功能暂未开启",

@@ -13,18 +13,20 @@
       <div class="base-title zm-line1">{{ record.file_name }}</div>
       <div class="base-update">
         <span>{{ t('label_updated_at') }} {{ record.update_time }}</span>
-        <span class="sep">|</span>
-        <span>
-          <span v-if="record.doc_auto_renew_frequency == 1">{{ t('label_no_auto_update') }}</span>
-          <span v-if="record.doc_auto_renew_frequency == 2">{{ t('label_every_day') }}</span>
-          <span v-if="record.doc_auto_renew_frequency == 3">{{ t('label_every_3_days') }}</span>
-          <span v-if="record.doc_auto_renew_frequency == 4">{{ t('label_every_7_days') }}</span>
-          <span v-if="record.doc_auto_renew_frequency == 5">{{ t('label_every_30_days') }}</span>
-          <span class="ml4" v-if="record.doc_auto_renew_frequency > 1 && record.doc_auto_renew_minute > 0">
-            {{ convertTime(record.doc_auto_renew_minute) }}
+        <template v-if="record.doc_type == 2">
+          <span class="sep">|</span>
+          <span>
+            <span v-if="record.doc_auto_renew_frequency == 1">{{ t('label_no_auto_update') }}</span>
+            <span v-if="record.doc_auto_renew_frequency == 2">{{ t('label_every_day') }}</span>
+            <span v-if="record.doc_auto_renew_frequency == 3">{{ t('label_every_3_days') }}</span>
+            <span v-if="record.doc_auto_renew_frequency == 4">{{ t('label_every_7_days') }}</span>
+            <span v-if="record.doc_auto_renew_frequency == 5">{{ t('label_every_30_days') }}</span>
+            <span class="ml4" v-if="record.doc_auto_renew_frequency > 1 && record.doc_auto_renew_minute > 0">
+              {{ convertTime(record.doc_auto_renew_minute) }}
+            </span>
+            <a class="ml12 btn-hover-block" @click="emit('editOnline', record)">{{ t('btn_edit') }}</a>
           </span>
-          <a class="ml12 btn-hover-block" @click="emit('editOnline', record)">{{ t('btn_edit') }}</a>
-        </span>
+        </template>
       </div>
       <div class="base-meta-grid">
         <div class="meta-item">
@@ -58,6 +60,45 @@
           <div class="label">{{ t('label_yesterday_triggers') }}</div>
         </div>
       </div>
+      <div class="info-box">
+        <div class="base-title">知识图谱</div>
+        <div class="info-items">
+          <div class="info-item">
+            <span class="info-label">知识图谱</span>
+            <span class="info-value">
+              <span :class="`state_${record.graph_status}`">{{ STATUS_MAP[record.graph_status] }}</span>
+              <a v-if="record.graph_status == 0 || record.graph_status == 3" class="ml8" @click="emit('createGraphTask', record)">生成</a>
+              <template v-if="record.graph_status == 3 && record.graph_err_msg">
+                <a-divider type="vertical" />
+                <a-tooltip :title="record.graph_err_msg">
+                  <a>原因</a>
+                </a-tooltip>
+              </template>
+            </span>
+          </div>
+          <div v-if="record.graph_status == 5" class="info-item">
+            <span class="info-label">失败数</span>
+            <span class="info-value">
+              {{ record.graph_err_count || 0 }}
+              <a-divider type="vertical" />
+              <a @click="emit('handlePreview', record, {graph_status: 3})">详情</a>
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">知识图谱数</span>
+            <span class="info-value">{{ record.graph_entity_count || 0 }}</span>
+          </div>
+        </div>
+      </div>
+      <div v-if="Array.isArray(record?.meta_list) && record.meta_list.length" class="info-box">
+        <div class="base-title">元数据</div>
+        <div class="info-items">
+          <div v-for="item in record.meta_list" :key="item.key" class="info-item">
+            <span class="info-label">{{ item.name }}</span>
+            <span class="info-value">{{ item.value }}</span>
+          </div>
+        </div>
+      </div>
     </div>
   </a-drawer>
   </template>
@@ -68,10 +109,12 @@ import { useI18n } from '@/hooks/web/useI18n'
 import defaultCover from '@/assets/img/default-cover.png'
 import emptyDocumentIcon from '@/assets/svg/empty-document.svg'
 import { convertTime } from '@/utils/index'
+import {GRAPH_STATUS_MAP} from "@/constants/index.js";
 
 const { t } = useI18n('views.library.library-details.components.base-data-drawer')
 
-const emit = defineEmits(['close', 'editOnline'])
+const STATUS_MAP = GRAPH_STATUS_MAP()
+const emit = defineEmits(['close', 'editOnline', 'createGraphTask'])
 const props = defineProps({
   open: {
     type: Boolean,
@@ -197,5 +240,39 @@ const fileCover = computed(() => getFileCover(props.record))
 }
 .ml12 {
   margin-left: 12px;
+}
+
+.ml8 {
+  margin-left: 8px;
+}
+
+.info-box {
+  margin-top: 16px;
+  .info-items {
+    margin-top: 8px;
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      color: #262626;
+      font-weight: 400;
+
+      .info-label {
+        flex-shrink: 0;
+        width: 145px;
+      }
+
+      .info-value {
+        flex: 1;
+        color: #8C8C8C;
+
+        .state_3 {
+          color: #FB363F;
+        }
+      }
+    }
+  }
 }
 </style>

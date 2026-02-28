@@ -1,0 +1,10 @@
+{
+  "msg_use_success": "Template used successfully.",
+  "msg_no_permission": "No permission. Please contact administrator.",
+  "title_prompt": "Notice",
+  "msg_version_low": "System version is too low. Please upgrade to the latest version to use this template.",
+  "btn_continue_use": "Continue",
+  "btn_cancel": "Cancel",
+  "msg_confirm_use_template": "Are you sure you want to use template 【{name}】 to create an app?",
+  "btn_confirm": "Confirm"
+}

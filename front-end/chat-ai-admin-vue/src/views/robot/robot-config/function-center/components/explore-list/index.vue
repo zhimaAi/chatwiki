@@ -184,11 +184,11 @@
         </div>
         <div class="item-body">
           <div class="explore-desc">{{ item.explore_intro || item.introduction }}</div>
-          
+
           <span class="support-box">
             <span v-for="ch in item.support_channels_list" :key="ch" class="support-item">
               <svg-icon name="support" class="icon" />
-              {{ ch }}
+               {{ ch }}
             </span>
           </span>
         </div>
@@ -236,7 +236,6 @@ const props = defineProps({
     default: () => []
   },
 })
-
 const handleSwitchChange = (item, checked) => emit('switchChange', item, checked)
 const handleFixedMenuChange = (item, checked) => emit('fixedMenuChange', item, checked)
 const handleClick = (e, item) => {

@@ -36,6 +36,18 @@ func GetModelConfigList(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+
+	// Get weight from model_define_weight table
+	weightMap := make(map[string]int)
+	weightData, err := msql.Model(`model_define_weight`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Select()
+	if err == nil && len(weightData) > 0 {
+		for _, weight := range weightData {
+			weightMap[weight[`model_config_id`]] = cast.ToInt(weight[`weight`])
+		}
+	}
+
 	list := make([]common.ModelInfo, 0)
 	for _, modelConfig := range common.GetModelConfigList(common.GetLang(c)) {
 		if len(modelDefine) > 0 && modelConfig.ModelDefine != modelDefine {
@@ -46,6 +58,11 @@ func GetModelConfigList(c *gin.Context) {
 				continue // Model provider mismatch, skip
 			}
 			modelInfo, _ := common.GetModelInfoByConfig(common.GetLang(c), adminUserId, cast.ToInt(config[`id`]))
+			if weight, exists := weightMap[modelInfo.ConfigInfo[`id`]]; exists {
+				modelInfo.Weight = weight
+			} else {
+				modelInfo.Weight = 0
+			}
 			list = append(list, modelInfo)
 		}
 	}
@@ -268,4 +285,59 @@ func configurationTest(config msql.Params, modelInfo common.ModelInfo, lang stri
 		return err
 	}
 	return common.ConfigurationTest(handler.Meta, useModels[0].ModelType)
+}
+
+func SetModelConfigWeight(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	ids := strings.Split(c.PostForm(`ids`), `,`)
+	if len(ids) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `ids`))))
+		return
+	}
+	for index, id := range ids {
+		if len(id) == 0 {
+			continue
+		}
+		// check if model_define is valid
+		_, exist := common.GetModelInfoByConfig(common.GetLang(c), userId, cast.ToInt(id))
+		if !exist {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `ids`))))
+			return
+		}
+		// check if record exists
+		info, err := msql.Model(`model_define_weight`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(userId)).
+			Where(`model_config_id`, id).
+			Find()
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		data := msql.Datas{
+			`weight`:      index + 1,
+			`update_time`: tool.Time2Int(),
+		}
+		if len(info) == 0 {
+			// insert new record
+			data[`admin_user_id`] = userId
+			data[`model_config_id`] = id
+			data[`create_time`] = tool.Time2Int()
+			_, err = msql.Model(`model_define_weight`, define.Postgres).Insert(data)
+		} else {
+			// update existing record
+			_, err = msql.Model(`model_define_weight`, define.Postgres).
+				Where(`id`, cast.ToString(info[`id`])).
+				Update(data)
+		}
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }

@@ -1,0 +1,10 @@
+{
+  "title_tip": "温馨提示",
+  "msg_logout_confirm": "是否退出本系统？",
+  "msg_input_required": "请输入消息内容",
+  "msg_sensitive_content": "提交的内容包含敏感词：[{words}] 请修改后再提交",
+  "msg_send_failed": "消息发送失败，请重试",
+  "msg_login_required": "请登录账号",
+  "msg_no_permission": "当前账号无访问权限",
+  "msg_init_failed": "初始化失败，请刷新页面重试"
+}

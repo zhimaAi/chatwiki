@@ -45,5 +45,6 @@
   "label_every_week": "每星期",
   "label_every_day": "每天",
   "label_custom_time": "自定义时间",
-  "label_to": "至"
+  "label_to": "至",
+  "msg_certified_only": "1. 本功能仅支持已认证公众号/服务号"
 }

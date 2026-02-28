@@ -365,6 +365,12 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 	if len(libraryFiles) == 1 {
 		autoSplit = true
 	}
+
+	// multi local file use auto split
+	if docType == define.DocTypeLocal {
+		autoSplit = true
+	}
+
 	if answerLable != "" || answerColumn != "" {
 		autoSplit = true
 		splitParams.QuestionColumn = questionColumn

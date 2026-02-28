@@ -94,7 +94,7 @@ import { Form, message } from 'ant-design-vue'
 import { addModelConfig, editModelConfig } from '@/api/model/index'
 
 const { t } = useI18n('views.user.model')
-const emit = defineEmits(['ok'])
+const emit = defineEmits(['ok', 'edit'])
 const useForm = Form.useForm
 
 const title = ref('')
@@ -293,7 +293,7 @@ const saveEditModel = () => {
       show.value = false
       message.success(t('saveSuccess'))
 
-      emit('ok')
+      emit('edit', formState.value.id)
     })
     .catch(() => {
       confirmLoading.value = false

@@ -22,6 +22,9 @@
               <div class="app-desc">{{ t('label_appid') }}{{ item.app_id }}</div>
             </div>
           </div>
+          <div class="ext-info-list account-type-tag">
+            {{item.account_type_name}} <span v-if="item.account_customer_type_name">/ {{item.account_customer_type_name}}</span>
+          </div>
           <div class="ext-info-list">
             <div class="status-block status-success" v-if="item.account_is_verify == 'true'">
               <CheckCircleFilled/>
@@ -81,7 +84,8 @@ function loadData(ids) {
   loading.value = true
   getWechatAppList({
     app_type: 'official_account',
-    app_name: ''
+    app_name: '',
+    is_all: 1
   }).then((res) => {
     let _list = res.data || []
     _list.forEach(item => {
@@ -219,9 +223,19 @@ defineExpose({
         }
 
         &.status-warning {
-          background: #fae4dc;
-          color: #ed744a;
+          background: #FBDDDE;
+          color: #FB363F;
         }
+      }
+
+      &.account-type-tag {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: 6px;
+        background: #EDEFF2;
+        color: #3a4559;
+        font-size: 12px;
+        margin-top: 4px;
       }
     }
   }

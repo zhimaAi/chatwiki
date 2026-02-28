@@ -631,13 +631,16 @@ const scrollToBottom = () => {
   })
 }
 
-function scrollToMessage(id, direction) {
+function scrollToMessage(id, direction, topOffset) {
   nextTick(() => {
     // 手动控制滚动到底部不触发触底事件
     onScrollEventLock = true
 
     if (!direction) {
       direction = 'top'
+    }
+    if (typeof topOffset !== 'number') {
+      topOffset = 0
     }
 
     let scroller = scrollBoxRef.value
@@ -646,7 +649,7 @@ function scrollToMessage(id, direction) {
     if (element) {
       // 没数据时时没有element的
       if (direction == 'top') {
-        scroller.scrollTop = element.offsetTop
+        scroller.scrollTop = Math.max(element.offsetTop - topOffset, 0)
       } else {
         scroller.scrollTop = element.offsetTop - scroller.clientHeight + element.clientHeight
       }

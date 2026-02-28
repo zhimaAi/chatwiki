@@ -195,7 +195,13 @@ func CheckChatTypeNotDirect(in *ChatInParam, out *ChatOutParam) pipeline.PipeRes
 	// process unknown issue statistics
 	isBackground := len(in.params.Customer) > 0 && cast.ToInt(in.params.Customer[`is_background`]) > 0
 	if !isBackground && len(out.list) == 0 {
-		common.SaveUnknownIssueRecord(in.params.Lang, in.params.AdminUserId, in.params.Robot, in.params.Question)
+		common.SaveUnknownIssueRecord(in.params.Lang, in.params.AdminUserId, in.params.Robot, in.params.Question, common.UnknownIssueRelation{
+			Openid:     in.params.Openid,
+			RelUserId:  in.params.RelUserId,
+			DialogueId: in.dialogueId,
+			SessionId:  in.sessionId,
+			MessageId:  cast.ToInt(out.cMsgId),
+		})
 	}
 	// transfer to human for unknown issues
 	if msg, ok := IsUnknownSwitchManual(in.params, in.sessionId, in.dialogueId, out.list, in.chanStream); ok {

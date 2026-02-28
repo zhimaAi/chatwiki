@@ -1,0 +1,6 @@
+{
+  "modal_title": "相似度阈值设置",
+  "alert_message": "根据答案和问题综合的相似度，相似度超过阈值的问答视为相似问答",
+  "threshold_label": "相似度阈值",
+  "default_value": "默认值{ value }"
+}

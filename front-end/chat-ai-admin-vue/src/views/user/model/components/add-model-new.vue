@@ -25,7 +25,7 @@
         </a-form-item>
         <a-form-item
           name="use_model_name"
-          :label="model_name"
+          :label="`${model_name}（${t('example')}：deepseek-chat、MiniMaxAI/MiniMax-M2）`"
           :rules="[{ required: true, message: `${t('please_enter')}${model_name}` }]"
         >
           <a-input

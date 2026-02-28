@@ -51,9 +51,9 @@
           />
         </div>
 
-        <a-alert class="alert-box" style="margin: 16px 48px 0;">
+        <a-alert class="zm-alert-info" style="margin: 16px 48px 0;">
           <template #message>
-            <div>{{ t('alert_line_1') }}</div>
+            <div v-html="t('alert_line_1')"></div>
             <div>{{ t('alert_line_2') }}</div>
           </template>
         </a-alert>

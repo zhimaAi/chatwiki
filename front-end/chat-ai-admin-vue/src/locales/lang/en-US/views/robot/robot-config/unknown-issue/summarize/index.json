@@ -21,5 +21,8 @@
   "imported_no": "Not Imported",
   "action_set_answer": "Set Answer",
   "action_import_library": "Import to Knowledge Base",
+  "action_view_context": "View Context",
+  "context_title": "Issue Conversation Context",
+  "context_not_found": "No related conversation found",
   "save_success": "Save Successfully"
 }

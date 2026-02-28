@@ -11,7 +11,7 @@
   "total_consumption": "Total Consumption",
   "input": "Input",
   "output": "Output",
-  "date": "Date",
+  "date_label": "Date",
   "robot": "Robot",
   "workflow": "Workflow",
   "other": "Other",

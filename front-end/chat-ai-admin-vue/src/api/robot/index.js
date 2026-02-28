@@ -87,13 +87,14 @@ export const robotBindWxApp = (data = {}) => {
   })
 }
 
-export const getWechatAppList = ({ robot_id, app_type, app_name }) => {
+export const getWechatAppList = ({ robot_id, app_type, app_name, is_all }) => {
   return request.get({
     url: '/manage/getWechatAppList',
     params: {
       robot_id,
       app_type,
-      app_name
+      app_name,
+      is_all: is_all || 0
     }
   })
 }
@@ -295,6 +296,13 @@ export const setUnknownIssueSummary = (data = {}) => {
   return request.post({
     url: '/manage/setUnknownIssueSummary',
     data: data
+  })
+}
+
+export const getUnknownIssueChatContext = (params = {}) => {
+  return request.get({
+    url: '/manage/getUnknownIssueChatContext',
+    params: params
   })
 }
 

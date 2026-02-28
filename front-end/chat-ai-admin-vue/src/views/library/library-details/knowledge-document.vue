@@ -499,7 +499,9 @@
           </div>
           <BaseDataDrawer
             v-model:open="baseDataOpen"
-            :record="baseDataRecord"
+            :record="baseDataModelRecord"
+            @createGraphTask="(val) => createGraphTask(val, true)"
+            @handlePreview="handlePreview"
             @close="baseDataOpen=false"
             @editOnline="handleEditOnlineDoc"
           />
@@ -602,83 +604,90 @@
                 </div>
               </template> -->
               <template v-if="column.key === 'status'">
-                <template v-if="record.file_ext == 'pdf' && record.pdf_parse_type >= 2">
-                  <div class="pdf-progress-box" v-if="record.status == 0">
-                    <div class="progress-title">
-                      <span class="status-box"><LoadingOutlined />{{ t('status_parsing') }}</span>
-                      <a @click="handleCancelOcrPdf(record)">{{ t('btn_cancel') }}</a>
-                    </div>
-                    <div class="progress-bar">
-                      <a-progress
-                        size="small"
-                        class="progress-bar-box"
-                        :percent="parseInt((record.ocr_pdf_index / record.ocr_pdf_total) * 100)"
-                        :show-info="false"
-                      />
-                      <div class="num-box">
-                        {{ record.ocr_pdf_index }} / {{ record.ocr_pdf_total }}
+                <div class="file-status-box">
+                  <template v-if="record.file_ext == 'pdf' && record.pdf_parse_type >= 2">
+                    <div class="pdf-progress-box" v-if="record.status == 0">
+                      <div class="progress-title">
+                        <span class="status-box"><LoadingOutlined />{{ t('status_parsing') }}</span>
+                        <a @click="handleCancelOcrPdf(record)">{{ t('btn_cancel') }}</a>
+                      </div>
+                      <div class="progress-bar">
+                        <a-progress
+                          size="small"
+                          class="progress-bar-box"
+                          :percent="parseInt((record.ocr_pdf_index / record.ocr_pdf_total) * 100)"
+                          :show-info="false"
+                        />
+                        <div class="num-box">
+                          {{ record.ocr_pdf_index }} / {{ record.ocr_pdf_total }}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </template>
-                <template v-else>
-                  <span class="status-tag running" v-if="record.status == 0"
-                    ><a-spin size="small" /> {{ t('status_converting') }}</span
-                  >
-                </template>
-
-                <span class="status-tag running" v-if="record.status == 1"
-                  ><a-spin size="small" /> {{ t('status_learning') }}</span
-                  >
-
-                <span class="status-tag complete" v-if="record.status == 2"
-                  ><CheckCircleFilled /> {{ t('status_learn_complete') }}</span
-                >
-
-                <a-tooltip placement="top" v-if="record.status == 3">
-                  <template #title>
-                    <span>{{ record.errmsg }}</span>
                   </template>
-                  <span>
-                    <span class="status-tag status-error"><CloseCircleFilled /> {{ t('status_convert_failed') }}</span>
-                    <a class="ml8" v-if="libraryInfo.type == 2" @click="handlePreview(record)"
-                      >{{ t('btn_learn') }}</a
+                  <template v-else>
+                    <span class="status-tag running" v-if="record.status == 0"><a-spin size="small" /> {{ t('status_converting') }}</span>
+                  </template>
+
+                  <span class="status-tag running" v-if="record.status == 1"
+                    ><a-spin size="small" /> {{ t('status_learning') }}</span
                     >
-                  </span>
-                </a-tooltip>
-                <a-tooltip placement="top" v-if="record.status == 8">
-                  <template #title>
-                    <span>{{ record.errmsg }}</span>
-                  </template>
-                  <span>
-                    <span class="status-tag status-error"><CloseCircleFilled /> {{ t('status_convert_error') }}</span>
-                  </span>
-                </a-tooltip>
-                <template v-if="record.status == 4">
-                  <span class="status-tag"><ClockCircleFilled /> {{ t('status_wait_learn') }}</span>
-                  <!-- 产品说去掉这个学习，因为和重新分段走的一样的逻辑 -->
-                  <!-- <a class="ml8" @click="handlePreview(record)">{{ t('btn_learn') }}</a> -->
-                </template>
-                <template v-if="record.status == 5">
-                  <span class="status-tag"><ClockCircleFilled /> {{ t('status_wait_fetch') }}</span>
-                </template>
-                <span class="status-tag running" v-if="record.status == 6"
-                  ><a-spin size="small" /> {{ t('status_fetching') }}</span
-                >
-                <a-tooltip placement="top" v-if="record.status == 7">
-                  <template #title>
-                    <span>{{ record.errmsg }}</span>
-                  </template>
-                  <span class="status-tag error"><CloseCircleFilled /> {{ t('status_fetch_failed') }}</span>
-                </a-tooltip>
-                <template v-if="record.status == 9">
-                  <span class="status-tag cancel"><ExclamationCircleOutlined /> {{ t('status_cancel_parse') }}</span>
-                </template>
 
-                <span class="status-tag subning" v-if="record.status == 10">
-                  <a-spin size="small" />
-                  {{ t('status_segmenting') }}
-                </span>
+                  <span class="status-tag complete" v-if="record.status == 2"
+                    ><CheckCircleFilled /> {{ t('status_learn_complete') }}</span
+                  >
+
+                  <a-tooltip placement="top" v-if="record.status == 3">
+                    <template #title>
+                      <span>{{ record.errmsg }}</span>
+                    </template>
+                    <span>
+                      <span class="status-tag status-error"><CloseCircleFilled /> {{ t('status_convert_failed') }}</span>
+                      <a class="ml8" v-if="libraryInfo.type == 2" @click="handlePreview(record)"
+                        >{{ t('btn_learn') }}</a
+                      >
+                    </span>
+                  </a-tooltip>
+                  <a-tooltip placement="top" v-if="record.status == 8">
+                    <template #title>
+                      <span>{{ record.errmsg }}</span>
+                    </template>
+                    <span>
+                      <span class="status-tag status-error"><CloseCircleFilled /> {{ t('status_convert_error') }}</span>
+                    </span>
+                  </a-tooltip>
+                  <template v-if="record.status == 4">
+                    <span class="status-tag"><ClockCircleFilled /> {{ t('status_wait_learn') }}</span>
+                    <!-- 产品说去掉这个学习，因为和重新分段走的一样的逻辑 -->
+                    <!-- <a class="ml8" @click="handlePreview(record)">{{ t('btn_learn') }}</a> -->
+                  </template>
+                  <template v-if="record.status == 5">
+                    <span class="status-tag"><ClockCircleFilled /> {{ t('status_wait_fetch') }}</span>
+                  </template>
+                  <span class="status-tag running" v-if="record.status == 6"
+                    ><a-spin size="small" /> {{ t('status_fetching') }}</span
+                  >
+                  <a-tooltip placement="top" v-if="record.status == 7">
+                    <template #title>
+                      <span>{{ record.errmsg }}</span>
+                    </template>
+                    <span class="status-tag error"><CloseCircleFilled /> {{ t('status_fetch_failed') }}</span>
+                  </a-tooltip>
+                  <template v-if="record.status == 9">
+                    <span class="status-tag cancel"><ExclamationCircleOutlined /> {{ t('status_cancel_parse') }}</span>
+                  </template>
+
+                  <span class="status-tag subning" v-if="record.status == 10">
+                    <a-spin size="small" />
+                    {{ t('status_segmenting') }}
+                  </span>
+
+                  <a-tooltip placement="top" v-if="record.status == 3 || record.status == 7 || record.status == 8">
+                    <template #title>
+                      <span>{{ t('tooltip_relearn') }}</span>
+                    </template>
+                    <SyncOutlined class="btn-hover-block" @click="handleRelearn(record)" />
+                  </a-tooltip>
+                </div>
               </template>
               <template v-if="column.key === 'graph_status'">
                 <!--0待生成 1排队中 2生成完成 3生成失败 4生成中 5部分成功-->
@@ -950,7 +959,8 @@ import {
   cancelOcrPdf,
   getLibraryGroup,
   deleteLibraryGroup,
-  sortLibararyListGroup
+  sortLibararyListGroup,
+  restudyLibraryFile
 } from '@/api/library'
 import { formatFileSize, setDescRef, getTooltipTitle } from '@/utils/index'
 import UploadFilesInput from '../add-library/components/upload-input.vue'
@@ -975,9 +985,11 @@ import EditGroup from './qa-knowledge-document/components/edit-group.vue'
 import Draggable from 'vuedraggable'
 import AddFeishuDocument from "./components/add-feishu-document.vue";
 import MetadataManageModal from "@/views/library/library-details/components/metadata-manage-modal.vue";
+import {KNOWLEDGE_SOURCE_TYPE_MAP} from "@/constants/index.js";
 
 const { setStorage } = useStorage('localStorage')
 const { t } = useI18n('views.library.library-details.knowledge-document')
+const SOURCE_TYPE_MAP = KNOWLEDGE_SOURCE_TYPE_MAP()
 
 const libraryStore = useLibraryStore()
 const { changeGraphSwitch } = libraryStore
@@ -1020,14 +1032,6 @@ const filterGroupLists = computed(() => {
 })
 
 const userStore = useUserStore()
-const sourceTypeMap = {
-  1: t('menu_local_doc'),
-  2: t('menu_online_data'),
-  3: t('menu_custom_doc'),
-  4: t('source_manual_qa'),
-  5: t('source_import_qa'),
-  6: t('source_import_fs')
-}
 const PDF_PARSE_MODE = [
   {
     key: 2,
@@ -1077,6 +1081,13 @@ const state = reactive({
 const modelForm = reactive({
   use_model: '',
   model_config_id: ''
+})
+
+const baseDataModelRecord = computed(() => {
+  if (baseDataRecord.value?.id) {
+    return fileList.value.find(i => baseDataRecord.value.id == i.id)
+  }
+  return null
 })
 
 const onChangeModel = (val, option) => {
@@ -1565,9 +1576,9 @@ const columnsDefault = [
     dataIndex: 'status',
     key: 'status',
     resizable: true,
-    minWidth: 130,
-    maxWidth: 200,
-    width: 130,
+    minWidth: 150,
+    maxWidth: 220,
+    width: 150,
   },
   {
     title: t('col_update_info'),
@@ -1662,6 +1673,18 @@ const onDelete = ({ id }) => {
   })
 }
 
+const handleRelearn = (record) => {
+  restudyLibraryFile({
+    id: record.id,
+    pdf_parse_type: record.pdf_parse_type
+  }).then(() => {
+    getData()
+    message.success(t('msg_relearn_success'))
+  }).catch(() => {
+    message.error(t('msg_relearn_failed'))
+  })
+}
+
 const handleBatchDelete = () => {
   if (state.selectedRowKeys.length == 0) {
     return message.error(t('msg_select_doc_first'))
@@ -1687,7 +1710,6 @@ const handleBatchDelete = () => {
 }
 
 const handlePreview = (record, params = {}) => {
-  console.log(rotue)
   let routeName = rotue.name
   if (record.status == '4') {
     if (routeName == 'libraryConfig') {
@@ -1810,7 +1832,7 @@ const getData = (append = false) => {
               i.value = dayjs(i.value * 1000).format('YYYY-MM-DD HH:mm')
             }
             if (i.key == 'source') {
-              i.value = sourceTypeMap[i.value]
+              i.value = SOURCE_TYPE_MAP[i.value]
             }
             item[`meta_${i.key}`] = i.value
           })
@@ -1956,13 +1978,13 @@ const onFilesChange = (files) => {
 
 const handleSaveFiles = () => {
   // 提交后，需要显示引导学习的弹窗提示。如果勾选了“不再显示”，以后批量上传后不再显示弹窗提示。
-  if (
-    guideLearningTipsRef.value &&
-    !userStore.getGuideLearningTips &&
-    addFileState.fileList.length > 1
-  ) {
-    guideLearningTipsRef.value.show()
-  }
+  // if (
+  //   guideLearningTipsRef.value &&
+  //   !userStore.getGuideLearningTips &&
+  //   addFileState.fileList.length > 1
+  // ) {
+  //   guideLearningTipsRef.value.show()
+  // }
 
   if (addFileState.fileList.length == 0) {
     message.error(t('msg_select_file_first'))
@@ -2014,8 +2036,9 @@ const toReSegmentationPage = (record) => {
   })
 }
 
-const createGraphTask = (record) => {
+const createGraphTask = (record, tip=false) => {
   createGraph({ id: record.id }).then(() => {
+    tip && message.success('正在生成...')
     getData()
   })
 }
@@ -2960,7 +2983,11 @@ onUnmounted(() => {
   width: 100%;
   min-width: auto;
 }
-
+.file-status-box{
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 .pdf-progress-box {
   .progress-title {
     display: flex;

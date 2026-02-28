@@ -13,8 +13,9 @@
     </div>
     <a-alert show-icon>
       <template #message>
-        <p>{{ t('received_reply_tip') }}</p>
-        <p>{{ t('received_reply_tip2') }}</p>
+        <p class='text_color_ed744a'>{{ t('msg_certified_only') }}</p>
+        <p>2. {{ t('received_reply_tip') }}</p>
+        <p>3. {{ t('received_reply_tip2') }}</p>
       </template>
     </a-alert>
     <a-tabs v-model:activeKey="rule_type" @change="onRuleTypeChange" style="margin-top: 8px;">

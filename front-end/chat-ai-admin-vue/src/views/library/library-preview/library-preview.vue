@@ -131,6 +131,7 @@
                 @handleSplitUp="handleSplitUp"
                 @handleSplitDelete="handleSplitDelete"
                 @handleSegmentation="handleSegmentation"
+                @handleEditParagraph="handleEditParagraph"
               ></SubsectionBox>
             </div>
           </cu-scroll>
@@ -256,6 +257,7 @@
                     @handleSplitUp="handleSplitUp"
                     @handleSplitDelete="handleSplitDelete"
                     @handleSegmentation="handleSegmentation"
+                    @handleEditParagraph="handleEditParagraph"
                   ></SubsectionBox>
                 </div>
               </cu-scroll>
@@ -284,7 +286,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, nextTick, onMounted } from 'vue'
+import { ref, reactive, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { LeftOutlined, PlusOutlined, DownOutlined } from '@ant-design/icons-vue'
@@ -727,6 +729,40 @@ const editSubscriptionRef = ref(null)
 const openEditSubscription = (data) => {
   editSubscriptionRef.value.showModal(JSON.parse(JSON.stringify(data)))
 }
+
+// 处理刷新数据 - QA合并后重新加载数据
+const handleRefreshData = (id) => {
+  // 重置分页到第一页
+  paginations.value.page = 1
+  // 重新获取段落列表
+  getParagraphLists(() => {
+    // 找到当前编辑的段落数据
+    const currentData = paragraphLists.value.find(item => item.id == id)
+    if (currentData) {
+      // 重新打开弹窗加载最新数据
+      openEditSubscription(currentData)
+    }
+  })
+}
+
+// 监听跨窗口消息，处理QA合并后的刷新
+const handleMessage = (event) => {
+  if (event.data?.type === 'qa-merged' && event.data?.libraryId == detailsInfo.value.library_id) {
+    // 获取当前编辑的QA ID
+    const currentId = editSubscriptionRef.value?.id
+    if (currentId) {
+      handleRefreshData(currentId)
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('message', handleMessage)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('message', handleMessage)
+})
 
 const updateFrequencyRef = ref(null)
 

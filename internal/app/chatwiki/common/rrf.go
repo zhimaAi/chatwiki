@@ -8,7 +8,18 @@ import (
 	"github.com/zhimaAi/go_tools/msql"
 )
 
-const CallbackNeighborLimit = 10
+const (
+	DefaultCallbackNeighborBeforeDefault = 1
+	DefaultCallbackNeighborBeforeMin     = 0
+	DefaultCallbackNeighborBeforeMax     = 5
+	DefaultCallbackNeighborAfterDefault  = 1
+	DefaultCallbackNeighborAfterMin      = 0
+	DefaultCallbackNeighborAfterMax      = 5
+	CallbackNeighborLimit                = 10
+	DefaultCallbackNeighborTopKDefault   = 5
+	DefaultCallbackNeighborTopKMin       = 0
+	DefaultCallbackNeighborTopKMax       = 10
+)
 
 type DataSource struct {
 	List   []msql.Params

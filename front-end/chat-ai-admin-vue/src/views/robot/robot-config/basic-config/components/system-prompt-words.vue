@@ -1,7 +1,7 @@
 <template>
   <div class="prompt-box">
     <div class="tab-header">
-      <a-tabs style="width: 400px;" v-model:activeKey="prompt_type">
+      <a-tabs style="width: 400px" v-model:activeKey="prompt_type">
         <a-tab-pane :key="1" :tab="t('tab_structured')"></a-tab-pane>
         <a-tab-pane :key="0" :tab="t('tab_custom')"></a-tab-pane>
       </a-tabs>
@@ -31,12 +31,17 @@
       </div>
       <div class="opt-block" v-else>
         <span class="tip-text"
-          >{{ t('msg_current_type') }}{{ currentPromptType == 1 ? t('msg_structured_prompt') : t('msg_custom_prompt') }}</span
+          >{{ t('msg_current_type')
+          }}{{ currentPromptType == 1 ? t('msg_structured_prompt') : t('msg_custom_prompt') }}</span
         >
         <a-button size="small" @click="handleEdit">{{ t('btn_edit') }}</a-button>
       </div>
     </div>
     <div class="prompt-list-box" v-if="prompt_type == 1">
+      <div style="color: #8c8c8c;margin: 8px 0;">
+        {{ t('msg_var_insert_tip') }}
+        <a @click="handleOpenModal">{{ t('new_variable') }}</a>
+      </div>
       <!-- 角色 -->
       <div class="prompt-list">
         <div class="prompt-header">
@@ -45,13 +50,19 @@
             <a @click="handleReset('role')">{{ t('btn_reset_default') }}</a>
           </div>
         </div>
-        <div class="prompt-content">
-          <a-textarea
-            :bordered="false"
-            :disabled="!isEdit"
-            v-model:value="formState.prompt_struct.role.describe"
+        <div class="prompt-content" :class="{'is-disabled': !isEdit}">
+          <AtInput
+            type="textarea"
+            :inputStyle="inputStyle"
+            :defaultValue="formState.prompt_struct.role.describe"
+            :options="chatVariables"
+            :noBorder="true"
+            :checkAnyLevel="true"
             :placeholder="t('ph_role')"
-          />
+            :ref="(el) => setAtInputRef(el, 'role', 'describe')"
+            @change="(text, selectedList) => changeStructPromptValue(text, 'role', 'describe')"
+          >
+          </AtInput>
         </div>
       </div>
       <!-- 任务 -->
@@ -62,13 +73,19 @@
             <a @click="handleReset('task')">{{ t('btn_reset_default') }}</a>
           </div>
         </div>
-        <div class="prompt-content">
-          <a-textarea
-            :bordered="false"
-            :disabled="!isEdit"
-            v-model:value="formState.prompt_struct.task.describe"
+        <div class="prompt-content" :class="{'is-disabled': !isEdit}">
+          <AtInput
+            type="textarea"
+            :inputStyle="inputStyle"
+            :defaultValue="formState.prompt_struct.task.describe"
+            :options="chatVariables"
+            :noBorder="true"
+            :checkAnyLevel="true"
             :placeholder="t('ph_task')"
-          />
+            :ref="(el) => setAtInputRef(el, 'task', 'describe')"
+            @change="(text, selectedList) => changeStructPromptValue(text, 'task', 'describe')"
+          >
+          </AtInput>
         </div>
       </div>
       <template v-if="isHide">
@@ -80,14 +97,20 @@
               <a @click="handleReset('constraints')">{{ t('btn_reset_default') }}</a>
             </div>
           </div>
-          <div class="prompt-content">
-            <a-textarea
-              :bordered="false"
-              :disabled="!isEdit"
-              v-model:value="formState.prompt_struct.constraints.describe"
+          <div class="prompt-content" :class="{'is-disabled': !isEdit}">
+
+            <AtInput
+              type="textarea"
+              :inputStyle="inputStyle"
+              :defaultValue="formState.prompt_struct.constraints.describe"
+              :options="chatVariables"
+              :noBorder="true"
+              :checkAnyLevel="true"
               :placeholder="t('ph_constraints')"
-              style="min-height: 130px"
-            />
+              :ref="(el) => setAtInputRef(el, 'constraints', 'describe')"
+              @change="(text, selectedList) => changeStructPromptValue(text, 'constraints', 'describe')"
+            >
+            </AtInput>
           </div>
         </div>
         <!-- 技能 -->
@@ -98,14 +121,19 @@
               <a @click="handleImportSkill()">{{ t('btn_import_skill') }}</a>
             </div>
           </div>
-          <div class="prompt-content">
-            <a-textarea
-              :bordered="false"
-              :disabled="!isEdit"
-              v-model:value="formState.prompt_struct.skill.describe"
+          <div class="prompt-content" :class="{'is-disabled': !isEdit}">
+            <AtInput
+              type="textarea"
+              :inputStyle="inputStyle"
+              :defaultValue="formState.prompt_struct.skill.describe"
+              :options="chatVariables"
+              :noBorder="true"
+              :checkAnyLevel="true"
               :placeholder="t('ph_skill')"
-              style="min-height: 80px"
-            />
+              :ref="(el) => setAtInputRef(el, 'skill', 'describe')"
+              @change="(text, selectedList) => changeStructPromptValue(text, 'skill', 'describe')"
+            >
+            </AtInput>
           </div>
         </div>
 
@@ -135,13 +163,19 @@
               <a @click="handleReset('output')">{{ t('btn_reset_default') }}</a>
             </div>
           </div>
-          <div class="prompt-content">
-            <a-textarea
-              :bordered="false"
-              :disabled="!isEdit"
-              v-model:value="formState.prompt_struct.output.describe"
+          <div class="prompt-content" :class="{'is-disabled': !isEdit}">
+            <AtInput
+              type="textarea"
+              :inputStyle="inputStyle"
+              :defaultValue="formState.prompt_struct.output.describe"
+              :options="chatVariables"
+              :noBorder="true"
+              :checkAnyLevel="true"
               :placeholder="t('ph_output')"
-            />
+              :ref="(el) => setAtInputRef(el, 'output', 'describe')"
+              @change="(text, selectedList) => changeStructPromptValue(text, 'output', 'describe')"
+            >
+            </AtInput>
           </div>
         </div>
         <!-- 风格 -->
@@ -152,13 +186,19 @@
               <a @click="handleReset('tone')">{{ t('btn_reset_default') }}</a>
             </div>
           </div>
-          <div class="prompt-content">
-            <a-textarea
-              :bordered="false"
-              :disabled="!isEdit"
-              v-model:value="formState.prompt_struct.tone.describe"
+          <div class="prompt-content" :class="{'is-disabled': !isEdit}">
+            <AtInput
+              type="textarea"
+              :inputStyle="inputStyle"
+              :defaultValue="formState.prompt_struct.tone.describe"
+              :options="chatVariables"
+              :noBorder="true"
+              :checkAnyLevel="true"
               :placeholder="t('ph_tone')"
-            />
+              :ref="(el) => setAtInputRef(el, 'tone', 'describe')"
+              @change="(text, selectedList) => changeStructPromptValue(text, 'tone', 'describe')"
+            >
+            </AtInput>
           </div>
         </div>
 
@@ -166,17 +206,21 @@
         <div
           class="prompt-list"
           v-for="(item, index) in formState.prompt_struct.custom"
-          :key="index + item.key ? item.key : ''"
+          :key="index"
         >
           <div class="prompt-header">
-            <div class="prompt-title" style="flex: 1">
-              <a-input
-                :bordered="false"
-                :disabled="!isEdit"
-                style="width: 100%"
-                v-model:value="item.subject"
+            <div class="prompt-title prompt-content" :class="{'is-disabled': !isEdit}" style="flex: 1">
+              <AtInput
+                inputStyle="height: 32px"
+                :defaultValue="item.subject"
+                :options="chatVariables"
+                :noBorder="true"
+                :checkAnyLevel="true"
                 :placeholder="t('ph_input_subject')"
-              ></a-input>
+                :ref="(el) => setAtInputRef(el, 'custom', 'subject_' + index)"
+                @change="(text, selectedList) => changeCustomPromptValue(text, index, 'subject')"
+              >
+              </AtInput>
             </div>
             <div class="btn-wrapper-box" v-if="isEdit">
               <div class="hover-btn-box" @click="handleDeleteTheme(index)">
@@ -184,17 +228,25 @@
               </div>
             </div>
           </div>
-          <div class="prompt-content">
-            <a-textarea
-              :bordered="false"
-              :disabled="!isEdit"
-              v-model:value="item.describe"
+          <div class="prompt-content" :class="{'is-disabled': !isEdit}">
+            <AtInput
+              type="textarea"
+              :inputStyle="inputStyle"
+              :defaultValue="item.describe"
+              :options="chatVariables"
+              :noBorder="true"
+              :checkAnyLevel="true"
               :placeholder="t('ph_input')"
-            />
+              :ref="(el) => setAtInputRef(el, 'custom', 'describe_' + index)"
+              @change="(text, selectedList) => changeCustomPromptValue(text, index, 'describe')"
+            >
+            </AtInput>
           </div>
         </div>
         <div class="add-theme-block" v-if="isEdit">
-          <a-button @click="handleAddTheme" block :icon="h(PlusOutlined)">{{ t('btn_add_theme') }}</a-button>
+          <a-button @click="handleAddTheme" block :icon="h(PlusOutlined)">{{
+            t('btn_add_theme')
+          }}</a-button>
         </div>
       </template>
       <div class="show-more-block">
@@ -208,6 +260,7 @@
       <a-flex align="center" justify="space-between" v-if="isEdit" style="margin: 8px 0">
         <div style="color: #8c8c8c">
           {{ t('msg_var_insert_tip') }}
+          <a @click="handleOpenModal">{{ t('new_variable') }}</a>
         </div>
         <div class="diy-switch-box">
           <div class="swich-item">
@@ -252,6 +305,7 @@
     <AiCreatePrompt @handleAiSave="handleAiSave" ref="aiCreatePromptRef" />
     <ImportPrompt @ok="handleSavePrompt" ref="importPromptRef" />
     <UploadPrompt ref="uploadPromptRef" />
+    <AddVariableModal ref="addVariableModalRef" @ok="handleGetChatVariables" />
   </div>
 </template>
 <script setup>
@@ -270,6 +324,7 @@ import UploadPrompt from '@/components/import-prompt/upload-prompt.vue'
 import AtInput from './at-input/index.vue'
 import { useRobotStore } from '@/stores/modules/robot'
 import { useI18n } from '@/hooks/web/useI18n'
+import AddVariableModal from './variable-setting/add-variable-modal.vue'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.system-prompt-words')
 const robotStore = useRobotStore()
@@ -282,6 +337,7 @@ const props = defineProps({
   }
 })
 
+const inputStyle = ref('max-height: 130px;')
 const PromptDefaultReplyMarkdown = t('prompt_default_reply_markdown')
 const PromptDefaultAnswerImage = t('prompt_default_answer_image')
 
@@ -292,6 +348,15 @@ const imgSwitch = ref(false)
 
 const outDiySwitch = ref(false)
 const imgDiySwitch = ref(false)
+
+
+const atInputRefs = reactive({})
+const setAtInputRef = (el, name, index) => {
+  if (el) {
+    let key = `at_input_${name}_${index}`
+    atInputRefs[key] = el
+  }
+}
 
 const atinputRef = ref(null)
 
@@ -313,6 +378,9 @@ watch(
   () => {
     setTimeout(() => {
       atinputRef.value && atinputRef.value.refresh()
+      for(let key in atInputRefs){
+        atInputRefs[key] && atInputRefs[key].refresh()
+      }
     }, 500)
   },
   {
@@ -322,6 +390,14 @@ watch(
 
 const changeValue = (text, selectedList) => {
   formState.prompt = text
+}
+
+const changeStructPromptValue = (text, key1, key2) =>{
+  formState.prompt_struct[key1][key2] = text
+}
+
+const changeCustomPromptValue = (text, index, key) => {
+  formState.prompt_struct.custom[index][key] = text
 }
 
 const formState = reactive({
@@ -548,6 +624,20 @@ const handleSavePrompt = (item) => {
   }
   onSave()
 }
+
+const addVariableModalRef = ref(null)
+
+const handleOpenModal = () => {
+  if(chatVariables.value.length >= 10){
+    return message.error(t('msg_max_variables'))
+  }
+  addVariableModalRef.value.show()
+}
+
+const handleGetChatVariables = () => {
+  robotStore.fetchChatVariables()
+}
+
 </script>
 
 <style lang="less" scoped>
@@ -684,6 +774,21 @@ const handleSavePrompt = (item) => {
       transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
       &:hover {
         background: #e4e6eb;
+      }
+    }
+  }
+  .prompt-content{
+    position: relative;
+    &.is-disabled {
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.25);
+        z-index: 1;
       }
     }
   }

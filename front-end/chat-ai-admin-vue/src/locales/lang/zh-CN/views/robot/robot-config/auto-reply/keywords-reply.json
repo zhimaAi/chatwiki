@@ -4,6 +4,7 @@
   "switch_off": "关",
   "auto_reply_desc": "开启后，按照关键词回复和收到消息回复规则，回复指定的内容，优先级关键词回复>收到消息回复",
   "keyword_reply_tip": "关键词回复内容支持设置图文链接，文字，图片，链接，小程序卡片",
+  "msg_only_certified_account": "本功能仅支持已认证公众号/服务号",
   "btn_add_rule": "新增规则",
   "label_reply_type": "回复类型",
   "ph_search_keyword": "关键词/规则名称搜索",

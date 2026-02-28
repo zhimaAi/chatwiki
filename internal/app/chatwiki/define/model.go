@@ -12,6 +12,7 @@ const ImageSizeW1440H2560 = `1440x2560`
 const ImageSizeW2496H1664 = `2496x1664`
 const ImageSizeW1664H2496 = `1664x2496`
 const ImageSizeW3024H1296 = `3024x1296`
+const ImageSizeAuto = `auto`
 
 var ImageSizes = []string{
 	ImageSize2k,
@@ -24,4 +25,5 @@ var ImageSizes = []string{
 	ImageSizeW2496H1664,
 	ImageSizeW1664H2496,
 	ImageSizeW3024H1296,
+	ImageSizeAuto,
 }

@@ -56,7 +56,7 @@ func SaveUseModelConfig(c *gin.Context) {
 		useModel.ShowModelName = useModel.UseModelName //Fill default value
 	}
 	if useModel.ModelType == common.Image {
-		if !tool.InArrayString(modelInfo.ModelDefine, []string{common.ModelDoubao, common.ModelAliyunTongyi}) {
+		if !tool.InArrayString(modelInfo.ModelDefine, []string{common.ModelDoubao, common.ModelAliyunTongyi, common.Model302Ai}) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `model_define`))))
 			return
 		}

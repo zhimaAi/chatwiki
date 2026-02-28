@@ -62,7 +62,7 @@
         <a-table-column :title="t('token_consumption')" data-index="amount" width="190px">
           <template #default="{ record }">{{ record.amount }}</template>
         </a-table-column>
-        <a-table-column :title="t('date')" data-index="date" width="190px">
+        <a-table-column :title="t('date_label')" data-index="date" width="190px">
           <template #default="{ record }">{{ record.date }}</template>
         </a-table-column>
       </a-table>

@@ -62,6 +62,7 @@ type ModelInfo struct {
 	TokenUseReport          AfterFunc           `json:"-"`
 	ConfigInfo              msql.Params         `json:"config_info"`
 	UseModelConfigs         []UseModelConfig    `json:"use_model_configs"`
+	Weight                  int                 `json:"weight"`
 }
 
 func (modelInfo *ModelInfo) SetUseModelConfigs(useModelList []msql.Params) {
@@ -138,6 +139,7 @@ const (
 	ModelZhipu           = "zhipu"
 	ModelMinimax         = "minimax"
 	ModelSiliconFlow     = "siliconflow"
+	Model302Ai           = "302ai"
 )
 
 const (
@@ -248,6 +250,30 @@ func GetModelConfigList(lang string) []ModelInfo {
 func getModelConfigList(lang string) []ModelInfo {
 	return []ModelInfo{
 		{
+			ModelDefine:             ModelDeepseek,
+			ModelName:               `DeepSeek`,
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelDeepseek + `.png`,
+			Introduce:               i18n.Show(lang, `model_deepseek_introduce`),
+			SupportList:             []string{Llm},
+			SupportedType:           []string{Llm},
+			ConfigParams:            []string{`api_key`},
+			HelpLinks:               `https://www.deepseek.com/`,
+			CallHandlerFunc:         GetDeepseekHandle,
+			CallSupplierhandlerFunc: GetDeepseekSupplierHandle,
+		},
+		{
+			ModelDefine:             ModelGoogleGemini,
+			ModelName:               `Google Gemini`,
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelGoogleGemini + `.png`,
+			Introduce:               i18n.Show(lang, `model_gemini_introduce`),
+			SupportList:             []string{Llm, TextEmbedding},
+			SupportedType:           []string{Llm, TextEmbedding},
+			ConfigParams:            []string{`api_key`},
+			HelpLinks:               `https://ai.google.dev/`,
+			CallHandlerFunc:         GetGeminiHandler,
+			CallSupplierhandlerFunc: GetGeminiSupplierHandler,
+		},
+		{
 			ModelDefine:             ModelOpenAI,
 			ModelName:               `OpenAI`,
 			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelOpenAI + `.png`,
@@ -258,6 +284,50 @@ func getModelConfigList(lang string) []ModelInfo {
 			HelpLinks:               `https://openai.com/`,
 			CallHandlerFunc:         GetOpenAIHandle,
 			CallSupplierhandlerFunc: GetOpenAISupplierHandle,
+		},
+		{
+			ModelDefine:             ModelDoubao,
+			ModelName:               i18n.Show(lang, `model_doubao_name`),
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelDoubao + `.png`,
+			Introduce:               i18n.Show(lang, `model_doubao_introduce`),
+			SupportList:             []string{Llm, TextEmbedding, Image},
+			SupportedType:           []string{Llm, TextEmbedding, Image},
+			ConfigParams:            []string{`api_key`, `region`},
+			HistoryConfigParams:     []string{`secret_key`},
+			HelpLinks:               `https://www.volcengine.com/product/doubao`,
+			CallHandlerFunc:         GetDoubaoHandle,
+			CallSupplierhandlerFunc: GetDoubaoSupplierHandle,
+		},
+		{
+			ModelDefine:             ModelSiliconFlow,
+			ModelName:               i18n.Show(lang, `model_siliconflow_name`),
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelSiliconFlow + `.png`,
+			Introduce:               i18n.Show(lang, `model_siliconflow_introduce`),
+			SupportList:             []string{Llm, TextEmbedding, Rerank},
+			SupportedType:           []string{Llm, TextEmbedding, Rerank},
+			ConfigParams:            []string{`api_key`},
+			HelpLinks:               `https://siliconflow.cn/zh-cn/`,
+			CallHandlerFunc:         GetSiliconFlowHandle,
+			CallSupplierhandlerFunc: GetSiliconFlowSupplierHandle,
+		},
+		{
+			ModelDefine:   ModelAliyunTongyi,
+			ModelName:     i18n.Show(lang, `model_tongyi_name`),
+			ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelAliyunTongyi + `.png`,
+			Introduce:     i18n.Show(lang, `model_tongyi_introduce`),
+			SupportList:   []string{Llm, TextEmbedding, Tts, Rerank, Image},
+			SupportedType: []string{Llm, TextEmbedding, Rerank, Image},
+			ConfigParams:  []string{`api_key`},
+			NetworkSearchModelList: []string{
+				`qwen-plus`,
+				`qwen-turbo`,
+				`qwen3-235b-a22b`,
+				`qwen-max`,
+				`Moonshot-Kimi-K2-Instruct`,
+			},
+			HelpLinks:               `https://dashscope.aliyun.com/?spm=a2c4g.11186623.nav-dropdown-menu-0.142.6d1b46c1EeV28g&scm=20140722.X_data-37f0c4e3bf04683d35bc._.V_1`,
+			CallHandlerFunc:         GetTongyiHandler,
+			CallSupplierhandlerFunc: GetTongyiSupplierHandler,
 		},
 		{
 			ModelDefine:             ModelOpenAIAgent,
@@ -307,18 +377,6 @@ func getModelConfigList(lang string) []ModelInfo {
 			CallSupplierhandlerFunc: GetClaudeSupplierHandler,
 		},
 		{
-			ModelDefine:             ModelGoogleGemini,
-			ModelName:               `Google Gemini`,
-			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelGoogleGemini + `.png`,
-			Introduce:               i18n.Show(lang, `model_gemini_introduce`),
-			SupportList:             []string{Llm, TextEmbedding},
-			SupportedType:           []string{Llm, TextEmbedding},
-			ConfigParams:            []string{`api_key`},
-			HelpLinks:               `https://ai.google.dev/`,
-			CallHandlerFunc:         GetGeminiHandler,
-			CallSupplierhandlerFunc: GetGeminiSupplierHandler,
-		},
-		{
 			ModelDefine:         ModelBaiduYiyan,
 			ModelName:           i18n.Show(lang, `model_yiyan_name`),
 			ModelIconUrl:        define.LocalUploadPrefix + `model_icon/` + ModelBaiduYiyan + `.png`,
@@ -340,25 +398,6 @@ func getModelConfigList(lang string) []ModelInfo {
 			CallSupplierhandlerFunc: GetYiyanSupplierHandler,
 		},
 		{
-			ModelDefine:   ModelAliyunTongyi,
-			ModelName:     i18n.Show(lang, `model_tongyi_name`),
-			ModelIconUrl:  define.LocalUploadPrefix + `model_icon/` + ModelAliyunTongyi + `.png`,
-			Introduce:     i18n.Show(lang, `model_tongyi_introduce`),
-			SupportList:   []string{Llm, TextEmbedding, Tts, Rerank, Image},
-			SupportedType: []string{Llm, TextEmbedding, Rerank, Image},
-			ConfigParams:  []string{`api_key`},
-			NetworkSearchModelList: []string{
-				`qwen-plus`,
-				`qwen-turbo`,
-				`qwen3-235b-a22b`,
-				`qwen-max`,
-				`Moonshot-Kimi-K2-Instruct`,
-			},
-			HelpLinks:               `https://dashscope.aliyun.com/?spm=a2c4g.11186623.nav-dropdown-menu-0.142.6d1b46c1EeV28g&scm=20140722.X_data-37f0c4e3bf04683d35bc._.V_1`,
-			CallHandlerFunc:         GetTongyiHandler,
-			CallSupplierhandlerFunc: GetTongyiSupplierHandler,
-		},
-		{
 			ModelDefine:             ModelBaai,
 			ModelName:               `BGE`,
 			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelBaai + `.png`,
@@ -366,7 +405,7 @@ func getModelConfigList(lang string) []ModelInfo {
 			SupportList:             []string{TextEmbedding, Rerank},
 			SupportedType:           []string{TextEmbedding, Rerank},
 			ConfigParams:            []string{`api_endpoint`},
-			HelpLinks:               `https://www.baidu.com/`,
+			HelpLinks:               `https://bge.baai.ac.cn/home`,
 			CallHandlerFunc:         GetBaaiHandle,
 			CallSupplierhandlerFunc: GetBaaiSupplierHandle,
 		},
@@ -403,22 +442,11 @@ func getModelConfigList(lang string) []ModelInfo {
 			SupportedType:           []string{Llm, TextEmbedding, Rerank},
 			ConfigParams:            []string{`api_version`, `api_endpoint`},
 			ApiVersions:             []string{"v1"},
-			HelpLinks:               `https://baidu.com/`,
+			HelpLinks:               `https://xinference.io/zh`,
 			CallHandlerFunc:         GetXinferenceHandle,
 			CallSupplierhandlerFunc: GetXinferenceSupplierHandle,
 		},
-		{
-			ModelDefine:             ModelDeepseek,
-			ModelName:               `DeepSeek`,
-			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelDeepseek + `.png`,
-			Introduce:               i18n.Show(lang, `model_deepseek_introduce`),
-			SupportList:             []string{Llm},
-			SupportedType:           []string{Llm},
-			ConfigParams:            []string{`api_key`},
-			HelpLinks:               `https://www.deepseek.com/`,
-			CallHandlerFunc:         GetDeepseekHandle,
-			CallSupplierhandlerFunc: GetDeepseekSupplierHandle,
-		},
+
 		{
 			ModelDefine:             ModelJina,
 			ModelName:               `Jina`,
@@ -480,19 +508,6 @@ func getModelConfigList(lang string) []ModelInfo {
 			CallSupplierhandlerFunc: GetHunyuanSupplierHandle,
 		},
 		{
-			ModelDefine:             ModelDoubao,
-			ModelName:               i18n.Show(lang, `model_doubao_name`),
-			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelDoubao + `.png`,
-			Introduce:               i18n.Show(lang, `model_doubao_introduce`),
-			SupportList:             []string{Llm, TextEmbedding, Image},
-			SupportedType:           []string{Llm, TextEmbedding, Image},
-			ConfigParams:            []string{`api_key`, `region`},
-			HistoryConfigParams:     []string{`secret_key`},
-			HelpLinks:               `https://www.volcengine.com/product/doubao`,
-			CallHandlerFunc:         GetDoubaoHandle,
-			CallSupplierhandlerFunc: GetDoubaoSupplierHandle,
-		},
-		{
 			ModelDefine:             ModelBaichuan,
 			ModelName:               i18n.Show(lang, `model_baichuan_name`),
 			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelBaichuan + `.png`,
@@ -529,16 +544,17 @@ func getModelConfigList(lang string) []ModelInfo {
 			CallSupplierhandlerFunc: GetMinimaxSupplierHandle,
 		},
 		{
-			ModelDefine:             ModelSiliconFlow,
-			ModelName:               i18n.Show(lang, `model_siliconflow_name`),
-			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelSiliconFlow + `.png`,
-			Introduce:               i18n.Show(lang, `model_siliconflow_introduce`),
-			SupportList:             []string{Llm, TextEmbedding, Rerank},
-			SupportedType:           []string{Llm, TextEmbedding, Rerank},
+			ModelDefine:             Model302Ai,
+			ModelName:               `302.AI`,
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + Model302Ai + `.png`,
+			Introduce:               i18n.Show(lang, `model_302ai_introduce`),
+			SupportList:             []string{Llm, Image},
+			SupportedType:           []string{Llm, Image},
 			ConfigParams:            []string{`api_key`},
-			HelpLinks:               `https://siliconflow.cn/zh-cn/`,
-			CallHandlerFunc:         GetSiliconFlowHandle,
-			CallSupplierhandlerFunc: GetSiliconFlowSupplierHandle,
+			HistoryConfigParams:     []string{},
+			HelpLinks:               `https://302.ai`,
+			CallHandlerFunc:         Get302AiHandle,
+			CallSupplierhandlerFunc: Get302AiSupplierHandle,
 		},
 	}
 }
@@ -973,6 +989,16 @@ func GetModelConfigOption(adminUserId int, modelType, lang string) ([]ModelInfo,
 		logs.Error(err.Error())
 		return nil, errors.New(i18n.Show(lang, `sys_err`))
 	}
+	// Get weight from model_define_weight table
+	weightMap := make(map[string]int)
+	weightData, err := msql.Model(`model_define_weight`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Select()
+	if err == nil && len(weightData) > 0 {
+		for _, weight := range weightData {
+			weightMap[weight[`model_config_id`]] = cast.ToInt(weight[`weight`])
+		}
+	}
 	list := make([]ModelInfo, 0)
 	for _, config := range configs {
 		if tool.InArrayString(modelType, strings.Split(config[`model_types`], `,`)) {
@@ -991,9 +1017,15 @@ func GetModelConfigOption(adminUserId int, modelType, lang string) ([]ModelInfo,
 				continue // Filter out empty data model providers
 			}
 			modelInfo.UseModelConfigs = useModels
+			if weight, exists := weightMap[modelInfo.ConfigInfo[`id`]]; exists {
+				modelInfo.Weight = weight
+			} else {
+				modelInfo.Weight = 0
+			}
 			list = append(list, modelInfo)
 		}
 	}
+
 	return list, nil
 }
 

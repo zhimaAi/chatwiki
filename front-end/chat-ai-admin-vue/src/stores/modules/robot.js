@@ -140,6 +140,7 @@ export const useRobotStore = defineStore('robot', () => {
     meta_search_type: 1,
     meta_search_condition_list: "",
     recall_neighbor_switch: false,
+    recall_neighbor_top_k: 5,
     recall_neighbor_before_num: 1,
     recall_neighbor_after_num: 1,
   })
@@ -268,6 +269,7 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.meta_search_condition_list = data.meta_search_condition_list
 
     robotInfo.recall_neighbor_switch = data.recall_neighbor_switch == 'true' ? true : false
+    robotInfo.recall_neighbor_top_k = +data.recall_neighbor_top_k
     robotInfo.recall_neighbor_before_num = +data.recall_neighbor_before_num || 0
     robotInfo.recall_neighbor_after_num = +data.recall_neighbor_after_num || 0
 

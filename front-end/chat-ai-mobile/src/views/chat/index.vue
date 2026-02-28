@@ -632,7 +632,7 @@ const handleToggleQuoteFiel = (msgId: number) => {
   }
 }
 
-const handleOpenChat = async (data : any) => {
+const handleOpenChat = async (data: any) => {
   if (dialogue_id.value == data.id) {
     return
   }

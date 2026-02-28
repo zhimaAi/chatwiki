@@ -180,8 +180,15 @@ const (
 	MenuButtonTypeMiniprogram = `miniprogram`
 )
 
-// WechatAccountIsVerify 根据认证类型判断是否认证
+// WechatAccountIsVerify 根据认证类型判断是否认证 产品要求 不管个人认证，都算已认证，都要求能处理 //如果要使用原来的逻辑就将判断改为WechatAccountIsCorpVerify即可
 func WechatAccountIsVerify(accountCustomerType any) bool {
+	//https://developers.weixin.qq.com/doc/oplatform/openApi/miniprogram-management/basic-info-management/api_getaccountbasicinfo.html#Enum_Res__customer_type
+	customerType := cast.ToInt(accountCustomerType)
+	return customerType != 0
+}
+
+// WechatAccountIsCorpVerify 根据认证类型判断是否企业级认证
+func WechatAccountIsCorpVerify(accountCustomerType any) bool {
 	//https://developers.weixin.qq.com/doc/oplatform/openApi/miniprogram-management/basic-info-management/api_getaccountbasicinfo.html#Enum_Res__customer_type
 	customerType := cast.ToInt(accountCustomerType)
 	return tool.InArrayInt(customerType, []int{-1, 1, 2, 3, 4, 5, 6, 8, 9, 11, 12})

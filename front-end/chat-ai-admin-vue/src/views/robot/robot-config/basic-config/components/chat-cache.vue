@@ -48,7 +48,7 @@
             :max="4320"
             style="width: 70px"
           />
-          <a-select v-model:value="state.unix" style="width: 70px" @change="handleChangeUnix">
+          <a-select v-model:value="state.unix" style="width: 100px" @change="handleChangeUnix">
             <a-select-option value="h">{{ t('unit_hour') }}</a-select-option>
             <a-select-option value="m">{{ t('unit_minute') }}</a-select-option>
           </a-select>

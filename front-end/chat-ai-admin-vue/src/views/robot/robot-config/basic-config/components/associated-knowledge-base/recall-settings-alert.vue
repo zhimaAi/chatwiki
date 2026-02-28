@@ -153,7 +153,8 @@
                 <div class="retrieval-mode-title">
                   <svg-icon :name="item.iconName" class="title-icon"></svg-icon>
                   <span class="title-text">{{ t(item.title) }}</span>
-                  <img v-if="item.isRecommendation" style="width: 32px;" src="@/assets/svg/recommendation.svg" alt="">
+                  <!-- <img v-if="item.isRecommendation" style="width: 32px;" src="@/assets/svg/recommendation.svg" alt=""> -->
+                   <SvgTextTag :text="tCommon('recommendation')" v-if="item.isRecommendation" />
                 </div>
 
                 <div class="retrieval-mode-desc">
@@ -235,30 +236,40 @@
                   <p>{{ t('tooltip_recall_neighbor_desc_1') }}</p>
                   <p>{{ t('tooltip_recall_neighbor_desc_2') }}</p>
                   <p>{{ t('tooltip_recall_neighbor_desc_3') }}</p>
+                  <p>{{ t('tooltip_recall_neighbor_desc_4') }}</p>
+                  <p>{{ t('tooltip_recall_neighbor_desc_5') }}</p>
                 </div>
               </template>
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
             &nbsp;
-            <a-switch v-model:checked="formState.recall_neighbor_switch" />
+            <!-- <a-switch v-model:checked="formState.recall_neighbor_switch" /> -->
           </div>
           
           <div class="form-item-body">
             <div class="segment-controls">
               <div class="segment-input">
-                <span>{{ t('label_concat_before') }}</span>&nbsp;
+                <span>{{ t('label_top_k_ranking') }}</span>&nbsp;
+                <a-select v-model:value="formState.recall_neighbor_top_k" style="width: 80px;">
+                  <a-select-option :value="i - 1" v-for="i in 11" :key="i">{{ i - 1 }}</a-select-option>
+                </a-select>
+                <span>&nbsp;{{ t('label_of_segments') }}，</span>
+              </div>
+
+              <div class="segment-input">
+                <span>{{ t('label_auto_concat_before') }}</span>&nbsp;
                 <a-select v-model:value="formState.recall_neighbor_before_num" style="width: 80px;">
                   <a-select-option :value="i - 1" v-for="i in 6" :key="i">{{ i - 1 }}</a-select-option>
                 </a-select>
               </div>
-              
+
               <div class="segment-input">
                 <span>{{ t('label_after') }}</span>&nbsp;
                 <a-select v-model:value="formState.recall_neighbor_after_num" style="width: 80px;">
                   <a-select-option :value="i - 1" v-for="i in 6" :key="i">{{ i - 1 }}</a-select-option>
                 </a-select>
               </div>
-              
+
               <div class="segment-text">{{ t('label_segments_content') }}</div>
             </div>
           </div>
@@ -312,6 +323,7 @@
 </template>
 
 <script setup>
+import { useI18n } from '@/hooks/web/useI18n'
 import { reactive, ref, toRaw } from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import WeightSelect from '@/components/weight-select/index.vue'
@@ -319,9 +331,10 @@ import ModelSelect from '@/components/model-select/model-select.vue'
 import { message } from 'ant-design-vue'
 import {getRobotMetaSchemaList} from "@/api/library/index.js";
 import MetaFilterBox from "@/views/robot/robot-config/basic-config/components/meta-filter-box.vue";
-import { useI18n } from '@/hooks/web/useI18n'
+import SvgTextTag from '@/components/icons/SvgTextTag.vue'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.associated-knowledge-base.recall-settings-alert')
+const { t: tCommon } = useI18n('common')
 
 const emit = defineEmits(['change'])
 
@@ -363,6 +376,7 @@ const formState = reactive({
   meta_search_condition_list: "",
   rrf_weight: {},
   recall_neighbor_switch: false,
+  recall_neighbor_top_k: 5,
   recall_neighbor_before_num: 1,
   recall_neighbor_after_num: 1,
 })
@@ -373,6 +387,7 @@ const robotInfo = ref({})
 const metaList = ref([])
 
 const open = (data, r=null) => {
+  console.log('data', data)
   robotInfo.value = r
   getMetaList()
   formState.rerank_status = data.rerank_status || 0
@@ -386,6 +401,7 @@ const open = (data, r=null) => {
   formState.meta_search_condition_list = data.meta_search_condition_list
   formState.rrf_weight = data.rrf_weight
   formState.recall_neighbor_switch = data.recall_neighbor_switch
+  formState.recall_neighbor_top_k = data.recall_neighbor_top_k
   formState.recall_neighbor_before_num = data.recall_neighbor_before_num
   formState.recall_neighbor_after_num = data.recall_neighbor_after_num
 

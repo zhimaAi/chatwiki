@@ -84,7 +84,7 @@
           </template>
         </AtInput>
       </div>
-      <div class="desc">{{ t('desc_initial_fields') }}</div>
+      <div class="desc">{{ t('desc_initial_fields') }} [{"field_name":"索引字段","type":1},{"field_name":"单选","type":3,"ui_type":"SingleSelect","property":{"options":[{"name":"Enabled"},{"name":"Disabled"}]}}]</div>
     </div>
 
     <FullAtInput

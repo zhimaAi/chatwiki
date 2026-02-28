@@ -81,9 +81,19 @@
         color: #21a665;
       }
       &.status-warning {
-        background: #fae4dc;
-        color: #ed744a;
+        background: #FBDDDE;
+        color: #FB363F;
       }
+    }
+
+    &.account-type-tag {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 6px;
+      background: #EDEFF2;
+      color: #3a4559;
+      font-size: 12px;
+      margin-top: 4px;
     }
   }
 
@@ -117,6 +127,9 @@
     <template v-if="showExtTypeList.includes(props.app_type)">
       <div class="ext-info-list">
         <div class="ext-content">{{ item.wechat_reply_type }}</div>
+      </div>
+      <div class="ext-info-list account-type-tag">
+        {{item.account_type_name}} <span v-if="item.account_customer_type_name">/ {{item.account_customer_type_name}}</span>
       </div>
       <div class="ext-info-list">
         <div class="status-block status-success" v-if="item.account_is_verify == 'true'">

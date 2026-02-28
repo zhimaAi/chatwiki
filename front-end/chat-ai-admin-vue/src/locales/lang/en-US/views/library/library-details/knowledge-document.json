@@ -147,5 +147,8 @@
   "status_success": "Success",
   "btn_edit": "Edit",
   "confirm_update": "Confirm update?",
-  "btn_update": "Update"
+  "btn_update": "Update",
+  "msg_relearn_success": "Re-learn successful",
+  "msg_relearn_failed": "Re-learn failed",
+  "tooltip_relearn": "Re-learn"
 }

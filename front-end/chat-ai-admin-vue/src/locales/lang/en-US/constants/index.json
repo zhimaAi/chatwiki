@@ -19,5 +19,17 @@
   "livestream": "Channels Live",
   "channels": "Channels",
   "wxa": "Mini Program Follow",
-  "other": "Other"
+  "other": "Other",
+  "local_document": "Local Document",
+  "online_document": "Online Document",
+  "custom_document": "Custom Document",
+  "manual_qa": "Manual Q&A",
+  "import_qa": "Import Q&A",
+  "feishu_knowledge": "Feishu Knowledge Base",
+  "pending_generation": "Pending Generation",
+  "in_queue": "In Queue",
+  "generation_complete": "Generation Complete",
+  "generation_failed": "Generation Failed",
+  "generating": "Generating",
+  "partial_success": "Partial Success"
 }

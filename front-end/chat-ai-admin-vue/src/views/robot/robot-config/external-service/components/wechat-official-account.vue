@@ -79,7 +79,8 @@ const getList = () => {
   getWechatAppList({
     robot_id: robotInfo.id,
     app_type: 'official_account',
-    app_name: ''
+    app_name: '',
+    is_all: 1
   }).then((res) => {
     list.value = res.data
   }).finally(() => {

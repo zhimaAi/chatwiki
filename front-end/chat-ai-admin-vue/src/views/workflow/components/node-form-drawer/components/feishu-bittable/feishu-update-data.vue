@@ -153,7 +153,7 @@
               @change="(val, tags) => changeValue('fields_json', val, tags)"
               :placeholder="t('ph_input_content')"
             />
-            <div class="desc">{{ t('desc_update_data_example') }}</div>
+            <div class="desc">{{ t('desc_update_data_example') }} [{"field_name":"文本","ui_type":"Text","value":"001"},{"field_name":"日期","ui_type":"DateTime","value":1769077135214},{"field_name":"数字","ui_type":"Number","value":99},{"field_name":"单选","ui_type":"SingleSelect","value":"选项1"},{"field_name":"多选","ui_type":"MultiSelect","value":["类别A","类别B"]},{"field_name":"复选框","ui_type":"Checkbox","value":true}]</div>
           </template>
         </div>
       </div>

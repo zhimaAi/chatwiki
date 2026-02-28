@@ -100,6 +100,10 @@ export function getSizeOptions() {
   const { t } = useI18n('views.workflow.components.util')
   return [
     {
+      label: t('size_auto_prompt'),
+      value: 'auto'
+    },
+    {
       label: t('size_auto_2k'),
       value: '2K'
     },

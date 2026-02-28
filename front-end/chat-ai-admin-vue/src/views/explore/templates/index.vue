@@ -11,13 +11,15 @@
         <div class="title">
           <a-input
             v-model:value.trim="filterData.keyword"
-            @change="search"
+            @blur="search"
+            @change="!filterData.keyword && search()"
+            @pressEnter="search"
             style="width: 100%"
             allowClear
             :placeholder="t('ph_search_template')"
           >
             <template #suffix>
-              <SearchOutlined />
+              <SearchOutlined class="zm-pointer" @click="search"/>
             </template>
           </a-input>
         </div>
@@ -83,32 +85,29 @@
 </template>
 
 <script setup>
-import { onMounted, ref, reactive, h, computed, nextTick} from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { message, Modal } from 'ant-design-vue'
+import { onMounted, ref, reactive, nextTick} from 'vue'
+import { useRoute } from 'vue-router'
 import {
   SearchOutlined,
-  PlusOutlined,
   TeamOutlined,
-  ExclamationCircleOutlined
 } from '@ant-design/icons-vue'
 import MainTab from '@/views/explore/components/main-tab.vue'
 import EmptyBox from '@/components/common/empty-box.vue'
 import LoadingBox from '@/components/common/loading-box.vue'
-import UpdateModal from '@/views/explore/plugins/components/update-modal.vue'
-import { getTemplateCates, getTemplates, useRobotTemplate } from '@/api/explore/template.js'
+import { getTemplateCates, getTemplates } from '@/api/explore/template.js'
 import { DEFAULT_TEMPLATE_AVATAR, DEFAULT_TEMPLATE_MAIN_PIC } from '@/constants/index.js'
-import { useCompanyStore } from '@/stores/modules/company.js'
 import { setDescRef, getTooltipTitle, listScrollPullLoad } from '@/utils/index'
 import DetailModel from './detail-model.vue'
 import {usePublicNetworkCheck} from "@/composables/usePublicNetworkCheck.js";
 import PublicNetworkCheck from "@/components/common/public-network-check.vue";
 import { useI18n } from '@/hooks/web/useI18n'
+import {useTemplateCreateRobot} from "@/composables/useTemplateCreateRobot.js";
 
 const { t } = useI18n('views.explore.templates.index')
 const {isPublicNetwork} = usePublicNetworkCheck(init)
+const {useTpl} = useTemplateCreateRobot()
 const route = useRoute()
-const router = useRouter()
+
 const tabRef = ref(null)
 const active = ref(localStorage.getItem('zm:explore:active') || '4')
 const loading = ref(true)
@@ -124,12 +123,6 @@ const pagination = reactive({
   current: 1,
   pageSize: 50,
   total: 0
-})
-const companyStore = useCompanyStore()
-const { companyInfo } = companyStore
-
-const sysVersion = computed(() => {
-  return companyInfo?.version
 })
 
 onMounted(() => {
@@ -155,7 +148,7 @@ function loadCates() {
   })
 }
 
-async function loadData() {
+async function loadData(_reload=false) {
   loading.value = true
   let params = {
     page: pagination.current,
@@ -169,7 +162,11 @@ async function loadData() {
       if (!_list.length || _list.length < pagination.pageSize) {
         finished.value = true
       }
-      list.value.push(..._list)
+      if (_reload === true) {
+        list.value = _list
+      } else {
+        list.value.push(..._list)
+      }
       pagination.current += 1
       pagination.total = Number(res?.data?.total || 0)
     })
@@ -187,7 +184,7 @@ function search() {
   pagination.current = 1
   pagination.total = 0
   list.value = []
-  loadData()
+  loadData(true)
 }
 
 function selectCate(cate) {
@@ -195,41 +192,10 @@ function selectCate(cate) {
   search()
 }
 
-function checkVersion(sys_v, tpl_v) {
-  sys_v = Number(sys_v.replace(/\D/g, ''))
-  tpl_v = Number(tpl_v.replace(/\D/g, ''))
-  return sys_v >= tpl_v
-}
-
 function useTemplate(item) {
-  const run = () => {
-    useRobotTemplate({ template_id: item.id, csl_url: item.csl_url }).then((res) => {
-      message.success(t('msg_use_success'))
-      loadData()
-      const { id, robot_key } = res.data
-      const url = router.resolve({ path: '/robot/config/workflow', query: { id, robot_key } })
-      window.open(url.href, '_blank')
-    })
-  }
-  if (!checkVersion(sysVersion.value, item.version)) {
-    Modal.confirm({
-      title: t('title_tip'),
-      content: t('msg_version_too_low'),
-      icon: h(ExclamationCircleOutlined),
-      okText: t('btn_continue_use'),
-      cancelText: t('btn_cancel'),
-      onOk: run
-    })
-  } else {
-    Modal.confirm({
-      title: t('title_tip'),
-      content: t('msg_confirm_use_template', { name: item.name }),
-      icon: h(ExclamationCircleOutlined),
-      okText: t('btn_confirm'),
-      cancelText: t('btn_cancel'),
-      onOk: run
-    })
-  }
+  useTpl(item, (_state) => {
+    _state && loadData()
+  })
 }
 
 const detailModelRef = ref(null)

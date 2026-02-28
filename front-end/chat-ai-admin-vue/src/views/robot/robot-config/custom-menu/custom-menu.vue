@@ -3,20 +3,21 @@
     <!-- <div class="page-title">关注后自动回复</div> -->
     <div class="breadcrumb-wrap">
       <svg-icon @click="goBack" name="back" style="font-size: 20px;" />
-      <div @click="goBack" class="breadcrumb-title">自定义菜单</div>
+      <div @click="goBack" class="breadcrumb-title">{{ t('title_custom_menu') }}</div>
       <a-switch
         :checked="abilitySwitchChecked"
-        checked-children="开"
-        un-checked-children="关"
+        :checked-children="t('btn_switch_on')"
+        :un-checked-children="t('btn_switch_off')"
         @change="onAbilitySwitchChange"
       />
-      <span class="switch-tip">开启后，公众号显示自定义菜单；关闭后，粉丝将无法看到菜单。</span>
+      <span class="switch-tip">{{ t('tip_switch_description') }}</span>
     </div>
     <a-alert>
       <template #message>
-        <p>1. 回复消息可以选择回复图文、图片、小程序卡片、文本、智能菜单、多图文等，可以添加多条回复，请值重使用关闭菜单功能，一旦关闭菜单，将会停用自定义菜单功能，粉丝将无法看到自定义菜单。</p>
-        <p>2. 复制到其他公众号后，只会复制默认菜单且不会自动同步到微信，需要保存后才会同步到微信，跳转小程序时，小程序必须跟公众号是关联关系。</p>
-        <p>3. 如果需要立刻查看效果，请取消关注后重新关注。</p>
+        <p class="text_color_ed744a">{{ t('alert_tip_1') }}</p>
+        <p>{{ t('alert_tip_2') }}</p>
+        <p>{{ t('alert_tip_3') }}</p>
+        <p>{{ t('alert_tip_4') }}</p>
       </template>
     </a-alert>
     <!-- 公众号列表 -->
@@ -29,22 +30,22 @@
         </div>
         <a-button v-if="!expanded && mpAccounts.length > visibleCount" type="dashed" class="more-btn"
           @click="expanded = true">
-          更多 +{{ mpAccounts.length - visibleCount }}
+          {{ t('btn_more') }} +{{ mpAccounts.length - visibleCount }}
         </a-button>
       </div>
     </div>
     <div class="search-block">
-      <Tooltip title="同步菜单会拉取公众号当前正在生效的菜单。请注意回复内容部分需要重新填充内容。">
+      <Tooltip :title="t('tip_sync_menu')">
         <a-button @click="syncMenu" :loading="syncLoading">
-          同步菜单
+          {{ t('btn_sync_menu') }}
           <QuestionCircleOutlined style="font-size: 16px;" />
         </a-button>
       </Tooltip>
 
       <!-- 开关控制 -->
       <div class="flex" style="gap: 4px; align-items: center;">
-        <a-switch v-model:checked="appMenuSwitch" :checkedValue="'1'" :un-checkedValue="'0'" checked-children="开" un-checked-children="关" @change="onAppSwitchChange" />
-        <span style="font-size: 14px; color: #8c8c8c;">关闭后，该公众号的菜单功能将被停用</span>
+        <a-switch v-model:checked="appMenuSwitch" :checkedValue="'1'" :un-checkedValue="'0'" :checked-children="t('btn_switch_on')" :un-checked-children="t('btn_switch_off')" @change="onAppSwitchChange" />
+        <span style="font-size: 14px; color: #8c8c8c;">{{ t('tip_close_menu_warning') }}</span>
       </div>
     </div>
 
@@ -57,7 +58,7 @@
               <template #item="{ element, index }">
                 <div class="root-menu-item" :class="{ active: activeRootIndex === index && activeSubIndex === -1 }"
                   @click="onSelectRoot(index)">
-                  <span class="name">{{ element.menu_name || '主菜单' }}</span>
+                  <span class="name">{{ element.menu_name || t('label_root_menu') }}</span>
                   <svg-icon class="del-root" name="delete-line" @click.stop="removeRootMenu(index)"
                     style="font-size: 18px;" />
                   <div v-if="activeRootIndex === index" class="submenu-panel" @click.stop>
@@ -68,7 +69,7 @@
                           <div class="sub-menu-item"
                             :class="{ active: activeRootIndex === index && activeSubIndex === si }"
                             @click.stop="onSelectSub(index, si)">
-                            <span class="text">{{ sub.menu_name || '子菜单' }}</span>
+                            <span class="text">{{ sub.menu_name || t('label_sub_menu') }}</span>
                             <svg-icon class="del" name="delete-line" @click.stop="removeSubMenu(index, si)"
                               style="font-size: 18px;" />
                           </div>
@@ -93,21 +94,21 @@
       <div class="main-right">
         <div v-if="editing.type === 'root'" class="editor">
           <div class="form-item">
-            <div class="label"><span class="required">*</span>主菜单名称</div>
-            <a-input ref="rootNameInputRef" v-model:value="menus[activeRootIndex].menu_name" placeholder="请输入名称" @input="onRootNameInput" maxLength="5" />
+            <div class="label"><span class="required">*</span>{{ t('label_root_menu') }}</div>
+            <a-input ref="rootNameInputRef" v-model:value="menus[activeRootIndex].menu_name" :placeholder="t('ph_input_name')" @input="onRootNameInput" maxLength="5" />
             <div class="emoji-row">
               <a-popover v-model:open="showEmoji" placement="bottomLeft" trigger="click" :getPopupContainer="getPopup">
                 <template #content>
                   <Picker :data="emojiIndex" :emojiSize="18" :showPreview="false" set="apple" @select="onEmojiSelect" />
                 </template>
-                <a-tooltip title="插入表情">😊</a-tooltip>
+                <a-tooltip :title="t('btn_insert_emoji')">😊</a-tooltip>
               </a-popover>
             </div>
-            <div class="tip">支持emoji表情，主菜单最多支持5个汉字，子菜单最多18个汉字</div>
+            <div class="tip">{{ t('tip_emoji_support') }}</div>
           </div>
           <template v-if="(menus[activeRootIndex].sub_menu_list || []).length === 0">
             <div class="form-item">
-              <div class="label">菜单功能</div>
+              <div class="label">{{ t('label_menu_function') }}</div>
               <MenuActEditor ref="actEditorRef" :key="'root-'+activeRootIndex" v-model:value="menus[activeRootIndex].act" />
             </div>
           </template>
@@ -115,28 +116,28 @@
 
         <div v-else-if="editing.type === 'sub'" class="editor">
           <div class="form-item">
-            <div class="label"><span class="required">*</span>子菜单名称</div>
-            <a-input ref="subNameInputRef" v-model:value="menus[activeRootIndex].sub_menu_list[activeSubIndex].menu_name" placeholder="请输入名称"
+            <div class="label"><span class="required">*</span>{{ t('label_sub_menu') }}</div>
+            <a-input ref="subNameInputRef" v-model:value="menus[activeRootIndex].sub_menu_list[activeSubIndex].menu_name" :placeholder="t('ph_input_name')"
               @input="onSubNameInput" maxLength="18" />
             <div class="emoji-row">
               <a-popover v-model:open="showSubEmoji" placement="bottomLeft" trigger="click" :getPopupContainer="getPopup">
                 <template #content>
                   <Picker :data="emojiIndex" :emojiSize="18" :showPreview="false" set="apple" @select="onSubEmojiSelect" />
                 </template>
-                <a-tooltip title="插入表情">😊</a-tooltip>
+                <a-tooltip :title="t('btn_insert_emoji')">😊</a-tooltip>
               </a-popover>
             </div>
-            <div class="tip">支持emoji表情，主菜单最多支持5个汉字，子菜单最多18个汉字</div>
+            <div class="tip">{{ t('tip_emoji_support') }}</div>
           </div>
           <div class="form-item">
-            <div class="label">菜单功能</div>
+            <div class="label">{{ t('label_menu_function') }}</div>
             <MenuActEditor ref="actEditorRef" :key="'sub-'+activeRootIndex+'-'+activeSubIndex" v-model:value="menus[activeRootIndex].sub_menu_list[activeSubIndex].act" />
           </div>
         </div>
       </div>
     </div>
     <div class="footer-save">
-      <a-button type="primary" @click="onSave" :loading="saveLoading">保存并应用</a-button>
+      <a-button type="primary" @click="onSave" :loading="saveLoading">{{ t('btn_save_and_apply') }}</a-button>
     </div>
   </div>
 </template>
@@ -155,9 +156,11 @@ import { Picker, EmojiIndex } from 'emoji-mart-vue-fast/src'
 import MenuActEditor from './menu-act-editor.vue'
 import Draggable from 'vuedraggable'
 import iphoneBg from '@/assets/img/iphone-bg.png'
+import { useI18n } from '@/hooks/web/useI18n'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n('views.robot.robot-config.custom-menu.custom-menu')
 
 const mpAccounts = ref([])
 const selectedAppid = ref('')
@@ -181,7 +184,7 @@ function calcVisibleCount () {
 }
 
 const syncMenu = async () => {
-  if (!selectedAppid.value) { message.error('请选择公众号'); return }
+  if (!selectedAppid.value) { message.error(t('msg_select_account')); return }
   syncLoading.value = true
   syncWxMenuToShow({ appid: selectedAppid.value }).then((res) => {
     const list = Array.isArray(res?.data?.list) ? res.data.list : []
@@ -199,7 +202,7 @@ const syncMenu = async () => {
             admin_user_id: Number(r.admin_user_id || 0),
             appid: String(r.appid || ''),
             seq_id: Number(r.seq_id || 0),
-            menu_name: r.menu_name || '主菜单',
+            menu_name: r.menu_name || t('label_root_menu'),
             menu_level: 1,
             parent_menu_id: 0,
             act: toAct(r),
@@ -208,7 +211,7 @@ const syncMenu = async () => {
               admin_user_id: Number(sm.admin_user_id || 0),
               appid: String(sm.appid || ''),
               seq_id: Number(sm.seq_id || si),
-              menu_name: sm.menu_name || '子菜单',
+              menu_name: sm.menu_name || t('label_sub_menu'),
               menu_level: 2,
               parent_menu_id: Number(r.id || 0),
               act: toAct(sm)
@@ -220,7 +223,7 @@ const syncMenu = async () => {
       editing.type = 'root'
     }
     nextTick(calcRootItemWidth)
-    message.success('同步菜单成功')
+    message.success(t('msg_sync_success'))
   }).finally(() => {
     syncLoading.value = false
   })
@@ -285,13 +288,13 @@ const onAbilitySwitchChange = (checked) => {
   const newStatus = checked ? '1' : '0'
   if (newStatus === '0') {
     Modal.confirm({
-      title: '提示',
-      content: '关闭后，该功能默认关闭不再支持使用，所有的公众号菜单都会停用，确认关闭？',
+      title: t('confirm_title'),
+      content: t('confirm_close_ability'),
       onOk: () => {
         saveUserAbility({ ability_type: 'official_custom_menu', switch_status: newStatus }).then((res) => {
           if (res && res.res == 0) {
             abilitySwitchChecked.value = false
-            message.success('操作成功')
+            message.success(t('msg_operation_success'))
             // 刷新公众号列表
             nextTick(async () => {
               await getWechatAppListFn()
@@ -306,7 +309,7 @@ const onAbilitySwitchChange = (checked) => {
   saveUserAbility({ ability_type: 'official_custom_menu', switch_status: newStatus }).then((res) => {
     if (res && res.res == 0) {
       abilitySwitchChecked.value = true
-      message.success('操作成功')
+      message.success(t('msg_operation_success'))
     }
   })
 }
@@ -319,15 +322,15 @@ const initAppMenuSwitch = () => {
 }
 const onAppSwitchChange = (checked) => {
   const switch_status = checked
-  if (!selectedAppid.value) { message.error('请选择公众号'); return }
+  if (!selectedAppid.value) { message.error(t('msg_select_account')); return }
   if (switch_status === '0') {
     Modal.confirm({
-      title: '提示',
-      content: abilitySwitchChecked.value ? '该公众号自定义菜单功能将被停用，粉丝将无法看到菜单。请谨慎操作！后续如需开启菜单，可以开启功能后保存' : '当前菜单是关闭状态，保存仅是本地保存,不会同步到微信。',
+      title: t('confirm_title'),
+      content: abilitySwitchChecked.value ? t('confirm_close_app_menu') : t('confirm_close_app_menu_local'),
       onOk: async () => {
         try {
           await closeWxMenu({ appid: selectedAppid.value })
-          message.success('操作成功')
+          message.success(t('msg_operation_success'))
         } finally {
           await getWechatAppListFn()
           initAppMenuSwitch()
@@ -341,12 +344,12 @@ const onAppSwitchChange = (checked) => {
   }
   // 开启
   Modal.confirm({
-    title: '提示',
-    content: abilitySwitchChecked.value ? '开启后，请保存该公众号的菜单，保存成功后将同步到微信' : '当前菜单是关闭状态，保存仅是本地保存,不会同步到微信。',
+    title: t('confirm_title'),
+    content: abilitySwitchChecked.value ? t('confirm_open_app_menu') : t('confirm_close_app_menu_local'),
     onOk: async () => {
       const menu_json = toMenuJson()
       saveCustomMenu({ appid: selectedAppid.value, menu_json: JSON.stringify(menu_json) })
-        .then(() => { message.success('保存成功') })
+        .then(() => { message.success(t('msg_save_success')) })
         .finally(async () => {
           await getWechatAppListFn()
           initAppMenuSwitch()
@@ -382,7 +385,7 @@ function toAct (item) {
     else if (code === 5) { ap.key = String(p.key || '') }
     return { choose_act_item: code, act_params: ap }
 }
-  
+
 async function loadMenuList () {
   try {
     const res = await getCustomMenuList({ appid: selectedAppid.value })
@@ -400,7 +403,7 @@ async function loadMenuList () {
           admin_user_id: Number(r.admin_user_id || 0),
           appid: String(r.appid || ''),
           seq_id: Number(r.seq_id || 0),
-          menu_name: r.menu_name || '主菜单',
+          menu_name: r.menu_name || t('label_root_menu'),
           menu_level: 1,
           parent_menu_id: 0,
           act: toAct(r),
@@ -409,7 +412,7 @@ async function loadMenuList () {
             admin_user_id: Number(sm.admin_user_id || 0),
             appid: String(sm.appid || ''),
             seq_id: Number(sm.seq_id || si),
-            menu_name: sm.menu_name || '子菜单',
+            menu_name: sm.menu_name || t('label_sub_menu'),
             menu_level: 2,
             parent_menu_id: Number(r.id || 0),
             act: toAct(sm)
@@ -451,7 +454,7 @@ function onEmojiSelect (emoji) {
     const end = el.selectionEnd
     const nextVal = val.slice(0, start) + char + val.slice(end)
     const clamped = clampNameLen(nextVal, 5)
-    if (clamped !== nextVal) { message.warning('主菜单名称最多支持5个字符') }
+    if (clamped !== nextVal) { message.warning(t('msg_root_menu_max_5_chars')) }
     menus.value[activeRootIndex.value].menu_name = clamped
     nextTick(() => {
       el.focus()
@@ -461,7 +464,7 @@ function onEmojiSelect (emoji) {
   } else {
     const nextVal = val + char
     const clamped = clampNameLen(nextVal, 5)
-    if (clamped !== nextVal) { message.warning('主菜单名称最多支持5个字符') }
+    if (clamped !== nextVal) { message.warning(t('msg_root_menu_max_5_chars')) }
     menus.value[activeRootIndex.value].menu_name = clamped
   }
   showEmoji.value = false
@@ -478,7 +481,7 @@ function onSubEmojiSelect (emoji) {
     const end = el.selectionEnd
     const nextVal = val.slice(0, start) + char + val.slice(end)
     const clamped = clampNameLen(nextVal, max)
-    if (clamped !== nextVal) { message.warning('子菜单名称最多支持18个字符') }
+    if (clamped !== nextVal) { message.warning(t('msg_sub_menu_max_18_chars')) }
     menus.value[activeRootIndex.value].sub_menu_list[activeSubIndex.value].menu_name = clamped
     nextTick(() => {
       el.focus()
@@ -488,7 +491,7 @@ function onSubEmojiSelect (emoji) {
   } else {
     const nextVal = val + char
     const clamped = clampNameLen(nextVal, max)
-    if (clamped !== nextVal) { message.warning('子菜单名称最多支持18个字符') }
+    if (clamped !== nextVal) { message.warning(t('msg_sub_menu_max_18_chars')) }
     menus.value[activeRootIndex.value].sub_menu_list[activeSubIndex.value].menu_name = clamped
   }
   showSubEmoji.value = false
@@ -499,7 +502,7 @@ function onSubNameInput () {
   const cl = clampNameLen(v, 18)
   if (cl !== v) {
     menus.value[activeRootIndex.value].sub_menu_list[activeSubIndex.value].menu_name = cl
-    message.warning('子菜单名称最多支持18个字符')
+    message.warning(t('msg_sub_menu_max_18_chars'))
   }
 }
 
@@ -520,7 +523,7 @@ const onRootNameInput = () => {
   const cl = clampNameLen(v, 5)
   if (cl !== v) {
     menus.value[activeRootIndex.value].menu_name = cl
-    message.warning('主菜单名称最多支持5个字符')
+    message.warning(t('msg_root_menu_max_5_chars'))
   }
 }
 
@@ -543,7 +546,7 @@ const menus = ref([
     admin_user_id: 0,
     appid: '',
     seq_id: 0,
-    menu_name: '主菜单',
+    menu_name: t('label_root_menu'),
     menu_level: 1,
     parent_menu_id: 0,
     choose_act_item: 0,
@@ -575,7 +578,7 @@ function addRootMenu () {
     admin_user_id: 0,
     appid: selectedAppid.value,
     seq_id: 0,
-    menu_name: '主菜单',
+    menu_name: t('label_root_menu'),
     menu_level: 1,
     parent_menu_id: 0,
     choose_act_item: 0,
@@ -595,14 +598,14 @@ function onSelectRoot (idx) {
 }
 function removeRootMenu (idx) {
   if (menus.value.length <= 1) {
-    message.warning('至少保留一个主菜单');
+    message.warning(t('msg_keep_at_least_one_root_menu'));
     return
   }
   Modal.confirm({
-    title: '提示',
-    content: '删除后,该主菜单下设置的内容及子菜单将被全被删除',
-    okText: '确定',
-    cancelText: '取消',
+    title: t('confirm_title'),
+    content: t('confirm_delete_root_menu'),
+    okText: t('btn_confirm'),
+    cancelText: t('btn_cancel'),
     onOk() {
       menus.value.splice(idx, 1)
       if (activeRootIndex.value >= menus.value.length) {
@@ -627,7 +630,7 @@ function addSubMenu (rootIdx) {
       admin_user_id: 0,
       appid: selectedAppid.value,
       seq_id: root.sub_menu_list.length,
-      menu_name: '子菜单',
+      menu_name: t('label_sub_menu'),
       menu_level: 2,
       parent_menu_id: root.id,
       choose_act_item: 0,
@@ -640,10 +643,10 @@ function addSubMenu (rootIdx) {
   }
   if (root.sub_menu_list.length === 0) {
     Modal.confirm({
-      title: '提示',
-      content: '添加子菜单后，一级菜单的内容将被清除。确定添加子菜单？',
-      okText: '确定',
-      cancelText: '取消',
+      title: t('confirm_title'),
+      content: t('confirm_add_sub_menu'),
+      okText: t('btn_confirm'),
+      cancelText: t('btn_cancel'),
       onOk() {
         root.act = makeEmptyAct()
         doAdd()
@@ -662,10 +665,10 @@ function removeSubMenu (rootIdx, subIdx) {
   const root = menus.value[rootIdx]
   if (!root) return
   Modal.confirm({
-    title: '提示',
-    content: '删除后,该子菜单下设置的内容将被全被删除',
-    okText: '确定',
-    cancelText: '取消',
+    title: t('confirm_title'),
+    content: t('confirm_delete_sub_menu'),
+    okText: t('btn_confirm'),
+    cancelText: t('btn_cancel'),
     onOk() {
       root.sub_menu_list.splice(subIdx, 1)
       const len = (root.sub_menu_list || []).length
@@ -814,7 +817,7 @@ function toMenuJson () {
       admin_user_id: 1,
       appid: selectedAppid.value,
       seq_id: ri,
-      menu_name: root.menu_name || '主菜单',
+      menu_name: root.menu_name || t('label_root_menu'),
       menu_level: 1,
       parent_menu_id: 0,
       choose_act_item: (root.sub_menu_list || []).length > 0 ? 0 : Number(root.act?.choose_act_item || 0),
@@ -825,7 +828,7 @@ function toMenuJson () {
           admin_user_id: 1,
           appid: selectedAppid.value,
           seq_id: si,
-          menu_name: sm.menu_name || '子菜单',
+          menu_name: sm.menu_name || t('label_sub_menu'),
           menu_level: 2,
           parent_menu_id: Number(root.id || 0),
           choose_act_item: Number(sm.act?.choose_act_item || 0),
@@ -856,7 +859,7 @@ async function onSave () {
     return
   }
   if (!selectedAppid.value) {
-    message.error('请选择公众号');
+    message.error(t('msg_select_account'));
     return
   }
   if (actEditorRef.value && actEditorRef.value.getValue) {
@@ -877,21 +880,21 @@ async function onSave () {
   // 简单校验
   for (let ri = 0; ri < menus.value.length; ri++) {
     const root = menus.value[ri]
-    const rootName = String(root.menu_name || '主菜单')
+    const rootName = String(root.menu_name || t('label_root_menu'))
     if ((root.sub_menu_list || []).length === 0) {
-      if (!validateActDeep(root.act)) { message.error(`请完善主菜单「${rootName}」功能配置`); return }
+      if (!validateActDeep(root.act)) { message.error(t('msg_complete_root_menu_config', { name: rootName })); return }
     }
     for (let si = 0; si < (root.sub_menu_list || []).length; si++) {
       const sm = root.sub_menu_list[si]
-      const subName = String(sm.menu_name || '子菜单')
-      if (!validateActDeep(sm.act)) { message.error(`请完善主菜单「${rootName}」下的子菜单「${subName}」功能配置`); return }
+      const subName = String(sm.menu_name || t('label_sub_menu'))
+      if (!validateActDeep(sm.act)) { message.error(t('msg_complete_sub_menu_config', { rootName, subName })); return }
     }
   }
   const menu_json = toMenuJson()
   Modal.confirm({
-    title: '确认保存并应用吗？',
-    okText: '确认',
-    cancelText: '取消',
+    title: t('confirm_save_and_apply'),
+    okText: t('btn_confirm'),
+    cancelText: t('btn_cancel'),
     onOk: async () => {
       saveLoading.value = true
       try {
@@ -899,7 +902,7 @@ async function onSave () {
           appid: selectedAppid.value,
           menu_json: JSON.stringify(menu_json)
         })
-        message.success('保存成功')
+        message.success(t('msg_save_success'))
       } finally {
         saveLoading.value = false
       }

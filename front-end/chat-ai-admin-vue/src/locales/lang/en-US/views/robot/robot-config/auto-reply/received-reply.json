@@ -45,5 +45,6 @@
   "label_every_week": "Every Week",
   "label_every_day": "Every Day",
   "label_custom_time": "Custom Time",
-  "label_to": "to"
+  "label_to": "to",
+  "msg_certified_only": "1. This feature only supports verified official accounts/service accounts"
 }

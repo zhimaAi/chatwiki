@@ -412,6 +412,40 @@ const { t } = useI18n()
 </template>
 ```
 
+**方式 3: 使用别名引入多个命名空间**
+
+当组件已经使用了一个命名空间，但还需要访问其他命名空间（如 `common`）时，可以使用别名：
+
+```vue
+<script setup>
+import { useI18n } from '@/hooks/web/useI18n'
+
+// 主要命名空间
+const { t } = useI18n('views.user.login')
+// common 命名空间（使用别名避免冲突）
+const { t: tCommon } = useI18n('common')
+</script>
+
+<template>
+  <div>
+    <!-- 使用主要命名空间 -->
+    <button>{{ t('btnSubmit') }}</button>
+    <!-- 使用 common 命名空间 -->
+    <span>{{ tCommon('recommendation') }}</span>
+  </div>
+</template>
+```
+
+**适用场景**：
+- 组件内部已经定义了 `useI18n('specific-namespace')`
+- 需要访问 `common.json` 中的通用翻译（如 "推荐"、"添加"、"删除"等）
+- 避免创建重复的翻译键，优先复用 common 命名空间的翻译
+
+**优势**：
+- 避免命名冲突（使用 `tCommon` 而非 `t`）
+- 语义清晰，一眼就能看出翻译来源
+- 符合 DRY 原则，减少重复定义
+
 ## 6. 配置项说明
 
 ### 6.1 i18n 配置

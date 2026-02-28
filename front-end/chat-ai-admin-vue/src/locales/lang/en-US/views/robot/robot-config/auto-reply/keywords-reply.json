@@ -4,6 +4,7 @@
   "switch_off": "Off",
   "auto_reply_desc": "After enabling, reply with specified content based on keyword reply and message received reply rules. Priority: keyword reply > message received reply",
   "keyword_reply_tip": "Keyword reply content supports image-text links, text, images, links, and mini-program cards",
+  "msg_only_certified_account": "This feature only supports verified official accounts/service accounts",
   "btn_add_rule": "Add Rule",
   "label_reply_type": "Reply Type",
   "ph_search_keyword": "Search by keyword/rule name",

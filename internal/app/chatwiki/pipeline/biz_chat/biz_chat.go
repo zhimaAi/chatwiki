@@ -11,6 +11,7 @@ import (
 	"github.com/gin-contrib/sse"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/msql"
+	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
@@ -87,6 +88,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	}
 	// defer
 	defer func() {
+		in.Stream(sse.Event{Event: `finish`, Data: tool.Time2Int()})
 		if in.monitor != nil {
 			in.monitor.DebugLog = out.debugLog
 			in.monitor.Save(out.Error) // save monitor data

@@ -50,7 +50,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -127,6 +127,27 @@ const editSubscriptionRef = ref(null)
 const openEditSubscription = (data) => {
   editSubscriptionRef.value.showModal(JSON.parse(JSON.stringify(data)))
 }
+
+// 处理刷新数据 - QA合并后重新加载数据
+const handleRefreshData = () => {
+  // 重新获取段落列表
+  getParagraphLists()
+}
+
+// 监听跨窗口消息，处理QA合并后的刷新
+const handleMessage = (event) => {
+  if (event.data?.type === 'qa-merged' && event.data?.libraryId == detailsInfo.value.library_id) {
+    handleRefreshData()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('message', handleMessage)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('message', handleMessage)
+})
 
 const handleEditParagraph = (data) => {
   if (!data.id) {

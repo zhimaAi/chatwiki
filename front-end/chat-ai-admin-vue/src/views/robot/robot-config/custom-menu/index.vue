@@ -7,33 +7,33 @@
       <div class="user-model-page">
         <div class="breadcrumb-wrap">
           <svg-icon @click="goBack" name="back" style="font-size: 20px;" />
-          <div @click="goBack" class="breadcrumb-title">自定义菜单</div>
+          <div @click="goBack" class="breadcrumb-title">{{ t('breadcrumb_title') }}</div>
           <a-switch
             :checked="abilitySwitchChecked"
-            checked-children="开"
-            un-checked-children="关"
+            :checked-children="t('switch_on')"
+            :un-checked-children="t('switch_off')"
             @change="onAbilitySwitchChange"
           />
-          <span class="switch-tip">开启后，公众号显示自定义菜单；关闭后，粉丝将无法看到菜单。</span>
+          <span class="switch-tip">{{ t('switch_tip') }}</span>
         </div>
         <a-alert show-icon>
           <template #message>
-            开启后，用户关注公众号后，回复指定的内容，<span style="color: #FF4D4F;">该功能仅支持公众号内回复</span>
+            {{ t('alert_message') }}<span style="color: #FF4D4F;">{{ t('alert_highlight') }}</span>
           </template>
         </a-alert>
         <div class="empty-wrap">
           <ListEmpty size="180">
-            <div class="empty-default">暂未绑定公众号</div>
-            <div class="empty-sub">请选到系统设置>公众号管理绑定公众号</div>
+            <div class="empty-default">{{ t('empty_default') }}</div>
+            <div class="empty-sub">{{ t('empty_sub') }}</div>
           </ListEmpty>
           <div class="empty-actions">
-            <a-button type="primary" @click="goBind">去绑定公众号</a-button>
+            <a-button type="primary" @click="goBind">{{ t('btn_bind') }}</a-button>
           </div>
         </div>
       </div>
     </template>
   </div>
-  
+
 </template>
 
 <script setup>
@@ -44,6 +44,9 @@ import CustomMenu from './custom-menu.vue'
 import ListEmpty from '@/views/robot/robot-config/function-center/components/list-empty.vue'
 import { getSpecifyAbilityConfig, saveUserAbility } from '@/api/explore'
 import { message, Modal } from 'ant-design-vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.custom-menu.index')
 
 const route = useRoute()
 const router = useRouter()
@@ -72,13 +75,13 @@ const onAbilitySwitchChange = (checked) => {
   const newStatus = checked ? '1' : '0'
   if (newStatus === '0') {
     Modal.confirm({
-      title: '提示',
-      content: '关闭后，该功能默认关闭不再支持使用，所有的公众号菜单都会停用，确认关闭？',
+      title: t('modal_title'),
+      content: t('modal_confirm_close'),
       onOk: () => {
         saveUserAbility({ ability_type: 'official_custom_menu', switch_status: newStatus }).then((res) => {
           if (res && res.res == 0) {
             abilitySwitchChecked.value = false
-            message.success('操作成功')
+            message.success(t('msg_operation_success'))
           }
         })
       }
@@ -88,7 +91,7 @@ const onAbilitySwitchChange = (checked) => {
   saveUserAbility({ ability_type: 'official_custom_menu', switch_status: newStatus }).then((res) => {
     if (res && res.res == 0) {
       abilitySwitchChecked.value = true
-      message.success('操作成功')
+      message.success(t('msg_operation_success'))
     }
   })
 }

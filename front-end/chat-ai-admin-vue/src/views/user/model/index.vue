@@ -18,16 +18,42 @@
       </div>
 
       <div class="content-body-box" v-if="activeTab == 1">
-        <div class="model-group-box">
+        <div class="model-group-box" ref="modelGroupRef">
+          <!-- 已添加的模型  -->
+          <draggable v-model="hasAddModalList" item-key="id" @end="onDragEnd" handle=".drag-btn">
+            <template #item="{ element:item, index }">
+              <div
+                class="model-list-item"
+                @click="handleChangeDefine(item)"
+                :class="{ active: item.config_info_id == currentDefine }"
+                :key="item.config_info_id"
+              >
+                <span class="drag-btn"><svg-icon name="drag" /></span>
+                <img class="avatar" :src="item.model_icon_url" alt="" />
+                <div class="model-name">{{ item.config_info.config_name || item.model_name }}</div>
+                <div class="access-icon">
+                  <CheckCircleFilled />
+                </div>
+                <div class="del-icon" @click.stop="handleRemoveModel(item.config_info)">
+                  <DeleteOutlined />
+                </div>
+              </div>
+            </template>
+          </draggable>
+
+          <!-- 可添加的模型 -->
           <div
             class="model-list-item"
             @click="handleChangeDefine(item)"
             :class="{ active: item.config_info_id == currentDefine }"
-            v-for="item in hasAddModalList"
+            v-for="item in canAddModelList"
             :key="item.config_info_id"
           >
             <img class="avatar" :src="item.model_icon_url" alt="" />
             <div class="model-name">{{ item.config_info.config_name || item.model_name }}</div>
+          </div>
+          <div class="footer-add-btn">
+            <a-button @click="handleOpenAddConfigModal" :icon="createVNode(PlusOutlined)" block>添加</a-button>
           </div>
         </div>
         <div class="model-content-box">
@@ -46,8 +72,12 @@
                 <div class="num">{{ staticsData.min_expiretime }}</div>
               </div>
               <div class="btn-block">
-                <a-button type="primary" @click="openBuyPointsModal" block>{{ t('views.user.model.buy_resource_pack') }}</a-button>
-                <a-button @click="handleShowBuyRecord" block>{{ t('views.user.model.buy_record') }}</a-button>
+                <a-button type="primary" @click="openBuyPointsModal" block>{{
+                  t('views.user.model.buy_resource_pack')
+                }}</a-button>
+                <a-button @click="handleShowBuyRecord" block>{{
+                  t('views.user.model.buy_record')
+                }}</a-button>
               </div>
             </div>
             <div class="search-block">
@@ -61,14 +91,25 @@
                   :placeholder="t('views.user.model.select_model_supplier')"
                   style="width: 172px"
                 >
-                  <a-select-option value="tongyi">{{ t('views.user.model.tongyi') }}</a-select-option>
-                  <a-select-option value="deepseek">{{ t('views.user.model.deepseek') }}</a-select-option>
-                  <a-select-option value="doubao">{{ t('views.user.model.doubao') }}</a-select-option>
+                  <a-select-option value="tongyi">{{
+                    t('views.user.model.tongyi')
+                  }}</a-select-option>
+                  <a-select-option value="deepseek">{{
+                    t('views.user.model.deepseek')
+                  }}</a-select-option>
+                  <a-select-option value="doubao">{{
+                    t('views.user.model.doubao')
+                  }}</a-select-option>
                 </a-select>
               </div>
             </div>
             <div class="list-box">
-              <a-table sticky style="margin-top: 8px" :pagination="false" :data-source="filterSelfLists">
+              <a-table
+                sticky
+                style="margin-top: 8px"
+                :pagination="false"
+                :data-source="filterSelfLists"
+              >
                 <a-table-column
                   key="uni_model_name"
                   :width="140"
@@ -90,9 +131,15 @@
                   data-index="thinking_type"
                 >
                   <template #default="{ record }">
-                    <span v-if="record.thinking_type == 0">{{ t('views.user.model.not_supported') }}</span>
-                    <span v-if="record.thinking_type == 1">{{ t('views.user.model.supported') }}</span>
-                    <span v-if="record.thinking_type == 2">{{ t('views.user.model.optional') }}</span>
+                    <span v-if="record.thinking_type == 0">{{
+                      t('views.user.model.not_supported')
+                    }}</span>
+                    <span v-if="record.thinking_type == 1">{{
+                      t('views.user.model.supported')
+                    }}</span>
+                    <span v-if="record.thinking_type == 2">{{
+                      t('views.user.model.optional')
+                    }}</span>
                   </template>
                 </a-table-column>
                 <a-table-column
@@ -103,8 +150,12 @@
                   data-index="function_call"
                 >
                   <template #default="{ record }">
-                    <span v-if="record.function_call == 0">{{ t('views.user.model.not_supported') }}</span>
-                    <span v-if="record.function_call == 1">{{ t('views.user.model.supported') }}</span>
+                    <span v-if="record.function_call == 0">{{
+                      t('views.user.model.not_supported')
+                    }}</span>
+                    <span v-if="record.function_call == 1">{{
+                      t('views.user.model.supported')
+                    }}</span>
                   </template>
                 </a-table-column>
                 <a-table-column
@@ -136,8 +187,15 @@
                     {{ record.output_desc }}
                   </template>
                 </a-table-column>
-                <a-table-column :width="130" key="price" :title="t('views.user.model.price')" data-index="price">
-                  <template #default="{ record }"> {{ record.price }}{{ t('views.user.model.points_per_token') }}</template>
+                <a-table-column
+                  :width="130"
+                  key="price"
+                  :title="t('views.user.model.price')"
+                  data-index="price"
+                >
+                  <template #default="{ record }">
+                    {{ record.price }}{{ t('views.user.model.points_per_token') }}</template
+                  >
                 </a-table-column>
               </a-table>
             </div>
@@ -148,15 +206,16 @@
               @delModel="handleDelModelNew"
               @editConfig="handleEditModel"
               @delConfig="handleRemoveModel"
+              @addConfig="handleAddModel"
               :currentModalItem="currentModalItem"
             />
           </template>
         </div>
       </div>
       <!-- 新手指引 -->
-       <div class="guide-box" v-if="activeTab == 2">
+      <div class="guide-box" v-if="activeTab == 2">
         <BeginnerGuide></BeginnerGuide>
-       </div>
+      </div>
       <ModelList
         :list="canAddModelList"
         :type="2"
@@ -175,16 +234,24 @@
     @remove="handleRemoveModel"
   />
   <!-- 设置模型 -->
-  <SetModelAlert ref="setModelAlertRef" @ok="configSaveOk" />
+  <SetModelAlert ref="setModelAlertRef" @ok="configSaveOk" @edit="configEditOk" />
   <BuyRecord :list="staticsData.list" ref="buyRecordRef" />
   <KefuModal ref="kefuModalRef" />
   <!-- <BuyPointsModal ref="buyPointsModalRef" @ok="handleBuyPoints" /> -->
   <AddModelNew ref="addModelNewRef" @ok="saveModelSuccess" />
+  <AddConfingModal ref="addConfingModalRef" @add="handleAddModel" />
 </template>
 
 <script setup>
-import { ref, computed, createVNode, reactive, watch, onMounted } from 'vue'
-import { ExclamationCircleOutlined, PlusOutlined, GlobalOutlined } from '@ant-design/icons-vue'
+import { ref, computed, createVNode, reactive, watch, onMounted, nextTick } from 'vue'
+import {
+  ExclamationCircleOutlined,
+  PlusOutlined,
+  GlobalOutlined,
+  CheckCircleFilled,
+  DeleteOutlined
+} from '@ant-design/icons-vue'
+import draggable from 'vuedraggable'
 import { message, Modal } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import {
@@ -193,7 +260,8 @@ import {
   getSelfModelBuylog,
   getSelfModelConfigs,
   showModelConfigList,
-  delUseModelConfig
+  delUseModelConfig,
+  setModelConfigWeight
 } from '@/api/model/index'
 import PageTabs from './components/page-tabs.vue'
 import ModelList from './components/model-list.vue'
@@ -208,6 +276,7 @@ import { useUserStore } from '@/stores/modules/user'
 import HasModalList from './components/has-modal-list.vue'
 import AddModelNew from './components/add-model-new.vue'
 import BeginnerGuide from '@/components/beginner-guide/index.vue'
+import AddConfingModal from './components/add-confing-modal.vue'
 import { useRoute } from 'vue-router'
 
 const query = useRoute().query
@@ -344,15 +413,16 @@ const getSelfList = () => {
 }
 
 const currentModalItem = computed(() => {
-  return hasAddModalList.value.filter((item) => item.config_info_id == currentDefine.value)[0] || {}
+  return allModelList.value.filter((item) => item.config_info_id == currentDefine.value)[0] || {}
 })
 
 const handleChangeDefine = (item) => {
   currentDefine.value = item.config_info_id
+  scrollToActiveModel()
 }
 
 watch(
-  () => hasAddModalList,
+  () => hasAddModalList.value,
   () => {
     if (
       hasAddModalList.value.filter((item) => item.config_info_id == currentDefine.value).length == 0
@@ -371,10 +441,31 @@ const getModelList = () => {
   getModelConfigList().then((res) => {
     let list = res.data || []
 
+    // 根据 weight 排序 weight越小 排在前面 如果 weight 小于等于0 则按原来顺序排序
+    list = list.sort((a, b) => {
+      // 如果两个元素的weight都大于0，则按weight升序排列
+      if (a.weight > 0 && b.weight > 0) {
+        return a.weight - b.weight
+      }
+      // 如果a的weight大于0，b的weight小于等于0，则a排在前面
+      if (a.weight > 0 && b.weight <= 0) {
+        return -1
+      }
+      // 如果a的weight小于等于0，b的weight大于0，则b排在前面
+      if (a.weight <= 0 && b.weight > 0) {
+        return 1
+      }
+      // 如果两个元素的weight都小于等于0，则保持原有顺序
+      return 0
+    })
+
     list.forEach((item) => {
       item.config_info_id = item.model_define == 'chatwiki' ? 'chatwiki' : item.config_info.id
     })
     hasAddModalList.value = list
+    nextTick(()=>{
+      scrollToActiveModel()
+    })
   })
 }
 
@@ -400,15 +491,27 @@ const handleDelModelNew = (record) => {
 
 const getCanAddModelList = () => {
   showModelConfigList().then((res) => {
-    canAddModelList.value = res.data || []
+    canAddModelList.value = (res.data || []).map((item) => {
+      return {
+        ...item,
+        config_info_id: item.model_define
+      }
+    })
   })
 }
+
+const allModelList = computed(() => {
+  return [...hasAddModalList.value, ...canAddModelList.value]
+})
 
 onMounted(() => {
   getModelList()
   // getSelfList()
   getCanAddModelList()
+  // 页面加载完成后滚动到当前激活的模型
+  scrollToActiveModel()
 })
+
 
 // 查看模型
 const seeModelAlertRef = ref(null)
@@ -442,7 +545,22 @@ const configSaveOk = (id) => {
     activeTab.value = 1
     currentDefine.value = id
   }
-  saveModelSuccess()
+  currentDefine.value = id
+  let ids = hasAddModalList.value.map((item) => item.config_info_id)
+  ids = [id, ...ids]
+  ids = [...new Set(ids)].join(',')
+  setModelConfigWeight({ ids }).then(() => {
+    saveModelSuccess()
+  })
+}
+
+const configEditOk = (id) => {
+  let ids = hasAddModalList.value.map((item) => item.config_info_id)
+  ids = [id, ...ids]
+  ids = [...new Set(ids)].join(',')
+  setModelConfigWeight({ ids }).then(() => {
+    getModelList()
+  })
 }
 
 // 删除模型
@@ -472,6 +590,51 @@ const handleBuyPoints = ({ points }) => {
 
   window.location.href = url
 }
+
+const modelGroupRef = ref(null)
+
+// 滚动到激活的模型元素
+const scrollToActiveModel = () => {
+  nextTick(() => {
+    if (!modelGroupRef.value) return
+    
+    const activeElement = modelGroupRef.value.querySelector('.model-list-item.active')
+    if (activeElement) {
+      // 计算需要滚动的位置，让激活元素居中显示
+      const container = modelGroupRef.value
+      const containerHeight = container.clientHeight
+      const elementTop = activeElement.offsetTop
+      const elementHeight = activeElement.offsetHeight
+      
+      // 滚动到使元素居中的位置
+      const scrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2)
+      
+      // 确保滚动位置在有效范围内
+      const maxScroll = container.scrollHeight - containerHeight
+      const finalScrollTop = Math.max(0, Math.min(scrollTop, maxScroll))
+      
+      container.scrollTo({
+        top: finalScrollTop,
+        behavior: 'smooth'
+      })
+    }
+  })
+}
+
+
+const addConfingModalRef = ref(null)
+const handleOpenAddConfigModal = () => {
+  addConfingModalRef.value.show()
+}
+
+const onDragEnd = () => {
+  let ids = hasAddModalList.value.map((item) => item.config_info_id).join(',')
+  setModelConfigWeight({ ids }).then(() => {
+    message.success(t('views.user.model.Sorting_successful'))
+    getModelList()
+  })
+}
+
 </script>
 
 <style lang="less" scoped>
@@ -511,7 +674,17 @@ const handleBuyPoints = ({ points }) => {
     overflow-x: hidden;
     overflow-y: auto;
     padding: 8px;
+    margin-bottom: 40px;
     scrollbar-width: none;
+    position: relative;
+    .footer-add-btn{
+      position: fixed;
+      bottom: 8px;
+      left: 255px;
+      width: 236px;
+      height: 32px;
+      padding: 0 5px;
+    }
     &::-webkit-scrollbar {
       display: none;
     }
@@ -525,6 +698,11 @@ const handleBuyPoints = ({ points }) => {
       cursor: pointer;
       line-height: 22px;
       font-size: 14px;
+      transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+      .drag-btn{
+        display: none;
+        cursor: grab;
+      }
       .model-name {
         flex: 1;
         overflow: hidden;
@@ -532,12 +710,29 @@ const handleBuyPoints = ({ points }) => {
         text-overflow: ellipsis;
         color: #595959;
       }
+      .access-icon {
+        font-size: 16px;
+        color: #21a665;
+      }
+      .del-icon{
+        font-size: 16px;
+        color: #ff4d4f;
+        display: none;
+      }
       .avatar {
         width: 22px;
-        // height: 24px;
       }
       &:hover {
         background-color: #e4e6eb;
+        .access-icon {
+          display: none;
+        }
+        .del-icon{
+          display: block;
+        }
+        .drag-btn{
+          display: block;
+        }
       }
       &.active {
         background-color: #e6efff;
@@ -642,7 +837,7 @@ const handleBuyPoints = ({ points }) => {
     }
   }
 }
-.guide-box{
+.guide-box {
   // width: 100%;
   // height: 100%;
   // overflow-y: auto;

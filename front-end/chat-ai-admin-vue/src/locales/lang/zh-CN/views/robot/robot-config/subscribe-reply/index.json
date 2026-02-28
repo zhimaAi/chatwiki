@@ -1,0 +1,14 @@
+{
+  "subscribe_reply": "关注后回复",
+  "switch_on": "开",
+  "switch_off": "关",
+  "switch_tip": "开启后，用户关注公众号后，回复指定的内容，该功能仅支持公众号内回复",
+  "alert_message": "开启后，用户关注公众号后，回复指定的内容，{highlight}",
+  "alert_highlight": "该功能仅支持已认证公众号/服务号",
+  "empty_default": "暂未绑定公众号",
+  "empty_sub": "请选到系统设置>公众号管理绑定公众号",
+  "btn_bind_account": "去绑定公众号",
+  "modal_title": "提示",
+  "modal_close_content": "关闭后，该功能默认关闭不再支持使用，所有的公众号菜单都会停用，确认关闭？",
+  "msg_operation_success": "操作成功"
+}

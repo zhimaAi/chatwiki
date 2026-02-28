@@ -552,13 +552,25 @@ func (n *LibsNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	if exist {
 		question = field.ShowVals()
 	}
+
+	appId := ""
+	if tool.InArrayString(flow.params.AppType, lib_define.AppTypeList) && flow.params.AppInfo != nil {
+		appId = flow.params.AppInfo[`app_id`]
+	}
+
 	list, libUseTime, err := common.GetMatchLibraryParagraphList(
-		flow.params.Lang, openid, flow.params.AppType, question, []string{},
+		flow.params.Lang, openid, flow.params.AppType, appId, question, []string{},
 		n.params.LibraryIds, n.params.TopK.Int(), n.params.Similarity, n.params.SearchType.Int(), robot,
 	)
 	isBackground := len(flow.params.Customer) > 0 && cast.ToInt(flow.params.Customer[`is_background`]) > 0
 	if !isBackground && len(list) == 0 { // Unknown question statistics
-		common.SaveUnknownIssueRecord(flow.params.Lang, flow.params.AdminUserId, flow.params.Robot, question)
+		common.SaveUnknownIssueRecord(flow.params.Lang, flow.params.AdminUserId, flow.params.Robot, question, common.UnknownIssueRelation{
+			Openid:     openid,
+			RelUserId:  flow.params.RelUserId,
+			DialogueId: flow.params.DialogueId,
+			SessionId:  flow.params.SessionId,
+			MessageId:  flow.params.CurMsgId,
+		})
 	}
 	if err != nil {
 		return

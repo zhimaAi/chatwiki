@@ -147,5 +147,8 @@
   "status_success": "成功",
   "btn_edit": "编辑",
   "confirm_update": "确认更新?",
-  "btn_update": "更新"
+  "btn_update": "更新",
+  "msg_relearn_success": "重新学习成功",
+  "msg_relearn_failed": "重新学习失败",
+  "tooltip_relearn": "重新学习"
 }

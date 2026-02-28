@@ -4,19 +4,19 @@
       <img src="@/assets/empty.png"/>
     </slot>
     <div class="title">
-      <slot name="title">{{ t(title) }}</slot>
+      <slot name="title">{{ title }}</slot>
     </div>
     <div class="desc">
-      <slot name="desc">{{ desc ? t(desc) : '' }}</slot>
+      <slot name="desc">{{ desc }}</slot>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { useI18n } from '@/hooks/web/useI18n';
+import { computed } from 'vue'
+import { useI18n } from '@/hooks/web/useI18n'
 
-const { t } = useI18n('components.common.empty-box');
+const { t } = useI18n('components.common.empty-box')
 
 const props = defineProps({
   title: {
@@ -29,6 +29,13 @@ const props = defineProps({
   }
 })
 
+const title = computed(() => {
+  return props.title === 'no_data' ? t('no_data') : props.title
+})
+
+const desc = computed(() => {
+  return props.desc ? props.desc : ''
+})
 </script>
 
 <style scoped lang="less">

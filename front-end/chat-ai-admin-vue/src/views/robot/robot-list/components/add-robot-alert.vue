@@ -73,6 +73,63 @@
     line-height: 22px;
   }
 }
+
+.avatar-wrap {
+  text-align: center;
+  margin-bottom: 16px;
+  :deep(.ant-upload.ant-upload-select) {
+    width: 62px !important;
+    height: 62px !important;
+    border-radius: 16px !important;
+  }
+  :deep(.form-item-tip) {
+    margin-top: 16px;
+  }
+}
+
+.avatar-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  .avatar-item {
+    width: 62px;
+    height: 62px;
+    border-radius: 16px;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+
+    &.active {
+      .selected-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+
+    .selected-icon {
+      display: none;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: 99;
+      left: 0;
+      top: 0;
+      background: #00000052;
+
+      img {
+        width: 32px;
+        height: 32px;
+      }
+    }
+
+    .avatar {
+      width: 100%;
+      height: 100%;
+    }
+  }
+}
 </style>
 
 <template>
@@ -86,48 +143,30 @@
   >
     <div class="form-box">
       <a-form layout="vertical">
-        <!-- <a-form-item label="应用类型" required>
-          <div class="robot-type-box">
-            <div
-              class="robot-item"
-              :class="{ active: formState.application_type == 0 }"
-              @click="formState.application_type = 0"
-            >
-              <svg-icon
-                v-if="formState.application_type == 0"
-                class="check-arrow"
-                name="check-arrow-filled"
-              ></svg-icon>
-              <div class="avatar-box">
-                <img src="@/assets/svg/chat-robot-icon.svg" alt="" />
-                <div class="robot-item-title">聊天机器人</div>
-              </div>
-              <div class="desc">简易的基于LLM和知识库的聊天应用，配置简单，适合新人上手</div>
-            </div>
-            <div
-              class="robot-item"
-              :class="{ active: formState.application_type == 1 }"
-              @click="formState.application_type = 1"
-            >
-              <svg-icon
-                v-if="formState.application_type == 1"
-                class="check-arrow"
-                name="check-arrow-filled"
-              ></svg-icon>
-              <div class="avatar-box">
-                <img src="@/assets/svg/workflow-robot-icon.svg" alt="" />
-                <div class="robot-item-title">工作流</div>
-              </div>
-              <div class="desc">可编排的任务工作流，将任务拆解成多个步骤逐步执行</div>
-            </div>
-          </div>
-        </a-form-item> -->
-        <a-form-item ref="name" label="" v-bind="validateInfos.robot_avatar_url" v-if="isEdit">
-          <div class="robot-avatar-box">
-            <AvatarInput :listType="'picture'" :style="{ width: '62px', height: '62px', borderRadius: '16px' }" v-model:value="formState.robot_avatar_url" @change="onAvatarChange" />
+          <div class="avatar-wrap">
+            <AvatarInput v-model:value="formState.robot_avatar_url" @change="onAvatarChange" />
             <div class="form-item-tip">{{ t('ph_upload_avatar') }}</div>
           </div>
-        </a-form-item>
+          <a-form-item ref="name" :label="t('label_default_avatar')" v-bind="validateInfos.robot_avatar_url">
+            <div class="avatar-list">
+              <div
+                v-for="(item, i) in showDefaultAvatars"
+                :key="i"
+                :class="['avatar-item', {active: formState.robot_avatar_url == item}]"
+                @click="selectDefaultAvatar(item)"
+              >
+                <div class="selected-icon"><img src="@/assets/img/selected-icon.png"/></div>
+                <img class="avatar" :src="item"/>
+              </div>
+            </div>
+          </a-form-item>
+
+<!--        <a-form-item ref="name" label="" v-bind="validateInfos.robot_avatar_url" v-if="isEdit">-->
+<!--          <div class="robot-avatar-box">-->
+<!--            <AvatarInput :listType="'picture'" :style="{ width: '62px', height: '62px', borderRadius: '16px' }" v-model:value="formState.robot_avatar_url" @change="onAvatarChange" />-->
+<!--            <div class="form-item-tip">{{ t('ph_upload_avatar') }}</div>-->
+<!--          </div>-->
+<!--        </a-form-item>-->
 
         <a-form-item required v-if="formState.application_type != 0" ref="en_name" :label="t('label_workflow_name')" v-bind="validateInfos.en_name">
           <a-input v-model:value="formState.en_name" :maxLength="50" :placeholder="t('ph_input')" />
@@ -159,11 +198,6 @@
             :placeholder="t('ph_intro_workflow')"
           />
         </a-form-item>
-
-        <a-form-item ref="name" :label="t('label_robot_avatar')" v-bind="validateInfos.robot_avatar_url" v-if="!isEdit">
-          <AvatarInput v-model:value="formState.robot_avatar_url" @change="onAvatarChange" />
-          <div class="form-item-tip">{{ t('ph_upload_avatar') }}</div>
-        </a-form-item>
       </a-form>
     </div>
   </a-modal>
@@ -179,7 +213,7 @@ import { getModelConfigOption } from '@/api/model/index'
 import { saveRobot, editBaseInfo, getRobotGroupList } from '@/api/robot/index'
 import { useRoute, useRouter } from 'vue-router'
 import AvatarInput from './avatar-input.vue'
-import { DEFAULT_ROBOT_AVATAR, DEFAULT_WORKFLOW_AVATAR } from '@/constants/index'
+import { DEFAULT_ROBOT_AVATAR, DEFAULT_WORKFLOW_AVATAR, DEFAULT_ROBOT_AVATAR_LIST } from '@/constants/index'
 import { useRobotStore } from '@/stores/modules/robot'
 
 const { t } = useI18n('views.robot.robot-list.components.add-robot-alert')
@@ -199,6 +233,7 @@ const show = ref(false)
 
 const saveLoading = ref(false)
 const groupLists = ref([])
+const showDefaultAvatars = ref([])
 
 const formState = reactive({
   robot_name: '',
@@ -264,6 +299,10 @@ const saveForm = () => {
     robot_intro: formState.robot_intro,
     robot_avatar: formState.robot_avatar || default_avatar,
     group_id: formState.group_id || '0'
+  }
+  if (typeof formData.robot_avatar === "string") {
+    formData.robot_avatar_url = formData.robot_avatar
+    delete formData.robot_avatar
   }
 
   saveLoading.value = true
@@ -350,6 +389,7 @@ const open = async (type, is_edit) => {
   } else {
     default_avatar = DEFAULT_WORKFLOW_AVATAR
   }
+  showDefaultAvatars.value = [default_avatar, ...DEFAULT_ROBOT_AVATAR_LIST]
   isEdit.value = is_edit
   // 验证是否有LLM
   let state = await checkLLM()
@@ -380,7 +420,7 @@ const open = async (type, is_edit) => {
       trigger: 'change'
     },
     {
-      validator: async (rule, value, callback) => { 
+      validator: async (rule, value, callback) => {
         if(!value){
           return Promise.resolve()
         }
@@ -424,6 +464,11 @@ const handleSave = () => {
     .catch((err) => {
       console.log('error', err)
     })
+}
+
+const selectDefaultAvatar = (val) => {
+  formState.robot_avatar_url = val
+  formState.robot_avatar = val
 }
 
 onMounted(() => {

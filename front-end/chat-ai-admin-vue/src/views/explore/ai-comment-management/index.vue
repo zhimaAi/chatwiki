@@ -22,13 +22,12 @@
     </template>
   </div>
 
-    <a-alert class="alert-box" show-icon style="margin: 16px 48px 0;">
+    <a-alert class="zm-alert-info" show-icon style="margin: 16px 48px 0;">
       <template #message>
         <div>
-          <span>{{ t('alert_support_tip') }}</span>
-          <br />
-          <span>{{ t('alert_auto_reply_tip') }}</span>
-          <a @click="goToArticleGroupSend" href="javascript:void(0);">{{ t('alert_go_create') }}</a>
+          <p class="text_color_ed744a">1. {{ t('alert_verified_account_only') }}</p>
+          <p>2. {{ t('alert_support_tip') }}</p>
+          <p>3. {{ t('alert_auto_reply_tip') }}  <a @click="goToArticleGroupSend" href="javascript:void(0);">{{ t('alert_go_create') }}</a></p>
         </div>
       </template>
     </a-alert>

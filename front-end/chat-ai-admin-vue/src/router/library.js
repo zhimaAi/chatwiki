@@ -167,6 +167,19 @@ export default {
         },
         hideTitle: true
       }
+    },
+    {
+      path: '/library/similar-question-list',
+      name: 'similarQuestionList',
+      component: () => import('../views/library/similar-question-list/index.vue'),
+      meta: {
+        title: '相似问题列表',
+        activeMenu: '/library',
+        pageStyle:{
+          'padding': '0 24px'
+        },
+        hideTitle: true
+      }
     }
   ]
 }

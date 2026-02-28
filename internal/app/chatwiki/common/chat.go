@@ -113,11 +113,17 @@ func BuildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 		}
 	}
 
+	appId := ""
+	if tool.InArrayString(params.AppType, lib_define.AppTypeList) {
+		appId = params.AppInfo[`app_id`]
+	}
+
 	//convert match
 	list, libUseTime, err := GetMatchLibraryParagraphList(
 		params.Lang,
 		params.Openid,
 		params.AppType,
+		appId,
 		params.Question,
 		optimizedQuestions,
 		params.LibraryIds,
