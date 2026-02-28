@@ -72,6 +72,14 @@ export const DEFAULT_MCP_AVATAR = '/upload/default/mcp_avatar.svg'
 // 默认模板头像
 export const DEFAULT_TEMPLATE_AVATAR = '/upload/default/template_avatar.svg'
 
+export const DEFAULT_ROBOT_AVATAR_LIST = [
+  '/upload/default/robot_avatar01.png',
+  '/upload/default/robot_avatar02.png',
+  '/upload/default/robot_avatar03.png',
+  '/upload/default/robot_avatar04.png',
+  '/upload/default/robot_avatar05.png',
+]
+
 // 默认模板主图
 export const DEFAULT_TEMPLATE_MAIN_PIC =
   'https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/modal-main-pic-new.png'
@@ -88,7 +96,7 @@ export const DEFAULT_WEBAPP_ICON = new URL('@/assets/img/sdk_float_avatar.svg', 
 // 默认prompt
 export const DERAULT_ROBOT_PROMPT = `回答要求：
 1、你现在是一位客服，请使用简洁、礼貌且专业的语言来回答问题
-2、你只能根据知识库回答用户提问，如果你不知道答案，请回答“对不起，没有在知识库中查找到相关信息。”
+2、你只能根据知识库回答用户提问，如果你不知道答案，请回答"对不起，没有在知识库中查找到相关信息。"
 3、请使用中文回答`
 
 export const OPEN_BOC_BASE_URL = '/open-doc'
@@ -166,4 +174,29 @@ export const SUBSCRIBE_SOURCE_OPTIONS = () => {
     { label: t('wxa'), value: 'ADD_SCENE_WXA' },
     { label: t('other'), value: 'ADD_SCENE_OTHERS' }
   ]
+}
+
+// 知识库知识来源
+export const KNOWLEDGE_SOURCE_TYPE_MAP = () => {
+  const { t } = useI18n('constants.index')
+  return {
+    1: t('local_document'),
+    2: t('online_document'),
+    3: t('custom_document'),
+    4: t('manual_qa'),
+    5: t('import_qa'),
+    6: t('feishu_knowledge')
+  }
+}
+
+export const GRAPH_STATUS_MAP = () => {
+  const { t } = useI18n('constants.index')
+  return {
+    0: t('pending_generation'),
+    1: t('in_queue'),
+    2: t('generation_complete'),
+    3: t('generation_failed'),
+    4: t('generating'),
+    5: t('partial_success')
+  }
 }

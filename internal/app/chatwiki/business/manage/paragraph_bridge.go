@@ -404,6 +404,27 @@ func BridgeSaveParagraph(adminUserId, loginUserId int, lang string, req *BridgeS
 		if len(content) < 1 || utf8.RuneCountInString(content) > common.MaxContent {
 			return nil, -1, errors.New(i18n.Show(lang, `length_error`))
 		}
+
+		// Convert similarQuestions to a JSON array, the number of elements in the array cannot exceed 50,
+		// and the Chinese characters in each element cannot exceed 20 characters
+		if similarQuestions != `[]` {
+			similarQuestionsList := make([]string, 0)
+			if err := tool.JsonDecodeUseNumber(similarQuestions, &similarQuestionsList); err != nil || len(similarQuestionsList) == 0 {
+				return nil, -1, errors.New(i18n.Show(lang, `param_err`, `similar_questions`))
+			}
+			if len(similarQuestionsList) > 50 {
+				return nil, -1, errors.New(i18n.Show(lang, `similar_questions_error`))
+			}
+
+			if len(similarQuestionsList) > 0 {
+				for _, item := range similarQuestionsList {
+					if len(item) > 300 && utf8.RuneCountInString(item) > 100 {
+						return nil, -1, errors.New(i18n.Show(lang, `similar_questions_error`))
+					}
+				}
+			}
+		}
+
 	}
 	jsonImages, err := common.CheckLibraryImage(images)
 	if err != nil {
@@ -497,6 +518,7 @@ func BridgeSaveParagraph(adminUserId, loginUserId int, lang string, req *BridgeS
 		data[`content`] = content
 		data[`question`] = ``
 		data[`answer`] = ``
+		data[`similar_questions`] = similarQuestions
 		if id > 0 {
 			_, err = m.Where(`id`, cast.ToString(id)).Update(data)
 		} else {
@@ -524,6 +546,30 @@ func BridgeSaveParagraph(adminUserId, loginUserId int, lang string, req *BridgeS
 			return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
 		}
 		vectorIds = append(vectorIds, vectorID)
+		similarQuestionArr := make([]string, 0)
+		tool.JsonDecode(similarQuestions, &similarQuestionArr)
+		if err = common.DeleteLibraryFileDataIndex(cast.ToString(id), cast.ToString(define.VectorTypeSimilarQuestion)); err != nil {
+			logs.Error(err.Error())
+			_ = m.Rollback()
+			return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
+		}
+		for _, similarQuestion := range similarQuestionArr {
+			vectorID, err := common.SaveVector(
+				cast.ToInt64(adminUserId),
+				cast.ToInt64(fileInfo[`library_id`]),
+				fileId,
+				id,
+				cast.ToString(define.VectorTypeSimilarQuestion),
+				strings.TrimSpace(similarQuestion),
+			)
+			if err != nil {
+				logs.Error(err.Error())
+				_ = m.Rollback()
+				return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
+			}
+			vectorIds = append(vectorIds, vectorID)
+		}
+
 	}
 	err = m.Commit()
 	if err != nil {

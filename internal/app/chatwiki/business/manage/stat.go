@@ -282,8 +282,9 @@ func StatAiTipAnalyse(c *gin.Context) {
 	}
 	robotId := cast.ToInt(c.Query(`robot_id`))
 	startDate := strings.TrimSpace(c.DefaultQuery(`start_date`, time.Now().Format(`2006-01-02`)))
-	channel := strings.TrimSpace(c.Query(`channel`))
 	endDate := strings.TrimSpace(c.DefaultQuery(`end_date`, time.Now().Format(`2006-01-02`)))
+	appType := strings.TrimSpace(c.Query(`app_type`))
+	appId := strings.TrimSpace(c.Query(`app_id`))
 	if robotId <= 0 || len(startDate) == 0 || len(endDate) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
@@ -298,7 +299,7 @@ func StatAiTipAnalyse(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `end_date`))))
 		return
 	}
-	data, err := common.StatAiTipAnalyse(userId, robotId, startDate, endDate, common.GetLang(c), channel)
+	data, err := common.StatAiTipAnalyse(userId, robotId, startDate, endDate, common.GetLang(c), appType, appId)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return

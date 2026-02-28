@@ -9,6 +9,7 @@ const Postgres = lib_define.Postgres
 const (
 	TableRole              = "role"
 	TableUser              = "public.user"
+	TableUserConfig        = "user_config"
 	TableMenu              = "menu"
 	TableCompany           = "company"
 	TableFastCommand       = "fast_command"

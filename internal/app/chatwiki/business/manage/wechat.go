@@ -46,27 +46,60 @@ func GetWechatAppList(c *gin.Context) {
 	if len(appName) > 0 {
 		m.Where(`app_name`, `like`, appName)
 	}
+	queryAll := cast.ToInt(c.Query(`is_all`))
+
 	list, err := m.Order(`id desc`).Select()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+	lang := common.GetLang(c)
 	for i, appInfo := range list {
+
 		accountIsVerify := lib_define.WechatAccountIsVerify(appInfo[`account_customer_type`])
 		list[i][`account_is_verify`] = cast.ToString(accountIsVerify)
+		list[i][`account_corp_verify`] = cast.ToString(lib_define.WechatAccountIsCorpVerify(appInfo[`account_customer_type`]))
+
 		if appInfo[`app_type`] == lib_define.AppOfficeAccount && !accountIsVerify {
-			list[i][`wechat_reply_type`] = i18n.Show(common.GetLang(c), `wechat_no_answer_manual_get`, define.Config.WebService[`wechat_wait`])
+			list[i][`wechat_reply_type`] = i18n.Show(lang, `wechat_no_answer_manual_get`, define.Config.WebService[`wechat_wait`])
 		} else {
-			list[i][`wechat_reply_type`] = i18n.Show(common.GetLang(c), `system_auto_reply`)
+			list[i][`wechat_reply_type`] = i18n.Show(lang, `system_auto_reply`)
 		}
-		if appInfo[`account_customer_type`] == `-1` && tool.InArrayString(appInfo[`app_type`], []string{lib_define.AppOfficeAccount, lib_define.AppMini}) {
+		//account_type_name
+		if appInfo[`account_type`] != `-1` && appInfo[`account_type`] != `0` {
+			list[i][`account_type_name`] = i18n.Show(lang, fmt.Sprintf(`account_type_%s`, appInfo[`account_type`]))
+		} else {
+			list[i][`account_type_name`] = ``
+		}
+		//account_customer_type_name
+		if appInfo[`account_customer_type`] != `-1` && appInfo[`account_customer_type`] != `0` {
+			list[i][`account_customer_type_name`] = i18n.Show(lang, fmt.Sprintf(`account_customer_type_%s`, appInfo[`account_customer_type`]))
+		} else {
+			list[i][`account_customer_type_name`] = ``
+		}
+		if (appInfo[`account_customer_type`] == `-1` || appInfo[`account_type`] == `-1`) && tool.InArrayString(appInfo[`app_type`], []string{lib_define.AppOfficeAccount, lib_define.AppMini}) {
 			go func() {
 				_ = common.RefreshAccountVerify(appInfo) //refresh defaults asynchronously
 			}()
 		}
+		if queryAll == 0 && !accountIsVerify { //过滤未认证的账号
+			list[i] = nil
+			continue
+		}
 	}
+	list = filterNilByMSQLParams(list)
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
+}
+
+func filterNilByMSQLParams(list []msql.Params) []msql.Params {
+	var newList = make([]msql.Params, 0)
+	for _, item := range list {
+		if item != nil {
+			newList = append(newList, item)
+		}
+	}
+	return newList
 }
 
 // RobotRelateOfficialAccount binds a robot to an official account
@@ -300,6 +333,7 @@ func SaveWechatApp(c *gin.Context) {
 	//WeChat app verification type
 	if basic, _, err := app.GetAccountBasicInfo(); err == nil {
 		data[`account_customer_type`] = basic.CustomerType
+		data[`account_type`] = basic.AccountType
 	}
 	m := msql.Model(`chat_ai_wechat_app`, define.Postgres)
 	if id > 0 {

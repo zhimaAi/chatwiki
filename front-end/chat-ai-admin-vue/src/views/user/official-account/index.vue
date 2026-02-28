@@ -129,8 +129,9 @@ onMounted(() => {
 
 const getList = () => {
   getWechatAppList({
+    is_all: 1,
     app_type: 'official_account',
-    app_name: ''
+    app_name: '',
   }).then((res) => {
     list.value = res.data
   }).finally(() => {

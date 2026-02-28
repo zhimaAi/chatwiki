@@ -29,6 +29,7 @@
   "image_optimize_prompt": "Support Auto Optimize Prompt",
   "support_input_type": "Support Input Type",
   "support_output_type": "Support Output Type",
+  "example": "Example",
   "text": "Text",
   "voice": "Voice",
   "image_type": "Image",

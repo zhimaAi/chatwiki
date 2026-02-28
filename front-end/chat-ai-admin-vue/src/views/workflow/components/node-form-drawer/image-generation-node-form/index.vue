@@ -313,7 +313,7 @@ const sizeOptions = computed(() => {
   if (image_generation_config.value.image_sizes) {
     return image_generation_config.value.image_sizes
       .split(',')
-      .map((item) => allSizeOptions.find((it) => it.value == item))
+      .map((item) => allSizeOptions.find((it) => it.value == item)).filter(Boolean)
   }
   return []
 })

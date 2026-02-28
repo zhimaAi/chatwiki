@@ -21,6 +21,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
+	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
@@ -208,14 +209,15 @@ func (r *ChatMessagesReq) buildChatRequestParam(c *gin.Context) (*define.ChatReq
 	}
 	isClose := false
 	return &define.ChatRequestParam{
-		ChatBaseParam:  chatBaseParam,
-		Lang:           common.GetLang(c),
-		Question:       string(r.Content),
-		OpenApiContent: tool.JsonEncodeNoError(r.Messages),
-		WechatappAppid: c.GetString(`wechatapp_appid`),
-		IsClose:        &isClose,
-		WorkFlowGlobal: r.Global,
-		QuoteLib:       r.QuoteLib,
+		ChatBaseParam:       chatBaseParam,
+		Lang:                common.GetLang(c),
+		Question:            string(r.Content),
+		OpenApiContent:      tool.JsonEncodeNoError(r.Messages),
+		WechatappAppid:      c.GetString(`wechatapp_appid`),
+		IsClose:             &isClose,
+		WorkFlowGlobal:      r.Global,
+		QuoteLib:            r.QuoteLib,
+		ChatPromptVariables: GetPromptVariables(robot[`id`], c),
 	}, nil
 }
 
@@ -253,4 +255,65 @@ func OpenWorkFlowWebHook(c *gin.Context) {
 		c.String(http.StatusOK, ``)
 	}
 	c.String(http.StatusOK, res)
+}
+
+func GetPromptVariables(robotId string, c *gin.Context) string {
+	chatPromptVariables := c.PostForm(`chat_prompt_variables`)
+	if len(chatPromptVariables) == 0 {
+		return ""
+	}
+
+	// Parse input variable data
+	var inputVariables []map[string]string
+	if err := tool.JsonDecode(chatPromptVariables, &inputVariables); err != nil {
+		logs.Error("GetPromptVariables decode error: %s", err.Error())
+		return ""
+	}
+
+	// Query all variables for this robot at once
+	allVariables, err := msql.Model(`chat_ai_variables`, define.Postgres).
+		Where(`robot_id`, robotId).
+		Select()
+	if err != nil {
+		logs.Error("GetPromptVariables select error: %s", err.Error())
+		return ""
+	}
+
+	// Build mapping from variable_key to variableData
+	variableMap := make(map[string]msql.Params)
+	for _, v := range allVariables {
+		variableMap[v["variable_key"]] = v
+	}
+
+	var result []map[string]any
+	for _, inputVar := range inputVariables {
+		variableKey := inputVar["variable_key"]
+		value := inputVar["value"]
+		variableData, exists := variableMap[variableKey]
+		if !exists {
+			continue
+		}
+		resultItem := make(map[string]any)
+		for k, v := range variableData {
+			resultItem[k] = v
+		}
+		switch variableData[`variable_type`] {
+		case common.VariableTypeSelectOne:
+			var options []map[string]any
+			if err := tool.JsonDecode(variableData[`options`], &options); err == nil {
+				resultItem["options"] = options
+			}
+			resultItem["value"] = value
+		case common.VariableTypeCheckboxSwitch:
+			resultItem["value"] = cast.ToInt(value)
+		default:
+			resultItem["value"] = value
+		}
+		result = append(result, resultItem)
+	}
+
+	if len(result) == 0 {
+		return ""
+	}
+	return tool.JsonEncodeNoError(result)
 }

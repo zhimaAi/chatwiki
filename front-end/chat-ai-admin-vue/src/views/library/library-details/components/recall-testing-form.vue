@@ -91,7 +91,6 @@
 
         .recommendation-icon {
           margin-left: 4px;
-          font-size: 36px;
         }
       }
 
@@ -177,7 +176,7 @@
               <div class="retrieval-mode-title">
                 <svg-icon :name="item.iconName" class="title-icon"></svg-icon>
                 <span class="title-text">{{ item.title }}</span>
-                <img v-if="item.isRecommendation" style="width: 32px;" src="@/assets/svg/recommendation.svg" alt="">
+                <SvgTextTag class="recommendation-icon" :text="tCommon('recommendation')" v-if="item.isRecommendation" />
               </div>
 
               <div class="retrieval-mode-desc">
@@ -265,7 +264,6 @@
 </template>
 
 <script setup>
-import { getModelConfigOption } from '@/api/model/index'
 import { reactive, ref, toRaw, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -274,8 +272,10 @@ import { message } from 'ant-design-vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { libraryRecallTest, getDefaultRrfWeight } from '@/api/library'
 import WeightSelect from '@/components/weight-select/index.vue'
+import SvgTextTag from '@/components/icons/SvgTextTag.vue'
 
 const { t } = useI18n('views.library.library-details.components.recall-testing-form')
+const { t: tCommon } = useI18n('common')
 
 const route = useRoute()
 const loading = ref(false)

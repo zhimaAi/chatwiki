@@ -93,7 +93,7 @@ export interface ExternalConfigH5 {
   open_type: number
   window_width: number
   window_height: number
-  new_session_btn_show: number
+  new_session_btn_show: number // 显示新对话按钮
 }
 
 export const useChatStore = defineStore('chat', () => {
@@ -170,7 +170,7 @@ export const useChatStore = defineStore('chat', () => {
   // 创建对话
   const isNewChat = ref(false)
 
-  const createChat = async (data: Chat) => {
+  const createChat = async (data: Chat, autoInsertWelcomeMsg = true, isForceNewChat = false) => {
     if (mySSE) {
       mySSE.abort()
       mySSE = null
@@ -205,14 +205,19 @@ export const useChatStore = defineStore('chat', () => {
       openid: openid.value,
       nickname: user.nickname,
       name: user.name,
-      avatar: user.avatar
+      avatar: user.avatar,
+      dialogue_id: dialogue_id.value,
+      use_new_dialogue: isNewChat.value ? 1 : 0,
     })
 
     try {
       const userInfo = res.data.customer
       const robotInfo = res.data.robot
-      if(isFirstLoad) {
+
+      // 首次加载时，获取对话id
+      if(isFirstLoad && !isForceNewChat && dialogue_id.value === 0) {
         dialogue_id.value = res.data.dialog_id || 0
+        externalConfigH5.new_session_btn_show == 1 
         isFirstLoad = false
       }
 
@@ -247,8 +252,10 @@ export const useChatStore = defineStore('chat', () => {
       }
 
       // 插入欢迎语
-      insertWelcomeMsg(res.data.message)
-
+      if(autoInsertWelcomeMsg){
+        insertWelcomeMsg(res.data.message)
+      }
+      
       // 连接im
       im.connect(openid.value)
       im.on('message', onImMessage)
@@ -490,7 +497,7 @@ export const useChatStore = defineStore('chat', () => {
       dialogue_id: dialogue_id.value,
       global: data.global,
       rel_user_id: userStore.userInfo ? userStore.userInfo.user_id : '',
-      use_new_dialogue: externalConfigH5.new_session_btn_show == 1 ? 1 : 0,
+      use_new_dialogue: externalConfigH5.new_session_btn_show == 1 || isNewChat.value ? 1 : 0, // 是否使用新对话,强制后台不返回最近的回话id(dialogue_id)
     }
 
     let variables_key = `chat_prompt_variables_${robot.robot_key}`
@@ -520,7 +527,6 @@ export const useChatStore = defineStore('chat', () => {
       if (res.event == 'c_message') {
         const data = JSON.parse(res.data)
         // 插入用户的问题到聊天记录
-        console.log(data)
         pushUserMessage(data)
       }
 
@@ -630,7 +636,7 @@ export const useChatStore = defineStore('chat', () => {
   const myChatListLoading = ref(false)
   const myChatListLoadCompleted = ref(false)
 
-  const getMyChatList = async () => {
+  const getMyChatList = async (robot_key?: string, openid?: string) => {
     if (myChatListLoadCompleted.value || myChatListLoading.value) {
       return false
     }
@@ -645,8 +651,8 @@ export const useChatStore = defineStore('chat', () => {
     const res = await getDialogueList({
       min_id: min_id,
       size: myChatListSize,
-      robot_key: robot.robot_key,
-      openid: robot.openid,
+      robot_key: robot.robot_key || robot_key,
+      openid: robot.openid || openid,
     })
 
     myChatListLoading.value = false

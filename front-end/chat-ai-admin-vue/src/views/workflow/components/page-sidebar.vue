@@ -23,6 +23,7 @@
     width: 18px;
     height: 100%;
     z-index: 100;
+    background-color: #fff;
   }
   .sidebar-handle {
     position: absolute;

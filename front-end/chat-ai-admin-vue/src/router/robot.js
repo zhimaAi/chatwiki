@@ -14,7 +14,6 @@ export default {
         activeMenu: '/robot',
         bgColor: '#ffffff',
         pageStyle: {
-          'padding-right': 0,
           overflow: 'hidden'
         }
       }

@@ -18,8 +18,24 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
-func SaveUnknownIssueRecord(lang string, adminUserId int, robot msql.Params, question string) {
+type UnknownIssueRelation struct {
+	Openid      string
+	RelUserId   int
+	DialogueId  int
+	SessionId   int
+	MessageId   int
+	TriggerTime int
+}
+
+func SaveUnknownIssueRecord(lang string, adminUserId int, robot msql.Params, question string, relation ...UnknownIssueRelation) {
 	question = GetFirstQuestionByInput(question) // Special handling for multimodal input
+	rel := UnknownIssueRelation{}
+	if len(relation) > 0 {
+		rel = relation[0]
+	}
+	if rel.TriggerTime <= 0 {
+		rel.TriggerTime = tool.Time2Int()
+	}
 	m := msql.Model(`chat_ai_unknown_issue_stats`, define.Postgres)
 	id, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`robot_id`, robot[`id`]).
 		Where(`stats_day`, cast.ToString(tool.GetYmd(0))).Where(`question`, question).Value(`id`)
@@ -29,18 +45,27 @@ func SaveUnknownIssueRecord(lang string, adminUserId int, robot msql.Params, que
 	}
 	if cast.ToUint(id) == 0 { // No data
 		ins := msql.Datas{
-			`admin_user_id`: adminUserId,
-			`robot_id`:      robot[`id`],
-			`stats_day`:     tool.GetYmd(0),
-			`question`:      question,
-			`create_time`:   tool.Time2Int(),
-			`update_time`:   tool.Time2Int(),
+			`admin_user_id`:      adminUserId,
+			`robot_id`:           robot[`id`],
+			`stats_day`:          tool.GetYmd(0),
+			`question`:           question,
+			`sample_openid`:      rel.Openid,
+			`sample_rel_user_id`: rel.RelUserId,
+			`sample_dialogue_id`: rel.DialogueId,
+			`sample_session_id`:  rel.SessionId,
+			`sample_message_id`:  rel.MessageId,
+			`last_dialogue_id`:   rel.DialogueId,
+			`last_session_id`:    rel.SessionId,
+			`last_message_id`:    rel.MessageId,
+			`last_trigger_time`:  rel.TriggerTime,
+			`create_time`:        tool.Time2Int(),
+			`update_time`:        tool.Time2Int(),
 		}
 		newId, err := m.Insert(ins, `id`)
 		if err != nil {
 			var sqlerr *pq.Error
 			if errors.As(err, &sqlerr) && sqlerr.Code == `23505` { // Unique index constraint
-				SaveUnknownIssueRecord(lang, adminUserId, robot, question)
+				SaveUnknownIssueRecord(lang, adminUserId, robot, question, rel)
 				return
 			}
 			logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
@@ -54,6 +79,10 @@ func SaveUnknownIssueRecord(lang string, adminUserId int, robot msql.Params, que
 	}
 	// Start updating data
 	sqlraw := fmt.Sprintf(`trigger_total=trigger_total+1,update_time=%d`, tool.Time2Int())
+	if rel.DialogueId > 0 {
+		sqlraw += fmt.Sprintf(`,last_dialogue_id=%d,last_session_id=%d,last_message_id=%d,last_trigger_time=%d`,
+			rel.DialogueId, rel.SessionId, rel.MessageId, rel.TriggerTime)
+	}
 	if _, err = m.Where(`id`, id).Update2(sqlraw); err != nil {
 		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 	}

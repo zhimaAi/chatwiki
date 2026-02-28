@@ -4,7 +4,10 @@
   "label_dont_remind": "3天内不再提醒",
   "btn_cancel": "取消",
   "btn_go_to_use": "去使用",
-  "msg_close_confirm_default": "关闭后，该功能默认关闭不再支持使用，所有的公众号菜单都会停用，确认关闭？",
+  "msg_close_confirm_default": "关闭后，该功能不再支持使用，确认关闭？",
+  "msg_close_smart_menu_no_reply": "关闭后，其他回复智能菜单的规则触发后都不再回复",
+  "msg_close_auto_reply_no_content": "关闭后，触发了关键词以及收到消息回复都不会再回复指定的内容",
+  "msg_close_confirm_menus": "关闭后，该功能默认关闭不再支持使用，所有的公众号菜单都会停用，确认关闭？",
   "msg_close_confirm_library": "关闭后，知识库模块将不再显示公众号知识库模块，历史已导入的文章将无法引用，确认关闭？",
   "msg_close_confirm_payment": "关闭后，设置的收费策略将失效，确认关闭？",
   "msg_operation_success": "操作成功"

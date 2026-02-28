@@ -65,6 +65,7 @@ import { Popup, Button, Field, Form } from 'vant';
 import { useUserStore } from '@/stores/modules/user'
 import { useI18n } from '@/hooks/web/useI18n'
 
+const emit = defineEmits(['loginSuccess'])
 const { t } = useI18n('views.chat.components.login-modal')
 const userStore = useUserStore()
 
@@ -85,6 +86,7 @@ const handleLogin = () => {
   .then(() => {
     submitLoading.value = false
     showLogin.value = false
+    emit('loginSuccess')
   })
 };
 

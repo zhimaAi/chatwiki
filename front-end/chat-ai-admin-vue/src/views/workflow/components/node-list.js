@@ -547,6 +547,7 @@ export const nodeList = [
           question_value: 'global.question',
           libs_node_key: void 0,
           recall_neighbor_switch: false,
+          recall_neighbor_top_k: 5,
           recall_neighbor_before_num: 1,
           recall_neighbor_after_num: 1,
         }

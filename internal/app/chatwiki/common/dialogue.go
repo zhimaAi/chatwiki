@@ -89,10 +89,10 @@ func GetSessionId(params *define.ChatRequestParam, dialogueId int) (int, error) 
 	}
 	// Daily active user count + daily new user count
 	go func() {
-		if err = statDailyActiveUser(params.AdminUserId, cast.ToInt(params.Robot[`id`]), params.AppType); err != nil {
+		if err = statDailyActiveUser(params.AdminUserId, cast.ToInt(params.Robot[`id`]), params.AppType, appId); err != nil {
 			logs.Error(err.Error())
 		}
-		if err = statDailyNewUser(params.AdminUserId, cast.ToInt(params.Robot[`id`]), params.AppType, params.Openid); err != nil {
+		if err = statDailyNewUser(params.AdminUserId, cast.ToInt(params.Robot[`id`]), params.AppType, appId, params.Openid); err != nil {
 			logs.Error(err.Error())
 		}
 	}()

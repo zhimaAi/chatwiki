@@ -223,6 +223,15 @@ func ReplaceChatVariables(lang string, sessionId int, prompt *string, promptStru
 	}
 	ReplaceChatVariable(lang, &sp.Role.Describe, chatPromptVariables, re)
 	ReplaceChatVariable(lang, &sp.Task.Describe, chatPromptVariables, re)
+	ReplaceChatVariable(lang, &sp.Constraints.Describe, chatPromptVariables, re)
+	ReplaceChatVariable(lang, &sp.Skill.Describe, chatPromptVariables, re)
+	ReplaceChatVariable(lang, &sp.Output.Describe, chatPromptVariables, re)
+	ReplaceChatVariable(lang, &sp.Tone.Describe, chatPromptVariables, re)
+	if len(sp.Custom) > 0 {
+		for _, item := range sp.Custom {
+			ReplaceChatVariable(lang, &item.Describe, chatPromptVariables, re)
+		}
+	}
 	*promptStruct = tool.JsonEncodeNoError(sp)
 }
 
@@ -234,7 +243,7 @@ func ReplaceChatVariable(lang string, str *string, chatPromptVariables []ChatVar
 	}
 	for _, item := range chatPromptVariables {
 		if item.VariableType == VariableTypeCheckboxSwitch {
-			if cast.ToInt(item.VariableType) == 1 {
+			if cast.ToInt(item.Value) == 1 {
 				replaces[`【chat_variable:`+item.VariableKey+`】`] = i18n.Show(lang, `chat_variable_selected`)
 			} else {
 				replaces[`【chat_variable:`+item.VariableKey+`】`] = i18n.Show(lang, `chat_variable_unselected`)

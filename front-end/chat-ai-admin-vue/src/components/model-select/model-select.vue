@@ -120,6 +120,22 @@ const getModelList = () => {
     model_type: props.modelType
   }).then((res) => {
     let list = res.data || []
+    list = list.sort((a, b) => {
+      // 如果两个元素的weight都大于0，则按weight升序排列
+      if (a.weight > 0 && b.weight > 0) {
+        return a.weight - b.weight
+      }
+      // 如果a的weight大于0，b的weight小于等于0，则a排在前面
+      if (a.weight > 0 && b.weight <= 0) {
+        return -1
+      }
+      // 如果a的weight小于等于0，b的weight大于0，则b排在前面
+      if (a.weight <= 0 && b.weight > 0) {
+        return 1
+      }
+      // 如果两个元素的weight都小于等于0，则保持原有顺序
+      return 0
+    })
     let { newList, choosableThinking } = getModelOptionsList(list, props.modeIdType)
     modelList.value = newList
     emit('loaded', modelList.value, choosableThinking)

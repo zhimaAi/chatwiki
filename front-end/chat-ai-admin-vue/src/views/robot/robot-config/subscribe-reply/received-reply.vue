@@ -1,14 +1,12 @@
 <template>
   <div class="user-model-page">
-    <!-- <div class="page-title">关注后自动回复</div> -->
+    <!-- <div class="page-title">{{ t('title_subscribe_reply') }}</div> -->
     <div class="breadcrumb-wrap">
       <svg-icon @click="goBack" name="back" style="font-size: 20px;" />
-      <div @click="goBack" class="breadcrumb-title">关注后回复</div>
-      <!-- 关注后回复开关，开关后面的提示：开启后，用户关注公众号后，回复指定的内容，该功能仅支持公众号内回复 -->
-       <a-switch v-model:checked="enabled_status" :checkedValue="'1'" :un-checkedValue="'0'" checked-children="开" un-checked-children="关" @change="handleSwitchChange" />
-       <span class="switch-tip">开启后，用户关注公众号后，回复指定的内容，该功能仅支持公众号内回复</span>
+      <div @click="goBack" class="breadcrumb-title">{{ t('title_subscribe_reply') }}</div>
+       <a-switch v-model:checked="enabled_status" :checkedValue="'1'" :un-checkedValue="'0'" :checkedChildren="t('switch_on')" :unCheckedChildren="t('switch_off')" @change="handleSwitchChange" />
+       <span class="switch-tip">{{ t('switch_tip') }}</span>
     </div>
-    <!-- 公众号列表 -->
     <div class="mp-list-block">
       <div class="mp-list" :class="{ expanded }" ref="mpListRef">
         <div class="mp-card" v-for="mp in (expanded ? mpAccounts : mpAccounts.slice(0, visibleCount))" :key="mp.id" :class="{ selected: mp.appid === selectedAppid }" @click="selectMp(mp)">
@@ -16,20 +14,24 @@
           <span class="mp-name">{{ mp.name }}</span>
         </div>
         <a-button v-if="!expanded && mpAccounts.length > visibleCount" type="dashed" class="more-btn" @click="expanded = true">
-          更多 +{{ mpAccounts.length - visibleCount }}
+          {{ t('btn_more') }} +{{ mpAccounts.length - visibleCount }}
         </a-button>
       </div>
     </div>
     <a-tabs v-model:activeKey="rule_type" @change="onRuleTypeChange" style="margin-top: 8px;">
-      <a-tab-pane key="subscribe_reply_default" tab="默认回复" />
-      <a-tab-pane key="subscribe_reply_duration" tab="按时段设置" />
-      <a-tab-pane key="subscribe_reply_source" tab="按关注来源设置" />
+      <a-tab-pane key="subscribe_reply_default" :tab="t('tab_default_reply')" />
+      <a-tab-pane key="subscribe_reply_duration" :tab="t('tab_duration_reply')" />
+      <a-tab-pane key="subscribe_reply_source" :tab="t('tab_source_reply')" />
     </a-tabs>
     <a-alert show-icon>
       <template #message>
-        <p v-if="rule_type === 'subscribe_reply_default'">关注后1分钟内只能给粉丝发送3条消息。建议关注后自动回复数量不要超过2条。可以根据关注来源或关注时间段单独设置回复</p>
-        <p v-else-if="rule_type === 'subscribe_reply_duration'">优先级设置的区间为1-100的自然整数，数字越小，优先级越高。触发优先级为：按时间段回复>按关注来源回复>默认回复。</p>
-        <p v-else>触发优先级为：按时间段回复>按关注来源回复>默认回复。</p>
+        <p v-if="rule_type === 'subscribe_reply_default'">
+          {{ t('msg_default_reply_limit') }}<span class="text_color_ed744a">{{ t('label_verified_only') }}</span>
+        </p>
+        <p v-else-if="rule_type === 'subscribe_reply_duration'">
+          {{ t('msg_duration_priority') }} <span class="text_color_ed744a">{{ t('label_verified_only') }}</span>
+        </p>
+        <p v-else>{{ t('msg_source_priority') }}<span class="text_color_ed744a"> {{ t('label_verified_only') }}</span></p>
       </template>
     </a-alert>
     <div class="search-block" v-if="rule_type !== 'subscribe_reply_default'">
@@ -38,30 +40,18 @@
           <template #icon>
             <PlusOutlined />
           </template>
-          {{ rule_type === 'subscribe_reply_duration' ? '增加时段回复' : '新增回复' }}
+          {{ rule_type === 'subscribe_reply_duration' ? t('btn_add_duration_reply') : t('btn_add_reply') }}
         </a-button>
-        <!-- 回复内容：text：文本，image：图片，voice：语音，video：视频 -->
         <div class="search-item">
           <a-select
             v-model="reply_type"
-            placeholder="回复内容"
+            :placeholder="t('ph_reply_content')"
             allowClear
             :options="replyTypeOptions"
             style="width: 240px;"
             @change="onReplyTypeChange"
           />
         </div>
-
-        <!-- <div class="search-item">
-          <a-input-search
-            v-model:value="search_keyword"
-            placeholder="请输入关键词名称和规则名称搜索"
-            allowClear
-            style="width: 240px;"
-            @search="onSearch"
-          >
-          </a-input-search>
-        </div> -->
       </div>
       </div>
       <div class="list-box" v-if="rule_type !== 'subscribe_reply_default'">
@@ -81,14 +71,14 @@
       >
         <template #headerCell="{ column }">
           <span v-if="column.key === 'priority_num'">
-            优先级
-            <a-tooltip title="优先级设置的数值不能重复，数值越小，优先级越高">
+            {{ t('label_priority') }}
+            <a-tooltip :title="t('tooltip_priority')">
               <QuestionCircleOutlined />
             </a-tooltip>
           </span>
           <span v-else-if="column.key === 'switch_status'">
-            启用状态
-            <a-tooltip :title="rule_type === 'receive_reply_message_type' ? '开启开关后，触发消息类型回复指定的内容' : '开启后，按照设置的时间段回复指定的内容'">
+            {{ t('label_switch_status') }}
+            <a-tooltip :title="rule_type === 'receive_reply_message_type' ? t('tooltip_switch_status_message') : t('tooltip_switch_status_duration')">
               <QuestionCircleOutlined />
             </a-tooltip>
           </span>
@@ -96,20 +86,17 @@
         </template>
         <template #bodyCell="{ column, record }">
 
-          <!-- 关注来源 -->
           <template v-if="column.key === 'subscribe_source'">
             <span style="color:#595959;">{{ formatMessageType(record) }}</span>
           </template>
-          <!-- 回复内容 -->
           <template v-if="column.key === 'reply_content'">
             <span style="color:#595959;">{{ summarizeReplyTypes(record.reply_content) || '--' }}</span>
           </template>
 
           <template v-if="column.key === 'reply_num'">
-            {{ record.reply_num == 0 ? '全部回复' : '随机回复一条' }}
+            {{ record.reply_num == 0 ? t('label_all_reply') : t('label_random_reply') }}
           </template>
 
-          <!-- 创建时间 -->
           <template v-if="column.key === 'create_time'">
             <span style="color:#595959;">{{ formatDateFn(record.create_time) || '--' }}</span>
           </template>
@@ -118,7 +105,6 @@
             <span style="color:#595959; white-space: pre-wrap;">{{ formatDurationLabel(record) }}</span>
           </template>
 
-          <!-- 优先级可编辑 -->
           <template v-if="column.key === 'priority_num'">
             <a-input-number
               v-model:value="record.priority_num"
@@ -131,25 +117,22 @@
             />
           </template>
 
-          <!-- 启用状态 开关-->
           <template v-if="column.key === 'switch_status'">
             <a-switch
               :checked="record.switch_status"
               :checkedValue="'1'"
               :un-checkedValue="'0'"
-              checked-children="开"
-              un-checked-children="关"
+              :checkedChildren="t('switch_on')"
+              :unCheckedChildren="t('switch_off')"
               @change="handleReplySwitchChange(record, $event)"
             />
           </template>
 
-
-          <!-- 操作 -->
           <template v-if="column.key === 'action'">
             <a-flex :gap="8">
-              <a @click="handleEdit(record)">编辑</a>
-              <a @click="handleDelete(record)">删除</a>
-              <a @click="handleCopy(record)">复制</a>
+              <a @click="handleEdit(record)">{{ t('btn_edit') }}</a>
+              <a @click="handleDelete(record)">{{ t('btn_delete') }}</a>
+              <a @click="handleCopy(record)">{{ t('btn_copy') }}</a>
             </a-flex>
           </template>
         </template>
@@ -159,20 +142,20 @@
     <div v-if="rule_type === 'subscribe_reply_default'" class="reply-editor">
       <div class="reply-editor-item" v-for="(rule, ri) in defaultRules" :key="rule.id">
         <div class="switch-box">
-          <div class="nav-box">关注后自动回复（优先级：{{ rule.priority_num }}）</div>
+          <div class="nav-box">{{ t('label_auto_reply') }}（{{ t('label_priority') }}：{{ rule.priority_num }}）</div>
           <a-switch
             :checked="rule.switch_status"
             :checkedValue="'1'"
             :un-checkedValue="'0'"
-            checked-children="开"
-            un-checked-children="关"
+            :checkedChildren="t('switch_on')"
+            :unCheckedChildren="t('switch_off')"
             @change="(val) => handleRuleSwitchChange(ri, val)"
           />
         </div>
         <transition name="collapse">
         <div class="reply-main" v-show="rule.switch_status === '1'">
           <div class="content-box">
-            <div class="nav-box">回复内容：</div>
+            <div class="nav-box">{{ t('label_reply_content') }}：</div>
             <div class="item-box">
               <MultiReply v-for="(it, idx) in rule.replyList" :key="idx" :ref="el => setRuleReplyRef(ri, idx, el)" v-model:value="rule.replyList[idx]" :reply_index="idx"
                 @change="(payload) => onRuleContentChange(ri, payload)" @del="(index) => onRuleDelItem(ri, index)" />
@@ -180,19 +163,19 @@
                 <template #icon>
                   <PlusOutlined />
                 </template>
-                添加回复内容({{rule.replyList.length}}/5)
+                {{ t('btn_add_reply_content') }}({{rule.replyList.length}}/5)
               </a-button>
             </div>
           </div>
           <div class="method-box">
-            <div class="nav-box">回复方式：</div>
+            <div class="nav-box">{{ t('label_reply_method') }}：</div>
             <a-radio-group v-model:value="rule.reply_num">
-              <a-radio :value="0">全部回复</a-radio>
-              <a-radio :value="1">随机回复一条</a-radio>
+              <a-radio :value="0">{{ t('label_all_reply') }}</a-radio>
+              <a-radio :value="1">{{ t('label_random_reply') }}</a-radio>
             </a-radio-group>
           </div>
           <div style="margin-top: 8px;">
-            <a-button type="primary" @click="onSaveRule(ri)">保存</a-button>
+            <a-button type="primary" @click="onSaveRule(ri)">{{ t('btn_save') }}</a-button>
           </div>
         </div>
         </transition>
@@ -211,6 +194,9 @@ import { getWechatAppList } from '@/api/robot'
 import { REPLY_TYPE_OPTIONS, REPLY_TYPE_LABEL_MAP, SUBSCRIBE_SOURCE_OPTIONS } from '@/constants/index'
 import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.subscribe-reply.received-reply')
 
 const replyRefs = ref([])
 const ruleReplyRefs = ref({})
@@ -244,7 +230,6 @@ const getWechatAppListFn = async() => {
   try {
     const res = await getWechatAppList({ app_type: 'official_account', app_name: '' })
     const list = Array.isArray(res?.data) ? res.data : []
-    // 只需要account_is_verify为true的公众号
     mpAccounts.value = list.filter((it) => it.account_is_verify == 'true').map((it) => ({ id: it.id, appid: it.app_id, name: it.app_name, logo: it.app_avatar }))
     selectedAppid.value = mpAccounts.value[0]?.appid || ''
   } catch (_e) {
@@ -299,7 +284,6 @@ const replyTypeOptions = REPLY_TYPE_OPTIONS()
 const tableData = ref([])
 const loading = ref(false)
 const reply_type = ref('')
-// const search_keyword = ref('')
 const getTableData = () => {
   const parmas = {
     rule_type: rule_type.value,
@@ -369,15 +353,14 @@ function selectMp (mp) {
 async function onPriorityChange (record) {
   const val = Number(record.priority_num)
   if (!Number.isInteger(val) || val < 0) {
-    message.error('请输入有效的优先级')
+    message.error(t('msg_invalid_priority'))
     return
   }
   try {
     await updateRobotSubscribeReplyPriorityNum({ id: record.id, priority_num: val, appid: selectedAppid.value || '' })
-    message.success('优先级已更新')
+    message.success(t('msg_priority_updated'))
     getTableData()
   } catch (e) {
-    // message.error('更新失败，请稍后重试')
   }
 }
 
@@ -416,20 +399,19 @@ const handleReplySwitchChange = (record, checked) => {
   updateRobotSubscribeReplySwitchStatus({ id: record.id, switch_status, appid: selectedAppid.value || '' }).then((res) => {
     if (res && res.res == 0) {
       record.switch_status = switch_status
-      message.success('操作成功')
+      message.success(t('msg_operation_success'))
     }
   })
 }
 
 const handleDelete = (record) => {
-  // 确认删除
   Modal.confirm({
-    title: '确认删除吗？',
-    okText: '确认',
+    title: t('modal_confirm_delete'),
+    okText: t('modal_confirm_ok'),
     onOk: () => {
       deleteRobotSubscribeReply({ id: record.id }).then((res) => {
         if (res && res.res == 0) {
-          message.success('删除成功')
+          message.success(t('msg_delete_success'))
           getTableData()
         }
       })
@@ -467,7 +449,6 @@ async function loadDefaultRule () {
         smart_menu: rc?.smart_menu || {},
       }))
     }))
-    // 填充至3条数据
     const need = 3 - defaultRules.value.length
     if (need > 0) {
       const start = defaultRules.value.length + 1
@@ -476,7 +457,6 @@ async function loadDefaultRule () {
       }
     }
   } catch (e) {
-    // 接口失败时也保证3条
     defaultRules.value = [
       { id: 0, priority_num: 1, switch_status: '0', reply_num: 0, replyList: [{ type: 'text', description: '' }] },
       { id: 0, priority_num: 2, switch_status: '0', reply_num: 0, replyList: [{ type: 'text', description: '' }] },
@@ -487,12 +467,12 @@ async function loadDefaultRule () {
 
 async function onSaveRule (ri) {
   if (!selectedAppid.value) {
-    message.warning('请选择公众号')
+    message.warning(t('msg_select_mp'))
     return
   }
   const rule = defaultRules.value[ri]
   if (!rule || !Array.isArray(rule.replyList) || rule.replyList.length === 0) {
-    message.warning('请完善回复内容')
+    message.warning(t('msg_complete_reply_content'))
     return
   }
   const arr = Array.isArray(ruleReplyRefs.value[ri]) ? ruleReplyRefs.value[ri].filter(Boolean) : []
@@ -515,11 +495,10 @@ async function onSaveRule (ri) {
     }
     const res = await saveRobotSubscribeReply(payload)
     if (res && res.res == 0) {
-      message.success('保存成功')
+      message.success(t('msg_save_success'))
       loadDefaultRule()
     }
   } catch (e) {
-    // message.error('保存失败，请稍后重试')
   }
 }
 
@@ -528,14 +507,14 @@ function handleRuleSwitchChange (ri, val) {
   const rule = defaultRules.value[ri]
   if (!rule?.id) {
     defaultRules.value[ri].switch_status = next
-    message.info('请先保存当前规则')
+    message.info(t('msg_please_save_first'))
     return
   }
   updateRobotSubscribeReplySwitchStatus({ id: rule.id, switch_status: next, appid: selectedAppid.value || '' })
     .then((res) => {
       if (res && res.res == 0) {
         defaultRules.value[ri].switch_status = next
-        message.success('操作成功')
+        message.success(t('msg_operation_success'))
       }
     })
 }
@@ -549,13 +528,12 @@ function summarizeReplyTypes (list) {
   const labels = list
     .map((rc) => mapReplyTypeLabel(rc?.type))
     .filter((s) => !!s)
-  // 去重并使用/连接
   const uniq = [...new Set(labels)]
   return uniq.join('/')
 }
 
 function formatWeek (v) {
-  const map = { '1': '周一', '2': '周二', '3': '周三', '4': '周四', '5': '周五', '6': '周六', '7': '周日' }
+  const map = { '1': t('weekday_1'), '2': t('weekday_2'), '3': t('weekday_3'), '4': t('weekday_4'), '5': t('weekday_5'), '6': t('weekday_6'), '7': t('weekday_7') }
   const s = String(v || '')
   return map[s] || s
 }
@@ -587,18 +565,18 @@ function formatDurationLabel (record) {
   if (type === 'week') {
     const weekList = Array.isArray(wd) ? wd.map(v => String(v)) : (wd ? [String(wd)] : [])
     const weekText = weekList.length ? weekList.map(v => formatWeek(v)).join('、') : ''
-    const timeText = `${formatTime(sd)} 至 ${formatTime(ed)}`
-    return weekText ? `每星期${weekText}：${timeText}` : `每星期：${timeText}`
+    const timeText = t('format_time_range', { start: formatTime(sd), end: formatTime(ed) })
+    return weekText ? t('format_weekly', { week: weekText, time: timeText }) : t('format_weekly', { week: '', time: timeText })
   }
   if (type === 'day') {
-    return `每天：${formatDate(sd)} 至 ${formatDate(ed)}`
+    return t('format_daily', { time: t('format_time_range', { start: formatDate(sd), end: formatDate(ed) }) })
   }
   if (type === 'time_range') {
     const sDay = record?.start_day || ''
     const eDay = record?.end_day || ''
     const startStr = `${formatDate(sDay)} ${formatTime(sd)}`.trim()
     const endStr = `${formatDate(eDay)} ${formatTime(ed)}`.trim()
-    return `自定义时间：\n${startStr} 至 ${endStr}`
+    return t('format_custom_time', { time: t('format_time_range', { start: startStr, end: endStr }) })
   }
   return `${type || ''}：${sd || ''} 至 ${ed || ''}`
 }
@@ -646,13 +624,13 @@ const handleSwitchChange = (checked) => {
   const next = checked
   if (next === '0') {
     Modal.confirm({
-      title: '提示',
-      content: '关闭后，该功能默认关闭不再支持使用，所有的公众号菜单都会停用，确认关闭？',
+      title: t('modal_tip'),
+      content: t('modal_close_confirm'),
       onOk: () => {
         saveUserAbility({ ability_type: 'robot_subscribe_reply', switch_status: next }).then((res) => {
           if (res && res.res == 0) {
             enabled_status.value = next
-            message.success('操作成功')
+            message.success(t('msg_operation_success'))
           } else {
             enabled_status.value = prev
           }
@@ -665,7 +643,7 @@ const handleSwitchChange = (checked) => {
   saveUserAbility({ ability_type: 'robot_subscribe_reply', switch_status: next }).then((res) => {
     if (res && res.res == 0) {
       enabled_status.value = next
-      message.success('操作成功')
+      message.success(t('msg_operation_success'))
     } else {
       enabled_status.value = prev
     }

@@ -268,3 +268,87 @@ func LoginSwitch(c *gin.Context) {
 	}
 	common.FmtOk(c, userId)
 }
+
+type SaveUserConfigReq struct {
+	QAMergeSimilarity float64 `form:"qa_merge_similarity" json:"qa_merge_similarity" binding:"required,min=0,max=1"`
+}
+
+func SaveUserConfig(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+
+	var req SaveUserConfigReq
+	if err := c.ShouldBind(&req); err != nil {
+		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
+		return
+	}
+
+	loginUserId := getLoginUserId(c)
+
+	m := msql.Model(define.TableUserConfig, define.Postgres)
+	configData, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`user_id`, cast.ToString(loginUserId)).Find()
+
+	data := msql.Datas{
+		`qa_merge_similarity`: req.QAMergeSimilarity,
+		`update_time`:        time.Now().Unix(),
+	}
+
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+
+	if len(configData) == 0 {
+		// Create new config
+		data[`admin_user_id`] = adminUserId
+		data[`user_id`] = loginUserId
+		data[`create_time`] = time.Now().Unix()
+		_, err = m.Insert(data)
+	} else {
+		// Update existing config
+		_, err = m.Where(`id`, cast.ToString(configData[`id`])).Update(data)
+	}
+
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+
+	common.FmtOk(c, nil)
+}
+
+func GetUserConfig(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+
+	loginUserId := getLoginUserId(c)
+
+	configData, err := msql.Model(define.TableUserConfig, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`user_id`, cast.ToString(loginUserId)).Find()
+
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+
+	if len(configData) == 0 {
+		common.FmtOk(c, map[string]any{
+			`qa_merge_similarity`: 0.8,
+		})
+		return
+	}
+
+	common.FmtOk(c, map[string]any{
+		`qa_merge_similarity`: cast.ToFloat64(configData[`qa_merge_similarity`]),
+	})
+}
+

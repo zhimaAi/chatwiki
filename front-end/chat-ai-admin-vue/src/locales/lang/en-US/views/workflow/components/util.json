@@ -5,5 +5,6 @@
   "opt_last_90_days": "Last 90 Days",
   "var_user_message": "User Message",
   "size_auto_2k": "Auto-fit Ratio (2K)",
-  "size_auto_4k": "Auto-fit Ratio (4K)"
+  "size_auto_4k": "Auto-fit Ratio (4K)",
+  "size_auto_prompt": "prompt adaptation"
 }

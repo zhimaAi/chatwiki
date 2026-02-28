@@ -9,7 +9,10 @@
 
 ## 🎯 Product Positioning
 
-ChatWiki is a workflow automation platform focused on the WeChat ecosystem, dedicated to making every official account a super AI agent. It fully integrates the open capabilities of the official account platform, allowing you to build WeChat ecosystem applications through drag-and-drop, enabling features like one-click rewriting of official account articles and AI-curated comment replies.
+ChatWiki is a workflow automation platform focused on the WeChat ecosystem, dedicated to making every official account a
+super AI agent. It fully integrates the open capabilities of the official account platform, allowing you to build WeChat
+ecosystem applications through drag-and-drop, enabling features like one-click rewriting of official account articles
+and AI-curated comment replies.
 
 ![product positioning](./imgs/product_positioning.png)
 
@@ -17,31 +20,44 @@ ChatWiki is a workflow automation platform focused on the WeChat ecosystem, dedi
 
 ### 💬 Deep Integration with WeChat Ecosystem
 
-- **Industry First**: Automatic reply to private messages for unverified official accounts, supporting text, voice, images, mini-program cards, video messages, etc.
+- **Industry First**: Automatic reply to private messages for unverified official accounts, supporting text, voice,
+  images, mini-program cards, video messages, etc.
 
-- **WeChat Workflows**: Integrates trigger scenarios such as user private messages, comments, follows, unfollows, menu clicks, etc. Supports various processing steps like replying to private messages, tagging fans, generating draft articles, publishing articles, and more.
+- **WeChat Workflows**: Integrates trigger scenarios such as user private messages, comments, follows, unfollows, menu
+  clicks, etc. Supports various processing steps like replying to private messages, tagging fans, generating draft
+  articles, publishing articles, and more.
 
-- **Knowledge Base Synchronization**: Supports scraping articles and materials from official accounts to build a knowledge base with one click.
+- **Knowledge Base Synchronization**: Supports scraping articles and materials from official accounts to build a
+  knowledge base with one click.
 
 ### 🤖 Basic Capabilities
 
-- **Workflow Orchestration**: Conversational workflows, plugin workflows, including basic workflow nodes, bidirectional MCP, Agent mode, and user interaction.
+- **Workflow Orchestration**: Conversational workflows, plugin workflows, including basic workflow nodes, bidirectional
+  MCP, Agent mode, and user interaction.
 
-- **Document Knowledge Base**: Supports URL reading, batch document import, API integration, AI-based segmentation, QA segmentation, parent-child segmentation. Supports knowledge graphs, hybrid vector search, and visual exploration of knowledge graphs.
+- **Document Knowledge Base**: Supports URL reading, batch document import, API integration, AI-based segmentation, QA
+  segmentation, parent-child segmentation. Supports knowledge graphs, hybrid vector search, and visual exploration of
+  knowledge graphs.
 
-- **QA Knowledge Base**: Automatically extracts QA knowledge from uploaded documents, supports automatic clustering of unknown questions, and summarizes common FAQs from human conversations.
+- **QA Knowledge Base**: Automatically extracts QA knowledge from uploaded documents, supports automatic clustering of
+  unknown questions, and summarizes common FAQs from human conversations.
 
-- **Human Handoff**: Handles general user inquiries via bot, while also supporting human客服. Issues that the bot cannot resolve can be escalated to human客服, with multi-agent collaborative assignment.
+- **Human Handoff**: Handles general user inquiries via bot, while also supporting human客服. Issues that the bot cannot
+  resolve can be escalated to human客服, with multi-agent collaborative assignment.
 
-- **Model Support**: Supports over 20 mainstream global models, including DeepSeek R1, doubao pro, qwen max, OpenAI, Claude, etc.
+- **Model Support**: Supports over 20 mainstream global models, including DeepSeek R1, doubao pro, qwen max, OpenAI,
+  Claude, etc.
 
 ### 🌐 More Capabilities
 
-- **Multiple Deployment Options**: Offers desktop client, supports publishing as a WebApp, and embedding into websites, official accounts/service accounts, WeChat客服, WeChat store客服, etc.
+- **Multiple Deployment Options**: Offers desktop client, supports publishing as a WebApp, and embedding into websites,
+  official accounts/service accounts, WeChat客服, WeChat store客服, etc.
 
-- **MCP & API Integration**: Allows integration of external MCP services or publishing workflows as MCP services. Complete OpenAPI interface for easy integration with existing business systems.
+- **MCP & API Integration**: Allows integration of external MCP services or publishing workflows as MCP services.
+  Complete OpenAPI interface for easy integration with existing business systems.
 
-- **Multi-account Permission Management**: Three-tier permission system (admin, editor, viewer) ensures data isolation. IP whitelist and permanent login logs.
+- **Multi-account Permission Management**: Three-tier permission system (admin, editor, viewer) ensures data isolation.
+  IP whitelist and permanent login logs.
 
 ## 🛸 UI
 
@@ -68,7 +84,10 @@ docker compose up -d
 # Default password: chatwiki.com@123
 ```
 
-For any issues or suggestions during installation and deployment, please [contact us](https://github.com/zhimaAi/chatwiki?tab=readme-ov-file#contact-us) or refer to the [help documentation](https://www.yuque.com/zhimaxiaoshiwangluo/pggco1?source=aHR0cHM6Ly9jaGF0d2lraS5jb20v) for assistance. You can also check the guides below.
+For any issues or suggestions during installation and deployment,
+please [contact us](https://github.com/zhimaAi/chatwiki?tab=readme-ov-file#contact-us) or refer to
+the [help documentation](https://www.yuque.com/zhimaxiaoshiwangluo/pggco1?source=aHR0cHM6Ly9jaGF0d2lraS5jb20v) for
+assistance. You can also check the guides below.
 
 - [Installing ChatWiki via Installation Assistant](https://www.yuque.com/zhimaxiaoshiwangluo/pggco1/tvwn5npk63aqikq1)
 
@@ -105,9 +124,11 @@ For any issues or suggestions during installation and deployment, please [contac
 ----
 Feel free to contact us for help or to provide suggestions to improve ChatWiki. You can reach us through:
 
-- **Help:** Check the [help documentation](https://www.yuque.com/zhimaxiaoshiwangluo/pggco1?source=aHR0cHM6Ly9jaGF0d2lraS5jb20v)
+- **Help:** Check
+  the [help documentation](https://www.yuque.com/zhimaxiaoshiwangluo/pggco1?source=aHR0cHM6Ly9jaGF0d2lraS5jb20v)
 - **Email:** Send an email to [jarvis@2bai.com.cn](mailto:jarvis@2bai.com.cn) to contact us.
-- **WeChat:** Scan the QR code below to join the ChatWiki tech community group. Please add the note "chatwiki" when adding.
+- **WeChat:** Scan the QR code below to join the ChatWiki tech community group. Please add the note "chatwiki" when
+  adding.
 
 <p align="left"><img src="./imgs/contact-us.png" alt="contact-us"></p>
 
@@ -115,6 +136,28 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
+
+**2026/02/28**
+
+1. Regular Knowledge Base: Add segment content annotation<br/>
+2. Frontend optimization collection<br/>
+3. Scraping compatibility for js_article_content<br/>
+4. Adjacent segment recall setting adjustment, supports recalling adjacent segments based on the top X sorted
+   segments<br/>
+5. [STD] Login page: Add account/phone number login<br/>
+6. [STD] New official website adjustment + official website optimization<br/>
+7. Batch learning: Auto-learn when batch importing files to regular knowledge base<br/>
+8. Workspace: Add workspace to web page<br/>
+9. Bot statistics analysis supports classification statistics by channel<br/>
+10. Bot: Variable optimization, API key supports passing variable parameters, structured prompts support introducing
+    variables<br/>
+11. Model management page adjustment<br/>
+12. Official Account Management: Display account type and authentication type<br/>
+13. [STD] Knowledge Base: Add permission control for trigger count statistics, visible to owner only by default<br/>
+14. Workflow: Fix filtering for unauthenticated official accounts<br/>
+15. Knowledge Base: Merge similar Q&A<br/>
+16. Model Management: Model management supports 302.AI<br/>
+17. Unknown Questions: Support viewing chat records for each unknown question<br/>
 
 **2026/02/06**
 
@@ -155,38 +198,19 @@ For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLo
 21. Automatically add version number when image loading fails.<br/>
 22. [STD] Commercial version: Bot quantity adjusted from 20 to 100.<br/>
 
-**2026/01/23**
-
-1. Knowledge base: Trigger count statistics now include knowledge base grouping levels.<br/>
-2. Fixed to_tsquery syntax error in full-text search ts_rank usage.<br/>
-3. Added login detection when pulling official account articles and separate login for cloud version users.<br/>
-4. Adjusted parsing strategy for HTML files in knowledge base documents.<br/>
-5. [STD] Cloud version: Added insufficient points reminder.<br/>
-6. [STD] Cloud version: Fixed issue where sub-members need invitation code to log in.<br/>
-7. Template square: Templates now include main image.<br/>
-8. When exporting workflows, added check for whether knowledge base and database should be exported.<br/>
-9. Workflow: Feishu node and some node inputs now have enlarged editing box.<br/>
-10. Knowledge base: Added API for deleting knowledge base documents/Q&A.<br/>
-11. Frontend interface: Phase 2 of multilingual translation.<br/>
-12. Workflow: Run test and run logs now include input and output nodes.<br/>
-13. OpenAPI: Fixed issue with gin's ShouldBind parsing structs with any type.<br/>
-14. [STD] Workflow: When adding an application, display large template images.<br/>
-15. Workflow: Authentication fields defined in code are automatically cleared when exporting CSL files and uploading templates.<br/>
-16. External services: Verified WeChat official accounts/mini programs support replying with "Content generated by AI" during "typing..." status.<br/>
-17. Knowledge base: Added metadata support and metadata filtering.<br/>
-18. Disable plugin functionality and prompt when unable to access cloud version backend.<br/>
-19. Robot: Added "generating answer" prompt, supports customization.<br/>
-20. Robot: Supports adding variables.<br/>
-21. Fixed null pointer issue in plugin status check.<br/>
-
 ## License
 
 ---
 
-This project follows the [ChatWiki Open Source License](https://github.com/zhimaAi/chatwiki/blob/main/LICENSE). The [ChatWiki Open Source License](https://github.com/zhimaAi/chatwiki/blob/main/LICENSE) is based on the Apache License 2.0, but with additional restrictions:
+This project follows the [ChatWiki Open Source License](https://github.com/zhimaAi/chatwiki/blob/main/LICENSE).
+The [ChatWiki Open Source License](https://github.com/zhimaAi/chatwiki/blob/main/LICENSE) is based on the Apache License
+2.0, but with additional restrictions:
 
 1. ChatWiki is free for individual users, including non-commercial or commercial activities conducted by individuals.
-2. Any company, organization, institution, or team that uses ChatWiki for commercial purposes must contact us to obtain a commercial license.
-3. When using ChatWiki's frontend components, you may not remove or modify the "ChatWiki" logo, trademark, or copyright notice contained therein.
+2. Any company, organization, institution, or team that uses ChatWiki for commercial purposes must contact us to obtain
+   a commercial license.
+3. When using ChatWiki's frontend components, you may not remove or modify the "ChatWiki" logo, trademark, or copyright
+   notice contained therein.
 
-**The full license text can be found in the [LICENSE](./LICENSE) file. For commercial licensing, please [contact us](#contact-us).**
+**The full license text can be found in the [LICENSE](./LICENSE) file. For commercial licensing,
+please [contact us](#contact-us).**

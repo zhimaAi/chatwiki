@@ -58,14 +58,14 @@ const props = defineProps({
 const tabs = ref([
   {
     value: 1,
-    title: t('modelsHaveBeenAdded'),
-    langKey: 'modelsHaveBeenAdded'
+    title: t('customModel'),
+    langKey: 'customModel'
   },
-  {
-    value: 0,
-    title: t('canAddAModel'),
-    langKey: 'canAddAModel'
-  },
+  // {
+  //   value: 0,
+  //   title: t('canAddAModel'),
+  //   langKey: 'canAddAModel'
+  // },
   {
     value: 2,
     title: t('beginnerGuide'),

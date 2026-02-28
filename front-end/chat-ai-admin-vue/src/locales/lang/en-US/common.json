@@ -24,6 +24,7 @@
   "networkExceptionMsg": "Please check if your network connection is normal! The network is abnormal",
   "operationFailed": "Operation failed",
   "operationSuccess": "Operation Success",
+  "recommendation": "Recs",
   "remove": "Remove",
   "saveSuccess": "Save successful",
   "successTip": "Success Tip",

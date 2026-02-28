@@ -34,12 +34,13 @@ func VectorRecall(libraryIds, embedding string, size int) ([]msql.Params, error)
 		embeddingKey = `embedding2000` // Fixed 2000-dimensional vector document
 		dimsSql = ``                   // Fixed dimensions do not require additional SQL statements
 	}
-	indexModel := msql.Model(`chat_ai_library_file_data_index`, define.Postgres)
-	tempList, err := indexModel.Where(`delete_time`, `0`).
-		Where(`status`, cast.ToString(define.VectorStatusConverted)).
-		Where(`library_id`, `in`, libraryIds).Where(dimsSql).
-		Field(`data_id`).Field(fmt.Sprintf(`1-(%s<=>'%s') similarity`, embeddingKey, embedding)).
-		Order(fmt.Sprintf(`%s<=>'%s'`, embeddingKey, embedding)).Limit(fetchSize).Select()
+	indexModel := msql.Model(`chat_ai_library_file_data_index i`, define.Postgres)
+	tempList, err := indexModel.Join(`chat_ai_library_file_data d`, `i.data_id = d.id`, `inner`).
+		Where(`i.delete_time`, `0`).Where(`d.delete_time`, `0`).
+		Where(`i.status`, cast.ToString(define.VectorStatusConverted)).
+		Where(`i.library_id`, `in`, libraryIds).Where(dimsSql).
+		Field(`i.data_id`).Field(fmt.Sprintf(`1-(i.%s<=>'%s') similarity`, embeddingKey, embedding)).
+		Order(fmt.Sprintf(`i.%s<=>'%s'`, embeddingKey, embedding)).Limit(fetchSize).Select()
 	if err != nil {
 		return nil, fmt.Errorf(`sql:%s,err:%s`, indexModel.GetLastSql(), err.Error())
 	}

@@ -24,6 +24,7 @@
   "networkExceptionMsg": "网络异常，请检查您的网络连接是否正常!",
   "operationFailed": "操作失败",
   "operationSuccess": "操作成功",
+  "recommendation": "推荐",
   "remove": "移除",
   "saveSuccess": "保存成功",
   "successTip": "成功提示",

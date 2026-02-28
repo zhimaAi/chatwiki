@@ -124,6 +124,9 @@
       <div class="fragment-img" v-if="item.images.length > 0" v-viewer>
         <img v-for="(item, imageIndex) in item.images" :key="imageIndex" :src="item" alt="" />
       </div>
+      <div class="content-box" style="padding-top: 0;">
+        <AnnotationSetting :currentItem="item" @save="handleSaveAnnotation" />
+      </div>
     </div>
     <ClassificationMarkModal @ok="getCategoryLists" ref="classificationMarkModalRef" />
     <GraphModel ref="graphModelRef" />
@@ -183,6 +186,7 @@ import { Modal } from 'ant-design-vue'
 import ClassificationMarkModal from './classification-mark-modal.vue'
 import GraphModel from './graph-model/index.vue'
 import colorLists from '@/utils/starColors.js'
+import AnnotationSetting from './annotation-setting.vue'
 import {
   deleteParagraph,
   editParagraph,
@@ -204,7 +208,8 @@ const emit = defineEmits([
   'handleSplitNext',
   'handleSplitUp',
   'handleSplitDelete',
-  'handleSegmentation'
+  'handleSegmentation',
+  'handleEditParagraph'
 ])
 
 const props = defineProps({
@@ -251,6 +256,7 @@ const toReSegmentationPage = (item, index) => {
 }
 
 const handleOpenEditModal = (item) => {
+  console.log(item, '===')
   emit('openEditSubscription', item)
 }
 const hanldleDelete = (id) => {
@@ -692,7 +698,7 @@ const onDeleteParagraph = (index) => {
       tempDiv.innerHTML = content
 
       // 拆分选中内容
-      const [beforeContent, selectedContent, afterContent] = splitHtmlContent(
+      const [beforeContent, afterContent] = splitHtmlContent(
         tempDiv,
         range.startOffset,
         range.endOffset
@@ -784,6 +790,11 @@ function textToHighlight(fullText, highlightText, options = {}) {
  */
 function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+
+const handleSaveAnnotation = (data) => {
+  emit('handleEditParagraph', data)
 }
 
 onMounted(() => {

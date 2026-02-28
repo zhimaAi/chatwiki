@@ -1,0 +1,6 @@
+{
+  "modal_title": "Similarity Threshold Settings",
+  "alert_message": "Based on the similarity of answers and questions, Q&A with similarity above the threshold are considered similar",
+  "threshold_label": "Similarity Threshold",
+  "default_value": "Default value { value }"
+}

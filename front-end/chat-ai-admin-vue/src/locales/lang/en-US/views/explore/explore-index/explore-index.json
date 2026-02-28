@@ -4,7 +4,10 @@
   "label_dont_remind": "Don't remind for 3 days",
   "btn_cancel": "Cancel",
   "btn_go_to_use": "Go to Use",
-  "msg_close_confirm_default": "After closing, this feature will be disabled by default and will no longer be available. All WeChat menu items will be deactivated. Confirm to close?",
+  "msg_close_confirm_default": "After closing, this feature will be disabled. Confirm to close?",
+  "msg_close_smart_menu_no_reply": "After closing, other smart menu rules will not trigger replies",
+  "msg_close_auto_reply_no_content": "After closing, triggered keywords and message replies will no longer respond with specified content",
+  "msg_close_confirm_menus": "After closing, this feature will be disabled by default and will no longer be available. All WeChat menu items will be deactivated. Confirm to close?",
   "msg_close_confirm_library": "After closing, the knowledge base module will no longer display the WeChat knowledge base module. Previously imported articles will not be available for reference. Confirm to close?",
   "msg_close_confirm_payment": "After closing, the configured payment strategy will be disabled. Confirm to close?",
   "msg_operation_success": "Operation successful"

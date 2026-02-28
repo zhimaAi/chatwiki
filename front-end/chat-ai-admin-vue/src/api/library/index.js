@@ -653,6 +653,37 @@ export const saveQaMetadata = (data) => {
   })
 }
 
+export const getSimilarQuestions = (params = {}) => {
+  return request.get({
+    url: '/manage/getSimilarQuestions',
+    params: params
+  })
+}
+
+// 合并问答段落
+export const mergeQAParagraph = (data) => {
+  return request.post({
+    url: '/manage/mergeQAParagraph',
+    data: data
+  })
+}
+
+// 获取用户配置
+export const getUserConfig = (params = {}) => {
+  return request.get({
+    url: '/manage/getUserConfig',
+    params: params
+  })
+}
+
+// 保存用户配置
+export const saveUserConfig = (data) => {
+  return request.post({
+    url: '/manage/saveUserConfig',
+    data: data
+  })
+}
+
 export const delLibraryMetaSchema = (data) => {
   return request.post({
     url: '/manage/deleteLibraryMetaSchema',

@@ -12,7 +12,7 @@
   "mode_fulltext_title": "全文检索",
   "mode_fulltext_desc": "通过分词匹配文档中的词汇，返回包含这些词汇的文本片段",
   "label_top_k": "Top K",
-  "tooltip_top_k": "最多从知识库中召回分段数，最低为1，最高为10。召回分段数越多，消耗的token也会越多。",
+  "tooltip_top_k": "最多从知识库中召回分段数，最低为1，最高为500。召回分段数越多，消耗的token也会越多。",
   "label_similarity_threshold": "相似度阈值",
   "tooltip_similarity_threshold": "召回时，只会召回相似度大于阈值的文本分段。取值范围：0~1，阈值越大回答的越准确，建议不超过0.9",
   "label_rerank_model": "Rerank模型",

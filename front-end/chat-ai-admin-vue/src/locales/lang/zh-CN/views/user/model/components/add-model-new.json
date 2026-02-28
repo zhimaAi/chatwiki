@@ -29,6 +29,7 @@
   "image_optimize_prompt": "支持自动优化提示词",
   "support_input_type": "支持输入类型",
   "support_output_type": "支持输出类型",
+  "example": "示例",
   "text": "文本",
   "voice": "语音",
   "image_type": "图片",

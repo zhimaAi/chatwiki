@@ -29,7 +29,8 @@
     "session": "会话",
     "system_manage": "系统管理",
     "application": "应用",
-    "logout": "退出登录"
+    "logout": "退出登录",
+    "workbench": "工作台"
   },
   "multipleTab": {
     "reload": "重新加载",

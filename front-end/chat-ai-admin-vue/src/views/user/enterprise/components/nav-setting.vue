@@ -25,7 +25,7 @@
           group="table-rows"
           handle=".drag-btn"
         >
-          <template #item="{ element, index }">
+          <template #item="{ element }">
             <div :key="element.id" class="t-row">
               <div class="t-item">
                 <span class="drag-btn">
@@ -58,11 +58,11 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { message, Empty } from 'ant-design-vue'
 import draggable from 'vuedraggable'
 import { saveTopNavigate } from '@/api/user/index.js'
-import { QuestionCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons-vue'
+import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { useCompanyStore } from '@/stores/modules/company'
 import { useI18n } from '@/hooks/web/useI18n'
 
@@ -88,7 +88,7 @@ watch(
       let currentItem = topNavigateDefaultData.find((it) => it.id == item.id)
       return {
         ...currentItem,
-        ...item
+        ...item,
       }
     })
   },

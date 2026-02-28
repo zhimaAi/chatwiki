@@ -16,6 +16,7 @@ import plugins from './plugins'
 import mcp from './mcp'
 import templates from './templates'
 import guide from './guide'
+import workbench from './workbench'
 
 const routes = [
   {
@@ -70,6 +71,7 @@ const routes = [
   plugins,
   mcp,
   templates,
+  workbench,
 ]
 
 if (import.meta.env.DEV) {

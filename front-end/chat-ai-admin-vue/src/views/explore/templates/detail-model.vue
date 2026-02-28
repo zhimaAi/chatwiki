@@ -46,16 +46,14 @@
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { message, Modal } from 'ant-design-vue'
-import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
+import { ref } from 'vue'
 import LoadingBox from '@/components/common/loading-box.vue'
-import { getTplDetailMain, useRobotTemplate } from '@/api/explore/template.js'
-import { useCompanyStore } from '@/stores/modules/company.js'
+import { getTplDetailMain } from '@/api/explore/template.js'
 import { useI18n } from '@/hooks/web/useI18n'
+import {useTemplateCreateRobot} from "@/composables/useTemplateCreateRobot.js";
 
 const { t } = useI18n('views.explore.templates.detail-model')
+const {useTpl} = useTemplateCreateRobot()
 const open = ref(false)
 
 const show = (data) => {
@@ -63,14 +61,6 @@ const show = (data) => {
   loadInfo()
   open.value = true
 }
-
-const router = useRouter()
-
-const companyStore = useCompanyStore()
-const { companyInfo } = companyStore
-const sysVersion = computed(() => {
-  return companyInfo?.version
-})
 
 const loading = ref(true)
 const tplKey = ref(null)
@@ -88,40 +78,9 @@ function loadInfo() {
 }
 
 function useTemplate() {
-  const item = tplInfo.value
-  function checkVersion(sys_v, tpl_v) {
-    sys_v = Number(sys_v.replace(/\D/g, ''))
-    tpl_v = Number(tpl_v.replace(/\D/g, ''))
-    return sys_v >= tpl_v
-  }
-  const run = () => {
-    useRobotTemplate({ template_id: item.id, csl_url: item.csl_url }).then((res) => {
-      message.success(t('msg_use_success'))
-      const { id, robot_key } = res.data
-      const url = router.resolve({ path: '/robot/config/workflow', query: { id, robot_key } })
-      window.open(url.href, '_blank')
-      open.value = false
-    })
-  }
-  if (!checkVersion(sysVersion.value, item.version)) {
-    Modal.confirm({
-      title: t('title_tip'),
-      content: t('msg_version_too_low'),
-      icon: h(ExclamationCircleOutlined),
-      okText: t('btn_continue_use'),
-      cancelText: t('btn_cancel'),
-      onOk: run
-    })
-  } else {
-    Modal.confirm({
-      title: t('title_tip'),
-      content: t('msg_confirm_use_template', { name: item.name }),
-      icon: h(ExclamationCircleOutlined),
-      okText: t('btn_confirm'),
-      cancelText: t('btn_cancel'),
-      onOk: run
-    })
-  }
+  useTpl(tplInfo.value, (_state) => {
+    _state && (open.value = false)
+  })
 }
 
 defineExpose({

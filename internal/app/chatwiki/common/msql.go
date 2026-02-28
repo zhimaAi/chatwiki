@@ -588,7 +588,7 @@ func GetMatchLibraryParagraphByMergeRerank(lang string, openid, appType, questio
 	return RerankData(lang, cast.ToInt(robot[`admin_user_id`]), openid, appType, robot, rerankReq)
 }
 
-func GetMatchLibraryParagraphList(lang string, openid, appType, question string, optimizedQuestions []string, libraryIds string, size int, similarity float64, searchType int, robot msql.Params) (_ []msql.Params, libUseTime LibUseTime, _ error) {
+func GetMatchLibraryParagraphList(lang string, openid, appType, appId, question string, optimizedQuestions []string, libraryIds string, size int, similarity float64, searchType int, robot msql.Params) (_ []msql.Params, libUseTime LibUseTime, _ error) {
 	result := make([]msql.Params, 0)
 	if len(libraryIds) == 0 {
 		return result, libUseTime, nil
@@ -676,8 +676,8 @@ func GetMatchLibraryParagraphList(lang string, openid, appType, question string,
 	list = FatherSonChunkReplace(list)
 
 	// Recall neighboring paragraphs
-	if len(list) <= CallbackNeighborLimit && `true` == cast.ToString(robot[`recall_neighbor_switch`]) {
-		list = RecallNeighborChunkReplace(list, cast.ToInt(robot[`recall_neighbor_before_num`]), cast.ToInt(robot[`recall_neighbor_after_num`]))
+	if len(list) > 0 && cast.ToInt(robot[`recall_neighbor_top_k`]) > 0 {
+		list = RecallNeighborChunkReplace(list, cast.ToInt(robot[`recall_neighbor_before_num`]), cast.ToInt(robot[`recall_neighbor_after_num`]), cast.ToInt(robot[`recall_neighbor_top_k`]))
 	}
 
 	//return
@@ -694,10 +694,10 @@ func GetMatchLibraryParagraphList(lang string, openid, appType, question string,
 	}
 	go UpdateParagraphHits(strings.Join(ids, `,`), 1)
 	if len(result) > 0 {
-		go statDailyRequestLibraryTip(adminUserId, robot, appType, cast.ToString(StatsTypeDailyLibraryTipCount))
-		go StatLibraryTipUp(result, robot)
+		go statDailyRequestLibraryTip(adminUserId, robot, appType, appId, cast.ToString(StatsTypeDailyLibraryTipCount))
+		StatLibraryTipUp(result, robot) // fix: concurrent map read and map write
 	}
-	go statDailyRequestLibraryTip(adminUserId, robot, appType, cast.ToString(StatsTypeDailyAiMsgCount))
+	go statDailyRequestLibraryTip(adminUserId, robot, appType, appId, cast.ToString(StatsTypeDailyAiMsgCount))
 	return result, libUseTime, nil
 }
 
@@ -726,7 +726,7 @@ func FatherSonChunkReplace(list []msql.Params) []msql.Params {
 	return result
 }
 
-func RecallNeighborChunkReplace(list []msql.Params, beforeNum, afterNum int) []msql.Params {
+func RecallNeighborChunkReplace(list []msql.Params, beforeNum, afterNum, topKLimit int) []msql.Params {
 	continueMap := make(map[string]struct{})
 	result := make([]msql.Params, len(list))
 
@@ -734,9 +734,14 @@ func RecallNeighborChunkReplace(list []msql.Params, beforeNum, afterNum int) []m
 	var mu sync.Mutex
 
 	for idx, one := range list {
+
 		wg.Add(1)
 		go func(index int, item msql.Params) {
 			defer wg.Done()
+			if index+1 > topKLimit {
+				result[index] = item
+				return
+			}
 
 			mu.Lock()
 			_, shouldSkip := continueMap[item[`library_id`]]
@@ -1156,7 +1161,7 @@ func LibraryAiSummary(lang string, adminUserId int, question, prompt, libraryIds
 		chanStream <- sse.Event{Event: `finish`, Data: tool.Time2Int()}
 		return nil
 	}
-	list, _, err := GetMatchLibraryParagraphList(lang, cast.ToString(adminUserId), lib_define.AppYunH5, question, []string{}, libraryIds, size, similarity, searchType, robot)
+	list, _, err := GetMatchLibraryParagraphList(lang, cast.ToString(adminUserId), lib_define.AppYunH5, "", question, []string{}, libraryIds, size, similarity, searchType, robot)
 	if err != nil {
 		logs.Error(err.Error())
 		chanStream <- sse.Event{Event: `error`, Data: i18n.Show(lang, `sys_err`)}

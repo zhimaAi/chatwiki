@@ -254,9 +254,10 @@ func SaveRobot(c *gin.Context) {
 	questionMultipleSwitch := cast.ToUint(c.PostForm(`question_multiple_switch`))
 	topK := cast.ToInt(c.DefaultPostForm(`top_k`, `5`))
 	similarity := cast.ToFloat32(c.DefaultPostForm(`similarity`, `0.6`))
-	recallNeighborSwitch := cast.ToBool(c.DefaultPostForm(`recall_neighbor_switch`, `false`))
-	recallNeighborBeforeNum := cast.ToInt(c.DefaultPostForm(`recall_neighbor_before_num`, `1`))
-	recallNeighborAfterNum := cast.ToInt(c.DefaultPostForm(`recall_neighbor_after_num`, `1`))
+	recallNeighborSwitch := cast.ToBool(c.DefaultPostForm(`recall_neighbor_switch`, `true`))
+	recallNeighborBeforeNum := cast.ToInt(c.DefaultPostForm(`recall_neighbor_before_num`, cast.ToString(common.DefaultCallbackNeighborBeforeDefault)))
+	recallNeighborAfterNum := cast.ToInt(c.DefaultPostForm(`recall_neighbor_after_num`, cast.ToString(common.DefaultCallbackNeighborAfterDefault)))
+	recallNeighborTopK := cast.ToInt(c.DefaultPostForm(`recall_neighbor_top_k`, cast.ToString(common.DefaultCallbackNeighborTopKDefault)))
 
 	searchType := cast.ToInt(c.DefaultPostForm(`search_type`, `1`))
 	rrfWeight := strings.TrimSpace(c.PostForm(`rrf_weight`))
@@ -290,6 +291,7 @@ func SaveRobot(c *gin.Context) {
 	metaSearchSwitch := cast.ToInt(c.DefaultPostForm(`meta_search_switch`, `0`))
 	metaSearchType := cast.ToInt(c.DefaultPostForm(`meta_search_type`, cast.ToString(define.MetaSearchTypeAnd)))
 	metaSearchConditionList := strings.TrimSpace(c.DefaultPostForm(`meta_search_condition_list`, `[]`))
+	robotAvatarUrl := strings.TrimSpace(c.PostForm(`robot_avatar_url`))
 	isDefault := cast.ToInt(c.DefaultPostForm(`is_default`, `1`))
 	if !tool.InArrayInt(isDefault, []int{define.IsDefault, define.NotDefault}) {
 		isDefault = define.IsDefault
@@ -337,16 +339,17 @@ func SaveRobot(c *gin.Context) {
 		return
 	}
 
-	if recallNeighborSwitch != true && recallNeighborSwitch != false {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `recall_neighbor_switch`))))
-		return
-	}
-	if recallNeighborBeforeNum < 0 || recallNeighborBeforeNum > 5 {
+	if recallNeighborBeforeNum < common.DefaultCallbackNeighborBeforeMin || recallNeighborBeforeNum > common.DefaultCallbackNeighborBeforeMax {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `recall_neighbor_before_num`))))
 		return
 	}
-	if recallNeighborAfterNum < 0 || recallNeighborAfterNum > 5 {
+	if recallNeighborAfterNum < common.DefaultCallbackNeighborAfterMin || recallNeighborAfterNum > common.DefaultCallbackNeighborAfterMax {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `recall_neighbor_after_num`))))
+		return
+	}
+
+	if recallNeighborTopK < common.DefaultCallbackNeighborTopKMin || recallNeighborTopK > common.DefaultCallbackNeighborTopKMax {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `recall_neighbor_top_k`))))
 		return
 	}
 
@@ -435,9 +438,13 @@ func SaveRobot(c *gin.Context) {
 
 	//headImg uploaded
 	fileHeader, _ := c.FormFile(`robot_avatar`)
+
 	uploadInfo, err := common.SaveUploadedFile(fileHeader, define.ImageLimitSize, userId, `robot_avatar`, define.ImageAllowExt)
 	if err == nil && uploadInfo != nil {
 		robotAvatar = uploadInfo.Link
+	}
+	if len(robotAvatarUrl) > 0 {
+		robotAvatar = robotAvatarUrl
 	}
 	//check model_config_id and use_model
 	if ok := common.CheckModelIsValid(userId, modelConfigId, useModel, common.Llm); !ok {
@@ -555,6 +562,7 @@ func SaveRobot(c *gin.Context) {
 		`recall_neighbor_switch`:                recallNeighborSwitch,
 		`recall_neighbor_before_num`:            recallNeighborBeforeNum,
 		`recall_neighbor_after_num`:             recallNeighborAfterNum,
+		`recall_neighbor_top_k`:                 recallNeighborTopK,
 		`search_type`:                           searchType,
 		`rrf_weight`:                            rrfWeight,
 		`chat_type`:                             chatType,
@@ -660,6 +668,7 @@ func AddFlowRobot(c *gin.Context) {
 		return
 	}
 	//get params
+	robotAvatarUrl := strings.TrimSpace(c.PostForm(`robot_avatar_url`))
 	robotName := strings.TrimSpace(c.PostForm(`robot_name`))
 	checkName := cast.ToInt(c.PostForm(`check_name`))
 	enName := strings.TrimSpace(c.PostForm(`en_name`))
@@ -704,6 +713,9 @@ func AddFlowRobot(c *gin.Context) {
 	uploadInfo, err := common.SaveUploadedFile(fileHeader, define.ImageLimitSize, userId, `robot_avatar`, define.ImageAllowExt)
 	if err == nil && uploadInfo != nil {
 		robotAvatar = uploadInfo.Link
+	}
+	if len(robotAvatarUrl) > 0 {
+		robotAvatar = robotAvatarUrl
 	}
 	maxSortNum, _ := GetMaxRobotNum(userId)
 	//format check
@@ -1226,6 +1238,7 @@ func EditBaseInfo(c *gin.Context) {
 	id := cast.ToInt64(c.PostForm(`id`))
 	robotName := strings.TrimSpace(c.PostForm(`robot_name`))
 	robotIntro := strings.TrimSpace(c.PostForm(`robot_intro`))
+	robotAvatarUrl := strings.TrimSpace(c.PostForm(`robot_avatar_url`))
 	groupId := cast.ToInt(c.PostForm(`group_id`))
 	robotAvatar := ``
 	//check required
@@ -1273,6 +1286,9 @@ func EditBaseInfo(c *gin.Context) {
 	}
 	if len(robotAvatar) > 0 {
 		data[`robot_avatar`] = robotAvatar
+	}
+	if len(robotAvatarUrl) > 0 {
+		data[`robot_avatar`] = robotAvatarUrl
 	}
 	if _, err = m.Where(`id`, cast.ToString(id)).Update(data); err != nil {
 		logs.Error(err.Error())

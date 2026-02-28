@@ -33,7 +33,7 @@
                 </div>
               </template>
             </AtInput>
-            <div class="desc">{{ t('desc_filter_example') }}</div>
+            <div class="desc">{{ t('content_example') }} {"conditions":[{"field_name":"Article ID","operator":"is","value":"123"}],"conjunction":"and"}</div>
           </template>
           <QueryConditionFilter
             v-else
@@ -78,7 +78,7 @@
                 </div>
               </template>
             </AtInput>
-            <div class="desc">{{ t('desc_field_names_example') }}</div>
+            <div class="desc">{{ t('content_example') }} ["Article ID","Cover Image","Created At","Introduction"]</div>
           </template>
           <FieldListSelect
             v-else
@@ -125,7 +125,7 @@
                 </div>
               </template>
             </AtInput>
-            <div class="desc">{{ t('desc_sort_example') }}</div>
+            <div class="desc">{{ t('content_example') }} [{"desc":false,"field_name":"Article ID"},{"desc":true,"field_name":"Updated At"}]</div>
           </template>
           <SortSelector
             v-else

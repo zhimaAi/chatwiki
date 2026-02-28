@@ -10,7 +10,7 @@
   "btn_bind_mp": "Bind official account",
   "segmented_group_send": "Bulk send management",
   "segmented_draft_box": "Draft box",
-  "alert_line_1": "1. This feature is only available for verified official accounts and supports syncing unpublished drafts from the WeChat backend.",
+  "alert_line_1": "1. <span class='text_color_ed744a'>This feature is only available for verified official accounts / service accounts.</span> and supports syncing unpublished drafts from the WeChat backend.",
   "alert_line_2": "2. Bulk-sent content will not appear in Article Management. Please note the difference between bulk send and published articles.",
   "modal_ai_comment_not_enabled_title": "AI Comment Selection not enabled",
   "modal_ai_comment_not_enabled": "AI Comment Selection is not enabled",

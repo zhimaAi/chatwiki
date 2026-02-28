@@ -248,7 +248,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, createVNode, computed, onMounted } from 'vue'
+import { reactive, ref, createVNode, computed, onMounted, nextTick, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
@@ -276,9 +276,11 @@ import AddGroup from './components/add-group.vue'
 import router from '@/router'
 import MetadataManageModal from "@/views/library/library-details/components/metadata-manage-modal.vue";
 import { useI18n } from '@/hooks/web/useI18n'
+import {KNOWLEDGE_SOURCE_TYPE_MAP} from "@/constants/index.js";
 
 const { t } = useI18n('views.library.library-details.qa-knowledge-document.index')
 
+const SOURCE_TYPE_MAP = KNOWLEDGE_SOURCE_TYPE_MAP()
 const subsectionBoxRef = ref(null)
 const metaRef = ref(null)
 const route = useRoute()
@@ -313,14 +315,6 @@ const isHiddenGroup = ref(localStorage.getItem('qa_document_group_hide_key') == 
 
 const total = ref(0)
 const exception_total = ref(0)
-
-const sourceTypeMap = {
-  1: '本地文档',
-  2: '在线文档',
-  3: '自定义文档',
-  4: '手工新增问答',
-  5: '导入问答'
-}
 const listStatusMap = {
   0: t('not_converted'),
   1: t('converted'),
@@ -385,11 +379,43 @@ const openEditSubscription = (data) => {
   editSubscriptionRef.value.showModal(JSON.parse(JSON.stringify(data)))
 }
 
+// 监听跨窗口消息，处理QA合并后的刷新
+const handleMessage = (event) => {
+  if (event.data?.type === 'qa-merged' && event.data?.libraryId == libraryId.value) {
+    // 获取当前编辑的QA ID和弹窗状态
+    const currentId = editSubscriptionRef.value?.id
+    const isModalOpen = editSubscriptionRef.value?.open
+    
+    // 如果弹窗是打开状态，等待列表刷新后重新打开弹窗
+    if (currentId && isModalOpen) {
+      getParagraphLists().then(() => {
+        nextTick(() => {
+          const currentData = paragraphLists.value.find(item => item.id == currentId)
+          if (currentData) {
+            openEditSubscription(currentData)
+          }
+        })
+      })
+    } else {
+      // 弹窗未打开，只刷新列表
+      getParagraphLists()
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('message', handleMessage)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('message', handleMessage)
+})
+
 const isLoading = ref(false)
 
 const getParagraphLists = () => {
   isLoading.value = true
-  getParagraphList({
+  return getParagraphList({
     ...paginations.value,
     ...filterData,
     group_id: groupId.value
@@ -408,7 +434,7 @@ const getParagraphLists = () => {
             i.value = dayjs(i.value * 1000).format('YYYY-MM-DD HH:mm')
           }
           if (i.key == 'source') {
-            i.value = sourceTypeMap[i.value]
+            i.value = SOURCE_TYPE_MAP[i.value]
           }
           item[`meta_${i.key}`] = i.value
         })

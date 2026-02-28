@@ -276,6 +276,7 @@ const onChangeRecallSettings = (data) => {
   formState.meta_search_condition_list = data.meta_search_condition_list
   formState.rrf_weight = data.rrf_weight
   formState.recall_neighbor_switch = data.recall_neighbor_switch
+  formState.recall_neighbor_top_k = data.recall_neighbor_top_k
   formState.recall_neighbor_before_num = data.recall_neighbor_before_num
   formState.recall_neighbor_after_num = data.recall_neighbor_after_num
 
@@ -343,6 +344,7 @@ watchEffect(() => {
   formState.meta_search_condition_list = robotInfo.meta_search_condition_list
   formState.rrf_weight = robotInfo.rrf_weight != '' ? JSON.parse(robotInfo.rrf_weight) : {vector: 0, search: 0, graph: 0}
   formState.recall_neighbor_switch = robotInfo.recall_neighbor_switch
+  formState.recall_neighbor_top_k = robotInfo.recall_neighbor_top_k
   formState.recall_neighbor_before_num = robotInfo.recall_neighbor_before_num
   formState.recall_neighbor_after_num = robotInfo.recall_neighbor_after_num
 })

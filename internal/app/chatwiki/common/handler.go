@@ -550,3 +550,31 @@ func GetSiliconFlowSupplierHandle(modelInfo ModelInfo, config msql.Params) (*Sup
 	}
 	return handler, nil
 }
+
+func Get302AiHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
+	handler := &ModelCallHandler{
+		Meta: adaptor.Meta{
+			Corp:              `302ai`,
+			APIKey:            config[`api_key`],
+			SecretKey:         config[`secret_key`],
+			Region:            config[`region`],
+			Model:             useModel,
+			ChoosableThinking: tool.InArrayString(useModel, modelInfo.GetChoosableThinkingModels()),
+		},
+		config: config,
+	}
+	return handler, nil
+}
+
+func Get302AiSupplierHandle(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error) {
+	handler := &SupplierHandler{
+		Meta: adaptor.Meta{
+			Corp:      `302ai`,
+			APIKey:    config[`api_key`],
+			SecretKey: config[`secret_key`],
+			Region:    config[`region`],
+		},
+		config: config,
+	}
+	return handler, nil
+}

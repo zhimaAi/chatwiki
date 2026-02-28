@@ -189,6 +189,7 @@ const formState = reactive({
   question_value: '',
   rrf_weight: {},
   recall_neighbor_switch: false,
+  recall_neighbor_top_k: 5,
   recall_neighbor_before_num:1,
   recall_neighbor_after_num: 1,
 })
@@ -204,6 +205,7 @@ const update = () => {
       library_ids: formState.library_ids.join(','),
       rrf_weight: JSON.stringify(formState.rrf_weight),
       recall_neighbor_switch: formState.recall_neighbor_switch,
+      recall_neighbor_top_k: formState.recall_neighbor_top_k,
       recall_neighbor_before_num: formState.recall_neighbor_before_num,
       recall_neighbor_after_num: formState.recall_neighbor_before_num,
     }
@@ -299,6 +301,7 @@ const onChangeRecallSettings = (data) => {
   formState.meta_search_condition_list = data.meta_search_condition_list
   formState.rrf_weight = data.rrf_weight
   formState.recall_neighbor_switch = data.recall_neighbor_switch
+  formState.recall_neighbor_top_k = data.recall_neighbor_top_k
   formState.recall_neighbor_before_num = data.recall_neighbor_before_num
   formState.recall_neighbor_after_num = data.recall_neighbor_after_num
 }

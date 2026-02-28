@@ -32,6 +32,8 @@ func init() {
 	noAuthFuns(Route[http.MethodPost], `/manage/saveProfile`, manage.SaveProfile)
 	Route[http.MethodPost]["/manage/refreshUserToken"] = manage.RefreshUserToken
 	Route[http.MethodPost]["/manage/loginSwitch"] = manage.LoginSwitch
+	Route[http.MethodPost]["/manage/saveUserConfig"] = manage.SaveUserConfig
+	Route[http.MethodGet]["/manage/getUserConfig"] = manage.GetUserConfig
 
 	/*admin API*/
 	noAuthFuns(Route[http.MethodPost], `/manage/login`, manage.AdminLogin)
@@ -96,6 +98,7 @@ func init() {
 	Route[http.MethodPost][`/manage/deleteRobotGroup`] = manage.DeleteRobotGroup
 	Route[http.MethodGet][`/manage/getRobotGroupList`] = manage.GetRobotGroupList
 	Route[http.MethodPost][`/manage/relationRobotGroup`] = manage.RelationRobotGroup
+
 	/*library API*/
 	Route[http.MethodGet][`/manage/getLibraryList`] = manage.GetLibraryList
 	Route[http.MethodGet][`/manage/getLibraryInfo`] = manage.GetLibraryInfo
@@ -196,6 +199,8 @@ func init() {
 	Route[http.MethodPost][`/manage/generateAiPrompt`] = manage.GenerateAiPrompt
 	/*category API*/
 	Route[http.MethodGet][`/manage/getCategoryList`] = manage.GetCategoryList
+	Route[http.MethodGet][`/manage/getSimilarQuestions`] = manage.GetSimilarQuestions
+	Route[http.MethodPost][`/manage/mergeQAParagraph`] = manage.MergeQAParagraph
 	Route[http.MethodPost][`/manage/saveCategory`] = manage.SaveCategory
 
 	/*form API*/
@@ -267,6 +272,7 @@ func init() {
 	noAuthFuns(Route[http.MethodPost], `/chat/editVariables`, business.ChatEditVariables)
 	/*model API*/
 	Route[http.MethodGet][`/manage/getModelConfigList`] = manage.GetModelConfigList
+	Route[http.MethodPost][`/manage/setModelConfigWeight`] = manage.SetModelConfigWeight
 	noAuthFuns(Route[http.MethodGet], `/manage/showModelConfigList`, manage.ShowModelConfigList)
 	Route[http.MethodPost][`/manage/addModelConfig`] = manage.AddModelConfig
 	Route[http.MethodPost][`/manage/delModelConfig`] = manage.DelModelConfig
@@ -391,6 +397,7 @@ func init() {
 	/*unknown_issue API*/
 	Route[http.MethodGet][`/manage/unknownIssueStats`] = manage.UnknownIssueStats
 	Route[http.MethodGet][`/manage/getUnknownIssueSummary`] = manage.GetUnknownIssueSummary
+	Route[http.MethodGet][`/manage/getUnknownIssueChatContext`] = manage.GetUnknownIssueChatContext
 	Route[http.MethodPost][`/manage/unknownIssueSummaryAnswer`] = manage.UnknownIssueSummaryAnswer
 	Route[http.MethodPost][`/manage/unknownIssueSummaryImport`] = manage.UnknownIssueSummaryImport
 	/* Lib File FAQ API*/
@@ -467,6 +474,14 @@ func init() {
 	Route[http.MethodPost][`/manage/getChatVariables`] = manage.GetChatVariables
 	Route[http.MethodPost][`/manage/createChatVariable`] = manage.CreateChatVariable
 	Route[http.MethodPost][`/manage/deleteChatVariable`] = manage.DeleteChatVariable
+
+	/*workbench API*/
+	Route[http.MethodGet][`/manage/workbench/robotHistoryVisit`] = manage.GetRobotHistoryVisit
+	Route[http.MethodGet][`/manage/workbench/getConfig`] = manage.GetWorkbenchConfig
+	Route[http.MethodPost][`/manage/workbench/saveConfig`] = manage.SaveWorkbenchConfig
+	Route[http.MethodPost][`/manage/workbench/topRobot`] = manage.TopRobot
+	Route[http.MethodGet][`/manage/workbench/teamRobotList`] = manage.WorkbenchTeamRobotList
+	Route[http.MethodPost][`/manage/workbench/recordRobotVisit`] = manage.RecordRobotVisit
 }
 
 func noAuthFuns(route map[string]lib_web.Action, path string, handlerFunc lib_web.Action) map[string]lib_web.Action {

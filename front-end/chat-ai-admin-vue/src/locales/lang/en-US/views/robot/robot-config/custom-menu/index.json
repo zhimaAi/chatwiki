@@ -1,0 +1,14 @@
+{
+  "breadcrumb_title": "Custom Menu",
+  "switch_on": "On",
+  "switch_off": "Off",
+  "switch_tip": "When enabled, the official account shows custom menu; when disabled, followers won't see the menu.",
+  "alert_message": "After enabling, users will reply with specified content after following the official account. ",
+  "alert_highlight": "This feature only supports verified official accounts/service accounts",
+  "empty_default": "No Official Account Bound",
+  "empty_sub": "Please go to System Settings > Official Account Management to bind an official account",
+  "btn_bind": "Bind Official Account",
+  "modal_title": "Confirmation",
+  "modal_confirm_close": "After disabling, this feature will be closed by default and no longer supported. All official account menus will be deactivated. Confirm to close?",
+  "msg_operation_success": "Operation successful."
+}

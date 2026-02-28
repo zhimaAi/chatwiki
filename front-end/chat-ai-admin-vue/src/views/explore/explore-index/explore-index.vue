@@ -79,9 +79,11 @@ const handleSwitchChange = (item, checked) => {
   const newStatus = checked ? '1' : '0'
   if (newStatus === '0') {
     const contMap = {
-      'robot_auto_reply': t('msg_close_confirm_default'),
+      'robot_auto_reply': t('msg_close_auto_reply_no_content'),
+      'robot_smart_menu': t('msg_close_smart_menu_no_reply'),
       'library_ability_official_account': t('msg_close_confirm_library'),
       'robot_payment': t('msg_close_confirm_payment'),
+      'official_custom_menu': t('msg_close_confirm_menus'),
     }
     Modal.confirm({
       title: t('title_tip'),

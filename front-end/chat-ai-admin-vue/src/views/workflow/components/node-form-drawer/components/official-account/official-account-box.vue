@@ -188,7 +188,7 @@ function getParams() {
 
 
 function loadWxApps() {
-  getWechatAppList({app_type: 'official_account'}).then(res => {
+  getWechatAppList({app_type: 'official_account', is_all: 1}).then(res => {
     apps.value = res?.data || []
   })
 }

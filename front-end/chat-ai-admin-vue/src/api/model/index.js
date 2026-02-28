@@ -43,3 +43,7 @@ export const saveUseModelConfig = (data) => {
 export const delUseModelConfig = (data) => {
   return request.post({ url: '/manage/delUseModelConfig', data })
 }
+
+export const setModelConfigWeight = (data) => {
+  return request.post({ url: '/manage/setModelConfigWeight', data })
+}

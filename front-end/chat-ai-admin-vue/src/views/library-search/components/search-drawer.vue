@@ -191,11 +191,7 @@
                 <div class="retrieval-mode-title">
                   <svg-icon :name="item.iconName" class="title-icon"></svg-icon>
                   <span class="title-text">{{ item.title }}</span>
-                  <svg-icon
-                    class="recommendation-icon"
-                    name="recommendation"
-                    v-if="item.isRecommendation"
-                  ></svg-icon>
+                  <SvgTextTag class="recommendation-icon" :text="tCommon('recommendation')" v-if="item.isRecommendation" />
                 </div>
 
                 <div class="retrieval-mode-desc">
@@ -324,11 +320,13 @@ import { message } from 'ant-design-vue'
 import WeightSelect from '@/components/weight-select/index.vue'
 import { useSearchLiraryStore } from '@/stores/modules/search-lirary'
 import ModelSelect from '@/components/model-select/model-select.vue'
+import SvgTextTag from '@/components/icons/SvgTextTag.vue'
 import { usePermissionStore } from '@/stores/modules/permission'
 import { useI18n } from '@/hooks/web/useI18n'
 
 let { role_permission, role_type } = usePermissionStore()
 const { t } = useI18n('views.library-search.components.search-drawer')
+const { t: tCommon } = useI18n('common')
 
 const searchSets = computed(() => role_type == 1 || role_permission.includes('SearchSets'))
 
@@ -635,7 +633,6 @@ onMounted(() => {})
 
         .recommendation-icon {
           margin-left: 4px;
-          font-size: 36px;
         }
       }
 

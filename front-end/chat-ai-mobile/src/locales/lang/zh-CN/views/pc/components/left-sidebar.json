@@ -1,0 +1,12 @@
+{
+  "btn_new_chat": "新建对话",
+  "tooltip_expand": "展开",
+  "tooltip_collapse": "收起",
+  "label_new_chat": "新对话",
+  "label_today": "今天",
+  "label_yesterday": "昨天",
+  "label_this_month": "本月",
+  "label_earlier": "更早",
+  "title_clear_confirm": "清空记录确认",
+  "msg_clear_all_records": "确认清空所有记录"
+}

@@ -239,3 +239,177 @@ func UnknownIssueSummaryImport(c *gin.Context) {
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
+
+func GetUnknownIssueChatContext(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+	statsId := cast.ToInt(c.Query(`stats_id`))
+	robotId := cast.ToInt(c.Query(`robot_id`))
+	triggerDay := cast.ToInt(c.Query(`trigger_day`))
+	question := strings.TrimSpace(c.Query(`question`))
+	window := cast.ToInt(c.DefaultQuery(`window`, `15`))
+	if window <= 0 {
+		window = 15
+	}
+	if window > 50 {
+		window = 50
+	}
+	if statsId <= 0 && (robotId <= 0 || triggerDay <= 0 || len(question) == 0) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	m := msql.Model(`chat_ai_unknown_issue_stats`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId))
+	if statsId > 0 {
+		m.Where(`id`, cast.ToString(statsId))
+	} else {
+		m.Where(`robot_id`, cast.ToString(robotId)).Where(`stats_day`, cast.ToString(triggerDay)).Where(`question`, question)
+	}
+	stats, err := m.Field(`id,robot_id,stats_day,question,sample_openid,sample_rel_user_id,sample_dialogue_id,sample_session_id,sample_message_id,last_dialogue_id,last_session_id,last_message_id,last_trigger_time`).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(stats) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	robotId = cast.ToInt(stats[`robot_id`])
+	dialogueId := cast.ToInt(stats[`last_dialogue_id`])
+	sessionId := cast.ToInt(stats[`last_session_id`])
+	messageId := cast.ToInt(stats[`last_message_id`])
+	openid := stats[`sample_openid`]
+	relUserId := cast.ToInt(stats[`sample_rel_user_id`])
+	usedFallback := false
+	if dialogueId <= 0 || messageId <= 0 {
+		startTs := tool.GetTimestamp(cast.ToUint(stats[`stats_day`]))
+		endTs := startTs + 86400
+		lastMessage, queryErr := msql.Model(`chat_ai_message`, define.Postgres).Alias(`m`).
+			Join(`chat_ai_session s`, `m.session_id=s.id`, `left`).
+			Where(`m.admin_user_id`, cast.ToString(adminUserId)).
+			Where(`m.robot_id`, cast.ToString(robotId)).
+			Where(`m.is_customer`, `1`).
+			Where(`m.content`, stats[`question`]).
+			Where(`m.create_time`, `between`, fmt.Sprintf(`%d,%d`, startTs, endTs)).
+			Order(`m.id desc`).
+			Field(`m.id,m.dialogue_id,m.session_id,m.openid,m.create_time,s.rel_user_id`).
+			Find()
+		if queryErr != nil {
+			logs.Error(queryErr.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		if len(lastMessage) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+			return
+		}
+		usedFallback = true
+		dialogueId = cast.ToInt(lastMessage[`dialogue_id`])
+		sessionId = cast.ToInt(lastMessage[`session_id`])
+		messageId = cast.ToInt(lastMessage[`id`])
+		openid = lastMessage[`openid`]
+		relUserId = cast.ToInt(lastMessage[`rel_user_id`])
+		upData := msql.Datas{
+			`last_dialogue_id`:  dialogueId,
+			`last_session_id`:   sessionId,
+			`last_message_id`:   messageId,
+			`last_trigger_time`: cast.ToInt(lastMessage[`create_time`]),
+			`update_time`:       tool.Time2Int(),
+		}
+		if cast.ToInt(stats[`sample_message_id`]) <= 0 {
+			upData[`sample_openid`] = openid
+			upData[`sample_rel_user_id`] = relUserId
+			upData[`sample_dialogue_id`] = dialogueId
+			upData[`sample_session_id`] = sessionId
+			upData[`sample_message_id`] = messageId
+		}
+		if _, queryErr = msql.Model(`chat_ai_unknown_issue_stats`, define.Postgres).
+			Where(`id`, stats[`id`]).Where(`admin_user_id`, cast.ToString(adminUserId)).Update(upData); queryErr != nil {
+			logs.Error(queryErr.Error())
+		}
+	}
+	anchorMessage, err := msql.Model(`chat_ai_message`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`robot_id`, cast.ToString(robotId)).
+		Where(`id`, cast.ToString(messageId)).
+		Field(`id,dialogue_id`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(anchorMessage) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	if dialogueId <= 0 {
+		dialogueId = cast.ToInt(anchorMessage[`dialogue_id`])
+	}
+	fields := `id,admin_user_id,robot_id,openid,dialogue_id,session_id,is_customer,msg_type,content,nickname,name,avatar,received_message_type,media_id_to_oss_url,menu_json,quote_file,reply_content_list,create_time,update_time`
+	beforeList, err := msql.Model(`chat_ai_message`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`robot_id`, cast.ToString(robotId)).
+		Where(`dialogue_id`, cast.ToString(dialogueId)).
+		Where(`id`, `<`, cast.ToString(messageId)).
+		Order(`id desc`).Limit(window).Field(fields).Select()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	for i, j := 0, len(beforeList)-1; i < j; i, j = i+1, j-1 {
+		beforeList[i], beforeList[j] = beforeList[j], beforeList[i]
+	}
+	anchorList, err := msql.Model(`chat_ai_message`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`robot_id`, cast.ToString(robotId)).
+		Where(`dialogue_id`, cast.ToString(dialogueId)).
+		Where(`id`, cast.ToString(messageId)).
+		Field(fields).Select()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	afterList, err := msql.Model(`chat_ai_message`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`robot_id`, cast.ToString(robotId)).
+		Where(`dialogue_id`, cast.ToString(dialogueId)).
+		Where(`id`, `>`, cast.ToString(messageId)).
+		Order(`id`).Limit(window).Field(fields).Select()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	list := append(beforeList, anchorList...)
+	list = append(list, afterList...)
+	robotInfo, _ := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`id`, cast.ToString(robotId)).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Field(`id,robot_name,robot_avatar,robot_key`).
+		Find()
+	customerInfo := msql.Params{}
+	if len(openid) > 0 {
+		customerInfo, _ = common.GetCustomerInfo(openid, adminUserId)
+	}
+	data := map[string]any{
+		`stats_id`:          stats[`id`],
+		`question`:          stats[`question`],
+		`trigger_day`:       stats[`stats_day`],
+		`dialogue_id`:       dialogueId,
+		`session_id`:        sessionId,
+		`openid`:            openid,
+		`rel_user_id`:       relUserId,
+		`anchor_message_id`: messageId,
+		`window`:            window,
+		`used_fallback`:     usedFallback,
+		`robot`:             robotInfo,
+		`customer`:          customerInfo,
+		`list`:              list,
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(data, nil))
+}

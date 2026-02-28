@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { getCompany } from '@/api/user'
+import { useI18n } from '@/hooks/web/useI18n'
+
 const defaultAvatar = 'https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/favicon.ico'
 const topNavigateDefaultData = [
   {
@@ -35,11 +37,17 @@ const topNavigateDefaultData = [
     name: '会话',
     open: true
   },
+  {
+    id: 'workbench',
+    name: '工作台',
+    open: true
+  },
   // {
   //   id: 'user',
   //   name: '系统设置',
   //   open: true
   // }
+  
 ]
 
 export const useCompanyStore = defineStore('company', {
@@ -73,6 +81,8 @@ export const useCompanyStore = defineStore('company', {
     },
 
     setCompanyInfo(data) {
+      const { t } = useI18n()
+
       this.companyInfo = data;
       this.name = data ? data.name : '';
       this.id = data ? data.id : '';
@@ -80,15 +90,26 @@ export const useCompanyStore = defineStore('company', {
       this.ali_ocr_key = data ? data.ali_ocr_key : '';
       this.ali_ocr_secret = data ? data.ali_ocr_secret : '2';
       this.is_public_network = data ? data.is_public_network : '';
+
+       // t(`navigation.${item.id}`, item.name)
+       let navs = []
       if(data && data.top_navigate){
         let top_navigate = JSON.parse(data.top_navigate)
-        this.top_navigate = topNavigateDefaultData.map(item => {
+
+        navs = topNavigateDefaultData.map(item => {
           let findItem =  top_navigate.find(it => it.id == item.id)
           return findItem ? findItem : item
         })
       }else{
-        this.top_navigate = topNavigateDefaultData
+        navs = topNavigateDefaultData
       }
+
+      navs.forEach(item => {
+        item.name = t(`navigation.${item.id}`, item.name)
+      })
+
+      this.top_navigate = navs
+
       setFavicon(data?.avatar || defaultAvatar)
     },
   },

@@ -13,7 +13,7 @@
     </div>
     <a-alert show-icon>
       <template #message>
-        <p>{{ t('keyword_reply_tip') }}</p>
+        <p>{{ t('keyword_reply_tip') }}；<span class='text_color_ed744a'>{{ t('msg_only_certified_account') }}</span></p>
       </template>
     </a-alert>
     <div class="search-block">
@@ -170,7 +170,7 @@
       </a-table>
     </div>
   </div>
-  
+
 </template>
 
 <script setup>

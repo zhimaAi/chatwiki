@@ -1,0 +1,14 @@
+{
+  "breadcrumb_title": "自定义菜单",
+  "switch_on": "开",
+  "switch_off": "关",
+  "switch_tip": "开启后，公众号显示自定义菜单；关闭后，粉丝将无法看到菜单。",
+  "alert_message": "开启后，用户关注公众号后，回复指定的内容，",
+  "alert_highlight": "该功能仅支持已认证公众号/服务号",
+  "empty_default": "暂未绑定公众号",
+  "empty_sub": "请选到系统设置>公众号管理绑定公众号",
+  "btn_bind": "去绑定公众号",
+  "modal_title": "提示",
+  "modal_confirm_close": "关闭后，该功能默认关闭不再支持使用，所有的公众号菜单都会停用，确认关闭？",
+  "msg_operation_success": "操作成功"
+}

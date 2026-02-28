@@ -59,23 +59,37 @@
                 <div class="list-label">{{ t('column_question') }}</div>
                 <div class="list-content">
                   {{ record.question }}
-                  <a-popover placement="topLeft" v-if="record.unknown_total > 0">
-                    <template #content>
-                      <div class="classify-scroll-box">
-                        <div
-                          class="list-item"
-                          v-for="(item, index) in record.unknown_list"
-                          :key="index"
-                        >
-                          {{ item }}
+                  <template v-if="record.unknown_total > 0">
+                    <a-popover placement="topLeft">
+                      <template #content>
+                        <div class="classify-scroll-box">
+                          <div
+                            class="list-item"
+                            v-for="(item, index) in buildClusterQuestionList(record)"
+                            :key="index"
+                          >
+                            <a @click="handleOpenChatContext(record, item)">{{ item }}</a>
+                          </div>
                         </div>
-                      </div>
-                    </template>
-                    <template #title>
-                      <span>{{ t('cluster_count', { count: record.unknown_total }) }}</span>
-                    </template>
-                    <a>（{{ record.unknown_total }}） </a>
-                  </a-popover>
+                      </template>
+                      <template #title>
+                        <span>{{
+                          t('cluster_count', { count: buildClusterQuestionList(record).length })
+                        }}</span>
+                      </template>
+                      <span class="context-link">
+                        <a @click.stop="handleOpenChatContext(record, record.question)">{{
+                          t('action_view_context')
+                        }}</a>
+                        <a>（{{ buildClusterQuestionList(record).length }}）</a>
+                      </span>
+                    </a-popover>
+                  </template>
+                  <template v-else>
+                    <a @click="handleOpenChatContext(record, record.question)">{{
+                      t('action_view_context')
+                    }}</a>
+                  </template>
                 </div>
               </div>
               <div class="list-item" v-if="record.answer">
@@ -131,7 +145,7 @@
             </div>
           </template>
         </a-table-column>
-        <a-table-column key="action" :title="t('column_action')" :width="135">
+        <a-table-column key="action" :title="t('column_action')" :width="220">
           <template #default="{ record }">
             <a-flex :gap="8">
               <a @click="handleOpenAnswerModal(record)">{{ t('action_set_answer') }}</a>
@@ -144,23 +158,36 @@
     <ImportLibraryModal @ok="getTableData" ref="importLibraryModalRef" />
     <AutoClusterModal @ok="handleSaveCluster" ref="autoClusterModalRef" />
     <SetAnswerModal @ok="getTableData" ref="setAnswerModalRef" />
+    <a-drawer v-model:open="contextVisible" :title="t('context_title')" :width="760" destroyOnClose>
+      <a-spin :spinning="contextLoading">
+        <MessageList
+          ref="messageListRef"
+          :messages="contextMessages"
+          :robot-info="contextRobotInfo"
+          :is-empty="contextMessages.length === 0"
+          :channel-item="[]"
+        />
+      </a-spin>
+    </a-drawer>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, computed } from 'vue'
+import { reactive, ref, computed, nextTick } from 'vue'
 import { QuestionCircleOutlined, DownOutlined } from '@ant-design/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import ImportLibraryModal from './components/import-library-modal.vue'
 import AutoClusterModal from './components/auto-cluster-modal.vue'
 import SetAnswerModal from './components/set-answer-modal.vue'
-import { getUnknownIssueSummary, setUnknownIssueSummary } from '@/api/robot/index.js'
+import MessageList from '../../session-record/components/message-list.vue'
+import { getUnknownIssueSummary, setUnknownIssueSummary, getUnknownIssueChatContext } from '@/api/robot/index.js'
 import dayjs from 'dayjs'
 import { useRobotStore } from '@/stores/modules/robot'
 import DateSelect from '../components/date.vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/modules/user'
 import { useI18n } from '@/hooks/web/useI18n'
+import { extractVoiceInfo, removeVoiceFormat } from '@/utils/index'
 const { t } = useI18n('views.robot.robot-config.unknown-issue.summarize.index')
 const userStore = useUserStore()
 const robotStore = useRobotStore()
@@ -298,6 +325,153 @@ const handleOpenAnswerModal = (record) => {
 
 const handleSaveCluster = () => {
   getRobot(query.id)
+}
+
+const contextVisible = ref(false)
+const contextLoading = ref(false)
+const contextMessages = ref([])
+const contextRobotInfo = ref({})
+const contextAnchorId = ref(0)
+const messageListRef = ref(null)
+
+const parseJsonString = (val) => {
+  if (!val || typeof val !== 'string') {
+    return val
+  }
+  try {
+    return JSON.parse(val)
+  } catch (_e) {
+    return val
+  }
+}
+
+const tryParseJson = (val) => {
+  if (typeof val !== 'string') {
+    return val
+  }
+  try {
+    return JSON.parse(val)
+  } catch (_e) {
+    return val
+  }
+}
+
+const extractMessageText = (node) => {
+  if (node === null || node === undefined) {
+    return []
+  }
+  if (typeof node === 'string') {
+    return [node]
+  }
+  if (Array.isArray(node)) {
+    return node.flatMap((item) => extractMessageText(item))
+  }
+  if (typeof node === 'object') {
+    const itemType = String(node?.type || node?.reply_type || '')
+    if (itemType === 'text') {
+      return [String(node?.text || node?.content || node?.description || '')]
+    }
+    if (itemType === 'image') {
+      return ['[image]']
+    }
+    if (itemType === 'voice') {
+      return ['[voice]']
+    }
+    const direct = [node?.text, node?.content, node?.description].filter((x) => typeof x === 'string')
+    if (direct.length > 0) {
+      return direct
+    }
+  }
+  return []
+}
+
+const normalizeReceivedText = (content) => {
+  if (!content || typeof content !== 'string') {
+    return content
+  }
+  let parsed = tryParseJson(content)
+  if (typeof parsed === 'string') {
+    parsed = tryParseJson(parsed)
+  }
+  if (typeof parsed === 'string') {
+    return content
+  }
+  const textList = extractMessageText(parsed)
+    .map((item) => String(item || '').trim())
+    .filter((item) => item !== '')
+  return textList.length > 0 ? textList.join('\n') : content
+}
+
+const normalizeContextMessage = (item, robot, customer) => {
+  const msg = {
+    ...item,
+    uid: item.id,
+    loading: false,
+    name: item.name || item.nickname
+  }
+  if (msg.is_customer == 1) {
+    msg.name = msg.name || customer?.name || ''
+    msg.avatar = msg.avatar || customer?.avatar || ''
+  } else {
+    msg.name = msg.name || robot?.robot_name || ''
+    msg.robot_avatar = msg.avatar || robot?.robot_avatar || ''
+    msg.avatar = msg.robot_avatar
+  }
+  msg.menu_json = parseJsonString(msg.menu_json)
+  msg.quote_file = parseJsonString(msg.quote_file)
+  msg.reply_content_list = parseJsonString(msg.reply_content_list) || []
+  if (msg.is_customer == 1) {
+    msg.content = normalizeReceivedText(msg.content)
+  }
+  msg.voice_content = extractVoiceInfo(msg.content)
+  msg.content = removeVoiceFormat(msg.content)
+  return msg
+}
+
+const buildClusterQuestionList = (record) => {
+  const list = []
+  if (record.question) {
+    list.push(record.question)
+  }
+  if (Array.isArray(record.unknown_list)) {
+    record.unknown_list.forEach((item) => {
+      if (item && item !== record.question) {
+        list.push(item)
+      }
+    })
+  }
+  return list
+}
+
+const handleOpenChatContext = async (record, question) => {
+  contextLoading.value = true
+  try {
+    const res = await getUnknownIssueChatContext({
+      robot_id: query.id,
+      trigger_day: record.trigger_day,
+      question: question
+    })
+    const data = res.data || {}
+    const list = Array.isArray(data.list) ? data.list : []
+    contextRobotInfo.value = data.robot || {}
+    contextAnchorId.value = Number(data.anchor_message_id || 0)
+    contextMessages.value = list
+      .sort((a, b) => Number(a.id || 0) - Number(b.id || 0))
+      .map((item) => normalizeContextMessage(item, data.robot, data.customer))
+    if (contextMessages.value.length === 0) {
+      message.warning(t('context_not_found'))
+      return
+    }
+    contextVisible.value = true
+    await nextTick()
+    if (messageListRef.value && contextAnchorId.value > 0) {
+      messageListRef.value.scrollToMessage(contextAnchorId.value, 'top', 72)
+    } else if (messageListRef.value) {
+      messageListRef.value.scrollToBottom()
+    }
+  } finally {
+    contextLoading.value = false
+  }
 }
 
 const handleChangeTab = () => {

@@ -51,7 +51,7 @@
             <div class="form-label required">{{ t('label_group') }}</div>
             <div class="form-content">
               <a-select v-model:value="group_id" style="width: 100%">
-                <a-select-option v-for="item in groupLists" :value="item.id">{{ item.group_name }}</a-select-option>
+                <a-select-option v-for="item in groupLists" :value="item.id" :key="item.id">{{ item.group_name }}</a-select-option>
               </a-select>
             </div>
           </div>
@@ -110,7 +110,15 @@
 
         <div class="form-item" v-if="isQaDocment">
           <div class="form-label-box">
-            <div class="form-label">{{ t('label_similar_questions') }}</div>
+                <div class="form-label">
+                  <span class="form-label-text">{{ t('label_similar_questions') }}</span>
+                  <!-- 相似问题数量 -->
+                  <span v-if="id && similarQuestionTotal > 0" class="similar-questions-tip" @click="openSimilarQuestionList">
+                    <ExclamationCircleFilled />
+                    <span>{{ t('msg_similar_qa_count', { count: similarQuestionTotal }) }}</span>
+                    <RightOutlined style="font-size: 10px;" />
+                  </span>
+                </div>
             <div class="ai-generate" @click="handleAIGenerate">
               <svg-icon name="ai-generate" style="font-size: 14px"></svg-icon>
               <div class="ai-generate-text">{{ t('btn_ai_auto_generate') }}</div>
@@ -226,17 +234,18 @@
 </template>
 <script setup>
 import { LeftOutlined } from '@ant-design/icons-vue'
-import { ref, reactive, nextTick, watch } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   editParagraph,
   getCategoryList,
   saveCategoryParagraph,
   generateSimilarQuestions,
-  getLibraryGroup
+  getLibraryGroup,
+  getSimilarQuestions
 } from '@/api/library'
-import { StarOutlined, StarFilled } from '@ant-design/icons-vue'
-import { useRoute } from 'vue-router'
+import { StarOutlined, StarFilled, ExclamationCircleFilled, RightOutlined } from '@ant-design/icons-vue'
+import { useRoute, useRouter } from 'vue-router'
 import UploadImg from '@/components/upload-img/index.vue'
 import { isArray } from 'ant-design-vue/lib/_util/util.js'
 import colorLists from '@/utils/starColors.js'
@@ -277,6 +286,7 @@ watch(
 )
 
 const route = useRoute()
+const router = useRouter()
 const query = route.query
 const pathName = route.name
 const props = defineProps({
@@ -285,9 +295,6 @@ const props = defineProps({
   }
 })
 const emit = defineEmits(['handleEdit', 'handleStatrList'])
-const oldModelDefineList = ['azure']
-const currentModelDefine = ref('')
-const modelDefine = ['azure', 'ollama', 'xinference', 'openaiAgent']
 
 const activeKey = ref('1')
 const open = ref(false)
@@ -299,6 +306,7 @@ const similar_questions = ref('')
 const images = ref([])
 const category_id = ref(0)
 const id = ref('')
+const similarQuestionTotal = ref(0)
 
 const group_id = ref('0')
 
@@ -320,10 +328,27 @@ const showModal = (data) => {
   category_id.value = data.category_id || 0
   group_id.value = data.group_id || '0'
   getCategoryLists()
-  if(isQaDocment) {
+
+  if(isQaDocment.value) {
     getGroupLists()
   }
+  console.log(id.value)
+  // 获取相似问题总数（仅在编辑时）
+  if (id.value) {
+    getSimilarQuestionTotal()
+  }
+
   open.value = true
+}
+
+const getSimilarQuestionTotal = () => {
+  getSimilarQuestions({
+    data_id: id.value,
+    library_id: props.detailsInfo.library_id,
+    type: 'count'
+  }).then((res) => {
+    similarQuestionTotal.value = res.data?.count || 0
+  })
 }
 
 const groupLists = ref([])
@@ -433,7 +458,7 @@ const handleOk = () => {
   if (pathName == 'categaryManages') {
       formData.delete('file_id')
       formData.append('library_id', route.query.id)
-      saveCategoryParagraph(formData).then((res) => {
+      saveCategoryParagraph(formData).then(() => {
         message.success(data.id ? t('msg_edit_success') : t('msg_add_success'))
         open.value = false
         emit('handleEdit', {
@@ -442,7 +467,7 @@ const handleOk = () => {
         getCategoryLists()
       })
     } else {
-      editParagraph(formData).then((res) => {
+      editParagraph(formData).then(() => {
         message.success(data.id ? t('msg_edit_success') : t('msg_add_success'))
         open.value = false
         emit('handleEdit', {
@@ -512,7 +537,19 @@ const onProcessText = () => {
   similar_questions.value = processText(similar_questions.value)
 }
 
-defineExpose({ showModal })
+// 打开相似问法列表
+const openSimilarQuestionList = () => {
+  const routeData = router.resolve({
+    path: '/library/similar-question-list',
+    query: {
+      library_id: props.detailsInfo.library_id,
+      question_id: id.value
+    }
+  })
+  window.open(routeData.href, '_blank')
+}
+
+defineExpose({ showModal, id, open })
 </script>
 <style lang="less" scoped>
 .custom-modal-header {
@@ -603,6 +640,7 @@ defineExpose({ showModal })
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin-bottom: 4px;
 
     .ai-generate {
       cursor: pointer;
@@ -629,6 +667,8 @@ defineExpose({ showModal })
   }
 
   .form-label {
+    display: flex;
+    align-items: center;
     color: #262626;
     font-size: 14px;
     line-height: 22px;
@@ -660,6 +700,19 @@ defineExpose({ showModal })
       margin: 0;
       margin-left: 16px;
     }
+  }
+
+  .similar-questions-tip{
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    line-height: 22px;
+    padding: 0 6px;
+    margin-left: 4px;
+    font-size: 14px;
+    border-radius: 6px;
+    background: #F0F0F0;
+    cursor: pointer;
   }
 }
 .ant-segmented-item-selected .star-item-box {

@@ -11,20 +11,21 @@
         />
       </div>
     </Teleport>
-    <div class="mention-input-warpper mention-promt-input" ref="JMentionContainer">
+    <div class="mention-input-warpper mention-promt-input" :class="{'no-border': noBorder}" ref="JMentionContainer">
       <div
         ref="JMention"
         :style="[inputStyle]"
         class="j-mention"
         :class="[{ 'show-placeholder': localValue.length == 0 }, 'type-' + type]"
         contenteditable="plaintext-only"
-        :placeholder="t(placeholder)"
+        :placeholder="placeholder"
         @focus="onFocus"
         @input="debouncedUpdate"
         @click="clickJMention"
         @blur="handleBlur"
+        @keydown="handleKeydown"
       ></div>
-      <span class="placeholder" v-if="localValue.length == 0">{{ t(placeholder) }}</span>
+      <span class="placeholder" v-if="localValue.length == 0 || localValue == '\n'">{{ placeholder }}</span>
     </div>
   </div>
 </template>
@@ -63,7 +64,7 @@ export default {
     },
     placeholder: {
       type: String,
-      default: 'ph_input'
+      default: ''
     },
     defaultValue: {
       type: [String, Number],
@@ -90,6 +91,10 @@ export default {
       default: ''
     },
     checkAnyLevel: {
+      type: Boolean,
+      default: false
+    },
+    noBorder: {
       type: Boolean,
       default: false
     }
@@ -578,7 +583,14 @@ export default {
       }
 
       this.positionStyle = `left:${newLeft}px; top:${currentTop}px;`
-    }
+    },
+    handleKeydown(event) {
+      // 当type为input时，阻止回车键换行
+      if (this.type === 'input' && event.key === 'Enter') {
+        event.preventDefault();
+        return false;
+      }
+    },
   }
 }
 </script>
@@ -603,6 +615,19 @@ export default {
   padding: 4px 8px;
   border: 1px solid #d9d9d9;
   background: #fff;
+  &.no-border{
+    border: none;
+    padding: 0;
+    .placeholder{
+      padding: 0;
+    }
+    &:hover {
+      border: none;
+    }
+    &:focus {
+      border: none;
+    }
+  }
 
   &:hover {
     border: 1px solid #409eff;

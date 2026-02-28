@@ -1,0 +1,14 @@
+{
+  "subscribe_reply": "Subscribe Reply",
+  "switch_on": "On",
+  "switch_off": "Off",
+  "switch_tip": "After enabling, users will receive a specified reply when following the official account. This feature only supports replies within the official account.",
+  "alert_message": "After enabling, users will receive a specified reply when following the official account. {highlight}",
+  "alert_highlight": "This feature only supports verified official accounts/service accounts.",
+  "empty_default": "No official account bound",
+  "empty_sub": "Please go to System Settings > Official Account Management to bind an official account",
+  "btn_bind_account": "Bind Official Account",
+  "modal_title": "Confirmation",
+  "modal_close_content": "After closing, this feature will be disabled by default and all official account menus will stop working. Confirm to close?",
+  "msg_operation_success": "Operation successful"
+}

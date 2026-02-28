@@ -72,7 +72,6 @@
 
         .recommendation-icon {
           margin-left: 4px;
-          font-size: 36px;
         }
       }
 
@@ -122,7 +121,7 @@
 </style>
 
 <template>
-  <a-modal width="600px" v-model:open="show" :title="t('title_recall_settings')" @ok="handleSave" :okText="t('btn_confirm')" :cancelText="t('btn_cancel')">
+  <a-modal width="786px" v-model:open="show" :title="t('title_recall_settings')" @ok="handleSave" :okText="t('btn_confirm')" :cancelText="t('btn_cancel')">
     <div class="recall-settings-box">
       <div class="form-box">
         <div class="form-item is-required">
@@ -147,11 +146,7 @@
                 <div class="retrieval-mode-title">
                   <svg-icon :name="item.iconName" class="title-icon"></svg-icon>
                   <span class="title-text">{{ item.title }}</span>
-                  <svg-icon
-                    class="recommendation-icon"
-                    name="recommendation"
-                    v-if="item.isRecommendation"
-                  ></svg-icon>
+                  <SvgTextTag class="recommendation-icon" :text="tCommon('recommendation')" v-if="item.isRecommendation" />
                 </div>
 
                 <div class="retrieval-mode-desc">
@@ -227,19 +222,31 @@
             <a-tooltip :overlayStyle="{ maxWidth: '350px' }">
               <template #title>
                 <div style="font-size: 13px;">
-                  <p>{{ t('msg_recall_neighbor_tooltip') }}</p>
+                  <p>{{ t('tooltip_recall_neighbor_desc_1') }}</p>
+                  <p>{{ t('tooltip_recall_neighbor_desc_2') }}</p>
+                  <p>{{ t('tooltip_recall_neighbor_desc_3') }}</p>
+                  <p>{{ t('tooltip_recall_neighbor_desc_4') }}</p>
+                  <p>{{ t('tooltip_recall_neighbor_desc_5') }}</p>
                 </div>
               </template>
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
             &nbsp;
-            <a-switch v-model:checked="formState.recall_neighbor_switch" />
+            <!-- <a-switch v-model:checked="formState.recall_neighbor_switch" /> -->
           </div>
 
           <div class="form-item-body">
             <div class="segment-controls">
               <div class="segment-input">
-                <span>{{ t('label_concat_before') }}</span>&nbsp;
+                <span>{{ t('label_top_k_ranking') }}</span>&nbsp;
+                <a-select v-model:value="formState.recall_neighbor_top_k" style="width: 80px;">
+                  <a-select-option :value="i - 1" v-for="i in 11" :key="i">{{ i - 1 }}</a-select-option>
+                </a-select>
+                <span>&nbsp;{{ t('label_of_segments') }}，</span>
+              </div>
+
+              <div class="segment-input">
+                <span>{{ t('label_auto_concat_before') }}</span>&nbsp;
                 <a-select v-model:value="formState.recall_neighbor_before_num" style="width: 80px;">
                   <a-select-option :value="i - 1" v-for="i in 6" :key="i">{{ i - 1 }}</a-select-option>
                 </a-select>
@@ -310,10 +317,12 @@ import WeightSelect from '@/components/weight-select/index.vue'
 import { message } from 'ant-design-vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import MetaFilterBox from "@/views/robot/robot-config/basic-config/components/meta-filter-box.vue";
+import SvgTextTag from '@/components/icons/SvgTextTag.vue'
 import {getLibaryMetaSchemaList, getRobotMetaSchemaList} from "@/api/library/index.js";
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.workflow.components.nodes.knowledge-base-node.recall-settings-alert')
+const { t: tCommon } = useI18n('common')
 
 const emit = defineEmits(['change'])
 
@@ -349,6 +358,7 @@ const formState = reactive({
   meta_search_condition_list: "",
   rrf_weight: {},
   recall_neighbor_switch: false,
+  recall_neighbor_top_k: 5,
   recall_neighbor_before_num: 1,
   recall_neighbor_after_num: 1,
 })
@@ -370,6 +380,7 @@ const open = (data) => {
   formState.meta_search_condition_list = data.meta_search_condition_list
   formState.rrf_weight = data.rrf_weight
   formState.recall_neighbor_switch = data.recall_neighbor_switch
+  formState.recall_neighbor_top_k = data.recall_neighbor_top_k
   formState.recall_neighbor_before_num = data.recall_neighbor_before_num
   formState.recall_neighbor_after_num = data.recall_neighbor_after_num
 

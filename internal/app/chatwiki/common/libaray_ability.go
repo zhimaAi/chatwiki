@@ -26,7 +26,7 @@ var LibraryAbilityList = []Ability{
 		ShowSelect:    define.SwitchOn,
 		RobotOnlyShow: define.SwitchOn,
 		SupportChannelsList: []string{
-			"[[ZM--OfficialAccountChannel--ZM]]",
+			"[[ZM--AuthenticatedOfficialAccountChannel--ZM]]",
 		},
 		RobotConfig: DefaultRobotConfig,
 		Menu: define.Menu{
@@ -57,7 +57,7 @@ var LibraryAbilityList = []Ability{
 		ShowSelect:    define.SwitchOn,
 		RobotOnlyShow: define.SwitchOn,
 		SupportChannelsList: []string{
-			"[[ZM--OfficialAccountChannel--ZM]]",
+			"[[ZM--AuthenticatedOfficialAccountChannel--ZM]]",
 		},
 		RobotConfig: DefaultRobotConfig,
 		Menu: define.Menu{
