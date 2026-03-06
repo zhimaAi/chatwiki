@@ -11,7 +11,7 @@ export default {
       name: 'libraryList',
       component: () => import('../views/library/library-list/library-list.vue'),
       meta: {
-        title: '知识库管理',
+        title: 'routes.basic.knowledge_management',
         activeMenu: '/library',
         hideTitle: true,
         pageStyle:{
@@ -25,15 +25,15 @@ export default {
       name: 'addLibrary',
       component: () => import('../views/library/add-library/add-library.vue'),
       meta: {
-        title: '新建知识库',
+        title: 'routes.basic.create_knowledge',
         activeMenu: '/library',
         breadcrumb: [
           {
-            title: '知识库管理',
+            title: 'routes.basic.knowledge_management',
             path: '/library/list'
           },
           {
-            title: '新建知识库',
+            title: 'routes.basic.create_knowledge',
             path: '/library/add'
           }
         ]
@@ -44,7 +44,7 @@ export default {
       name: 'documentSegmentation',
       component: () => import('../views/library/document-segmentation/document-segmentation.vue'),
       meta: {
-        title: '新建知识库',
+        title: 'routes.basic.create_knowledge',
         activeMenu: '/library',
         hideTitle: true
       }
@@ -54,7 +54,7 @@ export default {
       name: 'libraryDetails',
       component: () => import('../views/library/library-details/index.vue'),
       meta: {
-        title: '编辑知识库',
+        title: 'routes.basic.edit_knowledge',
         activeMenu: '/library',
         isCustomPage: true
       },
@@ -76,7 +76,7 @@ export default {
           name: 'knowledgeDocument',
           component: () => import('../views/library/library-details/knowledge-document/index.vue'),
           meta: {
-            title: '知识库文档',
+            title: 'routes.basic.knowledge_document',
             activeMenu: '/library'
           }
         },
@@ -85,7 +85,7 @@ export default {
           name: 'qaDocImportRecord',
           component: () => import('../views/library/library-details/import-record.vue'),
           meta: {
-            title: '导入记录',
+            title: 'routes.basic.import_record',
             activeMenu: '/library'
           }
         },
@@ -94,7 +94,7 @@ export default {
           name: 'qaDocExportRecord',
           component: () => import('../views/library/library-details/export-record.vue'),
           meta: {
-            title: '导出记录',
+            title: 'routes.basic.export_record',
             activeMenu: '/library'
           }
         },
@@ -103,7 +103,7 @@ export default {
           name: 'recycleBinRecord',
           component: () => import('../views/library/library-details/recycle-bin-record.vue'),
           meta: {
-            title: '回收站',
+            title: 'routes.basic.recycle_bin',
             activeMenu: '/library'
           }
         },
@@ -112,7 +112,7 @@ export default {
           name: 'recallTesting',
           component: () => import('@/views/library/library-details/recall-testing.vue'),
           meta: {
-            title: '召回测试',
+            title: 'routes.basic.recall_testing',
             activeMenu: '/library'
           }
         },
@@ -121,16 +121,16 @@ export default {
           name: 'knowledgeGraph',
           component: () => import('@/views/library/knowledge-graph/index.vue'),
           meta: {
-            title: '知识图谱',
+            title: 'routes.basic.knowledge_graph',
             activeMenu: '/library'
           }
         },
         {
           path: '/library/details/knowledge-config',
           name: 'knowledgeConfig',
-          component: () => import('@/views/library/library-details/knowledge-config/index.vue'),
+          component: () => import('../views/library/library-details/knowledge-config/index.vue'),
           meta: {
-            title: '知识库配置',
+            title: 'routes.basic.knowledge_config',
             activeMenu: '/library',
             cuStyle: true,
           }
@@ -138,18 +138,18 @@ export default {
         {
           path: '/library/details/related-robots',
           name: 'knowledgeRelatedRobots',
-          component: () => import('@/views/library/library-details/related-robots.vue'),
+          component: () => import('../views/library/library-details/related-robots.vue'),
           meta: {
-            title: '关联机器人',
+            title: 'routes.basic.related_robots',
             activeMenu: '/library'
           }
         },
         {
           path: '/library/details/categary-manage',
           name: 'categaryManages',
-          component: () => import('@/views/library/library-details/categary-manage/index.vue'),
+          component: () => import('../views/library/library-details/categary-manage/index.vue'),
           meta: {
-            title: '精选',
+            title: 'routes.basic.featured',
             activeMenu: '/library'
           }
         }
@@ -160,7 +160,7 @@ export default {
       name: 'libraryPreview',
       component: () => import('../views/library/library-preview/library-preview.vue'),
       meta: {
-        title: '知识库管理',
+        title: 'routes.basic.knowledge_management',
         activeMenu: '/library',
         pageStyle:{
           'padding': '0 24px'
@@ -173,7 +173,7 @@ export default {
       name: 'similarQuestionList',
       component: () => import('../views/library/similar-question-list/index.vue'),
       meta: {
-        title: '相似问题列表',
+        title: 'routes.basic.similar_question_list',
         activeMenu: '/library',
         pageStyle:{
           'padding': '0 24px'

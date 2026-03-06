@@ -302,7 +302,10 @@
               v-model:type="formState.meta_search_type"
               ref="metaFilterRef"
               class="meta-box"
-              :meta-data="metaList"/>
+              :meta-data="metaList"
+              :variableOptions="variableOptions"
+              @updateVar="emit('updateVar')"
+            />
           </div>
         </div>
       </div>
@@ -324,7 +327,13 @@ import { useI18n } from '@/hooks/web/useI18n'
 const { t } = useI18n('views.workflow.components.nodes.knowledge-base-node.recall-settings-alert')
 const { t: tCommon } = useI18n('common')
 
-const emit = defineEmits(['change'])
+const emit = defineEmits(['change', 'updateVar'])
+const props = defineProps({
+  variableOptions: {
+    type: Array,
+    default: () => []
+  }
+})
 
 const retrievalModeList = computed(() => [
   {
@@ -368,7 +377,10 @@ const metaList = ref([])
 const libraryIds = ref([])
 const robotInfo = ref({})
 
-const open = (data) => {
+const open = (data,  r=null, library_ids=[]) => {
+  robotInfo.value = r
+  libraryIds.value = library_ids
+  getMetaList()
   formState.rerank_status = data.rerank_status || 0
   formState.rerank_use_model = data.rerank_use_model || undefined
   formState.rerank_model_config_id = data.rerank_model_config_id || ''

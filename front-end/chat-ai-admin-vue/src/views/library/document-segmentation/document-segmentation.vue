@@ -199,10 +199,12 @@
                 :question="item.question"
                 :answer="item.answer"
                 :images="item.images"
+                :indexNum="index"
                 :isNeedDashedLine="getIsNeedDashedLine(item, index)"
                 :similar_question_list="item.similar_question_list"
                 @delete="handleDeleteFragment(index)"
                 @edit="handleEditFragment(item, index)"
+                @upwardMerge="handleUpwardMerge(index)"
               />
             </div>
           </div>
@@ -629,6 +631,19 @@ const handleDeleteFragment = (index) => {
     onCancel() {}
   })
 }
+
+// 向上合并分段
+const handleUpwardMerge = (index) => {
+  console.log(index , documentFragmentList.value, '==')
+  // 将index位置的分段数据与index-1位置的分段数据合并 只合并content字段 word_total字段为合并后content的长度 index-1位置的分段数据删除
+  if (index > 0) {
+    documentFragmentList.value[index - 1].content += documentFragmentList.value[index].content
+    documentFragmentList.value[index - 1].word_total = documentFragmentList.value[index - 1].content.length
+    documentFragmentList.value.splice(index, 1)
+  }
+}
+
+
 const validateMessage = ref('')
 const onValidate = (data) => {
   // 获取错误信息

@@ -6,6 +6,7 @@ import { NO_REDIRECT_WHITE_LIST } from '@/constants'
 import { checkSystemPermisission } from '@/utils/permission.js'
 import { useLocaleStoreWithOut } from '@/stores/modules/locale'
 import { useLocale } from '@/hooks/web/useLocale'
+import { i18n } from '@/locales'
 
 function toLogin(to, from, next) {
   if (to.path === '/login') {
@@ -23,9 +24,14 @@ function toLogin(to, from, next) {
 // }
 
 function setTitle(to, companyInfo) {
-  let str = `Chatwiki ` + `${companyInfo?.name || '开源大模型企业知识库问答系统'}`
-  if (to.meta.title) {
-    document.title = to.meta.title + ' - ' + str
+  const appName = companyInfo?.name || (i18n && i18n.global ? i18n.global.t('utils.index.app_name_default') : '开源大模型企业知识库问答系统')
+  let str = `Chatwiki ` + appName
+  let title = to.meta.title
+  if (typeof title === 'string' && title.startsWith('routes.basic.')) {
+    title = i18n && i18n.global ? i18n.global.t(title) : title
+  }
+  if (title) {
+    document.title = title + ' - ' + str
   } else {
     document.title = str
   }

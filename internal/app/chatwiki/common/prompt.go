@@ -193,24 +193,42 @@ func CreatePromptByAi(lang string, demand string, adminUserId, modelConfigId int
 	return promptStruct, nil
 }
 
-func ReplaceChatVariables(lang string, sessionId int, prompt *string, promptStruct *string) {
-	chatPromptVariablesStr, err := msql.Model(`chat_ai_session`, define.Postgres).Where(`id`, cast.ToString(sessionId)).Value(`chat_prompt_variables`)
+// getSessionChatVariables loads all prompt variables (including system & workflow variables)
+// and returns them with the unified placeholder regexp used across the chat flow.
+func getSessionChatVariables(sessionId int) ([]ChatVariable, *regexp.Regexp, error) {
+	if sessionId <= 0 {
+		return nil, nil, nil
+	}
+
+	chatPromptVariablesStr, err := msql.Model(`chat_ai_session`, define.Postgres).
+		Where(`id`, cast.ToString(sessionId)).
+		Value(`chat_prompt_variables`)
 	if err != nil {
 		logs.Error(err.Error())
-		return
+		return nil, nil, err
 	}
 	if len(chatPromptVariablesStr) == 0 {
-		return
+		return nil, nil, nil
 	}
+
 	chatPromptVariables := make([]ChatVariable, 0)
-	err = tool.JsonDecode(chatPromptVariablesStr, &chatPromptVariables)
-	if err != nil {
+	if err := tool.JsonDecode(chatPromptVariablesStr, &chatPromptVariables); err != nil {
 		logs.Error(err.Error())
-		return
+		return nil, nil, err
 	}
+
 	re, err := regexp.Compile(`【chat_variable:[a-zA-Z_]+】`)
 	if err != nil {
 		logs.Error(err.Error())
+		return nil, nil, err
+	}
+
+	return chatPromptVariables, re, nil
+}
+
+func ReplaceChatVariables(lang string, sessionId int, prompt *string, promptStruct *string) {
+	chatPromptVariables, re, err := getSessionChatVariables(sessionId)
+	if err != nil || len(chatPromptVariables) == 0 || re == nil {
 		return
 	}
 	//prompt
@@ -233,6 +251,45 @@ func ReplaceChatVariables(lang string, sessionId int, prompt *string, promptStru
 		}
 	}
 	*promptStruct = tool.JsonEncodeNoError(sp)
+}
+
+// ReplaceMetaSearchChatVariables replaces chat variable placeholders in robot metadata filter config.
+// It only affects string-type conditions and keeps the original configuration when:
+// - metadata search is disabled, or
+// - there is no active chat session / variables.
+func ReplaceMetaSearchChatVariables(lang string, sessionId int, robot *msql.Params) {
+	if cast.ToInt((*robot)[`meta_search_switch`]) != define.MetaSearchSwitchOn {
+		return
+	}
+
+	raw := strings.TrimSpace((*robot)[`meta_search_condition_list`])
+	if raw == "" || raw == "{}" || raw == "null" {
+		return
+	}
+
+	chatPromptVariables, re, err := getSessionChatVariables(sessionId)
+	if err != nil || len(chatPromptVariables) == 0 || re == nil {
+		return
+	}
+
+	conds := make([]MetaSearchCondition, 0)
+	if err := tool.JsonDecode(raw, &conds); err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	if len(conds) == 0 {
+		return
+	}
+
+	for i := range conds {
+		// Support all types (string, number, time) as they may contain placeholders
+		v := conds[i].Value
+		ReplaceChatVariable(lang, &v, chatPromptVariables, re)
+		conds[i].Value = v
+	}
+
+	replacedResult := tool.JsonEncodeNoError(conds)
+	(*robot)[`meta_search_condition_list`] = replacedResult
 }
 
 func ReplaceChatVariable(lang string, str *string, chatPromptVariables []ChatVariable, re *regexp.Regexp) {

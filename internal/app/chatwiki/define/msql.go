@@ -138,13 +138,17 @@ const (
 const DefaultLibDocBanner = `/upload/default/open_doc_home_default_banner.png`
 
 const (
-	SyncOfficialHistoryTypeHalfYear  = 1
-	SyncOfficialHistoryTypeOneYear   = 2
-	SyncOfficialHistoryTypeThreeYear = 3
-	SyncOfficialHistoryTypeAll       = 10
+	SyncOfficialHistoryTypeHalfYear   = 1
+	SyncOfficialHistoryTypeOneYear    = 2
+	SyncOfficialHistoryTypeThreeYear  = 3
+	SyncOfficialHistoryTypeAll        = 10
+	SyncOfficialHistoryTypeOneMonth   = 11
+	SyncOfficialHistoryTypeThreeMonth = 12
 )
 
 var SyncOfficialHistoryTypeList = [...]int{
+	SyncOfficialHistoryTypeOneMonth,
+	SyncOfficialHistoryTypeThreeMonth,
 	SyncOfficialHistoryTypeHalfYear,
 	SyncOfficialHistoryTypeOneYear,
 	SyncOfficialHistoryTypeThreeYear,

@@ -30,7 +30,7 @@ const routes = [
     name: 'Login',
     component: () => import('../views/login/login.vue'),
     meta: {
-      title: '登录',
+      title: 'routes.basic.login',
       noCache: true,
       hidden: true
     }
@@ -40,7 +40,7 @@ const routes = [
     name: 'SetToken',
     component: () => import('../views/set-token/index.vue'),
     meta: {
-      title: '登录',
+      title: 'routes.basic.login',
       noCache: true,
       hidden: true
     }
@@ -50,7 +50,7 @@ const routes = [
     name: 'PrivacyPolicy',
     component: () => import('../views/privacy-policy/index.vue'),
     meta: {
-      title: '隐私政策',
+      title: 'routes.basic.privacy_policy',
       noCache: true,
       hidden: true
     }

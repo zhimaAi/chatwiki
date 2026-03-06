@@ -63,6 +63,7 @@ type ModelInfo struct {
 	ConfigInfo              msql.Params         `json:"config_info"`
 	UseModelConfigs         []UseModelConfig    `json:"use_model_configs"`
 	Weight                  int                 `json:"weight"`
+	ApiEndPoint             string              `json:"api_end_point"`
 }
 
 func (modelInfo *ModelInfo) SetUseModelConfigs(useModelList []msql.Params) {
@@ -140,6 +141,7 @@ const (
 	ModelMinimax         = "minimax"
 	ModelSiliconFlow     = "siliconflow"
 	Model302Ai           = "302ai"
+	ModelOpenRouter      = "openrouter"
 )
 
 const (
@@ -250,16 +252,45 @@ func GetModelConfigList(lang string) []ModelInfo {
 func getModelConfigList(lang string) []ModelInfo {
 	return []ModelInfo{
 		{
+			ModelDefine:             Model302Ai,
+			ModelName:               `302.AI`,
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + Model302Ai + `.png`,
+			Introduce:               i18n.Show(lang, `model_302ai_introduce`),
+			SupportList:             []string{Llm, Image},
+			SupportedType:           []string{Llm, Image},
+			ConfigParams:            []string{`api_key`, `api_endpoint`},
+			HistoryConfigParams:     []string{},
+			HelpLinks:               `https://302.ai`,
+			CallHandlerFunc:         Get302AiHandle,
+			CallSupplierhandlerFunc: Get302AiSupplierHandle,
+			ApiEndPoint:             `https://api.302ai.cn`,
+		},
+		{
+			ModelDefine:             ModelOpenRouter,
+			ModelName:               `OpenRouter`,
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelOpenRouter + `.png`,
+			Introduce:               i18n.Show(lang, `model_openrouter_introduce`),
+			SupportList:             []string{Llm, Image},
+			SupportedType:           []string{Llm, Image},
+			ConfigParams:            []string{`api_key`, `api_endpoint`},
+			HistoryConfigParams:     []string{},
+			HelpLinks:               `https://openrouter.ai/`,
+			CallHandlerFunc:         GetOpenRouterHandle,
+			CallSupplierhandlerFunc: GetOpenRouterSupplierHandle,
+			ApiEndPoint:             `https://openrouter.ai/api`,
+		},
+		{
 			ModelDefine:             ModelDeepseek,
 			ModelName:               `DeepSeek`,
 			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelDeepseek + `.png`,
 			Introduce:               i18n.Show(lang, `model_deepseek_introduce`),
 			SupportList:             []string{Llm},
 			SupportedType:           []string{Llm},
-			ConfigParams:            []string{`api_key`},
+			ConfigParams:            []string{`api_key`, `api_endpoint`},
 			HelpLinks:               `https://www.deepseek.com/`,
 			CallHandlerFunc:         GetDeepseekHandle,
 			CallSupplierhandlerFunc: GetDeepseekSupplierHandle,
+			ApiEndPoint:             `https://api.deepseek.com`,
 		},
 		{
 			ModelDefine:             ModelGoogleGemini,
@@ -268,10 +299,11 @@ func getModelConfigList(lang string) []ModelInfo {
 			Introduce:               i18n.Show(lang, `model_gemini_introduce`),
 			SupportList:             []string{Llm, TextEmbedding},
 			SupportedType:           []string{Llm, TextEmbedding},
-			ConfigParams:            []string{`api_key`},
+			ConfigParams:            []string{`api_key`, `api_endpoint`},
 			HelpLinks:               `https://ai.google.dev/`,
 			CallHandlerFunc:         GetGeminiHandler,
 			CallSupplierhandlerFunc: GetGeminiSupplierHandler,
+			ApiEndPoint:             `https://generativelanguage.googleapis.com`,
 		},
 		{
 			ModelDefine:             ModelOpenAI,
@@ -280,10 +312,11 @@ func getModelConfigList(lang string) []ModelInfo {
 			Introduce:               i18n.Show(lang, `model_openai_introduce`),
 			SupportList:             []string{Llm, TextEmbedding},
 			SupportedType:           []string{Llm, TextEmbedding},
-			ConfigParams:            []string{`api_key`},
+			ConfigParams:            []string{`api_key`, `api_endpoint`},
 			HelpLinks:               `https://openai.com/`,
 			CallHandlerFunc:         GetOpenAIHandle,
 			CallSupplierhandlerFunc: GetOpenAISupplierHandle,
+			ApiEndPoint:             `https://api.openai.com`,
 		},
 		{
 			ModelDefine:             ModelDoubao,
@@ -292,11 +325,12 @@ func getModelConfigList(lang string) []ModelInfo {
 			Introduce:               i18n.Show(lang, `model_doubao_introduce`),
 			SupportList:             []string{Llm, TextEmbedding, Image},
 			SupportedType:           []string{Llm, TextEmbedding, Image},
-			ConfigParams:            []string{`api_key`, `region`},
+			ConfigParams:            []string{`api_key`, `region`, `api_endpoint`},
 			HistoryConfigParams:     []string{`secret_key`},
 			HelpLinks:               `https://www.volcengine.com/product/doubao`,
 			CallHandlerFunc:         GetDoubaoHandle,
 			CallSupplierhandlerFunc: GetDoubaoSupplierHandle,
+			ApiEndPoint:             `https://ark.cn-beijing.volces.com`,
 		},
 		{
 			ModelDefine:             ModelSiliconFlow,
@@ -305,10 +339,11 @@ func getModelConfigList(lang string) []ModelInfo {
 			Introduce:               i18n.Show(lang, `model_siliconflow_introduce`),
 			SupportList:             []string{Llm, TextEmbedding, Rerank},
 			SupportedType:           []string{Llm, TextEmbedding, Rerank},
-			ConfigParams:            []string{`api_key`},
+			ConfigParams:            []string{`api_key`, `api_endpoint`},
 			HelpLinks:               `https://siliconflow.cn/zh-cn/`,
 			CallHandlerFunc:         GetSiliconFlowHandle,
 			CallSupplierhandlerFunc: GetSiliconFlowSupplierHandle,
+			ApiEndPoint:             `https://api.siliconflow.cn`,
 		},
 		{
 			ModelDefine:   ModelAliyunTongyi,
@@ -317,7 +352,7 @@ func getModelConfigList(lang string) []ModelInfo {
 			Introduce:     i18n.Show(lang, `model_tongyi_introduce`),
 			SupportList:   []string{Llm, TextEmbedding, Tts, Rerank, Image},
 			SupportedType: []string{Llm, TextEmbedding, Rerank, Image},
-			ConfigParams:  []string{`api_key`},
+			ConfigParams:  []string{`api_key`, `api_endpoint`},
 			NetworkSearchModelList: []string{
 				`qwen-plus`,
 				`qwen-turbo`,
@@ -328,6 +363,7 @@ func getModelConfigList(lang string) []ModelInfo {
 			HelpLinks:               `https://dashscope.aliyun.com/?spm=a2c4g.11186623.nav-dropdown-menu-0.142.6d1b46c1EeV28g&scm=20140722.X_data-37f0c4e3bf04683d35bc._.V_1`,
 			CallHandlerFunc:         GetTongyiHandler,
 			CallSupplierhandlerFunc: GetTongyiSupplierHandler,
+			ApiEndPoint:             `https://dashscope.aliyuncs.com`,
 		},
 		{
 			ModelDefine:             ModelOpenAIAgent,
@@ -341,6 +377,7 @@ func getModelConfigList(lang string) []ModelInfo {
 			HelpLinks:               `https://openai.com/`,
 			CallHandlerFunc:         GetOpenAIAgentHandle,
 			CallSupplierhandlerFunc: GetOpenAIAgentSupplierHandle,
+			ApiEndPoint:             ``,
 		},
 		{
 			ModelDefine:   ModelAzureOpenAI,
@@ -363,6 +400,7 @@ func getModelConfigList(lang string) []ModelInfo {
 			HelpLinks:               `https://azure.microsoft.com/en-us/products/ai-services/openai-service`,
 			CallHandlerFunc:         GetAzureHandler,
 			CallSupplierhandlerFunc: GetAzureSupplierHandler,
+			ApiEndPoint:             ``,
 		},
 		{
 			ModelDefine:             ModelAnthropicClaude,
@@ -371,10 +409,11 @@ func getModelConfigList(lang string) []ModelInfo {
 			Introduce:               i18n.Show(lang, `model_claude_introduce`),
 			SupportList:             []string{Llm},
 			SupportedType:           []string{Llm},
-			ConfigParams:            []string{`api_key`},
+			ConfigParams:            []string{`api_key`, `api_endpoint`},
 			HelpLinks:               `https://claude.ai/`,
 			CallHandlerFunc:         GetClaudeHandler,
 			CallSupplierhandlerFunc: GetClaudeSupplierHandler,
+			ApiEndPoint:             `https://api.anthropic.com`,
 		},
 		{
 			ModelDefine:         ModelBaiduYiyan,
@@ -416,10 +455,11 @@ func getModelConfigList(lang string) []ModelInfo {
 			Introduce:               i18n.Show(lang, `model_cohere_introduce`),
 			SupportList:             []string{Llm, TextEmbedding, Rerank},
 			SupportedType:           []string{Llm, TextEmbedding, Rerank},
-			ConfigParams:            []string{`api_key`},
+			ConfigParams:            []string{`api_key`, `api_endpoint`},
 			HelpLinks:               `https://cohere.com/`,
 			CallHandlerFunc:         GetCohereHandle,
 			CallSupplierhandlerFunc: GetCohereSupplierHandle,
+			ApiEndPoint:             `https://api.cohere.com`,
 		},
 		{
 			ModelDefine:             ModelOllama,
@@ -432,6 +472,7 @@ func getModelConfigList(lang string) []ModelInfo {
 			HelpLinks:               `https://www.ollama.com/`,
 			CallHandlerFunc:         GetOllamaHandle,
 			CallSupplierhandlerFunc: GetOllamaSupplierHandle,
+			ApiEndPoint:             ``,
 		},
 		{
 			ModelDefine:             ModelXnference,
@@ -445,6 +486,7 @@ func getModelConfigList(lang string) []ModelInfo {
 			HelpLinks:               `https://xinference.io/zh`,
 			CallHandlerFunc:         GetXinferenceHandle,
 			CallSupplierhandlerFunc: GetXinferenceSupplierHandle,
+			ApiEndPoint:             ``,
 		},
 
 		{
@@ -454,10 +496,11 @@ func getModelConfigList(lang string) []ModelInfo {
 			Introduce:               i18n.Show(lang, `model_jina_introduce`),
 			SupportList:             []string{TextEmbedding, Rerank},
 			SupportedType:           []string{TextEmbedding, Rerank},
-			ConfigParams:            []string{`api_key`},
+			ConfigParams:            []string{`api_key`, `api_endpoint`},
 			HelpLinks:               `https://jina.ai/`,
 			CallHandlerFunc:         GetJinaHandle,
 			CallSupplierhandlerFunc: GetJinaSupplierHandle,
+			ApiEndPoint:             `https://api.jina.ai`,
 		},
 		{
 			ModelDefine:             ModelLingYiWanWu,
@@ -466,10 +509,11 @@ func getModelConfigList(lang string) []ModelInfo {
 			Introduce:               i18n.Show(lang, `model_lingyiwanwu_introduce`),
 			SupportList:             []string{Llm},
 			SupportedType:           []string{Llm},
-			ConfigParams:            []string{`api_key`},
+			ConfigParams:            []string{`api_key`, `api_endpoint`},
 			HelpLinks:               `https://platform.lingyiwanwu.com/`,
 			CallHandlerFunc:         GetLingYiWanWuHandle,
 			CallSupplierhandlerFunc: GetLingYiWanWuSupplierHandle,
+			ApiEndPoint:             `https://api.lingyiwanwu.com`,
 		},
 		{
 			ModelDefine:             ModelMoonShot,
@@ -478,10 +522,11 @@ func getModelConfigList(lang string) []ModelInfo {
 			Introduce:               i18n.Show(lang, `model_moonshot_introduce`),
 			SupportList:             []string{Llm},
 			SupportedType:           []string{Llm},
-			ConfigParams:            []string{`api_key`},
+			ConfigParams:            []string{`api_key`, `api_endpoint`},
 			HelpLinks:               `https://www.moonshot.cn/`,
 			CallHandlerFunc:         GetMoonShotHandle,
 			CallSupplierhandlerFunc: GetMoonShotSupplierHandle,
+			ApiEndPoint:             `https://api.moonshot.cn`,
 		},
 		{
 			ModelDefine:             ModelSpark,
@@ -514,10 +559,11 @@ func getModelConfigList(lang string) []ModelInfo {
 			Introduce:               i18n.Show(lang, `model_baichuan_introduce`),
 			SupportList:             []string{Llm, TextEmbedding},
 			SupportedType:           []string{Llm, TextEmbedding},
-			ConfigParams:            []string{`api_key`},
+			ConfigParams:            []string{`api_key`, `api_endpoint`},
 			HelpLinks:               `https://platform.baichuan-ai.com`,
 			CallHandlerFunc:         GetBaichuanHandle,
 			CallSupplierhandlerFunc: GetBaichuanSupplierHandle,
+			ApiEndPoint:             `https://api.baichuan-ai.com`,
 		},
 		{
 			ModelDefine:             ModelZhipu,
@@ -526,10 +572,11 @@ func getModelConfigList(lang string) []ModelInfo {
 			Introduce:               i18n.Show(lang, `model_zhipu_introduce`),
 			SupportList:             []string{Llm, TextEmbedding},
 			SupportedType:           []string{Llm, TextEmbedding},
-			ConfigParams:            []string{`api_key`},
+			ConfigParams:            []string{`api_key`, `api_endpoint`},
 			HelpLinks:               `https://open.bigmodel.cn/`,
 			CallHandlerFunc:         GetZhipuHandle,
 			CallSupplierhandlerFunc: GetZhipuSupplierHandle,
+			ApiEndPoint:             `https://open.bigmodel.cn`,
 		},
 		{
 			ModelDefine:             ModelMinimax,
@@ -538,23 +585,11 @@ func getModelConfigList(lang string) []ModelInfo {
 			Introduce:               i18n.Show(lang, `model_minimax_introduce`),
 			SupportList:             []string{Llm, Tts},
 			SupportedType:           []string{Llm, Tts},
-			ConfigParams:            []string{`api_key`},
+			ConfigParams:            []string{`api_key`, `api_endpoint`},
 			HelpLinks:               `https://www.minimaxi.com/`,
 			CallHandlerFunc:         GetMinimaxHandle,
 			CallSupplierhandlerFunc: GetMinimaxSupplierHandle,
-		},
-		{
-			ModelDefine:             Model302Ai,
-			ModelName:               `302.AI`,
-			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + Model302Ai + `.png`,
-			Introduce:               i18n.Show(lang, `model_302ai_introduce`),
-			SupportList:             []string{Llm, Image},
-			SupportedType:           []string{Llm, Image},
-			ConfigParams:            []string{`api_key`},
-			HistoryConfigParams:     []string{},
-			HelpLinks:               `https://302.ai`,
-			CallHandlerFunc:         Get302AiHandle,
-			CallSupplierhandlerFunc: Get302AiSupplierHandle,
+			ApiEndPoint:             `https://api.minimaxi.com`,
 		},
 	}
 }

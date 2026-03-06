@@ -9,7 +9,7 @@ export default {
       name: 'templatesIndex',
       component: () => import('../views/explore/templates/index.vue'),
       meta: {
-        title: '模板广场',
+        title: 'routes.basic.template_square',
         hideTitle: true,
         activeMenu: 'explore',
         bgColor: '#ffffff',
@@ -24,7 +24,7 @@ export default {
       name: 'templatesDetail',
       component: () => import('../views/explore/templates/detail.vue'),
       meta: {
-        title: '模板详情',
+        title: 'routes.basic.template_detail',
         hideTitle: true,
         activeMenu: 'explore',
         bgColor: '#ffffff',

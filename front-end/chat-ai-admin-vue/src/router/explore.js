@@ -9,7 +9,7 @@ export default {
       name: 'exploreIndex',
       component: () => import('../views/explore/explore-index/explore-index.vue'),
       meta: {
-        title: '探索',
+        title: 'routes.basic.explore',
         hideTitle: true,
         activeMenu: '/explore',
         bgColor: '#ffffff',
@@ -24,7 +24,7 @@ export default {
       name: 'exploreCustomMenu',
       component: () => import('@/views/robot/robot-config/custom-menu/index.vue'),
       meta: {
-        title: '自定义菜单',
+        title: 'routes.basic.custom_menu',
         isCustomPage: true,
         activeMenu: '/explore',
         bgColor: '#ffffff',
@@ -39,7 +39,7 @@ export default {
       name: 'exploreSubscribeReply',
       component: () => import('@/views/robot/robot-config/subscribe-reply/index.vue'),
       meta: {
-        title: '关注后回复',
+        title: 'routes.basic.subscribe_reply',
         isCustomPage: true,
         activeMenu: '/explore',
         bgColor: '#ffffff',
@@ -54,7 +54,7 @@ export default {
       name: 'exploreSubscribeReplyAddRule',
       component: () => import('@/views/robot/robot-config/subscribe-reply/add-rule.vue'),
       meta: {
-        title: '新增规则',
+        title: 'routes.basic.add_rule',
         isCustomPage: true,
         activeMenu: '/explore',
         bgColor: '#ffffff',
@@ -69,7 +69,7 @@ export default {
       name: 'exploreArticleGroupSend',
       component: () => import('../views/explore/article-group-send/index.vue'),
       meta: {
-        title: '文章群发',
+        title: 'routes.basic.article_group_send',
         isCustomPage: true,
         activeMenu: '/explore',
         bgColor: '#ffffff',
@@ -78,14 +78,13 @@ export default {
           overflow: 'hidden'
         }
       },
-      // 二级tab：群发管理 草稿箱
       children: [
         {
           path: '/explore/index/article-group-send/group-send',
           name: 'exploreArticleGroupSendGroupSend',
           component: () => import('../views/explore/article-group-send/group-send.vue'),
           meta: {
-            title: '群发管理',
+            title: 'routes.basic.group_send_management',
             isCustomPage: true,
             activeMenu: '/explore',
             bgColor: '#ffffff',
@@ -100,7 +99,7 @@ export default {
           name: 'exploreArticleGroupSendDraftBox',
           component: () => import('../views/explore/article-group-send/draft-box.vue'),
           meta: {
-            title: '草稿箱',
+            title: 'routes.basic.draft_box',
             isCustomPage: true,
             activeMenu: '/explore',
             bgColor: '#ffffff',
@@ -117,7 +116,7 @@ export default {
       name: 'exploreAiCommentManagement',
       component: () => import('../views/explore/ai-comment-management/index.vue'),
       meta: {
-        title: 'AI评论管理',
+        title: 'routes.basic.ai_comment_management',
         isCustomPage: true,
         activeMenu: '/explore',
         bgColor: '#ffffff',
@@ -132,7 +131,7 @@ export default {
           name: 'exploreAiCommentManagementDefaultRule',
           component: () => import('../views/explore/ai-comment-management/default-rule.vue'),
           meta: {
-            title: '默认规则',
+            title: 'routes.basic.default_rule',
             isCustomPage: true,
             activeMenu: '/explore',
             bgColor: '#ffffff',
@@ -147,7 +146,7 @@ export default {
           name: 'exploreAiCommentManagementCustomRule',
           component: () => import('../views/explore/ai-comment-management/custom-rule.vue'),
           meta: {
-            title: '自定义规则',
+            title: 'routes.basic.custom_rule',
             isCustomPage: true,
             activeMenu: '/explore',
             bgColor: '#ffffff',
@@ -162,7 +161,7 @@ export default {
           name: 'exploreAiCommentManagementCreateCustomRule',
           component: () => import('../views/explore/ai-comment-management/create-custom-rule.vue'),
           meta: {
-            title: '新建自定义规则',
+            title: 'routes.basic.create_custom_rule',
             isCustomPage: true,
             activeMenu: '/explore',
             bgColor: '#ffffff',
@@ -177,7 +176,7 @@ export default {
           name: 'exploreAiCommentManagementCommentProcessingRecord',
           component: () => import('../views/explore/ai-comment-management/comment-processing-record.vue'),
           meta: {
-            title: '评论处理记录',
+            title: 'routes.basic.comment_processing_record',
             isCustomPage: true,
             activeMenu: '/explore',
             bgColor: '#ffffff',

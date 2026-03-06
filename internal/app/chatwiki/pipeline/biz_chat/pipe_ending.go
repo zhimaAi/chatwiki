@@ -87,6 +87,9 @@ func SaveRobotMsg(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if len(out.replyContentList) > 0 { // keyword reply trigger content
 		aiMessage[`reply_content_list`] = tool.JsonEncodeNoError(out.replyContentList)
 	}
+	if len(out.debugLog) > 0 {
+		aiMessage[`debug_log`] = tool.JsonEncodeNoError(out.debugLog)
+	}
 	id, err := msql.Model(`chat_ai_message`, define.Postgres).Insert(aiMessage, `id`)
 	if err != nil {
 		out.Error = err

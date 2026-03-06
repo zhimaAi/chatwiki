@@ -3,6 +3,7 @@
   "label_or": "OR",
   "ph_select": "Please select",
   "ph_input": "Please input",
+  "ph_input_content": "Please enter content, type \"/\" to insert variable",
   "btn_add_condition": "Add Condition",
   "op_is": "Is",
   "op_is_not": "Is Not",
@@ -18,5 +19,6 @@
   "msg_select_filter_metadata": "Please select filter metadata",
   "msg_select_filter_operator": "Please select filter operator",
   "msg_select_filter_metadata_value": "Please select filter metadata value",
-  "msg_complete_at_least_one_filter_rule": "Please complete at least one filter rule"
+  "msg_complete_at_least_one_filter_rule": "Please complete at least one filter rule",
+  "ph_input_value": "Enter value, press '/' to insert variable"
 }

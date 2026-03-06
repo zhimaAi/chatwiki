@@ -2,7 +2,10 @@
   <div class="group-send-wrapper">
         <div class="toolbar">
           <a-button type="primary" @click="handleCreateSend">{{ t('btn_create_send') }}</a-button>
-          <!-- <a-button :disabled="selectedRowKeys.length === 0">批量管理</a-button> -->
+          <div class="toolbar-right">
+            <a-button @click="showAutoSyncModal">{{ t('btn_auto_sync') }}  <a-switch v-model:checked="autoSyncSwitch" @change="showAutoSyncModal" :checked-children="t('switch_checked')" :un-checked-children="t('switch_unchecked')" class="ml4"/></a-button>
+            <a-button type="primary" @click="showSyncModal" ghost :icon="h(SyncOutlined)">{{ t('btn_sync_history') }}</a-button>
+          </div>
         </div>
 
         <div class="table-box">
@@ -10,7 +13,11 @@
             :pagination="{ current: pager.page, pageSize: pager.size, total: pager.total, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'] }"
             @change="onTableChange" :row-class-name="rowClassName">
             <template #headerCell="{ column }">
-              <span v-if="typeof column.title === 'string'">{{ column.title }}</span>
+              <a-tooltip v-if="column.dataIndex === 'comment_status'">
+                <template #title>{{ t('tooltip_comment_status_sync') }}</template>
+                {{ column.title }} <QuestionCircleOutlined/>
+              </a-tooltip>
+              <span v-else-if="typeof column.title === 'string'">{{ column.title }}</span>
             </template>
             <template #expandIcon="{ expanded, onExpand, record }">
               <span class="expand-icon" @click="onExpand(record)">
@@ -29,7 +36,7 @@
                 </div>
                 <div class="expanded-meta" @click="openCommentDrawer(record)">
                   <svg-icon name="comment" size="32px" style="color: transparent;" />
-                  {{ record.max_comment_id }}
+                  {{ record.common_total }}
                 </div>
               </div>
             </template>
@@ -37,6 +44,7 @@
               <template v-if="column.key === 'task_name'">
                 <div class="task-cell">
                   <a-tag v-if="record.is_top == '1'" color="blue">{{ t('tag_pinned') }}</a-tag>
+                  <a-tag v-if="record.draft_id == 0" color="orange">{{ t('tag_sync') }}</a-tag>
                   <span class="name">{{ record.task_name }}</span>
                 </div>
               </template>
@@ -82,8 +90,15 @@
                 </div>
               </template>
               <template v-else-if="column.key === 'actions'">
-                  <a-space style="gap: 16px;">
-                  <a @click="editTask(record)">{{ t('action_edit_task') }}</a>
+                <a-space style="gap: 16px;">
+                  <a-button
+                    class="pd0"
+                    type="link"
+                    @click="editTask(record)"
+                    :disabled="record.send_status == '1' || record.send_status == '2'"
+                  >
+                    {{ t('action_edit_task') }}
+                  </a-button>
                   <a-dropdown>
                     <a>{{ t('action_more') }}</a>
                     <template #overlay>
@@ -100,7 +115,8 @@
           </a-table>
         </div>
 
-        
+        <AutoSyncModal ref="autoSyncModalRef" :app-id="appId" @updated="autoSyncUpdated" />
+        <ManualSyncModal ref="manualSyncModalRef" :app-id="appId" @updated="getTaskList" />
         <CommentDrawer ref="commentDrawerRef" />
         <CommentRuleModal ref="commentRuleModalRef" @updated="getTaskList" />
         <CreateSendModal ref="editSendModalRef" :app-id="appId" :access-key="accessKey" @updated="getTaskList" @created="getTaskList" />
@@ -108,7 +124,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, createVNode, onMounted, onUnmounted, watch } from 'vue'
+import { reactive, ref, createVNode, onMounted, onUnmounted, watch, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { getSpecifyAbilityConfig } from '@/api/explore'
@@ -120,10 +136,12 @@ import {
   setBatchSendTaskCommentRuleStatus,
   changeCommentStatus
 } from '@/api/robot'
-import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
+import { ExclamationCircleOutlined, SyncOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
 import CommentDrawer from './components/comment-drawer.vue'
 import CommentRuleModal from './components/comment-rule-modal.vue'
 import CreateSendModal from './components/create-send-modal.vue'
+import ManualSyncModal from './components/manual-sync-modal.vue'
+import AutoSyncModal from './components/auto-sync-modal.vue'
 import { addNoReferrerMeta, removeNoReferrerMeta } from '@/utils/index.js'
 import { useI18n } from '@/hooks/web/useI18n'
 
@@ -137,8 +155,11 @@ const props = defineProps({
 
 
 const taskList = ref([])
+const manualSyncModalRef = ref(null)
+const autoSyncModalRef = ref(null)
 const loadingTasks = ref(false)
 const pager = reactive({ page: 1, size: 10, total: 0 })
+const autoSyncSwitch = ref(false)
 
 const statusTextMap = {
   '-1': t('status_deleted'),
@@ -314,6 +335,19 @@ const formatTime = (ts) => {
   return `${yy}-${m}-${dd} ${hh}:${mm}`
 }
 
+const showSyncModal = () => {
+  manualSyncModalRef.value.show()
+}
+
+const showAutoSyncModal = () => {
+  autoSyncModalRef.value.show()
+}
+
+const autoSyncUpdated = (data) => {
+  console.log(data)
+  autoSyncSwitch.value = data.auto_sync_switch.value
+}
+
 watch(() => props.appId, () => {
   pager.page = 1
   if (props.appId) getTaskList()
@@ -337,9 +371,15 @@ const openCommentDrawer = (record) => { commentDrawerRef.value && commentDrawerR
 
 .toolbar {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 }
 
 .table-box {
@@ -475,5 +515,12 @@ const openCommentDrawer = (record) => { commentDrawerRef.value && commentDrawerR
   }
 }
 
- 
+
+.ml4 {
+  margin-left: 4px;
+}
+
+.pd0 {
+  padding: 0;
+}
 </style>

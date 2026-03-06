@@ -69,7 +69,11 @@
       @close="getList"
       @change="onChangeLibrarySelected"
     />
-    <RecallSettingsAlert ref="recallSettingsAlertRef" @change="onChangeRecallSettings" />
+    <RecallSettingsAlert
+      ref="recallSettingsAlertRef"
+      @change="onChangeRecallSettings"
+      :variable-options="flatVariableOptions"
+    />
   </div>
 </template>
 
@@ -240,6 +244,7 @@ const getList = async () => {
 getList()
 
 const variableOptions = ref([])
+const flatVariableOptions = computed(() => variableOptions.value || [])
 function getOptions() {
   let list = getNode().getAllParentVariable()
 

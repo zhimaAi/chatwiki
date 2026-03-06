@@ -67,7 +67,7 @@ func CheckPermission(c *gin.Context) {
 	data["user_roles"] = info["user_roles"]
 	data["role_type"] = info["role_type"]
 	var formatPermissionData []msql.Params
-	_, permissionData := common.GetAllPermissionManage(getAdminUserId(c), cast.ToString(user), define.IdentityTypeUser, define.ObjectTypeAll)
+	_, permissionData := common.GetAllPermissionManage(getAdminUserId(c), cast.ToString(user), define.IdentityTypeUser, define.ObjectTypeAll, common.GetLang(c))
 	for _, item := range permissionData {
 		formatPermissionData = append(formatPermissionData, msql.Params{
 			`identity_id`:    item[`identity_id`],
@@ -311,6 +311,7 @@ func GetUserList(c *gin.Context) {
 		return
 	}
 	roles, err := msql.Model(define.TableRole, define.Postgres).Select()
+	common.FormatRolesLang(common.GetLang(c), roles)
 	roleMap := make(map[string]msql.Params)
 	for _, role := range roles {
 		roleMap[role["id"]] = role
@@ -340,7 +341,7 @@ func GetUserList(c *gin.Context) {
 		user["managed_library_list"] = formatManagedDataList(permissionManageLib, libraryList)
 		user["managed_form_list"] = formatManagedDataList(permissionManageForm, formList)
 		// departments
-		departments, _ := common.GetUserDepartments(cast.ToInt(user["id"]))
+		departments, _ := common.GetUserDepartments(cast.ToInt(user["id"]), common.GetLang(c))
 		user[`departments`] = tool.JsonEncodeNoError(departments)
 	}
 	result := map[string]interface{}{
@@ -751,6 +752,9 @@ func GetRoleList(c *gin.Context) {
 		common.FmtError(c, `sys_err`)
 		return
 	}
+	lang := common.GetLang(c)
+	common.FormatRolesLang(lang, data)
+
 	// get role info
 	result := map[string]interface{}{
 		"total":    total,

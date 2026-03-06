@@ -935,6 +935,24 @@ func UpdateParagraphCategory(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
+func MergeParagraph(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	libraryId := cast.ToInt64(c.PostForm(`library_id`))
+	//source merge to target
+	sourceDataId := cast.ToInt64(c.PostForm(`source_data_id`))
+	targetDataId := cast.ToInt64(c.PostForm(`target_data_id`))
+	if libraryId <= 0 || sourceDataId <= 0 || targetDataId <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+
+	err := BridgeMergeParagraph(userId, libraryId, sourceDataId, targetDataId, common.GetLang(c))
+	c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+}
+
 func GenerateSimilarQuestions(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {

@@ -51,6 +51,9 @@
           >
             <img class="avatar" :src="item.model_icon_url" alt="" />
             <div class="model-name">{{ item.config_info.config_name || item.model_name }}</div>
+            <div class="del-icon" @click.stop="handleAddModel(item)" style="color: #2475fc;">
+              <PlusCircleOutlined />
+            </div>
           </div>
           <div class="footer-add-btn">
             <a-button @click="handleOpenAddConfigModal" :icon="createVNode(PlusOutlined)" block>添加</a-button>
@@ -249,7 +252,8 @@ import {
   PlusOutlined,
   GlobalOutlined,
   CheckCircleFilled,
-  DeleteOutlined
+  DeleteOutlined,
+  PlusCircleOutlined
 } from '@ant-design/icons-vue'
 import draggable from 'vuedraggable'
 import { message, Modal } from 'ant-design-vue'

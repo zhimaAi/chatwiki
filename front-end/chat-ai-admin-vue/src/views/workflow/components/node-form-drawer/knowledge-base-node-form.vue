@@ -58,7 +58,7 @@
                     v-model:value="formState.question_value"
                     @dropdownVisibleChange="onDropdownVisibleChange"
                     style="width: 220px"
-                    :options="variableOptions"
+                    :options="cascaderOptions"
                     :allowClear="false"
                     :displayRender="({ labels }) => labels.join('/')"
                     :field-names="{ children: 'children' }"
@@ -82,7 +82,12 @@
           @close="getList"
           @change="onChangeLibrarySelected"
         />
-        <RecallSettingsAlert ref="recallSettingsAlertRef" @change="onChangeRecallSettings" />
+        <RecallSettingsAlert
+          ref="recallSettingsAlertRef"
+          :variableOptions="variableOptions"
+          @change="onChangeRecallSettings"
+          @updateVar="getOptions"
+        />
       </div>
     </div>
   </NodeFormLayout>
@@ -130,6 +135,7 @@ const props = defineProps({
   }
 })
 
+const cascaderOptions = ref([])
 const variableOptions = ref([])
 
 function getOptions() {
@@ -137,8 +143,8 @@ function getOptions() {
   const nodeModel = props.lf.getNodeModelById(props.nodeId)
   if (nodeModel) {
     let list = nodeModel.getAllParentVariable()
-
-    variableOptions.value = handleOptions(list)
+    variableOptions.value = list
+    cascaderOptions.value = handleOptions(JSON.parse(JSON.stringify(list)))
   }
 }
 

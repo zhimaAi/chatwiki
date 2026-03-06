@@ -44,6 +44,11 @@
   "modal_close_ai_rule_title": "Confirm disable AI comment rule?",
   "message_ai_rule_closed": "AI comment rule disabled",
   "modal_close_comment_title": "Confirm disable comments?",
-  "message_comment_closed": "Comments disabled"
+  "message_comment_closed": "Comments disabled",
+  "btn_auto_sync": "Auto Sync",
+  "switch_checked": "On",
+  "switch_unchecked": "Off",
+  "btn_sync_history": "Sync History Articles",
+  "tag_sync": "Sync",
+  "tooltip_comment_status_sync": "For bulk sends synced for the first time, the comment status follows the official account backend. Changes made in WeChat backend will not sync here."
 }
-

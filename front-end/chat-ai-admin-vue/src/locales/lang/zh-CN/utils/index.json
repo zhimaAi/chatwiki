@@ -6,5 +6,8 @@
   "label_this_year": "本年",
   "label_last_7_days": "近7天",
   "label_last_30_days": "近30天",
-  "label_last_90_days": "近90天"
+  "label_last_90_days": "近90天",
+  "app_name_default": "开源大模型企业知识库问答系统",
+  "kind_reminder": "温馨提示",
+  "out_system": "是否退出本系统？"
 }

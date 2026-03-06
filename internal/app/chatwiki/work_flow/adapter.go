@@ -540,7 +540,22 @@ func (n *LibsNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	robot[`rerank_use_model`] = n.params.RerankUseModel
 	robot[`meta_search_switch`] = cast.ToString(n.params.MetaSearchSwitch)
 	robot[`meta_search_type`] = cast.ToString(n.params.MetaSearchType)
-	robot[`meta_search_condition_list`] = n.params.MetaSearchConditionList
+	// Replace workflow variable placeholders in metadata filter config
+	metaSearchConditionList := n.params.MetaSearchConditionList
+	if len(metaSearchConditionList) > 0 && metaSearchConditionList != "{}" && metaSearchConditionList != "null" {
+		conds := make([]common.MetaSearchCondition, 0)
+		if err := tool.JsonDecode(metaSearchConditionList, &conds); err == nil && len(conds) > 0 {
+			// Replace workflow variable placeholders in each condition's value
+			// Support all types (string, number, time) as they may contain placeholders
+			for i := range conds {
+				conds[i].Value = flow.VariableReplace(conds[i].Value)
+			}
+			metaSearchConditionList = tool.JsonEncodeNoError(conds)
+		}
+	}
+	robot[`meta_search_condition_list`] = metaSearchConditionList
+	// Replace chat variable placeholders in metadata filter config (if enabled)
+	common.ReplaceMetaSearchChatVariables(flow.params.Lang, flow.params.SessionId, &robot)
 
 	robot[`recall_neighbor_switch`] = cast.ToString(n.params.RecallNeighborSwitch)
 	robot[`recall_neighbor_after_num`] = cast.ToString(n.params.RecallNeighborAfterNum)

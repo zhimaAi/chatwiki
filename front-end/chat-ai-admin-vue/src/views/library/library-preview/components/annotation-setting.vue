@@ -59,6 +59,7 @@ import { QuestionCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { ref, reactive, nextTick, onMounted, watch } from 'vue'
 import { editParagraph } from '@/api/library'
 import { useI18n } from '@/hooks/web/useI18n'
+import { isArray } from 'ant-design-vue/lib/_util/util.js'
 
 const { t } = useI18n('views.library.library-preview.components.annotation-setting')
 const props = defineProps({
@@ -97,7 +98,17 @@ const handleSave = () => {
     id: props.currentItem.id,
     similar_questions: JSON.stringify(state.tags)
   }
-  editParagraph(parmas).then((res) => {
+  let formData = new FormData()
+  for (let key in parmas) {
+    if (isArray(parmas[key])) {
+      parmas[key].forEach((v) => {
+        formData.append(key, v)
+      })
+    } else {
+      formData.append(key, parmas[key])
+    }
+  }
+  editParagraph(formData).then((res) => {
     emit('save', parmas)
   })
 }

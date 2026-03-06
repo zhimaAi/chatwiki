@@ -28,5 +28,6 @@
   "label_top_k_ranking": "Top K before ranking",
   "label_segments": "segments",
   "label_of_segments": "segments",
-  "label_auto_concat_before": "Auto-concatenate"
+  "label_auto_concat_before": "Auto-concatenate",
+  "label_robot_variables": "Robot Variables"
 }

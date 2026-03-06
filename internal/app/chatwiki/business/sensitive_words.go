@@ -48,7 +48,7 @@ func CheckChatRequestPermission(c *gin.Context) {
 					return
 				}
 				// check permission
-				permission := common.CheckObjectAccessRights(adminUserId, userId, define.IdentityTypeUser, cast.ToInt(params.Robot[`id`]), define.ObjectTypeRobot, define.PermissionQueryRights)
+				permission := common.CheckObjectAccessRights(adminUserId, userId, define.IdentityTypeUser, cast.ToInt(params.Robot[`id`]), define.ObjectTypeRobot, define.PermissionQueryRights, common.GetLang(c))
 				if !permission {
 					common.FmtOk(c, map[string]any{`code`: define.ErrorCodeNeedNoPermissionLogin})
 					return

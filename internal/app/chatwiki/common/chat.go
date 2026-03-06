@@ -93,6 +93,8 @@ func BuildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 		ReplaceChatVariables(params.Lang, sessionId, &prompt, &promptStruct)
 		params.Prompt = BuildPromptStruct(params.Lang, cast.ToInt(params.Robot[`prompt_type`]), prompt, promptStruct)
 	}
+	// Replace chat variable placeholders in metadata filter config (if enabled)
+	ReplaceMetaSearchChatVariables(params.Lang, sessionId, &params.Robot)
 	if len(params.LibraryIds) == 0 || !CheckIds(params.LibraryIds) { //no custom is used
 		params.LibraryIds = params.Robot[`library_ids`]
 	}

@@ -52,9 +52,26 @@
               @change="opChange(row)"
             />
           </div>
-          <div class="field-value-box">
+          <div class="field-value-box min-input">
             <template v-if="![5,6].includes(row.op)">
-              <a-date-picker v-if="row.type == 1" v-model:value="row.value" @change="change" format="YYYY-MM-DD HH:mm" style="width: 100%;"/>
+              <AtInput
+                v-if="true"
+                :options="variableOptions"
+                :defaultSelectedList="row.tags || []"
+                :defaultValue="row.value"
+                ref="atInputRef"
+                @open="emit('updateVar')"
+                @change="(val, tags) => changeValue(row, val, tags)"
+                :placeholder="t('ph_input_content')"
+              >
+                <template #option="{ label, payload }">
+                  <div class="field-list-item">
+                    <div class="field-label">{{ label }}</div>
+                    <div class="field-type">{{ payload.typ }}</div>
+                  </div>
+                </template>
+              </AtInput>
+              <a-date-picker v-else-if="row.type == 1" v-model:value="row.value" @change="change" format="YYYY-MM-DD HH:mm" style="width: 100%;"/>
               <a-input-number v-else-if="row.type == 2" v-model:value="row.value" :placeholder="t('ph_input')" @blur="change" style="width: 100%;"/>
               <a-input v-else v-model:value.trim="row.value" :placeholder="t('ph_input')" :maxlength="20" @blur="change" style="width: 100%;"/>
             </template>
@@ -82,10 +99,11 @@ import {PlusOutlined, DownOutlined} from '@ant-design/icons-vue'
 import {message} from 'ant-design-vue'
 import {jsonDecode} from "@/utils/index.js"
 import { useI18n } from '@/hooks/web/useI18n'
+import AtInput from "@/views/workflow/components/at-input/at-input.vue";
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.meta-filter-box');
 
-const emit = defineEmits(['change', 'update:rule', 'update:type'])
+const emit = defineEmits(['change', 'update:rule', 'update:type', 'updateVar'])
 
 const props = defineProps({
   rule: {
@@ -101,6 +119,10 @@ const props = defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  variableOptions: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -170,9 +192,10 @@ const state = reactive({
 watch(() => props.rule, () => {
   let rule = jsonDecode(props.rule, [])
   rule.forEach(item => {
-    if (item.type == 1 && item.value > 0) {
-      item.value = dayjs(item.value * 1000)
-    }
+    // if (item.type == 1 && item.value > 0) {
+    //   item.value = dayjs(item.value * 1000)
+    // }
+    item.tags = item.tags || []
   })
   state.list = rule
 }, {
@@ -192,9 +215,9 @@ const change = () => {
   }
   let rule = JSON.parse(JSON.stringify(state.list))
   rule.forEach(item => {
-    if (item.type == 1 && item.value) {
-      item.value = dayjs(item.value).startOf('minute').unix()
-    }
+    // if (item.type == 1 && item.value) {
+    //   item.value = dayjs(item.value).startOf('minute').unix()
+    // }
     item.value = item.value.toString()
   })
   emit('update:rule', JSON.stringify(rule))
@@ -241,6 +264,12 @@ function getFieldOptions(type) {
   )
 }
 
+function changeValue(row, val, tags) {
+  row.value = val
+  row.tags = tags
+  change()
+}
+
 function verify() {
   try {
     for (let item of state.list) {
@@ -255,6 +284,7 @@ function verify() {
     return false
   }
 }
+
 
 defineExpose({
   verify,
@@ -395,6 +425,18 @@ defineExpose({
     .site-input-right :deep(.mention-input-warpper) {
       border-top-left-radius: 0;
       border-bottom-left-radius: 0;
+    }
+  }
+}
+
+.min-input {
+  :deep(.mention-input-warpper) {
+    height: 32px;
+    word-break: break-all;
+
+    .type-textarea {
+      height: 32px;
+      min-height: 32px;
     }
   }
 }

@@ -9,7 +9,7 @@ export default {
       name: 'mcpIndex',
       component: () => import('../views/explore/mcp/index.vue'),
       meta: {
-        title: 'MCP管理',
+        title: 'routes.basic.mcp_management',
         hideTitle: true,
         activeMenu: 'explore',
         bgColor: '#ffffff',

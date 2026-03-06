@@ -4,7 +4,7 @@ export default {
   component: () => import('@/layouts/AdminLayout/index.vue'),
   redirect: '/user/account',
   meta: {
-    title: '账号设置',
+    title: 'routes.basic.account_settings',
     activeMenu: '/user',
     breadcrumb: false,
     hideTitle: true,
@@ -17,7 +17,7 @@ export default {
       component: () => import('../views/user/index.vue'),
       redirect: '/user/account',
       meta: {
-        title: '账号设置',
+        title: 'routes.basic.account_settings',
         activeMenu: '/user'
       },
       children: [
@@ -26,7 +26,7 @@ export default {
           name: 'userAccount',
           component: () => import('../views/user/account/index.vue'),
           meta: {
-            title: '账号设置',
+            title: 'routes.basic.account_settings',
             activeMenu: '/user'
           }
         },
@@ -35,7 +35,7 @@ export default {
           name: 'userModel',
           component: () => import('../views/user/model/index.vue'),
           meta: {
-            title: '模型管理',
+            title: 'routes.basic.model_management',
             activeMenu: '/user'
           }
         },
@@ -44,7 +44,7 @@ export default {
           name: 'userUsetoken',
           component: () => import('../views/user/usetoken/index.vue'),
           meta: {
-            title: 'Token使用',
+            title: 'routes.basic.token_usage',
             activeMenu: '/user'
           }
         },
@@ -53,7 +53,7 @@ export default {
           name: 'userManage',
           component: () => import('../views/user/manage/index.vue'),
           meta: {
-            title: '团队管理',
+            title: 'routes.basic.team_management',
             activeMenu: '/user'
           }
         },
@@ -62,7 +62,7 @@ export default {
           name: 'userAliocr',
           component: () => import('../views/user/aliocr/index.vue'),
           meta: {
-            title: '阿里云OCR',
+            title: 'routes.basic.aliyun_ocr',
             activeMenu: '/user'
           }
         },
@@ -71,7 +71,7 @@ export default {
           name: 'userEnterprise',
           component: () => import('../views/user/enterprise/index.vue'),
           meta: {
-            title: '企业设置',
+            title: 'routes.basic.enterprise_settings',
             activeMenu: '/user'
           }
         },
@@ -80,7 +80,7 @@ export default {
           name: 'userDomain',
           component: () => import('../views/user/domain/index.vue'),
           meta: {
-            title: '自定义域名',
+            title: 'routes.basic.custom_domain',
             activeMenu: '/user'
           }
         },
@@ -89,7 +89,7 @@ export default {
           name: 'clientDownload',
           component: () => import('../views/user/client-download/index.vue'),
           meta: {
-            title: '客户端下载',
+            title: 'routes.basic.client_download',
             activeMenu: '/user'
           }
         },
@@ -98,7 +98,7 @@ export default {
           name: 'SensitiveWords',
           component: () => import('../views/user/sensitive-words/index.vue'),
           meta: {
-            title: '敏感词管理',
+            title: 'routes.basic.sensitive_word_management',
             activeMenu: '/user'
           }
         },
@@ -107,7 +107,7 @@ export default {
           name: 'promptLibrary',
           component: () => import('../views/user/prompt-library/index.vue'),
           meta: {
-            title: '提示词模板库',
+            title: 'routes.basic.prompt_template_library',
             activeMenu: '/user'
           }
         },
@@ -116,7 +116,7 @@ export default {
           name: 'userOfficialAccount',
           component: () => import('../views/user/official-account/index.vue'),
           meta: {
-            title: '公众号管理',
+            title: 'routes.basic.official_account_management',
             activeMenu: '/user'
           }
         },

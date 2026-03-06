@@ -27,6 +27,7 @@
       background-color: #f2f4f7;
       border-radius: 4px;
       white-space: pre-wrap;
+      word-break: break-all;
 
       &:last-child {
         margin-bottom: 0;

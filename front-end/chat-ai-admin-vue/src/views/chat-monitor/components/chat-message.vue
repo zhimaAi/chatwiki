@@ -132,6 +132,16 @@
                   </div>
                 </div>
               </div>
+              <div
+                class="message-action-wrap"
+                v-if="showQuoteFileBox(message)"
+              >
+                <div class="message-action">
+                  <div class="action-btn">
+                    <span><a @click="openPromptLog(message)">Prompt 日志</a></span>
+                  </div>
+                </div>
+              </div>
             </div>
             <div v-if="message.voice_content && message.voice_content.length">
               <VoiceMessage :voice_content="message.voice_content" />
@@ -156,7 +166,8 @@ import VoiceMessage from '@/views/robot/robot-test/components/voice-message.vue'
 const { t } = useI18n('views.chat-monitor.components.chat-message')
 
 const emit = defineEmits([
-  'openLibrary'
+  'openLibrary',
+  'openPromptLog'
 ])
 
 const scrollViewRef = ref(null)
@@ -252,6 +263,23 @@ function parseReplyList(val) {
   } catch (_e) {
     return []
   }
+}
+
+function showQuoteFileBox(item) {
+  let newItem = JSON.parse(JSON.stringify(item))
+  newItem.debug = newItem.debug_log ? JSON.parse(newItem.debug_log) : []
+  if (newItem.debug && newItem.debug.length > 0) {
+    return true
+  }
+
+  return false
+}
+
+// 打开Prompt日志
+function openPromptLog(item) {
+  let newItem = JSON.parse(JSON.stringify(item))
+  newItem.debug = newItem.debug_log ? JSON.parse(newItem.debug_log) : []
+  emit('openPromptLog', toRaw(newItem))
 }
 
 defineExpose({
@@ -542,6 +570,51 @@ defineExpose({
           gap: 4px;
         }
       }
+    }
+  }
+}
+
+.message-action-wrap {
+  .message-action {
+    display: flex;
+    padding: 12px 0;
+    border-top: 1px solid #edeff2;
+
+    .action-btn {
+      position: relative;
+      padding: 0 8px;
+      line-height: 22px;
+      font-size: 14px;
+      font-weight: 400;
+      color: #7a8699;
+      cursor: pointer;
+      &::before {
+        display: block;
+        position: absolute;
+        content: ' ';
+        right: 0;
+        top: 5px;
+        width: 1px;
+        height: 12px;
+        background-color: rgba(5, 5, 5, 0.06);
+      }
+      &:last-child::before {
+        display: none;
+      }
+    }
+  }
+
+  .file-items {
+    .file-item {
+      line-height: 22px;
+      margin-top: 8px;
+      font-size: 14px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .file-name {
+      color: #164799;
     }
   }
 }

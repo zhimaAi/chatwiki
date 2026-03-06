@@ -64,9 +64,9 @@ func SaveDepartment(id, adminUserId int64, data msql.Datas) (int64, error) {
 }
 
 // GetDepartmentLevel gets department level pid list and level count
-func GetDepartmentLevel(adminUserId, pDid int) (int, int, error) {
+func GetDepartmentLevel(adminUserId, pDid int, lang string) (int, int, error) {
 	// Query all departments under this admin user
-	result, err := GetAllDepartmentList(adminUserId)
+	result, err := GetAllDepartmentList(adminUserId, lang)
 	if err != nil {
 		logs.Error(err.Error())
 		return 0, 0, err
@@ -112,7 +112,7 @@ func GetDepartmentLevel(adminUserId, pDid int) (int, int, error) {
 	return pLevel, maxLevel, nil
 }
 
-func OverDepartmentLevel(adminUserId, pid, id int) (bool, int) {
+func OverDepartmentLevel(adminUserId, pid, id int, lang string) (bool, int) {
 	var maxLevel = define.MaxDepartmentLevel
 	// get config
 	config, err := msql.Model(`department_config`, define.Postgres).
@@ -125,7 +125,7 @@ func OverDepartmentLevel(adminUserId, pid, id int) (bool, int) {
 		maxLevel = cast.ToInt(config)
 	}
 	// Query all departments under this admin user
-	pLevel, currentLevel, err := GetDepartmentLevel(adminUserId, pid)
+	pLevel, currentLevel, err := GetDepartmentLevel(adminUserId, pid, lang)
 	if err != nil {
 		logs.Error(err.Error())
 		return true, maxLevel
@@ -157,7 +157,7 @@ func GetDepartmentMembers(departmentIds string) (map[int][]string, error) {
 }
 
 // GetUserDepartments gets user department list
-func GetUserDepartments(userId int) ([]msql.Params, error) {
+func GetUserDepartments(userId int, lang string) ([]msql.Params, error) {
 	if userId <= 0 {
 		return nil, errors.New("invalid department id")
 	}
@@ -168,6 +168,7 @@ func GetUserDepartments(userId int) ([]msql.Params, error) {
 		return nil, err
 	}
 	data, err := msql.Model("department", define.Postgres).Where(`id`, `in`, strings.Join(list, `,`)).Select()
+	FormatDepartmentsLang(lang, data)
 	return data, nil
 }
 
@@ -187,13 +188,13 @@ func GetUserDepartmentIds(userIds string) ([]string, error) {
 }
 
 // GetUserAllDepartmentIds gets all user department ids
-func GetUserAllDepartmentIds(adminUserId int, userIds string) ([]string, error) {
+func GetUserAllDepartmentIds(adminUserId int, userIds string, lang string) ([]string, error) {
 	list, err := GetUserDepartmentIds(userIds)
 	if err != nil {
 		logs.Error(err.Error())
 		return nil, err
 	}
-	allDepartments, err := GetAllDepartmentList(adminUserId)
+	allDepartments, err := GetAllDepartmentList(adminUserId, lang)
 	if err != nil {
 		logs.Error(err.Error())
 		return nil, err
@@ -233,13 +234,14 @@ func FindDepartmentChildren(departments []msql.Params, parentId int, data *[]str
 	}
 }
 
-func GetAllDepartmentList(adminUserId int) ([]msql.Params, error) {
+func GetAllDepartmentList(adminUserId int, lang string) ([]msql.Params, error) {
 	m := msql.Model("department", define.Postgres)
 	list, err := m.Where("admin_user_id", cast.ToString(adminUserId)).Select()
 	if err != nil {
 		logs.Error(err.Error())
 		return nil, err
 	}
+	FormatDepartmentsLang(lang, list)
 	return list, nil
 }
 
@@ -255,7 +257,7 @@ type DepartmentInfo struct {
 	UserData       []msql.Params     `json:"user_data"`
 }
 
-func GetDepartmentTrees(adminUserId int) ([]*DepartmentInfo, []string, error) {
+func GetDepartmentTrees(adminUserId int, lang string) ([]*DepartmentInfo, []string, error) {
 	m := msql.Model(`department`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId))
 	// Get all department data
@@ -266,6 +268,7 @@ func GetDepartmentTrees(adminUserId int) ([]*DepartmentInfo, []string, error) {
 	}
 	trees := make([]*DepartmentInfo, 0)
 	departmentIds := make([]string, 0)
+	FormatDepartmentsLang(lang, list)
 	for _, v := range list {
 		departmentIds = append(departmentIds, v[`id`])
 	}
@@ -297,8 +300,8 @@ func ConvertListToTree(list []*DepartmentInfo, parentId int) []*DepartmentInfo {
 	for _, node := range list {
 		if node.Pid == parentId {
 			node.Children = ConvertListToTree(list, node.Id)
-		// Calculate all members under current node
-		childCount := len(node.UserData)
+			// Calculate all members under current node
+			childCount := len(node.UserData)
 			for _, child := range node.Children {
 				childCount += child.ChildrenNums
 			}

@@ -131,6 +131,7 @@ export default {
     },
     options(){
       this.initShowOptionList();
+      console.log('options', this.options)
     },
   },
   mounted() {

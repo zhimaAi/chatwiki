@@ -95,7 +95,8 @@
 
 
       <div class="fragment-action">
-
+        <!-- <a-button @click="handleUpwardMerge" :disabled="props.indexNum == 0" style="padding: 0;" type="link">向上合并分段</a-button> -->
+        <a-divider type="vertical" />
         <a @click="handleEdit">{{ t('edit') }}</a>
 
         <a-divider type="vertical" />
@@ -150,7 +151,7 @@ import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.library.document-segmentation.components.document-fragment')
 
-const emit = defineEmits(['edit', 'delete'])
+const emit = defineEmits(['edit', 'delete', 'upwardMerge'])
 const props = defineProps({
   number: {
     type: [Number, String]
@@ -182,6 +183,9 @@ const props = defineProps({
   similar_question_list: {
     type: [Array, String]
   },
+  indexNum: {
+    type: [Number, String]
+  },
   status: {
     type: String,
     default: ''
@@ -202,5 +206,9 @@ const handleEdit = () => {
 
 const handleDelete = () => {
   emit('delete')
+}
+
+const handleUpwardMerge = () => {
+  emit('upwardMerge')
 }
 </script>

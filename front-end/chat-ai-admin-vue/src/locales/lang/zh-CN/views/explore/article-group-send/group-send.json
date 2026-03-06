@@ -44,6 +44,11 @@
   "modal_close_ai_rule_title": "确认关闭AI评论规则？",
   "message_ai_rule_closed": "已关闭AI评论规则",
   "modal_close_comment_title": "确认关闭留言？",
-  "message_comment_closed": "已关闭留言"
+  "message_comment_closed": "已关闭留言",
+  "btn_auto_sync": "自动同步",
+  "switch_checked": "开",
+  "switch_unchecked": "关",
+  "btn_sync_history": "同步历史文章",
+  "tag_sync": "同步",
+  "tooltip_comment_status_sync": "首次同步过来的群发以公众号后台留言状态为准，微信后台修改留言状态，此处状态不会同步"
 }
-

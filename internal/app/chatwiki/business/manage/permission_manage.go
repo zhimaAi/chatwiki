@@ -345,7 +345,7 @@ func BatchSavePermissionManage(c *gin.Context) {
 				return
 			}
 			// check permission
-			if permission := common.CheckOperateRights(adminUserId, userId, define.IdentityTypeUser, item.ObjectId, item.ObjectType, define.PermissionManageRights); !permission {
+			if permission := common.CheckOperateRights(adminUserId, userId, define.IdentityTypeUser, item.ObjectId, item.ObjectType, define.PermissionManageRights, common.GetLang(c)); !permission {
 				m.Rollback()
 				common.FmtError(c, "auth_no_permission")
 				return
@@ -418,7 +418,7 @@ func SavePermissionManage(c *gin.Context) {
 				return
 			}
 			// check permission
-			permission := common.CheckOperateRights(adminUserId, userId, define.IdentityTypeUser, item.ObjectId, item.ObjectType, define.PermissionManageRights)
+			permission := common.CheckOperateRights(adminUserId, userId, define.IdentityTypeUser, item.ObjectId, item.ObjectType, define.PermissionManageRights, common.GetLang(c))
 			if !permission {
 				m.Rollback()
 				common.FmtError(c, "auth_no_permission")

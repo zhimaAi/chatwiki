@@ -9,7 +9,7 @@ export default {
       name: 'pluginsIndex',
       component: () => import('../views/explore/plugins/index.vue'),
       meta: {
-        title: '插件管理',
+        title: 'routes.basic.plugin_management',
         hideTitle: true,
         activeMenu: 'explore',
         bgColor: '#ffffff',
@@ -24,7 +24,7 @@ export default {
       name: 'pluginsDetail',
       component: () => import('../views/explore/plugins/detail.vue'),
       meta: {
-        title: '插件详情',
+        title: 'routes.basic.plugin_detail',
         hideTitle: true,
         activeMenu: 'explore',
         bgColor: '#ffffff',

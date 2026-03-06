@@ -106,7 +106,7 @@ func AddModelConfig(c *gin.Context) {
 	}
 	for _, field := range modelConfig.ConfigParams {
 		value := strings.TrimSpace(c.PostForm(field))
-		if len(value) == 0 {
+		if len(value) == 0 && field != `api_endpoint` {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, field))))
 			return
 		}
@@ -227,7 +227,7 @@ func EditModelConfig(c *gin.Context) {
 	}
 	for _, field := range modelInfo.ConfigParams {
 		value := strings.TrimSpace(c.PostForm(field))
-		if len(value) == 0 {
+		if len(value) == 0 && field != `api_endpoint` {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, field))))
 			return
 		}

@@ -28,5 +28,6 @@
   "label_top_k_ranking": "TopK排序前",
   "label_segments": "分段",
   "label_of_segments": "的分段",
-  "label_auto_concat_before": "召回时自动拼接前"
+  "label_auto_concat_before": "召回时自动拼接前",
+  "label_robot_variables": "机器人变量"
 }

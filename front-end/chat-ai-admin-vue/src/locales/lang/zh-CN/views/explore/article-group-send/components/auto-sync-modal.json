@@ -1,0 +1,12 @@
+{
+  "title_auto_sync_history_article": "自动同步历史文章",
+  "label_auto_sync": "自动同步",
+  "switch_on": "开",
+  "switch_off": "关",
+  "label_sync_frequency": "同步频率",
+  "text_daily": "每天",
+  "label_ai_comment": "AI评论",
+  "checkbox_auto_enable": "自动开启",
+  "msg_ai_comment_tip": "开启Al评论后，同步的文章有新评论Al会自动处理",
+  "msg_save_success": "保存成功"
+}

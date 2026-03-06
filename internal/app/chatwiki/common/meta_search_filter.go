@@ -4,10 +4,12 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"errors"
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
@@ -38,6 +40,153 @@ func IsCustomMetaKey(key string) bool {
 func sqlQuote(s string) string {
 	// Minimize escaping: double single quotes
 	return strings.ReplaceAll(s, `'`, `''`)
+}
+
+// normalizeBuiltinMetaValue normalizes built-in metadata condition values before SQL building.
+// It is applied after all placeholder/chat-variable replacements, so it only focuses on:
+// - Source: map user-facing labels (CN/EN) to underlying doc_type int (as string)
+// - Time:   accept human-readable time strings and convert to unix timestamp (seconds)
+// - Group:  accept numeric group_id and map to group_name (string) used in SQL expressions
+func normalizeBuiltinMetaValue(cond MetaSearchCondition, target metaSearchTarget) MetaSearchCondition {
+	key := strings.TrimSpace(cond.Key)
+	if !define.IsBuiltinMetaKey(key) {
+		return cond
+	}
+	val := strings.TrimSpace(cond.Value)
+	if val == "" {
+		return cond
+	}
+
+	switch key {
+	case define.BuiltinMetaKeySource:
+		cond.Value = normalizeSourceValue(val)
+	case define.BuiltinMetaKeyCreateTime, define.BuiltinMetaKeyUpdateTime:
+		if cond.Type == define.LibraryMetaTypeTime {
+			cond.Value = normalizeTimeValue(val)
+		}
+	}
+	return cond
+}
+
+// normalizeSourceValue maps human readable source labels to internal doc_type values.
+// Returns a stringified int when mapping is successful, otherwise returns original value.
+// Uses i18n to get both Chinese and English values for matching.
+func normalizeSourceValue(val string) string {
+	v := strings.TrimSpace(val)
+	if v == "" {
+		return v
+	}
+	// Already numeric, treat as doc_type value.
+	if ok, _ := regexp.MatchString(`^\d+$`, v); ok {
+		return v
+	}
+
+	lower := strings.ToLower(v)
+
+	// Build mapping from i18n values (both zh-CN and en-US) to doc_type
+	// Get i18n values for source labels
+	sourceManualQAZh := strings.ToLower(i18n.Show("zh-CN", "source_manual_qa"))
+	sourceManualQAEn := strings.ToLower(i18n.Show("en-US", "source_manual_qa"))
+	sourceImportQAZh := strings.ToLower(i18n.Show("zh-CN", "source_import_qa"))
+	sourceImportQAEn := strings.ToLower(i18n.Show("en-US", "source_import_qa"))
+	sourceImportFsZh := strings.ToLower(i18n.Show("zh-CN", "source_import_fs"))
+	sourceImportFsEn := strings.ToLower(i18n.Show("en-US", "source_import_fs"))
+
+	nameMap := map[string]int{
+		// Local documents
+		"local":     define.DocTypeLocal,
+		"local_doc": define.DocTypeLocal,
+		// Online documents
+		"online":     define.DocTypeOnline,
+		"online_doc": define.DocTypeOnline,
+		// Custom documents (generic)
+		"custom": define.DocTypeCustom,
+		// DIY/Q&A type (self-built QA) - use i18n values
+		"diy":            define.DocTypeDiy,
+		sourceManualQAZh: define.DocTypeDiy,
+		sourceManualQAEn: define.DocTypeDiy,
+		// Official / imported QA - use i18n values
+		"official":       define.DocTypeOfficial,
+		"importqa":       define.DocTypeOfficial,
+		sourceImportQAZh: define.DocTypeOfficial,
+		sourceImportQAEn: define.DocTypeOfficial,
+		// Feishu - use i18n values
+		"feishu":         define.DocTypeFeishu,
+		sourceImportFsZh: define.DocTypeFeishu,
+		sourceImportFsEn: define.DocTypeFeishu,
+	}
+
+	if code, ok := nameMap[lower]; ok {
+		return cast.ToString(code)
+	}
+	return v
+}
+
+// normalizeTimeValue parses common time string formats and converts them to unix timestamp (seconds).
+// If parsing fails or value already looks like a numeric timestamp, the original value is returned.
+func normalizeTimeValue(val string) string {
+	v := strings.TrimSpace(val)
+	if v == "" {
+		return v
+	}
+	// Already a numeric timestamp.
+	if ok, _ := regexp.MatchString(`^\d{1,20}$`, v); ok {
+		return v
+	}
+
+	layouts := []string{
+		"2006-01-02 15:04:05",
+		"2006-01-02 15:04",
+		"2006-01-02",
+	}
+	for _, layout := range layouts {
+		if t, err := time.ParseInLocation(layout, v, time.Local); err == nil {
+			return cast.ToString(t.Unix())
+		}
+	}
+	// Parsing failed, return original for upstream validation/logging.
+	logs.Error(fmt.Sprintf("[meta_search] time value parse failed, use raw value: %s", v))
+	return v
+}
+
+// normalizeGroupValue maps group_id (numeric) to group_name for built-in "group" metadata.
+// For non-numeric values we assume user already passed group_name.
+func normalizeGroupValue(val string, target metaSearchTarget) string {
+	v := strings.TrimSpace(val)
+	if v == "" {
+		return v
+	}
+	// Non-numeric -> treat as group_name directly.
+	if ok, _ := regexp.MatchString(`^\d+$`, v); !ok {
+		return v
+	}
+
+	// group_type depends on target: file vs paragraph(QA)
+	var groupType int
+	switch target {
+	case metaSearchTargetParagraph:
+		groupType = define.LibraryGroupTypeQA
+	default:
+		groupType = define.LibraryGroupTypeFile
+	}
+
+	info, err := msql.Model(`chat_ai_library_group`, define.Postgres).
+		Where(`id`, v).
+		Where(`group_type`, cast.ToString(groupType)).
+		Field(`group_name`).
+		Find()
+	if err != nil {
+		logs.Error(fmt.Sprintf("[meta_search] query group_name by id failed, id=%s, err=%v", v, err))
+		return v
+	}
+	if len(info) == 0 {
+		return v
+	}
+	name := strings.TrimSpace(cast.ToString(info[`group_name`]))
+	if name == "" {
+		return v
+	}
+	return name
 }
 
 func buildMetaFieldExpr(cond MetaSearchCondition, target metaSearchTarget) (expr string, joinGroup bool, joinFile bool, numeric bool, err error) {
@@ -207,8 +356,11 @@ func getAllowedIdSetByRobotMetaSearch(adminUserId int, libraryIds string, robot 
 	parts := make([]string, 0, len(conds))
 	needGroupJoin := false
 	needFileJoin := false
-	for _, c := range conds {
-		sql, joinGroup, joinFile, err := buildMetaConditionSQL(c, target)
+	for idx, c := range conds {
+		// Normalize built-in meta condition values (source/time/group) after all placeholder replacements.
+		conds[idx] = normalizeBuiltinMetaValue(c, target)
+
+		sql, joinGroup, joinFile, err := buildMetaConditionSQL(conds[idx], target)
 		if err != nil {
 			return nil, err
 		}

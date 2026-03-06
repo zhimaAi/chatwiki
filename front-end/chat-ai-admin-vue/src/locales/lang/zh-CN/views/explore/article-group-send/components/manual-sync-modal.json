@@ -1,0 +1,17 @@
+{
+  "title_sync_history_articles": "同步历史文章",
+  "label_history_publish_time": "历史发布时间",
+  "within_one_year": "一年内",
+  "within_half_year": "半年内",
+  "within_three_months": "三个月内",
+  "within_one_month": "一个月内",
+  "label_sync_comments": "同步评论",
+  "sync_comment_data": "同步评论数据",
+  "label_ai_comment": "AI评论",
+  "auto_enable": "自动开启",
+  "msg_ai_comment_tip": "开启Al评论后，同步的文章有新评论Al会自动处理",
+  "label_history_comment_handling": "历史评论处理",
+  "yes": "是",
+  "no": "否",
+  "msg_sync_success": "同步成功"
+}

@@ -74,7 +74,11 @@
               </template>
 
               <template v-if="item.componentType == 'input'">
-                <a-input v-model:value="formState[item.key]" :placeholder="item.placeholder" />
+                <a-input v-model:value="formState[item.key]" :placeholder="item.placeholder">
+                  <template #suffix v-if="api_end_point && item.key == 'api_endpoint'">
+                    <a @click="resetKey(item.key, api_end_point)">恢复默认</a>
+                  </template>
+                </a-input>
                 <a :href="item.help_links" target="_blank" v-if="item.key == 'api_key'">{{
                   t('getApikeyText')
                 }}</a>
@@ -109,11 +113,12 @@ const formRules = ref({})
 const formState = ref({})
 const formItems = ref([])
 const modelNames = ['ollama', 'xinference', 'openaiAgent']
-
+const api_end_point = ref('')
 const open = (data, record) => {
   formRules.value = {}
   formState.value = {}
   formItems.value = []
+  api_end_point.value = data.api_end_point
   const { model_icon_url, model_define, model_name, history_config_params } = data
   let config_params = data.config_params
 
@@ -148,6 +153,9 @@ const open = (data, record) => {
     }
 
     let field = getModelFieldConfig(key, model_define)
+    if(key == 'api_endpoint'){
+      field.defaultValue = api_end_point.value
+    }
     field.key = key
     field.help_links = data.help_links
 
@@ -298,6 +306,10 @@ const saveEditModel = () => {
     .catch(() => {
       confirmLoading.value = false
     })
+}
+
+const resetKey = (key, value) => {
+  formState.value[key] = value
 }
 
 defineExpose({

@@ -9,7 +9,7 @@ export default {
       name: 'triggerStaticsList',
       component: () => import('../views/trigger-statics/list/index.vue'),
       meta: {
-        title: '触发次数统计',
+        title: 'routes.basic.trigger_statistics',
         activeMenu: 'library',
         bgColor: '#fff',
         hideTitle: true

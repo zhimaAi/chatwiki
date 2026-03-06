@@ -38,11 +38,12 @@
       </div>
     </div>
     <div class="chat-box-content">
-      <ChatMessage ref="chatMessageRef" @openLibrary="handleOpenLibraryInfo" />
+      <ChatMessage ref="chatMessageRef" @openPromptLog="handleOpenPromptLog" @openLibrary="handleOpenLibraryInfo" />
     </div>
   </div>
   <div v-else></div>
   <LibraryInfoAlert ref="libraryInfoAlertRef" />
+  <PromptLogAlert ref="promptLogAlertRef" />
 </template>
 
 <script setup>
@@ -52,6 +53,7 @@ import { useChatMonitorStore } from '@/stores/modules/chat-monitor.js'
 import { useI18n } from '@/hooks/web/useI18n'
 import ChatMessage from './chat-message.vue'
 import LibraryInfoAlert from './library-info-alert.vue'
+import PromptLogAlert from '@/views/robot/robot-test/components/prompt-log-alert.vue'
 
 const { t } = useI18n('views.chat-monitor.components.chat-box')
 
@@ -72,6 +74,13 @@ const scrollToTop = () => {
 const libraryInfoAlertRef = ref(null)
 const handleOpenLibraryInfo = (files, file) => {
   libraryInfoAlertRef.value.open(files, file)
+}
+
+// 打开Prompt日志
+const promptLogAlertRef = ref(null)
+
+const handleOpenPromptLog = (item) => {
+  promptLogAlertRef.value.open(item)
 }
 
 defineExpose({

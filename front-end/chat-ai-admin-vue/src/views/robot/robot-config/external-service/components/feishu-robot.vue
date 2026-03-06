@@ -11,7 +11,7 @@
 
 <template>
   <div class="">
-    <a-alert class="tip-alert" type="info" show-icon>
+    <a-alert class="tip-alert zm-alert-info" type="info" show-icon>
       <template #message>{{ t('tip_bind_feishu_robot') }}</template>
     </a-alert>
     <div class="wechat-app-list">

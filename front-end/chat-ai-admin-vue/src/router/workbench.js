@@ -2,7 +2,7 @@ export default {
     path: '/workbench',
     name: 'Workbench',
     meta: {
-        title: '工作台'
+        title: 'routes.basic.workbench'
     },
     component: () => import('@/views/workbench/index.vue'),
     children: [
@@ -10,7 +10,7 @@ export default {
             path: 'chat',
             name: 'workbenchChat',
             meta: {
-                title: '首页',
+                title: 'routes.basic.home_page',
             },
             component: () => import('@/views/workbench/chat/index.vue')
         },
@@ -18,7 +18,7 @@ export default {
             path: 'team-tools',
             name: 'workbenchTeamTools',
             meta: {
-                title: '团队应用'
+                title: 'routes.basic.team_apps'
             },
             component: () => import('@/views/workbench/team-tools/index.vue')
         },
@@ -26,7 +26,7 @@ export default {
             path: 'home-config',
             name: 'workbenchHomeConfig',
             meta: {
-                title: '首页配置'
+                title: 'routes.basic.home_config'
             },
             component: () => import('@/views/workbench/home-config/index.vue')
         }

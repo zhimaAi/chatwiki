@@ -653,3 +653,110 @@ func BridgeDeleteParagraph(adminUserId int, ids, lang string) error {
 	}
 	return nil
 }
+
+func BridgeMergeParagraph(adminUserId int, libraryId, sourceDataId, targetDataId int64, lang string) error {
+	if libraryId <= 0 || sourceDataId <= 0 || targetDataId <= 0 {
+		return errors.New(i18n.Show(lang, `param_lack`))
+	}
+
+	// Get source paragraph data
+	sourceData, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`library_id`, cast.ToString(libraryId)).
+		Where(`id`, cast.ToString(sourceDataId)).
+		Where(`delete_time`, `0`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		return errors.New(i18n.Show(lang, `sys_err`))
+	}
+	if len(sourceData) == 0 {
+		return errors.New(i18n.Show(lang, `no_data`))
+	}
+
+	// Get target paragraph data
+	targetData, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`library_id`, cast.ToString(libraryId)).
+		Where(`id`, cast.ToString(targetDataId)).
+		Where(`delete_time`, `0`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		return errors.New(i18n.Show(lang, `sys_err`))
+	}
+	if len(targetData) == 0 {
+		return errors.New(i18n.Show(lang, `no_data`))
+	}
+
+	// Get file info to check document type
+	fileId := cast.ToInt(sourceData[`file_id`])
+	fileInfo, err := common.GetLibFileInfo(fileId, adminUserId)
+	if err != nil {
+		logs.Error(err.Error())
+		return errors.New(i18n.Show(lang, `sys_err`))
+	}
+	if len(fileInfo) == 0 {
+		return errors.New(i18n.Show(lang, `no_data`))
+	}
+
+	// Only support normal documents, not QA documents
+	isQADoc := cast.ToInt(fileInfo[`is_qa_doc`]) == define.DocTypeQa
+	if isQADoc {
+		return errors.New(i18n.Show(lang, `qa_merge_not_support`))
+	}
+
+	// Merge content for normal document
+	sourceContent := strings.TrimSpace(cast.ToString(sourceData[`content`]))
+	targetContent := strings.TrimSpace(cast.ToString(targetData[`content`]))
+
+	var mergedContent string
+	if sourceContent != "" && targetContent != "" {
+		mergedContent = targetContent + "\n" + sourceContent
+	} else if sourceContent != "" {
+		mergedContent = sourceContent
+	} else {
+		mergedContent = targetContent
+	}
+
+	// Use BridgeSaveParagraph to update source paragraph
+
+	// Parse and merge images from targetData and sourceData
+	var images []string
+	if targetData[`images`] != `` {
+		_ = tool.JsonDecode(cast.ToString(targetData[`images`]), &images)
+	}
+	if sourceData[`images`] != `` {
+		var sourceImages []string
+		_ = tool.JsonDecode(cast.ToString(sourceData[`images`]), &sourceImages)
+		images = append(images, sourceImages...)
+	}
+	logs.Debug(`images %v`, images)
+	req := &BridgeSaveParagraphReq{
+		Id:               cast.ToString(targetDataId),
+		FileId:           cast.ToString(targetData[`file_id`]),
+		Title:            cast.ToString(targetData[`title`]),
+		Content:          mergedContent,
+		CategoryId:       cast.ToString(targetData[`category_id`]),
+		SimilarQuestions: cast.ToString(targetData[`similar_questions`]),
+		Images:           images,
+	}
+
+	_, httpStatus, err := BridgeSaveParagraph(adminUserId, 0, lang, req)
+	if err != nil || httpStatus != 0 {
+		logs.Error("BridgeSaveParagraph err:%v, httpStatus:%d", err, httpStatus)
+		return errors.New(i18n.Show(lang, `sys_err`))
+	}
+
+	// Delete source paragraph
+	err = BridgeDeleteParagraph(adminUserId, cast.ToString(sourceDataId), lang)
+	if err != nil {
+		logs.Error(err.Error())
+		return errors.New(i18n.Show(lang, `sys_err`))
+	}
+
+	// Refresh paragraph numbers for the file
+	common.RefreshParagraphNumbers(int64(fileId))
+
+	return nil
+}

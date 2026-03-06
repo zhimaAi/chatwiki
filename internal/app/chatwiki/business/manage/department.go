@@ -21,7 +21,7 @@ func GetDepartmentList(c *gin.Context) {
 		return
 	}
 	// get tree
-	departmentData, _, err := common.GetDepartmentTrees(userId)
+	departmentData, _, err := common.GetDepartmentTrees(userId , common.GetLang(c))
 	if err != nil {
 		logs.Error(err.Error())
 		common.FmtError(c, `sys_err`, err.Error())
@@ -73,7 +73,7 @@ func SaveDepartment(c *gin.Context) {
 		return
 	}
 	// check level is max
-	if ok, level := common.OverDepartmentLevel(userId, cast.ToInt(pid), cast.ToInt(id)); ok {
+	if ok, level := common.OverDepartmentLevel(userId, cast.ToInt(pid), cast.ToInt(id),common.GetLang(c)); ok {
 		common.FmtError(c, `department_level_max`, cast.ToString(level))
 		return
 	}
@@ -121,7 +121,7 @@ func DeleteDepartment(c *gin.Context) {
 		children []string
 	)
 	// get children
-	departmentList, _ := common.GetAllDepartmentList(adminUserId)
+	departmentList, _ := common.GetAllDepartmentList(adminUserId , common.GetLang(c))
 	common.FindDepartmentChildren(departmentList, cast.ToInt(id), &children)
 	if newDid <= 0 {
 		delIds = append(delIds, children...)
@@ -134,7 +134,7 @@ func DeleteDepartment(c *gin.Context) {
 			return
 		}
 		// check level is max
-		if ok, level := common.OverDepartmentLevel(adminUserId, cast.ToInt(newDid), cast.ToInt(id)); ok {
+		if ok, level := common.OverDepartmentLevel(adminUserId, cast.ToInt(newDid), cast.ToInt(id),common.GetLang(c)); ok {
 			common.FmtError(c, `department_level_max`, cast.ToString(level))
 			return
 		}

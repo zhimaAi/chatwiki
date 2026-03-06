@@ -9,12 +9,13 @@ import (
 	"chatwiki/internal/app/chatwiki/middlewares"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
-	"net/http"
-	"time"
 )
 
 func SyncDraftList(c *gin.Context) {
@@ -710,5 +711,121 @@ func GetCommentRuleInfo(c *gin.Context) {
 	tempItem["task_info"], _ = msql.Model(`wechat_official_account_batch_send_task`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`comment_rule_id`, cast.ToString(tempItem["id"])).Field("id,task_name").Select()
 
 	c.String(http.StatusOK, lib_web.FmtJson(tempItem, err))
+
+}
+
+func SyncHisArticle(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+
+	app_id := cast.ToString(c.PostForm(`app_id`))
+	sync_type := cast.ToString(c.PostForm(`sync_type`))
+	sync_comment_switch := cast.ToInt(c.PostForm(`sync_comment_switch`))
+	ai_comment_switch := cast.ToInt(c.PostForm(`ai_comment_switch`))
+	replay_his_comment_switch := cast.ToInt(c.PostForm(`replay_his_comment_switch`))
+
+	insertData := msql.Datas{
+		"create_time":               time.Now().Unix(),
+		"update_time":               time.Now().Unix(),
+		"admin_user_id":             adminUserId,
+		"app_id":                    app_id,
+		"sync_type":                 sync_type,
+		"sync_comment_switch":       sync_comment_switch,
+		"ai_comment_switch":         ai_comment_switch,
+		"replay_his_comment_switch": replay_his_comment_switch,
+	}
+
+	_id, err := msql.Model("wechat_official_article_sync", define.Postgres).Insert(insertData)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+
+	insertData[`id`] = _id
+
+	message, err := tool.JsonEncode(insertData)
+
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+
+	err = common.AddJobs(define.OfficialAccountHisArticleSyncTopic, message)
+
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
+
+}
+
+func GetSyncHisArticleTask(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+
+	app_id := cast.ToString(c.Query(`app_id`))
+
+	m := msql.Model("wechat_official_article_sync_task", define.Postgres)
+
+	data, err := m.Where("admin_user_id", cast.ToString(adminUserId)).Where("app_id", app_id).Find()
+
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(data, err))
+
+}
+
+func SyncHisArticleTask(c *gin.Context) {
+	var adminUserId int
+	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
+		return
+	}
+
+	app_id := cast.ToString(c.PostForm(`app_id`))
+	sync_time := cast.ToString(c.PostForm(`sync_time`))
+	ai_comment_switch := cast.ToInt(c.PostForm(`ai_comment_switch`))
+	auto_sync_switch := cast.ToInt(c.PostForm(`auto_sync_switch`))
+
+	m := msql.Model("wechat_official_article_sync_task", define.Postgres)
+
+	data, _ := m.Where("admin_user_id", cast.ToString(adminUserId)).Where("app_id", app_id).Find()
+
+	insertData := msql.Datas{
+		"create_time":       time.Now().Unix(),
+		"update_time":       time.Now().Unix(),
+		"admin_user_id":     adminUserId,
+		"app_id":            app_id,
+		"sync_time":         sync_time,
+		"ai_comment_switch": ai_comment_switch,
+		"auto_sync_switch":  auto_sync_switch,
+	}
+
+	if cast.ToInt(data[`id`]) == 0 {
+		_, err := m.Insert(insertData)
+
+		if err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+			return
+		}
+
+	} else {
+		m.Where("admin_user_id", cast.ToString(adminUserId)).Where("app_id", app_id).Update(msql.Datas{
+			"update_time":       time.Now().Unix(),
+			"sync_time":         sync_time,
+			"ai_comment_switch": ai_comment_switch,
+			"auto_sync_switch":  auto_sync_switch,
+		})
+	}
+
+	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 
 }

@@ -1,3 +1,375 @@
+<template>
+<div class="message-box">
+  <div class="message-top-box">
+    <div class="message-top-title">{{ props.robotInfo.robot_name }}</div>
+    <div v-if="sessionSource" class="message-top-source">({{ formatSource(sessionSource) }})</div>
+  </div>
+  <div class="message-list-wrapper" ref="scrollBoxRef" @scroll="onScroll">
+    <div class="message-list">
+      <div class="empty-box" v-if="props.isEmpty || !props.messages">
+        <img src="@/assets/img/library/detail/empty.png" alt="" />
+        <div class="title">{{ t('msg_empty_result') }}</div>
+      </div>
+      <template v-else v-for="item in props.messages" :key="item.uid">
+        <!-- 用户的消息 -->
+        <div class="message-item user-message" :id="'msg-' + item.uid" v-if="item.is_customer == 1">
+          <div class="itme-right">
+            <div class="message-info">
+              <span>{{ formatDisplayChatTime(item.create_time) }}</span>
+              <span>{{ item.name }}</span>
+            </div>
+            <div class="item-body">
+              <!-- 收到消息类型处理，目前只处理了image 后续有其他的在这里添加 -->
+              <template v-if="item.received_message_type == 'image' && item.media_id_to_oss_url">
+                <div class="message-content">
+                  <img v-viewer class="msg-img" :src="item.media_id_to_oss_url" alt="" />
+                </div>
+              </template>
+              <!-- 多模态 -->
+              <div v-else-if="item.msg_type == 99" class="message-content multiple-content">
+                <MultipleMessage :message="item.content" />
+              </div>
+              <div v-else class="message-content">{{ item.content }}</div>
+            </div>
+          </div>
+          <div class="user-avatar-box">
+            <img class="user-avatar" :src="item.avatar" />
+          </div>
+        </div>
+        <!-- 机器人的消息 -->
+        <div class="message-item robot-message" :id="'msg-' + item.uid" v-else>
+          <div class="itme-left">
+            <a-spin size="small" :spinning="item.loading">
+              <img class="robot-avatar" :src="item.robot_avatar" />
+            </a-spin>
+          </div>
+
+          <div class="itme-right">
+            <div class="message-info">
+              <span>{{ formatDisplayChatTime(item.create_time) }}</span>
+              <span>{{ item.name }}</span>
+            </div>
+            <template v-if="parseReplyList(item.reply_content_list).length">
+              <div class="reply-list">
+                <template v-for="(rc, idx) in parseReplyList(item.reply_content_list)" :key="idx">
+                  <div v-if="(rc.reply_type || rc.type) === 'text'" class="reply-item reply-text">
+                    <div class="message-content" v-html="rc.description"></div>
+                  </div>
+                  <div v-else-if="(rc.reply_type || rc.type) === 'image'" class="reply-item reply-image">
+                    <div class="message-content">
+                      <img v-viewer class="msg-img" :src="rc.pic || rc.thumb_url" />
+                    </div>
+                  </div>
+                  <div v-else-if="(rc.reply_type || rc.type) === 'url'" class="reply-item reply-url">
+                    <div class="url-row">
+                      <a class="url-link" :href="rc.url" target="_blank">{{ rc.url }}</a>
+                    </div>
+                  </div>
+                  <div v-else-if="(rc.reply_type || rc.type) === 'card'" class="reply-item reply-card">
+                    <div class="card-row">
+                      <img v-if="rc.thumb_url" :src="rc.thumb_url" class="card-thumb" />
+                      <div class="card-title-box">
+                        <svg-icon class="think-icon" name="applet"></svg-icon>
+                        <span class="card-title">{{ rc.title }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else-if="(rc.reply_type || rc.type) === 'imageText'" class="reply-item reply-imageText">
+                    <a class="imageText-row" :href="rc.url" target="_blank">
+                      <img v-if="rc.thumb_url" :src="rc.thumb_url" class="imageText-thumb" />
+                      <div class="imageText-text">
+                        <div class="imageText-title">{{ rc.title }}</div>
+                        <div class="imageText-desc">{{ rc.description }}</div>
+                      </div>
+                    </a>
+                  </div>
+                  <div v-else-if="(rc.reply_type || rc.type) === 'smartMenu'" class="reply-item reply-smartMenu">
+                    <div class="smart-menu-box">
+                      <div class="card-title" v-if="rc.smart_menu && rc.smart_menu.menu_description">{{ rc.smart_menu.menu_description }}</div>
+                      <div class="card-text">
+                        <template v-for="(line, li) in buildMenuLines(rc.smart_menu?.menu_content || [])" :key="li">
+                          <div class="reply-line">
+                            <span class="line-text" v-if="line.kind === 'text'">{{ line.text }}</span>
+                            <div v-else-if="line.kind === 'newline'" class="empty-line"></div>
+                            <span v-else-if="line.kind === 'html'" v-html="line.html"></span>
+                            <a v-else-if="line.kind === 'keyword'" href="javascript:;" class="link">
+                              <div v-if="line.serial_no">{{ line.serial_no }}</div>
+                              {{ line.text }}
+                            </a>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <div class="item-body" v-if="!(item.msg_type == 1 && item.content == '')">
+              <template v-if="item.msg_type == 1">
+                <div class="message-content" v-viewer>
+                  <cherry-markdown :content="item.content"></cherry-markdown>
+                </div>
+              </template>
+
+              <template v-if="item.msg_type == 2">
+                <div class="message-content" v-html="item.menu_json.content"></div>
+              </template>
+
+              <template v-if="item.msg_type == 3">
+                <div class="message-content">
+                  <img v-viewer class="msg-img" :src="item.content" alt="" />
+                </div>
+              </template>
+              <div
+                class="message-action-wrap"
+                v-if="showQuoteFileBox(item)"
+              >
+                <div class="message-action">
+                  <div class="action-btn">
+                    <span><a @click="openPromptLog(item)">Prompt 日志</a></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 语音消息 -->
+            <div v-if="item.voice_content && item.voice_content.length">
+              <VoiceMessage :voice_content="item.voice_content" />
+            </div>
+          </div>
+        </div>
+      </template>
+      <div v-if="loading" class="loading-box"><a-spin /></div>
+    </div>
+  </div>
+</div>
+</template>
+
+<script setup>
+import { ref, nextTick, toRaw } from 'vue'
+import { formatDisplayChatTime } from '@/utils/index'
+import CherryMarkdown from '@/components/cherry-markdown/index.vue'
+import VoiceMessage from '@/views/robot/robot-test/components/voice-message.vue'
+import MultipleMessage from '@/views/robot/robot-test/components/messages/multiple-message.vue'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.session-record.components.message-list')
+
+const emit = defineEmits(['scroll', 'scrollStart', 'scrollEnd', 'openPromptLog'])
+
+const props = defineProps({
+  messages: {
+    type: Array,
+    default: () => []
+  },
+  robotInfo: {
+    type: Object,
+    default: () => {}
+  },
+  isEmpty: {
+    type: Boolean,
+    default: () => false
+  },
+  sessionSource: {
+    type: String,
+    default: () => null
+  },
+  channelItem: {
+    type: Array,
+    default: () => []
+  }
+})
+
+const loading = ref(false)
+const scrollBoxRef = ref(null)
+const scrollOption = {
+  scrollTop: 0,
+  scrollHeight: 0,
+  clientHeight: 0,
+  scrollStartDiff: 60,
+  scrollEndDiff: 60,
+  scrollDirection: '' // 滚动方向
+}
+
+let scrollEventTimer = null // 滚动条防抖
+let onScrollEventLock = false // 时间触发锁
+
+const formatSource = (val) => {
+  let newVal
+  for (let i = 0; i < props.channelItem.length; i++) {
+    const item = props.channelItem[i];
+    if (item.app_type === val) {
+      newVal = item.app_name
+    }
+  }
+  return newVal
+}
+
+// 监听滚动条滚动
+function onScroll(e) {
+  if (onScrollEventLock) {
+    return
+  }
+
+  if (scrollEventTimer) {
+    clearTimeout(scrollEventTimer)
+    scrollEventTimer = null
+  }
+
+  scrollEventTimer = setTimeout(() => {
+    if (scrollOption.scrollTop - e.target.scrollTop > 0) {
+      scrollOption.scrollDirection = 'up'
+    }
+
+    if (scrollOption.scrollTop - e.target.scrollTop < 0) {
+      scrollOption.scrollDirection = 'down'
+    }
+
+    scrollOption.scrollTop = e.target.scrollTop
+    scrollOption.scrollHeight = e.target.scrollHeight
+    scrollOption.clientHeight = e.target.clientHeight
+
+    emit('scroll', { ...scrollOption })
+    // 触顶
+    let isAtTop = Math.abs(scrollOption.scrollTop) <= scrollOption.scrollStartDiff
+
+    if (isAtTop && scrollOption.scrollDirection === 'up') {
+      onScrollStart()
+    }
+    // 触底
+    let isAtBottom =
+      Math.abs(scrollOption.scrollHeight - scrollOption.scrollTop - scrollOption.clientHeight) <=
+      scrollOption.scrollEndDiff
+
+    if (isAtBottom && scrollOption.scrollDirection === 'down') {
+      onScrollEnd()
+    }
+  }, 100)
+}
+
+function onScrollStart() {
+  // 如果消息列表为空可能是断线重连等逻辑手动清空了消息列表造成的抖动，此时不触发事件
+  if (props.messages.length == 0) {
+    return
+  }
+  emit('scrollStart', {
+    msg: props.messages[0]
+  })
+}
+
+function onScrollEnd() {
+  // 如果消息列表为空可能是断线重连等逻辑手动清空了消息列表造成的抖动，此时不触发事件
+  if (props.messages.length == 0) {
+    return
+  }
+  emit('scrollEnd', {
+    msg: props.messages[props.messages.length - 1]
+  })
+}
+
+const scrollToBottom = () => {
+  if (!scrollBoxRef.value) {
+    return
+  }
+  nextTick(() => {
+    // 手动控制滚动到底部不触发触底事件
+    onScrollEventLock = true
+
+    scrollBoxRef.value.scrollTop = scrollBoxRef.value.scrollHeight + 1
+    setTimeout(() => {
+      scrollOption.scrollTop = scrollBoxRef.value.scrollTop
+      onScrollEventLock = false
+    }, 50)
+  })
+}
+
+function scrollToMessage(id, direction) {
+  nextTick(() => {
+    // 手动控制滚动到底部不触发触底事件
+    onScrollEventLock = true
+
+    if (!direction) {
+      direction = 'top'
+    }
+
+    let scroller = scrollBoxRef.value
+    let element = document.querySelector('#msg-' + id)
+
+    if (element) {
+      // 没数据时时没有element的
+      if (direction == 'top') {
+        scroller.scrollTop = element.offsetTop
+      } else {
+        scroller.scrollTop = element.offsetTop - scroller.clientHeight + element.clientHeight
+      }
+    }
+
+    setTimeout(() => {
+      scrollOption.scrollTop = scrollBoxRef.value.scrollTop
+      onScrollEventLock = false
+    }, 50)
+  })
+}
+
+// 重置滚动条状态
+function resetScroll() {
+  scrollOption.scrollTop = 0
+  scrollOption.scrollDirection = ''
+}
+
+function parseReplyList(val) {
+  try {
+    if (!val) return []
+    if (Array.isArray(val)) return val
+    if (typeof val === 'string') return JSON.parse(val || '[]')
+    return []
+  } catch (_e) {
+    return []
+  }
+}
+
+function buildMenuLines(menu_content) {
+  const out = []
+  ;(Array.isArray(menu_content) ? menu_content : []).forEach((mc) => {
+    const t = String(mc?.menu_type || '')
+    const txt = String(mc?.content || '')
+    if (t === '0') {
+      if (txt === '') { out.push({ kind: 'newline' }) }
+      else if (/<a[\s\S]*?<\/a>/.test(txt)) {
+        const sanitized = /href\s*=\s*['"]\s*#\s*['"]/i.test(txt)
+          ? txt.replace(/href\s*=\s*['"]\s*#\s*['"]/ig, 'href="javascript:;"')
+          : txt.replace(/href=/ig, 'target="_blank" href=')
+        out.push({ kind: 'html', html: sanitized })
+      } else { out.push({ kind: 'text', text: txt }) }
+    } else if (t === '1') { out.push({ kind: 'keyword', text: txt, serial_no: mc?.serial_no || '' }) }
+  })
+  return out.slice(0, 20)
+}
+
+function showQuoteFileBox(item) {
+  let newItem = JSON.parse(JSON.stringify(item))
+  newItem.debug = newItem.debug_log ? JSON.parse(newItem.debug_log) : []
+  if (newItem.debug && newItem.debug.length > 0) {
+    return true
+  }
+
+  return false
+}
+
+// 打开Prompt日志
+function openPromptLog(item) {
+  let newItem = JSON.parse(JSON.stringify(item))
+  newItem.debug = newItem.debug_log ? JSON.parse(newItem.debug_log) : []
+  emit('openPromptLog', toRaw(newItem))
+}
+
+defineExpose({
+  scrollToBottom,
+  scrollToMessage,
+  resetScroll
+})
+</script>
+
+
 <style lang="less" scoped>
 .message-list-wrapper {
   min-width: 350px;
@@ -56,6 +428,12 @@
 
     .item-body {
       padding: 5px 0;
+    }
+
+    .multiple-content{
+       :deep(.text-message){
+        color: #fff !important;
+       }
     }
 
     .message-content {
@@ -361,345 +739,3 @@
   }
 }
 </style>
-
-<template>
-<div class="message-box">
-  <div class="message-top-box">
-    <div class="message-top-title">{{ props.robotInfo.robot_name }}</div>
-    <div v-if="sessionSource" class="message-top-source">({{ formatSource(sessionSource) }})</div>
-  </div>
-  <div class="message-list-wrapper" ref="scrollBoxRef" @scroll="onScroll">
-    <div class="message-list">
-      <div class="empty-box" v-if="props.isEmpty || !props.messages">
-        <img src="@/assets/img/library/detail/empty.png" alt="" />
-        <div class="title">{{ t('msg_empty_result') }}</div>
-      </div>
-      <template v-else v-for="item in props.messages" :key="item.uid">
-        <!-- 用户的消息 -->
-        <div class="message-item user-message" :id="'msg-' + item.uid" v-if="item.is_customer == 1">
-          <div class="itme-right">
-            <div class="message-info">
-              <span>{{ formatDisplayChatTime(item.create_time) }}</span>
-              <span>{{ item.name }}</span>
-            </div>
-            <div class="item-body">
-              <!-- 收到消息类型处理，目前只处理了image 后续有其他的在这里添加 -->
-              <template v-if="item.received_message_type == 'image' && item.media_id_to_oss_url">
-                <div class="message-content">
-                  <img v-viewer class="msg-img" :src="item.media_id_to_oss_url" alt="" />
-                </div>
-              </template>
-              <div v-else class="message-content">{{ item.content }}</div>
-            </div>
-          </div>
-          <div class="user-avatar-box">
-            <img class="user-avatar" :src="item.avatar" />
-          </div>
-        </div>
-        <!-- 机器人的消息 -->
-        <div class="message-item robot-message" :id="'msg-' + item.uid" v-else>
-          <div class="itme-left">
-            <a-spin size="small" :spinning="item.loading">
-              <img class="robot-avatar" :src="item.robot_avatar" />
-            </a-spin>
-          </div>
-
-          <div class="itme-right">
-            <div class="message-info">
-              <span>{{ formatDisplayChatTime(item.create_time) }}</span>
-              <span>{{ item.name }}</span>
-            </div>
-            <template v-if="parseReplyList(item.reply_content_list).length">
-              <div class="reply-list">
-                <template v-for="(rc, idx) in parseReplyList(item.reply_content_list)" :key="idx">
-                  <div v-if="(rc.reply_type || rc.type) === 'text'" class="reply-item reply-text">
-                    <div class="message-content" v-html="rc.description"></div>
-                  </div>
-                  <div v-else-if="(rc.reply_type || rc.type) === 'image'" class="reply-item reply-image">
-                    <div class="message-content">
-                      <img v-viewer class="msg-img" :src="rc.pic || rc.thumb_url" />
-                    </div>
-                  </div>
-                  <div v-else-if="(rc.reply_type || rc.type) === 'url'" class="reply-item reply-url">
-                    <div class="url-row">
-                      <a class="url-link" :href="rc.url" target="_blank">{{ rc.url }}</a>
-                    </div>
-                  </div>
-                  <div v-else-if="(rc.reply_type || rc.type) === 'card'" class="reply-item reply-card">
-                    <div class="card-row">
-                      <img v-if="rc.thumb_url" :src="rc.thumb_url" class="card-thumb" />
-                      <div class="card-title-box">
-                        <svg-icon class="think-icon" name="applet"></svg-icon>
-                        <span class="card-title">{{ rc.title }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-else-if="(rc.reply_type || rc.type) === 'imageText'" class="reply-item reply-imageText">
-                    <a class="imageText-row" :href="rc.url" target="_blank">
-                      <img v-if="rc.thumb_url" :src="rc.thumb_url" class="imageText-thumb" />
-                      <div class="imageText-text">
-                        <div class="imageText-title">{{ rc.title }}</div>
-                        <div class="imageText-desc">{{ rc.description }}</div>
-                      </div>
-                    </a>
-                  </div>
-                  <div v-else-if="(rc.reply_type || rc.type) === 'smartMenu'" class="reply-item reply-smartMenu">
-                    <div class="smart-menu-box">
-                      <div class="card-title" v-if="rc.smart_menu && rc.smart_menu.menu_description">{{ rc.smart_menu.menu_description }}</div>
-                      <div class="card-text">
-                        <template v-for="(line, li) in buildMenuLines(rc.smart_menu?.menu_content || [])" :key="li">
-                          <div class="reply-line">
-                            <span class="line-text" v-if="line.kind === 'text'">{{ line.text }}</span>
-                            <div v-else-if="line.kind === 'newline'" class="empty-line"></div>
-                            <span v-else-if="line.kind === 'html'" v-html="line.html"></span>
-                            <a v-else-if="line.kind === 'keyword'" href="javascript:;" class="link">
-                              <div v-if="line.serial_no">{{ line.serial_no }}</div>
-                              {{ line.text }}
-                            </a>
-                          </div>
-                        </template>
-                      </div>
-                    </div>
-                  </div>
-                </template>
-              </div>
-            </template>
-            <div class="item-body" v-if="!(item.msg_type == 1 && item.content == '')">
-              <template v-if="item.msg_type == 1">
-                <div class="message-content" v-viewer>
-                  <cherry-markdown :content="item.content"></cherry-markdown>
-                </div>
-              </template>
-
-              <template v-if="item.msg_type == 2">
-                <div class="message-content" v-html="item.menu_json.content"></div>
-              </template>
-
-              <template v-if="item.msg_type == 3">
-                <div class="message-content">
-                  <img v-viewer class="msg-img" :src="item.content" alt="" />
-                </div>
-              </template>
-            </div>
-            <!-- 语音消息 -->
-            <div v-if="item.voice_content && item.voice_content.length">
-              <VoiceMessage :voice_content="item.voice_content" />
-            </div>
-          </div>
-        </div>
-      </template>
-      <div v-if="loading" class="loading-box"><a-spin /></div>
-    </div>
-  </div>
-</div>
-</template>
-
-<script setup>
-import { ref, nextTick } from 'vue'
-import { formatDisplayChatTime } from '@/utils/index'
-import CherryMarkdown from '@/components/cherry-markdown/index.vue'
-import VoiceMessage from '@/views/robot/robot-test/components/voice-message.vue'
-import { useI18n } from '@/hooks/web/useI18n'
-
-const { t } = useI18n('views.robot.robot-config.session-record.components.message-list')
-
-const emit = defineEmits(['scroll', 'scrollStart', 'scrollEnd'])
-
-const props = defineProps({
-  messages: {
-    type: Array,
-    default: () => []
-  },
-  robotInfo: {
-    type: Object,
-    default: () => {}
-  },
-  isEmpty: {
-    type: Boolean,
-    default: () => false
-  },
-  sessionSource: {
-    type: String,
-    default: () => null
-  },
-  channelItem: {
-    type: Array,
-    default: () => []
-  }
-})
-
-const loading = ref(false)
-const scrollBoxRef = ref(null)
-const scrollOption = {
-  scrollTop: 0,
-  scrollHeight: 0,
-  clientHeight: 0,
-  scrollStartDiff: 60,
-  scrollEndDiff: 60,
-  scrollDirection: '' // 滚动方向
-}
-
-let scrollEventTimer = null // 滚动条防抖
-let onScrollEventLock = false // 时间触发锁
-
-const formatSource = (val) => {
-  let newVal
-  for (let i = 0; i < props.channelItem.length; i++) {
-    const item = props.channelItem[i];
-    if (item.app_type === val) {
-      newVal = item.app_name
-    }
-  }
-  return newVal
-}
-
-// 监听滚动条滚动
-function onScroll(e) {
-  if (onScrollEventLock) {
-    return
-  }
-
-  if (scrollEventTimer) {
-    clearTimeout(scrollEventTimer)
-    scrollEventTimer = null
-  }
-
-  scrollEventTimer = setTimeout(() => {
-    if (scrollOption.scrollTop - e.target.scrollTop > 0) {
-      scrollOption.scrollDirection = 'up'
-    }
-
-    if (scrollOption.scrollTop - e.target.scrollTop < 0) {
-      scrollOption.scrollDirection = 'down'
-    }
-
-    scrollOption.scrollTop = e.target.scrollTop
-    scrollOption.scrollHeight = e.target.scrollHeight
-    scrollOption.clientHeight = e.target.clientHeight
-
-    emit('scroll', { ...scrollOption })
-    // 触顶
-    let isAtTop = Math.abs(scrollOption.scrollTop) <= scrollOption.scrollStartDiff
-
-    if (isAtTop && scrollOption.scrollDirection === 'up') {
-      onScrollStart()
-    }
-    // 触底
-    let isAtBottom =
-      Math.abs(scrollOption.scrollHeight - scrollOption.scrollTop - scrollOption.clientHeight) <=
-      scrollOption.scrollEndDiff
-
-    if (isAtBottom && scrollOption.scrollDirection === 'down') {
-      onScrollEnd()
-    }
-  }, 100)
-}
-
-function onScrollStart() {
-  // 如果消息列表为空可能是断线重连等逻辑手动清空了消息列表造成的抖动，此时不触发事件
-  if (props.messages.length == 0) {
-    return
-  }
-  emit('scrollStart', {
-    msg: props.messages[0]
-  })
-}
-
-function onScrollEnd() {
-  // 如果消息列表为空可能是断线重连等逻辑手动清空了消息列表造成的抖动，此时不触发事件
-  if (props.messages.length == 0) {
-    return
-  }
-  emit('scrollEnd', {
-    msg: props.messages[props.messages.length - 1]
-  })
-}
-
-const scrollToBottom = () => {
-  if (!scrollBoxRef.value) {
-    return
-  }
-  nextTick(() => {
-    // 手动控制滚动到底部不触发触底事件
-    onScrollEventLock = true
-
-    scrollBoxRef.value.scrollTop = scrollBoxRef.value.scrollHeight + 1
-    setTimeout(() => {
-      scrollOption.scrollTop = scrollBoxRef.value.scrollTop
-      onScrollEventLock = false
-    }, 50)
-  })
-}
-
-function scrollToMessage(id, direction, topOffset) {
-  nextTick(() => {
-    // 手动控制滚动到底部不触发触底事件
-    onScrollEventLock = true
-
-    if (!direction) {
-      direction = 'top'
-    }
-    if (typeof topOffset !== 'number') {
-      topOffset = 0
-    }
-
-    let scroller = scrollBoxRef.value
-    let element = document.querySelector('#msg-' + id)
-
-    if (element) {
-      // 没数据时时没有element的
-      if (direction == 'top') {
-        scroller.scrollTop = Math.max(element.offsetTop - topOffset, 0)
-      } else {
-        scroller.scrollTop = element.offsetTop - scroller.clientHeight + element.clientHeight
-      }
-    }
-
-    setTimeout(() => {
-      scrollOption.scrollTop = scrollBoxRef.value.scrollTop
-      onScrollEventLock = false
-    }, 50)
-  })
-}
-
-// 重置滚动条状态
-function resetScroll() {
-  scrollOption.scrollTop = 0
-  scrollOption.scrollDirection = ''
-}
-
-function parseReplyList(val) {
-  try {
-    if (!val) return []
-    if (Array.isArray(val)) return val
-    if (typeof val === 'string') return JSON.parse(val || '[]')
-    return []
-  } catch (_e) {
-    return []
-  }
-}
-
-function buildMenuLines(menu_content) {
-  const out = []
-  ;(Array.isArray(menu_content) ? menu_content : []).forEach((mc) => {
-    const t = String(mc?.menu_type || '')
-    const txt = String(mc?.content || '')
-    if (t === '0') {
-      if (txt === '') { out.push({ kind: 'newline' }) }
-      else if (/<a[\s\S]*?<\/a>/.test(txt)) {
-        const sanitized = /href\s*=\s*['"]\s*#\s*['"]/i.test(txt)
-          ? txt.replace(/href\s*=\s*['"]\s*#\s*['"]/ig, 'href="javascript:;"')
-          : txt.replace(/href=/ig, 'target="_blank" href=')
-        out.push({ kind: 'html', html: sanitized })
-      } else { out.push({ kind: 'text', text: txt }) }
-    } else if (t === '1') { out.push({ kind: 'keyword', text: txt, serial_no: mc?.serial_no || '' }) }
-  })
-  return out.slice(0, 20)
-}
-
-defineExpose({
-  scrollToBottom,
-  scrollToMessage,
-  resetScroll
-})
-</script>

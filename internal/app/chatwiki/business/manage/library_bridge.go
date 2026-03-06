@@ -83,7 +83,7 @@ func BridgeGetLibraryList(adminUserId, userId int, lang string, req *BridgeLibra
 		// managedLibraryIdList := GetUserManagedData(userId, `managed_library_list`)
 		if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot}) {
 			managedLibraryIdList := []string{`0`}
-			permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeLibrary)
+			permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeLibrary, lang)
 			for _, permission := range permissionData {
 				managedLibraryIdList = append(managedLibraryIdList, cast.ToString(permission[`object_id`]))
 			}
@@ -182,7 +182,7 @@ func BridgeGetLibraryListGroup(adminUserId, userId int, lang string, req *Bridge
 	//check permission
 	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot}) {
 		managedRobotIdList := []string{`0`}
-		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeLibrary)
+		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeLibrary, lang)
 		for _, permission := range permissionData {
 			managedRobotIdList = append(managedRobotIdList, cast.ToString(permission[`object_id`]))
 		}

@@ -8,10 +8,12 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/app/chatwiki/middlewares"
+	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -497,4 +499,94 @@ func OpenDelLibraryGeneralParagraph(c *gin.Context) {
 	err := manage.BridgeDelLibraryFile(adminUserId, ids, common.GetLang(c))
 	common.FmtBridgeResponse(c, nil, -1, err)
 	return
+}
+
+func OpenLibraryRecall(c *gin.Context) {
+	userId := parseToken(c)
+	if userId == 0 {
+		return
+	}
+
+	modelConfigId := cast.ToInt(c.PostForm(`model_config_id`))
+	useModel := strings.TrimSpace(c.PostForm(`use_model`))
+	libraryIds := cast.ToString(c.PostForm(`id`))
+	question := strings.TrimSpace(c.PostForm(`question`))
+	size := cast.ToInt(c.PostForm(`size`))
+	similarity := cast.ToFloat64(c.PostForm(`similarity`))
+	searchType := cast.ToInt(c.DefaultPostForm(`search_type`, `1`))
+	rrfWeight := strings.TrimSpace(c.PostForm(`rrf_weight`))
+	rerankModelConfigID := cast.ToInt(c.PostForm(`rerank_model_config_id`))
+	rerankUseModel := strings.TrimSpace(c.PostForm(`rerank_use_model`))
+	rerankStatus := strings.TrimSpace(c.DefaultPostForm(`rerank_status`, `1`))
+	recallType := cast.ToString(c.PostForm(`recall_type`))
+	if len(libraryIds) <= 0 || len(question) == 0 || size <= 0 || similarity <= 0 || similarity > 1 || searchType == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText, define.SearchTypeGraph}) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
+		return
+	}
+	if err := common.CheckRrfWeight(rrfWeight, common.GetLang(c)); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	if modelConfigId > 0 || useModel != "" {
+		//check model_config_id and use_model
+		if ok := common.CheckModelIsValid(userId, modelConfigId, useModel, common.Llm); !ok {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `use_model`))))
+			return
+		}
+	}
+	robot := msql.Params{
+		`recall_type`:   recallType,
+		`rrf_weight`:    rrfWeight,
+		`admin_user_id`: cast.ToString(userId),
+	}
+	for _, libraryId := range strings.Split(libraryIds, `,`) {
+		info, err := common.GetLibraryInfo(cast.ToInt(libraryId), userId)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		if len(info) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+			return
+		}
+		robotName, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`rerank_status`, `1`).Where(`rerank_model_config_id`, cast.ToString(rerankModelConfigID)).Value(`robot_name`)
+		if err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		}
+		if rerankModelConfigID > 0 && cast.ToInt(rerankStatus) == define.SwitchOn {
+			robot[`rerank_status`] = cast.ToString(rerankStatus)
+			robot[`rerank_model_config_id`] = cast.ToString(rerankModelConfigID)
+			robot[`rerank_use_model`] = cast.ToString(rerankUseModel)
+			robot[`robot_name`] = robotName
+		}
+		if searchType == define.SearchTypeGraph {
+			if !cast.ToBool(info[`graph_switch`]) {
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `graph is not enabled`))))
+				return
+			}
+			robot[`admin_user_id`] = info[`admin_user_id`]
+			robot[`model_config_id`] = info[`graph_model_config_id`]
+			robot[`use_model`] = info[`graph_use_model`]
+			robot[`id`] = strconv.Itoa(0)
+		}
+		if modelConfigId > 0 && useModel != "" {
+			robot[`model_config_id`] = cast.ToString(modelConfigId)
+			robot[`use_model`] = useModel
+		}
+	}
+
+	list, _, err := common.GetMatchLibraryParagraphList(common.GetLang(c), cast.ToString(userId), lib_define.AppYunH5, "", question, []string{}, libraryIds, size, similarity, searchType, robot)
+	for _, item := range list {
+		library, err := common.GetLibraryInfo(cast.ToInt(item[`library_id`]), userId)
+		if err != nil {
+			logs.Error(err.Error())
+		}
+		item[`library_name`] = library[`library_name`]
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(list, err))
 }
