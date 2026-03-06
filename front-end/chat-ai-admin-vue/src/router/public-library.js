@@ -1,5 +1,6 @@
 import { message } from 'ant-design-vue'
 import { usePublicLibraryStore } from '@/stores/modules/public-library'
+import { i18n } from '@/locales'
 
 const checkRouteManagePermission = (to, from, next) => {
   const { operate_rights } = usePublicLibraryStore()
@@ -20,7 +21,7 @@ export default [
     name: 'PublicLibrary',
     component: () => import('../layouts/AdminLayout/index.vue'),
     meta: {
-      title: '对外文档',
+      title: 'routes.basic.public_document',
       activeMenu: 'PublicLibrary'
     },
     redirect: '/public-library/list',
@@ -30,7 +31,7 @@ export default [
         name: 'PublicLibraryList',
         component: () => import('@/views/public-library/list/index.vue'),
         meta: {
-          title: '对外文档',
+          title: 'routes.basic.public_document',
           bgColor: '#fff',
           hideTitle: true
         }
@@ -38,17 +39,17 @@ export default [
       {
         path: '/public-library/add',
         name: 'AddPublicLibrary',
-        component: () => import('../views/public-library/add/index.vue'),
+        component: () => import('@/views/public-library/add/index.vue'),
         meta: {
-          title: '新建文档',
+          title: 'routes.basic.create_document',
           activeMenu: 'PublicLibrary',
           breadcrumb: [
             {
-              title: '对外文档',
+              title: 'routes.basic.public_document',
               path: '/public-library/list'
             },
             {
-              title: '新建文档',
+              title: 'routes.basic.create_document',
               path: '/public-library/add'
             }
           ]
@@ -61,7 +62,7 @@ export default [
     name: 'PublicLibraryLayout',
     component: () => import('@/views/public-library/index.vue'),
     meta: {
-      title: '知识库配置',
+      title: 'routes.basic.knowledge_config',
       isCustomPage: true,
       activeMenu: 'PublicLibrary'
     },
@@ -72,7 +73,7 @@ export default [
 
         if (!store.operate_rights) {
           next('/public-library/list')
-          message.warning('您没有权限访问此文档')
+          message.warning(i18n && i18n.global ? i18n.global.t('common.noPermissionAccess') : '您没有权限访问此文档')
         } else {
           next()
         }
@@ -87,7 +88,7 @@ export default [
         name: 'PublicLibraryConfig',
         component: () => import('@/views/public-library/config/index.vue'),
         meta: {
-          title: '知识库配置',
+          title: 'routes.basic.knowledge_config',
           bgColor: '#F5F9FF',
           subActiveMenu: 'config',
           activeMenu: 'PublicLibrary'
@@ -101,7 +102,7 @@ export default [
         name: 'PublicLibraryPermissions',
         component: () => import('@/views/public-library/permissions/index.vue'),
         meta: {
-          title: '访问权限',
+          title: 'routes.basic.access_permission',
           bgColor: '#F5F9FF',
           subActiveMenu: 'config',
           activeMenu: 'PublicLibrary'
@@ -115,7 +116,7 @@ export default [
         name: 'PublicLibraryHome',
         component: () => import('@/views/public-library/home/index.vue'),
         meta: {
-          title: '首页',
+          title: 'routes.basic.home',
           bgColor: '#F5F9FF',
           subActiveMenu: 'home',
           activeMenu: 'PublicLibrary'
@@ -126,7 +127,7 @@ export default [
         name: 'PublicLibraryAi',
         component: () => import('@/views/public-library/ai/index.vue'),
         meta: {
-          title: '文档AI',
+          title: 'routes.basic.document_ai',
           bgColor: '#F5F9FF',
           subActiveMenu: 'config',
           activeMenu: 'PublicLibrary'
@@ -137,7 +138,7 @@ export default [
         name: 'PublicLibraryWebStatistics',
         component: () => import('@/views/public-library/web-statistics/index.vue'),
         meta: {
-          title: '统计设置',
+          title: 'routes.basic.statistics_settings',
           bgColor: '#F5F9FF',
           subActiveMenu: 'config',
           activeMenu: 'PublicLibrary'
@@ -148,7 +149,7 @@ export default [
         name: 'PublicLibraryEditor',
         component: () => import('@/views/public-library/editor/index.vue'),
         meta: {
-          title: '编辑文档',
+          title: 'routes.basic.edit_document',
           bgColor: '#F5F9FF',
           subActiveMenu: 'doc',
           activeMenu: 'PublicLibrary'

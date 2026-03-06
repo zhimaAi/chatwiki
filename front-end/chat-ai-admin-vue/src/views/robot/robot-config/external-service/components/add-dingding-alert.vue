@@ -23,6 +23,7 @@
   .alert-body {
     display: flex;
     align-items: center;
+    margin-top: 16px;
   }
 
   .preview-box {
@@ -120,8 +121,10 @@
       <a-button key="submit" type="primary" :loading="loading" @click="handleOk" v-if="step === 2">{{ t('btn_config_completed') }}</a-button>
     </template>
     <div class="add-wechat-app-alert" v-if="step === 1">
-      <a-alert class="tip-alert" type="info" show-icon>
-        <template #message v-html="t('tip_config_dingding')"></template>
+      <a-alert class="zm-alert-info" type="info" show-icon>
+        <template #message>
+          <div v-html="t('tip_config_dingding')"></div>
+        </template>
       </a-alert>
 
       <div class="alert-body">

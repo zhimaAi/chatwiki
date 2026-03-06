@@ -47,6 +47,12 @@
           </span>
         </div>
         <div class="right-opration">
+          <a-tooltip title="向上合并分段">
+            <div @click.stop="handleUpwardMerge(item, index)" class="hover-btn-box" :class="{disabled: index == 0}">
+              <svg-icon name="segmentation-up" style="font-size: 14px;color: #333;"></svg-icon>
+            </div>
+          </a-tooltip>
+
           <a-dropdown>
             <div class="hover-btn-box">
               <StarFilled
@@ -191,7 +197,8 @@ import {
   deleteParagraph,
   editParagraph,
   getCategoryList,
-  updateParagraphCategory
+  updateParagraphCategory,
+  mergeParagraph
 } from '@/api/library'
 import {useMathJax} from "@/composables/useMathJax.js";
 
@@ -209,7 +216,7 @@ const emit = defineEmits([
   'handleSplitUp',
   'handleSplitDelete',
   'handleSegmentation',
-  'handleEditParagraph'
+  'handleEditParagraph',
 ])
 
 const props = defineProps({
@@ -256,7 +263,6 @@ const toReSegmentationPage = (item, index) => {
 }
 
 const handleOpenEditModal = (item) => {
-  console.log(item, '===')
   emit('openEditSubscription', item)
 }
 const hanldleDelete = (id) => {
@@ -797,6 +803,24 @@ const handleSaveAnnotation = (data) => {
   emit('handleEditParagraph', data)
 }
 
+const handleUpwardMerge = (item, index) => {
+  if(index <= 0){
+    return
+  }
+  let library_id = item.library_id
+  let source_data_id = item.id
+  let target_data_id = props.paragraphLists[index - 1].id
+
+  mergeParagraph({
+    library_id,
+    source_data_id,
+    target_data_id
+  }).then(res=>{
+    message.success('合并成功')
+    emit('handleConvert')
+  })
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
   setTimeout(() => {
@@ -823,6 +847,10 @@ defineExpose({ handleOpenEditModal })
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+    &.disabled {
+      cursor: not-allowed;
+      opacity: 0.8;
+    }
     &:hover {
       background: #e4e6eb;
       border-radius: 6px;

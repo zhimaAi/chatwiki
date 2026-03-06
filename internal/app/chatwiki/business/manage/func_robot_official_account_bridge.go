@@ -204,7 +204,7 @@ func BridgeSendTaskList(adminUserId int, lang string, req *BridgeBatchSendTaskLi
 	size := max(10, cast.ToInt(req.Size))
 
 	query := msql.Model(`wechat_official_account_batch_send_task`, define.Postgres).Alias("a").
-		Join("wechat_official_account_draft b", "a.draft_id = b.id ", "inner").
+		Join("wechat_official_account_draft b", "a.draft_id = b.id ", "left").
 		Join("wechat_official_account_comment_rule c", "a.comment_rule_id = c.id", "left").
 		Join("wechat_official_account_draft_group d", "b.group_id = d.id", "left").
 		Where(`a.admin_user_id`, cast.ToString(adminUserId)).
@@ -234,6 +234,14 @@ func BridgeSendTaskList(adminUserId int, lang string, req *BridgeBatchSendTaskLi
 
 		if item["comment_rule_id"] == "0" && item["comment_rule_name"] == "" {
 			tempItem["comment_rule_name"] = lib_define.ThereAreNoRulesYet
+		}
+
+		if tempItem["thumb_url"] == "" && tempItem["task_thumb_url"] != "" {
+			tempItem["thumb_url"] = tempItem["task_thumb_url"]
+		}
+
+		if tempItem["digest"] == "" && tempItem["task_digest"] != "" {
+			tempItem["digest"] = tempItem["task_digest"]
 		}
 
 		formatedList = append(formatedList, tempItem)

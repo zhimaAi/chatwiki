@@ -10,7 +10,7 @@ export default {
       name: 'library-search',
       component: () => import('@/views/library-search/index.vue'),
       meta: {
-        title: '搜索',
+        title: 'routes.basic.search',
         icon: 'monitor',
         hideTitle: true,
         isCustomPage: true,

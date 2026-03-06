@@ -5,6 +5,7 @@ import { loginApi, getUserInfo, getUnReadMessageTotal, refreshUserToken } from '
 // import { getTokenCache, setTokenCache } from '@/storage/user'
 import router from '@/router'
 import { DEFAULT_USER_AVATAR } from '@/constants/index'
+import { i18n } from '@/locales'
 
 export const useUserStore = defineStore('user', {
   state: () => {
@@ -152,8 +153,8 @@ export const useUserStore = defineStore('user', {
     logoutConfirm() {
       Modal.confirm({
         type: 'warning',
-        title: '温馨提示',
-        content: '是否退出本系统？',
+        title: i18n && i18n.global ? i18n.global.t('utils.index.kind_reminder') : '温馨提示',
+        content: i18n && i18n.global ? i18n.global.t('utils.index.out_system') : '是否退出本系统？',
         onOk: () => {
           this.reset(true)
           // const res = loginOutApi()

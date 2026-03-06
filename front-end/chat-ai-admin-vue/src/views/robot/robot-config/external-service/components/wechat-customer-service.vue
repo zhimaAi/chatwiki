@@ -12,7 +12,7 @@
 <template>
   <div class="">
     <a-alert
-      class="tip-alert"
+      class="tip-alert zm-alert-info"
       :message="t('tip_bind_wechat')"
       type="info"
       show-icon

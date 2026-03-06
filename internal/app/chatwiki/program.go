@@ -77,6 +77,7 @@ func StartConsumer() {
 	common.RunTask(define.ExtractFaqFilesTopic, define.ExtractFaqFilesChannel, 5, business.ExtractFaqFiles)
 	common.RunTask(define.ImportFAQFileTopic, define.ImportFAQFileChannel, 5, business.ImportLibFileFaq)
 	common.RunTask(define.OfficialAccountDraftSyncTopic, define.OfficialAccountDraftSyncChannel, 5, business.OfficialAccountDraftSync)
+	common.RunTask(define.OfficialAccountHisArticleSyncTopic, define.OfficialAccountHisArticleSyncChannel, 5, business.OfficialAccountHisArticleSync)
 	common.RunTask(define.OfficialAccountBatchSendTopic, define.OfficialAccountBatchSendChannel, 5, business.OfficialAccountBatchSend)
 	common.RunTask(define.OfficialAccountCommentSyncTopic, define.OfficialAccountCommentSyncChannel, 5, business.OfficialAccountCommentSync)
 	common.RunTask(define.OfficialAccountCommentAiCheckTopic, define.OfficialAccountCommentAiCheckChannel, 5, business.OfficialAccountCommentAiCheck)

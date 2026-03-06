@@ -27,9 +27,10 @@ import (
 
 type metaSearchCondition struct {
 	Key   string `json:"key"`
-	Type  int    `json:"type"`  //0 string, 1 time, 2 number (same as define.LibraryMetaType*)
-	Op    int    `json:"op"`    // define.MetaOp*
-	Value string `json:"value"` //can be empty (empty/not-empty operators)
+	Type  int    `json:"type"`           //0 string, 1 time, 2 number (same as define.LibraryMetaType*)
+	Op    int    `json:"op"`             // define.MetaOp*
+	Value string `json:"value"`          //can be empty (empty/not-empty operators)
+	Tags  any    `json:"tags,omitempty"` //temporary data used by frontend
 }
 
 func validateMetaSearchConfig(lang string, metaSwitch, metaType int, raw string) (int, int, string, error) {
@@ -90,18 +91,26 @@ func validateMetaSearchConfig(lang string, metaSwitch, metaType int, raw string)
 			if v == `` {
 				return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
 			}
-			if utf8.RuneCountInString(v) > 20 {
+			//Replace the placeholder with the string "0" first, and then proceed with the detection
+			re := regexp.MustCompile(`【chat_variable:[a-zA-Z_]+】`)
+			checkValue := re.ReplaceAllString(v, "0")
+			if utf8.RuneCountInString(checkValue) > 20 {
 				return 0, 0, ``, errors.New(i18n.Show(lang, `meta_condition_value_too_long`, 20))
 			}
 			//For number/time, the value must be numeric
 			if c.Type == define.LibraryMetaTypeNumber {
-				if ok, _ := regexp.MatchString(`^-?\d+(\.\d+)?$`, v); !ok {
+				if ok, _ := regexp.MatchString(`^-?\d+(\.\d+)?$`, checkValue); !ok {
 					return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
 				}
 			}
 			if c.Type == define.LibraryMetaTypeTime {
-				if ok, _ := regexp.MatchString(`^\d{1,20}$`, v); !ok {
-					return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
+				// Compatible with timestamps and common time strings (consistent with the formats supported by metadata filtering normalizeTimeValue):
+				// - UNIX timestamps: 1~20 digits
+				// - Date/time: YYYY-MM-DD[ HH:MM[:SS]]
+				if ok, _ := regexp.MatchString(`^\d{1,20}$`, checkValue); !ok {
+					if okStr, _ := regexp.MatchString(`^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}(:\d{2})?)?$`, checkValue); !okStr {
+						return 0, 0, ``, errors.New(i18n.Show(lang, `param_invalid`, `meta_search_condition_list`))
+					}
 				}
 			}
 		}
@@ -150,7 +159,7 @@ func GetRobotList(c *gin.Context) {
 	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot}) {
 		// managedRobotIdList := GetUserManagedData(userId, `managed_robot_list`)
 		managedRobotIdList := []string{`0`}
-		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeRobot)
+		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeRobot, common.GetLang(c))
 		for _, permission := range permissionData {
 			managedRobotIdList = append(managedRobotIdList, cast.ToString(permission[`object_id`]))
 		}
@@ -619,6 +628,8 @@ func SaveRobot(c *gin.Context) {
 			return
 		}
 		loginUserId := getLoginUserId(c)
+		data[`external_config_h5`] = c.PostForm(`external_config_h5`)
+		data[`external_config_pc`] = c.PostForm(`external_config_pc`)
 		data[`admin_user_id`] = userId
 		data[`robot_key`] = robotKey
 		data[`create_time`] = data[`update_time`]

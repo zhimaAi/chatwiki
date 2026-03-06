@@ -101,7 +101,7 @@ func GetPartentPermissionList(adminUserId int, identityId string, identityType, 
 	return permissionData, permissionMergeData
 }
 
-func GetAllPermissionManage(adminUserId int, identityId string, identityType, objectType int) ([]msql.Params, []msql.Params) {
+func GetAllPermissionManage(adminUserId int, identityId string, identityType, objectType int, lang string) ([]msql.Params, []msql.Params) {
 	permissionMergeData := []msql.Params{}
 	permissionData, err := GetPermissionManageList(adminUserId, cast.ToString(identityId), identityType, objectType)
 	if err != nil {
@@ -109,7 +109,7 @@ func GetAllPermissionManage(adminUserId int, identityId string, identityType, ob
 		return permissionData, permissionMergeData
 	}
 	permissionData = GetAdminPermissionData(adminUserId, cast.ToInt(identityId), permissionData)
-	departmentIds, err := GetUserAllDepartmentIds(adminUserId, cast.ToString(identityId))
+	departmentIds, err := GetUserAllDepartmentIds(adminUserId, cast.ToString(identityId), lang)
 	if err != nil {
 		logs.Error(err.Error())
 		return permissionData, permissionMergeData
@@ -127,7 +127,7 @@ func GetAllPermissionManage(adminUserId int, identityId string, identityType, ob
 	return permissionData, permissionMergeData
 }
 
-func CheckOperateRights(adminUserId, identityId, identityType int, objectId, objectType, operateRights int) bool {
+func CheckOperateRights(adminUserId, identityId, identityType int, objectId, objectType, operateRights int, lang string) bool {
 	// role
 	info := GetUserInfo(identityId)
 	rules, err := casbin.Handler.GetPolicyForUser(info["user_roles"])
@@ -149,19 +149,19 @@ func CheckOperateRights(adminUserId, identityId, identityType int, objectId, obj
 	if CheckIsAdminOrCreator(cast.ToInt(identityId), adminUserId, 0) {
 		return true
 	}
-	_, mergePermissionData := GetAllPermissionManage(adminUserId, cast.ToString(identityId), identityType, objectType)
+	_, mergePermissionData := GetAllPermissionManage(adminUserId, cast.ToString(identityId), identityType, objectType, lang)
 	if identityType == define.IdentityTypeDepartment {
 		identityId = 0
 	}
 	return checkOperateRights(mergePermissionData, adminUserId, identityId, objectId, objectType, operateRights)
 }
 
-func CheckObjectAccessRights(adminUserId, identityId, identityType int, objectId, objectType, operateRights int) bool {
+func CheckObjectAccessRights(adminUserId, identityId, identityType int, objectId, objectType, operateRights int, lang string) bool {
 	// role
 	if CheckIsAdminOrCreator(cast.ToInt(identityId), adminUserId, 0) {
 		return true
 	}
-	_, mergePermissionData := GetAllPermissionManage(adminUserId, cast.ToString(identityId), identityType, objectType)
+	_, mergePermissionData := GetAllPermissionManage(adminUserId, cast.ToString(identityId), identityType, objectType, lang)
 	if identityType == define.IdentityTypeDepartment {
 		identityId = 0
 	}

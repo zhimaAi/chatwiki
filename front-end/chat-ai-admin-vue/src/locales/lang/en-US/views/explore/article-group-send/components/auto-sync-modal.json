@@ -1,0 +1,12 @@
+{
+  "title_auto_sync_history_article": "Auto Sync History Articles",
+  "label_auto_sync": "Auto Sync",
+  "switch_on": "On",
+  "switch_off": "Off",
+  "label_sync_frequency": "Sync Frequency",
+  "text_daily": "Daily",
+  "label_ai_comment": "AI Comment",
+  "checkbox_auto_enable": "Auto Enable",
+  "msg_ai_comment_tip": "After enabling AI comments, AI will automatically handle new comments on synced articles",
+  "msg_save_success": "Saved successfully"
+}

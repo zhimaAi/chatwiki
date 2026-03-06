@@ -9,7 +9,7 @@ export default {
       name: 'databaseList',
       component: () => import('../views/database/database-list/index.vue'),
       meta: {
-        title: '数据库',
+        title: 'routes.basic.database',
         activeMenu: 'library',
         bgColor: '#fff',
         hideTitle: true
@@ -21,7 +21,7 @@ export default {
       name: 'databaseDetails',
       component: () => import('../views/database/database-detail/index.vue'),
       meta: {
-        title: '数据库管理',
+        title: 'routes.basic.database_management',
         activeMenu: 'library',
         isCustomPage: true,
       },
@@ -32,7 +32,7 @@ export default {
           name: 'fieldManage',
           component: () => import('../views/database/database-detail/field-manage/index.vue'),
           meta: {
-            title: '字段管理',
+            title: 'routes.basic.field_management',
             activeMenu: 'library'
           }
         },
@@ -41,7 +41,7 @@ export default {
           name: 'databaseManage',
           component: () => import('../views/database/database-detail/database-manage/index.vue'),
           meta: {
-            title: '数据管理',
+            title: 'routes.basic.data_management',
             activeMenu: 'library'
           }
         },
@@ -49,7 +49,7 @@ export default {
           path: '/database/details/role-permission',
           component: () => import('../views/database/role-permission/index.vue'),
           meta: {
-            title: '权限管理',
+            title: 'routes.basic.permission_management',
             activeMenu: 'library'
           }
         },

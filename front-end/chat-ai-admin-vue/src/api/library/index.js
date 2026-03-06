@@ -690,3 +690,10 @@ export const delLibraryMetaSchema = (data) => {
     data: data
   })
 }
+
+export const mergeParagraph = (data) => {
+  return request.post({
+    url: '/manage/mergeParagraph',
+    data: data
+  })
+}

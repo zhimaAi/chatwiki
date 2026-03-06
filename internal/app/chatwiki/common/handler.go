@@ -38,9 +38,10 @@ func GetAzureSupplierHandler(modelInfo ModelInfo, config msql.Params) (*Supplier
 func GetClaudeHandler(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
-			Corp:   `claude`,
-			APIKey: config[`api_key`],
-			Model:  useModel,
+			Corp:     `claude`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
+			Model:    useModel,
 		},
 		config: config,
 	}
@@ -50,8 +51,9 @@ func GetClaudeHandler(modelInfo ModelInfo, config msql.Params, useModel string) 
 func GetClaudeSupplierHandler(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error) {
 	handler := &SupplierHandler{
 		Meta: adaptor.Meta{
-			Corp:   `claude`,
-			APIKey: config[`api_key`],
+			Corp:     `claude`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
 		},
 		config: config,
 	}
@@ -61,9 +63,10 @@ func GetClaudeSupplierHandler(modelInfo ModelInfo, config msql.Params) (*Supplie
 func GetGeminiHandler(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
-			Corp:   `gemini`,
-			APIKey: config[`api_key`],
-			Model:  useModel,
+			Corp:     `gemini`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
+			Model:    useModel,
 		},
 		config: config,
 	}
@@ -73,8 +76,9 @@ func GetGeminiHandler(modelInfo ModelInfo, config msql.Params, useModel string) 
 func GetGeminiSupplierHandler(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error) {
 	handler := &SupplierHandler{
 		Meta: adaptor.Meta{
-			Corp:   `gemini`,
-			APIKey: config[`api_key`],
+			Corp:     `gemini`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
 		},
 		config: config,
 	}
@@ -85,6 +89,7 @@ func GetYiyanHandler(modelInfo ModelInfo, config msql.Params, useModel string) (
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:      `baidu`,
+			EndPoint:  config[`api_endpoint`],
 			APIKey:    config[`api_key`],
 			SecretKey: config[`secret_key`],
 			Model:     useModel,
@@ -98,6 +103,7 @@ func GetYiyanSupplierHandler(modelInfo ModelInfo, config msql.Params) (*Supplier
 	handler := &SupplierHandler{
 		Meta: adaptor.Meta{
 			Corp:      `baidu`,
+			EndPoint:  config[`api_endpoint`],
 			APIKey:    config[`api_key`],
 			SecretKey: config[`secret_key`],
 		},
@@ -110,6 +116,7 @@ func GetTongyiHandler(modelInfo ModelInfo, config msql.Params, useModel string) 
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:              `ali`,
+			EndPoint:          config[`api_endpoint`],
 			APIKey:            config[`api_key`],
 			Model:             useModel,
 			ChoosableThinking: tool.InArrayString(useModel, modelInfo.GetChoosableThinkingModels()),
@@ -122,8 +129,9 @@ func GetTongyiHandler(modelInfo ModelInfo, config msql.Params, useModel string) 
 func GetTongyiSupplierHandler(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error) {
 	handler := &SupplierHandler{
 		Meta: adaptor.Meta{
-			Corp:   `ali`,
-			APIKey: config[`api_key`],
+			Corp:     `ali`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
 		},
 		config: config,
 	}
@@ -233,9 +241,10 @@ func GetXinferenceSupplierHandle(modelInfo ModelInfo, config msql.Params) (*Supp
 func GetDeepseekHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
-			Corp:   `deepseek`,
-			APIKey: config[`api_key`],
-			Model:  useModel,
+			Corp:     `deepseek`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
+			Model:    useModel,
 		},
 		config: config,
 	}
@@ -245,8 +254,9 @@ func GetDeepseekHandle(modelInfo ModelInfo, config msql.Params, useModel string)
 func GetDeepseekSupplierHandle(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error) {
 	handler := &SupplierHandler{
 		Meta: adaptor.Meta{
-			Corp:   `deepseek`,
-			APIKey: config[`api_key`],
+			Corp:     `deepseek`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
 		},
 		config: config,
 	}
@@ -256,9 +266,10 @@ func GetDeepseekSupplierHandle(modelInfo ModelInfo, config msql.Params) (*Suppli
 func GetJinaHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
-			Corp:   `jina`,
-			APIKey: config[`api_key`],
-			Model:  useModel,
+			Corp:     `jina`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
+			Model:    useModel,
 		},
 		config: config,
 	}
@@ -268,8 +279,9 @@ func GetJinaHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*M
 func GetJinaSupplierHandle(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error) {
 	handler := &SupplierHandler{
 		Meta: adaptor.Meta{
-			Corp:   `jina`,
-			APIKey: config[`api_key`],
+			Corp:     `jina`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
 		},
 		config: config,
 	}
@@ -279,9 +291,10 @@ func GetJinaSupplierHandle(modelInfo ModelInfo, config msql.Params) (*SupplierHa
 func GetLingYiWanWuHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
-			Corp:   `lingyiwanwu`,
-			APIKey: config[`api_key`],
-			Model:  useModel,
+			Corp:     `lingyiwanwu`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
+			Model:    useModel,
 		},
 		config: config,
 	}
@@ -291,8 +304,9 @@ func GetLingYiWanWuHandle(modelInfo ModelInfo, config msql.Params, useModel stri
 func GetLingYiWanWuSupplierHandle(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error) {
 	handler := &SupplierHandler{
 		Meta: adaptor.Meta{
-			Corp:   `lingyiwanwu`,
-			APIKey: config[`api_key`],
+			Corp:     `lingyiwanwu`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
 		},
 		config: config,
 	}
@@ -302,9 +316,10 @@ func GetLingYiWanWuSupplierHandle(modelInfo ModelInfo, config msql.Params) (*Sup
 func GetMoonShotHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
-			Corp:   `moonshot`,
-			APIKey: config[`api_key`],
-			Model:  useModel,
+			Corp:     `moonshot`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
+			Model:    useModel,
 		},
 		config: config,
 	}
@@ -314,8 +329,9 @@ func GetMoonShotHandle(modelInfo ModelInfo, config msql.Params, useModel string)
 func GetMoonShotSupplierHandle(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error) {
 	handler := &SupplierHandler{
 		Meta: adaptor.Meta{
-			Corp:   `moonshot`,
-			APIKey: config[`api_key`],
+			Corp:     `moonshot`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
 		},
 		config: config,
 	}
@@ -325,9 +341,10 @@ func GetMoonShotSupplierHandle(modelInfo ModelInfo, config msql.Params) (*Suppli
 func GetBaichuanHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
-			Corp:   `baichuan`,
-			APIKey: config[`api_key`],
-			Model:  useModel,
+			Corp:     `baichuan`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
+			Model:    useModel,
 		},
 		config: config,
 	}
@@ -337,8 +354,9 @@ func GetBaichuanHandle(modelInfo ModelInfo, config msql.Params, useModel string)
 func GetBaichuanSupplierHandle(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error) {
 	handler := &SupplierHandler{
 		Meta: adaptor.Meta{
-			Corp:   `baichuan`,
-			APIKey: config[`api_key`],
+			Corp:     `baichuan`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
 		},
 		config: config,
 	}
@@ -348,9 +366,10 @@ func GetBaichuanSupplierHandle(modelInfo ModelInfo, config msql.Params) (*Suppli
 func GetZhipuHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
-			Corp:   `zhipu`,
-			APIKey: config[`api_key`],
-			Model:  useModel,
+			Corp:     `zhipu`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
+			Model:    useModel,
 		},
 		config: config,
 	}
@@ -360,8 +379,9 @@ func GetZhipuHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*
 func GetZhipuSupplierHandle(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error) {
 	handler := &SupplierHandler{
 		Meta: adaptor.Meta{
-			Corp:   `zhipu`,
-			APIKey: config[`api_key`],
+			Corp:     `zhipu`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
 		},
 		config: config,
 	}
@@ -371,9 +391,10 @@ func GetZhipuSupplierHandle(modelInfo ModelInfo, config msql.Params) (*SupplierH
 func GetOpenAIHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
-			Corp:   `openai`,
-			APIKey: config[`api_key`],
-			Model:  useModel,
+			Corp:     `openai`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
+			Model:    useModel,
 		},
 		config: config,
 	}
@@ -383,8 +404,9 @@ func GetOpenAIHandle(modelInfo ModelInfo, config msql.Params, useModel string) (
 func GetOpenAISupplierHandle(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error) {
 	handler := &SupplierHandler{
 		Meta: adaptor.Meta{
-			Corp:   `openai`,
-			APIKey: config[`api_key`],
+			Corp:     `openai`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
 		},
 		config: config,
 	}
@@ -422,6 +444,7 @@ func GetSparkHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:      `spark`,
+			EndPoint:  config[`api_endpoint`],
 			APIKey:    config[`api_key`],
 			SecretKey: config[`secret_key`],
 			APPID:     config[`app_id`],
@@ -436,6 +459,7 @@ func GetSparkSupplierHandle(modelInfo ModelInfo, config msql.Params) (*SupplierH
 	handler := &SupplierHandler{
 		Meta: adaptor.Meta{
 			Corp:      `spark`,
+			EndPoint:  config[`api_endpoint`],
 			APIKey:    config[`api_key`],
 			SecretKey: config[`secret_key`],
 			APPID:     config[`app_id`],
@@ -449,6 +473,7 @@ func GetHunyuanHandle(modelInfo ModelInfo, config msql.Params, useModel string) 
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:      `hunyuan`,
+			EndPoint:  config[`api_endpoint`],
 			APIKey:    config[`api_key`],
 			SecretKey: config[`secret_key`],
 			Region:    config[`region`],
@@ -463,6 +488,7 @@ func GetHunyuanSupplierHandle(modelInfo ModelInfo, config msql.Params) (*Supplie
 	handler := &SupplierHandler{
 		Meta: adaptor.Meta{
 			Corp:      `hunyuan`,
+			EndPoint:  config[`api_endpoint`],
 			APIKey:    config[`api_key`],
 			SecretKey: config[`secret_key`],
 			Region:    config[`region`],
@@ -476,6 +502,7 @@ func GetDoubaoHandle(modelInfo ModelInfo, config msql.Params, useModel string) (
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
 			Corp:              `doubao`,
+			EndPoint:          config[`api_endpoint`],
 			APIKey:            config[`api_key`],
 			SecretKey:         config[`secret_key`],
 			Region:            config[`region`],
@@ -491,6 +518,7 @@ func GetDoubaoSupplierHandle(modelInfo ModelInfo, config msql.Params) (*Supplier
 	handler := &SupplierHandler{
 		Meta: adaptor.Meta{
 			Corp:      `doubao`,
+			EndPoint:  config[`api_endpoint`],
 			APIKey:    config[`api_key`],
 			SecretKey: config[`secret_key`],
 			Region:    config[`region`],
@@ -503,9 +531,10 @@ func GetDoubaoSupplierHandle(modelInfo ModelInfo, config msql.Params) (*Supplier
 func GetMinimaxHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
-			Corp:   `minimax`,
-			APIKey: config[`api_key`],
-			Model:  useModel,
+			Corp:     `minimax`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
+			Model:    useModel,
 		},
 		config: config,
 	}
@@ -515,8 +544,9 @@ func GetMinimaxHandle(modelInfo ModelInfo, config msql.Params, useModel string) 
 func GetMinimaxSupplierHandle(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error) {
 	handler := &SupplierHandler{
 		Meta: adaptor.Meta{
-			Corp:   `minimax`,
-			APIKey: config[`api_key`],
+			Corp:     `minimax`,
+			EndPoint: config[`api_endpoint`],
+			APIKey:   config[`api_key`],
 		},
 		config: config,
 	}
@@ -524,9 +554,13 @@ func GetMinimaxSupplierHandle(modelInfo ModelInfo, config msql.Params) (*Supplie
 }
 
 func GetSiliconFlowHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
+	endpoint := config[`api_endpoint`]
+	if len(endpoint) == 0 {
+		endpoint = `https://api.siliconflow.cn`
+	}
 	handler := &ModelCallHandler{
 		Meta: adaptor.Meta{
-			EndPoint:          `https://api.siliconflow.cn`,
+			EndPoint:          endpoint,
 			Corp:              ModelSiliconFlow,
 			APIKey:            config[`api_key`],
 			APIVersion:        `v1`,
@@ -539,9 +573,13 @@ func GetSiliconFlowHandle(modelInfo ModelInfo, config msql.Params, useModel stri
 }
 
 func GetSiliconFlowSupplierHandle(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error) {
+	endpoint := config[`api_endpoint`]
+	if len(endpoint) == 0 {
+		endpoint = `https://api.siliconflow.cn`
+	}
 	handler := &SupplierHandler{
 		Meta: adaptor.Meta{
-			EndPoint:   `https://api.siliconflow.cn`,
+			EndPoint:   endpoint,
 			Corp:       ModelSiliconFlow,
 			APIKey:     config[`api_key`],
 			APIVersion: `v1`,
@@ -573,6 +611,34 @@ func Get302AiSupplierHandle(modelInfo ModelInfo, config msql.Params) (*SupplierH
 			APIKey:    config[`api_key`],
 			SecretKey: config[`secret_key`],
 			Region:    config[`region`],
+		},
+		config: config,
+	}
+	return handler, nil
+}
+
+func GetOpenRouterHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
+	handler := &ModelCallHandler{
+		Meta: adaptor.Meta{
+			EndPoint:          config[`api_endpoint`],
+			Corp:              `openrouter`,
+			APIKey:            config[`api_key`],
+			APIVersion:        `v1`,
+			Model:             useModel,
+			ChoosableThinking: tool.InArrayString(useModel, modelInfo.GetChoosableThinkingModels()),
+		},
+		config: config,
+	}
+	return handler, nil
+}
+
+func GetOpenRouterSupplierHandle(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error) {
+	handler := &SupplierHandler{
+		Meta: adaptor.Meta{
+			EndPoint:   config[`api_endpoint`],
+			Corp:       `openrouter`,
+			APIKey:     config[`api_key`],
+			APIVersion: `v1`,
 		},
 		config: config,
 	}

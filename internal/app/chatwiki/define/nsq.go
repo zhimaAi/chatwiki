@@ -40,5 +40,8 @@ const OfficialAccountCommentSyncChannel = `chatwiki_official_account_comment_syn
 const OfficialAccountCommentAiCheckTopic = `chatwiki_official_account_comment_ai_check_topic`
 const OfficialAccountCommentAiCheckChannel = `chatwiki_official_account_comment_ai_check_channel`
 
+const OfficialAccountHisArticleSyncTopic = `chatwiki_official_account_his_article_sync_topic`
+const OfficialAccountHisArticleSyncChannel = `chatwiki_official_account_his_article_sync_channel`
+
 var ConsumerHandle *mq.ConsumerHandle
 var ProducerHandle *mq.ProducerHandle

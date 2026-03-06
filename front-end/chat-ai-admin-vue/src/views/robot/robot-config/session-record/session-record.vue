@@ -62,6 +62,7 @@
           :robotInfo="robotInfo"
           :channelItem="channelItem"
           :sessionSource="sessionSource"
+          @openPromptLog="handleOpenPromptLog"
           @scrollStart="onScrollStart"
           @scrollEnd="onScrollEnd"
         />
@@ -79,6 +80,7 @@
         </template>
       </a-result>
     </a-modal>
+    <PromptLogAlert ref="promptLogAlertRef" />
   </div>
 </template>
 <script setup>
@@ -92,6 +94,7 @@ import MessageList from './components/message-list.vue'
 import { useRobotStore } from '@/stores/modules/robot'
 import { useChatStore } from '@/stores/modules/chat'
 import { createSessionExport } from '@/api/chat'
+import PromptLogAlert from '@/views/robot/robot-test/components/prompt-log-alert.vue'
 
 const { t } = useI18n('views.robot.robot-config.session-record.session-record')
 
@@ -306,6 +309,13 @@ const getRecordLists = async () => {
   userList.value = [...userList.value, ...list]
   isEmpty.value = userList.value.length == 0
   has_more.value = res.data.has_more
+}
+
+// 打开Prompt日志
+const promptLogAlertRef = ref(null)
+
+const handleOpenPromptLog = (item) => {
+  promptLogAlertRef.value.open(item)
 }
 
 watch(

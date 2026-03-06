@@ -62,7 +62,7 @@ func GetRobotGroupList(c *gin.Context) {
 	//check permission
 	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot}) {
 		managedRobotIdList := []string{`0`}
-		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeRobot)
+		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeRobot, common.GetLang(c))
 		for _, permission := range permissionData {
 			managedRobotIdList = append(managedRobotIdList, cast.ToString(permission[`object_id`]))
 		}

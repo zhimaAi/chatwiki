@@ -9,7 +9,7 @@ export default {
       name: 'aiExtractFAQList',
       component: () => import('../views/ai-extract-faq/list/index.vue'),
       meta: {
-        title: 'AI提取FAQ',
+        title: 'routes.basic.ai_extract_faq',
         activeMenu: 'library',
         bgColor: '#fff',
         hideTitle: true
@@ -20,7 +20,7 @@ export default {
       name: 'aiExtractFAQDetails',
       component: () => import('../views/ai-extract-faq/detail/index.vue'),
       meta: {
-        title: 'AI提取FAQ',
+        title: 'routes.basic.ai_extract_faq',
         activeMenu: 'library',
         isCustomPage: true
       }

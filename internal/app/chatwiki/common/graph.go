@@ -26,11 +26,15 @@ func NewGraphDB(adminUserId int) *GraphDB {
 
 // Execute executes Cypher query
 func (g *GraphDB) Execute(query string) (*neo4j.EagerResult, error) {
+	driver, err := define.GetNeo4jDriver()
+	if err != nil {
+		return nil, err
+	}
 	logs.Debug("execute neo4j query: %s", query)
 	ctx := context.Background()
 	result, err := neo4j.ExecuteQuery(
 		ctx,
-		define.Neo4jDriver,
+		driver,
 		query,
 		nil,
 		neo4j.EagerResultTransformer,

@@ -9,7 +9,7 @@ export default {
       name: 'robotList',
       component: () => import('../views/robot/robot-list/robot-list.vue'),
       meta: {
-        title: '机器人管理',
+        title: 'routes.basic.robot_manage',
         hideTitle: true,
         activeMenu: '/robot',
         bgColor: '#ffffff',
@@ -23,7 +23,7 @@ export default {
       name: 'robotDetails',
       component: () => import('../views/robot/robot-config/index.vue'),
       meta: {
-        title: '编辑机器人',
+        title: 'routes.basic.robot_edit',
         activeMenu: '/robot',
         isCustomPage: true
       },
@@ -34,7 +34,7 @@ export default {
           name: 'basicConfig',
           component: () => import('@/views/robot/robot-config/basic-config/index.vue'),
           meta: {
-            title: '编辑机器人',
+            title: 'routes.basic.robot_edit',
             isCustomPage: true,
             activeMenu: '/robot'
           }
@@ -44,7 +44,7 @@ export default {
           name: 'robotWorkflow',
           component: () => import('../views/workflow/index.vue'),
           meta: {
-            title: '工作流编排',
+            title: 'routes.basic.workflow_orchestration',
             isCustomPage: true,
           }
         },
@@ -53,7 +53,7 @@ export default {
           name: 'smartMenu',
           component: () => import('@/views/robot/robot-config/smart-menu/index.vue'),
           meta: {
-            title: '智能菜单',
+            title: 'routes.basic.smart_menu',
             isCustomPage: true
           }
         },
@@ -62,7 +62,7 @@ export default {
           name: 'smartMenuAddRule',
           component: () => import('@/views/robot/robot-config/smart-menu/add-rule.vue'),
           meta: {
-            title: '新增规则',
+            title: 'routes.basic.add_rule',
             isCustomPage: true
           }
         },
@@ -71,7 +71,7 @@ export default {
           name: 'appChargingGuide',
           component: () => import('@/views/robot/robot-config/payment/guide.vue'),
           meta: {
-            title: '应用收费',
+            title: 'routes.basic.app_charging',
             isCustomPage: true
           }
         },
@@ -80,7 +80,7 @@ export default {
           name: 'appChargingIndex',
           component: () => import('@/views/robot/robot-config/payment/index.vue'),
           meta: {
-            title: '应用收费',
+            title: 'routes.basic.app_charging',
             isCustomPage: true
           }
         },
@@ -89,7 +89,7 @@ export default {
           name: 'functionCenter',
           component: () => import('@/views/robot/robot-config/function-center/index.vue'),
           meta: {
-            title: '功能中心',
+            title: 'routes.basic.function_center',
             isCustomPage: true
           }
         },
@@ -98,7 +98,7 @@ export default {
           name: 'externalServices',
           component: () => import('@/views/robot/robot-config/external-service/index.vue'),
           meta: {
-            title: '对外服务',
+            title: 'routes.basic.external_services',
             isCustomPage: true
           }
         },
@@ -107,7 +107,7 @@ export default {
           name: 'autoReply',
           component: () => import('@/views/robot/robot-config/auto-reply/index.vue'),
           meta: {
-            title: '关键词回复',
+            title: 'routes.basic.keyword_reply',
             isCustomPage: true
           }
         },
@@ -116,7 +116,7 @@ export default {
           name: 'addRule',
           component: () => import('@/views/robot/robot-config/auto-reply/add-rule.vue'),
           meta: {
-            title: '新增规则',
+            title: 'routes.basic.add_rule',
             isCustomPage: true
           }
         },
@@ -125,7 +125,7 @@ export default {
           name: 'addReply',
           component: () => import('@/views/robot/robot-config/auto-reply/add-reply.vue'),
           meta: {
-            title: '新增回复',
+            title: 'routes.basic.add_reply',
             isCustomPage: true
           }
         },
@@ -134,7 +134,7 @@ export default {
           name: 'libraryConfig',
           component: () => import('@/views/robot/robot-config/library-config/index.vue'),
           meta: {
-            title: '知识库',
+            title: 'routes.basic.knowledge_base',
             isCustomPage: true
           }
         },
@@ -143,7 +143,7 @@ export default {
           name: 'skillConfig',
           component: () => import('@/views/robot/robot-config/skill-config/index.vue'),
           meta: {
-            title: '工作流',
+            title: 'routes.basic.workflow',
             isCustomPage: true
           }
         },
@@ -152,7 +152,7 @@ export default {
           name: 'apiKeyManage',
           component: () => import('@/views/robot/api-key-manage/index.vue'),
           meta: {
-            title: 'API key管理',
+            title: 'routes.basic.api_key_manage',
             isCustomPage: true
           }
         },
@@ -161,7 +161,7 @@ export default {
           name: 'qaFeedbacks',
           component: () => import('@/views/robot/robot-config/qa-feedback/index.vue'),
           meta: {
-            title: '问答反馈',
+            title: 'routes.basic.qa_feedback',
             isCustomPage: true
           }
         },
@@ -170,7 +170,7 @@ export default {
           name: 'sessionRecord',
           component: () => import('@/views/robot/robot-config/session-record/index.vue'),
           meta: {
-            title: '会话记录',
+            title: 'routes.basic.session_record',
             isCustomPage: true
           }
         },
@@ -179,7 +179,7 @@ export default {
           name: 'exportRecord',
           component: () => import('@/views/robot/robot-config/export-record/index.vue'),
           meta: {
-            title: '导出记录',
+            title: 'routes.basic.export_record',
             isCustomPage: true
           }
         },
@@ -188,7 +188,7 @@ export default {
           name: 'invokeLogs',
           component: () => import('@/views/robot/robot-config/invoke-logs/index.vue'),
           meta: {
-            title: '调用日志',
+            title: 'routes.basic.invoke_logs',
             isCustomPage: true
           }
         },
@@ -197,7 +197,7 @@ export default {
           name: 'unknownIssue',
           component: () => import('@/views/robot/robot-config/unknown_issue/unknow-index.vue'),
           meta: {
-            title: '未知问题',
+            title: 'routes.basic.unknown_issue',
             isCustomPage: true
           }
         },
@@ -206,7 +206,7 @@ export default {
           name: 'statisticalAnalysis',
           component: () => import('@/views/robot/robot-config/statistical_analysis/index.vue'),
           meta: {
-            title: '统计分析',
+            title: 'routes.basic.statistical_analysis',
             isCustomPage: true
           }
         },
@@ -217,7 +217,7 @@ export default {
       name: 'robotTest',
       component: () => import('../views/robot/robot-test/index.vue'),
       meta: {
-        title: '机器人管理',
+        title: 'routes.basic.robot_manage',
         hideTitle: true,
         activeMenu: '/robot',
         bgColor: '#F5F9FF',

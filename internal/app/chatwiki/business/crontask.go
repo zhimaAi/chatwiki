@@ -272,9 +272,12 @@ func UpdateBatchSendData() {
 		}
 	}
 
+	//base send time 10 days ago
+	baseTime := int(time.Now().Unix()) - 864000
+
 	// fetch successfully sent tasks, continue refreshing comments
 	succList, err := msql.Model("wechat_official_account_batch_send_task", define.Postgres).
-		Where(`send_status`, cast.ToString(define.BatchSendStatusSucc)).Where(`comment_status`, define.BaseOpen).Select()
+		Where(`send_status`, cast.ToString(define.BatchSendStatusSucc)).Where(`send_time`, `>`, cast.ToString(baseTime)).Select()
 	if err != nil {
 		logs.Error(`task list query error:` + err.Error())
 		return
@@ -309,6 +312,47 @@ func UpdateBatchSendData() {
 			AdminUserId:   cast.ToInt(task["admin_user_id"]),
 			TaskId:        cast.ToInt(task["id"]),
 		}, delayTime)
+
+	}
+
+	// auto sync his article task
+	syncTask, err := msql.Model(`wechat_official_article_sync_task`, define.Postgres).Where("auto_sync_switch", "1").Select()
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+
+	for _, item := range syncTask {
+		time_Str := time.Now().Format("2006-01-02") + " " + item[`sync_time`]
+
+		t, _ := time.ParseInLocation("2006-01-02 15:04", time_Str, time.Local)
+
+		if t.Unix() > time.Now().Unix() {
+			continue
+		}
+
+		if cast.ToInt(item[`last_sync_time`]) >= 0 && cast.ToInt64(item[`last_sync_time`]) > t.Unix() {
+			continue
+		}
+
+		message, _ := tool.JsonEncode(msql.Datas{
+			"create_time":               time.Now().Unix(),
+			"update_time":               time.Now().Unix(),
+			"admin_user_id":             item["admin_user_id"],
+			"app_id":                    item["app_id"],
+			"sync_type":                 define.SyncOfficialHistoryTypeOneMonth,
+			"sync_comment_switch":       1,
+			"ai_comment_switch":         item["ai_comment_switch"],
+			"replay_his_comment_switch": define.ReplayHisCommentSwitch1,
+		})
+
+		err = common.AddJobs(define.OfficialAccountHisArticleSyncTopic, message)
+
+		if err != nil {
+			logs.Error(`add sync article task error:` + err.Error())
+		}
+
+		msql.Model(`wechat_official_article_sync_task`, define.Postgres).Where("id", item["id"]).Update(msql.Datas{`last_sync_time`: time.Now().Unix()})
 
 	}
 

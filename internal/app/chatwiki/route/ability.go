@@ -71,6 +71,9 @@ func RegAbilityRoute() {
 	Route[http.MethodPost][`/manage/officialAccount/setBatchSendTaskOpenStatus`] = manage.SetBatchSendTaskOpenStatus
 	Route[http.MethodPost][`/manage/officialAccount/changeBatchTaskCommentRule`] = manage.ChangeBatchTaskCommentRule
 	Route[http.MethodPost][`/manage/officialAccount/changeBatchTaskCommentRuleStatus`] = manage.ChangeBatchTaskCommentRuleStatus
+	Route[http.MethodPost][`/manage/officialAccount/SyncHisArticle`] = manage.SyncHisArticle
+	Route[http.MethodPost][`/manage/officialAccount/SyncHisArticleTask`] = manage.SyncHisArticleTask
+	Route[http.MethodGet][`/manage/officialAccount/GetSyncHisArticleTask`] = manage.GetSyncHisArticleTask
 
 	/* official account comment check API */
 	Route[http.MethodPost][`/manage/officialAccount/changeCommentStatus`] = manage.ChangeCommentStatus

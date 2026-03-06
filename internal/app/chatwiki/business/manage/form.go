@@ -64,7 +64,7 @@ func GetFormList(c *gin.Context) {
 	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot}) {
 		// managedFormIdList := GetUserManagedData(userId, `managed_form_list`)
 		managedFormIdList := []string{`0`}
-		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeForm)
+		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeForm, common.GetLang(c))
 		for _, permission := range permissionData {
 			managedFormIdList = append(managedFormIdList, cast.ToString(permission[`object_id`]))
 		}
@@ -121,7 +121,7 @@ func GetFormInfo(c *gin.Context) {
 	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot}) {
 		// managedFormIdList := GetUserManagedData(userId, `managed_form_list`)
 		managedFormIdList := []string{}
-		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeForm)
+		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeForm, common.GetLang(c))
 		for _, permission := range permissionData {
 			managedFormIdList = append(managedFormIdList, cast.ToString(permission[`object_id`]))
 		}

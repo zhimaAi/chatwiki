@@ -8,6 +8,8 @@ import (
 	"context"
 	"fmt"
 	"math"
+	netURL "net/url"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -844,6 +846,143 @@ EndExtract:
 	return nil
 }
 
+func OfficialAccountHisArticleSync(msg string, _ ...string) error {
+	data := make(map[string]any)
+	if err := tool.JsonDecode(msg, &data); err != nil {
+		logs.Error(`parsing failure:%s/%s`, msg, err.Error())
+		return err
+	}
+
+	// verify admin_user_id and app_id to get secret
+	appInfo, err := common.GetWechatAppInfo(`app_id`, cast.ToString(data["app_id"]))
+	if err != nil {
+		logs.Error(`failed to get wechat app info:` + err.Error())
+		return err
+	}
+
+	app, err := wechat.GetApplication(msql.Params{`app_type`: lib_define.AppOfficeAccount, `app_id`: appInfo[`app_id`], `app_secret`: appInfo[`app_secret`]})
+	if err != nil {
+		logs.Error(`failed to get wechat app info:` + err.Error())
+		return err
+	}
+
+	officialApp, ok := app.(wechat.OfficialAccountInterface)
+	if !ok {
+		logs.Error(`failed to get wechat app`)
+		return err
+	}
+
+	var startTime int64
+	now := time.Now()
+
+	switch cast.ToInt(data[`sync_type`]) {
+	case define.SyncOfficialHistoryTypeOneMonth:
+		startTime = now.AddDate(0, -1, 0).Unix()
+	case define.SyncOfficialHistoryTypeThreeMonth:
+		startTime = now.AddDate(0, -3, 0).Unix()
+	case define.SyncOfficialHistoryTypeHalfYear:
+		startTime = now.AddDate(0, -6, 0).Unix()
+	case define.SyncOfficialHistoryTypeOneYear:
+		startTime = now.AddDate(-1, 0, 0).Unix()
+	default:
+		startTime = now.AddDate(0, -3, 0).Unix() // Default one year
+	}
+
+	comment_rule_id := 0
+	ruleInfo, _ := msql.Model(`wechat_official_account_comment_rule`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(appInfo[`admin_user_id`])).Where(`is_default`, "1").Find()
+	if cast.ToInt(ruleInfo["id"]) > 0 {
+		comment_rule_id = cast.ToInt(ruleInfo["id"])
+	}
+
+	offset := 0
+	count := 20
+
+	m := msql.Model(`wechat_official_account_batch_send_task`, define.Postgres)
+
+	returnDir := filepath.Join(fmt.Sprintf(`%s/upload/chat_ai/%s/%s/%s`, filepath.Dir(define.AppRoot), appInfo[`admin_user_id`], `library_file`, tool.Date(`Ym`)))
+	thumbFolderPath := filepath.Join(fmt.Sprintf(`/upload/chat_ai/%s/%s/%s/`, appInfo[`admin_user_id`], `library_file`, tool.Date(`Ym`)))
+
+	for {
+		resp, err := officialApp.GetPublishedMessageList(offset, count, 1)
+		if err != nil {
+			logs.Error(err.Error())
+			return err
+		}
+		if len(resp.Item) == 0 {
+			logs.Info(`no official account message content obtained, skip`)
+			break
+		}
+		// Process current batch data
+		for _, item := range resp.Item {
+			// Only process messages within specified time range
+			if startTime > 0 && item.UpdateTime < startTime {
+				continue // Skip messages earlier than start time
+			}
+
+			newsItem := item.Content.NewsItem[0]
+
+			parsedURL, _ := netURL.Parse(newsItem.Url)
+
+			dbData, err := m.Where("admin_user_id", appInfo[`admin_user_id`]).Where("app_id", appInfo["app_id"]).Where("msg_data_id", parsedURL.Query().Get(`mid`)).Find()
+			if err == nil && len(dbData) > 0 {
+				continue
+			}
+
+			ThumbPath, err := officialApp.GetMaterial(newsItem.ThumbMediaId, returnDir, thumbFolderPath) // Get cover image
+
+			insertData := msql.Datas{
+				"admin_user_id":     appInfo[`admin_user_id`],
+				"app_id":            appInfo["app_id"],
+				"msg_data_id":       parsedURL.Query().Get(`mid`),
+				"create_time":       item.UpdateTime,
+				"update_time":       item.UpdateTime,
+				"send_time":         item.UpdateTime,
+				"comment_status":    newsItem.NeedOpenComment,
+				"comment_rule_id":   comment_rule_id,
+				"ai_comment_status": 1,
+				"open_status":       1,
+				"send_status":       2,
+				"access_key":        appInfo["access_key"],
+				"task_name":         newsItem.Title,
+				"task_thumb_url":    ThumbPath,
+				"task_digest":       newsItem.Digest,
+			}
+
+			m.Insert(insertData)
+
+			if cast.ToInt(data[`sync_comment_switch`]) == 0 {
+				continue
+			}
+
+			dbData, err = m.Where("admin_user_id", appInfo[`admin_user_id`]).Where("app_id", appInfo["app_id"]).Where("msg_data_id", parsedURL.Query().Get(`mid`)).Find()
+
+			//sync comment
+			taskInfo := define.DelayTaskEvent{
+				AdminUserId: cast.ToInt(appInfo[`admin_user_id`]),
+				TaskId:      cast.ToInt(dbData[`id`]),
+				BaseDelayTask: define.BaseDelayTask{
+					Type: define.OfficialAccountBatchSendSyncCommentTask,
+				},
+				ReplayHisCommentSwitch: cast.ToInt(data["replay_his_comment_switch"]),
+			}
+
+			if err := common.AddJobs(define.OfficialAccountCommentSyncTopic, tool.JsonEncodeNoError(taskInfo)); err != nil {
+				logs.Error(`nsq production error, fallback to sync logic:%s`, err.Error())
+				_ = OfficialAccountCommentSync(tool.JsonEncodeNoError(taskInfo))
+			}
+
+		}
+		if len(resp.Item) < count {
+			break
+		}
+		offset += count
+	}
+
+	return nil
+
+}
+
 func OfficialAccountDraftSync(msg string, _ ...string) error {
 	logs.Debug(`nsq:%s`, msg)
 
@@ -941,7 +1080,7 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 
 	// query task details
 	taskData, err := msql.Model(`wechat_official_account_batch_send_task`, define.Postgres).Alias("a").
-		Join("wechat_official_account_draft b", "a.draft_id = b.id ", "inner").
+		Join("wechat_official_account_draft b", "a.draft_id = b.id ", "left").
 		Join("chat_ai_wechat_app c", "a.access_key = c.access_key and a.admin_user_id = c.admin_user_id ", "inner").
 		Where(`a.id`, cast.ToString(taskInfo.TaskId)).Where(`a.admin_user_id`, cast.ToString(taskInfo.AdminUserId)).
 		Field(`a.*,b.media_id,c.app_id,c.app_secret`).Find()
@@ -964,6 +1103,7 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 	maxCommentId := cast.ToInt(taskData["max_comment_id"])
 	newMaxCommentId := cast.ToInt(taskData["max_comment_id"])
 	returnSync := false
+	comment_count := 0
 
 	for true {
 		params := &object.HashMap{
@@ -978,6 +1118,8 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 		if len(respData.Comment) == 0 {
 			break
 		}
+
+		comment_count = respData.CommentCnt
 
 		beginIndex += pageSize
 
@@ -1007,10 +1149,11 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 				"open_id":             comment.Openid,
 				"reply_comment_text":  comment.Reply.Content,
 				"reply_create_time":   comment.Reply.CreateTime,
+				"ai_comment_result":   "[]",
 			}
 
 			//if no text content, default to AI selection
-			if updateData["content_text"] == "" {
+			if updateData["content_text"] == "" || taskInfo.ReplayHisCommentSwitch == define.ReplayHisCommentSwitch2 {
 				updateData["ai_comment_rule_status"] = 1
 			}
 
@@ -1045,11 +1188,16 @@ func OfficialAccountCommentSync(msg string, _ ...string) error {
 		`update_time`:            time.Now().Unix(),
 		`last_comment_sync_time`: time.Now().Unix(),
 		`max_comment_id`:         newMaxCommentId,
+		`common_total`:           comment_count,
 	})
 
 	//if auto selection not enabled, exit
 	if cast.ToInt(taskData["ai_comment_status"]) == 0 || !common.CheckUseAbilityByAbilityType(taskInfo.AdminUserId, common.OfficialAccountAbilityAIComment) {
 		logs.Debug(`rule or account does not enable AI comment selection`)
+		return nil
+	}
+
+	if taskInfo.ReplayHisCommentSwitch == define.ReplayHisCommentSwitch2 {
 		return nil
 	}
 

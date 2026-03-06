@@ -8,7 +8,7 @@ export default {
       name: 'guideIndex',
       component: () => import('../views/guide/index.vue'),
       meta: {
-        title: '新手指引',
+        title: 'routes.basic.beginner_guide',
         hideTitle: true,
         activeMenu: 'guide',
         bgColor: '#F2F4F7',

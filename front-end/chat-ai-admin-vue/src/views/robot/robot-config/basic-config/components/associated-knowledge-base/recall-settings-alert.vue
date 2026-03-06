@@ -153,7 +153,6 @@
                 <div class="retrieval-mode-title">
                   <svg-icon :name="item.iconName" class="title-icon"></svg-icon>
                   <span class="title-text">{{ t(item.title) }}</span>
-                  <!-- <img v-if="item.isRecommendation" style="width: 32px;" src="@/assets/svg/recommendation.svg" alt=""> -->
                    <SvgTextTag :text="tCommon('recommendation')" v-if="item.isRecommendation" />
                 </div>
 
@@ -226,7 +225,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="form-item">
           <div class="form-item-label">
             <span class="setting-title">{{ t('label_recall_neighbor_segments') }}&nbsp;</span>
@@ -243,9 +242,8 @@
               <QuestionCircleOutlined class="question-icon" />
             </a-tooltip>
             &nbsp;
-            <!-- <a-switch v-model:checked="formState.recall_neighbor_switch" /> -->
           </div>
-          
+
           <div class="form-item-body">
             <div class="segment-controls">
               <div class="segment-input">
@@ -314,6 +312,7 @@
               v-model:type="formState.meta_search_type"
               ref="metaFilterRef"
               class="meta-box"
+              :variable-options="variableOptions"
               :meta-data="metaList"/>
           </div>
         </div>
@@ -332,6 +331,8 @@ import { message } from 'ant-design-vue'
 import {getRobotMetaSchemaList} from "@/api/library/index.js";
 import MetaFilterBox from "@/views/robot/robot-config/basic-config/components/meta-filter-box.vue";
 import SvgTextTag from '@/components/icons/SvgTextTag.vue'
+import {getChatVariables} from "@/api/robot/index.js";
+import dayjs from 'dayjs'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.associated-knowledge-base.recall-settings-alert')
 const { t: tCommon } = useI18n('common')
@@ -385,11 +386,12 @@ const metaFilterRef = ref(null)
 const show = ref(false)
 const robotInfo = ref({})
 const metaList = ref([])
+const variableOptions = ref([])
 
 const open = (data, r=null) => {
-  console.log('data', data)
   robotInfo.value = r
   getMetaList()
+  getChatVars()
   formState.rerank_status = data.rerank_status || 0
   formState.rerank_use_model = data.rerank_use_model || undefined
   formState.rerank_model_config_id = data.rerank_model_config_id > 0 ? data.rerank_model_config_id : ''
@@ -412,6 +414,48 @@ const open = (data, r=null) => {
 const getMetaList = () => {
   getRobotMetaSchemaList({id: robotInfo.value.id}).then(res => {
     metaList.value = res?.data || []
+  })
+}
+
+const getChatVars = () => {
+  getChatVariables({
+    robot_key: robotInfo.value.robot_key
+  }).then(res => {
+    const typeMap = {
+      input_string: 'string',
+      input_number: 'number',
+      input_array: 'array<object>'
+    }
+    const now = dayjs().unix()
+    let _vars = res?.data || []
+    if (_vars.length > 0) {
+      variableOptions.value = [
+        {
+          label: t('label_robot_variables'),
+          value: 'chat_variable',
+          node_id: now,
+          node_type: '1',
+          typ: 'node',
+          loop_parent_key: '',
+          children: _vars.map(item => {
+            const key = item.variable_key
+            return {
+              label: item.variable_name,
+              value: `【chat_variable:${key}】`,
+              original_value: `chat_variable:${key}`,
+              node_id: now,
+              node_name: t('label_robot_variables'),
+              node_type: '1',
+              text: item.variable_name,
+              key: key,
+              id: now,
+              typ: typeMap[item.variable_type] || 'string',
+              children: []
+            }
+          })
+        }
+      ]
+    }
   })
 }
 

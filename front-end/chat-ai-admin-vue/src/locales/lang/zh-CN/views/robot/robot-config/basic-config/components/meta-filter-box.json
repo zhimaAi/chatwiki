@@ -3,6 +3,7 @@
   "label_or": "或",
   "ph_select": "请选择",
   "ph_input": "请输入",
+  "ph_input_content": "请输入内容，键入\"/\"可以插入变量",
   "btn_add_condition": "添加条件",
   "op_is": "是",
   "op_is_not": "不是",
@@ -18,5 +19,6 @@
   "msg_select_filter_metadata": "请选择过滤元数据",
   "msg_select_filter_operator": "请选择过滤操作符",
   "msg_select_filter_metadata_value": "请选择过滤元数据值",
-  "msg_complete_at_least_one_filter_rule": "请完善至少一条过滤规则"
+  "msg_complete_at_least_one_filter_rule": "请完善至少一条过滤规则",
+  "ph_input_value": "请输入变量值，键入“/”插入变量"
 }

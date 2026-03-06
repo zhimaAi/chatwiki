@@ -169,8 +169,6 @@ services:
         condition: service_started
       chatwiki_websocket:
         condition: service_started
-      chatwiki_neo4j:
-        condition: service_healthy
     environment:
       TZ: ${TIMEZONE}
       HTTP_PROXY: ${PROXY:-}

@@ -137,6 +137,20 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/03/06**
+
+1. Multimodal content display compatibility in conversation records<br/>
+2. [STD] International registration flow, supporting Google and email registration<br/>
+3. WeChat Official Account articles - manual sync and auto sync<br/>
+4. Conversation logs: Add prompt logs to conversations<br/>
+5. [STD] Add universal invitation code, to be shared in community groups<br/>
+6. Support merging adjacent segments when editing segments in regular knowledge base<br/>
+7. Model management: Support for OpenRouter model integration<br/>
+8. Core service startup optimization: Remove Neo4j dependency restriction<br/>
+9. Support modifying API domain in add/edit model dialog<br/>
+10. Open API: Add knowledge base recall endpoint<br/>
+11. Bot/Workflow knowledge base recall metadata filtering supports referencing variables<br/>
+
 **2026/02/28**
 
 1. Regular Knowledge Base: Add segment content annotation<br/>
@@ -172,31 +186,6 @@ For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLo
 9. Workflow: Automatically locates the error card when testing/publishing validation fails.<br/>
 10. Trigger count: Statistics module filters out deleted content.<br/>
 11. Workflow: Code node now supports running Python code.<br/>
-
-**2026/01/30**
-
-1. Workflow: Variable notes are displayed in process start/run test/logs.<br/>
-2. Documentation/Search menus are closed by default.<br/>
-3. [STD] Added recycle bin for QA knowledge bases.<br/>
-4. Feishu multi-dimensional table - Add data/Update record nodes support passing variables.<br/>
-5. [STD] Knowledge base recycle bin supports batch delete/restore.<br/>
-6. Knowledge base: Added unknown question statistics, supports viewing details.<br/>
-7. External services: WebApp and website support starting new conversations.<br/>
-8. When exporting CSL and uploading templates, plugin authentication fields are cleared.<br/>
-9. Workflow: Added HTTP tool node.<br/>
-10. Fixed error caused by duplicate unique key when initializing triggers.<br/>
-11. [STD] Fixed sorting field error in robot list.<br/>
-12. Workflow LLM capability node supports setting prompt character roles.<br/>
-13. Workflow: Added QA node, supports responding to user queries.<br/>
-14. Knowledge base supports switching to folder view.<br/>
-15. [STD] Custom models support Gemini, GPT, Claude.<br/>
-16. Application: Chatbot/Workflow supports retrieving adjacent segments.<br/>
-17. Frontend page optimization: View invitation code, supports one-click copy.<br/>
-18. Fixed issue where bot replies still occurred after disassociating an official account from a bot.<br/>
-19. Session list needs to support filtering by customer's entry time for consultation.<br/>
-20. Image models - Support Tongyi Qianwen/Wanxiang.<br/>
-21. Automatically add version number when image loading fails.<br/>
-22. [STD] Commercial version: Bot quantity adjusted from 20 to 100.<br/>
 
 ## License
 

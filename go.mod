@@ -18,7 +18,7 @@ require (
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.12
 	github.com/alibabacloud-go/dingtalk v1.6.96
 	github.com/alibabacloud-go/docmind-api-20220711 v1.4.5
-	github.com/alibabacloud-go/tea v1.3.12
+	github.com/alibabacloud-go/tea v1.4.0
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.7
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 	github.com/aliyun/credentials-go v1.4.6
@@ -64,7 +64,7 @@ require (
 	github.com/xuri/excelize/v2 v2.9.1
 	github.com/yuin/goldmark v1.7.12
 	github.com/zhimaAi/go_tools v0.0.0-20250925081513-2ba58ff32b01
-	github.com/zhimaAi/llm_adaptor v0.0.0-20260228022055-33f3fe405a9e
+	github.com/zhimaAi/llm_adaptor v0.0.0-20260304101206-b80cd47e1d5e
 	github.com/zhimaAi/pdf v0.0.0-20240423033113-08880067bc13
 	gitlab.com/golang-commonmark/markdown v0.0.0-20211110145824-bf3e522c626a
 	go.uber.org/zap v1.27.0

@@ -1,0 +1,17 @@
+{
+  "title_sync_history_articles": "Sync History Articles",
+  "label_history_publish_time": "History Publish Time",
+  "within_one_year": "Within One Year",
+  "within_half_year": "Within Half Year",
+  "within_three_months": "Within Three Months",
+  "within_one_month": "Within One Month",
+  "label_sync_comments": "Sync Comments",
+  "sync_comment_data": "Sync Comment Data",
+  "label_ai_comment": "AI Comment",
+  "auto_enable": "Auto Enable",
+  "msg_ai_comment_tip": "After enabling AI comments, AI will automatically handle new comments on synced articles",
+  "label_history_comment_handling": "History Comment Handling",
+  "yes": "Yes",
+  "no": "No",
+  "msg_sync_success": "Sync successfully"
+}

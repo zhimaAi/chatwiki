@@ -202,6 +202,7 @@ func init() {
 	Route[http.MethodGet][`/manage/getSimilarQuestions`] = manage.GetSimilarQuestions
 	Route[http.MethodPost][`/manage/mergeQAParagraph`] = manage.MergeQAParagraph
 	Route[http.MethodPost][`/manage/saveCategory`] = manage.SaveCategory
+	Route[http.MethodPost][`/manage/mergeParagraph`] = manage.MergeParagraph
 
 	/*form API*/
 	Route[http.MethodGet][`/manage/getFormList`] = manage.GetFormList
@@ -323,6 +324,7 @@ func init() {
 	noAuthFuns(Route[http.MethodGet], `/open/getSeparatorsList`, business.OpenGetSeparatorsList)
 	noAuthFuns(Route[http.MethodPost], `/open/workflow/webhook/:robot_key/:find_key`, business.OpenWorkFlowWebHook)
 	noAuthFuns(Route[http.MethodGet], `/open/workflow/webhook/:robot_key/:find_key`, business.OpenWorkFlowWebHook)
+	noAuthFuns(Route[http.MethodPost], `/open/library/openLibraryRecall`, business.OpenLibraryRecall)
 	//register client side route
 	RegClientSideRoute()
 	/*session API*/

@@ -466,6 +466,30 @@ export const getOfficialDraftList = (params = {}) => {
   })
 }
 
+// 手动同步历史文章
+export const syncHisArticle = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/SyncHisArticle',
+    data: data
+  })
+}
+
+// 获取自动同步规则
+export const getSyncHisArticleTask = (params = {}) => {
+  return request.get({
+    url: '/manage/officialAccount/GetSyncHisArticleTask',
+    params: params
+  })
+}
+
+// 保存自动同步规则
+export const saveSyncHisArticleTask = (data = {}) => {
+  return request.post({
+    url: '/manage/officialAccount/SyncHisArticleTask',
+    data: data
+  })
+}
+
 // 创建群发任务
 export const createBatchSendTask = (data = {}) => {
   return request.post({
