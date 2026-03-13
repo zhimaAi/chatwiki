@@ -46,6 +46,16 @@ const routes = [
     }
   },
   {
+    path: '/chatclaw/login',
+    name: 'ChatClawLogin',
+    component: () => import('../views/chatclaw/login.vue'),
+    meta: {
+      title: 'ChatClaw 登录',
+      noCache: true,
+      hidden: true
+    }
+  },
+  {
     path: '/privacy_policy',
     name: 'PrivacyPolicy',
     component: () => import('../views/privacy-policy/index.vue'),

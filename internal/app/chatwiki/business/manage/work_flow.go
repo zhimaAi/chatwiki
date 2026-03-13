@@ -536,10 +536,10 @@ func verifyTriggerCronConfig(cronConfig work_flow.TriggerCronConfig, lang string
 		if len(strings.Split(cronConfig.HourMinute, `:`)) != 2 {
 			return errors.New(i18n.Show(lang, `param_err`, `trigger_cron_config`))
 		}
-		if cronConfig.EveryType == work_flow.EveryTypeWeek && tool.InArrayString(cronConfig.WeekNumber, []string{`0`, `1`, `2`, `3`, `4`, `5`, `6`}) {
+		if cronConfig.EveryType == work_flow.EveryTypeWeek && !tool.InArrayString(cronConfig.WeekNumber, []string{`0`, `1`, `2`, `3`, `4`, `5`, `6`}) {
 			return errors.New(i18n.Show(lang, `param_err`, `trigger_cron_config`))
 		}
-		if cronConfig.EveryType == work_flow.EveryTypeMonth && tool.InArrayString(cronConfig.MonthDay, []string{`1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`, `11`, `12`, `13`, `14`, `15`, `16`, `17`, `18`, `19`, `20`, `21`, `22`, `23`, `24`, `25`, `26`, `27`, `28`, `29`, `30`, `31`}) {
+		if cronConfig.EveryType == work_flow.EveryTypeMonth && !tool.InArrayString(cronConfig.MonthDay, []string{`1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `10`, `11`, `12`, `13`, `14`, `15`, `16`, `17`, `18`, `19`, `20`, `21`, `22`, `23`, `24`, `25`, `26`, `27`, `28`, `29`, `30`, `31`}) {
 			return errors.New(i18n.Show(lang, `param_err`, `trigger_cron_config`))
 		}
 	} else if cronConfig.Type == work_flow.CronTypeCrontab {

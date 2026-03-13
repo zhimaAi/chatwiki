@@ -79,9 +79,12 @@
 
 <template>
   <a-modal width="746px" v-model:open="show" :title="t('title_add_skill')" @ok="saveCheckedList">
+    <a-flex justify="end">
+      <a-button @click="handleOpenRobotModal" type="primary">{{ t('add_workflow') }}</a-button>
+    </a-flex>
     <div class="library-checkbox-box">
       <a-spin :spinning="isRefresh" :delay="100">
-        <a-checkbox-group v-model:value="state.checkedList" style="width: 100%">
+        <a-checkbox-group v-model:value="state.checkedList" style="width: 100%" v-if="options.length > 0">
           <div class="list-box" ref="scrollContainer">
             <div class="list-item-wraapper" v-for="item in options" :key="item.id">
               <a-checkbox class="list-item"  :value="item.id">
@@ -98,6 +101,7 @@
         <div>{{ t('msg_no_data_add_workflow') }}</div>
       </div>
     </div>
+    <AddRobotAlert ref="addRobotAlertRef" @addRobot="getList" />
   </a-modal>
 </template>
 
@@ -107,6 +111,7 @@ import { message } from 'ant-design-vue'
 import { SearchOutlined, SyncOutlined } from '@ant-design/icons-vue'
 import { getRobotList } from '@/api/robot/index'
 import { useI18n } from '@/hooks/web/useI18n'
+import AddRobotAlert from '@/views/robot/robot-list/components/add-robot-alert.vue'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.skill.robot-select-alert')
 
@@ -153,6 +158,10 @@ const getList = async () => {
 }
 
 const isRefresh = ref(false)
+const addRobotAlertRef = ref(null)
+const handleOpenRobotModal = () => {
+  addRobotAlertRef.value.open(1)
+}
 
 defineExpose({
   open

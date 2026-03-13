@@ -50,8 +50,22 @@
               <div class="list-label">{{ t('label_answer') }}</div>
               <div class="list-content" v-html="textToHighlight(record.answer, props.search)"></div>
             </div>
-            <div class="fragment-img" v-viewer>
-              <img v-for="(item, index) in record.images" :key="index" :src="item" alt="" />
+            <div class="fragment-img">
+              <div class="media-item" v-for="(item, index) in (record.images || [])" :key="index">
+                <div
+                  v-if="isVideoUrl(item)"
+                  class="video-item"
+                  @click.stop="handlePreviewVideo(item)"
+                >
+                  <video :src="item" muted preload="metadata"></video>
+                  <div class="video-play-mask">
+                    <CaretRightOutlined />
+                  </div>
+                </div>
+                <div v-else class="image-item" v-viewer>
+                  <img :src="item" alt="" />
+                </div>
+              </div>
             </div>
           </div>
         </template>
@@ -117,9 +131,10 @@
       </a-table-column>
     </a-table>
   </div>
+  <VideoPreviewModal ref="videoPreviewModalRef" />
 </template>
 <script setup>
-import { reactive, computed, createVNode } from 'vue'
+import { reactive, computed, createVNode, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   ExclamationCircleOutlined,
@@ -127,10 +142,12 @@ import {
   EditOutlined,
   DeleteOutlined,
   StarOutlined,
-  StarFilled
+  StarFilled,
+  CaretRightOutlined
 } from '@ant-design/icons-vue'
 import { Modal } from 'ant-design-vue'
 import colorLists from '@/utils/starColors.js'
+import VideoPreviewModal from '@/components/upload-img/video-preview-modal.vue'
 import {
   deleteParagraph,
   editParagraph,
@@ -174,6 +191,7 @@ const metaData = computed(() => {
 const state = reactive({
   selectedRowKeys: []
 })
+const videoPreviewModalRef = ref(null)
 const onSelectChange = (selectedRowKeys) => {
   state.selectedRowKeys = selectedRowKeys
 }
@@ -229,6 +247,15 @@ const tableChange = (a, b, sort) => {
     sort_field,
     sort_type
   })
+}
+
+const isVideoUrl = (url) => {
+  if (!url || typeof url !== 'string') return false
+  return /\.mp4(\?|#|$)/i.test(url) || /library_video/i.test(url) || /\/video\//i.test(url)
+}
+
+const handlePreviewVideo = (url) => {
+  videoPreviewModalRef.value?.show(url)
 }
 
 function textToHighlight(fullText, highlightText, options = {}) {
@@ -323,11 +350,44 @@ defineExpose({ handleOpenEditModal, state, resetSelect })
     flex-wrap: wrap;
     gap: 8px;
     padding-left: 40px;
-    img {
+    .media-item {
+      width: 80px;
+      height: 80px;
+    }
+    .image-item,
+    .video-item {
+      width: 80px;
+      height: 80px;
+    }
+    img,
+    video {
       width: 80px;
       height: 80px;
       border-radius: 6px;
       cursor: pointer;
+      object-fit: cover;
+    }
+    .video-item {
+      position: relative;
+      cursor: pointer;
+      .video-play-mask {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        background: rgba(0, 0, 0, 0.28);
+        border-radius: 6px;
+        font-size: 18px;
+        transition: all 0.2s;
+      }
+      &:hover .video-play-mask {
+        background: rgba(0, 0, 0, 0.4);
+      }
     }
   }
 }

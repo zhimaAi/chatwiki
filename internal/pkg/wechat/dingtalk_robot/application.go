@@ -4,6 +4,7 @@ package dingtalk_robot
 
 import (
 	"bytes"
+	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/wechat/common"
 	"context"
@@ -50,6 +51,7 @@ var DingtalkMsgTypeMap = map[string]string{
 	"sampleMarkdown": "SampleMarkdown",
 	"sampleImageMsg": "SampleImageMsg",
 	"sampleLink":     "SampleLink",
+	"sampleVideo":    "SampleVideo",
 }
 
 type DingtalkSampleText struct {
@@ -69,11 +71,19 @@ type DingtalkSampleLink struct {
 	MessageUrl string `json:"messageUrl"`
 }
 
+type DingtalkSimpleVideo struct {
+	Duration     string `json:"duration"`
+	VideoMediaId string `json:"videoMediaId"`
+	VideoType    string `json:"videoType"`
+	PicMediaId   string `json:"picMediaId"`
+}
+
 type DingTalkMsgType struct {
-	SampleText     DingtalkSampleText     `json:"sampleText"`     //文本类型
+	SampleText     DingtalkSampleText     `json:"sampleText"`     //text
 	SampleMarkdown DingtalkSampleMarkdown `json:"sampleMarkdown"` //markdown
-	SampleImageMsg DingtalkSampleImageMsg `json:"sampleImageMsg"` //图片
-	SampleLink     DingtalkSampleLink     `json:"sampleLink"`     //链接
+	SampleImageMsg DingtalkSampleImageMsg `json:"sampleImageMsg"` //image
+	SampleLink     DingtalkSampleLink     `json:"sampleLink"`     //link
+	SampleVideo    DingtalkSimpleVideo    `json:"sampleVideo"`    //video
 	MsgKey         string                 `json:"msg_key"`
 }
 
@@ -425,7 +435,6 @@ func (a *Application) UploadTempImage(filePath string) (string, int, error) {
 }
 
 func (a *Application) SendImage(customer, filePath string, push *lib_define.PushMessage) (int, error) {
-
 	mediaId, _, err := a.UploadTempImage(filePath)
 
 	if err != nil {
@@ -436,6 +445,105 @@ func (a *Application) SendImage(customer, filePath string, push *lib_define.Push
 	//构建图片消息
 	dingtalkMsg, _ := tool.JsonEncode(DingTalkMsgType{MsgKey: "sampleImageMsg", SampleImageMsg: DingtalkSampleImageMsg{PhotoURL: mediaId}})
 
+	_, _ = a.SendText("", dingtalkMsg, push)
+
+	return 0, nil
+}
+
+func (a *Application) UploadTempVideo(filePath string) (string, int, error) {
+	responseToken, _, err := a.GetToken(false)
+
+	if responseToken.AccessToken == "" {
+		return "", 0, errors.New("miss token")
+	}
+
+	url := DingTaklHost + "/media/upload?access_token=" + responseToken.AccessToken
+
+	var requestBody bytes.Buffer
+	writer := multipart.NewWriter(&requestBody)
+
+	_ = writer.WriteField("type", "video")
+
+	file, err := os.Open(filePath)
+	if err != nil {
+
+		return "", 0, errors.New("open file error")
+	}
+	defer file.Close()
+
+	part, err := writer.CreateFormFile("media", filepath.Base(filePath))
+	if err != nil {
+		fmt.Printf("create form file error: %v\n", err)
+		return "", 0, err
+	}
+
+	_, err = io.Copy(part, file)
+	if err != nil {
+		fmt.Printf("copy file data error: %v\n", err)
+		return "", 0, err
+	}
+
+	// close multipart writer
+	err = writer.Close()
+	if err != nil {
+		fmt.Printf("close writer error: %v\n", err)
+		return "", 0, errors.New("open file error")
+	}
+
+	// create http request
+	req, err := http.NewRequest("POST", url, &requestBody)
+	if err != nil {
+		fmt.Printf("create request error: %v\n", err)
+		return "", 0, err
+	}
+
+	// set content type
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	// send request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("send request error: %v\n", err)
+		return "", 0, err
+	}
+	defer resp.Body.Close()
+
+	// read response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("read response error: %v\n", err)
+		return "", 0, err
+	}
+
+	media := DingtalkUploadMedia{}
+	err = tool.JsonDecode(string(body), &media)
+
+	if err != nil {
+		return "", 0, err
+	}
+
+	return media.MediaId, 1, nil
+
+}
+
+func (a *Application) SendVideo(customer, filePath string, push *lib_define.PushMessage) (int, error) {
+
+	mediaId, _, err := a.UploadTempVideo(filePath)
+
+	if err != nil {
+		return 0, nil
+	}
+
+	picMediaId, _, err := a.UploadTempImage(define.VideoDingTalkAvatar)
+
+	logs.Info("picMediaId:%v, err:%v", picMediaId, err)
+
+	if err != nil {
+		return 0, nil
+	}
+
+	dingtalkMsg, _ := tool.JsonEncode(DingTalkMsgType{MsgKey: "sampleVideo", SampleVideo: DingtalkSimpleVideo{VideoMediaId: mediaId, VideoType: `mp4`, Duration: `1`, PicMediaId: picMediaId}})
 	_, _ = a.SendText("", dingtalkMsg, push)
 
 	return 0, nil

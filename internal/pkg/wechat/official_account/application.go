@@ -223,6 +223,46 @@ func (a *Application) SendImage(customer, filePath string, push *lib_define.Push
 	return 0, nil
 }
 
+func (a *Application) UploadTempVideo(filePath string) (string, int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return ``, 0, err
+	}
+	resp, err := app.Media.UploadVideo(context.Background(), filePath)
+	if err != nil {
+		return ``, 0, err
+	}
+	if resp.ErrCode != 0 {
+		return ``, resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return resp.MediaID, 0, nil
+}
+
+func (a *Application) SendVideo(customer, filePath string, push *lib_define.PushMessage) (int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return 0, err
+	}
+	mediaId, errCode, err := a.UploadTempVideo(filePath)
+	if err != nil {
+		return errCode, err
+	}
+
+	jsonStr, err := messages.NewVideo(mediaId, nil).
+		TransformForJsonRequest(gzhBuildSendMsgAppends(customer, push), true)
+	if err != nil {
+		return 0, err
+	}
+	resp, err := app.CustomerService.Send(context.Background(), jsonStr)
+	if err != nil {
+		return 0, err
+	}
+	if resp.ErrCode != 0 {
+		return resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return 0, nil
+}
+
 func (a *Application) GetFileByMedia(mediaId string, push *lib_define.PushMessage) ([]byte, http.Header, int, error) {
 	app, err := a.GetApp()
 	if err != nil {

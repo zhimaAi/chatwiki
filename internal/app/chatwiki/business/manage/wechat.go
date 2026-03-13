@@ -218,7 +218,7 @@ func SaveWechatApp(c *gin.Context) {
 	robotId := cast.ToInt(c.PostForm(`robot_id`))
 	appName := strings.TrimSpace(c.PostForm(`app_name`))
 	appId := strings.TrimSpace(c.PostForm(`app_id`))
-	appSecret := strings.TrimSpace(c.PostForm(`app_secret`))
+	appSecret := strings.TrimSpace(c.DefaultPostForm(`app_secret`, `no-need`))
 	appAvatar := ``
 	appType := strings.TrimSpace(c.PostForm(`app_type`))
 	//unchangeable
@@ -373,7 +373,7 @@ func SaveWechatApp(c *gin.Context) {
 	appInfo, err := common.GetWechatAppInfo(`access_key`, accessKey)
 	if err == nil {
 		appInfo[`push_url`] = fmt.Sprintf(`%s/push_pwd/%s`, define.Config.WebService[`push_domain`], appInfo[`app_type`])
-		if appInfo[`app_type`] != lib_define.AppWechatKefu {
+		if !tool.InArrayString(appInfo[`app_type`], []string{lib_define.AppWechatKefu, lib_define.AppWecomRobot}) {
 			appInfo[`push_url`] += fmt.Sprintf(`/%s`, appInfo[`access_key`])
 		}
 		appInfo[`push_token`] = lib_define.SignToken
@@ -432,7 +432,7 @@ func GetWechatAppInfo(c *gin.Context) {
 	}
 	//configure external service parameters
 	appInfo[`push_url`] = fmt.Sprintf(`%s/push_pwd/%s`, define.Config.WebService[`push_domain`], appInfo[`app_type`])
-	if appInfo[`app_type`] != lib_define.AppWechatKefu {
+	if !tool.InArrayString(appInfo[`app_type`], []string{lib_define.AppWechatKefu, lib_define.AppWecomRobot}) {
 		appInfo[`push_url`] += fmt.Sprintf(`/%s`, appInfo[`access_key`])
 	}
 	appInfo[`push_token`] = lib_define.SignToken

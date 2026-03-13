@@ -66,6 +66,11 @@ func ParseMessage(content string) map[string]interface{} {
 			return make(map[string]interface{})
 		}
 	}
+	// 兼容企业微信机器人
+	if data[`encrypt`] != nil && data[`Encrypt`] == nil {
+		data[`Encrypt`] = data[`encrypt`]
+		delete(data, `encrypt`)
+	}
 	return data
 }
 

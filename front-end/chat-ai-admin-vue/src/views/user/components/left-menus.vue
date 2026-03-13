@@ -169,6 +169,14 @@ const baseMenu = computed(() => [
     svgActive: 'wx-app-icon',
     permissionKey: 'OfficialAccountManage'
   },
+  {
+    name: t('views.user.left-menus.bind_chatclaw'),
+    key: 'chatclawTokenLog',
+    path: '/user/chatclaw-token-log',
+    svg: 'client',
+    svgActive: 'client',
+    haspermise: true
+  },
 ])
 
 const menus = computed(() => {

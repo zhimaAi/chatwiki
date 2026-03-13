@@ -142,7 +142,8 @@ func DoChatTypeMixture(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 func DoChatTypeLibrary(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if cast.ToInt(in.params.Robot[`chat_type`]) == define.ChatTypeLibrary {
 		if !in.needRunWorkFlow && len(out.list) == 0 {
-			DisposeUnknownQuestionPrompt(in, out) // unknown question (no workflow scene)
+			DisposeUnknownQuestionPrompt(in, out)                     // unknown question (no workflow scene)
+			in.Stream(sse.Event{Event: `sending`, Data: out.content}) // send to client so stream has content
 		} else {
 			if len(out.list) == 0 {
 				in.waitChooseWorkFlow = true // wait for workflow selection
@@ -173,7 +174,8 @@ func DoRelationWorkFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult 
 		workFlowRobot, workFlowGlobal := work_flow.ChooseWorkFlowRobot(cast.ToString(in.params.AdminUserId), out.chatResp.FunctionToolCalls)
 		if len(workFlowRobot) == 0 { // no workflow returned by llm
 			if in.waitChooseWorkFlow {
-				DisposeUnknownQuestionPrompt(in, out) // unknown question (workflow scene)
+				DisposeUnknownQuestionPrompt(in, out)                     // unknown question (workflow scene)
+				in.Stream(sse.Event{Event: `sending`, Data: out.content}) // send to client so stream has content
 				return pipeline.PipeStop
 			}
 			in.Stream(sse.Event{Event: `request_time`, Data: out.requestTime})

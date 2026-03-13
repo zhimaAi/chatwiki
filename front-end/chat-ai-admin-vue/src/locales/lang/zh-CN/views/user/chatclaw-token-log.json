@@ -1,0 +1,20 @@
+{
+  "title": "绑定ChatClaw",
+  "col_id": "ID",
+  "col_os": "操作系统",
+  "col_os_version": "系统版本",
+  "col_issue_time": "签发时间",
+  "col_expire_time": "过期时间",
+  "col_revoke_time": "下线时间",
+  "col_status": "状态",
+  "col_action": "操作",
+  "status_active": "生效中",
+  "status_revoked": "已下线",
+  "status_expired": "已过期",
+  "action_force_offline": "强制下线",
+  "confirm_force_offline_title": "确认强制下线",
+  "confirm_force_offline_content": "执行后该 Token 将立即失效，下次请求会被拒绝。",
+  "msg_force_offline_success": "操作成功",
+  "cancel": "取消",
+  "empty": "暂无数据"
+}

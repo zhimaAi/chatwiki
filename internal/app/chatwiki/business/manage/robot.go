@@ -222,6 +222,113 @@ func GetRobotList(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 }
 
+type BridgeRobotListReq struct {
+	ApplicationType int `form:"application_type"`
+}
+
+type BridgeRobotListOption struct {
+	OnlyOpen            int
+	IncludeChatClawInfo bool
+}
+
+func BridgeGetRobotListWithOption(adminUserId, userId int, lang string, applicationType int, option *BridgeRobotListOption) ([]msql.Params, int, error) {
+	field := `id,robot_name,robot_intro,robot_avatar,robot_key,application_type,creator,start_node_key,group_id,sort_num,is_top`
+	if option != nil && option.IncludeChatClawInfo {
+		field = field + `,chat_claw_switch_status`
+	}
+	m := msql.Model(`chat_ai_robot`, define.Postgres).
+		Field(field).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`is_top desc, sort_num desc ,id desc`)
+
+	if applicationType >= 0 {
+		m.Where(`application_type`, cast.ToString(applicationType))
+	}
+	if option != nil && option.OnlyOpen == define.SwitchOn {
+		m.Where(`chat_claw_switch_status`, cast.ToString(define.SwitchOn))
+	}
+
+	if userId <= 0 {
+		return nil, http.StatusUnauthorized, errors.New(i18n.Show(lang, `user_no_login`))
+	}
+	userInfo, err := msql.Model(define.TableUser, define.Postgres).
+		Alias(`u`).
+		Join(`role r`, `u.user_roles::integer=r.id`, `left`).
+		Where(`u.id`, cast.ToString(userId)).
+		Field(`u.*,r.role_type`).
+		Find()
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
+	}
+	if len(userInfo) == 0 {
+		return nil, http.StatusUnauthorized, errors.New(i18n.Show(lang, `user_no_login`))
+	}
+	//check permission
+	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot}) {
+		// managedRobotIdList := GetUserManagedData(userId, `managed_robot_list`)
+		managedRobotIdList := []string{`0`}
+		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeRobot, lang)
+		for _, permission := range permissionData {
+			managedRobotIdList = append(managedRobotIdList, cast.ToString(permission[`object_id`]))
+		}
+		//m.Where(`id`, `in`, strings.Join(managedRobotIdList, `,`))
+	}
+
+	list, err := m.Select()
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
+	}
+
+	//Collect robot IDs with application_type=1
+	var workflowRobotIds []string
+	for i := range list {
+		at := cast.ToInt(list[i][`application_type`])
+		if at == 1 {
+			workflowRobotIds = append(workflowRobotIds, cast.ToString(list[i][`id`]))
+		}
+	}
+
+	//Batch query robots that have published versions
+	publishedRobotMap := make(map[string]bool)
+	if len(workflowRobotIds) > 0 {
+		publishedRobots, err := msql.Model(`work_flow_version`, define.Postgres).
+			Where(`robot_id`, `in`, strings.Join(workflowRobotIds, `,`)).
+			Group(`robot_id`).
+			ColumnArr(`robot_id`)
+		if err != nil {
+			logs.Error(err.Error())
+		} else {
+			for _, robotId := range publishedRobots {
+				publishedRobotMap[robotId] = true
+			}
+		}
+	}
+
+	//Set has_published field
+	for i := range list {
+		at := cast.ToInt(list[i][`application_type`])
+		if at == 0 {
+			list[i][`has_published`] = `1`
+		} else if at == 1 {
+			robotId := cast.ToString(list[i][`id`])
+			if publishedRobotMap[robotId] {
+				list[i][`has_published`] = `1`
+			} else {
+				list[i][`has_published`] = `0`
+			}
+		} else {
+			list[i][`has_published`] = `0`
+		}
+	}
+
+	return list, 0, nil
+}
+
+func BridgeGetRobotList(adminUserId, userId int, lang string, applicationType int) ([]msql.Params, int, error) {
+	return BridgeGetRobotListWithOption(adminUserId, userId, lang, applicationType, nil)
+}
+
 func SaveRobot(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
@@ -1031,6 +1138,7 @@ func GetRobotInfo(c *gin.Context) {
 	info[`prompt_struct_default`] = common.GetDefaultPromptStruct(common.GetLang(c)) //default value for the frontend
 	info[`wechat_ip`] = define.Config.WebService[`wechat_ip`]
 	info[`push_wechat_kefu`] = fmt.Sprintf(`%s/push_pwd/wechat_kefu`, define.Config.WebService[`push_domain`])
+	info[`push_wecom_robot`] = fmt.Sprintf(`%s/push_pwd/wecom_robot`, define.Config.WebService[`push_domain`])
 	info[`push_token`] = lib_define.SignToken
 	info[`push_aeskey`] = lib_define.AesKey
 	c.String(http.StatusOK, lib_web.FmtJson(info, nil))

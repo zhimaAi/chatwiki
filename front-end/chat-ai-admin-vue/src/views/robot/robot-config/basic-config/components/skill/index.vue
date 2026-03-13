@@ -112,7 +112,7 @@ import { useI18n } from '@/hooks/web/useI18n'
 const { t } = useI18n('views.robot.robot-config.basic-config.components.skill.index')
 const isEdit = ref(false)
 
-const { robotInfo, getRobot } = inject('robotInfo')
+const { robotInfo, getRobot, getWorkFlowRobotList } = inject('robotInfo')
 const props = defineProps({
   robotList: {
     type: Array,
@@ -143,7 +143,7 @@ const handleRemoveCheckedLibrary = (item) => {
 
 const onChangeLibrarySelected = (checkedList) => {
   formState.work_flow_ids = [...checkedList]
-
+  getWorkFlowRobotList()
   onSave()
 }
 

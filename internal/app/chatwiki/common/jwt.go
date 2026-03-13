@@ -18,12 +18,25 @@ var (
 func newClient() *lib_web.JwtToken {
 	return lib_web.NewTokenClient(define.JwtTtl, define.JwtKey)
 }
+
+func newChatClawClient() *lib_web.JwtToken {
+	return lib_web.NewTokenClient(define.ChatClawJwtTtl, define.JwtKey)
+}
+
 func GetToken(userId, userName, parentId any) (jwt.MapClaims, error) {
 	return newClient().GetToken(userId, userName, parentId)
 }
 
+func GetChatClawToken(userId, userName, parentId any) (jwt.MapClaims, error) {
+	return newChatClawClient().GetToken(userId, userName, parentId)
+}
+
 func ParseToken(tokenString string) (jwt.MapClaims, error) {
 	return newClient().ParseToken(tokenString)
+}
+
+func ParseChatClawToken(tokenString string) (jwt.MapClaims, error) {
+	return newChatClawClient().ParseToken(tokenString)
 }
 
 func GetLoginUserId(c *gin.Context) int {

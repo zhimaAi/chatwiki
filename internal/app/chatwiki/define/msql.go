@@ -17,6 +17,7 @@ const (
 	TableRule              = "casbin_rule"
 	TableChatAiWechatApp   = "chat_ai_wechat_app"
 	TableUseGuideProcess   = "use_guide_process"
+	TableChatClawTokenLog  = "chatclaw_token_log"
 )
 
 const (

@@ -1,0 +1,11 @@
+{
+  "title_publish": "Publish",
+  "btn_publish_now": "Publish Now",
+  "label_version_number": "Version Number",
+  "label_version_description": "Version Description",
+  "ph_version_desc": "Enter version description",
+  "msg_publish_success": "Published successfully",
+  "msg_publish_info_prefix": "Access the application via link after publishing: ",
+  "msg_publish_info_suffix": ". Integrate with WeChat Official Account and DingTalk Bot for auto-reply",
+  "btn_view_details": "View Details"
+}

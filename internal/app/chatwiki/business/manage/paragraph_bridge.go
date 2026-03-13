@@ -426,7 +426,7 @@ func BridgeSaveParagraph(adminUserId, loginUserId int, lang string, req *BridgeS
 		}
 
 	}
-	jsonImages, err := common.CheckLibraryImage(images)
+	jsonImages, err := common.CheckLibraryImageAndVideo(images)
 	if err != nil {
 		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `images`))
 	}

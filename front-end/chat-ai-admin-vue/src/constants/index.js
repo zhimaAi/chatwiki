@@ -22,7 +22,7 @@ export const REFRESHTOKEN_TIMEOUT = 1 * 60 * 60 * 1000
 /**
  * 不重定向白名单
  */
-export const NO_REDIRECT_WHITE_LIST = ['/login', '/about', '/privacy_policy']
+export const NO_REDIRECT_WHITE_LIST = ['/login', '/about', '/privacy_policy', '/chatclaw/login']
 
 /**
  * 不重置路由白名单

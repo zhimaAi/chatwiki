@@ -1,0 +1,10 @@
+{
+  "subtitle": "Sign in to authorize the desktop client",
+  "pleaseUsername": "Please enter username",
+  "pleasePassword": "Please enter password",
+  "login": "Login",
+  "loginSuccess": "Login successful",
+  "openingApp": "Launching ChatClaw desktop client, please wait...",
+  "openAppManually": "Open client manually",
+  "manualOpenTip": "If the client does not open automatically, please click the button below to open it manually"
+}

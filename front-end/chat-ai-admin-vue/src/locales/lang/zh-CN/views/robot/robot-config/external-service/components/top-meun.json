@@ -4,6 +4,7 @@
   "tip_unverified_supported": "支持未认证",
   "menu_wechat_mini_program": "微信小程序",
   "menu_wechat_customer_service": "微信客服",
+  "menu_wecom_robot": "企微机器人",
   "menu_feishu_robot": "飞书机器人",
   "menu_dingtalk_robot": "钉钉机器人"
 }

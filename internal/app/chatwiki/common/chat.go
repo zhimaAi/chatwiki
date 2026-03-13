@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -288,7 +289,12 @@ func CheckQaDirectReply(list []msql.Params, robot msql.Params) (string, bool) {
 			images := make([]string, 0)
 			_ = tool.JsonDecodeUseNumber(list[0][`images`], &images)
 			for _, image := range images {
-				content += fmt.Sprintf("\n![img](%s)", image)
+				ext := strings.ToLower(strings.TrimLeft(filepath.Ext(image), `.`))
+				if tool.InArrayString(ext, define.VideoAllowExt) {
+					content += fmt.Sprintf("\n![video](%s)", image)
+				} else {
+					content += fmt.Sprintf("\n![img](%s)", image)
+				}
 			}
 		}
 		return content, true

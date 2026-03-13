@@ -8,6 +8,7 @@ import (
 	"chatwiki/internal/pkg/lib_define"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -141,7 +142,12 @@ func FormatSystemPrompt(lang string, prompt string, list []msql.Params) (string,
 		}
 		var imgs string
 		for _, image := range images {
-			imgs += fmt.Sprintf("\n![image](%s)", image)
+			ext := strings.ToLower(strings.TrimLeft(filepath.Ext(image), `.`))
+			if tool.InArrayString(ext, define.VideoAllowExt) {
+				imgs += fmt.Sprintf("\n![video](%s)", image)
+			} else {
+				imgs += fmt.Sprintf("\n![image](%s)", image)
+			}
 		}
 		if cast.ToInt(one[`type`]) == define.ParagraphTypeNormal {
 			knowledges = append(knowledges, fmt.Sprintf("## %s\n%s%s", i18n.Show(lang, `prompt_library_section`, idx+1), one[`content`], imgs))

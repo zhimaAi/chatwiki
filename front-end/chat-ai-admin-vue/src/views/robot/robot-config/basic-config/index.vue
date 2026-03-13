@@ -149,6 +149,7 @@ provide('robotInfo', {
   updateRobotInfo,
   scrollBoxToBottom,
   getRobot,
+  getWorkFlowRobotList,
 })
 
 const saveForm = () => {

@@ -15,6 +15,7 @@ import (
 	openresponse "github.com/ArtisanCloud/PowerWeChat/v3/src/openPlatform/authorizer/miniProgram/account/response"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/work"
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/work/accountService/message/request"
+	openvideoresponse "github.com/ArtisanCloud/PowerWeChat/v3/src/work/accountService/message/response"
 	"github.com/zhimaAi/go_tools/tool"
 )
 
@@ -250,6 +251,64 @@ func (a *Application) SendImage(customer, filePath string, push *lib_define.Push
 		Image: &request.RequestAccountServiceMsgImage{MediaID: mediaId},
 	}
 	resp, err := app.AccountServiceMessage.SendMsg(context.Background(), options)
+	if err != nil {
+		return 0, err
+	}
+	if resp.ErrCode != 0 {
+		return resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return 0, nil
+}
+
+func (a *Application) UploadTempVideo(filePath string) (string, int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return ``, 0, err
+	}
+	resp, err := app.Media.UploadTempVideo(context.Background(), filePath, nil)
+	if err != nil {
+		return ``, 0, err
+	}
+	if resp.ErrCode != 0 {
+		return ``, resp.ErrCode, errors.New(resp.ErrMsg)
+	}
+	return resp.MediaID, 0, nil
+}
+
+type RequestAccountServiceSendMsgForVideo struct {
+	ToUser   string                         `json:"touser"`
+	OpenKfid string                         `json:"open_kfid"`
+	MsgID    string                         `json:"msgid,omitempty"`
+	MsgType  string                         `json:"msgtype,omitempty"`
+	Video    *RequestAccountServiceMsgVideo `json:"video,omitempty"`
+}
+
+type RequestAccountServiceMsgVideo struct {
+	MediaID string `json:"media_id"`
+}
+
+func (a *Application) SendVideo(customer, filePath string, push *lib_define.PushMessage) (int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return 0, err
+	}
+	externalUserid, openKfid := common.GetExternalUserInfo(customer)
+	if len(externalUserid) == 0 || len(openKfid) == 0 {
+		return 0, errors.New(`customer not exist`)
+	}
+	mediaId, errCode, err := a.UploadTempVideo(filePath)
+
+	if err != nil {
+		return errCode, err
+	}
+
+	options := &RequestAccountServiceSendMsgForVideo{
+		ToUser: externalUserid, OpenKfid: openKfid, MsgType: `video`,
+		Video: &RequestAccountServiceMsgVideo{MediaID: mediaId},
+	}
+	resp := &openvideoresponse.ResponseAccountServiceSendMsg{}
+	_, err = app.Base.BaseClient.HttpPostJson(context.Background(), "cgi-bin/kf/send_msg", options, nil, nil, resp)
+
 	if err != nil {
 		return 0, err
 	}

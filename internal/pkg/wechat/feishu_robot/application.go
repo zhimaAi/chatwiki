@@ -314,6 +314,61 @@ func (a *Application) SendImage(customer, filePath string, push *lib_define.Push
 	return a.SendContent("image", contentStr, receiveIdType, receiveId)
 }
 
+func (a *Application) UploadTempVideo(filePath string) (string, int, error) {
+	app, err := a.GetApp()
+	if err != nil {
+		return "", 0, err
+	}
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		logs.Error("read file error: " + err.Error())
+		return "", 0, err
+	}
+
+	req := larkim.NewCreateFileReqBuilder().
+		Body(larkim.NewCreateFileReqBodyBuilder().
+			FileType(`mp4`).
+			File(file).
+			Build()).
+		Build()
+
+	// send request
+	resp, err := app.Im.V1.File.Create(context.Background(), req)
+	// handle error
+	if err != nil {
+		fmt.Println(err)
+		return "", 0, err
+	}
+
+	// handle server error
+	if !resp.Success() {
+		fmt.Printf("logId: %s, error response: \n%s", resp.RequestId(), larkcore.Prettify(resp.CodeError))
+		return "", 0, err
+	}
+
+	return *resp.Data.FileKey, 0, nil
+
+}
+
+func (a *Application) SendVideo(customer, filePath string, push *lib_define.PushMessage) (int, error) {
+	videoKey, _, err := a.UploadTempVideo(filePath)
+
+	if videoKey == "" {
+		logs.Error("video upload error")
+		return 0, err
+	}
+
+	// get receiver info
+	receiveIdType, receiveId := a.getReceiveInfo(push)
+
+	// create video message content
+	contentStr, _ := tool.JsonEncode(FeiShuPostMsgContentMedia{FileKey: videoKey})
+
+	// call common send method
+	return a.SendContent("media", contentStr, receiveIdType, receiveId)
+}
+
 func (a *Application) SendUrl(customer, url, title string, push *lib_define.PushMessage) (int, error) {
 	// 获取接收者信息
 	receiveIdType, receiveId := a.getReceiveInfo(push)

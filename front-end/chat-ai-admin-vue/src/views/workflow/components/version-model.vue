@@ -8,6 +8,20 @@
       :confirmLoading="saveLoading"
       :width="600"
     >
+      <div class="alert-box">
+        <a-alert type="info" show-icon>
+          <template #message>
+            <div class="message-alert-box">
+              <div class="text">
+                {{ t('msg_publish_info_prefix') }}<a :href="pc_src" target="_blank">{{ pc_src }}</a>{{ t('msg_publish_info_suffix') }}
+              </div>
+              <div class="btn-box">
+                <a-button @click="toDetail" type="primary">{{ t('btn_view_details') }}</a-button>
+              </div>
+            </div>
+          </template>
+        </a-alert>
+      </div>
       <div class="form-box">
         <div class="form-item">
           <div class="form-label">{{ t('label_version_number') }}</div>
@@ -38,14 +52,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { workFlowNextVersion, workFlowPublishVersion } from '@/api/robot/index'
 import { message } from 'ant-design-vue'
 import { useRoute } from 'vue-router'
 import { useRobotStore } from '@/stores/modules/robot'
 import { useI18n } from '@/hooks/web/useI18n'
 
-const { t } = useI18n('views.workflow.version-model')
+const { t } = useI18n('views.workflow.components.version-model')
 
 const query = useRoute().query
 const open = ref(false)
@@ -63,8 +77,8 @@ const emit = defineEmits(['ok', 'handleOpenErrorNode'])
 
 const show = async (list) => {
   let res = await getVersion()
-  if(res.res == 1){
-    if(res.data && res.data.err_node_key){
+  if (res.res == 1) {
+    if (res.data && res.data.err_node_key) {
       emit('handleOpenErrorNode', res.data.err_node_key)
       return
     }
@@ -103,7 +117,11 @@ const buildUserAgent = () => {
 
     let browser = 'Unknown'
     let version = ''
-    const m = ua.match(/Edg\/([\d\.]+)/) || ua.match(/Chrome\/([\d\.]+)/) || ua.match(/Firefox\/([\d\.]+)/) || ua.match(/Version\/([\d\.]+).*Safari/)
+    const m =
+      ua.match(/Edg\/([\d\.]+)/) ||
+      ua.match(/Chrome\/([\d\.]+)/) ||
+      ua.match(/Firefox\/([\d\.]+)/) ||
+      ua.match(/Version\/([\d\.]+).*Safari/)
     if (m) {
       if (ua.includes('Edg/')) browser = 'Edge'
       else if (ua.includes('Chrome/')) browser = 'Chrome'
@@ -129,7 +147,7 @@ const handleOk = () => {
     draft_save_type: 'automatic',
     draft_save_time: +robotStore.robotInfo.draft_save_time || 0
   })
-    .then(async(res) => {
+    .then(async (res) => {
       // 刷新并同步最新草稿时间戳
       await robotStore.getRobot(query.id)
       robotStore.setDrafSaveTime({
@@ -143,8 +161,9 @@ const handleOk = () => {
         message.success(t('msg_publish_success'))
         emit('ok')
       }
-    }).catch((res)=>{
-      if(res.data && res.data.err_node_key){
+    })
+    .catch((res) => {
+      if (res.data && res.data.err_node_key) {
         emit('handleOpenErrorNode', res.data.err_node_key)
       }
       open.value = false
@@ -157,15 +176,25 @@ const handleOk = () => {
 const getVersion = async () => {
   return workFlowNextVersion({
     robot_key: query.robot_key
-  }).then((res) => {
-    let version_params = res.data.version_params || []
-    value1.value = version_params[0]
-    value2.value = version_params[1]
-    value3.value = version_params[2]
-    return res
-  }).catch((res)=>{
-    return res
   })
+    .then((res) => {
+      let version_params = res.data.version_params || []
+      value1.value = version_params[0]
+      value2.value = version_params[1]
+      value3.value = version_params[2]
+      return res
+    })
+    .catch((res) => {
+      return res
+    })
+}
+
+const pc_src = computed(() => {
+  return `${robotStore.robotInfo.h5_domain}/#/chat/pc?robot_key=${robotStore.robotInfo.robot_key}`
+})
+
+const toDetail = () => {
+  window.open(`/#/robot/config/external-services?id=${robotStore.robotInfo.id}&robot_key=${robotStore.robotInfo.robot_key}`, '_blank')
 }
 
 defineExpose({
@@ -190,6 +219,19 @@ defineExpose({
     display: flex;
     gap: 4px;
     align-items: self-end;
+  }
+}
+.alert-box {
+  margin-top: 16px;
+  .message-alert-box {
+    display: flex;
+    align-content: center;
+    gap: 16px;
+    word-break: break-all;
+    .btn-box {
+      display: flex;
+      align-items: center;
+    }
   }
 }
 </style>
