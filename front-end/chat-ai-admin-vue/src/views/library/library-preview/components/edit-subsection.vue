@@ -103,7 +103,13 @@
                   </template>
                 </a-tab-pane>
               </a-tabs>
-              <UploadImg v-model:value="images"></UploadImg>
+              <UploadImg
+                v-model:value="images"
+                :allow-video="true"
+                accept=".jpg,.png,.jpeg,.mp4"
+                :image-max-size-mb="2"
+                :video-max-size-mb="20"
+              ></UploadImg>
             </div>
           </div>
         </div>

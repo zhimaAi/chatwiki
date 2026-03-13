@@ -44,6 +44,8 @@ func UnifiedMessageType(msgType string) string {
 }
 
 func AppPush(msg string, _ ...string) error {
+	// replace image domain
+	msg = strings.ReplaceAll(msg, `【image_domain】`, define.Config.WebService[`image_domain`])
 	//parse message body
 	message := make(map[string]any)
 	if err := tool.JsonDecodeUseNumber(msg, &message); err != nil {
@@ -130,6 +132,10 @@ func AppPush(msg string, _ ...string) error {
 				upData[`avatar`] = info[`avatar`]
 			}
 		}
+	}
+	if appInfo[`app_type`] == lib_define.AppWecomRobot {
+		upData[`nickname`] = message[`nickname`]
+		upData[`name`] = message[`nickname`]
 	}
 	common.InsertOrUpdateCustomer(push.Openid, push.AdminUserId, upData)
 	customer, err := common.GetCustomerInfo(push.Openid, push.AdminUserId)
@@ -475,9 +481,22 @@ func SendReply(push *lib_define.PushMessage) {
 	return
 }
 
-func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, app wechat.ApplicationInterface, err error, params *define.ChatRequestParam) bool {
+func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, app wechat.ApplicationInterface, err error, params *define.ChatRequestParam) {
+	// wecom_robot can only reply once. priority will be given to returning to the large model
+	if params.AppType == lib_define.AppWecomRobot && len(message[`content`]) > 0 {
+		if errcode, err := app.SendText(push.Openid, message[`content`], push); err != nil {
+			logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errcode, err.Error())
+		}
+		return
+	}
+
 	// check if there are keyword replies
 	ReplyContentListHandle(push, message, app)
+
+	// wecom_robot is already replied.
+	if params.AppType == lib_define.AppWecomRobot {
+		return
+	}
 
 	var content string
 	switch cast.ToInt(message[`msg_type`]) {
@@ -487,13 +506,13 @@ func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, a
 		content, err = BuildSendMenu(message[`menu_json`])
 		if err != nil {
 			logs.Error(`msg:%s,err:%s`, push.MsgRaw, err.Error())
-			return true
+			return
 		}
 	}
 	if len(content) == 0 {
-		return true
+		return
 	}
-	text, images, voices := common.GetMessageInMessage(content, true)
+	text, images, voices, videos := common.GetMessageInMessage(content, true)
 	if len(text) > 0 {
 		errcode, err := app.SendText(push.Openid, text, push)
 		if err != nil {
@@ -508,10 +527,18 @@ func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, a
 			}
 		}
 	}
+	if len(videos) > 0 {
+		for _, video := range videos {
+			errcode, err := app.SendVideo(push.Openid, video, push)
+			if err != nil {
+				logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errcode, err.Error())
+			}
+		}
+	}
 	if len(voices) > 0 && tool.InArray(params.AppType, []string{lib_define.AppWechatKefu, lib_define.AppOfficeAccount}) {
 		for _, voice := range voices {
 			ext := strings.ToLower(filepath.Ext(voice))
-			if !tool.InArray(ext, []string{`mp3`, `amr`}) {
+			if !tool.InArray(ext, []string{`.mp3`, `.amr`}) {
 				logs.Warning(`voice is not mp3 or amr ,%s`, voice)
 			}
 			if params.AppType == lib_define.AppWechatKefu && ext == `.mp3` {
@@ -524,7 +551,7 @@ func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, a
 		}
 	}
 
-	return false
+	return
 }
 
 // ReplyContentListHandle reply handling
@@ -717,6 +744,10 @@ func OfficeAccountImageDownloadPriority(push *lib_define.PushMessage, receivedMe
 func ImageMediaIdToOssUrl(push *lib_define.PushMessage, receivedMessageType string, app wechat.ApplicationInterface, params *define.ChatRequestParam) {
 	if OfficeAccountImageDownloadPriority(push, receivedMessageType, params) {
 		return // public account image download priority logic
+	}
+	if push.AppInfo[`app_type`] == lib_define.AppWecomRobot && push.Message[`oss_url`] != nil {
+		params.MediaIdToOssUrl = cast.ToString(push.Message[`oss_url`])
+		return
 	}
 	mediaId := cast.ToString(push.Message[`MediaId`])
 	if push.AppInfo[`app_type`] == lib_define.FeiShuRobot && receivedMessageType == lib_define.MsgTypeImage {

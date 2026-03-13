@@ -40,6 +40,7 @@ import EmbedWebsite from './components/embed-website.vue'
 import WeChatOfficialAccount from './components/wechat-official-account.vue'
 import WeChatMiniProgram from './components/wechat-mini-program.vue'
 import WeChatCustomerService from './components/wechat-customer-service.vue'
+import WeComRobot from './components/wecom-robot.vue'
 import FeishuRobot from './components/feishu-robot.vue'
 import DingDingRobot from './components/dingding-robot.vue'
 
@@ -54,6 +55,7 @@ const tabComponents = {
   WeChatOfficialAccount,
   WeChatMiniProgram,
   WeChatCustomerService,
+  WeComRobot,
   FeishuRobot,
   DingDingRobot
 }

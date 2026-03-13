@@ -9,6 +9,7 @@ import (
 	"chatwiki/internal/pkg/wechat/mini_program"
 	"chatwiki/internal/pkg/wechat/official_account"
 	"chatwiki/internal/pkg/wechat/wechat_kefu"
+	"chatwiki/internal/pkg/wechat/wecom_robot"
 	"errors"
 	"net/http"
 
@@ -27,6 +28,7 @@ type ApplicationInterface interface {
 	GetCustomerInfo(customer string) (map[string]any, int, error)
 	UploadTempImage(filePath string) (string, int, error)
 	SendImage(customer, filePath string, push *lib_define.PushMessage) (int, error)
+	SendVideo(customer, filePath string, push *lib_define.PushMessage) (int, error)
 	GetFileByMedia(mediaId string, push *lib_define.PushMessage) ([]byte, http.Header, int, error)
 	SendUrl(customer, url, title string, push *lib_define.PushMessage) (int, error)                                               // 发送链接
 	SendMiniProgramPage(customer, appid, title, pagePath, localThumbURL string, push *lib_define.PushMessage) (int, error)        // 发送小程序卡片
@@ -68,6 +70,8 @@ func GetApplication(appInfo msql.Params) (ApplicationInterface, error) {
 		return &feishu_robot.Application{AppID: appInfo[`app_id`], Secret: appInfo[`app_secret`]}, nil
 	case lib_define.DingTalkRobot:
 		return &dingtalk_robot.Application{AppID: appInfo[`app_id`], Secret: appInfo[`app_secret`]}, nil
+	case lib_define.AppWecomRobot:
+		return &wecom_robot.Application{AppID: appInfo[`app_id`]}, nil
 	}
 	return nil, errors.New(`app type not support`)
 }

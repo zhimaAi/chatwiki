@@ -16,6 +16,7 @@ const DialogueContent = `对话内容`
 const UserRequestIdentifier = `用户请求标识`
 const EmbeddedInTheWebsite = `嵌入网站`
 const OpenInterface = `开放接口`
+const ChatClawClientChannel = `ChatClawClient`
 const DefaultLibrary = `默认知识库`
 const MainMenu = `主菜单`
 const DefaultRobot = `默认机器人`

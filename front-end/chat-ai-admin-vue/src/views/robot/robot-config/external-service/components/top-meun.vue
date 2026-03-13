@@ -61,6 +61,12 @@ const items = ref([
     title: t('menu_wechat_customer_service')
   },
   {
+    key: 'WeComRobot',
+    id: 'WeComRobot',
+    label: t('menu_wecom_robot'),
+    title: t('menu_wecom_robot')
+  },
+  {
     key: 'FeishuRobot',
     id: 'FeishuRobot',
     label: t('menu_feishu_robot'),

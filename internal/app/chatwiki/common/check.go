@@ -25,6 +25,7 @@ import (
 )
 
 var InvalidLibraryImageError = errors.New("invalid library image")
+var InvalidLibraryImageVideoError = errors.New("invalid library image video")
 
 func CheckChatRequest(c *gin.Context, compatibilityXkf ...bool) (*define.ChatBaseParam, error) {
 	//source check
@@ -324,6 +325,39 @@ func CheckLibraryImage(images []string) (string, error) {
 	return string(jsonImages), nil
 }
 
+func CheckLibraryImageAndVideo(images []string) (string, error) {
+	//images pattern
+	imagesExtensions := strings.Join(define.ImageAllowExt, "|")
+	imagesPattern := `(?i)^\/upload\/chat_ai\/\d+\/library_image\/\d+\/[a-f0-9]{32}\.(` + imagesExtensions + `)$`
+	imagesRe := regexp.MustCompile(imagesPattern)
+	//video pattern
+	videoExtensions := strings.Join(define.VideoAllowExt, "|")
+	videoPattern := `(?i)^\/upload\/chat_ai\/\d+\/library_video\/\d+\/[a-f0-9]{32}\.(` + videoExtensions + `)$`
+	videoRe := regexp.MustCompile(videoPattern)
+
+	for _, image := range images {
+		ext := strings.ToLower(strings.TrimLeft(filepath.Ext(image), `.`))
+		if IsUrl(image) { //oss file
+			if !tool.InArrayString(ext, define.ImageAllowExt) && !tool.InArrayString(ext, define.VideoAllowExt) {
+				return ``, InvalidLibraryImageVideoError
+			}
+		} else { //local file
+			if !imagesRe.MatchString(image) && !videoRe.MatchString(image) {
+				return "", InvalidLibraryImageVideoError
+			}
+		}
+	}
+
+	jsonImages, err := json.Marshal(images)
+	if err != nil {
+		return "[]", err
+	}
+	if string(jsonImages) == "null" {
+		return "[]", nil
+	}
+	return string(jsonImages), nil
+}
+
 func CheckUserLogin(loginSwitch, expireTime int) bool {
 	if loginSwitch == define.SwitchOff || (expireTime < tool.Time2Int() && expireTime != 0) {
 		return true
@@ -532,8 +566,27 @@ func GetVoiceInMessage(message string, getLocalPath bool) (string, []string) {
 	return message, out
 }
 
-func GetMessageInMessage(message string, getLocalPath bool) (msg string, imgs []string, voices []string) {
+func GetVideoInMessage(message string, getLocalPath bool) (string, []string) {
+	videoRE := regexp.MustCompile(`!\[video]\((\S+).*\)`)
+	videos := videoRE.FindAllStringSubmatch(message, -1)
+	out := make([]string, len(videos))
+	for i := range out {
+		out[i] = videos[i][1]
+		if getLocalPath {
+			out[i] = GetFileByLink(out[i])
+		} else {
+			if !IsUrl(out[i]) {
+				out[i] = define.Config.WebService["api_domain"] + out[i]
+			}
+		}
+	}
+	message = videoRE.ReplaceAllString(message, "")
+	return message, out
+}
+
+func GetMessageInMessage(message string, getLocalPath bool) (msg string, imgs []string, voices []string, videos []string) {
 	msg, voices = GetVoiceInMessage(message, getLocalPath)
+	msg, videos = GetVideoInMessage(msg, getLocalPath)
 	msg, imgs = GetImgInMessage(msg, getLocalPath)
 	return
 }

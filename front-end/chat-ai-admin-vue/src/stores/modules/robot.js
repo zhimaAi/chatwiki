@@ -95,6 +95,7 @@ export const useRobotStore = defineStore('robot', () => {
     push_aeskey: '',
     push_token: '',
     push_wechat_kefu: '',
+    push_wecom_robot: '',
     show_type: 1,
     enable_question_optimize: 'false',
     enable_question_guide: 'false',
@@ -221,6 +222,7 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.push_token = data.push_token
     robotInfo.push_aeskey = data.push_aeskey
     robotInfo.push_wechat_kefu = data.push_wechat_kefu
+    robotInfo.push_wecom_robot = data.push_wecom_robot
     robotInfo.pc_domain = data.pc_domain
     robotInfo.chat_type = data.chat_type
     robotInfo.library_qa_direct_reply_score = data.library_qa_direct_reply_score

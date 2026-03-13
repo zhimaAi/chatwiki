@@ -13,6 +13,9 @@ const ImageAvatarLimitSize = 1024 * 1024    //1m
 const LibFileLimitSize = 100 * 1024 * 1024  //100MB
 const LibImageLimitSize = 2 * 1024 * 1024   //2M
 const ChatImageLimitSize = 10 * 1024 * 1024 //10M
+const VideoLimitSize = 20 * 1024 * 1024     //20M
+
+const VideoDingTalkAvatar = `internal/app/chatwiki/upload/default/dingtalk_robot_avatar.png`
 
 var ImageAllowExt = []string{`heic`, `gif`, `jfif`, `jpg`, `jpeg`, `jpe`, `png`, `swf`, `bmp`, `webp`}
 var LibFileAllowExt = []string{`pdf`, `docx`, `ofd`, `txt`, `md`, `xlsx`, `csv`, `html`}

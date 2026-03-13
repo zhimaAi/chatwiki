@@ -334,14 +334,17 @@ const saveForm = () => {
       }
       if (!isEdit.value) {
         if (formState.application_type == 0) {
-          router.push(
-            '/robot/config/basic-config?id=' + res.data.id + '&robot_key=' + res.data.robot_key
-          )
+          // router.push(
+          //   '/robot/config/basic-config?id=' + res.data.id + '&robot_key=' + res.data.robot_key
+          // )
+          window.open('/#/robot/config/basic-config?id=' + res.data.id + '&robot_key=' + res.data.robot_key)
+          show.value = false
+          emit('ok')
         } else {
           // message.info('按住Shift 滚动鼠标可左右移动画布，按住Ctrl 滚动鼠标可放大缩小画布', 6)
           window.open('/#/robot/config/workflow?id=' + res.data.id + '&robot_key=' + res.data.robot_key + '&show_tips=1')
           show.value = false
-           emit('ok')
+          emit('ok')
           // router.push('/robot/config/workflow?id=' + res.data.id + '&robot_key=' + res.data.robot_key)
         }
       } else {

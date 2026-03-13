@@ -11,6 +11,17 @@
     margin-top: 8px;
     min-height: 100px;
   }
+  video {
+    width: 100%;
+    height: 240px;
+    max-width: 480px;
+    max-height: 240px;
+    display: block;
+    margin-top: 8px;
+    border-radius: 8px;
+    background: #000;
+    object-fit: contain;
+  }
   p:last-child {
     margin-bottom: 0;
   }
@@ -38,7 +49,9 @@ const md = new CherryEngine({
   engine: {
     global: {
       classicBr: true,
-      flowSessionContext: true
+      flowSessionContext: true,
+      htmlWhiteList: 'video',
+      htmlAttrWhiteList: 'src|controls|preload|playsinline|webkit-playsinline|poster|class|muted|loop|autoplay'
     },
     syntax: {
       codeBlock: {

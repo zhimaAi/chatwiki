@@ -452,6 +452,9 @@ func init() {
 	/* trigger */
 	RegTriggerRoute()
 
+	/* ChatClaw */
+	RegChatClawRoute()
+
 	/** mcp square */
 	Route[http.MethodGet][`/manage/getMcpSquareTypeList`] = manage.GetMcpSquareTypeList
 	Route[http.MethodGet][`/manage/getMcpSquareList`] = manage.GetMcpSquareList

@@ -27,10 +27,12 @@ const AppMini = `mini_program`
 const AppWechatKefu = `wechat_kefu`
 const FeiShuRobot = `feishu_robot`
 const DingTalkRobot = `dingtalk_robot`
+const AppWecomRobot = `wecom_robot`
 
 const AppYunH5 = `yun_h5`
 const AppYunPc = `yun_pc`
 const AppOpenApi = `yun_open_api`
+const ChatClawClient = `chat_claw_client`
 
 var AppTypeList = []string{
 	AppOfficeAccount,
@@ -38,6 +40,7 @@ var AppTypeList = []string{
 	AppWechatKefu,
 	FeiShuRobot,
 	DingTalkRobot,
+	AppWecomRobot,
 }
 
 const PwdSetType = 1

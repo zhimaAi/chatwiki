@@ -28,6 +28,13 @@ type BridgeLibraryListReq struct {
 	ShowOpenDocs string `form:"show_open_docs"`
 }
 
+type BridgeChatClawLibraryListReq struct {
+	Type        string `form:"type"`
+	LibraryName string `form:"library_name"`
+	Ids         string `form:"ids"`
+	OnlyOpen    int    `form:"only_open"`
+}
+
 func BridgeGetLibraryList(adminUserId, userId int, lang string, req *BridgeLibraryListReq) ([]msql.Params, int, error) {
 	m := msql.Model(`chat_ai_library`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId))
@@ -91,7 +98,7 @@ func BridgeGetLibraryList(adminUserId, userId int, lang string, req *BridgeLibra
 		}
 	}
 	list, err := m.
-		Field(`id,type,access_rights,avatar,library_name,library_intro,avatar,graph_switch,graph_model_config_id,model_config_id,use_model,graph_use_model,create_time,group_id,official_app_id,sync_official_history_type,enable_cron_sync_official_content,sync_official_content_status,sync_official_content_last_err_msg,show_meta_source,show_meta_update_time,show_meta_create_time,show_meta_group`).
+		Field(`id,type,access_rights,avatar,library_name,library_intro,avatar,graph_switch,graph_model_config_id,model_config_id,use_model,graph_use_model,create_time,group_id,official_app_id,sync_official_history_type,enable_cron_sync_official_content,sync_official_content_status,sync_official_content_last_err_msg,show_meta_source,show_meta_update_time,show_meta_create_time,show_meta_group,chat_claw_switch_status`).
 		Order(`id desc`).
 		Select()
 	if err != nil {
@@ -151,6 +158,40 @@ func BridgeGetLibraryList(adminUserId, userId int, lang string, req *BridgeLibra
 	}
 
 	return newList, 0, nil
+}
+
+func BridgeGetChatClawLibraryList(adminUserId, userId int, lang string, req *BridgeChatClawLibraryListReq) ([]msql.Params, int, error) {
+	if req == nil {
+		req = &BridgeChatClawLibraryListReq{}
+	}
+	if !tool.InArrayInt(req.OnlyOpen, []int{define.SwitchOff, define.SwitchOn}) {
+		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `only_open`))
+	}
+	if req.Type != `` {
+		t := cast.ToInt(req.Type)
+		if !tool.InArrayInt(t, []int{define.GeneralLibraryType, define.QALibraryType, define.OfficialLibraryType}) {
+			return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `type`))
+		}
+	}
+	baseReq := &BridgeLibraryListReq{
+		Type:        req.Type,
+		LibraryName: req.LibraryName,
+		Ids:         req.Ids,
+	}
+	list, httpStatus, err := BridgeGetLibraryList(adminUserId, userId, lang, baseReq)
+	if httpStatus != 0 {
+		return list, httpStatus, err
+	}
+	if req.OnlyOpen != define.SwitchOn {
+		return list, 0, nil
+	}
+	out := make([]msql.Params, 0, len(list))
+	for _, one := range list {
+		if cast.ToInt(one[`chat_claw_switch_status`]) == define.SwitchOn {
+			out = append(out, one)
+		}
+	}
+	return out, 0, nil
 }
 
 type BridgeLibraryListGroupReq struct {

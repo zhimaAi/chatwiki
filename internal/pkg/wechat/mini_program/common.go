@@ -19,6 +19,7 @@ func miniCustomMessageSend(app *miniProgram.MiniProgram, push *lib_define.PushMe
 		`msgtype`: msgType,
 		msgType:   msg,
 	}
+
 	if push != nil && len(push.Robot) > 0 && cast.ToBool(push.Robot[`show_ai_msg_mini`]) {
 		data[`aimsgcontext`] = object.HashMap{`is_ai_msg`: 1} //消息下方增加灰色 wording “内容由第三方AI生成”
 	}

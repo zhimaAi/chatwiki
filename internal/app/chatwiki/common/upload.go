@@ -17,9 +17,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/xuri/excelize/v2"
-
 	"github.com/go-shiori/go-readability"
+	"github.com/xuri/excelize/v2"
 	"github.com/zhimaAi/go_tools/curl"
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/common"

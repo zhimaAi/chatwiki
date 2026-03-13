@@ -137,6 +137,15 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/03/13**
+
+1.ChatWiki supports authorized ChatClaw login<br/>
+2.Knowledge Base: Support video uploads, and robots can reply with videos<br/>
+3.Robot/Workflow: External services support WeCom robot<br/>
+4.Fixed parameter validation error when publishing scheduled triggers<br/>
+5.Workflow Publishing: Channel links displayed in the publish window<br/>
+6.ChatClaw client token management and forced logout<br/>
+
 **2026/03/06**
 
 1. Multimodal content display compatibility in conversation records<br/>
@@ -172,20 +181,6 @@ For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLo
 15. Knowledge Base: Merge similar Q&A<br/>
 16. Model Management: Model management supports 302.AI<br/>
 17. Unknown Questions: Support viewing chat records for each unknown question<br/>
-
-**2026/02/06**
-
-1. Optimized thumbnail generation for knowledge base files.<br/>
-2. [STD] Real-time conversation: Supports batch handoff to human客服.<br/>
-3. Fixed issue where types from Excel imports were not correctly handled when deleting QA knowledge bases.<br/>
-4. [STD] Custom models: Support for Tongyi Qianwen/Wanxiang image models.<br/>
-5. Knowledge base: Word document parsing now supports formula import.<br/>
-6. [STD] Official website: Added official account AI agent tab.<br/>
-7. New plugin: DingTalk multi-dimensional table.<br/>
-8. Added privacy policy consent reminder.<br/>
-9. Workflow: Automatically locates the error card when testing/publishing validation fails.<br/>
-10. Trigger count: Statistics module filters out deleted content.<br/>
-11. Workflow: Code node now supports running Python code.<br/>
 
 ## License
 

@@ -1,0 +1,20 @@
+{
+  "title": "Bind ChatClaw",
+  "col_id": "ID",
+  "col_os": "Operating System",
+  "col_os_version": "OS Version",
+  "col_issue_time": "Issue Time",
+  "col_expire_time": "Expire Time",
+  "col_revoke_time": "Revoke Time",
+  "col_status": "Status",
+  "col_action": "Action",
+  "status_active": "Active",
+  "status_revoked": "Revoked",
+  "status_expired": "Expired",
+  "action_force_offline": "Force Offline",
+  "confirm_force_offline_title": "Confirm Force Offline",
+  "confirm_force_offline_content": "This token will become invalid immediately and subsequent requests will be rejected.",
+  "msg_force_offline_success": "Operation succeeded",
+  "cancel": "Cancel",
+  "empty": "No data"
+}

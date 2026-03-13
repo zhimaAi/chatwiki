@@ -27,6 +27,18 @@
     margin-top: 8px;
     min-height: 100px;
   }
+  video {
+    width: 100%;
+    max-width: 480px;
+    max-height: 320px;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    display: block;
+    margin-top: 8px;
+    border-radius: 12px;
+    background: #000;
+    object-fit: contain;
+  }
   p:last-child {
     margin-bottom: 0 !important;
   }
@@ -62,7 +74,9 @@ const md = new CherryEngine({
   engine: {
     global: {
       classicBr: true,
-      flowSessionContext: true
+      flowSessionContext: true,
+      htmlWhiteList: 'video',
+      htmlAttrWhiteList: 'src|controls|preload|playsinline|webkit-playsinline|poster|class|muted|loop|autoplay'
     },
     syntax: {
       codeBlock: {
@@ -135,3 +149,4 @@ function bindLinkEvents() {
 
 
 </script>
+

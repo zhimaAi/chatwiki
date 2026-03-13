@@ -72,7 +72,7 @@ router.beforeEach(async (to, from, next) => {
   let { userInfo, getUserInfo } = userStore
   let { getPermissionList, checkPermission } = permissionStore
 
-  if (to.path == '/set_token') {
+  if (to.path == '/set_token' || to.path == '/chatclaw/login') {
     next()
     return
   }

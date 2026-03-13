@@ -141,6 +141,10 @@ func CloseOpenApiReceiver(in *ChatInParam, out *ChatOutParam) pipeline.PipeResul
 
 // GetDialogueId validate or create dialogue
 func GetDialogueId(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	// When new session is requested, force creating new dialogue to avoid misuse or non-zero DialogueId
+	if in.params.ChatBaseParam != nil && in.params.UseNewDialogue != 0 {
+		in.params.DialogueId = 0
+	}
 	if in.params.DialogueId > 0 {
 		dialogue, err := common.GetDialogueInfo(in.params.DialogueId, in.params.AdminUserId, cast.ToInt(in.params.Robot[`id`]), in.params.Openid)
 		if err != nil {

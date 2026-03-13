@@ -22,6 +22,7 @@ func GetChannelList(userId int, robotId uint) []SessionChannel {
 		{AppType: lib_define.AppYunH5, AppName: `WebAPP`},
 		{AppType: lib_define.AppYunPc, AppName: lib_define.EmbeddedInTheWebsite},
 		{AppType: lib_define.AppOpenApi, AppName: lib_define.OpenInterface},
+		{AppType: lib_define.ChatClawClient, AppName: lib_define.ChatClawClientChannel},
 	}
 	//wechat_app
 	if robotId > 0 {

@@ -4,6 +4,7 @@
   "tip_unverified_supported": "Unverified Supported",
   "menu_wechat_mini_program": "WeChat Mini Program",
   "menu_wechat_customer_service": "WeChat Customer Service",
+  "menu_wecom_robot": "WeCom Robot",
   "menu_feishu_robot": "Feishu Robot",
   "menu_dingtalk_robot": "DingTalk Robot"
 }

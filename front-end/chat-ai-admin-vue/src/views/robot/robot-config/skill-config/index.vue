@@ -158,6 +158,7 @@ const handleRemoveCheckedLibrary = (item) => {
 }
 
 const onChangeLibrarySelected = (checkedList) => {
+  getRobotData()
   formState.work_flow_ids = [...checkedList]
 
   onSave()

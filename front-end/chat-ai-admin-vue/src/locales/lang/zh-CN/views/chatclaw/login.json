@@ -1,0 +1,10 @@
+{
+  "subtitle": "登录以授权桌面客户端",
+  "pleaseUsername": "请输入用户名",
+  "pleasePassword": "请输入密码",
+  "login": "登录",
+  "loginSuccess": "登录成功",
+  "openingApp": "正在唤起 ChatClaw 桌面客户端，请稍候...",
+  "openAppManually": "手动打开客户端",
+  "manualOpenTip": "如果客户端未自动打开，请点击下方按钮手动打开"
+}

@@ -55,6 +55,7 @@ type (
 		Answer         string               `json:"answer"`
 		Image          []string             `json:"image,omitempty"`
 		Voice          []string             `json:"voice,omitempty"`
+		Video          []string             `json:"video,omitempty"`
 		MetaData       ChatMessagesMetaData `json:"metadata,omitempty"`
 		QuoteLib       any                  `json:"quote_lib,omitempty"`
 		QuoteFile      any                  `json:"quote_file,omitempty"`
@@ -136,11 +137,12 @@ func ChatMessages(c *gin.Context) {
 				CompletionTokens: cast.ToInt(message["completion_tokens"]),
 			}},
 		}
-		msg, imgs, voices := common.GetMessageInMessage(res.Answer, false)
-		if len(imgs) > 0 || len(voices) > 0 {
+		msg, imgs, voices, videos := common.GetMessageInMessage(res.Answer, false)
+		if len(imgs) > 0 || len(voices)|len(videos) > 0 {
 			res.Image = imgs
 			res.Voice = voices
 			res.Answer = msg
+			res.Video = videos
 		}
 		if params.QuoteLib {
 			_ = tool.JsonDecodeUseNumber(message[`quote_lib`], &res.QuoteLib)

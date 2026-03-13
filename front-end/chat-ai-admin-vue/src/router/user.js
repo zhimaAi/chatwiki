@@ -40,6 +40,15 @@ export default {
           }
         },
         {
+          path: '/user/chatclaw-token-log',
+          name: 'userChatclawTokenLog',
+          component: () => import('../views/user/chatclaw-token-log/index.vue'),
+          meta: {
+            title: 'routes.basic.chatclaw_token_log',
+            activeMenu: '/user'
+          }
+        },
+        {
           path: '/user/usetoken',
           name: 'userUsetoken',
           component: () => import('../views/user/usetoken/index.vue'),

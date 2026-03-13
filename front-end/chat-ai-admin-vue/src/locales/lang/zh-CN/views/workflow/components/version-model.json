@@ -1,0 +1,11 @@
+{
+  "title_publish": "发布",
+  "btn_publish_now": "立即发布",
+  "label_version_number": "版本号",
+  "label_version_description": "版本描述",
+  "ph_version_desc": "请输入版本描述",
+  "msg_publish_success": "发布成功",
+  "msg_publish_info_prefix": "发布后可通过链接访问应用：",
+  "msg_publish_info_suffix": "。可对接微信公众号，钉钉机器人实现私信自动回复",
+  "btn_view_details": "查看详情"
+}

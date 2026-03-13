@@ -450,6 +450,7 @@ defineExpose({
       font-weight: 400;
       white-space: pre-wrap;
       width: auto;
+      word-break: break-all;
     }
   }
 

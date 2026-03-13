@@ -1,6 +1,6 @@
 <template>
   <div class="upload-box">
-    <!-- <input type="text" v-model="inputVal" @paste="pasteUpload()"> -->
+    <VideoPreviewModal ref="videoPreviewModalRef" />
     <a-input class="hidden-input" ref="inputRef" @paste="pasteUpload"></a-input>
     <div @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
       <a-upload-dragger
@@ -9,21 +9,22 @@
         :multiple="false"
         list-type="picture"
         :show-upload-list="false"
-        accept=".jpg,.png,.jpeg"
+        :accept="accept"
         :before-upload="beforeUpload"
         @drop="handleDrop"
       >
         <div class="img-list-box" @click.stop>
-          <div class="img-item" v-for="(item, index) in imageUrl" :key="index">
+          <div class="img-item" v-for="(item, index) in mediaList" :key="index">
             <div class="mask-box">
-              <EyeOutlined @click="preview(item)" />
-              <DeleteOutlined @click="del(index)" />
+              <EyeOutlined @click.stop="preview(item)" />
+              <DeleteOutlined @click.stop="del(index)" />
             </div>
-            <img :src="item" alt="" />
+            <video v-if="isVideoUrl(item)" :src="item" muted preload="metadata"></video>
+            <img v-else :src="item" alt="" />
           </div>
         </div>
-        <p class="upload-text" :class="{ 'center-content': imageUrl.length == 0 }">
-          {{ t('msg_upload_hint') }}
+        <p class="upload-text" :class="{ 'center-content': mediaList.length == 0 }">
+          {{ hintText }}
         </p>
       </a-upload-dragger>
     </div>
@@ -31,72 +32,185 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import { InboxOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { computed, ref, watch } from 'vue'
+import { EyeOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { uploadFile } from '@/api/app'
 import { api as viewerApi } from 'v-viewer'
 import { useI18n } from '@/hooks/web/useI18n'
+import VideoPreviewModal from './video-preview-modal.vue'
 
 const { t } = useI18n('components.upload-img.index')
 const emit = defineEmits(['update:value'])
 const fileList = ref([])
-const imageUrl = ref([])
-const inputVal = ref('')
-const maxUploadNum = 3
+const mediaList = ref([])
+const videoPreviewModalRef = ref(null)
 const props = defineProps({
   value: {
     type: [String, Array],
     default: ''
+  },
+  accept: {
+    type: String,
+    default: '.jpg,.png,.jpeg'
+  },
+  maxUploadNum: {
+    type: Number,
+    default: 3
+  },
+  allowVideo: {
+    type: Boolean,
+    default: false
+  },
+  imageMaxSizeMb: {
+    type: Number,
+    default: 2
+  },
+  videoMaxSizeMb: {
+    type: Number,
+    default: 20
+  },
+  uploadCategory: {
+    type: String,
+    default: 'library_image'
+  },
+  uploadHint: {
+    type: String,
+    default: ''
   }
 })
+
+const normalizeToArray = (val) => {
+  if (Array.isArray(val)) {
+    return val.filter(Boolean)
+  }
+  if (typeof val === 'string' && val) {
+    return [val]
+  }
+  return []
+}
+
 watch(
   () => props.value,
   (val) => {
-    imageUrl.value = val
+    mediaList.value = normalizeToArray(val)
   },
   {
     immediate: true
   }
 )
-const beforeUpload = (file) => {
-  const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
 
-  if (!isJpgOrPng) {
-    message.error(t('msg_invalid_format'))
+const hintText = computed(() => {
+  if (props.uploadHint) return props.uploadHint
+  if (props.allowVideo) {
+    return t('msg_upload_hint_with_video')
+  }
+  return t('msg_upload_hint')
+})
+
+const allowedExts = computed(() => {
+  return props.accept
+    .split(',')
+    .map((ext) => ext.trim().toLowerCase().replace('.', ''))
+    .filter(Boolean)
+})
+const extMimeMap = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  mp4: 'video/mp4'
+}
+const allowedMimes = computed(() => {
+  return allowedExts.value.map((ext) => extMimeMap[ext]).filter(Boolean)
+})
+
+const getFileExt = (file) => {
+  const name = file?.name || ''
+  const parts = name.split('.')
+  if (parts.length <= 1) return ''
+  return parts.pop().toLowerCase()
+}
+
+const isVideoFile = (file) => {
+  const ext = getFileExt(file)
+  return (file?.type || '').startsWith('video/') || ext === 'mp4'
+}
+
+const validateFile = (file) => {
+  const ext = getFileExt(file)
+  const mimeType = (file?.type || '').toLowerCase()
+  const isAccepted = allowedExts.value.includes(ext) || allowedMimes.value.includes(mimeType)
+  if (!isAccepted) {
+    message.error(props.allowVideo ? t('msg_invalid_media_format') : t('msg_invalid_format'))
     return false
   }
 
-  const isLt2M = file.size / 1024 < 1024 * 2
-  if (imageUrl.value.length >= maxUploadNum) {
-    return message.error(t('msg_max_limit'))
-  }
-  if (!isLt2M) {
-    message.error(t('msg_size_limit'))
+  if (mediaList.value.length >= props.maxUploadNum) {
+    message.error(props.allowVideo ? t('msg_max_file_limit', { count: props.maxUploadNum }) : t('msg_max_limit'))
     return false
   }
+
+  const maxSizeMb = isVideoFile(file) ? props.videoMaxSizeMb : props.imageMaxSizeMb
+  const isValidSize = file.size / 1024 / 1024 <= maxSizeMb
+  if (!isValidSize) {
+    message.error(
+      isVideoFile(file)
+        ? t('msg_video_size_limit', { size: props.videoMaxSizeMb })
+        : t('msg_image_size_limit', { size: props.imageMaxSizeMb })
+    )
+    return false
+  }
+  return true
+}
+
+const getUploadCategory = (file) => {
+  if (isVideoFile(file)) {
+    return 'library_video'
+  }
+  const mimeType = (file?.type || '').toLowerCase()
+  if (mimeType.startsWith('image/')) {
+    return 'library_image'
+  }
+  return props.uploadCategory
+}
+
+const uploadOne = (file) => {
   uploadFile({
-    category: 'library_image',
+    category: getUploadCategory(file),
     file
   }).then((res) => {
-    imageUrl.value.push(res.data.link)
-    emit('update:value', imageUrl.value)
+    mediaList.value.push(res.data.link)
+    emit('update:value', [...mediaList.value])
   })
+}
+
+const beforeUpload = (file) => {
+  if (!validateFile(file)) {
+    return false
+  }
+  uploadOne(file)
   return false
 }
+
 const preview = (img) => {
+  if (isVideoUrl(img)) {
+    videoPreviewModalRef.value?.show(img)
+    return
+  }
   viewerApi({
     images: [img]
   })
 }
 const del = (index) => {
-  imageUrl.value.splice(index, 1)
+  mediaList.value.splice(index, 1)
+  emit('update:value', [...mediaList.value])
 }
 
 let isUploading = false
 const pasteUpload = async (e) => {
-  if (imageUrl.value.length >= maxUploadNum) {
-    return message.error(t('msg_max_limit'))
+  if (mediaList.value.length >= props.maxUploadNum) {
+    message.error(props.allowVideo ? t('msg_max_file_limit', { count: props.maxUploadNum }) : t('msg_max_limit'))
+    return
   }
   if (!(e.clipboardData && e.clipboardData.items)) {
     message.error(t('msg_paste_not_supported'))
@@ -112,27 +226,28 @@ const pasteUpload = async (e) => {
       let file = null
       // 搜索剪切板items
       for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf('image') !== -1) {
+        const itemType = items[i].type || ''
+        const isImage = itemType.startsWith('image/')
+        const isVideo = props.allowVideo && itemType === 'video/mp4'
+        if (isImage || isVideo) {
           file = items[i].getAsFile()
           break
         }
       }
-      inputVal.value = ''
       if (file) {
+        if (!validateFile(file)) {
+          return
+        }
         e.preventDefault()
         isUploading = true
-        uploadFile({
-          category: 'library_image',
-          file
-        }).then((res) => {
+        uploadFile({ category: getUploadCategory(file), file }).then((res) => {
           isUploading = false
-          imageUrl.value.push(res.data.link)
-          emit('update:value', imageUrl.value)
+          mediaList.value.push(res.data.link)
+          emit('update:value', [...mediaList.value])
         })
       } else {
-        message.error(t('msg_paste_invalid_image'))
+        message.error(props.allowVideo ? t('msg_paste_invalid_media') : t('msg_paste_invalid_image'))
         isUploading = false
-        inputVal.value = ''
       }
     }
   } catch (e) {
@@ -143,14 +258,17 @@ const pasteUpload = async (e) => {
 
 const inputRef = ref(null)
 const handleMouseEnter = ()=>{
-  // 移入鼠标 将input聚焦
-  inputRef.value.focus();
+  inputRef.value?.focus()
 }
 const handleMouseLeave = ()=>{
-  // 移出鼠标 将input 取消焦点
-  inputRef.value.blur();
+  inputRef.value?.blur()
 }
-function handleDrop(e) {
+function handleDrop() {
+}
+
+const isVideoUrl = (url) => {
+  if (!url || typeof url !== 'string') return false
+  return /\.mp4(\?|#|$)/i.test(url) || /library_video/i.test(url) || /\/video\//i.test(url)
 }
 </script>
 
@@ -221,10 +339,18 @@ function handleDrop(e) {
       gap: 8px;
       opacity: 0;
       transition: all 0.3s;
+      z-index: 2;
     }
     img {
       width: 100%;
       height: 100%;
+      object-fit: cover;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #000;
     }
   }
 }

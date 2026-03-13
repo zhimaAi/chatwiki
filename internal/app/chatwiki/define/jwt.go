@@ -3,6 +3,7 @@
 package define
 
 const (
-	JwtKey = `a3kXJqb21VWU60oeN7HZOsDxEBfwhCnL`
-	JwtTtl = 86400
+	JwtKey         = `a3kXJqb21VWU60oeN7HZOsDxEBfwhCnL`
+	JwtTtl         = 86400
+	ChatClawJwtTtl = 86400 * 90
 )
