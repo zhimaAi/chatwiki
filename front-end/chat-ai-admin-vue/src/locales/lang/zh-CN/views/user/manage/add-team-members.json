@@ -1,7 +1,7 @@
 {
   "click_to_replace_tip": "点击替换，建议尺寸为100*100px，大小不超过100kb",
-  "member_nickname": "成员昵称",
-  "input_nickname": "请输入昵称",
+  "member_nickname": "成员名称",
+  "input_nickname": "请输入名称",
   "login_account": "登录账号",
   "account_format_tip": "账号只能为字母、数字、“-”、“_”,“.”的组合",
   "member_role": "成员角色",

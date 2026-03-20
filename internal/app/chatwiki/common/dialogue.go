@@ -167,5 +167,11 @@ func GetSessionIdNoCreate(dialogueId int) (int, error) {
 	if sessionId := cast.ToInt(sessionId); sessionId > 0 {
 		return sessionId, nil
 	}
-	return 0, nil
+	sessionId, err = msql.Model(`chat_ai_session`, define.Postgres).
+		Where(`dialogue_id`, cast.ToString(dialogueId)).Value(`id`)
+	if err != nil {
+		logs.Error(err.Error())
+		return 0, nil
+	}
+	return cast.ToInt(sessionId), nil
 }

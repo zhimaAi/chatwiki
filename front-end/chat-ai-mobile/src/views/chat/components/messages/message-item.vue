@@ -4,6 +4,7 @@
   display: flex;
   padding: 48px 12px 0px;
   margin: 0 auto;
+  color: #1a1a1a;
 
   .markdown-content{
     white-space: normal !important;

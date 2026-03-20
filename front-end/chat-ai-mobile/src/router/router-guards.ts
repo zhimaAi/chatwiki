@@ -4,6 +4,7 @@ import { useChatStore } from '@/stores/modules/chat'
 import type { Chat } from '@/stores/modules/chat'
 import { useLocaleStoreWithOut } from '@/stores/modules/locale'
 import { useLocale } from '@/hooks/web/useLocale'
+import { getOpenid } from '@/utils/index'
 
 // 辅助函数：从路由的查询参数中提取Chat数据  
 function extractChatDataFromQuery(query: any): Partial<Chat> {  
@@ -54,9 +55,21 @@ export function createRouterGuards(router: Router) {
     // 导航守卫  
     router.beforeEach(async (to, from, next) => {  
         const data = extractChatDataFromQuery(to.query);  
+        const initialRobotKey = String(data.robot_key || chatStore.robot.robot_key || '')
+        const initialOpenid = String(data.openid || chatStore.robot.openid || getOpenid() || '')
+
+        if (initialRobotKey) {
+            chatStore.robot.robot_key = initialRobotKey
+        }
+        if (initialOpenid) {
+            chatStore.robot.openid = initialOpenid
+            chatStore.openid = initialOpenid
+        }
 
         if (shouldRedirect(to)) {  
             next();  
+        } else if (to.path.startsWith('/chat')) {
+            next();
         } else {  
             if (chatStore.robot.id) {  
                 next();  

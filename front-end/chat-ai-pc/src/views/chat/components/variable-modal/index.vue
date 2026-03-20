@@ -263,12 +263,19 @@ const handleSave = async (values) => {
     await formRef.value?.validate()
 
     let chat_prompt_variables = getPostData()
-    let variables_key = `chat_prompt_variables_${query.robot_key}`
+    let variables_key = `chat_prompt_variables_${query.robot_key || chatStore.robot.robot_key}`
+    const dialogue_id = Number(chatStore.dialogue_id || 0)
 
-    if (isEdit.value) {
+    if (chatStore.chat_variables) {
+      chatStore.chat_variables.need_fill_variable = false
+      chatStore.chat_variables.fill_variables = chat_prompt_variables
+    }
+
+    if (dialogue_id > 0) {
       chatStore.handleEditVariables({
         chat_prompt_variables
       })
+      localStorage.removeItem(variables_key)
     } else {
       localStorage.setItem(variables_key, JSON.stringify(chat_prompt_variables))
     }

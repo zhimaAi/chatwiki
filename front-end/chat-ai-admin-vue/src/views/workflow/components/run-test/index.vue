@@ -173,19 +173,31 @@
             <div class="preview-content-block">
               <div class="title-block">{{ t('label_input') }}<CopyOutlined @click="handleCopy('input')" /></div>
               <div class="preview-code-box">
-                <vue-json-pretty :data="cuttentItem.input" />
+                <template v-if="isHugeData(cuttentItem.input)">
+                  <div class="large-data-tip">{{ t('msg_data_too_large') }}</div>
+                  <textarea class="large-data-textarea" readonly :value="getJsonText(cuttentItem.input)" />
+                </template>
+                <vue-json-pretty v-else :data="cuttentItem.input" v-bind="getJsonViewerProps(cuttentItem.input)" />
               </div>
             </div>
             <div class="preview-content-block">
               <div class="title-block">{{ t('label_output') }}<CopyOutlined @click="handleCopy('node_output')" /></div>
               <div class="preview-code-box">
-                <vue-json-pretty :data="cuttentItem.node_output" />
+                <template v-if="isHugeData(cuttentItem.node_output)">
+                  <div class="large-data-tip">{{ t('msg_data_too_large') }}</div>
+                  <textarea class="large-data-textarea" readonly :value="getJsonText(cuttentItem.node_output)" />
+                </template>
+                <vue-json-pretty v-else :data="cuttentItem.node_output" v-bind="getJsonViewerProps(cuttentItem.node_output)" />
               </div>
             </div>
             <div class="preview-content-block">
               <div class="title-block">{{ t('label_run_log') }}<CopyOutlined @click="handleCopy('output')" /></div>
               <div class="preview-code-box">
-                <vue-json-pretty :data="cuttentItem.output" />
+                <template v-if="isHugeData(cuttentItem.output)">
+                  <div class="large-data-tip">{{ t('msg_data_too_large') }}</div>
+                  <textarea class="large-data-textarea" readonly :value="getJsonText(cuttentItem.output)" />
+                </template>
+                <vue-json-pretty v-else :data="cuttentItem.output" v-bind="getJsonViewerProps(cuttentItem.output)" />
               </div>
             </div>
           </template>
@@ -560,6 +572,38 @@ function deepEqual(a, b) {
   return JSON.stringify(a) === JSON.stringify(b)
 }
 
+// ---- JSON 数据量安全渲染辅助 ----
+const JSON_COLLAPSE_THRESHOLD = 5 * 1024    // 5 KB  → 折叠到 depth=2
+const JSON_VIRTUAL_THRESHOLD  = 100 * 1024  // 100 KB → 开启虚拟滚动
+const JSON_HUGE_THRESHOLD     = 500 * 1024  // 500 KB → 降级为纯文本
+
+function getJsonSize(data) {
+  if (data == null) return 0
+  try { return JSON.stringify(data).length } catch { return 0 }
+}
+
+function isHugeData(data) {
+  return getJsonSize(data) > JSON_HUGE_THRESHOLD
+}
+
+/** 根据数据大小返回 vue-json-pretty 的合适 props */
+function getJsonViewerProps(data) {
+  const size = getJsonSize(data)
+  if (size > JSON_VIRTUAL_THRESHOLD) {
+    return { deep: 1, virtual: true, height: 320, showLength: true }
+  }
+  if (size > JSON_COLLAPSE_THRESHOLD) {
+    return { deep: 2, showLength: true }
+  }
+  return { deep: 3, showLength: true }
+}
+
+function getJsonText(data) {
+  if (data == null) return ''
+  try { return JSON.stringify(data, null, 2) } catch { return String(data) }
+}
+// ---- end ----
+
 function buildStorageOverrides() {
   const overrides = {}
   diy_global.value.forEach((item) => {
@@ -821,6 +865,34 @@ defineExpose({
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 14px;
+}
+
+.large-data-tip {
+  font-size: 12px;
+  color: #faad14;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 4px;
+}
+
+.large-data-textarea {
+  width: 100%;
+  min-height: 280px;
+  max-height: 400px;
+  resize: vertical;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #333;
+  background: #fafafa;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 8px;
+  overflow: auto;
+  white-space: pre;
+  outline: none;
 }
 
 </style>

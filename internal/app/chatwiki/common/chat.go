@@ -293,6 +293,9 @@ func CheckQaDirectReply(list []msql.Params, robot msql.Params) (string, bool) {
 				if tool.InArrayString(ext, define.VideoAllowExt) {
 					content += fmt.Sprintf("\n![video](%s)", image)
 				} else {
+					if !IsUrl(image) { // if it is not a url add the domain name
+						image = define.Config.WebService[`image_domain`] + image
+					}
 					content += fmt.Sprintf("\n![img](%s)", image)
 				}
 			}

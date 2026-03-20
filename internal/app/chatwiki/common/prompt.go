@@ -146,6 +146,9 @@ func FormatSystemPrompt(lang string, prompt string, list []msql.Params) (string,
 			if tool.InArrayString(ext, define.VideoAllowExt) {
 				imgs += fmt.Sprintf("\n![video](%s)", image)
 			} else {
+				if !IsUrl(image) { // if it is not a url add the domain name
+					image = define.Config.WebService[`image_domain`] + image
+				}
 				imgs += fmt.Sprintf("\n![image](%s)", image)
 			}
 		}

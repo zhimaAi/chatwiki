@@ -57,6 +57,8 @@ export function createRouterGuards(router: Router) {
   
         if (shouldRedirect(to)) {  
             next();  
+        } else if (to.path.startsWith('/chat')) {
+            next();
         } else {  
             if (chatStore.robot.id) {  
                 next();  

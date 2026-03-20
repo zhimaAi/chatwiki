@@ -281,7 +281,8 @@
 
 <script setup lang="ts">
 import type { Message } from './types'
-import { getUuid } from '@/utils/index.js'
+import type { Chat } from '@/stores/modules/chat'
+import { getOpenid, getUuid } from '@/utils/index.js'
 import { checkChatRequestPermission } from '@/api/robot/index'
 import { useRoute } from 'vue-router'
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
@@ -314,6 +315,19 @@ import type { LocaleType } from '@/locales/config'
 
 const { windowWidth } = useWindowWidth()
 const route = useRoute()
+
+const getRouteChatData = (): Chat => {
+  const query = route.query || {}
+
+  return {
+    openid: String(query.openid || getOpenid()),
+    robot_key: String(query.robot_key || ''),
+    avatar: String(query.avatar || ''),
+    name: String(query.name || ''),
+    nickname: String(query.nickname || ''),
+    dialogue_id: Number(query.dialogue_id) || 0
+  }
+}
 
 type MessageListComponent = {
   scrollToMessage: (id: number | string) => void
@@ -441,7 +455,11 @@ const onScrollEnd = () => {
   isShowBottomBtn.value = false
 }
 
-const init = async () => {
+const loadCurrentDialogueMessages = async () => {
+  if (!dialogue_id.value) {
+    return
+  }
+
   isAllowedScrollToBottom = true
 
   let res = await onGetChatMessage()
@@ -577,10 +595,11 @@ const onShowLogin = () => {
 }
 
 const checkLogin = async () => {
+  const chatData = getRouteChatData()
   //检查是否含有敏感词
   let result = await checkChatRequestPermission({
-    robot_key: robot.robot_key,
-    openid: robot.openid,
+    robot_key: robot.robot_key || chatData.robot_key,
+    openid: robot.openid || chatData.openid,
     question: ''
   })
 
@@ -607,8 +626,11 @@ const checkLogin = async () => {
   userStore.setLoginStatus(true)
 
   if (result.data && result.data.words) {
-    return showToast(t('msg_sensitive_word', { words: result.data.words.join(';') }))
+    showToast(t('msg_sensitive_word', { words: result.data.words.join(';') }))
+    return false
   }
+
+  return true
 }
 
 const handleToggleReasonProcess = (msgId: number) => {
@@ -716,9 +738,23 @@ const initChatPage = async () => {
     return
   }
 
-  await checkLogin()
-  init()
-  getMyChatList()
+  const canInitChat = await checkLogin()
+  if (canInitChat === false) {
+    return
+  }
+
+  const chatData = getRouteChatData()
+
+  await getMyChatList(chatData.robot_key, chatData.openid)
+
+  const initialDialogueId = chatData.dialogue_id || Number(chatStore.myChatList?.[0]?.id) || 0
+
+  await createChat({
+    ...chatData,
+    dialogue_id: initialDialogueId
+  })
+
+  await loadCurrentDialogueMessages()
 
   emitter.on('updateAiMessage', onUpdateAiMessage)
   on('message', onUpdateAiMessage)

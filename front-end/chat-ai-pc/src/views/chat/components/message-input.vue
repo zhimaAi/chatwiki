@@ -207,11 +207,15 @@ const deleteFile = (index) => {
 }
 
 const disabled = computed(() => {
+  if (props.loading) {
+    return true
+  }
+
   if(props.fileList.length > 0){
     return false
   }
 
-  return props.loading || props.value.trim().length === 0
+  return props.value.trim().length === 0
 })
 
 const onChange = (val: string) => {
