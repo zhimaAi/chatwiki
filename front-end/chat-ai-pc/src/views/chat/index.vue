@@ -244,7 +244,8 @@
 
 <script setup lang="ts">
 import type { Message } from './types'
-import { getUuid } from '@/utils/index'
+import type { Chat } from '@/stores/modules/chat'
+import { getOpenid, getUuid } from '@/utils/index'
 import { useI18n } from '@/hooks/web/useI18n'
 import { useLocale } from '@/hooks/web/useLocale'
 import { useLocaleStoreWithOut } from '@/stores/modules/locale'
@@ -252,6 +253,7 @@ import { checkChatRequestPermission } from '@/api/robot/index'
 import { postInit } from '@/event/postMessage'
 import { ref, onMounted, onUnmounted, toRaw, computed, watch } from 'vue'
 import { showToast } from 'vant'
+import { useRoute } from 'vue-router'
 import { useWindowWidth } from './useWindowWidth'
 import { storeToRefs } from 'pinia'
 import { useEventBus } from '@/hooks/event/useEventBus'
@@ -279,6 +281,23 @@ interface LeftSideBarRefState {
   handleShowH5Chat: any
 }
 const { windowWidth } = useWindowWidth()
+const route = useRoute()
+
+const getRouteChatData = (): Chat => {
+  const query = route.query || {}
+
+  return {
+    isOpen: false,
+    unreadNumber: 0,
+    openid: String(query.openid || getOpenid()),
+    robot_key: String(query.robot_key || ''),
+    avatar: String(query.avatar || ''),
+    name: String(query.name || ''),
+    nickname: String(query.nickname || ''),
+    dialogue_id: Number(query.dialogue_id) || 0
+  }
+}
+
 const isMobileDevice = computed(() => {
   return windowWidth.value <= 500
 })
@@ -387,7 +406,18 @@ const SDKInit = (data: any) => {
 const init = async () => {
   isAllowedScrollToBottom = true
 
-  let res = await onGetChatMessage()
+  const chatData = getRouteChatData()
+
+  await getMyChatList(chatData.robot_key, chatData.openid)
+
+  const initialDialogueId = chatData.dialogue_id || Number(chatStore.myChatList?.[0]?.id) || 0
+
+  await createChat({
+    ...chatData,
+    dialogue_id: initialDialogueId
+  })
+
+  let res = dialogue_id.value ? await onGetChatMessage() : null
 
   if (res) {
     handleMessageListScrollToBottom()
@@ -417,6 +447,10 @@ const sendMultipleMessage = (messages: any[]) => {
 }
 
 const onSendMesage = async (content: any) => {
+  if (sendLoading.value) {
+    return
+  }
+
   let text = content.trim()
 
   if (!text && !fileList.value.length) {
@@ -426,14 +460,20 @@ const onSendMesage = async (content: any) => {
   //检查是否含有敏感词
   checkChatRequestPermissionLoding.value = true
 
-  let result = await checkChatRequestPermission({
-    from: 'yun_pc',
-    robot_key: robot.robot_key,
-    openid: robot.openid,
-    question: text
-  })
+  let result
+  try {
+    result = await checkChatRequestPermission({
+      from: 'yun_pc',
+      robot_key: robot.robot_key,
+      openid: robot.openid,
+      question: text
+    })
+  } catch (error) {
+    checkChatRequestPermissionLoding.value = false
+    return showToast(t('msg_send_failed'))
+  }
 
-  checkChatRequestPermissionLoding.value = true
+  checkChatRequestPermissionLoding.value = false
 
   if (result.data && result.data.words) {
     return showToast(t('msg_sensitive_word', { words: result.data.words.join(';') }))
@@ -589,9 +629,6 @@ watch(
 
 onMounted(() => {
   init()
-
-  // 获取对话记录
-  getMyChatList()
 
   // 监听 updateAiMessage 触发消息列表滚动
   emitter.on('updateAiMessage', onUpdateAiMessage)

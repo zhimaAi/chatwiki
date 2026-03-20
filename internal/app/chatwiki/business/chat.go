@@ -331,19 +331,20 @@ func ChatWelcome(c *gin.Context) {
 		`create_time`:   tool.Time2Int(),
 		`update_time`:   tool.Time2Int(),
 	}
-	dialogId, err := common.GetDialogueIdNoCreate(chatBaseParam)
-	if err != nil {
-		logs.Error(err.Error())
+
+	var sessionId int
+	if dialogueId > 0 {
+		sessionId, err = common.GetSessionIdNoCreate(dialogueId)
+		if err != nil {
+			logs.Error(err.Error())
+		}
 	}
-	sessionId, err := common.GetSessionIdNoCreate(dialogId)
-	if err != nil {
-		logs.Error(err.Error())
-	}
+
 	data := map[string]any{
 		`message`:       common.ToStringMap(message),
 		`robot`:         chatBaseParam.Robot,
 		`customer`:      chatBaseParam.Customer,
-		`dialog_id`:     dialogId,
+		`dialog_id`:     dialogueId,
 		`session_id`:    sessionId,
 		`chat_variable`: manage.GetChatRobotVariables(dialogueId, chatBaseParam),
 	}

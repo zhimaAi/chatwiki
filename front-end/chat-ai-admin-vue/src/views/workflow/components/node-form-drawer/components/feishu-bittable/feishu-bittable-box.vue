@@ -422,6 +422,10 @@ function tableSetChange () {
 }
 
 function changeValue(field, val, tags) {
+  // 当输入框数据没有发生改变的时候 不执行下面逻辑
+  if(val == formState[field]){
+    return
+  }
   formState[field] = val
   formState.tag_map[field] = tags
   if (field === 'app_token') {

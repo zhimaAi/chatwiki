@@ -158,19 +158,19 @@ export const useChatStore = defineStore('chat', () => {
     new_session_btn_show: 2,
   })
 
-  const chat_variables = ref<any>({
+  const getDefaultChatVariables = () => ({
     need_fill_variable: false,
     fill_variables: [],
     wait_variables: [],
     session_id: 0,
     dialogue_id: 0,
   })
+  const chat_variables = ref<any>(getDefaultChatVariables())
 
-  let isFirstLoad = true
   // 创建对话
   const isNewChat = ref(false)
 
-  const createChat = async (data: Chat, autoInsertWelcomeMsg = true, isForceNewChat = false) => {
+  const createChat = async (data: Chat, autoInsertWelcomeMsg = true, _isForceNewChat = false) => {
     if (mySSE) {
       mySSE.abort()
       mySSE = null
@@ -180,7 +180,9 @@ export const useChatStore = defineStore('chat', () => {
     messageList.value = []
     // 重置聊天记录是否加载完成的状态
     chatMessageLoadCompleted.value = false
+    chatMessageLoading.value = false
     sendLock.value = false
+    chat_variables.value = getDefaultChatVariables()
 
     if (!data.dialogue_id) {
       isNewChat.value = true
@@ -213,13 +215,6 @@ export const useChatStore = defineStore('chat', () => {
     try {
       const userInfo = res.data.customer
       const robotInfo = res.data.robot
-
-      // 首次加载时，获取对话id
-      if(isFirstLoad && !isForceNewChat && dialogue_id.value === 0) {
-        dialogue_id.value = res.data.dialog_id || 0
-        externalConfigH5.new_session_btn_show == 1 
-        isFirstLoad = false
-      }
 
       user.admin_user_id = userInfo.admin_user_id
       user.avatar = userInfo.avatar
@@ -276,10 +271,16 @@ export const useChatStore = defineStore('chat', () => {
         faviconLink.setAttribute('href', externalConfigH5.logo);
       }
 
-      chat_variables.value = {}
-      
-      setTimeout(()=>{
-        chat_variables.value = res.data.chat_variable || {}
+      setTimeout(() => {
+        const chatVariable = res.data.chat_variable || {}
+        chat_variables.value = {
+          ...getDefaultChatVariables(),
+          ...chatVariable,
+          session_id: Number(chatVariable.session_id || res.data.session_id || 0),
+          dialogue_id: Number(chatVariable.dialogue_id || res.data.dialog_id || dialogue_id.value || 0),
+          fill_variables: chatVariable.fill_variables || [],
+          wait_variables: chatVariable.wait_variables || [],
+        }
       })
 
       return res
@@ -497,13 +498,16 @@ export const useChatStore = defineStore('chat', () => {
       dialogue_id: dialogue_id.value,
       global: data.global,
       rel_user_id: userStore.userInfo ? userStore.userInfo.user_id : '',
-      use_new_dialogue: externalConfigH5.new_session_btn_show == 1 || isNewChat.value ? 1 : 0, // 是否使用新对话,强制后台不返回最近的回话id(dialogue_id)
+      use_new_dialogue: dialogue_id.value ? 0 : 1,
     }
 
     let variables_key = `chat_prompt_variables_${robot.robot_key}`
 
-    if(localStorage.getItem(variables_key)){
-      params.chat_prompt_variables = localStorage.getItem(variables_key)
+    const localVariables = localStorage.getItem(variables_key)
+    const isNewDialogue = Number(dialogue_id.value || 0) === 0
+
+    if (isNewDialogue && localVariables) {
+      params.chat_prompt_variables = localVariables
       localStorage.removeItem(variables_key)
     }
 
@@ -619,14 +623,17 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   const handleEditVariables = (data : any) => {
-    editVariables({
+    return editVariables({
       robot_key: robot.robot_key,
       openid: robot.openid,
-      dialogue_id: chat_variables.value.dialogue_id,
+      dialogue_id: dialogue_id.value,
       chat_prompt_variables: JSON.stringify(data.chat_prompt_variables),
       session_id: chat_variables.value.session_id
-    }).then(()=>{
+    }).then((res)=>{
       chat_variables.value.fill_variables = data.chat_prompt_variables
+      let variables_key = `chat_prompt_variables_${robot.robot_key}`
+      localStorage.removeItem(variables_key)
+      return res
     })
   }
 
@@ -747,9 +754,10 @@ export const useChatStore = defineStore('chat', () => {
   // 获取聊天记录
   const chatMessagePageSize = 20
   const chatMessageLoadCompleted = ref(false)
+  const chatMessageLoading = ref(false)
 
   const onGetChatMessage = async () => {
-    if (chatMessageLoadCompleted.value) {
+    if (chatMessageLoadCompleted.value || chatMessageLoading.value) {
       return
     }
 
@@ -767,6 +775,8 @@ export const useChatStore = defineStore('chat', () => {
       size: chatMessagePageSize,
       dialogue_id: dialogue_id.value
     }
+
+    chatMessageLoading.value = true
 
     try {
       const res = await getChatMessage(params)
@@ -817,6 +827,8 @@ export const useChatStore = defineStore('chat', () => {
       return res
     } catch (err) {
       Promise.reject(err)
+    } finally {
+      chatMessageLoading.value = false
     }
   }
 
@@ -865,12 +877,17 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   const getFastCommand = () => {
-    getFastCommandList({
+    if (!robot.robot_key || !robot.openid) {
+      return Promise.resolve(false)
+    }
+
+    return getFastCommandList({
       robot_key: robot.robot_key,
       openid: robot.openid,
       app_id: robot.app_id
     }).then(res => {
       robot.comand_list = res.data;
+      return res
     })
   }
 
@@ -880,6 +897,10 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   const updataQuickComand = (data) => {
+    if (!robot.robot_key) {
+      return
+    }
+
    // 更新快捷指令
     robot.comand_list = data.comand_list || [];
     robot.fast_command_switch = data.fast_command_switch
@@ -917,12 +938,14 @@ export const useChatStore = defineStore('chat', () => {
     isNewChat.value = false
     // 消息加载完了
     chatMessageLoadCompleted.value = false
+    chatMessageLoading.value = false
     // 是否正在发送消息
     sendLock.value = false
     // 对话记录
     myChatListLoading.value = false
     myChatListLoadCompleted.value = false
     myChatList.value = []
+    chat_variables.value = getDefaultChatVariables()
   }
 
   return {

@@ -193,15 +193,15 @@ export const useChatStore = defineStore('chat', () => {
     new_session_btn_show: 2,
   })
 
-  const chat_variables = ref<any>({
+  const getDefaultChatVariables = () => ({
     need_fill_variable: false,
     fill_variables: [],
     wait_variables: [],
     session_id: 0,
     dialogue_id: 0,
   })
+  const chat_variables = ref<any>(getDefaultChatVariables())
 
-  let isFirstLoad = true
   // 创建对话
   const isNewChat = ref(false)
   const createChat = async (data: Chat) => {
@@ -213,7 +213,9 @@ export const useChatStore = defineStore('chat', () => {
     messageList.value = []
     // 重置聊天记录是否加载完成的状态
     chatMessageLoadCompleted.value = false
+    chatMessageLoading.value = false
     sendLock.value = false
+    chat_variables.value = getDefaultChatVariables()
 
     if (!data.dialogue_id) {
       isNewChat.value = true
@@ -238,17 +240,14 @@ export const useChatStore = defineStore('chat', () => {
       openid: openid.value,
       nickname: user.nickname,
       name: user.name,
-      avatar: user.avatar
+      avatar: user.avatar,
+      dialogue_id: dialogue_id.value,
+      use_new_dialogue: dialogue_id.value ? 0 : 1,
     })
 
     try {
       const userInfo = res.data.customer
       const robotInfo = res.data.robot
-
-      if(isFirstLoad) {
-        dialogue_id.value = res.data.dialog_id || 0
-        isFirstLoad = false
-      }
 
       user.admin_user_id = userInfo.admin_user_id
       user.avatar = userInfo.avatar
@@ -292,10 +291,16 @@ export const useChatStore = defineStore('chat', () => {
         externalConfigPC.headImage = robotInfo.robot_avatar
       }
 
-      chat_variables.value = {}
-      
-      setTimeout(()=>{
-        chat_variables.value = res.data.chat_variable || {}
+      setTimeout(() => {
+        const chatVariable = res.data.chat_variable || {}
+        chat_variables.value = {
+          ...getDefaultChatVariables(),
+          ...chatVariable,
+          session_id: Number(chatVariable.session_id || res.data.session_id || 0),
+          dialogue_id: Number(chatVariable.dialogue_id || res.data.dialog_id || dialogue_id.value || 0),
+          fill_variables: chatVariable.fill_variables || [],
+          wait_variables: chatVariable.wait_variables || [],
+        }
       })
 
       // 插入欢迎语
@@ -516,13 +521,16 @@ export const useChatStore = defineStore('chat', () => {
       // prompt: robot.prompt,
       // library_ids: robot.library_ids,
       dialogue_id: dialogue_id.value,
-      use_new_dialogue: externalConfigPC.new_session_btn_show == 1 ? 1 : 0,
+      use_new_dialogue: dialogue_id.value ? 0 : 1,
     }
 
     let variables_key = `chat_prompt_variables_${robot.robot_key}`
 
-    if(localStorage.getItem(variables_key)){
-      params.chat_prompt_variables = localStorage.getItem(variables_key)
+    const localVariables = localStorage.getItem(variables_key)
+    const isNewDialogue = Number(dialogue_id.value || 0) === 0
+
+    if (isNewDialogue && localVariables) {
+      params.chat_prompt_variables = localVariables
       localStorage.removeItem(variables_key)
     }
 
@@ -622,14 +630,17 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   const handleEditVariables = (data : any) => {
-    editVariables({
+    return editVariables({
       robot_key: robot.robot_key,
       openid: robot.openid,
-      dialogue_id: chat_variables.value.dialogue_id,
+      dialogue_id: dialogue_id.value,
       chat_prompt_variables: JSON.stringify(data.chat_prompt_variables),
       session_id: chat_variables.value.session_id
-    }).then(()=>{
+    }).then((res)=>{
       chat_variables.value.fill_variables = data.chat_prompt_variables
+      let variables_key = `chat_prompt_variables_${robot.robot_key}`
+      localStorage.removeItem(variables_key)
+      return res
     })
   }
 
@@ -639,7 +650,7 @@ export const useChatStore = defineStore('chat', () => {
   const myChatListLoading = ref(false)
   const myChatListLoadCompleted = ref(false)
 
-  const getMyChatList = async () => {
+  const getMyChatList = async (robot_key?: string, user_openid?: string) => {
     if (myChatListLoadCompleted.value || myChatListLoading.value) {
       return false
     }
@@ -655,8 +666,8 @@ export const useChatStore = defineStore('chat', () => {
     const res = await getDialogueList({
       min_id: min_id,
       size: myChatListSize,
-      robot_key: robot.robot_key,
-      openid: robot.openid,
+      robot_key: robot.robot_key || robot_key,
+      openid: robot.openid || user_openid,
     })
 
     myChatListLoading.value = false
@@ -753,9 +764,10 @@ export const useChatStore = defineStore('chat', () => {
   // 获取聊天记录
   const chatMessagePageSize = 20
   const chatMessageLoadCompleted = ref(false)
+  const chatMessageLoading = ref(false)
 
   const onGetChatMessage = async () => {
-    if (chatMessageLoadCompleted.value) {
+    if (chatMessageLoadCompleted.value || chatMessageLoading.value) {
       return
     }
 
@@ -773,6 +785,8 @@ export const useChatStore = defineStore('chat', () => {
       size: chatMessagePageSize,
       dialogue_id: dialogue_id.value
     }
+
+    chatMessageLoading.value = true
 
     try {
       const res = await getChatMessage(params)
@@ -821,6 +835,8 @@ export const useChatStore = defineStore('chat', () => {
       return res
     } catch (err) {
       Promise.reject(err)
+    } finally {
+      chatMessageLoading.value = false
     }
   }
 
@@ -923,6 +939,7 @@ export const useChatStore = defineStore('chat', () => {
     myChatListLoading.value = false
     myChatListLoadCompleted.value = false
     myChatList.value = []
+    chat_variables.value = getDefaultChatVariables()
   }
 
   return {

@@ -193,7 +193,7 @@ func GetChatRobotVariables(dialogueId int, chatBaseParam *define.ChatBaseParam) 
 			return
 		}
 	}
-	if chatBaseParam.UseNewDialogue == 0 {
+	if chatBaseParam.UseNewDialogue == 1 {
 		dialogueId = 0
 	}
 	data[`dialogue_id`] = dialogueId

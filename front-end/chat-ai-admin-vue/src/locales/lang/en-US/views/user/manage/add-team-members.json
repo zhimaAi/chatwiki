@@ -1,7 +1,7 @@
 {
   "click_to_replace_tip": "Click to replace, recommended size is 100*100px, not exceeding 100kb",
-  "member_nickname": "Member Nickname",
-  "input_nickname": "Please enter nickname",
+  "member_nickname": "Member name",
+  "input_nickname": "Please enter name",
   "login_account": "Login Account",
   "account_format_tip": "Account can only contain letters, numbers, '-', '_', and '.'",
   "member_role": "Member Role",

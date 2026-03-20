@@ -181,14 +181,20 @@ const handleSave = () => {
   formRef.value.validate().then(() => {
     let chat_prompt_variables = getPostData()
     let variables_key = `chat_prompt_variables_${query.robot_key}`
+    const currentDialogueId = Number(chatStore.dialogue_id || 0)
 
-    if (isEdit.value) {
+    chatStore.chat_variables.need_fill_variable = false
+    chatStore.chat_variables.fill_variables = chat_prompt_variables
+
+    if (currentDialogueId > 0) {
       chatStore.handleEditVariables({
         chat_prompt_variables
       })
+      localStorage.removeItem(variables_key)
     } else {
       localStorage.setItem(variables_key, JSON.stringify(chat_prompt_variables))
     }
+
     open.value = false
   })
 }

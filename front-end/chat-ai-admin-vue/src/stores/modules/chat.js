@@ -55,13 +55,14 @@ export const useChatStore = defineStore('chat', () => {
     question_multiple_switch: 0,
   })
 
-  const chat_variables = ref({
+  const getDefaultChatVariables = () => ({
     need_fill_variable: false,
     fill_variables: [],
     wait_variables: [],
     session_id: 0,
     dialogue_id: 0,
   })
+  const chat_variables = ref(getDefaultChatVariables())
 
   // 存储聊天记录必备的数据
   const createMsg = async (data) => {
@@ -100,6 +101,7 @@ export const useChatStore = defineStore('chat', () => {
     // 重置聊天记录是否加载完成的状态
     chatMessageLoadCompleted.value = false
     sendLock.value = false
+    chat_variables.value = getDefaultChatVariables()
 
     if (!data.dialogue_id) {
       isNewChat.value = true
@@ -154,10 +156,16 @@ export const useChatStore = defineStore('chat', () => {
         robot.welcomes = JSON.parse(robotInfo.welcomes)
       }
 
-      chat_variables.value = {}
-      
-      setTimeout(()=>{
-        chat_variables.value = res.data.chat_variable || {}
+      setTimeout(() => {
+        const chatVariable = res.data.chat_variable || {}
+        chat_variables.value = {
+          ...getDefaultChatVariables(),
+          ...chatVariable,
+          session_id: Number(chatVariable.session_id || res.data.session_id || 0),
+          dialogue_id: Number(chatVariable.dialogue_id || res.data.dialog_id || dialogue_id.value || 0),
+          fill_variables: chatVariable.fill_variables || [],
+          wait_variables: chatVariable.wait_variables || [],
+        }
       })
 
       // 插入欢迎语
@@ -405,8 +413,11 @@ export const useChatStore = defineStore('chat', () => {
 
     let variables_key = `chat_prompt_variables_${robot.robot_key}`
 
-    if(localStorage.getItem(variables_key)){
-      params.chat_prompt_variables = localStorage.getItem(variables_key)
+    const localVariables = localStorage.getItem(variables_key)
+    const isNewDialogue = Number(dialogue_id.value || 0) === 0
+
+    if (isNewDialogue && localVariables) {
+      params.chat_prompt_variables = localVariables
       localStorage.removeItem(variables_key)
     }
 
@@ -512,6 +523,7 @@ export const useChatStore = defineStore('chat', () => {
           chat_variables.value.need_fill_variable = data.need_fill_variable
           chat_variables.value.fill_variables = data.fill_variables || []
           chat_variables.value.session_id = data.session_id
+          chat_variables.value.dialogue_id = data.dialogue_id || dialogue_id.value
         }
       }
       // 猜你想问
@@ -540,7 +552,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   const handleEditVariables = (data) => {
-    editVariables({
+    return editVariables({
       robot_key: robot.robot_key,
       openid: robot.openid,
       dialogue_id: dialogue_id.value,
@@ -548,6 +560,9 @@ export const useChatStore = defineStore('chat', () => {
       session_id: chat_variables.value.session_id
     }).then(res=>{
       chat_variables.value.fill_variables = data.chat_prompt_variables
+      let variables_key = `chat_prompt_variables_${robot.robot_key}`
+      localStorage.removeItem(variables_key)
+      return res
     })
   }
 
@@ -768,6 +783,7 @@ export const useChatStore = defineStore('chat', () => {
     myChatListLoading.value = false
     myChatListLoadCompleted.value = false
     myChatList.value = []
+    chat_variables.value = getDefaultChatVariables()
   }
 
   return {
