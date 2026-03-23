@@ -144,6 +144,11 @@ class CustomGroup extends dynamicGroup.view {
               this.props.model.refreshBranch()
             }
           },
+          autoLayoutGroup: () => {
+            this.props.graphModel.eventCenter.emit('custom:autoLayoutGroup', {
+              group_id: this.props.model.id
+            })
+          },
           setData: (data) => {
             data.dataRaw = data.node_params
             nextTick(() => {

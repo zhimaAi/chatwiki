@@ -161,6 +161,15 @@ const baseNavs = computed(() => [
     path: '/chat-monitor/index',
     permission: ['ChatSessionManage']
   },
+  {
+    id: 6,
+    key: 'workbench',
+    label: 'workbench',
+    title: t('layout.navbar.workbench'),
+    icon: 'nav-workbench',
+    path: '/workbench/chat',
+    permission: ['workbench']
+  },
 ])
 
 const top_navigate = computed(() => {

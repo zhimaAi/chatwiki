@@ -19,6 +19,12 @@
             </a-tooltip>
           </a-popover>
 
+          <a-tooltip :title="t('tooltip_auto_layout')">
+            <div class="btn-item" @click.stop="handleAutoLayout">
+              <AppstoreOutlined />
+            </div>
+          </a-tooltip>
+
           <a-tooltip :title="t('tooltip_run_test')">
             <div class="btn-item" @click.stop="handleOpenTestModal">
               <CaretRightOutlined />
@@ -60,7 +66,7 @@
 import { generateRandomId } from '@/utils/index'
 import { ref, reactive, watch, onMounted, inject, nextTick, computed } from 'vue'
 import { message } from 'ant-design-vue'
-import { CaretRightOutlined, PlusCircleOutlined } from '@ant-design/icons-vue'
+import { CaretRightOutlined, PlusCircleOutlined, AppstoreOutlined } from '@ant-design/icons-vue'
 import NodeListPopup from '../../node-list-popup/index.vue'
 import RunTest from './components/run-test.vue'
 import BorderLine from './components/border-line.vue'
@@ -91,6 +97,7 @@ const getNode = inject('getNode')
 const addNode = inject('addNode')
 const setData = inject('setData')
 const resetSize = inject('resetSize')
+const autoLayoutGroup = inject('autoLayoutGroup')
 const excludedNodeTypes = ref(['custom-group', 'batch-group', 'end-node', 'terminate-node', 'qa-node'])
 
 const isShowMenu = ref(false)
@@ -105,6 +112,10 @@ const handleAddNode = (node) => {
 }
 const handleClick = () => {
   isShowMenu.value = true
+}
+
+const handleAutoLayout = () => {
+  autoLayoutGroup()
 }
 
 const runTestRef = ref(null)

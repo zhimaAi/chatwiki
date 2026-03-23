@@ -12,6 +12,7 @@ type ConfigParam struct {
 	Neo4j             map[string]string
 	NsqLookup         map[string]string
 	Nsqd              map[string]string
+	ConsumerNum       map[string]string
 	OssConfig         map[string]string
 	UserDomainService map[string]string
 	Plugin            map[string]string

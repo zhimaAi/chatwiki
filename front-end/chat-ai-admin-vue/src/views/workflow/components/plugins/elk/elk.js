@@ -314,6 +314,90 @@ class Elk {
     })
   }
   /**
+   * 对单个分组内部的子节点进行自动布局，不影响外部节点
+   * @param {object} graphData - 完整的图数据
+   * @param {string} groupId - 分组节点的ID
+   * @return {Promise<void>}
+   */
+  async layoutGroup(graphData, groupId) {
+    const { nodes, edges } = JSON.parse(JSON.stringify(graphData))
+
+    const groupNode = nodes.find((n) => n.id === groupId)
+    if (!groupNode || !groupNode.children || groupNode.children.length === 0) return
+
+    const childIds = new Set(groupNode.children)
+    const childNodes = nodes.filter((n) => childIds.has(n.id))
+
+    const internalEdges = edges.filter(
+      (e) => childIds.has(e.sourceNodeId) && childIds.has(e.targetNodeId)
+    )
+
+    const elkChildren = childNodes.map((item) => ({
+      id: item.id,
+      width: item.properties.width || 420,
+      height: item.properties.height || 100,
+      layoutOptions: {
+        'elk.nodeSize.constraints': 'FIXED'
+      }
+    }))
+
+    const elkEdges = internalEdges.map((edge) => ({
+      id: edge.id,
+      sources: [edge.sourceNodeId],
+      targets: [edge.targetNodeId]
+    }))
+
+    const elkGraph = {
+      id: 'group-layout',
+      layoutOptions: {
+        'elk.algorithm': 'layered',
+        'elk.direction': 'RIGHT',
+        'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+        'elk.layered.nodePlacement.bk.fixedAlignment': 'TOP',
+        'elk.padding': '[top=112, right=32, bottom=32, left=32]',
+        'elk.spacing.nodeNode': 100,
+        'elk.layered.spacing.nodeNodeBetweenLayers': 120,
+        'elk.nodeSize.constraints': 'MINIMUM_SIZE',
+        'elk.nodeSize.minimum': '[600, 420]'
+      },
+      children: elkChildren,
+      edges: elkEdges
+    }
+
+    const result = await this.elk.layout(elkGraph)
+
+    const groupModel = this.lf.graphModel.getNodeModelById(groupId)
+    if (!groupModel) return
+
+    const newWidth = Math.max(result.width, 600)
+    const newHeight = Math.max(result.height, 420)
+
+    const groupLeft = groupModel.x - newWidth / 2
+    const groupTop = groupModel.y - newHeight / 2
+
+    result.children.forEach((elkNode) => {
+      const nodeModel = this.lf.graphModel.getNodeModelById(elkNode.id)
+      if (nodeModel) {
+        nodeModel.x = groupLeft + elkNode.x + elkNode.width / 2
+        nodeModel.y = groupTop + elkNode.y + elkNode.height / 2
+      }
+    })
+
+    groupModel._width = groupModel.width = newWidth
+    groupModel._height = groupModel.height = newHeight
+    groupModel.properties.width = newWidth
+    groupModel.properties.height = newHeight
+
+    result.children.forEach((elkNode) => {
+      const nodeModel = this.lf.graphModel.getNodeModelById(elkNode.id)
+      if (nodeModel && nodeModel.refreshBranch) {
+        nodeModel.refreshBranch()
+      }
+    })
+    groupModel.refreshBranch()
+  }
+
+  /**
  * 计算并应用最佳视图
  * @param {Array} nodes - 所有节点的数组
  */
