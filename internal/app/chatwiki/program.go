@@ -65,22 +65,21 @@ func Stop() {
 }
 
 func StartConsumer() {
-	common.RunTask(define.ConvertHtmlTopic, define.ConvertHtmlChannel, 1, business.ConvertHtml)
-	common.RunTask(define.ConvertVectorTopic, define.ConvertVectorChannel, 2, business.ConvertVector)
-	common.RunTask(define.ConvertGraphTopic, define.ConvertGraphChannel, 10, business.ConvertGraph)
-	common.RunTask(define.CrawlArticleTopic, define.CrawlArticleChannel, 2, business.CrawlArticle)
-	common.RunTask(define.CrawlFeishuDocTopic, define.CrawlFeishuDocChannel, 2, business.CrawlFeishuDoc)
-	common.RunTask(lib_define.AppPushMessage, lib_define.AppPushChannel, 10, business.AppPush)
-
-	common.RunTask(lib_define.AppPushEvent, lib_define.AppPushChannel, 5, business.AppPush)
-	common.RunTask(define.ExportTaskTopic, define.ExportTaskChannel, 5, business.ExportTask)
-	common.RunTask(define.ExtractFaqFilesTopic, define.ExtractFaqFilesChannel, 5, business.ExtractFaqFiles)
-	common.RunTask(define.ImportFAQFileTopic, define.ImportFAQFileChannel, 5, business.ImportLibFileFaq)
-	common.RunTask(define.OfficialAccountDraftSyncTopic, define.OfficialAccountDraftSyncChannel, 5, business.OfficialAccountDraftSync)
-	common.RunTask(define.OfficialAccountHisArticleSyncTopic, define.OfficialAccountHisArticleSyncChannel, 5, business.OfficialAccountHisArticleSync)
-	common.RunTask(define.OfficialAccountBatchSendTopic, define.OfficialAccountBatchSendChannel, 5, business.OfficialAccountBatchSend)
-	common.RunTask(define.OfficialAccountCommentSyncTopic, define.OfficialAccountCommentSyncChannel, 5, business.OfficialAccountCommentSync)
-	common.RunTask(define.OfficialAccountCommentAiCheckTopic, define.OfficialAccountCommentAiCheckChannel, 5, business.OfficialAccountCommentAiCheck)
+	common.RunTask(define.ConvertHtmlTopic, define.ConvertHtmlChannel, cast.ToUint(define.Config.ConsumerNum[`ConvertHtml`]), business.ConvertHtml)
+	common.RunTask(define.ConvertVectorTopic, define.ConvertVectorChannel, cast.ToUint(define.Config.ConsumerNum[`ConvertVector`]), business.ConvertVector)
+	common.RunTask(define.ConvertGraphTopic, define.ConvertGraphChannel, cast.ToUint(define.Config.ConsumerNum[`ConvertGraph`]), business.ConvertGraph)
+	common.RunTask(define.CrawlArticleTopic, define.CrawlArticleChannel, cast.ToUint(define.Config.ConsumerNum[`CrawlArticle`]), business.CrawlArticle)
+	common.RunTask(define.CrawlFeishuDocTopic, define.CrawlFeishuDocChannel, cast.ToUint(define.Config.ConsumerNum[`CrawlFeishuDoc`]), business.CrawlFeishuDoc)
+	common.RunTask(lib_define.AppPushMessage, lib_define.AppPushChannel, cast.ToUint(define.Config.ConsumerNum[`AppPushMessage`]), business.AppPush)
+	common.RunTask(lib_define.AppPushEvent, lib_define.AppPushChannel, cast.ToUint(define.Config.ConsumerNum[`AppPushEvent`]), business.AppPush)
+	common.RunTask(define.ExportTaskTopic, define.ExportTaskChannel, cast.ToUint(define.Config.ConsumerNum[`ExportTask`]), business.ExportTask)
+	common.RunTask(define.ExtractFaqFilesTopic, define.ExtractFaqFilesChannel, cast.ToUint(define.Config.ConsumerNum[`ExtractFaqFiles`]), business.ExtractFaqFiles)
+	common.RunTask(define.ImportFAQFileTopic, define.ImportFAQFileChannel, cast.ToUint(define.Config.ConsumerNum[`ImportLibFileFaq`]), business.ImportLibFileFaq)
+	common.RunTask(define.OfficialAccountDraftSyncTopic, define.OfficialAccountDraftSyncChannel, cast.ToUint(define.Config.ConsumerNum[`OfficialAccountDraftSync`]), business.OfficialAccountDraftSync)
+	common.RunTask(define.OfficialAccountHisArticleSyncTopic, define.OfficialAccountHisArticleSyncChannel, cast.ToUint(define.Config.ConsumerNum[`OfficialAccountHisArticleSync`]), business.OfficialAccountHisArticleSync)
+	common.RunTask(define.OfficialAccountBatchSendTopic, define.OfficialAccountBatchSendChannel, cast.ToUint(define.Config.ConsumerNum[`OfficialAccountBatchSend`]), business.OfficialAccountBatchSend)
+	common.RunTask(define.OfficialAccountCommentSyncTopic, define.OfficialAccountCommentSyncChannel, cast.ToUint(define.Config.ConsumerNum[`OfficialAccountCommentSync`]), business.OfficialAccountCommentSync)
+	common.RunTask(define.OfficialAccountCommentAiCheckTopic, define.OfficialAccountCommentAiCheckChannel, cast.ToUint(define.Config.ConsumerNum[`OfficialAccountCommentAiCheck`]), business.OfficialAccountCommentAiCheck)
 }
 
 func StartCronTasks() {

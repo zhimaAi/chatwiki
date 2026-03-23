@@ -166,20 +166,24 @@ const libraryId = computed(() => {
   return props.library_id || query.id
 })
 
+const getDefaultQaMarkers = () => ({
+  question_lable: t('label_question'),
+  answer_lable: t('label_answer'),
+  similar_label: t('label_similar_question')
+})
 
 const formState = reactive({
   question_column: void 0,
   answer_column: void 0,
   similar_column: void 0,
-  question_lable: 'label_question',
-  answer_lable: 'label_answer',
-  similar_label: 'label_similar_question',
+  ...getDefaultQaMarkers(),
   group_id: void 0,
 })
 
 const isHide = ref(true)
 const show = (groupId) => {
   formState.group_id = void 0
+  Object.assign(formState, getDefaultQaMarkers())
   if(groupId >= 0){
     formState.group_id = groupId
   }
@@ -235,9 +239,9 @@ const handleSaveFiles = () => {
     formData.append('answer_column', formState.answer_column)
     formState.similar_column && formData.append('similar_column', formState.similar_column)
   } else {
-    formData.append('question_lable', t(formState.question_lable))
-    formData.append('answer_lable', t(formState.answer_lable))
-    formData.append('similar_label', t(formState.similar_label))
+    formData.append('question_lable', formState.question_lable)
+    formData.append('answer_lable', formState.answer_lable)
+    formData.append('similar_label', formState.similar_label)
   }
   formData.append('group_id', formState.group_id >= 0 ? formState.group_id : 0)
   formData.append('is_qa_doc', 1)
@@ -259,6 +263,7 @@ const handleSaveFiles = () => {
 
 const handleCloseFileUploadModal = () => {
   fileList.value = []
+  Object.assign(formState, getDefaultQaMarkers())
 }
 
 const fileType = ref(1) // 1表格  2doc
@@ -266,9 +271,7 @@ const onFilesChange = (files) => {
   formState.question_column = void 0
   formState.answer_column = void 0
   formState.similar_column = void 0
-  formState.question_lable = 'label_question'
-  formState.answer_lable = 'label_answer'
-  formState.similar_label = 'label_similar_question'
+  Object.assign(formState, getDefaultQaMarkers())
   fileList.value = files
   if (files && files.length > 0) {
     if (files[0].type.includes('.document')) {

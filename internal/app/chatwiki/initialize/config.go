@@ -95,6 +95,11 @@ func initConfig() {
 		logs.Error(err.Error())
 		panic(`read config nsqd error`)
 	}
+	define.Config.ConsumerNum, err = config.GetSection(`consumer_num`)
+	if err != nil {
+		logs.Error(err.Error())
+		panic(`read config consumer_num error`)
+	}
 	define.Config.OssConfig, err = config.GetSection("oss_config")
 	if err != nil {
 		logs.Error(err.Error())

@@ -355,6 +355,10 @@ function initLogicFlow() {
       onCustomAddGroupNode(data ,group_id)
     })
 
+    lf.on('custom:autoLayoutGroup', ({ group_id }) => {
+      handleGroupAutoLayout(group_id)
+    })
+
     lf.on('group:add-node', ({ childId }) => {
       const childModel = lf.getNodeModelById(childId);
       // const groupModel = lf.getNodeModelById(data.id);
@@ -947,6 +951,53 @@ const handleAutoLayout = async () => {
     })
 }
 
+const handleGroupAutoLayout = async (groupId) => {
+  const graphData = lf.getGraphRawData()
+  const history = lf.extension.canvasHistory
+
+  if (history) {
+    history.beginTransaction()
+  }
+
+  try {
+    await lf.extension.elk.layoutGroup(graphData, groupId)
+    if (history) {
+      history.commitTransaction('group-auto-layout')
+    }
+  } catch (e) {
+    message.error(t('msg_layout_failed') + e)
+    if (history) {
+      history.rollbackTransaction()
+    }
+  }
+}
+
+const layoutAllGroups = async () => {
+  const graphData = lf.getGraphRawData()
+  const groupNodes = graphData.nodes.filter((n) => n.children && n.children.length > 0)
+
+  if (groupNodes.length === 0) return
+
+  const history = lf.extension.canvasHistory
+  if (history) {
+    history.beginTransaction()
+  }
+
+  try {
+    for (const group of groupNodes) {
+      const currentData = lf.getGraphRawData()
+      await lf.extension.elk.layoutGroup(currentData, group.id)
+    }
+    if (history) {
+      history.commitTransaction('all-groups-auto-layout')
+    }
+  } catch (e) {
+    if (history) {
+      history.rollbackTransaction()
+    }
+  }
+}
+
 const handleBatchPaste = ({ originalNodes, basePoint, pasteBasePoint }) => {
   const history = lf.extension.canvasHistory;
 
@@ -1177,6 +1228,10 @@ const handleSelectedNode = (data) => {
 
   node.properties.dataRaw =  node.properties.dataRaw || node.properties.node_params
 
+  if(data.children && data.children.length > 0){
+    // 代表的是分组节点
+    handleGroupAutoLayout(data.id)
+  }
   emit('selectNode', node)
 
   // 结束节点不支持编辑
@@ -1305,6 +1360,7 @@ defineExpose({
   setData,
   getData,
   updateNode,
-  focusOnNode
+  focusOnNode,
+  layoutAllGroups
 })
 </script>

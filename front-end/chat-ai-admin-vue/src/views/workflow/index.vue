@@ -646,6 +646,13 @@ const handleSave = async (type) => {
   }
   if (!isEditing.value) return
   if (!autoSaveEnabled.value && type === 'automatic') return
+
+  try {
+    await workflowCanvasRef.value.layoutAllGroups()
+  } catch (e) {
+    // 分组整理失败不阻塞保存
+  }
+
   let list = getCanvasData()
 
   if (type === 'handle') {

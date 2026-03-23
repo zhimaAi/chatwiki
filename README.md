@@ -137,6 +137,13 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/03/23**
+
+1.Workflow batch/loop execution frame now supports collapsing<br/>
+2.Async task consumer count now supports custom configuration<br/>
+3.Fixed bug with batch import in Q&A knowledge base<br/>
+4.[STD] Fixed ChatClaw client login issue<br/>
+
 **2026/03/20**
 
 1.Variables are displayed directly at the top of the conversation after being filled in<br/>
@@ -153,20 +160,6 @@ disappear when re-selecting the multidimensional table input box after entering 
 4.Fixed parameter validation error when publishing scheduled triggers<br/>
 5.Workflow Publishing: Channel links displayed in the publish window<br/>
 6.ChatClaw client token management and forced logout<br/>
-
-**2026/03/06**
-
-1. Multimodal content display compatibility in conversation records<br/>
-2. [STD] International registration flow, supporting Google and email registration<br/>
-3. WeChat Official Account articles - manual sync and auto sync<br/>
-4. Conversation logs: Add prompt logs to conversations<br/>
-5. [STD] Add universal invitation code, to be shared in community groups<br/>
-6. Support merging adjacent segments when editing segments in regular knowledge base<br/>
-7. Model management: Support for OpenRouter model integration<br/>
-8. Core service startup optimization: Remove Neo4j dependency restriction<br/>
-9. Support modifying API domain in add/edit model dialog<br/>
-10. Open API: Add knowledge base recall endpoint<br/>
-11. Bot/Workflow knowledge base recall metadata filtering supports referencing variables<br/>
 
 ## License
 
