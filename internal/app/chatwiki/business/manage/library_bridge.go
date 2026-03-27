@@ -6,7 +6,6 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
-	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"errors"
 	"fmt"
@@ -206,7 +205,7 @@ func BridgeGetLibraryListGroup(adminUserId, userId int, lang string, req *Bridge
 		logs.Error(err.Error())
 		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
 	}
-	list = append([]msql.Params{{`id`: `0`, `group_name`: lib_define.Ungrouped}}, list...)
+	list = append([]msql.Params{{`id`: `0`, `group_name`: i18n.Show(lang, `ungrouped_label`)}}, list...)
 	userInfo, err := msql.Model(define.TableUser, define.Postgres).
 		Alias(`u`).
 		Join(`role r`, `u.user_roles::integer=r.id`, `left`).

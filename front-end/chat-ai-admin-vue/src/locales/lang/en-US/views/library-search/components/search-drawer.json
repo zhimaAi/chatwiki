@@ -36,5 +36,8 @@
   "please_input": "Please enter",
   "enter_custom_prompt": "Please enter custom prompt",
   "enter_prompt": "Please enter prompt",
-  "save_success": "Save successfully"
+  "save_success": "Save successfully",
+  "label_full_text_search_mode": "Full Text Search Mode",
+  "full_text_search": "Word Segmentation Search",
+  "keyword_match": "Keyword Match"
 }

@@ -29,5 +29,8 @@
   "label_segments": "分段",
   "label_of_segments": "的分段",
   "label_auto_concat_before": "召回时自动拼接前",
-  "label_robot_variables": "机器人变量"
+  "label_robot_variables": "机器人变量",
+  "label_full_text_search_mode": "全文检索模式",
+  "full_text_search": "分词检索",
+  "keyword_match": "关键词匹配"
 }

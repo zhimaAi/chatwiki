@@ -225,7 +225,17 @@
             </div>
           </div>
         </div>
-
+        <div class="form-item" v-if="formState.search_type == 1 || formState.search_type == 3">
+          <div class="form-item-label">
+            {{ t('label_full_text_search_mode') }}
+          </div>
+          <div class="form-item-body">
+            <a-radio-group v-model:value="formState.library_search_type">
+              <a-radio value="fullTextSearch">{{ t('full_text_search') }}</a-radio>
+              <a-radio value="keywordSearch">{{ t('keyword_match') }}</a-radio>
+            </a-radio-group>
+          </div>
+        </div>
         <div class="form-item">
           <div class="form-item-label">
             <span class="setting-title">{{ t('label_recall_neighbor_segments') }}&nbsp;</span>
@@ -380,6 +390,7 @@ const formState = reactive({
   recall_neighbor_top_k: 5,
   recall_neighbor_before_num: 1,
   recall_neighbor_after_num: 1,
+  library_search_type: 'fullTextSearch'
 })
 
 const metaFilterRef = ref(null)
@@ -406,7 +417,7 @@ const open = (data, r=null) => {
   formState.recall_neighbor_top_k = data.recall_neighbor_top_k
   formState.recall_neighbor_before_num = data.recall_neighbor_before_num
   formState.recall_neighbor_after_num = data.recall_neighbor_after_num
-
+  formState.library_search_type = data.library_search_type || 'fullTextSearch'
   show.value = true
 }
 

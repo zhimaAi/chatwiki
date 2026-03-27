@@ -376,6 +376,7 @@ func SaveRobot(c *gin.Context) {
 	recallNeighborTopK := cast.ToInt(c.DefaultPostForm(`recall_neighbor_top_k`, cast.ToString(common.DefaultCallbackNeighborTopKDefault)))
 
 	searchType := cast.ToInt(c.DefaultPostForm(`search_type`, `1`))
+	librarySearchType := strings.TrimSpace(c.PostForm(`library_search_type`))
 	rrfWeight := strings.TrimSpace(c.PostForm(`rrf_weight`))
 	chatType := cast.ToInt(c.DefaultPostForm(`chat_type`, `1`))
 	unknownQuestionPromptJson := tool.JsonEncodeNoError(define.MenuJsonStruct{Content: lib_define.DefaultUnknownQuestionPromptContent})
@@ -471,6 +472,11 @@ func SaveRobot(c *gin.Context) {
 
 	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText, define.SearchTypeGraph}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
+		return
+	}
+	librarySearchType, err = common.NormalizeLibrarySearchType(searchType, librarySearchType)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `library_search_type`))))
 		return
 	}
 	if id == 0 && len(rrfWeight) == 0 { //fill default values on create
@@ -680,6 +686,7 @@ func SaveRobot(c *gin.Context) {
 		`recall_neighbor_after_num`:             recallNeighborAfterNum,
 		`recall_neighbor_top_k`:                 recallNeighborTopK,
 		`search_type`:                           searchType,
+		`library_search_type`:                   librarySearchType,
 		`rrf_weight`:                            rrfWeight,
 		`chat_type`:                             chatType,
 		`library_qa_direct_reply_switch`:        libraryQaDirectReplySwitch,

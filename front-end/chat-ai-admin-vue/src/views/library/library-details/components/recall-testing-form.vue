@@ -239,6 +239,18 @@
         </div>
       </div>
 
+      <div class="form-item" v-if="formState.search_type == 1 || formState.search_type == 3">
+        <div class="form-item-label">
+          {{ t('label_full_text_search_mode') }}
+        </div>
+        <div class="form-item-body">
+          <a-radio-group v-model:value="formState.library_search_type">
+            <a-radio value="fullTextSearch">{{ t('full_text_search') }}</a-radio>
+            <a-radio value="keywordSearch">{{ t('keyword_match') }}</a-radio>
+          </a-radio-group>
+        </div>
+      </div>
+
       <div class="form-item">
         <div class="form-item-label">
           <span>{{ t('label_rerank_model') }}</span>
@@ -327,7 +339,8 @@ const formState = reactive({
     vector: 0,
     search: 0,
     graph: 0,
-  }
+  },
+  library_search_type: 'fullTextSearch'
 })
 
 const showRetrievalModeList = computed(()=>{
@@ -383,6 +396,7 @@ const handleRecallTest = () => {
     similarity: formState.similarity,
     search_type: formState.search_type,
     rrf_weight: JSON.stringify(formState.rrf_weight),
+    library_search_type: formState.library_search_type
   }
   if (formState.rerank_status == 1) {
     parmas.rerank_model_config_id = formState.rerank_model_config_id

@@ -220,6 +220,7 @@ type HttpToolInfo struct {
 type LibsNodeParams struct {
 	LibraryIds              string          `json:"library_ids"`
 	SearchType              common.MixedInt `json:"search_type"`
+	LibrarySearchType       string          `json:"library_search_type"`
 	RrfWeight               string          `json:"rrf_weight"`
 	TopK                    common.MixedInt `json:"top_k"`
 	Similarity              float64         `json:"similarity"`
@@ -1789,6 +1790,9 @@ func (params *LibsNodeParams) Verify(adminUserId int, lang string) error {
 	}
 	if !tool.InArrayInt(params.SearchType.Int(), []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText}) {
 		return errors.New(i18n.Show(lang, `library_search_mode_param_error`))
+	}
+	if _, err := common.NormalizeLibrarySearchType(params.SearchType.Int(), params.LibrarySearchType); err != nil {
+		return errors.New(i18n.Show(lang, `param_invalid`, `library_search_type`))
 	}
 	if err := common.CheckRrfWeight(params.RrfWeight, lang); err != nil {
 		return err

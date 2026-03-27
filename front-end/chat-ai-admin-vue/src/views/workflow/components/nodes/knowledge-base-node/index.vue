@@ -157,6 +157,7 @@ const formState = reactive({
   recall_neighbor_top_k: 5,
   recall_neighbor_before_num: 1,
   recall_neighbor_after_num: 1,
+  library_search_type: 'fullTextSearch'
 })
 
 const variableOptions = ref([])
@@ -220,6 +221,7 @@ const update = () => {
       recall_neighbor_top_k: formState.recall_neighbor_top_k,
       recall_neighbor_before_num: formState.recall_neighbor_before_num,
       recall_neighbor_after_num: formState.recall_neighbor_before_num,
+      library_search_type: formState.library_search_type
     }
   })
 

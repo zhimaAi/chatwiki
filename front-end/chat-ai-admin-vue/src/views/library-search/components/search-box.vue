@@ -201,6 +201,7 @@ const formState = reactive({
   similarity: 0.4,
   search_type: 1,
   summary_switch: 0,
+  library_search_type: 'fullTextSearch'
 })
 
 const defaultParmas = ref({})
@@ -220,6 +221,7 @@ const handleRecallTest = (searchObj) => {
     id: props.library_ids.join(','),
     recall_type: 1,
     rrf_weight: searchObj.rrf_weight,
+    library_search_type: searchObj.library_search_type || formState.library_search_type
   }
   if (searchObj.rerank_status) {
     parmas.rerank_status = searchObj.rerank_status

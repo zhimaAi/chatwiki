@@ -137,6 +137,12 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/03/27**
+
+1.[STD] Added pricing page to the ChatWiki official website<br/>
+2.Knowledge base recall: Added full-text search mode setting<br/>
+3.Fixed the issue where "Ungrouped" was still displayed in Chinese under non-Chinese languages<br/>
+
 **2026/03/23**
 
 1.Workflow batch/loop execution frame now supports collapsing<br/>
@@ -151,15 +157,6 @@ For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLo
 disappear when re-selecting the multidimensional table input box after entering data<br/>
 3.Added access domain to image URLs replied by WeCom bot<br/>
 4.[STD] Added ChatWiki model service to cloud model services<br/>
-
-**2026/03/13**
-
-1.ChatWiki supports authorized ChatClaw login<br/>
-2.Knowledge Base: Support video uploads, and robots can reply with videos<br/>
-3.Robot/Workflow: External services support WeCom robot<br/>
-4.Fixed parameter validation error when publishing scheduled triggers<br/>
-5.Workflow Publishing: Channel links displayed in the publish window<br/>
-6.ChatClaw client token management and forced logout<br/>
 
 ## License
 

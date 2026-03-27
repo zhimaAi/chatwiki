@@ -99,6 +99,11 @@ const (
 	SearchTypeGraph    = 4
 )
 
+const (
+	LibrarySearchTypeFullText = `fullTextSearch`
+	LibrarySearchTypeKeyword  = `keywordSearch`
+)
+
 var SeparatorsList = []map[string]any{
 	{`no`: 1, `name`: `#`, `code`: []string{"\r\n# ", "\n# ", "\r# "}},
 	{`no`: 2, `name`: `##`, `code`: []string{"\r\n## ", "\n## ", "\r## "}},
