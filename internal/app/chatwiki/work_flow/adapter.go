@@ -532,6 +532,7 @@ func (n *LibsNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	robot := flow.params.Robot
 	robot[`library_ids`] = n.params.LibraryIds
 	robot[`search_type`] = cast.ToString(n.params.SearchType)
+	robot[`library_search_type`] = n.params.LibrarySearchType
 	robot[`rrf_weight`] = n.params.RrfWeight
 	robot[`top_k`] = cast.ToString(n.params.TopK)
 	robot[`similarity`] = cast.ToString(n.params.Similarity)

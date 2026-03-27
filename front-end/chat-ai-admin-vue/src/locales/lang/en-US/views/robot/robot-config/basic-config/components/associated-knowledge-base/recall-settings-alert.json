@@ -29,5 +29,8 @@
   "label_segments": "segments",
   "label_of_segments": "segments",
   "label_auto_concat_before": "Auto-concatenate",
-  "label_robot_variables": "Robot Variables"
+  "label_robot_variables": "Robot Variables",
+  "label_full_text_search_mode": "Full Text Search Mode",
+  "full_text_search": "Word Segmentation Search",
+  "keyword_match": "Keyword Match"
 }

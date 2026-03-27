@@ -216,6 +216,7 @@ const formState = reactive({
   recall_neighbor_switch: false,
   recall_neighbor_before_num: 1,
   recall_neighbor_after_num: 1,
+  library_search_type: 'fullTextSearch'
 })
 
 // 知识库
@@ -279,7 +280,7 @@ const onChangeRecallSettings = (data) => {
   formState.recall_neighbor_top_k = data.recall_neighbor_top_k
   formState.recall_neighbor_before_num = data.recall_neighbor_before_num
   formState.recall_neighbor_after_num = data.recall_neighbor_after_num
-
+  formState.library_search_type = data.library_search_type
   if (data.search_type == 1 || data.search_type == 4) {
     if (noOpenLibraryList.value.length > 0) {
       noOpenGraphModalRef.value.show()
@@ -347,6 +348,7 @@ watchEffect(() => {
   formState.recall_neighbor_top_k = robotInfo.recall_neighbor_top_k
   formState.recall_neighbor_before_num = robotInfo.recall_neighbor_before_num
   formState.recall_neighbor_after_num = robotInfo.recall_neighbor_after_num
+  formState.library_search_type = robotInfo.library_search_type
 })
 
 const toLibraryDetail = (item) => {

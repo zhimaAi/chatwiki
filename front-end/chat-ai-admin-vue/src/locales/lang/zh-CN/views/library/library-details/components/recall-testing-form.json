@@ -20,5 +20,8 @@
   "msg_select_rerank_model": "请选择Rerank模型",
   "msg_input_similarity": "请输入相似度",
   "msg_input_size": "请输入分段数",
-  "msg_input_question": "请输入测试问题"
+  "msg_input_question": "请输入测试问题",
+  "label_full_text_search_mode": "全文检索模式",
+  "full_text_search": "分词检索",
+  "keyword_match": "关键词匹配"
 }

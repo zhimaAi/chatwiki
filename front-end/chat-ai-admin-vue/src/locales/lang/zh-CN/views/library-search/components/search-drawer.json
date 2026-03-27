@@ -36,5 +36,8 @@
   "please_input": "请输入",
   "enter_custom_prompt": "请输入自定义提示词",
   "enter_prompt": "请输入提示语",
-  "save_success": "保存成功"
+  "save_success": "保存成功",
+  "label_full_text_search_mode": "全文检索模式",
+  "full_text_search": "分词检索",
+  "keyword_match": "关键词匹配"
 }

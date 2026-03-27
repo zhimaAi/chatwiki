@@ -27,7 +27,7 @@ CREATE TABLE "public"."sensitive_words_relation"
 (
     "id"            serial        NOT NULL primary key,
     "words_id" int4          NOT NULL DEFAULT 0,
-    "robot_id"      int2          NOT NULL DEFAULT 0,
+    "robot_id"      int4          NOT NULL DEFAULT 0,
     "status" int2          NOT NULL DEFAULT 0,
     "create_time"   int4          NOT NULL DEFAULT 0,
     "update_time"   int4          NOT NULL DEFAULT 0

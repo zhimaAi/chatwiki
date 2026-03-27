@@ -508,6 +508,85 @@ func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size,
 		Order(`similarity DESC`).Limit(size).Select()
 }
 
+func GetMatchLibraryParagraphBySearchType(question, libraryIds string, size, searchType int, librarySearchType string) ([]msql.Params, error) {
+	librarySearchType, err := NormalizeLibrarySearchType(searchType, librarySearchType)
+	if err != nil {
+		return nil, err
+	}
+	if librarySearchType == define.LibrarySearchTypeKeyword {
+		return GetMatchLibraryParagraphByKeywordSearch(question, libraryIds, size, searchType)
+	}
+	return GetMatchLibraryParagraphByFullTextSearch(question, libraryIds, size, searchType)
+}
+
+func GetMatchLibraryParagraphByKeywordSearch(question, libraryIds string, size, searchType int) ([]msql.Params, error) {
+	list := make([]msql.Params, 0)
+	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeFullText}) {
+		return list, nil
+	}
+	question = strings.TrimSpace(GetFirstQuestionByInput(question))
+	if question == `` {
+		return list, nil
+	}
+	questionPattern := escapeLikePattern(question)
+	m := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
+		Alias("a").
+		Join("chat_ai_library_file_data b", "a.data_id=b.id", "left").
+		Where(`a.delete_time`, `0`).
+		Where(`a.library_id`, `in`, libraryIds).
+		Where(`a.type`, `in`, fmt.Sprintf(`%d,%d,%d,%d`, define.VectorTypeParagraph, define.VectorTypeQuestion, define.VectorTypeAnswer, define.VectorTypeSimilarQuestion)).
+		Where(`b.id is not null`).
+		Where(fmt.Sprintf(`a.content ILIKE '%%%s%%' ESCAPE '\'`, questionPattern)).
+		Field(`b.*,a.id as index_id`).
+		Field(keywordSearchSimilaritySQL()).
+		Order(`similarity DESC,a.id DESC`).Limit(size)
+	list, err := m.Select()
+	if err != nil {
+		return nil, fmt.Errorf(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
+	}
+	logs.Info(`keywordSearch query:%s`, buildKeywordSearchLogPayload(question, libraryIds, m.GetLastSql(), list))
+	return list, nil
+}
+
+func escapeSQLString(s string) string {
+	return strings.ReplaceAll(s, `'`, `''`)
+}
+
+func escapeLikePattern(s string) string {
+	replacer := strings.NewReplacer(
+		`\`, `\\`,
+		`%`, `\%`,
+		`_`, `\_`,
+		`'`, `''`,
+	)
+	return replacer.Replace(s)
+}
+
+func keywordSearchSimilaritySQL() string {
+	return `0.5 as similarity`
+}
+
+func buildKeywordSearchLogPayload(question, libraryIds, sql string, result []msql.Params) string {
+	results := make([]msql.Params, 0)
+	for _, val := range result {
+		results = append(results, msql.Params{
+			`id`:      val[`id`],
+			`content`: val[`content`],
+		})
+	}
+	payload, err := json.Marshal(map[string]any{
+		`question`:    question,
+		`library_ids`: libraryIds,
+		`sql`:         sql,
+		`result`:      results,
+	})
+	if err != nil {
+		logs.Error(`build keywordSearch log payload error:%s`, err.Error())
+		return fmt.Sprintf(`{"question":%q,"library_ids":%q,"sql":%q,"result":[]}`, question, libraryIds, sql)
+	}
+	return string(payload)
+}
+
 func GetMatchLibraryDataIdsByFullText(content, libraryIds string, size int) ([]string, error) {
 	queryTokens := []string{content}
 	ids, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`library_id`, `in`, libraryIds).
@@ -614,7 +693,7 @@ func GetMatchLibraryParagraphList(lang string, openid, appType, appId, question 
 			logs.Error(err.Error())
 		}
 		graphList = append(graphList, changeListContent(list)...)
-		list, err = GetMatchLibraryParagraphByFullTextSearch(q, libraryIds, fetchSize, searchType)
+		list, err = GetMatchLibraryParagraphBySearchType(q, libraryIds, fetchSize, searchType, robot[`library_search_type`])
 		if err != nil {
 			logs.Error(err.Error())
 		}

@@ -265,6 +265,18 @@
           </div>
         </div>
 
+        <div class="form-item" v-if="formState.search_type == 1 || formState.search_type == 3">
+          <div class="form-item-label">
+            {{ t('label_full_text_search_mode') }}
+          </div>
+          <div class="form-item-body">
+            <a-radio-group @change="onSave" v-model:value="formState.library_search_type">
+              <a-radio value="fullTextSearch">{{ t('full_text_search') }}</a-radio>
+              <a-radio value="keywordSearch">{{ t('keyword_match') }}</a-radio>
+            </a-radio-group>
+          </div>
+        </div>
+
         <div class="form-item">
           <div class="form-item-label">
             <span>{{ t('rerank_model') }}&nbsp;</span>
@@ -380,7 +392,8 @@ const formState = reactive({
   rerank_use_model: void 0,
   rerank_model_config_id: void 0,
   summary_switch: 0,
-  rrf_weight: {}
+  rrf_weight: {},
+  library_search_type: 'fullTextSearch'
 })
 
 const handleChangeModel = () => {
@@ -417,7 +430,7 @@ const updateLibraryInfo = (val) => {
   newState.similarity = parseFloat(newState.similarity)
   newState.top_k = parseFloat(newState.size)
   newState.summary_switch = +newState.summary_switch
-
+  newState.library_search_type = newState.library_search_type || 'fullTextSearch'
   if (newState.rerank_use_model === '') {
     // 这里是因为服务端可能会返回个空字符串，我这里改成undefined才有placeholder
     newState.rerank_use_model = void 0

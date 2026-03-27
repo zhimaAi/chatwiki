@@ -36,6 +36,7 @@ func SaveLibrarySearch(c *gin.Context) {
 	topK := cast.ToInt(c.DefaultPostForm(`size`, `200`))
 	similarity := cast.ToFloat32(c.DefaultPostForm(`similarity`, `0.6`))
 	searchType := cast.ToInt(c.DefaultPostForm(`search_type`, `1`))
+	librarySearchType := strings.TrimSpace(c.PostForm(`library_search_type`))
 	rrfWeight := strings.TrimSpace(c.PostForm(`rrf_weight`))
 	rerankStatus := cast.ToInt(c.PostForm(`rerank_status`))
 	rerankModelConfigID := cast.ToInt(c.PostForm(`rerank_model_config_id`))
@@ -49,6 +50,11 @@ func SaveLibrarySearch(c *gin.Context) {
 	}
 	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText, define.SearchTypeGraph}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
+		return
+	}
+	librarySearchType, normalizeErr := common.NormalizeLibrarySearchType(searchType, librarySearchType)
+	if normalizeErr != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `library_search_type`))))
 		return
 	}
 	if err := common.CheckRrfWeight(rrfWeight, common.GetLang(c)); err != nil {
@@ -70,6 +76,7 @@ func SaveLibrarySearch(c *gin.Context) {
 		"size":                   topK,
 		"similarity":             similarity,
 		`search_type`:            searchType,
+		`library_search_type`:    librarySearchType,
 		`rrf_weight`:             rrfWeight,
 		"rerank_status":          rerankStatus,
 		"rerank_model_config_id": rerankModelConfigID,
@@ -132,6 +139,7 @@ func LibraryAiSummary(c *gin.Context) {
 	size := cast.ToInt(c.DefaultPostForm(`size`, "10"))
 	similarity := cast.ToFloat64(c.PostForm(`similarity`))
 	searchType := cast.ToInt(c.PostForm(`search_type`))
+	librarySearchType := strings.TrimSpace(c.PostForm(`library_search_type`))
 	rerankModelConfigID := cast.ToInt(c.PostForm(`rerank_model_config_id`))
 	rerankUseModel := strings.TrimSpace(c.PostForm(`rerank_use_model`))
 	rerankStatus := strings.TrimSpace(c.DefaultPostForm(`rerank_status`, `1`))
@@ -156,6 +164,11 @@ func LibraryAiSummary(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
 		return
 	}
+	librarySearchType, normalizeErr := common.NormalizeLibrarySearchType(searchType, librarySearchType)
+	if normalizeErr != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `library_search_type`))))
+		return
+	}
 
 	//check model_config_id and use_model
 	if ok := common.CheckModelIsValid(userId, modelConfigId, useModel, common.Llm); !ok {
@@ -164,8 +177,9 @@ func LibraryAiSummary(c *gin.Context) {
 	}
 
 	robot := msql.Params{
-		`recall_type`:   recallType,
-		`admin_user_id`: cast.ToString(userId),
+		`recall_type`:         recallType,
+		`library_search_type`: librarySearchType,
+		`admin_user_id`:       cast.ToString(userId),
 	}
 	for _, libraryId := range strings.Split(libraryIds, `,`) {
 		info, err := common.GetLibraryInfo(cast.ToInt(libraryId), userId)

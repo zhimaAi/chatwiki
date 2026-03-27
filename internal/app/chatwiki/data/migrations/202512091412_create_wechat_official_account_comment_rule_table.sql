@@ -15,7 +15,7 @@ CREATE TABLE "public"."wechat_official_account_comment_rule"
     "elect_comment_rule"    jsonb,
     "is_default"            int2                                        NOT NULL DEFAULT 0,
     "switch"                int2                                        NOT NULL DEFAULT 0,
-    "model_config_id"       int2                                        NOT NULL DEFAULT 0
+    "model_config_id"       int4                                        NOT NULL DEFAULT 0
 );
 
 ALTER TABLE "public"."wechat_official_account_comment_rule"
