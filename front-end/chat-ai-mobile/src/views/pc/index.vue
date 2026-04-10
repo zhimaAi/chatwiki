@@ -101,6 +101,7 @@ import MessageItem from '@/views/chat/components/messages/message-item.vue'
 import FastCommand from '@/views/chat/components/fast-comand/index.vue'
 
 import VariableModal from '@/views/chat/components/variable-modal/index.vue'
+import { getLang } from '@/utils/getLangConfig'
 
 const { t } = useI18n('views.pc.index')
 const { t: tChat } = useI18n('views.chat.index')
@@ -120,14 +121,16 @@ const handleLanguageSwitch = () => {
 
   // externalConfigH5 已经在 chat.ts 的 createChat 中解析完成
   if (externalConfigH5.value.lang) {
-    newLang = externalConfigH5.value.lang
+    newLang = getLang()
   }
 
+  if(!['zh-CN', 'en-US'].includes(newLang)){
+    newLang = 'en-US'
+  }
   // 检查是否需要切换语言
   if (
     newLang &&
-    newLang !== localeStore.currentLocale.lang &&
-    ['zh-CN', 'en-US'].includes(newLang)
+    newLang !== localeStore.currentLocale.lang 
   ) {
     changeLocale(newLang as any)
   }

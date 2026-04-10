@@ -144,7 +144,8 @@ export const useRobotStore = defineStore('robot', () => {
     recall_neighbor_top_k: 5,
     recall_neighbor_before_num: 1,
     recall_neighbor_after_num: 1,
-    library_search_type: 'fullTextSearch'
+    library_search_type: 'fullTextSearch',
+    multi_lang_configs: [],
   })
 
   // WebApp配置
@@ -276,6 +277,10 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.recall_neighbor_before_num = +data.recall_neighbor_before_num || 0
     robotInfo.recall_neighbor_after_num = +data.recall_neighbor_after_num || 0
     robotInfo.library_search_type = data.library_search_type || 'fullTextSearch'
+
+    if(data.multi_lang_configs){
+      robotInfo.multi_lang_configs = JSON.parse(data.multi_lang_configs)
+    }
 
     if (data.cache_config) {
       let parsedCacheConfig = {};

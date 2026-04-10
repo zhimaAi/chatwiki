@@ -762,3 +762,11 @@ export const deleteChatVariable = (data = {}) => {
     data: data
   })
 }
+
+
+export const saveRobotLangConfigs = (data = {}) => {
+  return request.post({
+    url: '/manage/saveRobotLangConfigs',
+    data: data
+  })
+}

@@ -68,6 +68,8 @@ func init() {
 	noAuthFuns(Route[http.MethodPost], `/manage/upload`, manage.Upload)
 	Route[http.MethodGet][`/manage/getRobotList`] = manage.GetRobotList
 	Route[http.MethodPost][`/manage/saveRobot`] = manage.SaveRobot
+	Route[http.MethodPost][`/manage/saveRobotLangConfig`] = manage.SaveRobotLangConfig
+	Route[http.MethodPost][`/manage/saveRobotLangConfigs`] = manage.SaveRobotLangConfigs
 	Route[http.MethodPost][`/manage/robotAutoAdd`] = manage.RobotAutoAdd
 	Route[http.MethodPost][`/manage/addFlowRobot`] = manage.AddFlowRobot
 	Route[http.MethodPost][`/manage/moveRobotSort`] = manage.MoveRobotSort

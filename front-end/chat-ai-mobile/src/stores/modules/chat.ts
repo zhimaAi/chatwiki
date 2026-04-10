@@ -6,6 +6,7 @@ import { getUuid, getOpenid, extractVoiceInfo, removeVoiceFormat } from '@/utils
 import { useEventBus } from '@/hooks/event/useEventBus'
 import { useIM } from '@/hooks/event/useIM'
 import { useUserStore } from '@/stores/modules/user'
+import { getCurrentConfig } from '@/utils/getLangConfig'
 export interface Message {
   name: string
   nickname: string
@@ -77,6 +78,7 @@ export interface Robot {
   question_multiple_switch: number
   tips_before_answer_content: string
   tips_before_answer_switch: boolean
+  multi_lang_configs: string
 }
 
 export interface PageStyle {
@@ -140,6 +142,7 @@ export const useChatStore = defineStore('chat', () => {
     question_multiple_switch: 0,
     tips_before_answer_content: '思考中、请稍候',
     tips_before_answer_switch: true,
+    multi_lang_configs: '',
   })
 
   // 样式配置
@@ -169,6 +172,42 @@ export const useChatStore = defineStore('chat', () => {
 
   // 创建对话
   const isNewChat = ref(false)
+
+  const setH5Config = async (data: Chat) => {
+
+    openid.value = data.openid || getOpenid()
+
+    robot.robot_key = data.robot_key
+    robot.openid = openid.value
+
+    user.openid = openid.value
+    user.avatar = data.avatar || ''
+    user.name = data.name || ''
+    user.nickname = data.nickname || ''
+
+    const res = await chatWelcome({
+      robot_key: robot.robot_key,
+      openid: openid.value,
+      nickname: user.nickname,
+      name: user.name,
+      avatar: user.avatar,
+      dialogue_id: 0,
+    })
+
+    try {
+      const robotInfo = res.data.robot
+      // 设置网页标题
+      if(robotInfo.external_config_h5){
+        Object.assign(externalConfigH5, JSON.parse(robotInfo.external_config_h5))
+      }else{
+        externalConfigH5.pageTitle = robotInfo.robot_name
+        externalConfigH5.logo = robotInfo.robot_avatar
+      }
+      return res
+    } catch (e) {
+      Promise.reject(e)
+    }
+  }
 
   const createChat = async (data: Chat, autoInsertWelcomeMsg = true, _isForceNewChat = false) => {
     if (mySSE) {
@@ -235,8 +274,7 @@ export const useChatStore = defineStore('chat', () => {
       robot.chat_type = robotInfo.chat_type;
       robot.answer_source_switch = robotInfo.answer_source_switch == 'true';
       robot.application_type = robotInfo.application_type
-      robot.tips_before_answer_content = robotInfo.tips_before_answer_content
-      robot.tips_before_answer_switch = robotInfo.tips_before_answer_switch == 'true';
+      robot.multi_lang_configs = robotInfo.multi_lang_configs
 
       robot.question_multiple_switch = Number(robotInfo.question_multiple_switch) || 0
       if (robotInfo.common_question_list) {
@@ -270,6 +308,10 @@ export const useChatStore = defineStore('chat', () => {
       if(faviconLink && externalConfigH5.logo){
         faviconLink.setAttribute('href', externalConfigH5.logo);
       }
+
+      let currentConfig = getCurrentConfig(robotInfo.multi_lang_configs)
+      robot.tips_before_answer_content = currentConfig?.tips_before_answer_content || ''
+      robot.tips_before_answer_switch = currentConfig.tips_before_answer_switch == 'true';
 
       setTimeout(() => {
         const chatVariable = res.data.chat_variable || {}
@@ -326,6 +368,23 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  function checkIsPushWeclome(msg: Message){
+    let menu_json = msg.menu_json
+    let quote_file = msg.quote_file
+    if(menu_json){
+      menu_json = JSON.parse(menu_json)
+    }
+    if(quote_file){
+      quote_file = JSON.parse(quote_file)
+    }
+    if(menu_json === '' && quote_file.length == 0){
+      return true
+    }
+    if(quote_file.length == 0 && !menu_json.content && !menu_json?.question?.length){
+      return true
+    }
+    return false
+  }
   //  插入欢迎语
   const insertWelcomeMsg = (msg: Message) => {
     if (msg) {
@@ -334,6 +393,9 @@ export const useChatStore = defineStore('chat', () => {
       msg.isWelcome = true
       msg.avatar = robot.robot_avatar
 
+      if(checkIsPushWeclome(msg)){
+        return
+      }
       if (msg.menu_json) {
         msg.menu_json = JSON.parse(msg.menu_json)
       }
@@ -894,6 +956,9 @@ export const useChatStore = defineStore('chat', () => {
   // 更新预览 ui
   const upDataUiStyle = (data) => {
     Object.assign(externalConfigH5, data)
+    let currentConfig = getCurrentConfig(robot.multi_lang_configs)
+    robot.tips_before_answer_content = currentConfig?.tips_before_answer_content || ''
+    robot.tips_before_answer_switch = currentConfig?.tips_before_answer_switch == 'true';
   }
 
   const updataQuickComand = (data) => {
@@ -974,5 +1039,6 @@ export const useChatStore = defineStore('chat', () => {
     editDialogueChat,
     chat_variables,
     handleEditVariables,
+    setH5Config,
   }
 })

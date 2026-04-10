@@ -192,12 +192,19 @@ func BuildSendMenu(menuJsonStr string) (string, error) {
 }
 
 func SendWelcome(push *lib_define.PushMessage) {
-	if push.Robot == nil && len(push.Robot[`welcomes`]) == 0 {
+	if push.Robot == nil {
+		return
+	}
+	push.Robot = common.ApplyRobotMultilingualConfig(push.Robot, common.RobotLangCh)
+	if len(push.Robot[`welcomes`]) == 0 {
 		return
 	}
 	content, err := BuildSendMenu(push.Robot[`welcomes`])
 	if err != nil {
 		logs.Error(`build send menu failed welcomes:%s,err:%s`, push.Robot[`welcomes`], err.Error())
+		return
+	}
+	if content == `` {
 		return
 	}
 	app, err := wechat.GetApplication(push.AppInfo)

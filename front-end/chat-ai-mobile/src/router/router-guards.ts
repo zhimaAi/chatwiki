@@ -5,6 +5,7 @@ import type { Chat } from '@/stores/modules/chat'
 import { useLocaleStoreWithOut } from '@/stores/modules/locale'
 import { useLocale } from '@/hooks/web/useLocale'
 import { getOpenid } from '@/utils/index'
+import { getLang } from '@/utils/getLangConfig'
 
 // 辅助函数：从路由的查询参数中提取Chat数据  
 function extractChatDataFromQuery(query: any): Partial<Chat> {  
@@ -35,8 +36,7 @@ export function createRouterGuards(router: Router) {
         // 从 external_config_h5 中获取语言配置
         if (robotInfo?.external_config_h5) {
             try {
-                const externalConfig = JSON.parse(robotInfo.external_config_h5);
-                newLang = externalConfig.lang || 'zh-CN';
+                newLang = getLang() || 'zh-CN';
             } catch (error) {
                 console.error('Failed to parse external_config_h5:', error);
             }
@@ -64,6 +64,11 @@ export function createRouterGuards(router: Router) {
         if (initialOpenid) {
             chatStore.robot.openid = initialOpenid
             chatStore.openid = initialOpenid
+        }
+
+        const res1 = await chatStore.setH5Config(data as Chat);
+        if (res1?.data?.robot) {
+            handleLanguageSwitch(res1.data.robot);
         }
 
         if (shouldRedirect(to)) {  

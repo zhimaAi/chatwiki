@@ -10,6 +10,7 @@ import (
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -31,6 +32,57 @@ type metaSearchCondition struct {
 	Op    int    `json:"op"`             // define.MetaOp*
 	Value string `json:"value"`          //can be empty (empty/not-empty operators)
 	Tags  any    `json:"tags,omitempty"` //temporary data used by frontend
+}
+
+// welcomes decode
+func normalizeRobotMultilingualMenuJSON(lang, raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == `` {
+		return tool.JsonEncode(define.MenuJsonStruct{Question: []string{}})
+	}
+
+	var payload struct {
+		Content  string          `json:"content"`
+		Question json.RawMessage `json:"question"`
+	}
+	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
+		return ``, err
+	}
+
+	out := define.MenuJsonStruct{
+		Content:  strings.TrimSpace(payload.Content),
+		Question: []string{},
+	}
+	if len(payload.Question) == 0 || string(payload.Question) == `null` {
+		return tool.JsonEncode(out)
+	}
+
+	var stringQuestions []string
+	if err := json.Unmarshal(payload.Question, &stringQuestions); err == nil {
+		for _, question := range stringQuestions {
+			question = strings.TrimSpace(question)
+			if question != `` {
+				out.Question = append(out.Question, question)
+			}
+		}
+		return tool.JsonEncode(out)
+	}
+
+	var objectQuestions []struct {
+		Content string `json:"content"`
+		ID      string `json:"id"`
+	}
+	if err := json.Unmarshal(payload.Question, &objectQuestions); err == nil {
+		for _, question := range objectQuestions {
+			content := strings.TrimSpace(question.Content)
+			if content != `` {
+				out.Question = append(out.Question, content)
+			}
+		}
+		return tool.JsonEncode(out)
+	}
+
+	return ``, errors.New(i18n.Show(lang, `param_invalid`, `question`))
 }
 
 func validateMetaSearchConfig(lang string, metaSwitch, metaType int, raw string) (int, int, string, error) {
@@ -775,6 +827,240 @@ func SaveRobot(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
 }
 
+// save robot multi lang config
+func SaveRobotLangConfig(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	id := cast.ToInt64(c.PostForm(`id`))
+	if id <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	robotKey, err := getRobotKeyById(userId, id)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(robotKey) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	langKey := common.NormalizeRobotLangKey(c.PostForm(`lang_key`))
+	if len(strings.TrimSpace(c.PostForm(`lang_key`))) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+
+	langConfig, err := buildRobotMultilingualConfigForSave(
+		c,
+		id,
+		langKey,
+	)
+	if err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+		return
+	}
+	if err = common.SaveRobotMultilingualConfig(userId, cast.ToInt(id), langConfig); err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	//sync ch config to robot_info
+	if err = syncRobotLegacyFieldsByLangConfig(userId, id, langConfig); err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
+	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
+}
+
+// save robot multi lang configs
+func SaveRobotLangConfigs(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	id := cast.ToInt64(c.PostForm(`id`))
+	if id <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	robotKey, err := getRobotKeyById(userId, id)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(robotKey) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	raw := strings.TrimSpace(c.PostForm(`multi_lang_configs`))
+	if len(raw) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	var incoming []common.RobotMultilingualConfig
+	if err = tool.JsonDecodeUseNumber(raw, &incoming); err != nil || len(incoming) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `multi_lang_configs`))))
+		return
+	}
+	for _, one := range incoming {
+		langConfig, buildErr := buildRobotMultilingualConfigForSave(c, id, one.LangKey, one)
+		if buildErr != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, buildErr))
+			return
+		}
+		if err = common.SaveRobotMultilingualConfig(userId, cast.ToInt(id), langConfig); err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		if err = syncRobotLegacyFieldsByLangConfig(userId, id, langConfig); err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+	}
+	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
+	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
+}
+
+func syncRobotLegacyFieldsByLangConfig(userId int, robotId int64, langConfig common.RobotMultilingualConfig) error {
+	data, ok := common.BuildLegacyRobotFieldsFromMultilingualConfig(langConfig)
+	if !ok || userId <= 0 || robotId <= 0 {
+		return nil
+	}
+	_, err := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`id`, cast.ToString(robotId)).
+		Where(`admin_user_id`, cast.ToString(userId)).
+		Update(data)
+	return err
+}
+
+func getRobotKeyById(userId int, id int64) (string, error) {
+	if userId <= 0 || id <= 0 {
+		return ``, nil
+	}
+	return msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`id`, cast.ToString(id)).
+		Where(`admin_user_id`, cast.ToString(userId)).
+		Value(`robot_key`)
+}
+
+// buildRobotMultilingualConfigForSave validates and normalizes one multilingual row for robot save.
+func buildRobotMultilingualConfigForSave(c *gin.Context, robotId int64, langKey string, overrides ...common.RobotMultilingualConfig) (common.RobotMultilingualConfig, error) {
+	checkLangKey := false
+	langKey = common.NormalizeRobotLangKey(langKey)
+	for _, allowLangKey := range common.RobotSupportedLangKeys {
+		if allowLangKey == langKey {
+			checkLangKey = true
+			break
+		}
+	}
+	if !checkLangKey {
+		return common.RobotMultilingualConfig{}, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `lang_key`))
+	}
+
+	base := common.RobotMultilingualConfig{LangKey: langKey}
+	if robotId > 0 {
+		exist, err := common.GetRobotMultilingualConfig(cast.ToInt(robotId), langKey)
+		if err != nil {
+			return common.RobotMultilingualConfig{}, err
+		}
+		if len(exist) > 0 {
+			base.Welcomes = exist[`welcomes`]
+			base.UnknownQuestionPrompt = exist[`unknown_question_prompt`]
+			base.TipsBeforeAnswerSwitch = cast.ToBool(exist[`tips_before_answer_switch`])
+			base.TipsBeforeAnswerContent = exist[`tips_before_answer_content`]
+			base.EnableCommonQuestion = cast.ToBool(exist[`enable_common_question`])
+			base.CommonQuestionList = exist[`common_question_list`]
+		}
+	}
+	if len(base.Welcomes) == 0 || len(base.UnknownQuestionPrompt) == 0 || len(base.TipsBeforeAnswerContent) == 0 || len(base.CommonQuestionList) == 0 {
+		for _, one := range common.BuildRobotMultilingualConfigsByLegacy(
+			i18n.Show(common.GetLang(c), `default_welcomes`),
+			tool.JsonEncodeNoError(define.MenuJsonStruct{Content: lib_define.DefaultUnknownQuestionPromptContent, Question: []string{}}),
+			i18n.Show(common.GetLang(c), `thinking_please_wait`),
+			true,
+			false,
+			`[]`,
+		) {
+			if one.LangKey != langKey {
+				continue
+			}
+			if len(base.Welcomes) == 0 {
+				base.Welcomes = one.Welcomes
+			}
+			if len(base.UnknownQuestionPrompt) == 0 {
+				base.UnknownQuestionPrompt = one.UnknownQuestionPrompt
+			}
+			if len(base.TipsBeforeAnswerContent) == 0 {
+				base.TipsBeforeAnswerSwitch = one.TipsBeforeAnswerSwitch
+			}
+			if len(base.TipsBeforeAnswerContent) == 0 {
+				base.TipsBeforeAnswerContent = one.TipsBeforeAnswerContent
+			}
+			if len(base.CommonQuestionList) == 0 {
+				base.CommonQuestionList = one.CommonQuestionList
+			}
+			break
+		}
+	}
+
+	welcomes := strings.TrimSpace(c.PostForm(`welcomes`))
+	unknownQuestionPrompt := strings.TrimSpace(c.PostForm(`unknown_question_prompt`))
+	commonQuestionList := strings.TrimSpace(c.PostForm(`common_question_list`))
+	if len(overrides) > 0 {
+		one := overrides[0]
+		welcomes = strings.TrimSpace(one.Welcomes)
+		unknownQuestionPrompt = strings.TrimSpace(one.UnknownQuestionPrompt)
+		commonQuestionList = strings.TrimSpace(one.CommonQuestionList)
+		base.TipsBeforeAnswerContent = strings.TrimSpace(one.TipsBeforeAnswerContent)
+		if one.TipsBeforeAnswerSwitch != nil {
+			base.TipsBeforeAnswerSwitch = common.NormalizeFlexibleBool(one.TipsBeforeAnswerSwitch)
+		}
+		if one.EnableCommonQuestion != nil {
+			base.EnableCommonQuestion = common.NormalizeFlexibleBool(one.EnableCommonQuestion)
+		}
+	}
+	if len(welcomes) > 0 {
+		var err error
+		base.Welcomes, err = normalizeRobotMultilingualMenuJSON(common.GetLang(c), welcomes)
+		if err != nil {
+			return common.RobotMultilingualConfig{}, err
+		}
+	}
+	if len(unknownQuestionPrompt) > 0 {
+		var err error
+		base.UnknownQuestionPrompt, err = normalizeRobotMultilingualMenuJSON(common.GetLang(c), unknownQuestionPrompt)
+		if err != nil {
+			return common.RobotMultilingualConfig{}, err
+		}
+	}
+	if len(base.TipsBeforeAnswerContent) > 30 && utf8.RuneCountInString(base.TipsBeforeAnswerContent) > 10 {
+		return common.RobotMultilingualConfig{}, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `tips_before_answer_content`))
+	}
+	if len(commonQuestionList) > 0 {
+		if commonQuestionList != `[]` {
+			var err error
+			commonQuestionList, err = common.CheckCommonQuestionJson(c, commonQuestionList)
+			if err != nil {
+				return common.RobotMultilingualConfig{}, err
+			}
+		}
+		base.CommonQuestionList = commonQuestionList
+	}
+	if len(base.CommonQuestionList) == 0 {
+		base.CommonQuestionList = `[]`
+	}
+	return base, nil
+}
+
 func AddFlowRobot(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
@@ -886,6 +1172,19 @@ func AddFlowRobot(c *gin.Context) {
 		go AddDefaultPermissionManage(userId, loginUserId, int(id), define.ObjectTypeRobot)
 	}
 	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	flowRobotLangConfigs := common.BuildRobotMultilingualConfigsByLegacy(
+		welcomes,
+		unknownQuestionPrompt,
+		i18n.Show(define.LangZhCn, `thinking_please_wait`),
+		true,
+		false,
+		`[]`,
+	)
+	if err = common.SaveRobotMultilingualConfigs(userId, cast.ToInt(id), flowRobotLangConfigs); err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
@@ -1138,6 +1437,36 @@ func GetRobotInfo(c *gin.Context) {
 	if cast.ToInt(info[`prompt_type`]) == define.PromptTypeStruct { //for legacy data normalization
 		info[`prompt_struct`], _ = common.CheckPromptConfig(common.GetLang(c), define.PromptTypeStruct, info[`prompt_struct`])
 	}
+	//check langs
+	langConfigs, err := common.GetRobotMultilingualConfigList(cast.ToInt(info[`id`]))
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(langConfigs) == 0 {
+		legacy := common.BuildRobotMultilingualConfigsByLegacy(
+			info[`welcomes`],
+			info[`unknown_question_prompt`],
+			info[`tips_before_answer_content`],
+			cast.ToBool(info[`tips_before_answer_switch`]),
+			cast.ToBool(info[`enable_common_question`]),
+			info[`common_question_list`],
+		)
+		for _, one := range legacy {
+			langConfigs = append(langConfigs, msql.Params{
+				`lang_key`:                   one.LangKey,
+				`welcomes`:                   one.Welcomes,
+				`unknown_question_prompt`:    one.UnknownQuestionPrompt,
+				`tips_before_answer_switch`:  cast.ToString(one.TipsBeforeAnswerSwitch),
+				`tips_before_answer_content`: one.TipsBeforeAnswerContent,
+				`enable_common_question`:     cast.ToString(one.EnableCommonQuestion),
+				`common_question_list`:       one.CommonQuestionList,
+			})
+		}
+	}
+	info[`multi_lang_configs`] = tool.JsonEncodeNoError(langConfigs)
+	info = common.ApplyRobotMultilingualConfig(info, common.RobotLangCh)
 	//configure external service parameters
 	info[`image_domain`] = define.Config.WebService[`image_domain`]
 	info[`h5_domain`] = define.Config.WebService[`h5_domain`]

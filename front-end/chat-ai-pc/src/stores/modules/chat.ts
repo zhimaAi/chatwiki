@@ -7,7 +7,7 @@ import { useEventBus } from '@/hooks/event/useEventBus'
 import { useIM } from '@/hooks/event/useIM'
 import { postDot, postNewMessage } from '@/event/postMessage'
 import { DEFAULT_SDK_FLOAT_AVATAR, DEFAULT_SDK_FLOAT_AVATAR2 } from '@/constants/index'
-
+import { getCurrentConfig } from '@/utils/getLangConfig'
 export interface Message {
   robot_name: any
   dialogue_id: number
@@ -76,6 +76,7 @@ export interface Robot {
   application_type: string
   tips_before_answer_content: string
   tips_before_answer_switch: boolean
+  multi_lang_configs: string
 }
 
 export interface PageStyle {
@@ -168,6 +169,7 @@ export const useChatStore = defineStore('chat', () => {
     application_type: '0',
     tips_before_answer_content: '思考中、请稍侯...',
     tips_before_answer_switch: true,
+    multi_lang_configs: '',
   })
   // 样式配置
   const externalConfigPC = reactive<ExternalConfigPc>({
@@ -204,6 +206,50 @@ export const useChatStore = defineStore('chat', () => {
 
   // 创建对话
   const isNewChat = ref(false)
+
+  const setH5Config = async (data: Chat) => {
+
+    openid.value = data.openid || getOpenid()
+
+    robot.robot_key = data.robot_key
+    robot.openid = openid.value
+
+    user.openid = openid.value
+    user.avatar = data.avatar || ''
+    user.name = data.name || ''
+    user.nickname = data.nickname || ''
+
+    const res = await chatWelcome({
+      robot_key: robot.robot_key,
+      openid: openid.value,
+      nickname: user.nickname,
+      name: user.name,
+      avatar: user.avatar,
+      dialogue_id: 0,
+    })
+
+    try {
+      const robotInfo = res.data.robot
+      // 设置网页标题
+      if (robotInfo.external_config_pc) {
+        Object.assign(externalConfigPC, JSON.parse(robotInfo.external_config_pc))
+
+        if(externalConfigPC.floatBtn.displayType == 1) {
+          externalConfigPC.floatBtn.buttonIcon = DEFAULT_SDK_FLOAT_AVATAR
+        }else if(externalConfigPC.floatBtn.displayType == 2) {
+          externalConfigPC.floatBtn.buttonIcon = DEFAULT_SDK_FLOAT_AVATAR2
+        }else if(externalConfigPC.floatBtn.displayType == 3) {
+          externalConfigPC.floatBtn.buttonIcon = SDK_STATIC_HOST + externalConfigPC.floatBtn.buttonIcon
+        }
+      }else{
+        externalConfigPC.headTitle = robotInfo.robot_name
+        externalConfigPC.headImage = robotInfo.robot_avatar
+      }
+      return res
+    } catch (e) {
+      Promise.reject(e)
+    }
+  }
   const createChat = async (data: Chat) => {
     if (mySSE) {
       mySSE.abort()
@@ -267,8 +313,7 @@ export const useChatStore = defineStore('chat', () => {
       robot.chat_type = robotInfo.chat_type;
       robot.answer_source_switch = robotInfo.answer_source_switch == 'true';
       robot.application_type = robotInfo.application_type
-      robot.tips_before_answer_content = robotInfo.tips_before_answer_content
-      robot.tips_before_answer_switch = robotInfo.tips_before_answer_switch == 'true';
+      robot.multi_lang_configs = robotInfo.multi_lang_configs
 
       robot.id = robotInfo.id
 
@@ -290,6 +335,10 @@ export const useChatStore = defineStore('chat', () => {
         externalConfigPC.headTitle = robotInfo.robot_name
         externalConfigPC.headImage = robotInfo.robot_avatar
       }
+
+      let currentConfig = getCurrentConfig(robotInfo.multi_lang_configs)
+      robot.tips_before_answer_content = currentConfig?.tips_before_answer_content || ''
+      robot.tips_before_answer_switch = currentConfig.tips_before_answer_switch == 'true';
 
       setTimeout(() => {
         const chatVariable = res.data.chat_variable || {}
@@ -374,6 +423,23 @@ export const useChatStore = defineStore('chat', () => {
       }
     }
   }
+  function checkIsPushWeclome(msg: Message){
+    let menu_json = msg.menu_json
+    let quote_file = msg.quote_file
+    if(menu_json){
+      menu_json = JSON.parse(menu_json)
+    }
+    if(quote_file){
+      quote_file = JSON.parse(quote_file)
+    }
+    if(menu_json === '' && quote_file.length == 0){
+      return true
+    }
+    if(quote_file.length == 0 && !menu_json.content && !menu_json?.question?.length){
+      return true
+    }
+    return false
+  }
   //  插入欢迎语
   const insertWelcomeMsg = (msg: Message) => {
     if (msg) {
@@ -382,6 +448,9 @@ export const useChatStore = defineStore('chat', () => {
       msg.isWelcome = true
       msg.avatar = robot.robot_avatar
 
+      if(checkIsPushWeclome(msg)){
+        return
+      }
       if (msg.menu_json) {
         msg.menu_json = JSON.parse(msg.menu_json)
       }
@@ -897,6 +966,10 @@ export const useChatStore = defineStore('chat', () => {
   // 更新预览 ui
   const upDataUiStyle = (data) => {
     Object.assign(externalConfigPC, data)
+    let currentConfig = getCurrentConfig(robot.multi_lang_configs)
+    robot.tips_before_answer_content = currentConfig?.tips_before_answer_content || ''
+    robot.tips_before_answer_switch = currentConfig?.tips_before_answer_switch == 'true';
+    
   }
 
   const updataQuickComand = (data) => {
@@ -971,5 +1044,6 @@ export const useChatStore = defineStore('chat', () => {
     editDialogueChat,
     chat_variables,
     handleEditVariables,
+    setH5Config,
   }
 })
