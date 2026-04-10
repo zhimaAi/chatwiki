@@ -188,6 +188,11 @@ func CreateRobotCsl(lang string, id, adminUserId int, form_id, library_id string
 	// Workflow, library, form reference collection
 	switch cast.ToInt(robot[`application_type`]) {
 	case define.ApplicationTypeChat:
+		if list, listErr := common.GetRobotMultilingualConfigList(id); listErr == nil {
+			robotCsl.RobotMultilingualConfig = common.NormalizeRobotMultilingualConfigs(toRobotMultilingualConfigs(list))
+		} else {
+			logs.Error(listErr.Error())
+		}
 		if len(robot[`work_flow_ids`]) > 0 {
 			for _, workFlowId := range strings.Split(robot[`work_flow_ids`], `,`) {
 				children, subErr := CreateRobotCsl(lang, cast.ToInt(workFlowId), adminUserId, form_id, library_id, true)
@@ -390,6 +395,12 @@ func ApplyRobotCsl(lang string, adminUserId, userId int, token string, robotCsl 
 		if err != nil {
 			return nil, err
 		}
+		if len(robotCsl.RobotMultilingualConfig) > 0 {
+			if err = common.SaveRobotMultilingualConfigs(adminUserId, cast.ToInt(newRobot[`id`]), robotCsl.RobotMultilingualConfig); err != nil {
+				return nil, err
+			}
+			lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: newRobot[`robot_key`]})
+		}
 		// Import associated workflow
 		workFlowIds := make([]string, 0)
 		for _, workflow := range robotCsl.Workflows {
@@ -479,6 +490,22 @@ func ApplyChatRobot(lang string, robot msql.Params, cslIdMaps *common.CslIdMaps,
 		return nil, err
 	}
 	return cast.ToStringMapString(code.Data), nil
+}
+
+func toRobotMultilingualConfigs(list []msql.Params) []common.RobotMultilingualConfig {
+	result := make([]common.RobotMultilingualConfig, 0, len(list))
+	for _, one := range list {
+		result = append(result, common.RobotMultilingualConfig{
+			LangKey:                 one[`lang_key`],
+			Welcomes:                one[`welcomes`],
+			UnknownQuestionPrompt:   one[`unknown_question_prompt`],
+			TipsBeforeAnswerSwitch:  one[`tips_before_answer_switch`],
+			TipsBeforeAnswerContent: one[`tips_before_answer_content`],
+			EnableCommonQuestion:    one[`enable_common_question`],
+			CommonQuestionList:      one[`common_question_list`],
+		})
+	}
+	return result
 }
 
 func ApplyFlowRobot(lang string, adminUserId int, robot msql.Params, nodes []msql.Params, cslIdMaps *common.CslIdMaps, models *common.DefaultModelParams, token string) (msql.Params, error) {

@@ -68,6 +68,7 @@ func CheckChatRequest(c *gin.Context, compatibilityXkf ...bool) (*define.ChatBas
 	if len(robot) == 0 {
 		return nil, errors.New(i18n.Show(GetLang(c), `no_data`))
 	}
+	robot = ApplyRobotMultilingualConfig(robot, GetLang(c))
 	adminUserId := cast.ToInt(robot[`admin_user_id`])
 	customer, err := GetCustomerInfo(openid, adminUserId)
 	if err != nil {

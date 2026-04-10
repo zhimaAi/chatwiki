@@ -49,12 +49,23 @@ func (h *RobotCacheBuildHandler) GetCacheKey() string {
 	return fmt.Sprintf(lib_define.RedisPrefixRobotInfo, h.RobotKey)
 }
 func (h *RobotCacheBuildHandler) GetCacheData() (any, error) {
-	return msql.Model(`chat_ai_robot`, define.Postgres).Where(`robot_key`, h.RobotKey).Find()
+	robot, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`robot_key`, h.RobotKey).Find()
+	if err != nil || len(robot) == 0 {
+		return robot, err
+	}
+	list, listErr := GetRobotMultilingualConfigList(cast.ToInt(robot[`id`]))
+	if listErr == nil {
+		robot[`multi_lang_configs`] = tool.JsonEncodeNoError(list)
+	}
+	return robot, nil
 }
 
 func GetRobotInfo(robotKey string) (msql.Params, error) {
 	result := make(msql.Params)
 	err := lib_redis.GetCacheWithBuild(define.Redis, &RobotCacheBuildHandler{RobotKey: robotKey}, &result, time.Hour)
+	if err == nil && len(result) > 0 {
+		result = ApplyRobotMultilingualConfig(result, RobotLangCh)
+	}
 	return result, err
 }
 

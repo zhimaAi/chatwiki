@@ -137,6 +137,12 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/04/10**
+
+1. Bot Configuration: Welcome message will no longer be sent when it is empty<br/>
+2. External service now supports automatic multi-language adaptation<br/>
+3. Fixed the location matching bug in Docker nginx configuration file<br/>
+
 **2026/03/27**
 
 1.[STD] Added pricing page to the ChatWiki official website<br/>
@@ -149,14 +155,6 @@ For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLo
 2.Async task consumer count now supports custom configuration<br/>
 3.Fixed bug with batch import in Q&A knowledge base<br/>
 4.[STD] Fixed ChatClaw client login issue<br/>
-
-**2026/03/20**
-
-1.Variables are displayed directly at the top of the conversation after being filled in<br/>
-2.Feishu Multidimensional Table - Query Record Node: Fixed an issue where query conditions and query fields would
-disappear when re-selecting the multidimensional table input box after entering data<br/>
-3.Added access domain to image URLs replied by WeCom bot<br/>
-4.[STD] Added ChatWiki model service to cloud model services<br/>
 
 ## License
 

@@ -266,6 +266,7 @@ import MessageItem from './components/messages/message-item.vue'
 import FastComand from './components/fast-comand/index.vue'
 import LeftSideBar from '@/views/chat/components/left-side-bar/index.vue'
 import VariableModal from './components/variable-modal/index.vue'
+import { getLang } from '@/utils/getLangConfig'
 
 type MessageListComponent = {
   scrollToMessage: (id: number | string) => void
@@ -617,8 +618,12 @@ const handleEditVariableForm = () => {
 // 监听 externalConfigH5.lang 变化，自动切换 i18n 语言
 watch(
   () => chatStore.externalConfigPC.lang,
-  async (newLang) => {
-    if (newLang && newLang !== localeStore.currentLocale.lang && ['zh-CN', 'en-US'].includes(newLang)) {
+  async () => {
+    let newLang = getLang()
+    if(!['zh-CN', 'en-US'].includes(newLang)){
+      newLang = 'en-US'
+    }
+    if (newLang && newLang !== localeStore.currentLocale.lang) {
       await changeLocale(newLang as LocaleType)
 
       // window.location.reload()

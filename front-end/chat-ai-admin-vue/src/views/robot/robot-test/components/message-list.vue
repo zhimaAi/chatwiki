@@ -588,12 +588,11 @@
               <GuessYouWant
                 v-if="
                   ((item.guess_you_want && item.guess_you_want.length) ||
-                    (common_question_list.length &&
-                      props.robotInfo.enable_common_question == 'true')) &&
+                    (common_question_list.length && enable_common_question)) &&
                   item.question_tabkey > 0
                 "
                 :item="item"
-                :enable_common_question="props.robotInfo.enable_common_question == 'true'"
+                :enable_common_question="enable_common_question"
                 :common_question_list="common_question_list"
                 @clickMeun="onClickMeun"
               ></GuessYouWant>
@@ -619,12 +618,30 @@ import { useI18n } from '@/hooks/web/useI18n'
 const { t } = useI18n('views.robot.robot-test.components.message-list')
 const robotStore = useRobotStore()
 
+
+const currentLangConfig = computed(()=>{
+  let currentLang = localStorage.getItem('lang') ? JSON.parse(localStorage.getItem('lang'))?.value : 'zh-CN' || 'zh-CN'
+  let multi_lang_configs = robotStore.robotInfo.multi_lang_configs
+  let configs = multi_lang_configs.find(item => item.lang_key === currentLang) || multi_lang_configs[0]
+  return configs
+})
 const tips_before_answer_content = computed(()=>{
-  return robotStore.robotInfo.tips_before_answer_content
+  return currentLangConfig.value?.tips_before_answer_content
 })
 
 const tips_before_answer_switch = computed(()=>{
-  return robotStore.robotInfo.tips_before_answer_switch == 'true'
+  return currentLangConfig.value?.tips_before_answer_switch == 'true'
+})
+
+const common_question_list = computed(() => {
+  if (currentLangConfig.value && currentLangConfig.value.common_question_list) {
+    return JSON.parse(currentLangConfig.value.common_question_list)
+  }
+  return []
+})
+
+const enable_common_question = computed(()=>{
+  return currentLangConfig.value?.enable_common_question == 'true'
 })
 
 
@@ -656,12 +673,7 @@ const toggleQuoteFiel = (item) => {
   item.show_quote_file = !item.show_quote_file
 }
 
-const common_question_list = computed(() => {
-  if (props.robotInfo.common_question_list.length) {
-    return JSON.parse(props.robotInfo.common_question_list)
-  }
-  return []
-})
+
 
 const isShowQuoteFileProgress = computed(() => {
   // 普通机器人才显示

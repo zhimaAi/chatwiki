@@ -871,12 +871,12 @@
         <GuessYouWant
           v-if="
             ((props.msg.guess_you_want && props.msg.guess_you_want.length) ||
-              (common_question_list.length && robot.enable_common_question)) &&
+              (common_question_list.length && enable_common_question)) &&
             props.msg.question_tabkey > 0
           "
           :msg="props.msg"
           :common_question_list="common_question_list"
-          :enable_common_question="robot.enable_common_question"
+          :enable_common_question="enable_common_question"
           @sendTextMessage="sendTextMessage"
         />
       </div>
@@ -902,6 +902,7 @@ import useClipboard from 'vue-clipboard3'
 import QuoteModal from '../quote-modal/index.vue'
 import VoiceMessage from './voice-message.vue'
 import MultipleMessage from './multiple-message.vue'
+import { getCurrentConfig } from '@/utils/getLangConfig'
 
 interface praiseParams {
   ai_message_id: string
@@ -1034,7 +1035,21 @@ const onSubmit = async () => {
   showToast(t('thanks_for_feedback'))
 }
 
-const common_question_list = computed(() => robot.common_question_list)
+const currentLangConfig = computed(() => getCurrentConfig(robot.multi_lang_configs))
+
+// const common_question_list = computed(() => robot.common_question_list)
+
+const common_question_list = computed(() => {
+  if (currentLangConfig.value && currentLangConfig.value.common_question_list) {
+    return JSON.parse(currentLangConfig.value.common_question_list)
+  }
+  return []
+})
+
+const enable_common_question = computed(()=>{
+  return currentLangConfig.value?.enable_common_question == 'true'
+})
+
 // 检查是否为用户消息
 const isCustomerMessage = computed(() => props.msg.is_customer == 1)
 

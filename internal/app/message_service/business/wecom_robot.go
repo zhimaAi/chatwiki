@@ -94,7 +94,12 @@ func WecomRobot(c *gin.Context) {
 		eventtype := cast.ToString(message[`eventtype`])
 		switch eventtype {
 		case `enter_chat`: //使用被动回复换欢迎语
-			msg := map[string]any{`msgtype`: `text`, `text`: map[string]any{`content`: common.BuildWelcomesReply(robot[`welcomes`])}}
+			content := common.BuildWelcomesReply(robot[`welcomes`])
+			if len(strings.TrimSpace(content)) == 0 {
+				c.String(http.StatusOK, lib_define.SUCCESS)
+				return
+			}
+			msg := map[string]any{`msgtype`: `text`, `text`: map[string]any{`content`: content}}
 			reply, err := common.WecomMsgEncrypt(msg, ``)
 			if err != nil {
 				logs.Error(err.Error())

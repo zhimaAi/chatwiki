@@ -147,6 +147,13 @@
 <template>
   <div class="common-problem-box">
     <div class="left-content-box">
+      <a-tabs v-model:activeKey="lang_key" size="small">
+        <a-tab-pane
+          v-for="item in languageMapList"
+          :key="item.value"
+          :tab="item.label"
+        ></a-tab-pane>
+      </a-tabs>
       <edit-box class="setting-box" :title="t('title_common_problem_settings')" icon-name="common-quession">
         <template #icon>
           <a-tooltip>
@@ -238,6 +245,7 @@ import {
   QuestionCircleOutlined
 } from '@ant-design/icons-vue'
 import EditBox from './edit-box.vue'
+import { languageMapList } from './language-setting/languageMap'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.common-problem')
@@ -251,6 +259,8 @@ common_question_list_show.value = common_question_list.value
 watch(common_question_list, () => {
   common_question_list_show.value = common_question_list.value
 })
+
+const lang_key = ref('ch')
 const useForm = Form.useForm
 const show = ref(false)
 const modalTitle = ref('modal_title_add')

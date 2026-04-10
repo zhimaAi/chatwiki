@@ -26,15 +26,16 @@ import (
 const RobotCslKey = `A8R0pvUT7fuCLm4idsBV1IkSD6EZg9HO`
 
 type RobotCsl struct {
-	StartTime time.Time           `json:"start_time"`
-	EndTime   time.Time           `json:"end_time"`
-	Robot     msql.Params         `json:"robot"`               // Robot configuration information
-	FileName  string              `json:"file_name"`           // Exported file name
-	Category  msql.Params         `json:"category"`            // File segment refinement configuration
-	Librarys  map[int]*LibraryCsl `json:"librarys,omitempty"`  // Knowledge bases involved in the robot
-	Forms     map[int]*FormCsl    `json:"forms,omitempty"`     // Data tables involved in the robot
-	Nodes     []msql.Params       `json:"nodes"`               // Workflow draft node data
-	Workflows []*RobotCsl         `json:"workflows,omitempty"` // Workflows associated with the robot
+	StartTime               time.Time                 `json:"start_time"`
+	EndTime                 time.Time                 `json:"end_time"`
+	Robot                   msql.Params               `json:"robot"`                               // Robot configuration information
+	RobotMultilingualConfig []RobotMultilingualConfig `json:"robot_multilingual_config,omitempty"` // Chat robot multilingual config
+	FileName                string                    `json:"file_name"`                           // Exported file name
+	Category                msql.Params               `json:"category"`                            // File segment refinement configuration
+	Librarys                map[int]*LibraryCsl       `json:"librarys,omitempty"`                  // Knowledge bases involved in the robot
+	Forms                   map[int]*FormCsl          `json:"forms,omitempty"`                     // Data tables involved in the robot
+	Nodes                   []msql.Params             `json:"nodes"`                               // Workflow draft node data
+	Workflows               []*RobotCsl               `json:"workflows,omitempty"`                 // Workflows associated with the robot
 }
 
 func NewRobotCsl() *RobotCsl {

@@ -627,7 +627,7 @@
             </template>
             <template v-if="!props.msg.quote_loading">
               <svg-icon class="think-icon" name="quote-file"></svg-icon>
-              <span class="label-text" v-if="externalConfigPC.lang == 'en-US'"
+              <span class="label-text" v-if="getLang() == 'en-US'"
                 >Found {{ props.msg.quote_file.length }}
                 {{ props.msg.quote_file.length > 1 ? 'documents' : 'document' }} in knowledge
                 base</span
@@ -835,8 +835,10 @@
         </template>
 
         <template v-else-if="props.msg.msg_type == 2">
-          <cherry-markdown class="text-message markdown-content" :content="props.msg.menu_json.content" v-if="props.msg.isWelcome" />
-          <div class="text-message" v-html="escapeHTML(props.msg.menu_json.content)" v-else></div>
+          <template v-if="props.msg.menu_json.content">
+            <cherry-markdown class="text-message markdown-content" :content="props.msg.menu_json.content" v-if="props.msg.isWelcome" />
+            <div class="text-message" v-html="escapeHTML(props.msg.menu_json.content)" v-else></div>
+          </template>
           <div
             class="question-list"
             v-if="props.msg.menu_json && props.msg.menu_json.question.length"
@@ -883,6 +885,7 @@ import QuoteModal from '../quote-modal/index.vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import VoiceMessage from './voice-message.vue'
 import MultipleMessage from './multiple-message.vue'
+import { getLang } from '@/utils/getLangConfig'
 
 
 interface praiseParams {
@@ -899,7 +902,6 @@ const { t } = useI18n('views.chat.components.messages.message-item')
 const emit = defineEmits(['sendTextMessage', 'toggleReasonProcess', 'toggleQuoteFiel'])
 const chatStore = useChatStore()
 const { robot, onAddFeedback, onDelFeedback } = chatStore
-const externalConfigPC = computed(() => chatStore.externalConfigPC)
 
 const textMessage = ref('.')
 const feedbackContent = ref('')

@@ -31,16 +31,19 @@
         <DataBase />
       </div>
       <div class="setting-box">
-        <WelcomeWords />
+        <LanguageSetting />
       </div>
+      <!-- <div class="setting-box">
+        <WelcomeWords />
+      </div> -->
 
       <div class="setting-box">
         <VariableSetting />
       </div>
 
-      <div class="setting-box">
+      <!-- <div class="setting-box">
         <UnknownProblemPrompt />
-      </div>
+      </div> -->
       <div class="setting-box">
         <SensitiveWords />
       </div>
@@ -58,9 +61,9 @@
       <div class="setting-box">
         <DisplayAitations />
       </div>
-      <div class="setting-box">
+      <!-- <div class="setting-box">
         <AnswerPrompt />
-      </div>
+      </div> -->
       <div class="setting-box">
         <ShowLike />
       </div>
@@ -91,7 +94,7 @@ import SuggestedIssues from './components/suggested-issues.vue'
 import SensitiveWords from './components/sensitive-words.vue'
 import ChatMode from './components/chat-mode/index.vue'
 import MarkdownSetting from './components/markdown-setting.vue'
-import CommonProblem from './components/common-problem.vue'
+import CommonProblem from './components/language-setting/common-problem.vue'
 import DisplayAitations from './components/display-aitations.vue'
 import { saveRobot, getRobotList } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
@@ -102,6 +105,7 @@ import Skill from './components/skill/index.vue'
 import ChatCache from './components/chat-cache.vue'
 import VariableSetting from './components/variable-setting/index.vue'
 import AnswerPrompt from './components/answer-prompt.vue'
+import LanguageSetting from './components/language-setting/index.vue'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.index')
 

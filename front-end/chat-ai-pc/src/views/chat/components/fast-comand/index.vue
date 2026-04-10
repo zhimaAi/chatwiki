@@ -192,7 +192,7 @@ const showPopover = ref(false)
 
 
 onMounted(async () => {
-  await getFastCommand()
+  getFastCommand()
   window.addEventListener('resize', updateButtons)
 })
 

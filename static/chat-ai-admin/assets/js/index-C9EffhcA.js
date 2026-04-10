@@ -1,0 +1,1 @@
+import{j as t}from"../../index-C3fQBW0k.js";const r=(a,e,o={})=>t.post({withToken:!0,url:"/manage/chatclaw/login",data:{user_name:a,password:e,...o}}),s=(a={})=>t.get({url:"/manage/chatclaw/tokenLogList",params:{page:a.page??1,size:a.size??10}}),c=(a={})=>t.post({url:"/manage/chatclaw/tokenForceOffline",data:a});export{r as c,c as f,s as g};

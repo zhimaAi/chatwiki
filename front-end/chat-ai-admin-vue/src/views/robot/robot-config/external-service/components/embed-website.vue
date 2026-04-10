@@ -101,6 +101,7 @@
                 >
                   <a-select-option value="zh-CN">{{ t('language_zh_cn') }}</a-select-option>
                   <a-select-option value="en-US">{{ t('language_en_us') }}</a-select-option>
+                  <a-select-option value="auto">自动适配语言</a-select-option>
                 </a-select>
               </a-form-item>
               <a-form-item class="form-item" :label="t('url_open_type_label')" name="open_type" required>
@@ -216,7 +217,7 @@ const formState = reactive({
 
 const previewIframeSrc = computed(() => {
   let { pc_domain, robot_key } = robotInfo.value
-  return `${pc_domain}/web/#/chat?robot_key=${robot_key}&language=${formState.lang || 'zh-CN'}`
+  return `${pc_domain}/web/#/chat?robot_key=${robot_key}`
 })
 
 watch(formState, (val) => {

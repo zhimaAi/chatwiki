@@ -1,0 +1,242 @@
+<style lang="less" scoped>
+.setting-box {
+  .form-box {
+    .question-title {
+      margin-bottom: 8px;
+    }
+
+    .question-option {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+
+      .question-option-content {
+        flex: 1;
+      }
+
+      .action-box {
+        padding-left: 10px;
+      }
+
+      .del-btn {
+        font-size: 14px;
+        color: #595959;
+      }
+
+      .drag-btn {
+        width: 24px;
+        font-size: 16px;
+        color: #8c8c8c;
+        cursor: pointer;
+      }
+    }
+
+    .add-btn {
+      height: 32px;
+      line-height: 32px;
+      padding: 0 12px;
+      margin: 0 24px;
+      font-size: 14px;
+      color: #595959;
+      background-color: #fff;
+      border: 1px dashed #d9d9d9;
+      cursor: pointer;
+    }
+  }
+
+  .robot-welcome-content {
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .robot-welcome-question {
+    .question-item {
+      line-height: 22px;
+      padding: 4px 12px;
+      margin-top: 8px;
+      font-size: 14px;
+      border-radius: 2px;
+      color: #595959;
+      border: 1px solid #d9d9d9;
+    }
+  }
+}
+</style>
+
+<template>
+  <edit-box class="setting-box" :title="t('title_welcome')" icon-name="huanyingyu">
+    <div class="form-box" v-show="isEdit">
+      <div class="question-title">
+        <a-textarea
+          v-model:value="formState.welcomes.content"
+          :placeholder="t('ph_input_welcome')"
+        />
+      </div>
+      <div class="question-options">
+        <draggable
+          v-model="formState.welcomes.question"
+          item-key="id"
+          handle=".drag-btn"
+          @start="drag = true"
+          @end="drag = false"
+        >
+          <template #item="{ element, index }">
+            <div class="question-option">
+              <span class="drag-btn"><svg-icon name="drag" /></span>
+              <a-input
+                class="question-option-content"
+                v-model:value="element.content"
+                :placeholder="t('ph_input_question')"
+              />
+              <div class="action-box">
+                <CloseCircleOutlined class="del-btn" @click="deleteOption(index)" />
+              </div>
+            </div>
+          </template>
+        </draggable>
+
+        <div class="add-btn" @click="addQuestion">
+          <PlusOutlined class="add-btn-icon" />{{ t('btn_add_guide_question') }}
+        </div>
+      </div>
+    </div>
+    <div class="robot-info-box" v-show="!isEdit">
+      <div class="robot-welcome-content">{{ previewConfig.welcomes.content }}</div>
+      <div class="robot-welcome-question">
+        <div
+          class="question-item"
+          v-for="(question, index) in previewConfig.welcomes.question"
+          :key="index"
+        >
+          {{ question }}
+        </div>
+      </div>
+    </div>
+  </edit-box>
+</template>
+<script setup>
+import { ref, reactive, inject, toRaw, computed, watch } from 'vue'
+import { message } from 'ant-design-vue'
+import { PlusOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
+import draggable from 'vuedraggable'
+import EditBox from './edit-box.vue'
+import { getUuid } from '@/utils/index'
+import { useI18n } from '@/hooks/web/useI18n'
+
+const { t } = useI18n('views.robot.robot-config.basic-config.components.welcome-words')
+
+const emit = defineEmits(['save'])
+
+const props = defineProps({
+  isEdit: {
+    type: Boolean,
+    default: false
+  },
+  currentMultiLangConfig: {
+    type: Object,
+    default: () => {}
+  },
+  backCurrentMultiLangConfig: {
+    type: Object,
+    default: () => {}
+  }
+})
+
+const drag = ref(false)
+const previewConfig = computed(() => {
+  return {
+    welcomes: props.currentMultiLangConfig.welcomes
+      ? JSON.parse(props.currentMultiLangConfig.welcomes)
+      : {
+          content: '',
+          question: []
+        }
+  }
+})
+
+const formState = reactive({
+  welcomes: {
+    content: '',
+    question: []
+  }
+})
+
+const checkWelcomeQuestion = () => {
+  let isEmity = false
+
+  if (formState.welcomes.question.length > 0) {
+    for (let i = 0; i < formState.welcomes.question.length; i++) {
+      if (!formState.welcomes.question[i].content) {
+        isEmity = i + 1
+        break
+      }
+    }
+  }
+
+  return isEmity
+}
+
+const addQuestion = () => {
+  formState.welcomes.question.push({ content: '', id: getUuid(8) })
+}
+
+const deleteOption = (index) => {
+  formState.welcomes.question.splice(index, 1)
+}
+
+const onSave = () => {
+  // if (checkWelcomeQuestion()) {
+  //   return message.error(t('msg_question_required'))
+  // }
+}
+
+watch(
+  formState,
+  () => {
+    let welcomesData = {
+      content: formState.welcomes.content,
+      question: formState.welcomes.question.map((item) => item.content)
+    }
+    emit('save', {
+      welcomes: JSON.stringify(welcomesData)
+    })
+  },
+  { deep: true }
+)
+
+const handleEdit = () => {
+  let data = props.backCurrentMultiLangConfig.welcomes
+    ? JSON.parse(props.backCurrentMultiLangConfig.welcomes)
+    : {
+        content: '',
+        question: []
+      }
+  let question = []
+
+  data.question.forEach((content) => {
+    let item = {
+      content
+    }
+
+    if (!item.id) {
+      item.id = getUuid(6)
+    }
+
+    question.push(item)
+  })
+
+  formState.welcomes.content = data.content
+  formState.welcomes.question = question
+}
+
+watch(
+  () => props.currentMultiLangConfig,
+  (newVal) => {
+    handleEdit()
+  },
+  {
+    deep: true,
+    immediate: true
+  }
+)
+</script>

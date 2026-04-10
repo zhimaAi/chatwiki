@@ -168,7 +168,7 @@ const deleteOption = (index) => {
 
 const onSave = () => {
   if (!formState.welcomes.content) {
-    return message.error(t('msg_welcome_required'))
+    // return message.error(t('msg_welcome_required'))
   }
 
   if (checkWelcomeQuestion()) {

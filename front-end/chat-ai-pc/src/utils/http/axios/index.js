@@ -2,7 +2,7 @@ import service from './service'
 import { CONTENT_TYPE } from '@/constants'
 import { useUserStore } from '@/stores/modules/user'
 import { useLocaleStoreWithOut } from '@/stores/modules/locale'
-
+import { getLang } from '@/utils/getLangConfig'
 const request = (option) => {
   const userStore = useUserStore()
   const localeStore = useLocaleStoreWithOut()
@@ -14,7 +14,7 @@ const request = (option) => {
     'Content-Type': CONTENT_TYPE,
     'X-Requested-With': 'XMLHttpRequest',
     'App-Type': 'yun_pc',
-    lang: currentLocale.lang,
+    lang: getLang(),
     ...headers
   }
 

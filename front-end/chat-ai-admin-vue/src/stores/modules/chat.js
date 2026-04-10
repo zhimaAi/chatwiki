@@ -232,6 +232,9 @@ export const useChatStore = defineStore('chat', () => {
 
       if (msg.menu_json) {
         msg.menu_json = JSON.parse(msg.menu_json)
+        if(!msg.menu_json.content && !msg.menu_json.question.length) {
+          return
+        }
       }
 
       if (msg.quote_file) {
