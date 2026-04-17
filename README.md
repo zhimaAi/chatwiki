@@ -42,7 +42,7 @@ and AI-curated comment replies.
 - **QA Knowledge Base**: Automatically extracts QA knowledge from uploaded documents, supports automatic clustering of
   unknown questions, and summarizes common FAQs from human conversations.
 
-- **Human Handoff**: Handles general user inquiries via bot, while also supporting human客服. Issues that the bot cannot
+- **Human Handoff**: Handles general user inquiries via bot, while also supporting human staff. Issues that the bot cannot
   resolve can be escalated to human客服, with multi-agent collaborative assignment.
 
 - **Model Support**: Supports over 20 mainstream global models, including DeepSeek R1, doubao pro, qwen max, OpenAI,
@@ -51,7 +51,7 @@ and AI-curated comment replies.
 ### 🌐 More Capabilities
 
 - **Multiple Deployment Options**: Offers desktop client, supports publishing as a WebApp, and embedding into websites,
-  official accounts/service accounts, WeChat客服, WeChat store客服, etc.
+  official accounts/service accounts, wecome staff, WeChat store staff, etc.
 
 - **MCP & API Integration**: Allows integration of external MCP services or publishing workflows as MCP services.
   Complete OpenAPI interface for easy integration with existing business systems.
