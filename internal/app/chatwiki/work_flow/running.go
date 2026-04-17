@@ -281,7 +281,7 @@ func RunningWorkFlow(params *WorkFlowParams, startNodeKey string) (*WorkFlow, er
 		StartTime:   tool.Time2Int(),
 		context:     ctx,
 		cancel:      cancel,
-		ticker:      time.NewTicker(time.Minute * 60),     //DIY
+		ticker:      time.NewTicker(time.Minute * 30),     //DIY
 		global:      common.SimpleFields{},                //no system global variables anymore
 		outputs:     make(map[string]common.SimpleFields), //record variables output by each node
 		inputs:      make(map[string]common.SimpleFields), //input parameters

@@ -6,13 +6,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 )
 
-var Neo4jStatus map[int]bool
+var Neo4jStatus = sync.Map{}
 var neo4JDriver neo4j.DriverWithContext
 
 func GetNeo4jDriver() (neo4j.DriverWithContext, error) {

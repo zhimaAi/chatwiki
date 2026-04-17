@@ -2,7 +2,7 @@ import {getTMcpProviders} from "@/api/robot/thirdMcp.js";
 import {jsonDecode} from "@/utils/index.js";
 import {getInstallPlugins, runPlugin} from "@/api/plugins/index.js";
 import {getPluginActionDefaultArguments, pluginHasAction} from "@/constants/plugin.js";
-import { i18n } from '@/locales'
+import {i18n} from '@/locales'
 
 // i18n 翻译辅助函数
 const t = (key) => i18n.global.t(`views.workflow.components.nodes.${key}`)
@@ -514,8 +514,8 @@ export const nodeList = [
       node_header_bg_color: 'linear-gradient(180deg, #F0F5FF 2%, rgba(229, 239, 255, 0) 100%)',
       node_params: JSON.stringify({
         batch:{
-          chan_number: 10,
-          max_run_number: 500,
+          chan_number: 3,
+          max_run_number: 100,
           batch_arrays: [],
           output: [],
         }

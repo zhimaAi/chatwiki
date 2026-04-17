@@ -619,7 +619,7 @@ const handleSyncDownload = () => {
     data_ids = subsectionBoxRef.value.state.selectedRowKeys.join(',')
   }
   createExportLibFileTask({
-    library_id: query.id,
+    library_id: libraryId.value,
     export_type: 2,
     group_id: groupId.value,
     data_ids,
@@ -631,7 +631,9 @@ const handleSyncDownload = () => {
 const toDownloadPage = ()=>{
   router.push({
     path: '/library/details/export-record',
-    query,
+    query:{
+      id: libraryId.value
+    },
   })
 }
 

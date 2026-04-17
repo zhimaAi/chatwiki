@@ -14,11 +14,13 @@ import (
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
 	"embed"
+	"errors"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"strings"
 
+	"github.com/lib/pq"
 	"github.com/pressly/goose/v3"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cast"
@@ -259,9 +261,14 @@ func InitRoleRootPermissions() {
 		// reset role permissions
 		_, err = casbin.Handler.DelRoleRules(role[`id`])
 		for _, item := range define.GetAllUniKeyList() {
-			_, err := casbin.Handler.AddPolicies([][]string{{role[`id`], item, "GET"}})
+			_, err = casbin.Handler.AddPolicies([][]string{{role[`id`], item, "GET"}})
 			if err != nil {
-				panic(err.Error())
+				var sqlerr *pq.Error
+				if errors.As(err, &sqlerr) && sqlerr.Code == `23505` { // Unique index constraint
+					//nothing to do
+				} else {
+					panic(err.Error())
+				}
 			}
 		}
 	}
@@ -285,9 +292,14 @@ func InitRoleUserPermissions() {
 	_, err = casbin.Handler.DelRoleRules(roleInfo[`id`])
 	for _, item := range define.UserUniKeyList {
 		rolePermissions = append(rolePermissions, []string{roleInfo[`id`], item, "GET"})
-		_, err := casbin.Handler.AddPolicies([][]string{{roleInfo[`id`], item, "GET"}})
+		_, err = casbin.Handler.AddPolicies([][]string{{roleInfo[`id`], item, "GET"}})
 		if err != nil {
-			panic(err.Error())
+			var sqlerr *pq.Error
+			if errors.As(err, &sqlerr) && sqlerr.Code == `23505` { // Unique index constraint
+				//nothing to do
+			} else {
+				panic(err.Error())
+			}
 		}
 	}
 }

@@ -158,6 +158,15 @@ func CheckTriggerSwitchStatus(adminUserId, triggerType string) bool {
 }
 
 func TriggerCronRun(adminUserId, robotId string, trigger TriggerConfig, finishCall func(error)) {
+	//check if last round execution finished
+	lockKey := define.LockPreKey + `trigger_cron_run_` + robotId
+	if !lib_redis.AddLock(define.Redis, lockKey, time.Minute*30) {
+		logs.Debug(LogTriggerPrefix+`last trigger not finished, robotId:%s`, robotId)
+		finishCall(errors.New(`last trigger running`))
+		return
+	}
+	defer lib_redis.UnLock(define.Redis, lockKey)
+
 	logs.Debug(LogTriggerPrefix+`trigger run robotId:%s config:%s`, robotId, tool.JsonEncodeNoError(trigger))
 	//if !CheckTriggerSwitchStatus(adminUserId, cast.ToString(trigger.TriggerType)) {
 	//	logs.Debug(LogTriggerPrefix + `trigger switch status is 0`)
@@ -166,6 +175,7 @@ func TriggerCronRun(adminUserId, robotId string, trigger TriggerConfig, finishCa
 	isOk, robot := TriggerCronVerifyStartNode(robotId, trigger)
 	if !isOk {
 		logs.Debug(LogTriggerPrefix + `trigger not exist`)
+		finishCall(errors.New(`trigger not exist`))
 		return
 	}
 	workFlowParams := &WorkFlowParams{
