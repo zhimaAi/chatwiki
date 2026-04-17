@@ -1346,18 +1346,15 @@ func (h *LibFileSplitAiChunksBacheHandle) SaveCacheData(list LibFileSplitAiChunk
 }
 
 func GetNeo4jStatus(adminUserId int) bool {
-	if status, exists := define.Neo4jStatus[adminUserId]; exists {
-		return status
+	if status, exists := define.Neo4jStatus.Load(adminUserId); exists {
+		return cast.ToBool(status)
 	} else {
 		return false
 	}
 }
 
 func SetNeo4jStatus(adminUserId int, status bool) {
-	if define.Neo4jStatus == nil {
-		define.Neo4jStatus = make(map[int]bool)
-	}
-	define.Neo4jStatus[adminUserId] = status
+	define.Neo4jStatus.Store(adminUserId, status)
 }
 
 func ConstructGraph(id int) error {

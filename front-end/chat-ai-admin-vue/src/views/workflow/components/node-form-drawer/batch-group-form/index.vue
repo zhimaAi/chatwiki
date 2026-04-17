@@ -36,7 +36,7 @@
               <div>
                 <a-input-number
                   style="width: 300px"
-                  :max="10"
+                  :max="3"
                   :min="1"
                   :precision="0"
                   :step="1"
@@ -57,7 +57,7 @@
               <div>
                 <a-input-number
                   style="width: 300px"
-                  :max="500"
+                  :max="100"
                   :min="1"
                   :precision="0"
                   :step="1"
@@ -334,8 +334,8 @@ const output_default = {
 }
 
 const formState = reactive({
-  chan_number: 10,
-  max_run_number: 500,
+  chan_number: 3,
+  max_run_number: 100,
   batch_arrays: [],
   output: []
 })

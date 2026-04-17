@@ -2136,8 +2136,8 @@ func (params *LoopNodeParams) Verify(nodeName string, lang string) error {
 			return errors.New(i18n.Show(lang, `loop_array_cannot_be_empty`, nodeName))
 		}
 	} else {
-		if params.LoopNumber <= 0 {
-			return errors.New(i18n.Show(lang, `loop_number_must_greater_than_zero`, nodeName))
+		if params.LoopNumber <= 0 || params.LoopNumber > 100 {
+			return errors.New(i18n.Show(lang, `loop_number_range_error`, nodeName))
 		}
 	}
 	return nil
@@ -2334,10 +2334,10 @@ func (params *BatchNodeParams) Verify(nodeName string, lang string) error {
 	if len(params.BatchArrays) == 0 {
 		return errors.New(i18n.Show(lang, `batch_execution_array_cannot_be_empty`, nodeName))
 	}
-	if params.ChanNumber.Int() < 1 || params.ChanNumber.Int() > 10 {
+	if params.ChanNumber.Int() < 1 || params.ChanNumber.Int() > 3 {
 		return errors.New(i18n.Show(lang, `batch_concurrent_execution_number_error`, nodeName))
 	}
-	if params.MaxRunNumber.Int() < 1 || params.MaxRunNumber.Int() > 500 {
+	if params.MaxRunNumber.Int() < 1 || params.MaxRunNumber.Int() > 100 {
 		return errors.New(i18n.Show(lang, `batch_max_run_number_error`, nodeName))
 	}
 	return nil

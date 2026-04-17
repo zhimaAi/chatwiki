@@ -131,8 +131,8 @@ const handleOpenTestModal = () => {
 }
 
 const formState = reactive({
-  chan_number: 10,
-  max_run_number: 500,
+  chan_number: 3,
+  max_run_number: 100,
   batch_arrays: [
     {
       key: '',

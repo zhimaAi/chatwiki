@@ -137,6 +137,14 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/04/17**
+
+1. Use concurrency-safe method to access Neo4j status<br/>
+2. Fixed abnormal recursion logic for unknown issue recording<br/>
+3. Ignore duplicate role permission errors during initialization<br/>
+4. Fixed error when clicking download to batch export knowledge base content<br/>
+5. Workflow scheduled trigger now checks if previous execution is completed<br/>
+
 **2026/04/10**
 
 1. Bot Configuration: Welcome message will no longer be sent when it is empty<br/>
@@ -148,13 +156,6 @@ For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLo
 1.[STD] Added pricing page to the ChatWiki official website<br/>
 2.Knowledge base recall: Added full-text search mode setting<br/>
 3.Fixed the issue where "Ungrouped" was still displayed in Chinese under non-Chinese languages<br/>
-
-**2026/03/23**
-
-1.Workflow batch/loop execution frame now supports collapsing<br/>
-2.Async task consumer count now supports custom configuration<br/>
-3.Fixed bug with batch import in Q&A knowledge base<br/>
-4.[STD] Fixed ChatClaw client login issue<br/>
 
 ## License
 

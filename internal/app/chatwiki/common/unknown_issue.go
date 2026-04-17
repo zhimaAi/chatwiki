@@ -27,14 +27,14 @@ type UnknownIssueRelation struct {
 	TriggerTime int
 }
 
-func SaveUnknownIssueRecord(lang string, adminUserId int, robot msql.Params, question string, relation ...UnknownIssueRelation) {
+func SaveUnknownIssueRecord(lang string, adminUserId int, robot msql.Params, question string, relation UnknownIssueRelation) {
+	saveUnknownIssueRecordWithRetry(lang, adminUserId, robot, question, relation, 1)
+}
+
+func saveUnknownIssueRecordWithRetry(lang string, adminUserId int, robot msql.Params, question string, relation UnknownIssueRelation, maxRetry int) {
 	question = GetFirstQuestionByInput(question) // Special handling for multimodal input
-	rel := UnknownIssueRelation{}
-	if len(relation) > 0 {
-		rel = relation[0]
-	}
-	if rel.TriggerTime <= 0 {
-		rel.TriggerTime = tool.Time2Int()
+	if relation.TriggerTime <= 0 {
+		relation.TriggerTime = tool.Time2Int()
 	}
 	m := msql.Model(`chat_ai_unknown_issue_stats`, define.Postgres)
 	id, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`robot_id`, robot[`id`]).
@@ -49,15 +49,15 @@ func SaveUnknownIssueRecord(lang string, adminUserId int, robot msql.Params, que
 			`robot_id`:           robot[`id`],
 			`stats_day`:          tool.GetYmd(0),
 			`question`:           question,
-			`sample_openid`:      rel.Openid,
-			`sample_rel_user_id`: rel.RelUserId,
-			`sample_dialogue_id`: rel.DialogueId,
-			`sample_session_id`:  rel.SessionId,
-			`sample_message_id`:  rel.MessageId,
-			`last_dialogue_id`:   rel.DialogueId,
-			`last_session_id`:    rel.SessionId,
-			`last_message_id`:    rel.MessageId,
-			`last_trigger_time`:  rel.TriggerTime,
+			`sample_openid`:      relation.Openid,
+			`sample_rel_user_id`: relation.RelUserId,
+			`sample_dialogue_id`: relation.DialogueId,
+			`sample_session_id`:  relation.SessionId,
+			`sample_message_id`:  relation.MessageId,
+			`last_dialogue_id`:   relation.DialogueId,
+			`last_session_id`:    relation.SessionId,
+			`last_message_id`:    relation.MessageId,
+			`last_trigger_time`:  relation.TriggerTime,
 			`create_time`:        tool.Time2Int(),
 			`update_time`:        tool.Time2Int(),
 		}
@@ -65,7 +65,11 @@ func SaveUnknownIssueRecord(lang string, adminUserId int, robot msql.Params, que
 		if err != nil {
 			var sqlerr *pq.Error
 			if errors.As(err, &sqlerr) && sqlerr.Code == `23505` { // Unique index constraint
-				SaveUnknownIssueRecord(lang, adminUserId, robot, question, rel)
+				if maxRetry > 0 {
+					saveUnknownIssueRecordWithRetry(lang, adminUserId, robot, question, relation, maxRetry-1)
+				} else {
+					logs.Error(`sql:%s,err:%s,max retry reached`, m.GetLastSql(), err.Error())
+				}
 				return
 			}
 			logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
@@ -79,9 +83,9 @@ func SaveUnknownIssueRecord(lang string, adminUserId int, robot msql.Params, que
 	}
 	// Start updating data
 	sqlraw := fmt.Sprintf(`trigger_total=trigger_total+1,update_time=%d`, tool.Time2Int())
-	if rel.DialogueId > 0 {
+	if relation.DialogueId > 0 {
 		sqlraw += fmt.Sprintf(`,last_dialogue_id=%d,last_session_id=%d,last_message_id=%d,last_trigger_time=%d`,
-			rel.DialogueId, rel.SessionId, rel.MessageId, rel.TriggerTime)
+			relation.DialogueId, relation.SessionId, relation.MessageId, relation.TriggerTime)
 	}
 	if _, err = m.Where(`id`, id).Update2(sqlraw); err != nil {
 		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
