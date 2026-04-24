@@ -588,8 +588,7 @@ func RecursiveCharacter(items define.DocSplitItems, separators []string, chunkSi
 	}
 	list := make(define.DocSplitItems, 0)
 	for _, item := range items {
-		// Content contains images: prepend the first priority split character to avoid images appearing in two segments
-		contents, err := split.SplitText(strings.ReplaceAll(item.Content, `{{!!`, split.Separators[0]+`{{!!`))
+		contents, err := split.SplitText(item.Content)
 		if err != nil {
 			logs.Error(err.Error())
 			continue
@@ -598,8 +597,6 @@ func RecursiveCharacter(items define.DocSplitItems, separators []string, chunkSi
 			if len(content) == 0 {
 				continue
 			}
-			// Remove the prepended first priority split character
-			content = strings.ReplaceAll(content, split.Separators[0]+`{{!!`, `{{!!`)
 			content, images := ExtractTextImages(content)
 			if len(content) == 0 {
 				continue

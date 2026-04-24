@@ -7,5 +7,6 @@
   "msg_no_permission": "当前账号无访问权限",
   "label_form_info": "表单信息",
   "btn_edit": "编辑",
+  "ai_generated_tip": "内容由AI生成，仅供参考",
   "tech_support": "由 ChatWiki 提供软件支持"
 }

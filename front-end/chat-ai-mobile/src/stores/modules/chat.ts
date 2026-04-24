@@ -90,6 +90,8 @@ export interface ExternalConfigH5 {
   logo: string
   lang: string
   navbarShow: number
+  ai_generated_tip_show: number
+  ai_generated_tip: string
   accessRestrictionsType: number
   pageStyle: PageStyle
   open_type: number
@@ -151,6 +153,8 @@ export const useChatStore = defineStore('chat', () => {
     lang: 'zh-CN',
     logo: '',
     navbarShow: 2,
+    ai_generated_tip_show: 2,
+    ai_generated_tip: '',
     accessRestrictionsType: 1,
     pageStyle: {
       navbarBackgroundColor: '#2475FC',
@@ -311,7 +315,7 @@ export const useChatStore = defineStore('chat', () => {
 
       let currentConfig = getCurrentConfig(robotInfo.multi_lang_configs)
       robot.tips_before_answer_content = currentConfig?.tips_before_answer_content || ''
-      robot.tips_before_answer_switch = currentConfig.tips_before_answer_switch == 'true';
+      robot.tips_before_answer_switch = currentConfig?.tips_before_answer_switch == 'true';
 
       setTimeout(() => {
         const chatVariable = res.data.chat_variable || {}

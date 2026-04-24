@@ -80,6 +80,17 @@
   margin-top: 14px;
 }
 
+.ai-generated-tip-label {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ai-generated-tip-input {
+  width: 240px;
+}
+
 </style>
 
 <template>
@@ -166,6 +177,28 @@
             <a-form ref="formRef" layout="vertical" :model="formState" :rules="formRules">
               <a-form-item class="form-item" :label="t('show_navbar_label')" name="navbarShow">
                 <a-radio-group v-model:value="formState.navbarShow" name="navbarShow">
+                  <a-radio :value="1">{{ t('show_navbar_yes') }}</a-radio>
+                  <a-radio :value="2">{{ t('show_navbar_no') }}</a-radio>
+                </a-radio-group>
+              </a-form-item>
+
+              <a-form-item class="form-item" name="ai_generated_tip_show" required>
+                <template #label>
+                  <div class="ai-generated-tip-label">
+                    <span>{{ t('ai_generated_tip_show_label_prefix') }}</span>
+                    <a-form-item-rest>
+                      <a-input
+                        v-model:value="formState.ai_generated_tip"
+                        class="ai-generated-tip-input"
+                        :maxlength="15"
+                        :placeholder="t('ai_generated_tip_placeholder')"
+                        @input="handleAiGeneratedTipInput"
+                      />
+                    </a-form-item-rest>
+                    <span>{{ t('ai_generated_tip_show_label_suffix') }}</span>
+                  </div>
+                </template>
+                <a-radio-group v-model:value="formState.ai_generated_tip_show" name="ai_generated_tip_show">
                   <a-radio :value="1">{{ t('show_navbar_yes') }}</a-radio>
                   <a-radio :value="2">{{ t('show_navbar_no') }}</a-radio>
                 </a-radio-group>
@@ -258,7 +291,6 @@ import CardBox from './card-box.vue'
 import PageTitleInput from './page-title-input.vue'
 import ColorPicker from '@/components/color-picker/index.vue'
 import QuickInstruction from './quick-instruction.vue'
-import PreviewCommand from './preview-command.vue'
 import { useRouter } from 'vue-router'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 
@@ -277,6 +309,8 @@ const formState = reactive({
   logo: external_config_h5.value.logo,
   pageTitle: external_config_h5.value.pageTitle,
   navbarShow: external_config_h5.value.navbarShow,
+  ai_generated_tip_show: external_config_h5.value.ai_generated_tip_show,
+  ai_generated_tip: external_config_h5.value.ai_generated_tip,
   lang: external_config_h5.value.lang,
   pageStyle: external_config_h5.value.pageStyle,
   open_type: external_config_h5.value.open_type,
@@ -345,6 +379,17 @@ const formRules = {
       trigger: 'change'
     }
   ],
+  ai_generated_tip_show: [
+    {
+      trigger: 'change',
+      validator: () => {
+        if (formState.ai_generated_tip_show == 1 && !formState.ai_generated_tip?.trim()) {
+          return Promise.reject(t('please_input_ai_generated_tip'))
+        }
+        return Promise.resolve()
+      }
+    }
+  ],
   pageStyle: {
     navbarBackgroundColor: [
       {
@@ -378,6 +423,14 @@ const saveWebAppInfo = (formData) => {
   })
 }
 
+const handleAiGeneratedTipInput = () => {
+  if (formState.ai_generated_tip_show != 1) {
+    return
+  }
+
+  formRef.value?.validateFields(['ai_generated_tip_show']).catch(() => {})
+}
+
 const saveForm = () => {
   formRef.value
     .validate()
@@ -386,6 +439,7 @@ const saveForm = () => {
 
       formData.window_width = +formData.window_width || 1200
       formData.window_height = +formData.window_height || 650
+      formData.ai_generated_tip = formData.ai_generated_tip?.trim() ?? ''
 
       formData.accessRestrictionsType = accessRestrictionsType.value
 

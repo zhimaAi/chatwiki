@@ -263,7 +263,12 @@
           :loading="sendLoading"
         />
 
-        <div class="technical-support-text">{{ t('tech_support') }}</div>
+        <div class="technical-support-text">
+          <span v-if="externalConfigH5.ai_generated_tip_show == 1">
+            {{ aiGeneratedTipText }}，
+          </span>
+          <span>{{ t('tech_support') }}</span>
+        </div>
       </div>
 
       <LogOut
@@ -370,6 +375,10 @@ const message = ref('')
 const checkChatRequestPermissionLoding = ref(false)
 const sendLoading = computed(() => sendLock.value || checkChatRequestPermissionLoding.value)
 const showUpload = computed(() => robot.question_multiple_switch == 1)
+const aiGeneratedTipText = computed(() => {
+  const tipText = externalConfigH5.value.ai_generated_tip
+  return tipText == null ? t('ai_generated_tip') : tipText.trim()
+})
 
 const isShortcut = computed(() => {
   return robot.fast_command_switch == '1' ? true : false
