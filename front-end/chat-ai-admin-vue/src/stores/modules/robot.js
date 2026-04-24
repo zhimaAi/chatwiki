@@ -8,6 +8,8 @@ const external_config_h5_default = {
   logo: '',
   pageTitle: '',
   navbarShow: 2,
+  ai_generated_tip_show: 2,
+  ai_generated_tip: '内容由AI生成，仅供参考',
   lang: 'zh-CN',
   pageStyle: {
     navbarBackgroundColor: '#2475FC'

@@ -14,6 +14,17 @@ export function getLang() {
 
 export function getCurrentConfig(multi_lang_configs) {
   let lang = getLang()
-  let list = multi_lang_configs ? JSON.parse(multi_lang_configs) : []
-  return list.find((item) => item.lang_key === lang) || list[1] || list[0]
+  let list = []
+
+  try {
+    list = multi_lang_configs ? JSON.parse(multi_lang_configs) : []
+  } catch (error) {
+    list = []
+  }
+
+  if (!Array.isArray(list)) {
+    return {}
+  }
+
+  return list.find((item) => item.lang_key === lang) || list[1] || list[0] || {}
 }

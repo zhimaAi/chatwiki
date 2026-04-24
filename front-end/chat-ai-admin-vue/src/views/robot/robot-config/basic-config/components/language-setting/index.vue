@@ -102,7 +102,6 @@ const handleUpdataConfig = (data) => {
   }
   let index = multi_lang_configs.value.findIndex((item) => item.lang_key === lang_key.value)
   multi_lang_configs.value.splice(index, 1, newItem)
-  console.log(multi_lang_configs.value, data, 'multi_lang_configs==')
 }
 
 const handleSave = () => {

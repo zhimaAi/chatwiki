@@ -203,7 +203,7 @@ func OpenGetLibFileList(c *gin.Context) {
 	}
 	data := make(map[string]any)
 	returnList := make([]map[string]any, 0)
-	libFileList, ok := libFileData[`list`].([]msql.Params)
+	libFileList, ok := libFileData[`list`].([]map[string]any)
 	if ok {
 		for _, libFile := range libFileList {
 			returnList = append(returnList, common.TakeParamsFromMap(libFile, `id`, `file_name`, `file_ext`, `file_size`, `total_hits`,
