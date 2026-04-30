@@ -491,7 +491,7 @@ func SaveNodes(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
-func VerifyTriggerCronConfig(adminUserId string, node *work_flow.WorkFlowNode, lang string) error {
+func VerifyTriggerConfig(adminUserId string, node *work_flow.WorkFlowNode, lang string) error {
 	for _, trigger := range node.NodeParams.Start.TriggerList {
 		var err error
 		switch trigger.TriggerType {
@@ -833,7 +833,7 @@ func WorkFlowPublishVersion(c *gin.Context) {
 		if node.NodeType != work_flow.NodeTypeStart {
 			continue
 		}
-		err := VerifyTriggerCronConfig(cast.ToString(userId), &node, common.GetLang(c))
+		err = VerifyTriggerConfig(cast.ToString(userId), &node, common.GetLang(c))
 		if err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			lib_redis.UnLock(define.Redis, lockKey) //unlock

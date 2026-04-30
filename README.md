@@ -138,6 +138,13 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/04/30**
+
+1. [STD] Fixed the issue where the redirect URL was not written out when importing Feishu knowledge base, which is
+   needed for customers to copy<br/>
+2. Fixed the property types of function tools (string|number|boolean|object|array)<br/>
+3. Added items definition for sub-property types when the function tool property type is array<br/>
+
 **2026/04/24**
 
 1. Removed special handling logic for images during knowledge base segmentation<br/>
@@ -155,12 +162,6 @@ For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLo
 3. Ignore duplicate role permission errors during initialization<br/>
 4. Fixed error when clicking download to batch export knowledge base content<br/>
 5. Workflow scheduled trigger now checks if previous execution is completed<br/>
-
-**2026/04/10**
-
-1. Bot Configuration: Welcome message will no longer be sent when it is empty<br/>
-2. External service now supports automatic multi-language adaptation<br/>
-3. Fixed the location matching bug in Docker nginx configuration file<br/>
 
 ## License
 

@@ -408,7 +408,7 @@ func BuildFunctionTools(formIdList []string, adminUserId int) ([]adaptor.Functio
 		required := make([]string, 0)
 		for _, formField := range formFields {
 			properties[formField[`name`]] = map[string]interface{}{
-				`type`:        formField[`type`],
+				`type`:        AmendFuncToolsPropertiesType(formField[`type`]),
 				`description`: formField[`description`],
 			}
 			if cast.ToBool(formField[`required`]) {
