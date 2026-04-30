@@ -406,10 +406,19 @@ func BuildFunctionTools(lang string, robot msql.Params) ([]adaptor.FunctionTool,
 			continue
 		}
 		startNode, _ := node.(*StartNode)
-		properties, required := make(map[string]map[string]string), make([]string, 0)
+		properties, required := make(map[string]map[string]any), make([]string, 0)
 		if startNode != nil && len(startNode.params.DiyGlobal) > 0 {
 			for _, param := range startNode.params.DiyGlobal {
-				properties[param.Key] = map[string]string{`type`: param.Typ, `description`: param.Desc}
+				properties[param.Key] = map[string]any{
+					`type`:        common.AmendFuncToolsPropertiesType(param.Typ),
+					`description`: param.Desc,
+				}
+				if tool.InArrayString(param.Typ, common.TypArrays[:]) {
+					subType := param.Typ[6 : len(param.Typ)-1]
+					properties[param.Key][`items`] = map[string]string{
+						`type`: common.AmendFuncToolsPropertiesType(subType),
+					}
+				}
 				if param.Required {
 					required = append(required, param.Key)
 				}

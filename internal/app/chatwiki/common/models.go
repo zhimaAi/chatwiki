@@ -787,6 +787,25 @@ func (h *ModelCallHandler) RequestRerank(lang string, adminUserId int, openid, a
 	return res, nil
 }
 
+// AmendFuncToolsPropertiesType 修改函数工具的属性类型(string|number|boolean|object|array)
+func AmendFuncToolsPropertiesType(Type string) string {
+	switch Type {
+	case TypString:
+		return TypString
+	case TypNumber, TypFloat, `integer`:
+		return TypNumber
+	case TypBoole, `boolean`:
+		return `boolean`
+	case TypObject, TypParams:
+		return TypObject
+	case TypArrString, TypArrNumber, TypArrBoole, TypArrFloat, TypArrObject, TypArrParams, `array`:
+		return `array`
+	default:
+		logs.Warning(`unsupported type:%s`, Type)
+		return TypString // fallback type
+	}
+}
+
 func (h *ModelCallHandler) RequestChatStream(
 	lang string,
 	adminUserId int,
@@ -896,6 +915,9 @@ func (h *ModelCallHandler) RequestChatStream(
 }
 
 func (h *ModelCallHandler) CheckFunctionArguments(functionToolCall adaptor.FunctionToolCall, functionTools []adaptor.FunctionTool) bool {
+	if functionToolCall.Name == `` && functionToolCall.Arguments == `` {
+		return false // no functiontoolcall was returned
+	}
 	for _, functionTool := range functionTools {
 		arguments := make(map[string]any)
 		err := json.Unmarshal([]byte(functionToolCall.Arguments), &arguments)
