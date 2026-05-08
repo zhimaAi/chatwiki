@@ -28,7 +28,7 @@ func GetWechatAppList(c *gin.Context) {
 	if userId = GetAdminUserId(c); userId == 0 {
 		return
 	}
-	m := msql.Model(`chat_ai_wechat_app`, define.Postgres).
+	m := msql.Model(define.TableChatAiWechatApp, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(userId))
 	robotId := cast.ToInt(c.Query(`robot_id`))
 	if robotId > 0 {
@@ -46,7 +46,7 @@ func GetWechatAppList(c *gin.Context) {
 	if len(appName) > 0 {
 		m.Where(`app_name`, `like`, appName)
 	}
-	queryAll := cast.ToInt(c.Query(`is_all`))
+	queryAll := cast.ToBool(c.Query(`is_all`))
 
 	list, err := m.Order(`id desc`).Select()
 	if err != nil {
@@ -83,9 +83,9 @@ func GetWechatAppList(c *gin.Context) {
 				_ = common.RefreshAccountVerify(appInfo) //refresh defaults asynchronously
 			}()
 		}
-		if queryAll == 0 && !accountIsVerify { //过滤未认证的账号
+		if appInfo[`app_type`] == lib_define.AppOfficeAccount && !queryAll && !accountIsVerify {
 			list[i] = nil
-			continue
+			continue //filter out unverified wechat official account
 		}
 	}
 	list = filterNilByMSQLParams(list)
