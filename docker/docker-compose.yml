@@ -92,7 +92,7 @@ services:
       context: .
       dockerfile: DockerfileGoNsq
     container_name: chatwiki_go_nsq_service
-    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/go_nsq_service:20251103
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/go_nsq_service:20260506
     working_dir: /var/www/go-nsq
     ports:
       - ${NSQADMIN_PORT}:4171
@@ -237,6 +237,8 @@ services:
     restart: always
     environment:
       TZ: ${TIMEZONE}
+    healthcheck:
+      disable: true
     logging:
       options:
         mode: non-blocking
