@@ -109,6 +109,9 @@ export const useRobotStore = defineStore('robot', () => {
     sensitive_words_switch: 0,
     question_multiple_switch: 0,
     question_guide_num: '',
+    question_guide_mode: 0,
+    question_guide_prompt: '',
+    question_guide_workflow_key: '',
     start_node_key: '',
     draft_save_type: 'handle',
     draft_save_time: '',
@@ -244,6 +247,9 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.application_type = data.application_type
     robotInfo.sensitive_words_switch = +data.sensitive_words_switch
     robotInfo.question_guide_num = +data.question_guide_num
+    robotInfo.question_guide_mode = +data.question_guide_mode || 0
+    robotInfo.question_guide_prompt = data.question_guide_prompt || ''
+    robotInfo.question_guide_workflow_key = data.question_guide_workflow_key || ''
     robotInfo.question_multiple_switch = +data.question_multiple_switch
     robotInfo.enable_thinking = +data.enable_thinking || 0
 

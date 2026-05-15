@@ -90,14 +90,12 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 		list, wordTotal, err = ReadOfd(info[`file_url`], userId)
 	} else if define.IsTxtFile(info[`file_ext`]) || define.IsMdFile(info[`file_ext`]) {
 		list, wordTotal, err = ReadTxt(info[`file_url`])
-	} else if define.IsHtmlFile(info[`file_ext`]) {
-		list, wordTotal, err = ReadHtmlContent(info[`file_url`], userId)
 	} else if define.IsPdfFile(info[`file_ext`]) && splitParams.PdfParseType == define.PdfParseTypeText {
 		list, wordTotal, err = ReadPdf(info[`file_url`], pdfPageNum, lang)
 	} else if define.IsPdfFile(info[`file_ext`]) && (splitParams.PdfParseType == define.PdfParseTypeOcr || splitParams.PdfParseType == define.PdfParseTypeOcrWithImage) && pdfPageNum > 0 {
 		list, wordTotal, err = OcrReadOnePagePdf(userId, splitParams.PdfParseType, info[`file_url`], pdfPageNum, lang)
 	} else {
-		if len(info[`html_url`]) == 0 || !LinkExists(info[`html_url`]) { //compatible with old data
+		if len(info[`html_url`]) == 0 || !LinkExists(info[`html_url`]) {
 			list, wordTotal, err = ConvertAndReadHtmlContent(cast.ToInt(info[`id`]), info[`file_url`], userId, splitParams.PdfParseType)
 		} else {
 			list, wordTotal, err = ReadHtmlContent(info[`html_url`], userId)

@@ -480,40 +480,129 @@ func ChatQuestionGuide(c *gin.Context) {
 			histories += "A: " + msg.Content
 		}
 	}
-	prompt := strings.ReplaceAll(define.PromptDefaultQuestionGuide, `{{num}}`, chatBaseParam.Robot[`question_guide_num`])
-	prompt = strings.ReplaceAll(prompt, `{{histories}}`, histories)
-	messages := []adaptor.ZhimaChatCompletionMessage{{Role: `user`, Content: prompt}}
+	questionGuideMode := cast.ToInt(chatBaseParam.Robot[`question_guide_mode`])
 
-	chatResp, _, err := common.RequestChat(
-		common.GetLang(c),
-		chatBaseParam.AdminUserId,
-		chatBaseParam.Openid,
-		chatBaseParam.Robot,
-		chatBaseParam.AppType,
-		cast.ToInt(chatBaseParam.Robot[`model_config_id`]),
-		chatBaseParam.Robot[`use_model`],
-		messages,
-		nil,
-		cast.ToFloat32(chatBaseParam.Robot[`temperature`]),
-		200,
-	)
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson([]string{}, nil))
-		return
-	}
-	content := chatResp.Result
 	var guides []string
-	err = json.Unmarshal([]byte(content), &guides)
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson([]string{}, nil))
-		return
-	}
-	if len(guides) >= cast.ToInt(chatBaseParam.Robot[`question_guide_num`]) {
-		guides = guides[:cast.ToInt(chatBaseParam.Robot[`question_guide_num`])]
+
+	if questionGuideMode == define.QuestionGuideModeWorkflow {
+		// workflow mode
+		guides, err = generateQuestionGuideByWorkflow(chatBaseParam, histories, common.GetLang(c))
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson([]string{}, nil))
+			return
+		}
+		questionGuideNum := cast.ToInt(chatBaseParam.Robot[`question_guide_num`])
+		if len(guides) > questionGuideNum {
+			guides = guides[0:questionGuideNum]
+		}
+	} else {
+		// default or custom prompt mode
+		var prompt string
+		if questionGuideMode == define.QuestionGuideModeCustomPrompt && len(chatBaseParam.Robot[`question_guide_prompt`]) > 0 {
+			prompt = chatBaseParam.Robot[`question_guide_prompt`] + define.PromptQuestionGuideSuffix
+		} else {
+			prompt = define.PromptDefaultQuestionGuide
+		}
+		prompt = strings.ReplaceAll(prompt, `{{num}}`, chatBaseParam.Robot[`question_guide_num`])
+		prompt = strings.ReplaceAll(prompt, `{{histories}}`, histories)
+		messages := []adaptor.ZhimaChatCompletionMessage{{Role: `user`, Content: prompt}}
+
+		chatResp, _, err := common.RequestChat(
+			common.GetLang(c),
+			chatBaseParam.AdminUserId,
+			chatBaseParam.Openid,
+			chatBaseParam.Robot,
+			chatBaseParam.AppType,
+			cast.ToInt(chatBaseParam.Robot[`model_config_id`]),
+			chatBaseParam.Robot[`use_model`],
+			messages,
+			nil,
+			cast.ToFloat32(chatBaseParam.Robot[`temperature`]),
+			200,
+		)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson([]string{}, nil))
+			return
+		}
+		content := chatResp.Result
+		err = json.Unmarshal([]byte(content), &guides)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson([]string{}, nil))
+			return
+		}
+		if len(guides) >= cast.ToInt(chatBaseParam.Robot[`question_guide_num`]) {
+			guides = guides[:cast.ToInt(chatBaseParam.Robot[`question_guide_num`])]
+		}
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(guides, nil))
+}
+
+func generateQuestionGuideByWorkflow(chatBaseParam *define.ChatBaseParam, histories, lang string) ([]string, error) {
+	workflowKey := chatBaseParam.Robot[`question_guide_workflow_key`]
+	if len(workflowKey) == 0 {
+		return nil, errors.New("question_guide_workflow_key is empty")
+	}
+
+	// get workflow robot from cache
+	wfRobot, err := common.GetRobotInfo(workflowKey)
+	if err != nil || len(wfRobot) == 0 {
+		return nil, errors.New("workflow robot not found")
+	}
+
+	wfChatBaseParam := *chatBaseParam
+	wfChatBaseParam.Robot = wfRobot
+	chatRequestParam := &define.ChatRequestParam{
+		ChatBaseParam: &wfChatBaseParam,
+		Lang:          lang,
+		Question:      histories,
+	}
+
+	workFlowParams := &work_flow.WorkFlowParams{
+		ChatRequestParam: chatRequestParam,
+	}
+
+	// collect all replies
+	var replyContents []common.ReplyContent
+	workFlowParams.ImmediatelyReplyHandle = func(replyContent common.ReplyContent) {
+		replyContents = append(replyContents, replyContent)
+	}
+
+	flow, _, err := work_flow.BaseCallWorkFlow(workFlowParams)
+	if err != nil {
+		return nil, err
+	}
+
+	// collect finish node replies
+	content, finishReplyContents := work_flow.TakeOutputReply(flow)
+	replyContents = append(replyContents, finishReplyContents...)
+
+	// extract text as suggestions
+	var guides []string
+	for _, rc := range replyContents {
+		text := rc.Description
+		if len(text) == 0 {
+			text = rc.Title
+		}
+		if len(text) > 0 {
+			guides = append(guides, text)
+		}
+	}
+	if len(content) > 0 {
+		boolExist := false
+		for _, guid := range guides {
+			if guid == content {
+				boolExist = true
+				break
+			}
+		}
+		if !boolExist {
+			guides = append(guides, content)
+		}
+	}
+	return guides, nil
 }
 
 func getChatRequestParam(c *gin.Context) *define.ChatRequestParam {

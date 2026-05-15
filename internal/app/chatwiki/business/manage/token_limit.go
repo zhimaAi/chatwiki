@@ -138,13 +138,13 @@ func TokenLimitList(c *gin.Context) {
 		`token_app_type`: define.TokenAppTypeOther,
 		`is_config`:      `0`,
 	})
-	todayUseList, err := msql.Model(`llm_token_app_daily_stats`, define.Postgres).
-		Where(`admin_user_id`, cast.ToString(adminUserId)).
+	dailyStatsModel := msql.Model(`llm_token_app_daily_stats`, define.Postgres)
+	todayUseList, err := dailyStatsModel.Where(`admin_user_id`, cast.ToString(adminUserId)).
 		Where(`date`, time.Now().Format("2006-01-02")).
 		Field(`admin_user_id,token_app_type,date,robot_id,sum(prompt_token + completion_token) as total_token`).
 		Group(`admin_user_id,token_app_type,date,robot_id`).Select()
 	if err != nil {
-		logs.Error(err.Error() + ` ` + msql.Model(`llm_token_app_daily_stats`, define.Postgres).GetLastSql())
+		logs.Error(`sql:%s,err:%s`, dailyStatsModel.GetLastSql(), err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}

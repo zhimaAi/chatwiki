@@ -258,49 +258,36 @@ func tokenUseIncr(adminUserId int, tokenAppType string, robotId int, promptToken
 }
 
 func statToken(_type string, adminUserId int, corpName string, model string, promptToken int, completionToken int) error {
-	var oldPromptToken int
-	var oldCompletionToken int
-	stats, err := msql.Model(`llm_token_daily_stats`, define.Postgres).
-		Where(`admin_user_id`, cast.ToString(adminUserId)).
-		Where(`corp`, corpName).
-		Where(`model`, model).
-		Where(`type`, _type).
-		Where(`date`, time.Now().Format(`2006-01-02`)).
-		Field(`prompt_token, completion_token`).
-		Find()
+	// check whether today s data exists
+	m := msql.Model(`llm_token_daily_stats`, define.Postgres)
+	id, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`corp`, corpName).Where(`model`, model).Where(`type`, _type).
+		Where(`date`, time.Now().Format(`2006-01-02`)).Value(`id`)
 	if err != nil {
+		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 		return err
 	}
-	if len(stats) == 0 {
-		_, err := msql.Model(`llm_token_daily_stats`, define.Postgres).Insert(msql.Datas{
-			`admin_user_id`: cast.ToString(adminUserId),
+	// there is no record insert an empty value record
+	if cast.ToUint(id) == 0 {
+		newId, err := m.Insert(msql.Datas{
+			`admin_user_id`: adminUserId,
 			`corp`:          corpName,
 			`model`:         model,
 			`type`:          _type,
 			`date`:          time.Now().Format(`2006-01-02`),
 			`create_time`:   tool.Time2Int(),
 			`update_time`:   tool.Time2Int(),
-		})
+		}, `id`)
 		if err != nil {
+			logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 			return err
 		}
-	} else {
-		oldPromptToken = cast.ToInt(stats[`prompt_token`])
-		oldCompletionToken = cast.ToInt(stats[`completion_token`])
+		id = cast.ToString(newId)
 	}
-
-	_, err = msql.Model(`llm_token_daily_stats`, define.Postgres).
-		Where(`admin_user_id`, cast.ToString(adminUserId)).
-		Where(`corp`, corpName).
-		Where(`model`, model).
-		Where(`type`, _type).
-		Where(`date`, time.Now().Format(`2006-01-02`)).
-		Update(msql.Datas{
-			`prompt_token`:     cast.ToString(promptToken + oldPromptToken),
-			`completion_token`: cast.ToString(completionToken + oldCompletionToken),
-			`update_time`:      tool.Time2Int(),
-		})
-	if err != nil {
+	// start updating the data
+	sqlraw := fmt.Sprintf(`prompt_token=prompt_token+%d,completion_token=completion_token+%d,update_time=%d`, promptToken, completionToken, tool.Time2Int())
+	if _, err = m.Where(`id`, id).Update2(sqlraw); err != nil {
+		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 		return err
 	}
 	return nil
