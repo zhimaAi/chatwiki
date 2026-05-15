@@ -56,7 +56,7 @@
         <ProblemOptimization />
       </div>
       <div class="setting-box">
-        <SuggestedIssues />
+        <SuggestedIssues :robotList="workFlowRobotList" />
       </div>
       <div class="setting-box">
         <DisplayAitations />
@@ -87,13 +87,10 @@ import SystemPromptWords from './components/system-prompt-words.vue'
 import ModelSettings from './components/model-settings.vue'
 import AssociatedKnowledgeBase from './components/associated-knowledge-base/index.vue'
 import DataBase from './components/data-base/index.vue'
-import WelcomeWords from './components/welcome-words.vue'
-import UnknownProblemPrompt from './components/unknown-problem-prompt.vue'
 import ProblemOptimization from './components/problem-optimization.vue'
 import SuggestedIssues from './components/suggested-issues.vue'
 import SensitiveWords from './components/sensitive-words.vue'
 import ChatMode from './components/chat-mode/index.vue'
-import MarkdownSetting from './components/markdown-setting.vue'
 import CommonProblem from './components/language-setting/common-problem.vue'
 import DisplayAitations from './components/display-aitations.vue'
 import { saveRobot, getRobotList } from '@/api/robot/index'
@@ -104,7 +101,6 @@ import rolePermission from './role-permission.vue'
 import Skill from './components/skill/index.vue'
 import ChatCache from './components/chat-cache.vue'
 import VariableSetting from './components/variable-setting/index.vue'
-import AnswerPrompt from './components/answer-prompt.vue'
 import LanguageSetting from './components/language-setting/index.vue'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.index')

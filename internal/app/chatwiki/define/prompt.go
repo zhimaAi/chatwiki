@@ -58,6 +58,14 @@ const PromptDefaultQuestionGuide = `
 """
 每个问题的长度应小于20个字符，按如下格式返回: ["问题1", "问题2", "问题3", "问题4", "问题5", "问题6", "问题7", "问题8", "问题9", "问题10"]`
 
+const PromptQuestionGuideSuffix = `
+请结合历史对话记录，帮我生成 {{num}} 个问题，引导我继续提问。
+历史记录:
+"""
+{{histories}}
+"""
+每个问题的长度应小于20个字符，按如下格式返回: ["问题1", "问题2", "问题3", "问题4", "问题5", "问题6", "问题7", "问题8", "问题9", "问题10"]`
+
 const PromptDefaultEntityExtract = `请从下面的问题中提取关键实体，以便进行知识图谱检索。
 尽量从不同角度提取关键概念和实体。注意一定要只输出JSON数组格式，每个元素是一个实体字符串，不要有其他文字说明。
 
@@ -243,3 +251,11 @@ const WorkFlowCateNodePrompt = `## 角色
 - 返回你认为用户问题归属分类的序号，如果你认为没有合适的分类，返回0。
 - 你只能返回分类的序号或者0，否则你将受到惩罚。
 - 只需要按要求返回，不要附带你的思考过程。`
+
+const (
+	QuestionGuideModeDefault      = 0 // default mode
+	QuestionGuideModeCustomPrompt = 1 // custom prompt mode
+	QuestionGuideModeWorkflow     = 2 // specified workflow mode
+)
+
+const QuestionGuidePromptMaxLength = 3000

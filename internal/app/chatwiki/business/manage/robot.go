@@ -447,6 +447,9 @@ func SaveRobot(c *gin.Context) {
 	optimizeQuestionDialogueBackground := strings.TrimSpace(c.DefaultPostForm(`optimize_question_dialogue_background`, ``))
 	enableQuestionGuide := cast.ToBool(c.DefaultPostForm(`enable_question_guide`, `true`))
 	questionGuideNum := cast.ToInt(c.DefaultPostForm(`question_guide_num`, `3`))
+	questionGuideMode := cast.ToInt(c.DefaultPostForm(`question_guide_mode`, `0`))
+	questionGuidePrompt := strings.TrimSpace(c.DefaultPostForm(`question_guide_prompt`, ``))
+	questionGuideWorkflowKey := strings.TrimSpace(c.DefaultPostForm(`question_guide_workflow_key`, ``))
 	enableCommonQuestion := cast.ToBool(c.DefaultPostForm(`enable_common_question`, `true`))
 	commonQuestionList := strings.TrimSpace(c.DefaultPostForm(`common_question_list`, `[]`))
 	thinkSwitch := strings.TrimSpace(c.DefaultPostForm(`think_switch`, `1`))
@@ -541,6 +544,33 @@ func SaveRobot(c *gin.Context) {
 	if questionGuideNum < 1 || questionGuideNum > 10 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `question_optimize_num`))))
 		return
+	}
+	if questionGuideMode < define.QuestionGuideModeDefault || questionGuideMode > define.QuestionGuideModeWorkflow {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `question_guide_mode`))))
+		return
+	}
+	if questionGuideMode == define.QuestionGuideModeCustomPrompt && len(questionGuidePrompt) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_empty`, `question_guide_prompt`))))
+		return
+	}
+	if questionGuideMode == define.QuestionGuideModeCustomPrompt && utf8.RuneCountInString(questionGuidePrompt) > define.QuestionGuidePromptMaxLength {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `question_guide_prompt`))))
+		return
+	}
+	if questionGuideMode == define.QuestionGuideModeWorkflow && len(questionGuideWorkflowKey) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_empty`, `question_guide_workflow_key`))))
+		return
+	}
+	if questionGuideMode == define.QuestionGuideModeWorkflow {
+		wfRobot, wfErr := common.GetRobotInfo(questionGuideWorkflowKey)
+		if wfErr != nil || len(wfRobot) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `question_guide_workflow_key`))))
+			return
+		}
+		if cast.ToInt(wfRobot[`admin_user_id`]) != userId || cast.ToInt(wfRobot[`application_type`]) != define.ApplicationTypeFlow || len(wfRobot[`start_node_key`]) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `question_guide_workflow_key`))))
+			return
+		}
 	}
 	//data check
 	var count int
@@ -752,6 +782,9 @@ func SaveRobot(c *gin.Context) {
 		`optimize_question_use_model`:           optimizeQuestionUseModel,
 		`enable_question_guide`:                 enableQuestionGuide,
 		`question_guide_num`:                    questionGuideNum,
+		`question_guide_mode`:                   questionGuideMode,
+		`question_guide_prompt`:                 questionGuidePrompt,
+		`question_guide_workflow_key`:           questionGuideWorkflowKey,
 		`enable_common_question`:                enableCommonQuestion,
 		`common_question_list`:                  commonQuestionList,
 		`think_switch`:                          thinkSwitch,
