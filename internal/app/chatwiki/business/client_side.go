@@ -96,6 +96,10 @@ func ClientSideLogin(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
+	if strings.ContainsAny(userName, "'\"") {
+		common.FmtError(c, `user_or_pwd_err`)
+		return
+	}
 	info, err := msql.Model(define.TableUser, define.Postgres).Where(`user_name`, userName).Where("is_deleted", define.Normal).
 		Where(fmt.Sprintf(`password=MD5(concat(%s,salt))`, msql.ToString(password))).Field(`id,user_name,user_roles,avatar,nick_name,parent_id`).Find()
 	if err != nil {

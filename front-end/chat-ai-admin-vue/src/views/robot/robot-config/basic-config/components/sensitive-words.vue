@@ -9,6 +9,9 @@
       word-break: break-all;
       color: #595959;
     }
+    .manage-link {
+      color: #2475fc;
+    }
   }
   .switch-item {
     position: absolute;
@@ -26,6 +29,7 @@
     <div class="robot-info-box">
       <div class="robot-prompt">
         {{ t('msg_sensitive_words_desc') }}<span
+          class="manage-link"
           @click="toManagePage"
           style="cursor: pointer"
           >{{ t('btn_manage_sensitive_words') }}</span
@@ -45,29 +49,19 @@
   </edit-box>
 </template>
 <script setup>
-import { ref, reactive, inject, toRaw } from 'vue'
+import { inject } from 'vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import EditBox from './edit-box.vue'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.sensitive-words')
 
-const isEdit = ref(false)
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
-
-const formState = reactive({
-  prompt: ''
-})
-
-const onSave = () => {
-  updateRobotInfo({ ...toRaw(formState) })
-  isEdit.value = false
-}
 
 const toManagePage = () => {
   window.open(`/#/user/sensitive-words`)
 }
 
-const handleEdit = (val) => {
+const handleEdit = () => {
   updateRobotInfo({})
 }
 </script>

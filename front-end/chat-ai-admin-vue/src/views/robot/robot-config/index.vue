@@ -24,8 +24,7 @@
     width: 255px;
     height: 100%;
     border-right: 1px solid #f2f4f7;
-    border-top: 1px solid #f2f4f7;
-    border-radius: 6px;
+    // border-top: 1px solid #f2f4f7;
   }
 
   .layout-body {
@@ -83,7 +82,7 @@ export default defineComponent({
       next(`/robot/list`)
       return
     }
-    let workFlowFilterRouter = ['basicConfig', 'libraryConfig', 'skillConfig']
+    let workFlowFilterRouter = ['libraryConfig', 'skillConfig']
     if (robotInfo.application_type == 1 && workFlowFilterRouter.includes(to.name)) {
       next(`/robot/config/workflow?id=${robotInfo.id}&robot_key=${robotInfo.robot_key}`)
       return

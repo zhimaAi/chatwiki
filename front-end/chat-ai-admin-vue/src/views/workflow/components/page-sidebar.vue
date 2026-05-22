@@ -23,7 +23,6 @@
     width: 18px;
     height: 100%;
     z-index: 100;
-    background-color: #fff;
   }
   .sidebar-handle {
     position: absolute;
@@ -167,7 +166,7 @@
 
 <template>
   <div class="sidebar-wrapper" :class="{ 'is-hide': sidebarHide }">
-    <div class="sidebar-handle-wrapper" v-if="showSidebarBtn">
+    <div class="sidebar-handle-wrapper" v-if="props.showSidebarBtn">
       <a-tooltip
         :mouseEnterDelay="0"
         :mouseLeaveDelay="0"
@@ -241,12 +240,12 @@ const menus = computed(() => [
     path: '/robot/config/workflow',
     iconName: 'workflow'
   },
-  // {
-  //   label: '基础配置',
-  //   value: 'basic-config',
-  //   path: '/robot/config/basic-config',
-  //   iconName: 'jichupeizhi'
-  // },
+  {
+    label: t('menu_basic_config'),
+    value: 'basic-config',
+    path: '/robot/config/basic-config',
+    iconName: 'jichupeizhi'
+  },
   {
     label: t('menu_external_services'),
     value: 'external-services',
@@ -260,12 +259,12 @@ const menus = computed(() => [
     iconName: 'liaotianceshi',
     isNewWindowOpen: true
   },
-  // {
-  //   label: '功能中心',
-  //   value: 'function-center',
-  //   path: '/robot/config/function-center',
-  //   iconName: 'function-center'
-  // },
+  {
+    label: t('menu_function_center'),
+    value: 'function-center',
+    path: '/robot/config/function-center',
+    iconName: 'function-center'
+  },
   {
     label: t('menu_qa_feedback'),
     value: 'qa-feedbacks',

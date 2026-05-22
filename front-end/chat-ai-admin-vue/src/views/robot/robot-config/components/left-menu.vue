@@ -102,7 +102,7 @@ const baseItems = [
     label: 'label_basic_configuration',
     title: 'label_basic_configuration',
     path: '/robot/config/basic-config',
-    menuIn: ['0']
+    menuIn: ['0', '1']
   },
   {
     key: 'library-config',
@@ -228,7 +228,7 @@ const baseItems = [
     label: 'label_unknown_issues',
     title: 'label_unknown_issues',
     path: '/robot/config/unknown_issue',
-    menuIn: ['0', '1']
+    menuIn: ['0']
   },
   {
     key: 'statistical_analysis',

@@ -353,6 +353,11 @@ func (n *CateNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
 	)
 	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
+	// Record deep thinking content to debug log if available
+	if len(chatResp.ReasoningContent) > 0 {
+		flow.Logs(`Record deep thinking content to debug log, length: %d`, len(chatResp.ReasoningContent))
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `llm_thinking`, `content`: chatResp.ReasoningContent}})
+	}
 	// Output log in advance to avoid missing log due to error below
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `llm_answer`, `content`: chatResp.Result}})
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]any{`type`: `llm_error`, `content`: err}})
@@ -678,6 +683,11 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
 	)
 	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
+	// Record deep thinking content to debug log if available
+	if len(chatResp.ReasoningContent) > 0 {
+		flow.Logs(`Record deep thinking content to debug log, length: %d`, len(chatResp.ReasoningContent))
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `llm_thinking`, `content`: chatResp.ReasoningContent}})
+	}
 	// Output log in advance to avoid missing log due to error below
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `llm_answer`, `content`: chatResp.Result}})
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]any{`type`: `llm_error`, `content`: err}})
@@ -951,6 +961,11 @@ func (n *QuestionOptimizeNode) Running(flow *WorkFlow) (output common.SimpleFiel
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
 	)
 	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
+	// Record deep thinking content to debug log if available
+	if len(chatResp.ReasoningContent) > 0 {
+		flow.Logs(`Record deep thinking content to debug log, length: %d`, len(chatResp.ReasoningContent))
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `question_optimize_thinking`, `content`: chatResp.ReasoningContent}})
+	}
 	// Output log in advance to avoid missing log due to error below
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `question_optimize_answer`, `content`: chatResp.Result}})
 	debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]any{`type`: `question_optimize_error`, `content`: err}})
@@ -1046,6 +1061,11 @@ func (n *ParamsExtractorNode) Running(flow *WorkFlow) (outputs common.SimpleFiel
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
 	)
 	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
+	// Record deep thinking content to debug log if available
+	if len(chatResp.ReasoningContent) > 0 {
+		flow.Logs(`Record deep thinking content to debug log, length: %d`, len(chatResp.ReasoningContent))
+		debugLog.Vals = append(debugLog.Vals, common.Val{Object: map[string]string{`type`: `params_extractor_thinking`, `content`: chatResp.ReasoningContent}})
+	}
 	chatResp.Result, _ = strings.CutPrefix(chatResp.Result, "```json")
 	chatResp.Result, _ = strings.CutSuffix(chatResp.Result, "```")
 	// Output log in advance to avoid missing log due to error below

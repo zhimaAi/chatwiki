@@ -9,25 +9,25 @@
       <div class="setting-box">
         <BasicConfig />
       </div>
-      <div class="setting-box">
+      <div class="setting-box" v-if="!isWorkflowRobot">
         <AssociatedKnowledgeBase />
       </div>
-      <div class="setting-box">
+      <div class="setting-box" v-if="!isWorkflowRobot">
         <ModelSettings />
       </div>
-      <div class="setting-box">
+      <div class="setting-box" v-if="!isWorkflowRobot">
         <ChatMode />
       </div>
-      <div class="setting-box">
+      <div class="setting-box" v-if="!isWorkflowRobot">
         <ChatCache />
       </div>
-      <div class="setting-box">
+      <div class="setting-box" v-if="!isWorkflowRobot">
         <SystemPromptWords :robotList="workFlowRobotList" />
       </div>
-      <div class="setting-box">
+      <div class="setting-box" v-if="!isWorkflowRobot">
         <Skill :robotList="workFlowRobotList" />
       </div>
-      <div class="setting-box">
+      <div class="setting-box" v-if="!isWorkflowRobot">
         <DataBase />
       </div>
       <div class="setting-box">
@@ -37,7 +37,7 @@
         <WelcomeWords />
       </div> -->
 
-      <div class="setting-box">
+      <div class="setting-box" v-if="!isWorkflowRobot">
         <VariableSetting />
       </div>
 
@@ -52,13 +52,13 @@
         <MarkdownSetting />
       </div>
       -->
-      <div class="setting-box">
+      <div class="setting-box" v-if="!isWorkflowRobot">
         <ProblemOptimization />
       </div>
-      <div class="setting-box">
+      <div class="setting-box" v-if="!isWorkflowRobot">
         <SuggestedIssues :robotList="workFlowRobotList" />
       </div>
-      <div class="setting-box">
+      <div class="setting-box" v-if="!isWorkflowRobot">
         <DisplayAitations />
       </div>
       <!-- <div class="setting-box">
@@ -78,7 +78,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, toRaw, provide, onMounted } from 'vue'
+import { reactive, ref, toRaw, provide, onMounted, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { message } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -114,6 +114,7 @@ const { robotInfo } = storeToRefs(robotStore)
 const { getRobot, fetchChatVariables } = robotStore
 
 const modelStore = useModelStore()
+const isWorkflowRobot = computed(() => Number(robotInfo.value.application_type || 0) === 1)
 
 const scrollBoxToBottom = () => {
   scrollBox.value.scrollTop = scrollBox.value.scrollHeight

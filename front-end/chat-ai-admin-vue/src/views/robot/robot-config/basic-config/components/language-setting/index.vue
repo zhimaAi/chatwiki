@@ -32,6 +32,7 @@
         @save="handleUpdataConfig"
       />
       <UnknownProblemPrompt
+        v-if="!isWorkflowRobot"
         :isEdit="isEdit"
         :backCurrentMultiLangConfig="backCurrentMultiLangConfig"
         :currentMultiLangConfig="currentMultiLangConfig"
@@ -47,9 +48,8 @@
   </div>
 </template>
 <script setup>
-import { ref, reactive, inject, toRaw, nextTick, computed, watch, watchEffect } from 'vue'
+import { ref, computed, watchEffect } from 'vue'
 import { message } from 'ant-design-vue'
-import { PlusOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
 import WelcomeWords from './welcome-words.vue'
 import UnknownProblemPrompt from './unknown-problem-prompt.vue'
 import AnswerPrompt from './answer-prompt.vue'
@@ -60,6 +60,7 @@ import { saveRobotLangConfigs } from '@/api/robot/index'
 const lang_key = ref('zh-CN')
 
 const robotStore = useRobotStore()
+const isWorkflowRobot = computed(() => Number(robotStore.robotInfo.application_type || 0) === 1)
 
 const multiLangConfigs = computed(() => {
   return robotStore.robotInfo.multi_lang_configs || []
@@ -109,7 +110,7 @@ const handleSave = () => {
     id: robotStore.robotInfo.id,
     multi_lang_configs: JSON.stringify(multi_lang_configs.value)
   }
-  saveRobotLangConfigs(parmas).then((res) => {
+  saveRobotLangConfigs(parmas).then(() => {
     message.success('保存成功')
     isEdit.value = false
     setTimeout(() => {

@@ -8,11 +8,17 @@ export const getRobotList = (params = {}) => {
 }
 
 export const saveRobot = (data = {}, application_type = 0) => {
+  const url = application_type == 0 ? '/manage/saveRobot' : '/manage/addFlowRobot'
+  console.log('saveRobot payload:', {
+    url,
+    application_type,
+    formData: data
+  })
   return request.post({
     headers: {
       'Content-Type': 'multipart/form-data'
     },
-    url: application_type == 0 ? '/manage/saveRobot' : '/manage/addFlowRobot',
+    url,
     data: {
       ...data,
       is_default: 2

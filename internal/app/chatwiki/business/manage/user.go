@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go/v4"
@@ -33,6 +34,10 @@ func AdminLogin(c *gin.Context) {
 	)
 	if err := c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
+		return
+	}
+	if strings.ContainsAny(req.UserName, "'\"") {
+		common.FmtError(c, `user_or_pwd_err`)
 		return
 	}
 	info, err := msql.Model(define.TableUser, define.Postgres).Where(`user_name`, req.UserName).Where("is_deleted", define.Normal).
@@ -293,7 +298,7 @@ func SaveUserConfig(c *gin.Context) {
 
 	data := msql.Datas{
 		`qa_merge_similarity`: req.QAMergeSimilarity,
-		`update_time`:        time.Now().Unix(),
+		`update_time`:         time.Now().Unix(),
 	}
 
 	if err != nil {
@@ -351,4 +356,3 @@ func GetUserConfig(c *gin.Context) {
 		`qa_merge_similarity`: cast.ToFloat64(configData[`qa_merge_similarity`]),
 	})
 }
-
