@@ -138,6 +138,13 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/05/22**
+
+1. [STD] Workflow bot: Added REDnote query material node<br/>
+2. Workflow: Added deep thinking log content to run logs<br/>
+3. Workflow bot: Added welcome message and other basic configurations<br/>
+4. [STD] AI employee display template, supports quick bot creation via associated templates<br/>
+
 **2026/05/15**
 
 1. [STD] Workflow trigger: Added REDnote trigger (activated upon receiving a REDnote push notification)
@@ -158,13 +165,6 @@ For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLo
 3. Fixed the issue of excessive error logs being written when NSQ message body exceeds the default size<br/>
 4. Added configuration parameter to disable inherited parent health check logic for plugin containers<br/>
 5. Fixed the filtering logic for external service WeChat Mini Programs being filtered by unverified accounts<br/>
-
-**2026/04/30**
-
-1. [STD] Fixed the issue where the redirect URL was not written out when importing Feishu knowledge base, which is
-   needed for customers to copy<br/>
-2. Fixed the property types of function tools (string|number|boolean|object|array)<br/>
-3. Added items definition for sub-property types when the function tool property type is array<br/>
 
 ## License
 

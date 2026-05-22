@@ -1,0 +1,1 @@
+import{_ as e}from"./emoji-mart-BBMRoEa3.js";import{Y as c}from"./ui-antd-DLmYeh8O.js";import{a as n,b as s,y as t}from"./vue-chunks-BdaA73Wf.js";const a={},r={class:"loading-box"};function _(i,p){const o=c;return s(),n("div",r,[t(o)])}const l=e(a,[["render",_],["__scopeId","data-v-6634c4be"]]);export{l as L};

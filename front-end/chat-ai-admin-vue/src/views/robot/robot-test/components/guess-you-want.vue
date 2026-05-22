@@ -2,7 +2,7 @@
   <div class="guess-you-want">
     <div class="message-tabs">
       <div
-        v-if="props.item.guess_you_want"
+        v-if="props.item.guess_you_want && props.item.guess_you_want.length"
         @click="changeTabkey(props.item, 1)"
         class="tab-item"
         :class="{ active: props.item.question_tabkey == 1 }"
@@ -11,12 +11,16 @@
       </div>
       <div
         v-if="
-          props.item.guess_you_want && props.common_question_list && props.enable_common_question
+          props.item.guess_you_want &&
+          props.item.guess_you_want.length &&
+          props.common_question_list &&
+          props.common_question_list.length &&
+          props.enable_common_question
         "
         class="v-line"
       ></div>
       <div
-        v-if="props.common_question_list && props.enable_common_question"
+        v-if="props.common_question_list && props.common_question_list.length && props.enable_common_question"
         @click="changeTabkey(props.item, 2)"
         class="tab-item"
         :class="{ active: props.item.question_tabkey == 2 }"

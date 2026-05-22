@@ -63,6 +63,10 @@ func ChatClawLogin(c *gin.Context) {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
+	if strings.ContainsAny(req.UserName, "'\"") {
+		common.FmtError(c, `user_or_pwd_err`)
+		return
+	}
 	info, err := msql.Model(define.TableUser, define.Postgres).Where(`user_name`, req.UserName).Where("is_deleted", define.Normal).
 		Where(fmt.Sprintf(`password=MD5(concat(%s,salt))`, msql.ToString(req.Password))).Field(`id,user_name,user_roles,avatar,nick_name,parent_id`).Find()
 	if err != nil {

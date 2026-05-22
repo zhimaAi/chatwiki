@@ -483,10 +483,30 @@ func SaveRobot(c *gin.Context) {
 			welcomes = i18n.Show(common.GetLang(c), `default_welcomes`)
 		}
 	}
+	var applicationType = ``
+	if id > 0 {
+		applicationType, err = msql.Model(`chat_ai_robot`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).
+			Where(`id`, cast.ToString(id)).Value(`application_type`)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+	}
+	if cast.ToInt(applicationType) == define.ApplicationTypeFlow {
+		enableQuestionGuide = false
+	}
 	//check required
-	if id < 0 || len(robotName) == 0 || len(welcomes) == 0 || modelConfigId <= 0 || len(useModel) == 0 || maxToken < 0 || topK <= 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
-		return
+	if id < 0 || len(robotName) == 0 || len(welcomes) == 0 || maxToken < 0 || topK <= 0 {
+		if id > 0 && (modelConfigId <= 0 || len(useModel) == 0) {
+			if cast.ToInt(applicationType) != define.ApplicationTypeFlow {
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+				return
+			}
+		} else {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+			return
+		}
 	}
 	if checkName != 0 {
 		//Auto-increment name suffix based on max existing value
@@ -611,7 +631,7 @@ func SaveRobot(c *gin.Context) {
 		return
 	}
 
-	if len(libraryIds) > 0 {
+	if len(libraryIds) > 0 && cast.ToInt(applicationType) != define.ApplicationTypeFlow {
 		//format check
 		if !common.CheckIds(libraryIds) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `library_ids_err`))))
@@ -651,9 +671,11 @@ func SaveRobot(c *gin.Context) {
 		robotAvatar = robotAvatarUrl
 	}
 	//check model_config_id and use_model
-	if ok := common.CheckModelIsValid(userId, modelConfigId, useModel, common.Llm); !ok {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `use_model`))))
-		return
+	if cast.ToInt(applicationType) != define.ApplicationTypeFlow {
+		if ok := common.CheckModelIsValid(userId, modelConfigId, useModel, common.Llm); !ok {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `use_model`))))
+			return
+		}
 	}
 
 	//check optimize_question_model_config_id and optimize_question_use_model
@@ -1469,6 +1491,9 @@ func GetRobotInfo(c *gin.Context) {
 	}
 	if cast.ToInt(info[`prompt_type`]) == define.PromptTypeStruct { //for legacy data normalization
 		info[`prompt_struct`], _ = common.CheckPromptConfig(common.GetLang(c), define.PromptTypeStruct, info[`prompt_struct`])
+	}
+	if cast.ToInt(info[`application_type`]) == define.ApplicationTypeFlow {
+		info[`enable_question_guide`] = `false`
 	}
 	//check langs
 	langConfigs, err := common.GetRobotMultilingualConfigList(cast.ToInt(info[`id`]))
