@@ -78,14 +78,34 @@
                 <div class="section-item-nav-left">
                   <svg-icon class="section-item-icon" name="document"></svg-icon>
                   <div class="section-item-label" @click="goToFile(item)">
-                    {{ item.file_name }}<span v-if="!item.file_name">{{ item.library_name }}-{{ t('selected') }}</span>
+                    {{ getRecallTitle(item) }}
                   </div>
                 </div>
                 <div class="section-item-nav-right">{{ t('similarity') }}{{ formatNumber(item.similarity) }}</div>
               </div>
               <a-tooltip overlayClassName="search-content-tip" placement="top">
-                <template #title>{{ item.content }}</template>
-                <div class="section-item-content" v-html="highlightKeywords(item.content, message)"></div>
+                <template #title>
+                  <template v-if="isQaRecall(item)">
+                    <div v-if="item.question">{{ t('question') }}{{ item.question }}</div>
+                    <div v-if="item.answer">{{ t('answer') }}{{ item.answer }}</div>
+                    <div v-if="!item.question && !item.answer">{{ item.content }}</div>
+                  </template>
+                  <template v-else>{{ item.content }}</template>
+                </template>
+                <div v-if="isQaRecall(item)" class="section-item-content">
+                  <template v-if="item.question || item.answer">
+                    <div v-if="item.question">
+                      <span class="qa-content-label">{{ t('question') }}</span>
+                      <span v-html="highlightKeywords(item.question, message)"></span>
+                    </div>
+                    <div v-if="item.answer">
+                      <span class="qa-content-label">{{ t('answer') }}</span>
+                      <span v-html="highlightKeywords(item.answer, message)"></span>
+                    </div>
+                  </template>
+                  <div v-else v-html="highlightKeywords(item.content, message)"></div>
+                </div>
+                <div v-else class="section-item-content" v-html="highlightKeywords(item.content, message)"></div>
               </a-tooltip>
             </div>
           </div>
@@ -177,6 +197,22 @@ const highlightKeywords = (content, keyword) => {
   const regex = new RegExp(`(${escapedKeyword})`, 'gi')
   
   return content.replace(regex, '<span class="highlight">$1</span>')
+}
+
+const isQaRecall = (item) => {
+  return String(item?.type) === '2'
+}
+
+const getRecallTitle = (item) => {
+  if (isQaRecall(item)) {
+    return item.library_name || item.file_name || ''
+  }
+
+  if (item.library_name && item.file_name) {
+    return `${item.library_name} > ${item.file_name}`
+  }
+
+  return item.file_name || item.library_name || ''
 }
 
 // 新窗口跳转到文档
@@ -484,7 +520,7 @@ defineExpose({
 
     .section-item-nav {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
       margin-bottom: 8px;
 
@@ -492,10 +528,13 @@ defineExpose({
         display: flex;
         align-items: center;
         gap: 3px;
+        min-width: 0;
       }
 
       .section-item-icon {
         font-size: 20px;
+        align-self: flex-start;
+        margin-top: 3px;
       }
 
       .section-item-label {
@@ -507,6 +546,9 @@ defineExpose({
       }
 
       .section-item-nav-right {
+        flex-shrink: 0;
+        margin-left: 12px;
+        white-space: nowrap;
         color: #8c8c8c;
         font-size: 14px;
         font-style: normal;
@@ -526,6 +568,10 @@ defineExpose({
       font-style: normal;
       font-weight: 400;
       line-height: 22px;
+
+      .qa-content-label {
+        color: #262626;
+      }
     }
   }
 }

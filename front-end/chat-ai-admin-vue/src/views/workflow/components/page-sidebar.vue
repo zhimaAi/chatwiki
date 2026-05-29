@@ -1,4 +1,4 @@
-<style lang="less" scoped>
+﻿<style lang="less" scoped>
 .sidebar-wrapper {
   position: relative;
   height: 100%;
@@ -241,6 +241,12 @@ const menus = computed(() => [
     iconName: 'workflow'
   },
   {
+    label: t('menu_function_center'),
+    value: 'function-center',
+    path: '/robot/config/function-center',
+    iconName: 'function-center'
+  },
+  {
     label: t('menu_basic_config'),
     value: 'basic-config',
     path: '/robot/config/basic-config',
@@ -258,12 +264,6 @@ const menus = computed(() => [
     path: '/robot/test',
     iconName: 'liaotianceshi',
     isNewWindowOpen: true
-  },
-  {
-    label: t('menu_function_center'),
-    value: 'function-center',
-    path: '/robot/config/function-center',
-    iconName: 'function-center'
   },
   {
     label: t('menu_qa_feedback'),

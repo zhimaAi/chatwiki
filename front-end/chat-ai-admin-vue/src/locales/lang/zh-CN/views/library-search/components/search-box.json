@@ -8,6 +8,8 @@
   "generated_by_model": "以上内容由大模型生成",
   "related_segments": "相关分段",
   "selected": "精选",
+  "question": "问题 ",
+  "answer": "答案 ",
   "similarity": "相似度：",
   "select_library_error": "请在左侧的知识库选择项内至少选择一个知识库",
   "input_message_error": "请输入消息内容"

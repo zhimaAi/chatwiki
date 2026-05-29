@@ -215,7 +215,7 @@ func ConfigurationTest(meta adaptor.Meta, modelType string) (err error) {
 	switch modelType {
 	case Llm:
 		messages := []adaptor.ZhimaChatCompletionMessage{{Role: `user`, Content: `configuration test`}}
-		req := adaptor.ZhimaChatCompletionRequest{Messages: messages, MaxToken: 100, Temperature: 0.1}
+		req := adaptor.ZhimaChatCompletionRequest{Messages: messages, MaxToken: 100, Temperature: 1}
 		_, err = client.CreateChatCompletion(req)
 	case TextEmbedding:
 		req := adaptor.ZhimaEmbeddingRequest{Input: `configuration test`}

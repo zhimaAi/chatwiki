@@ -91,6 +91,20 @@ const baseItems = [
     path: '/robot/config/workflow',
     menuIn: ['1']
   },
+
+  {
+    key: 'function-center',
+    id: 'function-center',
+    icon: () =>
+      h(SvgIcon, {
+        name: 'function-center',
+        class: 'menu-icon'
+      }),
+    label: 'label_function_center',
+    title: 'label_function_center',
+    path: '/robot/config/function-center',
+    menuIn: ['1']
+  },
   {
     key: 'basic-config',
     id: 'basic-config',
@@ -141,7 +155,7 @@ const baseItems = [
     label: 'label_function_center',
     title: 'label_function_center',
     path: '/robot/config/function-center',
-    menuIn: ['0', '1']
+    menuIn: ['0']
   },
   {
     key: 'external-services',
