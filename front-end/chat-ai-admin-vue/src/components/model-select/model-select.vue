@@ -33,7 +33,12 @@
         :key="sub.key"
         v-bind:attrs="sub"
       >
-        {{ sub.show_model_name || sub.name }}
+        <a-flex class="model-option" align="center" :gap="4" wrap="wrap">
+          <span class="model-option-name">{{ sub.show_model_name || sub.name }}</span>
+          <template v-if="props.modelType == 'LLM'">
+            <span v-for="tag in getModelTags(sub)" :key="tag" class="model-tag">{{ tag }}</span>
+          </template>
+        </a-flex>
       </a-select-option>
     </a-select-opt-group>
   </a-select>
@@ -115,6 +120,26 @@ const handleChangeModel = (val, option) => {
   emit('update:useConfigId', option.useConfigId)
   emit('change', val, option)
 }
+
+const getModelTags = (model) => {
+  let tags = []
+  if (model.thinking_type == 1 || model.thinking_type == 2) {
+    tags.push('深度思考')
+  }
+  if (model.function_call == 1) {
+    tags.push('工具调用')
+  }
+  if (
+    model.input_voice == 1 ||
+    model.input_image == 1 ||
+    model.input_video == 1 ||
+    model.input_document == 1
+  ) {
+    tags.push('多模态')
+  }
+  return tags
+}
+
 const getModelList = () => {
   getModelConfigOption({
     model_type: props.modelType
@@ -154,6 +179,22 @@ onMounted(() => {
 <style lang="less" scoped>
 .model-icon {
   width: 18px;
+}
+.model-option {
+  min-width: 0;
+  line-height: 22px;
+  .model-option-name {
+    color: #262626;
+  }
+  .model-tag {
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 4px;
+    background: #E5F0FF;
+    color: #7A8699;
+    font-size: 12px;
+    line-height: 16px;
+  }
 }
 .modal-seclet-new.ant-select {
   &::v-deep(.ant-select-selection-item) {

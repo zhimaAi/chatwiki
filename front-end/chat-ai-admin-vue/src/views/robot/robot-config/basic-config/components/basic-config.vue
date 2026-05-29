@@ -190,6 +190,7 @@
 <script setup>
 import { getBase64 } from '@/utils/index'
 import { ref, reactive, inject, toRaw, computed } from 'vue'
+import { message } from 'ant-design-vue'
 import EditBox from './edit-box.vue'
 import CuUpload from '@/components/cu-upload/cu-upload.vue'
 import { useRobotStore } from '@/stores/modules/robot'
@@ -241,6 +242,12 @@ const onSave = () => {
 
 const handleChangeAvatar = (fileList) => {
   let file = fileList[0]
+
+  if (file.size > 100 * 1024) {
+    message.error(t('msg_avatar_size_limit'))
+    return false
+  }
+
   formState.robot_avatar = file
 
   getBase64(file).then((base64Url) => {

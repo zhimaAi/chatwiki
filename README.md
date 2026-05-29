@@ -138,6 +138,19 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/05/29**
+
+1.[STD] Custom model > OpenRouter model configuration proxy<br/>
+2.Fixed display issue in search module Q&A hit results<br/>
+3.Model adaptor underlying changes, updated Claude default model configuration<br/>
+4.[STD] REDnote reply private message node supports instant reply to user messages<br/>
+5.Fixed workflow menu abnormality issue<br/>
+6.[STD] REDnote professional account plugin - Query user information<br/>
+7.Display capability tags and credit pricing next to LLM model names<br/>
+8.Fixed issue where loop/batch processing node version records did not store parent nodes, causing parent node loss when
+restoring versions<br/>
+9.[STD] REDnote professional account plugin - Reply to intent comments<br/>
+
 **2026/05/22**
 
 1. [STD] Workflow bot: Added REDnote query material node<br/>
@@ -157,14 +170,6 @@ For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLo
 7. Fixed a bug with incorrect model instantiation in the statistics table
 8. Fixed race condition when concurrently writing token statistics to the statistics table
 9. User question suggestions now support custom prompts or selecting a workflow
-
-**2026/05/08**
-
-1. [STD] Account registration no longer grants credits for self-hosted model usage<br/>
-2. [STD] Fixed the issue of abnormal credit consumption when OpenClaw calls self-hosted models<br/>
-3. Fixed the issue of excessive error logs being written when NSQ message body exceeds the default size<br/>
-4. Added configuration parameter to disable inherited parent health check logic for plugin containers<br/>
-5. Fixed the filtering logic for external service WeChat Mini Programs being filtered by unverified accounts<br/>
 
 ## License
 

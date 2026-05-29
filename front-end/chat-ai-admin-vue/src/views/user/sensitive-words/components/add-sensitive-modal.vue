@@ -73,7 +73,8 @@ const handleClickItem = (item) => {
 }
 
 const handleOk = () => {
-  if (!words.value) {
+  const trimWords = words.value.trim()
+  if (!trimWords) {
     return message.error(t('error_no_words'))
   }
   if (trigger_type.value == 1 && robot_ids.value.length == 0) {
@@ -81,7 +82,7 @@ const handleOk = () => {
   }
   saveSensitiveWords({
     id: id.value,
-    words: words.value,
+    words: trimWords,
     trigger_type: trigger_type.value,
     robot_ids: robot_ids.value.join(',')
   }).then((res) => {
