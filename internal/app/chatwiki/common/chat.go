@@ -91,7 +91,7 @@ func BuildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 	if len(params.Prompt) == 0 { //no custom is used
 		prompt := params.Robot[`prompt`]
 		promptStruct := params.Robot[`prompt_struct`]
-		ReplaceChatVariables(params.Lang, sessionId, &prompt, &promptStruct)
+		ReplaceChatVariables(params.Lang, sessionId, params.WorkFlowGlobal, &prompt, &promptStruct)
 		params.Prompt = BuildPromptStruct(params.Lang, cast.ToInt(params.Robot[`prompt_type`]), prompt, promptStruct)
 	}
 	// Replace chat variable placeholders in metadata filter config (if enabled)
@@ -178,7 +178,7 @@ func BuildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 	if len(params.Prompt) == 0 { //no custom is used
 		prompt := params.Robot[`prompt`]
 		promptStruct := params.Robot[`prompt_struct`]
-		ReplaceChatVariables(params.Lang, sessionId, &prompt, &promptStruct)
+		ReplaceChatVariables(params.Lang, sessionId, params.WorkFlowGlobal, &prompt, &promptStruct)
 		params.Prompt = BuildPromptStruct(params.Lang, cast.ToInt(params.Robot[`prompt_type`]), prompt, promptStruct)
 	}
 

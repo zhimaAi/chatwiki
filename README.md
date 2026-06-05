@@ -138,6 +138,16 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/06/05**
+
+1.Fixed error when adding google/gemini model via OpenRouter custom model<br/>
+2.Fixed data consistency issue when updating chatbot default library after adding entries<br/>
+3.[STD] Bot variables support importing XiaoKeFu user variables<br/>
+4.[STD] Chat sessions from XiaoKeFu now display source channel and application<br/>
+5.[STD] REDnote professional account customer service node - Added modify customer info node<br/>
+6.[STD] Added cloud version access via chatwikiadmin.xiaokefu.com.cn<br/>
+7.[STD] Self-hosted model: Support customizing response content when credits are insufficient<br/>
+
 **2026/05/29**
 
 1.[STD] Custom model > OpenRouter model configuration proxy<br/>
@@ -157,19 +167,6 @@ restoring versions<br/>
 2. Workflow: Added deep thinking log content to run logs<br/>
 3. Workflow bot: Added welcome message and other basic configurations<br/>
 4. [STD] AI employee display template, supports quick bot creation via associated templates<br/>
-
-**2026/05/15**
-
-1. [STD] Workflow trigger: Added REDnote trigger (activated upon receiving a REDnote push notification)
-2. Fixed the issue where image URLs without file extensions in online data and local HTML documents caused segmentation
-   failure
-3. [STD] New plugin: REDnote plugin - reply to user private message node
-4. [STD] Template marketplace now supports uploading chatbot templates
-5. [STD] Self-hosted models: Added tiered credit consumption based on input tokens
-6. Fixed dimension and token statistics errors for Alibaba Bailian embedding models
-7. Fixed a bug with incorrect model instantiation in the statistics table
-8. Fixed race condition when concurrently writing token statistics to the statistics table
-9. User question suggestions now support custom prompts or selecting a workflow
 
 ## License
 

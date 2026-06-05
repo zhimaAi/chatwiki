@@ -64,7 +64,7 @@ require (
 	github.com/xuri/excelize/v2 v2.10.1
 	github.com/yuin/goldmark v1.7.12
 	github.com/zhimaAi/go_tools v0.0.0-20260506085423-c8f4795f10e0
-	github.com/zhimaAi/llm_adaptor v0.0.0-20260525024131-fdaf789aa51e
+	github.com/zhimaAi/llm_adaptor v0.0.0-20260602071141-e652736427af
 	github.com/zhimaAi/pdf v0.0.0-20240423033113-08880067bc13
 	gitlab.com/golang-commonmark/markdown v0.0.0-20211110145824-bf3e522c626a
 	go.uber.org/zap v1.27.0

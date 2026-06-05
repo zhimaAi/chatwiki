@@ -10,7 +10,6 @@ import (
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -68,16 +67,18 @@ func ChatClawLogin(c *gin.Context) {
 		return
 	}
 	info, err := msql.Model(define.TableUser, define.Postgres).Where(`user_name`, req.UserName).Where("is_deleted", define.Normal).
-		Where(fmt.Sprintf(`password=MD5(concat(%s,salt))`, msql.ToString(req.Password))).Field(`id,user_name,user_roles,avatar,nick_name,parent_id`).Find()
+		Field(`id,user_name,user_roles,avatar,nick_name,parent_id,password,salt`).Find()
 	if err != nil {
 		logs.Error(err.Error())
 		common.FmtError(c, `sys_err`)
 		return
 	}
-	if len(info) == 0 {
+	if len(info) == 0 || tool.MD5(req.Password+info["salt"]) != info["password"] {
 		common.FmtError(c, `user_or_pwd_err`)
 		return
 	}
+	delete(info, "password")
+	delete(info, "salt")
 	data, err := common.GetChatClawToken(info[`id`], info[`user_name`], info["parent_id"])
 	if err != nil {
 		logs.Error(err.Error())

@@ -41,16 +41,18 @@ func AdminLogin(c *gin.Context) {
 		return
 	}
 	info, err := msql.Model(define.TableUser, define.Postgres).Where(`user_name`, req.UserName).Where("is_deleted", define.Normal).
-		Where(fmt.Sprintf(`password=MD5(concat(%s,salt))`, msql.ToString(req.Password))).Field(`id,user_name,user_roles,avatar,nick_name,parent_id,login_switch,expire_time`).Find()
+		Field(`id,user_name,user_roles,avatar,nick_name,parent_id,login_switch,expire_time,password,salt`).Find()
 	if err != nil {
 		logs.Error(err.Error())
 		common.FmtError(c, `sys_err`)
 		return
 	}
-	if len(info) == 0 {
+	if len(info) == 0 || tool.MD5(req.Password+info["salt"]) != info["password"] {
 		common.FmtError(c, `user_or_pwd_err`)
 		return
 	}
+	delete(info, "password")
+	delete(info, "salt")
 	if common.CheckUserLogin(cast.ToInt(info[`login_switch`]), cast.ToInt(info["expire_time"])) {
 		common.FmtError(c, `client_side_cannot_login`)
 		return
@@ -217,18 +219,20 @@ func SaveProfile(c *gin.Context) {
 		password := tool.MD5(req.Password + salt)
 		data["password"] = password
 		data["salt"] = salt
-		// check pass
+		// check old password
 		info, err := msql.Model(define.TableUser, define.Postgres).Where(`id`, cast.ToString(req.Id)).
-			Where(fmt.Sprintf(`password=MD5(concat(%s,salt))`, msql.ToString(req.OldPassword))).Field(`id,user_name`).Find()
+			Field(`id,user_name,password,salt`).Find()
 		if err != nil {
 			logs.Error(err.Error())
 			common.FmtError(c, `sys_err`)
 			return
 		}
-		if len(info) == 0 {
+		if len(info) == 0 || tool.MD5(req.OldPassword+info["salt"]) != info["password"] {
 			common.FmtError(c, `user_or_pwd_err`)
 			return
 		}
+		delete(info, "password")
+		delete(info, "salt")
 	}
 	_, err = m.Where("id", cast.ToString(req.Id)).Update(data)
 	if err != nil {
