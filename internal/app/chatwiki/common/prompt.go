@@ -235,7 +235,7 @@ func getSessionChatVariables(sessionId int) ([]ChatVariable, *regexp.Regexp, err
 	return chatPromptVariables, re, nil
 }
 
-func ReplaceChatVariables(lang string, sessionId int, prompt *string, promptStruct *string) {
+func ReplaceChatVariables(lang string, sessionId int, global map[string]any, prompt *string, promptStruct *string) {
 	chatPromptVariables, re, err := getSessionChatVariables(sessionId)
 	if err != nil || len(chatPromptVariables) == 0 || re == nil {
 		return

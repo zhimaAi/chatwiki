@@ -177,16 +177,7 @@ func GetRobotList(c *gin.Context) {
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-
-	m := msql.Model(`chat_ai_robot`, define.Postgres).
-		Field(`id,robot_name,robot_intro,robot_avatar,robot_key,application_type,creator,start_node_key,group_id,sort_num,is_top`).
-		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`is_top desc, sort_num desc ,id desc`)
-
 	applicationType := cast.ToInt(c.DefaultQuery(`application_type`, `-1`))
-	if applicationType >= 0 { //filter by application type
-		m.Where(`application_type`, cast.ToString(applicationType))
-	}
-
 	userId := getLoginUserId(c)
 	if userId <= 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
@@ -207,70 +198,12 @@ func GetRobotList(c *gin.Context) {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
-	//check permission
-	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot}) {
-		// managedRobotIdList := GetUserManagedData(userId, `managed_robot_list`)
-		managedRobotIdList := []string{`0`}
-		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeRobot, common.GetLang(c))
-		for _, permission := range permissionData {
-			managedRobotIdList = append(managedRobotIdList, cast.ToString(permission[`object_id`]))
-		}
-		//m.Where(`id`, `in`, strings.Join(managedRobotIdList, `,`))
-	}
-
-	list, err := m.Select()
+	list, err := BridgeRobotList(adminUserId, userId, applicationType, common.GetLang(c), userInfo)
 	if err != nil {
 		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
-
-	//Add has_published field
-	//Collect robot IDs with application_type=1
-	var workflowRobotIds []string
-	for i := range list {
-		applicationType := cast.ToInt(list[i][`application_type`])
-		if applicationType == 1 {
-			workflowRobotIds = append(workflowRobotIds, cast.ToString(list[i][`id`]))
-		}
-	}
-
-	//Batch query robots that have published versions
-	publishedRobotMap := make(map[string]bool)
-	if len(workflowRobotIds) > 0 {
-		publishedRobots, err := msql.Model(`work_flow_version`, define.Postgres).
-			Where(`robot_id`, `in`, strings.Join(workflowRobotIds, `,`)).
-			Group(`robot_id`).
-			ColumnArr(`robot_id`)
-		if err != nil {
-			logs.Error(err.Error())
-		} else {
-			for _, robotId := range publishedRobots {
-				publishedRobotMap[robotId] = true
-			}
-		}
-	}
-
-	//Set has_published field
-	for i := range list {
-		applicationType := cast.ToInt(list[i][`application_type`])
-		if applicationType == 0 {
-			//application_type=0 (chat): has_published=1
-			list[i][`has_published`] = `1`
-		} else if applicationType == 1 {
-			//application_type=1 (workflow): check for published versions
-			robotId := cast.ToString(list[i][`id`])
-			if publishedRobotMap[robotId] {
-				list[i][`has_published`] = `1`
-			} else {
-				list[i][`has_published`] = `0`
-			}
-		} else {
-			//Other types default to 0
-			list[i][`has_published`] = `0`
-		}
-	}
-
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 }
 
@@ -470,7 +403,9 @@ func SaveRobot(c *gin.Context) {
 	}
 	//set default value
 	if id == 0 {
-		robotAvatar = define.LocalUploadPrefix + `default/robot_avatar.svg`
+		if robotAvatar == "" {
+			robotAvatar = define.LocalUploadPrefix + `default/robot_avatar.svg`
+		}
 		if modelConfigId == 0 && len(useModel) == 0 {
 			var existLlm bool
 			modelConfigId, useModel, existLlm = common.GetDefaultLlmConfig(common.GetLang(c), userId)
@@ -865,7 +800,7 @@ func SaveRobot(c *gin.Context) {
 				_ = common.SetStepFinish(userId, define.StepCreateRobot)
 			}
 			addDefaultApiKey(c, robotKey)
-			// _ = AddUserMangedData(loginUserId, `managed_robot_list`, id)
+			// _ = AddUserMangedData(getLoginUserId(c), `managed_robot_list`, id)
 			go AddDefaultPermissionManage(userId, loginUserId, int(id), define.ObjectTypeRobot)
 			// add default library
 			_, _ = common.AddDefaultLibrary(common.GetLang(c), c.GetHeader(`token`), robotName, libraryIds, robotKey, userId)
@@ -1223,7 +1158,7 @@ func AddFlowRobot(c *gin.Context) {
 	// add robot api key
 	if err == nil {
 		addDefaultApiKey(c, robotKey)
-		// _ = AddUserMangedData(loginUserId, `managed_robot_list`, id)
+		// _ = AddUserMangedData(getLoginUserId(c), `managed_robot_list`, id)
 		go AddDefaultPermissionManage(userId, loginUserId, int(id), define.ObjectTypeRobot)
 	}
 	if err != nil {
@@ -1481,7 +1416,13 @@ func GetRobotInfo(c *gin.Context) {
 	// add default library
 	if cast.ToInt(info[`default_library_id`]) <= 0 && cast.ToInt(info[`application_type`]) == define.ApplicationTypeChat {
 		_, _ = common.AddDefaultLibrary(common.GetLang(c), c.GetHeader(`token`), info[`robot_name`], info[`library_ids`], info[`robot_key`], userId)
-		info, _ = common.GetRobotInfo(info[`robot_key`])
+		info, err = msql.Model(`chat_ai_robot`, define.Postgres).
+			Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Find()
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
 	}
 	if len(info[`rrf_weight`]) == 0 { //fill default values
 		info[`rrf_weight`] = tool.JsonEncodeNoError(common.GetDefaultRrfWeight(userId))
@@ -1579,6 +1520,7 @@ func DeleteRobot(c *gin.Context) {
 	if err != nil {
 		logs.Error(err.Error())
 	}
+	// delete robot relation data
 	go func() {
 		err := deleteRobotRelationData(id, info[`robot_key`])
 		if err != nil {
@@ -2042,4 +1984,78 @@ func CleanRobotChatCache(c *gin.Context) {
 	//clear cached data
 	_ = common.CleanRobotMessageCache(id, robotKey)
 	common.FmtOk(c, nil)
+}
+
+func BridgeRobotList(adminUserId, userId, applicationType int, lang string, userInfo msql.Params) ([]msql.Params, error) {
+	m := msql.Model(`chat_ai_robot`, define.Postgres).
+		Field(`id,robot_name,robot_intro,robot_avatar,robot_key,application_type,creator,start_node_key,group_id,sort_num,is_top`).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`is_top desc, sort_num desc ,id desc`)
+
+	if applicationType >= 0 { // Filter by application type
+		m.Where(`application_type`, cast.ToString(applicationType))
+	}
+
+	//check permission
+	if !tool.InArrayInt(cast.ToInt(userInfo[`role_type`]), []int{define.RoleTypeRoot}) {
+		// managedRobotIdList := GetUserManagedData(userId, `managed_robot_list`)
+		managedRobotIdList := []string{`0`}
+		permissionData, _ := common.GetAllPermissionManage(adminUserId, cast.ToString(userId), define.IdentityTypeUser, define.ObjectTypeRobot, lang)
+		for _, permission := range permissionData {
+			managedRobotIdList = append(managedRobotIdList, cast.ToString(permission[`object_id`]))
+		}
+		//m.Where(`id`, `in`, strings.Join(managedRobotIdList, `,`))
+	}
+
+	list, err := m.Select()
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, errors.New(i18n.Show(lang, `sys_err`))
+	}
+
+	// Add has_published field
+	// First, collect all robot IDs with application_type=1
+	var workflowRobotIds []string
+	for i := range list {
+		applicationType := cast.ToInt(list[i][`application_type`])
+		if applicationType == 1 {
+			workflowRobotIds = append(workflowRobotIds, cast.ToString(list[i][`id`]))
+		}
+	}
+
+	// Batch query robot IDs with published versions
+	publishedRobotMap := make(map[string]bool)
+	if len(workflowRobotIds) > 0 {
+		publishedRobots, err := msql.Model(`work_flow_version`, define.Postgres).
+			Where(`robot_id`, `in`, strings.Join(workflowRobotIds, `,`)).
+			Group(`robot_id`).
+			ColumnArr(`robot_id`)
+		if err != nil {
+			logs.Error(err.Error())
+		} else {
+			for _, robotId := range publishedRobots {
+				publishedRobotMap[robotId] = true
+			}
+		}
+	}
+
+	// Set has_published field
+	for i := range list {
+		applicationType := cast.ToInt(list[i][`application_type`])
+		if applicationType == 0 {
+			// application_type=0, chat type, has_published=1
+			list[i][`has_published`] = `1`
+		} else if applicationType == 1 {
+			// application_type=1, workflow type, check if published version exists
+			robotId := cast.ToString(list[i][`id`])
+			if publishedRobotMap[robotId] {
+				list[i][`has_published`] = `1`
+			} else {
+				list[i][`has_published`] = `0`
+			}
+		} else {
+			// Other types default to 0
+			list[i][`has_published`] = `0`
+		}
+	}
+	return list, nil
 }

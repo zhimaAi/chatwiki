@@ -10,7 +10,6 @@ import (
 	"chatwiki/internal/pkg/casbin"
 	"chatwiki/internal/pkg/lib_web"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -19,6 +18,7 @@ import (
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
+	"github.com/zhimaAi/go_tools/tool"
 )
 
 func GetCompany(c *gin.Context) {
@@ -101,16 +101,18 @@ func ClientSideLogin(c *gin.Context) {
 		return
 	}
 	info, err := msql.Model(define.TableUser, define.Postgres).Where(`user_name`, userName).Where("is_deleted", define.Normal).
-		Where(fmt.Sprintf(`password=MD5(concat(%s,salt))`, msql.ToString(password))).Field(`id,user_name,user_roles,avatar,nick_name,parent_id`).Find()
+		Field(`id,user_name,user_roles,avatar,nick_name,parent_id,password,salt`).Find()
 	if err != nil {
 		logs.Error(err.Error())
 		common.FmtError(c, `sys_err`)
 		return
 	}
-	if len(info) == 0 {
+	if len(info) == 0 || tool.MD5(password+info["salt"]) != info["password"] {
 		common.FmtError(c, `user_or_pwd_err`)
 		return
 	}
+	delete(info, "password")
+	delete(info, "salt")
 	//check the ownership of the login user
 	parentId := cast.ToInt(info[`parent_id`])
 	if parentId == 0 {
